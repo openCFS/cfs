@@ -6,7 +6,6 @@
 #include <fstream>
 #include <string>
 
-#include "DataInOut/WriteInfo.hh"
 #include "General/environment.hh"
 #include "linefe.hh"
 
@@ -373,7 +372,7 @@ namespace CoupledField
     Double length;
     if (CornerCoords.GetNumRows()==2)
       {
-        //see kaltenbacher, p.23, eq.(2.122)
+        //see kaltenbacher, p. 43, eq. (2.93)
         Matrix<Double> J;
         CalcJacobian( J, LCoord, CornerCoords, elem );
         length = sqrt(J[0][0]*J[0][0] + J[1][0]*J[1][0]);
@@ -401,7 +400,7 @@ namespace CoupledField
     Double length;
     if (CornerCoords.GetNumRows()==2)
       {
-        //see kaltenbacher, p.23, eq.(2.122)
+        //see kaltenbacher, p. 43, eq. (2.93)
         Matrix<Double> J;
         CalcJacobianAtIp( J, ip, CornerCoords, elem);
         length = sqrt(J[0][0]*J[0][0] + J[1][0]*J[1][0]);
@@ -448,41 +447,6 @@ namespace CoupledField
     J = CornerCoords * ShFncDerivAtIp_[ip-1];
   }
 
-
-  void LineFE::CalcInvJacobian(Matrix<Double> & JInv,
-                               const Vector<Double> & LCoord,
-                               const Matrix<Double> & CornerCoords,
-                               const Elem* elem )
-  {
-
-    JInv.Resize(1,1);
-
-    Matrix<Double> J, LDeriv;
-
-    J.Resize(1,1);
-
-    CalcLocalDerivShapeFnc(LDeriv, LCoord, elem, 1, AnsatzFct::NODE );
-    J = CornerCoords * LDeriv;
-
-    JInv[0][0] = 1 / J[0][0];
-  }
-
-  void LineFE::CalcInvJacobianAtIp(Matrix<Double> & JInv,
-                                   const UInt ip,
-                                   const Matrix<Double> & CornerCoords,
-                                   const Elem* elem )
-  {
-
-    JInv.Resize(1,1);
-
-    Matrix<Double> J;
-
-    J.Resize(1,1);
-
-    J = CornerCoords * ShFncDerivAtIp_[ip-1];
-
-    JInv[0][0] = 1 / J[0][0];
-  }
 
   void LineFE::CoordsInsideElem(const Matrix<Double> & localCoords,
                                    const Double tolerance,

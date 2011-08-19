@@ -16,6 +16,7 @@
 
 // Required for the CFS own data types
 #include "General/environment.hh"
+#include "DataInOut/ParamHandling/ParamNode.hh"
 
 namespace po = boost::program_options;
 namespace fs = boost::filesystem;
@@ -23,7 +24,6 @@ namespace fs = boost::filesystem;
 namespace CoupledField
 {
   class ProgramOptions;
-  class InfoNode;
 
   //! Define global instance of this class
   extern ProgramOptions* progOpts;
@@ -88,6 +88,10 @@ namespace CoupledField
     std::string GetScriptFileStr() const;
 #endif
 
+    /** Return the optional ersatz  material density file
+     * @return "" if nothing given. */
+    std::string GetErsatzMaterialStr() const;
+
     //! Return path to XML schema file
 
     //! This method can be used to query the path to the XML schema file
@@ -117,17 +121,9 @@ namespace CoupledField
     //! parameter file.
     bool GetPrintGrid() const;
 
-    //! Return doProfile flag
-
-    //! This method can be used to query the status of the doProfile flag.
-    //! By specifying this flag one instructs the executable to generate
-    //! profiling information. By default system calls are used (under Linux)
-    //! to obtain information on things like e.g. memory footprint of the
-    //! simulation run.
-    //! \note The flag is only of use in the case that profiling was enabled
-    //!       during compilation by defining the PROFILING macro.
-    bool GetDoProfile() const;
-
+    /** exports the grid to the info.xml file.
+     * Might get really big!! */
+    bool DoExportGrid() const;
 
     //! Return Restart flag
 
@@ -154,8 +150,15 @@ namespace CoupledField
     bool GetForceSegFault() const;
     //@}
 
-    /** Shall we list the equation and local <-> global mapping in info.xml */
+    /** Prints large lists to info.xml. These are mostly for debug purpose
+     * but shall work with release code. The lists are:
+     * * equation lists
+     * * local <-> global mapping
+     * * constraints */
     bool DoListMapping() const;
+
+    /** Also more detailed info.xml output as with DoListMapping */
+    bool DoDetailedInfo() const;
 
     /** Is cfs invoked with the quite flag to compress console output? */
     bool IsQuiet() const;
@@ -170,7 +173,7 @@ namespace CoupledField
     void PrintHelp( std::ostream &out );
 
     /** Write the command line options to the info.xml file */
-    void ToInfo(InfoNode* in) const;
+    void ToInfo(PtrParamNode in) const;
 
     /** collects all available data to the string 
      *  It containts valuable information about the executable like the 

@@ -16,15 +16,17 @@ namespace CoupledField {
   public:
     
     //! Default constructor
-    //! \param isAxi flag indicating axi-symmetrix geometry
-    AbsorbingBCsInt( bool isAxi );
+    //! \param imp_magn math parser expression for magnitude of the impedance
+    //! \param imp_phase math parser expression for phase of the impedance
+    //! \param isAxi flag indicating axisymmetric geometry
+    AbsorbingBCsInt( bool optimalImpedance,
+                     const std::string &imp_magn,
+                     const std::string &imp_phase,
+                     bool isAxi );
 
     //! Default destructor
     virtual ~AbsorbingBCsInt();
     
-    //! Sets a multiplicative factor for element matrix
-    void SetFactor( const std::string& factor );
-
     //! Calculate elementwise matrix
     //! This method calculates the element matrix for absorbing boundary
     //! conditions of first order. 
@@ -32,7 +34,23 @@ namespace CoupledField {
                             EntityIterator& ent1, 
                             EntityIterator& ent2 );
 
+    //! Calculate elementwise matrix
+    //! This method calculates the element matrix for absorbing boundary
+    //! conditions of first order. 
+    void CalcElementMatrix( Matrix<Complex>& elemMat,
+                            EntityIterator& ent1, 
+                            EntityIterator& ent2 );
+
   private:
+    
+    //! should the impedance be absorbing optimally (i.e. ABC)?
+    bool optImp_;
+    
+    //! stores the magnitude of the impedance
+    std::string impedMagn_;
+    
+    //! stores the phase of the impedance
+    std::string impedPhase_;
     
   };
   

@@ -88,9 +88,8 @@ namespace CoupledField
 
       // starting point should be (0,0)
       if ( xx[0] != 0.0 ) {
-        std::string str = "First measured point in BH curve read from file '"
-          + fncName + "' ist not zero. We will add such a point!";
-        Warning( str.c_str(),  __FILE__, __LINE__ );
+        WARN("First measured point in BH curve read from file '"
+             << fncName << "' is not zero. We will add such a point!");
 
         numMeas_ +=1;
         x_.Resize(numMeas_);

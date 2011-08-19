@@ -275,10 +275,6 @@ void Pyra2FE :: CalcShapeFnc(Vector<Double> & Shape,
 //       Shape[11] = LCoord_2*(1-LCoord_0-LCoord_2)*(1+LCoord_1-LCoord_2)/
 //           (1-LCoord_2);
 
-//   if (Shape[4] < 0)
-//     Error("Local coordinates are not inside pyramidal element!",
-//    __FILE__,__LINE__);
-
 }
 
 

@@ -10,6 +10,7 @@
 #include "staticdriver.hh"
 #include "transientdriver.hh"
 #include "harmonicDriver.hh"
+#include "eigenFrequencyDriver.hh"
 
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "PDE/SinglePDE.hh"
@@ -41,7 +42,7 @@ namespace CoupledField {
   }
 
 
-  void MultiSequenceDriver::SolveProblem(bool write_results, InfoNode* given_analysis_id) {
+  void MultiSequenceDriver::SolveProblem(bool write_results, PtrParamNode given_analysis_id, AdjointParameters* adjointParams) {
     // options not implemented
     assert(write_results == true);
 
@@ -53,7 +54,7 @@ namespace CoupledField {
     // of a PDE
     StdVector<shared_ptr<PDEMemento> > memento;
 
-    Info->StartProgress("Starting to solve problem",false);
+    std::cout << "++ Starting to solve problem" << std::endl;
 
     // get resultHandler
     ResultHandler * resHandler = domain->GetResultHandler();
@@ -79,6 +80,9 @@ namespace CoupledField {
       }
       else if (analysisPerStep_[iStep] == BasePDE::HARMONIC) {
         actDriver_ = new HarmonicDriver( iStep+1, true );
+      }
+      else if( analysisPerStep_[iStep] == BasePDE::EIGENFREQUENCY ) {
+        actDriver_ = new EigenFrequencyDriver( iStep+1, true );
       }
     
 
@@ -163,13 +167,13 @@ namespace CoupledField {
     
 
     // get nodes for all sequencesteps
-    StdVector<ParamNode*> seqNodes = param->GetList("sequenceStep");
+    ParamNodeList seqNodes = param->GetList("sequenceStep");
 
 
     // 1.) Fill vector with step indices and ensure that all occur
     std::set<UInt> stepIndices;
     for( UInt i = 0; i < seqNodes.GetSize(); i++ ) {
-      UInt actStepIndex = seqNodes[i]->Get("index")->AsUInt();
+      UInt actStepIndex = seqNodes[i]->Get("index")->As<UInt>();
       if( stepIndices.find( actStepIndex ) != stepIndices.end() ) {
         EXCEPTION( "Multisequence step with index " << actStepIndex
                    << " occurs more than one time!") ;
@@ -198,12 +202,12 @@ namespace CoupledField {
     for( UInt iStep = 0; iStep < numSteps_; iStep++) {
       
       // get current step node
-      ParamNode * actStepNode = 
-        param->Get("sequenceStep", "index", GenStr(iStep+1) );
+      PtrParamNode actStepNode = 
+        param->GetByVal("sequenceStep", std::string("index"), iStep+1);
 
       // get current usage type 
       std::string usageString;
-      actStepNode->Get( "usage", usageString );
+      actStepNode->GetValue( "usage", usageString );
       if( usageString == "startValue") {
         usageDirichletPerStep_[iStep] = false;
       } else {
@@ -217,7 +221,7 @@ namespace CoupledField {
       analysisPerStep_[iStep] = BasePDE::analysisType.Parse(analysisString);
       
       // get all pde-nodes in current sequence step
-      StdVector<ParamNode*> pdeNodes;
+      ParamNodeList pdeNodes;
       pdeNodes = actStepNode->Get("pdeList")->GetChildren();
       
       // iterate over all pdes

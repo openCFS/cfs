@@ -26,7 +26,7 @@ namespace CoupledField {
     //@{ \name Constructor / Initialization
     
     //! Constructor with name of mesh-file
-    SimInputMESH(std::string fileName, ParamNode * inputNode);
+    SimInputMESH(std::string fileName, PtrParamNode inputNode);
     
     //! Destructor
     virtual ~SimInputMESH();
@@ -151,8 +151,8 @@ namespace CoupledField {
     //!                       \c [nodeNr]
     //! \param nodeNames (output) vector containing the corresponding
     //!                           node names 
-    void GetNamedNodes( std::vector<StdVector<UInt> > & nodes,
-                        std::vector<std::string> & nodeNames );
+    void GetNamedNodes(StdVector<StdVector<UInt> > & nodes,
+                       StdVector<std::string> & nodeNames );
 
     //! Read all named elements
 
@@ -162,65 +162,15 @@ namespace CoupledField {
     //!                       \c [elemNr]
     //! \param elemNames (output) vector containing the corresponding
     //!                           element names 
-    void GetNamedElems( std::vector<StdVector<UInt> > & elems,
-                        std::vector<std::string> & elemNames );
+    void GetNamedElems(StdVector<StdVector<UInt> > &elems,
+                       StdVector<std::string> &elemNames );
     //@}
-    /*
-
-    #ifdef ADAPTGRID
-    //! Read the mesh from mesh-file for Grid_RG
-    //! \param elems out: vector with elements
-    //! \param vertex out: vector with vertices
-    //! \param sd in: vector with color of subdomains which is put in Grid_RG
-    void ReadGrid_RG( std::vector<grd::Element*> & elems,
-    std::vector<grd::Vertex*> * vertex,
-    const std::vector<std::string> sd );
-
-    //! Read the mesh from mesh-file for Grid_RG
-    //! \param elems out: vector with elements
-    //! \param vertex out: vector with vertices
-    //! \param sd in: vector with color of subdomains which is put in Grid_RG
-    void ReadBCs_GridRG( std::vector<UInt> &idBCs,
-    std::vector<UInt> &colorBCs );
-    #endif
-
-    */
+    
 
     // =========================================================================
     // GENERAL SOLUTION INFORMATION
     // =========================================================================
     //@{ \name General Solution Information
-    //! Return multisequence steps and their analysistypes
-    virtual void GetNumMultiSequenceSteps( std::map<UInt, BasePDE::AnalysisType>& analysis,
-                                           std::map<UInt, UInt>& numSteps,
-                                           bool isHistory = false ) {
-      analysis.clear();
-      numSteps.clear();
-    }
-    
-    //! Obtain list with result types in each sequence step
-    virtual void GetResultTypes( UInt sequenceStep, 
-                                 StdVector<shared_ptr<ResultInfo> >& infos,
-                                 bool isHistory = false ) {
-      infos.Clear();
-    }
-    
-    //! Return list with time / frequency values and step for a given result
-    virtual void GetStepValues( UInt sequenceStep,
-                                shared_ptr<ResultInfo> info,
-                                std::map<UInt, Double>& steps,
-                                bool isHistory = false ) {
-      steps.clear();
-    }
-    
-    //! Return entitylist the result is defined on
-    virtual void GetResultEntities( UInt sequenceStep,
-                                    shared_ptr<ResultInfo> info,
-                                    StdVector<shared_ptr<EntityList> >& list,
-                                    bool isHistory = false) {
-      list.Clear();
-    }
-    
     //! Fill pre-initialized results object with values of specified step
     virtual void GetResult( UInt sequenceStep,
                             UInt stepValue,
@@ -323,25 +273,6 @@ namespace CoupledField {
     std::string::size_type pos_end;
 
     //@}
-
- #ifdef ADAPTGRID
-    //! read 2d elements from the input mesh-file for the Grid_RG 
-    void ReadEl4AdaptGrid2d( std::vector<grd::Element*> &elems,
-                             std::vector<grd::Vertex*> *vertices,
-                             const std::vector<std::string> sd );
-
-    //! read 3d elements from the input mesh-file for the Grid_RG 
-    void ReadEl4AdaptGrid3d( std::vector<grd::Element*> &elems,
-                             std::vector<grd::Vertex*> *vertices,
-                             const std::vector<std::string> sd );
-
-    //! for each element of the mesh in format of Grid_RG set value:
-    //! color of subdomain
-    //! \param namesd name of the subdomain
-    //! \param sd vector with colors of all subdomains
-    void SetNumSD(grd::Element *ptEl, const std::string namesd,
-                  const std::vector<std::string> sd );
- #endif
 
   };
 

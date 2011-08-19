@@ -15,8 +15,8 @@ namespace CoupledField {
   // ============
   //   calcBMat
   // ============
-  void nlinElecHystInt::calcBMat( Matrix<Double> &bMat, UInt ip,
-                                  Matrix<Double> &ptCoord ) {
+  void nlinElecHystInt::CalcBMat( Matrix<Double> &bMat, UInt ip,
+                                  const Matrix<Double> &ptCoord ) {
 
 
     // Obtain info on number of element's nodes
@@ -115,10 +115,7 @@ namespace CoupledField {
 				 shared_ptr<ResultInfo> result) {
     
     EfieldOp_ =  new GradientFieldOp<Double>(ptGrid, ptPDE, 
-					     eqnMap, *sol_, 
-					     ELEC_POTENTIAL, 
-					     result, isaxi_, 
-					     coordUpdate_);
+					     eqnMap, *sol_, result->fctType, isaxi_, coordUpdate_);
     std::string str;
     ptMaterial->GetScalar(str, P_DIRECTION);
     Directions dir;

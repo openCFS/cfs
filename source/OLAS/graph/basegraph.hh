@@ -7,8 +7,9 @@
 
 #include <iostream>
 #include <vector>
-#include "OLAS/algsys/olasparams.hh"
+
 #include "General/environment.hh"
+#include "baseordering.hh"
 
 
 // Variation of the GRAPH-Implementation
@@ -23,7 +24,6 @@
 
 
 namespace CoupledField {
-
 
   //! Base Class for handling the graph associated with a matrix
   //! This class represents the base class for all classes related to the
@@ -61,7 +61,7 @@ namespace CoupledField {
     //! \note In the current implementation we use nRows to set the value of
     //!       the numNodes_ attribute, i.e. we generate a vertex for each
     //!       row of the matrix.
-    BaseGraph( UInt nRows, UInt nCols, ReorderingType reorder );
+    BaseGraph( UInt nRows, UInt nCols, BaseOrdering::ReorderingType reorder );
 
     //! Insert data into a graph
 
@@ -76,7 +76,7 @@ namespace CoupledField {
     //! \param reorder  Specifies the re-ordering strategy to be applied to
     //!                 to the graph once it was completely assembled.
     BaseGraph( UInt nRows, UInt nCols, UInt numEdge, UInt *cs_node,
-               UInt *cs_edge, ReorderingType reorder );
+               UInt *cs_edge, BaseOrdering::ReorderingType reorder );
 
     //! Default destructor
     virtual ~BaseGraph();
@@ -123,10 +123,9 @@ namespace CoupledField {
 
 #ifdef DEBUG_BASEGRAPH
       if ( amAssembled_ == false ) {
-        (*error) << "Attempt to obtain information from graph object, "
+        EXCEPTION("Attempt to obtain information from graph object, "
                  << "before assembly was completed by calling "
-                 << "FinaliseAssembly()";
-        Error( __FILE__, __LINE__ );
+                 << "FinaliseAssembly()");
       }
 #endif
 
@@ -207,10 +206,9 @@ namespace CoupledField {
 
 #ifdef DEBUG_BASEGRAPH
       if ( amAssembled_ == false ) {
-        (*error) << "Attempt to obtain information from graph object, "
+        EXCEPTION("Attempt to obtain information from graph object, "
                  << "before assembly was completed by calling "
-                 << "FinaliseAssembly()";
-        Error( __FILE__, __LINE__ );
+                 << "FinaliseAssembly()");
       }
 #endif
 
@@ -281,7 +279,7 @@ namespace CoupledField {
     // =======================================================================
 
     //! Strategy for re-ordering the graph
-    ReorderingType newOrder_;
+    BaseOrdering::ReorderingType newOrder_;
 
     //! Keep track of wether the graph has been reordered
     bool amReordered_;
@@ -292,7 +290,7 @@ namespace CoupledField {
     //! in iorder_. Currently, the ordering is obtained using Metis.
     //! If METIS is not defined, the ordering will be identity. 
     //! If the graph is not compressed, it will be compressed now.
-    void Reorder( ReorderingType newOrder, StdVector<UInt>& order );
+    void Reorder( BaseOrdering::ReorderingType newOrder, StdVector<UInt>& order );
 
 
     // =======================================================================

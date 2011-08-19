@@ -29,6 +29,10 @@ namespace CoupledField
 
     if(settings.GetString("docu") == "PDF")
       GetPDFDocumentation(doc);
+    else
+    {
+      EXCEPTION("Wrong type of argument: docu-argument may just be PDF (in capital letters)'");
+    }
 
     if(!doc.size())
       return;
@@ -52,12 +56,10 @@ namespace CoupledField
       docFile.close();
     }
 
-    std::cout << "Documentation for cplreader has been written to:"
+    std::cout << "Documentation for cplreader has been written to the directory:"
               << std::endl << std::endl
-              << "   " << docDir;
-    if(settings.GetString("docu") == "PDF")
-      std::cout << pathsep<< doc.begin()->first
-                << std::endl << std::endl;
+              << "   " << docDir
+              << std::endl << std::endl;
   }
   
 } // end of namespace

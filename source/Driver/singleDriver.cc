@@ -6,8 +6,7 @@
 
 #include "PDE/basePDE.hh"
 #include "Domain/domain.hh"
-#include "DataInOut/WriteInfo.hh"
-#include "DataInOut/ParamHandling/InfoNode.hh"
+#include "DataInOut/ParamHandling/ParamNode.hh"
 
 namespace CoupledField{
 
@@ -38,12 +37,11 @@ namespace CoupledField{
       domain->CreatePDEs( 1 );
       ptPDE_ = domain->GetBasePDE();
 
+      domain->InitPDEs( 1 );
       // Trigger reading of restart file
       ReadRestart();
 
-      domain->InitPDEs( 1 );
-     
-      Info->StartProgress ("Starting to solve problem", false);
+      std::cout << "++ Starting to solve problem" << std::endl;
     }
   }
 

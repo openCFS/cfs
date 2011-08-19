@@ -1,172 +1,396 @@
 \chapter{Optimization}
-The optimization part allows the shape, topology and material optimization of special problem. It is not a general optimization tool for arbitrary problems.
+The optimization part allows the shape, topology and material optimization of special problems. It is not a general optimization tool for arbitrary problems.
 
-Optimization is enabled by appending an \xml{optimization} element after the \xml{sequenceStep} element. Generally one has to add additional result types to the \xml{storeResults} of the simulation problem.
+Optimization is enabled by appending an \xel{optimization} element after
+the \xel{sequenceStep} element. Generally one has to add additional result types
+to the \xel{storeResults} of the simulation problem to visualize the optimization result.
 
-This are the main elements for defining an optimization problem:
+The main elements defining an optimization problem are:
 \begin{itemize}
-  \item The optimization problem with cost function and constraints
-  \item The optimizer which is the tool that actually solves the problem
-  \item A concretion of the optimization problem
+  \item The optimization problem with cost function(s) and constraints.
+  \item The optimizer which is the tool that actually solves the problem.
+  \item A concretion of the optimization problem.
 \end{itemize}
 
-\section{The \xml{optimization} element}
+\section{The \xel{optimization} element}
 \label{sec:optimization}
-The main element is \xml{optimization}, it has a single attribute
+\subsection{Gnuplot log file}
+The main element \xel{optimization} has a single attribute
 
-\begin{center}
-\begin{tabular}{lll}
-\toprule 
-Attribute & Values & Description \\
-\midrule
-log & \textit{filename} & disable or name gnuplot log file. \\
-\bottomrule
-\end{tabular} \\[0.5ex]
-Attributes of major element \xml{optimization}
-\end{center}
-If the attrribute is not \xml{false}, a gnuplot file with optimization details
-is created as ``\textit{filename}.plot.dat''. The special values for \textit{filename} \xml{true} or \xml{[problem]} (default) take the simulation name. 
+\begin{xatlist} {Attributes of \xel{optimization} element}
+\xat{log} & \xatv{filename} & disable or name gnuplot log file.
+\end{xatlist}
 
-\subsection{Cost function}
+If the attrribute is not \xatv{false}, a gnuplot file with optimization
+details is created as ``\xatv{filename}.plot.dat''. The simulation name is
+used for the special values \xatv{true} or \xatv{[problem]} (default).
+
+The same information is also stored within the \textit{info.xml} file and can 
+extracted via \textit{optimization\_iterations.xsl}.
+
+\section{Cost Function}
 \label{sec:cost_function}
-It is mandatory to define a \xml{costFunction} element within \xml{optimization}. The attributes trigger the subelements to be read. In other words, if an subelement is not triggered by an attribute it is ignored.
+It is mandatory to define a \xel{costFunction} element within
+\xel{optimization}. The objective function(s) trigger the reading of sub elements. Subelements not required by the objecitve(s) are ignored.
 
-\begin{center}
-\begin{tabular}{lll}
-\toprule 
-Attribute & Values & Description \\
-\midrule
-type & \textit{objective} & see Section \ref{sec:optimization_problem} \\
-task & \xml{minimize}, \xml{maximize} & minimization is default. \\
-stoppingRule & \xml{relative} & see Section \ref{sec:stopping_rule}. \\
-value & \textit{real number} & see Section \ref{sec:stopping_rule}. \\
-queue & \textit{integer} & see Section \ref{sec:stopping_rule}. \\
-multiple\_excitation & \xml{true}, \xml{false} & trigger element \xml{multipleExcitation}.\\ 
-\bottomrule
-\end{tabular} \\[0.5ex]
-Attributes of \xml{costFunction} within \xml{optimization}
-\end{center}
+\begin{xatlist}{Description of \xel{costFunction}}
+\xat{type} & \xatv{objective} & \xatv{multiObjectice} or see Section
+\ref{sec:optimization_problem} \\
+%
+\xat{task} & \xatv{minimize}, \xatv{maximize} & minimization
+is default. \\
+%
+\xat{multiple\_excitation} & \xatv{true}, \xatv{false} &
+trigger element \xel{multipleExcitation}.\\
+%
+\xat{coord} & \xatv{11}, \xatv{22}, \ldots & only for \xatv{homTensor} 
+\end{xatlist}
 
-\subsubsection{Optimization Problem}
-\label{sec:optimization_problem}
-The type of problem to be optimized is called ``cost function'' or ``objective function''. Here we use the symbol $J$. It is defined as attribute \xml{type} in the element \xml{costFunction}. The following cost functions are defined:
+The type of problem to be optimized is called ``cost function'' or ``objective
+function''. Here we use the symbol $J$. 
 
-\subsubsection*{compliance}
-Only defined for static mechanics. Makes only sense with minimization, hence we have
-\begin{equation}
-  J = {\bf u}^T {\bf f} = {\bf u}^T {\bf K_{uu}} {\bf u} \textrm{ as } {\bf K_{uu}}{\bf u} = {\bf f}.   
-\end{equation}
-This can be interpreted as the minimization of the mechanical energy, the maximization of the stiffness or the minimization of the displacement at the point and in the location an external force is applied. 
+\subsection{Pure Objective Functions}
+\label{sec:pure_objectives}
+Cost functions are set by \xat{type} in the element \xel{costFunction}. The following cost functions
+are pure costfunctions. Functions which can be either used as objective or constraint are given in the
+next section.
 
-\subsubsection*{conjugateCompliance}
-This is the time harmonic variant of compliance. It describes the problem
+
+\subsubsection{\xatv{conjugateCompliance}}
+This is the time harmonic variant of \xat{compliance}. It describes the problem
 \begin{equation}
   J = {\bf \bar{u}}^T {\bf \bar{S}_{uu}}{\bf \bar{u}}^*,
 \end{equation}
-where all elements are complex, ${\bf \bar{S}_{uu}}$ is a combination of stiffness, damping and mass matrix and ${\bf \bar{u}}^*$ is the conjugate complex displacement vector of the global solution.
+where all elements are complex, ${\bf \bar{S}_{uu}}$ is a combination of
+stiffness, damping and mass matrix and ${\bf \bar{u}}^*$ is the conjugate
+complex displacement vector of the global solution.
 
-\subsubsection*{globalDynamicCompliance}
+\subsubsection{\xatv{globalDynamicCompliance}}
 This is again a harmonic, mechanical based objective function. It is given as 
 \begin{equation}
   J =  {\bf \bar{u}}^T {\bf \bar{u}}^*.
 \end{equation}
 This is a pure geometric objective function describing the total deformation.
 
-\subsubsection*{tracking}
-This is a static mechanic objective function. It makes only sense with minimization, the problem is given as 
-\begin{equation}
-  min = \frac{1}{2} \| {\bf u} - {\bf u}_* \|^2,
-\end{equation}
-where ${\bf u}_*$ is a predefined deformation. The problem is to minimize the least square error of the actual displacement ${\bf u}$ to the predefined one. Common is the notation ${\bf u}^*$ instead of ${\bf u}_*$ but this could create confusion with the conjugate complex. ${\bf u}_*$ is defined within the element \xml{tracking}, a subelement of \xml{ersatzMaterial}.
-
-\begin{center}
-\begin{tabular}{lll}
-\toprule 
-Attribute & Values & Description \\
-\midrule
-name & \textit{nodes} & name of nodes \\
-dof & \xml{x}, \xml{y}, \xml{z} & orthogonal direction of nodes \\
-value & \textit{read number} & commonly 1 or -1 \\
-\bottomrule
-\end{tabular} \\[0.5ex]
-Attributes of \xml{tracking} element within \xml{ersatzMaterial}.
-\end{center}
-
-\subsubsection*{output}
-This static objective function for mechanic, acoustic and piezoeletricity allows the optimization
-of arbitrary parts of the solution (displacement and potential). Typically one maximizes here but also a minimization can make sense. This objective is also called ``synthesis of compliant mechanisms'' by Bends{\o}e and Sigmund as it alows to optimize for force invertes, grippers or simply maximal displacement of actors. The function is given as
+\subsubsection{\xatv{output}}
+This static objective function for mechanic, acoustic and piezoeletricity allows
+the optimization
+of arbitrary parts of the solution (displacement and potential). Typically one
+maximizes here but also a minimization can make sense. This objective is also
+called ``synthesis of compliant mechanisms'' by Bends{\o}e and Sigmund as it
+alows to optimize for force invertes, grippers or simply maximal displacement of
+actors. The function is given as
 \begin{equation}
   J = {\bf \hat{u}}^T {\bf l},
 \end{equation}
-where $\bf l$ is vector multiplies with the global solution vector $\bf \hat{u}$. In the pure mechanical case $\bf \hat{u}$ is the global displacement vector $\bf u$, in the piezoelectric case $\bf \hat{u}$ consists of mechanical displacements and electric potential $\bm \phi$. The relevant nodes are set within the \xml{output} element within the \xml{costFunction} element. There might be multiple elements within \xml{output}.
+where $\bf l$ is vector multiplies with the global solution vector $\bf
+\hat{u}$. In the pure mechanical case $\bf \hat{u}$ is the global displacement
+vector $\bf u$, in the piezoelectric case $\bf \hat{u}$ consists of mechanical
+displacements and electric potential $\bm \phi$. 
 
-\begin{center}
-\begin{tabular}{lll}
-\toprule 
-Attribute & Values & Description \\
-\midrule
-name & \textit{nodes} & name of nodes \\
-dof & \xml{x}, \xml{y}, \xml{z} & orthogonal direction of nodes \\
-value & \textit{real number} & commonly 1 or -1 \\
-\bottomrule
-\end{tabular} \\[0.5ex]
-Attributes of the \xml{displacement} element within \xml{output}.
-\end{center}
+The relevant nodes are set within the \xel{output} element within the \xel{costFunction} element. There
+might be multiple elements within \xel{output}.
 
-\begin{center}
-\begin{tabular}{lll}
-\toprule 
-Attribute & Values & Description \\
-\midrule
-name & \textit{nodes} & name of nodes \\
-value & \textit{real number} & commonly 1 or -1 \\
-\bottomrule
-\end{tabular} \\[0.5ex]
-Attributes of the \xml{elecPotential} element within \xml{output}.
-\end{center}
+\begin{xatlist}{Attributes of the \xel{displacement} element within
+\xel{output}}
+\xat{name} & \textit{nodes} & name of nodes \\
+\xat{dof} & \xatv{x}, \xatv{y}, \xatv{z} & orthogonal direction of
+nodes \\
+\xat{value} & \textit{real number} & commonly 1 or -1 
+\end{xatlist}
+
+\begin{xatlist}{Attributes of the \xel{elecPotential} element within
+\xel{output}}
+\xat{name} & \textit{nodes} & name of nodes \\
+\xat{value} & \textit{real number} & commonly 1 or -1
+\end{xatlist}
 
 
-Internally there is an adjoint equation solved within each iteration with $\bf l$ as right hand side (acting as a kind of pseudo load). This can be confirmed by exporting the linear system or commiting the adjoint solution via the \xml{commit} element within \xml{ersatzMaterial}.
+Internally there is an adjoint equation solved within each iteration with $\bf
+l$ as right hand side (acting as a kind of pseudo load). This can be confirmed
+by exporting the linear system or commiting the adjoint solution via the
+\xel{commit} element within \xel{ersatzMaterial}.
  
-\subsubsection*{dynamicOutput}
-This is the time harmonic variant of \textbf{output}. It is given as
+\subsubsection{\xatv{dynamicOutput}}
+This is the time harmonic variant of \xel{output}. It is given as
 \begin{equation}
   J = {\bf \hat{u}}^T {\bf L} {\bf \hat{u}}^*,
 \end{equation} 
-where $\bf L$ is a diagonal matrix with a trace corresponding to $\bf l$. All from \textbf{output} applies here, too. Furtheremore it is possible to optimize withi the acoustic domain for the acoustic potential $\bm \Psi$ or acoustic pressure $\bf p$ as part of $\bf \hat{u}$. 
+where $\bf L$ is a diagonal matrix with a trace corresponding to $\bf l$. 
 
-\begin{center}
-\begin{tabular}{lll}
-\toprule 
-Attribute & Values & Description \\
-\midrule
-name & \textit{nodes} & name of nodes \\
-value & \textit{real number} & commonly 1 or -1 \\
-quantity= & \xml{acouPotential}, \xml{acouPressure} & has to match simulation \\
-\bottomrule
-\end{tabular} \\[0.5ex]
-Attributes of the \xml{acoustic} element within \xml{output}.
-\end{center}
+The same mandatory \xel{output} element given for \xatv{output} is required. 
+Furtheremore it is possible to optimize within the acoustic domain for the acoustic potential $\bm \Psi$ or acoustic
+pressure $\bf p$ as part of $\bf \hat{u}$. 
 
-\subsubsection*{volume}
-??? \ldots Bastian
+\subsubsection{\xatv{tracking}}
+This is a static mechanic objective function. It makes only sense with
+minimization, the problem is given as 
+\begin{equation}
+  min = \frac{1}{2} \| {\bf u} - {\bf u}_* \|^2,
+\end{equation}
+where ${\bf u}_*$ is a predefined deformation. The problem is to minimize the
+least square error of the actual displacement ${\bf u}$ to the predefined one.
+Common is the notation ${\bf u}^*$ instead of ${\bf u}_*$ but this could create
+confusion with the conjugate complex. ${\bf u}_*$ is defined within the element
+\xel{tracking}, a subelement of \xel{ersatzMaterial}.
 
-\subsubsection{Factor}
+\begin{xatlist}{Attributes of \xel{tracking} element within
+\xel{ersatzMaterial}}
+\xat{name} & \textit{nodes} & name of nodes \\
+\xat{dof} & \xatv{x}, \xatv{y}, \xatv{z} & orthogonal direction of
+nodes \\
+\xat{value} & \textit{read number} & commonly 1 or -1 
+\end{xatlist} 
+
+
+\begin{xatlist}{Attributes of the \xel{acoustic} element within \xel{output}}
+\xat{name} & \textit{nodes} & name of nodes \\
+\xat{value} & \textit{real number} & commonly 1 or -1 \\
+\xat{quantity} & \xatv{acouPotential}, \xatv{acouPressure} & has to match
+simulation
+\end{xatlist}
+
+
+\subsection{Objective or Constraint Functions}
+\label{sec:objectives_constraints}
+The following objective functions can also be used as constraint functions but are only
+expained once.
+
+\subsubsection{\xatv{compliance}}
+Only defined for static mechanics. Makes only sense with minimization:
+\begin{equation}
+  J = {\bf u}^T {\bf f} = {\bf u}^T {\bf K_{uu}} {\bf u} \textrm{ as } {\bf
+K_{uu}}{\bf u} = {\bf f}.   
+\end{equation}
+This can be interpreted as the minimization of the mechanical energy, the
+maximization of the stiffness or as the minimization of the displacement at the
+point and in the location an external force is applied. 
+
+\subsubsection{\xatv{volume}}
+Gives the amount of used material, also called volume fraction or volume.
+\begin{equation}
+  J = \frac{1}{V_*}\sum_e^{NE} \rho_e V_e.
+\end{equation}
+Here $NE$ ar all design elements, $\rho_e$ is the pseudo density for a single
+design element, $V_e$ is the volume fraction of this design element. $V_*$
+is the total volume of all design elements if all were filled. Hence $J$ is normalized 
+to $\rho_{\min} \ldots 1$.
+
+Note that for SIMP, the \textit{active} densities in the PDE are penalized. Only for a
+distinct black-white design is the error between volume of penalized material and pure material negletible.
+Note, that \xatv{penalizedVolume} does not solve this problem.
+
+\subsubsection{\xatv{penalizedVolume}}
+This formulation is taken from O. Sigmund's Ph.D. thesis. It assumes that for SIMP no
+penalization is applied but the penalization is handled by 
+\begin{equation}
+  J = \frac{1}{V_*}\sum_e^{NE} \rho_e^p V_e.
+\end{equation}
+
+Here, $p$ is the penalization parameter to be given in mandatory the \xat{parameter} attribute. To penalize $p$ needs
+to be $< 1$. See \xat{volume} for the other terms.
+
+\subsection{Homogenization: \xatv{homTensor}}
+Performing homogenization it necessary to the whole boundary by periodic boundary conditions by \xel{periodic} in the \xel{bcsAndLoads} section. Furthermore needs the initial design to be non-homogeneous by defining an appropriate \xel{loadErsatzMaterial} section. It is advisable to define a homogeneous Drichlet B.C. within the domain to ensure a unique
+solution and allow the use of the \xel{cholmod} solver.
+
+It is necessary to set the \xat{multiple\_excitation} to \xatv{true} within \xel{costFunction}. Also within \xel{costFunction}
+the element \xel{multipleExcitation} needs to be given with the attribute \xat{type} set to \xatv{homogenizationTestStrains}.
+
+When used as \textbf{objective} and no \xat{coord} attribute is given, the homogenized tensor is obtained. This is the \textit{forward homogenization}. Optimization is called \textit{inverse homogenization} and \xat{coord} is required. The valid attributes are \xatv{11}, \xatv{12}, \xatv{21}, \xatv{22}, \xatv{33}. 
+
+Together with an \xatv{isotropy} constraint \xatv{11} approximately optimizes the Young's modulus and \xatv{12} the Poisson's ratio.  
+
+When used as \textbf{constraint} either one can give the whole tensor by \xel{tensor} or \xel{isotropic} (see secion about  \xatv{homTracking}) or a selected entries by \xat{coord}. Multiple constraints for different \xat{coord} are possible. It might be interesting to monitor tensor entries not subject to a constraint via \xat{mode} set to \xatv{observation} in \xel{constraint}. You might also want to set the constraint log the error by setting \xat{log\_delta} to \xatv{true} within \xel{constraint}. 
+
+
+\subsection{Tracking of a Homogenized Tensor: \xatv{homTracking}}
+
+This is the tracking function 
+\begin{equation}
+ J = \frac{1}{2} || [c]^*-[c]^H||^2.
+\end{equation}
+The matrix norm is 
+\begin{equation}
+|| [a] - [b] || = \sum_{i,j} (a_{ij} - b_{ij})^2
+\end{equation}
+where the sum traverses over all entries. The \xat{coord} attribute must not be used.
+
+The target tensor $[c]^*$ can be given as \xel{tensor} element 
+\begin{xmllisting}
+<tensor dim1="3" dim2="3">
+  <real>
+    0.05  -0.025  0.0
+   -0.025  0.05   0.0
+    0.0    0.0    0.01
+  </real>
+</tensor>      
+\end{xmllisting}
+for 2D respectively a $6 \times 6$ version for 3D or by its isotropic properties
+\begin{xmllisting}
+<isotropic>
+  <real>
+    <elasticityModulus>100</elasticityModulus>
+    <poissonNumber>0.4</poissonNumber>
+  </real>
+</isotropic>
+\end{xmllisting}
+The \textit{info.xml} file can be checked for the actual tensor given by \xel{isotropic}.
+
+
+
+\subsection{Stopping Rule}
+% \xat{stoppingRule} & \xatv{relative} & see Section
+% \ref{sec:stopping_rule}. \\
+% %
+% \xat{value} & \xatv{real number} & see Section
+% \ref{sec:stopping_rule}. \\
+% \xat{queue} & \xatv{integer} & see Section \ref{sec:stopping_rule} \\
+
+\subsection{Factor}
 \label{sec:factor}
-For the objective function \textbf{dynamicOutput} only, one can define a factor, multiplying $\omega^2$ so that we get
+For the objective function \textbf{dynamicOutput} only, one can define a factor,
+multiplying $\omega^2$ so that we get
 \begin{equation}
   J = \omega^2 {\bf \hat{u}}^T {\bf L} {\bf \hat{u}}^*,
 \end{equation} 
-where $\omega$ is the frequency in $\textrm{s}^{-1}$. This corresonds to the time derivative of $\bf \hat{u}$, e.g. velocity instead of displacement.
+where $\omega$ is the frequency in $\textrm{s}^{-1}$. This corresonds to the
+time derivative of $\bf \hat{u}$, e.g. velocity instead of displacement.
 
-\begin{center}
-\begin{tabular}{lll}
-\toprule 
-Attribute & Values & Description \\
-\midrule
-omega\_omega & \xml{true}, \xml{false} & control multiplication with $\omega^2$ \\
-\bottomrule
-\end{tabular} \\[0.5ex]
-Attributes of the \xml{factor} element within \xml{costFunction}.
-\end{center}
+\begin{xatlist}{Attributes of the \xel{factor} element within
+\xel{costFunction}}
+\xat{omega\_omega} & \xatv{true}, \xatv{false} & control multiplication
+with $\omega^2$ 
+\end{xatlist}
 
+\section{Constraints}
+\label{sec:constraints}
+Some cost functions and constraint functions are interchangeable. Via the
+\xat{mode} attribute a constraint can be set to \xml{observation} mode. Multiple
+\xel{constraint} elements are possible (0 \ldots *). 
+
+\begin{xatlist}{Attributes of \xml{constraint} within \xml{optimization}}
+\xat{name} & \textit{constraint} & see Section \ref{sec:constraints} \\
+\xat{type} & \xatv{equal}, \xatv{lowerBound}, \xatv{upperBound} &
+equality or inequality
+constraint \\ 
+\xat{value} & \textit{real numer} & associated to type \\ 
+\xat{mode} & \xatv{constraint}, \xatv{observation} & set constraint to active
+(default)\\
+\xat{design} & \textit{design variable} & specification on multiple design
+variable
+case \\
+\xat{parameter} & \textit{real number} & parameter for special constraints \\
+\xat{penalty} & \textit{real number} & for the level set method \\
+\xat{region} & \textit{region}, \xatv{all} & specification on multiple regions
+\\
+\xat{scaling} & \textit{real number} & scales for the optimizer \\  
+\xat{coord} & \xatv{all}, \xatv{11}, \ldots & mandatory for
+\xatv{homogenizationTensor}
+and \xatv{homogenizationTracking}
+\end{xatlist}
+
+Several constraint functions can also be used as objective functions, they are given in Section \ref{sec:objectives_constraints}. The remaining implemented constraint functions are given below.
+
+\subsection{Pure Constraint Functions}
+\label{sec:pure_constraints}
+
+\subsubsection{Isotropic Homogenized Tensor: \xatv{isotropy}}
+Optimizing for the homogenized tensor by \xatv{homTensor} isotropy can be required by constraint \xatv{isotropy}. It internally creates several \xatv{homTensor} constraints for all tensor entries by \xat{coord}. This is reflected in the \textit{info.xml} file. The \xat{value} attribute must not be given. 
+
+\subsubsection{Slope Constraints: \xatv{slope}}
+Slope constraints (Petersson and Sigmund; 1998) prevent checkerboards and ensure (unique) existence of the solution. The
+are an alternative to use filters as \xel{regularization}.   
+
+For every element with a neighbor to the positive $x, y (,z)$-direction two inequality constraints of the following form are created:
+\begin{eqnarray}
+  \rho_{i+1} - \rho_i &\leq& c\,h  \\
+  \rho_{i+1} - \rho_i &\geq& - c \, h,
+\end{eqnarray}
+where $h$ is the element spacing to the $x, y (,z)$-direction. It is determined automatically and given in the \textit{info.xml} file. The parameter $c$ is the value of the mandatory attribute \xat{parameter} within \xel{constraint}.
+
+The slope can be visualized by \xel{result} with \xat{value} set to \xatv{maxSlope}.
+
+Only the external optimizer \xatv{snopt} is able to handle the large number of constraints.
+
+\subsubsection{Monitor the Checkerboard: \xatv{checkerboard}}
+The \xatv{checkeboard} measure is not implemented as active constraint but only for \xat{mode} is \xatv{observe}. It measures local oscillations only and is applied for every element direct neighbors to all directions. It is the sum over all dimensions over all elements of the following terms:
+\begin{eqnarray}
+  g_{\mathrm{larger}}(\rho_i)  & = & \max(\rho_i - \max(\rho_{i-1}, \rho_{i+1}), 0) \\
+  g_{\mathrm{smaller}}(\rho_i) & = & \max(\min(\rho_{i-1}, \rho_{i+1}) - \rho_i, 0) \\
+\end{eqnarray}
+
+
+\section{Selecting the optimizer}
+The optimier is the (external) tool which actually solves the optimization problem. It is mandatory
+
+\begin{xatlist}{Attributes of \xel{optimizer} element}
+\xat{type} & \xatv{scpip}, \ldots & see below \\
+\xat{maxIteration} & \textit{integer} & maximum number of iterations
+\end{xatlist}
+
+\subsection{Autoscale}
+This elelement is optional. It scales the objective function and its gradient by $s = \left\| \frac{\partial J(0)}{\partial \rho_e} \right\|_{\infty}^{-1}$ what makes it easier for \xatv{scpip}, \xatv{ipopt} and \xatv{snopt} to solve the problem. Otherwise may realistic material properties lead to gradients of such low magnitdue that the optimizer stops. The optimal scaling is logged to \textit{info.xml} and the \textit{log.dat} file. 
+
+\begin{xatlist}{Attributes of \xel{autoscale} element}
+\xat{target} & \textit{real} & the objective gradient is scaled towards this value (e.g. 1.0) \\
+\xat{tolerane} & \textit{real} & do rescaling if optimal scaling differs by \xat{tolerance}. 0.0 disables (default)
+\end{xatlist}
+
+\subsection{SCPIP}
+SCPIP (Sequential Convex Programming Interior Point) is an external optimizer written by PD. Dr. Zillober (W\"urzburg). The LSE is granted to use the code for academic purpose only. Otherwise one is required to contact Dr. Zillober!
+
+The interface is similar to IPOPT. Some IPOPT options are ported. See C++SCPIP, \url{cppmath.sourceforge.net} for others the original SCPIP manual \url{www.mathematik.uni-wuerzburg.de/~zillober/pubs/manual30.pdf} is required.
+
+\begin{xatlist}{Attribute of the \xel{scpip} element}
+\xat{fromWarmstart} & \xatv{true}, \xatv{false} & see SCPIP manual
+\end{xatlist}
+
+The structure of for SCPIP, SnOpt and IPOPT is identical  
+\begin{xellist}{The optional \xel{scpip}, \xel{snopt} and \xel{iptop} element}
+\xel{option} & & can be repeated arbitrary times
+\end{xellist}
+
+\begin{xatlist}{Attributes of \xel{option} element within \xel{scpip}. \xel{snopt} and \xel{ipopt}}
+\xat{type} & \xatv{string}, \xatv{integer}, \xatv{real} & determine \xat{value} type \\
+\xat{name} & \ldots & see below \\
+\xat{value} & \ldots & depends on \xat{type} and \xat{name} 
+\end{xatlist}
+
+SCPIP is controlled by an integer array ICNTL and a real value array RCNTL. For several options there are short cuts below. Generally the original Fortran indexing starting from 1 is used as in the SCPIP manual. 
+
+
+\noindent The \xatv{string} option with \xat{name} \xatv{output\_level} ICNTL(3) has the following \xat{value}s with the SCPIP code in brackets, SCPIP writes the output to a file \textit{SCPERG.TXT}: 
+\begin{itemize}
+  \item \xatv{"no\_output"} (1) (default)
+  \item \xatv{"only\_final\_convergence\_analysis"} (2)
+  \item \xatv{"one\_line\_of\_intermediate\_results"} (3)
+  \item \xatv{"more\_detailed\_and\_intermediate\_results"} (4)
+\end{itemize} 
+
+\noindent The \xatv{string} option \xatv{optimization\_method} ICNTL(1):
+\begin{itemize}
+  \item \xatv{moving\_asymptotes} (1) (default)
+  \item \xatv{sequential\_convex\_programming} (2)
+\end{itemize}
+
+\noindent The \xatv{string} option \xatv{convergence\_criteria} ICNTL(6):
+\begin{itemize}
+  \item \xatv{kuhn\_tucker} (0)
+  \item \xatv{relaxed} (1)
+\end{itemize}
+
+\noindent You can set the following \xatv{integer} values directly:
+\begin{itemize}
+  \item \xatv{maximum\_linesearch\_function\_calls} ICNTL(5)
+\end{itemize}
+
+\noindent This are the \xatv{real} values:
+\begin{itemize}
+  \item \xatv{max\_kuhn\_tucker\_constraint\_violation} RCTNL(1)
+  \item \xatv{infinity} RCTNL(2)
+  \item \xatv{inequality\_constraint\_active\_limit} RCNTL(3)
+  \item \xatv{relaxed\_relative\_objective\_change} RCNTL(4)
+  \item \xatv{relaxed\_absolut\_objective\_change} RCNTL(5)
+  \item \xatv{relaxed\_relative\_iteration\_move} RCNTL(6)
+\end{itemize}

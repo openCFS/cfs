@@ -18,8 +18,8 @@ namespace CoupledField {
   class NodeList;
   class ElemList;
   class EntityIterator;
-  class ResultInfo;
-  class InfoNode; 
+  struct ResultInfo;
+  class ParamNode; 
   
   //! Class for mapping entities and ansatz functions to equation numbers
   class EqnMap {
@@ -34,6 +34,8 @@ namespace CoupledField {
     typedef std::map<ResultInfo, StdVector<Vector<Integer> > > VecEqnMapType;
     typedef std::map<ResultInfo, HdBcList> ResultHdBcMap;
     typedef std::map<ResultInfo, IdBcList> ResultIdBcMap;
+    typedef std::map<ResultInfo, IdFileBcList> ResultIdFileBcMap;
+    typedef std::map<ResultInfo, IdFileBcList> ResultIdFiBcMap;
     typedef std::map<ResultInfo, ConstraintList> ResultConstraintMap;
     
     //! Constructor
@@ -58,6 +60,9 @@ namespace CoupledField {
         
     //! Set the in-homogeneous boundary conditions
     virtual void SetInhomDirichletBCs( IdBcList& idBcs );
+        
+    //! Set the in-homogeneous boundary conditions
+    virtual void SetInhomDirichFileBCs( IdFileBcList& idFiBcs );
 
     //! Set the constraint conditions
     virtual void SetConstraints( ConstraintList& constraints );
@@ -121,6 +126,18 @@ namespace CoupledField {
     virtual inline UInt GetNumInHomDirichletEqns() const {
       return numIdBcs_;
     }
+    /** Return number of real inhomogeneous Dirichlet boundary conditions which
+     * are read from a file
+     * This method returns the number of 'real' boundary conditions, i.e.
+     * douplets of nodes are already removed, so this number represents
+     * the number of equations, which are not 'free'
+     * @return the number of inhomogeneous Dirichlet boundary conditions which
+     * are read from a file
+     */
+    virtual inline UInt GetNumInHomDirichletFileEqns() const {
+      return numIdFiBcs_;
+    }
+
     //! Return number of constraint slave equations.
 
     //! This method returns the number of equations, which are fixed
@@ -151,15 +168,20 @@ namespace CoupledField {
                   const ResultInfo& result, const EntityIterator& it,
                   UInt dof ) const;
     
-    //! Mpa combination of result, entity and dof to single equation number
+    //! Map combination of result, entity and dof to single equation number
     virtual Integer GetEqn( const ResultInfo& result, 
                     const EntityIterator& it, UInt dof ) const;
 
     //! Name mapping function for obtaining a nodal equation
     virtual Integer GetNodeEqn( const ResultInfo& result, UInt nodeNr, UInt dof );
 
-    //! Name mapping function for obtaining a nodal equation
+    /** Name mapping function for obtaining a nodal equation
+     @param dof 1 based! */
     virtual Integer GetNodeEqn( UInt nodeNr, UInt dof );
+
+    /** An expensive reverse of GetNodeEqn().
+     * So expensive that it should be only used for debugging */
+    Integer SearchNode(Integer eqn, UInt dof);
 
     virtual void GetNodeEqn( const StdVector<UInt>& nodeNrs, 
                      StdVector<Integer>& eqnNrs );
@@ -212,7 +234,7 @@ namespace CoupledField {
     /** Give all details of the mapping to the info.xml file it triggered 
      * such in the comman line. One can gain similar data via the loggin 
      * (in the debug version) */ 
-    virtual void ToInfo(InfoNode* in) const;
+    virtual void ToInfo(PtrParamNode in) const;
 
     //! Reads the comst significant infos from the given Map and copys them
     //! used e.g. in the mixed equation map to determine the number of unknowns already assigned
@@ -305,6 +327,9 @@ namespace CoupledField {
     //! Number equations with inhomogeneous Dirichelt boundary condition
     UInt numIdBcs_;
 
+    //! Number equations with inhomogeneous Dirichelt boundary condition
+    UInt numIdFiBcs_;
+
     //! Number equations with slave constraint condition
     UInt numCs_;
         
@@ -378,6 +403,9 @@ namespace CoupledField {
     
     //! List of inhomogeneous Dirichlet boundary conditions
     ResultIdBcMap idBcs_;
+    
+    //! List of inhomogeneous Dirichlet boundary conditions
+    ResultIdFileBcMap idFiBcs_;
     
     //! List of constraints
     ResultConstraintMap constraints_;

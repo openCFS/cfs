@@ -11,6 +11,7 @@
 
 #include "OLAS/utils/math/givensrotation.hh"
 
+
 #include "basesolver.hh"
 
 namespace CoupledField {
@@ -209,7 +210,7 @@ namespace CoupledField {
     //!                 for this solver
     //! \param myReport pointer to report object for storing general
     //!                 information on solution process
-    GMRESSolver( OLAS_Params *myParams, OLAS_Report *myReport );
+    GMRESSolver( PtrParamNode solverNode, PtrParamNode olasInfo );
 
     //! Destructor
 
@@ -224,7 +225,7 @@ namespace CoupledField {
     //! structures. If this is the first call to Setup or if maxKrylovDim_
     //! has changed, it will allocate new memory, freeing previously allocated
     //! memory if necessary.
-    void Setup( BaseMatrix &sysMat, InfoNode* analysis_step = NULL );
+    void Setup( BaseMatrix &sysMat, PtrParamNode analysis_step );
 
     //! Solve a linear system using GMRES.
 
@@ -237,7 +238,7 @@ namespace CoupledField {
     //! \param sol     on input initial guess for the solution \f$x\f$, on
     //!                exit approximate solution
     void Solve( const BaseMatrix &sysMat, const BasePrecond &precond,
-		const BaseVector &rhs, BaseVector &sol, InfoNode* analysis_step = NULL );
+		const BaseVector &rhs, BaseVector &sol, PtrParamNode analysis_step );
 
     //! Query type of this solver.
 

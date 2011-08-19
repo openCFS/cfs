@@ -11,63 +11,46 @@
 namespace CoupledField {
 
   template<class TYPE>
-  StdVector<TYPE>::StdVector()
+  StdVector<TYPE>::StdVector() :
+    size_(0),
+    capacity_(0),
+    data_(NULL)
+  { }
+
+  template<class TYPE>
+  StdVector<TYPE>::StdVector(unsigned int size) :
+    size_(size),
+    capacity_(size),
+    data_(new TYPE [size])
   {
-    size_ = 0;
-    capacity_ = 0;
-    data_ = NULL;
+    Init();
   }
 
   template<class TYPE>
-  StdVector<TYPE>::StdVector(unsigned int size)
+  StdVector<TYPE>::StdVector(const StdVector<TYPE> & vec) :
+  size_(vec.size_),
+  capacity_(vec.size_),
+  data_(new TYPE [vec.size_])
   {
-    size_ = size;
-    capacity_ = size;
-    data_ = new TYPE [size];
-  
-    for (unsigned int i = 0; i < size; i++)
-      data_ [i] = TYPE();
-  }
-
-  template<class TYPE>
-  StdVector<TYPE>::StdVector(unsigned int size, TYPE entry)
-  {
-    size_ = size;
-    capacity_ = size;
-    data_ = new TYPE [size];
-  
-    Init(entry);
-  }
-
-  template<class TYPE>
-  StdVector<TYPE>::StdVector(const StdVector<TYPE> & vec)
-  {
-    size_ = vec.size_;
-    capacity_ = vec.size_;
-    data_ = new TYPE [size_];
-
-    for (unsigned int i = 0; i < size_; i++)
+    for(unsigned int i = 0; i < size_; ++i)
       data_[i] =  vec.data_[i];
   }
 
   template<class TYPE>
-  StdVector<TYPE>::StdVector(const std::vector<TYPE> & vec)
+  StdVector<TYPE>::StdVector(const std::vector<TYPE> & vec) :
+    size_(vec.size()),
+    capacity_(vec.size()),
+    data_(new TYPE [vec.size()])
   {
-    //Warning(" This function should not be used anymore!");
-  
-    size_ = vec.size();
-    capacity_ = vec.size();
-    data_ = new TYPE[size_];
-
-    for (unsigned int i = 0; i < size_; i++)
+    //WARN(" This function should not be used anymore!");
+    for(unsigned int i = 0; i < size_; ++i)
       data_[i] =  vec[i];
   }
 
   template<class TYPE>
   StdVector<TYPE>::~StdVector()
   {
-    if (data_)
-      delete[] data_;
+    delete[] data_;
   }
 
   template<class TYPE>
@@ -75,53 +58,55 @@ namespace CoupledField {
   {
     size_ = 0;
     capacity_ = 0;
-    if (data_)
-      delete[] data_;
+    delete[] data_;
     data_ = NULL;
   }
 
   template<class TYPE>
   void StdVector<TYPE>::Init(const TYPE entry)
   {
-    for (unsigned int i=0; i<size_; i++) 
-      data_[i]=entry;
+    for(unsigned int i = 0; i < size_; ++i) 
+      data_[i] = entry;
   }
 
   template<class TYPE>
   void StdVector<TYPE>::Reserve(unsigned int capacity)
   {
-    if (capacity > capacity_)
-      {
-        capacity_ = capacity;
-      
-        TYPE * help = new TYPE[capacity];
-      
-        for (unsigned int i=0; i<size_; i++)
-          help[i] = data_[i];
-      
-        delete[] data_;
-        data_ = help;
-      }
+    unsigned int old_size = size_;
+
+    Resize(capacity);
+
+    size_ = old_size;
   }
 
   template<class TYPE>
   void StdVector<TYPE>::Resize(const unsigned int size)
   {
-    if (size != size_ ||  capacity_ < size)
-      {
+#ifdef CHECK_INITIALIZED
+    if(capacity_ < size_)
+      EXCEPTION("capacity " << capacity_ << " smaller size " << size_);
+#endif
 
-        TYPE* help = new TYPE[size];
-        
-        unsigned int limit = std::min(size, size_);   
+    // the cheap case, e.g. Resize(0)
+    if(size <= capacity_)
+    {
+      size_ = size;
+    }
+    else
+    {
+      TYPE* help = new TYPE[size];
 
-        for( unsigned int i = 0; i < limit; i++ ) 
-          help[i] = data_[i];
-        
-        delete[] data_;
-        data_ = help;
-        size_ = size;
-        capacity_ = size;
-      }
+      for (unsigned int i=0; i<size_; i++)
+        help[i] = data_[i];
+      
+      // interestingly std::copy(data_, data_ +  sizeof(TYPE) * size_, help)
+      // does not work. Due to copy constructor stuff for complex types??
+
+      delete[] data_;
+      data_ = help;
+      size_ = size;
+      capacity_ = size;
+    }
   }
 
   template<class TYPE>
@@ -144,31 +129,25 @@ namespace CoupledField {
     }
 
     // Vectors are different
-    else {
 
-      // If there is not enough space to copy the entries
-      // perform a re-allocation
-      if ( capacity_ < vec.size_ ) {
+    // If there is not enough space to copy the entries
+    // perform a re-allocation
+    if(capacity_ < vec.size_)
+    {
+      // Delete old buffer
+      delete [] data_;
 
-        // Delete old buffer
-        if ( data_ != NULL ) {
-          delete [] data_;
-        }
-
-        // Allocate new buffer
-        capacity_ = vec.size_;
-        data_     = new TYPE[capacity_];
-      }
-
-      // Copy entries
-      size_ = vec.size_;
-      for ( unsigned int i = 0; i < size_; i++ ) {
-        data_[i] = vec.data_[i];
-      }
+      // Allocate new buffer
+      capacity_ = vec.size_;
+      data_     = new TYPE[capacity_];
     }
 
-    return *this;
+    // Copy entries
+    size_ = vec.size_;
+    for(unsigned int i = 0; i < size_; ++i)
+      data_[i] = vec.data_[i];
 
+    return *this;
   }
 
 
@@ -176,22 +155,21 @@ namespace CoupledField {
   //   operator=
   // *************
   template<class TYPE>
-  StdVector<TYPE>& StdVector<TYPE>::operator= ( const std::vector<TYPE> &vec){
-    if (size_ != vec.size())
-      { 
-        if (data_)
-          delete [] data_;
-      
-        size_ = vec.size();
-        capacity_ = vec.size();
-        data_ = new TYPE [size_];
-      }
-  
-    for (unsigned int i = 0; i < size_; i++)
+  StdVector<TYPE>& StdVector<TYPE>::operator=(const std::vector<TYPE> &vec)
+  {
+    if(capacity_ < vec.size())
+    {
+      delete [] data_;
+      capacity_ = vec.size();
+      data_ = new TYPE [capacity_];
+    }
+
+    size_ = vec.size();
+    
+    for(unsigned int i = 0; i < size_; ++i)
       data_ [i] = vec[i];
-  
+
     return *this;
-  
   }
 
   template<class TYPE>
@@ -209,66 +187,13 @@ namespace CoupledField {
       data_[i] = source[i];
   }
   
-  
-  template<class TYPE>
-  void StdVector<TYPE>::Insert(const TYPE & y, unsigned int pos)
-  {
-#ifdef CHECK_INDEX
-    if (pos >= size_)
-      EXCEPTION( "StdVector::Insert: Index out of bounds" );
-#endif
-
-    TYPE * help = new TYPE[size_+1];
-    size_ = size_+1;
-    capacity_ = size_;
-
-    for (unsigned int i=0; i<pos; i++)
-      help[i] = data_[i];
-
-    help[pos] = y;
-
-    for (unsigned int i=pos+1; i<size_; i++)
-      help[i] = data_[i-1];
-
-    delete[] data_;
-    data_ = help;
-  }
-
-  template<class TYPE>
-  void StdVector<TYPE>::Insert(const TYPE & y, unsigned int pos, unsigned int numCopies)
-  {
-#ifdef CHECK_INDEX
-    if (pos >= size_)
-      EXCEPTION( "StdVector::Insert: Index out of bounds" );
-
-    if (numCopies < 1)
-      EXCEPTION( "StdVector::Insert: NumCopies must be greater 1" );
-#endif
-
-    TYPE * help = new TYPE[size_+numCopies];
-    size_ = size_+numCopies;
-    capacity_ = size_;
-
-    for (unsigned int i=0; i<pos; i++)
-      help[i] = data_[i];
-
-    for (unsigned int i=pos; i<pos+numCopies; i++)   
-      help[i] = y;
-
-    for (unsigned int i=pos+numCopies; i<size_; i++)
-      help[i] = data_[i-1];
-
-    delete[] data_;
-    data_ = help;
-  }
-
 
   // *************
   //   Push_back
   // *************
   template<class TYPE>
-  void StdVector<TYPE>::Push_back( const TYPE &y ) {
-
+  void StdVector<TYPE>::Push_back( const TYPE &y )
+  {
     // Check whether capacity is sufficiently large to perform
     // a push-back operation. If not allocate memory according
     // to the following simply scheme: Each time capacity is
@@ -287,6 +212,7 @@ namespace CoupledField {
       }
 
       // Perform push-back and increase size
+      // note, that y might point to data, so copy before delete
       help[size_] = y;
       size_++;
 
@@ -295,7 +221,6 @@ namespace CoupledField {
       data_ = help;
 
     } else {
-      
       // Perform push-back and increase size
       data_[size_] = y;
       size_++;
@@ -308,30 +233,46 @@ namespace CoupledField {
   // *********
   template<class TYPE> void StdVector<TYPE>::Erase( const unsigned int pos ) {
 #ifdef CHECK_INITIALIZED
-    if (size_ == 0) {
-      EXCEPTION( "Vector: Undefined Vector in function Erase" );
-    }
+    if (size_ == 0) EXCEPTION( "Vector: Undefined Vector in function Erase" );
 #endif
 
 #ifdef CHECK_INDEX
-    if (pos >=size_) 
-      EXCEPTION( "Invalid index for cut" );
+    if (pos >=size_) EXCEPTION( "Invalid index for Erase" );
 #endif
 
-    unsigned int i;
- 
+    if(pos == size_ - 1) // erasing last position
+    {
+      --size_;
+      return;
+    }
+    
     TYPE * help=new TYPE[size_-1];
-    for (i=0; i < pos; i++) 
-      help[i]=data_[i];
-    for (i=pos+1; i < size_; i++) 
-      help[i-1]=data_[i];
+    
+    for(unsigned int i=0; i < pos; i++)
+      help[i] = data_[i];
+    for(unsigned int i=pos+1; i < size_; i++)
+      help[i-1] = data_[i];
  
     delete [] data_; 
-    data_=help;
+    data_ = help;
     size_--; 
     capacity_ = size_;
   }
 
+  template<class TYPE>
+  void StdVector<TYPE>::Insert(const unsigned int pos, const TYPE& dat)
+  {
+#ifdef CHECK_INDEX
+    if (pos > size_) EXCEPTION( "Invalid index for Insert" );
+#endif
+
+    Resize(size_ + 1);
+
+    for(unsigned int i = size_-1; i > pos; i--)
+      data_[i] = data_[i-1];
+
+    data_[pos] = dat;
+  }
 
   template<class TYPE>
   void StdVector<TYPE>::Erase(const unsigned int pos1, const unsigned int pos2)
@@ -367,16 +308,11 @@ namespace CoupledField {
   template<class TYPE>
   int StdVector<TYPE>::Find(const TYPE &x) const
   {
-    int pos = -1;
-
-    for (unsigned int i=0; i<size_; i++)
-      if (data_[i] == x)
-      {
-        pos = i;
-        break;
-      }
+    for(unsigned int i = 0; i < size_; ++i)
+      if(data_[i] == x) return i;
     
-    return pos;
+    // not found
+    return -1;
   }
 
   template<class TYPE>
@@ -476,9 +412,68 @@ namespace CoupledField {
   }
 
   template<class TYPE>
-  std::string StdVector<TYPE>::ToString(int level, int stride) const
+  bool StdVector<TYPE>::InWindow(unsigned int index)
   {
-    return StdVector<TYPE>::ToString(size_, data_, level, stride);
+    return index >= window.GetStart() && index < window.GetStart() + window.GetSize();
+  }
+
+  template<class TYPE>
+  StdVector<TYPE>::Window::Window()
+  {
+    this->active_ = false;
+    this->start_  = std::numeric_limits<unsigned int>::max();
+    this->size_   = std::numeric_limits<unsigned int>::max();
+  }
+
+  template<class TYPE>
+  void StdVector<TYPE>::Window::Set(unsigned int start, unsigned int size)
+  {
+    this->active_ = true;
+    this->start_  = start;
+    this->size_   = size;
+  }
+
+  template<class TYPE>
+  void StdVector<TYPE>::Window::Set(StdVector<TYPE>& vec)
+  {
+    this->active_ = true;
+    this->start_  = 0;
+    this->size_   = vec.GetSize();
+  }
+
+
+  template<class TYPE>
+  unsigned int StdVector<TYPE>::Window::GetStart() const
+  {
+#ifdef CHECK_INITIALIZED
+    if(!active_)
+      EXCEPTION("Vector: window not initialized." );
+#endif
+    return start_;
+  }
+
+  template<class TYPE>
+  unsigned int StdVector<TYPE>::Window::GetSize() const
+  {
+#ifdef CHECK_INITIALIZED
+    if(!active_)
+      EXCEPTION("Vector: window not initialized." );
+#endif
+    return size_;
+  }
+
+  template<class TYPE>
+  std::string StdVector<TYPE>::ToString(int level, int stride, bool in_window) const
+  {
+    if(!in_window)
+      return StdVector<TYPE>::ToString(size_, data_, level, stride);
+
+#ifdef CHECK_INDEX
+    if(window.GetStart() + window.GetSize() > size_)
+      EXCEPTION("Vector: window bounds violated." );
+#endif
+
+    return StdVector<TYPE>::ToString(window.GetSize(), data_ + window.GetStart(), level, stride);
   }
   
   template<class TYPE>  
@@ -498,10 +493,14 @@ namespace CoupledField {
       data_[i] = boost::lexical_cast<TYPE>(in[i]);
   }
   
-  template <class S> 
-  void Sort(S* v, unsigned int n)
+  template<class TYPE>
+  void StdVector<TYPE>::Swap(unsigned int idx1, unsigned int idx2)
   {
+    TYPE tmp = data_[idx1];
+    data_[idx1] = data_[idx2];
+    data_[idx2] = tmp;
   }
+
 
   template<class S>
   std::ostream & operator << ( std::ostream & out, const StdVector<S> & vc)

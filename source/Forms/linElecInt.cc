@@ -68,8 +68,6 @@ void linElecInt::calcBMat(Matrix<Double>& bMat,
 void linElecInt::ApplyBMat( Vector<Double>& retVec,  
                             LocPointMapped& lp, BaseFE* ptFe, 
                             const Vector<Double>& solVec ) {
-  UInt numFncs = ptFe->GetNumFncs();
-
 
    // Get derivatives of local shape functions with respect to global
    // coords (format: nrNodes x spaceDim)

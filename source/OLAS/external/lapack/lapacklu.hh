@@ -112,7 +112,7 @@ namespace CoupledField {
     //! object is optional. If no object is assigned, then no report will be
     //! generated. This is the constructor which will be called by the
     //! GenerateSolverObject() factory.
-    Lapack_LU( OLAS_Params *myParams, OLAS_Report *myReport = NULL );
+    Lapack_LU( PtrParamNode solverNode, PtrParamNode olasInfo = PtrParamNode() );
 
     //! Alternate constructor
 
@@ -121,8 +121,8 @@ namespace CoupledField {
     //! the basic LU factorisation of the matrix. Note that the pointer to the
     //! report object is optional. If no object is assigned, then no report
     //! will be generated.
-    Lapack_LU( BaseMatrix &mat, OLAS_Params *myParams,
-	       OLAS_Report *myReport = NULL );
+    Lapack_LU( BaseMatrix &mat, PtrParamNode solverNode, 
+	       PtrParamNode olasInfo = PtrParamNode() );
 
     //! Default Destructor
 
@@ -137,7 +137,7 @@ namespace CoupledField {
     //! matrix. Since the factorisation is not done in place we can delegate
     //! the actual work to the private version of Setup() that expects a const
     //! reference.
-    void Setup( BaseMatrix &sysmat, InfoNode* analysis_step = NULL );
+    void Setup( BaseMatrix &sysmat, PtrParamNode analysis_step = PtrParamNode() );
 
     //! Direct solution of the linear system
 
@@ -149,7 +149,7 @@ namespace CoupledField {
     //! we perform a direct solution. Note also, that the sysmat input
     //! parameter will only be used, when an iterative refinement is performed.
     void Solve( const BaseMatrix &sysmat, const BasePrecond &precond,
-		const BaseVector &rhs, BaseVector &sol, InfoNode* analysis_step = NULL );
+		const BaseVector &rhs, BaseVector &sol, PtrParamNode analysis_step = PtrParamNode() );
 
     //! Query type of this solver.
 

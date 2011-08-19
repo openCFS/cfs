@@ -15,7 +15,7 @@ namespace CoupledField {
   // ===============
   GraphManagerStdMat::GraphManagerStdMat()
     : 
-      reorderType_(NOREORDERING),
+      reorderType_(BaseOrdering::NOREORDERING),
       offset_(NULL),
       offsetIDBC_(NULL),
       offset1_(0),
@@ -49,20 +49,20 @@ namespace CoupledField {
     // responsibility to delete then now.
     for ( UInt i = 0; i < numPDEs_; i++ ) {
       if ( newOrdering_[i].GetSize() ) {
-        newOrdering_[i].Resize(0);
+        newOrdering_[i].Clear();
       }
     }
-    newOrdering_.Resize(0);
+    newOrdering_.Clear();
 
     // Delete the graph objects
     delete graph_;
     delete graphIDBC_;
 
     // Delete auxilliary information arrays
-    DELETEARRAY( numLastFreeDof_ );
-    DELETEARRAY( offsetIDBC_ );
-    DELETEARRAY( offset_ );
-    DELETEARRAY( numEqn_ );
+    delete [] ( numLastFreeDof_ );
+    delete [] ( offsetIDBC_ );
+    delete [] ( offset_ );
+    delete [] ( numEqn_ );
 
   }
 
@@ -86,7 +86,7 @@ namespace CoupledField {
     // pointers to NULL for the case that no re-ordering is performed
     newOrdering_.Resize( numPDEs_ );
     for ( UInt i = 0; i < numPDEs; i++ ) {
-      newOrdering_[i].Resize(0);
+      newOrdering_[i].Clear();
     }
 
   }
@@ -106,7 +106,7 @@ namespace CoupledField {
     // If re-ordering is to be performed, allocate auxilliary
     // vector to store large permutation vector
     StdVector<UInt> permutation;
-    if ( reorderType_ != NOREORDERING ) {
+    if ( reorderType_ != BaseOrdering::NOREORDERING ) {
       permutation.Resize( numFreeDofs_ );
     }
 
@@ -114,7 +114,7 @@ namespace CoupledField {
     // using the elimination approach and there are fixed dofs
     // for the first PDE
     UInt firstPermVec = 0;
-    if ( numLastFreeDof_[0] == numEqn_[0] && reorderType_ == NOREORDERING ) {
+    if ( numLastFreeDof_[0] == numEqn_[0] && reorderType_ == BaseOrdering::NOREORDERING ) {
       firstPermVec = 1;
     }
 
@@ -145,7 +145,7 @@ namespace CoupledField {
     // If re-ordering was performed, split large permutation vector
     // up into small vectors for each individual PDE
     UInt i, k, index;
-    if ( reorderType_ != NOREORDERING ) {
+    if ( reorderType_ != BaseOrdering::NOREORDERING ) {
 
       // Loop over all registered PDEs
       for ( i = 0; i < numPDEs_; i++ ) {
@@ -159,7 +159,7 @@ namespace CoupledField {
       }
 
       // Large vector is no longer needed
-      permutation.Resize(0);
+      permutation.Clear();
     }
 
     // No "real" re-ordering was performed. However, CFS++ needs the new
@@ -212,7 +212,7 @@ namespace CoupledField {
   void GraphManagerStdMat::RegisterPDE( const FeFctIdType identifierPDE,
 					const UInt n,
                                         const UInt numLastFreeDof,
-					const ReorderingType reorder ) {
+					const BaseOrdering::ReorderingType reorder ) {
 
 
     // Step counter for the number of registered PDEs and check number
@@ -495,7 +495,7 @@ namespace CoupledField {
                << "been reordered, yet!");
     }
     else if ( !newOrdering_[identifier].GetSize() &&
-              reorderType_ != NOREORDERING ) {
+              reorderType_ != BaseOrdering::NOREORDERING ) {
       EXCEPTION("GraphManagerStdMat::GetReordering: "
                << "No reordering vector available for PDE with identifier '"
                << identifier << "' Maybe it was already claimed?");
@@ -504,7 +504,7 @@ namespace CoupledField {
     // By passing the pointer to the array containing the re-ordering
     // information to the caller, this class forgets about the re-ordering
     order = newOrdering_[identifier];
-    newOrdering_[identifier].Resize(0);
+    newOrdering_[identifier].Clear();
 
 #ifdef DEBUG_GRAPHMANAGERSTDMAT
     (*debug) << "\nGraphManagerStdMat::GetReordering:\n"

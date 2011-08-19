@@ -34,10 +34,6 @@ namespace CoupledField {
     flush_log_cache();
   }
 
-  void LogConfigurator::AddModifier() {
-
-  }
-
   void LogConfigurator::SetLogLevel() {
     SCRIPT_GET( std::string, log ); 
     SCRIPT_GET( std::string, level ); 

@@ -6,48 +6,52 @@
 #include <sstream>
 
 #include "DataInOut/ParamHandling/ParamNode.hh"
-#include "DataInOut/WriteInfo.hh"
 #include "cartesianCoordSys.hh"
 
 
 namespace CoupledField{
 
   CartesianCoordSystem::CartesianCoordSystem(const std::string & name,
-                                 Grid * ptGrid,
-                                 ParamNode * myParamNode ) 
-    : CoordSystem( name, ptGrid, myParamNode )
+                                             Grid * ptGrid,
+                                             PtrParamNode myParamNode ) 
+  : CoordSystem( name, ptGrid, myParamNode )
   {
     Vector<Double> originTemp, xAxisTemp, yAxisTemp;
 
+    // retrieve dimension
+    
+    
     // get origin point of coordinate system
     GetPoint( originTemp, myParam_->Get( "origin" ) );
 
     // get second point for defining the z-axis
     GetPoint( xAxisTemp, myParam_->Get( "xAxis" ) );
 
+    
     // get second point for defining the r-axis
-    GetPoint( yAxisTemp, myParam_->Get( "yAxis" ) );
+    if( dim_ == 3 ) {
+      GetPoint( yAxisTemp, myParam_->Get( "yAxis" ) );
+    }
 
-    origin_.Resize(3);
-    std::fill(&origin_[0], &origin_[0]+3, 0);
-    xAxis_.Resize(3);
-    std::fill(&xAxis_[0], &xAxis_[0]+3, 0);
-    yAxis_.Resize(3);
-    std::fill(&yAxis_[0], &yAxis_[0]+3, 0);
+    origin_.Resize(dim_);
+    std::fill(&origin_[0], &origin_[0]+dim_, 0);
+    xAxis_.Resize(dim_);
+    std::fill(&xAxis_[0], &xAxis_[0]+dim_, 0);
+    yAxis_.Resize(dim_);
+    std::fill(&yAxis_[0], &yAxis_[0]+dim_, 0);
     
     for(UInt i=0; i<originTemp.GetSize(); i++)
     {
       origin_[i] = originTemp[i];
       xAxis_[i]  = xAxisTemp[i];
-      yAxis_[i]  = yAxisTemp[i];
+      if( dim_ == 3 ) {
+        yAxis_[i]  = yAxisTemp[i];
+      }
     }
 
     // calculate the rotation matrix and the invers
     CalcRotationMatrix();
 
-    // print information to .info-file
-    PrintInfo();
-    
   }
   
   CartesianCoordSystem::~CartesianCoordSystem(){
@@ -55,14 +59,14 @@ namespace CoupledField{
 
   void CartesianCoordSystem::Local2GlobalCoord( Vector<Double> & glob, 
                                                 const Vector<Double> & loc ) const {
-    Vector<Double> temp(3);
+    Vector<Double> temp(dim_);
     UInt n=loc.GetSize();
     
     for(UInt i=0; i < n; i++)
       temp[i] = loc[i];
     
     // rotate local cartesian coordinate system to global one
-    glob.Resize(3);
+    glob.Resize(dim_);
     invRotationMat_.Mult(temp,glob);
 
     // add global coordinate midpoint
@@ -71,39 +75,31 @@ namespace CoupledField{
   
   void CartesianCoordSystem::Global2LocalCoord( Vector<Double> & loc, 
                                                 const Vector<Double> & glob ) const {
-    Vector<Double> temp(3);
+    Vector<Double> temp(dim_);
     UInt n=glob.GetSize();
-    loc.Resize(3);
+    loc.Resize(dim_);
     
     for(UInt i=0; i < n; i++)
       temp[i] = glob[i];
     
     // calculate differential vector   
-    Vector<Double> d(3);
+    Vector<Double> d(dim_);
     d = temp - origin_; 
     
     // rotate global cartesian coordinate system to local one
     rotationMat_.Mult(d,loc);
   }
-
+  
   void  CartesianCoordSystem::
-  GetGlobRotationAngles( Vector<Double> & angles,
+  GetGlobRotationMatrix( Matrix<Double> & mat,
                          const Vector<Double>& point ) const {
-    Vector<Double> loc, anglesLoc, anglesGlob(3);
-    Global2LocalCoord( loc, point );
-
-    // Note: currently we simply return the 'phi' part, as this 
-    // is the only changing one.
-    anglesLoc.Resize(3);
-    anglesLoc.Init();
-    anglesLoc[2] = loc[1];
-    
-    // Now add to the point rotation angles the 
-    // angles to rotate the angles back to the global system
-    angles = invRotationAng_;
-    angles *= 180 / PI;
-    angles += anglesLoc;
-
+    mat = invRotationMat_;
+  }  
+  
+  void  CartesianCoordSystem::
+  GetFullGlobRotationMatrix( Matrix<Double> & mat,
+                             const Vector<Double>& point ) const {
+    mat = invRotationMatFull_;
   }
   
   void CartesianCoordSystem::
@@ -136,7 +132,7 @@ namespace CoupledField{
   }
     
   void CartesianCoordSystem::CalcRotationMatrix() {
-    Vector<Double> x(3), y(3), z(3), ytemp(3);
+    Vector<Double> x(dim_), y(dim_), z(dim_), ytemp(dim_);
     Double fac;
     
 
@@ -152,69 +148,98 @@ namespace CoupledField{
     //z = hAxis_ - origin_;
     x = xAxis_ - origin_;
     x /= x.NormL2();
-
-    std::cout << "origin: " << origin_[0] << " " << origin_[1] << " " << origin_[2] << std::endl;
-    std::cout << "x: " << x[0] << " " << x[1] << " " << x[2] << std::endl;
     
-    ytemp = yAxis_ - origin_;
+    // === 2D Section ==
+    if( dim_ == 2 ) {
+      y[0] = -x[1];
+      y[1] =  x[0];
+      // Check if there were coincident points for defining the different axes
+      if (x.NormL2() < EPS ||
+          y.NormL2() < EPS ) {
+        EXCEPTION( "At least two of your points for origin and  r-Axis "
+            << "coincide in the coordinate system '" << name_
+            << "'.\nPlease correct your parameter file!" );
+      }
 
-    fac = ytemp[0]*x[0] + ytemp[1]*x[1] + ytemp[2]*x[2];
 
-    y[0] = ytemp[0] - (fac * x[0]);
-    y[1] = ytemp[1] - (fac * x[1]);
-    y[2] = ytemp[2] - (fac * x[2]);
+      // 2) Calculation of the rotation matrix, which defines the mapping
+      //    from the global to the local coordinate system
+      //    (ref. Bronstein: Taschenbuch der Mathematik, p. 217f)
+      // Note: in order to avoid dividing by zero, an additional check
+      //       is performed, if the x/y-component is in the order of
+      //       machine precision.
 
-    y /= y.NormL2();
+      rotationMat_.Resize(2,2);
+      rotationMat_[0][0] = (std::abs(x[0]) < EPS ) ? 0.0 : (x[0]);
+      rotationMat_[0][1] = (std::abs(x[1]) < EPS ) ? 0.0 : (x[1]);
 
-    std::cout << "y: " << y[0] << " " << y[1] << " " << y[2] << std::endl;
-
-    z[0] = x[1]*y[2] - x[2]*y[1];
-    z[1] = x[2]*y[0] - x[0]*y[2];
-    z[2] = x[0]*y[1] - x[1]*y[0];
-
-    z /= z.NormL2();
-
-    std::cout << "z: " << z[0] << " " << z[1] << " " << z[2] << std::endl;
-
-    // Check if there were coincident points for defining the different axes
-    if (x.NormL2() < EPS ||
-        y.NormL2() < EPS ||
-        z.NormL2() < EPS ) {
-      EXCEPTION( "At least two of the vectors for origin, z-Axis and "
-                 << "r-Axis coincide in the coordinate system '" << name_
-                 << "'.\nPlease correct your parameter file!" );
+      rotationMat_[1][0] = (std::abs(y[0]) < EPS ) ? 0.0 : (y[0]);
+      rotationMat_[1][1] = (std::abs(y[1]) < EPS ) ? 0.0 : (y[1]);
     }
+    
+    // === 3D Section ==
 
-    // 2) Calculation of the rotation matrix, which defines the mapping
-    //    from the global to the local coordinate system
-    //    (ref. Bronstein: Taschenbuch der Mathematik, p. 217f)
-    // Note: in order to avoid dividing by zero, an additional check
-    //       is performed, if the x/y/z-component is in the order of
-    //       machine precision.
 
-    rotationMat_.Resize(3,3);
-    rotationMat_[0][0] = (std::abs(x[0]) < EPS ) ? 0.0 : (x[0]);
-    rotationMat_[0][1] = (std::abs(x[1]) < EPS ) ? 0.0 : (x[1]);
-    rotationMat_[0][2] = (std::abs(x[2]) < EPS ) ? 0.0 : (x[2]);
+    if( dim_ == 3 ) {
+      std::cout << "origin: " << origin_[0] << " " << origin_[1] << " " << origin_[2] << std::endl;
+      std::cout << "x: " << x[0] << " " << x[1] << " " << x[2] << std::endl;
+      ytemp = yAxis_ - origin_;
 
-    rotationMat_[1][0] = (std::abs(y[0]) < EPS ) ? 0.0 : (y[0]);
-    rotationMat_[1][1] = (std::abs(y[1]) < EPS ) ? 0.0 : (y[1]);
-    rotationMat_[1][2] = (std::abs(y[2]) < EPS ) ? 0.0 : (y[2]);
+      fac = ytemp[0]*x[0] + ytemp[1]*x[1] + ytemp[2]*x[2];
 
-    rotationMat_[2][0] = (std::abs(z[0]) < EPS ) ? 0.0 : (z[0]);
-    rotationMat_[2][1] = (std::abs(z[1]) < EPS ) ? 0.0 : (z[1]);
-    rotationMat_[2][2] = (std::abs(z[2]) < EPS ) ? 0.0 : (z[2]);
+      y[0] = ytemp[0] - (fac * x[0]);
+      y[1] = ytemp[1] - (fac * x[1]);
+      y[2] = ytemp[2] - (fac * x[2]);
 
+      y /= y.NormL2();
+
+      std::cout << "y: " << y[0] << " " << y[1] << " " << y[2] << std::endl;
+
+      z[0] = x[1]*y[2] - x[2]*y[1];
+      z[1] = x[2]*y[0] - x[0]*y[2];
+      z[2] = x[0]*y[1] - x[1]*y[0];
+
+      z /= z.NormL2();
+
+      std::cout << "z: " << z[0] << " " << z[1] << " " << z[2] << std::endl;
+
+      // Check if there were coincident points for defining the different axes
+      if (x.NormL2() < EPS ||
+          y.NormL2() < EPS ||
+          z.NormL2() < EPS ) {
+        EXCEPTION( "At least two of the vectors for origin, z-Axis and "
+            << "r-Axis coincide in the coordinate system '" << name_
+            << "'.\nPlease correct your parameter file!" );
+      }
+
+      // 2) Calculation of the rotation matrix, which defines the mapping
+      //    from the global to the local coordinate system
+      //    (ref. Bronstein: Taschenbuch der Mathematik, p. 217f)
+      // Note: in order to avoid dividing by zero, an additional check
+      //       is performed, if the x/y/z-component is in the order of
+      //       machine precision.
+
+      rotationMat_.Resize(3,3);
+      rotationMat_[0][0] = (std::abs(x[0]) < EPS ) ? 0.0 : (x[0]);
+      rotationMat_[0][1] = (std::abs(x[1]) < EPS ) ? 0.0 : (x[1]);
+      rotationMat_[0][2] = (std::abs(x[2]) < EPS ) ? 0.0 : (x[2]);
+
+      rotationMat_[1][0] = (std::abs(y[0]) < EPS ) ? 0.0 : (y[0]);
+      rotationMat_[1][1] = (std::abs(y[1]) < EPS ) ? 0.0 : (y[1]);
+      rotationMat_[1][2] = (std::abs(y[2]) < EPS ) ? 0.0 : (y[2]);
+
+      rotationMat_[2][0] = (std::abs(z[0]) < EPS ) ? 0.0 : (z[0]);
+      rotationMat_[2][1] = (std::abs(z[1]) < EPS ) ? 0.0 : (z[1]);
+      rotationMat_[2][2] = (std::abs(z[2]) < EPS ) ? 0.0 : (z[2]);
+    }
     // 3) Calculate transposed inverse rotation matrix, which defines 
     //    mapping from  local to global cartesian coordinate system
     Matrix<Double> tempInvers;
     rotationMat_.Invert(invRotationMat_);
-
-    //Now calculate the related kardan angles for forward and 
-    //backward transformation
-    CalcKardanAngles( rotationAng_, rotationMat_ );
-    CalcKardanAngles( invRotationAng_, invRotationMat_ );
-
+    
+    // "calculate" full inverse rotation matrix
+    invRotationMatFull_.Resize(3,3);
+    invRotationMatFull_.SetSubMatrix( invRotationMat_, 0, 0);
   }
 
 
@@ -226,56 +251,64 @@ namespace CoupledField{
       component = 1;
     if ( dof == "y" )
       component = 2;
-    if ( dof == "z" )
+    if ( dof == "z" && dim_ == 3 )
       component = 3;
     
     if ( component == 0 ) {
       EXCEPTION( "CartesianCoordSystem:GetVecComponent:\n"
                  << "The component with name '" << dof 
-                 << "' is not known in the global cylinder coordinate system '"
-                 << name_ << "'!" );
+                 << "' is not known in a (rotated) Cartesian coordinate system"
+                 << "of dimension name" << dim_ << "'!" );
     }
 
     return component;
   }  
 
   const std::string CartesianCoordSystem::GetDofName( const UInt dof ) const {
-    std::string ret = "";
-    
-    switch (dof) {
-    case 1:
-      ret = "x";
-      break;
-    case 2:
-      ret = "y";
-      break;
-    case 3:
-      ret = "z";
-      break;
-    default:
-      EXCEPTION( "CartesianCoordSystem::GetDofName:\n"
-                 << "The component number " << dof << " does not exist in a "
-                 << "global cartesian coordinate system!" );
-    }
+    if( dof == 1 )
+         return "x";
 
-    return ret;
+       if( dof == 2 )
+         return "y";
+
+       if( dof == 3 && dim_ == 3 )
+         return "x";
+
+       EXCEPTION( "CartesianCoordSystem::GetDofName:\n"
+           << "The component number " << dof << " does not exist in a "
+           << "(rotated) Cartesian coordinate system of dimension "
+           << dim_ << "!" );
+       
+       return "";
   }
 
-  void CartesianCoordSystem::PrintInfo() {
-    std::ostringstream out;
-    out << "\n--- local coordinate system ---\n"
-        << "    name:\t" << name_ << std::endl
-        << "    type:\tcartesian" << std::endl
-        << "  origin:\t" << origin_[0] << "," << origin_[1] << "," 
-        << origin_[2] << std::endl
-        << "  x-axis:\t" << xAxis_[0] << "," << xAxis_[1] << ","
-        << xAxis_[2] << std::endl
-        << "  y-axis:\t" << yAxis_[0] << "," << yAxis_[1] << ","
-        << yAxis_[2] << "\n";
-    out << "  angles:\t" << rotationAng_[0]/PI*180 << ","
-        << rotationAng_[1]/PI*180 << "," << rotationAng_[2]/PI*180 << "\n\n";
-    Info->PrintF(std::string(), out.str().c_str());
+  void CartesianCoordSystem::ToInfo( PtrParamNode in ) {
+    
+    in = in->Get("cartesian");
+    
+    in->Get("id")->SetValue(name_);
+    PtrParamNode originNode = in->Get("origin");
+    originNode->Get("x")->SetValue(origin_[0]);
+    originNode->Get("y")->SetValue(origin_[1]);
+    if( dim_ == 3 )
+      originNode->Get("z")->SetValue(origin_[2]);
 
+    PtrParamNode xNode = in->Get("xAxis");
+    xNode->Get("x")->SetValue(xAxis_[0]);
+    xNode->Get("y")->SetValue(xAxis_[1]);
+    if( dim_ == 3 )
+      xNode->Get("z")->SetValue(xAxis_[2]);
+
+    PtrParamNode yNode = in->Get("yAxis");
+    yNode->Get("x")->SetValue(yAxis_[0]);
+    yNode->Get("y")->SetValue(yAxis_[1]);
+    if( dim_ == 3 )
+      yNode->Get("z")->SetValue(yAxis_[2]);
+    
+//    PtrParamNode rotNode = in->Get("rotationAngles");
+//    rotNode->Get("alpha")->SetValue(Rad2Grad(rotationAng_[0]));
+//    rotNode->Get("beta")->SetValue(Rad2Grad(rotationAng_[1]));
+//    rotNode->Get("gamma")->SetValue(Rad2Grad(rotationAng_[2]));
   }
 
 

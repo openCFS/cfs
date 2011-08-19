@@ -67,12 +67,44 @@
     <xsd:complexContent>
       <xsd:extension base="DT_SolverBasic">
         <xsd:sequence>
-          <xsd:element name="tol" type="DT_PosFloat" minOccurs="0"/>
+          <xsd:element name="tol" type="DT_PosFloat" minOccurs="0" default="1e-6">
+            <xsd:annotation>
+              <xsd:documentation xml:lang="en">
+                Threshold for stopping criterion specified in the stoppingRule sub-tag of the solver tag.
+              </xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
+          
           <xsd:element name="maxIter" type="xsd:positiveInteger"
-            minOccurs="0"/>
+            minOccurs="0" default="50">
+            <xsd:annotation>
+              <xsd:documentation xml:lang="en">
+                Maximum number of iterations before the solver stops. If this number of iterations
+                is reached the solver will stop regardless if the tolerance has already been met.
+              </xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
+          
           <xsd:element name="resDirectly" type="xsd:positiveInteger"
-            minOccurs="0"/>
-          <xsd:element name="logging" type="DT_CFSBool" minOccurs="0"/>
+            minOccurs="0" default="50">
+            <xsd:annotation>
+              <xsd:documentation xml:lang="en">
+                The CG algorithm will compute an incremental residual
+                vector in every step which may not reflect the true residual after a large number of
+                iterations anymore. Therefore the true residual (resVec = A * x_k - b) may be re-computed
+                after a certain number of iteration using the resDirectly tag.
+              </xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
+          
+          <xsd:element name="logging" type="DT_CFSBool" minOccurs="0" default="no">
+            <xsd:annotation>
+              <xsd:documentation xml:lang="en">
+                If logging is set to yes, then the solution process will log the convergence history
+                (absolute and relative residual norm) to the log stream.
+              </xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
         </xsd:sequence>
       </xsd:extension>
     </xsd:complexContent>
@@ -158,13 +190,132 @@
     <xsd:complexContent>
       <xsd:extension base="DT_SolverBasic">
         <xsd:sequence>
+          <xsd:element name="type"      type="DT_PardisoSolverType" minOccurs="0" default="direct"/>
           <xsd:element name="posDef"    type="DT_CFSBool" minOccurs="0"/>
           <xsd:element name="hermitean" type="DT_CFSBool" minOccurs="0"/>
           <xsd:element name="symStruct" type="DT_CFSBool" minOccurs="0"/>
-          <xsd:element name="ordering"  type="DT_PardisoOrdering"
-            minOccurs="0"/>
-          <xsd:element name="logging"   type="DT_CFSBool" minOccurs="0"/>
-          <xsd:element name="stats"     type="DT_CFSBool" minOccurs="0"/>
+          <xsd:element name="ordering"  type="DT_PardisoOrdering" minOccurs="0"/>
+          
+          <xsd:element name="outOfCore" type="xsd:int" minOccurs="0" default="0">
+            <xsd:annotation>
+              <xsd:documentation xml:lang="en"> Switch on out-of-core (OOC) mode of Pardiso. With
+                OOC Pardiso uses virtual memory to solve big problems which exceed the size of
+                system RAM. It comes at a performance penalty however since data has to be swapped
+                to the hard disk. By default it is set to off (0). If this parameter is set to 1
+                Pardiso decides wether or not to use OOC. If this parameter is 2 OOC is forced on.
+                To set options for OOC (e.g. MKL_PARDISO_OOC_MAX_CORE_SIZE = 250) create a file
+                pardiso_ooc.cfg in your working directory. Acts on IPARM(60).
+              </xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
+          
+          <xsd:element name="IterRefineSteps"  type="xsd:int" minOccurs="0">
+            <xsd:annotation>
+              <xsd:documentation xml:lang="en">
+                Sets the iterative refinement steps. Advisable for non symmetric
+                matrices. See "Solving unsymmetric sparse systems if linear
+                equations with PARDISO" for details. Acts on IPARM(8).
+              </xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
+          
+          <xsd:element name="tol" type="DT_PosFloat" minOccurs="0" default="1e-6">
+            <xsd:annotation>
+              <xsd:documentation xml:lang="en">
+                Threshold for relative residual reduction. Acts on DPARM(2).
+              </xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
+          
+          <xsd:element name="maxIter" type="xsd:positiveInteger"
+            minOccurs="0" default="300">
+            <xsd:annotation>
+              <xsd:documentation xml:lang="en">
+                Maximum number of Krylov-subspace iterations. Acts on DPARM(1).
+              </xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
+
+          <xsd:element name="coarseGridDim" type="xsd:double"
+            minOccurs="0" default="1e-6">
+            <xsd:annotation>
+              <xsd:documentation xml:lang="en">
+                Coarse Grid Matrix Dimension. Acts on DPARM(3).
+              </xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
+          
+          <xsd:element name="maxNumGridLevels" type="xsd:positiveInteger"
+            minOccurs="0" default="10">
+            <xsd:annotation>
+              <xsd:documentation xml:lang="en">
+                Maximum Number of Grid Levels. Acts on DPARM(4).
+              </xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
+
+          <xsd:element name="incompFacDropVal" type="xsd:double"
+            minOccurs="0" default="1e-2">
+            <xsd:annotation>
+              <xsd:documentation xml:lang="en">
+                Dropping value for the incomplete factor. Acts on DPARM(5).
+              </xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
+          
+          <xsd:element name="schurcompDropVal" type="xsd:double"
+            minOccurs="0" default="5e-5">
+            <xsd:annotation>
+              <xsd:documentation xml:lang="en">
+                Dropping value for the schurcomplement. Acts on DPARM(6).
+              </xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>          
+
+          <xsd:element name="maxNumFillIn" type="xsd:positiveInteger"
+            minOccurs="0" default="10">
+            <xsd:annotation>
+              <xsd:documentation xml:lang="en">
+                Maximum number of fill-in in each column in the factor. Acts on DPARM(7).
+              </xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
+          
+          <xsd:element name="invBoundIncompFac" type="xsd:positiveInteger"
+            minOccurs="0" default="500">
+            <xsd:annotation>
+              <xsd:documentation xml:lang="en">
+                Bound for the inverse of the incomplete factor L. Acts on IPARM(8).
+              </xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
+          
+          <xsd:element name="maxNumStagnationSteps" type="xsd:positiveInteger"
+            minOccurs="0" default="25">
+            <xsd:annotation>
+              <xsd:documentation xml:lang="en">
+                Maximum number of non-improvement steps in Krylov-Subspace method. Acts on IPARM(9).
+              </xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
+          
+          <xsd:element name="logging" type="DT_CFSBool" minOccurs="0" default="no">
+            <xsd:annotation>
+              <xsd:documentation xml:lang="en">
+                If logging is set to yes, then the solution process will log the convergence history
+                (absolute and relative residual norm) to the log stream.
+              </xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
+
+          <xsd:element name="stats"     type="DT_CFSBool" minOccurs="0">
+            <xsd:annotation>
+              <xsd:documentation xml:lang="en">
+                Let PARDISO print statistics while it is solving the problem.
+              </xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
+            
         </xsd:sequence>
       </xsd:extension>
     </xsd:complexContent>
@@ -175,6 +326,13 @@
       <xsd:enumeration value="noReordering"/>
       <xsd:enumeration value="minimumDegree"/>
       <xsd:enumeration value="nestedDissection"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+  <xsd:simpleType name="DT_PardisoSolverType">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="direct"/>
+      <xsd:enumeration value="iterative"/>
     </xsd:restriction>
   </xsd:simpleType>
   
@@ -319,8 +477,8 @@
           <xsd:element name="ordering" maxOccurs="1" minOccurs="0">
             <xsd:simpleType>  
               <xsd:restriction base="xsd:token">
-                <xsd:enumeration value="metisE"/>
-                <xsd:enumeration value="metisN"/>
+                <xsd:enumeration value="metise"/>
+                <xsd:enumeration value="metisn"/>
                 <xsd:enumeration value="amd"/>
                 <xsd:enumeration value="rcm"/>
                 <xsd:enumeration value="amf"/>
@@ -386,6 +544,17 @@
                 </xsd:attribute>
                 <xsd:attribute name="maxIter" type="xsd:nonNegativeInteger" default="500" use="optional"/>
                 <xsd:attribute name="residualTol" type="xsd:double" default="1e-8" use="optional"/>  
+                <xsd:attribute name="nrestart" type="xsd:nonNegativeInteger" use="optional">
+                  <xsd:annotation>
+                    <xsd:documentation>
+                      Number of steps before GMRES is restarted.
+                      The iterative solver uses restarted GMRES (resp. fGMRES).
+                      By default, the ilupack intern default value is taken.
+                      Note that a smaller number reduces the memory, while a larger number
+                      can improve the convergence
+                    </xsd:documentation>
+                  </xsd:annotation>
+                </xsd:attribute>
               </xsd:complexType>
             </xsd:element>  <!-- end of engine -->
             
@@ -400,7 +569,67 @@
     </xsd:complexContent>
   </xsd:complexType> <!-- end of DT_Ilupack -->
   
+  <!-- ******************************************************************* -->
+  <!-- Definition of element for CholMod Solver                            -->
+  <!-- ******************************************************************* -->
   
+  <xsd:element name="cholmod" type="DT_CholMod" substitutionGroup="SolverBasic"/>
+  
+  <xsd:complexType name="DT_CholMod">
+    <xsd:complexContent>
+      <xsd:extension base="DT_SolverBasic">
+        <xsd:sequence>
+          <xsd:element name="factorization" minOccurs="0" maxOccurs="1">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="method" minOccurs="0" maxOccurs="10">
+                  <xsd:complexType>
+                    <xsd:attribute name="id" use="required" type="xsd:int"/>                    
+                    <xsd:attribute name="prune_dense" type="xsd:float" default="10.0"/>
+                    <xsd:attribute name="prune_dense2" type="xsd:float" default="-1.0"/>
+                    <xsd:attribute name="nd_oksep" type="xsd:float" default="1.0"/>
+                    <xsd:attribute name="nd_small" type="xsd:int" default="200"/>
+                    <xsd:attribute name="aggressive" type="xsd:boolean" default="true"/>
+                    <xsd:attribute name="nd_compress" type="xsd:boolean" default="true"/>
+                    <xsd:attribute name="nd_camd" type="xsd:int" default="1"/>
+                    <xsd:attribute name="nd_components" type="xsd:boolean" default="false"/>
+                    <xsd:attribute name="ordering" type="xsd:float" default="0"/>
+                  </xsd:complexType>
+                </xsd:element>
+              </xsd:sequence>
+              <xsd:attribute name="nmethods" type="xsd:int" default="0"/>
+              <xsd:attribute name="postorder" type="xsd:boolean" default="false"/>
+              <xsd:attribute name="dbound" type="xsd:float" default="0.0"/>
+            </xsd:complexType>
+            <xsd:unique name="uMethodId">
+              <xsd:selector xpath="cfs:method"/>
+              <xsd:field xpath="@id"/>
+            </xsd:unique>
+          </xsd:element>
+          <xsd:element name="supernodal" minOccurs="0" maxOccurs="1">
+            <xsd:complexType>
+              <xsd:attribute name="method">
+                <xsd:simpleType>
+                  <xsd:restriction base="xsd:token">
+                    <xsd:enumeration value="simplicial"/>
+                    <xsd:enumeration value="auto"/>
+                    <xsd:enumeration value="supernodal"/>
+                  </xsd:restriction>
+                </xsd:simpleType>
+              </xsd:attribute>
+              <xsd:attribute name="switch" type="xsd:float" default="40.0"/>
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="output" minOccurs="0" maxOccurs="1">
+            <xsd:complexType>
+              <xsd:attribute name="level" type="xsd:int" default="3"/>
+              <xsd:attribute name="precise" type="xsd:boolean" default="false"/>
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:sequence>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>  
   
   
   <!-- =================================================================== -->

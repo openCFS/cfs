@@ -178,7 +178,7 @@ namespace CoupledField {
 
     //! Calculate global midpoint of element
     //! @param midPoint output Global element midpoint
-    virtual void GetGlodMidPoint( Vector<Double>& midPoint ) = 0;
+    virtual void GetGlobMidPoint( Vector<Double>& midPoint ) = 0;
 
     //! Calculate volume of element
     virtual Double CalcVolume( ) = 0;
@@ -294,7 +294,7 @@ namespace CoupledField {
                        const Vector<Double>& glob );
     
     //! @see ElemShapeMap::GetGlobMidPoint
-    void GetGlodMidPoint( Vector<Double>& midPoint );
+    void GetGlobMidPoint( Vector<Double>& midPoint );
 
     //! @see ElemShapeMap::CalcVolume
     Double CalcVolume( );

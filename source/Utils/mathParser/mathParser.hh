@@ -8,6 +8,7 @@
 #include <map>
 #include <list>
 #include <set>
+#include <boost/signals.hpp>
 #include "muParser.h"
 #include "Utils/StdVector.hh"
 #include "MatVec/vector.hh"
@@ -20,7 +21,7 @@ namespace CoupledField {
   //! Forward class declarations
   class CoordSystem;
   
-  //! Handless mathematical parser for different contexts
+  //! Handles mathematical parser for different contexts
   class MathParser{
 
   public:
@@ -28,7 +29,7 @@ namespace CoupledField {
     //! Datatype for identifying a specific mathParser
     typedef UInt HandleType;
 
-    //! Abbreviation for global handler
+    //! Abbreviation for global handle
     enum {GLOB_HANDLER=0};
     
     //! Constructor
@@ -41,15 +42,22 @@ namespace CoupledField {
 
     //! Returns a handle for a new parser. This handle is needed for all
     //! subsequent communication with this parser.
-    //! \return New MathParser handler
-    HandleType GetNewHandle();
+    //! \param setDefaults If true, the parser will set default values
+    //!                    for the most common variables (f,t,x,y,z), which
+    //!                    is useful if for an expression the global values
+    //!                    are not yet set, but will be defined at a later point.
+    //!                    If a default variable is already set in the GLOBAL
+    //!                    parser instance, this value will be taken. 
+    //! \return New MathParser handle
+    
+    HandleType GetNewHandle( bool setDefaults = false);
 
     //! Free the memory and parameters associated with a certain handle
 
     //! This method frees the internal parser, its memory and variables 
     //! associated with this handle.
     //! \param handle Parser handle identifying an internal parser(context)
-    //!               bo be freed.
+    //!               to be freed.
     void ReleaseHandle( HandleType handle );
 
     //! Pass the expression to be evaluated to the parser
@@ -58,13 +66,51 @@ namespace CoupledField {
     //! itself. This will trigger the syntactical analysis of the 
     //! expression. In order to evaluate the expression, a successive call
     //! to Eval() has to be performed
-    void SetExpr( HandleType handler, const std::string &expr );
+    //! \param handle MathParser handle for identifying specific parser
+    //! \param expr Expression to be parsed
+    void SetExpr( HandleType handle, const std::string &expr );
+    
+    //! Retrieve the expression of the related parser
 
+    //! This methods returns the parser expression of the related parser
+    //! instance.
+    //! \param handle MathParser handle for identifying specific parser
+    //! \return Expression of the parsewr
+    std::string GetExpr( HandleType handle );
+
+    //! Query if current expression is constant
+    
+    //! Returns if the current expression of the related parser instance
+    //! is constant (not depending on any variables)
+    //! \param handle MathParser handle for identifying specific parser
+    //! \return Flag is expression is constant
+    bool IsExprConstant( HandleType handle );
+    
+    //! Query if current expression uses specified variable \a var
+    
+    //! Returns, is the current expression of the related parser instance
+    //! depends on the variable .
+    //! \param handle MathParser handle for identifying specific parser
+    //! \param var Variable name the expression is questioned for
+    //! \return Flag if expression contains variable
+    bool IsExprVariable( HandleType handle, const std::string& var );
+    
+    //! Get all variables the expression of the parser instance depends on
+    
+    //! This method returns all the variables, which are used in the current
+    //! expression of the specified parser instance.
+    //! \param handle MathParser handle for identifying specific parser
+    //! \param varNames List of variables the expression depends on
+    void GetExprVars( HandleType handle, StdVector<std::string>& varNames );
+    
     //! Evaluate mathematical expression previously set by SetExpr()
 
     //! This method evaluates the expression previously set by SetExpr()
-    //! \param handler MathParser handler for identifying specific parser
-    Double Eval( HandleType handler );
+    //! \param handle MathParser handle for identifying specific parser
+    Double Eval( HandleType handle );
+    
+    //! Dump all parser instances, their variables and expression
+    void Dump( std::ostream& os );
 
     // =======================================================================
     //  SET METHODS
@@ -80,10 +126,10 @@ namespace CoupledField {
     //! first time, memory is allocated,the variable name is registered in
     //! the parser and the value ist set. All subsequent calls just update the
     //! variable value.
-    //! \param handler MathParser handler for identifying specific parser
+    //! \param handle MathParser handle for identifying specific parser
     //! \param varName Name of variable to be set
     //! \param val Value of variable
-    void SetValue( HandleType handler,
+    void SetValue( HandleType handle,
                    const std::string &varName,
                    Double val );
     
@@ -96,31 +142,49 @@ namespace CoupledField {
     //! \verbatim
     //!  z * 10 + sin( phi )
     //! \endverbatim
-    //! \param handler MathParser handler for identifying specific parser
+    //! \param handle MathParser handle for identifying specific parser
     //! \param coosy Local coordinate system, for which the coordinate components
     //!              are to be registered within the given parser
     //! \param globCoord Global coordinates (x,y,z) of the given point
-    void SetCoordinates( HandleType handler,
+    void SetCoordinates( HandleType handle,
                          const CoordSystem &coosy,
                          const Vector<Double> &globCoord );
     //@}
-
+    
+    // =======================================================================
+    //  CALLBACK FUNCTIONALITY
+    // =======================================================================
+    //@{
+        //! \name Callback functionality of mathParser
+        
+    //! Define signal type of MathParser
+    typedef boost::signal<void()> MathParserSignal;
+    
+    //! Register callback function for change of value of expression
+    boost::signals::connection 
+    AddExpChangeCallBack( const MathParserSignal::slot_function_type
+                          &subscriber,
+                          HandleType handle );
+    //@}
+    
   protected:
 
-    //! Typedef for variable pool (for one handler )
+    //! Typedef for variable pool (for one handle )
     typedef std::map<std::string, Double>  VarPool;
     
-    //! Typedef for mapping handler to variable pool
+    //! Typedef for mapping handle to variable pool
     typedef std::map<HandleType, VarPool> PoolMap;
     
     //! Typedef for parser pool
     typedef std::map<HandleType, mu::Parser> ParserMap;
     
     //! Initialize parser
-    void InitParser( mu::Parser &parser, bool isGlobal );
+    void InitParser( mu::Parser &parser, VarPool &pool, 
+                     bool isGlobal,
+                     bool setDefaults );
 
-    //! Get parser by handler
-    mu::Parser & GetParser( HandleType handler );
+    //! Get parser by handle
+    mu::Parser & GetParser( HandleType handle );
     
     //! Factory function for adding variables
     static Double * AddVariable( const char *varName );
@@ -156,12 +220,28 @@ namespace CoupledField {
     
     //! Pool of variables
     PoolMap pools_;
+    
+    //! Map for every global variable parser instance which uses this variable
+    std::map<std::string, std::set<HandleType> > globVarsInUse_;
+    
+    //! Set with used variables in each expression 
+    std::map<HandleType, std::set<std::string > > varsInUse_;
 
     //! Set with currently active handles
     std::set<HandleType> activeHandles_;
 
     //! Memory for implicitly allocated variables
     static std::list<Double> dynamicPool_;
+    
+    // =======================================================================
+    //  SIGNAL HANDLING STUFF
+    // =======================================================================
+    
+    //! Type definition for shared pointer to MathParserSignal
+    typedef shared_ptr<MathParserSignal> PtSig;
+    
+    //! Callback signals if value of expression changes
+    std::map<HandleType, PtSig > exprChangeSignal_;
   };
 
 #ifdef DOXYGEN_DETAILED_DOC

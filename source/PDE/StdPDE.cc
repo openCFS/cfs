@@ -13,7 +13,6 @@
 
 // headers for Paramhandling
 #include "DataInOut/ParamHandling/ParamNode.hh"
-#include "DataInOut/ParamHandling/InfoNode.hh"
 #include "DataInOut/ParamHandling/CFSOLASParams.hh"
 #include "Driver/assemble.hh"
 
@@ -21,64 +20,52 @@
 
 namespace CoupledField {
 
-
-  StdPDE::StdPDE(Grid *aptgrid, ParamNode* paramNode )
-    : BasePDE( paramNode )
-      {
-
-    
-    // =====================================================================
-    // initialize variables
-    // =====================================================================
-    numPdeEquations_ = 0;
-    numElems_ = 0;
-    nonLin_ = false;
-    nonLinMaterial_ = false;
-    isHysteresis_ = false;
-    TS_alg_ = NULL;
-    effectiveMass_ = false;
-    diagMass_ = false;
-    firstTimeStepStatic_ = true;
-    isAlwaysStatic_ = false;
-    isaxi_ = false;
-    isComplex_ = false;
-    fracDamping_ = false;
-    sol_ = NULL;     
-    isIncrFormulation_ = false;
-    ComputeRHSforHarm_ = false;
-    solveStep_ = NULL;
-    needSolPrev_ = false;
-    solPrev_ = NULL;
-    isSetInitialCondition_ = false;
-    InitialCondition_=0.0;
-    isInstationary_ = false;
-    olasInfo_ = NULL; // set in the child-nodes
-    // =====================================================================
-    // set file pointers
-    // =====================================================================
-    ptgrid_     = aptgrid;
-    assemble_   = NULL;
-    algsys_     = NULL;
-    
-    // =====================================================================
-    // set analysis parameters
-    // =====================================================================
-    couplingBCsCounter_ = 0;
-    isIterCoupled_ = false;
-    updateCouplingBCs_ = false;
-    dim_ = ptgrid_->GetDim();
-    iterCoupledCounter_ = 0;
-    effectiveMass_ = false;
-
-    // =====================================================================
-    // various parameters
-    // =====================================================================
-    needsAlgsys_ = true;
-
-    // check if we have an axi-symmetric setup
-    isaxi_ = param->Get("domain")->Get("geometryType")->AsString() == "axi";
-
-
+  StdPDE::StdPDE(Grid *aptgrid, PtrParamNode paramNode ) :
+    BasePDE(paramNode),
+    ptgrid_(aptgrid),
+    numPdeEquations_(0),
+    numPdeUnknowns_(0),
+    numPdeInHomDirBc_(0),
+    numElems_(0),
+    subType_(),
+    numCouplingBcs_(0),
+    nonLin_(false),
+    nonLinMaterial_(false),
+    isHysteresis_(false),
+    totalFormulation_(false),
+    isIterCoupled_(false),
+    updateCouplingBCs_(false),
+    ptCoupling_(NULL),
+    iterCoupledCounter_(0),
+    TS_alg_(NULL),
+    effectiveMass_(false),
+    diagMass_(false),
+    firstTimeStepStatic_(true),
+    isInstationary_(false),
+    needsAlgsys_(true),
+    isAlwaysStatic_(false),
+    dim_(ptgrid_->GetDim()), 
+    isaxi_(param->Get("domain")->Get("geometryType")->As<std::string>() == "axi"),
+    isComplex_(false),    
+    needSolPrev_(false),
+    sol_(NULL),  
+    solVec_(NULL),
+    rhsVec_(NULL),
+    solPrev_(NULL),
+    solVecPrev_(NULL),
+    fracDamping_(false),
+    fracMemory_(0),
+    isBiotSavart_(false),
+    inType_(NOTUSED),
+    isIncrFormulation_(false),
+    updatedLagrangeForm_(false),
+    ComputeRHSforHarm_(false),
+    assemble_(NULL),
+    solveStep_(NULL),
+    algsys_(NULL),
+    isSetInitialCondition_(false),
+    InitialCondition_(0.0)
+  {
   }
   
   StdPDE::~StdPDE() 
@@ -86,50 +73,30 @@ namespace CoupledField {
     
   }
 
-
-
-  const Vector<Double>& StdPDE::getS1() const {
+  const Vector<Double>& StdPDE::getDeriv(DERIVType derivType) const {
   
-  
-    if ( TS_alg_ != NULL ) {
-      return TS_alg_->GetDeriv1();
+    if ( TS_alg_ == NULL ) {
+      EXCEPTION( pdename_ << ":getDeriv: No derivative defined for this PDE" );
     }
-    else {
-      EXCEPTION( pdename_ << ":getS1: No timestepping defined for this PDE" );
-
-      // Only a dummy line for compiler
-      return TS_alg_->GetDeriv1();      
-    }
+    return TS_alg_->GetDeriv(derivType);
   }
   
-  
-  const Vector<Double>& StdPDE::getS2() const {
-    
-    
-    if ( TS_alg_ != NULL ) {
-      return TS_alg_->GetDeriv2();
-    }
-    else {
-      EXCEPTION( pdename_ << ":getS2: No timestepping defined for this PDE" );
+  const Vector<Double>& StdPDE::getOld(TIMEStepType timeStepType) const {
 
-      // Only a dummy line for compiler
-      return TS_alg_->GetDeriv2();
+    if ( TS_alg_ == NULL ) {
+      EXCEPTION( pdename_ << ":getOld: No time stepping defined for this PDE");
     }
+    return TS_alg_->GetOld(timeStepType);
   }
 
-  const Vector<Double>& StdPDE::getOld1() const {
+  bool StdPDE::HasPeriodicBC()
+  {
+    for(UInt i = 0; i < constraints_.GetSize(); i++)
+      if(constraints_[i]->periodic) return true;
 
-    if ( TS_alg_ != NULL ) {
-      return TS_alg_->GetOld1();
-    }
-    else {
-      EXCEPTION( pdename_ << ":getOld1: No timestepping defined for this PDE");
-
-      // Only a dummy line for compiler
-      return TS_alg_->GetOld1();
-    }
+    return false;
   }
-  
+
   // ======================================================
   // GRID SECTION (Meshing, ...) 
   // ======================================================
@@ -153,7 +120,7 @@ namespace CoupledField {
       for ( it.Begin(); !it.IsEnd(); it++ ) {
         actFunction = GetFeFunction(actBc.result->resultType);
         actFunction->GetFeSpace()->GetEqns( eqns, it, actBc.dof );
-        for(UInt iEqn = 0 ; iEqn < eqns.GetSize();iEqn){
+        for(UInt iEqn = 0 ; iEqn < eqns.GetSize();iEqn++){
           if ( eqns[iEqn] != 0 ) {
             actRHS[eqns[iEqn]] = 0.0;
           }
@@ -174,33 +141,24 @@ namespace CoupledField {
     // ==============================
 
     // create algebraic system and intialize matrices
-    SETPROFILE("Before CreatLinSys()");
     algsys_->CreateLinSys();
-    SETPROFILE("After CreatLinSys()");
     algsys_->InitMatrix();
     
     // Check for analysistype
     if ( analysistype_ != EIGENFREQUENCY ) {
       
       // create solver and preconditioner
-      SETPROFILE("Before CreateSolver()");
-      algsys_->CreateSolver(olasInfo_);
-      SETPROFILE("Before CreatePrecond()");
+      algsys_->CreateSolver();
       algsys_->CreatePrecond();
       
     } else {
       // create eigenvalue solver
-      algsys_->CreateEigenSolver(olasInfo_->Get("eigenSolver"));
+      algsys_->CreateEigenSolver();
     }
         
     // now reset AlgebraicSystem 
     algsys_->InitRHS();
   	algsys_->InitSol();
-
-    
-    
-    
-    SETPROFILE("-- Finished CreateMatrices_Solver--");
   }
 
 
@@ -214,13 +172,28 @@ namespace CoupledField {
   // ALGSYS SECTION (SOLVER, ...) 
   // ======================================================
 
-  ParamNode* StdPDE::FindLinearSystem(const std::string& sysName) {
+  PtrParamNode StdPDE::FindLinearSystem(const std::string& sysName) {
 
-
-    ParamNode* pn = NULL;
-    pn = param->Get("sequenceStep", "index", GenStr(sequenceStep_), false );
-    if(pn != NULL) pn = pn->Get("linearSystems", false);
-    if(pn != NULL) pn = pn->Get("system", "name", sysName, false);
+    PtrParamNode pn, linSysNode;
+    
+    pn = param->GetByVal("sequenceStep", "index", sequenceStep_, ParamNode::PASS);
+    linSysNode = pn->Get("linearSystems", ParamNode::INSERT);
+    pn = linSysNode->GetByVal("system", "name", sysName, ParamNode::INSERT);
+    
+    // If no system with the specified name could be found in XML file
+    // we just generate a new ParamNode.
+    //WARN("Check, if <linearSystems> node is created properly");
+    //    if(!pn) {
+//      
+//      
+//      linSysNode->GetChildren().Push_back(PtrParamNode(new ParamNode());
+//      pn = linSysNode->GetChildren().Last();
+//      pn->SetName("system");
+//      pn->GetChildren().Push_back(new ParamNode());
+//      PtrParamNode nameNode = pn->GetChildren().Last();
+//      nameNode->SetName("name");
+//      nameNode->SetValue(sysName);
+//    }
     
     return pn;
   }
@@ -259,7 +232,14 @@ namespace CoupledField {
     */ 
     return coeff;
   }
-  
+
+  DampingType StdPDE::GetDamping(RegionIdType reg_id) const
+  {
+    std::map<RegionIdType,DampingType>::const_iterator it = dampingList_.find(reg_id);
+
+    return it != dampingList_.end() ? it->second : NONE;
+  }
+
 
   // real valued method (for TRANSIENT and STATIC)
   void StdPDE::GetSolVecOfElement( Vector<Double>& elemSol,
@@ -327,7 +307,7 @@ namespace CoupledField {
     sol.Init( 0.0 ); 
     
     if (  analysistype_ == TRANSIENT) {
-      const Vector<Double> & sol_der1 = getS1();
+      const Vector<Double> & sol_der1 = getDeriv(FIRST_DERIV);
         
       for( UInt i = 0; i < eqns.GetSize(); i++ ) {
         if ( eqns[i] != 0 ) {
@@ -389,7 +369,7 @@ namespace CoupledField {
     sol.Init( 0.0 );
     
     if ( analysistype_ == TRANSIENT ) {
-      const Vector<Double> & sol_der2 = getS2();
+      const Vector<Double> & sol_der2 = getDeriv(SECOND_DERIV);
       for( UInt i = 0; i < eqns.GetSize(); i++ ) {
         if ( eqns[i] != 0 ) {
           sol[i] = sol_der2[abs(eqns[i])-1];
@@ -432,6 +412,35 @@ namespace CoupledField {
     }
   }
 
+  // real valued method (for TRANSIENT ): returns previous solution
+  //                                      for element
+  void StdPDE::GetPrevSolVecOfElement( Vector<Double>& elemSol,
+                                       const EntityIterator& it,
+                                       shared_ptr<ResultInfo> res ) {
+
+    if ( solPrev_ == NULL ) 
+      EXCEPTION("Previous Solution not defined");
+
+    StdVector<Integer> eqns;
+    shared_ptr<BaseFeFunction> aFct = GetFeFunction(res->resultType);
+    aFct->GetFeSpace()->GetEqns( eqns, it );
+
+
+    elemSol.Resize( eqns.GetSize() );
+    elemSol.Init(0);
+    NodeStoreSol<Double> * solhelp = 
+      dynamic_cast<NodeStoreSol<Double>*>(solPrev_);
+    Vector<Double> & sol = solhelp->GetAlgSysVector();
+    
+    for( UInt i = 0; i < eqns.GetSize(); i++ ) {
+      if ( eqns[i] != 0 ) {
+        elemSol[i] = sol[abs(eqns[i])-1];
+      } else {
+        elemSol[i] = 0.0;
+      }
+     }
+  }
+
   //stores an algsys_ vector into an StdVector
   void StdPDE::StoreAlgsysToVec(Vector<Double>& vec, Double * pt) {
 
@@ -467,6 +476,49 @@ namespace CoupledField {
     return res;
   }
 
+ void StdPDE::ReadDisplacementAndUpdateGrid( UInt step)
+ {
+   /* only update grid if langrange type has been set */
+   if ( !updatedLagrangeForm_ )
+   {
+     return;
+   }
+   /* do not set new grid in the first step */
+   if ( step != 0 )
+   {
+     for ( UInt nreg = 0; nreg < regions4GridDisplacements_.GetSize(); nreg++ )
+     {
+       ResultHandler* resultHandler = domain->GetResultHandler();
+       shared_ptr<BaseResult> gridDisplacement = resultHandler->GetResult( fileName4GridDisplacements_,
+           1,
+           step,
+           MECH_DISPLACEMENT,        
+           regions4GridDisplacements_[nreg] );
+
+       Result<Double> *result =
+         dynamic_cast<Result<Double>*>(&(*gridDisplacement));
+       if (result == NULL)
+       {
+         EXCEPTION("Cannot read result 'Grid-Displacements' from input id '"
+             <<  fileName4GridDisplacements_ << "'");
+       }
+       Vector<Double>& resVec = result->GetVector();
+       shared_ptr<EntityList> nodesList = gridDisplacement->GetEntityList();
+       StdVector<UInt> nodes;
+
+       EntityIterator it;
+
+       it = nodesList->GetIterator();
+       for( it.Begin(); !it.IsEnd(); it++ )
+       {
+         nodes.Push_back(it.GetNode());
+       }
+
+       ptgrid_->SetNodeOffset(nodes, resVec);
+     }
+   }
+ }
+
 
   // ******************
   //   ReadOlasParams
@@ -480,17 +532,13 @@ namespace CoupledField {
 
     // Set parameters for OLAS
     std::string amExpert = "no";
-    param->Get( "override", amExpert, false);
+    param->GetValue( "override", amExpert, ParamNode::PASS );
 
-    ParamNode * linSysNode = NULL;
-    ParamNode * temp = param->Get("sequenceStep", "index", GenStr(sequenceStep_), false );
-    if ( temp )
-      temp = temp->Get("linearSystems", false);
-    if ( temp ) {
-      linSysNode = temp ->Get("system", "name", sysName, false );
-    }
-    
-    CFSOLASParams::SetParams( sysName, linSysNode, olasParams_, 
+    PtrParamNode linSysNode;
+    PtrParamNode temp = param->GetByVal("sequenceStep", "index", sequenceStep_);
+    temp = temp->Get("linearSystems", ParamNode::INSERT);
+    linSysNode = temp ->GetByVal("system", "name", sysName, ParamNode::INSERT );
+    CFSOLASParams::SetParams( sysName, linSysNode, 
                               analysistype_, assemble_,
                               (amExpert == "yes") );
 

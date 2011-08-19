@@ -4,23 +4,38 @@
 #include "General/Enum.hh"
 #include "Utils/StdVector.hh"
 #include "MatVec/vector.hh"
-#include "Driver/harmonicDriver.hh"
-#include "Domain/bcs.hh"
-#include "Optimization/DesignElement.hh"
+#include "Optimization/Design/DesignElement.hh"
 #include "Optimization/Condition.hh"
+#include "Optimization/Objective.hh"
 
 namespace CoupledField
 {
-   class Elem;
-   class ParamNode;
-   class InfoNode;
+   struct Elem;
    class DesignSpace;
    class OptimalityCondition;
    class BaseOptimizer;
    class SinglePDE;
    class Excitation;
-   class LinearFormContext;
+   class MultipleExcitation;
 
+   /** This is a simple class used as a parameter to SetAdjointRhs called by assemble */
+   class AdjointParameters {
+   public:
+     AdjointParameters(Function* f, Excitation* e) {
+       function = f;
+       excite = e;
+     }
+     Function* GetFunction() {
+       return function;
+     }
+     Excitation* GetExcitation() {
+       return excite;
+     }
+   private:
+     Function* function;
+     Excitation* excite;
+   };
+   
   /** This is a general optimization object. The optimiziation loop is around
    *  domain->GetDriver()->SolveProblem() and as such general. Note convention,
    * that Optimization solves an optimization problem and an Optimizer is the
@@ -43,30 +58,14 @@ namespace CoupledField
           * minimum or max iterations is reached. Overwrite on demand*/
          void SolveProblem();
 
-         /** Where we apply the transformation */
-         typedef enum { MECH, ELEC, PIEZO_COUPLING, PRESSURE, CHARGE_DENSITY, MASS, NO_APP} Application;
-
-         /** The taks for a cost function either to minimize or maximize */
-         typedef enum { MINIMIZE, MAXIMIZE } ObjectiveTask;
-
-         /** Known types of cost functions */
-         typedef enum { COMPLIANCE,                /*!< (u,f) the opposite of stiffness */
-                        OUTPUT,                    /*!< Re(u,l) maximize solution where vector l is not 0 */
-                        DYNAMIC_OUTPUT,            /*!< (u, L conj(u)) as OUTPUT but complex */
-                        ABS_DYN_OUTPUT_SQUARED,    /*!< |<u,l>|^2 = | sum u_l |^2 harmonic */
-                        CONJUGATE_COMPLIANCE,      /*!< (u, F conj(u)) as DYNAMIC_OUTPUT with trace of L is f */
-                        GLOBAL_DYNAMIC_COMPLIANCE, /*!< (u, I conj(u)) as DYNAMIC_OUTPUT with L is I (everywhere) */
-                        ELEC_ENERGY,               /*!< p^T K_pp p or p^T K_pp p^* */ 
-                        VOLUME, TRACKING,
-                        HOMOGENIZATION             /*!< currently not a real cost function, has to be extended */
-                        } ObjectiveType;
+         /** Where we apply the transformation.
+          * A subset of the values are PDE identifiers for ToPDE() and ToApp().
+          * The heat and acoustic transfer functions are Laplace! */
+         typedef enum { MECH, ELEC, PIEZO_COUPLING, PRESSURE, CHARGE_DENSITY, MASS, HEAT, ACOUSTIC, LAPLACE, STRESS, NO_APP} Application;
 
          /** Not the optimization problem but the solver! */
-         typedef enum { OPTIMALITY_CONDITION, IPOPT_SOLVER, SCPIP_SOLVER, SHAPE_SOLVER, 
-												EVALUATE_INITIAL_DESIGN, GRADIENT_CHECK } Optimizer;
-
-         /** to convert string/enum for this type */
-         static Enum<ObjectiveType> objectiveType;
+         typedef enum { OPTIMALITY_CONDITION, IPOPT_SOLVER, SCPIP_SOLVER, SNOPT_SOLVER, KNITRO_SOLVER,
+                        SHAPE_SOLVER, EVALUATE_INITIAL_DESIGN, GRADIENT_CHECK } Optimizer;
 
          /** to convert string/enum for this type */
          static Enum<Optimizer> optimizer;
@@ -74,77 +73,10 @@ namespace CoupledField
          static Enum<Application> application;
 
          /** the commit mode defines what of the iterations is to be written to gid, ... */
-         typedef enum { FORWARD, ADJOINT, BOTH } CommitMode;
+         typedef enum { FORWARD, ADJOINT, BOTH, EACH_FORWARD, EACH_ADJOINT } CommitMode;
 
          static Enum<CommitMode> commitMode;
          
-         /** We combine the cost function in a set to handle multiple of it.
-          * It contains static const elements (and  working stuff).
-          * MultipleExciation is in the XML file part of the objective but in class part of Optimization*/
-         class Objective
-         {
-           public:
-             /** @param harmonic are we in a harmonic simulation? */
-             Objective(ParamNode* pn, bool harmonic);
-
-             /** The actual kind of cost function. */
-             ObjectiveType type;
-
-             /** The task is the direction of a cost function (MINIMIZE, MAXIMIZE) */
-             ObjectiveTask task;
-
-             /** This vector stores the cost functions of the iterations. Written in GetObjective() */
-             StdVector<double> history;
-
-             /** The objective value */
-             double GetValue();
-
-             /** @param val set an unscaled value here -> it is scaled in the return */
-             void SetValue(double val);
-
-             void ToInfo(InfoNode* in) const;
-
-             /** gathered by some of the costFunction attributes in XML, the defaults are in the XML-Schema */
-             class StoppingRule
-             {
-               public:
-               /** stopping rules value */
-               double value;
-
-               /** stopping rule queue length */
-               unsigned int queue;
-             };
-
-             /** This are our stopping rule parameters */
-             StoppingRule stop;
-
-             /** Here we store out ParamNode such we can more easily access it in ErsatzMaterial */
-             ParamNode* pn;
-
-             /** Shall harmonic optimization multiply with omega^2.
-              * This makes "u L conj(u)" to actually calc "v L conj(v)" with v = du/dt. -> approximatates sound intensity */
-             bool FactorOmegaOmega() {
-               return omega_omega_;
-             }
-             
-             /** Tychonoff regularization parameter */
-             double TychonoffParameter() const { return tychonoff_; }
-
-           private:
-
-             /** The current value */
-             double value_;
-
-             /** @see FactorOmegaOmega() */
-             bool omega_omega_;
-
-             bool harmonic_;
-             
-             double tychonoff_;
-         };
-
-         /** The cost function */
-         Objective* GetObjective() { return cost; }
 
          /** The DesignSpace element is a container for the complex DesignElements.
           * There are service methods in the container to exchange with external
@@ -160,16 +92,17 @@ namespace CoupledField
          * Does a multiplication with Excitation::GetWeightedFactor(). Note, that 
          * the Calc* methods for the objective do only Excitation::GetFactor().
          * @param grad_out size is GetDesignSpaceSize(). If null only DesingElement.objective_gradient */
-        virtual void CalcObjectiveGradient(double* grad_out) = 0;
+        virtual void CalcObjectiveGradient(StdVector<double>* grad_out) = 0;
 
         /** Determines the constraint.
+         * The function value is stored in value_
          * @param which constraint to calc? Default is the only one! */
-        virtual double CalcConstraint(Condition* constraint = NULL) = 0;
+        virtual double CalcConstraint(Condition* constraint) = 0;
 
         /** evaluates the gradient of the cost function by the desing element
          * Writes to DesignElement.contraint_gradient
          * @see CalcObjectiveGradient() for parameter description */
-        virtual void CalcConstraintGradient(Condition* constraint = NULL, double* grad_out = NULL) = 0;
+        virtual void CalcConstraintGradient(Condition* constraint = NULL, StdVector<double>* grad_out = NULL) = 0;
 
         /** This is brute force debug method which calculates the symmetry of a sqared
          * model with horizontal symmetry axis with lexicographic order (at least works for gid).
@@ -185,6 +118,20 @@ namespace CoupledField
         /** Evaluates the state problem, does not increment the iteration counter.
          * @param excite provide for multiharmonic steps */
         virtual void SolveStateProblem(Excitation* excite = NULL);
+        
+        /** Solves the Adjoint problem, for given excite and objective
+         * This does the real work
+         * @param excite multi-excitation
+         * @param cost multi-objective */
+        virtual void SolveAdjointProblem(Excitation* excite, Function* f);
+        
+        /** Traverses all objective and active constraint functions (non local) and calls SolveAdjointProblem()
+         * if the functions needs it
+         * @see Function::IsAdjointBased() */
+        virtual void SolveAdjointProblems(Excitation* excite = NULL);
+        
+        /** Sets the rhs for the adjoint, called by assemle */
+        virtual void SetAdjointRhs(AdjointParameters* adjointParams) = 0;
 
         /** The maximal number of iterations */
         int GetMaxIterations() { return maxIterations; }
@@ -203,71 +150,57 @@ namespace CoupledField
          * @see FinalizeStoreResults() for calling after the last CommitIteration()
          * @param keep_iteration_number will keep currentIteration and not rest problemsWithinIteration
          * @return the iteration element we added */
-        virtual InfoNode* CommitIteration(bool keep_iteraton_number = false);
+        virtual PtrParamNode CommitIteration(bool keep_iteraton_number = false);
 
         /** the break condition for the optimization loop.
-         * Checks the stopping rule from the XML file an searches for an HALTOPT file.  */
+         * Checks the stopping rule from the XML file an searches for an HALTOPT file.
+         * Shall be called after CommitIteration() ! */
         virtual bool DoStopOptimization();
 
         /** are we in the harmonic case? */
         bool IsHarmonic() const { return harmonic; }
-
-        /** This struct stores the multiple excitation Information. It contains the
-         * same defaults as the xml schema as the whole element is optional. */
-        class MultipleExcitation
-        {
-        public:
-          /** @param enabled comes from the attribute.
-           * @param pn if NULL only the defaults are set */
-          MultipleExcitation(bool enabled, ParamNode* pn);
-
-          void ToInfo(InfoNode* in) const;
-
-          /** Do we do multiple excitation at all? */
-          bool IsEnabled() const { return multiple_excitation_; }
-
-          /** Do we java a meta_objective */
-          bool DoMetaObjective() const { return meta_objective_; }
-
-          /** Dow we do adjust weigts */
-          bool DoAdjustWeights() const { return meta_objective_; }
-
-          /** The stride for adjust weights: 1 = every iteration, 2 = every second ... */
-          int stride;
-
-          /** the maximal span between the largest (1) and smallest weight as factor */
-          double max_gain;
-
-          /** The exponent d in w_k^p J_k = const */
-          double damping;
-
-        private:
-          /** do we do multiple excitation at all? */
-          bool multiple_excitation_;
-          bool meta_objective_;
-        };
-
+        
+        /** are we in transient optimization? */
+        bool IsTransient() const;
+        
+        /** in transient, first step can be static, so that start displacement can depend on material parameters */
+        bool IsFirstTransientStepStatic() const {return firstStepStatic; };
+        
+        /** in transient, first step can be static and have a different weight for the objective, this is the weight
+         * converted so that it just has to be multiplied */
+        double GetStepWeight(unsigned int ts) const;
+        
         /** The current multiple excitation state -> check with IsEnabled() */
-        MultipleExcitation* GetMultipleExcitation() const { return multiple_excitation; }
-
-        /** The constraints we have */
-        StdVector<Condition> constraints;
-
-        /** The "inactive" constraints with output_only mode in xml */
-        StdVector<Condition> outputs;
-
-        /** Searches in active and output only constraints!
-         * TODO: make name default for only one constraint
-         *  @param design NO_TYPE ignores this criteria. DEFAULT would be problematic for
-         *                this purpose as it is a valid value
-         * @return check active flag!  */
-        Condition& GetConstraint(Condition::Name name, DesignElement::Type design = DesignElement::NO_TYPE);
+        MultipleExcitation* GetMultipleExcitation() const { return me; }
 
         /** set the (static) enums - if they are used outside optimization, make this method public */
         static void SetEnums();
 
-        /** Our base InfoNode pointer, pointing to a plain <optimization> */
-        InfoNode* optInfoNode;
+        /** Returns all active functions. Does not blow up local constraints. Combines objective and constraints.active.
+         * Always creates the list, so use only rarely. */
+        StdVector<Function*> GetActiveFunctions() const;
+
+        /** Our base ParamNode pointer, pointing to a plain <optimization> */
+        PtrParamNode optInfoNode;
+
+        /** This is the list of concurrent objective functions.
+         * It is guaranteed to have at least one entry.
+         * The objectives are almost identical (share most attributes) */
+        ObjectiveContainer objectives;
+
+        /** This contains the constraints in their three forms: standard, hidden and observe
+         * and several virtual views on that */
+        ConditionContainer constraints;
+
+
+        /** The applied excitation */
+        Excitation* applied_excitation;
+        
+        /** is called from transientDriver after each time step is finished, to store the solution */
+        virtual void TimeStepCalculated(UInt timeStep, AdjointParameters* adjParams) = 0;
+        
+        /** is called from assemble, after the calculation of the right-hand side, to get the rhs without Update from Newmark */
+        virtual void RhsCalculated(AdjointParameters* adjParams) = 0;
 
       protected:
         /** Set up the optimization system e.g. prepare the domain for optimization. called
@@ -276,7 +209,7 @@ namespace CoupledField
 
         /** Appends to the current analysis_id of the driver a child and
          * sets analysis_id and excite accordingly */
-        InfoNode* CreateAdjointAnalysisIdNode();
+        PtrParamNode CreateAdjointAnalysisIdNode(std::string child_name = "adjoint");
         
         /** This tells the driver to store the last solved problem (gid, ...). Called in
          * CommitIteration(). For PiezoSIMP we can save more often and there this method
@@ -287,11 +220,11 @@ namespace CoupledField
         /** called by CommitIteration(), to be overwritten if additional data should be
          * written, then logFileHeader should also be set. Don't add a new-line here!!.
          * @param iteration a duplicate of the log file output to the info xml file */
-        virtual void LogFileLine(std::ofstream* out, InfoNode* iteration);
+        virtual void LogFileLine(std::ofstream* out, PtrParamNode iteration);
 
         /** PostInit is to be called after the constructor. 
          * PostInit  does not really solve something. */
-        virtual void PostInit();
+        virtual void PostInit() {};
 
         /** This is the second phase of post initialization. It creates the Optimizer tools */
         virtual void PostInitSecond();
@@ -302,9 +235,6 @@ namespace CoupledField
          * @return an empty string in the non-harmonic case */
         virtual std::string GetIterationFrequency() { return "not implemented"; }
 
-        /** Do header writing of optimization */
-        // virtual void ToInfo(InfoNode* in) const;
-        
         /** The way the date is stored. Forward/ adjoint/ both and stride. 
          * Set in the <commit> element */
         CommitMode commitMode_;
@@ -320,6 +250,7 @@ namespace CoupledField
          * @see problemSolvedCounter. */
         int currentIteration;
 
+
         /** This checks how often the state problem is solved. This is not necessary equal
          * to the iterations, e.g. for line search of an external optimizer. Incremented by
          * SolveStateProblem(). */
@@ -332,36 +263,29 @@ namespace CoupledField
         int maxIterations;
 
         /** Our MultipleExcitation objecte - by default disabled */
-        MultipleExcitation* multiple_excitation;
-
+        MultipleExcitation* me;
+        
         /** The actual kind of optimizer.  */
         Optimizer optimizer_;
-
-        /** Up to now we have only one cost function */
-        Objective* cost;
 
         /** Here we contain our design space. The domain gets a reference to it to perform
          * the ersatz material ansatz */
         DesignSpace* design;
 
-         /** The header of the logFile_, to be overwritten if LogFileLine() is overwritten. CommitIteration()
-          * writes this string to logFile_ a the first execution */
-          std::string logFileHeader;
-          
-          /** if set write the design to the logfile */
-          bool logDesign;
-          
-          /** if set write the gradient of the design to logfile */
-          bool logDesignGradient;
-
         /** Here we keep the last iterations design space */
         Vector<double>  last_iteration;
 
-        /** Here we keep the last evaluation design space */
-        Vector<double>  last_evaluation;
-
         /** are we harmonic or static? */
         bool harmonic;
+        
+        /** is the first step static */
+        bool firstStepStatic;
+        
+        /** if the first step is static, this weight specifies how much the other steps add to the functional */
+        double otherStepWeight;
+
+        /** shortcut to domain->GetGrid() */
+        Grid* grid;
 
       private:
         /** CommitIteration() does not necessary store the results when we have a stride
@@ -369,95 +293,45 @@ namespace CoupledField
          * if necessary. Should always be called when finished (in the good and bad sense) */
         void FinalizeStoreResults();
 
+        /** Encapsulates Logging information */
+        class Log
+        {
+        public:
+          /** Sets to meaningful defaults (don not much :) ) */
+          Log();
+
+          /** Closes the file */
+          ~Log();
+
+          /** @param log_name is interpreted. If allows a file, the logFile is created.
+           * @param pn_log pointer to the 'log' element. Might be NULL */
+          void Init(const std::string& log_name, PtrParamNode pn_log);
+
+          /** The header of the logFile_, to be overwritten if LogFileLine() is overwritten. CommitIteration()
+           * writes this string to logFile_ a the first execution */
+           std::string fileHeader;
+
+           /** if set write the design to the logfile */
+           bool design;
+
+           /** if set write the gradient of the design to logfile */
+           bool designGradient;
+
+           /** optional log the iterations and cost value to a file to gnuplot it */
+           std::ofstream* file;
+        };
+
+        /** Keeps all logging relevant stuff */
+        Log log;
+
+        /** counts the written steps, which can be higher than currentIteration if adjoints or multiples are written */
+        int writeCounter_;
+
         /** When did we store the last result via CommitIteration() due to stride */
         int lastStoredResult_;
-        
-        /** optional log the iterations and cost value to a file to gnuplot it */
-        std::ofstream*     logFile_;
 
         /** This holds our optimer instance. */
         BaseOptimizer* baseOptimizer_;
-  };
-
-  typedef LoadBc TrackingBc;
-
-  typedef LoadList TrackingList;
-
-  /** For multiple loads (compliance or multiple frequency optimization) we use
-   * the summarized term multiple excitations. This object encapsulates the such a excitation.
-   * This excitations are weighted.  */
-  class Excitation
-  {
-  public:
-
-    /** default constructor for StdVector() */
-    Excitation();
-
-    /** This method makes the current load active.
-     * For multiple frequencies it does nothing. The actual frequency is choosen by default. */
-    void Apply();
-
-    /** Find the fixed factor, does ignore weighting and does not apply it. */
-    double GetFactor(Optimization::Objective* cost);
-
-    /** Returns GetFactor() * normalized_weight */
-    double GetWeightedFactor(Optimization::Objective* cost);
-    
-    /** Gets the current omege =  2 * pi * f */
-    double GetOmega();
-
-    /** @return omega^2 */
-    double GetOmegaOmega();
-    
-    /** read the tracking node list from XML */
-    void ReadTrackings(ParamNode* ts);
-    
-    /** read the loads from XML */
-    void ReadLoads(ParamNode* ls);
-    
-    /** return pointer to linForms, used by Shape-Optimization */
-    std::set<LinearFormContext*>* GetLinForms() { return &linForms; }
-
-    /** the index of this excitation in the excitations array. If -1 something went wront */
-    int index;
-
-    /** For static/monoharmonic optimization with different load-cases. Now allowing also multiple loads in one case.
-     * empty and apply_linForms=false if not applicable */
-    LoadList loads;
-    
-    /** For static optimization with different pressure or regionLoads */
-    std::set<LinearFormContext*> linForms;
-    
-    /** if linForms are to be applied 
-     * set true in multiple load/pressure/regionLoad per load-case or tracking */
-    bool apply_linForms;
-    
-    /** Different possible trackings for tracking objective */
-    TrackingList trackings;
-
-    /** This is a link to the Frequency description from the harmonic driver.
-     * It is used for calling the HarmonicDriver to solve the problems */
-    HarmonicDriver::Frequency* f_link;
-
-    /** For multiharmonic excitation. -1.0 by default */
-    double frequency;
-
-    /** this is the weight from the xml file */
-    double weight;
-
-    /** this is the normalized weight (sum of all weights of all excitations is 1) */
-    double normalized_weight;
-
-    /** Here we store the calculated objective value, including costFunction/factor
-     * to enable metaObjective. In the Optimization::cost struct we store a copy/average */
-    double cost;
-
-    /** Here we might store the "original" (@see objective) gradient for analysis/output */
-    StdVector<double> cost_gradient;
-    
-    /** for the calculation of a homogenized material tensor, one can specify test strains in
-     *  xml file. */
-    Vector<Double> test_strain;
   };
 
 } // namespace

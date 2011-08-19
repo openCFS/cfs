@@ -7,10 +7,21 @@
 
 namespace CoupledField{
 
-  DefaultCoordSystem::DefaultCoordSystem(Grid * ptGrid) 
-    : CoordSystem(std::string("default") , ptGrid, NULL ) {
+  DefaultCoordSystem::DefaultCoordSystem(Grid * ptGrid ) 
+    : CoordSystem(std::string("default") , ptGrid, PtrParamNode() ) {
     
-   
+   // initialize rotation matrix
+    rotationMat_.Resize(dim_, dim_);
+    rotationMat_[0][0] = 1.0;
+    rotationMat_[1][1] = 1.0;
+    if( dim_ == 3 ) {
+      rotationMat_[2][2] = 1.0;
+    }
+    invRotationMat_ = rotationMat_;
+    
+    // "calculate" full inverse rotation matrix
+    invRotationMatFull_.Resize(3,3);
+    invRotationMatFull_.SetSubMatrix( invRotationMat_, 0, 0);
   }
   
   DefaultCoordSystem::~DefaultCoordSystem(){
@@ -25,6 +36,7 @@ namespace CoupledField{
                                           const Vector<Double> & glob ) const {
     loc = glob;
   }
+  
   
   void DefaultCoordSystem::
   Local2GlobalVector( Vector<Double> & globVec, 
@@ -41,6 +53,22 @@ namespace CoupledField{
 
     globVec = locVec;
   }
+  
+  void  DefaultCoordSystem::
+  GetGlobRotationMatrix( Matrix<Double> & mat,
+                         const Vector<Double>& point ) const {
+   
+    // no need to calculate anything
+    mat = invRotationMat_;
+  }
+
+  void  DefaultCoordSystem::
+  GetFullGlobRotationMatrix( Matrix<Double> & mat,
+                             const Vector<Double>& point ) const {
+
+    // no need to calculate anything
+    mat = invRotationMatFull_;
+  }
 
   UInt DefaultCoordSystem::GetVecComponent( const std::string & dof )  const {
 
@@ -51,13 +79,14 @@ namespace CoupledField{
       component = 1;
     if ( dof == "y" )
       component = 2;
-    if ( dof == "z" )
+    if ( dof == "z" && dim_ == 3 )
       component = 3;
 
     if ( component == 0 ) {
       EXCEPTION( "DefaultCoordSystem:GetVecComponent:\n"
                  << "The component with name '" << dof 
-                 << "' is not known in the global cartesian coordinate system" );
+                 << "' is not known in the global Cartesian coordinate system " 
+                 << "of dimension " << dim_ << "!");
     }
     
     return component;
@@ -66,25 +95,21 @@ namespace CoupledField{
   
   const std::string DefaultCoordSystem::GetDofName( const UInt dof ) const {
     
-    std::string ret = "";
-    
-    switch (dof) {
-    case 1:
-      ret = "x";
-      break;
-    case 2:
-      ret = "y";
-      break;
-    case 3:
-      ret = "z";
-      break;
-    default:
-      EXCEPTION( "DefaultCoordSystem::GetDofName:\n"
-                 << "The component number " << dof << " does not exist in a "
-                 << "global cartesian coordinate system!" );
-    }
+    if( dof == 1 )
+      return "x";
 
-    return ret;
+    if( dof == 2 )
+      return "y";
+
+    if( dof == 3 && dim_ == 3 )
+      return "z";
+
+    EXCEPTION( "DefaultCoordSystem::GetDofName:\n"
+        << "The component number " << dof << " does not exist in a "
+        << "global Cartesian coordinate system of dimension "
+        << dim_ << "!" );
+    
+    return "";
   }
 
 

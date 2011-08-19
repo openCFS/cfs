@@ -11,7 +11,7 @@
 #include "assemble.hh"
 #include "Forms/linearForm.hh"
 #include "OLAS/algsys/basesystem.hh"
-#include "Utils/myclock.hh"
+#include "Utils/Timer.hh"
 
 namespace CoupledField {
 
@@ -39,7 +39,7 @@ namespace CoupledField {
   }
 
 
-  void SolveStepMagEdge::SolveStepStatic(InfoNode* analysis_id) {
+  void SolveStepMagEdge::SolveStepStatic(PtrParamNode analysis_id) {
 
 
 
@@ -47,7 +47,7 @@ namespace CoupledField {
     if( strategy_ == STRAT_STANDARD ) {
       std::ofstream clockFile_;
       clockFile_.open("time.txt");
-      MyClock clock;
+      Timer clock;
       clock.Start();
            
       if (nonLin_) 
@@ -56,9 +56,9 @@ namespace CoupledField {
         StepStaticLin(analysis_id);
       
 
-      Double wall, user;
-      clock.GetTime(wall, user);
-      clock.Reset();
+      Double wall = clock.GetWallTime();
+      Double user = clock.GetCPUTime();
+      clock.Stop();
       clockFile_ << "1 " << wall << "\t" << user << std::endl;
       clockFile_.close();
       
@@ -67,7 +67,7 @@ namespace CoupledField {
       // create hard cocded timer file
       std::ofstream clockFile_;
       clockFile_.open("time.txt");
-      MyClock clock;
+      Timer clock;
       clock.Start();
       
       std::cerr << " *********************************\n";
@@ -94,9 +94,9 @@ namespace CoupledField {
         StepStaticLin(analysis_id);
       
       
-      Double wall, user;
-      clock.GetTime(wall, user);
-      clock.Reset();
+      Double wall = clock.GetWallTime();
+      Double user = clock.GetCPUTime();
+      clock.ResetStart();
       clockFile_ << "1 " << wall << "\t" << user << std::endl;
       
       std::cerr << " *********************************\n";
@@ -167,9 +167,9 @@ namespace CoupledField {
       else 
         StepStaticLin(analysis_id);
 
-      
-      clock.GetTime(wall, user);
-      clock.Reset();
+      wall = clock.GetWallTime();
+      user = clock.GetCPUTime();
+      clock.Stop();
       clockFile_ << "2 " << wall << "\t" << user << std::endl;
       clockFile_.close();
     } else {
@@ -181,11 +181,11 @@ namespace CoupledField {
   }
 
 
-  void SolveStepMagEdge::StepStaticLin( InfoNode* analysis_id ) {
+  void SolveStepMagEdge::StepStaticLin( PtrParamNode analysis_id ) {
     StdSolveStep::StepStaticLin(analysis_id);  
   }
 
-  void SolveStepMagEdge::StepStaticNonLin( InfoNode* analysis_id ) {
+  void SolveStepMagEdge::StepStaticNonLin( PtrParamNode analysis_id ) {
     
     // Note: currently hard-coded to section from StdSolveStep
     StdSolveStep::StepStaticNonLin(analysis_id);

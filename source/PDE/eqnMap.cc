@@ -6,6 +6,9 @@
 
 #include <iostream>
 #include <iomanip>
+#include <set>
+#include <sstream>
+
 
 #include "Domain/elem.hh"
 #include "Elements/basefe.hh"
@@ -13,7 +16,7 @@
 #include "Domain/domain.hh"
 #include "Utils/coordSystem.hh"
 #include "DataInOut/Logging/cfslog.hh"
-#include "DataInOut/ParamHandling/InfoNode.hh"
+#include "DataInOut/ParamHandling/ParamNode.hh"
 
 #include <boost/lexical_cast.hpp>
 #include <boost/shared_ptr.hpp>
@@ -39,6 +42,7 @@ namespace CoupledField {
 
     numEqns_ = 0;
     numIdBcs_ = 0;
+    numIdFiBcs_ = 0;
     numCs_ = 0;
 
     numLocNodes_ = 0;
@@ -73,6 +77,14 @@ namespace CoupledField {
     for( UInt i = 0; i < idBcs.GetSize(); i++ ) {
       ResultInfo actResult = *(idBcs[i]->result);
       idBcs_[actResult].Push_back( idBcs[i] );
+    }
+  }
+
+  void EqnMap::SetInhomDirichFileBCs( IdFileBcList& idFiBcs ) {
+
+    for( UInt i = 0; i < idFiBcs.GetSize(); i++ ) {
+      ResultInfo actResult = *(idFiBcs[i]->result);
+      idFiBcs_[actResult].Push_back( idFiBcs[i] );
     }
   }
 
@@ -247,6 +259,7 @@ namespace CoupledField {
     // Calc number of 'real equations'
     LOG_DBG(eqnMap) << "#equations: " << numEqns_;
     LOG_DBG(eqnMap) << "#dirichletBcs: " << numIdBcs_;
+    LOG_DBG(eqnMap) << "#dirichletFileBcs: " << numIdFiBcs_;
     LOG_DBG(eqnMap) << "#constraints: " << numCs_;
 
 
@@ -723,6 +736,25 @@ namespace CoupledField {
   }
 
 
+  Integer EqnMap::SearchNode(Integer eqn, UInt dof)
+  {
+    // First check, if more than one type of results are defined
+    assert(nodeEqns_.size() == 1);
+
+    Matrix<Integer> const& map = (nodeEqns_.begin())->second;
+
+    // expensive!
+    for(UInt i = 0, n = map.GetNumRows(); i < n; i++)
+      if(map[i][dof - 1] == eqn)
+      {
+        Integer glob = mesh2PdeNode_.Find(i + 1); // local nodes are 1 based!
+        assert(glob > -1);
+        return glob + 1;
+      }
+
+    EXCEPTION("cannot find global node number for equation " << eqn << " dof " << dof);
+  }
+
   void EqnMap::GetNodeEqn( const StdVector<UInt>& nodeNrs,
       StdVector<Integer>& eqnNrs ) {
     // First check, if more than one type of results are defined
@@ -810,17 +842,17 @@ namespace CoupledField {
   //! MISCELLANEOUS
   //! ======================================================================
 
-  void EqnMap::ToInfo(InfoNode* base) const
+  void EqnMap::ToInfo(PtrParamNode base) const
   {
-    InfoNode* lg = base->Get("localGlobal");
+    PtrParamNode lg = base->Get("localGlobal");
 
     // local <-> global mapping (nodes)
-    InfoNode* root = lg->Get("nodes");
+    PtrParamNode root = lg->Get("nodes");
     root->Get("globalNodes")->SetValue(ptGrid_->GetNumNodes());
     root->Get("localNodes")->SetValue(numLocNodes_);
     for( UInt iNode = 0; iNode < pde2MeshNode_.GetSize(); iNode++ )
     {
-      InfoNode* in = root->Get("mapping", InfoNode::APPEND);
+      PtrParamNode in = root->Get("mapping", ParamNode::APPEND);
       in->Get("local")->SetValue(iNode+1);
       in->Get("global")->SetValue(pde2MeshNode_[iNode]);
     }
@@ -831,7 +863,7 @@ namespace CoupledField {
     root->Get("localElements")->SetValue(numLocElems_);
     for( UInt iElem = 0; iElem < pde2MeshElem_.GetSize(); iElem++ )
     {
-      InfoNode* in = root->Get("mapping", InfoNode::APPEND);
+      PtrParamNode in = root->Get("mapping", ParamNode::APPEND);
       in->Get("local")->SetValue(iElem+1);
       in->Get("global")->SetValue(pde2MeshElem_[iElem]);
     }
@@ -840,7 +872,7 @@ namespace CoupledField {
     root = lg->Get("faces");
     for( UInt iFace = 0; iFace < mesh2PdeFace_.GetSize(); iFace++ )
     {
-      InfoNode* in = root->Get("mapping", InfoNode::APPEND);
+      PtrParamNode in = root->Get("mapping", ParamNode::APPEND);
       in->Get("local")->SetValue(iFace+1);
       in->Get("global")->SetValue(mesh2PdeFace_[iFace]);
     }
@@ -849,14 +881,14 @@ namespace CoupledField {
     root = lg->Get("edges");
     for( UInt iEdge = 0; iEdge < mesh2PdeEdge_.GetSize(); iEdge++ )
     {
-      InfoNode* in = root->Get("mapping", InfoNode::APPEND);
+      PtrParamNode in = root->Get("mapping", ParamNode::APPEND);
       in->Get("local")->SetValue(iEdge+1);
       in->Get("global")->SetValue(mesh2PdeEdge_[iEdge]);
     }
 
     // Nodal equation mapping
-    InfoNode* em = base->Get("equationMapping");
-    InfoNode* rt = em->Get("nodal");
+    PtrParamNode em = base->Get("equationMapping");
+    PtrParamNode rt = em->Get("nodal");
 
 
     // Loop over all nodal mapped results
@@ -870,13 +902,13 @@ namespace CoupledField {
       UInt dofsPerNode = listIt->first.dofNames.GetSize();
 
       // head for which result this is shown
-      InfoNode* res = rt->Get("result", InfoNode::APPEND);
+      PtrParamNode res = rt->Get("result", ParamNode::APPEND);
       res->Get("type")->SetValue(SolutionTypeEnum.ToString(listIt->first.resultType));
       res->Get("dofs")->SetValue(dofsPerNode);
 
       for ( UInt iNode = 0; iNode < pde2MeshNode_.GetSize(); iNode++ )
       {
-        InfoNode* in = res->Get("mapping", InfoNode::APPEND);
+        PtrParamNode in = res->Get("mapping", ParamNode::APPEND);
         in->Get("local")->SetValue(iNode+1);
         in->Get("global")->SetValue(pde2MeshNode_[iNode]);
 
@@ -897,7 +929,7 @@ namespace CoupledField {
         (edgeEqns_.find(edgeListIt->first))->second;
 
       // Print head for which result this is shown
-      InfoNode* res = rt->Get("result", InfoNode::APPEND);
+      PtrParamNode res = rt->Get("result", ParamNode::APPEND);
       res->Get("type")->SetValue(SolutionTypeEnum.ToString(edgeListIt->first.resultType));
 
       for ( UInt iEdge = 0; iEdge < ptGrid_->GetNumEdges(); iEdge++ )
@@ -907,7 +939,7 @@ namespace CoupledField {
         // check if edge has any equations at all
         if ( locEdge <= 0 ) break;
 
-        InfoNode* in = res->Get("mapping", InfoNode::APPEND);
+        PtrParamNode in = res->Get("mapping", ParamNode::APPEND);
         in->Get("local")->SetValue(iEdge+1);
         in->Get("global")->SetValue(mesh2PdeEdge_[iEdge]);
 
@@ -932,7 +964,7 @@ namespace CoupledField {
         (faceEqns_.find(faceListIt->first))->second;
 
       // Print head for which result this is shown
-      InfoNode* res = rt->Get("result", InfoNode::APPEND);
+      PtrParamNode res = rt->Get("result", ParamNode::APPEND);
       res->Get("type")->SetValue(SolutionTypeEnum.ToString(faceListIt->first.resultType));
 
       for ( UInt iFace = 0; iFace < ptGrid_->GetNumFaces(); iFace++ )
@@ -943,7 +975,7 @@ namespace CoupledField {
         // check if face has any equations at all
         if ( locFace <= 0 ) break;
 
-        InfoNode* in = res->Get("mapping", InfoNode::APPEND);
+        PtrParamNode in = res->Get("mapping", ParamNode::APPEND);
         in->Get("localFaceNr")->SetValue(iFace+1);
         in->Get("globalFaceNr")->SetValue(mesh2PdeFace_[iFace]);
 
@@ -966,12 +998,12 @@ namespace CoupledField {
         (elemEqns_.find(it->first))->second;
 
       // Print head for which result this is shown
-      InfoNode* res = rt->Get("result", InfoNode::APPEND);
+      PtrParamNode res = rt->Get("result", ParamNode::APPEND);
       res->Get("type")->SetValue(SolutionTypeEnum.ToString(it->first.resultType));
 
       for ( UInt iElem = 0; iElem < numLocElems_; iElem++ )
       {
-        InfoNode* in = res->Get("mapping", InfoNode::APPEND);
+        PtrParamNode in = res->Get("mapping", ParamNode::APPEND);
         in->Get("localElemNr")->SetValue(iElem+1);
         in->Get("globalElenNr")->SetValue(pde2MeshElem_[iElem]);
 
@@ -1204,6 +1236,7 @@ namespace CoupledField {
       // for this tpye of result
       ResultHdBcMap::iterator hdBcIt = hdBcs_.find( actRes );
       ResultIdBcMap::iterator idBcIt = idBcs_.find( actRes );
+      ResultIdFileBcMap::iterator idFiBcIt = idFiBcs_.find( actRes );
       ResultConstraintMap::iterator csIt = constraints_.find( actRes );
 
       Matrix<Integer> & actMap = nodeEqns_[actRes];
@@ -1249,6 +1282,12 @@ namespace CoupledField {
         // ------
         // STEP 2
         // ------
+        // we use a set here to collect all nodes with warnings about different things
+        // the nodes appear more often, that is why we do not use a StdVector
+        // the problem with the behavior before this change was that for certain problems,
+        // several thousand warnings were issued (up to 15MB of text)
+        // now, we only make one output and save a lot of space and time
+        std::set<UInt> warnSlaveNodes;
 
         // Check if any inhom. constraint is defined for the current
         // result
@@ -1266,19 +1305,66 @@ namespace CoupledField {
            
             UInt slaveDof = actCsList[i]->slaveDof;
 
+           
+            // Check first node, which is contained in the PDE, i.e. has a
+            // non zero local node number.
+            UInt startIndex = 0;
+
+            // TODO: the first test in the while header was introduced to get periodic boundary
+            // conditions working for problems where all elements with small pseudo density 
+            // are put into a second region
+            // For some reason in this case the mesh2PdeNode_-vector seems to only contain 
+            // negative values.
+            // Doing this check against slaveNodes.GetSize here and later in STEP 6b
+            // the simulation runs and also seems to yield useable results.
+            // However, this is not the nice way of doing things and this might also 
+            // lead to some errors in the calculation
+            // I have marked all lines corresponding to this change with the marker
+            // SECOND_REGION_INDEX_CHECK
+            const UInt slNodesSize(slaveNodes.GetSize());
+            while (startIndex < slNodesSize && mesh2PdeNode_[slaveNodes[startIndex]-1] < 0) 
+            {
+              // insert the node number and increment the index at once!
+              warnSlaveNodes.insert(slaveNodes[startIndex++]);
+            }
+            // SECOND_REGION_INDEX_CHECK: if statements and consequent decrement of startIndex
+            if(startIndex == slNodesSize) --startIndex;
+            
             // NOTE: at the moment we assume that slave and master nodes
             // are the same, therefore we start with the second node
             // within the master / slave node array
-            for ( UInt iNode = 1; iNode < slaveNodes.GetSize(); iNode++ ) {
-              actMap[mesh2PdeNode_[slaveNodes[iNode]-1]-1] [slaveDof-1] = 0;
+            for ( UInt iNode = startIndex+1; iNode < slNodesSize; ++iNode )
+            {
+              Integer localNode = mesh2PdeNode_[slaveNodes[iNode]-1];
+              if( localNode > 0) {
+                actMap[localNode-1] [slaveDof-1] = 0;
+              } else {
+                warnSlaveNodes.insert(slaveNodes[iNode]);
+              }
             }
           }
+        }
+
+        // output all numbers of missed nodes at once...
+        if(warnSlaveNodes.size() > 0)
+        {
+          // see comment above at declaration of warnSlaveNodes (at step 2)
+          std::stringstream outss;
+          std::ostream_iterator<UInt> output( outss, " " );
+          std::copy(warnSlaveNodes.begin(), warnSlaveNodes.end(), output );
+          
+          std::string outstring("EqnMap::CalcNodalEquations: Constraint nodes with numbers ");
+          outstring.append(outss.str());
+          outstring.append("are not contained in any of the regions for this PDE");
+
+          info->Get("PDE")->Get("constraint_warning")->Get(ParamNode::WARNING)->SetValue(outstring);
         }
 
 
         // ------
         // STEP 3
         // ------
+        warnSlaveNodes.clear(); // see comment above
         Matrix<UInt> countNodes;
         countNodes.Resize( numLocNodes_, dofsPerNode );
         countNodes.Init();
@@ -1290,23 +1376,19 @@ namespace CoupledField {
             GetNodesOfEntities( nodes, actHdBcList[i]->entities );
             UInt actDof = actHdBcList[i]->dof;
 
-            for( UInt iNode = 0; iNode < nodes.GetSize(); iNode++ ) {
+            for( UInt iNode = 0, nnodes = nodes.GetSize(); iNode < nnodes; iNode++ ) {
               // Check if homDirichletNode belongs to one of my subdomains
               if ( mesh2PdeNode_[nodes[iNode]-1]-1 < 0 ) {
-                (*warning) << "EqnMap::CalcNodalEquations: Homogen. Dirichlet node "
-                << "nr. " << nodes[iNode]
-                                   << " is not contained in any of the regions for this PDE";
-                Warning( __FILE__, __LINE__ );
+                warnSlaveNodes.insert(nodes[iNode]);
               }
               else if ( countNodes[mesh2PdeNode_[nodes[iNode]-1]-1]
                                    [actDof-1] != 0 ) {
-                // 		(*warning) << "EqnMap::CalcNodalEquations: HomDirichletNode # "
+                // 		WARN( "EqnMap::CalcNodalEquations: HomDirichletNode # "
                 // 		           << nodes[i]
                 // 		           << "\nappeared already at least once in the list of "
                 // 		           << "boundary nodes for this PDE!\n Please check, if this "
                 // 		           << "node is defined in more than one level of boundary "
-                // 		           << "nodes!";
-                // 		Warning( __FILE__, __LINE__ );
+                // 		           << "nodes!" );
               }
               else {
                 actMap[mesh2PdeNode_[nodes[iNode]-1]-1][actDof-1] = 0;
@@ -1316,7 +1398,20 @@ namespace CoupledField {
           }
         }
 
+        // output all numbers of missed nodes at once...
+        if(warnSlaveNodes.size() > 0)
+        {
+          // see comment above at declaration of warnSlaveNodes (at step 2) 
+          std::stringstream outss;
+          std::ostream_iterator<UInt> output( outss, " " );
+          std::copy(warnSlaveNodes.begin(), warnSlaveNodes.end(), output );
+          
+          std::string outstring("EqnMap::CalcNodalEquations: Homogen. Dirichlet nodes ");
+          outstring.append(outss.str());
+          outstring.append("are not contained in any of the regions for this PDE");
 
+          info->Get("PDE")->Get("homogen_dirichlet_warning")->Get(ParamNode::WARNING)->SetValue(outstring);
+        }
 
 
         // -------
@@ -1338,21 +1433,19 @@ namespace CoupledField {
             for( UInt iNode = 0; iNode < nodes.GetSize(); iNode++ ) {
 
               if ( mesh2PdeNode_[ nodes[iNode] - 1 ] - 1 < 0 ) {
-                (*warning) << "EqnMap::CalcNodalEquations: Inhom. Dirichlet "
-                << "node #" << nodes[iNode]
-                                     << " is not contained in any of the regions for "
-                                     << "this Pde";
-                Warning( __FILE__, __LINE__ );
+                WARN("CalcNodalEquations: Inhom. Dirichlet "
+                     << "node #" << nodes[iNode]
+                     << " is not contained in any of the regions for "
+                     << "this PDE");
               }
               else if ( countNodes[mesh2PdeNode_[nodes[iNode]-1]-1]
                                    [actDof-1] != 0 ) {
-                // 	(*warning) << "EqnMap::CalcNodalEquations: Inhom. Dirichlet "
+                // 	WARN( "EqnMap::CalcNodalEquations: Inhom. Dirichlet "
                 // 		           << "node #" << nodes[iNode]
                 // 		           << "\nappeared already at least once in the list of "
                 // 		           << "boundary nodes for this Pde!\n Please check, if "
                 // 		           << "this node is defined in more than one level of "
-                // 		           << "boundary nodes!";
-                // 		Warning( __FILE__, __LINE__ );
+                // 		           << "boundary nodes!" );
               }
               else {
 
@@ -1364,6 +1457,51 @@ namespace CoupledField {
 
                   // In any case we have to increment the number of idBC-conditions
                   numIdBcs_++;
+                }
+              }
+            }
+          }
+        }
+
+        countNodes.Init();
+
+        // Check if any inhom. boundary condition is defined for the current
+        // result
+        if( idFiBcIt != idFiBcs_.end() ) {
+          IdFileBcList const & actIdFiBcList = idFiBcIt->second;
+
+          for ( UInt i = 0; i < actIdFiBcList.GetSize(); i++ ) {
+            StdVector<UInt> nodes;
+            GetNodesOfEntities( nodes, actIdFiBcList[i]->entities );
+            UInt actDof = actIdFiBcList[i]->dof;
+
+            for( UInt iNode = 0; iNode < nodes.GetSize(); iNode++ ) {
+
+              if ( mesh2PdeNode_[ nodes[iNode] - 1 ] - 1 < 0 ) {
+                WARN("CalcNodalEquations: Inhom. Dirichlet "
+                     << "node #" << nodes[iNode]
+                     << " is not contained in any of the regions for "
+                     << "this PDE");
+              }
+              else if ( countNodes[mesh2PdeNode_[nodes[iNode]-1]-1]
+                                   [actDof-1] != 0 ) {
+                // 	WARN( "EqnMap::CalcNodalEquations: Inhom. Dirichlet "
+                // 		           << "node #" << nodes[iNode]
+                // 		           << "\nappeared already at least once in the list of "
+                // 		           << "boundary nodes for this Pde!\n Please check, if "
+                // 		           << "this node is defined in more than one level of "
+                // 		           << "boundary nodes!" );
+              }
+              else {
+
+                // only set entry to -1, if entry is not yet an constraint
+                // slave entry or homogeneous dirichlet entry
+                if(  actMap[mesh2PdeNode_[nodes[iNode]-1]-1] [actDof-1] == NO_EQN ) {
+                  actMap[mesh2PdeNode_[nodes[iNode]-1]-1] [actDof-1] = -1;
+                  countNodes[mesh2PdeNode_[nodes[iNode]-1]-1][actDof-1]++;
+
+                  // In any case we have to increment the number of idBC-conditions
+                  numIdFiBcs_++;
                 }
               }
             }
@@ -1447,6 +1585,28 @@ namespace CoupledField {
           }
         }
 
+        if( idFiBcIt != idFiBcs_.end() ) {
+          IdFileBcList const & actIdFiBcList = idFiBcIt->second;
+          for ( UInt i = 0; i < actIdFiBcList.GetSize(); i++ ) {
+            StdVector<UInt> nodes;
+            GetNodesOfEntities( nodes, actIdFiBcList[i]->entities );
+            UInt actDof = actIdFiBcList[i]->dof;
+
+            for ( UInt iNode = 0; iNode < nodes.GetSize(); iNode++ ) {
+              // only assign an equation number, if the map contains
+              // a 0. Otherwise, we have already labeled this node
+              Integer locNode = mesh2PdeNode_[nodes[iNode]-1];
+              if( locNode > 0 ) {
+                if(  actMap[locNode-1] [actDof-1]
+                     == -1  ) {
+                  numEqns_++;
+                  actMap[locNode-1] [actDof-1] = numEqns_;
+                }
+              }
+            }
+          }
+        }
+
         // ------
         // STEP 6b
         // ------
@@ -1464,16 +1624,31 @@ namespace CoupledField {
             slaveNodes = nodeList->GetNodes();
             UInt slaveDof = actCsList[i]->slaveDof;
             UInt masterDof = actCsList[i]->masterDof;
-            UInt masterNode = slaveNodes[0];
+            
+            // Check first node, which is contained in the PDE, i.e. has a
+            // non zero local node number.
+            UInt startIndex = 0;
+
+            // SECOND_REGION_INDEX_CHECK: first part of while header, before the &&
+            while (startIndex < slaveNodes.GetSize()-1 && mesh2PdeNode_[slaveNodes[startIndex]-1] < 0) 
+              startIndex++;
+
+            // SECOND_REGION_INDEX_CHECK: if statements and consequent decrement of startIndex
+            if(startIndex == slaveNodes.GetSize()) --startIndex;
+
+            UInt masterNode = slaveNodes[startIndex];
 
             // assign the master node/dof a equation number
             //actMap[mesh2PdeNode_[slaveNodes[0]-1]-1]
             //  [slaveDof-1] = ++numEqns_;
 
-            for ( UInt iNode = 1; iNode < slaveNodes.GetSize(); iNode++ ) {
-              actMap[mesh2PdeNode_[slaveNodes[iNode]-1]-1] [slaveDof-1] =
-                -actMap[mesh2PdeNode_[masterNode-1]-1] [masterDof-1];
-              numCs_++;
+            for ( UInt iNode = startIndex+1; iNode < slaveNodes.GetSize(); iNode++ ) {
+              Integer localNode = mesh2PdeNode_[slaveNodes[iNode]-1];
+              if( localNode > 0 ) {
+                actMap[localNode-1] [slaveDof-1] =
+                    -actMap[mesh2PdeNode_[masterNode-1]-1] [masterDof-1];
+                numCs_++;
+              }
             }
           }
         }
@@ -1491,7 +1666,7 @@ namespace CoupledField {
 
     for( listIt = elemIntMappedList_.begin();
          listIt != elemIntMappedList_.end();
-         listIt++ ) {
+         ++listIt ) {
 
       // Remeber current result and list of elementLists
       const ResultInfo & actRes = listIt->first;
@@ -1604,6 +1779,7 @@ namespace CoupledField {
       // for this tpye of result
       ResultHdBcMap::iterator hdBcIt = hdBcs_.find( actRes );
       ResultIdBcMap::iterator idBcIt = idBcs_.find( actRes );
+      ResultIdFileBcMap::iterator idFiBcIt = idFiBcs_.find( actRes );
       ResultConstraintMap::iterator csIt = constraints_.find( actRes );
 
       StdVector<Vector<Integer> > & actMap = elemEqns_[actRes];
@@ -1674,27 +1850,65 @@ namespace CoupledField {
             for( elemIt.Begin(); !elemIt.IsEnd(); elemIt++ ) {
               UInt actElem = elemIt.GetElem()->elemNum;
               if ( mesh2PdeElem_[ actElem - 1 ] - 1 < 0 ) {
-                (*warning) << "EqnMap::CalcElemEquations: Inhom. Dirichlet "
-                << "elem #" << actElem
-                << " is not contained in any of the regions for "
-                << "this Pde";
-                Warning( __FILE__, __LINE__ );
+                WARN("CalcElemEquations: Inhom. Dirichlet "
+                     << "elem #" << actElem
+                     << " is not contained in any of the regions for "
+                     << "this PDE");
               }
               else if ( countElems[mesh2PdeElem_[actElem-1]-1]
                                    [actDof-1] != 0 ) {
-                (*warning) << "EqnMap::CalcElemEquations: Inhom. Dirichlet "
-                << "elem #" << actElem
-                << "\nappeared already at least once in the list of "
-                << "boundary nodes for this Pde!\n Please check, if "
-                << "this node is defined in more than one level of "
-                << "boundary nodes!";
-                Warning( __FILE__, __LINE__ );
+                WARN("CalcElemEquations: Inhom. Dirichlet "
+                     << "elem #" << actElem
+                     << "\nappeared already at least once in the list of "
+                     << "boundary nodes for this Pde!\n Please check, if "
+                     << "this node is defined in more than one level of "
+                     << "boundary nodes!");
               }
               else {
                 actMap[mesh2PdeElem_[actElem-1]-1] [actDof-1] = -1;
                 countElems[mesh2PdeElem_[actElem-1]-1][actDof-1]++;
                 // In any case we have to increment the number of idBC-conditions
                 numIdBcs_++;
+              }
+            }
+          }
+        }
+
+        countElems.Init();
+
+        // Check if any inhom. boundary from file condition is defined for the current
+        // result
+        if( idFiBcIt != idFiBcs_.end() ) {
+          IdFileBcList const & actIdFiBcList = idFiBcIt->second;
+
+          for ( UInt i = 0; i < actIdFiBcList.GetSize(); i++ ) {
+            StdVector<UInt> nodes;
+            EntityIterator elemIt = actIdFiBcList[i]->entities->GetIterator();
+
+            UInt actDof = actIdFiBcList[i]->dof;
+
+            for( elemIt.Begin(); !elemIt.IsEnd(); elemIt++ ) {
+              UInt actElem = elemIt.GetElem()->elemNum;
+              if ( mesh2PdeElem_[ actElem - 1 ] - 1 < 0 ) {
+                WARN("CalcElemEquations: Inhom. Dirichlet from File"
+                     << "elem #" << actElem
+                     << " is not contained in any of the regions for "
+                     << "this PDE");
+              }
+              else if ( countElems[mesh2PdeElem_[actElem-1]-1]
+                                   [actDof-1] != 0 ) {
+                WARN("CalcElemEquations: Inhom. Dirichlet from File"
+                     << "elem #" << actElem
+                     << "\nappeared already at least once in the list of "
+                     << "boundary nodes for this Pde!\n Please check, if "
+                     << "this node is defined in more than one level of "
+                     << "boundary nodes!");
+              }
+              else {
+                actMap[mesh2PdeElem_[actElem-1]-1] [actDof-1] = -1;
+                countElems[mesh2PdeElem_[actElem-1]-1][actDof-1]++;
+                // In any case we have to increment the number of idBC-conditions
+                numIdFiBcs_++;
               }
             }
           }
@@ -1765,6 +1979,28 @@ namespace CoupledField {
             }
           }
         }
+        locElem = 0;
+        if( idFiBcIt != idFiBcs_.end() ) {
+          IdFileBcList const & actIdFiBcList = idFiBcIt->second;
+
+          for ( UInt i = 0; i < actIdFiBcList.GetSize(); i++ ) {
+            StdVector<UInt> nodes;
+            EntityIterator elemIt = actIdFiBcList[i]->entities->GetIterator();
+
+            UInt actDof = actIdFiBcList[i]->dof;
+
+            for( elemIt.Begin(); !elemIt.IsEnd(); elemIt++ ) {
+              UInt actElem = elemIt.GetElem()->elemNum;
+              locElem = mesh2PdeElem_[actElem-1];
+              if( locElem > 0 ) {
+                if(  actMap[locElem-1] [actDof-1] == -1  ) {
+                  numEqns_++;
+                  actMap[locElem-1] [actDof-1] = numEqns_;
+                }
+              }
+            }
+          }
+        }
       } else {
         EXCEPTION( "Phase '" << phase << "' does not exist!" );
       }
@@ -1817,17 +2053,37 @@ namespace CoupledField {
 
               // iterate over all elements of this list
               for( it.Begin(); !it.IsEnd(); it++ ) {
+                StdVector<StdVector<UInt> > numFcns;
+                numFcns.Resize( dofsPerEdge );
 
                 // obtain edges
                 StdVector<Integer> const & edges = it.GetElem()->edges;
+                const Elem & actEl = *(it.GetElem());
+
+                // iterate over all dofs of this result
+                for( UInt iDof = 0; iDof < dofsPerEdge; iDof++ ) {
+                  actEl.ptElem->GetNumFncs( numFcns[iDof], actRes.fctType,
+                                            AnsatzFct::EDGE, iDof );
+                  assert( numFcns[iDof].GetSize() == actEl.edges.GetSize() );
+                }
 
                 for( UInt iEdge = 0; iEdge < edges.GetSize(); iEdge++ ) {
 
                   // check, if edge can be found
                   Integer locEdge = mesh2PdeEdge_[std::abs(edges[iEdge]) - 1];
 
+
+                  // sum up unknowns of this dof
+                  UInt sum = 0;
+                  UInt max = 0;
+                  for( UInt iDof = 0; iDof < dofsPerEdge; iDof++ ) {
+                    sum +=  numFcns[iDof][iEdge];
+                    if( numFcns[iDof][iEdge] > max )
+                      max = numFcns[iDof][iEdge];
+                  }
+
                   if( locEdge > 0 ) {
-                    actMap[locEdge-1].Resize(dofsPerEdge);
+                    actMap[locEdge-1].Resize(dofsPerEdge * max);
                     actMap[locEdge-1].Init( 0 );
                   }
                 }
@@ -2158,7 +2414,7 @@ namespace CoupledField {
     if( usePenalty_ ) {
       return numEqns_;
     } else {
-      return numEqns_ - numIdBcs_;
+      return numEqns_ - numIdBcs_ - numIdFiBcs_;
     }
   }
 

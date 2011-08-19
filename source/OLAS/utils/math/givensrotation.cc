@@ -76,9 +76,8 @@ namespace CoupledField {
 
 #else
 
-      (*error) << "Compile with USE_LAPACK to enable support for "
-               << "LAPACK's Givens rotation";
-      Error( __FILE__, __LINE__ );
+      EXCEPTION( "Compile with USE_LAPACK to enable support for "
+               << "LAPACK's Givens rotation" );
 
 #endif
 

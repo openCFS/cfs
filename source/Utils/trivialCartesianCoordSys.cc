@@ -6,15 +6,14 @@
 #include <sstream>
 
 #include "DataInOut/ParamHandling/ParamNode.hh"
-#include "DataInOut/WriteInfo.hh"
 #include "trivialCartesianCoordSys.hh"
 
 
 namespace CoupledField{
 
   TrivialCartesianCoordSystem::TrivialCartesianCoordSystem(const std::string & name,
-                                 Grid * ptGrid,
-                                 ParamNode * myParamNode ) 
+                                                           Grid * ptGrid,
+                                                           PtrParamNode myParamNode ) 
     : CoordSystem( name, ptGrid, myParamNode ) {
     Vector<Double> originTemp, xAxisTemp, yAxisTemp;
     std::vector< std::string > axisMapTemp;
@@ -22,19 +21,25 @@ namespace CoupledField{
     axisMapTemp.push_back("y");
     axisMapTemp.push_back("z");
 
-    // get origin point of coordinate system
-    GetPoint( originTemp, myParam_->Get( "origin" ) );
-
-    // get axis map
-    ParamNode* node = myParam_->Get("axisMap", false);
-
-    if(node)
+    originTemp.Resize(3);
+    originTemp.Init();
+    
+    if(myParam_) 
     {
-      node->Get("x", axisMapTemp[0], true);
-      node->Get("y", axisMapTemp[1], true);
-      node->Get("z", axisMapTemp[2], true);
+      // get origin point of coordinate system
+      GetPoint( originTemp, myParam_->Get( "origin" ) );
+      
+      // get axis map
+      PtrParamNode node = myParam_->Get("axisMap", ParamNode::PASS );
+      
+      if(node)
+      {
+        node->GetValue("x", axisMapTemp[0], ParamNode::PASS);
+        node->GetValue("y", axisMapTemp[1], ParamNode::PASS);
+        node->GetValue("z", axisMapTemp[2], ParamNode::PASS);
+      }
     }
-
+    
     origin_.Resize(3);
     axisFactors_.Resize(3);
     axisMap_.Resize(3);
@@ -83,9 +88,6 @@ namespace CoupledField{
     // calculate the rotation matrix and the invers
     CalcRotationMatrix();
 
-    // print information to .info-file
-    PrintInfo();
-    
   }
   
   TrivialCartesianCoordSystem::~TrivialCartesianCoordSystem(){
@@ -127,25 +129,17 @@ namespace CoupledField{
   }
 
   void  TrivialCartesianCoordSystem::
-  GetGlobRotationAngles( Vector<Double> & angles,
+  GetGlobRotationMatrix( Matrix<Double> & rotMat,
                          const Vector<Double>& point ) const {
-    Vector<Double> loc, anglesLoc, anglesGlob(3);
-    Global2LocalCoord( loc, point );
-
-    // Note: currently we simply return the 'phi' part, as this 
-    // is the only changing one.
-    anglesLoc.Resize(3);
-    anglesLoc.Init();
-    anglesLoc[2] = loc[1];
-    
-    // Now add to the point rotation angles the 
-    // angles to rotate the angles back to the global system
-    angles = invRotationAng_;
-    angles *= 180 / PI;
-    angles += anglesLoc;
-
+    rotMat =  invRotationMat_;
   }
-  
+
+  void  TrivialCartesianCoordSystem::
+  GetFullGlobRotationMatrix( Matrix<Double> & rotMat,
+                             const Vector<Double>& point ) const {
+    rotMat =  invRotationMatFull_;
+  }
+
   void TrivialCartesianCoordSystem::
   Local2GlobalVector( Vector<Double> & globVec, 
                       const Vector<Double> & locVec, 
@@ -223,12 +217,10 @@ namespace CoupledField{
     //    mapping from  local to global cartesian coordinate system
     Matrix<Double> tempInvers;
     rotationMat_.Invert(invRotationMat_);
-
-    //Now calculate the related kardan angles for forward and 
-    //backward transformation
-    CalcKardanAngles( rotationAng_, rotationMat_ );
-    CalcKardanAngles( invRotationAng_, invRotationMat_ );
-
+    
+    // "calculate" full inverse rotation matrix
+    invRotationMatFull_.Resize(3,3);
+    invRotationMatFull_.SetSubMatrix( invRotationMat_, 0, 0);
   }
 
 
@@ -274,21 +266,25 @@ namespace CoupledField{
     return ret;
   }
 
-  void TrivialCartesianCoordSystem::PrintInfo() {
-    std::ostringstream out;
-    out << "\n--- local coordinate system ---\n"
-        << "    name:\t" << name_ << std::endl
-        << "    type:\ttrivial cartesian" << std::endl
-        << "  origin:\t" << origin_[0] << "," << origin_[1] << "," 
-        << origin_[2] << std::endl
-        << "  axisFactors:\t" << axisFactors_[0] << "," << axisFactors_[1] << ","
-        << axisFactors_[2] << std::endl
-        << "  axisMap:\t" << axisMap_[0] << "," << axisMap_[1] << ","
-        << axisMap_[2] << "\n";
-    out << "  angles:\t" << rotationAng_[0]/PI*180 << ","
-        << rotationAng_[1]/PI*180 << "," << rotationAng_[2]/PI*180 << "\n\n";
-    Info->PrintF(std::string(), out.str().c_str());
-
+  void TrivialCartesianCoordSystem::ToInfo( PtrParamNode in ) {
+    
+    in = in->Get("trivialCaresionCoordinateSystem");
+    
+    in->Get("id")->SetValue(name_);
+    PtrParamNode originNode = in->Get("origin");
+    originNode->Get("x")->SetValue(origin_[0]);
+    originNode->Get("y")->SetValue(origin_[1]);
+    originNode->Get("z")->SetValue(origin_[2]);
+    
+    PtrParamNode factorNode = in->Get("axisFactors");
+    factorNode->Get("x")->SetValue(axisFactors_[0]);
+    factorNode->Get("y")->SetValue(axisFactors_[1]);
+    factorNode->Get("z")->SetValue(axisFactors_[2]);
+    
+    PtrParamNode mapNode = in->Get("axisMap");
+    mapNode->Get("x")->SetValue(axisMap_[0]);
+    mapNode->Get("y")->SetValue(axisMap_[1]);
+    mapNode->Get("z")->SetValue(axisMap_[2]);
   }
 
 

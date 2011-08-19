@@ -25,6 +25,8 @@ namespace CoupledField {
   class StdMatrix : public BaseMatrix {
 
   public:
+    
+    virtual ~StdMatrix() {}
 
     // ========================================================================
     // QUERY METHODS
@@ -155,12 +157,11 @@ namespace CoupledField {
     //! defined in the BaseMatrix class.
     void CompRes( BaseVector &r, const BaseVector &x,
                           const BaseVector& b ) const {
-      TRY_CAST
-      CONSTREFCAST( x, SingleVector, std_x );
-      CONSTREFCAST( b, SingleVector, std_b );
-      REFCAST( r, SingleVector, std_r );
+      const SingleVector& std_x = dynamic_cast<const SingleVector&>(x);
+      const SingleVector& std_b = dynamic_cast<const SingleVector&>(b);
+      SingleVector& std_r = dynamic_cast<SingleVector&>(r);
+
       CompRes( std_r, std_x, std_b );
-      CATCH_CAST
     }
 
     //! Compute the residual for a linear system with this matrix
@@ -179,11 +180,9 @@ namespace CoupledField {
     //! BaseMatrices to StdMatrices and delegate the work to the method with
     //! the appropriate interface. It implements the method defined in the
     //! BaseMatrix class.
-    void Add( const Double a, const BaseMatrix& mat ){
-      TRY_CAST
-      CONSTREFCAST( mat, StdMatrix, stdmat );
-      Add( a, stdmat );
-      CATCH_CAST
+    void Add( const Double a, const BaseMatrix& mat )
+    {
+      Add( a, dynamic_cast<const StdMatrix&>(mat) );
     };
 
     //! Add the multiple of a matrix to this matrix.
@@ -200,13 +199,10 @@ namespace CoupledField {
     //! However, all it does is downcast the BaseVectors to SingleVectors and
     //! delegate the work to the method with the appropriate interface. It
     //! implements the method defined in the BaseMatrix class.
-    void Mult(const BaseVector& mvec, BaseVector& rvec) const {
-      TRY_CAST
-      CONSTREFCAST(mvec,SingleVector,stdmvec);
-      REFCAST(rvec,SingleVector,stdrvec);
-      Mult(stdmvec,stdrvec);
-      CATCH_CAST
-    };
+    void Mult(const BaseVector& mvec, BaseVector& rvec) const
+    {
+      Mult(dynamic_cast<const SingleVector&>(mvec), dynamic_cast<SingleVector&>(rvec));
+    }
 
     //! Perform a matrix-vector multiplication rvec = this*mvec
 
@@ -221,13 +217,10 @@ namespace CoupledField {
     //! However, all it does is downcast the BaseVectors to SingleVectors and
     //! delegate the work to the method with the appropriate interface. It
     //! implements the method defined in the BaseMatrix class.
-    void MultT(const BaseVector& mvec, BaseVector& rvec) const {
-      TRY_CAST
-      CONSTREFCAST(mvec,SingleVector,stdmvec);
-      REFCAST(rvec,SingleVector,stdrvec);
-      MultT(stdmvec,stdrvec);
-      CATCH_CAST
-    };
+    void MultT(const BaseVector& mvec, BaseVector& rvec) const
+    {
+      MultT(dynamic_cast<const SingleVector&>(mvec), dynamic_cast<SingleVector&>(rvec));
+    }
 
     //! Perform a matrix-vector multiplication rvec = transpose(this)*mvec
 
@@ -244,13 +237,10 @@ namespace CoupledField {
     //! However, all it does is downcast the BaseVectors to SingleVectors and
     //! delegate the work to the method with the appropriate interface. It
     //! implements the method defined in the BaseMatrix class.
-    virtual void MultAdd(const BaseVector& mvec, BaseVector& rvec) const {
-      TRY_CAST
-        CONSTREFCAST(mvec,SingleVector,stdmvec);
-      REFCAST(rvec,SingleVector,stdrvec);
-      MultAdd(stdmvec,stdrvec);
-      CATCH_CAST
-    };
+    virtual void MultAdd(const BaseVector& mvec, BaseVector& rvec) const
+    {
+      MultAdd(dynamic_cast<const SingleVector&>(mvec), dynamic_cast<SingleVector&>(rvec));
+    }
         
     //! Perform a matrix-vector multiplication rvec += this*mvec
 
@@ -266,13 +256,10 @@ namespace CoupledField {
     //! However, all it does is downcast the BaseVectors to SingleVectors and
     //! delegate the work to the method with the appropriate interface. It
     //! implements the method defined in the BaseMatrix class.
-    void MultTAdd(const BaseVector& mvec, BaseVector& rvec) const {
-      TRY_CAST
-      CONSTREFCAST(mvec,SingleVector,stdmvec);
-      REFCAST(rvec,SingleVector,stdrvec);
-      MultTAdd(stdmvec,stdrvec);
-      CATCH_CAST
-    };
+    void MultTAdd(const BaseVector& mvec, BaseVector& rvec) const
+    {
+      MultTAdd(dynamic_cast<const SingleVector&>(mvec), dynamic_cast<SingleVector&>(rvec));
+    }
 
     virtual void MultTAdd(const SingleVector& mvec, SingleVector& rvec) const {
       EXCEPTION( "Function MultTAdd not re-implemented in derived class!" );
@@ -284,13 +271,10 @@ namespace CoupledField {
     //! However, all it does is downcast the BaseVectors to SingleVectors and
     //! delegate the work to the method with the appropriate interface. It
     //! implements the method defined in the BaseMatrix class.
-    void MultSub( const BaseVector& mvec, BaseVector& rvec ) const {
-      TRY_CAST
-        CONSTREFCAST(mvec,SingleVector,stdmvec);
-      REFCAST(rvec,SingleVector,stdrvec);
-      MultSub(stdmvec,stdrvec);
-      CATCH_CAST
-    };
+    void MultSub( const BaseVector& mvec, BaseVector& rvec ) const
+    {
+      MultSub(dynamic_cast<const SingleVector&>(mvec), dynamic_cast<SingleVector&>(rvec));
+    }
         
     //! Perform a matrix-vector multiplication rvec -= this*mvec
 

@@ -2,6 +2,8 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
+#include <cmath>
+
 #include "DataInOut/Logging/cfslog.hh"
 #include "Domain/grid.hh"
 #include "Domain/ncElem.hh"
@@ -163,6 +165,9 @@ namespace CoupledField {
         normal_.Inner(line, sign);
         sign /= fabs(sign);
 
+        if(std::isnan(sign))
+          continue;
+        
         // scale the distance for the normal projection
         normal_.Inner(normal, scale);
 

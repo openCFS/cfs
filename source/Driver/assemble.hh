@@ -19,8 +19,9 @@ namespace CoupledField {
 
   // Forward class declarations
   class TimeFunc;
+  class Timer;
   class StdPDE;
-  class InfoNode;
+  class AdjointParameters;
 
   //! Class for assembling element/entities matrices and RHS vectors
   class Assemble : public Scriptable {
@@ -31,7 +32,7 @@ namespace CoupledField {
     Assemble( BaseSystem* algsys, BasePDE::AnalysisType analysis, UInt maxTimeDerivOrder );
 
     //! Destructor
-    ~Assemble();
+    virtual ~Assemble();
     
     //! Explicitly set the algebraic system
     void SetAlgSys(BaseSystem * algsys);
@@ -65,10 +66,10 @@ namespace CoupledField {
     void CalcMinMaxStrain();
     
     //! Trigger assembly of all linear right hand side terms
-    void AssembleLinRHS();
+    void AssembleLinRHS(AdjointParameters* adjointParams = NULL);
 
     //! Trigger assenbly of all non-linear right hand side terms
-    void AssembleNonLinRHS();
+    void AssembleNonLinRHS(AdjointParameters* adjointParams = NULL);
 
     //! Assemble nodal load values of right hand side
     void AssembleRHSLoads();
@@ -76,6 +77,9 @@ namespace CoupledField {
     // ======================================================
     //  MISCELLANEOUS METHODS
     // ======================================================
+    
+    //! Tell Assemble to Reassemble all the matrices the next time (done on init and from Optimization)
+    void SetAllReassemble(){ CheckNonLinearities(true); }
 
     //! Query if resulting matrix will be symmetric
     bool IsFEMatSymmetric( FEMatrixType matType = SYSTEM );
@@ -85,7 +89,7 @@ namespace CoupledField {
     bool IsMatrixUpdated(){ return matrixUpdated_;}
 
     /** Append info about registered (bi)linearforms */
-    void ToInfo(InfoNode* in);
+    void ToInfo(PtrParamNode in);
 
     /** <p>The PDEs don't know their own Integrators (the Element matrices K_{uu},
      *  ...) but when one wants to use it, we have to get it back from the
@@ -94,10 +98,14 @@ namespace CoupledField {
      * @param regionId guess what!
      * @param pde1 this is the first pde
      * @param pde2 the second pde, note the order -> see debug file.
-     * @param integ the integrator: linElastInt, MassInt, linElecInt, linPiezoCoupling
+     * @param integrator: linElastInt, MassInt, linElecInt, linPiezoCoupling
+     * @param silent exception or NULL if nothing found
      * @return the defined context, never NULL
      * @exception error when nothing found or not unique specification */
-    BiLinFormContext* GetBiLinForm(RegionIdType regionId, StdPDE* pde1, StdPDE* pde2, const std::string& integrator);
+    BiLinFormContext* GetBiLinForm(RegionIdType regionId, StdPDE* pde1, StdPDE* pde2, const std::string& integrator, bool silent = false);
+
+    /** @see GetBiLinForm() */
+    LinearFormContext* GetLinearForm(RegionIdType regionId, StdPDE* pde,  const std::string& integrator, bool silent = false);
 
     /** Returns the load list for external modification */
     LoadList& GetLoads() { return loads_; }
@@ -107,18 +115,18 @@ namespace CoupledField {
     void SetLoads(LoadList& new_loads) { loads_ = new_loads; }
     
     /** Overwrites the linearForms to implement the multi-load optimization */
-    void SetLinForms(std::set<LinearFormContext*>& linForms) { linForms_ = linForms; }
+    void SetLinForms(StdVector<LinearFormContext*>* linForms) { linForms_ = linForms; }
 
     /** Returns the algebraic system
      * TODO check if really used */
     BaseSystem* GetAlgSys() { return algsys_; }
 
     /** Returns the bilinear forms list for Shape Optimization does need to loop these as assemble does */
-    std::set<BiLinFormContext*>* GetBiLinForms() { return &biLinForms_; }
+    StdVector<BiLinFormContext*>& GetBiLinForms() { return *biLinForms_; }
     
 
     /** Returns the linear forms list for external modification */
-    std::set<LinearFormContext*>* GetLinForms() { return &linForms_; }
+    StdVector<LinearFormContext*>& GetLinForms() { return *linForms_; }
 
   protected:
 
@@ -156,7 +164,8 @@ namespace CoupledField {
 
     //! Check which integrator is non-linear due to solution-dependent
     //! non-linearities or updated lagrangian formulation
-    void CheckNonLinearities();
+    //! if setall is set, set all to be reassembled, called from SetAllReassemble (on Init or from Optimization)
+    void CheckNonLinearities(bool setall = false);
 
     // ======================================================
     // SCRIPTING SECTION
@@ -176,7 +185,8 @@ namespace CoupledField {
     //! Set all element matrices / vectors to be printed
     void Wrap_PrintAllElems();
     //@}
-    
+       
+
     // ======================================================
     //  DATA MEMBERS
     // ======================================================
@@ -194,13 +204,14 @@ namespace CoupledField {
     std::map<FEMatrixType,FEMatrixType> matrixMap_;
 
     //! List of bilinear integrator contexts
-    std::set<BiLinFormContext*> biLinForms_;
+    StdVector<BiLinFormContext*>* biLinForms_;
 
     //! List of linear integrator contexts
-    std::set<LinearFormContext*> linForms_;
+    StdVector<LinearFormContext*>* linForms_;
 
     //! Map with flags if FE matrix has to be reassembled
     std::map<FEMatrixType, bool> matReassemble_;
+
 
     // ======================================================
     //  BOUNDARIES AND LOADS
@@ -212,7 +223,7 @@ namespace CoupledField {
     // ======================================================
     //  MISCELLANEOUS DATA
     // ======================================================
-
+    
     //! flag indicating if matrices have changed since
     //! last call of AssembleMatrices
     bool matrixUpdated_;
@@ -222,6 +233,9 @@ namespace CoupledField {
 
     //! Handle for MathParser object
     MathParser::HandleType mHandle_;
+
+    /** The object is within a ParamNode and deleted there! */
+    boost::shared_ptr<Timer> timer_;
   };
 }
 #endif

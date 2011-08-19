@@ -53,19 +53,16 @@ namespace CoupledField {
                                                   shared_ptr<ResultInfo> result) 
   {
     
-    EfieldOp_ =  new GradientFieldOp<Double>(ptGrid, ptPDE, 
-                                             eqnMap, *sol_, 
-                                             ELEC_POTENTIAL, 
-                                             result, isaxi_, 
-                                             coordUpdate_);
+    EfieldOp_ =  new GradientFieldOp<Double>(ptGrid, ptPDE, eqnMap, *sol_,
+                                             result->fctType, isaxi_, coordUpdate_);
   }
 
 
   // ============
   //   calcBMat
   // ============
-  void nLinElec3dInt_Material::calcBMat( Matrix<Double> &bMat, UInt ip,
-			     Matrix<Double> &ptCoord ) {
+  void nLinElec3dInt_Material::CalcBMat( Matrix<Double> &bMat, UInt ip,
+			     const Matrix<Double> &ptCoord ) {
 
 
     // Obtain info on number of element's nodes

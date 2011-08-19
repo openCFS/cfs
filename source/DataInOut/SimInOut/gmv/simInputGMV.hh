@@ -20,18 +20,17 @@ namespace CoupledField {
   {
   private:
 
-    struct GridLabelInfo
+    struct GridAttributeInfo
     {
     public:
 
-      GridLabelInfo() : min_(0), max_(0), dim_(0), elemAttrib_(false) 
+      GridAttributeInfo() : dim_(0), elemAttrib_(false) 
       {
       }
 
-      Double min_;
-      Double max_;
       UInt dim_;
-      bool   elemAttrib_;
+      bool elemAttrib_;
+      std::vector<Double> data_;
     };
 
     Grid *mi_;
@@ -40,13 +39,13 @@ namespace CoupledField {
     std::vector< UInt > mVertexIds;
     StdVector< std::string > mMatNames;
     StdVector< RegionIdType > mMatNums;
-    std::map< std::string, GridLabelInfo > mGridLabels;
+    std::map< std::string, GridAttributeInfo > mGridAttributes;
     std::vector< UInt > mCycleNos;
     std::vector< Double > mProbTimes;
     static std::vector< std::string > mPossibleAttribs;
 
   public:
-      SimInputGMV(std::string fileName, ParamNode * inputNode);
+      SimInputGMV(std::string fileName, PtrParamNode inputNode);
     virtual ~SimInputGMV();
 
     virtual void InitModule();
@@ -78,9 +77,39 @@ namespace CoupledField {
 
     //@}
 
-    virtual void GetNumMultiSequenceSteps( std::map<UInt, BasePDE::AnalysisType>& analysis,
-                                           std::map<UInt, UInt>& numSteps,
-                                           bool isHistory );
+    // =========================================================================
+    //  GENERAL SOLUTION INFORMATION
+    // =========================================================================
+    //@{ \name General Solution Information
+
+    //! Return multisequence steps and their analysistypes
+    void GetNumMultiSequenceSteps( std::map<UInt, BasePDE::AnalysisType>& analysis,
+                                   std::map<UInt, UInt>& numSteps,
+                                   bool isHistory = false );
+
+    //! Obtain list with result types in each sequence step
+    void GetResultTypes( UInt sequenceStep, 
+                         StdVector<shared_ptr<ResultInfo> >& infos,
+                         bool isHistory = false );
+    
+    //! Return list with time / frequency values and step for a given result
+    virtual void GetStepValues( UInt sequenceStep,
+                                    shared_ptr<ResultInfo> info,
+                                    std::map<UInt, Double>& steps,
+                                    bool isHistory = false );
+    
+    //! Return entitylist the result is defined on
+    void GetResultEntities( UInt sequenceStep,
+                               shared_ptr<ResultInfo> info,
+                               StdVector<shared_ptr<EntityList> >& list,
+                               bool isHistory = false );
+
+    //! Fill pre-initialized results object with values of specified step
+    void GetResult( UInt sequenceStep,
+                      UInt stepNum,
+                      shared_ptr<BaseResult> result,
+                      bool isHistory = false );
+    //@}
   
     // =======================================================================
     // ENTITY NAME ACCESS

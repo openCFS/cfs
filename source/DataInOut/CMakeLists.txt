@@ -12,12 +12,11 @@ ENDIF(USE_SCRIPTING_TCL)
 
 IF(CFS_BLAS_LAPACK STREQUAL "MKL")
   SET_SOURCE_FILES_PROPERTIES(programOptions.cc
-    PROPERTIES COMPILE_FLAGS "-I${MKL_INCLUDE_DIR}")
+    PROPERTIES COMPILE_FLAGS "-I${MKL_INCLUDE_DIR} -fno-strict-aliasing")
 ENDIF(CFS_BLAS_LAPACK STREQUAL "MKL")
 
 SET(DATAINOUT_SRCS 
   coloredConsole.cc
-  freqfunc.cc
   postProc.cc
   programOptions.cc
   ResultCache.cc
@@ -33,6 +32,7 @@ SET(TARGET_LL
   materials
   simouttext
   simoutinfo
+  simoutstreaming
   ${BOOST_PROGRAM_OPTIONS_LIB}
   ${BOOST_FILESYSTEM_LIB}
   ${BOOST_SYSTEM_LIB}

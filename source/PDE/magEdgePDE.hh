@@ -23,7 +23,7 @@ namespace CoupledField
   public:
 
     //! Constructor
-    MagEdgePDE( Grid * aptgrid, ParamNode* paramNode );
+    MagEdgePDE( Grid * aptgrid, PtrParamNode paramNode );
 
     //! Default Destructor
 
@@ -153,14 +153,14 @@ namespace CoupledField
                               LocPoint lp,
                               Vector<TYPE>& field );
 
-//    //! Calc EddyCurrent in integration point
-//
-//    //! Calculates the eddy current (density) at the given integration point.
-//    //! If ip is 0, the midpoint of the element is evaluated.
-//    template<class TYPE>
-//    void CalcEddyCurrentAtIP( EntityIterator it,
-//                              UInt ip,
-//                              Vector<TYPE>& field );
+    //! Calc EddyCurrent in integration point
+
+    //! Calculates the eddy current (density) at the given integration point.
+    //! If ip is 0, the midpoint of the element is evaluated.
+    template<class TYPE>
+    void CalcEddyCurrentAtIP( EntityIterator it,
+                              UInt ip,
+                              Vector<TYPE>& field );
                               
     //! computation of Lorentz force
     void CalcNodeForceLorentz( Vector<Double> & force, 

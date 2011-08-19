@@ -12,6 +12,15 @@
 #include <vector>
 #include <set>
 
+#include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/path.hpp>
+#include <boost/filesystem/convenience.hpp>
+#include <boost/filesystem/exception.hpp>
+
+namespace fs = boost::filesystem;
+
+#include "Domain/resultInfo.hh"
+
 #include "simInputGMV.hh"
 
 #undef RDATA_INIT
@@ -19,12 +28,14 @@
 
 namespace CoupledField {
 
+
   std::vector< std::string > SimInputGMV::mPossibleAttribs;
   gmv_data_struct gmv_data;
   gmv_meshdata_struct gmv_meshdata;
   gmvray_data_struct gmvray_data;
+  std::vector< std::string > gmv_vector_components;
 
-  SimInputGMV::SimInputGMV(std::string fileName, ParamNode * inputNode) :
+  SimInputGMV::SimInputGMV(std::string fileName, PtrParamNode inputNode) :
       SimInput(fileName, inputNode)
   {
     if(mPossibleAttribs.empty())
@@ -60,8 +71,8 @@ namespace CoupledField {
       mPossibleAttribs.push_back("elecField");
     }
 
-    mCycleNos.resize(1);
-    mProbTimes.resize(1);
+    capabilities_.insert( SimInput::MESH );
+    capabilities_.insert( SimInput::MESH_RESULTS );
   }
 
   SimInputGMV::~SimInputGMV()
@@ -70,6 +81,16 @@ namespace CoupledField {
 
   void SimInputGMV::InitModule()
   {
+    try
+    {
+      fs::path fn = fs::system_complete(fileName_);
+      fn.normalize();
+      gmv_base_dir = fn.branch_path().native_directory_string();
+    } catch (fs::filesystem_error& ex)
+    {
+      EXCEPTION("Received exception: " << ex.what());
+      return;
+    }
   }
 
   // ======================================================
@@ -82,9 +103,26 @@ namespace CoupledField {
   void SimInputGMV::GetNumMultiSequenceSteps( std::map<UInt, BasePDE::AnalysisType>& analysis,
                                               std::map<UInt, UInt>& numSteps,
                                               bool isHistory) {
-    // At the moment only the grid may be read.
-    analysis.clear();
-    numSteps.clear();
+    if(!isHistory) 
+    {
+      if(mCycleNos.empty())
+      {
+        LOG_TRACE(gmvread) << "No data found. Just read grid.";
+        numSteps.clear();
+        analysis.clear();
+      }
+      else
+      {
+        LOG_TRACE(gmvread) << mCycleNos.size() << "sequence steps" << std::endl;
+        analysis[1] = BasePDE::TRANSIENT;
+        numSteps[1] = mCycleNos.size();
+      }
+    }
+    else
+    {      
+      analysis.clear();
+      numSteps.clear();
+    }
   }
 
   UInt SimInputGMV::GetNumNodes(){
@@ -146,8 +184,6 @@ namespace CoupledField {
     
     gmvread_printon();
     
-    //    gmv_base_dir = mFile.GetParent().GetAbsolutePath();
-
     try {
       retcode = gmvread_open(fileName_.c_str());
     } catch (GMVReadException& e)
@@ -206,29 +242,29 @@ namespace CoupledField {
 //        MESHIO_DEBUG("MATERIAL");
         if(!ProcessMaterials())
         {
-          mMatNames.Resize(0);
+          mMatNames.Clear();
           mMatNames.Push_back("Material");
           mMatNums.Push_back(0);
           mElementMaterials.resize(gmv_meshdata.ncells);
         }
         break;
       case CELLS:
-        std::cout << "CELLS" << std::endl;
+        LOG_TRACE(gmvread) << "CELLS" << std::endl;
         break;
       case FACES:
-        std::cout << "FACES" << std::endl;
+        LOG_TRACE(gmvread) << "FACES" << std::endl;
         
         break;
       case VFACES:
-        std::cout << "VFACES" << std::endl;
+        LOG_TRACE(gmvread) << "VFACES" << std::endl;
         
         break;
       case XFACES:
-        std::cout << "XFACES" << std::endl;
+        LOG_TRACE(gmvread) << "XFACES" << std::endl;
         
         break;
       case VELOCITY:
-        std::cout << "VELOCITY" << std::endl;
+        LOG_TRACE(gmvread) << "VELOCITY" << std::endl;
         
         if(!ProcessVelocities())
         {
@@ -236,7 +272,7 @@ namespace CoupledField {
         }
         break;
       case VARIABLE:
-        std::cout << "VARIABLE" << std::endl;
+        LOG_TRACE(gmvread) << "VARIABLE" << std::endl;
         
         if(!ProcessVariables())
         {
@@ -244,7 +280,7 @@ namespace CoupledField {
         }
         break;
       case FLAGS:
-        std::cout << "FLAGS" << std::endl;
+        LOG_TRACE(gmvread) << "FLAGS" << std::endl;
         
         break;
       case POLYGONS:
@@ -253,11 +289,11 @@ namespace CoupledField {
         polys++;
         break;
       case TRACERS:
-        std::cout << "TRACERS" << std::endl;
+        LOG_TRACE(gmvread) << "TRACERS" << std::endl;
         
         break;
       case PROBTIME:
-        std::cout << "PROBTIME" << std::endl;
+        LOG_TRACE(gmvread) << "PROBTIME" << std::endl;
         
         if(!ProcessProbtime())
         {
@@ -266,7 +302,7 @@ namespace CoupledField {
         }
         break;
       case CYCLENO:
-        std::cout << "CYCLENO" << std::endl;
+        LOG_TRACE(gmvread) << "CYCLENO" << std::endl;
         
         if(!ProcessCycleNo())
         {
@@ -275,47 +311,47 @@ namespace CoupledField {
         }
         break;
       case NODEIDS:
-        std::cout << "NODEIDS" << std::endl;
+        LOG_TRACE(gmvread) << "NODEIDS" << std::endl;
         
         break;
       case CELLIDS:
-        std::cout << "CELLIDS" << std::endl;
+        LOG_TRACE(gmvread) << "CELLIDS" << std::endl;
         
         break;
       case SURFACE:
-        std::cout << "SURFACE" << std::endl;
+        LOG_TRACE(gmvread) << "SURFACE" << std::endl;
         
         break;
       case SURFMATS:
-        std::cout << "SURFMATS" << std::endl;
+        LOG_TRACE(gmvread) << "SURFMATS" << std::endl;
         
         break;
       case SURFVEL:
-        std::cout << "SURFVEL" << std::endl;
+        LOG_TRACE(gmvread) << "SURFVEL" << std::endl;
         
         break;
       case SURFVARS:
-        std::cout << "SURFVARS" << std::endl;
+        LOG_TRACE(gmvread) << "SURFVARS" << std::endl;
         
         break;
       case SURFFLAG:
-        std::cout << "SURFFLAG" << std::endl;
+        LOG_TRACE(gmvread) << "SURFFLAG" << std::endl;
         
         break;
       case UNITS:
-        std::cout << "UNITS" << std::endl;
+        LOG_TRACE(gmvread) << "UNITS" << std::endl;
         
         break;
       case VINFO:
-        std::cout << "VINFO" << std::endl;
+        LOG_TRACE(gmvread) << "VINFO" << std::endl;
         
         break;
       case TRACEIDS:
-        std::cout << "TRACEIDS" << std::endl;
+        LOG_TRACE(gmvread) << "TRACEIDS" << std::endl;
         
         break;
       case GROUPS:
-        std::cout << "GROUPS" << std::endl;
+        LOG_TRACE(gmvread) << "GROUPS" << std::endl;
         
         if(!ProcessGroups())
         {
@@ -323,47 +359,47 @@ namespace CoupledField {
         }
         break;
       case FACEIDS:
-        std::cout << "FACEIDS" << std::endl;
+        LOG_TRACE(gmvread) << "FACEIDS" << std::endl;
         
         break;
       case SURFIDS:
-        std::cout << "SURFIDS" << std::endl;
+        LOG_TRACE(gmvread) << "SURFIDS" << std::endl;
         
         break;
       case CELLPES:
-        std::cout << "CELLPES" << std::endl;
+        LOG_TRACE(gmvread) << "CELLPES" << std::endl;
         break;
       case SUBVARS:
-        std::cout << "SUBVARS" << std::endl;
+        LOG_TRACE(gmvread) << "SUBVARS" << std::endl;
         break;
       case GHOSTS:
-        std::cout << "GHOSTS" << std::endl;
+        LOG_TRACE(gmvread) << "GHOSTS" << std::endl;
         break;
       case CODENAME:
-        std::cout << "CODENAME" << std::endl;
+        LOG_TRACE(gmvread) << "CODENAME" << std::endl;
         break;
       case CODEVER:
-        std::cout << "CODEVER" << std::endl;
+        LOG_TRACE(gmvread) << "CODEVER" << std::endl;
         break;
       case SIMDATE:
-        std::cout << "SIMDATE" << std::endl;
+        LOG_TRACE(gmvread) << "SIMDATE" << std::endl;
         break;
       case VECTOR:
-        std::cout << "VECTOR" << std::endl;
+        LOG_TRACE(gmvread) << "VECTOR" << std::endl;
         if(!ProcessVectors())
         {
           return;
         }            
         break;
       case INVALIDKEYWORD:
-        std::cout << "INVALIDKEYWORD" << std::endl;
+        LOG_TRACE(gmvread) << "INVALIDKEYWORD" << std::endl;
         break;
       }
     }  
     
     SetupGridAndRegions();
 
-    Cleanup();
+    //    Cleanup();
   }
 
   void 
@@ -380,7 +416,7 @@ namespace CoupledField {
     mCycleNos[0]=0;
     mProbTimes.resize(1);
     mProbTimes[0]=0;
-    mGridLabels.clear();
+    mGridAttributes.clear();
     mPossibleAttribs.clear();
   }
 
@@ -449,7 +485,7 @@ namespace CoupledField {
         
         if(numNodes == 0)
         {
-          mi_->SetElemData(elem+1, Elem::UNDEF, 0, cellNodesPtr);
+          mi_->SetElemData(elem+1, Elem::ET_UNDEF, 0, cellNodesPtr);
           continue;
         }
         //        cellNodesPtr = (long*)(gmv_meshdata.cellnodes + numNodesOffset);
@@ -458,30 +494,30 @@ namespace CoupledField {
         {
 
         case LINE:
-          mi_->SetElemData(elem+1, Elem::LINE2, 0, cellNodesPtr);
+          mi_->SetElemData(elem+1, Elem::ET_LINE2, 0, cellNodesPtr);
           break;
 
         case LINE3:
           element_vertex_ids[0] = cellNodesPtr[0];
           element_vertex_ids[1] = cellNodesPtr[2];
           element_vertex_ids[2] = cellNodesPtr[1];
-          mi_->SetElemData(elem+1, Elem::LINE3, 0, &element_vertex_ids[0]);
+          mi_->SetElemData(elem+1, Elem::ET_LINE3, 0, &element_vertex_ids[0]);
           break;
 
         case TRI:
-          mi_->SetElemData(elem+1, Elem::TRIA3, 0, cellNodesPtr);
+          mi_->SetElemData(elem+1, Elem::ET_TRIA3, 0, cellNodesPtr);
           break;
 
         case TRI6:
-          mi_->SetElemData(elem+1, Elem::TRIA6, 0, cellNodesPtr);
+          mi_->SetElemData(elem+1, Elem::ET_TRIA6, 0, cellNodesPtr);
           break;
 
         case QUAD:
-          mi_->SetElemData(elem+1, Elem::QUAD4, 0, cellNodesPtr);
+          mi_->SetElemData(elem+1, Elem::ET_QUAD4, 0, cellNodesPtr);
           break;
 
         case QUAD8:               
-          mi_->SetElemData(elem+1, Elem::QUAD8, 0, cellNodesPtr);
+          mi_->SetElemData(elem+1, Elem::ET_QUAD8, 0, cellNodesPtr);
           break;
 
         case TET:
@@ -489,15 +525,15 @@ namespace CoupledField {
           element_vertex_ids[1] = cellNodesPtr[2];
           element_vertex_ids[2] = cellNodesPtr[3];
           element_vertex_ids[3] = cellNodesPtr[0];
-          mi_->SetElemData(elem+1, Elem::TET4, 0, &element_vertex_ids[0]);
+          mi_->SetElemData(elem+1, Elem::ET_TET4, 0, &element_vertex_ids[0]);
           break;
 
         case PTET4:
-          mi_->SetElemData(elem+1, Elem::TET4, 0, cellNodesPtr);
+          mi_->SetElemData(elem+1, Elem::ET_TET4, 0, cellNodesPtr);
           break;
 
         case PTET10:
-          mi_->SetElemData(elem+1, Elem::TET10, 0, cellNodesPtr);
+          mi_->SetElemData(elem+1, Elem::ET_TET10, 0, cellNodesPtr);
           break;
 
         case PYRAMID:
@@ -506,15 +542,15 @@ namespace CoupledField {
           element_vertex_ids[2] = cellNodesPtr[3];
           element_vertex_ids[3] = cellNodesPtr[4];
           element_vertex_ids[4] = cellNodesPtr[0];
-          mi_->SetElemData(elem+1, Elem::PYRA5, 0, &element_vertex_ids[0]);
+          mi_->SetElemData(elem+1, Elem::ET_PYRA5, 0, &element_vertex_ids[0]);
           break;
 
         case PPYRMD5:                    
-          mi_->SetElemData(elem+1, Elem::PYRA5, 0, cellNodesPtr);
+          mi_->SetElemData(elem+1, Elem::ET_PYRA5, 0, cellNodesPtr);
           break;
 
         case PPYRMD13:               
-          mi_->SetElemData(elem+1, Elem::PYRA13, 0, cellNodesPtr);
+          mi_->SetElemData(elem+1, Elem::ET_PYRA13, 0, cellNodesPtr);
           break;
 
         case PRISM:
@@ -524,15 +560,15 @@ namespace CoupledField {
           element_vertex_ids[3] = cellNodesPtr[0];
           element_vertex_ids[4] = cellNodesPtr[1];
           element_vertex_ids[5] = cellNodesPtr[2];
-          mi_->SetElemData(elem+1, Elem::WEDGE6, 0, &element_vertex_ids[0]);
+          mi_->SetElemData(elem+1, Elem::ET_WEDGE6, 0, &element_vertex_ids[0]);
           break;
 
         case PPRISM6:
-          mi_->SetElemData(elem+1, Elem::WEDGE6, 0, cellNodesPtr);
+          mi_->SetElemData(elem+1, Elem::ET_WEDGE6, 0, cellNodesPtr);
           break;
 
         case PPRISM15:
-          mi_->SetElemData(elem+1, Elem::WEDGE15, 0, cellNodesPtr);
+          mi_->SetElemData(elem+1, Elem::ET_WEDGE15, 0, cellNodesPtr);
           break;
 
         case HEX:
@@ -544,19 +580,19 @@ namespace CoupledField {
           element_vertex_ids[5] = cellNodesPtr[1];
           element_vertex_ids[6] = cellNodesPtr[2];
           element_vertex_ids[7] = cellNodesPtr[3];
-          mi_->SetElemData(elem+1, Elem::HEXA8, 0, &element_vertex_ids[0]);
+          mi_->SetElemData(elem+1, Elem::ET_HEXA8, 0, &element_vertex_ids[0]);
           break;
 
         case PHEX8:               
-          mi_->SetElemData(elem+1, Elem::HEXA8, 0, cellNodesPtr);
+          mi_->SetElemData(elem+1, Elem::ET_HEXA8, 0, cellNodesPtr);
           break;
 
         case PHEX20:               
-          mi_->SetElemData(elem+1, Elem::HEXA20, 0, cellNodesPtr);
+          mi_->SetElemData(elem+1, Elem::ET_HEXA20, 0, cellNodesPtr);
           break;
 
         case PHEX27:  
-          mi_->SetElemData(elem+1, Elem::HEXA27, 0, cellNodesPtr);
+          mi_->SetElemData(elem+1, Elem::ET_HEXA27, 0, cellNodesPtr);
           break;
         }
 
@@ -604,7 +640,7 @@ namespace CoupledField {
             element_vertex_ids[6] = offset_y1z1 + ix+1 +1;
             element_vertex_ids[7] = offset_y1z1 + ix +1;
 
-            mi_->SetElemData(elem+1, Elem::HEXA8, 0, &element_vertex_ids[0]);
+            mi_->SetElemData(elem+1, Elem::ET_HEXA8, 0, &element_vertex_ids[0]);
                     
             elem++;
           }
@@ -632,8 +668,8 @@ namespace CoupledField {
     
     UInt numElems;
     
-    mMatNames.Resize(0);
-    mMatNums.Resize(0);
+    mMatNames.Clear();
+    mMatNums.Clear();
 
     for(Integer i=0; i<gmv_data.num; i++)
     {
@@ -704,117 +740,76 @@ namespace CoupledField {
   bool
   SimInputGMV::ProcessVariables()
   {
-    /*
-      ocs::VolMesh::Interfaces::CreatePtrType         mc;
-      ocs::VolMesh::Interfaces::ElementAttribPtrType  ma;
-      ocs::VolMesh::Interfaces::VertexAttribPtrType   mv;
-      UInt attribid;
-
-      if(gmv_data.datatype == FACE)
-      {
-      MESHIO_WARN("Can only process variables on nodes or cells!");
+    if(gmv_data.datatype == FACE)
+    {
+      EXCEPTION("Can only process variables on nodes or cells!");
       return false;
-      }
+    }
+    
+    mCycleNos.resize(1);
+    mProbTimes.resize(1);
 
-      if(gmv_data.datatype == ENDKEYWORD)
-      {
-      MESHIO_DEBUG("Done reading variables.");
+    if(gmv_data.datatype == ENDKEYWORD)
+    {
+      LOG_TRACE(gmvread) << "Done reading variables.";
       return true;
-      }
-
-      if( !(mc=mMesh.I.CreatePtr) ) {
-      MESHIO_ERROR( "could not get IVolMeshCreate interface" );
-      return false;
-      }
-      if( !(ma=mMesh.I.ElementAttribPtr) ) {
-      MESHIO_ERROR( "could not get IVolMeshElementAttrib interface" );
-      return false;
-      }
-      if( !(mv=mMesh.I.VertexAttribPtr) ) {
-      MESHIO_ERROR( "could not get IVolMeshVertexAttrib interface" );
-      return false;
-      }
-
-      std::map< std::string, GridLabelInfo >::iterator f_label;
-      std::string gridlabel;
-      GridLabelInfo glinfo;
-
-      // remove trailing spaces from data name
-      // PROBLEM: if spaces are at the end of the gmv_data.name1 string
-      // the AdvXMLParser in ORCAN hangs the whole application when
-      // switching to the attribute in VisScalarMapping
-
-      int32 len=std::strlen(gmv_data.name1)-1;
-
-      for( ; len >= 0; len--)
-      {
+    }
+    
+    std::string gridlabel;
+    GridAttributeInfo glinfo;
+    
+    // remove trailing spaces from data name
+    // PROBLEM: if spaces are at the end of the gmv_data.name1 string
+    // the AdvXMLParser in ORCAN hangs the whole application when
+    // switching to the attribute in VisScalarMapping
+    
+    Integer len=std::strlen(gmv_data.name1)-1;
+    
+    for( ; len >= 0; len--)
+    {
       if(gmv_data.name1[len] == ' ')
-      gmv_data.name1[len] = 0;
+        gmv_data.name1[len] = 0;
       else
-      break;
-      }
+        break;
+    }
     
-      f_label = mGridLabels.find(gmv_data.name1);
-      gridlabel = gmv_data.name1;
-
-      if(f_label != mGridLabels.end())
-      {
-      oc::GUID guid = oc::GUID::Generate();
-      gridlabel += "_";
-      gridlabel += guid.GetString();
-      }
-
-      glinfo.dim = 1;
-
-      switch(gmv_data.datatype)
-      {
-      case NODE:
-      if( mv->CreateVertexAttrib(gridlabel,1,"Double",(Double)0,attribid) ) {
-      UInt i=0;
-      std::vector< UInt >::iterator it,eit;
-
-      glinfo.elemAttrib = false;
-      glinfo.min = gmv_data.doubledata1[0];
-      glinfo.max = glinfo.min;
-            
-      for( it=mVertexIds.begin(), eit=mVertexIds.end(); it!=eit; ++it ) {
-      mv->SetVertexAttrib(attribid,*it,gmv_data.doubledata1[i]);
-
-      glinfo.min = glinfo.min < gmv_data.doubledata1[i] ? glinfo.min : gmv_data.doubledata1[i];
-      glinfo.max = glinfo.max > gmv_data.doubledata1[i] ? glinfo.max : gmv_data.doubledata1[i];
-                
-      i++;
-      }
-      }
-      break;
-
-      case CELL:
-      if( ma->CreateElementAttrib(gridlabel,1,"Double",(Double)0,attribid) ) {
-      UInt i=0;
-      std::vector< UInt >::iterator it,eit;
-
-      glinfo.elemAttrib = true;
-      glinfo.min = gmv_data.doubledata1[0];
-      glinfo.max = glinfo.min;
-
-      for( it=mElementIds.begin(), eit=mElementIds.end(); it!=eit; ++it ) {
-      ma->SetElementAttrib(attribid,*it,gmv_data.doubledata1[i]);
-
-      glinfo.min = glinfo.min < gmv_data.doubledata1[i] ? glinfo.min : gmv_data.doubledata1[i];
-      glinfo.max = glinfo.max > gmv_data.doubledata1[i] ? glinfo.max : gmv_data.doubledata1[i];
-                
-      i++;
-      }
-      }
-      break;
-      }
+    std::map< std::string, GridAttributeInfo >::iterator it;
+    it = mGridAttributes.find(gmv_data.name1);
+    gridlabel = gmv_data.name1;
+      
+    if(it != mGridAttributes.end())
+    {
+      gridlabel += "_ex";
+    }
     
-      MESHIO_DEBUG("variable name: " << gridlabel);
-      std::pair< std::string, GridLabelInfo > value( gridlabel, glinfo );
-      mGridLabels.insert(value);
-    */
+    glinfo.dim_ = 1;
+    UInt numNodes = mi_->GetNumNodes();
+    UInt numElems = mi_->GetNumElems();
+    
+    switch(gmv_data.datatype)
+    {
+    case NODE:
+      LOG_TRACE(gmvread) << "node variable: " << gmv_data.name1 << std::endl;
+
+      glinfo.elemAttrib_ = false;
+      glinfo.data_.resize(numNodes * glinfo.dim_);
+      
+      std::copy(gmv_data.doubledata1, gmv_data.doubledata1+numNodes, &glinfo.data_[0]);
+      break;
+      
+    case CELL:
+      LOG_TRACE(gmvread) << "element variable: " << gmv_data.name1 << std::endl;
+
+      glinfo.elemAttrib_ = true;
+      glinfo.data_.resize(numNodes * glinfo.dim_);
+      
+      std::copy(gmv_data.doubledata1, gmv_data.doubledata1+numElems, &glinfo.data_[0]);
+      break;
+    }
+    
+    std::pair< std::string, GridAttributeInfo > value( gridlabel, glinfo );
+    mGridAttributes.insert(value);
     return true;
-
   }
 
 
@@ -822,6 +817,7 @@ namespace CoupledField {
   SimInputGMV::ProcessProbtime()
   {
     mProbTimes[0] = gmv_data.doubledata1[0];
+    LOG_TRACE(gmvread) << "probtime: " << mProbTimes[0] << std::endl;    
     return true;
   }
 
@@ -829,6 +825,7 @@ namespace CoupledField {
   SimInputGMV::ProcessCycleNo()
   {
     mCycleNos[0] = gmv_data.num;
+    LOG_TRACE(gmvread) << "cycleno: " << mCycleNos[0] << std::endl;    
     return true;
   }
 
@@ -866,14 +863,14 @@ namespace CoupledField {
       return false;
       }
 
-      std::map< std::string, GridLabelInfo >::iterator f_label;
+      std::map< std::string, GridAttributeInfo >::iterator f_label;
       std::string gridlabel;
-      GridLabelInfo glinfo;
+      GridAttributeInfo glinfo;
 
       gridlabel = "Velocity";
-      f_label = mGridLabels.find(gridlabel);
+      f_label = mGridAttributes.find(gridlabel);
 
-      if(f_label != mGridLabels.end())
+      if(f_label != mGridAttributes.end())
       {
       oc::GUID guid = oc::GUID::Generate();
       gridlabel += "_";
@@ -952,8 +949,8 @@ namespace CoupledField {
       }
     
       MESHIO_DEBUG("Read velocity: " << gridlabel);
-      std::pair< std::string, GridLabelInfo > value( gridlabel, glinfo );
-      mGridLabels.insert(value);
+      std::pair< std::string, GridAttributeInfo > value( gridlabel, glinfo );
+      mGridAttributes.insert(value);
     */    
     return true;
   }
@@ -961,153 +958,98 @@ namespace CoupledField {
   bool
   SimInputGMV::ProcessVectors()
   {
-    /*
-      ocs::VolMesh::Interfaces::CreatePtrType         mc;
-      ocs::VolMesh::Interfaces::ElementAttribPtrType  ma;
-      ocs::VolMesh::Interfaces::VertexAttribPtrType   mv;
-      UInt attribid;
-
-      if(gmv_data.datatype == FACE)
-      {
-      MESHIO_WARN("Can only process vectors on nodes or cells!");
+    if(gmv_data.datatype == FACE)
+    {
+      LOG_TRACE(gmvread) << "Can only process vectors on nodes or cells not faces!";
       return false;
-      }
-
-      if(gmv_data.datatype == ENDKEYWORD)
-      {
-      MESHIO_DEBUG("Done reading vectors.");
+    }
+    
+    if(gmv_data.datatype == ENDKEYWORD)
+    {
+      LOG_TRACE(gmvread) << "Done reading vectors.";
       return true;
-      }
+    }
 
-      if( !(mc=mMesh.I.CreatePtr) ) {
-      MESHIO_ERROR( "could not get IVolMeshCreate interface" );
-      return false;
-      }
-      if( !(ma=mMesh.I.ElementAttribPtr) ) {
-      MESHIO_ERROR( "could not get IVolMeshElementAttrib interface" );
-      return false;
-      }
-      if( !(mv=mMesh.I.VertexAttribPtr) ) {
-      MESHIO_ERROR( "could not get IVolMeshVertexAttrib interface" );
-      return false;
-      }
-
-      std::map< std::string, GridLabelInfo >::iterator f_label;
-      std::string gridlabel;
-      GridLabelInfo glinfo;
-
-      // remove trailing spaces from data name
-      // PROBLEM: if spaces are at the end of the gmv_data.name1 string
-      // the AdvXMLParser in ORCAN hangs the whole application when
-      // switching to the attribute in VisScalarMapping
-
-      int32 len=std::strlen(gmv_data.name1)-1;
-
-      for( ; len >= 0; len--)
-      {
+    mCycleNos.resize(1);
+    mProbTimes.resize(1);
+    
+    std::map< std::string, GridAttributeInfo >::iterator f_label;
+    std::string gridlabel;
+    GridAttributeInfo glinfo;
+    
+    // remove trailing spaces from data name
+    // PROBLEM: if spaces are at the end of the gmv_data.name1 string
+    // the AdvXMLParser in ORCAN hangs the whole application when
+    // switching to the attribute in VisScalarMapping
+    
+    Integer len=std::strlen(gmv_data.name1)-1;
+    
+    for( ; len >= 0; len--)
+    {
       if(gmv_data.name1[len] == ' ')
-      gmv_data.name1[len] = 0;
+        gmv_data.name1[len] = 0;
       else
-      break;
-      }
+        break;
+    }
     
-      f_label = mGridLabels.find(gmv_data.name1);
-      gridlabel = gmv_data.name1;
+    std::map< std::string, GridAttributeInfo >::iterator it;
+    it = mGridAttributes.find(gmv_data.name1);
+    gridlabel = gmv_data.name1;
 
-      if(f_label != mGridLabels.end())
+    std::string ext;
+    for(UInt i=gridlabel.length(), n=gmv_vector_components[0].length(); i<n; i++)
+    {
+      if(gmv_vector_components[0][i] != '_' &&
+         gmv_vector_components[0][i] != 'x')
       {
-      oc::GUID guid = oc::GUID::Generate();
-      gridlabel += "_";
-      gridlabel += guid.GetString();
+        ext += gmv_vector_components[0][i];
       }
-
-      glinfo.dim = gmv_data.num;
-
-      Double* vec = new Double[glinfo.dim];
-
-      switch(gmv_data.datatype)
-      {
-      case NODE:
-      if( mv->CreateVertexAttrib(gridlabel,glinfo.dim,"Double",vec,glinfo.dim*sizeof(double),attribid) ) {
-      UInt i=0;
-      Double length;
-      std::vector< UInt >::iterator it,eit;
-
-      glinfo.elemAttrib = false;
-            
-      for( it=mVertexIds.begin(), eit=mVertexIds.end(); it!=eit; ++it ) {
-
-      length = 0.0;
-      for(UInt n=0; n<gmv_data.num; n++)
-      {
-      vec[n] = gmv_data.doubledata1[n*gmv_data.ndoubledata1+i];
-      length += vec[n] * vec[n];
-      }
-      length = std::sqrt(length);
-
-      mv->SetVertexAttrib(attribid,*it,*vec);
-
-      if(i == 0)
-      {
-      glinfo.min = length;
-      glinfo.max = glinfo.min;
-      }
-      else
-      {
-      glinfo.min = glinfo.min < length ? glinfo.min : length;
-      glinfo.max = glinfo.max > length ? glinfo.max : length;
-      }
-                
-      i++;
-      }
-      }
-      break;
-
-      case CELL:
-      if( ma->CreateElementAttrib(gridlabel,glinfo.dim,"Double",vec,glinfo.dim*sizeof(double),attribid) ) {
-      UInt i=0;
-      Double length;
-      std::vector< UInt >::iterator it,eit;
-
-      glinfo.elemAttrib = true;
-            
-      for( it=mElementIds.begin(), eit=mElementIds.end(); it!=eit; ++it ) {
-
-      length = 0.0;
-      for(UInt n=0; n<gmv_data.num; n++)
-      {
-      vec[n] = gmv_data.doubledata1[n*gmv_data.ndoubledata1+i];
-      length += vec[n] * vec[n];
-      }
-      length = std::sqrt(length);
-
-      ma->SetElementAttrib(attribid,*it,*vec);
-
-      if(i == 0)
-      {
-      glinfo.min = length;
-      glinfo.max = glinfo.min;
-      }
-      else
-      {
-      glinfo.min = glinfo.min < length ? glinfo.min : length;
-      glinfo.max = glinfo.max > length ? glinfo.max : length;
-      }
-                
-      i++;
-      }
-
-      }
-      break;
-      }
+    }
+    gridlabel += '_';
+    gridlabel += ext;
     
-      MESHIO_DEBUG("Read vector: " << gridlabel);
-      std::pair< std::string, GridLabelInfo > value( gridlabel, glinfo );
-      mGridLabels.insert(value);
-    */    
+    glinfo.dim_ = gmv_data.num;
+    UInt numNodes = mi_->GetNumNodes();
+    UInt numElems = mi_->GetNumElems();
+    
+    switch(gmv_data.datatype)
+    {
+    case NODE:
+      LOG_TRACE(gmvread) << "node vector " << gridlabel << std::endl;
+
+      glinfo.elemAttrib_ = false;
+      glinfo.data_.resize(numNodes * glinfo.dim_);
+      
+      for(UInt i=0; i<numNodes; i++)
+      {
+        for(long n=0; n<gmv_data.num; n++)
+        {
+          glinfo.data_[i*glinfo.dim_+n] = gmv_data.doubledata1[n*gmv_data.ndoubledata1+i];
+        }
+      }
+      break;
+      
+    case CELL:
+      LOG_TRACE(gmvread) << "element vector " << gridlabel << std::endl;
+
+      glinfo.elemAttrib_ = false;
+      glinfo.data_.resize(numElems * glinfo.dim_);
+      
+      for(UInt i=0; i<numElems; i++)
+      {
+        for(long n=0; n<gmv_data.num; n++)
+        {
+          glinfo.data_[i*glinfo.dim_+n] = gmv_data.doubledata1[n*gmv_data.ndoubledata1+i];
+        }
+      }
+      break;
+    }
+    
+    std::pair< std::string, GridAttributeInfo > value( gridlabel, glinfo );
+    mGridAttributes.insert(value);
     return true;
   }
-
+  
 
   bool
   SimInputGMV::SetupGridAndRegions()
@@ -1146,21 +1088,21 @@ namespace CoupledField {
       }
       }
 
-      mGridLabels[regionName].dim = 1;
-      mGridLabels[regionName].min = 1;
-      mGridLabels[regionName].max = mMatNums.size();
-      mGridLabels[regionName].elemAttrib = true;
+      mGridAttributes[regionName].dim = 1;
+      mGridAttributes[regionName].min = 1;
+      mGridAttributes[regionName].max = mMatNums.size();
+      mGridAttributes[regionName].elemAttrib = true;
 
       // build up list of attributes
-      std::map< std::string, GridLabelInfo >::iterator it1, eit1;
+      std::map< std::string, GridAttributeInfo >::iterator it1, eit1;
       std::vector< std::string >::iterator it2, eit2;
       UInt length, i;
-      std::map< std::string, GridLabelInfo > cfsAttribs;
+      std::map< std::string, GridAttributeInfo > cfsAttribs;
       std::string dispAttribName;
       std::string finalAttribName;
 
       // find attributes in GMV files written with CFS++
-      for(it1=mGridLabels.begin(), eit1 = mGridLabels.end(); it1 != eit1; it1++)
+      for(it1=mGridAttributes.begin(), eit1 = mGridAttributes.end(); it1 != eit1; it1++)
       {
       for(it2=mPossibleAttribs.begin(), eit2 = mPossibleAttribs.end(); it2 != eit2; it2++)
       {
@@ -1210,7 +1152,7 @@ namespace CoupledField {
       }
 
       // now remove the "primary" CFS++ attributes from the grid and
-      // mGridLabels map and build up the the real attributes in the
+      // mGridAttributes map and build up the the real attributes in the
       // case of 3-dimensional attributes
       UInt attribid1, attribid2, attribid3;
     
@@ -1307,16 +1249,16 @@ namespace CoupledField {
       }
       }
 
-      // Erase the 3 primary attribute's infos from mGridLabels
-      mGridLabels.erase(it1->first + "1");
-      mGridLabels.erase(it1->first + "2");
+      // Erase the 3 primary attribute's infos from mGridAttributes
+      mGridAttributes.erase(it1->first + "1");
+      mGridAttributes.erase(it1->first + "2");
       if(it1->second.dim == 3)
-      mGridLabels.erase(it1->first + "3");        
+      mGridAttributes.erase(it1->first + "3");        
       }
 
       for(it1=cfsAttribs.begin(), eit1 = cfsAttribs.end(); it1 != eit1; it1++)
       {
-      mGridLabels.insert(*it1);
+      mGridAttributes.insert(*it1);
       }
             
       std::vector<UInt> stepnrs;
@@ -1345,7 +1287,7 @@ namespace CoupledField {
       trmi->SetRegions(mMatNums);
       trmi->SetRegionNames(mMatNames);
 
-      for(it1=mGridLabels.begin(), eit1 = mGridLabels.end(); it1 != eit1; it1++)
+      for(it1=mGridAttributes.begin(), eit1 = mGridAttributes.end(); it1 != eit1; it1++)
       {
       MESHIO_DEBUG("gridlabels: " << it1->first);
 
@@ -1354,7 +1296,7 @@ namespace CoupledField {
 
       trmi->SetAttrList(attributes);
     
-      for(it1=mGridLabels.begin(), eit1 = mGridLabels.end(); it1 != eit1; it1++)
+      for(it1=mGridAttributes.begin(), eit1 = mGridAttributes.end(); it1 != eit1; it1++)
       {
       trmi->SetAttrRegions(it1->first, mMatNums);
       stepnrs.push_back(mCycleNos[0]);
@@ -1375,5 +1317,222 @@ namespace CoupledField {
       }
     */    
     return true;
+  }
+
+  //! Obtain list with result types in each sequence step
+  void SimInputGMV::GetResultTypes( UInt sequenceStep, 
+                                    StdVector<shared_ptr<ResultInfo> >& infos,
+                                    bool isHistory ) 
+  {
+    if(sequenceStep != 1)
+      EXCEPTION("GMV just supports one multi sequence step!");
+
+    if(isHistory)
+      EXCEPTION("GMV does not support history results!");
+    
+    std::map< std::string, GridAttributeInfo >::iterator it, end;
+    it = mGridAttributes.begin();
+    end = mGridAttributes.end();
+    
+  
+    infos.Clear();
+
+    std::vector<std::string> dofNames;
+    dofNames.push_back("x");
+    dofNames.push_back("y");
+    dofNames.push_back("z");
+
+
+    for( ; it != end; it++)
+    {
+      shared_ptr<ResultInfo> ptInfo( new ResultInfo() );
+
+      SolutionType actResultType = SolutionTypeEnum.Parse(it->first, NO_SOLUTION_TYPE);
+
+      ptInfo->resultType = actResultType;
+      ptInfo->resultName = it->first;
+      for(UInt i=0; i<it->second.dim_; i++ )
+      {
+        ptInfo->dofNames.Push_back(dofNames[i]);
+      }
+      ptInfo->unit = "N/A";
+      ptInfo->complexFormat = REAL_IMAG;
+      switch(it->second.dim_)
+      {
+      case 1:
+        ptInfo->entryType = ResultInfo::SCALAR;
+        break;
+      case 2:
+      case 3:
+#undef VECTOR
+        ptInfo->entryType = ResultInfo::VECTOR;
+        break;
+      default:
+        ptInfo->entryType = ResultInfo::UNKNOWN;        
+        break;        
+      }
+      
+      if(it->second.elemAttrib_) 
+      {
+        ptInfo->definedOn = ResultInfo::ELEMENT;
+      }
+      else
+      {
+#undef NODE
+        ptInfo->definedOn = ResultInfo::NODE;
+      }
+      
+      // perform consistency check
+      if( ptInfo->entryType == ResultInfo::UNKNOWN ) {
+        EXCEPTION( "Result '" << it->first
+                   << "' has no proper EntryType!" );
+      }
+
+      if( ptInfo->dofNames.GetSize() == 0 ) {
+        EXCEPTION( "Result '" << it->first
+                   << "' has no degrees of freedoms!");
+      }
+
+      
+      if( ptInfo->resultName == "")
+      {
+        EXCEPTION( "Result has no name!" );
+      }
+      
+      if(ptInfo->resultType == NO_SOLUTION_TYPE ) {
+        LOG_TRACE(gmvread) << "Result " << ptInfo->resultName << " has no proper result type!";
+      }      
+
+      infos.Push_back( ptInfo );
+    }
+  }
+  
+  
+  //! Return list with time / frequency values and step for a given result
+  void SimInputGMV::GetStepValues( UInt sequenceStep,
+                                   shared_ptr<ResultInfo> info,
+                                   std::map<UInt, Double>& steps,
+                                   bool isHistory )
+  {
+    steps.clear();
+
+    if(mProbTimes.empty())
+      return;
+
+    if(isHistory)
+      EXCEPTION("GMV does not support history results!");
+
+    steps[1] = mProbTimes[0];
+  }
+  
+  
+  //! Return entitylist the result is defined on
+  void SimInputGMV::GetResultEntities( UInt sequenceStep,
+                                       shared_ptr<ResultInfo> info,
+                                       StdVector<shared_ptr<EntityList> >& list,
+                                       bool isHistory )
+  {
+    if(isHistory)
+      EXCEPTION("GMV does not support history results!");
+
+    // get resultname from resultinfo object
+    std::string resultName = info->resultName;
+    
+    EntityList::ListType listType;
+    EntityList::DefineType defineType;
+
+    std::map< std::string, GridAttributeInfo >::iterator it;
+    it = mGridAttributes.find(resultName);
+
+    if(it == mGridAttributes.end()) 
+    {
+      return;
+    }
+
+    if(it->second.elemAttrib_) 
+    {
+      listType = EntityList::ELEM_LIST;
+    }
+    else
+    {
+      listType = EntityList::NODE_LIST;
+    }
+    defineType = EntityList::REGION;
+    
+    StdVector<std::string> regionNames;
+    mi_->GetRegionNames(regionNames);
+    
+    for( UInt i = 0, n=regionNames.GetSize(); i < n; i++ ) {
+      list.Push_back( mi_->GetEntityList( listType, regionNames[i],
+                                          defineType ) );
+    }
+  }
+  
+  
+  //! Fill pre-initialized results object with values of specified step
+  void SimInputGMV::GetResult( UInt sequenceStep,
+                               UInt stepNum,
+                               shared_ptr<BaseResult> result,
+                               bool isHistory )
+  {
+    // determine region for this results
+    std::string regionName = result->GetEntityList()->GetName();
+    std::string resultName = result->GetResultInfo()->resultName;
+    UInt numDofs = result->GetResultInfo()->dofNames.GetSize();
+    UInt numEntities = result->GetEntityList()->GetSize();
+    UInt resVecSize =  numEntities * numDofs;
+
+    std::map< std::string, GridAttributeInfo >::iterator it;
+    it = mGridAttributes.find(resultName);
+
+    if(it == mGridAttributes.end()) 
+    {
+      return;
+    }
+
+    // copy data array to result object
+    if( result->GetEntryType() == BaseMatrix::DOUBLE ) {
+      Vector<Double> & resVec = dynamic_cast<Result<Double>& >(*result).GetVector();
+      resVec.Resize( resVecSize );
+
+      EntityIterator entIt = result->GetEntityList()->GetIterator();
+      UInt i = 0;
+      UInt entIdx;
+
+      while(!entIt.IsEnd())
+      {
+        if(it->second.elemAttrib_)
+        {
+          entIdx = entIt.GetElem()->elemNum - 1;
+        }
+        else
+        {
+          entIdx = entIt.GetNode() - 1;
+        }
+        
+        for( UInt iDof = 0; iDof < numDofs; iDof++ ) {
+          // std::cout << "i " << i << " iDof " << iDof << " entIdx " << entIdx << std::endl;
+
+          resVec[i*numDofs+iDof] = it->second.data_[entIdx*numDofs+iDof];
+        }
+
+        i++;
+        entIt++;
+      }
+    } 
+//     else {
+//       Vector<Complex> & resVec = dynamic_cast<Result<Complex>& >(*result).GetVector();
+//       StdVector<Double> imagVals;
+//       H5IO::ReadArray( resGroup, "Imag", imagVals );
+
+//       resVec.Resize( resVecSize );
+//       for( UInt i = 0; i < numEntities; i++ ) {
+//         for( UInt iDof = 0; iDof < numDofs; iDof++ ) {
+//           resVec[i*numDofs+iDof] = Complex( realVals[idx[i]*numDofs+iDof],
+//                                             imagVals[idx[i]*numDofs+iDof] );
+//         }
+//       }
+//     }
+
   }
 }

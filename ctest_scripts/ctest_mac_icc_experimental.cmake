@@ -32,7 +32,7 @@
 #-----------------------------------------------------------------------------
 # Set source and binary directories on rom
 #-----------------------------------------------------------------------------
-SET(CTEST_SOURCE_DIRECTORY "$ENV{HOME}/Documents/dev/CFS_TRUNK")
+SET(CTEST_SOURCE_DIRECTORY "$ENV{HOME}/Documents/dev/CFS_TRUNK_GIT")
 SET(CTEST_BINARY_DIRECTORY "$ENV{HOME}/Documents/dev/CFS_BUILD/TRUNK_RELEASE_ICC")
 
 #-----------------------------------------------------------------------------
@@ -45,15 +45,16 @@ FILE(WRITE "${CTEST_SOURCE_DIRECTORY}/CTestConfig.cmake"
   ## Then modify the CMakeLists.txt file in the root directory of your
   ## project to incorporate the testing dashboard.
   ## # The following are required to uses Dart and the Cdash dashboard
-  # ENABLE_TESTING()
-  # INCLUDE(Dart)
+  ##   ENABLE_TESTING()
+  ##   INCLUDE(CTest)
   set(CTEST_PROJECT_NAME \"CFS\")
-  set(CTEST_NIGHTLY_START_TIME \"00:00:00 EST\")
+  set(CTEST_NIGHTLY_START_TIME \"00:00:00 CET\")
 
   set(CTEST_DROP_METHOD \"http\")
-  set(CTEST_DROP_SITE \"rom\")
+  set(CTEST_DROP_SITE \"lse17.e-technik.uni-erlangen.de:2000\")
   set(CTEST_DROP_LOCATION \"/cdash/submit.php?project=CFS\")
-  set(CTEST_DROP_SITE_CDASH TRUE)"
+  set(CTEST_DROP_SITE_CDASH TRUE)
+  "
 )
 
 #-----------------------------------------------------------------------------
@@ -87,12 +88,13 @@ SET(CTEST_START_WITH_EMPTY_BINARY_DIRECTORY FALSE)
 # ${CTEST_BINARY_DIRECTORY}/CMakeCache.txt before starting the configure
 # run.
 #-----------------------------------------------------------------------------
-#SET(CTEST_INITIAL_CACHE
-#  "BUILD_TESTING:BOOL=ON
-#   DEBUG:BOOL=OFF
-#   TESTSUITE_DIR:STRING=$ENV{HOME}/Documents/dev/CFS_TESTSUITE
-#   USE_GMV_INPUT:BOOL=ON
-#   USE_SCPIP:BOOL=OFF")
+SET(CTEST_INITIAL_CACHE
+  "BUILD_TESTING:BOOL=ON
+   DEBUG:BOOL=OFF
+   TESTSUITE_DIR:STRING=$ENV{HOME}/Documents/dev/CFS_TESTSUITE
+   USE_GMSH:BOOL=ON
+   USE_GMV_INPUT:BOOL=ON
+   USE_SCPIP:BOOL=OFF")
 
 #-----------------------------------------------------------------------------
 # Set the following environment variables for the test run. This can be used

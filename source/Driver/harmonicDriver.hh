@@ -5,12 +5,14 @@
 #ifndef FILE_HARMONICDRIVER_2001
 #define FILE_HARMONICDRIVER_2001
 
+#include <boost/shared_ptr.hpp>
 #include "singleDriver.hh"
 
 namespace CoupledField
 {
 
 class ParamNode;
+class Timer;
 
 //! driver for harmonic problems. it is derived from BaseDriver
 class HarmonicDriver : public virtual SingleDriver
@@ -54,15 +56,16 @@ public:
   void Init();
 
   //! Main method, where harmonic analysis is implemented.
-  void SolveProblem(bool write_results = true, InfoNode* analysis_id = NULL);
+  void SolveProblem(bool write_results = true, PtrParamNode analysis_id = PtrParamNode(), AdjointParameters* adjointParams = NULL);
 
   /** This allows optimization to handle the individual frequency steps, e.g. to compute
    * objective values. Internally this is is a service function for SolveProblem()
    * @param actFreqStep sets the actFreq_ attribute, to start with 1 and not to exceed numFreq_ */
-   Double ComputeFrequencyStep(UInt actFreqStep, InfoNode* analysis_id);
+   Double ComputeFrequencyStep(UInt actFreqStep, PtrParamNode analysis_id);
 
    /** This StoreResults meant for Optimization only */
-  void StoreResults(double step_val);
+  void StoreResults(UInt stepNum,
+                    double step_val );
 
   /** This is the list of all frequencies. As long as we have no adaptive
    * frequeceny steps this makes no problem. */
@@ -117,7 +120,15 @@ protected:
   FreqSamplingType samplingType_;
 
   /** This is the pointer to our analysis description */
-  ParamNode* pn_;
+  PtrParamNode pn_;
+  
+  // =======================================================================
+  //  Timing estimation
+  // =======================================================================
+
+  //! Timer for estimating remaining runtime 
+  boost::shared_ptr<Timer> timer_;
+
 };
 
 }

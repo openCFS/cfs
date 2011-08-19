@@ -64,6 +64,15 @@
     </xsd:restriction>
   </xsd:simpleType>
 
+  <!-- Data type for setting endianesss -->
+  <xsd:simpleType name="DT_CFSEndianness">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="little"/>
+      <xsd:enumeration value="big"/>
+      <xsd:enumeration value="native"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+  
   <!-- Data type for setting a array of doubles -->
   <xsd:simpleType name="DT_DoubleList">
     <xsd:list itemType="xsd:double"/>
@@ -80,7 +89,6 @@
       <xsd:enumeration value="electrostatic"/>
       <xsd:enumeration value="smooth"/>
       <xsd:enumeration value="mpcci"/>
-      <xsd:enumeration value="nrbc"/>
       <xsd:enumeration value="heatConduction"/>
       <xsd:enumeration value="stokesFluid"/>
       <xsd:enumeration value="bubble"/>
@@ -105,9 +113,9 @@
     <xsd:complexContent>
       <xsd:restriction base="xsd:anyType">
         <xsd:attribute name="node" type="xsd:token" use="optional" default="none"/>
-        <xsd:attribute name="x" type="xsd:float" use="optional" default="0.0"/>
-        <xsd:attribute name="y" type="xsd:float" use="optional" default="0.0"/>
-        <xsd:attribute name="z" type="xsd:float" use="optional" default="0.0"/>
+        <xsd:attribute name="x" type="xsd:token" use="optional" default="0.0"/>
+        <xsd:attribute name="y" type="xsd:token" use="optional" default="0.0"/>
+        <xsd:attribute name="z" type="xsd:token" use="optional" default="0.0"/>
       </xsd:restriction>
     </xsd:complexContent>
   </xsd:complexType>
@@ -118,8 +126,8 @@
     <xsd:complexContent>
       <xsd:restriction base="xsd:anyType">
         <xsd:attribute name="node" type="xsd:token" use="optional" default="none"/>
-        <xsd:attribute name="x" type="xsd:float" use="optional" default="0.0"/>
-        <xsd:attribute name="y" type="xsd:float" use="optional" default="0.0"/>
+        <xsd:attribute name="x" type="xsd:token" use="optional" default="0.0"/>
+        <xsd:attribute name="y" type="xsd:token" use="optional" default="0.0"/>
       </xsd:restriction>
     </xsd:complexContent>
   </xsd:complexType>
@@ -160,6 +168,26 @@
       <xsd:enumeration value="amplPhase"/>
     </xsd:restriction>
   </xsd:simpleType>
+
+  <!-- ******************************************************************* -->
+  <!--   Data type for defining a coil by means of current Sticks --> 
+  <!--   using the law of Biot-Savart -->
+  <!-- ******************************************************************* -->
+  
+  <xsd:complexType name="DT_BiotSavartCoil">      
+    <xsd:sequence>
+      <xsd:element name="coil" minOccurs="1" maxOccurs="unbounded">
+        <xsd:complexType>
+          <xsd:attribute name="name" type="xsd:token" use="required"/>
+          <xsd:attribute name="file" type="xsd:token" use="required"/>
+          <xsd:attribute name="value" type="xsd:token" use="optional" default="1"/>
+        </xsd:complexType>
+      </xsd:element>
+    </xsd:sequence> 
+    <xsd:attribute name="showInGrid" type="DT_CFSBool" default="yes"/>
+    
+    
+  </xsd:complexType>
 
 </xsd:schema>
 

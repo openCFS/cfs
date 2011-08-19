@@ -50,7 +50,7 @@
 %
 \newfont{\fonta}{cmssdc10 scaled 1628}
 \newfont{\fontb}{cmss10 scaled 1080}
-\newfont{\fontc}{cmssdc10 scaled 1600}
+\newfont{\fontc}{cmssdc10 scaled 2000}
 \newfont{\fontd}{cmss10 scaled 1500}
 %       
 % ----------------------------- Define Command --------------------------------
@@ -64,24 +64,38 @@
 %
 \thispagestyle{empty}
 %
-\begin{minipage}[t]{159.2mm}
-{\fonta FRIEDRICH-ALEXANDER-UNIVERSIT\"AT ERLANGEN-N\"URNBERG} \\
-\centering
-{\fontb INSTITUT F\"UR ELEKTROTECHNIK, ELEKTRONIK UND INFORMATIONSTECHNIK}
-\end{minipage}\\[2cm]
+% \begin{minipage}[t]{159.2mm}
+% {\fonta FRIEDRICH-ALEXANDER-UNIVERSIT\"AT ERLANGEN-N\"URNBERG} \\
+% \centering
+% {\fontb INSTITUT F\"UR ELEKTROTECHNIK, ELEKTRONIK UND INFORMATIONSTECHNIK}
+% \end{minipage}\\[2cm]
 %
 %
-{\fonta Lehrstuhl f\"ur Sensorik}\\[2.5ex]
-\includegraphics[width=3.5cm]{lse}\\[3.5cm]
+% {\fonta Lehrstuhl f\"ur Sensorik}\\[2.5ex]
+%\includegraphics[width=3.5cm]{lse}\\[3.5cm]
 %
 %
+
+\rule{\textwidth}{.5pt}\\[0.5cm]
 {\fontc #1}
-\\[0.8cm]
+\\[0.5cm]
 %
 %
-{\fontd #2}\\
+\includegraphics[width=10cm]{cfs-logo}\\
+{\fontd \today}\\
+\rule{\textwidth}{.5pt}\\[3.5cm]
+
 %
 %
+{\Large \fontd #2}\\
+%
+%
+% \rule{\textwidth}{.5pt}\\[1cm]
+
+\includegraphics[scale=1]{lse_logo}\\[1cm]
+
+\includegraphics[scale=1]{ls_am_klu}\\[3cm]
+
 \vspace*{\fill}
 {\fontd #3} \\
 %

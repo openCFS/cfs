@@ -5,7 +5,7 @@
 
 namespace CoupledField
 {
-class OptMechMat;
+class MechMat;
 class linElastInt;
 
 /** Optimization via ShapeGradient and Level-Set method, not by Parametrization */
@@ -24,24 +24,25 @@ public:
   @param forward for the strains of the forward solution
   @param adjoint for the strains of the adjoint solution
   */
-  void GetStrainsOnElement(Vector<double> &forward, Vector<double> &adjoint, 
-      const unsigned int e, const SubTensorType type) const;
+  void GetElementSolution(Vector<double> &vecforward, Vector<double> &vecadjoint, 
+                          const unsigned int e,
+                          const SubTensorType type = PLANE_STRAIN,
+                          Application app = MECH);
 
-  /** Helper function for TopGrad, where we need the SubTensorType */
-  void GetSubTensorType(SubTensorType &stt) const;
-
-  StdVector<SingleVector*>& getSolutionVectors(const bool forward_solution = true) const
+  StdVector<SingleVector*>& getSolutionVectors(const bool forward_solution = true)
   {
     if(forward_solution)
-      return forward.data[0]->elem[MECH];
+      return forward.Get(0)->elem[MECH];
     else // adjoint
-      return adjoint.data[0]->elem[MECH];
+      return adjoint.Get(0)->elem[MECH];
   }
 
   /** called in LevelSet::CalcShapeGradientOnAllElements() */
   linElastInt* getBDBForm();
 
   int getMaxVolumeToRemove() const { return max_volume_to_remove_; }
+  
+  void PrepareExteriorPiezoProblem() { std::cout << "ShapeGrad, prepare the problem!!" << std::endl; }
 
   virtual std::string LogFileHeader() { return ""; }
   virtual void LogFileLine(std::ofstream* out) {}
@@ -57,7 +58,7 @@ private:
   int max_volume_to_remove_;
 
   /** This is our material shortcut, currently only mechanic. Set in PostInit() */
-  OptMechMat* mech_mat_;
+  MechMat* mech_mat_;
 };
 
 } // namespace

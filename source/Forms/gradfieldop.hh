@@ -13,7 +13,7 @@ namespace CoupledField
 {
 
   class Grid;
-  class Elem;
+  struct Elem;
   template<class TYPE> class NodeStoreSol;
   template<class TYPE> class Vector;
   template<class TYPE> class Matrix;
@@ -36,7 +36,7 @@ namespace CoupledField
       \param ptGrid (input) Pointer to grid
       \param ptPDE (input) Pointer to PDE
       \param ptEQN (input) Pointer to EQN
-      \param potential (input) NodeStoreSol containing nodal potential
+      \param potential (input) NodeStoreSol containing nodal potential.
       \param solType (input) SolutionType of the potentialField
       \param isaxi (input) Flag for axi-symmetric geomtetry
       \param coordUpdate (input) flag indicating updated Lagrangian 
@@ -46,11 +46,19 @@ namespace CoupledField
                     StdPDE * ptPDE,
                     shared_ptr<EqnMap> eqnMap,
                     NodeStoreSol<TYPE> & potential,
-                    const SolutionType solType,
-                    shared_ptr<ResultInfo> result,
+                    shared_ptr<AnsatzFct> fctType,
                     bool isaxi=false,
                     bool coordUpdate = false );
- 
+
+    /** Alternative constructor where the element solution is given
+     * in CalcElemGradField() as parameter */
+    GradientFieldOp(Grid * ptGrid,
+                    StdPDE * ptPDE,
+                    shared_ptr<AnsatzFct> fctType,
+                    bool isaxi=false,
+                    bool coordUpdate = false );
+
+
     //! Destructor
     virtual ~GradientFieldOp();
   
@@ -60,11 +68,15 @@ namespace CoupledField
       \param ent (input) EntityIterator pointing to current element
       \param lCoord (input) Local coordinates of evaluation point
       \param factor (input) Scaling factor (e.g. permittivity for E-Field)
+      \param dof if the element describes a vector field, dof (1-based) selects the scalar field
+      \param elem_data optionally we give the read data and ignore potential
     */
-    virtual void CalcElemGradField(Vector<TYPE> & elemField,
+    void CalcElemGradField(Vector<TYPE> & elemField,
                                    const EntityIterator& ent,
                                    const Vector<Double> & lCoord,
-                                   const Double factor);
+                                   const Double factor,
+                                   const UInt dof = 1,
+                                   const SingleVector* elem_data = NULL);
   
 
     //! Calculate electric field for list of subdomains
@@ -76,7 +88,7 @@ namespace CoupledField
       \param SD (input) Name of the subdomain
       \param LCoord (input) Local coordinates of evalutation point
     */
-    virtual void CalcSDGradField(Vector<TYPE> & elemField,
+    void CalcSDGradField(Vector<TYPE> & elemField,
                                  const StdVector<RegionIdType> & SD,
                                  const Vector<Double> & lCoord,
                                  const Vector<Double> & factors);
@@ -87,9 +99,8 @@ namespace CoupledField
     //! StoreSolution containing potentialfield
     NodeStoreSol<TYPE> * potential_;
 
-    //! Soltution type of the potential field
-    SolutionType solType_;
-    shared_ptr<ResultInfo> result_;
+    /** the ansatz functions from the ResultInfo */
+    shared_ptr<AnsatzFct> fctType_;
   };
 
 } // end of namespace

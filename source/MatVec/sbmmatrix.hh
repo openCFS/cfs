@@ -187,7 +187,7 @@ namespace CoupledField {
     //! blocks.
     UInt GetNumCols() const {
       return ncols_;
-    };
+    }
 
     //! Get the number of matrix rows
 
@@ -197,7 +197,7 @@ namespace CoupledField {
     //! blocks.
     UInt GetNumRows() const {
       return nrows_;
-    };
+    }
 
     //! Returns the structural type of the matrix
 
@@ -206,7 +206,7 @@ namespace CoupledField {
     //! SBM_Matrix the return value is of course SBM_MATRIX.
     BaseMatrix::StructureType GetStructureType() const {
       return SBM_MATRIX;
-    };
+    }
 
     //! Return the Entry type of the matrix
 
@@ -244,10 +244,10 @@ namespace CoupledField {
     //! Return matrix as separated string
     std::string ToString( char colSeparator = ' ',
                           char rowSeparator = '\n' ) const {
-      Warning( "ToString not implemented for SBM_Matrix", __FILE__, __LINE__ );
+      WARN( "ToString not implemented for SBM_Matrix");
 
       return "SBM_Matrix";
-    };
+    }
 
     //! Export the matrix to a file in MatrixMarket format
 
@@ -279,7 +279,7 @@ namespace CoupledField {
     //! of OLAS.
     StdMatrix& operator()( UInt i, UInt j ) const {
       return *(subMat_[ComputeIndex(i,j)]);
-    };
+    }
 
     //! Obtain pointer to a submatrix
 
@@ -287,7 +287,7 @@ namespace CoupledField {
     //! one-based indexing convention of OLAS.
     const StdMatrix* GetPointer( UInt i, UInt j ) const {
       return (subMat_[ComputeIndex(i,j)]);
-    };
+    }
 
     //! Obtain pointer to a submatrix
 
@@ -295,7 +295,7 @@ namespace CoupledField {
     //! one-based indexing convention of OLAS.
     StdMatrix* GetPointer( UInt i, UInt j ) {
       return (subMat_[ComputeIndex(i,j)]);
-    };
+    }
 
     //@}
 
@@ -436,7 +436,7 @@ namespace CoupledField {
     //! pair (i,j) the corresponding index into the one-based 1D array.
     inline UInt ComputeIndex( UInt i, UInt j ) const {
       return ncols_ * i + j;
-    };
+    }
 
     //! Flag signalling symmetry of the matrix
 

@@ -3,6 +3,7 @@
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
 #include "basePDE.hh"
+#include "PDE/mechPDE.hh" // to set the enum
 #include "Driver/baseSolveStep.hh"
 
 
@@ -14,11 +15,12 @@ namespace CoupledField {
   // ***********************
   //   Default Constructor
   // ***********************
-  BasePDE::BasePDE( ParamNode* paramNode ) {
-    
-    
-    myParam_ = paramNode;
-    sequenceStep_ = 0;
+  BasePDE::BasePDE( PtrParamNode paramNode ) :
+    converged_(false),
+    sequenceStep_(0),
+    myParam_(paramNode),
+    pdename_()
+  {
     solStrategy_ = STRAT_STANDARD;
     solStep_ = 1;
   }
@@ -60,8 +62,14 @@ namespace CoupledField {
     analysisType.Add(HARMONIC, "paramIdent", false); // the value is not unique
     analysisType.Add(EIGENFREQUENCY, "eigenFrequency");
     analysisType.Add(MULTI_SEQUENCE, "multiSequence");
-  } 
 
-
+//    MechPDE::testStrain.SetName("MechPDE::TestStrain");
+//    MechPDE::testStrain.Add(MechPDE::X, "x");
+//    MechPDE::testStrain.Add(MechPDE::Y, "y");
+//    MechPDE::testStrain.Add(MechPDE::Z, "z");
+//    MechPDE::testStrain.Add(MechPDE::YZ, "yz");
+//    MechPDE::testStrain.Add(MechPDE::XZ, "xz");
+//    MechPDE::testStrain.Add(MechPDE::XY, "xy");
+  }
   
 }

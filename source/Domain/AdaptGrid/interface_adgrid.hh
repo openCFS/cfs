@@ -83,21 +83,6 @@ namespace CoupledField
       //return ptGridAdaptive->GetNumElems(regions);
     }
     
-    //! Get vector with all region identifiers
-    void GetRegionIds( StdVector<RegionIdType> & regions ) {
-      //ptGridAdaptive->GetRegionIds(regions); 
-    }
-
-    //! Get vector with all volume region identifiers
-    void GetVolRegionIds( StdVector<RegionIdType> & volRegions ) {
-      //ptGridAdaptive->GetVolRegionIds(volRegions); 
-    }
-  
-    //! Get vector with all surface region identifiers
-    void GetSurfRegionIds( StdVector<RegionIdType> & surfRegions ) {
-      //ptGridAdaptive->GetSurfRegionIds(surfRegions);
-    }
-    
     //! Get list with names of all named nodes
     void GetListNodeNames( StdVector<std::string> & nodeNames) {
       //ptGridAdaptive->GetListNodeNames(nodeNames);
@@ -256,9 +241,6 @@ namespace CoupledField
   
   protected:
 
-    void GetAllRegionNames( StdVector<std::string> & regionNames ) {
-      //ptGridAdaptive->GetAllRegionNames(regionNames);
-    }
 
   private:
     grd::MultilevelGrid * ptGridAdaptive;

@@ -129,10 +129,6 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
      edges = t.edges;
      faces = t.faces;
      faceFlags = t.faceFlags;
-#ifdef ADAPTGRID
-     refinementFlag=t.refinementFlag;
-     refinementNumber=t.refinementNumber;
-#endif
    }
    return *this;
  }
@@ -169,7 +165,7 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
     default:
       EXCEPTION("Connectivity for " << feType.ToString(type) << " element "
                 << elemNum << " in region "
-                << domain->GetGrid()->RegionIdToName(regionId)
+                << domain->GetGrid()->GetRegion().ToString(regionId)
                 << " is not properly oriented!" );
       break;
     }
@@ -559,7 +555,7 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
     
       
     Elem::ShapeType Elem::GetShapeType( Elem::FEType type )  {
-      ShapeType ret;
+      ShapeType ret = ST_UNDEF;
       switch(type) {
         case ET_UNDEF:
           ret = ST_UNDEF;

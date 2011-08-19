@@ -5,14 +5,14 @@ SET(FORMS_SRCS
 #  acouPowerDensityOp.cc
 #  acouRHSLinForm.cc
 #  adbInt.cc
-# baseForceOp.cc
+#  baseForceOp.cc
   baseForm.cc
 #  baseoperator.cc
   bdbInt.cc
 #  bdInt.cc
   curlCurlEdgeInt.cc
 #  curlCurlNodeInt.cc
- # curlfieldop.cc
+#  curlfieldop.cc
 #  elecchargeop.cc
 #  elecforceop.cc
 #  FlatShellElecInt.cc
@@ -23,8 +23,10 @@ SET(FORMS_SRCS
 #  gradfieldop.cc
 #  laplaceInt.cc
   linearForm.cc
-#  linElastInt.cc
+#  linBiotSavartSurfInt.cc
   linElecInt.cc
+#  linElastInt.cc
+#  linGradBDBInt.cc
 #  linNeumannInt.cc
 #  linPiezoCoupling.cc
 #  linPressureInt.cc
@@ -38,11 +40,11 @@ SET(FORMS_SRCS
 #  linHeatCondInt.cc
 #  linViscoElastInt.cc
 #  magforceop.cc
- massEdgeInt.cc
+  massEdgeInt.cc
 #  massInt.cc
 #  mechStressStrain.cc
+  nLincurlCurlEdgeInt.cc
 #  nLincurlCurlNodeInt.cc
-nLincurlCurlEdgeInt.cc
 #  nLinElastInt.cc
 #  nLinElecHystInt.cc
 #  nLinElecMaterial.cc
@@ -53,6 +55,7 @@ nLincurlCurlEdgeInt.cc
 #  nLinPiezoHystRHS.cc
 #  nonConformingInt.cc
 #  pierceInt.cc
+#  piezoPolarizationMatrixRHSInt.cc
 #  pmlBasics.cc
 #  PMLInt.cc
 #  singleEntryInt.cc
@@ -64,6 +67,10 @@ nLincurlCurlEdgeInt.cc
 #  fluidMechShearStress.cc
 #  fluidMechMassInt.cc
 #  fluidMechStiffInt.cc
+#  nLinPiezoMicro.cc
+#  nLinPiezoMicroRHS.cc
+#  linMagStrictInt.cc
+#  nLinHeatInt.cc
   )
 
 ADD_LIBRARY(forms STATIC ${FORMS_SRCS})

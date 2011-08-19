@@ -17,7 +17,7 @@ namespace CoupledField {
 
   // forward declarations
   class BaseGraphManager;
-  class BaseEntryManipulator;
+  struct BaseEntryManipulator;
 
 
   //! The %IDBC_HandlerPenalty deals with degrees of freedom that are fixed

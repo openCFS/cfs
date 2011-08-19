@@ -11,7 +11,6 @@
 #include "MatVec/patternpool.hh"
 #include "MatVec/generatematvec.hh"
 
-#include "OLAS/algsys/olascomm.hh"
 #include "OLAS/algsys/standardsys.hh"
 
 #include "OLAS/graph/graphmanagersimple.hh"
@@ -28,11 +27,13 @@
 #include "OLAS/algsys/baseidbchandler.hh"
 
 #include "General/exception.hh"
+#include "Utils/Timer.hh"
 
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "DataInOut/programOptions.hh"
 #include "DataInOut/Logging/cfslog.hh"
-#include "DataInOut/ParamHandling/InfoNode.hh"
 
-using CoupledField::Exception;
+using std::string;
 
 DECLARE_LOG(stdSys)
 DEFINE_LOG(stdSys, "stdSys")
@@ -43,7 +44,7 @@ namespace CoupledField {
   // ***********************
   //   Default Constructor
   // ***********************
-  StandardSystem::StandardSystem(ParamNode* pn) : BaseSystem(pn) {
+  StandardSystem::StandardSystem(PtrParamNode pn) : BaseSystem(pn) {
 
 
     totalSize_           = 0;
@@ -56,13 +57,14 @@ namespace CoupledField {
     algSysType_          = STANDARD_SYSTEM;
 
     // Initialize pointer to finite-element matrices
-    NEWARRAY( sysmat_, StdMatrix*, MAX_NUM_FE_MATRICES );
-    for ( UInt i = 0; i < MAX_NUM_FE_MATRICES; i++ ) {
-      sysmat_[i] = NULL;
-    }
+    sysmat_[SYSTEM]     = NULL;
+    sysmat_[STIFFNESS]  = NULL;
+    sysmat_[DAMPING]    = NULL;
+    sysmat_[CONVECTION] = NULL;
+    sysmat_[MASS]       = NULL;
+    sysmat_[AUXILIARY]  = NULL;
 
-    // Set flag for insertion of penalty terms into matrix
-    if ( myParams_.GetBoolValue( "UsingPenaltyFormulation" ) == true ) {
+    if ( usingPenalty_ ) {
       assembleDirichletToSysMat_ = true;
     }
     else {
@@ -84,10 +86,12 @@ namespace CoupledField {
     delete eigenValues_;
 
     // Delete finite-element matrices
-    for ( UInt i = 1; i < MAX_NUM_FE_MATRICES; i++ ) {
-      delete sysmat_[i];
+    std::map<FEMatrixType, StdMatrix*>::iterator iter;
+    for (iter = sysmat_.begin(); iter != sysmat_.end(); ++iter)
+    {
+      delete iter->second;
     }
-    DELETEARRAY( sysmat_ );
+    sysmat_.clear();
 
     // After matrices we may delete the pattern pool
     delete patternPool_;
@@ -99,7 +103,7 @@ namespace CoupledField {
   // *****************************************
   void StandardSystem::SetupPrecond() 
   {
-    CoupledField::info->ToFile();
+    info->ToFile();
     precond_->Setup( *sysmat_[SYSTEM]);
   }
 
@@ -107,8 +111,10 @@ namespace CoupledField {
   // *********************************
   //   Trigger setup phase of solver
   // *********************************
-  void StandardSystem::SetupSolver(InfoNode* analysis_id) {
+  void StandardSystem::SetupSolver(PtrParamNode analysis_id) {
+    solver_->GetSetupTimer()->Start();
     solver_->Setup(*sysmat_[SYSTEM], analysis_id);
+    solver_->GetSetupTimer()->Stop();
   }
 
   // **************************************
@@ -135,9 +141,8 @@ namespace CoupledField {
                            *sysmat_[DAMPING], numFreq, shift );
     } else {
       if( dampPresent == true ) {
-        (*warning) << "Although a damping matrix is present, only a generalized "
-                   << "eigenvalue will be solved (as you have specified)!";
-        Warning( __FILE__, __LINE__ );
+        WARN("Although a damping matrix is present, only a generalized "
+             << "eigenvalue will be solved (as you have specified)!");
       }
       
       if( massPresent == true ) {
@@ -174,67 +179,62 @@ namespace CoupledField {
   // ***********************
   //   Solve linear system
   // ***********************
-  void StandardSystem::Solve(InfoNode* analysis_id) 
+  void StandardSystem::Solve(PtrParamNode analysis_id) 
   {
     info->ToFile(); // write current info state
+    solver_->GetSolveTimer()->Start();
     
     // Check, if condition number is to be calculated
     bool calcCapa = false;
-    calcCapa = myParams_.GetBoolValue( "CalcConditionNumber");
+    xml_->Get("matrix", ParamNode::INSERT)
+    ->GetValue("calcConditionNumber", calcCapa, ParamNode::INSERT );
+    
     if( calcCapa ) {
       Double condNumber = 0.0;
       Vector<Double> ev, err;
       BaseEigenSolver * evs = 
-        GenerateEigenSolverObject( *(sysmat_[SYSTEM]), ARPACK,
-                                  xml, olasInfo->Get("solve_eigen"), &myParams_, &myReport_ );
-      InfoNode* in = systemInfo_->Get(InfoNode::PROCESS)->Get("conditionNumber", InfoNode::APPEND);
+        GenerateEigenSolverObject( *(sysmat_[SYSTEM]), xml_, olasInfo_->Get("solve_eigen") );
+      PtrParamNode in = systemInfo_->Get(ParamNode::PROCESS)->Get("conditionNumber", ParamNode::APPEND);
       in->Get("analysis_id")->SetValue(analysis_id);
       try {
         evs->CalcConditionNumber( *(sysmat_[SYSTEM]), condNumber,
                                   ev, err );
-      } catch (Exception& ex ) {
-        in->Get(InfoNode::WARNING)->SetValue("condition number did not converge"); 
-        Warning( "Calculation of condition number for system matrix did not converge",
-                 __FILE__, __LINE__ );
-        delete evs;
-      }
-      
-      in->Get("value")->SetValue(condNumber);
-      in = in->Get("extremalEigenValues");
+        in->Get("value")->SetValue(condNumber);
+        in = in->Get("extremalEigenValues");
 
-      for( UInt i = 0; i < ev.GetSize(); i++ )  {
-        InfoNode* t = in->Get("eigenvalue", InfoNode::APPEND);
-        t->Get("value")->SetValue(ev[i]);
-        t->Get("tolerance")->SetValue(err[i]);
-      }
-      delete evs;
+        for( UInt i = 0; i < ev.GetSize(); i++ )  {
+          PtrParamNode t = in->Get("eigenvalue", ParamNode::APPEND);
+          t->Get("value")->SetValue(ev[i]);
+          t->Get("tolerance")->SetValue(err[i]);
+        }
+
+      } catch (Exception& ex ) {
+        WARN("Calculation of condition number for system matrix did not converge");
       
+        in->Get("value")->SetValue(0.0);
+      }
+      
+      delete evs;
       // in the end prevent-relcaulation of evs by re-setting the value for CalcConditionNumber
-      myParams_.SetValue( "CalcConditionNumber", false );
+      xml_->Get("matrix")->Get("calcConditionNumber")->SetValue( boost::any(false) );
     }
-    
-    
+   
     // If the penalty formulation is used and we have inhomogeneous
     // Dirichlet boundary conditions, then the righ-hand side is
     // "contaminated" with penalty terms
-    if ( numDirichletValues_ > 0 &&
-         myParams_.GetBoolValue( "UsingPenaltyFormulation" ) == true ) {
-      myParams_.SetValue( "RHSwithPenalty", true );
+    if ( numDirichletValues_ > 0 && usingPenalty_ ) {
+      solver_->SetUsingPenalty(true);
       LOG_DBG(stdSys) << "Solve: rhs with penalty";
     }
-
-#ifdef PROFILING
-    Double t1 = Profiler::GetRealTime();
-#endif
 
     // Iterative solvers require an initial guess and in the penalty case
     // we should insert the Dirichlet values into it
     if ( dynamic_cast<BaseIterativeSolver*>(solver_) != NULL &&
-         myParams_.GetBoolValue( "UsingPenaltyFormulation" ) == true ) {
+         usingPenalty_ ) {
       idbcHandler_->SetDofsToIDBC( sol_ );
-      InfoNode* in = systemInfo_->Get(InfoNode::HEADER)->Get("idbc");
+      PtrParamNode in = systemInfo_->Get(ParamNode::HEADER)->Get("idbc");
       in->Get("penalty")->SetValue(true);
-      in->Get(InfoNode::COMMENT)->SetValue("Inserted Dirichlet values into initial guess");
+      in->SetComment("Inserted Dirichlet values into initial guess");
       LOG_DBG(stdSys) << "Solve: Inserted Idbc values into initial guess for iterative solver";
     }
 
@@ -244,47 +244,49 @@ namespace CoupledField {
     }
 
     // Assume that everything will go well
-    myReport_.SetValue( "solutionIsOkay", true );
+    PtrParamNode out = olasInfo_->Get(ParamNode::PROCESS)->Get("solver");
+    out->Get("solutionIsOkay")->SetValue(true);
 
     // Now modifiy the right-hand side vector
     LOG_DBG(stdSys) << "Solve: add idbc to rhs";
     idbcHandler_->AddIDBCToRHS( rhs_ );
 
     // check if we do export stuff
-    ParamNode* els = xml  != NULL && xml->Has("exportLinSys") ? xml->Get("exportLinSys") : NULL;
-    std::string file;
-    std::string base;
+    PtrParamNode els =  xml_->Get("exportLinSys", ParamNode::PASS);
+    string file;
+    string base;
     
     // need it common even when exclusive solution
     if(els) {
-      std::string id = analysis_id->Get("analysis_id")->AsString();
+      string id = analysis_id->Get("analysis_id")->As<std::string>();
       boost::replace_all(id, ":", "_");
-      base = els->Get("baseName")->AsString() + "_" + id;
-      systemInfo_->Get(InfoNode::PROCESS)->Get("exportLinearSystem", InfoNode::APPEND)->Get("name")->SetValue(base);
+      string name = els->Has("baseName") ? els->Get("baseName")->As<std::string>() : progOpts->GetSimName();
+      base = name + "_" + id;
+      systemInfo_->Get(ParamNode::PROCESS)->Get("exportLinearSystem", ParamNode::APPEND)->Get("name")->SetValue(base);
     }
 
     // check if we do not only want the solution
-    if(els && els->Get("solution")->AsString() != "exclusive")
+    if(els && els->Get("solution")->As<std::string>() != "exclusive")
     {
       // two formats. The harwell-boing format includes the rhs!
-      if(els->Get("format")->AsString()  == "harwell-boeing")
+      if(els->Get("format")->As<std::string>()  == "harwell-boeing")
       {
         sysmat_[SYSTEM]->ExportHarwellBoeing(base+".hb", *rhs_);
 
-        if(els->Has("damping", true) && sysmat_[DAMPING] != NULL)
+        if(els->HasByVal("damping", true) && sysmat_[DAMPING] != NULL)
           sysmat_[DAMPING]->ExportHarwellBoeing(base+"_damping.hb", *rhs_);
 
-        if(els->Has("auxiliary", true) && sysmat_[AUXILIARY] != NULL)
+        if(els->HasByVal("auxiliary", true) && sysmat_[AUXILIARY] != NULL)
           sysmat_[AUXILIARY]->ExportHarwellBoeing(base+"_aux.hb", *rhs_);
       }
       else // classical (default) matrix-market
       {
         sysmat_[SYSTEM]->Export((base+".mtx").c_str() );
 
-        if(els->Has("damping", true) && sysmat_[DAMPING] != NULL)
+        if(els->HasByVal("damping", true) && sysmat_[DAMPING] != NULL)
           sysmat_[DAMPING]->Export((base+"_damping.mtx").c_str() );
 
-        if(els->Has("auxiliary", true) && sysmat_[AUXILIARY] != NULL)
+        if(els->HasByVal("auxiliary", true) && sysmat_[AUXILIARY] != NULL)
           sysmat_[AUXILIARY]->Export((base+"_aux.mtx").c_str() );
 
         // rhs is only in harwell-boing included
@@ -292,19 +294,22 @@ namespace CoupledField {
       }
     }
 
-    if(els && els->Has("initialGuess", true))
+    if(els && els->HasByVal("initialGuess", true))
       sol_->Export((base+"_intial_guess.vec").c_str());
 
     LOG_TRACE2(stdSys) << "before solve: euclidian norm of initial guess = " << sol_->NormL2();
+    LOG_DBG3(stdSys) << "initial guess = " << sol_->ToString();
     LOG_DBG(stdSys) << "euclidian norm of rhs = " << rhs_->NormL2();
+    LOG_DBG3(stdSys) << "rhs = " << rhs_->ToString();
 
     // ---------------------------
     // This is the expensize part! solve the system
     solver_->Solve( *sysmat_[SYSTEM], *precond_, *rhs_, *sol_, analysis_id);
 
     LOG_TRACE2(stdSys) << "after solve: euclidian norm of solution = " << sol_->NormL2();
+    LOG_DBG3(stdSys) << "after solve: solution = " << sol_->ToString();
 
-    if(els && els->Get("solution")->AsString() != "no")
+    if(els && els->Get("solution")->As<std::string>() != "no")
       sol_->Export((base+".sol.vec").c_str());
 
     LOG_DBG(stdSys) << "Solve: remove idbc from rhs";
@@ -313,19 +318,13 @@ namespace CoupledField {
 
 
     // Check that solution went fine, if not issue a warning
-    if ( myReport_.GetBoolValue( "solutionIsOkay" ) == false ) {
+    if ( out->Get("solutionIsOkay")->As<bool>() == false ) {
       // std::cerr << "Life's a piece of shit, when you look at it ...\n";
-      (*warning) << "Solver reports a problem! Consult .las file for "
-                 << "further diagnostics!";
-      Warning( __FILE__, __LINE__ );
+      WARN("Solver reports a problem! Consult .info.xml file for "
+           << "further diagnostics!");
     }
 
-#ifdef PROFILING
-    Double t2 = Profiler::GetRealTime();
-    (*cla)  << "solution time: " << t2-t1 << " seconds " << std::endl;
-    Profiler::WriteReport();
-#endif
-
+    solver_->GetSolveTimer()->Stop();
     LOG_DBG(stdSys) << "Solve invalidate flag for solution buffer, why not also fro rhs?";
   }
 
@@ -340,10 +339,10 @@ namespace CoupledField {
     eigenSolver_->CalcEigenFrequencies( *eigenValues_, *eigenValError_ );
 
     // Hard coded cast for double values
-    REFCAST( *eigenValues_, Vector<Double>, valVec );
+    Vector<Double>& valVec = dynamic_cast<Vector<Double>&>(*eigenValues_);
     frequencies = valVec;
 
-    REFCAST( *eigenValError_, Vector<Double>, errVec );
+    Vector<Double>& errVec = dynamic_cast<Vector<Double>&>(*eigenValError_);
     err = errVec;
 
   }
@@ -366,10 +365,10 @@ namespace CoupledField {
     eigenSolver_->CalcEigenFrequencies( *eigenValues_, *eigenValError_ );
 
     // Hard coded cast for double values
-    REFCAST( *eigenValues_, Vector<Complex>, valVec );
+    Vector<Complex>& valVec = dynamic_cast<Vector<Complex>&>(*eigenValues_);
     frequencies = valVec;
 
-    REFCAST( *eigenValError_, Vector<Double>, errVec );
+    Vector<Double>& errVec = dynamic_cast<Vector<Double>&>(*eigenValError_);
     err = errVec;
   }
 
@@ -385,7 +384,7 @@ namespace CoupledField {
     
     // DEBUG: Make check, if mode is really an eigenmode
     // by calculating (A - lambda * I) * u = 0
-    //REFCAST( *eigenValues_, Vector<Double>, valVec );
+    // Vector<Double>& valVec = dynamic_cast<Vector<Double>&>(*eigenValues_);
 //    Double lambda = (2.0*PI*valVec[numMode])*(2.0*PI*valVec[numMode]);
     
 //    StdMatrix * mat = 
@@ -417,8 +416,15 @@ namespace CoupledField {
     BaseMatrix::EntryType   entryType;
     BaseMatrix::StorageType storageType;
 
-    myParams_.GetEnumValue( "MatrixEntryType"  , entryType   );
-    myParams_.GetEnumValue( "MatrixStorageType", storageType );
+    std::string entryTypeStr = "double";
+    std::string storageTypeStr = "";
+    
+    PtrParamNode matrixNode = xml_->Get("matrix", ParamNode::INSERT);
+    matrixNode->GetValue("entry", entryTypeStr, ParamNode::INSERT);
+    matrixNode->GetValue("storage", storageTypeStr, ParamNode::INSERT);
+    
+    entryType = BaseMatrix::entryType.Parse( entryTypeStr );
+    storageType = BaseMatrix::storageType.Parse( storageTypeStr );
 
     // get the matrix graph of the system matrix
     BaseGraph *graph = graphManager_->GetGraph();
@@ -438,7 +444,7 @@ namespace CoupledField {
     // ------------------------
     //  Re-set numLastFreeDof
     // ------------------------
-    DELETEARRAY( numLastFreeDof_ );
+    delete [] ( numLastFreeDof_ );  numLastFreeDof_  = NULL;
     NEWARRAY( numLastFreeDof_, UInt, 1 );
     numLastFreeDof_[0] = graph->GetSize();
 
@@ -451,7 +457,7 @@ namespace CoupledField {
     // Check the case we have (elimination vs. penalty) and generate
     // an appropriate object for handling inhomogeneous Dirichlet
     // boundary conditions
-    if ( myParams_.GetBoolValue( "UsingPenaltyFormulation" ) == true ) {
+    if ( usingPenalty_ ) {
       idbcHandler_ = GenerateIDBC_HandlerObject( numDirichletValues_,
                                                  blockSize_, entryType );
     }
@@ -470,25 +476,20 @@ namespace CoupledField {
     // ------------------------
     std::set<FEMatrixType>::iterator it;
 
-    // Print information about matrix types to .las file
-    (*cla) << "\n StandardSystem: The following matrices are created:\n ";
-    for ( it = matrixTypes_.begin(); it != matrixTypes_.end(); it++ ) {
-      std::string tmp;
-      Enum2String( *it, tmp );
-      (*cla) << " " << tmp << '\n';
-    }
-    (*cla) << std::endl;
-
     //check for solver
-    SolverType solver;
-    myParams_.GetEnumValue( "Solver", solver );
+    BaseSolver::SolverType solver;
+    std::string solverStr;
+    PtrParamNode solverNode = xml_->Get("solver", ParamNode::INSERT);
+    solverNode->GetValue("type", solverStr, ParamNode::INSERT);
+    solver = BaseSolver::solverType.Parse(solverStr);
 
     // In the case of SRCS_Matrices we can save memory by sharing
     // sparsity patterns
     bool sharePatternPossible = false;
     bool sharePattern = false;
     PatternIdType patternID = NO_PATTERN_ID;
-    if ( storageType == BaseMatrix::SPARSE_SYM && solver != DIAGSOLVER ) {
+    if ( storageType == BaseMatrix::SPARSE_SYM &&
+         solver != BaseSolver::DIAGSOLVER ) {
       sharePatternPossible = true;
       patternPool_ = new PatternPool;
     }
@@ -503,7 +504,7 @@ namespace CoupledField {
       << " rows/cols= " << size_ << " nnz=" << nne_;
 
       actStorageType = storageType;
-      if ( solver == DIAGSOLVER ) {
+      if ( solver == BaseSolver::DIAGSOLVER ) {
         if ( *it == SYSTEM || *it == MASS ) {
           // just allocate a diagonal matrix
           actStorageType = BaseMatrix::DIAG;
@@ -517,7 +518,7 @@ namespace CoupledField {
 
       assert(sysmat_[*it] != NULL);
 
-      std::string tmp;
+      string tmp;
       Enum2String( *it, tmp );
 
       LOG_DBG(stdSys) << "created matrix " << tmp;
@@ -549,28 +550,31 @@ namespace CoupledField {
       (GenerateVectorObject( *(sysmat_[SYSTEM]) ));
 
     // Generate communication buffers
-    if ( myParams_.GetBoolValue( "UsingPenaltyFormulation" ) == false )
+    if ( !usingPenalty_ )
       GenerateCFSTransferBuffers();
 
     if ( rhs_ == NULL || sol_ == NULL ) {
       EXCEPTION( WRONG_CAST_MSG );
     }
 
-    /*
-    // Seens to be somehow buggy, as I got an Segemtation fault
-    // when running it with block-matrices
-    //(*debug) << "System Matrix connectivity: " << std::endl;
-    //sysmat_[SYSTEM]->Print(*debug);
-    (*debug) << "rhs: " << std::endl;
-    rhs_->Print(*debug);
-    (*debug) << "sol_: " << std::endl;
-    sol_->Print(*debug);
-    */
-
     // Create the assemble object
     assemble_ =  new BaseEntryManipulator();
     //GenerateEntryManipulatorObject( entryType, blockSize_ );
 
+    // Print information about matrix types
+    PtrParamNode inm = info->Get("OLAS")->Get(ParamNode::HEADER)->Get("matrices");
+    for ( it = matrixTypes_.begin(); it != matrixTypes_.end(); it++ )
+    {
+      string tmp;
+      Enum2String( *it, tmp ); // such fucking non-sense :(
+      PtrParamNode in = inm->Get(tmp);
+      StdMatrix* mat = sysmat_[*it];
+      in->Get("rows")->SetValue(mat->GetNumRows());
+      in->Get("cols")->SetValue(mat->GetNumCols());
+      in->Get("nnz")->SetValue(mat->GetNnz());
+      in->Get("storageType")->SetValue(BaseMatrix::storageType.ToString(mat->GetStorageType()));
+      in->Get("structueType")->SetValue(BaseMatrix::structureType.ToString(mat->GetStructureType()));
+    }
 
     // -----------------
     //  Memory clean-up
@@ -588,11 +592,9 @@ namespace CoupledField {
   // ************************
   //   Create solver object
   // ************************
-  void StandardSystem::CreateSolver(InfoNode* olasInfo)
+  void StandardSystem::CreateSolver()
   {
-    SolverType solver;
-    myParams_.GetEnumValue( "Solver", solver );
-    solver_ = GenerateSolverObject( *(sysmat_[SYSTEM]), solver, xml, olasInfo, &myParams_, &myReport_ );
+    solver_ = GenerateSolverObject( *(sysmat_[SYSTEM]), xml_, olasInfo_ );
   }
 
 
@@ -601,29 +603,18 @@ namespace CoupledField {
   // ********************************
 
   // Das Interface muessen wir uns noch ueberlegen
-  void StandardSystem::CreatePrecond() {
-
-
-    PrecondType precond;
-    myParams_.GetEnumValue("Precond", precond);
-    precond_ = GenerateStdPrecondObject( *(sysmat_[SYSTEM]), precond,
-                                         &myParams_, &myReport_ );
-
+  void StandardSystem::CreatePrecond()
+  {
+    precond_ = GenerateStdPrecondObject( *(sysmat_[SYSTEM]), xml_, olasInfo_ );
   }
 
   // ********************************
   //   Create eigensolver object
   // ********************************
 
-  void StandardSystem::CreateEigenSolver(InfoNode* eigenInfo) {
-
-
-    EigenSolverType egSolver;
-    myParams_.GetEnumValue("EigenSolver", egSolver);
-    eigenSolver_ = GenerateEigenSolverObject( *(sysmat_[SYSTEM]), egSolver,
-                                              xml, eigenInfo, 
-                                              &myParams_, &myReport_ );
-
+  void StandardSystem::CreateEigenSolver() 
+  {
+    eigenSolver_ = GenerateEigenSolverObject( *(sysmat_[SYSTEM]), xml_, olasInfo_->Get("eigenSolver"));
   }
 
 
@@ -681,7 +672,7 @@ namespace CoupledField {
 
     // Do we need to re-insert penalty values into matrix?
     if ( ( matrixID == NOTYPE || matrixID == SYSTEM ) &&
-         myParams_.GetBoolValue( "UsingPenaltyFormulation" ) == true ) {
+         usingPenalty_ ) {
       assembleDirichletToSysMat_ = true;
     }
   }
@@ -736,10 +727,9 @@ namespace CoupledField {
     }
 // 	    else{
 // #ifdef DEBUG_STANDARDSYSTEM
-//           std::cout << "\n aux:" << size <<" != sol_:"<< sol_->GetSize() << std::endl;
-//           (*error) << "size of initial solution vector doesn't match "
-//                    << "with the size of the initialized solution vector!";
-//           Error( __FILE__, __LINE__ );
+//           EXCEPTION(size <<" != sol_:"<< sol_->GetSize() << std::endl;
+//                     << "size of initial solution vector doesn't match "
+//                     << "with the size of the initialized solution vector!");
 // #endif
 // 	    }
 //     }
@@ -827,14 +817,13 @@ namespace CoupledField {
     // Perform consistency check
 #ifdef DEBUG_STANDARDSYSTEM
     if ( eqnNum > size_ || eqnNum < 1 ) {
-      (*error) << "StandardSystem::SetNodeRHS: Inconsistency detected:"
+      EXCEPTION("StandardSystem::SetNodeRHS: Inconsistency detected:"
                << "\n size      = " << size_
                << "\n totalSize = " << totalSize_
                << "\n eqnNum    = " << eqnNum
                << "\n val       = " << val
                << "\n SystemName is '"
-               << myParams_.GetStringValue( "SystemName" ) << "'";
-      Error( __FILE__, __LINE__ );
+               << myParams_.GetStringValue( "SystemName" ) << "'");
     }
 #endif
 
@@ -849,14 +838,13 @@ namespace CoupledField {
     // Perform consistency check
 #ifdef DEBUG_STANDARDSYSTEM
     if ( eqnNum > size_ || eqnNum < 1 ) {
-      (*error) << "StandardSystem::SetNodeRHS: Inconsistency detected:"
+      EXCEPTION("StandardSystem::SetNodeRHS: Inconsistency detected:"
                << "\n size      = " << size_
                << "\n totalSize = " << totalSize_
                << "\n eqnNum    = " << eqnNum
                << "\n val       = " << val
                << "\n SystemName is '"
-               << myParams_.GetStringValue( "SystemName" ) << "'";
-      Error( __FILE__, __LINE__ );
+               << myParams_.GetStringValue( "SystemName" ) << "'");
     }
 #endif
 
@@ -873,12 +861,10 @@ namespace CoupledField {
   //   Update RHS
   // **************
   void StandardSystem::UpdateRHS( FEMatrixType matrix_id, const BaseVector& fup ) {
-    
     if ( numDirichletValues_ > 0 &&
-         myParams_.GetBoolValue( "UsingPenaltyFormulation" ) == false ) {
-      (*warning) << "UpdateRHS may fail in combo with "
-                 << "idbcHandling = elimination";
-      Warning( __FILE__, __LINE__ );
+         !usingPenalty_ ) {
+      WARN("UpdateRHS may fail in combo with "
+           << "idbcHandling = elimination");
     }
     if( fup.GetEntryType() == BaseMatrix::COMPLEX ) {
       assemble_->UpdateRHS( rhs_, sysmat_[matrix_id],
@@ -918,22 +904,20 @@ namespace CoupledField {
 #ifdef DEBUG_STANDARDSYSTEM
 
     // Some situation dependend modifiers
-    bool usingPenalty = myParams_.GetBoolValue( "UsingPenaltyFormulation" );
-    UInt maxVal = usingPenalty == true ? size_ : size_ + numDirichletValues_;
-    UInt minVal = usingPenalty == true ? 1 : size_ + 1;
+    UInt maxVal = usingPenalty_ == true ? size_ : size_ + numDirichletValues_;
+    UInt minVal = usingPenalty_ == true ? 1 : size_ + 1;
 
     if ( eqnNum > maxVal || eqnNum < minVal ) {
-      (*error) << "StandardSystem::SetDirichlet: Inconsistency detected:"
-               << "\n pdeID  = " << pdeID
-               << "\n eqnNum = " << eqnNum
-               << "\n val    = " << val
-               << "\n numBC  = " << numDirichletValues_
-               << "\n size   = " << size_
-               << "\n minVal = " << minVal
-               << "\n maxVal = " << maxVal
-               << "\n SystemName is '"
-               << myParams_.GetStringValue( "SystemName" ) << "'";
-      Error( __FILE__, __LINE__ );
+      EXCEPTION("StandardSystem::SetDirichlet: Inconsistency detected:"
+                << "\n pdeID  = " << pdeID
+                << "\n eqnNum = " << eqnNum
+                << "\n val    = " << val
+                << "\n numBC  = " << numDirichletValues_
+                << "\n size   = " << size_
+                << "\n minVal = " << minVal
+                << "\n maxVal = " << maxVal
+                << "\n SystemName is '"
+                << myParams_.GetStringValue( "SystemName" ) << "'");
     }
 #endif
 
@@ -953,20 +937,18 @@ namespace CoupledField {
 #ifdef DEBUG_STANDARDSYSTEM
 
     // Some situation dependend modifiers
-    bool usingPenalty = myParams_.GetBoolValue( "UsingPenaltyFormulation" );
-    UInt maxVal = usingPenalty == true ? size_ : size_ + numDirichletValues_;
-    UInt minVal = usingPenalty == true ? 1 : size_ + 1;
+    UInt maxVal = usingPenalty_ == true ? size_ : size_ + numDirichletValues_;
+    UInt minVal = usingPenalty_ == true ? 1 : size_ + 1;
 
     if ( eqnNum > maxVal || eqnNum < minVal || ) {
-      (*error) << "StandardSystem::SetDirichlet: Inconsistency detected:"
-               << "\n pdeID  = " << pdeID
-               << "\n eqnNum = " << eqnNum
-               << "\n val    = " << val
-               << "\n numBC  = " << numDirichletValues_
-               << "\n size   = " << size_
-               << "\n minVal = " << minVal
-               << "\n maxVal = " << maxVal;
-      Error( __FILE__, __LINE__ );
+      EXCEPTION("StandardSystem::SetDirichlet: Inconsistency detected:"
+                << "\n pdeID  = " << pdeID
+                << "\n eqnNum = " << eqnNum
+                << "\n val    = " << val
+                << "\n numBC  = " << numDirichletValues_
+                << "\n size   = " << size_
+                << "\n minVal = " << minVal
+                << "\n maxVal = " << maxVal);
     }
 #endif
 
@@ -1021,10 +1003,9 @@ namespace CoupledField {
         return;
       }
       else {
-        (*warning) << "StandardSystem::ConstructEffectiveMatrix: "
-                   << "Map with factors is empty, but there are "
-                   << matrixTypes_.size() << " FE matrices in the game!";
-        Warning( __FILE__, __LINE__ );
+        WARN("StandardSystem::ConstructEffectiveMatrix: "
+             << "Map with factors is empty, but there are "
+             << matrixTypes_.size() << " FE matrices in the game!");
       }
     }
 
@@ -1034,9 +1015,11 @@ namespace CoupledField {
 
     for ( it = matFactors.begin(); it != matFactors.end(); it++ )
     {
-      std::string tmp;
+#ifndef NDEBUG
+      string tmp;
       Enum2String( (*it).first, tmp );
       LOG_DBG(stdSys) << " matFactor: " << tmp << ":" << (*it).second;
+#endif
       if (sysmat_[(*it).first] != NULL  && (*it).second != 0.0 )
         sys->Add((*it).second, *sysmat_[(*it).first] );
     }
@@ -1057,12 +1040,7 @@ namespace CoupledField {
     
 
     // Elimination case
-    if ( myParams_.GetBoolValue( "UsingPenaltyFormulation" ) == false ) {
-
-      // Will not work
-      if ( myParams_.GetBoolValue( "Parallel" ) ) {
-        EXCEPTION("Parallel only supported in combo with penalty!");
-      }
+    if ( !usingPenalty_ ) {
 
       if( ptSol.GetEntryType() == BaseMatrix::COMPLEX ) {
         // Sequential setting: We copy the solution and add the Dirichlet values
@@ -1101,10 +1079,8 @@ namespace CoupledField {
   // ************
   void StandardSystem::GetRHSVal( SingleVector &ptRhs,
                                   const FeFctIdType identifierPDE ) {
-    if ( numDirichletValues_ > 0 &&
-        myParams_.GetBoolValue( "UsingPenaltyFormulation" ) == false ) {
-      (*warning) << "GetRHSVal does not work for idbcHandling=elimination";
-      Warning( __FILE__, __LINE__ );
+    if ( numDirichletValues_ > 0 && ! usingPenalty_ ) {
+      WARN("GetRHSVal does not work for idbcHandling=elimination");
     }
     if( ptRhs.GetEntryType() == BaseMatrix::COMPLEX ) {
       Vector<Complex> & retVec = dynamic_cast<Vector<Complex>&>( ptRhs );
@@ -1119,7 +1095,7 @@ namespace CoupledField {
   //   Print
   // *********
   void StandardSystem::Print( FEMatrixType matrix_id) const {
-    *cla << sysmat_[matrix_id]->ToString();
+    *cla << sysmat_.find(matrix_id)->second->ToString();
   }
 
   // **********
@@ -1127,7 +1103,7 @@ namespace CoupledField {
   // **********
   void StandardSystem::Export( FEMatrixType type, char *filename,
                                char *comment ) const {
-    sysmat_[type]->Export( filename, comment );
+    sysmat_.find(type)->second->Export( filename, comment );
   }
 
 
@@ -1139,7 +1115,7 @@ namespace CoupledField {
                                              Integer eqnNum,
                                              Double val ) {
 
-    Warning( "Adapt me");
+    WARN( "Adapt me");
     // Delegate work to implementation in assemble class
     //assemble_->AddToDiagMatrixEntry( sysmat_[matrixID], eqnNum, val );
   }

@@ -12,11 +12,6 @@
 #define  debug  &std::cerr
 #endif // DEBUG_PREMATRIX
 
-#ifdef PROFILING
-#ifdef PROFILE_PREMATRIX
-#include "utils/utils.hh"
-#endif
-#endif
 /**********************************************************/
 #define  PREMATRIX_ROW_GRANULARITY  32
 /**********************************************************/
@@ -219,7 +214,7 @@ void PreMatrix<T>::SortDiagonal()
             // loop run, this means that we could not find the
             // diagonal entry
             if( ij == rowSize_[i] ) {
-                Warning( __FILE__, __LINE__,
+                WARN( __FILE__, __LINE__,
                          "PreMatrix::SortDiagonal: found row [%d] "
                          "without diagonal entry", i );
                          
@@ -281,19 +276,22 @@ void PreMatrix<T>::Reset()
     // delete array with row data
     if( rows_ != NULL ) {
         for( Integer i = 1; i <= numRows_; i++ ) {
-            DELETEARRAY( rows_[i] ); }
-        DELETEARRAY( rows_ );  rows_ = NULL;        
+          delete [] ( rows_[i] );  rows_[i]  = NULL;
+				}
+        delete [] ( rows_ );  rows_  = NULL;
     }
     // delete array with column data
     if( cols_ != NULL ) {
-        for( Integer i = 1; i <= numRows_; i++ ) {
-            DELETEARRAY( cols_[i] ); }
-        DELETEARRAY( cols_ );  cols_ = NULL;        
+        for( Integer i = 1; i <= numRows_; i++ )
+				{
+          delete [] ( cols_[i] );  cols_[i]  = NULL;
+				}
+        delete [] ( cols_ );  cols_  = NULL;
     }
     // delete array with row sizes
-    DELETEARRAY( rowSize_ );  rowSize_ = NULL;
+    delete [] ( rowSize_ );  rowSize_  = NULL;
 #ifndef PREMATRIX_USE_MODULO
-    DELETEARRAY( buffSize_ );  buffSize_ = NULL;
+    delete [] ( buffSize_ );  buffSize_  = NULL;
 #endif
     // reset number of rows
     numRows_ = 0;
@@ -315,7 +313,7 @@ bool PreMatrix<T>::ImportASCII( const char* const filename )
     ssize_t  read   = 0;
     
     if( file == NULL ) {
-        Warning( __FILE__, __LINE__,
+        WARN( __FILE__, __LINE__,
                  "PreMatrix::importASCII: could not open file "
                  "\"%s\". Matrix stayes unchanged.",
                  filename );
@@ -338,7 +336,7 @@ bool PreMatrix<T>::ImportASCII( const char* const filename )
                     return false;
                 }
             } else {
-                Warning( __FILE__, __LINE__,
+                WARN( __FILE__, __LINE__,
                          "PreMatrix::importASCII: could not read matrix "
                          "header data in file \"%s\". File might not have"
                          " the appropriate format.", filename );
@@ -354,7 +352,7 @@ bool PreMatrix<T>::ImportASCII( const char* const filename )
                 // read las entry
                 if( --nnz <= 0 )  break;
             } else {
-                Warning( __FILE__, __LINE__,
+                WARN( __FILE__, __LINE__,
                          "PreMatrix::importASCII: Could not read matrix "
                          "entry in file \"%s\". Still %d non-zero entries "
                          "are missing. Aborting import.",
@@ -403,9 +401,11 @@ bool PreMatrix<T>::CreateArrays( const Integer num_rows )
     // delete rows and the rows array, if it cannot be reused
     if( rows_ != NULL ) {
         for( Integer i = 1; i <= numRows_; i++ ) {
-            DELETEARRAY( rows_[i] );  rows_[i] = NULL; }
+            delete [] ( rows_[i] );  rows_[i]  = NULL;
+				}
         if( num_rows != numRows_ ) {
-            DELETEARRAY( rows_ );  rows_ = NULL; }
+            delete [] ( rows_ );  rows_  = NULL;
+				}
     }
     // new rows array
     if( rows_ == NULL ) {
@@ -416,9 +416,11 @@ bool PreMatrix<T>::CreateArrays( const Integer num_rows )
     // delete column indices and columns array, if it cannot be reused
     if( cols_ != NULL ) {
         for( Integer i = 1; i <= numRows_; i++ ) {
-            DELETEARRAY( cols_[i] );  cols_[i] = NULL; }
+            delete [] ( cols_[i] );  cols_[i]  = NULL;
+				}
         if( num_rows != numRows_ ) {
-            DELETEARRAY( cols_ );  cols_ = NULL; }
+            delete [] ( cols_ );  cols_  = NULL;
+				}
     }
     // new column array
     if( cols_ == NULL ) {
@@ -428,10 +430,10 @@ bool PreMatrix<T>::CreateArrays( const Integer num_rows )
 
     // new array for row sizes
     if( num_rows != numRows_ ) {
-        DELETEARRAY( rowSize_ );
+        delete [] ( rowSize_ );  rowSize_  = NULL;
         NEWARRAY( rowSize_, Integer, num_rows );
 #ifndef PREMATRIX_USE_MODULO
-        DELETEARRAY( buffSize_ );
+        delete [] ( buffSize_ );  buffSize_  = NULL;
         NEWARRAY( buffSize_, Integer, num_rows );
 #endif
     }
@@ -492,7 +494,7 @@ inline void PreMatrix<T>::CheckBufferSize( const Integer row )
 #endif
         for( Integer i = 1; i <= rowSize_[row]; i++ ) {
             newRow[i] = rows_[row][i]; }
-        DELETEARRAY( rows_[row] );
+        delete [] ( rows_[row] );  rows_[row]  = NULL;
         rows_[row] = newRow;
         // enlarge column array
         Integer *newCols = NULL;
@@ -504,7 +506,7 @@ inline void PreMatrix<T>::CheckBufferSize( const Integer row )
 #endif
         for( Integer i = 1; i <= rowSize_[row]; i++ ) {
             newCols[i] = cols_[row][i]; }
-        DELETEARRAY( cols_[row] );
+        delete [] ( cols_[row] );  cols_[row]  = NULL;
         cols_[row] = newCols;
     }
 }

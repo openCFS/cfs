@@ -11,7 +11,11 @@
 
 #include <vector>
 
+#include <DataInOut/Logging/cfslog.hh>
+
 namespace CoupledField {
+
+  DECLARE_LOG(gmvread)
 
 #ifndef RDATA_INIT
 #define EXTERN extern
@@ -146,6 +150,7 @@ void gmvrayread_data(void);
 
   extern std::vector<CellType> gmv_cell_types;
   extern std::string gmv_base_dir;
+  extern std::vector< std::string > gmv_vector_components;
 
   class GMVReadException
   {
@@ -248,6 +253,7 @@ void gmvrayread_data(void);
   void gencell(long icell, long nc);
   void fillcellinfo(long nc, long *facecell1, long *facecell2);
   int chk_rayend(FILE *fin);
+
 }
 
 #endif

@@ -16,8 +16,8 @@ namespace CoupledField {
   //class NodeList;
   //class ElemList;
   //class EntityIterator;
-  //class ResultInfo;
-  //class InfoNode; 
+  //struct ResultInfo;
+  //class ParamNode; 
 
   //! Class for mapping entities and continuous ansatz functions to equation numbers
   class DiscontinuousEqnMap : public EqnMap {
@@ -105,7 +105,7 @@ namespace CoupledField {
     //! \name Miscellaneous
 
     //! Print the mapping nodes <-> Eqns
-    virtual void ToInfo(InfoNode* in) const;
+    virtual void ToInfo(PtrParamNode in) const;
 
     //@}
     

@@ -83,7 +83,7 @@ namespace CoupledField {
     //! This is the default destructor. It needs to be deep, since the
     //! class dynamically allocates memory for the matrix entries.
     ~LapackGBMatrix() {
-      DELETEARRAY(data_);
+      delete [] (data_);
     }
 
     //! Convert a CRS_Matrix into a LapackGBMatrix
@@ -295,8 +295,7 @@ namespace CoupledField {
 
 #ifdef DEBUG_LAPACKGBMATRIX
       if ( data_ == NULL ) {
-        Error( "LapackGBMatrix::GetDataPointer0 data_ has not been allocated!",
-               __FILE__, __LINE__ );
+        Error( "LapackGBMatrix::GetDataPointer0 data_ has not been allocated!" );
       }
 #endif
 
@@ -313,8 +312,7 @@ namespace CoupledField {
 
 #ifdef DEBUG_LAPACKGBMATRIX
       if ( data_ == NULL ) {
-        Error( "LapackGBMatrix::GetDataPointer0 data_ has not been allocated!",
-               __FILE__, __LINE__ );
+        EXCEPTION( "LapackGBMatrix::GetDataPointer0 data_ has not been allocated!");
       }
 #endif
 

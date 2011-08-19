@@ -80,7 +80,7 @@ namespace CoupledField
     virtual ~SimpleFlow();
 
     //! reads in flow data
-    void ReadFlowData( ParamNode * flowNode, UInt dim );
+    void ReadFlowData( PtrParamNode flowNode, UInt dim );
 
     //! computes the flow velocity and derivatives
     void ComputeActFlow( const Vector<Double> coord, 

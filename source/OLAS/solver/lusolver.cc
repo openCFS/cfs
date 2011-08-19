@@ -3,7 +3,6 @@
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
 #include "MatVec/crs_matrix.hh"
-#include "OLAS/algsys/olasparams.hh"
 
 // Include source code of CroutLU class for template instantiation
 // Note: Might lead to double instantiation, since CroutLU is also
@@ -20,19 +19,20 @@ namespace CoupledField {
   //   Constructor
   // ***************
   template<typename T>
-  LUSolver<T>::LUSolver( OLAS_Params *myParams, OLAS_Report *myReport ) {
+  LUSolver<T>::LUSolver( PtrParamNode solverNode, PtrParamNode olasInfo ) {
 
 
     // Set pointers to communication objects
-    myParams_ = myParams;
-    myReport_ = myReport;
+    xml_ = solverNode;
+    solverInfo_ = olasInfo->Get("directLU");
 
     // No factorisation was performed yet
     amFactorised_ = false;
-
-    // With CFS we only treat structurally symmetric problems (in principle)
-    myParams_->SetValue( "LUSOLVER_symPattern", true );
-
+    
+    itRefSteps_ = 2;
+    PtrParamNode sNode;
+    sNode = xml_->Get("directLU", ParamNode::INSERT);
+    sNode->GetValue("itRefSteps", itRefSteps_, ParamNode::INSERT);
   }
 
   // **************
@@ -48,7 +48,7 @@ namespace CoupledField {
   //   Setup
   // *********
   template<typename T>
-  void LUSolver<T>::Setup( BaseMatrix &sysMat, InfoNode* analysis_step ) {
+  void LUSolver<T>::Setup( BaseMatrix &sysMat, PtrParamNode analysis_step ) {
 
 
     // Check that we have a StdMatrix
@@ -56,10 +56,7 @@ namespace CoupledField {
       EXCEPTION( "LUSolver cannot deal with matrices other than StdMatrix" );
     }
 
-    TRY_CAST {
-
-      // Down-cast to StdMatrix
-      REFCAST( sysMat, StdMatrix, stdMat );
+    StdMatrix& stdMat = dynamic_cast<StdMatrix&>(sysMat);
 
       // Now test the storage layout
       BaseMatrix::StorageType sType = stdMat.GetStorageType();
@@ -71,7 +68,7 @@ namespace CoupledField {
       }
 
       // Down-cast to CRS_Matrix
-      REFCAST( sysMat, CRS_Matrix<T>, crsMat );
+      CRS_Matrix<T>& crsMat = dynamic_cast<CRS_Matrix<T>&>(sysMat);
 
       // Logging
       (*cla) << " -----------------------------------------------\n"
@@ -85,20 +82,27 @@ namespace CoupledField {
       this->memGrowthEstimate_ = 25;
 
       // Perform the factorisation
-      Factorise( crsMat );
+      this->Factorise( crsMat );
       amFactorised_ = true;
 
       // Logging
       (*cla) << " -----------------------------------------------"
 	     << std::endl;
 
-    } CATCH_CAST;
-
     // If the user wishes, we can export the LU factorisation to a file
-    if ( myParams_->GetBoolValue( "CROUT_saveFacToFile" ) ) {
+    bool saveFacToFile = false;
+    std::string facFileName = "fac.out";
+    
+    PtrParamNode sNode;
+    sNode = xml_->Get("directLU", ParamNode::INSERT);
+    if(sNode->Has("saveFacFile")) {
+      saveFacToFile = true;
+      sNode->GetValue("saveFacFile", facFileName, ParamNode::INSERT);
+    }
+    
+    if ( saveFacToFile ) {
       std::string filename;
-      filename = myParams_->GetStringValue( "CROUT_facFileName" );
-      this->ExportILUFactorisation( filename.c_str() );
+      this->ExportILUFactorisation( facFileName.c_str() );
     }
 
   }
@@ -109,7 +113,7 @@ namespace CoupledField {
   template<typename T>
   void LUSolver<T>::Solve( const BaseMatrix &sysMat,
 			   const BasePrecond &precond,
-			   const BaseVector &rhs, BaseVector &sol, InfoNode* analysis_step ) {
+			   const BaseVector &rhs, BaseVector &sol, PtrParamNode analysis_step ) {
 
 
     // Test that a factorisation is available, if not issue a warning.
@@ -122,42 +126,43 @@ namespace CoupledField {
     }
 
     // Solve the problem
-    TRY_CAST {
-      CONSTREFCAST( rhs, Vector<T>, myRHS );
-      REFCAST( sol, Vector<T>, mySol );
+    const Vector<T>& myRHS = dynamic_cast<const Vector<T>&>(rhs);
+    Vector<T>& mySol = dynamic_cast<Vector<T>&>(sol);
 
-      // Logging
-      bool logging = myParams_->GetBoolValue( "LUSOLVER_logging" );
-      if ( logging ) {
-        (*cla) << " -----------------------------------------------\n"
-               << " LUSolver: Solving a problem with "
-               << sysMat.GetNumCols() << " unknowns" << std::endl;
-      }
+    // Logging
+    bool logging = false;
+    if ( logging ) {
+      (*cla) << " -----------------------------------------------\n"
+             << " LUSolver: Solving a problem with "
+             << sysMat.GetNumCols() << " unknowns" << std::endl;
+    }
 
-      // Actual solve is done by CroutLU class
-      CroutLU<T>::Solve( myRHS, mySol );
+    // Actual solve is done by CroutLU class
+    CroutLU<T>::Solve( myRHS, mySol );
 
-      // If desired perform iterative refinement
-      UInt numSteps = (UInt)myParams_->GetIntValue( "LUSOLVER_itRefSteps" );
-      UInt logLevel =
-        (UInt)myParams_->GetIntValue( "LUSOLVER_itRefVerbosity" );
+    // If desired perform iterative refinement
+    UInt logLevel = 2;
+    UInt numSteps = itRefSteps_;
+      
+    PtrParamNode sNode;
+    sNode = xml_->Get("directLU", ParamNode::INSERT);
+    sNode->GetValue("itRefVerbosity", logLevel, ParamNode::INSERT);
+      
 
-      if ( numSteps > 0 ) {
+    if ( numSteps > 0 ) {
 
         // Avoid recursion, we do not want to do refinement on the
         // solution in the refinement step
-        myParams_->SetValue( "LUSOLVER_itRefSteps", (Integer)0 );
-        myParams_->SetValue( "LUSOLVER_logging", false );
+        itRefSteps_ = 0;
 
         // Refine
         iterativeRefiner_.Refine( (*this), sysMat, sol, rhs, numSteps,
                                   logLevel );
 
         // Re-set parameter object
-        myParams_->SetValue( "LUSOLVER_itRefSteps", (Integer)numSteps );
-        myParams_->SetValue( "LUSOLVER_logging", logging );
+        itRefSteps_ = numSteps;
 
-      }
+    }
 
       // Logging
       if ( logging ) {
@@ -165,18 +170,14 @@ namespace CoupledField {
                << std::endl;
       }
 
-    } CATCH_CAST;
-
-
     // Generate Report
 
     // Now this currently is of dubious value, since the two things queried
     // from olasReport are actually meaningless in the context of a direct
     // solver. Nevertheless we supply some values for consistency
-    if ( myReport_ != NULL ) {
-      myReport_->SetValue( "numIter", -1 );
-      myReport_->SetValue( "finalNorm", -1.0 );
-    }
+    PtrParamNode out = solverInfo_->Get(ParamNode::PROCESS)->Get("solver", ParamNode::APPEND);
+    out->Get("numIter")->SetValue(-1);
+    out->Get("finalNorm")->SetValue(-1.0);
 
   }
 
@@ -201,7 +202,11 @@ namespace CoupledField {
     // ================================
     //  Problem structurally symmetric
     // ================================
-    if ( myParams_->GetBoolValue( "LUSOLVER_symPattern" ) == true ) {
+
+    // With CFS we only treat structurally symmetric problems (in principle)
+    bool symPattern = true;
+    
+    if ( symPattern ) {
 
       UInt i;
       UInt bwGlobal = 0;

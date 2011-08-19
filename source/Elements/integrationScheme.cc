@@ -223,7 +223,7 @@ IntScheme::~IntScheme() {
 }
 
 
-void IntScheme::SetOrder(std::string method, UInt order) {
+void IntScheme::SetOrder(std::string method, Integer order) {
   integMethod_ = IntegMethodEnum.Parse(method); 
   if(order == -1){
     order_ = 2;
@@ -232,7 +232,7 @@ void IntScheme::SetOrder(std::string method, UInt order) {
   }
 }
 
-void IntScheme::SetOrder(IntegMethod method, UInt order) {
+void IntScheme::SetOrder(IntegMethod method, Integer order) {
   integMethod_ = method;
   if(order == -1){
     order_ = 2;
@@ -276,8 +276,9 @@ void IntScheme::GetIntPoints( Elem::ShapeType elemType,
     Integer i,j;
   
     StdVector<Double> x(N1);
-    StdVector<Double> xold(N1,2);
-    StdVector<Double> xUpdate(N1,2);
+    StdVector<Double> xold(N1), xUpdate(N1);
+    xold.Init(2);
+    xUpdate.Init(2);
     Matrix<Double> P;
     P.Resize(N1,N1);
   
@@ -520,11 +521,10 @@ void IntScheme::GetIntPoints( Elem::ShapeType elemType,
 
     double* x = NULL;
     double* w = NULL;
-    double A,B,Ax,s;
     int i, dtbl, m;
 
     // calculate number of points required according to p = 2n-1
-    UInt n = ((order + 1) / 2.0) + 0.5;
+    int n = ((order + 1) / 2.0) + 0.5;
 
     // not sure, for what m is used for
     m = (n+1)>>1;
@@ -599,6 +599,7 @@ void IntScheme::GetIntPoints( Elem::ShapeType elemType,
     double t0, t1, t2, t3;
 
     m = (n+1)>>1;
+    w0 = w1 = dw = 0.0;
     
     t0 = (1.0-(1.0-1.0/(double)n)/(8.0*(double)n*(double)n));
     t1 = 1.0/(4.0*(double)n+2.0);

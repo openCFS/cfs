@@ -1,0 +1,243 @@
+\chapter{Introduction}
+
+\todo[inline]{A lot of information for  this manual has already been  collected
+at                                                                   Klagenfurt
+\url{http://rom/AMwiki/index.php5/CFS\%2B\%2B_Developer\%27s_Manual}}       and
+\url{http://rom/AMwiki/index.php5/Simons_Privatwiki}.   Somebody  just has  to
+assemble it here in a clean and structured manner.
+
+In order to keep a large  software project with many contributors at different
+coding  skill levels in  a healthy  state and  to prevent  it from  becoming a
+so-called                  monster                  code                  (cf.
+\url{http://www.nature.com/news/2010/101013/full/467775a.html})  an  elaborate
+infrastructure has to be set up.  This infrastructure includes version control
+systems,  build  scripts  for   external  libraries,  good  documentation  and
+automated  testing  facilities.  Especially  the  last  requirement cannot  be
+overrated.  It  is a means  of maintaining a  basic principle in  science: the
+reproducibility of results.
+
+It is the intention of this manual to describe not only the mentioned parts of
+the infrastructure  but also to give  an overview of the  internal workings of
+CFS++.
+
+
+\section{Some Words About this Document}
+\subsection{Embedded Listings}
+\label{sec:embedded_listings}
+
+Some of the listings later on in this manual are meant to be copied and pasted
+into external editors. It is okay to do this for short code snippets but it is
+often  too tedious with  longer scripts.   Therefore we  decided to  embed the
+corresponding   scripts  into  the   PDF,  like   attachments  to   an  email.
+Unfortunately  not all  PDF viewers  are  capable of  retrieving the  attached
+listings.    Some    viewers   which    support   this   feature    (cf   Fig.
+\ref{fig:pdf_attach}) include  Adobe Reader  since version 6.0,  Foxit Reader,
+Okular etc.
+
+\begin{figure}[htb] 
+  \centering 
+  \subfloat[Acrobat Reader.]{
+    \label{fig:pdf_attach_acroread}
+    \includegraphics[height=3.5cm]{pics/pdf_attach_acroread}
+  }
+  \qquad
+  \subfloat[Okular.]{
+    \label{fig:pdf_attach_okular}
+    \includegraphics[height=3.5cm]{pics/pdf_attach_okular} 
+  }
+  \qquad
+  \subfloat[Foxit Reader.]{
+    \label{fig:pdf_attach_foxit}
+    \includegraphics[height=3.5cm]{pics/pdf_attach_foxit}
+  }
+  \caption{Extracting PDF attachments using different viewers.}
+  \label{fig:pdf_attach}
+\end{figure}
+
+\section{History  of  CFS++} \todo[inline]{Write  a  few  sentences about  the
+history of  CFS++ (beginning  as Matlab code,  decision for  C++, cooperations
+e.g.  Gridlib  of LGDV,  adaptive meshing of  Roberto Grosso,  LSTM, Budapest,
+optimization mathematicians  etc.), introduction of CMake,  separation of NACS
+from CFS++, development of NACSDEPS  due to Windows port, backport of NACSDEPS
+to CFSDEPS, etc...}
+
+\todo[inline]{The   pre-CFS++   era,  capa,   capapost   (graphics  based   on
+PEX) ...}
+
+\url{http://en.wikipedia.org/wiki/PHIGS}
+
+\subsection{gridlib}  In  the beginning  of  CFS++  development a  cooperation
+between  the chair  of computer  graphics (LGDV)  in Erlangen  in the  area of
+adaptive grid  refinement, resulted  in the coupling  of CFS++ to  the gridlib
+\cite{Kipfer2003, gridlib, gridlib2001} library.  The goal of this library was
+to  provide  grid management  features  tailored  to  the needs  of  numerical
+simulation,  as   well  as  for  scientific   visualization.   A  socket-based
+communication system between  CFS++ and gridlib was implemented  to review the
+incremental performance  of adaptive simulations  in \cite{Triebenbacher2003}.
+Also new algorithms for slice  calculations were implemented into gridlib (cf.
+Fig.   \ref{fig:gridlib}).    After  the  main  developer   of  gridlib  Peter
+Kipfer\footnote{\url{http://www.kipfer.de}}   left  LGDV   for   his  post-doc
+position   at   TUM\footnote{\url{http://wwwcg.in.tum.de/people/Alumni}},  the
+gridlib project slowly died however.
+
+\begin{figure}[htp]
+  \begin{center}
+    \subfloat[Render modes of gridlib.]{ \label{fig:gridlib_render_modi}
+      \includegraphics[scale=1.0]{pics/gridlib_render_modi} }
+    \subfloat[Slicing algorithm in gridlib.]{ \label{fig:gridlib_slice}
+      \includegraphics[scale=1.0]{pics/gridlib_slice} }
+  \end{center}
+  \caption{Some of gridlib's capabilities.}
+  \label{fig:gridlib}
+\end{figure}
+
+\subsection{CFSPP} During a HiWi project at  LSE in the years 2004 and 2005 an
+attempt was made to implement  a first VTK-based postprocessor for CFS++.  Its
+name                                                                        was
+CFSPP\footnote{\url{https://lse17.e-technik.uni-erlangen.de:2001/files/precompiled/legacy/cfspp}},
+which   stood   for   CFS++   Post-Processor.    It   was   built   upon   the
+ORCAN\footnote{\url{http://orcan.sourceforge.net/}}   framework   for  modular
+application  development.    This  was  a  cooperation   project  between  the
+Fraunhofer  Institute  IIS-B, and  a  few  departments  of the  University  in
+Erlangen.   CFSPP implemented  a  few  features, which  are  now available  in
+ParaView. Most  notably it supported switching  regions on and  off, which was
+not  directly supported by  VTK at  that time.   CFSPP was  even used  für the
+excercise classes of two courses in Erlangen.  It was however abandoned, since
+only one  person was developing it,  its terse user documentation,  and due to
+the fact  that some people  just could  not agree with  the sound of  its name
+(pronounced: [si:æf:æs:pi:pi]).   But valuable  experience with VTK  and CMake
+was gathered  during this time.   Figure \ref{fig:cfspp} shows the  CFSPP GUIs
+running on  Windows and  Linux.  The panels  for the  visualization parameters
+should look strangely familiar to a ParaView user.
+
+\begin{figure}[htp]
+  \begin{center}
+    \subfloat[Windows GUI.]{ \label{fig:cfspp_windows}
+      \includegraphics[height=59mm]{pics/cfspp_orcan} }
+    \subfloat[Linux GUI.]{ \label{fig:cfspp_linux}
+      \includegraphics[scale=1.0]{pics/cfspp_workshop} }
+  \end{center}
+  \caption{CFSPP running on Windows and Linux.}
+  \label{fig:cfspp}
+\end{figure}
+
+\subsection{The  HDF5 File  Format} \todo[inline]{Introduction  of  HDF5 files
+\cite{hdf5, HDF5LibCongress},  HDF started in  1987 as a  platform independent
+architecture  and  file  format   for  super  computing  application  at  NCSA
+\url{http://www.ncsa.illinois.edu/},  interesting  anecdote:  the  Mosaic  web
+browser (forefather  of Internet Explorer, Netscape,  Firefox) provided access
+to         HDF         files         \cite{Meyer1995221,         hdf5history},
+\url{http://de.wikipedia.org/wiki/NCSA_Mosaic},   HDF5  is   basis   for  many
+scientific           data            formats           (e.g.            NetCDF
+\url{http://www.unidata.ucar.edu/software/netcdf}, CFD General Notation System
+CGNS \url{http://cgns.sourceforge.net/}),  idea for  HDF5 in CFS++  from MpCCI
+3.x  .ccv trace files  \cite{MpCCI306Doc} for  examining the  coupling process
+using the  MpCCI visualizer  (which was  also based on  VTK), in  the meantime
+MpCCI  4.x  can also  produce  trace  files  for ParaView/VTK,  our  principal
+hierarchical         layout        came        from         XMDF        format
+\url{http://www.wes.army.mil/ITL/XMDF/} with own  extensions, idea is to store
+everything   (mesh,  field   results,  history   results,   information  about
+simulation,  information about  machine, restart  data) hierarchically  in one
+place.}
+\begin{figure}[htp]
+  \begin{center}
+    \includegraphics[height=59mm]{pics/ccivis} 
+  \end{center}
+  \caption{Trace   files   for    visual   comparison   of   coupled   results
+(e.g. inspection of  orphaned nodes) were written in HDF5  format by the MpCCI
+3.x coupling server (screenshots taken from \cite{MpCCI306Doc}).}
+  \label{fig:cfspp}
+\end{figure}
+
+
+\subsection{CMake} \todo[inline]{Known  since CFSPP,  real boost by  switch of
+KDE4 project \cite{CMakeKDE4}, CMake also generates Visual Studio projects for
+Windows  port  of  NACS,  support  of parallel  (\tt{make  -j4})  builds  (cf.
+\url{http://people.gnome.org/~michael/blog/icecream.html},
+\url{http://old-en.opensuse.org/Icecream},
+\url{http://software.intel.com/en-us/articles/intel-c-compiler-for-windows-distributed-compilation-with-incredibuild-and-intel-c-compiler-on-windows/},
+\url{http://wiki.gridengine.info/wiki/index.php/Distributed-Compilation}    for
+distributed parallel  builds), first real  world test: STiSC winter  term 2006
+course,        implemented       into        CFS++        since       08/04/06
+\url{https://lse17.e-technik.uni-erlangen.de:2001/trac/browser/CFS\%2B\%2B/branches/SimonGrid_040806?rev=6656}
+on                    trunk                   since                   03/02/07
+\url{https://lse17.e-technik.uni-erlangen.de:2001/trac/changeset/7233}}
+
+\subsection{The  OLAS  Machete  Branch}  At  the  same  time  when  CMake  was
+introduced  to CFS++,  it was  also  decided that  the previously  independent
+linear algebra system should be merged  into the CFS++ source tree. There were
+some hurdles for doing so however
+\begin{itemize}
+\item  OLAS was  following a  mathematicians' or  Fortran-based  philosophy of
+using  one-based  array  indices  instead  of  zero-based  ones  like  C-style
+languages.
+\item OLAS was built as extra library  and therefore had it's own way of doing
+I/O and error handling.
+\item OLAS  used its  own matrix  and vector classes,  which were  not readily
+compatible with the ones in CFS++. Therefore the data exchange between the two
+systems was based on pure C-style arrays.
+\end{itemize}
+
+\noindent Due to these  points a serious amount of work had  to be invested to
+thin  out the  redundant structures  within the  code.  After  a visit  to the
+cinema in fall 2007, where Gerhard Link, Simon Triebenbacher and the initiator
+Ludwig Bahr  took part, the  fitting name for  the working branch  was finally
+found. At the beginning of  the well-known zombie B-movie 'Planet Terror' (cf.
+Fig. \ref{fig:planet_terror}  and \url{http://www.imdb.com/title/tt1077258}) a
+fake   trailer  for  a   future  movie   (cf.   Fig.    \ref{fig:machete}  and
+\url{http://www.imdb.com/title/tt0985694}) was  shown, where a  former Mexican
+federal agent  imposes law and order  on corrupt Texan  officials and ruthless
+Mexican drug lords using his -- MACHETE!
+
+\begin{figure}[htp]
+  \begin{center}
+    \subfloat[Poster of 'Planet Terror']{ \label{fig:planet_terror}
+      \includegraphics[height=67mm]{pics/planet-terror} }
+    \subfloat[Poster of 'Machete'.]{ \label{fig:machete}
+      \includegraphics[height=67mm]{pics/machete} }
+  \end{center}
+  \caption{Advertisements for 'Planet Terror' and 'Machete'.}
+  \label{fig:movie_posters}
+\end{figure}
+
+
+
+\subsection{Forking  of NACS}  \todo[inline]{The initial  checkin of  the NACS
+repository was committed on 04/20/07, Subsequently development of Windows port
+by Simon  Triebenbacher took place, Hermann Landes  provided valuable guidance
+on  Windows-specific Fortran issues,  implementation of  reference development
+environment virtual  machine featuring support  for VS2003, VS2005  later also
+VS2008 and  Intel compilers,  platforms: Linux GCC+IFORT,  ICC+IFORT, Windows:
+MSVC+IFORT, ICC+IFORT}
+
+\subsection{NACSDEPS} The idea  for NACSDEPS was born after  the first version
+of NACS  was finally running  on Windows (cf. Fig.  \ref{fig:nacs_win}).  Then
+the  need   to  setup  more  Windows  development   machines  within  Simetris
+GmbH\footnote{\url{http://www.simetris.de}}  arose and  therewith the  need to
+know  how  all the  libraries  on  which NACS  depends  have  to  be built  or
+installed.   After the  painful experiences  gathered, while  getting  all the
+libraries for the Windows port to work  on a single machine, it was decided on
+a weekly  NACS meeting, that  the build process  of these libraries  should be
+thoroughly documented.   In the next weeks  the idea of  documenting the build
+process by  providing automated build scripts  grew.  By doing  so, we finally
+ended up with a system, which  does not only build all our dependent libraries
+on Windows but also on all  other supported platforms.  In the first revisions
+of NACSDEPS  we also provided prebuilt  binaries for a  few platforms directly
+through  the  Subversion server.   It  became  however  quickly unfeasible  to
+provide binaries for all our platforms and the time and bandwidth requirements
+needed for a checkout just became to high.  Due to this, we decided, that only
+the  build descriptions,  checksums and  patches  should be  contained in  the
+central repository whenever  possible and that sources should  be fetched from
+the internet and binaries should be cached locally instead of centrally.
+
+\begin{figure}[htb] 
+  \centering
+  \begin{overpic}[width=0.55\textwidth]{pics/nacs_win}
+  \end{overpic}
+  \caption{The first version of NACS is running on Windows.}
+  \label{fig:nacs_win}
+\end{figure}%
+
+
+\section{Outline of this Document}
+\todo[inline]{Write about where to find which information.)}

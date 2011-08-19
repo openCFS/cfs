@@ -17,8 +17,7 @@ namespace CoupledField
   class StdMatrix;
   class SingleVector;
   class PatternPool;
-  class InfoNode;
-
+  class ParamNode;
 
   //! Linear algebraic system for normal scalar- and blocksystems
 
@@ -40,7 +39,7 @@ namespace CoupledField
     //! This is the default constructor. It will perform some initial memory
     //! allocation (e.g. for the array of matrices) and set some default
     //! values.
-    StandardSystem(ParamNode* xml = NULL);
+    StandardSystem(PtrParamNode xml = PtrParamNode());
 
     //! Destructor
 
@@ -75,7 +74,7 @@ namespace CoupledField
     void CreatePrecond();
 
     /** @see BaseSystem::CreateSolver */
-    void CreateSolver(InfoNode* olasInfo);
+    void CreateSolver();
 
     //! Generate EigenSolver object
 
@@ -86,7 +85,7 @@ namespace CoupledField
     //! be called.
     //! \note If an Eigenfrequency analysis is performed, the methods
     //! SetupPrecond() and SetupSolver() must not be called!
-    void CreateEigenSolver(InfoNode* eigenInfo);
+    void CreateEigenSolver();
 
     //! Trigger setup of preconditioner
 
@@ -104,7 +103,7 @@ namespace CoupledField
     //! is especially important for direct solvers, where typically the
     //! factorisation of the problem matrix will be performed at this stage.
     //! The setup is performed using the system matrix of the linear system.
-    void SetupSolver(InfoNode* analysis_id);
+    void SetupSolver(PtrParamNode analysis_id);
 
     //! Trigger setup of eigenvalue solver
 
@@ -130,7 +129,7 @@ namespace CoupledField
     //! \note This method must not be called if an eigenfrequency analysis
     //! is performed, since this method is only used to solve a system of the
     //! form Ax=b.
-    void Solve(InfoNode* analysis_id);
+    void Solve(PtrParamNode analysis_id);
 
     //! Calculate eigenfrequencies of a generalized eigenvalue problem
 
@@ -563,7 +562,7 @@ namespace CoupledField
     //! removes IDBS Information from algebraic system
     void RemoveIDBCInfoFromMatrix() const; 
 
-    StdMatrix* GetSysMat(FEMatrixType type = SYSTEM)const {return sysmat_[type];}
+    StdMatrix* GetSysMat(FEMatrixType type = SYSTEM)const {return sysmat_.find(type)->second;}
     SingleVector *GetSolVec(){return sol_;}
     SingleVector *GetRhsVec(){return rhs_;}
 
@@ -576,7 +575,7 @@ namespace CoupledField
 
     //! Pointer to the systemmatrix (sysmat[1])
     //! and the partial matrices (mass, stiffnes, ...)
-    StdMatrix** sysmat_;
+    std::map<FEMatrixType, StdMatrix*> sysmat_;
 
     //! Pointer to solution vector
     SingleVector *sol_;

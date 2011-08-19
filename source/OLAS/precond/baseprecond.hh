@@ -6,6 +6,7 @@
 #define OLAS_BASEPRECOND_HH
 
 #include "General/environment.hh"
+#include "DataInOut/ParamHandling/ParamNode.hh"
 
 namespace CoupledField {
 
@@ -15,16 +16,35 @@ namespace CoupledField {
   class BaseVector;
   class SBM_Vector;
   class SingleVector;
-  class OLAS_Params;
-  class OLAS_Report;
 
   //! Generic preconditioner class
   class BasePrecond {
 
   public:
+    //! Type of preconditioner
+
+    //! This enumeration data type describes the type of Preconditioner which
+    //! is applied before solving the algebraic system.
+    //! The enumeration contains the following values:
+    //! - NOPRECOND
+    //! - ID
+    //! - MG
+    //! - JACOBI
+    //! - SSOR
+    //! - ILU0
+    //! - ILUTP
+    //! - ILUK
+    //! - ILDLK
+    //! - ILDLTP
+    //! - ILDLCN
+    typedef enum {NOPRECOND, ID, MG, JACOBI, SSOR, ILU0,ILUTP, ILUK, ILDL0, ILDLK, ILDLTP,
+                  ILDLCN, IC0} PrecondType;
+    static Enum<PrecondType> precondType;
+    
+  public:
 
     //! Default Constructor
-    BasePrecond() {
+    BasePrecond()  {
     };
 
     //! Default Destructor
@@ -61,13 +81,13 @@ namespace CoupledField {
 
     //! This is a pointer to a parameter object containing the steering
     //! parameters for this preconditioner.
-    OLAS_Params *myParams_;
+    PtrParamNode xml_;
 
     //! Pointer to report object
 
     //! This is a pointer to a report object which the preconditioner can use
     //! to store general information about its performance or setup phase.
-    OLAS_Report *myReport_;
+    PtrParamNode olasInfo_;
 
   };
 
@@ -85,7 +105,7 @@ namespace CoupledField {
     };
 
     //! Default Destructor
-    ~BaseStdPrecond() {
+    virtual ~BaseStdPrecond() {
     };
 
     //! Applies the preconditioner by "solving" Az=r for z

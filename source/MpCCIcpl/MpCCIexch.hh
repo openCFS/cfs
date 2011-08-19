@@ -82,7 +82,7 @@ public:
 private:
 
   // pointers to objects
-  ParamNode * myParam_; //!< pointer to "MpCCI-flownoise"-element
+  PtrParamNode myParam_; //!< pointer to "MpCCI-flownoise"-element
   Grid * ptgrid_;           //!< pointer to Grid
   StdVector<RegionIdType> subdoms_;  //!< subdomain-levels belongig to PDE
   ShortInt Dim_;         //!< space dimension of pde  

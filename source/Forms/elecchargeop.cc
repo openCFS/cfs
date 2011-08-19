@@ -84,7 +84,7 @@ namespace CoupledField
                   const Vector<TYPE> & eNormalFluxDensity)
   {
     
-    Warning( "Not used anymore", __FILE__, __LINE__ );
+    WARN( "Not used anymore" );
   //   Double jacDet; 
 //     TYPE charge,helpNormalFluxDensity;
 //     Vector<Double> shFnc, globCoord;

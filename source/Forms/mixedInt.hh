@@ -280,6 +280,56 @@ namespace CoupledField
     UInt dim_;               //!< dimension of the problem (2D/3D)
   };
 
-}
 
+  //! Class for calculation of convective term on pressure (momentum) equation 
+  class ConvectiveMixedInt_KPP : public BaseForm
+  {
+  public:
+    
+    /// Constructor
+    ConvectiveMixedInt_KPP(Vector<Double> velVec, UInt dim, bool axi=false, 
+			   bool coordUpdate = false );
+    
+    /// 
+    virtual ~ConvectiveMixedInt_KPP();
+    
+    /// Calculation of stiffmess matrix
+    void CalcElementMatrix( Matrix<Double>& elemMat,
+			    EntityIterator& ent1, 
+			    EntityIterator& ent2 );
+    
+    
+    
+  private:
+    /// vector of flow velocities 
+    Vector<Double> velVec_;
+    UInt dim_;               //!< dimension of the problem (2D/3D)
+  };
+
+  //! Class for calculation of convective term on velocity (mass) equation 
+  class ConvectiveMixedInt_KVV : public BaseForm
+  {
+  public:
+    
+    /// Constructor
+    ConvectiveMixedInt_KVV(Vector<Double> velVec, UInt dim, bool axi=false, 
+			   bool coordUpdate = false );
+    
+    /// 
+    virtual ~ConvectiveMixedInt_KVV();
+    
+    /// Calculation of stiffmess matrix
+    void CalcElementMatrix( Matrix<Double>& elemMat,
+			    EntityIterator& ent1, 
+			    EntityIterator& ent2 );
+    
+    
+    
+  private:
+    /// vector of flow velocities 
+    Vector<Double> velVec_;
+    UInt dim_;               //!< dimension of the problem (2D/3D)
+  };
+
+}
 #endif // FILE_MIXEDINT

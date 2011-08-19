@@ -6,16 +6,16 @@
 #define OLAS_BASESOLVER_HH
 
 #include "General/environment.hh"
+#include "DataInOut/ParamHandling/ParamNode.hh"
 
 namespace CoupledField {
 
   class BasePrecond;
   class BaseMatrix;
   class BaseVector;
-  class OLAS_Params;
   class OLAS_Report;
   class ParamNode;
-  class InfoNode;
+  class Timer;
 
   // =========================================================================
   // BASE SOLVER
@@ -24,18 +24,45 @@ namespace CoupledField {
 
   //! Base class for algebraic system solver
   class BaseSolver {
+    
+  public:
+    //! Type of solver
+
+    //! This enumeration data type describes the type of solver which
+    //! is applied to solve the system. Note that not all solvers can handle
+    //! all types of matrices. The enumeration contains the following values:
+    //! - NOSOLVER
+    //! - DIRECT
+    //! - RICHARDSON
+    //! - CG
+    //! - LANCZOS
+    //! - QMR
+    //! - GMRES
+    //! - MINRES
+    //! - LAPACK_LU
+    //! - LAPACK_LL
+    //! - PARDISO
+    //! - ILUPACK_SOLVER
+    //! - LU_SOLVER
+    //! - LDL_SOLVER
+    //! - LDL_SOLVER2
+    typedef enum {NOSOLVER, DIRECT, RICHARDSON, CG, LANCZOS, QMR, GMRES,
+                  MINRES, SYMMLQ, LAPACK_LU, LAPACK_LL, PARDISO,  ILUPACK, LU_SOLVER, CHOLMOD, 
+                  LDL_SOLVER, LDL_SOLVER2, DIAGSOLVER } SolverType;    
+    static Enum<SolverType> solverType;
 
   public:
 
     //! Default Constructor
     BaseSolver() {
-      xml_ = NULL;
-      solverInfo_ = NULL;
+      usingPenalty_ = false;
     }
 
     //! Default Destructor
-    virtual ~BaseSolver() {
-    }
+    virtual ~BaseSolver();
+
+    /** Does constructor stuff only possible after child constructors are called */
+    void PostInit();
 
     //! General setup routine
   
@@ -43,12 +70,12 @@ namespace CoupledField {
      * solvers just construction of some vectors etc.
      * @param analysis_id references to the info/analysis/progress/step(/substep) 
      *                   element with the "analysis_id" attribute */
-    virtual void Setup( BaseMatrix &sysmat, InfoNode* analysis_id = NULL) = 0;
+    virtual void Setup( BaseMatrix &sysmat, PtrParamNode analysis_id = PtrParamNode()) = 0;
 
     /** Solve the linear system sysmat*sol=rhs for sol
      * @param analysis_id @see Setup() */
     virtual void Solve( const BaseMatrix &sysmat, const BasePrecond &precond,
-			const BaseVector &rhs, BaseVector &sol, InfoNode* analysis_id = NULL) = 0;
+			const BaseVector &rhs, BaseVector &sol, PtrParamNode analysis_id = PtrParamNode()) = 0;
 
     //! Query type of the solver
 
@@ -57,28 +84,54 @@ namespace CoupledField {
     //! \return type of the solver
     virtual SolverType GetSolverType() = 0;
 
+    /** Gives the timer located within PtrParamNode */
+    boost::shared_ptr<Timer> GetSetupTimer() { return setupTimer_; }
+    boost::shared_ptr<Timer> GetSolveTimer() { return solveTimer_; }
+
+    void SetUsingPenalty(bool usingPenalty) {
+      usingPenalty_ = usingPenalty;
+    }
+    
   protected:
     
-    //! Pointer to parameter object
+    /** Helper method for InitParameters. Takes the default-value, prints it to the ParamNode (via
+     * param_name).
+     * If there is a parameter with param_name in the xml file, it is used and printed.
+     * @param param_name simple xpath chain via slash */
+    void CheckParameter(PtrParamNode out, double* val, const char* param_name);
+    void CheckParameter(PtrParamNode out, char** val, const char* param_name);
+    void CheckParameter(PtrParamNode out, int* val, const char* param_name);  
+    void CheckParameter(PtrParamNode out, size_t* val, const char* param_name);  
+    void CheckParameter(PtrParamNode out, bool* val, const char* param_name);
+    
+    template<typename E> // needed in header because of instantiation
+    void CheckParameter(PtrParamNode out, Enum<E>* en, int* val, const char* param_name)
+    {
+      PtrParamNode tmp = out->Get(param_name);
 
-    //! This is a pointer to a parameter object containing the steering
-    //! parameters for this solver.
-    OLAS_Params *myParams_;
-
-    //! Pointer to report object
-
-    //! This is a pointer to a report object in which the solver will store
-    //! general information about the solution of a linear system.
-    OLAS_Report *myReport_;
-
-    /** This is the description of the solver part in XML - if given!! 
-     * Might easily be NULL!! */
-    ParamNode* xml_;
+      tmp->Get("default")->SetValue(en->ToString(static_cast<E>(*val)));
+      if (xml_ && xml_->Has(param_name))
+      {
+        PtrParamNode tmp2 = xml_->Get(param_name);
+        *val = en->Parse( tmp2->As<std::string>() );
+        tmp->Get("set")->SetValue(en->ToString(static_cast<E>(*val)));
+      }
+    }
+    
+    /** This is the description of the solver part in XML
+     * This may not be NULL since proper default values have to be set
+     * before the solver gets constructed. */
+    PtrParamNode xml_;
     
     /** This stores the general solver Information (HEADER, SUMMARY) ->
      * For the current solve steps the pointer is given */
-    InfoNode* solverInfo_;
+    PtrParamNode solverInfo_;
 
+    /** This is a pointer to the setup timer. Located within PtrParamNode*/
+    boost::shared_ptr<Timer> setupTimer_;
+    boost::shared_ptr<Timer> solveTimer_;
+
+    bool usingPenalty_;
   };
 
 
@@ -95,6 +148,9 @@ namespace CoupledField {
     //! Default Constructor
     BaseIterativeSolver() {
       scalFac_ = -1.0;
+      numCalls_ = 0;
+      accIters_ = 0;
+      accReduction_ = 0.0;
     }
 
     //! Default Destructor
@@ -158,6 +214,15 @@ namespace CoupledField {
     //! criterion. We store this, so that we can use it e.g. in the
     //! LogConvergence method.
     Double scalFac_;
+    
+    //! Number of times the solver was called
+    UInt numCalls_;
+    
+    //! Accumulated number of solver iterations
+    UInt accIters_;
+    
+    //! Accumulated residual error reduction
+    Double accReduction_;
   };
 
 

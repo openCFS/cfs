@@ -30,7 +30,7 @@ namespace CoupledField
     elemTypes.clear();
     Settings& settings = Settings::Instance();
     
-    ParamNode *param = settings.GetParamNode();
+    PtrParamNode param = settings.GetParamNode();
     
     std::vector<Double> xCoords;
     std::vector<Double> yCoords;
@@ -75,20 +75,20 @@ namespace CoupledField
     zNElems.push_back(1);
     zCoords.push_back(1);
 
-    ParamNode* typeNode = NULL;
+    PtrParamNode typeNode;
 
     if(param) 
     {
       typeNode = param->Get("type");
-      if(typeNode->Get("name")->AsString() == "GENGRIDS") 
+      if(typeNode->Get("name")->As<std::string>() == "GENGRIDS") 
       {
         std::cout << "GENGRIDS node found!" << std::endl;
         
         std::string elemTypeName = "HEXA8";
-        ParamNode* elemTypeNode = typeNode->Get("elementType", false);
+        PtrParamNode elemTypeNode = typeNode->Get("elementType", ParamNode::PASS);
 
         if(elemTypeNode) {
-          elemTypeNode->Get("name", elemTypeName, false);
+          elemTypeNode->GetValue("name", elemTypeName, ParamNode::PASS);
         }
         
         if(elemTypeName == "HEXA8") {
@@ -101,12 +101,12 @@ namespace CoupledField
           hexaType = LAGRANGE;
         }
         
-        StdVector<ParamNode*> xyzCoordNodes = typeNode->Get("samplingIntervalls")->GetList("coordinates");
+        ParamNodeList xyzCoordNodes = typeNode->Get("samplingIntervalls")->GetList("coordinates");
         for(UInt i=0; i<xyzCoordNodes.GetSize(); i++) 
         {
-          std::string coordAxis = xyzCoordNodes[i]->Get("axis")->AsString();
+          std::string coordAxis = xyzCoordNodes[i]->Get("axis")->As<std::string>();
           std::cout << coordAxis << std::endl;
-          StdVector<ParamNode*> coords = xyzCoordNodes[i]->GetList("coord");
+          ParamNodeList coords = xyzCoordNodes[i]->GetList("coord");
           UInt nCoords = coords.GetSize();
           
           if(!nCoords)
@@ -118,11 +118,11 @@ namespace CoupledField
           
           for(UInt j=0; j<nCoords; j++) 
           {
-            std::string coordType = coords[j]->Get("type", false)->AsString();
-            std::cout << coordType << " " << coords[j]->AsString() << std::endl;
+            std::string coordType = coords[j]->Get("type")->As<std::string>();
+            std::cout << coordType << " " << coords[j]->As<std::string>() << std::endl;
             sstr.clear();
             sstr.str("");
-            sstr << coords[j]->AsString();
+            sstr << coords[j]->As<std::string>();
             sstr >> val;
             if(coordType == "increment") 
             {
@@ -156,12 +156,12 @@ namespace CoupledField
           }
         }
 
-        StdVector<ParamNode*> xyzElements = typeNode->Get("intervallElements")->GetList("elements");
+        ParamNodeList xyzElements = typeNode->Get("intervallElements")->GetList("elements");
         for(UInt i=0; i<xyzElements.GetSize(); i++) 
         {
-          std::string coordAxis = xyzElements[i]->Get("axis")->AsString();
+          std::string coordAxis = xyzElements[i]->Get("axis")->As<std::string>();
           std::cout << coordAxis << std::endl;
-          StdVector<ParamNode*> elems = xyzElements[i]->GetList("elems");
+          ParamNodeList elems = xyzElements[i]->GetList("elems");
           UInt nElems = elems.GetSize();
           
           if(!nElems)
@@ -175,7 +175,7 @@ namespace CoupledField
           {
             sstr.clear();
             sstr.str("");
-            sstr << elems[j]->AsString();
+            sstr << elems[j]->As<std::string>();
             sstr >> val;
             elemsVec[j] = val;
           }
@@ -206,10 +206,6 @@ namespace CoupledField
         
 
       }
-      else 
-      {
-        typeNode = NULL;
-      }      
     }
     
 
@@ -259,26 +255,26 @@ namespace CoupledField
     
     if(typeNode)
     {
-      ParamNode* regionsNode = typeNode->Get("regions", false);
+      PtrParamNode regionsNode = typeNode->Get("regions", ParamNode::PASS);
       std::cout << "Type node exists" << std::endl;
       
       if(regionsNode) 
       {
         std::cout << "Region node exists" << std::endl;
 
-        StdVector<ParamNode*> regions = regionsNode->GetList("region");
+        ParamNodeList regions = regionsNode->GetList("region");
         UInt nRegions = regions.GetSize();
         
         for(UInt i=0; i<nRegions; i++) 
         {
-          std::cout << "region " << regions[i]->Get("name")->AsString() << std::endl;
+          std::cout << "region " << regions[i]->Get("name")->As<std::string>() << std::endl;
 
-          StdVector<ParamNode*> prelimRegions = regions[i]->GetList("prelimRegion");
+          ParamNodeList prelimRegions = regions[i]->GetList("prelimRegion");
           UInt nPrelimRegions = prelimRegions.GetSize();
           for(UInt j=0; j<nPrelimRegions; j++) 
           {
-            std::cout << "prelimRegion " << prelimRegions[j]->AsString() << std::endl;
-            regionMap[regions[i]->Get("name")->AsString()].push_back(prelimRegions[j]->AsString());
+            std::cout << "prelimRegion " << prelimRegions[j]->As<std::string>() << std::endl;
+            regionMap[regions[i]->Get("name")->As<std::string>()].push_back(prelimRegions[j]->As<std::string>());
           }
         }
       }

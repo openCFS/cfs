@@ -7,55 +7,67 @@ nodal degree of freedom, the electric potential $V$ by applying a
 gradient operator. This element quantity is calculated by applying
 the config-file-commands
 
-\begin{verbatim}
+\begin{xmllisting}
 <storeResults>
-   <elemResults type="elecFieldIntensity" region="elecst2d"/>
+   <elemResult type="elecFieldIntensity" region="elecst2d"/>
 </storeResults>
-\end{verbatim}
+\end{xmllisting}
 
-In the command {\bf $<$region$>$}, all areas in which the electric field has to
+In the command  \xat{region}, all areas in which the electric field has to
 be calculated, must be listed. If no region  is specified, the elecric
 field will be calculated in all regions where the PDE is defined. To
 calculate the electric energy, one has to use the command 
 
-\begin{verbatim}      
+\begin{xmllisting}      
 <storeResults>
-   <elemResults type="elecEnergy" region="reg2"/>
+   <elemResult type="elecEnergy" region="reg2"/>
 </storeResults>
-\end{verbatim}
+\end{xmllisting}
 in the config-file. The result is written to the info-file.
 
 
 \subsection{Example}
 
 {\footnotesize
-\begin{verbatim}
+\begin{xmllisting}
 <?xml version="1.0"?>
 
 <cfsSimulation xmlns="http://www.cfs++.org">
 
-  <analysis type="static"/>
-  <geometry type="axi"/>
-  <input format="mesh"/>
-  <output format="unv"/>
-  <materialData file="mat.dat"/>
+   <fileFormats>
+    <output>
+      <unv/>
+    </output>
+    <materialData file="mat.xml" format="xml"/>
+   </fileFormats>
 
-  <domain>
+  <domain geometryType="axi">
+   <regionList>
     <region name="gndEl"  material="steel"/>
     <region name="hotEl"  material="steel"/>
     <region name="dielEl" material="silicon"/>
     <region name="airEl"  material="air"/>
+   </regionList>
 
+   <nodeList>
     <nodes name="hot"/>
     <nodes name="gnd"/>
+   </nodeList>
   </domain>
+
+ <sequenceStep>
+  <analysis>
+   <static/>
+  </analysis>
 
   <pdeList>
     <electrostatic>
+     <regionList>
        <region name="gndEl"/>
        <region name="hotEl"/>
        <region name="dielEl"/>
        <region name="airEl"/>
+     </regionList>
 
       <bcsAndLoads>
         <dirichletHom name="gnd"/>
@@ -63,34 +75,41 @@ in the config-file. The result is written to the info-file.
       </bcsAndLoads>
 
       <storeResults>
-        <elemResults type="elecFieldIntensity"/>
-        <elemResults type="elecEnergy"/>
+        <elemResult type="elecFieldIntensity">
+         <allRegions/>
+        </elemResult>
+        <elemResult type="elecEnergy">
+         <allRegions/>
+        </elemResult>
       </storeResults>
 
     </electrostatic>
   </pdeList>
-
+ </sequenceStep>
 </cfsSimulation>
-\end{verbatim}
+\end{xmllisting}
 }
 
 
 \newpage
 \section{Mechanics}
 \subsection{Degree of freedoms}
-In the 3D case we have {\bf ux, uy, uz} and in the 2D case
-(axisymmetric as well as plane) {\bf ux, uy}.
+In the 3D case we have {\bf x, y, z} and in the 2D case
+(axisymmetric as well as plane) {\bf x, y}.
 
 
 \subsection{Subtypes}
 
 A specification of the geometric type of the problem is done on the top-level
-via the \xml{geometry} element, which allows the values \xml{3d}, \xml{plane}
-and \xml{axi} for its \xml{type} attribute. For a mechanic PDE this definition
-must be repeated in the \xml{mechanic} element via its \xml{subtype} entry.
-\begin{verbatim}
+via the \xel{domain} attribute \xat{geometryType}, which allows the
+values \xatv{3d}, \xatv{plane}
+and \xatv{axi} for its \xat{geometryType} attribute. For a mechanic
+PDE this definition
+must be repeated in the \xel{mechanic} element via its \xat{subtype}
+entry.
+\begin{xmllisting}
        <mechanic subType="stype">
-\end{verbatim}
+\end{xmllisting}
 \noindent Here stype can currently take one of the following three values
 
 \begin{itemize}
@@ -99,46 +118,65 @@ must be repeated in the \xml{mechanic} element via its \xml{subtype} entry.
 \item axi
 \end{itemize}
 
-\emph{Note:} The \xml{subType} value must of course match to the \xml{type}
+\emph{Note:} The \xat{subType} value must of course match to the
+\xat{geometryType}
 value of the geometry specification and a mixture of different subTypes within
 one analysis is thus not possible.
 
 \subsection{Node to Ground Springs}
-In mechanic it is possible to consider node to ground springs. In a
+In mechanic, it is possible to consider node to ground springs. In a
 static analysis one can consider a stiffness value and
 in a transient analysis additionally a mass and a damping value.
 With the parameter name an existing selection of nodes must be given
 as it is the case for loads.
-\begin{verbatim}      
+\begin{xmllisting}
 <bcsAndLoads>
- <spring name="springNodes" dof="uy" massValue="1" dampingValue="1" 
-    stiffnessValue="1"/>
+ <spring name="springNodes" dof="y" massValue="1" dampingValue="1" 
+  stiffnessValue="1"/>
 </bcsAndLoads>
-\end{verbatim}
+\end{xmllisting}
 
 \subsection{Nodal Results}
 Possible nodal results are
 
-\begin{verbatim}
-   <nodeResults type="mechDisplacement" region="bar"/>
-   <nodeResults type="mechVelocity" region="bar"/>
-   <nodeResults type="mechAcceleration" region="bar"/>
-\end{verbatim}
+\begin{xmllisting}
+ <nodeResult type="mechDisplacement">
+  <regionList>
+   <region name="bar"/>
+  </regionList>
+ </nodeResult>
+ <nodeResult type="mechVelocity">
+  <regionList>
+   <region name="bar"/>
+  </regionList>
+ </nodeResult>
+ <nodeResult type="mechAcceleration">
+  <regionList>
+   <region name="bar"/>
+  </regionLit>
+ </nodeResult>
+\end{xmllisting}
 
 \subsection{Element Results}
 The command for calculating the mechanical stresses is
-\begin{verbatim}      
+\begin{xmllisting}      
 <storeResults>
-   <elemResults type="mechStress" region="bar"/>
+   <elemResult type="mechStress">
+    <regionList>
+     <region name="bar"/>
+    </regionList>
+   </elemResult>
 </storeResults>
-\end{verbatim}
+\end{xmllisting}
 
 \subsection{Region Results}
-There is one surface region result. The calculated value is of type history and written to the \textit{info.xml} file or the filesystem if \xml{text} output is enabled.
+There is one surface region result. The calculated value is of type history and
+written to the \textit{info.xml} file or the filesystem if \xel{text} output
+is enabled.
 
 \subsubsection{Deformed Volume}
 Given by 
-\begin{verbatim}      
+\begin{xmllisting}      
 <storeResults>
   <surfRegionResult type="volumeAboveDefSurf" dof="z">
     <surfRegionList>
@@ -146,42 +184,62 @@ Given by
     </surfRegionList>
  </surfRegionResult>
 </storeResults>
-\end{verbatim}
-the displacements of the given direction are integrated over the given surface. The result is for harmonic analysis a complex value. Of interest is them the norm/length of the calculated vector.
+\end{xmllisting}
+the displacements of the given direction are integrated over the given surface.
+The result is for harmonic analysis a complex value. Of interest is them the
+norm/length of the calculated vector.
 
 \subsection{Example}
 
 {\footnotesize 
-\begin{verbatim}
+\begin{xmllisting}
 <?xml version="1.0"?>
 <cfsSimulation xmlns="http://www.cfs++.org">
 
-  <analysis type="static"/>
-  <geometry type="plane"/>
-  <input format="mesh"/>
-  <output format="unv"/>
-  <materialData file="mat.dat"/>
+ <fileFormats>
+   <output>
+    <unv/>
+   </output>
+   <materialData file="mat.xml" format="xml"/>
+ </fileFormats>
 
-  <domain>
+ <domain geometryType="plane">
+   <regionList>
     <region name="cantilev"  material="steel"/>
+   </regionList>
+   <nodeList>
     <nodes name="leftN"/>
     <nodes name="rightN"/>
-  </domain>
+   </nodeList>
+ </domain>
 
-  <pdeList>
+ <sequenceStep>
+   <analysis>
+    <static/>
+   </analysis>
+
+   <pdeList>
     <mechanic subtype="planeStrain">
-       <region name="cantilev"/>
-       <bcsAndLoads>
-         <dirichletHom name="leftN" dof="ux"/>
-         <dirichletHom name="leftN" dof="uy"/>
-         <dirichletHom name="rightN" dof="ux"/>
-         <load         name="rightN" dof="uy" value="-1.0"/>
-       </bcsAndLoads>
+     <regionList>
+      <region name="cantilev"/>
+     </regionList>
+     <bcsAndLoads>
+      <dirichletHom name="leftN" dof="x"/>
+      <dirichletHom name="leftN" dof="y"/>
+      <dirichletHom name="rightN" dof="x"/>
+      <load         name="rightN" dof="y" value="-1.0"/>
+     </bcsAndLoads>
+     <storeResults>
+      <nodeResult type="mechDisplacement">
+       <allRegions/>
+      </nodeResult>
+     </storeResults>
     </mechanic>
-  </pdeList>
+   </pdeList>
+ </sequenceStep>
 
 </cfsSimulation>
-\end{verbatim}
+\end{xmllisting}
 }
 
 
@@ -189,24 +247,26 @@ the displacements of the given direction are integrated over the given surface. 
 \section{Acoustics}
 
 \subsection{General Setup}
-The \xml{acoustic} element is appended by the following child elements
+The \xel{acoustic} element is appended by the following child elements
 \begin{itemize}
-\item \xml{region}
-\item \xml{surface}
-\item \xml{timeSteppingFormulation} effective stiffness formulation 
-is default(optional), effective mass matrix formulation can be chosen unless one is not using the fractional damping model
-\item \xml{bcsAndLoads} (optional)
-\item \xml{nonLinear}\footnote{Other Nonlinearities than nonlinear acoustic
- PDE, which can be chosen by an attribute of \xml{region} element. This is
+\item \xel{region}
+\item \xel{surface}
+\item \xel{timeSteppingFormulation} effective stiffness formulation 
+is default(optional), effective mass matrix formulation can be chosen unless one
+is not using the fractional damping model
+\item \xel{bcsAndLoads} (optional)
+\item \xel{nonLinear}\footnote{Other Nonlinearities than nonlinear acoustic
+ PDE, which can be chosen by an attribute of \xel{region} element. This is
  currently not implemented.}
-\item \xml{storeResults} (optional)
+\item \xel{storeResults} (optional)
 \end{itemize}
 and the following attributes
 \begin{itemize}
-\item \xml{formulation} used to choose between an acoustic pressure or
-      acoustic potential PDE formulation, specified by either choosing
-      either \xml{acouPressure} or \xml{acouPotential} as value.
-\item \xml{subType} for flownoise computations set this to \xml{flowNoise}.
+\item \xel{pressFormu} used to choose for an acoustic pressure PDE
+formulatation \\
+with \xatv{acouPressure} as value.
+\item \xat{subType} for flownoise computations set this to
+\xatv{combustionNoise} or \xatv{standard} 
 \end{itemize}
 
 \subsection{Formulation}
@@ -217,66 +277,103 @@ in pressure, Kuznetsov's nonlinear PDE is in acoustic potential.
 
 \subsection{Damping and nonlinear acoustic simulation}
 Damping and nonlinear acoustic PDE formulations can be chosen for each 
-region individually. Damping is a child element of \xml{region},
+region individually. Damping is a child element of \xel{region},
 type is either no damping, rayleigh damping (which is not physical), 
 thermoviscous damping and fractional damping according to a 
 frequency power law.
-\xml{nonLinear} comes as attribute to region. It can take the value \xml{no},
-\xml{westervelt}, or \xml{kuznetsov}.
+\xat{nonLinear} comes as attribute to region. It can take the value
+\xatv{no},
+\xatv{westervelt}, or \xatv{kuznetsov}.
 
 \subsection{Boundary Conditions}
-Unique to the acoustic PDE is the possibiliy to prescribe inhomogeneous Neumann boundary conditions. In acoustic potential formulation this means a normal velocity on a surface. Remember, that the specified surface elements have to appear in the \xml{domain} section and in the \xml{acoustic} section below the region definitions. The syntax is:
+Unique to the acoustic PDE is the possibiliy to prescribe inhomogeneous Neumann
+boundary conditions. In acoustic potential formulation this means a normal
+velocity on a surface. Remember, that the specified surface elements have to
+appear in the \xel{domain} section and in the \xel{acoustic} section
+below the region definitions. The syntax is:
 
-\begin{verbatim} 
+\begin{xmllisting} 
 <bcsAndLoads>
-  <neumannInhom name="transducer" value="1e-6" dynamics="sweep5M.dat"/>
+  <neumannInhom name="transducer" value="1e-6" fileName="sweep5M.dat"/>
 </bcsAndLoads>
-\end{verbatim}
+\end{xmllisting}
 
 \subsection{Nodal Results}
 The config-file command for storing e.g. the acoustic potential in the result
 file is
 
-\begin{verbatim}      
+\begin{xmllisting}      
 <storeResults>
-   <nodeResults type="acouPotential" region="fluid1"/>
+   <nodeResult type="acouPotential">
+      <regionList>
+        <region name="fluid1"/>
+      </regionList>
+   </nodeResult> 
 </storeResults>
-\end{verbatim}
+\end{xmllisting}
 
-Analogously one can specify storing of certain node values with the help of the \xml{nodeHistory} element.
+Analogously one can specify storing of certain node values with the help of the
+\xel{nodeList}, by the sub element \xel{nodes} and \xat{name}
+attribute. 
 
-\begin{verbatim}    
+\begin{xmllisting}    
 <storeResults>
-  <nodeHistory saveNodes="historyPoints" type="acouPotential"/>
+  <nodeResult type="acouPotential">
+    <nodeList>
+     <nodes name="historyPoints"/>
+    </nodeList>
+  </nodeResult> 
 </storeResults>
-\end{verbatim}
+\end{xmllisting}
 
-Remember, that the quantity, you want to store as result, depends on the formulation of the PDE. It is straightforward to retrieve the quantity acoustic potential, when the formulation of the PDE is in acoustic potential. But if your formulation is in acoustic pressure, it is nonsense to retrieve the quantity acoustic potential, because this would need integration. A combination, which does work, is formulation in acoustic potential and results in acoustic pressure. This will be discussed in the next section.
+Remember, that the quantity, you want to store as result, depends on the
+formulation of the PDE. It is straightforward to retrieve the quantity acoustic
+potential, when the formulation of the PDE is in acoustic potential. But if your
+formulation is in acoustic pressure, it is nonsense to retrieve the quantity
+acoustic potential, because this would need integration. A combination, which
+does work, is formulation in acoustic potential and results in acoustic
+pressure. This will be discussed in the next section.
+
+A summary of the acoustic nodal results follows:
+\begin{xatlist} {Acoustic \xel{nodeResult} result types}
+\xat{type} & \xatv{acouPotential} & Nodal solution for \xatv{acouPotential} formulation \\
+           & \xatv{acouPotentialD1} & First time derivative for \xatv{acouPotential} formulation \\
+           & \xatv{acouPotentialD2} & Second time derivative for \xatv{acouPotential} formulation \\
+           & \xatv{acouRhsLoad} & Excitation for problem when a load is given \\
+           & \xatv{acouPressure} & Nodal solution for \xatv{acouPressure} formulation
+\end{xatlist}
 
 \subsection{Element Result}
 
-Because $p = \rho \partial \psi / \partial t$, and we can only assign a certain density to an element in the computational domain, pressure is an element result for acoustic potential formulation. It is specified with
+Because $p = \rho \partial \psi / \partial t$, and we can only assign a certain
+density to an element in the computational domain, pressure is an element result
+for acoustic potential formulation. It is specified with
 
-\begin{verbatim}
+\begin{xmllisting}
 <storeResults>
-  <elemResults type="acouPressure" />
-  <elemHistory type="acouPressure" saveElems="receiver"/>
+  <elemResult type="acouPressure">
+   <elemList>
+    <elems name="receiver"/>
+   </elemList>
+  </elemResult>
 </storeResults>
-\end{verbatim}
+\end{xmllisting}
 
 %\subsubsection{Element Velocity $\{v\}$}
 %\begin{print}
 %  The velocity can be calculated as an element result by applying an
 %  {\em attgroup} command.
 %\end{print}
-%\begin{verbatim}
+%\begin{xmllisting}
 %attgroup,1,calc,calc_gvp
-%\end{verbatim}
+%\end{xmllisting}
 
 \subsection{Region Result}
-There are two surface region results. The result is of type history and  written to the \textit{info.xml} file or to the filesystem if \xml{text} output is enabled.   
+There are two surface region results. The result is of type history and  written
+to the \textit{info.xml} file or to the filesystem if \xat{text} output is
+enabled.   
 
-\begin{verbatim}
+\begin{xmllisting}
 <storeResults>
   <surfRegionResult type="acouPower|acouForce">
     <surfRegionList>
@@ -284,14 +381,15 @@ There are two surface region results. The result is of type history and  written
     </surfRegionList>
   </surfRegionResult>
 </storeResults>
-\end{verbatim}
+\end{xmllisting}
 
 \subsubsection{Acoustic Power}
 The acoustic power calculates
 \begin{equation}
   P = \frac{1}{2} \int v\, p^*\,d\Gamma \nonumber
 \end{equation}
-with $v$ the complex acoustic particle velocity and $p^*$ the complex conjugate acoustic pressure. Of special interest is the acoustic effective power
+with $v$ the complex acoustic particle velocity and $p^*$ the complex conjugate
+acoustic pressure. Of special interest is the acoustic effective power
 \begin{equation}
   P_{ac} = \frac{1}{2} \int {\rm Re} \lbrace p\, v^* \rbrace \,d\Gamma \nonumber
 \end{equation}
@@ -301,33 +399,37 @@ which coincides with the real part of the calculated $P$.
 \subsection{Absorbing Boundary Conditions (ABC)} 
 In the config file, the command
 
-\begin{verbatim}    
+\begin{xmllisting}    
 <bcsAndLoads>  
    <absorbingBCs name="abc"/>
 </bcsAndLoads>
-\end{verbatim}
+\end{xmllisting}
       
-is needed, which defines the boundaries at which the ABCs are working.
+is needed, which defines the boundaries at which the \xatv{abc} are
+working.
 It should be clear, that the dimension of the boundary elements are
 one order lower compared to the dimension of the "domain" elements.
 Therefore, the boundary elements have to be listed with the config-file
 command
 
-\begin{verbatim}
+\begin{xmllisting}
 <domain>
-   <surface name="abc"/>
+  <surfRegionList>
+   <surfRegion name="abc"/>
+  </surfRegionList>
 </domain>
-\end{verbatim}
+\end{xmllisting}
 
 \subsection{Aeroacoustics}
 In aeroacoustics, sound sources are computed from a CFD simulation. This is
 done by another tool, called \texttt{cplreader} (see the \texttt{cplreader}
 manual for details). The sound sources are then used as a load on the right
 hand side of the acoustic PDE. Therefore the corresponding XML element is
-called \texttt{rhsValues}. Here is an example:
+called \xel{rhsValues}. Here is an example:
 
-\begin{verbatim}
-<rhsValues region="fluid" inputId="acouGrid">
+\begin{xmllisting}
+<bcsAndLoads>
+ <rhsValues region="fluid" inputId="acouGrid">
   <factor>1.0</factor>
   <asyncSteps>nearest</asyncSteps>
   <interpolation justInterpolate="yes">
@@ -340,49 +442,56 @@ called \texttt{rhsValues}. Here is an example:
     <restartFileMode>rw</restartFileMode>
     <nodeWarnings display="verbose" writeNodes="yes"/>
   </interpolation>
-</rhsValues>
-\end{verbatim}
+ </rhsValues>
+</bcsAndLoads>
+\end{xmllisting}
 
-The attribute \texttt{region} identifies the region on which the source term
+The attribute \xat{region} identifies the region on which the source term
 is to be applied; it is always required. If there is no sub-element
-\texttt{interpolation} then source terms are read from the file given through
-the attribute \texttt{inputId} (which defaults to \texttt{default}).
+\xel{interpolation} then source terms are read from the file given
+through
+the attribute \xat{inputId} (which defaults to \xatv{default}).
 
-Inside the \texttt{factor} element one can supply a mathematical expression
+Inside the \xel{factor} element one can supply a mathematical expression
 (see chapter~\ref{chap:MathExpr}) which is multiplied with the source terms.
 The expression may depend on time or frequency, and space. This is especially
 useful in a transient simulation that begins after the flow field has had some
 time to develop turbulence. In this case, immediately switching on the full
 source term can lead to numerical errors. A ramp function has proven to give
 much better results. A commonly used ramp is
-\verb|if( t lt T; sin(2*pi*t/(4*T))^2; 1)|, where \texttt{T} must be replaced
+\verb|if( t lt T, sin(2*pi*t/(4*T))^2, 1)|, where \texttt{T} must be replaced
 with the time duration of the ramp.
 
-The \texttt{asyncSteps} element tackles that fact that time steps in CFD are
+The \xel{asyncSteps} element tackles that fact that time steps in CFD are
 usually smaller than in computational acoustics. Setting this value to
-\texttt{nearest} selects source terms from the time step that is nearest to the
-one that is currently being computed. \texttt{interpolate} will result in a
+\xelv{nearest} selects source terms from the time step that is nearest to
+the
+one that is currently being computed. \xel{interpolate} will result in a
 linear temporal interpolation of source terms between the two time steps that
 the current time lies in between. In order to use the default behavior of
-CFS++, selecting data by step number, use \texttt{no} here.
+CFS++, selecting data by step number, set attribute \xat{justInterpolate}
+to attribute value \xatv{no} here.
 
-The \texttt{interpolation} element tells CFS++ to interpolate source terms from
+The \xel{interpolation} element tells CFS++ to interpolate source terms from
 a different grid. This is required, if a CFD grid is not suitable for
-acoustics. The attribute \texttt{justInterpolate} may be set to \texttt{yes} if
+acoustics. The attribute \xat{justInterpolate} may be set to
+\xatv{yes} if
 just the interpolation should be computed, but not the acoustic field. The
-\texttt{srcRegions} element defines the CFD grid; \texttt{names} is the list
+\xel{srcRegions} element defines the CFD grid; \xat{names} is the list
 of regions (separated by space, \verb|;| or \verb#|#) that contain
-source terms; \texttt{inputId} identifies the input file from which to read the
-CFD grid and source terms; optionally \texttt{coordSysId} may specify the
+source terms; \xat{inputId} identifies the input file from which to read
+the
+CFD grid and source terms; optionally \xat{coordSysId} may specify the
 coordinate system of the CFD grid if it is different from the acoustics grid.
 
-The \texttt{xyPlane} element is only relevant if the acoustics grid is
+The \xel{xyPlane} element is only relevant if the acoustics grid is
 two-dimensional, but the CFD grid is three-dimensional. Then one may specify
-the \texttt{z} coordinate of the x-y-plane (defaults to 0). Additionally
-\texttt{tol} gives the tolerance of \texttt{z} in meters, so that nodes in the
+the \xat{z} coordinate of the x-y-plane (defaults to 0). Additionally
+\xat{tol} gives the tolerance of \xat{z} in meters, so that nodes in
+the
 CFD grid need not lie exactly on the plane.
 
-Inside the \texttt{tolerances} element one may specify a range for the global
+Inside the \xel{tolerances} element one may specify a range for the global
 and local tolerances, which are used to determine the interpolation weights.
 The global tolerance (in meters) determines the space around a node in the CFD
 grid, when its surrounding element in the acoustics grid is searched for. The
@@ -393,55 +502,81 @@ boundaries, which are discretized very differently by CFD grid and acoustics
 grid. Tolerance ranges are swept in order to use small tolerances wherever
 possible and large tolerances only in places where it is necessary.
 
-\texttt{restartFileMode} determines if a restart file containing the
-interpolation weights is to be read (\texttt{r}), written (\texttt{w}) or both
-(\texttt{rw}). In this way the interpolation weights need to be computed only
+\xel{restartFileMode} determines if a restart file containing the
+interpolation weights is to be read (\xelv{r}), written (\xelv{w}) or
+both
+(\xelv{rw}). In this way the interpolation weights need to be computed only
 once and can be reused if a simulation is restarted.
 
-The \texttt{nodeWarnings} element defines how nodes are handled which could not
+The \xel{nodeWarnings} element defines how nodes are handled which could not
 be mapped during interpolation. Any message is suppressed if the attribute
-\texttt{display} is set to \texttt{no}. The total number of missed nodes is
-reported, when set to \texttt{yes}. A message for each single node is generated
-by a value of \texttt{verbose}. Optionally a text file containing the node
-numbers is written, if the attribute \texttt{writeNodes} is set to \texttt{yes}.
+\xat{display} is set to \xatv{no}. The total number of missed nodes
+is
+reported, when set to \xatv{yes}. A message for each single node is
+generated
+by a value of \xatv{verbose}. Optionally a text file containing the node
+numbers is written, if the attribute \xat{writeNodes} is set to
+\xatv{yes}.
 
 \subsection{Example}
 
 {\footnotesize 
-\begin{verbatim}
+\begin{xmllisting}
 <?xml version="1.0"?>
 <cfsSimulation xmlns="http://www.cfs++.org">
-  <analysis type="transient"/>
-  <geometry type="plane"/>
-  <domain>
-    <region material="softTissue" name="reg1"/>
-    <region material="bone" name="reg2"/>
-    <nodes name="vp-restr"/>
+
+  <fileFormats>
+    <output>
+     <gid/>
+    </output>
+    <materialData file="mat.xml" format="xml"/>
+  </fileFormats>
+
+  <domain geometryType="plane">
+    <regionList>
+      <region material="softTissue" name="reg1"/>
+      <region material="bone" name="reg2"/>
+    </regionList>
+    <nodeList>
+      <nodes name="vp-restr"/>
+    </nodeList>
   </domain>
+
+ <sequenceStep>
+
+  <analysis>
+    <transient>
+      <numSteps>    600     </numSteps>
+      <firstDt>     2.5e-08 </firstDt>
+      <stepSaveBeg>   1     </stepSaveBeg>
+      <stepSaveEnd> 600     </stepSaveEnd>
+      <stepSaveInc>   1     </stepSaveInc>
+      <timeDataFile name="sin1M40cos.dat"/>
+    </transient> 
+  </analysis>
+
   <pdeList>
     <acoustic formulation="acouPotential">
-      <region name="reg1" nonLinear="no">
-        <damping type="no"/>
-      </region>
-      <region name="reg2" nonLinear="no"/>
+      <regionList>
+       <region name="reg1"/>
+       <region name="reg2"/>
+      </regionList>
       <bcsAndLoads>
-        <dirichletInhom dynamics="sin1M40cos.dat" name="vp-restr" value="1.0"/>
+        <dirichletInhom fileName="sin1M40cos.dat" name="vp-restr" value="1.0"/>
       </bcsAndLoads>
       <storeResults>
-        <nodeHistory saveNodes="historyPoints" type="acouPotential"/>
+        <nodeResult type="acouPotential">
+          <nodeList>
+            <nodes name="historyPoints"/>
+          </nodeList>
+        </nodeResult>
       </storeResults>
     </acoustic>
   </pdeList>
-  <transient>
-    <numSteps>    600     </numSteps>
-    <firstDt>     2.5e-08 </firstDt>
-    <stepSaveBeg>   1     </stepSaveBeg>
-    <stepSaveEnd> 600     </stepSaveEnd>
-    <stepSaveInc>   1     </stepSaveInc>
-    <timeDataFile name="sin1M40cos.dat"/>
-  </transient>
+
+ </sequenceStep>
 </cfsSimulation>
-\end{verbatim}
+\end{xmllisting}
 }
 
 
@@ -456,37 +591,59 @@ deduced by a postprocessing step:
     \newline Derived from the magnetic vector potential $\bA$ by
     applying the curl operator.
   
-\begin{verbatim}
+\begin{xmllisting}
 <storeResults>
-   <elemResults type="magFluxDensity" region="yoke"/>
+   <nodeResult type="magPotential">
+     <regionList>
+      <region name="yoke"/>
+     </regionList>
+   </nodeResult>
+   <elemResult type="magFluxDensity" >
+     <regionList>
+      <region name="yoke"/>
+     </regionList>
+   </elemResult>
 </storeResults>
-\end{verbatim}
+\end{xmllisting}
   
 \item Eddy current density $\bJ_{\rm e}$ 
     \newline Currents induced by a magnetic field in a conductive
     material. 
 
-\begin{verbatim}
+\begin{xmllisting}
 <storeResults>
-   <elemResults type="magEddyCurrent" region="yoke"/>
+   <elemResult type="magEddyCurrent">
+     <regionList>
+      <region name="yoke"/>
+     </regionList>
+   </elemResult>
 </storeResults>
-\end{verbatim}
+\end{xmllisting}
   
   
 \item Magnetic energy $W$ 
     \newline Measure for the energy stored in the magnetic assembly.
   
-\begin{verbatim}
+\begin{xmllisting}
 <storeResults>
-   <elemResults type="magEnergy" region="yoke"/>
+   <regionResult type="magEnergy">
+     <regionList>
+      <region name="yoke"/>
+     </regionList>
+   </regionResult>
 </storeResults>
-\end{verbatim}
+\end{xmllisting}
 
 \item  Inductivity $L$ 
 
-\begin{verbatim}
-<saveFileL>   lFile.dat   </saveFileL>
-\end{verbatim}
+\begin{xmllisting}
+<coils>
+  <currentCoil2d name="...">
+     ...
+    <saveFileL> lFile.dat </saveFileL>
+  </currentCoil2d>
+</coils>
+\end{xmllisting}
 
 The inductivity $L$ of the magnetic assembly, as well as
 the magnetic flux $\Phi$ are calculated and stored in a file with
@@ -505,11 +662,11 @@ the name "lFile.dat"  given in column oriented form:
 
 The list of coils has to be defined inside the tags
 
-\begin{verbatim}
+\begin{xmllisting}
 <coils>
 
 </coils>
-\end{verbatim}
+\end{xmllisting}
 
 \subsubsection{Coil Types}
 
@@ -533,7 +690,8 @@ In our simulation, we distinguish different coil types:
 \end{itemize}
 
 There are several parameters which must be defined for a coil. Every
-coil needs an attribute {\bf name="xyz"}, standing nearby the
+coil needs an attribute {\xat{name}="\xatv{xyz}"}, standing nearby
+the
 definition of the coil:
 
 \verb! <voltageCoil2d name="coil3">!
@@ -564,15 +722,19 @@ are described in the next sections.
 \begin{itemize}
 \item Coil voltage $U$ respectively coil current $I$
 
-\begin{verbatim}
-<saveFileU>  uiFile.dat  </saveFileU>
-\end{verbatim}
+\begin{xmllisting}
+<measurementCoil2d name="coil1">
+  <windingCrossSection> 1e-6 </windingCrossSection>
+   <saveFileU>  uiFile.dat  </saveFileU> 
+  <id>1</id>
+</measurementCoil2d>
+\end{xmllisting}
 
-  With this tag the voltage respectively the current of a
-  special coil element can be calculated. It's stored in a file
-  named {\em resultFile} in the column oriented form:
+   With this tag the voltage respectively the current of a
+   special coil element can be calculated. It's stored in a file
+   named {\em resultFile} in the column oriented form:
 
-  {\em time voltage}.
+   {\em time voltage}.
 
 \end{itemize}
 
@@ -583,22 +745,22 @@ current respectively voltage has to be given:
 
 \begin{itemize}
 \item Transient case
-\begin{verbatim}
+\begin{xmllisting}
 <value>       10           </value>
 <dynamics>    timefile.dat </dynamics>
-\end{verbatim}
+\end{xmllisting}
 
 \item Harmonic case
-\begin{verbatim}
+\begin{xmllisting}
 <value>       10           </value>
 <phase>       90           </phase>
-\end{verbatim}
+\end{xmllisting}
 \end{itemize}
 
 \noindent
 The name of the time function as well as the sepcification of the
 phase is optional. If it's not given, a constant current with an
-amplitude of {\bf value} is assumed.  
+amplitude of {\xel{value}} is assumed.  
 Voltage driven coils additionally require the total ohmic resistance
 of the coil for solving the network equation:
 
@@ -622,83 +784,102 @@ For 3D current driven coils, the direction of the current has to be
 given explicitly. In case of a straight current flow, three
 possibilities can be given:
 
-\verb!<currentFlow> direction </currentFlow>!
+\begin{xmllisting}
+
+<flowDirection>
+  <direction dof="x" value="1"/>
+</flowDirection>!
+
+\end{xmllisting}
 
 \noindent
-with {\bf direction} standing for one of 
+with {\xel direction} standing for one of 
 \begin{itemize}
-\item xDir
-\item yDir
-\item zDir
+\item x
+\item y
+\item z
+\item phi
+\item r
 \end{itemize}
    
-For rotational current flow (e.g. in 3D-modeled axisymmetric coils),
-additionally the midpoint and the direction of the rotational axis
-must be defined:
+% For rotational current flow (e.g. in 3D-modeled axisymmetric coils),
+% additionally the midpoint and the direction of the rotational axis
+% must be defined:
+% 
+% \begin{xmllisting}
+% <rotational>
+%    <midPointX> 0 </midPointX>
+%    <midPointY> 0 </midPointY>
+%    <midPointZ> 0 </midPointZ>
+%    <rotAxisX>   1 </rotAxisX>
+%    <rotAxisY>   0 </rotAxisY>
+%    <rotAxisZ>   0 </rotAxisZ>
+% </rotational>
+% \end{xmllisting}
 
-\begin{verbatim}
-<rotational>
-   <midPointX> 0 </midPointX>
-   <midPointY> 0 </midPointY>
-   <midPointZ> 0 </midPointZ>
-   <rotAxisX>   1 </rotAxisX>
-   <rotAxisY>   0 </rotAxisY>
-   <rotAxisZ>   0 </rotAxisZ>
-</rotational>
-\end{verbatim}
-
-In this example, the midpoint lies at the origin, and the coil
-rotation axis is equal to the x-axis.
+% In this example, the midpoint lies at the origin, and the coil
+% rotation axis is equal to the x-axis.
 
 \subsubsection{Coil Definition Examples}
 
 The full description of a voltage driven coil in 2D with a winding
-cross section of $10^{-3}\, \rm m^2$, a dynamic excitation of 10\,V with
-the dynamic behaviour saved in the file "time.dat", 
+cross section of $10^{-3}\, \rm m^2$, a voltage excitation of 10\,V
+% the dynamic behaviour saved in the file "time.dat", 
 and 10\,$\Omega$ resistance could be given as
-\begin{verbatim}
+% \begin{xmllisting}
+% <voltageCoil2d name="coil1">
+%    <windingCrossSection> 0.001  </windingCrossSection>
+%    <value>                  10  </value>
+%     <dynamics>         time.dat  </dynamics>
+%    <resistance>             10  </resistance>
+%    <id>                      2  </id>
+% </voltageCoil2d>
+% \end{xmllisting}
+\begin{xmllisting}
 <voltageCoil2d name="coil1">
    <windingCrossSection> 0.001  </windingCrossSection>
    <value>                  10  </value>
-   <dynamics>         time.dat  </dynamics>
    <resistance>             10  </resistance>
    <id>                      2  </id>
 </voltageCoil2d>
-\end{verbatim}
-
-A 3D rotational coil with the rotational axis parallel to the y-axis
-including the point (2,2,0) should be defined as
-
-\begin{verbatim}
-<currentCoil3d name="coil2">
-  <windingCrossSection> 1e-5 </windingCrossSection>
-  <value>                100 </value>
-  <dynamics>        time.dat </dynamics>
-  <rotational>
-    <midPointX>  2  </midPointX>
-    <midPointY>  2  </midPointY>
-    <midPointZ>  0  </midPointZ>
-    <rotAxisX>    0  </rotAxisX>
-    <rotAxisY>    1  </rotAxisY>
-    <rotAxisZ>    0  </rotAxisZ>
-  </rotational>
-</currentCoil3d>
-\end{verbatim}
+\end{xmllisting}
+% A 3D rotational coil with the rotational axis parallel to the y-axis
+% including the point (2,2,0) should be defined as
+% 
+% \begin{xmllisting}
+% <currentCoil3d name="coil2">
+%   <windingCrossSection> 1e-5 </windingCrossSection>
+%   <value>                100 </value>
+%   <dynamics>        time.dat </dynamics>
+%   <rotational>
+%     <midPointX>  2  </midPointX>
+%     <midPointY>  2  </midPointY>
+%     <midPointZ>  0  </midPointZ>
+%     <rotAxisX>    0  </rotAxisX>
+%     <rotAxisY>    1  </rotAxisY>
+%     <rotAxisZ>    0  </rotAxisZ>
+%   </rotational>
+% </currentCoil3d>
+% \end{xmllisting}
 
 
 \subsection{Permanent Magnets}
 The use of permanent magnets in the simulation is very simple. In the
 magnetic section, the command
 
-\begin{verbatim}
-<magnets>
+\begin{xmllisting}
+<magnetic>
+...
+  <magnets>
    <magnet name="perm" orientX="0" orientY="0" orientZ="1" />
-</magnets>
-\end{verbatim}
+  </magnets>
+...
+</magnetic>
+\end{xmllisting}
 has to list all domains, which hold a permanent magnet. The
 orientation and strength of the permanent magnetic field is given by
-the magnetization vector $\bM$ giben in Tesla described by the three
-values {\bf orientX}, {\bf orientY} and {\bf orientZ}
+the magnetization vector $\bM$ given in Tesla described by the three
+values {\xat{orientX} }, {\xat{orientY} } and {\xat{orientZ} }
 
 \begin{equation}
   \label{eq:M}
@@ -713,112 +894,140 @@ values {\bf orientX}, {\bf orientY} and {\bf orientZ}
 
 \subsubsection{Example}
 {\footnotesize
-\begin{verbatim}
+\begin{xmllisting}
 <?xml version="1.0"?>
 <cfsSimulation xmlns="http://www.cfs++.org">
 
-   <analysis type="static"/>
-   <geometry type="plane"/>
-   <materialData file="mat.dat"/>
+ <fileFormats>
+    <output>
+      <gid/>
+    </output>
+    <materialData file="mat.xml" format="xml"/>
+ </fileFormats>
 
-   <domain>
+ <domain geometryType="plane">
+    <regionList>
       <region name="myCoil" material="air"/>
       <region name="iron"   material="iron"/>
       <region name="air"    material="air"/>
+    </regionList>
+    <nodeList>
       <nodes name="bound"/>
-   </domain>
+    </nodeList>
+ </domain>
 
+ <sequenceStep>
+    <analysis>
+      <static/> 
+    </analysis>
    <pdeList>
       <magnetic>
+        <regionList>
+          <region name="myCoil" />
+          <region name="iron"   />
+          <region name="air"    />
+        </regionList>
+        <bcsAndLoads>
+          <dirichletHom   name="bound"/>
+        </bcsAndLoads>
 
-         <region name="myCoil" />
-         <region name="iron"   />
-         <region name="air"    />
+        <coils>
+          <currentCoil2d name="myCoil">
+            <!-- whole coil area: 100*5 mm^2 with 20 windings -->
+            <windingCrossSection>50e-6 </windingCrossSection>
+            <value>       1            </value>
+            <id>          1            </id>
+          </currentCoil2d>
+        </coils>
 
-         <bcsAndLoads>
-            <dirichletHom   name="bound"/>
-         </bcsAndLoads>
-
-         <coils>
-            <currentCoil2d name="myCoil">
-               <!-- whole coil area: 100*5 mm^2 with 20 windings -->
-               <windingCrossSection>50e-6 </windingCrossSection>
-               <value>       1            </value>
-               <dynamics>    time.dat     </dynamics>
-               <id>          1            </id>
-            </currentCoil2d>
-         </coils>
-
-         <storeResults>
-            <elemResults type="magFluxDensity" region="myCoil"/>
-            <elemResults type="magFluxDensity" region="iron"/>
-            <elemResults type="magFluxDensity" region="air"/>
+        <storeResults>
+          <elemResult type="magFluxDensity">
+            <regionList>
+              <region name="myCoil" />
+            </regionList>
+          </elemResult>
+          <elemResult type="magFluxDensity">
+            <regionList>
+              <region name="iron"/>
+            </regionList>
+          </elemResult>
+          <elemResult type="magFluxDensity">
+            <regionList>
+              <region name="air"/>
+            </regionList>
+          </elemResult>
          </storeResults>
-
       </magnetic>
    </pdeList>
+ <sequenceStep>
 </cfsSimulation>
-\end{verbatim}
+\end{xmllisting}
 }
 
 \newpage
 \section{Heat Conduction}
 \subsection{Results}
-Until now, only the temperature, which is a nodal result, can be chosen for output either for the whole domain or at named history nodes.
+Until now, only the temperature, which is a nodal result, can be chosen for
+output either for the whole domain or at named history nodes.
 
-\begin{verbatim}
+\begin{xmllisting}
 <storeResults>
-   <nodeResults type="heatTemperature"/>
+   <nodeResult type="heatTemperature"/>
 </storeResults>
-\end{verbatim}
+\end{xmllisting}
 
 
 \subsection{Example}
 
 {\footnotesize
-\begin{verbatim}
+\begin{xmllisting}
 <?xml version="1.0"?>
 <cfsSimulation xmlns="http://www.cfs++.org">
 
-  <analysis type="transient"/>
-  <geometry type="plane"/>
-  <input format="mesh"/>
-  <output format="gmv"/>
-  <gmv>
-    <fixedGrid> yes </fixedGrid>
-    <binaryFormat> no </binaryFormat>
-  </gmv>
-  <materialData file="mat.dat"/>
+ <fileFormats>
+    <output>
+      <gmv fixedGrid="yes" binaryFormat="no"/>
+    </output>
+    <materialData file="mat.xml" format="xml"/>
+ </fileFormats>
 
-  <domain>
-    <region name="slab" material="steel" />
-  </domain>
+ <domain geometryType="plane">
+    <regionList>
+      <region name="slab" material="steel" />
+    </regionList>
+ </domain>
 
-  <pdeList>
-    <heatConduction>
-      <region name="slab"/>
+ <sequenceStep>
+   <analysis>
+     <transient>
+       <numSteps>     400 </numSteps>
+       <firstDt>        2 </firstDt>
+       <stepSaveBeg>    1 </stepSaveBeg>
+       <stepSaveEnd>  400 </stepSaveEnd>
+       <stepSaveInc>    1 </stepSaveInc>
+       <timeDataFile name="sin80no.dat"/>
+     </transient> 
+   </analysis>
 
-      <bcsAndLoads>
-        <dirichletInhom name="bcleft" value="0.0"/>
-        <dirichletInhom name="bcright" value="100.0" dynamics="sin80no.dat"/>
-      </bcsAndLoads>
-
-      <storeResults>
-        <nodeResults type="heatTemperature"/>
-        <nodeHistory type="heatTemperature" saveNodes="historyNode"/>
-      </storeResults>
-    </heatConduction>
-  </pdeList> 
-
-  <transient>
-    <numSteps>     400 </numSteps>
-    <firstDt>        2 </firstDt>
-    <stepSaveBeg>    1 </stepSaveBeg>
-    <stepSaveEnd>  400 </stepSaveEnd>
-    <stepSaveInc>    1 </stepSaveInc>
-    <timeDataFile name="sin80no.dat"/>
-  </transient>
-
+   <pdeList>
+     <heatConduction>
+       <regionList>
+         <region name="slab"/>
+       </regionList>
+       <bcsAndLoads>
+         <dirichletInhom name="bcleft" value="0.0"/>
+         <dirichletInhom name="bcright" value="100.0" dynamics="sin80no.dat"/>
+       </bcsAndLoads>
+       <storeResults>
+         <nodeResult type="heatTemperature">
+           <nodeList>
+             <nodes name="historyNode"/>
+           <nodeList>
+         </nodeResult>
+       </storeResults>
+     </heatConduction>
+   </pdeList> 
+ <sequenceStep>
 </cfsSimulation>
-\end{verbatim}
+\end{xmllisting}
 }

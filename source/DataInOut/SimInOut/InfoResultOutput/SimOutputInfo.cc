@@ -1,19 +1,19 @@
 #include "SimOutputInfo.hh"
 
-#include "DataInOut/ParamHandling/InfoNode.hh"
+#include "DataInOut/ParamHandling/ParamNode.hh"
 #include "Domain/domain.hh"
 
 using namespace CoupledField;
 using std::string;
 
-SimOutputInfo::SimOutputInfo(ParamNode * outputNode ) : SimOutput("", outputNode )
+SimOutputInfo::SimOutputInfo(PtrParamNode outputNode ) : SimOutput("", outputNode )
 {
   formatName_ = "info";
   capabilities_.insert(HISTORY);
   dirName_ = ".";
   
   
-  info_root = info->Get("calculation")->Get(InfoNode::PROCESS);
+  info_root = info->Get("calculation")->Get(ParamNode::PROCESS);
 }
 
 SimOutputInfo::~SimOutputInfo() 
@@ -36,11 +36,11 @@ void SimOutputInfo::BeginMultiSequenceStep(UInt step, BasePDE::AnalysisType type
 void SimOutputInfo::RegisterResult(shared_ptr<BaseResult> br, UInt saveBegin, UInt saveInc, UInt saveEnd, bool isHistory)
 {
    shared_ptr<ResultInfo> ri = br->GetResultInfo();
-   InfoNode* in = info_root->Get("sequence", "step", boost::lexical_cast<string>(actMSStep_));
+   PtrParamNode in = info_root->GetByVal("sequence", "step", boost::lexical_cast<string>(actMSStep_));
    // create new
-   in = in->Get("result", InfoNode::APPEND);
+   in = in->Get("result", ParamNode::APPEND);
    br->SetInfoNode(in);
-   in->Get("data")->SetValue(ri->resultName);
+   in->Get("data")->SetValue(ToValidXML(ri->resultName));
    in->Get("location")->SetValue(br->GetEntityList()->GetName());
    string loc_type;
    ResultInfo::Enum2String(ri->definedOn, loc_type);
@@ -58,7 +58,6 @@ void SimOutputInfo::AddResult(shared_ptr<BaseResult> br)
 {
 
   shared_ptr<ResultInfo> ri = br->GetResultInfo();
-
   // we'll get either a real or complex result set
   Vector<Double>*  d_vec = NULL;
   Vector<Complex>* c_vec = NULL;
@@ -67,24 +66,27 @@ void SimOutputInfo::AddResult(shared_ptr<BaseResult> br)
   else {
     c_vec = dynamic_cast<Vector<Complex>*>(br->GetSingleVector()); }
 
-  // loop over indiviual regions
+  // loop over individual regions
   shared_ptr<EntityList> list = br->GetEntityList();
   EntityIterator it = list->GetIterator();
   // we also need the index for strange code below
   for(it.Begin(); !it.IsEnd(); it++) 
   {
-    InfoNode* in = br->GetInfoNode()->Get("item", InfoNode::APPEND);
-    in->Get("analysis_id")->SetValue(domain->GetDriver()->GetAnalysisId());
+    PtrParamNode in = br->GetInfoNode()->Get("item", ParamNode::APPEND);
+    in->Get("step")->SetValue(actStep_);
+    in->Get("step_val")->SetValue(actStepVal_);
 
     // print value(s)
     StdVector<string>& dofs = ri->dofNames; 
     for(unsigned int i = 0; i < dofs.GetSize(); i++) 
     {
-      InfoNode* in_ = in->Get(dofs[i] == "" ? "value" : dofs[i], InfoNode::APPEND); 
+      PtrParamNode in_ = in->Get(dofs[i] == "" ? "value" : dofs[i], ParamNode::APPEND); 
       if(br->GetEntryType() ==  BaseMatrix::DOUBLE)
         in_->SetValue((*d_vec)[it.GetPos() * dofs.GetSize() + i]);
       else
+      {
         in_->SetValue((*c_vec)[it.GetPos() * dofs.GetSize() + i]);
+      }
     }
     if(ri->unit != "") in->Get("unit")->SetValue(ri->unit);
 

@@ -13,7 +13,7 @@
 #include "OLAS/precond/ilu0precond.hh"
 #include "OLAS/precond/ilutpprecond.hh"
 #include "OLAS/precond/ilukprecond.hh"
-//#include "precond/mgprecond.cc"
+//#include "precond/mgmakeprecond.cc"
 #include "OLAS/precond/ILDLPrecond/ildlprecond.hh"
 #include "OLAS/precond/ic0precond.hh"
 
@@ -29,7 +29,7 @@ namespace CoupledField {
   // *********************************************************
 #define PRECOND_OBJ(matEntry,matStore,precondObjType)\
 if ((entryType==matEntry) && (storageType==matStore) ) {\
-retVal = new precondObjType( mat, myParams, myReport );\
+retVal = new precondObjType( mat, solverXML, olasInfo );\
 (*cla) << " GenerateStdPrecondObject: Generated "\
        << MACRO2STRING(precondObjType)\
        << " preconditioner" << std::endl; }
@@ -56,17 +56,40 @@ retVal = new precondObjType( mat, myParams, myReport );\
   //   Generation routine
   // **********************
   BaseStdPrecond* GenerateStdPrecondObject( const StdMatrix &mat,
-                                            PrecondType ptype,
-                                            OLAS_Params *myParams,
-                                            OLAS_Report *myReport ) {
+                                            PtrParamNode systemNode,
+                                            PtrParamNode olasInfo ) {
 
 
     BaseStdPrecond *retVal = NULL;
-
+    
     // Obtain matrix type information
     BaseMatrix::EntryType entryType = mat.GetEntryType();
     BaseMatrix::StorageType storageType = mat.GetStorageType();
+    std::string precondStr = "";
 
+    PtrParamNode solverXML;
+    solverXML = systemNode->Get("solver", ParamNode::INSERT );
+
+    EnumMap::iterator it, end;
+    it = BasePrecond::precondType.map.begin();
+    end = BasePrecond::precondType.map.end();
+    
+    for( ; it != end; it++ ) {
+      if( solverXML->HasByVal("precond", it->second) ) {
+        if(precondStr != "")
+          EXCEPTION("Two preconditioners have been specified: " << precondStr << " and " << (it->second))
+        
+        precondStr = it->second;
+      }
+    }
+  
+    if(precondStr == "") {
+      precondStr = "noPrecond";
+    }
+
+    BasePrecond::PrecondType ptype = BasePrecond::NOPRECOND;
+    ptype = BasePrecond::precondType.Parse(precondStr);
+    
     // Branch depending on desired preconditioner
     switch( ptype ) {
 
@@ -76,8 +99,8 @@ retVal = new precondObjType( mat, myParams, myReport );\
 
       // Note: If no preconditioner was demanded we will currently also
       //       generate an identity preconditioner to remain consistent.
-    case NOPRECOND:
-    case ID:
+    case BasePrecond::NOPRECOND:
+    case BasePrecond::ID:
       retVal = new IdPrecondStd;
       (*cla) << " GenerateStdPrecondObject: Generated Identity preconditioner"
 	     << std::endl;
@@ -86,7 +109,7 @@ retVal = new precondObjType( mat, myParams, myReport );\
       // =========================
       //   Jacobi Preconditioner
       // =========================
-    case JACOBI:
+    case BasePrecond::JACOBI:
 
       // real crs jacobi
       PRECOND_OBJ(BaseMatrix::DOUBLE,BaseMatrix::SPARSE_NONSYM,RCRSJacDof1);
@@ -108,7 +131,7 @@ retVal = new precondObjType( mat, myParams, myReport );\
       // =======================
       //   SSOR Preconditioner
       // =======================
-    case SSOR:
+    case BasePrecond::SSOR:
 
       // real crs SSOR
       PRECOND_OBJ(BaseMatrix::DOUBLE,BaseMatrix::SPARSE_NONSYM,SSORPrecond<Double>);
@@ -120,7 +143,7 @@ retVal = new precondObjType( mat, myParams, myReport );\
       // =======================
       //   ILU0 Preconditioner
       // =======================
-    case ILU0:
+    case BasePrecond::ILU0:
 
       // real scalar ILU(0) (currently only in CRS)
       PRECOND_OBJ( BaseMatrix::DOUBLE, BaseMatrix::SPARSE_NONSYM,  ILU0Precond<Double> );
@@ -139,7 +162,7 @@ retVal = new precondObjType( mat, myParams, myReport );\
       // =============================
       //   ILU(tau,p) Preconditioner
       // =============================
-    case ILUTP:
+    case BasePrecond::ILUTP:
 
       // real scalar ILU(tau,p) (works with CRS_Matrix only)
       PRECOND_OBJ( BaseMatrix::DOUBLE, BaseMatrix::SPARSE_NONSYM, ILUTP_Precond<Double> );
@@ -160,7 +183,7 @@ retVal = new precondObjType( mat, myParams, myReport );\
       // =========================
       //   ILU(k) Preconditioner
       // =========================
-    case ILUK:
+    case BasePrecond::ILUK:
 
       // real scalar ILU(k) (works with CRS_Matrix only)
       PRECOND_OBJ( BaseMatrix::DOUBLE, BaseMatrix::SPARSE_NONSYM, ILUK_Precond<Double> );
@@ -186,13 +209,10 @@ retVal = new precondObjType( mat, myParams, myReport );\
       // class. We therefore generate for all variants an object of type
       // ILDLPrecond. The latter generates a fitting factoriser internally
       // to reflect the specific variant
-    case ILDL0:
-    case ILDLK:
-    case ILDLTP:
-    case ILDLCN:
-
-      // Set corresponding subtype
-      myParams->SetValue( "ILDLPRECOND_subType", ptype );
+    case BasePrecond::ILDL0:
+    case BasePrecond::ILDLK:
+    case BasePrecond::ILDLTP:
+    case BasePrecond::ILDLCN:
 
       // Generate preconditioner
       PRECOND_OBJ( BaseMatrix::DOUBLE,  BaseMatrix::SPARSE_SYM, ILDLPrecond<Double> );
@@ -202,7 +222,8 @@ retVal = new precondObjType( mat, myParams, myReport );\
       // this is most likely due to a request for an unsupported version.
       if ( retVal == NULL ) {
         std::string tmp;
-        Enum2String( ptype, tmp );
+        tmp = BasePrecond::precondType.ToString(ptype);
+        
 
         EXCEPTION( "Generation of ILDLPrecond object (variant = "
                    << tmp << ") failed! "
@@ -214,7 +235,7 @@ retVal = new precondObjType( mat, myParams, myReport );\
       // =======================
       //   IC0 Preconditioner
       // =======================
-    case IC0:
+    case BasePrecond::IC0:
 
       // real scalar IC(0) (currently only in CRS)
       PRECOND_OBJ( BaseMatrix::DOUBLE, BaseMatrix::SPARSE_SYM, IC0Precond<Double> );
@@ -233,7 +254,7 @@ retVal = new precondObjType( mat, myParams, myReport );\
       // ============================
       //   Multigrid Preconditioner
       // ============================
-    case MG:
+    case BasePrecond::MG:
 
       // multigrid preconditioners can be used with CRS_Matrix only.
       // PRECOND_OBJ( DOUBLE, SPARSE_NONSYM, 1, MGPrecond<Double> );
@@ -264,14 +285,35 @@ retVal = new precondObjType( mat, myParams, myReport );\
   }
 
   BaseSBMPrecond* GenerateSBMPrecondObject( const SBM_Matrix &mat,
-                                            PrecondType ptype,
-                                            OLAS_Params *myParams,
-                                            OLAS_Report *myReport ) {
+                                            PtrParamNode solverNode,
+                                            PtrParamNode olasInfo ) {
 
     BaseSBMPrecond *retVal = NULL;
 
-    // Obtain matrix type information
-    // BaseMatrix::EntryType entryType = mat.GetEntryType(); TODO: Check if this is still needed.
+    std::string precondStr = "";
+
+    PtrParamNode solverXML;
+    solverXML = solverNode->Get("solver", ParamNode::INSERT );
+  
+    EnumMap::iterator it, end;
+    it = BasePrecond::precondType.map.begin();
+    end = BasePrecond::precondType.map.end();
+    
+    for( ; it != end; it++ ) {
+      if( solverXML->HasByVal("precond", it->second) ) {
+        if(precondStr != "")
+          EXCEPTION("Two preconditioners have been specified: " << precondStr << " and " << (it->second))
+        
+        precondStr = it->second;
+      }
+    }
+  
+    if(precondStr == "") {
+      precondStr = "noPrecond";
+    }
+
+    BasePrecond::PrecondType ptype = BasePrecond::NOPRECOND;
+    ptype = BasePrecond::precondType.Parse(precondStr);
 
     // Branch depending on desired preconditioner
     switch( ptype ) {
@@ -282,8 +324,8 @@ retVal = new precondObjType( mat, myParams, myReport );\
 
     // Note: If no preconditioner was demanded we will currently also
     //       generate an identity preconditioner to remain consistent.
-    case NOPRECOND:
-    case ID:
+    case BasePrecond::NOPRECOND:
+    case BasePrecond::ID:
       retVal = new IdPrecondSBM;
       (*cla) << " GenerateStdPrecondObject: Generated Identity preconditioner"
       << std::endl;

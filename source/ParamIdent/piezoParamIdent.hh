@@ -33,7 +33,6 @@ class PiezoPDE;
 class PiezoCoupling;
 class DirectCoupledPDE;
 
-
   //! Driver class for an inverse problem:
   //! The identification of material parameters in a piezoelectric body.
   class piezoParamIdent : public SingleDriver
@@ -52,7 +51,7 @@ class DirectCoupledPDE;
 
     //! Return current time / frequency step of simulation
     UInt GetActStep( const std::string& pdename ) {
-      Warning("Tom: Does there exist a meaningful value for this?");
+      WARN("Tom Lahmer: Does there exist a meaningful value for this?");
       return 0;
     }
 
@@ -60,7 +59,7 @@ class DirectCoupledPDE;
     void Init();
 
     //! Starts parameter identification
-    void SolveProblem(bool write_results = true, InfoNode* given_analysis_id = NULL);
+    void SolveProblem(bool write_results = true, PtrParamNode given_analysis_id = PtrParamNode(), AdjointParameters* adjointParams = NULL);
 
   protected:
     //! Calculates the parameter to soution map F(p^k) at Newton iteration step k
@@ -228,7 +227,7 @@ class DirectCoupledPDE;
       std::ofstream * allTensors_;
 
     //! Parameter node for "paramIden"-element from xml-parameter file
-        ParamNode * myParam_;
+        PtrParamNode myParam_;
 
         bool CalcImpedanceCurve_;
         bool CalcMechDisplCurve_;

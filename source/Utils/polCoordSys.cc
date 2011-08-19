@@ -7,13 +7,12 @@
 #include <sstream>
 
 #include "DataInOut/ParamHandling/ParamNode.hh"
-#include "DataInOut/WriteInfo.hh"
 
 namespace CoupledField{
 
   PolarCoordSystem::PolarCoordSystem( const std::string & name,
                                       Grid * ptGrid, 
-                                      ParamNode * myParamNode ) 
+                                      PtrParamNode myParamNode ) 
     : CoordSystem( name, ptGrid, myParamNode ) {
     
     
@@ -31,10 +30,6 @@ namespace CoupledField{
 
     // calculate the rotation matrix and the invers
     CalcRotationMatrix();
-
-    // print information to .info-file
-    PrintInfo();
-    
   }
   
   PolarCoordSystem::~PolarCoordSystem(){
@@ -87,20 +82,59 @@ namespace CoupledField{
   }
 
   void  PolarCoordSystem::
-  GetGlobRotationAngles( Vector<Double> & angles,
+  GetGlobRotationMatrix( Matrix<Double> & mat,
                          const Vector<Double>& point ) const {
 
-     Vector<Double> loc;
-     Global2LocalCoord( loc, point );
+    Vector<Double> loc;
+    Global2LocalCoord( loc, point );
 
-     // Note: As this coordinate system can only be defined
-     //       in a 2-dimensional plane, the rotation angle
-     //       is always defined as rotation around the global
-     //       z-axis, which is why we set it as the 3rd component.
-     angles.Resize(3);
-     angles.Init();
-     angles[2] = loc[1] + (rotationAng_[0] * 180 / PI);
-      
+    // calculate directional sine / cosine
+    Double s = sin( loc[1] / 180 * PI );
+    Double c = cos( loc[1] / 180 * PI );
+
+    mat.Resize(2,2);
+    mat.Init();
+    const Matrix<Double> & a = invRotationMat_;
+
+    // perform explicit multiplication of a * r
+    // where r is the rotation matrix around the z-axis
+    //     ( c  -s )
+    // r = ( s   c )
+
+    mat[0][0] =  c * a[0][0] + s * a[0][1];
+    mat[0][1] = -s * a[0][0] + c * a[0][1];
+
+    mat[1][0] =  c * a[1][0] + s * a[1][1];
+    mat[1][1] = -s * a[1][0] + c * a[1][1];
+
+  }
+  
+  void  PolarCoordSystem::
+  GetFullGlobRotationMatrix( Matrix<Double> & mat,
+                             const Vector<Double>& point ) const {
+
+    Vector<Double> loc;
+    Global2LocalCoord( loc, point );
+
+    // calculate directional sine / cosine
+    Double s = sin( loc[1] / 180 * PI );
+    Double c = cos( loc[1] / 180 * PI );
+
+    mat.Resize(3,3);
+    mat.Init();
+    const Matrix<Double> & a = invRotationMat_;
+
+    // perform explicit multiplication of a * r
+    // where r is the rotation matrix around the z-axis
+    //     ( c  -s )
+    // r = ( s   c )
+
+    mat[0][0] =  c * a[0][0] + s * a[0][1];
+    mat[0][1] = -s * a[0][0] + c * a[0][1];
+
+    mat[1][0] =  c * a[1][0] + s * a[1][1];
+    mat[1][1] = -s * a[1][0] + c * a[1][1];
+
   }
   
   void PolarCoordSystem::
@@ -210,16 +244,6 @@ namespace CoupledField{
     // 3) Calculate transposed inverse rotation matrix, which defines 
     //    mapping from  local to global cartesian coordinate system
     rotationMat_.Invert(invRotationMat_);
-
-
-    // Now calculate the related kardan angles for forward and 
-    // backward transformation
-    rotationAng_.Resize(1);
-    rotationAng_[0] = GetAngle( x[1], x[0] );
-
-    invRotationAng_.Resize(1);
-    invRotationAng_[0] = -rotationAng_[0];
-    
   }
 
 
@@ -236,7 +260,7 @@ namespace CoupledField{
     if ( component == 0 ) {
       EXCEPTION( "PolarSystem:GetVecComponent:\n"
                  << "The component with name '" << dof 
-                 << "' is not known in the global cylinder coordinate system '"
+                 << "' is not known in a local polar coordinate system '"
                  << name_ << "'!" );
     }
 
@@ -256,24 +280,24 @@ namespace CoupledField{
       break;
     default:
       EXCEPTION( "PolarCoordSystem::GetDofName:\n"
-                 << "The component number " << dof << " does not exist in a "
-                 << "global cartesian coordinate system!" );
+                 << "The component number " << dof << " does not exist in local "
+                 << "polar coordinate system!" );
     }
 
     return ret;
   }
 
-  void PolarCoordSystem::PrintInfo() {
+  void PolarCoordSystem::ToInfo( PtrParamNode in ) {
+    in = in->Get("polar");
 
-    std::ostringstream out;
-    out << "\n--- local coordinate system ---\n"
-        << "    name:\t" << name_ << std::endl
-        << "    type:\tpolar" << std::endl
-        << "  origin:\t" << origin_[0] << "," << origin_[1] << std::endl
-        << "  r-axis:\t" << rAxis_[0] << "," << rAxis_[1] << std::endl;
-    out << "   angle:\t" << rotationAng_[0]/PI*180  << "\n\n";
-    Info->PrintF(std::string(), out.str().c_str());
+    in->Get("id")->SetValue(name_);
+    PtrParamNode originNode = in->Get("origin");
+    originNode->Get("x")->SetValue(origin_[0]);
+    originNode->Get("y")->SetValue(origin_[1]);
 
+    PtrParamNode rNode = in->Get("rAxis");
+    rNode->Get("x")->SetValue(rAxis_[0]);
+    rNode->Get("y")->SetValue(rAxis_[1]);
   }
 
 

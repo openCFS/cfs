@@ -74,7 +74,7 @@ namespace CoupledField
     if (conf->ifget("type_of_patch",type_patch) && type_patch=="nodebased")
       {
         // (*debug) << " step: error map : node based patches are used \n";
-        Warning("Node based patch is working only for 1 subdomain",__FILE__,__LINE__);
+        WARN("Node based patch is working only for 1 subdomain");
 
         for (icmp=0; icmp<dim; icmp++)
           { // loop over components of gradient
@@ -280,7 +280,7 @@ namespace CoupledField
    
     // define dimension of system matrix and rhs 
     Integer          nnodes=CalcNumberOfNodesInPatch(Elems);
-    //    Warning("For mass element matrices material data is not defined",__FILE__,__LINE__);
+    //    WARN("For mass element matrices material data is not defined");
     SysMatrix.Resize(nnodes,nnodes);
     SysMatrix.Init();
     RHSVector.Resize(nnodes);
@@ -298,7 +298,10 @@ namespace CoupledField
         // element system matrix
         BaseFE         * ptBaseFE = Elems[iel]->ptElem;
 
+        assert(false);
+        // the MassInt constructor is definitely nonsense as the first parameter shall be density! - Fabian 12.2010
         BaseForm       * bilinear_mass  = new MassInt(ptBaseFE,1);
+
         Matrix<Double> ptCoord;
         vec_connect = Elems[iel]->connect;
 
@@ -477,7 +480,7 @@ namespace CoupledField
     if (conf->ifget("type_of_patch",type_patch) && type_patch=="nodebased")
       {
         // (*debug) << " step: error map : node based patches are used \n";
-        Warning("Node based patch is working only for 1 subdomain",__FILE__,__LINE__);
+        WARN("Node based patch is working only for 1 subdomain");
 
         for (icmp=0; icmp<dim; icmp++)
           { // loop over components of gradient
@@ -807,7 +810,7 @@ namespace CoupledField
   //     }
   //     break;
   //   default:
-  //     Error("This type is not implemented",__FILE__,__LINE__);
+  //     EXCEPTION("This type is not implemented");
   //     break;
   //   } // switch
 
@@ -836,7 +839,7 @@ namespace CoupledField
   //       case HEX:
   //      // check that it's new
   //      // add to list
-  //      Error("Not implemented",__FILE__,__LINE__);
+  //      EXCEPTION("Not implemented");
   //      for (k=0; k<4; k++) {
   //      face->ptElem=ptQ;
   //      face->connect.Resize(2);
@@ -846,7 +849,7 @@ namespace CoupledField
   //      }
   //      break;
   //       default:
-  //      Error("This type is not implemented",__FILE__,__LINE__);
+  //      EXCEPTION("This type is not implemented");
   //      break;
   //       } // switch
 

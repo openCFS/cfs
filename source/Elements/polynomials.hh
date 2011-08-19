@@ -48,7 +48,7 @@ namespace CoupledField {
      T_SCAL p2 = -1;
      T_SCAL p1 = loc;
      values.Resize(order-1);
-     for (int j=2; j<=order; j++) {
+     for (UInt j=2; j<=order; j++) {
        double inv = 1.0 / (double)j;
        p3=p2;
        p2=p1;

@@ -6,7 +6,7 @@
 namespace CoupledField
 {
 class ElecPDE;
-class OptPiezoMat;
+class PiezoelecMat;
 
 /** Extension from lin elast SIMP to the piezoelectric case */
 class PiezoSIMP : public SIMP
@@ -21,31 +21,23 @@ public:
 
 protected:
 
-  /** overwrite this method for own objectives. */
-  virtual double CalcObjective(Excitation& excite)
+  /** overloads SIMP::CalcFunction()
+   * @see ErsatzMaterial::CalcFunction */
+  double CalcFunction(Excitation& excite, Function* f, bool derivative);
+
+  virtual void ConstructAdjointRHS(Excitation& excite, Function* f)
   {
-    if(cost->type == ELEC_ENERGY)
+    if(f->GetType() == Objective::ELEC_ENERGY)
     {
-      return harmonic ? CalcElecEnergy<std::complex<double> >(excite) : CalcElecEnergy<double>(excite); 
+      if(harmonic) ConstructAdjointRHS<std::complex<double> >(excite, f);
+              else ConstructAdjointRHS<double>(excite, f);
     }
     else
-      return SIMP::CalcObjective(excite);
-  }
-  
-  virtual void ConstructAdjointRHS(Excitation& excite)
-  {
-    if(cost->type == ELEC_ENERGY)
     {
-      if(harmonic) ConstructAdjointRHS<std::complex<double> >(excite);
-              else ConstructAdjointRHS<double>(excite);
+      SIMP::ConstructAdjointRHS(excite, f); // EM
     }
-    // else
-    SIMP::ConstructAdjointRHS(excite);
   }
   
-  /** Calculates gradients in the form <l, Ku> */
-  void CalcObjectiveGradient(Excitation& excite);
-
 private:
 
   /** Calculate the electrix enegy p^T K_pp p resp. p^T K_pp p^* */  
@@ -54,22 +46,22 @@ private:
 
   /** Sets -K_pp p or -K_pp p^* */
   template <class T>
-  void ConstructAdjointRHS(Excitation& excite);  
+  void ConstructAdjointRHS(Excitation& excite, Function* cost);
   
   
   /** This is our part for CalcU1KU2() -> This set the matrix derivatives form ELEC and
    * PIEZO_COUPLING ( + transposed) */
-  virtual void SetElementK(DesignElement* de, Application app, DenseMatrix* out, CalcMode calcMode)
+  virtual void SetElementK(DesignElement* de, const TransferFunction* tf, Application app, DenseMatrix* out, CalcMode calcMode, bool derivative = true)
   {
-    if(harmonic) SetElementK<std::complex<double> >(de, app, out, calcMode);
-            else SetElementK<double>(de, app, out, calcMode);
+    if(harmonic) SetElementK<std::complex<double> >(de, tf, app, out, calcMode, derivative);
+            else SetElementK<double>(de, tf, app, out, calcMode, derivative);
   }
 
   template <class T>
-  void SetElementK(DesignElement* de, Application app, DenseMatrix* out, CalcMode calcMode);
+  void SetElementK(DesignElement* de, const TransferFunction* tf, Application app, DenseMatrix* out, CalcMode calcMode, bool derivative = true);
 
   /** The electric rhs, real or complex */
-  SurfaceRef elecRHS;
+  DesignDependentRHS elecRHS;
   
   /** shortcut to our pde, is also in ErsatzMaterial::pdes */
   ElecPDE* elec;
@@ -81,7 +73,7 @@ private:
   double log_elec_simp_;
 
   /** is a cast of the ErsatzMaterial::material attrbiute. Set in PostInit() */
-  OptPiezoMat* piezo_mat_;
+  PiezoelecMat* piezo_mat_;
   
 };
 

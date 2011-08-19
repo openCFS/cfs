@@ -14,12 +14,6 @@
 #define  debug  &std::cerr
 #endif // DEBUG_TO_CERR
 
-#ifdef PROFILING
-#define  AMG_GET_REAL_TIME  Profiler::GetRealTime();
-#ifdef PROFILE_TOPOLOGY
-#include "utils/utils.hh"
-#endif
-#endif
 /**********************************************************/
 #ifdef TOPOLOGY_IMPORT_CF_SPLITTING
 #  include "exporttools.hh"
@@ -133,7 +127,7 @@ inline bool Topology<T>::IsFPoint( const int i ) const
                __FILE__, __LINE__ );
     }
     if( CoarseIndex_[i] == UNDEFINED ) {
-        Warning( "Topology::IsFPoint: evaluated UNDEFINED point\n",
+        WARN( "Topology::IsFPoint: evaluated UNDEFINED point\n",
                  __FILE__, __LINE__ );
     }
 #endif
@@ -152,7 +146,7 @@ inline bool Topology<T>::IsCPoint( const int i ) const
                __FILE__, __LINE__ );
     }
     if( CoarseIndex_[i] == UNDEFINED ) {
-        Warning( "Topology::IsFPoint: evaluated UNDEFINED point\n",
+        WARN( "Topology::IsFPoint: evaluated UNDEFINED point\n",
                  __FILE__, __LINE__ );
     }
 #endif
@@ -176,7 +170,7 @@ inline Integer Topology<T>::GetCoarseIndex( const Integer i ) const
                "out of valid range [1,%d]", i, GetSizeh() );
     }
     if( CoarseIndex_[i] == UNDEFINED ) {
-        Warning( "Topology::GetCoarseIndex: evaluated "
+        WARN( "Topology::GetCoarseIndex: evaluated "
                  "UNDEFINED point\n", __FILE__, __LINE__ );
     }
 #endif
@@ -199,10 +193,6 @@ CreateDependencyGraphs( const CRS_Matrix<T>& matrix,
                        )
 {
     
-#ifdef PROFILE_TOPOLOGY
-    Double t1 = AMG_GET_REAL_TIME
-#endif
-
     // loop indices, consistent for the whole function
     Integer i,  // i = row index in matrix, in [1,n]
             ij; // ij = absolute index in pCol and pDat for an entry in row i
@@ -242,12 +232,12 @@ CreateDependencyGraphs( const CRS_Matrix<T>& matrix,
 //    for( ij = 1; ij <= matrix.GetNnz(); ij++ )  ColLengths[pCol[ij]]++;
 //    //  (2) create the empty graph ST
 //    ST_.Create( matrix.GetNumCols(), ColLengths, matrix.GetNnz() );
-//    DELETEARRAY( ColLengths );
+//    delete [] ( ColLengths );  ColLengths  = NULL;
 //
 //////////////////////////////////////////////////
 
     // allocate the array for the C-F-splitting and the coarse indices
-    DELETEARRAY( CoarseIndex_ );
+    delete [] ( CoarseIndex_ );  CoarseIndex_  = NULL;
     NEWARRAY( CoarseIndex_, Integer, matrix.GetNumRows() );
     for( i = 1; i <= matrix.GetNumRows(); i++ ) {
         CoarseIndex_[i] = (Integer)UNDEFINED;
@@ -356,11 +346,6 @@ CreateDependencyGraphs( const CRS_Matrix<T>& matrix,
     NhStartIndex_ = pRow;
     NhEdges_      = pCol;
 
-#ifdef PROFILE_TOPOLOGY
-    Double t2 = AMG_GET_REAL_TIME
-    (*cla) << " AMG: creation of S, ST: "<<(t2-t1)<<" seconds\n";
-#endif
-
     return startCoarsePoint_;
 }
 
@@ -378,10 +363,6 @@ CalcCoarseFineSplitting( const Integer max_dependency,
 // helpfull sometimes, simply to import an extern splitting.
     ImportCFSplitting();
 #else
-
-#ifdef PROFILE_TOPOLOGY
-    const Double t1 = AMG_GET_REAL_TIME
-#endif
 
 #ifdef TOPOLOGY_AVOID_REDUNDANT_IMPORTANCE_CALCULATION
     // create array to prevent redundant evaluation of "the
@@ -445,12 +426,7 @@ CalcCoarseFineSplitting( const Integer max_dependency,
     }
 
 #ifdef TOPOLOGY_AVOID_REDUNDANT_IMPORTANCE_CALCULATION
-    DELETEARRAY( importanceKnown_ );
-#endif
-
-#ifdef PROFILE_TOPOLOGY
-    const Double t2 = AMG_GET_REAL_TIME
-    (*cla) << " AMG: coarsening: "<<(t2-t1)<<" seconds\n";
+    delete [] ( importanceKnown_ );  importanceKnown_  = NULL;
 #endif
 
 #endif // TOPOLOGY_IMPORT_CF_SPLITTING
@@ -479,10 +455,6 @@ void Topology<T>::CalcGalerkinGraphs( DependencyGraph<T>& graph_AHT,
                                       DependencyGraph<T>& graph_VT,
                                       const Integer stretch_factor ) const
 {
-
-#ifdef PROFILE_TOPOLOGY
-    Double t1 = AMG_GET_REAL_TIME
-#endif
 
     graph_AHT.Reset();
     graph_VT.Reset();
@@ -610,12 +582,6 @@ void Topology<T>::CalcGalerkinGraphs( DependencyGraph<T>& graph_AHT,
     delete [] CoNS_i;
     delete [] CoNS_k;
 
-#ifdef PROFILE_TOPOLOGY
-    Double t2 = AMG_GET_REAL_TIME
-    std::cout << "Topology::CalcGalerkinGraphs      : " << t2-t1
-              << " s (" << Size_h_ << " -> " << Size_H_ << ")" << std::endl;
-#endif
-
 }
 
 /**********************************************************/
@@ -737,7 +703,7 @@ GetCoarseImportance( Integer const i ) const
 
 #ifdef DEBUG_TOPOLOGY
     if( CoarseIndex_[i] >= COARSE ) {
-        Warning( __FILE__, __LINE__,
+        WARN( __FILE__, __LINE__,
                  "Called GetCoarseImportance on a C-point [%d]"
                  "-> returning 0\n   Expect wrong results in "
                  "non-debug mode.\n", i );
@@ -978,7 +944,7 @@ void Topology<T>::Reset()
     NhStartIndex_ = NULL;
     NhEdges_      = NULL;
     // delete array of C-F-Splitting
-    DELETEARRAY( CoarseIndex_ );
+    delete [] ( CoarseIndex_ );  CoarseIndex_  = NULL;
     CoarseIndex_ = NULL;
     
     startCoarsePoint_ = -1;
@@ -1047,7 +1013,7 @@ void Topology<T>::ExportCFSplitting()
 {
 
     if( CoarseIndex_ == NULL ) {
-        Warning( "Topology::ExportCFSplitting: array for "
+        WARN( "Topology::ExportCFSplitting: array for "
                  "splitting not yet present. No export.",
                  __FILE__, __LINE__ );
         return;
@@ -1070,7 +1036,7 @@ void Topology<T>::ExportCFSplitting()
         }
         fclose( file );
     } else {
-        Warning( __FILE__, __LINE__,
+        WARN( __FILE__, __LINE__,
                  "Topology::ExportCFSplitting: could not open "
                  "\"%s\"", filename );
     }

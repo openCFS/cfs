@@ -115,8 +115,8 @@ namespace CoupledField {
     // friend class ILDLKFactoriser;
 
     //! Constructor
-    ILDLPrecond( const StdMatrix &stdMat, OLAS_Params *myParams,
-                 OLAS_Report *myReport = NULL );
+    ILDLPrecond( const StdMatrix &stdMat, PtrParamNode solverNode,
+                 PtrParamNode olasInfo );
 
     //! Default Destructor
 
@@ -150,7 +150,7 @@ namespace CoupledField {
     //! is encoded as a value of the enumeration data type PrecondType.
     //! \return The return value depends on the speficic ILDL variant this
     //! object uses. The latter is stored in the myVariant_ attribute.
-    PrecondType GetPrecondType() const {
+    BasePrecond::PrecondType GetPrecondType() const {
       return myVariant_;
     }
 
@@ -164,7 +164,7 @@ namespace CoupledField {
     BaseILDLFactoriser<T> *factoriser_;
 
     //! Variant of ILDL factorisation
-    PrecondType myVariant_;
+    BasePrecond::PrecondType myVariant_;
 
     //! Keep track on status of factorisation
 
@@ -178,6 +178,9 @@ namespace CoupledField {
     //! This attribute stores the dimension of the problem, i.e. the order
     //! of the problem matrix
     UInt sysMatDim_;
+    
+    //! Flag, if logging is performed
+    bool logging_;
 
     //@{ \name Administration of matrix factors
     //! The matrix factor \f$U=L^T\f$ is stored in CRS storage format without

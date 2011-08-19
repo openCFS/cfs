@@ -6,7 +6,6 @@
 #include <fstream>
 #include <string>
 
-#include "DataInOut/WriteInfo.hh"
 #include "General/environment.hh"
 #include "pyraFE.hh"
 
@@ -80,6 +79,121 @@ namespace CoupledField
                         ( eta <= (threshold + tolerance));  
     }
   }
+  
+  void PyraFE::GetLocalIntPoints4Surface(const StdVector<UInt> & surfConnect,
+                                         const StdVector<UInt> & volConnect,
+                                         const Vector<Double> & surfIntPoint,
+                                         Vector<Double> & volIntPoint)
+  {
 
-     
+    // Try to find out, which vertices are in common with
+    // the surface element. Then calculate the product of all four
+    // and compare them
+    //                                   zeta
+    //             5                     ^  eta
+    //             +                     |/
+    //           // \                    0--> xi
+    //          // \ \                      
+    //         / / \  \                    
+    //        / /   \  \
+    //     2 +-/----\ ---+ 1
+    //      / /     \   /
+    //     / /      \  /     REFERENCE VOLUME ELEMENT
+    //    //        \ /
+    //  3+-----------+ 4
+    //        
+
+    // Check if surface element is triangle 
+    // or quadrilateral
+    if (surfConnect.GetSize() == 3 ||
+        surfConnect.GetSize() == 6) 
+    {
+      // ---- Triangle Surface ---
+      StdVector<Integer> commonIndex(3);
+      Integer found = 0;
+      Integer indexProduct = 0;
+      std::string errMsg;
+
+      volIntPoint.Resize(3);
+
+      // loop over surface connect
+      for (Integer iSurf=0; iSurf<3; iSurf++)
+        // loop over volume connect
+        for (Integer iVol=0; iVol<5; iVol++)
+          if (surfConnect[iSurf] == volConnect[iVol]) {
+            commonIndex[found++] = iVol+1;
+          }
+      indexProduct =  commonIndex[0] * commonIndex[1] * commonIndex[2];
+
+      // Now we have to consider the following:
+      // - The extension of the triangular element is from [0..1] in both
+      //   local directions xi and eta
+      // - The side length of the base-rectangular side is in each direction 
+      //   [-1..+1], so we need a mapping in 
+      // - The 
+
+      // General rule:
+
+
+      switch( indexProduct ) {
+        case 10:
+          // Surface[1,2,5] is common
+          volIntPoint[0] = - 2.0 * (surfIntPoint[0] - 0.5);
+          volIntPoint[1] =   1.0 - surfIntPoint[1];
+          volIntPoint[2] =   surfIntPoint[1];
+          break;
+        case 30:
+          // Surface[2,3,5] is common
+          volIntPoint[0] =   surfIntPoint[1] - 1.0;
+          volIntPoint[1] = - 2.0 * (surfIntPoint[0] - 0.5);
+          volIntPoint[2] =   surfIntPoint[1];
+          break;
+        case 60:
+          // Surface[3,4,5] is common
+          volIntPoint[0] =   2.0 * (surfIntPoint[0] - 0.5);
+          volIntPoint[1] =   surfIntPoint[1] - 1.0;
+          volIntPoint[2] =   surfIntPoint[1];
+          break;
+        case 20:
+          // Surface[4,1,5] is common
+          volIntPoint[0] =  1.0 - surfIntPoint[1];
+          volIntPoint[1] =  2.0 * (surfIntPoint[0] - 0.5);
+          volIntPoint[2] =  surfIntPoint[1];
+          break;
+        default:
+          EXCEPTION("PyraFE::GetLocalIntPoints4Surface: surface and volume element "
+              << "have not three nodes in common. Check your mesh.");
+      }
+    } else {
+      // ---- Quadrilateral Surface ---
+      StdVector<Integer> commonIndex(4);
+      Integer found = 0;
+      Integer indexSum = 0;
+      std::string errMsg;
+
+      volIntPoint.Resize(3);
+
+      // loop over surface connect
+      for (Integer iSurf=0; iSurf<4; iSurf++)
+        // loop over volume connect
+        for (Integer iVol=0; iVol<5; iVol++)
+          if (surfConnect[iSurf] == volConnect[iVol])
+          {
+            commonIndex[found++] = iVol+1;
+          }
+      indexSum =  commonIndex[0] + commonIndex[1] 
+                                               + commonIndex[2] + commonIndex[3];
+
+      // Safety check: Check, that the surface element is
+      // really located on the bottom of the pyramid.
+      if( indexSum != 10 ) {
+        EXCEPTION("PyraFE::GetLocalIntPoints4Surface: surface and volume element "
+            << "have not four nodes in common. Check your mesh.");
+      }
+
+      volIntPoint[0] = surfIntPoint[0];
+      volIntPoint[1] = surfIntPoint[2];
+      volIntPoint[2] = 0.0; // always on bottom
+    }
+  }  
 } // end of namespace

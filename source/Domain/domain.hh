@@ -9,9 +9,7 @@
 
 #include "Utils/StdVector.hh"
 #include "Driver/basedriver.hh"
-#ifndef INTEGLIB
 #include "Utils/mathParser/mathParser.hh"
-#endif
 
 namespace CoupledField
 {
@@ -19,6 +17,7 @@ namespace CoupledField
   //! Forward class declarations
   class BasePDE;
   class BaseForm;
+  class BaseMaterial;
   class StdPDE;
   class SinglePDE;
   class IterCoupledPDE;
@@ -36,7 +35,7 @@ namespace CoupledField
   class SimInput;
   class ResultHandler;
   class ParamNode;
-  class Elem;
+  struct Elem;
 
 
   //! This class defines the computational domain.
@@ -125,7 +124,11 @@ namespace CoupledField
 
     //! Get pointer to CoupledPDE
     DirectCoupledPDE* GetDirectCoupledPDE()
-    { return ptDirectCoupledPde_[0]; };
+    {  if (ptDirectCoupledPde_.GetSize() > 0)
+      return ptDirectCoupledPde_[0]; 
+    else 
+      return NULL;
+    }
 
     //! Get pointer to input-file
       //    FileType * GetInFile(){ return InFile_;}
@@ -153,6 +156,17 @@ namespace CoupledField
 //     * @return true if result was set,.false if there is no ersatz materal for the input params */
 //    bool GetErsatzMaterial(const Elem* elem, const BaseForm* form, double& result);
 //    
+//    /** Check for the existence of bi-material.
+//     * Use as (1-result)*BM with result from GetErsatzMaterial() and add it to the original result*OrgMat
+//     * @return NULL if no bi-material for this element/region/type or no optimization */
+//    BaseMaterial* GetErsatzBiMaterial(const Elem* elem, const MaterialClass mc);
+//
+//    /** In case we do pamping, the contribution to the damping matrix is set.
+//     * Pamping is additional complex mass to the damping matrix for intermediate material.
+//     * @param elemMat not touch if not applied, otherwise set (not added)
+//     * @return if the matrix was set */
+//    bool GetErsatzMaterialPamping(const Elem* elem, const BaseForm* form, Matrix<double>& elemMat);
+//
 //    /** This is set by optimization which holds the data (in a derved form). It
 //     * is also reset here by the optimization destructor.
 //     * @param ersatzMaterial pointer to a data set. NULL to reset, such that ~Domain() doesn't delete it.
@@ -165,29 +179,30 @@ namespace CoupledField
 //     /** E.g. the MechPDE needs it in CalcResuls() to write pseudo densities. 
 //      * @return  NULL but an exception if not set and not silent*/
 //     DesignSpace* GetErsatzMaterial(bool throw_exception = true); 
-//      
-//
-//     /** Reads the 'loadErsatzMaterial' node. Check before that it exists.
-//      * Is called from optimization if used concurrently. */ 
-//     void ReadErsatzMaterial(ParamNode* pn);
 //     
 //     /** Returns true, if optimization does provide a complete tensor */
 //     bool HasErsatzMaterialTensor();
+//     
+//     /** Returns true, if optimization does provide a mass value */
+//     bool HasErsatzMaterialMass();
+//     
+//     /** Return true, if optimization does provide damping parameters */
+//     bool HasErsatzMaterialDamping();
 //     
 //     /** Gets the Material Tensor for the given element in the current iteration, or its derivative */
 ////     void GetErsatzMaterialTensor(Matrix<double>& t, SubTensorType subTensor, const Elem* elem, DesignElement::Type direction);
 //     
 //    /** Returns the optimization
 //     *  @return null if there is none */
-//    Optimization* GetOptimization() { return optimization_; };
+    Optimization* GetOptimization() { 
+      // Note: due to refactoring, this method will always return FALSE!
+      return optimization_; };
 //    
 //    /** Sets the optimization from outside, like the driver */
 //    void SetOptimization(Optimization* optimization) { this->optimization_ = optimization; };  
 
-#ifndef INTEGLIB
     //! Return Math Parser object for evaluating math expressions
     MathParser * GetMathParser() { return &mathParser_; }
-#endif
 
     /** The post init does more advancec stuff like reading the ersatz material.
      * For this purpose the constructor needs to be finished. 
@@ -235,6 +250,9 @@ namespace CoupledField
 
     //! Initialize local coordinate systems as read in from the parameter file
     void CreateCoordinateSystems();
+    
+    //! Register variables of in element <variableList/>
+    void RegisterVariables();
     //@}
   
     // ======================================================
@@ -310,10 +328,8 @@ namespace CoupledField
      * to optimization data */    
     DesignSpace* ersatzMaterial;
 
-#ifndef INTEGLIB
     //! Mathematic parser object
     MathParser mathParser_;
-#endif
 
     //! dimension of the problem
     UInt dim_;

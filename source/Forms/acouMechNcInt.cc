@@ -71,7 +71,7 @@ namespace CoupledField {
                             << " with coordinates \n"
                             << ptCoord_
                             << " belonging to region "
-                            << ptGrid->RegionIdToName(actNCElem->regionId);
+                            << ptGrid->GetRegion().ToString(actNCElem->regionId);
 
     // is our interface coplanar?
     isCoplanar = ptGrid->IsNcInterfaceCoplanar(actElem_->regionId);
@@ -210,10 +210,9 @@ namespace CoupledField {
       try {
         elemMaster->ptElem->GetShFnc(shpFncMaster, point, elemMaster);
       } catch (Exception& ex) {
-        (*warning) << ex.GetMsg() << "\n NCElem: " << actNCElem->elemNum
-          << "\tmaster: " << elemMaster->elemNum
-          << "\tslave: " << elemSlave->elemNum;
-        Warning(__FILE__, __LINE__);
+        WARN(ex.GetMsg() << "\n NCElem: " << actNCElem->elemNum
+             << "\tmaster: " << elemMaster->elemNum
+             << "\tslave: " << elemSlave->elemNum);
       }
 
       for (j = 0; j < dim - 1; ++j)
@@ -221,10 +220,9 @@ namespace CoupledField {
       try {
         elemSlave->ptElem->GetShFnc(shpFncSlave, point, elemSlave);
       } catch (Exception& ex) {
-        (*warning) << ex.GetMsg() << "\n NCElem: " << actNCElem->elemNum
-          << "\tmaster: " << elemMaster->elemNum
-          << "\tslave: " << elemSlave->elemNum;
-        Warning(__FILE__, __LINE__);
+        WARN(ex.GetMsg() << "\n NCElem: " << actNCElem->elemNum
+             << "\tmaster: " << elemMaster->elemNum
+             << "\tslave: " << elemSlave->elemNum);
       }
 
       // calculate normal mass matrix

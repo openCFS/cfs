@@ -41,6 +41,10 @@ namespace CoupledField {
     return entities_;
   }
   
+  void BaseFeFunction::SetFctId(FeFctIdType id ) {
+    fctId_ = id;
+  }
+  
   //! Set the PDE pointer of the function
   void BaseFeFunction::SetPDE(shared_ptr<SinglePDE> pde){
     pde_ = pde;
@@ -126,7 +130,7 @@ namespace CoupledField {
     Matrix<T> & temp = dynamic_cast<Matrix<T>&>(elemSol);
     UInt dofsPerUnknown = result_->dofNames.GetSize();
     StdVector<Integer> eqns;
-    elemSol.Resize(feSpace_->GetNumFunctions(it), dofsPerUnknown);
+    temp.Resize(feSpace_->GetNumFunctions(it), dofsPerUnknown);
     for(UInt iDof = 0 ; iDof < dofsPerUnknown ; iDof++){
       feSpace_->GetEqns(eqns, it,iDof);
       for(UInt iEqn = 0;iEqn < eqns.GetSize() ; iEqn++){

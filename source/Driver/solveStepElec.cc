@@ -10,9 +10,9 @@
 #include "Utils/preisach.hh"
 #include "assemble.hh"
 #include "Forms/linearForm.hh"
-#include "Forms/gradfieldop.hh"
 #include "Utils/nodestoresol.hh"
 #include "PDE/StdPDE.hh"
+#include "DataInOut/ResultCache.hh"
 
 #include "OLAS/algsys/basesystem.hh"
 
@@ -42,21 +42,25 @@ namespace CoupledField {
 
   }
 
+  void SolveStepElec::PreStepTrans() {
+    ResultCache::SetStepValue(actTime_);
+    PreStepStatic();
+  }
 
 
   // time is used for a series of static calculations
   // don't get confused with REAL transient simulations!
-  void SolveStepElec::SolveStepStatic(InfoNode* analysis_id) {
+  void SolveStepElec::SolveStepStatic(PtrParamNode analysis_id, AdjointParameters* adjointParams) {
     if ( isHyst_ ) 
       StepStaticNonLinEpsDiff(analysis_id);
     else 
-      StepStaticLin(analysis_id);
+      StepStaticLin(analysis_id, adjointParams);
   }
 
 
-  void SolveStepElec::StepStaticNonLinEpsDiff(InfoNode* analysis_base) {
+  void SolveStepElec::StepStaticNonLinEpsDiff(PtrParamNode analysis_base) {
     REFACTOR;
-
+//
 //    bool performOneMoreStep;
 //    UInt iterationCounter=0;
 //  
@@ -91,7 +95,7 @@ namespace CoupledField {
 //      else 
 //        std::cout << "Iter:  " << iterationCounter << std::endl;
 //
-//      InfoNode* analysis_id = BaseDriver::CreateAnalysisIdChild(analysis_base, "nonLin", iterationCounter);
+//      PtrParamNode analysis_id = BaseDriver::CreateAnalysisIdChild(analysis_base, "nonLin", iterationCounter);
 //      
 //      // set solution of previous iteration
 //      if (iterationCounter == 1 ) {
@@ -152,10 +156,8 @@ namespace CoupledField {
 //    
 //      // output of norms and data
 //      nonLinLogging_ = true;
-//      if ( nonLinLogging_ == true ) {
-//        Info->WriteNonLinIter(pdename_, iterationCounter, residualNorm,
-//                              incrementalErr);
-//      }
+//      if ( nonLinLogging_ == true )
+//        WriteNonLinIterToInfoXML(pdename_, iterationCounter, residualNorm, incrementalErr);
 //
 //      //    std::cout << "ResNorm=" << residualNorm << "  incrNorm=" 
 //      //        << incrementalErr << std::endl;
@@ -180,15 +182,13 @@ namespace CoupledField {
   void SolveStepElec::SetPreviousVals4Hyst() {
   
     REFACTOR;
-    
 //    //we assume, that the actual solution is stored in sol_!
 //    NodeStoreSol<Double> * solhelp = 
 //      dynamic_cast<NodeStoreSol<Double>*>(sol_);
 //
 //    GradientFieldOp<Double> * FieldOp = 
 //      new GradientFieldOp<Double>(ptgrid_, &PDE_, eqnMap_,
-//                                  *solhelp, ELEC_POTENTIAL, 
-//                                  results_[0], isaxi_);
+//                                  *solhelp, results_[0]->fctType, isaxi_);
 //
 //    Vector<Double> LCoord, Efield;
 //    Double Ecomp;

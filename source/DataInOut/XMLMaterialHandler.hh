@@ -33,45 +33,49 @@ namespace CoupledField {
   private:
 
     //! The param node contains the material xml file content
-    ParamNode* parser_;
+    PtrParamNode parser_;
 
     //! Reads piezo material.
     //! \param material Material object to be filled with data
-    void ReadPiezo(BaseMaterial *material, ParamNode* pn);
+    void ReadPiezo(BaseMaterial *material, PtrParamNode pn);
 
     //! Reads mechanical material.
     //! \param material Material object to be filled with data
-    void ReadMechanic(BaseMaterial *material, ParamNode* pn);
+    void ReadMechanic(BaseMaterial *material, PtrParamNode pn);
 
     //! Reads acoustic material.
     //! \param material Material object to be filled with data
-    void ReadAcoustic(BaseMaterial *material, ParamNode* pn);
+    void ReadAcoustic(BaseMaterial *material, PtrParamNode pn);
 
     //! Reads electric material.
     //! \param material Material object to be filled with data
-    void ReadElectrostatic(BaseMaterial *material, ParamNode* pn); 
+    void ReadElectrostatic(BaseMaterial *material, PtrParamNode pn); 
 
     //! Reads magnetic material.
     //! \param material Material object to be filled with data
-    void ReadMagnetic(BaseMaterial *material, ParamNode* pn);
+    void ReadMagnetic(BaseMaterial *material, PtrParamNode pn);
 
     //! Reads thermic material.
     //! \param material Material object to be filled with data
-    void ReadThermic(BaseMaterial *material, ParamNode* pn);
+    void ReadThermic(BaseMaterial *material, PtrParamNode pn);
 
     //! Reads flow material.
     //! \param material Material object to be filled with data
-    void ReadFlow(BaseMaterial *material, ParamNode* pn);
+    void ReadFlow(BaseMaterial *material, PtrParamNode pn);
     //! Reads thermoelastic material.
     //! \param material Material object to be filled with data
     //! \param matName Name of the material to be read
-    void ReadThermoelastic(BaseMaterial *material, ParamNode* pn);
-
+    void ReadThermoelastic(BaseMaterial *material, PtrParamNode pn);
 
     //! Reads pyroelectric material.
     //! \param material Material object to be filled with data
     //! \param matName Name of the material to be read
-    void ReadPyroelectric(BaseMaterial *material, ParamNode* pn);
+    void ReadPyroelectric(BaseMaterial *material, PtrParamNode pn);
+    
+    //! Reads magnetostrictive material
+    //! \param material Material object to be filled with data
+    //! \param matName Name of the material to be read
+    void ReadMagStrict(BaseMaterial *material, PtrParamNode pn);
 
   };
   

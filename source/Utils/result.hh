@@ -8,7 +8,7 @@
 #include "Domain/entityList.hh"
 #include "General/environment.hh"
 #include "MatVec/vector.hh"
-#include "DataInOut/ParamHandling/InfoNode.hh"
+#include "DataInOut/ParamHandling/ParamNode.hh"
 
 #include "MatVec/basematrix.hh"
 #include "Domain/resultInfo.hh"
@@ -53,14 +53,14 @@ namespace CoupledField {
     /** Gives back some information for debug output */
     std::string ToString() const;
 
-    /** Only some special region (integral) results have a InfoNode to
+    /** Only some special region (integral) results have a ParamNode to
      * write the data also to info.xml
      * @return often NULL */
-    InfoNode* GetInfoNode() { return infoNode_; }
+    PtrParamNode GetInfoNode() { return infoNode_; }
 
-    /** To leave the constructor clean, set an InfoNode from external if
+    /** To leave the constructor clean, set an ParamNode from external if
      * the result is of type region integral or such like */
-    void SetInfoNode(InfoNode* in) { this->infoNode_ = in; }
+    void SetInfoNode(PtrParamNode in) { this->infoNode_ = in; }
 
     /** Dumps a result list */
     static void Dump(StdVector<shared_ptr<BaseResult> >& resultList);
@@ -73,9 +73,9 @@ namespace CoupledField {
     //! Entitylist the result is associated with
     shared_ptr<EntityList> entities_;
 
-    /** Some results, like region results with a single scalar, get here the InfoNode
+    /** Some results, like region results with a single scalar, get here the ParamNode
      * to write the data at the right position in info.xml */
-    InfoNode* infoNode_;
+    PtrParamNode infoNode_;
   };
 
 

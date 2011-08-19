@@ -29,7 +29,8 @@ namespace CoupledField {
                                     StdPDE * aptStdPDE,
                                     shared_ptr<ResultInfo> aresult,
                                     StdVector<RegionIdType> asubdomainList,
-                                    std::map<RegionIdType,DampingType> adampingList) 
+                                    std::map<RegionIdType,DampingType> adampingList,
+                                    PtrParamNode systemNode) 
     :TimeStepping( algebraicsystem ){
 	
   
@@ -74,7 +75,12 @@ namespace CoupledField {
     Info->PrintF( pdename_, "NewmarkFracDamp: Using defaults for alpha, \
 beta and gamma!\n" );
 
- 
+    if ( systemNode->Has("timeSteppingParameters") ) {
+      PtrParamNode myParam = systemNode->Get("timeSteppingParameters");
+      myParam->GetValue("omitInitialSol", omitFirstPredictor_, ParamNode::PASS);
+    }
+
+
   }
 
   NewmarkFracDamp::~NewmarkFracDamp() {
@@ -89,22 +95,24 @@ beta and gamma!\n" );
     rhsSize_ = rhsSize;
     dt_ = dt;
     CalcParameters(dt_);
+    Vector<Double> dummyVec;
+    dummyVec.Resize(rhsSize_);
+    dummyVec.Init();
 
     matrix_factors_[STIFFNESS] = 1.0;
-    matrix_factors_[DAMPING] = 1.0*a4_; // needed for thermoviscous damping
+    matrix_factors_[DAMPING] = 1.0*sol_timeStepCoeff_[COEFFRHS]; // needed for thermoviscous damping
     matrix_factors_[CONVECTION] = 0.0;
-    matrix_factors_[MASS] = 1.0*a2_;
+    matrix_factors_[MASS] = 1.0*sol_timeStepCoeff_[CORRECTOR_1];
 
 
     // get the memory
-    if( !isDeriv1Set_ ) {
-      solderiv1_.Resize(rhsSize_);  
-      solderiv1_.Init();
+    if ( !is_Deriv_set(FIRST_DERIV) )
+    {
+      solDeriv_vec_[FIRST_DERIV] = dummyVec;
     }
-
-    if( !isDeriv2Set_ ) {
-      solderiv2_.Resize(rhsSize_);  
-      solderiv2_.Init();
+    if ( !is_Deriv_set(SECOND_DERIV) )
+    {
+      solDeriv_vec_[SECOND_DERIV] = dummyVec;
     }
   
 
@@ -142,8 +150,14 @@ beta and gamma!\n" );
         numTrueValues_++;
     }
 
-    solpred_ = solold + solderiv1_*dt_ + solderiv2_*a0_;
-    solderiv1pred_ = solderiv1_ + solderiv2_*a1_;
+    if( !omitFirstPredictor_) {
+      solpred_ = solold + solDeriv_vec_[FIRST_DERIV] * dt_ \
+          + solDeriv_vec_[SECOND_DERIV] * sol_timeStepCoeff_[PREDICTOR_1];
+      solderiv1pred_ = solDeriv_vec_[FIRST_DERIV] \
+          + solDeriv_vec_[SECOND_DERIV] * sol_timeStepCoeff_[PREDICTOR_2];
+    } else {
+      omitFirstPredictor_ = false;
+    }
   }
 
 
@@ -153,7 +167,7 @@ beta and gamma!\n" );
     // mass part
     Vector<Double> coeffMass;
 
-    coeffMass = solpred_*a2_;
+    coeffMass = solpred_ * sol_timeStepCoeff_[CORRECTOR_1];
     algsys_->UpdateRHS(MASS,coeffMass);
 
     // damping part
@@ -173,7 +187,7 @@ beta and gamma!\n" );
                 dampingList_[subdoms_[actSD]] == RAYLEIGH ) {
 		
         Vector<Double> coeffDamp;
-        coeffDamp = -solderiv1pred_ + solpred_*a4_;
+        coeffDamp = -solderiv1pred_ + solpred_*sol_timeStepCoeff_[COEFFRHS];
         algsys_->UpdateRHS(DAMPING,coeffDamp);
       }
       else {
@@ -186,7 +200,7 @@ beta and gamma!\n" );
 
         // factor: pre factor in Newmark timestepping scheme
         //         times pre factor of damping term
-        factor = a2_ * density * 2.0 * alpha0 / c0 / sin((y-1.0)*PI/2.0);
+        factor = sol_timeStepCoeff_[CORRECTOR_1] * density * 2.0 * alpha0 / c0 / sin((y-1.0)*PI/2.0);
 
         // coeff_: weight factors in BDF
         if ( dampingList_[subdoms_[actSD]] == FRACTIONAL_GL ) {
@@ -265,8 +279,8 @@ beta and gamma!\n" );
   void NewmarkFracDamp::Corrector(Vector<Double>& solnew)
   {
 
-    solderiv2_ = (solnew - solpred_) * a2_;
-    solderiv1_ = solderiv1pred_ + solderiv2_*a3_;
+    solDeriv_vec_[SECOND_DERIV] = (solnew - solpred_) * sol_timeStepCoeff_[CORRECTOR_1];
+    solDeriv_vec_[FIRST_DERIV] = solderiv1pred_ + solDeriv_vec_[SECOND_DERIV]*sol_timeStepCoeff_[CORRECTOR_2];
   }
 
 
@@ -331,15 +345,15 @@ beta and gamma!\n" );
   {
 
     //for predictors
-    a0_ = 0.5*(1-2.0*beta_)*dt_*dt_;
-    a1_ = (1-gamma_)*dt_;
+    sol_timeStepCoeff_[PREDICTOR_1] = 0.5*(1-2.0*beta_)*dt_*dt_;
+    sol_timeStepCoeff_[PREDICTOR_2] = (1-gamma_)*dt_;
 
     //for correctors, matrices
-    a2_ = 1.0/(beta_*dt_*dt_);
-    a3_ = gamma_*dt_;
+    sol_timeStepCoeff_[CORRECTOR_1] = 1.0/(beta_*dt_*dt_);
+    sol_timeStepCoeff_[CORRECTOR_2] = gamma_*dt_;
 
     //for RHS, matrices
-    a4_ = gamma_ / (beta_*dt_);
+    sol_timeStepCoeff_[COEFFRHS] = gamma_ / (beta_*dt_);
   }
 
 

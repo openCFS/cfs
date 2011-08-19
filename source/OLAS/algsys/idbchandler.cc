@@ -226,15 +226,15 @@ namespace CoupledField {
     delete vecIDBC_;
 
     // Delete equation number splitting arrays
-    DELETEARRAY( numFreeDofs_  );
-    DELETEARRAY( numFixedDofs_ );
+    delete [] ( numFreeDofs_  );
+    delete [] ( numFixedDofs_ );
 
     // Delete internal FE matrices
     mySetIterator it;
     for ( it = myMatrices_.begin(); it != myMatrices_.end(); it++ ) {
       delete auxMat_[*it];
     }
-    DELETEARRAY( auxMat_ );
+    delete [] ( auxMat_ );
   }
 
 
@@ -276,7 +276,8 @@ namespace CoupledField {
 
     // CASE 2: SBM_Vector
     else {
-      PTRCAST( vecIDBC_, SBM_Vector, sbmVec );
+      SBM_Vector* sbmVec = dynamic_cast<SBM_Vector*>(vecIDBC_);
+      if(sbmVec == NULL) EXCEPTION("Invalid cast attempt!");
       sbmVec->GetPointer(pdeID)->SetEntry( eqnNo - numFreeDofs_[pdeID] - 1,
                                            val );
     }
@@ -315,10 +316,9 @@ namespace CoupledField {
 
 #ifdef DEBUG_IDBCHANDLER
       if ( stdMat == NULL ) {
-        (*error) << "IDBC_Handler::SetWeightFixedToFree: Invalid access "
+        EXCEPTION("IDBC_Handler::SetWeightFixedToFree: Invalid access "
                  << "to non-existant sub-matrix (" << pdeID1
-                 << ", " << pdeID2;
-        Error( __FILE__, __LINE__ );
+                 << ", " << pdeID2);
       }
 #endif
     }
@@ -360,10 +360,9 @@ namespace CoupledField {
 
 #ifdef DEBUG_IDBCHANDLER
       if ( stdMat == NULL ) {
-        (*error) << "IDBC_Handler::SetWeightFixedToFree: Invalid access "
+        EXCEPTION("IDBC_Handler::SetWeightFixedToFree: Invalid access "
                  << "to non-existant sub-matrix (" << pdeID1
-                 << ", " << pdeID2;
-        Error( __FILE__, __LINE__ );
+                 << ", " << pdeID2);
       }
 #endif
     }
@@ -403,10 +402,9 @@ namespace CoupledField {
 
 #ifdef DEBUG_IDBCHANDLER
       if ( stdMat == NULL ) {
-        (*error) << "IDBC_Handler::GetWeightFixedToFree: Invalid access "
+        EXCEPTION("IDBC_Handler::GetWeightFixedToFree: Invalid access "
                  << "to non-existant sub-matrix (" << pdeID1
-                 << ", " << pdeID2;
-        Error( __FILE__, __LINE__ );
+                 << ", " << pdeID2);
       }
 #endif
     }

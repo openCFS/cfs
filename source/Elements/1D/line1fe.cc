@@ -43,8 +43,8 @@ namespace CoupledField
 
     LCornerCoords_.Resize(Dim_,NumNodes_);
 
-    LCornerCoords_[0][0] =   1;
-    LCornerCoords_[0][1] =  -1;
+    LCornerCoords_[0][0] = -1;
+    LCornerCoords_[0][1] = 1;
 
   }
 
@@ -182,38 +182,42 @@ namespace CoupledField
   }
 
   void Line1FE::Global2LocalCoords(Matrix<Double> & localCoords,
-                                     const Matrix<Double> & globalCoords,
-                                     const Matrix<Double> & coordMat)
+                                   const Matrix<Double> & globalCoords,
+                                   const Matrix<Double> & coordMat)
   {
-    Vector<Double> c0, c1; // endpoint-coordinates
-    Vector<Double> diff0, diff1;
-    Vector<Double> dummy;
+    Vector<Double> c0; // endpoint-coordinates
+    Vector<Double> diffVecToPoint, diffVecWholeElem;
     Double s;
-    Double dist, dist1, fac;
+    Double lengthOfWholeElem, lengthToPoint, fac;
     UInt globDim = globalCoords.GetNumRows();
+
+    // x-----------o-------------x
+    // c0          point         coordMat[i][1]
+    //
+    //  ------------------------>
+    //  diffVecWholeElem
+    //
+    //  ---------->
+    //  diffVecToPoint
+    //
+    //  lengthOfWholeElem = length(diffVecWholeElem)
+    //  lengthToPoint = length(diffVecToPoint)
+    //  fac = 1 / lengthOfWholeElem
+    //  s = lengthToPoint / lengthWholeElem
 
     // Get coordinates of the endpoints
     c0.Resize(globDim);
-    //    c1.Resize(Dim_);
-    //    dummy.Resize(Dim_);
-    diff0.Resize(globDim);
-    diff1.Resize(globDim);
-
-    //    std::cout << "SIMON> Line1FE->Global2Local(): coordMat " << coordMat << std::endl;
-    //    std::cout << "SIMON> Line1FE->Global2Local(): globalCoords " << globalCoords << std::endl;
+    diffVecToPoint.Resize(globDim);
+    diffVecWholeElem.Resize(globDim);
 
     for(UInt i = 0; i < globDim; i++)
     {
         c0[i] = coordMat[i][0];
-        //        c1[i] = coordMat[i][1];
-        diff1[i] = coordMat[i][1] - c0[i];
+        diffVecWholeElem[i] = coordMat[i][1] - c0[i];
     }
 
-
-    //    diff1 = c1 - c0;
-    dist = diff1.NormL2();
-    fac = 1.0 / dist;
-    diff1 *= fac;
+    lengthOfWholeElem = diffVecWholeElem.NormL2();
+    fac = 1.0 / lengthOfWholeElem;
 
     localCoords.Resize(Dim_, globalCoords.GetNumCols());
 
@@ -221,20 +225,15 @@ namespace CoupledField
     {
         for(UInt j = 0; j < globDim; j++)
         {
-            diff0[j] = globalCoords[j][i] - c0[j];
+            diffVecToPoint[j] = globalCoords[j][i] - c0[j];
         }
-        //        diff0 = globalCoords[i] - c0;
-        dist1 = diff0.NormL2();
-        diff0.Inner(diff1, s);
-        s *= fac;
 
-        //        std::cout << "SIMON> Line1FE->Global2Local(): s " << s << std::endl;
+        lengthToPoint = diffVecToPoint.NormL2();
+        diffVecToPoint.Inner(diffVecWholeElem, s);
+        s = fac * lengthToPoint;
 
-        for(UInt j = 0; j < Dim_; j++)
-        {
-            localCoords[j][i] = LCornerCoords_[j][0] * s + LCornerCoords_[j][1] * (1-s);
-            //            std::cout << "SIMON> Line1FE->Global2Local(): localcoord " <<localCoords[j][i]<< std::endl;
-        }
+        localCoords[0][i] = LCornerCoords_[0][0] + 
+                            (LCornerCoords_[0][1] - LCornerCoords_[0][0]) * s;
     }
   }
 

@@ -8,12 +8,14 @@
 #include "Utils/StdVector.hh"
 #include "General/environment.hh"
 #include "Utils/tools.hh"
+#include "DataInOut/ParamHandling/ParamNode.hh"
 
 namespace CoupledField
 {
 
   class BaseDriver;
   class InfoNode;
+  class AdjointParameters;
 
   //! Base class for solution of a single step
 
@@ -35,7 +37,7 @@ namespace CoupledField
      * @param analysis_id references the "base" analysis step. 
      *        is the the info/OLAS/process/step element and required the attribute
      *        "analysis_id" to be set!. In the non-lin case subelements are created. */
-    virtual void SolveStepStatic(InfoNode* analysis_id) = 0;
+    virtual void SolveStepStatic(PtrParamNode analysis_id, AdjointParameters* adjointParams = NULL) = 0;
 
     //! routine for acttions after the SolveStep-method
     virtual void PostStepStatic()  = 0;
@@ -50,7 +52,7 @@ namespace CoupledField
 
     /** base method for solving one transient step
      * @param analysis_id @see SolveStepStatic() */
-    virtual void SolveStepTrans(InfoNode* analysis_id) = 0;
+    virtual void SolveStepTrans(PtrParamNode analysis_id, AdjointParameters* adjointParams = NULL) = 0;
 
     //! base method for solving one transient step with slicing method
     virtual void SolveStepTrans4Slice()
@@ -65,7 +67,7 @@ namespace CoupledField
 
     /** base method for solving one harmonic step
      * @param analysis_id @see SolveStepStatic() */
-    virtual void SolveStepHarmonic(InfoNode* analysis_id) = 0;
+    virtual void SolveStepHarmonic(PtrParamNode analysis_id) = 0;
 
     //!  routine for actions after the SolveStep-method
     virtual void PostStepHarmonic() = 0;
@@ -149,6 +151,10 @@ namespace CoupledField
       numTimeStep_ = numTimeStep;
     };
     
+    virtual void ReInit(){
+      EXCEPTION("NOT IMPLEMENTED HERE");
+    };
+    
   protected:
 
     //! Constructor
@@ -156,9 +162,6 @@ namespace CoupledField
 
     BaseSolveStep(BaseDriver* driver);
 
-    // used to aquire analysis_id if not provided. TODO: check if realy needed!
-    BaseDriver* driver;
-    
     //! Actual time / frequency step
     UInt actStep_;
 

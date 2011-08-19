@@ -1,71 +1,60 @@
 #-------------------------------------------------------------------------------
-# Collect output of compiler version command to determine compiler type and
-# version information. 
-#-------------------------------------------------------------------------------
-EXEC_PROGRAM("${CMAKE_CXX_COMPILER} --version | head -1"
-  ARGS
-  OUTPUT_VARIABLE CFS_CXX_COMPILER_INFO
-  RETURN_VALUE RETVAL)
-
-EXEC_PROGRAM("${CMAKE_Fortran_COMPILER} --version | head -1"
-  ARGS
-  OUTPUT_VARIABLE CFS_FORTRAN_COMPILER_INFO
-  RETURN_VALUE RETVAL)
-
-#-------------------------------------------------------------------------------
 # Determine what equivalent GNU version the compiler has, to check if it is
 # compatible with the GNU C++ compiler on the system PATH.
 #-------------------------------------------------------------------------------
-SET(TEST_FILE "${CFS_BINARY_DIR}/include/test_gnu_version.hh")
-FILE(WRITE "${TEST_FILE}" "<CFS_GNU_VER>__GNUC__.__GNUC_MINOR__</CFS_GNU_VER>")
-EXEC_PROGRAM("${CMAKE_CXX_COMPILER} -E ${TEST_FILE}"
+EXEC_PROGRAM("${PERL} ${CFS_SOURCE_DIR}/share/scripts/identify_compiler.pl g++ ${CFS_SOURCE_DIR}/share/scripts/IdentifyCXXCompiler.cpp cmake > ${CFS_BINARY_DIR}/CMakeFiles/out.cmake"
   ARGS
-  OUTPUT_VARIABLE CFS_CXX_COMPILER_GNU_VER
+  OUTPUT_VARIABLE CC_COMPILER_INFO
   RETURN_VALUE RETVAL)
-STRING(REGEX MATCH
-  "<CFS_GNU_VER>.*</CFS_GNU_VER>"
-  CFS_CXX_COMPILER_GNU_VER "${CFS_CXX_COMPILER_GNU_VER}")
-STRING(REPLACE " " "" CFS_CXX_COMPILER_GNU_VER
-  "${CFS_CXX_COMPILER_GNU_VER}")
-STRING(REGEX MATCH "[0-9]+\\.[0-9]"
-  CFS_CXX_COMPILER_GNU_VER "${CFS_CXX_COMPILER_GNU_VER}")
 
-EXEC_PROGRAM("g++ -E ${TEST_FILE}"
+INCLUDE(${CFS_BINARY_DIR}/CMakeFiles/out.cmake)
+
+SET(GNU_CXX_COMPILER_VER "${CXX_VERSION}")
+
+#-------------------------------------------------------------------------------
+# Collect output of compiler version command to determine compiler type and
+# version information. 
+#-------------------------------------------------------------------------------
+# EXEC_PROGRAM("${PERL} ${CFS_DEPS_ROOT}/utils/perl/identify_compiler.pl ${CMAKE_C_COMPILER} ${CFS_DEPS_ROOT}/utils/compiler/IdentifyCCompiler.c cmake > ${CFS_BINARY_DIR}/CMakeFiles/out.cmake"
+#   ARGS
+#   OUTPUT_VARIABLE CC_COMPILER_INFO
+#   RETURN_VALUE RETVAL)
+
+# INCLUDE(${CFS_BINARY_DIR}/CMakeFiles/out.cmake)
+
+
+EXEC_PROGRAM("${PERL} ${CFS_SOURCE_DIR}/share/scripts/identify_compiler.pl ${CMAKE_CXX_COMPILER} ${CFS_SOURCE_DIR}/share/scripts/IdentifyCXXCompiler.cpp cmake > ${CFS_BINARY_DIR}/CMakeFiles/out.cmake"
   ARGS
-  OUTPUT_VARIABLE GNU_CXX_COMPILER_VER
+  OUTPUT_VARIABLE CXX_COMPILER_INFO
   RETURN_VALUE RETVAL)
-STRING(REGEX MATCH
-  "<CFS_GNU_VER>.*</CFS_GNU_VER>"
-  GNU_CXX_COMPILER_VER "${GNU_CXX_COMPILER_VER}")
-STRING(REPLACE " " "" GNU_CXX_COMPILER_VER
-  "${GNU_CXX_COMPILER_VER}")
-STRING(REGEX MATCH "[0-9]+\\.[0-9]"
-  GNU_CXX_COMPILER_VER "${GNU_CXX_COMPILER_VER}")
 
-# MESSAGE("CFS_CXX_COMPILER_GNU_VER: ${CFS_CXX_COMPILER_GNU_VER}")
-# MESSAGE("GNU_CXX_COMPILER_VER: ${GNU_CXX_COMPILER_VER}")
+INCLUDE(${CFS_BINARY_DIR}/CMakeFiles/out.cmake)
+#-------------------------------------------------------------------------------
+# Set the C++ compiler name and compiler version
+#-------------------------------------------------------------------------------
+SET(CFS_CXX_COMPILER_NAME ${CXX_ID})
+SET(CFS_CXX_COMPILER_VER "${CXX_VERSION}")
+SET(CFS_CXX_COMPILER_GNU_VER "${CXX_GCC_VERSION}")
 
+EXEC_PROGRAM("${PERL} ${CFS_SOURCE_DIR}/share/scripts/identify_compiler.pl ${CMAKE_Fortran_COMPILER} ${CFS_SOURCE_DIR}/share/scripts/IdentifyFortranCompiler.F90 cmake > ${CFS_BINARY_DIR}/CMakeFiles/out.cmake"
+  ARGS
+  OUTPUT_VARIABLE FORTRAN_COMPILER_INFO
+  RETURN_VALUE RETVAL)
 
-# MESSAGE("C++ info: ${CFS_CXX_COMPILER_INFO}")
-# MESSAGE("FORTRAN info: ${CFS_FORTRAN_COMPILER_INFO}")
+INCLUDE(${CFS_BINARY_DIR}/CMakeFiles/out.cmake)
+
+#-------------------------------------------------------------------------------
+# Set the Fortran compiler name and compiler version
+#-------------------------------------------------------------------------------
+SET(CFS_FORTRAN_COMPILER_NAME ${FC_ID})
+SET(CFS_FORTRAN_COMPILER_VER "${FC_VERSION}")
 
 #-------------------------------------------------------------------------------
 # Check if we are using the GNU C++ compiler
 #-------------------------------------------------------------------------------
-IF(CMAKE_COMPILER_IS_GNUCXX)
+IF(CFS_CXX_COMPILER_NAME STREQUAL "GCC")
 
   # MESSAGE("We are using the GNU C++ compiler. ${CMAKE_CXX_COMPILER}")
-
-  #-----------------------------------------------------------------------------
-  # Set the compiler name and compiler version
-  #-----------------------------------------------------------------------------
-  SET(CFS_CXX_COMPILER_NAME "GCC")
-  SET(CFS_CXX_COMPILER_VER "${CFS_CXX_COMPILER_INFO}")
-
-  STRING(REGEX MATCH 
-    "[0-9]+\\.[0-9]+\\.[0-9]+"
-    CFS_CXX_COMPILER_VER
-    ${CFS_CXX_COMPILER_VER})
 
   #-----------------------------------------------------------------------------
   # Check if compiler has OpenMP support. GCC >= 4.2 has.
@@ -82,28 +71,21 @@ IF(CMAKE_COMPILER_IS_GNUCXX)
   # Determine compiler/linker flags according to build type
   #-----------------------------------------------------------------------------
   IF(DEBUG)
-    #SET(CFS_C_FLAGS "-std=c++98 -Wall -pedantic -fmessage-length=0 ${CFS_C_FLAGS}")
-    SET(CFS_C_FLAGS "-std=c++98  -fmessage-length=0 ${CFS_C_FLAGS}")
+    SET(CFS_C_FLAGS "-std=c++98 -Wall -fmessage-length=0 ${CFS_C_FLAGS}")
     # -Wold-style-cast Warnings about old C style casts. Since external libraries
     # make extensive use of it, we switch it off. To filter out the warnings in our own
     # code a command line like the following might be used
     # fgrep 'warning: use of old-style cast' out.txt | grep CFS_SOURCE_DIR | sort -u > old-style-cast.txt
-    #
+    # 
     # -frounding-math: is needed for CGAL library
     SET(CFS_CXX_FLAGS "-ftemplate-depth-55 -frounding-math")
     SET(CFS_SUPPRESSIONS "-Wno-long-long -Wno-unknown-pragmas -Wno-comment")
     SET(CHECK_MEM_ALLOC 1)
-    SET(CHECK_TYPE_CASTS 1)
-
-    IF(CFS_PROFILING)
-      SET(CFS_PROF_FLAGS "-pg")
-    ENDIF(CFS_PROFILING)
 
   ELSE(DEBUG)
 
     SET(CFS_SUPPRESSIONS "-Wno-long-long -Wno-unknown-pragmas -Wno-comment")
-    #SET(CFS_C_FLAGS "-std=c++98 -Wall -pedantic -fmessage-length=0 ${CFS_C_FLAGS}")
-    SET(CFS_C_FLAGS "-std=c++98 -fmessage-length=0 ${CFS_C_FLAGS}")
+    SET(CFS_C_FLAGS "-std=c++98 -Wall -fmessage-length=0 ${CFS_C_FLAGS}")
     SET(CFS_CXX_FLAGS "-ftemplate-depth-55")
 
     IF(CFS_ARCH STREQUAL "I386")
@@ -128,59 +110,45 @@ IF(CMAKE_COMPILER_IS_GNUCXX)
       IF(CFS_GCC43_OPT_SWITCHES)
         SET(CFS_OPT_FLAGS "${CFS_GCC43_OPT_SWITCHES}")
       ENDIF(CFS_GCC43_OPT_SWITCHES)
-      
-      IF(CFS_BLAS_LAPACK STREQUAL "ACML" AND CFS_ARCH STREQUAL "X86_64")
-        SET(CFS_OPT_FLAGS "${CFS_OPT_FLAGS} -mveclibabi=acml")
-      ENDIF(CFS_BLAS_LAPACK STREQUAL "ACML" AND CFS_ARCH STREQUAL "X86_64")
     ENDIF(CFS_CXX_COMPILER_VER EQUAL "4.3")
 
-    IF(CFS_CXX_COMPILER_VER EQUAL "4.4")
-        SET(CFS_OPT_FLAGS "${CFS_OPT_FLAGS} -mtune=native -march=native")
-    ENDIF(CFS_CXX_COMPILER_VER EQUAL "4.4")
-      
+    IF(CFS_CXX_COMPILER_VER GREATER "4.2" AND
+       CFS_BLAS_LAPACK STREQUAL "ACML" AND
+       CFS_ARCH STREQUAL "X86_64")
+      SET(CFS_OPT_FLAGS "${CFS_OPT_FLAGS} -mveclibabi=acml")
+    ENDIF(CFS_CXX_COMPILER_VER GREATER "4.2" AND
+          CFS_BLAS_LAPACK STREQUAL "ACML" AND
+          CFS_ARCH STREQUAL "X86_64")
+
+
   ENDIF(DEBUG)
+  
+  IF(PROFILING)
+    SET(CFS_PROF_FLAGS "-pg")
+  ENDIF(PROFILING)
+
+  IF(COVERAGE)
+    SET(CFS_C_FLAGS "-fprofile-arcs -ftest-coverage ${CFS_C_FLAGS}")
+    SET(CFS_CXX_FLAGS "-fprofile-arcs -ftest-coverage ${CFS_CXX_FLAGS}")
+    SET(CFS_LINKER_FLAGS "-fprofile-arcs -ftest-coverage ${CFS_LINKER_FLAGS}")
+  ENDIF(COVERAGE)
   
   IF(NOT USE_OPENMP)
     SET(CFS_C_FLAGS "-Werror ${CFS_C_FLAGS}")
   ENDIF(NOT USE_OPENMP)
 
-ENDIF(CMAKE_COMPILER_IS_GNUCXX)
+  IF(NOT USE_INTERPOLATION)
+    SET(CFS_C_FLAGS "-pedantic ${CFS_C_FLAGS}")
+  ELSE(NOT USE_INTERPOLATION)
+    SET(CFS_C_FLAGS "-frounding-math ${CFS_C_FLAGS}")
+  ENDIF(NOT USE_INTERPOLATION)
 
-#-------------------------------------------------------------------------------
-# Check if we are using the GNU Fortran (95) compiler
-#-------------------------------------------------------------------------------
-IF(CFS_FORTRAN_COMPILER_INFO MATCHES "GNU")
-  #-----------------------------------------------------------------------------
-  # Determine name of Fortran compiler
-  #-----------------------------------------------------------------------------
-  SET(CFS_FORTRAN_COMPILER_NAME "GNU")
-
-  #-----------------------------------------------------------------------------
-  # Determine version of Fortran compiler
-  #-----------------------------------------------------------------------------
-  SET(CFS_FORTRAN_COMPILER_VER ${CFS_FORTRAN_COMPILER_INFO})
-  STRING(REGEX MATCH 
-    "[0-9]+\\.[0-9]+\\.[0-9]+"
-    CFS_FORTRAN_COMPILER_VER
-    ${CFS_FORTRAN_COMPILER_VER})
-
-ENDIF(CFS_FORTRAN_COMPILER_INFO MATCHES "GNU")
-
+ENDIF(CFS_CXX_COMPILER_NAME STREQUAL "GCC")
 
 #-------------------------------------------------------------------------------
 # Check for Intel C++ compiler
 #-------------------------------------------------------------------------------
-IF(CFS_CXX_COMPILER_INFO MATCHES "ICC")
-  #-----------------------------------------------------------------------------
-  # Set the compiler name and compiler version
-  #-----------------------------------------------------------------------------
-  SET(CFS_CXX_COMPILER_NAME "ICC")
-
-  STRING(REGEX MATCH 
-    "[0-9]+\\.[0-9]+ [0-9]+"
-    CFS_CXX_COMPILER_VER
-    ${CFS_CXX_COMPILER_INFO})
-
+IF(CFS_CXX_COMPILER_NAME STREQUAL "ICC")
   #-----------------------------------------------------------------------------
   # Check for the case that Intel compiler is just GCC 4.2 compatible but the
   # system GCC is version 4.3. In this case Intel C++ fails to compile due
@@ -210,13 +178,10 @@ IF(CFS_CXX_COMPILER_INFO MATCHES "ICC")
   IF(DEBUG)
     SET(CFS_C_FLAGS "-g -ansi -w1 -Wcheck -Werror ${CFS_C_FLAGS}")
     SET(CHECK_MEM_ALLOC 1)
-    SET(CHECK_TYPE_CASTS 1)
 
-    IF(CFS_PROFILING)
-      SET(CFS_PROF_FLAGS "-pg")
-    ENDIF(CFS_PROFILING)
   ELSE(DEBUG)
     SET(CFS_C_FLAGS "-O3 -ansi -w0 -Werror ${CFS_C_FLAGS}")
+    SET(CFS_SUPPRESSIONS "-wd1125,654,980 -Wno-unknown-pragmas -Wno-comment")
 
     IF(CFS_CXX_COMPILER_VER MATCHES "10\\.")
       SET(CFS_OPT_FLAGS "${CFS_INTEL10_OPT_SWITCHES}")
@@ -227,6 +192,9 @@ IF(CFS_CXX_COMPILER_INFO MATCHES "ICC")
     ENDIF(CFS_CXX_COMPILER_VER MATCHES "11\\.")
   ENDIF(DEBUG)
 
+  IF(PROFILING)
+    SET(PROF_FLAGS "-pg")
+  ENDIF(PROFILING)
   #---------------------------------------------------------------------------
   # Disable warnings about hidden overriden functions of base classes,
   # unknown pragmas (openmp, etc.) and multiline comments.
@@ -235,27 +203,31 @@ IF(CFS_CXX_COMPILER_INFO MATCHES "ICC")
   SET(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-unknown-pragmas")
   SET(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-comment")
 
+  #---------------------------------------------------------------------------
+  # The  following flags and  defines are  necessary due  to incompatibilities
+  # with  some versions  of the  GCC runtime  environment. The  problems often
+  # occur in external libraries, most notably Boost. The favored policy should
+  # be,  to fix  those problems  locally  by patching  the external  libraries
+  # instead of  introducing global  flags and defines  for CFS++,  which might
+  # break other stuff.
+  #---------------------------------------------------------------------------
   IF(CFS_CXX_COMPILER_VER MATCHES "11\\.")
     SET(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -fno-builtin-std::basic_istream::get")
     SET(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -fno-builtin-std::max")
   ENDIF(CFS_CXX_COMPILER_VER MATCHES "11\\.")
+  
+  #---------------------------------------------------------------------------
+  # The  intel  compiler might  not  know  the  function __builtin_isnan  (and
+  #  isinf), so redirect that to isnan
+  #---------------------------------------------------------------------------
+  SET(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -D__builtin_isnan=::isnan -D__builtin_isinf=::isinf")
 
-ENDIF(CFS_CXX_COMPILER_INFO MATCHES "ICC")
+ENDIF(CFS_CXX_COMPILER_NAME STREQUAL "ICC")
 
 #-------------------------------------------------------------------------------
 # Check for Intel Fortran compiler
 #-------------------------------------------------------------------------------
-IF(CFS_FORTRAN_COMPILER_INFO MATCHES "IFORT")
-  #-----------------------------------------------------------------------------
-  # Set Intel Fortran compiler name and version
-  #-----------------------------------------------------------------------------
-  SET(CFS_FORTRAN_COMPILER_NAME "IFORT")
-
-  STRING(REGEX MATCH 
-    "[0-9]+\\.[0-9]+ [0-9]+"
-    CFS_FORTRAN_COMPILER_VER
-    ${CFS_FORTRAN_COMPILER_INFO})
-
+IF(CFS_FORTRAN_COMPILER_NAME STREQUAL "IFORT")
   #-----------------------------------------------------------------------------
   # Set Intel Fortran library paths in dedicated variables
   #-----------------------------------------------------------------------------
@@ -268,35 +240,27 @@ IF(CFS_FORTRAN_COMPILER_INFO MATCHES "IFORT")
   #-----------------------------------------------------------------------------
   IF(CFS_FORTRAN_COMPILER_VER MATCHES "11\\." AND
       NOT CFS_DISTRO STREQUAL "MACOSX")
-    IF(CFS_ARCH STREQUAL "I386")
-      SET(LD "ia32")
-    ENDIF(CFS_ARCH STREQUAL "I386")
-    IF(CFS_ARCH STREQUAL "X86_64")
-      SET(LD "intel64")
-    ENDIF(CFS_ARCH STREQUAL "X86_64")
-    IF(CFS_ARCH STREQUAL "IA64")
-      SET(LD "ia64")
-    ENDIF(CFS_ARCH STREQUAL "IA64")
-    
-    STRING(REGEX REPLACE "bin/${LD}/ifort" "lib/${LD}" IFORT_LIB_PATH
+
+    STRING(REGEX REPLACE "bin/(.*)/ifort" "lib/\\1" IFORT_LIB_PATH
 	"${CMAKE_Fortran_COMPILER}")
+
   ENDIF(CFS_FORTRAN_COMPILER_VER MATCHES "11\\." AND
     NOT CFS_DISTRO STREQUAL "MACOSX")
 
   LINK_DIRECTORIES(${IFORT_LIB_PATH})
     
-  SET(CFS_FORTRAN_DYNRT_LIBS ifcoremt imf dl)
+  SET(CFS_FORTRAN_DYNRT_LIBS "ifcoremt;imf;dl")
   IF(NOT CFS_ARCH STREQUAL "IA64")
     SET(CFS_FORTRAN_DYNRT_LIBS 
-      svml
+      "svml"
       ${CFS_FORTRAN_DYNRT_LIBS})
   ENDIF(NOT CFS_ARCH STREQUAL "IA64")
   SET(CFS_FORTRAN_STATRT_LIBS
-    ifcoremt_pic
-    irc
+    "ifcoremt_pic"
+    "irc"
     )
     
-ENDIF(CFS_FORTRAN_COMPILER_INFO MATCHES "IFORT")
+ENDIF(CFS_FORTRAN_COMPILER_NAME STREQUAL "IFORT")
 
 
 #-------------------------------------------------------------------------------
@@ -315,9 +279,9 @@ ENDIF(CFS_CXX_COMPILER_NAME STREQUAL "" OR
 #-------------------------------------------------------------------------------
 SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${CFS_C_FLAGS} ${CFS_PROF_FLAGS} ${CFS_OPT_FLAGS} ${CFS_SUPPRESSIONS}")
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CFS_C_FLAGS} ${CFS_CXX_FLAGS} ${CFS_PROF_FLAGS} ${CFS_OPT_FLAGS} ${CFS_SUPPRESSIONS}")
-SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${CFS_PROF_FLAGS}")
-SET(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} ${CFS_PROF_FLAGS}")
-SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} ${CFS_PROF_FLAGS}")
+SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${CFS_PROF_FLAGS} ${CFS_LINKER_FLAGS}")
+SET(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} ${CFS_PROF_FLAGS} ${CFS_LINKER_FLAGS}")
+SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} ${CFS_PROF_FLAGS} ${CFS_LINKER_FLAGS}")
 
 # MESSAGE("C++ name: ${CFS_CXX_COMPILER_NAME}")
 # MESSAGE("C++ version: ${CFS_CXX_COMPILER_VER}")

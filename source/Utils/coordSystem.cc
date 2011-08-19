@@ -10,23 +10,25 @@
 namespace CoupledField{
 
 
-  CoordSystem::CoordSystem(const std::string & name,
-                           Grid * ptGrid,
-                           ParamNode * myParamNode ) {
+  CoordSystem::CoordSystem( const std::string & name,
+                            Grid * ptGrid,
+                            PtrParamNode myParamNode ) {
 
     name_ = name;
     ptGrid_ = ptGrid;
     myParam_ = myParamNode;
 
-    dim_ = ptGrid_->GetDim();
-    
+    if(ptGrid_)
+      dim_ = ptGrid_->GetDim();
+    else
+      dim_ = 3;
   }
 
   CoordSystem::~CoordSystem(){
   }
 
   void CoordSystem::GetPoint(Vector<Double> & vec,
-                             ParamNode * pointNode ) {
+                             PtrParamNode pointNode ) {
 
     
    
@@ -37,13 +39,13 @@ namespace CoupledField{
 
     // check, if node is given by name and eventually get it
     // from the grid object
-    pointNode->Get( "node", nodeName );
+    pointNode->GetValue( "node", nodeName );
 
     vec.Resize(dim_);
     if ( nodeName != "none" ) {
       ptGrid_->GetNodesByName(nodes,nodeName);
 
-      // check if more than one node is defined by this name
+      // check if more than one node is defined by this name  
       if ( nodes.GetSize() != 1 ) {
         EXCEPTION( "CoordinateSystem: There are more than 1 nodes defined "
                    << "defined by '" << nodeName << "'.\nTherefore it is "
@@ -57,7 +59,7 @@ namespace CoupledField{
 
       // if no node name was given, read in global x,y and z coordinate
       for (UInt i=0; i<vec.GetSize(); i++) {
-        pointNode->Get( coordNames[i], vec[i] );
+        vec[i] = pointNode->Get( coordNames[i])->MathParse<Double>();
       }
     }
       
@@ -74,10 +76,14 @@ namespace CoupledField{
     
 
     // Safety check: T_33 must not be 1!
-    if ( (std::abs(std::abs (rotMat[0][2]) - 1.0)) < EPS ) {
-      EXCEPTION( "Rotation angle beta for coordinate system '"
-                 << name_ << "' must not be 90°!" );
-    }
+    
+    
+    // Distinguish case of beta = 90 degree: 
+    if ( (std::abs(std::abs (rotMat[0][2]) - 1.0)) > EPS ) {
+      
+      /*
+       *  Standard case (beta != 90 degree) 
+       */
 
     // Calculate  beta
     Double cos_beta = std::sqrt( 1 - rotMat[0][2]*rotMat[0][2] );
@@ -98,6 +104,17 @@ namespace CoupledField{
     angles[0] = alpha;
     angles[1] = beta;
     angles[2] = gamma;
+  } else {
+    /*
+     *  beta = 90 degree => no unique mapping possible
+     *  convention: set gamma = 0 degree 
+     */
+    angles[0] = rotMat[1][2];
+    angles[1] = PI/2.0;
+    angles[2] = 0;
+  }
+    
+    
   }
 
   Double CoordSystem::GetAngle( Double sinAlpha, Double cosAlpha ) {

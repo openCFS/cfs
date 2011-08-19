@@ -6,11 +6,9 @@
 
 #include "pdecoupling.hh"
 
-#include "DataInOut/WriteInfo.hh"
 #include "PDE/SinglePDE.hh"
 #include "Driver/iterSolveStep.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
-#include "DataInOut/ParamHandling/InfoNode.hh"
 
 namespace CoupledField
 {
@@ -18,7 +16,7 @@ namespace CoupledField
   IterCoupledPDE::IterCoupledPDE(StdVector<StdPDE*> & PDEs,
                                  StdVector<SinglePDE*> & singlePDEs,
                                  StdVector<PDECoupling*> & Couplings,
-                                 ParamNode* paramNode )
+                                 PtrParamNode paramNode )
     : BasePDE( paramNode )
   {
 
@@ -37,17 +35,17 @@ namespace CoupledField
     pdename_ += PDEs[PDEs.GetSize()-1] -> GetName();
 
     // fetch "nonLinear" node
-    ParamNode * nonLinNode = myParam_->Get("nonLinear", false );
+    PtrParamNode nonLinNode = myParam_->Get("nonLinear", ParamNode::PASS );
 
     // get maximum number of iterations (optional)
     maxiter_ = 100;
     if( nonLinNode )
-      nonLinNode->Get( "maxNumIters", maxiter_, false );
+      nonLinNode->GetValue( "maxNumIters", maxiter_, ParamNode::PASS );
 
     // query logging flag
     nonLinLogging_ = true;
     if( nonLinNode )
-      nonLinNode->Get( "logging", nonLinLogging_, false );
+      nonLinNode->GetValue( "logging", nonLinLogging_, ParamNode::PASS );
 
   }
 
@@ -98,14 +96,14 @@ namespace CoupledField
 
       // get parameter nodes of current pde and look for the one
       // with the same name as the curent searched-for pde
-      ParamNode * pdeNode = NULL;
+      PtrParamNode pdeNode;
       for( UInt i = 0; i < myParam_->GetChildren().GetSize(); i++ ) {
         // check, id node is "nonLinear"
         if( (myParam_->GetChildren())[i]->GetName() == "nonLinear")
           continue;
 
         // fetch names of related pdes
-        StdVector<ParamNode*> pdeNodes = (myParam_->GetChildren()[i])->GetChildren();
+        ParamNodeList pdeNodes = (myParam_->GetChildren()[i])->GetChildren();
 
         for(UInt iNode = 0; iNode < pdeNodes.GetSize(); iNode++ ) {
           std::string name = pdeNodes[iNode]->GetName();
@@ -122,7 +120,7 @@ namespace CoupledField
 
 
       // get coupling entities
-      StdVector<ParamNode*> couplNodes = pdeNode->GetList("coupling");
+      ParamNodeList couplNodes = pdeNode->GetList("coupling");
 
       quantities.Clear();
       interfaceTypes.Clear();
@@ -132,13 +130,13 @@ namespace CoupledField
       for( UInt i = 0; i < couplNodes.GetSize(); i++ ) {
 
         // get quantity
-        quantities.Push_back( couplNodes[i]->Get("quantity")->AsString() );
+        quantities.Push_back( couplNodes[i]->Get("quantity")->As<std::string>() );
 
         // get type
-        interfaceTypes.Push_back( couplNodes[i]->Get("type")->AsString() );
+        interfaceTypes.Push_back( couplNodes[i]->Get("type")->As<std::string>() );
 
         // get name
-        interfaceNames.Push_back( couplNodes[i]->Get("name")->AsString() );
+        interfaceNames.Push_back( couplNodes[i]->Get("name")->As<std::string>() );
       }
 
       std::string typeAux;
@@ -196,13 +194,13 @@ namespace CoupledField
       // in section "nonLinear" and have a stopping
       // criterion
       stopCritQuantities.Clear();
-      ParamNode * nonLinNode = myParam_->Get("nonLinear", false);
-      StdVector<ParamNode*> stopNodes;
+      PtrParamNode nonLinNode = myParam_->Get("nonLinear", ParamNode::PASS);
+      ParamNodeList stopNodes;
       if( nonLinNode ) {
         stopNodes = nonLinNode->GetList("stopCrit");
         stopCritQuantities.Clear();
         for( UInt i = 0; i < stopNodes.GetSize(); i++ )
-          stopCritQuantities.Push_back( stopNodes[i]->Get("quantity")->AsString() );
+          stopCritQuantities.Push_back( stopNodes[i]->Get("quantity")->As<std::string>() );
       }
 
       // Get for each quantity the according stopping Criteria and normtype
@@ -217,18 +215,18 @@ namespace CoupledField
 
         // check, if a stopping criterion was defined for current quantity
         if ( index != -1 ) {
-          stopNodes[index]->Get( "value", epsilon ); // stopping criterion
-          stopNodes[index]->Get( "l2Norm", normtype ); // type of norm used
+          stopNodes[index]->GetValue( "value", epsilon ); // stopping criterion
+          stopNodes[index]->GetValue( "l2Norm", normtype ); // type of norm used
 
           // if quantity is elecForceVWP or magForceVWP, get neighbouring region
           neighbourRegions.Clear();
           if (quantityAux == MAG_FORCE_VWP ||
               quantityAux == ELEC_FORCE_VWP) {
-            StdVector<ParamNode*> regionNodes =
-              pdeNode->GetList("coupling", "quantity", quantitiesSorted[iQuant]);
+            ParamNodeList regionNodes =
+              pdeNode->GetListByVal("coupling", "quantity", quantitiesSorted[iQuant]);
 
             for( UInt i = 0; i < regionNodes.GetSize(); i++ ) {
-              neighbourRegions.Push_back( regionNodes[i]->Get("neighbourRegion")->AsString() );
+              neighbourRegions.Push_back( regionNodes[i]->Get("neighbourRegion")->As<std::string>() );
             }
           }
 
@@ -257,7 +255,7 @@ namespace CoupledField
       Couplings_[i]->GetPDE()->InitCoupling(Couplings_[i]);
     }
 
-    ToInfo(info->Get(InfoNode::HEADER)->Get("coupling"));
+    ToInfo(info->Get(ParamNode::HEADER)->Get("coupling"));
 
     // create solve step object
     solveStep_ = new IterSolveStep( *this );
@@ -289,7 +287,7 @@ namespace CoupledField
   }
 
 
-  void IterCoupledPDE::ToInfo(InfoNode* base)
+  void IterCoupledPDE::ToInfo(PtrParamNode base)
   {
     SingleVector *val;
     StdVector<UInt> * nodes;
@@ -298,13 +296,13 @@ namespace CoupledField
 
     for (UInt ipde=0; ipde<PDEs_.GetSize(); ipde++)
     {
-      InfoNode* pde = base->Get(Couplings_[ipde]->GetPDE()->GetName());
+      PtrParamNode pde = base->Get(Couplings_[ipde]->GetPDE()->GetName());
 
       // Show InputCouplings
-      InfoNode* ic = pde->Get("inputCouplings");
+      PtrParamNode ic = pde->Get("inputCouplings");
       for (UInt i=0; i<Couplings_[ipde]->GetNumInputCouplings(); i++)
       {
-        InfoNode* c = ic->Get("coupling", InfoNode::APPEND);
+        PtrParamNode c = ic->Get("coupling", ParamNode::APPEND);
         Couplings_[ipde]->GetInputNodes(i, nodes);
         Couplings_[ipde]->GetInputValues(i,val);
 
@@ -317,10 +315,10 @@ namespace CoupledField
         c->Get("couplingType")->SetValue(couplingTypeAux);
         c->Get("inputQuantity")->SetValue(SolutionTypeEnum.ToString(Couplings_[ipde]->GetInputQuantity(i)));
 
-        InfoNode* list = c->Get("regions");
+        PtrParamNode list = c->Get("regions");
         Couplings_[ipde]->GetInputRegions(i, couplingRegions);
         for (UInt j=0; j<couplingRegions.GetSize()-1; j++)
-          list->Get("region", InfoNode::APPEND)->Get("name")->SetValue(couplingRegions[j]);
+          list->Get("region", ParamNode::APPEND)->Get("name")->SetValue(couplingRegions[j]);
 
         c->Get("regionType")->SetValue(regionTypeAux);
         c->Get("numberInputCouplingValues")->SetValue(val->GetSize());
@@ -335,10 +333,10 @@ namespace CoupledField
       // Show OutputCouplings
       nodes = 0;
 
-      InfoNode* oc = pde->Get("outputCouplings");
+      PtrParamNode oc = pde->Get("outputCouplings");
       for (UInt i=0; i<Couplings_[ipde]->GetNumOutputCouplings(); i++)
       {
-        InfoNode* c = oc->Get("coupling", InfoNode::APPEND);
+        PtrParamNode c = oc->Get("coupling", ParamNode::APPEND);
         Couplings_[ipde]->GetOutputNodes(i, nodes);
         Couplings_[ipde]->GetOutputValues(i,val);
 
@@ -351,10 +349,10 @@ namespace CoupledField
         c->Get("couplingType")->SetValue(couplingTypeAux);
         c->Get("inputQuantity")->SetValue(SolutionTypeEnum.ToString(Couplings_[ipde]->GetOutputQuantity(i)));
 
-        InfoNode* list = c->Get("regions");
+        PtrParamNode list = c->Get("regions");
         Couplings_[ipde]->GetOutputRegions(i, couplingRegions);
         for (UInt j=0; j<couplingRegions.GetSize()-1; j++)
-          list->Get("region", InfoNode::APPEND)->Get("name")->SetValue(couplingRegions[j]);
+          list->Get("region", ParamNode::APPEND)->Get("name")->SetValue(couplingRegions[j]);
 
         c->Get("regionType")->SetValue(regionTypeAux);
         c->Get("numberOutputCouplingValues")->SetValue(val->GetSize());

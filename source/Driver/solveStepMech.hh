@@ -8,6 +8,9 @@ namespace CoupledField
 
   //! Base class for solution of a single step: Electrostatic-PDE
 
+  // as this class was identic to its BaseClass (apart from comments), so all functions are removed
+  // if one need old functionality, look into the history
+
   class SolveStepMech : public StdSolveStep
   {
 
@@ -19,18 +22,8 @@ namespace CoupledField
     //! Destructor
     virtual ~SolveStepMech();
 
-    //virtual void PredictorStep();
-
-    virtual void StepTransLin(InfoNode* analysis_id);
-
-    //virtual void StepTransNonLin();
-
   private:
-    //Double predRelax_;
-    //bool calcPredOutputCoupling_;
-    bool firstEi_;
-    Double Ei0_;
-    Vector<Double> oldInc_;
+
   };
 
 } // end of namespace

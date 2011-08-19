@@ -51,6 +51,8 @@
   									</xsd:attribute>
   									<xsd:attribute name="nonLinId"
   										type="xsd:token" use="optional" default="" />
+  								  <xsd:attribute name="complexMaterial" 
+  								    type="DT_CFSBool" use="optional" default="no"/>
   								</xsd:complexType>
   							</xsd:element>
   						</xsd:sequence>
@@ -254,6 +256,7 @@
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="elecPotential"/>
       <xsd:enumeration value="elecRhsLoad"/>
+      <xsd:enumeration value="gradElecPotential"/>
     </xsd:restriction>
   </xsd:simpleType>
 

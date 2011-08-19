@@ -51,6 +51,8 @@ namespace CoupledField
     ptFileReader_->Init();
 
     dim_ = settings.GetInt("dim");
+    doIntAverageCentre_ = settings.GetInt("doIntAverageCentre");
+    reduce_elementOrder_ = settings.GetInt("reduceElementOrder");
 
     OutputWriterVectorType::iterator it, end;
     it = outputWriters_.begin();
@@ -106,6 +108,7 @@ namespace CoupledField
     ptElemIntegr_[Elem::LINE2]  = new ElemIntegr(Elem::LINE2);
     ptElemIntegr_[Elem::TRIA3]  = new ElemIntegr(Elem::TRIA3);
     ptElemIntegr_[Elem::QUAD4]  = new ElemIntegr(Elem::QUAD4);
+    ptElemIntegr_[Elem::QUAD8]  = new ElemIntegr(Elem::QUAD8);
     ptElemIntegr_[Elem::TET4]   = new ElemIntegr(Elem::TET4);
     ptElemIntegr_[Elem::WEDGE6] = new ElemIntegr(Elem::WEDGE6);
     ptElemIntegr_[Elem::PYRA5]  = new ElemIntegr(Elem::PYRA5);
@@ -131,14 +134,43 @@ namespace CoupledField
     int numRegions = ptFileReader_->GetNumRegions();
     std::vector<UInt>::iterator it, it2, end;
     std::set<UInt> regionNodeSet;
-    std::vector<UInt> regionNodes;
     UInt maxNumElemNodes = 0;
     std::vector<std::string> regionNames;
 
     numRegionNodes_.resize(numRegions);
 
     // First read everything into internal buffers
-    ptFileReader_->ReadNodalCoords(nodalCoords_);
+    std::vector<Double> nodalCoordsTmp;
+    ptFileReader_->ReadNodalCoords(nodalCoordsTmp);
+    ptFileReader_->ReadTopology(topology_, elemTypes_);
+    if (reduce_elementOrder_)
+    {
+      ptFileReader_->CorrectNumbering(nodalCoordsTmp, topology_, elemTypes_);
+    }
+
+    // Determine the maximum number of element nodes
+    maxNumElemNodes = ptFileReader_->GetMaxNumElemNodes();
+    std::set<UInt> topoSet(topology_.begin(), topology_.end());
+    if(*topoSet.begin() == 0)
+      topoSet.erase(topoSet.begin());
+
+    // Throw away unused nodes
+    std::set<UInt>::iterator topoIt, topoEnd;
+    topoIt = topoSet.begin();
+    topoEnd = topoSet.end();
+    
+    std::map<UInt, UInt> pointMap;
+    nodalCoords_.resize(topoSet.size()*3);
+    for( UInt i=0; topoIt != topoEnd; topoIt++, i++ ) 
+    {
+      pointMap[*topoIt] = i+1;
+      
+      UInt idxNew=i*3;
+      UInt idxOld=(*topoIt-1)*3;
+      nodalCoords_[idxNew+0] = nodalCoordsTmp[idxOld+0];
+      nodalCoords_[idxNew+1] = nodalCoordsTmp[idxOld+1];
+      nodalCoords_[idxNew+2] = nodalCoordsTmp[idxOld+2];
+    }
     // scale the nodal coordinates
     const UInt sizeNodCoords = nodalCoords_.size();
     std::stringstream geomstr;
@@ -173,33 +205,6 @@ namespace CoupledField
       }
     }
     // <-- end scaling
-    ptFileReader_->ReadTopology(topology_,
-                                elemTypes_);
-
-    // Determine the maximum number of element nodes
-    maxNumElemNodes = ptFileReader_->GetMaxNumElemNodes();
-    std::set<UInt> topoSet(topology_.begin(), topology_.end());
-    if(*topoSet.begin() == 0)
-      topoSet.erase(topoSet.begin());
-
-    // Throw away unused nodes
-    std::set<UInt>::iterator topoIt, topoEnd;
-    topoIt = topoSet.begin();
-    topoEnd = topoSet.end();
-    
-    std::map<UInt, UInt> pointMap;
-    for( UInt i=0; topoIt != topoEnd; topoIt++, i++ ) 
-    {
-      pointMap[*topoIt] = i+1;
-      // std::cout << (*topoIt) << " -> " << (pointMap[*topoIt]) << std::endl;
-      
-      UInt idxNew=i*3;
-      UInt idxOld=(*topoIt-1)*3;
-      nodalCoords_[idxNew+0] = nodalCoords_[idxOld+0];
-      nodalCoords_[idxNew+1] = nodalCoords_[idxOld+1];
-      nodalCoords_[idxNew+2] = nodalCoords_[idxOld+2];
-    }
-    nodalCoords_.resize(topoSet.size()*3);
     
 
     for( UInt i=0, n=topology_.size(); i<n; i++ ) 
@@ -235,16 +240,16 @@ namespace CoupledField
 
 
     std::cout << "Reading mesh done.\nConverting mesh...\n";
-    std::map<RegionIdType, UInt > regionDims;
 
     for (int actRegion=0; actRegion<numRegions; actRegion++)
     {
       // Fill vector with region names
       regionNames.push_back(ptFileReader_->GetRegionName(actRegion));
+      const std::string& actRegionName = regionNames[actRegion];
 
       // Clear temporary containers
       regionNodeSet.clear();
-      regionNodes.clear();
+      regionNodes_[actRegionName].clear();
 
       std::cout << "Writing region " << (*regionNames.rbegin())
                 << "... ";
@@ -261,32 +266,29 @@ namespace CoupledField
       
       for( ; elemIt != elemEnd; elemIt++ ) 
       {        
-        UInt elemNum = *elemIt;
-        UInt regionDim = regionDims[actRegion];
-        Elem::FEType elemType = (Elem::FEType) elemTypes_[elemNum-1];
+        const UInt& elemNum = *elemIt;
+        UInt& regionDim = regionDims_[actRegion];
+        Elem::FEType elemType = (Elem::FEType) elemTypes_[elemNum -1];
         
-        if(!regionDim) 
+        if (!regionDim) 
         {
-          regionDims[actRegion] = Elem::GetElemDim(elemType);
+          regionDim = Elem::GetElemDim(elemType);
         }
-        else
+        if ( regionDim != Elem::GetElemDim(elemType) )
         {
-          if( regionDim != Elem::GetElemDim(elemType) )
-          {
-            EXCEPTION("Elements with different dimensions have been "
-                      << "encountered in region '" << (*regionNames.rbegin()) << "'!\n"
-                      << "The error occured while examining element "
-                      << (*elemIt) << ".\n"
-                      << "Please check your mesh file!");
-          }    
-        }
+          EXCEPTION("Elements with different dimensions have been "
+              << "encountered in region '" << (*regionNames.rbegin()) << "'!\n"
+              << "The error occured while examining element "
+              << elemNum << ".\n"
+              << "Please check your mesh file!");
+        }    
       }
       
       // Put all nodes in a partition into a set to get an ordered list
       UInt idx = 0;
       UInt regionDim = 0;
 
-      CollectElementNodes(regionElems_[actRegion], regionNodes, regionDim);
+      CollectElementNodes(regionElems_[actRegion], regionNodes_[actRegionName], regionDim);
 
       // Write region elements and nodes
       owIt = outputWriters_.begin();
@@ -296,12 +298,12 @@ namespace CoupledField
       {
         (*owIt)->WriteRegion(regionNames[actRegion],
                              regionElems_[actRegion],
-                             regionNodes,
+                             regionNodes_[actRegionName],
                              regionDim);
       }
       
-      it = regionNodes.begin();
-      end = regionNodes.end();
+      it = regionNodes_[actRegionName].begin();
+      end = regionNodes_[actRegionName].end();
 
       numRegionNodes_[actRegion] = std::distance(it, end);
 
@@ -376,6 +378,9 @@ namespace CoupledField
     std::vector<std::string> regionNames;
     std::vector<FlowDataType> flowData(numRegions);
     bool readOK = true;
+    // variable to gather nodes on multiple regions
+    bool doCalcMultiNodes = settings.GetInt("doCalcMultiNodes");
+    std::map<UInt, std::map<std::string, UInt> > multiNodes;
 
     std::cout << "========================================"
               << "========================================"
@@ -407,7 +412,7 @@ namespace CoupledField
       while ( ( counter < numFiles ) && readOK)
       {
         stepVal = ptFileReader_->GetTimeStep(counter);
-        stepNum = counter + 1;
+        stepNum = counter + ptFileReader_->GetStartIndex();
         timeStepValues.push_back(stepVal);
         timeStepNumbers.push_back(stepNum);
         
@@ -434,23 +439,35 @@ namespace CoupledField
         try
         {
           ptFileReader_->ReadNodalValues(flowData, activeParts_, counter);
+          if (reduce_elementOrder_)
+          {
+            ptFileReader_->ReduceOrderOfNodalValues(flowData, regionNodes_);
+          }
           // scale the nodal values
-          std::stringstream velstr;
-          velstr << settings.GetString("velscale");
-          Double velScaleX, velScaleY, velScaleZ;
-          velstr >> velScaleX >> velScaleY >> velScaleZ;
-          if (velScaleX != 1.0)
+          // following physical fields will be checked for scaling factors
+          const std::string physFieldScale_str[] = {"velscale","geomscale"};
+          const SolutionType solType[] = {FLUIDMECH_VELOCITY,MECH_DISPLACEMENT};
+          Double scaleX, scaleY, scaleZ;
+          for (int i = 0; i < 2; ++i) // 2 physical fields
           {
-            velScale_(flowData, velScaleX, 0);
+            std::stringstream scaleStr;
+            scaleStr << settings.GetString(physFieldScale_str[i]);
+
+            scaleStr >> scaleX;
+            if (!scaleStr.fail() && scaleX != 1.0)
+              scale_PhysField_(flowData, solType[i], scaleX, 0);
+
+            scaleStr >> scaleY;
+            if (!scaleStr.fail() && scaleY != 1.0)
+              scale_PhysField_(flowData, solType[i], scaleY, 1);
+
+            if ( dim_ == 3 ) {
+              scaleStr >> scaleZ;
+              if (!scaleStr.fail() && scaleZ != 1.0)
+                scale_PhysField_(flowData, solType[i], scaleZ, 2);
+            }
           }
-          if (velScaleY != 1.0)
-          {
-            velScale_(flowData, velScaleY, 1);
-          }
-          if (velScaleZ != 1.0)
-          {
-            velScale_(flowData, velScaleZ, 2);
-          }
+
           // <-- end scaling velocity
           
           // Override the setting of --outprec for CFX
@@ -462,7 +479,7 @@ namespace CoupledField
         {
           std::cerr << "CAUGHT EXCEPTION while trying to read nodal values:"
                     << std::endl << ex.what() << std::endl
-                    << "Exiting read time values loop...";
+                    << "Exiting read time values loop..." << std::endl;
           
           readOK = false;
           continue;
@@ -488,7 +505,7 @@ namespace CoupledField
           
           // If the user requests the calculation of the Lighthill
           // source term, follow his order!
-          if(calcSrc)
+          if(calcSrc && regionDims_[actRegion] == dim_)
           {
             // We need fluidMechVelocity for Lighthill source term.
             // This must be adapted for other source term formulations!!
@@ -501,6 +518,64 @@ namespace CoupledField
             CalculateAcouSrcs(actRegion, flowData[actRegion]);
           }
           
+        }//end of for
+
+        /* node which live on multiple region need to accumulate the
+         * ACOU_RHS_LOAD
+         * Here the common nodes of active regions is found */
+        if (doCalcMultiNodes)
+        {
+          std::map<std::string, std::vector<UInt>* > regionNodesActive;
+          std::map<std::string, std::vector<UInt> >::iterator iterRegionAct = regionNodes_.begin();
+          for (; iterRegionAct != regionNodes_.end(); ++iterRegionAct)
+          {
+            UInt regIdx = 0;
+            while (regionNames[regIdx] != iterRegionAct->first )
+              ++regIdx;
+            if (flowData[regIdx][ACOU_RHS_LOAD].isActive)
+            {
+              regionNodesActive[iterRegionAct->first] = &iterRegionAct->second;
+            }
+          }
+          findNodeMultiRegion(regionNodesActive, multiNodes);
+          doCalcMultiNodes = false;
+        }
+        /* start the accumulation of ACOU_RHS_LOAD on common nodes */
+        std::map<UInt, std::map<std::string, UInt> >::const_iterator iterMultiNodes = multiNodes.begin();
+        if (calcSrc)
+        {
+          for (; iterMultiNodes != multiNodes.end(); ++iterMultiNodes)
+          {
+            // calc accumulated values
+            double accumValNodes = 0;
+            std::map<std::string, UInt>::const_iterator iterRegions = iterMultiNodes->second.begin();
+            for (; iterRegions != iterMultiNodes->second.end(); ++iterRegions)
+            {
+              const std::string& regName = iterRegions->first;
+              const UInt& node = iterRegions->second;
+              UInt regIdx = 0;
+              while (regionNames[regIdx] != regName )
+                ++regIdx;
+              if (flowData[regIdx][ACOU_RHS_LOAD].isActive)
+                accumValNodes += flowData[regIdx][ACOU_RHS_LOAD].data[node];
+            }
+            // set accumulated values
+            iterRegions = iterMultiNodes->second.begin();
+            for (; iterRegions != iterMultiNodes->second.end(); ++iterRegions)
+            {
+              const std::string& regName = iterRegions->first;
+              const UInt& node = iterRegions->second;
+              UInt regIdx = 0;
+              while (regionNames[regIdx] != regName )
+                ++regIdx;
+              if (flowData[regIdx][ACOU_RHS_LOAD].isActive)
+                flowData[regIdx][ACOU_RHS_LOAD].data[node] = accumValNodes;
+            }
+          }
+        }// end of nodes on multiple region correction
+
+        for (actRegion = 0; actRegion < numRegions && readOK; actRegion++)
+        {
           owIt = outputWriters_.begin();
           owEnd = outputWriters_.end();
           
@@ -510,7 +585,6 @@ namespace CoupledField
                                    actRegion,
                                    outputFields_);
           }
-          
           
         }//end of for
         
@@ -660,12 +734,47 @@ namespace CoupledField
     // Fill acouRhsLoad field with zeros
     std::fill(acouRhsField.begin(), acouRhsField.end(), 0);
 
+    
+    FlowDataPartStruct& fdps3 = flowData[ACOU_RHS_LOAD_DENSITY];
+    fdps3.isActive = true; // all partitions have results
+    fdps3.definedOn = ResultInfo::NODE; // nodes
+    if(fdps3.dofNames.empty())
+      fdps3.dofNames.push_back("-");
+    fdps3.unit = MapSolTypeToUnit(ACOU_RHS_LOAD_DENSITY);
+    fdps3.resultName = "acouRhsLoadDensity";
+    fdps3.data.resize(numRegionNodes_[regionIdx]);
+    fdps3.entryType = ResultInfo::SCALAR;
+    std::vector<Double>& acouRhsDensityField = fdps3.data;
+
+    // Fill acouRhsLoadDensity field with zeros
+    std::fill(acouRhsDensityField.begin(), acouRhsDensityField.end(), 0);
+
     int nElems = ptFileReader_->GetNumElems(regionIdx);
+    
+    FlowDataPartStruct& fdps4 = flowData[ACOU_DIV_LH_TENSOR];
+    fdps4.isActive = true; // all partitions have results
+    fdps4.definedOn = ResultInfo::ELEMENT; // elements
+    if(fdps4.dofNames.empty()) {
+      fdps4.dofNames.push_back("x");
+      fdps4.dofNames.push_back("y");
+      if(dim_ == 3)
+        fdps4.dofNames.push_back("z");        
+    }
+    fdps4.unit = MapSolTypeToUnit(ACOU_DIV_LH_TENSOR);
+    fdps4.resultName = "acouDivLighthillTensor";
+    fdps4.data.resize(nElems * dim_);
+    fdps4.entryType = ResultInfo::VECTOR;
+    std::vector<Double>& acouDivLighthillTensor = fdps4.data;
+
+    // Fill acouDivLighthillTensor field with zeros
+    std::fill(acouDivLighthillTensor.begin(), acouDivLighthillTensor.end(), 0);
 
     Matrix<Double> coordMat;
     Matrix<Double> nodaldTijdxj;
     Matrix<Double> nodalVel;
     Vector<Double> elemVec;
+    Vector<Double> nodalLoadDensity;
+    Vector<Double> divLHTensor(dim_);
 
     Elem::FEType elemType;
     UInt numElemNodes;
@@ -703,13 +812,18 @@ namespace CoupledField
       }
 
       try {
-        ptElemIntegr_[elemType]->PerformIntegration( coordMat, nodaldTijdxj,
-                                                     nodalVel, elemVec, density);
+        if (doIntAverageCentre_)
+        {
+          ptElemIntegr_[elemType]->PerformIntegrationCentre( coordMat, nodalVel,
+                                                       elemVec, nodalLoadDensity, divLHTensor, density);
+        } else {
+          ptElemIntegr_[elemType]->PerformIntegration( coordMat, nodaldTijdxj, nodalVel,
+                                                       elemVec, nodalLoadDensity, divLHTensor, density);
+        }
       } catch (CoupledField::Exception &ex)
       {
-        std::cerr << "Warning: An Exception occurred during source term "
-                  << "computation:\nElement " << i+1 << " of partition "
-                  << ptFileReader_->GetRegionName(regionIdx) << std::endl;
+        std::cerr << "WARN: An Exception occurred during source term "
+                  << "computation:\nElement " << elemIdx+1 << std::endl;
 
         std::cerr << ex.what()<< std::endl;
 
@@ -750,7 +864,14 @@ namespace CoupledField
 #endif
 
         acouRhsField[idx] -= elemVec[n];
+        acouRhsDensityField[idx] -= nodalLoadDensity[n];
       }
+      
+      // Add contributions of elements
+      for( UInt n=0; n < dim_; n++)
+      {
+        acouDivLighthillTensor[i*dim_ + n] = divLHTensor[n];
+      }      
     }
 
     std::cout << "done." << std::endl;
@@ -767,10 +888,16 @@ namespace CoupledField
     UInt idxInput = 0;
     UInt idxOutput = 0;
 
-    if(numInputNodes == numNodes)
+    if ( numInputNodes == numNodes )
     {
       output = input;
       return;
+    }
+    else if ( numInputNodes < numNodes )
+    {
+      EXCEPTION( "Cannot shrink vector (length " << numInputNodes
+                 << "), because there are too much nodes ("
+                 << numNodes << ") in region " << partitionIdx );
     }
 
     it = regionNodeIndices_[partitionIdx].begin();
@@ -783,7 +910,9 @@ namespace CoupledField
       idxOutput = it->second * numDOFs;
 
       for(UInt dof=0; dof < numDOFs; dof++ )
+      {
         output[idxOutput+dof] = input[idxInput+dof];
+      }
     }
   }
 

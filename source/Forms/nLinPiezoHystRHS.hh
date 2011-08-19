@@ -11,10 +11,7 @@
 #include "gradfieldop.hh"
 #include "linPiezoCoupling.hh"
 #include "curlCurlNodeInt.hh"
-
-#ifndef INTEGLIB
 #include "Utils/mathParser/mathParser.hh"
-#endif
 
 namespace CoupledField
 {

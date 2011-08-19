@@ -8,7 +8,6 @@
 #include <boost/filesystem/exception.hpp>
 namespace fs = boost::filesystem;
 
-#include "DataInOut/WriteInfo.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "General/environment.hh"
 #include "Utils/StdVector.hh"
@@ -30,7 +29,7 @@ namespace CoupledField {
   DEFINE_LOG(simOutputGiD, "SimOutputGiD")
 
     SimOutputGiD::SimOutputGiD( const std::string& fileName,
-                                ParamNode * outputNode )
+                                PtrParamNode outputNode )
       : SimOutput( fileName, outputNode ) {
 
 
@@ -38,25 +37,31 @@ namespace CoupledField {
     formatName_ = "gid";
     fileName_ = fileName;
     dirName_ = "results_" + formatName_;
-    outputNode->Get("directory", dirName_, false );
+    outputNode->GetValue("directory", dirName_, ParamNode::PASS );
 
     capabilities_.insert( MESH );
     capabilities_.insert( MESH_RESULTS );
 
     dim_ = GiD_2D;
     actMeshId_ = 1;
-    actMsStep_ = 0;
+    lastStepVal_ = -1.0;
+    lastStepRepeated_ = 0;
     stepValueOffset_ = 0;
     isAscii_ = true;
+    groupEigenFreqs_ = true;
     printGridOnly_ = false;
-    printGridOnly_ = false;
+    gridWritten_ = false;
 
     // Determine, if binary result file should be written
-    isAscii_ = !(myParam_->Get("binaryFormat")->AsBool() );
+    isAscii_ = !(myParam_->Get("binaryFormat")->As<bool>() );
+    
+    // Determine, if eigenfrequencies should be grouped
+    if( myParam_->Has("groupEigenFreqs") ) {
+      groupEigenFreqs_= myParam_->Get("groupEigenFreqs")->As<bool>();
+    }
 
     std::string pathsep;
     std::ostringstream strBuffer;
-    std::string postFileName;
 
     // concatenate output file name
     try {
@@ -68,15 +73,6 @@ namespace CoupledField {
 
     strBuffer << dirName_ << pathsep << fileName_;
     fileName_ = strBuffer.str();
-
-    // Open result file
-    if ( isAscii_ == true) {
-      postFileName = fileName_ + ".post.res";
-      GiD_OpenPostResultFile(  postFileName.c_str(), GiD_PostAscii );
-    } else {
-      postFileName = fileName_ + ".post.bin";
-      GiD_OpenPostResultFile( postFileName.c_str(), GiD_PostBinary );
-    }
   }
 
 
@@ -92,6 +88,10 @@ namespace CoupledField {
 
     LOG_TRACE(simOutputGiD) << "Writing mesh";
 
+    // Leave, if grid was already written
+    if(gridWritten_) 
+      return;
+    
     // open mesh file (only needed in ASCII case
     if ( isAscii_ == true) {
       std::string meshFileName = fileName_ + ".post.msh";
@@ -119,6 +119,8 @@ namespace CoupledField {
         GiD_BeginGaussPoint( "mid-3D", GiD_Quadrilateral, NULL, 1, 1, 1);
         GiD_EndGaussPoint();
       }
+      GiD_BeginGaussPoint( "mid-3D", GiD_Linear, NULL, 1, 0, 1);
+      GiD_EndGaussPoint();
     }
 
     // close mesh file (only needed in ASCII case)
@@ -131,7 +133,7 @@ namespace CoupledField {
 //      GiD_ClosePostResultFile();
 //    }
 
-
+    gridWritten_ = true;
     LOG_TRACE(simOutputGiD)<< "Finished writing of mesh" << std::endl;
 
   }
@@ -260,11 +262,10 @@ namespace CoupledField {
     // =================
     //  REGION ELEMENTS
     // =================
-    ptGrid_->GetRegionIds(regionIds);
-    for ( UInt iReg = 0; iReg < regionIds.GetSize(); iReg++ ) {
+    for ( UInt iReg = 0; iReg < ptGrid_->GetNumRegions(); iReg++ ) {
       // get region name and elements
-      std::string regionName = ptGrid_->RegionIdToName(regionIds[iReg]);
-      ptGrid_->GetElems(elemVec,regionIds[iReg]);
+      std::string regionName = ptGrid_->GetRegion().ToString(iReg);
+      ptGrid_->GetElems(elemVec,iReg);
 
       // write list of elements
       WriteElementMesh( regionName, elemVec );
@@ -563,9 +564,11 @@ namespace CoupledField {
   void SimOutputGiD::BeginMultiSequenceStep( UInt step,
                                              BasePDE::AnalysisType type,
                                              UInt numSteps ) {
+    // Write grid at the beginning of a multi sequence step.
+    WriteGrid();
 
     actAnalysis_ = type;
-    actMsStep_ = step;
+    actMSStep_ = step;
   }
 
   void SimOutputGiD::RegisterResult( shared_ptr<BaseResult> sol,
@@ -583,15 +586,34 @@ namespace CoupledField {
 
   void SimOutputGiD::BeginStep( UInt stepNum, Double stepVal ) {
 
+    lastStepVal_ = actStepVal_;
+    
     actStep_ = stepNum;
     actStepVal_ = stepVal;
-
+    
+    
     // add  offset to step value to account for multisequence steps
     if( actAnalysis_ == BasePDE::TRANSIENT ||
         actAnalysis_ == BasePDE::STATIC  ) {
      actStepVal_ += stepValueOffset_;
     }
 
+    // Check, if current step value is the same as the previous step value.
+    // This can happen e.g. in an eigenfrequency analysis, where there maybe
+    // more than one mode shape associated with an frequency. We count the 
+    // number of occurences, to include it in the the resultname.
+    
+    if( actAnalysis_ == BasePDE::EIGENFREQUENCY ) {
+      if( std::abs(actStepVal_) > EPS ) {
+        if( std::abs(actStepVal_ - lastStepVal_) / actStepVal_ < 1e-4) {
+          lastStepRepeated_++;
+        } else {
+          lastStepRepeated_ = 0;
+        }
+      }
+    } else {
+      lastStepRepeated_ = 0;
+    }
     resultMap_.clear();
   }
 
@@ -607,7 +629,7 @@ namespace CoupledField {
   void SimOutputGiD::FinishStep( ) {
 
     LOG_TRACE(simOutputGiD) << "Starting to finish Step";
-
+    
     std::string title;
 
     // iterate over all result types
@@ -667,7 +689,7 @@ namespace CoupledField {
 
     // assemble name for analysis step
     std::string analysisName = "transient";
-    analysisName += "_" + GenStr( actMsStep_ );
+    analysisName += "_" + lexical_cast<std::string>( actMSStep_ );
 
 
     // get number of entities
@@ -691,16 +713,29 @@ namespace CoupledField {
 
     UInt numDofs = dofNames.GetSize();
 
+    // In case of an eigenfrequency analysis we 
+    std::string outName;
+    if (actAnalysis_ == BasePDE::EIGENFREQUENCY  &&
+        groupEigenFreqs_ == true )  {
+      std::string temp;
+      temp = "ef" + lexical_cast<std::string>(lastStepRepeated_+1);
+      temp += "//";
+      temp += name;
+      outName = temp;
+    } else {
+      outName = name;
+    }
+    
     // write Result header
     if ( entryType == ResultInfo::SCALAR )  {
-      GiD_BeginResultHeader( name.c_str(), analysisName.c_str(), time,
+      GiD_BeginResultHeader( outName.c_str(), analysisName.c_str(), time,
                              GiD_Scalar, loc, dummy );
       GiD_ResultValues();
       for ( UInt iEnt = 1; iEnt <= numEnt; iEnt++ ) {
         GiD_WriteScalar( iEnt, var[iEnt-1]);
       }
     } else if( entryType == ResultInfo::VECTOR ) {
-      GiD_BeginResultHeader( name.c_str(), analysisName.c_str(), time,
+      GiD_BeginResultHeader( outName.c_str(), analysisName.c_str(), time,
                              GiD_Vector, loc, dummy );
       const char *names[3] = {"___", "__", "_"};
       for( UInt i = 0; i < numDofs; i++ ) {
@@ -732,7 +767,7 @@ namespace CoupledField {
       }
 
   } else if( entryType == ResultInfo::TENSOR ) {
-    GiD_BeginResultHeader( name.c_str(), analysisName.c_str(), time,
+    GiD_BeginResultHeader( outName.c_str(), analysisName.c_str(), time,
                            GiD_Matrix, loc, dummy );
       const char *names[6] = {"______", "_____", "____",
                               "___", "__", "_" };
@@ -779,7 +814,7 @@ for ( UInt iEnt = 1; iEnt <= numEnt; iEnt++ ) {         \
 
     // assemble name for analysis step
     std::string analysisName = "harmonic";
-    analysisName += "_" + GenStr( actMsStep_ );
+    analysisName += "_" + lexical_cast<std::string>( actMSStep_ );
 
    // get number of entities
     UInt numEnt = 0;
@@ -1099,8 +1134,31 @@ for ( UInt iEnt = 1; iEnt <= numEnt; iEnt++ ) {         \
 
     // All meshes will be treated as degenerated quad and hexa meshes!
 
+    std::string postFileName;
+    
+    // Open result file
+    if ( isAscii_ == true) {
+      postFileName = fileName_ + ".post.res";
+      GiD_OpenPostResultFile(  postFileName.c_str(), GiD_PostAscii );
+    } else {
+      postFileName = fileName_ + ".post.bin";
+      GiD_OpenPostResultFile( postFileName.c_str(), GiD_PostBinary );
+    }
+
     // print grid
-    WriteGrid();
+    if(printGridOnly) {
+      WriteGrid();
+
+      if(isAscii_) 
+      {      
+        try 
+        {
+          fs::remove( postFileName );
+        } catch (std::exception &ex) {
+          EXCEPTION(ex.what());
+        }
+      }
+    }
   }
 
 

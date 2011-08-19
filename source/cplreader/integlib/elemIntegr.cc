@@ -66,6 +66,13 @@ namespace CoupledField
       ptElem_->faces = 1;
       break;
 
+    case Elem::QUAD8:
+      ptElem_->ptElem = new Quad2FE();
+      ptElem_->connect = 1, 5, 2, 6, 3, 7, 4, 8;
+      ptElem_->edges = 1, 2, 3, 4;
+      ptElem_->faces = 1;
+      break;
+
     case Elem::TET4:
       ptElem_->ptElem = new Tetra1FE();
       ptElem_->connect = 1, 2, 3, 4;
@@ -114,6 +121,8 @@ namespace CoupledField
                                       const Matrix<Double>& NodaldTijdxj,
                                       const Matrix<Double>& NodalVal,
                                       Vector<Double>& elemvec,
+                                      Vector<Double>& nodalLoadDensity,
+                                      Vector<Double>& divLHTensor,
                                       Double density)
   {
 #ifdef TRACE
@@ -123,7 +132,25 @@ namespace CoupledField
     if(!ptElem_)
       return;
 
-    linearLoad_->CalcElemVec4QuadwithVel(coordMat,  NodalVal, elemvec, ptElem_, density);
+    linearLoad_->CalcElemVec4QuadwithVel(coordMat,  NodalVal, elemvec, nodalLoadDensity, divLHTensor, ptElem_, density);
+  }
+
+  void ElemIntegr::PerformIntegrationCentre(const Matrix<Double> & coordMat,
+                                      const Matrix<Double>& NodalVel,
+                                      Vector<Double>& resVec,
+                                      Vector<Double>& nodalLoadDensity,
+                                      Vector<Double>& divLHTensor,
+                                      Double density)
+  {
+#ifdef TRACE
+    (*trace) << " entering ElemIntegr::PerformIntegrationCentre" << std::endl;
+#endif
+
+    if(!ptElem_)
+      return;
+
+    linearLoad_->CalcElemVec4QuadwithVelCentre(coordMat, \
+        NodalVel, resVec, nodalLoadDensity, divLHTensor, ptElem_, density);
   }
 
 

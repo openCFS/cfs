@@ -1,3 +1,97 @@
+\usepackage{color}
+\usepackage{colortbl}
+\usepackage{fancyvrb}
+
+% ===============================
+%  XML Listing Definitions
+% ===============================
+
+% The following definitions should ease the pain of 
+% handling xml elements and attributes
+
+% background color for attribute / element listings
+\definecolor{darkgrey}{rgb}{0.8,0.8,0.8}
+
+% single xml <element> within text
+\newcommand\xel[1]{\textcolor[rgb]{0.00,0.50,0.00}{
+\tt{\textless#1\textgreater}}}
+
+% single closing </element> within txt
+\newcommand\xelclose[1]{\textcolor[rgb]{0.00,0.50,0.00}{
+\tt{\textless/#1\textgreater}}}
+
+% single empty <element/> within txt
+\newcommand\xelempty[1]{\textcolor[rgb]{0.00,0.50,0.00}{
+\tt{\textless #1/\textgreater}}}
+
+% single xml element value within the text
+\newcommand\xelv[1]{{\tt{#1}}}
+
+% single xml attribute within the text
+\newcommand\xat[1]{\textcolor[rgb]{0.49,0.56,0.16}{\tt{#1}}}
+
+% single xml attribute value within the text
+\newcommand\xatv[1]{\textcolor[rgb]{0.73,0.13,0.13}{\tt{#1}}}
+
+% generic xml value (no specfic value, just the name / meaning
+% of the parameter)
+\newcommand\xparam[1]{\textit{#1}}
+
+% definition list for attributes in the form
+% The first parameter names the description of the attribute
+% | Attribute | Values | Description |
+\newenvironment{xatlist}[1]
+{\begin{center} \newcommand{\attrDesc}{#1}
+\begin{tabular}{lp{0.3\textwidth}p{0.5\textwidth}} 
+\toprule \rowcolor{darkgrey}
+Attribute & Values & Description \\ \midrule} {\\\bottomrule
+\end{tabular}\\[0.2ex] \attrDesc \end{center}}
+
+
+
+% definition list for element values in the form
+\newenvironment{xellist}[1]
+{\begin{center} \newcommand{\xelDesc}{#1} 
+\begin{tabular}{lp{0.3\textwidth}p{0.5\textwidth}}
+\toprule \rowcolor{darkgrey} Element & Values & Description \\ \midrule}
+{\end{tabular} \\[0.2ex] \xelDesc\end{center}}
+
+% definition for inline xml code
+\newcommand{\xml}[1]{{\tt{#1}}}
+
+% definition for xml listing (do NOT use the verbatim environment!)
+\DefineVerbatimEnvironment{xmllisting}{Verbatim}{}
+
+% some helper definitions for plain verbatim style
+\newcommand{\myverb}[1]{\verb{#1}}
+\providecommand{\url}[1]{\texttt{#1}}
+
+% ===============================
+%  Mathematical Function 
+% ===============================
+
+% Single parameter
+\newcommand{\param}[1]{{\tt{#1}}}
+
+% Environment for specyfying parameters of mathematical functions
+\newenvironment{mathFunc}[1]
+{
+\begin{samepage}
+\begin{flushleft}
+\begin{minipage}[h!]{\textwidth}
+\vspace*{1em}
+\large \textbf{{\hspace*{1em} #1}}
+\end{minipage}
+\end{flushleft}
+\begin{center}
+\begin{tabular}{lp{0.7\textwidth}}
+\toprule \rowcolor{darkgrey} Parameter & Description \\ \midrule} 
+{\\\bottomrule \end{tabular} \\[0.2ex] \end{center} \end{samepage}}
+
+% ===============================
+%  Mathematical Abbreviations
+% ===============================
+
 \newcommand{\ba}{{\bf a}}
 \newcommand{\bA}{{\bf A}}
 \newcommand{\bB}{{\bf B}}
@@ -164,10 +258,9 @@
 \def\nmpd{{n_{mp}^d}}
 \def\op{{op}}   
 
-
 \newcommand{\nat}{\mathbb{N}}
-\newcommand{\xml}[1]{'\textbf{#1}'}
-\providecommand{\url}[1]{\texttt{#1}}
+
+
 %%% Local Variables: 
 %%% mode: latex
 %%% TeX-master: "chapter22"

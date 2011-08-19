@@ -7,6 +7,7 @@
 #include "PDE/SinglePDE.hh"
 #include "DataInOut/Logging/cfslog.hh"
 #include "Driver/assemble.hh"
+
 namespace CoupledField {
 
 
@@ -52,7 +53,7 @@ namespace CoupledField {
     // trick: Pretend, that no script is executing and simply
     // pass the error back to the global function
     isEvaluating_ = false;
-    Info->Error( msg, filename, numline );
+//    Info->Error( msg, filename, numline );
     
   }
   
@@ -61,7 +62,7 @@ namespace CoupledField {
     // trick: Pretend, that no script is executing and simply
     // pass the error back to the global function
     isEvaluating_ = false;
-    Info->Warning( msg, filename, numline );
+//    Info->WARN( msg, filename, numline );
     
   }
     
@@ -100,6 +101,10 @@ namespace CoupledField {
       // -- Assemble --
     } else if ( args[1] == "assemble" ) {
       success = domain->GetBasePDE()->getPDE_assemble()->Script_Eval(args, argOffset, retVal);
+      // -- Assemble --
+    } else if ( args[1] == "assemble" ) {
+      success = domain->GetBasePDE()->getPDE_assemble()->Script_Eval(args, argOffset, retVal);
+
       // -- Grid --
     } else if ( args[1] == "grid" ) {
       success = domain->GetGrid()->Script_Eval(args, argOffset, retVal);

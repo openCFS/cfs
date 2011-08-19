@@ -31,7 +31,7 @@
       <!-- Export linear system? (optional) -->
       <xsd:element name="exportLinSys" minOccurs="0">
         <xsd:complexType>
-          <xsd:attribute name="baseName" use="required" type="xsd:token"/>
+          <xsd:attribute name="baseName" use="optional" type="xsd:token"/>
           <xsd:attribute name="solution" use="optional" default="no">
             <xsd:simpleType>
               <xsd:restriction base="xsd:token">
@@ -69,9 +69,10 @@
       <xsd:element name="timeSteppingParameters" minOccurs="0" maxOccurs="1">
         <xsd:complexType>
           <xsd:sequence>
-            <xsd:element name="beta"  type="xsd:float"  />
-            <xsd:element name="gamma" type="xsd:float"  />
-            <xsd:element name="nu"    type="xsd:float"  />
+            <xsd:element name="beta"  type="xsd:float" minOccurs="0"/>
+            <xsd:element name="gamma" type="xsd:float" minOccurs="0" />
+            <xsd:element name="nu"    type="xsd:float" minOccurs="0"/>
+            <xsd:element name="omitInitialSol" type="DT_CFSBool" minOccurs="0"/>
           </xsd:sequence>
         </xsd:complexType>
       </xsd:element>
@@ -87,13 +88,13 @@
           <xsd:enumeration value="direct"/>
           <xsd:enumeration value="electrostatic"/>
           <xsd:enumeration value="magnetic"/>
+          <xsd:enumeration value="magneticScalar"/>
           <xsd:enumeration value="magneticEdge"/>
           <xsd:enumeration value="magneticEdge2"/>
           <xsd:enumeration value="mechanic"/>
           <xsd:enumeration value="mpcci"/>
           <xsd:enumeration value="piezo"/>
           <xsd:enumeration value="smooth"/>
-          <xsd:enumeration value="nrbc"/>
           <xsd:enumeration value="heatConduction"/>
           <xsd:enumeration value="fluidMech"/>
         </xsd:restriction>
@@ -139,7 +140,7 @@
       <xsd:simpleType>
         <xsd:restriction base="xsd:token">
           <xsd:enumeration value="expertsChoice"/>
-          <xsd:enumeration value="Richardson"/>
+          <xsd:enumeration value="richardson"/>
           <xsd:enumeration value="diagsolver"/>
           <xsd:enumeration value="cg"/>
           <xsd:enumeration value="gmres"/>
@@ -152,6 +153,7 @@
           <xsd:enumeration value="directLDL"/>
           <xsd:enumeration value="pardiso"/>
           <xsd:enumeration value="ilupack"/>
+          <xsd:enumeration value="cholmod"/>
         </xsd:restriction>
       </xsd:simpleType>
     </xsd:attribute>

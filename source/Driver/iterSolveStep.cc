@@ -10,6 +10,7 @@
 #include "PDE/StdPDE.hh"
 #include "CoupledPDE/itercoupledpde.hh"
 #include "CoupledPDE/pdecoupling.hh"
+#include "DataInOut/ResultCache.hh"
 
 namespace CoupledField
 {
@@ -32,12 +33,11 @@ namespace CoupledField
 
   //----------------------- STATIC--------------------------------------------
 
-  void IterSolveStep::SolveStepStatic(InfoNode* analysis_id)
+  void IterSolveStep::SolveStepStatic(PtrParamNode analysis_id, AdjointParameters* adjointParams)
   {
   
     SingleVector *val, *oldVal;
     UInt iter = 0;
-    UInt counter = 0;
     bool normsReached = false;
 
 
@@ -51,7 +51,6 @@ namespace CoupledField
                      iter+1);
       }
       
-      counter = 0;
       normsReached = true;
       
       for (UInt i=0; i<rPDE_.PDEs_.GetSize(); i++) {
@@ -63,8 +62,14 @@ namespace CoupledField
         rPDE_.PDEs_[i]->GetSolveStep()->SetActTime(actTime_);
         rPDE_.PDEs_[i]->GetSolveStep()->SetActStep(actStep_);
         rPDE_.PDEs_[i]->GetSolveStep()->PreStepStatic();
+        try {
         rPDE_.PDEs_[i]->CalcInputCoupling();
-        rPDE_.PDEs_[i]->GetSolveStep()->SolveStepStatic(analysis_id);
+        } catch( Exception& ex ) {
+          RETHROW_EXCEPTION(ex, "Could not calculate input coupling for PDE '"
+                            << rPDE_.PDEs_[i]->GetName() << "'");
+        }
+        
+        rPDE_.PDEs_[i]->GetSolveStep()->SolveStepStatic(analysis_id, adjointParams);
         rPDE_.PDEs_[i]->GetSolveStep()->PostStepStatic();
         rPDE_.PDEs_[i]->CalcOutputCoupling();
         
@@ -74,7 +79,7 @@ namespace CoupledField
           rCouplings_[i]->GetOutputValues(k, val);
           rCouplings_[i]->GetOutputOldValues(k, oldVal);
           
-          rPDE_.norms_[counter] = 
+          rPDE_.norms_[i] = 
             CalcNorm(rCouplings_[i]->GetOutputNormType(k), *val, *oldVal);
           
           if (rPDE_.nonLinLogging_) {
@@ -82,10 +87,10 @@ namespace CoupledField
             Info->PrintF(rPDE_.pdename_, " %s : Norm of %s = %g\n", 
                          (rCouplings_[i]->GetPDE()->GetName()).c_str(),
                          (SolutionTypeEnum.ToString(rCouplings_[i]->GetOutputQuantity(k))).c_str(),
-                         rPDE_.norms_[counter]);
+                         rPDE_.norms_[i]);
           }
           
-          if (rPDE_.norms_[counter] > rCouplings_[i]->GetOutputEpsilon(k) && 
+          if (rPDE_.norms_[i] > rCouplings_[i]->GetOutputEpsilon(k) && 
               rCouplings_[i]->GetOutputNormType(k) != NO_NORM)
             normsReached = false;
           
@@ -94,7 +99,6 @@ namespace CoupledField
             dynamic_cast<Vector<Double>&>(*val);
           
         }
-        counter++;            
       } // end of for-loop
       
       iter++;
@@ -103,12 +107,22 @@ namespace CoupledField
         Info->PrintF(rPDE_.pdename_, "\n");
       
     } // end of while-loop
+    if (iter >= rPDE_.maxiter_)
+    {
+      std::cerr << "WARNING: Iterative PDE coupling did not converge";
+    }
     
   }
 
 
   //----------------------- TRANSIENT-----------------------------------------
-  void IterSolveStep::SolveStepTrans(InfoNode* analysis_id)
+  void IterSolveStep::PreStepTrans()
+  {
+    ResultCache::SetStepValue( actTime_ );
+  }
+  
+  
+  void IterSolveStep::SolveStepTrans(PtrParamNode analysis_id, AdjointParameters* adjointParams)
   {
 
     UInt iter = 0;
@@ -123,12 +137,6 @@ namespace CoupledField
       rPDE_.PDEs_[i]->GetSolveStep()->SetStartStep(startStep_);
     }
 
-    //in case of FSI the predictor of the mechanic time integration is called first
-//    for (UInt i=0; i<rPDE_.PDEs_.GetSize(); i++) {
-//      rPDE_.PDEs_[i]->GetSolveStep()->PredictorStep();
-//    }
-
-   
     while (iter < rPDE_.maxiter_ &&  (! normsReached)) {
       
       if (rPDE_.nonLinLogging_) {
@@ -178,7 +186,7 @@ namespace CoupledField
         rPDE_.PDEs_[i]->GetSolveStep()->SetActStep(actStep_);
         rPDE_.PDEs_[i]->GetSolveStep()->PreStepTrans();
         rPDE_.PDEs_[i]->CalcInputCoupling();
-        rPDE_.PDEs_[i]->GetSolveStep()->SolveStepTrans(analysis_id);
+        rPDE_.PDEs_[i]->GetSolveStep()->SolveStepTrans(analysis_id, adjointParams);
 
         rPDE_.PDEs_[i]->CalcOutputCoupling();
               
@@ -232,7 +240,12 @@ namespace CoupledField
   } 
 
   //----------------------- HARMONIC---------------------------------------
-  void IterSolveStep::SolveStepHarmonic(InfoNode* analysis_id)
+  void IterSolveStep::PreStepHarmonic()
+  {
+    ResultCache::SetStepValue( actFreq_ );
+  }
+  
+  void IterSolveStep::SolveStepHarmonic(PtrParamNode analysis_id)
   {
     EXCEPTION("Harmonic iterative coupling is not yet implemented"); 
   }

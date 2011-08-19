@@ -10,15 +10,18 @@
 #include <def_use_mesh.hh>
 #include <def_use_gidpost.hh>
 #include <def_use_hdf5.hh>
+#include <def_use_gmsh.hh>
 #include <def_use_gmv.hh>
 #include <def_use_unv.hh>
 #include <def_use_ansysrst.hh>
 
 #include <iostream>
+#include <boost/tokenizer.hpp>
 #include <boost/filesystem/path.hpp>
 #include <boost/filesystem/convenience.hpp>
 namespace fs = boost::filesystem;
 
+#include "ParamsInit.hh"
 #include "General/environment.hh"
 #include "DataInOut/programOptions.hh"
 #include "DataInOut/simInput.hh"
@@ -27,6 +30,11 @@ namespace fs = boost::filesystem;
 
 #ifdef USE_MESH
 #include "DataInOut/SimInOut/AnsysFile/simInputMESH.hh"
+#endif
+
+#ifdef USE_GMSH
+#include "DataInOut/SimInOut/gmsh/simInputGmsh.hh"
+#include "DataInOut/SimInOut/gmsh/simOutputGmsh.hh"
 #endif
 
 #ifdef USE_GMV_INPUT
@@ -40,6 +48,8 @@ namespace fs = boost::filesystem;
 #ifdef USE_HDF5
 #include "DataInOut/SimInOut/hdf5/simInputHDF5.hh"
 #include "DataInOut/SimInOut/hdf5/simOutputHDF5.hh"
+
+#include "DataInOut/SimInOut/xdmf/simOutputXDMF.hh"
 #endif
 
 #ifdef USE_GIDPOST
@@ -57,76 +67,82 @@ namespace fs = boost::filesystem;
 
 #include "DataInOut/SimInOut/TextOutput/textSimOutput.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
-#include "DataInOut/ParamHandling/InfoNode.hh" 
 
 using namespace CoupledField;
+
 namespace CFSTool {
-  
- 
-  
-  shared_ptr<SimInput> GetInputReader( const std::string& fileName ) {
-    
+
+  void setFreeCoord(std::string coordSysId="default",
+      std::string node_name="averageDomain");
+  inline void setParamNode(PtrParamNode paramNode, std::string name, std::string value,
+      ParamNodeList* children = NULL);
+
+  shared_ptr<SimInput> GetInputReader(const std::string& fileName)
+  {
     // determine suffix of fileName
     shared_ptr<SimInput> reader;
 
-    if ( !fs::exists( fileName ) )
+    if (!fs::exists( fileName ))
       EXCEPTION( "\nFile '" << fileName << "' does not exist!");
 
     if( fileName.find( ".mesh") != std::string::npos ) {
 #ifdef USE_MESH
-      reader = shared_ptr<SimInput>(new SimInputMESH( fileName, NULL ) );
+      reader = shared_ptr<SimInput>(new SimInputMESH( fileName, PtrParamNode() ) );
 #else
       EXCEPTION( "No support for MESH input file format." );
 #endif
     } else if( fileName.find( ".h5") != std::string::npos ) {
 #ifdef USE_HDF5
-      ParamNode * hdf5Node = new ParamNode(false);
-      reader = shared_ptr<SimInput>(new SimInputHDF5(fileName, hdf5Node) );
-#else  
+      reader = shared_ptr<SimInput>(new SimInputHDF5(fileName, param));
+#else
       EXCEPTION( "No support for HDF5 input file format." );
+#endif
+    } else if( fileName.find( ".msh") != std::string::npos ) {
+#ifdef USE_GMSH
+      PtrParamNode gmshNode(new ParamNode (ParamNode::EX, ParamNode::ELEMENT));
+      reader = shared_ptr<SimInput>(new SimInputGmsh(fileName, gmshNode) );
+#else  
+      EXCEPTION( "No support for Gmsh input file format." );
 #endif
     } else if( fileName.find( ".gmv") != std::string::npos ) {
 #ifdef USE_GMV_INPUT
-      ParamNode * gmvNode = new ParamNode(false);
-      reader = shared_ptr<SimInput>(new SimInputGMV(fileName, gmvNode) );
-#else  
+      reader = shared_ptr<SimInput>(new SimInputGMV(fileName, param));
+#else
       EXCEPTION( "No support for GMV input file format." );
 #endif
     } else if( fileName.find( ".unv") != std::string::npos ||
         fileName.find( ".unverg") != std::string::npos ||
         fileName.find( ".unvref") != std::string::npos ) {
 #ifdef USE_UNV
-      ParamNode * unvNode = new ParamNode(false);
-      reader = shared_ptr<SimInput>(new SimInputUnv( fileName, unvNode ) );
+      reader = shared_ptr<SimInput>(new SimInputUnv( fileName, param ));
 #else
       EXCEPTION( "No support for UNV input file format." );
-#endif  
+#endif
     } else {
       EXCEPTION( "Found not suitable reader for file '" << fileName
           << "'" );
     }
 
-  return reader;
-}
-  
-  shared_ptr<SimOutput> GetOutputWriter( const std::string& fileName ) {
+    return reader;
+  }
 
+  shared_ptr<SimOutput> GetOutputWriter( const std::string& fileName ) {
     // determine suffix for fileName
     shared_ptr<SimOutput> writer;
     std::string baseName;
-    
+
     if( fileName.find( ".post") != std::string::npos ) {
 #ifdef USE_GIDPOST
       baseName = std::string(fileName, 0, fileName.find(".post"));
-      ParamNode * gidNode = new ParamNode(false);
-      ParamNode * binary = new ParamNode(false);
+      PtrParamNode gidNode( new ParamNode(ParamNode::EX, ParamNode::ELEMENT));
+      PtrParamNode binary (new ParamNode(ParamNode::EX, ParamNode::ATTRIBUTE));
       binary->SetName( "binaryFormat");
       if( fileName.find( ".bin") != std::string::npos ) {
         binary->SetValue( "yes");
       } else {
-        binary->SetValue( "false");  
+        binary->SetValue( "false");
       }
-      gidNode->GetChildren().Push_back(binary);
+      gidNode->AddChildNode( binary);
       writer = shared_ptr<SimOutput>( new SimOutputGiD( baseName, gidNode ) );
 #else
       EXCEPTION( "No support for GiD output file format." );
@@ -134,35 +150,64 @@ namespace CFSTool {
     } else if( fileName.find( ".gmv") != std::string::npos ) {
 #ifdef USE_GMV_OUTPUT
       baseName = std::string(fileName, 0, fileName.find(".gmv"));
-      ParamNode * gmvNode = new ParamNode(false);
-      ParamNode * binary = new ParamNode(false);
+      PtrParamNode gmvNode(new ParamNode(ParamNode::EX, ParamNode::ELEMENT));
+      PtrParamNode binary (new ParamNode(ParamNode::EX, ParamNode::ATTRIBUTE));
+
       binary->SetName("binaryFormat");
       binary->SetValue( "yes" );
-      ParamNode * fixedGrid = new ParamNode(false);
+      PtrParamNode fixedGrid (new ParamNode(ParamNode::EX, ParamNode::ATTRIBUTE));
       fixedGrid->SetName("fixedGrid");
       fixedGrid->SetValue( "yes" );
-      gmvNode->GetChildren().Push_back(binary);
-      gmvNode->GetChildren().Push_back(fixedGrid);
+      gmvNode->AddChildNode( binary);
+      gmvNode->AddChildNode( fixedGrid );
       writer = shared_ptr<SimOutput>( new SimOutputGMV( baseName, gmvNode ) );
-#else 
+#else
       EXCEPTION( "No support for GMV output file format." );
+#endif
+    } else if( fileName.find( ".msh") != std::string::npos ) {
+#ifdef USE_GMSH
+      baseName = std::string(fileName, 0, fileName.find(".msh"));
+      PtrParamNode gmshNode(new ParamNode(ParamNode::EX, ParamNode::ELEMENT));
+      PtrParamNode binary (new ParamNode(ParamNode::EX, ParamNode::ATTRIBUTE));
+      binary->SetName("binaryFormat");
+      binary->SetValue( "yes" );
+      PtrParamNode bigEndian (new ParamNode(ParamNode::EX, ParamNode::ATTRIBUTE));
+      bigEndian->SetName("endianness");
+      bigEndian->SetValue( "big" );
+      gmshNode->AddChildNode(binary);
+      gmshNode->AddChildNode(bigEndian);
+      writer = shared_ptr<SimOutput>( new SimOutputGmsh( baseName, gmshNode ) );
+#else 
+      EXCEPTION( "No support for GMsh output file format." );
 #endif
     } else if(fileName.find( ".h5") != std::string::npos) {
 #ifdef USE_HDF5
       baseName = std::string(fileName, 0, fileName.find(".h5"));
-      ParamNode * h5Node = new ParamNode(false);
-      ParamNode * eFiles = new ParamNode(false);
+      PtrParamNode h5Node (new ParamNode(ParamNode::EX, ParamNode::ELEMENT));
+      PtrParamNode eFiles (new ParamNode(ParamNode::EX, ParamNode::ATTRIBUTE));
       eFiles->SetName("externalFiles");
       eFiles->SetValue( "false" );
-      h5Node->GetChildren().Push_back(eFiles);
+      h5Node->AddChildNode(eFiles);
       writer =  shared_ptr<SimOutput>( new SimOutputHDF5( baseName, h5Node ) );
 #else
       EXCEPTION( "No support for HDF5 output file format." );
 #endif
+    } else if(fileName.find( ".xmf") != std::string::npos) {
+#ifdef USE_HDF5
+      baseName = std::string(fileName, 0, fileName.find(".xmf"));
+      PtrParamNode h5Node (new ParamNode(ParamNode::EX, ParamNode::ELEMENT));
+      PtrParamNode eFiles (new ParamNode(ParamNode::EX, ParamNode::ATTRIBUTE));
+      eFiles->SetName("externalFiles");
+      eFiles->SetValue( "false" );
+      h5Node->AddChildNode(eFiles);
+      writer =  shared_ptr<SimOutput>( new SimOutputXDMF( baseName, h5Node ) );
+#else
+      EXCEPTION( "No support for HDF5 output file format. Cannot write XDMF files." );
+#endif
     } else if(fileName.find( ".rst") != std::string::npos) {
 #ifdef USE_ANSYSRST
       baseName = std::string(fileName, 0, fileName.find(".rst"));
-      ParamNode * rstNode = new ParamNode(false);
+      PtrParamNode rstNode (new ParamNode(ParamNode::EX, ParamNode::ELEMENT));
       writer =  shared_ptr<SimOutput>( new SimOutputRST( baseName, rstNode ) );
 #else
       EXCEPTION( "No support for ANSYS .rst output file format." );
@@ -170,7 +215,7 @@ namespace CFSTool {
     } else if(fileName.find( ".unv") != std::string::npos) {
 #ifdef USE_UNV
       baseName = std::string(fileName, 0, fileName.find(".unv"));
-      ParamNode * unvNode = new ParamNode(false);
+      PtrParamNode unvNode (new ParamNode(ParamNode::EX, ParamNode::ELEMENT));
       writer =  shared_ptr<SimOutput>( new SimOutputUnv( baseName, unvNode ) );
 #else
       EXCEPTION( "No support for IDEAS universal output file format." );
@@ -183,37 +228,37 @@ namespace CFSTool {
   }
 
   void Convert( const std::string& inFile, const std::string& outFile ) {
-    
+
     // obtain input reader for inFile
     shared_ptr<SimInput> input = GetInputReader( inFile );
-    
+
     // read in mesh
     input->InitModule();
     UInt dim = input->GetDim();
     Grid * ptGrid = new GridCFS(dim);
     input->ReadMesh(ptGrid);
     ptGrid->FinishInit();
-    
-    
-    
+
+
+
     // obtain output writer
     shared_ptr<SimOutput> output = GetOutputWriter( outFile );
-    
+
     // obtain number of multiSequenceSteps and get analysis types
     std::map<UInt, BasePDE::AnalysisType> types;
     std::map<UInt, UInt> numSteps;
     input->GetNumMultiSequenceSteps( types, numSteps );
     std::cout << "\nFound " << types.size() << " sequence step(s)\n";
-    
-    // check if the input reader has results 
+
+    // check if the input reader has results
     bool printGridOnly = false;
     if( types.size() == 0) {
       printGridOnly = true;
       std::cerr << "Printing only grid\n";
     }
 
-     output->Init( ptGrid, printGridOnly);  
-     
+     output->Init( ptGrid, printGridOnly);
+
      // only iterate over results, if not only the mesh is converted
      if( !printGridOnly ) {
 
@@ -221,7 +266,7 @@ namespace CFSTool {
        // iterate over all multiSequenceSteps
        std::map<UInt,UInt>::iterator it;
        for( it = numSteps.begin(); it != numSteps.end(); it++ ) {
-         
+
          UInt actMsStep = it->first;
          std::cout << "\n----------------------------\n"
                    << " Converting sequence step " << actMsStep << std::endl
@@ -233,7 +278,7 @@ namespace CFSTool {
          StdVector<shared_ptr<BaseResult> > results;
          std::map<UInt, Double> stepVals;
          std::map<shared_ptr<ResultInfo>, std::map<UInt, Double> > resultSteps;
-         
+
          if( infos.GetSize() > 0 ){
              std::cout << "Converting the following results:\n";
          }
@@ -247,7 +292,7 @@ namespace CFSTool {
            input->GetStepValues( actMsStep, actRes, resultSteps[actRes] );
            stepVals.insert( resultSteps[actRes].begin(),
                             resultSteps[actRes].end() );
-           
+
            // iterate over all regions
            StdVector<shared_ptr<EntityList> > resEntities;
            input->GetResultEntities( actMsStep, actRes, resEntities );
@@ -265,13 +310,13 @@ namespace CFSTool {
              // Note: as the real values of saveBegin, saveInc and saveEnd are almost
              // nevert queried within an output format. we simply set saveBegin = 1,
              // saveInc = 1, saveEnd = number of result steps.
-             output->RegisterResult( result, 1, 1, resultSteps[actRes].size(), false ); 
+             output->RegisterResult( result, 1, 1, resultSteps[actRes].size(), false );
            }
          }
 
          // notify writer
          output->BeginMultiSequenceStep( actMsStep, types[actMsStep], numSteps[actMsStep] );
-         
+
          // iterate over all stepvalues of this multisequence step
          for( UInt iStep = 0; iStep < numSteps[actMsStep]; iStep++ ) {
 
@@ -286,7 +331,7 @@ namespace CFSTool {
 
            // iterate over all results
            for( UInt iRes = 0; iRes < results.GetSize(); iRes++) {
-             
+
              // check if current result is defined within this step
              if( resultSteps[results[iRes]->GetResultInfo()].find(actStepNum)
                  == resultSteps[results[iRes]->GetResultInfo()].end() ) {
@@ -297,7 +342,7 @@ namespace CFSTool {
                input->GetResult( actMsStep, actStepNum, results[iRes] );
                output->AddResult( results[iRes] );
              } catch (Exception& ex ) {
-             std::cerr <<  "\nResult '" << results[iRes]->GetResultInfo()->resultName 
+             std::cerr <<  "\nResult '" << results[iRes]->GetResultInfo()->resultName
                        << "' in MsStep" << actMsStep << ", step " << actStepNum
                        << " could not be converted:\n\n";
              std::cerr << ex.what() << std::endl;
@@ -306,103 +351,114 @@ namespace CFSTool {
            output->FinishStep();
          }
          output->FinishMultiSequenceStep();
-         
+
        } // loop over multisequence steps
      } // printGridOnly
      output->Finalize();
      delete ptGrid;
      std::cout << "\nOutput successfully written to " << outFile << std::endl;
   } //Convert()
- 
+
   double RadPhase( const Complex& c ) {
-    return std::atan2(c.imag() ,c.real() ); 
+    return std::atan2(c.imag() ,c.real() );
   }
-  
-  Double Diff( const std::string& inFile1, 
+
+  Double Diff( const std::string& inFile1,
                const std::string& inFile2,
                const std::string& outFile,
                bool normedtomax,
-               bool isHistory ) {
-       
+               bool isHistory,
+               std::string& maxDiffResultName) {
+
        // obtain input reader for inFiles
        shared_ptr<SimInput> input1 = GetInputReader( inFile1 );
        shared_ptr<SimInput> input2 = GetInputReader( inFile2 );
-       
+
        // check capabilities of input class
        bool printGridOnly = false;
        if( std::find( input1->GetCapabilities().begin(),
                       input1->GetCapabilities().end(),
-                      SimInput::MESH_RESULTS ) 
+                      SimInput::MESH_RESULTS )
            == input1->GetCapabilities().end() ) {
          std::cerr << "input files are only capable of handling meshes, not results!\n";
          exit(EXIT_FAILURE);
        }
-                       
+
        // read in mesh of input1
        input1->InitModule();
        UInt dim = input1->GetDim();
        Grid * ptGrid1 = new GridCFS(dim);
        input1->ReadMesh(ptGrid1);
        ptGrid1->FinishInit();
-       
+
        // read in mesh of input2
        input2->InitModule();
        Grid * ptGrid2 = new GridCFS(dim);
        input2->ReadMesh(ptGrid2);
        ptGrid2->FinishInit();
-       
+
        // obtain output writer
        shared_ptr<SimOutput> output;
        if( outFile != "" ) {
          output = GetOutputWriter( outFile );
          output->Init( ptGrid1, printGridOnly);
        }
-       
+
        // obtain number of Sequence Steps and get analysis types
        std::map<UInt, BasePDE::AnalysisType> types;
        std::map<UInt, UInt> numSteps;
        input1->GetNumMultiSequenceSteps( types, numSteps, isHistory );
+
+       std::cout << "\nFound " << types.size() << " sequence step(s) in '" << inFile1 << "'\n";
+       std::map<UInt, BasePDE::AnalysisType> types2;
+       std::map<UInt, UInt> numSteps2;
+       input2->GetNumMultiSequenceSteps( types2, numSteps2, isHistory );
+       std::cout << "\nFound " << types2.size() << " sequence step(s) in '" << inFile2 << "'\n";
        
-       std::cout << "\nFound " << types.size() << " sequence step(s)\n";
+       if(types.size() != types2.size()){
+         std::cout << "'" << inFile1 << "' and '" << inFile2
+            << "' have different number of sequence steps!\n";
+         exit(EXIT_FAILURE);
+       }
 
        // iterate over all Sequence Steps
        Double maxDiff = 0.0;
        std::map<UInt,UInt>::iterator it;
        for( it = numSteps.begin(); it != numSteps.end(); it++ ) {
-         
+
          UInt actMsStep = it->first;
          std::cout << " Diffing sequence step " << actMsStep << std::endl
                    << "-------------------------\n\n";
-         
+
          // get resulttypes
          StdVector<shared_ptr<ResultInfo> > infos;
          input1->GetResultTypes( actMsStep, infos, isHistory );
 
          StdVector<shared_ptr<BaseResult> > inResults1, inResults2, outResults;
-         // stepnumbers, for which at least one result is defined 
-         std::map<UInt, Double> stepVals; 
+         // stepnumbers, for which at least one result is defined
+         std::map<UInt, Double> stepVals;
          // contains the stepnumbers/-values in which the particular result is
          // defined in
          std::map<shared_ptr<ResultInfo>, std::map<UInt, Double> > resultSteps;
-         
+
          if( infos.GetSize() > 0 ){
            std::cout << "Performing diff on the following results:\n";
          }
          // iterate over all result types of input1
          for( UInt iRes = 0; iRes < infos.GetSize(); iRes++) {
 
-           std::cout << "\t" << infos[iRes]->resultName << "\n\n"; 
+           std::cout << "\t" << infos[iRes]->resultName << "\n";
 
            // get stepvalues
            shared_ptr<ResultInfo> actRes = infos[iRes];
-           input1->GetStepValues( actMsStep, actRes, 
+           input1->GetStepValues( actMsStep, actRes,
                                   resultSteps[actRes], isHistory);
            stepVals.insert( resultSteps[actRes].begin(),
                             resultSteps[actRes].end() );
-           
+
            // iterate over all regions
            StdVector<shared_ptr<EntityList> > regions;
-           input1->GetResultEntities( actMsStep, infos[iRes], 
+           input1->GetResultEntities( actMsStep, infos[iRes],
                                       regions, isHistory );
            for( UInt iRegion = 0; iRegion < regions.GetSize(); iRegion++ ) {
              // generate new result object and add it to output writer
@@ -419,11 +475,12 @@ namespace CFSTool {
              inResult1->SetEntityList( regions[iRegion] );
              inResult2->SetEntityList( regions[iRegion] );
              outResult->SetEntityList( regions[iRegion] );
-             
+
              inResult1->SetResultInfo( infos[iRes] );
+
              inResult2->SetResultInfo( infos[iRes] );
              outResult->SetResultInfo( infos[iRes] );
-             
+
              inResults1.Push_back( inResult1 );
              inResults2.Push_back( inResult2 );
              outResults.Push_back( outResult );
@@ -431,10 +488,10 @@ namespace CFSTool {
                // Hardcoded: set output format to AMPL_PHASE
                //outResult->GetResultInfo()->complexFormat = AMPLITUDE_PHASE;
                outResult->GetResultInfo()->complexFormat = REAL_IMAG;
-               
+
                // CAUTION: begin, inc, end are hardcoded and noch checked for each result
-               output->RegisterResult( outResult, 1, 1, 
-                                       resultSteps[actRes].size(), 
+               output->RegisterResult( outResult, 1, 1,
+                                       resultSteps[actRes].size(),
                                        isHistory );
              }
            }
@@ -442,30 +499,36 @@ namespace CFSTool {
 
          Vector<Double> maxResVec2;
          maxResVec2.Resize( inResults2.GetSize() );
-         
+
          // For transient simulation find maximum amplitude over all timesteps
          if( types[actMsStep] != BasePDE::HARMONIC ) {
-           
+
            // iterate over all results
            for( UInt iRes = 0; iRes < inResults2.GetSize(); iRes++) {
              
+             if(numSteps[actMsStep] != numSteps2[actMsStep]){
+               std::cout << "'" << inFile1 << "' has " << numSteps[actMsStep] << " and '" << inFile2
+                  << "' has " << numSteps2[actMsStep] << " time steps!\n";
+               exit(EXIT_FAILURE);
+             }
+
              maxResVec2[iRes] = 0.0;
              // iterate over all time steps
              for( UInt iStep = 0; iStep < numSteps[actMsStep]; iStep++ ) {
-               
+
                UInt actStepNum = iStep+1;
                // check if current result is defined within this step
                if( resultSteps[inResults2[iRes]->GetResultInfo()].find(actStepNum)
                    == resultSteps[inResults2[iRes]->GetResultInfo()].end() ) {
                  continue;
                }
-               
+
                input2->GetResult( actMsStep, actStepNum, inResults2[iRes], isHistory );
-               Vector<Double> & inVec2 = 
+               Vector<Double> & inVec2 =
                  dynamic_cast<Result<Double>& >(*inResults2[iRes]).GetVector();
-               
+
                for( UInt i = 0; i<inVec2.GetSize(); i++ ) {
-                 if( std::abs(inVec2[i]) > maxResVec2[iRes] ) 
+                 if( std::abs(inVec2[i]) > maxResVec2[iRes] )
                      maxResVec2[iRes] = std::abs(inVec2[i]);
                }
              }
@@ -473,14 +536,14 @@ namespace CFSTool {
                        << "' maximum amplitude is: " << maxResVec2[iRes] << "\n";
            }
          }
-         
+
 
          // notify writer
-         if( output) {  
-           output->BeginMultiSequenceStep( actMsStep, types[actMsStep], 
+         if( output) {
+           output->BeginMultiSequenceStep( actMsStep, types[actMsStep],
                                            numSteps[actMsStep] );
          }
-         
+
          // iterate over all time/frequency steps
          for( UInt iStep = 0; iStep < numSteps[actMsStep]; iStep++ ) {
 
@@ -489,11 +552,11 @@ namespace CFSTool {
              continue;
            UInt actStepNum = iStep+1;
            Double actStepVal = stepVals[iStep+1];
-           
+
            if( output) {
              output->BeginStep( actStepNum, actStepVal );
            }
-           
+
            // iterate over all results
            for( UInt iRes = 0; iRes < inResults1.GetSize(); iRes++) {
              // check if current result is defined within this step
@@ -501,70 +564,71 @@ namespace CFSTool {
                  == resultSteps[inResults1[iRes]->GetResultInfo()].end() ) {
                continue;
              }
-             
+
              // obtain both result objects for current step
              input1->GetResult( actMsStep, actStepNum, inResults1[iRes], isHistory );
              input2->GetResult( actMsStep, actStepNum, inResults2[iRes], isHistory );
-             
+
              // get number of dofs of result
              UInt numDofs = inResults1[iRes]->GetResultInfo()->dofNames.GetSize();
-             
+
              // cast result objects, get vector and calculate difference vector
              if( types[actMsStep] != BasePDE::HARMONIC ) {
-               Vector<Double> & inVec1 = 
+               Vector<Double> & inVec1 =
                  dynamic_cast<Result<Double>& >(*inResults1[iRes]).GetVector();
-               Vector<Double> & inVec2 = 
+               Vector<Double> & inVec2 =
                   dynamic_cast<Result<Double>& >(*inResults2[iRes]).GetVector();
-               Vector<Double> & outVec = 
+               Vector<Double> & outVec =
                  dynamic_cast<Result<Double>& >(*outResults[iRes]).GetVector();
                outVec.Resize( inVec1.GetSize() );
-               
+
                // find maximum amplitude of inResult2
                for( UInt i = 0; i<inVec2.GetSize(); i++ ) {
-                 if( std::abs(inVec2[i]) > maxResVec2[iRes]) 
+                 if( std::abs(inVec2[i]) > maxResVec2[iRes])
                    maxResVec2[iRes] = std::abs(inVec2[i]);
                }
-               
-               // calculate difference entrywise 
+
+               // calculate difference entrywise
                outVec = inVec1 - inVec2;
                if (normedtomax == true) {
                  outVec /= maxResVec2[iRes];
                }
-               
+
                // find maximum entry in difference vector
                for( UInt i = 0; i < outVec.GetSize(); i++ ) {
                  if( std::abs(outVec[i]) > maxDiff) {
                    maxDiff = std::abs(outVec[i]) ;
+                   maxDiffResultName = inResults1[iRes]->GetResultInfo()->resultName;
                  }
                }
-                             
+
              } else {
-               Vector<Complex> & inVec1 = 
+               Vector<Complex> & inVec1 =
                  dynamic_cast<Result<Complex>& >(*inResults1[iRes]).GetVector();
-               Vector<Complex> & inVec2 = 
+               Vector<Complex> & inVec2 =
                  dynamic_cast<Result<Complex>& >(*inResults2[iRes]).GetVector();
-               Vector<Complex> & outVec = 
+               Vector<Complex> & outVec =
                  dynamic_cast<Result<Complex>& >(*outResults[iRes]).GetVector();
                outVec.Resize( inVec1.GetSize() );
 
                // find maximum amplitude of inResult2 in every frequency step
                Double maxRes2 = 0.0;
                for( UInt i = 0; i<inVec2.GetSize(); i++ ) {
-                 if( std::abs(inVec2[i]) > maxRes2) 
+                 if( std::abs(inVec2[i]) > maxRes2)
                    maxRes2 = std::abs(inVec2[i]);
                }
-               
+
                Double aDiff, pDiff, aMax=0.0, aMin=0.0, pMax=0.0, pMin=0.0;
                Double rDiff, iDiff, rMax=0.0, iMax=0.0;
-               
+
                // iterate over all dofs
                for (UInt dof = 0; dof<numDofs ; dof++) {
                  // iterate over number of entities
                  for( UInt i = 0; i<UInt(inVec2.GetSize()/numDofs); i++ ) {
-                   
+
                    // index to access entity 'i' of dof 'dof'
                    UInt actIndex = i * numDofs + dof;
-                   
+
                    // amplitude difference
                    if (normedtomax == true)
                      aDiff = ( std::abs(inVec1[actIndex]) - std::abs(inVec2[actIndex]) )/maxRes2;
@@ -573,17 +637,17 @@ namespace CFSTool {
 
                    // phase difference in multiples of pi
                    pDiff = RadPhase(inVec1[actIndex]) - RadPhase(inVec2[actIndex]);
-                   
+
                    // correct 2*pi-offset if phase angles have different signs
                    if ( (std::abs(pDiff)>PI) && (pDiff<0) )
                      pDiff+= 2*PI;
                    if ( (std::abs(pDiff)>PI) && (pDiff>0) )
                      pDiff-= 2*PI;
-                   
+
                    // Dirty hack! Write differences in real_imag format.
                    outVec[actIndex] = Complex( aDiff, pDiff*180/PI );
-                   
-                   // maximum and minimum values                      
+
+                   // maximum and minimum values
                    if( pDiff > pMax )
                      pMax = pDiff;
                    if( pDiff < pMin )
@@ -601,7 +665,7 @@ namespace CFSTool {
                    if ( iDiff > iMax)
                      iMax = iDiff;
                  }
-                 
+
                  if( normedtomax == true)
                    std::cout << "\n\tMaximum rel. + amplitude difference:  " << aMax*100 << " %\n"
                              << "\tMaximum rel. - amplitude difference: " << aMin*100 << " %\n";
@@ -610,20 +674,20 @@ namespace CFSTool {
                              << "\tMaximum - amplitude difference: " << aMin <<  "\n";
 
                  std::cout << "\tMaximum + phase difference:      " << pMax*180/PI <<  " deg\n"
-                           << "\tMaximum - phase difference:     " << pMin*180/PI <<  " deg\n";        
-                 
+                           << "\tMaximum - phase difference:     " << pMin*180/PI <<  " deg\n";
+
                  // return maxDiff for differences in real and imaginary part
                  if ( (rMax > iMax) && (rMax > maxDiff) )
                    maxDiff = rMax;
                  else if ( (iMax > rMax) && (iMax > maxDiff) )
-                   maxDiff = iMax;        
+                   maxDiff = iMax;
                }
                std::cout << "\n\tMaximum overall rel. difference = " << maxDiff << "\n\n";
              }
 
              // add result to output file
-             if ( output )
-               output->AddResult( outResults[iRes] ); 
+             if (output )
+               output->AddResult( outResults[iRes] );
            }
            if( output )
              output->FinishStep();
@@ -638,31 +702,338 @@ namespace CFSTool {
        }
        delete ptGrid1;
        delete ptGrid2;
-       
+
        return maxDiff;
-       
+
   } //Diff
-  
-  /** Initialize static Enums. 
+
+  /**
+   * calcAverage calclulates the average of a physical field at each timestep. It
+   * stores the results in outFile
+   * @param inFile The file which carries the data (e.g. acoustic pressure , mechanical
+   * displacement)
+   * @param meshFile The mesh file to associate each value with a point in space
+   * Import not all points should be included into the averagin.
+   * @return void
+   */
+
+  void calcAverage( const std::string& inFile,
+              const std::string& outFile)
+  {
+    std::string isFreecoord = param->Get("freeCoord")->As<std::string>();
+    if (isFreecoord != "")
+    {
+      std::cerr << "selection of region not implemented!\n";
+      exit(EXIT_FAILURE);
+      // TODO: this is the call then for setting everything up
+      //setFreeCoord();
+    }
+
+    // obtain input reader for inFiles
+    shared_ptr<SimInput> input = GetInputReader(inFile);
+
+    // check capabilities of input class
+    bool printGridOnly = false;
+    if (std::find( input->GetCapabilities().begin(),
+          input->GetCapabilities().end(),
+          SimInput::MESH_RESULTS )
+        == input->GetCapabilities().end())
+    {
+      std::cerr << "input file is only capable of handling mesh, not results!\n";
+      exit(EXIT_FAILURE);
+    }
+
+    // read in mesh of input
+    input->InitModule();
+    UInt dim = input->GetDim();
+    Grid * ptGrid = new GridCFS(dim);
+    input->ReadMesh(ptGrid);
+    ptGrid->FinishInit();
+
+    // obtain output writer
+    shared_ptr<SimOutput> output;
+    output = GetOutputWriter( outFile );
+    output->Init( ptGrid, printGridOnly);
+
+    // obtain number of Sequence Steps and get analysis types
+    std::map<UInt, BasePDE::AnalysisType> types;
+    std::map<UInt, UInt> numSteps;
+    input->GetNumMultiSequenceSteps( types, numSteps, false );
+
+    std::cout << "\nFound " << types.size() << " sequence step(s)\n";
+
+    // iterate over all Sequence Steps
+    std::map<UInt,UInt>::iterator it;
+    for (it = numSteps.begin(); it != numSteps.end(); it++)
+    {
+      UInt actMsStep = it->first;
+      std::cout << " averaging step " << actMsStep << std::endl
+        << "-------------------------\n\n";
+
+      // get resulttypes
+      StdVector<shared_ptr<ResultInfo> > infos;
+      input->GetResultTypes( actMsStep, infos, false );
+
+      StdVector<shared_ptr<BaseResult> > inResults, outResults;
+      // stepnumbers, for which at least one result is defined
+      std::map<UInt, Double> stepVals;
+      // contains the stepnumbers/-values in which the particular result is
+      // defined in
+      std::map<shared_ptr<ResultInfo>, std::map<UInt, Double> > resultSteps;
+
+      if (infos.GetSize() > 0)
+      {
+        std::cout << "Performing average on the following results:\n";
+      }
+      // iterate over all result types of input
+      for (UInt iRes = 0; iRes < infos.GetSize(); iRes++)
+      {
+        std::cout << "\t" << infos[iRes]->resultName << "\n\n";
+
+        // get stepvalues
+        shared_ptr<ResultInfo> actRes = infos[iRes];
+        input->GetStepValues( actMsStep, actRes,
+            resultSteps[actRes], false);
+        stepVals.insert( resultSteps[actRes].begin(),
+            resultSteps[actRes].end() );
+
+        // iterate over all regions
+        StdVector<shared_ptr<EntityList> > regions;
+        input->GetResultEntities( actMsStep, infos[iRes],
+            regions, false );
+        for (UInt iRegion = 0; iRegion < regions.GetSize(); iRegion++)
+        {
+          // generate new result object and add it to output writer
+          shared_ptr<BaseResult > inResult, outResult;
+          if (types[actMsStep] != BasePDE::HARMONIC)
+          {
+            inResult  = shared_ptr<BaseResult>( new Result<Double>() );
+            outResult = shared_ptr<BaseResult>( new Result<Double>() );
+          } else {
+            std::cerr << "Averaging over harmonic results does not make sense\n";
+            exit(EXIT_FAILURE);
+          }
+          inResult->SetEntityList( regions[iRegion] );
+          outResult->SetEntityList( regions[iRegion] );
+
+          inResult->SetResultInfo( infos[iRes] );
+          outResult->SetResultInfo( infos[iRes] );
+
+          inResults.Push_back( inResult );
+          outResults.Push_back( outResult );
+          if (output)
+          {
+            // Hardcoded: set output format to AMPL_PHASE
+            //outResult->GetResultInfo()->complexFormat = AMPLITUDE_PHASE;
+            outResult->GetResultInfo()->complexFormat = REAL_IMAG;
+
+            // CAUTION: begin, inc, end are hardcoded and noch checked for each result
+            output->RegisterResult( outResult, 1, 1,
+                                    resultSteps[actRes].size(),
+                                    false );
+          }
+        }
+      }
+
+      // notify writer
+      if (output)
+      {
+        output->BeginMultiSequenceStep( actMsStep, types[actMsStep],
+            numSteps[actMsStep] );
+      }
+
+      // iterate over all time/frequency steps
+      for (UInt iStep = 1; iStep <= numSteps[actMsStep]; ++iStep)
+      {
+        // check, if current step contains any results
+        if (stepVals.find(iStep) == stepVals.end())
+        {
+          continue;
+        }
+        Double actStepVal = stepVals[iStep];
+
+        if (output)
+        {
+          output->BeginStep(iStep, actStepVal);
+        }
+        // iterate over all results
+        for (UInt iRes = 0; iRes < inResults.GetSize(); iRes++)
+        {
+          // check if current result is defined within this step
+          if (resultSteps[inResults[iRes]->GetResultInfo()].find(iStep)
+              == resultSteps[inResults[iRes]->GetResultInfo()].end())
+          {
+            continue;
+          }
+
+          // obtain result objects for current step
+          input->GetResult(actMsStep, iStep, inResults[iRes], false);
+
+          // get number of dofs of result
+#if 0 // TODO check if needed
+          UInt numDofs = inResults[iRes]->GetResultInfo()->dofNames.GetSize();
+#endif
+
+          // cast result objects, get vector and calculate difference vector
+          if (types[actMsStep] != BasePDE::HARMONIC)
+          {
+            Double meanVal = 0.0;
+            Vector<Double> & inVec =
+              dynamic_cast<Result<Double>& >(*inResults[iRes]).GetVector();
+            Vector<Double> & outVec =
+              dynamic_cast<Result<Double>& >(*outResults[iRes]).GetVector();
+            UInt inVec_size = inVec.GetSize();
+
+            // sum up and divide by number of entries <- averaging
+            for (UInt i = 0; i < inVec_size; ++i)
+            {
+              meanVal += inVec[i];
+            }
+            meanVal /= (Double)inVec_size;
+            outVec.Resize(inVec_size);
+            for (UInt i = 0; i < inVec_size; ++i)
+            {
+              outVec[i] = meanVal;
+            }
+          } else {
+            std::cerr << "Averaging over harmonic results does not make sense\n";
+            exit(EXIT_FAILURE);
+          }
+          // add result to output file
+          if (output)
+          {
+              output->AddResult(outResults[iRes]);
+          }
+        }
+        if (output)
+        {
+            output->FinishStep();
+        }
+      }
+      if (output)
+      {
+          output->FinishMultiSequenceStep();
+      }
+
+    }
+    if (output)
+    {
+      output->Finalize();
+      std::cout << "\nOutput successfully written to " << outFile << std::endl;
+    }
+    delete ptGrid;
+  } //calcAverage
+
+  /** Initialize static Enums.
    * todo: do better once - Fabian */
   void InitEnums()
   {
     SetEnvironmentEnums();
     BasePDE::SetEnums();
+    EntityList::SetEnums();
   }
-  
-  
+
+  void setFreeCoord(std::string coordSysId,
+      std::string node_name)
+  {
+
+    std::vector<std::string> freeCoord;
+    typedef boost::tokenizer< boost::char_separator<char> > Tok;
+    boost::char_separator<char> sep(";| ");
+
+    // Initialize vector with output fields
+    Tok tokenizer(param->Get("freeCoord")->As<std::string>(), sep);
+    std::copy(tokenizer.begin(), tokenizer.end(),
+              std::back_inserter(freeCoord));
+    if (freeCoord.size() != 4)
+    {
+      EXCEPTION("Not enought arguments " << freeCoord.size() \
+          << ". Need 4 arguments (comp, start, stop, inc')");
+    }
+
+    PtrParamNode parent;
+
+    ParamNodeList childVec;
+    childVec.Push_back(PtrParamNode(new ParamNode())); // comp
+    childVec.Push_back(PtrParamNode(new ParamNode())); // start
+    childVec.Push_back(PtrParamNode(new ParamNode())); // stop
+    childVec.Push_back(PtrParamNode(new ParamNode())); // inc
+
+    // create a tree (Paramnode):
+    // domain->nodeList->nodes->(name, list (coordSysId, freeCoord->(comp, start, stop, inc)))
+    // create leafes (comp, start, stop, inc)
+    setParamNode(childVec[0], "comp",  freeCoord[0]);
+    setParamNode(childVec[1], "start", freeCoord[1]);
+    setParamNode(childVec[2], "stop",  freeCoord[2]);
+    setParamNode(childVec[3], "inc",   freeCoord[3]);
+    
+
+    // create node (freeCoord) with comp,start,stop,inc as children
+    parent = PtrParamNode(new ParamNode(ParamNode::EX, ParamNode::ELEMENT));
+    setParamNode(parent, "freeCoord", "", &childVec);
+    
+    // create node (list) with freeCoord and coordSysId as children
+    childVec.Clear();
+    childVec.Push_back(PtrParamNode( new ParamNode())); // coordSysId
+    childVec.Push_back(parent);
+    setParamNode(childVec[0], "coordSysId", coordSysId);
+    childVec.Push_back(PtrParamNode( new ParamNode())); // gridId
+    childVec.Push_back(parent);
+    setParamNode(childVec[1], "gridId", "default");
+    parent = PtrParamNode( new ParamNode()); //list
+    setParamNode(parent, "list", "", &childVec);
+
+    // create leaf (name)
+    childVec.Clear();
+    childVec.Push_back(parent);
+    parent = PtrParamNode( new ParamNode()); //nodes name=""
+    setParamNode(parent, "name", node_name);
+    childVec.Push_back(parent);
+
+
+    // create node (nodes) with name and list as childer
+    parent = PtrParamNode( new ParamNode()); //nodes
+    setParamNode(parent, "nodes", "", &childVec);
+
+    // create node (nodeList) with nodes as child
+    childVec.Clear();
+    childVec.Push_back(parent);
+    parent = PtrParamNode( new ParamNode()); //nodeList
+    setParamNode(parent, "nodeList", "", &childVec);
+
+    // create node (domain) with nodeList as child
+    childVec.Clear();
+    childVec.Push_back(parent); //domain
+    //parent = new ParamNode(false); //nodeList
+    //setParamNode(param, "domain", "", &childVec);
+    //childVec.Clear();
+
+    // put the childs into param
+    param->Get("domain",ParamNode::INSERT )->GetChildren().Push_back(parent);
+  }
+
+  inline void setParamNode(PtrParamNode paramNode, std::string name, std::string value,
+      ParamNodeList* children  )
+  {
+    paramNode->SetName(name);
+    if (name != "")
+    {
+      paramNode->SetValue(value);
+    }
+    if (children != NULL)
+    {
+      ParamNodeList &childTmp = paramNode->GetChildren();
+      childTmp = *children;
+    }
+  }
+
+
+
 } //Namespace CFSTool
 
 
-int main(int argc, char** argv) {
-  
-  // Switch this flag to true for debugging
-#ifndef NDEBUG
-  Exception::segfault_ = true;
-#else
-  Exception::segfault_ = false;
-#endif
+int main(int argc, char** argv)
+{
 
   // todo: do better once! - Fabian
   CFSTool::InitEnums(); 
@@ -679,117 +1050,130 @@ int main(int argc, char** argv) {
   std::cout << "============================================================"
             << "==========="
             << std::endl << std::endl;
- 
-  try {
-    if( argc < 2) {
-      std::cout << "CFS TOOL 1.0 \n\n"
-                << "Usage:\tcfstool modus [args]\n\n"
-                << "The following modi are vailable:\n\n"
-                << "\tconvert <infile> <outfile>\n"
-                << "\tscalardiff <reference_file> <compare_file> <tolerance>\n"
-                << "\t\tIs max(in_1 - in_2) / max(in_2) < tolerance?\n"
-                << "\tmeshdiff <reference_file> <compare_file> <outfile>\n"
-                << "\t\ti.e. out = in_1 -in_2\n"
-                << "\tmeshdiffnormed <reference_file> <compare_file> <outfile>\n"
-                << "\t\ti.e. out = (in_1 - in_2) / max(in_2)\n"
-                << "\tversion"
-                << "\n\n"
-                << "List of supported formats:\n"
-                << "\tinput: .mesh .h5 .unv[erg|ref] .gmv\n"
-                << "\toutput: .h5, .post.res, .post.bin, .gmv .rst\n"
-                << "\n\n"
-                << "Please note that the input/output format is chosen "
-                << "depending on the file suffix\n\n";
-      return EXIT_FAILURE;
+
+  std::string maxDiffResultName; // that's chaos man!
+  std::string infoFileName;
+  try
+  {
+    param = PtrParamNode(new ParamNode( ParamNode::PASS, ParamNode::ELEMENT));
+
+    ParamsInit(argc, argv);
+
+    // Switch this flag tc true for debugging
+    if (param->Get("forceSegFault")->As<bool>())
+    {
+      Exception::segfault_ = true;
+    } else {
+      Exception::segfault_ = false;
     }
-    // check command line arguments
-    // 4 modi:
-    // 1) cfstool convert <infile> <outfile>
-    // 2) cfstool scalardiff <infile1> <infile2>
-    // 3) cfstool meshdiff <infile1> <infile2> <outfile>
-    // 4) cfstool meshdiffnormed <infile1> <infile2> <outfile>
-    std::string modus = argv[1];
-    
-    // we have to instantiate the global InfoNode object as some classes 
-    // assumes it for its logging. It might also be helpfull in providing more details 
-    // do this only if we have a change of valid command line 
-    if(argc >= 4) { 
-      info = new InfoNode(modus + "_" + argv[2] + ".info.xml", "<?xml version=\"1.0\"?>"); 
+
+    std::string param_mode = param->Get("mode")->As<std::string>();
+
+    // get filenames from parameter
+    std::string inputFile = param->Get("inputFile")->As<std::string>();
+    std::string compareFile = param->Get("compareFile")->As<std::string>();
+    std::string outputFile = param->Get("outputFile")->As<std::string>();
+
+    // Initialize vector with output fields
+    UInt num_files = 0;
+    if (inputFile != "")
+    {
+      ++num_files;
+      if (compareFile != "")
+      {
+        ++num_files;
+        if (outputFile != "")
+        {
+          ++num_files;
+        }
+      }
+    }
+    if (inputFile != "")
+    {
+      // This is necessary to run, but I do not know what it is for
+      info = PtrParamNode(new ParamNode(ParamNode::INSERT, ParamNode::ELEMENT));
+      infoFileName = param_mode + "_" + inputFile + ".info.xml";
       info->SetName("cfsInfo"); 
-    } else { 
-      info = NULL; 
-    } 
-    
-    
-    if( modus == "convert" ) {
-      if( argc != 4 ) {
+    }
+
+    if (param_mode == "calcAverage")
+    {
+      if (outputFile != "")
+      {
+        EXCEPTION( "Two many arguments, please only provide two files. (in- and output file)" );
+      }
+      outputFile = compareFile;
+      if (num_files != 2)
+      {
+        EXCEPTION( "Please provide a reference file and output File" );
+      }
+      CFSTool::calcAverage(inputFile, outputFile);
+    } else if (param_mode == "convert") {
+      if (outputFile != "")
+      {
+        EXCEPTION( "Two many arguments, please only provide two files. (in- and output file)" );
+      }
+      outputFile = compareFile;
+      if (num_files != 2)
+      {
         EXCEPTION( "Please provide <infFile> and <outFile>" );
       }
-      CFSTool::Convert( argv[2], argv[3] );
-
-    } else if( modus == "scalardiff" ) {
-      if( argc != 5 ) {
-        EXCEPTION( "Please provide <infFile1>, <inFile2> and <tolerance>" );
-      }
-      Double tolerance = 0.0;
-      try {
-        tolerance = boost::lexical_cast<Double>(argv[4]);
-      } catch (std::exception& ex ) {
-        EXCEPTION( "Could not convert '" << argv[4] << "' to double value");
+      CFSTool::Convert( inputFile, outputFile );
+    } else if (param_mode == "scalardiff") {
+      Double tolerance = param->Get("eps")->As<Double>();
+      if (num_files != 2)
+      {
+        EXCEPTION( "Please provide <inFile1> and <inFile2>" );
       }
       Double maxDiffMesh = 0.0, maxDiffHist = 0.0;
       std::cout << "Checking for mesh results:\n"
-                << "==========================";
-      maxDiffMesh = CFSTool::Diff( argv[2], argv[3], "", true, false );
+        << "==========================";
+      maxDiffMesh = CFSTool::Diff( inputFile, compareFile, "", \
+                                  true, false, maxDiffResultName);
       std::cout << "Checking for history results:\n"
-                << "=============================";
-      maxDiffHist = CFSTool::Diff( argv[2], argv[3], "", true, true );
+        << "=============================";
+      maxDiffHist = CFSTool::Diff( inputFile, compareFile, "", \
+                                  true, true, maxDiffResultName );
       Double maxDiff = std::max( maxDiffMesh, maxDiffHist );
       if( maxDiff > tolerance ) {
-        std::cout << "  Files '" << argv[2] << "' and '" << argv[3]
-                  << "' differ with maximum difference of "
-                  << maxDiff << "\n";
+        std::cout << "'" << inputFile << "' and '" << compareFile
+          << "' have maximum difference " << maxDiff
+          << " at '" << maxDiffResultName << "'\n";
         exit(EXIT_FAILURE);
       } else {
         std::cout << "  No differences larger than tolerance found.\n";
         exit(EXIT_SUCCESS);
       }
-
-    } else if( modus == "meshdiff" ) {
-      if( argc != 5 ) {
-        EXCEPTION( "Please provide <infFile1>, <inFile2> and <outFile>" );
+    } else if (param_mode == "meshdiff") {
+      if (num_files != 3)
+      {
+        EXCEPTION( "Please provide <inFile1>, <inFile2> and <outFile>" );
       }
       Double maxDiff = 0.0;
-      maxDiff = CFSTool::Diff( argv[2], argv[3], argv[4], false, false );
-
-    } else if( modus == "meshdiffnormed" ) {
-      if( argc != 5 ) {
-        EXCEPTION( "Please provide <infFile1>, <inFile2> and <outFile>" );
+      maxDiff = CFSTool::Diff( inputFile, compareFile, outputFile, \
+                                false, false, maxDiffResultName);
+    } else if (param_mode == "meshdiffnormed") {
+      if (num_files != 3)
+      {
+        EXCEPTION( "Please provide <inFile1>, <inFile2> and <outFile>" );
       }
       Double maxDiff = 0.0;
-      maxDiff = CFSTool::Diff( argv[2], argv[3], argv[4], true, false );
-    } else if( modus == "version" ) {
-      ProgramOptions::GetVersionString(std::cout, false);
-      return EXIT_SUCCESS;
+      maxDiff = CFSTool::Diff( inputFile, compareFile, outputFile, \
+                                true, false, maxDiffResultName);
     } else {
-      std::cerr << "mode '" << modus << "' not known\n";
+      EXCEPTION( "No such mode: " << param_mode <<". See help for available modes" );
       return EXIT_FAILURE;
     }
-
-
-  }  
-  catch(std::exception& ex) 
-  { 
-    std::cerr << "The following error occured:\n" << ex.what(); 
-    if(info != NULL)  { 
-      info->Get(InfoNode::ERROR)->SetValue(ex.what()); 
-      info->ToFile(); 
-    } 
+  } catch(std::exception& ex) {
+    std::cerr << "The following error occured:\n" << ex.what();
+    if (info != NULL)
+    {
+      info->Get(ParamNode::ERROR)->SetValue(ex.what());
+      info->ToFile(infoFileName);
+    }
     std::cerr << "The following error occured during program execution:\n\n" << ex.what();
     return -1;
   }
-  info->ToFile(); 
-  delete info;
-  
+  info->ToFile(infoFileName);
   return 0;
 }

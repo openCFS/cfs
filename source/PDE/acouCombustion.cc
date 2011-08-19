@@ -10,7 +10,6 @@
 #include <complex>
 
 #include "OLAS/algsys/basesystem.hh"
-#include "DataInOut/freqfunc.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "Driver/stdSolveStep.hh"
 #include "Driver/singleDriver.hh"
@@ -25,7 +24,7 @@ extern "C" {
 namespace CoupledField
 {
 
-  AcouCombustionNoise::AcouCombustionNoise( Grid *aptgrid, ParamNode* paramNode )
+  AcouCombustionNoise::AcouCombustionNoise( Grid *aptgrid, PtrParamNode paramNode )
     :AcousticPDE( aptgrid, paramNode )
   {
 
@@ -52,10 +51,10 @@ namespace CoupledField
 
 
     // fetch combustion data node
-    ParamNode * combNode = myParam_->Get("combustionData");
-    combNode->Get("coupledRegion",coupledRegionNames[0]);
-    ptgrid_->RegionNameToId( subdoms_, regionNames );
-    ptgrid_->RegionNameToId( couplSubDomId_, coupledRegionNames );
+    PtrParamNode combNode = myParam_->Get("combustionData");
+    combNode->GetValue("coupledRegion",coupledRegionNames[0]);
+    ptgrid_->GetRegion().Parse(regionNames, subdoms_);
+    ptgrid_->GetRegion().Parse(coupledRegionNames, couplSubDomId_);
 
     std::cout << "CplRegion: " << coupledRegionNames[0] << std::endl;
     std::cout << "CplRegionID: " << couplSubDomId_ << std::endl;
@@ -64,32 +63,40 @@ namespace CoupledField
       srcChemical, srcDensityDeriv2, srcHeatRelease, srcShearTerm,
       srcGasConstDeriv2;
 
-    combNode->Get("fileName",filenameCFD_);
-    combNode->Get("varSpeedOfSound",varSpeedOfSound);
-    combNode->Get("ReynoldStress",srcReynoldStress);
-    combNode->Get("momentum",srcMomentum);
-    combNode->Get("chemical",srcChemical);
-    combNode->Get("densityDeriv2",srcDensityDeriv2);
-    combNode->Get("heatRelease",srcHeatRelease);
-    combNode->Get("gasConstDeriv2",srcGasConstDeriv2);
-    combNode->Get("shearTerm",srcShearTerm);
+    combNode->GetValue("fileName",filenameCFD_);
+    combNode->GetValue("varSpeedOfSound",varSpeedOfSound);
+    combNode->GetValue("ReynoldStress",srcReynoldStress);
+    combNode->GetValue("momentum",srcMomentum);
+    combNode->GetValue("chemical",srcChemical);
+    combNode->GetValue("densityDeriv2",srcDensityDeriv2);
+    combNode->GetValue("heatRelease",srcHeatRelease);
+    combNode->GetValue("gasConstDeriv2",srcGasConstDeriv2);
+    combNode->GetValue("shearTerm",srcShearTerm);
 
-    Info->WriteCombustionNoiseInfo(filenameCFD_, coupledRegionNames[0], 
-				   varSpeedOfSound, srcReynoldStress, 
-				   srcMomentum, srcChemical,  srcDensityDeriv2,
-				   srcHeatRelease, srcGasConstDeriv2, srcShearTerm);
+    PtrParamNode infonode = info->Get("combustionNoise");
+    infonode->Get("filename")->SetValue(filenameCFD_);
+    infonode->Get("coupling_region")->SetValue(coupledRegionNames[0]);
+    infonode->Get("variable_speed_of_sound")->SetValue(varSpeedOfSound > 0 ? "yes" : "no");
+    
+    infonode->Get("source_terms")->Get("reynolds_stress_tensor")->SetValue(srcReynoldStress > 0 ? "yes" : "no");
+    infonode->Get("source_terms")->Get("fluctuation_momentum_flux")->SetValue(srcMomentum > 0 ? "yes" : "no");
+    infonode->Get("source_terms")->Get("unsteady_reaction_rates")->SetValue(srcChemical > 0 ? "yes" : "no");
+    infonode->Get("source_terms")->Get("2nd_order_derivative_density")->SetValue(srcDensityDeriv2 > 0 ? "yes" : "no");
+    infonode->Get("source_terms")->Get("heat_release")->SetValue(srcHeatRelease > 0 ? "yes" : "no");
+    infonode->Get("source_terms")->Get("gas_const_2nd_time_derivative")->SetValue(srcGasConstDeriv2 > 0 ? "yes" : "no");
+    infonode->Get("source_terms")->Get("shear_term")->SetValue(srcShearTerm > 0 ? "yes" : "no");
 
     // check for analysis
     AnalysisType analysisType = domain->GetSingleDriver()->GetAnalysisType();
     if ( analysisType==HARMONIC ) {
       isHarmonic_=true;
-      ComputeRHSforHarm_=true;    
-      Info->PrintF(pdename_, "Using FlowData from dataset as RHS nodal source\n" );
-      Info->PrintF(pdename_, "Computing using nodal frequency files (No MpCCI used)\n" );
+      ComputeRHSforHarm_=true;
+      infonode->Get("PDE")->Get(pdename_)->Get("combustionNoise")->Get("info")->SetValue("Using FlowData from dataset as RHS nodal source");
+      infonode->Get("PDE")->Get(pdename_)->Get("combustionNoise")->Get("info")->SetValue("Computing using nodal frequency files (No MpCCI used)");
     }
 
     //get number of src-data in CFD-file
-    combNode->Get("numDataInCFD", numDataInCFD_);
+    combNode->GetValue("numDataInCFD", numDataInCFD_);
 
     UInt numSrc = srcReynoldStress + srcMomentum + srcChemical 
       + srcDensityDeriv2 + srcHeatRelease + srcGasConstDeriv2 + srcShearTerm;
@@ -97,25 +104,25 @@ namespace CoupledField
     //check for source terms
     if ( numSrc == 1 ) {
       if ( srcDensityDeriv2 > 0 ) {
-	srcType_ = DENSITY2DERIV;
+        srcType_ = DENSITY2DERIV;
       }
       else if ( srcReynoldStress > 0 ) {
-	srcType_ = REYNOLDSTRESS;
+        srcType_ = REYNOLDSTRESS;
       }
       else if ( srcMomentum  > 0 ) {
-	srcType_ = MOMENTUM;
+        srcType_ = MOMENTUM;
       }
       else if ( srcChemical > 0 ) {
-	srcType_ = CHEMICAL;
+        srcType_ = CHEMICAL;
       }
       else if ( srcHeatRelease > 0 ) {
-	srcType_ = HEATRELEASE;
+        srcType_ = HEATRELEASE;
       }
       else if ( srcGasConstDeriv2 > 0 ) {
-	srcType_ = GASCONSTDERIV2;
+        srcType_ = GASCONSTDERIV2;
       }
       else if ( srcShearTerm > 0 ) {
-	srcType_ = SHEARTERM;
+        srcType_ = SHEARTERM;
       }
     }
     else if ( numSrc == 2 ) {
@@ -147,10 +154,10 @@ namespace CoupledField
     for ( UInt i=0; i<numDataInCFD_; i++) {
       dataCFD_[i] = new Double[numNodesInCoupledRegion_];
     }
-    //set aray to zero
+    //set array to zero
     for ( UInt i=0; i<numDataInCFD_; i++) {
       for ( UInt j=0; j<numNodesInCoupledRegion_; j++) {
-	dataCFD_[i][j] = 0.0;
+        dataCFD_[i][j] = 0.0;
       }
     }
 
@@ -204,16 +211,16 @@ namespace CoupledField
     Double bndoffsetXmin, bndoffsetYmin, bndoffsetZmin = 0.0, bndoffsetXmax, bndoffsetYmax, bndoffsetZmax = 0.0;
 
     // fetch combustion data node
-    ParamNode * combNode = myParam_->Get("combustionData");
+    PtrParamNode combNode = myParam_->Get("combustionData");
 
-    combNode->Get("xfmin",xfmin);
-    combNode->Get("yfmin",yfmin);
-    combNode->Get("xfmax",xfmax);
-    combNode->Get("yfmax",yfmax);
-    combNode->Get("facrampXmin",facRampXmin);
-    combNode->Get("facrampYmin",facRampYmin);
-    combNode->Get("facrampXmax",facRampXmax);
-    combNode->Get("facrampYmax",facRampYmax);
+    combNode->GetValue("xfmin",xfmin);
+    combNode->GetValue("yfmin",yfmin);
+    combNode->GetValue("xfmax",xfmax);
+    combNode->GetValue("yfmax",yfmax);
+    combNode->GetValue("facrampXmin",facRampXmin);
+    combNode->GetValue("facrampYmin",facRampYmin);
+    combNode->GetValue("facrampXmax",facRampXmax);
+    combNode->GetValue("facrampYmax",facRampYmax);
 
     bndoffsetXmin=facRampXmin*xfmin;
     bndoffsetYmin=facRampYmin*yfmin; 
@@ -221,10 +228,10 @@ namespace CoupledField
     bndoffsetYmax=facRampYmax*yfmax;
 
     if (dim_==3) {
-      combNode->Get("zfmin",zfmin);
-      combNode->Get("zfmax",zfmax);
-      combNode->Get("facrampZmin",facRampZmin);
-      combNode->Get("facrampZmax",facRampZmax);
+      combNode->GetValue("zfmin",zfmin);
+      combNode->GetValue("zfmax",zfmax);
+      combNode->GetValue("facrampZmin",facRampZmin);
+      combNode->GetValue("facrampZmax",facRampZmax);
       bndoffsetZmin=facRampZmin*zfmin;
       bndoffsetZmax=facRampZmax*zfmax;
     }
@@ -248,22 +255,22 @@ namespace CoupledField
 
     if (!isHarmonic_) {
       for (UInt idx=0; idx<numNodesInCoupledRegion_ ; idx++) {
-	//get node number
+        //get node number
         nodeNr = nodesCFD_[idx];
         //std::cout << "nodeNr: " << nodeNr << std::endl;
 
-	// get the source term
-	GetSrcTerm(srcVal, idx);
+        // get the source term
+        GetSrcTerm(srcVal, idx);
         //std::cout << "val = " << srcVal << std::endl;
 
         // TODO: Check if this is still needed
-	// Double origVal = srcVal;
+        // Double origVal = srcVal;
 
-	//variable speed of sound
-	if ( variableSpeedOfSoundCN_ ) {
-	  sos[0] = dataCFD_[varSpeedOfSoundIdx_][idx];  
+        //variable speed of sound
+        if ( variableSpeedOfSoundCN_ ) {
+          sos[0] = dataCFD_[varSpeedOfSoundIdx_][idx];  
           //          std::cout << "sos = " << sos[0] << std::endl;
-	}
+        }
 
 	//	  node = idx + 1;
 	  
@@ -301,20 +308,20 @@ namespace CoupledField
 	      srcVal -= srcVal*(pointX-bndoffsetXmin)/(xfmin-bndoffsetXmin);
 	    else
 	      if ( pointX > bndoffsetXmax )
-		srcVal -= srcVal*(pointX-bndoffsetXmax)/(xfmax-bndoffsetXmax);
+	        srcVal -= srcVal*(pointX-bndoffsetXmax)/(xfmax-bndoffsetXmax);
 
 	    if ( pointY < bndoffsetYmin )
 	      srcVal  -= srcVal*(pointY-bndoffsetYmin)/(yfmin-bndoffsetYmin);
 	    else      
 	      if ( pointY > bndoffsetYmax )
-		srcVal -= srcVal*(pointY-bndoffsetYmax)/(yfmax-bndoffsetYmax);
-	    
+	        srcVal -= srcVal*(pointY-bndoffsetYmax)/(yfmax-bndoffsetYmax);
+
 	    if(dim_==3) {
 	      if ( pointZ < bndoffsetZmin )
-		srcVal -= srcVal*(pointZ-bndoffsetZmin)/(zfmin-bndoffsetZmin);
+	        srcVal -= srcVal*(pointZ-bndoffsetZmin)/(zfmin-bndoffsetZmin);
 	      else      
-		if ( pointZ > bndoffsetZmax )
-		  srcVal -= srcVal*( pointZ-bndoffsetZmax)/(zfmax-bndoffsetZmax);
+	        if ( pointZ > bndoffsetZmax )
+	          srcVal -= srcVal*( pointZ-bndoffsetZmax)/(zfmax-bndoffsetZmax);
 	    }
 	  }
 
@@ -379,51 +386,49 @@ namespace CoupledField
 }
 
   void AcouCombustionNoise::GetSrcTerm( Double& val, UInt idx) {
- 
-  if ( srcType_ ==  REYNOLDSTRESS_MOMENTUM_CHEMICAL ) {
-    val = dataCFD_[srcReynoldStressIdx_][idx] 
-        + dataCFD_[srcMomentumIdx_][idx]
-        + dataCFD_[srcChemicalIdx_][idx];
-//     std::cout << "values: " << dataCFD_[srcReynoldStressIdx_][idx] 
-// 	      << "  " << dataCFD_[srcMomentumIdx_][idx] 
-// 	      << "  " <<  dataCFD_[srcChemicalIdx_][idx] << std::endl;
-  }
-  else if ( srcType_ ==  HEATRELEASE_GASCONSTDERIV2_SHEARTERM ) {
-    val = dataCFD_[srcHeatReleaseIdx_][idx]
-        + dataCFD_[srcGasConstDeriv2Idx_][idx]
-        + dataCFD_[srcShearTermIdx_][idx];
-  }
-  else if ( srcType_ ==  HEATRELEASE_GASCONSTDERIV2 ) {
-    val = dataCFD_[srcHeatReleaseIdx_][idx]
-        + dataCFD_[srcGasConstDeriv2Idx_][idx];
-  }
-  else if ( srcType_ == DENSITY2DERIV ) {
-    val = dataCFD_[srcDensityDeriv2Idx_][idx];
-  }
-  else if ( srcType_ == REYNOLDSTRESS ) {
-    val = dataCFD_[srcReynoldStressIdx_][idx]; 
-  }
-  else if ( srcType_ == MOMENTUM ) {
-    val = dataCFD_[srcMomentumIdx_][idx]; 
-  }
-  else if ( srcType_ == CHEMICAL ) {
-    val = dataCFD_[srcChemicalIdx_][idx]; 
-  }
-  else if ( srcType_ ==  HEATRELEASE ) {
-    val = dataCFD_[srcHeatReleaseIdx_][idx]; 
-  }
-  else if ( srcType_ == GASCONSTDERIV2 ) {
-    val = dataCFD_[srcGasConstDeriv2Idx_][idx]; 
-  }
-  else if ( srcType_ ==  SHEARTERM ) {
-    val = dataCFD_[srcShearTermIdx_][idx]; 
-  }
 
-  else if ( srcType_ == NOSRC ) {
-     val = 0.0;
+    if ( srcType_ ==  REYNOLDSTRESS_MOMENTUM_CHEMICAL ) {
+      val = dataCFD_[srcReynoldStressIdx_][idx] 
+            + dataCFD_[srcMomentumIdx_][idx]
+            + dataCFD_[srcChemicalIdx_][idx];
+      //     std::cout << "values: " << dataCFD_[srcReynoldStressIdx_][idx] 
+      // 	      << "  " << dataCFD_[srcMomentumIdx_][idx] 
+      // 	      << "  " <<  dataCFD_[srcChemicalIdx_][idx] << std::endl;
+    }
+    else if ( srcType_ ==  HEATRELEASE_GASCONSTDERIV2_SHEARTERM ) {
+      val = dataCFD_[srcHeatReleaseIdx_][idx]
+            + dataCFD_[srcGasConstDeriv2Idx_][idx]
+            + dataCFD_[srcShearTermIdx_][idx];
+    }
+    else if ( srcType_ ==  HEATRELEASE_GASCONSTDERIV2 ) {
+      val = dataCFD_[srcHeatReleaseIdx_][idx] + dataCFD_[srcGasConstDeriv2Idx_][idx];
+    }
+    else if ( srcType_ == DENSITY2DERIV ) {
+      val = dataCFD_[srcDensityDeriv2Idx_][idx];
+    }
+    else if ( srcType_ == REYNOLDSTRESS ) {
+      val = dataCFD_[srcReynoldStressIdx_][idx]; 
+    }
+    else if ( srcType_ == MOMENTUM ) {
+      val = dataCFD_[srcMomentumIdx_][idx]; 
+    }
+    else if ( srcType_ == CHEMICAL ) {
+      val = dataCFD_[srcChemicalIdx_][idx]; 
+    }
+    else if ( srcType_ ==  HEATRELEASE ) {
+      val = dataCFD_[srcHeatReleaseIdx_][idx]; 
+    }
+    else if ( srcType_ == GASCONSTDERIV2 ) {
+      val = dataCFD_[srcGasConstDeriv2Idx_][idx]; 
+    }
+    else if ( srcType_ ==  SHEARTERM ) {
+      val = dataCFD_[srcShearTermIdx_][idx]; 
+    }
+
+    else if ( srcType_ == NOSRC ) {
+      val = 0.0;
+    }
+
   }
-
- }
-
 
 } // end of namespace

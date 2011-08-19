@@ -6,7 +6,7 @@
 #define FILE_BDBINT
 
 #include "baseForm.hh"
-#include "Optimization/DesignElement.hh" 
+#include "Optimization/Design/DesignElement.hh" 
 
 namespace CoupledField {
 
@@ -65,10 +65,6 @@ namespace CoupledField {
                     Matrix<Double> & bMat );
 
 
-    //! returns B - matrix for BDB
-    virtual void calcBMat( Matrix<Double> &bMat, UInt ip,
-                           Matrix<Double> &ptCoord ) = 0;
-
     //! returns G - matrix for GDG (incompatible modes)
     virtual void calcGMat( Matrix<Double> &bMat, UInt ip,
                            Matrix<Double> &ptCoord ) {
@@ -78,7 +74,7 @@ namespace CoupledField {
     /** Implement this in your form to return your actual physical tensor.
      * Note, BDBInt and ADBInt use calcDMat(Matrix<Double>, const Elem*)
      * which calls overwritten methods of this method but linElastInt,
-     * linElecInt and linPiezoCoupling have calcDMat(Matrix<Double>, const Elem*)
+     * linGradInt and linPiezoCoupling have calcDMat(Matrix<Double>, const Elem*)
      * implementations. This means, that all direct childs of these three
      * classes must provive a own version of calcDMat with the elem parameter!
      * @see calcDMat(Matrix<Double>, Elem*, Double&) */
@@ -103,7 +99,7 @@ namespace CoupledField {
     };
     /** This is the ParamMat optimization version, overwrite this to provide Derivatives for the tensor
      * used in parametric material optimization. */
-    virtual void calcDMat(Matrix<Double> &dMat, const Elem* elem, DesignElement::Type direction)
+    virtual void calcDMat(Matrix<Double> &dMat, const Elem* elem, DesignElement::Type direction, double force_factor = 0.0)
     {
       calcDMat(dMat, elem); 
     };
@@ -117,6 +113,7 @@ namespace CoupledField {
                << "(Matrix<Complex> &dMat, Double &beta, Double &omega) "
                << "not correctly overwritten!" );
     };
+
 
     /** returns D - matrix for BDB, changes in every integration point
      * @see calcDMat(Matrix<Double>, EntityIterator*) */

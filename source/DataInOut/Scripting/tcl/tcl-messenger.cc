@@ -51,7 +51,7 @@ namespace CoupledField {
     tcl_ = NULL;
   }
   
-  void TCL_CFSMessenger::Warning( const char * msg, const char * const filename,
+  void TCL_CFSMessenger::Warn( const char * msg, const char * const filename,
                                   const UInt numline) {
     
     std::stringstream warn;
@@ -64,7 +64,8 @@ namespace CoupledField {
     // After having generated the correct error string,
     // the bucket is passed back to the global error handler
     isEvaluating_ = false;
-    ::Warning( warn.str().c_str(), filename, numline );
+    Exception ex__(NULL, filename, numline, warn.str().c_str(), Exception::WARNING); 
+    //::WARN( warn.str().c_str(), filename, numline );
     isEvaluating_ = true;
   }
 
@@ -97,37 +98,37 @@ namespace CoupledField {
                                           const StdVector<std::string> & context) {
     
     // get name of event
-      curEvent_ = eventNames_[event];
-      std::stringstream procName;
-      
-      procName << eventNames_[event];
-      
-      // copy arguments 
-      StdVector<std::string> args = context;
-      for( UInt i = 0; i < args.GetSize(); i++ ) {
-        boost::replace_all(args[i], "[", "\\[");
-        boost::replace_all(args[i], "]", "\\]");
-        args[i] = "\"" + args[i] + "\""; 
-      }
-      
-      for ( UInt i=0; i<args.GetSize(); i++ ) {
-        procName << " " << args[i];
-      }
-      
-      isEvaluating_ = true;
-      int code = Tcl_Eval( tcl_, procName.str().c_str() );
-      isEvaluating_ = false;
+    curEvent_ = eventNames_[event];
+    std::stringstream procName;
+    
+    procName << eventNames_[event];
+    
+    // copy arguments 
+    StdVector<std::string> args = context;
+    for( UInt i = 0; i < args.GetSize(); i++ ) {
+      boost::replace_all(args[i], "[", "\\[");
+      boost::replace_all(args[i], "]", "\\]");
+      args[i] = "\"" + args[i] + "\""; 
+    }
+    
+    for ( UInt i=0; i<args.GetSize(); i++ ) {
+      procName << " " << args[i];
+    }
+    
+    isEvaluating_ = true;
+    int code = Tcl_Eval( tcl_, procName.str().c_str() );
+    isEvaluating_ = false;
 
-      if ( code != TCL_OK ) {
-        std::string error = "TCL error in function '";
-        error+= eventNames_[event];
-        error+= "':\n\n ";
-        if ( *tcl_->result != 0 )
-          error += tcl_->result;
-        EXCEPTION( error.c_str() );
-        return false;
-      }
-      return true;
+    if ( code != TCL_OK ) {
+      std::string error = "TCL error in function '";
+      error+= eventNames_[event];
+      error+= "':\n\n ";
+      if ( *tcl_->result != 0 )
+        error += tcl_->result;
+      EXCEPTION( error.c_str() );
+      return false;
+    }
+    return true;
     
   }
 
@@ -219,6 +220,7 @@ namespace CoupledField {
     return TCL_OK;
   }
 
+    
     
 } // end of namespace
 

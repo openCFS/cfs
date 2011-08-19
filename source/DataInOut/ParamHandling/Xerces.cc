@@ -15,7 +15,7 @@
 
 #include "General/exception.hh"
 #include "DataInOut/ParamHandling/Xerces.hh"
-#include "DataInOut/ParamHandling/ParamNode.hh"
+
 
 // we want to use the Xerces-C++ namespace
 using namespace xercesc;
@@ -37,7 +37,7 @@ namespace CoupledField
     if(!fs::exists(filePath))
         EXCEPTION("xml file " << file << " doesn't exist");
 
-    if(schema != "" && !fs::exists(schemaPath))
+    if(!schema.empty() && !fs::exists(schemaPath))
         EXCEPTION("schema file " << schema << " doesn't exist");
 
     this->file_   = file;
@@ -47,7 +47,7 @@ namespace CoupledField
   /** this cannot be done in the constructor as the error handler takes "this" */
   void Xerces::Parse()
   {
-     // Initialise the XML4C2 system
+    // Initialise the XML4C2 system
     try
     {
        XMLPlatformUtils::Initialize();
@@ -65,7 +65,7 @@ namespace CoupledField
     parser_->setDoNamespaces(true);
 
     //  Check if validation is desired and a schema file was provided
-    if(schema_ != "")
+    if(!schema_.empty())
     {
       parser_->setValidationScheme(XercesDOMParser::Val_Always);
       parser_->setDoSchema(true);
@@ -121,7 +121,7 @@ namespace CoupledField
     // some final checking, cannot imagine a problem here
     if(children->getLength() != 1)
         EXCEPTION("document root has " << children->getLength()
-                  << " childs, expceted 1");
+                  << " children, expected 1");
 
     if(children->item(0)->getNodeType() != DOMNode::ELEMENT_NODE)
         EXCEPTION("root node type is " <<  children->item(0)->getNodeType());
@@ -152,81 +152,90 @@ namespace CoupledField
   }
 
 
-  ParamNode* Xerces::CreateParamNodeInstance()
+  PtrParamNode Xerces::CreateParamNodeInstance()
   {
      // read the file, this cannot be done in the constructor as the error handler takes this object
      Parse();
 
-     ParamNode* out = new ParamNode();
+     PtrParamNode out (new ParamNode(ParamNode::EX, ParamNode::ELEMENT ) );
      Fill(root_, out);
      return out;
   }
 
-  void Xerces::Fill(DOMNode* node, ParamNode* parent)
+  void Xerces::Fill(DOMNode* node, PtrParamNode parent)
   {
-      // determine if this is a valid node
-      // std::cout << "node " << XMLString::transcode(node->getNodeName()) << " has type " << node->getNodeType();
-      // std::cout << " value = " << (node->getNodeValue() != NULL ? XMLString::transcode(node->getNodeValue()) : "null") << std::endl;
+    // determine if this is a valid node
+    // std::cout << "node " << XMLString::transcode(node->getNodeName()) << " has type " << node->getNodeType();
+    // std::cout << " value = " << (node->getNodeValue() != NULL ? XMLString::transcode(node->getNodeValue()) : "null") << std::endl;
 
-    std::string temp = "";
-    char * auxString = NULL;
-      switch(node->getNodeType())
-      {
+    switch(node->getNodeType())
+    {
 
-         case DOMNode::TEXT_NODE:
-           // if we are a text node, we "are" the value of our parent.
-           auxString = XMLString::transcode( node->getNodeValue() );
-           temp.assign( auxString );
-           boost::trim( temp );
-           parent->SetValue( temp );
-           XMLString::release( &auxString );
-           return; // nothing else to do, we don not create a new ParamNode
+    case DOMNode::TEXT_NODE:
+    {
+      // if we are a text node, we "are" the value of our parent.
+      char *nodevalue = XMLString::transcode(node->getNodeValue());
+      std::string temp(nodevalue);
+      XMLString::release(&nodevalue);
+      // std::string temp(XMLString::transcode(node->getNodeValue()));
+      boost::trim(temp);
+      parent->SetValue(temp);
+      return; // nothing else to do, we don not create a new ParamNode
+    }
+    case DOMNode::ELEMENT_NODE:
+    case DOMNode::ATTRIBUTE_NODE:
+      // this is the typical situation, we create a new ParamNode
+      break;
 
-         case DOMNode::ELEMENT_NODE:
-         case DOMNode::ATTRIBUTE_NODE:
-              // this is the typical situation, we create a new ParamNode
-              break;
+    default:
+      // comment type or something alike, don't do anything
+      return;
+    }
+    // normally we create here a new element and add it to parent.
+    // This is not the case when node is root_, then we set the properties of parent directly
+    PtrParamNode pn;
+    if(node != root_)
+    {
+      // create a new param node and set it as a new child at the father
+      ParamNode::NodeType type = ParamNode::ELEMENT;
+      if ( node->getNodeType() == DOMNode::ATTRIBUTE_NODE  ) 
+        type = ParamNode::ATTRIBUTE;
+      PtrParamNode newNode(new ParamNode(ParamNode::EX, type));
+      parent->AddChildNode( newNode );
+      pn = newNode;
+      // we work with the this just added element - here we avoid any
+      // potential copy constructor issues
+      // pn = parent->GetChildren().Last();
+    }
+    else
+    {
+      // no new child created but we modify the parent directly
+      pn = parent;
+    }
 
-         default:
-              // comment type or something alike, don't do anything
-              return;
-      }
-      // normally we create here a new element and add it to parent.
-      // This is not the case when node is root_, then we set the properties of parent directly
-      ParamNode* pn = NULL;
-      if(node != root_)
-      {
-         // create a new param node and set it as a new child at the father
-         parent->GetChildren().Push_back(new ParamNode(node->getNodeType() == DOMNode::ATTRIBUTE_NODE));
-         // we work with the this just added element - here we avoid any
-         // potential copy constructor issues
-         pn = parent->GetChildren().Last();
-      }
-      else
-      {
-         // no new child created but we modify the parent directly
-         pn = parent;
-      }
-      auxString = XMLString::transcode( node->getNodeName() );
-      pn->SetName( auxString );
-      XMLString::release( &auxString );
-      // The value of an attribute or simple element is set by the text node children
+    char *nodename = XMLString::transcode(node->getNodeName());
+    std::string temp(nodename);
+    XMLString::release(&nodename);
+    pn->SetName(temp);
 
-      // first process attributes - map is NULL this is not DOMElement
-      DOMNamedNodeMap* map = node->getAttributes();
-      for(unsigned int i = 0; map != NULL && i < map->getLength(); i++)
-      {
-         // recursive call
-         Fill(map->item(i), pn);
-      }
+    // The value of an attribute or simple element is set by the text node children
 
-      // process childs (if there are any)
-      DOMNodeList* childs = node->getChildNodes();
-      for(unsigned int i = 0; childs != NULL && i < childs->getLength(); i++)
-      {
-         // recursive call
-         Fill(childs->item(i), pn);
-      }
+    // first process attributes - map is NULL this is not DOMElement
+    DOMNamedNodeMap* map = node->getAttributes();
+    const unsigned int mlen = map == NULL ? 0 : map->getLength();
+    for(unsigned int i = 0; i < mlen; ++i)
+    {
+      // recursive call
+      Fill(map->item(i), pn);
+    }
+    
+    // process childs (if there are any)
+    DOMNode *child = node->getFirstChild();
+    while(child != NULL)
+    {
+      Fill(child, pn);
+      child = child->getNextSibling();
+    }
   }
 
   Xerces::EventHandler::EventHandler(const Xerces* xerces)
@@ -238,10 +247,10 @@ namespace CoupledField
   void Xerces::EventHandler::warning(const SAXParseException &event )
   {
     std::stringstream os;
-    os << "Warning parsing the xml file'" << xerces_->file_ << "' in line "
+    os << "WARN parsing the xml file'" << xerces_->file_ << "' in line "
        << event.getLineNumber() << ", column " << event.getColumnNumber() << std::endl
        << "-> '" << XMLString::transcode(event.getMessage()) << "'" << std::endl
-       << " schema: '" << (xerces_->schema_ != "" ? xerces_->schema_ : "<no-schema>") << "'";
+       << " schema: '" << (!xerces_->schema_.empty() ? xerces_->schema_ : "<no-schema>") << "'";
     // killme use the new log stuff from Andi
     std::cerr << os.str() << std::endl;
   }
@@ -249,12 +258,12 @@ namespace CoupledField
 
   void Xerces::EventHandler::error(const SAXParseException &event)
   {
-    EXCEPTION("Error parsing the xml file'" << xerces_->file_
+    EXCEPTION("Error parsing the xml file' " << xerces_->file_
               << "' in line " << event.getLineNumber() << ", column "
               << event.getColumnNumber() << std::endl << "-> '"
               << XMLString::transcode(event.getMessage()) << "'"
               << std::endl << " schema: '"
-              << (xerces_->schema_ != "" ? xerces_->schema_ : "<no-schema>") << "'");
+              << (!xerces_->schema_.empty() ? xerces_->schema_ : "<no-schema>") << "'");
 
   }
 

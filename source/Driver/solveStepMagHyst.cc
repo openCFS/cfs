@@ -25,8 +25,10 @@ namespace CoupledField {
   SolveStepMagHyst::~SolveStepMagHyst() {
   }
   
-  void SolveStepMagHyst::StepTransNonLinHysteresis(InfoNode* analysis_base) {
+  void SolveStepMagHyst::StepTransNonLinHysteresis(PtrParamNode analysis_base) {
 
+    UInt timeStep = (UInt) mParser_->Eval(mHandle_);
+    std::cout << "In StepTransNonLinHysteresis, step:" << timeStep << std::endl;
 
     bool performOneMoreStep;
     Vector<Double> newSol( numEqns_ );
@@ -44,7 +46,7 @@ namespace CoupledField {
     algsys_->GetSolutionVal( prevSol );      
 
     //get previous 1st order derivative of solution
-    prevSolDeriv = TS_alg_->GetDeriv1();
+    prevSolDeriv = TS_alg_->GetDeriv(FIRST_DERIV);
 
     // perform predictor step
     if ( TS_alg_== NULL ) {
@@ -62,8 +64,6 @@ namespace CoupledField {
     // 1)  assemble to RHS loads for time step (n+1) and save it to RhsLinVal_ 
     assemble_->AssembleLinRHS(); 
     algsys_->GetRHSVal( RhsLinVal_ );
-//     std::cout << "new load:\n" << RhsLinVal_ << std::endl;
-//     std::cout << "old load:\n" << prevLoadRHS_ << std::endl;
 
     //2) substract the loads of time step n
     helpVec     = RhsLinVal_;
@@ -103,7 +103,7 @@ namespace CoupledField {
       else 
         std::cout << "Iter:  " << iterationCounter << std::endl;
 
-      InfoNode* analysis_id = BaseDriver::CreateAnalysisIdChild(analysis_base, "nonLin", iterationCounter);
+      PtrParamNode analysis_id = BaseDriver::CreateAnalysisIdChild(analysis_base, "nonLin", iterationCounter);
       
       // set solution of previous iteration
       if (iterationCounter > 1 )
@@ -116,8 +116,10 @@ namespace CoupledField {
         algsys_->InitRHS(RhsLinVal_);
       }
 
-      //asemble matrices
-      assemble_->AssembleMatrices();
+      if ( timeStep == 1 || iterationCounter > 1 ) {
+        //assemble matrices
+        assemble_->AssembleMatrices();
+      }
 
       // add stiffness multiplied by solution of previous time step;
       algsys_->UpdateRHS(STIFFNESS, prevSol );
@@ -180,7 +182,7 @@ namespace CoupledField {
       // calculation of residual error: L2Norm of ( f_i^(k+1) - f_a )
       residualL2Norm = PDE_.GetRhsL2Norm(actRHS);
      
-      Double residualErr;
+       Double residualErr=0;
       if ( RhsLinL2Norm > 1.0 )
         residualErr    = residualL2Norm /  RhsLinL2Norm;
       else
@@ -188,10 +190,8 @@ namespace CoupledField {
 
  
       nonLinLogging_ = true;
-      if ( nonLinLogging_ == true ) {
-        Info->WriteNonLinIter(pdename_, iterationCounter, residualErr,
-                              incrementalErr);
-      }
+      if ( nonLinLogging_ == true )
+        WriteNonLinIterToInfoXML(pdename_, iterationCounter, residualErr, incrementalErr);
 
       //    std::cout << "ResNorm=" << residualNorm << "  incrNorm=" 
       //        << incrementalErr << std::endl;
@@ -218,7 +218,78 @@ namespace CoupledField {
   }
 
 
-  void SolveStepMagHyst::StepTransNonLinHysteresisDiff(InfoNode* analysis_base) {
+  void SolveStepMagHyst::SetPreviousVals4Hyst() {
+  
+    EXCEPTION("Magnetics with hysteresis currently not supported");
+
+//     Vector<Double> LCoord, field;
+//     UInt pdeElem;
+
+//     for (UInt actSD=0; actSD<subdoms_.GetSize(); actSD++) {
+
+//       RegionIdType actRegion = subdoms_[actSD];
+//       Hysteresis* hyst = materialData_[actRegion]->getHysteresis();
+ 
+//       if ( hyst!= NULL ) {
+
+//         CurlCurlNode2DInt *curlOp = new CurlCurlNode2DInt( materialData_[actRegion], isaxi_);
+
+//         ElemList actSDList(ptgrid_ );
+//         actSDList.SetRegion( actRegion );
+
+//         EntityIterator it = actSDList.GetIterator();
+//         UInt iel = 0;
+//         for ( it.Begin(); !it.IsEnd(); it++, iel++) {
+//           //compute the magnetic field intensity
+//           it.GetElem()->ptElem->GetCoordMidPoint(LCoord);
+
+//           Matrix<Double> CornerCoords;
+//           ptgrid_->GetElemNodesCoord( CornerCoords, it.GetElem()->connect, 
+//                                       true );
+//           // get element solution
+//           Vector<Double> elSol;
+//           sol_->GetElemSolution(elSol, it);
+
+//           Vector<double> field;
+//           if( LCoord.GetSize() ==3 ) {
+//             field.Resize(3);
+//             EXCEPTION("3D magnetic with hysteresis not implemented!");
+//           }
+//           else {
+//             Matrix<Double> bMat;
+//             //set element info
+//             curlOp->ExtractElemInfo( it );
+//             curlOp->SetIntPoint( LCoord );
+//             curlOp->calcBMat(bMat, 0, CornerCoords);
+//             curlOp->UnsetIntPoint();     
+//             field = bMat * elSol;
+
+//             // Account for curl 
+//             Double temp = field[0];
+//             if ( isaxi_ ) {
+//               field[0] = -field[1];
+//               field[1] = temp;
+//             } else {
+//               field[0] = field[1];
+//               field[1] = -temp;
+//             }
+//           }
+
+//           pdeElem = it.GetElem()->elemNum;
+
+//           // std::cout << "New Bfield: \n " << field << std::endl << std::endl;
+//           //set the values
+//           materialData_[actRegion]->SetPreviousInvVecHystVal( pdeElem, field );
+//         }
+//         delete curlOp;
+//       }
+//     }
+  }
+
+
+  void SolveStepMagHyst::StepTransNonLinHysteresisDiff(PtrParamNode analysis_base) {
+
+    std::cout << "In :StepTransNonLinHysteresisDiff" << std::endl;
 
     bool performOneMoreStep;
 
@@ -275,7 +346,7 @@ namespace CoupledField {
       else 
         std::cout << "Iter:  " << iterationCounter << std::endl;
 
-      InfoNode* analysis_id = BaseDriver::CreateAnalysisIdChild(analysis_base, "nonLin", iterationCounter);
+      PtrParamNode analysis_id = BaseDriver::CreateAnalysisIdChild(analysis_base, "nonLin", iterationCounter);
             
       // set solution of previous iteration
       if (iterationCounter > 1 )
@@ -352,10 +423,8 @@ namespace CoupledField {
 
  
       nonLinLogging_ = true;
-      if ( nonLinLogging_ == true ) {
-        Info->WriteNonLinIter(pdename_, iterationCounter, residualErr,
-                              incrementalErr);
-      }
+      if ( nonLinLogging_ == true )
+        WriteNonLinIterToInfoXML(pdename_, iterationCounter, residualErr, incrementalErr);
 
       //    std::cout << "ResNorm=" << residualNorm << "  incrNorm=" 
       //        << incrementalErr << std::endl;
@@ -378,76 +447,6 @@ namespace CoupledField {
     //perform corrector step  
     TS_alg_->Corrector(actSol);
   }
-
-
-  void SolveStepMagHyst::SetPreviousVals4Hyst() {
-  
-
-    Vector<Double> LCoord, field;
-    UInt pdeElem;
-
-    for (UInt actSD=0; actSD<subdoms_.GetSize(); actSD++) {
-
-      RegionIdType actRegion = subdoms_[actSD];
-      Hysteresis* hyst = materialData_[actRegion]->getHysteresis();
- 
-      if ( hyst!= NULL ) {
-
-        CurlCurlNode2DInt *curlOp = new CurlCurlNode2DInt( materialData_[actRegion], isaxi_);
-
-        ElemList actSDList(ptgrid_ );
-        actSDList.SetRegion( actRegion );
-
-        EntityIterator it = actSDList.GetIterator();
-        UInt iel = 0;
-        for ( it.Begin(); !it.IsEnd(); it++, iel++) {
-          //compute the magnetic field intensity
-          it.GetElem()->ptElem->GetCoordMidPoint(LCoord);
-
-          Matrix<Double> CornerCoords;
-          ptgrid_->GetElemNodesCoord( CornerCoords, it.GetElem()->connect, 
-                                      true );
-          // get element solution
-          Vector<Double> elSol;
-          sol_->GetElemSolution(elSol, it);
-
-          Vector<double> field;
-          if( LCoord.GetSize() ==3 ) {
-            field.Resize(3);
-            EXCEPTION("3D magnetic with hysteresis not implemented!");
-          }
-          else {
-            Matrix<Double> bMat;
-            //set element info
-            curlOp->ExtractElemInfo( it );
-            curlOp->SetIntPoint( LCoord );
-            curlOp->calcBMat(bMat, 0, CornerCoords);
-            curlOp->UnsetIntPoint();     
-            field = bMat * elSol;
-
-            // Account for curl 
-            Double temp = field[0];
-            if ( isaxi_ ) {
-              field[0] = -field[1];
-              field[1] = temp;
-            } else {
-              field[0] = field[1];
-              field[1] = -temp;
-            }
-          }
-
-          pdeElem = it.GetElem()->elemNum;
-
-          // std::cout << "New Bfield: \n " << field << std::endl << std::endl;
-          //set the values
-          materialData_[actRegion]->SetPreviousHystVal( pdeElem, field );
-        }
-        delete curlOp;
-      }
-    }
-  }
-
-
 
 } // end of namespace
 

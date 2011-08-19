@@ -24,9 +24,8 @@ namespace CoupledField
   class Grid;
   class BaseMaterial;
   class BaseNodeStoreSol;
-  class Composite;
+  struct Composite;
   class ParamNode;
-  class InfoNode;
   class FunctionDescription;
 
   //! Base class for pairwise direct coupling of two pdes
@@ -64,9 +63,8 @@ namespace CoupledField
     // GET / SET METHODS
     // ======================================================
 
-    //! Return coupling name
-    std::string GetName()
-    { return couplingName_; }
+    /** @see BasePDE::GetName() */
+    const std::string& GetName() const { return couplingName_; }
 
     //! Set pointer to algsys
     void SetAlgSys( BaseSystem *algSys)
@@ -103,11 +101,12 @@ namespace CoupledField
     FeFctIdType GetPdeId2();
 
     //! Ger ParamNode of coupling object
-    ParamNode * GetParamNode() { return myParam_; }
+    PtrParamNode GetParamNode() { return myParam_; }
 
     bool nonLin_;             //!< flag for nonlinear calculations
     bool nonLinMaterial_;     //!< flag for nonlinear material calculations
     bool nonLinHysteresis_;   //!< flag for hysteresis calculations
+    bool nonLinPiezoMicroHF_; //!< flag for micro-piezoelectric Huber Fleck model
 
     void SetNonLinearity(bool nonLin){
       nonLin_=nonLin;};
@@ -120,7 +119,7 @@ namespace CoupledField
 
     //! Constructor
     BasePairCoupling( SinglePDE *pde1, SinglePDE *pde2,
-                      ParamNode * paramNode );
+                      PtrParamNode paramNode );
 
     //! Definition of the (bi)linear forms
     virtual void DefineIntegrators() = 0;
@@ -144,7 +143,7 @@ namespace CoupledField
     // Miscellaneous
     // =====================================================
 
-    InfoNode* infoNode_; // set only in Init()
+    PtrParamNode infoNode_; // from constructor()
 
     BaseNodeStoreSol * sol_;    //!< solution
 
@@ -221,7 +220,7 @@ namespace CoupledField
     SingleVector * solVec_;        //! needed in iterative coupled computation
 
     //! Parameter node of direct coupling section
-    ParamNode * myParam_;
+    PtrParamNode myParam_;
 
     // -----------------------------------------------------------------------
     // Material data
@@ -232,6 +231,9 @@ namespace CoupledField
 
     //! Maps regions and (simple) materials
     std::map<RegionIdType, BaseMaterial*> materials_;
+    
+    //! use of complex material data per region
+    std::map<RegionIdType,bool> complexMatData_;
 
     //! Maps regions and composite materials
     std::map<RegionIdType, Composite> compositeMaterials_;

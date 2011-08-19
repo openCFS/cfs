@@ -18,16 +18,16 @@ namespace CoupledField{
 
   PDEMemento::~PDEMemento()
   {
-    solution_.clear();
+    Clear();
   }
 
   void PDEMemento::Clear()
   {
     std::map<std::string,SingleVector*>::iterator it;
     
-    for( it = solution_.begin(); it != solution_.end(); it++ ) {
+    for( it = solution_.begin(); it != solution_.end(); it++ )
       delete it->second;
-    }
+    
     solution_.clear();
   }
 

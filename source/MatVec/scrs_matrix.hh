@@ -146,14 +146,14 @@ namespace CoupledField {
 
 
       // Delete data vector
-      DELETEARRAY( data_   );
+      delete[] (data_); 
 
       // Check if we own the pattern or whether it belongs to a pool.
       // In the former case we must free the memory. In the latter we
       // must deregister
       if ( patternPool_ == NULL ) {
-        DELETEARRAY( rowPtr_ );
-        DELETEARRAY( colInd_ );
+        delete[] (rowPtr_);
+        delete[] (colInd_);
       }
       else {
         patternPool_->DeRegisterUser( patternID_ );
@@ -227,7 +227,8 @@ namespace CoupledField {
       this->ncols_ = ncols;
       if ( this->nrows_ != nrows ) {
         this->nrows_ = nrows; 
-        DELETEARRAY( rowPtr_ );
+        delete[] (rowPtr_);
+        
         NEWARRAY( rowPtr_, UInt, this->nrows_ + 1 );
         rowPtr_[0] = 0;
       }
@@ -235,8 +236,8 @@ namespace CoupledField {
 
       //this is correct iff there are no 0s on the diagonal!
       if ( numEntries_!= (this->nnz_ + this->nrows_) / 2 ) {
-        DELETEARRAY( this->data_ );
-        DELETEARRAY( colInd_ );
+        delete[] (data_);
+        delete[] (colInd_);
         numEntries_ = (this->nnz_ + this->nrows_) / 2;
         NEWARRAY( this->data_, T, numEntries_ );
         NEWARRAY( this->colInd_, UInt, numEntries_ );

@@ -7,7 +7,7 @@
 
 #include "General/environment.hh"
 #include "MatVec/vector.hh"
-
+#include "DataInOut/ParamHandling/ParamNode.hh"
 
 namespace CoupledField {
 
@@ -39,7 +39,7 @@ namespace CoupledField {
     //! parameter handling object for the coil's parameters.
     //! If the coil is a measurement coil it will also, if desired, open the
     //! files for storing the current/voltages and the inductivity.
-    Coil( RegionIdType coilRegionId, ParamNode * coilNode, Grid * ptGrid);
+    Coil( RegionIdType coilRegionId, PtrParamNode coilNode, Grid * ptGrid);
 
     //! Default desctructor
 

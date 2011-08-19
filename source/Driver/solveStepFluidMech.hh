@@ -25,23 +25,43 @@ namespace CoupledField
 
     //----------------------- STATIC---------------------------------------
     //! solves for one nonlinear static step 
-    void StepStaticNonLin(InfoNode* analysis_id)
+    void StepStaticNonLin(PtrParamNode analysis_id)
     {StepTransNonLin(analysis_id);};
 
     //----------------------- TRANSIENT---------------------------------------
     //! routine for initilizations befor execution the SolveStep-method
 
     //! solves for one nonlinear transient step 
-    void StepTransNonLin(InfoNode* analysis_id);
+    void StepTransNonLin(PtrParamNode analysis_id);
 
   private:
     //!< time dependency  of fluidMech PDE (important in case of analysisType=transient)
     // because the fluid can therin be determined staionary or instationary
     bool isInstationary_;
     bool isTrapezoidal_;
-    bool isNewton_;
-    Vector<Double>  oldVel_, oldSol_;
+    Vector<Double> actSol_;
+    Vector<Double> actVelo_;
+    Vector<Double> actPres_;
+    Vector<Double> tmpVelo_;
+    Vector<Double> tmpPres_;
+    Vector<Double> newSol_;
+    Vector<Double> solIncrement_;
+    Vector<Double> solVelocityInc_;
+    Vector<Double> solPressureInc_;
 
+    inline Double NormL2(const Vector<Double>& vec) const
+    {
+      Double result(0.0);
+      const UInt endLoop = vec.GetSize();
+
+#pragma omp parallel for reduction(+:result)
+      for(UInt k = 0; k < endLoop; ++k)
+      {
+        result += vec[k] * vec[k];
+      }
+
+      return std::sqrt(result);
+    }
   };
 
 } // end of namespace

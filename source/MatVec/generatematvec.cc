@@ -156,13 +156,13 @@ if ( ( eType == MATRIX_ENTRY )  ) {\
   // *********************************************
   //   Macro for generation of templated vectors
   // *********************************************
-#define COPY_VECTOR( MATRIX_ENTRY, VECTORCLASS )      \
+#define COPY_VECTOR( MATRIX_ENTRY, VECTORCLASS ) \
 if ( ( eType == MATRIX_ENTRY ) ) { \
-   CONSTREFCAST( origVec, VECTORCLASS, auxVec );                  \
-   retVector = new VECTORCLASS( auxVec );                         \
-   ASSERTMEM( retVector, sizeof( VECTORCLASS ) );                 \
-   (*cla) << " GenerateSingleVectorObject: Generated copy of"     \
-          << MACRO2STRING(VECTORCLASS) << std::endl;              \
+   const VECTORCLASS& auxVec = dynamic_cast<const VECTORCLASS&>(origVec); \
+   retVector = new VECTORCLASS( auxVec ); \
+   ASSERTMEM( retVector, sizeof( VECTORCLASS ) ); \
+   (*cla) << " GenerateSingleVectorObject: Generated copy of" \
+          << MACRO2STRING(VECTORCLASS) << std::endl; \
 }
   SingleVector* CopySingleVectorObject( const SingleVector& origVec ) {
 
@@ -324,7 +324,7 @@ ASSERTMEM( retMat, sizeof(matrix_obj_type) );\
   // ***************************************************
 #define COPY_MATRIX_OBJ( matEntry, matStore, matrixObjType )\
 try {\
-   CONSTREFCAST( origMat, matrixObjType, auxMat );\
+   const matrixObjType& auxMat = dynamic_cast<const matrixObjType&>(origMat); \
    retMat = new matrixObjType( auxMat );\
    ASSERTMEM( retMat, sizeof( matrixObjType) );\
    (*cla) << " Generated copy of matrix of type: "\

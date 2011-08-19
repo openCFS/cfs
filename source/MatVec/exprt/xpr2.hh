@@ -31,6 +31,7 @@
 #ifndef XPR2_H_
 #define XPR2_H_
 
+#include <stdexcept>
 #include "xpr1.hh"
 
 template <class P, class A, class F>
@@ -54,8 +55,6 @@ public:
   inline unsigned int cols() const {return a.rows();}
 
 };
-
-
 
 template <class P, class A, class B, class Op>
 class Xpr2BinOp {
@@ -121,11 +120,12 @@ class Dim2 {
 private:
   void error(const char *msg) const {
     std::cerr << "Dim2 error: " << msg << std::endl;
-    throw std::exception("Dim3 error in Xpr2");
+    throw std::runtime_error("Dim3 error in Xpr2");
   }
 
 public:
   explicit Dim2() {}
+  virtual ~Dim2() {}
   unsigned int size() const { return static_cast<const I*>(this)->size(); }
   unsigned int rows() const { return static_cast<const I*>(this)->rows(); }
   unsigned int cols() const { return static_cast<const I*>(this)->cols(); }
@@ -328,7 +328,6 @@ XXX(Transpose, Identity)
 //XXX(exp, Exp)
 #undef XXX
 
-
 // Functions of Xpr2 (NO TYPE PROMOTION)
 #define XXX(f,ap) \
 template <class P, class E> \
@@ -357,7 +356,6 @@ XXX(operator+, OpAdd)
 XXX(operator-, OpSub)
 #undef XXX
 
- //the following code is too general,as it would allow for nested matrix matrix multiplications!
 // Multiplication with Two Dim2s (type promotion)
 #define XXX(op) \
   template <class P,class A,class B,class P2>                                   \
@@ -372,24 +370,7 @@ static inline op (const Dim2<P,A>& a, const Dim2<P2,B>& b) {\
 XXX(operator*)
 #undef XXX
 
-//// Multiplication with Two Dim2s (type promotion)
-//#define XXX(op) \
-//  template <class P,class A,class B,class F,class P2>                                   \
-//  Xpr2<PROMOTE(P,P2), Xpr2Reduct<PROMOTE(P,P2),  Xpr2<P,Xpr2FuncTrans<P, ConstRef2<P,Dim2<P,A> >, F > >, ConstRef2<P2,Dim2<P2,B> > > > \
-//static inline op (const ConstRef2<P,Dim2<P,A> >& a, const Dim2<P2,B>& b) {\
-//  typedef \
-//    Xpr2Reduct<PROMOTE(P,P2), Xpr2<P, Xpr2FuncTrans<P, ConstRef2<P,Dim2<P,A> >, F > >, ConstRef2<P2,Dim2<P2,B> > > \
-//      ExprT;\
-//  return Xpr2<PROMOTE(P,P2),ExprT>(ExprT(Xpr2<P,Xpr2FuncTrans<P, ConstRef2<P,Dim2<P,A> >, F > >(a),    \
-//            ConstRef2<P2,Dim2<P2,B> >(b)));\
-//}
-//XXX(operator*)
-//#undef XXX
-////class F
-
-//Xpr2FuncTrans<P, ConstRef2<P,Dim2<P,A> >, F > >
-
-//// Multiplication between Xpr2 and Dim2 (type promotion)
+// Multiplication between Xpr2 and Dim2 (type promotion)
 #define XXX(op) \
   template <class P,class A,class B,class P2>                                   \
   Xpr2<PROMOTE(P,P2), Xpr2Reduct<PROMOTE(P,P2), Xpr2<P,A>, ConstRef2<P2,Dim2<P2,B> > > > \
@@ -402,9 +383,6 @@ static inline op (const Xpr2<P,A>& a, const Dim2<P2,B>& b) {\
 }
 XXX(operator*)
 #undef XXX
-
-
-
 
 //Binary operations between Dim2 and Xpr2 (NO TYPE PROMOTION)
 #define XXX(op,ap) \

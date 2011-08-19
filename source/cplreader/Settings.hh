@@ -200,12 +200,12 @@ namespace CoupledField
       // set the global ParamNode tree pointer
       param_ = xerces->CreateParamNodeInstance();
         // save us in the info stuff, with defaults but no comments
-      // todo: info->Get(InfoNode::HEADER)->Get("cfsSimulation")->SetValue(param);
+      // todo: info->Get(ParamNode::HEADER)->Get("cfsSimulation")->SetValue(param);
       // release the xerces ressources, param is not affected
       delete xerces;
     }
 
-    ParamNode* GetParamNode()
+    PtrParamNode GetParamNode()
     {
       return param_;
     }
@@ -217,7 +217,7 @@ namespace CoupledField
     //! This one can never be called from outside.
     //! The only way to instantiate a Settings object is
     //! by using Instance().
-    Settings() {param_ = NULL; };
+    Settings() {};
 
     //! Private copy constructor.
     //!
@@ -229,7 +229,7 @@ namespace CoupledField
     //! Here the actual values will be stored
     Map settingsMap_;
 
-    ParamNode* param_;
+    PtrParamNode param_;
 
     //! This one holds the only Settings instance
     static std::auto_ptr<Settings> settingsInstance_;

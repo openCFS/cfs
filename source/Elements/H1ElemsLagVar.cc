@@ -112,8 +112,8 @@ namespace CoupledField {
           //richtungII = flag(1);
           dI = (ptElem->faceFlags[entNumber].test(2))? 0:order_-2;
           dII = (ptElem->faceFlags[entNumber].test(1))? 0:order_-2;
-          for(Integer i = 0; i< order_-1 ; i++){
-            for(Integer j = 0; j< order_-1 ; j++){
+          for(UInt i = 0; i< order_-1 ; i++){
+            for(UInt j = 0; j< order_-1 ; j++){
               fncPermutation[(i*(order_-1)) + j] = (abs(dI-i)*(order_-1)) + abs(dII-j);
             }
           }
@@ -122,8 +122,8 @@ namespace CoupledField {
           //richtungII = flag(2);
           dI = (ptElem->faceFlags[entNumber].test(1))? 0:order_-2;
           dII = (ptElem->faceFlags[entNumber].test(2))? 0:order_-2;
-          for(Integer i = 0; i< order_-1 ; i++){
-            for(Integer j = 0; j< order_-1 ; j++){
+          for(UInt i = 0; i< order_-1 ; i++){
+            for(UInt j = 0; j< order_-1 ; j++){
               fncPermutation[(i*(order_-1)) + j] = (abs(dI - j)*(order_-1)) + abs(dII - i);
             }
           }

@@ -7,6 +7,8 @@
 #include <string>
 
 #include "PDE/StdPDE.hh"
+#include "DataInOut/ResultCache.hh"
+
 #include "solveStepMpCCI.hh"
 
 
@@ -30,6 +32,11 @@ namespace CoupledField {
   // Solve Step Transient SECTION  
   // ======================================================
 
+  void SolveStepMpCCI::PreStepTrans()
+  {
+    ResultCache::SetStepValue( actTime_ );
+  }
+  
   void SolveStepMpCCI::PostStepTrans()
   { 
   }

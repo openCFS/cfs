@@ -14,21 +14,23 @@
 #include "MatVec/scrs_matrix.hh"
 #include "MatVec/crs_matrix.hh"
 #include "DataInOut/Logging/cfslog.hh"
-#include "DataInOut/ParamHandling/InfoNode.hh"
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "DataInOut/programOptions.hh"
 #include "Utils/StdVector.hh"
 #include "Ilupack.hh"
 
 DECLARE_LOG(ilupack)
 DEFINE_LOG(ilupack, "ilupack")
 
-using namespace CoupledField;
+namespace CoupledField
+{
 
 
 template<typename T>
-Ilupack<T>::Ilupack(ParamNode* xml, InfoNode* olasInfo, BaseMatrix::EntryType type)
+Ilupack<T>::Ilupack(PtrParamNode xml, PtrParamNode olasInfo, BaseMatrix::EntryType type)
 {
   // we work with out 
-  xml_ = xml != NULL && xml->Has("ilupack") ? xml->Get("ilupack") : NULL;
+  xml_ = xml->Get("ilupack", ParamNode::PASS);
   solverInfo_ = olasInfo->Get("ilupack");
 
   if (type != BaseMatrix::COMPLEX && type != BaseMatrix::DOUBLE)EXCEPTION("unhandled type " << type);
@@ -122,6 +124,38 @@ void Ilupack<T>::SetMatrix(const BaseMatrix &base_mat)
   mat.nc = som.GetNumCols();
   mat.nnz = elements;
 
+  mat.issymmetric = 0;
+  mat.isdefinite = 0;
+  mat.ishermitian = 0;
+  mat.isskew = 0;
+  mat.isreal = !isComplex_;
+  mat.issingle = 0;
+  switch(matrix_)
+  {
+    case GNL:
+      break;
+    case PD:
+      mat.issymmetric = 1;
+      mat.isdefinite = 1;
+      if (isComplex_)
+      {
+        mat.ishermitian = 1;
+      }
+      break;
+    case SYM:
+      mat.issymmetric = 1;
+      break;
+    case HER:
+      mat.ishermitian = 1;
+      if (mat.isreal)
+      {
+        throw Exception("ilupack matrix is set to hermitian but not complex");
+      }
+      break;
+    default:
+      throw Exception("matrix type does not exist (SSM and SHR are not implemented yet)");
+  }
+
   LOG_TRACE2(ilupack) << "SetMatrix: allocate: mat_.a<T>=" << elements << " .ia=" << (som.GetNumRows() + 1)
                       << ".ia=" << elements << "; .nr=" << mat.nr << " .nc=" << mat.nc;
   LOG_DBG2(ilupack) << "mat_.ia: " << StdVector<int>::ToString(mat.nr + 1, mat.ia);
@@ -130,11 +164,13 @@ void Ilupack<T>::SetMatrix(const BaseMatrix &base_mat)
 }
 
 template<typename T>
-void Ilupack<T>::Setup(BaseMatrix &sysMat, InfoNode* analysis_id)
+void Ilupack<T>::Setup(BaseMatrix &sysMat, PtrParamNode analysis_id)
 {
-  InfoNode* out = solverInfo_->Get(InfoNode::PROCESS)->Get("setup", InfoNode::APPEND);
-  out->Get("analysis_id")->SetValue(analysis_id->Get("analysis_id"));
-  
+  // do we really want to create a new entry? Might blast up the output
+  ParamNode::ActionType at = progOpts->DoDetailedInfo() ? ParamNode::APPEND : ParamNode::DEFAULT;
+  PtrParamNode out = solverInfo_->Get(ParamNode::PROCESS)->Get("setup", at);
+  if(analysis_id != NULL) // TODO only very quick and dirty fix for eigenfrequency analsys
+    out->Get("analysis_id")->SetValue(analysis_id->Get("analysis_id"));
   // determine the matrix type. Symmetric/nonsymmetric, positive definite, ...
   // it is optional given in the xml file.
 
@@ -154,7 +190,7 @@ void Ilupack<T>::Setup(BaseMatrix &sysMat, InfoNode* analysis_id)
 
   // factorize the iLU preconditioner
   std::stringstream ss;
-  ss << "Error facorizing Ilupack: ";
+  ss << "Error factorizing Ilupack: ";
 
   int ierr = IlupackAMGFactor();
 
@@ -199,7 +235,7 @@ void Ilupack<T>::Setup(BaseMatrix &sysMat, InfoNode* analysis_id)
  
   out->Get("levels")->SetValue(precond.nlev);
   CalcFillIn(out);
-  InfoNode* timing = out->Get("timing");
+  PtrParamNode timing = out->Get("timing");
   timing->Get("total_time")->SetValue(ILUPACK_secnds[7]);
   timing->Get("initial_preprocessing")->SetValue(ILUPACK_secnds[0]);
   timing->Get("reordering_remaining_levels")->SetValue(ILUPACK_secnds[1]);
@@ -208,11 +244,13 @@ void Ilupack<T>::Setup(BaseMatrix &sysMat, InfoNode* analysis_id)
 
 template<typename T>
 void Ilupack<T>::Solve(const BaseMatrix &base_mat, const BasePrecond &base_precond, 
-    const BaseVector &base_rhs,  BaseVector &base_sol, InfoNode* analysis_id)
+    const BaseVector &base_rhs,  BaseVector &base_sol, PtrParamNode analysis_id)
 {
-  InfoNode* out = solverInfo_->Get(InfoNode::PROCESS)->Get("solver", InfoNode::APPEND);
-  out->Get("analysis_id")->SetValue(analysis_id->Get("analysis_id"));
-  
+  ParamNode::ActionType at = progOpts->DoDetailedInfo() ? ParamNode::APPEND : ParamNode::DEFAULT;
+  PtrParamNode out = solverInfo_->Get(ParamNode::PROCESS)->Get("solver", at);
+  if(analysis_id != NULL) // TODO only very quick and dirty fix for eigenfrequency analsys
+    out->Get("analysis_id")->SetValue(analysis_id->Get("analysis_id"));
+
   // the preconditioner sets the ilupack matrix
   if (mat.a == NULL)
     throw Exception("Setup() not called before Solve()");
@@ -255,10 +293,10 @@ void Ilupack<T>::Solve(const BaseMatrix &base_mat, const BasePrecond &base_preco
   if(ierr != 0) throw Exception(ss.str());
 
   out->Get("iterations")->SetValue(param.ipar[26]);
-  InfoNode* timing = out->Get("timing");
+  PtrParamNode timing = out->Get("timing");
   timing->Get("total")->SetValue(ILUPACK_secnds[5]);
   timing->Get("maxtrix_vector_mult")->SetValue(ILUPACK_secnds[6]);
-  InfoNode* norms = out->Get("norms");
+  PtrParamNode norms = out->Get("norms");
   norms->Get("target")->SetValue(param.fpar[23]);
 }
 
@@ -273,18 +311,22 @@ void Ilupack<T>::InitParameters()
   IlupackAMGInit();
   
   // dump the parameter block and overwrite
-  InfoNode* out = solverInfo_->Get(InfoNode::HEADER)->Get("parameters");
+  PtrParamNode out = solverInfo_->Get(ParamNode::HEADER)->Get("parameters");
 
   CheckParameter(out, reinterpret_cast<bool*>(&param.matching), "matching");
   CheckParameter(out, &param.ordering, "ordering");
   CheckParameter(out, &param.droptol, "dropTolLU");
-  CheckParameter(out, &param.droptol, "dropTolSchur");
+  CheckParameter(out, &param.droptolS, "dropTolSchur");
   CheckParameter(out, &param.condest, "condest");
   CheckParameter(out, &param.solver, "iterativeSolver/solver");
   CheckParameter(out, &param.restol, "iterativeSolver/residualTol");
   CheckParameter(out, &param.maxit, "iterativeSolver/maxIter");
   CheckParameter(out, &param.elbow, "elbowSpace");
   CheckParameter(out, &param.amg, "amg");
+  if (xml_ != NULL && xml_->Has("iterativeSolver/nrestart"))
+  {
+    CheckParameter(out, &param.nrestart, "iterativeSolver/nrestart");
+  }
   
   // TODO we currently ignore saddle point structures
   param.ind = NULL;
@@ -292,7 +334,7 @@ void Ilupack<T>::InitParameters()
 
 
 template<typename T>
-void Ilupack<T>::DetermineMatrixType(BaseMatrix &sysMat, InfoNode* out)
+void Ilupack<T>::DetermineMatrixType(BaseMatrix &sysMat, PtrParamNode out)
 {
   // first determine it manually for some checking
   if(sysMat.GetStructureType() != BaseMatrix::SPARSE_MATRIX)
@@ -305,10 +347,11 @@ void Ilupack<T>::DetermineMatrixType(BaseMatrix &sysMat, InfoNode* out)
 
   if (xml_ != NULL && xml_->Has("matrix"))
   {
-    matrix_ = matrix.Parse(xml_->Get("matrix"));
+    PtrParamNode pn = xml_->Get("matrix");
+    matrix_ = matrix.Parse( pn->As<std::string>() );
     // plausibility check -- killme: what is with hermitian?
     if (mst != BaseMatrix::SPARSE_SYM && matrix_ != GNL)
-      EXCEPTION("Matrix storrage is unsymmetric, so given ilupack_matrix is invalid " << matrix.ToString(matrix_));
+      EXCEPTION("Matrix storrage is unsymmetric, so given ilupack_matrix is invalid: '" << matrix.ToString(matrix_) << "'");
   }
   else
   {
@@ -328,62 +371,6 @@ void Ilupack<T>::SetEnums()
   matrix.Add(PD, "pd");
   matrix.Add(HER, "her");
 }
-
-
-
-template<typename T>
-void Ilupack<T>::CheckParameter(InfoNode* out, char** ilupack_string,
-    const char* param_name)
-{
-  InfoNode* tmp = out->Get(param_name);
-  tmp->Get("default")->SetValue(*ilupack_string);
-  if (xml_ != NULL && xml_->Has(param_name))
-  {
-    *ilupack_string
-        = const_cast<char*> (xml_->Get(param_name)->AsString().c_str());
-    tmp->Get("set")->SetValue(*ilupack_string);
-  }
-}
-
-template<typename T>
-void Ilupack<T>::CheckParameter(InfoNode* out, double* ilupack_val, const char* param_name)
-{
-  InfoNode* tmp = out->Get(param_name);
-  tmp->Get("default")->SetValue(*ilupack_val);
-  if (xml_ != NULL && xml_->Has(param_name))
-  {
-    *ilupack_val = xml_->Get(param_name)->AsDouble();
-    tmp->Get("set")->SetValue(*ilupack_val);
-  }
-}
-
-template<typename T>
-void Ilupack<T>::CheckParameter(InfoNode* out, int* ilupack_val, const char* param_name)
-{
-  InfoNode* tmp = out->Get(param_name);
-  tmp->Get("default")->SetValue(*ilupack_val);
-  if (xml_ != NULL && xml_->Has(param_name))
-  {
-    *ilupack_val = xml_->Get(param_name)->AsInt();
-    tmp->Get("set")->SetValue(*ilupack_val);
-  }
-}
-
-template<typename T>
-void Ilupack<T>::CheckParameter(InfoNode* out, bool* ilupack_val, const char* param_name)
-{
-  // by convention we interpret this as "integer"
-  integer* int_ptr = reinterpret_cast<integer*>(ilupack_val);
-  
-  InfoNode* tmp = out->Get(param_name);
-  tmp->Get("default")->SetValue(*ilupack_val);
-  if (xml_ != NULL && xml_->Has(param_name))
-  {
-    *int_ptr = xml_->Get(param_name)->AsBool() == false ? 0 : 1;
-    tmp->Get("set")->SetValue(*int_ptr == 0 ? false : true);
-  }
-}
-
 
 template<typename T>
 void Ilupack<T>::IlupackAMGInit()
@@ -530,7 +517,7 @@ void Ilupack<T>::IlupackAMGDelete()
 
 
 template<typename T>
-void Ilupack<T>::CalcFillIn(InfoNode* out)
+void Ilupack<T>::CalcFillIn(PtrParamNode out)
 {
   // this is an extract for the symprintperformance.c sample from Ilupack 2.2
   // It is reduced to the total fill-in factor
@@ -586,3 +573,5 @@ void Ilupack<T>::CalcFillIn(InfoNode* out)
 template class Ilupack<Double> ;
 template class Ilupack<Complex> ;
 #endif
+
+}

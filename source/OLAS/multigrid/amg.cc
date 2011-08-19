@@ -6,10 +6,6 @@
 
 #include "multigrid/amg.hh"
 
-#ifdef PROFILE_MULTIGRID
-#include "utils/utils.hh"
-#endif
-
 #if defined(__INTEL_COMPILER)
 #include "algsys/olascomm_impl.hh"
 #endif
@@ -41,12 +37,8 @@ AMGSolver<T>::AMGSolver( OLAS_Params* params )
             : Parameters_( params ),
               Hierarchy_( NULL ),
               prepared_( false ),
-#ifdef PROFILE_MULTIGRID
-              logging_( true )
-#else
               logging_( params == NULL ? false :
                         params->GetBoolValue("AMG_logging") )
-#endif
 {
 }
 
@@ -67,7 +59,7 @@ bool AMGSolver<T>::Setup( const CRS_Matrix<T>* const sys_matrix,
 {
 
     if( aux_matrix ) {
-        Warning( "AMGSolver::Setup: please note that the auxiliary"
+        WARN( "AMGSolver::Setup: please note that the auxiliary"
                  " matrix is not yet used\n", __FILE__, __LINE__ );
     }
 
@@ -87,20 +79,10 @@ bool AMGSolver<T>::Setup( const CRS_Matrix<T>* const sys_matrix,
     AMG_SETTING_SET_KEEP_TOPOLOGY
 
     // setup
-#ifdef PROFILE_MULTIGRID
-    Double t1 = AMG_GET_REAL_TIME
-#endif  
-
     if( false == Hierarchy_->Setup(&settings) ) {
         Reset();
         return false;
     }
-
-#ifdef PROFILE_MULTIGRID
-    Double t2 = AMG_GET_REAL_TIME
-    (*cla) <<" AMG: setup time: "<<t2-t1<< " seconds\n"LOGLINE"\n";
-    (*cla) <<*Hierarchy_;
-#endif
 
     return  prepared_ = true;
 }
@@ -132,17 +114,13 @@ void AMGSolver<T>::Cycle( const Vector<T>& rhs,
 {
 
     if( !prepared_ ) {
-        Warning( "called AMGSolver::Cycle at a non prepared AMG" );
+        WARN( "called AMGSolver::Cycle at a non prepared AMG" );
         return;
     }
 
     typename HierarchyLevel<T>::Settings settings( Parameters_ );
 
     if( logging_ ) (*cla)<<LOGLINE<<" AMG: starting cycle\n";
-#ifdef PROFILE_MULTIGRID
-    Double t1 = AMG_GET_REAL_TIME
-#endif
-
     // We need this dirty cast to a non-constant HierarchyLevel,
     // since the cycle will change the HierarchyLevel's temporary
     // vectors.
@@ -153,10 +131,6 @@ void AMGSolver<T>::Cycle( const Vector<T>& rhs,
                          settings.CycleParameter );
 
     if( logging_ )  (*cla) <<" AMG: finished cycle\n";
-#ifdef PROFILE_MULTIGRID
-    Double t2 = AMG_GET_REAL_TIME
-    (*cla) <<" AMG: cycle in "<<(t2-t1)<<" seconds\n";
-#endif
     if( logging_ )  (*cla) << LOGLINE;
 }
 

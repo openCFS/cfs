@@ -20,13 +20,13 @@ namespace CoupledField {
   //   Constructor
   // ***************
   SimOutputUnv::SimOutputUnv(  const std::string& filename,
-                               ParamNode * outputNode ) 
+                               PtrParamNode outputNode ) 
     : SimOutput ( filename, outputNode ) {
     std::string sysPathSep;
     
     formatName_ = "unv";
     dirName_ = "results_" + formatName_;
-    outputNode->Get("directory", dirName_, false );
+    outputNode->GetValue("directory", dirName_, ParamNode::PASS );
     try 
     {
       sysPathSep = fs::path("/").native_directory_string();
@@ -506,11 +506,9 @@ namespace CoupledField {
       
       // if result could not be mapped, omit it
       if( title == "") {
-        std::stringstream warning;
-        warning  <<  "Result '" << actInfo.resultName
-                 << "' coul not be mappted to unv result type and is "
-                 << "omitted!";
-        Warning( warning.str().c_str(), __FILE__, __LINE__ );
+        WARN("Result '" << actInfo.resultName
+             << "' coul not be mappted to unv result type and is "
+             << "omitted!");
         continue;
       }
       
@@ -716,7 +714,7 @@ namespace CoupledField {
       case ACOU_PRESSURE:
         //       warnMsg = "Due to the restrictions in the .unv file format, the ";
         //       warnMsg += "acoustic pressure is written as acoustic (fluid) potential!";
-        //       Warning(warnMsg.c_str(), __FILE__, __LINE__);
+        //       WARN(warnMsg.c_str());
         return "fluid potential";
         break;
       case ACOU_FORCE:
@@ -775,7 +773,7 @@ namespace CoupledField {
   //   }
   //   else 
   //     Dataset56(title, sol, step+1, time, nrDofs);
-  //     //Warning("This cell-data is not printed, since this type is not supported by Capapost",__FILE__,__LINE__);
+  //     //WARN("This cell-data is not printed, since this type is not supported by Capapost");
   // }
 
 }

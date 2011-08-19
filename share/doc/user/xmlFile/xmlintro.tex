@@ -16,27 +16,28 @@ international standard metalanguage for text markup systems (ISO 8879).
 
 \section{XML: Data Elements}
 In XML a single data item is enclosed by two tags:
-\begin{verbatim}
+\begin{xmllisting}
   <node_name>ground</node_name>
-\end{verbatim}
-an \emph{opening tag} and a \emph{closing tag}. The whole assembly is called an element.
+\end{xmllisting}
+an \emph{opening tag} and a \emph{closing tag}. The whole assembly is called an
+element.
 In XML, an element can have
 
 \begin{center}
   \begin{tabular}{ll}
     \hline\noalign{\smallskip}
-    a value    & \verb!<node>ground</node>!\\
+    a value    & \xml{<node> ground </node>}\\
     \noalign{\smallskip}\hline\noalign{\smallskip} 
-    attributes & \verb!<node name="ground"></node>!\\
+    attributes & \xml{<node name="ground"></node>}\\
     \noalign{\smallskip}\hline\noalign{\smallskip}
     children &  
     \begin{minipage}{10cm}
-\begin{verbatim}
+\begin{xmllisting}
 <nodelist>
   <node1>....</node1>
   <node2>....</node2>
 </nodelist>
-\end{verbatim}
+\end{xmllisting}
     \end{minipage}\\
     \noalign{\smallskip}\hline
   \end{tabular}
@@ -56,11 +57,11 @@ that the element does not carry any information, but its name, since an empty
 element may still possess attributes. Indeed many of the elements used in the
 CFS++ parameter file are empty with information encoded as attribute values.
 Note also that, if an element is empty,
-\begin{verbatim}
+\begin{xmllisting}
    <problem name="demo3d"></problem>
-\end{verbatim}
+\end{xmllisting}
 then the opening and the closing tag can, for brevity, be combined into one:
-\begin{verbatim}
+\begin{xmllisting}
    <problem name="demo3d"/>
-\end{verbatim}
+\end{xmllisting}
 

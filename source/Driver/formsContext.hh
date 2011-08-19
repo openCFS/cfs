@@ -9,6 +9,7 @@
 #include "General/environment.hh"
 #include "Utils/StdVector.hh"
 #include "Utils/dampLayer.hh"
+#include "Utils/mathParser/mathParser.hh"
 
 namespace CoupledField
 {
@@ -20,7 +21,7 @@ namespace CoupledField
   class SinglePDE;
   class EqnMap;
   class EntityIterator;
-  class ResultInfo;
+  struct ResultInfo;
   class FeSpace;
   class BaseFeFunction;
 
@@ -69,9 +70,7 @@ namespace CoupledField
 
     //! Defines a secondary destination for the element matrix
     void SetSecDestMat( FEMatrixType aSecMat,
-                        std::string aSecMatFac ) {
-      secDestMat_ = aSecMat;
-      secMatFac_ = aSecMatFac; }
+                        std::string aSecMatFac ); 
 
     //! initialize object for damping layer
 //    void SetDampLayer(std::string& dampingTypeFnc,
@@ -84,9 +83,12 @@ namespace CoupledField
     //! Returns matrix type of the secondary matrix
     FEMatrixType GetSecDestMat() const { return secDestMat_; }
 
-    //! Returns the factor the secondary matrix gets multiplied with
-    std::string GetSecMatFac() const {return secMatFac_;}
+    //! Returns the factor the secondary matrix gets multiplied with (string representation)
+    std::string GetSecMatFac() const;
 
+    //! Returns the current value of the secondary matrix factor (evaluated, number representation)
+    Double EvalSecMatFac() const;
+    
     //! Returns the integrator
     BaseForm * GetIntegrator() {return integrator_; };
 
@@ -146,7 +148,7 @@ namespace CoupledField
     //! Returns information about second feFunction
     shared_ptr<BaseFeFunction> GetSecondFeFunction() { return feFct2_; }
 
-    //get the pointe rto damping layer object!
+    //get the pointer to damping layer object!
 //    DampLayer* getPtDamplayer() {
 //      return dampingLayer_;}
 
@@ -185,8 +187,11 @@ namespace CoupledField
     //! Secondary destination matrix
     FEMatrixType secDestMat_;
 
-    //! Secondary matrix factor
-    std::string secMatFac_;
+    //! Handle for secondary matrix factor
+    MathParser::HandleType secMatFacHandle_;
+    
+    //! Pointer to math parser instance
+    MathParser* mathParser_;
 
     //! Entry type of matrix (real/imag part)
     Global::ComplexPart entryType_;
@@ -194,11 +199,9 @@ namespace CoupledField
     //! for damping layer
 //    DampLayer* dampingLayer_;
 
-
     // Flag indicating assembling of the integrator
     // in the counterpart of the pde location
     bool setCounterPart_;
-
 
     // Flag indicating negating the entries of the element matrix
     bool negateEntries_;
@@ -280,6 +283,9 @@ namespace CoupledField
 
     //! returns pointer to first pde
     shared_ptr<SinglePDE> GetPde () { return ptPde_; }
+    
+    //! Returns information about result info
+    shared_ptr<ResultInfo> GetResultInfo() { return result_; }
 
     std::string ToString() const;
 

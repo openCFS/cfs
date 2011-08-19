@@ -10,8 +10,6 @@
 
 #include <def_expl_templ_inst.hh>
 
-#include "OLAS/algsys/olasparams.hh"
-
 #include "basesolver.hh"
 
 namespace CoupledField {
@@ -141,14 +139,13 @@ namespace CoupledField {
 
      * @param myParams the legacy paramer for the base class
      * @param myReport report object for storing general information on solution process */ 
-    CGSolver(ParamNode* xml, OLAS_Params *myParams, OLAS_Report *myReport )
+    CGSolver(PtrParamNode xml, PtrParamNode olasInfo )
         : r_(NULL),
           s_(NULL),
           d_(NULL),
           q_(NULL) {
-      xml_       = xml != NULL ? xml->Get("cg", false) : NULL;
-      myParams_ = myParams;
-      myReport_ = myReport;
+      xml_       = xml;
+      solverInfo_ = olasInfo->Get("cg");
       resDirectly_ = 0;
     };
 
@@ -166,7 +163,7 @@ namespace CoupledField {
     //! \param rhs Right-hand side vector of the linear system
     //! \param sol Solution vector of linear system
     void Solve(const BaseMatrix& sysmat, const BasePrecond& premat, 
-	       const BaseVector& rhs, BaseVector& sol, InfoNode* analysis_step = NULL );
+	       const BaseVector& rhs, BaseVector& sol, PtrParamNode analysis_step );
 
     //! Dummy setup method
 
@@ -175,7 +172,7 @@ namespace CoupledField {
     //! do actually.
     //! \note Depending on how the BaseSolver interface develops this method
     //! might be removed again.
-    void Setup( BaseMatrix &sysmat, InfoNode* analysis_step = NULL ) {};
+    void Setup( BaseMatrix &sysmat, PtrParamNode analysis_step ) {};
 
     //! Query type of this solver.
 

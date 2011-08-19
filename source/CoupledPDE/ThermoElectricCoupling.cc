@@ -22,7 +22,7 @@ namespace CoupledField {
   //   Constructor
   // ***************
   ThermoElectricCoupling::ThermoElectricCoupling( SinglePDE *pde1, SinglePDE *pde2,
-                                      ParamNode * paramNode  )
+                                      PtrParamNode paramNode  )
     : BasePairCoupling( pde1, pde2, paramNode ) {
 
 
@@ -80,7 +80,7 @@ namespace CoupledField {
 	try {
 		// Determine, if which geometry is used
 		std::string geometryType_;
-		param->Get("domain")->Get("geometryType", geometryType_ );
+		param->Get("domain")->GetValue("geometryType", geometryType_ );
 
 		// convert to tensor type
 		// COMPWARNING: initialized to FULL (lacking intelligent alternatives...)

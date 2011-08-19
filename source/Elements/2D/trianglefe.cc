@@ -6,7 +6,6 @@
 #include <fstream>
 #include <string>
 
-#include "DataInOut/WriteInfo.hh"
 #include "General/environment.hh"
 #include "Elements/basefe.hh"
 #include "trianglefe.hh"
@@ -244,7 +243,7 @@ namespace CoupledField
       static Double c2[][3] = { 
         { 0.166666666666667,  0.166666666666667,  0.166666666666667 },
         { 0.666666666666667,  0.166666666666667,  0.166666666666667 },       
-        { 0.166666666666667,  0.166666666666667,  0.166666666666667 }                
+        { 0.166666666666667,  0.666666666666667,  0.166666666666667 }                
       };
       AddIntegrationPoints(CLASSICAL, 2, 3, (Double*) c2);
 

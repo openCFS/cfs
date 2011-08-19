@@ -5,11 +5,25 @@
 #include <iostream>
 #include <cmath>
 
-#include "OLAS/graph/baseordering.hh"
+#include "General/Enum.hh"
+#include "baseordering.hh"
 
 namespace CoupledField {
 
+  static EnumTuple reorderingTypeTuples[] = 
+  {
+    EnumTuple( BaseOrdering::NOREORDERING, "noReordering" ),
+    EnumTuple( BaseOrdering::SLOAN, "Sloan" ),
+    EnumTuple( BaseOrdering::METIS, "Metis"),
+    EnumTuple( BaseOrdering::MINIMUM_DEGREE, "minimumDegree"),
+    EnumTuple( BaseOrdering::NESTED_DISSECTION, "nestedDissection" ),
+  };
 
+  Enum<BaseOrdering::ReorderingType> BaseOrdering::reorderingType = \
+  Enum<BaseOrdering::ReorderingType>("Reordering Types",
+      sizeof(reorderingTypeTuples) / sizeof(EnumTuple),
+      reorderingTypeTuples); 
+      
   // ***************
   //   Constructor
   // ***************

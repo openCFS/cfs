@@ -17,13 +17,17 @@
 \usepackage{color}
 \definecolor{darkblue}{rgb}{0,0,.5}
 \usepackage[colorlinks=true, breaklinks=true, linkcolor=darkblue, 
-            menucolor=darkblue, pagecolor=darkblue, urlcolor=darkblue,
-            urlcolor=darkblue, citecolor=darkblue]{hyperref}
+            menucolor=darkblue, urlcolor=darkblue, citecolor=darkblue]{hyperref}
 \usepackage{bm}
 \usepackage{amssymb}
 \usepackage{times}
 \usepackage{tikz}
 \usepackage{subfig}
+
+% For pygmentize
+\usepackage{fancyvrb}
+\usepackage{color}
+%\usepackage[ascii]{inputenc}
 
 \geometry{ hmargin=1.5cm, vmargin=1.5cm }
 \pagestyle{empty}
@@ -31,6 +35,8 @@
 
 \begin{document}
 \selectlanguage{english}
+
+\include{sources/pygmentize}
 
 \include{Title}
 \include{mycommands}
@@ -117,9 +123,8 @@ in the radiated sound.
 \begin{center}
 \vspace*{5mm} 
 \includegraphics[width=10cm,angle=0]{pics/acousticfluidregions}
-\caption{General setup of aeroacoustics}
+\caption{General setup of aeroacoustics \label{fig:fe-setup}}
 \end{center}
-\label{fig:fe-setup}
 \end{figure}
 
 \noindent
@@ -789,8 +794,7 @@ supported for the calculation of acoustic sources.
                                  & 8 & -1 &  1 &  1 & \\
   \hline\hline
 \end{tabular}
-\caption{Element types with their corresponding node coordinates and nodal basis functions}
-\label{basis-functions}
+\caption{Element types with their corresponding node coordinates and nodal basis functions \label{basis-functions}}
 \end{table}
 
 \newpage
@@ -853,8 +857,7 @@ scheme.  \OpenFOAM\, is an open source CFD solver.
 \begin{center}
 \vspace*{5mm} 
 \includegraphics[width=10cm,angle=0]{pics/couplingscheme}
-\caption{Coupling Scheme}
-\label{fig:calc-scheme}
+\caption{Coupling Scheme \label{fig:calc-scheme}}
 \end{center}
 \end{figure}
 
@@ -871,7 +874,7 @@ ensuring a high degree of portability.
 
 The computation  of the  generated acoustic noise  is performed by  the finite
 element method as  discussed in Sec. \ref{sec:fe} and  has been implemented in
-CFS++  (Coupled  Field   Simulation)  \cite{Kaltenbacher2005a}.  In  order  to
+CFS++  (Coupled  Field  Simulation)  \cite{Kaltenbacher2005a}.   In  order  to
 minimize the  amount of  data transfer  and to achieve  a higher  accuracy, we
 already compute the right  hand side $\underline f^{n+1}$ (see \eqnref{RHS_L})
 on the much  finer flow grid and obtain so called  acoustic nodal loads.  This
@@ -882,14 +885,15 @@ MpCCI  - the  Mesh-based parallel  Code Coupling  Interface  \cite{MpCCI} (see
 \figref{calc-scheme}). In doing so the weights for the distribution of the CFD
 quantity to  the nodes  in the  acoustic cell are  obtained by  evaluating the
 basis functions defined in Tab.   \ref{basis-functions} at the position of the
-CFD node.
+CFD node. More  technical details on this issue may be  found in Section 6.4.2
+in  \cite{MpCCITechRef} which  is  also  available as  part  of the  cplreader
+documentation.
 
 \begin{figure}[hbt]
 \begin{center}
 \vspace*{5mm} 
 \includegraphics[width=15cm,angle=0]{pics/cons_interpolation}
-\caption{Conservative interpolation of source terms from CFD to acoustic grid.}
-\label{fig:cons-interpolation}
+\caption{Conservative interpolation of source terms from CFD to acoustic grid. \label{fig:cons-interpolation}}
 \end{center}
 \end{figure}
 
@@ -953,6 +957,18 @@ for cplreader include:
 \end{verbatim}
 
 \subsubsection{Special Options}
+\begin{description}
+  \item[{\tt --lhsrc}] Column of Lighthill source term in FASTEST result files
+    (e.g. col1).  If FASTEST already calculated the Lighthill source term, the
+    column in the ASCII file can be specified using this parameter.
+
+  \item[{\tt  --vx, --vy,  --vz}] Columns  of  x, y,  z-velocities in  FASTEST
+    result files (e.g. col2).
+
+  \item[{\tt --pres}] Column of  hydrodynamic pressure in FASTEST result files
+    (e.g. col5).
+\end{description}
+
 \subsubsection{ASCII File Format}
 {\tt .coord}-File Format
 \begin{verbatim}
@@ -988,9 +1004,8 @@ for cplreader include:
 \begin{figure}[htb]
 \begin{center}
 \includegraphics[scale=1]{pics/FASTESTexample}
-\caption{Visualization of dataset defined by above files.}
+\caption{Visualization of dataset defined by above files. \label{fig:fastest-example}}
 \end{center}
-\label{fig:fastest-example}
 \end{figure}
 
 \subsubsection{Examples}
@@ -998,6 +1013,10 @@ for cplreader include:
 \newpage
 \subsection{ANSYS CFX}
 \label{sec:cfx}
+
+There exist some  known problems for reading CFX 12.x  files.  Please refer to
+the description of the files section for a workaround.
+
 \subsubsection{Required File Layout}
 \begin{verbatim}
 ./name/
@@ -1010,18 +1029,63 @@ for cplreader include:
 
 All entities 'name' may also be symbolic links.
 
+\subsubsection{Description of the Files}
+
+\begin{description}
+  \item[.def]  The  .def file  contains  the  mesh  with informations  on  its
+    partitioning.
+
+  \item[.res] The .res file acts as a  result file as well as restart file for
+    CFX runs.  It  is the only file needed to restart  a CFX computation. This
+    means that, if the frequency  resolution of the harmonic source term field
+    is too  low due to too few  .trn files, one can  always produce additional
+    .trn steps by restarting the CFX  computation from the .res file.  It also
+    contains the mesh  plus the simulation description for the  CFX run in the
+    COMMANDS dataset. The  COMMANDS dataset is comparable to  our .xml file in
+    addition to  our material file. It  contains such information  as the time
+    step size,  which time steps get  written to .trn files  (e.g.  only every
+    second step),  a string  dataset with  the file names  of all  .trn files,
+    material properties,  boundary conditions,  etc.  For later  reference the
+    COMMANDS dataset gets written to  the UserData group of the resulting HDF5
+    file.   Since the  .res file  also  contains the  mesh, one  may create  a
+    symbolic link name.def to name.res, if a .def file is missing.
+
+    It has been  found however that .res files produced  with CFX version 12.x
+    can      cause     problems      with      cplreader     (Trac      ticket
+    \url{https://lse17.e-technik.uni-erlangen.de:2001/trac/ticket/165}).     If
+    this is the case  one can get rid of the problem  by only reading the mesh
+    from the  .def file. The .res file  should be deleted or  renamed for this
+    purpose. The list of .trn files is obtained by cplreader by inspecting the
+    contents  of  'name' subdirectory  instead  of  reading the  corresponding
+    dataset from  the .res file in  this case.  Please note  that the COMMANDS
+    dataset  will  not  be  available  in   the  HDF5  file,  if  no  .res  is
+    present. Therefore the information about time step size has to be obtained
+    in a different manner.
+
+  \item[.trn]  The .trn  files  contain the  actual  field data  for the  time
+    steps. The  cplreader tries to read  as much information  as possible from
+    the  .trn files  if  the  '--outputfields all'  option  is specified.   In
+    addition to  the velocity field which  is required for  the calculation of
+    the Lighthill source term, this  includes the turbulent kinetic energy and
+    density fields.  There  will however be no crash, if  these fields are not
+    present.  If  no --outputfields or  no --calcsrc parameters  are specified
+    nothing but the mesh from the .def file will be read at all.
+\end{description}
+
 \subsubsection{Special Options}
 
 \begin{description}
-\item[--type] The type of input files have to be set to 'CFX'.
+  \item[{\tt --type}] The type of input files have to be set to 'CFX'.
 
-\item[--deffile] You can  specify different '.def' file than  the one given by
-'name'.
+  \item[{\tt --deffile}]  You can specify  different '.def' file than  the one
+    given by 'name.def'.
 
-\item[--trntol] Percentage the file size  of transient files may differ from
-the average file  size of all transient files. If a  transient file is smaller
-than  average size  *  (1 -  trntol)  the corresponding  time  step will  be
-overwritten by the previous one.
+  \item[{\tt --trntol}] Percentage the file size of transient files may differ
+    from the average file size of  all transient files. If a transient file is
+    smaller than average size * (1  - trntol) the corresponding time step will
+    be overwritten by the previous one.  This option has been introduced to be
+    more robust  against damaged  .trn files, which  may result  during faulty
+    data transfers.
 \end{description}
 
 
@@ -1061,10 +1125,9 @@ Let us assume, that we have got a directory layout like the following:
 We first have to rename or relink all entities 'fluid\_001' to 'fluid' so that
 they have consistent  names.  We do not have a  'fluid.def' where the settings
 of  the  CFX  simulation  are  saved.   But  let's  also  assume  you  have  a
-'fluid\_old.def' which has the same grid information in it. Such a '.def' file
-could have been generated by a restarted CFX run. You may also use this '.def'
-file for  reading the grid  information.  Now you  could start reading  in the
-data by issuing:
+'fluid\_old.def' which has the same grid  information in it.  You may also use
+this  '.def' file  for  reading the  grid  information.  Now  you could  start
+reading in the data by issuing:
 
 \begin{verbatim}
 cplreader --type CFX --name fluid --numsteps 11 --timestep 1e-4 \
@@ -1073,12 +1136,75 @@ cplreader --type CFX --name fluid --numsteps 11 --timestep 1e-4 \
 
 This would  read all transient files  except 6.trn which would  be replaced by
 5.trn.  You can even replace the .def  file by the .res file since the grid is
-also saved  in .res.  The transient  files get searched  by cplreader  in this
-case.
+also saved in the .res file.  The transient files get searched by cplreader in
+this case.
 
-Please note that no surface elements will be read by the CFX reader.
+Please also refer to Sections \ref{sec:cgns} and \ref{sec:starccm} for further
+options for transferring CFD data from CFX to cplreader.
 
-\newpage
+\subsubsection{CFX File Format Internals}
+Since the file format used by CFX is closed source, most of its internal data
+stuctures had to be found by reverse engineering. This section summarizes,
+which dataset contains relevant information.
+
+CFX files are binary files, which can be read by \texttt{Fortran} functions
+provided by ANSYS. These functions take as the most important arguments the
+dataset name (``what'') and the location (``where''). While a dataset's name
+determines the meaning of the dataset's contents, the location determines the
+part of the simulation that the dataset's contents refers to. Global
+information is tagged with the location \texttt{EVERY}. The geometry is
+referred to by the location \texttt{ZN1} (``zone 1''). The blocks of the mesh
+are called \emph{element sets}, located by \texttt{ZN1/ESx} (\texttt{x} must
+be replaced by the number of the element set). Boundary cells are grouped in
+\emph{face sets}, located by \texttt{ZN1/FSx}. Table~\ref{tab:cfx_def}
+contains an (incomplete) overview of the datasets in a .def file.
+
+\begin{table}
+  \centering
+  \caption{Meaning of datasets in CFX .def files}
+  \label{tab:cfx_def}
+  \begin{tabular}{llp{9cm}l}
+    \textbf{What} & \textbf{Where} & \textbf{Description} & \textbf{Datatype} \\
+    \hline\hline
+    \texttt{G/CLBSF}    & \texttt{ZN1}     & Labels (names) of surfaces                    & \texttt{*char} \\ \hline
+    \texttt{G/CLBVL}    & \texttt{ZN1}     & Labels (names) of volumes                     & \texttt{*char} \\ \hline
+    \texttt{G/CNAMCFX}  & \texttt{EVERY}   & Name and path of .cfx file                    & \texttt{*char} \\ \hline
+    \texttt{G/COMMANDS} & \texttt{EVERY}   & Definition of simulation run                  & \texttt{*char} \\ \hline
+    \texttt{G/CRDVX}    & \texttt{ZN1/VX}  & Coordinates of vertices                       & \texttt{double[]} \\ \hline
+    \texttt{G/CRELNO}   & \texttt{EVERY}   & CFX release number                            & \texttt{*char} \\ \hline
+    \texttt{G/ILTPES}   & \texttt{ZN1}     & Element type per element set                  & \texttt{int} \\    
+                         &                   & 4: Tetrahedra & \\                                      
+                         &                   & 5: Prisms     & \\                                      
+                         &                   & 6: Hexahedra  & \\                                      
+                         &                   & 7: Pyramids   & \\ \hline
+    \texttt{G/IPSFBCP}  & \texttt{EVERY}   & Start indices of boundary patches in dataset \texttt{G/KSFBCP} & \texttt{int[]} \\ \hline
+    \texttt{G/KELPE}    & \texttt{ZN1/ESx} & Global element numbers in element set x       & \texttt{int[]} \\ \hline
+    \texttt{G/KELPF}    & \texttt{ZN1/FSx} & Surface elements in face set x, each one given by a tuple (element number, face index) & \texttt{int[]} \\ \hline          
+    \texttt{G/KFCPF}    & \texttt{ZN1/FSx} & Global face numbers in face set x             & \texttt{int[]} \\ \hline
+    \texttt{G/KSFBCP}   & \texttt{EVERY}   & Surface numbers that are grouped to form boundary patches & \texttt{int[]} \\ \hline
+    \texttt{G/KSFFS}    & \texttt{EVERY}   & Permutation of surface numbers to obtain face set numbers & \texttt{int[]} \\ \hline
+    \texttt{G/KVXPE}    & \texttt{ZN1/ESx} & Vertices per element in element set x         & \texttt{int[]} \\ \hline
+    \texttt{G/NAMEMAP}  & \texttt{EVERY}   & Mapping of names and numbers of boundary patches and subdomains & \texttt{*char} \\ \hline
+    \texttt{G/NBCP}     & \texttt{EVERY}   & Number of boundary patches                    & \texttt{int} \\ \hline
+    \texttt{G/NDIMS}    & \texttt{ZN1}     & Dimension                                     & \texttt{int} \\ \hline
+    \texttt{G/NEL}      & \texttt{ZN1}     & Number of elements                            & \texttt{int} \\ \hline
+    \texttt{G/NELES}    & \texttt{ZN1}     & Number of elements per set                    & \texttt{int[]} \\ \hline
+    \texttt{G/NES}      & \texttt{ZN1}     & Number of element sets (blocks)               & \texttt{int} \\ \hline
+    \texttt{G/NFC}      & \texttt{ZN1}     & Number of faces (surface elements)            & \texttt{int} \\ \hline
+    \texttt{G/NFCFS}    & \texttt{ZN1}     & Number of faces per face set                  & \texttt{int[]} \\ \hline
+    \texttt{G/NFS}      & \texttt{EVERY}   & Number of face sets                           & \texttt{int} \\
+                         & \texttt{ZN1}     & & \\ \hline
+    \texttt{G/NSF}      & \texttt{EVERY}   & Number of surfaces (not face sets!)           & \texttt{int} \\
+                         & \texttt{ZN1}     &                                               & \\ \hline          
+    \texttt{G/NVL}      & \texttt{EVERY}   & Number of volumes                             & \texttt{int}\\
+                         & \texttt{ZN1}     &                                               & \\ \hline          
+    \texttt{G/NVX}      & \texttt{ZN1}     & Number of vertices                            & \texttt{int} \\
+%    \texttt{G/NZIF}     & \texttt{EVERY}   & ?Number of zone interfaces?                   & \texttt{int} \\ \hline
+    \texttt{G/NZN}      & \texttt{EVERY}   & Number of zones (= domains; equals 1 usually)  & \texttt{int}
+  \end{tabular}
+\end{table}
+
+\clearpage
 \subsection{CFX\_EXPORT}
 \label{sec:cfx-export}
 \subsubsection{Required File Layout}
@@ -1163,6 +1289,7 @@ Node Number, X [ m ], Y [ m ], Velocity u [ m s^-1 ], Velocity v [ m s^-1 ]
 \newpage
 \subsection{OpenFOAM}
 \label{sec:openfoam}
+
 \subsubsection{Required File Layout}
 \begin{verbatim}
 ./name/
@@ -1186,6 +1313,16 @@ Node Number, X [ m ], Y [ m ], Velocity u [ m s^-1 ], Velocity v [ m s^-1 ]
 `-- system
 \end{verbatim}
 
+To inspect the OpenFOAM data before converting it using cplreader you can open
+it  in the  latest  version of  ParaView (3.8.x).  The  file to  be loaded  is
+./name/system/controlDict.  Choose  the  OpenFOAM  reader  from  the  list  of
+available readers.
+
+The OpenFOAM  reader in the  trunk version of  cplreader does not  support the
+latest version of OpenFOAM. For a newer reader developed by Patrick Lorenz and
+Jens                             Grabinger                            checkout
+\url{https://lse17.e-technik.uni-erlangen.de:2001/svn/CFS++/branches/starccm}.
+
 \subsubsection{Special Options}
 
 \subsubsection{Logging} 
@@ -1207,8 +1344,303 @@ available from these files.
 
 \subsubsection{Examples}
 
-Stefan  Zörner  has got  plenty  of  examples.  Or  you  may  have  a look  at
-/home/lse24/lse/strieben/cplreader\_performance\_suite.
+For examples on  how to start cplreader with OpenFOAM data  you can ask Stefan
+Zörner or look  at the cplreader\_performance\_suite.  You may  have a look at
+/home/lse24/lse/strieben/cplreader\_performance\_suite  (Erlangen)  or on  the
+CFD\_Data NFS share on qnap (Klagenfurt).
+
+\newpage
+\subsection{EnSight}
+\label{sec:ensight}
+
+The EnSight  File Format is  described in Chapter  11 of the EnSight  7 User's
+Manual
+\url{http://www-vis.lbl.gov/NERSC/Software/ensight/docs/OnlineHelp/UM-C11.pdf}
+and                                                                        here
+\url{https://visualization.hpc.mil/wiki/EnSight%27s_Gold_Casefile_Format}.   In
+cplreader we make use of the EnSight file readers provided by VTK.
+
+There  exists a tool  called ens\_checker  for checking  the validity  of given
+EnSight input files. It  is a part of EnSight but may  also be downloaded (for
+Linux) at \url{http://aero.ist.utl.pt/~rreis/ens_checker.[32|64]}. It has also
+been                                   put                                  on
+\url{https://lse17.e-technik.uni-erlangen.de:2001/files/precompiled/EnSight/}.
+A     Howto     for     using      ens\_checker     can     be     found     at
+\url{http://www-vis.lbl.gov/NERSC/Software/ensight/doc/OnlineHelp/HT-Read-ens_checker.pdf}
+
+
+
+\subsubsection{Required File Layout}
+\begin{verbatim}
+zyl/
+|-- 20110207_Ensight_gold_binary_LES_Zylinder.encas
+|-- 20110207_Ensight_gold_binary_LES_Zylinder.geo
+|-- 20110207_Ensight_gold_binary_LES_Zylinder141221.scl1
+|-- 20110207_Ensight_gold_binary_LES_Zylinder141221.scl2
+|-- 20110207_Ensight_gold_binary_LES_Zylinder141221.scl3
+|-- 20110207_Ensight_gold_binary_LES_Zylinder141221.scl4
+|-- 20110207_Ensight_gold_binary_LES_Zylinder141221.scl5
+|-- 20110207_Ensight_gold_binary_LES_Zylinder141221.vel
+|-- 20110207_Ensight_gold_binary_LES_Zylinder141222.scl1
+|-- 20110207_Ensight_gold_binary_LES_Zylinder141222.scl2
+|-- 20110207_Ensight_gold_binary_LES_Zylinder141222.scl3
+|-- 20110207_Ensight_gold_binary_LES_Zylinder141222.scl4
+|-- 20110207_Ensight_gold_binary_LES_Zylinder141222.scl5
+|-- 20110207_Ensight_gold_binary_LES_Zylinder141222.vel
+
+...
+
+|-- zyl.case
+`-- zyl_bin.geo -> 20110207_Ensight_gold_binary_LES_Zylinder.geo
+\end{verbatim}
+
+In  this example  the VTK  Ensight  reader could  not directly  read the  {\tt
+20110207\_Ensight\_gold\_binary\_LES\_Zylinder.encas}  case file  due problems
+with  the file  name of  the {\tt  .geo} file.  Therefore a  copy of  it ({\tt
+zyl.case}) has been created which contains the following information:
+
+\begin{verbatim}
+FORMAT
+type:  ensight gold
+GEOMETRY
+model:  2  zyl_ascii.geo
+VARIABLE
+scalar per node:  1  pressure                  20110207_Ensight_gold_ASCII_LES_Zylinder****.scl1
+scalar per node:  1  density                   20110207_Ensight_gold_ASCII_LES_Zylinder****.scl2
+scalar per node:  1  x_velocity                20110207_Ensight_gold_ASCII_LES_Zylinder****.scl3
+scalar per node:  1  y_velocity                20110207_Ensight_gold_ASCII_LES_Zylinder****.scl4
+scalar per node:  1  z_velocity                20110207_Ensight_gold_ASCII_LES_Zylinder****.scl5
+vector per node:  1  velocity                  20110207_Ensight_gold_ASCII_LES_Zylinder****.vel
+TIME
+time set: 1 Model
+number of steps: 10
+filename start number:      141231
+filename increment:         1
+time values:  1.41231e+00  1.41232e+00  1.41233e+00  1.41234e+00  1.41235e+00  1.41236e+00  1.41237e+00 
+ 1.41238e+00  1.41239e+00  1.41240e+00 
+time set:                   2 Model
+number of steps:            1
+time values:  1.41231e+00
+\end{verbatim}
+
+The file {\tt zyl\_ascii.geo} is indeed  just a symbolic link to the real mesh
+file {\tt 20110207\_Ensight\_gold\_binary\_LES\_Zylinder.geo}.
+
+\subsubsection{Special Options}
+
+\begin{description}
+  \item[{\tt   --v[x|y|z]}]  Specify   name   of  velocity   field  array   to
+cplreader. If the field  is a vector quantity set all three  flags to the same
+value. If the field is broken  up into scalar components specify the component
+names here.
+
+  \item[{\tt --pres}] Specify the name of the pressure scalar field using this
+flag.
+\end{description}
+
+
+\subsubsection{Logging} 
+
+The {\tt .case} gets saved to the /UserData/name.case dataset in the HDF5 file
+for later reference.
+
+\subsubsection{Examples}
+
+\begin{verbatim}
+cplreader --type FIELDVIEW --name fluid_aachen --verbose 1 --justmesh 1 \
+          --outputfields all --numsteps 1
+\end{verbatim}
+
+\newpage
+\subsection{FLUENT}
+\label{sec:fluent}
+
+ANSYS Fluent  writes transient data  into {\tt .cas[.gz]} and  {\tt .dat[.gz]}
+files.  If  the mesh does  not change then  only one {\tt .cas[.gz]}  file and
+many  {\tt .dat[.gz]}  files will  be  written.  If  the mesh  changes a  {\tt
+.cas[.gz]} for every {\tt .dat[.gz]} file gets written.  Therefore, we support
+the following file layouts.
+
+
+\subsubsection{Required File Layout}
+
+\begin{verbatim}
+NACA0012-2D/
+|-- NACA0012-2D-23001.dat
+|-- NACA0012-2D-23002.dat
+|-- NACA0012-2D-23003.dat
+`-- NACA0012-2D.cas
+\end{verbatim}
+
+\begin{verbatim}
+FAN-3D/
+|-- FAN-3D-00006.cas
+|-- FAN-3D-00006.dat
+|-- FAN-3D-00007.cas
+|-- FAN-3D-00007.dat
+|-- FAN-3D-00008.cas
+`-- FAN-3D-00008.dat
+\end{verbatim}
+
+\subsubsection{Special Options}
+
+\subsubsection{Logging} 
+
+The mapping  from {\tt .cas[.gz]} to  {\tt .dat[.gz]} for  every timestep gets
+saved  to the  group  /UserData/CasToDatMapping  in the  HDF5  file for  later
+reference.
+
+\begin{verbatim}
+ts[0] (t=0s): NACA0012-2D.cas -> NACA0012-2D-23001.dat
+ts[1] (t=1s): NACA0012-2D.cas -> NACA0012-2D-23002.dat
+ts[2] (t=2s): NACA0012-2D.cas -> NACA0012-2D-23003.dat
+\end{verbatim}
+
+\subsubsection{Examples}
+
+\begin{verbatim}
+cplreader --type FLUENT --justmesh 0 --numsteps -1 --verbose 1 --calcsrc 1 
+          --outputfields all --dim 2 --timestep 1 --name NACA0012-2D
+\end{verbatim}
+
+\newpage
+\subsection{FieldView}
+\label{sec:fieldview}
+
+The implementation  of the FieldView reader  is quite basic  and only properly
+supports reading version 3.0 unstructured files generated from STARCCM+ at the
+moment.   If the  format is  needed  in the  future some  improvements to  its
+robustness  have to  be made.  The  documentation of  the file  format is  not
+publicly  available but a  PDF is  available on  the CFS++  development server
+\url{https://lse17.e-technik.uni-erlangen.de:2001/files/nightly-builds/doc/fieldview_format.pdf}
+
+\subsubsection{Required File Layout}
+\begin{verbatim}
+fluid_aachen/
+|-- fluid_aachen.fv
+|-- fluid_aachen.fv.fvreg
+`-- fluid_aachen.fvuns -> fluid_aachen.fv
+\end{verbatim}
+
+This tree has been generated by using the CFX export utility:
+\begin{verbatim}
+cfx5export -fieldview -UNS 3.0 /media/fluid_aachen/fluid_aachen.res
+\end{verbatim}
+
+Files generated in this way, can however not be read into cplreader because of
+the mentioned robustness issues.
+
+\subsubsection{Special Options}
+
+\subsubsection{Logging} 
+
+\subsubsection{Examples}
+
+
+\newpage
+\subsection{STARCCM+}
+\label{sec:starccm}
+
+In  order  to   examine  .ccm  files  (which  are   indeed  Boeing  ADF  files
+\url{http://dx.doi.org/10.4271/985565})   the  CGNS  \url{http://www.cgns.org}
+tools (especially adfview  which is similar to hdfview)  from CFSDEPS cgns may
+be  used.   To  view  the  fields  the  VisIt  \url{http://www.llnl.gov/visit}
+postprocessor may be used.
+
+A STARCCM+ reader developed by  Patrick Lorenz and Jens Grabinger is available
+at
+\url{https://lse17.e-technik.uni-erlangen.de:2001/svn/CFS++/branches/starccm}.
+It  does   however  not  read  .ccm   files  but  files  in   the  Field  View
+(cf. Sec.  \ref{sec:fieldview} and \url{http://www.ilight.com}) postprocessing
+format.  This decision  has been made due to the fact  that .ccm files contain
+polyhedral cells, which  cplreader cannot handle. The FieldView  files have to
+be   generated  within   STARCCM+.  You   may  also   contact   Frank  Schäfer
+\url{mailto:frank.schaefer@de.cd-adapco.com}  from   CD-adapco  Nuremberg  for
+further details.
+
+The FieldView  data format is also  supported by the cfx5export  tool of ANSYS
+CFX.
+
+\subsubsection{Required File Layout}
+
+\subsubsection{Special Options}
+
+\subsubsection{Logging} 
+
+\subsubsection{Examples}
+
+
+\newpage
+\subsection{CGNS - CFD General Notation System}
+\label{sec:cgns}
+
+The CGNS file  format can be generated by almost all  commercial CFD codes. It
+has been found however, that few  codes have support for writing CGNS files on
+the fly. Most often the native result files have to be converted to CGNS in an
+intermediate step.  Another  finding is that many CFD  codes save the complete
+mesh in every  CGNS time step file, which renders  this format almost unusable
+for aeroacoustic  analysis. At least  for Fluent this situation  should change
+with release 14 and ANSYS CFX  presents the possibility to write all time step
+fields to a single CGNS file, while only saving the mesh once (or twice).
+
+The CGNS  reader is still under  active development. Ideas for  its future and
+other     things     to     keep      in     mind     are     collected     at
+\url{https://lse17.e-technik.uni-erlangen.de:2001/trac/discussion/topic/14}.
+
+The reader  has initially  been developed to  support data generated  by ANSYS
+Fluent.   Known   problems   and   future  perspectives   are   discussed   at
+\url{https://lse17.e-technik.uni-erlangen.de:2001/trac/discussion/topic/7}.
+
+
+\subsubsection{Required File Layout}
+
+\begin{verbatim}
+Ellipse4_sas_006
+|-- Ellipse4_sas_006_2011.cgns
+|-- Ellipse4_sas_006_2015.cgns
+`-- Ellipse4_sas_006_2019.cgns
+\end{verbatim}
+
+\subsubsection{Special Options}
+
+\subsubsection{Logging} 
+
+\subsubsection{Examples}
+
+Convert CFX transient results to CGNS:
+
+\begin{verbatim}
+cfx5export -cgns -timestep -1 Ellipse4_sas_006.res
+
+Reading CFX5 results from <Ellipse4_sas_006.res>.
+processing all domains.
+processing all timesteps.
+writing CGNS file to <Ellipse4_sas_006_2011.cgns>.
+  writing 3D element section <Assembly 3D> containing 2607000 elements ... done
+  writing 2D element section <AIR> containing 70800 faces ... done
+  writing 2D element section <BOTTOM> containing 24740 faces ... done
+  writing 2D element section <CYL> containing 11160 faces ... done
+  writing 2D element section <INL> containing 12000 faces ... done
+  writing 2D element section <OUT> containing 12000 faces ... done
+  writing boundary condition <AIR> containing 70800 faces...done
+  writing boundary condition <BOTTOM> containing 24740 faces...done
+  writing boundary condition <CYL> containing 11160 faces...done
+  writing boundary condition <INL> containing 12000 faces...done
+  writing boundary condition <OUT> containing 12000 faces...done
+writing CGNS file to <Ellipse4_sas_006_2015.cgns>.
+  writing 3D element section <Assembly 3D> containing 2607000 elements ... done
+
+...
+
+done.
+\end{verbatim}%
+%
+Afterwards move  the generated files into  a directory as  described above and
+start cplreader:
+
+\begin{verbatim}
+cplreader --type CGNS --name Ellipse4_sas_006 --outputfields all --timestep 1e-4
+\end{verbatim}
 
 \newpage
 \section{Other Readers and Mesh Generators}
@@ -1218,7 +1650,7 @@ Stefan  Zörner  has got  plenty  of  examples.  Or  you  may  have  a look  at
 The ANSYS mesh converter can read  either ANSYS mesh output files generated by
 the older mkmesh extension and convert them to \hdf or the the files generated
 by the  NACS GiD/ANSYS  extension. At LSE  a version  of cplreader is  used to
-provide the ANSYS mkhd5 (/home/data/programs/mkhdf5) APDL extension.
+provide the ANSYS mkhdf5 (/home/data/programs/mkhdf5) APDL extension.
 
 \subsection{Mesh Generators}
 \label{sec:gengrids}
@@ -1236,18 +1668,7 @@ shell grids  composed of  all available element  types (including  HEXA27) for
 nonmatching grids.   It can be  only used through  a settings XML file  at the
 moment. Here is an example for an XML file for generating spherical shells.
 
-\begin{verbatim}
-<cplreaderOptions>
-  <type name="GENGRIDS" subType="SphericalShellGenerator">
-    <elementType name="HEXA27"/>
-    <numRefinementLevels value="3"/>
-    <outerRadius value="0.95"/>
-    <innerRadius value="0.9"/>
-    <numRadialElements value="3"/>
-    <octantRegions value="off"/>
-  </type>
-</cplreaderOptions>
-\end{verbatim}
+\input{sources/gengrids_spherical_shells}
 
 \noindent  Figure  \ref{fig:octant_parameter}   shows  the  influence  of  the
 'octantRegions'  parameter  on the  distribution  of  the  regions inside  the
@@ -1260,8 +1681,7 @@ generated grid.
    \subfloat[Using octant regions (octantRegions on)]{ \label{fig:spherical_shell_octant}
    \includegraphics[scale=0.3]{pics/spherical_shell_octant} }
   \end{center}
-  \caption{Influence of the 'octantRegions' parameter.}
-  \label{fig:octant_parameter}
+  \caption{Influence of the 'octantRegions' parameter. \label{fig:octant_parameter}}
 \end{figure}
 
 
@@ -1280,9 +1700,8 @@ Fig. \ref{fig:gengrids_rectlin_volumes}.
 \begin{figure}[htb]
 \begin{center}
 \includegraphics[scale=1]{pics/gengrids_rectlin_volumes}
-\caption{Naming conventions for volumes.}
+\caption{Naming conventions for volumes. \label{fig:gengrids_rectlin_volumes}}
 \end{center}
-\label{fig:gengrids_rectlin_volumes}
 \end{figure}
 
 \noindent For each volume six surfaces are being automatically generated using
@@ -1291,9 +1710,8 @@ the naming convention given in Fig. \ref{fig:gengrids_rectlin_surf}.
 \begin{figure}[htb]
 \begin{center}
 \includegraphics[scale=1]{pics/gengrids_rectlin_surf}
-\caption{Naming conventions for surfaces.}
+\caption{Naming conventions for surfaces. \label{fig:gengrids_rectlin_surf}}
 \end{center}
-\label{fig:gengrids_rectlin_surf}
 \end{figure}
 
 \noindent For the bottom layer  surface elements also line segments are create
@@ -1301,87 +1719,16 @@ following the naming convention 'lines\_[left$|$right$|$front$|$back]'. Due to
 this one can also create 2D  meshes with line elements on the boundaries. Here
 is a sample XML file.
 
-\begin{verbatim}
-<cplreaderOptions>
-  <type name="GENGRIDS">
-    <elementType name="HEXA8"/>
-    <samplingIntervalls>
-      <!-- Define intervals by using either absolute or incremental coordinates -->
-      <coordinates axis="x">
-        <coord type="absolute">  0.0e-0 </coord>
-        <coord type="increment"> 2.0e-1 </coord>
-        <coord type="increment"> 5.0e-2 </coord>
-        <coord type="increment"> 2.0e-1 </coord>
-      </coordinates>
-      <coordinates axis="y">
-        <coord type="absolute">  0.0e-0 </coord>
-        <coord type="increment"> 1.0e-1 </coord>
-        <coord type="increment"> 2.0e-2 </coord>
-        <coord type="increment"> 1.0e-1 </coord>
-      </coordinates>
-      <coordinates axis="z">
-        <coord type="absolute">  0.0e-3 </coord>
-        <coord type="increment"> 5e-3 </coord>
-      </coordinates>
-    </samplingIntervalls>
-    <!-- Assign number of elements to each interval -->
-    <intervallElements>
-      <elements axis="x">
-        <elems>2</elems>
-        <elems>5</elems>
-        <elems>10</elems>
-      </elements>
-      <elements axis="y">
-        <elems>2</elems>
-        <elems>7</elems>
-        <elems>12</elems>
-      </elements>
-      <elements axis="z">
-        <elems>2</elems>
-      </elements>
-    </intervallElements>
-    <regions>
-      <!-- Define regions by selecting volumes, surfaces and lines -->
-      <region name="region1">
-        <prelimRegion> volume_1_1_1 </prelimRegion>
-        <prelimRegion> volume_2_1_1 </prelimRegion>
-        <prelimRegion> volume_3_1_1 </prelimRegion>
-
-        <prelimRegion> volume_1_2_1 </prelimRegion>
-        <prelimRegion> volume_3_2_1 </prelimRegion>
-
-        <prelimRegion> volume_1_3_1 </prelimRegion>
-        <prelimRegion> volume_2_3_1 </prelimRegion>
-        <prelimRegion> volume_3_3_1 </prelimRegion>
-      </region>
-
-      <region name="region2">
-        <prelimRegion> volume_2_2_1 </prelimRegion>
-      </region>
-
-      <region name="surf_region2_bottom">
-        <prelimRegion> surf_bottom_2_2_1 </prelimRegion>
-      </region>
-
-      <region name="left_lines">
-        <prelimRegion> lines_left_1_1_1 </prelimRegion>
-        <prelimRegion> lines_left_1_2_1 </prelimRegion>
-        <prelimRegion> lines_left_1_3_1 </prelimRegion>
-      </region>
-    </regions>
-  </type>
-</cplreaderOptions>
-\end{verbatim}
+\input{sources/gengrids_rectlin}
 
 \noindent Figure \ref{fig:gengrids_rectlin_grid} shows the grid generated from
 the above XML file.
 
 \begin{figure}[htb]
 \begin{center}
-\includegraphics[scale=0.45]{pics/gengrids_rectlin_grid}
-\caption{Rectilinear grid generated from sample XML file.}
+\includegraphics[scale=0.35]{pics/gengrids_rectlin_grid}
+\caption{Rectilinear grid generated from sample XML file. \label{fig:gengrids_rectlin_grid}}
 \end{center}
-\label{fig:gengrids_rectlin_grid}
 \end{figure}
 
 
@@ -1392,13 +1739,7 @@ This generator just outputs a single reference element of specified type using
 the  coordinates and  node  numbering  as used  internally  within CFS++.  The
 following gives an example of generating a wedge element.
 
-\begin{verbatim}
-<cplreaderOptions>
-  <type name="GENGRIDS" subType="ReferenceElementGenerator">
-    <elementType name="WEDGE15"/>
-  </type>
-</cplreaderOptions>
-\end{verbatim}
+\input{sources/gengrids_refelems}
 
 \noindent Figure \ref{fig:gengrids_refelems} shows the available element types
 file.
@@ -1406,34 +1747,176 @@ file.
 \begin{figure}[htb]
 \begin{center}
 \includegraphics[scale=1.4]{pics/refelems}
-\caption{Array of reference elements from CFS++.}
+\caption{Array of reference elements from CFS++. \label{fig:gengrids_refelems}}
 \end{center}
-\label{fig:gengrids_refelems}
 \end{figure}
 
+\newpage
+\subsubsection{Defining Analytical Fields using MuParser}
 
+\input{sources/gengrids_fields}
+
+\noindent Figure \ref{fig:gengrids_fields} shows the resulting velocity field.
+
+\begin{figure}[htb]
+\begin{center}
+\includegraphics[scale=0.4]{pics/fields_gengrids}
+\caption{Velocity field generated by cplreader. \label{fig:gengrids_fields}}
+\end{center}
+\end{figure}
+
+The version  of muParser which is  used in cplreader does  not support complex
+arithmetic.   This   means  that  transient  phenomena   modelled  by  complex
+expressions must be translated to the corresponding sine or cosine expressions
+by  hand.   For details  concerning  complex  arithmetic  support in  muParser
+cf. \url{https://lse17.e-technik.uni-erlangen.de:2001/trac/discussion/topic/10}.
+
+\newpage
+\section{Setting up the Interpolation Calculation in CFS++}
+
+In order  to interpolate the  acoustic source terms  from the CFD  mesh, which
+cplreader has written  out, to the acoustic mesh of the  source region a CFS++
+simulation has to be set up. One needs to have a XML file, a material file and
+the  mesh files  for the  acoustic mesh  and the  CFD mesh  with  the acoustic
+sources. A typical XML file for doing the interpolation looks like this:
+
+\input{sources/cfs_interpolation}
+
+\noindent Figure  \ref{fig:interpolation_tolerances} shows the  meaning of the
+tolerance parameters in the interpolation section of the XML file. In order to
+find the correct destination element/cell for  a given node of the CFD mesh we
+use the  Intersecting Sequences  of dD Iso-oriented  Boxes algorithm  from the
+Computational Geometry  Algorithms Library (CGAL)  \cite{cgal}. This algorithm
+takes two sets of bounding boxes,  does some spatial sorting on them and calls
+a callback function for each pair  of intersecting boxes from the two sets. We
+use this algorithm by generating axis  aligned bound boxes around the cells of
+the acoustic mesh  as well as around  the nodes of the CFD  mesh. The bounding
+boxes around the acoustic cells are  generated by find the minimal and maximal
+coordinates of the nodes of the  acoustic cell. The bounding boxes for the CFD
+nodes  are  generated  by  using  the  global  tolerance  parameter  from  the
+interpolation in  a way  shown in Fig.  \ref{fig:interpolation_tolerances}. If
+such  a pair  of bounding  boxes intersects  the callback  function  will then
+transform the location of the CFD node into the reference coordinate system of
+the acoustic  cell and use the  local tolerance parameter to  specify a region
+around the reference cell. If the CFD node is within this region the algorithm will
+then use the  current acoustic cell as destination cell. The  value of the CFD
+node will just be distributed among the nodes of this acoustic cell.
+
+\begin{figure}[htb]
+\begin{center}
+\includegraphics[scale=1]{pics/interpolation_tolerances}
+\caption{Meanings of the tolerance parameters for the interpolation step. \label{fig:interpolation_tolerances}}
+\end{center}
+\end{figure}
+
+The  algorithm would select  the bounding  box pair  of the  CFD node  and the
+acoustic   cell  and   do  a   callback  for   the  example   shwon   in  Fig.
+\ref{fig:interpolation_tolerances}.  It would  however reject  to map  the CFD
+node to the acoustic cell since the node is outside the local tolerance.
+
+\noindent A good guidline for choosing the tolerances is to use less than half
+of the minimal edge length in the acoustic grid as maximal global tolerance so
+that  only nodes  really  close to  the  acoustic cells  get  selected by  the
+intersecting bounding boxes algorithm. Specifying  a too large value here will
+cause lots of unsuccessful bounding box intersection operations. It is however
+sometimes necessary to  go up with the  global tolerance to be able  to map on
+curved boundaries.   One should choose  as small local tolerances  as possible
+since  the the  basis functions  for  weighting the  source value  tend to  be
+negative outside an elements domain. Another cause for errors is the fact that
+the CFD node can get projected to the wrong destination cell if this tolerance
+is to large. The cell neighboring the  current cell my be the correct one, but
+the node  already got mapped. This  is why one should  start the interpolation
+with  very tight global  and local  tolerances and  iteratively add  CFD nodes
+which need larger tolerances. This may  either be achieved by using the start,
+end and inc attributes in the XML file or by making use of the restart file or
+by combining both possibilities.
+
+\subsection{Important Guidelines}
+
+Allways check  if the sum  of the source  terms on the source  and destination
+meshes are equal. The only case when  the sums should not be equal is when you
+interpolate  from  a  geometrically   larger  source  domain  into  a  smaller
+destination domain. If  the sum over the the source  domain cannot be computed
+easily (e.g. when interpolating  just one plane of a 3D dataset  to 2D) try to
+evalute the sum for a number  of different destination meshes. In the simplest
+case just use one destination element covering the whole source region.
+The evaluation of the sum may be performed by reading in the datasets
+\begin{verbatim}
+/Results/Mesh/MultiStep_1/Step_X/acouRhsLoad/REGIONNAME/Nodes/Real
+\end{verbatim}
+on the source and destination HDF5 files and summing them up. This may be done
+by the following Matlab code
+\input{sources/check_cons_interp}
+
+\noindent      Never     use      the     text      output      of     h5dump\footnote{http://www.speedup.ch/workshops/w37\_2008/HDF5-Tutorial-PDF/HDF5-Tools.pdf}
+or the CSV  output of ParaView to do comparisons since  both programs cut down
+the  digits of the  numbers. One  can use  h5dump to  extract the  binary data
+however by issuing
+
+\begin{verbatim}
+DS=/Results/Mesh/MultiStep_1/Step_X/acouRhsLoad/REGIONNAME/Nodes/Real
+h5dump -o out.bin -b MEMORY -d $DS file.h5
+\end{verbatim}
+
+\noindent The resulting binary data may  be read by Octave using the following
+script
+\input{sources/sumup}
+
+\subsection{Getting into the Code}
+
+The code for the calculation  of the conservative interpolation is distributed
+among the following files:
+\begin{verbatim}
+source/Forms/acouRHSLinForm.cc
+source/Domain/grid.hh
+source/Domain/grid.cc
+\end{verbatim}
+The following methods are of interest:
+\begin{itemize}
+
+\item  {\tt   AcouRHSLinForm::CalcElemVector  (acouRHSLinForm.cc)}  Calculates
+exactly one entry of the acoustic right hand side vector.
+
+\item  {\tt Grid::ComputeConservativeInterpolationWeights  (grid.cc)} Computes
+bounding boxes for source nodes and destination elements for one source region
+and calls the bounding box intersection algorithm.
+
+\item {\tt Grid::ConsInterpReportFunctor::operator()  (grid.hh)} Is a callback
+for the bounding box algorithm and checks  if a source node is indeed inside a
+destination  element. If  this is  the  case it  calculates the  interpolation
+weights by evaluating the element  basis functions at the local coordinates of
+the source node.
+
+\end{itemize}
 
 \newpage
 \section{Rebuilding the Documentation}
 
 Switch on  {\tt CPLREADER\_REBUILD\_DOCU} in CMake  GUI. Make sure  you have a
-recent TikZ/PGF distribution installed. Edit the following files:
+recent   TikZ/PGF  distribution   and   Pygments  ({\tt   http://pygments.org}
+$\rightarrow$ {\tt sudo easy\_install  Pygments}) installed. Edit the following
+files:
 \begin{verbatim}
+source/cplreader/Documentation/latex/CMakeLists.txt
 source/cplreader/Documentation/latex/cplreader_docu.tex
 source/cplreader/Documentation/latex/Title.tex
 source/cplreader/cmake_options.cmake
 \end{verbatim}
-Then you may rebuild CFS++ and cplreader. The resulting PDF documentation file
-for   cplreader    will   be   copied    back   to   the    source   directory
-automatically. Therefore you just need to commit the changes to SVN.
+To add additional sources edit the  CMakeLists.txt and add them to the list of
+CPLREADER\_DOCU\_SOURCES. After doing  so make sure to do a  CMake run so that
+the sources  get copied to  the build directory.  This step is  also necessary
+after  copying new pictures  to the  pics subdirectory.  Then you  may rebuild
+CFS++ and cplreader.  The resulting PDF documentation file  for cplreader will
+be copied back to the  source directory automatically. Therefore you just need
+to commit the changes to SVN.
 
 
 \newpage
 \section{Copyright}
  
-Copyright (c) 2008 Department of Sensor Technology,
+Copyright (c) 2008 -- 2011 Department of Sensor Technology,
 Friedrich-Alexander University Erlangen-Nuremberg,\\
-Copyright (c) 2008 Chair of Applied Mechatronics,
+Copyright (c) 2008 -- 2011 Chair of Applied Mechatronics,
 Alps-Adriatic University of Klagenfurt, Austria.\\
 Copyright (c) 2008 Simetris GmbH, Tennenlohe, Germany.\\\\
 All rights reserved.\\\\
@@ -1478,7 +1961,7 @@ Computational Aeroacoustics in Erlangen:
 Computational Fluid Dynamics at LSTM
 Erlangen\\\url{http://www.lstm.uni-erlangen.de/Ber/BerT1/index-en.htm}\\\\
 Chair of Fluid Mechanics and Fluid Machines, University Freiberg\\\url{http://www.imfd.tu-freiberg.de/fluid/index.en.html}\\\\
-
+Homepage of István Vaik (user of cplreader for edge tone simulations) \\\url{http://www.vizgep.bme.hu/okto/vi/index.html}\\\\
 \bibliographystyle{plain}
 \bibliography{cplreader_docu.bib}
 

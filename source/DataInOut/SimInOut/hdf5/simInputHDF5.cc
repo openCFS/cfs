@@ -34,7 +34,7 @@ namespace CoupledField {
     EXCEPTION( STR << ":\n" << h5Ex.getCDetailMsg() );                  \
   }
 
-  SimInputHDF5::SimInputHDF5(std::string fileName, ParamNode * inputNode) :
+  SimInputHDF5::SimInputHDF5(std::string fileName, PtrParamNode inputNode) :
       SimInput(fileName, inputNode)
   {
     capabilities_.insert( SimInput::MESH);
@@ -45,20 +45,20 @@ namespace CoupledField {
     hasExternalFiles_ = false;
     fileName_ = fileName;
     genRegionNodes_ = false;
-    ParamNode *pNode = NULL;
+    PtrParamNode pNode;
     coordSysId_ = "default";
     scaleFac_ = 1.0;
 
     // Change defaults according to XML file
-    pNode = myParam_->Get("generateRegionNodes", false);
+    pNode = myParam_->Get("generateRegionNodes", ParamNode::PASS);
     if( pNode ) {
-      genRegionNodes_ = pNode->AsBool();
+      genRegionNodes_ = pNode->As<bool>();
     }
 
-    pNode = myParam_->Get("readEntities", false);
+    pNode = myParam_->Get("readEntities", ParamNode::PASS);
     if(pNode) {
       std::string readRegions =
-        myParam_->Get("readEntities", false)->AsString();
+        myParam_->Get("readEntities")->As<std::string>();
 
       typedef boost::tokenizer<char_separator<char> > Tok;
       boost::char_separator<char> sep(";| ");
@@ -73,10 +73,10 @@ namespace CoupledField {
       readEntities_.insert("all");
     }
 
-    pNode = myParam_->Get("linearizeEntities", false);
+    pNode = myParam_->Get("linearizeEntities", ParamNode::PASS);
     if(pNode) {
       std::string readRegions =
-        myParam_->Get("linearizeEntities", false)->AsString();
+        myParam_->Get("linearizeEntities")->As<std::string>();
 
       typedef boost::tokenizer<char_separator<char> > Tok;
       boost::char_separator<char> sep(";| ");
@@ -90,16 +90,11 @@ namespace CoupledField {
     } else {
       linearizeEntities_.insert("none");
     }
-
-    pNode = myParam_->Get("coordSysId", false);
-    if(pNode) {
-      coordSysId_ = myParam_->Get("coordSysId", false)->AsString();
-    }
+    // fetch reference coordinate system
+    myParam_->GetValue("coordSysId", coordSysId_, ParamNode::INSERT);
     
-    pNode = myParam_->Get("scaleFac", false);
-    if(pNode) {
-      scaleFac_ = myParam_->Get("scaleFac", false)->AsDouble();
-    }
+    // fetch scale factor
+    myParam_->GetValue("scaleFac", scaleFac_, ParamNode::INSERT);
 
     // Do not print HDF5 exceptions by default
     H5::Exception::dontPrint();
@@ -424,18 +419,24 @@ namespace CoupledField {
     try {
     resGroup = actMsGroup.openGroup("ResultDescription").
                openGroup( info->resultName );
-    } H5_CATCH( "Could not open resultdescription for result '"
+    } H5_CATCH( "Could not open result description for result '"
                  << info->resultName << "'" );
 
     // read stepValues and stepNumbers
     StdVector<Double> values;
     StdVector<UInt> numbers;
-    H5IO::ReadArray( resGroup, "StepNumbers", numbers );
-    H5IO::ReadArray( resGroup, "StepValues", values );
+    try {
+      H5IO::ReadArray( resGroup, "StepNumbers", numbers );
+    } H5_CATCH( "Could not read step numbers of result '"
+                << info->resultName << "'" );
+    try {
+      H5IO::ReadArray( resGroup, "StepValues", values );
+    } H5_CATCH( "Could not read step values of result '"
+                << info->resultName << "'" );
 
     // sanity check: both vectors need to have the same dimension
     if( values.GetSize() != numbers.GetSize() ) {
-      EXCEPTION( "There are not as many stepnumbers as stepvalues" );
+      EXCEPTION( "There are not as many step numbers as step values" );
     }
 
     // copy to steps-array
@@ -942,8 +943,7 @@ namespace CoupledField {
 
 
       // pass region names to grid and obtain RegionIds
-      RegionIdType actRegionId;
-      mi_->AddRegion(regionName, actRegionId);
+      RegionIdType actRegionId = mi_->AddRegion(regionName);
 
       // Check if entity needs to be linearized
       bool linearizeEntity;

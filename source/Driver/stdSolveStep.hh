@@ -12,6 +12,8 @@
 #include "MatVec/vector.hh"
 #include "Utils/hysteresis.hh"
 #include "Materials/baseMaterial.hh"
+#include "DataInOut/resultHandler.hh"
+#include "Utils/mathParser/mathParser.hh"
 #include "Domain/domain.hh"
 
 namespace CoupledField
@@ -22,7 +24,7 @@ namespace CoupledField
   class TimeStepping;
   class WriteResults;
   //class EqnMap;
-  class ResultInfo;
+  struct ResultInfo;
   class SingleDriver;
   class IDBC_Handler;
   class BaseIDBC_Handler;
@@ -51,13 +53,16 @@ namespace CoupledField
     virtual void PreStepStatic();
  
     /** base method for solving one static step */
-    virtual void SolveStepStatic(InfoNode* analysis_id);
+    virtual void SolveStepStatic(PtrParamNode analysis_id, AdjointParameters* adjointParams = NULL);
 
     /** @see SolveStepStatic() */ 
-    virtual void StepStaticLin(InfoNode* analysis_id);
+    virtual void StepStaticLin(PtrParamNode analysis_id, AdjointParameters* adjointParams = NULL);
 
-    //! solves for one nonlinear static step 
-    virtual void StepStaticNonLin(InfoNode* analysis_id);
+    //! solves for one nonlinear static step: incremental formulation 
+    virtual void StepStaticNonLin(PtrParamNode analysis_id);
+
+    //! solves for one nonlinear static step: total formulation
+    virtual void StepStaticNonLinTotal(PtrParamNode analysis_id);
     
     //! routine for actions after the SolveStep-method
     virtual void PostStepStatic();
@@ -71,21 +76,24 @@ namespace CoupledField
     //virtual void PredictorStep(){;};
 
     //! base method for solving one transient step 
-    virtual void SolveStepTrans(InfoNode* analysis_id);
+    virtual void SolveStepTrans(PtrParamNode analysis_id, AdjointParameters* adjointParams = NULL);
 
-    //! solves for one linear transient step 
-    virtual void StepTransLin(InfoNode* analysis_id);
+    //! solves for one linear transient step
+    virtual void StepTransLin(PtrParamNode analysis_id, AdjointParameters* adjointParams = NULL);
 
-    //! solves for one nonlinear transient step 
-    virtual void StepTransNonLin(InfoNode* analysis_id);
+    //! solves for one nonlinear transient step: incremental formulation 
+    virtual void StepTransNonLin(PtrParamNode analysis_id);
+
+    //! solves for one nonlinear transient step: total formulation 
+    virtual void StepTransNonLinTotal(PtrParamNode analysis_id);
 
     //! solves for one nonlinear transient step 
     //! consideres material nonlinearities in direct coupled PDEs
-    void StepTransNonLinMaterial(InfoNode* analysis_id);
+    void StepTransNonLinMaterial(PtrParamNode analysis_id);
 
     //! solves for one nonlinear transient step 
     //! consideres hystreresis nonlinearities in direct coupled PDEs
-    virtual void StepTransNonLinHysteresis(InfoNode* analysis_id);
+    virtual void StepTransNonLinHysteresis(PtrParamNode analysis_id);
     
     //! routine for actions after the SolveStep-method
     virtual void PostStepTrans();
@@ -95,13 +103,13 @@ namespace CoupledField
     virtual void PreStepHarmonic();
 
     //!  base method for solving one harmonic step 
-    virtual void SolveStepHarmonic(InfoNode* analysis_id);
+    virtual void SolveStepHarmonic(PtrParamNode analysis_id);
     
     //! solves for one linear frequency step 
-    virtual void StepHarmonicLin(InfoNode* analysis_id);
+    virtual void StepHarmonicLin(PtrParamNode analysis_id);
 
     //! solves for one nonlinear frequency step 
-    virtual void StepHarmonicNonLin(InfoNode* analysis_id)
+    virtual void StepHarmonicNonLin(PtrParamNode analysis_id)
     {EXCEPTION("Harmonic step not implemented!");};
     
     //!  routine for actions after the SolveStep-method
@@ -159,24 +167,21 @@ namespace CoupledField
     void SetPDEId( const FeFctIdType pdeId )
     { pdeId1_ = pdeId;};
 
-    //! Write nonlin iteration norms to info-file
-    void WriteClaNlNorms(const UInt iterationCounter,
-                         const Double residualL2Norm,
-                         const Double extForcesL2Norm, const Double residualErr, 
-                         const Double solIncrL2Norm, const Double actSolL2Norm, 
-                         const Double incrementalErr);
-
     //! returns the hysteresis operator
     Hysteresis * GetHystOperator(UInt iSD) {
       return hyst_[iSD];
     };
-
+    
+    void ReInit();
 
   protected:
 
 
     //! Read nonlinear data from pdenode 
     virtual void ReadNonLinData();
+    
+    virtual void WriteNonLinIterToInfoXML(const std::string& pdeName, const UInt iterationCounter,
+        const Double residualErr, const Double incrementalErr, double etaLineSearch=0.0);
 
     //------------- storage vectors for nonlinear analysis --------------
     //Vector<Double> RhsLinVal_; //!< external forces (for nonlin simulations)
@@ -215,6 +220,7 @@ namespace CoupledField
     bool nonLin_;           //!< flag for nonlinear calculations
     bool nonLinMaterial_;           //!< flag for nonlinear material calculations
     bool isHyst_;           //!< flag for hystersis modeling
+    bool totalFormulation_; //!< yes, then total formulation, else incremental one
     Double incStopCrit_;       //!< stopping criterion for incremental error
     Double residualStopCrit_;  //!< stopping criterion for residual error
     UInt nonLinMaxIter_;    //!< maximal number of NL-iterations
@@ -241,6 +247,8 @@ namespace CoupledField
     FeFctIdType pdeId2_;
 
     std::ofstream logFile_;
+    MathParser::HandleType mHandle_;
+    MathParser* mParser_;
   };
 
 } // end of namespace

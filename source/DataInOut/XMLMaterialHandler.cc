@@ -21,6 +21,7 @@
 #include "Materials/flowMaterial.hh"
 #include "Materials/thermoelasticMaterial.hh"
 #include "Materials/pyroelectricMaterial.hh"
+#include "Materials/magStrictMaterial.hh"
 
 // Note, that the methods ComputeIso/OrthoMechStiffnesTensor were commented out
 // in revision 7562 and are not in the code -> check the repository!
@@ -29,8 +30,6 @@ namespace CoupledField {
 
   XMLMaterialHandler::XMLMaterialHandler( const std::string & fileName )
     : MaterialHandler( fileName) {
-
-    parser_ = NULL;
 
     // Create a ParamNode and parse the material file
     std::string schema = progOpts->GetSchemaPathStr();
@@ -45,9 +44,8 @@ namespace CoupledField {
     delete xerces;
   }
   
-  XMLMaterialHandler::~XMLMaterialHandler() {
-      
-    delete parser_;
+  XMLMaterialHandler::~XMLMaterialHandler()
+  {
   }
   
   BaseMaterial * XMLMaterialHandler::
@@ -59,13 +57,12 @@ namespace CoupledField {
     std::string strMatClass;
 
     Enum2String(matClass,strMatClass);
-    
-    if(!parser_->Has("material", "name", matName))
+    if(!parser_->HasByVal("material", "name", matName))
       EXCEPTION("Cannot find material '" << matName << "'");
     
     // first get the material element:  <material name="iron">
-    ParamNode* pn = NULL;
-    pn = parser_->Get("material", "name", matName);
+    PtrParamNode pn;
+    pn = parser_->GetByVal("material", "name", matName);
     
     if( !pn ) {
       EXCEPTION( "Material with name '" << matName 
@@ -74,6 +71,7 @@ namespace CoupledField {
     // the the requested material class: <mechanical>
     pn = pn->Get(strMatClass);  
    
+    try {
     if ( matClass == PIEZO ) {
       material = new PiezoMaterial();
       ReadPiezo( material, pn);
@@ -110,11 +108,19 @@ namespace CoupledField {
       material = new ThermoelasticMaterial();
       ReadThermoelastic( material, pn );
     }
+    else if ( matClass == MAGNETOSTRICTIVE ) {
+      material = new MagStrictMaterial();
+      ReadMagStrict( material, pn );
+    }
     else {
       EXCEPTION( "material type:" << matClass << " not defined" );
     }
     // Finalize setup of material
     material->Finalize();
+    } catch (Exception& ex ) {
+      RETHROW_EXCEPTION(ex, "Could not load material '" << matName  
+                        << "' of class '" << matClass << "'" );
+    }
 
     return material;
   }
@@ -123,7 +129,7 @@ namespace CoupledField {
     //*************  READ PIEZO ********************************************
       //**********************************************************************
 
-  void XMLMaterialHandler::ReadPiezo(BaseMaterial *material, ParamNode* pn) 
+  void XMLMaterialHandler::ReadPiezo(BaseMaterial *material, PtrParamNode pn) 
   {
 
     //read real piezo coupling tensor
@@ -131,7 +137,7 @@ namespace CoupledField {
     {
       Matrix<Double> couplingTensor(3,6);
 
-      ParamNode* pct = pn->Get("piezoCouplingTensor");
+      PtrParamNode pct = pn->Get("piezoCouplingTensor");
       if(pct->Has("real"))
       {
         ParamTools::AsTensor<double>(pct->Get("real"), 3, 6, couplingTensor);
@@ -145,32 +151,94 @@ namespace CoupledField {
     } 
 
     //read nonlinearity of a coupling coefficient
-    if(pn->Has("piezoCouplingCoefficient", "nonlinear", "function"))
+    if(pn->HasByVal("piezoCouplingCoefficient", "nonlinear", "function"))
     {
-      ParamNode* pcc = pn->Get("piezoCouplingCoefficient", 
+      PtrParamNode pcc = pn->GetByVal("piezoCouplingCoefficient", 
                                std::string("nonlinear"), 
                                "function");
       if(pcc->Has("entry"))
-        material->SetScalar(pcc->Get("entry")->AsInt(), NONLIN_COEFFICIENT);
+        material->SetScalar(pcc->Get("entry")->As<Integer>(), NONLIN_COEFFICIENT);
       
       if(pcc->Has("dependency"))
-        material->SetScalar(pcc->Get("dependency")->AsString(), NONLIN_DEPENDENCY);
+        material->SetScalar(pcc->Get("dependency")->As<std::string>(), NONLIN_DEPENDENCY);
       
       if(pcc->Has("approxType"))
-        material->SetScalar(pcc->Get("approxType")->AsString(), NONLIN_APPROXIMATION_TYPE);
+        material->SetScalar(pcc->Get("approxType")->As<std::string>(), NONLIN_APPROXIMATION_TYPE);
 
       if(pcc->Has("dataName"))
-        material->SetScalar(pcc->Get("dataName")->AsString(), NONLIN_DATA_NAME);
+        material->SetScalar(pcc->Get("dataName")->As<std::string>(), NONLIN_DATA_NAME);
     }
 
-    // Print material information to .info-file
-    Info->PrintMaterial(material );
+    if ( pn->Has("piezoMicroData"))
+    {
+      if( pn->Get("piezoMicroData")->Has("HuberFleck"))
+      {
+        PtrParamNode pcc = pn->Get("piezoMicroData")->Get("HuberFleck");
+        
+        // force name
+        //        material->SetScalar("BelovKreher", PIEZO_MICRO_MODEL);
+
+        // read remanent polarisation
+        if(pcc->Has("sponPolarization"))
+          material->SetScalar(pcc->Get("sponPolarization")->As<Double>(), SPON_POLARIZATION, Global::REAL ); 
+
+        // read remanent strain
+        if(pcc->Has("sponStrain")) 
+          material->SetScalar(pcc->Get("sponStrain")->As<Double>(), SPON_STRAIN, Global::REAL ); 
+
+        // 
+        if(pcc->Has("Efield0")) 
+          material->SetScalar(pcc->Get("Efield0")->As<Double>(), EFIELD0, Global::REAL ); 
+
+        // 
+        if(pcc->Has("Stress0")) 
+          material->SetScalar(pcc->Get("Stress0")->As<Double>(), STRESS0, Global::REAL ); 
+
+        // 
+        if(pcc->Has("dCouple0")) 
+          material->SetScalar(pcc->Get("dCouple0")->As<Double>(), DCOUPLE0, Global::REAL ); 
+
+        // read rate constant
+        if(pcc->Has("rateConstant")) 
+          material->SetScalar(pcc->Get("rateConstant")->As<Double>(), RATE_CONSTANT, Global::REAL ); 
+
+        // read visco-plasti index
+        if(pcc->Has("viscoPlasticIndex")) 
+          material->SetScalar(pcc->Get("viscoPlasticIndex")->As<Double>(), VISCO_PLASTIC_INDEX, Global::REAL ); 
+
+        // read saturation index
+        if(pcc->Has("saturationIndex")) 
+          material->SetScalar(pcc->Get("saturationIndex")->As<Double>(), SATURATION_INDEX, Global::REAL ); 
+
+        // read init value for volume fraction
+        if(pcc->Has("volumeFracInit")) 
+          material->SetScalar(pcc->Get("volumeFracInit")->As<Double>(), VOLUME_FRAC_INIT, Global::REAL ); 
+
+        // 
+        if(pcc->Has("scaleForceElec")) 
+          material->SetScalar(pcc->Get("scaleForceElec")->As<Double>(), SCALE_FORCE_ELEC, Global::REAL ); 
+
+        // 
+        if(pcc->Has("scaleForceMech")) 
+          material->SetScalar(pcc->Get("scaleForceMech")->As<Double>(), SCALE_FORCE_MECH, Global::REAL ); 
+
+        // 
+        if(pcc->Has("scaleForceCouple")) 
+          material->SetScalar(pcc->Get("scaleForceCouple")->As<Double>(), SCALE_FORCE_COUPLE, Global::REAL ); 
+
+        // read mean temperatute
+        if(pcc->Has("Tmean"))
+          material->SetScalar(pcc->Get("Tmean")->As<Double>(), MEAN_TEMPERATURE, Global::REAL ); 
+
+      }
+    }
+
   }
 
 //**********************************************************************
 //*************  READ MECHANICS ****************************************
 //**********************************************************************
-  void XMLMaterialHandler::ReadMechanic(BaseMaterial *material, ParamNode* mech) 
+  void XMLMaterialHandler::ReadMechanic(BaseMaterial *material, PtrParamNode mech) 
   {
     bool     flagEModulReal=false;
     bool     flagPoissonReal=false;
@@ -194,16 +262,16 @@ namespace CoupledField {
 
     //read material density
     if(mech->Has("density"))
-      material->SetScalar(mech->Get("density")->AsDouble(), DENSITY, Global::REAL);
+      material->SetScalar(mech->Get("density")->As<Double>(), DENSITY, Global::REAL);
 
     // quite a lot is elasitcity
     if(mech->Has("elasticity"))
     {
-      ParamNode* elast = mech->Get("elasticity");
+      PtrParamNode elast = mech->Get("elasticity");
 
-      if(elast->Has("tensor", "dim1", "6"))
+      if(elast->HasByVal("tensor", "dim1", "6"))
       {
-        ParamNode* tens = elast->Get("tensor", std::string("dim1"), "6");
+        PtrParamNode tens = elast->GetByVal("tensor", std::string("dim1"), "6");
         Matrix<Double> elasticityTensor(6,6);
 
         //read real elasticity tensor   
@@ -227,38 +295,38 @@ namespace CoupledField {
         // read the real part
         if(elast->Get("isotropic")->Has("real"))
         {
-          ParamNode* real = elast->Get("isotropic")->Get("real");
+          PtrParamNode real = elast->Get("isotropic")->Get("real");
 
           // read real elasticity modulus
           if(real->Has("elasticityModulus"))
           {
-            material->SetScalar(real->Get("elasticityModulus")->AsDouble(), MECH_EMODULUS, Global::REAL ); 
+            material->SetScalar(real->Get("elasticityModulus")->As<std::string>(), MECH_EMODULUS, Global::REAL ); 
             flagEModulReal = true;
           }
           
           // read real Poisson number
           if(real->Has("poissonNumber"))
           {
-            material->SetScalar(real->Get("poissonNumber")->AsDouble(), MECH_POISSON, Global::REAL ); 
+            material->SetScalar(real->Get("poissonNumber")->As<std::string>(), MECH_POISSON, Global::REAL ); 
             flagPoissonReal = true;
           }
         }
         // read the imaginary part
         if(elast->Get("isotropic")->Has("imag"))
         {
-          ParamNode* imag = elast->Get("isotropic")->Get("imag");
+          PtrParamNode imag = elast->Get("isotropic")->Get("imag");
           
           //read imaginary elasticity modulus
           if(imag->Has("elasticityModulus"))
           {
-            material->SetScalar(imag->Get("elasticityModulus")->AsDouble(), MECH_EMODULUS, Global::IMAG ); 
+            material->SetScalar(imag->Get("elasticityModulus")->As<std::string>(), MECH_EMODULUS, Global::IMAG ); 
             flagEModulImag = true;
           }
 
           // read imaginary Poisson number
           if(imag->Has("poissonNumber"))
           {
-            material->SetScalar(imag->Get("poissonNumber")->AsDouble(), MECH_POISSON, Global::IMAG ); 
+            material->SetScalar(imag->Get("poissonNumber")->As<std::string>(), MECH_POISSON, Global::IMAG ); 
             flagPoissonImag = true;
           }
         }
@@ -275,62 +343,62 @@ namespace CoupledField {
         if(elast->Get("orthotropic")->Has("imag"))
           throw Exception("imaginary orthotropic elasitcity parameters for mechanical not implemented");
           
-        ParamNode* real = elast->Get("orthotropic")->Get("real");
+        PtrParamNode real = elast->Get("orthotropic")->Get("real");
         
         //read orthotropic elasticity modulus
         if(real->Has("elasticityModulus_1"))
         {
-          material->SetScalar(real->Get("elasticityModulus_1")->AsDouble(), MECH_EMODULUS_X, Global::REAL ); 
+          material->SetScalar(real->Get("elasticityModulus_1")->As<Double>(), MECH_EMODULUS_X, Global::REAL ); 
           flagEModulXReal = true;
         }
 
         if(real->Has("elasticityModulus_2"))
         {
-          material->SetScalar(real->Get("elasticityModulus_2")->AsDouble(), MECH_EMODULUS_Y, Global::REAL ); 
+          material->SetScalar(real->Get("elasticityModulus_2")->As<Double>(), MECH_EMODULUS_Y, Global::REAL ); 
           flagEModulYReal = true;
         }
 
         if(real->Has("elasticityModulus_3"))
         {
-          material->SetScalar(real->Get("elasticityModulus_3")->AsDouble(), MECH_EMODULUS_Z, Global::REAL ); 
+          material->SetScalar(real->Get("elasticityModulus_3")->As<Double>(), MECH_EMODULUS_Z, Global::REAL ); 
           flagEModulZReal = true;
         }
 
         // read orthotropic Poisson numbers
         if(real->Has("poissonNumber_12"))
         {
-          material->SetScalar(real->Get("poissonNumber_12")->AsDouble(), MECH_POISSON_XY, Global::REAL ); 
+          material->SetScalar(real->Get("poissonNumber_12")->As<Double>(), MECH_POISSON_XY, Global::REAL ); 
           flagPoissonXYReal = true;
         }
 
         if(real->Has("poissonNumber_23"))
         {
-          material->SetScalar(real->Get("poissonNumber_23")->AsDouble(), MECH_POISSON_YZ, Global::REAL ); 
+          material->SetScalar(real->Get("poissonNumber_23")->As<Double>(), MECH_POISSON_YZ, Global::REAL ); 
           flagPoissonYZReal = true;
         }
 
         if(real->Has("poissonNumber_13"))
         {
-          material->SetScalar(real->Get("poissonNumber_13")->AsDouble(), MECH_POISSON_XZ, Global::REAL ); 
+          material->SetScalar(real->Get("poissonNumber_13")->As<Double>(), MECH_POISSON_XZ, Global::REAL ); 
           flagPoissonXZReal = true;
         }
     
         // read orthotropic shear modulus
         if(real->Has("shearModulus_23"))
         {
-          material->SetScalar(real->Get("shearModulus_23")->AsDouble(), MECH_GMODULUS_YZ, Global::REAL ); 
+          material->SetScalar(real->Get("shearModulus_23")->As<Double>(), MECH_GMODULUS_YZ, Global::REAL ); 
           flagShearModulYZReal = true;
         }
 
         if(real->Has("shearModulus_31"))
         {
-          material->SetScalar(real->Get("shearModulus_31")->AsDouble(), MECH_GMODULUS_ZX, Global::REAL ); 
+          material->SetScalar(real->Get("shearModulus_31")->As<Double>(), MECH_GMODULUS_ZX, Global::REAL ); 
           flagShearModulZXReal = true;
         }
 
         if(real->Has("shearModulus_12"))
         {
-          material->SetScalar(real->Get("shearModulus_12")->AsDouble(), MECH_GMODULUS_XY, Global::REAL ); 
+          material->SetScalar(real->Get("shearModulus_12")->As<Double>(), MECH_GMODULUS_XY, Global::REAL ); 
           flagShearModulXYReal = true;
         }
       }  // orthotropic      
@@ -375,31 +443,31 @@ namespace CoupledField {
     }
 
     // elasticityCoefficient of type <elasticityCoefficient nonlinear="function">
-    if(mech->Has("elasticityCoefficient", "nonlinear", "function"))
+    if(mech->HasByVal("elasticityCoefficient", "nonlinear", "function"))
     {
-      ParamNode* ec = mech->Get("elasticityCoefficient", 
+      PtrParamNode ec = mech->GetByVal("elasticityCoefficient", 
                                 std::string("nonlinear"),
                                 "function");
       if(ec->Has("entry")) 
-        material->SetScalar(ec->Get("entry")->AsInt(), NONLIN_COEFFICIENT);
+        material->SetScalar(ec->Get("entry")->As<Integer>(), NONLIN_COEFFICIENT);
 
      if(ec->Has("dependency"))
-       material->SetScalar(ec->Get("dependency")->AsString(), NONLIN_DEPENDENCY );
+       material->SetScalar(ec->Get("dependency")->As<std::string>(), NONLIN_DEPENDENCY );
 
      if(ec->Has("approxType"))
-       material->SetScalar(ec->Get("approxType")->AsString(), NONLIN_APPROXIMATION_TYPE );
+       material->SetScalar(ec->Get("approxType")->As<std::string>(), NONLIN_APPROXIMATION_TYPE );
 
      if(ec->Has("dataName"))
-       material->SetScalar(ec->Get("dataName")->AsString(), NONLIN_DATA_NAME );
+       material->SetScalar(ec->Get("dataName")->As<std::string>(), NONLIN_DATA_NAME );
     }; // end of <elasticityCoefficient nonlinear="function">
 
 
     //read coefficients for irreversible mechanical strain
     if(mech->Has("irreversibleStrainCoefficient"))
     {
-      ParamNode* isc = mech->Get("irreversibleStrainCoefficient");
+      PtrParamNode isc = mech->Get("irreversibleStrainCoefficient");
       // the dimension is only printed in the old param handler version 7562
-      //if(isc->Has("dim")) std::cout << "dim=" << isc->Get("dim")->AsInt() << std::endl;
+      //if(isc->Has("dim")) std::cout << "dim=" << isc->Get("dim")->As<Integer>() << std::endl;
       
       if(isc->Has("coeffs"))
       {
@@ -423,94 +491,91 @@ namespace CoupledField {
       // first rayleigh damping
       if(mech->Get("mechanicalDamping")->Has("rayleigh"))
       {
-        ParamNode* r = mech->Get("mechanicalDamping")->Get("rayleigh");
+        PtrParamNode r = mech->Get("mechanicalDamping")->Get("rayleigh");
 
         if(r->Has("alpha"))
-         material->SetScalar(r->Get("alpha")->AsDouble(), RAYLEIGH_ALPHA, Global::REAL);
+         material->SetScalar(r->Get("alpha")->As<std::string>(), RAYLEIGH_ALPHA);
          
         if(r->Has("beta"))
-         material->SetScalar(r->Get("beta")->AsDouble(), RAYLEIGH_BETA, Global::REAL);
+         material->SetScalar(r->Get("beta")->As<std::string>(), RAYLEIGH_BETA);
 
         if(r->Has("lossTangensDelta"))
-         material->SetScalar(r->Get("lossTangensDelta")->AsDouble(), LOSS_TANGENS_DELTA, Global::REAL);
+         material->SetScalar(r->Get("lossTangensDelta")->As<std::string>(), LOSS_TANGENS_DELTA);
 
         if(r->Has("measuredFreq"))
-         material->SetScalar(r->Get("measuredFreq")->AsDouble(), RAYLEIGH_FREQUENCY, Global::REAL);
+         material->SetScalar(r->Get("measuredFreq")->As<Double>(), RAYLEIGH_FREQUENCY, Global::REAL);
       }
       if(mech->Get("mechanicalDamping")->Has("fractional"))
       {
-        ParamNode* f = mech->Get("mechanicalDamping")->Get("fractional");
+        PtrParamNode f = mech->Get("mechanicalDamping")->Get("fractional");
         
         if(f->Has("alg"))        
-          material->SetScalar(f->Get("alg")->AsString(), FRACTIONAL_ALG );
+          material->SetScalar(f->Get("alg")->As<std::string>(), FRACTIONAL_ALG );
           
         if(f->Has("memory"))        
-          material->SetScalar(f->Get("memory")->AsInt(), FRACTIONAL_MEMORY );
+          material->SetScalar(f->Get("memory")->As<Integer>(), FRACTIONAL_MEMORY );
           
         if(f->Has("interpolation"))        
-          material->SetScalar(f->Get("interpolation")->AsString(), FRACTIONAL_INTERPOL );
+          material->SetScalar(f->Get("interpolation")->As<std::string>(), FRACTIONAL_INTERPOL );
       }
     }
-
-    // Print information to info file
-    Info->PrintMaterial( material);
   }
 
 
 //**********************************************************************
 //*************  READ ACOUSTICS ****************************************
 //**********************************************************************
-  void XMLMaterialHandler::ReadAcoustic(BaseMaterial *material, ParamNode* acou)
+  void XMLMaterialHandler::ReadAcoustic(BaseMaterial *material, PtrParamNode acou)
   {
     //read density
     if(acou->Has("density"))
-      material->SetScalar(acou->Get("density")->AsDouble(), DENSITY, Global::REAL ); 
+      material->SetScalar(acou->Get("density")->As<Double>(), DENSITY, Global::REAL ); 
       
     //read compression modulus
     if(acou->Has("compressionModulus"))
-      material->SetScalar(acou->Get("compressionModulus")->AsDouble(), ACOU_BULK_MODULUS, Global::REAL );
+      material->SetScalar(acou->Get("compressionModulus")->As<Double>(), ACOU_BULK_MODULUS, Global::REAL );
 
     // check for acousticDamping
     if(acou->Has("acousticDamping"))
     {
-      ParamNode* ad = acou->Get("acousticDamping");
+      PtrParamNode ad = acou->Get("acousticDamping");
       
       // check rayleigh
       if(ad->Has("rayleigh"))
       {
-        ParamNode* r = ad->Get("rayleigh");
+        PtrParamNode r = ad->Get("rayleigh");
         
         if(r->Has("alpha"))
-          material->SetScalar(r->Get("alpha")->AsDouble(), RAYLEIGH_ALPHA, Global::REAL );
+          material->SetScalar(r->Get("alpha")->As<std::string>(), RAYLEIGH_ALPHA);
           
         if(r->Has("beta"))
-          material->SetScalar(r->Get("beta")->AsDouble(), RAYLEIGH_BETA, Global::REAL );
+          material->SetScalar(r->Get("beta")->As<std::string>(), RAYLEIGH_BETA);
 
         if(r->Has("lossTangensDelta"))
-          material->SetScalar(r->Get("lossTangensDelta")->AsDouble(), LOSS_TANGENS_DELTA, Global::REAL );
+          material->SetScalar(r->Get("lossTangensDelta")->As<std::string>(), LOSS_TANGENS_DELTA);
        
         if(r->Has("measuredFreq"))
-          material->SetScalar(r->Get("measuredFreq")->AsDouble(), RAYLEIGH_FREQUENCY, Global::REAL );
+          material->SetScalar(r->Get("measuredFreq")->As<Double>(), RAYLEIGH_FREQUENCY, Global::REAL );
       } // end of acousticDamping:rayleigh
       
       // read alpha0 of thermo viscous damping
       if(ad->Has("thermoViscous"))
       {
         if(ad->Get("thermoViscous")->Has("alpha0"))
-          material->SetScalar(ad->Get("thermoViscous")->Get("alpha0")->AsDouble(), ACOU_ALPHA, Global::REAL );
+          material->SetScalar(ad->Get("thermoViscous")->Get("alpha0")->As<Double>(), ACOU_ALPHA, Global::REAL );
       }
 
       // read fractional damping
       if(ad->Has("fractional"))
       {
-        ParamNode* f = ad->Get("fractional");
+        PtrParamNode f = ad->Get("fractional");
         
         if(f->Has("alpha0")) 
-          material->SetScalar(f->Get("alpha0")->AsDouble(), ACOU_ALPHA, Global::REAL );
+          material->SetScalar(f->Get("alpha0")->As<Double>(), ACOU_ALPHA, Global::REAL );
 
         // read exponent of fractional damping      
         if(f->Has("y")) 
-          material->SetScalar(f->Get("y")->AsDouble(), FRACTIONAL_EXPONENT, Global::REAL );
+          material->SetScalar(f->Get("y")->As<Double>(), FRACTIONAL_EXPONENT, Global::REAL );
       }
     } // end of acousticDamping
 
@@ -518,44 +583,37 @@ namespace CoupledField {
     if(acou->Has("acousticNonlinear"))
     {
       if(acou->Get("acousticNonlinear")->Has("bOverA"))
-        material->SetScalar(acou->Get("acousticNonlinear")->Get("bOverA")->AsDouble(), BOVERA, Global::REAL );
+        material->SetScalar(acou->Get("acousticNonlinear")->Get("bOverA")->As<Double>(), BOVERA, Global::REAL );
     }  
-
-    // Print material information to info-file
-    Info->PrintMaterial( material );
   }
 
 //**********************************************************************
 //*************  READ ELECTROSTATICS ************************************
 //**********************************************************************
-  void XMLMaterialHandler::ReadElectrostatic(BaseMaterial *material, ParamNode* elec)
+  void XMLMaterialHandler::ReadElectrostatic(BaseMaterial *material, PtrParamNode elec)
   {
     // check for permittivity
     if(elec->Has("permittivity"))
     {
-      ParamNode* p = elec->Get("permittivity");
+      PtrParamNode p = elec->Get("permittivity");
       
       // check for tensor with dim1 = 3 <tensor dim1="3">
-      if(p->Has("tensor", "dim1", "3"))
+      if(p->HasByVal("tensor", "dim1", "3"))
       {
         Matrix<Double> permittivityTensor(3,3);
 
         // read real permittivity tensor 
-        if(p->Get("tensor", std::string("dim1"), "3")->Has("real"))
+        if(p->GetByVal("tensor", std::string("dim1"), "3")->Has("real"))
         {
-          ParamNode* tensor =  p->Get("tensor",
-                                      std::string("dim1"),
-                                      "3")->Get("real");        
+          PtrParamNode tensor =  p->GetByVal("tensor","dim1","3")->Get("real");        
           ParamTools::AsTensor<double>(tensor, 3, 3, permittivityTensor);
           material->SetTensor(permittivityTensor, ELEC_PERMITTIVITY, Global::REAL);
         }
 
         // read imaginary permittivity tensor
-        if(p->Get("tensor", std::string("dim1"), "3")->Has("imag"))
+        if(p->GetByVal("tensor", "dim1", "3")->Has("imag"))
         {
-          ParamNode* tensor =  p->Get("tensor",
-                                      std::string("dim1"),
-                                      "3")->Get("imag");
+          PtrParamNode tensor =  p->GetByVal("tensor","dim1","3")->Get("imag");
           ParamTools::AsTensor<double>(tensor, 3, 3, permittivityTensor);
           material->SetTensor(permittivityTensor, ELEC_PERMITTIVITY, Global::IMAG);
         }
@@ -566,27 +624,26 @@ namespace CoupledField {
     } // end of permittivity
     
     // check for <permittivityCoefficient nonlinear="function">
-    if(elec->Has("permittivityCoefficient", "nonlinear", "function"))
+    if(elec->HasByVal("permittivityCoefficient", "nonlinear", "function"))
     {
-      ParamNode* pc = elec->Get("permittivityCoefficient", 
-                                std::string("nonlinear"),
-                                "function");
+      PtrParamNode pc = 
+          elec->GetByVal("permittivityCoefficient","nonlinear","function");
       
       // read nonlinearity of a permittivity coefficient
       if(pc->Has("entry"))
-        material->SetScalar(pc->Get("entry")->AsInt(), NONLIN_COEFFICIENT);
+        material->SetScalar(pc->Get("entry")->As<Integer>(), NONLIN_COEFFICIENT);
         
       // read non linear dependency of a permittivity coefficient
       if(pc->Has("dependency"))
-        material->SetScalar(pc->Get("dependency")->AsString(), NONLIN_DEPENDENCY);
+        material->SetScalar(pc->Get("dependency")->As<std::string>(), NONLIN_DEPENDENCY);
 
       // read non linear approxType of a permittivity coefficient
       if(pc->Has("approxType"))
-        material->SetScalar(pc->Get("approxType")->AsString(), NONLIN_APPROXIMATION_TYPE);
+        material->SetScalar(pc->Get("approxType")->As<std::string>(), NONLIN_APPROXIMATION_TYPE);
 
       // read non linear data name of a permittivity coefficient        
       if(pc->Has("dataName"))
-        material->SetScalar(pc->Get("dataName")->AsString(), NONLIN_DATA_NAME);
+        material->SetScalar(pc->Get("dataName")->As<std::string>(), NONLIN_DATA_NAME);
     } // end of permittivityCoefficient
 
     //read Preisach hysterese model
@@ -594,27 +651,27 @@ namespace CoupledField {
     {
       if(elec->Get("hystModel")->Has("preisach"))
       {
-        ParamNode* p = elec->Get("hystModel")->Get("preisach");
+        PtrParamNode p = elec->Get("hystModel")->Get("preisach");
         
         // force name
         material->SetScalar("preisach", HYST_MODEL);
 
         // read E saturation of Preisach hysterese model
         if(p->Has("eSat"))
-          material->SetScalar(p->Get("eSat")->AsDouble(), X_SATURATION, Global::REAL ); 
+          material->SetScalar(p->Get("eSat")->As<Double>(), X_SATURATION, Global::REAL ); 
  
         // read P saturation of Preisach hysterese model
         if(p->Has("pSat"))
-          material->SetScalar(p->Get("pSat")->AsDouble(), Y_SATURATION, Global::REAL ); 
+          material->SetScalar(p->Get("pSat")->As<Double>(), Y_SATURATION, Global::REAL ); 
 
         // read P saturation of Preisach hysterese model
         if(p->Has("Pr"))
-          material->SetScalar(p->Get("Pr")->AsDouble(), Y_REMANENCE, Global::REAL ); 
+          material->SetScalar(p->Get("Pr")->As<Double>(), Y_REMANENCE, Global::REAL ); 
 
         // read direction of polarization
         if(p->Has("dirP"))
         {
-          int dir = p->Get("dirP")->AsInt();
+          int dir = p->Get("dirP")->As<Integer>();
           
           if(dir == 1) material->SetScalar("X", P_DIRECTION );
           if(dir == 2) material->SetScalar("Y", P_DIRECTION );
@@ -627,7 +684,7 @@ namespace CoupledField {
         
         // read weight dimension of Preisach hysterese model for weights
         int dim = -1;
-        if(p->Has("dim")) dim = p->Get("dim")->AsInt();
+        if(p->Has("dim")) dim = p->Get("dim")->As<Integer>();
     
         // read real permittivity tensor    
         if(p->Has("weights"))
@@ -638,89 +695,132 @@ namespace CoupledField {
         }
       }
     }
-
-    // Print information to info file
-    Info->PrintMaterial( material );
-
   }
 
 //**********************************************************************
 //*************  READ MAGNETIC *****************************************
 //**********************************************************************
-  void XMLMaterialHandler::ReadMagnetic(BaseMaterial *material, ParamNode* mag)
+  void XMLMaterialHandler::ReadMagnetic(BaseMaterial *material, PtrParamNode mag)
   {
+    // flags for symmetry type
+    bool isIsotropic = false;
+    bool isOrthotropic = false;
+    bool isTensor = false;
+    
     // read electric conductivity
     if(mag->Has("electricConductivity"))
-      material->SetScalar(mag->Get("electricConductivity")->AsDouble(), MAG_CONDUCTIVITY, Global::REAL);
+      material->SetScalar(mag->Get("electricConductivity")->As<Double>(), MAG_CONDUCTIVITY, Global::REAL);
     
     // read magnetic permeability
     if(mag->Has("magneticPermeability"))
     {
       if(mag->Get("magneticPermeability")->Has("linear"))
       {
-        ParamNode* lin = mag->Get("magneticPermeability")->Get("linear");
+        PtrParamNode lin = mag->Get("magneticPermeability")->Get("linear");
         double eps = 1e-10;
-        
+     
+        // === ISOTROPIC ===
         if(lin->Has("isotropic"))
         {
-          if(lin->Get("isotropic")->AsDouble() < eps)
+          if(lin->Get("isotropic")->As<Double>() < eps)
             EXCEPTION("Magnetic permeability is near zero. Check material database");
-          material->SetScalar(lin->Get("isotropic")->AsDouble(), MAG_PERMEABILITY, Global::REAL );
+          material->SetScalar(lin->Get("isotropic")->As<Double>(), MAG_PERMEABILITY, Global::REAL );
+          isIsotropic = true;
         }
   
+        // === ORTHOTROPIC ===
         if(lin->Has("orthotropic"))
         {
-          ParamNode* ortho = lin->Get("orthotropic");
+          PtrParamNode ortho = lin->Get("orthotropic");
           bool permOrtho_1=false, permOrtho_2=false, permOrtho_3=false;
           
           if(ortho->Has("permeability_1"))
           {
-            if(ortho->Get("permeability_1")->AsDouble() < eps)
+            if(ortho->Get("permeability_1")->As<Double>() < eps)
               EXCEPTION("Magnetic permeability is near zero; Check material database");
-            material->SetScalar(ortho->Get("permeability_1")->AsDouble(), MAG_PERMEABILITY_1, Global::REAL); 
+            material->SetScalar(ortho->Get("permeability_1")->As<Double>(), MAG_PERMEABILITY_1, Global::REAL); 
             permOrtho_1 = true;  
           }
           
           if(ortho->Has("permeability_2"))
           {
-            if(ortho->Get("permeability_2")->AsDouble() < eps)
+            if(ortho->Get("permeability_2")->As<Double>() < eps)
               EXCEPTION("Magnetic permeability is near zero; Check material database");
-            material->SetScalar(ortho->Get("permeability_2")->AsDouble(), MAG_PERMEABILITY_2, Global::REAL); 
+            material->SetScalar(ortho->Get("permeability_2")->As<Double>(), MAG_PERMEABILITY_2, Global::REAL); 
             permOrtho_2 = true;  
           }
   
           if(ortho->Has("permeability_3"))
           {
-            if(ortho->Get("permeability_3")->AsDouble() < eps)
+            if(ortho->Get("permeability_3")->As<Double>() < eps)
               EXCEPTION("Magnetic permeability is near zero; Check material database");
-            material->SetScalar(ortho->Get("permeability_3")->AsDouble(), MAG_PERMEABILITY_3, Global::REAL); 
+            material->SetScalar(ortho->Get("permeability_3")->As<Double>(), MAG_PERMEABILITY_3, Global::REAL); 
             permOrtho_3 = true;  
           }
         
           // check, if there is an orthotropic permeability!!
           if (permOrtho_1 == true && permOrtho_2 == true && permOrtho_3 == true)
-            material->SetSymmetryType(BaseMaterial::ORTHOTROPIC);
+            isOrthotropic = true;
         } // end of linear orthotropic
+        
+        // === TENSOR / GENERAL ===
+        if(lin->Has("tensor")) {
+          
+          Matrix<Double> muTensor(3,3);
+          
+          // read permeability tensor (real part)
+          if(lin->GetByVal("tensor", std::string("dim1"), "3")->Has("real")) {
+            PtrParamNode tens = 
+                lin->GetByVal("tensor", std::string("dim1"),"3" )->Get("real");
+            ParamTools::AsTensor<double>(tens, 3, 3, muTensor); 
+            material->SetTensor(muTensor, MAG_PERMEABILITY, Global::REAL);
+            isTensor = true;
+          }
+          
+          // read permeability tensor (imaginary part)
+          if(lin->GetByVal("tensor", std::string("dim1"), "3")->Has("imag")) {
+            PtrParamNode tens = 
+                lin->GetByVal("tensor", std::string("dim1"),"3" )->Get("imag");
+            ParamTools::AsTensor<double>(tens, 3, 3, muTensor);
+            material->SetTensor(muTensor, MAG_PERMEABILITY, Global::IMAG);
+          }
+        } // tensor
       } // end of linear
+      
+      // Try to determine, if a unique symmetry type can be obtained
+      if( isIsotropic && !isOrthotropic && !isTensor ) {
+        material->SetSymmetryType(BaseMaterial::ISOTROPIC);
+      
+      } else if( !isIsotropic && isOrthotropic && !isTensor ) {
+        material->SetSymmetryType(BaseMaterial::ORTHOTROPIC );
+      
+      } else if( !isIsotropic && !isOrthotropic && isTensor ) {
+        material->SetSymmetryType(BaseMaterial::GENERAL );
+      
+      } else {
+        EXCEPTION("Could not determine unique material symmetry. "
+            "Please ensure, that only ONE of isotropic, orthotropic or"
+            "the material tensor of the permeability are given!")
+      }
 
       // we know only nonlinear isotropic material
       if(mag->Get("magneticPermeability")->Has("nonlinear") && 
          mag->Get("magneticPermeability")->Get("nonlinear")->Has("isotropic"))
       {
-        ParamNode* iso = mag->Get("magneticPermeability")->Get("nonlinear")->Get("isotropic");
+        PtrParamNode iso = mag->Get("magneticPermeability")->Get("nonlinear")->Get("isotropic");
         // In r7562  dependency and  approxType are not set in Material
         
         // read nonlinear approxType of magnetic permeability
         if(iso->Has("measAccuracy"))
-          material->SetScalar(iso->Get("measAccuracy")->AsDouble(), DATA_ACCURACY, Global::REAL );
+          material->SetScalar(iso->Get("measAccuracy")->As<Double>(), DATA_ACCURACY, Global::REAL );
                   
         // read nonlinear approxType of magnetic permeability
         if(iso->Has("maxApproxVal"))
-          material->SetScalar(iso->Get("maxApproxVal")->AsDouble(), MAX_APPROX_VAL, Global::REAL );
+          material->SetScalar(iso->Get("maxApproxVal")->As<Double>(), MAX_APPROX_VAL, Global::REAL );
 
         // read nonlinear dataName of magnetic permeability
         if(iso->Has("dataName"))
-          material->SetNonlinFileName(iso->Get("dataName")->AsString().c_str());
+          material->SetNonlinFileName(iso->Get("dataName")->As<std::string>().c_str(), MAG_PERMEABILITY);
       } // nonlinear isotropic material   
     } // end of magneticPermeability  
 
@@ -730,36 +830,22 @@ namespace CoupledField {
     {
       if(mag->Get("hystModel")->Has("preisach"))
       {
-        ParamNode* p = mag->Get("hystModel")->Get("preisach");
+        PtrParamNode p = mag->Get("hystModel")->Get("preisach");
         
         // force name
         material->SetScalar("preisach", HYST_MODEL);
 
         // read E saturation of Preisach hysterese model
-        if(p->Has("eSat"))
-          material->SetScalar(p->Get("eSat")->AsDouble(), X_SATURATION, Global::REAL ); 
+        if(p->Has("hSat"))
+          material->SetScalar(p->Get("hSat")->As<Double>(), X_SATURATION, Global::REAL ); 
  
         // read P saturation of Preisach hysterese model
-        if(p->Has("pSat"))
-          material->SetScalar(p->Get("pSat")->AsDouble(), Y_SATURATION, Global::REAL ); 
+        if(p->Has("bSat"))
+          material->SetScalar(p->Get("bSat")->As<Double>(), Y_SATURATION, Global::REAL ); 
 
-        // read direction of polarization
-        if(p->Has("dirP"))
-        {
-          int dir = p->Get("dirP")->AsInt();
-          
-          if(dir == 1) material->SetScalar("X", P_DIRECTION );
-          if(dir == 2) material->SetScalar("Y", P_DIRECTION );
-          if(dir == 3) material->SetScalar("Z", P_DIRECTION );
-          
-          if(dir != 1 && dir != 2 && dir != 3)
-            EXCEPTION(dir << " is valid coordinate direction for electric preisach "
-                      << " hysteresis model polarization");
-        }
-        
         // read weight dimension of Preisach hysterese model for weights
         int dim = -1;
-        if(p->Has("dim")) dim = p->Get("dim")->AsInt();
+        if(p->Has("dim")) dim = p->Get("dim")->As<Integer>();
     
         // read real permittivity tensor    
         if(p->Has("weights"))
@@ -770,203 +856,174 @@ namespace CoupledField {
         }
       }
     }
-
-
-    // Print information to info file
-    Info->PrintMaterial( material ); 
   }
 
 //**********************************************************************
 //*************  READ THERMIC ******************************************
 //**********************************************************************
-  void XMLMaterialHandler::ReadThermic(BaseMaterial *material, ParamNode* therm)
+  void XMLMaterialHandler::ReadThermic(BaseMaterial *material, PtrParamNode therm)
   {
     // read density
     if(therm->Has("density"))
-      material->SetScalar(therm->Get("density")->AsDouble(), DENSITY, Global::REAL);
+      material->SetScalar(therm->Get("density")->As<Double>(), DENSITY, Global::REAL);
 
     // read heat capacity
     if(therm->Has("heatCapacity"))
-      material->SetScalar(therm->Get("heatCapacity")->AsDouble(), HEAT_CAPACITY, Global::REAL);
+    {
+      if(therm->Get("heatCapacity")->Has("linear"))
+      {
+        PtrParamNode lin = therm->Get("heatCapacity")->Get("linear");
+     
+        // === ISOTROPIC ===
+        if(lin->Has("isotropic"))
+        {
+          material->SetScalar(lin->Get("isotropic")->As<Double>(),  HEAT_CAPACITY, Global::REAL );
+          //          isIsotropic = true;
+        }
+      }
+      // we know only nonlinear isotropic material
+      if(therm->Get("heatCapacity")->Has("nonlinear") && 
+         therm->Get("heatCapacity")->Get("nonlinear")->Has("isotropic"))
+        {
+          PtrParamNode iso = therm->Get("heatCapacity")->Get("nonlinear")->Get("isotropic");
+              
+          // read nonlinear approxType of magnetic permeability
+          if(iso->Has("measAccuracy"))
+            material->SetScalar(iso->Get("measAccuracy")->As<Double>(), DATA_ACCURACY, Global::REAL );
+          
+          // read nonlinear approxType of magnetic permeability
+          if(iso->Has("maxApproxVal"))
+            material->SetScalar(iso->Get("maxApproxVal")->As<Double>(), MAX_APPROX_VAL, Global::REAL );
+          
+          // read nonlinear dataName of magnetic permeability
+          if(iso->Has("dataName"))
+            material->SetNonlinFileName(iso->Get("dataName")->As<std::string>().c_str(), HEAT_CAPACITY);
+        } // nonlinear isotropic material  
+    }
 
     // read thermal conductivity
-    if(therm->Has("thermalConductivity"))
+    if(therm->Has("heatConductivity"))
       {
-        ParamNode* thc = therm->Get("thermalConductivity");
-        if(thc->Has("isotropic"))
-
+        if (therm->Get("heatConductivity")->Has("linear"))
           {
-            material->SetScalar(thc->Get("isotropic")->AsDouble(), HEAT_CONDUCTIVITY, Global::REAL);
-
+            PtrParamNode lin = therm->Get("heatConductivity")->Get("linear");
+            
+            // === ISOTROPIC ===
+            if (lin->Has("isotropic"))
+              {
+                material->SetScalar(lin->Get("isotropic")->As<Double>(), HEAT_CONDUCTIVITY, Global::REAL);
+              }
+            else if (lin->Has("tensor"))
+              {
+                // can only be a real 3x3 tensor
+                Matrix<double> tensor(3,3);
+                PtrParamNode tens_pn = 
+                  lin->GetByVal("tensor","dim1","3")->Get("real");
+                
+                ParamTools::AsTensor<double>(tens_pn, 3, 3, tensor);
+                material->SetTensor(tensor, HEAT_CONDUCTIVITY_TENSOR, Global::REAL);
+                
+              }
           }
-        else if(thc->Has("tensor"))
+
+        // we know only nonlinear isotropic material
+        if(therm->Get("heatConductivity")->Has("nonlinear") && 
+           therm->Get("heatConductivity")->Get("nonlinear")->Has("isotropic"))
           {
-            // can only be a real 3x3 tensor
-            Matrix<double> tensor(3,3);
-            ParamNode* tens_pn = thc->Get("tensor",
-                                          std::string("dim1"),
-                                          "3")->Get("real");
-
-            ParamTools::AsTensor<double>(tens_pn, 3, 3, tensor);
-            material->SetTensor(tensor, HEAT_CONDUCTIVITY_TENSOR, Global::REAL);
-
-          }
+            PtrParamNode iso = therm->Get("heatConductivity")->Get("nonlinear")->Get("isotropic");
+            
+            // read nonlinear approxType 
+            if(iso->Has("measAccuracy"))
+              material->SetScalar(iso->Get("measAccuracy")->As<Double>(), DATA_ACCURACY, Global::REAL );
+            
+            // read nonlinear approxType 
+            if(iso->Has("maxApproxVal"))
+              material->SetScalar(iso->Get("maxApproxVal")->As<Double>(), MAX_APPROX_VAL, Global::REAL );
+            
+            // read nonlinear dataName 
+            if(iso->Has("dataName"))
+              material->SetNonlinFileName(iso->Get("dataName")->As<std::string>().c_str(), HEAT_CONDUCTIVITY);
+          } // nonlinear isotropic material  
+        
       }
-    
-    // Print information to info file
-    Info->PrintMaterial( material );
+  }
+
+  //**********************************************************************
+  //*************  READ FLOW *********************************************
+  //**********************************************************************
+  void XMLMaterialHandler::ReadFlow(BaseMaterial *material, PtrParamNode flow)
+  {    
+    // read density
+    if(flow->Has("density"))
+      material->SetScalar(flow->Get("density")->As<Double>(), DENSITY, Global::REAL);
+
+    // read dynamicViscosity 
+    if(flow->Has("dynamicViscosity"))
+      material->SetScalar(flow->Get("dynamicViscosity")->As<Double>(), DYNAMIC_VISCOSITY, Global::REAL);
+
+    // read kinematicViscosity 
+    if(flow->Has("kinematicViscosity"))
+      material->SetScalar(flow->Get("kinematicViscosity")->As<Double>(), KINEMATIC_VISCOSITY, Global::REAL);
+  }
+
+  //**********************************************************************
+  //*************  READ PYROELECTRIC *************************************
+  //**********************************************************************
+  void XMLMaterialHandler::ReadPyroelectric(BaseMaterial *material, 
+                                            PtrParamNode pyro){
+
+    if (pyro->Has("pyrocoefficient")){
+      PtrParamNode py = pyro->Get("pyrocoefficient");
+      if(py->Has("tensor"))
+      {
+        // can only be a real 3x3 tensor
+        Matrix<double> tensor(3,3);
+        PtrParamNode tens_pn = 
+            py->GetByVal("tensor","dim1","3")->Get("real");
+        ParamTools::AsTensor<double>(tens_pn, 3, 3, tensor);
+        material->SetTensor(tensor,PYROCOEFFICIENT_TENSOR,Global::REAL);
+      }
+    }
+  }
+
+  //**********************************************************************
+  //*************  READ THERMOELASTIC ************************************
+  //**********************************************************************
+  void XMLMaterialHandler::ReadThermoelastic(BaseMaterial *material,
+                                             PtrParamNode thermExp) {
+
+    if(thermExp->Has("thermalExpansion")){
+      PtrParamNode te = thermExp->Get("thermalExpansion");
+      if(te->Has("tensor"))
+      {
+        // can only be a real 3x3 tensor
+        Matrix<double> tensor(3,3);
+        PtrParamNode tens_pn = 
+            te->GetByVal("tensor","dim1","3")->Get("real");
+        ParamTools::AsTensor<double>(tens_pn, 3, 3, tensor);
+        material->SetTensor(tensor,THERMAL_EXPANSION_TENSOR,Global::REAL);
+      }
+    }
   }
   
   //**********************************************************************
-    //*************  READ FLOW *********************************************
-      //**********************************************************************
-    void XMLMaterialHandler::ReadFlow(BaseMaterial *material, ParamNode* flow)
-    {    
-      // read density
-      if(flow->Has("density"))
-        material->SetScalar(flow->Get("density")->AsDouble(), DENSITY, Global::REAL);
-      
-      // read dynamicViscosity 
-      if(flow->Has("dynamicViscosity"))
-        material->SetScalar(flow->Get("dynamicViscosity")->AsDouble(), DYNAMIC_VISCOSITY, Global::REAL);
-      
-      // read kinematicViscosity 
-      if(flow->Has("kinematicViscosity"))
-        material->SetScalar(flow->Get("kinematicViscosity")->AsDouble(), KINEMATIC_VISCOSITY, Global::REAL);
-      
-      // Print information to info file
-      Info->PrintMaterial( material );
-    }
-
+  //*************  READ MAGNETOSTRICTIVE  ********************************
   //**********************************************************************
-    //*************  READ PYROELECTRIC *************************************
-      //**********************************************************************
-    void XMLMaterialHandler::ReadPyroelectric(BaseMaterial *material, 
-                                              ParamNode* pyro){
-      
-      if (pyro->Has("pyrocoefficient")){
-        ParamNode* py = pyro->Get("pyrocoefficient");
-        if(py->Has("tensor"))
-          {
-            // can only be a real 3x3 tensor
-            Matrix<double> tensor(3,3);
-            ParamNode* tens_pn = py->Get("tensor",
-                                         std::string("dim1"),
-                                         "3")->Get("real");
-            ParamTools::AsTensor<double>(tens_pn, 3, 3, tensor);
-            material->SetTensor(tensor,PYROCOEFFICIENT_TENSOR,Global::REAL);
-          }
+  void XMLMaterialHandler::ReadMagStrict(BaseMaterial *material,
+                                         PtrParamNode pn) {
+    //read real magmech coupling tensor
+    if(pn->Has("magnetoStrictionTensor")) {
+      Matrix<Double> couplingTensor(3,6);
+
+      PtrParamNode mst = pn->Get("magnetoStrictionTensor");
+      if(mst->Has("real")) {
+        ParamTools::AsTensor<double>(mst->Get("real"), 3, 6, couplingTensor);
+        material->SetTensor( couplingTensor, MAGNETOSTRICTION_TENSOR, Global::REAL );
       }
-      Info->PrintMaterial( material );
-    }
-
-  //**********************************************************************
-    //*************  READ THERMOELASTIC ************************************
-      //**********************************************************************
-    void XMLMaterialHandler::ReadThermoelastic(BaseMaterial *material,
-                                               ParamNode* thermExp) {
-
-      if(thermExp->Has("thermalExpansion")){
-        ParamNode* te = thermExp->Get("thermalExpansion");
-        if(te->Has("tensor"))
-          {
-            // can only be a real 3x3 tensor
-            Matrix<double> tensor(3,3);
-            ParamNode* tens_pn = te->Get("tensor",
-                                         std::string("dim1"),
-                                         "3")->Get("real");
-            ParamTools::AsTensor<double>(tens_pn, 3, 3, tensor);
-            material->SetTensor(tensor,THERMAL_EXPANSION_TENSOR,Global::REAL);
-          }
+      if(mst->Has("imag")) {
+        ParamTools::AsTensor<double>(mst->Get("imag"), 3, 6, couplingTensor);
+        material->SetTensor( couplingTensor, MAGNETOSTRICTION_TENSOR, Global::IMAG );
       }
-      Info->PrintMaterial( material );
     }
-}
-
-  //   //Double      doubValue;
-//     //Integer     inteValue, dim;
-//     std::string striValue;
-//     Matrix<Double> Pyrocoefficient_Tensor(3,3);
-
-//     // Construct vectors for restricted search parameter
-//     StdVector<std::string> keyVec;
-//     StdVector<std::string> attrVec;
-//     StdVector<std::string> valVec;
-
-//     //read real permittivity tensor
-//     const unsigned int dim1=3, dim2=3;
-//     keyVec = "material","pyroelectric","pyrocoefficient","tensor","real";
-//     attrVec= "name"    ,""        ,""            ,"dim1";
-//     valVec =  matName  ,""        ,""            ,"3";
-//     if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
-//       parser_->GetDim1xDim2Tensor( keyVec, attrVec, valVec, 
-//                                    dim1, dim2, Pyrocoefficient_Tensor );
-//       material->SetTensor( Pyrocoefficient_Tensor, PYROCOEFFICIENT_TENSOR, Global::REAL ); 
-//            // std::cerr << "real Pyrocoefficient_Tensor=" << std::endl << Pyrocoefficient_Tensor << std::endl;
-//     }
-
-//     //read imaginary permittivity tensor
-//     keyVec = "material","pyroelectric","pyrocoefficient","tensor","imag";
-//     attrVec= "name"    ,""        ,""            ,"dim1";
-//     valVec =  matName  ,""        ,""            ,"3";
-//     if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
-//       parser_->GetDim1xDim2Tensor( keyVec, attrVec, valVec, 
-//                                    dim1, dim2, Pyrocoefficient_Tensor );
-//       material->SetTensor( Pyrocoefficient_Tensor, PYROCOEFFICIENT_TENSOR, Global::IMAG ); 
-//       // std::cerr << "imaginary permittivityTensor=" << std::endl << permittivityTensor << std::endl;
-//     }
- 
-//     // Print information to info file
-//     Info->PrintMaterial( material );
-//  }
-
-//**********************************************************************
-//*************  READ THERMOELASTIC ************************************
-//**********************************************************************
-//   void XMLMaterialHandler::ReadThermoelastic(BaseMaterial *material,
-//                                     const std::string matName) {
-//     Double      doubValue;
-// 
-//     // Construct vectors for restricted search parameter
-//     StdVector<std::string> keyVec;
-//     StdVector<std::string> attrVec;
-//     StdVector<std::string> valVec;
-// 
-//     //read thermal expansion
-//     keyVec = "material","thermoelastic","thermalExpansion";
-//     attrVec= "name"    ,"";
-//     valVec =  matName  ,"";
-//     if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
-//       parser_->Get( keyVec, attrVec, valVec, doubValue );
-//       material->SetScalar( doubValue, THERMAL_EXPANSION, Global::REAL );
-//        //std::cerr << "thermalExpansion=" << doubValue << std::endl;
-//     }
-
-
-
-//     std::string striValue;
-//     Matrix<Double> thermalExpansion_Tensor(3,3);
-
-//     // Construct vectors for restricted search parameter
-//     StdVector<std::string> keyVec;
-//     StdVector<std::string> attrVec;
-//     StdVector<std::string> valVec;
-
-//     //read real permittivity tensor
-//     const unsigned int dim1=3, dim2=3;
-//     keyVec = "material","thermoelastic","thermalExpansion","tensor","real";
-//     attrVec= "name"    ,""        ,""            ,"dim1";
-//     valVec =  matName  ,""        ,""            ,"3";
-//     if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
-//       parser_->GetDim1xDim2Tensor( keyVec, attrVec, valVec, 
-//                                    dim1, dim2, thermalExpansion_Tensor );
-//       material->SetTensor( thermalExpansion_Tensor, THERMAL_EXPANSION_TENSOR, Global::REAL ); 
-//             //std::cerr << "real thermalExpansion_Tensor=" << std::endl << thermalExpansion_Tensor << std::endl;
-//     }
-
-
-//     // Print information to info file
-//     Info->PrintMaterial( material );
-//   }
-
-  //}
+  }
+} // end of namespace

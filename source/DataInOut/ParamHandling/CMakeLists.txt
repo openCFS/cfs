@@ -1,8 +1,7 @@
 SET(PARAMH_SRCS
   XMLSkeletonConf.cc
   CFSOLASParams.cc
-  ParamNode.cc
-  InfoNode.cc)
+  ParamNode.cc)
 
 IF(USE_XERCES)
 
@@ -26,4 +25,4 @@ SET(TARGET_LL
   ${BOOST_SYSTEM_LIB}
   )
 
-TARGET_LINK_LIBRARIES(paramh ${TARGET_LL})
+TARGET_LINK_LIBRARIES(paramh utils ${TARGET_LL})

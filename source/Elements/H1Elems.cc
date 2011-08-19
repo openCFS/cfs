@@ -82,7 +82,7 @@ namespace CoupledField {
                  const Elem* ptElem,  UInt comp ){
     
     //check if the shape function is already computed
-    if(lp.number>= shapeFncDerivsAtIp_.GetSize() || comp!=1){
+    if(lp.number>= (Integer)shapeFncDerivsAtIp_.GetSize() || comp!=1){
       CalcShFnc( S, lp.coord, ptElem, comp);
     }else{
       S = shapeFncsAtIp_[lp.number];
@@ -95,7 +95,7 @@ namespace CoupledField {
     Matrix<Double> locDeriv;
     
     //check if the shfunction is already computed
-    if(lpm.lp.number>= shapeFncDerivsAtIp_.GetSize()){
+    if(lpm.lp.number>= (Integer) shapeFncDerivsAtIp_.GetSize()){
       CalcLocDerivShFnc( locDeriv, lpm.lp.coord, elem, comp);
     }else{
       locDeriv = shapeFncDerivsAtIp_[lpm.lp.number];
@@ -105,7 +105,7 @@ namespace CoupledField {
   
   void FeH1::GetLocDerivShFnc( Matrix<Double>& deriv, const LocPoint& lp,
                                const Elem* elem, UInt comp  ) {
-    if(lp.number>= shapeFncDerivsAtIp_.GetSize()){
+    if(lp.number>= (Integer) shapeFncDerivsAtIp_.GetSize()){
       CalcLocDerivShFnc( deriv, lp.coord, elem, comp);
     }else{
       deriv = shapeFncDerivsAtIp_[lp.number];
@@ -146,8 +146,10 @@ namespace CoupledField {
     Integer i,j;
   
     StdVector<Double> x(N1);
-    StdVector<Double> xold(N1,2);
-    StdVector<Double> xUpdate(N1,2);
+    StdVector<Double> xold(N1);
+    xold.Init(2);
+    StdVector<Double> xUpdate(N1);
+    xUpdate.Init(2);
     Matrix<Double> P;
     P.Resize(N1,N1);
   

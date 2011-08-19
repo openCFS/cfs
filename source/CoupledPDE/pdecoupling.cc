@@ -4,8 +4,6 @@
 
 #include "pdecoupling.hh"
 
-#include <list>
-
 #include "MatVec/basematrix.hh"
 #include "couplingmemento.hh"
 #include "PDE/StdPDE.hh"
@@ -245,10 +243,10 @@ namespace CoupledField
         {
           neighRegions.Clear();
           // get paramnode of oppsite pde
-          StdVector<ParamNode*> regionNodes = 
+          ParamNodeList regionNodes = 
             oppositePDE->GetParamNode()->Get("regionList")->GetList("region");
           for( UInt iRegion = 0; iRegion < regionNodes.GetSize(); iRegion++ ) {
-            neighRegions.Push_back( regionNodes[iRegion]->Get("name")->AsString() );
+            neighRegions.Push_back( regionNodes[iRegion]->Get("name")->As<std::string>() );
           }
         }
       else if (numAllOccured > 0)
@@ -287,7 +285,7 @@ namespace CoupledField
         //                                    myPDE_->subdoms_ );
 
         //       if (!myInterface->neighbours.GetSize())
-        //      EXCEPTION("No neighbours for element coupling found!",  __FILE__,__LINE__);
+        //      EXCEPTION("No neighbours for element coupling found!");
       
       
       
@@ -309,7 +307,7 @@ namespace CoupledField
           
           
         //        if (subdomFound == false)
-        //          EXCEPTION("Subdomain name of neighbouring elements was not found",__FILE__,__LINE__);
+        //          EXCEPTION("Subdomain name of neighbouring elements was not found");
           
         //        myInterface->materials[i] = &(myPDE_->materialData_[subDomNr]);           
         //      }
@@ -333,7 +331,7 @@ namespace CoupledField
         //                                       oppositePDE->subdoms_ );
       
         //        if (!neighbours.GetSize())
-        //      EXCEPTION("No opposite neighbours for element coupling found!",  __FILE__,__LINE__);
+        //      EXCEPTION("No opposite neighbours for element coupling found!");
       
         //       for (UInt i=0; i<neighbours.GetSize(); i++)
         //         {
@@ -349,7 +347,7 @@ namespace CoupledField
                   
           
         //        if (subdomFound == false)
-        //          EXCEPTION("Subdomain name of neighbouring elements was not found",__FILE__,__LINE__);
+        //          EXCEPTION("Subdomain name of neighbouring elements was not found");
           
         //        myInterface->oppositePdeMaterials[i] = &(oppositePDE->materialData_[subDomNr]);
         //      }
@@ -434,7 +432,7 @@ namespace CoupledField
       {
       case REGION:
 
-        ptGrid_->RegionNameToId( regionIdVec, regions );
+        ptGrid_->GetRegion().Parse(regions, regionIdVec);
 
         if( outputType == NODE ) {
           numNodes = ptGrid_->GetNumNodes( regionIdVec );
@@ -529,7 +527,7 @@ namespace CoupledField
 
       case SURFACE:
 
-        ptGrid_->RegionNameToId( regionIdVec, regions );
+        ptGrid_->GetRegion().Parse( regions, regionIdVec );
         numNodes = ptGrid_->GetNumNodes( regionIdVec );
         myInterface->nodes.Reserve(numNodes);
 
@@ -694,28 +692,16 @@ namespace CoupledField
 
     // resize vector with coupling values
     outputInterfaces_[i]->values->Resize(dof*size);
+    outputInterfaces_[i]->values->Init( );
     outputInterfaces_[i]->oldValues->Resize(dof*size);
+    outputInterfaces_[i]->oldValues->Init( );
     outputInterfaces_[i]->values_tn_1->Resize(dof*size);
+    outputInterfaces_[i]->values_tn_1->Init();
     outputInterfaces_[i]->values_tn_2->Resize(dof*size);
+    outputInterfaces_[i]->values_tn_2->Init();
     outputInterfaces_[i]->values_tn_3->Resize(dof*size);
+    outputInterfaces_[i]->values_tn_3->Init();
 
-
-    if( isComplex ) {
-      outputInterfaces_[i]->values->Init( );
-      outputInterfaces_[i]->oldValues->Init( );
-      outputInterfaces_[i]->values_tn_1->Init();
-      outputInterfaces_[i]->values_tn_2->Init();
-      outputInterfaces_[i]->values_tn_3->Init();
-
-    } 
-    else {
-      outputInterfaces_[i]->values->Init( );
-      outputInterfaces_[i]->oldValues->Init(  );
-      outputInterfaces_[i]->values_tn_1->Init();
-      outputInterfaces_[i]->values_tn_2->Init();
-      outputInterfaces_[i]->values_tn_3->Init();
-    }
-    
   }
 
 
@@ -862,7 +848,7 @@ namespace CoupledField
           warnMsg +="' is not present anymore in the current coupling set for PDE '";
           warnMsg += myPDE_->GetName();
           warnMsg += "'.";
-          Warning(warnMsg.c_str(), __FILE__, __LINE__);
+          WARN(warnMsg);
         } //if coupling not found
       } // loop over own couplings
     } // looop over memento couplings

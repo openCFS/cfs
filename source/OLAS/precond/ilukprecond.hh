@@ -119,8 +119,8 @@ namespace CoupledField {
     using BNPrecond<ILUK_Precond<T>, CRS_Matrix<T>, T >::Setup;
 
     //! Constructor
-    ILUK_Precond( const StdMatrix &stdMat, OLAS_Params *myParams,
-                   OLAS_Report *myReport );
+    ILUK_Precond( const StdMatrix &stdMat, PtrParamNode solverNode,
+                   PtrParamNode olasInfo );
 
     //! Destructor
     ~ILUK_Precond();
@@ -130,8 +130,8 @@ namespace CoupledField {
     //! When called, this method returns the type of the preconditioner
     //! object. In the case of an object of this class the return
     //! value is ILUK.
-    PrecondType GetPrecondType() const {
-      return ILUK;
+    BasePrecond::PrecondType GetPrecondType() const {
+      return BasePrecond::ILUK;
     };
 
     //! Setup function inherited from class BasePrecond
@@ -261,6 +261,8 @@ namespace CoupledField {
     //! predicate class
     UInt maxLevel_;
 
+    //! Flag, if logging is performed
+    bool logging_;
   };
 
 }

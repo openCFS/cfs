@@ -21,7 +21,7 @@ namespace CoupledField {
   // declare logging stream
   DEFINE_LOG(simInputUNV, "SimInputUnv")
 
-  SimInputUnv::SimInputUnv( std::string fileName, ParamNode * inputNode ) 
+  SimInputUnv::SimInputUnv( std::string fileName, PtrParamNode inputNode ) 
     : SimInput(fileName, inputNode) {
     capabilities_.insert( SimInput::MESH);
     capabilities_.insert( SimInput::MESH_RESULTS);
@@ -31,9 +31,9 @@ namespace CoupledField {
     axisMapTemp.push_back("y");
     axisMapTemp.push_back("z");
 
-    myParam_->Get("mapXTo", axisMapTemp[0], false);
-    myParam_->Get("mapYTo", axisMapTemp[1], false);
-    myParam_->Get("mapZTo", axisMapTemp[2], false);
+    myParam_->GetValue("mapXTo", axisMapTemp[0], ParamNode::PASS);
+    myParam_->GetValue("mapYTo", axisMapTemp[1], ParamNode::PASS);
+    myParam_->GetValue("mapZTo", axisMapTemp[2], ParamNode::PASS);
 
     // Prepare mapping of coordinates
     axisMap_.Resize(3);
@@ -82,27 +82,27 @@ namespace CoupledField {
   }
 
   UInt SimInputUnv::GetNumNodes(){
-    CoupledField::Warning("SimInputUnv::GetNumNodes() not implemented");
+    WARN("SimInputUnv::GetNumNodes() not implemented");
     return 0;
   }
     
   UInt SimInputUnv::GetNumElems(const Integer dim){
-    CoupledField::Warning("SimInputUnv::GetNumElems() not implemented");
+    WARN("SimInputUnv::GetNumElems() not implemented");
     return 0;
   }
   
   UInt SimInputUnv::GetNumRegions(){
-    CoupledField::Warning("SimInputUnv::GetNumRegions() not implemented");
+    WARN("SimInputUnv::GetNumRegions() not implemented");
     return 0;
   }
 
   UInt SimInputUnv::GetNumNamedNodes(){
-    CoupledField::Warning("SimInputUnv::GetNumNamedNodes() not implemented");
+    WARN("SimInputUnv::GetNumNamedNodes() not implemented");
     return 0;
   }
 
   UInt SimInputUnv::GetNumNamedElems(){
-    CoupledField::Warning("SimInputUnv::GetNumNamedElems() not implemented");
+    WARN("SimInputUnv::GetNumNamedElems() not implemented");
     return 0;
   }
   

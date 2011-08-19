@@ -1,6 +1,7 @@
 #include <cstring>
 #include <iostream>
 #include <complex>
+#include <algorithm>
 
 #include <Domain/grid.hh>
 #include "DataInOut/WriteInfo.hh"
@@ -32,7 +33,8 @@ namespace CoupledField
   DEFINE_LOG(simOutputRST, "SimOutputRST")
 
   AnsysBinlibIfaceGeneral::AnsysBinlibIfaceGeneral(void (*delObj)(void*))
-    : AnsysBinlibIface(delObj)
+    : AnsysBinlibIface(delObj),
+      analysisType_(BasePDE::STATIC)
   {
   }
 
@@ -47,10 +49,11 @@ namespace CoupledField
                                                       const std::string& TestFN)
   {
     char buffer[1024];
-    int len;
+    int len = 0;
     
     len = TestFN.length();
-    sprintf(buffer, "%s", TestFN.c_str());
+    std::fill(buffer, buffer+sizeof(buffer),0);
+    snprintf(buffer, sizeof(buffer), "%s", TestFN.c_str());
     reswrtest_(buffer, &len, len);
     
     std::ifstream ifstr(TestFN.c_str(), std::ios::binary);
@@ -73,7 +76,7 @@ namespace CoupledField
                                                     const std::string& formatName,
                                                     const std::string& dirName,
                                                     const std::string& pathSep,
-                                                    ParamNode * outputNode )
+                                                    PtrParamNode outputNode )
   {
     formatName_ = formatName;
     fileName_ = fileName;
@@ -188,6 +191,7 @@ namespace CoupledField
                                       bool printGridOnly )
   {
     ptGrid_ = ptGrid;
+    printGrid_ = printGridOnly;
     WriteGrid();
   }
   
@@ -291,8 +295,7 @@ namespace CoupledField
       if(  actInfo.definedOn != ResultInfo::NODE &&
            actInfo.definedOn != ResultInfo::ELEMENT ) 
       {
-        Warning( "RST can only write results on elements and nodes",
-                 __FILE__, __LINE__ );
+        WARN( "RST can only write results on elements and nodes" );
         continue;
       }
 
@@ -910,7 +913,7 @@ namespace CoupledField
   {
     UInt numElemNodes = Elem::GetNumElemNodes(eType);
     Integer ansysElemType = elemType2AnsysType_[eType];
-   
+    
     switch(eType)
     {
     case Elem::TRIA3:
@@ -1025,22 +1028,26 @@ namespace CoupledField
       connectANSYS[1] = connect[1];    // J 
       connectANSYS[2] = connect[2];    // K 
       connectANSYS[3] = connect[3];    // L 
+      
       connectANSYS[4] = connect[4];    // M 
       connectANSYS[5] = connect[4];    // N 
       connectANSYS[6] = connect[4];    // O 
       connectANSYS[7] = connect[4];    // P 
+      
       connectANSYS[8] = connect[5];    // Q 
       connectANSYS[9] = connect[6];    // R 
       connectANSYS[10] = connect[7];   // S 
       connectANSYS[11] = connect[8];   // T 
+      
       connectANSYS[12] = connect[4];   // U 
       connectANSYS[13] = connect[4];   // V 
       connectANSYS[14] = connect[4];   // W 
       connectANSYS[15] = connect[4];   // X 
+      
       connectANSYS[16] = connect[9];   // Y 
       connectANSYS[17] = connect[10];  // Z 
       connectANSYS[18] = connect[11];  // A 
-      connectANSYS[19] = connect[12];  // B 
+      connectANSYS[19] = connect[12];  // B
       break;
 
     case Elem::HEXA8:
@@ -1075,7 +1082,7 @@ namespace CoupledField
                                       Integer TypeNumber)
   {
     eltype.elementtypid = TypeNumber;
-    std::fill(eltype.ielc, eltype.ielc+IELCSZ, 0);
+    std::fill(eltype.ielc, eltype.ielc+IELCSZ+50, 0);
 
     eltype.ielc[IETYP-1] = TypeNumber;
 
@@ -1087,7 +1094,7 @@ namespace CoupledField
                                       Integer TypeNumber)
   {
     eltype.elementtypid = TypeNumber;
-    std::fill(eltype.ielc, eltype.ielc+IELCSZ, 0);
+    std::fill(eltype.ielc, eltype.ielc+IELCSZ+50, 0);
 
     eltype.ielc[IETYP-1] = TypeNumber;
 
@@ -1141,7 +1148,7 @@ namespace CoupledField
                                       Integer TypeNumber)
   {
     eltype.elementtypid = TypeNumber;
-    std::fill(eltype.ielc, eltype.ielc+IELCSZ, 0);
+    std::fill(eltype.ielc, eltype.ielc+IELCSZ+50, 0);
 
     eltype.ielc[IETYP-1] = TypeNumber;
 
@@ -1201,7 +1208,7 @@ namespace CoupledField
   {
     eltype.elementtypid = TypeNumber;
 
-    std::fill(eltype.ielc, eltype.ielc+IELCSZ, 0);
+    std::fill(eltype.ielc, eltype.ielc+IELCSZ+50, 0);
 
     eltype.ielc[IETYP-1] = TypeNumber;
 
@@ -1251,7 +1258,7 @@ namespace CoupledField
   {
     eltype.elementtypid = TypeNumber;
 
-    std::fill(eltype.ielc, eltype.ielc+IELCSZ, 0);
+    std::fill(eltype.ielc, eltype.ielc+IELCSZ+50, 0);
 
     eltype.ielc[IETYP-1] = TypeNumber;
 
@@ -1259,13 +1266,15 @@ namespace CoupledField
 
     eltype.ielc[20] = 3;
     eltype.ielc[21] = 6;
-    eltype.ielc[22] = 3;
+    eltype.ielc[22] = 0;
     eltype.ielc[24] = 2;
     eltype.ielc[27] = 1;
+    eltype.ielc[32] = 7;
     eltype.ielc[33] = 7;
     eltype.ielc[34] = 1;
     eltype.ielc[40] = 0;
     eltype.ielc[46] = 1;
+    eltype.ielc[49] = 9;
     eltype.ielc[51] = 6;
     eltype.ielc[55] = 2 ;
     eltype.ielc[60] = 20;
@@ -1277,14 +1286,17 @@ namespace CoupledField
 	
     eltype.ielc[65] = 	22;
     eltype.ielc[66] = 	20;
+    eltype.ielc[67] = 	20;
     eltype.ielc[73] = 	4;
     eltype.ielc[74] = 	6;
     eltype.ielc[82] = 	20;
     eltype.ielc[83] = 	20;
+    eltype.ielc[90] = 	6;
     eltype.ielc[93] = 	8;
     eltype.ielc[94] = 	1;
 
     eltype.ielc[105] = 1;
+    eltype.ielc[106] = 20;
     eltype.ielc[108] = 24;
     eltype.ielc[109] = 60;
     eltype.ielc[110] = 60;
@@ -1296,10 +1308,10 @@ namespace CoupledField
     eltype.ielc[125] = 402;
     eltype.ielc[126] = 112;
     eltype.ielc[127] = 602;
-    eltype.ielc[131] = 1;
+    eltype.ielc[131] = 0;
     eltype.ielc[133] = 1397705801;
     eltype.ielc[134] = 1144599840;
-    eltype.ielc[136] = 1;
+    eltype.ielc[136] = 0;
     eltype.ielc[138] = 1;
     eltype.ielc[140] = 90;
     eltype.ielc[144] = 1;
@@ -1377,6 +1389,32 @@ namespace CoupledField
       LOG_TRACE(simOutputRST) << "Mapped " << solName
                               << " to SP01";
       break;
+    case FLUIDMECH_VELOCITY:
+      internal2AnsysNodeDofMap_[FLUIDMECH_VELOCITY] = VX;
+      ansysNodeDof2Idx_[VX] = idx + 0;
+      ansysNodeDof2Idx_[VY] = idx + 1;
+      ansysNodeDof2Idx_[VZ] = idx + 2;
+      LOG_TRACE(simOutputRST) << "Mapped " << solName
+                              << " to VX VY VZ";
+      break;
+    case FLUIDMECH_PRESSURE:
+      internal2AnsysNodeDofMap_[FLUIDMECH_PRESSURE] = PRES;
+      ansysNodeDof2Idx_[PRES] = idx;
+      LOG_TRACE(simOutputRST) << "Mapped " << solName
+                              << " to PRES";
+      break;
+    case ACOU_RHS_LOAD:
+      internal2AnsysNodeDofMap_[ACOU_RHS_LOAD] = SP02;
+      ansysNodeDof2Idx_[SP02] = idx;
+      LOG_TRACE(simOutputRST) << "Mapped " << solName
+                              << " to SP02";
+      break;
+    case ACOU_RHS_LOAD_DENSITY:
+      internal2AnsysNodeDofMap_[ACOU_RHS_LOAD_DENSITY] = SP03;
+      ansysNodeDof2Idx_[SP03] = idx;
+      LOG_TRACE(simOutputRST) << "Mapped " << solName
+                              << " to SP03";
+      break;
     case MAG_POTENTIAL:
       internal2AnsysNodeDofMap_[MAG_POTENTIAL] = SP04;
       ansysNodeDof2Idx_[SP04] = idx;
@@ -1423,6 +1461,11 @@ namespace CoupledField
       internal2AnsysElemDofMap_[MAG_FLUX_DENSITY] = EDECR;
       LOG_TRACE(simOutputRST) << "Mapped " << solName
                               << " to creep strains (EDECR).";
+      break;
+    case ACOU_DIV_LH_TENSOR:
+      internal2AnsysElemDofMap_[ACOU_DIV_LH_TENSOR] = EDEPL;
+      LOG_TRACE(simOutputRST) << "Mapped " << solName
+                              << " to plastic strains (EDEPL).";
       break;
     default:
       LOG_TRACE(simOutputRST) << "Element result " << solName

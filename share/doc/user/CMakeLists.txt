@@ -16,6 +16,10 @@ IF (LATEX_COMPILER)
   ADD_CUSTOM_TARGET(doc-user
                     ${GEN_DOCU} "build"
 		    )
+                    
+  ADD_CUSTOM_TARGET(doc-user-html
+                    ${GEN_DOCU} "build-html"
+		    )
 
   ADD_CUSTOM_TARGET(doc-user-rebuild
                     ${GEN_DOCU} "rebuild"

@@ -12,6 +12,9 @@
 #include <MatVec/matrix.hh>
 #include <MatVec/vector.hh>
 #include <Utils/ApproxData.hh>
+//#include "Utils/piezoMicroModel.hh"
+#include "Utils/coordSystem.hh"
+#include "Utils/mathParser/mathParser.hh"
 
 namespace CoupledField {
 
@@ -19,6 +22,8 @@ namespace CoupledField {
   class CoordSystem;
   class Hysteresis;
   class ElemList;
+  class PiezoMicroModelHF;
+  class PiezoMicroModelBK;
 
   //! Class for Material Data
   /*! 
@@ -33,6 +38,7 @@ namespace CoupledField {
     typedef std::map<MaterialType, Complex > scalarMap;
     typedef std::map<MaterialType, std::string > stringMap;
     typedef std::map<MaterialType, Integer > integerMap;
+    typedef std::map<MaterialType, MathParser::HandleType > handleMap;
 
     typedef enum {GENERAL, ISOTROPIC, ORTHOTROPIC, TRANS_OTHOTROP } SymmetryType;
 
@@ -45,6 +51,9 @@ namespace CoupledField {
 
     //! Trigger finalization of mataterial (calculation of rotated matrices)
     virtual void Finalize() {};
+
+    /** Print the material data which is actually read and stored in isSet */
+    void ToInfo(PtrParamNode in);
 
     //! set the name of the material set
     void SetName(const char* name) {
@@ -86,19 +95,24 @@ namespace CoupledField {
     { return integerParams_;};
 
     //! set file name containing the nonlinear data
-    void SetNonlinFileName( const char *filename) {
-      nonlinFileName_.assign( filename );
+    void SetNonlinFileName( const char *filename, MaterialType matType) {
+      nonlinFileName_[matType].assign( filename );
     }
 
     //! get nonlinear file name
-    std::string& GetNonlinFileName() {
-      return nonlinFileName_;
+    std::string GetNonlinFileName( MaterialType matType ) {
+      stringMap::const_iterator pos;
+      pos = nonlinFileName_.find( matType );
+      if ( pos == nonlinFileName_.end() ) 
+        return "";
+      else
+        return (pos->second);
     }
 
     //! set, which nonlinear curves are needed by forms
     void NeedApproxMatCurve( ApproxMaterialCurves type );
 
-    virtual ApproxData* GetNonlinFncBH() {
+    virtual ApproxData* GetNonlinFncBH( MaterialType matType ) {
       EXCEPTION("BaseMaterial: GetNlinFncBH() not implemented");
       return NULL;
     };
@@ -117,10 +131,7 @@ namespace CoupledField {
     };
 
    //! set a scalar string material parameter
-    virtual void SetScalar(const std::string& param, MaterialType matType)
-    {
-      EXCEPTION("not implemented for " << materialDatabaseName_);
-    }
+    virtual void SetScalar(const std::string& param, MaterialType matType);
 
     //! set a scalar integer material parameter
     virtual void SetScalar(int param, MaterialType matType);
@@ -131,6 +142,12 @@ namespace CoupledField {
 
     //! set a scalar complex material parameter
     virtual void SetScalar(Complex param, MaterialType matType, Global::ComplexPart dataType )
+    {
+      EXCEPTION("not implemented for " << materialDatabaseName_);
+    }
+    
+    //! set a scalar parameter in string representation (gets later parsed by MathParser
+    virtual void SetScalar(const std::string& param, MaterialType matType, Global::ComplexPart dataType )
     {
       EXCEPTION("not implemented for " << materialDatabaseName_);
     }
@@ -157,12 +174,7 @@ namespace CoupledField {
 
 
     //! get a string material parameter
-
-    virtual void GetScalar( std::string& param, MaterialType matType) const
-    {
-      EXCEPTION("not implemented for " << materialDatabaseName_);
-    }
-    
+    virtual void GetScalar( std::string& param, MaterialType matType) const;
     
     //! get a integer material parameter
     virtual void GetScalar( Integer& param, MaterialType matType) const
@@ -199,17 +211,25 @@ namespace CoupledField {
       EXCEPTION("not implemented");      
     }
     
-
-    //! rotate a material tensor by rotation angles given in degree
-    virtual void RotateTensorByRotationAngles( const Vector<Double>& rotAngle, MaterialType matType, bool persistent = false );
+    //! Rotate a material tensor by coordinates
+    virtual void RotateTensorByRotationAngles( const Vector<Double> &coord, 
+                                               MaterialType matType,
+                                               bool persistent = false );
 
     //! Rotate all tensor material parameters by given rotation angle
-    virtual void RotateAllTensorsByRotationAngles(  const Vector<Double>& rotAngle, bool persistent = false );
+    virtual void RotateAllTensorsByRotationAngles(  const Vector<Double>& rotAngle, 
+                                                    bool persistent = false );
+
+    //! Rotate a material tensor by 3x3 rotation matrix
+    virtual void RotateTensorByRotationMatrix( const Matrix<Double>& rotMat, 
+                                               MaterialType matType,
+                                               bool persistent = false );
 
     //! Rotates the tensor in a way that is represents the attached
     //! coordinate system behaviour (cartesian, cylindri, spherical)
     //! in this point
-    virtual void RotateTensorByPointCoord( const Vector<Double> &coord, MaterialType matType );
+    virtual void RotateTensorByPointCoord( const Vector<Double> &coord, 
+                                           MaterialType matType );
 
     //! Pass coordinate system to material
     void SetCoordSys( CoordSystem* system ) {coosy_ = system;}
@@ -220,9 +240,14 @@ namespace CoupledField {
     //Initialize approximations of nonlinear curves
     virtual void InitApproxCurves() {;};
 
+    //======================================= Hysteresis methods ============================
     //Initialize hysteresis
     virtual void InitHyst( UInt numElemSD, shared_ptr<ElemList> actSDList, 
                            bool isInverse = false, bool computeInverse = false );
+
+    //Initialize hysteresis
+    virtual void InitVecHyst( UInt numElemSD, shared_ptr<ElemList> actSDList, 
+                              UInt dim );
 
     //! get hysteresis operator
     Hysteresis* getHysteresis() {
@@ -238,30 +263,25 @@ namespace CoupledField {
       return isHysteresis_;
     };
 
-    virtual Double ConvertVec2ScalarWithSign( Vector<Double>& vecVal );
-
-    //set values for differential material approach
+    //set values for differential material approach: scalar hyst
     virtual void SetPreviousHystVal( UInt nrElem, Double Xval ) {
       EXCEPTION( "SetPreviousHystVal not implemented" );
     };
 
-    //set values for differential material approach
-  virtual void SetPreviousHystVal( UInt nrElem, Vector<Double>& Xval );
-
-    //! compute scalar differential parameter
-    virtual Double ComputeScalarDiffVal( UInt nrElem, Double Xval ) {
-      EXCEPTION( "ComputeScalarDiffValue not implemented" );
-      return 1.0;
+    //set values for differential material approach: vector-hyst
+    virtual void SetPreviousHystVal( UInt nrElem, Vector<Double>& Xval ) {     
+      EXCEPTION( "SetPreviousHystVal not implemented" );
     };
 
-    //! compute scalar differential parameter
-    virtual Double ComputeScalarDiffVal( UInt nrElem, Vector<Double>& Xval );
 
-    //! compute scalar differential parameters
-    virtual void ComputeScalarDiffValues( UInt nrElem, Vector<Double>& in,
-                                            Vector<Double>& scalarValues ) {
-      EXCEPTION( "ComputeScalarDiffValues not implemented" );
-    };
+//     //! compute scalar differential parameter: scalar hyst
+//     virtual Double ComputeScalarDiffVal( UInt nrElem, Double Xval ) {
+//       EXCEPTION( "ComputeScalarDiffValue not implemented" );
+//       return 1.0;
+//     };
+
+//     //! compute scalar differential parameter: vector hyst
+//     virtual Double ComputeScalarDiffVal( UInt nrElem, Vector<Double>& Xval );
 
     //! computes the scalar hystereis value
     virtual Double ComputeScalarHystVal( UInt nrElem, Double Xval ) {
@@ -269,8 +289,11 @@ namespace CoupledField {
       return 1.0;
     };
 
-    //! computes the scalar hystereis value
-    virtual Double ComputeScalarHystVal( UInt nrElem, Vector<Double>& Xval );
+    //! compute scalar differential parameter
+    virtual Double ComputeScalarDiffVal( UInt nrElem, Double Xval ) {
+      EXCEPTION( "ComputeScalarDiffValue not implemented" );
+      return 1.0;
+    };
 
     //! compute the vector hysteresis values
     virtual void ComputeVectorHystVal( UInt nrElem, Vector<Double>& Xin, 
@@ -278,19 +301,61 @@ namespace CoupledField {
       EXCEPTION( "ComputeVectorHystVal not implemented" );
     };
 
-    //! computes the scalar hystereis value
+    //! get scalar hystereis value
     virtual Double GetScalarHystVal( UInt nrElem );
 
-    //! computes the scalar hystereis value
+    //! get previous scalar hystereis value
     virtual Double GetScalarHystPrevVal( UInt nrElem );
 
-    //! get vector of hysteresis model
+    //! get vector of hysteresis value
     virtual void GetVectorHystVal( UInt nrElem, Vector<Double>& Val ) {
-      EXCEPTION( "GetVectorHystVal not implemented" );
+      EXCEPTION( "ComputeVectorHystVal not implemented" );
     };
 
-    //! Compute and set damping parameters alpha and beta 
-    void ComputeRayleighDamping(Double dampFreq, Double RatioDeltaF);
+
+    //========================== micro-piezoelectric-model: start==================
+
+    //Initialize piezoelectric-micro-model
+    virtual void InitPiezoMicro( UInt numElemSD, shared_ptr<ElemList> actSDList, 
+                                 BaseMaterial* mechMat, BaseMaterial* elecMat,
+                                 SubTensorType tensorType, Double dt);
+
+    //! returns the material tensors
+    void GetEffectiveTensors( Matrix<Double>& matMechC,
+                              Matrix<Double>& matMechS,
+                              Matrix<Double>& matElec,
+                              Matrix<Double>& matPiezo,
+                              Vector<Double>& stress, 
+                              Vector<Double>& elecField,
+                              UInt elemIdx, 
+                              bool recompute,
+                              bool previous );
+
+    //! returns ireversible strain and polarization
+    void GetEffectiveIrreversibleValues( Vector<Double>& Pirr,
+                                         Vector<Double>& Sirr,
+                                         UInt elemIdx,
+                                         bool recompute,
+                                         bool previous );
+    
+    //!
+    void ComputeEffectiveCouplingTensor(Matrix<Double>& dmatEff, 
+                                        Vector<Double>& elecFieldAct,
+                                        Vector<Double>& elecFieldPrev,
+                                        UInt elemIdx);
+
+    //! get micro-piezo-object
+    PiezoMicroModelBK* GetMicroPiezoModel() {
+      return piezoMicroModel_;
+    };
+
+    //========================== micro-piezoelectric-model:end ===================
+
+
+    //! Compute Rayleigh parameters
+    void ComputeRayleighDamping( std::string& alpha, std::string& beta,
+                                 Double dampFreq, Double RatioDeltaF,
+                                 bool adjustDamping, bool isHarmonic );
 
   protected:
 
@@ -310,7 +375,7 @@ namespace CoupledField {
     void setMakesNoSense(Global::ComplexPart datType, const std::string& msg ) const;
 
     //! Error for not available subtype of tensor
-    void subTensorNotAvailable(MaterialType matType, SubTensorType subTensor) const;
+    static void subTensorNotAvailable(MaterialType matType, SubTensorType subTensor);
 
     //! rotate a tensor
     virtual void PerformRotation( Matrix<Complex>& rotMatrix,  Matrix<Complex>& matMatrix,
@@ -323,7 +388,7 @@ namespace CoupledField {
     std::string matFileName_;
 
     //! name of file containing the nonlinear data
-    std::string nonlinFileName_;
+    stringMap nonlinFileName_;
 
     //! set, which knows, which material parameters have been set
     std::set<ApproxMaterialCurves> needApproxMatCurves_;
@@ -345,7 +410,19 @@ namespace CoupledField {
 
     //! map, which knows about the scalar material parameters being set during read in 
     scalarMap scalarParams_;
+    
+    //! map for real part of scalar material data (string representation)
+    stringMap scalarStringParamsReal_;
+    
+    //! map for mathParser Handles of real part of scalar material parameters
+    handleMap scalarStringHandlesReal_;
+    
+    //! map for imagomary part of scalar material data (string representation)
+    stringMap scalarStringParamsImag_;
 
+    //! map for mathParser Handles of real part of scalar material parameters
+    handleMap scalarStringHandlesImag_;
+        
     //! map, which knows about the actual tensorial material parameters 
     vectorMap vectorParams_;
 
@@ -355,6 +432,9 @@ namespace CoupledField {
     //! map, which knows about the original tensorial material parameters before being rotated
     tensorMap tensorParamsOrig_;
 
+    //! Pointer to math parser instance
+    MathParser *  mp_;
+    
     //! Pointer to attaches coordinate system
     CoordSystem * coosy_;
 
@@ -364,7 +444,16 @@ namespace CoupledField {
     Hysteresis * hyst_;
 
     //! hysteresis object
+    Hysteresis * hystY_;
+
+    //! hysteresis object
+    Hysteresis * hystZ_;
+
+    //! hysteresis object
     Hysteresis** vecHyst_;
+
+    //!
+    UInt dimVecHyst_;
 
     //!
     bool isHystInverse_;
@@ -378,10 +467,21 @@ namespace CoupledField {
     Vector<Double> Xprevious_; //! previous Xval in hysteresis
     Vector<Double> Yprevious_; //! previous Yval in hysteresis
 
-    std::map<UInt, UInt> globalElem2Local_;
-  };
+    Matrix<Double> vecXprevious_; //! previous Xval in hysteresis
+    Matrix<Double> vecYprevious_; //! previous Yval in hysteresis
 
-  std::ostream& operator << ( std::ostream & , const  BaseMaterial &);
+    Matrix<Double> actDiffVal4VecHyst_;
+    Matrix<Double> previousDiffVal4VecHyst_;
+
+    std::map<UInt, UInt> globalElem2Local_;
+
+    //! yes, piezoelectric micro-model is switched on
+    bool isPiezoMicroModel_;	
+
+    //! object for piezo-micor-modeling
+    PiezoMicroModelBK* piezoMicroModel_;
+
+  };
 
 } // end of namespace
 

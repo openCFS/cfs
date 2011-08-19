@@ -105,8 +105,8 @@ namespace CoupledField
 	  }
 	}
 
-	//!  Compute matrix \f$ B \f$ at given integration point.
-	void LinThermoElectricInt::calcBMat( Matrix<Double> &bMat, UInt ip,
+	/** @see BaseForm::CalcBMat() */
+	void LinThermoElectricInt::CalcBMat( Matrix<Double> &bMat, UInt ip,
 						const Matrix<Double> &ptCoord ){
 
 

@@ -651,7 +651,7 @@ namespace CoupledField
         regions_.push_back(region + numRegions);
         elem++;
         
-        // Reihenfolge geändert!
+        // Reihenfolge geï¿½ndert!
         connect_[elem*maxNumElemNodes_+0] = p2 + nodeOffsetBottom;
         connect_[elem*maxNumElemNodes_+1] = p1 + nodeOffsetBottom;
         connect_[elem*maxNumElemNodes_+2] = p1 + nodeOffsetTop;
@@ -680,7 +680,7 @@ namespace CoupledField
         regions_.push_back(region + numRegions);
         elem++;
 
-        // Reihenfolge geändert!
+        // Reihenfolge geï¿½ndert!
         connect_[elem*maxNumElemNodes_+0] = p3 + nodeOffsetBottom;
         connect_[elem*maxNumElemNodes_+1] = p2 + nodeOffsetBottom;
         connect_[elem*maxNumElemNodes_+2] = p2 + nodeOffsetTop;
@@ -709,7 +709,7 @@ namespace CoupledField
         regions_.push_back(region + numRegions);
         elem++;
         
-        // Reihenfolge geändert!
+        // Reihenfolge geï¿½ndert!
         connect_[elem*maxNumElemNodes_+0] = p4 + nodeOffsetBottom;
         connect_[elem*maxNumElemNodes_+1] = p3 + nodeOffsetBottom;
         connect_[elem*maxNumElemNodes_+2] = p3 + nodeOffsetTop;
@@ -738,7 +738,7 @@ namespace CoupledField
         regions_.push_back(region + numRegions);
         elem++;
 
-        // Reihenfolge geändert!
+        // Reihenfolge geï¿½ndert!
         connect_[elem*maxNumElemNodes_+0] = p1 + nodeOffsetBottom;
         connect_[elem*maxNumElemNodes_+1] = p4 + nodeOffsetBottom;
         connect_[elem*maxNumElemNodes_+2] = p4 + nodeOffsetTop;
@@ -767,7 +767,7 @@ namespace CoupledField
         regions_.push_back(region + numRegions);
         elem++;
 
-        // Reihenfolge geändert!
+        // Reihenfolge geï¿½ndert!
         connect_[elem*maxNumElemNodes_+0] = p4 + nodeOffsetTop;
         connect_[elem*maxNumElemNodes_+1] = p3 + nodeOffsetTop;
         connect_[elem*maxNumElemNodes_+2] = p2 + nodeOffsetTop;
@@ -1361,23 +1361,24 @@ namespace CoupledField
     
     Settings& settings = Settings::Instance();
     
-    ParamNode *param = settings.GetParamNode();
+    PtrParamNode param = settings.GetParamNode();
 
-    ParamNode* typeNode = NULL;
-    ParamNode* node = NULL;
+    PtrParamNode typeNode;
+    PtrParamNode node;
 
     if(param) 
     {
       typeNode = param->Get("type");
-      if(typeNode->Get("name")->AsString() == "GENGRIDS") 
+      if(typeNode->Get("name")->As<std::string>() == "GENGRIDS") 
       {
         std::cout << "GENGRIDS node found!" << std::endl;
         
         std::string elemTypeName = "HEXA8";
-        ParamNode* elemTypeNode = typeNode->Get("elementType", false);
+        PtrParamNode elemTypeNode = 
+            typeNode->Get("elementType", ParamNode::PASS );
 
         if(elemTypeNode) {
-          elemTypeNode->Get("name", elemTypeName, false);
+          elemTypeNode->GetValue("name", elemTypeName, ParamNode::PASS);
         }
         
         if(elemTypeName == "HEXA8") {
@@ -1403,33 +1404,28 @@ namespace CoupledField
           createPyras = true;
         }
 
-        node = typeNode->Get("numRefinementLevels", false);
+        node = typeNode->Get("numRefinementLevels", ParamNode::PASS);
         if(node) {
-          node->Get("value", numLevels_, false);
-          node = NULL;
+          node->GetValue("value", numLevels_, ParamNode::PASS);
         }
         
-        node = typeNode->Get("innerRadius", false);
+        node = typeNode->Get("innerRadius", ParamNode::PASS);
         if(node) {
-          node->Get("value", innerRadius_, false);
-          node = NULL;
+          node->GetValue("value", innerRadius_, ParamNode::PASS);
         }
-        node = typeNode->Get("outerRadius", false);
+        node = typeNode->Get("outerRadius", ParamNode::PASS);
         if(node) {
-          node->Get("value", outerRadius_, false);
-          node = NULL;
+          node->GetValue("value", outerRadius_, ParamNode::PASS);
         }
 
-        node = typeNode->Get("numRadialElements", false);
+        node = typeNode->Get("numRadialElements", ParamNode::PASS);
         if(node) {
-          node->Get("value", numLayers_, false);
-          node = NULL;
+          node->GetValue("value", numLayers_, ParamNode::PASS);
         }
 
-        node = typeNode->Get("octantRegions", false);
+        node = typeNode->Get("octantRegions", ParamNode::PASS);
         if(node) {
-          node->Get("value", octantRegions_, false);
-          node = NULL;
+          node->GetValue("value", octantRegions_, ParamNode::PASS);
         }
       }
     }

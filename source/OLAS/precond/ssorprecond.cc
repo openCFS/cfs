@@ -5,8 +5,6 @@
 #include "MatVec/stdmatrix.hh"
 #include "MatVec/crs_matrix.hh"
 #include "MatVec/opdefs.hh"
-#include "OLAS/algsys/olasparams.hh"
-
 
 #include "OLAS/precond/ssorprecond.hh"
 
@@ -16,10 +14,15 @@ namespace CoupledField {
   //   Constructor
   // ***************
   template <typename T>
-  SSORPrecond<T>::SSORPrecond( const StdMatrix& mat, OLAS_Params *myParams,
-			       OLAS_Report *myReport ) {
-    this->myParams_ = myParams;
-    this->myReport_ = myReport;
+  SSORPrecond<T>::SSORPrecond( const StdMatrix& mat, PtrParamNode solverNode,
+			       PtrParamNode olasInfo ) {
+    
+    // The SSOR preconditioner is currently not working
+    WARN("The SSOR-Preconditioner is not yet ported from 1 to 0 based"
+        "numbering, i.e. it will NOT work correctly!" );
+    
+    this->xml_ = solverNode;
+    this->olasInfo_ = olasInfo;
     size_     = mat.GetNumRows();
     NEWARRAY( diagInv_, T, size_ );
   }
@@ -30,7 +33,7 @@ namespace CoupledField {
   // **************
   template <typename T>
   SSORPrecond<T>::~SSORPrecond() {
-    DELETEARRAY( diagInv_ );
+    delete [] ( diagInv_ );
   }
 
 
@@ -58,7 +61,9 @@ namespace CoupledField {
     T_Vtype sum;
 
     // Query relaxation parameter
-    Double omega = this->myParams_->GetDoubleValue( "SSOR_Omega" );
+    Double omega = 1.7;
+    PtrParamNode pNode = this->xml_->Get("SSOR", ParamNode::INSERT);
+    pNode->GetValue("omega", omega, ParamNode::INSERT);
 
     // Extract matrix info/data
     const T *valA = sysmat.GetDataPointer();

@@ -34,7 +34,7 @@ namespace CoupledField
     virtual void PreStepStatic()  {;};
  
     /** base method for solving one static step */
-    virtual void SolveStepStatic(InfoNode* analysis_id);
+    virtual void SolveStepStatic(PtrParamNode analysis_id, AdjointParameters* adjointParams = NULL);
 
     //! routine for acttions after the SolveStep-method
     virtual void PostStepStatic() {;}
@@ -43,11 +43,11 @@ namespace CoupledField
     //----------------------- TRANSIENT---------------------------------------
 
     //! routine for initilizations befor execution the SolveStep-method
-    virtual void PreStepTrans() {;};
+    virtual void PreStepTrans();
 
 
     //! base method for solving one transient step 
-    virtual void SolveStepTrans(InfoNode* analysis_id);
+    virtual void SolveStepTrans(PtrParamNode analysis_id, AdjointParameters* adjointParams = NULL);
     
     //! routine for actions after the SolveStep-method
     virtual void PostStepTrans() {;};
@@ -55,11 +55,11 @@ namespace CoupledField
     //----------------------- HARMONIC---------------------------------------
     
     //! routine for initilizations befor execution the SolveStep-method
-    virtual void PreStepHarmonic(  ) {;};
+    virtual void PreStepHarmonic();
 
 
     //!  base method for solving one harmonic step 
-    virtual void SolveStepHarmonic(InfoNode* analysis_id);
+    virtual void SolveStepHarmonic(PtrParamNode analysis_id);
 
 
     //!  routine for actions after the SolveStep-method

@@ -22,7 +22,7 @@ namespace CoupledField
   public:
 
     //! Constructor
-    MagPDE( Grid * aptgrid, ParamNode* paramNode );
+    MagPDE( Grid * aptgrid, PtrParamNode paramNode );
 
     //! Default Destructor
 
@@ -32,7 +32,7 @@ namespace CoupledField
 
 
     //! Initialize PDE
-    virtual void Init( UInt sequenceStep, InfoNode* base = NULL );
+    virtual void Init( UInt sequenceStep, PtrParamNode base = PtrParamNode() );
 
     //! Initialize NonLinearities
     virtual void InitNonLin();
@@ -49,6 +49,8 @@ namespace CoupledField
     //! define the SoltionStep-Driver
     void DefineSolveStep();
 
+    //! do jobs, before analysis starts
+    void PreparePDE4Computation();
 
     // ======================================================
     // POSTPROCESSING SECTION
@@ -124,6 +126,10 @@ namespace CoupledField
                    TYPE& flux, 
                    bool timeDeriv );
 
+    //! Calculates the permeability as element result
+    template<class TYPE>
+    void CalcPermeability( shared_ptr<BaseResult> result ); 
+    
     //! computation of force (virtual work principle)
     void CalcForceVWP( shared_ptr<BaseResult> result );
 
@@ -154,7 +160,7 @@ namespace CoupledField
     
     //! vector containing regionIds of non-conforming interfaces
     StdVector<RegionIdType> ncIFaces_;
-
+    
     // =======================================================================
     //   HELPER METHODS FOR CALCULATING AUXILIARY QUANTITIES 
     // =======================================================================
@@ -182,7 +188,6 @@ namespace CoupledField
                               UInt ip,
                               Vector<TYPE>& field );
     
-
     // =======================================================================
     //   COILS
     // =======================================================================

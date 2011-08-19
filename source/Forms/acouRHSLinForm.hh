@@ -24,7 +24,7 @@ namespace CoupledField
   {
   public:
     ///
-    AcouRHSLinForm(ParamNode* rhsValuesNode);
+    AcouRHSLinForm(PtrParamNode rhsRegionNode);
 
     ///
     virtual ~AcouRHSLinForm();
@@ -52,6 +52,7 @@ namespace CoupledField
     std::string srcInputId_; //!< input ID of sources
     StdVector<std::string> srcRegions_; //!< names of source regions
     std::string restartFileMode_; //!< usage of restart file: r, w, or rw
+    bool overwriteOldSrcs_; //! overwrite old source terms present on destination mesh?
     std::string coordSysId_; //!< ID of coordinate system of source grid
     Grid::ciTolerance globalEpsilon_; //!< absolute interpolation tolerance
     Grid::ciTolerance localEpsilon_; //!< relative interpolation tolerance

@@ -96,8 +96,8 @@ namespace CoupledField {
     void RegisterPDE( const FeFctIdType identifierPDE,
                       const UInt numEqns,
                       const UInt numLastFreeDof,
-		      const ReorderingType reorder 
-		      = NOREORDERING );
+		      const BaseOrdering::ReorderingType reorder 
+		      = BaseOrdering::NOREORDERING );
 
     //@}
 
@@ -264,7 +264,7 @@ namespace CoupledField {
     //! assembled into a single graph by this graph manager class, there can
     //! only be one type of re-ordering. The graph manager will stick to the
     //! reordering type specified by the PDE that registers first.
-    ReorderingType reorderType_;
+    BaseOrdering::ReorderingType reorderType_;
 
     //! Vector containing the offsets
 

@@ -1,7 +1,7 @@
 \documentclass[12pt]{report}
 %
-\usepackage{graphicx}
-\graphicspath{{../../auxilliaries/Pics/}}
+\usepackage{ifpdf}
+
 %
 %
 \usepackage{../../auxilliaries/LaTeX/lsepaper}
@@ -17,22 +17,27 @@
 % PDF STUFF
 % =============================================================================
 %
-\ifx\pdfoutput\undefined
-\else
+\ifpdf
 \typeout{--> PDF: Output mode detected}
 \typeout{--> PDF: Setting general document info}
-%
+
+\usepackage{graphicx}
+\graphicspath{{./pics/}}
+\DeclareGraphicsExtensions{.jpg,.pdf,.png}
 \usepackage{thumbpdf}
-%
 \usepackage[pdftex,bookmarks=true]{hyperref}
 \hypersetup{pdfpagemode=UseThumbs}
 \hypersetup{colorlinks=true}
 \hypersetup{linkcolor=red}
 \hypersetup{citecolor=blue}
-%
+
 \hypersetup{pdfauthor=cfs-devel}
 \hypersetup{pdftitle={CFS++ --- XML Reference Manual}}
 \hypersetup{pdfsubject={User's Guide}}
+\else
+\usepackage{graphicx}
+\DeclareGraphicsExtensions{.jpg,.pdf,.png}
+\graphicspath{{./pics/}}
 \fi
 %
 % =============================================================================
@@ -44,7 +49,7 @@
 % =============================================================================
 %
 %
-\LSETITLE{CFS++ --- XML Reference Manual}{cfs--devel}{User's Guide}
+\LSETITLE{CFS++ -- XML Reference Manual}{\hspace{1em}}{\hspace{1em}}
 %
 %
 \tableofcontents

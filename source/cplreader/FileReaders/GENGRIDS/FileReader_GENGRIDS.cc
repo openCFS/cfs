@@ -7,6 +7,7 @@
 #include "SphericalShellGenerator.hh"
 #include "RectilinearUniformGridGenerator.hh"
 #include "ReferenceElementGenerator.hh"
+#include "Utils/trivialCartesianCoordSys.hh"
 
 #include "FileReader_GENGRIDS.hh"
 
@@ -17,9 +18,9 @@ namespace CoupledField
                                      const UInt dim,
                                      const UInt numFiles,
                                      const UInt startIndex) :
-    FileReader(name, dim, numFiles)
+    FileReader(name, dim, numFiles, startIndex)
   {
-    numSteps_ = 0;
+    std::cout << "FileReader_GENGRIDS " << name << " " << dim << " " << numFiles << std::endl;
   }
 
   FileReader_GENGRIDS::~FileReader_GENGRIDS()
@@ -34,18 +35,19 @@ namespace CoupledField
     
     Settings& settings = Settings::Instance();
 
-    ParamNode *param = settings.GetParamNode();
+    PtrParamNode param = settings.GetParamNode();
 
-    ParamNode* typeNode = NULL;
+    PtrParamNode typeNode;
+    PtrParamNode fieldsNode;
 
     if(param) 
     {
       typeNode = param->Get("type");
-      if(typeNode->Get("name")->AsString() == "GENGRIDS") 
+      if(typeNode->Get("name")->As<std::string>() == "GENGRIDS") 
       {
         std::string subType = "RectilinearUniformGridGenerator";
-        //        ParamNode* subTypeNode = typeNode->Get("subType", false);
-        typeNode->Get("subType", subType, false);
+        //        PtrParamNode subTypeNode = typeNode->Get("subType", false);
+        typeNode->GetValue("subType", subType, ParamNode::PASS);
 
         if(subType == "RectilinearUniformGridGenerator") 
         {
@@ -61,10 +63,10 @@ namespace CoupledField
         if(subType == "ReferenceElementGenerator") 
         {
           std::string elemTypeName = "HEXA8";
-          ParamNode* elemTypeNode = typeNode->Get("elementType", false);
+          PtrParamNode elemTypeNode = typeNode->Get("elementType", ParamNode::PASS);
           
           if(elemTypeNode) {
-            elemTypeNode->Get("name", elemTypeName, false);
+            elemTypeNode->GetValue("name", elemTypeName, ParamNode::PASS);
           }
           
           refGen.GenGrid(nodalCoords_,
@@ -84,6 +86,57 @@ namespace CoupledField
                                      maxNumElemNodes_,
                                      regionElems_,
                                      nodeGroups_);
+        }
+
+        fieldsNode = typeNode->Get("fields", ParamNode::PASS);
+        if(fieldsNode) 
+        {
+          ParamNodeList fields = fieldsNode->GetList("field");
+
+          for(UInt i=0; i<fields.GetSize(); i++) 
+          {
+            std::string fieldName = "default";
+            //            PtrParamNode elemTypeNode = typeNode->Get("elementType", false);
+            fields[i]->GetValue("name", fieldName, ParamNode::PASS);
+            std::cout << "field: " << fieldName << std::endl;
+
+            ParamNodeList components = fields[i]->GetList("component");
+            fieldExprs_[fieldName].resize(components.GetSize());
+            
+            for(UInt j=0; j<components.GetSize(); j++) 
+            {
+              std::string compAxis = "x";
+              std::string expr;
+              
+              components[j]->GetValue("axis", compAxis, ParamNode::PASS);
+              expr = components[j]->As<std::string>();
+
+              for(UInt l=0; l<expr.length(); l++) 
+              {
+                if(expr[l] == '\n' ||
+                   expr[l] == '\r' ||
+                   expr[l] == '\t')
+                  expr[l] = ' ';
+              }
+            
+              if(compAxis == "x")
+                fieldExprs_[fieldName][0] = expr;
+              if(compAxis == "y")
+                fieldExprs_[fieldName][1] = expr;
+              if(compAxis == "z")
+                fieldExprs_[fieldName][2] = expr;
+              
+              std::cout << "component: " << compAxis << " " << expr << std::endl;
+              
+            }
+          }
+
+          if(!fields.GetSize())
+            numSteps_ = 0;            
+        }
+        else 
+        {
+          numSteps_ = 0;
         }
       }
     }
@@ -139,5 +192,104 @@ namespace CoupledField
   {
     nodeGroups = nodeGroups_;
   }
+
+  void FileReader_GENGRIDS::ReadNodalValues(std::vector<FlowDataType>& nodalFlowData,
+                                            const std::vector<bool>& activeParts,
+                                            const UInt timeStepIdx)
+  {
+    UInt regionIdx, nRegions;
+    Settings& settings = Settings::Instance();
+    Double timeStep = timeStepIdx * settings.GetDouble("timestep");
+    TrivialCartesianCoordSystem coordSys("cplreaderCoordSys", NULL, PtrParamNode());
+    Vector<Double> globCoord(3);
+
+    std::map<std::string, std::vector<UInt> >::iterator it;
+    it = regionElems_.begin();
+
+    MathParser::HandleType handle = mathParser_.GetNewHandle();
+    
+    for( regionIdx = 0, nRegions = nodalFlowData.size(); regionIdx < nRegions; regionIdx++, it++ ) 
+    {
+      if(!activeParts[regionIdx])
+        continue;
+
+      std::set<UInt> regionNodeSet;
+      
+      for( UInt el=0, n = it->second.size(); el < n; el++) 
+      {
+        UInt elemIdx = it->second[el]-1;
+        regionNodeSet.insert(&topology_[maxNumElemNodes_*elemIdx],
+                             &topology_[maxNumElemNodes_*(elemIdx+1)]);
+      }
+
+      UInt numRegionNodes = regionNodeSet.size();
+      
+      std::map<std::string, std::vector<std::string> >::iterator exprIt, exprEnd;
+      exprIt = fieldExprs_.begin();
+      exprEnd = fieldExprs_.end();
+
+      for( ; exprIt != exprEnd; exprIt++) 
+      {  
+        SolutionType solType;
+        if(exprIt->first == "fluidMechPressure") {
+          solType = FLUIDMECH_VELOCITY;
+        } else if(exprIt->first == "fluidMechVelocity") {
+          solType = FLUIDMECH_VELOCITY;
+        } else if(exprIt->first == "acouRhsLoad") {
+          solType = ACOU_RHS_LOAD;
+        } else {
+          EXCEPTION("Solution type '" << exprIt->first << "' not supported!");
+        }
+
+        UInt numComps = exprIt->second.size();
+        
+        nodalFlowData[regionIdx][solType].resultName = exprIt->first;
+        nodalFlowData[regionIdx][solType].isActive = true;
+        nodalFlowData[regionIdx][solType].definedOn = ResultInfo::NODE; // nodes
+        switch(exprIt->second.size()) 
+        {
+        case 1:
+          nodalFlowData[regionIdx][solType].entryType = ResultInfo::SCALAR;
+        case 3:
+          nodalFlowData[regionIdx][solType].entryType = ResultInfo::VECTOR;
+        }
+        nodalFlowData[regionIdx][solType].dofNames.resize(exprIt->second.size());
+        nodalFlowData[regionIdx][solType].data.resize(numRegionNodes * numComps);
+        
+        
+        for(UInt comp=0; comp<numComps; comp++) 
+        {  
+          mathParser_.SetExpr(handle, exprIt->second[comp]);
+          mathParser_.SetValue(handle, "t", timeStep);
+          mathParser_.SetValue(handle, "t_idx", timeStepIdx);
+
+          std::set<UInt>::iterator nsIt, nsEnd;
+          nsIt= regionNodeSet.begin();
+          nsEnd= regionNodeSet.end();
+
+          for(UInt nodeIdx = 0; nsIt != nsEnd; nsIt++, nodeIdx++) 
+          {
+            if(!*nsIt) 
+            {
+              nodeIdx--;
+              continue;
+            }
+            
+            //            std::cout << "nodeIdx " << nodeIdx << " *nsIt " << *nsIt << std::endl;
+            globCoord[0] = nodalCoords_[(*nsIt-1)*3+0];
+            globCoord[1] = nodalCoords_[(*nsIt-1)*3+1];
+            globCoord[2] = nodalCoords_[(*nsIt-1)*3+2];
+            
+            mathParser_.SetCoordinates(handle, coordSys, globCoord);
+            nodalFlowData[regionIdx][solType].data[nodeIdx*numComps+comp] =  mathParser_.Eval(handle);
+            //            std::cout << "data " << nodalFlowData[regionIdx][solType].data[nodeIdx*numComps+comp] << std::endl;
+          }
+          
+        }
+      }
+      
+    }
+  }
+
 }
 

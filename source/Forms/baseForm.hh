@@ -11,11 +11,10 @@
 #include "Domain/surfElem.hh"
 #include "Materials/baseMaterial.hh"
 #include "Domain/entityList.hh"
-#include "Optimization/DesignElement.hh"
+#include "Optimization/Design/DesignElement.hh"
+#include "PDE/timestepping.hh"
 
-#ifndef INTEGLIB
 #include "Utils/mathParser/mathParser.hh"
-#endif
 
 namespace CoupledField
 {
@@ -27,6 +26,54 @@ namespace CoupledField
   class BaseForm 
   {
   public:
+
+    /** For bimaterial optimization it is good to be sure in what 'mode' the forms are initialized.
+     * This is important for MassInt and other scalar forms where the material data is given
+     * as scalar in the constructor.
+     * This class allows an optional form constructor which describes the material such that we can be
+     * sure that we are in a mode we expect. To use the class is optional!
+     * The scalar material properties are then obtained each time. Eventually BaseMaterial needs a boost.
+     * If the material descriptor is used, the scalard material value from the other constructor is not
+     * used -> see MassInt.
+     * Does not work for tensors but could be extended.
+     * It might be generally a good idea to use the MaterialDescriptor */
+     class MaterialDescriptor
+     {
+     public:
+       /** NOT_SET: the material descriptor is not used
+        *  SCALAR: material->GetScalar(mat_1)
+        *  MINUS_SCALAR: -1 * SCALAR in acoustic-mech coupling case when not pressure formulation
+        *  MAT_1_MAT_1_BY_MAT_2: material->GetScalar(mat_1)^2 / material->GetScalar(mat_2) standard acoustic mass
+        *  MINUS_MAT_1_MAT_1_BY_MAT_2 additional -1 in mech coupling case when not pressure formulation */
+       enum Type { NOT_SET = -1, SCALAR = 0, MINUS_SCALAR, MAT_1_MAT_1_BY_MAT_2, MINUS_MAT_1_MAT_1_BY_MAT_2};
+
+       /** The default constructor sets to NOT_SET */
+       MaterialDescriptor();
+       MaterialDescriptor(Type type, MaterialClass mat_class, MaterialType mat_1, Global::ComplexPart dataType);
+       MaterialDescriptor(Type type, MaterialClass mat_class, MaterialType mat_1, MaterialType mat_2, Global::ComplexPart dataType);
+
+       /** is the material descriptor set? */
+       bool Enabled() const { return type != NOT_SET; }
+
+       /** extract the value from material by type if not NOT_SET, convenience function */
+       double GetScalar(BaseMaterial* bm);
+
+       /** Applies the ersatz material factor if it applies, eventually with bimaterial, otherwise the default.
+        * This is NOT the factor but the applied factor!
+        * @param default_mat_value if the material descriptor is not initialized. */
+       double GetErsatzMaterial(BaseForm* form, const Elem* elem, double default_mat_value);
+
+       Type type;
+       MaterialType mat_1;
+       MaterialType mat_2;
+
+       MaterialClass mat_class;
+
+       Global::ComplexPart data_type;
+     private:
+       void Init(Type type, MaterialClass mat_class, MaterialType mat_1, MaterialType mat_2, Global::ComplexPart data_type);
+     };
+
 
     //! Constructor
     BaseForm(BaseMaterial* matData, SubTensorType subTensor = FULL,
@@ -58,8 +105,14 @@ namespace CoupledField
       this->ptFeSpace1_ = feSpace1;
       this->ptFeSpace2_ = feSpace2;
     }
+    
+    /** This is a SIMP optimization helper. It works for ADB and BDB forms and returns the material tensor
+     * @param factor this scales the material tensor, it might be 1.0
+     * @param derivative only interesting in the bimat case
+     * @param bimat optional (otherwise NULL) bimaterial interpolation
+     * @param out result */
+    void GetScaledMaterial(Double factor, bool derivative, BaseMaterial* bimat, Matrix<Double>& out);
 
-#ifndef INTEGLIB
     //! Virtual function
     virtual void CalcElementMatrix( Matrix<Double>& stiffMat,
                                     EntityIterator& ent1, 
@@ -85,7 +138,6 @@ namespace CoupledField
       
       EXCEPTION( "Not implemented here" );}
     
-#endif
 
     virtual void CalcMinMaxStrain( EntityIterator& ent1, 
                                    EntityIterator& ent2 ){;};
@@ -201,15 +253,34 @@ namespace CoupledField
     }
 
     //! set min/max of x,y,z coordinates form where PML starts
-    virtual void SetPosPML(Matrix<Double> & inner, Matrix<Double> & outer) {;};
+    virtual void SetPosPML(Matrix<Double> & inner, Matrix<Double> & outer,
+                           const std::string& coordSysId ) {;};
       
-#ifndef INTEGLIB
     //! Get reference element and coordinates from element iterator
     virtual void ExtractElemInfo( EntityIterator& it);
     
-#endif
     virtual void SetIntegration(shared_ptr<IntScheme> intScheme, 
                                 IntScheme::IntegMethod integScheme,UInt order);
+    /**
+     * Set Timestepping for non linear solvers
+     * @param ts_alg the time stepping algorithm
+     */
+    void setTimeStepping(TimeStepping* const ts_alg) { TS_alg_ = ts_alg;};
+
+    /** MassInt and LaplaceInt have optional constructors where the material descriptors can be set.*/
+    const MaterialDescriptor& GetMaterialDescriptor() const { return md_; };
+
+    /** Convenience function if one requires the B mat for the given element.
+     * @param ip 1-based :(
+     * @param geo_nonlin shall the element coordinates obtained linear or nonlinear? */
+    void CalcBMatOnly(Matrix<Double> &bMat, UInt ip, Elem* elem, bool geo_nonlin = false);
+
+    /** @see other CalcBMatOnly() */
+    void CalcBMatOnly(Matrix<Double> &bMat, Vector<Double>& intPoint, Elem* elem, bool geo_nonlin = false);
+
+    /** @see other CalcBMatOnly(). This is just a variant in the parameters */
+    void CalcBMatOnly(Matrix<Double> &bMat, UInt ip, BaseFE* elem, Matrix<Double> &ptCoord);
+
   protected:
 
     /** Gets the factor for dMat to perform the ersatz material ansatz.
@@ -222,10 +293,32 @@ namespace CoupledField
      * @return 1.0 if nothing is to be done or a factor */ 
     virtual Double GetErsatzMaterialFactor(const Elem* elem); 
 
+    /** Some derived classes have a natural tensor e.g. PIEZO_TENSOR, MECH_STIFFNESS_TENSOR. Extend if you need it */
+    virtual MaterialType getDMaterialType() { EXCEPTION("not implemented"); }
+
+
+    /** Computes the discretized differential operator at the given integration point.
+     * Possibly all forms overwrite this method. */
+    virtual void CalcBMat(Matrix<Double>& bMat, UInt ip, const Matrix<Double>& ptCoord) {
+      EXCEPTION("not implemented");
+    }
+
+    /**
+     * Get Timestepping for non linear solvers
+     * @return
+     */
+    const TimeStepping* getTimeStepping() const
+    {
+      if (TS_alg_ == NULL)
+      {
+        EXCEPTION("Time stepping is not set!");
+      }
+      return TS_alg_;
+    };
+
     //! pointer to reference element
     BaseFE  * ptelem;   
 
-#ifndef INTEGLIB
     //! current entity iterators
     EntityIterator it1_;
     EntityIterator it2_;
@@ -233,7 +326,6 @@ namespace CoupledField
     //! pointer to ansatz fct
     //shared_ptr<AnsatzFct> ansatzFct1_;
     //shared_ptr<AnsatzFct> ansatzFct2_;
-#endif
 
     //! flag indicating if element matrix is symmetric
     bool isSymmetric_;
@@ -293,13 +385,11 @@ namespace CoupledField
     //minimal length of an edge within an element
     Double minEdgeLength_;
 
-#ifndef INTEGLIB
     //! Handle for MathParser object
     MathParser::HandleType mHandle_;
 
     //! Pointer to MathParser object
     MathParser * mParser_;
-#endif
 
     //! solution vector, sol1 and sol2 are solutions in case id direct couplings
     NodeStoreSol<Double>* sol_, *sol1_, *sol2_;
@@ -313,8 +403,17 @@ namespace CoupledField
     //! second derivative of solution
     NodeStoreSol<Double>* solDeriv2_;
 
+    /** to be used for bimaterial optimization problems or for a more detailed description of the used material.
+     * Makes sense for scalar integrator. For most cases not used
+     * @see MassInt() */
+    MaterialDescriptor md_;
+
   private:
 
+    /**
+     * Needed for some integrators
+     */
+    TimeStepping* TS_alg_;
     //! Should we delete the material data object?
     bool delMatDataAtEnd_;
 
@@ -354,10 +453,8 @@ namespace CoupledField
                             const std::map<RegionIdType, BaseMaterial*>
                             & materials );
  
-#ifndef INTEGLIB
     //! Get reference element and coordinates from element iterator
     void ExtractElemInfo( EntityIterator& it);
-#endif
 
   protected:
 

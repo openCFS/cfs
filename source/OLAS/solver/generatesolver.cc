@@ -5,8 +5,10 @@
 #include <def_use_ilupack.hh>
 #include <def_use_lapack.hh>
 #include <def_use_pardiso.hh>
+#include <def_use_cholmod.hh>
 
 #include "DataInOut/ParamHandling/ParamNode.hh"
+#include "General/Enum.hh"
 
 #include "generatesolver.hh"
 #include "General/exception.hh"
@@ -22,6 +24,10 @@
 
 #ifdef USE_ILUPACK
 #include "OLAS/external/ilupack/Ilupack.hh"
+#endif
+
+#ifdef USE_CHOLMOD
+#include "OLAS/external/cholmod/CholMod.hh"
 #endif
 
 // include source code for templated solvers
@@ -45,7 +51,7 @@ namespace CoupledField {
 // *********************************************************
 #define SOLVER_OBJ( entryType, solverObjType ) \
   if ( entryType == eType  ) { \
-    retSolver = new solverObjType( params, report ); \
+    retSolver = new solverObjType( solverXML, olasInfo ); \
     (*cla) << " GenerateSolver: Generated " \
     << MACRO2STRING( solverObjType ) \
     << " solver" << std::endl;\
@@ -57,31 +63,48 @@ namespace CoupledField {
 //   Generate a solver object
 // ****************************
 BaseSolver* GenerateSolverObject( const BaseMatrix &mat,
-                                  SolverType solver,
-                                  ParamNode* xml,
-                                  InfoNode*  olasInfo,
-                                  OLAS_Params *params,
-                                  OLAS_Report *report ){
+                                  PtrParamNode xml,
+                                  PtrParamNode  olasInfo ){
 
   BaseSolver *retSolver = NULL;
   BaseMatrix::EntryType eType = mat.GetEntryType();
   bool eTypeUnknown = false;
+  std::string solverStr = "";
 
-  ParamNode* solver_xml = NULL;
-  if(xml != NULL && xml->Has("solver")) solver_xml = xml->Get("solver");
+  PtrParamNode solverXML;
+  solverXML = xml->Get("solver", ParamNode::INSERT);
+  
+  EnumMap::iterator it, end;
+  it = BaseSolver::solverType.map.begin();
+  end = BaseSolver::solverType.map.end();
+  
+  for( ; it != end; it++ ) {
+    if( solverXML->HasByVal("type", it->second) ) {
+      if(solverStr != "")
+        EXCEPTION("Two solvers have been specified: " << solverStr << " and " << (it->second))
+        
+      solverStr = it->second;
+    }
+  }
+  
+  if(solverStr == "") {
+    EXCEPTION("Could not determine solver!")
+  }
+
+  BaseSolver::SolverType solver = BaseSolver::NOSOLVER;
+  solver = BaseSolver::solverType.Parse(solverStr);
   
   // Branch depending on desired solver
   switch( solver ) {
-
-  case RICHARDSON:
+  case BaseSolver::RICHARDSON:
     if ( eType == BaseMatrix::DOUBLE ) {
-      retSolver = new RichardsonSolver<Double>( params, report );
+      retSolver = new RichardsonSolver<Double>( solverXML, olasInfo );
       ASSERTMEM( retSolver, sizeof(RichardsonSolver<Double>) );
       (*cla) << " GenerateSolver: Generated real Richardson solver"
               << std::endl;
     }
     else if ( eType == BaseMatrix::COMPLEX ) {
-      retSolver = new RichardsonSolver<Complex>( params, report );
+      retSolver = new RichardsonSolver<Complex>( solverXML, olasInfo );
       ASSERTMEM( retSolver, sizeof(RichardsonSolver<Complex>) );
       (*cla) << " GenerateSolver: Generated complex Richardson solver"
               << std::endl;
@@ -90,16 +113,15 @@ BaseSolver* GenerateSolverObject( const BaseMatrix &mat,
       eTypeUnknown = true;
     }
     break;
-
-  case DIAGSOLVER:
+  case BaseSolver::DIAGSOLVER:
     if ( eType == BaseMatrix::DOUBLE ) {
-      retSolver = new DiagSolver<Double>( params, report );
+      retSolver = new DiagSolver<Double>(solverXML, olasInfo );
       ASSERTMEM( retSolver, sizeof(DiagSolver<Double>) );
       (*cla) << " GenerateSolver: Generated real Diagonal solver"
       << std::endl;
     }
     else if ( eType == BaseMatrix::COMPLEX ) {
-      retSolver = new DiagSolver<Complex>( params, report );
+      retSolver = new DiagSolver<Complex>(solverXML, olasInfo );
       ASSERTMEM( retSolver, sizeof(DiagSolver<Complex>) );
       (*cla) << " GenerateSolver: Generated complex Diagonal solver"
       << std::endl;
@@ -109,25 +131,25 @@ BaseSolver* GenerateSolverObject( const BaseMatrix &mat,
     }
     break;
 
-  case CG:
+  case BaseSolver::CG:
     if(eType == BaseMatrix::DOUBLE) {
-      retSolver = new CGSolver<Double>(solver_xml, params, report );
+      retSolver = new CGSolver<Double>(solverXML, olasInfo );
       (*cla) << " GenerateSolver: Generated real CG solver" << std::endl;
     }
     if(eType == BaseMatrix::COMPLEX) {
-      retSolver = new CGSolver<Complex>(solver_xml, params, report );
+      retSolver = new CGSolver<Complex>(solverXML, olasInfo );
       (*cla) << " GenerateSolver: Generated complex CG solver" << std::endl;
     }
     break;
 
-  case GMRES:
+  case BaseSolver::GMRES:
     if ( eType == BaseMatrix::DOUBLE ) {
-      retSolver = new GMRESSolver<Double>( params, report );
+      retSolver = new GMRESSolver<Double>(solverXML, olasInfo );
       ASSERTMEM( retSolver, sizeof(GMRESSolver<Double>) );
       (*cla) << " GenerateSolver: Generated real GMRES solver" << std::endl;
     }
     else if ( eType == BaseMatrix::COMPLEX ) {
-      retSolver = new GMRESSolver<Complex>( params, report );
+      retSolver = new GMRESSolver<Complex>(solverXML, olasInfo );
       ASSERTMEM( retSolver, sizeof(GMRESSolver<Complex>) );
       (*cla) << " GenerateSolver: Generated complex GMRES solver"
       << std::endl;
@@ -137,14 +159,14 @@ BaseSolver* GenerateSolverObject( const BaseMatrix &mat,
     }
     break;
 
-  case MINRES:
+  case BaseSolver::MINRES:
     if ( eType == BaseMatrix::DOUBLE ) {
-      retSolver = new MINRESSolver<Double>( params, report );
+      retSolver = new MINRESSolver<Double>( solverXML, olasInfo );
       ASSERTMEM( retSolver, sizeof(MINRESSolver<Double>) );
       (*cla) << " GenerateSolver: Generated real MINRES solver" << std::endl;
     }
     else if ( eType == BaseMatrix::COMPLEX ) {
-      retSolver = new MINRESSolver<Complex>( params, report );
+      retSolver = new MINRESSolver<Complex>( solverXML, olasInfo );
       ASSERTMEM( retSolver, sizeof(MINRESSolver<Complex>) );
       (*cla) << " GenerateSolver: Generated complex MINRES solver"
       << std::endl;
@@ -154,49 +176,35 @@ BaseSolver* GenerateSolverObject( const BaseMatrix &mat,
     }
     break;
 
-  case LU_SOLVER:
+  case BaseSolver::LU_SOLVER:
     if ( eType == BaseMatrix::DOUBLE ) {
-      retSolver = new LUSolver<Double>( params, report );
+      retSolver = new LUSolver<Double>( solverXML, olasInfo );
       ASSERTMEM( retSolver, sizeof(LUSolver<Double>) );
-      std::string tmp;
-      Enum2String( LU_SOLVER, tmp );
       (*cla) << " GenerateSolver: Generated real "
-      << tmp << std::endl;
+      << BaseSolver::solverType.ToString(solver) << std::endl;
     }
     else if ( eType == BaseMatrix::COMPLEX ) {
-      retSolver = new LUSolver<Complex>( params, report );
+      retSolver = new LUSolver<Complex>( solverXML, olasInfo );
       ASSERTMEM( retSolver, sizeof(LUSolver<Complex>) );
-      std::string tmp;
-      Enum2String( LU_SOLVER, tmp );
       (*cla) << " GenerateSolver: Generated complex "
-      << tmp << std::endl;
+      << BaseSolver::solverType.ToString(solver) << std::endl;
     }
     else {
       eTypeUnknown = true;
     }
     break;
-  case LDL_SOLVER:
+  case BaseSolver::LDL_SOLVER:
     // Get block size of matrix entries (we need an StdMatrix for this,
     // but, if it's not, an LDL_Solver makes no sense anyhow)
   {
-    // TODO: Check if this is still needed
-    // Integer bSize = 0;
-    // TRY_CAST {
-    //  CONSTREFCAST( mat, StdMatrix, stdMat );
-    // }
-    // CATCH_CAST;
-
-
-
-
-    SOLVER_OBJ( BaseMatrix::DOUBLE,   LDLSolver<Double>      );
+    SOLVER_OBJ( BaseMatrix::DOUBLE,   LDLSolver<Double>  );
     SOLVER_OBJ( BaseMatrix::COMPLEX,  LDLSolver<Complex> );
   }
   break;
 
 
 #ifdef USE_LAPACK
-  case LAPACK_LU:
+  case BaseSolver::LAPACK_LU:
     if ( mat.GetStructureType() != BaseMatrix::SPARSE_MATRIX ) {
       EXCEPTION( "LAPACK_LU only works with a LAPACK_GBMATRIX!");
     }
@@ -206,7 +214,7 @@ BaseSolver* GenerateSolverObject( const BaseMatrix &mat,
         EXCEPTION( "LAPACK_LU only works with a LAPACK_GBMATRIX!");
       }
       else {
-        retSolver = new Lapack_LU( params, report );
+        retSolver = new Lapack_LU( solverXML, olasInfo );
         ASSERTMEM( retSolver, sizeof(Lapack_LU) );
         (*cla) << " GenerateSolver: Generated Lapack_LU solver"
         << std::endl;
@@ -214,7 +222,7 @@ BaseSolver* GenerateSolverObject( const BaseMatrix &mat,
     }
     break;
 
-  case LAPACK_LL:
+  case BaseSolver::LAPACK_LL:
     if ( mat.GetStructureType() != BaseMatrix::SPARSE_MATRIX ) {
       EXCEPTION( "LAPACK_LL only works with an SCRS_MATRIX!" );
     }
@@ -224,7 +232,7 @@ BaseSolver* GenerateSolverObject( const BaseMatrix &mat,
         EXCEPTION( "LAPACK_LL only works with an SCRS_MATRIX!" );
       }
       else {
-        retSolver = new Lapack_LL( params, report );
+        retSolver = new Lapack_LL( solverXML, olasInfo );
         ASSERTMEM( retSolver, sizeof(Lapack_LL) );
         (*cla) << " GenerateSolver: Generated Lapack_LL solver"
         << std::endl;
@@ -232,15 +240,15 @@ BaseSolver* GenerateSolverObject( const BaseMatrix &mat,
     }
     break;
 #else
-  case LAPACK_LU:
+  case BaseSolver::LAPACK_LU:
     EXCEPTION( "Compile with USE_LAPACK to enable support for LAPACK_LU solver" );
     break;
-  case LAPACK_LL:
+  case BaseSolver::LAPACK_LL:
     EXCEPTION( "Compile with USE_LAPACK to enable support for LAPACK_LL solver" );
     break;
 #endif
 
-  case PARDISO:
+  case BaseSolver::PARDISO:
 
 #ifdef USE_PARDISO
 
@@ -257,13 +265,13 @@ BaseSolver* GenerateSolverObject( const BaseMatrix &mat,
     }
 
     if ( eType == BaseMatrix::DOUBLE ) {
-      retSolver = new PardisoSolver<Double>( params, report );
+      retSolver = new PardisoSolver<Double>( solverXML, olasInfo );
       ASSERTMEM( retSolver, sizeof(PardisoSolver<Double>) );
       (*cla) << " GenerateSolver: Generated real Pardiso solver"
       << std::endl;
     }
     if ( eType == BaseMatrix::COMPLEX ) {
-      retSolver = new PardisoSolver<Complex>( params, report );
+      retSolver = new PardisoSolver<Complex>( solverXML, olasInfo );
       ASSERTMEM( retSolver, sizeof(PardisoSolver<Complex>) );
       (*cla) << " GenerateSolver: Generated complex Pardiso solver"
       << std::endl;
@@ -276,7 +284,7 @@ BaseSolver* GenerateSolverObject( const BaseMatrix &mat,
     break;
 
 
-  case ILUPACK_SOLVER:
+  case BaseSolver::ILUPACK:
 
 #ifdef USE_ILUPACK
   {
@@ -290,11 +298,11 @@ BaseSolver* GenerateSolverObject( const BaseMatrix &mat,
       EXCEPTION("Ilupack only works with (S)CRS_Matrix class!");
 
     if(eType == BaseMatrix::DOUBLE) {
-      retSolver = new Ilupack<Double>(solver_xml, olasInfo, eType);
+      retSolver = new Ilupack<Double>(solverXML, olasInfo, eType);
       (*cla) << " GenerateSolver: Generated real ilupack solver" << std::endl;
     }
     if(eType == BaseMatrix::COMPLEX) {
-      retSolver = new Ilupack<Complex>(solver_xml, olasInfo, eType);
+      retSolver = new Ilupack<Complex>(solverXML, olasInfo, eType);
       (*cla) << " GenerateSolver: Generated complex ilupack solver" << std::endl;
     }
 
@@ -303,6 +311,25 @@ BaseSolver* GenerateSolverObject( const BaseMatrix &mat,
   EXCEPTION("Compile with USE_ILUPACK to enable interface to ilupack");
 #endif
   break;
+  
+  case BaseSolver::CHOLMOD:
+#ifdef USE_CHOLMOD
+  {
+    if(mat.GetStructureType() != BaseMatrix::SPARSE_MATRIX || dynamic_cast<const StdMatrix &>(mat).GetStorageType() != BaseMatrix::SPARSE_SYM){
+      EXCEPTION("CholMod only works with SCRS_Matrix class!");
+    }
+    if(eType == BaseMatrix::DOUBLE){
+      retSolver = new CholMod<Double>(solverXML, olasInfo, eType);
+      (*cla) << " GenerateSolver: Generated real CholMod solver" << std::endl;
+    }else if(eType == BaseMatrix::COMPLEX){
+      retSolver = new CholMod<Complex>(solverXML, olasInfo, eType);
+      (*cla) << " GenerateSolver: Generated complex CholMod solver" << std::endl;
+    }
+  }
+#else
+    EXCEPTION("Compile with USE_CHOLMOD to enable interface to CholMod");
+#endif
+    break;
 
   default:
     EXCEPTION("GenerateSolver: Request for unknown solver type!");
@@ -310,6 +337,8 @@ BaseSolver* GenerateSolverObject( const BaseMatrix &mat,
 
   // Check for unsupported matrix entry type
   if (retSolver == NULL ) EXCEPTION("unhandled type " << eType);
+
+  retSolver->PostInit();
 
   return retSolver;
 }

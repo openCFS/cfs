@@ -76,11 +76,11 @@
 
 // declare class specific logging stream
 DECLARE_LOG(feSpaceHCurlHi)
- DEFINE_LOG(feSpaceHCurlHi, "feSpaceHCurlHi");
+DEFINE_LOG(feSpaceHCurlHi, "feSpaceHCurlHi")
 namespace CoupledField{
 
   //! Constructor
-  FeSpaceHCurlHi::FeSpaceHCurlHi(ParamNode* aNode)
+  FeSpaceHCurlHi::FeSpaceHCurlHi(PtrParamNode aNode)
   : FeSpaceH1(aNode) {
     mapType_ = POLYNOMIAL;
     type_ = HCURL;
@@ -198,6 +198,7 @@ namespace CoupledField{
     } else if( type == BaseFE::FACE ) {
       // IMPLEMENT ME
     }
+    return 0;
   }
 
   UInt FeSpaceHCurlHi::GetMaxEntityOrder( UInt elemNum, BaseFE::EntityType type, 
@@ -213,6 +214,7 @@ namespace CoupledField{
     } else if( type == BaseFE::FACE ) {
       // IMPLEMENT ME
     }
+    return 0;
   }
 
   //! Map equations i.e. intialize object
@@ -354,7 +356,7 @@ namespace CoupledField{
     //get the highest possible node number
     //UInt offset = feFunction_->GetGrid()->GetNumNodes();
     UInt offset =0;
-    UInt curRegIsoOrder = 0;
+    //UInt curRegIsoOrder = 0;
     MappingType curMap = GRID;
     // ------------------------------------------
     //  1st loop: lowest order Nedelec unknowns
@@ -375,8 +377,8 @@ namespace CoupledField{
           EXCEPTION("FeSpaceHCurlHi::CreateVirtualNodes(): Calling the method with an unsupported EntityListType");
         }
         //cast down to element list
-        ElemList* actElemList = dynamic_cast<ElemList*>(fctEntList[actList].get());
-        RegionIdType curReg = actElemList->GetRegion();
+        //ElemList* actElemList = dynamic_cast<ElemList*>(fctEntList[actList].get());
+        //RegionIdType curReg = actElemList->GetRegion();
 
         curMap = POLYNOMIAL;
 
@@ -456,8 +458,8 @@ namespace CoupledField{
         BaseFE* ptFe = GetFe( entIt ); 
 
         //cast down to element list
-        ElemList* actElemList = dynamic_cast<ElemList*>(fctEntList[actList].get());
-        RegionIdType curReg = actElemList->GetRegion();
+        //ElemList* actElemList = dynamic_cast<ElemList*>(fctEntList[actList].get());
+        //RegionIdType curReg = actElemList->GetRegion();
 
         curMap = POLYNOMIAL;
 
@@ -523,8 +525,8 @@ namespace CoupledField{
         const Elem* actEl = entIt.GetElem();
         BaseFE* ptFe = GetFe( entIt ); 
         //cast down to element list
-        ElemList* actElemList = dynamic_cast<ElemList*>(fctEntList[actList].get());
-        RegionIdType curReg = actElemList->GetRegion();
+        //ElemList* actElemList = dynamic_cast<ElemList*>(fctEntList[actList].get());
+        //RegionIdType curReg = actElemList->GetRegion();
 
         curMap = POLYNOMIAL;
         //distinguish between Grid or polynomial based mapping
@@ -566,20 +568,20 @@ namespace CoupledField{
     
   }
 
-  void FeSpaceHCurlHi::ProcessPolyRegionNode(ParamNode* node, RegionIdType region){
+  void FeSpaceHCurlHi::ProcessPolyRegionNode(PtrParamNode node, RegionIdType region){
     Matrix<Integer> order(1,1);
     order[0][0] = -1;
-    ParamNode * isoOrderNode = node->Get("isoOrder", false );
-    ParamNode * anIsoOrderNode = node->Get("anIsoOrder", false );
+    PtrParamNode isoOrderNode = node->Get("isoOrder", ParamNode::PASS);
+    PtrParamNode anIsoOrderNode = node->Get("anIsoOrder", ParamNode::PASS );
 
     if(isoOrderNode){
-      Integer isoOrder = isoOrderNode->AsInt();
+      Integer isoOrder = isoOrderNode->As<Integer>();
       order[0][0] = isoOrder;
     }else if(anIsoOrderNode){
       //TO BE DONE
       EXCEPTION("Anisotropic element orders are not supported");
     }else{
-      Warning("Did not find a order node. setting it to 1");
+      WARN("Did not find a order node. setting it to 1");
       order[0][0] = 1;
     }
     SetRegionElements(region,POLYNOMIAL,order);

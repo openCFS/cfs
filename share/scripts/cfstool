@@ -114,7 +114,11 @@ SetANSYSParameters()
 	    ANS_ARCH=linia32;
 	    LIB=/lib ;;
 	X86_64)
-	    ANS_ARCH=linop64;
+	    if [ "$SUBARCH" = "OPTERON" ]; then
+		ANS_ARCH=linop64;
+	    else
+		ANS_ARCH=linem64t;
+	    fi
 	    LIB=/lib64 ;;
 	IA64)
 	    ANS_ARCH=linia64;
@@ -124,7 +128,7 @@ SetANSYSParameters()
     # If ANSYS directory does not exist, try to determine it from executable.
     if [ ! -d "$ANSYS_ROOT_DIR" ]
     then
-        PGFLIB=`$LDD $CFS_EXE | grep libpgf90.so | cut -d' ' -f3`
+        PGFLIB=`$LDD $CFSTOOL_EXE | grep libpgf90.so | cut -d' ' -f3`
 
         if [ -f "$PGFLIB" ]
         then
@@ -133,19 +137,19 @@ SetANSYSParameters()
         fi
     fi
 
-    if [ ! -d "$ANSYS_ROOT_DIR" ]
-    then
+#    if [ ! -d "$ANSYS_ROOT_DIR" ]
+#    then
+#
+#
+#	echo "Cannot find root directory of ANSYS:"
+#	echo "  $ANSYS_ROOT_DIR"
+#	echo "Please set either environment variable ANSYS_ROOT_DIR"
+#	echo "or edit $HOME/.nacsrc."
+#	exit 1
+#    fi
 
 
-	echo "Cannot find root directory of ANSYS:"
-	echo "  $ANSYS_ROOT_DIR"
-	echo "Please set either environment variable ANSYS_ROOT_DIR"
-	echo "or edit $HOME/.nacsrc."
-	exit 1
-    fi
-
-
-    export LD_LIBRARY_PATH=$LIB:$ANSYS_ROOT_DIR/ansys/syslib/$ANS_ARCH:$ANSYS_ROOT_DIR/ansys/customize/misc/$ANS_ARCH:$LD_LIBRARY_PATH
+    export LD_LIBRARY_PATH=$CFS_ROOT_DIR$LIB/$ARCH_STR:$CFS_ROOT_DIR$LIB/$ARCH_STR/v110/$ANS_ARCH:$ANSYS_ROOT_DIR/ansys/syslib/$ANS_ARCH:$ANSYS_ROOT_DIR/ansys/customize/misc/$ANS_ARCH:$LD_LIBRARY_PATH
 }
 
 SetGIDParameters()
@@ -187,11 +191,11 @@ then
     unset ANSYS_ROOT_DIR_TEMP
 fi
 
-CFS_DIST_TYPE="GID"
+CFS_DIST_TYPE="ANSYS"
 
 if [ "$CFS_DIST_TYPE" = "" ]
 then 
-    echo "Cannot determine distribution type of CFS."
+    echo "Cannot determine distribution type of CFSTOOL."
     echo "CFS_DIST_TYPE should be one of GID / ANSYS."
     exit 1
 fi
@@ -208,7 +212,7 @@ then
 fi
 
 # Set path to CFS executable
-CFS_EXE=$CFS_ROOT_DIR/bin/$ARCH_STR/cfstoolbin
+CFSTOOL_EXE=$CFS_ROOT_DIR/bin/$ARCH_STR/cfstoolbin
 
 # Set parameters according to distribution type.
 case "$CFS_DIST_TYPE" in
@@ -226,7 +230,7 @@ esac
 if [ "$BINARY_TREE" = "0" ]; then
     if [ ! -d "$CFS_ROOT_DIR/$LIB/$ARCH_STR" ]
     then 
-        echo "Cannot find CFS library path for architecture $ARCH_STR."
+        echo "Cannot find CFSTOOL library path for architecture $ARCH_STR."
         exit 2
     fi
 fi
@@ -237,28 +241,28 @@ then
 fi
 
 # Check if we have the necessary executable for the current arch.
-if [ ! -e $CFS_EXE ]
+if [ ! -e $CFSTOOL_EXE ]
 then 
-    echo "Cannot find CFS executable for architecture $ARCH_STR."
+    echo "Cannot find CFSTOOL executable for architecture $ARCH_STR."
     exit 3
 fi
 
 if [ "$CFS_SCRIPT_DEBUG" = "1" ]
 then
     echo "Libraries:"
-    $LDD $CFS_EXE
+    $LDD $CFSTOOL_EXE
 fi
 
 # Check if some system libraries are missing.
-CFS_EXE_LDD=`$LDD $CFS_EXE | grep "not found"`
+CFSTOOL_EXE_LDD=`$LDD $CFSTOOL_EXE | grep "not found"`
 
-if [ "$CFS_EXE_LDD" != "" ]
+if [ "$CFSTOOL_EXE_LDD" != "" ]
 then 
     echo "Some dependencies on system libraries could not be resolved."
     echo "These were:"
-    echo "$CFS_EXE_LDD";
+    echo "$CFSTOOL_EXE_LDD";
     echo
-    echo "CFS++ depends on the following packages on $DISTRO $DISTRO_VER:"
+    echo "CFSTOOL depends on the following packages on $DISTRO $DISTRO_VER:"
     GivePackageHint $DISTRO $DISTRO_VER
     echo "Please install the required packages."
     exit 4
@@ -267,7 +271,7 @@ fi
 # Execute the CFS exutable with arguments from this script
 if [ $# != 0 ]
 then
- $CFS_EXE "$@";
+ $CFSTOOL_EXE "$@";
 else
- $CFS_EXE;
+ $CFSTOOL_EXE;
 fi

@@ -59,16 +59,15 @@ namespace CoupledField {
     if ( !newOrdering_.GetSize() ) {
       if ( newOrderingPassedOn_ == false ) {
         std::string tmp;
-        Enum2String( reorderType_, tmp );
+        tmp = BaseOrdering::reorderingType.ToString( reorderType_ );
         
-	(*warning) << "GraphManagerSimple: I was told to perform a '"
-                   << tmp << "' re-ordering of the "
-                   << "graph, but nobody ever claimed the permutation "
-                   << "vector! Assuming it's my task to de-allocate the "
-                   << "memory!";
-	Warning( __FILE__, __LINE__ );
+        WARN("GraphManagerSimple: I was told to perform a '"
+             << tmp << "' re-ordering of the "
+             << "graph, but nobody ever claimed the permutation "
+             << "vector! Assuming it's my task to de-allocate the "
+             << "memory!");
       }
-      newOrdering_.Resize(0);
+      newOrdering_.Clear();
     }
 
     // Delete the graph objects
@@ -100,7 +99,7 @@ namespace CoupledField {
   void GraphManagerSimple::RegisterPDE( const FeFctIdType identifierPDE,  
                                         const UInt numEqns,
                                         const UInt numLastFreeDof,
-					const ReorderingType reorder ) {
+					const BaseOrdering::ReorderingType reorder ) {
 
 
 #ifdef DEBUG_GRAPHMANAGERSIMPLE1
@@ -149,7 +148,7 @@ namespace CoupledField {
 
     // Allocate memory for the re-ordering and store re-ordering type
     reorderType_ = reorder;
-    if ( reorderType_ != NOREORDERING ) {
+    if ( reorderType_ != BaseOrdering::NOREORDERING ) {
       newOrdering_.Resize( numEqns_ );
     }
 
@@ -370,7 +369,7 @@ namespace CoupledField {
     // By passing the pointer to the array containing the re-ordering
     // information to the caller, this class forgets about the re-ordering
     order = newOrdering_;
-    newOrdering_.Resize(0);
+    newOrdering_.Clear();
     newOrderingPassedOn_ = true;
   }
 
@@ -435,7 +434,7 @@ namespace CoupledField {
     // If no re-ordering was performed by the graph_ object, then it is
     // also an easy case, since we simply can return the NULL pointer
     // to CFS++
-    else if ( reorderType_ == NOREORDERING ) {
+    else if ( reorderType_ == BaseOrdering::NOREORDERING ) {
       if ( newOrdering_.GetSize() ) {
         EXCEPTION("Internal error: Pointer should be NULL, but is not!");
       }
@@ -459,7 +458,7 @@ namespace CoupledField {
     // Log new mapping to debug file
 #ifdef DEBUG_GRAPHMANAGERSIMPLE2
     (*debug) << "\n GraphManagerSimple - new equation numbers:\n";
-    if ( reorderType_ != NOREORDERING ) {
+    if ( reorderType_ != BaseOrdering::NOREORDERING ) {
       for ( UInt i = 0; i < numEqns_; i++ ) {
         (*debug) << i+1 << " -> " << newOrdering_[i] << std::endl;
       }

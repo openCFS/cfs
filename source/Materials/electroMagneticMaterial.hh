@@ -23,6 +23,9 @@ namespace CoupledField {
 
     //! Destructor
     ~ElectroMagneticMaterial();
+    
+    //! Trigger finalization of material
+    void Finalize();
 
     //! set a scalar string material parameter
     void SetScalar(const std::string& param, MaterialType matType);
@@ -64,7 +67,7 @@ namespace CoupledField {
     //Initialize approximations of nonlinear curves
     void InitApproxCurves();
 
-    ApproxData* GetNonlinFncBH() {
+    ApproxData* GetNonlinFncBH( MaterialType matType ) {
       return nlinFncBH_;
     }
 
@@ -114,6 +117,10 @@ namespace CoupledField {
 			  MaterialType matType, 
 			  SubTensorType subTensor) const;
 
+    
+    //! Calculate full tensor from scalar values
+    void ComputeFullMuTensor();
+    
     ApproxData* nlinFncBH_;
 
     UInt dim_;

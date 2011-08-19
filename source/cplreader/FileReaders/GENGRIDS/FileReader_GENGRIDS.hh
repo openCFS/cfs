@@ -7,6 +7,7 @@
 
 #include <def_cplreader.hh>
 #include "cplreader/FileReader.hh"
+#include "Utils/mathParser/mathParser.hh"
 
 namespace CoupledField
 {
@@ -37,7 +38,7 @@ namespace CoupledField
     //! get nodal values from the corresponding fluid datafile the new way
     virtual void ReadNodalValues(std::vector<FlowDataType>& nodalFlowData,
                                  const std::vector<bool>& activeParts,
-                                 const UInt timeStepIdx) {};
+                                 const UInt timeStepIdx);
 
     virtual std::string GetRegionName(const UInt regionIdx);
 
@@ -62,7 +63,10 @@ namespace CoupledField
     std::map<std::string, std::vector<UInt> > regionElems_;
     
     std::map<std::string, std::vector<UInt> > nodeGroups_;
-    
+
+    std::map<std::string, std::vector<std::string> > fieldExprs_;
+
+    MathParser mathParser_;
   };
 
 

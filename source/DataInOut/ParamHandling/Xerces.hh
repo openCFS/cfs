@@ -15,6 +15,8 @@
 #include <xercesc/sax/ErrorHandler.hpp>
 #include <xercesc/sax/SAXParseException.hpp>
 
+#include "DataInOut/ParamHandling/ParamNode.hh"
+
 
 namespace CoupledField {
 
@@ -24,7 +26,7 @@ namespace CoupledField {
    * <p>This might be a good place for any XML stuff besides only filling a ParamNode</p>
    * <p>It might be a good idea, to release this object soon to free the system ressources. Note, that
    * the Xerces object is not needed to keep the ParamNode createted by CreateParamNodeInstance().</p>
-   * @see ParamNode */
+   * @see PtrParamNode*/
   class Xerces 
   {
 
@@ -39,14 +41,14 @@ namespace CoupledField {
       /** creates a param node instance filled with the xml content from the constuctor.
        * Easy to modify for using an arbitrary DOMNode* data source
        * @return the caller has to delete the tree by itself, there is no reference within the Xerces class.  */ 
-      ParamNode* CreateParamNodeInstance();
+      PtrParamNode CreateParamNodeInstance();
 
     private:
       /** This actually parses the file and sets root_ and the other variables */
       void Parse();
 
       /** recursive implementation of Fill */
-      void Fill(xercesc::DOMNode* node, ParamNode* out);
+      void Fill(xercesc::DOMNode* node, PtrParamNode out);
 
       /** The result of the constructor */    
       xercesc::DOMNode* root_;

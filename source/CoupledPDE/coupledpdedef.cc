@@ -34,7 +34,7 @@ namespace CoupledField
   void CoupledPDEDef::CreateCoupling(StdVector<StdPDE*> & OrderedPDEs, 
                                      StdVector<PDECoupling*> & Couplings,
                                      StdVector<StdPDE*> & UnorderedPDEs,
-                                     ParamNode * iterCoupledNode )
+                                     PtrParamNode iterCoupledNode )
   {
 
 
@@ -102,6 +102,7 @@ namespace CoupledField
       MyCoupledPDE->GetCouplingOptionality(OrderedPDEs[i]->GetName(), inputOptionality);
       Couplings[i] = new PDECoupling(ptGrid_);
       Couplings[i]->SetPDE(OrderedPDEs[i]);
+      std::string pdeName = OrderedPDEs[i]->GetName();
       
       // add all coupling terms of PDE
       for (UInt j=0; j<InputType.GetSize(); j++) {
@@ -110,8 +111,7 @@ namespace CoupledField
         if (inputOptionality[j]) {
    
           // look for correct pde
-          std::string pdeName = OrderedPDEs[i]->GetName();
-          ParamNode * pdeNode = NULL;
+          PtrParamNode pdeNode;
           for( UInt iNode = 0; iNode < iterCoupledNode->GetChildren().GetSize(); iNode++ ) {
             // check, id node is "nonLinear"
             if( (iterCoupledNode->GetChildren())[iNode]->GetName() == "nonLinear") 
@@ -131,21 +131,22 @@ namespace CoupledField
             break;
 
           // create vector with paramnode for each coupling region
-          StdVector<ParamNode*> couplNodes = pdeNode->GetList( "coupling");
+          ParamNodeList couplNodes = pdeNode->GetList( "coupling");
 
           couplingTermsConv.Clear();
           couplingTermsConv.Resize(couplNodes.GetSize());
           for (UInt k = 0; k < couplNodes.GetSize(); k++) {
-            couplingTermsConv[k] = SolutionTypeEnum.Parse(couplNodes[k]->Get("quantity"));
+            couplingTermsConv[k] = 
+                SolutionTypeEnum.Parse(couplNodes[k]->Get("quantity")->As<std::string>());
           }
           
-          bool found = false;
           for (UInt k=0; k<couplingTermsConv.GetSize(); k++)
+          {
             if (couplingTermsConv[k] == InputQuantity[j])
-              found = true;
-          
-          if (found) {
-            Couplings[i]->RegisterInput(InputType[j], InputQuantity[j]);
+            {
+              Couplings[i]->RegisterInput(InputType[j], InputQuantity[j]);
+              break;
+            }
           }
         }
         else

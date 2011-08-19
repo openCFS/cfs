@@ -21,7 +21,7 @@ namespace CoupledField {
   class SingleVector;
   class SBM_Matrix;
   class SBM_Vector;
-  class BaseEntryManipulator;
+  struct BaseEntryManipulator;
   class BaseIDBC_Handler;
   class SBM_Matrix;
   class SingleVector;
@@ -61,7 +61,7 @@ namespace CoupledField {
     //! This is the default constructor. It will perform some initial memory
     //! allocation (e.g. for the array of matrices) and set some default
     //! values.
-    SBM_System(ParamNode* xml = NULL);
+    SBM_System(PtrParamNode xml = PtrParamNode());
 
     //! Destructor
 
@@ -89,7 +89,7 @@ namespace CoupledField {
     //! CreatePrecond() and SetupPrecond() methods should be finished, if
     //! a preconditioner is to be used.
     //! \note We currently always generate a GMRES solver
-    void CreateSolver(InfoNode* olasInfo);
+    void CreateSolver();
 
     //! Generate preconditioner
     void CreatePrecond();
@@ -103,7 +103,7 @@ namespace CoupledField {
     //! be called.
     //! \note If an Eigenfrequency analysis is performed, the methods
     //! SetupPrecond() and SetupSolver() must not be called!
-    void CreateEigenSolver(InfoNode* eigenInfo);
+    void CreateEigenSolver();
 
     //! Trigger setup of preconditioner
 
@@ -121,7 +121,7 @@ namespace CoupledField {
     //! is especially important for direct solvers, where typically the
     //! factorisation of the problem matrix will be performed at this stage.
     //! The setup is performed using the system matrix of the linear system.
-    void SetupSolver(InfoNode* analysis_id = NULL);
+    void SetupSolver(PtrParamNode analysis_id = PtrParamNode());
 
         //! Trigger setup of eigenvalue solver
 
@@ -147,7 +147,7 @@ namespace CoupledField {
     //! \note This method must not be called if an eigenfrequency analysis
     //! is performed, since this method is only used to solve a system of the
     //! form Ax=b.
-    void Solve(InfoNode* analysis_id);
+    void Solve(PtrParamNode analysis_id);
 
     //! Calculate eigenfrequencies of a generalized eigenvalue problem
 

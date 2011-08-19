@@ -15,6 +15,11 @@ namespace CoupledField {
   // ===============
   GraphManagerSBMMat::GraphManagerSBMMat() {
 
+
+    graph_               = NULL;
+    graphIDBC_           = NULL;
+    isCoupled_           = NULL;
+
     reorderingDone_      = false;
     registrationDone_    = false;
     numPDEs_             = 0;
@@ -33,35 +38,35 @@ namespace CoupledField {
     // vectors are still NULL. If they were claimed by the PDEs they
     // were re-set to NULL and if they were not claimed, it is our
     // responsibility to delete then now.
-    for ( UInt i = 0; i < numPDEs_; i++ ) {
+    for ( UInt i = 1; i <= numPDEs_; i++ ) {
       if ( !newOrdering_[i].GetSize() ) {
-//        EXCEPTION( "GraphManagerSBMMat::~GraphManagerSBMMat: "
-//                 << "Nobody ever claimed the permutation vector for the "
-//                 << "PDE with identifier '" << i
-//                 << "'! Assuming it's my task to de-allocate the memory!");
+        EXCEPTION("GraphManagerSBMMat::~GraphManagerSBMMat: "
+                 << "Nobody ever claimed the permutation vector for the "
+                 << "PDE with identifier '" << i
+                 << "'! Assuming it's my task to de-allocate the memory!");
       }
       else {
-        newOrdering_[i].Resize(0);
+        newOrdering_[i].Clear();
       }
     }
-    newOrdering_.Resize(0);
+    newOrdering_.Clear();
 
     // Delete the graph objects
-    for ( UInt i = 0; i < graph_.GetSize(); i++ ) {
+    for ( UInt i = 1; i <= numPDEs_ * numPDEs_; i++ ) {
       delete graph_[i];
     }
-//    DELETEARRAY( graph_ );
+    graph_.Clear();
 
     // Delete the IDBC graph objects
-    for ( UInt i = 0; i < graphIDBC_.GetSize(); i++ ) {
+    for ( UInt i = 1; i <= numPDEs_ * numPDEs_; i++ ) {
       delete graphIDBC_[i];
     }
-//    DELETEARRAY( graphIDBC_ );
-//
-//    // Delete remaining arrays
-//    DELETEARRAY( numLastFreeDof_ );
-//    DELETEARRAY( numEqn_ );
-//    DELETEARRAY( isCoupled_ );
+    graphIDBC_.Clear();
+
+    // Delete remaining arrays
+    numLastFreeDof_.Clear();
+    numEqn_.Clear();
+    isCoupled_.Clear();
   }
 
 
@@ -71,13 +76,14 @@ namespace CoupledField {
   void GraphManagerSBMMat::SetupInit( UInt numPDEs ) {
 
 
+
     // Now we now for how many PDEs we are responsible ...
     numPDEs_ = numPDEs;
 
     // ... and can build the empty graph pointer matrix
     graph_.Resize( numPDEs_ * numPDEs );
     graph_.Init( NULL );
-    
+
 
     // ... and the empty IDBC graph array
     graphIDBC_.Resize( numPDEs_ * numPDEs_ );
@@ -102,6 +108,7 @@ namespace CoupledField {
     isCoupled_.Resize( numPDEs_ * numPDEs_ );
     isCoupled_.Init( false );
 
+
   }
 
 
@@ -123,7 +130,7 @@ namespace CoupledField {
   void GraphManagerSBMMat::RegisterPDE( const FeFctIdType identifierPDE,
                                         const UInt numEqns,
                                         const UInt numLastFreeDof,
-                                        const ReorderingType reorder ) {
+                                        const BaseOrdering::ReorderingType reorder ) {
 
 
     // Be cautious
@@ -147,8 +154,8 @@ namespace CoupledField {
     }
 
     // Store info on number of unknowns and euqation numbers of this PDE
-    numLastFreeDof_[numRegisteredPDEs_-1] = numLastFreeDof;
-    numEqn_[numRegisteredPDEs_-1] = numEqns;
+    numLastFreeDof_[numRegisteredPDEs_] = numLastFreeDof;
+    numEqn_[numRegisteredPDEs_] = numEqns;
 
     // Generate graph object for this PDE
     UInt idx = ComputeIndex( identifierPDE, NO_PDE_ID );
@@ -168,7 +175,7 @@ namespace CoupledField {
     // If reordering is going to be performed for the current PDE then
     // we need to allocate memory to store the resulting permutation
     // vector
-    if ( reorder != NOREORDERING ) {
+    if ( reorder != BaseOrdering::NOREORDERING ) {
       newOrdering_[identifierPDE].Resize( numLastFreeDof );
     }
   }
@@ -216,8 +223,8 @@ namespace CoupledField {
   //   AssembleDone
   // ================
   void GraphManagerSBMMat::AssembleDone( const FeFctIdType idPDE1,
-                                              const FeFctIdType idPDE2,
-                                              bool assemblingTranspose ) {
+                                         const FeFctIdType idPDE2,
+                                         bool assemblingTranspose ) {
 
 
     // Compute index into graph pointer matrix
@@ -316,23 +323,20 @@ namespace CoupledField {
 
     // Perform some consistency checks in debug mode only
     if ( identifierPDE1 == NO_PDE_ID ) {
-      (*error) << "GraphManagerSBMMat: First PDE identifier passed to "
-               << "SetElementPos is empty!";
-      Error( __FILE__, __LINE__ );
+      EXCEPTION("GraphManagerSBMMat: First PDE identifier passed to "
+               << "SetElementPos is empty!");
     }
     else if ( identifierPDE1 > numPDEs_ ) {
-      (*error) << "GraphManagerSBMMat: First PDE identifier passed to "
+      EXCEPTION("GraphManagerSBMMat: First PDE identifier passed to "
                << "SetElementPos is " << identifierPDE1
                << " which exceeds the number of " << numPDEs_
-               << " registered PDEs!";
-      Error( __FILE__, __LINE__ );
+               << " registered PDEs!");
     }
     if ( graph_[idx] == NULL ) {
-      (*error) << "GraphManagerSBMMat::SetElementPos: "
+      EXCEPTION("GraphManagerSBMMat::SetElementPos: "
                << "Pointer to graph object = NULL! "
                << "Did you call RegisterPDE() for all " << numPDEs_
-               << " PDEs?";
-      Error( __FILE__, __LINE__ );
+               << " PDEs?");
     }
 
 #endif
@@ -357,10 +361,10 @@ namespace CoupledField {
       aux = std::abs( eqnNrs1[i] );
       if ( aux > 0 ) {
         if ( aux <= numLastFreeDof_[identifierPDE1] ) {
-          vertexList1_.push_back( aux - 1 );
+          vertexList1_.push_back( aux );
         }
         else {
-          vertexList2_.push_back( aux - numLastFreeDof_[identifierPDE1] - 1);
+          vertexList2_.push_back( aux - numLastFreeDof_[identifierPDE1] );
         }
       }
     }
@@ -372,55 +376,55 @@ namespace CoupledField {
       aux = std::abs( eqnNrs2[i] );
       if ( aux > 0 ) {
         if ( aux > numLastFreeDof_[identifierPDE2] ) {
-          edgeList2_.push_back( aux - numLastFreeDof_[identifierPDE2] - 1 );
+          edgeList2_.push_back( aux - numLastFreeDof_[identifierPDE2] );
         }
         else {
-          edgeList1_.push_back( aux - 1);
+          edgeList1_.push_back( aux );
         }
       }
     }
 
 #ifdef DEBUG_GRAPHMANAGERSBMMAT
     // output original connectivity
-    std::cerr << "\n GraphManagerSBMMat::AdaptConnects\n"
+    (*debug) << "\n GraphManagerSBMMat::AdaptConnects\n"
              << " idPDE1 = " << identifierPDE1 << '\n'
              << " idPDE2 = " << identifierPDE2 << '\n'
              << " numLastFreeDof1 = " << numLastFreeDof_[identifierPDE1] << '\n'
              << " numLastFreeDof2 = " << numLastFreeDof_[identifierPDE2] << '\n';
-    std::cerr << " connect1 ";
+    (*debug) << " connect1 ";
     for ( UInt i = 0; i < eqnNrs1.GetSize(); i++ ) {
-      std::cerr << eqnNrs1[i] << " ";
+      (*debug) << eqnNrs1[i] << " ";
     }
-    std::cerr << std::endl;
-    std::cerr << " connect2 ";
+    (*debug) << std::endl;
+    (*debug) << " connect2 ";
     for ( UInt i = 0; i < eqnNrs2.GetSize(); i++ ) {
-      std::cerr << eqnNrs2[i] << " ";
+      (*debug) << eqnNrs2[i] << " ";
     }
-    std::cerr << std::endl;
+    (*debug) << std::endl;
 
     // output new connectivity
-    std::cerr << " vertexList1: ";
+    (*debug) << " vertexList1: ";
     for ( UInt i = 0; i < vertexList1_.size(); i++ ) {
-      std::cerr << vertexList1_[i] << " ";
+      (*debug) << vertexList1_[i] << " ";
     }
-    std::cerr << std::endl;
-    std::cerr << " vertexList2: ";
+    (*debug) << std::endl;
+    (*debug) << " vertexList2: ";
     for ( UInt i = 0; i < vertexList2_.size(); i++ ) {
-      std::cerr << vertexList2_[i] << " ";
+      (*debug) << vertexList2_[i] << " ";
     }
-    std::cerr << std::endl;
-    std::cerr << " edgeList1: ";
+    (*debug) << std::endl;
+    (*debug) << " edgeList1: ";
     for ( UInt i = 0; i < edgeList1_.size(); i++ ) {
-      std::cerr << edgeList1_[i] << " ";
+      (*debug) << edgeList1_[i] << " ";
     }
-    std::cerr << std::endl;
-    std::cerr << " edgeList2: ";
+    (*debug) << std::endl;
+    (*debug) << " edgeList2: ";
     for ( UInt i = 0; i < edgeList2_.size(); i++ ) {
-      std::cerr << edgeList2_[i] << " ";
+      (*debug) << edgeList2_[i] << " ";
     }
-    std::cerr << std::endl;
+    (*debug) << std::endl;
 #endif
-#undef DEBUG_GRAPHMANAGERSBMMAT
+
     idx = ComputeIndex( identifierPDE1, identifierPDE2 );
 
     // Insert information into graph for real dofs
@@ -466,7 +470,7 @@ namespace CoupledField {
     // By passing the pointer to the array containing the re-ordering
     // information to the caller, this class forgets about the re-ordering
     order = newOrdering_[identifier];
-    newOrdering_[identifier].Resize(0);
+    newOrdering_[identifier].Clear();
   }
 
 
@@ -557,7 +561,7 @@ namespace CoupledField {
 
     // Compute maximal column widths (PDE table)
     UInt cw1 = 0, cw2 = 0, cw3 = 0, cw4 = 0, tw = 0, aux;
-    for ( UInt i = 0; i < numPDEs_; i++) {
+    for ( UInt i = 1; i <= numPDEs_; i++) {
       aux = numEqn_[i] > 0 ? (UInt)std::log10( (float)numEqn_[i] ) + 1 : 1;
       cw1 = cw1 < aux ? aux : cw1;
 
@@ -568,8 +572,8 @@ namespace CoupledField {
 
     // Compute maximal column widths (sub-graph table)
     UInt idx = 0;
-    for ( UInt i = 0; i < numPDEs_; i++ ) {
-      for ( UInt j = 0; j < numPDEs_; j++ ) {
+    for ( UInt i = 1; i <= numPDEs_; i++ ) {
+      for ( UInt j = 1; j <= numPDEs_; j++ ) {
         idx = ComputeIndex(i,j);
         if ( graph_[idx] != NULL ) {
           aux = graph_[idx]->GetSize() > 0 ?
@@ -603,7 +607,7 @@ namespace CoupledField {
 
     // Determine number of sub-graphs we are holding
     UInt numGraphs = 0;
-    for ( UInt i = 0; i < numPDEs_ * numPDEs_; i++ ) {
+    for ( UInt i = 1; i <= numPDEs_ * numPDEs_; i++ ) {
       if ( graph_[i] != NULL ) {
         numGraphs++;
       }
@@ -623,7 +627,7 @@ namespace CoupledField {
 
     // now the table rows
     log->setf( std::ios::right, std::ios::adjustfield );
-    for ( UInt i = 0; i < numPDEs_; i++) {
+    for ( UInt i = 1; i <= numPDEs_; i++) {
       (*log) << std::setw(8) << i
              << " | " << std::setw(cw1) << numEqn_[i]
              << " | " << std::setw(cw2) << numLastFreeDof_[i]
@@ -640,8 +644,8 @@ namespace CoupledField {
            << std::setfill( ' ' );
 
     idx = 0;
-    for ( UInt i = 0; i < numPDEs_; i++ ) {
-      for ( UInt j = 0; j < numPDEs_; j++ ) {
+    for ( UInt i = 1; i <= numPDEs_; i++ ) {
+      for ( UInt j = 1; j <= numPDEs_; j++ ) {
         idx = ComputeIndex(i,j);
         if ( graph_[idx] != NULL ) {
           (*log) << std::setw(5) << i << " | "
@@ -678,7 +682,7 @@ namespace CoupledField {
 
     // Generate graph object
     graph_[idx] = new BaseGraph( numLastFreeDof_[pdeID1],
-                                 numLastFreeDof_[pdeID2], NOREORDERING );
+                                 numLastFreeDof_[pdeID2], BaseOrdering::NOREORDERING );
 
     if ( graph_[idx] == NULL ) {
       EXCEPTION("GraphManagerSBMMat: Generation of sub-graph "
@@ -688,7 +692,7 @@ namespace CoupledField {
     }
 
 #ifdef DEBUG_GRAPHMANAGERSBMMAT
-    std::cerr << " GraphManagerSBMMat: Generated sub-graph for PDE pair ("
+    (*debug) << " GraphManagerSBMMat: Generated sub-graph for PDE pair ("
              << pdeID1 << " , " << pdeID2 << ") and a "
              << numLastFreeDof_[pdeID1] << " x " << numLastFreeDof_[pdeID2]
              << " matrix " << std::endl;

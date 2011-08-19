@@ -13,10 +13,16 @@
 #include "MatVec/matrix.hh"
 #include "Utils/coordSystem.hh"
 #include "Utils/preisach.hh"
+#include "Utils/simplePreisachInv.hh"
 #include "Domain/entityList.hh"
-
+#include "Utils/piezoMicroModel.hh"
+#include "Utils/piezoMicroModelBK.hh"
+#include "Domain/domain.hh"
 #include "baseMaterial.hh"
 
+using std::string;
+using std::map;
+using std::set;
 
 
 namespace CoupledField
@@ -30,13 +36,19 @@ namespace CoupledField
 
     materialDatabaseName_ = "";
     matFileName_ = "";
-    nonlinFileName_ = "";
+    //    nonlinFileName_ = "";
 
     coosy_ = NULL;
     hyst_  = NULL;
+
     symmetryType_  = GENERAL;
     isHysteresis_  = false;
     isHystInverse_ = false;
+
+    piezoMicroModel_   = NULL;
+    isPiezoMicroModel_ = false;
+    
+    mp_ = domain->GetMathParser();
   }
 
    BaseMaterial::~BaseMaterial() {
@@ -52,12 +64,27 @@ namespace CoupledField
   }
 
 
+  void BaseMaterial::SetScalar(const std::string& param, MaterialType matType) {
+        
+      //check, if allowed
+      if (  isAllowed_.find( matType ) == isAllowed_.end() ) {
+        std::string dim = "scalar";
+        matTypeNotAllowed( matType, dim );
+      }
+      else {
+        isSet_.insert( matType );
+      }
+
+      stringParams_[matType] = param;
+      
+    }
+  
   void BaseMaterial::SetScalar(int param, MaterialType matType) {
 
 
     //check, if allowed
     if (  isAllowed_.find( matType ) == isAllowed_.end() ) {
-      std::string dim = "scalar";
+      string dim = "scalar";
       matTypeNotAllowed( matType, dim );
     }
     else {
@@ -65,6 +92,23 @@ namespace CoupledField
       integerParams_[matType] = param;
     }
   }
+  void BaseMaterial::GetScalar( std::string& param, MaterialType matType)  const {
+
+
+    stringMap::const_iterator pos;
+    pos = stringParams_.find( matType );
+    std::string value;
+
+    if ( pos == stringParams_.end() ) {
+      std::string dim = "scalar";
+      matTypeNotInDataBase( matType, dim );
+    }
+    else {
+      param=pos->second;
+    }
+  }    
+
+  
                  
   void BaseMaterial::GetScalar(Integer& param, MaterialType matType, Global::ComplexPart dataType ) const 
   {
@@ -74,12 +118,12 @@ namespace CoupledField
     pos = integerParams_.find( matType );
 
     if ( pos == integerParams_.end() ) {
-      std::string dim = "scalar";
+      string dim = "scalar";
       matTypeNotInDataBase( matType, dim );
     }
     else {
       if ( dataType == Global::INTEGER ) {	
-        std::string msg = "GetScalar-Integer";
+        string msg = "GetScalar-Integer";
         dataTypeNotAllowed4SetGet( dataType, msg );
       }
       Integer val = pos->second;
@@ -91,10 +135,12 @@ namespace CoupledField
   bool BaseMaterial::IsSet( MaterialType matType ) const {
 
     bool found = false;
+    stringMap::const_iterator stringIt = stringParams_.find( matType );
     scalarMap::const_iterator scalarIt = scalarParams_.find( matType );
     tensorMap::const_iterator tensorIt = tensorParams_.find( matType );
 
-    if( scalarIt != scalarParams_.end() || 
+    if( stringIt != stringParams_.end() ||
+        scalarIt != scalarParams_.end() || 
         tensorIt != tensorParams_.end() ) {
       found = true;
     }
@@ -102,10 +148,9 @@ namespace CoupledField
     return found;
   }
 
-  void  BaseMaterial::matTypeNotAllowed(MaterialType matType, const std::string& dim ) const {
+  void  BaseMaterial::matTypeNotAllowed(MaterialType matType, const string& dim ) const {
 
-    std::string help;
-    Enum2String(matType, help);
+    string help = MaterialTypeEnum.ToString( matType );
     EXCEPTION( "Material type (" <<  dim <<  ") " << help << 
                " is not available for " << materialDatabaseName_ 
                << " Database" );
@@ -113,9 +158,9 @@ namespace CoupledField
   
 
   void  BaseMaterial::dataTypeNotAllowed4SetGet(Global::ComplexPart dataType, 
-						 const std::string& msg ) const {
+						 const string& msg ) const {
 
-    std::string help;
+    string help;
     help = Global::complexPart.ToString( dataType );
     EXCEPTION( "Datatype " << help << " is not allowed in function " 
                << msg );
@@ -124,119 +169,123 @@ namespace CoupledField
 
   void BaseMaterial::dataTypeNotAllowed(Global::ComplexPart dataType, MaterialType matType ) const {
 
-    std::string help1, help2;
+    string help1, help2;
     help1 = Global::complexPart.ToString( dataType );
-    Enum2String( matType, help2 );
+    help2 = MaterialTypeEnum.ToString( matType );
     EXCEPTION( "Datatype " << help1 << " is not allowed for material type " 
                << help2 << " in material data base " << materialDatabaseName_ );
   }
 
-  void BaseMaterial::matTypeNotInDataBase(MaterialType matType, const std::string& dim ) const {
+  void BaseMaterial::matTypeNotInDataBase(MaterialType matType, const string& dim ) const {
 
-    std::string help;
-    Enum2String(matType, help);
+    string help = MaterialTypeEnum.ToString( matType );
     EXCEPTION( "Material type (" << dim << ") " << help 
                << " was not read form/defined in material file" );
   }
 
 
-  void  BaseMaterial::setMakesNoSense(Global::ComplexPart dataType, const std::string& msg ) const {
-
-    std::string msgAll, help;
-    help = Global::complexPart.ToString( dataType );
+  void  BaseMaterial::setMakesNoSense(Global::ComplexPart dataType, const string& msg ) const {
     EXCEPTION( "Set of " << msg << " makes no sense with datatype "
-               << help );
+               << Global::complexPart.ToString( dataType ) );
   }
 
 
-  void  BaseMaterial::subTensorNotAvailable(MaterialType matType, SubTensorType subTensor ) const {
-
-    std::string msg, help1, help2;
-    Enum2String(matType, help1);
-    Enum2String(subTensor, help2);
-    EXCEPTION( "Subtensor " << help2 <<" not available for material type " 
-               << help1 );
-  }
-
-  std::ostream & operator << ( std::ostream & out, const BaseMaterial& matData)
+  void BaseMaterial::subTensorNotAvailable(MaterialType matType, SubTensorType subTensor )
   {
+    string help1, help2;
+    help1 = MaterialTypeEnum.ToString( matType );
+    Enum2String(subTensor, help2);
+    EXCEPTION("Subtensor " << help2 <<" not available for material type " << help1);
+  }
 
-    std::set<MaterialType>::iterator iter;
-    std::set<MaterialType> isSet = matData.GetIsSetInfo();
-    std::set<MaterialType> isComplexData = matData.GetIsComplexInfo();
 
-    std::map<MaterialType, Matrix<Complex> > tensorData  = matData.GetTensorParams();
-    std::map<MaterialType, Complex >         scalarData  = matData.GetScalarParams();
-    std::map<MaterialType, std::string >     stringData  = matData.GetStringParams();
-    std::map<MaterialType, Integer >         integerData = matData.GetIntegerParams();
+  void BaseMaterial::ToInfo(PtrParamNode in)
+  {
+    set<MaterialType>::iterator iter;
 
-    std::string matTypeName;
-
-    for ( iter = isSet.begin(); iter != isSet.end(); iter++ ) {
+    // in isSet the actually read material parameters are stored
+    for(iter = isSet_.begin(); iter != isSet_.end(); iter++)
+    {
+      MaterialType mt = *iter;
       //check, if parameter is complex
-      bool isComplex = false;
-      if (  isComplexData.find( *iter ) != isComplexData.end() ) {
-	isComplex = true;
-      }
-
-      //get name of material type
-      Enum2String(*iter, matTypeName);
+      bool isComplex = isComplex_.find(mt) != isComplex_.end();
 
       //check for material data
-      std::map<MaterialType, Matrix<Complex> >::const_iterator posTens;
-      posTens = tensorData.find( *iter );
-      std::map<MaterialType, Complex >::const_iterator posScal;
-      posScal = scalarData.find( *iter );
-      std::map<MaterialType, std::string >::const_iterator posStr;
-      posStr = stringData.find( *iter );
-      std::map<MaterialType, Integer >::const_iterator posInt;
-      posInt = integerData.find( *iter );
+      map<MaterialType, Matrix<Complex> >::const_iterator posTens = tensorParams_.find(mt);
+      map<MaterialType, Complex >::const_iterator         posScal = scalarParams_.find(mt);
+      map<MaterialType, string >::const_iterator          posStr  = stringParams_.find(mt);
+      map<MaterialType, Integer >::const_iterator         posInt  = integerParams_.find(mt);
 
+      PtrParamNode in_ = in->Get("property", ParamNode::APPEND);
+      in_->Get("name")->SetValue(MaterialTypeEnum.ToString(mt));
 
+      if(posTens != tensorParams_.end())
+      {
+        // get the tensor by default as complex
+        if(isComplex)
+          in_->Get("tensor")->SetValue(posTens->second);
+        else
+        {
+          in_->Get("tensor")->SetValue(posTens->second.GetPart(Global::REAL));
+        }
+      }
 
-      if ( posTens != tensorData.end() ) {
-	// tensor data
-	Matrix<Complex> matTensor = posTens->second;
-	Matrix<Double>  tensor = matTensor.GetPart( Global::REAL );
+      if(posScal != scalarParams_.end())
+      {
+        Complex val = posScal->second; // see tensor
+        if(isComplex)
+          in_->Get("value")->SetValue(val);
+        else
+          in_->Get("value")->SetValue(val.real());
+      }
 
-	out  << matTypeName << " (real part)" << ":\n\n" 
-	     << tensor << std::endl;
-      
-	if ( isComplex ) {
-	  tensor = matTensor.GetPart( Global::IMAG );
-	  out  << matTypeName << " (imag. part)" << ":\n\n" 
-	       << tensor << std::endl;
-	}
-      }
-      else if ( posScal != scalarData.end() ) {
-	// scalar data
-	Complex val = posScal->second;
-	out << matTypeName << " (real part) = " << val.real() << std::endl;
-	
-	if ( isComplex ) {
-	  out << matTypeName << " (imag. part)" << val.imag() << std::endl;
-	}
-      }
-      else if ( posStr != stringData.end() ) {
-	// string data
-	std::string val = posStr->second;
-	out << matTypeName << ": " << val << std::endl;
-      }
-      else if ( posInt != integerData.end() ) {
-	// integer data
-	Integer val = posInt->second;
-	out << matTypeName << " = " << val << std::endl;
-      }
+      if(posStr != stringParams_.end())
+        in_->Get("value")->SetValue(posStr->second);
+
+      if(posInt != integerParams_.end())
+        in_->Get("value")->SetValue(posInt->second);
     }
-
-    return out;
-  }  
+  }
 
 
-  void BaseMaterial::RotateTensorByRotationAngles( const Vector<Double>& rotAngle, 
+  void BaseMaterial::RotateTensorByRotationAngles( const Vector<Double> &rotAngle,
+                                                   MaterialType matType,
+                                                   bool persistent) {
+    // Calculate rotation matrix( based on Kardan-Angles)
+    // Ref.: C. Woernle, "Skript: Dynamik von Mehrkörpersystemen,
+    // Kapitel 2 "Grundlagen der Kinematik", S. 12, Univ. Rostock
+    // http://iamserver.fms.uni-rostock.de/studium/mehrkoerpersysteme/unterlagen.htm
+
+    Double alpha = rotAngle[0] * PI / 180.0;
+    Double beta  = rotAngle[1] * PI / 180.0;;
+    Double gamma = rotAngle[2] * PI / 180.0;;
+    Matrix<Double> R(3,3);
+    R.Resize(3,3);
+
+    R[0][0] =  cos(beta) * cos(gamma);
+    R[0][1] = -cos(beta) * sin(gamma);
+    R[0][2] =  sin(beta);
+    R[1][0] =  cos(alpha)*sin(gamma) + sin(alpha)*sin(beta)*cos(gamma);
+    R[1][1] =  cos(alpha)*cos(gamma) - sin(alpha)*sin(beta)*sin(gamma);
+    R[1][2] = -sin(alpha)*cos(beta);
+    R[2][0] =  sin(alpha)*sin(gamma) - cos(alpha)*sin(beta)*cos(gamma);
+    R[2][1] =  sin(alpha)*cos(gamma) + cos(alpha)*sin(beta)*sin(gamma);
+    R[2][2] =  cos(alpha)*cos(beta);
+   
+    RotateTensorByRotationMatrix( R, matType, persistent );
+  }
+  
+  void BaseMaterial::RotateAllTensorsByRotationAngles( const Vector<Double>& rotAngle, 
+                                                         bool persistent ) {
+    BaseMaterial::tensorMap::iterator it = tensorParams_.begin();
+    for( ; it != tensorParams_.end(); it++ ) {
+      RotateTensorByRotationAngles( rotAngle, it->first, persistent );
+    }
+  }
+  
+  void BaseMaterial::RotateTensorByRotationMatrix( const Matrix<Double>& rotMatrix, 
                                                    MaterialType matType,
                                                    bool persistent ) {
-
 
 
     using namespace std;
@@ -248,57 +297,24 @@ namespace CoupledField
     posOrig = this->tensorParamsOrig_.find( matType );
 
     if ( pos == tensorParams_.end() ) {
-      std::string dim = "tensor";
+      string dim = "tensor";
       matTypeNotInDataBase( matType, dim );
     }
     else {
       if ( posOrig == tensorParamsOrig_.end() ) {
-	std::string dim = "tensorOriginal";
-	matTypeNotInDataBase( matType, dim );
+        string dim = "tensorOriginal";
+        matTypeNotInDataBase( matType, dim );
       }
 
       Matrix<Complex> matTensor;
       matTensor = pos->second;
       Matrix<Complex> const matTensorOrig = posOrig->second;
 
-      // transfer to radiant
-      Vector<Double> rotRadiant = rotAngle;
-      for ( UInt i=0; i<rotAngle.GetSize(); i++ ) {
-        rotRadiant[i] *= PI / 180.0;
-      }
-      // limit for angles used in special cases
-      // COMPWARNING: unused variable Double eps = 1e-6;
-
-      //compute rotation matrix; check also for special cases 
-      Matrix<Complex> RComplex;
-      Matrix<Double> R;
-      R.Resize(3,3);  
-      RComplex.Resize(3,3);
-
+      //compute complex rotation matrix 
+      Matrix<Complex> RComplex (3,3);
       Matrix<Complex> helpTensor = matTensorOrig;
-
-      // Calculate rotation matrix( based on Kardan-Angles)
-      // Ref.: C. Woernle, "Skript: Dynamik von Mehrkörpersystemen,
-      // Kapitel 2 "Grundlagen der Kinematik", S. 12, Univ. Rostock
-      // http://iamserver.fms.uni-rostock.de/studium/mehrkoerpersysteme/unterlagen.htm
-
-      Double alpha = rotRadiant[0];
-      Double beta  = rotRadiant[1];
-      Double gamma = rotRadiant[2];
-      
-      R[0][0] =  cos(beta) * cos(gamma);
-      R[0][1] = -cos(beta) * sin(gamma);
-      R[0][2] =  sin(beta); 
-      R[1][0] =  cos(alpha)*sin(gamma) + sin(alpha)*sin(beta)*cos(gamma);
-      R[1][1] =  cos(alpha)*cos(gamma) - sin(alpha)*sin(beta)*sin(gamma);
-      R[1][2] = -sin(alpha)*cos(beta);
-      R[2][0] =  sin(alpha)*sin(gamma) - cos(alpha)*sin(beta)*cos(gamma);
-      R[2][1] =  sin(alpha)*cos(gamma) + cos(alpha)*sin(beta)*sin(gamma);
-      R[2][2] =  cos(alpha)*cos(beta);
-
-      RComplex.Resize(3,3);
       RComplex.Init();
-      RComplex.SetPart( Global::REAL, R );
+      RComplex.SetPart( Global::REAL, rotMatrix );
       PerformRotation(RComplex, matTensor, helpTensor); 
       tensorParams_[matType] = matTensor;
       
@@ -307,64 +323,10 @@ namespace CoupledField
       if ( persistent ) {
         tensorParamsOrig_[matType] = matTensor;
       }
-        
-
-//       if ( abs(rotAngle[0]) > eps ) {
-// 	// rotate around x-axis
-// 	R.Init(Complex(0.0,0.0));
-// 	R[0][0] =  Complex( 1.0, 0.0);
-// 	R[1][1] =  Complex( std::cos(rotAngle[0]), 0.0 );
-// 	R[1][2] =  -Complex( std::sin(rotAngle[0]), 0.0 );
-// 	R[2][1] = -R[1][2];
-// 	R[2][2] =  R[1][1];
-
-//         //std::cerr << "matTensor before first rotation \n" << helpTensor << std::endl;
-// 	PerformRotation(R, matTensor, helpTensor);  
-// 	helpTensor = matTensor;
-//         //std::cerr << "matTensor after first rotation \n" << matTensor << std::endl;
-//       }
-
-
-//       if ( abs(rotAngle[1]) > eps ) {
-// 	// rotate around y-axis
-// 	R.Init(Complex(0.0,0.0));
-// 	R[0][0] = Complex( std::cos(rotAngle[1]), 0.0 );
-// 	R[0][2] = Complex( std::sin(rotAngle[1]), 0.0 );
-// 	R[1][1] = Complex( 1.0, 0.0);
-// 	R[2][0] = -R[0][2];
-// 	R[2][2] =  R[0][0];
-
-// 	PerformRotation(R, matTensor, helpTensor);
-// 	helpTensor = matTensor;  
-//       }
-
-//       if ( abs(rotAngle[2]) > eps ) {
-// 	// rotate around z-axis
-// 	R.Init(Complex(0.0,0.0));
-// 	R[0][0] =  Complex( std::cos(rotAngle[2]), 0.0 );
-// 	R[0][1] =  -Complex( std::sin(rotAngle[2]), 0.0 );
-// 	R[1][0] = -R[0][1];
-// 	R[1][1] =  R[0][0];
-// 	R[2][2] =  Complex( 1.0, 0.0);
-//         //std::cerr << "matTensor before 2nd rotation \n" << helpTensor << std::endl;
-// 	PerformRotation(R, matTensor, helpTensor);  
-//         //std::cerr << "matTensor after 2nd rotation \n" << matTensor << std::endl;
-//       }
-    
-//       // save rotated matrix back
-//       tensorParams_[matType] = matTensor;
-    }
+    } // if parameter found
     
   }
 
-  void BaseMaterial::RotateAllTensorsByRotationAngles( const Vector<Double>& rotAngle, 
-                                                       bool persistent ) {
-
-    BaseMaterial::tensorMap::iterator it = tensorParams_.begin();
-    for( ; it != tensorParams_.end(); it++ ) {
-      RotateTensorByRotationAngles( rotAngle, it->first, persistent );
-    }
-  }
     
 
   void BaseMaterial::RotateTensorByPointCoord( const Vector<Double>&  coord,
@@ -372,112 +334,111 @@ namespace CoupledField
 
 
     // Determine rotation angles from attached coordinate system
-    Vector<Double> angles;
-    coosy_->GetGlobRotationAngles( angles, coord );
+    Matrix<Double> rotMatrix;
+    coosy_->GetFullGlobRotationMatrix( rotMatrix, coord );
 
     // Calculate rotation. In this case this is always
     // non-persistent, as the orientation may change for each point in the
     // related coordinate system
-    RotateTensorByRotationAngles( angles, matType, false );
+    RotateTensorByRotationMatrix( rotMatrix, matType, false );
 
   }
 
 
-  void BaseMaterial::PerformRotation( Matrix<Complex>& R,  Matrix<Complex>& matTensor,
-				      const Matrix<Complex>& matTensorOrig) {
+  void BaseMaterial::PerformRotation( Matrix<Complex>& R,  
+                                      Matrix<Complex>& matTensor,
+                                      const Matrix<Complex>& matTensorOrig) {
+
+    // get memory for transposed rotation matrix
+    Matrix<Complex> RT;
+    RT.Resize(3,3);
+    R.Transpose(RT);
+
+    //get dimension of matrix
+    UInt rowSize = matTensorOrig.GetNumRows();
+    UInt colSize = matTensorOrig.GetNumCols();
+
+    Matrix<Complex> helpMat;
+
+    if ( rowSize == 3 && colSize == 3) {
+      // tensor is a 3x3 matrix: sol = R * matrixOrig * RT
+      helpMat   = matTensorOrig * RT;
+      matTensor = R * helpMat;
+    }
+    else {
+      // we also need Q;
+      Matrix<Complex> Q;
+
+      // Composed Rotation Matrix
+      // Ref.: M.Richter, "Entwicklung mechanischer Modelle zur analytischen
+      // Beschreibung der Materialeigenschaften von textilbewehrtem Feinbeton",
+      // Diss., Dresden, 2005, p. 27
+
+      Q.Resize(6,6);  
+
+      Q[0][0] = R[0][0]*R[0][0];
+      Q[0][1] = R[0][1]*R[0][1];
+      Q[0][2] = R[0][2]*R[0][2];
+      Q[0][3] = 2.0*R[0][1]*R[0][2];
+      Q[0][4] = 2.0*R[0][0]*R[0][2];
+      Q[0][5] = 2.0*R[0][0]*R[0][1];
+
+      Q[1][0] = R[1][0]*R[1][0];
+      Q[1][1] = R[1][1]*R[1][1];
+      Q[1][2] = R[1][2]*R[1][2];
+      Q[1][3] = 2.0*R[1][1]*R[1][2];
+      Q[1][4] = 2.0*R[1][0]*R[1][2];
+      Q[1][5] = 2.0*R[1][0]*R[1][1];
+
+      Q[2][0] = R[2][0]*R[2][0];
+      Q[2][1] = R[2][1]*R[2][1];
+      Q[2][2] = R[2][2]*R[2][2];
+      Q[2][3] = 2.0*R[2][1]*R[2][2];
+      Q[2][4] = 2.0*R[2][0]*R[2][2];
+      Q[2][5] = 2.0*R[2][0]*R[2][1];
+
+      Q[3][0] = R[1][0]*R[2][0];
+      Q[3][1] = R[1][1]*R[2][1];
+      Q[3][2] = R[1][2]*R[2][2];
+      Q[3][3] = R[1][1]*R[2][2] + R[1][2]*R[2][1];
+      Q[3][4] = R[1][0]*R[2][2] + R[1][2]*R[2][0];
+      Q[3][5] = R[1][0]*R[2][1] + R[1][1]*R[2][0];
+
+      Q[4][0] = R[0][0]*R[2][0];
+      Q[4][1] = R[0][1]*R[2][1];
+      Q[4][2] = R[0][2]*R[2][2];
+      Q[4][3] = R[0][1]*R[2][2] + R[0][2]*R[2][1];
+      Q[4][4] = R[0][0]*R[2][2] + R[0][2]*R[2][0];
+      Q[4][5] = R[0][0]*R[2][1] + R[0][1]*R[2][0];
+
+      Q[5][0] = R[0][0]*R[1][0];
+      Q[5][1] = R[0][1]*R[1][1];
+      Q[5][2] = R[0][2]*R[1][2];
+      Q[5][3] = R[0][1]*R[1][2] + R[0][2]*R[1][1];
+      Q[5][4] = R[0][0]*R[1][2] + R[0][2]*R[1][0];
+      Q[5][5] = R[0][0]*R[1][1] + R[0][1]*R[1][0];
 
 
+      // 	std::cout << "R:\n" << R << std::endl;
+      // 	std::cout << "Q:\n" << Q << std::endl;
+      // 	std::cout << "Tensor orig:\n" << matTensor << std::endl;
 
-      // get memory for transposed rotation matrix
-      Matrix<Complex> RT;
-      RT.Resize(3,3);
-      R.Transpose(RT);
+      Matrix<Complex> QT;
+      QT.Resize(6,6);
+      Q.Transpose(QT);
 
-      //get dimension of matrix
-      UInt rowSize = matTensorOrig.GetNumRows();
-      UInt colSize = matTensorOrig.GetNumCols();
-
-      Matrix<Complex> helpMat;
-
-      if ( rowSize == 3 && colSize == 3) {
-	// tensor is a 3x3 matrix: sol = R * matrixOrig * RT
-	helpMat   = matTensorOrig * RT;
-	matTensor = R * helpMat;
+      if ( rowSize == 3 && colSize == 6 ) {
+        helpMat   = matTensorOrig * QT;
+        matTensor = R * helpMat;
       }
-      else {
-	// we also need Q;
-	Matrix<Complex> Q;
-
-        // Composed Rotation Matrix
-        // Ref.: M.Richter, "Entwicklung mechanischer Modelle zur analytischen
-        // Beschreibung der Materialeigenschaften von textilbewehrtem Feinbeton",
-        // Diss., Dresden, 2005, p. 27
-        
-	Q.Resize(6,6);  
-
-	Q[0][0] = R[0][0]*R[0][0];
-	Q[0][1] = R[0][1]*R[0][1];
-	Q[0][2] = R[0][2]*R[0][2];
-	Q[0][3] = 2.0*R[0][1]*R[0][2];
-	Q[0][4] = 2.0*R[0][0]*R[0][2];
-	Q[0][5] = 2.0*R[0][0]*R[0][1];
-
-	Q[1][0] = R[1][0]*R[1][0];
-	Q[1][1] = R[1][1]*R[1][1];
-	Q[1][2] = R[1][2]*R[1][2];
-	Q[1][3] = 2.0*R[1][1]*R[1][2];
-	Q[1][4] = 2.0*R[1][0]*R[1][2];
-	Q[1][5] = 2.0*R[1][0]*R[1][1];
-
-	Q[2][0] = R[2][0]*R[2][0];
-	Q[2][1] = R[2][1]*R[2][1];
-	Q[2][2] = R[2][2]*R[2][2];
-	Q[2][3] = 2.0*R[2][1]*R[2][2];
-	Q[2][4] = 2.0*R[2][0]*R[2][2];
-	Q[2][5] = 2.0*R[2][0]*R[2][1];
-
-	Q[3][0] = R[1][0]*R[2][0];
-	Q[3][1] = R[1][1]*R[2][1];
-	Q[3][2] = R[1][2]*R[2][2];
-	Q[3][3] = R[1][1]*R[2][2] + R[1][2]*R[2][1];
-	Q[3][4] = R[1][0]*R[2][2] + R[1][2]*R[2][0];
-	Q[3][5] = R[1][0]*R[2][1] + R[1][1]*R[2][0];
-
-	Q[4][0] = R[0][0]*R[2][0];
-	Q[4][1] = R[0][1]*R[2][1];
-	Q[4][2] = R[0][2]*R[2][2];
-	Q[4][3] = R[0][1]*R[2][2] + R[0][2]*R[2][1];
-	Q[4][4] = R[0][0]*R[2][2] + R[0][2]*R[2][0];
-	Q[4][5] = R[0][0]*R[2][1] + R[0][1]*R[2][0];
-
-	Q[5][0] = R[0][0]*R[1][0];
-	Q[5][1] = R[0][1]*R[1][1];
-	Q[5][2] = R[0][2]*R[1][2];
-	Q[5][3] = R[0][1]*R[1][2] + R[0][2]*R[1][1];
-	Q[5][4] = R[0][0]*R[1][2] + R[0][2]*R[1][0];
-	Q[5][5] = R[0][0]*R[1][1] + R[0][1]*R[1][0];
-
-
-// 	std::cout << "R:\n" << R << std::endl;
-// 	std::cout << "Q:\n" << Q << std::endl;
-// 	std::cout << "Tensor orig:\n" << matTensor << std::endl;
-
-	Matrix<Complex> QT;
-	QT.Resize(6,6);
-	Q.Transpose(QT);
-
-	if ( rowSize == 3 && colSize == 6 ) {
-	  helpMat   = matTensorOrig * QT;
-	  matTensor = R * helpMat;
-	}
-	else if (rowSize == 6 && colSize == 6 ) {
-	  helpMat   = matTensorOrig * QT;
-	  matTensor = Q * helpMat;
-	}
-// 	else {
-// 	  EXCEPTION("Cannot rotate tensor due to dimensions!");
-// 	}
+      else if (rowSize == 6 && colSize == 6 ) {
+        helpMat   = matTensorOrig * QT;
+        matTensor = Q * helpMat;
       }
+      // 	else {
+      // 	  EXCEPTION("Cannot rotate tensor due to dimensions!");
+      // 	}
+    }
   }
 
 
@@ -485,9 +446,9 @@ namespace CoupledField
                                bool isInverse, bool computeHystInverse ) {
 
     isHystInverse_      = isInverse;
-    computeHystInverse_ = computeHystInverse_;
+    computeHystInverse_ = computeHystInverse;
 
-    std::string val = stringParams_[HYST_MODEL];
+    string val = stringParams_[HYST_MODEL];
     if ( val != "preisach" ) {
       EXCEPTION( "Currently we just support Preisach Hysteresis Model" );
     }
@@ -522,91 +483,65 @@ namespace CoupledField
   }
 
 
-  Double BaseMaterial::ConvertVec2ScalarWithSign( Vector<Double> & vecVal ) {
-
-    Double absVal, maxVal;
-    UInt idx;
-
-    absVal = vecVal.NormL2();
-    idx = 0;
-    maxVal = abs( vecVal[0] );
-
-    for ( UInt i=1; i<vecVal.GetSize(); i++ ) {
-      if ( abs(vecVal[i]) > maxVal ) {
-        maxVal = vecVal[i];
-        idx++;
-      }
-    }
-//     if ( vecVal[idx] < 0  )
-//       absVal *= -1.0;
-
-    return absVal;
-  }
+  void BaseMaterial::InitVecHyst( UInt numElemSD, shared_ptr<ElemList> actSDList,
+                                  UInt dim ) {
 
 
-  void BaseMaterial::SetPreviousHystVal( UInt nrElem, Vector<Double>& Xvec) {
-
-    UInt idx = globalElem2Local_[nrElem];
-
-    Double Xval = ConvertVec2ScalarWithSign(Xvec);
-    // first compute the differential material value
-    Xprevious_[idx] = Xval;
-    Yprevious_[idx] = hyst_->computeValue( Xval, idx );
-  }
-
-  Double BaseMaterial::ComputeScalarDiffVal( UInt nrElem, Vector<Double>& Xvec) {
-
-    Double matDiff, eps;
-
-    UInt idx = globalElem2Local_[nrElem];
-
-    Double Xval     = ConvertVec2ScalarWithSign(Xvec);
-    Double Ycurrent = hyst_->computeValue(Xval, idx);
-
-    std::cout << "B=" << Xval << "  H=" << Ycurrent << std::endl;
-    //compute differential material parameter
-    Double dX = Xval - Xprevious_[idx];
-    Double dY = Ycurrent -Yprevious_[idx];
-
-    if ( (abs(dY) < 1e-12) || (abs(dX) < 1e-10) ) {
-      //std::cout << "Use start eps" << std::endl;
-      if ( materialDatabaseName_ == "Electrostatic" )
-        GetScalar(eps,ELEC_PERMITTIVITY,Global::REAL);
-      else if ( materialDatabaseName_ == "Electromagnetics" )
-        GetScalar(eps,MAG_RELUCTIVITY,Global::REAL);
-
-      matDiff = eps;
+    string val = stringParams_[HYST_MODEL];
+    if ( val != "preisach" ) {
+      EXCEPTION( "Currently we just support Preisach Hysteresis Model" );
     }
     else {
-      matDiff = dY / dX;
+      isHysteresis_ = true;
+
+      Double Xsat, Ysat;
+      GetScalar(Xsat, X_SATURATION, Global::REAL);
+      GetScalar(Ysat, Y_SATURATION, Global::REAL);
+      Matrix<Double> weights;
+      GetTensor(weights,  PREISACH_WEIGHTS, Global::REAL);
+      bool isVirgin = true; 
+
+      dimVecHyst_ = dim;
+      hyst_ = new SimplePreisachInv(numElemSD, Xsat, Ysat, weights, isVirgin);
+      if ( dim == 2 ) 
+        hystY_ = new SimplePreisachInv(numElemSD, Xsat, Ysat, weights, isVirgin);
+      else if ( dim == 3) {
+        hystY_ = new SimplePreisachInv(numElemSD, Xsat, Ysat, weights, isVirgin);
+        hystZ_ = new SimplePreisachInv(numElemSD, Xsat, Ysat, weights, isVirgin);
+      }
+
+      // set map: global to local element number
+      EntityIterator it = actSDList->GetIterator();
+      UInt iel = 0;
+      UInt globalElNr;
+      for ( it.Begin(); !it.IsEnd(); it++, iel++) {
+	globalElNr = it.GetElem()->elemNum;
+	globalElem2Local_[globalElNr] = iel;
+      }
     }
 
-    
-    std::cout << "dB=" << dX << "  dH=" << dY <<  "  dnu=" << matDiff << std::endl << std::endl;
+    //allocate memory for previous results, needed for the
+    //effective material parameter formulation
+    vecXprevious_.Resize(dim,numElemSD);
+    vecYprevious_.Resize(dim,numElemSD);
+    vecXprevious_.Init();
+    vecYprevious_.Init();
 
-//     GetScalar(eps,MAG_RELUCTIVITY,Global::REAL);
-//     matDiff = eps;
+    actDiffVal4VecHyst_.Resize(dim,numElemSD);
+    previousDiffVal4VecHyst_.Resize(dim,numElemSD);
+    Double nu;
+    GetScalar(nu,MAG_RELUCTIVITY,Global::REAL);
+    for (UInt i=0; i<dim; i++)
+      for (UInt j=0; j<numElemSD; j++)
+        previousDiffVal4VecHyst_[i][j] = nu;
 
-    return matDiff;
-  }
-
-  Double BaseMaterial::ComputeScalarHystVal( UInt nrElem, Vector<Double>& Xvec) {
-
-    UInt idx = globalElem2Local_[nrElem];
-
-    Double Xval = ConvertVec2ScalarWithSign(Xvec);
-    Double Yval = hyst_->computeValue( Xval, idx );
-    
-    return Yval;
   }
 
 
   Double BaseMaterial::GetScalarHystVal( UInt nrElem ) {
 
     UInt idx = globalElem2Local_[nrElem];
-    Double Yval = hyst_->getValue( idx );
-
-    return Yval;
+    return hyst_->getValue( idx );
   }
 
 
@@ -615,46 +550,126 @@ namespace CoupledField
     return Yprevious_[idx];
   }
 
-  void BaseMaterial::ComputeRayleighDamping(Double dampFreq, Double RatioDeltaF) {
+  void BaseMaterial::ComputeRayleighDamping(string& alpha, string& beta,
+                                            Double dampFreq, Double ratioDeltaF,
+                                            bool adjustDamping, bool isHarmonic ) {
 
+    // First, calculate ALPHA and BETA for the current dampFreq
+    Double measuredFreq;
+    std::string alphaOrig, betaOrig;
+    GetScalar( measuredFreq, RAYLEIGH_FREQUENCY, Global::REAL ); 
+    
     if ( IsSet( RAYLEIGH_ALPHA ) 
          && IsSet( RAYLEIGH_BETA ) 
          && IsSet(RAYLEIGH_FREQUENCY) ) {
-      Double alpha, beta, freq;
+      GetScalar( alphaOrig, RAYLEIGH_ALPHA ); 
+      GetScalar( betaOrig, RAYLEIGH_BETA); 
+      GetScalar( measuredFreq, RAYLEIGH_FREQUENCY, Global::REAL ); 
 
-      GetScalar( alpha, RAYLEIGH_ALPHA, Global::REAL ); 
-      GetScalar( beta, RAYLEIGH_BETA, Global::REAL ); 
-      GetScalar( freq, RAYLEIGH_FREQUENCY, Global::REAL ); 
-
-      if( abs(freq-dampFreq) > 0.001*freq ){
-        alpha*=(dampFreq/freq);
-        beta*=(freq/dampFreq);
-        SetScalar( alpha, RAYLEIGH_ALPHA, Global::REAL ); 
-        SetScalar( beta, RAYLEIGH_BETA, Global::REAL ); 
+      if( abs(measuredFreq-dampFreq) > 0.001*measuredFreq ){
+        alphaOrig = "(" + alphaOrig + "*" + lexical_cast<std::string>(dampFreq/measuredFreq) + ")";
+        betaOrig= "(" + betaOrig + "*" + lexical_cast<std::string>(measuredFreq/dampFreq)+ ")";
+//        SetScalar( alpha, RAYLEIGH_ALPHA, Global::REAL ); 
+//        SetScalar( beta, RAYLEIGH_BETA, Global::REAL ); 
       }
     }
     else if ( IsSet(LOSS_TANGENS_DELTA) && IsSet(RAYLEIGH_FREQUENCY) ){
 
-      Double alpha, beta, tanDelta, deltaFreq, omega1, omega2;
+      std::string tanDelta, deltaFreq, omega1, omega2;
 
-      GetScalar( tanDelta, LOSS_TANGENS_DELTA, Global::REAL ); 
+      GetScalar( tanDelta, LOSS_TANGENS_DELTA ); 
+      // make sure to enclose the expression by brackets!
+      tanDelta = "("+ tanDelta + ")";
+      deltaFreq= lexical_cast<std::string>(ratioDeltaF)+"*"+ lexical_cast<std::string>(measuredFreq);
 
-      deltaFreq=RatioDeltaF*dampFreq;
-
-      omega1= (dampFreq-deltaFreq)*2.0*PI;
-      omega2= (dampFreq+deltaFreq)*2.0*PI;
+      omega1= "(("+lexical_cast<std::string>(measuredFreq)+"-"+deltaFreq+")*2.0*pi)";
+      omega2= "(("+lexical_cast<std::string>(measuredFreq)+"+"+deltaFreq+")*2.0*pi)";
 
       //Computation of alpha and beta according to Habil.Kaltenbacher p. 50 ff
       // alpha + beta*omega_i*omega_i = omega_i*tanDelta_i
-      beta=2.0*tanDelta*((omega2-omega1)/(omega2*omega2-omega1*omega1));
-      alpha=(2.0*omega1*tanDelta)-(beta*omega1*omega1);
-
-      SetScalar( alpha, RAYLEIGH_ALPHA, Global::REAL ); 
-      SetScalar( beta, RAYLEIGH_BETA, Global::REAL ); 
+      //betaOrig=tanDelta*((omega2-omega1)/(omega2*omega2-omega1*omega1));
+      betaOrig=tanDelta+"*((" + omega2 +"-" + omega1 +")/("+omega2+"*"+omega2+"-"+omega1+"*"+omega1+"))";
+      //alphaOrig=(omega1*tanDelta)-(betaOrig*omega1*omega1);
+      alphaOrig="("+omega1+"*"+tanDelta+")-("+betaOrig+"*"+omega1+"*"+omega1+")";
     }
     else
       EXCEPTION("Error in specification of Rayleigh damping!!!" );
 
-    //Info->PrintF()
+    // If adjustDamping is true and we are in the frequency domain,
+    // we can adjust alpha and beta to keep the loss factor (tangens Delta)
+    // constant frequency.
+    if( adjustDamping && isHarmonic ) {
+      
+      // calculate modified alpha' = alpha / measuredFreq * f
+      alpha = "(" + alphaOrig + ")/" + lexical_cast<std::string>(measuredFreq)  + "* f";
+      // calculate modified beta' = beta * measuredFreq / f
+      beta =  "(" + betaOrig + ")*" + lexical_cast<std::string>(measuredFreq) + " / f";
+    } else {
+      alpha = alphaOrig;
+      beta = betaOrig;
+    }
   }
+
+
+  void BaseMaterial::InitPiezoMicro( UInt numElemSD, shared_ptr<ElemList> actSDList, 
+                                     BaseMaterial* mechMat, BaseMaterial* elecMat,
+                                     SubTensorType tensorType, Double dt) {
+
+      isPiezoMicroModel_ = true;
+
+      piezoMicroModel_ = new PiezoMicroModelBK( numElemSD, this, 
+                                                mechMat, elecMat, 
+                                                tensorType, dt );
+
+      // set map: global to local element number
+      EntityIterator it = actSDList->GetIterator();
+      UInt iel = 0;
+      UInt globalElNr;
+      for ( it.Begin(); !it.IsEnd(); it++, iel++) {
+	globalElNr = it.GetElem()->elemNum;
+	globalElem2Local_[globalElNr] = iel;
+      }
+  }
+  
+
+  void BaseMaterial::GetEffectiveTensors( Matrix<Double>& matMechC,
+                                          Matrix<Double>& matMechS,
+                                          Matrix<Double>& matElec,
+                                          Matrix<Double>& matPiezo,
+                                          Vector<Double>& stress, 
+                                          Vector<Double>& elecField,
+                                          UInt elemIdx, 
+                                          bool recompute,
+                                          bool previous ) {
+
+    UInt idx = globalElem2Local_[elemIdx];
+
+    piezoMicroModel_->GetEffectiveTensors( matMechC, matMechS, 
+                                           matElec,  matPiezo, 
+                                           stress, elecField, 
+                                           idx, recompute, previous );
+  }
+
+  void BaseMaterial::GetEffectiveIrreversibleValues( Vector<Double>& Pirr,
+                                                     Vector<Double>& Sirr,
+                                                     UInt elemIdx,
+                                                     bool recompute,
+                                                     bool previous ) {
+
+    UInt idx = globalElem2Local_[elemIdx];
+
+    piezoMicroModel_->GetEffectiveIrreversibleValues( Pirr, Sirr, idx, recompute, previous );
+  }
+
+   void BaseMaterial::ComputeEffectiveCouplingTensor(Matrix<Double>& dMatEff, 
+                                                     Vector<Double>& elecFieldAct,
+                                                     Vector<Double>& elecFieldPrev,
+                                                     UInt elemIdx) {
+
+    UInt idx = globalElem2Local_[elemIdx];
+
+    piezoMicroModel_->ComputeEffectiveCouplingTensor(dMatEff, elecFieldAct,
+                                                     elecFieldPrev, idx);
+   }
+
 }

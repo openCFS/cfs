@@ -99,7 +99,7 @@ namespace CoupledField {
     //! attributes to default values and setting the pointers to the internal
     //! communication objects. This is the constructor which will be called by
     //! the GenerateSolverObject() factory.
-    Lapack_LL( OLAS_Params *myParams, OLAS_Report *myReport = NULL );
+    Lapack_LL( PtrParamNode solverNode, PtrParamNode olasInfo = PtrParamNode() );
 
     //! Default Destructor
 
@@ -114,7 +114,7 @@ namespace CoupledField {
     //! problem matrix. Depending on the type of matrix entry the factorisation
     //! is delegated to the appropriate private method. Note that the
     //! factorisation over-writes the internal copy of the system matrix.
-    void Setup( BaseMatrix &sysmat, InfoNode* analysis_id );
+    void Setup( BaseMatrix &sysmat, PtrParamNode analysis_id );
 
     //! Direct solution of the linear system
 
@@ -125,7 +125,7 @@ namespace CoupledField {
     //! Note that the method will neglect the precond input parameter as well
     //! as the sysMat input parameter.
     void Solve( const BaseMatrix &sysmat, const BasePrecond &precond,
-		const BaseVector &rhs, BaseVector &sol, InfoNode* analysis_id );
+		const BaseVector &rhs, BaseVector &sol, PtrParamNode analysis_id );
 
     //! Query type of this solver.
 

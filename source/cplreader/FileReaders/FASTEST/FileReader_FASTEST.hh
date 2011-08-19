@@ -44,7 +44,6 @@ namespace CoupledField
 
   protected:
 
-    UInt startIndex_;
     std::string partFmtStr_;
     std::string timeFmtStr_;
     std::vector<Integer> dataColumns_;

@@ -5,20 +5,9 @@
 #ifndef FILE_SCFE_GRID_CFS_2001
 #define FILE_SCFE_GRID_CFS_2001
 
-#include <Domain/grid.hh>
+#include "Domain/grid.hh"
 #include "Domain/edgeFace.hh"
-
-#ifdef ADAPTGRID
-#include "Vertex.h"
-#include "Edge.h"
-#include "Element.h"
-#include "Tetrahedron.h"
-#include "Octahedron.h"
-#include "MultilevelGrid.h"
-#include "MeshReader.h"
-#include "TetrahedronMeasure.h"
-#include "MeshWriter.h"
-#endif
+#include "DataInOut/ParamHandling/ParamNode.hh"
 
 namespace CoupledField
 {
@@ -26,7 +15,7 @@ namespace CoupledField
   // Forward class declarations
   struct Elem;
   struct SurfElem;
-  class InfoNode;
+  class ParamNode;
 
   //! Implementation of a simple, one level grid.
 
@@ -46,7 +35,7 @@ namespace CoupledField
     //! Constructor 
 
     //! Standard Constructor 
-    GridCFS(UInt dim); 
+    GridCFS(UInt dim);
   
     //! Destructor
     virtual ~GridCFS();
@@ -68,6 +57,11 @@ namespace CoupledField
 
     virtual void FinishInit();
     
+    //! Create result for grid information (local directions etc., Jacobian
+    //! determinant)
+    void CreateGridInformation( ResultHandler* ptRes,
+                                std::map<std::string, CoordSystem*>& coordSysMap );
+
     //@}
 
 
@@ -79,9 +73,15 @@ namespace CoupledField
     //! Return if grid uses quadratic elements
     bool IsQuadratic() {return isQuadratic_; }
 
+    /** @see Grid::CalcVolumeSpannedByNamedNodes() */
+    Double CalcVolumeSpannedByNamedNodes(Point* dim_out = NULL) const;
+
     //! Return number of elements of a given type
     //! \param type Type of finite element (LINE, TRIA, ...)
     UInt GetNumElemOfType( Elem::FEType type );
+    
+    //! Return number of element of a given dimension
+    UInt GetNumElemOfDim( UInt dim );
 
     //! Return dimension of mesh
 
@@ -91,24 +91,18 @@ namespace CoupledField
 
     //! Return maximum number of nodes
   
-    //! Returns the maximum node number in the finite element grid.
-    UInt GetNumNodes();
-
     virtual void AddNodes(const UInt numNodes);
       
-
     virtual void SetNodeCoordinate(const UInt inode, const Point & rfPoint);
       
     virtual void SetNodeCoordinate(const UInt numNode, const Vector<Double> & rfPoint);
       
 
-    //! Returns the number of nodes contained in given region
-    UInt GetNumNodes( const StdVector<RegionIdType> & regions );
+    /** @see Grid::GetNumNodes() */
+    UInt GetNumNodes(RegionIdType reg_id = ALL_REGIONS) const;
 
     //! Returns the number of nodes in the given nodelist
-    UInt GetNumNodes( const std::string & nodesName );
-
-
+    UInt GetNumNodes( const std::string & nodesName ) const;
 
     virtual void AddElems(UInt nElems);
       
@@ -122,23 +116,23 @@ namespace CoupledField
                              RegionIdType & region,
                              UInt* connect) const;
 
-    //! Returns the total number of elements in the grid
-    UInt GetNumElems();
+    /** @see Grid::GetNumElems() */
+    UInt GetNumElems(RegionIdType = ALL_REGIONS) const;
     
     //! Return maximum number of elements 
-  
-    //! Returns the total number of volume elements in the  grid
-    UInt GetNumVolElems();
 
-    //! Returns the total number of volume elements in the  grid
-    UInt GetNumSurfElems();
+    /** @see Grid::GetNumVolElems() */
+    UInt GetNumVolElems(RegionIdType = ALL_REGIONS) const;
+
+    /** @see Grid::GetNumVolElems() */
+    UInt GetNumSurfElems(RegionIdType = ALL_REGIONS) const;
   
     //! Returns number of element contained in one region
 
     //! Returns the number of element, which belong to a list of given
     //! regions.
     //! \param regions (in) contains the regionIds of 
-    UInt GetNumElems( const StdVector<RegionIdType> & regions );
+    UInt GetNumElems(const StdVector<RegionIdType> & regions) const;
   
     //! Get list with names of all named nodes
     
@@ -185,7 +179,7 @@ namespace CoupledField
     //! \param updated (in) flag indicating if updated geometry should be used
     void GetNodeCoordinate( Point & rfPoint,
                             const UInt inode,
-                            bool updated);
+                            bool updated) const;
   
 
     //! Get coordinates of node with global number inode as vector
@@ -194,7 +188,7 @@ namespace CoupledField
     //! \param updated (in) flag indicating if updated geometry should be used
     void GetNodeCoordinate( Vector<Double> & rfPoint,
                             const UInt inode,
-                            bool updated );
+                            bool updated ) const;
     //@}
 
     // =======================================================================
@@ -215,6 +209,8 @@ namespace CoupledField
       
     virtual void SetElemRegion(UInt ielem, RegionIdType region);
 
+    /** @see Grid::FindElementNeighorhood() */
+    void FindElementNeighorhood();
 
     virtual void GetElemRegion(UInt ielem, RegionIdType & region);
 
@@ -248,8 +244,13 @@ namespace CoupledField
     void GetElemsByName( StdVector<Elem*> & elems,
                          const std::string & elemsName );
 
+    //! Returns the element numbers of a region or element list.
+    //! \param elemNums (out) vector with element numbers of given region
+    //! \param elemName (in) name identifying a region or element list
+    void GetElemNumsByName( StdVector<UInt> & elemNums,
+                               const std::string & elemName );
+    
     //! Get node numbers of given element
-  
     //! Returns the node numbers of a  given element.
     //! \param connect (out) contains global node numbers
     //! \param iElem (in) element number
@@ -332,7 +333,7 @@ namespace CoupledField
     // =======================================================================
     //@{ \name Edge Access Functions
     
-    //! Get number ofe edges
+    //! Get number of edges
     UInt GetNumEdges();
     
     //! Return edge with given number
@@ -420,11 +421,6 @@ namespace CoupledField
 
     //! Returns the names of all regions
 
-    //! This method return the names of all (surface and volume) regions.
-    //! \param regionNames (out) vector containing all region Names
-    virtual void GetRegionNames( StdVector<std::string> & regionNames );
-
-    
     //! Set offset for a single node, called from ShapeDesign
     void SetNodeOffset( const UInt node, const Point& offset );
 
@@ -438,26 +434,6 @@ namespace CoupledField
     //! Return status of presence of nodal coordinate offsets (up. Lagrange)
     bool HasNodalOffset();
     //@}
-
- #ifdef ADAPTGRID
-    // =======================================================================
-    // MISCELLANEOUS
-    // =======================================================================
-    //@{ \name Adaptivity Section
-
-    void putNodesFromGrid_RG(grd::MultilevelGrid * grid, const UInt level);
-  
-    void putElemsFromGrid_RG(grd::MultilevelGrid * grid, const UInt level);
-  
-    void Refine(grd::MultilevelGrid& grid);
-  
-    void ReRefine(grd::MultilevelGrid& grid);
-
-    void RefineUniform(grd::MultilevelGrid& grid);
-
-    //@}
-
- #endif
 
     //! NC_SIMON: add node to the grid
     //! USAGE OF THIS FUNCTION CAN BE DANGEROUS NOT
@@ -497,27 +473,21 @@ namespace CoupledField
                                   const StdVector< Elem* > & volelems,
                                   StdVector< UInt > & elemids);
 
-    //! NC_SIMON: Add a new Surface region to the grid
-    //! USAGE OF THIS FUNCTION CAN BE DANGEROUS NOT
-    //! ALL NECCESARY FEATURES MAY BE IMPLEMENTED 
-    //! \param name (in) name of the new region
-    //! \param regionid (out) id of the new region
-    virtual void AddSurfaceRegion( const std::string name,
-                                   RegionIdType& regionid);
-
-    //! NC_SIMON: Add a new volume region to the grid
-    //! USAGE OF THIS FUNCTION CAN BE DANGEROUS NOT
-    //! ALL NECCESARY FEATURES MAY BE IMPLEMENTED 
-    //! \param name (in) name of the new region
-    //! \param regionid (out) id of the new region
-    virtual void AddVolumeRegion( const std::string name,
-                                  RegionIdType& regionid);
-
     //! NC_SIMON: Remove all elements from the given region
     //! \param regionid (in) id of the region
     virtual void ClearRegion( const RegionIdType regionid );
 
   private:
+
+    /** checks the domain in the xml file for a pattern region.
+     * @param replace resized to elements+1 by element number. True if the pattern region has an entry there. Untouched if no pattern region
+     * @return in case of an pattern region it is added to regionData and the id is returned, otherwise NO_REGION_ID */
+    RegionIdType CheckPatternRegion(StdVector<bool>& replace);
+
+    /** Helper for FinishInit(). Determines if there are only regular elements.
+     * Can be expensive!
+     * @return true means that the region is regular */
+    bool CheckForRegularRegion(RegionIdType reg);
 
     //! helper struct for passing information about nodes
     struct PointSelection{
@@ -544,7 +514,7 @@ namespace CoupledField
                                 std::map<UInt, SurfElem*> & mappedElems );
 
     //! Prints information about the grid into the .info.xml file
-    void ToInfo(InfoNode* in);
+    void ToInfo(PtrParamNode in);
     
     //! Create new nodes / elements, which are defined either by point coordinate
     //! or parametric description
@@ -561,15 +531,20 @@ namespace CoupledField
     //! Correct connectivity in case of negative Jacobian determinants
     void CorrectElementConnectivities();
 
+    /** 
+     * makes named nodes from line
+     * gmesh can not creat named nodes from line as ansys so cfs++ needs to do
+     * it. It is also capable of exluding nodes which are found in a different
+     * line. This may be needed if you want only the interior nodes of a line.
+     */
+    void makeNameNodesFromLines();
+
     //@}
 
     // =======================================================================
     // General attributes
     // =======================================================================
     //@{ \name General Attributes
-
-    //! Flag for initialization status
-    bool isInitialized_;
 
     //! Dimension of grid
     UInt dim_;
@@ -650,34 +625,6 @@ namespace CoupledField
     StdVector<std::string> namedElemNames_;
 
     //@}
-
-  
- 
-    
- #ifdef ADAPTGRID
-    
-    //@{ \name To We Need This ?
-    //! procedure for forming list with neighbors
-    void FormNeighborsLists();
-
-    //! list with neighbors for element
-    StdVector<StdVector<Elem*> >** elNeighbors_;
-
-    //! list with neighbors for nodes
-    StdVector<StdVector<Elem*> > vtNeighbors_;
-
-    //! class for mapping Grid_RG and GridCFS
-    struct ElementMap {
-      int sd;
-      StdVector<UInt> map;
-    };
-  
-    StdVector<ElementMap*> elemMap_; //!< mapping between GridRG and GridCFS
-
-    //! only for test
-    void SetRefinementFlag();
-    //@}
- #endif
 
   };
 

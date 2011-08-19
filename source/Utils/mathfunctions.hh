@@ -8,8 +8,56 @@
 #include "General/environment.hh"
 #include "MatVec/matrix.hh"
 
-namespace CoupledField
-{
+namespace CoupledField {
+
+//! =======================================================================
+//! List of mathematical functions, primarily for the use in mathParser
+//! to generate signals
+//! =======================================================================
+  //! Generate a sinus burst signal
+  Double SinBurst( Double freq, Double numPeriods,
+                Double nPerFadeIn, Double nPerFadeOut,
+                Double t);
+
+  //! Fade-in function
+  Double FadeIn( Double fadeInTime, Double mode, Double t);
+
+  //! Generate a spike signal
+  Double Spike( Double duration, Double t );
+
+  //! Generate a band-filtered spike signal
+  Double SpikeBPF( Double cutOff, Double slewRate, Double t );
+
+  //! Generate a chirp signal
+  //! -> not yet realized, because we can only pass 4 arguments
+  //!    to muParser functions
+
+  Double CosPulseComb( Double freq, Double pulseWidth, Double t );
+
+  //! Generate a square pulse signal
+  typedef enum { UNI_POLAR = 0, BI_POLAR = 1 } PolarType;
+
+  Double SquarePulse(  Double freq, Double numPeriods, Double biPolarType,
+                       Double pulseWidth, Double riseTime, Double t );
+
+  //! Modulo function
+  Double Mod( Double x, Double m );
+
+  //! Generate a Gauss curve (pdf-curve)
+  Double Gauss( Double mue, Double sigma, Double normVal, Double t );
+
+  //! Calculate cylindric bessel function of first kind
+  Double BesselCylJ( Double x, Double v );
+
+  //! Calculate cylindric bessel function of second kind
+  Double BesselCylY( Double x, Double v );
+
+  //! Calculate spherical bessel function of first kind
+  Double BesselSphJ( Double x, Double v );
+
+  //! Calculate spherical bessel function of second kind
+  Double BesselSphY( Double x, Double v );
+
   //! Returns the value ln[gamma(xx)] for xx > 0
   /*!
     \param real value greater zero

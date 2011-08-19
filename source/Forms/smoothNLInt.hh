@@ -49,12 +49,12 @@ protected:
   Double exponent_;
   Double elastFactorMax_, elastFactorMin_, eMean_;
 
-  Double ComputeElastFactor( Double & e11, Double & e22, Double & e12 );
+  Double ComputeElastFactor( const Double& e11, const Double& e22, const Double& e12 );
 
-  //! returns B - matrix for BDB
-  void calcBMat(Matrix<Double> & bMat, 
+  /** @see BaseForm::CalcBMat() */
+  void CalcBMat(Matrix<Double> & bMat,
                 UInt ip, 
-                Matrix<Double> & ptCoord);
+                const Matrix<Double> & ptCoord);
 
   //! returns D - matrix for BDB
   void calcDMat( Matrix<Double> &dMat );

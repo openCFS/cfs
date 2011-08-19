@@ -51,7 +51,7 @@ void piezoParamIdent::Init() {
   directCoupling_ = true;
   writeResults_=false;
 
-  Info->StartProgress("Opening in and output files ... ");
+  std::cout << "++ Opening in and output files" << std::endl;
 
   std::string filenameMeasuredData="measuredData.dat";
   allMeasuredData_ = new std::ifstream(filenameMeasuredData.c_str(),
@@ -107,61 +107,60 @@ void piezoParamIdent::Init() {
     std::string idx = "index";
     std::string one = "1";
 
-    myParam_ = param->Get(name, idx, one )
+    myParam_ = param->GetByVal(name, idx, one )
     ->Get("analysis")->Get("paramIdent");
     // check, if "imagMaterialData" is used
-    imagMaterialParam_ = false;
-    ParamNode * matNode =param->Get("sequenceStep")->Get("couplingList")->Get("direct")
-    ->Get("piezoDirect")->Get("materialDataType", false);
+    imagMaterialParam_ = true;
+    WARN("at the moment we assume always imaginary material parameters ...");
+    PtrParamNode matNode =param->Get("sequenceStep")->Get("couplingList")->Get("direct")
+    ->Get("piezoDirect")->Get("materialDataType", ParamNode::PASS);
 
-    if (matNode ) {
-      imagMaterialParam_ =matNode->Get("type")->AsString() == "imagMaterialParameter";
+    if ( matNode ) {
+      imagMaterialParam_ =matNode->Get("type")->As<std::string>() == "imagMaterialParameter";
     }
 
   // query parameters from "paramIdent" node (myParam_)
-  myParam_->Get("computeCurveAfterIterationStep",
+  myParam_->GetValue("computeCurveAfterIterationStep",
       computeImpedanceCurveAfterStep_);
-  myParam_->Get("startFreq", startfreq_ );
+  myParam_->GetValue("startFreq", startfreq_ );
   startFreq_ = startfreq_;
-  myParam_->Get("stopFreq", stopfreq_ );
+  myParam_->GetValue("stopFreq", stopfreq_ );
   stopFreq_ = stopfreq_;
 
   std::string sampling = "linear";
-  myParam_->Get("sampling",sampling, false);
+  myParam_->GetValue("sampling",sampling, ParamNode::PASS);
   std::cout << "\n Sampling: " << sampling << std::endl;
   String2Enum( sampling, samplingType_ );
 
-  myParam_->Get("numFreq", nrfreq_ );
+  myParam_->GetValue("numFreq", nrfreq_ );
   // myParam_->Get("numMechMeasurements", numMechMeasurements_ );
   numMechMeasurements_=3;
 
   // should we calculate the impedance curve?
-  myParam_->Get("calcImpedanceCurve", CalcImpedanceCurve_, false);
+  myParam_->GetValue("calcImpedanceCurve", CalcImpedanceCurve_, ParamNode::PASS);
   // should we calculate the mechanical displacement curve at selected node?
-  myParam_->Get("calcMechDisplacementCurve", CalcMechDisplCurve_, false);
+  myParam_->GetValue("calcMechDisplacementCurve", CalcMechDisplCurve_, ParamNode::PASS);
   // we should always set a maximal number of iterations
-  myParam_->Get("maxNrIterations", maxNumberNewtonLoops_ );
+  myParam_->GetValue("maxNrIterations", maxNumberNewtonLoops_, ParamNode::PASS );
   // is either the amount of data noise which we assume in our measurements
   // or is the amount of noise we add when we compute synthetically our input data
-  myParam_->Get("artDataNoise", delta_);
+  myParam_->GetValue("artDataNoise", delta_);
 
   // discrepancy principle. We stop the iterations when the residual falls
   // below the value of stopRes_. It is intended to equal the quantity tau*delta
   // (see theory of inverse and ill-posed problems)
   if (myParam_->Has("stopRes"))
-    myParam_->Get("stopRes", stopRes_ );
+    myParam_->GetValue("stopRes", stopRes_ );
 
   // voltage which drives the ceramic
-  myParam_->Get("excitationVoltage", voltage_);
+  myParam_->GetValue("excitationVoltage", voltage_);
 
-  ParamNode * myParamMethod;
+  PtrParamNode myParamMethod;
   myParamMethod = myParam_->Get("fittingMethod");
-  whichMethod_ = myParamMethod->Get("type")->AsString();
+  whichMethod_ = myParamMethod->Get("type")->As<std::string>();
 
   myParamMethod = myParam_->Get("fittingQuantity");
-  whichNormCriteria_= myParamMethod->Get("type")->AsString();
-
-  Info->FinishProgress();
+  whichNormCriteria_= myParamMethod->Get("type")->As<std::string>();
 
   std::cout<< "++ Starting "<< whichMethod_ << " method ..."<< std::endl;
 
@@ -188,7 +187,7 @@ piezoParamIdent::~piezoParamIdent() {
     inMechMess_.close();
 }
 
-void piezoParamIdent::SolveProblem(bool write_results, InfoNode* given_analysis_id) {
+void piezoParamIdent::SolveProblem(bool write_results, PtrParamNode given_analysis_id, AdjointParameters* adjointParams) {
 
   ResultHandler * resHandler = domain->GetResultHandler();
   InitializePDEs();
@@ -199,16 +198,15 @@ void piezoParamIdent::SolveProblem(bool write_results, InfoNode* given_analysis_
   // ================================
 
   // obtain pointer to piezo coupling object
-  StdVector<BasePairCoupling*> cpl;
-  cpl = ptCoupledPDE->GetCouplingsObject();
-  for( UInt i = 0; i < cpl.GetSize(); i++ ) {
-    if( cpl[i]->GetName() == "piezoDirect" ) {
-      piezoCpl_ = dynamic_cast<PiezoCoupling*>(cpl[i]);
+  StdVector<BasePairCoupling*>* cpl = ptCoupledPDE->GetCouplingsObject();
+  for( UInt i = 0; i < cpl->GetSize(); i++ ) {
+    if( (*cpl)[i]->GetName() == "piezoDirect" ) {
+      piezoCpl_ = dynamic_cast<PiezoCoupling*>((*cpl)[i]);
       break;
     }
   }
   // Check for calculation of charges
-  ParamNode * chargeNode = NULL;
+  PtrParamNode chargeNode;
   if( myParam_->Has( "calcCharge" ) ) {
     chargeNode = myParam_->Get( "calcCharge" );
 
@@ -216,8 +214,8 @@ void piezoParamIdent::SolveProblem(bool write_results, InfoNode* given_analysis_
     if( piezoCpl_ == NULL )EXCEPTION( "No piezo coupling object found");
 
     // read surface elements for charge computation and neighbor region
-    std::string surfName = chargeNode->Get("name")->AsString();
-    std::string neighborName = chargeNode->Get("neighborRegion")->AsString();
+    std::string surfName = chargeNode->Get("name")->As<std::string>();
+    std::string neighborName = chargeNode->Get("neighborRegion")->As<std::string>();
 
     // obtain entitylist from grid
     shared_ptr<EntityList> chargeSurf = domain->GetGrid()
@@ -225,7 +223,7 @@ void piezoParamIdent::SolveProblem(bool write_results, InfoNode* given_analysis_
                      EntityList::REGION );
 
     chargeNeighborRegion_ =
-      domain->GetGrid()->RegionNameToId( neighborName );
+      domain->GetGrid()->GetRegion().Parse(neighborName);
 
     // obtain result info from piezo-coupling object
 
@@ -365,11 +363,11 @@ void piezoParamIdent::SolveProblem(bool write_results, InfoNode* given_analysis_
     }
 
 
-  StdVector<BasePairCoupling*> ptCoupling = ptCoupledPDE->GetCouplingsObject();
+  StdVector<BasePairCoupling*>* ptCoupling = ptCoupledPDE->GetCouplingsObject();
 
   ptMaterialMech_ = ptPDE1_[0].getPDEMaterialData(); // Pointer to mech. MaterialData
   ptMaterialElec_ = ptPDE2_[0].getPDEMaterialData(); // Pointer to elec. MaterialData
-  ptMaterialPiezo_ = ptCoupling[0]->getPDEMaterialData(); // Pointer to piezo MaterialData
+  ptMaterialPiezo_ = (*ptCoupling)[0]->getPDEMaterialData(); // Pointer to piezo MaterialData
 
   if (imagMaterialParam_ ) {
     updateComplexMaterialData(parameterC_);
@@ -706,7 +704,8 @@ void piezoParamIdent::SolveProblem(bool write_results, InfoNode* given_analysis_
   if ((CalcImpedanceCurve_ == true || CalcMechDisplCurve_ == true)
       && maxNumberNewtonLoops_!=0) {
     writeResults_=true;
-    Vector<Double> freqsTemp = freqs_;
+    Vector<Double> freqsTemp(freqs_);
+    freqs_.Clear(); // this is necessary to prevent a memory fault in debug mode! ??!
     freqs_.Resize(nrfreq_);
     Double freqincr=(stopfreq_-startfreq_)/nrfreq_;
     for (UInt i=0; i<nrfreq_; i++) {

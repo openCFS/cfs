@@ -17,7 +17,7 @@ namespace CoupledField
   public:
     //! constructor
     //! \param algebraicsystem pointer to algebraic system 
-    Newmark( BaseSystem * algebraicsystem,const std::string& sysName );
+    Newmark( BaseSystem * algebraicsystem, PtrParamNode systemNode );
 
     //! destructor
     virtual ~Newmark();
@@ -25,6 +25,9 @@ namespace CoupledField
     //! initilization
     //! \param rhsSize total number of entries in the rhs vector
     void Init( Double dt, UInt rhsSize );
+    
+    //! Reinitialize (set all vectors to zero)
+    void ReInit();
 
     void setSubSteps( UInt subSteps );
     void resetDeltaT( );
@@ -43,6 +46,17 @@ namespace CoupledField
     
     //! substracts -Ku from RHS
     virtual void SubstractStiffnessFromRHS(Vector<Double>& actSol);
+    
+    //! perform calculations at end of timestep (set the new timestep)
+    void AdvanceTimestep(Vector<Double>& solnew);
+
+    Double GetNewmarkBeta(){
+      return beta_;
+    }
+    
+    Double GetNewmarkGamma(){
+      return gamma_;
+    }
 
 
   private:
@@ -54,11 +68,6 @@ namespace CoupledField
     //@{
     //! integration parameters
     Double alpha_, gamma_, beta_, nu_;  
-    //@}
-
-    //@{
-    //! coefficients from Newmark method
-    Double a0_,a1_,a2_,a3_,a4_,a5_,a6_,a7_;
     //@}
 
     //! predictor for nodal solution
@@ -78,7 +87,7 @@ namespace CoupledField
     //! constructor
     //! constructor
     //! \param algebraicsystem pointer to algebraic system 
-    NewmarkEffMass( BaseSystem * algebraicsystem, const std::string& sysName,
+    NewmarkEffMass( BaseSystem * algebraicsystem, PtrParamNode systemNode,
                     bool intExplicit = false );
 
     //! destructor
@@ -116,11 +125,6 @@ namespace CoupledField
     //@{
     //! integration parameters
     Double alpha_, gamma_, beta_, nu_;
-    //@}
-    
-    //@{
-    //! coefficients from Newmark method
-    Double a0_,a1_,a2_,a3_,a4_,a5_,a6_,a7_; 
     //@}
 
     //! nodal solution

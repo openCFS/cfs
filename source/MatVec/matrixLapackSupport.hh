@@ -6,6 +6,7 @@
 #define FILE_MATRIX_LAPACK_SUPPORT
 
 #include <def_use_lapack.hh>
+#include "OLAS/external/lapack/olasf77mapping.hh"
 
 namespace CoupledField 
 {
@@ -19,33 +20,6 @@ namespace CoupledField
 #define LP_DLAMCH dlamch_ // tests data types ...
 #define LP_ZHEEV zheev_ //ZHEEV computes all eigenvalues and, optionally, eigenvectors of a
   //  complex Hermitian matrix A.
-
-  typedef double F77real8;
-  
-  class F77complex16 {
-  public:
-    F77real8 real;
-    F77real8 imag;
-    F77complex16() {
-      real = 0;
-      imag = 0;
-    }
-    F77complex16 &operator= ( F77complex16 v ) {
-      this->real = v.real;
-      this->imag = v.imag;
-      return *this;
-    }
-    F77complex16 &operator= ( double v ) {
-      this->real = v;
-      this->imag = 0;
-      return *this;
-    }
-    F77complex16 &operator+= ( F77complex16 v ) {
-      this->real += v.real;
-      this->imag += v.imag;
-      return *this;
-    }
-  };
 
   //! Prototypes for LAPACK routines
   

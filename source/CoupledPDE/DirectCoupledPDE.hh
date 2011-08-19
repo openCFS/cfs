@@ -28,7 +28,7 @@ namespace CoupledField {
     /*!
       \param aptgrid pointer to grid
     */
-    DirectCoupledPDE( Grid *aptgrid, ParamNode* paramNode ); 
+    DirectCoupledPDE( Grid *aptgrid, PtrParamNode paramNode ); 
     
     //! Destructor
     virtual ~DirectCoupledPDE();
@@ -48,8 +48,8 @@ namespace CoupledField {
     void SetCouplings( const StdVector<BasePairCoupling*> &couplings);
 
     //! Get couplings object
-    StdVector<BasePairCoupling*>& GetCouplingsObject() 
-    { return couplings_;};
+    StdVector<BasePairCoupling*>* GetCouplingsObject() 
+    { return &couplings_;};
 
     //! Initialization routine
     void Init(UInt sequenceStep );

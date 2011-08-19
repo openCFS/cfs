@@ -7,6 +7,7 @@
 
 #include "PDE/basePDE.hh"
 #include "General/environment.hh"
+#include "DataInOut/ParamHandling/ParamNode.hh"
 
 namespace CoupledField
 {
@@ -16,6 +17,7 @@ namespace CoupledField
   class WriteResults;
   class ResultHandler;
   class InfoNode;
+  class AdjointParameters;
 
   //! Base class for driving classes where we implemented time-stepping
   class BaseDriver
@@ -42,7 +44,7 @@ namespace CoupledField
      * @param write_results if false nothing is written to the output files
      * @param analysis_id if given is *set* as current and used.
      * @see StoreResults(double) */
-    virtual void SolveProblem(bool write_results = true, InfoNode* analysis_id = NULL) = 0;
+    virtual void SolveProblem(bool write_results = true, PtrParamNode analysis_id = PtrParamNode(), AdjointParameters* adjointParams = NULL) = 0;
     
     /** Only of interest for optimization, where one might not want to generate
      * output (gid, hdf5, gmv, ...) for every forward solution. 
@@ -50,7 +52,8 @@ namespace CoupledField
      * will have been called with write_results = true.<p>
      * <p>Note that you have to Wrap within a Multisequencestep and finalize the result handler explicitly, 
      * as this can be done only once for HDF5 -> this is done in Optimization::SolveProblem()</p> */
-    virtual void StoreResults(double step_val = -1.0) { assert(false); }
+    virtual void StoreResults(UInt stepNum = 1,
+                              double step_val = -1.0) { assert(false); }
 
     //! Return current analysistype
 
@@ -64,8 +67,12 @@ namespace CoupledField
     //! Return current time / frequency step of simulation
     virtual UInt GetActStep ( const std::string& pdename ) = 0;
     
-    
-    InfoNode* GetAnalysisId() { return analysis_id_; }
+    /** Every analysis step has a unique id stored within an InfoNode.
+     * It allows the identification of
+     * Analysis information (timestep, frequency, optimization iteration)
+     * with OLAS information (time, memory, iterations, residual).
+     * @see CreateAnalysisId() and CreateAnalysisIdChild) */
+    PtrParamNode GetAnalysisId() { return analysis_id_; }
     
     /** Helper function to create a child analysis step
      * Adds a child-element to base with "analysis_id" = the analysis_id of the base
@@ -74,12 +81,12 @@ namespace CoupledField
      * @param child_name e.g. "nonLin", "adjoint" ...
      * @param child_id will be added after child_name. is optional (-1)
      * @return the child element */
-    static InfoNode* CreateAnalysisIdChild(InfoNode* base, const std::string& child_name, int child_id = -1,
+    static PtrParamNode CreateAnalysisIdChild(PtrParamNode base, const std::string& child_name, int child_id = -1,
         const std::string& child_2_name = "", int child_2_id = -1);
 
     /** Adds a new analysis id for this driver.
      * @see CreateAnalysisIdChild() */
-    InfoNode* CreateAnalysisId(const std::string& child_name, int child_id = -1,
+    PtrParamNode CreateAnalysisId(const std::string& child_name, int child_id = -1,
                                const std::string& child_2_name = "", int child_2_id = -1);
 
     
@@ -93,17 +100,20 @@ namespace CoupledField
   
     /** Identification of the driver */
     virtual DriverClass GetDriverClass() = 0;
+    
+    /** Is called by optimization to know number of needed result vectors */
+    virtual UInt GetNumSteps() {return 1; }
  
   protected:
     
     //! type of analysis
     BasePDE::AnalysisType analysis_;
 
-    /** @see GetActAnalysisId() */
-    InfoNode* analysis_id_;
+    /** @see GetAnalysisId() */
+    PtrParamNode analysis_id_;
     
     /** our report node */ 
-    InfoNode* driverNode; 
+    PtrParamNode driverNode; 
 
     
     //! --------------------- stuff for computation with adaptivity
@@ -127,7 +137,7 @@ namespace CoupledField
     
   private:
     /** helper function. Items are separated via ':' to be replaces when using as filename! */
-    std::string ConcatAnalysisId(InfoNode* analysis_id, const std::string& child_name, int child_id, 
+    std::string ConcatAnalysisId(PtrParamNode analysis_id, const std::string& child_name, int child_id, 
                                  const std::string& child_2_name, int child_2_id);
   };
 

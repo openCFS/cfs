@@ -7,7 +7,6 @@
 
 #include "MatVec/opdefs.hh"
 #include "MatVec/scrs_matrix.hh"
-#include "OLAS/algsys/olasparams.hh"
 
 #include "ldlsolver.hh"
 
@@ -28,12 +27,10 @@ namespace CoupledField {
   //   Constructor
   // ***************
   template<typename T>
-  LDLSolver<T>::LDLSolver( OLAS_Params *myParams, OLAS_Report *myReport ) {
+  LDLSolver<T>::LDLSolver( PtrParamNode solverNode, PtrParamNode olasInfo ) {
 
-
-    // Set pointers to communication objects
-    myParams_ = myParams;
-    myReport_ = myReport;
+    xml_ = solverNode;
+    solverInfo_ = olasInfo->Get("directLDL");
 
     // No factorisation was performed yet
     amFactorised_ = false;
@@ -51,6 +48,12 @@ namespace CoupledField {
     // No problem size known yet
     sysMatDim_  = 0;
     auxVecSize_ = 0;
+
+    PtrParamNode sNode;
+    sNode = xml_->Get("directLDL", ParamNode::INSERT);
+      
+    itRefSteps_ = 2;
+    sNode->GetValue("itRefSteps", itRefSteps_, ParamNode::INSERT);
 
     // NOTE: The class currently gives wrong results, if used with
     //       block entries instead of scalar entries. Thus, we do
@@ -73,14 +76,14 @@ namespace CoupledField {
 
 
     // Free dynamically allocated memory
-    DELETEARRAY( denseVec_ );
-    DELETEARRAY( firstU_ );
-    delete[] scanList_;
-    delete[] activeList_;
-    DELETEARRAY( dataD_ );
-    DELETEARRAY( dataU_ );
-    DELETEARRAY( cidxU_ );
-    DELETEARRAY( rptrU_ );
+    delete [] ( denseVec_ );  denseVec_  = NULL;
+    delete [] ( firstU_ );  firstU_  = NULL;
+    delete [] ( scanList_ ); scanList_ = NULL;
+    delete [] ( activeList_ ); activeList_ = NULL;
+    delete [] ( dataD_ );  dataD_  = NULL;
+    delete [] ( dataU_ );  dataU_  = NULL;
+    delete [] ( cidxU_ );  cidxU_  = NULL;
+    delete [] ( rptrU_ );  rptrU_  = NULL;
 
   }
 
@@ -89,7 +92,7 @@ namespace CoupledField {
   //   Setup
   // *********
   template<typename T>
-  void LDLSolver<T>::Setup( BaseMatrix &sysMat, InfoNode* analysis_step ) {
+  void LDLSolver<T>::Setup( BaseMatrix &sysMat, PtrParamNode analysis_step ) {
 
 
     // Check that we have a StdMatrix
@@ -98,10 +101,7 @@ namespace CoupledField {
                << "SCRS_Matrix/sparseSym" );
     }
 
-    TRY_CAST {
-
-      // Down-cast to StdMatrix
-      REFCAST( sysMat, StdMatrix, stdMat );
+    StdMatrix& stdMat = dynamic_cast<StdMatrix&>(sysMat);
 
       // Now test the storage layout
       BaseMatrix::StorageType sType = stdMat.GetStorageType();
@@ -114,14 +114,17 @@ namespace CoupledField {
       }
 
       // Down-cast to SCRS_Matrix
-      REFCAST( sysMat, SCRS_Matrix<T>, scrsMat );
+      SCRS_Matrix<T>& scrsMat = dynamic_cast<SCRS_Matrix<T>&>(sysMat);
 
       // Get new problem size and perform consistency check
       if ( amFactorised_ == false ) {
         sysMatDim_ = scrsMat.GetNumCols();
       }
       else {
-        if ( myParams_->GetBoolValue( "newMatrixPattern" ) == false &&
+        // TODO: newMatrixPattern was previously only set to false in olasparams.cc
+        // and never changed. Is it really necessary? Investigate further!
+        bool newMatrixPattern = false;
+        if ( !newMatrixPattern &&
              sysMatDim_ != scrsMat.GetNumCols() ) {
           EXCEPTION( "LDLSolver::Setup: newMatrixPattern = false, but "
                    << "matrix dimension changed from " << sysMatDim_ << " to "
@@ -139,7 +142,7 @@ namespace CoupledField {
       }
 
       // Logging
-      bool logging = myParams_->GetBoolValue( "LDLSOLVER_logging" );
+      bool logging = false;
       if ( logging ) {
         (*cla) << " -------------------------------------------------------"
                << "-----------------------\n"
@@ -149,16 +152,20 @@ namespace CoupledField {
                << std::endl;
       }
 
+      // TODO: newMatrixPattern was previously only set to false in olasparams.cc
+      // and never changed. Is it really necessary? Investigate further!
+      bool newMatrixPattern = false;
+
       // If this is the first time we are asked for a factorisation, or
       // if there is a new matrix pattern, we start an analyse phase
       if ( amFactorised_ == false ||
-           myParams_->GetBoolValue( "newMatrixPattern" ) == true ) {
+           newMatrixPattern ) {
 
         // Clear "old" vectors
-        DELETEARRAY( dataD_ );
-        DELETEARRAY( dataU_ );
-        DELETEARRAY( cidxU_ );
-        DELETEARRAY( rptrU_ );
+        delete [] ( dataD_ );  dataD_  = NULL;
+        delete [] ( dataU_ );  dataU_  = NULL;
+        delete [] ( cidxU_ );  cidxU_  = NULL;
+        delete [] ( rptrU_ );  rptrU_  = NULL;
 
         // Pretty-printing
         if ( logging ) {
@@ -170,15 +177,15 @@ namespace CoupledField {
 
         // If problem size has increased free old dense auxilliary vectors
         if ( auxVecSize_ < scrsMat.GetNumCols() ) {
-          DELETEARRAY( denseVec_ );
-          DELETEARRAY( firstU_ );
-	  delete[] scanList_;
-	  delete[] activeList_;
+          delete [] ( denseVec_ );  denseVec_  = NULL;
+          delete [] ( firstU_ );  firstU_  = NULL;
+	        delete [] ( scanList_ ); scanList_ = NULL;
+	        delete [] ( activeList_ ); activeList_ = NULL;
           denseVec_   = NULL;
           firstU_     = NULL;
-	  scanList_   = NULL;
-	  activeList_ = NULL;
-	  auxVecSize_ = 0;
+	        scanList_   = NULL;
+	        activeList_ = NULL;
+	        auxVecSize_ = 0;
         }
 
         // Allocate memory for dense auxilliary vectors and lists
@@ -187,8 +194,8 @@ namespace CoupledField {
           auxVecSize_ = scrsMat.GetNumCols();
           NEWARRAY( denseVec_, T, auxVecSize_ );
           NEWARRAY( firstU_, UInt, auxVecSize_ );
-	  scanList_   = new Integer[auxVecSize_ + 1];
-	  activeList_ = new Integer[auxVecSize_ + 1];
+	        scanList_   = new Integer[auxVecSize_ + 1];
+	        activeList_ = new Integer[auxVecSize_ + 1];
 
           for ( UInt j = 0; j < auxVecSize_; j++ ) 
             denseVec_[j]   = 0.0;
@@ -197,8 +204,8 @@ namespace CoupledField {
             scanList_[j]   = -1;
             activeList_[j] = -1;
           }
-	  scanList_[0]   = auxVecSize_+1;
-	  activeList_[0] = auxVecSize_+1;
+	        scanList_[0]   = auxVecSize_+1;
+	        activeList_[0] = auxVecSize_+1;
         }
       }
 
@@ -220,11 +227,21 @@ namespace CoupledField {
 
       // if the user desires it, we will export the matrix factor
       // to a file in Matrix Market format
-      if( myParams_->GetBoolValue( "LDLSOLVER_saveFacToFile" ) == true &&
-          myParams_->GetBoolValue( "LDLSOLVER_savePatternOnly" ) == false ) {
-        std::string filename;
-        filename = myParams_->GetStringValue( "LDLSOLVER_facFileName" );
-        ExportFactorisation( filename.c_str(), false );
+      bool saveFacToFile = false;
+      std::string facFileName = "fac.out";
+      bool savePatternOnly = false;
+      
+      PtrParamNode sNode;
+      sNode = xml_->Get("directLDL", ParamNode::INSERT);
+      if(sNode->Has("saveFacFile")) {
+        saveFacToFile = true;
+        sNode->GetValue("saveFacFile", facFileName, ParamNode::INSERT);
+      }
+
+      sNode->GetValue("savePatternOnly", savePatternOnly, ParamNode::INSERT);
+      
+      if( saveFacToFile &&  (!savePatternOnly) ) {
+        ExportFactorisation( facFileName.c_str(), false );
       }
 
       // finish log report
@@ -232,9 +249,6 @@ namespace CoupledField {
         (*cla) << " -------------------------------------------------------"
                << "-----------------------\n" << std::endl;
       }
-
-    } CATCH_CAST;
-
   }
 
 
@@ -245,10 +259,10 @@ namespace CoupledField {
   void LDLSolver<T>::Solve( const BaseMatrix  &sysMat,
                             const BasePrecond &precond,
                             const BaseVector  &rhs,
-                            BaseVector &sol, InfoNode* analysis_step ) {
+                            BaseVector &sol, PtrParamNode analysis_step ) {
 
 
-    bool logging = myParams_->GetBoolValue( "LDLSOLVER_logging" );
+    bool logging = false;
 
     // Test that a factorisation is available, if not issue an error
     if ( amFactorised_ == false ) {
@@ -257,10 +271,9 @@ namespace CoupledField {
     }
 
     // Solve the problem
-    TRY_CAST {
-      CONSTREFCAST( rhs, Vector<T>, myRHS );
-      REFCAST( sol, Vector<T>, mySol );
-
+    const Vector<T>& myRHS = dynamic_cast<const Vector<T>&>(rhs);
+    Vector<T>& mySol = dynamic_cast<Vector<T>&>(sol);
+    
       // Logging
       if ( logging ) {
         (*cla) << " -------------------------------------------------------"
@@ -269,30 +282,29 @@ namespace CoupledField {
                << sysMat.GetNumCols() << " unknowns" << std::endl;
       }
 
-      SolveLDLSystem( &(cidxU_[0]), &(rptrU_[0]), &(dataU_[0]),
+      this->SolveLDLSystem( &(cidxU_[0]), &(rptrU_[0]), &(dataU_[0]),
                       &(dataD_[0]), mySol, myRHS, sysMatDim_ );
 
 
       // If desired perform iterative refinement
-      UInt numSteps = (UInt)myParams_->GetIntValue( "LDLSOLVER_itRefSteps" );
-      UInt logLevel =
-        (UInt)myParams_->GetIntValue( "LDLSOLVER_itRefVerbosity" );
+      UInt logLevel = 2;
+      UInt numSteps = itRefSteps_;
+      
+      PtrParamNode sNode;
+      sNode = xml_->Get("directLDL", ParamNode::INSERT);
+      sNode->GetValue("itRefVerbosity", logLevel, ParamNode::INSERT);
 
-      if ( numSteps > 0 ) {
-
+      if ( itRefSteps_ > 0 ) {
         // Avoid recursion, we do not want to do refinement on the
         // solution in the refinement step
-        myParams_->SetValue( "LDLSOLVER_itRefSteps", (Integer)0 );
-        myParams_->SetValue( "LDLSOLVER_logging", false );
+        itRefSteps_ = 0;
 
         // Refine
         iterativeRefiner_.Refine( (*this), sysMat, sol, rhs, numSteps,
                                   logLevel );
 
-        // Re-set parameter object
-        myParams_->SetValue( "LDLSOLVER_itRefSteps", (Integer)numSteps );
-        myParams_->SetValue( "LDLSOLVER_logging", logging );
-
+        // Reset number of iterations after refinement
+        itRefSteps_ = numSteps;
       }
 
       // Logging
@@ -302,17 +314,15 @@ namespace CoupledField {
                << std::endl;
       }
 
-    } CATCH_CAST;
-
-
     // Generate Report
 
     // Now this currently is of dubious value, since the two things queried
     // from olasReport are actually meaningless in the context of a direct
     // solver. Nevertheless we supply some values for consistency
-    if ( myReport_ != NULL ) {
-      myReport_->SetValue( "numIter", -1 );
-      myReport_->SetValue( "finalNorm", -1.0 );
+    if( logging ) {
+      PtrParamNode out = solverInfo_->Get(ParamNode::PROCESS)->Get("solver", ParamNode::APPEND);
+      out->Get("numIter")->SetValue(-1);
+      out->Get("finalNorm")->SetValue(-1.0);
     }
 
   }
@@ -345,7 +355,7 @@ namespace CoupledField {
     // =================
     //  Report start-up
     // =================
-    bool logging = myParams_->GetBoolValue( "LDLSOLVER_logging" );
+    bool logging = false;
     if ( logging ) {
       (*cla) << " Phase: ANALYSE" << std::endl;
     }
@@ -699,11 +709,21 @@ namespace CoupledField {
 
     // if the user desires it, we will export the pattern of the matrix
     // factor to a file in Matrix Market format
-    if( myParams_->GetBoolValue( "LDLSOLVER_saveFacToFile" ) == true &&
-        myParams_->GetBoolValue( "LDLSOLVER_savePatternOnly" ) == true ) {
-      std::string filename;
-      filename = myParams_->GetStringValue( "LDLSOLVER_facFileName" );
-      ExportFactorisation( filename.c_str(), false );
+    bool saveFacToFile = false;
+    std::string facFileName = "fac.out";
+    bool savePatternOnly = false;
+      
+    PtrParamNode sNode;
+    sNode = xml_->Get("directLDL", ParamNode::INSERT);
+    if(sNode->Has("saveFacFile")) {
+      saveFacToFile = true;
+      sNode->GetValue("saveFacFile", facFileName, ParamNode::INSERT);
+    }
+
+    sNode->GetValue("savePatternOnly", savePatternOnly, ParamNode::INSERT);
+    
+    if( saveFacToFile && savePatternOnly ) {
+      ExportFactorisation( facFileName.c_str(), false );
     }
 
 
@@ -713,8 +733,10 @@ namespace CoupledField {
 
     // Free auxilliary index array
     delete[] auxVec;
-    for ( k = 0; k < nRows-1; k++ )  DELETEARRAY( cIndex[k] );
-    DELETEARRAY( cIndex );
+    for ( k = 0; k < nRows-1; k++ ) {
+		  delete [] ( cIndex[k] );  cIndex[k] = NULL;
+		}
+    delete [] ( cIndex );  cIndex = NULL;
 
 
 #ifdef DEBUG_LDLSOLVER_ANALYSE
@@ -745,7 +767,7 @@ namespace CoupledField {
     // =================
     //  Report start-up
     // =================
-    bool logging = myParams_->GetBoolValue( "LDLSOLVER_logging" );
+    bool logging = false;
     if ( logging ) {
       (*cla) << " Phase: FACTORISE" << std::endl;
     }
@@ -844,9 +866,8 @@ namespace CoupledField {
       }
     }
     else {
-      (*warning) << "First row has no off-diagonal entry! I'm frightened! "
-                 << "Can this be correct my master?";
-      Warning( __FILE__, __LINE__ );
+      WARN("First row has no off-diagonal entry! I'm frightened! "
+           << "Can this be correct my master?");
     }
 
     // ============
@@ -1293,9 +1314,8 @@ namespace CoupledField {
     //   Close output file
     // =====================
     if ( fclose( fp ) == EOF ) {
-      (*warning) << "LDLSolver::ExportFactorisation: Could not close file "
-                 << fname << " after writing!";
-      Warning( __FILE__, __LINE__ );
+      WARN("LDLSolver::ExportFactorisation: Could not close file "
+           << fname << " after writing!");
     }
   }
 

@@ -554,7 +554,7 @@ void LagrangeElemShapeMap::Global2Local( Vector<Double>& locPoint,
 }
 
    
-void LagrangeElemShapeMap::GetGlodMidPoint( Vector<Double>& midPoint ) {
+void LagrangeElemShapeMap::GetGlobMidPoint( Vector<Double>& midPoint ) {
   Local2Global(midPoint, shape_.midPointCoord);
 }
 

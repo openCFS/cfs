@@ -32,36 +32,29 @@ namespace CoupledField {
   void IterativeRefinement::
   GenerateAuxilliaryVectors( const BaseMatrix &sysMat ) {
 
+    const StdMatrix& stdMat = dynamic_cast<const StdMatrix&>(sysMat);
 
-    TRY_CAST {
+    bool genNewVectors = false;
 
-      CONSTREFCAST( sysMat, StdMatrix, stdMat );
+    // Check whether we must generate new auxilliary vectors
+    if ( residual_ == NULL || residual_->GetSize() != stdMat.GetNumCols() ) {
+      genNewVectors = true;
+    }
 
-      bool genNewVectors = false;
+    // Generate new vectors (discarding old ones) if necessary
+    if ( genNewVectors == true ) {
 
-      // Check whether we must generate new auxilliary vectors
-      if ( residual_ == NULL ) {
-        genNewVectors = true;
-      }
-      else if ( residual_->GetSize() != stdMat.GetNumCols() ) {
-        genNewVectors = true;
-      }
+      delete residual_;
+      delete update_;
 
-      // Generate new vectors (discarding old ones) if necessary
-      if ( genNewVectors == true ) {
+      residual_ = GenerateSingleVectorObject( stdMat.GetStorageType(),
+          stdMat.GetEntryType(),
+          stdMat.GetNumCols() );
 
-        delete residual_;
-        delete update_;
-
-        residual_ = GenerateSingleVectorObject( stdMat.GetStorageType(),
-                                                stdMat.GetEntryType(),
-                                                stdMat.GetNumCols() );
-
-        update_   = GenerateSingleVectorObject( stdMat.GetStorageType(),
-                                                stdMat.GetEntryType(),
-                                                stdMat.GetNumCols() );
-      }
-    } CATCH_CAST;
+      update_   = GenerateSingleVectorObject( stdMat.GetStorageType(),
+          stdMat.GetEntryType(),
+          stdMat.GetNumCols() );
+    }
   }
 
 
@@ -72,9 +65,12 @@ namespace CoupledField {
                                     const BaseMatrix &sysMat,
                                     BaseVector &sol,
                                     const BaseVector &rhs,
-                                    UInt numSteps, UInt logLevel ) {
+                                    UInt& numSteps, UInt logLevel ) {
 
 
+//    if(!numSteps)
+//      return;
+      
     // Be verbose
     if ( logLevel > 0 ) {
       (*cla) << " Performing " << numSteps << " steps of iterative"
@@ -115,7 +111,6 @@ namespace CoupledField {
              << residual_->NormL2()
              << std::endl;
     }
-
   }
 
 }

@@ -20,7 +20,7 @@ namespace CoupledField {
 
     //! The default constructor generates an empty vector, so size is set to
     //! 0 and subVec_ to NULL
-    SBM_Vector() : size_(0) {};
+    SBM_Vector() :  size_(0) {}
 
     //! Constructor for empty vectors of specified length
 
@@ -55,7 +55,7 @@ namespace CoupledField {
     //! Obtain size of vector, i.e. number of sub-vector entries
     UInt GetSize() const {
       return size_;
-    };
+    }
 
     //! Resize the vector to new size 
     virtual void Resize( UInt newSize )
@@ -75,10 +75,8 @@ namespace CoupledField {
 
     //! Overload assignment operator
     virtual BaseVector& operator= ( const BaseVector &bVec ) {
-      TRY_CAST {
-        CONSTREFCAST( bVec, SBM_Vector, sVec );
-        *this = sVec;
-      } CATCH_CAST;
+      const SBM_Vector& sVec = dynamic_cast<const SBM_Vector&>(bVec);
+      *this = sVec;
       return *this;
     }
 
@@ -112,8 +110,9 @@ namespace CoupledField {
     void Add( const BaseVector &vec );
 
 
-    //! Return vector as separated string
-    std::string ToString( char separator = ',') const;
+    /** Return vector as separated string
+     * @see Vector::ToString() */
+    std::string ToString(const Integer level = 0, const char separator = ',') const;
 
     //! Export vector to file
 
@@ -210,7 +209,7 @@ namespace CoupledField {
     //! one-based indexing convention of OLAS.
     SingleVector* GetPointer( UInt i ) {
       return subVec_[i];
-    };
+    }
 
     //! Obtain pointer to a sub-vector
 
@@ -218,7 +217,7 @@ namespace CoupledField {
     //! one-based indexing convention of OLAS.
     const SingleVector* GetPointer( UInt i ) const {
       return subVec_[i];
-    };
+    }
 
     //@}
 

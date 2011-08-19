@@ -10,7 +10,6 @@
 #include <boost/algorithm/string/replace.hpp>
 #include "MatVec/sbmmatrix.hh"
 
-#include "OLAS/algsys/olascomm.hh"
 #include "OLAS/algsys/sbmsystem.hh"
 
 #include "OLAS/graph/graphmanagersbmmat.hh"
@@ -22,7 +21,9 @@
 #include "OLAS/algsys/baseentrymanipulator.hh"
 #include "OLAS/algsys/generateidbchandler.hh"
 #include "OLAS/algsys/baseidbchandler.hh"
-#include "DataInOut/ParamHandling/InfoNode.hh"
+
+#include "DataInOut/programOptions.hh"
+#include "DataInOut/ParamHandling/ParamNode.hh"
 
 
 namespace CoupledField {
@@ -31,7 +32,7 @@ namespace CoupledField {
   // ***********************
   //   Default Constructor
   // ***********************
-  SBM_System::SBM_System(ParamNode* pn) : BaseSystem(pn) {
+  SBM_System::SBM_System(PtrParamNode pn) : BaseSystem(pn) {
 
 
     precond_             = NULL;
@@ -68,6 +69,8 @@ namespace CoupledField {
     for ( UInt i = 0; i < MAX_NUM_FE_MATRICES; i++ ) {
       delete sysMat_[i];
     }
+    sysMat_.Clear();
+    sysMat_.Clear();
   }
 
 
@@ -100,9 +103,6 @@ namespace CoupledField {
   void SBM_System::GetSolutionVal( SingleVector& ptSol,
                                    const FeFctIdType identifierPDE ) {
 
-    //Warning( "SBM_System::GetSolutionVal: At the moment we are not respecting the splitting"
-    //    " of the result vecto and return just the complete vector, regardless of the pdeId ");
-
     if( ptSol.GetEntryType() == BaseMatrix::COMPLEX ) {
       Vector<Complex> & retVec = dynamic_cast<Vector<Complex>& >( ptSol );
       retVec.Resize( size_ );
@@ -125,7 +125,6 @@ namespace CoupledField {
       }
       std::cerr << "retVec = " << retVec << std::endl;
     }
-   
   }
 
 
@@ -158,9 +157,6 @@ namespace CoupledField {
 
     }
   }
-
-
-
 
   // *******************
   //   SetFEMatrixType
@@ -214,7 +210,11 @@ namespace CoupledField {
     std::set<SubMatrixID,SortSubMatrixID>::iterator sIt;
 
     // Obtain symmetry flag
-    sbmSymm_ = myParams_.GetBoolValue( "SBM_Symmetry" );
+    sbmSymm_ = false;    
+    PtrParamNode matrixNode;
+    
+    matrixNode = xml_->Get("sbmMatrix", ParamNode::INSERT);
+    matrixNode->GetValue("symmetric", sbmSymm_, ParamNode::INSERT);
 
     // Determine the set of sub-matrices that we need for the system matrix
     // There are two different cases:
@@ -262,8 +262,10 @@ namespace CoupledField {
     PrintFeMatrixInfo( cla );
 
     // Obtain some info from parameter file
-    BaseMatrix::EntryType   entryType;
-    myParams_.GetEnumValue( "MatrixEntryType"  , entryType   );
+    BaseMatrix::EntryType entryType;
+    std::string entryStr = "double";
+    matrixNode->GetValue("entry", entryStr, ParamNode::INSERT);
+    entryType = BaseMatrix::entryType.Parse( entryStr );
 
     for ( fIt = matrixTypes_.begin(); fIt != matrixTypes_.end(); fIt++ ) {
       sysMat_[*fIt] = GenerateSBM_Matrix( *fIt, entryType );
@@ -277,7 +279,19 @@ namespace CoupledField {
     // Check the case we have (elimination vs. penalty) and generate
     // an appropriate object for handling inhomogeneous Dirichlet
     // boundary conditions
-    if ( myParams_.GetBoolValue( "UsingPenaltyFormulation" ) == true ) {
+    PtrParamNode setupNode;
+    std::string idbcHandlingStr = "penalty";
+    bool usePenaltyFormulation = true;
+    
+    setupNode = xml_->Get("setup", ParamNode::INSERT);
+    setupNode->GetValue("idbcHandling", idbcHandlingStr, ParamNode::INSERT);
+    if(idbcHandlingStr == "penalty") {
+      usePenaltyFormulation = true;
+    } else {
+      usePenaltyFormulation = false;
+    }
+    
+    if ( usePenaltyFormulation ) {
       idbcHandler_ = GenerateIDBC_HandlerObject( numDirichletValues_,
                                                  numPDEs_, bcOffsets_,
                                                  entryType );
@@ -482,6 +496,7 @@ namespace CoupledField {
   // ********************
   //   SetElementMatrix
   // ********************
+
   void SBM_System::SetElementMatrix( FEMatrixType matrix_id, 
                                           const Matrix<Double>& elemMat,
                                           FeFctIdType idPDE1,
@@ -557,7 +572,7 @@ namespace CoupledField {
                                     FeFctIdType identifierPDE2,
                                     const StdVector<Integer>& eqnNrs2,
                                     bool setCounterPar ) {
-    Warning( "Adapt me SetElementMatrix(Complex)");
+    WARN( "Adapt me SetElementMatrix(Complex)");
   }
 
   // **************
@@ -584,9 +599,20 @@ namespace CoupledField {
       }
     }
 
+    PtrParamNode setupNode;
+    std::string idbcHandlingStr = "penalty";
+    bool usePenaltyFormulation = true;
+    
+    setupNode = xml_->Get("setup", ParamNode::INSERT);
+    setupNode->GetValue("idbcHandling", idbcHandlingStr, ParamNode::INSERT);
+    if(idbcHandlingStr == "penalty") {
+      usePenaltyFormulation = true;
+    } else {
+      usePenaltyFormulation = false;
+    }
+
     // Do we need to re-insert penalty values into matrix?
-    if ( ( matrixID == NOTYPE || matrixID == SYSTEM ) &&
-         myParams_.GetBoolValue( "UsingPenaltyFormulation" ) == true ) {
+    if ( ( matrixID == NOTYPE || matrixID == SYSTEM ) && usePenaltyFormulation ) {
       assembleDirichletToSysMat_ = true;
     }
   }
@@ -645,10 +671,9 @@ namespace CoupledField {
         return;
       }
       else {
-        (*warning) << "SBM_System::ConstructEffectiveMatrix: "
-                   << "Map with factors is empty, but there are "
-                   << matrixTypes_.size() << " FE matrices in the game!";
-        Warning( __FILE__, __LINE__ );
+        WARN("SBM_System::ConstructEffectiveMatrix: "
+             << "Map with factors is empty, but there are "
+             << matrixTypes_.size() << " FE matrices in the game!");
       }
     }
 
@@ -678,7 +703,7 @@ namespace CoupledField {
   void SBM_System::SetElementRHS( const Vector<Double>& elemRHS, 
                                   const FeFctIdType idPDE,
                                   StdVector<Integer>& eqnNrs ) {
-    Warning( "adapt me SetElementRHS double");
+    WARN( "adapt me" );
 //
 //    // Delegate work to EntryManipulator
 //    assemble_->SetElementRHS( rhs_->GetPointer(idPDE), elemRHS, connect,
@@ -687,7 +712,7 @@ namespace CoupledField {
   void SBM_System::SetElementRHS( const Vector<Complex>& elemRHS, 
                                   const FeFctIdType idPDE,
                                   StdVector<Integer>& eqnNrs ) {
-    Warning( "adapt me SetElementRHS complex ");
+    WARN( "adapt me");
     //
     //    // Delegate work to EntryManipulator
     //    assemble_->SetElementRHS( rhs_->GetPointer(idPDE), elemRHS, connect,
@@ -714,10 +739,12 @@ namespace CoupledField {
 #ifdef DEBUG_SBMSYSTEM
 
     // Some situation dependend modifiers
-    bool usingPenalty = myParams_.GetBoolValue( "UsingPenaltyFormulation" );
-    UInt maxVal = usingPenalty == true ? sizePerPDE_[pdeID] :
+    UInt maxVal = usingPenalty_ == true ? sizePerPDE_[pdeID] :
       numLastFreeDof_[pdeID];
-    UInt minVal = usingPenalty == true ? 1 : numLastFreeDof_[pdeID] + 1;
+    UInt minVal = usingPenalty_ == true ? 1 : numLastFreeDof_[pdeID] + 1;
+
+    std::string sysName;
+    xml_->Get("name", sysName, false);
 
     if ( eqnNum > maxVal || eqnNum < minVal  ) {
       EXCEPTION( "SBMSystem::SetDirichlet: Inconsistency detected:"
@@ -730,8 +757,8 @@ namespace CoupledField {
                  << "\n minVal          = " << minVal
                  << "\n maxVal          = " << maxVal
                  << "\n SystemName is '"
-                 << myParams_.GetStringValue( "SystemName" ) << "'";
-s    }
+                 << sysName << "'";
+    }
 #endif
 
     // Delegate work to IDBC handler
@@ -750,9 +777,11 @@ s    }
 #ifdef DEBUG_SBMSYSTEM
 
     // Some situation dependend modifiers
-    bool usingPenalty = myParams_.GetBoolValue( "UsingPenaltyFormulation" );
     UInt maxVal = sizePerPDE_[pdeID];
-    UInt minVal = usingPenalty == true ? 1 : numLastFreeDof_[pdeID] + 1;
+    UInt minVal = usingPenalty_ == true ? 1 : numLastFreeDof_[pdeID] + 1;
+
+    std::string sysName;
+    xml_->Get("name", sysName, false);
 
     if ( eqnNum > maxVal || eqnNum < minVal ) {
       EXCEPTION( "SBMSystem::SetDirichlet: Inconsistency detected:"
@@ -765,7 +794,7 @@ s    }
                  << "\n minVal          = " << minVal
                  << "\n maxVal          = " << maxVal
                  << "\n SystemName is '"
-                 << myParams_.GetStringValue( "SystemName" ) << "'" )
+                 << sysName << "'" )
     }
 #endif
 
@@ -791,25 +820,21 @@ s    }
   // *********
   //   Solve
   // *********
-  void SBM_System::Solve(InfoNode* analysis_id) {
+  void SBM_System::Solve(PtrParamNode analysis_id) {
 
 
     // If the penalty formulation is used and we have inhomogeneous
     // Dirichlet boundary conditions, then the righ-hand side is
     // "contaminated" with penalty terms
-    if ( numDirichletValues_ > 0 &&
-      myParams_.GetBoolValue( "UsingPenaltyFormulation" ) == true ) {
-      myParams_.SetValue( "RHSwithPenalty", false );
+    if ( numDirichletValues_ > 0 && usingPenalty_ ) {
+      solver_->SetUsingPenalty( false );
     }
 
-#ifdef PROFILING
-    Double t1 = Profiler::GetRealTime();
-#endif
 
     // Iterative solvers require an initial guess and in the penalty case
     // we should insert the Dirichlet values into it
     if ( dynamic_cast<BaseIterativeSolver*>(solver_) != NULL &&
-         myParams_.GetBoolValue( "UsingPenaltyFormulation" ) == true ) {
+         usingPenalty_ ) {
     idbcHandler_->SetDofsToIDBC( sol_ );
     (*cla) << " Inserted Dirichlet values into initial guess"
            << std::endl;
@@ -817,7 +842,8 @@ s    }
 
 
     // Assume that everything will go well
-    myReport_.SetValue( "solutionIsOkay", true );
+    PtrParamNode out = olasInfo_->Get(ParamNode::PROCESS)->Get("solver");
+    out->Get("solutionIsOkay")->SetValue(true);
 
     // Now modifiy the right-hand side vector
     idbcHandler_->AddIDBCToRHS( rhs_ );
@@ -826,26 +852,27 @@ s    }
     // the solve part is commentet out, I see no reason to export linsys also here, it would
     // require a generalization anyway. Fabian 16.11.07
     // check if we do export stuff
-     ParamNode* els = xml  != NULL && xml->Has("exportLinSys") ? xml->Get("exportLinSys") : NULL;
+     PtrParamNode els = xml_->Get("exportLinSys", ParamNode::PASS );
      std::string file;
      std::string base;
 
-     // TODO: This is most ugly copy & paste from standardsys.cc -> Generelize common parts!!
+     // TODO: This is most ugly copy & paste from standardsys.cc -> Generalize common parts!!
      // need it common even when exclusive solution
      if(els) {
        std::ostringstream os;
-       os << els->Get("baseName")->AsString();
-       std::string id = analysis_id->Get("analysis_id")->AsString();
+       std::string name = els->Has("baseName") ? els->Get("baseName")->As<std::string>() : progOpts->GetSimName();
+       os << name;
+       std::string id = analysis_id->Get("analysis_id")->As<std::string>();
        boost::replace_all(id, ":", "_");
        os << "_" << id;
        base = os.str();
      }
 
      // check if we do not only want the solution
-     if(els && els->Get("solution")->AsString() != "exclusive")
+     if(els && els->Get("solution")->As<std::string>() != "exclusive")
      {
        // two formats. The harwell-boing format includes the rhs!
-       if(els->Get("format")->AsString()  == "harwell-boeing")
+       if(els->Get("format")->As<std::string>()  == "harwell-boeing")
        {
          EXCEPTION( "Harwell-Boeing Format not implemented for SBM-case" );
        }
@@ -853,17 +880,17 @@ s    }
        {
          sysMat_[SYSTEM]->Export((base+".mtx").c_str() );
 
-         if(els->Has("damping", true) && sysMat_[DAMPING] != NULL)
+         if(els->HasByVal("damping", true) && sysMat_[DAMPING] != NULL)
            sysMat_[DAMPING]->Export((base+"_damping.mtx").c_str() );
 
-         if(els->Has("auxiliary", true) && sysMat_[AUXILIARY] != NULL)
+         if(els->HasByVal("auxiliary", true) && sysMat_[AUXILIARY] != NULL)
            sysMat_[AUXILIARY]->Export((base+"_aux.mtx").c_str() );
 
          // rhs is only in harwell-boing included
          rhs_->Export((base+".vec").c_str() );
        }
      }
-     if(els && els->Has("initialGuess", true))
+     if(els && els->HasByVal("initialGuess", true))
            sol_->Export((base+"_intial_guess.vec").c_str());
 
     // Trigger solution
@@ -873,18 +900,10 @@ s    }
     idbcHandler_->RemoveIDBCFromRHS( rhs_ );
 
     // Check that solution went fine, if not issue a warning
-    if ( myReport_.GetBoolValue( "solutionIsOkay" ) == false ) {
-      (*warning) << "Solver reports a problem! Consult .las file for "
-                 << "further diagnostics!";
-      Warning( __FILE__, __LINE__ );
+    if ( out->Get("solutionIsOkay")->As<bool>() == false ) {
+      WARN("Solver reports a problem! Consult .las file for "
+           << "further diagnostics!");
     }
-
-#ifdef PROFILING
-    Double t2 = Profiler::GetRealTime();
-    (*cla)  << "solution timee " << t2-t1 << " seconds " << std::endl;
-    Profiler::WriteReport();
-#endif
-
   }
 
 
@@ -895,7 +914,7 @@ s    }
                                          const FeFctIdType pdeID,
                                          Integer eqnNum,
                                          Double val  ) {
-    Warning( "Adapt me AddToDiagMatrixEntry");
+    WARN( "Adapt me");
 //    // Determine sub-matrix
 //    StdMatrix *stdMat = sysMat_[matrixID]->GetPointer( pdeID, pdeID );
 //
@@ -907,7 +926,7 @@ s    }
                                           const FeFctIdType pdeID,
                                           Integer eqnNum,
                                           Complex val  ) {
-     Warning( "Adapt me AddToDiagMatrixEntry");
+     WARN( "Adapt me");
  //    // Determine sub-matrix
  //    StdMatrix *stdMat = sysMat_[matrixID]->GetPointer( pdeID, pdeID );
  //
@@ -1009,58 +1028,46 @@ s    }
   // ****************
   //   CreateSolver
   // ****************
-  void SBM_System::CreateSolver(InfoNode* olasInfo){
+  void SBM_System::CreateSolver(){
 
     // HARD CODED: Create conjugate gradient solver
-    Warning( "At the moment we use a hard-coded CG-solver" );
-    solver_ = GenerateSolverObject( *(sysMat_[SYSTEM]), CG, xml, olasInfo,
-                                    &myParams_, &myReport_ );
+    WARN( "At the moment we use a hard-coded CG-solver" );
+    solver_ = GenerateSolverObject( *(sysMat_[SYSTEM]), xml_, olasInfo_);
   }
 
 
-  // ****************
-    //   CreateSolver
-    // ****************
-    void SBM_System::CreatePrecond(){
-      PrecondType precond;
-      myParams_.GetEnumValue("Precond", precond);
-      precond_ = GenerateSBMPrecondObject( *(sysMat_[SYSTEM]), precond,
-                                           &myParams_, &myReport_ );
-    }
+  void SBM_System::CreatePrecond(){
+    precond_ = GenerateSBMPrecondObject( *(sysMat_[SYSTEM]), xml_, olasInfo_ );
+  }
 
   // ***************
   //   SetupSolver
   // ***************
-  void SBM_System::SetupSolver(InfoNode* analysis_id) {
+  void SBM_System::SetupSolver(PtrParamNode analysis_id) {
     solver_->Setup( *sysMat_[SYSTEM]);
   }
 
 
-  void SBM_System::CreateEigenSolver(InfoNode*) {
-    (*warning) << "SBM_System::CreateEigenSolver not yet implemented!";
-    Warning( __FILE__, __LINE__ );
+  void SBM_System::CreateEigenSolver() {
+    WARN("SBM_System::CreateEigenSolver not yet implemented!");
   }
 
   void SBM_System::SetupEigenSolver( UInt numFreq, Double shift, bool quadratic ) {
-    (*warning) << "SBM_System::SetupEigenSolver not yet implemented!";
-    Warning( __FILE__, __LINE__ );
+    WARN("SBM_System::SetupEigenSolver not yet implemented!");
   }
   
   void SBM_System::CalcEigenFrequencies( Vector<Complex>& frequencies,
                                          Vector<Double>& err ) {
-    (*warning) << "SBM_System::CalcEigenFrequencies not yet implemented!";
-    Warning( __FILE__, __LINE__ );
+    WARN("SBM_System::CalcEigenFrequencies not yet implemented!");
   }
 
   void SBM_System::CalcEigenFrequencies( Vector<Double>& frequencies,
                                          Vector<Double>& err ) {
-    (*warning) << "SBM_System::CalcEigenFrequencies not yet implemented!";
-    Warning( __FILE__, __LINE__ );
+    WARN("SBM_System::CalcEigenFrequencies not yet implemented!");
   }
 
   void SBM_System::CalcEigenMode( UInt numMode ) {
-    (*warning) << "SBM_System::CalcEigenMode not yet implemented!";
-    Warning( __FILE__, __LINE__ );
+    WARN("SBM_System::CalcEigenMode not yet implemented!");
   }
 
 }

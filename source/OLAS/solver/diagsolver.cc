@@ -24,13 +24,13 @@ namespace CoupledField {
   template<typename T>
   void DiagSolver<T>::Solve( const BaseMatrix &sysmat,
                              const BasePrecond &precond,
-                             const BaseVector &rhs, BaseVector &sol, InfoNode* analysis_step ) {
+                             const BaseVector &rhs, BaseVector &sol, PtrParamNode analysis_step ) {
 
     // Tracing information
     (*cla) << "### Solver for diagonal system  matrix" << std::endl;
 
     // just apply a jacobi-preconditioner
-    if ( precond.GetPrecondType() == JACOBI ) {
+    if ( precond.GetPrecondType() == BasePrecond::JACOBI ) {
       precond.Apply( sysmat, rhs, sol );
     }
     else {

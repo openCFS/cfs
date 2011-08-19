@@ -170,10 +170,6 @@ namespace CoupledField {
     //! All entries are filled with zeroes
     explicit StdVector(unsigned int size);
 
-    //! Constructor with inital size.
-    //! All entries are set to entry
-    StdVector(unsigned int size,TYPE entry);
-
     //! Copy constructor
     StdVector(const StdVector<TYPE> & vec);
 
@@ -200,18 +196,24 @@ namespace CoupledField {
     //! Returns capacity of the vector
     inline unsigned int Capacity() const {return capacity_;}
 
-    //! 
-    void Reserve(unsigned int size);
+    /** Increases the capacity.
+     * If the new capacity is smaller than the current one nothing happens.
+     * Otherwise the old data is copied up to size and the rest is uninitialized! */
+    void Reserve(unsigned int capacity);
 
     //! Get the length of the vector
     inline unsigned int GetSize() const {return size_;}
 
-    /** Set the length of the vector.
-     * @note The vector is NOT initialized, use the Resize with init parameter for this purpose */
+    /** Set the length of the vector but might keep the capacity!
+     * Will keep data.
+     * TODO: check if a data-loosing version is worth the "complexity"
+     * @param size if smaller capacity only the internal size parameter is adjusted.
+     *        If larger than the current capacity the old data is copied!
+     * @note Additional data is NOT initialized, and Resize with init parameter sets ALL data */
     void Resize(const unsigned int size);
 
-    /** Set the length of the vector and initilize
-     * @note init Init() is called with this value */
+    /** Set the length of the vector and initialize
+     * @note Init() is called with this value */
     void Resize(const unsigned int size, TYPE entry);
     
     //! Overloading of operation =
@@ -247,22 +249,18 @@ namespace CoupledField {
      * Any existing data is overwritten. */
     void Import(const TYPE* source, unsigned int size);
     
-    //! Add element of the same type at position pos
-    void Insert(const TYPE & y, unsigned int pos);
-
-    //! Add element of the same type at position pos
-    //! numCopies times
-    void Insert(const TYPE & y, unsigned int pos, unsigned int numCopies);
-
     //! Add element of the same type at the end of the vector
     void Push_back(const TYPE & y = TYPE() );
 
     //! Delete element from vector on position pos
-    void Erase (const unsigned int pos);
+    void Erase(const unsigned int pos);
 
     //! Delete elements from position pos1 to pos2, on pos1, pos2 too
-    void Erase (const unsigned int pos1, const unsigned int pos2);
+    void Erase(const unsigned int pos1, const unsigned int pos2);
 
+    /** Insert the element at the given position, anything form that position on is moved one back.
+     * @param pos the last valid pos is size which corresponds to an append */
+    void Insert(const unsigned int pos, const TYPE& dat);
 
     //! Return the position number of element x in the vector
 
@@ -289,21 +287,24 @@ namespace CoupledField {
     // ******************************************************
     // MISCELANEOUS FUNCTIONS
     // ******************************************************
-  
-    //! Sort of vector: v - vec.p, n - vec.size
-    template <class S> void Sort(S* v, unsigned int n);
-  
-    //! Swap 2 elements in vector Ex Swap(v[i],v[j])
-    template<class T2> void Swap(T2& a, T2 & b);
+
+    /** Swap to entries */
+    void Swap(unsigned int idx1, unsigned int idx2);
 
     //! Return vector as separated string
     std::string Serialize( char separator = ',') const;
 
    
+    /** Default output but you can choose to select the window */
+    std::string ToString(bool in_window) const {
+      return ToString(0, 1, in_window);
+    }
+
      /** Lists the content comma seperated.
       * @param level 0=all data, 1 is summary, the higher, the less 
-      * @param stride on level=0 every element(1), every second (2), ...*/ 
-     std::string ToString(int level=0, int stride=1) const;
+      * @param stride on level=0 every element(1), every second (2), ...
+      * @param in_window only for window. what requres the window to be set*/
+     std::string ToString(int level=0, int stride=1, bool in_window = false) const;
      
      /** List the content or summary of an external source 
       * @see ToString(int)*/
@@ -314,18 +315,57 @@ namespace CoupledField {
 
      /** Reas the content from a string list */
      void Parse(const StdVector<std::string>& in);
+
+     /** This is a little helper to define a range within the data.
+      * It is just a rucksack of information with no further implication.
+      * One could add verification of the ranges but this is also ensured by
+      * the vector itself. */
+     class Window
+     {
+     public:
+
+       /** default construcor */
+       Window();
+
+       /** Sets automatically acive */
+       void Set(unsigned int start, unsigned int size);
+
+       /** Scale to the whole vector dimension */
+       void Set(StdVector& vec);
+
+       /** has the window valid properties */
+       bool Initialized() const { return active_; }
+
+       /** index of the first element */
+       unsigned int GetStart() const;
+
+       /** size of the window */
+       unsigned int GetSize() const;
+
+     private:
+
+       unsigned int start_;
+       unsigned int size_;
+       bool active_;
+     };
+
+     /** Out rucksack data */
+     Window window;
      
+     /** Verifies if we are in the window. Error also if there is no window initialized (debug mode only) */
+     bool InWindow(unsigned int index);
+
   protected:
 
     //! Length of the vector
     unsigned int size_;
     
-    //! Data of the vector
-    TYPE* data_;
-  
     //! Capacity of the vector
     unsigned int capacity_;
-      
+
+
+    //! Data of the vector
+    TYPE* data_;
   };
 
   // ******************************************************

@@ -6,7 +6,6 @@
 #define FILE_NEWBASEMECHPDE
 
 #include <map>
-#include <set>
 
 #include "SinglePDE.hh"
 
@@ -15,6 +14,7 @@ namespace CoupledField
 
   class BaseForm;
   class LinearFormContext;
+  class set;
 
   //! Class for mechanic equation (no adaptivity)
   class MechPDE: public SinglePDE
@@ -22,11 +22,14 @@ namespace CoupledField
 
   public:
 
-    //!  Constructor. here we read integration parameters
-    /*!
-      \param aGrid pointer to grid
-    */
-    MechPDE( Grid *aGrid, ParamNode* paramNode );
+    /** constants for test-strains, used for homogenization. We depend on the int values! */
+    typedef enum { NOT_SET=-1, X=0, Y=1, Z=2, YZ=3, XZ=4, XY=5 } TestStrain;
+
+    static Enum<TestStrain> testStrain;
+
+    /** Constructor. here we read integration parameters
+     * @param aGrid pointer to grid */
+    MechPDE( Grid *aGrid, PtrParamNode paramNode );
 
     //!  Deconstructor
     virtual ~MechPDE();
@@ -53,9 +56,6 @@ namespace CoupledField
     BaseForm * GetStiffIntegrator(BaseMaterial* actSDMat,
                                   RegionIdType regionId,
                                   bool reducedInt=false);
-
-    /** Returns the protected damping list - don't alter! */
-    const std::map<RegionIdType,DampingType>& GetDampingList() { return dampingList_; }
 
     // ======================================================
     // COUPLING SECTION
@@ -94,30 +94,54 @@ namespace CoupledField
      * @param pressVals as returned from ReadPressureLoadsFromXML
      * @param pressPhase as returned from ReadPressureLoadsFromXML
      * @param linForms set to append linear Forms to, if NULL use assemble_ */
-    void DefinePressureIntegrators(StdVector<shared_ptr<EntityList> >& pressSurf, StdVector<std::string>& pressVals, StdVector<std::string>& pressPhase, std::set<LinearFormContext*>* linForms = NULL);
+    void DefinePressureIntegrators(StdVector<shared_ptr<EntityList> >& pressSurf, StdVector<std::string>& pressVals, StdVector<std::string>& pressPhase, StdVector<LinearFormContext*>* linForms = NULL);
     
-    /** add the integrators for the test strains for homogenization to the linear forms, similar as in multiple load case;
-     * called from Excitation::ReadLoads 
-     * @param vals contains the values from the xml test strains
+    /** Add the integrators for the test strains for homogenization to the linear forms, similar as in multiple load case;
+     * called from Excitation::ReadLoads or Excitation::SetHomogenizationTestStrains() (optimization)
+     * @param test is an enum
      * @param linForms set to append linear Forms to, if NULL use assemble_ */
-    void DefineTestStrainIntegrators(const Vector<Double> &vals, std::set<LinearFormContext*> *linForms = NULL);
+    void DefineTestStrainIntegrator(const TestStrain test, StdVector<LinearFormContext*>* linForms = NULL);
+
+    /** small helper which translates the test strain code on a vector of size 3/6 with one entry 1.0, the other zero
+     * @param reduced in 2d case the result size is 3 otherwise 6 as it is always in 6 */
+    Vector<Double> CalcTestStrainVector(TestStrain ts, bool reduced = false);
     
     /** export of methods to generate Linear Forms used in multiload-cases by optimization 
      * @param regionLoads as returned from ReadRegionLoadsFromXML
      * @param linForms set to append linear Forms to, if NULL use assemble_ */
-    void DefineRegionLoadIntegrators(std::map<RegionIdType, RegionLoad>& regionLoads, std::set<LinearFormContext*>* linForms = NULL);
+    void DefineRegionLoadIntegrators(std::map<RegionIdType, RegionLoad>& regionLoads, StdVector<LinearFormContext*>* linForms = NULL);
 
     /** Does the actual reading of pressure loads, also called from optimization 
      * @param bcNode paramnode that has "pressure" nodes as children 
      * @param pressSurf StdVector containing the information
      * @param pressVals StdVector containing the information
      * @param pressPhase StdVector containing the information */
-    void ReadPressureLoadsFromXML(ParamNode* bcNode, StdVector<shared_ptr<EntityList> >& pressSurf, StdVector<std::string>& pressVals, StdVector<std::string>& pressPhase);
+    void ReadPressureLoadsFromXML(PtrParamNode bcNode, StdVector<shared_ptr<EntityList> >& pressSurf, StdVector<std::string>& pressVals, StdVector<std::string>& pressPhase);
     
-    /** Does the actual reading of pressure loads, also called from optimization 
-     * @param bcsNode paramnode that has test strain nodes as children
-     * @param vals where the values of the strains are written */
-    void ReadPreStrainingFromXML(ParamNode* bcsNode, Vector<Double> &vals);
+    /** add the integrators for the polarization matrix to the linear forms, similar as in multiple load case;
+      * called from Excitation::SetPolarizationMatrixRHS
+      * @param vals contains the values from the xml test strains
+      * @param linForms set to append linear Forms to, if NULL use assemble_ */
+    void DefinePolarizationMatrixIntegrators(const Vector<Double> &vals,
+        StdVector<LinearFormContext*> *linForms, const int num);
+
+    /** @see virtual SinglePDE::GetNativeSolutionType() */
+    SolutionType GetNativeSolutionType() const { return MECH_DISPLACEMENT; }
+
+    /** @see virtual SinglePDE::GetNativeDOF() */
+    virtual UInt GetNativeDOF() const { return dim_; }
+
+    /** return the von Mises matrix (stress^T * M * stress = von Mises Stress)
+     * @param dim desired dimension. axis is ignored currently :( */
+    const Matrix<double>& GetVonMisesMatrix(int dim);
+
+    /** Von Mises norm of the strains/stresses. Also called from PiezoCoupling for the coupled stress
+     * @param res CalStressAndStrain() resp. CalcStressStrain() to be already called! */
+    template <class TYPE>
+    void CalcVonMises(shared_ptr<BaseResult> res);
+
+    /** Dimension of stress/strain Voight notation vector  */
+    unsigned int GetStressStrainDim() const { return stressDim_; }
 
   protected:
 
@@ -125,17 +149,21 @@ namespace CoupledField
     // POSTPROCESSING METHODS
     // ======================================================
 
+    /** map nodal results to element results */
+    template <class TYPE>
+    void CalcLumpedDisplacement(shared_ptr<BaseResult> result);
+
+    void CalcHomogenizedTensor(shared_ptr<BaseResult> base_result);
+
     //computes mechanical deformation energy
     template <class TYPE>
     void CalcEnergy( shared_ptr<BaseResult> vals );
 
-    //computes mechanical stresses
+    /** common implementation for element stresses and strains as vectors
+     * @param ss either MECH_STRESS or MECH_STRAIN or VON_MISES_STRESS or VON_MISES_STRAIN
+     * @param density divide by element volume?*/
     template <class TYPE>
-    void CalcStresses(  shared_ptr<BaseResult> vals );
-
-    //computes mechanical strains
-    template <class TYPE>
-    void CalcStrains(  shared_ptr<BaseResult> vals );
+    void CalcStressAndStrain(shared_ptr<BaseResult> vals, SolutionType ss, bool density = false);
 
     //! compute volume above a deformed surface
     template <class TYPE>
@@ -211,11 +239,13 @@ namespace CoupledField
 
     Double displFac_;
     bool useAitken_, FSI_;
-    Double aitkenOmega_, fixedOmega_;
+    Double aitkenOmega_, aitkenOmegaPrevIter_, fixedOmega_;
     Double aitkenMu_;
     Vector<Double> actDelta_, oldDelta_;
     bool firstTime_;
     Vector<Double> gSolOld_;
+
+    Vector<Double> deltaTildeDisplPrevIter_;
 
   private:
 
@@ -248,11 +278,11 @@ namespace CoupledField
     //! read in the domains with prestressing
     void ReadPreStressing();
 
+    /** checks and processes the xml file for test strain, to do kind of manual (mathematical) homogenization */
+    void ReadTestStrains();
+
     //! read in surface stress boundary conditions
     void ReadSurfStress();
-
-    //! read in the domains with prestraining
-    void ReadPreStraining();
     
     //! read pressure loads
     void ReadPressureLoads();
@@ -262,6 +292,9 @@ namespace CoupledField
 
     //! define available result types
     void DefineAvailResults();
+
+    /** Is the stress_strain_density attribute set to true? */
+    bool WantDensity(SolutionType st) const;
 
     struct SurfStress {
 
@@ -291,9 +324,6 @@ namespace CoupledField
     /// returns that L2-norm of an algsys vector
     Double AlgsysL2Norm(Double * pt);
 
-    /// flag for reduced Integration for each subdomain
-    StdVector<std::string> reducedIntegration_;
-
     /// returns the solution matrix belonging to all nodes of the actual element
     void GetSolOfElement( Matrix<Double>& elDisp, StdVector<UInt>& connect_PDE);
 
@@ -318,9 +348,6 @@ namespace CoupledField
     //! prestress-values: numSubdoms x 3
     std::map< RegionIdType, Vector<Double> > preStressVal_;
     
-    //! prestrain-values: numSubdoms x 3
-    Vector<Double> preStrainVal_;
-
      //@{ \name Attributes related to post-processing
 
      //! Contains mechanic velocity
@@ -337,9 +364,19 @@ namespace CoupledField
 
     //! Stores softening for each region
     std::map<RegionIdType, std::string> regionSoftening_;
+    
+    //! Stores Rayleigh damping definition for each rgion
+    std::map<RegionIdType, RaylDampingData > regionRaylDamping_;
 
     //! Flag indicating use of penalty dof for plate formulation
     bool usePlatePenaltyDof_;
+
+    /** static matrix which allows the calculation of the von Mises Stress from the stresses in 2D.
+     * See Kocvara and Stingl; 2007 */
+    Matrix<double> vonMisesMatrix_2d_;
+    Matrix<double> vonMisesMatrix_3d_;
+
+    void calcAitkenOmega(const Vector<Double>& displTilde, const Vector<Double>& displPrevIter);
 
   };
 

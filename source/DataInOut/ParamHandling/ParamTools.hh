@@ -34,7 +34,7 @@ namespace CoupledField
 
     /** Interpretes the string content of this ParamNode as Matrix of dimension dim1 x dim2. Example:
      * <pre>
-      <eleasticity>  
+      <elasticity>
         <tensor dim1="6">
           <real>
             1.65682E+11 1.84091E+10 1.84091E+10 0.00000E+00 0.00000E+00 0.00000E+00
@@ -47,19 +47,18 @@ namespace CoupledField
         </tensor>
       </elasticity></pre> 
      * Call this like the following:<pre>
-     * ParamNode* elast = pn->Get("eleasticity");
-     * ParamNode* tensor = elast->Get("tensor", "dim1", "6");
+     * PtrParamNode elast = pn->Get("elasticity");
+     * PtrParamNode tensor = elast->Get("tensor", "dim1", "6");
      * Matrix<double> mat(6,6);
      * ParamTools::AsTensor<double>(tensor->Get("real"), 6, 6, mat);</pre> */
     template <class TYPE>
-    static void AsTensor(ParamNode* node, unsigned int dim1, unsigned int dim2, Matrix<TYPE>& ret)
+    static void AsTensor(PtrParamNode node, unsigned int dim1, unsigned int dim2, Matrix<TYPE>& ret)
     {
       StdVector<std::string> strVec;
-      SplitStringList(node->AsString(), strVec, ' ' );
-      
-      Matrix<TYPE> helpMat;
-      helpMat.Resize( dim1, dim2 );
-      helpMat.Init();
+      SplitStringList(node->As<std::string>(), strVec, ' ' );
+
+      ret.Resize( dim1, dim2 );
+      ret.Init();
       
       if (strVec.GetSize() != dim1*dim2) 
       {
@@ -70,12 +69,11 @@ namespace CoupledField
 
       for ( UInt i = 0; i < dim1; i++ ) {
         for ( UInt j = 0; j < dim2; j++ ) {
-          // helpMat[i][j]=(boost::lexical_cast<TYPE>(strVec[i*dim2+j]));
-          helpMat[i][j]= boost::lexical_cast<TYPE>(strVec[i*dim2+j]);
+          ret[i][j]= boost::lexical_cast<TYPE>(strVec[i*dim2+j]);
         }
       }
-      ret = helpMat;
     }
+
   }; 
 
 } // end of namespace

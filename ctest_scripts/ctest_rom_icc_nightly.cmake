@@ -36,47 +36,59 @@ SET(CTEST_SOURCE_DIRECTORY "$ENV{HOME}/Documents/dev/NIGHTLY/CFS_TRUNK_NIGHTLY")
 SET(CTEST_BINARY_DIRECTORY "$ENV{HOME}/Documents/dev/NIGHTLY/CFS_BUILD_NIGHTLY")
 
 #-----------------------------------------------------------------------------
-# Place CTestConfig.cmake file for project CFS on CDash server rom into
-# CTEST_SOURCE_DIRECTORY.
-#-----------------------------------------------------------------------------
-FILE(WRITE "${CTEST_SOURCE_DIRECTORY}/CTestConfig.cmake"
-  "
-  ## This file should be placed in the root directory of your project.
-  ## Then modify the CMakeLists.txt file in the root directory of your
-  ## project to incorporate the testing dashboard.
-  ## # The following are required to uses Dart and the Cdash dashboard
-  # ENABLE_TESTING()
-  # INCLUDE(Dart)
-  set(CTEST_PROJECT_NAME \"CFS\")
-  set(CTEST_NIGHTLY_START_TIME \"00:00:00 EST\")
-
-  set(CTEST_DROP_METHOD \"http\")
-  set(CTEST_DROP_SITE \"rom\")
-  set(CTEST_DROP_LOCATION \"/cdash/submit.php?project=CFS\")
-  set(CTEST_DROP_SITE_CDASH TRUE)"
-)
-
-#-----------------------------------------------------------------------------
 # Specify that we want to do an experimental build without updating the CFS++
 # working copy. I.e. we leave away the ExperimentalUpdate step between
 # ExperimentalStart and ExperimentalConfigure. The Subversion update gets
 # done by simon on mac before the the test scripts on rom get executed.
 #-----------------------------------------------------------------------------
 SET(CTEST_COMMAND  "\"${CTEST_EXECUTABLE_NAME}\"")
-SET(CTEST_COMMAND "${CTEST_COMMAND} -D NightlyStart")
-SET(CTEST_COMMAND "${CTEST_COMMAND} -D NightlyConfigure")
-SET(CTEST_COMMAND "${CTEST_COMMAND} -D NightlyBuild")
-SET(CTEST_COMMAND "${CTEST_COMMAND} -D NightlyTest")
-SET(CTEST_COMMAND "${CTEST_COMMAND} -D NightlySubmit")
-SET(CTEST_COMMAND "${CTEST_COMMAND} -A ${CTEST_BINARY_DIRECTORY}/CMakeCache.txt")
-#SET(CTEST_COMMAND "${CTEST_COMMAND} -R torque3d")
-SET(CTEST_COMMAND "${CTEST_COMMAND} -E cplreader")
 
 #-----------------------------------------------------------------------------
 # Use CMake (cmake) executable corresponding to CTest executable used to run
 # this script.
 #-----------------------------------------------------------------------------
 SET(CTEST_CMAKE_COMMAND  "\"${CMAKE_EXECUTABLE_NAME}\"")
+
+#-----------------------------------------------------------------------------
+# Set the following environment variables for the test run. This can be used
+# to specifiy the compilers and that all messages should be output in English
+# language, so that CTest may properly parse them.
+#-----------------------------------------------------------------------------
+SET(ENV{CC} "icc")
+SET(ENV{CXX} "icpc")
+SET(ENV{FC} "ifort")
+SET(ENV{LC_MESSAGES} "C")
+SET(ENV{LC_ALL} "C")
+SET(ENV{LANG} "C")
+SET(ENV{LANGUAGE} "C")
+SET(ENV{CPLREADER_PERF_SUITE} "/media/CFD_Data/cplreader_performance_suite")
+
+EXEC_PROGRAM("rm -rf ${CTEST_BINARY_DIRECTORY} && mkdir -p ${CTEST_BINARY_DIRECTORY}/CMakeFiles && perl ${CTEST_SOURCE_DIRECTORY}/share/scripts/identify_compiler.pl $ENV{CXX} ${CTEST_SOURCE_DIRECTORY}/share/scripts/IdentifyCXXCompiler.cpp cmake > ${CTEST_BINARY_DIRECTORY}/CMakeFiles/out.cmake"
+  ARGS
+  OUTPUT_VARIABLE CXX_COMPILER_INFO
+  RETURN_VALUE RETVAL)
+
+INCLUDE(${CTEST_BINARY_DIRECTORY}/CMakeFiles/out.cmake)
+
+EXEC_PROGRAM("${CTEST_SOURCE_DIRECTORY}/share/scripts/distro.sh -u"
+  ARGS
+  OUTPUT_VARIABLE ARCH_STR
+  RETURN_VALUE RETVAL)
+
+#MESSAGE("${CXX_ID} ${CXX_VERSION} ${CXX_GCC_VERSION}")
+#MESSAGE("${ARCH_STR}")
+
+SET(BUILDTYPE "RELEASE")
+SET(BUILDNAME "${ARCH_STR} ${CXX_ID} ${CXX_VERSION} ${BUILDTYPE}")
+
+SITE_NAME(CFS_BUILD_HOST)
+set(CTEST_SITE "${CFS_BUILD_HOST}")
+set(CTEST_BUILD_NAME "${BUILDNAME}")
+
+#-----------------------------------------------------------------------------
+# Copy CDash server configuration file to source dir.
+#-----------------------------------------------------------------------------
+EXECUTE_PROCESS(COMMAND ${CMAKE_EXECUTABLE_NAME} -E copy_if_different CTestConfig.cmake ${CTEST_SOURCE_DIRECTORY}/CTestConfig.cmake)
 
 #-----------------------------------------------------------------------------
 # Start out with an empty binary directory.
@@ -91,28 +103,44 @@ SET(CTEST_START_WITH_EMPTY_BINARY_DIRECTORY TRUE)
 SET(CTEST_INITIAL_CACHE
   "BUILD_TESTING:BOOL=ON
    DEBUG:BOOL=OFF
+   CMAKE_BUILD_TYPE:STRING=${BUILDTYPE}   
    TESTSUITE_DIR:STRING=$ENV{HOME}/Documents/dev/NIGHTLY/CFS_TESTSUITE_NIGHTLY
    CFS_DEPS_ROOT:PATH=$ENV{HOME}/Documents/dev/NIGHTLY/CFSDEPS_NIGHTLY
    CFS_DEPS_CACHE_DIR:PATH=$ENV{HOME}/Documents/dev/NIGHTLY/CFSDEPSCACHE
    USE_GMV_INPUT:BOOL=ON
+   USE_GMSH:BOOL=ON   
+   USE_ANSYSRST:BOOL=ON
    USE_PYTHON:BOOL=ON
    USE_TCL:BOOL=ON
-   USE_INTERPOLATION:BOOL=OFF
+   USE_INTERPOLATION:BOOL=ON
    CPLREADER:BOOL=ON
-   USE_SCPIP:BOOL=ON")
+   CPLREADER_OPENFOAM:BOOL=ON
+   CPLREADER_CGNS:BOOL=ON
+   CPLREADER_CFX:BOOL=ON
+   CPLREADER_FIELDVIEW:BOOL=ON
+   CPLREADER_ENSIGHT:BOOL=ON
+   CPLREADER_FLUENT:BOOL=ON   
+   CPLREADER_FASTEST:BOOL=ON
+   CPLREADER_ANSYS:BOOL=ON
+   USE_SCPIP:BOOL=ON
+   USE_CHOLMOD:BOOL=ON
+   BUILDNAME:STRING=${BUILDNAME}")
 
-#-----------------------------------------------------------------------------
-# Set the following environment variables for the test run. This can be used
-# to specifiy the compilers and that all messages should be output in English
-# language, so that CTest may properly parse them.
-#-----------------------------------------------------------------------------
-SET(CTEST_ENVIRONMENT
-  "CC=icc"
-  "CXX=icpc"
-  "FC=ifort"
-  "LC_MESSAGES=C"
-  "LC_ALL=C"
-  "LANG=C"
-  "LANGUAGE=C"
-  "CPLREADER_PERF_SUITE=$ENV{HOME}/Documents/strieben/cplreader_performance_suite"
-  )
+SET(CTEST_CMAKE_GENERATOR "Unix Makefiles")
+
+message("Start dashboard...")
+ctest_start(Nightly)
+FILE(WRITE "${CTEST_BINARY_DIRECTORY}/CMakeCache.txt" ${CTEST_INITIAL_CACHE})
+message("  Configure")
+ctest_configure(BUILD "${CTEST_BINARY_DIRECTORY}" RETURN_VALUE res)
+# Configure twice so that CFX and OpenFOAM dependencies get built
+ctest_configure(BUILD "${CTEST_BINARY_DIRECTORY}" RETURN_VALUE res)
+#message("read custom files after configure")
+#ctest_read_custom_files("${CTEST_BINARY_DIRECTORY}")
+message("  Build")
+ctest_build(BUILD "${CTEST_BINARY_DIRECTORY}" RETURN_VALUE res)
+message("  Test")
+ctest_test(BUILD "${CTEST_BINARY_DIRECTORY}" RETURN_VALUE res)
+message("  Submit")
+ctest_submit(RETURN_VALUE res)
+message("  All done")

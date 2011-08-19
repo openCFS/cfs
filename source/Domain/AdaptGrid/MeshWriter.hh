@@ -122,7 +122,7 @@ public:
   {
     int locId = t->getId();
     if (locId != counter)
-      Warning("counting vertices");
+      WARN("counting vertices");
     counter++;
 
     double x0,x1,x2;

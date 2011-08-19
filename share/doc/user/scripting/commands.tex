@@ -172,3 +172,23 @@ boundary conditions in the event method \verb#CFS_SetBCs#.
   \param{dynamics}{string}{Name of file timedata file}
 \end{tcl-params}
 
+\section{Assemble class}
+The {\em Assemble} object handles the calculation of element matrices and
+vectors. The access of element matrices / vectors is performed in two steps:
+\begin{itemize}
+ \item first the elements, for which the matrix / vector should be printed,
+must be specified using the command printElemMatVec
+\item Within the event procedure \verb#CFS_AssembleMat# and
+\verb#CFS_AssembleRhs# those matrices can be printed / handled.
+\end{itemize}
+
+\tcl-command{printElemMatVec}
+This command tells the {\em Assemble} object, for which elements the matrix /
+vector should be printed. The element numbers are provided as a list.
+Note that this method does not return the matrices, this can only be done in
+the event procedure \verb#CFS_AssembleMat# and \verb#CFS_AssembleRhs#.
+\begin{tcl-params}
+  \paramlist
+  \param{elemNumbers}{integer list}{Element numbers as list}
+\end{tcl-params}
+

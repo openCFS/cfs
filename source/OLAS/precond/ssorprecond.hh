@@ -15,8 +15,6 @@ namespace CoupledField {
   template<typename> class Vector;
   template<typename> class CRS_Matrix;
   class StdMatrix;
-  class OLAS_Params;
-  class OLAS_Report;
   
 
   //! SSOR preconditioner
@@ -59,8 +57,8 @@ namespace CoupledField {
     //! size, matrix and entry types are derived and two pointers to the
     //! communication objects. This is the constructor required by the
     //! GeneratePrecondObject function.
-    SSORPrecond( const StdMatrix &mat, OLAS_Params *myParams, 
-                 OLAS_Report *myReport);
+    SSORPrecond( const StdMatrix &mat, PtrParamNode myParams, 
+                 PtrParamNode olasInfo);
 
     //! Default Destructor
 
@@ -86,8 +84,8 @@ namespace CoupledField {
 
     //! When called this method returns the type of the preconditioner object.
     //! In the case of an object of this class the return value is JACOBI.
-    PrecondType GetPrecondType() const{
-      return SSOR;
+    BasePrecond::PrecondType GetPrecondType() const{
+      return BasePrecond::SSOR;
     };
 
 

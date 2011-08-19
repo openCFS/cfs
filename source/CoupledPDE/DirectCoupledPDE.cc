@@ -9,7 +9,9 @@
 
 // include solveStep drivers
 #include "Driver/stdSolveStep.hh"
+#include "Driver/solveStepAcoustic.hh"
 #include "Driver/solveStepPiezo.hh"
+#include "Driver/solveStepMicroPiezo.hh"
 #include "Driver/assemble.hh"
 
 // include PDE classes
@@ -21,7 +23,6 @@
 #include "Driver/transientdriver.hh"
 
 #include "DataInOut/ParamHandling/ParamNode.hh"
-#include "DataInOut/ParamHandling/InfoNode.hh"
 #include "DataInOut/resultHandler.hh"
 
 #include "OLAS/algsys/sbmsystem.hh"
@@ -33,7 +34,7 @@ namespace CoupledField {
   // ***************
   //   Constructor
   // ***************
-  DirectCoupledPDE::DirectCoupledPDE( Grid *aptgrid, ParamNode* paramNode )
+  DirectCoupledPDE::DirectCoupledPDE( Grid *aptgrid, PtrParamNode paramNode )
 
     : StdPDE( aptgrid, paramNode ) {
 
@@ -49,9 +50,18 @@ namespace CoupledField {
 
     // The following cannot easily be deleted by StdPDE from which we inherit
     // them, since SinglePDE also inherits them.
-    delete algsys_;
-    delete solveStep_;
-    delete TS_alg_;
+    if( algsys_ ) {
+      delete algsys_;
+      algsys_ = NULL;
+    }
+    if( solveStep_ ) {
+      delete solveStep_;
+      solveStep_ = NULL;
+    }
+    if( TS_alg_ ){
+      delete TS_alg_;
+      TS_alg_ = NULL;
+    }
 
     // Delete BasePairCoupling objects
     for ( UInt i = 0; i < couplings_.GetSize(); i++ ) {
@@ -59,12 +69,24 @@ namespace CoupledField {
     }
     couplings_.Clear();
 
-    delete solVec_;
-    delete rhsVec_;
-    if ( needSolPrev_ )
+    if( solVec_ ) {
+      delete solVec_;
+      solVec_ = NULL;
+    }
+    if( rhsVec_ ) {
+      delete rhsVec_;
+      rhsVec_ = NULL;
+    }
+    if ( needSolPrev_ ) {
       delete solVecPrev_;
+      solVecPrev_ = NULL;
+    }
     
-    if(assemble_) delete assemble_;    
+    
+    if(assemble_) {
+      delete assemble_;
+      assemble_ = NULL;
+    }
   }
 
 
@@ -100,70 +122,72 @@ namespace CoupledField {
 
   void DirectCoupledPDE::SetInitialCondition() {
 
-    Vector< Double > aux;
-    aux.Init();
-
-    // Construct the initial solution vector
-    shared_ptr<FeSpace> feSpace;
-    UInt singleUnknowns=0;
-    UInt lastIndex=0;
-
-
-    for (UInt i=0; i<singlePDEs_.GetSize(); i++) {
-
-      //------------------------------------------------
-      // get the id of the this pde
-      //pdeId = singlePDEs_[i]->GetPDEId();
-      //------------------------------------------------
-
-      // the PDEs members haven't set up their initial conditions yet
-      // -> set the initial conditions of this pde
-      singlePDEs_[i]->SetInitialCondition();
-      if(singlePDEs_[i]->IsSetInitialCondition()==true){
-        this->isSetInitialCondition_=true;
-      }
-
-
-      //------------------------------------------------
-      // get the number of unknowns of this pde
-      singleUnknowns = singlePDEs_[i]->GetNumPdeEquations();
-
-      // check setup of linear system
-      if(singlePDEs_[i]->usePenalty_==false){
-        // uses elimination of Inhomogeneous DBC
-        //std::cout << "Num of Inhomogeneous DBC = "<< eqn->GetNumInHomDirichletEqns () << std::endl;
-        singleUnknowns -= singlePDEs_[i]->GetNumInHomBcs();
-      }
-      //------------------------------------------------
-
-      // init the aux vector
-      // **** it is supoussed that i=pdeID ****
-      // -> the order of the solution vector is the same as ordering of pdeID
-      for (UInt ii = lastIndex; ii < lastIndex+singleUnknowns; ii++) {
-        //aux[ii]=singlePDEs_[i]->getInitialCondition();
-        aux.Push_back(singlePDEs_[i]->getInitialCondition());
-      }
-
-      lastIndex+=singleUnknowns;
-
-    }
-
-    // now we have our solution vector initialized
-    //std::cout << "\n al final aux = "<< aux.Serialize() << std::endl;
-
-    if(this->IsSetInitialCondition()==true){
-
-
-      // save the initial solution vector into algsys
-      algsys_->InitSol(aux);
-
-      // save the initial vector in each pde solution vector
-      SaveSolution(aux.GetPointer(), aux.GetSize());
-
-      // save the initial solution vector into algsys
-      algsys_->InitSol( aux );
-
-    }
+    REFACTOR;
+//    Vector< Double > aux;
+//    aux.Init();
+//
+//    // Construct the initial solution vector
+//    shared_ptr<FeSpace> feSpace;
+//    UInt singleUnknowns=0;
+//    UInt lastIndex=0;
+//
+//
+//    for (UInt i=0; i<singlePDEs_.GetSize(); i++) {
+//
+//      //------------------------------------------------
+//      // get the id of the this pde
+//      //pdeId = singlePDEs_[i]->GetPDEId();
+//      //------------------------------------------------
+//
+//      // the PDEs members haven't set up their initial conditions yet
+//      // -> set the initial conditions of this pde
+//      singlePDEs_[i]->SetInitialCondition();
+//      if(singlePDEs_[i]->IsSetInitialCondition()==true){
+//        this->isSetInitialCondition_=true;
+//      }
+//
+//
+//      //------------------------------------------------
+//      // get the number of unknowns of this pde
+//      singleUnknowns = singlePDEs_[i]->GetNumPdeEquations();
+//
+//      // check setup of linear system
+//      if(singlePDEs_[i]->usePenalty_==false){
+//        // uses elimination of Inhomogeneous DBC
+//        //std::cout << "Num of Inhomogeneous DBC = "<< eqn->GetNumInHomDirichletEqns () << std::endl;
+//        singleUnknowns -= eqn->GetNumInHomDirichletEqns();
+//        singleUnknowns -= eqn->GetNumInHomDirichletFileEqns();
+//      }
+//      //------------------------------------------------
+//
+//      // init the aux vector
+//      // **** it is supoussed that i=pdeID ****
+//      // -> the order of the solution vector is the same as ordering of pdeID
+//      for (UInt ii = lastIndex; ii < lastIndex+singleUnknowns; ii++) {
+//        //aux[ii]=singlePDEs_[i]->getInitialCondition();
+//        aux.Push_back(singlePDEs_[i]->getInitialCondition());
+//      }
+//
+//      lastIndex+=singleUnknowns;
+//
+//    }
+//
+//    // now we have our solution vector initialized
+//    //std::cout << "\n al final aux = "<< aux.Serialize() << std::endl;
+//
+//    if(this->IsSetInitialCondition()==true){
+//
+//
+//      // save the initial solution vector into algsys
+//      algsys_->InitSol(aux);
+//
+//      // save the initial vector in each pde solution vector
+//      SaveSolution(aux.GetPointer(), aux.GetSize());
+//
+//      // save the initial solution vector into algsys
+//      algsys_->InitSol( aux );
+//
+//    }
 
   }
 
@@ -177,17 +201,17 @@ namespace CoupledField {
   {
     sequenceStep_ = sequenceStep;
 
-    infoNode_ = info->Get("PDEs")->Get("directCoupledPDE", InfoNode::APPEND);
-    infoNode_->Get(InfoNode::HEADER)->Get("sequeceStep")->SetValue(sequenceStep);
+    infoNode_ = info->Get("PDE")->Get("directCoupledPDE", ParamNode::APPEND);
+    infoNode_->Get(ParamNode::HEADER)->Get("sequeceStep")->SetValue(sequenceStep);
 
     // Check, whether we shall generate an SBM_System
     bool genSBMSys = false;
-    ParamNode * linSysNode =
-      param->Get( "sequenceStep", "index", GenStr(sequenceStep) )
-      ->Get("linearSystems", false );
+    PtrParamNode linSysNode =
+      param->GetByVal( "sequenceStep", std::string("index"), sequenceStep)
+      ->Get("linearSystems", ParamNode::PASS );
     if( linSysNode ) {
-      ParamNode * specSysNode = linSysNode
-        ->Get("system","name","direct", false);
+      PtrParamNode specSysNode = linSysNode
+        ->GetByVal("system","name","direct", ParamNode::PASS);
       if( specSysNode ) {
         if( specSysNode->Has("sbmMatrix") ) {
           genSBMSys = true;
@@ -203,10 +227,6 @@ namespace CoupledField {
     else {
       algsys_ = new StandardSystem(FindLinearSystem("direct"));
     }
-
-    // Get parameter and report object of OLAS
-    olasParams_ = algsys_->GetOLASParams();
-    olasReport_ = algsys_->GetOLASReport();
 
     // ----------------------------
     //  Detection of analysis type
@@ -229,20 +249,24 @@ namespace CoupledField {
       InitTimeStepping();
     }
 
-    needSolPrev_ = false;
-
+    // activate direct coupling information
+    for (UInt i=0; i<singlePDEs_.GetSize(); i++) {
+      singlePDEs_[i]->SetDirectCoupling();
+    }
+    
     // activate direct coupling information
     // and initialize all single pdes
     for (UInt i=0; i<singlePDEs_.GetSize(); i++) {
       singlePDEs_[i]->algsys_ = algsys_;
       singlePDEs_[i]->assemble_ = assemble_;
-      singlePDEs_[i]->SetDirectCoupling();
       // Initialize all SinglePDEs
       singlePDEs_[i]->Init( sequenceStep, infoNode_);
 
       // check if single PDE really needs previous solution
-      if ( singlePDEs_[i]->BelongsPDE2PiezoHyst() )
+      if ( singlePDEs_[i]->BelongsPDE2PiezoHyst() 
+           || singlePDEs_[i]->BelongsPDE2MicroPiezo() ) {
         needSolPrev_ = true;
+      }
     }
 
     // Get information about number of dirichlet values,
@@ -523,7 +547,7 @@ namespace CoupledField {
     }
 
     // Print information from assemble class
-    assemble_->ToInfo(infoNode_->Get(InfoNode::HEADER)->Get("integrators"));
+    assemble_->ToInfo(infoNode_->Get(ParamNode::HEADER)->Get("integrators"));
 
     // Allocate the necessary matrices as well as solver and preconditioner
     CreateMatrices_Solver();
@@ -646,9 +670,10 @@ namespace CoupledField {
   // ********************
   void DirectCoupledPDE::InitTimeStepping() {
 
+    PtrParamNode systemNode = FindLinearSystem("direct");
 
     // Hard Coded
-    TS_alg_ = new Newmark( algsys_, "direct" );
+    TS_alg_ = new Newmark( algsys_, systemNode );
 
     // Pass time stepping object to single pdes
     for (UInt i=0; i<singlePDEs_.GetSize(); i++) {
@@ -747,7 +772,9 @@ namespace CoupledField {
 
   void DirectCoupledPDE::DefineSolveStep() {
     REFACTOR;
-//    bool isPiezoHyst = false;
+
+//    bool isPiezoHyst  = false;
+//    bool isMicroPiezo = false;
 //
 //    // activate direct coupling information
 //    // and initialize all single pdes
@@ -755,10 +782,32 @@ namespace CoupledField {
 //      // check if single PDE really needs previous solution
 //      if ( singlePDEs_[i]->BelongsPDE2PiezoHyst() )
 //        isPiezoHyst = true;
+//
+//      //check for micro-piezo-model
+//     if ( singlePDEs_[i]->BelongsPDE2MicroPiezo() ) 
+//        isMicroPiezo = true;
 //    }
 //
-//    if ( isPiezoHyst )
+//    // check, if we have a mechacou-coupling and have
+//    // a nonlinear acoustic computation;
+//    bool acouPDEisNonlinAndCoupled2Mech = false;
+//    if ( couplings_.GetSize() == 1  &&
+//         couplings_[0]->GetName() == "acouMechDirect" ) {
+//         //check if single PDE is acoustic and is nonlinear
+//         for ( UInt i = 0; i < singlePDEs_.GetSize(); i++ ) {
+//             if ( singlePDEs_[i]->GetName() == "acoustic" &&
+//                  singlePDEs_[i]->IsNonLin() ) {
+//                  acouPDEisNonlinAndCoupled2Mech = true;
+//             }
+//         }
+//    }
+//    if ( acouPDEisNonlinAndCoupled2Mech ) {
+//      solveStep_ = new SolveStepAcoustic(*this);
+//    }
+//    else if ( isPiezoHyst )
 //      solveStep_ = new SolveStepPiezo(*this);
+//    else if ( isMicroPiezo )
+//      solveStep_ = new SolveStepMicroPiezo(*this);
 //    else
 //      solveStep_ = new StdSolveStep(*this);
   }

@@ -16,6 +16,7 @@
 #include "PDE/StdPDE.hh"
 #include "Domain/domain.hh"
 #include "Utils/result.hh"
+#include "DataInOut/ResultCache.hh"
 
 #include "OLAS/algsys/basesystem.hh"
 
@@ -38,7 +39,7 @@ namespace CoupledField {
 
   void SolveStepPiezo::PreStepTrans()
   {
-
+    ResultCache::SetStepValue( actTime_ );
 
     // due to coupling-pdes, the RHS has to be initialized BEFORE 
     // the coupling forces are assembled to the RHS
@@ -59,7 +60,7 @@ namespace CoupledField {
 
   // time is used for a series of static calculations
   // don't get confused with REAL transient simulations!
-  void SolveStepPiezo::SolveStepTrans(InfoNode* analysis_id) {
+  void SolveStepPiezo::SolveStepTrans(PtrParamNode analysis_id, AdjointParameters* adjointParams) {
 
 
     if (isHyst_) {
@@ -73,16 +74,16 @@ namespace CoupledField {
     }
 
     else {
-      StepTransLin(analysis_id);
+      StepTransLin(analysis_id, adjointParams);
     }
 
   }
 
 
-  void SolveStepPiezo::StepTransNonLinEpsDiff(InfoNode* analysis_base) {
+  void SolveStepPiezo::StepTransNonLinEpsDiff(PtrParamNode analysis_base) {
 
 
-    //    std::cout << "\n In :StepTransNonLinEpsDiff  \n " << std::endl;
+    //std::cout << "\n In :StepTransNonLinEpsDiff  \n " << std::endl;
  
     bool performOneMoreStep;
     UInt iterationCounter=0;
@@ -92,7 +93,7 @@ namespace CoupledField {
     Vector<Double> solPrev( numEqns_ );
  
     // get second order derivative of previous time step;
-    Vector<Double> solDeriv2Prev = PDE_.getS2();
+    Vector<Double> solDeriv2Prev = PDE_.getDeriv(SECOND_DERIV);
     Vector<Double> coeff;
 
     oldSol.Init(0);
@@ -119,7 +120,7 @@ namespace CoupledField {
     do {
       iterationCounter++;
 
-      InfoNode* analysis_id = BaseDriver::CreateAnalysisIdChild(analysis_base, "nonLin", iterationCounter);
+      PtrParamNode analysis_id = BaseDriver::CreateAnalysisIdChild(analysis_base, "nonLin", iterationCounter);
       
       // set solution of previous iteration
       if (iterationCounter == 1 ) {
@@ -183,10 +184,8 @@ namespace CoupledField {
     
       // output of norms and data
       nonLinLogging_ = true;
-      if ( nonLinLogging_ == true ) {
-        Info->WriteNonLinIter(pdename_, iterationCounter, residualNorm,
-                              incrementalErr);
-      }
+      if ( nonLinLogging_ == true )
+        WriteNonLinIterToInfoXML(pdename_, iterationCounter, residualNorm, incrementalErr);
 
       //    std::cout << "ResNorm=" << residualNorm << "  incrNorm=" 
       //        << incrementalErr << std::endl;
@@ -224,8 +223,7 @@ namespace CoupledField {
 
     GradientFieldOp<Double> * FieldOp = 
       new GradientFieldOp<Double>(ptgrid_, pdeElec, pdeElec->GetEqnMap(),
-                                  *sol, ELEC_POTENTIAL, 
-                                  results[0], isaxi_);
+                                  *sol, results[0]->fctType, isaxi_);
 
     std::map<RegionIdType, BaseMaterial*> elecMat = 
       pdeElec->getPDEMaterialData();
@@ -273,70 +271,69 @@ namespace CoupledField {
   }
 
 
-  void SolveStepPiezo::ComputeDiffEpsilon() {
+//   void SolveStepPiezo::ComputeDiffEpsilon() {
   
 
-    //we assume, that the actual solution is stored in sol_!
-    NodeStoreSol<Double> * solhelp = dynamic_cast<NodeStoreSol<Double>*>(sol_);
+//     //we assume, that the actual solution is stored in sol_!
+//     NodeStoreSol<Double> * solhelp = dynamic_cast<NodeStoreSol<Double>*>(sol_);
 
     
-    GradientFieldOp<Double> * FieldOp = 
-      new GradientFieldOp<Double>(ptgrid_, &PDE_, eqnMap_,
-                                  *solhelp, ELEC_POTENTIAL, 
-                                  results_[0],isaxi_);
+//     GradientFieldOp<Double> * FieldOp = 
+//       new GradientFieldOp<Double>(ptgrid_, &PDE_, eqnMap_,
+//                                   *solhelp, results_[0]->fctType,isaxi_);
 
-    Vector<Double> LCoord, Efield;
-    Double Ecomp, Pval, Dval, dE, dD, eps;
-    UInt comp;
-    UInt pdeElem=1;
+//     Vector<Double> LCoord, Efield;
+//     Double Ecomp, Pval, Dval, dE, dD, eps;
+//     UInt comp;
+//     UInt pdeElem=1;
 
-    for (UInt actSD=0; actSD<subdoms_.GetSize(); actSD++) {
-      ElemList actSDList(domain->GetGrid() );
-      actSDList.SetRegion( subdoms_[actSD] );
-      EntityIterator it = actSDList.GetIterator();
+//     for (UInt actSD=0; actSD<subdoms_.GetSize(); actSD++) {
+//       ElemList actSDList(domain->GetGrid() );
+//       actSDList.SetRegion( subdoms_[actSD] );
+//       EntityIterator it = actSDList.GetIterator();
       
-      //get direction of polarization
-      materialData_[actSD]->GetScalar((Integer&)comp,P_DIRECTION,Global::INTEGER);
-      comp -= 1;
-      UInt iel = 0;
-      for ( it.Begin(); !it.IsEnd(); it++, iel++ ) {
+//       //get direction of polarization
+//       materialData_[actSD]->GetScalar((Integer&)comp,P_DIRECTION,Global::INTEGER);
+//       comp -= 1;
+//       UInt iel = 0;
+//       for ( it.Begin(); !it.IsEnd(); it++, iel++ ) {
         
-        //compute the electric field intensity
-        it.GetElem()->ptElem->GetCoordMidPoint(LCoord);
-        FieldOp->CalcElemGradField( Efield, it, LCoord, 1);
+//         //compute the electric field intensity
+//         it.GetElem()->ptElem->GetCoordMidPoint(LCoord);
+//         FieldOp->CalcElemGradField( Efield, it, LCoord, 1);
 
-        //get correct component of electric field for scalar Preisach model
-        Ecomp = Efield[comp]; //.NormL2(); //[comp]; 
+//         //get correct component of electric field for scalar Preisach model
+//         Ecomp = Efield[comp]; //.NormL2(); //[comp]; 
 
-        //compute polarization
-        //      pdeElem = 0;
-        Pval = hyst_[actSD]->computeValue(Ecomp,pdeElem);
+//         //compute polarization
+//         //      pdeElem = 0;
+//         Pval = hyst_[actSD]->computeValue(Ecomp,pdeElem);
 
-        //      Pval = Ecomp*2e-7;
+//         //      Pval = Ecomp*2e-7;
 
-        //compute dielectric displacement
-        Dval = Pval; //8.85419E-12 * Ecomp + Pval;
+//         //compute dielectric displacement
+//         Dval = Pval; //8.85419E-12 * Ecomp + Pval;
 
-        //compute differential epsilon
-        dE = Ecomp - Eprevious_[pdeElem-1];
-        dD = Dval - Dprevious_[pdeElem-1];
-        if ( (abs(dD) < 1e-12) || (abs(dE) < 1e-10) ) {
-          materialData_[actSD]->GetScalar(eps,ELEC_PERMITTIVITY,Global::REAL);
-          if (eps < 8.854e-12) {
-            eps = 8.854e-12;
-          }
-          epsDiff_[actSD][iel] = eps;
-        }
-        else {
-          epsDiff_[actSD][iel] = dD / dE;
-        }
+//         //compute differential epsilon
+//         dE = Ecomp - Eprevious_[pdeElem-1];
+//         dD = Dval - Dprevious_[pdeElem-1];
+//         if ( (abs(dD) < 1e-12) || (abs(dE) < 1e-10) ) {
+//           materialData_[actSD]->GetScalar(eps,ELEC_PERMITTIVITY,Global::REAL);
+//           if (eps < 8.854e-12) {
+//             eps = 8.854e-12;
+//           }
+//           epsDiff_[actSD][iel] = eps;
+//         }
+//         else {
+//           epsDiff_[actSD][iel] = dD / dE;
+//         }
 
-        pdeElem++;
-      }  
-    }
+//         pdeElem++;
+//       }  
+//     }
 
-    //  std::cout << "EpsDiff: " << epsDiff_ << std::endl;
-  }
+//     //  std::cout << "EpsDiff: " << epsDiff_ << std::endl;
+//   }
 
 
 

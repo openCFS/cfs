@@ -2,7 +2,6 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include "OLAS/algsys/olasparams.hh"
 #include "MatVec/basematrix.hh"
 #include "MatVec/stdmatrix.hh"
 #include "MatVec/scrs_matrix.hh"
@@ -22,12 +21,10 @@ namespace CoupledField {
   // *****************************
   //   Constructor (for factory)
   // *****************************
-  Lapack_LL::Lapack_LL( OLAS_Params *myParams, OLAS_Report *myReport ) {
-
-
-    // Set pointers to communication objects
-    myParams_ = myParams;
-    myReport_ = myReport;
+  Lapack_LL::Lapack_LL( PtrParamNode solverNode, PtrParamNode olasInfo ) {
+    
+    xml_ = solverNode;
+    solverInfo_ = olasInfo->Get("lapackLL");
 
     // Initialise remaining attributes
     facMat_            = NULL;
@@ -45,19 +42,19 @@ namespace CoupledField {
   //   Deep Constructor
   // ********************
   Lapack_LL::~Lapack_LL() {
-    DELETEARRAY( lapackRHS_ );
-    DELETEARRAY( facMat_ );
+    delete [] ( lapackRHS_ );
+    delete [] ( facMat_ );
   }
 
 
   // ********************************
   //   Setup: Perform Factorisation
   // ********************************
-  void Lapack_LL::Setup( BaseMatrix &sysMat, InfoNode* analysis_step ) {
+  void Lapack_LL::Setup( BaseMatrix &sysMat, PtrParamNode analysis_step ) {
 
 
     // Are we expected to be verbose?
-    bool logging = myParams_->GetBoolValue( "LAPACKLL_logging" );
+    bool logging = false;
 
     // Report to logfile
     if ( logging == true ) {
@@ -66,42 +63,33 @@ namespace CoupledField {
       << sysMat.GetNumRows() << " x " << sysMat.GetNumCols()
       << " matrix" << std::endl;
     }
+    
+    StdMatrix& stdMat = dynamic_cast<StdMatrix&>(sysMat);
 
-    TRY_CAST {
+    // Check that we have the correct matrix type
+    BaseMatrix::StorageType mtype = stdMat.GetStorageType();
+    if ( mtype != BaseMatrix::SPARSE_SYM ) {
+      EXCEPTION("Lapack_LL: Expected a sparseSym matrix, but got a "
+          << BaseMatrix::storageType.ToString( mtype ) << " matrix");
+    }
 
-      // Down-cast matrix to standard matrix
-      REFCAST( sysMat, StdMatrix, stdMat );
+    // Get the entry type to figure out which Factorisation method to call
+    BaseMatrix::EntryType etype = stdMat.GetEntryType();
 
-      // Check that we have the correct matrix type
-      BaseMatrix::StorageType mtype = stdMat.GetStorageType();
-      if ( mtype != BaseMatrix::SPARSE_SYM ) {
-        EXCEPTION("Lapack_LL: Expected a sparseSym matrix, but got a "
-            << BaseMatrix::storageType.ToString( mtype ) << " matrix");
-      }
+    // Call appropriate factorisation routine
+    switch( etype ) {
 
-      // Get the entry type to figure out which Factorisation method to call
-      BaseMatrix::EntryType etype = stdMat.GetEntryType();
+    case BaseMatrix::DOUBLE:
+      FactoriseReal( stdMat );
+      break;
 
-      // Call appropriate factorisation routine
-      switch( etype ) {
+    case BaseMatrix::COMPLEX:
+      FactoriseComplex( stdMat );
+      break;
 
-        case BaseMatrix::DOUBLE:
-          TRY_CAST {
-            FactoriseReal( stdMat );
-          } CATCH_CAST;
-          break;
-
-        case BaseMatrix::COMPLEX:
-          TRY_CAST {
-            FactoriseComplex( stdMat );
-          } CATCH_CAST;
-          break;
-
-      default:
-        EXCEPTION("Matrix entry type is neither real nor complex!");
-      }
-
-    } CATCH_CAST;
+    default:
+      EXCEPTION("Matrix entry type is neither real nor complex!");
+    }
 
     // now we have a (new) factorisation
     amFactorised_ = true;
@@ -123,7 +111,7 @@ namespace CoupledField {
     UInt i, k;
 
     // Are we expected to be verbose?
-    bool logging = myParams_->GetBoolValue( "LAPACKLL_logging" );
+    bool logging = false;
 
     // Initialise parameters for DPBTRF
     char lp_uplo = 'L';
@@ -133,7 +121,7 @@ namespace CoupledField {
     int  lp_info = 0;
 
     // Down-cast matrix to special format
-    REFCAST( stdMat, SCRS_Matrix<Double>, scrsMat );
+    SCRS_Matrix<Double>& scrsMat = dynamic_cast<SCRS_Matrix<Double>&>(stdMat);
 
     // Get hold of column index array
     const UInt *cidx = scrsMat.GetColPointer();
@@ -147,10 +135,17 @@ namespace CoupledField {
     // Compute number of stored matrix entries
     // COMPWARNING: unused variable Integer nEntries = ( scrsMat.GetNnz() + lp_n ) / 2;
 
+    // TODO: THIS CHECK DOES NOT MAKE SENSE IN MY OPINION SINCE
+    //       'newMatrixPattern' is set to false in olasparams.cc
+    //       and gets never changed elsewhere. A more intelligent
+    //       test would ask the matrix if its pattern did change.
+
+    bool newMatrixPattern = false;
+      
     // Test, if we must check for a new matrix' bandwidth and
     // maybe also allocate new memory
     if ( amFactorised_ == false || facMat_ == NULL ||
-        myParams_->GetBoolValue( "newMatrixPattern" ) == true ) {
+        newMatrixPattern ) {
 
 #ifdef DEBUG_LAPACK_LL
 
@@ -158,14 +153,12 @@ namespace CoupledField {
       // two indicators agree, if not cry out loud!
       if ( (facmat_+1) != NULL || amFactorised_ == true ) {
         if ( (facmat_+1) == NULL && amFactorised_ == true ) {
-          (*error) << "Lapack_LL: Internal error. facmat_ = NULL, but "
-          << "amFactorised_ = true!";
-          Error( __FILE__, __LINE__ );
+          EXCEPTION( "Lapack_LL: Internal error. facmat_ = NULL, but "
+                     << "amFactorised_ = true!" );
         }
         else if ( amFactorised_ == false ) {
-          (*error) << "Lapack_LL: Internal error. facmat_ <> NULL, but "
-          << "amFactorised_ = false!";
-          Error( __FILE__, __LINE__ );
+          EXCEPTION( "Lapack_LL: Internal error. facmat_ <> NULL, but "
+                     << "amFactorised_ = false!" );
         }
       }
 
@@ -213,7 +206,7 @@ namespace CoupledField {
       }
       else {
         if ( facMatEntries_ > facMatCapacity_ ) {
-          DELETEARRAY( facMat_ );
+          delete [] ( facMat_ );  facMat_  = NULL;
           NEWARRAY( facMat_, Double, facMatEntries_ );
           facMatCapacity_ = facMatEntries_;
         }
@@ -277,7 +270,7 @@ namespace CoupledField {
     UInt i, k;
 
     // Are we expected to be verbose?
-    bool logging = myParams_->GetBoolValue( "LAPACKLL_logging" );
+    bool logging = false;
 
     // Initialise parameters for ZPBTRF
     char lp_uplo = 'L';
@@ -287,7 +280,7 @@ namespace CoupledField {
     int  lp_info = 0;
 
     // Down-cast matrix to special format
-    REFCAST( stdMat, SCRS_Matrix<Complex>, scrsMat );
+    SCRS_Matrix<Complex>& scrsMat = dynamic_cast<SCRS_Matrix<Complex>&>(stdMat);
 
     // Get hold of column index array
     const UInt *cidx = scrsMat.GetColPointer();
@@ -300,11 +293,18 @@ namespace CoupledField {
 
     // Compute number of stored matrix entries
     // COMPWARNING: unused variable Integer nEntries = ( scrsMat.GetNnz() + lp_n ) / 2;
+    
+    // TODO: THIS CHECK DOES NOT MAKE SENSE IN MY OPINION SINCE
+    //       'newMatrixPattern' is set to false in olasparams.cc
+    //       and gets never changed elsewhere. A more intelligent
+    //       test would ask the matrix if its pattern did change.
 
+    bool newMatrixPattern = false;
+      
     // Test, if we must check for a new matrix' bandwidth and
     // maybe also allocate new memory
     if ( amFactorised_ == false || facMat_ == NULL ||
-        myParams_->GetBoolValue( "newMatrixPattern" ) == true ) {
+        newMatrixPattern ) {
 
 #ifdef DEBUG_LAPACK_LL
 
@@ -312,14 +312,12 @@ namespace CoupledField {
       // two indicators agree, if not cry out loud!
       if ( (facmat_+1) != NULL || amFactorised_ == true ) {
         if ( (facmat_+1) == NULL && amFactorised_ == true ) {
-          (*error) << "Lapack_LL: Internal error. facmat_ = NULL, but "
-          << "amFactorised_ = true!";
-          Error( __FILE__, __LINE__ );
+          EXCEPTION( "Lapack_LL: Internal error. facmat_ = NULL, but "
+                     << "amFactorised_ = true!" );
         }
         else if ( amFactorised_ == false ) {
-          (*error) << "Lapack_LL: Internal error. facmat_ <> NULL, but "
-          << "amFactorised_ = false!";
-          Error( __FILE__, __LINE__ );
+          EXCEPTION("Lapack_LL: Internal error. facmat_ <> NULL, but "
+                    << "amFactorised_ = false!");
         }
       }
 
@@ -368,7 +366,7 @@ namespace CoupledField {
       }
       else {
         if ( 2 * facMatEntries_ > facMatCapacity_ ) {
-          DELETEARRAY( facMat_ );
+          delete [] ( facMat_ );  facMat_  = NULL;
           NEWARRAY( facMat_, Double, 2 * facMatEntries_ );
           facMatCapacity_ = 2 * facMatEntries_;
         }
@@ -429,11 +427,11 @@ namespace CoupledField {
   //   Solve linear system
   // ***********************
   void Lapack_LL::Solve( const BaseMatrix &sysMat, const BasePrecond &precond,
-                         const BaseVector &rhs, BaseVector &sol, InfoNode* analysis_step ) {
+                         const BaseVector &rhs, BaseVector &sol, PtrParamNode analysis_step ) {
 
 
     // Are we expected to be verbose?
-    bool logging = myParams_->GetBoolValue( "LAPACKLL_logging" );
+    bool logging = false;
 
     // Report to logfile
     if ( logging == true ) {
@@ -460,37 +458,32 @@ namespace CoupledField {
       }
     }
 
-    TRY_CAST {
+    const StdMatrix& stdMat = dynamic_cast<const StdMatrix&>(sysMat);
 
-      // Down-cast matrix to standard matrix
-      CONSTREFCAST( sysMat, StdMatrix, stdMat );
+    // Check that we have the correct matrix type
+    BaseMatrix::StorageType mtype = stdMat.GetStorageType();
+    if ( mtype != BaseMatrix::SPARSE_SYM ) {
+      EXCEPTION("Lapack_LL: Expected a sparseSym matrix, but got a "
+          << BaseMatrix::storageType.ToString( mtype ) << " matrix");
+    }
 
-      // Check that we have the correct matrix type
-      BaseMatrix::StorageType mtype = stdMat.GetStorageType();
-      if ( mtype != BaseMatrix::SPARSE_SYM ) {
-        EXCEPTION("Lapack_LL: Expected a sparseSym matrix, but got a "
-            << BaseMatrix::storageType.ToString( mtype ) << " matrix");
-      }
+    // Get the entry type to figure out which Factorization method to call
+    BaseMatrix::EntryType etype = stdMat.GetEntryType();
 
-      // Get the entry type to figure out which Factorization method to call
-      BaseMatrix::EntryType etype = stdMat.GetEntryType();
+    // Call appropriate solution routine
+    switch( etype ) {
 
-      // Call appropriate solution routine
-      switch( etype ) {
+    case BaseMatrix::DOUBLE:
+      SolveReal( rhs, sol );
+      break;
 
-      case BaseMatrix::DOUBLE:
-        SolveReal( rhs, sol );
-        break;
+    case BaseMatrix::COMPLEX:
+      SolveComplex( rhs, sol );
+      break;
 
-      case BaseMatrix::COMPLEX:
-        SolveComplex( rhs, sol );
-        break;
-
-      default:
-        EXCEPTION("Matrix entry type is neither real nor complex!");
-      }
-
-    } CATCH_CAST;
+    default:
+      EXCEPTION("Matrix entry type is neither real nor complex!");
+    }
 
     // Report to logfile
     if ( logging == true ) {
@@ -516,11 +509,8 @@ namespace CoupledField {
     int  lp_ldb  = lp_n;
     int  lp_info = 0;
 
-    TRY_CAST {
-
-      // Down-cast the vectors
-      CONSTREFCAST( rhs, Vector<Double>, myRHS );
-      REFCAST( sol, Vector<Double>, mySol );
+    const Vector<Double>& myRHS = dynamic_cast<const Vector<Double>&>(rhs);
+    Vector<Double>& mySol = dynamic_cast<Vector<Double>&>(sol);
 
       // Get data pointers
       const Double *dataRHS = myRHS.GetPointer();
@@ -529,7 +519,7 @@ namespace CoupledField {
       // See, whether we need to allocate storage for the
       // right-hand side array
       if ( (int) lapackRHSCapacity_ < lp_n ) {
-        DELETEARRAY( lapackRHS_ );
+        delete [] ( lapackRHS_ );  lapackRHS_  = NULL;
         NEWARRAY( lapackRHS_, Double, lp_n );
         lapackRHSCapacity_ = lp_n;
       }
@@ -553,9 +543,6 @@ namespace CoupledField {
       for ( i = 1; i <= lp_n; i++ ) {
         dataSol[i] = lapackRHS_[i];
       }
-
-    } CATCH_CAST;
-
   }
 
 
@@ -576,11 +563,8 @@ namespace CoupledField {
     int  lp_ldb  = lp_n;
     int  lp_info = 0;
 
-    TRY_CAST {
-
-      // Down-cast the vectors
-      CONSTREFCAST( rhs, Vector<Complex>, myRHS );
-      REFCAST( sol, Vector<Complex>, mySol );
+    const Vector<Complex>& myRHS = dynamic_cast<const Vector<Complex>&>(rhs);
+    Vector<Complex>& mySol = dynamic_cast<Vector<Complex>&>(sol);
 
       // Get data pointers
       const Complex *dataRHS = myRHS.GetPointer();
@@ -589,7 +573,7 @@ namespace CoupledField {
       // See, whether we need to allocate storage for the
       // right-hand side array
       if ( (int) lapackRHSCapacity_ < 2 * lp_n ) {
-        DELETEARRAY( lapackRHS_ );
+        delete [] ( lapackRHS_ );  lapackRHS_  = NULL;
         NEWARRAY( lapackRHS_, Double, 2 * lp_n );
         lapackRHSCapacity_ = 2 * lp_n;
       }
@@ -615,9 +599,5 @@ namespace CoupledField {
         Complex aux( lapackRHS_[2*i-1], lapackRHS_[2*i]  );
         dataSol[i] = aux;
       }
-
-    } CATCH_CAST;
-
   }
-
 }

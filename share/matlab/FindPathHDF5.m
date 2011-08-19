@@ -94,14 +94,7 @@ for group=1:number_of_groups
           group_name = actgroup3.Name;
 
           cmpstr = sprintf('/Results/Mesh/MultiStep_%d', multistep);
-          if strcmp(group_name, cmpstr)
-%            sprintf('We have found the multistep %d group', multistep)
-            basepath = cmpstr;
-            found = 3;
-            break
-          end
-
-          cmpstr = sprintf('/Results/Mesh/MultiStep %d', multistep);
+%         if anybody reads this line, he gets a beer from me (zoerner)
           if strcmp(group_name, cmpstr)
 %            sprintf('We have found the multistep %d group', multistep)
             basepath = cmpstr;
@@ -143,7 +136,6 @@ for mstepgroup=1:nmstepgroups
   cmpstr = sprintf('%s/Step_%d', basepath, step);
   if strcmp(group_name, cmpstr)
 %    sprintf('We have found the Step_%d group', step)
-    stepname = sprintf('Step_%d', step);
     found = 4;
     break
   end
@@ -151,7 +143,6 @@ for mstepgroup=1:nmstepgroups
   cmpstr = sprintf('%s/Step %d', basepath, step);
   if strcmp(group_name, cmpstr)
 %    sprintf('We have found the Step %d group', step)
-    stepname = sprintf('Step %d', step);
     found = 4;
     break
   end
@@ -174,8 +165,8 @@ if ext_files
   fprintf(fid, 'attribute\nread\n%s\n%s\nExtHDF5FileName\nstring\n', toplevel.Filename, curpath);
   fclose(fid);
   [status ext_filename] = exec(sprintf('h5tool < %s | tail -1', tmpfile));
-
-  if status ~= 0 || length(ext_filename) == 0
+  
+  if status ~= 0 || isempty(ext_filename)
     return
   end
 
@@ -191,7 +182,7 @@ if ext_files
     end
   end
 
-  if exist(ext_filename) == 2
+  if exist(ext_filename,'file') == 2
     try
       df_info = hdf5info(ext_filename);
     catch
@@ -295,9 +286,7 @@ case 1 % nodes
 case 4 % elements
   path_suffix = 'Elements';
 otherwise
-  errorstr = sprintf('result type %d not supported.', restype);
-  error(errorstr);
-  return
+  error('result type %d not supported.', restype);
 end
 
 % look for Nodes/Elements group

@@ -14,6 +14,7 @@ namespace CoupledField {
     : BaseForm( NULL, FULL, false ) {
 
     name_ = "SingleEntryInt";
+    imag = "0.0";
     dof_ = dof;
     numDofs_ = numDofs;
     isComplex_ = false;

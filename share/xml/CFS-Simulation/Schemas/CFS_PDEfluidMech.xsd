@@ -63,6 +63,7 @@
               <xsd:choice minOccurs="0" maxOccurs="unbounded">
                 <xsd:element name="dirichletHom"   type="DT_FluidMechHD"        />
                 <xsd:element name="dirichletInhom" type="DT_FluidMechID"        />
+                <xsd:element name="dirichletFileInhom" type="DT_FluidMechIdFile"        />
                 <xsd:element name="pressure"       type="DT_FluidMechPressure"  />
              <!--   <xsd:element name="regionLoad"     type="DT_FluidMechRegionLoad"/>
                 <xsd:element name="surfStress"     type="DT_FluidMechSurfStress"/>
@@ -186,6 +187,16 @@
         <xsd:attribute name="value" type="xsd:token" use="required"/>
         <xsd:attribute name="phase" type="xsd:token" use="optional"
           default="0.0"/>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+  <!-- Element type for inhomogeneous Dirichlet from file -->
+  <!-- boundary conditions. We derive it by extending the homogeneous case -->
+  <xsd:complexType name="DT_FluidMechIdFile">
+    <xsd:complexContent>
+      <xsd:extension base="DT_FluidMechHD">
+        <xsd:attribute name="inputId" type="xsd:token" default="default"/>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>

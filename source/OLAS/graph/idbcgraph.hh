@@ -7,9 +7,8 @@
 
 #include <iostream>
 #include <vector>
-#include "OLAS/algsys/olasparams.hh"
-#include "OLAS/graph/basegraph.hh"
 
+#include "basegraph.hh"
 
 namespace CoupledField {
 
@@ -45,7 +44,7 @@ namespace CoupledField {
     //!                    freedom; this number is used as number of columns
     //!                    of associated matrix
     IDBC_Graph( UInt numFreeDofs, UInt numFixedDofs ) :
-      BaseGraph( numFreeDofs, numFixedDofs, NOREORDERING ) {
+      BaseGraph( numFreeDofs, numFixedDofs, BaseOrdering::NOREORDERING ) {
     }
 
     //! Default destructor
@@ -72,7 +71,7 @@ namespace CoupledField {
     private:
 
     //! Default constructor is not allowed
-    IDBC_Graph( UInt numNodes, ReorderingType reorder ) {
+    IDBC_Graph( UInt numNodes, BaseOrdering::ReorderingType reorder ) {
       EXCEPTION( "Call to forbidden default constructor of "
                << "IDBC_Graph class" );
     }

@@ -17,7 +17,7 @@
 
 namespace CoupledField {
 
-  SmoothPDE::SmoothPDE(Grid * aptgrid, ParamNode* paramNode )
+  SmoothPDE::SmoothPDE(Grid * aptgrid, PtrParamNode paramNode )
     :SinglePDE(aptgrid, paramNode ) {
     
     pdename_ = "smooth";
@@ -28,10 +28,10 @@ namespace CoupledField {
     //isAlwaysStatic_ = true;
 
     // Get problem geometry and PDE subtype
-    myParam_->Get("subType", subType_ );
+    myParam_->GetValue("subType", subType_ );
 
     std::string probGeo;
-    param->Get("domain")->Get("geometryType", probGeo );
+    param->Get("domain")->GetValue("geometryType", probGeo );
 
     // Set number of degrees of freedom and
     // ensure that subtype fits to problem geometry
@@ -66,9 +66,9 @@ namespace CoupledField {
     //nonLin_ = true;
     
     //elastWeight_="byArea";
-    elastWeight_          = myParam_->Get("smoothing")->AsString();
-    characteristicLength_ = myParam_->Get("size")->AsDouble();
-    exponent_             = myParam_->Get("exponent")->AsDouble();
+    elastWeight_          = myParam_->Get("smoothing")->As<std::string>();
+    characteristicLength_ = myParam_->Get("size")->As<Double>();
+    exponent_             = myParam_->Get("exponent")->As<Double>();
 
     //    elastWeight_="byStrain";
 //    characteristicLength_ = 1.0;
@@ -81,10 +81,10 @@ namespace CoupledField {
 	  bool coordUpdate = false;
 	  
     // Get problem geometry and PDE subtype
-    myParam_->Get("subType", subType_ );
+    myParam_->GetValue("subType", subType_ );
     
     std::string probGeo;
-    param->Get("domain")->Get("geometryType", probGeo );
+    param->Get("domain")->GetValue("geometryType", probGeo );
 
     // Weigthening factors for smoothening 
     factor_.Resize(numElems_);
@@ -261,11 +261,11 @@ namespace CoupledField {
         	sol_->NodeSolutionToCoupling(*values,*couplingnodes);
         }
         else if (quantity == SMOOTH_VELOCITY) {
-        	solDeriv1_.SetAlgSysVector(getS1());     
+        	solDeriv1_.SetAlgSysVector(getDeriv(FIRST_DERIV));     
         	solDeriv1_.NodeSolutionToCoupling((*values),*couplingnodes);
         }
         else if (quantity == GRID_VELOCITY) {
-        	solDeriv1_.SetAlgSysVector(getS1());
+        	solDeriv1_.SetAlgSysVector(getDeriv(FIRST_DERIV));
         	solDeriv1_.NodeSolutionToCoupling((*values),*couplingnodes);
         }
 
@@ -304,14 +304,13 @@ namespace CoupledField {
       }
       break;
     case SMOOTH_VELOCITY:
-      ExtractDerivResult( res, 1 );
+      ExtractDerivResult( res, FIRST_DERIV );
       break;
     case GRID_VELOCITY:
-        ExtractDerivResult( res, 1 );
+        ExtractDerivResult( res, FIRST_DERIV );
       break;
     default:
-      Warning( "Resulttype not computable by smoothing PDE",
-               __FILE__, __LINE__ );
+      WARN( "Resulttype not computable by smoothing PDE" );
     }
   }
   

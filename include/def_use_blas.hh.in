@@ -9,3 +9,20 @@
 #cmakedefine USE_ACML
 #cmakedefine USE_MKL
 #cmakedefine USE_NETLIB
+
+#ifdef USE_MKL
+// Since Intel senselessly decided to rename the BuildNumber member variable
+// of the MKLVersion struct to UpdateVersion in MKL 10.2 we define our own 
+// struct here. They obviously did it to fuel the hatred of people towards
+// them who are responsible for maintaining project builds.
+typedef
+struct {
+  int       MajorVersion;
+  int       MinorVersion;
+  int       BuildNumber;
+  char *    ProductStatus;
+  char *    Build;
+  char *    Processor; 
+  char *    Platform;
+} CFSMKLVersion;
+#endif

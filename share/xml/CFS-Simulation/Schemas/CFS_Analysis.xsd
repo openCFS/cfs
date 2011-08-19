@@ -83,8 +83,8 @@
     <xsd:complexContent>
       <xsd:extension base="DT_AnalysisBasic">
         <xsd:sequence>
-          <xsd:element name="numSteps" type="xsd:nonNegativeInteger"/>
-          <xsd:element name="deltaT" type="DT_PosFloat"/>
+          <xsd:element name="numSteps" type="xsd:token"/>
+          <xsd:element name="deltaT" type="xsd:token"/>
           <xsd:element name="timeDataFile" minOccurs="0"
             maxOccurs="unbounded">
             <xsd:complexType>
@@ -97,7 +97,7 @@
             </xsd:complexType>
           </xsd:element>
           <xsd:element name="writeRestartInc"
-          type="xsd:nonNegativeInteger" minOccurs="0" maxOccurs="1"/>
+          type="xsd:token" minOccurs="0" maxOccurs="1"/>
         </xsd:sequence>
       </xsd:extension>
     </xsd:complexContent>
@@ -115,9 +115,9 @@
     <xsd:complexContent>
       <xsd:extension base="DT_AnalysisBasic">
         <xsd:sequence>
-          <xsd:element name="numFreq" type="xsd:nonNegativeInteger" minOccurs="0" maxOccurs="1"/>
-          <xsd:element name="startFreq" type="DT_PosFloat" minOccurs="0" maxOccurs="1"/>
-          <xsd:element name="stopFreq" type="DT_PosFloat" minOccurs="0" maxOccurs="1"/>
+          <xsd:element name="numFreq" type="xsd:token" minOccurs="0" maxOccurs="1"/>
+          <xsd:element name="startFreq" type="xsd:token" minOccurs="0" maxOccurs="1"/>
+          <xsd:element name="stopFreq" type="xsd:token" minOccurs="0" maxOccurs="1"/>
           <xsd:element name="sampling" minOccurs="0" maxOccurs="1" default="linear">
             <xsd:simpleType>
               <xsd:restriction base="xsd:token">
@@ -127,22 +127,13 @@
               </xsd:restriction>
             </xsd:simpleType>
           </xsd:element>
-          <xsd:element name="freqDataFile" minOccurs="0"  maxOccurs="unbounded">
-            <xsd:complexType>
-              <xsd:complexContent>
-                <xsd:restriction base="xsd:anyType">
-                  <xsd:attribute name="name" type="xsd:string" use="optional" default="none"/>
-                </xsd:restriction>
-              </xsd:complexContent>
-            </xsd:complexType>
-          </xsd:element>
           <xsd:element name="frequencyList" minOccurs="0" maxOccurs="1">
             <xsd:complexType>
               <xsd:sequence>
                 <xsd:element name="freq" maxOccurs="unbounded" minOccurs="1">
                   <xsd:complexType>
-                    <xsd:attribute name="value" type="xsd:float" use="required"/>
-                    <xsd:attribute name="weight" type="xsd:float" default="1.0" use="optional"/> 
+                    <xsd:attribute name="value" type="xsd:token" use="required"/>
+                    <xsd:attribute name="weight" type="xsd:token" default="1.0" use="optional"/> 
                   </xsd:complexType>
                 </xsd:element>                
               </xsd:sequence>
@@ -165,7 +156,7 @@
       <xsd:extension base="DT_AnalysisBasic">
         <xsd:sequence>
           <xsd:element name="isQuadratic" type="DT_CFSBool"/>
-          <xsd:element name="numModes" type="xsd:nonNegativeInteger"/>
+          <xsd:element name="numModes" type="xsd:token"/>
           <xsd:element name="freqShift" type="DT_NonNegFloat"/>
           <xsd:element name="writeModes" type="DT_CFSBool"/>
         </xsd:sequence>

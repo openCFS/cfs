@@ -70,11 +70,8 @@ namespace CoupledField {
                                              shared_ptr<ResultInfo> result) 
   {
 
-    EfieldOp_ =  new GradientFieldOp<Double>(ptGrid, ptPDE, 
-                                             eqnMap, *sol2_, 
-                                             ELEC_POTENTIAL, 
-                                             result, isaxi_, 
-                                             coordUpdate_);
+    EfieldOp_ =  new GradientFieldOp<Double>(ptGrid, ptPDE, eqnMap, *sol2_,
+                                             result->fctType, isaxi_, coordUpdate_);
 
     if (  isHysteresis_ ) {
       // get direction of polarization
@@ -144,7 +141,7 @@ namespace CoupledField {
        calcAMat( aMat, actIntPt, ptCoord_ );
 
        // Setup the B matrix for current integration point
-       calcBMat( bMat, actIntPt, ptCoord_ );
+       CalcBMat( bMat, actIntPt, ptCoord_ );
 
       // Compute Jacobian for integration point
        jacDet = ptelem->CalcJacobianDetAtIp( actIntPt, ptCoord_,ent1.GetElem() );
@@ -231,7 +228,7 @@ namespace CoupledField {
       // std::cout << "\n coupling tensor depends on electric polarization \n" << std::endl;
       //      std::cout << "Efield:\n " << Efield << std::endl;
       UInt nrEl = ent1_.GetElem()->elemNum;
-      Double actP = matDataElec_->ComputeScalarHystVal( nrEl, Efield ); //[dirP_] );
+      Double actP = matDataElec_->ComputeScalarHystVal( nrEl, Efield[dirP_] );
       Double scaleFactor = actP / Psat_;
       dMat *= scaleFactor;
       //     std::cout << " scaleFactor= " <<  scaleFactor << std::endl;

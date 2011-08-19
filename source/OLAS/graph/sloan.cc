@@ -71,9 +71,9 @@ namespace CoupledField {
     CalcProfile();
 
     // Clear memory
-    DELETEARRAY( xls    );
-    DELETEARRAY( ls     );
-    DELETEARRAY( hlevel );
+    delete [] ( xls    );  xls     = NULL;
+    delete [] ( ls     );  ls      = NULL;
+    delete [] ( hlevel );  hlevel  = NULL;
 
   }
 

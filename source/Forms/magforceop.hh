@@ -15,7 +15,7 @@ namespace CoupledField
 
   // Forward declaration of classes
   class Grid;
-  class Elem;
+  struct Elem;
   template<class TYPE> class Vector;
   template<class TYPE> class Matrix;
 
@@ -71,7 +71,7 @@ namespace CoupledField
 
     //! This is a static const Double
 
-    //! Warning: This violates the ISO C++ standard. Only integral types
+    //! WARN: This violates the ISO C++ standard. Only integral types
     //!          can be static and const!
     //! \todo eps0 violates the ISO C++ standard. Only integral types
     //!       can be static and const!

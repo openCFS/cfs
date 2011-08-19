@@ -14,6 +14,9 @@ CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_arpack.hh.in"
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_ilupack.hh.in"
   "${CFS_BINARY_DIR}/include/def_use_ilupack.hh")
 
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_cholmod.hh.in"
+  "${CFS_BINARY_DIR}/include/def_use_cholmod.hh")
+
 IF(CFS_BLAS_LAPACK STREQUAL "MKL")
   SET(USE_MKL 1)
 ENDIF(CFS_BLAS_LAPACK STREQUAL "MKL")
@@ -48,6 +51,12 @@ CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_ipopt.hh.in"
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_scpip.hh.in"
   "${CFS_BINARY_DIR}/include/def_use_scpip.hh")
 
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_snopt.hh.in"
+  "${CFS_BINARY_DIR}/include/def_use_snopt.hh")
+
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_knitro.hh.in"
+  "${CFS_BINARY_DIR}/include/def_use_knitro.hh")
+
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_interpolation.hh.in"
   "${CFS_BINARY_DIR}/include/def_use_interpolation.hh")
 
@@ -71,6 +80,9 @@ CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_gidpost.hh.in"
 
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_hdf5.hh.in"
   "${CFS_BINARY_DIR}/include/def_use_hdf5.hh")
+
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_gmsh.hh.in"
+  "${CFS_BINARY_DIR}/include/def_use_gmsh.hh")
 
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_gmv.hh.in"
   "${CFS_BINARY_DIR}/include/def_use_gmv.hh")

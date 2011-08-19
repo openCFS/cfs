@@ -17,20 +17,7 @@
 // have to be made
 namespace OutInfo{
 
-  std::ostream *debug    = NULL;
   std::ostream *cla      = NULL;
-  std::ostream *memtrace = NULL;
-
-  // Generate string stream for generation of error messages
-//  std::stringstream *error = new std::stringstream();
-
-  // Generate string stream for generation of warning messages
-  std::stringstream *warning = new std::stringstream();
-
-#ifdef MEMTRACE
-  double sumdmem = 0;
-  double sumimem = 0;
-#endif
 }
 
 namespace CoupledField {
@@ -38,9 +25,6 @@ namespace CoupledField {
 
   LogConfigurator * logConf = new LogConfigurator();
 
-#ifdef PROFILING
-  Profiler * profiler = NULL;
-#endif
 
 #ifdef USE_SCRIPTING
   CFSMessenger * messenger = NULL;
@@ -265,199 +249,229 @@ namespace CoupledField {
     switch(solType)
     {
 
-    case ACOU_FORCE:
-      return "N";
-      break;
+      case ACOU_FORCE:
+        return "N";
+        break;
 
-    case ACOU_INTENSITY:
-      return "W/m^2";
-      break;
+      case ACOU_INTENSITY:
+        return "W/m^2";
+        break;
 
-    case ACOU_POTENTIAL:
-      return "m^2/s";
-      break;
+      case ACOU_POTENTIAL:
+        return "m^2/s";
+        break;
 
-    case ACOU_POTENTIAL_DERIV_1:
-      return "m^2/s^2";
-      break;
+      case ACOU_POTENTIAL_DERIV_1:
+        return "m^2/s^2";
+        break;
 
-    case ACOU_POTENTIAL_DERIV_2:
-      return "m^2/s^3";
-      break;
+      case ACOU_POTENTIAL_DERIV_2:
+        return "m^2/s^3";
+        break;
 
-    case ACOU_POWER:
-      return "W";
-      break;
+      case ACOU_POWER:
+        return "W";
+        break;
 
-    case ACOU_PRESSURE:
-      return "Pa";
-      break;
+      case ACOU_PRESSURE:
+        return "Pa";
+        break;
 
-    case ACOU_PRESSURE_DERIV_1:
-      return "Pa/s";
-      break;
+      case ACOU_ACCELERATION:
+        return "m/s^2";
+        break;
 
-    case ACOU_PRESSURE_DERIV_2:
-      return "Pa/s^2";
-      break;
+      case ACOU_PRESSURE_DERIV_1:
+        return "Pa/s";
+        break;
 
-    case ACOU_PRESSUREXYZ:
-      return "Pa";
-      break;
+      case ACOU_PRESSURE_DERIV_2:
+        return "Pa/s^2";
+        break;
 
-    case ACOU_RHS_LOAD:
-      return "kg m^-3 s^-2";
-      break;
+      case ACOU_PRESSUREXYZ:
+        return "Pa";
+        break;
 
-    case ACOU_SURFINTENSITY:
-      return "W/m^2";
-      break;
+      case ACOU_RHS_LOAD:
+        return "kg m^-3 s^-2";
+        break;
 
-    case ACOU_VELOCITY:
-      return "m/s";
-      break;
+      case ACOU_RHS_LOAD_DENSITY:
+        return "kg m^-6 s^-2";
+        break;
 
+      case ACOU_DIV_LH_TENSOR:
+        return "kg m^-2 s^-2";
+        break;
 
-    case ELEC_CHARGE:
-      return "C";
-      break;
+      case ACOU_VELOCITY:
+        return "m/s";
+        break;
 
-    case ELEC_ENERGY:
-      return "Ws";
-      break;
+      case ACOU_SURFINTENSITY:
+        return "W/m^2";
+        break;
 
-    case ELEC_POLARIZATION:
-      return "C/m^2";
-      break;
+      case ACOU_ENERGY:
+        return "Ws";
+        break;
 
-    case ELEC_PSEUDO_POLARIZATION:
-      return "";
-      break;
+      case ACOU_ELEM_SPEED_OF_SOUND:
+        return "m/s";
+        break;
 
-    case ELEC_FIELD_INTENSITY:
-      return "V/m";
-      break;
+      case ELEC_CHARGE:
+        return "C";
+        break;
 
-    case ELEC_POTENTIAL:
-      return "V";
-      break;
+      case ELEC_ENERGY:
+        return "Ws";
+        break;
 
-    case ELEC_RHS_LOAD:
-      return "C";
-      break;
+      case ELEC_POLARIZATION:
+        return "C/m^2";
+        break;
 
-    case FLUIDMECH_VELOCITY:
-      return "m/s";
-      break;
+      case ELEC_FLUX_DENSITY:
+        return "C/m^2";
+        break;
 
-    case FLUIDMECH_PRESSURE:
-      return "Pa";
-      break;
+      case ELEC_PSEUDO_POLARIZATION:
+        return "";
+        break;
 
-    case FLUIDMECH_DENSITY:
-      return "kg/m^3";
-      break;
+      case ELEC_FIELD_INTENSITY:
+        return "V/m";
+        break;
 
-    case FLUIDMECH_TKE:
-      return "J";
-      break;
+      case ELEC_POTENTIAL:
+        return "V";
+        break;
 
-    case HEAT_TEMPERATURE:
-      return "K";
-      break;
+      case ELEC_RHS_LOAD:
+        return "C";
+        break;
 
-    case HEAT_RHS_LOAD:
-      return "?";
-      break;
+      case FLUIDMECH_VELOCITY:
+        return "m/s";
+        break;
 
-    case MAG_FLUX_DENSITY:
-      return "Vs/m^2";
-      break;
+      case FLUIDMECH_PRESSURE:
+        return "Pa";
+        break;
 
-    case MAG_HFIELD:
-      return "A/m";
-      break;
+      case FLUIDMECH_DENSITY:
+        return "kg/m^3";
+        break;
 
-    case MAG_EDDY_CURRENT:
-      return "A/m^2";
-      break;
+      case FLUIDMECH_TKE:
+        return "J";
+        break;
 
-    case MAG_POTENTIAL:
-      return "Vs/m";
-      break;
+      case HEAT_TEMPERATURE:
+        return "K";
+        break;
 
-    case MAG_RHS_LOAD:
-      return "Am";
-      break;
-    
-    case MAG_ELEM_PERMEABILITY:
-      return "Vs/Am";
+      case HEAT_RHS_LOAD:
+        return "?";
+        break;
 
-    case MAG_EDDY_POWER:
-      return "W";
-      break;
+      case MAG_FLUX_DENSITY:
+        return "Vs/m^2";
+        break;
 
-    case MAG_ENERGY:
-      return "Ws";
-      break;
+      case MAG_HFIELD:
+        return "A/m";
+        break;
 
-    case MAG_FORCE_VWP:
-      return "N";
-      break;
+      case MAG_EDDY_CURRENT:
+        return "A/m^2";
+        break;
 
-    case MECH_DEF_VOLUME:
-      return "m^3";
-      break;
+      case MAG_POTENTIAL:
+        return "Vs/m";
+        break;
 
-    case MECH_DISPLACEMENT:
-      return "m";
-      break;
+      case MAG_SCALAR_POTENTIAL:
+        return "A";
+        break;
 
-    case MECH_VELOCITY:
-      return "m/s";
-      break;
+      case MAG_RHS_LOAD:
+        return "Am";
+        break;
 
-    case MECH_ACCELERATION:
-      return "m/s^2";
-      break;
+      case MAG_ELEM_PERMEABILITY:
+        return "Vs/Am";
 
-    case MECH_RHS_LOAD:
-      return "N";
-      break;
+      case MAG_EDDY_POWER:
+        return "W";
+        break;
 
-    case MECH_ENERGY:
-      return "Ws";
-      break;
+      case MAG_ENERGY:
+        return "Ws";
+        break;
 
-    case MECH_PSEUDO_DENSITY:
-      return "";
-      break;
+      case MAG_FORCE_VWP:
+        return "N";
+        break;
 
-    case MECH_STRESS:
-      return "N/m^2";
-      break;
+      case MECH_DEF_VOLUME:
+        return "m^3";
+        break;
 
-    case MECH_STRAIN:
-      return "";
-      break;
+      case MECH_DISPLACEMENT:
+      case LUMPED_MECH_DISPLACEMENT:
+        return "m";
+        break;
 
-    case MECH_STRAIN_IRR:
-      return "N/m^2";
-      break;
+      case MECH_VELOCITY:
+        return "m/s";
+        break;
 
-    case SMOOTH_DISPLACEMENT:
-      return "m";
-      break;
+      case MECH_ACCELERATION:
+        return "m/s^2";
+        break;
 
-    case SMOOTH_VELOCITY:
-      return "m/s";
-      break;
+      case MECH_RHS_LOAD:
+        return "N";
+        break;
 
-    default:
-      return "unknown";
-      break;
+      case MECH_ENERGY:
+        return "Ws";
+        break;
+
+      case MECH_PSEUDO_DENSITY:
+      case PHYSICAL_PSEUDO_DENSITY:
+        return "";
+        break;
+
+      case MECH_STRESS:
+      case MECH_PRESSURE:
+      case MECH_STRAIN_IRR:
+        return "N/m^2";
+        break;
+
+      case MECH_STRAIN:
+        return "";
+        break;
+
+      case SMOOTH_DISPLACEMENT:
+        return "m";
+        break;
+
+      case SMOOTH_VELOCITY:
+        return "m/s";
+        break;
+
+      default:
+        return "unknown";
+        break;
     }
   }
+
+  
+  
 
 
   // ComplexFormat
@@ -541,402 +555,11 @@ namespace CoupledField {
   }
 
   template<>
-  void Enum2String<MaterialType>(const MaterialType &in, std::string &out) {
-    switch(in) {
-    case NO_MATERIAL:
-      out = "noMaterial";
-      break;
-    case MAG_PERMEABILITY:
-      out = "Magnetic_permability";
-      break;
-    case MAG_PERMEABILITY_1:
-      out = "Magnetic_permability_1";
-      break;
-    case MAG_PERMEABILITY_2:
-      out = "Magnetic_permability_2";
-      break;
-    case MAG_PERMEABILITY_3:
-      out = "Magnetic_permability_3";
-      break;
-    case MAG_RELUCTIVITY:
-      out = "Magnetic_reluctivity";
-      break;
-    case MAG_CONDUCTIVITY:
-      out = "Magnetic_Conductiuvity";
-      break;
-    case ELEC_PERMITTIVITY:
-      out = "Electric_Permittivity";
-      break;
-    case MECH_STIFFNESS_TENSOR:
-      out = "MechanicStiffnessTensor";
-      break;
-    case COEFF_STRAIN_IRREVERSIBLE:
-      out = "Coeff_Strain_Irreversible";
-      break;
-    case MECH_EMODULUS:
-      out = "Mechanic_Emodulus";
-      break;
-    case MECH_EMODULUS_X:
-      out = "Mechanic_Emodulus_X";
-      break;
-    case MECH_EMODULUS_Y:
-      out = "Mechanic_Emodulus_Y";
-      break;
-    case MECH_EMODULUS_Z:
-      out = "Mechanic_Emodulus_Z";
-      break;
-    case MECH_POISSON:
-      out = "Mechanic_PoissonRation";
-      break;
-    case MECH_POISSON_XY:
-      out = "Mechanic_PoissonRation_XY";
-      break;
-    case MECH_POISSON_YZ:
-      out = "Mechanic_PoissonRation_YZ";
-      break;
-    case MECH_POISSON_XZ:
-      out = "Mechanic_PoissonRation_XZ";
-      break;
-    case MECH_KMODULUS:
-      out = "Mechanic_Kmodulus";
-      break;
-    case MECH_GMODULUS:
-      out = "Mechanic_Gmodulus";
-      break;
-    case MECH_GMODULUS_YZ:
-      out = "Mechanic_Gmodulus_YZ";
-      break;
-    case MECH_GMODULUS_ZX:
-      out = "Mechanic_Gmodulus_ZX";
-      break;
-    case MECH_GMODULUS_XY:
-      out = "Mechanic_Gmodulus_XY";
-      break;
-    case MECH_LAME_MU:
-      out = "Mechanic_LameMu";
-      break;
-    case MECH_LAME_LAMBDA:
-      out = "Mechanic_LameLambda";
-      break;
-    case RAYLEIGH_ALPHA:
-      out = "Rayleigh_Alpha";
-      break;
-    case RAYLEIGH_BETA:
-      out = "Rayleigh_Beta";
-      break;
-    case RAYLEIGH_FREQUENCY:
-      out = "Rayleigh_Frequency";
-      break;
-    case RAYLEIGH_DELTA_FREQ:
-      out = "Rayleigh_DeltaFreq";
-      break;
-    case LOSS_TANGENS_DELTA:
-      out = "Loss_TangensDelta";
-      break;
-     case DENSITY:
-      out = "Density";
-      break;
-    case ACOU_BULK_MODULUS:
-      out = "AcousticBulkModulus";
-      break;
-    case ACOU_SOUND_SPEED:
-      out = "Acoustic_SoundSpeed";
-      break;
-    case BOVERA:
-      out = "BoverA";
-      break;
-    case ACOU_ALPHA:
-      out = "AcousticAlpha";
-      break;
-    case FRACTIONAL_ALG:
-      out = "FractionalAlg";
-      break;
-    case FRACTIONAL_MEMORY:
-      out = "FractionalMemory";
-      break;
-    case FRACTIONAL_INTERPOL:
-      out = "FractionalInterpol";
-      break;
-    case FRACTIONAL_EXPONENT:
-      out = "FractionalExponent";
-      break;
-    case HEAT_CONDUCTIVITY:
-      out = "HeatConductivity";
-      break;
-    case HEAT_CONDUCTIVITY_TENSOR:
-      out = "HeatConductivity_Tensor";
-      break;
-    case HEAT_CAPACITY:
-      out = "HeatCapacity";
-      break;
-    case THERMAL_EXPANSION_TENSOR:
-      out = "thermalExpansion";
-      break;
-    case DYNAMIC_VISCOSITY:
-      out = "dynamicViscosity";
-      break;
-    case KINEMATIC_VISCOSITY:
-      out = "kinematicViscosity";
-      break;
-    case PIEZO_TENSOR:
-      out = "PiezoTensor";
-      break;
-    case X_SATURATION:
-      out = "Xsaturation";
-      break;
-    case Y_SATURATION:
-      out = "Ysaturation";
-      break;
-    case Y_REMANENCE:
-      out = "Yremanence";
-      break;
-    case PREISACH_WEIGHTS:
-      out = "preisachWeights";
-      break;
-    case A_JILES:
-      out = "aJiles";
-      break;
-    case ALPHA_JILES:
-      out = "alphaJiles";
-      break;
-    case K_JILES:
-      out = "kJiles";
-      break;
-    case C_JILES:
-      out = "cJiles";
-      break;
-    case P_DIRECTION:
-      out = "Pdirection";
-      break;
-    case HYST_MODEL:
-      out = "hystModel";
-      break;
-    case NONLIN_COEFFICIENT:
-      out = "nonLinCoefficient";
-      break;
-    case NONLIN_DEPENDENCY:
-      out = "nonLinDependency";
-      break;
-    case NONLIN_APPROXIMATION_TYPE:
-      out = "nonLinApproximationType";
-      break;
-    case NONLIN_DATA_NAME:
-      out = "nonLinDataName";
-      break;
-    case DATA_ACCURACY:
-      out = "dataAccuracy";
-      break;
-    case MAX_APPROX_VAL:
-      out = "maxApproxVal";
-      break;
-    case PYROCOEFFICIENT_TENSOR:
-      out = "Pyrocoefficient_Tensor";
-      break;
-    default:
-      EXCEPTION("No conversion found for your 'DataType'");
-    }
-  }
-
-  template<>
-  void String2Enum<MaterialType>( const std::string &in, MaterialType &out ) {
-    if ( in == "noMaterial" ) {
-      out = NO_MATERIAL;
-    }
-    else if ( in == "Magnetic_permability" ) {
-      out = MAG_PERMEABILITY;
-    }
-    else if ( in == "Magnetic_permability_1" ) {
-      out = MAG_PERMEABILITY_1;
-    }
-    else if ( in == "Magnetic_permability_2" ) {
-      out = MAG_PERMEABILITY_2;
-    }
-    else if ( in == "Magnetic_permability_3" ) {
-      out = MAG_PERMEABILITY_3;
-    }
-    else if ( in == "Magnetic_reluctivity" ) {
-      out = MAG_RELUCTIVITY;
-    }
-    else if ( in == "Magnetic_Conductiuvity" ) {
-      out = MAG_CONDUCTIVITY;
-    }
-    else if ( in == "Electric_Permittivity" ) {
-      out = ELEC_PERMITTIVITY;
-    }
-    else if ( in == "MechanicStiffnessTensor" ) {
-      out = MECH_STIFFNESS_TENSOR;
-    }
-    else if ( in == "Coeff_Strain_Irreversibel" ) {
-      out = COEFF_STRAIN_IRREVERSIBLE;
-    }
-    else if ( in == "Mechanic_Emodulus" ) {
-      out = MECH_EMODULUS;
-    }
-    else if ( in == "Mechanic_Emodulus_X" ) {
-      out = MECH_EMODULUS_X;
-    }
-    else if ( in == "Mechanic_Emodulus_Y" ) {
-      out = MECH_EMODULUS_Y;
-    }
-    else if ( in == "Mechanic_Emodulus_Z" ) {
-      out = MECH_EMODULUS_Z;
-    }
-    else if ( in == "Mechanic_PoissonRation" ) {
-      out = MECH_POISSON;
-    }
-    else if ( in == "Mechanic_PoissonRation_XY" ) {
-      out = MECH_POISSON_XY;
-    }
-    else if ( in == "Mechanic_PoissonRation_YZ" ) {
-      out = MECH_POISSON_YZ;
-    }
-    else if ( in == "Mechanic_PoissonRation_XZ" ) {
-      out = MECH_POISSON_XZ;
-    }
-    else if ( in == "Mechanic_Kmodulus" ) {
-      out = MECH_KMODULUS;
-    }
-    else if ( in == "Mechanic_Gmodulus" ) {
-      out = MECH_GMODULUS;
-    }
-    else if ( in == "Mechanic_Gmodulus_YZ" ) {
-      out = MECH_GMODULUS_YZ;
-    }
-    else if ( in == "Mechanic_Gmodulus_ZX" ) {
-      out = MECH_GMODULUS_ZX;
-    }
-    else if ( in == "Mechanic_Gmodulus_XY" ) {
-      out = MECH_GMODULUS_XY;
-    }
-    else if ( in == "Mechanic_LameMu" ) {
-      out = MECH_LAME_MU;
-    }
-    else if ( in == "Mechanic_LameLambda" ) {
-      out = MECH_LAME_LAMBDA;
-    }
-    else if ( in == "Rayleigh_Alpha" ) {
-      out = RAYLEIGH_ALPHA;
-    }
-    else if ( in == "Rayleigh_Beta" ) {
-      out = RAYLEIGH_BETA;
-    }
-    else if ( in == "Rayleigh_Frequency" ) {
-      out = RAYLEIGH_FREQUENCY;
-    }
-    else if ( in == "Rayleigh_DeltaFreq" ) {
-      out = RAYLEIGH_DELTA_FREQ;
-    }
-    else if ( in == "Loss_TangensDelta" ) {
-      out = LOSS_TANGENS_DELTA;
-    }
-    else if ( in == "Density" ) {
-      out = DENSITY;
-    }
-    else if ( in == "AcousticBulkModulus" ) {
-      out = ACOU_BULK_MODULUS;
-    }
-    else if ( in == "Acoustic_SoundSpeed" ) {
-      out = ACOU_SOUND_SPEED;
-    }
-    else if ( in == "BoverA" ) {
-      out = BOVERA;
-    }
-    else if ( in == "AcousticAlpha" ) {
-      out = ACOU_ALPHA;
-    }
-    else if ( in == "FractionalAlg" ) {
-      out = FRACTIONAL_ALG;
-    }
-    else if ( in == "FractionalMemory" ) {
-      out = FRACTIONAL_MEMORY;
-    }
-    else if ( in == "FractionalInterpol" ) {
-      out = FRACTIONAL_INTERPOL;
-    }
-    else if ( in == "FractionalExponent" ) {
-      out = FRACTIONAL_EXPONENT;
-    }
-    else if ( in == "HeatConductivity" ) {
-      out = HEAT_CONDUCTIVITY;
-    }
-    else if ( in == "HeatConductivity_Tensor" ) {
-      out = HEAT_CONDUCTIVITY_TENSOR;
-    }
-    else if ( in == "HeatCapacity" ) {
-      out = HEAT_CAPACITY;
-    }
-    else if ( in == "thermalExpansion_Tensor" ) {
-      out = THERMAL_EXPANSION_TENSOR;
-    }
-    else if ( in == "dynamicViscosity" ) {
-      out = DYNAMIC_VISCOSITY;
-    }
-    else if ( in == "kinematicViscosity" ) {
-      out = KINEMATIC_VISCOSITY;
-    }
-    else if ( in == "PiezoTensor" ) {
-      out = PIEZO_TENSOR;
-    }
-    else if ( in == "Xsaturation" ) {
-      out = X_SATURATION;
-    }
-    else if ( in == "Ysaturation" ) {
-      out = Y_SATURATION;
-    }
-    else if ( in == "Yremanence" ) {
-      out = Y_REMANENCE;
-    }
-    else if ( in == "preisachWeights" ) {
-      out = PREISACH_WEIGHTS;
-    }
-    else if ( in == "aJiles" ) {
-      out = A_JILES;
-    }
-    else if ( in == "alphaJiles" ) {
-      out = ALPHA_JILES;
-    }
-    else if ( in == "kJiles" ) {
-      out = K_JILES;
-    }
-    else if ( in == "cJiles" ) {
-      out = C_JILES;
-    }
-    else if ( in == "Pdirection" ) {
-      out = P_DIRECTION;
-    }
-    else if ( in == "hystModel" ) {
-      out = HYST_MODEL;
-    }
-    else if ( in == "nonLinCoefficient" ) {
-      out = NONLIN_COEFFICIENT;
-    }
-    else if ( in == "nonLinDependency" ) {
-      out = NONLIN_DEPENDENCY;
-    }
-    else if ( in == "nonLinApproximationType" ) {
-      out = NONLIN_APPROXIMATION_TYPE;
-    }
-    else if ( in == "nonLinDataName" ) {
-      out = NONLIN_DATA_NAME;
-    }
-    else if ( in == "dataAccuracy" ) {
-      out = DATA_ACCURACY;
-    }
-    else if ( in == "maxApproxVal" ) {
-      out = MAX_APPROX_VAL;
-    }
-    else if ( in == "Pyrocoefficient_Tensor" ) {
-      out = PYROCOEFFICIENT_TENSOR;
-    }
-    else {
-      EXCEPTION("No conversion from string to 'MaterialType' found");
-    }
-  }
-
-
-  template<>
   void Enum2String<SubTensorType>(const SubTensorType &in, std::string &out) {
     switch(in) {
+      case NO_TENSOR:
+        out = "noTensor";
+        break;
     case PLANE_STRAIN:
       out = "planeStrain";
       break;
@@ -959,6 +582,9 @@ namespace CoupledField {
 
   template<>
   void String2Enum<SubTensorType>( const std::string &in, SubTensorType &out ) {
+    if ( in == "noTensor" ) {
+       out = NO_TENSOR;
+    }
     if ( in == "planeStrain" ) {
       out = PLANE_STRAIN;
     }
@@ -982,43 +608,48 @@ namespace CoupledField {
 
 
 
+
+
   template<>
   void Enum2String<MaterialClass>(const MaterialClass &in,
                                   std::string &out) {
     switch(in) {
-    case NO_CLASS:
-      out = "No MaterialClass";
-      break;
-    case ELECTROMAGNETIC:
-      out = "magnetic";
-      break;
-    case ELECTROSTATIC:
-      out = "electric";
-      break;
-    case FLUID:
-      out = "acoustic";
-      break;
-    case FLOW:
-      out = "flow";
-      break;
-    case MECHANIC:
-      out = "mechanical";
-      break;
-    case PIEZO:
-      out = "piezo";
-      break;
-    case THERMIC:
-      out = "heatConduction";
-      break;
-    case PYROELECTRIC:
-      out = "pyroelectric";
-      break;
-    case THERMOELASTIC:
-      out = "thermoelastic";
-      break;
+      case NO_CLASS:
+        out = "No MaterialClass";
+        break;
+      case ELECTROMAGNETIC:
+        out = "magnetic";
+        break;
+      case ELECTROSTATIC:
+        out = "electric";
+        break;
+      case FLUID:
+        out = "acoustic";
+        break;
+      case FLOW:
+        out = "flow";
+        break;
+      case MECHANIC:
+        out = "mechanical";
+        break;
+      case PIEZO:
+        out = "piezo";
+        break;
+      case THERMIC:
+        out = "heatConduction";
+        break;
+      case PYROELECTRIC:
+        out = "pyroelectric";
+        break;
+      case THERMOELASTIC:
+        out = "thermoelastic";
+        break;
+      case MAGNETOSTRICTIVE:
+        out = "magnetoStrictive";
+        break;
 
-    default:
-      EXCEPTION("No conversion found for your 'MaterialClass'" );
+      default:
+        EXCEPTION("No conversion found for your 'MaterialClass'" );
     }
   }
 
@@ -1052,11 +683,14 @@ namespace CoupledField {
     else if ( in == "thermic" ) {
       out = THERMIC;
     }
-	else if ( in == "pyroelectric" ) {
+    else if ( in == "pyroelectric" ) {
       out = PYROELECTRIC;
     }
-	else if ( in == "thermoelastic" ) {
+    else if ( in == "thermoelastic" ) {
       out = THERMOELASTIC;
+    }
+    else if ( in == "magnetoStrictive" ) {
+      out = MAGNETOSTRICTIVE;
     }
     else {
       EXCEPTION( "'" << in << "' cannot be converted into an '"
@@ -1093,29 +727,29 @@ namespace CoupledField {
 
   template<>
   void Enum2String<Directions>(const Directions &in,
-			       std::string &out) {
+                               std::string &out) {
     switch(in) {
-    case X:
-      out = "X";
-      break;
-    case Y:
-      out = "Y";
-      break;
-    case Z:
-      out = "Z";
-      break;
-    case radXY:
-      out = "radXY";
-      break;
-    case radXZ:
-      out = "radXZ";
-      break;
-    case radYZ:
-      out = "radYZ";
-      break;
+      case X:
+        out = "X";
+        break;
+      case Y:
+        out = "Y";
+        break;
+      case Z:
+        out = "Z";
+        break;
+      case radXY:
+        out = "radXY";
+        break;
+      case radXZ:
+        out = "radXZ";
+        break;
+      case radYZ:
+        out = "radYZ";
+        break;
 
-    default:
-      EXCEPTION("No conversion found for your 'MaterialClass'" );
+      default:
+        EXCEPTION("No conversion found for your 'MaterialClass'" );
     }
   }
 
@@ -1140,8 +774,14 @@ namespace CoupledField {
       out = GEOMETRIC;
     } else if( in == "hysteresis") {
       out = HYSTERESIS;
+    } else if( in == "piezoMicroHF") {
+      out = PIEZO_MICRO_HF;
     } else if( in == "permeability") {
       out = PERMEABILITY;
+    } else if( in == "heatConductivity") {
+      out = NLHEAT_CONDUCTIVITY;
+    } else if( in == "heatCapacity") {
+      out = NLHEAT_CAPACITY;
 
     } else {
       EXCEPTION( "'" << in << "' cannot be converted into an "
@@ -1154,38 +794,48 @@ namespace CoupledField {
   void Enum2String<NonLinType>( const NonLinType &in, std::string& out ) {
 
     switch(in) {
-    case NO_NONLINEARITY:
-      out = "noNonLinearity";
-      break;
-    case WESTERVELT:
-      out = "westervelt";
-      break;
-    case KUZNETSOV:
-      out = "kuznetsov";
-      break;
-    case VARIABLE_SOS_CN1:
-      out = "variableSOS_CN1";
-      break;
-    case VARIABLE_SOS_CN2:
-      out = "variableSOS_CN2";
-      break;
-    case VARIABLE_SOS_CN2Mean:
-      out = "variableSOS_CN2Mean";
-      break;
-    case MATERIAL:
-      out = "material";
-      break;
-    case GEOMETRIC:
-      out = "geometric";
-      break;
-    case HYSTERESIS:
-      out = "hysteresis";
-      break;
-    case PERMEABILITY:
-      out = "permeability";
-      break;
-    default:
-      EXCEPTION( "No conversion found for 'NonLinType' " << in );
+      case NO_NONLINEARITY:
+        out = "noNonLinearity";
+        break;
+      case WESTERVELT:
+        out = "westervelt";
+        break;
+      case KUZNETSOV:
+        out = "kuznetsov";
+        break;
+      case VARIABLE_SOS_CN1:
+        out = "variableSOS_CN1";
+        break;
+      case VARIABLE_SOS_CN2:
+        out = "variableSOS_CN2";
+        break;
+      case VARIABLE_SOS_CN2Mean:
+        out = "variableSOS_CN2Mean";
+        break;
+      case MATERIAL:
+        out = "material";
+        break;
+      case GEOMETRIC:
+        out = "geometric";
+        break;
+      case HYSTERESIS:
+        out = "hysteresis";
+        break;
+      case PIEZO_MICRO_HF:
+        out = "piezoMicroHF";
+        break;
+      case PERMEABILITY:
+        out = "permeability";
+        break;
+      case NLHEAT_CONDUCTIVITY:
+        out = "heatConductivity";
+        break;
+      case NLHEAT_CAPACITY:
+        out = "heatCapacity";
+        break;
+
+      default:
+        EXCEPTION( "No conversion found for 'NonLinType' " << in );
     }
   }
 
@@ -1223,41 +873,41 @@ namespace CoupledField {
   template<>
   void Enum2String<DampingType>( const DampingType &in, std::string& out ) {
     switch(in) {
-    case NONE:
-      out = "none";
-      break;
-    case RAYLEIGH:
-      out = "rayleigh";
-      break;
-    case ABCDAMP:
-      out = "abc";
-      break;
-    case THERMOVISCOUS:
-      out = "thermoViscous";
-      break;
-    case FRACTIONAL:
-      out = "fractional";
-      break;
-    case FRACTIONAL_GL:
-      out = "fractiona_gl";
-      break;
-    case FRACTIONAL_BLANK:
-      out = "fractional_blank";
-      break;
-    case FRACTIONAL_GL_INT:
-      out = "fractional_gl_int";
-      break;
-    case FRACTIONAL_BLANK_INT:
-      out = "fractional_blank_int";
-      break;
-    case PML:
-      out = "pml";
-      break;
-    case DAMPLAYER:
-      out = "dampLayer";
-      break;
-  default:
-    EXCEPTION( "No conversion found for 'DapmingType' " << in );
+      case NONE:
+        out = "none";
+        break;
+      case RAYLEIGH:
+        out = "rayleigh";
+        break;
+      case ABCDAMP:
+        out = "abc";
+        break;
+      case THERMOVISCOUS:
+        out = "thermoViscous";
+        break;
+      case FRACTIONAL:
+        out = "fractional";
+        break;
+      case FRACTIONAL_GL:
+        out = "fractiona_gl";
+        break;
+      case FRACTIONAL_BLANK:
+        out = "fractional_blank";
+        break;
+      case FRACTIONAL_GL_INT:
+        out = "fractional_gl_int";
+        break;
+      case FRACTIONAL_BLANK_INT:
+        out = "fractional_blank_int";
+        break;
+      case PML:
+        out = "pml";
+        break;
+      case DAMPLAYER:
+        out = "dampLayer";
+        break;
+      default:
+        EXCEPTION( "No conversion found for 'DapmingType' " << in );
     }
   }
 
@@ -1267,261 +917,103 @@ namespace CoupledField {
   // ****************************************************************
   // ****************************************************************
 
-
-  // Specialisation for SolverType
-  template<>
-  void Enum2String<SolverType>(const SolverType &in,
-                                      std::string &out) {
-    switch( in ) {
-    case NOSOLVER:
-      out = "no solver";
-      break;
-    case RICHARDSON:
-      out = "Richardson";
-      break;
-    case DIAGSOLVER:
-      out = "diagsolver";
-      break;
-    case CG:
-      out = "cg";
-      break;
-    case GMRES:
-      out = "gmres";
-      break;
-    case MINRES:
-      out = "minres";
-      break;
-    case SYMMLQ:
-      out = "symmlq";
-      break;
-    case LAPACK_LU:
-      out = "lapackLU";
-      break;
-    case LAPACK_LL:
-      out = "lapackLL";
-      break;
-    case LU_SOLVER:
-      out = "directLU";
-      break;
-    case LDL_SOLVER:
-      out = "directLDL";
-      break;
-    case LDL_SOLVER2:
-      out = "directLDL2";
-      break;
-    case PARDISO:
-      out = "pardiso";
-      break;
-    case ILUPACK_SOLVER:
-      out = "ilupack";
-      break;
-
-
-
-    default:
-      EXCEPTION( "No string value found for the specified value of the "
-           << "enumeration datatype SolverType.\n"
-           << "Seems to indicate a missing case implementation!" );
-    }
-  }
-
-  // Specialisation for EigenSolverType
-  template<>
-  void Enum2String<EigenSolverType>(const EigenSolverType &in,
-                                      std::string &out) {
-    switch( in ) {
-    case NOEIGENSOLVER:
-      out = "no eigensolver";
-      break;
-    case ARPACK:
-      out = "arpack";
-      break;
-    case SUBSPACE:
-      out = "subspace";
-      break;
-    default:
-      EXCEPTION( "No string value found for the specified value of the "
-               << "enumeration datatype EigenSolverType.\n"
-               << "Seems to indicate a missing case implementation!" );
-    }
-  }
-
-
-  // Specialisation for PrecondType
-  template<>
-  void Enum2String<PrecondType>(const PrecondType &in,
-                                      std::string &out) {
-    switch( in ) {
-    case NOPRECOND:
-      out = "no precond";
-      break;
-    case ID:
-      out = "Id";
-      break;
-    case MG:
-      out = "MG";
-      break;
-    case JACOBI:
-      break;
-    case SSOR:
-      out = "SSOR";
-      break;
-    case ILU0:
-      out = "ILU0";
-      break;
-    case ILUTP:
-      out = "ILUTP";
-      break;
-    case ILUK:
-      out = "ILUK";
-      break;
-    case ILDL0:
-      out = "ILDL0";
-      break;
-    case ILDLK:
-      out = "ILDLK";
-      break;
-    case ILDLTP:
-      out = "ILDLTP";
-      break;
-    case ILDLCN:
-      out = "ILDLCN";
-      break;
-    case IC0:
-      out = "IC0";
-      break;
-
-    default:
-      EXCEPTION( "No string value found for the specified value of the "
-           << "enumeration datatype PrecondType.\n"
-           << "Seems to indicate a missing case implementation!" );
-    }
-  }
-
   // Specialisation for StopCritType
   template<>
   void Enum2String<StopCritType>(const StopCritType &in,
-                                        std::string &out) {
+                                 std::string &out) {
     switch( in ) {
-    case NOSTOPCRITTYPE:
-      out = "no stopping criterion";
-      break;
-    case ABSNORM:
-      out = "absNorm";
-      break;
-    case RELNORM_RHS:
-      out = "relNormRHS";
-      break;
-    case RELNORM_RES0:
-      out = "relNormRes0";
-      break;
+      case NOSTOPCRITTYPE:
+        out = "no stopping criterion";
+        break;
+      case ABSNORM:
+        out = "absNorm";
+        break;
+      case RELNORM_RHS:
+        out = "relNormRHS";
+        break;
+      case RELNORM_RES0:
+        out = "relNormRes0";
+        break;
 
-    default:
-      EXCEPTION( "No string value found for the specified value of the "
-           << "enumeration datatype StopCritType.\n"
-           << "Seems to indicate a missing case implementation!" );
-    }
-  }
-
-  // Specialisation for ReorderingType
-  template<>
-  void Enum2String<ReorderingType>(const ReorderingType &in,
-                                        std::string &out) {
-    switch( in ) {
-    case NOREORDERING:
-      out = "noReordering";
-      break;
-    case SLOAN:
-      out = "Sloan";
-      break;
-    case METIS:
-      out = "Metis";
-      break;
-    case MINIMUM_DEGREE:
-      out = "minimumDegree";
-      break;
-    case NESTED_DISSECTION:
-      out = "nestedDissection";
-      break;
-    default:
-      EXCEPTION( "No string value found for the specified value of the "
-           << "enumeration datatype ReorderingType.\n"
-           << "Seems to indicate a missing case implementation!" );
+      default:
+        EXCEPTION( "No string value found for the specified value of the "
+            << "enumeration datatype StopCritType.\n"
+            << "Seems to indicate a missing case implementation!" );
     }
   }
 
   // Specialisation for AMG interpolation type
   template<>
   void Enum2String<AMGInterpolationType>(const AMGInterpolationType &in,
-                                        std::string &out) {
+                                         std::string &out) {
     switch( in ) {
-    case AMG_INTERPOLATION_CONSTANT:
-      out = "constant";
-      break;
-    case AMG_INTERPOLATION_SIMPLE_WEIGHTED:
-      out = "simpleWeighted";
-      break;
-    case AMG_INTERPOLATION_SMOOTHED_SCALING:
-      out = "smoothedScaling";
-      break;
-    case AMG_INTERPOLATION_DEVELOP:
-      out = "develop";
-      break;
-    default:
-      EXCEPTION( "No string value found for the specified value of the "
-               << "enumeration datatype AMGInterpolationType.\n"
-               << "Seems to indicate a missing case implementation!" );
+      case AMG_INTERPOLATION_CONSTANT:
+        out = "constant";
+        break;
+      case AMG_INTERPOLATION_SIMPLE_WEIGHTED:
+        out = "simpleWeighted";
+        break;
+      case AMG_INTERPOLATION_SMOOTHED_SCALING:
+        out = "smoothedScaling";
+        break;
+      case AMG_INTERPOLATION_DEVELOP:
+        out = "develop";
+        break;
+      default:
+        EXCEPTION( "No string value found for the specified value of the "
+            << "enumeration datatype AMGInterpolationType.\n"
+            << "Seems to indicate a missing case implementation!" );
     }
   }
 
   // specialisation for AMG smoother type
   template<>
   void Enum2String<AMGSmootherType>(const AMGSmootherType &in,
-                                        std::string &out) {
+                                    std::string &out) {
     switch( in ) {
-        case AMG_SMOOTHER_GAUSSSEIDEL:
-          out = "GaussSeidel";
-          break;
-        case AMG_SMOOTHER_DAMPED_JACOBI:
-          out = "Jacobi";
-          break;
-        default:
-          EXCEPTION( "No string value found for the specified value of the "
-              << "enumeration datatype AMGSmootherType.\n"
-              << "Seems to indicate a missing case implementation!"; );
+      case AMG_SMOOTHER_GAUSSSEIDEL:
+        out = "GaussSeidel";
+        break;
+      case AMG_SMOOTHER_DAMPED_JACOBI:
+        out = "Jacobi";
+        break;
+      default:
+        EXCEPTION( "No string value found for the specified value of the "
+            << "enumeration datatype AMGSmootherType.\n"
+            << "Seems to indicate a missing case implementation!"; );
     }
   }
 
   // Specialisation for FEMatrixType
   template<>
   void Enum2String<FEMatrixType>(const FEMatrixType &in,
-                                        std::string &out) {
+                                 std::string &out) {
     switch( in ) {
-    case NOTYPE:
-      out = "no_fe_matrix";
-      break;
-    case SYSTEM:
-      out = "system";
-      break;
-    case STIFFNESS:
-      out = "stiffness";
-      break;
-    case DAMPING:
-      out = "damping";
-      break;
-    case CONVECTION:
-      out = "convection";
-      break;
-    case MASS:
-      out = "mass";
-      break;
-    case AUXILIARY:
-      out = "auxiliary";
-      break;
-    default:
-      EXCEPTION( "No string value found for the specified value of the "
-               << "enumeration datatype FEMatrixTypeType.\n"
-               << "Seems to indicate a missing case implementation!" );
+      case NOTYPE:
+        out = "no_fe_matrix";
+        break;
+      case SYSTEM:
+        out = "system";
+        break;
+      case STIFFNESS:
+        out = "stiffness";
+        break;
+      case DAMPING:
+        out = "damping";
+        break;
+      case CONVECTION:
+        out = "convection";
+        break;
+      case MASS:
+        out = "mass";
+        break;
+      case AUXILIARY:
+        out = "auxiliary";
+        break;
+      default:
+        EXCEPTION( "No string value found for the specified value of the "
+            << "enumeration datatype FEMatrixTypeType.\n"
+            << "Seems to indicate a missing case implementation!" );
     }
   }
 
@@ -1531,19 +1023,19 @@ namespace CoupledField {
                              std::string &out) {
     switch( in ) {
 
-    case IDBC_NOTYPE:
-      out = "notype";
-      break;
-    case IDBC_ELIMINATION:
-      out = "elimination";
-      break;
-    case IDBC_PENALTY:
-      out = "penalty";
-      break;
-    default:
-      EXCEPTION( "No string value found for the specified value of the "
-               << "enumeration datatype IDBCType.\n"
-               << "Seems to indicate a missing case implementation!" );
+      case IDBC_NOTYPE:
+        out = "notype";
+        break;
+      case IDBC_ELIMINATION:
+        out = "elimination";
+        break;
+      case IDBC_PENALTY:
+        out = "penalty";
+        break;
+      default:
+        EXCEPTION( "No string value found for the specified value of the "
+            << "enumeration datatype IDBCType.\n"
+            << "Seems to indicate a missing case implementation!" );
     }
   }
 
@@ -1569,130 +1061,15 @@ namespace CoupledField {
     }
     else {
       EXCEPTION( "No enumeration value found in StopCritType for '"
-           << in << "'\n A missing case implementation?" );
+          << in << "'\n A missing case implementation?" );
     }
   }
 
-  // Specialisation for SolverType
-  template<>
-  void String2Enum<SolverType>( const std::string &in, SolverType &out ) {
-
-    if ( in == "no solver" ) {
-      out = NOSOLVER;
-    }
-    else if ( in == "Richardson" ) {
-      out = RICHARDSON;
-    }
-    else if ( in == "diagsolver" ) {
-      out = DIAGSOLVER;
-    }
-    else if ( in == "cg" ) {
-      out = CG;
-    }
-    else if ( in == "gmres" ) {
-      out = GMRES;
-    }
-    else if ( in == "minres" ) {
-      out = MINRES;
-    }
-    else if ( in == "symmlq" ) {
-      out = SYMMLQ;
-    }
-    else if ( in == "lapackLL" ) {
-      out = LAPACK_LL;
-    }
-    else if ( in == "directLU" ) {
-      out = LU_SOLVER;
-    }
-    else if ( in == "directLDL" ) {
-      out = LDL_SOLVER;
-    }
-    else if ( in == "directLDL2" ) {
-      out = LDL_SOLVER2;
-    }
-    else if ( in == "pardiso" ) {
-      out = PARDISO;
-    }
-    else if ( in == "ilupack" ) {
-      out = ILUPACK_SOLVER;
-    }
-    else {
-      EXCEPTION( "No enumeration value found in SolverType for '"
-           << in << "'\n A missing case implementation?" );
-    }
-  }
-
- // Specialisation for EigenSolverType
-  template<>
-  void String2Enum<EigenSolverType>( const std::string &in, EigenSolverType &out ) {
-
-    if ( in == "no eigensolver" ) {
-      out = NOEIGENSOLVER;
-    }
-    else if ( in == "arpack" ) {
-      out = ARPACK;
-    }
-    else if ( in == "subspace" ) {
-      out = SUBSPACE;
-    }
-    else {
-      EXCEPTION( "No enumeration value found in EigenSolverType for '"
-               << in << "'\n A missing case implementation?" );
-    }
-  }
-  // Specialisation for PrecondType
-  template<>
-  void String2Enum<PrecondType>( const std::string &in, PrecondType &out ) {
-
-    if ( in == "noPrecond" ) {
-      out = NOPRECOND;
-    }
-    else if ( in == "Id" ) {
-      out = ID;
-    }
-    else if ( in == "MG" ) {
-      out = MG;
-    }
-    else if ( in == "Jacobi" ) {
-      out = JACOBI;
-    }
-    else if ( in == "SSOR" ) {
-      out = SSOR;
-    }
-    else if ( in == "ILU0" ) {
-      out = ILU0;
-    }
-    else if ( in == "ILUTP" ) {
-      out = ILUTP;
-    }
-    else if ( in == "ILUK" ) {
-      out = ILUK;
-    }
-    else if ( in == "ILDL0" ) {
-      out = ILDL0;
-    }
-    else if ( in == "ILDLK" ) {
-      out = ILDLK;
-    }
-    else if ( in == "ILDLTP" ) {
-      out = ILDLTP;
-    }
-    else if ( in == "ILDLCN" ) {
-      out = ILDLCN;
-    }
-    else if ( in == "IC0" ) {
-      out = IC0;
-    }
-    else {
-      EXCEPTION( "No enumeration value found in PrecondType for '"
-           << in << "'\n A missing case implementation?" );
-    }
-  }
 
   // map specialisation for interpolation types
   template<>
   void String2Enum<AMGInterpolationType>( const std::string &in,
-      AMGInterpolationType &out ) {
+                                          AMGInterpolationType &out ) {
     if ( in == "constant" ) {
       out = AMG_INTERPOLATION_CONSTANT;
     } else if( in == "simpleWeighted" ) {
@@ -1701,7 +1078,7 @@ namespace CoupledField {
       out = AMG_INTERPOLATION_DEVELOP;
     } else {
       EXCEPTION( "No enumeration value found in AMGInterpolationType "
-       << "for '" << in << "'\n A missing case implementation?" );
+          << "for '" << in << "'\n A missing case implementation?" );
     }
   }
 
@@ -1709,37 +1086,16 @@ namespace CoupledField {
   template <>
   void String2Enum<AMGSmootherType>( const std::string &in,
                                      AMGSmootherType   &out )
-  {
+                                     {
     if ( in == "GaussSeidel" ) {
       out = AMG_SMOOTHER_GAUSSSEIDEL;
     } else if( in == "Jacobi" ) {
       out = AMG_SMOOTHER_DAMPED_JACOBI;
     } else {
       EXCEPTION( "No enumeration value found in AMGSmoothertype "
-       << "for '" << in << "'\n A missing case implementation?" );
+          << "for '" << in << "'\n A missing case implementation?" );
     }
-  }
-
-  // Specialisation for ReorderingType
-  template<>
-  void String2Enum<ReorderingType>( const std::string &in,
-                    ReorderingType &out ) {
-
-    if ( in == "noReordering" )
-      out = NOREORDERING;
-    else if ( in == "Sloan" )
-      out = SLOAN;
-    else if ( in == "Metis" )
-      out = METIS;
-    else if ( in == "minimumDegree" )
-      out = MINIMUM_DEGREE;
-    else if ( in == "nestedDissection" )
-      out = NESTED_DISSECTION;
-    else {
-      EXCEPTION( "String '" << in << "' cannot be converted to item of "
-           << "'ReorderingType'!"; );
-    }
-  }
+                                     }
 
   // Specialisation for FEMatrixType
   template<>
@@ -1760,7 +1116,7 @@ namespace CoupledField {
       out = MASS;
     else {
       EXCEPTION( "String '" << in << "' cannot be converted to item of "
-           << "'FEMatrixType'!" );
+                 << "'FEMatrixType'!" );
     }
   }
 
@@ -1776,26 +1132,31 @@ namespace CoupledField {
       out = IDBC_PENALTY;
     else {
       EXCEPTION( "String '" << in << "' cannot be converted to item of "
-           << "'IDBCType'!" );
+                 << "'IDBCType'!" );
     }
   }
-  
+
   void SetEnvironmentEnums(){
     // SolutionType
-    
+
     SolutionTypeEnum.SetName("SolutionTypeEnum");
     //mechanics
     SolutionTypeEnum.Add(MECH_DISPLACEMENT, "mechDisplacement");
+    SolutionTypeEnum.Add(LUMPED_MECH_DISPLACEMENT, "lumpedMechDisplacement");
     SolutionTypeEnum.Add(MECH_ACCELERATION, "mechAcceleration");
     SolutionTypeEnum.Add(MECH_VELOCITY, "mechVelocity");
     SolutionTypeEnum.Add(MECH_FORCE, "mechForce");
     SolutionTypeEnum.Add(MECH_STRESS, "mechStress");
+    SolutionTypeEnum.Add(VON_MISES_STRESS, "vonMisesStress");
+    SolutionTypeEnum.Add(VON_MISES_STRAIN, "vonMisesStrain");
     SolutionTypeEnum.Add(MECH_STRAIN, "mechStrain");
     SolutionTypeEnum.Add(MECH_STRAIN_IRR, "mechStrainIrr");
     SolutionTypeEnum.Add(MECH_ENERGY, "mechEnergy");
     SolutionTypeEnum.Add(MECH_DEF_VOLUME, "volumeAboveDefSurf");
     SolutionTypeEnum.Add(MECH_RHS_LOAD, "mechRhsLoad");
+    SolutionTypeEnum.Add(MECH_PRESSURE, "mechPressure");
     SolutionTypeEnum.Add(MECH_PSEUDO_DENSITY, "mechPseudoDensity");
+    SolutionTypeEnum.Add(PHYSICAL_PSEUDO_DENSITY, "physicalPseudoDensity");
     SolutionTypeEnum.Add(MECH_SHAPE, "mechShape");
     //electrostatics
     SolutionTypeEnum.Add(ELEC_POTENTIAL, "elecPotential");
@@ -1815,6 +1176,7 @@ namespace CoupledField {
     SolutionTypeEnum.Add(SMOOTH_STRAIN, "smoothStrain");
     //acoustics
     SolutionTypeEnum.Add(ACOU_PRESSURE, "acouPressure");
+    SolutionTypeEnum.Add(ACOU_ACCELERATION, "acouAcceleration");
     SolutionTypeEnum.Add(ACOU_POTENTIAL, "acouPotential");
     SolutionTypeEnum.Add(ACOU_VELOCITY, "acouVelocity");
     SolutionTypeEnum.Add(ACOU_PRESSURE_DERIV_1, "acouPressureD1");
@@ -1823,19 +1185,25 @@ namespace CoupledField {
     SolutionTypeEnum.Add(ACOU_POTENTIAL_DERIV_1, "acouPotentialD1");
     SolutionTypeEnum.Add(ACOU_POTENTIAL_DERIV_2, "acouPotentialD2");
     SolutionTypeEnum.Add(ACOU_RHS_LOAD, "acouRhsLoad");
+    SolutionTypeEnum.Add(ACOU_RHS_LOAD_DENSITY, "acouRhsLoadDensity");
+    SolutionTypeEnum.Add(ACOU_DIV_LH_TENSOR, "acouDivLighthillTensor");
     SolutionTypeEnum.Add(ACOU_RHSVAL, "acouRHSval");
     SolutionTypeEnum.Add(ACOUSURF_RHSVAL, "acouSurfRHSval");
-    SolutionTypeEnum.Add(ACOU_SOUND_SPEEED, "acouSoundSpeed");
     SolutionTypeEnum.Add(ACOU_BUBBLE_RHS_VAL, "acouBubbleRhsVal");
-    SolutionTypeEnum.Add(ACOU_POT_NRBC, "acouPotNRBC");
-    SolutionTypeEnum.Add(NRBC_PHI, "nrbcPhi");
+    SolutionTypeEnum.Add(ACOU_ELEM_SPEED_OF_SOUND,"acouSpeedOfSound");
     SolutionTypeEnum.Add(ACOU_PRESSUREXYZ, "acouPressureXYZ");
     SolutionTypeEnum.Add(ACOU_POWERDENSITY, "acouPowerDensity");
     SolutionTypeEnum.Add(ACOU_POWER, "acouPower");
     SolutionTypeEnum.Add(ACOU_INTENSITY, "acouIntensity");
     SolutionTypeEnum.Add(ACOU_SURFINTENSITY, "acouSurfIntensity");
+    SolutionTypeEnum.Add(ACOU_ENERGY, "acouEnergy");
+    SolutionTypeEnum.Add(ACOU_PMLAUXVEC,"acouPmlAuxVec");
+    SolutionTypeEnum.Add(ACOU_PMLAUXSCALAR, "acouPmlAuxScalar");
+    SolutionTypeEnum.Add(ACOU_PSEUDO_DENSITY, "acouPseudoDensity");
+
     //magnetics
     SolutionTypeEnum.Add(MAG_POTENTIAL, "magPotential");
+    SolutionTypeEnum.Add(MAG_SCALAR_POTENTIAL, "magScalarPotential");
     SolutionTypeEnum.Add(MAG_FLUX_DENSITY, "magFluxDensity");
     SolutionTypeEnum.Add(MAG_POTENTIAL_DIV, "magPotentialDiv");
     SolutionTypeEnum.Add(MAG_HFIELD, "magHfield");
@@ -1854,6 +1222,10 @@ namespace CoupledField {
     //fluidMech
     SolutionTypeEnum.Add(FLUIDMECH_VELOCITY, "fluidMechVelocity");
     SolutionTypeEnum.Add(FLUIDMECH_PRESSURE, "fluidMechPressure");
+    SolutionTypeEnum.Add(FLUIDMECH_VELOCITY_DERIV_1, "fluidMechVelocity_deriv1");
+    SolutionTypeEnum.Add(FLUIDMECH_PRESSURE_DERIV_1, "fluidMechPressure_deriv1");
+    SolutionTypeEnum.Add(FLUIDMECH_VELOCITY_DERIV_2, "fluidMechVelocity_deriv2");
+    SolutionTypeEnum.Add(FLUIDMECH_PRESSURE_DERIV_2, "fluidMechPressure_deriv2");
     SolutionTypeEnum.Add(FLUIDMECH_FORCE, "fluidMechForce");
     SolutionTypeEnum.Add(FLUIDMECH_DENSITY, "fluidMechDensity");
     SolutionTypeEnum.Add(FLUIDMECH_TKE, "fluidMechTKE");
@@ -1861,8 +1233,8 @@ namespace CoupledField {
     // bubble
     SolutionTypeEnum.Add(BUBBLE_RADIUS, "bubbleRadius");
     SolutionTypeEnum.Add(BUBBLE_RADIUS_DERIV_1, "bubbleRadiusD1");
-    SolutionTypeEnum.Add(MAG_FLUX_DENSITY, "bubbleValues", false);
     // optimization
+    SolutionTypeEnum.Add(HOMOGENIZED_TENSOR, "homogenizedTensor");
     // the actual result type is given in result descriptions
     // in the xml file in the optimization element.
     SolutionTypeEnum.Add(OPT_RESULT_1, "optResult_1");
@@ -1876,18 +1248,121 @@ namespace CoupledField {
     SolutionTypeEnum.Add(OPT_RESULT_9, "optResult_9");
     // independent
     SolutionTypeEnum.Add(LAGRANGE_MULT, "LagrangeMultiplier");
-    
+    // evaluates the spacial gradient of the solution at the nodes.
+    // common for all PDEs, no unit
+    SolutionTypeEnum.Add(GRAD_ACOU_SOLUTION, "gradAcousticSolution"); // independent on acoustic formulation
+    SolutionTypeEnum.Add(GRAD_X_DISPLACEMENT, "gradXDisplacement"); // node property!
+    SolutionTypeEnum.Add(GRAD_Y_DISPLACEMENT, "gradYDisplacement"); // node property!
+    SolutionTypeEnum.Add(GRAD_Z_DISPLACEMENT, "gradZDisplacement"); // node property!
+    SolutionTypeEnum.Add(GRAD_ELEC_POTENTIAL, "gradElecPotential");
+
+    // General (grid related) results
+    SolutionTypeEnum.Add(ELEM_LOC_DIR, "localDirection");
+    SolutionTypeEnum.Add(JACOBIAN, "jacobian");
+
+    // ==== Initialization of Material Constants ====
+    MaterialTypeEnum.Add( NO_MATERIAL, "noMaterial" );
+    MaterialTypeEnum.Add( MAG_PERMEABILITY, "Magnetic_permeability" );
+    MaterialTypeEnum.Add( MAG_PERMEABILITY_1, "Magnetic_permeability_1" ); 
+    MaterialTypeEnum.Add( MAG_PERMEABILITY_2, "Magnetic_permeability_2" ); 
+    MaterialTypeEnum.Add( MAG_PERMEABILITY_3, "Magnetic_permeability_3" );
+    MaterialTypeEnum.Add( MAG_RELUCTIVITY, "Magnetic_reluctivity" );
+    MaterialTypeEnum.Add( MAG_CONDUCTIVITY, "Magnetic_Conductiuvity" ); 
+    MaterialTypeEnum.Add( ELEC_PERMITTIVITY, "Electric_Permittivity" );
+    MaterialTypeEnum.Add( MECH_STIFFNESS_TENSOR, "MechanicStiffnessTensor" );
+    MaterialTypeEnum.Add( COEFF_STRAIN_IRREVERSIBLE, "Coeff_Strain_Irreversible" ); 
+    MaterialTypeEnum.Add( MECH_EMODULUS, "Mechanic_Emodulus" );
+    MaterialTypeEnum.Add( MECH_EMODULUS_X, "Mechanic_Emodulus_X" ); 
+    MaterialTypeEnum.Add( MECH_EMODULUS_Y, "Mechanic_Emodulus_Y" );
+    MaterialTypeEnum.Add( MECH_EMODULUS_Z, "Mechanic_Emodulus_Z" ); 
+    MaterialTypeEnum.Add( MECH_POISSON, "Mechanic_PoissonRation" ); 
+    MaterialTypeEnum.Add( MECH_POISSON_XY, "Mechanic_PoissonRation_XY" ); 
+    MaterialTypeEnum.Add( MECH_POISSON_YZ, "Mechanic_PoissonRation_YZ" ); 
+    MaterialTypeEnum.Add( MECH_POISSON_XZ, "Mechanic_PoissonRation_XZ" ); 
+    MaterialTypeEnum.Add( MECH_KMODULUS, "Mechanic_Kmodulus" ); 
+    MaterialTypeEnum.Add( MECH_GMODULUS, "Mechanic_Gmodulus" ); 
+    MaterialTypeEnum.Add( MECH_GMODULUS_YZ, "Mechanic_Gmodulus_YZ" ); 
+    MaterialTypeEnum.Add( MECH_GMODULUS_ZX, "Mechanic_Gmodulus_ZX" ); 
+    MaterialTypeEnum.Add( MECH_GMODULUS_XY, "Mechanic_Gmodulus_XY" );
+    MaterialTypeEnum.Add( MECH_LAME_MU, "Mechanic_LameMu" );
+    MaterialTypeEnum.Add( MECH_LAME_LAMBDA, "Mechanic_LameLambda" ); 
+    MaterialTypeEnum.Add( RAYLEIGH_ALPHA, "Rayleigh_Alpha" ); 
+    MaterialTypeEnum.Add( RAYLEIGH_BETA, "Rayleigh_Beta" ); 
+    MaterialTypeEnum.Add( RAYLEIGH_FREQUENCY, "Rayleigh_Frequency" ); 
+    MaterialTypeEnum.Add( LOSS_TANGENS_DELTA, "Loss_TangensDelta" ); 
+    MaterialTypeEnum.Add( DENSITY, "Density" );
+    MaterialTypeEnum.Add( ACOU_BULK_MODULUS, "AcousticBulkModulus" ); 
+    MaterialTypeEnum.Add( ACOU_SOUND_SPEED, "Acoustic_SoundSpeed" ); 
+    MaterialTypeEnum.Add( BOVERA, "BoverA" ); 
+    MaterialTypeEnum.Add( ACOU_ALPHA, "AcousticAlpha" ); 
+    MaterialTypeEnum.Add( FRACTIONAL_ALG, "FractionalAlg" ); 
+    MaterialTypeEnum.Add( FRACTIONAL_MEMORY, "FractionalMemory" ); 
+    MaterialTypeEnum.Add( FRACTIONAL_INTERPOL, "FractionalInterpol" );
+    MaterialTypeEnum.Add( FRACTIONAL_EXPONENT, "FractionalExponent" ); 
+    MaterialTypeEnum.Add( HEAT_CONDUCTIVITY, "HeatConductivity" ); 
+    MaterialTypeEnum.Add( HEAT_CONDUCTIVITY_TENSOR, "HeatConductivity_Tensor" );
+    MaterialTypeEnum.Add( MAGNETOSTRICTION_TENSOR, "Magnetostriction_Tensor" ); 
+    MaterialTypeEnum.Add( HEAT_CAPACITY, "HeatCapacity" ); 
+    MaterialTypeEnum.Add( THERMAL_EXPANSION_TENSOR, "thermalExpansion" ); 
+    MaterialTypeEnum.Add( DYNAMIC_VISCOSITY, "dynamicViscosity" ); 
+    MaterialTypeEnum.Add( KINEMATIC_VISCOSITY, "kinematicViscosity" );
+    MaterialTypeEnum.Add( PIEZO_TENSOR, "PiezoTensor" ); 
+    MaterialTypeEnum.Add( SPON_POLARIZATION, "sponPolarization" ); 
+    MaterialTypeEnum.Add( SPON_STRAIN, "sponStrain" ); 
+    MaterialTypeEnum.Add( EFIELD0, "Efield0" ); 
+    MaterialTypeEnum.Add( STRESS0, "Stress0" ); 
+    MaterialTypeEnum.Add( DCOUPLE0, "dCouple0" );
+    MaterialTypeEnum.Add( RATE_CONSTANT, "rateConstant" );
+    MaterialTypeEnum.Add( VISCO_PLASTIC_INDEX, "viscoPlasticIndex" ); 
+    MaterialTypeEnum.Add( SATURATION_INDEX, "saturationIndex" ); 
+    MaterialTypeEnum.Add( SCALE_FORCE_ELEC, "scaleForceElec" ); 
+    MaterialTypeEnum.Add( SCALE_FORCE_MECH, "scaleForceMech" );
+    MaterialTypeEnum.Add( SCALE_FORCE_COUPLE, "scaleForceCouple" ); 
+    MaterialTypeEnum.Add( VOLUME_FRAC_INIT,"volumeFracInit" ); 
+    MaterialTypeEnum.Add( MEAN_TEMPERATURE, "meanTemperature" ); 
+    MaterialTypeEnum.Add( X_SATURATION, "Xsaturation" ); 
+    MaterialTypeEnum.Add( Y_SATURATION, "Ysaturation" ); 
+    MaterialTypeEnum.Add( Y_REMANENCE, "Yremanence" );
+    MaterialTypeEnum.Add( PREISACH_WEIGHTS, "preisachWeights" ); 
+    MaterialTypeEnum.Add( A_JILES, "aJiles" ); 
+    MaterialTypeEnum.Add( ALPHA_JILES, "alphaJiles" ); 
+    MaterialTypeEnum.Add( K_JILES, "kJiles" );
+    MaterialTypeEnum.Add( C_JILES, "cJiles" ); 
+    MaterialTypeEnum.Add( P_DIRECTION, "Pdirection" ); 
+    MaterialTypeEnum.Add( HYST_MODEL, "hystModel" ); 
+    MaterialTypeEnum.Add( NONLIN_COEFFICIENT, "nonLinCoefficient" ); 
+    MaterialTypeEnum.Add( NONLIN_DEPENDENCY, "nonLinDependency" );
+    MaterialTypeEnum.Add( NONLIN_APPROXIMATION_TYPE, "nonLinApproximationType" );
+    MaterialTypeEnum.Add( NONLIN_DATA_NAME, "nonLinDataName" ); 
+    MaterialTypeEnum.Add( DATA_ACCURACY, "dataAccuracy" ); 
+    MaterialTypeEnum.Add( MAX_APPROX_VAL, "maxApproxVal" ); 
+    MaterialTypeEnum.Add( PYROCOEFFICIENT_TENSOR, "Pyrocoefficient_Tensor" ); 
+
+    // ==== Initialization of Matrix Types ====
+    feMatrixType.Add( NOTYPE, "no FE matrix" );
+    feMatrixType.Add( SYSTEM, "system matrix" );
+    feMatrixType.Add( STIFFNESS, "stiffness matrix");
+    feMatrixType.Add( DAMPING, "damping matrix" );
+    feMatrixType.Add( CONVECTION, "convection matrix");
+    feMatrixType.Add( MASS, "mass matrix" );
+    feMatrixType.Add( AUXILIARY, "auxiliary matrix" );
+
+    MAX_NUM_FE_MATRICES = feMatrixType.map.size() - 1;
+
     // ==== Initialization of NonLinMethodEnum ====
     NonLinMethodTypeEnum.Add( FIXEDPOINT, "fixPoint" );
     NonLinMethodTypeEnum.Add( NEWTON, "newton" );
-    
+
     // ==== Initialization of SolStrategyEnum ====
     SolStrategyEnum.Add(STRAT_NO,        "noStrategy");
     SolStrategyEnum.Add(STRAT_STANDARD,  "standard");
     SolStrategyEnum.Add(STRAT_TWO_LEVEL, "twoLevel");
   }
-  Enum<NonLinMethodType> NonLinMethodTypeEnum;
-  Enum<SolutionType> SolutionTypeEnum;
-  Enum<SolStrategyType> SolStrategyEnum;
-    }
 
+  Enum<SolutionType> SolutionTypeEnum;
+  Enum<MaterialType> MaterialTypeEnum;
+  Enum<NonLinMethodType> NonLinMethodTypeEnum;
+  Enum<SolStrategyType> SolStrategyEnum;
+  Enum<FEMatrixType> feMatrixType;
+  UInt MAX_NUM_FE_MATRICES;
+}

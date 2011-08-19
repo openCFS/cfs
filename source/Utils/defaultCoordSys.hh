@@ -18,7 +18,7 @@ namespace CoupledField {
     //! Default constructor
     //! \param name (in) name of the coordinate system which is used to 
     //!                  find the additional parameters in the .xml-file
-    DefaultCoordSystem(Grid * ptGrid);
+    DefaultCoordSystem(Grid * ptGrid );
     
     //! Destructor
     virtual ~DefaultCoordSystem();
@@ -64,14 +64,27 @@ namespace CoupledField {
     //@}
     
 
-    //! Return the global rotation angles for a given point
-    
-    //! This method returns the rotation angles about the x,y, and z axis,
-    //! by which the global coordinate system has to be rotated, so that
-    //! it represents the current one in that point.
-    void  GetGlobRotationAngles( Vector<Double> & angles,
-                                 const Vector<Double>& point ) const {};
+    //! Returns the global rotation matrix for a given point
 
+    //! This method returns the rotation matrix defining defining a rotation,
+    //! by which the global coordinate system has to be rotated, so that
+    //! so that it represents the current one in that point.
+    //! \param rotMatrix rotation matrix for global point
+    //! \param point point w.r.t. to global Cartesian coordinate system
+    virtual void 
+    GetGlobRotationMatrix( Matrix<Double> & rotMatrix,
+                           const Vector<Double>& point ) const;
+
+    //! Returns the full 3x3 global rotation matrix for a given point
+
+    //! This method returns the full 3x3 rotation matrix defining defining 
+    //! a rotation, by which the global coordinate system has to be rotated, 
+    //! it represents the current one in that point.
+    //! \param rotMatrix rotation matrix for global point
+    //! \param point point w.r.t. to global Cartesian coordinate system
+    virtual void 
+    GetFullGlobRotationMatrix( Matrix<Double> & rotMatrix,
+                               const Vector<Double>& point ) const;
 
     //! Returns for a given coordinate name the according index
 

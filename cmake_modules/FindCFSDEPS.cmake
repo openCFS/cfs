@@ -8,14 +8,6 @@
 #  CFSDEPS_CXX_FLAGS  = Compiler flags for CFSDEPS 
 #  CFSDEPS_INCLUDE_DIR      = where to find "CFSDEPS.h"
 #  CFSDEPS_DEFINITIONS      = extra defines
-# 
-# DEPRECATED
-#
-# OPTIONS 
-# 
-# USAGE 
-# 
-# NOTES
 #
 # AUTHOR
 # Simon Triebenbacher simon.triebenbacher@uni-klu.ac.at (02/2009)
@@ -41,6 +33,11 @@ ELSE(NOT ${CFS_DEPS_CD_DUMMY} STREQUAL "")
     "Directory for CFSDEPS sources and prebuilt binaries.")
 ENDIF(NOT ${CFS_DEPS_CD_DUMMY} STREQUAL "")
 
+SET(CFS_FORCE_DEPS_DUMMY "$ENV{CFS_FORCE_DEPS_CACHE_DIR}")
+IF(NOT ${CFS_FORCE_DEPS_DUMMY} STREQUAL "")
+  SET(CFS_FORCE_DEPS_CACHE_DIR ON CACHE PATH
+    "Force 'CFS_DEPS_CACHE_DIR/precompiled/forced'.")
+ENDIF(NOT ${CFS_FORCE_DEPS_DUMMY} STREQUAL "")
 #-----------------------------------------------------------------------------
 # Check if the proper files are present in the CFSDEPS directory
 #-----------------------------------------------------------------------------
@@ -87,6 +84,11 @@ INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindZlib.cmake")
 # Build bzip2 library
 #-------------------------------------------------------------------------------
 INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindBzip2.cmake")
+
+#-------------------------------------------------------------------------------
+# Search for CMake 2.8 if older CMake is used
+#-------------------------------------------------------------------------------
+INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindCMake.cmake")
 
 #-------------------------------------------------------------------------------
 # Search for HDF5 library
@@ -147,6 +149,20 @@ IF(USE_BLAS OR USE_LAPACK)
   ENDIF(USE_PARDISO AND CFS_PARDISO STREQUAL "SCHENK")
 
   #-----------------------------------------------------------------------------
+  # Check which version of the Pardiso API is being used. Pardiso 4.0 intro-
+  # duces a new incompatible API due to the new iterative solver feature.
+  # However MKL still uses the old API of Pardiso 3.x. This is obviously a
+  # software engineering nightmare and the ones responsible for it deserve to
+  # be hanged from the highest mast!
+  #
+  # ATTENTION: If you switch CFS_PARDISO you should also clear
+  # PARDISO_API_VER_3 and PARDISO_API_VER_4 from the CMake cache.
+  #-----------------------------------------------------------------------------
+  IF(USE_PARDISO)
+    INCLUDE("cmake_modules/CheckPardisoAPIVersion.cmake")
+  ENDIF(USE_PARDISO)
+  
+  #-----------------------------------------------------------------------------
   # If USE_ARPACK option is defined find ARPACK library
   #-----------------------------------------------------------------------------
   IF(USE_ARPACK)
@@ -158,8 +174,23 @@ IF(USE_BLAS OR USE_LAPACK)
   #-----------------------------------------------------------------------------
   IF(USE_ILUPACK)
     INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindLAPACK.cmake")
+    INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindSuiteSparse.cmake")    
     INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindILUPACK.cmake")
   ENDIF(USE_ILUPACK)
+
+  #-----------------------------------------------------------------------------
+  # Find SuiteSparse/CholMod/AMD library
+  #-----------------------------------------------------------------------------
+  IF(USE_CHOLMOD)
+    INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindSuiteSparse.cmake")
+  ENDIF(USE_CHOLMOD)
+
+  #-----------------------------------------------------------------------------
+  # Find SnOpt library
+  #-----------------------------------------------------------------------------
+  IF(USE_SNOPT)
+    INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindSnOpt.cmake")
+  ENDIF(USE_SNOPT)
 
 #  MESSAGE("BLAS_LIBRARY ${BLAS_LIBRARY}")
 #  MESSAGE("LAPACK_LIBRARY ${LAPACK_LIBRARY}")
@@ -172,6 +203,13 @@ ENDIF(USE_BLAS OR USE_LAPACK)
 # Find Boost
 #-------------------------------------------------------------------------------
 INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindBoostForCFS.cmake")
+
+#-------------------------------------------------------------------------------
+# Our cfs-hdf5 I/O library depends on Boost, that is why we check for it here.
+#-------------------------------------------------------------------------------
+IF(USE_HDF5)
+  INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindCfs-hdf5.cmake")
+ENDIF(USE_HDF5)
 
 #-------------------------------------------------------------------------------
 # If USE_PYTHON option is defined find Python library
@@ -223,6 +261,13 @@ IF(USE_SCPIP)
 ENDIF(USE_SCPIP)
 
 #-----------------------------------------------------------------------------
+# Find SnOpt
+#-----------------------------------------------------------------------------
+IF(USE_SNOPT)
+  INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindSnOpt.cmake")    
+ENDIF(USE_SNOPT)
+
+#-----------------------------------------------------------------------------
 # Find ANSYS Customizations
 #-----------------------------------------------------------------------------
 IF(USE_ANSYSRST)
@@ -237,11 +282,18 @@ IF(CPLREADER_CFX)
 ENDIF(CPLREADER_CFX)
 
 #-----------------------------------------------------------------------------
-# Find VTK for OpenFOAM reader
+# Find VTK for OpenFOAM, EnSight and FLUENT readers
 #-----------------------------------------------------------------------------
-IF(CPLREADER_OPENFOAM)
+IF(CPLREADER_OPENFOAM OR CPLREADER_ENSIGHT OR CPLREADER_FLUENT)
   INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindVTK.cmake")
-ENDIF(CPLREADER_OPENFOAM)
+ENDIF(CPLREADER_OPENFOAM OR CPLREADER_ENSIGHT OR CPLREADER_FLUENT)
+
+#-----------------------------------------------------------------------------
+# Find CGNS for cgns reader
+#-----------------------------------------------------------------------------
+IF(CPLREADER_CGNS)
+  INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindCGNS.cmake")
+ENDIF(CPLREADER_CGNS)
 
 #-----------------------------------------------------------------------------
 # Find ParaView postprocessor
@@ -250,13 +302,24 @@ IF(BUILD_PARAVIEW)
   INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindParaView.cmake")
 ENDIF(BUILD_PARAVIEW)
 
+#-----------------------------------------------------------------------------
+# Find HDF file viewer
+#-----------------------------------------------------------------------------
+IF(BUILD_HDFVIEW)
+  INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindHDFView.cmake")
+ENDIF(BUILD_HDFVIEW)
+
+
 EXECUTE_PROCESS(COMMAND "${PERL}" "${CFS_DEPS_ROOT}/utils/perl/cfsdepsmodif.pl"
   ${CFS_DEPS_ROOT} ${CFS_BUILD_DIR}/tmp
   RESULT_VARIABLE retval
   OUTPUT_VARIABLE CFS_DEPS_MODIFIED)
 
+# the boolean $CFS_FORCE_DEPS_CACHE_DIR is a expert feature for people knowing what they do
 IF(CFS_DEPS_MODIFIED MATCHES "WORKING_COPY_MODIFIED modified")
-  MESSAGE("The Subversion working copy of CFSDEPS in '${CFS_DEPS_ROOT}' has been modified. Precompiled binaries have therefore been put into '${CFS_BINARY_DIR}/tmp' instead of '${CFS_DEPS_CACHE_DIR}/precompiled'!")
+  IF(NOT CFS_FORCE_DEPS_CACHE_DIR)
+    MESSAGE("The Subversion working copy of CFSDEPS in '${CFS_DEPS_ROOT}' has been modified. Precompiled binaries have therefore been put into '${CFS_BINARY_DIR}/tmp' instead of '${CFS_DEPS_CACHE_DIR}/precompiled'!")
+  ENDIF(NOT CFS_FORCE_DEPS_CACHE_DIR)  
 ENDIF(CFS_DEPS_MODIFIED MATCHES "WORKING_COPY_MODIFIED modified")
 
 SET(CFSDEPS_FOUND 1)

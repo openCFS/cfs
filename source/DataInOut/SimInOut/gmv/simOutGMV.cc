@@ -35,7 +35,7 @@ namespace CoupledField {
   //   Constructor
   //*****************
   SimOutputGMV::SimOutputGMV( const std::string fileName,
-                              ParamNode * outputNode ) :
+                              PtrParamNode outputNode ) :
     SimOutput( fileName, outputNode )
   {
 
@@ -50,7 +50,7 @@ namespace CoupledField {
     stepNumOffset_ = 0;
     stepValOffset_ = 0.0;
     dirName_ = "results_" + formatName_;
-    outputNode->Get("directory", dirName_, false );
+    outputNode->GetValue("directory", dirName_, ParamNode::PASS );
     fileName_ = fileName;
 
     try 
@@ -71,12 +71,12 @@ namespace CoupledField {
 
 
     // Change defaults according to XML file
-    if(myParam_->Get("binaryFormat", false)->AsString() == "no")
+    if(myParam_->Get("binaryFormat")->As<std::string>() == "no")
     {
         ascii_ = true;
     }
 
-    if(myParam_->Get("fixedGrid", false)->AsString() == "no")
+    if(myParam_->Get("fixedGrid")->As<std::string>() == "no")
     {
         fixedgrid_ = false;
     }
@@ -175,19 +175,20 @@ namespace CoupledField {
     strBuffer <<  fileName_ << "-" 
               << BasePDE::analysisType.ToString(currAnalysis_)
               << "-" << currMsStep_ << ".gmv";
-    if ( actStep_ < 10 ) strBuffer << "000";
-    else if ( actStep_ < 100 ) strBuffer << "00";
-    else if ( actStep_ < 1000 ) strBuffer << "0";
-    else if ( actStep_ > 10000 ) {
-      EXCEPTION("Number of gmv files exceeds 9999!");
+    if ( actStep_ < 10 ) strBuffer << "00000";
+    else if ( actStep_ < 100 ) strBuffer << "0000";
+    else if ( actStep_ < 1000 ) strBuffer << "000";
+    else if ( actStep_ < 10000 ) strBuffer << "00";
+    else if ( actStep_ < 100000 ) strBuffer << "0";
+    else if ( actStep_ >= 1000000 ) {
+      EXCEPTION("Number of gmv files exceeds one million!");
     }
-    
+
     strBuffer << actStep_;
     output = OpenFile( strBuffer.str() );
 
     // Print Grid
     WriteGrid( false );
-
 
     // -------------------------
     // Iterate over all results
@@ -575,8 +576,6 @@ namespace CoupledField {
       gridFile->write((char*)&numelem,sizeof(UInt));
 
     UInt i;
-    StdVector<RegionIdType> regionIds;
-    ptGrid_->GetRegionIds(regionIds);
     UInt numRegions = ptGrid_->GetNumRegions();
 
     std::vector<UInt> connect;

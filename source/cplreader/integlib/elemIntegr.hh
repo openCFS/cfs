@@ -28,6 +28,27 @@ namespace CoupledField
                             const Matrix<Double>& NodaldTijdxj,
                             const Matrix<Double>& NodalVal,
                             Vector<Double>& elemvec,
+                            Vector<Double>& nodalLoadDensity,
+                            Vector<Double>& divLHTensor,
+                            Double density);
+  
+    /**
+     * same as PerformIntegration except it takes only the velocity at the
+     * centre of the element and not at each node. The advantage is, that it may
+     * cancel out numerical errors, and showed improvements with quadrativ
+     * elements.
+     * @param coordMat The coordinates of each node
+     * @param NodalVel Nodal velocity, a vector a size of "node numbers" times
+     * dimension
+     * @param resVec The vector in which the result is stored
+     * @param nodalLoadDensity The result normed to the volume
+     * @param divLHTensor The divergence of the Lighthill tensor
+     */
+    void PerformIntegrationCentre(const Matrix<Double> & coordMat,
+                            const Matrix<Double>& NodalVel,
+                            Vector<Double>& resVec,
+                            Vector<Double>& nodalLoadDensity,
+                            Vector<Double>& divLHTensor,
                             Double density);
 
     void ComputeFromCombustionTij(const Matrix<Double> & coordMat,

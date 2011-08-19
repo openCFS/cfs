@@ -6,13 +6,12 @@
 #define BASE_ILD_FACTORISER_HH
 
 #include "General/defs.hh"
+#include "DataInOut/ParamHandling/ParamNode.hh"
 
 namespace CoupledField {
 
   template<typename> class SCRS_Matrix;
-  class OLAS_Params;
-  class OLAS_Report;
-
+  class ParamNode;
 
   //! Base class for all incomplete LDL factorisation variants
 
@@ -45,19 +44,22 @@ namespace CoupledField {
 
     //! This is a pointer to a parameter object containing the steering
     //! parameters for this preconditioner.
-    OLAS_Params *myParams_;
+    PtrParamNode xml_;
 
     //! Pointer to report object
 
     //! This is a pointer to a report object which the preconditioner can use
     //! to store general information about its performance or setup phase.
-    OLAS_Report *myReport_;
+    PtrParamNode olasInfo_;
 
     //! Dimension of problem matrix which is factorised
     UInt sysMatDim_;
 
     //! Status of factorisation
     bool amFactorised_;
+    
+    //! Flag for logging
+    bool logging_;
     
   };
 

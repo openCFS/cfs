@@ -11,14 +11,13 @@ namespace CoupledField {
 
 
     // Re-ordering strategy should be not to re-order
-    if ( newOrder_ != NOREORDERING ) {
+    if ( newOrder_ != BaseOrdering::NOREORDERING ) {
       std::string tmp;
-      Enum2String( newOrder_, tmp );
-      
-      (*warning) << "IDBC_Graph::FinaliseAssembly: Re-ordering strategy = '"
-                 << tmp
-                 << "' makes no sense in my case! Ignoring it!";
-      Warning( __FILE__, __LINE__ );
+      tmp = BaseOrdering::reorderingType.ToString( newOrder_ );
+
+      WARN("IDBC_Graph::FinaliseAssembly: Re-ordering strategy = '"
+           << tmp
+           << "' makes no sense in my case! Ignoring it!");
     }
 
     // Determine number of non-zero entries

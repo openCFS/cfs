@@ -34,7 +34,7 @@ namespace CoupledField
     void calcDMat( Matrix<Double> &dMat );
 
     //!  Compute matrix \f$ B \f$ at given integration point.
-    void calcBMat( Matrix<Double> &bMat, UInt ip,
+    void CalcBMat( Matrix<Double> &bMat, UInt ip,
                    const Matrix<Double> &ptCoord );
 
     //! Compute element matrix associated to damping integral form
@@ -96,7 +96,7 @@ namespace CoupledField
 		// To keep the last heat solution
 		Vector< Double > teta_;
 
-    ParamNode* pn_;
+    PtrParamNode pn_;
 
     //flag to set -K
     //bool flagNegate_;

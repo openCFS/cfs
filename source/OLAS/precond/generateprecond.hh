@@ -12,6 +12,7 @@
 #define OLAS_GENERATEPRECOND_HH
 
 #include "General/environment.hh"
+#include "DataInOut/ParamHandling/ParamNode.hh"
 
 //!
 namespace CoupledField {
@@ -20,8 +21,7 @@ namespace CoupledField {
   class BaseSBMPrecond;
   class StdMatrix;
   class SBM_Matrix;
-  class OLAS_Params;
-  class OLAS_Report;
+  class ParamNode;
   
   //! Generate a standard preconditioner object
   
@@ -32,9 +32,8 @@ namespace CoupledField {
   //! \param myParams Pointer to parameter object for the preconditioner
   //! \param myReport Pointer to report object for the preconditioner
   BaseStdPrecond* GenerateStdPrecondObject( const StdMatrix &mat,
-                                            PrecondType ptype,
-                                            OLAS_Params *myParams,
-                                            OLAS_Report *myReport );
+                                            PtrParamNode solverNode,
+                                            PtrParamNode olasInfo );
   
   
   //! Generate a SBM preconditioner object
@@ -46,9 +45,8 @@ namespace CoupledField {
   //! \param myParams Pointer to parameter object for the preconditioner
   //! \param myReport Pointer to report object for the preconditioner
   BaseSBMPrecond* GenerateSBMPrecondObject( const SBM_Matrix &mat,
-                                            PrecondType ptype,
-                                            OLAS_Params *myParams,
-                                            OLAS_Report *myReport );
+                                            PtrParamNode solverNode,
+                                            PtrParamNode olasInfo );
 
 }
 

@@ -20,7 +20,7 @@ namespace CoupledField {
   // ***************
   //   Constructor
   // ***************
-  MpcciPDE::MpcciPDE( Grid * aptgrid, ParamNode* paramNode )
+  MpcciPDE::MpcciPDE( Grid * aptgrid, PtrParamNode paramNode )
     :SinglePDE( aptgrid, paramNode ) 
   {
 
@@ -37,16 +37,16 @@ namespace CoupledField {
     converged_=false;
 
     // get firs region node
-    StdVector<ParamNode*> regionNodes = 
+    ParamNodeList regionNodes = 
       myParam_->Get("regionList")->GetList("region");
     if( regionNodes.GetSize() == 0 ) {
       EXCEPTION( "No region defined in MpcciPDE!" );
     }
     // take 'type' parameter of first region node
-    regionNodes[0]->Get( "type", MpCCIType_ );
+    regionNodes[0]->GetValue( "type", MpCCIType_ );
 
     // get node 'mpcciFSI'
-    ParamNode * mpcciNode = param->Get( "mpcciFSI" );
+    PtrParamNode mpcciNode = param->Get( "mpcciFSI" );
     
     
     if (MpCCIType_ == "shell")
@@ -55,8 +55,8 @@ namespace CoupledField {
 	meshId_= new UInt[NumMeshIds_];
         Info->PrintF( pdename_, 
                       "thin structure is assumed (forces on both sides!\n" );
-        mpcciNode->Get( "meshIdA", meshId_[0] );
-        mpcciNode->Get( "meshIdB", meshId_[0] );        
+        mpcciNode->GetValue( "meshIdA", meshId_[0] );
+        mpcciNode->GetValue( "meshIdB", meshId_[0] );        
       }
     else if (MpCCIType_ == "solid")
       {
@@ -64,7 +64,7 @@ namespace CoupledField {
                       "thick structure is assumed (forces on one side!\n" );
 	NumMeshIds_=1;
 	meshId_ = new UInt[NumMeshIds_];
-        mpcciNode->Get( "meshIdA", meshId_[0] );
+        mpcciNode->GetValue( "meshIdA", meshId_[0] );
       }
     else
       {
@@ -93,7 +93,7 @@ namespace CoupledField {
     // get regions/subdomains for PDE
     // =====================================================================
     // Obtain regions the pde is defined on
-    StdVector<ParamNode*> regionNodes = 
+    ParamNodeList regionNodes = 
       myParam_->Get("regionList")->GetList("region");
     
     bool usePenalty = false;
@@ -101,8 +101,8 @@ namespace CoupledField {
 
     Info->PrintF( pdename_, " %s lives on regions:\n", pdename_.c_str());
     for ( UInt k = 0; k < regionNodes.GetSize(); k++ ) {
-      std::string actRegionName = regionNodes[k]->Get("name")->AsString();
-      RegionIdType actRegionId = ptgrid_->RegionNameToId( actRegionName );
+      std::string actRegionName = regionNodes[k]->Get("name")->As<std::string>();
+      RegionIdType actRegionId = ptgrid_->GetRegion().Parse( actRegionName );
       subdoms_.Push_back( actRegionId );
       Info->PrintF( pdename_, " %s\n", actRegionName.c_str() );
       
@@ -271,9 +271,6 @@ namespace CoupledField {
     UInt pdeNode;
     UInt k, couplingDof;
     UInt * nodeIds;
-
-    // Reset counter for boundary conditions
-    couplingBCsCounter_ = 0;
   
     // Outer loop over all INPUT coupling terms
     for (UInt i=0; i<ptCoupling_->GetNumInputCouplings(); i++)
@@ -485,7 +482,7 @@ namespace CoupledField {
     numOfNodesInSD_=new UInt[numOfSubdom];
     for (i=0; i<numOfSubdom; i++)
       {
-	globalNodes.Resize(0);
+	globalNodes.Clear();
 // 	ptgrid_->GetVolElems(elemsInSD,subdoms_[i]);
 	ptgrid_->GetElems(elemsInSD,subdoms_[i]);
 	ptgrid_->GetNodesOfElemList(globalNodes, elemsInSD);

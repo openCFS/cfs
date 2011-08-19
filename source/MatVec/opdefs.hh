@@ -37,6 +37,137 @@ typedef std::size_t _T_int_;
 namespace CoupledField {
 
 
+  // ========================================================================
+  //
+  // AUXILLIARY FUNCTIONS
+  //
+  // ========================================================================
+
+
+  //! Computation of absolute value for non-scalar types
+
+  //! Computation of absolute value for non-scalar types. This functionality
+  //! is currently not implemented.
+  template <typename T>
+  inline Double Abs(T a){ 
+    EXCEPTION("Abs not implemented for this data type ");
+  }
+
+  //! Specialize Abs to compute absolute value of a double variable
+  template<>
+  inline Double Abs<Double> (Double a){
+    return fabs(a);
+  }
+
+  template<>
+  inline Double Abs<Integer> (Integer a){
+    return abs(a);
+  }
+
+  /** this is the reason why we cannot use std::abs() as there is no definition and the compiler complaines :( */
+  template<>
+  inline Double Abs<UInt> (UInt a){
+    return a;
+  }
+
+  //! Specialize Abs to compute modulus of a Complex variable
+  template<>
+  inline Double Abs<Complex>(Complex a) {
+    return sqrt((a.real())*(a.real())+(a.imag())*(a.imag()));
+  }
+
+  //! Compute \f$z\cdot\bar{z}\f$
+  template <typename T>
+  inline Double Abs2( const T &arg ) {
+    return arg * arg;
+  }
+
+  //! Compute \f$z\cdot\bar{z}\f$
+  template<>
+  inline Double Abs2<Complex>( const Complex &arg ) {
+    return (arg.real()) * (arg.real()) + (arg.imag()) * (arg.imag());
+  }
+
+  //! Compute the conjugate of a real number
+  template <typename T>
+  inline T Conj( T a ) {
+    return a;
+  }
+
+  //! Compute the conjugate of a complex number
+  template<>
+  inline Complex Conj<Complex>( Complex a ) {
+    return std::conj(a);
+  }
+
+  //! Allo conjugate notation of a real
+  template<>
+  inline double Conj<double>( double a ) {
+    return a;
+  }
+
+  template <typename T>
+  inline double Real(T a) {  return ((std::complex<double>) a).real(); }
+
+  template <>
+  inline double Real<double>(double a) { return a; }
+
+  template <>
+  inline double Real<std::complex<double> >(std::complex<double> a) { return a.real(); }
+
+  
+  template <typename T>
+  inline void PrintSingleEntry( T val, FILE *fp ) {
+    EXCEPTION("PrintSingleEntry not implemented for this data type ");
+  }
+
+  //! Print a single double value to a file
+  template<>
+  inline void PrintSingleEntry<Double>( Double val, FILE *fp ) {
+    fprintf( fp, "% 22.16e", val );
+  }
+  
+  //! Print a single complex value to a file
+  template<>
+  inline void PrintSingleEntry<Complex>( Complex val, FILE *fp ) {
+    fprintf( fp, "% 22.16e\t% 22.16e", (val.real()), (val.imag()) );
+  }
+
+  //! Dummy implementation of multiplication of a real value and complex
+  //! scalar. We cannot scale a real value by a complex one and get a real
+  //! result.
+  template <typename T>
+  inline void MultScalarWithComplex( T &multiplicant,
+                                     const Complex factor ) {
+    EXCEPTION("We cannot multiply a real-valued scalar with a "
+             << "complex-valued one! The result would not be Double!");
+  }
+
+  //! Multiplication of two complex scalars
+  template<>
+  inline void MultScalarWithComplex<Complex>( Complex &multiplicant,
+                                              const Complex factor ) {
+    multiplicant *= factor;
+  }
+
+  //! Division of real-value scalar by complex-valued one
+
+  //! Dummy implementation of division of a real-valued scalar by a
+  //! complex-valued one. We cannot perform this operation in the realm
+  //! of real-numbers, since the result would be complex.
+  template <typename T>
+  inline void DivScalarByComplex( T &nominator,
+                                  const Complex denominator ) {
+    EXCEPTION("We cannot divide a real-valued scalar by a "
+             << "complex-valued one! The result would not be Double!");
+  }
+
+  //! Division of one complex scalar by another
+  template<>
+  inline void DivScalarByComplex<Complex>( Complex &nominator,
+                                           const Complex denominator ) {
+    nominator /= denominator;
+  }
 
 
   // ========================================================================
@@ -44,6 +175,8 @@ namespace CoupledField {
   // ARITHMETIC OPERATIONS
   //
   // ========================================================================
+
+
 
 
   // *************************************************************************
@@ -128,114 +261,6 @@ namespace CoupledField {
     }
 
   };
-
-
-
-
-  // ========================================================================
-  //
-  // AUXILLIARY FUNCTIONS
-  //
-  // ========================================================================
-
-
-  //! Computation of absolute value for non-scalar types
-
-  //! Computation of absolute value for non-scalar types. This functionality
-  //! is currently not implemented.
-  template <typename T>
-  inline Double Abs(T a){ 
-    EXCEPTION("Abs not implemented for this data type ");
-  }
-
-  //! Specialize Abs to compute absolute value of a double variable
-  template<>
-  inline Double Abs<Double> (Double a){
-    return fabs(a);
-  }
-
-  //! Specialize Abs to compute modulus of a Complex variable
-  template<>
-  inline Double Abs<Complex>(Complex a) {
-    return sqrt((a.real())*(a.real())+(a.imag())*(a.imag()));
-  }
-
-  //! Compute \f$z\cdot\bar{z}\f$
-  template <typename T>
-  inline Double Abs2( const T &arg ) {
-    return arg * arg;
-  }
-
-  //! Compute \f$z\cdot\bar{z}\f$
-  template<>
-  inline Double Abs2<Complex>( const Complex &arg ) {
-    return (arg.real()) * (arg.real()) + (arg.imag()) * (arg.imag());
-  }
-
-  //! Compute the conjugate of a real number
-  template <typename T>
-  inline T Conj( T a ) {
-    return a;
-  }
-
-  //! Compute the conjugate of a complex number
-  template<>
-  inline Complex Conj<Complex>( Complex a ) {
-    return std::conj(a);
-  }
-  
-  template <typename T>
-  inline void PrintSingleEntry( T val, FILE *fp ) {
-    EXCEPTION("PrintSingleEntry not implemented for this data type ");
-  }
-
-  //! Print a single double value to a file
-  template<>
-  inline void PrintSingleEntry<Double>( Double val, FILE *fp ) {
-    fprintf( fp, "% 22.16e", val );
-  }
-  
-  //! Print a single complex value to a file
-  template<>
-  inline void PrintSingleEntry<Complex>( Complex val, FILE *fp ) {
-    fprintf( fp, "% 22.16e\t% 22.16e", (val.real()), (val.imag()) );
-  }
-
-  //! Dummy implementation of multiplication of a real value and complex
-  //! scalar. We cannot scale a real value by a complex one and get a real
-  //! result.
-  template <typename T>
-  inline void MultScalarWithComplex( T &multiplicant,
-                                     const Complex factor ) {
-    EXCEPTION("We cannot multiply a real-valued scalar with a "
-             << "complex-valued one! The result would not be Double!");
-  }
-
-  //! Multiplication of two complex scalars
-  template<>
-  inline void MultScalarWithComplex<Complex>( Complex &multiplicant,
-                                              const Complex factor ) {
-    multiplicant *= factor;
-  }
-
-  //! Division of real-value scalar by complex-valued one
-
-  //! Dummy implementation of division of a real-valued scalar by a
-  //! complex-valued one. We cannot perform this operation in the realm
-  //! of real-numbers, since the result would be complex.
-  template <typename T>
-  inline void DivScalarByComplex( T &nominator,
-                                  const Complex denominator ) {
-    EXCEPTION("We cannot divide a real-valued scalar by a "
-             << "complex-valued one! The result would not be Double!");
-  }
-
-  //! Division of one complex scalar by another
-  template<>
-  inline void DivScalarByComplex<Complex>( Complex &nominator,
-                                           const Complex denominator ) {
-    nominator /= denominator;
-  }
 
 }
 

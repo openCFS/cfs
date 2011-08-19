@@ -66,9 +66,6 @@ namespace CoupledField
     Shape[4] = 4 * LCoord[0] * LCoord[1];
     Shape[5] = 4 * LCoord[1] * t;
 
-    //   if (Shape[0] < 0)
-    //     Error("Local coordinates are not inside tetrahedral element!",__FILE__,__LINE__);
-
 #ifndef NDEBUG
     //  (*debug) << "LCoord \n " << LCoord << std::endl;
     //  (*debug) << "Shape \n " << Shape << std::endl;

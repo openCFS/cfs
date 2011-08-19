@@ -27,7 +27,7 @@ namespace CoupledField
                            bool isaxi, bool coordUpdate )
     : BaseOperator(ptGrid, ptPDE, eqnMap, isaxi, coordUpdate )
   {
-    //Warning( "Only working wit Lagrange elements", __FILE__, __LINE__ );
+    //WARN( "Only working wit Lagrange elements" );
     dim_ = dim;
     materials_ = matData;
 
@@ -47,7 +47,7 @@ namespace CoupledField
     neighRegions_  = neighRegions;
 
     StdVector<std::string> names;
-    ptGrid_->RegionIdToName(  names,neighRegions );
+    ptGrid_->GetRegion().ToString(neighRegions, names);
 
     //get the interface elements to the coupling nodes
     ptGrid_->GetElemsNextToNodes(interfaceElems_, couplingnodes,

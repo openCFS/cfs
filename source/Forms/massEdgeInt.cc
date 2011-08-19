@@ -47,7 +47,6 @@ void MassEdgeInt::CalcElementMatrix( Matrix<Double>& elemMat,
   // Loop over all integration points
   LocPointMapped lp;
   Matrix<Double> shape;
-  Double temp = 0.0;
   for( UInt i = 0; i < intPoints.GetSize(); i++  ) {
     // Calculate for each integration point the LocPointMapped
     lp.Set( intPoints[i], esm );

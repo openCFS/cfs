@@ -20,11 +20,16 @@ namespace CoupledField {
     //!                  find the additional parameters in the .xml-file
     //! \param ptGrid (in) pointer to finite element grid object
     //! \param myParamNode (in) pointer to parameter node of current coosy
+    //! \param myParamNode (in) pointer to info node of current coosy;
     CylCoordSystem(const std::string & name, Grid * ptGrid,
-                   ParamNode * myParamNode );
+                   PtrParamNode myParamNode );
+
     
     //! Destructor
     virtual ~CylCoordSystem();
+    
+    //! Print information about coordinate system to info node
+    void ToInfo( PtrParamNode in );
 
     //! Transform local into global coordinate
 
@@ -43,19 +48,32 @@ namespace CoupledField {
     //! \param glob (in) point w.r.t. to global cartesian coordinate system
     void Global2LocalCoord( Vector<Double> &loc,  
                             const Vector<Double> & glob ) const;
-    
-    //! Return the global rotation angles for a given point
 
-    //! This method returns the Kardan rotation angles,
+    //! Returns the global rotation matrix for a given point
+
+    //! This method returns the rotation matrix defining defining a rotation,
     //! by which the global coordinate system has to be rotated, so that
+    //! so that it represents the current one in that point.
+    //! \param rotMatrix rotation matrix for global point
+    //! \param point point w.r.t. to global Cartesian coordinate system
+    virtual void 
+    GetGlobRotationMatrix( Matrix<Double> & rotMatrix,
+                           const Vector<Double>& point ) const;
+
+    //! Returns the full 3x3 global rotation matrix for a given point
+
+    //! This method returns the full 3x3 rotation matrix defining defining 
+    //! a rotation, by which the global coordinate system has to be rotated, 
     //! it represents the current one in that point.
-    void  GetGlobRotationAngles( Vector<Double> & angles,
-                                 const Vector<Double>& point ) const;
-
-
+    //! \param rotMatrix rotation matrix for global point
+    //! \param point point w.r.t. to global Cartesian coordinate system
+    virtual void 
+    GetFullGlobRotationMatrix( Matrix<Double> & rotMatrix,
+                               const Vector<Double>& point ) const;
+    
     //@{
     //! Transform local vector into global one for a given global model point
-    
+
     //! This method transforms a vector with a local coordinate representation
     //! and a given global model point (german: "Aufpunkt") into a vector with 
     //! a representation in global cartesian coordinates.
@@ -103,9 +121,6 @@ namespace CoupledField {
     void Local2GlobalVectorInt( Vector<TYPE> & globVec, 
                                 const Vector<TYPE> & locVec, 
                                 const Vector<Double> & globModelPoint ) const;
-    
-    //! Write summary of coordinate system
-    void PrintInfo();
     
     //! vector pointing in z-direction
     Vector<Double> zAxis_;

@@ -6,7 +6,6 @@
 #include <cstdio>
 
 #include "MatVec/scrs_matrix.hh"
-#include "OLAS/algsys/olasparams.hh"
 
 #include "OLAS/precond/ILDLPrecond/ildlkfactoriser.hh"
 #include "OLAS/precond/ILDLPrecond/ildlprecond.hh"
@@ -29,18 +28,21 @@ namespace CoupledField {
   //   Standard constructor
   // ************************
   template <class T>
-  ILDLKFactoriser<T>::ILDLKFactoriser( OLAS_Params *myParams,
-                                       OLAS_Report *myReport ) {
+  ILDLKFactoriser<T>::ILDLKFactoriser( PtrParamNode solverNode,
+                                       PtrParamNode olasInfo ) {
 
 
     // Set pointers to communication objects
-    this->myParams_ = myParams;
-    this->myReport_ = myReport;
+    this->xml_ = solverNode;
+    this->olasInfo_ = olasInfo;
 
     // Initialise remaining attributes
     this->amFactorised_ = false;
     this->sysMatDim_    = 0;
     level_        = 0;
+
+    PtrParamNode pNode = this->xml_->Get("ILDLK", ParamNode::INSERT);
+    pNode->GetValue("logging", this->logging_, ParamNode::INSERT ) ;
   }
 
 
@@ -85,8 +87,8 @@ namespace CoupledField {
     }
 
     // What fill level is allowed
-    level_ = (UInt) this->myParams_->GetIntValue( "ILDLPRECOND_level" );
-
+    level_ = 1;
+    this->xml_->Get("ILDLK",ParamNode::INSERT)->GetValue( "level", level_, ParamNode::INSERT);
     // Start pattern analysis combined with factorisation
     if ( this->amFactorised_ == false || newPattern == true ) {
       FactoriseAnalytic( sysMat, dataD, rptrU, cidxU, dataU );
@@ -116,14 +118,10 @@ namespace CoupledField {
     UInt lvlParent1, lvlParent2, auxLevel;
     T elim, aux;
 
-    // Shall we be verbose?
-    bool logging = this->myParams_->GetIntValue( "ILDLPRECOND_logging" ) > 0;
-
-
     // =================
     //  Report start-up
     // =================
-    if ( logging ) {
+    if ( this->logging_ ) {
       (*cla) << " + Using ILDL(k) variant with k = " << level_ << "\n\n"
 	     << " Phase: Combined ANALYSE + FACTORISE" << std::endl;
     }
@@ -250,7 +248,7 @@ namespace CoupledField {
     // Needed for writing progress report of factorisation
     UInt percentDone = 0;
     Double actDone = 0.0;
-    if ( logging == true ) {
+    if ( this->logging_ == true ) {
       (*cla) << '\n';
     }
     (*cla) << " Factorisation done:\n" << " 0%" << std::flush;
@@ -597,10 +595,9 @@ namespace CoupledField {
 
 #ifdef DEBUG_ILDLKFACTORISER
             if ( activeListPrevElem > scanListElem ) {
-              (*error) << "Error in active list add: (activeListPrevElem = "
+              EXCEPTION( "Error in active list add: (activeListPrevElem = "
                        << activeListPrevElem << ") < (scanListElem = "
-                       << scanListElem << ")";
-              Error( __FILE__, __LINE__ );
+                       << scanListElem << ")" );
             }
 #endif
 
@@ -647,9 +644,8 @@ namespace CoupledField {
       // We claim that activeListElem >= scanListElem always holds, so
       // now we should have activeListElem = listEnd
       if ( activeListElem != listEnd ) {
-        (*error) << "ILDLKFACTORISER::Factorise: activeListElem = "
-                 << activeListElem << ", but should be " << listEnd;
-        Error( __FILE__, __LINE__ );
+        EXCEPTION( "ILDLKFACTORISER::Factorise: activeListElem = "
+                 << activeListElem << ", but should be " << listEnd );
       }
 #endif
       
@@ -716,10 +712,11 @@ namespace CoupledField {
     // =====================
     //   Export Fill Levels
     // =====================
-    if( this->myParams_->GetBoolValue( "ILDLPRECOND_saveLevels" ) == true ) {
-      std::string filename;
-      filename = this->myParams_->GetStringValue( "ILDLPRECOND_levelsFileName" );
-      ExportFillLevels( filename.c_str(), rptrU, cidxU, fillU );
+    std::string saveLevelsFile = "";
+    this->xml_->Get("ILDLK", ParamNode::INSERT)
+      ->GetValue( "saveLevelsFile", saveLevelsFile, ParamNode::INSERT);
+    if( saveLevelsFile != "" ) {
+      ExportFillLevels( saveLevelsFile.c_str(), rptrU, cidxU, fillU );
     }
 
 
@@ -737,7 +734,7 @@ namespace CoupledField {
     delete[] activeList_ ;
     delete[] listIDX_    ; 
     delete[] listVAL_    ;
-    DELETEARRAY( firstU_ );
+    delete [] ( firstU_ );  firstU_  = NULL;
 
 #ifdef DEBUG_ILDLKFACTORISER
     (*debug) << std::endl;
@@ -759,7 +756,7 @@ namespace CoupledField {
 
     // Shall we be verbose?
     // TODO: Check if this is still needed
-    // bool logging = this->myParams_->GetIntValue( "ILDLPRECOND_logging" ) > 0;
+    // bool logging = false;
   }
 
 
@@ -786,9 +783,6 @@ namespace CoupledField {
     Integer bw, bwLocal;
     UInt profile, profAux, profileMult;
 
-    // Shall we be verbose?
-    bool logging = this->myParams_->GetIntValue( "ILDLPRECOND_logging" ) > 0;
-
     // Get hold of column index array
     const UInt *cidxA = sysMat.GetColPointer();
 
@@ -803,7 +797,7 @@ namespace CoupledField {
 
     // We use a bottom up approach in order to determine for each matrix
     // column the smallest row index of a non-zero entry in that column.
-    for ( i = this->sysMatDim_; i > 0; i-- ) {
+    for ( i = this->sysMatDim_-1; i > 0; i-- ) {
 
       // For profile
       for ( k = rptrA[i]; k < rptrA[i+1]; k++ ) {
@@ -836,7 +830,7 @@ namespace CoupledField {
     Double profileFP = profile + (double) std::numeric_limits<unsigned int>::max() * profileMult;
 
     // Report
-    if ( logging ) {
+    if ( this->logging_ ) {
       (*cla) << " Pattern analysis\n"
              << " + Matrix has a bandwidth of bw = " << bw
              << "\n + Full factor (L + D) would contain " << profileFP
@@ -863,7 +857,7 @@ namespace CoupledField {
     memSize = memSize > profileFP ? profileFP : memSize;
 
     // Report
-    if ( logging ) {
+    if ( this->logging_ ) {
       (*cla) << " + Estimate of no. of entries in L: "
              << (UInt) memSize << std::endl;
     }
@@ -921,9 +915,8 @@ namespace CoupledField {
     //   Close output file
     // =====================
     if ( fclose( fp ) == EOF ) {
-      (*warning) << "ILDLPrecond::ExportFillLevels: Could not close file "
-                 << fname << " after writing!";
-      Warning( __FILE__, __LINE__ );
+      WARN("ILDLPrecond::ExportFillLevels: Could not close file "
+           << fname << " after writing!");
     }
   }
 

@@ -36,25 +36,14 @@ SET(CTEST_SOURCE_DIRECTORY "$ENV{HOME}/Documents/dev/NIGHTLY/CFS_TRUNK_NIGHTLY")
 SET(CTEST_BINARY_DIRECTORY "$ENV{HOME}/Documents/dev/NIGHTLY/CFS_BUILD_NIGHTLY")
 
 #-----------------------------------------------------------------------------
-# Place CTestConfig.cmake file for project CFS on CDash server rom into
-# CTEST_SOURCE_DIRECTORY.
+# Copy CDash server configuration file to source dir.
 #-----------------------------------------------------------------------------
-FILE(WRITE "${CTEST_SOURCE_DIRECTORY}/CTestConfig.cmake"
-  "
-  ## This file should be placed in the root directory of your project.
-  ## Then modify the CMakeLists.txt file in the root directory of your
-  ## project to incorporate the testing dashboard.
-  ## # The following are required to uses Dart and the Cdash dashboard
-  # ENABLE_TESTING()
-  # INCLUDE(Dart)
-  set(CTEST_PROJECT_NAME \"CFS\")
-  set(CTEST_NIGHTLY_START_TIME \"00:00:00 EST\")
+EXECUTE_PROCESS(COMMAND ${CMAKE_EXECUTABLE_NAME} -E copy_if_different CTestConfig.cmake ${CTEST_SOURCE_DIRECTORY}/CTestConfig.cmake)
 
-  set(CTEST_DROP_METHOD \"http\")
-  set(CTEST_DROP_SITE \"rom\")
-  set(CTEST_DROP_LOCATION \"/cdash/submit.php?project=CFS\")
-  set(CTEST_DROP_SITE_CDASH TRUE)"
-)
+EXEC_PROGRAM("${CTEST_SOURCE_DIRECTORY}/share/scripts/distro.sh"
+  ARGS -u
+  OUTPUT_VARIABLE CFS_ARCH_STR
+  RETURN_VALUE RETVAL)
 
 #-----------------------------------------------------------------------------
 # Specify that we want to do an experimental build without updating the CFS++
@@ -93,11 +82,21 @@ SET(CTEST_INITIAL_CACHE
    TESTSUITE_DIR:STRING=$ENV{HOME}/Documents/dev/NIGHTLY/CFS_TESTSUITE_NIGHTLY
    CFS_DEPS_ROOT:PATH=$ENV{HOME}/Documents/dev/NIGHTLY/CFSDEPS_NIGHTLY
    CFS_DEPS_CACHE_DIR:PATH=$ENV{HOME}/Documents/dev/NIGHTLY/CFSDEPSCACHE
+   USE_ANSYSRST:BOOL=ON
    USE_GMV_INPUT:BOOL=ON
+   USE_GMSH:BOOL=ON
    USE_PYTHON:BOOL=ON
    USE_TCL:BOOL=ON
-   USE_INTERPOLATION:BOOL=OFF
+   USE_INTERPOLATION:BOOL=ON
    CPLREADER:BOOL=ON
+   CPLREADER_CFX:BOOL=ON
+   CPLREADER_OPENFOAM:BOOL=ON
+   CPLREADER_CGNS:BOOL=ON
+   CPLREADER_ENSIGHT:BOOL=ON
+   CPLREADER_FIELDVIEW:BOOL=ON
+   CPLREADER_FLUENT:BOOL=ON
+   CPLREADER_FASTEST:BOOL=ON
+   CPLREADER_ANSYS:BOOL=ON
    USE_SCPIP:BOOL=ON")
 
 #-----------------------------------------------------------------------------
@@ -113,5 +112,5 @@ SET(CTEST_ENVIRONMENT
   "LC_ALL=C"
   "LANG=C"
   "LANGUAGE=C"
-  "CPLREADER_PERF_SUITE=$ENV{HOME}/cplreader_performance_suite"
+  "CPLREADER_PERF_SUITE=/media/CFD_Data/cplreader_performance_suite"
   )

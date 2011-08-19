@@ -40,7 +40,7 @@ namespace CoupledField
   
     //! main method, where time-stepping is implemented. 
     //! it is for transient and static problem
-    void SolveProblem(bool write_results = true, InfoNode* given_analysis_id = NULL);
+    void SolveProblem(bool write_results = true, PtrParamNode given_analysis_id = PtrParamNode(), AdjointParameters* adjointParams = NULL);
 
     //! Return current time / frequency step of simulation
     UInt GetActStep( const std::string& pdename );

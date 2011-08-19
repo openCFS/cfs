@@ -29,9 +29,8 @@ namespace CoupledField
                   matData, isaxi, coordUpdate)
   {
 
-    gradFieldOp_ = new GradientFieldOp<Double>(ptGrid, ptPDE, eqnMap, 
-                                               sol, ELEC_POTENTIAL, result,isaxi,
-                                               coordUpdate);
+    gradFieldOp_ = new GradientFieldOp<Double>(ptGrid, ptPDE, eqnMap, sol,
+                                               result->fctType, isaxi, coordUpdate);
     solType_ = ELEC_FORCE_VWP;
     sign_    = 1.0;
   }

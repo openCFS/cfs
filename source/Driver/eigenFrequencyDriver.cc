@@ -12,7 +12,6 @@
 #include "Domain/domain.hh"
 
 #include "DataInOut/ParamHandling/ParamNode.hh"
-#include "DataInOut/ParamHandling/InfoNode.hh"
 #include "DataInOut/resultHandler.hh"
 
 namespace CoupledField {
@@ -39,15 +38,15 @@ namespace CoupledField {
   void EigenFrequencyDriver::Init() {
     
     // get parameter node
-    ParamNode * myNode = 
-      param->Get("sequenceStep", "index", GenStr( sequenceStep_ ) )
-      ->Get("analysis")->Get("eigenFrequency");
+    PtrParamNode myNode = 
+      param->GetByVal("sequenceStep", std::string("index"), sequenceStep_)
+        ->Get("analysis")->Get("eigenFrequency");
 
     // read required parameters from parameter node
-    myNode->Get( "numModes", numFreq_ );
-    myNode->Get( "freqShift", freqShift_ );
-    myNode->Get( "writeModes", writeModes_, true );
-    myNode->Get( "isQuadratic", isQuadratic_, true );
+    myNode->GetValue( "numModes", numFreq_ );
+    myNode->GetValue( "freqShift", freqShift_ );
+    myNode->GetValue( "writeModes", writeModes_, ParamNode::PASS );
+    myNode->GetValue( "isQuadratic", isQuadratic_, ParamNode::PASS );
 
     InitializePDEs();
   }
@@ -63,11 +62,15 @@ namespace CoupledField {
   // *****************
   //   Solve problem
   // *****************
-  void EigenFrequencyDriver::SolveProblem(bool write_results, InfoNode* given_analysis_id) {
+  void EigenFrequencyDriver::SolveProblem(bool write_results, PtrParamNode given_analysis_id, AdjointParameters* adjointParams) {
     // options not implemented
     assert(write_results == true);
-    assert(given_analysis_id == NULL); // not implemented yet
     
+    if(given_analysis_id == NULL)
+      analysis_id_ = driverNode->Get(ParamNode::PROCESS);
+    else
+      analysis_id_ = given_analysis_id;
+
     ResultHandler* resHandler = domain->GetResultHandler();
 
     // ------------------------------
@@ -84,15 +87,19 @@ namespace CoupledField {
     UInt numConverged = 0;
     ptPDE_->WriteGeneralPDEdefines();
     BaseSolveStep* step = ptPDE_->GetSolveStep();
-    if(isQuadratic_) {
-      numConverged = step->CalcEigenFrequencies( dynamic_cast<Vector<Complex>& >(*eigenFreqs),
-                                                 errBounds,numFreq_, freqShift_ );
-      PrintResult<Double>(eigenFreqs, errBounds, resHandler, numConverged);
-    }
-    else  {
-      numConverged = step->CalcEigenFrequencies( dynamic_cast<Vector<Double>& >(*eigenFreqs),
-                                                 errBounds,numFreq_, freqShift_ );
-      PrintResult<Double>(eigenFreqs, errBounds, resHandler, numConverged);
+    try {
+      if(isQuadratic_) {
+        numConverged = step->CalcEigenFrequencies( dynamic_cast<Vector<Complex>& >(*eigenFreqs),
+                                                   errBounds,numFreq_, freqShift_ );
+        PrintResult<Double>(eigenFreqs, errBounds, resHandler, numConverged);
+      }
+      else  {
+        numConverged = step->CalcEigenFrequencies( dynamic_cast<Vector<Double>& >(*eigenFreqs),
+                                                   errBounds,numFreq_, freqShift_ );
+        PrintResult<Double>(eigenFreqs, errBounds, resHandler, numConverged);
+      } 
+    } catch (Exception &ex ) {
+      RETHROW_EXCEPTION(ex, "Could not calculate eigenfrequencies of setup");
     }
     
     // notify resultHandler about finishing of current sequence step
@@ -109,6 +116,20 @@ namespace CoupledField {
   {
     Vector<T>& eigenFreqs = dynamic_cast<Vector<T>&>(*freq_ptr);
     
+    // If no frequency at all converged, just leave
+    if( numConverged == 0) {
+      WARN( "No eigenfrequency converged, so no output will be written to "
+            "the result files." );
+      return;
+    }
+    
+    // Issue warning, if number of converged eigenvalues differs from
+    // number of requested ones
+    if( numConverged != numFreq_ ) {
+      WARN( "Only " << numConverged << " eigenfrequencies of " 
+            << numFreq_ << " converged. To improve convergence, either "
+            << "reduce the number of eigenfrequencies or the tolerance." );
+    }
     
     // notify resultHandler about beginning of new sequence step
     resHandler->BeginMultiSequenceStep( sequenceStep_,
@@ -130,7 +151,7 @@ namespace CoupledField {
       std::cout << std::setw(20) << errBounds[i] <<  "\n";
 
       // also log via info node
-      InfoNode* result = driverNode->Get("result",InfoNode::APPEND);
+      PtrParamNode result = driverNode->Get("result",ParamNode::APPEND);
       result->Get("frequency")->SetValue(eigenFreqs[i]);
       result->Get("errorbound")->SetValue(errBounds[i]);
     }

@@ -14,7 +14,7 @@ namespace CoupledField {
 
 
 
-  PostProc::PostProc( Grid * ptGrid, ParamNode * postProcNode ) {
+  PostProc::PostProc( Grid * ptGrid, PtrParamNode postProcNode ) {
 
     ptGrid_ = ptGrid;
     myParam_ = postProcNode;
@@ -97,12 +97,12 @@ namespace CoupledField {
     }
   }
 
-  void PostProc::CreatePostProc( ParamNode * procNode,
+  void PostProc::CreatePostProc( PtrParamNode procNode,
                                  Grid * ptGrid, 
                                  StdVector<shared_ptr<PostProc> > & postProcs ) {
 
     // fetch single postProcs defined in this section
-    StdVector<ParamNode*> procNodes = procNode->GetChildren();
+    ParamNodeList procNodes = procNode->GetChildren();
 
     // iterate over all single postprocessing definitions
     for( UInt i = 0; i < procNodes.GetSize(); i++ ) {
@@ -122,7 +122,7 @@ namespace CoupledField {
       if( procName == "sum" ) {
         found = true;
         std::string typeString;
-        procNodes[i]->Get( "reduction", typeString );
+        procNodes[i]->GetValue( "reduction", typeString );
         ReductionType type;
         if( typeString == "space" ) {
           type = SPACE;
@@ -138,13 +138,13 @@ namespace CoupledField {
         found = true;
         std::string typeString;
         ReductionType type;
-        procNodes[i]->Get( "reduction", typeString );
+        procNodes[i]->GetValue( "reduction", typeString );
         if( typeString == "space" ) {
           type = SPACE;
         } else {
           type = TIME_FREQ;
         }
-        actProc = shared_ptr<PostProcMax>(new PostProcMax( ptGrid, type,NULL ) );
+        actProc = shared_ptr<PostProcMax>(new PostProcMax( ptGrid, type,PtrParamNode() ) );
       } 
       
       
@@ -152,25 +152,25 @@ namespace CoupledField {
       if( procName == "function" ) {      
         found = true;
         shared_ptr<PostProcFunc> funcProc;
-        funcProc = shared_ptr<PostProcFunc>(new PostProcFunc( ptGrid, NULL ) );
+        funcProc = shared_ptr<PostProcFunc>(new PostProcFunc( ptGrid, PtrParamNode() ) );
 
         // get resultName
         std::string resultName;
-        procNodes[i]->Get( "resultName", resultName );
+        procNodes[i]->GetValue( "resultName", resultName );
 
         // get unit
         std::string unit;
-        procNodes[i]->Get( "unit", unit );
+        procNodes[i]->GetValue( "unit", unit );
 
         // get dof-nodes
-        StdVector<ParamNode*> dofNodes = procNodes[i]->GetList("dof");;
+        ParamNodeList dofNodes = procNodes[i]->GetList("dof");;
         
         // get dofnames, real functions and imaginary functions for each dof
         StdVector<std::string> dofNames, rFunctions, iFunctions;
         for( UInt iDof = 0; iDof < dofNodes.GetSize(); iDof++ ) {
-          dofNames.Push_back( dofNodes[iDof]->Get("name")->AsString() );
-          rFunctions.Push_back( dofNodes[iDof]->Get("realFunc")->AsString() );
-          iFunctions.Push_back( dofNodes[iDof]->Get("imagFunc")->AsString() );
+          dofNames.Push_back( dofNodes[iDof]->Get("name")->As<std::string>() );
+          rFunctions.Push_back( dofNodes[iDof]->Get("realFunc")->As<std::string>() );
+          iFunctions.Push_back( dofNodes[iDof]->Get("imagFunc")->As<std::string>() );
         }
         funcProc->Initialize( resultName, unit, dofNames, rFunctions, iFunctions );
         actProc = funcProc;
@@ -181,14 +181,14 @@ namespace CoupledField {
         found = true;
 
         shared_ptr<PostProcLimit> limitProc;
-        limitProc = shared_ptr<PostProcLimit>(new PostProcLimit( ptGrid, NULL ) );
+        limitProc = shared_ptr<PostProcLimit>(new PostProcLimit( ptGrid, PtrParamNode() ) );
 
         // set upper and lower value, if present
         if( procNodes[i]->Has("lowerLimit") ){
-          limitProc->SetLowerLimit( procNodes[i]->Get("lowerLimit")->AsDouble() );
+          limitProc->SetLowerLimit( procNodes[i]->Get("lowerLimit")->As<Double>() );
         }
         if( procNodes[i]->Has("upperLimit") ){
-          limitProc->SetUpperLimit( procNodes[i]->Get("upperLimit")->AsDouble() );
+          limitProc->SetUpperLimit( procNodes[i]->Get("upperLimit")->As<Double>() );
         }
         actProc = limitProc;
 
@@ -201,14 +201,14 @@ namespace CoupledField {
       }
       
       // get next postprocessing routine
-      procNodes[i]->Get( "postProcId", actProc->next_ );
+      procNodes[i]->GetValue( "postProcId", actProc->next_ );
 
       // get writeResult
-      procNodes[i]->Get( "writeResult", actProc->writeResult_, true );
+      procNodes[i]->GetValue( "writeResult", actProc->writeResult_);
 
       // get outputDestNames
       std::string outNames;
-      procNodes[i]->Get( "outputIds", outNames );
+      procNodes[i]->GetValue( "outputIds", outNames );
       SplitStringList( outNames, actProc->outputNames_, ',' );
       postProcs.Push_back( actProc );
     }
@@ -218,7 +218,7 @@ namespace CoupledField {
   // =================== SUM-POSTPROCEDURE ===================
   
   PostProcSum::PostProcSum( Grid * ptGrid, ReductionType type, 
-                            ParamNode * postProcNode )
+                            PtrParamNode postProcNode )
     : PostProc( ptGrid, postProcNode ) {
     
     name_ = "sum";
@@ -315,7 +315,7 @@ namespace CoupledField {
   // =================== MAXIMUM-POSTPROCEDURE ===================
 
   PostProcMax::PostProcMax( Grid * ptGrid, ReductionType type,
-                            ParamNode * postProcNode )
+                            PtrParamNode postProcNode )
     : PostProc( ptGrid, postProcNode ) {
     
     name_ = "max";
@@ -441,7 +441,7 @@ namespace CoupledField {
   
 
   PostProcFunc::PostProcFunc( Grid * ptGrid,
-                              ParamNode * postProcNode )
+                              PtrParamNode postProcNode )
     : PostProc( ptGrid, postProcNode ) {
 
     name_ = "func";
@@ -477,9 +477,9 @@ namespace CoupledField {
     for( UInt outDof = 0 ; outDof < dofNames_.GetSize(); outDof++ ) {
       
       // obtain new handle
-      rHandles_[outDof] = mParser_->GetNewHandle();
+      rHandles_[outDof] = mParser_->GetNewHandle(true);
       if( input_->GetEntryType() == BaseMatrix::COMPLEX ) {
-        iHandles_[outDof] = mParser_->GetNewHandle();
+        iHandles_[outDof] = mParser_->GetNewHandle(true);
       }
       
       // register all input dofs 
@@ -597,6 +597,14 @@ namespace CoupledField {
           mParser_->SetCoordinates(  rHandles_[outDof],
                                      *(domain->GetCoordSystem()),
                                      coords );
+        } else if (outIt.GetType() == EntityList::ELEM_LIST) {
+          
+          Vector<Double> globMidPoint;
+          shared_ptr<ElemShapeMap> esm = ptGrid_->GetElemShapeMap(outIt.GetElem());
+          esm->GetGlobMidPoint(globMidPoint);
+          mParser_->SetCoordinates(  rHandles_[outDof],
+                                     *(domain->GetCoordSystem()),
+                                     globMidPoint );
         }
         
         // Register current input values for dofNames
@@ -646,8 +654,15 @@ namespace CoupledField {
           mParser_->SetCoordinates( iHandles_[outDof],
                                     *(domain->GetCoordSystem()),
                                     coords );
+        } else if (outIt.GetType() == EntityList::ELEM_LIST) {
+          Vector<Double> globMidPoint;
+          shared_ptr<ElemShapeMap> esm = ptGrid_->GetElemShapeMap(outIt.GetElem());
+          esm->GetGlobMidPoint(globMidPoint);
+          mParser_->SetCoordinates(  rHandles_[outDof],
+                                     *(domain->GetCoordSystem()),
+                                     globMidPoint );
         }
-        
+
         // Register current input values for dofNames
         for( UInt inDof = 0; inDof < numInDofs; inDof++ ) {
           Complex actVal = inVec[outIt.GetPos()*numInDofs + inDof];
@@ -678,7 +693,7 @@ namespace CoupledField {
  // =================== LIMIT-POSTPROCEDURE ===================
 
   PostProcLimit::PostProcLimit( Grid * ptGrid, 
-                              ParamNode * postProcNode )
+                              PtrParamNode postProcNode )
     : PostProc( ptGrid, postProcNode ) {
     
     name_ = "limit";

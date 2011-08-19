@@ -7,20 +7,22 @@
 #include <sstream>
 #include <math.h>
 #include <string>
+#include <set>
 
 #include "elecPDE.hh"
 
 #include "Forms/linElecInt.hh"
 #include "Forms/linNeumannInt.hh"
-#include "Forms/nLinElecHystInt.hh"
-#include "Forms/nLinElecMaterial.hh"
+//#include "Forms/nLinElecHystInt.hh"
+//#include "Forms/nLinElecMaterial.hh"
 #include "Forms/elecchargeop.hh"
 #include "Forms/laplaceInt.hh"
 #include "Forms/FlatShellElecInt.hh"
 #include "Forms/nonConformingInt.hh"
 #include "Forms/singleEntryInt.hh"
 #include "Forms/massInt.hh"
-#include "Forms/gradfieldop.hh"
+//#include "Forms/gradfieldop.hh"
+#include "Forms/piezoPolarizationMatrixRHSInt.hh"
 #include "General/defs.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/ParamHandling/ParamTools.hh"
@@ -28,16 +30,14 @@
 #include "Utils/StdVector.hh"
 #include "Driver/solveStepElec.hh"
 #include "CoupledPDE/pdecoupling.hh"
-//#include "Domain/ansatzFct.hh"
 #include "Driver/assemble.hh"
 #include "Utils/ApproxData.hh"
 #include "Utils/SmoothSpline.hh"
 #include "Utils/hysteresis.hh"
 #include "Utils/preisach.hh"
-#include "Optimization/DesignSpace.hh"
-#include "OLAS/algsys/basesystem.hh"
 #include "Elements/fespaceH1.hh"
 #include "Elements/fespaceH1Lagrange.hh"
+//#include "Optimization/Design/DesignSpace.hh"
 
 #ifdef USE_SCRIPTING
 #include "DataInOut/Scripting/cfsmessenger.hh" 
@@ -51,7 +51,7 @@ namespace CoupledField {
   // ***************
   //   Constructor
   // ***************
-  ElecPDE::ElecPDE( Grid* aptgrid, ParamNode* paramNode )
+  ElecPDE::ElecPDE( Grid* aptgrid, PtrParamNode paramNode )
     :SinglePDE( aptgrid, paramNode ) {
 
 
@@ -71,22 +71,22 @@ namespace CoupledField {
     needSolPrev_ = true;
  
     // Check the subtype of the problem
-    paramNode->Get("subType", subType_);
+    paramNode->GetValue("subType", subType_);
   }
   
 
   void ElecPDE::InitNonLin() {
 
     // Check, if "nonLinList" is present
-    ParamNode * nonLinListNode = myParam_->Get("nonLinList", false );
+    PtrParamNode nonLinListNode = myParam_->Get("nonLinList", ParamNode::PASS );
     if( nonLinListNode ) { 
 
       // Get nonlinear types
-      StdVector<ParamNode*> nonLinNodes = nonLinListNode->GetChildren();
+      ParamNodeList nonLinNodes = nonLinListNode->GetChildren();
       for( UInt i = 0; i < nonLinNodes.GetSize(); i++ ) {
 
         std::string actTypeString = nonLinNodes[i]->GetName();
-        std::string actId = nonLinNodes[i]->Get("id")->AsString();
+        std::string actId = nonLinNodes[i]->Get("id")->As<std::string>();
 
         NonLinType actType;
         String2Enum( actTypeString, actType );
@@ -95,7 +95,7 @@ namespace CoupledField {
     }
     
     // Run over all region and set entry in "regionNonLinId"
-    StdVector<ParamNode*> regionNodes = 
+    ParamNodeList regionNodes = 
       myParam_->Get("regionList")->GetChildren();
 
     RegionIdType actRegionId;
@@ -106,13 +106,13 @@ namespace CoupledField {
     }
     for( UInt i = 0; i < regionNodes.GetSize(); i++ ) {
       
-      regionNodes[i]->Get( "name", actRegionName );
-      regionNodes[i]->Get( "nonLinId", actNonLinId );
+      regionNodes[i]->GetValue( "name", actRegionName );
+      regionNodes[i]->GetValue( "nonLinId", actNonLinId );
       
       if( actNonLinId == "" )
         continue;
 
-      actRegionId = ptgrid_->RegionNameToId( actRegionName );
+      actRegionId = ptgrid_->GetRegion().Parse(actRegionName);
 
       // Check nonLinId was already registerd
       if( nonLinIdType_.find( actNonLinId) == nonLinIdType_.end() ) {
@@ -148,7 +148,6 @@ namespace CoupledField {
   }
 
   void ElecPDE::DefineIntegrators() {
-    //this is a novel implementation based on the FeDescriptor Array
 
     
     RegionIdType actRegion;
@@ -178,22 +177,25 @@ namespace CoupledField {
     std::string factor = "1.0";
     if ( isPiezoCoupled_ == true || isThermoCoupled_== true )
       factor = "-1.0";  
-    //==============================================================
-    //begin new implementation
-    //==============================================================
-    for(UInt iRegion = 0; iRegion < subdoms_.GetSize() ; iRegion ++){
-      actRegion = subdoms_[iRegion];
-      actSDMat = materials_[actRegion];
+
+    // Define integrators for "standard" materials
+    std::map<RegionIdType, BaseMaterial*>::iterator it;
+    for ( it = materials_.begin(); it != materials_.end(); it++ ) {
+      
+      // Set current region and material
+      actRegion = it->first;
+      actSDMat = it->second;
 
       // Get current region node
-      std::string regionName = ptgrid_->RegionIdToName( actRegion );
+      std::string regionName = ptgrid_->GetRegion().ToString(actRegion);
 
       // create new entity list
       shared_ptr<ElemList> actSDList( new ElemList(ptgrid_ ) );
       actSDList->SetRegion( actRegion );
-
-      //Piezo Capability would be given here...
-
+      
+      // ==========================================================
+      // New implementation
+      // ==========================================================
       // --- standard real-valued stiffness integrator ---
       linElecInt *  linElecForm = new linElecInt( actSDMat, tensorType,
                                                   upLagrangeForm );
@@ -205,7 +207,7 @@ namespace CoupledField {
                                   curMethod,(UInt)order[0][0]);
 
       BiLinFormContext * stiffIntDescr =
-        new BiLinFormContext(linElecForm, STIFFNESS );
+          new BiLinFormContext(linElecForm, STIFFNESS );
 
       feFunctions_[ELEC_POTENTIAL]->AddEntityList( actSDList );
 
@@ -217,163 +219,132 @@ namespace CoupledField {
       assemble_->AddBiLinearForm( stiffIntDescr );
       biLinForms_[actRegion] = linElecForm;
 
-
-    }
-    // define integrators for electric impedances
-    DefineImpedanceIntegrators();
-  }
-    //====================================================================
-    //End new Implementation
-    //====================================================================
-    //--------------------------------------------------------------------
-    //What follows is the old code
-    //--------------------------------------------------------------------
-    /* 
-    // Define integrators for "standard" materials
-    std::map<RegionIdType, BaseMaterial*>::iterator it;
-    for ( it = materials_.begin(); it != materials_.end(); it++ ) {
       
-      // Set current region and material
-      actRegion = it->first;
-      actSDMat = it->second;
+      // ==========================================================
+      // Old implementation
+      // ==========================================================
+      
 
-      // Get current region node
-      std::string regionName = ptgrid_->RegionIdToName( actRegion );
-
-      // create new entity list
-      shared_ptr<ElemList> actSDList( new ElemList(ptgrid_ ) );
-      actSDList->SetRegion( actRegion );
-
-      // isPiezoHyst = true means, that the bilinear-forms will be 
-      // defined in PiezoCupling.cc!!
-      bool isPiezoHyst = false;
-      if ( isPiezoCoupled_ == true )
-        isPiezoHyst = IsRegionPiezoHyst( regionName );
-
-      if ( !isPiezoHyst ) {
-        // check for nonlinearity
-        if ( regionNonLinType_[actRegion] == HYSTERESIS) {
-        */
-        //          StdVector<Elem*> elemssd;
-        //          ptgrid_->GetElems(elemssd, actRegion);
-        //          UInt numElSD =  elemssd.GetSize();
-        //          
-        //          
-        //          //allocate for hystersis modeling
-        //          actSDMat->InitHyst(numElSD, actSDList);
-        //          
-        //          nlinElecHystInt* nlForm;
-        //          nlForm = new nlinElecHystInt( actSDMat, tensorType,
-        //                                        upLagrangeForm );
-        //
-        //          nlForm->SetSolution( dynamic_cast<NodeStoreSol<Double>&>(*sol_ ));
-        //          nlForm->Set4Hyst(ptgrid_, this, eqnMap_,  results_[0]);
-        //          nlForm->SetFactor( GenStr(factor) );
-        //          
-        //          BiLinFormContext * stiffIntDescr = 
-        //            new BiLinFormContext(nlForm, STIFFNESS );
-        //          
-        //          stiffIntDescr->SetPtPdes(this, this);
-        //          stiffIntDescr->SetResults( results_[0], results_[0],
-        //                                     actSDList, actSDList );
-        //          
-        //          assemble_->AddBiLinearForm( stiffIntDescr );
-        //        }
-        //        
-        //        else if (  regionNonLinType_[actRegion] == MATERIAL ) {
-        //          
-        //          std::string nlfnc = materials_[actRegion]->GetNonlinFileName();
-        //          materials_[actRegion]->GetScalar(nlfnc,NONLIN_DATA_NAME);           
-        //          
-        //          ApproxData *nlinFnc = new SmoothSpline(nlfnc);
-        //          //  oder        ApproxData *nlinFnc = new LinInterpolate(nlfnc);
-        //          nlinFnc->CalcBestParameter();
-        //          nlinFnc->CalcApproximation();
-        //          
-        //          //         if (dim_ == 3)
-        //          //           {   
-        //          nLinElec3dInt_Material* nLinMaterial;
-        //          nLinMaterial = new nLinElec3dInt_Material(nlinFnc, actSDMat, FULL);    
-        //          //          }
-        //          
-        //          nLinMaterial->SetSolution(dynamic_cast<NodeStoreSol<Double>&>(*sol_ ));
-        //          nLinMaterial->Set4NonLinMaterial(ptgrid_, this, eqnMap_,  results_[0]);
-        //          
-        //          BiLinFormContext * stiffNLMaterialDescr = 
-        //            new BiLinFormContext(nLinMaterial, STIFFNESS );
-        //          
-        //          stiffNLMaterialDescr->SetPtPdes(this, this);
-        //          stiffNLMaterialDescr->SetResults( results_[0], results_[0],
-        //                                            actSDList, actSDList );
-        //          assemble_->AddBiLinearForm(stiffNLMaterialDescr);
-        /*  }
-        
-        else {
-
-          // --- standard real-valued stiffness integrator ---
-          linElecInt *  linElecForm = new linElecInt( actSDMat, tensorType,
-                                                      upLagrangeForm );
-          linElecForm->SetFactor( factor );
-          
-          BiLinFormContext * stiffIntDescr = 
-            new BiLinFormContext(linElecForm, STIFFNESS );
-          
-          feFunction_->AddEntityList( actSDList );
-
-          //stiffIntDescr->SetPtPdes(this, this);
-          stiffIntDescr->SetEntities( actSDList, actSDList );
-          stiffIntDescr->SetFeFunctions( feFunction_, feFunction_);
-          linElecForm->SetFeSpace( feFunction_->GetFeSpace());
-          
-          assemble_->AddBiLinearForm( stiffIntDescr );
-          biLinForms_[actRegion] = linElecForm;
-          
-          
-          // --- check for complex valued material parameter ---
-          // check for piezo-coupling and 
-          if( isPiezoCoupled_ ) {
-            EXCEPTION("Piezo coupling not implemented yet");
-            /*ParamNode * dataTypeNode = 
-              param->Get("sequenceStep", "index", GenStr(sequenceStep_) )
-              ->Get("couplingList")->Get("direct")->Get("piezoDirect")
-              ->Get("materialDataType", false );
-            bool isImag = false;
-            
-            if( dataTypeNode ) 
-              isImag = dataTypeNode->Get("type")->AsString() 
-                == "imagMaterialParameter";
-            
-            if( isImag ) {
-              Global::ComplexPart matType = Global::IMAG; 
-              
-              linElecInt * linElecFormC  = new 
-                linElecInt( materials_[actRegion], tensorType,
-                            upLagrangeForm);
-              linElecFormC->SetFactor( factor );
-              linElecFormC->SetMatDataType(matType);
-              
-              BiLinFormContext * stiffIntDescrC = 
-                new BiLinFormContext(linElecFormC, STIFFNESS);
-              
-              stiffIntDescrC->SetPtPdes(this, this);
-              stiffIntDescrC->SetEntryType(matType);
-              stiffIntDescrC->SetResults( results_[0], results_[0],
-                                          actSDList, actSDList );
-              assemble_->AddBiLinearForm( stiffIntDescrC );
-            }*/
+//      // isPiezoHyst (isMicroPiezo) = true means, that the bilinear-forms 
+//      // will be defined in PiezoCupling.cc!!
+//      bool isPiezoHyst  = false;
+//      bool isMicroPiezo = false;
+//      if ( isPiezoCoupled_ == true ) {
+//        isPiezoHyst = IsRegionPiezoHyst( regionName );
+//        isMicroPiezo = IsRegionMicroPiezo( regionName );
+//      }
+//
+//      if ( !isPiezoHyst && !isMicroPiezo ) {
+//        // check for nonlinearity
+//        if ( regionNonLinType_[actRegion] == HYSTERESIS) {
+//          StdVector<Elem*> elemssd;
+//          ptgrid_->GetElems(elemssd, actRegion);
+//          UInt numElSD =  elemssd.GetSize();
+//          
+//          
+//          //allocate for hystersis modeling
+//          actSDMat->InitHyst(numElSD, actSDList);
+//          
+//          nlinElecHystInt* nlForm;
+//          nlForm = new nlinElecHystInt( actSDMat, tensorType,
+//                                        upLagrangeForm );
+//
+//          nlForm->SetSolution( dynamic_cast<NodeStoreSol<Double>&>(*sol_ ));
+//          nlForm->Set4Hyst(ptgrid_, this, eqnMap_,  results_[0]);
+//          nlForm->SetFactor(factor);
+//          
+//          BiLinFormContext * stiffIntDescr = 
+//            new BiLinFormContext(nlForm, STIFFNESS );
+//          
+//          stiffIntDescr->SetPtPdes(this, this);
+//          stiffIntDescr->SetResults( results_[0], results_[0],
+//                                     actSDList, actSDList );
+//          
+//          assemble_->AddBiLinearForm( stiffIntDescr );
+//        }
+//        
+//        else if (  regionNonLinType_[actRegion] == MATERIAL ) {
+//          
+//          std::string nlfnc = materials_[actRegion]->GetNonlinFileName(ELEC_PERMITTIVITY);
+//          materials_[actRegion]->GetScalar(nlfnc,NONLIN_DATA_NAME);           
+//          
+//          ApproxData *nlinFnc = new SmoothSpline(nlfnc);
+//          //  oder        ApproxData *nlinFnc = new LinInterpolate(nlfnc);
+//          nlinFnc->CalcBestParameter();
+//          nlinFnc->CalcApproximation();
+//          
+//          //         if (dim_ == 3)
+//          //           {   
+//          nLinElec3dInt_Material* nLinMaterial;
+//          nLinMaterial = new nLinElec3dInt_Material(nlinFnc, actSDMat, FULL);    
+//          //          }
+//          
+//          nLinMaterial->SetSolution(dynamic_cast<NodeStoreSol<Double>&>(*sol_ ));
+//          nLinMaterial->Set4NonLinMaterial(ptgrid_, this, eqnMap_,  results_[0]);
+//          
+//          BiLinFormContext * stiffNLMaterialDescr = 
+//            new BiLinFormContext(nLinMaterial, STIFFNESS );
+//          
+//          stiffNLMaterialDescr->SetPtPdes(this, this);
+//          stiffNLMaterialDescr->SetResults( results_[0], results_[0],
+//                                            actSDList, actSDList );
+//          assemble_->AddBiLinearForm(stiffNLMaterialDescr);
+//        }
+//        
+//        else {
+//
+//          // --- standard real-valued stiffness integrator ---
+//          linGradBDBInt *  linElecForm = 
+//              new linGradBDBInt( actSDMat, ELEC_PERMITTIVITY, 
+//                                 tensorType, upLagrangeForm );
+//          linElecForm->SetFactor( factor );
+//          
+//          BiLinFormContext * stiffIntDescr = 
+//            new BiLinFormContext(linElecForm, STIFFNESS );
+//          
+//          stiffIntDescr->SetPtPdes(this, this);
+//          stiffIntDescr->SetResults( results_[0], results_[0],
+//                                     actSDList, actSDList );
+//          
+//          assemble_->AddBiLinearForm( stiffIntDescr );
+//          
+//          
+//          // --- check for complex valued material parameter ---
+//          // check for piezo-coupling and 
+//          if( complexMatData_[actRegion] == true ) {
+//            Global::ComplexPart matType = Global::IMAG; 
+//
+//            linGradBDBInt * linElecFormC  = new 
+//                linGradBDBInt( materials_[actRegion], 
+//                               ELEC_PERMITTIVITY,
+//                               tensorType,
+//                            upLagrangeForm);
+//            linElecFormC->SetFactor( factor );
+//            linElecFormC->SetMatDataType(matType);
+//
+//            BiLinFormContext * stiffIntDescrC = 
+//                new BiLinFormContext(linElecFormC, STIFFNESS);
+//
+//            stiffIntDescrC->SetPtPdes(this, this);
+//            stiffIntDescrC->SetEntryType(matType);
+//            stiffIntDescrC->SetResults( results_[0], results_[0],
+//                                        actSDList, actSDList );
+//            assemble_->AddBiLinearForm( stiffIntDescrC );
 //          }
 //        }
-      //}  
-      // Give result to equation numbering class
-      //eqnMap_->AddResult( *results_[0], actSDList );
-    //}
-
-//    // Define integrators for composite materials
-//    // (only for subType "flatShell")
-//    std::map<RegionIdType, Composite>::iterator compIt;
-//    for( compIt=compositeMaterials_.begin(); compIt!=compositeMaterials_.end();
-//         compIt++ ) {
+//      }  
+//      // Give result to equation numbering class
+//      eqnMap_->AddResult( *results_[0], actSDList );
 //      
+    }
+
+    // Define integrators for composite materials
+    // (only for subType "flatShell")
+    std::map<RegionIdType, Composite>::iterator compIt;
+    for( compIt=compositeMaterials_.begin(); compIt!=compositeMaterials_.end();
+         compIt++ ) {
+      
+      REFACTOR;
 //      // Get current subdomain and composite material
 //      RegionIdType actRegion = compIt->first;
 //      Composite * composite = &compIt->second;
@@ -390,66 +361,80 @@ namespace CoupledField {
 //                                actSDList, actSDList );
 //      assemble_->AddBiLinearForm( stiffContext );
 //      eqnMap_->AddResult( *results_[0], actSDList );
+//     
+//      // --- check for complex valued material parameter ---
+//      if( complexMatData_[actRegion] == true ) {
+//        Global::ComplexPart matType = Global::IMAG;
+//        FlatShellElecInt * compElecIntC = new FlatShellElecInt( composite, false );
+//        compElecIntC->SetMatDataType(matType);
+//        BiLinFormContext * stiffContextC = 
+//          new BiLinFormContext( compElecIntC, STIFFNESS);
+//        stiffContextC->SetPtPdes( this, this );
+//        stiffContextC->SetEntryType(matType);
+//        stiffContextC->SetResults( results_[0], results_[0],
+//                                  actSDList, actSDList );
+//        assemble_->AddBiLinearForm( stiffContextC );
+//      }
 //      
-//    }
+    }
 
-//    // **********************************************************************
-//    //   inhom. Neumann boundary condition
-//    // **********************************************************************
-//    for( UInt iBc = 0; iBc < inBcs_.GetSize(); iBc++ ) 
-//    {
+    // **********************************************************************
+    //   inhom. Neumann boundary condition
+    // **********************************************************************
+    for( UInt iBc = 0; iBc < inBcs_.GetSize(); iBc++ ) 
+    {
+      REFACTOR;
 //      InhomNeumannBc const & actBc = *inBcs_[iBc];
 //
 //      
-//      LinearSurfForm *neumannBC = new LinNeumannInt(actBc.value, actBc.phase, 
-//                                                     NO_MATERIAL, isaxi_);
+//      LinearSurfForm *neumannBC =
+//          new LinNeumannInt( actBc.value, actBc.phase,
+//                             ELEC_CHARGE, NO_MATERIAL, isaxi_ );
 //      neumannBC->SetVoluInfo(materials_);
 //      LinearFormContext* neumannContext = new LinearFormContext(neumannBC);
-//      feFunction_->AddEntityList(actBc.entities);
-//
-//      neumannContext->SetEntities( actBc.entities);
-//      neumannContext->SetFeFunction( feFunction_);
-//
+//      neumannContext->SetPtPde(this);
+//      neumannContext->SetResult(actBc.result, actBc.entities);
 //      assemble_->AddLinearForm(neumannContext);
 //      
 //      // Give result to equation numbering class
-//      //eqnMap_->AddResult(*actBc.result, actBc.entities);
-//    }
+//      eqnMap_->AddResult(*actBc.result, actBc.entities);
+    }
     
     // =======================================================================
     // Integrators for NonConforming Interfaces
     // =======================================================================
     
-//    // Get index of LAGRANGE_MULT result, just in case... who knows...
-//    UInt lmResultIdx = 0;
-//    for(UInt i=0, n=results_.GetSize(); i<n; i++) {
-//      if(results_[i]->resultType == LAGRANGE_MULT) {
-//        lmResultIdx = i;
-//        break;
-//      }
-//    }
-//    LOG_DBG2(elecpde) << "NonMatching: Index of LAGRANGE_MULT result: "
-//                     << lmResultIdx;
-//    
-//    for( UInt i = 0; i < ncIFaces_.GetSize(); i++ ) {
+    // Get index of LAGRANGE_MULT result, just in case... who knows...
+    UInt lmResultIdx = 0;
+    for(UInt i=0, n=results_.GetSize(); i<n; i++) {
+      if(results_[i]->resultType == LAGRANGE_MULT) {
+        lmResultIdx = i;
+        break;
+      }
+    }
+    LOG_DBG2(elecpde) << "NonMatching: Index of LAGRANGE_MULT result: "
+                     << lmResultIdx;
+    
+    for( UInt i = 0; i < ncIFaces_.GetSize(); i++ ) {
+      REFACTOR;
 //      
 //      // get regionId of Lagrangian surface
 //      StdVector<std::string> keyVec, attrVec, valVec;
 //      std::string slaveSide;
-//      std::string ncIfaceName = ptgrid_->RegionIdToName(ncIFaces_[i]);
+//      std::string ncIfaceName = ptgrid_->GetRegion().ToString(ncIFaces_[i]);
 //
-//      ParamNode* ncIfaceListNode;
+//      PtrParamNode ncIfaceListNode;
 //      ncIfaceListNode = param->Get("domain")->Get("ncInterfaceList");
 //
-//      slaveSide = ncIfaceListNode->Get("ncInterface",
-//                                       "name",
-//                                       ncIfaceName)->Get("slaveSide")->AsString();
+//      slaveSide = ncIfaceListNode->
+//          GetByVal("ncInterface", "name",
+//                   ncIfaceName)->Get("slaveSide")->As<std::string>();
 //
 //      // Part 1: Define integrator M(Psi, Lambda) on
 //      //         non-conforming interface
 //      LOG_DBG2(elecpde) << "NonMatching: Defining nonconforming integrator"
 //                        << " for M on interface '"
-//                        << ptgrid_->RegionIdToName(ncIFaces_[i]) << "'.";
+//                        << ptgrid_->GetRegion().ToString(ncIFaces_[i]) << "'.";
 //      shared_ptr<ElemList> actNcList( new ElemList(ptgrid_ ) );
 //      actNcList->SetRegion( ncIFaces_[i] );
 //      
@@ -473,9 +458,9 @@ namespace CoupledField {
 //      //         Lagrangian surface
 //      LOG_DBG2(elecpde) << "NonMatching: Defining mass integrator"
 //                        << " for D on interface '"
-//                        << ptgrid_->RegionIdToName(ncIFaces_[i]) << "'.";
+//                        << ptgrid_->GetRegion().ToString(ncIFaces_[i]) << "'.";
 //      shared_ptr<SurfElemList> actSDList( new SurfElemList(ptgrid_ ) );      
-//      actSDList->SetRegion( ptgrid_->RegionNameToId( slaveSide ) );
+//      actSDList->SetRegion( ptgrid_->GetRegion().Parse(slaveSide));
 //
 //      // D(Psi, Lambda) has the form of a standard mass
 //      // integrator with factor 1.0
@@ -493,12 +478,12 @@ namespace CoupledField {
 //
 //      // Give result LAGRANGE_MULT to equation numbering class
 //      eqnMap_->AddResult( *results_[lmResultIdx], actSDList );
-//    }
+    }
 
 
-//    // define integrators for electric impedances
-//    DefineImpedanceIntegrators();
-//  }
+    // define integrators for electric impedances
+    DefineImpedanceIntegrators();
+  }
   
   void ElecPDE::DefineImpedanceIntegrators() {
     
@@ -513,8 +498,9 @@ namespace CoupledField {
     // Integrators for electric impedances
     // =======================================================================
     
-//    for( UInt i = 0; i < impedances_.GetSize(); i++ ) {
-//      
+    for( UInt i = 0; i < impedances_.GetSize(); i++ ) {
+      
+      REFACTOR;
 //      std::string real, imag, temp;
 //      real = "";
 //      imag = "";
@@ -522,18 +508,18 @@ namespace CoupledField {
 //      // *** Resistance ***
 //      if ( impedances_[i].resistance > EPS ) {
 //        imag = "( 1.0 / ((2*pi*f) * ";
-//        imag += GenStr(impedances_[i].resistance)+ " ))";
+//        imag += lexical_cast<std::string>(impedances_[i].resistance)+ " ))";
 //      }
 //      
 //      // *** Inductance ***
 //      if ( impedances_[i].inductance > EPS ) {
 //        real = "(1.0 / ((2*pi*f) * (2*pi*f) * ";
-//        real += GenStr(impedances_[i].inductance) + " ))";
+//        real += lexical_cast<std::string>(impedances_[i].inductance) + " ))";
 //      }
 //      
-//      // *** Capacitance *** 
+//      // *** Capcitance *** 
 //      if ( impedances_[i].capacitance > EPS ) {
-//        real += "-" + GenStr( impedances_[i].capacitance );
+//        real += "-" + lexical_cast<std::string>( impedances_[i].capacitance );
 //      } 
 //      
 //      // perform consistency check
@@ -573,7 +559,7 @@ namespace CoupledField {
 //                                    impedances_[i].node2 );
 //      stiffIntContext3->SetCounterPart( true );
 //      assemble_->AddBiLinearForm( stiffIntContext3 );
-//    }
+    }
   }
 
   void ElecPDE::DefineSolveStep() {
@@ -591,7 +577,7 @@ namespace CoupledField {
   {
   
     // Get values from parameter file
-    StdVector<ParamNode*> impedNodes = 
+    ParamNodeList impedNodes = 
       myParam_->Get("bcsAndLoads")->GetList("impedance");
    
     // make sure we are in harmonic mode
@@ -605,43 +591,41 @@ namespace CoupledField {
     StdVector<UInt> nodeVec, oneNodeVec(1);
     
     // resize impedances and fill in data
+    PtrParamNode list = infoNode_->Get(ParamNode::HEADER)->Get("impedances");
     std::ostringstream out;
     impedances_.Resize( impedNodes.GetSize() );
-    for( UInt i = 0; i < impedNodes.GetSize(); i++ ) {
+    for( UInt i = 0; i < impedNodes.GetSize(); i++ )
+    {
+      PtrParamNode node = impedNodes[i];
       
       // get data from node
-      node1 = impedNodes[i]->Get("node1")->AsString();
-      node2 = impedNodes[i]->Get("node2")->AsString();
-      resistance = impedNodes[i]->Get("resistance")->AsDouble();
-      inductance = impedNodes[i]->Get("inductance")->AsDouble();
-      capacitance = impedNodes[i]->Get("capacitance")->AsDouble();
+      node1       = node->Get("node1")->As<std::string>();
+      node2       = node->Get("node2")->As<std::string>();
+      resistance  = node->Get("resistance")->As<Double>();
+      inductance  = node->Get("inductance")->As<Double>();
+      capacitance = node->Get("capacitance")->As<Double>();
+
+      Impedance& imp = impedances_[i];
       
       // fill data for impedance node
-      impedances_[i].node1 = shared_ptr<NodeList>( new NodeList(ptgrid_) );
+      imp.node1 = shared_ptr<NodeList>( new NodeList(ptgrid_) );
       ptgrid_->GetNodesByName( nodeVec, node1);
       oneNodeVec[0] = nodeVec[0];
-      impedances_[i].node1->SetNodes( oneNodeVec );
-      impedances_[i].node2 = shared_ptr<NodeList>( new NodeList(ptgrid_) );
+      imp.node1->SetNodes( oneNodeVec );
+      imp.node2 = shared_ptr<NodeList>( new NodeList(ptgrid_) );
       ptgrid_->GetNodesByName( nodeVec, node2);
       oneNodeVec[0] = nodeVec[0];
-      impedances_[i].node2->SetNodes( oneNodeVec );
-      impedances_[i].resistance = resistance;
-      impedances_[i].capacitance = capacitance;
-      impedances_[i].inductance = inductance;
+      imp.node2->SetNodes( oneNodeVec );
+      imp.resistance = resistance;
+      imp.capacitance = capacitance;
+      imp.inductance = inductance;
 
-      out.clear();
-      out.str("");
-      out << "Impedance defined between node " << node1
-          << " and node " << node2  << " with:\n";
-      Info->PrintF( pdename_, out.str().c_str() );
-      out.clear();
-      out.str("");
-      out << "\tR = " << impedances_[i].resistance 
-          << " Ohm \tL = " << impedances_[i].inductance         
-          << " H \tC = " << impedances_[i].capacitance 
-          << " F" << std::endl;
-      Info->PrintF( pdename_, out.str().c_str() );
-      Info->PrintF( pdename_, "\n" );
+      PtrParamNode in = list->Get("impedance", ParamNode::APPEND);
+      in->Get("node1")->SetValue(node1);
+      in->Get("node2")->SetValue(node2);
+      in->Get("resistance")->SetValue(imp.resistance);
+      in->Get("inductance")->SetValue(imp.inductance);
+      in->Get("capacitance")->SetValue(imp.capacitance);
     }
   }
   
@@ -678,7 +662,7 @@ namespace CoupledField {
          CalcElectricField<Double>( res );
        }
        break;
-//       
+       
 //     case ELEC_FLUX_DENSITY:
 //       if( isComplex_ ) {
 //         CalcElectricFluxDensity<Complex>( res );
@@ -708,54 +692,63 @@ namespace CoupledField {
 //       break;
 //       
 //     case ELEC_PSEUDO_POLARIZATION:
-//       Warning( "ELEC_PSEUDO_POLARIZATION: Commented out due to refactoring");
-////       if(domain->GetErsatzMaterial(false) == NULL) // no excpetion
-////         res->Init();
-////       else     
-////         domain->GetErsatzMaterial()->ExtractResults(res, isComplex_);
+//       if(domain->GetErsatzMaterial(false) == NULL) // no excpetion
+//         res->Init();
+//       else     
+//         domain->GetErsatzMaterial()->ExtractResults(res, isComplex_);
 //       break;
-       
+//
+//     case GRAD_ELEC_POTENTIAL:
+//       if(isComplex_)
+//         CalcGradSolution<Complex>(res);
+//       else
+//         CalcGradSolution<Double>(res);
+//       break;
+
      default:
-       Warning( "Resulttype not computable by electric PDE",
-              __FILE__, __LINE__ );
+       WARN( "Result '" << 
+             SolutionTypeEnum.ToString(res->GetResultInfo()->resultType)
+             << "' type not computable by electric PDE" );
      }
      
    }
 
 
-  template <class TYPE>
-  void ElecPDE::CalcElectricField( shared_ptr<BaseResult> sol ) {
-    Vector<TYPE> tempE, elemSol;
-    NodeStoreSol<TYPE> & solhelp = dynamic_cast<NodeStoreSol<TYPE>&>(*sol_);
-    Result<TYPE> &  actSol = 
-      dynamic_cast<Result<TYPE>&>(*sol);
-    EntityIterator it = actSol.GetEntityList()->GetIterator();
-    Vector<TYPE> & actVal = actSol.GetVector();
-    actVal.Resize( actSol.GetEntityList()->GetSize() * dim_ );
-    shared_ptr<BaseFeFunction> fct = GetFeFunction(actSol.GetResultInfo()->resultType);
+   template <class TYPE>
+   void ElecPDE::CalcElectricField( shared_ptr<BaseResult> sol ) {
+     Vector<TYPE> tempE, elemSol;
+     NodeStoreSol<TYPE> & solhelp = dynamic_cast<NodeStoreSol<TYPE>&>(*sol_);
+     Result<TYPE> &  actSol = 
+         dynamic_cast<Result<TYPE>&>(*sol);
+     EntityIterator it = actSol.GetEntityList()->GetIterator();
+     Vector<TYPE> & actVal = actSol.GetVector();
+     actVal.Resize( actSol.GetEntityList()->GetSize() * dim_ );
+     shared_ptr<BaseFeFunction> fct = GetFeFunction(actSol.GetResultInfo()->resultType);
 
-    
-    // loop over elements
-    LocPointMapped lpm;
-    for ( it.Begin(); !it.IsEnd(); it++ ) {
-      const Elem * el = it.GetElem();
-      linElecInt * li = biLinForms_[el->regionId];
-      shared_ptr<ElemShapeMap> esm = ptgrid_->GetElemShapeMap( el, true );
-      BaseFE*  ptFe = fct->GetFeSpace()->GetFe( it );
-      lpm.Set( Elem::shapes[el->type].midPointCoord, esm );
-      solhelp.GetElemSolution( elemSol, it );
-      li->ApplyBMat( tempE, lpm, ptFe, elemSol);
-      // loop over dofs
-      for(UInt iDim = 0; iDim < dim_; iDim++ ) {
-        actVal[it.GetPos()*dim_ + iDim] = -tempE[iDim];
-      }
-    }
-  }
+
+     // loop over elements
+     LocPointMapped lpm;
+     for ( it.Begin(); !it.IsEnd(); it++ ) {
+       const Elem * el = it.GetElem();
+       linElecInt * li = biLinForms_[el->regionId];
+       shared_ptr<ElemShapeMap> esm = ptgrid_->GetElemShapeMap( el, true );
+       BaseFE*  ptFe = fct->GetFeSpace()->GetFe( it );
+       lpm.Set( Elem::shapes[el->type].midPointCoord, esm );
+       solhelp.GetElemSolution( elemSol, it );
+       li->ApplyBMat( tempE, lpm, ptFe, elemSol);
+       // loop over dofs
+       for(UInt iDim = 0; iDim < dim_; iDim++ ) {
+         actVal[it.GetPos()*dim_ + iDim] = -tempE[iDim];
+       }
+     }
+   }
+   
   
   template <class TYPE>
   void ElecPDE::CalcElectricFluxDensity( shared_ptr<BaseResult> sol )
   {
-     REFACTOR;
+   
+    REFACTOR;
 //    // first calculate electric field intensity
 //    CalcElectricField<TYPE>( sol );
 //    
@@ -803,14 +796,14 @@ namespace CoupledField {
   void ElecPDE::CalcPolarizationField( shared_ptr<BaseResult> res ) {
 
     REFACTOR;
+    
 //    //we assume, that the actual solution is stored in sol_!
 //    NodeStoreSol<Double> * solhelp = 
 //      dynamic_cast<NodeStoreSol<Double>*>(sol_);
 //
 //    GradientFieldOp<Double> * FieldOp = 
 //      new GradientFieldOp<Double>(ptgrid_,this, eqnMap_,
-// 				  *solhelp, ELEC_POTENTIAL, 
-// 				  results_[0], isaxi_);
+// 				  *solhelp, results_[0]->fctType, isaxi_);
 //  
 //    Vector<Double> LCoord, Efield, vecE, vecP;
 //    Double Ecomp, Pval;
@@ -862,17 +855,17 @@ namespace CoupledField {
 //        }
 //      }  
 //    } else {
-//      *warning << "No hysteresis defined for list '" <<
-//        actSol.GetEntityList()->GetName() << std::endl; 
-//      Warning( __FILE__, __LINE__ );}
+//      WARN( "No hysteresis defined for list '"
+//            << actSol.GetEntityList()->GetName() );
+//    }
   }
 
 
 
   template <class TYPE>
   void ElecPDE::CalcCharges( shared_ptr<BaseResult> res ) {
-
     REFACTOR;
+
 //    NodeStoreSol<TYPE> * solhelp = dynamic_cast<NodeStoreSol<TYPE>*>(sol_);
 //    Vector<Double> lCoordSurf, lCoordVol, normal;
 //    Vector<TYPE> elemDField;
@@ -893,7 +886,7 @@ namespace CoupledField {
 //    // Create operator for electric flux density and charge calculation
 //    GradientFieldOp<TYPE> * dFieldOp = 
 //      new GradientFieldOp<TYPE>(ptgrid_, this, eqnMap_, *solhelp,
-//                                ELEC_POTENTIAL, results_[0], isaxi_);
+//                                results_[0]->fctType, isaxi_);
 //    ElecChargeOp<TYPE> * chargeOp = 
 //      new ElecChargeOp<TYPE>(ptgrid_, this, eqnMap_, results_[0], isaxi_ );
 //    
@@ -909,7 +902,9 @@ namespace CoupledField {
 //    // loop over all surface elements
 //    for ( it.Begin(); !it.IsEnd(); it++ ) {
 //      // Determine, which volume element is the right neighbour for the 
-//      // calculation
+//      // calculation:
+//      // We assume the normal to point out of the surface element into the
+//      // direction of the neighboring electric volume element.
 //      if ( surfNeighborRegions_[res] ==
 //           it.GetSurfElem()->ptVolElem1->regionId) {
 //        ptVolElem = it.GetSurfElem()->ptVolElem1;
@@ -1004,55 +999,39 @@ namespace CoupledField {
   template <class TYPE>
   void ElecPDE::CalcEnergy( shared_ptr<BaseResult> vals )
   {
-    REFACTOR;
     Matrix<Double> elemmat;  
-    SubTensorType tensorType;
-
-    if ( dim_ == 3 ) {
-      tensorType = FULL;
-    }
-    else {
-      if ( isaxi_ == true ) {
-        tensorType = AXI;
-      }
-      else {
-        // 2d: plane case
-        tensorType = PLANE_STRAIN;
-      }
-    }
-   
     Vector<TYPE> help;
     std::string factor = "1.0";
     TYPE energy;
 
     Result<TYPE> &  actSol = 
-      dynamic_cast<Result<TYPE>&>(*vals);      
+        dynamic_cast<Result<TYPE>&>(*vals);      
     EntityIterator regionIt = actSol.GetEntityList()->GetIterator();
-    
+
     // resize vector
     Vector<TYPE> & actVal = actSol.GetVector();
     actVal.Resize( actSol.GetEntityList()->GetSize() );
-    
+
     // Loop over regions
     for( regionIt.Begin(); !regionIt.IsEnd(); regionIt++ ) {
       ElemList actSDList(ptgrid_ );
       actSDList.SetRegion( regionIt.GetRegion() );
       linElecInt * bilinear_stiff = biLinForms_[regionIt.GetRegion()];
-      
+
       EntityIterator elemIt = actSDList.GetIterator();
-      
+
       // Loop over elements
       energy = 0;
       Vector<TYPE> elpot;
       for( elemIt.Begin(); !elemIt.IsEnd(); elemIt++ ) {
-        
+
         bilinear_stiff->SetFactor(factor);
         bilinear_stiff->CalcElementMatrix( elemmat, elemIt, elemIt );
-        
+
         sol_->GetElemSolution(elpot, elemIt );
         help =  elemmat * elpot;
         energy += 0.5 * (help * elpot);
-        
+
         LOG_DBG3(elecpde) << "CalcEnergy: elem=" << elemIt.GetElem()->elemNum << " mat=" << elemmat.ToString();
         LOG_DBG3(elecpde) << "CalcEnergy: elemIt=" << elemIt.GetElem()->elemNum << " elpot=" << elpot.ToString();
         LOG_DBG3(elecpde) << "CalcEnergy: elemIt=" << elemIt.GetElem()->elemNum << " sum energy -> " << energy;
@@ -1102,7 +1081,7 @@ namespace CoupledField {
 //                                      results_[0], isaxi_, true );
 //
 //          ptCoupling_->GetOutputNeighbourRegion(actCoupling, nRegions);
-//          ptgrid_->RegionNameToId(nRegionIds,*nRegions);
+//          ptgrid_->GetRegion().Parse(*nRegions, nRegionIds);
 //          ForceOp_->Setup(nRegionIds, *couplingnodes);
 //        }
 //      
@@ -1127,7 +1106,6 @@ namespace CoupledField {
 
   void ElecPDE::CalcOutputCoupling()
   {
-
     REFACTOR;
 //    SolutionType quantity;
 //    StdVector<UInt> * couplingNodes     = NULL;
@@ -1215,140 +1193,69 @@ namespace CoupledField {
     isThermoCoupled_ = true;
 
   }
+  
+  void ElecPDE::DefinePolarizationMatrixIntegrators(const Vector<Double> &vals,
+      StdVector<LinearFormContext*> *linForms, const int num)
+  {
+    REFACTOR;
+//    LinearForm * polRHSElec = new PiezoPolarizationMatrixElecRHSInt(vals, num);
+//    
+//    StdVector<std::string> region_names;
+//    domain->GetGrid()->GetRegionNames(region_names);
+//    LOG_DBG(elecpde) << "region names = " << region_names.ToString();
+//    // FIXME: hardcoded region name!!
+//    shared_ptr<EntityList> entlist = domain->GetGrid()->GetEntityList(EntityList::SURF_ELEM_LIST, 
+//        region_names[1], EntityList::NO_TYPE);
+//    
+//    LinearFormContext *linRhs = new LinearFormContext(polRHSElec);
+//    linRhs->SetPtPde(this);
+//    linRhs->SetResult(results_[0], entlist);
+//    
+//    if(linForms != NULL)
+//      linForms->Push_back(linRhs);
+//    else
+//      assemble_->AddLinearForm(linRhs);
+  }
 
   void ElecPDE::DefineAvailResults() {
     
-    // Determine vectorial dofNames
-    StdVector<std::string> vecDofNames;
-    if( isaxi_) {
-      vecDofNames = "r", "z";
-    } else if (dim_ == 2) {
-      vecDofNames = "x", "y";
-    } else {
-      vecDofNames = "x", "y", "z";
-    }
-    
     // Electric Potential
-
-    //if ( approxType == "H1" ) {
-    //UInt order = myParam_->Get("order")->AsUInt();
     shared_ptr<ResultInfo> res1( new ResultInfo);
     res1->resultType = ELEC_POTENTIAL;
-
+    
     // check for special subtype 
     if( subType_  != "flatShell" ) {
-      //shared_ptr<AnsatzFct> fct(new LagrangeFct);
       res1->dofNames = "";
       res1->unit = "V";
       res1->definedOn = ResultInfo::NODE;
       res1->entryType = ResultInfo::SCALAR;
-      //res1->fctType = fct;
     } else {
-      // Determine number of laminas for setting number of dofs
-      StdVector<ParamNode*>  laminas = param->Get("domain")
-        ->GetList("composite");
-      
-      if (laminas.GetSize() == 0) {
-        res1->dofNames.Push_back("ep");
-      } else {
-        for( UInt i=0; i<laminas[0]->Count("lamina"); i++ ) {
-          std::string dofName = "ep";
-          dofName += GenStr(i+1);
-          res1->dofNames.Push_back( dofName );
-        }
+
+      // check number of composite materials:
+      // Currently, we can handle just one electrostatic composite
+      // material, as we would have a different number of electric
+      // unknowns for different regions
+      if( compositeMaterials_.size() > 1 ) {
+        WARN("Currently the electrostatic flatShell PDE can only "
+            "handle ONE type of composite material!");
       }
-      //shared_ptr<AnsatzFct> fct(new LagrangeFct);
+
+      Composite & actComp = compositeMaterials_.begin()->second;
+      UInt numLaminas = actComp.thickness.GetSize();
+      for( UInt i=0; i<numLaminas; i++ ) {
+        std::string dofName = "ep";
+        dofName += lexical_cast<std::string>(i+1);
+        res1->dofNames.Push_back( dofName );
+      }
       res1->unit = "V";
-      //res1->fctType = fct;
       res1->definedOn = ResultInfo::ELEMENT;
       res1->entryType = ResultInfo::SCALAR;
     }
     feFunctions_[ELEC_POTENTIAL]->SetResultInfo(res1);
-    feFunctions_[ELEC_POTENTIAL]->SetPDE(shared_ptr<ElecPDE>(this));
-
     results_.Push_back( res1 );
     availResults_.insert( res1 );
-    //}
-
-    //if ( approxType == "lagrange" ) {
-    //  // Create new resultDof object
-    //  shared_ptr<ResultInfo> res1( new ResultInfo);
-    //  res1->resultType = ELEC_POTENTIAL;
-
-    //  // check for special subtype 
-    //  if( subType_  != "flatShell" ) {
-    //    shared_ptr<AnsatzFct> fct(new LagrangeFct);
-    //    res1->dofNames = "";
-    //    res1->unit = "V";
-    //    res1->definedOn = ResultInfo::NODE;
-    //    res1->entryType = ResultInfo::SCALAR;
-    //    res1->fctType = fct;
-    //  } else {
-    //    // Determine number of laminas for setting number of dofs
-    //    StdVector<ParamNode*>  laminas = param->Get("domain")
-    //      ->GetList("composite");
-    //    
-    //    if (laminas.GetSize() == 0) {
-    //      res1->dofNames.Push_back("ep");
-    //    } else {
-    //      for( UInt i=0; i<laminas[0]->Count("lamina"); i++ ) {
-    //        std::string dofName = "ep";
-    //        dofName += GenStr(i+1);
-    //        res1->dofNames.Push_back( dofName );
-    //      }
-    //    }
-    //    shared_ptr<AnsatzFct> fct(new LagrangeFct);
-    //    res1->unit = "V";
-    //    res1->fctType = fct;
-    //    res1->definedOn = ResultInfo::ELEMENT;
-    //    res1->entryType = ResultInfo::SCALAR;
-    //  }
-    //    
-    //  results_.Push_back( res1 );
-    //  availResults_.insert( res1 );
-    //  
-    //}else if(  approxType == "spectral" ) {
-    //  shared_ptr<ResultInfo> res1( new ResultInfo);
-    //  UInt order = myParam_->Get("order")->AsUInt();
-    //  shared_ptr<SpectralFct> fct(new SpectralFct);
-    //  res1->definedOn = ResultInfo::PFEM;
-    //  fct->SetOrder(order);
-    //  res1->dofNames = "";
-    //  res1->unit = "V";
-    //  res1->fctType = fct;
-
-    //  res1->resultType = ELEC_POTENTIAL;
-    //	res1->entryType = ResultInfo::SCALAR;
-    //  results_.Push_back( res1 );
-    //  availResults_.insert( res1 );
-
-    //} else {
-    //  // Create new resultDof object
-    //  shared_ptr<ResultInfo> res1( new ResultInfo);
-    //  shared_ptr<LegendreFct> fct(new LegendreFct);
-    //  if( myParam_->Get("isIsotropic")->AsBool() ) {
-    //    UInt order =  myParam_->Get("order")->AsUInt();
-    //    fct->SetIsoOrder( order );
-    //  } else {
-    //    Matrix<UInt> orderMat;
-    //    ParamTools::AsTensor<unsigned int>(myParam_->Get("anisotropic"), dim_, 1, orderMat); 
-    //    fct->SetAnisoOrder( orderMat );
-    //  }
-    //  
-    //  if( subType_ == "flatShell" ) {
-    //    EXCEPTION( "Subtype 'flatShell' not working with Legendre functions." );
-    //  }
-
-    //  res1->resultType = ELEC_POTENTIAL;
-    //  res1->entryType = ResultInfo::SCALAR;
-    //  res1->dofNames = "";
-    //  res1->unit = "V";
-    //  res1->definedOn = ResultInfo::PFEM;
-    //  res1->fctType = fct;
-    //  results_.Push_back( res1 );
-    //  availResults_.insert( res1 );
-    //}
     
+
     // Electric RHS Load
     // create new resultDof object
     shared_ptr<ResultInfo> rhs ( new ResultInfo );
@@ -1359,12 +1266,12 @@ namespace CoupledField {
     rhs->entryType = ResultInfo::SCALAR;
     availResults_.insert( rhs );
     postProcResults_[ELEC_RHS_LOAD] = ELEC_POTENTIAL;
-
+    
     // Electric Field Intensity
     // create new resultDof object
     shared_ptr<ResultInfo> res ( new ResultInfo );
     res->resultType = ELEC_FIELD_INTENSITY;
-    res->dofNames = vecDofNames;
+    res->SetVectorDOFs(dim_, isaxi_);
     res->unit = "V/m";
     res->definedOn = ResultInfo::ELEMENT;
     res->entryType = ResultInfo::VECTOR;
@@ -1374,7 +1281,7 @@ namespace CoupledField {
     // Electric Flux Density
     shared_ptr<ResultInfo> flux ( new ResultInfo );
     flux->resultType = ELEC_FLUX_DENSITY;
-    flux->dofNames = vecDofNames;
+    flux->SetVectorDOFs(dim_, isaxi_);
     flux->unit = "C/m^2";
     flux->definedOn = ResultInfo::ELEMENT;
     flux->entryType = ResultInfo::VECTOR;
@@ -1400,17 +1307,17 @@ namespace CoupledField {
     energy->unit = "Ws";
     availResults_.insert ( energy );
     postProcResults_[ELEC_ENERGY] = ELEC_POTENTIAL;
-
+    
     // Electric polarization
     shared_ptr<ResultInfo> pol( new ResultInfo );
     pol->resultType = ELEC_POLARIZATION;
     pol->definedOn = ResultInfo::ELEMENT;
     pol->entryType = ResultInfo::VECTOR;
-    pol->dofNames = vecDofNames;
+    pol->SetVectorDOFs(dim_, isaxi_);
     pol->unit = "C/m^2";
     availResults_.insert( pol );
     postProcResults_[ELEC_POLARIZATION] = ELEC_POTENTIAL;
-
+    
     // pesudo electric polarization for piezo simp
     shared_ptr<ResultInfo> pseudoPol( new ResultInfo );
     pseudoPol->resultType = ELEC_PSEUDO_POLARIZATION;
@@ -1420,7 +1327,17 @@ namespace CoupledField {
     pseudoPol->unit = "";
     availResults_.insert( pseudoPol );
     postProcResults_[ELEC_PSEUDO_POLARIZATION] = ELEC_POTENTIAL;
-   
+
+    // grad elec potential
+    shared_ptr<ResultInfo> grad_sol(new ResultInfo);
+    grad_sol->resultType = GRAD_ELEC_POTENTIAL;
+    grad_sol->SetVectorDOFs(dim_, isaxi_);
+    grad_sol->unit = "V/m";
+    grad_sol->entryType = ResultInfo::VECTOR;
+    grad_sol->definedOn = ResultInfo::NODE;
+    availResults_.insert( grad_sol );
+    postProcResults_[GRAD_ELEC_POTENTIAL] = ELEC_POTENTIAL;
+
     // ===================================
     // Check for non-conforming interfaces
     // ===================================
@@ -1430,33 +1347,29 @@ namespace CoupledField {
     LOG_DBG2(elecpde) << "NonMatching: Checking if nonconforming "
                       << "interfaces of PDE exist in domain.";
 
-    ParamNode* elecPDENCIfaceListNode;
-    //elecPDENCIfaceListNode = param->Get("sequenceStep", "index", GenStr(sequenceStep_) )
-    //->Get("pdeList")->Get("electrostatic")->Get("ncInterfaceList", false);
+    PtrParamNode elecPDENCIfaceListNode;
+    elecPDENCIfaceListNode = param->GetByVal("sequenceStep", std::string("index"), sequenceStep_)
+    ->Get("pdeList/electrostatic/ncInterfaceList", ParamNode::PASS);
     
-    
-   // if(!elecPDENCIfaceListNode)
-   //   return;
-    return;
+    if(!elecPDENCIfaceListNode)
+      return;
 
-    ParamNode* domainNCIfaceListNode;
-    domainNCIfaceListNode = param->Get("domain")->Get("ncInterfaceList", false);
+    PtrParamNode domainNCIfaceListNode;
+    domainNCIfaceListNode = param->Get("domain")->Get("ncInterfaceList", ParamNode::PASS);
 
     if(!domainNCIfaceListNode)
     {
       EXCEPTION("No nonmatching interfaces have been specified in domain!");
     }
 
-    StdVector<ParamNode*> pdeNCIfaceNodes;
+    ParamNodeList pdeNCIfaceNodes;
     pdeNCIfaceNodes = elecPDENCIfaceListNode->GetList("ncInterface");
 
     for (UInt i = 0; i < pdeNCIfaceNodes.GetSize(); i++) {
-      std::string pdeIfaceName = pdeNCIfaceNodes[i]->Get("name")->AsString();
+      std::string pdeIfaceName = pdeNCIfaceNodes[i]->Get("name")->As<std::string>();
 
-      ParamNode* domainIfaceNode = domainNCIfaceListNode->Get("ncInterface",
-          "name",
-          pdeIfaceName,
-          false);
+      PtrParamNode domainIfaceNode = domainNCIfaceListNode
+          ->GetByVal("ncInterface", "name", pdeIfaceName, ParamNode::PASS);
       if(!domainIfaceNode)
       {
         LOG_DBG2(elecpde) << "NonMatching: Nonconforming "
@@ -1468,7 +1381,7 @@ namespace CoupledField {
 
       ncIfaceNamesForPDE.Push_back(pdeIfaceName);
     }
-    ptgrid_->RegionNameToId( ncIfaceIds, ncIfaceNamesForPDE );
+    ptgrid_->GetRegion().Parse(ncIfaceNamesForPDE, ncIfaceIds);
 
     for (UInt i = 0; i < ncIfaceIds.GetSize(); i++) {
       ncIFaces_.Push_back(ncIfaceIds[i]);
@@ -1482,12 +1395,11 @@ namespace CoupledField {
       shared_ptr<ResultInfo> lagr ( new ResultInfo );
       lagr->resultType = LAGRANGE_MULT;
       lagr->dofNames = "l";
-      //lagr->fctType = results_[0]->fctType;
       lagr->definedOn = results_[0]->definedOn;
       results_.Push_back( lagr );
-
     } 
   }
+  
   std::map<SolutionType, shared_ptr<FeSpace> > ElecPDE::CreateFeSpaces(std::string formulation){
     std::map<SolutionType, shared_ptr<FeSpace> > crSpaces;
     if(formulation == "default" || formulation == "H1"){

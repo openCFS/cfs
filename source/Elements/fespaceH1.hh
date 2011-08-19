@@ -79,7 +79,7 @@ public:
   };
 
   //! Constructor
-  FeSpaceH1(ParamNode* aNode);
+  FeSpaceH1(PtrParamNode aNode);
 
   //! Destructor
   ~FeSpaceH1();
@@ -156,7 +156,7 @@ protected:
   // ====================================================================
   //! Here we pass a fePolynomial parameter node such that the feSpace can extract the information
   //! which is important for the specific space
-  virtual void ProcessPolyRegionNode(ParamNode* node, RegionIdType region) = 0;
+  virtual void ProcessPolyRegionNode(PtrParamNode node, RegionIdType region) = 0;
 
 
   //! Nodal Equation Map

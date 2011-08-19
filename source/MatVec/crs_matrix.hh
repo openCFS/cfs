@@ -214,11 +214,11 @@ namespace CoupledField {
 
     //! The default destructor is deep. It frees all memory dynamically
     //! allocated for attributes of this class.
-    ~CRS_Matrix() {
-      DELETEARRAY( data_    );
-      DELETEARRAY( rowPtr_  );
-      DELETEARRAY( colInd_  );
-      DELETEARRAY( diagPtr_ );
+    virtual ~CRS_Matrix() {
+      delete []( data_ );
+      delete []( rowPtr_ );
+      delete []( colInd_ );
+      delete []( diagPtr_ );
     }
 
     //! Setup the sparsity pattern of the matrix

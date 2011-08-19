@@ -5,7 +5,7 @@
 #include "Domain/ansatzFct.hh"
 #include "Utils/coordSystem.hh"
 #include "DataInOut/Logging/cfslog.hh"
-#include "DataInOut/ParamHandling/InfoNode.hh"
+#include "DataInOut/ParamHandling/ParamNode.hh"
 #include "Domain/entityList.hh"
 
 #include <boost/lexical_cast.hpp> 
@@ -71,6 +71,9 @@ namespace CoupledField {
     contMap->Finalize();
     disContMap->CopyMapInfo(contMap);
     disContMap->Finalize();
+
+    std::cerr << "Equation Map has " << contMap->GetNumEqns() << " pressure unknowns" << std::endl;
+    std::cerr << "Equation Map has " << disContMap->GetNumEqns()-contMap->GetNumEqns() << " velocity unknowns" << std::endl;
   }
 
   void MixedEqnMap::GetEqns( StdVector<Integer>& eqns, const ResultInfo& result, const EntityIterator& it )const {
@@ -106,8 +109,16 @@ namespace CoupledField {
     }
   }
 
-  void MixedEqnMap::ToInfo(InfoNode* in) const{
+  void MixedEqnMap::ToInfo(PtrParamNode in) const{
     contMap->ToInfo(in);
     disContMap->ToInfo(in);
   }
+
+  //void MixedEqnMap::GetResEqns(  StdVector<Integer>& eqns, const ResultInfo& result ) const{
+  //  if(result.fctType->IsDiscontinuous()){
+  //   disContMap->GetResEqns(eqns,result);
+  //  }else{
+  //   contMap->GetResEqns(eqns,result);
+  //  }
+  //}
 }

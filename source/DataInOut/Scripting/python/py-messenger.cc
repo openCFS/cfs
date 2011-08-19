@@ -13,6 +13,7 @@
 #include <boost/algorithm/string.hpp>
 //#include <boost/python/return_by_value.hpp>
 //#include <boost/python/return_value_policy.hpp>
+#include <boost/algorithm/string.hpp>
 
 using namespace CoupledField;
 using namespace boost::python;
@@ -179,7 +180,7 @@ BOOST_PYTHON_MODULE(vector){
     // evaluate script
     PyObject* ret = NULL;
     ret = PyRun_String( procName.c_str(), Py_eval_input,
-                            mainDict_, mainDict_ );
+                        mainDict_, mainDict_ );
     isEvaluating_ = false;
     
     if( ret == NULL ) {
@@ -210,7 +211,7 @@ BOOST_PYTHON_MODULE(vector){
     // After having generated the correct error string,
     // the bucket is passed back to the global error handler
     isEvaluating_ = false;
-    ::Warning( warn.str().c_str(), filename, numline );
+    WARN( warn.str() );
     isEvaluating_ = true;
 
   }

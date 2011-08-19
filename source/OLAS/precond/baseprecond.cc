@@ -12,21 +12,40 @@
 
 namespace CoupledField {
 
+  static EnumTuple precondTypeTuples[] = 
+  {
+    EnumTuple( BasePrecond::NOPRECOND, "noPrecond" ),
+    EnumTuple( BasePrecond::ID, "Id" ),
+    EnumTuple( BasePrecond::MG, "MG"),
+    EnumTuple( BasePrecond::JACOBI, "Jacobi"),
+    EnumTuple( BasePrecond::SSOR, "SSOR" ),
+    EnumTuple( BasePrecond::ILU0, "ILU0" ),
+    EnumTuple( BasePrecond::ILUTP, "ILUTP"),
+    EnumTuple( BasePrecond::ILUK, "ILUK"),
+    EnumTuple( BasePrecond::ILDL0, "ILDL0" ),
+    EnumTuple( BasePrecond::ILDLK, "ILDLK" ),
+    EnumTuple( BasePrecond::ILDLTP, "ILDLTP"),
+    EnumTuple( BasePrecond::ILDLCN, "ILDLCN"),
+    EnumTuple( BasePrecond::IC0, "IC0" ),
+  };
+
+  Enum<BasePrecond::PrecondType> BasePrecond::precondType = \
+  Enum<BasePrecond::PrecondType>("Preconditioner Types",
+      sizeof(precondTypeTuples) / sizeof(EnumTuple),
+      precondTypeTuples); 
+
+
   void BaseStdPrecond::Apply( const BaseMatrix &sysmat, const BaseVector &r, 
                            BaseVector &z ) const {
-    TRY_CAST {
-      CONSTREFCAST(sysmat,StdMatrix,stdsysmat);
-      CONSTREFCAST(r,SingleVector,stdr);
-      REFCAST(z,SingleVector,stdz);
-      Apply(stdsysmat,stdr,stdz);
-    } CATCH_CAST;
+    const StdMatrix& stdsysmat = dynamic_cast<const StdMatrix&>(sysmat);
+    const SingleVector& stdr = dynamic_cast<const SingleVector&>(r);
+    SingleVector& stdz = dynamic_cast<SingleVector&>(z);
+
+    Apply(stdsysmat,stdr,stdz);
   }
   
   void BaseStdPrecond::Setup( BaseMatrix &sysMat ) {
-    TRY_CAST {
-      REFCAST( sysMat, StdMatrix, stdMat );
-      Setup( stdMat );
-    } CATCH_CAST;
+    Setup( dynamic_cast<StdMatrix&>(sysMat) );
   }
 
   void BaseSBMPrecond::Apply( const BaseMatrix& sysmat, const BaseVector& r, 

@@ -27,7 +27,7 @@ namespace CoupledField {
   template<typename T>
   void CGSolver<T>::Solve( const BaseMatrix &sysmat,
                            const BasePrecond &precond,
-                           const BaseVector &rhs, BaseVector &sol, InfoNode* analysis_step ) {
+                           const BaseVector &rhs, BaseVector &sol, PtrParamNode analysis_step ) {
 
     // Tracing information
 
@@ -69,9 +69,12 @@ namespace CoupledField {
     // overwrite if set in xml
     if(xml_ != NULL)
     {
-      xml_->Get("maxIter", maxiter, false);
-      xml_->Get("tol", eps, false);
-      xml_->Get("resDirectly", tmp, false);
+      PtrParamNode sNode;
+      sNode = xml_->Get("cg", ParamNode::INSERT);      
+      sNode->GetValue("maxIter", maxiter, ParamNode::INSERT);
+      sNode->GetValue("tol", eps, ParamNode::INSERT);
+      sNode->GetValue("resDirectly", tmp, ParamNode::INSERT);
+      sNode->GetValue("logging", logging, ParamNode::INSERT);
     } 
     if ( tmp <= 0 ) {
       EXCEPTION( "CGSolver::CGSolver: The current value of "
@@ -212,14 +215,25 @@ namespace CoupledField {
     // ============================
     //   Generate solution report
     // ============================
-    myReport_->SetValue( "numIter", niter );
-    myReport_->SetValue( "finalNorm", resNorm );
+    Double reduction = resNorm / scalFac_;
+    PtrParamNode out = solverInfo_->Get(ParamNode::PROCESS)->Get("solver", ParamNode::APPEND);
+    out->Get("numIter")->SetValue(niter);
+    out->Get("finalNorm")->SetValue(resNorm);
     if ( loop == false ) {
-      myReport_->SetValue( "solutionIsOkay", true );
+      out->Get("solutionIsOkay")->SetValue(true);
     }
     else {
-      myReport_->SetValue( "solutionIsOkay", false );
+      out->Get("solutionIsOkay")->SetValue(boost::any(false));
     }
+    
+    // Calculate average number of iterations and residual error reduction
+    numCalls_++;
+    accIters_ += niter;
+    accReduction_ += reduction;
+    
+    PtrParamNode stat = solverInfo_->Get(ParamNode::SUMMARY)->Get("statistics");
+    stat->Get("avgIterations")->SetValue(accIters_ / numCalls_);
+    stat->Get("avgResReduction")->SetValue( accReduction_ / numCalls_);
   }
 
 // Explicit template instantiation

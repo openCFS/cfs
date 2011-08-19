@@ -175,7 +175,7 @@ namespace CoupledField {
     }
 
     // Destroy auxilliary vector
-    DELETEARRAY( auxVec );
+    delete[] (auxVec);
 
     // Set pattern pool pointer to NULL, since we allocated pattern
     // ourselves
@@ -272,7 +272,7 @@ namespace CoupledField {
     }
 
     // Destroy auxilliary vector
-    DELETEARRAY( auxVec );
+    delete[] (auxVec);
 
     // Set pattern pool pointer to NULL, since we allocated pattern
     // ourselves
@@ -455,7 +455,6 @@ namespace CoupledField {
 
     assert(mvec.GetSize() == rvec.GetSize());
     assert(this->ncols_ == mvec.GetSize());
-
 
     register UInt k, rs;
     register UInt c;
@@ -695,10 +694,7 @@ namespace CoupledField {
 
     // close output file
     if ( fclose( fp ) == EOF ) {
-      char *errmsg = NULL;
-      NEWARRAY( errmsg, char, strlen(fname)+40 );
-      sprintf( errmsg, "Could not close file %s after writing!", fname );
-      Warning( errmsg, __FILE__, __LINE__ );
+      WARN( "Could not close file " << fname << " after writing!" );
     }
   }
 
@@ -759,10 +755,18 @@ namespace CoupledField {
     else {
 
       bool found = false;
-      for ( UInt k = rowPtr_[i]; k < rowPtr_[i+1]; k++ ) {
-        if ( colInd_[k] == j ) {
-          found = true;
+      // logarithmic search (this has complexity O(log(n)), n=u-l)
+      UInt l = rowPtr_[i];
+      UInt u = rowPtr_[i+1]-1;
+      while(l <= u){
+        UInt k = (l+u) >> 1;
+        if(colInd_[k] > j){
+          u = k-1;
+        }else if(colInd_[k] < j){
+          l = k+1;
+        }else{
           data_[k] += v;
+          found = true;
           break;
         }
       }
@@ -793,10 +797,18 @@ namespace CoupledField {
     }
 
     bool found = false;
-    for ( UInt k = rowPtr_[row]; k < rowPtr_[row+1]; k++ ) {
-      if ( colInd_[k] == col ) {
-        found = true;
+    // logarithmic search (this has complexity O(log(n)), n=u-l)
+    UInt l = rowPtr_[row];
+    UInt u = rowPtr_[row+1]-1;
+    while(l <= u){
+      UInt k = (l+u) >> 1;
+      if(colInd_[k] > col){
+        u = k-1;
+      }else if(colInd_[k] < col){
+        l = k+1;
+      }else{
         v = data_[k];
+        found = true;
         break;
       }
     }
@@ -832,10 +844,18 @@ namespace CoupledField {
     }
 
     bool found = false;
-    for ( UInt k = rowPtr_[row]; k < rowPtr_[row+1]; k++ ) {
-      if ( colInd_[k] == col ) {
-        found = true;
+    // logarithmic search (this has complexity O(log(n)), n=u-l)
+    UInt l = rowPtr_[row];
+    UInt u = rowPtr_[row+1]-1;
+    while(l <= u){
+      UInt k = (l+u) >> 1;
+      if(colInd_[k] > col){
+        u = k-1;
+      }else if(colInd_[k] < col){
+        l = k+1;
+      }else{
         data_[k] = v;
+        found = true;
         break;
       }
     }
@@ -891,26 +911,24 @@ namespace CoupledField {
   //   Add (another matrix)
   // ************************
   template<typename T>
-  void SCRS_Matrix<T>::Add( const Double alpha, const StdMatrix& mat ) {
-     TRY_CAST {
+  void SCRS_Matrix<T>::Add( const Double alpha, const StdMatrix& mat )
+  {
+    // Down-cast input matrix
+    const SCRS_Matrix<T>& scrsMat = dynamic_cast<const SCRS_Matrix<T>&>(mat);
 
-      // Down-cast input matrix
-      CONSTREFCAST( mat, SCRS_Matrix<T>, scrsMat );
+    // Obtain pointer to data array of other matrix
+    const T *data = scrsMat.GetDataPointer();
 
-      // Obtain pointer to data array of other matrix
-      const T *data = scrsMat.GetDataPointer();
-
-      // We now assume that the matrix have matching
-      // dimensions and sparsity patterns
-      for ( UInt i = 0; i < numEntries_; i++ ) {
-        data_[i] += alpha * data[i];
-      }
-
-    } CATCH_CAST;
+    // We now assume that the matrix have matching
+    // dimensions and sparsity patterns
+    for ( UInt i = 0; i < numEntries_; i++ ) {
+      data_[i] += alpha * data[i];
+    }
   }
 
 
-  // Sepcialisation for complex matrices
+
+  // Specialization for complex matrices
   template<>
   void SCRS_Matrix<Complex>::Add( const Double alpha, const StdMatrix& mat ) {
 
@@ -918,41 +936,32 @@ namespace CoupledField {
     BaseMatrix::EntryType eType = mat.GetEntryType();
 
     if( eType == BaseMatrix::DOUBLE ) {
+      // Down-cast input matrix
+      const SCRS_Matrix<Double>& scrsMat = dynamic_cast<const SCRS_Matrix<Double>&>(mat);
 
-      TRY_CAST {
+      // Obtain pointer to data array of other matrix
+      const Double *data = scrsMat.GetDataPointer();
 
-        // Down-cast input matrix
-        CONSTREFCAST( mat, SCRS_Matrix<Double>, scrsMat );
+      // We now assume that the matrix have matching
+      // dimensions and sparsity patterns
+      for ( UInt i = 0; i < numEntries_; i++ ) {
+        data_[i] += alpha * Complex(data[i],0.0);
+      }
 
-        // Obtain pointer to data array of other matrix
-        const Double *data = scrsMat.GetDataPointer();
+    }
+    else
+    {
+      // Down-cast input matrix
+      const SCRS_Matrix<Complex>& scrsMat = dynamic_cast<const SCRS_Matrix<Complex>&>(mat);
 
-        // We now assume that the matrix have matching
-        // dimensions and sparsity patterns
-        for ( UInt i = 0; i < numEntries_; i++ ) {
-          data_[i] += alpha * Complex(data[i],0.0);
-        }
+      // Obtain pointer to data array of other matrix
+      const Complex *data = scrsMat.GetDataPointer();
 
-      } CATCH_CAST;
-
-    } else {
-
-      TRY_CAST {
-
-        // Down-cast input matrix
-        CONSTREFCAST( mat, SCRS_Matrix<Complex>, scrsMat );
-
-        // Obtain pointer to data array of other matrix
-        const Complex *data = scrsMat.GetDataPointer();
-
-        // We now assume that the matrix have matching
-        // dimensions and sparsity patterns
-        for ( UInt i = 0; i < numEntries_; i++ ) {
-          data_[i] += alpha * data[i];
-        }
-
-      } CATCH_CAST;
-
+      // We now assume that the matrix have matching
+      // dimensions and sparsity patterns
+      for ( UInt i = 0; i < numEntries_; i++ ) {
+        data_[i] += alpha * data[i];
+      }
     }
   }
 

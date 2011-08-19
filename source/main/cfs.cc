@@ -3,27 +3,30 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
+
 #include <iomanip>
 
 #include <def_use_xerces.hh>
 #include <def_use_mpcci.hh>
 #include <boost/version.hpp>
 
-#include "Utils/myclock.hh"
+#include "main/cfs.hh"
+#include "Utils/Timer.hh"
 #include "DataInOut/DefineFiles/definefiles.hh"
 #include "DataInOut/WriteInfo.hh"
 #include "DataInOut/MaterialHandler.hh"
 #include "DataInOut/programOptions.hh"
 #include "Domain/domain.hh"
+#include "Domain/entityList.hh"
 #include "General/environment.hh"
 #include "DataInOut/ParamHandling/SkeletonConf.hh"
-#include "DataInOut/ParamHandling/InfoNode.hh"
+#include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/ParamHandling/Xerces.hh"
 #include "DataInOut/resultHandler.hh"
 #include "DataInOut/coloredConsole.hh"
-#include "Utils/profiler.hh"
 #include <unistd.h>
 #include <boost/date_time/posix_time/posix_time.hpp>
+#include "DataInOut/Logging/cfslog.hh"
 
 #include <def_use_mesh.hh>
 
@@ -45,12 +48,43 @@
 #include "DataInOut/Scripting/cfsmessenger.hh"
 #endif
 
-
 using namespace CoupledField;
+using namespace std;
 
-int main( int argc, const char **argv ) {
-  // CFS++ should return an error code, if an exception was caught!
-  int retVal = 0;
+int main(int argc, const char **argv)
+{
+  CFS cfs(argc, argv);
+  int ret = cfs.Run();
+  return ret;
+}
+
+void PrintWarning(CoupledField::Exception& ex ) {
+  
+  // Print warning on command line
+ std::string msg = ex.GetMsg();
+ std::string fileName = ex.GetFileName();
+ UInt lineNum = ex.GetLineNum();
+ 
+  std::cerr << "\n "
+      << fg_blue << "WARNING:" << fg_reset << "\n "
+      << msg << endl;
+  std::cerr << "\n(" << fileName << ", Line " 
+            << lineNum  << ")\n\n";
+  
+  // Print warning also to info xml
+  PtrParamNode warn = info->Get("warning",ParamNode::INSERT);
+  warn->Get("lineNum")->SetValue(lineNum);
+  warn->Get("fileName")->SetValue(fileName);
+  warn->Get("message")->SetValue(msg);
+}
+    
+
+CFS::CFS(int argc, const char **argv) :
+    timer(new Timer())
+{
+
+  resultHandler = NULL;
+  materialHandler = NULL;
 
   // Check if the boost version is >= 1.34, as the boost::filesystem::path
   // interface has changed heavily.
@@ -63,79 +97,55 @@ int main( int argc, const char **argv ) {
 
   // Set segfault to false
   Exception::segfault_ = false;
-  try
-  {
-    
-  // =========================================================================
-  // TIMING
-  // =========================================================================
-  MyClock oClockTotal;
-  oClockTotal.Start();
 
-  // =========================================================================
-  //  Initialize static classes
-  // =========================================================================
-  ElemShape::Initialize();
-  
-  // =========================================================================
-  // CREATE INFORMATION OBJECT
-  // =========================================================================
 
   // Create object for logging information
   Info = new WriteInfo();
 
-
   // =========================================================================
   // HANDLE COMMAND LINE PARAMETERS
   // =========================================================================
-
   progOpts = new ProgramOptions(argc, argv);
 
   // Parse command line
   progOpts->ParseData();
 
   // Log program startup
-  progOpts->GetHeaderString( std::cout );
+  progOpts->GetHeaderString( cout );
   
   // Get information about exception handling
   Exception::segfault_ = progOpts->GetForceSegFault();
+  
+  // Register callback function with exception class for warning
+  Exception::SetCallbackWarn(&PrintWarning);
 
-  // Set Enums
-  SetEnvironmentEnums();
-  BasePDE::SetEnums();
+  // Set global Enums, the rest is set by the classes
+  SetGlobalEnums();
 
   // the new xml logging derived from the ParamNode
-  info = new InfoNode(progOpts->GetSimName() + ".info.xml", "<?xml version=\"1.0\"?>");
+  info = PtrParamNode(new ParamNode(ParamNode::INSERT, ParamNode::ELEMENT ));
+      //progOpts->GetSimName() + ".info.xml", "<?xml version=\"1.0\"?>");
   info->SetName("cfsInfo");
   info->Get("status")->SetValue("running"); // to be overwritten by "aborted" or "finished"
-
-  // GENERATE OBJECT FOR HANDLING FILE-IO
-  DefineInOutFiles FileHandler;
+  info->Get(ParamNode::SUMMARY)->Get("timer")->SetValue(timer);
+  timer->Start(); // ignore that this is not the real beginning
 
   // Print information about program start time and host
   using namespace boost::posix_time;
   using namespace boost::gregorian;
-  std::string now = to_simple_string( second_clock::local_time() );
-  char host[256];
-  int ret = gethostname( host, 256 );
 
   // our calculation environment
-  InfoNode* env = info->Get(InfoNode::HEADER)->Get("environment");
-  env->Get("started")->SetValue(now);
-  if(ret == 0)
-    env->Get("host")->SetValue(host);
-  
-  if(!progOpts->IsQuiet())
-  {
-    std::string out = "Simulation run started at " + now;
-    if (ret==0)
-      out += " on " + std::string( host ) + "\n";
-    else
-      out += "\n";
-    std::cout << out << std::endl;
-    Info->PrintF( "", out.c_str() );
-  }
+  PtrParamNode env = info->Get(ParamNode::HEADER)->Get("environment");
+  start_time_ = to_simple_string( second_clock::local_time() );
+  env->Get("started")->SetValue(start_time_);
 
+  char host[256];
+  hostname_ = gethostname( host, 256 ) > 0 ? host : "";
+
+  if(!hostname_.empty())
+    env->Get("host")->SetValue(hostname_);
+  
+  info->ToFile();
 
   // =========================================================================
   // GENERATE CENTRAL MESSENGER OBJECT
@@ -143,50 +153,23 @@ int main( int argc, const char **argv ) {
 #ifdef USE_SCRIPTING
 
   // Try to determine (optional) script file name
-  std::string scriptFileName = progOpts->GetScriptFileStr();
+  string scriptFileName = progOpts->GetScriptFileStr();
 
-  messenger = FileHandler.CreateScriptMessenger( scriptFileName );
+  messenger = fileHandler.CreateScriptMessenger( scriptFileName );
 
   // Check if script file was provided
   if ( scriptFileName != "" ) {
-    std::stringstream msg;
-    msg << "Script file: '" << scriptFileName << "'";
-    Info->StartProgress( msg.str() );
+    cout << "++ Script file: '" << scriptFileName << "'" << endl;
 
     // Create new central messenger object (up to now only tcl available)
     messenger->ReadScriptFile(scriptFileName );
 
     // Call initialization procedure
-    StdVector<std::string> context;
+    StdVector<string> context;
     context.Push_back( progOpts->GetSimName() );
     messenger->TriggerEvent(CFSMessenger::CFS_Init, context);
-
-    Info->FinishProgress();
   }
 
-#endif
-
-
-  // =========================================================================
-  // ACTIVATE DEBUGGING STUFF
-  // =========================================================================
-
-#ifdef MEMTRACE
-  Info->StartProgress( "Opening file for tracing memory allocation" );
-  FileHandler.OpenFile( MEMTRACE_FILE );
-  Info->FinishProgress();
-#endif
-
-#ifdef PROFILING
-  if ( progOpts->GetDoProfile() == true ) {
-    Info->StartProgress( "Opening file for profiling output" );
-  }
-  else {
-    Info->StartProgress( "Skipping generation of profiling output" );
-  }
-  profiler = new Profiler();
-  SETPROFILE( "Begin of program" );
-  Info->FinishProgress();
 #endif
 
   // =========================================================================
@@ -194,64 +177,229 @@ int main( int argc, const char **argv ) {
   // =========================================================================
 
 #ifdef MpCCI
-  Info->StartProgress( "Setting up MpCCI interface" );
+  cout << "++ Setting up MpCCI interface" << endl;
 
   CCI_Init_with_id_string( &argc, const_cast<char***>(&argv), "simulationcode2" );
   //  CCI_Init( &argc, const_cast<char***>(&argv));
-
-  Info->FinishProgress();
 #endif
 
- // =========================================================================
-  // WRITE SKELETON XML-FILE
-  // =========================================================================
+}
 
+
+CFS::~CFS()
+{
+#ifdef MpCCI
+  CCI_Finalize();
+#endif
+
+#ifdef USE_SCRIPTING
+  delete messenger;
+  messenger = NULL;
+#endif
+
+  // flush last information.
+  info->ToFile(std::string(), true);
+  
+  // TEMPORARY: Just for debug purpose
+//  std::cout << "Info tree:\n"
+//            << "=========\n";
+//  info->Dump(0);
+//  std::cout << "\n\n\n";
+//  std::cout << "Param tree:\n"
+//              << "=========\n";
+//  param->Dump(0);
+            
+
+  // Delete objects
+  //delete param;
+  delete domain; // might write ersatz material file if <export save="finally"/> in optimization
+  delete progOpts;
+  delete resultHandler;
+
+  // Delete global string streams
+  delete Info;
+  
+  // delete some global objects because valgrind complains otherwise
+  // does not really matter anyway...
+  param.reset();
+  info.reset();
+
+  delete logConf;
+}
+
+int CFS::Run()
+{
+  try
+  {
+    if(progOpts->GetWriteSkeleton())
+    {
+      WriteXMLSkeleton();
+      return 0;
+    }
+
+    if(!progOpts->IsQuiet())
+    {
+      cout << "Simulation run started at " << start_time_;
+      if(!hostname_.empty()) cout << " on " << hostname_;
+      cout << endl;
+    }
+
+
+    ReadXMLFile();
+    SetupIO();
+
+    domain = new Domain( gridInputs, resultHandler, materialHandler );
+    // Create grid
+    domain->CreateGrid();
+
+    if(progOpts->GetPrintGrid())
+      PrintGrid();
+    else
+      SolveProblem();
+
+    timer->Stop();
+    if(!progOpts->IsQuiet()) cout << endl; // conditional empty line
+    
+    cout << ">> Total time: wall clock: '";
+    
+    const int walltime((int) timer->GetWallTime());
+    const int cputime((int) timer->GetCPUTime());
+
+    if(walltime > 120) 
+    {
+      const int wallmin((int) (walltime / 60.0));
+      const int cpumin((int) (cputime / 60.0));
+      if(wallmin > 60)
+      {
+        cout << wallmin / 60 << "h " << (wallmin % 60) 
+             << "m' CPU time: '" << cpumin / 60 << "h " << (cpumin % 60) << "m'"; 
+      }
+      else
+      {
+        cout << wallmin << "m " << (walltime % 60) 
+             << "s' CPU time: '" << cpumin << "m " << (cputime % 60) << "s'"; 
+      }
+    }
+    else
+    {
+      cout << walltime << "s' CPU time: '" 
+           << cputime << "s'";
+    }
+    
+    cout << endl << endl;
+      
+    // write the info object
+    info->Get("status")->SetValue("finished"); // overwrite 'running'
+    info->Get(ParamNode::SUMMARY)->Get("memory/final")->SetValue(MemoryUsage(false)); 
+    info->Get(ParamNode::SUMMARY)->Get("memory/peak")->SetValue(MemoryUsage(true));
+
+    return 0;
+  }
+  catch(exception& ex)
+  {
+    if(!progOpts->IsQuiet())
+    {
+      cerr << endl << endl
+                << "***********************************************************************"
+                << endl << fg_red << " SIMULATION RUN FAILED!  -  CAUGHT EXCEPTION:" << fg_reset
+                << endl << endl
+                << ex.what() << endl << endl
+                << "***********************************************************************"
+                << endl << endl;
+    }
+    else
+    {
+      cerr << endl << ">> Error: " << ex.what() << endl;
+    }
+
+    // Print error cause to info file
+    if(info != NULL)
+    {
+      PtrParamNode errorNode = info->Get(ParamNode::ERROR);
+      errorNode->SetValue(ex.what());
+      info->Get("status")->SetValue("aborted");
+      info->ToFile();
+    }
+
+    return 1;
+  }
+}
+
+void CFS::SetGlobalEnums()
+{
+  SetEnvironmentEnums();
+  BasePDE::SetEnums();
+  EntityList::SetEnums();
+  ElemShape::Initialize();
+}
+
+void CFS::PrintGrid()
+{
+  cout << "Printing grid to file " << endl << endl;
+  domain->PrintGrid();
+}
+
+void CFS::SolveProblem()
+{
+  // Set up Problem
+ domain->PostInit();
+
+ // Solves the driver or optimization problem
+ domain->SolveProblem();
+ 
+ using namespace boost::posix_time;
+ using namespace boost::gregorian;
+ cout << "\n++ Finished solving the problem at " 
+     << to_simple_string( second_clock::local_time() ) 
+     << endl;
+
+#ifdef USE_SCRIPTING
+   // Call intialization procedure
+   StdVector<string> context;
+   context.Push_back( progOpts->GetSimName() );
+   messenger->TriggerEvent(CFSMessenger::CFS_Finish, context);
+#endif
+}
+
+
+
+void CFS::WriteXMLSkeleton()
+{
   // This block is used for writing a skeleton XML-File to make life easier
   // for the user. This also will import some information from the mesh-file.
   // Since normally all opening of files is handled in definefiles
   // the debug and trace file are opened separately here. Definefiles cannot
   // be used, since it would try to open other files also, that need not be
   // present????
-  if ( progOpts->GetWriteSkeleton() == true )
-  {
-    // Hardcoded: Read mesh file
-    std::string meshFile = progOpts->GetMeshFileStr();
-    std::string simName = progOpts->GetSimName();
-    if(meshFile == "")
-      meshFile = simName + ".mesh";
-    SimInput * ptInputfile = new SimInputMESH(meshFile, NULL);
-    ptInputfile->InitModule();
-    // class writing log-information
-    SkeletonConf *ptskel = new SkeletonConf(ptInputfile);
-    ptskel->WriteConf();
-    delete ptskel;
-    delete ptInputfile;
-    delete Info;
-
-    return 0;
-  }
+  // Hardcoded: Read mesh file
+  string meshFile = progOpts->GetMeshFileStr();
+  string simName = progOpts->GetSimName();
+  if(meshFile == "")
+    meshFile = simName + ".mesh";
+  SimInput * ptInputfile = new SimInputMESH(meshFile, PtrParamNode());
+  ptInputfile->InitModule();
+  // class writing log-information
+  SkeletonConf *ptskel = new SkeletonConf(ptInputfile);
+  ptskel->WriteConf();
+  delete ptskel;
+  delete ptInputfile;
+}
 
 
-  // =========================================================================
-  // HANDLE XML-FILE
-  // =========================================================================
-
+void CFS::ReadXMLFile()
+{
   // Generate parameter handler and pass address to global pointer
-  std::string xmlFile = progOpts->GetParamFileStr();
+  string xmlFile = progOpts->GetParamFileStr();
 
   // Write information to command line
-  std::stringstream msg;
-  msg << "Reading parameter file '" << xmlFile << "'";
-  Info->StartProgress( msg.str() );
+  cout << "++ Reading parameter file '" + xmlFile + "'" << endl;
 
 #ifndef USE_XERCES
   EXCEPTION( "I am sorry to say, but CFS only can be compiled with XERCES-support");
 #endif
 
   // this is the new param staff which replaces the old params - delete this comment finally
-  param = NULL;
-
-  std::string schema = progOpts->GetSchemaPathStr();
+  string schema = progOpts->GetSchemaPathStr();
   schema += "/CFS-Simulation/CFS.xsd";
 
   // Initialize our xerces dom parser to handle the cfs xml file
@@ -260,186 +408,57 @@ int main( int argc, const char **argv ) {
   // set the global ParamNode tree pointer
   param = xerces->CreateParamNodeInstance();
   // save us in the info stuff, with defaults but no comments
-  // todo: info->Get(InfoNode::HEADER)->Get("cfsSimulation")->SetValue(param);
   // release the xerces ressources, param is not affected
   delete xerces;
+}
 
-  Info->FinishProgress();
-
-
-  // =========================================================================
-  // SETUP OF IO-STUFF
-  // =========================================================================
-
+void CFS::SetupIO()
+{
   // read type of mesh-libraray
-  std::string libmesh = "mesh";
-  std::map<std::string, shared_ptr<SimInput> > inFiles;
-  std::map<std::string, StdVector<shared_ptr<SimInput> > > gridInputs;
-  ParamNode * meshNode = param->Get("input", false );
-  if( meshNode )
-    meshNode->Get("meshLibrary")->AsString();
+//  string libmesh = "mesh";
+  map<string, shared_ptr<SimInput> > inFiles;
 
-  if ( libmesh != "structGrid" ) {
+//  PtrParamNode meshNode = param->Get("input", false );
+//  if( meshNode )
+//    meshNode->Get("meshLibrary", libmesh, false);
+
+//  if ( libmesh != "structGrid" ) {
     // Generate mesh reader
-    FileHandler.CreateSimInputFiles( inFiles, gridInputs );
-  }
-
-
+  fileHandler.CreateSimInputFiles( inFiles, gridInputs );
+//  }
 
   // generate material handler
-  MaterialHandler * ptMatHandler;
-  ptMatHandler = FileHandler.CreateMaterialHandler();
+  materialHandler = fileHandler.CreateMaterialHandler();
 
   // Open file for status reports by CFS++
   Info->CreateFile();
 
   // Create simulation output writer
-  std::map<std::string, shared_ptr<SimOutput> > outFiles;
-  FileHandler.CreateSimOutputFiles( outFiles );
+  map<string, shared_ptr<SimOutput> > outFiles;
+  fileHandler.CreateSimOutputFiles( outFiles );
 
   // Create resulthandler and pass the output files
-  ResultHandler * ptHandler =
-    new ResultHandler( ResultHandler::EMBEDDED );
-  std::map<std::string, shared_ptr<SimOutput> >::iterator outputIt;
-  std::map<std::string, shared_ptr<SimInput> >::iterator inputIt;
+  resultHandler = new ResultHandler( ResultHandler::EMBEDDED );
+  map<string, shared_ptr<SimOutput> >::iterator outputIt;
+  map<string, shared_ptr<SimInput> >::iterator inputIt;
   outputIt = outFiles.begin();
   inputIt = inFiles.begin();
   for( ; outputIt != outFiles.end(); outputIt++ ) {
-    ptHandler->AddOutputDest( outputIt->second, outputIt->first );
+    resultHandler->AddOutputDest( outputIt->second, outputIt->first );
   }
   for( ; inputIt != inFiles.end(); inputIt++ ) {
-    ptHandler->AddInputReader( inputIt->second, inputIt->first );
+    resultHandler->AddInputReader( inputIt->second, inputIt->first );
   }
 
 
   // Log command line parameters
-  progOpts->ToInfo(info->Get(InfoNode::HEADER)->Get("progOpts"));
+  progOpts->ToInfo(info->Get(ParamNode::HEADER)->Get("progOpts"));
   // log the optinal id/name/token/label from <cfsSimulation id="..">
-  info->Get(InfoNode::HEADER)->Get("id")->SetValue(param->Get("id"));
-
+  info->Get(ParamNode::HEADER)->Get("id")->SetValue(param->Get("id"));
+  // if requested five the problem file -> one can see the defaults then
+  if(progOpts->DoDetailedInfo())
+    info->Get(ParamNode::HEADER)->Get("cfsSimulation")->SetValue(param);
   // Open file for status reports by OLAS
-  FileHandler.OpenFile( OLAS_FILE );
-
-  // =========================================================================
-  // GENERATION OF DOMAIN OBJECT
-  // =========================================================================
-  SETPROFILE("Before Creation of Domain");
-  domain = new  Domain( gridInputs, ptHandler, ptMatHandler );
-  SETPROFILE("After Creation of Domain");
-
-  // Create grid
-  domain->CreateGrid();
-
-
-  // =========================================================================
-  // Only output of grid
-  // =========================================================================
-  if ( progOpts->GetPrintGrid() == true ) {
-    std::cout << "Printing grid to file " << std::endl << std::endl;
-    domain->PrintGrid();
-    delete domain;
-    delete Info;
-    delete progOpts;
-    delete ptHandler;
-    return 0;
-  }
-
-   // Set up Problem
-  domain->PostInit();
-
-  // Solves the driver or optimization problem
-  domain->SolveProblem();
-
-  Info->StartProgress( "Finished solving the problem" );
-  Info->FinishProgress();
-
-#ifdef USE_SCRIPTING
-
-    // Call intialization procedure
-    StdVector<std::string> context;
-    context.Push_back( progOpts->GetSimName() );
-    messenger->TriggerEvent(CFSMessenger::CFS_Finish, context);
-#endif
-
-  Double wTime, cTime;
-  oClockTotal.GetTime(wTime, cTime);
-  if(!progOpts->IsQuiet()) std::cout << std::endl; // conditional empty line
-  std::cout << ">> Total time: wall clock: '" << wTime 
-            << "s' CPU time: '" << cTime << "s'\n";
-  InfoNode* in = info->Get(InfoNode::SUMMARY)->Get("runTime");
-  in->Get("wall")->SetValue(wTime);
-  in->Get("CPU")->SetValue(cTime);
-  in->SetComment("in seconds");
-  
-  in = info->Get(InfoNode::SUMMARY)->Get("memory");
-  in->Get("final")->SetValue(MemoryUsage(false));
-  in->Get("peak")->SetValue(MemoryUsage(true));
-
-  // =========================================================================
-  // CLEANUP PHASE
-  // =========================================================================
-
-#ifdef MpCCI
-  CCI_Finalize();
-#endif
-
-  // write the info object
-  info->Get("status")->SetValue("finished"); // overwrite 'running'
-  info->ToFile();
-  delete info;
-  info = NULL;
-
-  // Delete objects
-  delete param;
-  delete domain;
-  delete progOpts;
-  delete ptHandler;
-
-#ifdef USE_SCRIPTING
-  delete messenger;
-  messenger = NULL;
-#endif
-
-#ifdef PROFILING
-  delete profiler;
-  profiler = NULL;
-#endif
-
-  }
-  catch(std::exception& ex)
-  {
-    if(!progOpts->IsQuiet())
-    {
-      std::cerr << std::endl << std::endl
-                << "***********************************************************************"
-                << std::endl << fg_red << " SIMULATION RUN FAILED!  -  CAUGHT EXCEPTION:" << fg_reset
-                << std::endl << std::endl 
-                << ex.what() << std::endl << std::endl
-                << "***********************************************************************"
-                << std::endl << std::endl;
-    }
-    else
-    {
-      std::cerr << std::endl << ">> Error: " << ex.what() << std::endl;
-    }
-    
-    // Print error cause to info file
-    if(info != NULL)
-    {
-      InfoNode* errorNode = info->Get(InfoNode::ERROR);
-      errorNode->SetValue(ex.what());
-      info->Get("status")->SetValue("aborted");
-      info->ToFile();
-    }
-
-    retVal = 1;
-  }
-
-
-  // Delete global string streams
-  delete warning;
-  delete Info; // might be used in catch!
-
-  // Seems that everything went fine
-  return retVal;
+  fileHandler.OpenFile( OLAS_FILE );
 }
+

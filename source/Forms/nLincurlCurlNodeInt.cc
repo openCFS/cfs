@@ -71,13 +71,13 @@ namespace CoupledField
     Vector<Double> CoordAtIP;
     Vector<Double> drAtIp;
 
-    Double reluctivity, derivReluctivity;
+    Double reluctivity, derivReluctivity = 0.0;
 
     // set matrix to desired size and set all elements to zero
     elemMat.Resize(numFncs); elemMat.Init();
 
     // get pointer to nonlinear BH curve approximation
-    nlinFnc_ = ptMaterial->GetNonlinFncBH();
+    nlinFnc_ = ptMaterial->GetNonlinFncBH(MAG_PERMEABILITY);
 
     for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++)
       {
@@ -110,20 +110,21 @@ namespace CoupledField
         Double Babs = B.NormL2();
 
         if ( isHysteresis_ ) {
-          //hysteresis modeling
+          EXCEPTION("Magnetics with hysteresis currently not supported");
+//           //hysteresis modeling
 
-          // Account for curl 
-          Double temp = B[0];
-          if ( isaxi_ ) {
-            B[0] = -B[1];
-            B[1] = temp;
-          } else {
-            B[0] = B[1];
-            B[1] = -temp;
-          }
-          UInt nrEl = ent1.GetElem()->elemNum;
-          reluctivity = ComputeDiffReluctivity( nrEl, B );
-          //std::cout << "Bfield:\n" << B << "\n nu=" << reluctivity << std::endl;
+//           // Account for curl 
+//           Double temp = B[0];
+//           if ( isaxi_ ) {
+//             B[0] = -B[1];
+//             B[1] = temp;
+//           } else {
+//             B[0] = B[1];
+//             B[1] = -temp;
+//           }
+//           UInt nrEl = ent1.GetElem()->elemNum;
+//           reluctivity = ComputeDiffReluctivity( nrEl, B );
+//           //std::cout << "Bfield:\n" << B << "\n nu=" << reluctivity << std::endl;
         }
         else {
           //nonlinear BH curve
@@ -164,16 +165,16 @@ namespace CoupledField
 
 
   void nLinCurlCurlNode2DInt::SetNonLinMethod(NonLinMethodType atype) {
-    nonLinType_ = atype;
-  }
+      nonLinType_ = atype;
+    }
 
 
   Double nLinCurlCurlNode2DInt::ComputeDiffReluctivity( UInt nrEl, Vector<Double>& Bvec )
   {
 
-    Double diffRelucVal;
+    Double diffRelucVal = 1.0;
 
-    diffRelucVal = ptMaterial->ComputeScalarDiffVal( nrEl, Bvec );
+    //    diffRelucVal = ptMaterial->ComputeScalarDiffVal( nrEl, Bvec );
 
     if (  diffRelucVal <= 0.0 ) 
       EXCEPTION("Negative effective permeability");
@@ -243,7 +244,7 @@ namespace CoupledField
     const Vector<Double> & intWeights = ptelem->GetIntWeights();  
 
     // get pointer to nonlinear BH curve approximation
-    nlinFnc_ = ptMaterial->GetNonlinFncBH();
+    nlinFnc_ = ptMaterial->GetNonlinFncBH(MAG_PERMEABILITY);
 
     // Loop over all integration points
     for ( UInt actIntPt = 1; actIntPt <= nrIntPts; actIntPt++ ) {
@@ -312,9 +313,8 @@ namespace CoupledField
 
 
   void nLinCurlCurlNode3DInt::SetNonLinMethod(NonLinMethodType atype) {
-      nonLinType_ = atype;
-    }
-
+    nonLinType_ = atype;
+  }
 
 
 } // end namespace CoupledField

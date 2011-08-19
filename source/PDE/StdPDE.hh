@@ -19,13 +19,14 @@ namespace CoupledField {
 
   // forward class declarations
   class PDECoupling;
+  class BasePairCoupling;
   class WriteResults;
   class TimeStepping;
   class BaseNodeStoreSol;
   class StdSolveStep;
   class PDECoupling;
   class ParamNode;
-  class InfoNode;
+  class BiotSavart;
   class BaseFeFunction;
   
   //! Base class for all single-field and direct-coupled problems
@@ -56,7 +57,7 @@ namespace CoupledField {
     
     /** Finds the xml node of the linear system
      * @return might be NULL */
-    ParamNode* FindLinearSystem(const std::string& sysName);
+    PtrParamNode FindLinearSystem(const std::string& sysName);
     
     //! Transfer parameters from CFS++ to OLAS parameter object
 
@@ -105,9 +106,6 @@ namespace CoupledField {
     //! Returns the resultInfo related to the specified solutionType
     virtual shared_ptr<ResultInfo> GetResultInfo( SolutionType solType );
 
-    //! return pointer to vector with subdomains, on which we calculate the PDE
-    virtual StdVector<RegionIdType> * getSDsPDE()
-    { return &subdoms_;}
 
     virtual AnalysisType GetAnalysisType() {
       return analysistype_;
@@ -120,14 +118,13 @@ namespace CoupledField {
       return false;
     }
   
-    //! return pointer to vector with first derivative of solution
-    virtual const Vector<Double> & getS1() const;
-  
-    //! return pointer to vector with second derivative of solution
-    virtual const Vector<Double> & getS2() const;
+    //! @return pointer to vector of derivative of solution
+    //! @param derivType the type of derivative you want
+    virtual const Vector<Double> & getDeriv(DERIVType derivType) const;
 
-    //! return pointer to vector with last solution
-    virtual const Vector<Double> & getOld1() const;
+    //! @return pointer to vector of time step
+    //! @param timeStepType type if time step you want
+    virtual const Vector<Double> & getOld(TIMEStepType timeStepType) const;
     
 
     //! Also for fractional damping model do obtain
@@ -142,9 +139,19 @@ namespace CoupledField {
     virtual bool GetIsaxi() {
       return isaxi_;
     }
+    
+    //! Return Biot-Savart object
+    shared_ptr<BiotSavart> GetBiotSavart() {
+      return biotSavart_;
+    };
+
+    //! check, if Biot-Savart is set
+    bool IsBiotSavart() {
+      return isBiotSavart_;
+    };
 
     //! Return pointer to paramNode of current pde
-    ParamNode * GetParamNode() { return myParam_; }
+    PtrParamNode GetParamNode() { return myParam_; }
 
     //!
     //! \for computing and adding RHS to PDE in case of special sources 
@@ -224,10 +231,21 @@ namespace CoupledField {
     void GetDeriv2SolVecOfElement( Vector<Complex>& sol, const EntityIterator& it, 
                                    shared_ptr<ResultInfo> res);
 
+    /// returns the vector of the previous solution belonging to all nodes of the actual element
+    void GetPrevSolVecOfElement( Vector<Double>& sol, const EntityIterator& it, 
+                                 shared_ptr<ResultInfo> res );
+
     //! Init the time stepping
     virtual void InitTimeStepping()
     {EXCEPTION("InitTimeStepping not implemented");};
     
+
+    //! Get couplings object
+    virtual StdVector<BasePairCoupling*>* GetCouplingsObject() 
+    {
+      return NULL;
+    };
+
     virtual void AcouSourceCalc(){EXCEPTION("AcouSourceCalc not implemented");};
 
     // ======================================================
@@ -242,6 +260,15 @@ namespace CoupledField {
     //shared_ptr<EqnMap> GetEqnMap() { return eqnMap_; }
     //
     
+
+    /** Do we have at least some periodic boundary conditions?
+     * Attention! searches constraints list for an answer */
+    bool HasPeriodicBC();
+
+    /** The constraints are of interest for identifying periodic boundary conditions
+     * for optimization regularization (filtering)
+     * @see DesignElement::InitFilter */
+    ConstraintList& GetConstraints() { return constraints_; }
 
     std::map<RegionIdType, BaseMaterial*>  getPDEMaterialData()
     {return materials_;};
@@ -291,6 +318,9 @@ namespace CoupledField {
     virtual void SetMaterialNonLinearity(bool nonLin){
       nonLinMaterial_=nonLin;};
 
+    //! reads in the displacement at time step "step" and fills deltCoord-array of
+    //! grid
+    virtual void ReadDisplacementAndUpdateGrid( UInt step);
 
     //@}
 
@@ -305,6 +335,9 @@ namespace CoupledField {
 
     bool IsHysteresis() 
     { return isHysteresis_;};
+
+    bool IsTotaFormulation() 
+    { return totalFormulation_;};
 
     bool IsIterCoupled() 
     { return isIterCoupled_;};
@@ -335,6 +368,18 @@ namespace CoupledField {
     IdBcList GetIDBCList(){
       return idBcs_;};
 
+    //! List of inhomogeneous Dirichlet boundary conditions read from file
+    IdFileBcList GetIdFiBCList(){
+      return idFiBcs_;};
+    
+    //! List of inhomogeneous Neumann boundary conditions
+    const InBcList& GetINBCList() { return inBcs_; }
+
+    /** Give the damping type by region.
+     * @return NONE if no damping in map! */
+    DampingType GetDamping(RegionIdType reg_id) const;
+
+    MaterialClass GetMaterialClass() const { return pdematerialclass_; }
     //@}
       
   protected:
@@ -343,7 +388,7 @@ namespace CoupledField {
     /*!
       \param aptgrid pointer to grid
     */
-    StdPDE(Grid *aptgrid, ParamNode* paramNode );
+    StdPDE(Grid *aptgrid, PtrParamNode paramNode );
   
     //! private copy constructor
     StdPDE & operator= (const StdPDE & myPDE) {
@@ -389,7 +434,7 @@ namespace CoupledField {
     //@}
 
     /** This is our pde info node. To be set/overwritten in each PDE! */ 
-    InfoNode* infoNode_; 
+    PtrParamNode infoNode_; 
 
     // -----------------------------------------------------------------------
     // Geometry & node numbering
@@ -419,6 +464,9 @@ namespace CoupledField {
     //! Inhomogeneous Dirichlet boundary conditions
     IdBcList idBcs_;
     
+    //! Inhomogeneous Dirichlet boundary conditions
+    IdFileBcList idFiBcs_;
+    
     //! List of inhomogeneous Neumann boundary conditions
     InBcList inBcs_;
 
@@ -442,6 +490,7 @@ namespace CoupledField {
     bool nonLin_;           //!< flag for nonlinear calculations
     bool nonLinMaterial_;           //!< flag for nonlinear material calculations
     bool isHysteresis_;     //!< flag for hysteresis
+    bool totalFormulation_;   //!< flag for total formulation in nonlinear calculations
 
     //! map for each region the type of nonlinearity
     std::map<RegionIdType, NonLinType> regionNonLinType_;
@@ -451,6 +500,13 @@ namespace CoupledField {
 
     //! map for each id the nonlinearity
     std::map<std::string, NonLinType> nonLinIdType_;
+
+    //! name for input file, which contains grid deformations
+    std::string fileName4GridDisplacements_ ;
+
+    //! regions for ggrid displacements
+    StdVector<std::string> regions4GridDisplacements_;
+
     //@}
 
     // -----------------------------------------------------------------------
@@ -486,7 +542,6 @@ namespace CoupledField {
     bool isIterCoupled_;        //!< PDE couples with others
     Vector<Double> matParam_;      //!< change to material parameter
     bool updateCouplingBCs_ ;  //!< flag if coupling BC were already set
-    UInt couplingBCsCounter_;  //!< counter for number of coupling BCs
     PDECoupling *ptCoupling_;     //!< pointer to coupling object
   
     //! nodes at which coupling terms are calculated
@@ -560,16 +615,28 @@ namespace CoupledField {
     
     //! list of damping types for all regions
     std::map<RegionIdType,DampingType> dampingList_;
+    
+    //! use of complex material data per region
+    std::map<RegionIdType,bool> complexMatData_;
 
     bool fracDamping_; //!< true: fractional damping model
     UInt fracMemory_;     //!< number of old time steps to be saved (for fractional damping)
     
+    //! object, handling the computation by Biot-Savart fundamental field
+    shared_ptr<BiotSavart> biotSavart_;
+        
+    //! excitation computed by Biot-Savart
+    bool isBiotSavart_;
+
     //! type of interpolation (for fractional damping)
     InterpolType inType_;
     
     //! checks, if we have for the coupling a incremental solution
     bool isIncrFormulation_;    
     
+    //! if yes, PDE is computed on deformed geometry
+    bool updatedLagrangeForm_;
+
     //! flag for knowing if we have to call ComputeRHS() in the harmonic driver
     bool ComputeRHSforHarm_;    
 
@@ -581,11 +648,8 @@ namespace CoupledField {
     
     BaseSystem * algsys_;      //!< pointer to algebraic system
   
-    OLAS_Params * olasParams_; //!< pointer to paramter object of OLAS
-    OLAS_Report * olasReport_; //!< pointer to report object of OLAS
-    
     /** This is the node for linear system responsible for this pde. */
-    InfoNode* olasInfo_;
+    PtrParamNode olasInfo_;
     
     //! flag to check if there are initial conditions in the set up
     bool isSetInitialCondition_;

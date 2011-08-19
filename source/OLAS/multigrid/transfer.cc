@@ -15,11 +15,6 @@
 #define  debug  &std::cerr
 #endif // DEBUG_TO_CERR
 
-#ifdef PROFILING
-#ifdef PROFILE_TRANSFEROPERATOR
-#include "utils/utils.hh"
-#endif
-#endif
 /**********************************************************/
 #ifdef TRANSFER_OPERATOR_IMPORT_GALERKIN_PRODUCT
 #include "exporttools.hh"
@@ -104,9 +99,6 @@ CreateOperators( const CRS_Matrix<T>& matrix,
     // time measurement and debugging checks
     ////////////////////////////////////////////////////////
 
-#ifdef PROFILE_TRANSFEROPERATOR
-    const Double t1 = AMG_GET_REAL_TIME
-#endif
 
 #ifdef DEBUG_TRANSFEROPERATOR
     if( matrix.GetNumCols() != topology.GetSizeh() ) {
@@ -165,11 +157,6 @@ CreateOperators( const CRS_Matrix<T>& matrix,
     creationResult = CheckOperators();
 #endif
     
-#ifdef PROFILE_TRANSFEROPERATOR
-    const Double t2 = AMG_GET_REAL_TIME
-    (*cla) << " AMG: created transfer operators: "
-           << (t2-t1)<<" seconds\n";
-#endif
 
     return creationResult;
 
@@ -286,7 +273,7 @@ CreateOperatorsConstant( const CRS_Matrix<T>& matrix,
         pRowP[i+1] = nNonZeros;
     }
 
-    DELETEARRAY( RowLengths );
+    delete [] ( RowLengths );  RowLengths  = NULL;
 
     return true;
 }
@@ -400,7 +387,7 @@ CreateOperatorsSimpleWeighted( const CRS_Matrix<T>& matrix,
         pRowP[i+1] = nNonZeros;
     }
 
-    DELETEARRAY( RowLengths );
+    delete [] ( RowLengths );  RowLengths  = NULL;
     
     return true;
 }
@@ -543,8 +530,8 @@ CreateOperatorsSmoothedScaling( const CRS_Matrix<T>& matrix,
         pRowP[i+1] = nNonZeros;
     }
 
-    DELETEARRAY( RowLengths );
-    DELETEARRAY( v );
+    delete [] ( RowLengths );  RowLengths  = NULL;
+    delete [] ( v );  v  = NULL;
 
     return true;
 }
@@ -703,9 +690,6 @@ GalerkinProduct(       CRS_Matrix<T>**           a_H,
                  const DependencyGraph<T>& graph_VT  ) const
 {
     
-#ifdef PROFILE_TRANSFEROPERATOR
-    Double t1 = AMG_GET_REAL_TIME
-#endif
 
 #ifdef DEBUG_TRANSFEROPERATOR
     // check, if Ah is sorted correctly
@@ -908,13 +892,9 @@ GalerkinProduct(       CRS_Matrix<T>**           a_H,
         }
     } // j
 
-    DELETEARRAY( RowSizeAH );
-    V--;  DELETEARRAY( V );
+    delete [] ( RowSizeAH );  RowSizeAH  = NULL;
+    V--;  delete [] ( V );  V  = NULL;
 
-#ifdef PROFILE_TRANSFEROPERATOR
-    Double t2 = AMG_GET_REAL_TIME
-    (*cla) << " AMG: Galerkin product: "<<(t2-t1)<<" seconds\n";
-#endif
 }
 
 /**********************************************************/
@@ -932,9 +912,6 @@ GalerkinProduct(       CRS_Matrix<T>** a_H,
     }
 #endif
 
-#ifdef PROFILE_TRANSFEROPERATOR
-    Double t1 = AMG_GET_REAL_TIME
-#endif
 
     // get some pointers for performant access
     const Integer* const pRowA = a_h.GetRowPointer();
@@ -1016,11 +993,6 @@ GalerkinProduct(       CRS_Matrix<T>** a_H,
         // update the position
         position += rowlength;
     }
-
-#ifdef PROFILE_TRANSFEROPERATOR
-    Double t2 = AMG_GET_REAL_TIME
-    (*cla) << " AMG: Galerkin product: "<<(t2-t1)<<" seconds\n";
-#endif
 
 }
 
@@ -1141,7 +1113,7 @@ bool TransferOperator<T>::CheckOperators() const
             }
         }
         if( ! transpositionOK ) {
-            Warning( "TransferOperator::CheckOperators: P != R'\n "
+            WARN( "TransferOperator::CheckOperators: P != R'\n "
                      "for more details inspect the debug file",
                      __FILE__, __LINE__ );
         }
@@ -1169,7 +1141,7 @@ bool TransferOperator<T>::CheckOperators() const
             }
         }
         if( ! rowSumOK ) {
-            Warning( "TransferOperator::CheckOperators: row sum of "
+            WARN( "TransferOperator::CheckOperators: row sum of "
                      "P is not 1.0\n for more details inspect the debug "
                      "file", __FILE__, __LINE__ );
         }
@@ -1260,7 +1232,7 @@ CreateOperators( const CRS_Matrix<T>& matrix,
                                  << std::endl << "number of weights exceeds row "
                                     "length " << RowLengths[i] << " in row " << i
                                  << std::endl;
-                        Warning( "TransferOperator::CreateOperators: "
+                        WARN( "TransferOperator::CreateOperators: "
                                  "-> see debug file" );
                     }
 #endif
@@ -1275,7 +1247,7 @@ CreateOperators( const CRS_Matrix<T>& matrix,
     }
     pRow[topology.GetSizeh()+1] = RowStart;
 
-    DELETEARRAY( RowLengths );
+    delete [] ( RowLengths );  RowLengths  = NULL;
     
     return true;
 }

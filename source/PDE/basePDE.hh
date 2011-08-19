@@ -12,6 +12,7 @@
 #include "General/exception.hh"
 #include "General/Enum.hh"
 #include "Elements/integrationScheme.hh"
+#include "DataInOut/ParamHandling/ParamNode.hh"
 
 namespace CoupledField
 {
@@ -34,7 +35,7 @@ namespace CoupledField
     bool converged_; //!< needed for coupling with MpCCI
 
     //! Constructor
-    BasePDE( ParamNode* paramNode );
+    BasePDE( PtrParamNode paramNode );
     
     //! Destructor
     virtual ~BasePDE();
@@ -79,8 +80,8 @@ namespace CoupledField
     //@{
     //! \name Getter methods
 
-    //! return name of pde
-    virtual std::string GetName() {return pdename_;}
+    /** Name of the PDE, overwritten in the coupled PDE */
+    virtual const std::string& GetName() const { return pdename_; }
     //@}
 
     /** do string/enum conversion via BasePDE::analysisType */
@@ -118,7 +119,7 @@ namespace CoupledField
     UInt sequenceStep_;
 
     //! ParamNode of current pde
-    ParamNode * myParam_;
+    PtrParamNode myParam_;
     //@}
 
     //! name of the PDE

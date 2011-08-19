@@ -23,7 +23,7 @@ function [] = WriteFileInfoHDF5(filename, content)
 user = getenv('USER');
 host = getenv('HOSTNAME');
 os = getenv('OSTYPE');
-if length(os) == 0
+if isempty(os)
   os = getenv('OS');
 end
 proc = getenv('HOSTTYPE');

@@ -15,7 +15,7 @@ class FeSpaceH1Hi : public FeSpaceH1 {
   public:
 
     //! Constructor
-    FeSpaceH1Hi(ParamNode* aNode);
+    FeSpaceH1Hi(PtrParamNode aNode);
 
     //! Destructor
     ~FeSpaceH1Hi();
@@ -81,7 +81,7 @@ class FeSpaceH1Hi : public FeSpaceH1 {
     // ====================================================================
     //! Here we pass a fePolynomial parameter node such that the feSpace can extract the information
     //! which is important for the specific space
-    virtual void ProcessPolyRegionNode(ParamNode* node, RegionIdType region);
+    virtual void ProcessPolyRegionNode(PtrParamNode node, RegionIdType region);
 
   private:
 };

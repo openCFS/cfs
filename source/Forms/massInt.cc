@@ -6,6 +6,8 @@
 #include <fstream>
 
 #include "massInt.hh"
+#include "Domain/domain.hh"
+#include "Optimization/Design/DesignSpace.hh"
 
 #include "DataInOut/Logging/cfslog.hh"
 
@@ -17,28 +19,48 @@ namespace CoupledField {
 
 
 
-  MassInt::MassInt(const Double aDensity,  const UInt nrDofsPerNode, 
-                   bool axi, bool coordUpdate )
-    : BaseForm(NULL), 
-      density_(aDensity), 
-      nrDofsPerNode_(nrDofsPerNode),
-      diagMass_(false)
-      
+  MassInt::MassInt(const Double aDensity, const UInt nrDofsPerNode, bool axi, bool coordUpdate)
+    : BaseForm(NULL)
   {
-    name_ = "MassInt";
-    isaxi_ = axi;
-    coordUpdate_ = coordUpdate;
-    baseType_ = MASS;
+    density_ = aDensity;
+    Init(nrDofsPerNode, axi, coordUpdate);
+
+    LOG_DBG(forms) << "MassInt::MassInt() dens=" << density_ << " dofs=" << nrDofsPerNode << " axi=" << axi;
   }
 
- 
+  MassInt::MassInt(BaseMaterial* mat, const MaterialDescriptor& md, const UInt nrDofsPerNode, bool axi, bool coordUpdate)
+    : BaseForm(mat)
+  {
+    md_ = md;
+    assert(md_.mat_1 == DENSITY);
+    density_ = md_.GetScalar(mat);
+
+    Init(nrDofsPerNode, axi, coordUpdate);
+    LOG_DBG(forms) << "MassInt::MassInt() md! dens=" << density_ << " dofs=" << nrDofsPerNode << " axi=" << axi;
+  }
+
+
+
   MassInt::~MassInt() {
   }
 
 
+  void MassInt::Init(const UInt nrDofsPerNode, bool axi, bool coordUpdate)
+  {
+    nrDofsPerNode_ = nrDofsPerNode;
+    diagMass_ = false;
+    name_ = "MassInt";
+    isaxi_ = axi;
+    coordUpdate_ = coordUpdate;
+    baseType_ = MASS;
+    if ( coordUpdate ) 
+      isSolDependent_ = true;
+  }
+
   void MassInt::CalcElementMatrix( Matrix<Double>& elemMat,
                                    EntityIterator& ent1, 
-                                   EntityIterator& ent2  )  {
+                                   EntityIterator& ent2,
+                                   DesignElement::Type direction)  {
 
     // Extract pointer to reference element and get coordinates
     ExtractElemInfo( ent1 );
@@ -59,7 +81,20 @@ namespace CoupledField {
     elemMat.Resize(numFncs);
     elemMat.Init();
 
+    // applies topology optimization ersatz material to the density, including bimaterial!
+    Double density = md_.GetErsatzMaterial(this, ent1.GetElem(), density_);
+    // ErsatzMaterialMass is Bastian's stuff and not compatible with MaterialDescriptor::GetErsatzMaterial()
+    if(domain->HasErsatzMaterialMass())
+    {
+      assert(domain->GetErsatzBiMaterial(ent1.GetElem(), md_.mat_class) == NULL);
+      Double top_opt = domain->GetErsatzMaterial()->GetErsatzMaterialMass(ent1.GetElem(), direction);
+      density *= top_opt;
+    }
+
     Double factor = mParser_->Eval( mHandle_ );
+
+    LOG_DBG3(forms) << GetName() << "::CEM(" << ent1.GetElem()->elemNum << ") density=" 
+                    << density << " factor=" << factor << " diagMass=" << diagMass_;
 
     if (diagMass_ ) {
       Double mass = 0.0;
@@ -69,11 +104,11 @@ namespace CoupledField {
         if (isaxi_) {
           ptelem-> GetShFncAtIp(shapeFncAtIp, actIntPt, ent1.GetElem() );
           CoordAtIP = ptCoord_ * shapeFncAtIp;
-          mass += 2 * PI * intWeights[actIntPt-1] * density_ 
+          mass += 2 * PI * intWeights[actIntPt-1] * density
                  * factor * jacDet * CoordAtIP[0];
         }
         else 
-          mass += intWeights[actIntPt-1] * density_ * factor * jacDet;
+          mass += intWeights[actIntPt-1] * density * factor * jacDet;
       }
 
       for ( UInt i=0; i<numFncs; i++ ) 
@@ -90,10 +125,10 @@ namespace CoupledField {
 
         if (isaxi_) {
           CoordAtIP = ptCoord_ * shapeFncAtIp;
-          partElemMat *= 2 * PI * intWeights[actIntPt-1] * density_ * factor* jacDet * CoordAtIP[0];
+          partElemMat *= 2 * PI * intWeights[actIntPt-1] * density * factor* jacDet * CoordAtIP[0];
         }
         else 
-          partElemMat *= intWeights[actIntPt-1] * density_ * factor * jacDet;
+          partElemMat *= intWeights[actIntPt-1] * density * factor * jacDet;
 
         elemMat += partElemMat;
       }
@@ -105,14 +140,9 @@ namespace CoupledField {
       elemMat = multDofMass;
     }
 
-    // for the harmonic topology optimzation case (or load ersatz material)
-    double density = GetErsatzMaterialFactor(ent1.GetElem());
-    if(density != 1.0) elemMat *= density;    
-    LOG_DBG3(forms) << GetName() << "::CalcElementMatrix(" << ent1.GetElem()->elemNum  
-                    << ") -> density=" << density;    
-    if(density != 1.0) elemMat *= density;
-    
-    //     std::cout << "ElemMatMass:\n" << elemMat << std::endl;
+    LOG_DBG3(forms) << GetName() << "::CEM(" << ent1.GetElem()->elemNum << ") density=" 
+                    << density << " factor=" << factor << " mat=" << elemMat.ToString();
+
   }
 
   void MassInt::MassMultiDof(Matrix<Double>& massMultDof, 
@@ -126,10 +156,14 @@ namespace CoupledField {
     massMultDof.Resize(nrDofsPerNode_*singleDofSize);
     massMultDof.Init();
     
-    for (i=0; i < singleDofSize; i++)
-      for (j=0; j < singleDofSize; j++)
-        for (actDof=0; actDof < nrDofs; actDof++)
-          massMultDof[i*nrDofs + actDof][j*nrDofs + actDof] = massMatSingleDof[i][j]; 
+    for (i=0; i < singleDofSize; i++) {
+      for (j=0; j < singleDofSize; j++) {
+        double v = massMatSingleDof[i][j];
+        for (actDof=0; actDof < nrDofs; actDof++) {
+          massMultDof[i*nrDofs + actDof][j*nrDofs + actDof] = v; 
+        }
+      }
+    }
   }
 
 
@@ -150,6 +184,18 @@ namespace CoupledField {
             massMultDofZero[i*nrDofsPerNode_ + actDof][j*nrDofsPerNode_ + actDof] = 
               massMatSingleDof[i][j]; 
           }
+  }
+  
+  double MassInt::GetErsatzMaterialMass(const Elem* elem, DesignElement::Type direction){
+    // now check whether we have Param Mat, density is ignored then!!! 
+    if(elem != NULL && domain->HasErsatzMaterialMass()){
+      return domain->GetErsatzMaterial()->GetErsatzMaterialMass(elem, direction);
+    }else{
+      // for the harmonic topology optimzation case (or load ersatz material)
+      double density = GetErsatzMaterialFactor(elem);
+      LOG_DBG3(forms) << GetName() << "::CalcElementMatrix(" << elem->elemNum << ") -> density=" << density;    
+      return density;
+    }
   }
   
 } // end namespace CoupledField

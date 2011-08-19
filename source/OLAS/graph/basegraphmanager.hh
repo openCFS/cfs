@@ -9,6 +9,7 @@
 #include <vector>
 #include <iostream>
 
+#include "baseordering.hh"
 
 namespace CoupledField {
 
@@ -156,8 +157,8 @@ namespace CoupledField {
     virtual void RegisterPDE( const FeFctIdType identifierPDE,
                               const UInt numEqns,
                               const UInt numLastFreeDof,
-                              const ReorderingType reorder 
-                              = NOREORDERING ) = 0;
+                              const BaseOrdering::ReorderingType reorder 
+                              = BaseOrdering::NOREORDERING ) = 0;
 
     //@}
 

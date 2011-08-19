@@ -32,14 +32,14 @@
 namespace CoupledField {
 
 // declare class specific logging stream
-DECLARE_LOG(magEdgePde);
-DEFINE_LOG(magEdgePde, "magEdgePde");
+DECLARE_LOG(magEdgePde)
+DEFINE_LOG(magEdgePde, "magEdgePde")
 
 
   // **************
   //  Constructor
   // **************
-  MagEdgePDE::MagEdgePDE( Grid * aptgrid, ParamNode* paramNode )
+  MagEdgePDE::MagEdgePDE( Grid * aptgrid, PtrParamNode paramNode )
     :SinglePDE( aptgrid, paramNode ) {
 
     // =====================================================================
@@ -50,14 +50,14 @@ DEFINE_LOG(magEdgePde, "magEdgePde");
     maxTimeDerivOrder_ = 1;
 
     // check if we have a 3d setup
-    bool is3d = param->Get("domain")->Get("geometryType")->AsString() == "3d";
+    bool is3d = param->Get("domain")->Get("geometryType")->As<std::string>() == "3d";
     if ( !is3d )
       EXCEPTION("MagEdgePDE is just implemented for 3D setups!");
   
     // read in solution strategy for this PDE
-    ParamNode * solStratNode = myParam_->Get("solutionStrategy",false);
+    PtrParamNode  solStratNode = myParam_->Get("solutionStrategy",ParamNode::PASS);
     if( solStratNode )
-      solStrategy_  = SolStrategyEnum.Parse(solStratNode->AsString());
+      solStrategy_  = SolStrategyEnum.Parse(solStratNode->As<std::string>());
 
   }
 
@@ -156,47 +156,49 @@ DEFINE_LOG(magEdgePde, "magEdgePde");
       // ----------------------------------------
       
       // delete old algebraic system and create new one
-      std::cerr << "algsys_ was : " << algsys_;
-      delete algsys_;
-      algsys_ = NULL;
-      std::cerr << "algsys_ after delete is  " << algsys_ << std::endl;
-      algsys_ = new StandardSystem(FindLinearSystem("magneticEdge2"));
-      std::cerr << "algsys_ is : " << algsys_;
-      // Get parameter and report object of OLAS
-      olasParams_ = algsys_->GetOLASParams();
-      olasReport_ = algsys_->GetOLASReport();
-
-      // Obtain unique pde identifier
-      pdeId_ = algsys_->ObtainPDEId( pdename_ );
-      assemble_->SetAlgSys(algsys_);
-      assemble_->ResetMatrixReassembly();
+      REFACTOR;
       
-      // Initialize FeSpace objects
-      numPdeEquations_ = 0;
-      numPdeUnknowns_ = 0;
-      numPdeInHomDirBc_ = 0;
-      //so this implementation is just for the magnetic potential
-      shared_ptr<FeSpace> actSpace = feFunctions_[MAG_POTENTIAL]->GetFeSpace();
-
-      // IMPORTANT: Set 2nd step in two-Level scheme
-      actSpace->SetStrategy(STRAT_TWO_LEVEL, 2);
-      //actSpace->Finalize();
-      actSpace->PreCalcShapeFncs();
-      numPdeEquations_ += actSpace->GetNumEquations();
-      numPdeUnknowns_ += actSpace->GetNumFreeEquations();
-      numPdeInHomDirBc_ += actSpace->GetNumInhomDirichletBc();
-      
-      // Re-set store-solution and other vector objects
-      sol_->Init();
-      solVec_->Resize(numPdeUnknowns_);
-      solVec_->Init();
-      rhsVec_->Resize(numPdeUnknowns_);
-      rhsVec_->Init();
-      sol_->SetAlgSysDataPointer(solVec_->GetSize(),
-                                         dynamic_cast<Vector<Double>&>(*solVec_).GetPointer() );
-      
-      DefineAlgSys();
-      //CreateMatrices_Solver();
+//      std::cerr << "algsys_ was : " << algsys_;
+//      delete algsys_;
+//      algsys_ = NULL;
+//      std::cerr << "algsys_ after delete is  " << algsys_ << std::endl;
+//      algsys_ = new StandardSystem(FindLinearSystem("magneticEdge2"));
+//      std::cerr << "algsys_ is : " << algsys_;
+//      // Get parameter and report object of OLAS
+//      olasParams_ = algsys_->GetOLASParams();
+//      olasReport_ = algsys_->GetOLASReport();
+//
+//      // Obtain unique pde identifier
+//      pdeId_ = algsys_->ObtainPDEId( pdename_ );
+//      assemble_->SetAlgSys(algsys_);
+//      assemble_->ResetMatrixReassembly();
+//      
+//      // Initialize FeSpace objects
+//      numPdeEquations_ = 0;
+//      numPdeUnknowns_ = 0;
+//      numPdeInHomDirBc_ = 0;
+//      //so this implementation is just for the magnetic potential
+//      shared_ptr<FeSpace> actSpace = feFunctions_[MAG_POTENTIAL]->GetFeSpace();
+//
+//      // IMPORTANT: Set 2nd step in two-Level scheme
+//      actSpace->SetStrategy(STRAT_TWO_LEVEL, 2);
+//      //actSpace->Finalize();
+//      actSpace->PreCalcShapeFncs();
+//      numPdeEquations_ += actSpace->GetNumEquations();
+//      numPdeUnknowns_ += actSpace->GetNumFreeEquations();
+//      numPdeInHomDirBc_ += actSpace->GetNumInhomDirichletBc();
+//      
+//      // Re-set store-solution and other vector objects
+//      sol_->Init();
+//      solVec_->Resize(numPdeUnknowns_);
+//      solVec_->Init();
+//      rhsVec_->Resize(numPdeUnknowns_);
+//      rhsVec_->Init();
+//      sol_->SetAlgSysDataPointer(solVec_->GetSize(),
+//                                         dynamic_cast<Vector<Double>&>(*solVec_).GetPointer() );
+//      
+//      DefineAlgSys();
+//      //CreateMatrices_Solver();
     }
   }
   
@@ -229,16 +231,16 @@ DEFINE_LOG(magEdgePde, "magEdgePde");
     isHysteresis_ = false;
 
     // Check, if "nonLinList" is present
-    ParamNode * nonLinListNode = myParam_->Get("nonLinList", false );
+    PtrParamNode nonLinListNode = myParam_->Get("nonLinList", ParamNode::PASS );
     if( !nonLinListNode)
       return;
 
     // Get nonlinear types
-    StdVector<ParamNode*> nonLinNodes = nonLinListNode->GetChildren();
+    ParamNodeList nonLinNodes = nonLinListNode->GetChildren();
     for( UInt i = 0; i < nonLinNodes.GetSize(); i++ ) {
 
       std::string actTypeString = nonLinNodes[i]->GetName();
-      std::string actId = nonLinNodes[i]->Get("id")->AsString();
+      std::string actId = nonLinNodes[i]->Get("id")->As<std::string>();
 
       NonLinType actType;
       String2Enum( actTypeString, actType );
@@ -254,7 +256,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde");
     }
 
     // Run over all region and set entry in "regionNonLinId"
-    StdVector<ParamNode*> regionNodes =
+    ParamNodeList regionNodes =
       myParam_->Get("regionList")->GetChildren();
 
     RegionIdType actRegionId;
@@ -266,13 +268,13 @@ DEFINE_LOG(magEdgePde, "magEdgePde");
     for( UInt i = 0; i < regionNodes.GetSize(); i++ ) {
 
       // get data
-      regionNodes[i]->Get( "name", actRegionName );
-      regionNodes[i]->Get( "nonLinId", actNonLinId );
+      regionNodes[i]->GetValue( "name", actRegionName );
+      regionNodes[i]->GetValue( "nonLinId", actNonLinId );
 
       if( actNonLinId == "" )
         continue;
 
-      actRegionId = ptgrid_->RegionNameToId( actRegionName );
+      actRegionId = ptgrid_->GetRegion().Parse( actRegionName );
 
       // Check nonLinId was already registerd
       if( nonLinIdType_.find( actNonLinId) == nonLinIdType_.end() ) {
@@ -300,13 +302,12 @@ DEFINE_LOG(magEdgePde, "magEdgePde");
     // Here we need in addition the nonLinMethod_ for the definition
     // of the integrators
     nonLinMethod_ = FIXEDPOINT;
-    ParamNode * nonLinNode = myParam_->Get("nonLinear", false );
+    PtrParamNode nonLinNode = myParam_->Get("nonLinear", ParamNode::PASS );
     if( nonLinNode ) {
       std::string methodString;
-      nonLinNode->Get(  "method", methodString, false );
+      nonLinNode->GetValue(  "method", methodString, ParamNode::PASS );
       nonLinMethod_ = NonLinMethodTypeEnum.Parse(methodString);
     }
-
   }
 
 
@@ -324,9 +325,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde");
     
     // initially, check for regularization factor
     Double regularizationFactor = 1e-6;
-    ParamNode * penaltyNode = myParam_->Get("penaltyFactor",false);
-    if( penaltyNode )
-      regularizationFactor  = penaltyNode->AsDouble();
+    myParam_->GetValue("penaltyFactor", regularizationFactor, ParamNode::PASS);
     
     std::cerr << "regularization factor is " << regularizationFactor << std::endl;
     
@@ -337,7 +336,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde");
     for(UInt iRegion = 0; iRegion < subdoms_.GetSize() ; iRegion ++){
       actRegion = subdoms_[iRegion];
       actMat    = materials_[actRegion];
-      std::string regionName = ptgrid_->RegionIdToName( actRegion );
+      std::string regionName = ptgrid_->GetRegion().ToString(actRegion);
 
       shared_ptr<BaseFeFunction> feFunc = feFunctions_[MAG_POTENTIAL];
       shared_ptr<FeSpace> feSpace = feFunc->GetFeSpace();
@@ -352,14 +351,6 @@ DEFINE_LOG(magEdgePde, "magEdgePde");
       actSDList->SetRegion( actRegion );
       // Switch, if region is linear / nonlinear
       if ( regionNonLinType_[actRegion] != NO_NONLINEARITY ) {
-       // ***************************************
-       // NONLINEAR PART
-       // ***************************************
-
-       if ( regionNonLinType_[actRegion] == HYSTERESIS ) {
-         EXCEPTION("Magnetics with nonlinearity in 3D not supported");
-       }
-
        // =================================
        //  Nonlinear Stiffness Integrator
        // =================================
@@ -372,7 +363,6 @@ DEFINE_LOG(magEdgePde, "magEdgePde");
        curlcurlNL->SetNonLinMethod( nonLinMethod_ );
        curlcurlNL->SetSolution( dynamic_cast<NodeStoreSol<Double>&>(*sol_ ));
        curlcurlNL->SetFeSpace( feSpace );
-
        BiLinFormContext * stiffContext = new BiLinFormContext( curlcurlNL, STIFFNESS );
        stiffContext->SetEntities( actSDList, actSDList );
        stiffContext->SetFeFunctions( feFunc, feFunc );
@@ -478,16 +468,16 @@ DEFINE_LOG(magEdgePde, "magEdgePde");
       for ( UInt coil = 0; coil < coilDef_.GetSize(); coil++ ) {
         if ( actRegion == coilRegionId_[coil] ) {
           std::string factor = coilDef_[coil]->value_ + "/" +
-              GenStr(coilDef_[coil]->windingCrossSection_);
+            lexical_cast<std::string>(coilDef_[coil]->windingCrossSection_);
 
           VolForceInt *coilSource3d =
               new LinearEdgeSrcInt ( 3, coilDef_[coil]->phase_,
                                      isaxi_ );
 
           StdVector<std::string> currDensity(3);
-          currDensity[0] = factor + "*" + GenStr(coilDef_[coil]->locFlowDir_[0]);
-          currDensity[1] = factor + "*" + GenStr(coilDef_[coil]->locFlowDir_[1]);
-          currDensity[2] = factor + "*" + GenStr(coilDef_[coil]->locFlowDir_[2]);
+          currDensity[0] = factor + "*" + lexical_cast<std::string>(coilDef_[coil]->locFlowDir_[0]);
+          currDensity[1] = factor + "*" + lexical_cast<std::string>(coilDef_[coil]->locFlowDir_[1]);
+          currDensity[2] = factor + "*" + lexical_cast<std::string>(coilDef_[coil]->locFlowDir_[2]);
           coilSource3d->SetVolForceVector( currDensity,
                                            coilDef_[coil]->flowCoordSys_,
                                            true, 1.0 );
@@ -553,7 +543,8 @@ DEFINE_LOG(magEdgePde, "magEdgePde");
   // ======================================================
 
   void MagEdgePDE::InitTimeStepping() {
-    TS_alg_ = new Trapezoidal( algsys_ );
+    PtrParamNode systemNode = FindLinearSystem(pdename_);
+    TS_alg_ = new Trapezoidal( algsys_, systemNode );
   }
 
 
@@ -620,7 +611,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde");
           CalcPermeability<Double>( res );
         }
         break;
-        
+         
       case MAG_ENERGY:
         if( isComplex_ ) {
           CalcEnergy<Complex>( res );
@@ -630,8 +621,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde");
         break;
 
       default:
-        Warning( "Resulttype not computable by magnetic PDE",
-                 __FILE__, __LINE__ );
+        WARN( "Resulttype not computable by magnetic PDE" );
     }
 
   }
@@ -860,12 +850,12 @@ DEFINE_LOG(magEdgePde, "magEdgePde");
 
     // Check if the element "coils" is present at all.
     // Otherwise leave
-    ParamNode * coilNode = myParam_->Get( "coils", false );
+    PtrParamNode coilNode = myParam_->Get( "coils", ParamNode::PASS );
     if ( !coilNode )
       return;
 
     // Get single coil nodes
-    StdVector<ParamNode*> coilNodes = coilNode->GetChildren();
+    ParamNodeList coilNodes = coilNode->GetChildren();
 
     // Trigger reading in of definitions
     if( coilNodes.GetSize() > 0 ) {
@@ -873,8 +863,8 @@ DEFINE_LOG(magEdgePde, "magEdgePde");
       for( UInt i = 0; i < coilNodes.GetSize(); i++ ) {
 
         // get region name of actual coil
-        std::string regionName = coilNodes[i]->Get("name")->AsString();
-        RegionIdType regionId = ptgrid_->RegionNameToId( regionName );
+        std::string regionName = coilNodes[i]->Get("name")->As<std::string>();
+        RegionIdType regionId = ptgrid_->GetRegion().Parse( regionName );
 
         coilRegionId_.Push_back( regionId );
         coilDef_.Push_back( shared_ptr<Coil>( new Coil( regionId,
@@ -892,12 +882,12 @@ DEFINE_LOG(magEdgePde, "magEdgePde");
 
     // Check if the element "magnets" is present at all.
     // Otherwise leave
-    ParamNode * magnetNode = myParam_->Get( "magnets", false );
+    PtrParamNode magnetNode = myParam_->Get( "magnets", ParamNode::PASS );
     if ( !magnetNode )
       return;
 
     // Get single magnet nodes
-    StdVector<ParamNode*> magnetNodes = magnetNode->GetChildren();
+    ParamNodeList magnetNodes = magnetNode->GetChildren();
 
     // trigger definition of magnets
     if( magnetNodes.GetSize() > 0 ) {
@@ -908,19 +898,19 @@ DEFINE_LOG(magEdgePde, "magEdgePde");
       for( UInt i = 0; i < magnetNodes.GetSize(); i++ ) {
 
         // get region name of actual magnet
-        std::string regionName = magnetNodes[i]->Get("name")->AsString();
-        RegionIdType regionId = ptgrid_->RegionNameToId( regionName );
+        std::string regionName = magnetNodes[i]->Get("name")->As<std::string>();
+        RegionIdType regionId = ptgrid_->GetRegion().Parse( regionName );
 
         magnetsDomain_.Push_back( regionId );
 
         // read orientation
-        magnetNodes[i]->Get( "orientX", tmpDir );
+        magnetNodes[i]->GetValue( "orientX", tmpDir );
         magnetsOriX_.Push_back( tmpDir );
 
-        magnetNodes[i]->Get( "orientY", tmpDir );
+        magnetNodes[i]->GetValue( "orientY", tmpDir );
         magnetsOriY_.Push_back( tmpDir );
 
-        magnetNodes[i]->Get( "orientZ", tmpDir );
+        magnetNodes[i]->GetValue( "orientZ", tmpDir );
         magnetsOriZ_.Push_back( tmpDir );
 
         // report name to logfile
@@ -1016,18 +1006,18 @@ DEFINE_LOG(magEdgePde, "magEdgePde");
 
     // check, if flux density should be written at special points
 
-    ParamNode * node = NULL; 
-    node = myParam_->Get("storeResults")->Get("interpolate",false);
+    PtrParamNode node; 
+    node = myParam_->Get("storeResults")->Get("interpolate",ParamNode::PASS);
     if (!node) return;
-    StdVector<ParamNode*> partList = node->GetList("part");
+    ParamNodeList partList = node->GetList("part");
 
     // loop over all parts
     for( UInt iPart = 0; iPart < partList.GetSize(); ++iPart ) {
-      ParamNode * actPartNode = partList[iPart];
-      StdVector<ParamNode*> listNodes = actPartNode->GetList("list");
+      PtrParamNode  actPartNode = partList[iPart];
+      ParamNodeList listNodes = actPartNode->GetList("list");
       calcFlux_.Push_back(FluxAtPoints());
       FluxAtPoints & actFlux = calcFlux_.Last();
-      actFlux.fileName = actPartNode->Get("fileName")->AsString();
+      actFlux.fileName = actPartNode->Get("fileName")->As<std::string>();
 
       // loop over all components
       StdVector<Double> start(3), stop(3), inc(3);
@@ -1037,12 +1027,12 @@ DEFINE_LOG(magEdgePde, "magEdgePde");
       std::string comp;
       UInt compIndex;
       for( UInt iComp = 0; iComp < listNodes.GetSize(); iComp++ ) {
-        ParamNode * actCompNode = listNodes[iComp];
-        actCompNode->Get("comp", comp);
+        PtrParamNode actCompNode = listNodes[iComp];
+        actCompNode->GetValue("comp", comp);
         compIndex = domain->GetCoordSystem("default")->GetVecComponent(comp)-1;
-        actCompNode->Get("start", start[compIndex]);
-        actCompNode->Get("stop", stop[compIndex]);
-        actCompNode->Get("inc", inc[compIndex]);
+        actCompNode->GetValue("start", start[compIndex]);
+        actCompNode->GetValue("stop", stop[compIndex]);
+        actCompNode->GetValue("inc", inc[compIndex]);
         numSamples[compIndex]  = 
             UInt(floor( (stop[compIndex]-start[compIndex]) / inc[compIndex] ) )+1;
         totalPoints *= numSamples[compIndex];
@@ -1086,12 +1076,12 @@ DEFINE_LOG(magEdgePde, "magEdgePde");
     NodeStoreSol<TYPE> & solhelp = dynamic_cast<NodeStoreSol<TYPE>&>(*sol_);
     field.Resize(dim_);
     LocPointMapped lpm;
-    
+
     shared_ptr<ElemShapeMap> esm = ptgrid_->GetElemShapeMap( el, true );
     shared_ptr<BaseFeFunction> fct = GetFeFunction(MAG_POTENTIAL);
-                          
+
     CurlCurlEdgeInt * li = NULL;
-    
+
     if ( regionNonLinType_[el->regionId] != NO_NONLINEARITY ) {
       li = nlinBilinForms_[el->regionId];
     } else {
@@ -1102,7 +1092,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde");
     ElemList elist(ptgrid_);
     elist.SetElement(el);
     solhelp.GetElemSolution( elemSol, elist.GetIterator() );
-     
+
     li->ApplyBMat( field, lpm, ptFe, elemSol);
   }
   
@@ -1115,7 +1105,6 @@ DEFINE_LOG(magEdgePde, "magEdgePde");
       field.Resize(dim_);
       LocPointMapped lpm;
       const Elem * el = it.GetElem();
-      CurlCurlEdgeInt * li = linBilinForms_[el->regionId];
       shared_ptr<ElemShapeMap> esm = ptgrid_->GetElemShapeMap( el, true );
       shared_ptr<BaseFeFunction> fct = GetFeFunction(MAG_POTENTIAL);
                                                      
@@ -1195,7 +1184,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde");
       if ( regionNonLinType_[actRegion] == PERMEABILITY ) {
 
         // Obtain nonlinear approximation functional
-        ApproxData * approx  = materials_[actRegion]->GetNonlinFncBH();
+        ApproxData * approx  = materials_[actRegion]->GetNonlinFncBH(MAG_PERMEABILITY);
 
         // Calculate flux density in element midpoint
         LocPoint lp;
@@ -1251,6 +1240,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde");
 //    }
 //  }
 
+  
   // ======================================================
   // COUPLING SECTION
   // ======================================================
@@ -1278,7 +1268,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde");
         StdVector<std::string> couplRegions;
         StdVector<RegionIdType> regionIds;
         ptCoupling_->GetOutputRegions(actCoupling, couplRegions);
-        ptgrid_->RegionNameToId( regionIds, couplRegions );
+        ptgrid_->GetRegion().Parse( couplRegions , regionIds );
 
         // Check, that every coupling region is part of
         // the magnetic pde itself
@@ -1349,11 +1339,12 @@ DEFINE_LOG(magEdgePde, "magEdgePde");
                         std::map<UInt, UInt> & cplNodeNumPos,
                         UInt actCoupling, UInt numCouplingNodes) {
     EXCEPTION("Not adjusted to new implementation");
+    
 //    //get the coupling regions
 //    StdVector<std::string> couplRegions;
 //    StdVector<RegionIdType> regionIds;
 //    ptCoupling_->GetOutputRegions(actCoupling, couplRegions);
-//    ptgrid_->RegionNameToId( regionIds, couplRegions );
+//    ptgrid_->GetRegion().Parse(couplRegions, regionIds);
 //
 //   
 //    force.Init();
@@ -1366,7 +1357,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde");
 //      Integer sdIndex = subdoms_.Find( regionIds[reg] );
 //      if( sdIndex == -1 ) {
 //        EXCEPTION( "The region coupling region '" <<
-//                   ptgrid_->RegionIdToName( regionIds[reg] )
+//                   ptgrid_->GetRegion().ToString( regionIds[reg] )
 //                   << "' was not found in magneticPDE" );
 //      }
 //      
@@ -1414,7 +1405,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde");
 //           if( coilIndex != -1 ) {
 //             MathParser * mParser =  domain->GetMathParser();
 //             std::string factor = coilDef_[coilIndex]->value_ + "/" 
-//               + GenStr(coilDef_[coilIndex]->windingCrossSection_ );
+//               + lexical_cast<std::string>(coilDef_[coilIndex]->windingCrossSection_ );
 //             mParser->SetExpr( mHandle_, factor );
 //             // TODO: Check if this is still needed
 //             // Double currDens = mParser->Eval(mHandle_);
@@ -1465,6 +1456,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde");
     }else{
       EXCEPTION("The formulation " << formulation << "of magnetig edge PDE is not known!");
     }
+    return crSpaces;
   }
 
   bool MagEdgePDE::HasOutput( SolutionType output ) {

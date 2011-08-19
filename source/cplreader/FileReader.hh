@@ -28,7 +28,8 @@ namespace CoupledField
   public:
 
     //! Constructor
-    FileReader(const std::string& name, const UInt dim, const UInt numFiles);
+    FileReader(const std::string& name, const UInt dim, \
+        const UInt numFiles, const UInt startIndex);
 
     //! Deconstructor
     virtual ~FileReader();
@@ -80,6 +81,12 @@ namespace CoupledField
     //! return dimension of grid
     virtual UInt GetDim() { return dim_;}
 
+    //! return first time step number
+    virtual UInt GetStartIndex()
+    {
+      return startIndex_;
+    }
+
     //! Get node groups
     virtual void GetNodeGroups(std::map<std::string,
                                         std::vector<UInt> >& nodeGroups);
@@ -96,6 +103,19 @@ namespace CoupledField
 
     //! get user data from file reader
     virtual void GetUserData(std::map<std::string, std::string>& userData) {};
+
+    //! Correct the numbering of the nodes. This is needed if nodes are tossed
+    //! away, e.g. with the reduce_elementOrder_ flag
+    virtual void CorrectNumbering(std::vector<Double>& nodalCoords,
+                                  std::vector<UInt>& connectivities, \
+                                  std::vector<UInt>& elemTypes) {
+      EXCEPTION("not implemented for this file type!");
+    };
+    virtual void ReduceOrderOfNodalValues(std::vector<FlowDataType>& nodalFlowData, \
+        const std::map<std::string, std::vector<UInt> >& regionNodes)
+    {
+      EXCEPTION("not implemented for this file type!");
+    };
 
     UInt GetMaxNumElemNodes() {
       return maxNumElemNodes_;
@@ -119,16 +139,19 @@ namespace CoupledField
     //! dimension of grid
     UInt dim_;
 
-    //! Number of nodes per region
+    // Save number of  nodes and elems per region in first  time step to check
+    // whether the mesh changes with time, since we do not support that at the
+    // moment.
     std::vector<UInt> numNodesPerRegion_;
-
-    //! Number of elements per Region
     std::vector<UInt> numElemsPerRegion_;
 
 //    UInt numResults_;
 
     //! Number of time steps
     UInt numSteps_;
+
+    //! First time step
+    UInt startIndex_;
 
     // Maximum number of nodes per element
     UInt maxNumElemNodes_;

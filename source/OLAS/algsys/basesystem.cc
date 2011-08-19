@@ -9,7 +9,6 @@
 
 #include "OLAS/algsys/basesystem.hh"
 
-#include "OLAS/algsys/olasparams.hh"
 #include "OLAS/algsys/baseentrymanipulator.hh"
 #include "OLAS/algsys/baseidbchandler.hh"
 #include "OLAS/graph/basegraphmanager.hh"
@@ -17,9 +16,7 @@
 #include "OLAS/graph/graphmanagerstdmat.hh"
 #include "OLAS/graph/graphmanagersbmmat.hh"
 #include "OLAS/solver/basesolver.hh"
-
 #include "DataInOut/ParamHandling/ParamNode.hh"
-#include "DataInOut/ParamHandling/InfoNode.hh"
 
 
 namespace CoupledField {
@@ -29,7 +26,7 @@ namespace CoupledField {
   // ***********************
   //   Default Constructor
   // ***********************
-  BaseSystem::BaseSystem(ParamNode* pn) 
+  BaseSystem::BaseSystem(PtrParamNode pn) 
   {
     graphManager_   = NULL;
     assemble_       = NULL;
@@ -42,7 +39,7 @@ namespace CoupledField {
     sizePerPDE_     = NULL;
     numLastFreeDof_ = NULL;
 
-    xml             = pn; 
+    xml_             = pn; 
 
     numPDEs_            = 0;
     numRegPDEs_         = 0;
@@ -52,22 +49,23 @@ namespace CoupledField {
     numDirichletValues_ = 0;
 
     algSysType_     = NOALGSYSTYPE;
-    olasInfo = info->Get("OLAS");
-    systemInfo_ = olasInfo->Get("system");
-
-#ifdef MEMTRACE
-    if ( memtrace == NULL ) {
-      EXCEPTION("MEMTRACE macro is set, but memtrace stream pointer is "
-               << "NULL!\n"
-               << " Please check your settings in OLAS/main/Makefile.option");
-    }
-#endif
+    olasInfo_ = info->Get("OLAS");
+    systemInfo_ = olasInfo_->Get("system");
 
     // Default is to always use a system matrix
     matrixTypes_.insert( SYSTEM );
+    
+    // Set flag for insertion of penalty terms into matrix
+    PtrParamNode setupNode;
+    setupNode = xml_->Get("setup", ParamNode::INSERT );
+
+    usingPenalty_ = true;
+    std::string aux = "penalty";
+    setupNode->GetValue("idbcHandling", aux, ParamNode::INSERT );
+    usingPenalty_ = aux == "penalty" ? true : false;
 
     // Set flag for insertion of penalty terms into matrix
-    if ( myParams_.GetBoolValue( "UsingPenaltyFormulation" ) == true ) {
+    if ( usingPenalty_ ) {
       assembleDirichletToSysMat_ = true;
     }
     else {
@@ -95,12 +93,11 @@ namespace CoupledField {
     idbcHandler_ = NULL;
 
     // Delete arrays with PDE specific information
-    DELETEARRAY( numLastFreeDof_ );
-    DELETEARRAY( sizePerPDE_     );
-    DELETEARRAY( bcOffsets_      );
+    delete [] ( numLastFreeDof_ );
+    delete [] ( sizePerPDE_     );
+    delete [] ( bcOffsets_      );
 
   }
-
 
   // ***************
   //   ObtainPDEId
@@ -155,21 +152,24 @@ namespace CoupledField {
     switch ( algSysType_ ) {
 
     case STANDARD_SYSTEM:
+      {
+        // Obtain reordering type from OLAS-Params
+        BaseOrdering::ReorderingType reorder = BaseOrdering::NOREORDERING;
+        std::string reorderStr = "noReordering";
+        xml_->Get( "matrix",ParamNode::INSERT)
+        ->GetValue( "reordering", reorderStr, ParamNode::INSERT );
+        reorder = BaseOrdering::reorderingType.Parse( reorderStr ); 
 
-      // Obtain reordering type from OLAS-Params
-      ReorderingType reorder;
-      myParams_.GetEnumValue( "GRAPH_reordering", reorder );
-
-      // Register PDE with the graphmanager
-      graphManager_->RegisterPDE( pdeId, numEqns, numLastFreeDof, reorder );
-
+        // Register PDE with the graphmanager
+        graphManager_->RegisterPDE( pdeId, numEqns, numLastFreeDof, reorder );
+      }
       break;
 
     case SBM_SYSTEM:
 
       // Register PDE with the graphmanager
       graphManager_->RegisterPDE( pdeId, numEqns, numLastFreeDof,
-                                  NOREORDERING );
+                                  BaseOrdering::NOREORDERING );
       break;
 
     default:
@@ -204,7 +204,7 @@ namespace CoupledField {
     numDirichletValues_ += numBCs;
 
     // check consistency
-    if ( myParams_.GetBoolValue( "UsingPenaltyFormulation" ) == false ) {
+    if ( !usingPenalty_ ) {
       if ( numBCs != sizePerPDE_[pdeID] - numLastFreeDof_[pdeID] ) {
         EXCEPTION("BaseSystem::SetNumDirichletBCs:"
                  << " Inconsistency detected!\n numBCs != "
@@ -353,5 +353,8 @@ namespace CoupledField {
 
   }
 
+  Integer BaseSystem::GetNumIter() {
+    return olasInfo_->Get( "NumIter" )->As<Integer>();
+  }
 
 }// end of Namespace

@@ -22,7 +22,9 @@ namespace CoupledField {
     
     destMat_ = destMat;
     secDestMat_ = NOTYPE;
-    secMatFac_ = "0.0";
+    mathParser_ = domain->GetMathParser();
+    secMatFacHandle_ = mathParser_->GetNewHandle();
+    
     //    setCounterPart_ = false;
     entryType_ = Global::REAL;
 
@@ -43,11 +45,17 @@ namespace CoupledField {
 
   BiLinFormContext::~BiLinFormContext() {
     
+    // release math parser handle
+    mathParser_->ReleaseHandle(secMatFacHandle_);
+    
     // delete bilinearform
     if( integrator_ != NULL ) {
       delete integrator_;
       integrator_ = NULL;
     }
+    
+//    delete dampingLayer_;
+//    dampingLayer_ = NULL;
   }
   
   void BiLinFormContext::MapEqns( EntityIterator& it1, 
@@ -127,6 +135,24 @@ namespace CoupledField {
 //				    endRadius);
 //
 //  }
+  
+  void BiLinFormContext::SetSecDestMat( FEMatrixType aSecMat,
+                                        std::string aSecMatFac ) {
+    secDestMat_ = aSecMat;
+    mathParser_->SetExpr(secMatFacHandle_, aSecMatFac);  
+    Double dummy = mathParser_->Eval(secMatFacHandle_);
+    dummy +=1.0;
+    std::cerr << "Secondary matrix factor is " << mathParser_->GetExpr(secMatFacHandle_) << std::endl;
+  }
+  std::string BiLinFormContext::GetSecMatFac() const {
+    return mathParser_->GetExpr(secMatFacHandle_);
+  }
+  
+  Double BiLinFormContext::EvalSecMatFac() const {
+    return mathParser_->Eval(secMatFacHandle_);
+  }
+  
+  
   
   std::string BiLinFormContext::ToString()
   {

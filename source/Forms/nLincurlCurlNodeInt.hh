@@ -31,7 +31,7 @@ namespace CoupledField
                             EntityIterator& ent2 );
     
     //! sets type of nonlinear algorithm
-    virtual void SetNonLinMethod(std::string atype);
+    virtual void SetNonLinMethod(NonLinMethodType atype);
 
   protected: 
 

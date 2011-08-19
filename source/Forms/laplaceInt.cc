@@ -9,6 +9,10 @@
 #include "Domain/domain.hh"
 #include "Domain/grid.hh"
 
+#include "DataInOut/Logging/cfslog.hh"
+
+DECLARE_LOG(forms)
+
 namespace CoupledField
 {
 
@@ -16,12 +20,29 @@ namespace CoupledField
   LaplaceInt::LaplaceInt(Double aVal, bool axi, bool coordUpdate )
     : BaseForm(NULL),laplVal_ (aVal)
   {
-
     name_ = "LaplaceInt";
     isaxi_ = axi;
     coordUpdate_ = coordUpdate;
+    if ( coordUpdate )
+      isSolDependent_ = true;
+
+    LOG_DBG(forms) << "LaplaceInt::LaplaceInt() val=" << laplVal_ << " axi=" << axi << " solDep=" << isSolDependent_;
   }
 
+  LaplaceInt::LaplaceInt(BaseMaterial* mat, const MaterialDescriptor& md, bool axi, bool coordUpdate )
+    : BaseForm(mat)
+  {
+    name_ = "LaplaceInt";
+    isaxi_ = axi;
+    coordUpdate_ = coordUpdate;
+    if ( coordUpdate ) 
+      isSolDependent_ = true;
+
+    md_ = md;
+    laplVal_ = md_.GetScalar(mat); // we won't use it but do it always again and again :)
+
+    LOG_DBG(forms) << "LaplaceInt::LaplaceInt() md! val=" << laplVal_ << " axi=" << axi << " solDep=" << isSolDependent_;
+  }
 
  
   LaplaceInt::~LaplaceInt()
@@ -55,17 +76,13 @@ namespace CoupledField
     // set matrix to desired size and set all elements to zero
     elemMat.Resize(nrFncs); 
     elemMat.Init();
-
     
-
-    //     //check for material value
-    //     if (materialArray_ != NULL) {
-    //       laplVal_ = (*materialArray_)[actSD_][actElemNr_];
-    //     }
-
+    // we call the laplace value density and it might contain an topology optimization
+    // ersatz material factor
+    Double density = md_.GetErsatzMaterial(this, ent1.GetElem(), laplVal_);
 
     for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++)
-      {
+    {
         jacDet = 0;
         
         ptelem->GetGlobDerivShFncAtIp(xiDx, actIntPt, ptCoord_, 
@@ -80,16 +97,16 @@ namespace CoupledField
             ptelem->GetShFncAtIp(ShpFncAtIp,actIntPt,ent1.GetElem());
             CoordAtIP = ptCoord_ * ShpFncAtIp;
             partElemMat *= 2 * PI * intWeights[actIntPt-1] 
-              * jacDet * laplVal_ * CoordAtIP[0];
+              * jacDet * density * CoordAtIP[0];
 
           }
         else 
-          partElemMat *= intWeights[actIntPt-1] * jacDet * laplVal_;
+          partElemMat *= intWeights[actIntPt-1] * jacDet * density;
 
         elemMat += partElemMat;
-      }
+    }
 
-    //    std::cout << "ElemMatLaplace:\n" << elemMat << std::endl;
+    LOG_DBG3(forms) << "LaplaceInt::CEM el=" << ent1.GetElem()->elemNum << " dens=" << density << " mat=" << elemMat.ToString();
   }
 
 

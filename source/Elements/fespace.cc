@@ -15,11 +15,11 @@ namespace CoupledField {
 
   // declare class specific logging stream
   DECLARE_LOG(feSpace)
-  DEFINE_LOG(feSpace, "feSpace");
+  DEFINE_LOG(feSpace, "feSpace")
   
   
   //! Constructor
-  FeSpace::FeSpace(ParamNode * paramNode){
+  FeSpace::FeSpace(PtrParamNode paramNode){
     
     myParam_ = paramNode;
     isFinalized_ = false;
@@ -42,7 +42,7 @@ namespace CoupledField {
   FeSpace::~FeSpace(){
   }
 
-  shared_ptr<FeSpace> FeSpace::CreateInstance(ParamNode* aNode, SpaceType reqType ) {
+  shared_ptr<FeSpace> FeSpace::CreateInstance(PtrParamNode aNode, SpaceType reqType ) {
     
 
     /* One big Problem> Due to the splitting of spaces in Hi and Lo/Lagrange, it is not
@@ -68,13 +68,13 @@ namespace CoupledField {
     //= PolyTypeEnum.Parse(polyStr);
     PolyType polyType = UNDEF_POLY;
     //obtain the fePolynomialList
-    ParamNode * polyNode = param->Get("fePolynomialList", false );
+    PtrParamNode polyNode = param->Get("fePolynomialList", ParamNode::PASS );
     if(!polyNode){
-      Warning("No Polynomial specified falling back to Defaults");
+      WARN("No Polynomial specified falling back to Defaults");
       polyType = LAGRANGE;
     }else{
-      StdVector<ParamNode*> lagList  = polyNode->GetList("Lagrange");
-      StdVector<ParamNode*> legList  = polyNode->GetList("Legendre");
+      ParamNodeList lagList  = polyNode->GetList("Lagrange");
+      ParamNodeList legList  = polyNode->GetList("Legendre");
       if(lagList.GetSize() > 0 && legList.GetSize() > 0){
         EXCEPTION("Different polynomial types for different regions not supported!")
       }else if(lagList.GetSize() > 0 ){
@@ -159,7 +159,7 @@ namespace CoupledField {
           }
         break;
         case EntityList::SURF_ELEM_LIST:
-          Warning(" FeSpaceH1::GetNodesOfEntities(): Going to treat a SURF_ELEM_LIST as a ELEM_LIST...");
+          WARN(" FeSpaceH1::GetNodesOfEntities(): Going to treat a SURF_ELEM_LIST as a ELEM_LIST...");
           for(entIt.Begin(); !entIt.IsEnd(); entIt++){
             StdVector<UInt> eNodes;
             GetNodesOfElement(eNodes,entIt.GetElem(),entType);
@@ -191,7 +191,7 @@ namespace CoupledField {
 
       EXCEPTION("FeSpace::GetNodesOfElement: Could not find requested element #"
           << ptElem->elemNum << " of region " 
-          <<      domain->GetGrid()->RegionIdToName(ptElem->regionId));
+          <<      domain->GetGrid()->GetRegion().ToString(ptElem->regionId));
     }
     if(entType == BaseFE::ALL){
       nodes.Resize(virtualNodes_[elemNum][BaseFE::VERTEX].GetSize()+
@@ -335,7 +335,7 @@ namespace CoupledField {
       }
       //cast down to element list
       ElemList* actElemList = dynamic_cast<ElemList*>(fctEntList[actList].get());
-      RegionIdType curReg = actElemList->GetRegion();
+//      RegionIdType curReg = actElemList->GetRegion();
 
       curMap = POLYNOMIAL;
 
@@ -489,8 +489,8 @@ namespace CoupledField {
   //      drop the different spaces for Hi and Lo/Lagrange
   void FeSpace::CreateRefElems(){
     //extract polynomial ids from parmater file
-    std::map<std::string,ParamNode *> polyNodes;
-    std::map<std::string,ParamNode *> integNodes;
+    std::map<std::string,PtrParamNode> polyNodes;
+    std::map<std::string,PtrParamNode> integNodes;
     ExtractPolynomialIds(polyNodes);
     ExtractIntegSchemeIds(integNodes);
 
@@ -499,15 +499,15 @@ namespace CoupledField {
       CreateDefaultElements();
     }
     //now obtain the RegionList
-    StdVector<ParamNode*> reNodes = myParam_->Get("regionList")->GetList("region");
+    ParamNodeList reNodes = myParam_->Get("regionList")->GetList("region");
     for(UInt curReg = 0; curReg < reNodes.GetSize();curReg++){
       std::string pId,iId,rName;
       RegionIdType curRegId;
-      pId = reNodes[curReg]->Get("polyId")->AsString();
-      iId = reNodes[curReg]->Get("integId")->AsString();
-      rName = reNodes[curReg]->Get("name")->AsString();
+      pId = reNodes[curReg]->Get("polyId")->As<std::string>();
+      iId = reNodes[curReg]->Get("integId")->As<std::string>();
+      rName = reNodes[curReg]->Get("name")->As<std::string>();
 
-      curRegId = domain->GetGrid()->RegionNameToId( rName );
+      curRegId = domain->GetGrid()->GetRegion().Parse( rName );
 
       if(polyNodes.find(pId) == polyNodes.end()){
          continue;
@@ -522,11 +522,11 @@ namespace CoupledField {
     }
   }
 
-  void FeSpace::ProcessIntegRegionNode(ParamNode * node, RegionIdType reg){
-    std::string method = node->Get("method")->AsString();
-    IntScheme::IntegMethod iMeth;
+  void FeSpace::ProcessIntegRegionNode(PtrParamNode node, RegionIdType reg){
+    std::string method = node->Get("method")->As<std::string>();
+    IntScheme::IntegMethod iMeth = IntScheme::UNDEFINED;
     IntScheme::IntegMethodEnum.Parse(method,iMeth);
-    UInt order = node->Get("order")->AsUInt();
+    UInt order = node->Get("order")->As<UInt>();
 
     //create order Matrix, we only support isotropic interation right now
     Matrix<Integer> orderMat(1,1);
@@ -534,17 +534,17 @@ namespace CoupledField {
     SetRegionIntegration(reg,iMeth,orderMat);
   }
 
-  void FeSpace::ExtractIntegSchemeIds(std::map<std::string,ParamNode *> & integNodes){
+  void FeSpace::ExtractIntegSchemeIds(std::map<std::string,PtrParamNode> & integNodes){
     //obtain the fePolynomialList
-    ParamNode * integNode = param->Get("integrationSchemeList", false );
+    PtrParamNode integNode = param->Get("integrationSchemeList", ParamNode::PASS );
     if(!integNode){
-      //Warning("No Integration method specified falling back to Defaults");
+      //WARN("No Integration method specified falling back to Defaults");
       integNodes.clear();
       SetDefaultIntegration();
     }else{
-      StdVector<ParamNode*> iList = integNode->GetList("scheme");
+      ParamNodeList iList = integNode->GetList("scheme");
       for(UInt aInt = 0; aInt < iList.GetSize();aInt++){
-        std::string curId = iList[aInt]->Get("id")->AsString();
+        std::string curId = iList[aInt]->Get("id")->As<std::string>();
         if(integNodes.find(curId) != integNodes.end()){
           EXCEPTION("Found multiple IntegrationSchemes with the same id in XML.\n" << \
                     "Im confused and going to exit...");
@@ -554,16 +554,16 @@ namespace CoupledField {
     }
   }
 
-  void FeSpace::ExtractPolynomialIds(std::map<std::string,ParamNode *>& pnodes){
-        ParamNode * polyNode = param->Get("fePolynomialList", false );
+  void FeSpace::ExtractPolynomialIds(std::map<std::string,PtrParamNode>& pnodes){
+        PtrParamNode polyNode = param->Get("fePolynomialList", ParamNode::PASS );
         if(!polyNode){
-          //Warning("No Polynomial specified falling back to Defaults");
+          //WARN("No Polynomial specified falling back to Defaults");
           pnodes.clear();
         }else{
           std::string polyName = PolyTypeEnum.ToString(polyType_);
-          StdVector<ParamNode*> pList = polyNode->GetList(polyName);
+          ParamNodeList pList = polyNode->GetList(polyName);
           for(UInt aPol = 0; aPol < pList.GetSize();aPol++){
-            std::string curId =  pList[aPol]->Get("id")->AsString();
+            std::string curId =  pList[aPol]->Get("id")->As<std::string>();
             if(pnodes.find(curId) != pnodes.end()){
               EXCEPTION("Found multiple fePolynomials with the same id in XML.\n" << \
                         "Im confused and going to exit...");

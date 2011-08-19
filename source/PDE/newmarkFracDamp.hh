@@ -36,7 +36,8 @@ namespace CoupledField {
                      StdPDE * aptStdPDE,
                      shared_ptr<ResultInfo> aresult,
                      StdVector<RegionIdType> asubdomainList,
-                     std::map<RegionIdType,DampingType> adampingList);
+                     std::map<RegionIdType,DampingType> adampingList,
+                     PtrParamNode systemNode);
   
     //! destructor
     virtual ~NewmarkFracDamp();
@@ -92,11 +93,6 @@ namespace CoupledField {
     //@{
     //! integration parameters
     Double alpha_, gamma_, beta_;
-    //@}
-
-    //@{
-    //! coefficients from NewmarkFracDamp method
-    Double a0_,a1_,a2_,a3_,a4_;
     //@}
     
     //! predictor for nodal solution

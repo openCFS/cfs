@@ -28,7 +28,7 @@
 
 // The following statement was inserted by Andreas, in order
 // to get the libraray compiling with SuSE 10.0
-#undef BOOST_HAS_THREADS
+// #undef BOOST_HAS_THREADS
 
 #ifdef BOOST_HAS_THREADS
     

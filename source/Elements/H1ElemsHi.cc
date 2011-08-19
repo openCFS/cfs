@@ -16,7 +16,7 @@ namespace CoupledField {
 
 // declare class specific logging stream
   DECLARE_LOG(feH1Hi)
-  DEFINE_LOG(feH1Hi, "feH1Hi");
+  DEFINE_LOG(feH1Hi, "feH1Hi")
 
 
   // ========================================================================
@@ -114,11 +114,11 @@ namespace CoupledField {
     orderEdge_.Init(order);
     
     // set order for faces
-    array<UInt,2> faceOrder = {order, order};
+    array<UInt,2> faceOrder = {{order, order}};
     orderFace_.Init(faceOrder);
 
     // set order for inner
-    array<UInt, 3> innerOrder = {order, order, order}; 
+    array<UInt, 3> innerOrder = {{order, order, order}}; 
     orderInner_ = innerOrder;
     
     updateUnknowns_ = true;

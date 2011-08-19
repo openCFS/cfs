@@ -10,21 +10,21 @@
 		</xsd:documentation>
 	</xsd:annotation>
 
-
-	<!-- ******************************************************************* -->
-	<!--   Include definition of PDE types and elements -->
-	<!-- ******************************************************************* -->
-	<xsd:include schemaLocation="Schemas/CFS_PDEbasic.xsd" />
-	<xsd:include schemaLocation="Schemas/CFS_PDEelectrostatic.xsd" />
-	<xsd:include schemaLocation="Schemas/CFS_PDEmechanic.xsd" />
-	<xsd:include schemaLocation="Schemas/CFS_PDEacoustic.xsd" />
-	<xsd:include schemaLocation="Schemas/CFS_PDEacousticMixed.xsd" />
-	<xsd:include schemaLocation="Schemas/CFS_PDEmagnetic.xsd" />
-	<xsd:include schemaLocation="Schemas/CFS_PDEmagedge.xsd" />
-	<xsd:include schemaLocation="Schemas/CFS_PDEsmooth.xsd" />
-	<xsd:include schemaLocation="Schemas/CFS_PDEmpcci.xsd" />
-	<xsd:include schemaLocation="Schemas/CFS_PDEheatConduction.xsd" />
-	<xsd:include schemaLocation="Schemas/CFS_PDEfluidMech.xsd" />
+  <!-- ******************************************************************* -->
+  <!--   Include definition of PDE types and elements -->
+  <!-- ******************************************************************* -->
+  <xsd:include schemaLocation="Schemas/CFS_PDEbasic.xsd"/>
+  <xsd:include schemaLocation="Schemas/CFS_PDEelectrostatic.xsd"/>
+  <xsd:include schemaLocation="Schemas/CFS_PDEmechanic.xsd"/>
+  <xsd:include schemaLocation="Schemas/CFS_PDEacoustic.xsd"/>
+  <xsd:include schemaLocation="Schemas/CFS_PDEacousticMixed.xsd"/>
+  <xsd:include schemaLocation="Schemas/CFS_PDEmagnetic.xsd"/>
+  <xsd:include schemaLocation="Schemas/CFS_PDEmagneticScalar.xsd"/>
+  <xsd:include schemaLocation="Schemas/CFS_PDEmagedge.xsd"/>
+  <xsd:include schemaLocation="Schemas/CFS_PDEsmooth.xsd"/>
+  <xsd:include schemaLocation="Schemas/CFS_PDEmpcci.xsd"/>
+  <xsd:include schemaLocation="Schemas/CFS_PDEheatConduction.xsd"/>
+  <xsd:include schemaLocation="Schemas/CFS_PDEfluidMech.xsd"/>
 
 	<!-- ******************************************************************* -->
 	<!--   Include definition of coupling types and elements -->
@@ -42,6 +42,7 @@
 	<xsd:include schemaLocation="Schemas/CFS_Preconds.xsd" />
 	<xsd:include schemaLocation="Schemas/CFS_Analysis.xsd" />
 	<xsd:include schemaLocation="Schemas/CFS_Domain.xsd" />
+    <xsd:include schemaLocation="Schemas/CFS_Documentation.xsd"/>
 	<xsd:include schemaLocation="Schemas/CFS_Misc.xsd" />
 	<xsd:include schemaLocation="Schemas/CFS_FileFormats.xsd" />
 	<!-- xsd:include schemaLocation="Schemas/CFS_IntegRules.xsd" /-->
@@ -59,9 +60,11 @@
 		<xsd:complexType>
 			<xsd:sequence>
 
-				<!-- File format list for io-specifications (required)-->
-				<xsd:element name="fileFormats" type="DT_FileFormats"
-					minOccurs="1" />
+        <!-- Tags for documenting simulations (required just for test suite)-->
+        <xsd:element name="documentation" type="DT_Documentation" minOccurs="0"/>
+
+        <!-- File format list for io-specifications (required)-->
+        <xsd:element name="fileFormats" type="DT_FileFormats" minOccurs="1"/>
 
 				<!-- Description of problem domain (required) -->
 				<xsd:element name="domain" type="DT_Domain">

@@ -74,12 +74,11 @@ namespace CoupledField
     elemMat.Init();
     
     // get pointer to nonlinear BH curve approximation
-    ApproxData* nlinFnc = ptMaterial->GetNonlinFncBH();
+    ApproxData* nlinFnc = ptMaterial->GetNonlinFncBH(MAG_PERMEABILITY);
     // get solution of current element
     sol_->GetElemSolution( magPot_, ent1 );
         
     // Loop over all integration points
-    Double jacDet = 0.0;
     Double reluctivity = 0.0;
     Double derivReluctivity = 0.0;
     Vector<Double> elemFlux(3);

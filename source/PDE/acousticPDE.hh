@@ -22,7 +22,7 @@ namespace CoupledField {
     /*!
       \param aGrid pointer to grid
     */
-    AcousticPDE(Grid* aGrid, ParamNode* paramNode );
+    AcousticPDE(Grid* aGrid, PtrParamNode paramNode );
 
     //! Destructor
     virtual ~AcousticPDE(){};
@@ -30,12 +30,6 @@ namespace CoupledField {
 
    //! Calculate result for given result class
     void CalcResults( shared_ptr<BaseResult> result );
-
-
-#ifdef ADAPTGRID
-    //! test error of computation
-    virtual bool TestError(const UInt level);
-#endif
 
 
     // ======================================================
@@ -57,12 +51,6 @@ namespace CoupledField {
                               Vector<Double>& elemCouplingSols,
                               UInt couplingdof );
 
-    //! calculate the vector of coupling surface nodes to the nrbcPDE  
-    void CalcNRBCCouplingRHS( StdVector<Elem*> * couplingElems, 
-                              StdVector<UInt> & couplingNodes,
-                              Vector<Double>& elemCouplingSols,
-                              UInt couplingdof );
-    
     //! calculate the heat source term for heatConduction PDE
     template <class TYPE>
     void CalcHeatCouplingRHS( Vector<Double> & energy, 
@@ -73,16 +61,27 @@ namespace CoupledField {
     void SetMechanicCoupling() {
       isMechCoupled_ = true;
     }
-    //! 
-    void SetNrbcCoupling() {
-      isNrbcCoupled_ = true;
-    }
 
     //! returns formulation (pressure/scalar potential)
     SolutionType GetFormulation() {
       return formulation_;
     }
-    
+
+    /** Helper for CalcAcouSurfIntensity() and eventually also for other methods to fight the copy and past stuff :(.
+     * Used by optimization for acoustic near field optimization.
+     * Evaluates for the surface center points the gradient by the help of the neighbor volume element.
+     * @param apply_normal if true then the gradient is multiplied by -1 if vol2 is used -> see CalcAcouPower().
+     *                     It seems that his corrects actSurfElem->normalSign
+     * @param grad_out for every surface element within val the gradient is evaluated. Eventually multiplied by -1 (see apply_normal) */
+    template <class TYPE>
+    void CalcGradSurfaceElement( shared_ptr<BaseResult> vals, SolutionType solType, bool apply_normal, StdVector<Vector<TYPE> >& grad_out );
+
+    /** @see virtual SinglePDE::GetNativeSolutionType()
+     *  @return depending on the formulation: ACOU_POTENTIAL or ACOU_PRESSURE. */
+    SolutionType GetNativeSolutionType() const { return formulation_; }
+
+    /** @see virtual SinglePDE::GetNativeDOF() */
+    virtual UInt GetNativeDOF() const { return 1; }
 
   protected:
 
@@ -93,7 +92,7 @@ namespace CoupledField {
     //! Init the time stepping
     void InitTimeStepping();
 
-    //! Define availabe result types
+    //! Define available result types
     void DefineAvailResults();
 
     //! read in damping information, see SinglePDE.cc  and SinglePDE.hh
@@ -113,14 +112,22 @@ namespace CoupledField {
 
     //! Create FeSpaces according to formulation
     virtual std::map<SolutionType, shared_ptr<FeSpace> > CreateFeSpaces(std::string formulation);
-    //     //! define the algbraic system
-    //     void DefineAlgSys();
 
     // ========================
     // Postprocessing
     // ========================
 
-    
+    /** Calculate acoustic power. */
+    template <class TYPE>
+    void CalcAcouPower( shared_ptr<BaseResult> vals);
+
+    /** Calculate acoustic energy. */
+    template <class TYPE>
+    void CalcAcouEnergy( shared_ptr<BaseResult> vals);
+
+    //! computes particle velocity out of pressure    
+    void  CalcVelFromPressure( shared_ptr<BaseResult> vals );
+
     //! calculate Force acting on specified surface elements
     template <class TYPE> 
     void CalcForce( shared_ptr<BaseResult> vals );
@@ -129,17 +136,19 @@ namespace CoupledField {
     template <class TYPE>
     void CalcElemPressure( shared_ptr<BaseResult> vals );
     
-    //! Calculate acoustic power
-    template <class TYPE>
-    void CalcAcouPower( shared_ptr<BaseResult> vals );
 
     //! Calculate Kaltenbacher's intensity projected on a surface
     template <class TYPE>
     void CalcAcouSurfIntensity( shared_ptr<BaseResult> vals );
     
+
     //! Calculate acoustic intensity
     template <class TYPE>
     void CalcAcouIntensity( shared_ptr<BaseResult> vals );
+
+    //! Do some jobs before computation  starts
+    virtual void PreparePDE4Computation();
+
 
     // ========================
     // set solution information
@@ -150,16 +159,16 @@ namespace CoupledField {
     
     SolutionType formulation_; //!< variable in which PDE is formulated
 
-
-    //! indicator for mechanic coupling
-    bool isNrbcCoupled_;    
-
     //! surface elements with absorbing boundary conditions
     StdVector<shared_ptr<EntityList> > absBCs_; 
 
-    bool absorbingBCs_; //!< switch for absorbing BCs     
+    //! Stores Rayleigh damping definition for each region
+    std::map<RegionIdType, RaylDampingData> regionRaylDamping_;
 
     //bool fracDamping_; //!< switch indicating use of fractional damping
+    
+    IdBcList impedanceBCs_;
+    
     
     // ========================
     // time stepping
@@ -179,6 +188,9 @@ namespace CoupledField {
     // Postprocessing results
     // ========================
 
+    // stores acoustic particle velocity; needed for energy computation
+    std::map<RegionIdType, Vector<Double> > acouParticleVelocity_;
+
     //! right hand side vector
     NodeStoreSol<Double> rhs_; 
 
@@ -191,6 +203,7 @@ namespace CoupledField {
     //! variable speed of sound( combustion noise )
     NodeStoreSol<Double> speedOfSound_; 
 
+    bool isAPML;  //flag for almost PML formulation
     bool plotRHS_; // Flag for saving of rhs for output
     bool plotRHSVel_; // Flag for saving of rhs as a vector field
     bool justInterpolate_; // Should only the RHS interpolation be performed?
@@ -228,12 +241,12 @@ namespace CoupledField {
 			   Double& dampFactorMax, 
 			   Double& startRadius, 
 			   Double& endRadius, 
-			   ParamNode * actNode );
+			   PtrParamNode actNode );
 
     //! 
 
     //! map storing for each region the related flowData node
-    std::map<RegionIdType, ParamNode*> regionFlowNodes_;
+    std::map<RegionIdType, PtrParamNode> regionFlowNodes_;
 
     //! Handle for MathParser object
     MathParser::HandleType mHandle_;

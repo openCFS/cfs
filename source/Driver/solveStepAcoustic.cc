@@ -17,7 +17,6 @@
 
 namespace CoupledField {
 
-
   SolveStepAcoustic::SolveStepAcoustic(StdPDE& apde, bool justInterpolate)
     : StdSolveStep(apde),
       justInterpolate_(justInterpolate)
@@ -32,15 +31,15 @@ namespace CoupledField {
   // Solve Step Transient SECTION  
   // ======================================================
 
-  void SolveStepAcoustic::StepTransNonLin(InfoNode* analysis_base) 
+  void SolveStepAcoustic::StepTransNonLin(PtrParamNode analysis_base) 
   {
-    REFACTOR;
+      REFACTOR;
 //    UInt job;
 //    bool performOneMoreStep;
 //    UInt iterationCounter=0;
 //  
-//    Vector<Double> newSol(numPDENodes_);
-//    Vector<Double> oldSol(numPDENodes_);
+//    Vector<Double> newSol(numEqns_);
+//    Vector<Double> oldSol(numEqns_);
 //  
 //    // just update dirichlet values
 //    job = 3;
@@ -54,17 +53,21 @@ namespace CoupledField {
 //      job = 1;
 //    }  
 //  
-//    NodeStoreSol<Double> * solhelp = dynamic_cast<NodeStoreSol<Double>*>(sol_);
+//    //get actual solution
+//    Vector<Double>  solhelp =
+//      dynamic_cast<Vector<Double>&>(*(PDE_.GetSolutionVector()));
+//
+//    //  NodeStoreSol<Double> * solhelp = dynamic_cast<NodeStoreSol<Double>*>(sol_);
 //
 //    //compute predictors
-//    TS_alg_->Predictor(solhelp->GetAlgSysVector());
+//    TS_alg_->Predictor(solhelp);
 //
 //    // set BCs, if effective mass matrix formulation, values of BCs depend on 
 //    //  predictors, so predictors have to be computed beforehand
 //    PDE_.SetBCs();
 //
 //    // set old solution  
-//    newSol = solhelp->GetAlgSysVector();
+//    newSol = solhelp; //>GetAlgSysVector();
 //
 //    // Update RHS (mass matrix and damping matrix on right hand side)
 //    TS_alg_->UpdateRHS();
@@ -87,7 +90,7 @@ namespace CoupledField {
 //          std::cout << "  " << iterationCounter;
 //      }
 //      
-//      InfoNode* analysis_id = BaseDriver::CreateAnalysisIdChild(analysis_base, "nonLin", iterationCounter);
+//      PtrParamNode analysis_id = BaseDriver::CreateAnalysisIdChild(analysis_base, "nonLin", iterationCounter);
 //      
 //      // set solution of previous iteration
 //      oldSol = newSol;
@@ -118,7 +121,7 @@ namespace CoupledField {
 //      TS_alg_->Corrector(newSol);
 //
 //      //put new solution to sol_
-//      sol_->SetAlgSysVector(newSol);  
+//      PDE_.SaveSolution( newSol.GetPointer(), newSol.GetSize() );
 //
 //      // compute L2-Norm of error between last incremental solution and
 //      //   actual incremental solution
@@ -136,10 +139,8 @@ namespace CoupledField {
 //        incrementalErr = solIncrL2Norm;
 //        
 //      // output of norms and data
-//      if ( nonLinLogging_ == true ) {
-//        Info->WriteNonLinIter(pdename_, iterationCounter, incrementalErr,
-//                              incrementalErr);
-//      }
+//      if ( nonLinLogging_ == true )
+//        WriteNonLinIterToInfoXML(pdename_, iterationCounter, incrementalErr, incrementalErr);
 //        
 //      // boolean variable, holds condition if another iteration step
 //      //  is necessary
@@ -151,8 +152,8 @@ namespace CoupledField {
 
 
   void SolveStepAcoustic::AddNonLinRHS() {
-    REFACTOR;
-
+  REFACTOR;
+//
 //    Vector<Double>     sol, solderiv1, solderiv2, rhs;
 //    BaseFE             * ptElem;
 //    StdVector<UInt> connect;
@@ -228,20 +229,21 @@ namespace CoupledField {
 //    }
   }
 
-  void SolveStepAcoustic::StepTransLin(InfoNode* analysis_id) {
-    if(justInterpolate_) {
-      //account for RHS
-      assemble_->AssembleLinRHS();
-      PDE_.ComputeRHS( actTime_ );
-      
-      // store rhs vector back to PDE
-      Vector<Double> rhs;
-      algsys_->GetRHSVal(rhs);
-      PDE_.SaveRHS( rhs.GetPointer(), rhs.GetSize());
-    }
-    else {
-      StdSolveStep::StepTransLin(analysis_id);
-    }
+  void SolveStepAcoustic::StepTransLin(PtrParamNode analysis_id, AdjointParameters* adjointParams) {
+    REFACTOR;
+//    if(justInterpolate_) {
+//      //account for RHS
+//      assemble_->AssembleLinRHS(adjointParams);
+//      PDE_.ComputeRHS( actTime_ );
+//      
+//      // store rhs vector back to PDE
+//      Vector<Double> rhs;
+//      algsys_->GetRHSVal(rhs);
+//      PDE_.SaveRHS( rhs.GetPointer(), rhs.GetSize());
+//    }
+//    else {
+//      StdSolveStep::StepTransLin(analysis_id, adjointParams);
+//    }
   }
 
 

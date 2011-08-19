@@ -88,7 +88,6 @@ namespace CoupledField
   
   void CurlCurlEdgeInt::CalcBMat( Matrix<Double>& bMat, 
                                   LocPointMapped& lp, BaseFE* ptFe ) {
-    UInt numFncs = ptFe->GetNumFncs();
     FeHCurl *fe = (dynamic_cast<FeHCurl*>(ptFe));
     
     fe->GetCurlShFnc(bMat, lp, lp.shapeMap->GetElem(), 1);

@@ -204,12 +204,12 @@ namespace CoupledField {
   // ***********************************************************************
   //   Obtain information for flow data
   // ***********************************************************************
-  void SimpleFlow::ReadFlowData( ParamNode * flowNode, UInt dim) {
+  void SimpleFlow::ReadFlowData( PtrParamNode flowNode, UInt dim) {
     
 
 
     // ger flowDir
-    std::string stringVal = flowNode->Get( "flowDir")->AsString();
+    std::string stringVal = flowNode->Get( "flowDir")->As<std::string>();
     if ( stringVal == "x" ) 
       flowDir_ = X;
     else if ( stringVal == "y" ) 
@@ -224,27 +224,27 @@ namespace CoupledField {
       EXCEPTION("Direction of flow data not valid" );
 
     // get flow order
-    flowNode->Get( "flowOrd", flowOrder_ );
+    flowNode->GetValue( "flowOrd", flowOrder_ );
 
     // get flow velocity
-    flowNode->Get( "flowVel", flowVelocity_ );
+    flowNode->GetValue( "flowVel", flowVelocity_ );
     
     // get flow diameter/radius
-    flowNode->Get( "flowDia", flowRadius_ );
+    flowNode->GetValue( "flowDia", flowRadius_ );
     flowRadius_ /= 2.0;
 
     // get flow length
-    flowNode->Get( "flowLen", flowLength_ );
+    flowNode->GetValue( "flowLen", flowLength_ );
 
     // get flow decay
-    flowNode->Get( "flowDecay", flowDecay_ );
+    flowNode->GetValue( "flowDecay", flowDecay_ );
 
     // get flow center (x/y/z(
     flowCenter_.Resize(dim);
-    flowNode->Get( "flowCenterX", flowCenter_[0] );
-    flowNode->Get( "flowCenterY", flowCenter_[1] );
+    flowNode->GetValue( "flowCenterX", flowCenter_[0] );
+    flowNode->GetValue( "flowCenterY", flowCenter_[1] );
     if ( dim == 3) {
-      flowNode->Get( "flowCenterZ", flowCenter_[2] );
+      flowNode->GetValue( "flowCenterZ", flowCenter_[2] );
     }
   }
 

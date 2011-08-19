@@ -2,11 +2,13 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include <string.h>
-
 #include <def_use_metis.hh>
+#include <def_use_pardiso.hh>
+#include <def_use_lapack.hh>
+#include <def_use_ilupack.hh>
+#include <def_use_cholmod.hh>
+#include <def_use_arpack.hh>
 
-#include "OLAS/algsys/olasparams.hh"
 #include "General/environment.hh"
 #include "DataInOut/WriteInfo.hh"
 #include "DataInOut/ParamHandling/CFSOLASParams.hh"
@@ -14,24 +16,19 @@
 #include "Driver/singleDriver.hh"
 #include "Driver/assemble.hh"
 
-
-
 namespace CoupledField {
 
   // *************
   //   SetParams
   // *************
   void CFSOLASParams::SetParams( std::string pdename,
-                                 ParamNode *cfs,
-                                 OLAS_Params *olas,
+                                 PtrParamNode cfs,
                                  BasePDE::AnalysisType analysisType,
                                  Assemble * assemble,
                                  bool overrideExpert ) {
 
     // Fetch setup node
-    ParamNode * setupNode = NULL;
-    if( cfs )
-      setupNode = cfs->Get("setup", false );
+    PtrParamNode setupNode  = cfs->Get("setup", ParamNode::INSERT );
 
 
     // First determine approach for handling inhomogeneous Dirichlet
@@ -39,61 +36,53 @@ namespace CoupledField {
     bool usingPenalty = true;
     {
       std::string aux = "penalty";
-      if( setupNode )
-        setupNode->Get("idbcHandling", aux, false );
-
+      setupNode->GetValue("idbcHandling", aux, ParamNode::INSERT );
       usingPenalty = aux == "penalty" ? true : false;
     }
 
     // Determine the type of solver for this PDE
     std::string sTypeString = "expertsChoice";
-    SolverType sType;
-    ParamNode * solverNode = NULL;
-    if( cfs )
-      solverNode = cfs->Get("solver", false);
+    BaseSolver::SolverType sType;
+    PtrParamNode solverNode;
 
-    if( solverNode)
-      solverNode->Get("type", sTypeString, false );
+    solverNode = cfs->Get("solver", ParamNode::INSERT);
+    solverNode->GetValue("type", sTypeString, ParamNode::INSERT);
     if ( sTypeString == "expertsChoice" ) {
       if ( overrideExpert ) {
         EXCEPTION( "You cannot specify expertsChoice as solver type "
                    << "and at the same time specify overrideExpert! "
                    << "This would leave the solver type undefined!" );
       }
-      sTypeString = "no solver";
+      sTypeString = "noSolver";    
     }
-    String2Enum( sTypeString, sType );
+    sType = BaseSolver::solverType.Parse(sTypeString);
 
     // Now determine the type of preconditioner for this PDE
     std::string pTypeString = "noPrecond";
-    PrecondType pType;
+    BasePrecond::PrecondType pType;
 
-    if( solverNode )
-      solverNode->Get("precond", pTypeString, false );
-
-    String2Enum( pTypeString, pType );
+    solverNode->GetValue("precond", pTypeString, ParamNode::INSERT );
+    pType = BasePrecond::precondType.Parse(pTypeString);
 
     // Now determine, if we are running an eigenfrequency analysis and if
     // yes, get the type of eigenvalue solver
     std::string esTypeString = "expertsChoice";
-    EigenSolverType esType = NOEIGENSOLVER;
-
+    BaseEigenSolver::EigenSolverType esType = BaseEigenSolver::NOEIGENSOLVER;
+    
     if ( analysisType == BasePDE::EIGENFREQUENCY ) {
-      if( cfs) {
-        ParamNode * eigenSolverNode = cfs->Get("eigenSolver", false );
-        if( eigenSolverNode )
-          eigenSolverNode->Get("type", esTypeString, false );
-      }
+      PtrParamNode eigenSolverNode = cfs->Get("eigenSolver", ParamNode::INSERT );
+      eigenSolverNode->GetValue("type", esTypeString, ParamNode::INSERT );
+      
       if ( esTypeString == "expertsChoice" ) {
         if ( overrideExpert ) {
           EXCEPTION( "You cannot specify expertsChoice as EigenSolver type "
                      << "and at the same time specify overrideExpert! "
                      << "This would leave the solver type undefined!" );
         }
-        esTypeString = "no eigensolver";
+        esTypeString = "noEigenSolver";
       }
 
-      String2Enum( esTypeString, esType );
+      esType = BaseEigenSolver::eigenSolverType.Parse(esTypeString);
     }
 
     // Before we try to determine matrix properties, we first should
@@ -102,51 +91,39 @@ namespace CoupledField {
     // element
     bool sbmSymmetry = false;
     bool stdSystem = true;
-    std::string sbmSymmetric;
-    ParamNode * matrixNode = NULL;
+    PtrParamNode matrixNode;
 
-    if( cfs ) {
-      matrixNode = cfs->Get("matrix", false);
-      if( !matrixNode ) {
-        matrixNode = cfs->Get("sbmMatrix", false);
-        if( matrixNode ) {
-          stdSystem = false;
-          matrixNode->Get("symmetric", sbmSymmetric);
-          sbmSymmetry = sbmSymmetric  == "yes";
-        }
-      }
+    if(cfs->Has("sbmMatrix") ) {
+      matrixNode = cfs->Get("sbmMatrix");
+      stdSystem = false;
+      matrixNode->GetValue("symmetric", sbmSymmetry, ParamNode::INSERT );
+    }
+
+    if( !matrixNode ) {
+      matrixNode = cfs->Get("matrix", ParamNode::INSERT);
     }
 
     // Determine matrix entry type
-    BaseMatrix::EntryType eType = BaseMatrix::DOUBLE;
-    if( matrixNode ) {
-      std::string eMatString =  matrixNode->Get("entry")->AsString();
-      if ( eMatString == "double" ) {
-        eType = BaseMatrix::DOUBLE;
-      }
-      else if ( eMatString == "complex" ) {
-        eType = BaseMatrix::COMPLEX;
-      }
-    }
+    BaseMatrix::EntryType eType;
+    std::string eMatString = "double";
+    matrixNode->GetValue("entry", eMatString, ParamNode::INSERT);
+    eType = BaseMatrix::entryType.Parse(eMatString);  
     
     // Determine calculation of condition number
     bool calcCondition = false;
-    if( matrixNode ) { 
-      matrixNode->Get("calcConditionNumber", calcCondition, false );
-    }
+    matrixNode->GetValue("calcConditionNumber", calcCondition, ParamNode::INSERT );
 
     // Following stuff only for required for standard systems
     BaseMatrix::StorageType mType  = BaseMatrix::NOSTORAGETYPE;
-    ReorderingType orderType = NOREORDERING;
+    BaseOrdering::ReorderingType orderType = BaseOrdering::NOREORDERING;
     bool allowChangeOfReordering = false;
 
 
     if ( stdSystem == true ) {
       std::string mMatString = "expertsChoice";
-      if( matrixNode ) {
-        // Next determine the matrix type for this PDE
-        matrixNode->Get( "storage", mMatString );
-      }
+      // Next determine the matrix type for this PDE
+      matrixNode->GetValue( "storage", mMatString, ParamNode::INSERT );
+      
       if ( mMatString == "expertsChoice" ) {
         if ( overrideExpert ) {
           EXCEPTION( "You cannot specify expertsChoice as storage type "
@@ -159,9 +136,8 @@ namespace CoupledField {
 
       // Type of re-odering
       std::string orderString = "expertsChoice";
-      if( matrixNode ) {
-        matrixNode->Get( "reordering", orderString );
-      }
+      matrixNode->GetValue( "reordering", orderString, ParamNode::INSERT );
+      
       if ( orderString == "expertsChoice" ) {
         if ( overrideExpert ) {
           EXCEPTION( "You cannot specify expertsChoice as re-ordering "
@@ -171,7 +147,7 @@ namespace CoupledField {
         orderString = "noReordering";
         allowChangeOfReordering = true;
       }
-      String2Enum( orderString, orderType );
+      orderType = BaseOrdering::reorderingType.Parse( orderString );
     }
 
     // Let expert module modify the settings
@@ -181,30 +157,11 @@ namespace CoupledField {
                              allowChangeOfReordering );
     }
 
-    // Insert information into OLAS_Params object
-    olas->SetValue( "Solver"                 , sType              );
-    olas->SetValue( "Precond"                , pType              );
-    olas->SetValue( "EigenSolver"            , esType             );
-    olas->SetValue( "MatrixStructureType"    , BaseMatrix::SPARSE_MATRIX    );
-    olas->SetValue( "MatrixStorageType"      , mType              );
-    olas->SetValue( "MatrixEntryType"        , eType              );
-    olas->SetValue( "GRAPH_reordering"       , orderType          );
-    olas->SetValue( "UsingPenaltyFormulation", usingPenalty       );
-    olas->SetValue( "SystemName"             , pdename            );
-    olas->SetValue( "SBM_Symmetry"           , sbmSymmetry        );
-    olas->SetValue( "CalcConditionNumber"    , calcCondition      );
-
     // Set special parameters for solver and preconditioner
-    CFSOLASParams::SetSolverParams( pdename, cfs, olas, sType );
-    CFSOLASParams::SetPrecondParams( pdename, cfs, olas, pType );
-    CFSOLASParams::SetEigenSolverParams( pdename, cfs, olas, esType );
+    CFSOLASParams::SetSolverParams( pdename, cfs, sType );
+    CFSOLASParams::SetPrecondParams( pdename, cfs, pType );
+    CFSOLASParams::SetEigenSolverParams( pdename, cfs, esType );
 
-    // For debugging (please do not delete)
-    // olas->ShowPool( OLAS_Params::INT_POOL     , std::cerr );
-    // olas->ShowPool( OLAS_Params::DOUBLE_POOL  , std::cerr );
-    // olas->ShowPool( OLAS_Params::BOOLEAN_POOL , std::cerr );
-    // olas->ShowPool( OLAS_Params::STRING_POOL  , std::cerr );
-    // olas->ShowPool( OLAS_Params::ENUM_POOL    , std::cerr );
   }
 
 
@@ -212,189 +169,15 @@ namespace CoupledField {
   //   SetSolverParams
   // *******************
   void CFSOLASParams::SetSolverParams( std::string pdename,
-                                       ParamNode *cfs,
-                                       OLAS_Params *olas,
-                                       SolverType sType ) {
-
-
-    // check if base element for solver is present
-    if( !cfs) return;
-
-    ParamNode * bsNode = cfs->Get("solver", false );
-    if ( !bsNode ) return;
-
-    // parameter node for solver
-    ParamNode * sNode = NULL;
-    std::string val;
-
-    switch( sType ) {
-
-    case DIAGSOLVER:
-      break;
-
-    case CG:
-      break;
-
-    case GMRES:
-      sNode = bsNode->Get("gmres", false);
-      if(!sNode) return;
-
-      if( sNode->Has("tol") )
-        olas->SetValue( "GMRES_epsilon",
-                        sNode->Get("tol")->AsDouble() );
-
-      if( sNode->Has("maxIter") )
-        olas->SetValue( "GMRES_maxIter",
-                        sNode->Get( "maxIter")->AsInt() );
-
-      if( sNode->Has("maxKrylovDim") )
-        olas->SetValue( "GMRES_maxKrylovDim",
-                        sNode->Get("maxKrylovDim")->AsInt() );
-
-      if( sNode->Has("logging") )
-        olas->SetValue( "GMRES_logging",
-                        sNode->Get("logging")->AsBool() );
-      break;
-
-    case MINRES:
-      sNode = bsNode->Get("minres", false);
-      if(!sNode) return;
-
-      if( sNode->Has("tol") )
-        olas->SetValue( "MINRES_epsilon",
-                        sNode->Get("tol")->AsDouble() );
-
-      if( sNode->Has("maxIter") )
-        olas->SetValue( "MINRES_maxIter",
-                        sNode->Get("maxIter")->AsInt() );
-
-      if( sNode->Has("logging") )
-        olas->SetValue( "MINRES_logging",
-                        sNode->Get("logging")->AsBool() );
-      break;
-
-    case LAPACK_LU:
-      sNode = bsNode->Get("lapackLU", false);
-      if(!sNode) return;
-
-      if( sNode->Has("tryScaling") )
-        olas->SetValue( "LAPACKLU_tryScaling",
-                        sNode->Get("tryScaling")->AsBool() );
-
-      if( sNode->Has("refineSol") )
-        olas->SetValue( "LAPACKLU_refineSol",
-                        sNode->Get("refineSol")->AsBool() );
-
-      if( sNode->Has( "logging") )
-        olas->SetValue( "LAPACKLU_logging",
-                        sNode->Get( "logging")->AsBool() );
-      break;
-
-    case LAPACK_LL:
-      sNode = bsNode->Get("lapackLL", false);
-      if(!sNode) return;
-
-      if( sNode->Has( "logging") )
-        olas->SetValue( "LAPACKLL_logging",
-                        sNode->Get("logging")->AsBool() );
-      break;
-
-    case LU_SOLVER:
-      sNode = bsNode->Get("directLU", false);
-      if(!sNode) return;
-
-      if( sNode->Has( "logging") )
-        olas->SetValue( "LUSOLVER_logging",
-                        sNode->Get( "logging")->AsBool() );
-
-      if( sNode->Has("saveFacFile") ) {
-        olas->SetValue("CROUT_saveFacToFile", true );
-        olas->SetValue("CROUT_facFileName",
-                       sNode->Get("saveFacFile")->AsString() );
-      }
-      break;
-
-    case LDL_SOLVER:
-      sNode = bsNode->Get("directLDL", false);
-      if(!sNode) return;
-
-      if( sNode->Has( "itRefSteps") )
-        olas->SetValue("LDLSOLVER_itRefSteps",
-                       sNode->Get( "itRefSteps")->AsInt() );
-
-      if( sNode->Has("itRefVerbosity") )
-        olas->SetValue( "LDLSOLVER_itRefVerbosity",
-                       sNode->Get("itRefVerbosity")->AsInt() );
-
-      if( sNode->Has("logging") )
-        olas->SetValue("LDLSOLVER_logging",
-                       sNode->Get("logging")->AsBool() );
-
-      if( sNode->Has("saveFacFile") ) {
-        olas->SetValue("LDLSOLVER_saveFacToFile", true );
-        olas->SetValue("LDLSOLVER_facFileName",
-                       sNode->Get("saveFacFile")->AsString() );
-      }
-
-      if( sNode->Has("savePatternOnly" ) ) {
-        olas->SetValue( "LDLSOLVER_facPatternOnly",
-                        sNode->Get("savePatternOnly")->AsBool());
-      }
-      break;
-
-    case PARDISO:
-      sNode = bsNode->Get("pardiso", false);
-      if(!sNode) return;
-
-      if( sNode->Has("posDef") )
-        olas->SetValue("PARDISO_posDef",
-                       sNode->Get("posDef")->AsBool() );
-
-      if( sNode->Has("hermitean") )
-        olas->SetValue("PARDISO_hermitean",
-                       sNode->Get("hermitean")->AsBool() );
-
-      if( sNode->Has("symStruct") )
-        olas->SetValue("PARDISO_symStructure",
-                       sNode->Get("symStruct")->AsBool() );
-
-      if( sNode->Has("ordering") ) {
-        ReorderingType ordering;
-        String2Enum( sNode->Get("ordering")->AsString(), ordering );
-        olas->SetValue( "PARDISO_ordering", ordering );
-      }
-
-      if( sNode->Has("logging") )
-        olas->SetValue("PARDISO_logging",
-                       sNode->Get("logging")->AsBool() );
-
-      if( sNode->Has("stats") )
-        olas->SetValue("PARDISO_stats",
-                       sNode->Get("stats")->AsBool() );
-      break;
-
-    case ILUPACK_SOLVER:
-      break;
-
-       // If this point is reached, it indicates that something is broken.
-       // Probably not all solvers that SetParams allows are yet implemented
-       // here?
-     default:
-       EXCEPTION( "Internal error. Maybe a missing implementation of a case?" );
-       break;
-
-    }
-
-
+                                       PtrParamNode cfs,
+                                       BaseSolver::SolverType sType ) {
     // Now set the stopping rule
     std::string stopCrit = "relNormRes0";
-    ParamNode * stopRuleNode = bsNode->Get("stoppingRule", false );
-    if( stopRuleNode ) {
-      stopCrit = stopRuleNode->Get("type")->AsString();
-    }
+    PtrParamNode bsNode = cfs->Get("solver", ParamNode::INSERT );
+    PtrParamNode stopRuleNode = bsNode->Get("stoppingRule", ParamNode::INSERT );
+    stopRuleNode->GetValue("type", stopCrit, ParamNode::INSERT);
     StopCritType stopRule;
     String2Enum( stopCrit, stopRule );
-    olas->SetValue( "StoppingCriterion", stopRule );
   }
 
 
@@ -402,279 +185,37 @@ namespace CoupledField {
   //   SetPrecondParams
   // ********************
   void CFSOLASParams::SetPrecondParams( std::string pdename,
-                                        ParamNode *cfs,
-                                        OLAS_Params *olas,
-                                        PrecondType pType ) {
-
-
-
-    // check for base element of solver
-    if( !cfs) return;
-    ParamNode * bsNode = cfs->Get("solver", false );
-    if( !bsNode ) return;
-
-    // parameter node for preconditioner
-    ParamNode * pNode = NULL;
-
-    switch( pType ) {
-
-      // The easiest cases. No parameters exist.
-    case ID:
-    case NOPRECOND:
-    case JACOBI:
-    case ILU0:
-    case IC0:
-      break;
-
-    case MG:
-
-      pNode = bsNode->Get("MG", false );
-      if( !pNode) return;
-
-      if( pNode->Has( "maxCoarseDepend" ) )
-        olas->SetValue( "AMG_MaxCoarseDependency",
-                        pNode->Get( "maxCoarseDepend")->AsInt() );
-
-      if( pNode->Has( "minSystemSize") )
-        olas->SetValue("AMG_MinSystemSize",
-                       pNode->Get( "minSystemSize")->AsInt() );
-
-      if( pNode->Has("numPreSmooth" ) )
-        olas->SetValue("AMG_NumPreSmoothing",
-                       pNode->Get("numPreSmooth")->AsInt() );
-
-      if( pNode->Has("numPostSmooth") )
-        olas->SetValue("AMG_NumPostSmoothing",
-                       pNode->Get("numPostSmooth")->AsInt() );
-
-      if( pNode->Has("cycleParam") )
-        olas->SetValue("AMG_CycleParameter",
-                       pNode->Get("cycleParam")->AsInt() );
-
-      if( pNode->Has("alpha") )
-        olas->SetValue("AMG_CoarseningAlpha",
-                       pNode->Get("alpha")->AsDouble() );
-
-      if( pNode->Has("strongDiagRatio") )
-        olas->SetValue("AMG_StrongDiagRatio",
-                       pNode->Get("strongDiagRatio")->AsDouble() );
-
-      if( pNode->Has("forceFineRatio") )
-        olas->SetValue("AMG_ForceFineRatio",
-                       pNode->Get("forceFineRatio")->AsDouble() );
-
-      if( pNode->Has("directSolver") ) {
-        std::string solverString;
-        pNode->Get("directSolver", solverString );
-        if ( solverString == "lapackLU" )
-          olas->SetValue( "AMG_DirectSolver", LAPACK_LU );
-        else if( solverString == "directLDL" )
-          olas->SetValue( "AMG_DirectSolver", LDL_SOLVER );
-        else if( solverString == "pardiso" )
-          olas->SetValue( "AMG_DirectSolver", PARDISO );
-        else
-          olas->SetValue( "AMG_DirectSolver", NOSOLVER );
-      }
-
-      if( pNode->Has("logging") )
-        olas->SetValue("AMG_logging",
-                       pNode->Get("logging")->AsBool() );
-      break;
-
-
-    case ILUK:
-
-      pNode = bsNode->Get("ILUK", false );
-      if( !pNode ) return;
-
-
-      if( pNode->Has("level") )
-        olas->SetValue("ILUK_level",
-                       pNode->Get("level")->AsInt() );
-
-      if( pNode->Has("logging") )
-        olas->SetValue("ILUK_logging",
-                       pNode->Get("logging")->AsBool() );
-
-      if( pNode->Has("saveFacFile") ) {
-        olas->SetValue( "CROUT_saveFacToFile", true );
-        olas->SetValue( "CROUT_facFileName",
-                        pNode->Get("saveFacFile")->AsString() );
-      }
-      break;
-
-    case ILDLK:
-
-      pNode = bsNode->Get("ILDLK" );
-
-      if( pNode->Has("level") )
-        olas->SetValue("ILDLPRECOND_level",
-                       pNode->Get("level")->AsInt() );
-
-      if( pNode->Has("logging") )
-        olas->SetValue("ILDLKPRECOND_logging",
-                       pNode->Get("logging")->AsBool() );
-
-      if( pNode->Has("saveFacFile") ) {
-        olas->SetValue( "ILDLPRECOND_saveFacToFile", true );
-          olas->SetValue("ILDLPRECOND_facFileName",
-                         pNode->Get("saveFacFile")->AsString() );
-        if( pNode->Has("savePatternOnly") )
-          olas->SetValue("ILDLPRECOND_facPatternOnly",
-                         pNode->Get("savePatternOnly")->AsBool() );
-      }
-      break;
-
-    case ILDLTP:
-
-      pNode = bsNode->Get("ILDLTP");
-      if( !pNode ) return;
-
-
-      if( pNode->Has("threshold") )
-        olas->SetValue("ILDLPRECOND_tau",
-                       pNode->Get("threshold")->AsDouble() );
-
-      if( pNode->Has("fillVal") )
-        olas->SetValue("ILDLPRECOND_fillVal",
-                       pNode->Get("fillVal")->AsInt() );
-
-      if( pNode->Has("logging") )
-        olas->SetValue("ILDLTPPRECOND_logging",
-                       pNode->Get("logging")->AsBool() );
-
-      if( pNode->Has("saveFacFile") ) {
-        olas->SetValue( "ILDLPRECOND_saveFacToFile", true );
-          olas->SetValue("ILDLPRECOND_facFileName",
-                         pNode->Get("saveFacFile")->AsString() );
-        if( pNode->Has("savePatternOnly") )
-          olas->SetValue("ILDLPRECOND_facPatternOnly",
-                         pNode->Get("savePatternOnly")->AsBool() );
-      }
-      break;
-
-    case ILDLCN:
-
-      pNode = bsNode->Get("ILDLCN");
-      if( !pNode) return;
-
-
-      if( pNode->Has("threshold") )
-        olas->SetValue("ILDLPRECOND_tau",
-                       pNode->Get("threshold")->AsDouble() );
-
-      if( pNode->Has("loging") )
-        olas->SetValue("ILDLCNPRECOND_logging",
-                       pNode->Get("loging")->AsBool() );
-
-      if( pNode->Has("saveFacFile") ) {
-        olas->SetValue( "ILDLPRECOND_saveFacToFile", true );
-        olas->SetValue("ILDLPRECOND_facFileName",
-                       pNode->Get("saveFacFile")->AsString() );
-        if( pNode->Has("savePatternOnly") )
-          olas->SetValue("ILDLPRECOND_facPatternOnly",
-                         pNode->Get("savePatternOnly")->AsBool() );
-      }
-      break;
-
-      case ILDL0:
-        break;
-
-
-      // If this point is reached, it indicates that something is broken.
-      // Probably not all preconditioners that SetParams allows are yet
-      // implemented here?
-    default:
-      EXCEPTION( "Internal error. Maybe a missing implementation of a case?" );
-      break;
-    }
+                                        PtrParamNode cfs,
+                                        BasePrecond::PrecondType pType ) {
   }
 
   // *******************
   //   SetEigenSolverParams
   // *******************
   void CFSOLASParams::SetEigenSolverParams( std::string pdename,
-                                            ParamNode *cfs,
-                                            OLAS_Params *olas,
-                                            EigenSolverType sType ) {
-
-
-    // check, if eigenfrequency solver is present at all
-    if( !cfs) return;
-    ParamNode * besNode = cfs->Get("eigenSolver", false );
-    if( !besNode ) return;
-
-    // Determine which parameters have been set by the user
-    // and insert them into the olasParams object.
-    ParamNode * esNode = NULL;
-
-    switch (sType) {
-    case ARPACK:
-      esNode = besNode->Get("arpack", false );
-      if( !esNode) return;
-
-      // tolerance
-      if( esNode->Has("tolerance") )
-        olas->SetValue( "ARPACK_tolerance",
-                        esNode->Get("tolerance")->AsDouble() );
-
-      // maximum number of iterations
-      if( esNode->Has("maxIt") )
-        olas->SetValue( "ARPACK_maxIt",
-                        esNode->Get("maxIt")->AsInt() );
-
-      // number of arnoldi vectors
-      if( esNode->Has("numVec") )
-        olas->SetValue( "ARPACK_numVec",
-                        esNode->Get("numVec")->AsInt() );
-
-      // which eigenvalues / vectorss
-      if( esNode->Has("which") )
-        olas->SetValue( "ARPACK_which",
-                        esNode->Get("which")->AsString() );
-
-      // logging
-      if( esNode->Has("logging") )
-        olas->SetValue( "ARPACK_logging",
-                        esNode->Get("logging")->AsBool() );
-      break;
-
-    case SUBSPACE :
-      // Not yet implemented
-      break;
-
-    case NOEIGENSOLVER :
-      // Nothing to do here
-      break;
-
-      // If this point is reached, it indicates that something is broken.
-      // Probably not all solvers that SetParams allows are yet implemented
-      // here?
-
-    default:
-      EXCEPTION( "Internal error. Maybe a missing implementation of a case?");
-      break;
-    }
+                                            PtrParamNode cfs,
+                                            BaseEigenSolver::EigenSolverType sType ) {
   }
 
 
   // *******************
   //   Expert's Choice
   // *******************
-  void CFSOLASParams::Expert( ParamNode *cfs,
+  void CFSOLASParams::Expert( PtrParamNode cfs,
                               std::string pdename,
-                              EigenSolverType &esType,
-                              SolverType &sType,
-                              PrecondType &pType,
+                              BaseEigenSolver::EigenSolverType &esType,
+                              BaseSolver::SolverType &sType,
+                              BasePrecond::PrecondType &pType,
                               BaseMatrix::StorageType &mType,
                               BaseMatrix::EntryType &eType,
-                              ReorderingType &rType,
+                              BaseOrdering::ReorderingType &rType,
                               BasePDE::AnalysisType analysisType,
                               Assemble * assemble,
                               bool allowChangeOfReordering ) {
 
 
     std::string warn;
+    std::string tmp;
 
     // ===========================
     //  Determine Matrix symmetry
@@ -685,10 +226,13 @@ namespace CoupledField {
     //  EigenSolver stuff
     // ==============
     // If no eigenvalue solver was specified, use arpack
-    if ( esType == NOEIGENSOLVER ) {
-      esType = ARPACK;
+    if ( esType == BaseEigenSolver::NOEIGENSOLVER ) {
+      esType = BaseEigenSolver::ARPACK;
     }
-
+    if ( analysisType == BasePDE::EIGENFREQUENCY) {
+      tmp = BaseEigenSolver::eigenSolverType.ToString(esType);
+      cfs->Get("eigenSolver")->Get("type")->SetValue(tmp);
+    }
 
     // ==============
     //  Solver stuff
@@ -698,53 +242,60 @@ namespace CoupledField {
     // Here we have not to determine, if we are faced with
     // a symmetric or non-symmetric problem.
 
-    if ( sType == NOSOLVER ) {
+    if ( sType == BaseSolver::NOSOLVER ) {
       if( symmetricMat ) {
-        sType = LDL_SOLVER;
+        sType = BaseSolver::LDL_SOLVER;
       } else {
-        sType = LU_SOLVER;
+        sType = BaseSolver::LU_SOLVER;
       }
     } else {
       // In this case, the user has specified a symmetric
       // solver explicitly, although, the system is non-symmetric.
       // In this case we issue a warning
-      if( sType == LDL_SOLVER
+      if( sType == BaseSolver::LDL_SOLVER
           && !symmetricMat ) {
         warn = "Expert: Although the system matrix is non-symmetric ";
         warn += "a symmetric solver was chosen!";
-        Info->Warning(warn);
+        WARN(warn);
       }
     }
-
+    tmp = BaseSolver::solverType.ToString(sType);
+    cfs->Get("solver")->Get("type")->SetValue(tmp);
 
     // =======================
     //  Preconditioner stuff
     // =======================
 
     // For direct solver we need no preconditioner (ID)
-    if ( (sType == LDL_SOLVER
-          || sType == LU_SOLVER
-          || sType == LAPACK_LU )
-         && !(pType == ID
-              || pType == NOPRECOND) ) {
-      warn = "Expert: Re-setting preconditioner type to 'NOPRECOND'";
-      Info->Warning( warn );
-      pType = NOPRECOND;
+    // PARDISO is either a direct solver or uses its own preconditioners.
+    if ( (sType == BaseSolver::LDL_SOLVER
+          || sType == BaseSolver::LU_SOLVER
+          || sType == BaseSolver::LAPACK_LU
+          || sType == BaseSolver::LAPACK_LL
+          || sType == BaseSolver::PARDISO )
+         && !(pType == BasePrecond::ID
+              || pType == BasePrecond::NOPRECOND) ) {
+      std::string solverStr = BaseSolver::solverType.ToString(sType);
+      pType = BasePrecond::NOPRECOND;
+      std::string precondStr = BasePrecond::precondType.ToString(pType);
+
+      WARN("Expert: Re-setting preconditioner type to '" << precondStr
+           << "' for solver '" << solverStr << "'.");
     }
-
-
+    tmp = BasePrecond::precondType.ToString(pType);
+    cfs->Get("solver")->Get("precond")->SetValue(tmp);
 
     // ===============
     //  Matrix stuff
     // ===============
 
     // Lapack solvers want their own matrix format
-    if ( sType == LAPACK_LU ) {
+    if ( sType == BaseSolver::LAPACK_LU ) {
       if ( mType != BaseMatrix::LAPACK_GBMATRIX ) {
         if ( mType != BaseMatrix::NOSTORAGETYPE ) {
           warn = "Expert: Re-setting matrix storage type to ";
           warn += "'LAPACK_GBMATRIX'";
-          Info->Warning( warn );
+          WARN( warn );
         }
         else {
           Info->PrintF( pdename,
@@ -755,16 +306,14 @@ namespace CoupledField {
     }
 
     // The direct solver LU_SOLVER expects a CRS matrix
-    else if ( sType == LU_SOLVER ) {
+    else if ( sType == BaseSolver::LU_SOLVER ) {
       if ( mType != BaseMatrix::SPARSE_NONSYM ) {
         if ( mType != BaseMatrix::NOSTORAGETYPE ) {
-          std::string tmp;
-          Enum2String( sType, tmp );
+          std::string tmp = BaseSolver::solverType.ToString(sType);
 
-          (*warning) << "Expert: Changing matrix storage type from "
-                     << BaseMatrix::storageType.ToString( mType ) << " to SPARSE_NONSYM for "
-                     << tmp << " solver";
-          Warning( __FILE__, __LINE__ );
+          WARN("Expert: Changing matrix storage type from "
+               << BaseMatrix::storageType.ToString( mType ) << " to SPARSE_NONSYM for "
+               << tmp << " solver");
         }
         else {
           Info->PrintF( pdename, "Expert: Using SPARSE_NONSYM as storage "
@@ -775,16 +324,14 @@ namespace CoupledField {
     }
 
     // The direct solver LDL_SOLVER expects an SCRS matrix
-    else if ( sType == LDL_SOLVER ) {
+    else if ( sType == BaseSolver::LDL_SOLVER ) {
       if ( mType != BaseMatrix::SPARSE_SYM ) {
         if ( mType != BaseMatrix::NOSTORAGETYPE ) {
-          std::string tmp;
-          Enum2String( sType, tmp );
+          std::string tmp = BaseSolver::solverType.ToString(sType);
 
-          (*warning) << "Expert: Changing matrix storage type from "
-                     << BaseMatrix::storageType.ToString( mType ) << " to SPARSE_SYM for "
-                     << tmp << " solver";
-          Warning( __FILE__, __LINE__ );
+          WARN("Expert: Changing matrix storage type from "
+               << BaseMatrix::storageType.ToString( mType ) << " to SPARSE_SYM for "
+               << tmp << " solver");
         }
         else {
           Info->PrintF( pdename, "Expert: Using SPARSE_SYM as storage "
@@ -796,16 +343,15 @@ namespace CoupledField {
 
 
     // ILU-type preconditioners expect CRS matrices
-    if ( pType == ILU0 || pType == ILUK ) {
+    if ( pType == BasePrecond::ILU0 || pType == BasePrecond::ILUK ) {
       if ( mType != BaseMatrix::SPARSE_NONSYM ) {
         if ( mType != BaseMatrix::NOSTORAGETYPE ) {
           std::string tmp;
-          Enum2String( pType, tmp );
+          tmp = BasePrecond::precondType.ToString(pType);
 
-          (*warning) << "Expert: Changing matrix storage type from "
-                     << BaseMatrix::storageType.ToString( mType ) << " to SPARSE_NONSYM for "
-                     << tmp << " preconditioner";
-          Warning( __FILE__, __LINE__ );
+          WARN("Expert: Changing matrix storage type from "
+               << BaseMatrix::storageType.ToString( mType ) << " to SPARSE_NONSYM for "
+               << tmp << " preconditioner");
         }
         else {
           Info->PrintF( pdename, "Expert: Using SPARSE_NONSYM as storage "
@@ -816,16 +362,15 @@ namespace CoupledField {
     }
 
     // ILDL-type preconditioners expect SCRS matrices
-    if ( pType == ILDLK ) {
+    if ( pType == BasePrecond::ILDLK ) {
       if ( mType != BaseMatrix::SPARSE_SYM ) {
         if ( mType != BaseMatrix::NOSTORAGETYPE ) {
           std::string tmp;
-          Enum2String( pType, tmp );
+          tmp = BasePrecond::precondType.ToString(pType);
 
-          (*warning) << "Expert: Changing matrix storage type from "
-                     << BaseMatrix::storageType.ToString( mType ) << " to SPARSE_SYM for "
-                     << tmp << " preconditioner";
-          Warning( __FILE__, __LINE__ );
+          WARN("Expert: Changing matrix storage type from "
+               << BaseMatrix::storageType.ToString( mType ) << " to SPARSE_SYM for "
+               << tmp << " preconditioner");
         }
         else {
           Info->PrintF( pdename, "Expert: Using SPARSE_SYM as storage "
@@ -836,16 +381,15 @@ namespace CoupledField {
     }
 
     // The MG preconditioner requires a CRS matrix
-    if ( pType == MG ) {
+    if ( pType == BasePrecond::MG ) {
       if ( mType != BaseMatrix::SPARSE_NONSYM ) {
         if ( mType != BaseMatrix::NOSTORAGETYPE ) {
           std::string tmp;
-          Enum2String( pType, tmp );
+          tmp = BasePrecond::precondType.ToString(pType);
 
-          (*warning) << "Expert: Changing matrix storage type from "
-                     << BaseMatrix::storageType.ToString( mType ) << " to SPARSE_NONSYM for "
-                     << tmp << " preconditioner";
-          Warning( __FILE__, __LINE__ );
+          WARN("Expert: Changing matrix storage type from "
+               << BaseMatrix::storageType.ToString( mType ) << " to SPARSE_NONSYM for "
+               << tmp << " preconditioner");
         }
         else {
           Info->PrintF( pdename, "Expert: Using SPARSE_NONSYM as storage "
@@ -883,7 +427,7 @@ namespace CoupledField {
     // Special treatment for parameter identification process
     std::string analysis;
     UInt seqStep = domain->GetSingleDriver()->GetActSequenceStep();
-    param->Get("sequenceStep", "index", GenStr(seqStep))->Get("analysis")
+    param->GetByVal("sequenceStep", std::string("index"), seqStep)->Get("analysis")
       ->GetChild()->GetName();
 
     if ( analysis == "paramIdent" && eType != BaseMatrix::COMPLEX ) {
@@ -915,52 +459,52 @@ namespace CoupledField {
       // re-ordering if available and SLOAN otherwise
 
 #ifdef USE_METIS
-      if ( sType == LU_SOLVER || sType == LDL_SOLVER ) {
-        if ( rType == NOREORDERING ) {
+      if ( sType == BaseSolver::LU_SOLVER || sType == BaseSolver::LDL_SOLVER ) {
+        if ( rType == BaseOrdering::NOREORDERING ) {
           Info->PrintF( pdename, "Expert: Setting re-ordering strategy to "
                         "'METIS'\n" );
-          rType = METIS;
+          rType = BaseOrdering::METIS;
         }
         else {
           Info->PrintF( pdename, "Expert: Re-setting re-ordering strategy "
                         "to METIS\n" );
-          rType = METIS;
+          rType = BaseOrdering::METIS;
         }
       }
 #else
-      if ( sType == LU_SOLVER || sType == LDL_SOLVER ) {
-        if ( rType == NOREORDERING ) {
+      if ( sType == BaseSolver::LU_SOLVER || sType == BaseSolver::LDL_SOLVER ) {
+        if ( rType == BaseOrdering::NOREORDERING ) {
           Info->PrintF( pdename, "Expert: Setting re-ordering strategy to "
                         "'SLOAN'\n" );
-          rType = SLOAN;
+          rType = BaseOrdering::SLOAN;
         }
         else {
           Info->PrintF( pdename, "Expert: Re-setting re-ordering strategy "
                         "to SLOAN\n" );
-          rType = SLOAN;
+          rType = BaseOrdering::SLOAN;
         }
       }
 #endif
 
       // For the LAPACK solvers use SLOAN re-ordering
-      if ( sType == LAPACK_LU || sType == LAPACK_LL ) {
-        if ( rType == NOREORDERING ) {
+      if ( sType == BaseSolver::LAPACK_LU || sType == BaseSolver::LAPACK_LL ) {
+        if ( rType == BaseOrdering::NOREORDERING ) {
           Info->PrintF( pdename, "Expert: Setting re-ordering strategy to "
                         "'SLOAN'\n" );
-          rType = SLOAN;
+          rType = BaseOrdering::SLOAN;
         }
         else {
           Info->PrintF( pdename, "Expert: Re-setting re-ordering strategy "
                         "to SLOAN\n" );
-          rType = SLOAN;
+          rType = BaseOrdering::SLOAN;
         }
       }
 
       // For Pardiso do not re-order (since Pardiso does this better itself)
-      if ( sType == PARDISO && rType != NOREORDERING ) {
+      if ( sType == BaseSolver::PARDISO && rType != BaseOrdering::NOREORDERING ) {
         Info->PrintF( pdename, "Expert: Setting re-ordering strategy to "
                       "'NOREORDERING'\n" );
-        rType = NOREORDERING;
+        rType = BaseOrdering::NOREORDERING;
       }
 
 
@@ -969,27 +513,81 @@ namespace CoupledField {
       // ================================
 
       // For all advanced ILU type preconditioners use SLOAN re-ordering
-      if ( pType == ILUK || pType == ILDLK ) {
-        if ( rType == NOREORDERING ) {
+      if ( pType == BasePrecond::ILUK || pType == BasePrecond::ILDLK ) {
+        if ( rType == BaseOrdering::NOREORDERING ) {
           Info->PrintF( pdename, "Expert: Setting re-ordering strategy to "
                         "'SLOAN'\n" );
-          rType = SLOAN;
+          rType = BaseOrdering::SLOAN;
         }
         else {
           Info->PrintF( pdename, "Expert: Re-setting re-ordering strategy "
                         "to SLOAN\n" );
-          rType = SLOAN;
+          rType = BaseOrdering::SLOAN;
         }
       }
 
       // For ILU0 and JACOBI we do not use re-ordering.
-      else if ( ( pType == ILU0 || pType == JACOBI )
-                && rType != NOREORDERING ) {
+      else if ( ( pType == BasePrecond::ILU0 || pType == BasePrecond::JACOBI )
+                && rType != BaseOrdering::NOREORDERING ) {
         Info->PrintF( pdename, "Expert: Setting re-ordering strategy to "
                       "'NOREORDERING'\n" );
-        rType = NOREORDERING;
+        rType = BaseOrdering::NOREORDERING;
       }
     }
+    
+    // Now that we know what solver the user wants we check if our executable
+    // has been built with support for it.
+    
+    switch(sType) {
+    case BaseSolver::PARDISO:
+#ifndef USE_PARDISO
+      EXCEPTION("This executable has not been built with support for PARDISO!\n"
+                "Please switch on USE_PARDISO and set CFS_PARDISO.");
+#endif
+      break;
+    case BaseSolver::ILUPACK:
+#ifndef USE_ILUPACK
+      EXCEPTION("This executable has not been built with support for ILUPACK!\n"
+                "Please switch on USE_ILUPACK.");
+#endif
+      break;
+    case BaseSolver::LAPACK_LL:
+    case BaseSolver::LAPACK_LU:
+#ifndef USE_LAPACK
+      EXCEPTION("This executable has not been built with support for LAPACK!\n"
+                "Please switch on USE_LAPACK.");
+#endif
+      break;
+    case BaseSolver::CHOLMOD:
+#ifndef USE_CHOLMOD
+      EXCEPTION("This executable has not been built with support for CHOLMOD!\n"
+                "Please switch on USE_CHOLMOD.");
+#endif      
+      break;      
+    default:
+      break;      
+    }
+
+    switch(eType) {
+    case BaseEigenSolver::ARPACK:
+#ifndef USE_ARPACK
+      EXCEPTION("This executable has not been built with support for ARPACK!\n"
+                "Please switch on USE_ARPACK.");
+#endif
+      break;
+    default:
+      break;      
+    }
+    
+    tmp = BaseMatrix::storageType.ToString( mType );
+    cfs->Get("matrix")->Get("storage")->SetValue(tmp);
+
+    tmp = BaseMatrix::entryType.ToString( eType );
+    cfs->Get("matrix")->Get("entry")->SetValue(tmp);
+    
+    tmp = BaseOrdering::reorderingType.ToString( rType );
+    cfs->Get("matrix")->Get("reordering")->SetValue(tmp);
+
   }
 
 }

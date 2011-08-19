@@ -3,6 +3,7 @@ INCLUDE_DIRECTORIES(${CFSDEPS_INCLUDE_DIR})
 
 SET(SOLVER_SRCS
     basesolver.cc
+    baseEigensolver.cc
     generateEigensolver.cc    
     generatesolver.cc
     )
@@ -34,6 +35,11 @@ ENDIF(USE_PARDISO)
 IF(USE_ILUPACK)
   SET(TARGET_LL ${TARGET_LL} ilupack-olas)
 ENDIF(USE_ILUPACK)
+
+IF(USE_CHOLMOD)
+  INCLUDE_DIRECTORIES(${CHOLMOD_INCLUDE_DIR})
+  SET(TARGET_LL ${TARGET_LL} cholmod-olas)
+ENDIF(USE_CHOLMOD)
 
 IF(USE_ARPACK)
   SET(TARGET_LL ${TARGET_LL} arpack-olas)

@@ -1,7 +1,7 @@
 #include "Optimization/LevelSet.hh"
 #include "Optimization/Optimization.hh"
 #include "Optimization/ShapeGrad.hh"
-#include "Optimization/DesignSpace.hh"
+#include "Optimization/Design/DesignSpace.hh"
 #include "Domain/domain.hh"
 #include "Domain/elem.hh"
 #include "Domain/grid.hh"
@@ -50,8 +50,9 @@ bool HasIntersection(const lsnodepair &p)
 }
 
 /******** LEVELSETNODE ***************/
-LevelSetNode::LevelSetNode(const double val, const unsigned int cfs_number)
-  : state(NONE), value(val), phi_temp(0.0), intersection_length(0.0), f_ext(0.0), shapegrad(0.0), global_node_number(cfs_number)
+LevelSetNode::LevelSetNode(const double val, const unsigned int cfs_number) :
+  state(NONE), value(val), phi_temp(0.0), intersection_length(0.0),
+  f_ext(0.0), shapegrad(0.0), global_node_number(cfs_number)
 {
   static const unsigned int dim(domain->GetGrid()->GetDim());
   neighbours_.resize((dim == 2 ? 4 : 6), NULL);
@@ -85,7 +86,8 @@ bool LevelSetNode::IsBoundary() const
 
 /******** LEVELSETELEMENT ***************/
 LevelSetElement::LevelSetElement(DesignElement* de, const double val) :
-  de_(de), shapeGradValue(0.0), topGradValue(val)
+  de_(de),
+  shapeGradValue(0.0)
 {
   // it is important here to call resize, not reserve, because we assume the existence
   // of this object at a later point where we acquire a reference to it
@@ -365,16 +367,16 @@ double LevelSetElement::IntegrateIntersectionObject(IntersectionObject &o, linEl
 {
   static const unsigned int dim(domain->GetGrid()->GetDim());
   assert(dim == 2); // FIXME
+
+  Matrix<double> B; // 2D: 3 * 8
+  Matrix<double> C; // = [c] or E_ijkl or dMat in BDBInt or A in shape grad papers
+  Vector<double> b_u;
+  Vector<double> c_b_u;
   
   for(unsigned int num = 0; num < 2; ++num)
   {
-    Matrix<double> B; // 2D: 3 * 8
-    Matrix<double> C; // = [c] or E_ijkl or dMat in BDBInt or A in shape grad papers
-    Matrix<double> coord;
-
     // set B
-    domain->GetGrid()->GetElemNodesCoord(coord, de_->elem->connect);
-    bdb_form->calcBMatOnly(B, o.points[num], de_->elem->ptElem, coord);
+    bdb_form->CalcBMatOnly(B, o.points[num], de_->elem);
     // LOG_DBG3(ls) << "B = " << B.ToString();
 
     // set c(\rho) !!!
@@ -386,10 +388,10 @@ double LevelSetElement::IntegrateIntersectionObject(IntersectionObject &o, linEl
     for(unsigned int d = 0; d < dim; ++d)
       full_u[o.indices[num] + d] = (o.displacements[num])[d];
 
-    Vector<double> b_u(C.GetNumCols());
+    b_u.Resize(C.GetNumCols());
     b_u = B*full_u;
     // must multiply with [c] here
-    Vector<double> c_b_u(C.GetNumCols());
+    c_b_u.Resize(C.GetNumCols());
     c_b_u = C * b_u;
     double integrand = b_u * c_b_u;
 
@@ -451,7 +453,7 @@ const std::string ToString(const LevelSetElement &elem)
 
 
 
-LevelSet::LevelSet(Optimization* opt, ParamNode* pn) : 
+LevelSet::LevelSet(Optimization* opt, PtrParamNode pn) : 
   last_node_index_(0), dump_fast_marching_(false), dump_lselement_(0)
 {
   cout << "Levelset: " << flush;
@@ -475,13 +477,13 @@ LevelSet::LevelSet(Optimization* opt, ParamNode* pn) :
   {
     // reduce to our actual ParamNode
     pn = pn->Get("levelSet");
-    dump_fast_marching_ = pn->Get("ls_dump_fast_marching")->AsBool();
-    dump_lselement_ = pn->Get("ls_element")->AsInt();
-    time_step_ = pn->Get("ls_time_step")->AsDouble();
+    dump_fast_marching_ = pn->Get("ls_dump_fast_marching")->As<bool>();
+    dump_lselement_ = pn->Get("ls_element")->As<Integer>();
+    time_step_ = pn->Get("ls_time_step")->As<Double>();
     bool make_trivial_holes(false);
     if(pn->Has("actionList"))
     {
-      StdVector<ParamNode*> list = pn->Get("actionList")->GetChildren();
+      ParamNodeList list = pn->Get("actionList")->GetChildren();
       const unsigned int list_size(list.GetSize());
       LOG_DBG(ls) << "read " << list_size << " actions from xml";
       // FSFSFS: maybe give some defaults if list_size == 0
@@ -497,13 +499,13 @@ LevelSet::LevelSet(Optimization* opt, ParamNode* pn) :
     {
       if(pn->Has("nodeList"))
       {
-        StdVector<ParamNode*> list = pn->Get("nodeList")->GetChildren();
+        ParamNodeList list = pn->Get("nodeList")->GetChildren();
         const unsigned int list_size(list.GetSize());
         LOG_DBG(ls) << "trivial hole: read " << list_size << " node numbers from xml";
         trivial_holes_.reserve(list_size);
         for(unsigned int i = 0; i < list_size; ++i)
         {
-          trivial_holes_.push_back(list[i]->Get("value")->AsInt());
+          trivial_holes_.push_back(list[i]->Get("value")->As<Integer>());
           LOG_DBG(ls) << " node " << i+1 << ": number " << trivial_holes_[i];
         }
         assert(trivial_holes_.size() == list_size);
@@ -688,10 +690,11 @@ const std::string ToString(const vector<LevelSetElement> &space)
 void LevelSet::SetupSpace()
 {
   // we need the vicinity in the design elements set (if not set yet)
-  // mark! assumes only one design variable!!
-  DesignElement& de = (*design_)[0];
-  if(de.vicinity_ == NULL) VicinityElement::Init(optimization->GetDesign());
-  assert(de.vicinity_ != NULL);
+
+  // Assume no periodic B.C. Otherwise organize DesignStructure from ErsatzMaterial or create
+  // own instance!
+  VicinityElement::Init(optimization->GetDesign(), NULL);
+  assert((*design_)[0].vicinity != NULL);
   
   cout << "Levelset space... " << flush;
 
@@ -948,7 +951,7 @@ bool LevelSet::SetSignedDistanceNodeStates()
     }
   }
   
-#ifdef DEBUG
+#ifndef NDEBUG
   for(unsigned int n = 0; n < nodes_size; ++n)
   {
     if(nodes_[n].state == LevelSetNode::NONE)
@@ -1137,7 +1140,7 @@ void LevelSet::BuildNeighbourhoodOfLevelsetNodes(const DesignElement* de)
 {
   assert(de != NULL);
   const bool threeDAndZPIsNULL((domain->GetGrid()->GetDim() == 3) && 
-                               (de->vicinity_->GetNeighbour(VicinityElement::Z_P) == NULL));
+                               (de->vicinity->GetNeighbour(VicinityElement::Z_P) == NULL));
   
   // we always have to set the neighbours of this node
   // low left node has index 0 in the front row, index 4 in the back row
@@ -1152,7 +1155,7 @@ void LevelSet::BuildNeighbourhoodOfLevelsetNodes(const DesignElement* de)
   // there are 3 possible cases (in 2D)
   // 1. X_P == 0:
   // also set neighbourhood of lower right node
-  if(de->vicinity_->GetNeighbour(VicinityElement::X_P) == NULL)
+  if(de->vicinity->GetNeighbour(VicinityElement::X_P) == NULL)
   {
     // low right node has index 1 in the front row, index 5 in the back row
     SetNeighboursOfLowRightNode(1, de);
@@ -1162,7 +1165,7 @@ void LevelSet::BuildNeighbourhoodOfLevelsetNodes(const DesignElement* de)
   
   // 2. Y_P == 0
   // also set neighbourhood of upper left node
-  if(de->vicinity_->GetNeighbour(VicinityElement::Y_P) == NULL)
+  if(de->vicinity->GetNeighbour(VicinityElement::Y_P) == NULL)
   {
     // up left node has index 3 in the front row, index 7 in the back row
     SetNeighboursOfUpLeftNode(3, de);
@@ -1172,8 +1175,8 @@ void LevelSet::BuildNeighbourhoodOfLevelsetNodes(const DesignElement* de)
   
   // 3. X_P == 0 && Y_P == 0
   // also set neighbourhood of lower right (done), upper left (done) and upper right node
-  if((de->vicinity_->GetNeighbour(VicinityElement::X_P) == NULL) &&
-     (de->vicinity_->GetNeighbour(VicinityElement::Y_P) == NULL))
+  if((de->vicinity->GetNeighbour(VicinityElement::X_P) == NULL) &&
+     (de->vicinity->GetNeighbour(VicinityElement::Y_P) == NULL))
   {
     // up right node has index 2 in the front row, index 6 in the back row
     SetNeighboursOfUpRightNode(2, de);
@@ -1196,7 +1199,7 @@ void LevelSet::SetNeighboursOfLowLeftNode(const int startIdx, const DesignElemen
   // right is always in the same element
   low_left[VicinityElement::X_P] = de->lse_->nodes_[startIdx+1];
   // left neighbour is the lower left node in neighbour element to the left
-  DesignElement *tmp_de = de->vicinity_->GetNeighbour(VicinityElement::X_N);
+  DesignElement *tmp_de = de->vicinity->GetNeighbour(VicinityElement::X_N);
   if(tmp_de != NULL)
   {
     low_left[VicinityElement::X_N] = tmp_de->lse_->nodes_[startIdx];
@@ -1210,7 +1213,7 @@ void LevelSet::SetNeighboursOfLowLeftNode(const int startIdx, const DesignElemen
   // upper is always in the same element
   low_left[VicinityElement::Y_P] = de->lse_->nodes_[startIdx+3];
   // lower neighbour is the lower left node in neighbour element downwards
-  tmp_de = de->vicinity_->GetNeighbour(VicinityElement::Y_N);
+  tmp_de = de->vicinity->GetNeighbour(VicinityElement::Y_N);
   if(tmp_de != NULL)
   {
     low_left[VicinityElement::Y_N] = tmp_de->lse_->nodes_[startIdx];
@@ -1226,7 +1229,7 @@ void LevelSet::SetNeighboursOfLowLeftNode(const int startIdx, const DesignElemen
     // also add z-neighbours
     assert(low_left.size() == 6);
     low_left[VicinityElement::Z_P] = de->lse_->nodes_[4];
-    tmp_de = de->vicinity_->GetNeighbour(VicinityElement::Z_N);
+    tmp_de = de->vicinity->GetNeighbour(VicinityElement::Z_N);
     if(tmp_de != NULL)
     {
       low_left[VicinityElement::Z_N] = tmp_de->lse_->nodes_[0];
@@ -1262,7 +1265,7 @@ void LevelSet::SetNeighboursOfLowRightNode(const int startIdx, const DesignEleme
   low_right[VicinityElement::X_P] = NULL;
   low_right[VicinityElement::X_N] = de->lse_->nodes_[startIdx-1];
   low_right[VicinityElement::Y_P] = de->lse_->nodes_[startIdx+1];
-  DesignElement *tmp_de = de->vicinity_->GetNeighbour(VicinityElement::Y_N);
+  DesignElement *tmp_de = de->vicinity->GetNeighbour(VicinityElement::Y_N);
   if(tmp_de != NULL)
   {
     low_right[VicinityElement::Y_N] = tmp_de->lse_->nodes_[startIdx];
@@ -1276,7 +1279,7 @@ void LevelSet::SetNeighboursOfLowRightNode(const int startIdx, const DesignEleme
   {
     assert(low_right.size() == 6);
     low_right[VicinityElement::Z_P] = de->lse_->nodes_[5];
-    tmp_de = de->vicinity_->GetNeighbour(VicinityElement::Z_N);
+    tmp_de = de->vicinity->GetNeighbour(VicinityElement::Z_N);
     if(tmp_de != NULL)
     {
       low_right[VicinityElement::Z_N] = tmp_de->lse_->nodes_[1];
@@ -1309,7 +1312,7 @@ void LevelSet::SetNeighboursOfUpLeftNode(const int startIdx, const DesignElement
   
   up_left[VicinityElement::X_P] = de->lse_->nodes_[startIdx-1];
 
-  DesignElement *tmp_de = de->vicinity_->GetNeighbour(VicinityElement::X_N);
+  DesignElement *tmp_de = de->vicinity->GetNeighbour(VicinityElement::X_N);
   if(tmp_de != NULL)
   {
     up_left[VicinityElement::X_N] = tmp_de->lse_->nodes_[startIdx];
@@ -1326,7 +1329,7 @@ void LevelSet::SetNeighboursOfUpLeftNode(const int startIdx, const DesignElement
   {
     assert(up_left.size() == 6);
     up_left[VicinityElement::Z_P] = de->lse_->nodes_[7];
-    tmp_de = de->vicinity_->GetNeighbour(VicinityElement::Z_N);
+    tmp_de = de->vicinity->GetNeighbour(VicinityElement::Z_N);
     if(tmp_de != NULL)
     {
       up_left[VicinityElement::Z_N] = tmp_de->lse_->nodes_[3];
@@ -1366,7 +1369,7 @@ void LevelSet::SetNeighboursOfUpRightNode(const int startIdx, const DesignElemen
   {
     assert(up_right.size() == 6);
     up_right[VicinityElement::Z_P] = de->lse_->nodes_[6];
-    const DesignElement *tmp_de = de->vicinity_->GetNeighbour(VicinityElement::Z_N);
+    const DesignElement *tmp_de = de->vicinity->GetNeighbour(VicinityElement::Z_N);
     if(tmp_de != NULL)
     {
       up_right[VicinityElement::Z_N] = tmp_de->lse_->nodes_[2];
@@ -1431,8 +1434,8 @@ void LevelSet::TransportLevelSet(const double dt)
   // \phi_{ij}^{n+1} = \phi_{ij}^n - F * dt * |\grad(\phi_{ij}^n)|
   // FIXME F = shapegrad here, but should be f_ext!!
   // get the volume constraint from the optimization
-  const double penalty(optimization->GetConstraint(Condition::VOLUME).penalty);
-  const double vol(optimization->GetConstraint(Condition::VOLUME).value);
+  const double penalty(optimization->constraints.Get(Condition::VOLUME)->penalty);
+  const double vol(optimization->constraints.Get(Condition::VOLUME)->GetBoundValue());
   LOG_DBG3(ls) << "using volume constraint of " << vol;
   
   double constraint(0.0);
@@ -1469,12 +1472,12 @@ void LevelSet::TransportLevelSet(const double dt)
 }
 
 /**************** ACTION ************************/
-LevelSet::Action::Action(ParamNode* const pn) : modulus_(1), perform_(1), first_(true)
+LevelSet::Action::Action(PtrParamNode const pn) : modulus_(1), perform_(1), first_(true)
 {
-  type_     = type.Parse(pn->Get("type"));
-  modulus_  = pn->Get("modulus")->AsInt();
-  perform_  = pn->Get("perform")->AsInt();
-  first_    = pn->Get("first")->AsBool();
+  type_     = type.Parse(pn->Get("type")->As<std::string>());
+  modulus_  = pn->Get("modulus")->As<Integer>();
+  perform_  = pn->Get("perform")->As<Integer>();
+  first_    = pn->Get("first")->As<bool>();
 }
 
 LevelSet::Action* LevelSet::IsTriggered(const Action::Type type, const int iteration)

@@ -12,14 +12,14 @@ conditions:
 
 {\bf Homogenous BCs} are used to suppress the nodal DOF at the specified
 points. Therewith, the value of the dof is set to zero. These
-condition is used, e.g. for grounding an electrode (electric potential
+conditions are used, e.g. for grounding an electrode (electric potential
 = 0).
 
 {\bf Inhomogeneous BCs}  are used for assigning a
   specific value to a boundary. They describe non-zero (maybe
   time-varying) values.  Therefore, you have to select the name of the
-  specific nodes (according to the section {\bf nodes} in {\bf
-    $<$domain$>$}) and a value which has to be assigned to this node.
+  specific nodes (according to the section \xel{nodes} in
+\xel{$<$domain$>$}) and a value which has to be assigned to this node.
   Additionally, a name of a time function file may be provided for
   time varying BCs. In this case, the resulting values applied to the
   selected nodes will be ${dof}(timestep) =
@@ -34,65 +34,70 @@ condition is used, e.g. for grounding an electrode (electric potential
 
 \bigskip
 
-In the section {\bf $<$bcsAndLoads$>$} of the appropriate PDE in the
+In the section  \xel{bcsAndLoads} of the appropriate PDE in the
 config-file (there can be more than one!), the BCs have to be defined
 in the following manner
-\begin{verbatim}
-<bcsAndLoads>
-   <dirichletHom   name="nameBound1"/>
-   <dirichletHom   name="nameBound2"/>
-   <dirichletInHom name="nameBound3" value="-1.0"/>
-</bcsAndLoads>
-\end{verbatim}
+\begin{xmllisting}
+  <bcsAndLoads>
+     <dirichletHom   name="nameBound1"/>
+     <dirichletHom   name="nameBound2"/>
+     <dirichletInhom name="nameBound3" value="-1.0"/>
+  </bcsAndLoads>
+\end{xmllisting}
 
-With inhomogeneous BCs, one has additionally to define the value by
+With inhomogeneous BCs, one has additionally to define the \xatv{value} by
 giving the name of the boundary followed by the boundary value. If a
 time varying signal has to be applied, one has additionally to provide
-the name of the time file after the attribute {\bf dynamics}:
-
-\verb!<dirichletInHom name="nameBound3" value="-1.0" dynamics="timeFile"/>!
+the name of the time file in the attribute {\xatv{signal.dat} }:
+\begin{xmllisting}
+  <dirichletInhom name="nameBound3" value="10 * sample1D('signal.dat',t,1)"/>
+\end{xmllisting}
 
 \noindent
 If we want to define a boundary condition for a PDE with more
 than one dof, we have additionally to define the dof, the BC has to
 work on. For the homogenous BC one has to use
-
-\verb!<dirichletHom   name="nameBound1" dof="XXX"/>!
-
+\begin{xmllisting}
+  <dirichletHom   name="nameBound1" dof="XXX"/>
+\end{xmllisting}
 \noindent
 for the inhomogenous BC the command
 
-\verb!   <dirichletInHom   name="nameBound1"  dof="XXX"/>!
+\begin{xmllisting}
+  <dirichletInhom   name="nameBound1"  dof="XXX"/>
+\end{xmllisting}
 
 \noindent
-has to be called. Herein, {\bf XXX} stands for the name degrees of
+has to be called. Herein, \xatv{XXX} stands for the name degrees of
 freedom, e.g. in the mechanical PDE
 
-\begin{verbatim}
+\begin{xmllisting}
 <bcsAndLoads>
-   <dirichletHom   name="leftBound"   dof="ux"/>
-   <dirichletHom   name="leftBound"   dof="uy"/>
-   <dirichletInHom name="rightBound"  dof="uy"  value="2.0"/>
-   <load           name="centerPoint" dof="ux"  value="3.0"/>
+   <dirichletHom   name="leftBound"   dof="x"/>
+   <dirichletHom   name="leftBound"   dof="y"/>
+   <dirichletInhom name="rightBound"  dof="y"  value="2.0"/>
+   <load           name="centerPoint" dof="x"  value="3.0"/>
 </bcsAndLoads>
-\end{verbatim}
+\end{xmllisting}
 
 \section{Loads}
 
 {\bf Loads} are used to apply external nodal loads like an electric
-charge.  The syntax of the {\bf load} command is equal to that of 
+charge.  The syntax of the {\xel{load} } command is equal to that of 
 the {\em inhomogeneous BCs}:
-\begin{verbatim}
+\begin{xmllisting}
 <bcsAndLoads>
    <load name="loadBound" value="10" dynamics="timeFile"/>
 </bcsAndLoads>
-\end{verbatim}
+\end{xmllisting}
 
 Similar to the boundary conditions, the degree of freedom (dof) to
 which the load has to be applied, must be defined for PDEs with more
 than one dof per node:
 
-\verb!<load  name="nameBound1"  dof="XXX"/>!
+\begin{xmllisting}
+  <load  name="nameBound1"  dof="XXX"/>
+\end{xmllisting}
 
 
 

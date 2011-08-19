@@ -1,17 +1,3 @@
-# Just redefine __builtin_isnan to ::isnan for Intel compiler for 
-# assemble.cc
-IF(CFS_CXX_COMPILER_NAME STREQUAL "ICC")
-    GET_SOURCE_FILE_PROPERTY(OPTCONDFLAGS OptimalityCondition.cc
-        COMPILE_FLAGS)
-    #    MESSAGE("OPTCONDFLAGS ${OPTCONDFLAGS}")
-    IF(OPTCONDFLAGS STREQUAL NOTFOUND)
-      SET(OPTCONDFLAGS "")
-    ENDIF(OPTCONDFLAGS STREQUAL NOTFOUND)
-    
-    SET_SOURCE_FILES_PROPERTIES(assemble.cc
-      PROPERTIES COMPILE_FLAGS "${OPTCONDFLAGS} -D__builtin_isnan=::isnan -D__builtin_isinf=::isinf")
-ENDIF(CFS_CXX_COMPILER_NAME STREQUAL "ICC")
-
 SET(DRIVER_SRCS
   assemble.cc
   basedriver.cc
@@ -25,12 +11,13 @@ SET(DRIVER_SRCS
   solveStepAcoustic.cc
   solveStepElec.cc
   solveStepMagEdge.cc
-  #  solveStepFluidMech.cc
+#  solveStepFluidMech.cc
 #  solveStepMagHyst.cc
 #  solveStepMech.cc
 #  solveStepMpCCI.cc
 #  solveStepODE.cc
 #  solveStepPiezo.cc
+#  solveStepMicroPiezo.cc
 #  solveStepSmooth.cc
   staticdriver.cc
   stdSolveStep.cc

@@ -61,13 +61,8 @@ namespace CoupledField {
     //! Destructor
   nLinPiezoHystCouple::~nLinPiezoHystCouple() {
     delete EfieldOp_;
-    delete mechStrainOp_;
     delete EfieldPrevOp_;
-    //delete solElec_;
-    //delete solMech_;
-    //delete matDataCouple_;
-    //delete matDataMech_;
-    //delete matDataElec_;
+    delete mechStrainOp_;
   }
 
 
@@ -83,16 +78,12 @@ namespace CoupledField {
 
     // electric field operator
     EfieldOp_ =  new GradientFieldOp<Double>(ptGrid, ptPDE2Elec, 
-                                             eqnMapElec, *solElec_, 
-                                             ELEC_POTENTIAL, 
-                                             resultElec, isaxi_, 
+                                             eqnMapElec, *solElec_, resultElec->fctType, isaxi_,
                                              coordUpdate_);
 
     // electric field operator with previous solution
     EfieldPrevOp_ =  new GradientFieldOp<Double>(ptGrid, ptPDE2Elec, 
-                                                 eqnMapElec, *solPrevElec_, 
-                                                 ELEC_POTENTIAL, 
-                                                 resultElec, isaxi_, 
+                                                 eqnMapElec, *solPrevElec_, resultElec->fctType, isaxi_,
                                                  coordUpdate_);
 
     // mechanical strain operator
@@ -181,7 +172,7 @@ namespace CoupledField {
                                         BaseMaterial* matDataMech,
                                         BaseMaterial* matDataElec,                                       
                                         SubTensorType type) 
-    : linElecInt(matDataElec, type){
+    : linGradBDBInt(matDataElec, ELEC_PERMITTIVITY, type ){
     
     name_ = "nLinPiezoHystElec";
     isSolDependent_ = true;
@@ -201,11 +192,6 @@ namespace CoupledField {
     delete EfieldOp_;
     delete mechStrainOp_;
     delete EfieldPrevOp_;
-    //delete solElec_;
-    //delete solMech_;
-    //delete matDataCouple_;
-    //delete matDataMech_;
-    //delete matDataElec_;
   }
 
 
@@ -222,15 +208,11 @@ namespace CoupledField {
 
     // electric field operator
     EfieldOp_ =  new GradientFieldOp<Double>(ptGrid, ptPDE2Elec, 
-                                             eqnMapElec, *solElec_, 
-                                             ELEC_POTENTIAL, 
-                                             resultElec, isaxi_, 
+                                             eqnMapElec, *solElec_, resultElec->fctType, isaxi_,
                                              coordUpdate_);
     // electric field operator
     EfieldPrevOp_ =  new GradientFieldOp<Double>(ptGrid, ptPDE2Elec, 
-                                                 eqnMapElec, *solPrevElec_, 
-                                                 ELEC_POTENTIAL, 
-                                                 resultElec, isaxi_, 
+                                                 eqnMapElec, *solPrevElec_, resultElec->fctType, isaxi_,
                                                  coordUpdate_);
 
     // mechanical strain operator

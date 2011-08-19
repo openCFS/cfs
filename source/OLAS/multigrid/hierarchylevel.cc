@@ -2,7 +2,7 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-%/* $Id$ */
+/* $Id$ */
 
 #include <olas_use_lapack.hh>
 #include <olas_use_pardiso.hh>
@@ -10,7 +10,6 @@
 #include "multigrid/hierarchylevel.hh"
 #include "multigrid/gaussseidel.hh"
 #include "multigrid/jacobi.hh"
-#include "algsys/olasparams.hh"
 
 #include "solver/generatesolver.hh"
 #include "solver/basesolver.hh"
@@ -83,12 +82,6 @@
 #define  debug  &std::cerr
 #endif // DEBUG_TO_CERR
 
-#ifdef PROFILING
-#ifdef PROFILE_HIERARCHYLEVEL
-#include "utils/utils.hh"
-#endif
-#endif
-
 #ifndef  LOGLINE
 #define  LOGLINE  " --------------------------------------\n"
 #endif
@@ -113,11 +106,7 @@ HierarchyLevel<T>::HierarchyLevel()
                    vH1_( NULL ),
                    vH2_( NULL ),
                    nextLevel_( NULL ),
-#ifdef PROFILE_HIERARCHYLEVEL
-                   logging_( true ),
-#else
                    logging_( false ),
-#endif
                    deleteDirSysMatrix_( true )
 {
 }
@@ -140,11 +129,7 @@ HierarchyLevel<T>::HierarchyLevel( const Integer level_id )
                    vH1_( NULL ),
                    vH2_( NULL ),
                    nextLevel_( NULL ),
-#ifdef PROFILE_HIERARCHYLEVEL
-                   logging_( true ),
-#else
                    logging_( false ),
-#endif
                    deleteDirSysMatrix_( true )
 {
 }
@@ -290,10 +275,6 @@ bool HierarchyLevel<T>::Setup( Settings* const settings,
     // (de)activate logging
     SetLogging( settings->logging );
 
-#ifdef PROFILE_HIERARCHYLEVEL
-    Double t1 = AMG_GET_REAL_TIME
-#endif // PROFILE_HIERARCHYLEVEL
-
  //////////////////// 
  // setup THIS level
 
@@ -318,7 +299,7 @@ bool HierarchyLevel<T>::Setup( Settings* const settings,
                         settings->strongDiagRatio,
                         settings->forceFineRatio,
                         penaltyFlags) ) {
-        DELETEARRAY( penaltyFlags );
+        delete [] ( penaltyFlags );  penaltyFlags  = NULL;
         return false;
     }
 
@@ -341,7 +322,7 @@ bool HierarchyLevel<T>::Setup( Settings* const settings,
     if( ! SetupAuxData(
               Topology_->GetSizeh(),
               SizeH < settings->minSystemSize ? 0 : SizeH) ) {
-        DELETEARRAY( penaltyFlags );
+        delete [] ( penaltyFlags );  penaltyFlags  = NULL;
         return false;
     }
     // check, if the coarsenig gets slow
@@ -384,17 +365,13 @@ bool HierarchyLevel<T>::Setup( Settings* const settings,
 
         // remove topology object and eventually the penalty flags
         delete Topology_;  Topology_ = NULL;
-        DELETEARRAY( penaltyFlags );
+        delete [] ( penaltyFlags );  penaltyFlags  = NULL;
         // setup direct solver
         const bool rValue = SetupDirectSolver( settings );
 
         if( logging_ ) {
             (*cla)
             << " AMG: finished setup on level ["<<GetLevelID()<<"]";
-#ifdef PROFILE_HIERARCHYLEVEL
-            const Double t2 = AMG_GET_REAL_TIME
-            (*cla) << ": " <<(t2-t1)<<" seconds";
-#endif
             (*cla) <<std::endl<<LOGLINE;
         }
         // eventualy export the system matrix
@@ -404,7 +381,7 @@ bool HierarchyLevel<T>::Setup( Settings* const settings,
 
     // setup the smoother
     if( ! SetupSmoother(settings, penaltyFlags) ) {
-        DELETEARRAY( penaltyFlags );
+        delete [] ( penaltyFlags );  penaltyFlags  = NULL;
         return false;
     }
     // create transfer operator
@@ -445,15 +422,8 @@ bool HierarchyLevel<T>::Setup( Settings* const settings,
 #endif
 
     // some logging and profiling
-#ifdef PROFILE_HIERARCHYLEVEL
-    Double t2 = AMG_GET_REAL_TIME
-#endif
     if( logging_ ) {
         (*cla) << " AMG: finished setup on level ["<<GetLevelID()<<"]:\n"
-#ifdef PROFILE_HIERARCHYLEVEL
-               << " AMG: setup on level ["<<GetLevelID()<<"] "
-                  "in "<<(t2-t1)<<" seconds\n"
-#endif
                << LOGLINE;
     }
 
@@ -559,7 +529,7 @@ HIERARCHY_EXPORT_VECTOR( sol, "u_%d.04" );
             typename Smoother<T>::Direction dir = Smoother<T>::FORWARD;
             sol.Init();
             do{ if( ++nExactSmoothingSteps > maxNumSmoothingSteps ) {
-                    Warning( __FILE__, __LINE__,
+                    WARN( __FILE__, __LINE__,
                              "AMG: Used smoother as exact solver on coarsest "
                              "level, but did not succeed within %d steps "
                              "-> aborting exact solving, choose a better exact "
@@ -867,7 +837,8 @@ SetupDirectSolver( const Settings* const settings )
                                      SysMatrix_->GetNumCols(),
                                      SysMatrix_->GetNnz() );
             // cast matrix pointer
-            PTRCAST( DirSysMatrix_, SCRS_Matrix<T>, scrs );
+            SCRS_Matrix<T>* scrs = dynamic_cast<SCRS_Matrix<T>*>(DirSysMatrix_);
+            if(scrs == NULL) EXCEPTION("Invalid cast attempt!");
             // create sparsity pattern for the SCRS_Matrix
             // NOTE that the number of nonzeros is only the one of the
             //      upper diagonal part, including the diagonal.
@@ -998,7 +969,7 @@ TraceCFSplitting( AMG_CF_TRACE_TYPE *trace,
         for( Integer i = 1; i <= sizeh; i++ )  indexMap[i] =  i;
     } else {
         if( !trace || !indexMap) {
-            Warning( __FILE__, __LINE__,
+            WARN( __FILE__, __LINE__,
                      "HierarchyLevel::TraceCFSplitting: (level %d) this "
                      " function should be called on coarser levels only "
                      "recursively by the next finer level", GetLevelID() );
@@ -1010,7 +981,7 @@ TraceCFSplitting( AMG_CF_TRACE_TYPE *trace,
     // also part of this level.
     for( Integer ih = 1; ih <= sizeh; ih++ ) {
         if( ++trace[indexMap[ih]] != GetLevelID() ) {
-            Warning( __FILE__, __LINE__,
+            WARN( __FILE__, __LINE__,
                      "HierarchyLevel::TraceCFSplitting: error on "
                      "level %d", GetLevelID() );
             traceResult = false;
@@ -1030,10 +1001,10 @@ TraceCFSplitting( AMG_CF_TRACE_TYPE *trace,
             traceResult &=
             GetNextLevel()->TraceCFSplitting( trace, indexMapH );
 
-            DELETEARRAY( indexMapH );
+            delete [] ( indexMapH );  indexMapH  = NULL;
         // Topology_ == NULL
         } else {
-            Warning( __FILE__, __LINE__,
+            WARN( __FILE__, __LINE__,
                      "HierarchyLevel::TraceCFSplitting: no topology "
                      "object on level %d. Cannot trace coarsening",
                      GetLevelID() );
@@ -1061,20 +1032,20 @@ TraceCFSplitting( AMG_CF_TRACE_TYPE *trace,
 #endif
                 fclose( file );
             } else {
-                Warning( __FILE__, __LINE__,
+                WARN( __FILE__, __LINE__,
                          "HierarchyLevel::TraceCFSplitting: could not open "
                          "file \033[1\"%s\"\033[0m. Trace file not written",
                          filename );
                 traceResult = false;
             }
         } else {
-            Warning( "HierarchyLevel::TraceCFSplitting:\n since there were "
+            WARN( "HierarchyLevel::TraceCFSplitting:\n since there were "
                      "errors on at least one level, no splitting trace file "
                      "is written.", __FILE__, __LINE__ );
         }
 
-        DELETEARRAY( trace );
-        DELETEARRAY( indexMap );
+        delete [] ( trace );  trace  = NULL;
+        delete [] ( indexMap );  indexMap  = NULL;
     }
 
     return traceResult;

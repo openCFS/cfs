@@ -56,12 +56,25 @@ namespace CoupledField {
       acouMaterials = &secondMaterials_;
     }    
     
+    if ( actElem_->ptVolElem1 == NULL ) {
+      EXCEPTION("Cannot apply mechanic-acoustic coupling on surface element "
+          << actElem_->elemNum
+          << ", because it has no adjacent volume element.\n"
+          << "Go check your mesh file!");
+    }
     it = acouMaterials->find(actElem_->ptVolElem1->regionId);
     if ( it == acouMaterials->end() ) {
+      if ( actElem_->ptVolElem2 == NULL ) {
+        EXCEPTION("Cannot apply mechanic-acoustic coupling on surface element "
+            << actElem_->elemNum
+            << ", because it has no adjacent volume element in an acoustic region.\n"
+            << "Go check your mesh file!");
+      }
       it = acouMaterials->find(actElem_->ptVolElem2->regionId);
       if ( it == acouMaterials->end()) {
         EXCEPTION("Acoustic parent region of surface element "
             << actElem_->elemNum << " could not be determined.");
+
       }
     } else {
       normal_ *= -1.0;
@@ -111,23 +124,23 @@ namespace CoupledField {
     if (formulation_ == ACOU_PRESSURE && firstPDEName_ == "acoustic" ) {
       elemMat.Resize( numFncs, numFncs*dofs_ );
       for ( UInt iRow = 0; iRow < numFncs; iRow++ ) {
-	for ( UInt iCol = 0; iCol < numFncs; iCol++ ) {
-	  for ( UInt iDof = 0; iDof < dofs_; iDof++ ) {
-	    elemMat[iRow][iCol*dofs_+iDof] = 
-	      normal_[iDof] * helpMat[iCol][iRow];
-	  }
-	}
+        for ( UInt iCol = 0; iCol < numFncs; iCol++ ) {
+          for ( UInt iDof = 0; iDof < dofs_; iDof++ ) {
+            elemMat[iRow][iCol*dofs_+iDof] = 
+                normal_[iDof] * helpMat[iCol][iRow];
+          }
+        }
       }
     }
     else {
       elemMat.Resize( numFncs*dofs_, numFncs );
       for ( UInt iRow = 0; iRow < numFncs; iRow++ ) {
-	for ( UInt iCol = 0; iCol < numFncs; iCol++ ) {
-	  for ( UInt iDof = 0; iDof < dofs_; iDof++ ) {
-	    elemMat[iRow*dofs_+iDof][iCol] = 
-	      normal_[iDof] * helpMat[iRow][iCol];
-	  }
-	}
+        for ( UInt iCol = 0; iCol < numFncs; iCol++ ) {
+          for ( UInt iDof = 0; iDof < dofs_; iDof++ ) {
+            elemMat[iRow*dofs_+iDof][iCol] = 
+                normal_[iDof] * helpMat[iRow][iCol];
+          }
+        }
       }
     }
 //     std::cerr<<"Density :"<<density<<std::endl;

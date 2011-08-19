@@ -19,6 +19,7 @@ SET(PDE_SRCS
 #  heatCondPDE.cc
   magEdgePDE.cc
 #  magneticPDE.cc
+# magneticScalarPDE.cc
 #  mechPDE.cc
 #  mixedEqnMap.cc
 #  mpcciPDE.cc
@@ -46,6 +47,13 @@ SET(TARGET_LL
   matvec
   utils
 )
+
+IF(USE_HDF5)
+  SET(TARGET_LL
+    ${TARGET_LL}
+    siminouthdf5
+    )
+ENDIF(USE_HDF5)
 
 IF(USE_MPCCI)
   SET(TARGET_LL

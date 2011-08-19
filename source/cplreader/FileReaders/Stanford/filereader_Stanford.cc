@@ -18,7 +18,7 @@ namespace CoupledField
     FileReader_Stanford::FileReader_Stanford(const std::string& name,
                                              const int dim,
                                              const int numFiles) :
-      FileReader(name, dim, numFiles) {
+      FileReader(name, dim, numFiles, 1) {
 
 //       std::vector<Realtype> NodalCoords;
 //       ReadNodalCoords(NodalCoords, 0);

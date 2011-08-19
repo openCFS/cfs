@@ -17,8 +17,9 @@
 #include "Forms/curlCurlNodeInt.hh"
 #include "Forms/nonConformingInt.hh"
 #include "Forms/nLincurlCurlNodeInt.hh"
+#include "Forms/nLinMagHystInt2D.hh"
 #include "Forms/laplaceInt.hh"
-#include "Forms/linElecInt.hh"
+#include "Forms/linGradBDBInt.hh"
 #include "Forms/linearForm.hh"
 #include "Forms/massInt.hh"
 #include "trapezoidal.hh"
@@ -26,6 +27,7 @@
 #include "Domain/ansatzFct.hh"
 #include "Driver/assemble.hh"
 #include "Utils/coordSystem.hh"
+#include "Utils/biotSavart.hh"
 #include "Utils/mathParser/mathParser.hh"
 
 #ifdef USE_SCRIPTING
@@ -40,7 +42,7 @@ DEFINE_LOG(magpde, "magpde")
   // **************
   //  Constructor
   // **************
-  MagPDE::MagPDE( Grid * aptgrid, ParamNode* paramNode )
+  MagPDE::MagPDE( Grid * aptgrid, PtrParamNode paramNode )
     :SinglePDE( aptgrid, paramNode ) {
 
 
@@ -53,7 +55,7 @@ DEFINE_LOG(magpde, "magpde")
 
     // check if we have a 3d setup
     is3d_ = false;
-    is3d_ = param->Get("domain")->Get("geometryType")->AsString() == "3d";
+    is3d_ = param->Get("domain")->Get("geometryType")->As<std::string>() == "3d";
   }
 
 
@@ -67,26 +69,26 @@ DEFINE_LOG(magpde, "magpde")
   //****************
   // Initialize PDE
   //****************
-  void MagPDE::Init(UInt sequenceStep, InfoNode* base) {
+  void MagPDE::Init(UInt sequenceStep, PtrParamNode base) {
     SinglePDE::Init(sequenceStep);
     
     // store regions on which the Lorentz force should be calculated
-    ParamNode *nodeStoreRes = myParam_->Get("storeResults", false);
+    PtrParamNode nodeStoreRes = myParam_->Get("storeResults", ParamNode::PASS);
     if (nodeStoreRes) {
-      StdVector<ParamNode*> resForceL
-        = nodeStoreRes->GetList("nodeResult", "type", "magForceLorentz");
+      ParamNodeList resForceL
+        = nodeStoreRes->GetListByVal("nodeResult", "type", "magForceLorentz");
       for (UInt i=0, n=resForceL.GetSize(); i<n; ++i) {
         if (resForceL[i]->Has("allRegions")) {
           regionsForceL_.insert(subdoms_.Begin(), subdoms_.End());
         } else {
-          ParamNode *nodeRegionList = resForceL[i]->Get("regionList", false);
+          PtrParamNode nodeRegionList = resForceL[i]->Get("regionList", ParamNode::PASS);
           if (nodeRegionList) {
-            StdVector<ParamNode*> resultRegions
+            ParamNodeList resultRegions
               = nodeRegionList->GetList("region");
             for (UInt iReg=0, nReg=resultRegions.GetSize(); iReg<nReg; ++iReg)
             {
-              RegionIdType curRegId = ptgrid_->RegionNameToId(
-                  resultRegions[iReg]->Get("name")->AsString());
+              RegionIdType curRegId = 
+                  ptgrid_->GetRegion().Parse(resultRegions[iReg]->Get("name")->As<std::string>());
               if (subdoms_.Find(curRegId) >= -1)
                 regionsForceL_.insert(curRegId);
             }
@@ -103,7 +105,23 @@ DEFINE_LOG(magpde, "magpde")
 
   void MagPDE::ReadSpecialBCs() {
 
-
+    // -----------------------------------
+    //  Check for Biot-Savart formulation
+    // -----------------------------------
+    PtrParamNode bsNode = myParam_->Get("biotSavart", ParamNode::PASS );
+    if( bsNode ) {
+      
+      // check, if we have transient simulation
+      if( analysistype_ == BasePDE::TRANSIENT ) {
+        EXCEPTION( "Biot-Savart is currently just implemented for static /"
+                   << "harmonic simulations!" );
+      }
+      biotSavart_ = 
+          shared_ptr<BiotSavart>(new BiotSavart());
+      biotSavart_->SetFormulation(BiotSavart::VEC_POT);
+      isBiotSavart_ = true;
+    }
+    
     // --------------------------------------------------------------------
     //   Get information about coils and open files for measurement coils
     // --------------------------------------------------------------------
@@ -113,7 +131,6 @@ DEFINE_LOG(magpde, "magpde")
     // Check for permanent magnets
     // -----------------------------
     ReadMagnets();
- 
   }
   
 
@@ -126,15 +143,15 @@ DEFINE_LOG(magpde, "magpde")
     isHysteresis_ = false;
 
     // Check, if "nonLinList" is present
-    ParamNode * nonLinListNode = myParam_->Get("nonLinList", false );
+    PtrParamNode nonLinListNode = myParam_->Get("nonLinList", ParamNode::PASS );
     if( nonLinListNode ) { 
 
       // Get nonlinear types
-      StdVector<ParamNode*> nonLinNodes = nonLinListNode->GetChildren();
+      ParamNodeList nonLinNodes = nonLinListNode->GetChildren();
       for( UInt i = 0; i < nonLinNodes.GetSize(); i++ ) {
 
         std::string actTypeString = nonLinNodes[i]->GetName();
-        std::string actId = nonLinNodes[i]->Get("id")->AsString();
+        std::string actId = nonLinNodes[i]->Get("id")->As<std::string>();
 
         NonLinType actType;
         String2Enum( actTypeString, actType );
@@ -145,7 +162,7 @@ DEFINE_LOG(magpde, "magpde")
     }
 
     // Run over all region and set entry in "regionNonLinId"
-    StdVector<ParamNode*> regionNodes = 
+    ParamNodeList regionNodes = 
       myParam_->Get("regionList")->GetChildren();
     
     RegionIdType actRegionId;
@@ -157,13 +174,13 @@ DEFINE_LOG(magpde, "magpde")
     for( UInt i = 0; i < regionNodes.GetSize(); i++ ) {
       
       // get data
-      regionNodes[i]->Get( "name", actRegionName );
-      regionNodes[i]->Get( "nonLinId", actNonLinId );
+      regionNodes[i]->GetValue( "name", actRegionName );
+      regionNodes[i]->GetValue( "nonLinId", actNonLinId );
       
       if( actNonLinId == "" )
         continue;
       
-      actRegionId = ptgrid_->RegionNameToId( actRegionName );
+      actRegionId = ptgrid_->GetRegion().Parse( actRegionName );
       
       // Check nonLinId was already registerd
       if( nonLinIdType_.find( actNonLinId) == nonLinIdType_.end() ) {
@@ -199,14 +216,12 @@ DEFINE_LOG(magpde, "magpde")
     // Here we need in addition the nonLinMethod_ for the definition
     // of the integrators
     nonLinMethod_ = FIXEDPOINT;
-    ParamNode * nonLinNode = myParam_->Get("nonLinear", false );
-    nonLinMethod_ = "fixPoint";
+    PtrParamNode nonLinNode = myParam_->Get("nonLinear", ParamNode::PASS );
     if( nonLinNode ) {
       std::string methodString;
-      nonLinNode->Get(  "method", nonLinMethod_, false );
+      nonLinNode->GetValue(  "method", methodString, ParamNode::PASS );
       nonLinMethod_ = NonLinMethodTypeEnum.Parse(methodString);
     }
-
   }
 
 
@@ -231,7 +246,7 @@ DEFINE_LOG(magpde, "magpde")
        actMat    = it->second;
 
       // Get current region node
-      std::string regionName = ptgrid_->RegionIdToName( actRegion );
+      std::string regionName = ptgrid_->GetRegion().ToString( actRegion );
 
       // create new entity list
       shared_ptr<ElemList> actSDList( new ElemList(ptgrid_ ) );
@@ -241,9 +256,9 @@ DEFINE_LOG(magpde, "magpde")
 
         if ( regionNonLinType_[actRegion] == HYSTERESIS ) {
 
-          if (is3d_ ) {
-            EXCEPTION("Magnetics with hysteresis in 3D not supported");
-          }
+          //          if (is3d_ ) {
+          EXCEPTION("Magnetics with hysteresis currently not supported");
+            //          }
           
           // hysteresis modeling in this region
           StdVector<Elem*> elemssd;
@@ -251,34 +266,48 @@ DEFINE_LOG(magpde, "magpde")
           UInt numElSD =  elemssd.GetSize();
 
           //allocate for hystersis modeling; 
-          bool computeHystInverse = true;
-          bool isHystInverse = false;
-          actMat->InitHyst(numElSD, actSDList, isHystInverse, computeHystInverse);
+          std::cout << "Do vec Hyst!" << std::endl;
+          actMat->InitVecHyst(numElSD, actSDList, dim_);
 
+          BaseForm *curlcurlHyst; 
+          curlcurlHyst = new nLinMagHystInt2D( actMat, isaxi_, upLagrangeForm );
+          curlcurlHyst->SetSolution( dynamic_cast<NodeStoreSol<Double>&>(*sol_ ));
+          
+          BiLinFormContext * stiffContext = 
+            new BiLinFormContext( curlcurlHyst, STIFFNESS );
+          stiffContext->SetPtPdes(this, this);   
+          stiffContext->SetResults( results_[0], results_[0],
+                                    actSDList, actSDList );     
+          assemble_->AddBiLinearForm( stiffContext);
+          
+          
+          //save bilinearForm
+          pdeBilinearForms_[actRegion][curlcurlHyst->GetName()] = curlcurlHyst;
         }
+        else if ( regionNonLinType_[actRegion] == PERMEABILITY ) {
+          //nonlinear permeability!!
+          BaseForm *curlcurlNL; 
+          if( is3d_ ) {
+            curlcurlNL = new nLinCurlCurlNode3DInt( actMat, upLagrangeForm );
+          } else {
+            curlcurlNL = new nLinCurlCurlNode2DInt( actMat, isaxi_, upLagrangeForm );
+          }
+          
+          curlcurlNL->SetNonLinMethod( nonLinMethod_ );      
+          curlcurlNL->SetSolution( dynamic_cast<NodeStoreSol<Double>&>(*sol_ ));
+          
+          BiLinFormContext * stiffContext = 
+            new BiLinFormContext( curlcurlNL, STIFFNESS );
+          stiffContext->SetPtPdes(this, this);   
+          stiffContext->SetResults( results_[0], results_[0],
+                                    actSDList, actSDList );     
+          assemble_->AddBiLinearForm( stiffContext);
+          
+          
+          //save bilinearForm
+          pdeBilinearForms_[actRegion][curlcurlNL->GetName()] = curlcurlNL;
+          
 
-        BaseForm *curlcurlNL; 
-        if( is3d_ ) {
-          curlcurlNL = new nLinCurlCurlNode3DInt( actMat, upLagrangeForm );
-        } else {
-          curlcurlNL = new nLinCurlCurlNode2DInt( actMat, isaxi_, upLagrangeForm );
-        }
-        
-        curlcurlNL->SetNonLinMethod( nonLinMethod_ );      
-        curlcurlNL->SetSolution( dynamic_cast<NodeStoreSol<Double>&>(*sol_ ));
-        
-        BiLinFormContext * stiffContext = 
-          new BiLinFormContext( curlcurlNL, STIFFNESS );
-        stiffContext->SetPtPdes(this, this);   
-        stiffContext->SetResults( results_[0], results_[0],
-                                  actSDList, actSDList );     
-        assemble_->AddBiLinearForm( stiffContext);
-        
-        
-        //save bilinearForm
-        pdeBilinearForms_[actRegion][curlcurlNL->GetName()] = curlcurlNL;
-        
-        if ( regionNonLinType_[actRegion] == PERMEABILITY ) {
           // nonlinear RHS linearform!!
           LinearForm * rhsSource;
           if ( is3d_ ) {
@@ -288,7 +317,7 @@ DEFINE_LOG(magpde, "magpde")
             rhsSource = new nLinMagNode2D_linFormInt( actMat, isaxi_, 
                                                       upLagrangeForm);
           }
-
+          
           rhsSource->SetSolution( dynamic_cast<NodeStoreSol<Double>&>(*sol_ ));
           LinearFormContext * rhsContext = 
             new LinearFormContext( rhsSource );
@@ -317,9 +346,9 @@ DEFINE_LOG(magpde, "magpde")
         pdeBilinearForms_[actRegion][curlcurl->GetName()] = curlcurl;
 
 
-        if ( nonLin_ == true ) {
-          // for nonlinear RHS linearform we need linear and nonlinear
-          // subdomains
+        if ( nonLin_ == true && isHysteresis_ == false ) {
+          // we need nonlinear RHS linearform for both linear and nonlinear
+          // subdomains; just in case of material nonlinearity!
           LinearForm * rhsSource;
 
           if ( is3d_ ) {
@@ -391,7 +420,7 @@ DEFINE_LOG(magpde, "magpde")
         // the scalar potential
         // Note: this integrator is not passed to the assemble class.
         // It is only needed later for calculating the eddy current density
-        linElecInt * elecBiLin = new linElecInt( actMat,
+        linGradBDBInt * elecBiLin = new linGradBDBInt( actMat, ELEC_PERMITTIVITY,
                                                  FULL, true );
         pdeBilinearForms_[actRegion][elecBiLin->GetName()] = elecBiLin;
       }
@@ -401,7 +430,7 @@ DEFINE_LOG(magpde, "magpde")
       for ( UInt coil = 0; coil < coilDef_.GetSize(); coil++ ) {
         if ( actRegion == coilRegionId_[coil] ) {
           std::string factor = coilDef_[coil]->value_ + "/" +
-            GenStr(coilDef_[coil]->windingCrossSection_);
+            lexical_cast<std::string>(coilDef_[coil]->windingCrossSection_);
 
           if ( is3d_ ) {
           	VolForceInt *coilSource3d = 
@@ -410,9 +439,9 @@ DEFINE_LOG(magpde, "magpde")
 
 
             StdVector<std::string> currDensity(3);
-            currDensity[0] = factor + "*" + GenStr(coilDef_[coil]->locFlowDir_[0]);
-            currDensity[1] = factor + "*" + GenStr(coilDef_[coil]->locFlowDir_[1]);
-            currDensity[2] = factor + "*" + GenStr(coilDef_[coil]->locFlowDir_[2]);
+            currDensity[0] = factor + "*" + lexical_cast<std::string>(coilDef_[coil]->locFlowDir_[0]);
+            currDensity[1] = factor + "*" + lexical_cast<std::string>(coilDef_[coil]->locFlowDir_[1]);
+            currDensity[2] = factor + "*" + lexical_cast<std::string>(coilDef_[coil]->locFlowDir_[2]);
             coilSource3d->SetVolForceVector( currDensity,
                                              coilDef_[coil]->flowCoordSys_,
                                              true, 1.0 );
@@ -486,8 +515,8 @@ DEFINE_LOG(magpde, "magpde")
     // =======================================================================
     // Integrators for NonConforming Interfaces
     // =======================================================================
-    ParamNode* ncIfaceListNode
-        = param->Get("domain")->Get("ncInterfaceList", false);
+    PtrParamNode ncIfaceListNode
+        = param->Get("domain")->Get("ncInterfaceList", ParamNode::PASS);
     
     // Get index of LAGRANGE_MULT result, just in case of coupled magnetics
     UInt lmResultIdx = 0;
@@ -504,20 +533,20 @@ DEFINE_LOG(magpde, "magpde")
       // get regionId of Lagrangian surface
       StdVector<std::string> keyVec, attrVec, valVec;
       std::string slaveSide;
-      std::string ncIfaceName = ptgrid_->RegionIdToName(ncIFaces_[i]);
+      std::string ncIfaceName = ptgrid_->GetRegion().ToString(ncIFaces_[i]);
 
       if (!ncIfaceListNode) {
         EXCEPTION("No ncInterfaces defined in domain section.");
       }
-      ParamNode* curNciNode = ncIfaceListNode->Get("ncInterface", "name",
+      PtrParamNode curNciNode = ncIfaceListNode->GetByVal("ncInterface", "name",
                                                    ncIfaceName);
-      slaveSide = curNciNode->Get("slaveSide")->AsString();
+      slaveSide = curNciNode->Get("slaveSide")->As<std::string>();
 
       // Part 1: Define integrator M(u, Lambda) on
       //         non-conforming interface (master/slave side)
       LOG_DBG2(magpde) << "NonMatching: Defining nonconforming integrator"
                         << " for M on interface '"
-                        << ptgrid_->RegionIdToName(ncIFaces_[i]) << "'.";
+                        << ptgrid_->GetRegion().ToString(ncIFaces_[i]) << "'.";
       shared_ptr<ElemList> actNcList( new ElemList(ptgrid_ ) );
       actNcList->SetRegion( ncIFaces_[i] );
 
@@ -547,9 +576,9 @@ DEFINE_LOG(magpde, "magpde")
       //         Lagrangian surface (slave side)
       LOG_DBG2(magpde) << "NonMatching: Defining mass integrator"
                         << " for D on interface '"
-                        << ptgrid_->RegionIdToName(ncIFaces_[i]) << "'.";
+                        << ptgrid_->GetRegion().ToString(ncIFaces_[i]) << "'.";
       shared_ptr<SurfElemList> actSDList( new SurfElemList(ptgrid_ ) );
-      actSDList->SetRegion( ptgrid_->RegionNameToId( slaveSide ) );
+      actSDList->SetRegion( ptgrid_->GetRegion().Parse( slaveSide ) );
 
       // D(u, Lambda) has the form of a standard mass
       // integrator with factor 1.0
@@ -579,6 +608,14 @@ DEFINE_LOG(magpde, "magpde")
     else 
       solveStep_ = new StdSolveStep(*this);
   }
+  void MagPDE::PreparePDE4Computation()
+  {
+    if ( isBiotSavart_ ) {
+      PtrParamNode bsNode = myParam_->Get("biotSavart", ParamNode::PASS );
+      biotSavart_->Init( bsNode, ptgrid_, eqnMap_ );
+      //biotSavart_->ComputeBiotSavartField();
+    }
+  }
 
 
   // ======================================================
@@ -587,7 +624,8 @@ DEFINE_LOG(magpde, "magpde")
 
   void MagPDE::InitTimeStepping() {
 
-    TS_alg_ = new Trapezoidal( algsys_ );
+    PtrParamNode systemNode = FindLinearSystem(pdename_);
+    TS_alg_ = new Trapezoidal( algsys_, systemNode );
   }
 
 
@@ -647,6 +685,14 @@ DEFINE_LOG(magpde, "magpde")
         CalcEddyCurrent<Double>( res );
       }
       break;
+    
+    case MAG_ELEM_PERMEABILITY:
+      if( isComplex_ ) {
+        CalcPermeability<Complex>( res );
+      } else {
+        CalcPermeability<Double>( res );
+      }
+      break;
       
     case MAG_ELEM_PERMEABILITY:
       if( isComplex_ ) {
@@ -687,8 +733,7 @@ DEFINE_LOG(magpde, "magpde")
       break;
       
     default:
-      Warning( "Resulttype not computable by magnetic PDE",
-               __FILE__, __LINE__ );
+      WARN( "Resulttype not computable by magnetic PDE" );
     }
 
     // In any case, we should trigger calculation of magnetic
@@ -886,12 +931,17 @@ DEFINE_LOG(magpde, "magpde")
       if ( regionNonLinType_[regionIt.GetRegion()] != NO_NONLINEARITY ) {
         
         //read in the BH-curve data and compute the approximation
-        std::string nlfnc = materials_[regionIt.GetRegion()]->GetNonlinFileName();
+        std::string nlfnc = materials_[regionIt.GetRegion()]->GetNonlinFileName(MAG_PERMEABILITY);
         ApproxData *nlinFnc = new SmoothSpline(nlfnc);
         nlinFnc->CalcBestParameter();
         nlinFnc->CalcApproximation();
-        bilinear_stiff = new nLinCurlCurlNode2DInt( materials_[regionIt.GetRegion()],
-                                                    isaxi_);
+        if( is3d_ ) {
+          bilinear_stiff = new nLinCurlCurlNode3DInt( materials_[regionIt.GetRegion()],
+                                                      true );
+        } else  {
+          bilinear_stiff = new nLinCurlCurlNode2DInt( materials_[regionIt.GetRegion()],
+                                                      isaxi_, true );
+        }
         
         bilinear_stiff->SetSolution( dynamic_cast<NodeStoreSol<Double>&>(*sol_ ));
         
@@ -899,7 +949,12 @@ DEFINE_LOG(magpde, "magpde")
         // the Frechet part of the stiffness is calculated!
         bilinear_stiff->SetNonLinMethod( FIXEDPOINT );
       } else {
-        bilinear_stiff = new CurlCurlNode2DInt( materials_[regionIt.GetRegion()], isaxi_);
+        if (is3d_ ) {
+          bilinear_stiff = new CurlCurlNode3DInt( materials_[regionIt.GetRegion()] );
+        } else {
+          bilinear_stiff = new CurlCurlNode2DInt( materials_[regionIt.GetRegion()], isaxi_);
+        }
+        bilinear_stiff->SetAnsatzFct( results_[0]->fctType, results_[0]->fctType );
       }
       
       ElemList actSDList(ptgrid_ );
@@ -1050,7 +1105,6 @@ DEFINE_LOG(magpde, "magpde")
   
   template<class TYPE>
   void MagPDE::CalcPermeability( shared_ptr<BaseResult> result ) {
-
     TYPE elemPerm;
     Vector<TYPE> elemFlux;
     Double bAbs, reluct;
@@ -1086,7 +1140,6 @@ DEFINE_LOG(magpde, "magpde")
       actVal[it.GetPos() ] = elemPerm;
     }
   }
-
 
   template<class TYPE>
   void MagPDE::CalcForceLorentz( shared_ptr<BaseResult> result ) {
@@ -1199,12 +1252,12 @@ DEFINE_LOG(magpde, "magpde")
 
     // Check if the element "coils" is present at all.
     // Otherwise leave
-    ParamNode * coilNode = myParam_->Get( "coils", false );
+    PtrParamNode coilNode = myParam_->Get( "coils", ParamNode::PASS );
     if ( !coilNode )
       return;
     
     // Get single coil nodes
-    StdVector<ParamNode*> coilNodes = coilNode->GetChildren();
+    ParamNodeList coilNodes = coilNode->GetChildren();
 
     // Trigger reading in of definitions
     if( coilNodes.GetSize() > 0 ) {
@@ -1212,8 +1265,8 @@ DEFINE_LOG(magpde, "magpde")
       for( UInt i = 0; i < coilNodes.GetSize(); i++ ) {
         
         // get region name of actual coil
-        std::string regionName = coilNodes[i]->Get("name")->AsString();
-        RegionIdType regionId = ptgrid_->RegionNameToId( regionName );
+        std::string regionName = coilNodes[i]->Get("name")->As<std::string>();
+        RegionIdType regionId = ptgrid_->GetRegion().Parse( regionName );
 
         coilRegionId_.Push_back( regionId );
         coilDef_.Push_back( shared_ptr<Coil>( new Coil( regionId,
@@ -1233,12 +1286,12 @@ DEFINE_LOG(magpde, "magpde")
 
     // Check if the element "magnets" is present at all.
     // Otherwise leave
-    ParamNode * magnetNode = myParam_->Get( "magnets", false );
+    PtrParamNode magnetNode = myParam_->Get( "magnets", ParamNode::PASS );
     if ( !magnetNode )
       return;
 
     // Get single magnet nodes
-    StdVector<ParamNode*> magnetNodes = magnetNode->GetChildren();
+    ParamNodeList magnetNodes = magnetNode->GetChildren();
 
     // trigger definition of magnets
     if( magnetNodes.GetSize() > 0 ) {
@@ -1249,19 +1302,19 @@ DEFINE_LOG(magpde, "magpde")
       for( UInt i = 0; i < magnetNodes.GetSize(); i++ ) {
         
         // get region name of actual magnet
-        std::string regionName = magnetNodes[i]->Get("name")->AsString();
-        RegionIdType regionId = ptgrid_->RegionNameToId( regionName );
+        std::string regionName = magnetNodes[i]->Get("name")->As<std::string>();
+        RegionIdType regionId = ptgrid_->GetRegion().Parse( regionName );
         
         magnetsDomain_.Push_back( regionId );
         
         // read orientation
-        magnetNodes[i]->Get( "orientX", tmpDir );
+        magnetNodes[i]->GetValue( "orientX", tmpDir );
         magnetsOriX_.Push_back( tmpDir );
           
-        magnetNodes[i]->Get( "orientY", tmpDir );
+        magnetNodes[i]->GetValue( "orientY", tmpDir );
         magnetsOriY_.Push_back( tmpDir );
           
-        magnetNodes[i]->Get( "orientZ", tmpDir );
+        magnetNodes[i]->GetValue( "orientZ", tmpDir );
         magnetsOriZ_.Push_back( tmpDir );
 
         // report name to logfile
@@ -1284,11 +1337,26 @@ DEFINE_LOG(magpde, "magpde")
     else {
       vecComponents = "x", "y";
     }
-    
     // === MAGNETIC VECTOR POTENTIAL ===
     shared_ptr<ResultInfo> res1(new ResultInfo);
-    shared_ptr<AnsatzFct> fct(new LagrangeFct);
     res1->resultType = MAG_POTENTIAL;
+    
+    // check if problem is lagrange or legendre
+    std::string approxType = myParam_->Get("type")->As<std::string>();
+    if ( approxType == "lagrange" ) {
+      shared_ptr<AnsatzFct> fct(new LagrangeFct);
+      res1->fctType = fct;
+      res1->definedOn = ResultInfo::NODE;
+    } else if (approxType == "legendre" ) {
+      shared_ptr<LegendreFct> fct(new LegendreFct);
+      UInt order =  myParam_->Get("order")->As<UInt>();
+      fct->SetIsoOrder( order );
+      res1->definedOn = ResultInfo::PFEM;
+      res1->fctType = fct;
+    } else {
+      EXCEPTION("Approximation type' " << approxType << "' not known");
+    }
+    
     if ( is3d_ ) {
       res1->dofNames = vecComponents;
     }
@@ -1296,15 +1364,12 @@ DEFINE_LOG(magpde, "magpde")
       res1->dofNames = "";
     }
     res1->unit = "Vs/m";
-    res1->definedOn = ResultInfo::NODE;
     if ( is3d_ ) {
       res1->entryType = ResultInfo::VECTOR;
     }
     else {
       res1->entryType = ResultInfo::SCALAR;
     }
-    res1->fctType = fct;
-    
     results_.Push_back( res1 );
     availResults_.insert( res1 );
 
@@ -1365,6 +1430,16 @@ DEFINE_LOG(magpde, "magpde")
     eddy->entryType = ResultInfo::VECTOR;
     eddy->fctType = shared_ptr<ConstFct>(new ConstFct() );
     availResults_.insert( eddy ); 
+    
+    // === PERMEABILITY  ===
+    shared_ptr<ResultInfo> perm(new ResultInfo);
+    perm->resultType = MAG_ELEM_PERMEABILITY;
+    perm->dofNames = "";
+    perm->unit = "Vs/Am";
+    perm->definedOn = ResultInfo::ELEMENT;
+    perm->entryType = ResultInfo::SCALAR;
+    perm->fctType = shared_ptr<ConstFct>(new ConstFct() );
+    availResults_.insert( perm );
 
     // === PERMEABILITY  ===
     shared_ptr<ResultInfo> perm(new ResultInfo);
@@ -1416,28 +1491,26 @@ DEFINE_LOG(magpde, "magpde")
     LOG_DBG2(magpde) << "NonMatching: Checking if nonconforming "
                       << "interfaces of PDE exist in domain.";
 
-    ParamNode* domainNCIfaceListNode;
-    domainNCIfaceListNode = param->Get("domain")->Get("ncInterfaceList", false);
+    PtrParamNode domainNCIfaceListNode;
+    domainNCIfaceListNode = param->Get("domain")->Get("ncInterfaceList", ParamNode::PASS);
 
     if(domainNCIfaceListNode)
     {
-      ParamNode* ncInterfaceListNode =
-        param->Get("sequenceStep", "index", GenStr(sequenceStep_) )
-        ->Get("pdeList")->Get("magnetic")->Get("ncInterfaceList", false);
-      StdVector<ParamNode*> pdeNCIfaceNodes;
+      PtrParamNode ncInterfaceListNode = myParam_->Get("ncInterfaceList", ParamNode::PASS );
+      ParamNodeList pdeNCIfaceNodes;
 
       if(ncInterfaceListNode)
       {
         pdeNCIfaceNodes = ncInterfaceListNode->GetList("ncInterface");
 
         for (UInt i = 0; i < pdeNCIfaceNodes.GetSize(); i++) {
-          std::string pdeIfaceName = pdeNCIfaceNodes[i]->Get("name")->AsString();
+          std::string pdeIfaceName = pdeNCIfaceNodes[i]->Get("name")->As<std::string>();
           std::string domainIfaceName;
 
-          ParamNode* domainIfaceNode = domainNCIfaceListNode->Get("ncInterface",
+          PtrParamNode domainIfaceNode = domainNCIfaceListNode->GetByVal("ncInterface",
               "name",
               pdeIfaceName,
-              false);
+              ParamNode::PASS);
           if(!domainIfaceNode)
           {
             LOG_DBG2(magpde) << "NonMatching: Nonconforming "
@@ -1449,7 +1522,7 @@ DEFINE_LOG(magpde, "magpde")
 
           ncIfaceNamesForPDE.Push_back(pdeIfaceName);
         }
-        ptgrid_->RegionNameToId( ncIfaceIds, ncIfaceNamesForPDE );
+        ptgrid_->GetRegion().Parse(ncIfaceNamesForPDE, ncIfaceIds);
 
         for (UInt i = 0; i < ncIfaceIds.GetSize(); i++) {
           ncIFaces_.Push_back(ncIfaceIds[i]);
@@ -1580,7 +1653,7 @@ DEFINE_LOG(magpde, "magpde")
 //       ForceOpVWP_ = new  MagForceOp(ptgrid_, this, eqnMap_, *solhelp, dim_, 
 //                                     materials_,  isaxi_, true );
       
-//       ptgrid_->RegionNameToId( forceRegionIds, forceRegions ); 
+//       ptgrid_->GetRegion().Parse( forceRegionIds, forceRegions );
 //       ForceOpVWP_->Setup( forceRegionIds, forceNodes );
 //     }
   }
@@ -1661,30 +1734,52 @@ DEFINE_LOG(magpde, "magpde")
 //       }
 //       else {
 
-      CurlCurlNode2DInt* curlOp = NULL;
-      if ( regionNonLinType_[actRegionId] == HYSTERESIS 
-           ||  regionNonLinType_[actRegionId] == PERMEABILITY ) {
-        std::string bilinearName = "nLinCurlCurlNode2DInt";
-        curlOp = dynamic_cast<nLinCurlCurlNode2DInt*>(pdeBilinearForms_[actRegionId][bilinearName]);
-      } else {
-        curlOp = dynamic_cast<CurlCurlNode2DInt*>
-          (pdeBilinearForms_[actRegionId]["CurlCurlNode2DInt"]);
-      }
 
-      //set element info      
-      curlOp->ExtractElemInfo( it );
-      // case 1: element midpoint
-      if( ip == 0 ) {
-        Vector<Double> intPoint;
-        it.GetElem()->ptElem->GetCoordMidPoint(intPoint);
-        curlOp->SetIntPoint(intPoint);
-        curlOp->calcBMat(bMat, 0, CornerCoords);
-        curlOp->UnsetIntPoint();     
-      } else {
-        // case2: real integration point
-        curlOp->calcBMat(bMat, ip, CornerCoords);
-      }      
-      
+      if ( regionNonLinType_[actRegionId] == HYSTERESIS ) {
+        EXCEPTION("Magnetics with hysteresis currently not supported");
+//         std::string bilinearName = "nLinMagHystInt2D";
+//         nLinMagHystInt2D* curlHystOp;
+//         curlHystOp = dynamic_cast<nLinMagHystInt2D*>(pdeBilinearForms_[actRegionId][bilinearName]);
+
+//         //set element info      
+//         curlHystOp->ExtractElemInfo( it );
+
+//         // case 1: element midpoint
+//         if( ip == 0 ) {
+//           Vector<Double> intPoint;
+//           it.GetElem()->ptElem->GetCoordMidPoint(intPoint);
+//           curlHystOp->SetIntPoint(intPoint);
+//           curlHystOp->calcBMat(bMat, 0, CornerCoords);
+//           curlHystOp->UnsetIntPoint();     
+//         } else {
+//           // case2: real integration point
+//           curlHystOp->calcBMat(bMat, ip, CornerCoords);
+//         }      
+      }
+      else {
+        CurlCurlNode2DInt* curlOp = NULL;
+        if ( regionNonLinType_[actRegionId] == PERMEABILITY ) {
+          std::string bilinearName = "nLinCurlCurlNode2DInt";
+          curlOp = dynamic_cast<nLinCurlCurlNode2DInt*>(pdeBilinearForms_[actRegionId][bilinearName]);
+        } else {
+          curlOp = dynamic_cast<CurlCurlNode2DInt*>
+            (pdeBilinearForms_[actRegionId]["CurlCurlNode2DInt"]);
+        }
+        
+        //set element info      
+        curlOp->ExtractElemInfo( it );
+        // case 1: element midpoint
+        if( ip == 0 ) {
+          Vector<Double> intPoint;
+          it.GetElem()->ptElem->GetCoordMidPoint(intPoint);
+          curlOp->SetIntPoint(intPoint);
+          curlOp->CalcBMat(bMat, 0, CornerCoords);
+          curlOp->UnsetIntPoint();     
+        } else {
+          // case2: real integration point
+          curlOp->CalcBMat(bMat, ip, CornerCoords);
+        }      
+      }
     
       field = bMat * elSol;
       
@@ -1706,24 +1801,25 @@ DEFINE_LOG(magpde, "magpde")
                                Vector<Double>& field ) {
 
 
-    //first compute flux density
-    CalcFluxDensityAtIP( it, ip, field );
+
 
     RegionIdType actRegion = it.GetElem()->regionId;
   
     if ( regionNonLinType_[actRegion] == HYSTERESIS ) {
-      Vector<Double> bfield = field;
-      materials_[actRegion]->GetVectorHystVal( it.GetElem()->elemNum,
-                                               field ); 
-      //ComputeVectorHystVal( it.GetElem()->elemNum, bfield, field ); 
-      //GetVectorHystVal( it.GetPos(), field );
+      EXCEPTION("Magnetics with hysteresis currently not supported");
+//       materials_[actRegion]->GetVectorXHystVal( it.GetElem()->elemNum,
+//                                                field ); 
     }
     else if ( regionNonLinType_[actRegion] == PERMEABILITY ) {
       EXCEPTION("CalcHfieldAtIP for nonlinear BH curve not implemented");
     }
     else {
+      //first compute flux density
+      CalcFluxDensityAtIP( it, ip, field );
+
       Double reluctivity;
       materials_[actRegion]->GetScalar( reluctivity, MAG_RELUCTIVITY, Global::REAL);
+
       field *= reluctivity;
     }
     
@@ -1752,9 +1848,9 @@ DEFINE_LOG(magpde, "magpde")
     
       // Get electric bilinear form for regions with non-zero
       // conductivity
-      linElecInt* elecBiLin = 
-        dynamic_cast<linElecInt*>
-        (pdeBilinearForms_[actRegionId]["linElecInt"]);
+      linGradBDBInt* elecBiLin = 
+        dynamic_cast<linGradBDBInt*>
+        (pdeBilinearForms_[actRegionId]["linGradBDBInt"]);
       
          // case 1: dummy integration point
       if( ip == 0 ) {
@@ -1783,7 +1879,7 @@ DEFINE_LOG(magpde, "magpde")
           Matrix<Double> ptCoord;
           ptgrid_->GetElemNodesCoord( ptCoord, it.GetElem()->connect, true );
           elecBiLin->ExtractElemInfo( it );
-          elecBiLin->calcBMat( bMat, ip, ptCoord );
+          elecBiLin->CalcBMat( bMat, ip, ptCoord );
         }
         jEddy += bMat*elecPotElem;
       }
@@ -1839,7 +1935,7 @@ DEFINE_LOG(magpde, "magpde")
         StdVector<std::string> couplRegions;
         StdVector<RegionIdType> regionIds;
         ptCoupling_->GetOutputRegions(actCoupling, couplRegions);
-        ptgrid_->RegionNameToId( regionIds, couplRegions );
+        ptgrid_->GetRegion().Parse(couplRegions, regionIds);
         
         // Check, that every coupling region is part of
         // the magnetic pde itself
@@ -1898,7 +1994,7 @@ DEFINE_LOG(magpde, "magpde")
           StdVector<std::string> couplRegions;
           StdVector<RegionIdType> regionIds;
           ptCoupling_->GetOutputRegions(actCoupling, couplRegions);
-          ptgrid_->RegionNameToId( regionIds, couplRegions );
+          ptgrid_->GetRegion().Parse( couplRegions, regionIds );
 
           CalcNodeForceLorentz(*temp, regionIds, cplNodeNumPos_[forcesCount]);
           
@@ -1929,7 +2025,7 @@ DEFINE_LOG(magpde, "magpde")
       Integer sdIndex = subdoms_.Find( regionIds[reg] );
       if( sdIndex == -1 ) {
         EXCEPTION( "The region coupling region '" <<
-            ptgrid_->RegionIdToName( regionIds[reg] )
+            ptgrid_->GetRegion().ToString( regionIds[reg] )
             << "' was not found in magneticPDE" );
       }
 
@@ -1967,7 +2063,7 @@ DEFINE_LOG(magpde, "magpde")
           if( coilIndex != -1 ) {
             MathParser * mParser =  domain->GetMathParser();
             std::string factor = coilDef_[coilIndex]->value_ + "/" 
-            + GenStr(coilDef_[coilIndex]->windingCrossSection_ );
+            + lexical_cast<std::string>(coilDef_[coilIndex]->windingCrossSection_ );
             mParser->SetExpr( mHandle_, factor );
             Double currDens = mParser->Eval(mHandle_);
             if( is3d_ ) {

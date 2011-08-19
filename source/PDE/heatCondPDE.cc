@@ -13,29 +13,37 @@
 
 #include "Forms/laplaceInt.hh"
 #include "Forms/linHeatCondInt.hh"
+#include "Forms/nLinHeatInt.hh"
 #include "Forms/massInt.hh"
 #include "Forms/linNeumannInt.hh"
 #include "Forms/linearForm.hh"
 #include "Forms/abcInt.hh"
+#include "Forms/nonConformingInt.hh"
+
+#include "DataInOut/Logging/cfslog.hh"
 
 #include "PDE/trapezoidal.hh"
 
 #include "DataInOut/WriteInfo.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "Domain/ansatzFct.hh"
+#include "Domain/domain.hh"
 
 #include "Driver/stdSolveStep.hh"
 #include "Driver/assemble.hh"
 #include "CoupledPDE/pdecoupling.hh"
+#include "Optimization/Design/DesignSpace.hh"
 
 
 namespace CoupledField {
 
+  DECLARE_LOG(heatcondpde)
+  DEFINE_LOG(heatcondpde, "pde.heatcond")
 
 // ======================================================
 // SET SOLUTION INFORMATION
 // ======================================================
-HeatCondPDE::HeatCondPDE(Grid * aptgrid, ParamNode* paramNode )
+HeatCondPDE::HeatCondPDE(Grid * aptgrid, PtrParamNode paramNode )
 :SinglePDE( aptgrid, paramNode ) {
 
   pdename_          = "heatConduction";
@@ -56,7 +64,7 @@ void HeatCondPDE::SetInitialCondition() {
 
   try {
     // fetch paramnodes for initial condition
-    myParam_->Get("InitialCondition", InitialCondition_);
+    myParam_->GetValue("InitialCondition", InitialCondition_);
 
     //std::cerr << "\n Initial Temperature : " << InitialCondition_ << std::endl;
 
@@ -95,7 +103,7 @@ void HeatCondPDE::ReadSpecialBCs() {
   //inBcs_.Clear();
 
   // fetch paramnodes for Robin boundary condition
-  StdVector<ParamNode*> rbcNodes =
+  ParamNodeList rbcNodes =
     myParam_->Get("bcsAndLoads")->GetList("robin");
 
   std::string myDof, myName, myType, myHTC, myBulkTemp;
@@ -103,24 +111,23 @@ void HeatCondPDE::ReadSpecialBCs() {
   // iterate over all parameter nodes
   for( UInt i = 0; i < rbcNodes.GetSize(); i++ ) {
     try {
-      myDof = "";
-      rbcNodes[i]->Get( "name", myName );
-      rbcNodes[i]->Get( "entityType", myType );
-      rbcNodes[i]->Get( "heatTransferCoefficient", myHTC );
-      rbcNodes[i]->Get( "bulkTemperature", myBulkTemp );
+      myDof.clear();
+      rbcNodes[i]->GetValue( "name", myName );
+      rbcNodes[i]->GetValue( "entityType", myType );
+      rbcNodes[i]->GetValue( "heatTransferCoefficient", myHTC );
+      rbcNodes[i]->GetValue( "bulkTemperature", myBulkTemp );
 
       // Create robin boundary condition
       shared_ptr<RobinBc> actBc ( new RobinBc );
 
-      EntityList::ListType listType;
-      EntityList::String2Enum( myType, listType );
+      EntityList::ListType listType = EntityList::listType.Parse(myType);
       shared_ptr<EntityList> actList =
         ptgrid_->GetEntityList( listType, myName, EntityList::REGION );
 
       actBc->entities = actList;
       actBc->result = results_[0];
       actBc->eqnMap = eqnMap_;
-      if( myDof  == "" ) {
+      if( myDof.empty() ) {
         actBc->dof = 1;
       } else {
         actBc->dof = results_[0]->GetDofIndex( myDof );
@@ -136,28 +143,120 @@ void HeatCondPDE::ReadSpecialBCs() {
           << myName << "'!" );
     }
   }
+
+    // read volume force definition
+    ReadRegionLoads();
+
 }
 
-void HeatCondPDE::DefineIntegrators() {
 
-  Double density, heatCapacity, thermalConductivity;
-  Double coeffmass, coeffstiff;
+  // ****************************
+  //  Initialize Nonlinearities
+  // ****************************
+  void HeatCondPDE::InitNonLin() {
+
+    nonLin_ = false;
+
+    // Check, if "nonLinList" is present
+    PtrParamNode nonLinListNode = myParam_->Get("nonLinList", ParamNode::PASS );
+    if( nonLinListNode ) { 
+
+      // Get nonlinear types
+      ParamNodeList nonLinNodes = nonLinListNode->GetChildren();
+      for( UInt i = 0; i < nonLinNodes.GetSize(); i++ ) {
+
+        std::string actTypeString = nonLinNodes[i]->GetName();
+        std::string actId = nonLinNodes[i]->Get("id")->As<std::string>();
+
+        NonLinType actType;
+        String2Enum( actTypeString, actType );
+
+        nonLinIdType_[actId] = actType;
+      }
+    }
+
+    // Run over all region and set entry in "regionNonLinId"
+    ParamNodeList regionNodes = 
+      myParam_->Get("regionList")->GetChildren();
+    
+    RegionIdType actRegionId;
+    std::string actRegionName, actNonLinId;
+    
+    if( regionNodes.GetSize() > 0 ) {
+      Info->PrintF( pdename_, "Non-linearity in following region(s)\n" );
+    }
+    for( UInt i = 0; i < regionNodes.GetSize(); i++ ) {
+      
+      // get data
+      regionNodes[i]->GetValue( "name", actRegionName );
+      regionNodes[i]->GetValue( "nonLinId", actNonLinId );
+      
+      if( actNonLinId == "" )
+        continue;
+      
+      actRegionId = ptgrid_->GetRegion().Parse( actRegionName );
+      
+      // Check nonLinId was already registerd
+      if( nonLinIdType_.find( actNonLinId) == nonLinIdType_.end() ) {
+        EXCEPTION( "NonLinearity with id '" << actNonLinId 
+                   << "' was not defined in 'nonLinList'" );
+      }
+      NonLinType actType = nonLinIdType_[actNonLinId];
+      regionNonLinId_[actRegionId] = actNonLinId;
+      regionNonLinType_[actRegionId] = actType;
+
+      // check type
+      if( actType == NLHEAT_CONDUCTIVITY || actType == NLHEAT_CAPACITY ) {
+        nonLin_ = true;
+      }
+
+      // Log to info file
+      std::string nonLinString;
+      Enum2String( nonLinIdType_[actNonLinId], nonLinString );
+      Info->PrintF( pdename_, " %s: %s\n", actRegionName.c_str(), 
+                    nonLinString.c_str() );
+      
+    }
+
+    // set nonlinearity flag only, if any region references
+    // a nonlinearity at all
+    if( regionNonLinId_.size() > 0 ) {
+      nonLin_ = true;
+      totalFormulation_ = true;
+    }
+    
+    // Here we need in addition the nonLinMethod_ for the definition
+    // of the integrators
+    nonLinMethod_ = FIXEDPOINT;
+    PtrParamNode nonLinNode = myParam_->Get("nonLinear", ParamNode::PASS );
+    if( nonLinNode ) {
+      std::string methodString;
+      nonLinNode->GetValue(  "method", methodString, ParamNode::PASS );
+      nonLinMethod_ = NonLinMethodTypeEnum.Parse(methodString);
+    }
+
+  }
+
+
+void HeatCondPDE::DefineIntegrators()
+{
+  Double density, heatCapacity;
   Matrix<Double> thermalConductivityTensor;
 
   //type of geometry
   std::string geometryType;
-  param->Get("domain")->Get("geometryType", geometryType );
+  param->Get("domain")->GetValue("geometryType", geometryType );
 
   // convert to tensor type
   SubTensorType tensorType = FULL;
-  if (geometryType == "3d") {
-    tensorType = FULL;
-  } else if (geometryType == "plane") {
+  if (geometryType == "plane") {
     tensorType = PLANE_STRAIN;
   } else if (geometryType == "axi") {
     tensorType = AXI;
     isaxi_ = true;
   }
+//  else
+//    EXCEPTION("subtensortype not implemented");
 
   // loop over all subdomains
   for (UInt actSD = 0; actSD < subdoms_.GetSize(); actSD++) {
@@ -175,53 +274,110 @@ void HeatCondPDE::DefineIntegrators() {
     // stiffness integrator
     // ====================================================================
 
-    BaseForm *bilinearStiff = NULL;
-    if( actMat->IsSet(HEAT_CONDUCTIVITY) ) {
+    if ( regionNonLinType_[actSD] == NLHEAT_CONDUCTIVITY ) {
+      BaseForm *nlBilinearStiff = new nlinHeatStiffInt( actMat, tensorType, false );
 
-      // stiffness integrator for isotropic material
-      actMat->GetScalar(thermalConductivity,HEAT_CONDUCTIVITY,Global::REAL);
+      nlBilinearStiff->SetNonLinMethod( nonLinMethod_ );      
+      nlBilinearStiff->SetSolution( dynamic_cast<NodeStoreSol<Double>&>(*sol_ ));
 
-      coeffstiff = thermalConductivity;
-      bilinearStiff = new LaplaceInt(coeffstiff,isaxi_, true );
+      BiLinFormContext *stiffContext = new BiLinFormContext(nlBilinearStiff, STIFFNESS );
+      
+      stiffContext->SetPtPdes(this, this);
+      stiffContext->SetResults( results_[0], results_[0], actSDList, actSDList );
+      
+      // Finally add the standard integrators - stiffness
+      assemble_->AddBiLinearForm( stiffContext );
 
-      Info->PrintF( pdename_,
-          "Assemble Laplace integrator with multiplicative factor %6.1f.\n", coeffstiff );
+//       // nonlinear RHS linearform!!
+//       LinearForm * rhsNL;
+//       rhsNL = new nLinHeat_linFormInt( actMat, isaxi_, false );
+//       rhsNL->SetSolution( dynamic_cast<NodeStoreSol<Double>&>(*sol_ ));
 
-    } else if( actMat->IsSet(HEAT_CONDUCTIVITY_TENSOR) ) {
-
-      bilinearStiff = new linHeatCondInt( actMat, tensorType, true );
+//       LinearFormContext * rhsContext = new LinearFormContext( rhsNL );
+//       rhsContext->SetPtPde( this );
+//       rhsContext->SetResult( results_[0], actSDList );
+//       assemble_->AddLinearForm( rhsContext );
     }
+    else {
+      if( actMat->IsSet(HEAT_CONDUCTIVITY) ) {
+        BaseForm *bilinearStiff; 
+        Double coeffstiff(0.0);
+        // stiffness integrator for isotropic material
+        actMat->GetScalar(coeffstiff,HEAT_CONDUCTIVITY,Global::REAL);
+        bilinearStiff = new LaplaceInt(coeffstiff, isaxi_, true );
+        
+        Info->PrintF( pdename_, "Assemble Laplace integrator with multiplicative factor %6.1f.\n", coeffstiff );
+        BiLinFormContext * stiffContext = new BiLinFormContext(bilinearStiff, STIFFNESS );
+        
+        stiffContext->SetPtPdes(this, this);
+        stiffContext->SetResults( results_[0], results_[0], actSDList, actSDList );
+      
+        // Finally add the standard integrators - stiffness
+        assemble_->AddBiLinearForm( stiffContext );
+      }
+      else if( actMat->IsSet(HEAT_CONDUCTIVITY_TENSOR) ) {
+        BaseForm *bilinearStiff; 
+        bilinearStiff = new linHeatCondInt( actMat, tensorType, true );
+        BiLinFormContext * stiffContext = new BiLinFormContext(bilinearStiff, STIFFNESS );
+        
+        stiffContext->SetPtPdes(this, this);
+        stiffContext->SetResults( results_[0], results_[0], actSDList, actSDList );
+      
+        // Finally add the standard integrators - stiffness
+        assemble_->AddBiLinearForm( stiffContext );
+      }
 
-    BiLinFormContext * stiffContext =
-      new BiLinFormContext(bilinearStiff, STIFFNESS );
-
-    stiffContext->SetPtPdes(this, this);
-    stiffContext->SetResults( results_[0], results_[0],
-        actSDList, actSDList );
-
-    // Finally add the standard integrators - stiffness
-    assemble_->AddBiLinearForm( stiffContext );
+//       if ( nonLin_ == true ) {
+//           // we need nonlinear RHS linearform for both linear and nonlinear
+//           // subdomains; just in case of material nonlinearity!
+//         LinearForm * rhsNL;
+//         rhsNL = new nLinHeat_linFormInt( actMat, isaxi_, false );
+//         rhsNL->SetSolution( dynamic_cast<NodeStoreSol<Double>&>(*sol_ ));
+        
+//         LinearFormContext * rhsContext = new LinearFormContext( rhsNL );
+//         rhsContext->SetPtPde( this );
+//         rhsContext->SetResult( results_[0], actSDList );
+//         assemble_->AddLinearForm( rhsContext );
+//      }
+      
+    }
 
 
     // ====================================================================
     // mass integrator
     // ====================================================================
-    coeffmass = density * heatCapacity;
+    Double coeffmass(density * heatCapacity);
 
     if (isElectroCoupled_ == false && isMechCoupled_ == false ) {
 
-      BaseForm * bilinearMass = new MassInt(coeffmass, 1, isaxi_, true );
-      BiLinFormContext * massContext = new BiLinFormContext(bilinearMass, MASS );
+      if ( regionNonLinType_[actSD] == NLHEAT_CAPACITY ) {
+        BaseForm *nlBilinearMass = new nlinHeatMassInt( actMat, tensorType, false );
 
-      massContext->SetPtPdes(this, this);
-      massContext->SetResults(results_[0], results_[0], actSDList,
-          actSDList );
-
-      // Finally add the standard integrators - mass
-      assemble_->AddBiLinearForm(massContext );
-
-      Info->PrintF( pdename_,
-          "Assemble Mass integrator with multiplicative factor %6.1f.\n", coeffmass );
+        nlBilinearMass->SetNonLinMethod( nonLinMethod_ );      
+        nlBilinearMass->SetSolution( dynamic_cast<NodeStoreSol<Double>&>(*sol_ ));
+        
+        BiLinFormContext *massContext = new BiLinFormContext(nlBilinearMass, MASS );
+        
+        massContext->SetPtPdes(this, this);
+        massContext->SetResults( results_[0], results_[0], actSDList, actSDList );
+        
+        // Finally add the standard integrators - stiffness
+        assemble_->AddBiLinearForm( massContext );
+      }
+      else {
+        BaseForm * bilinearMass = new MassInt(coeffmass, 1, isaxi_, true );
+        BiLinFormContext * massContext = new BiLinFormContext(bilinearMass, MASS );
+        
+        massContext->SetPtPdes(this, this);
+        massContext->SetResults(results_[0], results_[0], actSDList,
+                                actSDList );
+        
+        // Finally add the standard integrators - mass
+        assemble_->AddBiLinearForm(massContext );
+        
+        Info->PrintF( pdename_,
+                      "Assemble Mass integrator with multiplicative factor %6.1f.\n", coeffmass );
+      }
     } else {
       // damping integrator
       BaseForm * bilinearDamp = new MassInt(coeffmass, 1, isaxi_, true );
@@ -249,8 +405,9 @@ void HeatCondPDE::DefineIntegrators() {
       // get current Bc
       InhomNeumannBc const & actBc = *inBcs_[iBc];
 
-      LinearSurfForm *neumannBC = new LinNeumannInt( actBc.value,
-          actBc.phase, HEAT_CONDUCTIVITY, isaxi_ );
+      LinearSurfForm *neumannBC =
+          new LinNeumannInt( actBc.value, actBc.phase,
+                             NO_SOLUTION_TYPE, HEAT_CONDUCTIVITY, isaxi_ );
 
       neumannBC->SetVoluInfo( materials_ );
 
@@ -319,24 +476,107 @@ void HeatCondPDE::DefineIntegrators() {
         <<" in HeatCondPDE!" );
   }
 
+    // =======================================================================
+    // Integrators for NonConforming Interfaces
+    // =======================================================================
+    
+    // Get index of LAGRANGE_MULT result, just in case... who knows...
+    UInt lmResultIdx = 0;
+    for(UInt i=0, n=results_.GetSize(); i<n; i++) {
+      if(results_[i]->resultType == LAGRANGE_MULT) {
+        lmResultIdx = i;
+        break;
+      }
+    }
+    LOG_DBG2(heatcondpde) << "NonMatching: Index of LAGRANGE_MULT result: "
+                     << lmResultIdx;
+    
+    for( UInt i = 0; i < ncIFaces_.GetSize(); i++ ) {
+      
+      // get regionId of Lagrangian surface
+      StdVector<std::string> keyVec, attrVec, valVec;
+      std::string slaveSide;
+      std::string ncIfaceName = ptgrid_->GetRegion().ToString(ncIFaces_[i]);
+
+      PtrParamNode ncIfaceListNode;
+      ncIfaceListNode = param->Get("domain")->Get("ncInterfaceList");
+
+      slaveSide = ncIfaceListNode->
+          GetByVal("ncInterface", "name",
+                   ncIfaceName)->Get("slaveSide")->As<std::string>();
+
+      // Part 1: Define integrator M(Psi, Lambda) on
+      //         non-conforming interface
+      LOG_DBG2(heatcondpde) << "NonMatching: Defining nonconforming integrator"
+                        << " for M on interface '"
+                        << ptgrid_->GetRegion().ToString(ncIFaces_[i]) << "'.";
+      shared_ptr<ElemList> actNcList( new ElemList(ptgrid_ ) );
+      actNcList->SetRegion( ncIFaces_[i] );
+      
+      NonConformingInt * ncInt = 
+        new NonConformingInt( 1, isaxi_ );
+
+      NcBiLinFormContext * stiffIntDescr = 
+     	  new NcBiLinFormContext( ncInt , STIFFNESS );
+
+      // Force assembling of M(Psi, Lambda)^T
+      stiffIntDescr->SetCounterPart( true );
+
+      stiffIntDescr->SetPtPdes(this, this);
+      stiffIntDescr->SetResults( results_[0], results_[lmResultIdx],
+                                 actNcList, actNcList );
+      
+      assemble_->AddBiLinearForm( stiffIntDescr );
+
+
+      // Part 2: Define integrator D(Psi, Lambda) on
+      //         Lagrangian surface
+      LOG_DBG2(heatcondpde) << "NonMatching: Defining mass integrator"
+                        << " for D on interface '"
+                        << ptgrid_->GetRegion().ToString(ncIFaces_[i]) << "'.";
+      shared_ptr<SurfElemList> actSDList( new SurfElemList(ptgrid_ ) );      
+      actSDList->SetRegion( ptgrid_->GetRegion().Parse(slaveSide));
+
+      // D(Psi, Lambda) has the form of a standard mass
+      // integrator with factor 1.0
+      MassInt * dMatInt = new MassInt( 1.0, 1, isaxi_ );
+      BiLinFormContext * dMatContext = 
+        new BiLinFormContext( dMatInt, STIFFNESS );
+
+      // Force assembling of D(Psi, Lambda)^T
+      dMatContext->SetCounterPart( true );
+      dMatContext->SetPtPdes( this, this );
+      dMatContext->SetResults( results_[0], results_[lmResultIdx],
+                               actSDList, actSDList );
+      
+      assemble_->AddBiLinearForm( dMatContext );
+
+      // Give result LAGRANGE_MULT to equation numbering class
+      eqnMap_->AddResult( *results_[lmResultIdx], actSDList );
+    }
+
+
   // ======================================================================
   // RHS source values
   // ======================================================================
 
+  // Add integrators for region loads
+  DefineRegionLoadIntegrators(regionLoads_);
+
   // fetch paramnodes for RHS source
-  StdVector<ParamNode*> rhsValuesNodes =
+  ParamNodeList rhsValuesNodes =
     myParam_->Get("bcsAndLoads")->GetList("rhsValues");
 
   bool isharmonic;
-  std::string rhsRegion, rhsFileId = "default";
+  std::string rhsFileId = "default";
 
   try {
     // iterate over all parameter nodes
-    for( UInt i = 0; i < rhsValuesNodes.GetSize(); i++ ) {
-
-      rhsRegion = rhsValuesNodes[i]->Get("region")->AsString();
-      rhsValuesNodes[i]->Get("isharmonic", isharmonic, true);
-      //rhsFileId = rhsValuesNodes[i]->Get("inputId")->AsString();
+    for( UInt i = 0; i < rhsValuesNodes.GetSize(); i++ )
+    {
+      std::string rhsRegion(rhsValuesNodes[i]->Get("region")->As<std::string>());
+      rhsValuesNodes[i]->GetValue("isharmonic", isharmonic, ParamNode::EX);
+      //rhsFileId = rhsValuesNodes[i]->Get("inputId")->As<std::string>();
 
       if ( isharmonic ) {
         Info->PrintF( pdename_,
@@ -350,7 +590,7 @@ void HeatCondPDE::DefineIntegrators() {
       }
 
       // get material density
-      BaseMaterial * actMat = materials_[ ptgrid_->RegionNameToId(rhsRegion) ];
+      BaseMaterial * actMat = materials_[ ptgrid_->GetRegion().Parse(rhsRegion) ];
       actMat->GetScalar(density,DENSITY,Global::REAL);
 
       linAcouPowerSourceInt* sourceRHSInt = new linAcouPowerSourceInt( isaxi_,
@@ -360,16 +600,46 @@ void HeatCondPDE::DefineIntegrators() {
       sourceRHSContext->SetPtPde( this );
 
       shared_ptr<ElemList> rhsElemList( new ElemList(ptgrid_ ) );
-      rhsElemList->SetRegion( ptgrid_->RegionNameToId(rhsRegion) );
+      rhsElemList->SetRegion( ptgrid_->GetRegion().Parse(rhsRegion) );
       sourceRHSContext->SetResult( results_[0], rhsElemList );
       assemble_->AddLinearForm( sourceRHSContext );
     }
-  } catch(Exception & ex){
+  }
+  catch(Exception & ex)
+  {
     RETHROW_EXCEPTION(ex, "Could not assemble RHS source integrator"
         <<" in HeatCondPDE" );
   }
 
 }
+
+
+void HeatCondPDE::DefineRegionLoadIntegrators(std::map<RegionIdType, RegionLoad>& regionLoads, StdVector<LinearFormContext*>* linForms){
+    VolumeSrcInt * volSrcInt;
+
+    std::map<RegionIdType, RegionLoad>::iterator loadIt = regionLoads.begin();
+    for( loadIt = regionLoads.begin(); loadIt != regionLoads.end(); loadIt++ ) {
+      volSrcInt = (*loadIt).second.GetSrcScalarIntegrator();
+
+      // Create new element list
+      shared_ptr<ElemList> actSDList( new ElemList(ptgrid_ ) );
+      actSDList->SetRegion( loadIt->first );
+      LinearFormContext * volSrcContext =
+        new LinearFormContext( volSrcInt );
+      volSrcContext->SetPtPde(this);
+      volSrcContext->SetResult( results_[0], actSDList );
+      if(linForms != NULL){
+        linForms->Push_back(volSrcContext);
+      }else{
+        assemble_->AddLinearForm( volSrcContext );
+      }
+
+      (*loadIt).second.ToInfo(infoNode_->Get("regionLoad"));
+
+    }
+    
+  }
+
 
 void HeatCondPDE::DefineSolveStep() {
 
@@ -383,9 +653,10 @@ void HeatCondPDE::DefineSolveStep() {
 
 void HeatCondPDE::InitTimeStepping() {
 
+  PtrParamNode systemNode = FindLinearSystem(pdename_);
   // Until now no effective mass formulation in the trapezoidal
   //  integration scheme is implemented!
-  TS_alg_ = new Trapezoidal( algsys_ );
+  TS_alg_ = new Trapezoidal( algsys_, systemNode );
 
 }
 
@@ -411,8 +682,10 @@ void HeatCondPDE::InitCoupling(PDECoupling * Coupling) {
 }
 
 
-void HeatCondPDE::CalcOutputCoupling() {
-
+void HeatCondPDE::CalcOutputCoupling()
+{
+  EXCEPTION("CalcOutputCoupling not implemented!");
+  
   //     UInt dof;
   //     SolutionType quantity;
   //     StdVector<Elem*> * couplingElems = NULL;
@@ -435,7 +708,7 @@ void HeatCondPDE::CalcOutputCoupling() {
   //         dof = ptCoupling_->GetOutputDof(i);
   //         break;
   //       case ELEM:
-  //         EXCEPTION("No Element coupling output", __FILE__,__LINE__);
+  //         EXCEPTION("No Element coupling output");
   //       }
   //     }
 
@@ -460,10 +733,22 @@ void HeatCondPDE::CalcResults( shared_ptr<BaseResult> result ) {
       ExtractRhsResult<Double>( result, results_[0] );
     }
     break;
+    
+  case OPT_RESULT_1:
+  case OPT_RESULT_2:
+  case OPT_RESULT_3:
+  case OPT_RESULT_4:
+  case OPT_RESULT_5:
+  case OPT_RESULT_6:
+  case OPT_RESULT_7:
+  case OPT_RESULT_8:
+  case OPT_RESULT_9:
+    // design should work, this is checked in AvailabeResults()
+    domain->GetErsatzMaterial()->ExtractResults(result, isComplex_);
+    break;
 
   default:
-    Warning( "Resulttype not computable by thermic PDE",
-        __FILE__, __LINE__ );
+    WARN( "Resulttype not computable by thermic PDE" );
   }
 }
 
@@ -491,8 +776,70 @@ void HeatCondPDE::DefineAvailResults() {
   rhs->definedOn = ResultInfo::NODE;
   rhs->entryType = ResultInfo::SCALAR;
   rhs->fctType = fct;
-
   availResults_.insert( rhs );
+
+
+    // ===================================
+    // Check for non-conforming interfaces
+    // ===================================
+    StdVector<std::string> ncIfaceNames, ncIfaceNamesForPDE;
+    StdVector<RegionIdType> ncIfaceIds;
+    
+    LOG_DBG2(heatcondpde) << "NonMatching: Checking if nonconforming "
+                      << "interfaces of PDE exist in domain.";
+
+    PtrParamNode heatcondpdeNCIfaceListNode;
+    heatcondpdeNCIfaceListNode = param->GetByVal("sequenceStep", std::string("index"), sequenceStep_)
+    ->Get("pdeList/heatConduction/ncInterfaceList", ParamNode::PASS);
+    
+    if(!heatcondpdeNCIfaceListNode)
+      return;
+
+    PtrParamNode domainNCIfaceListNode;
+    domainNCIfaceListNode = param->Get("domain")->Get("ncInterfaceList", ParamNode::PASS);
+
+    if(!domainNCIfaceListNode)
+    {
+      EXCEPTION("No nonmatching interfaces have been specified in domain!");
+    }
+
+    ParamNodeList pdeNCIfaceNodes;
+    pdeNCIfaceNodes = heatcondpdeNCIfaceListNode->GetList("ncInterface");
+
+    for (UInt i = 0; i < pdeNCIfaceNodes.GetSize(); i++) {
+      std::string pdeIfaceName = pdeNCIfaceNodes[i]->Get("name")->As<std::string>();
+
+      PtrParamNode domainIfaceNode = domainNCIfaceListNode
+          ->GetByVal("ncInterface", "name", pdeIfaceName, ParamNode::PASS);
+      if(!domainIfaceNode)
+      {
+        LOG_DBG2(heatcondpde) << "NonMatching: Nonconforming "
+        << "interface '" << ncIfaceNames[i]
+                                         << "' does not exist in domain.";
+
+        EXCEPTION( "ncInterface referenced from PDE not defined in domain!");
+      }
+
+      ncIfaceNamesForPDE.Push_back(pdeIfaceName);
+    }
+    ptgrid_->GetRegion().Parse(ncIfaceNamesForPDE, ncIfaceIds);
+
+    for (UInt i = 0; i < ncIfaceIds.GetSize(); i++) {
+      ncIFaces_.Push_back(ncIfaceIds[i]);
+    }
+
+    // In the case of the presence of non-conforming interfaces,
+    // a second resultdof object has to be created, which describes the 
+    // Lagrange multiplier
+    if( ncIFaces_.GetSize() > 0 ) {
+      LOG_DBG2(heatcondpde) << "NonMatching: Defining new ResultDof Lagrange.";
+      shared_ptr<ResultInfo> lagr ( new ResultInfo );
+      lagr->resultType = LAGRANGE_MULT;
+      lagr->dofNames = "l";
+      lagr->fctType = results_[0]->fctType;
+      lagr->definedOn = results_[0]->definedOn;
+      results_.Push_back( lagr );
+    } 
 
 }
 

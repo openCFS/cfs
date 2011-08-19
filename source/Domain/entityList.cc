@@ -11,6 +11,7 @@
 
 namespace CoupledField {
 
+  Enum<EntityList::ListType>   EntityList::listType;
 
   EntityList::EntityList( Grid* grid ) {
     grid_ = grid;
@@ -22,72 +23,19 @@ namespace CoupledField {
   EntityList::~EntityList() {
   }
 
-  void EntityList::Enum2String( ListType type, std::string& out ) {
-    
-    std::string ret;
-    
-    switch( type ) {
-
-    case ELEM_LIST:
-      ret = "elemList";
-      break;
-      
-    case SURF_ELEM_LIST:
-      ret = "surfElemList";
-      break;
-    case NC_ELEM_LIST:
-      ret = "ncElemList";
-      break;
-
-    case NODE_LIST:
-      ret = "nodeList";
-      break;
-      
-    case REGION_LIST:
-      ret = "regionList";
-      break;
-      
-    case NUMBER_LIST:
-      ret = "numberList";
-      break;
-      
-    default:
-      EXCEPTION( "Type '" << type << "' describes no entityList!" );
-    }
-
-    out = ret;
+  void EntityList::SetEnums()
+  {
+    EntityList::listType.SetName("EntityList::ListType");
+    EntityList::listType.Add(EntityList::ELEM_LIST, "elemList");
+    EntityList::listType.Add(EntityList::SURF_ELEM_LIST, "surfElemList", false);
+    EntityList::listType.Add(EntityList::SURF_ELEM_LIST, "surfRegion", false);
+    EntityList::listType.Add(EntityList::NC_ELEM_LIST, "ncElemList");
+    EntityList::listType.Add(EntityList::NODE_LIST, "nodeList");
+    EntityList::listType.Add(EntityList::REGION_LIST, "regionList", false);
+    EntityList::listType.Add(EntityList::REGION_LIST, "region", false);
+    EntityList::listType.Add(EntityList::NUMBER_LIST, "numberList");
   }
 
-  void EntityList::String2Enum( const std::string& type,
-                                EntityList::ListType & out ) {
-
-    if( type == "elemList" ) {
-      out = ELEM_LIST;
-    } else if( type == "surfElemList" ||
-               type == "surfRegion") {
-      out = SURF_ELEM_LIST;
-    } else if( type == "ncElemList" ) {
-      out = NC_ELEM_LIST;
-    } else if( type == "nodeList" ) {
-      out =  NODE_LIST;
-    } else if( type == "regionList" ||
-               type == "region") {
-      out = REGION_LIST;
-    } else if( type == "numberList" ) {
-      out = NUMBER_LIST;
-    } else {
-      EXCEPTION( "Type '" << type << "' describes no EntityList." );
-    }
-  }
-  
-  void EntityList::Enum2String( DefineType type, std::string& out ) {
-  }
-  
-
-  void EntityList::String2Enum( const std::string& type,
-                                EntityList::DefineType & out ) {
-    
-  }
 
   // --- Elem List ---
   ElemList::ElemList( Grid* grid ) 
@@ -131,7 +79,7 @@ namespace CoupledField {
       list_.Push_back( elems[i]->elemNum);
     }
     size_ = list_.GetSize();
-    name_ = grid_->RegionIdToName( region );
+    name_ = grid_->GetRegion().ToString( region );
   }
 
   void ElemList::SetElement( const Elem* elem) {
@@ -156,6 +104,7 @@ namespace CoupledField {
     it.elemList_ = this;
     it.pos_ = 0;
     it.size_ = list_.GetSize();
+    it.name_ = name_;
     return it;
   }
  
@@ -202,7 +151,7 @@ namespace CoupledField {
       list_.Push_back( elems[i]);
     }
     size_ = list_.GetSize();
-    name_ = grid_->RegionIdToName( region );
+    name_ = grid_->GetRegion().ToString( region );
   }
 
     //! Get RegionId
@@ -220,6 +169,7 @@ namespace CoupledField {
     it.surfElemList_ = this;
     it.pos_ = 0;
     it.size_ = list_.GetSize();
+    it.name_ = name_;
     return it;
   }
  
@@ -253,7 +203,7 @@ namespace CoupledField {
 
   void NodeList::SetNodesOfRegion( RegionIdType regionId ) {
     defineType_ = REGION;
-    name_ = grid_->RegionIdToName( regionId );
+    name_ = grid_->GetRegion().ToString( regionId );
     grid_->GetNodesByRegion( list_, regionId );
     size_ = list_.GetSize();
   }
@@ -273,6 +223,7 @@ namespace CoupledField {
     it.nodeList_ = this;
     it.pos_ = 0;
     it.size_ = list_.GetSize();
+    it.name_ = name_;
     return it;
   }
 
@@ -285,24 +236,24 @@ namespace CoupledField {
   std::string RegionList::GetName() const {
 //    std::string ret = "regionList( ";
 //    for( UInt i=0; i < list_.GetSize()-1; i++ ) { 
-//      ret += grid_->RegionIdToName( list_[i] ) + ", ";
+//      ret += grid_->GetRegion().ToString( list_[i] ) + ", ";
 //    }
 //    if( list_.GetSize() > 0 ) {
-//      ret+= grid_->RegionIdToName( list_.Last() );
+//      ret+= grid_->GetRegion().ToString( list_.Last() );
 //    }
 //    return ret + ")";
     
-    return grid_->RegionIdToName( list_.Last() );
+    return grid_->GetRegion().ToString( list_.Last() );
   }
 
-  void RegionList::SetRegionId( RegionIdType region ) {
+  void RegionList::SetRegion( RegionIdType region ) {
     defineType_ = REGION;
     list_.Resize(1);
     list_[0] = region;
     size_ = 1;
   }
 
-  void RegionList::SetRegionNames( const StdVector<RegionIdType>& regions ) {
+  void RegionList::SetRegions( const StdVector<RegionIdType>& regions ) {
     defineType_ = REGION;
     list_ = regions;
     size_ = list_.GetSize();
@@ -315,6 +266,7 @@ namespace CoupledField {
     it.regionList_ = this;
     it.pos_ = 0;
     it.size_ = list_.GetSize();
+    it.name_ = "no_name";
     return it;
   }
 
@@ -400,7 +352,7 @@ namespace CoupledField {
       id = lexical_cast<std::string>(GetNode());
       break;
     case EntityList::REGION_LIST:
-      id = regionList_->grid_->RegionIdToName( GetRegion() );
+      id = regionList_->grid_->GetRegion().ToString( GetRegion() );
       break;
     default:
         EXCEPTION( "Not implemented" );
@@ -409,5 +361,9 @@ namespace CoupledField {
      return id; 
   }
 
+  std::string EntityIterator::GetName() const
+  {
+    return name_;
+  }
 
 } // end of namespace

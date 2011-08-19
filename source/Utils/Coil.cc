@@ -47,7 +47,7 @@ namespace CoupledField {
   //   Allowed Constructor
   // -----------------------
   Coil::Coil( RegionIdType coilRegionId, 
-              ParamNode * coilNode,
+              PtrParamNode coilNode,
               Grid * ptGrid ) {
 
     lastSaveStep_ = -1;
@@ -72,7 +72,7 @@ namespace CoupledField {
     //   Determine type of coil
     // **************************
     // get region name of coil
-    coilNode->Get( "name", coilRegionName_ );
+    coilNode->GetValue( "name", coilRegionName_ );
 
 
     // get coil-type
@@ -97,8 +97,7 @@ namespace CoupledField {
       coilType_ = CURRENT3D;
     }
     else {
-      Info->Error( "Encountered unsupported type of coil: " + coilTypeS_,
-                   __FILE__, __LINE__ );
+      EXCEPTION( "Encountered unsupported type of coil: " << coilTypeS_ );
     }
 
     // *******************************************
@@ -106,10 +105,11 @@ namespace CoupledField {
     // *******************************************
     if ( coilType_ == MEASUREMENT2D ) {
 
-      coilNode->Get( "windingCrossSection", windingCrossSection_ );
-      coilNode->Get( "saveFileL",  saveFileL_, false );
-      coilNode->Get( "saveFileU", saveFileU_, false );
-      coilNode->Get( "id", id_ );
+      windingCrossSection_ = 
+                coilNode->Get( "windingCrossSection")->MathParse<Double>();
+      coilNode->GetValue( "saveFileL",  saveFileL_, ParamNode::PASS );
+      coilNode->GetValue( "saveFileU", saveFileU_, ParamNode::PASS );
+      coilNode->GetValue( "id", id_ );
     }
 
     // *******************************************
@@ -117,9 +117,10 @@ namespace CoupledField {
     // *******************************************
     if ( coilType_ == MEASUREMENT3D ) {
       
-      coilNode->Get( "windingCrossSection", windingCrossSection_ );
-      coilNode->Get( "saveFileL",  saveFileL_, false );
-      coilNode->Get( "saveFileU", saveFileU_, false );
+      windingCrossSection_ = 
+          coilNode->Get( "windingCrossSection")->MathParse<Double>();
+      coilNode->GetValue( "saveFileL",  saveFileL_, ParamNode::PASS );
+      coilNode->GetValue( "saveFileU", saveFileU_, ParamNode::PASS );
     }
 
     // ***************************************
@@ -127,11 +128,12 @@ namespace CoupledField {
     // ***************************************
     else if ( coilType_ == VOLTAGE2D ) {
 
-      coilNode->Get( "windingCrossSection", windingCrossSection_ );
-      coilNode->Get( "value", value_ );
-      coilNode->Get( "phase", phase_, false );
-      coilNode->Get( "resistance", resistance_ );
-      coilNode->Get( "id", id_ );
+      windingCrossSection_ = 
+                coilNode->Get( "windingCrossSection")->MathParse<Double>();
+      coilNode->GetValue( "value", value_ );
+      coilNode->GetValue( "phase", phase_, ParamNode::PASS );
+      coilNode->GetValue( "resistance", resistance_ );
+      coilNode->GetValue( "id", id_ );
     }
 
     // ***************************************
@@ -139,10 +141,11 @@ namespace CoupledField {
     // ***************************************
     else if ( coilType_ == VOLTAGE3D ) {
 
-      coilNode->Get( "windingCrossSection", windingCrossSection_ );
-      coilNode->Get( "value", value_ );
-      coilNode->Get( "phase", phase_, false );
-      coilNode->Get( "resistance", resistance_ );
+      windingCrossSection_ = 
+                coilNode->Get( "windingCrossSection")->MathParse<Double>();
+      coilNode->GetValue( "value", value_ );
+      coilNode->GetValue( "phase", phase_, ParamNode::PASS );
+      coilNode->GetValue( "resistance", resistance_ );
 
     }
 
@@ -151,11 +154,12 @@ namespace CoupledField {
     // ***************************************
     else if ( coilType_ == CURRENT2D ) {
 
-      coilNode->Get( "windingCrossSection", windingCrossSection_ );
-      coilNode->Get( "value", value_ );
-      coilNode->Get( "phase", phase_, false );
-      coilNode->Get( "saveFileL",  saveFileL_, false );
-      coilNode->Get( "id", id_ );
+      windingCrossSection_ = 
+                coilNode->Get( "windingCrossSection")->MathParse<Double>();
+      coilNode->GetValue( "value", value_ );
+      coilNode->GetValue( "phase", phase_, ParamNode::PASS );
+      coilNode->GetValue( "saveFileL",  saveFileL_, ParamNode::PASS );
+      coilNode->GetValue( "id", id_ );
       
     }
 
@@ -164,24 +168,25 @@ namespace CoupledField {
     // ***************************************
     else if ( coilType_ == CURRENT3D ) {
 
-      coilNode->Get( "windingCrossSection", windingCrossSection_ );
-      coilNode->Get( "value", value_ );
-      coilNode->Get( "phase", phase_, false );
-      coilNode->Get( "saveFileL",  saveFileL_, false );
+      windingCrossSection_ = 
+                coilNode->Get( "windingCrossSection")->MathParse<Double>();
+      coilNode->GetValue( "value", value_ );
+      coilNode->GetValue( "phase", phase_, ParamNode::PASS );
+      coilNode->GetValue( "saveFileL",  saveFileL_, ParamNode::PASS );
 
       // Try to lead flow direction
-      StdVector<ParamNode *> dirNodes= 
+      ParamNodeList dirNodes= 
         coilNode->Get("flowDirection")->GetList("direction");
       
       std::string refCoordSysName = 
-        coilNode->Get("flowDirection")->Get("coordSysId")->AsString();
+        coilNode->Get("flowDirection")->Get("coordSysId")->As<std::string>();
       flowCoordSys_ = domain->GetCoordSystem( refCoordSysName );
 
       locFlowDir_.Resize( flowCoordSys_->GetDim());
       locFlowDir_.Init();
       for( UInt i = 0; i < dirNodes.GetSize(); i++ ) {
-        std::string dir = dirNodes[i]->Get("dof")->AsString();
-        Double val = dirNodes[i]->Get("value")->AsDouble();
+        std::string dir = dirNodes[i]->Get("dof")->As<std::string>();
+        Double val = dirNodes[i]->Get("value")->As<Double>();
         // Get local vector component index
         UInt index = flowCoordSys_->GetVecComponent(dir);
         locFlowDir_[index-1] = val;
@@ -201,13 +206,13 @@ namespace CoupledField {
       // Open file stream for storing inductivity
       if ( saveFileL_ != "none" ) {
 
-        std::string msg = " Inductivity is stored in: " + saveFileL_ + '\n';
-        Info->PrintF( "magneticPDE", "%s", msg.c_str() );
+        // TODO better use the magPDE infoNode_
+        info->Get("PDE/coil/inductivity/file")->SetValue(saveFileL_);
 
         fileL_ = new std::ofstream( saveFileL_.c_str() );
 
         if ( fileL_ == NULL ) {
-          Info->Error( "Could not open " + saveFileL_, __FILE__, __LINE__ );
+          EXCEPTION( "Could not open " << saveFileL_ );
         }
       }
     }
@@ -216,14 +221,13 @@ namespace CoupledField {
       // Open file stream for storing current/voltages
       if ( saveFileU_ != "none" ) {
 
-        std::string msg = " Currents/voltages are stored in: "
-          + saveFileU_ + '\n';
-        Info->PrintF( "magneticPDE", "%s", msg.c_str() );
+        // TODO better use the magPDE infoNode_
+        info->Get("PDE/coil/currents_voltages/file")->SetValue(saveFileU_);
 
         fileU_ = new std::ofstream( saveFileU_.c_str() );
 
         if ( fileU_ == NULL ) {
-          Info->Error( "Could not open " + saveFileU_, __FILE__, __LINE__ );
+          EXCEPTION( "Could not open " << saveFileU_ );
         }
       }
     }
@@ -255,12 +259,12 @@ namespace CoupledField {
 //           flowDir_ = ZDIR;
 //         }
 //         else {
-//           Info->Error( "Unknown currentFlow " + aux[0], __FILE__, __LINE__ );
+//           EXCEPTION( "Unknown currentFlow " + aux[0] );
 //         }
 //       }
 //       else if ( aux.GetSize() > 1 ) {
-//         Info->Error( "More than 1 currentFlow specification for coil " +
-//                      coilRegionName_, __FILE__, __LINE__ );
+//         EXCEPTION( "More than 1 currentFlow specification for coil " +
+//                      coilRegionName_);
 //       }
 
 //       // Check for rotational specification

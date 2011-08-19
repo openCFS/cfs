@@ -13,7 +13,7 @@ namespace CoupledField
 
 
   // returns B - matrix for BDB
-  void SmoothInt::calcBMat(Matrix<Double> & bMat, UInt ip, Matrix<Double> & ptCoord)
+  void SmoothInt::CalcBMat(Matrix<Double> & bMat, UInt ip, const Matrix<Double> & ptCoord)
   {
     
     UInt numFncs = ptelem->GetNumFncs( ansatzFct1_ );

@@ -108,7 +108,7 @@ namespace CoupledField {
   public:
 
     //! Constructor
-    LDLSolver( OLAS_Params *myParams, OLAS_Report *myReport = NULL );
+    LDLSolver( PtrParamNode solverNode, PtrParamNode olasInfo );
 
     //! Default Destructor
 
@@ -121,7 +121,7 @@ namespace CoupledField {
 
     //! The setup method takes care of the LDL factorisation of the problem
     //! matrix.
-    void Setup( BaseMatrix &sysMat, InfoNode* analysis_step = NULL);
+    void Setup( BaseMatrix &sysMat, PtrParamNode analysis_step );
 
     //! Direct solution of the linear system
 
@@ -133,7 +133,7 @@ namespace CoupledField {
     //! we perform a direct solution. Note also, that the sysmat input
     //! parameter will only be used, when an iterative refinement is performed.
     void Solve( const BaseMatrix &sysMat, const BasePrecond &precond,
-                const BaseVector &rhs, BaseVector &sol, InfoNode* analysis_step = NULL );
+                const BaseVector &rhs, BaseVector &sol, PtrParamNode analysis_step );
 
     //! Query type of this solver.
 
@@ -232,6 +232,7 @@ namespace CoupledField {
     //! \param patternOnly if true, only the sparsity pattern is exported
     void ExportFactorisation( const char *fname, bool patternOnly = false );
 
+    UInt itRefSteps_;
   };
 
 }

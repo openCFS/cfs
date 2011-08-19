@@ -35,21 +35,14 @@ namespace CoupledField {
   // ************************
   template<typename T>
   inline void Diag_Matrix<T>::Add( const Double alpha, const StdMatrix& mat ) {
-     TRY_CAST {
+    // Obtain pointer to data array of other matrix
+    const T *data = dynamic_cast<const Diag_Matrix<T>&>(mat).GetDataPointer();
 
-      // Down-cast input matrix
-      CONSTREFCAST( mat, Diag_Matrix<T>, diagMat );
-
-      // Obtain pointer to data array of other matrix
-      const T *data = diagMat.GetDataPointer();
-  
-      // We now assume that the matrix have matching
-      // dimensions and sparsity patterns
-      for ( UInt i = 0; i < this->nrows_; i++ ) {
-        data_[i] += alpha * data[i];
-      }
-
-    } CATCH_CAST;
+    // We now assume that the matrix have matching
+    // dimensions and sparsity patterns
+    for ( UInt i = 0; i < this->nrows_; i++ ) {
+      data_[i] += alpha * data[i];
+    }
   }
 
 
@@ -59,10 +52,6 @@ namespace CoupledField {
   template<typename T>
   inline void Diag_Matrix<T>::Mult( const Vector<T> &mvec,
                                    Vector<T> &rvec ) const {
-
-
-    PROFILE( "Diag_Matrix::Mult", 2*this->nnz_*BlockSize<T>::size *
-             BlockSize<T>::size );
 
     UInt i;
 
@@ -113,11 +102,6 @@ namespace CoupledField {
   template<typename T>
   inline void Diag_Matrix<T>::CompRes( Vector<T> &r, const Vector<T> &x,
                                       const Vector<T> &b ) const {
-
-
-    PROFILE("Diag_Matrix::CompRes",
-            (2*this->nnz_*BlockSize<T>::size + this->nrows_)
-            *BlockSize<T>::size);
 
     UInt i;
 
@@ -240,7 +224,7 @@ namespace CoupledField {
 
     if ( this->nnz_ != nnz ) {
       this->nnz_ = nnz;
-      DELETEARRAY( data_ );
+      delete [] ( data_ );  data_  = NULL;
       NEWARRAY( data_, T, this->nnz_ );
     }
   }

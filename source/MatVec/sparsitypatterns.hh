@@ -33,8 +33,8 @@ namespace CoupledField {
 
     //! Destructor
     virtual ~SCRS_Pattern() {
-      DELETEARRAY( cidx_ );
-      DELETEARRAY( rptr_ );
+      delete [] ( cidx_ );
+      delete [] ( rptr_ );
     }
 
     //! Array with column indices of non-zero matrix entries

@@ -36,6 +36,7 @@ namespace CoupledField {
 
   void ResultHandler::
   RegisterResult( shared_ptr<BaseResult> sol,
+                  UInt sequenceStep,
                   UInt saveBegin, UInt saveInc,
                   UInt saveEnd, 
                   const StdVector<std::string> & outDestNames,
@@ -75,6 +76,7 @@ namespace CoupledField {
     actContext = 
       shared_ptr<ResultContext>( new ResultContext() );
     actContext->result = sol;
+    actContext->sequenceStep = sequenceStep;
     actContext->saveBegin = saveBegin;
     actContext->saveEnd = saveEnd;
     actContext->saveInc = saveInc;
@@ -185,12 +187,11 @@ namespace CoupledField {
     
     // check, if result is to be updated
     if( isNeeded_.find(sol) == isNeeded_.end() ) {
-      *warning << "Result '" 
-               << sol->GetResultInfo()->resultName
-               << "' on entitylist '"
-               << sol->GetEntityList()->GetName() 
-               << "' is not needed in step " << actStep_;
-      Warning( __FILE__, __LINE__ );
+      WARN("Result '" 
+           << sol->GetResultInfo()->resultName
+           << "' on entitylist '"
+           << sol->GetEntityList()->GetName() 
+           << "' is not needed in step " << actStep_);
     }
 
     // Set flag for update to true
@@ -229,12 +230,11 @@ namespace CoupledField {
 
       // Check, if result was updated at all
       if( isUpdated_.find(*it) == isUpdated_.end() ) {
-        *warning << "Result '" 
-                 << actResult.GetResultInfo()->resultName 
-                 << "' on '" 
-                 << (*it)->GetEntityList()->GetName()
-                 << "' was not provided in step " << actStep_;
-        Warning( __FILE__, __LINE__ );
+        WARN("Result '" 
+             << actResult.GetResultInfo()->resultName 
+             << "' on '" 
+             << (*it)->GetEntityList()->GetName()
+             << "' was not provided in step " << actStep_);
       }
 
 
@@ -360,9 +360,9 @@ namespace CoupledField {
     }
 
     // fetch current postProcNode
-    ParamNode * postProcNode = 
-      param->Get("sequenceStep", "index", GenStr(sequenceStep_) )
-      ->Get( "postProcList")->Get( "postProc", "id", postProcName );
+    PtrParamNode postProcNode = 
+      param->GetByVal("sequenceStep", std::string("index"), actContext.sequenceStep)
+      ->Get( "postProcList")->GetByVal( "postProc", "id", postProcName );
     
     if( !postProcNode ) {
       EXCEPTION( "A Postprocessing section for '" << postProcName
@@ -384,6 +384,7 @@ namespace CoupledField {
       shared_ptr<ResultContext> nextContext = 
         shared_ptr<ResultContext>( new ResultContext() );
       nextContext->result = postProcs[i]->GetOutputResult();
+      nextContext->sequenceStep = actContext.sequenceStep;
       nextContext->saveBegin = actContext.saveBegin;
       nextContext->saveEnd = actContext.saveEnd;
       nextContext->saveInc = actContext.saveInc;
@@ -702,7 +703,7 @@ namespace CoupledField {
       if( neededCap == SimOutput::MESH_RESULTS ) {
         EXCEPTION( "No output class was specified, which is capable of "
                    << "writing mesh results. Please specify one within the "
-                   << "<output> section!" );
+                   << "output section!" );
       }
 
       // If no writer with capability HISTORY_RESULT is found: 
@@ -711,7 +712,7 @@ namespace CoupledField {
       if( neededCap == SimOutput::HISTORY ) {
         std::string simName = progOpts->GetSimName();
         shared_ptr<SimOutput> textOut 
-          = shared_ptr<SimOutput>(new SimOutputText( simName, NULL ) );
+          = shared_ptr<SimOutput>(new SimOutputText( simName, PtrParamNode() ) );
         textOut->Init(  domain->GetGrid(), false );
         outFiles_["histDefault"] = textOut;
         out.Push_back( "histDefault" );
@@ -747,7 +748,7 @@ namespace CoupledField {
     // check, if input reader exists
     if( inFiles_.find(readerId) == inFiles_.end() ) {
       EXCEPTION( "Input reader with id '" << readerId 
-                 << "' is not regsitered yet" );
+                 << "' is not registered yet" );
     }
     
     inFiles_[readerId]->GetNumMultiSequenceSteps( analysis, numSteps, 
@@ -763,7 +764,7 @@ namespace CoupledField {
     // check, if input reader exists
     if( inFiles_.find(readerId) == inFiles_.end() ) {
       EXCEPTION( "Input reader with id '" << readerId 
-                 << "' is not regsitered yet" );
+                 << "' is not registered yet" );
     }
 
     inFiles_[readerId]->GetResultTypes( sequenceStep,
@@ -779,7 +780,7 @@ namespace CoupledField {
     // check, if input reader exists
     if( inFiles_.find(readerId) == inFiles_.end() ) {
       EXCEPTION( "Input reader with id '" << readerId 
-          << "' is not regsitered yet" );
+          << "' is not registered yet" );
     }
     
     inFiles_[readerId]->GetStepValues( sequenceStep, info,
@@ -795,7 +796,7 @@ namespace CoupledField {
     // check, if input reader exists
     if( inFiles_.find(readerId) == inFiles_.end() ) {
       EXCEPTION( "Input reader with id '" << readerId 
-                 << "' is not regsitered yet" );
+                 << "' is not registered yet" );
     }
 
     inFiles_[readerId]
@@ -812,7 +813,7 @@ namespace CoupledField {
     // check, if input reader exists
     if( inFiles_.find(readerId) == inFiles_.end() ) {
       EXCEPTION( "Input reader with id '" << readerId 
-                 << "' is not regsitered yet" );
+                 << "' is not registered yet" );
     }
     
     inFiles_[readerId]->GetResult( sequenceStep, stepValue, 
@@ -825,6 +826,12 @@ namespace CoupledField {
              UInt stepValue,
              SolutionType solType,
              const std::string& regionName ) {
+
+    // check, if input reader exists
+    if( inFiles_.find(readerId) == inFiles_.end() ) {
+      EXCEPTION( "Input reader with id '" << readerId 
+                 << "' is not registered yet" );
+    }
     
     // aquire input reader
     shared_ptr<SimInput> actInput = GetInputReader( readerId );
@@ -931,7 +938,7 @@ namespace CoupledField {
     eqnMap->Finalize();
     
     if(progOpts->DoListMapping()) 
-      eqnMap->ToInfo(info->Get(InfoNode::HEADER)->Get("mappings", InfoNode::APPEND));
+      eqnMap->ToInfo(info->Get(ParamNode::HEADER)->Get("mappings", ParamNode::APPEND));
     
     // create new vector with coefficients
     Vector<TYPE> solVec;

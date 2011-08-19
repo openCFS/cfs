@@ -7,7 +7,6 @@
 #include <iterator>
 
 #include "MatVec/crs_matrix.hh"
-#include "OLAS/algsys/olasparams.hh"
 
 #include "OLAS/precond/ilukprecond.hh"
 
@@ -25,19 +24,21 @@ namespace CoupledField {
   // *****************************************************
   template <typename T>
   ILUK_Precond<T>::ILUK_Precond( const StdMatrix& stdMat, 
-                                 OLAS_Params *myParams,
-                                 OLAS_Report *myReport ) {
-
+                                 PtrParamNode solverNode,
+                                 PtrParamNode olasInfo ) {
 
     // Set pointers to communication objects
-    this->myParams_ = myParams;
-    this->myReport_ = myReport;
+    this->xml_ = solverNode;
+    this->olasInfo_ = olasInfo;
 
     // No factorisation was performed yet
     this->readyToUse_ = false;
 
     // No fill level known yet
     maxLevel_ = 0;
+    
+    // Deactivate logging by default
+    logging_ = false;
 
     // Problem dimension not known yet
     this->sysMatDim_ = 0;
@@ -91,11 +92,13 @@ namespace CoupledField {
   void ILUK_Precond<T>::Setup( CRS_Matrix<T> &sysMat ) {
 
 
-    bool logging = this->myParams_->GetBoolValue( "ILUK_logging" );
 
     // Query parameter object for factorisation parameter
-    maxLevel_ = this->myParams_->GetIntValue( "ILUK_level" );
-
+    maxLevel_ = 1;
+    PtrParamNode pNode = this->xml_->Get("ILUK", ParamNode::INSERT );
+    pNode->GetValue("level", maxLevel_, ParamNode::INSERT );
+    pNode->GetValue("logging", logging_, ParamNode::INSERT ) ;
+    
     // Obtain and check dimensions of matrix
     this->sysMatDim_ = sysMat.GetNumCols();
     if ( this->sysMatDim_ != sysMat.GetNumRows() ) {
@@ -105,7 +108,7 @@ namespace CoupledField {
     }
 
     // Report parameters to standard log stream
-    if ( logging == true ) {
+    if ( logging_ == true ) {
       (*cla) << " -----------------------------------------------\n"
 	     << " ILUK_Precond: Performing an ILU( " << maxLevel_
 	     << " ) factorisation\n of a "
@@ -124,22 +127,23 @@ namespace CoupledField {
     }
 
     // Perform the factorisation
-    Factorise( sysMat );
+    this->Factorise( sysMat );
     this->readyToUse_ = true;
 
     // If the user wishes, we can export the LU factorisation to a file
-    if ( this->myParams_->GetBoolValue( "CROUT_saveFacToFile" ) ) {
-      std::string filename;
-      filename = this->myParams_->GetStringValue( "CROUT_facFileName" );
-      this->ExportILUFactorisation( filename.c_str() );
-      if ( logging == true ) {
-	(*cla) << " Exported factor matrix to file '" << filename << "'"
+    std::string saveFacFile = "crout_fac.out";
+    if(pNode->Has("saveFacFile")) {
+      pNode->GetValue("saveFacFile", saveFacFile, ParamNode::INSERT);
+
+      this->ExportILUFactorisation( saveFacFile.c_str() );
+      if ( logging_ == true ) {
+	(*cla) << " Exported factor matrix to file '" << saveFacFile << "'"
 	       << std::endl;
       }
     }
 
     // Close log section
-    if ( logging == true ) {
+    if ( logging_ == true ) {
       (*cla) << " -----------------------------------------------"
 	     << std::endl;
     }

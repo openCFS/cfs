@@ -191,16 +191,6 @@ class HierarchyLevel
         //! switches the logging on and off
         void SetLogging( const bool logging = true ) {
             logging_ = logging;
-#ifdef PROFILE_HIERARCHYLEVEL
-            if( !logging && !GetLevelID() ) {
-                Warning( "AMG: PROFILING implies logging, which "
-                         "is explicitly switched off.\n      "
-                         "Setting ignored and reactivated logging",
-                         __FILE__, __LINE__ );
-                
-            }
-            logging_ = true;
-#endif
         }
 
         //! prints this and all underlying levels

@@ -1,6 +1,6 @@
-#!/bin/bash
+#!/bin/sh
 # Detects which OS and if it is Linux then it will detect which Linux Distribution.
-
+# Based upon: http://linuxmafia.com/faq/Admin/release-files.html
 
 OS=`uname -s`
 REV=`uname -r`
@@ -28,6 +28,9 @@ if [ -z "$1" ]; then
 	Help
 	exit 1
 fi
+
+# Set default sub-architecture
+SUBARCH="SUBARCHUNKNOWN"
 
 if [ "${OS}" = "SunOS" ] ; then
 	ARCH=`uname -p`
@@ -57,6 +60,24 @@ elif [ "${OS}" = "Linux" ] ; then
 
 	KERNEL=`uname -r`
 
+        # Now let's determine the sub-architecture. This can be EM64T or
+	# OPTERON for X86_64 or SGI for IA64
+        if [ "$ARCH" = "X86_64" ] ; then
+            SUBARCH=$(grep -i amd /proc/cpuinfo)
+	    
+	    if [ "$SUBARCH" = "" ]; then
+	         SUBARCH="EM64T"
+            else
+	         SUBARCH="OPTERON"
+	    fi
+        fi
+        if [ "$ARCH" = "IA64" ] ; then
+	    if [ -f /dev/sgi_fetchop ]; then
+	         SUBARCH="SGI"
+	    fi
+        fi
+	
+
 	if [ -f /etc/redhat-release ] ; then
                 # On Mandrake/Mandriva/Fedora there exist also
                 # /etc/redhat-release, /etc/mandrake-release,
@@ -78,13 +99,14 @@ elif [ "${OS}" = "Linux" ] ; then
                 PSEUDONAME=`head -3 $SUSEREL | tail -1 | sed 's/ = //'`
             else
                 DIST=`cat $SUSEREL | tr "\n" ' '| sed s/VERSION.*// | awk '{print $1}'`
-                REV=`cat $SUSEREL | tr "\n" ' ' | sed s/.*=\ // | awk '{print $1}'`
+                REV=`cat $SUSEREL | tr "\n" ' ' | awk '{print $2}'`
+                PSEUDONAME=$(cat /etc/issue | tr ' ' '\n' | grep '\".*' | sed 's/\"//g')
             fi
 	elif [ -f /etc/mandrake-release ] ; then
 		DIST='Mandrake'
 		PSEUDONAME=`cat /etc/mandrake-release | sed s/.*\(// | sed s/\)//`
 		REV=`cat /etc/mandrake-release | sed s/.*release\ // | sed s/\ .*//`
-	elif [ -f /etc/debian_version ] || [ -f /etc/debian-version] ; then
+	elif [ -f /etc/debian_version -o -f /etc/debian-version ]; then
 		DIST="Debian"
                 BASE_VERSION=`dpkg -p base-files 2> /dev/null | grep Version`
 		if [ ! $? -eq 0 ]; then
@@ -108,6 +130,9 @@ elif [ "${OS}" = "Linux" ] ; then
 		    "3.0") PSEUDONAME="woody";;
 		    "3.1") PSEUDONAME="sarge";;
 		    "4.0") PSEUDONAME="etch";;
+                    "5.0") PSEUDONAME="lenny";;
+                    "6.0") PSEUDONAME="squeeze";;
+                    "7.0") PSEUDONAME="wheezy";;
                 esac
 #                PSEUDONAME="$PSEUDONAME `cat /etc/debian_version`"
 
@@ -131,22 +156,31 @@ elif [ "${OS}" = "Linux" ] ; then
 			    "warty") PSEUDONAME="Warty Warthog";; # 4.10
 			    "hoary") PSEUDONAME="Hoary Hedgehog";; # 5.04
 			    "breezy") PSEUDONAME="Breezy Badger";; # 5.10
-			    "dapper") PSEUDONAME="Dapper Drake";; # 6.06
+			    "dapper") PSEUDONAME="Dapper Drake";; # 6.06 LTS
 			    "edgy") PSEUDONAME="Edgy Eft";; # 6.10
 			    "feisty") PSEUDONAME="Feisty Fawn";; # 7.04
 			    "gutsy") PSEUDONAME="Gutsy Gibbon";; # 7.10
-			    "hardy") PSEUDONAME="Hardy Heron";; # 8.04
+			    "hardy") PSEUDONAME="Hardy Heron";; # 8.04 LTS
 			    "intrepid") PSEUDONAME="Intrepid Ibex";; # 8.10
 			    "jaunty") PSEUDONAME="Jaunty Jackalope";; # 9.04
 			    "karmic") PSEUDONAME="Karmic Koala";; # 9.10
-	                esac;;
+                            "lucid") PSEUDONAME="Lucid Lynx";; # 10.04 LTS
+                            "maverick") PSEUDONAME="Maverick Meerkat";; # 10.10
+                            "natty") PSEUDONAME="Natty Narwhal";; # 11.04
+                            "oneiric") PSEUDONAME="Oneiric Ocelot";; # 11.10 
+	                 esac;;
 		    "knoppix")
 			DIST=Knoppix;
 			REV=`cat /etc/knoppix-version | cut -d' ' -f1`
-			PSEUDONAME="Knoppix";;
+		 	PSEUDONAME="Knoppix";;
                 esac
 
-	fi
+        elif [ -f /etc/lsb-release ]; then
+            . /etc/lsb-release;
+            DIST=$DISTRIB_ID;
+            REV=$DISTRIB_RELEASE;
+            PSEUDONAME=$DISTRIB_CODENAME;
+        fi
 	if [ -f /etc/UnitedLinux-release ] ; then
 		DIST="${DIST}[`cat /etc/UnitedLinux-release | tr "\n" ' ' | sed s/VERSION.*//`]"
 	fi
@@ -154,13 +188,13 @@ elif [ "${OS}" = "Linux" ] ; then
 	OSSTR="${OS} ${DIST} ${REV} (${PSEUDONAME} ${KERNEL} ${MACH})"
 
 elif [ ${OS} = "Darwin" ]; then
-        BASEDIR=`dirname $0`
-        MACOSVER=`osascript $BASEDIR/macsysinfo.scpt | cut -d',' -f3 | cut -d':' -f2`
+        MACOSINFO=$(system_profiler SPSoftwareDataType | grep 'System Version')
 	if [ $? -eq 0 ]; then
+	    MACOSVER=$(echo $MACOSINFO | grep 'System Version' | cut -d':' -f2 | cut -d'X' -f2 | cut -d'(' -f1)
 	    OS="Mac OS X"
             DIST="MACOSX"
-	    REV=$MACOSVER
-            MAJOR_REV=`echo $REV | sed s/\.[0-9]$//`
+	    FULL_REV=$MACOSVER
+            MAJOR_REV=`echo $FULL_REV | sed s/\.[0-9]$//`
 
 	    case "$MAJOR_REV" in
                 "10.0") PSEUDONAME="Cheetah";;
@@ -170,21 +204,24 @@ elif [ ${OS} = "Darwin" ]; then
 		"10.4") PSEUDONAME="Tiger";;
 		"10.5") PSEUDONAME="Leopard";;
                 "10.6") PSEUDONAME="Snow Leopard";;
+                "10.7") PSEUDONAME="Lion";;
 	    esac
+
+            REV=$MAJOR_REV
+            OSSTR="$OS $DIST $MAJOR_REV ($FULL_REV $PSEUDONAME ${MACH})"
 	else
 	    DIST="DARWIN"
+            OSSTR="$OS $DIST $REV ($PSEUDONAME ${MACH})"
 	fi
-
-	OSSTR="$OS $DIST $REV ($PSEUDONAME ${MACH})"
 fi
 
       while :
       do
           case "$1" in
               -h) echo ${OSSTR} ;;
-              -a) echo "${DIST} ${REV} ${ARCH}" | sed 'y/'$LOWER'/'$UPPER'/';;
+              -a) echo "${DIST} ${REV} ${ARCH} ${SUBARCH}" | sed 'y/'$LOWER'/'$UPPER'/';;
               -u) echo "${DIST}_${REV}_${ARCH}" | sed 'y/'$LOWER'/'$UPPER'/' ;;
-              -c) echo "${DIST};${REV};${ARCH}" | sed 'y/'$LOWER'/'$UPPER'/' ;;
+              -c) echo "${DIST};${REV};${ARCH};${SUBARCH}" | sed 'y/'$LOWER'/'$UPPER'/' ;;
               *) break ;;
           esac
           shift

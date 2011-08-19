@@ -122,8 +122,7 @@ namespace CoupledField
     EXCEPTION( "Too many steps" );
     //	}
     //	catch (...) {
-    //Error( "myODE is not of type Gilmore. Dynamic cast failed!", 
-    //	 __FILE__, __LINE__ );
+    //  EXCEPTION( "myODE is not of type Gilmore. Dynamic cast failed!");
     //}
     successLastSolve_ = false;
 
@@ -206,8 +205,7 @@ namespace CoupledField
 	  EXCEPTION("Stepsize underflow");
 	  //	}
 	  //	catch (...) {
-	  //	  Error( "myODE is not of type Gilmore. Dynamic cast failed!", 
-	  //		 __FILE__, __LINE__ );
+	  //	  EXCEPTION( "myODE is not of type Gilmore. Dynamic cast failed!");
 	  //	}
 	}
       }

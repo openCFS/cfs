@@ -6,6 +6,10 @@
 #include <fstream>
 
 #include "mechStressStrain.hh"
+#include "DataInOut/Logging/cfslog.hh"
+
+DECLARE_LOG(ss)
+DEFINE_LOG(ss, "stress_strain")
 
 namespace CoupledField
 {
@@ -50,7 +54,7 @@ namespace CoupledField
     elemDisp_.ConvertToVec_AppendCols(displVec);
     // linear differential operator B_lin
     Matrix<Double> linBMat;
-    calcBMat( linBMat, ip, ptCoord_);
+    CalcBMat( linBMat, ip, ptCoord_);
 
     Vector<TYPE> linStrain(linBMat.GetNumRows());
     linStrain.Init();
@@ -59,6 +63,10 @@ namespace CoupledField
     //Matrix<TYPE>(dMat).Mult(linStrain,stressVec);
     linStrain = linBMat * displVec;
     stressVec = dMat * linStrain;
+
+    // LOG_DBG3(ss) << "MSS::CalcStressVec e=" << ent.GetElem()->elemNum << " ip=" << ip << " dMat=" << dMat.ToString();
+    // LOG_DBG3(ss) << "MSS::CalcStressVec e=" << ent.GetElem()->elemNum << " ip=" << ip << " strain=" << linStrain.ToString() << " stress="
+    //             << stressVec.ToString() << " u=" << displVec.ToString() << " B=" << linBMat.ToString(); // << " coord=" << ptCoord_.ToString();
   }
 
   /// calculates green-lagrangian strains (linear part, vector notation)
@@ -70,8 +78,8 @@ namespace CoupledField
     // Extract pointer to reference element and get coordinates
     ExtractElemInfo( ent );
 
-    Matrix<Double> dMat;
-    linElastInt::calcDMat(dMat, ent.GetElem());
+//     Matrix<Double> dMat;
+//     linElastInt::calcDMat(dMat, ent.GetElem());
 
     // convert displacement of all elem nodes into one vector:
     // (uNode1X, uNode1Y, uNode2X, uNode2Y, ...)
@@ -80,7 +88,7 @@ namespace CoupledField
 
     // linear differential operator B_lin
     Matrix<Double> linBMat;
-    calcBMat( linBMat, ip, ptCoord_);
+    CalcBMat( linBMat, ip, ptCoord_);
 
     strainVec = linBMat * displVec;
 
@@ -91,10 +99,10 @@ namespace CoupledField
 
   template <class TYPE>
   void MechStressStrain<TYPE>::
-  calcBMat(Matrix<Double> & bMat, UInt ip, Matrix<Double> & ptCoord)
+  CalcBMat(Matrix<Double> & bMat, UInt ip, const Matrix<Double> & ptCoord)
   {
     // linear differential operator B_lin
-    linElastInt::calcBMat(bMat, ip, ptCoord);
+    linElastInt::CalcBMat(bMat, ip, ptCoord);
   }
 
 

@@ -20,12 +20,11 @@ namespace CoupledField {
   // *****************************
   //   Constructor (for factory)
   // *****************************
-  Lapack_LU::Lapack_LU( OLAS_Params *myParams, OLAS_Report *myReport )
+  Lapack_LU::Lapack_LU( PtrParamNode solverNode, PtrParamNode olasInfo )
     : pivots_(NULL), facmat_(NULL), amFactorised_(false) {
 
-    // Set pointers to communication objects
-    myParams_ = myParams;
-    myReport_ = myReport;
+    xml_ = solverNode;
+    solverInfo_ = olasInfo->Get("lapackLU");
 
     // Initialise pointers for LAPACK workspaces
     workspaceF77REAL8_     = NULL;
@@ -43,14 +42,13 @@ namespace CoupledField {
   // *************************
   //   Alternate Constructor
   // *************************
-  Lapack_LU::Lapack_LU( BaseMatrix &mat, OLAS_Params *myParams,
-			OLAS_Report *myReport )
+  Lapack_LU::Lapack_LU( BaseMatrix &mat,
+                        PtrParamNode solverNode, 
+			                  PtrParamNode olasInfo )
     : pivots_(NULL), facmat_(NULL), amFactorised_(false) {
 
-
-    // Set pointers to communication objects
-    myParams_ = myParams;
-    myReport_ = myReport;
+    xml_ = solverNode;
+    solverInfo_ = olasInfo->Get("lapackLU");
 
     // Initialise pointers for LAPACK workspaces
     workspaceF77REAL8_     = NULL;
@@ -79,7 +77,7 @@ namespace CoupledField {
   // ********************************
   //   Setup: Perform Factorisation
   // ********************************
-  void Lapack_LU::Setup( BaseMatrix &sysmat, InfoNode* analysis_step ) {
+  void Lapack_LU::Setup( BaseMatrix &sysmat, PtrParamNode analysis_step ) {
     PrivateSetup( sysmat );
   }
 
@@ -94,11 +92,7 @@ namespace CoupledField {
     (*cla) << " --------------------------------------\n"
 	   << " LAPACK_LU: Starting factorisation" << std::endl;
 
-    TRY_CAST {
-
-      // Down-cast matrix to standard matrix
-      CONSTREFCAST( sysmat, StdMatrix, stdmat );
-
+    const StdMatrix& stdmat = dynamic_cast<const StdMatrix&>(sysmat);
       // Check that we have the correct matrix type
       BaseMatrix::StorageType mtype = stdmat.GetStorageType();
       if ( mtype != BaseMatrix::LAPACK_GBMATRIX ) {
@@ -129,8 +123,6 @@ namespace CoupledField {
       default:
         EXCEPTION( "Matrix entry type not valid for a LAPACK matrix" );
       }
-
-    } CATCH_CAST;
 
     // now we have a (new) factorisation
     amFactorised_ = true;
@@ -166,8 +158,15 @@ namespace CoupledField {
     // =======================================================
     //   Scale matrix to improve condition number (optional)
     // =======================================================
-
-    if ( myParams_->GetBoolValue( "LAPACKLU_tryScaling" ) == true ) {
+    bool tryScaling = true;
+      
+    PtrParamNode sNode;
+    sNode = xml_->Get("lapackLU", ParamNode::INSERT);
+    if(sNode) {
+      sNode->GetValue("tryScaling", tryScaling, ParamNode::INSERT );
+    }
+    
+    if ( tryScaling ) {
 
       // Allocate memory for scaling factors
       row_scalings_ = new F77real8[lp_nrows];
@@ -322,7 +321,15 @@ namespace CoupledField {
     //   Scale matrix to improve condition number (optional)
     // =======================================================
 
-    if ( myParams_->GetBoolValue( "LAPACKLU_tryScaling" ) == true ) {
+    bool tryScaling = true;
+      
+    PtrParamNode sNode;
+    sNode = xml_->Get("lapackLU", ParamNode::INSERT);
+    if(sNode) {
+      sNode->GetValue("tryScaling", tryScaling, ParamNode::INSERT );
+    }
+    
+    if ( tryScaling ) {
 
       // Allocate memory for scaling factors
       row_scalings_ = new F77real8[lp_nrows];
@@ -454,66 +461,60 @@ namespace CoupledField {
   //   Solve linear system
   // ***********************
   void Lapack_LU::Solve( const BaseMatrix &sysmat, const BasePrecond &precond,
-			 const BaseVector &rhs, BaseVector &sol, InfoNode* analysis_step ) {
+      const BaseVector &rhs, BaseVector &sol, PtrParamNode analysis_step ) {
 
 
     // Are we expected to be verbose?
-    bool logging = myParams_->GetBoolValue( "LAPACKLU_logging" );
+    bool logging = false;
 
     // Report to logfile
     if ( logging == true ) {
       (*cla) << " --------------------------------------\n"
-	     << " LAPACK_LU: Computing solution" << std::endl;
+      << " LAPACK_LU: Computing solution" << std::endl;
     }
 
     if ( facmat_ == NULL || amFactorised_ == false ) {
 
       // If the two indicators are consistent call Setup()
       if ( facmat_ == NULL && amFactorised_ == false ) {
-	PrivateSetup( sysmat );
+        PrivateSetup( sysmat );
       }
 
       // The two indicators disagree, so complain
       else if ( amFactorised_ == false ) {
         EXCEPTION( "LAPACKLU: Internal error. facmat_ <> NULL but amFactorised_ = "
-	       "false!" );
+            "false!" );
       }
       else {
         EXCEPTION( "LAPACKLU: Internal error. facmat_ = NULL but amFactorised_ = "
-	       "true!" );
+            "true!" );
       }
     }
 
-    TRY_CAST {
+    const StdMatrix& stdmat = dynamic_cast<const StdMatrix&>(sysmat);
+    // Check that we have the correct matrix type
+    BaseMatrix::StorageType mtype = stdmat.GetStorageType();
+    if ( mtype != BaseMatrix::LAPACK_GBMATRIX ) {
+      EXCEPTION( "Expected a LAPACK_GBMATRIX" );
+    }
 
-      // Down-cast matrix to standard matrix
-      CONSTREFCAST( sysmat, StdMatrix, stdmat );
+    // Get the entry type to figure out which Factorization method to call
+    BaseMatrix::EntryType etype = stdmat.GetEntryType();
 
-      // Check that we have the correct matrix type
-      BaseMatrix::StorageType mtype = stdmat.GetStorageType();
-      if ( mtype != BaseMatrix::LAPACK_GBMATRIX ) {
-        EXCEPTION( "Expected a LAPACK_GBMATRIX" );
-      }
+    // Call appropriate solution routine
+    switch( etype ) {
 
-      // Get the entry type to figure out which Factorization method to call
-      BaseMatrix::EntryType etype = stdmat.GetEntryType();
+    case BaseMatrix::F77REAL8:
+      SolveF77REAL8( rhs, sol, &sysmat );
+      break;
 
-      // Call appropriate solution routine
-      switch( etype ) {
+    case BaseMatrix::F77COMPLEX16:
+      SolveF77COMPLEX16( rhs, sol, &sysmat );
+      break;
 
-      case BaseMatrix::F77REAL8:
-	SolveF77REAL8( rhs, sol, &sysmat );
-	break;
-
-      case BaseMatrix::F77COMPLEX16:
-	SolveF77COMPLEX16( rhs, sol, &sysmat );
-	break;
-
-      default:
-        EXCEPTION( "Matrix entry type not valid for a LAPACK matrix" );
-      }
-
-    } CATCH_CAST;
+    default:
+      EXCEPTION( "Matrix entry type not valid for a LAPACK matrix" );
+    }
 
     // Report to logfile
     if ( logging == true ) {
@@ -531,7 +532,7 @@ namespace CoupledField {
 
 
     // Are we expected to be verbose?
-    bool logging = myParams_->GetBoolValue( "LAPACKLU_logging" );
+    bool logging = false;
 
     // Some variables for LAPACK
     char lp_trans = 'N';
@@ -566,12 +567,11 @@ namespace CoupledField {
     // Downcast vectors and get data pointers
     const F77real8 *lp_rhs;
     F77real8 *lp_sol;
-    TRY_CAST {
-      CONSTREFCAST( rhs, Vector<Double>, myrhs );
-      REFCAST( sol, Vector<Double>, mysol );
-      lp_rhs = myrhs.GetPointer() + 1;
-      lp_sol = mysol.GetPointer() + 1;
-    } CATCH_CAST;
+    const Vector<Double>& myrhs = dynamic_cast<const Vector<Double>&>(rhs);
+    Vector<Double>& mysol = dynamic_cast<Vector<Double>&>(sol);
+
+    lp_rhs = myrhs.GetPointer() + 1;
+    lp_sol = mysol.GetPointer() + 1;
 
     // ====================
     //   Compute solution
@@ -612,7 +612,15 @@ namespace CoupledField {
     // ==============================
     //   Refine solution (optional)
     // ==============================
-    if ( myParams_->GetBoolValue( "LAPACKLU_refineSol" ) == true ) {
+    bool refineSol = true;
+      
+    PtrParamNode sNode;
+    sNode = xml_->Get("lapackLU", ParamNode::INSERT );
+    if(sNode) {
+      sNode->GetValue("refineSol", refineSol, ParamNode::INSERT );
+    }
+    
+    if ( refineSol ) {
 
       // Prepare some parameters
       F77real8 lp_ferr = 0;
@@ -669,10 +677,10 @@ namespace CoupledField {
     // Now this currently is of dubious value, since the two things queried
     // from olasReport are actually meaningless in the context of a direct
     // solver. Nevertheless we supply some values for consistency
-    if ( myReport_ != NULL ) {
-      myReport_->SetValue( "numIter", -1 );
-      myReport_->SetValue( "finalNorm", -1.0 );
-    }
+
+    PtrParamNode out = solverInfo_->Get(ParamNode::PROCESS)->Get("solver", ParamNode::APPEND);
+    out->Get("numIter")->SetValue(-1);
+    out->Get("finalNorm")->SetValue(-1.0);
 
   }
 
@@ -685,7 +693,7 @@ namespace CoupledField {
 
 
     // Are we expected to be verbose?
-    bool logging = myParams_->GetBoolValue( "LAPACKLU_logging" );
+    bool logging = false;
 
     // Some variables for LAPACK
     char lp_trans = 'N';
@@ -784,7 +792,15 @@ namespace CoupledField {
     // ==============================
     //   Refine solution (optional)
     // ==============================
-    if ( myParams_->GetBoolValue( "LAPACKLU_refineSol" ) == true ) {
+    bool refineSol = true;
+      
+    PtrParamNode sNode;
+    sNode = xml_->Get("lapackLU", ParamNode::INSERT );
+    if(sNode) {
+      sNode->GetValue("refineSol", refineSol, ParamNode::INSERT);
+    }
+    
+    if ( refineSol ) {
 
       // Prepare some parameters
       F77real8 lp_ferr = 0;
@@ -850,10 +866,11 @@ namespace CoupledField {
     // Now this currently is of dubious value, since the two things queried
     // from olasReport are actually meaningless in the context of a direct
     // solver. Nevertheless we supply some values for consistency
-    if ( myReport_ != NULL ) {
-      myReport_->SetValue( "numIter", -1 );
-      myReport_->SetValue( "finalNorm", -1.0 );
-    }
+    /* FIXME this pollutes the xml file and needs to be updated to provide more information
+    PtrParamNode out = solverInfo_->Get(ParamNode::PROCESS)->Get("solver", ParamNode::APPEND);
+    out->Get("numIter")->SetValue(-1);
+    out->Get("finalNorm")->SetValue(-1.0);
+    */
 
   }
 

@@ -32,6 +32,16 @@ namespace CoupledField {
   }
 
 
+  void ResultInfo::SetVectorDOFs(UInt dim, bool is_axi)
+  {
+    if(dim == 3)
+      dofNames = "x", "y", "z";
+    if(dim == 2 && !is_axi)
+      dofNames = "x", "y";
+    if(dim == 2 && is_axi)
+      dofNames = "r", "z";
+  }
+
   std::string ResultInfo::GetDofName( const UInt dof ) const {
     if( dof <= 0 || dof > dofNames.GetSize()+1 ) {
       EXCEPTION( "'dof' must be in the range of [1.." 
@@ -59,8 +69,7 @@ namespace CoupledField {
     complexFormat = data.complexFormat;
     entryType = data.entryType;
     definedOn = data.definedOn;
-    
-    EXCEPTION( "In operator ResultInfo::operator=\n" );
+    return *this;
   }
 
 

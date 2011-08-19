@@ -10,8 +10,6 @@
 
 #include <def_expl_templ_inst.hh>
 
-#include "OLAS/algsys/olasparams.hh"
-
 #include "basesolver.hh"
 
 namespace CoupledField {
@@ -44,9 +42,9 @@ namespace CoupledField {
     //!                 for this solver
     //! \param myReport pointer to report object for storing general
     //!                 information on solution process
-    DiagSolver( OLAS_Params *myParams, OLAS_Report *myReport ) {
-      myParams_ = myParams;
-      myReport_ = myReport;
+    DiagSolver( PtrParamNode xml, PtrParamNode olasInfo ) {
+      xml_ = xml;
+      solverInfo_ = olasInfo->Get("diagsolver");
     };
 
     //! Default destructor
@@ -62,13 +60,13 @@ namespace CoupledField {
     //! \param rhs Right-hand side vector of the linear system
     //! \param sol Solution vector of linear system
     void Solve(const BaseMatrix& sysmat, const BasePrecond& premat, 
-	       const BaseVector& rhs, BaseVector& sol, InfoNode* analysis_step = NULL );
+	       const BaseVector& rhs, BaseVector& sol, PtrParamNode analysis_step );
 
     //! Dummy setup method
 
     //! This method implements the pure virtual setup function defined in the
     //! BaseSolver class. In our case there is nothing to be done.
-    void Setup( BaseMatrix &sysmat, InfoNode* analysis_step = NULL ) {};
+    void Setup( BaseMatrix &sysmat, PtrParamNode analysis_step ) {};
 
     //! Query type of the solver
 

@@ -78,7 +78,7 @@ public:
   typedef std::map< BaseFE::EntityType , StdVector<UInt> > ElemVirtualNodes;
 
   //! Constructor
-  FeSpace(ParamNode * paramNode);
+  FeSpace(PtrParamNode paramNode);
 
   //! Destructor
   ~FeSpace();
@@ -90,7 +90,7 @@ public:
   SpaceType GetSpaceType() { return type_;}
   
   //! Generate instance of specific element space type
-  static shared_ptr<FeSpace> CreateInstance( ParamNode* aNode, SpaceType reqType  );
+  static shared_ptr<FeSpace> CreateInstance(PtrParamNode aNode, SpaceType reqType  );
   
   // ========================================================================
   //  INITIALIZATION 
@@ -230,7 +230,7 @@ public:
 protected:
 
   //! Parameter node
-  ParamNode * myParam_;
+  PtrParamNode myParam_;
   
   //! Type of element space
   SpaceType type_;
@@ -378,20 +378,20 @@ protected:
   // =========================================================
 
   //! Read the contents of the given parameter node and call the SetRegionIntegration Function
-  virtual void ProcessIntegRegionNode(ParamNode * node, RegionIdType reg);
+  virtual void ProcessIntegRegionNode(PtrParamNode node, RegionIdType reg);
 
   //! Read the IntegrationSchemeList from the xml and put the nodes in the map
   //! according to their id's
-  virtual void ExtractIntegSchemeIds(std::map<std::string,ParamNode *> & integNodes);
+  virtual void ExtractIntegSchemeIds(std::map<std::string,PtrParamNode> & integNodes);
 
   //! Read the fePolynomialList from the xml and put the nodes in the map
   //! according to their id's
   //! This makes it easier later on to assign the correct elements
-  virtual void ExtractPolynomialIds(std::map<std::string,ParamNode *>& pnodes);
+  virtual void ExtractPolynomialIds(std::map<std::string,PtrParamNode>& pnodes);
 
   //! Here we pass a fePolynomial node such that the feSpace can extract the information
   //! which is important for the specific space
-  virtual void ProcessPolyRegionNode(ParamNode* node, RegionIdType region) = 0;
+  virtual void ProcessPolyRegionNode(PtrParamNode node, RegionIdType region) = 0;
 
 };
 

@@ -1,3 +1,4 @@
+
 // -*- mode: c++; coding: utf-8; indent-tabs-mode: nil; -*-
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
@@ -16,12 +17,15 @@
 #include "Utils/elemstoresol.hh"
 #include "Domain/bcs.hh"
 #include "Utils/result.hh"
+#include "DataInOut/SimInOut/hdf5/simOutputHDF5.hh"
+#include "DataInOut/SimInOut/hdf5/simInputHDF5.hh"
 
 namespace CoupledField
 {
   // forward class declaration
-	class VolForceInt;
-	class SpaceErrorEstimator;
+  class VolForceInt;
+  class VolumeSrcInt;
+  class SpaceErrorEstimator;
   class BasePairCoupling;
   class DirectCoupledPDE;
   class Assemble;
@@ -46,13 +50,11 @@ namespace CoupledField
     typedef StdVector<shared_ptr<BaseResult> > ResultList;
     typedef std::map<shared_ptr<ResultInfo> , ResultList > ResultMap;
 
-    //class RegionLoad;
+    class RegionLoad;
 
-    bool boolComplexMaterialData_;
-    
     /** Initialize PDEs 
-     * @param base a coupled PDE case we do not choose our own base */ 
-    virtual void Init( UInt sequenceStep, InfoNode* base = NULL ); 
+     * @param base pointer to InfoNode of this PDE */
+    virtual void Init( UInt sequenceStep, PtrParamNode base = PtrParamNode() ); 
 
     // ---------------------- ***** --------------------------------
 
@@ -69,27 +71,6 @@ namespace CoupledField
     //! define algebraic system 
     virtual void DefineAlgSys();
  
-  
-    // ======================================================
-    // ADATPTIVITY SECTION
-    // ======================================================
-#ifdef ADAPTGRID
-    //@{
-    //! \name Methods used for performing adaptivity
-  
-    //! test error of calculation. return true, if it is more then tolerance
-    virtual bool TestError(const Integer level);
-  
-    //! refine mesh
-    virtual void RefineMesh(const Integer level=0);
-
-    // Does this method belong to postproc section?
-    //! write information about relative error of calculation
-    void WriteErrorInfo(WriteResults * ptmeshes);
-  
-    //@}
-#endif
-
     // ======================================================
     // COUPLING SECTION
     // ======================================================
@@ -116,8 +97,9 @@ namespace CoupledField
     FeFctIdType GetPDEId()
     { return pdeId_; }
 
-    //! return subtype
-    virtual std::string GetSubType() {return subType_;}
+    /** return sub type. The string is stored internally any we need to convert. :(
+     * @return if StdPDE::subType_ is not set we return NO_TENSOR  */
+    SubTensorType GetSubTensorType() const;
 
 
 
@@ -146,9 +128,10 @@ namespace CoupledField
      * by the SIMP mechanism design optimization to read the outputs
      * @param loadNodes the potential empty array from the xml file
      * @param either the loads_ of StdPDE or for optimization */
-    void ReadLoads(StdVector<ParamNode*> loadNodes, LoadList& out_list);
+    void ReadLoads(ParamNodeList loadNodes, LoadList& out_list);
     
-    //! write general defines (BCs, loads, etc.) to info-file
+    /** Write general defines (BCs, loads, etc.) to info.xml.
+     * Note, that only the current state is (over) written! */
     void WriteGeneralPDEdefines();
 
     //! get the encapsulated state of the PDE
@@ -208,12 +191,59 @@ namespace CoupledField
     
     void SavePrevSolution( const Double * ptSol, UInt size );
 
+    /** Return the native solution type, MECH_DISPLACEMENT, ... */
+    virtual SolutionType GetNativeSolutionType() const { EXCEPTION("not implemented"); }
+
+    /** Return the number of dofs of the native solution type, MECH_DISPLACEMENT, ...
+     * @return 1 or the number of dimensions (displacement) */
+    virtual UInt GetNativeDOF() const { EXCEPTION("not implemented"); }
+
+
     //@}
 
-//    /** do the actual reading of loads, this is also called from optimization 
-//     * @param bcNode paramnode that has "regionLoad" nodes as children 
-//     * @param pressSurf StdVector containing the RegionLoads */
-//    void ReadRegionLoadsFromXML(ParamNode* bcNode, std::map<RegionIdType, RegionLoad>& regionLoads_);
+    /** do the actual reading of loads, this is also called from optimization 
+     * @param bcNode paramnode that has "regionLoad" nodes as children 
+     * @param pressSurf StdVector containing the RegionLoads */
+    void ReadRegionLoadsFromXML(PtrParamNode bcNode, std::map<RegionIdType, RegionLoad>& regionLoads_);
+//    
+//    /** reread the results, this is needed in transient optimization, so that the results are re registered for the new multisequencestep 
+//     */
+//    void ReReadResults(){
+//      ReadStoreResults();
+//      ReadSpecialResults();
+//    }
+
+//    /** Calculate the element gradient matrix for all nodal positions of the matrix where only the
+//     * dof component of the gradient is stored. This matrix just needs to be multiplied with the element
+//     * solution vector.
+//     * @param elem a volume element
+//     * @param wanted which nodes of the element shall be considered. elem->connect for all!
+//     *        Only the nodenumbers are of interest, not the ordering
+//     * @param dof which dof of the gradient to use (1 based)
+//     * @param fctType do we use non LAGRANGE?
+//     * @param q_mat will be resized to (elem nodes)^2 with rows for all wanted nodes */
+//    template <class TYPE>
+//    void CalcElemGradMatrix(const Elem* elem, const StdVector<UInt>& wanted, UInt dof,
+//                               shared_ptr<AnsatzFct> fctType, Matrix<TYPE>& q_mat);
+//
+//    /** Calculate the gradient of all nodes of a single element based on the elements ansatz functions.
+//     * Strictly the gradient is only defined in the interior of the element, so for multiple elements
+//     * you need to average and know what you are doing!
+//     * @param dof mechDisplacement has x=1,y=2(,z=3) solution per node. Select the node. 1 for scalar results (potential)
+//     * @param grad_out will resized to the number of nodes of the element, will get the gradients of size dim.
+//     * @param elem_data the element solution of NULL if the current OLAS solution vector shall be used!*/
+//    template <class TYPE>
+//    void CalcGradNodeSolution(const Elem* elem, shared_ptr<AnsatzFct> fctType, UInt dof,
+//                                 StdVector<Vector<TYPE> >& grad_out, Vector<TYPE>* elem_data = NULL);
+//
+//
+//    /** Calculate the nodal gradients for several elements, does averaging.
+//     *  @param list needs to be a ELEM_LIST
+//     *  @param dof mechDisplacement has x=1,y=2(,z=3) solution per node. Select the node. 1 for scalar results (potential)
+//     *  @param nodal_grad by the *global* node numbers of the elements the averaged gradients are written.
+//     *  @param counter is internally needed but as parameter can be reused. Is resized to global number of nodes */
+//    template <class TYPE>
+//    void CalcGradNodeSolution(shared_ptr<EntityList> list, UInt dof, StdVector<Vector<TYPE> >& nodal_grad, StdVector<UInt>& counter);
 
   protected:
 
@@ -222,7 +252,7 @@ namespace CoupledField
     /*!
       \param aptgrid pointer to grid
     */
-    SinglePDE( Grid *aptgrid, ParamNode *paramNode );
+    SinglePDE( Grid *aptgrid, PtrParamNode );
 
     //! private copy constructor
     SinglePDE & operator= (const StdPDE & myPDE) {
@@ -237,8 +267,13 @@ namespace CoupledField
     // INITIALIZATION METHODS
     // ======================================================
 
-    //! define all computable results
-    virtual void DefineAvailResults() {};  
+    /** define all computable results. */
+    virtual void DefineAvailResults() { };
+
+    /** The gradSolution is common for (almost) all PDEs.
+     * @param dof for mech displacement, 1 = grad of x displacement, ... */
+    template<class TYPE>
+    void CalcGradSolution(shared_ptr<BaseResult> res, UInt dof = 1);
 
     //! Obtain information on desired output quantities from parameter file
     //! This method is used to query the parameter handling object for the
@@ -252,8 +287,8 @@ namespace CoupledField
     //! define all (bilinearform) integrators needed for this pde
     virtual void DefineIntegrators( )=0;
 
-    //! Trigger calculation of results
-    virtual void CalcResults( shared_ptr<BaseResult> result ) {};
+    /** Trigger calculation of results. */
+    virtual void CalcResults( shared_ptr<BaseResult> result ) { };
     
     //! Calculate special results, not handled by resulthandler
     virtual void CalcSpecialResults( ) {};
@@ -298,56 +333,75 @@ namespace CoupledField
     void SaveRHS( const Complex * ptSol, UInt size );
     
   public:
-//    
-//    //! Class defining data needed for region loads
-//    class RegionLoad {
-//
-//    public:
-//
-//      //! Constructor
-//      RegionLoad( UInt dim, bool isaxi );
-//
-//      //! Print region definition to info-file
-//      void Print( bool onlyHeader, std::string pdeName );
-//      
-//      //! Returns the RHS-integrator
-//      VolForceInt *  GetIntegrator();
-//      
-//      // ----------------------------
-//      //   Data members
-//      // ----------------------------
-//
-//      //@{
-//      // \name Data members
-//      
-//      //! Name of region
-//      std::string name;
-//
-//      //! Value of load
-//      StdVector<std::string>  value;
-//
-//      //! Phase value
-//      std::string phase;
-//
-//      //! Name of reference coordinate system
-//      std::string refCoord;
-//
-//      //! Type of load (total/unit)
-//      std::string type;
-//
-//      //! Volume of region
-//      Double volume;
-//
-//      //! Flag for axisymmetry
-//      bool isAxi_;
-//      //@}
 
-//    };
+    //    //! Class defining data needed for region loads
+    class RegionLoad {
+
+    public:
+
+      //! Constructor
+      RegionLoad( UInt dim, bool isaxi );
+
+      void ToInfo(PtrParamNode in) const;
+      
+      //! Returns the RHS-integrator
+      VolForceInt *  GetIntegrator();
+
+      //! Returns the RHS-integrator for scalar source
+      VolumeSrcInt *  GetSrcScalarIntegrator();
+      
+      // ----------------------------
+      //   Data members
+      // ----------------------------
+
+      //@{
+      // \name Data members
+      
+      //! Name of region
+      std::string name;
+
+      //! Value of load
+      StdVector<std::string>  value;
+
+      //! Phase value
+      std::string phase;
+
+      //! Name of reference coordinate system
+      std::string refCoord;
+
+      //! Type of load (total/unit)
+      std::string type;
+
+      //! Volume of region
+      Double volume;
+
+      //! Flag for axisymmetry
+      bool isAxi_;
+      //@}
+
+    };
+    
+    //! Class defining data needed for defining Rayleigh damping
+    struct RaylDampingData {
+      
+      //! Damping parameters used for MASS and STIFFNESS integrator
+      std::string alpha, beta;
+      
+      //! Ratio for calculation of deltaF
+      Double ratioDeltaF;
+      
+      //! Target frequency, for which alpha and beta should get computed
+      Double freq;
+      
+      //! Use damping adjustment to achieve constant tanDelta
+      bool adjustDamping;
+    };
+    
     
   protected:
     
     //! List of region loads
-     //std::map<RegionIdType, RegionLoad> regionLoads_;
+    std::map<RegionIdType, RegionLoad> regionLoads_;
      
     //@}
 
@@ -371,6 +425,12 @@ namespace CoupledField
     
     //! check if PDE is a coupled piezo subdomain with hystersis
     bool BelongsPDE2PiezoHyst();    
+
+    //! check if subdomain is a coupled piezo subdomain with micro-piezo-model
+    bool IsRegionMicroPiezo( std::string regionName );
+    
+    //! check if PDE is a coupled piezo subdomain with  micro-piezo-model
+    bool BelongsPDE2MicroPiezo();    
     //@}
     
     // ======================================================
@@ -378,12 +438,16 @@ namespace CoupledField
     // ======================================================
 
     // reads in the PML data
-    void ReadDataPML(std::string& typePML, Matrix<Double>& inner, 
-		     Double& dampPML, ParamNode * actNode);
+    void ReadDataPML( std::string& typePML, Matrix<Double>& inner, 
+		                  Double& dampPML, 
+		                  std::string& coordSysId,
+		                  PtrParamNode actNode);
 
     //! computes the PML layer dimensions
-    void GetPMLLayerData(Matrix<Double>& inner, Matrix<Double>& outer,
-			 RegionIdType regionId );
+    void GetPMLLayerData( Matrix<Double>& inner, 
+                          Matrix<Double>& outer,
+			                    RegionIdType regionId,
+			                    std::string& coordSysId );
   
     // -----------------------------------------------------------------------
     // Storing information
@@ -392,20 +456,29 @@ namespace CoupledField
     //@{
     //! \name Attributes connected to storing information
     
+    //! Copy the solution from a vector to a BaseNodeStoreSol object
+    template<class TYPE>
+    void ExtractResult( shared_ptr<BaseResult> toBaseStore, \
+                                   const Vector<TYPE>& fromVec );
     //! Copy the solution from a nodeStoresolution object to a solution object
     template<class TYPE>
-    void ExtractResult( shared_ptr<BaseResult> res,
-                        BaseNodeStoreSol * ptStoreSol );
+    void ExtractResult( shared_ptr<BaseResult> toBaseResult,
+                        BaseNodeStoreSol* ptStoreSol );
 
     //! Copy the time derivative of the solution to a solution objet
 
     //! This method fills the given result objects
-    void ExtractDerivResult( shared_ptr<BaseResult> res, UInt deriv );
+    void ExtractDerivResult( shared_ptr<BaseResult> res, DERIVType derivType );
 
     //! Copy the linear rhs from the internal vector to a solution object
     template<class TYPE>
     void ExtractRhsResult( shared_ptr<BaseResult> res, 
                            shared_ptr<ResultInfo> eqnResultInfo );
+    //! Copy the solution from a solution object to a nodeStoresolution object
+    //! So the oposite way if ExtractResult.
+    template<class TYPE>
+    void InsertResult( Vector<TYPE> &resVec,
+                       shared_ptr<BaseResult> res );
 
     //! Set containing the types of possible results
     ResultSet availResults_;
@@ -472,6 +545,12 @@ namespace CoupledField
 
     //@}
   private:
+    /** write out results for restart
+     * @param outFile the file to write to
+     * @param outResults the results to write
+     */
+    inline void writeOutTimeStep(shared_ptr<SimOutput>& outFile, \
+        StdVector<shared_ptr<BaseResult> >& outResults);
   };
 
 #ifdef DOXYGEN_DETAILED_DOC

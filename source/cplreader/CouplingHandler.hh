@@ -67,8 +67,12 @@ namespace CoupledField
     std::map<UInt, std::vector<UInt> > regionElems_;
     std::map<UInt, std::map<UInt, UInt> > regionNodeIndices_;
     std::vector<UInt> numRegionNodes_;
+    std::map<RegionIdType, UInt > regionDims_;
+    std::map<std::string, std::vector<UInt> > regionNodes_;
 
     UInt dim_;
+    bool doIntAverageCentre_;
+    bool reduce_elementOrder_;
 
     std::map<std::string, std::vector<UInt> > nodeGroups_;
     std::map<std::string, std::vector<UInt> > elemGroups_;
@@ -79,14 +83,15 @@ namespace CoupledField
 
     OutputWriterVectorType outputWriters_;
 
-    /** scales the FLUIDMECH_VELOCITY vector by the factor scaleFac.
+    /** scales the physical field (FLUIDMECH_VELOCITY, MECH_DISPLACEMT etc.)
+     * vector by the factor scaleFac.
      * @param nodalFlowData the data in which the reults are stored and which
      * should be scaled
      * @param scaleFac the factor by which it should be scaled
      * @param dof_idx the dof which should be scaled (x=0, y=1, z=2)
      */
-    inline void velScale_(std::vector<FlowDataType>& nodalFlowData,
-                   const Double scaleFac, const UInt dof_idx) const
+    inline void scale_PhysField_(std::vector<FlowDataType>& nodalFlowData,
+        const SolutionType solType, const Double scaleFac, const UInt dof_idx) const
     {
       Settings& settings = Settings::Instance();
       UInt numRegions = nodalFlowData.size();
@@ -97,16 +102,92 @@ namespace CoupledField
       for (UInt actRegion=0; actRegion < numRegions; ++actRegion)
       {
         FlowDataType& fd = nodalFlowData[actRegion];
-        FlowDataPartStruct* fdps = &fd[FLUIDMECH_VELOCITY];
-        const UInt sizeFdps = fdps->data.size();
-        const UInt numDofs = fdps->dofNames.size();
-        UInt i = dof_idx;
-        while (i < sizeFdps)
-        {
-          fdps->data[i] *= scaleFac;
-          i += numDofs;
+        if ( fd.find(solType) != fd.end() ) { // only if the solType exists
+          FlowDataPartStruct* fdps = &fd[solType];
+          const UInt sizeFdps = fdps->data.size();
+          const UInt numDofs = fdps->dofNames.size();
+          if ( dof_idx >= numDofs ) {
+            EXCEPTION("You are trying to scale a DoF that does not exist!")
+          }
+          UInt i = dof_idx;
+          while (i < sizeFdps)
+          {
+            fdps->data[i] *= scaleFac;
+            i += numDofs;
+          }
         }
       }
+    }
+    /**
+     * Find nodes which occur in multiple regions. This is to calculate the
+     * acoustic source correctly for nodes which lie in more than one region
+     * @param regionMapNodes A std::map with a gathering of nodes on each region
+     * @param multiNodes the return value. Return a map showing which node is
+     * multiple on which each and which equation number
+     */
+    inline void findNodeMultiRegion(const std::map<std::string, std::vector<UInt>* >& regionMapNodes,
+        std::map<UInt, std::map<std::string, UInt> >& multiNodes)
+    {
+      std::map<std::string, std::vector<UInt>* >::const_iterator iterRegionMapNodes = regionMapNodes.begin();
+      std::map<std::string, std::vector<UInt>* >::const_iterator iterRegionMapNodes2;
+      /* go over every region */
+      for (; iterRegionMapNodes != regionMapNodes.end(); ++iterRegionMapNodes)
+      {
+        const std::vector<UInt>& firstRegVec = *iterRegionMapNodes->second;
+        iterRegionMapNodes2 = iterRegionMapNodes;
+        ++iterRegionMapNodes2;
+        /* check every other region */
+        for (; iterRegionMapNodes2 != regionMapNodes.end(); ++iterRegionMapNodes2)
+        {
+          const std::vector<UInt>& secRegVec = *iterRegionMapNodes2->second;
+          /* bigger than 50 billion - sorry hardcoded*/
+          if (firstRegVec.size() * secRegVec.size() > 50e9)
+          {
+            EXCEPTION("You are trying to calculate acoustic sources on multiple regions." << std::endl
+                << "Cplreader needs to find the common interface of these regions," << std::endl
+                << "but since the regions are so big (number of nodes) this will take to long!" << std::endl
+                << "If you know what you are doing turn this option of with \"--doCalcMultiNodes 0\"")
+          }
+          /* nodes of first region */
+          for (UInt i = 0; i < firstRegVec.size(); ++i)
+          {
+            const UInt& firstRegVecElem = firstRegVec[i];
+            /* nodes of second region */
+            for (UInt j = 0; j < secRegVec.size(); ++j)
+            {
+              /* find common nodes */
+              if (firstRegVecElem == secRegVec[j])
+              {
+                /* take care of doublicate entrie */
+                std::map<std::string, UInt>& regStringVec = multiNodes[firstRegVecElem];
+                bool region1Registered = false;
+                bool region2Registered = false;
+                std::map<std::string, UInt>::iterator iterRegStringVec = regStringVec.begin();
+                for (; iterRegStringVec != regStringVec.end(); ++iterRegStringVec)
+                {
+                  if (iterRegStringVec->first == iterRegionMapNodes->first)
+                  {
+                    region1Registered = true;
+                  }
+                  if (iterRegStringVec->first == iterRegionMapNodes2->first)
+                  {
+                    region2Registered = true;
+                  }
+                }
+                if ( !region1Registered )
+                {
+                  regStringVec[iterRegionMapNodes->first] = i;
+                }
+                if ( !region2Registered )
+                {
+                  regStringVec[iterRegionMapNodes2->first] = j;
+                }
+              }
+            } //end-for second region nodes
+          }// end-for first region nodes
+        }// end-for second region
+      }// end-for first region
+
     }
   };
 

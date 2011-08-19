@@ -36,25 +36,9 @@ SET(CTEST_SOURCE_DIRECTORY "$ENV{HOME}/Documents/dev/NIGHTLY/CFS_TRUNK_NIGHTLY")
 SET(CTEST_BINARY_DIRECTORY "$ENV{HOME}/Documents/dev/NIGHTLY/CFS_BUILD_NIGHTLY")
 
 #-----------------------------------------------------------------------------
-# Place CTestConfig.cmake file for project CFS on CDash server rom into
-# CTEST_SOURCE_DIRECTORY.
+# Copy CDash server configuration file to source dir.
 #-----------------------------------------------------------------------------
-FILE(WRITE "${CTEST_SOURCE_DIRECTORY}/CTestConfig.cmake"
-  "
-  ## This file should be placed in the root directory of your project.
-  ## Then modify the CMakeLists.txt file in the root directory of your
-  ## project to incorporate the testing dashboard.
-  ## # The following are required to uses Dart and the Cdash dashboard
-  # ENABLE_TESTING()
-  # INCLUDE(Dart)
-  set(CTEST_PROJECT_NAME \"CFS\")
-  set(CTEST_NIGHTLY_START_TIME \"00:00:00 EST\")
-
-  set(CTEST_DROP_METHOD \"http\")
-  set(CTEST_DROP_SITE \"rom\")
-  set(CTEST_DROP_LOCATION \"/cdash/submit.php?project=CFS\")
-  set(CTEST_DROP_SITE_CDASH TRUE)"
-)
+EXECUTE_PROCESS(COMMAND ${CMAKE_EXECUTABLE_NAME} -E copy_if_different CTestConfig.cmake ${CTEST_SOURCE_DIRECTORY}/CTestConfig.cmake)
 
 #-----------------------------------------------------------------------------
 # Specify that we want to do an experimental build without updating the CFS++
@@ -69,7 +53,9 @@ SET(CTEST_COMMAND "${CTEST_COMMAND} -D NightlyBuild")
 # SET(CTEST_COMMAND "${CTEST_COMMAND} -D NightlyTest")
 SET(CTEST_COMMAND "${CTEST_COMMAND} -D NightlySubmit")
 SET(CTEST_COMMAND "${CTEST_COMMAND} -A ${CTEST_BINARY_DIRECTORY}/CMakeCache.txt")
-#SET(CTEST_COMMAND "${CTEST_COMMAND} -R torque3d")
+
+
+
 
 #-----------------------------------------------------------------------------
 # Use CMake (cmake) executable corresponding to CTest executable used to run
@@ -95,6 +81,8 @@ SET(CTEST_INITIAL_CACHE
    CFS_DEPS_CACHE_DIR:PATH=$ENV{HOME}/Documents/dev/NIGHTLY/CFSDEPSCACHE
    CFS_PARDISO:STRING=MKL
    USE_GMV_INPUT:BOOL=ON
+   USE_ANSYSRST:BOOL=ON
+   USE_GMSH:BOOL=ON
    USE_PYTHON:BOOL=ON
    USE_TCL:BOOL=OFF
    USE_SCPIP:BOOL=ON")

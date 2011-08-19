@@ -32,8 +32,8 @@
 #-----------------------------------------------------------------------------
 # Set source and binary directories on rom
 #-----------------------------------------------------------------------------
-SET(CTEST_SOURCE_DIRECTORY "$ENV{HOME}/Documents/dev/CFS_TRUNK")
-SET(CTEST_BINARY_DIRECTORY "$ENV{HOME}/Documents/dev/CFS_BUILD/TRUNK_DEBUG_GCC")
+SET(CTEST_SOURCE_DIRECTORY "$ENV{HOME}/Documents/dev/CFS_TRUNK_GIT")
+SET(CTEST_BINARY_DIRECTORY "$ENV{HOME}/Documents/dev/CFS_BUILD/TRUNK_DEBUG_ECLIPSE")
 
 #-----------------------------------------------------------------------------
 # Place CTestConfig.cmake file for project CFS on CDash server rom into
@@ -45,15 +45,16 @@ FILE(WRITE "${CTEST_SOURCE_DIRECTORY}/CTestConfig.cmake"
   ## Then modify the CMakeLists.txt file in the root directory of your
   ## project to incorporate the testing dashboard.
   ## # The following are required to uses Dart and the Cdash dashboard
-  # ENABLE_TESTING()
-  # INCLUDE(Dart)
+  ##   ENABLE_TESTING()
+  ##   INCLUDE(CTest)
   set(CTEST_PROJECT_NAME \"CFS\")
-  set(CTEST_NIGHTLY_START_TIME \"00:00:00 EST\")
+  set(CTEST_NIGHTLY_START_TIME \"00:00:00 CET\")
 
   set(CTEST_DROP_METHOD \"http\")
-  set(CTEST_DROP_SITE \"rom\")
+  set(CTEST_DROP_SITE \"lse17.e-technik.uni-erlangen.de:2000\")
   set(CTEST_DROP_LOCATION \"/cdash/submit.php?project=CFS\")
-  set(CTEST_DROP_SITE_CDASH TRUE)"
+  set(CTEST_DROP_SITE_CDASH TRUE)
+  "
 )
 
 #-----------------------------------------------------------------------------

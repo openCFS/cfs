@@ -8,7 +8,6 @@
 #include <math.h>
 
 #include "freqfunc.hh"
-#include "WriteInfo.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 
 namespace CoupledField {
@@ -22,7 +21,7 @@ namespace CoupledField {
     std::string nameFreqFile;
     param->Get("sequenceStep") 
       ->Get("analysis")->Get("harmonic")->Get("freqDataFile")
-      ->Get("name", nameFreqFile );
+      ->GetValue("name", nameFreqFile );
     fnc_names_.Push_back( nameFreqFile );
     
   }
@@ -46,7 +45,7 @@ namespace CoupledField {
 
   
       nodalFilename=fnc_names_[i];
-      nodalFilename.append( GenStr( nodeNumber ) );
+      nodalFilename.append( lexical_cast<std::string>( nodeNumber ) );
       pathAndFilename="nodalSrcs/" + nodalFilename;
       freqfile.open( pathAndFilename.c_str() );
       if ( !freqfile ) {
@@ -113,8 +112,7 @@ namespace CoupledField {
     //1.0 is assumed 
     if (fncname == "none")
       {
-        Warning( "Using ampl=1.0 and phase=0.0 since fncname was not defined"
-                 , __FILE__, __LINE__ );
+        WARN( "Using ampl=1.0 and phase=0.0 since fncname was not defined" );
         Amp_Phase_atF[0]=1.0;
         Amp_Phase_atF[1]=0.0;
         return Amp_Phase_atF;

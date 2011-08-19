@@ -37,13 +37,13 @@ namespace CoupledField {
   }
 
 
-  SimOutputHDF5::SimOutputHDF5(std::string fileName, ParamNode * inputNode) :
+  SimOutputHDF5::SimOutputHDF5(std::string fileName, PtrParamNode inputNode) :
     SimOutput(fileName, inputNode) {
 
     fileName_ = fileName;
     formatName_ = "hdf5";
     dirName_ = "results_" + formatName_;
-    inputNode->Get("directory", dirName_, false );
+    inputNode->GetValue("directory", dirName_, ParamNode::PASS );
     
     capabilities_.insert( MESH );
     capabilities_.insert( MESH_RESULTS );
@@ -60,18 +60,18 @@ namespace CoupledField {
     // using values specified by user
     UInt compressionLevel = 6;
     UInt maxChunkSize = 100;
-    myParam_->Get("compressionLevel", compressionLevel, false );
+    myParam_->GetValue("compressionLevel", compressionLevel, ParamNode::PASS );
     if( compressionLevel > 9) {
       EXCEPTION( "Value for compressionLevel must be betwen 1 and 9" );
     }
-    myParam_->Get("maxChunkSize", maxChunkSize, false );
+    myParam_->GetValue("maxChunkSize", maxChunkSize, ParamNode::PASS );
     dPropList_ = H5::DSetCreatPropList::DEFAULT;
     dPropList_.setLayout( H5D_CHUNKED );
     dPropList_.setDeflate( compressionLevel );
     H5IO::SetMaxChunkSize( maxChunkSize );
 
     // Change defaults according to XML file
-    myParam_->Get("externalFiles", externalFiles_, false);
+    myParam_->GetValue("externalFiles", externalFiles_, ParamNode::PASS);
 
     // Do not print HDF5 exceptions by default
     H5::Exception::dontPrint();
@@ -79,33 +79,7 @@ namespace CoupledField {
 
 
   SimOutputHDF5::~SimOutputHDF5() {
-    // check for open groups, datasets etc. in current step file
-    if(currStepFile_.getLocId() > 0) {
-      if (currStepFile_.getObjCount( H5F_OBJ_DATASET |
-                                     H5F_OBJ_GROUP |
-                                     H5F_OBJ_DATATYPE | H5F_OBJ_ATTR) > 0 ) {
-        std::cerr << "There are still objects open in the hdf5 file "
-                  << currStepFile_.getFileName() << "\n\n";
-        H5IO::CheckOpenObjects(currStepFile_, true);
-      }
-      
-      currStepFile_.close();
-    }
-
-    // check, if any group is open at all
-    if( mainGroup_.getLocId() > 0 )
-      mainGroup_.close();
-
-    // check for open groups, datasets etc.
-    if (mainFile_.getObjCount( H5F_OBJ_DATASET |
-                               H5F_OBJ_GROUP |
-                               H5F_OBJ_DATATYPE | H5F_OBJ_ATTR) > 0 ) {
-      std::cerr << "There are still objects open in the hdf5 file "
-                << mainFile_.getFileName() << "\n\n";
-      H5IO::CheckOpenObjects(mainFile_, true);
-    }
-
-    mainFile_.close();
+    CloseFile();
   }
 
   void SimOutputHDF5::Init( Grid* ptGrid, bool printGridOnly ) {
@@ -187,17 +161,21 @@ namespace CoupledField {
 
       try {
         // create new multistep group.
-        currMSMeshGroup_ = meshResultsGroup_.createGroup(msName.str());
+        try{ // first try to use an existing one, so we can call BeginMultiSequenceStep multiple times
+          currMSMeshGroup_ = meshResultsGroup_.openGroup(msName.str());
+        }catch (H5::Exception&){
+          currMSMeshGroup_ = meshResultsGroup_.createGroup(msName.str());
 
-        // add analysistype and number of steps to group
-        H5IO::WriteAttribute( currMSMeshGroup_, "AnalysisType", analysisType );
+          // add analysistype and number of steps to group
+          H5IO::WriteAttribute( currMSMeshGroup_, "AnalysisType", analysisType );
 
-        // add a group for the result description datasets.
-        resultDescGroup = currMSMeshGroup_.createGroup("ResultDescription");
+          // add a group for the result description datasets.
+          resultDescGroup = currMSMeshGroup_.createGroup("ResultDescription");
 
-        // write result meta information to file
-        WriteResultDescriptions( resultDescGroup, numSteps, false);
-        resultDescGroup.close();
+          // write result meta information to file
+          WriteResultDescriptions( resultDescGroup, numSteps, false);
+          resultDescGroup.close();
+        }
       } H5_CATCH( "Could not create group for multi sequence step " << step );
     }
 
@@ -212,83 +190,85 @@ namespace CoupledField {
       }
 
       try {
-        // create new multistep group.
-        currMSHistGroup_ = histResultsGroup_.createGroup(msName.str());
+        try { // first try to use an existing one, so we can call BeginMultiSequenceStep multiple times
+          currMSHistGroup_ = histResultsGroup_.openGroup(msName.str());
+        }catch (H5::Exception&){
+          // create new multistep group.
+          currMSHistGroup_ = histResultsGroup_.createGroup(msName.str());
 
-        // add analysistype and number of steps to group
-        H5IO::WriteAttribute( currMSHistGroup_, "AnalysisType", analysisType );
+          // add analysistype and number of steps to group
+          H5IO::WriteAttribute( currMSHistGroup_, "AnalysisType", analysisType );
 
-        // add a group for the result description datasets.
-        resultDescGroup = currMSHistGroup_.createGroup("ResultDescription");
+          // add a group for the result description datasets.
+          resultDescGroup = currMSHistGroup_.createGroup("ResultDescription");
 
-        // write result meta information to file
-        WriteResultDescriptions( resultDescGroup, numSteps, true );
-        resultDescGroup.close();
+          // write result meta information to file
+          WriteResultDescriptions( resultDescGroup, numSteps, true );
+          resultDescGroup.close();
 
-        // iterate over all results
-        ResDescType::iterator it;
-        for( it = registeredHistResults_.begin();
-             it != registeredHistResults_.end();
-             it++ ) {
+          // iterate over all results
+          ResDescType::iterator it;
+          for( it = registeredHistResults_.begin();
+              it != registeredHistResults_.end();
+              it++ ) {
 
-          // create for each result a group within the ms group
-          H5::Group resultGroup;
-          try {
-            resultGroup = currMSHistGroup_.openGroup(it->first);
-          } catch( H5::Exception& ) {
-            resultGroup = currMSHistGroup_.createGroup(it->first);
-          }
-
-          // calculate number of "real steps"
-          UInt saveBegin, saveEnd, saveInc, numRealSteps;
-          saveBegin = std::max( (UInt) 1, histResultSaveBegin_[it->first] );
-          saveEnd = std::min( currMSNumSteps_, histResultSaveEnd_[it->first] );
-          saveInc = histResultSaveInc_[it->first];
-          numRealSteps = (UInt) (saveEnd-saveBegin) / saveInc + 1;
-
-          // create subgroup for entitytype
-          ResultInfo::EntityUnknownType definedOn
-              = it->second[0]->GetResultInfo()->definedOn;
-          std::string entityString = H5IO::MapUnknownTypeAsString(definedOn );
-          H5::Group entityTypeGroup = resultGroup.createGroup( entityString );
-
-          // iterate over all entitylists of result and create sub-subgroup
-          std::vector<shared_ptr<BaseResult> > const & lists = it->second;
-          for( UInt iList = 0; iList < lists.size(); iList++ )  {
-
-            // iterate over all entities in this list
-            EntityIterator entIt = lists[iList]->GetEntityList()->GetIterator();
-            UInt numDofs = lists[iList]->GetResultInfo()->dofNames.GetSize();
-            for( entIt.Begin(); !entIt.IsEnd(); entIt++ ) {
-              H5::Group entityGroup; 
-              try {
-                entityGroup = entityTypeGroup.openGroup( entIt.GetIdString() );
-                std::ostringstream sstr;
-                sstr << "You are trying to add history entity '" << entIt.GetIdString()
-                     << "' under group '"
-                     << "History/" << msName.str() << "/" << it->first << "/" << entityString 
-                     << "'\nwhich already exists under a different name! Please check your mesh and XML files.";
-                Warning(sstr.str().c_str(), __FILE__, __LINE__);
-                entityGroup.close();
-
-                continue;
-              } catch( H5::Exception& h5Ex ) {
-                entityGroup = entityTypeGroup.createGroup( entIt.GetIdString() );
-              }
-
-              H5IO::Reserve2DArray<Double>(entityGroup, "Real", numRealSteps,
-                                          numDofs, dPropList_ );
-              if( lists[iList]->GetEntryType() == BaseMatrix::COMPLEX){
-                H5IO::Reserve2DArray<Double>(entityGroup, "Imag", numRealSteps,
-                                             numDofs, dPropList_ );
-              }
-              entityGroup.close();
+            // create for each result a group within the ms group
+            H5::Group resultGroup;
+            try {
+              resultGroup = currMSHistGroup_.openGroup(it->first);
+            } catch( H5::Exception& ) {
+              resultGroup = currMSHistGroup_.createGroup(it->first);
             }
+
+            // calculate number of "real steps"
+            UInt saveBegin, saveEnd, saveInc, numRealSteps;
+            saveBegin = std::max( (UInt) 1, histResultSaveBegin_[it->first] );
+            saveEnd = std::min( currMSNumSteps_, histResultSaveEnd_[it->first] );
+            saveInc = histResultSaveInc_[it->first];
+            numRealSteps = (UInt) (saveEnd-saveBegin) / saveInc + 1;
+
+            // create subgroup for entitytype
+            ResultInfo::EntityUnknownType definedOn
+            = it->second[0]->GetResultInfo()->definedOn;
+            std::string entityString = H5IO::MapUnknownTypeAsString(definedOn );
+            H5::Group entityTypeGroup = resultGroup.createGroup( entityString );
+
+            // iterate over all entitylists of result and create sub-subgroup
+            std::vector<shared_ptr<BaseResult> > const & lists = it->second;
+            for( UInt iList = 0; iList < lists.size(); iList++ )  {
+
+              // iterate over all entities in this list
+              EntityIterator entIt = lists[iList]->GetEntityList()->GetIterator();
+              UInt numDofs = lists[iList]->GetResultInfo()->dofNames.GetSize();
+              for( entIt.Begin(); !entIt.IsEnd(); entIt++ ) {
+                H5::Group entityGroup; 
+                try {
+                  entityGroup = entityTypeGroup.openGroup( entIt.GetIdString() );
+                  WARN("You are trying to add history entity '" << entIt.GetIdString()
+                       << "' under group '"
+                       << "History/" << msName.str() << "/" << it->first << "/" << entityString 
+                       << "'\nwhich already exists under a different name! Please check your mesh and XML files.");
+                  entityGroup.close();
+
+                  continue;
+                } catch( H5::Exception& h5Ex ) {
+                  entityGroup = entityTypeGroup.createGroup( entIt.GetIdString() );
+                }
+
+                H5IO::Reserve2DArray<Double>(entityGroup, "Real", numRealSteps,
+                    numDofs, dPropList_ );
+                if( lists[iList]->GetEntryType() == BaseMatrix::COMPLEX){
+                  H5IO::Reserve2DArray<Double>(entityGroup, "Imag", numRealSteps,
+                      numDofs, dPropList_ );
+                }
+                entityGroup.close();
+              }
+            }
+            entityTypeGroup.close();
           }
-          entityTypeGroup.close();
+
+
         }
-
-
       } H5_CATCH( "Could not create group for multi sequence step " << step );
     }
     currMS_ = step;
@@ -317,6 +297,11 @@ namespace CoupledField {
   }
 
   void SimOutputHDF5::BeginStep( UInt stepNum, Double stepVal ) {
+    
+    // always also call BeginMultiSequenceStep
+    // the MultiSequenceStep is closed at FinishStep
+    // the following was changed to reload the current MultiSequenceStep if it exists and only else create a new one
+    BeginMultiSequenceStep(currMS_, currAnalysisType_, currMSNumSteps_); // this recreates the multi-sequence step environment
 
     currStep_ = stepNum;
     currStepValue_ = stepVal;
@@ -558,20 +543,25 @@ namespace CoupledField {
 
   void SimOutputHDF5::FinishStep( )
   {
-    if(externalFiles_) 
-      currStepFile_.close();
+    if(externalFiles_)
+    {
+      PtrParamNode in = info->Get("analysis/output/externalFile");
+      try {
+        in->Get("name")->SetValue(currStepFile_.getFileName());
+        in->Get("size")->SetValue((int) currStepFile_.getFileSize());
+        info->ToFile();
+      } catch (H5::FileIException &h5ex) {}
+    }
+
+   // we close everything here, so that the file is in a consistent state
+    currStepFile_.close();
 
     if( currMeshStepGroup_.getId() > 0 )
       currMeshStepGroup_.close();
 
     if( currHistStepGroup_.getId() > 0 )
       currHistStepGroup_.close();
-
-  }
-
-  void SimOutputHDF5::FinishMultiSequenceStep( ) {
-
-    // close groups, which were opened in BeginMultiSequenceStep()
+    
     if( registeredMeshResults_.size() > 0 ) {
 
       // write attributes containing stepNumber and stepValue
@@ -581,7 +571,6 @@ namespace CoupledField {
 
       currMSMeshGroup_.close();
       meshResultsGroup_.close();
-      registeredMeshResults_.clear();
     }
 
     if( registeredHistResults_.size() > 0 ) {
@@ -592,9 +581,24 @@ namespace CoupledField {
 
       currMSHistGroup_.close();
       histResultsGroup_.close();
-      registeredHistResults_.clear();
     }
+    
     resultsGroup_.close();
+    
+    CloseFile();
+    
+    // everything is closed
+    // now reopen the file and basic groups
+    // the multisequencestep is reload in BeginStep again
+    
+    OpenFile(false);
+  }
+
+  void SimOutputHDF5::FinishMultiSequenceStep( ) {
+    
+    // all closing is already done in FinishStep
+    
+    registeredMeshResults_.clear();
 
     // reset all data per sequence step
     meshResultSaveBegin_.clear();
@@ -607,7 +611,7 @@ namespace CoupledField {
     histResultStepNums_.clear();
     meshResultStepVal_.clear();
     histResultStepVal_.clear();
-
+    
   }
 
   void SimOutputHDF5::Finalize() {
@@ -632,7 +636,7 @@ namespace CoupledField {
     fileNames.push_back(progOpts->GetParamFileStr());
     fileNames.push_back(param->Get("fileFormats")
                         ->Get("materialData")
-                        ->Get("file")->AsString());
+                        ->Get("file")->As<std::string>());
 
     dataSetNames.push_back("ParameterFile");
     dataSetNames.push_back("MaterialFile");
@@ -675,20 +679,65 @@ namespace CoupledField {
     }
 
     strBuffer << dirName_ << pathsep << fileName_ << ".h5";
-    fileName = strBuffer.str();
-
+    currFileName_ = strBuffer.str();
+    
+    OpenFile(true);
+  }
+  
+  void SimOutputHDF5::OpenFile(bool truncate){
     // create main file and obtain main group
     try {
-      mainFile_ = H5::H5File (fileName, H5F_ACC_TRUNC );
-    } H5_CATCH( "Could not create hdf5 file '" << fileName << "' : " );
+      mainFile_ = H5::H5File (currFileName_, truncate ? H5F_ACC_TRUNC : H5F_ACC_RDWR );
+    } H5_CATCH( "Could not create hdf5 file '" << currFileName_ << "' : " );
 
     mainGroup_ = mainFile_.openGroup( "/" );
-    meshGroup_ = mainGroup_.createGroup( "Mesh" );
-    mainGroup_.createGroup( "FileInfo" ).close();
+    if(truncate){
+      meshGroup_ = mainGroup_.createGroup( "Mesh" );
+      mainGroup_.createGroup( "FileInfo" ).close();
 
-    mainGroup_.createGroup( "UserData" ).close();
-    mainGroup_.createGroup( "Results" ).close();
+      mainGroup_.createGroup( "UserData" ).close();
+      mainGroup_.createGroup( "Results" ).close();
+//todo      resultsGroup_ = mainGroup_.createGroup( "Results" );
+    }else{
+      meshGroup_ = mainGroup_.openGroup("Mesh");
+//todo      resultsGroup_ = mainGroup_.openGroup("Results");
+    }    
+  }
+  
+  void SimOutputHDF5::CloseFile(){
+    // check for open groups, datasets etc. in current step file
+    if(currStepFile_.getLocId() > 0) {
+      if (currStepFile_.getObjCount( H5F_OBJ_DATASET |
+                                     H5F_OBJ_GROUP |
+                                     H5F_OBJ_DATATYPE | H5F_OBJ_ATTR) > 0 ) {
+        std::cerr << "There are still objects open in the hdf5 file "
+                  << currStepFile_.getFileName() << "\n\n";
+        H5IO::CheckOpenObjects(currStepFile_, true);
+      }
+      
+      currStepFile_.close();
+    }
 
+//todo    if(resultsGroup_.getLocId() > 0){
+//      resultsGroup_.close();
+//    }
+    if(meshGroup_.getLocId() > 0){
+      meshGroup_.close();
+    }
+    // check, if any group is open at all
+    if( mainGroup_.getLocId() > 0 )
+      mainGroup_.close();
+
+    // check for open groups, datasets etc.
+    if (mainFile_.getObjCount( H5F_OBJ_DATASET |
+                               H5F_OBJ_GROUP |
+                               H5F_OBJ_DATATYPE | H5F_OBJ_ATTR) > 0 ) {
+      std::cerr << "There are still objects open in the hdf5 file "
+                << mainFile_.getFileName() << "\n\n";
+      H5IO::CheckOpenObjects(mainFile_, true);
+    }
+
+    mainFile_.close();
   }
 
   void SimOutputHDF5::WriteGrid() {
@@ -1095,16 +1144,20 @@ namespace CoupledField {
                             &(resInfo->dofNames[0]), dPropList_ );
         H5IO::Write1DArray( actGroup, "EntryType", 1, &entryType, dPropList_ );
         H5IO::Write1DArray( actGroup, "Unit", 1, &unit, dPropList_ );
-//        H5IO::Write1DArray( actGroup, "StepFirst", 1, &saveBegin, dPropList_ );
-//        H5IO::Write1DArray( actGroup, "StepLast", 1, &saveEnd, dPropList_ );
-//        H5IO::Write1DArray( actGroup, "StepInc", 1, &saveInc, dPropList_ );
 
         UInt numRealSteps = (UInt) (saveEnd-saveBegin) / saveInc + 1;
-        H5IO::Reserve1DArray<Double>(actGroup, "StepValues", numRealSteps, dPropList_ );
-        H5IO::Reserve1DArray<UInt>(actGroup, "StepNumbers", numRealSteps, dPropList_ );
+
+        // do not reserve 1D array for StepValues and StepNumbers but initialize with 0
+        // otherwise strange memory bugs occur! :(
+        StdVector<Double> tmp_double;
+        tmp_double.Resize(numRealSteps, 0.0);
+        H5IO::Write1DArray( actGroup, "StepValues", numRealSteps, tmp_double.GetPointer(), dPropList_ );
+
+        StdVector<UInt> tmp_uint;
+        tmp_uint.Resize(numRealSteps, 0);
+        H5IO::Write1DArray( actGroup, "StepNumbers", numRealSteps, tmp_uint.GetPointer(), dPropList_ );
 
         actGroup.close();
-
 
       } H5_CATCH( "Could not write result description for result '"
                   << resultName << "'" );

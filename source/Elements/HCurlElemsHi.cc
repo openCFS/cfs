@@ -13,7 +13,7 @@ namespace CoupledField {
 
 // declare class specific logging stream
 DECLARE_LOG(feHCurlHi)
-DEFINE_LOG(feHCurlHi, "feHCurlHi");
+DEFINE_LOG(feHCurlHi, "feHCurlHi")
 
 inline AutoDiff<Double,3> Cross (const AutoDiff<Double,3> & u,
                                  const AutoDiff<Double,3> & v)
@@ -60,11 +60,11 @@ void FeHCurlHi::SetIsoOrder(UInt order) {
   orderEdge_.Init(order);
 
   // set order for faces
-  array<UInt,2> faceOrder = {order, order};
+  array<UInt,2> faceOrder = {{order, order}};
   orderFace_.Init(faceOrder);
 
   // set order for inner
-  array<UInt, 3> innerOrder = {order, order, order}; 
+  array<UInt, 3> innerOrder = {{order, order, order}}; 
   orderInner_ = innerOrder;
 
   updateUnknowns_ = true;
@@ -417,7 +417,7 @@ void FeHCurlHiHex::CalcLocShFnc( Matrix<Double>& shape, LocPointMapped& lpm,
       
       // a) gradient fields
       if( useGrad_[FACE])
-        Warning("Calculation of face gradient fields not yet implemented");
+        WARN("Calculation of face gradient fields not yet implemented");
       
       // b) curl of gradient fields
       for( UInt k = 0; k < order1; ++k ) {
@@ -684,7 +684,7 @@ void FeHCurlHiHex::CalcLocCurlShFnc( Matrix<Double>& curl, LocPointMapped& lpm,
 
       // a) gradient fields
       if( useGrad_[FACE])
-        Warning("Calculation of face gradient fields not yet implemented");
+        WARN("Calculation of face gradient fields not yet implemented");
 
       // b) curl of gradient fields
       StdVector<AutoDiff<Double, 3> > xiLambdaVals(xiVals.GetSize()), 

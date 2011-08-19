@@ -7,7 +7,6 @@
 #include <complex>
 
 #include "MatVec/crs_matrix.hh"
-#include "OLAS/algsys/olasparams.hh"
 #include "OLAS/precond/ilutpprecond.hh"
 
 // Include source code of CroutLU class for template instantiation
@@ -23,13 +22,13 @@ namespace CoupledField {
   // =====================================================
   template <typename T>
   ILUTP_Precond<T>::ILUTP_Precond( const StdMatrix& stdMat, 
-                                   OLAS_Params *myParams,
-				   OLAS_Report *myReport ) {
+                                   PtrParamNode solverNode,
+				   PtrParamNode olasInfo ) {
 
 
     // Set pointers to communication objects
-    this->myParams_ = myParams;
-    this->myReport_ = myReport;
+    this->xml_ = solverNode;
+    this->olasInfo_ = olasInfo;
 
     // No factorisation was performed yet
     this->readyToUse_ = false;
@@ -82,8 +81,12 @@ namespace CoupledField {
 
 
     // Query parameter object for factorisation parameters
-    tau_ = this->myParams_->GetDoubleValue( "ILUTP_tau" );
-    Integer aux = this->myParams_->GetIntValue( "ILUTP_fillVal" );
+    tau_ = 0.01;
+    Integer aux = -2;
+    PtrParamNode pNode = this->xml_->Get("ILUTP", ParamNode::INSERT);
+    pNode->GetValue("tau", tau_, ParamNode::INSERT);
+    pNode->GetValue("aux", aux, ParamNode::INSERT);
+    
     if ( aux >= 0 ) {
       maxFill_ = (UInt)aux;
     }
@@ -96,14 +99,14 @@ namespace CoupledField {
       	   << " ) factorisation" << std::endl;
 
     // Perform the factorisation
-    Factorise( sysMat );
+    this->Factorise( sysMat );
     amFactorised_ = true;
 
     // If the user wishes, we can export the LU factorisation to a file
-    if ( this->myParams_->GetBoolValue( "CROUT_saveFacToFile" ) ) {
-      std::string filename;
-      filename = this->myParams_->GetStringValue( "CROUT_facFileName" );
-      this->ExportILUFactorisation( filename.c_str() );
+    std::string saveFacFile = "crout_fac.out";
+    if(pNode->Has("saveFacFile")) {
+      pNode->GetValue("saveFacFile", saveFacFile, ParamNode::INSERT);
+      this->ExportILUFactorisation( saveFacFile.c_str() );
     }
 
   }

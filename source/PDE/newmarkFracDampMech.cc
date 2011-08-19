@@ -30,7 +30,8 @@ namespace CoupledField {
                        Grid * aptgrid,
                        StdPDE * aptStdPDE,
                        StdVector<RegionIdType> asubdomainList,
-                       std::map<RegionIdType,DampingType> adampingList) 
+                       std::map<RegionIdType,DampingType> adampingList,
+                       PtrParamNode systemNode ) 
     :TimeStepping( algebraicsystem){
     
     
@@ -44,10 +45,10 @@ namespace CoupledField {
 
 //     // get subType of pde
 //     UInt actSequenceStep = domain->GetSingleDriver()->GetActSequenceStep();
-//     ParamNode * actStepNode = 
+//     PtrParamNode actStepNode = 
 //       param->Get("sequenceStep", "index", GenStr(actSequenceStep));
 //     mechNode_ = actStepNode->Get("pdeList")->Get("mechanic");
-//     subType_ = mechNode_->AsString();
+//     subType_ = mechNode_->As<std::string>();
 	
 //     subdoms_     = asubdomainList;
 //     dampingList_ = adampingList;
@@ -62,7 +63,7 @@ namespace CoupledField {
 
 //     //check if integration parameters are defined
 //     std::string analysis;
-//     if( actStepNode->Get("analysis")->GetChild()->AsString()  != "paramIdent" ) {
+//     if( actStepNode->Get("analysis")->GetChild()->As<std::string>()  != "paramIdent" ) {
 //       Info->PrintF( pdename_, "NewmarkFracDampMech: Using defaults for alpha, \
 //                                beta and gamma!\n" );
 //     }
@@ -79,14 +80,17 @@ namespace CoupledField {
     dt_ = dt;
     rhsSize_ = rhsSize;
     CalcParameters(dt_);
+    Vector<Double> dummyVec;
+    dummyVec.Resize(rhsSize_);
+    dummyVec.Init();
 
     //elastModule_ = 1.0;  
     //elastModule_ = 658.2;  
-    ParamNode * firstRegionNode = (mechNode_->Get("regionList")->GetList("region"))[0];
-    firstRegionNode->Get("damping")->Get("ElastModul", elastModule_ );
+    PtrParamNode firstRegionNode = (mechNode_->Get("regionList")->GetList("region"))[0];
+    firstRegionNode->Get("damping")->GetValue("ElastModul", elastModule_ );
     
     Double timeSlot;
-    firstRegionNode->Get("damping")->Get("timeSlot", timeSlot );
+    firstRegionNode->Get("damping")->GetValue("timeSlot", timeSlot );
   
     Double temp;
     temp   = (timeSlot/GetTimeStep())/fracMemory_;
@@ -103,14 +107,13 @@ namespace CoupledField {
 
 
     // get the memory
-    if( !isDeriv1Set_ ) {
-      solderiv1_.Resize(rhsSize_);  
-      solderiv1_.Init();
+    if ( !is_Deriv_set(FIRST_DERIV) )
+    {
+      solDeriv_vec_[FIRST_DERIV] = dummyVec;
     }
-
-    if( !isDeriv2Set_ ) {
-      solderiv2_.Resize(rhsSize_);  
-      solderiv2_.Init();
+    if ( !is_Deriv_set(SECOND_DERIV) )
+    {
+      solDeriv_vec_[SECOND_DERIV] = dummyVec;
     }
   
 
@@ -154,11 +157,14 @@ namespace CoupledField {
     numTrueValues_ = 0;
     for ( UInt i=0; i < numValues_; i++ ) {
       if ( solMemoryVal_[i] == trueVAL )
-	numTrueValues_++;
+        numTrueValues_++;
     }
-
-    solpred_ = solold + solderiv1_*dt_ + solderiv2_*a0_;
-    solderiv1pred_ = solderiv1_ + solderiv2_*a1_;
+    if( !omitFirstPredictor_) {
+      solpred_ = solold + solDeriv_vec_[FIRST_DERIV]*dt_ + solDeriv_vec_[SECOND_DERIV]*a0_;
+      solderiv1pred_ = solDeriv_vec_[FIRST_DERIV] + solDeriv_vec_[SECOND_DERIV]*a1_;
+    } else {
+      omitFirstPredictor_ = false;
+    }
   }
 
 
@@ -173,7 +179,7 @@ namespace CoupledField {
 
     // damping part
     Matrix<Double>  elemmat;
-    BaseFE          * ptElem;
+//    BaseFE          * ptElem;
     StdVector<UInt> connecth;
     Vector<Double>  rhsAssemble, rhsvec, elemsol;
     Vector<Double>  fracDerivStressVec_, resultStressVector,stressVector;
@@ -189,16 +195,16 @@ namespace CoupledField {
     firstMat->GetScalar(dampAlpha_,ACOU_ALPHA,Global::REAL);
     firstMat->GetScalar(dampBeta_,FRACTIONAL_EXPONENT,Global::REAL);
 
-    ParamNode * firstRegionNode = (mechNode_->GetList("region"))[0];
+    PtrParamNode firstRegionNode = (mechNode_->GetList("region"))[0];
     Double fracDeriv_;
-    firstRegionNode->Get("damping")->Get("fracDeriv", fracDeriv_ );
+    firstRegionNode->Get("damping")->GetValue("fracDeriv", fracDeriv_ );
 
     Double timeStep = GetTimeStep();
     timeStepPowerFracDeriv_ = std::pow(timeStep,-fracDeriv_);
 
 
     std::string model;
-    firstRegionNode->Get("damping")->Get( "model", model );
+    firstRegionNode->Get("damping")->GetValue( "model", model );
 
     for ( UInt actSD=0; actSD < subdoms_.GetSize(); actSD++ ) {
       if ( dampingList_[subdoms_[actSD]] == NONE ) {
@@ -315,7 +321,10 @@ namespace CoupledField {
           if(model== "3param")
             rhsAssemble  = rhsAssemble +  resultStressVector;
           else if (model=="KelvinVoigt")
+          {
+            assert(false);
             rhsAssemble  = rhsAssemble; // +  resultStressVector;
+          }
           else
             std::cerr << "unknown model for fractional damping" << std::endl;
           //(*debug) <<  "rhs vector of timestep " << actStep_ << std::endl;
@@ -331,8 +340,9 @@ namespace CoupledField {
   void NewmarkFracDampMech::Corrector(Vector<Double>& solnew)
   {
     EXCEPTION("Reimplement after refactoring!")
-//    solderiv2_ = (solnew - solpred_) * a2_;
-//    solderiv1_ = solderiv1pred_ + solderiv2_*a3_;
+//
+//    solDeriv_vec_[SECOND_DERIV] = (solnew - solpred_) * a2_;
+//    solDeriv_vec_[FIRST_DERIV] = solderiv1pred_ + solDeriv_vec_[SECOND_DERIV]*a3_;
 //
 //    Integer numEQNs = eqnMap_->GetNumEqns();
 //    StdVector<UInt> connecth, connect_PDE;

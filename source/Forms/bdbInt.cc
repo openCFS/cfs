@@ -7,12 +7,8 @@
 
 #include "bdbInt.hh"
 #include "DataInOut/Logging/cfslog.hh"
-#include "Optimization/DesignElement.hh"
-#include "Elements/integrationScheme.hh"
-#include "Domain/domain.hh"
-#include "Domain/grid.hh"
-#include "Elements/H1Elems.hh"
-#include "Elements/fespace.hh"
+#include "Optimization/Design/DesignElement.hh"
+
 
 namespace CoupledField {
 
@@ -20,7 +16,7 @@ namespace CoupledField {
                                   EntityIterator& ent1,
                                   EntityIterator& ent2,
                                   DesignElement::Type direction ) {
-    
+
     // Extract physical element
     const Elem* ptElem = ent1.GetElem();
 
@@ -47,11 +43,11 @@ namespace CoupledField {
     StdVector<LocPoint> intPoints;
     StdVector<Double> weights;
     intScheme_->GetIntPoints( Elem::GetShapeType(ptElem->type), intPoints, weights );
-    
+
     const UInt nrDofs   = getNrDofs();
     elemMat.Resize( nrFncs * nrDofs);
     elemMat.Init();
-    
+
     // Loop over all integration points
     LocPointMapped lp;
     for( UInt i = 0; i < intPoints.GetSize(); i++  ) {
@@ -61,7 +57,7 @@ namespace CoupledField {
 
       // Call the CalcBMat()-method
       calcBMat( bMat, lp, ptFe);
-      
+
       // Calculate D-Mat
       calcDMat(dMat, ent1.GetElem());
 
@@ -72,7 +68,6 @@ namespace CoupledField {
       dbMat = (dMat * bMat) * fac;
       elemMat += Transpose(bMat) * dbMat;
     }
-
 //    // Extract pointer to reference element and get coordinates
 //    ExtractElemInfo( ent1 );
 //
@@ -88,12 +83,15 @@ namespace CoupledField {
 //    Matrix<Double> bMat;
 //    Matrix<Double> dMat;
 //    Matrix<Double> dbMat;
-//    Double aux, fac, *ptr1, *ptr2;
+//    Double aux, fac, *ptr1, *ptr2, *ptr3;
 //
-//    elemMat.Resize( nrFncs * nrDofs);
+//    UInt bRows(getDimD());
+//    UInt bCols(nrFncs * nrDofs);
+//
+//    elemMat.Resize(bCols);
 //    elemMat.Init();
 //
-//    dbMat.Resize( getDimD(), nrFncs * nrDofs);
+//    dbMat.Resize( bRows, bCols);
 //
 //    //if softening, get maximal/minimal edge lenght
 //    if ( softeningPart_ == "bendingBK1" ) {
@@ -109,6 +107,7 @@ namespace CoupledField {
 //
 //    const UInt nrIntPts = ptelem->GetNumIntPoints();
 //    const Vector<Double> & intWeights = ptelem->GetIntWeights();
+//    const Vector<Double> * intPoints = ptelem->GetIntPoints();
 //
 //    // **************************************************
 //    //  Material matrix independent of integration point
@@ -125,6 +124,8 @@ namespace CoupledField {
 //        }
 //      }
 //
+//      Vector<Double> globIntPoint;
+//
 //      // Loop over all integration points
 //      for ( UInt actIntPt = 1; actIntPt <= nrIntPts; actIntPt++ ) {
 //
@@ -132,7 +133,6 @@ namespace CoupledField {
 //        if( ptMaterial->GetCoordSys() != NULL ) {
 //          // Get global coordinates
 //          Vector<Double> * intPoints = ptelem->GetIntPoints();
-//          Vector<Double> globIntPoint;
 //
 //          ptelem->Local2GlobalCoord(globIntPoint, intPoints[actIntPt-1],
 //                                    ptCoord_, ent1.GetElem() );
@@ -146,7 +146,7 @@ namespace CoupledField {
 //
 //
 //        // Setup the B matrix for current integration point
-//        calcBMat( bMat, actIntPt, ptCoord_ );
+//        CalcBMat(bMat, actIntPt, ptCoord_ );
 //
 //        // Compute Jacobian for integration point
 //        jacDet = ptelem->CalcJacobianDetAtIp( actIntPt, ptCoord_, ent1.GetElem() );
@@ -159,34 +159,32 @@ namespace CoupledField {
 //
 //        // Special things must be done in the axi-symmetric case
 //        if ( isaxi_ ) {
-//          Vector<Double> ShpFncAtIp;
 //          Vector<Double> CoordAtIP;
-//          ptelem->GetShFncAtIp( ShpFncAtIp, actIntPt, ent1.GetElem() );
-//
-//          CoordAtIP = ptCoord_ * ShpFncAtIp;
+//          ptelem->Local2GlobalCoord( CoordAtIP, intPoints[actIntPt-1],
+//                                   ptCoord_, ent1.GetElem() );
+//          //ptelem->GetShFncAtIp( ShpFncAtIp, actIntPt, ent1.GetElem() );
 //          jacDet *= 2 * PI * CoordAtIP[0];
 //        }
 //
 //        // Compute the matrix product D * B and store as intermediate matrix
-//        // resize dbMat to handle SurfaceNortmalInt
-//        dbMat.Resize(bMat.GetNumRows(), bMat.GetNumCols());
 //        dMat.Mult( bMat, dbMat );
 //
 //        // We now compute B^T * D * B and scale it by the determinant
 //        // of the Jacobian and the weight of the current integration
 //        // point. The result is added to the element matrix.
 //        fac = jacDet * intWeights[actIntPt-1];
-//        for ( UInt k = 0; k < bMat.GetNumRows(); k++ ) {
+//        for ( UInt k = 0; k < bRows; ++k ) {
 //          ptr1 =  bMat[k];
 //          ptr2 = dbMat[k];
-//          for ( UInt i = 0; i < bMat.GetNumCols(); i++ ) {
+//          for ( UInt i = 0; i < bCols; ++i ) {
+//            ptr3 = elemMat[i];
 //            aux = fac * ptr1[i];
-//            for ( UInt j = 0; j < dbMat.GetNumCols(); j++ ) {
-//              elemMat[i][j] += aux * ptr2[j];
+//            for ( UInt j = 0; j < bCols; ++j ) {
+//              ptr3[j] += aux * ptr2[j];
 //            }
 //          }
 //        }
-//      }
+//      } // end of loop over integration points
 //
 //    }
 //
@@ -196,13 +194,13 @@ namespace CoupledField {
 //    else {
 //
 //      // Loop over all integration points
-//      for ( UInt actIntPt = 1; actIntPt <= nrIntPts; actIntPt++ ) {
+//      for ( UInt actIntPt = 1; actIntPt <= nrIntPts; ++actIntPt ) {
 //
 //        // Setup material matrix for current integration point
 //        calcDMat(dMat, actIntPt, ptCoord_);
 //
 //        // Setup the B matrix for current integration point
-//        calcBMat( bMat, actIntPt, ptCoord_ );
+//        CalcBMat( bMat, actIntPt, ptCoord_ );
 //
 //        // Compute Jacobian for integration point
 //        jacDet = ptelem->CalcJacobianDetAtIp( actIntPt, ptCoord_, ent1.GetElem() );
@@ -215,14 +213,13 @@ namespace CoupledField {
 //
 //        // Special things must be done in the axi-symmetric case
 //        if ( isaxi_ ) {
-//          Vector<Double> ShpFncAtIp;
 //          Vector<Double> CoordAtIP;
-//          ptelem->GetShFncAtIp( ShpFncAtIp, actIntPt, ent1.GetElem() );
-//
-//          CoordAtIP = ptCoord_ * ShpFncAtIp;
+//          ptelem->Local2GlobalCoord( CoordAtIP, intPoints[actIntPt-1],
+//                                     ptCoord_, ent1.GetElem() );
+//          //ptelem->GetShFncAtIp( ShpFncAtIp, actIntPt, ent1.GetElem() );
 //          jacDet *= 2 * PI * CoordAtIP[0];
 //        }
-//
+//        
 //        // Compute the matrix product D * B and store as intermediate matrix
 //        dbMat.Resize( dMat.GetNumRows(), bMat.GetNumCols() );
 //        dMat.Mult( bMat, dbMat );
@@ -231,13 +228,16 @@ namespace CoupledField {
 //        // of the Jacobian and the weight of the current integration
 //        // point. The result is added to the element matrix.
 //        fac = jacDet * intWeights[actIntPt-1];
-//        for ( UInt k = 0; k < bMat.GetNumRows(); k++ ) {
+//        bRows = bMat.GetNumRows();
+//        bCols = bMat.GetNumCols();
+//        for ( UInt k = 0; k < bRows; ++k ) {
 //          ptr1 =  bMat[k];
 //          ptr2 = dbMat[k];
-//          for ( UInt i = 0; i < bMat.GetNumCols(); i++ ) {
+//          for ( UInt i = 0; i < bCols; ++i ) {
+//            ptr3 = elemMat[i];
 //            aux = fac * ptr1[i];
-//            for ( UInt j = 0; j < dbMat.GetNumCols(); j++ ) {
-//              elemMat[i][j] += aux * ptr2[j];
+//            for ( UInt j = 0; j < bCols; ++j ) {
+//              ptr3[j] += aux * ptr2[j];
 //            }
 //          }
 //        }
@@ -251,7 +251,6 @@ namespace CoupledField {
   }
 
 
-  
 
   // ****************************
   //   CalcComplexElementMatrix
@@ -261,8 +260,7 @@ namespace CoupledField {
                                           EntityIterator& ent2,
                                           Double & beta, Double & omega) {
 
-      EXCEPTION("Implement me");
-//
+
 //    // Get pointer to reference element and its coordinates
 //    ExtractElemInfo( ent1 );
 //
@@ -270,6 +268,7 @@ namespace CoupledField {
 //    const UInt nrNodes  = ptelem->GetNumNodes();
 //    const UInt nrDofs   = getNrDofs();
 //    const Vector<Double> & intWeights = ptelem->GetIntWeights();
+//    const Vector<Double> * intPoints = ptelem->GetIntPoints();
 //    double jacDet;
 //
 //    Matrix<Double> bMat;
@@ -289,35 +288,45 @@ namespace CoupledField {
 //        calcDMaterialMatWithComplexDamping(dMat,beta,omega);
 //      }
 //
-//      calcBMat(bMat, actIntPt, ptCoord_);
+//      CalcBMat(bMat, actIntPt, ptCoord_);
 //
 //      //   hardcoded dB = dMat * bMat;
 //      dB.Resize(dMat.GetNumRows(), bMat.GetNumCols());
 //      Complex a;
 //
-//      for ( UInt i = 0; i < dMat.GetNumRows(); i++ ) {
-//        for ( UInt j = 0; j < bMat.GetNumCols(); j++ ) {
+//			{
+//      const unsigned int brows(bMat.GetNumRows());
+//      const unsigned int drows(dMat.GetNumRows());
+//      const unsigned int bcols(bMat.GetNumCols());
+//      for ( UInt i = 0; i < drows; i++ ) {
+//        for ( UInt j = 0; j < bcols; j++ ) {
 //          a = dMat[i][0] * bMat[0][j];
-//          for ( UInt k = 1; k < bMat.GetNumRows(); k++ ) {
+//          for ( UInt k = 1; k < brows; k++ ) {
 //            a += dMat[i][k] * bMat[k][j];
 //          }
 //          dB[i][j] = a;
 //        }
 //      }
+//			}
 //
 //      bMat.Transpose(bTrans);
 //
 //      // hardcoded: partElemMat = bTrans * dB;
 //      partElemMat.Resize(bTrans.GetNumRows(), dB.GetNumCols());
-//      for ( UInt i = 0; i < bTrans.GetNumRows(); i++ ) {
-//        for ( UInt j = 0; j < dB.GetNumCols(); j++ ) {
+//			{
+//      const unsigned int bTrows(bTrans.GetNumRows());
+//      const unsigned int dBcols(dMat.GetNumCols());
+//      const unsigned int dBrows(dB.GetNumRows());
+//      for ( UInt i = 0; i < bTrows; i++ ) {
+//        for ( UInt j = 0; j < dBcols; j++ ) {
 //          a = bTrans[i][0] *dB[0][j];
-//          for ( UInt k = 1; k < dB.GetNumRows(); k++ ) {
+//          for ( UInt k = 1; k < dBrows; k++ ) {
 //            a += bTrans[i][k] * dB[k][j];
 //          }
 //          partElemMat[i][j] = a;
 //        }
 //      }
+//			}
 //
 //      jacDet = ptelem->CalcJacobianDetAtIp(actIntPt,ptCoord_, ent1.GetElem());
 //
@@ -327,17 +336,18 @@ namespace CoupledField {
 //                 << "negative Jacobian determinant!" );
 //      }
 //
-//      if (isaxi_) {
-//        Vector<Double> ShpFncAtIp;
+//      if ( isaxi_ ) {
 //        Vector<Double> CoordAtIP;
-//        ptelem->GetShFncAtIp(ShpFncAtIp, actIntPt, ent1.GetElem());
-//
-//        CoordAtIP = ptCoord_ * ShpFncAtIp;
+//        ptelem->Local2GlobalCoord( CoordAtIP, intPoints[actIntPt-1],
+//                                   ptCoord_, ent1.GetElem() );
+//        //ptelem->GetShFncAtIp( ShpFncAtIp, actIntPt, ent1.GetElem() );
 //        jacDet *= 2 * PI * CoordAtIP[0];
 //      }
-//
-//      for ( UInt i = 0; i < elemMat.GetNumRows(); i++ ) {
-//        for ( UInt j = 0; j < elemMat.GetNumCols(); j++ ) {
+//      
+//      const unsigned int ecols(elemMat.GetNumCols());
+//      const unsigned int erows(elemMat.GetNumRows());
+//      for ( UInt i = 0; i < erows; i++ ) {
+//        for ( UInt j = 0; j < ecols; j++ ) {
 //          elemMat[i][j] += partElemMat[i][j] * jacDet *
 //            intWeights[actIntPt-1] ;
 //        }
@@ -346,9 +356,12 @@ namespace CoupledField {
   }
 
 
+
+
+
   void BDBInt::calcBMat(EntityIterator it, Matrix<Double>& bMat ) {
 
-      EXCEPTION("Implement me");
+    REFACTOR;
 //    // get midpoint
 //    ExtractElemInfo( it );
 //    Vector<Double> midPoint;
@@ -356,12 +369,14 @@ namespace CoupledField {
 //
 //    // Set integration point to midpont
 //    SetIntPoint( midPoint);
-//    calcBMat( bMat, 1, ptCoord_ );
+//    CalcBMat( bMat, 1, ptCoord_);
+//
+//    //virtual void calcBMat(Matrix<Double> &bMat, UInt ip, const Matrix<Double> &ptCoord) {
 //    UnsetIntPoint();
   }
 
   void BDBInt::calcDBMat(EntityIterator it, Matrix<Double>& dbMat ) {
-    EXCEPTION( "Implement me");
+
 //    // get midpoint
 //    ExtractElemInfo( it );
 //    Vector<Double> midPoint;
@@ -370,7 +385,7 @@ namespace CoupledField {
 //    // Set integration point to midpont
 //    SetIntPoint( midPoint);
 //    Matrix<Double> temp1 , temp2;
-//    calcBMat( temp1, 1, ptCoord_ );
+//    CalcBMat( temp1, 1, ptCoord_ );
 //    calcDMat( temp2, 1, ptCoord_ );
 //    dbMat = temp1*temp2;
 //    UnsetIntPoint();

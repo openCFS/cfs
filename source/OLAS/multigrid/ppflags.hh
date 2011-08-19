@@ -82,30 +82,6 @@
                                     //
 #endif // DEBUG_MULTIGRID ////////////
 
-/**********************************************************
- * PROFILING
- **********************************************************/
-
-// so far we activate profiling automatically with OLAS profiling
-#ifdef  PROFILING
-#ifndef  PROFILE_MULTIGRID
-#define  PROFILE_MULTIGRID
-#endif
-#endif
-
-#ifdef PROFILE_MULTIGRID /////////////
-                                    //
-#ifndef PROFILE_TOPOLOGY            //
-#define PROFILE_TOPOLOGY            //
-#endif                              //
-#ifndef PROFILE_TRANSFEROPERATOR    //
-#define PROFILE_TRANSFEROPERATOR    //
-#endif                              //
-#ifndef PROFILE_HIERARCHYLEVEL      //
-#define PROFILE_HIERARCHYLEVEL      //
-#endif                              //
-#endif // PROFILE_MULTIGRID //////////
-
 
 
 /**********************************************************/

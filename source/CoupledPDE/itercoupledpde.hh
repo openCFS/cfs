@@ -7,6 +7,7 @@
 
 #include "PDE/basePDE.hh"
 #include "General/exception.hh"
+#include "DataInOut/ParamHandling/ParamNode.hh"
 
 namespace CoupledField
 {
@@ -17,7 +18,6 @@ namespace CoupledField
   class SinglePDE;
   class PDECoupling;
   class ParamNode;
-  class InfoNode;
 
   //! This class iteratively solve a list of given SinglePDEs 
   class IterCoupledPDE : public BasePDE
@@ -32,7 +32,7 @@ namespace CoupledField
     IterCoupledPDE(StdVector<StdPDE*> & PDEs,
                    StdVector<SinglePDE*> & sinlgePDEs,
                    StdVector<PDECoupling*> & Couplings,
-                   ParamNode* paramNode); 
+                   PtrParamNode paramNode); 
 
     //! Destructor
     ~IterCoupledPDE();
@@ -76,7 +76,7 @@ namespace CoupledField
   protected:
 
     /** Write coupling info. TODO -> check for overloading! */ 
-    void ToInfo(InfoNode* in);
+    void ToInfo(PtrParamNode in);
 
     //! calculates the norm of a vector
     //Double CalcNorm(NormType normtype, SingleVector & val, SingleVector & oldval);
@@ -89,7 +89,7 @@ namespace CoupledField
     IterSolveStep * solveStep_;
 
     //! Parameter node for "iterative" coupling
-    ParamNode * myParam_;
+    PtrParamNode myParam_;
 
     //! Flag for nonlinear logging
     bool nonLinLogging_;

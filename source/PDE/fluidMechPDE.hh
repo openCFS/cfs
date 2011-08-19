@@ -8,7 +8,7 @@
 #include <map>
 
 #include "SinglePDE.hh"
- 
+
 namespace CoupledField
 {
 
@@ -24,7 +24,7 @@ namespace CoupledField
     /*!
       \param aGrid pointer to grid
     */
-    FluidMechPDE( Grid *aGrid, ParamNode* paramNode );
+    FluidMechPDE( Grid *aGrid, PtrParamNode paramNode );
 
     //!  Deconstructor
     virtual ~FluidMechPDE();
@@ -62,6 +62,9 @@ namespace CoupledField
     /// returns mass integrator appropriate to the actual problem (e.g.3D)
     BaseForm * GetMassIntegrator_UV(Double density,Double kinematicViscosity);
     BaseForm * GetMassIntegrator_UQ(Double density,Double kinematicViscosity);
+    // these two are necessary for the newton method
+    BaseForm * GetAuxIntegrator_UV(Double density,Double kinematicViscosity);
+    BaseForm * GetAuxIntegrator_UQ(Double density,Double kinematicViscosity);
 
     //! Calculate the acoustic sources due to the flow
     void AcouSourceCalc();
@@ -69,7 +72,7 @@ namespace CoupledField
     // ======================================================
     // COUPLING SECTION
     // ======================================================
-  
+
     //! initalize PDE coupling
     void InitCoupling(PDECoupling * Coupling);
 
@@ -79,7 +82,7 @@ namespace CoupledField
     //! calculate coupling terms
     void CalcOutputCoupling();
 
-  
+
     //! returns if PDE can compute the quantity
     bool HasOutput(SolutionType output);
 
@@ -97,13 +100,13 @@ namespace CoupledField
     // ======================================================
     // POSTPROCESSING METHODS
     // ======================================================
-  
+
     //computes mechanical deformation energy TODO
     template <class TYPE>
     void CalcEnergy( shared_ptr<BaseResult> vals );
 
     //computes mechanical stresses TODO
-    template <class TYPE> 
+    template <class TYPE>
     void CalcStresses(  shared_ptr<BaseResult> vals );
 
     //computes fluid mechanical strain rates
@@ -113,16 +116,16 @@ namespace CoupledField
     //! compute volume above a deformed surface TODO
     template <class TYPE>
     void ComputeVolDefSurf( shared_ptr<BaseResult> vals );
-    
+
     //! computes averaged volume of an deformed element
     template<class TYPE>
-    TYPE ComputeVolElem(BaseFE * ptSurfEl, Matrix<Double>& SurfCoord, 
+    TYPE ComputeVolElem(BaseFE * ptSurfEl, Matrix<Double>& SurfCoord,
                         Vector<TYPE> disp);
-    
+
 
     //! Nodestoresol for RHS
     BaseNodeStoreSol * rhs_;
-    
+
 
 
     // ======================================================
@@ -130,13 +133,13 @@ namespace CoupledField
     // ======================================================
     //@{
     //! \name Scripting Methods
-    
+
     //! Register scriptable functions
     void RegisterFunctions();
     //@}
-    
+
     //! Obtain information on desired output quantities from parameter file
-  
+
     //! This method is used to query the parameter handling object for the
     //! desired output quantities and translate their literal description into
     //! the internal format by setting the corresponding class attributes.
@@ -168,53 +171,45 @@ namespace CoupledField
     //!   </tr>
     //! </table>
     void ReadStoreResults();
-  
+
     //! Init the time stepping
     void InitTimeStepping();
 
     //! Contains grid velocity
     NodeStoreSol<Double> * gridSol_;
     NodeStoreSol<Double> acou_src_;
-  
+
     Double forceFac_;
-    
+
   private:
 
     /// returns the vector of the fluid mechanical pressure solution
     /// belonging to all nodes of the actual element
     void GetPresSolVecOfElement(Vector<Double>& sol, StdVector<UInt>& connect_PDE);
-    
+
     /// returns the vector of the fluid mechanical velocities solution
     /// belonging to all nodes of the actual element
     template<class TYPE>
     void GetVeloSolMatOfElement(Matrix<TYPE>& sol, StdVector<UInt>& connect_PDE);
-    
+
     /// returns the vector of the time derivative of fluid mechanical velocities solution
     /// belonging to all nodes of the actual element
     void GetVeloDeriv1SolVecOfElement(Vector<Double>& sol, const EntityIterator& it);
-    
+
 
     //! calculate the vector of coupling forces to the mechanical PDE
-    void CalcMechCouplingRHS( StdVector<Elem*> * couplingElems, 
+    void CalcMechCouplingRHS( StdVector<Elem*> * couplingElems,
                               StdVector<UInt> & couplingNodes,
                               Vector<Double>& elemCouplingSols,
                               UInt couplingdof );
-                              
+
     //! calculate the vector of coupling RHS for the acoustic PDE
     //! due to the moving fluid-structure inerface
-    void CalcAcouSurfSourceCouplingRHS( StdVector<Elem*> * couplingElems, 
+    void CalcAcouSurfSourceCouplingRHS( StdVector<Elem*> * couplingElems,
                                         StdVector<UInt> & couplingNodes,
                                         Vector<Double>& elemCouplingSols,
                                         UInt couplingdof );
 
-
-    /// Write nonlin iteration norms to the cla-file
-    void WriteClaNlNorms( const UInt iterationCounter,
-                          const Double residualL2Norm,
-                          const Double extForcesL2Norm, const Double residualErr, 
-                          const Double solIncrL2Norm, const Double actSolL2Norm, 
-                          const Double incrementalErr );
-  
 
     //! read pressure loads
     void ReadPressureLoads();
@@ -228,22 +223,22 @@ namespace CoupledField
 
     /// returns that L2-norm of an algsys vector
     Double AlgsysL2Norm(Double * pt);
-  
+
     /// returns the solution matrix belonging to all nodes of the actual element
     void GetSolOfElement( Matrix<Double>& elDisp, StdVector<UInt>& connect_PDE);
 
-    
+
     //! Number of dimension for stresses
     UInt stressDim_;
-    
+
     //! surface of pressure loads
-    StdVector<shared_ptr<EntityList> > pressSurf_;  
+    StdVector<shared_ptr<EntityList> > pressSurf_;
 
     //! values of the pressure loads
-    StdVector<std::string>  pressVals_; 
+    StdVector<std::string>  pressVals_;
 
-    //! phase of the pressure loads  
-    StdVector<std::string>  pressPhase_; 
+    //! phase of the pressure loads
+    StdVector<std::string>  pressPhase_;
 
     //! dynamics of pressure loads
     StdVector<std::string> pressFnc_;
@@ -254,14 +249,14 @@ namespace CoupledField
     //! list of prestressing types
     std::map<RegionIdType,std::string> preStressList_;
 
-    //! prestress-values: numSubdoms x 3 
-    std::map< RegionIdType, Vector<Double> > preStressVal_; 
+    //! prestress-values: numSubdoms x 3
+    std::map< RegionIdType, Vector<Double> > preStressVal_;
 
      //@{ \name Attributes related to post-processing
 
      //! Contains mechanic velocity
     NodeStoreSol<Double> solDeriv1_;
-  
+
     //! Contains mechanic acceleration
     NodeStoreSol<Double> solDeriv2_;
 
@@ -270,16 +265,18 @@ namespace CoupledField
 
     std::string approxType_;           // string to specify approximation type (Lagrange/Legendre/Taylor-Hood/)
     std::string stabilizationType_;    // stabilization type (none/SUPG)
-    
-    bool movingMesh_; // flag to indicate treatment of moving meshes (ALE) 
+    // defines the non linear method. Needs to be set here to define forms.
+    std::string nonLinMethod_;
+
+    bool movingMesh_; // flag to indicate treatment of moving meshes (ALE)
 
     // ========================
     // coupling
     // ========================
     //! assigns each coupling element node the according Coupling Node number
-    StdVector<StdVector<StdVector<UInt> > > elemNodeToCouplingNode_; 
+    StdVector<StdVector<StdVector<UInt> > > elemNodeToCouplingNode_;
 
-    
+
     bool saveAcouSrc_; //Calculate the acoustic sourceterms
     bool saveAcouSrcInFile_; //Shall the source_terms be written in a save file?
     bool coordUp_;
@@ -289,26 +286,26 @@ namespace CoupledField
 #ifdef DOXYGEN_DETAILED_DOC
 
   // =========================================================================
-  //     Detailed description of the class 
+  //     Detailed description of the class
   // =========================================================================
 
   //! \class FluidMechPDE
-  //! 
-  //! \purpose 
+  //!
+  //! \purpose
   //! This class defines the fluid mechanical field PDE (Navier-Stokes equations)
-  //! and the according 
+  //! and the according
   //! postprocessing methods.
-  //! 
-  //! \collab 
-  //! 
-  //! \implement 
-  //! 
+  //!
+  //! \collab
+  //!
+  //! \implement
+  //!
   //! \status In use
-  //! 
-  //! \unused 
-  //! 
+  //!
+  //! \unused
+  //!
   //! \improve
-  //! 
+  //!
 
 #endif
 

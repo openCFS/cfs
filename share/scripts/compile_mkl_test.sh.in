@@ -1,0 +1,183 @@
+#!/bin/sh
+
+ExitFail () {
+    echo "An error occurred!"
+    exit 1;
+}
+
+# Configure variables using CMake
+CFS_BINARY_DIR="@CFS_BINARY_DIR@"
+CC='@CMAKE_C_COMPILER@'
+
+#MKL_ROOT_DIRS="/opt/pckg/intel/composerxe-2011.4.191/mkl"
+#MKL_ROOT_DIRS="/opt/pckg/intel/mkl/10.0.5.025"
+#MKL_ROOT_DIRS="/opt/pckg/intel/mkl/9.1.021"
+MKL_ROOT_DIRS="@MKL_ROOT_DIR@"
+MKL_COMPILER_ID="@MKL_COMPILER_ID@"
+MKL_ARCH_ID="@MKL_ARCH_ID@"
+MKL_THREADING_ID="@MKL_THREADING_ID@"
+
+# Set possible subdirectory names for Intel compiler and MKL lib dirs.
+case "$MKL_ARCH_ID" in
+    lib32 )
+        COMPILER_SUBDIR="ia32"
+	MKL_SUBDIR="32"	   ;;
+    libem64t )
+        COMPILER_SUBDIR="intel64"
+	MKL_SUBDIR="em64t" ;;
+    lib64 )
+        COMPILER_SUBDIR="ia64"
+	MKL_SUBDIR="64"	   ;;
+esac
+
+# Change into temporary directory.
+mkdir -p $CFS_BINARY_DIR/tmp/mkltest || ExitFail
+cd $CFS_BINARY_DIR/tmp/mkltest || ExitFail
+
+# Iterate over all MKLROOTs and perform tests
+for MKLROOT in $MKL_ROOT_DIRS; do
+    # Remove old junk before doing the tests
+    rm -rf _results source makefile out.txt solverc.lst || ExitFail
+
+#    echo
+#    echo
+#    echo $MKLROOT
+#    echo "====================================================="
+
+    # Write a  simple test program which  prints out the MKL  version in CMake
+    # format.
+    mkdir -p source || ExitFail
+    SRC="source/dss_sym_c.c"
+    printf %s "\
+    #include<stdio.h>
+    #include<stdlib.h>
+    #include<math.h>
+    #include <mkl_service.h>
+
+    MKL_INT main() {
+            MKLVersion ver;
+            MKLGetVersion(&ver);
+            printf(\"\nSET(MKL_MAJOR_VERSION %d)\n\", ver.MajorVersion);
+            printf(\"\nSET(MKL_MINOR_VERSION %d)\n\n\", ver.MinorVersion);
+
+            exit(0);
+    }" > $SRC || ExitFail
+
+    # Try  to  determine  the  Intel  compiler's lib  dir,  if  available,  by
+    # searching for libguide.a and libiomp5.a.
+    BASEDIRS=$(echo $MKLROOT | sed 's|mkl.*|lib|')
+    BASEDIRS="$BASEDIRS/$COMPILER_SUBDIR "
+    BASEDIRS="$BASEDIRS $(echo $MKLROOT | sed 's|Frameworks/mkl.*|lib|') "
+    BASEDIRS="$BASEDIRS $(echo $MKLROOT | sed 's|Frameworks/mkl.*|lib|')"
+    BASEDIRS="$BASEDIRS/$COMPILER_SUBDIR "    
+    BASEDIRS="$BASEDIRS $MKLROOT/lib/$MKL_SUBDIR "    
+#    echo $BASEDIRS
+
+    for BASEDIR in $BASEDIRS; do
+	LIB="$BASEDIR/libiomp5.a"
+
+	if [ -f $LIB ]; then
+#	    echo "Jipi found $LIB"
+	    OMP_LIB_PATH="\"$BASEDIR\""
+	    LIB_PATH="$OMP_LIB_PATH:$LIBPATH"
+	fi
+
+	LIB="$BASEDIR/libguide.a"
+
+	if [ -f $LIB ]; then
+#	    echo "Jipi found $LIB"
+	    LIB_PATH="\"$BASEDIR\":$LIBPATH"
+	fi
+    done
+#    echo "OMP_LIB_PATH: $OMP_LIB_PATH"
+#    echo "LIB_PATH: $LIB_PATH"
+
+    # Make  MKLROOT an  environment  variable  so that  the  make process  may
+    # reference it.
+    export MKLROOT
+
+    # Search for the proper $MKLROOT/examples/solver[c]/makefile.
+    if [ -f $MKLROOT/examples/solver/makefile ]; then
+	SOLVERMAKEFILE=$MKLROOT/examples/solver/makefile
+    else
+	if [ -f $MKLROOT/examples/solverc/makefile ]; then
+	    SOLVERMAKEFILE=$MKLROOT/examples/solverc/makefile
+	    echo "SOLVER = dss_sym_c" > solverc.lst
+        else
+            echo "Could not find examples solver make file in $MKLROOT."
+            ExitFail
+        fi
+    fi
+
+    # Cat  the makefile and  replace some  strings, so  that it  will properly
+    # build the test executable.
+    cat $SOLVERMAKEFILE | \
+      sed 's|PWD)|MKLROOT\)/examples/solver|' | \
+      sed 's|-I\.\./\.\./include|-I$(MKLROOT)/include|' | \
+      sed "s|OMP_LIB = |OMP_LIB = -L$OMP_LIB_PATH |" | \
+      sed "s|[\"]*\$(MKL_PATH)[\"]*:|\"\$(MKL_PATH)\":$LIB_PATH:|" | \
+      sed "s|CC = [gi]cc|CC = $CC|" | \
+      sed "s|COMPILER = [gi]cc|COMPILER = $CC|" \
+      > makefile || ExitFail
+    make F=$MKL_COMPILER_ID compiler=$MKL_COMPILER_ID $MKL_ARCH_ID threading=$MKL_THREADING_ID function=dss_sym_c > out.txt 2>&1 || ExitFail
+    cat _results/*/dss_sym_c.res || ExitFail
+
+    # Replace backslashes plus newlines  in compiler command line with nothing
+    # so that we can properly grep for it.
+    cmdline=$(sed -e :a -e '/\\$/N; s/\\\n//; ta' out.txt | grep $CC)
+
+    # Iterate  over the items  of the  compiler command  line and  extract the
+    # linker flags.
+    PRINT=0
+    echo "SET(MKL_BLAS_LIB"
+    for item in $cmdline; do 
+
+	# If we come  across the first -L or  -Wl,--start-group directives, we
+	# need to start our printout.
+        START=$(echo $item | sed 's|\(-L\)\(.*\)|\1|')
+        if [ "$START" = "-L" -o "$START" = "-Wl,--start-group" -a "$PRINT" = "0" ]; then
+            PRINT=1
+        fi
+
+	# If we come across the -o switch printout has to turned off.
+        END=$(echo $item | sed 's|\(-o\)\(.*\)|\1|')
+        if [ "$END" = "-o" -a "$PRINT" = "1" ]; then
+            PRINT=0
+        fi
+
+        if [ "$PRINT" = "1" ]; then
+            if [ "$(echo $item | grep solver)" = "" ]; then
+		if [ "$(echo $item | grep lapack)" = "" ]; then
+		    for BASEDIR in $BASEDIRS; do
+			ARCH="$BASEDIR/lib$(echo $item | sed 's|-l||').a"
+			if [ -f "$ARCH" ]; then
+			    item="$ARCH"
+			fi
+		    done
+		    
+                    # Replace double quotes with nothing, since we properly
+		    # integrate them afterwards.
+
+                    OUT=$(echo $item | sed 's|"||g')
+                    echo "  \"$OUT\"" 
+		else
+                    LAPACKLIB=$(echo $item | sed 's|"||g')
+		fi
+            else
+                SOLVERLIB=$(echo $item | sed 's|"||g')
+            fi
+        fi
+    done
+    echo "  CACHE FILEPATH \"MKL BLAS.\")"
+    echo
+
+    echo "SET(MKL_LAPACK_LIB \"$LAPACKLIB\" CACHE FILEPATH \"MKL LAPACK.\")"
+    echo
+    echo "SET(MKL_PARDISO_LIB \"$SOLVERLIB\" CACHE FILEPATH \"MKL Pardiso.\")"
+
+    rm -rf _results source makefile out.txt solverc.lst || ExitFail
+done
+
+# Clean up the mess we left behind.
+cd $CFS_BINARY_DIR/tmp || ExitFail
+rm -rf mkltest

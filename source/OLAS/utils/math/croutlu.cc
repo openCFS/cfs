@@ -694,8 +694,8 @@ namespace CoupledField {
     storingFactors_ = true;
 
     // Free dynamically allocated memory
-    DELETEARRAY( listL );
-    DELETEARRAY( listU );
+    delete [] ( listL );  listL  = NULL;
+    delete [] ( listU );  listU  = NULL;
 
   }
 
@@ -1144,19 +1144,19 @@ namespace CoupledField {
 
     // Information on number of rows, columns and entries
     fprintf( fp, "%d\t%d\t%d\n", sysMatDim_, sysMatDim_,
-             rptrU_[sysMatDim_+1] + cptrL_[sysMatDim_+1] - 2 );
+             rptrU_[sysMatDim_] + cptrL_[sysMatDim_] -2);
 
     // **********************
     //   Write entries of U
     // **********************
 
     // loop over all rows
-    for ( i = 1; i <= sysMatDim_; i++ ) {
+    for ( i = 0; i < sysMatDim_; i++ ) {
 
       // First (diagonal) entry must be inverted
 
       // store row and column index
-      fprintf( fp, "%6d\t%6d\t", i, i );
+      fprintf( fp, "%6d\t%6d\t", i+1, i+1 );
 
       // store non-zero entry
       OpType<T>::ExportEntry( 1.0 / entryU_[ rptrU_[i] ], 0, 0, fp );
@@ -1166,7 +1166,7 @@ namespace CoupledField {
       for ( j = rptrU_[i] + 1; j < rptrU_[i+1]; j++ ) {
 
         // store row and column index
-        fprintf( fp, "%6d\t%6d\t", i, cidxU_[j] );
+        fprintf( fp, "%6d\t%6d\t", i+1, cidxU_[j]+1 );
 
         // store non-zero entry
         OpType<T>::ExportEntry( entryU_[j], 0, 0, fp );
@@ -1179,13 +1179,13 @@ namespace CoupledField {
     // **********************
 
     // loop over all columns
-    for ( i = 1; i <= sysMatDim_; i++ ) {
+    for ( i = 0; i < sysMatDim_; i++ ) {
 
       // loop over all entries in this column
       for ( j = cptrL_[i]; j < cptrL_[i+1]; j++ ) {
 
         // store row and column index
-        fprintf( fp, "%6d\t%6d\t", ridxL_[j], i );
+        fprintf( fp, "%6d\t%6d\t", ridxL_[j]+1, i+1 );
 
         // store non-zero entry
         OpType<T>::ExportEntry( entryL_[j], 0, 0, fp );
@@ -1198,9 +1198,8 @@ namespace CoupledField {
     //   Close output file
     // *********************
     if ( fclose( fp ) == EOF ) {
-      (*warning) << "CroutLU::ExportILUFactorisation: Could not close file "
-                 << fname << " after writing!";
-      Warning( __FILE__, __LINE__ );
+      WARN("CroutLU::ExportILUFactorisation: Could not close file "
+           << fname << " after writing!");
     }
   }
 

@@ -99,8 +99,7 @@ namespace CoupledField
   //   if (isSetIntPoint_) 
 //       ptelem->GetGlobDerivShFnc(xiDx, intPoint_, ptCoord);
 //     else
-    Warning( "In the following line the NULL has to be replaced (Andreas )",
-             __FILE__, __LINE__ );
+    WARN( "In the following line the NULL has to be replaced (Andreas )");
     ptelem->GetGlobDerivShFncAtIp(xiDx, ip, ptCoord, NULL );
 
 
@@ -129,8 +128,7 @@ namespace CoupledField
            //  if (isSetIntPoint_) 
 //               ptelem->GetShFnc(ShpFncAtIp,intPoint_);
 //             else
-            Warning( "In the following line the NULL has to be replaced (Andreas )",
-                     __FILE__, __LINE__ );
+            WARN( "In the following line the NULL has to be replaced (Andreas )");
             ptelem->GetShFncAtIp(ShpFncAtIp,ip,NULL);
 
             CoordAtIP = ptCoord * ShpFncAtIp;

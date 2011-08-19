@@ -39,7 +39,7 @@ class FeSpaceH1Lagrange : public FeSpaceH1 {
   public:
 
     //! Constructor
-    FeSpaceH1Lagrange(ParamNode* aNode );
+    FeSpaceH1Lagrange(PtrParamNode aNode );
 
     //! Destructor
     ~FeSpaceH1Lagrange();
@@ -97,7 +97,7 @@ class FeSpaceH1Lagrange : public FeSpaceH1 {
     // ====================================================================
     //! Here we pass a fePolynomial parameter node such that the feSpace can extract the information
     //! which is important for the specific space
-    virtual void ProcessPolyRegionNode(ParamNode* node, RegionIdType region);
+    virtual void ProcessPolyRegionNode(PtrParamNode node, RegionIdType region);
 
     //! This array stores all nodes, including the virtual ones, which are available in the feSpace
     //StdVector<UInt> nodes;

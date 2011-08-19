@@ -81,6 +81,11 @@
             </xsd:complexType>
           </xsd:element>
 
+
+          <!-- Section for specifying the Biot-Savart Law (optional) -->
+          <xsd:element name="biotSavart" type="DT_BiotSavartCoil" 
+                       minOccurs="0" maxOccurs="1"/>
+
           <!-- Section for specifying the coils (optional) -->
           <xsd:element name="coils" minOccurs="0">
             <xsd:complexType>
@@ -106,7 +111,15 @@
           <xsd:element name="storeResults" type="DT_MagneticStoreResults" minOccurs="0"
             maxOccurs="1"/>
         </xsd:sequence>
-
+        <xsd:attribute name="type" use="optional" default="lagrange">
+          <xsd:simpleType>
+            <xsd:restriction base="xsd:token">
+              <xsd:enumeration value="lagrange"/>
+              <xsd:enumeration value="legendre"/>
+            </xsd:restriction>
+          </xsd:simpleType>
+        </xsd:attribute>
+        <xsd:attribute name="order" use="optional" type="xsd:positiveInteger" default="1"/>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
@@ -310,7 +323,7 @@
   <!-- Data type for basic coil -->
   <xsd:complexType name="DT_BasicCoil">
     <xsd:sequence>
-      <xsd:element name="windingCrossSection" type="DT_PosFloat"/>
+      <xsd:element name="windingCrossSection" type="xsd:token"/>
     </xsd:sequence>
     <xsd:attribute name="name" type="xsd:token" use="required"/>
   </xsd:complexType>

@@ -11,7 +11,7 @@
 #include <string>
 
 #include "heatMaterial.hh"
-
+#include <Utils/LinInterpolate.hh>
 
 
 namespace CoupledField
@@ -29,6 +29,8 @@ namespace CoupledField
     isAllowed_.insert( HEAT_CONDUCTIVITY );
     isAllowed_.insert( HEAT_CONDUCTIVITY_TENSOR );
     isAllowed_.insert( HEAT_CAPACITY );
+    isAllowed_.insert( DATA_ACCURACY );
+    isAllowed_.insert( MAX_APPROX_VAL );
   }
 
   HeatMaterial::~HeatMaterial() {
@@ -240,5 +242,20 @@ namespace CoupledField
 
   }
   
+
+  void HeatMaterial::InitApproxCurves() {
+
+    // check, if we need to approx curve
+    if (  needApproxMatCurves_.find( generic ) != needApproxMatCurves_.end() ) {
+      std::string nlfncName = GetNonlinFileName(HEAT_CONDUCTIVITY);
+      if ( nlfncName != "" ) {
+        nlinFncConductivity_ = new LinInterpolate( nlfncName );
+      }
+      nlfncName = GetNonlinFileName(HEAT_CAPACITY);
+      if ( nlfncName != "" ) {
+        nlinFncCapacity_ = new LinInterpolate( nlfncName );
+      }
+    }
+  }
 
 }

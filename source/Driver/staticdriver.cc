@@ -10,8 +10,8 @@
 #include "stdSolveStep.hh"
 
 #include "DataInOut/ParamHandling/ParamNode.hh"
+#include "DataInOut/programOptions.hh"
 #include "PDE/StdPDE.hh"
-//#include "PDE/pdememento.hh"
 #include "Domain/domain.hh"
 #include "DataInOut/resultHandler.hh"
 
@@ -28,12 +28,12 @@ namespace CoupledField {
     restartIncr_= 0;
 
     // get parameter node
-    ParamNode * myNode = 
-      param->Get("sequenceStep", "index", GenStr( sequenceStep ) )
+    PtrParamNode myNode = 
+      param->GetByVal("sequenceStep", std::string("index"), sequenceStep)
       ->Get("analysis")->Get("static");
     
     // Get save increment for restart file (optional)
-    myNode->Get( "writeRestartInc", restartIncr_, false );
+    myNode->GetValue( "writeRestartInc", restartIncr_, ParamNode::PASS );
 
     driverNode = driverNode->Get("static");
     driverNode->Get("sequenceStep")->SetValue(sequenceStep);
@@ -41,6 +41,13 @@ namespace CoupledField {
 
   void StaticDriver::Init() {
 
+    // Initialize first multisequence step, as the method "CheckStoreResults" 
+    // relies on the result handler to know already about the current
+    // sequencestep. However, in case of optimization, the sequence step
+    // gets initialized in Optimization::SolveProblem()
+    if( !domain->GetOptimization()) {
+      handler_->BeginMultiSequenceStep( sequenceStep_, analysis_, 1);
+    }
     InitializePDEs();
   }
 
@@ -55,9 +62,9 @@ namespace CoupledField {
   // *****************
   //   Solve problem
   // *****************
-  void StaticDriver::SolveProblem(bool write_results, InfoNode* given_analysis_id)
+  void StaticDriver::SolveProblem(bool write_results, PtrParamNode given_analysis_id, AdjointParameters* adjointParams)
   {
-    // Set curent value of timestep and time step size in the mathParser
+    // Set current value of time step and time step size in the mathParser
     domain->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
                                          "t", 0.0 );
     domain->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
@@ -69,8 +76,10 @@ namespace CoupledField {
     // store such that special steps can add non-lin stuff and optimization adjoints
     if(given_analysis_id == NULL)
     {
-      analysis_id_ = driverNode->Get(InfoNode::PROCESS)->Get("step", InfoNode::APPEND);
-      analysis_id_->Get("analysis_id")->SetValue(0);
+      // do we really want to create a new entry? Might blast up the output
+      ParamNode::ActionType at = progOpts->DoDetailedInfo() ? ParamNode::APPEND : ParamNode::DEFAULT;
+      analysis_id_ = driverNode->Get(ParamNode::PROCESS)->Get("step", at);
+      analysis_id_->Get("analysis_id")->SetValue("0");
     }
     else
     {
@@ -82,15 +91,14 @@ namespace CoupledField {
     ptPDE_->GetSolveStep()->SetActTime(0.0);
     ptPDE_->GetSolveStep()->SetActStep(1);
     ptPDE_->GetSolveStep()->PreStepStatic();
-    ptPDE_->GetSolveStep()->SolveStepStatic(analysis_id_);
+    ptPDE_->GetSolveStep()->SolveStepStatic(analysis_id_, adjointParams);
     ptPDE_->GetSolveStep()->PostStepStatic();
 
     // in optimization we write the results via StoreResults() because
     // we don't write every forward step. 
     if(write_results)
     {
-      handler_->BeginMultiSequenceStep( sequenceStep_, analysis_, 1);      
-      StoreResults(1);
+      StoreResults(1,0.0);
       handler_->FinishMultiSequenceStep();
 
       if(!isPartOfSequence_)
@@ -101,16 +109,14 @@ namespace CoupledField {
       std::cout << std::endl << " *** Write a restart file *** " << std::endl;      
       ptPDE_->WriteRestart( );
     }
-    
-    SETPROFILE("After Static Step");    
   }
 
-  void StaticDriver::StoreResults(double step_val)
+  void StaticDriver::StoreResults(UInt stepNum, double step_val)
   {
     assert(analysis_ == BasePDE::STATIC);
 
-    handler_->BeginStep((unsigned int) step_val, step_val);
-    ptPDE_->WriteResultsInFile((unsigned int) step_val, step_val);
+    handler_->BeginStep(stepNum, step_val);
+    ptPDE_->WriteResultsInFile(stepNum, step_val);
     ptPDE_->WriteGeneralPDEdefines();
     handler_->FinishStep();
   }

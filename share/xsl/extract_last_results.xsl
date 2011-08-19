@@ -17,11 +17,14 @@
 </xsl:text>
     <!-- for every result take the last item -->
     <!-- start with the last item step_nr from any result -->
-    <xsl:value-of select="/cfsInfo/calculation/process/sequence/result/item[last()]/@step_nr"/><xsl:text> </xsl:text> 
+    <xsl:value-of select="/cfsInfo/calculation/process/sequence/result/item[last()]/step/@analyis_id"/><xsl:text> </xsl:text> 
     <xsl:for-each select="/cfsInfo/calculation/process/sequence">
       <xsl:for-each select="result">
         <xsl:for-each select="item[last()]">
           <xsl:value-of select="@value"/><xsl:text> </xsl:text>
+          <xsl:value-of select="@x"/><xsl:text> </xsl:text>
+          <xsl:value-of select="@y"/><xsl:text> </xsl:text>
+          <xsl:value-of select="@z"/><xsl:text> </xsl:text>
         </xsl:for-each>
       </xsl:for-each>
     </xsl:for-each>

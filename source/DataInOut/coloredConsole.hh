@@ -170,7 +170,9 @@ namespace CoupledField
  #ifdef WIN32
     console.SetColor( fgHiRed, bgMask, "", os );
  #else
-    console.SetColor( 0, 0, "\033[1;31m", os);
+    // light red    
+    // console.SetColor( 0, 0, "\033[1;31m", os);
+    console.SetColor( 0, 0, "\033[01;31m", os);
  #endif
     return os;
   }
@@ -181,7 +183,9 @@ namespace CoupledField
  #ifdef WIN32
     console.SetColor( fgHiGreen, bgMask, "", os  );
  #else
-    console.SetColor( 0, 0, "\033[32;1m", os);
+    // light green    
+    // console.SetColor( 0, 0, "\033[32;1m", os);
+    console.SetColor( 0, 0, "\033[01;32m", os);
  #endif
 
     return os;
@@ -193,7 +197,9 @@ namespace CoupledField
  #ifdef WIN32
     console.SetColor( fgHiBlue, bgMask, "", os  );
  #else
-    console.SetColor( 0, 0, "\033[34;1m", os);
+    // light blue   
+    // console.SetColor( 0, 0, "\033[34;1m", os);
+    console.SetColor( 0, 0, "\033[01;34m", os);
  #endif
 
     return os;
@@ -229,6 +235,7 @@ namespace CoupledField
  #ifdef WIN32
     console.SetColor( fgHiMagenta, bgMask, "", os );
  #else
+    console.SetColor( 0, 0, "\033[35;1m", os);
  #endif
 
     return os;

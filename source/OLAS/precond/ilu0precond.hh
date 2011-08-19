@@ -50,8 +50,8 @@ namespace CoupledField {
     typedef typename AssocType<T>::T_Stype T_Stype;
 
     //! Constructor (for use in GenerateStdPrecondObject)
-    ILU0Precond( const StdMatrix &mat, OLAS_Params *myParams,
-		 OLAS_Report *myReport );
+    ILU0Precond( const StdMatrix &mat, PtrParamNode solverNode,
+		 PtrParamNode olasInfo );
 
     //! Deep Destructor
     ~ILU0Precond();
@@ -78,9 +78,19 @@ namespace CoupledField {
 
     //! When called this method returns the type of the preconditioner object.
     //! In the case of an object of this class the return value is ILU0.
-    PrecondType GetPrecondType() const {
-      return ILU0;
+    BasePrecond::PrecondType GetPrecondType() const {
+      return BasePrecond::ILU0;
     };
+    
+    //! Export ILU factorisation to a file in MatrixMarket format
+
+    //! The method will export the factorisation matrix to an ascii file
+    //! according to the MatrixMarket specifications. By factorisation
+    //! matrix we understand the matrix \f$F=L+U-I\f$.
+    //! For details of the specification see http://math.nist.gov/MatrixMarket
+    //! \param fname name of output file
+    void ExportILUFactorisation( const std::string& fileName );
+
 
   private:
  
@@ -88,6 +98,9 @@ namespace CoupledField {
      */
     //@{
 	
+    //! dimension of system
+    UInt dim_;
+    
     //! nonzero entries
     T_Mtype *ilu_data_;
     
@@ -102,7 +115,10 @@ namespace CoupledField {
 
     //! stores the number of unknowns
     UInt size_;
-
+    
+    //! flag for logging information
+    bool logging_;
+    
     //@}
 
   };

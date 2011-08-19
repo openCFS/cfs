@@ -12,7 +12,7 @@
 
 #include <Utils/ApproxData.hh>
 #include <Forms/bdbInt.hh>
-#include <Forms/gradfieldop.hh>
+//#include <Forms/gradfieldop.hh>
 
 
 
@@ -116,12 +116,8 @@ namespace CoupledField {
       \in \mathcal{R}^{3\times N}
       \f$]
       where \f$ p_k, k=1,\ldots,N \f$ are the nodes of the element.
-      \param bMat    (output) computed matrix \f$ B \f$
-      \param ip      (input)  number of integration point
-      \param ptCoord (input)  matrix containing co-ordinates of all
-                              integration points*/
-    void calcBMat( Matrix<Double> &bMat, UInt ip,
-                   const Matrix<Double> &ptCoord );
+      @see BaseForm::CalcBMat() */
+    void CalcBMat(Matrix<Double> &bMat, UInt ip, const Matrix<Double> &ptCoord);
 
     /*!   Compute the data-matrix \f$ D \f$
       The method computes the matrix \f$ D \f$  of the piezoelectric coupling
@@ -169,6 +165,8 @@ namespace CoupledField {
 
     /*!  Query material type for \f$ D \f$ tensor */
     MaterialType getDMaterialType() { return PIEZO_TENSOR; }
+
+
 
   private:
 

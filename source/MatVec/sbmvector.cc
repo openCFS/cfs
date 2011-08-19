@@ -25,7 +25,7 @@ namespace CoupledField {
   //   Deep destructor
   // *******************
   SBM_Vector::~SBM_Vector() {
-    for ( UInt i = 0; i < size_; i++ ) {
+    for ( UInt i = 1; i <= size_; i++ ) {
       delete subVec_[i];
     }
   }
@@ -35,7 +35,7 @@ namespace CoupledField {
   //   Set number of vector entries and re-size internal array
   // ***********************************************************
   void SBM_Vector::SetSize( UInt size ) {
-    for ( UInt i = 0; i < size_; i++ ) {
+    for ( UInt i = 1; i <= size_; i++ ) {
       delete subVec_[i];
     }
 
@@ -50,9 +50,10 @@ namespace CoupledField {
   SBM_Vector& SBM_Vector::operator= ( const SBM_Vector &bVec ) {
 
     // first, delete sub-vectors
-    for ( UInt i = 0; i < size_; i++ ) {
+    for ( UInt i = 1; i <= size_; i++ ) {
       delete subVec_[i];
     }
+
     size_ = 0;
 
     // then, copy sub-vectors from original vector class
@@ -124,13 +125,13 @@ namespace CoupledField {
   // ***************
   //   Print vector
   // ***************
-  std::string SBM_Vector::ToString( char separator ) const {
+  std::string SBM_Vector::ToString(const Integer level, const char separator ) const {
     std::stringstream os;
     for( UInt i = 0; i < size_; i++ ) {
       if( subVec_[i] != NULL ) {
         os <<   "sub-Vector #" << i
            << "\n--------------\n";
-        os <<  subVec_[i]->ToString( separator );
+        os <<  subVec_[i]->ToString(level, separator );
       }
     }
     return os.str();

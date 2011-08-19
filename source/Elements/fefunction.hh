@@ -75,6 +75,12 @@ public:
   //! Get EntityList
   StdVector< shared_ptr<EntityList> > GetEntityList();
 
+  //! Set the function Id, as assigned by OLAS
+  void SetFctId(const FeFctIdType id );
+  
+  //! Return the function I
+  FeFctIdType GetFctId() const {return fctId_;}
+  
   //! Set the PDE pointer of the function
   void SetPDE(shared_ptr<SinglePDE> pde);
 

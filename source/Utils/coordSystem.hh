@@ -12,10 +12,12 @@
 #include "MatVec/vector.hh"
 #include "MatVec/matrix.hh"
 #include "General/environment.hh"
+#include "DataInOut/ParamHandling/ParamNode.hh"
 
 namespace CoupledField {
 
   // forward class declarations
+  class ParamNode;
   class ParamNode;
 
   //! Base class for describing a local coordinate system
@@ -29,10 +31,13 @@ namespace CoupledField {
     //! \param ptGrid (in) pointer to finite element grid object
     //! \param myParamNode (in) pointer to parameter node of current coosy
     CoordSystem(const std::string & name, Grid * ptGrid,
-                ParamNode * myParamNode );
+                PtrParamNode myParamNode );
 
     //! Destructor
     virtual ~CoordSystem();
+    
+    //! Print information about coordinate system to info node
+    virtual void ToInfo( PtrParamNode in ) {};
     
     //! Return the name of the coordinate system
     const std::string & GetName() const {
@@ -53,23 +58,36 @@ namespace CoupledField {
     
     //! Transform global into local coordinate
 
-    //! This method transforms a point given in global cartesian coordinates
+    //! This method transforms a point given in global Cartesian coordinates
     //! into a representation w.r.t to the local coordinate system.
     //! \param loc (out) point w.r.t. to local coordinate system
-    //! \param glob (in) point w.r.t. to global cartesian coordinate system
+    //! \param glob (in) point w.r.t. to global Cartesian coordinate system
     virtual void Global2LocalCoord( Vector<Double> &loc,  
                                     const Vector<Double> & glob ) const = 0;
 
 
-    //! Return the global rotation angles for a given point
+    //! Return the global rotation matrix for a given point
 
-    //! This method returns the rotation angles about the x,y, and z axis,
+    //! This method returns the rotation matrix defining defining a rotation,
     //! by which the global coordinate system has to be rotated, so that
-    //! it represents the current one in that point.
+    //! so that it represents the current one in that point.
+    //! \param rotMatrix rotation matrix for global point
+    //! \param point point w.r.t. to global Cartesian coordinate system
     virtual void 
-    GetGlobRotationAngles( Vector<Double> & angles,
+    GetGlobRotationMatrix( Matrix<Double> & rotMatrix,
                            const Vector<Double>& point ) const = 0;
+    
+    //! Return the full 3x3 global rotation matrix for a given point
 
+    //! This method returns the full 3x3 rotation matrix defining defining 
+    //! a rotation, by which the global coordinate system has to be rotated, 
+    //! it represents the current one in that point.
+    //! \param rotMatrix rotation matrix for global point
+    //! \param point point w.r.t. to global Cartesian coordinate system
+    virtual void 
+    GetFullGlobRotationMatrix( Matrix<Double> & rotMatrix,
+                               const Vector<Double>& point ) const = 0;
+    
     //@{
     //! Transform local vector into global one for a given global model point
 
@@ -116,7 +134,7 @@ namespace CoupledField {
 
     //! Helper function for obtaining a point vector
     void GetPoint(Vector<Double> & vec, 
-                  ParamNode * pointNode );
+                  PtrParamNode pointNode );
 
     //! Calculate rotation matrix and inverse
     virtual void CalcRotationMatrix() = 0;
@@ -139,21 +157,24 @@ namespace CoupledField {
     
     //! Rotation matrix (global -> local)
     Matrix<Double> rotationMat_;
-
+    
     //! Rotation angles (kardan / Bryant angles) (global -> local)
     Vector<Double> rotationAng_;
 
     //! Inverse of the rotation matrix (local -> global)
     Matrix<Double> invRotationMat_;
-
+    
+    //! Full 3x3 inverse of the rotation matrix (local -> global)
+    Matrix<Double> invRotationMatFull_;
+    
     //! Rotation angles (kardan / Bryant angles) (local -> global)
     Vector<Double> invRotationAng_;
-    
+
     //! Pointer to grid object
     Grid * ptGrid_;
 
     //! Pointer to parameter node defining the current coordinate system
-    ParamNode * myParam_;
+    PtrParamNode myParam_;
     
   };
 

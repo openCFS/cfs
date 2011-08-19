@@ -71,7 +71,7 @@ namespace CoupledField {
 
     }
 
-    myParam_->Get("artDataNoise", delta_ );
+    myParam_->GetValue("artDataNoise", delta_ );
 
     if (delta_!=0.0) { // generates synthetically created radom noise
       std::cout<<"\n Create random noise with data error delta_ = "<< delta_
@@ -136,7 +136,7 @@ namespace CoupledField {
     // obviously calcImpedanceCurve() is called multiple times. We use the number of childs within
     // the info node as counter as I have no idea about Tom's counters
     // This is similar to HarmonicDriver as PiezoParamIdent is similar to this.
-    InfoNode* base = driverNode->Get(InfoNode::PROCESS);
+    PtrParamNode base = driverNode->Get(ParamNode::PROCESS);
 
     for (UInt fstep = 0; fstep < freqs_.GetSize(); fstep++) {
 
@@ -146,7 +146,7 @@ namespace CoupledField {
       
       Double actFreq = ComputeNextFrequency( fstep+1 );
 
-      InfoNode* analysis_id = base->Get("step", InfoNode::APPEND);
+      PtrParamNode analysis_id = base->Get("step", ParamNode::APPEND);
       std::stringstream ss;
       ss << base->GetChildren().GetSize() << ":" << "impedanceCurve:step:" << fstep;
       analysis_id->Get("analysis_id")->SetValue(ss.str());
@@ -165,8 +165,8 @@ namespace CoupledField {
       if(writeResults_==true){
         resHandler->BeginStep(fstep+1, actFreq );
         ptPDE_->WriteResultsInFile(fstep, actFreq);
+        resHandler->FinishStep();
       }
-      resHandler->FinishStep();
 
       if (CalcImpedanceCurve_==true) {
 
@@ -233,35 +233,35 @@ namespace CoupledField {
         dof.Init();
 
         if (myParam_->Has("mechDisplAtNode0")) {
-          myParam_->Get("mechDisplAtNode0", node0 );
-          myParam_->Get("dofOfMechDispl0", dof[0]);
+          myParam_->GetValue("mechDisplAtNode0", node0 );
+          myParam_->GetValue("dofOfMechDispl0", dof[0]);
           ptNodeStoreSol->Get(node0, dof[0], nodeResult[0]);
         }
 
         if (myParam_->Has("mechDisplAtOppositeNode0")) {
-          myParam_->Get("mechDisplAtOppositeNode0", node1 );
+          myParam_->GetValue("mechDisplAtOppositeNode0", node1 );
           ptNodeStoreSol->Get(node1, dof[0], nodeResult[1]);
         }
 
         if (myParam_->Has("mechDisplAtNode1")) {
-          myParam_->Get("mechDisplAtNode1", node2 );
-          myParam_->Get("dofOfMechDispl1", dof[1]);
+          myParam_->GetValue("mechDisplAtNode1", node2 );
+          myParam_->GetValue("dofOfMechDispl1", dof[1]);
           ptNodeStoreSol->Get(node2, dof[1], nodeResult[2]);
         }
 
         if (myParam_->Has("mechDisplAtOppositeNode1")) {
-          myParam_->Get("mechDisplAtOppositeNode1", node3 );
+          myParam_->GetValue("mechDisplAtOppositeNode1", node3 );
           ptNodeStoreSol->Get(node3, dof[1], nodeResult[3]);
         }
 
         if (myParam_->Has("mechDisplAtNode2")) {
-          myParam_->Get("mechDisplAtNode2", node4 );
-          myParam_->Get("dofOfMechDispl2", dof[2]);
+          myParam_->GetValue("mechDisplAtNode2", node4 );
+          myParam_->GetValue("dofOfMechDispl2", dof[2]);
           ptNodeStoreSol->Get(node4, dof[2], nodeResult[4]);
         }
 
         if (myParam_->Has("mechDisplAtOppositeNode2")) {
-          myParam_->Get("mechDisplAtOppositeNode2", node5 );
+          myParam_->GetValue("mechDisplAtOppositeNode2", node5 );
           ptNodeStoreSol->Get(node5, dof[2], nodeResult[5]);
         }
 
@@ -306,10 +306,10 @@ namespace CoupledField {
     F_hat_.Resize(nrMeasuredData_);
     F_hat_.Init();
 
-    ResultHandler * resHandler = domain->GetResultHandler();
+//    ResultHandler * resHandler = domain->GetResultHandler();
 
     // see comment within calcImpedanceCurve()
-    InfoNode* base = driverNode->Get(InfoNode::PROCESS);
+    PtrParamNode base = driverNode->Get(ParamNode::PROCESS);
 
     for (UInt fstep = 0; fstep < nrMeasuredData_; fstep++) {
 
@@ -317,7 +317,7 @@ namespace CoupledField {
       //                   SOLVES PDE                      //
       ///////////////////////////////////////////////////////
 
-      InfoNode* analysis_id = base->Get("step", InfoNode::APPEND);
+      PtrParamNode analysis_id = base->Get("step", ParamNode::APPEND);
       std::stringstream ss;
       ss << base->GetChildren().GetSize() << ":" << "f_hat:step:" << fstep;
       analysis_id->Get("analysis_id")->SetValue(ss.str());
@@ -331,7 +331,7 @@ namespace CoupledField {
       ptPDE_->GetSolveStep()->SetActStep(fstep);
       ptPDE_->GetSolveStep()->PreStepHarmonic();
       ptPDE_->GetSolveStep()->SolveStepHarmonic(analysis_id);
-      resHandler->FinishStep();
+//      resHandler->FinishStep();
 
       //////////////////////////////////////////////////////////
       //Retrieves & stores Solution for further calculations  //
@@ -391,35 +391,35 @@ namespace CoupledField {
         dof.Init();
 
         if (myParam_->Has("mechDisplAtNode0")) {
-          myParam_->Get("mechDisplAtNode0", node0 );
-          myParam_->Get("dofOfMechDispl0", dof[0]);
+          myParam_->GetValue("mechDisplAtNode0", node0 );
+          myParam_->GetValue("dofOfMechDispl0", dof[0]);
           ptNodeStoreSol->Get(node0, dof[0], nodeResult[0]);
         }
 
         if (myParam_->Has("mechDisplAtOppositeNode0")) {
-          myParam_->Get("mechDisplAtOppositeNode0", node1 );
+          myParam_->GetValue("mechDisplAtOppositeNode0", node1 );
           ptNodeStoreSol->Get(node1, dof[0], nodeResult[1]);
         }
 
         if (myParam_->Has("mechDisplAtNode1")) {
-          myParam_->Get("mechDisplAtNode1", node2 );
-          myParam_->Get("dofOfMechDispl1", dof[1]);
+          myParam_->GetValue("mechDisplAtNode1", node2 );
+          myParam_->GetValue("dofOfMechDispl1", dof[1]);
           ptNodeStoreSol->Get(node2, dof[1], nodeResult[2]);
         }
 
         if (myParam_->Has("mechDisplAtOppositeNode1")) {
-          myParam_->Get("mechDisplAtOppositeNode1", node3 );
+          myParam_->GetValue("mechDisplAtOppositeNode1", node3 );
           ptNodeStoreSol->Get(node3, dof[1], nodeResult[3]);
         }
 
         if (myParam_->Has("mechDisplAtNode2")) {
-          myParam_->Get("mechDisplAtNode2", node4 );
-          myParam_->Get("dofOfMechDispl2", dof[2]);
+          myParam_->GetValue("mechDisplAtNode2", node4 );
+          myParam_->GetValue("dofOfMechDispl2", dof[2]);
           ptNodeStoreSol->Get(node4, dof[2], nodeResult[4]);
         }
 
         if (myParam_->Has("mechDisplAtOppositeNode2")) {
-          myParam_->Get("mechDisplAtOppositeNode2", node5 );
+          myParam_->GetValue("mechDisplAtOppositeNode2", node5 );
           ptNodeStoreSol->Get(node5, dof[2], nodeResult[5]);
         }
 
@@ -463,14 +463,14 @@ namespace CoupledField {
       Double frequency) {
     
     // see comments in calcImpedance()
-    InfoNode* base = driverNode->Get(InfoNode::PROCESS);
-    InfoNode* analysis_id = base->Get("step", InfoNode::APPEND);
+    PtrParamNode base = driverNode->Get(ParamNode::PROCESS);
+    PtrParamNode analysis_id = base->Get("step", ParamNode::APPEND);
     std::stringstream ss;
     ss << base->GetChildren().GetSize() << ":" << "createFVec:f:" << frequency;
     analysis_id->Get("analysis_id")->SetValue(ss.str());
     analysis_id->Get("value")->SetValue(frequency);
     
-    ResultHandler * resHandler = domain->GetResultHandler();
+//    ResultHandler * resHandler = domain->GetResultHandler();
 
     domain->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
         "f", UInt(frequency));
@@ -485,7 +485,7 @@ namespace CoupledField {
     ptPDE_->GetSolveStep()->SolveStepHarmonic(analysis_id);
     ptPDE_->GetSolveStep()->PostStepHarmonic();
 
-    resHandler->FinishStep();
+//    resHandler->FinishStep();
 
     //////////////////////////////////////////////////////////
     //Retrieves & stores Solution for further calculations  //

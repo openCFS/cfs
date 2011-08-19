@@ -13,10 +13,10 @@
 
 namespace CoupledField {
 
-  //! Class defininig Numerical Integration
+  //! Class defining Numerical Integration
 
   //! The integration scheme returns the integration points / elements for a 
-  //! given element shape. As additional parameters one cann pass the 
+  //! given element shape. As additional parameters one can pass the 
   //! order (maybe anisotropic) and the type of integration used
   class IntScheme {
     
@@ -47,10 +47,11 @@ namespace CoupledField {
     ~IntScheme();
   
     //! Set method and order
-    void SetOrder( std::string method, UInt order);
+    //! \param order Integration order (-1 defaults to 2) 
+    void SetOrder( std::string method, Integer order);
 
     //! Set method and order
-    void SetOrder( IntegMethod method, UInt order);
+    void SetOrder( IntegMethod method, Integer order);
     
     //! Obtain method
     IntegMethod GetMethod() { return integMethod_; }

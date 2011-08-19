@@ -17,7 +17,7 @@
 namespace CoupledField {
 
   class BasePrecond;
-  class OLAS_Params;
+  class ParamNode;
   class OLAS_Report;
   
   // template<typename> class Matrix;
@@ -66,10 +66,10 @@ namespace CoupledField {
     //!                 for this solver
     //! \param myReport pointer to report object for storing general
     //!                 information on solution process
-    RichardsonSolver( OLAS_Params *myParams, OLAS_Report *myReport ) :
+    RichardsonSolver( PtrParamNode solverNode, PtrParamNode olasInfo ) :
       r_(NULL), w_(NULL) {
-      myParams_ = myParams;
-      myReport_ = myReport;
+      xml_ = solverNode;
+      solverInfo_ = olasInfo->Get("richardson");
     };
 
     //! Default destructor
@@ -85,14 +85,14 @@ namespace CoupledField {
     //! \param rhs Right-hand side vector of the linear system
     //! \param sol Solution vector of linear system
     void Solve(const BaseMatrix& sysmat, const BasePrecond& premat, 
-	       const BaseVector& rhs, BaseVector& sol, InfoNode* analysis_step = NULL);
+	       const BaseVector& rhs, BaseVector& sol, PtrParamNode analysis_step);
 
     //! Dummy setup method
 
     //! This method implements the pure virtual setup function defined in the
     //! BaseSolver class. In the case of the Richardson solver there is nothing
     //! to be done.
-    void Setup( BaseMatrix &sysmat, InfoNode* analysis_step = NULL) {};
+    void Setup( BaseMatrix &sysmat, PtrParamNode analysis_step ) {};
 
     //! Query type of the solver
 

@@ -5,7 +5,6 @@
 #include "elemstoresol.hh"
 #include "Domain/elem.hh"
 #include "Domain/grid.hh"
-#include "DataInOut/WriteInfo.hh"
 
 namespace CoupledField{
 
@@ -246,7 +245,7 @@ namespace CoupledField{
   {
     // killme ! the solType is not queried
 #ifdef CHECK_INITIALIZED
-    if (length_ == 0) Warning("ElemStoreSol: Use of uninitialized object!",__FILE__,__LINE__);
+    if (length_ == 0) WARN("Use of uninitialized object!");
 #endif
   
     Vector<TYPE> & temp = dynamic_cast<Vector<TYPE>&>(val);
@@ -349,7 +348,7 @@ namespace CoupledField{
                                                  Grid * ptGrid) const
   {
 #ifdef CHECK_INITIALIZED
-    if (length_ == 0) Warning("ElemStoreSol: Use of uninitialized object!",__FILE__,__LINE__);
+    if (length_ == 0) WARN("Use of uninitialized object!");
 #endif
   
     Vector<TYPE> & temp = dynamic_cast<Vector<TYPE>&>(transformedSolution);

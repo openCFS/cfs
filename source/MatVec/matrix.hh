@@ -9,6 +9,8 @@
 #include <def_build_type_options.hh>
 
 #include "MatVec/promote.hh"
+#include "MatVec/SingleVector.hh"
+#include "Utils/tools.hh"
 
 
 #ifdef EXPR_TEMPLATES
@@ -37,9 +39,6 @@ namespace CoupledField
 #endif
   {
   public:
-
-    //! Friend declaration for vector
-    friend class Vector<TYPE>;
 
     // =======================================================================
     // CONSTRUCTION, DESTRUCTION, INITIALIZATION, RESIZING
@@ -88,25 +87,32 @@ namespace CoupledField
     //! If no entry given, it gets initialized with zeroes.
     //! \param val (input,opt.) Entry the matrix gets initialized with
     //! \note This method does not change the size of the matrix
-    virtual void Init();
+    inline void Init()
+    {
+      InitValue();
+    }
 
-    void InitValue( const TYPE val = TYPE() );
+    inline void InitValue( const TYPE val = TYPE() )
+    {
+      for(UInt k = 0, s = size_row_ * size_col_; k < s; ++k)
+        data_[0][k] = val;
+    }
 
     //! Change the size of the matrix
 
     //! Change size of general matrix 
     //! \param nRows (input) Number of rows
     //! \param nCols (input) Number of columns
-    virtual void Resize(const UInt nRows, const UInt nCols );
+    void Resize(const UInt nRows, const UInt nCols );
 
     //! Changes the size so that the matrix gets quadratic
     
     //! Changes the size of the matrix according to \a size.
     //! \param size (input) Number of rows / columns
-    virtual void Resize( const UInt size );
+    void Resize(const UInt size);
 
     /** Resize if necessary to the other matrix */
-    void Resize(const Matrix<TYPE>& other);
+    inline void Resize(const Matrix<TYPE>& other);
     
     //@}
     
@@ -119,7 +125,8 @@ namespace CoupledField
     //@{
 
     //! Get entry type of matrix
-    virtual BaseMatrix::EntryType GetEntryType() {
+    inline BaseMatrix::EntryType GetEntryType()
+    {
       return  EntryType<TYPE>::M_EntryType;
     }
 
@@ -127,13 +134,19 @@ namespace CoupledField
 
     //! Return true, if the matrix is symmetric
     //! \note The results might be incorrect due to numeric rounding errors
-    bool IsSymmetric() const;
+    inline bool IsSymmetric() const;
 
     //! Get the number of rows
-    virtual UInt GetNumRows() const;
+    inline UInt GetNumRows() const
+    {       
+      return size_row_;
+    }
     
     //! Get the number of columns
-    virtual UInt GetNumCols() const;
+    inline UInt GetNumCols() const
+    {       
+      return size_col_;
+    }
 
     //@}
 
@@ -149,7 +162,8 @@ namespace CoupledField
     //! Access operator of one entries
     //! \param row (input) Row number
     //! \param col (input) Column number
-    inline TYPE & operator()( UInt row, UInt col) {
+    inline TYPE & operator()( UInt row, UInt col)
+    {
       return data_[row][col];
     }
 
@@ -158,50 +172,56 @@ namespace CoupledField
     //! Access operator of one entries
     //! \param row (input) Row number
     //! \param col (input) Column number
-    inline TYPE operator()( UInt row, UInt col ) const {
+    inline TYPE operator()( UInt row, UInt col ) const
+    {
       return data_[row][col];
     }
     
     //! Returns pointer to row \a row
-    inline TYPE * operator[]( const UInt row ) const;
+    inline TYPE * operator[]( const UInt i ) const
+    { 
+#ifdef CHECK_INITIALIZED
+      if (size_row_ == 0 || size_col_ == 0) 
+        EXCEPTION( "undefined Matrix" );
+#endif
 
-    //! Returns pointer to raw data
+#ifdef CHECK_INDEX
+      if (i >= size_row_) 
+        EXCEPTION( "invalid index" );
+#endif
 
-    //! Returns pointer to continuous chunk of data
-    inline TYPE ** GetRowPointer() const;
+      return data_[i];
+    }
 
-    //! Returns pointer to array of elements in matrix, row by row
-    inline TYPE * GetDataPointer() const { return data_[0];}
-    
     //! Get the entry 'val' at position (row,col) in the matrix
     
     //! Return entry at position (\a row, \a col) in the matrix
     //! \param row (input) row index of entry
     //! \param col (input) column index of entry
     //! \param val (output) on return contains value of entry
-    inline void GetEntry( const UInt row, const UInt col, 
-                          TYPE & val ) const {
-      val = *( data_[0] + row * size_col_ + col ); 
+    inline void GetEntry( const UInt row, const UInt col, TYPE & val ) const
+    {
+      val = data_[row][col];
     }
      
-    //! Set the entry 'val' at position (\a row, \a col) in the matrix
-    
     //! Set the entry 'val' at position (\a row, \a col) in the matrix
     //! \param row (input) Row of entry
     //! \param col (input) Column of entry
     //! \param val (input) Value to be set
-    inline void SetEntry( const UInt row, const UInt col, const TYPE val ) {
+    inline void SetEntry(const UInt row, const UInt col, const TYPE val)
+    {
       data_[row][col] = val;
     }
 
-    //! Add'val' to the matrix entry at position (row,col) in the matrix
-    
     //! Add'val' to the matrix entry at position (\a row, \a col) in the 
     //! matrix
     //! \param row (input) Row of entry
     //! \param col (input) Column of entry
     //! \param val (input) Value to be added
-    void AddToEntry( const UInt row, const UInt col, const TYPE val );
+    inline void AddToEntry( const UInt row, const UInt col, const TYPE val )
+    {
+      data_[row][col] += val;
+    }
     
     //! Gets the diagonal elements of a  matrix in a one column matrix
     void GetDiagInMatrix( Matrix<TYPE>& columnMat ) const;
@@ -215,38 +235,46 @@ namespace CoupledField
     //! \name Named Arithmetic Operations
     //@{
 
-    //! Add the multiple of another matrix this = fac * mat
-    void Add( const TYPE fac, const DenseMatrix & mat);
+    /** Add the multiple of another matrix this = fac * mat.
+     * If you have mixed types use the tools version of Add */
+    void Add(const TYPE fac, const Matrix<TYPE> & mat);
     
-    /** Set this matrix with a multiple of another matric.
-     * This and a mixed varian is also a sandalone method in tools. 
+    /** Set this matrix with a multiple of another matrix.
+     * This and a mixed variant is also a stand alone method in tools.
      * Anybody knows how to do the mixed form (complex <- double * complex) here? 
      * this = factor * other_mat */
     void Assign(const Matrix<TYPE>& other_mat, TYPE factor);
     
     //! Perform a matrix-matrix multiplication rMat = this*mMat
-    virtual void Mult(const DenseMatrix & mMat, DenseMatrix & rMat) const;
+    void Mult(const DenseMatrix & mMat, DenseMatrix & rMat) const;
+
+    //! Perform a matrix-matrix multiplication rMat = Transpose(this)*mMat
+    void MultT(const DenseMatrix & mMat, DenseMatrix & rMat) const;
 
     //! Perform a matrix-vector multiplication rvec = this*mvec
-    virtual void Mult( const SingleVector & mvec, SingleVector & rvec ) const;
+    void Mult( const SingleVector & mvec, SingleVector & rvec ) const;
 
     /** Perform a matrix-vector multiplication rvec = this*mvec via the Inner product.
      * Hence in the complex case this is the conjugate complex rvec = this*conj(mvec) */
-    virtual void MultInner( const SingleVector & mvec, SingleVector & rvec ) const;
+    void MultInner( const SingleVector & mvec, SingleVector & rvec ) const;
     
+    /** This implements the Frobenius norm of two matrices.
+     * @return the sum of the element wise product: sum this_ij * other_ij */
+    TYPE ScalarProduct(const Matrix<TYPE>& other_mat) const;
+
     //! Perform a matrix-vector multiplication rvec = transpose(this)*mvec
-    virtual void MultT( const SingleVector & mvec, SingleVector & rvec ) const;
+    void MultT( const SingleVector & mvec, SingleVector & rvec ) const;
   
     //! Perform a matrix-vector multiplication rvec += this*mvec
-    virtual void MultAdd( const SingleVector & mvec, SingleVector & rvec ) const 
+    void MultAdd( const SingleVector & mvec, SingleVector & rvec ) const
       { EXCEPTION("!!! Not implemented !!!" ); }
   
     //! Perform a matrix-vector multiplication rvec += transpose(this)*mvec
-    virtual void MultTAdd( const SingleVector & mvec, SingleVector& rvec ) const 
+    void MultTAdd( const SingleVector & mvec, SingleVector& rvec ) const
       { EXCEPTION("!!! Not implemented !!!" ); }
   
     //! Perform a matrix-vector multiplication rvec -= this*mvec
-    virtual void MultSub( const SingleVector & mvec, SingleVector & rvec ) const 
+    void MultSub( const SingleVector & mvec, SingleVector & rvec ) const
       { EXCEPTION("!!! Not implemented !!!" ); }
 
     //! Assign the matrix the dyadic product of a vector with itself
@@ -263,7 +291,10 @@ namespace CoupledField
     //!  \cdot
     //!  \left( \begin{array}{ccc} v_1 & v_2 & \cdots  \end{array} \right)
     //!  \f]
-    virtual void DyadicMult( const SingleVector & vec1 );  
+    inline void DyadicMult( const SingleVector & v1 )
+    {
+      DyadicMult(v1, v1);
+    }
   
     //! Assign the matrix the dyadic product of two vectors
 
@@ -279,7 +310,7 @@ namespace CoupledField
     //!  \cdot
     //!  \left( \begin{array}{ccc} v_1 & v_2 & \cdots  \end{array} \right)
     //!  \f]
-    virtual void DyadicMult( const SingleVector & vec1, const SingleVector & vec2 ); 
+    void DyadicMult( const SingleVector & vec1, const SingleVector & vec2 );
 
     //! Calculate the Determinant (up to size 3)
 
@@ -292,13 +323,21 @@ namespace CoupledField
     //! works for non-square matrices of any size
     void Trace( TYPE & val ) const;
 
+    /** Sum up the square of all entries */
+    TYPE NormL2() const;
+
+    /** does something like (this - other).NormL2().
+     * @see NormL2() */
+    TYPE DiffNormL2(const Matrix<TYPE>& other) const;
+
+    /** @see NormL2() but L1 norm */
+    TYPE DiffNormL1(const Matrix<TYPE>& other) const;
+
+    
     //@}
 
     //@{
     //! Invert the matrix and store it in 'inv' (up to size 3)
-    virtual void Invert( DenseMatrix & inv ) const {
-      EXCEPTION(  "!!! IMPLEMENT !!!" );
-    }
     void Invert ( Matrix <TYPE> & inv ) const;
     //@}
     
@@ -308,12 +347,15 @@ namespace CoupledField
     //! \note If the transposed of a matrix is needed for a operation
     //! with a vector, the according function like 'MultT' should be used
     void Transpose( Matrix<TYPE> & transposedMat ) const;  
-    virtual void Transpose( DenseMatrix & transposedMat ) const {
-      EXCEPTION("!!! IMPLEMENT !!!" );
-    }
     //@}
 
     
+    /** Check if the matrix contains NAN. To be used by asserts() */
+    bool ContainsNaN() const;
+
+    /** Check if the matrix contains +/- INF. To be used by asserts() */
+    bool ContainsInf() const;
+
 #ifdef EXPR_TEMPLATES
     // =======================================================================
     // INTERFACE TO EXPRESSION TEMPLATES
@@ -324,24 +366,24 @@ namespace CoupledField
 
     //! Matrix assignment operator using expression templates
     inline Matrix<TYPE>& operator=( const Matrix<TYPE>& rhs ) { 
-      return assignFrom( rhs ); 
+      return this->assignFrom( rhs ); 
     }
     
     //! Scalar assignment operator using expression templates
     inline Matrix<TYPE>& operator=( TYPE rhs ) { 
-      return assignFrom( rhs ); 
+      return this->assignFrom( rhs ); 
     }
     
     //! Matrix-Expression assignment operator using expression templates
     template <class X> inline Matrix<TYPE>& 
     operator=( const Xpr2<TYPE,X>& rhs ) {
-      return assignFrom( rhs );
+      return this->assignFrom( rhs );
     }
     
     //! Abstract matrix assignment operator
     template <class M> inline Matrix<TYPE>& 
     operator=( const Dim2<TYPE,M>& rhs ) {
-      return assignFrom(rhs);
+      return this->assignFrom(rhs);
     }
     
     
@@ -398,18 +440,18 @@ namespace CoupledField
     template <class TYPE2>
     Matrix<PROMOTE(TYPE,TYPE2)> operator*( const Matrix<TYPE2> &y ) const;
 
-    //! Multiply matrix by a scalar (this *= y)
-    Matrix<TYPE> & operator*=( const TYPE &y );
-
-    //! Perform matrix-matrix multiplication (this = this * arg)
-    Matrix<TYPE> & operator*=( const Matrix<TYPE> &y );
-
     //! Divide matrix  by a scalar value
-    Matrix<TYPE>  & operator/=( const TYPE &y );
+    Matrix<TYPE>  & operator/=( const TYPE y );
 
     //@}
 
 #endif // EXPR_TEMPLATES
+    
+    //! Multiply matrix by a scalar (this *= y)
+    Matrix<TYPE> & operator*=( const TYPE y );
+
+    //! Perform matrix-matrix multiplication (this = this * arg)
+    Matrix<TYPE> & operator*=( const Matrix<TYPE> &y );
     
     // =======================================================================
     // BOOLEAN OPERATORS
@@ -420,10 +462,10 @@ namespace CoupledField
     //@{
     
     //! Returns true if \a mat has the same entries as own matrix
-    bool operator ==( const Matrix<TYPE> & mat ) const;
+    inline bool operator ==( const Matrix<TYPE> & mat ) const;
 
     //! Returns true if \a mat has different entries than own matrix
-    bool operator!=( const Matrix<TYPE> & mat ) const;
+    inline bool operator!=( const Matrix<TYPE> & mat ) const;
  
     //@}
 
@@ -489,16 +531,10 @@ namespace CoupledField
     //! \param b (input) right-hand-side vector
     //! \note The Matrix A=LU contains afterwards the the values of L 
     //! in the lower triangular, and the values of U in the upper part.
-    virtual void DirectSolve( SingleVector & x, const SingleVector & b ) const;
+    void DirectSolve( SingleVector & x, const SingleVector & b ) const;
 
     //! scales the diagonal elements of a  matrix by a factor
-    void ScaleDiagElems( const TYPE factor );
-    
-    //! Add a row to Matrix at position i
-    void AddRow( const Vector<TYPE> & x, const UInt pos );
-    
-    //! Add a column to Matrix at position i
-    void AddColumn( const Vector<TYPE> & x, const UInt pos ); 
+    inline void ScaleDiagElems(const TYPE factor);
     
     //! Return a special part ( real, imag, amplitude, phase) of a matrix
     Matrix<Double> GetPart(  Global::ComplexPart part ) const;
@@ -508,31 +544,10 @@ namespace CoupledField
                   const Matrix<Double> & partMatrix );
 
     //! Return a sub-part of the own matrix
-
-    //! Copies a sub-matrix at the position (row, col) into subMat. 
-    //! The amount of copied elements depends on the size of subMat.
-    virtual void GetSubMatrix( DenseMatrix &subMat,
-                               const UInt nRows,
-                               const UInt nCols ) const {
-      EXCEPTION( "!!! IMPLEMENT !!!" );
-    };
-
-    //! Return a sub-part of the own matrix
     
     //! Copies a sub-matrix at the position (row, col) into subMat, 
     //! the amount of copied elements depends on the size of subMat
     void GetSubMatrix( Matrix<TYPE>& subMat, UInt row, UInt col ) const;
-  
-    //! Set a sub-part of the matrix
-    
-    //! Overwrites the matrix elements at the position (row, col) with subMat
-    //! in a rectangular (submatrix) way.
-    virtual void SetSubMatrix( const DenseMatrix & subMat,
-                               const UInt nRows,
-                               const UInt nCols ) {
-      EXCEPTION( "!!! IMPLEMENT !!!" );
-    };
-
 
     //! Set a sub-part of the matrix
     
@@ -545,18 +560,41 @@ namespace CoupledField
     void AddSubMatrix( const Matrix<TYPE>& subMat, UInt row, UInt col );
 
     //! Converts a matrix into a vector, by appending successively all rows
-    virtual void ConvertToVec_AppendRows( SingleVector& vec ) const;
+    void ConvertToVec_AppendRows( SingleVector& vec ) const;
 
     //! Converts a matrix into a vector, by appending successively all cols
-    virtual void ConvertToVec_AppendCols( SingleVector& vec ) const;
+    void ConvertToVec_AppendCols( SingleVector& vec ) const;
  
-    /** Dumps for developers
-     * @param level 0=all data, 1=summary info */
-    virtual std::string ToString(int level=0);
+    /** Dumps for developers or internal use
+     * @param level -1=list of all, 0=all data with structure, 1=summary info */
+    virtual std::string ToString(const int level = 0, const bool newline = false) const;
+
+    /** Creates a xml string of the following form.
+     * <name dim1="6" dim2="6">
+         <real>
+           1.65682E+11 1.84091E+10 1.84091E+10 0.00000E+00 0.00000E+00 0.00000E+00
+           1.84091E+10 1.65682E+11 1.84091E+10 0.00000E+00 0.00000E+00 0.00000E+00
+           1.84091E+10 1.84091E+10 1.65682E+11 0.00000E+00 0.00000E+00 0.00000E+00
+           0.00000E+00 0.00000E+00 0.00000E+00 7.36364E+10 0.00000E+00 0.00000E+00
+           0.00000E+00 0.00000E+00 0.00000E+00 0.00000E+00 7.36364E+10 0.00000E+00
+           0.00000E+00 0.00000E+00 0.00000E+00 0.00000E+00 0.00000E+00 7.36364E+10
+         </real>
+       </name>
+       The ident are two spaces + offset.
+       Such stuff is read from the material file
+      @param name the name for above, the label form the parent ParamNode, in general 'tensor'!
+      @param offset spaces in front of line */
+    std::string ToXMLFormat(const std::string& name, const int n_offset) const;
+
+    /** Parses a string generated by ToString(0).
+        Reconstructs the dimension in that way but you should know the propert type */
+    void Parse(const std::string& data);
 
     //@}
 
   private:
+    /** Helper method for Parse() */
+    unsigned int ParseLineHelper(const std::string& input, StdVector<TYPE>& out);
 
     //! Calculates the adjunct of the matrix at position (i,j)
     TYPE Adjunct (UInt i, UInt j) const;
@@ -665,73 +703,15 @@ namespace CoupledField
   }
 #endif
 
-
   // =======================================================================
   // INLINE MEMBER IMPLEMENTATION
   // =======================================================================
 
   template<class TYPE>
-  inline void Matrix<TYPE>::Init()
-  {
-    InitValue();
-  }
-
-  template<class TYPE>
-  inline void Matrix<TYPE>::InitValue(const TYPE val)
-  {
-    UInt i;
-    for (i=0; i<size_row_*size_col_; i++) 
-      data_[0][i]=val;
-  }
-  
-  template<class TYPE>
-  inline void Matrix<TYPE>::AddToEntry ( const UInt i, const UInt j,
-                                         const TYPE value ) {
-    data_[i][j]+=value;
-  }
-
-
-  template<class TYPE>
-  inline TYPE *  Matrix<TYPE>::operator[] (const UInt i) const
-  { 
-
-#ifdef CHECK_INITIALIZED
-    if (size_row_ == 0 || size_col_ == 0) 
-      EXCEPTION( "undefined Matrix" );
-#endif
-
-#ifdef CHECK_INDEX
-    if (i >= size_row_) 
-      EXCEPTION( "invalid index" );
-#endif
-  
-    return data_[i];
-  }
-
-  template<class TYPE>
-  inline TYPE ** Matrix<TYPE>::GetRowPointer () const
-  {
-    return data_;
-  }
-
-
-  template<class TYPE>
-  inline UInt Matrix<TYPE>::GetNumRows() const
-  {       
-    return size_row_;
-  }
- 
-  template<class TYPE>
-  inline UInt Matrix<TYPE>::GetNumCols () const
-  {       
-    return size_col_;
-  }
-
-  template<class TYPE>
   inline void Matrix<TYPE>::Determinant (TYPE & ret) const
   {       
 #ifdef CHECK_INITIALIZED
-    if (size_row_ == 0|| size_col_ == 0) 
+    if (size_row_ == 0|| size_col_ == 0)
       EXCEPTION( "Undefined Matrix!" );
 #endif
 
@@ -817,6 +797,52 @@ namespace CoupledField
     }
   }
 
+  // Perform a matrix-matrix multiplication rMat = Transpose(this)*mMat
+  template<class TYPE>
+  inline void Matrix<TYPE>::MultT(const DenseMatrix & mMat, 
+                                 DenseMatrix & rMat) const {
+
+
+    Matrix<TYPE> const & mMat1 = dynamic_cast<const Matrix<TYPE>& >(mMat);
+    Matrix<TYPE> & rMat1 = dynamic_cast<Matrix<TYPE>& >(rMat);
+  
+    UInt size_mMatRow = mMat1.GetNumRows();
+    UInt size_mMatCol = mMat1.GetNumCols();
+
+#ifdef CHECK_INITIALIZED
+    UInt size_rMatRow = rMat1.GetNumRows();
+    UInt size_rMatCol = rMat1.GetNumCols();
+
+    if (size_row_ == 0 || size_col_ == 0) 
+      EXCEPTION("undefined Matrix");
+    if (size_mMatRow == 0 || size_mMatCol==0) 
+      EXCEPTION("undefined Matrix");
+    if (size_rMatRow == 0||size_rMatCol==0) 
+      EXCEPTION("undefined Matrix");
+#endif
+
+#ifdef CHECK_INDEX
+    if (size_row_ != size_mMatRow) {
+      EXCEPTION("incompatible dimension while matrix-matrix multiplication" );
+    }
+    if (size_col_ != size_rMatRow) {
+      EXCEPTION("incompatible dimension while matrix-matrix multiplication" );
+    }
+    if (size_mMatCol != size_rMatCol) {
+      EXCEPTION("incompatibel dimension while matrix-matrix multiplication" );
+    }
+#endif
+   
+    for (UInt i = 0; i < size_col_; i++ ) {
+      for (UInt j = 0; j < size_mMatCol; j++ ) {
+        rMat1[i][j] = data_[0][i] * mMat1[0][j];
+        for ( UInt k = 1; k < size_mMatRow; k++ ) {
+          rMat1[i][j] += data_[k][i] * mMat1[k][j];
+        }
+      }
+    }
+  }
+
   // =======================================================================
   //  Inline part for all operators using type promotion
   //  rr being defined only in non-template-expression case
@@ -825,8 +851,7 @@ namespace CoupledField
 #ifndef EXPR_TEMPLATES
 
   template<class TYPE> template<class TYPE2>
-  Matrix<PROMOTE(TYPE,TYPE2)> Matrix<TYPE>::
-  operator+(const Matrix<TYPE2> &x) const
+  Matrix<PROMOTE(TYPE,TYPE2)> Matrix<TYPE>::operator+(const Matrix<TYPE2> &x) const
   {
 #ifdef CHECK_INITIALIZED
     if (size_row_ == 0 || size_col_ == 0) 
@@ -839,20 +864,17 @@ namespace CoupledField
 #endif
   
     Matrix<PROMOTE(TYPE,TYPE2)> z(size_row_,size_col_);
-  
-    UInt k;
-    for ( k = 0; k < size_row_*size_col_; k++)
+    
+    for(UInt k = 0; k < size_row_*size_col_; ++k)                                                                                
       z [0][k] = x[0][k]+data_[0][k];
-  
+    
     return z;
   }
 
   
   template<class TYPE> template<class TYPE2>
-  Matrix<PROMOTE(TYPE,TYPE2)> Matrix<TYPE>::
-  operator-(const Matrix<TYPE2> &x) const
+  Matrix<PROMOTE(TYPE,TYPE2)> Matrix<TYPE>::operator-(const Matrix<TYPE2> &x) const
   {
-
 #ifdef CHECK_INITIALIZED
     if (size_row_ == 0 || size_col_ == 0 || 
         x.GetNumRows() == 0 || x.GetNumCols() == 0)
@@ -865,37 +887,31 @@ namespace CoupledField
 #endif
   
     Matrix<PROMOTE(TYPE,TYPE2)> z(size_row_,size_col_);
-  
-    UInt k;
-    for ( k = 0; k < size_row_*size_col_; k++)
+    
+    for(UInt k = 0; k < size_row_*size_col_; ++k)
       z[0][k] = -x[0][k]+data_[0][k];
-  
+
     return z;
   }
 
   template<class TYPE> template<class TYPE2>
-  Matrix<PROMOTE(TYPE,TYPE2)> Matrix<TYPE>::
-  operator* (const TYPE2 &x) const 
+  Matrix<PROMOTE(TYPE,TYPE2)> Matrix<TYPE>::operator*(const TYPE2 &x) const 
   { 
-  
 #ifdef CHECK_INITIALIZED
     if (size_row_ == 0 || size_col_ == 0) 
       EXCEPTION("undefined Matrix");
 #endif
   
-    UInt k;
-  
     Matrix<PROMOTE(TYPE,TYPE2)> z(size_row_,size_col_);
   
-    for ( k = 0; k < size_row_*size_col_; k++)
+    for(UInt k = 0; k < size_row_*size_col_; ++k)
       z [0][k] = data_[0][k]*x;
-  
+    
     return z;
   }
 
   template<class TYPE>  template<class TYPE2>
-  Vector<PROMOTE(TYPE,TYPE2)> Matrix<TYPE>::
-  operator*(const Vector<TYPE2> &x) const
+  Vector<PROMOTE(TYPE,TYPE2)> Matrix<TYPE>::operator*(const Vector<TYPE2> &x) const
   {
 
 #ifdef CHECK_INITIALIZED
@@ -937,16 +953,16 @@ namespace CoupledField
     PROMOTE(TYPE,TYPE2) a;
     Matrix<PROMOTE(TYPE,TYPE2)>  z (size_row_, x.GetNumCols());
   
-    UInt i,j; 
-    for (i = 0; i < size_row_; i++)
-      for (j = 0; j < x.GetNumCols(); j++)
+    for (UInt i = 0; i < size_row_; i++)
+    {
+      for (UInt j = 0, cols = x.GetNumCols(); j < cols; j++)
         {       
           a = data_ [i] [0] * x[0][j];
           for (UInt k = 1; k < size_col_; k++)
             a += data_ [i] [k] * x[k][j];
           z(i,j) = a;
         }
-  
+    }
     return z;
   }
 #endif //EXPR_TEMPLATES

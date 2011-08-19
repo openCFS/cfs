@@ -23,7 +23,7 @@ namespace CoupledField {
   std::string SimOutputText::delim_ = "  ";
 
   SimOutputText::SimOutputText( const std::string& fileName,
-                                ParamNode * outputNode )
+                                PtrParamNode outputNode )
     : SimOutput( fileName, outputNode ){
 
     // initialize variables
@@ -33,6 +33,7 @@ namespace CoupledField {
     coordSys_ = NULL;
     stepNumOffset_ = 0;
     stepValOffset_ = 0.0;
+    globalNumbering_ = true;
 
     capabilities_.insert( HISTORY );
 
@@ -46,15 +47,25 @@ namespace CoupledField {
     // Get comment char 
     cmChar_ = '#';
     if( outputNode )
-      cmChar_ = (outputNode->Get("commentChar")->AsString())[0];
+      cmChar_ = (outputNode->Get("commentChar")->As<std::string>())[0];
 
     // Get type of collection
     collecType_ = ENTITY;
     if ( outputNode ) {
-      if( outputNode->Get("fileCollect")->AsString() == "timeFreq" )
+      if( outputNode->Get("fileCollect")->As<std::string>() == "timeFreq" )
         collecType_ = TIMEFREQ;
-      if( outputNode->Get("fileCollect")->AsString() == "altogether" )
+      if( outputNode->Get("fileCollect")->As<std::string>() == "altogether" )
         collecType_ = ALTOGETHER;
+    }
+    
+    // Get type of entity numbering
+    if( outputNode ) {
+      std::string numType;
+      outputNode->GetValue( "entityNumbering", numType, ParamNode::EX );
+      if( numType == "global" ) 
+        globalNumbering_ = true;
+      else
+        globalNumbering_ = false;
     }
   }
 
@@ -79,7 +90,7 @@ namespace CoupledField {
     // Get reference coordinate system
     if( myParam_ ) {
       std::string coordSysName;
-      myParam_->Get("coordSysId", coordSysName);
+      myParam_->GetValue("coordSysId", coordSysName);
       coordSys_ = domain->GetCoordSystem( coordSysName );
     }
   }
@@ -122,7 +133,7 @@ namespace CoupledField {
   
   void SimOutputText::FinishStep( ) {
 
-    // call correct function accordint fileCollectionType
+    // call correct function according to  fileCollectionType
     if( collecType_ == TIMEFREQ ) {
       WriteStepCollectTimeFreq();
     } else if ( collecType_ == ALTOGETHER ) {
@@ -427,7 +438,7 @@ namespace CoupledField {
     
     std::string entityString, entTypeString;
     ResultInfo::Enum2String( actInfo.definedOn, entTypeString );
-
+    
     
     // =========================
     //  ENTITY - CollectionType
@@ -441,23 +452,51 @@ namespace CoupledField {
       outFiles.Resize( list->GetSize() );
       EntityIterator it = list->GetIterator();
 
-      for( it.Begin(); !it.IsEnd(); it++ ) {
+      UInt entityNum = 1;
+      for( it.Begin(); !it.IsEnd(); it++, entityNum++ ) {
 
-        entityString = it.GetIdString();
+        std::string idString = it.GetIdString();
+        std::string numString = lexical_cast<std::string>(entityNum);
+
+        // now we have to switch the naming scheme
+        switch (list->GetType() ) {
+          case EntityList::NODE_LIST:
+          case EntityList::ELEM_LIST:
+          case EntityList::SURF_ELEM_LIST:
+            // check naming scheme
+            if( !globalNumbering_ ) {
+              entityString = numString; // local numbering 
+            } else {
+              entityString = idString; // global node / element number
+            }
+            entityString += "-" + list->GetName();
+            break;
+          default:
+            entityString = idString;
+        }
+        
+        //entityString = it.GetIdString();
+        //entityString = lexical_cast<std::string>(entityNum);
+//        
+//        if(list->GetType() == EntityList::NODE_LIST){
+//          //ok so it seems we have history nodes.
+//          //lets add the name of the nodelist to the filename
+//          entityString += "-" + list->GetName();
+//        }
 //        switch( actInfo.definedOn ) {
 //          
 //        case ResultInfo::NODE:
-//          entityString = GenStr(it.GetNode() );
+//          entityString = lexical_cast<std::string>(it.GetNode() );
 //          break;
 //        case ResultInfo::PFEM:
-//          entityString = GenStr(it.GetNode() );
+//          entityString = lexical_cast<std::string>(it.GetNode() );
 //          entTypeString="node";
 //          break;
 //        case ResultInfo::ELEMENT:
-//          entityString = GenStr(it.GetElem()->elemNum );
+//          entityString = lexical_cast<std::string>(it.GetElem()->elemNum );
 //          break;
 //        case ResultInfo::SURF_ELEM:
-//          entityString = GenStr(it.GetSurfElem()->elemNum );
+//          entityString = lexical_cast<std::string>(it.GetSurfElem()->elemNum );
 //          break;
 //        case ResultInfo::REGION:
 //          entityString = ptGrid_->RegionIdToName( it.GetRegion() );
@@ -489,7 +528,19 @@ namespace CoupledField {
         std::ofstream & actFile = *outFiles[it.GetPos()];
         actFile << cmChar_ << " Result: '" << actInfo.resultName 
                 << "' on " << entTypeString << "(s) '" 
-                << list->GetName() << "'\n" << cmChar_ << "\n" << cmChar_;
+                << list->GetName() << "'";
+        
+        // now we have to switch the naming scheme
+        switch (list->GetType() ) {
+          case EntityList::NODE_LIST:
+          case EntityList::ELEM_LIST:
+          case EntityList::SURF_ELEM_LIST:
+            actFile << " number #" << it.GetIdString();
+            break;
+          default:
+            break;
+        }
+        actFile << "\n" << cmChar_;
         
         if( res->GetEntryType() == BaseMatrix::DOUBLE ) {
           actFile << " t (s)  ";        
@@ -515,7 +566,7 @@ namespace CoupledField {
       shared_ptr<EntityList> list = res->GetEntityList();
       totalName = namePrefix + "-";
       totalName += list->GetName();
-      totalName += "-" + GenStr(step);
+      totalName += "-" + lexical_cast<std::string>(step);
 //      if( res->GetEntryType() == BaseMatrix::DOUBLE ) {
 //        totalName += "s";
 //      } else {
@@ -683,14 +734,14 @@ namespace CoupledField {
     
     StdVector<std::string> ret;
 
-    ret.Push_back( GenStr( it.GetNode() ) );
+    ret.Push_back( lexical_cast<std::string>( it.GetNode() ) );
 
     Vector<Double> locCoord, globCoord;
     ptGrid_->GetNodeCoordinate( globCoord, it.GetNode() );
     if( coordSys_ != NULL ) {
       coordSys_->Global2LocalCoord( locCoord, globCoord );
       for( UInt iDim = 0; iDim < locCoord.GetSize(); iDim++ ) {
-        ret.Push_back( GenStr( locCoord[iDim] ) );
+        ret.Push_back( lexical_cast<std::string>( locCoord[iDim] ) );
       }
     }
   return ret;
@@ -701,15 +752,15 @@ namespace CoupledField {
 
     StdVector<std::string> ret;
     
-    ret.Push_back( GenStr( it.GetElem()->elemNum ) );
+    ret.Push_back( lexical_cast<std::string>( it.GetElem()->elemNum ) );
     Vector<Double> globCoord, locCoord;
     
-    ptGrid_->GetElemShapeMap(it.GetElem())->GetGlodMidPoint(globCoord);
+    ptGrid_->GetElemShapeMap(it.GetElem())->GetGlobMidPoint(globCoord);
     
     if( coordSys_ != NULL ) {
       coordSys_->Global2LocalCoord( locCoord, globCoord );
       for( UInt iDim = 0; iDim < locCoord.GetSize(); iDim++ ) {
-        ret.Push_back( GenStr( locCoord[iDim] ));
+        ret.Push_back( lexical_cast<std::string>( locCoord[iDim] ));
       }
     }
     return ret;
@@ -720,17 +771,17 @@ namespace CoupledField {
     StdVector<std::string> ret;
     ret.Resize(1);
     
-    ret[0] = GenStr( it.GetRegion() );
+    ret[0] = lexical_cast<std::string>( it.GetRegion() );
     return ret;
   }
   
   std::string SimOutputText::ComplexAsAmplPhase( const Complex& val ) const {
     
-    return GenStr( std::abs(val) ) + delim_ + GenStr( CPhase(val) );
+    return lexical_cast<std::string>( std::abs(val) ) + delim_ + lexical_cast<std::string>( CPhase(val) );
     
   }
 
   std::string SimOutputText::ComplexAsRealImag( const Complex& val ) const {
-    return GenStr( val.real()) + delim_ + GenStr( val.imag() );
+    return lexical_cast<std::string>( val.real()) + delim_ + lexical_cast<std::string>( val.imag() );
   }
 }

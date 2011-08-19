@@ -4,9 +4,7 @@
 
 #include "BasePairCoupling.hh"
 
-
-#include "DataInOut/ParamHandling/ParamNode.hh"
-#include "DataInOut/ParamHandling/InfoNode.hh" 
+#include "DataInOut/ParamHandling/ParamNode.hh" 
 #include "PDE/SinglePDE.hh"
 #include "Domain/domain.hh"
 #include "DataInOut/MaterialHandler.hh"
@@ -21,7 +19,7 @@ namespace CoupledField {
   //   Constructor
   // ***************
   BasePairCoupling::BasePairCoupling(SinglePDE *pde1, SinglePDE *pde2,
-                                     ParamNode * paramNode)    
+                                     PtrParamNode paramNode)    
   {
 
     
@@ -46,6 +44,7 @@ namespace CoupledField {
     isComplex_ = false;
     
     dim_ = domain->GetGrid()->GetDim();
+    infoNode_ = info->Get("PDE")->Get(couplingName_, ParamNode::APPEND);
   }
 
 
@@ -83,51 +82,60 @@ namespace CoupledField {
  
     isComplex_ = BasePDE::IsComplex(analysisType_);
 
-    infoNode_ = info->Get("PDEs")->Get(couplingName_, InfoNode::APPEND); 
-    InfoNode* in = infoNode_->Get(InfoNode::HEADER); 
+    PtrParamNode in = infoNode_->Get(ParamNode::HEADER); 
     in->Get("sequenceStep")->SetValue(sequenceStep); 
     in->Get("pde1")->SetValue(pde1_->GetName()); 
     in->Get("pde2")->SetValue(pde2_->GetName());
 
     // get "region" list of current coupling object
-    ParamNode * regionListNode = myParam_->Get("regionList", false );
+    PtrParamNode regionListNode = myParam_->Get("regionList", ParamNode::PASS );
     if(regionListNode) 
     {
-      StdVector<ParamNode*> regionList = regionListNode->GetList("region");
+      ParamNodeList regionList = regionListNode->GetList("region");
 
       if(regionList.GetSize() > 0) 
       {
         for( UInt i = 0; i < regionList.GetSize(); i++ ) 
         {
-          std::string regionName = regionList[i]->Get("name")->AsString(); 
-          RegionIdType regionId = ptGrid_->RegionNameToId( regionName ); 
+          std::string regionName = regionList[i]->Get("name")->As<std::string>(); 
+          RegionIdType regionId = ptGrid_->GetRegion().Parse( regionName );
 
-          in->Get("region", InfoNode::APPEND)->Get("name")->SetValue(regionName);
-
-          subdoms_.Push_back( regionId );
-          entityLists_.Push_back( ptGrid_->
-                                  GetEntityList( EntityList::ELEM_LIST, 
-                                                 regionName, EntityList::REGION ) );
+          in->Get("region", ParamNode::APPEND)->Get("name")->SetValue(regionName);
+          // Check, if region was already defined an issue a warning otherwise
+          if( std::find(subdoms_.Begin(), subdoms_.End(), regionId ) 
+          != subdoms_.End() )  {
+            WARN( "The region '" << regionName
+                  << "' was already defined for coupling '" << couplingName_ 
+                  << "'. Please remove duplicate entries." );
+          } else {
+            subdoms_.Push_back( regionId );
+            bool complexMat = false;
+            regionList[i]->GetValue("complexMaterial",  complexMat, ParamNode::PASS );
+            complexMatData_[regionId] = complexMat;
+            entityLists_.Push_back( ptGrid_->
+                                    GetEntityList( EntityList::ELEM_LIST, 
+                                                   regionName, EntityList::REGION ) );
+          }
                                                           
         }
       }
     }
     
     // get "surfRegion" list of current coupling object
-    ParamNode * surfRegionListNode = myParam_->Get("surfRegionList", false );
+    PtrParamNode surfRegionListNode = myParam_->Get("surfRegionList", ParamNode::PASS );
     if( surfRegionListNode ) 
     {
-      StdVector<ParamNode*> surfRegionList = surfRegionListNode->GetList("surfRegion");
+      ParamNodeList surfRegionList = surfRegionListNode->GetList("surfRegion");
       
       if(surfRegionList.GetSize() > 0) 
       {
-        InfoNode* list = in->Get("surfaceRegions"); 
+        PtrParamNode list = in->Get("surfaceRegions"); 
         
         for( UInt i = 0; i < surfRegionList.GetSize(); i++ ) 
         {
-          std::string surfRegionName = surfRegionList[i]->Get("name")->AsString(); 
+          std::string surfRegionName = surfRegionList[i]->Get("name")->As<std::string>(); 
 
-          list->Get("surfaceRegion", InfoNode::APPEND)->Get("name")->SetValue(surfRegionName); 
+          list->Get("surfaceRegion", ParamNode::APPEND)->Get("name")->SetValue(surfRegionName); 
 
           entityLists_.Push_back( ptGrid_->GetEntityList( EntityList::SURF_ELEM_LIST, 
                                                           surfRegionName, EntityList::REGION ) );
@@ -138,20 +146,20 @@ namespace CoupledField {
     // ===========================================================
     // Non-conforming grid interfaces
     // ===========================================================
-    ParamNode *ncIfListNode = myParam_->Get("ncInterfaceList", false);
+    PtrParamNode ncIfListNode = myParam_->Get("ncInterfaceList", ParamNode::PASS);
     if (ncIfListNode) 
     {
-      StdVector<ParamNode*> ncIfList = ncIfListNode->GetList("ncInterface");
+      ParamNodeList ncIfList = ncIfListNode->GetList("ncInterface");
 
       if (ncIfList.GetSize() > 0) 
       {
-        InfoNode* list = in->Get("nonConformingGridInterfaces"); 
+        PtrParamNode list = in->Get("nonConformingGridInterfaces"); 
 
         for (UInt i = 0; i < ncIfList.GetSize(); ++i) {
-          std::string ncIfName = ncIfList[i]->Get("name")->AsString(); 
-          RegionIdType ncIfId = ptGrid_->RegionNameToId(ncIfName); 
+          std::string ncIfName = ncIfList[i]->Get("name")->As<std::string>(); 
+          RegionIdType ncIfId = ptGrid_->GetRegion().Parse(ncIfName);
 
-          InfoNode* e = list->Get("nc_interface", InfoNode::APPEND); 
+          PtrParamNode e = list->Get("nc_interface", ParamNode::APPEND); 
           e->Get("name")->SetValue(ncIfName); 
           e->Get("id")->SetValue(ncIfId);
 
@@ -162,7 +170,7 @@ namespace CoupledField {
     
     // Determine, if axisymmetric geometry is used
     std::string probGeo;
-    param->Get("domain")->Get( "geometryType", probGeo );
+    param->Get("domain")->GetValue( "geometryType", probGeo );
     if( probGeo == "axi" ) {
       isaxi_ = true;
     } else {
@@ -210,12 +218,12 @@ namespace CoupledField {
   }
 
   void BasePairCoupling::ReadMaterialData() {
- 
-    // get list of parameter nodes for region definitions
-    StdVector<ParamNode*> regionNodes;
 
-    ParamNode * regionListNode = param->
-      Get("domain")->Get("regionList", false );
+    // get list of parameter nodes for region definitions
+    ParamNodeList regionNodes;
+
+    PtrParamNode regionListNode = param->
+      Get("domain")->Get("regionList", ParamNode::PASS );
     if( regionListNode)
       regionNodes = regionListNode->GetList("region");
 
@@ -231,15 +239,14 @@ namespace CoupledField {
 
     // iterate over all regions
     for( UInt i = 0; i < regionNodes.GetSize(); i++ ) {
-
       try{ 
         // get data from node
-        regionNodes[i]->Get( "name", region );
-        regionNodes[i]->Get( "material", material );
-        regionNodes[i]->Get( "coordSysId", refCoordSys );
+        regionNodes[i]->GetValue( "name", region );
+        regionNodes[i]->GetValue( "material", material );
+        regionNodes[i]->GetValue( "coordSysId", refCoordSys );
         
         // get regionId
-        RegionIdType actRegionId = ptGrid_->RegionNameToId( region );
+        RegionIdType actRegionId = ptGrid_->GetRegion().Parse( region );
         
         // if no material is set, continue with next loop run
         if( material == "" )
@@ -250,13 +257,15 @@ namespace CoupledField {
         if( subdoms_.Find( actRegionId) < 0 ) 
           continue;
         
-        // print logging information
-        Info->PrintF( couplingName_, "Material '%s' for region '%s' (ID = %d) "
-                      "follows\n", material.c_str(), region.c_str(),
-                      actRegionId );
         // Read data
-        materials_[actRegionId] = matLoader->
-          LoadMaterial( material, materialClass_ );
+        materials_[actRegionId] = matLoader->LoadMaterial( material, materialClass_ );
+
+        // log the just read material. LoadMaterial() so to say initializes the ToInfo()
+        PtrParamNode in = infoNode_->GetByVal("material", "name", material);
+        // additional regions are automatically appended
+        in->Get("regionList")->GetByVal("region", "name", domain->GetGrid()->GetRegion().ToString(actRegionId));
+        materials_[actRegionId]->ToInfo(in);
+
         
         // Check for local coordinate system
         if( refCoordSys != "" ) {
@@ -266,7 +275,7 @@ namespace CoupledField {
         }
         
         // Check for material rotation parameters
-        ParamNode * rotNode = regionNodes[i]->Get("matRotation", false);
+        PtrParamNode rotNode = regionNodes[i]->Get("matRotation", ParamNode::INSERT);
         
         Vector<Double> rotVec (3);
         rotVec.Init();
@@ -275,7 +284,7 @@ namespace CoupledField {
         // 2D, -> material is rotated by
         // alpha = -90 and gamma = -90 degree, 
         // so that we pick by default the yz-plane      
-        if( !rotNode ) {
+        if( !rotNode->HasChildren() ) {
           if( dim_ == 2) {
             rotVec[0] = -90.0;
             rotVec[2] = -90.0;
@@ -284,9 +293,9 @@ namespace CoupledField {
           }
           continue;
         } else {
-          rotNode->Get( "alpha", rotVec[0] );
-          rotNode->Get( "beta", rotVec[1] );
-          rotNode->Get( "gamma", rotVec[2] );
+          rotVec[0] = rotNode->Get( "alpha" )->MathParse<Double>();
+          rotVec[1] = rotNode->Get( "beta" )->MathParse<Double>(); 
+          rotVec[2] = rotNode->Get( "gamma" )->MathParse<Double>();
           materials_[actRegionId]->
             RotateAllTensorsByRotationAngles( rotVec, true );
         }
@@ -314,36 +323,32 @@ namespace CoupledField {
 
       try{ 
         // get data from node
-        regionNodes[i]->Get( "name", region );
-        regionNodes[i]->Get( "composite", composite );
+        regionNodes[i]->GetValue( "name", region );
+        regionNodes[i]->GetValue( "composite", composite );
 
         // get regionId
-        RegionIdType actRegionId = ptGrid_->RegionNameToId( region );
+        RegionIdType actRegionId = ptGrid_->GetRegion().Parse( region );
         
         // if no composite is set, continue with next loop run
         if( composite == "" )
           continue;
+        
+        if( subdoms_.Find( actRegionId) < 0 )
+          continue;
 
         // print logging information
-        std::ostringstream out;
-        out << "Composite material '" << composite << "' for "
-            << "region '" << region << "' (ID = " << actRegionId
-            << ") follows:\n";
-        Info->PrintF( couplingName_, out.str().c_str());
-        out.str("");
+        PtrParamNode in = infoNode_->Get(ParamNode::HEADER)->GetByVal("region", "name", region)->Get("composite");
 
         // get composite node
-        ParamNode * compNode = NULL;
+        PtrParamNode compNode;
         try {
-          compNode = param->Get("domain")
-            ->Get("composite", "name", composite );
+          compNode = param->Get("domain")->GetByVal("composite", "name", composite );
         } catch( Exception& ex ) {
-          RETHROW_EXCEPTION( ex, "No composite material defined with name '"
-                             << composite << "'" );
+          RETHROW_EXCEPTION( ex, "No composite material defined with name '" << composite << "'" );
         }
 
         // get laminaNodes
-        StdVector<ParamNode*> laminaNodes = compNode->GetList("lamina");
+        ParamNodeList laminaNodes = compNode->GetList("lamina");
         
         // Create new lamina and fill ine materials and thicknesses
         Composite & myMat = compositeMaterials_[actRegionId];
@@ -355,23 +360,24 @@ namespace CoupledField {
           std::string lamMaterial;
           Double lamThickness, lamOrientation;
           
-          laminaNodes[j]->Get( "material", lamMaterial);
-          laminaNodes[j]->Get( "thickness", lamThickness);
-          laminaNodes[j]->Get( "orientation", lamOrientation);
+          laminaNodes[j]->GetValue( "material", lamMaterial);
+          laminaNodes[j]->GetValue( "thickness", lamThickness);
+          laminaNodes[j]->GetValue( "orientation", lamOrientation);
 
           // Print information
-          out << " --- Lamina " << j+1 << ": thickness = " 
-              << lamThickness
-              << " m, orientation = " << lamOrientation << "° ---\n";
-          Info->PrintF( couplingName_, out.str().c_str());
-          out.str("");
+          PtrParamNode lam = in->Get("lamina", ParamNode::APPEND);
+          lam->Get("nr")->SetValue(j+1);
+          lam->Get("thickness")->SetValue(lamThickness);
+          lam->Get("orientation")->SetValue(lamOrientation);
 
           myMat.thickness.Push_back( lamThickness );
           myMat.orientation.Push_back( lamOrientation );
-          myMat.materials.Push_back( matLoader->
-                                     LoadMaterial( lamMaterial,
-                                                   materialClass_ ) );
+          myMat.materials.Push_back(matLoader->LoadMaterial(lamMaterial, materialClass_ ));
           
+          PtrParamNode lm_ = lam->Get("material");
+          lm_->Get("name")->SetValue(lamMaterial);
+          myMat.materials.Last()->ToInfo(lm_);
+
         } // over single laminae
       } catch (Exception& ex ) {
         RETHROW_EXCEPTION( ex, "Could not create composite material '"
@@ -384,7 +390,7 @@ namespace CoupledField {
 
  StdVector<std::string> regionNames, nodeNames, writeResults, actOutDest;
     StdVector<std::string> postProcNames, outDestNames, neighborRegions;
-    UInt saveBegin, saveEnd, saveInc;
+    UInt saveBegin = 0, saveEnd = 0, saveInc = 0;
     std::string quantity, complexFormatString, listElemName, entityName;
     ComplexFormat complexFormat;
     shared_ptr<EntityList> actList;
@@ -411,7 +417,7 @@ namespace CoupledField {
     isHistory[ResultInfo::SURF_REGION] = true;
     
     // fetch result node and leave, if none is present
-    ParamNode * resultNode = myParam_->Get("storeResults", false);
+    PtrParamNode resultNode = myParam_->Get("storeResults", ParamNode::PASS);
     if( !resultNode )
       return;
 
@@ -432,8 +438,8 @@ namespace CoupledField {
       }
       
       // Remeber current result node
-      ParamNode* actResultNode = 
-        resultNode->Get(xmlElemName, "type", quantity, false );
+      PtrParamNode actResultNode = 
+        resultNode->GetByVal(xmlElemName, "type", quantity, ParamNode::PASS );
       
       // Check on which entity type the result is defined on 
       if( (*it)->definedOn == ResultInfo::NODE ) {
@@ -465,68 +471,69 @@ namespace CoupledField {
       }
 
       // determine complexFormat
-      complexFormatString = actResultNode->Get("complexFormat")->AsString();
+      complexFormatString = "amplPhase";
+      actResultNode->GetValue("complexFormat", complexFormatString, ParamNode::PASS);
       String2Enum( complexFormatString, complexFormat );
       
       // otherwise check, if result is to be saved on "allRegions"
       if( actResultNode->Has("allRegions" ) ) {
-        ptGrid_->RegionIdToName( regionNames, subdoms_ );
+        ptGrid_->GetRegion().ToString( subdoms_, regionNames );
         
-        ParamNode * allRegionsNode = actResultNode->Get("allRegions");
+        PtrParamNode allRegionsNode = actResultNode->Get("allRegions");
         
         std::string allPostProcName, allOutDestName;
         
         // fetch postProcNames
-        allRegionsNode->Get("postProcId", allPostProcName );
+        allRegionsNode->GetValue("postProcId", allPostProcName );
         postProcNames.Resize( regionNames.GetSize() );
         postProcNames.Init( allPostProcName );
         
         //fetch outDestName
-        allRegionsNode->Get("outputIds", allOutDestName );
+        allRegionsNode->GetValue("outputIds", allOutDestName );
         outDestNames.Resize( regionNames.GetSize() );
         outDestNames.Init( allOutDestName );
 
         // fetch saveBegin, saveEnd and saveInc
-        allRegionsNode->Get("saveBegin", saveBegin );
-        allRegionsNode->Get("saveEnd", saveEnd );
-        allRegionsNode->Get("saveInc", saveInc );
+        saveBegin = allRegionsNode->Get("saveBegin")->MathParse<UInt>();
+        saveEnd = allRegionsNode->Get("saveEnd")->MathParse<UInt>();
+        saveInc = allRegionsNode->Get("saveInc")->MathParse<UInt>();
         
         // fetch writeResult flag
         std::string writeResult;
-        allRegionsNode->Get("writeResult", writeResult );
+        allRegionsNode->GetValue("writeResult", writeResult );
         writeResults.Resize( regionNames.GetSize() );
         writeResults.Init( writeResult );
 
       } else {
 
-        StdVector<ParamNode*> regionNodes;
-        ParamNode * listNode = NULL;
+        ParamNodeList regionNodes;
+        PtrParamNode listNode;
         // 1b) Look for regions the result is defined on
         if( (*it)->definedOn == ResultInfo::NODE ||
             (*it)->definedOn == ResultInfo::ELEMENT ||
             (*it)->definedOn == ResultInfo::REGION ) {
-          listNode = actResultNode->Get("regionList", false);
+          listNode = actResultNode->Get("regionList", ParamNode::PASS);
           if( listNode )
             regionNodes = listNode->GetList("region");
         } else if( (*it)->definedOn == ResultInfo::SURF_ELEM ||
                    (*it)->definedOn == ResultInfo::SURF_REGION ) {
-          listNode = actResultNode->Get("surfRegionList", false);
+          listNode = actResultNode->Get("surfRegionList", ParamNode::PASS);
           if( listNode )
             regionNodes = listNode->GetList("surfRegion");
 
           // fetch entry with neighboring regions
           for( UInt i = 0; i < regionNodes.GetSize(); i++ ) {
             neighborRegions.Push_back( regionNodes[i]->
-                                       Get("neighborRegion")->AsString() );
+                                       Get("neighborRegion")->As<std::string>() );
           }
         } 
         
         // only enter, at least one region is present
-        if( listNode ) {
+        if( listNode->HasChildren() ) {
           // fetch saveBegin, saveEnd and saveInc
-          listNode->Get( "saveBegin", saveBegin );
-          listNode->Get( "saveEnd", saveEnd );
-          listNode->Get( "saveInc", saveInc );
+          saveBegin = listNode->Get("saveBegin")->MathParse<UInt>();
+          saveEnd = listNode->Get("saveEnd")->MathParse<UInt>();
+          saveInc = listNode->Get("saveInc")->MathParse<UInt>();
           
           // iterate over all regions 
           regionNames.Clear();
@@ -534,10 +541,10 @@ namespace CoupledField {
           outDestNames.Clear();
           writeResults.Clear();
           for( UInt i = 0; i < regionNodes.GetSize(); i++ ) {
-            regionNames.Push_back( regionNodes[i]->Get("name")->AsString() );
-            postProcNames.Push_back( regionNodes[i]->Get("postProcId")->AsString() );
-            outDestNames.Push_back( regionNodes[i]->Get("outputIds")->AsString() );
-            writeResults.Push_back( regionNodes[i]->Get("writeResult")->AsString() );
+            regionNames.Push_back( regionNodes[i]->Get("name")->As<std::string>() );
+            postProcNames.Push_back( regionNodes[i]->Get("postProcId")->As<std::string>() );
+            outDestNames.Push_back( regionNodes[i]->Get("outputIds")->As<std::string>() );
+            writeResults.Push_back( regionNodes[i]->Get("writeResult")->As<std::string>() );
           }
         }
       }
@@ -569,8 +576,8 @@ namespace CoupledField {
           bool writeResult = writeResults[iRegion] == "yes"  ? true : false ;
 
           // pass result to resulthandler
-          resHandler->RegisterResult( actSol, saveBegin, saveInc, saveEnd,
-                                      actOutDest, 
+          resHandler->RegisterResult( actSol, sequenceStep_,saveBegin, saveInc, 
+                                      saveEnd, actOutDest, 
                                       postProcNames[iRegion], writeResult,
                                       isHistory[(*it)->definedOn] );
           
@@ -579,12 +586,11 @@ namespace CoupledField {
           if( neighborRegions.GetSize() > 0 ) {
             if( neighborRegions[iRegion] != "" ) {
               surfNeighborRegions_[actSol] = 
-                ptGrid_->RegionNameToId( neighborRegions[iRegion] );
+                ptGrid_->GetRegion().Parse( neighborRegions[iRegion] );
             }
           }
 
         }
-        Info->PrintF( couplingName_, "\n");
       }
       
       
@@ -594,26 +600,26 @@ namespace CoupledField {
       StdVector<std::string> histNames;
       neighborRegions.Clear();
       
-      ParamNode * histNode = NULL;
-      StdVector<ParamNode*> histEntities;
+      PtrParamNode histNode;
+      ParamNodeList histEntities;
 
       if( (*it)->definedOn == ResultInfo::NODE ) {
         defineType = EntityList::NAMED_NODES;  
-        histNode = actResultNode->Get("nodeList",false);
+        histNode = actResultNode->Get("nodeList",ParamNode::PASS);
         if( histNode )
           histEntities = histNode->GetList("nodes");
         entityTypeName = "nodes";
 
       } else if( (*it)->definedOn == ResultInfo::ELEMENT ) {
         defineType = EntityList::NAMED_ELEMS; 
-        histNode = actResultNode->Get("elemList",false); 
+        histNode = actResultNode->Get("elemList",ParamNode::PASS); 
         if( histNode )
           histEntities = histNode->GetList("elems");
         entityTypeName = "elements";
       
       } else if( (*it)->definedOn == ResultInfo::SURF_ELEM ) {
         defineType = EntityList::NAMED_ELEMS;  
-        histNode = actResultNode->Get("surfEelemList",false); 
+        histNode = actResultNode->Get("surfEelemList",ParamNode::PASS); 
         if( histNode) 
           histEntities = histNode->GetList("surfElems");
         entityTypeName = "surfElems";
@@ -622,28 +628,28 @@ namespace CoupledField {
         // fetch entry with neighboring regions
         for( UInt i = 0; i < histEntities.GetSize(); i++ ) {
           neighborRegions.Push_back( histEntities[i]->
-                                     Get("neighborRegion")->AsString() );
+                                     Get("neighborRegion")->As<std::string>() );
         }
       }
 
       // only proceed, if any history result is defined+
-      if( histNode ) {
+      if( histNode && histNode->HasChildren() ) {
         
         // fetch saveBegin, saveEnd and saveInc
-        histNode->Get("saveBegin", saveBegin );
-        histNode->Get("saveEnd", saveEnd );
-        histNode->Get("saveInc", saveInc );
-        
+        saveBegin = histNode->Get("saveBegin")->MathParse<UInt>();
+        saveEnd = histNode->Get("saveEnd")->MathParse<UInt>();
+        saveInc = histNode->Get("saveInc")->MathParse<UInt>();
+
         // iterate over all regions
         histNames.Clear();
         postProcNames.Clear();
         outDestNames.Clear();
         writeResults.Clear();
         for( UInt i = 0; i < histEntities.GetSize(); i++ ) {
-          histNames.Push_back( histEntities[i]->Get("name")->AsString() );
-          postProcNames.Push_back( histEntities[i]->Get("postProcId")->AsString() );
-          outDestNames.Push_back( histEntities[i]->Get("outputIds")->AsString() );
-          writeResults.Push_back( histEntities[i]->Get("writeResult")->AsString() );
+          histNames.Push_back( histEntities[i]->Get("name")->As<std::string>() );
+          postProcNames.Push_back( histEntities[i]->Get("postProcId")->As<std::string>() );
+          outDestNames.Push_back( histEntities[i]->Get("outputIds")->As<std::string>() );
+          writeResults.Push_back( histEntities[i]->Get("writeResult")->As<std::string>() );
         }
       }
       
@@ -672,7 +678,8 @@ namespace CoupledField {
           SplitStringList( outDestNames[i], actOutDest, ',' );
           bool writeResult = (writeResults[i] == "yes"  ? true : false );
             
-          resHandler->RegisterResult( actSol, saveBegin, saveInc, saveEnd,
+          resHandler->RegisterResult( actSol, sequenceStep_, 
+                                      saveBegin, saveInc, saveEnd,
                                       actOutDest, 
                                       postProcNames[i], writeResult, true );
             
@@ -681,12 +688,11 @@ namespace CoupledField {
           if( neighborRegions.GetSize() > 0 ) {
             if( neighborRegions[i] != "" ) {
               surfNeighborRegions_[actSol] = 
-                ptGrid_->RegionNameToId( neighborRegions[i] );
+                ptGrid_->GetRegion().Parse( neighborRegions[i] );
             }
           }
             
         }
-        Info->PrintF( couplingName_, "\n");
       }
       } catch( Exception &ex ) {
         RETHROW_EXCEPTION(ex, "Could not determine storeResults for quantity '"
@@ -694,7 +700,6 @@ namespace CoupledField {
                           << couplingName_ << "'" );
       }
     }
-    Info->PrintF( couplingName_, "\n");
   }
 
   void BasePairCoupling::WriteResultsInFile( const UInt kstep,

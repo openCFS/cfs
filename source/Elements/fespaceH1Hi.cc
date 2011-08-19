@@ -73,7 +73,7 @@
 namespace CoupledField{
 
   //! Constructor
-  FeSpaceH1Hi::FeSpaceH1Hi(ParamNode* aNode)
+  FeSpaceH1Hi::FeSpaceH1Hi(PtrParamNode aNode)
   : FeSpaceH1(aNode) {
 
     type_ = H1;
@@ -117,6 +117,7 @@ namespace CoupledField{
     } else if( type == BaseFE::FACE ) {
       // IMPLEMENT ME
     }
+    return 0;
   }
 
   UInt FeSpaceH1Hi::GetMaxEntityOrder( UInt elemNum, BaseFE::EntityType type, 
@@ -131,7 +132,8 @@ namespace CoupledField{
       return 0;
     } else if( type == BaseFE::FACE ) {
       // IMPLEMENT ME
-    }
+    } 
+    return 0;
   }
 
   //! Map equations i.e. intialize object
@@ -143,8 +145,8 @@ namespace CoupledField{
      * 4. Map equations only based on the virtualNodeArray
      */
 
-    UInt numEqns_ = 0;
-    UInt numFreeEquations_ = 0;
+//    UInt numEqns_ = 0;
+//    UInt numFreeEquations_ = 0;
     CreateVirtualNodes();
 //    CreateVirtualEdges();
 //    CreateVirtualFaces();
@@ -277,20 +279,20 @@ namespace CoupledField{
   void FeSpaceH1Hi::CheckConsistency(){
 
   }
-  void FeSpaceH1Hi::ProcessPolyRegionNode(ParamNode* node, RegionIdType region){
+  void FeSpaceH1Hi::ProcessPolyRegionNode(PtrParamNode node, RegionIdType region){
     Matrix<Integer> order(1,1);
     order[0][0] = -1;
-    ParamNode * isoOrderNode = node->Get("isoOrder", false );
-    ParamNode * anIsoOrderNode = node->Get("anIsoOrder", false );
+    PtrParamNode isoOrderNode = node->Get("isoOrder", ParamNode::PASS );
+    PtrParamNode anIsoOrderNode = node->Get("anIsoOrder", ParamNode::PASS );
 
     if(isoOrderNode){
-      Integer isoOrder = isoOrderNode->AsInt();
+      Integer isoOrder = isoOrderNode->As<Integer>();
       order[0][0] = isoOrder;
     }else if(anIsoOrderNode){
       //TO BE DONE
       EXCEPTION("Anisotropic element orders are not supported");
     }else{
-      Warning("Did not find a order node. setting it to 1");
+      WARN("Did not find a order node. setting it to 1");
       order[0][0] = 1;
     }
     SetRegionElements(region,POLYNOMIAL,order);

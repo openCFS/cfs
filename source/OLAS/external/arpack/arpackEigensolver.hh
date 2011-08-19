@@ -6,13 +6,14 @@
 #define OLAS_ARPACK_EIGENSOLVER_HH
 
 #include "OLAS/solver/baseEigensolver.hh"
+#include "DataInOut/ParamHandling/ParamNode.hh"
 #include "arpackSolver.hh"
 #include "arpackMatInterface.hh"
 
 namespace CoupledField {
   
   class StdMatrix;
-  class InfoNode;
+  class ParamNode;
   class ParamNode;
   
   // =========================================================================
@@ -26,9 +27,8 @@ namespace CoupledField {
   public:
     
     //! Default Constructor
-    ArpackEigenSolver( ParamNode* xml, InfoNode* eigenInfo,
-                       OLAS_Params *myParams, 
-                       OLAS_Report *myReport );
+    ArpackEigenSolver( PtrParamNode xml, PtrParamNode eigenInfo,
+                       PtrParamNode olasInfo );
     
     //! Default Destructor
     virtual ~ArpackEigenSolver();
@@ -125,16 +125,19 @@ namespace CoupledField {
     BasePrecond * precond_;
 
     /** Attribute for xml paramnode of <solver> section */
-    ParamNode * xml_;
+    PtrParamNode xml_;
     
     /** Subsection within the OLAS linear system */
-    InfoNode* eigenInfo_;
+    PtrParamNode eigenInfo_;
 
     //! Flag indicating if problem is generalized problem
     bool isGeneralized_;
 
     //! Flag for shift-and-invert mode
     bool shiftAndInvert_;
+    
+    //! Flag for use of logging
+    bool logging_;
 
     //! Character string for 'which' setting of  arpack
     char * which_;

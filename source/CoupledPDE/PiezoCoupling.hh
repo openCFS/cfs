@@ -28,7 +28,7 @@ namespace CoupledField
     //! \param pde1 pointer to first coupling PDE
     //! \param pde2 pointer to second coupling PDE
     //! \param paramNode pointer to "couplinglist/direct/piezoDirect" element
-    PiezoCoupling( SinglePDE *pde1, SinglePDE *pde2, ParamNode * paramNode );
+    PiezoCoupling( SinglePDE *pde1, SinglePDE *pde2, PtrParamNode paramNode );
 
     //! Destructor
     virtual ~PiezoCoupling();
@@ -67,6 +67,36 @@ namespace CoupledField
                                   Vector<Double>& mechStrainPrev,
                                   EntityIterator& ent );
 
+//!
+    void GetMaterialTensorMicroPiezo( Matrix<Double>& matTensor, 
+                                      Vector<Double>& resultVec,
+                                      std::string matTensorType,
+                                      BaseMaterial* matMech,
+                                      BaseMaterial* matElec,
+                                      BaseMaterial* matCouple,
+                                      SubTensorType subTensorType,
+                                      Vector<Double>& elecField,
+                                      Vector<Double>& mechStrain,
+                                      Vector<Double>& elecFieldPrev,
+                                      Vector<Double>& mechStrainPrev,
+                                      EntityIterator& ent );
+
+
+    //!
+    void GetMaterialTensorMicroPiezo2( Matrix<Double>& matTensor, 
+                                      Vector<Double>& resultVec,
+                                      std::string matTensorType,
+                                      BaseMaterial* matMech,
+                                      BaseMaterial* matElec,
+                                      BaseMaterial* matCouple,
+                                      SubTensorType subTensorType,
+                                      Vector<Double>& elecField,
+                                      Vector<Double>& mechStrain,
+                                      Vector<Double>& elecFieldPrev,
+                                      Vector<Double>& mechStrainPrev,
+                                      EntityIterator& ent );
+
+    
   protected:
 
     //! Definition of the (bi)linear forms
@@ -100,6 +130,60 @@ namespace CoupledField
                                     Vector<Double>& prevSirr,
                                     Directions dirP,
                                     SubTensorType subTensorType );
+
+    //!
+    void ComputeDiffCouplingTensorMicroPiezoMechEQ( Matrix<Double>& dMat, 
+                                                    Vector<Double>& actE,
+                                                    Vector<Double>& prevE,
+                                                    Vector<Double>& actSirr,
+                                                    Vector<Double>& prevSirr,
+                                                    SubTensorType subTensorType );
+
+    //!
+    void ComputeDiffCouplingTensorMicroPiezoElecEQ( Matrix<Double>& dMat, 
+                                                    Vector<Double>& actStress,
+                                                    Vector<Double>& prevStress,
+                                                    Vector<Double>& actPirr,
+                                                    Vector<Double>& prevPirr,
+                                                    SubTensorType subTensorType );
+
+    //!
+    void ComputeDiffMechTensorMicroPiezo( Matrix<Double>& dMat,
+                                          Vector<Double>& actStress,
+                                          Vector<Double>& prevStress,
+                                          Vector<Double>& actSirr,
+                                          Vector<Double>& prevSirr,
+                                          SubTensorType subTensorType );
+
+    //!
+    void ComputeDiffElecTensorMicroPiezo( Matrix<Double>& dMat,
+                                          Vector<Double>& actElec,
+                                          Vector<Double>& prevElec,
+                                          Vector<Double>& actSirr,
+                                          Vector<Double>& prevSirr,
+                                          SubTensorType subTensorType );
+
+    //!
+    void ComputeEffMechCouplingTensorMicroPiezo( Matrix<Double>& sEffMat,
+                                                 Matrix<Double>& dEffMat,
+                                                 Vector<Double>& actStress,
+                                                 Vector<Double>& prevStress,
+                                                 Vector<Double>& actE,
+                                                 Vector<Double>& prevE,
+                                                 Vector<Double>& actSirr,
+                                                 Vector<Double>& prevSirr,
+                                                 SubTensorType subTensorType );
+
+    //!
+    void ComputeEffElecCouplingTensorMicroPiezo( Matrix<Double>& epsEffMat,
+                                                 Matrix<Double>& dEffMat,
+                                                 Vector<Double>& actStress,
+                                                 Vector<Double>& prevStress,
+                                                 Vector<Double>& actE,
+                                                 Vector<Double>& prevE,
+                                                 Vector<Double>& actPirr,
+                                                 Vector<Double>& prevPirr,
+                                                 SubTensorType subTensorType );
     // Postprocession section
 
     //! computes stresses, strain, i.e. \sigma = cBu + e \grad \phi
@@ -113,10 +197,14 @@ namespace CoupledField
     template <class TYPE>
     void CalcDField( shared_ptr<BaseResult> result );
 
-    // Data section
+    //! computes the electric polarization
+    void CalcElecPolarization( shared_ptr<BaseResult> result );
 
-    //! flag indicating use of complex material parameters
-    bool hasComplexMatParams_;
+    //! computes flux density
+    template <class TYPE>
+    void CalcElecFluxDensity( shared_ptr<BaseResult> res );
+
+    // Data section
 
   };
 

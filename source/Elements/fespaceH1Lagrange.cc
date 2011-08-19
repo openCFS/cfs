@@ -22,7 +22,7 @@
 namespace CoupledField{
 
     //! Constructor
-    FeSpaceH1Lagrange::FeSpaceH1Lagrange(ParamNode* aNode) 
+    FeSpaceH1Lagrange::FeSpaceH1Lagrange(PtrParamNode aNode) 
     : FeSpaceH1(aNode) {
       type_ = H1;
       isHierarchical_ = false;
@@ -134,8 +134,8 @@ namespace CoupledField{
        * 4. Map equations only based on the virtualNodeArray
       */
 
-      UInt numEqns_ = 0;
-      UInt numFreeEquations_ = 0;
+//      UInt numEqns_ = 0;
+//      UInt numFreeEquations_ = 0;
       CreateVirtualNodes();
       //Determine boundary Unknowns
       MapNodalBCs();
@@ -203,12 +203,12 @@ namespace CoupledField{
     }
 
 
-    void FeSpaceH1Lagrange::ProcessPolyRegionNode(ParamNode* node, RegionIdType region){
+    void FeSpaceH1Lagrange::ProcessPolyRegionNode(PtrParamNode node, RegionIdType region){
       Matrix<Integer> order(1,1);
       order[0][0] = -1;
-      ParamNode * isoOrderNode = node->Get("isoOrder", false );
-      bool spectral = node->Get("spectral",false)->AsBool();
-      bool grid = node->Get("useGridOrder")->AsBool();
+      PtrParamNode isoOrderNode = node->Get("isoOrder", ParamNode::PASS );
+      bool spectral = node->Get("spectral",ParamNode::EX)->As<bool>();
+      bool grid = node->Get("useGridOrder",ParamNode::EX)->As<bool>();
 
       spectralRegions_[region] = spectral;
       //determine mapping type
@@ -217,11 +217,11 @@ namespace CoupledField{
         curMap = GRID;
       }
       if(isoOrderNode){
-        Integer isoOrder = isoOrderNode->AsInt();
+        Integer isoOrder = isoOrderNode->As<Integer>();
         order[0][0] = isoOrder;
       }else{
         if(spectral){
-          Warning("No order specified for spectral element region. setting it to 1");
+          WARN("No order specified for spectral element region. setting it to 1");
         }
         order[0][0] = 1;
       }

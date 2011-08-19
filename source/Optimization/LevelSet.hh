@@ -1,6 +1,6 @@
 #ifndef LEVELSET_HH_
 #define LEVELSET_HH_
-#include "Optimization/DesignElement.hh"
+#include "Optimization/Design/DesignElement.hh"
 
 #include <vector>
 #include <string>
@@ -157,9 +157,6 @@ namespace CoupledField
     /** calculate one shape gradient value for the whole element by averaging the
      *  calculations on the intersection objects */
     double shapeGradValue;
-    
-    /** save the topgradvalue here for postprocessing */
-    double topGradValue;
 
   private:
 
@@ -213,7 +210,7 @@ namespace CoupledField
   class LevelSet
   {
   public:
-    explicit LevelSet(Optimization* opt = 0, ParamNode* pn = 0);
+    explicit LevelSet(Optimization* opt = 0, PtrParamNode pn = PtrParamNode());
     ~LevelSet() {}
     
     /** called from shapeoptimizer to solve the problem */
@@ -250,7 +247,7 @@ namespace CoupledField
     {
     public:
       /** read ourself from XML and does basic plausibility checks */
-      explicit Action(ParamNode* const pn);
+      explicit Action(PtrParamNode const pn);
       ~Action() {}
 
       /** the action types we have: */

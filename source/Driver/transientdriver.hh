@@ -7,7 +7,13 @@
 
 #include "singleDriver.hh"
 
+#include <boost/date_time/posix_time/posix_time.hpp>
+#include <boost/shared_ptr.hpp>
+
 namespace CoupledField {
+
+  //! forward class declarations
+  class Timer;
 
   //! driver for transient problems.it is derived from BaseDriver;
   class TransientDriver : virtual public SingleDriver {
@@ -26,7 +32,7 @@ namespace CoupledField {
     void Init();
 
     //! main method, where time-stepping is implemented. it is for transient and static problem
-    void SolveProblem(bool write_results = true, InfoNode* given_analysis_id = NULL);
+    void SolveProblem(bool write_results = true, PtrParamNode given_analysis_id = PtrParamNode(), AdjointParameters* adjointParams = NULL);
 
     //! Return time increment
     Double GetDeltaT() { return firstdt_;}
@@ -68,6 +74,13 @@ namespace CoupledField {
 
     //! Time step to proceed from when performing restarted simulation
     UInt restartStep_;
+    
+    // =======================================================================
+    //  Timing estimation
+    // =======================================================================
+
+    //! Timer for estimating remaining runtime 
+    boost::shared_ptr<Timer> timer_;
 
   };
 

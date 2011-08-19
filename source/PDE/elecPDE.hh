@@ -6,7 +6,6 @@
 #define FILE_ELECPDE_NEW
 
 #include "SinglePDE.hh" 
-#include "Forms/elecforceop.hh"
 
 namespace CoupledField
 {
@@ -15,6 +14,8 @@ namespace CoupledField
   class BaseResult;
   class ResultHandler;
   class linElecInt;
+  class LinearFormContext;
+  class ElecForceOp;
   
   //! Class for electrostatic equation (no adaptivity)
   class ElecPDE : public SinglePDE {
@@ -46,7 +47,7 @@ namespace CoupledField
       \param aGrid pointer to grid
       \param aGrid pointer to class Grid
     */
-    ElecPDE( Grid* aptgrid, ParamNode* paramNode );
+    ElecPDE( Grid* aptgrid, PtrParamNode paramNode );
 
     //! Destructor
     virtual ~ElecPDE(){};
@@ -100,6 +101,19 @@ namespace CoupledField
     //! thermo-coupled simulation, because the coupled electrostatic block
     //! is negative compared to the normal one
     void SetThermoCoupling();
+
+    /** add the integrators for the polarization matrix to the linear forms, similar as in multiple load case;
+     * called from Excitation::SetPolarizationMatrixRHS
+     * @param vals contains the values from the xml test strains
+     * @param linForms set to append linear Forms to, if NULL use assemble_ */
+    void DefinePolarizationMatrixIntegrators(const Vector<Double> &vals,
+        StdVector<LinearFormContext*> *linForms, const int num);
+
+    /** @see virtual SinglePDE::GetNativeSolutionType() */
+    SolutionType GetNativeSolutionType() const { return ELEC_POTENTIAL; }
+
+    /** @see virtual SinglePDE::GetNativeDOF() */
+    virtual UInt GetNativeDOF() const { return 1; }
 
   protected:
 

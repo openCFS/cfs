@@ -48,7 +48,8 @@
                     <xsd:attribute name="reducedInt" type="DT_CFSBool" use="optional" default="no"/>
                     <xsd:attribute name="thickness"  type="DT_NonNegFloat" use="optional" default="0.0"/>
                     <xsd:attribute name="penaltyDof" type="DT_NonNegFloat"
-                      use="optional" default="0.0"/>
+                    use="optional" default="0.0"/>
+                    <xsd:attribute name="complexMaterial" type="DT_CFSBool" use="optional" default="no"/>
                   </xsd:complexType>
                 </xsd:element>
               </xsd:sequence>
@@ -85,7 +86,7 @@
                 <xsd:element name="rayleigh" type="DT_MechDampingRayl"/>
                 <xsd:element name="fractional"
                 type="DT_MechDampingFrac"/>
-                <xsd:element name="pml" type="DT_MechDampingPML"/>
+                <xsd:element name="pml" type="DT_DampingPML"/>
               </xsd:choice>
             </xsd:complexType>
           </xsd:element>
@@ -108,6 +109,7 @@
               <xsd:choice minOccurs="0" maxOccurs="unbounded">
                 <xsd:element name="dirichletHom"   type="DT_MechHD"        />
                 <xsd:element name="dirichletInhom" type="DT_MechID"        />
+                <xsd:element name="dirichletFileInhom" type="DT_MechIdFile"/>
                 <xsd:element name="neumannInhom"   type="DT_MechIN"        />
                 <xsd:element name="load"           type="DT_MechLoad"      />
                 <xsd:element name="pressure"       type="DT_MechPressure"  />
@@ -124,7 +126,8 @@
 
             <!-- Experimental: Side constraints on BCs -->
             <xsd:unique name="CS_MechanicBCs">
-              <xsd:selector xpath="cfs:dirichletHom|cfs:dirichletInhom|cfs:neumannInhom"/>
+              <xsd:selector
+                xpath="cfs:dirichletHom|cfs:dirichletInhom|cfs:dirichletFileInhom|cfs:neumannInhom"/>
               <xsd:field xpath="@name"/>
               <xsd:field xpath="@dof"/>
             </xsd:unique>
@@ -167,6 +170,7 @@
         default="1" use="optional" />
         <xsd:attribute name="fsi" type="DT_CFSBool" default="no"/>
         <xsd:attribute name="fsiRelaxationParam" use="optional" type="xsd:token" default="0.5"/>
+        <xsd:attribute name="useAitken" type="DT_CFSBool" default="no"/>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
@@ -205,6 +209,7 @@
     <xsd:complexContent>
       <xsd:extension base="DT_DampingBasic">
         <xsd:sequence>
+          <xsd:element name="adjustDamping" type="DT_CFSBool" minOccurs="0" maxOccurs="1"/>
           <xsd:element name="freq" type="DT_NonNegFloat" minOccurs="0" maxOccurs="1"/>
           <xsd:element name="ratioDeltaF" type="DT_NonNegFloat" minOccurs="0" maxOccurs="1"/>
         </xsd:sequence>
@@ -271,51 +276,7 @@
     </xsd:complexContent>
   </xsd:complexType>
 
- 
-  <!-- ******************************************************************* -->
-  <!--   Definition of PML damping -->
-  <!-- ******************************************************************* -->
-
-  <!-- Definition of pml damping type -->
-  <xsd:complexType name="DT_MechDampingPML">
-    <xsd:complexContent>
-      <xsd:extension base="DT_DampingBasic">
-        <xsd:sequence>
-
-          <!-- Geometric definition of region -->
-          <xsd:element name="propRegion" minOccurs="0" maxOccurs="1">
-            <xsd:complexType>
-              <xsd:sequence>
-                <xsd:element name="xMin" type="xsd:double" minOccurs="1" maxOccurs="1"/>
-                <xsd:element name="xMax" type="xsd:double" minOccurs="1" maxOccurs="1"/>
-                <xsd:element name="yMin" type="xsd:double" minOccurs="1" maxOccurs="1"/>
-                <xsd:element name="yMax" type="xsd:double" minOccurs="1" maxOccurs="1"/>
-                <xsd:element name="zMin" type="xsd:double" minOccurs="1" maxOccurs="1"/>
-                <xsd:element name="zMax" type="xsd:double" minOccurs="1" maxOccurs="1"/>
-              </xsd:sequence>
-            </xsd:complexType>
-          </xsd:element>
-
-          <!-- Type of PML -->
-          <xsd:element name="type" minOccurs="0" maxOccurs="1" default="inverseDist">
-            <xsd:simpleType>
-              <xsd:restriction base="xsd:token">
-                <xsd:enumeration value="constant"   />
-                <xsd:enumeration value="quadDist"     />
-                <xsd:enumeration value="inverseDist"     />
-              </xsd:restriction>
-            </xsd:simpleType>
-          </xsd:element>
-
-          <!-- Damping factor -->
-          <xsd:element name="dampFactor" type="xsd:double"
-            minOccurs="0" maxOccurs="1" />
-        </xsd:sequence>
-
-      </xsd:extension>
-    </xsd:complexContent>
-  </xsd:complexType>
- 
+  
   <!-- ******************************************************************* -->
   <!--   Definition of BK1 softening -->
   <!-- ******************************************************************* -->
@@ -406,6 +367,16 @@
         <xsd:attribute name="value" type="xsd:token" use="required"/>
         <xsd:attribute name="phase" type="xsd:token" use="optional"
           default="0.0"/>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+  <!-- Element type for inhomogeneous Dirichlet from file -->
+  <!-- boundary conditions. We derive it by extending the homogeneous case -->
+  <xsd:complexType name="DT_MechIdFile">
+    <xsd:complexContent>
+      <xsd:extension base="DT_MechHD">
+        <xsd:attribute name="inputId" type="xsd:token" default="default"/>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
@@ -540,6 +511,9 @@
       <xsd:enumeration value="optResult_7"/>
       <xsd:enumeration value="optResult_8"/>
       <xsd:enumeration value="optResult_9"/>
+      <xsd:enumeration value="gradXDisplacement"/>
+      <xsd:enumeration value="gradYDisplacement"/>
+      <xsd:enumeration value="gradZDisplacement"/>
     </xsd:restriction>
   </xsd:simpleType>
 
@@ -548,7 +522,11 @@
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="mechStrain"/>
       <xsd:enumeration value="mechStress"/>
+      <xsd:enumeration value="vonMisesStress"/>
+      <xsd:enumeration value="vonMisesStrain"/>
+      <xsd:enumeration value="lumpedMechDisplacement"/>
       <xsd:enumeration value="mechPseudoDensity"/>
+      <xsd:enumeration value="physicalPseudoDensity"/>
       <xsd:enumeration value="optResult_1"/>      
       <xsd:enumeration value="optResult_2"/>      
       <xsd:enumeration value="optResult_3"/>                  
@@ -565,6 +543,7 @@
   <xsd:simpleType name="DT_MechRegionResult">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="mechEnergy"/>
+      <xsd:enumeration value="homogenizedTensor"/>
     </xsd:restriction>
   </xsd:simpleType>
   
@@ -599,8 +578,9 @@
           <xsd:complexType>
             <xsd:complexContent>
               <xsd:extension base="DT_ElemResult">
-                <xsd:attribute name="type" type="DT_MechElemResult"
-                  use="required"/>
+                <xsd:attribute name="type" type="DT_MechElemResult" use="required"/>
+                <!-- Only for (von Mises) stress and strain. Divides value by element volume. -->
+                <xsd:attribute name="stress_strain_density" type="xsd:boolean" use="optional" default="false"/>                
               </xsd:extension>
             </xsd:complexContent>
           </xsd:complexType>
@@ -658,31 +638,40 @@
   <!-- ******************************************************************* -->
   <!--   Definition of data type for prestressing -->
   <!-- ******************************************************************* -->
-  <xsd:complexType name="DT_MechPreStress">
-    <xsd:attribute name="region"  type="xsd:token"/>
-    <xsd:attribute name="type"    type="xsd:token"/>
-    <xsd:attribute name="stress1" type="xsd:token"/>
-    <xsd:attribute name="stress2" type="xsd:token"/>
-    <xsd:attribute name="stress3" type="xsd:token"/>
-    <xsd:attribute name="stress4" type="xsd:token"/>
-    <xsd:attribute name="stress5" type="xsd:token"/>
-    <xsd:attribute name="stress6" type="xsd:token"/>
-    <!--xsd:attribute name="phase" type="xsd:float" use="optional" default=""/-->
-  </xsd:complexType>
+   <xsd:complexType name="DT_MechPreStress">
+     <xsd:choice>
+       <xsd:element name="prescribedLHS">
+         <xsd:complexType>
+           <xsd:attribute name="value">
+             <xsd:simpleType>
+               <xsd:restriction base="DT_DoubleList">
+                 <xsd:maxLength value="6"/>
+               </xsd:restriction>
+             </xsd:simpleType>
+           </xsd:attribute>
+         </xsd:complexType>
+       </xsd:element>
+       <xsd:element name="computeLHS"/>
+     </xsd:choice>
+     <xsd:attribute name="region"  type="xsd:token"/>
+   </xsd:complexType>
 
 
-  <!-- ******************************************************************* -->
-  <!--   Definition of data type for prestraining -->
-  <!-- ******************************************************************* -->
-  <xsd:complexType name="DT_MechTestStrain">
-    <xsd:attribute name="region"  type="xsd:token"/>
-    <xsd:attribute name="type"    type="xsd:token"/>
-    <xsd:attribute name="strain1" type="xsd:token"/>
-    <xsd:attribute name="strain2" type="xsd:token"/>
-    <xsd:attribute name="strain3" type="xsd:token"/>
-    <xsd:attribute name="strain4" type="xsd:token"/>
-    <xsd:attribute name="strain5" type="xsd:token"/>
-    <xsd:attribute name="strain6" type="xsd:token"/>
-  </xsd:complexType>
-
+   <!-- By 3, respectively 6 teststrains the homogenizied tensor can be computed.
+     This is implemented within optimization but can be also done manually, where
+     the homogenized tensor needs to be calculated offline. -->
+   <xsd:complexType name="DT_MechTestStrain">
+     <xsd:attribute name="strain" use="required">
+       <xsd:simpleType>
+         <xsd:restriction base="xsd:string">
+           <xsd:enumeration value="x"/>
+           <xsd:enumeration value="y"/>
+           <xsd:enumeration value="z"/>
+           <xsd:enumeration value="yz"/>
+           <xsd:enumeration value="xz"/>
+           <xsd:enumeration value="xy"/>
+         </xsd:restriction>
+       </xsd:simpleType>
+     </xsd:attribute>
+   </xsd:complexType>
 </xsd:schema>

@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 MODE=$1
 
@@ -28,8 +28,23 @@ function build {
     echo " Generating XML-REFERENCE document"
     echo "==================================="
 
+    cp @CMAKE_CURRENT_SOURCE_DIR@/../auxilliaries/Pics/ls_am_klu.pdf @CMAKE_CURRENT_SOURCE_DIR@/xmlFile/pics
+    cp @CMAKE_CURRENT_SOURCE_DIR@/../auxilliaries/Pics/cfs-logo.pdf @CMAKE_CURRENT_SOURCE_DIR@/xmlFile/pics
+    cp @CMAKE_CURRENT_SOURCE_DIR@/../auxilliaries/Pics/lse_logo.pdf @CMAKE_CURRENT_SOURCE_DIR@/xmlFile/pics
+
     cd @CMAKE_CURRENT_SOURCE_DIR@/xmlFile
     DOCUMENT=xmlReference
+
+    # make copy of tex files and make syntax coloring
+    texFiles=`ls *.tex`
+    for f in $texFiles;
+    do
+      cp $f ${f%.*}-save.tex
+      ./dopygment.py tex $f
+    done
+
+    # add pygments tex style to own files
+    cat style.tex >> mycommands.tex
 
     @PDFLATEX_COMPILER@ $DOCUMENT
     @BIBTEX_COMPILER@   $DOCUMENT
@@ -38,6 +53,12 @@ function build {
     @PDFLATEX_COMPILER@ $DOCUMENT
     thumbpdf $DOCUMENT
     @PDFLATEX_COMPILER@ $DOCUMENT
+
+    # move back files
+    for f in $texFiles ;
+    do
+      mv ${f%.*}-save.tex $f
+    done
 
     cd @CMAKE_CURRENT_SOURCE_DIR@
 
@@ -83,9 +104,64 @@ function build {
 
 }
 
+function buildhtml {
+
+    echo "============================================="
+    echo " Generating XML-REFERENCE HTML documentation"
+    echo "============================================="
+
+    cd @CMAKE_CURRENT_SOURCE_DIR@/xmlFile
+    DOCUMENT=xmlReference
+
+    # make copy of tex files and make syntax coloring
+    texFiles=`ls *.tex`
+    for f in $texFiles;
+    do
+      cp $f ${f%.*}-save.tex
+      ./dopygment.py html $f
+    done
+
+    # call tex4ht to create html documentation
+    htlatex $DOCUMENT "$DOCUMENT.cfg" "-dhtml/" "-dhtml/"
+
+    # add css-style from pygmetns to the one of tex4ht
+    cat style.css >> html/xmlReference.css
+
+    # copy picture-subdirectory to html directory
+    cp -r pics/ html/
+
+    # move back files
+    for f in $texFiles ;
+    do
+      mv ${f%.*}-save.tex $f
+    done
+
+    # remove obselete files in base-directory
+    rm *.html *.css *.idv *.lg
+
+    cd @CMAKE_CURRENT_SOURCE_DIR@
+
+    echo ""
+    echo "================================"
+    echo " HTML documentation generated!"
+    echo "================================"
+    echo ""
+    echo " Documentation has been generated in:"
+    echo ""
+    echo " @CMAKE_CURRENT_SOURCE_DIR@/"
+    echo " |-- xmlFile"
+    echo "     \`-- html"
+    echo "          \`-- xmlReference.html"
+    echo ""
+
+}
+
 case "$MODE" in
     build)
 	build
+        ;;
+    build-html)
+        buildhtml
         ;;
     rebuild)
 	clean

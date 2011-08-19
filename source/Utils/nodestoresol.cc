@@ -5,7 +5,6 @@
 #include "nodestoresol.hh"
 #include "Domain/elem.hh"
 #include "Domain/grid.hh"
-#include "DataInOut/WriteInfo.hh"
 
 namespace CoupledField {
 
@@ -51,7 +50,22 @@ namespace CoupledField {
   // ***************************
   template<class TYPE>
   NodeStoreSol<TYPE>::NodeStoreSol( const NodeStoreSol &x ) {
-    EXCEPTION( "Not implemented here" );
+    ptGrid_ = x.ptGrid_;
+    results_ = x.results_;
+    elems_ = x.elems_;
+    numNodes_ = x.numNodes_;
+    numSolutions_ = x.numSolutions_;
+    length_ = x.length_;
+    lengthVector_ = x.lengthVector_;
+    solTypes_ = x.solTypes_;
+    solOffset_ = x.solOffset_;
+    eqnOffset_ = x.eqnOffset_;
+    solDofs_ = x.solDofs_;
+    totalDofs_ = x.totalDofs_;
+    eqnDofs_ = x.eqnDofs_;
+    convertedData_ = x.convertedData_;
+
+    data_ = x.data_;
   }
 
 
@@ -318,7 +332,7 @@ namespace CoupledField {
     Integer eqnNr;
     eqnNr = feSpace_->GetNodeEqn( node+1,dof+1 );
 
-    Warning ("Is this operator ever be used?", __FILE__, __LINE__);
+    WARN ("Is this operator ever be used?");
     if (eqnNr > 0)
       return data_[abs(eqnNr)-1];
     else
@@ -371,7 +385,7 @@ namespace CoupledField {
         StdVector<UInt> const & nodes  = it.GetElem()->connect;
 
         // Get related equation numbers
-        //eqnMap_->GetEqns( eqns, *result_, it );
+        //  ->GetEqns( eqns, *result_, it );
 
         // Iterate over all nodes
         for( UInt iNode = 0; iNode < nodes.GetSize(); iNode++ ) {
@@ -462,7 +476,7 @@ namespace CoupledField {
       {
         EXCEPTION( "NodeStoreSol::GetSolVectorSingleDof: Desired dof "
                    << dof << " is higher than dofs of solution = "
-                   << GenStr(solDof) );
+                   << lexical_cast<std::string>(solDof) );
       }
 #endif
   
@@ -473,7 +487,6 @@ namespace CoupledField {
     //UInt globNumNodes = feSpace_->GetNumUnknowns();
     // TODO works only for Single PDE
     UInt numLocNodes = feSpace_->GetNumUnknowns();
-    UInt globNode = 0;
     temp.Resize(numLocNodes);
     temp.Init();
     for (UInt iNode=0; iNode<numLocNodes; iNode++) {
@@ -646,7 +659,7 @@ namespace CoupledField {
   void NodeStoreSol<TYPE>::SetAlgSysVector(const SingleVector & val)
   {
 #ifdef CHECK_INITIALIZED
-    if (length_ == 0) Warning ("NodeStoreSol: Use of uninitialized object!", __FILE__, __LINE__);
+    if (length_ == 0) WARN ("Use of uninitialized object!");
 #endif
 #ifdef CHECK_INDEX
    //  if (val.GetSize() !=  lengthVector_)
@@ -796,7 +809,7 @@ namespace CoupledField {
 #endif
   
     // choose either external data or if not given use own one 
-    const Vector<TYPE>& data = ext_data == NULL ? const_cast<Vector<TYPE>&>(data_) : dynamic_cast<const Vector<TYPE>&>(*ext_data);  
+    const Vector<TYPE>& data = ext_data == NULL ? data_ : dynamic_cast<const Vector<TYPE>&>(*ext_data);  
     
     Matrix<TYPE> & temp = dynamic_cast<Matrix<TYPE>&>(elemSol);
     StdVector<Integer> eqns;
@@ -859,13 +872,21 @@ namespace CoupledField {
 
     const NodeStoreSol<TYPE> & temp = dynamic_cast<const NodeStoreSol<TYPE>&>(x);
   
+    this->data_ = temp.data_;
+
+    this->ptGrid_ = temp.ptGrid_;
+    this->results_ = temp.results_;
+    this->elems_ = temp.elems_;
     this->numNodes_ = temp.numNodes_;
     this->numSolutions_ = temp.numSolutions_;
     this->length_ = temp.length_;
+    this->lengthVector_ = temp.lengthVector_;
     this->solTypes_ = temp.solTypes_;
+    this->solTypesName_ = temp.solTypesName_;
     this->solOffset_ = temp.solOffset_;
-    this->solDofs_ = temp.solDofs_; this->totalDofs_ = temp.totalDofs_;
-    this->data_ = temp.data_;
+    this->solDofs_ = temp.solDofs_;
+    this->totalDofs_ = temp.totalDofs_;
+    this->eqnDofs_ = temp.eqnDofs_;
     this->convertedData_ = temp.convertedData_;
  
     return dynamic_cast<BaseNodeStoreSol &> (*this);

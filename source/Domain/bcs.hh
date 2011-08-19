@@ -7,14 +7,14 @@
 
 #include <ostream>
 #include "General/environment.hh"
+#include "DataInOut/ParamHandling/ParamNode.hh"
 
 namespace CoupledField {
 
   // forward class declaration
   class EntityList;
   class EqnMap;
-  class ResultInfo;
-  class InfoNode;
+  struct ResultInfo;
   template <class TYPE> class StdVector;
 
   //! Definition of a homogeneous Dirichlet boundary condition
@@ -36,7 +36,7 @@ namespace CoupledField {
     UInt dof;
 
     /** Ouptut our content to info.xml */
-    virtual void ToInfo(InfoNode* in) const;
+    virtual void ToInfo(PtrParamNode in) const;
 
     /** Just a simple Dump() for developers */
     virtual std::string ToString();
@@ -58,7 +58,24 @@ namespace CoupledField {
     std::string phase;
 
     /** Ouptut our content to info.xml */
-    virtual void ToInfo(InfoNode* in) const;
+    virtual void ToInfo(PtrParamNode in) const;
+
+    virtual std::string ToString();
+  };
+
+  // -------------------------------------------------------------------------
+
+  // Inhomogeneous Dirichlet boundary condition read from file
+  struct InhomDirichFileBc : public HomDirichletBc {
+
+    //! Constructor
+    InhomDirichFileBc();
+
+    //! name of file id in which data is stored
+    std::string inputId;
+
+    /** Ouptut our content to info.xml */
+    virtual void ToInfo(PtrParamNode in) const;
 
     virtual std::string ToString();
   };
@@ -98,7 +115,7 @@ namespace CoupledField {
     std::string weight;
 
     /** Ouptut our content to info.xml */
-    virtual void ToInfo(InfoNode* in) const;
+    virtual void ToInfo(PtrParamNode in) const;
 
     virtual std::string ToString();
   };
@@ -127,6 +144,9 @@ namespace CoupledField {
 
     //! Equation map
     shared_ptr<EqnMap> eqnMap;
+
+    /** does this constraint originate from periodic bcs */
+    bool periodic;
   };
 
   // -------------------------------------------------------------------------
@@ -134,6 +154,7 @@ namespace CoupledField {
   // Public typedefs
   typedef StdVector<shared_ptr<HomDirichletBc> > HdBcList;
   typedef StdVector<shared_ptr<InhomDirichletBc> > IdBcList;
+  typedef StdVector<shared_ptr<InhomDirichFileBc> > IdFileBcList;
   typedef StdVector<shared_ptr<InhomNeumannBc> > InBcList;
   typedef StdVector<shared_ptr<LoadBc> > LoadList;
   typedef StdVector<shared_ptr<Constraint> > ConstraintList;

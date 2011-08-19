@@ -1,7 +1,3 @@
-// -*- mode: c++; coding: utf-8; indent-tabs-mode: nil; -*-
-// kate: space-indent on; indent-width 2; encoding utf-8;
-// kate: auto-brackets on; mixedindent off; indent-mode cstyle;
-
 #include <fstream>
 #include <iostream>
 #include <string>
@@ -15,227 +11,191 @@
 #include "DataInOut/Logging/cfslog.hh"
 #include "OLAS/algsys/basesystem.hh"
 
-namespace CoupledField {
-
+namespace CoupledField
+{
   // declare logging stream
   DECLARE_LOG(solvestepfluidmech)
   DEFINE_LOG(solvestepfluidmech, "solvestepfluidmech")
 
-    SolveStepFluidMech::SolveStepFluidMech(StdPDE& apde) : StdSolveStep(apde) 
+  SolveStepFluidMech::SolveStepFluidMech(StdPDE& apde) : StdSolveStep(apde)
   {
-
     isInstationary_ = PDE_.IsInstationary();
-    //isTrapezoidal_  = PDE_.IsTrapezoidal();
-    //isNewton_       = PDE_.IsNewton();
-
   }
 
-  SolveStepFluidMech::~SolveStepFluidMech() {
-
-  }
-
-  // ======================================================
-  // Solve Step Static SECTION  
-  // ======================================================
-
-  void SolveStepFluidMech::StepTransNonLin(InfoNode* analysis_base)
+  SolveStepFluidMech::~SolveStepFluidMech()
   {
+  }
 
+  // ======================================================
+  // Solve Step Static SECTION
+  // ======================================================
+
+  void SolveStepFluidMech::StepTransNonLin(PtrParamNode analysis_base)
+  {
     assemble_->AssembleLinRHS();
 
     UInt& iterCoupledCounter = PDE_.GetIterCoupledCounter();
 
-    //std::cout << "iterCoupledCounter:" << iterCoupledCounter << std::endl;
-
     bool isIterCoupled    = PDE_.IsIterCoupled();
-    Double incrementalErr, incrementalVeloErr, incrementalPresErr;
+    Double incrementalErr = 0.0;
+    Double incrementalVeloErr = 0.0;
+    Double incrementalPresErr = 0.0;
 
     std::string pdeNameLong(pdename_);
-    
+
     pdeNameLong += "-PDE: ";
 
-    bool performOneMoreStep;
-    // TODO: Check if this is still needed
-    // Integer eqnNr;
-    // UInt  eqnDof;
-  
-    Vector<Double>  actSol;
-    Vector<Double>  actVelo, actPres, tmpVelo, tmpPres;
+    bool performOneMoreStep = true;
 
-    sol_->GetAlgSysVector(actSol);
-    sol_->GetGlobalSolVector(FLUIDMECH_VELOCITY,actVelo);
-    sol_->GetGlobalSolVector(FLUIDMECH_PRESSURE,actPres);
+    sol_->GetAlgSysVector(actSol_);
+    sol_->GetGlobalSolVector(FLUIDMECH_VELOCITY,actVelo_);
+    sol_->GetGlobalSolVector(FLUIDMECH_PRESSURE,actPres_);
 
-    LOG_DBG2(solvestepfluidmech) << "actVelo\n" << actVelo << std::endl;
+    LOG_DBG2(solvestepfluidmech) << "actVelo_\n" << actVelo_ << std::endl;
 
-    LOG_DBG2(solvestepfluidmech) << "actPres\n" << actPres << std::endl;
+    LOG_DBG2(solvestepfluidmech) << "actPres_\n" << actPres_ << std::endl;
 
-    Vector<Double> newSol;
-    Vector<Double> solIncrement, solVelocityInc, solPressureInc;
-    newSol.Resize( numEqns_ );
-    solIncrement.Resize( numEqns_ );
+    newSol_.Resize( numEqns_ );
+    solIncrement_.Resize( numEqns_ );
 
     // perform predictor step
-    if ( isInstationary_ ) {
-      if ( TS_alg_== NULL ) {
+    if ( isInstationary_ )
+    {
+      if ( TS_alg_== NULL )
+      {
         EXCEPTION( "TS_alg has NULL-Pointer, in SolveStepMag::StepTransNonLin");
-      }
-      else {
-        if ( isIterCoupled == false || iterCoupledCounter == 0 ) {        
-          TS_alg_->Predictor(actSol);
+      } else {
+        if ( isIterCoupled == false || iterCoupledCounter == 0 )
+        {
+          TS_alg_->Predictor(actSol_);
         }
       }
     }
-    
-    PDE_.SetBCs();
-
-    // inner forces due to nonlin formulation
-    //assemble_->AssembleNonLinRHS( actTime_ );  
 
     UInt iterationCounter=0;
-    Double iterTime=0;
 
     PDE_.InitStabParams();
     //Update RHS (mass matrix on right hand side)
-    if ( isInstationary_ ) {
+    if ( isInstationary_ )
+    {
       assemble_->AssembleMatrices();
       TS_alg_->UpdateRHS();
     }
 
-    do
+    PDE_.SetBCs();
+
+    while (performOneMoreStep && iterationCounter < nonLinMaxIter_)
+    {
+      iterationCounter++;
+
+      // setup and solve new system (rhs is already set) =====================
+      if ( !isInstationary_ || iterationCounter != 1)
       {
-        iterationCounter++;
-        iterTime+=0.01;
+        algsys_->InitRHS();
+        assemble_->AssembleMatrices();
+        TS_alg_->UpdateRHS();
+      }
 
-        LOG_DBG(solvestepfluidmech) << "loop=" << iterationCounter << " newton=" << isNewton_;
+      PtrParamNode analysis_id = BaseDriver::CreateAnalysisIdChild(analysis_base, "nonLin", iterationCounter);
 
-        // setup and solve new system (rhs is already set) =====================
-        SETPROFILE("Before AssembleMatrices");
-        if ( !isInstationary_ || iterationCounter != 1){
-          assemble_->AssembleMatrices();
-          PDE_.PrintStabParams();
-        }
-        
-        InfoNode* analysis_id = BaseDriver::CreateAnalysisIdChild(analysis_base, "nonLin", iterationCounter);
-        
-        SETPROFILE("After AssembleMatrices");
-        algsys_->ConstructEffectiveMatrix(matrix_factor_);
-        algsys_->BuildInDirichlet();
+      algsys_->ConstructEffectiveMatrix(matrix_factor_);
+      algsys_->BuildInDirichlet();
 
-        SETPROFILE("Before Solve");
-        algsys_->SetupPrecond();
-        algsys_->SetupSolver(analysis_id);
-        algsys_->Solve(analysis_id);   
-        SETPROFILE("After Solve");
+      algsys_->SetupPrecond();
+      algsys_->SetupSolver(analysis_id);
+      algsys_->Solve(analysis_id);
 
-        // new solution is NOT only an increment of the full solution =============
-        algsys_->GetSolutionVal( newSol );
-        LOG_DBG(solvestepfluidmech) << "newSol\n" << newSol << std::endl;
-        
-        sol_->SetAlgSysVector(newSol);
+      // new solution is NOT only an increment of the full solution =============
+      algsys_->GetSolutionVal( newSol_ );
+      LOG_DBG(solvestepfluidmech) << "newSol_\n" << newSol_ << std::endl;
 
-        sol_->GetGlobalSolVector(FLUIDMECH_VELOCITY,tmpVelo);
-        sol_->GetGlobalSolVector(FLUIDMECH_PRESSURE,tmpPres);
+      sol_->SetAlgSysVector(newSol_);
 
-        LOG_DBG2(solvestepfluidmech) << "newVelo\n" << tmpVelo << std::endl;
-        LOG_DBG2(solvestepfluidmech) << "newPres\n" << tmpPres << std::endl;
+      sol_->GetGlobalSolVector(FLUIDMECH_VELOCITY,tmpVelo_);
+      sol_->GetGlobalSolVector(FLUIDMECH_PRESSURE,tmpPres_);
 
-        solVelocityInc=tmpVelo-actVelo;
-        solPressureInc=tmpPres-actPres;
-        solIncrement=newSol-actSol;
+      LOG_DBG2(solvestepfluidmech) << "newVelo\n" << tmpVelo_ << std::endl;
+      LOG_DBG2(solvestepfluidmech) << "newPres\n" << tmpPres_ << std::endl;
 
-        actVelo=tmpVelo;
-        actPres=tmpPres;
-        actSol=newSol;
+      solVelocityInc_ = tmpVelo_ - actVelo_;
+      solPressureInc_ = tmpPres_ - actPres_;
+      solIncrement_   = newSol_  - actSol_;
 
-        //PDE_.WriteResultsInFile(iterationCounter, actTime_+iterTime);
+      actVelo_ = tmpVelo_;
+      actPres_ = tmpPres_;
+      actSol_  = newSol_;
 
-        // calculate incremental error ========================================
-        Double solVelocityIncL2Norm = solVelocityInc.NormL2();
-        Double solPressureIncL2Norm = solPressureInc.NormL2();
-        Double solIncrL2Norm = solIncrement.NormL2();
+      // calculate incremental error ========================================
+      Double solVelocityIncL2Norm = NormL2(solVelocityInc_);
+      Double solPressureIncL2Norm = NormL2(solPressureInc_);
+      Double solIncrL2Norm = NormL2(solIncrement_);
 
-        Double actVeloL2Norm  = tmpVelo.NormL2();
-        Double actPresL2Norm  = tmpPres.NormL2();
-        Double actSolL2Norm  = actSol.NormL2();
+      Double actVeloL2Norm = NormL2(tmpVelo_);
+      Double actPresL2Norm = NormL2(tmpPres_);
+      Double actSolL2Norm  = NormL2(actSol_);
 
-        // TODO: Check if this is still needed
-        // Double etaLineSearch = 0;
-        // Double residualErr = 0;
+      if (actVeloL2Norm > 1.0)
+      {
+        incrementalVeloErr = solVelocityIncL2Norm / actVeloL2Norm;
+      } else {
+        incrementalVeloErr = solVelocityIncL2Norm;
+      }
 
-        if (actVeloL2Norm > 1.0){
-          incrementalVeloErr = solVelocityIncL2Norm / actVeloL2Norm;
-        }
-        else {
-          incrementalVeloErr = solVelocityIncL2Norm;
-          //Warning("Zero velocity solution vector!! ", __FILE__,__LINE__);      
-        }
-          
-        if (actPresL2Norm > 1.0){
-          incrementalPresErr = solPressureIncL2Norm / actPresL2Norm;
-        }
-        else {
-          incrementalPresErr = solPressureIncL2Norm;
-          //Warning("Zero pressure solution vector!! ", __FILE__,__LINE__);      
-        }
+      if (actPresL2Norm > 1.0)
+      {
+        incrementalPresErr = solPressureIncL2Norm / actPresL2Norm;
+      } else {
+        incrementalPresErr = solPressureIncL2Norm;
+      }
 
-        if (actSolL2Norm > 1.0)
-          incrementalErr = solIncrL2Norm / actSolL2Norm;
-        else
-          {
-            incrementalErr = solIncrL2Norm;
-            //Warning("Zero solution vector!! ", __FILE__,__LINE__);      
-          }
-        
-        if ( nonLinLogging_ == true ) {
+      if (actSolL2Norm > 1.0)
+      {
+        incrementalErr = solIncrL2Norm / actSolL2Norm;
+      } else {
+        incrementalErr = solIncrL2Norm;
+      }
 
-          *(Info->GetInfoStreamPointer()) << std::endl << pdeNameLong << "NONLINEAR ITERATION "
-                                          << iterationCounter 
-                                          << " ==========================================\n"
-                                          << pdeNameLong << "=== Norm of Solution     " << actSolL2Norm
-                                          << std::endl
-                                          << pdeNameLong << "=== Norm of Velo Sol     " << actVeloL2Norm
-                                          << std::endl
-                                          << pdeNameLong << "=== Norm of Pres Sol     " << actPresL2Norm
-                                          << std::endl
-                                          << pdeNameLong << "=== Incr. Sol error      " << incrementalErr 
-                                          << std::endl
-                                          << pdeNameLong << "=== Incr. Vel error      " << incrementalVeloErr 
-                                          << std::endl
-                                          << pdeNameLong << "=== Incr. Pres error     " << incrementalPresErr 
-                                          << std::endl;
-        }
-        
-        // boolean variable, holds condition if another iteration step is necessary
-        performOneMoreStep = (incrementalErr > incStopCrit_ || incrementalVeloErr > incStopCrit_ || incrementalPresErr > incStopCrit_);
-        //performOneMoreStep = (incrementalErr > incStopCrit_ || incrementalVeloErr > incStopCrit_);      
+      // boolean variable, holds condition if another iteration step is necessary
+      performOneMoreStep = (incrementalErr > incStopCrit_ ||
+                            incrementalVeloErr > incStopCrit_ ||
+                            incrementalPresErr > incStopCrit_);
 
-        //           mycout << "Solu = " << actSolL2Norm  
-        //                  << "; Velo = " << actSolL2Norm  
-        //                  << "; Pres = " << actSolL2Norm  
-        //                  << "\tinc Err = " << incrementalErr
-        //                  << "; inc Velo Err = " << incrementalVeloErr
-        //                  << "; inc Pres Err = " << incrementalPresErr
-        //                  << myendl;
-
-      }while(performOneMoreStep && iterationCounter < nonLinMaxIter_);  
-      
-    if (incrementalErr > 50*incStopCrit_ || incrementalVeloErr > 50*incStopCrit_ || incrementalPresErr > 50*incStopCrit_)
-      Warning("FluidMech did not converged!!! Simulation SHOULD be aborted",__FILE__,__LINE__);
-    else if (incrementalErr > incStopCrit_ || incrementalVeloErr > incStopCrit_ || incrementalPresErr > incStopCrit_){
-      Warning("FluidMech did not converged!!!",__FILE__,__LINE__);
-    }
-           
-    if ( isInstationary_ ) {
-      TS_alg_->Corrector(actSol);
+#if 1 // INFO: For observation, helps to rely on the solution
+      std::cerr << iterationCounter << " Solu = " << actSolL2Norm
+        << "; Velo = " << actSolL2Norm
+        << "; Pres = " << actSolL2Norm
+        << "\tinc Err = " << incrementalErr
+        << "; inc Velo Err = " << incrementalVeloErr
+        << "; inc Pres Err = " << incrementalPresErr
+        << std::endl;
+#endif
     }
 
-    LOG_DBG(solvestepfluidmech) << "actSol\n" << actSol << std::endl;
+    if (incrementalErr > 50*incStopCrit_ ||
+        incrementalVeloErr > 50*incStopCrit_ ||
+        incrementalPresErr > 50*incStopCrit_)
+    {
+      WARN("FluidMech did not converge!!! Simulation SHOULD be aborted");
+    } else {
+      if (incrementalErr > incStopCrit_ ||
+          incrementalVeloErr > incStopCrit_ ||
+          incrementalPresErr > incStopCrit_)
+      {
+        WARN("FluidMech did not converge!!!");
+      }
+    }
 
-    if ( isIterCoupled ) {
+    if ( isInstationary_ )
+    {
+      TS_alg_->Corrector(actSol_);
+    }
+
+    LOG_DBG(solvestepfluidmech) << "actSol_\n" << actSol_ << std::endl;
+
+    if ( isIterCoupled )
+    {
       iterCoupledCounter++;
     }
-    PDE_.AcouSourceCalc();
   }
 } // end of namespace
 

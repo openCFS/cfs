@@ -14,8 +14,8 @@ namespace CoupledField {
   // Forward class declaration
   class EntityIterator;
   class Grid;
-  class SurfElem;
-  class Elem;
+  struct SurfElem;
+  struct Elem;
   class Coil;
 
 
@@ -32,6 +32,8 @@ namespace CoupledField {
 
     //! Typedef describing the type the list is defined by
     typedef enum {NO_TYPE, REGION, NAMED_NODES, NAMED_ELEMS}  DefineType;
+
+    static Enum<ListType> listType;
 
     //! Constructor
     EntityList( Grid *grid);
@@ -51,6 +53,8 @@ namespace CoupledField {
     //! which can be either the name of the Region, the elements or the
     //! nodes contained.
     virtual std::string GetName() const = 0;
+    
+    virtual RegionIdType GetRegion() const { return -1; }
 
     //! Return pointer to grid.
     Grid* GetGrid() const { return grid_; }
@@ -64,7 +68,9 @@ namespace CoupledField {
     // =======================================================================
     //  CONVERSION METHODS
     // =======================================================================
-    
+
+    static void SetEnums();
+
     //! Conversion from ListType to string
     static void Enum2String( ListType in, std::string& out );
 
@@ -74,7 +80,7 @@ namespace CoupledField {
     //! Conversion from DefineType to string
     static void Enum2String( DefineType in, std::string& out );
 
-    //! Conversion from string to DefineType 
+    //! Conversion from string to DefineType
     static void String2Enum( const std::string& in, DefineType& out );
 
   protected:
@@ -143,6 +149,7 @@ namespace CoupledField {
 
     //! Constructor
     SurfElemList( Grid * grid);
+    virtual ~SurfElemList() {}
 
     //! Returns the name of the region contained in the entitylist
     std::string GetName() const;
@@ -178,6 +185,7 @@ namespace CoupledField {
 
     //! Constructor
     NodeList( Grid* grid);
+    virtual ~NodeList() {}
 
     //! Returns the name of the named nodes contained in the entitylist
     std::string GetName() const;
@@ -214,15 +222,16 @@ namespace CoupledField {
     
     //! Constructor
     RegionList( Grid* grid );
+    virtual ~RegionList() {}
     
     //! Returns the name of the region contained in the entitylist
     std::string GetName() const;
 
     //! Set Region id
-    void SetRegionId( RegionIdType name );
+    void SetRegion( RegionIdType name );
 
     //! Set Region ids
-    void SetRegionNames( const StdVector<RegionIdType>& names );
+    void SetRegions( const StdVector<RegionIdType>& names );
 
     //! Get Region anmes
     const StdVector<RegionIdType>& GetRegionIds() const {return list_; }
@@ -242,6 +251,7 @@ namespace CoupledField {
     
     //! Constructor
     CoilList( Grid* grid );
+    virtual ~CoilList() {}
     
     //! Set coil
     void AddCoil( shared_ptr<Coil> aCoil );
@@ -264,6 +274,7 @@ namespace CoupledField {
     
     //! Constructor
     NumberList( Grid* grid );
+    virtual ~NumberList() {}
     
     //! Returns the name of the free entities
     std::string GetName() const;
@@ -323,6 +334,9 @@ namespace CoupledField {
     //! Return position
     UInt GetPos() const { return pos_; }
     
+    /** The total size */
+    UInt GetSize() const { return size_; }
+
     //! This method returns for each type of unknown a characteristic string 
     
     //! This method resturn the following information (as string) for the 
@@ -334,6 +348,10 @@ namespace CoupledField {
     //! NUMBER_LIST: unknown number
     std::string GetIdString() const;
     
+    //! Returns the name of the list, i.e. region name, etc.
+    std::string GetName() const;
+    
+    
   protected:
     EntityList::ListType type_;
     const ElemList* elemList_;
@@ -344,6 +362,7 @@ namespace CoupledField {
     const NumberList* numberList_;
     UInt pos_;
     UInt size_;
+    std::string name_;
   };
 
 }

@@ -2,12 +2,6 @@ SET(UTILS_SRCS
     math/givensrotation.cc
     math/iterativerefinement.cc)
 
-IF(PROFILING)
-  SET(UTILS_SRCS
-    ${UTILS_SRCS}
-    profiler-olas.cc
-    )
-ENDIF(PROFILING)
 
 IF(EXPLICIT_TEMPLATE_INSTANTIATION)
 SET(UTILS_SRCS

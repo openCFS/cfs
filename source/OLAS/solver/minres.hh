@@ -243,7 +243,7 @@ namespace CoupledField {
     //!                 for this solver
     //! \param myReport pointer to report object for storing general
     //!                 information on solution process
-    MINRESSolver( OLAS_Params *myParams, OLAS_Report *myReport );
+    MINRESSolver( PtrParamNode solverNode, PtrParamNode olasInfo );
 
     //! Default Destructor
 
@@ -256,7 +256,7 @@ namespace CoupledField {
     //! The implementation of the Setup method for the MINRES solver performs
     //! mainly memory management tasks. It will take care of (re-)allocation
     //! of the auxilliary vectors.
-    void Setup( BaseMatrix &sysMat, InfoNode* analysis_step = NULL );
+    void Setup( BaseMatrix &sysMat, PtrParamNode analysis_step );
 
     //! Solve a linear system using MINRES.
 
@@ -269,7 +269,7 @@ namespace CoupledField {
     //! \param sol     on input initial guess for the solution \f$x\f$, on
     //!                exit approximate solution
     void Solve( const BaseMatrix &sysMat, const BasePrecond &precond,
-                const BaseVector &rhs, BaseVector &sol, InfoNode* analysis_step = NULL );
+                const BaseVector &rhs, BaseVector &sol, PtrParamNode analysis_step );
 
     //! Query type of this solver.
 

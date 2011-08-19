@@ -34,8 +34,8 @@ namespace CoupledField
     //!  Compute matrix \f$ D \f$ at given integration point.
     void calcDMat( Matrix<Double> &dMat );
 
-    //!  Compute matrix \f$ B \f$ at given integration point.
-    void calcBMat( Matrix<Double> &bMat, UInt ip,
+    /** @see BaseForm::CalcBMat() */
+    void CalcBMat( Matrix<Double> &bMat, UInt ip,
                    const Matrix<Double> &ptCoord );
 
     //! Compute element matrix associated to damping integral form
@@ -108,7 +108,7 @@ namespace CoupledField
 		Vector< Double > teta_;
 
     // ParamNode
-    ParamNode* pn_;
+    PtrParamNode pn_;
 
 
   };

@@ -59,11 +59,14 @@ namespace CoupledField {
     void GetTensor( Matrix<Complex>& param, MaterialType matType, Global::ComplexPart dataType,
 		               SubTensorType = FULL ) const;	
 
+
+  protected:
+
   private:
 
     //! compute the correct subTensor (3D, AXI, ..)
     void ComputeSubTensor(Matrix<Complex>& matMatrix, MaterialType matType, 
-			                    SubTensorType subTensor) const;
+                          SubTensorType subTensor) const;
 
   };
 

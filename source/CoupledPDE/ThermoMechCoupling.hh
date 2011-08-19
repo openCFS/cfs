@@ -21,7 +21,7 @@ namespace CoupledField
     //! \param pde2 pointer to second coupling PDE
     //! \param paramNode pointer to "couplinglist/direct/thermoMechDirect" element
     ThermoMechCoupling( SinglePDE *pde1, SinglePDE *pde2, 
-                      ParamNode * paramNode  );
+                      PtrParamNode paramNode  );
 
     //! Destructor
     virtual ~ThermoMechCoupling();

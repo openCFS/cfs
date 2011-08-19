@@ -52,8 +52,8 @@ namespace CoupledField {
       }
     }else if( fctEntityType == FACE && ptElem->faces.GetSize() > 0) {
       fncPermutation.Resize((order_-1) * (order_-1));
-      for(Integer i = 0; i< order_-1 ; i++){
-        for(Integer j = 0; j< order_-1 ; j++){
+      for(UInt i = 0; i< order_-1 ; i++){
+        for(UInt j = 0; j< order_-1 ; j++){
           fncPermutation[(i*(order_-1)) + j] = i*(order_-1) + j;
         }
       }
@@ -250,7 +250,7 @@ namespace CoupledField {
                                      const Vector<Double>& point,
                                      const Elem* ptElem,
                                      UInt comp ) {
-    Warning("FeH1LagrangeLine2::CalcShFnc: Implement me");
+    //WARN("FeH1LagrangeLine2::CalcShFnc: Implement me");
   //  shape.Resize( 2 );
   //   shape[0] = 0.5 * ( 1.0 - point[0] );
   //   shape[1] = 0.5 * ( 1.0 + point[0] );
@@ -260,7 +260,7 @@ namespace CoupledField {
                                              const Vector<Double>& point,
                                              const Elem* ptElem,
                                              UInt comp ) {
-    Warning("FeH1LagrangeLine2::CalcLocDerivShFnc: Implement me");
+    //WARN("FeH1LagrangeLine2::CalcLocDerivShFnc: Implement me");
   //    deriv.Resize(2, 1);
   //    deriv[0][0] = 0.5 * -1.0;
   //    deriv[1][0] = 0.5 *  1.0;
@@ -367,7 +367,7 @@ namespace CoupledField {
                                     const Vector<Double>& point,
                                     const Elem* ptElem,
                                     UInt comp ) {
-    Warning("FeH1LagrangeHex2::CalcShFnc: Implement me");
+    //WARN("FeH1LagrangeHex2::CalcShFnc: Implement me");
     //  shape.Resize( 8 );
   //  shape[0] = 0.25 * ( 1.0 - point[0] ) * ( 1.0 - point[1] ) * (1.0 - point[2]); 
   //  shape[1] = 0.25 * ( 1.0 + point[0] ) * ( 1.0 - point[1] ) * (1.0 - point[2]);
@@ -384,7 +384,7 @@ namespace CoupledField {
                                             const Vector<Double>& point,
                                             const Elem* ptElem,
                                             UInt comp ) {
-    Warning("FeH1LagrangeHex2::CalcLocDerivShFnc: Implement me");
+    //WARN("FeH1LagrangeHex2::CalcLocDerivShFnc: Implement me");
     //  deriv.Resize( 8, 3 );
   //  StdVector<StdVector<Double> >& coords = shape_.nodeCoords;
   //  for( UInt i = 0; i < 8; i++ ) {
