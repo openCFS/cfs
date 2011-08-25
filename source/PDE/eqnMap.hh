@@ -427,6 +427,9 @@ private:
 
     //! Mapping Global -> Local node numbering
     StdVector<Integer> mesh2PdeNode_;
+
+    void bcCounter(const ResultInfo& actResInfo, ResultHdBcMap* resultMap, \
+                   UInt& bcCounter);
  
   };
   

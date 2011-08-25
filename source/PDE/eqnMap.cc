@@ -1418,98 +1418,9 @@ namespace CoupledField {
         // STEP 3b
         // -------
 
-        countNodes.Init();
+        bcCounter(actRes, (ResultHdBcMap*) &idBcs_, numIdBcs_);
 
-        // Check if any inhom. boundary condition is defined for the current
-        // result
-        if( idBcIt != idBcs_.end() ) {
-          IdBcList const & actIdBcList = idBcIt->second;
-
-          for ( UInt i = 0; i < actIdBcList.GetSize(); i++ ) {
-            StdVector<UInt> nodes;
-            GetNodesOfEntities( nodes, actIdBcList[i]->entities );
-            UInt actDof = actIdBcList[i]->dof;
-
-            for( UInt iNode = 0; iNode < nodes.GetSize(); iNode++ ) {
-
-              if ( mesh2PdeNode_[ nodes[iNode] - 1 ] - 1 < 0 ) {
-                WARN("CalcNodalEquations: Inhom. Dirichlet "
-                     << "node #" << nodes[iNode]
-                     << " is not contained in any of the regions for "
-                     << "this PDE");
-              }
-              else if ( countNodes[mesh2PdeNode_[nodes[iNode]-1]-1]
-                                   [actDof-1] != 0 ) {
-                // 	WARN( "EqnMap::CalcNodalEquations: Inhom. Dirichlet "
-                // 		           << "node #" << nodes[iNode]
-                // 		           << "\nappeared already at least once in the list of "
-                // 		           << "boundary nodes for this Pde!\n Please check, if "
-                // 		           << "this node is defined in more than one level of "
-                // 		           << "boundary nodes!" );
-              }
-              else {
-
-                // only set entry to -1, if entry is not yet an constraint
-                // slave entry or homogeneous dirichlet entry
-                if(  actMap[mesh2PdeNode_[nodes[iNode]-1]-1] [actDof-1] == NO_EQN ) {
-                  actMap[mesh2PdeNode_[nodes[iNode]-1]-1] [actDof-1] = -1;
-                  countNodes[mesh2PdeNode_[nodes[iNode]-1]-1][actDof-1]++;
-
-                  // In any case we have to increment the number of idBC-conditions
-                  numIdBcs_++;
-                }
-              }
-            }
-          }
-        }
-
-        countNodes.Init();
-
-        // Check if any inhom. boundary condition is defined for the current
-        // result
-        if( idFiBcIt != idFiBcs_.end() ) {
-          IdFileBcList const & actIdFiBcList = idFiBcIt->second;
-
-          for ( UInt i = 0; i < actIdFiBcList.GetSize(); i++ ) {
-            StdVector<UInt> nodes;
-            GetNodesOfEntities( nodes, actIdFiBcList[i]->entities );
-            UInt actDof = actIdFiBcList[i]->dof;
-
-            for( UInt iNode = 0; iNode < nodes.GetSize(); iNode++ ) {
-
-              if ( mesh2PdeNode_[ nodes[iNode] - 1 ] - 1 < 0 ) {
-                WARN("CalcNodalEquations: Inhom. Dirichlet "
-                     << "node #" << nodes[iNode]
-                     << " is not contained in any of the regions for "
-                     << "this PDE");
-              }
-              else if ( countNodes[mesh2PdeNode_[nodes[iNode]-1]-1]
-                                   [actDof-1] != 0 ) {
-                // 	WARN( "EqnMap::CalcNodalEquations: Inhom. Dirichlet "
-                // 		           << "node #" << nodes[iNode]
-                // 		           << "\nappeared already at least once in the list of "
-                // 		           << "boundary nodes for this Pde!\n Please check, if "
-                // 		           << "this node is defined in more than one level of "
-                // 		           << "boundary nodes!" );
-              }
-              else {
-
-                // only set entry to -1, if entry is not yet an constraint
-                // slave entry or homogeneous dirichlet entry
-                if(  actMap[mesh2PdeNode_[nodes[iNode]-1]-1] [actDof-1] == NO_EQN ) {
-                  actMap[mesh2PdeNode_[nodes[iNode]-1]-1] [actDof-1] = -1;
-                  countNodes[mesh2PdeNode_[nodes[iNode]-1]-1][actDof-1]++;
-
-                  // In any case we have to increment the number of idBC-conditions
-                  numIdFiBcs_++;
-                }
-              }
-            }
-          }
-        }
-
-
-
+        bcCounter(actRes, (ResultHdBcMap*) &idFiBcs_, numIdFiBcs_);
 
 
         // ------
@@ -2415,6 +2326,63 @@ namespace CoupledField {
       return numEqns_;
     } else {
       return numEqns_ - numIdBcs_ - numIdFiBcs_;
+    }
+  }
+
+  void EqnMap::bcCounter(const ResultInfo& actResInfo, ResultHdBcMap* resultIdMap, \
+                         UInt& bcCounter)
+  {
+    const Integer NO_EQN = -333;
+    Matrix<UInt> countNodes;
+    UInt dofsPerNode = actResInfo.dofNames.GetSize();
+    countNodes.Resize( numLocNodes_, dofsPerNode );
+    countNodes.Init();
+    Matrix<Integer> & actMap = nodeEqns_[actResInfo];
+
+    ResultHdBcMap::iterator iter = resultIdMap->find( actResInfo );
+
+    // Check if any inhom. boundary condition is defined for the current
+    // result
+    if( iter != resultIdMap->end() )
+    {
+      const HdBcList& bcList = iter->second;
+
+      for ( UInt i = 0; i < bcList.GetSize(); i++ ) {
+        StdVector<UInt> nodes;
+        GetNodesOfEntities( nodes, bcList[i]->entities );
+        UInt actDof = bcList[i]->dof;
+
+        for( UInt iNode = 0; iNode < nodes.GetSize(); iNode++ ) {
+
+          if ( mesh2PdeNode_[ nodes[iNode] - 1 ] - 1 < 0 ) {
+            WARN("CalcNodalEquations: Dirichlet "
+                << "node #" << nodes[iNode]
+                << " is not contained in any of the regions for "
+                << "this PDE");
+          }
+          else if ( countNodes[mesh2PdeNode_[nodes[iNode]-1]-1]
+              [actDof-1] != 0 ) {
+            // 	WARN( "EqnMap::CalcNodalEquations: Inhom. Dirichlet "
+            // 		           << "node #" << nodes[iNode]
+            // 		           << "\nappeared already at least once in the list of "
+            // 		           << "boundary nodes for this Pde!\n Please check, if "
+            // 		           << "this node is defined in more than one level of "
+            // 		           << "boundary nodes!" );
+          }
+          else {
+
+            // only set entry to -1, if entry is not yet an constraint
+            // slave entry or homogeneous dirichlet entry
+            if(  actMap[mesh2PdeNode_[nodes[iNode]-1]-1] [actDof-1] == NO_EQN ) {
+              actMap[mesh2PdeNode_[nodes[iNode]-1]-1] [actDof-1] = -1;
+              countNodes[mesh2PdeNode_[nodes[iNode]-1]-1][actDof-1]++;
+
+              // In any case we have to increment the number of idBC-conditions
+              bcCounter++;
+            }
+          }
+        }
+      }
     }
   }
 
