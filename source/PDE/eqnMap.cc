@@ -1862,56 +1862,15 @@ namespace CoupledField {
 
 
       } else if( phase == 2 ) {
-
         // ------
         // STEP 5
         // ------
         // Check if any inhom. boundary condition is defined for the current
         // result
-        Integer locElem = 0;
-        if( idBcIt != idBcs_.end() ) {
-          IdBcList const & actIdBcList = idBcIt->second;
+        giveDirichletEqNr(actRes, (ResultHdBcMap*) &idBcs_);
 
-          for ( UInt i = 0; i < actIdBcList.GetSize(); i++ ) {
-            StdVector<UInt> nodes;
-            EntityIterator elemIt = actIdBcList[i]->entities->GetIterator();
+        giveDirichletEqNr(actRes, (ResultHdBcMap*) &idFiBcs_);
 
-            UInt actDof = actIdBcList[i]->dof;
-
-            for( elemIt.Begin(); !elemIt.IsEnd(); elemIt++ ) {
-              UInt actElem = elemIt.GetElem()->elemNum;
-              locElem = mesh2PdeElem_[actElem-1];
-              if( locElem > 0 ) {
-                if(  actMap[locElem-1] [actDof-1] == -1  ) {
-                  numEqns_++;
-                  actMap[locElem-1] [actDof-1] = numEqns_;
-                }
-                }
-            }
-          }
-        }
-        locElem = 0;
-        if( idFiBcIt != idFiBcs_.end() ) {
-          IdFileBcList const & actIdFiBcList = idFiBcIt->second;
-
-          for ( UInt i = 0; i < actIdFiBcList.GetSize(); i++ ) {
-            StdVector<UInt> nodes;
-            EntityIterator elemIt = actIdFiBcList[i]->entities->GetIterator();
-
-            UInt actDof = actIdFiBcList[i]->dof;
-
-            for( elemIt.Begin(); !elemIt.IsEnd(); elemIt++ ) {
-              UInt actElem = elemIt.GetElem()->elemNum;
-              locElem = mesh2PdeElem_[actElem-1];
-              if( locElem > 0 ) {
-                if(  actMap[locElem-1] [actDof-1] == -1  ) {
-                  numEqns_++;
-                  actMap[locElem-1] [actDof-1] = numEqns_;
-                }
-              }
-            }
-          }
-        }
       } else {
         EXCEPTION( "Phase '" << phase << "' does not exist!" );
       }
@@ -2379,6 +2338,39 @@ namespace CoupledField {
 
               // In any case we have to increment the number of idBC-conditions
               bcCounter++;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  void EqnMap::giveDirichletEqNr(const ResultInfo& actResInfo, \
+                                 ResultHdBcMap* resultIdMap)
+  {
+    Integer locElem = 0;
+    ResultHdBcMap::iterator iter = resultIdMap->find( actResInfo );
+    StdVector<Vector<Integer> > & actMap = elemEqns_[actResInfo];
+
+    if( iter != resultIdMap->end() )
+    {
+      const HdBcList& bcList = iter->second;
+
+      for ( UInt i = 0; i < bcList.GetSize(); i++ )
+      {
+        EntityIterator elemIt = bcList[i]->entities->GetIterator();
+        UInt actDof = bcList[i]->dof;
+
+        for( elemIt.Begin(); !elemIt.IsEnd(); elemIt++ )
+        {
+          UInt actElem = elemIt.GetElem()->elemNum;
+          locElem = mesh2PdeElem_[actElem-1];
+          if( locElem > 0 )
+          {
+            if(  actMap[locElem-1] [actDof-1] == -1  )
+            {
+              numEqns_++;
+              actMap[locElem-1] [actDof-1] = numEqns_;
             }
           }
         }

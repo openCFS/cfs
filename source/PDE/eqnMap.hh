@@ -428,8 +428,26 @@ private:
     //! Mapping Global -> Local node numbering
     StdVector<Integer> mesh2PdeNode_;
 
+    /** It counts the number of boundary conditions of a specific bc type (inhom.
+     * dirichlet or file-inhom dirichlet)
+     * Technecally it is just to clean up CalcNodalEquations()
+     * The variables actMap[][] and countNodes[][] are also change via the global
+     * variable nodeEqns_.
+     * @actResInfo The current result info
+     * @resultMap Which inhomogeneous bc should be handled
+     * @bcCounter The number of boundary conditions-The return value
+     */
     void bcCounter(const ResultInfo& actResInfo, ResultHdBcMap* resultMap, \
                    UInt& bcCounter);
+
+    /** The method gives inhomogeneous dirichlet conditions a equation number
+     * Therefore, the variables actMap[][] and countNodes[][] need to be changed
+     * via the global variable nodeEqns_.
+     * @actResInfo The current result info
+     * @resultMap Which inhomogeneous bc should be handled
+     */
+    void giveDirichletEqNr(const ResultInfo& actResInfo, \
+                           ResultHdBcMap* resultIdMap);
  
   };
   
