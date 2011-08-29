@@ -437,8 +437,10 @@ private:
      * @resultMap Which inhomogeneous bc should be handled
      * @bcCounter The number of boundary conditions-The return value
      */
-    void bcCounter(const ResultInfo& actResInfo, ResultHdBcMap* resultMap, \
-                   UInt& bcCounter);
+    template <typename TYPE>
+    void bcCounter(const ResultInfo& actResInfo,
+		   std::map<ResultInfo, TYPE>& resultIdMap, \
+		   UInt& bcCounter);
 
     /** The method gives inhomogeneous dirichlet conditions a equation number
      * Therefore, the variables actMap[][] and countNodes[][] need to be changed
@@ -446,8 +448,9 @@ private:
      * @actResInfo The current result info
      * @resultMap Which inhomogeneous bc should be handled
      */
+    template <typename TYPE>
     void giveDirichletEqNr(const ResultInfo& actResInfo, \
-                           ResultHdBcMap* resultIdMap);
+			   std::map<ResultInfo, TYPE>& resultIdMap);
  
   };
   

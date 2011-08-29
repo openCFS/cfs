@@ -1418,9 +1418,10 @@ namespace CoupledField {
         // STEP 3b
         // -------
 
-        bcCounter(actRes, (ResultHdBcMap*) &idBcs_, numIdBcs_);
 
-        bcCounter(actRes, (ResultHdBcMap*) &idFiBcs_, numIdFiBcs_);
+        bcCounter(actRes, idBcs_, numIdBcs_);
+
+        bcCounter(actRes, idFiBcs_, numIdFiBcs_);
 
 
         // ------
@@ -1867,9 +1868,9 @@ namespace CoupledField {
         // ------
         // Check if any inhom. boundary condition is defined for the current
         // result
-        giveDirichletEqNr(actRes, (ResultHdBcMap*) &idBcs_);
+        giveDirichletEqNr(actRes, idBcs_);
 
-        giveDirichletEqNr(actRes, (ResultHdBcMap*) &idFiBcs_);
+        giveDirichletEqNr(actRes, idFiBcs_);
 
       } else {
         EXCEPTION( "Phase '" << phase << "' does not exist!" );
@@ -2288,8 +2289,10 @@ namespace CoupledField {
     }
   }
 
-  void EqnMap::bcCounter(const ResultInfo& actResInfo, ResultHdBcMap* resultIdMap, \
-                         UInt& bcCounter)
+  template <typename TYPE>
+  void EqnMap::bcCounter(const ResultInfo& actResInfo, \
+			 std::map<ResultInfo, TYPE>& resultIdMap, \
+			 UInt& bcCounter)
   {
     const Integer NO_EQN = -333;
     Matrix<UInt> countNodes;
@@ -2298,13 +2301,13 @@ namespace CoupledField {
     countNodes.Init();
     Matrix<Integer> & actMap = nodeEqns_[actResInfo];
 
-    ResultHdBcMap::iterator iter = resultIdMap->find( actResInfo );
+    typename std::map<ResultInfo, TYPE>::iterator iter = resultIdMap.find( actResInfo );
 
     // Check if any inhom. boundary condition is defined for the current
     // result
-    if( iter != resultIdMap->end() )
+    if( iter != resultIdMap.end() )
     {
-      const HdBcList& bcList = iter->second;
+      const TYPE& bcList = iter->second;
 
       for ( UInt i = 0; i < bcList.GetSize(); i++ ) {
         StdVector<UInt> nodes;
@@ -2345,16 +2348,18 @@ namespace CoupledField {
     }
   }
 
+  template <typename TYPE>
   void EqnMap::giveDirichletEqNr(const ResultInfo& actResInfo, \
-                                 ResultHdBcMap* resultIdMap)
+				 std::map<ResultInfo, TYPE>& resultIdMap)
   {
     Integer locElem = 0;
-    ResultHdBcMap::iterator iter = resultIdMap->find( actResInfo );
+    typename std::map<ResultInfo, TYPE>::iterator iter;
+    iter = resultIdMap.find( actResInfo );
     StdVector<Vector<Integer> > & actMap = elemEqns_[actResInfo];
 
-    if( iter != resultIdMap->end() )
+    if( iter != resultIdMap.end() )
     {
-      const HdBcList& bcList = iter->second;
+      const TYPE& bcList = iter->second;
 
       for ( UInt i = 0; i < bcList.GetSize(); i++ )
       {
@@ -2379,3 +2384,22 @@ namespace CoupledField {
   }
 
 }
+
+#ifdef __GNUC__   
+  template 
+  void EqnMap::bcCounter< IdBcList >(
+	  const ResultInfo& actResInfo, \
+	  std::map<ResultInfo, IdBcList>& resultMap, UInt& bcCounter);
+  template
+  void EqnMap::bcCounter< IdFileBcList >(
+	  const ResultInfo& actResInfo, \
+	  std::map<ResultInfo, IdFileBcList>& resultMap, UInt& bcCounter);
+  template
+  void EqnMap::giveDirichletEqNr< IdBcList >(
+	  const ResultInfo& actResInfo, \
+	  std::map<ResultInfo, IdBcList>& resultIdMap);
+  template
+  void EqnMap::giveDirichletEqNr< IdFileBcList >(
+	  const ResultInfo& actResInfo, \
+	  std::map<ResultInfo, IdFileBcList>& resultIdMap);
+#endif
