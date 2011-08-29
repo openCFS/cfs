@@ -75,6 +75,8 @@ namespace CoupledField
     UInt iterationCounter=0;
 
     PDE_.InitStabParams();
+    PDE_.SetBCs();
+    algsys_->InitRHS();
     //Update RHS (mass matrix on right hand side)
     if ( isInstationary_ )
     {
@@ -82,7 +84,6 @@ namespace CoupledField
       TS_alg_->UpdateRHS();
     }
 
-    PDE_.SetBCs();
 
     while (performOneMoreStep && iterationCounter < nonLinMaxIter_)
     {
