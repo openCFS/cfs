@@ -27,6 +27,7 @@
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/resultHandler.hh"
 #include "DataInOut/Logging/cfslog.hh"
+#include "DataInOut/programOptions.hh"
 #include "CoupledPDE/pdecoupling.hh"
 #include "Domain/domain.hh"
 #include "Utils/coordSystem.hh"
@@ -124,6 +125,83 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
   MechPDE::~MechPDE()
   {
 
+  }
+
+  void MechPDE::WriteRestart()
+  {
+    SinglePDE::WriteRestart();
+
+    // additionaly the aitkenOmega_ needs to be stored for a better restart
+     
+    shared_ptr<EntityList> entList;
+    shared_ptr<SimOutputHDF5> restartOutFile;
+    const std::string simName = progOpts->GetSimName();
+    std::string restartFileName = simName+"_"+pdename_+".restart";
+
+    PtrParamNode h5Node (new ParamNode(ParamNode::EX, ParamNode::ELEMENT));
+    PtrParamNode eFiles (new ParamNode(ParamNode::EX, ParamNode::ATTRIBUTE));
+    eFiles->SetName("externalFiles");
+    eFiles->SetValue( "false" );
+    h5Node->AddChildNode(eFiles);
+    restartOutFile = shared_ptr<SimOutputHDF5>(new SimOutputHDF5(restartFileName, h5Node));
+
+    ResultMap::iterator it = resultLists_.begin();
+    ResultList*  actList = &(it->second);
+    for (;it != resultLists_.end(); ++it)
+    {
+      actList = &(it->second);
+      if ((*actList)[0]->GetResultInfo()->resultName == "mechDisplacement")
+      {
+        break;
+      }
+    }
+    shared_ptr<ResultInfo> actResultInfo = (*actList)[0]->GetResultInfo();
+    shared_ptr<BaseResult> outResult;
+    outResult = shared_ptr<BaseResult>(new Result<Double>());
+    outResult->SetResultInfo( actResultInfo );
+    outResult->SetEntityList( entList );
+
+    restartOutFile->InitModule(false);
+    restartOutFile->AddResultAttribute(outResult, 1, "aitkenOmega", aitkenOmega_);
+
+  }
+
+  void MechPDE::ReadRestart(UInt& startStep)
+  {
+    SinglePDE::ReadRestart(startStep);
+
+    // additionaly the aitkenOmega_ needs to be stored for a better restart
+     
+    shared_ptr<EntityList> entList;
+    shared_ptr<SimInputHDF5> restartInFile;
+    const std::string simName = progOpts->GetSimName();
+    std::string restartFileName = "results_hdf5/"+simName+"_"+pdename_+".restart.h5";
+
+    PtrParamNode h5Node (new ParamNode(ParamNode::EX, ParamNode::ELEMENT));
+    PtrParamNode eFiles (new ParamNode(ParamNode::EX, ParamNode::ATTRIBUTE));
+    eFiles->SetName("externalFiles");
+    eFiles->SetValue( "false" );
+    h5Node->AddChildNode(eFiles);
+    restartInFile = shared_ptr<SimInputHDF5>(new SimInputHDF5(restartFileName, h5Node));
+
+    ResultMap::iterator it = resultLists_.begin();
+    ResultList*  actList = &(it->second);
+    for (;it != resultLists_.end(); ++it)
+    {
+      actList = &(it->second);
+      if ((*actList)[0]->GetResultInfo()->resultName == "mechDisplacement")
+      {
+        break;
+      }
+    }
+    shared_ptr<ResultInfo> actResultInfo = (*actList)[0]->GetResultInfo();
+    shared_ptr<BaseResult> outResult;
+    outResult = shared_ptr<BaseResult>(new Result<Double>());
+    outResult->SetResultInfo( actResultInfo );
+    outResult->SetEntityList( entList );
+
+    restartInFile->InitModule();
+    restartInFile->GetResultAttribute(outResult, 1, "aitkenOmega", aitkenOmega_);
   }
 
   void MechPDE::ReadDampingInformation( )
@@ -1447,7 +1525,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
         ptCoupling_->GetOutputNodes(interfaceDispCoupl, couplingnodes);
         sol_->NodeSolutionToCoupling(DispValues, *couplingnodes);
 
-        if ( analysistype_ == TRANSIENT ) 
+        if ( analysistype_ == TRANSIENT  && iterCoupledCounter_) 
         {
 
           fixedOmega_ = displFac_;

@@ -72,10 +72,18 @@ namespace CoupledField {
     virtual void Finalize();
 
     //! Initialize 
-    virtual void InitModule();
+    virtual void InitModule(bool truncate=true);
 
     //! Write grid
     virtual void WriteGrid();
+
+    //! Write an attribute into a specific reult
+    //! @sol The result in which to store the attribute
+    //! @step The multistep step (in doubt use 1)
+    //! @attributeStr The name of the attribute to store
+    //! @value The value of the attribute to store
+    void AddResultAttribute( shared_ptr<BaseResult> sol, UInt step,
+                             std::string attributeStr, Double value );
   
   private:
 

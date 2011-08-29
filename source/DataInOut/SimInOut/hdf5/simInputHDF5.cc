@@ -602,6 +602,26 @@ namespace CoupledField {
 
   }
 
+  void SimInputHDF5::GetResultAttribute( shared_ptr<BaseResult> sol,
+      UInt step, const std::string attributeStr, Double& value)
+  {
+    std::stringstream resPath;
+    resPath << "Results/Mesh/MultiStep_" << step;
+    std::string resultName = sol->GetResultInfo()->resultName;
+    resPath << "/ResultDescription/" << resultName;
+
+    H5::Group resInfoGroup;
+    try
+    {
+      resInfoGroup = mainRoot_.openGroup(resPath.str());
+    } H5_CATCH( "Could not open group result description for result "
+                << resultName );
+
+    H5IO::ReadAttribute( resInfoGroup, attributeStr, value );
+
+    resInfoGroup.close();
+  }
+
   void SimInputHDF5::GetMeshResult( UInt sequenceStep, UInt stepNum,
                                      shared_ptr<BaseResult> result ) {
 

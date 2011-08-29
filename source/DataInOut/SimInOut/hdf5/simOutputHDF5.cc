@@ -332,6 +332,27 @@ namespace CoupledField {
     }
   }
 
+  void SimOutputHDF5::AddResultAttribute( shared_ptr<BaseResult> sol,
+      UInt step, std::string attributeStr, Double value)
+  {
+    std::stringstream resPath;
+    resPath << "Results/Mesh/MultiStep_" << step;
+    std::string resultName = sol->GetResultInfo()->resultName;
+    resPath << "/ResultDescription/" << resultName;
+
+    H5::Group resInfoGroup;
+    try
+    {
+      resInfoGroup = mainGroup_.openGroup(resPath.str());
+    } H5_CATCH( "Could not open group result description for result "
+                << resultName );
+
+    H5IO::WriteAttribute( resInfoGroup, attributeStr, value );
+
+    resInfoGroup.close();
+  }
+
+
   void SimOutputHDF5::AddMeshResult( shared_ptr<BaseResult> sol) {
 
     H5::Group resultGroup, subGroup, regionGroup;
@@ -665,7 +686,7 @@ namespace CoupledField {
     WriteStringToUserData( "ProgramStats", dumpStr.str() );
   }
 
-  void SimOutputHDF5::InitModule() {
+  void SimOutputHDF5::InitModule(bool truncate) {
     std::string pathsep;
     std::string fileName;
     std::ostringstream strBuffer;
@@ -681,7 +702,7 @@ namespace CoupledField {
     strBuffer << dirName_ << pathsep << fileName_ << ".h5";
     currFileName_ = strBuffer.str();
     
-    OpenFile(true);
+    OpenFile(truncate);
   }
   
   void SimOutputHDF5::OpenFile(bool truncate){

@@ -133,6 +133,14 @@ namespace CoupledField {
                       bool isHistory = false );
     //@}
 
+    //! Reads a specific attribute of a result
+    //! @sol The BaseResult which tells the methods which result to look at
+    //! @step The multistep step (in doubt use 1)
+    //! @attributeStr The name of the attribute
+    //! @value The return value
+    void GetResultAttribute( shared_ptr<BaseResult> sol,
+        UInt step, const std::string attributeStr, Double& value);
+
   protected:
 
     // =======================================================================
