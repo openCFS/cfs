@@ -63,7 +63,10 @@ HeatCondPDE::HeatCondPDE(Grid * aptgrid, PtrParamNode paramNode )
 void HeatCondPDE::SetInitialCondition() {
 
   try {
-    // fetch paramnodes for initial condition
+    // fetch paramnodes for initial condition (if not present, leave)
+    if ( !myParam_->Has("InitialCondition") ) {
+      return;
+    }
     myParam_->GetValue("InitialCondition", InitialCondition_);
 
     //std::cerr << "\n Initial Temperature : " << InitialCondition_ << std::endl;
