@@ -277,7 +277,8 @@ void HeatCondPDE::DefineIntegrators()
     // stiffness integrator
     // ====================================================================
 
-    if ( regionNonLinType_[actSD] == NLHEAT_CONDUCTIVITY ) {
+    if ( regionNonLinType_[subdoms_[actSD]] == NLHEAT_CONDUCTIVITY ) {
+
       BaseForm *nlBilinearStiff = new nlinHeatStiffInt( actMat, tensorType, false );
 
       nlBilinearStiff->SetNonLinMethod( nonLinMethod_ );      
@@ -303,6 +304,7 @@ void HeatCondPDE::DefineIntegrators()
     }
     else {
       if( actMat->IsSet(HEAT_CONDUCTIVITY) ) {
+
         BaseForm *bilinearStiff; 
         Double coeffstiff(0.0);
         // stiffness integrator for isotropic material
