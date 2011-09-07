@@ -657,8 +657,8 @@ double SIMPElement::GetDensityFilteredValue(DesignElement::ValueSpecifier sp, Fi
   double numerator = this->weight * this->de_->GetPlainValue(DesignElement::DESIGN);
   double denominator = this->weight;
 
-  // LOG_DBG3(desel) << "GDFV: el=" << de_->elem->elemNum << ": curr=" << de_->elem->elemNum
-  //                << " w= " << this->weight << " x=" << this->de_->GetPlainValue(DesignElement::DESIGN) << " num=" << numerator << " den=" << denominator;
+  LOG_DBG3(desel) << "GDFV: el=" << de_->elem->elemNum << ": curr=" << de_->elem->elemNum
+                 << " w= " << this->weight << " x=" << this->de_->GetPlainValue(DesignElement::DESIGN) << " num=" << numerator << " den=" << denominator;
 
   for(int i = 0, ni = (int) neighborhood.GetSize(); i < ni; i++)
   {
@@ -671,8 +671,8 @@ double SIMPElement::GetDensityFilteredValue(DesignElement::ValueSpecifier sp, Fi
     numerator   += w * x;
     denominator += w;
 
-    // LOG_DBG3(desel) << "GDFV: el=" << de_->elem->elemNum << ": curr=" << de->elem->elemNum
-    //                 << " w= " << w  << " x=" << x << " num=" << numerator << " den=" << denominator;
+    LOG_DBG3(desel) << "GDFV: el=" << de_->elem->elemNum << ": curr=" << de->elem->elemNum
+                    << " w= " << w  << " x=" << x << " num=" << numerator << " den=" << denominator;
   }
 
   double p_filt = numerator / denominator;
@@ -695,8 +695,8 @@ double SIMPElement::GetDensityFilteredValue(DesignElement::ValueSpecifier sp, Fi
     assert(p_filt >= 0.7 * this->de_->GetLowerBound()); // relax the assert a little, cause of heaviside correction
   }
 
-  // LOG_DBG3(desel) << "GDFV: el=" << de_->elem->elemNum << " design=" << Filter::density.ToString(de_->simp->filter.density_)
-  //                << ": plain=" << this->de_->GetPlainValue(DesignElement::DESIGN) << " -> "<< p_filt;
+  LOG_DBG3(desel) << "GDFV: el=" << de_->elem->elemNum << " design=" << Filter::density.ToString(de_->simp->filter.density_)
+                  << ": plain=" << this->de_->GetPlainValue(DesignElement::DESIGN) << " -> "<< p_filt;
 
   return p_filt;
 }

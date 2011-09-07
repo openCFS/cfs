@@ -399,7 +399,7 @@ bool DesignSpace::RegisterPseudoDesignRegion(RegionIdType region, DesignElement:
 
     StdVector<DesignElement>& vec = pseudoDesigns_.Last();
 
-    // construct pesudo design elements
+    // construct pseudo design elements
     vec.Reserve(elems.GetSize());
 
     // see GetPseudoElementIndex()
@@ -425,7 +425,7 @@ bool DesignSpace::RegisterPseudoDesignRegion(RegionIdType region, DesignElement:
       assert(!(elemToDesign[de->elem->elemNum].first != -1 && elemToDesign[de->elem->elemNum].second == false)); // don't overwrite real design
       assert(!(elemToDesign[de->elem->elemNum].first != -1 && elemToDesign[de->elem->elemNum].first != (int) i));      // within pseudo designs als indices for the designs are the same
       elemToDesign[de->elem->elemNum].first = i;
-      elemToDesign[de->elem->elemNum].second = false; // we have a pesudo design!
+      elemToDesign[de->elem->elemNum].second = false; // we have a pseudo design!
     }
 
     ptr = &(pseudoDesigns_.Last());
@@ -1045,13 +1045,14 @@ DesignElement* DesignSpace::Find(unsigned int elemNum, DesignElement::Type dt, b
   {
     for(unsigned int i = 0, n = pseudoDesigns_.GetSize(); i < n; i++)
     {
-       assert(pseudoDesigns_[i][idx].elem->elemNum == elemNum);
-       if(pseudoDesigns_[i][idx].GetType() == dt)
-         return &(pseudoDesigns_[i][idx]);
+      // LOG_DBG3(designSpace) << "Find e=" << elemNum << " pd! idx=" << idx << " dt=" << dt << " i=" << i << " test_e=" << pseudoDesigns_[i][idx].elem->elemNum << " test_d=" << pseudoDesigns_[i][idx].GetType();
+      // there might be different regions within different pseudo designs!
+      if(idx < (int) pseudoDesigns_[i].GetSize() && pseudoDesigns_[i][idx].elem->elemNum == elemNum && pseudoDesigns_[i][idx].GetType() == dt)
+        return &(pseudoDesigns_[i][idx]);
     }
   }
 
-  if(throw_exception) throw Exception("design type not in design");
+  if(throw_exception) throw Exception("design type not in design or pesudo design region problem");
   return NULL;
 }
 
@@ -1059,6 +1060,8 @@ DesignElement* DesignSpace::Find(unsigned int elemNum, DesignElement::Type dt, b
 inline
 int DesignSpace::Find(unsigned int elemNum, bool throw_exception, bool include_pseudo_designs)
 {
+  // LOG_DBG3(designSpace) << "Find e=" << elemNum << " ipd=" << include_pseudo_designs << " idx=" << elemToDesign[elemNum].first << " sec=" << elemToDesign[elemNum].second;
+
   int idx = elemToDesign[elemNum].first;
 
   // reset pseudo designs when we don't look for them explicitly

@@ -63,6 +63,10 @@ void DesignStructure::Initialize()
   // we will need the barycenters in FindNeibhborhood()
   for(unsigned int i = 0; i < regions.GetSize(); i++)
     grid->SetElementBarycenters(regions[i], false); // no updated coordinates
+  // Handle also the off-design barycenters
+  if(space->DoNonDesignVicinity())
+    for(unsigned int i = 0; i < space->GetPseudoDesignRegions().GetSize(); i++)
+      grid->SetElementBarycenters(space->GetPseudoDesignRegions()[i][0].elem->regionId, false);
 
   // can we assume all elements within all regions to be similar?
   regular = grid->IsRegionRegular(regions);
@@ -325,7 +329,7 @@ void DesignStructure::FindUnstructuredNeighborhood(DesignElement* base, double r
                                       StdVector<SIMPElement::NeighbourElement>& neighbors,
                                       StdVector<unsigned int>& too_far)
 {
-  LOG_DBG2(ds) << "FN: base= " << base->elem->elemNum << " initial=" << initial.ToString() << " n=" << ToString(neighbors) << " tf=" << too_far.ToString();
+  LOG_DBG2(ds) << "FN: base= " << base->elem->elemNum << " initial=" << initial.ToString() << " n=" << ToString(neighbors) << " tf=" << too_far.ToString() << " ext=" << space->DoNonDesignVicinity();
 
   // the legacy SHARP_PLAIN and SHARP_SIGMUND had the bug, that the weight was not
   // radius - distance but value - distance. To keep the legacy results we reproduce
@@ -358,11 +362,11 @@ void DesignStructure::FindUnstructuredNeighborhood(DesignElement* base, double r
     // has it already been found that we are too far?
     if(too_far.Contains(test)) continue;
 
-    // check the element
-    double distance = RelaxedDistance(base->elem, test_elem);
+    // check the element if it is in the (possibly virtual) design space. If so we handle it as too far. May be NULL!
+    DesignElement* test_de = space->Find(test, base->GetType(), false, space->DoNonDesignVicinity()); // silent
 
-    // sort out elements which are too far or not in a design space, we denote them also as too fas
-    DesignElement* test_de = space->Find(test, base->GetType(), false); // silend
+    // no need (and not possible!) to evaluate the distance for non-design elements
+    double distance = test_de != NULL ? RelaxedDistance(base->elem, test_elem) : std::numeric_limits<double>::max();
 
     if(distance > radius || test_de == NULL)
     {
@@ -397,11 +401,13 @@ double DesignStructure::RelaxedDistance(const Elem* base, const Elem* test) cons
   const Point& bb = base->barycenter;
   const Point& tb = test->barycenter;
 
+  assert(!(tb[0] == 0.0 && tb[1] == 0.0 && tb[2] == 0.0) && (test->ExpensiveCalcBarycenter()[0] != 0.0 ||  test->ExpensiveCalcBarycenter()[1] != 0.0));
+
   double dist = bb.Dist(tb);
 
   if(!periodic)
   {
-    LOG_DBG3(ds) << "RD: dist " << base->elemNum << " <-> " << test->elemNum << " = " << dist;
+    LOG_DBG3(ds) << "RD: dist " << base->elemNum << " " << bb.ToString() << " <-> " << test->elemNum << " " << tb.ToString() << " = " << dist;
     return dist;
   }
 

@@ -116,9 +116,6 @@ void Condition::PostProc(DesignSpace* space, DesignStructure* structure, ErsatzM
   // note, meanwhile we have info_ set! but not yet in the constructor
   Function::PostProc(space, structure, em);
 
-
-  if(type_ == VOLUME && physical_ && !observation_)
-    info_->Get(ParamNode::WARNING)->SetValue("a physical volume constraint should make no sense");
 }
 
 bool Condition::ReadCoord(PtrParamNode pn)
@@ -637,6 +634,10 @@ void Condition::ToInfo(PtrParamNode in, MultipleExcitation* me)
 
   if(!observation_)
     in->Get("linear")->SetValue(linear_);
+
+  if(type_ == VOLUME && physical_ && !observation_)
+    info_->Get(ParamNode::WARNING)->SetValue("a physical volume constraint should make no sense");
+
 }
 
 bool Condition::IsForRegion(RegionIdType regionId)

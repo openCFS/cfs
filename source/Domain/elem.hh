@@ -75,6 +75,10 @@ namespace CoupledField
     static UInt GetElemDim(FEType type);
     static bool GetElemQuadratic(FEType type);
 
+    /** Expensive method - meant for asserts but not real world applications!
+     * Better use the barycenter attribute!! */
+    Point ExpensiveCalcBarycenter(bool updated = false) const;
+
     // ======================================================
     // GEOMETRICAL INFORMATION
     // ======================================================

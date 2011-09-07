@@ -7,18 +7,18 @@ from cfs_utils import *
 ## performs heaviside continuation by doubling filter/density/beta, starting from 1
 
 def continuation(old_beta, beta, mesh, problem):
-  start = cond(old_beta == 1, "", "-x " + problem + "-beta_" + str(old_beta))
+  start = cond(old_beta == 1, "", "-x " + problem + "-beta_" + str(old_beta) + ".density.xml")
   
   doc = libxml2.parseFile(problem + ".xml")
   xml = doc.xpathNewContext()
   xml.xpathRegisterNs('cfs', 'http://www.cfs++.org')
 
   replace(xml, "//cfs:filter/cfs:density/@beta", str(beta))
-  replace(xml, "//cfs:export/@file", problem + "-beta_" + str(beta))
+  replace(xml, "//cfs:export/@file", problem + "-beta_" + str(beta) + ".density.xml")
   
   doc.saveFile(problem + "-beta_" + str(beta) + ".xml")
   
-  execute("cfs_trunk " + start + " -m " + mesh + " " + problem + "-beta_" + str(beta))
+  execute("cfs_rel " + start + " -m " + mesh + " " + problem + "-beta_" + str(beta))
   return
 
 def main():
