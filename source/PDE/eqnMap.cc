@@ -1418,98 +1418,9 @@ namespace CoupledField {
         // STEP 3b
         // -------
 
-        countNodes.Init();
+        bcCounter_byNode(actRes, idBcs_, numIdBcs_);
 
-        // Check if any inhom. boundary condition is defined for the current
-        // result
-        if( idBcIt != idBcs_.end() ) {
-          IdBcList const & actIdBcList = idBcIt->second;
-
-          for ( UInt i = 0; i < actIdBcList.GetSize(); i++ ) {
-            StdVector<UInt> nodes;
-            GetNodesOfEntities( nodes, actIdBcList[i]->entities );
-            UInt actDof = actIdBcList[i]->dof;
-
-            for( UInt iNode = 0; iNode < nodes.GetSize(); iNode++ ) {
-
-              if ( mesh2PdeNode_[ nodes[iNode] - 1 ] - 1 < 0 ) {
-                WARN("CalcNodalEquations: Inhom. Dirichlet "
-                     << "node #" << nodes[iNode]
-                     << " is not contained in any of the regions for "
-                     << "this PDE");
-              }
-              else if ( countNodes[mesh2PdeNode_[nodes[iNode]-1]-1]
-                                   [actDof-1] != 0 ) {
-                // 	WARN( "EqnMap::CalcNodalEquations: Inhom. Dirichlet "
-                // 		           << "node #" << nodes[iNode]
-                // 		           << "\nappeared already at least once in the list of "
-                // 		           << "boundary nodes for this Pde!\n Please check, if "
-                // 		           << "this node is defined in more than one level of "
-                // 		           << "boundary nodes!" );
-              }
-              else {
-
-                // only set entry to -1, if entry is not yet an constraint
-                // slave entry or homogeneous dirichlet entry
-                if(  actMap[mesh2PdeNode_[nodes[iNode]-1]-1] [actDof-1] == NO_EQN ) {
-                  actMap[mesh2PdeNode_[nodes[iNode]-1]-1] [actDof-1] = -1;
-                  countNodes[mesh2PdeNode_[nodes[iNode]-1]-1][actDof-1]++;
-
-                  // In any case we have to increment the number of idBC-conditions
-                  numIdBcs_++;
-                }
-              }
-            }
-          }
-        }
-
-        countNodes.Init();
-
-        // Check if any inhom. boundary condition is defined for the current
-        // result
-        if( idFiBcIt != idFiBcs_.end() ) {
-          IdFileBcList const & actIdFiBcList = idFiBcIt->second;
-
-          for ( UInt i = 0; i < actIdFiBcList.GetSize(); i++ ) {
-            StdVector<UInt> nodes;
-            GetNodesOfEntities( nodes, actIdFiBcList[i]->entities );
-            UInt actDof = actIdFiBcList[i]->dof;
-
-            for( UInt iNode = 0; iNode < nodes.GetSize(); iNode++ ) {
-
-              if ( mesh2PdeNode_[ nodes[iNode] - 1 ] - 1 < 0 ) {
-                WARN("CalcNodalEquations: Inhom. Dirichlet "
-                     << "node #" << nodes[iNode]
-                     << " is not contained in any of the regions for "
-                     << "this PDE");
-              }
-              else if ( countNodes[mesh2PdeNode_[nodes[iNode]-1]-1]
-                                   [actDof-1] != 0 ) {
-                // 	WARN( "EqnMap::CalcNodalEquations: Inhom. Dirichlet "
-                // 		           << "node #" << nodes[iNode]
-                // 		           << "\nappeared already at least once in the list of "
-                // 		           << "boundary nodes for this Pde!\n Please check, if "
-                // 		           << "this node is defined in more than one level of "
-                // 		           << "boundary nodes!" );
-              }
-              else {
-
-                // only set entry to -1, if entry is not yet an constraint
-                // slave entry or homogeneous dirichlet entry
-                if(  actMap[mesh2PdeNode_[nodes[iNode]-1]-1] [actDof-1] == NO_EQN ) {
-                  actMap[mesh2PdeNode_[nodes[iNode]-1]-1] [actDof-1] = -1;
-                  countNodes[mesh2PdeNode_[nodes[iNode]-1]-1][actDof-1]++;
-
-                  // In any case we have to increment the number of idBC-conditions
-                  numIdFiBcs_++;
-                }
-              }
-            }
-          }
-        }
-
-
-
+        bcCounter_byNode(actRes, idFiBcs_, numIdFiBcs_);
 
 
         // ------
@@ -1563,49 +1474,9 @@ namespace CoupledField {
         // -------
         // STEP 6
         // -------
-        if( idBcIt != idBcs_.end() ) {
-          IdBcList const & actIdBcList = idBcIt->second;
-          for ( UInt i = 0; i < actIdBcList.GetSize(); i++ ) {
-            StdVector<UInt> nodes;
-            GetNodesOfEntities( nodes, actIdBcList[i]->entities );
-            UInt actDof = actIdBcList[i]->dof;
+        giveDirichletEqNr_byNode(actRes, idBcs_);
 
-            for ( UInt iNode = 0; iNode < nodes.GetSize(); iNode++ ) {
-              // only assign an equation number, if the map contains
-              // a 0. Otherwise, we have already labeled this node
-              Integer locNode = mesh2PdeNode_[nodes[iNode]-1];
-              if( locNode > 0 ) {
-                if(  actMap[locNode-1] [actDof-1]
-                     == -1  ) {
-                  numEqns_++;
-                  actMap[locNode-1] [actDof-1] = numEqns_;
-                }
-              }
-            }
-          }
-        }
-
-        if( idFiBcIt != idFiBcs_.end() ) {
-          IdFileBcList const & actIdFiBcList = idFiBcIt->second;
-          for ( UInt i = 0; i < actIdFiBcList.GetSize(); i++ ) {
-            StdVector<UInt> nodes;
-            GetNodesOfEntities( nodes, actIdFiBcList[i]->entities );
-            UInt actDof = actIdFiBcList[i]->dof;
-
-            for ( UInt iNode = 0; iNode < nodes.GetSize(); iNode++ ) {
-              // only assign an equation number, if the map contains
-              // a 0. Otherwise, we have already labeled this node
-              Integer locNode = mesh2PdeNode_[nodes[iNode]-1];
-              if( locNode > 0 ) {
-                if(  actMap[locNode-1] [actDof-1]
-                     == -1  ) {
-                  numEqns_++;
-                  actMap[locNode-1] [actDof-1] = numEqns_;
-                }
-              }
-            }
-          }
-        }
+        giveDirichletEqNr_byNode(actRes, idFiBcs_);
 
         // ------
         // STEP 6b
@@ -1774,14 +1645,6 @@ namespace CoupledField {
       const ResultInfo & actRes = listIt->first;
       StdVector<shared_ptr<EntityList> > & actLists = listIt->second;
 
-
-      // Get grip of homogeneous and in-homogeneous boundary conditions
-      // for this tpye of result
-      ResultHdBcMap::iterator hdBcIt = hdBcs_.find( actRes );
-      ResultIdBcMap::iterator idBcIt = idBcs_.find( actRes );
-      ResultIdFileBcMap::iterator idFiBcIt = idFiBcs_.find( actRes );
-      ResultConstraintMap::iterator csIt = constraints_.find( actRes );
-
       StdVector<Vector<Integer> > & actMap = elemEqns_[actRes];
 
       // Get number of dofs
@@ -1834,85 +1697,9 @@ namespace CoupledField {
         // STEP 2b
         // -------
 
-        countElems.Init();
+        bcCounter_byElem(actRes, idBcs_, numIdBcs_);
 
-        // Check if any inhom. boundary condition is defined for the current
-        // result
-        if( idBcIt != idBcs_.end() ) {
-          IdBcList const & actIdBcList = idBcIt->second;
-
-          for ( UInt i = 0; i < actIdBcList.GetSize(); i++ ) {
-            StdVector<UInt> nodes;
-            EntityIterator elemIt = actIdBcList[i]->entities->GetIterator();
-
-            UInt actDof = actIdBcList[i]->dof;
-
-            for( elemIt.Begin(); !elemIt.IsEnd(); elemIt++ ) {
-              UInt actElem = elemIt.GetElem()->elemNum;
-              if ( mesh2PdeElem_[ actElem - 1 ] - 1 < 0 ) {
-                WARN("CalcElemEquations: Inhom. Dirichlet "
-                     << "elem #" << actElem
-                     << " is not contained in any of the regions for "
-                     << "this PDE");
-              }
-              else if ( countElems[mesh2PdeElem_[actElem-1]-1]
-                                   [actDof-1] != 0 ) {
-                WARN("CalcElemEquations: Inhom. Dirichlet "
-                     << "elem #" << actElem
-                     << "\nappeared already at least once in the list of "
-                     << "boundary nodes for this Pde!\n Please check, if "
-                     << "this node is defined in more than one level of "
-                     << "boundary nodes!");
-              }
-              else {
-                actMap[mesh2PdeElem_[actElem-1]-1] [actDof-1] = -1;
-                countElems[mesh2PdeElem_[actElem-1]-1][actDof-1]++;
-                // In any case we have to increment the number of idBC-conditions
-                numIdBcs_++;
-              }
-            }
-          }
-        }
-
-        countElems.Init();
-
-        // Check if any inhom. boundary from file condition is defined for the current
-        // result
-        if( idFiBcIt != idFiBcs_.end() ) {
-          IdFileBcList const & actIdFiBcList = idFiBcIt->second;
-
-          for ( UInt i = 0; i < actIdFiBcList.GetSize(); i++ ) {
-            StdVector<UInt> nodes;
-            EntityIterator elemIt = actIdFiBcList[i]->entities->GetIterator();
-
-            UInt actDof = actIdFiBcList[i]->dof;
-
-            for( elemIt.Begin(); !elemIt.IsEnd(); elemIt++ ) {
-              UInt actElem = elemIt.GetElem()->elemNum;
-              if ( mesh2PdeElem_[ actElem - 1 ] - 1 < 0 ) {
-                WARN("CalcElemEquations: Inhom. Dirichlet from File"
-                     << "elem #" << actElem
-                     << " is not contained in any of the regions for "
-                     << "this PDE");
-              }
-              else if ( countElems[mesh2PdeElem_[actElem-1]-1]
-                                   [actDof-1] != 0 ) {
-                WARN("CalcElemEquations: Inhom. Dirichlet from File"
-                     << "elem #" << actElem
-                     << "\nappeared already at least once in the list of "
-                     << "boundary nodes for this Pde!\n Please check, if "
-                     << "this node is defined in more than one level of "
-                     << "boundary nodes!");
-              }
-              else {
-                actMap[mesh2PdeElem_[actElem-1]-1] [actDof-1] = -1;
-                countElems[mesh2PdeElem_[actElem-1]-1][actDof-1]++;
-                // In any case we have to increment the number of idBC-conditions
-                numIdFiBcs_++;
-              }
-            }
-          }
-        }
+        bcCounter_byElem(actRes, idFiBcs_, numIdFiBcs_);
 
         // ------
         // STEP 4
@@ -1951,56 +1738,15 @@ namespace CoupledField {
 
 
       } else if( phase == 2 ) {
-
         // ------
         // STEP 5
         // ------
         // Check if any inhom. boundary condition is defined for the current
         // result
-        Integer locElem = 0;
-        if( idBcIt != idBcs_.end() ) {
-          IdBcList const & actIdBcList = idBcIt->second;
+        giveDirichletEqNr_byElem(actRes, idBcs_);
 
-          for ( UInt i = 0; i < actIdBcList.GetSize(); i++ ) {
-            StdVector<UInt> nodes;
-            EntityIterator elemIt = actIdBcList[i]->entities->GetIterator();
+        giveDirichletEqNr_byElem(actRes, idFiBcs_);
 
-            UInt actDof = actIdBcList[i]->dof;
-
-            for( elemIt.Begin(); !elemIt.IsEnd(); elemIt++ ) {
-              UInt actElem = elemIt.GetElem()->elemNum;
-              locElem = mesh2PdeElem_[actElem-1];
-              if( locElem > 0 ) {
-                if(  actMap[locElem-1] [actDof-1] == -1  ) {
-                  numEqns_++;
-                  actMap[locElem-1] [actDof-1] = numEqns_;
-                }
-                }
-            }
-          }
-        }
-        locElem = 0;
-        if( idFiBcIt != idFiBcs_.end() ) {
-          IdFileBcList const & actIdFiBcList = idFiBcIt->second;
-
-          for ( UInt i = 0; i < actIdFiBcList.GetSize(); i++ ) {
-            StdVector<UInt> nodes;
-            EntityIterator elemIt = actIdFiBcList[i]->entities->GetIterator();
-
-            UInt actDof = actIdFiBcList[i]->dof;
-
-            for( elemIt.Begin(); !elemIt.IsEnd(); elemIt++ ) {
-              UInt actElem = elemIt.GetElem()->elemNum;
-              locElem = mesh2PdeElem_[actElem-1];
-              if( locElem > 0 ) {
-                if(  actMap[locElem-1] [actDof-1] == -1  ) {
-                  numEqns_++;
-                  actMap[locElem-1] [actDof-1] = numEqns_;
-                }
-              }
-            }
-          }
-        }
       } else {
         EXCEPTION( "Phase '" << phase << "' does not exist!" );
       }
@@ -2418,4 +2164,217 @@ namespace CoupledField {
     }
   }
 
+  template <typename TYPE>
+  void EqnMap::bcCounter_byNode(const ResultInfo& actResInfo, \
+			 std::map<ResultInfo, TYPE>& resultIdMap, \
+			 UInt& bcCounter)
+  {
+    const Integer NO_EQN = -333;
+    Matrix<UInt> countNodes;
+    UInt dofsPerNode = actResInfo.dofNames.GetSize();
+    countNodes.Resize( numLocNodes_, dofsPerNode );
+    countNodes.Init();
+    Matrix<Integer> & actMap = nodeEqns_[actResInfo];
+
+    typename std::map<ResultInfo, TYPE>::iterator iter = resultIdMap.find( actResInfo );
+
+    // Check if any inhom. boundary condition is defined for the current
+    // result
+    if( iter != resultIdMap.end() )
+    {
+      const TYPE& bcList = iter->second;
+
+      for ( UInt i = 0; i < bcList.GetSize(); i++ ) {
+        StdVector<UInt> nodes;
+        GetNodesOfEntities( nodes, bcList[i]->entities );
+        UInt actDof = bcList[i]->dof;
+
+        for( UInt iNode = 0; iNode < nodes.GetSize(); iNode++ ) {
+
+          if ( mesh2PdeNode_[ nodes[iNode] - 1 ] - 1 < 0 ) {
+            WARN("CalcNodalEquations: Dirichlet "
+                << "node #" << nodes[iNode]
+                << " is not contained in any of the regions for "
+                << "this PDE");
+          }
+          else if ( countNodes[mesh2PdeNode_[nodes[iNode]-1]-1]
+              [actDof-1] != 0 ) {
+            // 	WARN( "EqnMap::CalcNodalEquations: Inhom. Dirichlet "
+            // 		           << "node #" << nodes[iNode]
+            // 		           << "\nappeared already at least once in the list of "
+            // 		           << "boundary nodes for this Pde!\n Please check, if "
+            // 		           << "this node is defined in more than one level of "
+            // 		           << "boundary nodes!" );
+          }
+          else {
+
+            // only set entry to -1, if entry is not yet an constraint
+            // slave entry or homogeneous dirichlet entry
+            if(  actMap[mesh2PdeNode_[nodes[iNode]-1]-1] [actDof-1] == NO_EQN ) {
+              actMap[mesh2PdeNode_[nodes[iNode]-1]-1] [actDof-1] = -1;
+              countNodes[mesh2PdeNode_[nodes[iNode]-1]-1][actDof-1]++;
+
+              // In any case we have to increment the number of idBC-conditions
+              bcCounter++;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  template <typename TYPE>
+  void EqnMap::bcCounter_byElem(const ResultInfo& actResInfo, \
+			 std::map<ResultInfo, TYPE>& resultIdMap, \
+			 UInt& bcCounter)
+  {
+    Matrix<UInt> countElems;
+    UInt dofsPerElem = actResInfo.dofNames.GetSize();
+    countElems.Resize( numLocElems_, dofsPerElem );
+    countElems.Init();
+    StdVector<Vector<Integer> >& actMap = elemEqns_[actResInfo];
+    typename std::map<ResultInfo, TYPE>::iterator iter = resultIdMap.find( actResInfo );
+
+    // Check if any inhom. boundary from file condition is defined for the current
+    // result
+    if( iter != resultIdMap.end() )
+    {
+      const TYPE& bcList = iter->second;
+
+      for ( UInt i = 0; i < bcList.GetSize(); i++ )
+      {
+        EntityIterator elemIt = bcList[i]->entities->GetIterator();
+        const UInt& actDof = bcList[i]->dof;
+
+        for( elemIt.Begin(); !elemIt.IsEnd(); elemIt++ ) {
+          const UInt& actElem = elemIt.GetElem()->elemNum;
+          if ( mesh2PdeElem_[ actElem - 1 ] - 1 < 0 ) {
+            WARN("CalcElemEquations: Inhom. Dirichlet"
+                << "elem #" << actElem
+                << " is not contained in any of the regions for "
+                << "this PDE");
+          } else if ( countElems[mesh2PdeElem_[actElem-1]-1][actDof-1] != 0 ) {
+            WARN("CalcElemEquations: Inhom. Dirichlet"
+                << "elem #" << actElem
+                << "\nappeared already at least once in the list of "
+                << "boundary nodes for this Pde!\n Please check, if "
+                << "this node is defined in more than one level of "
+                << "boundary nodes!");
+          } else {
+            actMap[mesh2PdeElem_[actElem-1] -1][actDof -1] = -1;
+            countElems[mesh2PdeElem_[actElem -1] -1][actDof -1]++;
+            // In any case we have to increment the number of idBC-conditions
+            bcCounter++;
+          }
+        }
+      }
+    }
+  }
+
+  template <typename TYPE>
+  void EqnMap::giveDirichletEqNr_byNode(const ResultInfo& actResInfo, \
+				 std::map<ResultInfo, TYPE>& resultIdMap)
+  {
+    typename std::map<ResultInfo, TYPE>::iterator iter = resultIdMap.find( actResInfo );
+    Matrix<Integer>& actMap = nodeEqns_[actResInfo];
+
+    if( iter != resultIdMap.end() )
+    {
+      const TYPE& bcList = iter->second;
+      for ( UInt i = 0; i < bcList.GetSize(); i++ )
+      {
+        StdVector<UInt> nodes;
+        GetNodesOfEntities( nodes, bcList[i]->entities );
+        UInt actDof = bcList[i]->dof;
+
+        for ( UInt iNode = 0; iNode < nodes.GetSize(); iNode++ )
+        {
+          // only assign an equation number, if the map contains
+          // a 0. Otherwise, we have already labeled this node
+          const Integer& locNode = mesh2PdeNode_[nodes[iNode] -1];
+          if( locNode > 0 )
+          {
+            if( actMap[locNode -1][actDof -1] == -1 )
+            {
+              numEqns_++;
+              actMap[locNode -1][actDof -1] = numEqns_;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  template <typename TYPE>
+  void EqnMap::giveDirichletEqNr_byElem(const ResultInfo& actResInfo, \
+				 std::map<ResultInfo, TYPE>& resultIdMap)
+  {
+    typename std::map<ResultInfo, TYPE>::iterator iter;
+    iter = resultIdMap.find( actResInfo );
+    StdVector<Vector<Integer> >& actMap = elemEqns_[actResInfo];
+
+    if( iter != resultIdMap.end() )
+    {
+      const TYPE& bcList = iter->second;
+
+      for ( UInt i = 0; i < bcList.GetSize(); i++ )
+      {
+        EntityIterator elemIt = bcList[i]->entities->GetIterator();
+        UInt actDof = bcList[i]->dof;
+
+        for( elemIt.Begin(); !elemIt.IsEnd(); elemIt++ )
+        {
+          const UInt& actElem = elemIt.GetElem()->elemNum;
+          const Integer& locElem = mesh2PdeElem_[actElem-1];
+          if( locElem > 0 )
+          {
+            if(  actMap[locElem -1][actDof -1] == -1  )
+            {
+              numEqns_++;
+              actMap[locElem -1][actDof -1] = numEqns_;
+            }
+          }
+        }
+      }
+    }
+  }
+
 }
+
+#ifdef __GNUC__   
+  template 
+  void EqnMap::bcCounter_byNode< IdBcList >(
+	  const ResultInfo& actResInfo, \
+	  std::map<ResultInfo, IdBcList>& resultMap, UInt& bcCounter);
+  template
+  void EqnMap::bcCounter_byNode< IdFileBcList >(
+	  const ResultInfo& actResInfo, \
+	  std::map<ResultInfo, IdFileBcList>& resultMap, UInt& bcCounter);
+
+  template 
+  void EqnMap::bcCounter_byElem< IdBcList >(
+	  const ResultInfo& actResInfo, \
+	  std::map<ResultInfo, IdBcList>& resultMap, UInt& bcCounter);
+  template
+  void EqnMap::bcCounter_byElem< IdFileBcList >(
+	  const ResultInfo& actResInfo, \
+	  std::map<ResultInfo, IdFileBcList>& resultMap, UInt& bcCounter);
+
+  template
+  void EqnMap::giveDirichletEqNr_byNode< IdBcList >(
+	  const ResultInfo& actResInfo, \
+	  std::map<ResultInfo, IdBcList>& resultIdMap);
+  template
+  void EqnMap::giveDirichletEqNr_byNode< IdFileBcList >(
+	  const ResultInfo& actResInfo, \
+	  std::map<ResultInfo, IdFileBcList>& resultIdMap);
+
+  template
+  void EqnMap::giveDirichletEqNr_byElem< IdBcList >(
+	  const ResultInfo& actResInfo, \
+	  std::map<ResultInfo, IdBcList>& resultIdMap);
+  template
+  void EqnMap::giveDirichletEqNr_byElem< IdFileBcList >(
+	  const ResultInfo& actResInfo, \
+	  std::map<ResultInfo, IdFileBcList>& resultIdMap);
+#endif

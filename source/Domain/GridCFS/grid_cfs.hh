@@ -561,6 +561,14 @@ namespace CoupledField
     //! Correct connectivity in case of negative Jacobian determinants
     void CorrectElementConnectivities();
 
+    /** 
+     * makes named nodes from line
+     * gmesh can not creat named nodes from line as ansys so cfs++ needs to do
+     * it. It is also capable of exluding nodes which are found in a different
+     * line. This may be needed if you want only the interior nodes of a line.
+     */
+    void makeNameNodesFromLines();
+
     //@}
 
     // =======================================================================

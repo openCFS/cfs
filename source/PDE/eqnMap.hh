@@ -427,6 +427,54 @@ private:
 
     //! Mapping Global -> Local node numbering
     StdVector<Integer> mesh2PdeNode_;
+
+    /** It counts the number of boundary conditions of a specific bc type (inhom.
+     * dirichlet or file-inhom dirichlet)
+     * Technecally it is just to clean up CalcNodalEquations()
+     * The variables actMap[][] and countNodes[][] are also change via the global
+     * variable nodeEqns_.
+     * @actResInfo The current result info
+     * @resultMap Which inhomogeneous bc should be handled
+     * @bcCounter The number of boundary conditions-The return value
+     */
+    template <typename TYPE>
+    void bcCounter_byNode(const ResultInfo& actResInfo,
+		   std::map<ResultInfo, TYPE>& resultIdMap, \
+		   UInt& bcCounter);
+
+    /** It counts the number of boundary conditions of a specific bc type (inhom.
+     * dirichlet or file-inhom dirichlet)
+     * Technecally it is just to clean up CalcNodalEquations()
+     * The variables actMap[][] and countNodes[][] are also change via the global
+     * variable elemEqns_.
+     * @actResInfo The current result info
+     * @resultMap Which inhomogeneous bc should be handled
+     * @bcCounter The number of boundary conditions-The return value
+     */
+    template <typename TYPE>
+    void bcCounter_byElem(const ResultInfo& actResInfo,
+		   std::map<ResultInfo, TYPE>& resultIdMap, \
+		   UInt& bcCounter);
+
+    /** The method gives inhomogeneous dirichlet conditions a equation number
+     * Therefore, the variables actMap[][] and countNodes[][] need to be changed
+     * via the global variable nodeEqns_.
+     * @actResInfo The current result info
+     * @resultMap Which inhomogeneous bc should be handled
+     */
+    template <typename TYPE>
+    void giveDirichletEqNr_byNode(const ResultInfo& actResInfo, \
+			   std::map<ResultInfo, TYPE>& resultIdMap);
+
+    /** The method gives inhomogeneous dirichlet conditions a equation number
+     * Therefore, the variables actMap[][] and countNodes[][] need to be changed
+     * via the global variable elemEqns_.
+     * @actResInfo The current result info
+     * @resultMap Which inhomogeneous bc should be handled
+     */
+    template <typename TYPE>
+    void giveDirichletEqNr_byElem(const ResultInfo& actResInfo, \
+			   std::map<ResultInfo, TYPE>& resultIdMap);
  
   };
   

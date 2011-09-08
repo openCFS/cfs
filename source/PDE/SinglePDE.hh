@@ -22,8 +22,9 @@
 namespace CoupledField
 {
   // forward class declaration
-	class VolForceInt;
-	class SpaceErrorEstimator;
+  class VolForceInt;
+  class VolumeSrcInt;
+  class SpaceErrorEstimator;
   class BasePairCoupling;
   class DirectCoupledPDE;
   class Assemble;
@@ -350,6 +351,9 @@ namespace CoupledField
       
       //! Returns the RHS-integrator
       VolForceInt *  GetIntegrator();
+
+      //! Returns the RHS-integrator for scalar source
+      VolumeSrcInt *  GetSrcScalarIntegrator();
       
       // ----------------------------
       //   Data members

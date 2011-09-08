@@ -36,3 +36,6 @@ MARK_AS_ADVANCED(
   PDFLATEX_COMPILER
   PS2PDF_CONVERTER
   )
+
+# do syntax highlighting of code samples before calling latex
+ADD_DEPENDENCIES(cplreader_docu_pdf cplreader_docu_pygmentize)

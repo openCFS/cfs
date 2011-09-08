@@ -924,7 +924,7 @@ DEFINE_LOG(magpde, "magpde")
       if ( regionNonLinType_[regionIt.GetRegion()] != NO_NONLINEARITY ) {
         
         //read in the BH-curve data and compute the approximation
-        std::string nlfnc = materials_[regionIt.GetRegion()]->GetNonlinFileName();
+        std::string nlfnc = materials_[regionIt.GetRegion()]->GetNonlinFileName(MAG_PERMEABILITY);
         ApproxData *nlinFnc = new SmoothSpline(nlfnc);
         nlinFnc->CalcBestParameter();
         nlinFnc->CalcApproximation();
@@ -1120,7 +1120,7 @@ DEFINE_LOG(magpde, "magpde")
      if ( regionNonLinType_[actRegion] == PERMEABILITY ) {
        
        // Obtain nonlinear approximation functional
-       ApproxData * approx  = materials_[actRegion]->GetNonlinFncBH();
+       ApproxData * approx  = materials_[actRegion]->GetNonlinFncBH(MAG_PERMEABILITY);
        
        // Calculate flux density in element midpoint
        CalcFluxDensityAtIP( it, 0, elemFlux );

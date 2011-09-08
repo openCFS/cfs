@@ -60,8 +60,18 @@ namespace CoupledField {
     void GetTensor( Matrix<Double>& param, MaterialType matType,
 		    Global::ComplexPart dataType,
 		    SubTensorType = FULL ) const;	
-    
-    
+
+    //! get correct nonlinear function
+    ApproxData* GetNonlinFncBH( MaterialType matType ) {
+      if ( matType == HEAT_CONDUCTIVITY )
+        return nlinFncConductivity_;
+      else 
+        return  nlinFncCapacity_;
+    }
+
+    //Initialize approximations of nonlinear curves
+    void InitApproxCurves();
+
 
   private:
 
@@ -71,6 +81,8 @@ namespace CoupledField {
 			  const SubTensorType& subTensor) const;
     
 
+    ApproxData* nlinFncConductivity_;
+    ApproxData* nlinFncCapacity_;
   };
 
 } // end of namespace

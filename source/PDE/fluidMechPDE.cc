@@ -569,10 +569,6 @@ void FluidMechPDE::CalcInputCoupling() {
   if (isIterCoupled_ == false)
     return;
 
-  // Reset counter for boundary conditions
-  couplingBCsCounter_ = 0;
-
-
   // Outer loop over all INPUT coupling terms
   for (UInt i=0; i<ptCoupling_->GetNumInputCouplings(); i++) {
 
@@ -667,8 +663,7 @@ void FluidMechPDE::CalcInputCoupling() {
         //                               << "values:\n" << help << std::endl;
 
         for ( UInt dof = 0; dof < dim_; dof++ ) {
-          for ( UInt j = 0; j < nodes->GetSize();
-              j++, couplingBCsCounter_++) {
+          for ( UInt j = 0; j < nodes->GetSize(); j++) {
 
             //eqnNr = eqnMap_->GetNodeEqn((*nodes)[j],dof+1 );
             eqnNr = eqnMap_->GetNodeEqn(*results_[0],(*nodes)[j],dof+1);

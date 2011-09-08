@@ -28,6 +28,20 @@ SET_TARGET_PROPERTIES(ResWrHeadTestCC130 PROPERTIES LINKER_LANGUAGE CXX
 #  ${GFORTRAN_LIBRARY}
 #  )
 
+ADD_EXECUTABLE(ResRdDemo130
+  ../ResRdDemo.F
+  ../ResRd.F)
+TARGET_LINK_LIBRARIES(ResRdDemo130
+  ${ANSYS_V130_LIBBIN}
+  ${CFS_FORTRAN_DYNRT_LIBS}
+  -ldl
+  ${BOOST_FILESYSTEM_LIB}
+  ${BOOST_SYSTEM_LIB}
+  -lpthread
+  )
+SET_TARGET_PROPERTIES(ResRdDemo130 PROPERTIES LINKER_LANGUAGE Fortran 
+                                              LINK_FLAGS -Wl,--allow-shlib-undefined)
+
 
 ADD_LIBRARY(CFSAnsysBinlibIfaceRev130 SHARED
   ../AnsysBinlibIfaceGeneral.cc

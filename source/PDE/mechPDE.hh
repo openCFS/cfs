@@ -34,6 +34,14 @@ namespace CoupledField
     //!  Deconstructor
     virtual ~MechPDE();
 
+    //! Calls SinglePDE::WriteRestart but additional opens back the file and
+    //! stores aitkenOmega_. Which is necessary
+    void WriteRestart();
+
+    //! Calls SinglePDE::ReadRestart but additional opens the file again and
+    //! reads aitkenOmega_. Which is necessary
+    void ReadRestart(UInt& startStep);
+
     //! read in damping information, see SinglePDE.cc  and SinglePDE.hh
     void ReadDampingInformation();
 

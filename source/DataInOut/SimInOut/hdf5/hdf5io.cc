@@ -20,38 +20,36 @@ namespace CoupledField {
 // =================================
 hsize_t H5IO::maxChunkSize_= 100;
 
+  std::map< std::string, std::pair<const H5::PredType*, const H5::PredType*> > H5IO::BaseHdfTypeConversion::atomTypeMap_;
+
   // ====================================
   //    Initialize Atom Data Typemaps
   // ====================================
-#define DECL_HDF_ATOM_TYPE(TYPE, NATIVE_TYPE, STD_TYPE )                \
-  template<>                                                            \
-  H5::PredType H5IO::HdfAtomTypeMap<TYPE>::HdfNativeType =              \
-    NATIVE_TYPE;                                                        \
-  template<>                                                            \
-  H5::PredType H5IO::HdfAtomTypeMap<TYPE>::HdfStdType =                 \
-    STD_TYPE
+  void H5IO::BaseHdfTypeConversion::InitAtomTypeMap() 
+  {
+    atomTypeMap_["bool"].first = &H5::PredType::NATIVE_INT32;
+    atomTypeMap_["bool"].second = &H5::PredType::STD_I32LE;
 
-  // Define mapping
-  DECL_HDF_ATOM_TYPE( bool,
-                      H5::PredType::NATIVE_INT32,
-                      H5::PredType::STD_I32LE );
+    atomTypeMap_["Integer"].first = &H5::PredType::NATIVE_INT32;
+    atomTypeMap_["Integer"].second = &H5::PredType::STD_I32LE;
+    atomTypeMap_["int"].first = &H5::PredType::NATIVE_INT32;
+    atomTypeMap_["int"].second = &H5::PredType::STD_I32LE;
 
-  DECL_HDF_ATOM_TYPE( Integer,
-		      H5::PredType::NATIVE_INT32,
-                      H5::PredType::STD_I32LE );
+    atomTypeMap_["UInt"].first = &H5::PredType::NATIVE_UINT32;
+    atomTypeMap_["UInt"].second = &H5::PredType::STD_U32LE;
+    atomTypeMap_["unsigned int"].first = &H5::PredType::NATIVE_UINT32;
+    atomTypeMap_["unsigned int"].second = &H5::PredType::STD_U32LE;
 
-  DECL_HDF_ATOM_TYPE( UInt,
-		      H5::PredType::NATIVE_UINT32,
-                      H5::PredType::STD_U32LE );
+    atomTypeMap_["Double"].first = &H5::PredType::NATIVE_DOUBLE;
+    atomTypeMap_["Double"].second = &H5::PredType::IEEE_F64LE;
+    atomTypeMap_["double"].first = &H5::PredType::NATIVE_DOUBLE;
+    atomTypeMap_["double"].second = &H5::PredType::IEEE_F64LE;
 
-  DECL_HDF_ATOM_TYPE( Double,
-		      H5::PredType::NATIVE_DOUBLE,
-                      H5::PredType::IEEE_F64LE );
-
-  DECL_HDF_ATOM_TYPE( Float,
-		      H5::PredType::NATIVE_FLOAT,
-                      H5::PredType::IEEE_F32LE );
-#undef DECL_HDF_ATOM_TYPE
+    atomTypeMap_["Float"].first = &H5::PredType::NATIVE_FLOAT;
+    atomTypeMap_["Float"].second = &H5::PredType::IEEE_F32LE;
+    atomTypeMap_["float"].first = &H5::PredType::NATIVE_FLOAT;
+    atomTypeMap_["float"].second = &H5::PredType::IEEE_F32LE;
+  }
 
   // ========================================
   //    Initialize General Datatype mapping
@@ -73,11 +71,14 @@ hsize_t H5IO::maxChunkSize_= 100;
   public:                                                       \
     HdfTypeConversion()                                         \
       : buffer_( NULL ) {                                       \
-      nativeType_ =                                             \
-        &HdfAtomTypeMap<TYPE>::HdfNativeType;                   \
-      stdType_ =                                                \
-        &HdfAtomTypeMap<TYPE>::HdfStdType;                      \
+                                                                \
+      nativeType_ = new H5::PredType(*atomTypeMap_[std::string(#TYPE)].first);  \
+      stdType_    = new H5::PredType(*atomTypeMap_[std::string(#TYPE)].second); \
     }                                                           \
+                                                                \
+    virtual ~HdfTypeConversion() {                              \
+      CleanUp();                                                \
+    };                                                          \
                                                                 \
     const void * GetOutBufferPtr() {                            \
       if( !isSet_ ) {                                           \
@@ -152,8 +153,9 @@ hsize_t H5IO::maxChunkSize_= 100;
 
     HdfTypeConversion()
       : buffer_ ( NULL ) {
-      nativeType_ =  &HdfAtomTypeMap<bool>::HdfNativeType;
-      stdType_ = &HdfAtomTypeMap<bool>::HdfStdType;
+
+      nativeType_ = new H5::PredType(*atomTypeMap_["bool"].first);
+      stdType_    = new H5::PredType(*atomTypeMap_["bool"].second);
     }
 
     const void * GetOutBufferPtr() {
@@ -399,10 +401,8 @@ hsize_t H5IO::maxChunkSize_= 100;
   public:                                                               \
     HdfTypeConversion()                                                 \
       : buffer_( NULL ) {                                               \
-      nativeType_ =                                                     \
-        new H5::VarLenType ( &HdfAtomTypeMap<TYPE>::HdfNativeType );    \
-      stdType_ =                                                        \
-        new H5::VarLenType ( &HdfAtomTypeMap<TYPE>::HdfStdType );       \
+      nativeType_ = new H5::VarLenType (atomTypeMap_[std::string(#TYPE)].first); \
+      stdType_    = new H5::VarLenType (atomTypeMap_[std::string(#TYPE)].second); \
     }                                                                   \
                                                                         \
     const void * GetOutBufferPtr( ) {                                   \
