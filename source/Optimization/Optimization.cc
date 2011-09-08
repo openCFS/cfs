@@ -264,6 +264,7 @@ void Optimization::SetEnums()
   Function::type.Add(Function::YOUNGS_MODULUS_E2, "youngsModulusE2");
   Function::type.Add(Function::TYCHONOFF, "tychonoff");
   Function::type.Add(Function::TEMPERATURE, "temperature");
+  Function::type.Add(Function::PROJECTION, "projection");
   Function::type.Add(Function::GREYNESS, "greyness");
   Function::type.Add(Function::STRESS, "stress");
   Function::type.Add(Function::STRESS_DENSITY, "stressDensity");
@@ -278,6 +279,7 @@ void Optimization::SetEnums()
   Function::type.Add(Function::GLOBAL_OSCILLATION, "globalOscillation");
   Function::type.Add(Function::JUMP, "jump");
   Function::type.Add(Function::GLOBAL_JUMP, "globalJump");
+  Function::type.Add(Function::BUMP, "bump");
   Function::type.Add(Function::DESIGN_TRACKING, "designTracking");
 
   Function::Local::locality.SetName("Function::Local::Locality");
@@ -323,7 +325,7 @@ void Optimization::SetEnums()
   optimizer.Add(SNOPT_SOLVER, "snopt");
   optimizer.Add(KNITRO_SOLVER, "knitro");
   optimizer.Add(SHAPE_SOLVER, "shapeOpt");
-  optimizer.Add(EVALUATE_INITIAL_DESIGN, "evaluateInitialDesign");
+  optimizer.Add(EVALUATE_INITIAL_DESIGN, "evaluate");
   optimizer.Add(GRADIENT_CHECK, "gradientCheck");
 
   ErsatzMaterial::method.SetName("ErsatzMaterial::Method");

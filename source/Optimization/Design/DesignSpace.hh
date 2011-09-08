@@ -34,8 +34,12 @@ namespace CoupledField
 
      virtual ~DesignSpace();
     
-     /** creates the corresponding DesignSpace object depending on the method */
+     /** Creates the corresponding DesignSpace object depending on the method */
      static DesignSpace* CreateInstance(StdVector<RegionIdType> regions, PtrParamNode pn, ErsatzMaterial::Method method = ErsatzMaterial::NO_METHOD);
+
+     /** Create a clone for projection method
+      * @return you have to take care of the pointer! */
+     DesignSpace* Clone();
 
      /** PostInit as usual when not all can be stuffed into the constructor
       * @param objectives the number of objectives
@@ -125,7 +129,7 @@ namespace CoupledField
      TransferFunction* GetTransferFunction(DesignElement::Type design, Optimization::Application application, bool throw_exception = true);
 
      /** Try to determine the transfer function from the design element uniquely */
-     TransferFunction* GetTransferFunction(DesignElement* de);
+     TransferFunction* GetTransferFunction(const DesignElement* de);
 
      /**<p>check the optResult_1/2/3 from the optimization/simp/result elementes against
       * element results in the pde and conditionally add it as store results to the pde.</p>
@@ -312,6 +316,8 @@ namespace CoupledField
         * easy to be also simple for load ersatz material */
        BaseMaterial* GetBiMaterial(const MaterialClass mc);
 
+       std::string ToString() const;
+
        void ToInfo(PtrParamNode node) const;
      private:
        std::string bimaterial_;
@@ -373,6 +379,12 @@ namespace CoupledField
      bool CollectMaterialParametersForElement(const Elem* elem);
      
    private:
+
+     /** Helper for the constructor.
+      * @param tf for tanh and heaviside and in the physcical case!! scaling and offset in tf is set!!
+      * @return 'lower' or what is defined by the physical lower (e.g. by physical_lower or adapt_lower)  */
+     double DetermineLowerBound(PtrParamNode pn, TransferFunction* tf);
+
      /** Extracts a nodal value */
      double GetNodalValue(unsigned int nodeNumber, DesignElement::ValueSpecifier vs);
 
@@ -443,6 +455,9 @@ namespace CoupledField
 
      /** the pamping parameter. Extend to region on request :) */
      double pamping_;
+
+     /** Here we save the constructing param nodes to allow to create a clone for the projection method */
+     PtrParamNode pn_;
 
   };
 

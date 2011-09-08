@@ -34,23 +34,12 @@ using boost::lexical_cast;
 
 Function::Function(PtrParamNode pn)
 {
-  this->harmonic_    = BasePDE::IsComplex(domain->GetDriver()->GetAnalysisType());
-  this->design = DesignElement::DEFAULT; // overwritten eventually in Condition
-  this->region = ALL_REGIONS;  // overwritten eventually in Condition
+  Init();
 
-
+  this->preInfo_ = PtrParamNode(new ParamNode(ParamNode::INSERT, ParamNode::ELEMENT ));
   this->pn = pn;
-  this->local = NULL;
 
   this->type_ = type.Parse(pn->Get("type")->As<std::string>());
-
-  // function value to be evaluated
-  this->value_ = -1.0;
-
-  // -2 is unset, -1 is all, >= 0 the excitation index
-  this->excite_ = -1;
-
-  this->stressType_ = MECH; // set in Condition
 
   this->physical_ = pn->Has("physical") ? pn->Get("physical")->As<bool>() : false;
 
@@ -89,6 +78,14 @@ Function::Function(PtrParamNode pn)
       throw Exception("function '" + type.ToString(type_) + "' requires the 'parameter' attribute");
     break;
 
+  case PROJECTION:
+    if(!pn->Has("filter"))
+      throw Exception("function '" + type.ToString(type_) + "' requires the 'filter' element");
+    if(region != ALL_REGIONS)
+      throw Exception("function '" + type.ToString(type_) + "' cannot be region restricted");
+    break;
+
+
   default:
     break;
   }
@@ -98,11 +95,33 @@ Function::Function(PtrParamNode pn)
 
 }
 
-
-
 Function::~Function()
 {
   if(local != NULL) { delete local; local = NULL; }
+  if(projectionDesign_ != NULL) { delete projectionDesign_; projectionDesign_ = NULL; }
+}
+
+void Function::Init()
+{
+  this->harmonic_    = BasePDE::IsComplex(domain->GetDriver()->GetAnalysisType());
+  this->design = DesignElement::DEFAULT; // overwritten eventually in Condition
+  this->region = ALL_REGIONS;  // overwritten eventually in Condition
+
+  this->local = NULL;
+  this->projectionDesign_ = NULL;
+
+    // function value to be evaluated
+  this->value_ = -1.0;
+
+  // -2 is unset, -1 is all, >= 0 the excitation index
+  this->excite_ = -1;
+
+  this->stressType_ = MECH; // set in Condition
+
+  this->omega_omega_ = false;
+  this->index_ = -1;
+
+
 }
 
 Function* Function::Cast(Objective* c, Condition* g)
@@ -184,6 +203,10 @@ void Function::ParseCoord(PtrParamNode pn, tuple<int, int, double>& coord)
 void Function::ToInfo(PtrParamNode info)
 {
   info_ = info;
+
+  // there might be set something, i.g. in PostProc
+  info_->SetValue(preInfo_, false); // don't do tricks with name
+
   info->Get("type")->SetValue(type.ToString(type_));
   if(harmonic_)
     info->Get("omega_omega")->SetValue(omega_omega_);
@@ -250,7 +273,9 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
     case GLOBAL_OSCILLATION:
     case JUMP:
     case GLOBAL_JUMP:
+    case BUMP:
     case DESIGN_TRACKING:
+    case PROJECTION:
       assert(excite_index < 0);
       excite_ = me->excitations.GetSize() - 1; // once only at the last excitation
       break;
@@ -372,8 +397,13 @@ bool Function::ForDensityFiltering() const
 {
   switch(type_)
   {
+  case PROJECTION:
+    // for the projection case we have a density filter manually on Function::projectionDesign only
+    return false;
+
   case MULTI_OBJECTIVE:
     EXCEPTION("Invalid query: " << type.ToString(type_));
+    break;
 
   default:
     return true; // actually true for almost all!
@@ -420,7 +450,9 @@ bool Function::ForSensitivityFiltering() const
   case GLOBAL_OSCILLATION:
   case JUMP:
   case GLOBAL_JUMP:
+  case BUMP:
   case DESIGN_TRACKING:
+  case PROJECTION:
     return false;
 
   case ISOTROPY:
@@ -431,6 +463,12 @@ bool Function::ForSensitivityFiltering() const
   }
 
   EXCEPTION("can never reach! Stupid C++");
+}
+
+StdVector<DesignElement>& Function::GetProjectionDesignClone()
+{
+  assert(type_ == PROJECTION);
+  return projectionDesign_->data;
 }
 
 void Function::SetElements(DesignSpace* space, RegionIdType region)
@@ -486,6 +524,7 @@ void Function::PostProc(DesignSpace* space, DesignStructure* structure, ErsatzMa
   case GLOBAL_OSCILLATION:
   case JUMP:
   case GLOBAL_JUMP:
+  case BUMP:
   case STRESS:
   case STRESS_DENSITY:
     // assert(space->IsRegular()); // VicinityElements work only on a regular grid
@@ -498,8 +537,34 @@ void Function::PostProc(DesignSpace* space, DesignStructure* structure, ErsatzMa
   case PENALIZED_VOLUME:
     for(unsigned int i = 0; i < space->transfer.GetSize(); i++)
       if(space->transfer[i].IsPenalized())
-        info_->Get(ParamNode::WARNING)->SetValue("transfer function '" + space->transfer[i].ToString() + " seems also to penalize");
+        preInfo_->Get(ParamNode::WARNING)->SetValue("transfer function '" + space->transfer[i].ToString() + " seems also to penalize");
     break;
+
+  case PROJECTION:
+  {
+    // We have to create a deep copy of the original design space. Also the neighborhood must not point to the original design.
+    projectionDesign_ = space->Clone(); // the original regions if all
+
+    DesignStructure ds(projectionDesign_, projectionDesign_->GetRegionIds());
+    VicinityElement::Init(projectionDesign_, &ds);
+
+    StdVector<DesignElement>& fake_data = GetProjectionDesignClone();
+
+    PtrParamNode  reg = pn->Get("filter");
+    ds.SetFilters(reg, preInfo_, &fake_data);
+
+    assert(space->data.GetSize() == space->GetTotalElements().GetSize());
+    assert(space->data.GetSize() == fake_data.GetSize());
+
+    for(unsigned int i = 0, n = fake_data.GetSize(); i < n; i++)
+    {
+      // projectionDesign_[i].simp = new SIMPElement(&projectionDesign_[i]);
+      // we need the gradient size for temporary storage in the gradient calculation
+      fake_data[i].PostInit(em->objectives.data.GetSize(), em->constraints.active.GetSize());
+    }
+    break;
+  }
+
 
   default: // do nothing
     break;
@@ -620,6 +685,12 @@ Function::Local::Local(Function* func, DesignSpace* space)
     locality_ = ELEMENT;
     break;
 
+  case BUMP:
+    if(locality_ != PREV_NEXT && locality_ != DEFAULT)
+      throw Exception("Invalid locality '" + locality.ToString(locality_) + "' within '" + fname + "'");
+    locality_ = PREV_NEXT;
+    break;
+
   default: // no locality
     assert(false);
     break;
@@ -679,8 +750,7 @@ void Function::Local::SetupVirtualElementMap(Phase ph)
 
   // traverse all elements and check for full neighborhood
   space->AssertOneDesignOnly(); // can be extended we use the design from the conditon
-  int elems = space->GetNumberOfElements();
-  for(int e = 0, ss = elems; e < ss; ++e)
+  for(int e = 0, ss = space->GetNumberOfElements(); e < ss; ++e)
   {
     DesignElement* de = &(space->data[e]);
     VicinityElement* ve = de->vicinity;
@@ -1084,8 +1154,12 @@ double Function::Local::Identifier::EvalFunction(const Local* local, bool grad_g
     fv = CalcJump();
     break;
 
+  case BUMP:
+    fv = CalcBump();
+
   default:
     assert(false);
+    break;
   }
 
   LOG_DBG2(func) << "L:I:EF: f=" << f->type.ToString(f->type_)
@@ -1174,6 +1248,10 @@ void Function::Local::Identifier::EvalGradient(const Local* local)
       gv = CalcJumpGradient(n);
       break;
 
+    case BUMP:
+      gv = CalcBumpGradient(n);
+      break;
+
     case STRESS:
     case STRESS_DENSITY:
       assert(false); // in SIMP::CalcVonMisesStressGradient() only!
@@ -1181,6 +1259,7 @@ void Function::Local::Identifier::EvalGradient(const Local* local)
 
     default:
       assert(false);
+      break;
     }
 
     LOG_DBG2(func) << "L:I:EvalGrad: f=" << funct->type.ToString(funct->type_) << " de="
@@ -1461,4 +1540,58 @@ double Function::Local::Identifier::CalcJumpGradient(int neigh_idx) const
 
   return 2.0 * std::sin(PI*slope) * std::cos(PI*slope) * PI * factor;
 }
+
+double Function::Local::Identifier::CalcBump() const
+{
+  assert(sign == NO_SIGN);
+  assert(neighbor.GetSize() == 2);
+
+  // (x_i-1 - x_i)(x_i - x_i+1)
+  // no own value!
+  double prev = neighbor[0]->GetDesign(DesignElement::SMART);
+  double mine = element->GetDesign(DesignElement::SMART);
+  double next = neighbor[1]->GetDesign(DesignElement::SMART);
+
+  double val = (prev - mine) * (mine - next);
+
+  LOG_DBG3(func) << "L:I:CB de=" << element->ToString()
+                 << " prev=" << neighbor[0]->ToString() << "/" << prev
+                 << " next=" << neighbor[1]->ToString() << "/" << next << " mine=" << mine
+                 << " -> " << (prev - mine) << " * " << (mine - next) << " = " << val;
+
+  return val;
+}
+
+
+double Function::Local::Identifier::CalcBumpGradient(int neigh_idx) const
+{
+  double prev = neighbor[0]->GetDesign(DesignElement::SMART);
+  double mine = element->GetDesign(DesignElement::SMART);
+  double next = neighbor[1]->GetDesign(DesignElement::SMART);
+
+
+  double res = 0.0;
+
+  switch(neigh_idx)
+  {
+  case 0:
+    res = mine - next;
+    break;
+
+  case -1:
+    res = prev - 2.0 * mine + next;
+    break;
+
+  case 1:
+    res = mine - prev;
+    break;
+
+  default:
+    assert(false);
+    break;
+  }
+
+  return res;
+}
+
 

@@ -964,6 +964,7 @@ double ErsatzMaterial::CalcFunction(Excitation& excite, Function* f, bool deriva
     case Function::MOLE:
     case Function::OSCILLATION:
     case Function::JUMP:
+    case Function::BUMP:
          assert(c == NULL);
          result = CalcLocalConstraint(g, derivative);
          break;
@@ -976,7 +977,7 @@ double ErsatzMaterial::CalcFunction(Excitation& excite, Function* f, bool deriva
     case Function::HOMOGENIZATION_TENSOR:
           if(c != NULL && derivative && c->HasHomogenizationEntry())
           {
-            // if there s no "coord" set it is only meant for evaluateInitialDesign for forward homogenization
+            // if there s no "coord" set it is only meant for evaluate for forward homogenization
             StdVector<double> tmp;
             CalcHomogenizedTensorEntry(c->coord, true, tmp);
             for(unsigned int e = 0, ne = design->GetNumberOfElements(); e < ne; e++)
@@ -1060,14 +1061,20 @@ double ErsatzMaterial::CalcFunction(Excitation& excite, Function* f, bool deriva
      case Function::TEMPERATURE:
            break; // FIXMEHEAT
 
+     case Function::PROJECTION:
+           result = CalcProjection(f, derivative);
+           break;
+
      case Function::ELEC_ENERGY:
-       assert(false); // shall be handled before
+           assert(false); // shall be handled before
+           break;
 
      case Function::ISOTROPY:
      case Function::ISO_ORTHOTROPY:
      case Function::ORTHOTROPY:
      case Function::MULTI_OBJECTIVE:
-       assert(false); // no valid function
+           assert(false); // no valid function
+           break;
     // no default, gcc warns
   }
 
@@ -1228,7 +1235,7 @@ double ErsatzMaterial::IntegrateDesignVariable(Objective* f, Condition* g, bool 
 
 double ErsatzMaterial::CalcVolume(Objective* f, Condition* g, bool derivative, bool normalized)
 {
-  // obly a constraint has a design type set (if it has)
+  // only a constraint has a design type set (if it has)
   DesignElement::Type des  = g == NULL ? DesignElement::DEFAULT : g->design;
 
   // parameter is form the base function
@@ -1237,16 +1244,18 @@ double ErsatzMaterial::CalcVolume(Objective* f, Condition* g, bool derivative, b
   switch(func->GetType())
   {
   case Function::VOLUME:
-  {
-    return IntegrateDesignVariable(f, g, derivative, des, normalized, false, 1.0); // no scaling, exponent=1
-  }
+    // Bastian's stuff needs IntegrateDesignVariable(). The SIMP stuff is better with CalcTrivialVolume() as
+    // we cannot assume SIMP_TYPE transfer functions here!
+    if(method_ == SIMP_METHOD)
+      return CalcTrivialVolume(func, derivative, normalized);
+    else // FIXME check if it is ok not to give an exponent in the physical case!
+      return IntegrateDesignVariable(f, g, derivative, des, normalized, false, 1.0); // no scaling, exponent=1
 
   case Function::PENALIZED_VOLUME:
   case Function::REALVOLUME:
     return IntegrateDesignVariable(f, g, derivative, des, normalized, false, func->GetParameter());
 
   case Function::GAP:
-  {
     if(!derivative)
     {
       double vol = IntegrateDesignVariable(f, g, false, des, normalized, false, 1.0);
@@ -1261,11 +1270,58 @@ double ErsatzMaterial::CalcVolume(Objective* f, Condition* g, bool derivative, b
       CalcRegularGapConstraint(func, des);
       return -1.0;
     }
-  }
 
-  default: assert(false);
+  default:
+    assert(false);
+    break;
   }
   return -1.0; // cannot happen due to assert
+}
+
+
+double ErsatzMaterial::CalcTrivialVolume(Function* f, bool derivative, bool normalized)
+{
+  // In CalcOrthotropeMaterialProperties() we construct a dummy function, this has Function::elements not set :(
+
+  // only for physical
+  // TODO: assumes a single transfer function for all regions!
+  TransferFunction* tf = f->IsPhysical() ? design->GetTransferFunction(f->design, Optimization::MECH) : NULL;
+
+  bool regular = design->IsRegular();
+
+  double sum = 0.0;
+
+  // we need the total volume in the non-regular case
+  double total_vol = 0.0;
+  if(!normalized)
+  {
+    total_vol = 1.0;
+  }
+  else
+  {
+    if(!regular)
+      for(unsigned int i = 0, n = f->elements.GetSize(); i < n; i++)
+        total_vol += f->elements[i]->CalcVolume();
+    else
+      total_vol = f->elements.GetSize();
+  }
+
+  LOG_DBG(em) << "CTV: d=" << derivative << " p=" << f->IsPhysical() << " n=" << normalized << " tv=" << total_vol;
+
+  for(unsigned int i = 0, n = f->elements.GetSize(); i < n; i++)
+  {
+    DesignElement* de = f->elements[i];
+
+    double val = f->IsPhysical() ? tf->Transform(de, DesignElement::SMART) : de->GetDesign(DesignElement::SMART);
+    double vol = (regular ? 1.0 : de->CalcVolume())/total_vol;
+    sum += vol * val;
+    if(derivative)
+      de->AddGradient(f, vol);
+
+    LOG_DBG2(em) << "CTV de=" << de->elem->elemNum << " val=" << val << " vol=" << vol << " -> " << vol*val;
+  }
+
+  return derivative ? -1.0 : sum;
 }
 
 
@@ -1450,6 +1506,7 @@ double ErsatzMaterial::CalcOutputObjective(Excitation& excite, Objective* cost)
     }
 
     default: EXCEPTION("Not handled");
+      break;
   }
 
   return result;
@@ -1702,6 +1759,102 @@ void ErsatzMaterial::SetTrackingAdjointRhs(Excitation& excite, int ts){
   assemble_->GetAlgSys()->InitRHS(rhs);
   parser->ReleaseHandle(mathParserHandle);
 }
+
+double ErsatzMaterial::CalcProjection(Function* f, bool derivative)
+{
+  LOG_DBG(em) << "CP: g=" << !(f->IsObjective()) << " d=" << derivative;
+
+  assert(f->GetProjectionDesignClone().GetSize() == design->data.GetSize());
+  assert(design->design.GetSize() == 1);
+
+  // result for the element wise function value
+  int proj_idx = design->GetSpecialResultIndex(DesignElement::DEFAULT, DesignElement::PROJECTION);
+  // result for the element wise filter part of the projection
+  int filt_idx = design->GetSpecialResultIndex(DesignElement::DEFAULT, DesignElement::PROJECTION, DesignElement::PROJECTION_FILTER);
+
+  StdVector<DesignElement>& fake_data = f->GetProjectionDesignClone();
+
+  // copy original design variable
+  for(unsigned int i = 0, n = fake_data.GetSize(); i < n; i++)
+    fake_data[i].SetDesign(design->data[i].GetPlainDesignValue());
+
+  // evaluate   sum_i || nu(rho_i) - H_eta_beta(rho_i) ||^2
+  double sum = 0.0;
+
+  TransferFunction* tf = design->GetTransferFunction(DesignElement::DENSITY, MECH); // only on the original value
+
+  // g = sum_i  ( nu(rho_i) - H_i(rho) )^2
+  // let us assume H = standard density filter
+  // d g/d rho_e = sum_i 2  (nu(rho_i) - H_i(rho)) * ( d nu/d rho _e - d H_i(rho)/ d rho_e)
+  //             = d nu/d rho _e * 2 * (nu(rho_i) - H_i(rho)) - sum_i(N_e) (w_e(x_i) * 2 * (nu(rho_i) - H_i(rho))) / (sum_j(N_i) w_i(x_j))
+
+  // Important!!!!
+  // The implementation of  GetDensityFilteredGradient() contains the sum. We have to set 2 * (nu(rho_i) - H_i(rho)) as temporary gradient value.
+
+  // because of the complicated gradient first calculate all nu(rho_i) - H_i(rho)
+  StdVector<std::pair<double, double> > values(fake_data.GetSize());
+  for(unsigned int i = 0, n = fake_data.GetSize(); i < n; i++)
+  {
+    DesignElement* org = &(design->data[i]);
+    DesignElement* fil = &fake_data[i];
+
+    double state = tf->Transform(org, DesignElement::SMART); // the physical value
+    double fake  = fil->GetDesign(DesignElement::SMART);
+
+    values[i] = std::make_pair(state, fake);
+
+    if(derivative)
+    {
+      fil->Reset(f->IsObjective() ? DesignElement::COST_GRADIENT : DesignElement::CONSTRAINT_GRADIENT, f);
+      fil->AddGradient(f, 2.0 * (state - fake)); // see comment above!
+      LOG_DBG2(em) << "CP: e=" << org->ToString() << " prepare s=" << state << " f=" << fake << " 2(s-f)=" << (2.0 * (state - fake));
+    }
+  }
+
+  for(unsigned int i = 0, n = fake_data.GetSize(); i < n; i++)
+  {
+    DesignElement* org = &(design->data[i]);
+
+    double state = values[i].first;
+    double fake  = values[i].second;
+
+    if(derivative)
+    {
+      DesignElement* fil = &fake_data[i];
+
+      double state_grad = tf->Derivative(org, DesignElement::SMART);
+      double fake_grad = 0.0; // use the 'plain gradients' 2.0 * (state - fake)
+      if(f->IsObjective())
+        fake_grad = fil->simp->GetDensityFilteredGradient(DesignElement::COST_GRADIENT, NULL);
+      else
+        fake_grad = fil->simp->GetDensityFilteredGradient(DesignElement::CONSTRAINT_GRADIENT, (Condition*) f);
+
+
+      double grad = 2.0 * (state - fake) * state_grad - fake_grad;
+
+      org->AddGradient(f, grad);
+
+      LOG_DBG2(em) << "CP: e=" << org->ToString() << " s=" << state << " f=" << fake << " ds=" << state_grad << " df= " << fake_grad << " -> " << grad;
+
+    }
+
+    if(!derivative) // the non-derivative case is easier
+    {
+      double val = (state - fake) * (state - fake);
+      sum += val;
+
+      if(proj_idx != -1)
+        org->specialResult[proj_idx] = val;
+      if(filt_idx != -1)
+        org->specialResult[filt_idx] = fake;
+
+      LOG_DBG2(em) << "CP: e=" << org->ToString() << " state=" << state << " fake=" << fake << " -> " << sum;
+    }
+  }
+
+  return sum;
+}
+
 
 double ErsatzMaterial::CalcTracking(Excitation& excite, Objective* c, Condition* g, bool derivative)
 {
