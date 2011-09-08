@@ -2243,7 +2243,6 @@ namespace CoupledField {
 
       for ( UInt i = 0; i < bcList.GetSize(); i++ )
       {
-        StdVector<UInt> nodes;
         EntityIterator elemIt = bcList[i]->entities->GetIterator();
         const UInt& actDof = bcList[i]->dof;
 
