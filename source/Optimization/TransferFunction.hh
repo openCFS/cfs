@@ -35,7 +35,7 @@ namespace CoupledField
       TransferFunction(Optimization::Application app, TransferFunction::Type tf_type, double param, DesignElement::Type design = DesignElement::NO_TYPE);
     
       /** applies the transformation
-       * @param de containts the design value
+       * @param de containts the design value. Might be NULL if external_value is set and type is NOT full!
        * @param access if SMART and the filter is accordingly defined the filtered design is the base for penalization*/
       double Transform(const DesignElement* de, DesignElement::Access access, double external_value = -13.456) const;
 
@@ -63,6 +63,11 @@ namespace CoupledField
 
       bool IsPenalized() const;
 
+      /** Optional for Heaviside and tanh if physical lower bound are desired */
+      void SetScaling(double val) { scaling_ = val; }
+
+      void SetOffset(double val) { offset_ = val; }
+
       /** gives debug information */
       std::string ToString();
 
@@ -89,6 +94,13 @@ namespace CoupledField
 
       /** heaviside and tanh have also beta */
       double beta_;
+
+      /** Heaviside and tanh have this scaling if the design is physical. Set in DesignSpace::DetermineLowerBound.
+       * @see offset_ */
+      double scaling_;
+
+      /** @see scaling_ */
+      double offset_;
 
       static void SetEnums();
   };

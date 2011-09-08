@@ -63,6 +63,10 @@ void DesignStructure::Initialize()
   // we will need the barycenters in FindNeibhborhood()
   for(unsigned int i = 0; i < regions.GetSize(); i++)
     grid->SetElementBarycenters(regions[i], false); // no updated coordinates
+  // Handle also the off-design barycenters
+  if(space->DoNonDesignVicinity())
+    for(unsigned int i = 0; i < space->GetPseudoDesignRegions().GetSize(); i++)
+      grid->SetElementBarycenters(space->GetPseudoDesignRegions()[i][0].elem->regionId, false);
 
   // can we assume all elements within all regions to be similar?
   regular = grid->IsRegionRegular(regions);
@@ -77,10 +81,12 @@ void DesignStructure::Initialize()
   initialized_ = true;
 }
 
-void DesignStructure::SetFilters(PtrParamNode pn, PtrParamNode info)
+void DesignStructure::SetFilters(PtrParamNode pn, PtrParamNode info, StdVector<DesignElement>* data_ptr)
 {
   if(!initialized_)
     Initialize();
+
+  StdVector<DesignElement>& data = data_ptr != NULL ? *data_ptr : space->data;
 
   filter_space_ = filterSpace.Parse(pn->Get("neighborhood")->As<string>());
   contribution_ = pn->Get("contribution")->As<string>() == "linear" ? LINEAR : CONSTANT;
@@ -102,6 +108,9 @@ void DesignStructure::SetFilters(PtrParamNode pn, PtrParamNode info)
     if(!pn->Has("density/beta"))
       throw Exception("Attribute 'beta' required for '" + Filter::density.ToString(filter_.density_) + "' density filtering");
     filter_.SetBeta(pn->Get("density/beta")->As<double>(), space); // all relevant parameters set!
+
+    if(pn->Has("density/force_lower_bound"))
+      filter_.SetLowerBound(pn->Get("density/force_lower_bound")->As<double>());
   }
 
   if(filter_.density_ == Filter::TANH)
@@ -133,10 +142,12 @@ void DesignStructure::SetFilters(PtrParamNode pn, PtrParamNode info)
     if(filter_.density_ != Filter::STANDARD)
     {
       in->Get("beta")->SetValue(filter_.GetBeta());
-      if(em->constraints.Has(Function::VOLUME) && em->constraints.Get(Function::VOLUME)->IsLinear())
+      if(em != NULL && em->constraints.Has(Function::VOLUME) && em->constraints.Get(Function::VOLUME)->IsLinear())
         in->Get(ParamNode::WARNING)->SetValue("'volume' constraint shall be non-linear due to non-linear filter");
       if(filter_.density_ == Filter::HEAVISIDE)
         in->Get("heaviside_correction")->SetValue(filter_.heaviside_corr);
+      if(pn->Has("density/force_lower_bound"))
+        in->Get("force_lower_bound")->SetValue(filter_.GetLowerBound(NULL));
     }
   }
 
@@ -165,7 +176,6 @@ void DesignStructure::SetFilters(PtrParamNode pn, PtrParamNode info)
 
   double avg_radius = 0;
   double avg_neighbours = 0;
-  StdVector<DesignElement>& data = space->data;
 
   // find simp neighbors for all our elements
   double radius = -1.0; // for each element, set only once for regular.
@@ -324,7 +334,7 @@ void DesignStructure::FindUnstructuredNeighborhood(DesignElement* base, double r
                                       StdVector<SIMPElement::NeighbourElement>& neighbors,
                                       StdVector<unsigned int>& too_far)
 {
-  LOG_DBG2(ds) << "FN: base= " << base->elem->elemNum << " initial=" << initial.ToString() << " n=" << ToString(neighbors) << " tf=" << too_far.ToString();
+  LOG_DBG2(ds) << "FN: base= " << base->elem->elemNum << " initial=" << initial.ToString() << " n=" << ToString(neighbors) << " tf=" << too_far.ToString() << " ext=" << space->DoNonDesignVicinity();
 
   // the legacy SHARP_PLAIN and SHARP_SIGMUND had the bug, that the weight was not
   // radius - distance but value - distance. To keep the legacy results we reproduce
@@ -357,11 +367,11 @@ void DesignStructure::FindUnstructuredNeighborhood(DesignElement* base, double r
     // has it already been found that we are too far?
     if(too_far.Contains(test)) continue;
 
-    // check the element
-    double distance = RelaxedDistance(base->elem, test_elem);
+    // check the element if it is in the (possibly virtual) design space. If so we handle it as too far. May be NULL!
+    DesignElement* test_de = space->Find(test, base->GetType(), false, space->DoNonDesignVicinity()); // silent
 
-    // sort out elements which are too far or not in a design space, we denote them also as too fas
-    DesignElement* test_de = space->Find(test, base->GetType(), false); // silend
+    // no need (and not possible!) to evaluate the distance for non-design elements
+    double distance = test_de != NULL ? RelaxedDistance(base->elem, test_elem) : std::numeric_limits<double>::max();
 
     if(distance > radius || test_de == NULL)
     {
@@ -396,11 +406,13 @@ double DesignStructure::RelaxedDistance(const Elem* base, const Elem* test) cons
   const Point& bb = base->barycenter;
   const Point& tb = test->barycenter;
 
+  assert(!(tb[0] == 0.0 && tb[1] == 0.0 && tb[2] == 0.0) && (test->ExpensiveCalcBarycenter()[0] != 0.0 ||  test->ExpensiveCalcBarycenter()[1] != 0.0));
+
   double dist = bb.Dist(tb);
 
   if(!periodic)
   {
-    LOG_DBG3(ds) << "RD: dist " << base->elemNum << " <-> " << test->elemNum << " = " << dist;
+    LOG_DBG3(ds) << "RD: dist " << base->elemNum << " <-> " << test->elemNum << " = " << dist << " : " << bb.ToString() << " <-> " << tb.ToString();
     return dist;
   }
 

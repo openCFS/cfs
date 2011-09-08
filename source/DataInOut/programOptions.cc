@@ -916,7 +916,14 @@ namespace CoupledField {
         << endl
         << "10.10, Prickly Porcupine" << endl
         << "  No major advance beside taking care that young students are not confronted with" << endl
-        << "  X-rated terms. Luckily they don't hear developers conversation with compilers!." << endl;
+        << "  X-rated terms. Luckily they don't hear developers conversation with compilers!." << endl
+        << endl
+        << "11.02, Querulous Quokka" << endl
+        << "  Pimped up PML and MathParser." << endl
+        << endl
+        << "11.08, Heldendaemmerung" << endl
+        << "  To tribute Andi Hauck, leaving LSE. No one knows CFS as good and contributed so" << endl
+        << "  much to it. An example for everyone who might come, also in terms of collegiality." << endl;
 
   }
 
