@@ -25,15 +25,13 @@ namespace CoupledField {
     virtual ~ LinInterpolate();
 
     //computes the approximation polynom
-    virtual void CalcApproximation(int start=1) {;};
+    virtual void CalcApproximation(bool start=true) {;};
 
     //! computes the regularization parameter
     virtual void CalcBestParameter() {;};
 
     //! returns y(x)
-    virtual double EvaluateFunc(double x) {
-      EXCEPTION("Not implemented");
-      return -1.0; };
+    virtual double EvaluateFunc(double x);
 
     //! returns  y'(x)  
     virtual double EvaluatePrime(double x) { 

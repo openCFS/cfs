@@ -15,6 +15,7 @@
 #include "Elements/elements_header.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/Logging/cfslog.hh"
+#include "DataInOut/WriteInfo.hh"
 #include "DataInOut/programOptions.hh"
 #include "General/exception.hh"
 #include "Utils/coordSystem.hh"
@@ -777,6 +778,9 @@ namespace CoupledField {
 
     // Fix problems due to negative Jacobian determinants
     CorrectElementConnectivities();
+    
+    // make named nodes from lines
+    makeNameNodesFromLines();
     
     // Select nodes / elements according to the users specification in the
     // parameter file
@@ -1889,6 +1893,7 @@ namespace CoupledField {
 
   void GridCFS::GetSurfElems( StdVector<SurfElem*> & elems,
                               const RegionIdType regionId ) {
+    elems.Clear();
 
     Integer index = surfRegionIds_.Find(regionId);
     if ( index != -1 ) {
@@ -3391,6 +3396,45 @@ namespace CoupledField {
       }
       out << "\n\nPlease check your mesh!\n";
       EXCEPTION( out.str() );
+    }
+  }
+
+  void GridCFS::makeNameNodesFromLines()
+  {
+    if(!param->Has("domain/surfRegionList")) return;
+
+    ParamNodeList list = param->Get("domain/surfRegionList")->GetList("surfRegion");
+    std::map<std::string, std::string> excludeSurf;
+    StdVector<UInt> nodeList;
+    StdVector<UInt> nodeListTmp1, nodeListTmp2;
+    for(UInt i = 0; i < list.GetSize(); i++)
+    {
+      if (list[i]->Get("makeNamedNodes")->As<bool>())
+      {
+        const std::string nameTmp = list[i]->Get("name")->As<std::string>();
+        excludeSurf[nameTmp] = list[i]->Get("excludeSurface")->As<std::string>();
+      }
+    }
+    std::map<std::string, std::string>::const_iterator namedIter = excludeSurf.begin();
+    for ( ; namedIter != excludeSurf.end(); ++namedIter)
+    {
+      const std::string& surfName = namedIter->first;
+      GetNodesByRegion(nodeList, region_.Parse(namedIter->first));
+      std::string nodeRegName = "nodes_" + surfName;
+      if (excludeSurf[surfName] != "")
+      {
+        UInt iTmp = region_.Parse(excludeSurf[surfName]);
+        GetNodesByRegion(nodeListTmp2, surfRegionIds_[iTmp]);
+        for (UInt iTmp1 = 0; iTmp1 < nodeList.GetSize(); ++iTmp1)
+        {
+          const UInt& currNode = nodeList[iTmp1];
+          if (nodeListTmp2.Find(currNode) == -1)
+            nodeListTmp1.Push_back(currNode);
+        }
+        nodeList = nodeListTmp1;
+        nodeListTmp1.Clear();
+      }
+      AddNamedNodes(nodeRegName, nodeList);
     }
   }
 

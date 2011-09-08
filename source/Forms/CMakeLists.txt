@@ -69,6 +69,7 @@ SET(FORMS_SRCS
   nLinPiezoMicro.cc
   nLinPiezoMicroRHS.cc
   linMagStrictInt.cc
+  nLinHeatInt.cc
   )
 
 ADD_LIBRARY(forms STATIC ${FORMS_SRCS})

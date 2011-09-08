@@ -657,8 +657,8 @@ double SIMPElement::GetDensityFilteredValue(DesignElement::ValueSpecifier sp, Fi
   double numerator = this->weight * this->de_->GetPlainValue(DesignElement::DESIGN);
   double denominator = this->weight;
 
-  LOG_DBG3(desel) << "GDFV: el=" << de_->elem->elemNum << ": curr=" << de_->elem->elemNum
-                 << " w= " << this->weight << " x=" << this->de_->GetPlainValue(DesignElement::DESIGN) << " num=" << numerator << " den=" << denominator;
+  // LOG_DBG3(desel) << "GDFV: el=" << de_->elem->elemNum << ": curr=" << de_->elem->elemNum
+  //                 << " w= " << this->weight << " x=" << this->de_->GetPlainValue(DesignElement::DESIGN) << " num=" << numerator << " den=" << denominator;
 
   for(int i = 0, ni = (int) neighborhood.GetSize(); i < ni; i++)
   {
@@ -671,13 +671,13 @@ double SIMPElement::GetDensityFilteredValue(DesignElement::ValueSpecifier sp, Fi
     numerator   += w * x;
     denominator += w;
 
-    LOG_DBG3(desel) << "GDFV: el=" << de_->elem->elemNum << ": curr=" << de->elem->elemNum
-                    << " w= " << w  << " x=" << x << " num=" << numerator << " den=" << denominator;
+    // LOG_DBG3(desel) << "GDFV: el=" << de_->elem->elemNum << ": curr=" << de->elem->elemNum
+    //                 << " w= " << w  << " x=" << x << " num=" << numerator << " den=" << denominator;
   }
 
   double p_filt = numerator / denominator;
 
-  LOG_DBG3(desel) << "GDFV: el=" << de_->elem->elemNum << " filtered_density=" << p_filt;
+  // LOG_DBG3(desel) << "GDFV: el=" << de_->elem->elemNum << " filtered_density=" << p_filt;
 
   assert(fd == Filter::STANDARD || fd == Filter::HEAVISIDE || fd == Filter::MOD_HEAVISIDE || fd == Filter::TANH);
 
@@ -692,11 +692,11 @@ double SIMPElement::GetDensityFilteredValue(DesignElement::ValueSpecifier sp, Fi
       p_filt = CalcHeaviside(p_filt);
 
     assert(p_filt <= this->de_->GetUpperBound());
-    assert(p_filt >= 0.7 * this->de_->GetLowerBound()); // relax the assert a little, cause of heaviside correction
+    assert(p_filt >= 0.7 * this->de_->simp->filter.GetLowerBound(this->de_)); // relax the assert a little, cause of heaviside correction
   }
 
-  LOG_DBG3(desel) << "GDFV: el=" << de_->elem->elemNum << " design=" << Filter::density.ToString(de_->simp->filter.density_)
-                  << ": plain=" << this->de_->GetPlainValue(DesignElement::DESIGN) << " -> "<< p_filt;
+  // LOG_DBG3(desel) << "GDFV: el=" << de_->elem->elemNum << " design=" << Filter::density.ToString(de_->simp->filter.density_)
+  //                 << ": plain=" << this->de_->GetPlainValue(DesignElement::DESIGN) << " -> "<< p_filt;
 
   return p_filt;
 }
@@ -713,7 +713,7 @@ double SIMPElement::CalcTanh(double input_value) const
   double e = f->eta;
   // make sure we are within the bounds
   double ub = this->de_->GetUpperBound();
-  double lb = this->de_->GetLowerBound();
+  double lb = f->GetLowerBound(this->de_);
 
   assert(b >= 0.0 && b < 2000);
   assert(e >= lb && e <= ub);
@@ -780,7 +780,7 @@ double SIMPElement::GetDensityFilteredGradient(DesignElement::ValueSpecifier sp,
       if(f.density_ == Filter::MOD_HEAVISIDE)
       {
         // general scaling
-        h = de->GetUpperBound() - de->GetLowerBound();
+        h = de->GetUpperBound() - de->simp->filter.GetLowerBound(de);
         h *= b * exp(b*(x_n-1.0)) + exp(-1.0*b);
       }
       if(f.density_ == Filter::TANH)
@@ -788,7 +788,7 @@ double SIMPElement::GetDensityFilteredGradient(DesignElement::ValueSpecifier sp,
         // f(x)  =  1 - 1/(exp(2*beta*(x-param)) + 1)
         // f'(x) =  (exp(2*beta*(x-param)+1)^-2 * 2 * beta * exp(2*beta*(x-param))
         double eta = f.eta;
-        h = de->GetUpperBound() - de->GetLowerBound();
+        h = de->GetUpperBound() - de->simp->filter.GetLowerBound(de);
 
         double e = std::exp(2.0 * b * ( x_n - eta));
         h *= 1.0/((e+1.0)*(e+1.0)) * 2.0 * b * e;

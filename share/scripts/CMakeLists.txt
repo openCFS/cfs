@@ -79,17 +79,6 @@ ADD_CUSTOM_TARGET(distro_script ALL
   COMMENT "Copying \"${DISTRO_SCRIPT}\" script to ${CFS_BINARY_DIR}/share/scripts folder..."
   )
 
-IF(CFS_DISTRO STREQUAL "MACOSX")
-#-------------------------------------------------------------------------------
-# Custom target for copying macsysinfo.scpt to ${CFS_BINARY_DIR}/share/scripts
-#-------------------------------------------------------------------------------
-ADD_CUSTOM_TARGET(macosx_info_script ALL
-  COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_CURRENT_SOURCE_DIR}/macsysinfo.scpt ${CFS_BINARY_DIR}/share/scripts
-  DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/${DISTRO_SCRIPT}
-  COMMENT "Copying macsysinfo.scpt script to ${CFS_BINARY_DIR}/share/scripts folder..."
-  )
-ENDIF(CFS_DISTRO STREQUAL "MACOSX")
-
 #-------------------------------------------------------------------------------
 # Custom target for configuring cplreader to ${CFS_BINARY_DIR}/bin
 #-------------------------------------------------------------------------------

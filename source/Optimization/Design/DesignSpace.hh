@@ -316,6 +316,8 @@ namespace CoupledField
         * easy to be also simple for load ersatz material */
        BaseMaterial* GetBiMaterial(const MaterialClass mc);
 
+       std::string ToString() const;
+
        void ToInfo(PtrParamNode node) const;
      private:
        std::string bimaterial_;

@@ -56,6 +56,7 @@ namespace CoupledField {
     nonLin_           = PDE_.IsNonLin();
     nonLinMaterial_   = PDE_.IsNonLinMaterial();
     isHyst_           = PDE_.IsHysteresis();
+    totalFormulation_ = PDE_.IsTotaFormulation();
     regionNonLinType_ = PDE_.GetNonLinRegionTypes();
 
     // for direct coupled PDEs
@@ -117,7 +118,10 @@ namespace CoupledField {
   void StdSolveStep::SolveStepStatic(PtrParamNode analysis_id, AdjointParameters* adjointParams) {
 
     if (nonLin_) {
-      StepStaticNonLin(analysis_id);
+      if ( totalFormulation_ )
+        StepStaticNonLinTotal(analysis_id);
+      else
+        StepStaticNonLin(analysis_id);
     }
     else {
       StepStaticLin(analysis_id, adjointParams);
@@ -217,6 +221,7 @@ namespace CoupledField {
 
           // new solution is only an increment of the full solution =============
           algsys_->GetSolutionVal( solInc );
+
           Double residualL2Norm = 0.0;
           Double etaLineSearch  = 1.0;
           if ( lineSearch_ == "none" ) {
@@ -277,6 +282,105 @@ namespace CoupledField {
   }
 
 
+  void StdSolveStep::StepStaticNonLinTotal(PtrParamNode analysis_id)
+  {
+
+    bool performOneMoreStep;
+    std::cout << "In  stdSolveStep-NL-Total" << std::endl;
+
+    Vector<Double> prevSol( numEqns_ );
+
+    //get actual solution
+    Vector<Double>  actSol =
+      dynamic_cast<Vector<Double>&>(*(PDE_.GetSolutionVector()));
+
+    // set the boundary conditions
+    PDE_.SetBCs();
+
+    //perform the load-steps
+    Double loadFactor = 0.0;
+
+    // currently just for testing!!
+    // loop over load factor
+    for ( UInt iload=0; iload<1; iload++ ) {
+      loadFactor += 1.0;
+      Info->PrintF(pdename_, "\n");
+      Info->PrintF(pdename_, "LoadFactor: %g \n", loadFactor);
+
+      // setup right hand side
+      Double RhsLinL2Norm = SetLinRHS(loadFactor);
+
+      // set iteration counter
+      UInt iterationCounter=0;
+
+      do
+        {
+          iterationCounter++;
+
+          //init RHS with linear part!
+          algsys_->InitRHS(RhsLinVal_);
+
+          // copy current solution, with which we start, to previous solution
+          prevSol = actSol;
+
+          // RHS is already set up!!
+          PtrParamNode child_id = BaseDriver::CreateAnalysisIdChild(analysis_id, "nonLin", iterationCounter);
+          
+          // setup and solve new system (rhs is already set) =====================
+          //assemble_.InitNonLinMatrices();
+          assemble_->AssembleMatrices();
+
+          algsys_->ConstructEffectiveMatrix(matrix_factor_);
+          algsys_->BuildInDirichlet();
+          algsys_->SetupPrecond();
+          algsys_->SetupSolver(child_id);
+          algsys_->Solve(child_id);
+
+          // new solution 
+          algsys_->GetSolutionVal( actSol );
+          //          std::cout << "actSol:\n" << actSol << std::endl;
+
+          // store the new solution
+          PDE_.SaveSolution( actSol.GetPointer(), actSol.GetSize() );
+
+          // compute L2-Norm of error between last incremental solution and
+          // actual incremental solution
+          Double solIncrL2Norm=0;
+          for (UInt i=0; i<actSol.GetSize(); i++)
+            solIncrL2Norm += (actSol[i]-prevSol[i])*(actSol[i]-prevSol[i]);
+    
+          solIncrL2Norm = sqrt(solIncrL2Norm);
+          Double actSolL2Norm = actSol.NormL2();
+    
+          Double incrementalErr, residualErr;
+          if (actSolL2Norm > 1)
+            incrementalErr = solIncrL2Norm / actSolL2Norm;
+          else
+            incrementalErr = solIncrL2Norm;
+ 
+          //just dummies for log-file
+          Double etaLineSearch = RhsLinL2Norm;
+          etaLineSearch = 1.0;
+          residualErr   = incrementalErr;
+
+          // output of norms and data
+          if ( nonLinLogging_ == true )
+            WriteNonLinIterToInfoXML(pdename_, iterationCounter, residualErr, incrementalErr, etaLineSearch);
+
+          // boolean variable, holds condition if another iteration step is necessary
+          performOneMoreStep =
+            (incrementalErr > incStopCrit_) || (residualErr > residualStopCrit_);
+
+          //set previous solution of iteration to actual solution
+          //prevSol = actSol;
+
+        } while(performOneMoreStep && iterationCounter < nonLinMaxIter_);
+
+    } // load step loop
+
+  }
+
+
   // ======================================================
   // Solve Step Transient SECTION
   // ======================================================
@@ -306,7 +410,10 @@ namespace CoupledField {
     }
     // do a nonlinear time step
     else if (nonLin_){
-      StepTransNonLin(analysis_id);
+      if ( totalFormulation_ )
+        StepTransNonLinTotal(analysis_id);
+      else
+        StepTransNonLin(analysis_id);
     }
     // do a linear time step
     else {
@@ -529,6 +636,125 @@ namespace CoupledField {
   }
 
 
+  void StdSolveStep::StepTransNonLinTotal(PtrParamNode base_analysis_id) {
+
+    std::cout << "\n In :StepTransNonLinTotal  \n " << std::endl;
+ 
+    bool performOneMoreStep;
+    UInt iterationCounter=0;
+    Double etaLineSearch;
+    Double incrementalErr, residualErr;
+
+    Vector<Double> newSol( numEqns_ ); 
+    Vector<Double> oldSol( numEqns_ );
+    Vector<Double> solPrev( numEqns_ );
+
+    oldSol.Init(0);
+    newSol.Init(0);
+  
+    //get solution of previous time step  
+    Vector<Double> & solHelp = 
+      dynamic_cast<Vector<Double>&>(*PDE_.GetSolutionVector());
+
+    solPrev = solHelp;
+
+    // perform predictor step
+    if ( TS_alg_== NULL ) {
+      Exception( "TS_alg has NULL-Pointer, in StdSolveStep::StepTransNonLin");
+    }
+    else {
+      //compute predictors
+      TS_alg_->Predictor(solPrev);
+    }
+
+    //! account for Dirichlet BCs
+    PDE_.SetBCs( );    
+
+    Double loadFactor = 0.0;
+    for ( UInt iload=0; iload<1; iload++ ) {
+      loadFactor += 1.0;
+      Info->PrintF(pdename_, "\n");
+      Info->PrintF(pdename_, "LoadFactor: %g \n", loadFactor);
+
+      // setup right hand side
+      Double RhsLinL2Norm = SetLinRHS(loadFactor);
+
+      // inner forces due to nonlin formulation
+      assemble_->AssembleNonLinRHS();  
+
+      do {
+        iterationCounter++;
+        
+        // set solution of previous iteration
+        if (iterationCounter == 1 ) {
+          oldSol = solPrev;
+        }
+        else {
+          oldSol = newSol;
+        }
+        
+        //init RHS with linear part!
+        algsys_->InitRHS(RhsLinVal_);
+        
+        PtrParamNode child_id = BaseDriver::CreateAnalysisIdChild(base_analysis_id, "load", iload, "nonLin", iterationCounter);
+        
+        //perform new assembly
+        assemble_->AssembleMatrices();
+        algsys_->ConstructEffectiveMatrix(matrix_factor_);
+        
+        
+        //Update RHS (mass matrix on right hand side)
+        TS_alg_->UpdateRHS();
+        
+        // build in the Dirichlet vales in system matrix and rhs
+        algsys_->BuildInDirichlet();
+        
+        algsys_->SetupSolver(child_id);
+        algsys_->SetupPrecond();
+        
+        algsys_->Solve(child_id);
+        algsys_->GetSolutionVal(newSol); 
+        
+        //store solution for (n+1)
+        PDE_.SaveSolution( newSol.GetPointer(), newSol.GetSize() );
+        
+        // compute L2-Norm of error between last incremental solution and
+        // actual incremental solution
+        Double solIncrL2Norm=0;
+        for (UInt i=0; i<newSol.GetSize(); i++)
+          solIncrL2Norm += (newSol[i]-oldSol[i])*(newSol[i]-oldSol[i]);
+        
+        solIncrL2Norm = sqrt(solIncrL2Norm);
+        Double actSolL2Norm = newSol.NormL2();
+        
+        if (actSolL2Norm > 1)
+          incrementalErr = solIncrL2Norm / actSolL2Norm;
+        else
+          incrementalErr = solIncrL2Norm;
+
+        //just dummy things
+        etaLineSearch = RhsLinL2Norm;
+        etaLineSearch = 1.0;
+        residualErr   = incrementalErr;
+        
+        // output of norms and data
+        nonLinLogging_ = true;
+        if ( nonLinLogging_ == true )
+          WriteNonLinIterToInfoXML(pdename_, iterationCounter, residualErr, incrementalErr, etaLineSearch);
+        
+        performOneMoreStep = (incrementalErr > incStopCrit_) ; //|| (residualErr > residualStopCrit_);      
+        
+      } while(performOneMoreStep && iterationCounter < nonLinMaxIter_);  
+    } // load step loop
+
+    if ( incrementalErr > incStopCrit_ ) 
+      std::cout << "Not converged, norm is: " <<incrementalErr << std::endl; 
+
+    //perform corrector step  
+    TS_alg_->Corrector(newSol);
+  }
+
+  
   void StdSolveStep::StepTransNonLinMaterial(PtrParamNode analysis_id) {
 
 

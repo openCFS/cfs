@@ -340,7 +340,7 @@ namespace CoupledField
           cell = ugrid->GetCell(cellId);
           elemTypes[elemIdx] = VTKCellTypeToFEType(cell->GetCellType());
 
-          elemNodeMapping = strucElemNodeMap;
+          elemNodeMapping = unstrucElemNodeMapping_[ elemTypes[elemIdx] ];
             //strucElemNodeMap;
             //unstrucElemNodeMapping_[ elemTypes[elemIdx] ];
 
@@ -370,7 +370,7 @@ namespace CoupledField
 
           elemNodeMapping = unstrucElemNodeMapping_[ elemTypes[elemIdx] ];
 
-          std::cout << "data object type " << ds->GetDataObjectType() << std::endl;
+          //std::cout << "data object type " << ds->GetDataObjectType() << std::endl;
           switch(ds->GetDataObjectType()) {
           case VTK_UNIFORM_GRID: // 10
           case VTK_RECTILINEAR_GRID: // 3

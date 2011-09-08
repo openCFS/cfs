@@ -7,6 +7,7 @@ namespace CoupledField
 {
 
 class DesignSpace;
+class DesignElement;
 
 /** This is an information container for the Filter which is stored in the DesignElemen!.
  * It is used by DesignStructure to initialize the element filters.
@@ -42,11 +43,18 @@ public:
 
   bool Enabled() const { return type_ != NO_FILTERING; }
 
+  /** Convenience function. Gives a lower bound. The explicit filter bound if given, otherwise
+   * from the design element */
+  double GetLowerBound(const DesignElement* de) const;
+
   double GetBeta() const { return beta_; }
 
   /** Setting beta triggers the calculation of heaviside_corr.
    * The other settings need to be set! */
   void SetBeta(double beta, const DesignSpace* space);
+
+  /** Set an explicit lower bound to overwrite the design's lower bound */
+  void SetLowerBound(double value) { explicit_lower_bound_ = value; }
 
   Type        type_;
   Sensitivity sensitivity_;
@@ -64,6 +72,11 @@ private:
   /** this is the beta parameter for the (modified) heaviside or tanh design filter.
    * Private such that we force setting heaviside_corr on setting beta */
    double     beta_;
+
+  /** Holds the optional "force_lower_bound" attribute to overwrite the design lower bound
+   * for Heaviside and tanh type filters. Necessary for mixed design scenarios where one has
+   * a fixed design with equal lower and upper bound. */
+   double explicit_lower_bound_;
 
 };
 

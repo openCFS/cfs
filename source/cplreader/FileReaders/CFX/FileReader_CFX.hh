@@ -6,6 +6,7 @@
 #define FILE_FILEREADER_CFX_2006
 
 #include <map>
+#include <stack>
 
 #include <def_cplreader.hh>
 #include "cplreader/FileReader.hh"
@@ -40,6 +41,9 @@ namespace CoupledField
                                  const std::vector<bool>& activeParts,
                                  const UInt timeStepIdx);
 
+    //! return name of region
+    virtual std::string GetRegionName(const UInt regionIdx);
+
     //! get user data from file reader
     virtual void GetUserData(std::map<std::string, std::string>& userData);
 
@@ -56,7 +60,14 @@ namespace CoupledField
     
   protected:
 
-    void GetInfosFromCommand();
+    void GetInfosFromCommand(UInt numLines);
+    void ParseCCLLine(const std::string& line);
+
+    PtrParamNode rootNode;
+    PtrParamNode currNode;
+    PtrParamNode latestNode;
+    std::stack<PtrParamNode> parents;
+    bool multiLine;
 
     void ParseCommand(std::vector<char>& cmdstr,
                       int& pos,
@@ -75,6 +86,10 @@ namespace CoupledField
     void IOErrorToString(int ioerr, std::string& errStr);
 
     void CheckTransientFiles();
+    
+    UInt GetFaceOfElement( UInt elemType, UInt face,
+                             std::vector<UInt>::const_iterator &elemConnect,
+                             std::vector<UInt> &faceConnect );
 
   private:
 
@@ -94,7 +109,24 @@ namespace CoupledField
     // Vector of element numbers per region
     std::map<UInt, std::vector<UInt> > regionElems_;
 
+    // number of volume regions (numRegions_ includes surface regions)
+    UInt numVolRegions_;
+    
+    // number of face sets
+    UInt numFaceSets_;
+    
+    // number of elements per face set
+    std::vector<UInt> numElemsPerFaceSet_;
+    
+    // mapping face set => boundary patch
+    std::vector<Integer> mapFaceSet2Region_;
+    
+    // names of regions
+    std::vector<std::string> regionNames_;
 
+    // CFX Release number for UserData in .h5 file
+    std::string userDataCFXRelease;
+    
     char fn[4096];
     int nerr;
     int whatfile;

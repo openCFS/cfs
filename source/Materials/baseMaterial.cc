@@ -36,7 +36,7 @@ namespace CoupledField
 
     materialDatabaseName_ = "";
     matFileName_ = "";
-    nonlinFileName_ = "";
+    //    nonlinFileName_ = "";
 
     coosy_ = NULL;
     hyst_  = NULL;

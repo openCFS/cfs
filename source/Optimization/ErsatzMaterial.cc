@@ -1292,7 +1292,7 @@ double ErsatzMaterial::CalcTrivialVolume(Function* f, bool derivative, bool norm
   double sum = 0.0;
 
   // we need the total volume in the non-regular case
-  double total_vol = -1.0; // gcc is so stupid! :(
+  double total_vol = 0.0;
   if(!normalized)
   {
     total_vol = 1.0;
@@ -1308,18 +1308,17 @@ double ErsatzMaterial::CalcTrivialVolume(Function* f, bool derivative, bool norm
 
   LOG_DBG(em) << "CTV: d=" << derivative << " p=" << f->IsPhysical() << " n=" << normalized << " tv=" << total_vol;
 
-
-  for(unsigned int i = 0, n = design->data.GetSize(); i < n; i++)
+  for(unsigned int i = 0, n = f->elements.GetSize(); i < n; i++)
   {
-    DesignElement& de = design->data[i];
+    DesignElement* de = f->elements[i];
 
-    double val = f->IsPhysical() ? tf->Transform(&de, DesignElement::SMART) : de.GetDesign(DesignElement::SMART);
-    double vol = (regular ? 1.0 : de.CalcVolume())/total_vol;
+    double val = f->IsPhysical() ? tf->Transform(de, DesignElement::SMART) : de->GetDesign(DesignElement::SMART);
+    double vol = (regular ? 1.0 : de->CalcVolume())/total_vol;
     sum += vol * val;
     if(derivative)
-      de.AddGradient(f, vol);
+      de->AddGradient(f, vol);
 
-    LOG_DBG2(em) << "CTV de=" << de.elem->elemNum << " val=" << val << " vol=" << vol << " -> " << vol*val;
+    LOG_DBG2(em) << "CTV de=" << de->elem->elemNum << " val=" << val << " vol=" << vol << " -> " << vol*val;
   }
 
   return derivative ? -1.0 : sum;

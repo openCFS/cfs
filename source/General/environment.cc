@@ -875,6 +875,10 @@ namespace CoupledField {
       out = PIEZO_MICRO_HF;
     } else if( in == "permeability") {
       out = PERMEABILITY;
+    } else if( in == "heatConductivity") {
+      out = NLHEAT_CONDUCTIVITY;
+    } else if( in == "heatCapacity") {
+      out = NLHEAT_CAPACITY;
 
     } else {
       EXCEPTION( "'" << in << "' cannot be converted into an "
@@ -920,6 +924,13 @@ namespace CoupledField {
     case PERMEABILITY:
       out = "permeability";
       break;
+    case NLHEAT_CONDUCTIVITY:
+      out = "heatConductivity";
+      break;
+    case NLHEAT_CAPACITY:
+      out = "heatCapacity";
+      break;
+
     default:
       EXCEPTION( "No conversion found for 'NonLinType' " << in );
     }

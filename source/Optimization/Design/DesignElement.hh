@@ -502,9 +502,11 @@ public:
 inline
 double SIMPElement::CalcHeaviside(double input_value) const
 {
-  Filter* f = &de_->simp->filter;
+  const Filter* f = &de_->simp->filter;
   assert(f->type_ == Filter::DENSITY);
   assert(f->density_ == Filter::HEAVISIDE || f->density_ == Filter::MOD_HEAVISIDE);
+
+  double result;
 
   double b = f->GetBeta();
   assert(b >= 0.0 && b < 2000);
@@ -513,26 +515,28 @@ double SIMPElement::CalcHeaviside(double input_value) const
   {
     // we apply the correction factor in a way that H(rho_min) = rho_min and H(1) = 1
     double corr = (1.0 - (1.0 - input_value) * f->heaviside_corr) * input_value;
-    double result = 1.0 - std::exp(-1.0 * b * corr) + corr * std::exp(-1.0 * b);
+    result = 1.0 - std::exp(-1.0 * b * corr) + corr * std::exp(-1.0 * b);
 
-    // LOG_DBG3(desel) << "CH: de=" << de_->elem->elemNum << " f=" << f->density.ToString(f->density_)
-    //                 << " hc=" << f->heaviside_corr << " corr=" << corr << " iv=" << input_value << " -> " << result;
-    return result;
+    // no LOG_DBG possible due to inline
+    // std::cout << "CH: de=" << de_->elem->elemNum << " f=" << f->density.ToString(f->density_)
+    ///          << " hc=" << f->heaviside_corr << " corr=" << corr << " iv=" << input_value << " -> " << result << std::endl;
   }
   else // if(f->density_ == Filter::MOD_HEAVISIDE)
   {
     // make sure we are within the bounds
     double ub = this->de_->GetUpperBound();
-    double lb = this->de_->GetLowerBound();
+    double lb = f->GetLowerBound(this->de_); // might be force_lower_bound from the filter setting
 
     double first    = std::exp(-1.0 * b * (1.0 - input_value));
     double second   = -1.0 * (1.0 - input_value) * std::exp(-1.0 * b);
 
-    return (ub-lb) * (first + second) + lb;
+    result = (ub-lb) * (first + second) + lb;
 
-    // LOG_DBG3(desel) << "GDFV: el=" << de_->elem->elemNum << " b=" << b << " lb=" << lb << " (ub-lb)=" << (ub-lb)
-    //                << " c=" << constant << " +1st=" << first << " +2nd=" << second << " =" << (constant + first + second) << " -> " << p_filt;
+    // std::cout << "CH: el=" << de_->elem->elemNum << " iv=" << input_value << " b=" << b << " lb=" << lb << " (ub-lb)=" << (ub-lb)
+    //           << " +1st=" << first << " +2nd=" << second << " -> " << result << std::endl;
   }
+
+  return result;
 }
 
 } // end of namespace

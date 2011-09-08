@@ -72,18 +72,18 @@ namespace CoupledField
       }
     }
 
-    PDE_.SetBCs();
-
     UInt iterationCounter=0;
 
     PDE_.InitStabParams();
+    PDE_.SetBCs();
+    algsys_->InitRHS();
     //Update RHS (mass matrix on right hand side)
     if ( isInstationary_ )
     {
       assemble_->AssembleMatrices();
       TS_alg_->UpdateRHS();
-      PDE_.SetBCs();
     }
+
 
     while (performOneMoreStep && iterationCounter < nonLinMaxIter_)
     {
@@ -95,7 +95,6 @@ namespace CoupledField
         algsys_->InitRHS();
         assemble_->AssembleMatrices();
         TS_alg_->UpdateRHS();
-        PDE_.SetBCs();
       }
 
       PtrParamNode analysis_id = BaseDriver::CreateAnalysisIdChild(analysis_base, "nonLin", iterationCounter);

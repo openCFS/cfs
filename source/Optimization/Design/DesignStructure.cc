@@ -108,6 +108,9 @@ void DesignStructure::SetFilters(PtrParamNode pn, PtrParamNode info, StdVector<D
     if(!pn->Has("density/beta"))
       throw Exception("Attribute 'beta' required for '" + Filter::density.ToString(filter_.density_) + "' density filtering");
     filter_.SetBeta(pn->Get("density/beta")->As<double>(), space); // all relevant parameters set!
+
+    if(pn->Has("density/force_lower_bound"))
+      filter_.SetLowerBound(pn->Get("density/force_lower_bound")->As<double>());
   }
 
   if(filter_.density_ == Filter::TANH)
@@ -143,6 +146,8 @@ void DesignStructure::SetFilters(PtrParamNode pn, PtrParamNode info, StdVector<D
         in->Get(ParamNode::WARNING)->SetValue("'volume' constraint shall be non-linear due to non-linear filter");
       if(filter_.density_ == Filter::HEAVISIDE)
         in->Get("heaviside_correction")->SetValue(filter_.heaviside_corr);
+      if(pn->Has("density/force_lower_bound"))
+        in->Get("force_lower_bound")->SetValue(filter_.GetLowerBound(NULL));
     }
   }
 
@@ -407,7 +412,7 @@ double DesignStructure::RelaxedDistance(const Elem* base, const Elem* test) cons
 
   if(!periodic)
   {
-    LOG_DBG3(ds) << "RD: dist " << base->elemNum << " " << bb.ToString() << " <-> " << test->elemNum << " " << tb.ToString() << " = " << dist;
+    LOG_DBG3(ds) << "RD: dist " << base->elemNum << " <-> " << test->elemNum << " = " << dist << " : " << bb.ToString() << " <-> " << tb.ToString();
     return dist;
   }
 

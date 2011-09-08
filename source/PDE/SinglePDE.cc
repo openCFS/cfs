@@ -1806,9 +1806,18 @@ namespace CoupledField {
         tempNames.Push_back( actNode->Get("name")->As<std::string>() );
         tempLoadVec.Push_back( actNode->Get("value")->As<std::string>() );
         tempPhase.Push_back( actNode->Get("phase")->As<std::string>() );
-        tempDofs.Push_back( actNode->Get("dof")->As<std::string>() );
-        tempRefCoord.Push_back( actNode->Get("coordSysId")->As<std::string>() );
-        tempType.Push_back( actNode->Get("type")->As<std::string>() );
+        if ( actNode->Has("dof") )
+          tempDofs.Push_back( actNode->Get("dof")->As<std::string>() );
+        else
+          tempDofs.Push_back( "" );
+        if ( actNode->Has("coordSysId") )
+          tempRefCoord.Push_back( actNode->Get("coordSysId")->As<std::string>() );
+        else
+          tempRefCoord.Push_back( "" );
+        if ( actNode->Has("type") )
+          tempType.Push_back( actNode->Get("type")->As<std::string>() );
+        else
+          tempType.Push_back( "");
       }
 
 #ifdef USE_SCRIPTING
@@ -1890,11 +1899,21 @@ namespace CoupledField {
       }
 
       // now create local load vector
-      for (UInt iDim=0; iDim < loadVec.GetSize(); iDim++) {
-        locDof = domain->GetCoordSystem(refCoord[iDim])->
-          GetVecComponent(dofs[iDim]);
+      UInt actDim =  loadVec.GetSize();
+      for (UInt iDim=0; iDim < actDim; iDim++) {
+        
+        // check, if the primary result has more than one component,
+        // i.e. if we have vector-valued unknowns (mechanics) or
+        // scalar valued ones
+        if ( results_[0]->dofNames.GetSize() > 1 ) {
+          //vector case
+          locDof = domain->GetCoordSystem(refCoord[iDim])->
+            GetVecComponent(dofs[iDim]);
+          curLoad->type = type[iDim];
+        }
+        else
+          locDof = 1;
         curLoad->value[locDof-1] = loadVec[iDim];
-        curLoad->type = type[iDim];
       }
     }
   }
@@ -2316,10 +2335,6 @@ namespace CoupledField {
     if (isIterCoupled_ == false)
       return;
 
-    // Reset counter for boundary conditions
-    couplingBCsCounter_ = 0;
-
-
     // Outer loop over all INPUT coupling terms
     for (UInt i=0; i<ptCoupling_->GetNumInputCouplings(); i++) {
 
@@ -2405,8 +2420,7 @@ namespace CoupledField {
         ptCoupling_->GetInputNodes(i, nodes);
 
         for ( UInt dof = 0; dof < ptCoupling_->GetInputDof(i); dof++ ) {
-          for ( UInt j = 0; j < nodes->GetSize();
-                j++,couplingBCsCounter_++ ) {
+          for ( UInt j = 0; j < nodes->GetSize(); j++) {
 
             eqnNr = eqnMap_->GetNodeEqn( (*nodes)[j], dof+1 );
 
@@ -2745,6 +2759,11 @@ namespace CoupledField {
           }
         }
       }
+    }
+    if (isIterCoupled_)
+    {
+      CalcOutputCoupling();
+      CalcInputCoupling();
     }
   }
 
@@ -3862,8 +3881,14 @@ namespace CoupledField {
                                   isUnit, volume );
 
      return forceInt;
+   }
 
+   VolumeSrcInt * SinglePDE::RegionLoad::GetSrcScalarIntegrator() {
+     //simple volume source integrator
 
+     VolumeSrcInt *srcInt = new VolumeSrcInt( value[0], isAxi_ );
+
+     return srcInt;
    }
 
    void SinglePDE::RegionLoad::ToInfo(PtrParamNode in) const

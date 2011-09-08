@@ -418,7 +418,8 @@ DEFINE_LOG(linForm, "linForm")
     ptMaterial->GetScalar( startmatVal_, MAG_RELUCTIVITY,Global::REAL);
 
     // need nonlinear BH curve approximation
-    if (  ptMaterial->GetNonlinFileName() != "" )  
+
+    if (  ptMaterial->GetNonlinFileName( MAG_PERMEABILITY ) != "" )  
       ptMaterial->NeedApproxMatCurve( magBH );
   }
   
@@ -437,7 +438,7 @@ DEFINE_LOG(linForm, "linForm")
     ptelem->SetAnsatzFct( ansatzFct1_ );
 
     // get pointer to nonlinear BH curve approximation
-    nlinFnc_ = ptMaterial->GetNonlinFncBH();
+    nlinFnc_ = ptMaterial->GetNonlinFncBH(MAG_PERMEABILITY);
 
     BaseForm * curlcurl2D;
     if (nlinFnc_== NULL) 
@@ -481,7 +482,7 @@ DEFINE_LOG(linForm, "linForm")
 
     // need nonlinear BH curve approximation
     // need nonlinear BH curve approximation
-    if (  ptMaterial->GetNonlinFileName() != "" )  
+    if (  ptMaterial->GetNonlinFileName(MAG_PERMEABILITY) != "" )  
       ptMaterial->NeedApproxMatCurve( magBH );
   }
   
@@ -499,7 +500,7 @@ DEFINE_LOG(linForm, "linForm")
     ptelem->SetAnsatzFct( ansatzFct1_ );
 
     // get pointer to nonlinear BH curve approximation
-    nlinFnc_ = ptMaterial->GetNonlinFncBH();
+    nlinFnc_ = ptMaterial->GetNonlinFncBH(MAG_PERMEABILITY);
 
     BaseForm * curlcurl3D;
     if (nlinFnc_== NULL) 
@@ -555,7 +556,7 @@ DEFINE_LOG(linForm, "linForm")
     ptelem->SetAnsatzFct( ansatzFct1_ );
 
     // get pointer to nonlinear BH curve approximation
-    ApproxData* nlinFnc_ = ptMaterial->GetNonlinFncBH();
+    ApproxData* nlinFnc_ = ptMaterial->GetNonlinFncBH(MAG_PERMEABILITY);
 
     BaseForm * curlcurl3D;
     if ( nlinFnc_ == NULL ) 
@@ -2302,8 +2303,8 @@ void LinearFlowNoiseInt::ComputeNormalVec( const Matrix<Double>& ptCoord,
   
   
   VolForceInt::VolForceInt(UInt numDof, 
-                                   const std::string& phase,
-                                   bool isaxi) {
+                           const std::string& phase,
+                           bool isaxi) {
 
 
     name_ = "VolForceInt";
@@ -2317,9 +2318,9 @@ void LinearFlowNoiseInt::ComputeNormalVec( const Matrix<Double>& ptCoord,
 
   }
     
-  void VolForceInt::SetVolForceVector(StdVector<std::string> & volForce, 
-  																		const CoordSystem * coordSys,
-  																		bool isUnit, Double volume ) {
+  void VolForceInt::SetVolForceVector(StdVector<std::string> & volForce,
+                                      const CoordSystem * coordSys,
+                                      bool isUnit, Double volume ) {
 
 
     locForce_ = volForce;
@@ -2330,7 +2331,7 @@ void LinearFlowNoiseInt::ComputeNormalVec( const Matrix<Double>& ptCoord,
   }
     
   void VolForceInt::CalcElemVector( Vector<Double> & elemVec,
-  																	EntityIterator& ent ) {
+                                    EntityIterator& ent ) {
 
 
     // Extract pointer to reference element and get coordinates
@@ -2372,7 +2373,7 @@ void LinearFlowNoiseInt::ComputeNormalVec( const Matrix<Double>& ptCoord,
   }
 
   void VolForceInt::CalcElemVector( Vector<Complex> & elemVec,
-  																	EntityIterator& ent ) {
+                                    EntityIterator& ent ) {
 
 
     // Extract pointer to reference element and get coordinates
@@ -2421,8 +2422,8 @@ void LinearFlowNoiseInt::ComputeNormalVec( const Matrix<Double>& ptCoord,
 
   template<class TYPE>
   void VolForceInt::CalcPartVector( Vector<TYPE>& elemVec, 
-  																	Vector<TYPE>& loadVec,
-  																	EntityIterator& ent ) {
+                                    Vector<TYPE>& loadVec,
+                                    EntityIterator& ent ) {
     
 
     /// ----- part of interior function ---

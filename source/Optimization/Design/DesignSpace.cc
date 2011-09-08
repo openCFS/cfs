@@ -140,14 +140,17 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
     // iterate over all designs, we have to always have the same order of designs not the order from the xml file
     for(unsigned int dti = 0; dti < nd; dti++)
     {
-      regions[dti].Resize(reg_data.GetSize());
-      
+      assert(regions[dti].IsEmpty());
+      regions[dti].Reserve(reg_data.GetSize()); // we use push back as the order of r is unknown!!
+
       DesignElement::Type dt = design[dti];
       
       for(unsigned int d = 0; d < pn_design.GetSize(); d++)
       {
         PtrParamNode curr_design_pn = pn_design[d];
-        if(DesignElement::type.Parse(curr_design_pn->Get("name")->As<std::string>()) != dt) continue;
+
+        if(DesignElement::type.Parse(curr_design_pn->Get("name")->As<std::string>()) != dt)
+          continue;
 
         std::string design_reg = curr_design_pn->Get("region")->As<std::string>();
         std::string design_bim = curr_design_pn->Has("bimaterial") ? curr_design_pn->Get("bimaterial")->As<std::string>() : "";
@@ -167,23 +170,33 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
             region_design[r*nd + dti] = false;
             
             // this is now done for all designs per region, this is called for every design and every region here
-            regions[dti][r].design = dt;
-            regions[dti][r].regionId = reg_data[r];
-            regions[dti][r].base = r == 0 ? dti * elements : regions[dti][r-1].base + regions[dti][r-1].elements;
-            regions[dti][r].elements = n;
+            DesignRegion* prev = regions[dti].IsEmpty() ? NULL : &(regions[dti].Last());
 
-            regions[dti][r].constant = VARIABLE;
+            DesignRegion tmp;
+            regions[dti].Push_back(tmp);
+            DesignRegion& dr   = regions[dti].Last();
+
+            dr.design = dt;
+            dr.regionId = reg_data[r];
+            dr.base = prev == NULL ? dti * elements : prev->base + prev->elements;
+
+            LOG_DBG2(designSpace) << "dti=" << dti << " d=" << d << " r=" << r << " el=" << elements << " size=" << regions[dti].GetSize()
+                                  << " old_base=" << (prev != NULL ? (int) prev->base : -1)
+                                  << " old_el=" << (prev != NULL ? (int) prev->elements : -1);
+            dr.elements = n;
+
+            dr.constant = VARIABLE;
 
             if(curr_design_pn->Has("constant") && curr_design_pn->Get("constant")->As<bool>())
-              regions[dti][r].constant = design_all ? CONSTANT_ON_ALL_REGIONS : CONSTANT_PER_REGION; // we have a constant densign-value on that region
+              dr.constant = design_all ? CONSTANT_ON_ALL_REGIONS : CONSTANT_PER_REGION; // we have a constant densign-value on that region
 
             if(curr_design_pn->Get("fixed")->As<bool>()) 
-              regions[dti][r].constant = FIXED; // fixed overwrites all other settings
+              dr.constant = FIXED; // fixed overwrites all other settings
             
-            regions[dti][r].scale_design = 1.0;
-            regions[dti][r].translate_design = 0.0;
+            dr.scale_design = 1.0;
+            dr.translate_design = 0.0;
             if(design_bim != "")
-              regions[dti][r].SetBiMaterial(design_bim);
+              dr.SetBiMaterial(design_bim);
 
             double upper = curr_design_pn->Get("upper")->As<double>();
             // for tanh and heaviside scaling and offset is set in the physical case
@@ -191,14 +204,13 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
             double lower = DetermineLowerBound(curr_design_pn, tf);
             
             if(curr_design_pn->Has("scale") && curr_design_pn->Get("scale")->As<bool>()){
-              regions[dti][r].scale_design = (upper - lower);
-              regions[dti][r].translate_design = lower;
+              dr.scale_design = (upper - lower);
+              dr.translate_design = lower;
             }
 
             double initial = curr_design_pn->Get("initial")->As<double>();
 
-            LOG_DBG2(designSpace) << "add design " << dt << ":" << DesignElement::type.ToString(dt)  
-                                  << " initial=" << boost::lexical_cast<std::string>(initial);
+            LOG_DBG2(designSpace) << "add design initial=" << boost::lexical_cast<std::string>(initial) << dr.ToString();
                         
             for(unsigned int e = 0; e < n; e++)
             {
@@ -870,6 +882,7 @@ int DesignSpace::WriteDesignToExtern(double* space, bool scaling) const
     const unsigned int nr = cur_des.GetSize();
     for(unsigned int r = 0; r < nr; r++){
       const DesignRegion& cur_reg = cur_des[r];
+      LOG_DBG2(designSpace) << "WDTE: dr=" << cur_reg.ToString();
       const double rscaling = scaling ? 1.0 /cur_reg.scale_design : 1.0;
       const double translation = scaling ? cur_reg.translate_design : 0.0;
       if(cur_reg.constant == VARIABLE){
@@ -1388,6 +1401,15 @@ DesignSpace::DesignRegion* DesignSpace::GetRegion(RegionIdType id, bool throw_ex
 DesignSpace::DesignRegion::DesignRegion()
 {
   regionId = -1;
+}
+
+std::string DesignSpace::DesignRegion::ToString() const
+{
+  std::stringstream ss;
+  ss << " d=" << DesignElement::type.ToString(design) << " reg=" << regionId << " base=" << base;
+  ss << " elem=" << elements << " sd=" << scale_design << " td=" << translate_design << " bimat=" << bimaterial_;
+  //ss << " dc=" << DesignSpace::designConstant.ToString(constant);
+  return ss.str();
 }
 
 bool DesignSpace::DesignRegion::HasBiMaterial() const

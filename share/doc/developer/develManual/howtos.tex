@@ -100,6 +100,32 @@ look at Macfusion \url{http://macfusionapp.org/}.
 
 
 \section{Debugging using Eclipse, Totalview, gdb}
+
+\subsection{gdb}
+\url{http://www.unknownroad.com/rtfm/gdbtut/gdbtoc.html}
+
+\url{http://heather.cs.ucdavis.edu/~matloff/UnixAndC/CLanguage/Debug.html}
+
+\url{http://www.cs.umd.edu/~srhuang/teaching/cmsc212/gdb-tutorial-handout.pdf}
+
+\url{http://de.opensuse.org/SDB:Debuggen_mit_der_Glibc}
+
+\subsection{Eclipse}
+\url{http://download.eclipse.org/tools/cdt/docs/tutorials/debug_tutorial/cdt_w_debug.htm}
+
+\url{http://www.users.fh-sbg.ac.at/~rgraf/downloads/SWE1_LB/Debugging%20in%20C%20und%20C++%20Programmen%20unter%20Eclipse.pdf}
+
+\url{http://informatik.unibas.ch/lehre/ws06/cs106/_Downloads/EclipseDebuggingMM.pdf}
+
+\url{http://www.youtube.com/watch?v=azInZkPP56Q}
+
+\subsection{TotalView}
+\url{http://www.roguewave.com/documentation/index.php}
+
+\url{https://computing.llnl.gov/tutorials/totalview/}
+
+\url{http://www.lrz.de/services/software/programmierung/totalview/kurs/Totalview_Fortran.pdf}
+
 \section{CFS++ Coding Style}
 
 There is no very strict coding style for CFS++. The main points which have been agreed upon are
@@ -144,6 +170,7 @@ For convenience the corresponding settings files are attached here
 
 
 \section{First Time Implementing}
+\label{sec:first_time_implementing}
 This chapter is for first time coders, who want to get acquainted with the
 structure of CFS++, how the Finite Element method is structured into C++
 classes. We start off with the structure itself and the idea behind it and then
@@ -330,6 +357,93 @@ Were \texttt{\#1} sets the matrix block in vertical direction and \texttt{\#2} i
 direction. \texttt{\hyphenation{actStiffContext}} is a \texttt{BiLinFormContext} object which
 gets the form and after further initialisation is then stored into the assemble
 object.
+
+\subsection{Examining the code in action}
+\label{sec:code_in_action}
+
+The explanations in  the previous section are for a  pseudo equation only. The
+best  way to  get  started with  the hands-on  CFS++  experience is  to run  a
+debugger  on an  existing  example from  the  test suite,  which most  closely
+resembles  the problem  to be  investigated.  To  get information  about which
+function  calls another  function, static  callgraphs are  a great  tool. Such
+graphs can  be generated  using the callgrind  tool of valgrind.   Valgrind is
+primarily a profiling tool for  examining and fixing memory leaks in programs.
+By using  its callgrind functionality  one can get out  additional information
+about the calling  hierarchy of a program. Let's say we  are interested in the
+calling hierarchy of an acoustic problem. We can navigate into a corresponding
+directory          within         the         test          suite         tree
+(e.g. TESTSUITE/singlefield/acoustics/abc3d)  and start the  CFS++ binary from
+within valgrind:
+
+\begin{verbatim}
+valgrind --tool=callgrind $CFS_BINARY_DIR/bin/OPENSUSE_11.3_X86_64/cfsbin abc3d
+kcachegrind
+\end{verbatim}
+
+The first  command starts  the CFS++ process  within valgrind and  records the
+complete calling history. The second command starts up a GUI in which the call
+graph can be  examined visually as Fig.  \ref{fig:kcachegrind}  shows.  
+
+\begin{figure}[htb] 
+  \centering 
+  \label{fig:kcachegrind}
+  \begin{overpic}[height=8cm]{pics/kcachegrind_acou_define_int_callgraph}
+  \end{overpic}
+  \caption{Callgraph for AcousticPDE::DefineIntegrators() in KCachegrind.}
+\end{figure}
+
+While this
+display conveys already much information  about the calling hierarchy, it does
+not give too many hints about the transient behaviour of the program. In order
+to get that kind of information, it is  a good idea to start a debugger on the
+same problem.  In  Klagenfurt we have a license for  the TotalView debugger. A
+license for  TotalView is also available  on the RRZE machines  in Erlangen. A
+nice feature, which sets TotalView apart  from other debuggers is, that it can
+also step backwards in time. This  feature is especially useful for a beginner
+in CFS++,  since the process  does not have  to be restarted everytime  to get
+back to a previous breakpoint. To  start CFS++ in TotalView, use the following
+command:
+
+\begin{verbatim}
+totalview $CFS_BINARY_DIR/bin/OPENSUSE_11.3_X86_64/cfsbin -a abc3d
+\end{verbatim}
+
+It is important to enable the replay engine feature in the window that pops up
+(c.f. Fig. \ref{fig:totalview_enable_replay_engine}).
+
+\begin{figure}[htb] 
+  \centering 
+  \label{fig:totalview_enable_replay_engine}
+  \begin{overpic}[height=6cm]{pics/totalview_enable_replay_engine}
+  \end{overpic}
+  \caption{Enabling backward stepping in TotalView.}
+\end{figure}
+
+Afterwards one can  set breakpoints in the main window  and start the process.
+Figures show the main window and  the callgraph window (Tools $->$ Call Graph)
+of   TotalView  (c.f.   Fig.   \ref{fig:totalview_acou_define_int_callgraph}).
+Please note,  that next  to the  forward stepping buttons  there are  also the
+backward      stepping     pendants      available     in      the     toolbar
+(Fig. \ref{fig:totalview_acou_define_int}).
+
+\begin{figure}[htb] 
+  \centering 
+  \subfloat[TotalView stopped at DefineIntegrators() in AcousticPDE.]{
+    \label{fig:totalview_acou_define_int}
+    \begin{overpic}[height=8cm]{pics/totalview_acou_define_int}
+%      \put(10,20){\textcolor{red}{\bf Test}}
+    \end{overpic}
+    }
+  \qquad
+  \subfloat[Corresponding call graph.]{
+    \label{fig:totalview_acou_define_int_callgraph}
+    \begin{overpic}[height=8cm]{pics/totalview_acou_define_int_callgraph}
+    \end{overpic}
+  } 
+  \caption{CFS++ running the abc3d example in TotalView.}
+  \label{fig:totalview_abc3d}
+\end{figure}
+
 
 
 \subsection{First implementation by example}

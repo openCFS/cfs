@@ -245,7 +245,11 @@ namespace CoupledField {
         stdType_(NULL),
         size_( 0 ),
         numElems_( 0 )
-      {}
+      {
+        if(atomTypeMap_.empty()) {
+          InitAtomTypeMap();
+        }
+      }
 
       //! Destructor
       virtual ~BaseHdfTypeConversion() {
@@ -294,6 +298,9 @@ namespace CoupledField {
       //! Numer of elements in the array
       UInt numElems_;
 
+      static std::map< std::string, std::pair<const H5::PredType*, const H5::PredType*> > atomTypeMap_;
+
+      void InitAtomTypeMap();
     };
 
     //! Templatized class for type conversion

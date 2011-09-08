@@ -27,6 +27,7 @@
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/resultHandler.hh"
 #include "DataInOut/Logging/cfslog.hh"
+#include "DataInOut/programOptions.hh"
 #include "CoupledPDE/pdecoupling.hh"
 #include "Domain/domain.hh"
 #include "Utils/coordSystem.hh"
@@ -70,6 +71,8 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
     aitkenOmega_ = displFac_;
     aitkenOmegaPrevIter_ = displFac_;
     FSI_ = myParam_->Get("fsi")->As<bool>();
+    if (FSI_ && !useAitken_)
+      WARN("Using fsi without aitken is not recommended");
 
     // ****************************
     // DETERMINE GEOMETRY
@@ -122,6 +125,83 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
   MechPDE::~MechPDE()
   {
 
+  }
+
+  void MechPDE::WriteRestart()
+  {
+    SinglePDE::WriteRestart();
+
+    // additionaly the aitkenOmega_ needs to be stored for a better restart
+     
+    shared_ptr<EntityList> entList;
+    shared_ptr<SimOutputHDF5> restartOutFile;
+    const std::string simName = progOpts->GetSimName();
+    std::string restartFileName = simName+"_"+pdename_+".restart";
+
+    PtrParamNode h5Node (new ParamNode(ParamNode::EX, ParamNode::ELEMENT));
+    PtrParamNode eFiles (new ParamNode(ParamNode::EX, ParamNode::ATTRIBUTE));
+    eFiles->SetName("externalFiles");
+    eFiles->SetValue( "false" );
+    h5Node->AddChildNode(eFiles);
+    restartOutFile = shared_ptr<SimOutputHDF5>(new SimOutputHDF5(restartFileName, h5Node));
+
+    ResultMap::iterator it = resultLists_.begin();
+    ResultList*  actList = &(it->second);
+    for (;it != resultLists_.end(); ++it)
+    {
+      actList = &(it->second);
+      if ((*actList)[0]->GetResultInfo()->resultName == "mechDisplacement")
+      {
+        break;
+      }
+    }
+    shared_ptr<ResultInfo> actResultInfo = (*actList)[0]->GetResultInfo();
+    shared_ptr<BaseResult> outResult;
+    outResult = shared_ptr<BaseResult>(new Result<Double>());
+    outResult->SetResultInfo( actResultInfo );
+    outResult->SetEntityList( entList );
+
+    restartOutFile->InitModule(false);
+    restartOutFile->AddResultAttribute(outResult, 1, "aitkenOmega", aitkenOmega_);
+
+  }
+
+  void MechPDE::ReadRestart(UInt& startStep)
+  {
+    SinglePDE::ReadRestart(startStep);
+
+    // additionaly the aitkenOmega_ needs to be stored for a better restart
+     
+    shared_ptr<EntityList> entList;
+    shared_ptr<SimInputHDF5> restartInFile;
+    const std::string simName = progOpts->GetSimName();
+    std::string restartFileName = "results_hdf5/"+simName+"_"+pdename_+".restart.h5";
+
+    PtrParamNode h5Node (new ParamNode(ParamNode::EX, ParamNode::ELEMENT));
+    PtrParamNode eFiles (new ParamNode(ParamNode::EX, ParamNode::ATTRIBUTE));
+    eFiles->SetName("externalFiles");
+    eFiles->SetValue( "false" );
+    h5Node->AddChildNode(eFiles);
+    restartInFile = shared_ptr<SimInputHDF5>(new SimInputHDF5(restartFileName, h5Node));
+
+    ResultMap::iterator it = resultLists_.begin();
+    ResultList*  actList = &(it->second);
+    for (;it != resultLists_.end(); ++it)
+    {
+      actList = &(it->second);
+      if ((*actList)[0]->GetResultInfo()->resultName == "mechDisplacement")
+      {
+        break;
+      }
+    }
+    shared_ptr<ResultInfo> actResultInfo = (*actList)[0]->GetResultInfo();
+    shared_ptr<BaseResult> outResult;
+    outResult = shared_ptr<BaseResult>(new Result<Double>());
+    outResult->SetResultInfo( actResultInfo );
+    outResult->SetEntityList( entList );
+
+    restartInFile->InitModule();
+    restartInFile->GetResultAttribute(outResult, 1, "aitkenOmega", aitkenOmega_);
   }
 
   void MechPDE::ReadDampingInformation( )
@@ -1445,7 +1525,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
         ptCoupling_->GetOutputNodes(interfaceDispCoupl, couplingnodes);
         sol_->NodeSolutionToCoupling(DispValues, *couplingnodes);
 
-        if ( analysistype_ == TRANSIENT ) 
+        if ( analysistype_ == TRANSIENT  && iterCoupledCounter_) 
         {
 
           fixedOmega_ = displFac_;
@@ -2434,48 +2514,48 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
       // reset target such that we can sum up
       if(!do_von_mises)
         for(UInt iDof = 0; iDof < stressDim_; iDof++ )
-           actVal[it.GetPos()*stressDim_ + iDof] = 0.0;
+          actVal[it.GetPos()*stressDim_ + iDof] = 0.0;
       // to sum up von Mises inner product
       TYPE inner = 0.0;
 
       // I simply don't know how to do it in the axis symmetric case. Here we do the single mid point integration!
-      bool midpoint = isaxi_;
+      //bool midpoint = isaxi_;
+      //bool midpoint = false;
 
       Vector<Double>* intPoints = it.GetElem()->ptElem->GetIntPoints();
       // loop over the integration points.
-      for(UInt ip = 1; ip <= (midpoint ? 1 : nrIntPts); ip++)
-      {
-        //set element solution
-        sol_->GetElemSolutionAsMatrix(sol, it);
-        stress_strain->SetActElemSol(sol);
+      Matrix<Double> elemCoord;
+      ptgrid_->GetElemNodesCoord( elemCoord, it.GetElem()->connect );
 
-        //calculates the element stress/strain
-        if(midpoint) {
-          it.GetElem()->ptElem->GetCoordMidPoint(intPoint);
-          stress_strain->SetIntPoint(intPoint);
-        }
-        else
-          stress_strain->SetIntPoint(intPoints[ip-1]); // fuck 1-based!!
+      //set element solution once
+      sol_->GetElemSolutionAsMatrix(sol, it);
+      stress_strain->SetActElemSol(sol);
+      for(UInt ip = 1; ip <=  nrIntPts; ip++)
+      {
+        stress_strain->SetIntPoint(intPoints[ip-1]); // fuck 1-based!!
 
         if(st == MECH_STRAIN || st == VON_MISES_STRAIN)
           stress_strain->CalcStrainVec(vec,ip,it);
         else
           stress_strain->CalcStressVec(vec,ip,it);
 
-        if(midpoint)
-          factor = density ? elem_vol : 1.0 ;
-        else {
-          // we need the Jacobi determinant for a good averaging.
-          jac_det = midpoint ? 0.0 : it.GetElem()->ptElem->CalcJacobianDetAtIp(ip, coords, it.GetElem());
-          // we need to compensate for the summation and handle the density (which is not! normalizing by element volume).
-          factor = intWeights[ip-1] * jac_det / (density ? 1.0 : elem_vol); // fuck 1-based!
+        // we need the Jacobi determinant for a good averaging.
+        jac_det = it.GetElem()->ptElem->CalcJacobianDetAtIp(ip, coords, it.GetElem());
+
+        // if we are axisymmetric, we have to account for the radial weighting,
+        // i.e. we have to multiply the jacobian determinant by 2*pi*r(global x-coordinate of the point)
+        // we need to compensate for the summation and handle the density (which is not! normalizing by element volume).
+        if( isaxi_ ) {
+          Vector<Double> globIp;
+          it.GetElem()->ptElem->Local2GlobalCoord( globIp, intPoints[ip-1], elemCoord, it.GetElem());
+          jac_det *= globIp[0]*2*PI;
         }
 
-
+        factor = intWeights[ip-1] * jac_det / (density ? 1.0 : elem_vol); // fuck 1-based!
         stress_strain->UnsetIntPoint();
 
         LOG_DBG3(mechpde) << "CSAS: el=" << it.GetElem()->elemNum << " ip=" << ip << " vec=" << vec.ToString() << " jac_det=" << jac_det
-                          << " w=" << intWeights[ip-1] << " ev=" << elem_vol << " d=" << density << " f=" << factor;
+            << " w=" << intWeights[ip-1] << " ev=" << elem_vol << " d=" << density << " f=" << factor;
 
         // this is the tensor case, we copy the summed up elements
         if(!do_von_mises)
@@ -2823,7 +2903,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
   {
     Vector<Double> aux1;
 
-    if (iterCoupledCounter_ == 1)
+    if (iterCoupledCounter_ <= 1)
     {
       if (aitkenOmegaPrevIter_ < displFac_)
       {

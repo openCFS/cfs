@@ -1416,9 +1416,13 @@
           
           <!-- Continuation for Heaviside filter and steepness of tanh -->
           <xsd:attribute name="beta" type="xsd:float" use="optional"/>
+
           <!-- Switching position for tanh -->
           <xsd:attribute name="eta" type="xsd:float" use="optional"/>
-          
+
+          <!-- Overwerites design lower bound for mixed design scenarios. For heaviside and tanh -->
+          <xsd:attribute name="force_lower_bound" type="xsd:float" use="optional"/>
+
         </xsd:complexType>
       </xsd:element>
     </xsd:sequence>

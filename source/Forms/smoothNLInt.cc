@@ -62,7 +62,7 @@ namespace CoupledField
     // Extract pointer to reference element and get coordinates
     ExtractElemInfo( ent1 );
     UInt elemNumber = ent1.GetElem()->elemNum;
-    Double elastFactor, A_elem;
+    Double elastFactor;
     // TODO: Check if this is still needed
     // Double elastFactor2, elastFactor3;
     //Double LMaxMax;
@@ -71,7 +71,6 @@ namespace CoupledField
     Double deltaX, deltaY;
     Double dist, distNew;
     Double maxDist, exponent;
-    A_elem = ptelem->CalcVolume(ptCoord_, isaxi_);
     //ptelem->GetMaxMinEdgeLength(ptCoord_,maxEdgeLength_,minEdgeLength_);
 
     firstTime=false;
@@ -151,10 +150,6 @@ namespace CoupledField
 
       Matrix<Double> newCoord;
       newCoord=ptCoord_+elemResult_;
-      Double A0, Ai;
-      A0=ptelem->CalcVolume(ptCoord_, isaxi_);
-      Ai=ptelem->CalcVolume(newCoord, isaxi_);
-
 
       elastFactor=ComputeElastFactor(actStrain[0],actStrain[1],actStrain[2] );
 

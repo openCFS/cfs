@@ -9,6 +9,8 @@
  
 namespace CoupledField {
 
+  class LinearFormContext;
+
   //! Class for heat conduction equation
   class HeatCondPDE: public SinglePDE
   {
@@ -27,8 +29,16 @@ namespace CoupledField {
     //! Read special boundary conditions
     void ReadSpecialBCs();
 
+    //! Initialize NonLinearities
+    virtual void InitNonLin();
+
     //! define all (bilinearform) integrators needed for this pde
     void DefineIntegrators();
+
+    /** region load 
+     * @param regionLoads as returned from ReadRegionLoadsFromXML
+     * @param linForms set to append linear Forms to, if NULL use assemble_ */
+    void DefineRegionLoadIntegrators(std::map<RegionIdType, RegionLoad>& regionLoads, StdVector<LinearFormContext*>* linForms = NULL);
 
     //! define the SoltionStep-Driver
     void DefineSolveStep();
@@ -110,7 +120,12 @@ namespace CoupledField {
     //! flag for thermoelastic-coupling
     bool isMechCoupled_;
     
+    NonLinMethodType nonLinMethod_;
+
     //Double InitialTemp_;
+
+    //! vector containing regionIds of non-conforming interfaces
+    StdVector<RegionIdType> ncIFaces_;
     
   };
 

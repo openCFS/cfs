@@ -54,6 +54,10 @@ namespace CoupledField
     matrix_factors_[DAMPING] = 0.0;       
 
     //get the memory
+    if ( !is_SolTimeStep_set(TIMESTEP_1) )
+    {
+      sol_timeStepVec_[TIMESTEP_1] = dummyVec;
+    }
     if ( !is_Deriv_set(FIRST_DERIV) )
     {
       solDeriv_vec_[FIRST_DERIV] = dummyVec;
