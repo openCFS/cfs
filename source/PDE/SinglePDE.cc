@@ -1965,11 +1965,14 @@ namespace CoupledField {
         // Read data
         materials_[actRegionId] = matLoader->LoadMaterial(material, pdematerialclass_);
 
-        // log the just read material. LoadMaterial() so to say initializes the ToInfo()
-        PtrParamNode in = infoNode_->GetByVal("material", "name", material);
-        // additional regions are automatically appended
-        in->Get("regionList")->GetByVal("region", "name", domain->GetGrid()->GetRegion().ToString(actRegionId));
-        materials_[actRegionId]->ToInfo(in);
+        if(progOpts->DoDetailedInfo())
+        {
+          // log the just read material. LoadMaterial() so to say initializes the ToInfo()
+          PtrParamNode in = infoNode_->GetByVal("material", "name", material);
+          // additional regions are automatically appended
+          in->Get("regionList")->GetByVal("region", "name", domain->GetGrid()->GetRegion().ToString(actRegionId));
+          materials_[actRegionId]->ToInfo(in);
+        }
 
         // Check for local coordinate system
         if( !refCoordSys.empty() ) {

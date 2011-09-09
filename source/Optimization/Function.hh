@@ -430,6 +430,11 @@ class Function
     /** Give the projection data */
     StdVector<DesignElement>& GetProjectionDesignClone();
 
+    /** This are the elements the Function is defined on. Either references to the
+     * elements within the design space to to dummy elements if the region is not within the design (stress)
+     * @param region as long as only the Condition has this stuff it is an parameter*/
+    void SetElements(DesignSpace* space, RegionIdType region);
+
     /** We also store here the info ptr. When overload, call also this. */
     virtual void ToInfo(PtrParamNode info);
 
@@ -460,11 +465,6 @@ class Function
     
     /** extract the "coord" element and parse it to coord */
     static void ParseCoord(PtrParamNode pn, tuple<int, int, double>& coord);
-
-    /** This are the elements the Function is defined on. Either references to the
-     * elements within the design space to to dummy elements if the region is not within the design (stress)
-     * @param region as long as only the Condition has this stuff it is an parameter*/
-    void SetElements(DesignSpace* space, RegionIdType region);
 
     /** The actual kind of cost function. */
     Type type_;

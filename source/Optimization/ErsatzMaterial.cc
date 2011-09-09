@@ -381,6 +381,8 @@ StdVector<std::pair<string, double> > ErsatzMaterial::GetOrthotropeProperties(co
       bm = GetForm(design->GetRegionId(), pde, pde, "linElastInt")->GetMaterial();
     }
     Objective vf(Function::VOLUME, 0.0, true); // physical!
+    assert(design->GetRegionIds().GetSize() ==1);
+    vf.SetElements(design, design->GetRegionId());
     double vol = CalcVolume(&vf, NULL, false, true);
     StdVector<std::pair<string, double> > ortho = MechanicMaterial::CalcOrthotropeProperties(homogenizedTensor, bm, pde->GetSubTensorType(), vol);
     return ortho;
@@ -1281,6 +1283,7 @@ double ErsatzMaterial::CalcVolume(Objective* f, Condition* g, bool derivative, b
 
 double ErsatzMaterial::CalcTrivialVolume(Function* f, bool derivative, bool normalized)
 {
+  assert(!f->elements.IsEmpty());
   // In CalcOrthotropeMaterialProperties() we construct a dummy function, this has Function::elements not set :(
 
   // only for physical
