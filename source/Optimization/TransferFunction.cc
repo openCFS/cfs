@@ -238,7 +238,7 @@ double TransferFunction::Transform(const DesignElement* de, DesignElement::Acces
   default: throw Exception("type not implemented");
   }          
   
-  LOG_DBG3(trans) << "Transform de=" << (de != NULL ? de->elem->elemNum : -1) << " value=" << value << " type=" << type.ToString(type_) << " param=" << param_ << " -> " << result;
+  LOG_DBG3(trans) << "Transform de=" << (de != NULL ? (int) de->elem->elemNum : -1) << " value=" << value << " type=" << type.ToString(type_) << " param=" << param_ << " -> " << result;
   return result;
 }     
 
