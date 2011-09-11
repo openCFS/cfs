@@ -1,7 +1,7 @@
 #ifndef FILE_SOLVESTEPSMOOTH
 #define FILE_SOLVESTEPSMOOTH
 
-#include "OLAS/algsys/basesystem.hh"
+#include "OLAS/algsys/algebraicSys.hh"
 
 #include "stdSolveStep.hh"
 

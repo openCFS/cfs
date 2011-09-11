@@ -16,7 +16,7 @@
 #include "DataInOut/ParamHandling/CFSOLASParams.hh"
 #include "Driver/assemble.hh"
 
-#include "OLAS/algsys/basesystem.hh"
+#include "OLAS/algsys/algebraicSys.hh"
 
 namespace CoupledField {
 

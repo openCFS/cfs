@@ -15,7 +15,7 @@ namespace CoupledField
   public:
     //! constructor
     //! \param algebraicsystem pointer to algebraic system
-    Bdf2(  BaseSystem * algebraicsystem );
+    Bdf2(  AlgebraicSys * algebraicsystem );
 
     //! destructor
     virtual ~Bdf2();

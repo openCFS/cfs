@@ -25,8 +25,7 @@
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/resultHandler.hh"
 
-#include "OLAS/algsys/sbmsystem.hh"
-#include "OLAS/algsys/standardsys.hh"
+#include "OLAS/algsys/algebraicSys.hh"
 
 namespace CoupledField {
 
@@ -204,30 +203,11 @@ namespace CoupledField {
     infoNode_ = info->Get("PDE")->Get("directCoupledPDE", ParamNode::APPEND);
     infoNode_->Get(ParamNode::HEADER)->Get("sequeceStep")->SetValue(sequenceStep);
 
-    // Check, whether we shall generate an SBM_System
-    bool genSBMSys = false;
-    PtrParamNode linSysNode =
-      param->GetByVal( "sequenceStep", std::string("index"), sequenceStep)
-      ->Get("linearSystems", ParamNode::PASS );
-    if( linSysNode ) {
-      PtrParamNode specSysNode = linSysNode
-        ->GetByVal("system","name","direct", ParamNode::PASS);
-      if( specSysNode ) {
-        if( specSysNode->Has("sbmMatrix") ) {
-          genSBMSys = true;
-        }
-
-      }
-    }
-
+    
     // Create algebraic system and pass it to SinglePDEs
-    if ( genSBMSys == true ) {
-      algsys_ = new SBM_System(FindLinearSystem("direct"));
-    }
-    else {
-      algsys_ = new StandardSystem(FindLinearSystem("direct"));
-    }
-
+    olasInfo_ = info->Get("OLAS")->Get("direct");
+    algsys_ = new AlgebraicSys(FindLinearSystem("direct"), olasInfo_);
+    
     // ----------------------------
     //  Detection of analysis type
     // ----------------------------
@@ -464,7 +444,6 @@ namespace CoupledField {
 
 
     std::string pdeName;
-    FeFctIdType pdeId;
     shared_ptr<FeSpace> feSpace;
 
     // Set linear system parameters for OLAS
@@ -473,24 +452,24 @@ namespace CoupledField {
     //       the linear system for a direct coupled PDE problem is always
     //       called "direct", thus there can currently only be one of them.
     ReadOlasParams( "direct" );
-    olasInfo_ = info->Get("OLAS")->Get("direct");
 
-    // Begin setup of the matrix graph
-    algsys_->GraphSetupInit( singlePDEs_.GetSize() );
-
-    // iterate over all singlePDE and register them
-    for ( UInt i = 0; i < singlePDEs_.GetSize(); i++ ) {
-
-      // obtain PDE identification tag from algebraic system
-      // and set number of dirichlet and constraint equations
-      pdeName= singlePDEs_[i]->GetName();
-      pdeId = singlePDEs_[i]->GetPDEId();
-      algsys_->RegisterPDE( pdeId, singlePDEs_[i]->GetNumPdeEquations(),
-                            singlePDEs_[i]->GetNumPdeUnknowns() );
-
-      // Let the PDE set its Dirichlet information and related stuff
-      singlePDEs_[i]->DefineAlgSys();
-    }
+    REFACTOR;
+//    // Begin setup of the matrix graph
+//    algsys_->GraphSetupInit( singlePDEs_.GetSize() );
+//
+//    // iterate over all singlePDE and register them
+//    for ( UInt i = 0; i < singlePDEs_.GetSize(); i++ ) {
+//
+//      // obtain PDE identification tag from algebraic system
+//      // and set number of dirichlet and constraint equations
+//      pdeName= singlePDEs_[i]->GetName();
+//      pdeId = singlePDEs_[i]->GetPDEId();
+//      algsys_->RegisterPDE( pdeId, singlePDEs_[i]->GetNumPdeEquations(),
+//                            singlePDEs_[i]->GetNumPdeUnknowns() );
+//
+//      // Let the PDE set its Dirichlet information and related stuff
+//      singlePDEs_[i]->DefineAlgSys();
+//    }
 
     // CURRENTLY NOT REQUIRED
     //
@@ -507,65 +486,65 @@ namespace CoupledField {
     // }
 
     // iterate over all singlePDE and setup matrix graph
-    // trigger the creation and assembly of the matrix graph
-    for ( UInt i = 0; i < singlePDEs_.GetSize(); i++ ) {
-      FeFctIdType id = singlePDEs_[i]->GetPDEId();
-      algsys_->AssembleInit( id, id, false );
-      assemble_->SetupMatrixGraph( id, id );
-      algsys_->AssembleDone( id, id, false );
-    }
-
-    // For SBM_Systems we must obtain the re-orderings now
-    // and pass it to the EQN-objects
-    if ( dynamic_cast<SBM_System*>(algsys_) != NULL ) {
-      IncorporateReordering();
-    }
-
-    // Setup matrix graph of coupling objects
-    for (UInt i=0; i<couplings_.GetSize(); i++) {
-      FeFctIdType id1 = couplings_[i]->GetPdeId1();
-      FeFctIdType id2 = couplings_[i]->GetPdeId2();
-
-      // setup matrix graph for upper diagonal(s)
-      algsys_->AssembleInit( id1, id2, false );
-      assemble_->SetupMatrixGraph( id1, id2 );
-      algsys_->AssembleDone( id1, id2, false );
-
-      // setup matrix graph for lower diagonal(s)
-      algsys_->AssembleInit( id2, id1, false );
-      assemble_->SetupMatrixGraph( id2, id1 );
-      algsys_->AssembleDone( id2, id1, false );
-    }
-
-    // Finish assembly of the matrix graph
-    algsys_->GraphSetupDone();
-
-    // For StandardSystems we must obtain the re-orderings at this point
-    // and pass it to the EQN-objects
-    if ( dynamic_cast<StandardSystem*>(algsys_) != NULL ) {
-      IncorporateReordering();
-    }
-
-    // Print information from assemble class
-    assemble_->ToInfo(infoNode_->Get(ParamNode::HEADER)->Get("integrators"));
-
-    // Allocate the necessary matrices as well as solver and preconditioner
-    CreateMatrices_Solver();
-
-    // =====================================================================
-    // Set the initial conditions
-    // =====================================================================
-    if ( analysistype_ == TRANSIENT ){
-      SetInitialCondition();
-    }
-
-
-    for( UInt i = 0; i < singlePDEs_.GetSize(); i++ ) {
-      if (singlePDEs_[i]->memento_ != NULL &&
-          singlePDEs_[i]->mementoAsDirichlet_ == false ) {
-        singlePDEs_[i]->IncorporateMemento();
-      }
-    }
+//    // trigger the creation and assembly of the matrix graph
+//    for ( UInt i = 0; i < singlePDEs_.GetSize(); i++ ) {
+//      FeFctIdType id = singlePDEs_[i]->GetPDEId();
+//      algsys_->AssembleInit( id, id, false );
+//      assemble_->SetupMatrixGraph( id, id );
+//      algsys_->AssembleDone( id, id, false );
+//    }
+//
+//    // For SBM_Systems we must obtain the re-orderings now
+//    // and pass it to the EQN-objects
+//    if ( dynamic_cast<SBM_System*>(algsys_) != NULL ) {
+//      IncorporateReordering();
+//    }
+//
+//    // Setup matrix graph of coupling objects
+//    for (UInt i=0; i<couplings_.GetSize(); i++) {
+//      FeFctIdType id1 = couplings_[i]->GetPdeId1();
+//      FeFctIdType id2 = couplings_[i]->GetPdeId2();
+//
+//      // setup matrix graph for upper diagonal(s)
+//      algsys_->AssembleInit( id1, id2, false );
+//      assemble_->SetupMatrixGraph( id1, id2 );
+//      algsys_->AssembleDone( id1, id2, false );
+//
+//      // setup matrix graph for lower diagonal(s)
+//      algsys_->AssembleInit( id2, id1, false );
+//      assemble_->SetupMatrixGraph( id2, id1 );
+//      algsys_->AssembleDone( id2, id1, false );
+//    }
+//
+//    // Finish assembly of the matrix graph
+//    algsys_->GraphSetupDone();
+//
+//    // For StandardSystems we must obtain the re-orderings at this point
+//    // and pass it to the EQN-objects
+//    if ( dynamic_cast<StandardSystem*>(algsys_) != NULL ) {
+//      IncorporateReordering();
+//    }
+//
+//    // Print information from assemble class
+//    assemble_->ToInfo(infoNode_->Get(ParamNode::HEADER)->Get("integrators"));
+//
+//    // Allocate the necessary matrices as well as solver and preconditioner
+//    CreateMatrices_Solver();
+//
+//    // =====================================================================
+//    // Set the initial conditions
+//    // =====================================================================
+//    if ( analysistype_ == TRANSIENT ){
+//      SetInitialCondition();
+//    }
+//
+//
+//    for( UInt i = 0; i < singlePDEs_.GetSize(); i++ ) {
+//      if (singlePDEs_[i]->memento_ != NULL &&
+//          singlePDEs_[i]->mementoAsDirichlet_ == false ) {
+//        singlePDEs_[i]->IncorporateMemento();
+//      }
+//    }
 
   }
 
@@ -812,25 +791,5 @@ namespace CoupledField {
 //      solveStep_ = new StdSolveStep(*this);
   }
 
-  // *************************
-  //   IncorporateReordering
-  // *************************
-  void DirectCoupledPDE::IncorporateReordering() {
-
-
-    FeFctIdType pdeId   = NO_PDE_ID;
-    StdVector<UInt> newOrder;
-
-    for ( UInt i = 0; i < singlePDEs_.GetSize(); i++ ) {
-      pdeId    = singlePDEs_[i]->GetPDEId();
-      algsys_->GetReordering( pdeId, newOrder );
-//       if( newOrder == NULL ) {
-//         std::cerr << "performing no reordering!";
-//       }
-
-      EXCEPTION(" DirectCoupledPDE::IncorporateReordering() : Reordering is currently not supported");
-      //eqn->ReorderMapping( newOrder );
-    }
-  }
 
 }

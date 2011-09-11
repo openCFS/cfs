@@ -16,8 +16,8 @@ namespace CoupledField {
     sol = rhs;
   }
   
-  void IdPrecondSBM::Apply( const SBM_Matrix &sysmat, const SBM_Vector &rhs,
-                            SBM_Vector &sol ) const {
-    sol = rhs;
-  }  
+//  void IdPrecondSBM::Apply( const SBM_Matrix &sysmat, const SBM_Vector &rhs,
+//                            SBM_Vector &sol ) const {
+//    sol = rhs;
+//  }  
 }

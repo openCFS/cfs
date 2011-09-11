@@ -21,7 +21,7 @@ namespace CoupledField
                          StdPDE * ptPDE,
                          shared_ptr<EqnMap> eqnMap,
                          NodeStoreSol<Double> & aSol,
-                         BaseSystem * algsys, bool coordUpdate) 
+                         AlgebraicSys * algsys, bool coordUpdate) 
     : BaseOperator(ptGrid, ptPDE, eqnMap, coordUpdate ), algsys_(algsys)
   {
 

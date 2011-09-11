@@ -114,9 +114,6 @@ namespace CoupledField
     // ENTITIES / RESULTS
     // ======================================================
 
-    //! Set pointer to PDE(s) where the form is derived from
-    void SetPtPdes(shared_ptr<SinglePDE> aPDE1, shared_ptr<SinglePDE> aPDE2 );
-
     //! Set the result types and entities the bilinearform is working on
     void SetEntities( shared_ptr<EntityList> list1,
                       shared_ptr<EntityList> list2 );

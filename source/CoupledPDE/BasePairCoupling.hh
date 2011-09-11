@@ -20,7 +20,7 @@ namespace CoupledField
   // forward class declaration
   class SinglePDE;
   class Assemble;
-  class BaseSystem;
+  class AlgebraicSys;
   class Grid;
   class BaseMaterial;
   class BaseNodeStoreSol;
@@ -63,11 +63,11 @@ namespace CoupledField
     // GET / SET METHODS
     // ======================================================
 
-    /** @see BasePDE::GetName() */
+    /** @copydoc BasePDE::GetName() */
     const std::string& GetName() const { return couplingName_; }
 
     //! Set pointer to algsys
-    void SetAlgSys( BaseSystem *algSys)
+    void SetAlgSys( AlgebraicSys *algSys)
     { algsys_ = algSys;}
 
     //! Get available results
@@ -93,12 +93,6 @@ namespace CoupledField
     std::map<RegionIdType, BaseMaterial*>  getPDEMaterialData()
     {return materials_;};
 
-
-    //! Return identifier of first PDE
-    FeFctIdType GetPdeId1();
-
-    //! Return identifier of second PDE
-    FeFctIdType GetPdeId2();
 
     //! Ger ParamNode of coupling object
     PtrParamNode GetParamNode() { return myParam_; }
@@ -271,7 +265,7 @@ namespace CoupledField
     Grid * ptGrid_;
 
     //! Pointer to algebraic system
-    BaseSystem * algsys_;
+    AlgebraicSys * algsys_;
 
     ////! Pointer to equation map of first PDE
     //StdVector<FunctionDescription> feFcts1_;

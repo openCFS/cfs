@@ -12,9 +12,9 @@
 
 namespace CoupledField {
 
-
+  
   // forward class declaration
-  class BaseSystem;
+  class AlgebraicSys;
   // typedef of timesteps: the higher the number, the older the time step
   // these are also used for the coefficient vectors. 
   // @warning: sol_timeStepVec_ may have different number of entries as
@@ -37,7 +37,7 @@ namespace CoupledField {
     //! constructor
     //! \param algebraicsystem pointer to algebraic system 
 
-    TimeStepping( BaseSystem * algebraicsystem );
+    TimeStepping( AlgebraicSys * algebraicsystem );
 
     //! deconstructor
     virtual ~TimeStepping();
@@ -253,7 +253,7 @@ namespace CoupledField {
     bool FeMatrixPresent( FEMatrixType type);
 
     //! pointer to algebraic system
-    BaseSystem * algsys_;
+    AlgebraicSys* algsys_;
 
     //! total number of entries in the rhs vector
     UInt rhsSize_;

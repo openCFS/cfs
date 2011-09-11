@@ -12,7 +12,7 @@ namespace CoupledField
 //  DECLARE_LOG(pseudoTS)
 //  DEFINE_LOG(pseudoTS, "pseudoTS")
 
-  PseudoTS::PseudoTS(BaseSystem * algebraicsystem )
+  PseudoTS::PseudoTS(AlgebraicSys * algebraicsystem )
     :TimeStepping(algebraicsystem )
   {
   }

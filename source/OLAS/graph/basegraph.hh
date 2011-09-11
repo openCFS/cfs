@@ -86,9 +86,26 @@ namespace CoupledField {
     //! This method must be called after all vertices were inserted into the
     //! graph. This finalises the assembly phase of the graph and triggers
     //! the re-ordering and the conversion into CRS storage format.
+    //! This method two possible strategies:
+    //! - 1) If useExternalOrdering = false, the internal reordering strategy
+    //!      will be used (if set) and the new ordering array will be stored
+    //!      in vertexOrder
+    //! - 2) If useExternalOrdering = true, the two vector vertexOrder and 
+    //!      edgeOrder will be used to re-order the graph. If only the vertex-
+    //!      reordering array is provieded, it will be also applied to the 
+    //!      edges.
+    //! \param useExternalOrdering use the ordering provided in the array(s)
+    //!                            vertexOrder (optionally: also edgeOrder)
+    //! \param vertexOrder new ordering for vertices. If useExternalOrdering
+    //!                    = false, the internal reordering array will
+    //!                    be taken. If useExternalOrdering = true, this vector
+    //!                    will be used as input.
+    //! \param edgeOrder new ordering for edges as input. Can be omitted. 
     //! \param order One-based array for storing the re-ordering vector. If no
     //!              re-ordering is performed, this may be a NULL pointer
-    void FinaliseAssembly( StdVector<UInt>* order );
+    void FinaliseAssembly( bool useExternalOrdering,
+                           StdVector<UInt>* vertexOrder,
+                           StdVector<UInt>* edgeOrder = NULL );
 
     //! Add edges between vertices and their neighbours
 
@@ -119,16 +136,6 @@ namespace CoupledField {
     //! the self-reference for node i, if it exists. The list of indices is
     //! lexicographically sorted with increasing index number.
     inline UInt* GetGraphRow( UInt i ) {
-
-
-#ifdef DEBUG_BASEGRAPH
-      if ( amAssembled_ == false ) {
-        EXCEPTION("Attempt to obtain information from graph object, "
-                 << "before assembly was completed by calling "
-                 << "FinaliseAssembly()");
-      }
-#endif
-
       return csEdges_ + csNodes_[i];
     }
 
@@ -163,6 +170,13 @@ namespace CoupledField {
     UInt GetNumColsMat() {
       return numColsMat_;
     }
+    
+    //! Query reordering type
+    
+    //! This method returns the requested reordering strategy.
+    BaseOrdering::ReorderingType GetReorderType() const {
+      return newOrder_;
+    }
 
     //! Query the state of the graph
 
@@ -192,7 +206,8 @@ namespace CoupledField {
     //!       \mbox{ and } a_{ij}\neq 0 \right\}\right)\enspace.
     //! \end{array}
     //! \f]
-    void GetBandwidth( UInt &bwlower, UInt& bwupper );
+    //! In adddition the average totoal bandwidth is returned
+    void GetBandwidth( UInt &bwlower, UInt& bwupper, UInt& bwAvg );
 
     //! Query the number of neighbours of node i
 
@@ -202,16 +217,6 @@ namespace CoupledField {
     //! \note The return value includes the self-reference/loop for vertex i,
     //!       if this is contained in the graph.
     inline UInt GetRowSize( UInt i ) const {
-
-
-#ifdef DEBUG_BASEGRAPH
-      if ( amAssembled_ == false ) {
-        EXCEPTION("Attempt to obtain information from graph object, "
-                 << "before assembly was completed by calling "
-                 << "FinaliseAssembly()");
-      }
-#endif
-
       return csNodes_[i+1] - csNodes_[i];
     }
 
@@ -272,6 +277,9 @@ namespace CoupledField {
 
     //! store the upper bandwidth of the graph
     UInt bwupper_;
+    
+    //! store the average total bandwidth of the graph
+    UInt bwavg_;
 
 
     // =======================================================================

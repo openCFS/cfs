@@ -8,7 +8,7 @@
 #include <iostream>
 
 
-#include "OLAS/graph/graphmanagersbmmat.hh"
+#include "OLAS/graph/graphmanager.hh"
 
 #include "MatVec/basematrix.hh"
 #include "MatVec/stdmatrix.hh"

@@ -108,11 +108,11 @@ public:
   //! Destructor
   virtual ~FeHCurlHiQuad();
 
-  //! @see FeHCurl::CalcLocShFnc
+  //! @copydoc FeHCurl::CalcLocShFnc
   void CalcLocShFnc( Matrix<Double>& shape, LocPointMapped& lp,
                      const Elem* elem, UInt comp = 1 );
 
-  //! @see FeHCurl::CalcLocCurlShFnc
+  //! @copydoc FeHCurl::CalcLocCurlShFnc
   void CalcLocCurlShFnc( Matrix<Double>& curl, LocPointMapped& lp,
                          const Elem* elem, UInt comp = 1 );
 protected:
@@ -135,11 +135,11 @@ public:
   //! Destructor
   virtual ~FeHCurlHiHex();
 
-  //! @see FeHCurl::CalcLocShFnc
+  //! @copydoc FeHCurl::CalcLocShFnc
   void CalcLocShFnc( Matrix<Double>& shape, LocPointMapped& lp,
                      const Elem* elem, UInt comp = 1 );
 
-  //! @see FeHCurl::CalcLocCurlShFnc
+  //! @copydoc FeHCurl::CalcLocCurlShFnc
   void CalcLocCurlShFnc( Matrix<Double>& curl, LocPointMapped& lp,
                          const Elem* elem, UInt comp = 1 );
 

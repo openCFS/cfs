@@ -19,7 +19,7 @@
 #include "DataInOut/programOptions.hh"
 #include "DataInOut/Logging/cfslog.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
-#include "OLAS/algsys/basesystem.hh"
+#include "OLAS/algsys/algebraicSys.hh"
 #include "DataInOut/Scripting/cfsmessenger.hh"
 #include <boost/progress.hpp>
 #include "Utils/Timer.hh"
@@ -34,7 +34,7 @@ namespace CoupledField
   DECLARE_LOG(assemble)
   DEFINE_LOG(assemble, "assemble")
 
-  Assemble::Assemble( BaseSystem* algsys,
+  Assemble::Assemble( AlgebraicSys* algsys,
                       BasePDE::AnalysisType analysis,
                       UInt maxTimeDerivOrder ) : timer_(new Timer()) {
 
@@ -83,7 +83,7 @@ namespace CoupledField
     delete linForms_;
   }
 
-  void Assemble::SetAlgSys(BaseSystem * algsys)  {
+  void Assemble::SetAlgSys(AlgebraicSys * algsys)  {
     algsys_ = algsys;
   }
 
@@ -214,8 +214,8 @@ namespace CoupledField
       biLinForms_->Push_back( biLinContext );
 
       // Pass needed matrix type to algebraic system
-      FeFctIdType id1 = biLinContext->GetFirstPde()->GetPDEId();
-      FeFctIdType id2 = biLinContext->GetFirstPde()->GetPDEId();
+      FeFctIdType id1 = biLinContext->GetFirstFeFunction()->GetFctId();
+      FeFctIdType id2 = biLinContext->GetSecondFeFunction()->GetFctId();
       algsys_->SetFEMatrixType( mappedFEType, id1, id2 );
 
       // Check for secondary matrix type
@@ -253,7 +253,7 @@ namespace CoupledField
     }
   }
 
-  void Assemble::SetupMatrixGraph(FeFctIdType pdeId1, FeFctIdType pdeId2 ) {
+  void Assemble::SetupMatrixGraph(FeFctIdType fctId1, FeFctIdType fctId2 ) {
 
     StdVector<Integer> eqnVec1, eqnVec2;
     FeFctIdType id1, id2;
@@ -265,6 +265,8 @@ namespace CoupledField
 
       // get integrator
       BiLinFormContext & actContext = **formsIt;
+      
+      FEMatrixType destMap = matrixMap_[actContext.GetDestMat()];
 
       // The bilinearform gets set if
       // a) the two pde-Ids match in the same order
@@ -274,28 +276,28 @@ namespace CoupledField
       bool doTranspose = true;
       bool setCounterPart = false;
 
-      if( pdeId1 == pdeId2 ) {
+      if( fctId1 == fctId2 ) {
         setCounterPart = actContext.IsSetCounterPart();
 
       }
 
       // case a)
-      if( actContext.GetFirstPde()->GetPDEId() == pdeId1 &&
-          actContext.GetSecondPde()->GetPDEId() == pdeId2 ) {
+      if( actContext.GetFirstFeFunction()->GetFctId() == fctId1 &&
+          actContext.GetSecondFeFunction()->GetFctId() == fctId2 ) {
         doAssemble = true;
         doTranspose = false;
       } else
 
       //case b)
-      if( actContext.GetFirstPde()->GetPDEId() == pdeId2 &&
-          actContext.GetSecondPde()->GetPDEId() == pdeId1 &&
+      if( actContext.GetFirstFeFunction()->GetFctId() == fctId1 &&
+          actContext.GetSecondFeFunction()->GetFctId() == fctId2 &&
           actContext.IsSetCounterPart() ) {
         doAssemble = true;
         doTranspose = true;
       }
 
 
-      // Check if pdeIds of formsContext match
+      // Check if fctIds of formsContext match
       if( doAssemble ) {
 
         try {
@@ -317,10 +319,12 @@ namespace CoupledField
             if( !doTranspose ) {
               algsys_-> SetElementPos( id1, eqnVec1,
                                        id2, eqnVec2,
+                                       destMap,
                                        setCounterPart );
             } else {
               algsys_-> SetElementPos( id2, eqnVec2,
                                        id1, eqnVec1,
+                                       destMap,
                                        setCounterPart );
             }
 
@@ -344,7 +348,7 @@ namespace CoupledField
     Matrix<Double> elemMatrix;
     Matrix<Complex> elemMatrixC;
     StdVector<Integer> eqnVec1, eqnVec2;
-    FeFctIdType pdeId1, pdeId2;
+    FeFctIdType fctId1, fctId2;
 
     timer_->Start();
 
@@ -442,7 +446,7 @@ namespace CoupledField
           LOG_DBG2(assemble) << "CalcElemMatrix " << i << " -> " << (form->IsComplex() ? elemMatrixC.ToString(1) : elemMatrix.ToString(1));
 
           // Map equation numbers
-          actContext.MapEqns( it1, it2, eqnVec1, eqnVec2, pdeId1, pdeId2 );
+          actContext.MapEqns( it1, it2, eqnVec1, eqnVec2, fctId1, fctId2 );
 
 
 #ifdef USE_SCRIPTING
@@ -469,9 +473,9 @@ namespace CoupledField
 
           // Pass element matrix to algebraic system (primary matrix)
           if ( form->IsComplex() )
-            InsertMatrix( destMat, actContext, elemMatrixC, eqnVec1, eqnVec2, pdeId1, pdeId2);
+            InsertMatrix( destMat, actContext, elemMatrixC, eqnVec1, eqnVec2, fctId1, fctId2);
           else
-            InsertMatrix( destMat, actContext, elemMatrix, eqnVec1, eqnVec2, pdeId1, pdeId2);
+            InsertMatrix( destMat, actContext, elemMatrix, eqnVec1, eqnVec2, fctId1, fctId2);
 
           // if optimization provides Damping Parameters, we use them, and ignore everything else
           //double secMatFacOpt = 0.0;
@@ -493,7 +497,7 @@ namespace CoupledField
               elemMatrixC *= secMatFac * dampFactor;
 
               // Pass secondary matrix part to algebraic system
-              InsertMatrix(secDestMat, actContext, elemMatrixC, eqnVec1, eqnVec2, pdeId1, pdeId2);
+              InsertMatrix(secDestMat, actContext, elemMatrixC, eqnVec1, eqnVec2, fctId1, fctId2);
             }
             // "standard" Rayleigh damping. Includes the standard SIMP optimization!
             else {
@@ -501,7 +505,7 @@ namespace CoupledField
               elemMatrix *= secMatFac * dampFactor;
               LOG_DBG3(assemble) << "AM: e1=" << it1.GetElem()->elemNum << " Rayleigh damping form=" << form->GetName() << " sMF=" << secMatFac << " df=" <<  dampFactor;
               // Pass secondary matrix part to algebraic system
-              InsertMatrix(secDestMat, actContext, elemMatrix, eqnVec1, eqnVec2, pdeId1, pdeId2);
+              InsertMatrix(secDestMat, actContext, elemMatrix, eqnVec1, eqnVec2, fctId1, fctId2);
             }
             // optionally with do SIMP pamping (intermediate material has complex mass damping)
 //            if(domain->GetErsatzMaterialPamping(it1.GetElem(), form, elemMatrix)) {
@@ -595,7 +599,7 @@ namespace CoupledField
   void Assemble::AssembleRHSLinForms(bool nonLin ) {
 
     StdVector<Integer> eqnVec;
-    FeFctIdType pdeId;
+    FeFctIdType fctId;
     StdVector<LinearFormContext*>::iterator formsIt;
 
     // iterate over all descriptors
@@ -636,7 +640,7 @@ namespace CoupledField
             form->CalcElemVector( elemVec, entIt );
 
             // Map equation numbers
-            actContext.MapEqns( entIt, eqnVec, pdeId );
+            actContext.MapEqns( entIt, eqnVec, fctId );
 
 #ifdef USE_SCRIPTING
           // Check, if current list is element list and if element matrix
@@ -672,7 +676,7 @@ namespace CoupledField
             assert(!elemVec.ContainsNaN() && !elemVec.ContainsInf());
 
             algsys_-> SetElementRHS( elemVec,
-                                     pdeId, eqnVec );
+                                     fctId, eqnVec );
           }
 
         } else {
@@ -689,7 +693,7 @@ namespace CoupledField
             form->CalcElemVector( elemVec, entIt );
 
             // Map equation numbers
-            actContext.MapEqns( entIt, eqnVec, pdeId );
+            actContext.MapEqns( entIt, eqnVec, fctId );
 #ifdef USE_SCRIPTING
           // Check, if current list is element list and if element matrix
           // should be printed
@@ -723,7 +727,7 @@ namespace CoupledField
 
             // Pass element vector to algebraic system
             algsys_-> SetElementRHS( elemVec,
-                                     pdeId, eqnVec );
+                                     fctId, eqnVec );
           }
 
         }
@@ -1156,59 +1160,62 @@ namespace CoupledField
 
 
 
-  bool Assemble::IsFEMatSymmetric( FEMatrixType feType ) {
+  bool Assemble::IsFEMatSymmetric( FeFctIdType fctId1, FeFctIdType fctId2,
+                                   FEMatrixType matType  ) {
 
-    // Run over all bilinearform contexts
-    std::map<FEMatrixType, bool> isSymmetric;
-    StdVector<BiLinFormContext*>::iterator it;
-
-    // Assume at the beginning that all matrices are symmetric
-    isSymmetric[SYSTEM] = true;
-    isSymmetric[MASS] = true;
-    isSymmetric[STIFFNESS] = true;
-    isSymmetric[DAMPING] = true;
-    isSymmetric[AUXILIARY] = true;
-    
-    // set collecting all result types
-    
-    // set collecting all diagonal-positions
-    std::set<shared_ptr<ResultInfo> > allResults, diagResults;
-
-
-    // iterate over all bilinear forms
-    for( it = biLinForms_->Begin(); it != biLinForms_->End(); it++ ) {
-
-      BiLinFormContext & actCt = (**it);
-
-      // Check, where bilinearform gets assembled to diagonal block
-      if( (actCt.GetFirstPde() == actCt.GetSecondPde() )
-          && (actCt.GetFirstResultInfo() == actCt.GetSecondResultInfo() )
-          && (actCt.GetFirstEntities() == actCt.GetSecondEntities() ) ) {
-
-        // Bilinearform gets assembled to main diagonal.
-        // If bilinearform is non-symmetric, so is the related FE-matrix
-        if( !actCt.GetIntegrator()->IsSymmetric()  ) {
-          FEMatrixType mappedDest = matrixMap_[actCt.GetDestMat()];
-          isSymmetric[mappedDest] = false;
-          isSymmetric[SYSTEM] = false;
-        }
-      } else {
-
-        // BiLinearform gets assembled to off-diagonal block.
-
-        // If the bilinearorm is also assembled to the transposed block
-        // we assume that the matrix still remains symmetric.
-        // Otherwise we assume, that we need a non-symmetric matrix.
-        if( !actCt.IsSetCounterPart() ) {
-          FEMatrixType mappedDest = matrixMap_[actCt.GetDestMat()];
-          isSymmetric[mappedDest] = false;
-          isSymmetric[SYSTEM] = false;
-        }
-      }
-    }
-
-    // return flag for matrix of interest
-    return isSymmetric[feType];
+    REFACTOR;
+    return true;
+//    // Run over all bilinearform contexts
+//    std::map<FEMatrixType, bool> isSymmetric;
+//    StdVector<BiLinFormContext*>::iterator it;
+//
+//    // Assume at the beginning that all matrices are symmetric
+//    isSymmetric[SYSTEM] = true;
+//    isSymmetric[MASS] = true;
+//    isSymmetric[STIFFNESS] = true;
+//    isSymmetric[DAMPING] = true;
+//    isSymmetric[AUXILIARY] = true;
+//    
+//    // set collecting all result types
+//    
+//    // set collecting all diagonal-positions
+//    std::set<shared_ptr<ResultInfo> > allResults, diagResults;
+//
+//
+//    // iterate over all bilinear forms
+//    for( it = biLinForms_->Begin(); it != biLinForms_->End(); it++ ) {
+//
+//      BiLinFormContext & actCt = (**it);
+//
+//      // Check, where bilinearform gets assembled to diagonal block
+//      if( (actCt.GetFirstPde() == actCt.GetSecondPde() )
+//          && (actCt.GetFirstResultInfo() == actCt.GetSecondResultInfo() )
+//          && (actCt.GetFirstEntities() == actCt.GetSecondEntities() ) ) {
+//
+//        // Bilinearform gets assembled to main diagonal.
+//        // If bilinearform is non-symmetric, so is the related FE-matrix
+//        if( !actCt.GetIntegrator()->IsSymmetric()  ) {
+//          FEMatrixType mappedDest = matrixMap_[actCt.GetDestMat()];
+//          isSymmetric[mappedDest] = false;
+//          isSymmetric[SYSTEM] = false;
+//        }
+//      } else {
+//
+//        // BiLinearform gets assembled to off-diagonal block.
+//
+//        // If the bilinearorm is also assembled to the transposed block
+//        // we assume that the matrix still remains symmetric.
+//        // Otherwise we assume, that we need a non-symmetric matrix.
+//        if( !actCt.IsSetCounterPart() ) {
+//          FEMatrixType mappedDest = matrixMap_[actCt.GetDestMat()];
+//          isSymmetric[mappedDest] = false;
+//          isSymmetric[SYSTEM] = false;
+//        }
+//      }
+//    }
+//
+//    // return flag for matrix of interest
+//    return isSymmetric[feType];
   }
 
 
@@ -1216,7 +1223,7 @@ namespace CoupledField
                                Matrix<Double>& elemMat,
                                StdVector<Integer>& eqnVec1,
                                StdVector<Integer>& eqnVec2,
-                               FeFctIdType pdeId1, FeFctIdType pdeId2)
+                               FeFctIdType fctId1, FeFctIdType fctId2)
   {
     // map original matrix destination to analysis-dependent one
     FEMatrixType mappedDest = matrixMap_[dest];
@@ -1232,8 +1239,8 @@ namespace CoupledField
         || analysisType_ == BasePDE::STATIC
         || analysisType_ == BasePDE::EIGENFREQUENCY) {
       algsys_->SetElementMatrix( mappedDest, elemMat,
-                                 pdeId1, eqnVec1,
-                                 pdeId2, eqnVec2,
+                                 fctId1, eqnVec1,
+                                 fctId2, eqnVec2,
                                  context.IsSetCounterPart() );
 
     } else {
@@ -1244,8 +1251,8 @@ namespace CoupledField
 
       Matrix2Harmonic( harmMat, elemMat, dest, context.GetEntryType(), omega );
       algsys_->SetElementMatrix( mappedDest, harmMat,
-                                    pdeId1, eqnVec1,
-                                    pdeId2, eqnVec2,
+                                    fctId1, eqnVec1,
+                                    fctId2, eqnVec2,
                                     context.IsSetCounterPart() );
     }
 
@@ -1258,7 +1265,7 @@ namespace CoupledField
                                Matrix<Complex>& elemMat,
                                StdVector<Integer>& eqnVec1,
                                StdVector<Integer>& eqnVec2,
-                               FeFctIdType pdeId1, FeFctIdType pdeId2) {
+                               FeFctIdType fctId1, FeFctIdType fctId2) {
     Matrix<Complex> harmMat;
 
     // map original matrix destination to analysis-dependent one
@@ -1274,8 +1281,8 @@ namespace CoupledField
 
     Matrix2Harmonic( harmMat, elemMat, dest, context.GetEntryType(), omega );
 
-    algsys_->SetElementMatrix( mappedDest, harmMat, pdeId1, eqnVec1,
-                               pdeId2, eqnVec2, context.IsSetCounterPart() );
+    algsys_->SetElementMatrix( mappedDest, harmMat, fctId1, eqnVec1,
+                               fctId2, eqnVec2, context.IsSetCounterPart() );
   }
 
 

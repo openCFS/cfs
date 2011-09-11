@@ -108,14 +108,7 @@ namespace CoupledField {
     virtual ~BaseStdPrecond() {
     };
 
-    //! Applies the preconditioner by "solving" Az=r for z
-
-    //! This method applies the preconditioner. Formally this means that for
-    //! the given vectors r and z the linear system Az=r with the problem
-    //! matrix A is solved for z.
-    //! \param sysmat problem matrix
-    //! \param r residual vector for current iteration step
-    //! \param z output vector computed by the preconditioner
+    //! @copydoc BasePrecond::Apply(const BaseMatrix, const BaseVector, BaseVector)
     virtual void Apply( const BaseMatrix &sysmat, const BaseVector &r, 
                         BaseVector &z ) const;
     
@@ -154,6 +147,10 @@ namespace CoupledField {
 
 
   //! Generic Preconditioner for SBM Matrices
+  
+  //! A preconditioner for SBM-matrices / vectors can be considered as a
+  //! composition of standard preconditioners, i.e. for every SBM-row,
+  //! we can have a different standard preconditioner.
   class BaseSBMPrecond : public BasePrecond {
 
   public:
@@ -162,19 +159,24 @@ namespace CoupledField {
 
     //! The constructor has nothing to do but to set the attribute
     //! readyToUse_ to false.
-    BaseSBMPrecond() : readyToUse_(false) {
-    };
+    //! \param numBlocks number of SBM-blocks
+    BaseSBMPrecond(UInt numBlocks);
 
     //! Default Destructor
-    ~BaseSBMPrecond() {
-    };
+    virtual ~BaseSBMPrecond();
+    
+    //! Set preconditioner for standard matrices for block \blockNum
+    
+    //! This method allows to compose the SBM-preconditioner by single 
+    //! standard-preconditioners for every row.
+    virtual void SetPrecond(UInt blockNum, BaseStdPrecond* stdPrecond );
 
     //! Applies the preconditioner by "solving" Az=r for z
 
     //! This version of the Apply method has an interface fitting to
     //! SBM_Matrices and SBM_Vectors. It is purely virtual.
     virtual void Apply( const SBM_Matrix &A, const SBM_Vector &r,
-                        SBM_Vector &z ) const = 0;
+                        SBM_Vector &z ) const;
 
     //! Applies the preconditioner by "solving" Az=r for z
 
@@ -191,7 +193,7 @@ namespace CoupledField {
 
     //! This version of the Setup method has an interface fitting to
     //! SBM_Matrices and SBM_Vectors. It is purely virtual.
-    virtual void Setup( SBM_Matrix &A ) = 0;
+    virtual void Setup( SBM_Matrix &A );
 
     //! A call of this method triggers the construction of the preconditioner.
 
@@ -202,9 +204,19 @@ namespace CoupledField {
     //! corresponding interface. Thus, using this method with SBM matrices
     //! or vectors will lead to a run-time error.
     virtual void Setup( BaseMatrix &A );
+    
+    virtual PrecondType GetPrecondType() const {return NOPRECOND;}
 
   private:
+    
+    //! Vector containing a preconditioner for every SBM-row
+    
+    //! We store for every SBM-row a standard preconditioner
+    StdVector<BaseStdPrecond*> stdPreconds_;
 
+    //! Number of sbm rows/blocks
+    UInt numBlocks_; 
+    
     //! This attribute keeps track on whether the preconditioner was set up
 
     //! Before the preconditioner can be applied its setup phase must be

@@ -23,7 +23,6 @@
 #include "Elements/fespaceHCurlHi.hh"
 #include "Elements/HCurlElems.hh"
 #include "DataInOut/Logging/cfslog.hh"
-#include "OLAS/algsys/standardsys.hh"
 
 #ifdef USE_SCRIPTING
 #include "DataInOut/Scripting/cfsmessenger.hh"

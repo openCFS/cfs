@@ -29,13 +29,13 @@ namespace CoupledField {
   public:
 
     //! Constructor
-    Assemble( BaseSystem* algsys, BasePDE::AnalysisType analysis, UInt maxTimeDerivOrder );
+    Assemble( AlgebraicSys* algsys, BasePDE::AnalysisType analysis, UInt maxTimeDerivOrder );
 
     //! Destructor
     virtual ~Assemble();
     
     //! Explicitly set the algebraic system
-    void SetAlgSys(BaseSystem * algsys);
+    void SetAlgSys(AlgebraicSys * algsys);
 
     // ======================================================
     //  REGISTRATION METHODS
@@ -58,7 +58,7 @@ namespace CoupledField {
     // ======================================================
 
     //! Assemble matrix graph of given pair of pdes
-    void SetupMatrixGraph( FeFctIdType pdeId1, FeFctIdType pdeId2 );
+    void SetupMatrixGraph( FeFctIdType fctId1, FeFctIdType fctId2 );
 
     //! Trigger assembly of the matrices
     void AssembleMatrices();
@@ -81,8 +81,9 @@ namespace CoupledField {
     //! Tell Assemble to Reassemble all the matrices the next time (done on init and from Optimization)
     void SetAllReassemble(){ CheckNonLinearities(true); }
 
-    //! Query if resulting matrix will be symmetric
-    bool IsFEMatSymmetric( FEMatrixType matType = SYSTEM );
+    //! Query if matrix related to (fctId1,fctId2) is symmetric
+    bool IsFEMatSymmetric(  FeFctIdType fctId1, FeFctIdType fctId2,
+                            FEMatrixType matType = SYSTEM );
 
     //! Returns true, if matrices have changed since last call of
     //! AssembleMatrices
@@ -102,7 +103,8 @@ namespace CoupledField {
      * @param silent exception or NULL if nothing found
      * @return the defined context, never NULL
      * @exception error when nothing found or not unique specification */
-    BiLinFormContext* GetBiLinForm(RegionIdType regionId, StdPDE* pde1, StdPDE* pde2, const std::string& integrator, bool silent = false);
+    BiLinFormContext* GetBiLinForm(RegionIdType regionId, StdPDE* pde1, 
+                                   StdPDE* pde2, const std::string& integrator, bool silent = false);
 
     /** @see GetBiLinForm() */
     LinearFormContext* GetLinearForm(RegionIdType regionId, StdPDE* pde,  const std::string& integrator, bool silent = false);
@@ -119,7 +121,7 @@ namespace CoupledField {
 
     /** Returns the algebraic system
      * TODO check if really used */
-    BaseSystem* GetAlgSys() { return algsys_; }
+    AlgebraicSys* GetAlgSys() { return algsys_; }
 
     /** Returns the bilinear forms list for Shape Optimization does need to loop these as assemble does */
     StdVector<BiLinFormContext*>& GetBiLinForms() { return *biLinForms_; }
@@ -154,13 +156,13 @@ namespace CoupledField {
     void InsertMatrix( FEMatrixType dest, BiLinFormContext& context,
                        Matrix<Double>& elemMat, StdVector<Integer>& eqnVec1,
                        StdVector<Integer>& eqnVec2,
-                       FeFctIdType pdeId1, FeFctIdType pdeId2 );
+                       FeFctIdType fctId1, FeFctIdType fctId2 );
 
     //! Insert complex matrix into algebraic system and adapt harmonic matrices
     void InsertMatrix( FEMatrixType dest, BiLinFormContext& context,
                        Matrix<Complex>& elemMat, StdVector<Integer>& eqnVec1,
                        StdVector<Integer>& eqnVec2,
-                       FeFctIdType pdeId1, FeFctIdType pdeId2 );
+                       FeFctIdType fctId1, FeFctIdType fctId2 );
 
     //! Check which integrator is non-linear due to solution-dependent
     //! non-linearities or updated lagrangian formulation
@@ -192,7 +194,7 @@ namespace CoupledField {
     // ======================================================
 
     //! Pointer to algebraic system
-    BaseSystem* algsys_;
+    AlgebraicSys* algsys_;
 
     //! Analysistype
     BasePDE::AnalysisType analysisType_;

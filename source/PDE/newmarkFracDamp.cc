@@ -16,13 +16,13 @@
 #include "Driver/singleDriver.hh"
 #include "General/exception.hh"
 
-#include "OLAS/algsys/basesystem.hh"
+#include "OLAS/algsys/algebraicSys.hh"
 
 #include "newmarkFracDamp.hh"
 
 namespace CoupledField {
 
-  NewmarkFracDamp::NewmarkFracDamp( BaseSystem * algebraicsystem,
+  NewmarkFracDamp::NewmarkFracDamp( AlgebraicSys * algebraicsystem,
                                     const FeFctIdType apdeId,
                                     shared_ptr<EqnMap> eqnMap,
                                     Grid * aptgrid,

@@ -47,11 +47,10 @@ namespace CoupledField {
 if ( ( eType == MATRIX_ENTRY )  ) {\
    retVector = new VECTORCLASS( length );\
    ASSERTMEM( retVector, sizeof( VECTORCLASS ) );\
-   (*cla) << " GenerateSingleVectorObject: Generated "\
-          << MACRO2STRING(VECTORCLASS) << " of dimension " << length\
-   << std::endl;\
 }
-
+//   (*cla) << " GenerateSingleVectorObject: Generated "\
+//          << MACRO2STRING(VECTORCLASS) << " of dimension " << length\
+//   << std::endl;\
 
   // *******************************************************
   //   Dynamic generation of vector associated with matrix
@@ -161,9 +160,9 @@ if ( ( eType == MATRIX_ENTRY ) ) { \
    const VECTORCLASS& auxVec = dynamic_cast<const VECTORCLASS&>(origVec); \
    retVector = new VECTORCLASS( auxVec ); \
    ASSERTMEM( retVector, sizeof( VECTORCLASS ) ); \
-   (*cla) << " GenerateSingleVectorObject: Generated copy of" \
-          << MACRO2STRING(VECTORCLASS) << std::endl; \
 }
+//  (*cla) << " GenerateSingleVectorObject: Generated copy of" \
+//         << MACRO2STRING(VECTORCLASS) << std::endl; 
   SingleVector* CopySingleVectorObject( const SingleVector& origVec ) {
 
     SingleVector *retVector = NULL;
@@ -377,7 +376,7 @@ catch(...){};
   // *********************************************
   SBM_Matrix* GenerateSBMMatrixObject( BaseMatrix::EntryType eType,
                                        UInt rowDim, UInt colDim,
-                                       GraphManagerSBMMat *graphManager,
+                                       GraphManager *graphManager,
                                        bool symmetric ) {
 
 

@@ -6,7 +6,7 @@
 #include <iostream>
 #include <string>
 
-#include "OLAS/algsys/basesystem.hh"
+#include "OLAS/algsys/algebraicSys.hh"
 
 #include "PDE/StdPDE.hh"
 
@@ -17,7 +17,7 @@
 namespace CoupledField
 {
 
-  Newmark::Newmark(BaseSystem * algebraicsystem, PtrParamNode systemNode )
+  Newmark::Newmark(AlgebraicSys * algebraicsystem, PtrParamNode systemNode )
     :TimeStepping(algebraicsystem )
   {
 
@@ -239,7 +239,7 @@ namespace CoupledField
   // Effective Mass Matrix Formulation
   // ====================================================
 
-  NewmarkEffMass::NewmarkEffMass(BaseSystem * algebraicsystem, PtrParamNode systemNode,
+  NewmarkEffMass::NewmarkEffMass(AlgebraicSys * algebraicsystem, PtrParamNode systemNode,
                                  bool intExplicit)
     :TimeStepping(algebraicsystem)
   { 

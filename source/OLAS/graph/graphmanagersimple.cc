@@ -38,7 +38,7 @@ namespace CoupledField {
   // ===============
   GraphManagerSimple::GraphManagerSimple() :
     newOrderingPassedOn_(false),
-    myPDEIdent_(NO_PDE_ID),
+    myPDEIdent_(NO_FCT_ID),
     graph_(NULL),
     graphIDBC_(NULL),
     reorderingDone_(false),
@@ -105,7 +105,7 @@ namespace CoupledField {
 #ifdef DEBUG_GRAPHMANAGERSIMPLE1
 
     // Avoid mis-use
-    if ( myPDEIdent_ != NO_PDE_ID ) {
+    if ( myPDEIdent_ != NO_FCT_ID ) {
       EXCEPTION("GraphManagerSimple: A PDE with identifier '" << myPDEIdent_
 	       << "' has already been registered with this instance! Refusing "
 	       << "to register PDE " << identifierPDE);
@@ -195,7 +195,7 @@ namespace CoupledField {
 
 
     // Avoid trouble (keep defaults in mind)
-    if ( identifierPDE1 == NO_PDE_ID ) {
+    if ( identifierPDE1 == NO_FCT_ID ) {
       CheckConsistency( myPDEIdent_, identifierPDE2, "GetGraph" );
     }
     else {
@@ -215,7 +215,7 @@ namespace CoupledField {
 
 
 #ifdef DEBUG_GRAPHMANAGERSIMPLE1
-    if ( pdeID1 != NO_PDE_ID && pdeID2 != NO_PDE_ID ) {
+    if ( pdeID1 != NO_FCT_ID && pdeID2 != NO_FCT_ID ) {
       CheckConsistency( pdeID1, pdeID2, "GetIDBCGraph" );
     }
 #endif
@@ -383,7 +383,7 @@ namespace CoupledField {
 
 
     // Check that first identifier is not nil
-    if ( idPDE1 == NO_PDE_ID ) {
+    if ( idPDE1 == NO_FCT_ID ) {
       EXCEPTION("GraphManagerSimple::"
                << caller << ": No PDE identifier was specified");
     }
@@ -397,7 +397,7 @@ namespace CoupledField {
     }
 
     // If second identifier is not nil, it must match first one
-    if ( idPDE2 != NO_PDE_ID && idPDE2 != idPDE1 ) {
+    if ( idPDE2 != NO_FCT_ID && idPDE2 != idPDE1 ) {
       EXCEPTION("GraphManagerSimple::"
                << caller << ": Received the two identifiers '"
 	       << idPDE1 << "' and '" << idPDE2

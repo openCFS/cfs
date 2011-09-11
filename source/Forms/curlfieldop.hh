@@ -9,7 +9,7 @@
 #include "Utils/tools.hh"
 #include "Utils/StdVector.hh"
 
-#include "OLAS/algsys/basesystem.hh"
+#include "OLAS/algsys/algebraicSys.hh"
 
 namespace CoupledField
 {
@@ -37,7 +37,7 @@ namespace CoupledField
                StdPDE * ptPDE,
                shared_ptr<EqnMap> eqnMap,
                NodeStoreSol<Double> & sol,
-               BaseSystem * algsys,
+               AlgebraicSys * algsys,
                bool coordUpdate = false );
 
     //! Destructor
@@ -61,7 +61,7 @@ namespace CoupledField
   protected:
   
     NodeStoreSol<Double> * sol_;
-    BaseSystem * algsys_;
+    AlgebraicSys * algsys_;
   };
 
 

@@ -28,7 +28,7 @@ namespace CoupledField {
       \param asubdomainList list of subdomains
       \param adampingList list damping description for subdomains
     */
-    NewmarkFracDampMech( BaseSystem * algebraicsystem,
+    NewmarkFracDampMech( AlgebraicSys * algebraicsystem,
                          const FeFctIdType apdeId,
                          shared_ptr<EqnMap> eqnMap,
                          Grid * aptgrid,

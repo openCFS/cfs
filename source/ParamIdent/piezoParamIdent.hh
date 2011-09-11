@@ -300,7 +300,7 @@ class DirectCoupledPDE;
         //   Vector<Complex> algSysSolVector_;
 
         // Pointers to other classes of cfs
-        BaseSystem * ptAlgsys_;
+        AlgebraicSys * ptAlgsys_;
         Assemble * ptAssemble_;
         Assemble * ptAssemble2_;
 

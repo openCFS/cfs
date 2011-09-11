@@ -13,7 +13,7 @@
 #include "Utils/nodestoresol.hh"
 #include "PDE/StdPDE.hh"
 
-#include "OLAS/algsys/basesystem.hh"
+#include "OLAS/algsys/algebraicSys.hh"
 
 namespace CoupledField {
 

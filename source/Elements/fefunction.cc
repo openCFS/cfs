@@ -4,11 +4,13 @@
 
 #include "fefunction.hh"
 #include "PDE/SinglePDE.hh"
-#include "OLAS/algsys/basesystem.hh"
+#include "OLAS/algsys/algebraicSys.hh"
 
 namespace CoupledField {
 
   BaseFeFunction::BaseFeFunction(){
+    
+    fctId_ = NO_FCT_ID;
     mHandle_ = domain->GetMathParser()->GetNewHandle();
     algsys_ = NULL;
 
@@ -63,11 +65,11 @@ namespace CoupledField {
     return grid_;
   }
 
-  void BaseFeFunction::SetSystem( BaseSystem* sys){
+  void BaseFeFunction::SetSystem( AlgebraicSys* sys){
     algsys_ = sys;
   }
 
-  BaseSystem* BaseFeFunction::GetSystem(){
+  AlgebraicSys* BaseFeFunction::GetSystem(){
     return algsys_;
   }
 

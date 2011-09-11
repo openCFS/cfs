@@ -278,55 +278,55 @@ namespace CoupledField {
     //! Destructor
     ~LagrangeElemShapeMap();
 
-    //! @see ElemShapeMap::SetElem
+    //! @copydoc ElemShapeMap::SetElem
     virtual void SetElem( const Elem* ptElem, bool isUpdated = false );
 
     // ---------------------------------------------------
     //   Coordinate Mapping
     // ---------------------------------------------------
 
-    //! @see ElemShapeMap::Local2Global
+    //! @copydoc ElemShapeMap::Local2Global
     void Local2Global( Vector<Double>& globPoint, 
                        const LocPoint& lp );
 
-    //! @see ElemShapeMap::Global2Local
+    //! @copydoc ElemShapeMap::Global2Local
     void Global2Local( Vector<Double>& locPoint, 
                        const Vector<Double>& glob );
     
-    //! @see ElemShapeMap::GetGlobMidPoint
+    //! @copydoc ElemShapeMap::GetGlobMidPoint
     void GetGlobMidPoint( Vector<Double>& midPoint );
 
-    //! @see ElemShapeMap::CalcVolume
+    //! @copydoc ElemShapeMap::CalcVolume
     Double CalcVolume( );
 
-    //! @see ElemShapeMap::CalcNormal
+    //! @copydoc ElemShapeMap::CalcNormal
     void CalcNormal( Vector<Double>& normal, 
                      const LocPoint& lp );
 
-    //! @see ElemShapeMap::CoordIsInsideElem
+    //! @copydoc ElemShapeMap::CoordIsInsideElem
     bool CoordIsInsideElem( const Vector<Double>& point );
 
-    //! @see ElemShapeMap::CalcDiameter
+    //! @copydoc ElemShapeMap::CalcDiameter
     void CalcDiameter( Vector<Double>& diameter );
 
-    //! @see ElemShapeMap::CalcBarycenter
+    //! @copydoc ElemShapeMap::CalcBarycenter
     void CalcBarycenter( Vector<Double>& baryCenter );
 
-    //! @see ElemShapeMap::GetMaxMinEdgeLength
+    //! @copydoc ElemShapeMap::GetMaxMinEdgeLength
     void GetMaxMinEdgeLength( Double& max, Double& min);
 
-    //! @see ElemShapeMap::GetEdgeLength
+    //! @copydoc ElemShapeMap::GetEdgeLength
     void GetEdgeLength( StdVector<Double>& edges_out);
 
     // ---------------------------------------------------
     //   Jacobian 
     // ---------------------------------------------------
 
-    //! @see ElemShapeMap::CalcJ
+    //! @copydoc ElemShapeMap::CalcJ
     void CalcJ( Matrix<Double>& jac, 
                 const LocPoint& ip );
     
-    //! @see ElemShapeMap::CalcJ
+    //! @copydoc ElemShapeMap::CalcJ
     Double CalcJDet( Matrix<Double>& jac, 
                      const LocPoint& ip );
 

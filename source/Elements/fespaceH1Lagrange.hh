@@ -60,11 +60,11 @@ class FeSpaceH1Lagrange : public FeSpaceH1 {
     //virtual void GetEqns( StdVector<Integer>& eqns, const EntityIterator ent
     //                      , UInt dof );
     
-    //! @see FeSpace::GetEntityOrder
+    //! @copydoc FeSpace::GetEntityOrder
     UInt GetEntityOrder( UInt elemNum, BaseFE::EntityType type, 
                            UInt entityNum, UInt comp = 1 );
     
-    //! @see FeSpace:: GetMaxEntityOrder
+    //! @copydoc FeSpace:: GetMaxEntityOrder
     UInt GetMaxEntityOrder( UInt elemNum, BaseFE::EntityType type, 
                             UInt entityNum );
 

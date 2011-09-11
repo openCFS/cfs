@@ -19,7 +19,7 @@
 #include "MatVec/basematrix.hh"
 #include "MatVec/stdmatrix.hh"
 #include "Utils/nodestoresol.hh"
-#include "OLAS/algsys/basesystem.hh"
+#include "OLAS/algsys/algebraicSys.hh"
 #include "boost/lexical_cast.hpp"
 
 using namespace CoupledField;

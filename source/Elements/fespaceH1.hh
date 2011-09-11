@@ -113,9 +113,6 @@ public:
   //! Add result
   virtual void AddFeFunction( shared_ptr<BaseFeFunction> fct );
 
-  //! Reorder the equation Map (just for compatibility)
-  virtual void ReorderEqnMap( StdVector<UInt> newOrder );
-  
   //! Precalculate integration points
   virtual void PreCalcShapeFncs();
 

@@ -12,7 +12,7 @@ namespace CoupledField
   public:
     //! constructor
     //! \param algebraicsystem pointer to algebraic system 
-    PseudoTS( BaseSystem * algebraicsystem );
+    PseudoTS( AlgebraicSys * algebraicsystem );
     
     //! destructor
     virtual ~PseudoTS();

@@ -2,26 +2,112 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#ifndef GRAPH_MANAGER_SBMMAT
-#define GRAPH_MANAGER_SBMMAT
+#ifndef GRAPH_MANAGER_HH
+#define GRAPH_MANAGER_HH
 
 #include <string>
-
-#include "OLAS/graph/basegraph.hh"
-#include "OLAS/graph/idbcgraph.hh"
-#include "OLAS/graph/basegraphmanager.hh"
+#include "General/environment.hh"
+#include "OLAS/graph/baseordering.hh"
 
 namespace CoupledField {
 
-  //! Graph manager for the case of several PDEs and a SBM_Matrix
 
-  //! This class implements the graph manager concept for the case that
-  //! several PDEs are directly coupled and the corresponding matrices are
-  //! to be assembled into a super-block matrix (SBM_Matrix) structure.
-  class GraphManagerSBMMat : public BaseGraphManager {
+// forward class declarations
+class BaseGraph;
+class IDBC_Graph;
+
+  //! This is the base class for all graph manager classes. A graph manager is
+  //! an object that is repsonsible for administering the graphs representing
+  //! the connectivity information related to either a single feFcuntion or e.g. in
+  //! the case of direct coupled field simulations that of a collection of
+  //! feFunctions.
+  //! The graph manager functions as an intermediary between the graph
+  //! object(s) and the feFunctions.
+  //!
+  //! The following piece of pseudo-code demonstrates the sequence of method
+  //! calls that must be observed for setting up the graphs:
+  //!
+  //! \code
+  //! /* The graph manager must be told how many PDEs lie in its
+  //!    responsibility */
+  //! SetupInit( numPDEs );
+  //!
+  //! /* Now each PDE must register itself with the graph manager using
+  //!    a unique identifier */
+  //! for ( i = 1; i <= numPDEs; i++ ) {
+  //!    RegisterPDE( ... );
+  //! }
+  //!
+  //! /* One PDE after the other can now pass its connectivity information to
+  //!    the graph manager */  
+  //! for ( i = 1; i <= numPDEs; i++ ) {
+  //!
+  //!    /* Initialise assembly of a new PDE sub-graph */
+  //!    AssembleInit( ... );
+  //!
+  //!    /* Set information for each Finite Element */
+  //!    for ( k = 1; k <= numElemInThisPDE; k++ ) {
+  //!    SetElementPos( ... );
+  //!    }
+  //!
+  //!    /* Finish assembly of the PDE sub-graph */
+  //!    AssembleDone( ... );
+  //! }
+  //!
+  //! /* After the PDEs the coupling objects (if any) pass their connectivity
+  //!    information to the graph manager */  
+  //! for ( j = 1; j <= numCouplings; j++ ) {
+  //!
+  //!    /* Initialise assembly of a new coupling sub-graph */
+  //!    AssembleInit( ... );
+  //!
+  //!    /* Set information for each Finite Element belonging to both PDEs
+  //!       that are coupled by the coupling object */
+  //!    for ( k = 1; k <= numElemInThisCoupling; k++ ) {
+  //!    SetElementPos( ... );
+  //!    }
+  //!
+  //!    /* Finish assembly of the coupling sub-graph */
+  //!    AssembleDone( ... );
+  //! }
+  //!
+  //! /* By calling this method we inform the graph manager that all coupling
+  //!    objects have passed their connectivity and that the setup phase now
+  //!    is completed */
+  //! SetupDone();
+  //! \endcode
+  class GraphManager {
 
   public:
 
+    
+    //! Struct containing information for SBM-system
+
+    //! Lightweight struct for storing information per SBM Matrix block
+    typedef struct {
+
+      //! Map (fctId,eqnNr) to matrix / vector index
+      StdVector<std::map<UInt, UInt> > eqnToIndex;
+
+      //! Define mappings for subBlocks
+      //! 1st index: blockIndex
+      //! pair: [begin,end] of one index block
+      StdVector<std::pair<UInt,UInt> > indexBlocks;
+
+      //! Total number of equations in this block
+      UInt size;
+      
+      //! Number of last free index in this block
+      UInt numLastFreeIndex;
+
+      //! Flag if minor blocks are defined
+
+      //! If the SBM matrix has minor blocks, no reordering can
+      //! be applied
+      bool hasSubBlocks;
+
+    } SBMBlockInfo;
+    
     // =======================================================================
     // SETUP
     // =======================================================================
@@ -29,52 +115,47 @@ namespace CoupledField {
     //@{ \name Methods for construction, destruction and setup
 
     //! Default Constructor
-    GraphManagerSBMMat();
+    GraphManager();
 
     //! Destructor
-    virtual ~GraphManagerSBMMat();
+    virtual ~GraphManager();
 
     //! Prepares graph manager for generation of sub-graphs
 
     //! This method must be called after construction of the graph manager
     //! object and before any other method. It allows the graph manager to
     //! prepare itself for the registration and generation of the sub-graphs.
-    //! In the case of this class ...
-    //! \param numPDEs number of PDE objects whose connectivity graphs the
+    //! \param numBlocks number of SBM blocks whose connectivity graphs the
     //!                          graph manager will administer.
-    void SetupInit( UInt numPDEs );
+    //! \para, useDistinctGraphs if true, every matrixType 
+    void SetupInit( UInt numBlocks, bool useDistinctGraphs );
 
     //! Finalises setup of the graph manager
 
     //! This method must be called after the assembly of all sub-graphs was
-    //! done, i.e. once all PDEs a coupling objects have conveyed their
+    //! done, i.e. once all blocks have conveyed their
     //! connectivity information to the graph manager.
-    //! \note In the case of the %GraphManagerStdMat case this method triggers
-    //! the re-ordering of the unique graph. As a consequence the permutation
-    //! vector resulting from the re-ordering may only be queried after
-    //! SetupDone() was called.
     void SetupDone();
 
-    //! Register PDE with graph manager
+    //! Register block with graph manager
     
-    //! A PDE must call this method to register itself with the Graph manager
-    //! and to give its number of unkonwns. In the case of CFS++ this method 
-    //! is not called  directly, but via the algebraic system interface.
-    //! \param identifierPDE  identifier of PDE related to sub-graph
+    //! Before a matrix block can set its sparsity pattern, the matrix
+    //! block has to be registered and the number of unknowns and 
+    //! non free equations has to be set.
+    //! \param blockNum       block number of matrix to be defined 
     //! \param numEqns        number of unknowns in the linear system
     //!                       associated with the PDE (i.e. number of
     //!                       equation numbers from CFS++)
-    //! \param numLastFreeDof specifies the equation number of the last
+    //! \param numLastFreeEqn specifies the equation number of the last
     //!                       unfixed degree of freedom (if inhomogeneous
     //!                       Dirichlet boundary conditions are treated by
     //!                       the penalty approach numLastFreeDof
     //!                       \f$\stackrel{!}{=}\f$ numEqns)
     //! \param reorder        Re-ordering type for this PDE (optional)
-    void RegisterPDE( const FeFctIdType identifierPDE,
-                      const UInt numEqns,
-                      const UInt numLastFreeDof,
-                      const BaseOrdering::ReorderingType reorder =
-                      BaseOrdering::NOREORDERING );
+    void RegisterBlock( const UInt blockNum,
+                        SBMBlockInfo* blockInfo,
+                        const BaseOrdering::ReorderingType reorder =
+                        BaseOrdering::NOREORDERING );
 
     //@}
 
@@ -84,43 +165,6 @@ namespace CoupledField {
 
     //@{ \name Methods for generation of sub-graphs
     
-    //! Prepare graph manager for assembling a sub-graph
-
-    //! Before the assembly phase of a sub-graph associated with a PDE or the
-    //! coupling between two PDEs can be started this method must be called
-    //! in order for the graph manager to do administrative stuff. In the case
-    //! that the sub-graph belongs to a PDE only the corresponding identifier
-    //! (obtained from RegisterPDE) needs to be supplied. In the case that the
-    //! graph describes the coupling between two PDEs both related identifiers
-    //! must be specified.
-    //! \param identifierPDE1 identifier for first PDE related to sub-graph
-    //! \param identifierPDE2 identifier for second PDE related to sub-graph
-    //! \param assemblingTranspose indicates whether the graph of the
-    //!                            transpose coupling object will be assembled
-    //!                            together with the coupling object.
-    void AssembleInit( const FeFctIdType identifierPDE1,
-                       const FeFctIdType identifierPDE2,
-                       bool assemblingTranspose );
-
-    //! Finalise assembly of a sub-graph
-
-    //! Once the assembly phase of a sub-graph associated with a PDE or the
-    //! coupling between two PDEs is done, this method must be called in order
-    //! to inform the graph about this. The call allows the graph manager to
-    //! immediately trigger associated tasks, like e.g. graph conversion or
-    //! re-ordering. In the case that the sub-graph belongs to a PDE only the
-    //! corresponding identifier (obtained from RegisterPDE) needs to be
-    //! supplied. In the case that the graph describes the coupling between
-    //! two PDEs both related identifiers must be specified.
-    //! \param identifierPDE1 identifier for first PDE related to sub-graph
-    //! \param identifierPDE2 identifier for second PDE related to sub-graph
-    //! \param assemblingTranspose indicates whether the graph of the
-    //!                            transpose coupling object was assembled
-    //!                            together with the coupling object.
-    void AssembleDone( const FeFctIdType identifierPDE1,
-                       const FeFctIdType identifierPDE2,
-                       bool assemblingTranspose );
-
     //! Insert connectivity of a finite element into the matrix graph
 
     //! This method is used to insert the connectivity of the unknowns
@@ -146,10 +190,11 @@ namespace CoupledField {
     //!                       the connectivity with the PDE identifiers and
     //!                       equation numbers reversed, should also be
     //!                       inserted into the graph
-    virtual void SetElementPos( const FeFctIdType identifierPDE1,
-                                const StdVector<Integer>& eqnNrs1,
-                                const FeFctIdType identifierPDE2,
-                                const StdVector<Integer>& eqnNrs2,
+    virtual void SetElementPos( const StdVector<UInt>& rowBlock,
+                                const StdVector<UInt>& rowIndices,
+                                const StdVector<UInt>& colBlock,
+                                const StdVector<UInt>& colIndices,
+                                FEMatrixType matrixType,
                                 bool setCounterPart );
     //@}
 
@@ -171,8 +216,8 @@ namespace CoupledField {
     //! combination
     //! \note The method refuses to return a pointer to a non-existant
     //!       graph and will instead report an error
-    BaseGraph* GetGraph( const FeFctIdType identifierPDE1 = NO_PDE_ID,
-                         const FeFctIdType identifierPDE2 = NO_PDE_ID );
+    BaseGraph* GetGraph( UInt rowNum = 0,
+                         UInt colNum = 0 );
 
     //! Get a specified (sub-)graph for inhom. Dirichlet BC
 
@@ -183,8 +228,8 @@ namespace CoupledField {
     //! \param pdeID1 identifier for first PDE of pair
     //! \param pdeID2 identifier for second PDE of pair
     //! \return a BaseGraph object according to the specified identifier
-    BaseGraph* GetIDBCGraph( const FeFctIdType pdeID1,
-                             const FeFctIdType pdeID2 ) const;
+    BaseGraph* GetIDBCGraph( UInt rowNum = 0,
+                             UInt colNum = 0 ) const;
 
     //! Obtain the permutation/re-ordering vector for a graph
 
@@ -199,26 +244,30 @@ namespace CoupledField {
     //! \note While memory for the permutation vector is allocated in this
     //!       method, it is the caller's responsibility to dispose of that
     //!       memory once it no longer needs the array.
-    void GetReordering( const FeFctIdType identifier, StdVector<UInt>& order ) ;
+    void GetReordering( UInt blockNum, StdVector<UInt>& order ) ;
 
     //! Print some statistics on the graph manager
-    void PrintStats( std::ostream *log );
+    void PrintStats();
 
     //! Query whether a certain sub-graph exists
 
     //! This method can be used to query whether a sub-graph with the index
     //! pair (idPDE1, idPDE2) was generated in the Setup phase.
     //! \return true if graph exists, false otherwise
-    bool SubGraphExists( const FeFctIdType idPDE1,
-                         const FeFctIdType idPDE2 ) const;
+    bool SubGraphExists( UInt rowNum = 0,
+                         UInt colNum = 0 )  {
+      return graph_[ ComputeIndex( rowNum, colNum ) ] != NULL;
+    }
 
     //! Query whether a certain IDBC sub-graph exists
 
     //! This method can be used to query whether a sub-graph of IDBC type
     //! was generated for the specified PDE in the Setup phase.
     //! \return true if IDBC graph exists, false otherwise
-    bool IDBCGraphExists( const FeFctIdType idPDE1,
-                          const FeFctIdType idPDE2 ) const;
+    bool IDBCGraphExists( UInt rowNum = 0,
+                          UInt colNum = 0 ) const {
+      return graphIDBC_[ ComputeIndex( rowNum, colNum ) ] != NULL;
+    }
 
     //@}
 
@@ -231,11 +280,9 @@ namespace CoupledField {
     //! and the coupling objects in a matrix. This matrix is stored as 1D
     //! array. This auxilliary method computes for a given pair of PDE
     //! identifiers the 1D index of the corresponding matrix entry.
-    inline UInt ComputeIndex( const FeFctIdType identifierPDE1,
-                                 const FeFctIdType identifierPDE2 ) const {
-      UInt i = identifierPDE1;
-      UInt j = identifierPDE2 == NO_PDE_ID ? identifierPDE1 : identifierPDE2;
-      return numPDEs_*i + j;
+    inline UInt ComputeIndex( UInt rowNum,
+                              UInt colNum ) const {
+      return numBlocks_*rowNum + colNum;
     };
 
     //! Auxilliary method for generation of IDBC graph objects
@@ -245,14 +292,14 @@ namespace CoupledField {
     //! be the case, if the second PDE of the pair contains degrees of
     //! freedom that are fixed by inhomogeneous Dirichlet boundary
     //! conditions.
-    void GenerateIDBCGraph( FeFctIdType pdeID1, FeFctIdType pdeID2 );
+    void GenerateIDBCGraph( UInt rowNum, UInt colNum );
 
     //! Auxilliary method for generation of graphs of coupling objects
 
     //! This method can be called to generate the graph of a coupling object
     //! for the coupling between the PDEs in the specified pair
     //! (pdeId1, pdeID2). It is called by AssembleInit().
-    void GenerateCouplingGraph( FeFctIdType pdeID1, FeFctIdType pdeID2 );
+    void GenerateCouplingGraph( UInt rowNum, UInt colNum );
 
     //! Matrix storing pointers to the graph objects
 
@@ -296,23 +343,11 @@ namespace CoupledField {
     //! - the permutation vector was already claimed via GetReordering()
     StdVector< StdVector<UInt> > newOrdering_;
 
-    //! Vector storing for each PDE the last free equation number
-
-    //! Vector storing for each PDE the last free equation number, i.e. the
-    //! last equation number for a degree of freedom that is not fixed by
-    //! an inhomogeneous Dirichlet boundary condition.
-    StdVector<UInt> numLastFreeDof_;
-
-    //! Vector storing for each PDE the total number of equation numbers
-
-    //! Vector storing for each PDE the total number of equation numbers,
-    //! i.e. the sum of the equation numbers for degrees of freedom that
-    //! are fixed by inhomogeneous Dirichlet boundary conditions and those
-    //! that are not.
-    StdVector<UInt> numEqn_;
+    //! Vector storing for each block meta informaation
+    StdVector<SBMBlockInfo*> blockInfo_;
 
     //! Attribute to store the number of PDEs that belong to the manager
-    UInt numPDEs_;
+    UInt numBlocks_;
 
     //! Attribute to store the number of PDEs that finished assembly
 
@@ -321,12 +356,12 @@ namespace CoupledField {
     //! consistency checks. We can e.g. avoid that coupling objects try
     //! to start their assembly before all PDEs have finished theirs, which
     //! could lead to problems due to the re-ordering of the PDEs.
-    UInt numAssembledPDEs_;
+    UInt numAssembledBlocks_;
 
     //! Attribute to keep track of number of PDEs that were registered
-    UInt numRegisteredPDEs_;
+    UInt numRegisteredBlocks_;
 
-    //! Attribute for testing wether it is safe to query the graph re-ordering
+    //! Attribute for testing whether it is safe to query the graph re-ordering
 
     //! Since there is a fundamental difference between the different graph
     //! manager implementations w.r.t. to the place at which the graph manager
@@ -353,10 +388,10 @@ namespace CoupledField {
     //! This auxilliary vector is employed by the SetElementPos() method to
     //! pass the connectivity information that was transformed by a call
     //! to the AdaptConnects() method to the graph objects.
-    std::vector<UInt> vertexList1_;
-    std::vector<UInt> vertexList2_;
-    std::vector<UInt> edgeList1_;
-    std::vector<UInt> edgeList2_;
+    std::vector<std::vector<UInt> > vertexList1_;
+    std::vector<std::vector<UInt> > vertexList2_;
+    std::vector<std::vector<UInt> > edgeList1_;
+    std::vector<std::vector<UInt> > edgeList2_;
     //@}
 
   };

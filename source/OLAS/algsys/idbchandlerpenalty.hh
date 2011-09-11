@@ -8,8 +8,6 @@
 #include <set>
 
 #include <def_expl_templ_inst.hh>
-
-
 #include "baseidbchandler.hh"
 
 namespace CoupledField {
@@ -17,7 +15,6 @@ namespace CoupledField {
 
   // forward declarations
   class BaseGraphManager;
-  struct BaseEntryManipulator;
 
 
   //! The %IDBC_HandlerPenalty deals with degrees of freedom that are fixed
@@ -69,47 +66,20 @@ namespace CoupledField {
 
   public:
 
-    //! Adapt system matrix
+     //! @copydoc BaseIDBC_Handler::AdaptSystemMatrix()
+    void AdaptSystemMatrix( SBM_Matrix &sysMat );
 
-    //! This method can be used by those approaches that require a
-    //! modification of the system matrix in order to incorporate
-    //! inhomogeneous Dirichlet boundary conditions into the linear system,
-    //! like e.g. the penalty approach.
-    void AdaptSystemMatrix( BaseMatrix &sysMat );
+    //! @copydoc BaseIDBC_Handler::AddIDBCToRHS()
+    inline void AddIDBCToRHS( SBM_Vector *rhs );
 
-    //! Incorporate inhomogeneous Dirichlet BCs into right hand side
+    //! @copydoc BaseIDBC_Handler::SetIDBC()
+    void SetIDBC( UInt rowBlock, UInt rowNum, const T &val );
+    
+    //! @copydoc BaseIDBC_Handler::GetIDBC()
+    void GetIDBC( UInt rowBlock, UInt rowNum, T &val );
 
-    //! Call this method in order to update an exsisting right hand side
-    //! such that it incorporates the modification resulting from
-    //! treating the dofs for inhomogeneous Dirichlet boundary conditions
-    //! by the penalty approach.
-    //! \note The method over-writes existing entries in the positions of
-    //!       the Dirichlet dofs by the modified boundary values. It is the
-    //!       caller's responsibility to ensure that this does not destroy
-    //!       any valuable information.
-    //! \param rhs vector with right-hand side entries
-    inline void AddIDBCToRHS( BaseVector *rhs );
-
-    //! Set value for a Dirichlet boundary condition
-
-    //! This method can be used to set the value of a degree of freedom that
-    //! is fixed by a homogeneous Dirichlet boundary condition.
-    //! \param pdeID identifier of PDE; this is only used in the case of an
-    //!              SBM_System in order to identify the sub-vector in which
-    //!              the value must be stored
-    //! \param eqnNo equation number for the degree of freedom whose value
-    //!              should be set
-    //! \param val   inhomogeneous Dirichlet value
-    void SetIDBC( FeFctIdType pdeID, UInt eqnNo, const T &val );
-
-    //! Set fixed dofs to specified Dirichlet boundary values
-
-    //! This method replaces the values of all fixed degrees of freedom in the
-    //! specified input vector by new values. These new values are taken to
-    //! be the values specified via the inhomogeneous Dirichlet boundary
-    //! condition that fixes the respective degrre of freedom.
-    void SetDofsToIDBC( BaseVector *vec );
-
+    //! @copydoc BaseIDBC_Handler::SetDofsToIDBC()
+    void SetDofsToIDBC( SBM_Vector *vec );
 
     // =======================================================================
     // CONSTRUCTION, DESTRUCTION and CLEARING
@@ -119,38 +89,19 @@ namespace CoupledField {
 
     //@{
 
-    //! Admissable constructor for the case of StdMatrices
-
-    //! This constructor is intended to by used in the case of a linear
-    //! system specified with the help of StdMatrices.
-    //! \param numIDBC   number of degrees of freedom fixed by inhomogeneous
-    //!                  Dirichlet boundary conditions
-    //! \param blockSize block size of matrix entries. This is > 1 in the
-    //!                  case that dof blocking is employed and e.g. the three
-    //!                  displacements at a single node in a mechanics problem
-    //!                  are treated as one entity in the linear system
-    //!                  (Note only required for setting up the assembler_
-    //!                  object!)
-    IDBC_HandlerPenalty( UInt numIDBC, UInt blockSize );
-
-    //! Admissable constructor for the case of SBM_Matrices
+    //! Admissible constructor for the case of SBM_Matrices
 
     //! This constructor is intended to by used in the case of a linear
     //! system specified with the help of SBM_Matrices.
-    //! \param numIDBC   number of degrees of freedom fixed by inhomogeneous
-    //!                  Dirichlet boundary conditions
-    //! \param numPDEs   number of PDEs in the SBM_System
-    //! \param bcOffsets array for initialising the bcOffsets_ attribute
-    IDBC_HandlerPenalty( UInt numIDBC, UInt numPDEs, UInt *bcOffsets );
+    //! \param numIDBC   vector containing for each SBM row the number of
+    //!                  inhomogeneous Dirichlet values (length of vector
+    //!                  = number of sbmRows)
+    IDBC_HandlerPenalty( StdVector<UInt> numIDBC);
 
     //! Destructor
     ~IDBC_HandlerPenalty();
 
-    //! Re-set vector of Dirichlet values
-
-    //! Calling this method deletes all information stored by the object
-    //! internally on the values and degrees of freedom that are fixed
-    //! by inhomogeneous Dirichlet boundary conditions.
+    //! @copydoc BaseIDBC_Handler::InitDirichletValues()
     void InitDirichletValues();
 
     //@}
@@ -168,146 +119,81 @@ namespace CoupledField {
 
     //@{
 
-    //! Combine different FE matrices into a single system matrix
+    ///! @copydoc BaseIDBC_Handler::BuiltSystemMatrix()
     void BuiltSystemMatrix( const std::map<FEMatrixType, Double> &factors ) {
     }
 
-    //! Remove inhomogeneous Dirichlet BCs from right hand side
-    inline void RemoveIDBCFromRHS( BaseVector *rhs ) {
+    //! @copydoc BaseIDBC_Handler::RemoveIDBCFromRHS()
+    inline void RemoveIDBCFromRHS( SBM_Vector *rhs ) {
     }
 
-    //! Add weight of coupling between a fixed and a free dof into matrix
+    //! @copydoc BaseIDBC_Handler::AddWeightFixedToFree()
     void AddWeightFixedToFree( FEMatrixType matID,
-                               FeFctIdType pdeID1,
-                               FeFctIdType pdeID2,
+                               UInt rowBlock,
+                               UInt colBlock,
                                UInt rowInd,
                                UInt colInd,
-                               const T& value ) {
+                               const T& val ) {
     };
 
-    //! Set weight of coupling between a fixed and a free dof into matrix
+    //! @copydoc BaseIDBC_Handler::SetWeightFixedToFree()
     void SetWeightFixedToFree( FEMatrixType matID,
-                               FeFctIdType pdeID1,
-                               FeFctIdType pdeID2,
+                               UInt rowBlock,
+                               UInt colBlock,
                                UInt rowInd,
                                UInt colInd,
-                               const T& value ) {
+                               const T& val ) {
     };
 
-    //! Get weight of coupling between a fixed and a free dof from matrix
-    void GetWeightFixedToFree( FEMatrixType matID, FeFctIdType pdeID1,
-                               FeFctIdType pdeID2, UInt rowInd, UInt colInd,
-                               T & value ) const {
+    //! @copydoc BaseIDBC_Handler::GetWeightFixedToFree()
+    void GetWeightFixedToFree( FEMatrixType matID,
+                               UInt rowBlock,
+                               UInt colBlock,
+                               UInt rowInd,
+                               UInt colInd,
+                               T & val ) {
     };
     
-    //! Set the value of all coupling weights of a free dof to its fixed ones
-    void SetRowWeights( FEMatrixType matID, FeFctIdType pdeID, UInt rowInd,
-                        Double realPart, Double imagPart = 0.0 ) {
-    }
-    
-    
-    //! Set the value of all coupling weights of a fixed dof to its free ones
-    void SetColWeights( FEMatrixType matID, FeFctIdType pdeID,UInt colInd,
-                        Double realPart, Double imagPart = 0.0 ) {
+    //! @copydoc BaseIDBC_Handler::InitMatrix()
+    void InitMatrix( FEMatrixType matrixType) {
     };
 
-    
-
-    //! Re-set specified internal matrix to zero
-    void InitMatrix( FEMatrixType matrixID ) {
-    };
-
-    /** Our penalty term */
+    //! Return penalty term
     Double GetPenalty() const {
       return penaltyTerm_;
     }
     
+    //! Dump information to std output
     void Dump()
     {
-      std::map<FeFctIdType, std::map<Integer, UInt> >::iterator i;
+      std::map<UInt, std::map<Integer, UInt> >::iterator i;
       for(i = bcIndices_.begin(); i != bcIndices_.end(); i++)
       {
-        std::cout << " pde_type = " << i->first << std::endl;
+        std::cout << " sbmBlock = " << i->first << std::endl;
         std::map<Integer, UInt>::iterator j;
         for(j = i->second.begin(); j != i->second.end(); j++)
-          std::cout << " " << j->second;
+          std::cout << " " << dirichletEqns_[i->first][j->second];
         std::cout << std::endl;
       }
     }
-
-    /** Get for a equation number the penalty dirichlet value.
-     * @param equation if invalid we return false
-     * @param dirichlet_value because it can be double/complex as paramter. Unset if return false
-     * @return true if equation is valid, then dirichlet_value ist set. */
-    bool GetIDBC(FeFctIdType pde_type, int equation, T& dirichlet_value) 
-    {
-      // search for the equation and check 
-      std::map<Integer, UInt>::iterator iter = bcIndices_[pde_type].find(equation);
-      if(iter == bcIndices_[pde_type].end()) return false;
-
-      // set dirichlet value
-      dirichletValue_->GetEntry(iter->second, dirichlet_value);
-
-      return true;
-    }
-    
-    
     //@}
 
 
   private:
-
-    //! Flag indicating whether we are faced with SBM_Matrices/Vectors
-    bool sbmCase_;
-
-    //! Our private assembling object
-    BaseEntryManipulator *assembler_;
-
-    //! Number of inhomogeneous Dirichlet boundary conditions
-
-    //! This attribute stores the number of degrees of freedom that are
-    //! fixed by inhomogeneous Dirichlet boundary conditions. Note that in
-    //! the case of dof-blocking, i.e. when dofs at a node a treated as one
-    //! algebraic entity, this number may be smaller than the number of
-    //! CFS++ equation numbers for inhomogeneous Dirichlet boundary
-    //! conditions. This number is the total number, i.e. the sum over all
-    //! PDEs.
-    UInt numIDBC_;
-
-    //! Array used for storing equation numbers for fixed dofs
-
-    //! This array is used to store for each degree of freedom that is
-    //! fixed by an inhomogeneous Dirichlet boundary condition the related
-    //! equation number assigned to this dof (scalar case) or the block of
-    //! dofs the dof belongs to (block case).
-    UInt *dirichletEQN_;
-
-    //! Next index for dirichlet condition set
-    std::map<FeFctIdType, UInt > nextIndex_;
-
+    //! Keep for every SBM-block the eqn numbers
+    std::map<UInt, StdVector<UInt> > dirichletEqns_;
+    
     //! Map for mapping eqn number to position in dirichletValue_ vector
-    std::map<FeFctIdType, std::map<Integer, UInt> > bcIndices_;
+    std::map<UInt, std::map<Integer, UInt> > bcIndices_;
 
     //! Array for storing inhomogeneous Dirichlet values
-    BaseVector *dirichletValue_;
+    SBM_Vector *dirichletValue_;
 
     //! Value of the penalty term in the penalty approach
     Double penaltyTerm_;
 
     //! Attribute storing run-time information on class template
     BaseMatrix::EntryType eType_;
-
-    //! Array storing index pointers into internal arrays
-
-    //! This array stores for each PDE the index (minus 1) at which the
-    //! information for this PDE starts in the dirichletComponent_ and
-    //! dirichletEQN_ arrays. Since storage is contiguous we can also use this
-    //! information to compute the number of IDBCs for an individual PDE.
-    //! The array is enlarged by one entry for this purpose.
-    //! \note This array is only used in the SBM case. In the case of an
-    //!       IDBC handler for a standard system, this will be a NULL
-    //!       pointer.
-    UInt *offset_;
 
     //! Method for formatted output of internal arrays
 

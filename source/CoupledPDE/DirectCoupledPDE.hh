@@ -13,7 +13,7 @@ namespace CoupledField {
   class SinglePDE;
   class BasePairCoupling;
   class Assemble;
-  class BaseSystem;
+  class AlgebraicSys;
   class StdPDE;
   
   //! This class implements the direct coupling of StdPDEs.
@@ -138,24 +138,6 @@ namespace CoupledField {
     
 
   private:
-
-    //! Auxilliary method for building re-ordering into BaseEQN objects
-
-    //! This auxilliary method is used to obtain the permutation vector
-    //! for the equation numbers from the algebraic system and pass it on
-    //! to the BaseEQN data objects associated with the individual directly
-    //! coupled PDEs. The algebraic system passes the pointer and also the
-    //! responsibility for handling the memory associated with the
-    //! permutation vector to CFS. After the BaseEQN data object has
-    //! incorporated the new ordering, we should, thus, delete the
-    //! permutation vector.
-    //! \note The correct place to call this method depends on the type
-    //! of algebraic system employed. In the case of a StandardSystem this
-    //! method must be called only after assemble of the graph has completed.
-    //! In the case of an SBM_System the method must be called <b>after</b>
-    //! all PDEs have assembled their sub-graphs and <b>before</b> the
-    //! coupling objects start the assembly of their sub-graphs.
-    void IncorporateReordering();
 
     //! define the SolutionStep-Driver
     virtual void DefineSolveStep();

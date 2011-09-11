@@ -17,7 +17,7 @@ namespace CoupledField
   public:
     //! constructor
     //! \param algebraicsystem pointer to algebraic system 
-    Newmark( BaseSystem * algebraicsystem, PtrParamNode systemNode );
+    Newmark( AlgebraicSys * algebraicsystem, PtrParamNode systemNode );
 
     //! destructor
     virtual ~Newmark();
@@ -87,7 +87,7 @@ namespace CoupledField
     //! constructor
     //! constructor
     //! \param algebraicsystem pointer to algebraic system 
-    NewmarkEffMass( BaseSystem * algebraicsystem, PtrParamNode systemNode,
+    NewmarkEffMass( AlgebraicSys * algebraicsystem, PtrParamNode systemNode,
                     bool intExplicit = false );
 
     //! destructor

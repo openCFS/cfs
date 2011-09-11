@@ -22,7 +22,7 @@ namespace CoupledField {
 //  class StdPDE;
   class SinglePDE;
   class MathParser;
-//  class BaseSystem;
+//  class AlgebraicSys;
 
 //!  Base class for a function approximated by Finite Elements 
 /*!
@@ -94,10 +94,10 @@ public:
   shared_ptr<Grid>  GetGrid();
 
   //! Set the algebraic System
-  void SetSystem( BaseSystem* sys );
+  void SetSystem( AlgebraicSys* sys );
 
   //! Get the algebraic System
-  BaseSystem * GetSystem();
+  AlgebraicSys * GetSystem();
 
   //@}
   
@@ -196,7 +196,7 @@ protected:
   MathParser::HandleType mHandle_;
 
   //! pointer to algebraic system
-  BaseSystem* algsys_;      
+  AlgebraicSys* algsys_;      
 
 };
 

@@ -29,11 +29,11 @@ class FeSpaceH1Hi : public FeSpaceH1 {
     //! Return pointer to reference element (by element number)
     virtual BaseFE* GetFe( UInt elemNum );
 
-    //! @see FeSpace::GetNumEntityOrder
+    //! @copydoc FeSpace::GetNumEntityOrder
     UInt GetEntityOrder( UInt elemNum, BaseFE::EntityType type, 
                          UInt entityNum, UInt comp = 1 );
     
-    //! @see FeSpace::GetMaxEntityOrder
+    //! @copydoc FeSpace::GetMaxEntityOrder
     UInt GetMaxEntityOrder( UInt elemNum, BaseFE::EntityType type, 
                             UInt entityNum );
     

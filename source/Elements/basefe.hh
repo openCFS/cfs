@@ -18,7 +18,7 @@
 namespace CoupledField
 {
   // Forward class declaration
-  class BaseSystem;
+  class AlgebraicSys;
 
   //! Base class for description of elements
 

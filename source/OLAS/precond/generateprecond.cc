@@ -18,6 +18,7 @@
 #include "OLAS/precond/ic0precond.hh"
 
 #include "MatVec/diag_matrix.hh"
+#include "MatVec/sbmmatrix.hh"
 
 namespace CoupledField {
 
@@ -311,6 +312,8 @@ retVal = new precondObjType( mat, solverXML, olasInfo );\
     if(precondStr == "") {
       precondStr = "noPrecond";
     }
+    
+    UInt numBlocks = mat.GetNumRows();
 
     BasePrecond::PrecondType ptype = BasePrecond::NOPRECOND;
     ptype = BasePrecond::precondType.Parse(precondStr);
@@ -326,10 +329,20 @@ retVal = new precondObjType( mat, solverXML, olasInfo );\
     //       generate an identity preconditioner to remain consistent.
     case BasePrecond::NOPRECOND:
     case BasePrecond::ID:
-      retVal = new IdPrecondSBM;
-      (*cla) << " GenerateStdPrecondObject: Generated Identity preconditioner"
-      << std::endl;
+//      retVal = new IdPrecondSBM;
+//      (*cla) << " GenerateStdPrecondObject: Generated Identity preconditioner"
+//      << std::endl;
+//      break;
+    case BasePrecond::JACOBI:
+      retVal = new BaseSBMPrecond(numBlocks);
+      
+      // hard-coded: set for each block the specified standard preconditioner
+      for(UInt i = 0; i < numBlocks; ++i ) {
+        BaseStdPrecond * p = GenerateStdPrecondObject(mat(i,i), solverNode, olasInfo );
+        retVal->SetPrecond(i, p);
+      }
       break;
+      
     default:
       EXCEPTION( "GeneratePrecondObject failed: Preconditioner type unknown" );
     }

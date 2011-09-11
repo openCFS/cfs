@@ -1339,13 +1339,13 @@ namespace CoupledField {
     MaterialTypeEnum.Add( PYROCOEFFICIENT_TENSOR, "Pyrocoefficient_Tensor" ); 
 
     // ==== Initialization of Matrix Types ====
-    feMatrixType.Add( NOTYPE, "no FE matrix" );
-    feMatrixType.Add( SYSTEM, "system matrix" );
-    feMatrixType.Add( STIFFNESS, "stiffness matrix");
-    feMatrixType.Add( DAMPING, "damping matrix" );
-    feMatrixType.Add( CONVECTION, "convection matrix");
-    feMatrixType.Add( MASS, "mass matrix" );
-    feMatrixType.Add( AUXILIARY, "auxiliary matrix" );
+    feMatrixType.Add( NOTYPE, "none" );
+    feMatrixType.Add( SYSTEM, "system" );
+    feMatrixType.Add( STIFFNESS, "stiffness");
+    feMatrixType.Add( DAMPING, "damping" );
+    feMatrixType.Add( CONVECTION, "convection");
+    feMatrixType.Add( MASS, "mass" );
+    feMatrixType.Add( AUXILIARY, "auxiliary" );
 
     MAX_NUM_FE_MATRICES = feMatrixType.map.size() - 1;
 

@@ -21,25 +21,18 @@ namespace CoupledField {
 
   // forward declaration
   class BaseIDBC_Handler;
-  class BaseGraphManager;
+  class GraphManager;
 
   //! Function for generating an IDBC_Handler object for elimination approach
   BaseIDBC_Handler*
   GenerateIDBC_HandlerObject( const std::set<FEMatrixType> usedFEMatrices,
-                              BaseGraphManager *graphManager, UInt numPDEs,
-                              UInt numIDBCs,
-                              const BaseMatrix::EntryType eType,
-                              bool sbmCase );
-
-  //! Function for generating an IDBC_HandlerPenalty object for StdMatrices
-  BaseIDBC_Handler*
-  GenerateIDBC_HandlerObject( UInt numIDBC, UInt blockSize,
+                              GraphManager *graphManager, StdVector<UInt>& numIDBC,
                               const BaseMatrix::EntryType eType );
 
   //! Function for generating an IDBC_HandlerPenalty object for SBM_Matrices
   BaseIDBC_Handler*
-  GenerateIDBC_HandlerObject( UInt numIDBC, UInt numPDEs, UInt *bcOffsets,
-                              const BaseMatrix::EntryType eType );
+  GenerateIDBC_HandlerObjectPenalty( StdVector<UInt>& numIDBC,
+                                     const BaseMatrix::EntryType eType );
 }
 
 #endif

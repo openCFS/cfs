@@ -3,19 +3,6 @@
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
 
-// ===========================================================================
-//
-// Variation of the GRAPH-Implementation
-//
-// 1) Each edge is inserted, regardless if it is already contained in the
-//    matrix graph. Fast, but not memory efficient
-// 2) For each edge it is checked, if it is already contained in the graph.
-//    Slow, but memory efficient
-//
-// Second variant is used, if GRAPH_VECTOR_SORT macro is enabled. This is
-// done by setting FAST_EDGE_INSERTION = no in Makefile.option
-//
-// ===========================================================================
 
 
 #include <iostream>
@@ -40,8 +27,6 @@ extern "C"{
 #include "OLAS/graph/sloan.hh"
 
 namespace CoupledField {
-
-  //#define DEBUG_BASEGRAPH
 
   // ***************
   //   Constructor
@@ -122,53 +107,13 @@ namespace CoupledField {
   void BaseGraph::AddVertexNeighbours( std::vector<UInt> vertexList,
                                        std::vector<UInt> neighbourList ) {
 
-
-    UInt i, j;
-    // UInt i, j, nodeIndex; // TODO: Check if this is still needed
-
-#ifdef DEBUG_BASEGRAPH
-    (*debug) << "\n BaseGraph::AddVertexNeighbours:\n";
-    (*debug) << " vertexList: ";
-    for ( i = 0; i < vertexList.size(); i++ ) {
-      (*debug) << vertexList[i] << " ";
-    }
-    (*debug) << std::endl;
-    (*debug) << " neighbourList: ";
-    for ( i = 0; i < neighbourList.size(); i++ ) {
-      (*debug) << neighbourList[i] << " ";
-    }
-    (*debug) << '\n' << std::endl;
-#endif
-
-#ifdef GRAPH_VECTOR_SORT
-    NodeList curList;
-    bool edgeFound = false;
-    UInt k = 0;
-#endif
-
     // For each vertex in vertexList add all vertices in the neighbourList
     // as neighbours / edges
+    UInt i, j;
     for ( i = 0; i < vertexList.size(); i++ ) {
       for ( j = 0; j < neighbourList.size(); j++ ) {
-
-#ifdef GRAPH_VECTOR_SORT
-
-        // Check whether the edge is already contained in the graph
-        edgeFound = false;
-        curList = element_[ vertexList[i] ];
-        for ( k = 0; k < curList.size(); k++ ) {
-          if ( curList[k] == neighbourList[j] ) {
-            edgeFound = true;
-            break;
-          }
-        }
-        if ( edgeFound == false ) {
-          element_[ vertexList[i] ].push_back( neighbourList[j] );
-        }
-#else
         // Insert edge in any case
         element_[ vertexList[i] ].push_back( neighbourList[j] );
-#endif
       }
     }
   }
@@ -223,7 +168,9 @@ namespace CoupledField {
   // ********************
   //   FinaliseAssembly
   // ********************
-  void BaseGraph::FinaliseAssembly( StdVector<UInt>* order ) {
+  void BaseGraph::FinaliseAssembly( bool useExternalOrdering,
+                                    StdVector<UInt>* vertexOrder,
+                                    StdVector<UInt>* edgeOrder  ) {
 
 
     NodeListIterator iter;
@@ -234,58 +181,71 @@ namespace CoupledField {
     // Determine number of non-zero entries
     CountNNE();
 
-    // If user wants, try to reorder the graph
-    if ( newOrder_ != BaseOrdering::NOREORDERING ) {
+    if ( vertexOrder == NULL ) {
+      std::string tmp = BaseOrdering::reorderingType.ToString( newOrder_ );
 
-      if ( order == NULL ) {
-        std::string tmp = BaseOrdering::reorderingType.ToString( newOrder_ );
+      EXCEPTION("BaseGraph::FinaliseAssembly: I was told to do a '"
+          << tmp
+          << "' reordering, but you provided a NULL pointer "
+          << "for storing the permutation array!"
+          << "Who you think you are? I'm mortally offended! ;-)");
+    }
 
-        EXCEPTION("BaseGraph::FinaliseAssembly: I was told to do a '"
-                 << tmp
-                 << "' reordering, but you provided a NULL pointer "
-                 << "for storing the permutation array!"
-                 << "Who you think you are? I'm mortally offended! ;-)");
-      }
+    // Distinguish case
+    
+    // 1) no external ordering: We use the internal reordering strategy
+    //    and store the reordering mapping back in the vector vertexOrder
+    if( !useExternalOrdering ) {
+      
+      // resize ordering array
+      vertexOrder->Resize(numNodes_);
+      edgeOrder = vertexOrder;
 
-      // compute new ordering
-      // in the array "order" we still have vertices starting with one
-      // since we pass it back to eqnMap in CFS
-      Reorder( newOrder_, *order );
+      // If user wants, try to reorder the graph, otherwise return identity array
+      if ( newOrder_ != BaseOrdering::NOREORDERING ) {
 
- 
-
-      // sort graph according to new ordering
-      // step 1: re-number every list
-      // step 2: re-arrange lists in vector
-      for ( UInt i = 0; i < numNodes_; i++ ) {
-        for ( iter = element_[i].begin(); iter != element_[i].end(); iter++ ){
-          // minus one, since in OLAS the vertices starts with zero
-          *iter = (*order)[ *iter ] - 1;
+        // compute new ordering
+        // in the array "order" we still have vertices starting with one
+        // since we pass it back to eqnMap in CFS
+        Reorder( newOrder_, *vertexOrder );
+      } else {
+        
+        // set vertexOrder and edgeOrder accordingly
+        vertexOrder->Resize(numNodes_);
+        for( UInt i = 0; i < numNodes_; ++i ) {
+          (*vertexOrder)[i] = i+1;
         }
       }
-
-      StdVector<NodeList> newElement(numNodes_);
-
-      for ( UInt i=0; i< numNodes_; i++ ) {
-        UInt n = (*order)[i];
-        newElement[n-1] = element_[i];
-      }
-
-      // Sort the list again (but no need to make unique)
-      for ( UInt i=0; i< numNodes_; i++ ) {
-        element_[i] = newElement[i];
-        std::sort(element_[i].begin(), element_[i].end());
-      }
-
-
-#ifdef DEBUG_BASEGRAPH
-      (*debug) << "Reordering: New mapping" << std::endl;
-      for ( UInt i = 0; i < numNodes_; i++ ) {
-        (*debug) << i+1 << " -> " << order[i] << std::endl;
-      }
-#endif
-
+      
+    }  else {
+      // 2) An external ordering (maybe differnt for vertices and edges)
+      //    was provided, so we just take these.
+      if( edgeOrder == NULL )
+        edgeOrder = vertexOrder;
     }
+    
+    // sort graph according to new ordering
+    // step 1: re-number every list
+    // step 2: re-arrange lists in vector
+    for ( UInt i = 0; i < numNodes_; i++ ) {
+      for ( iter = element_[i].begin(); iter != element_[i].end(); iter++ ){
+        // minus one, since in OLAS the vertices starts with zero
+        *iter = (*edgeOrder)[ *iter ] - 1;
+      }
+    }
+
+    StdVector<NodeList> newElement(numNodes_);
+    for ( UInt i=0; i< numNodes_; i++ ) {
+      UInt n = (*vertexOrder)[i];
+      newElement[n-1] = element_[i];
+    }
+
+    // Sort the list again (but no need to make unique)
+    for ( UInt i=0; i< numNodes_; i++ ) {
+      element_[i] = newElement[i];
+      std::sort(element_[i].begin(), element_[i].end());
+    }
+
 
     // Convert Storage format to CRS style
     ConvertToCRS();
@@ -336,8 +296,6 @@ namespace CoupledField {
     csNodes_[0] = 0;
 
     NodeListIterator iter;
-    // unused variable UInt pos;
-
     for ( i = 0; i < numNodes_; i++ ) {
 
       // set number of edges for current node
@@ -352,13 +310,13 @@ namespace CoupledField {
     }
 
 #ifdef DEBUG_BASEGRAPH
-    (*debug) << "Graph in CRS format: " << std::endl;
+    (*cla) << "Graph in CRS format: " << std::endl;
     for ( i = 0; i < numNodes_; i++ ) {
-      (*debug) << " Row " << i << ": ";
+      (*cla) << " Row " << i << ": ";
       for ( j = csNodes_[i]; j < csNodes_[i+1]; j++ ) {
-        (*debug) << csEdges_[j] << " ";
+        (*cla) << csEdges_[j] << " ";
       }
-      (*debug) << std::endl;
+      (*cla) << std::endl;
     }
 #endif
 
@@ -575,7 +533,7 @@ namespace CoupledField {
   // *********************************************************************
   //   Compute bandwidth (upper and lower) used e.g. for LAPACK Matrices
   // *********************************************************************
-  void BaseGraph::GetBandwidth( UInt& bwlower, UInt& bwupper ) {
+  void BaseGraph::GetBandwidth( UInt& bwlower, UInt& bwupper, UInt& bwAvg ) {
 
                 
 #ifdef DEBUG_BASEGRAPH
@@ -586,11 +544,19 @@ namespace CoupledField {
 //     }
 #endif
                 
+    // Note: If we have a rectangular matrix, this algorithm would fail,
+    // as it relies on the presence of a diagonal element.
+    if( numRowsMat_ != numColsMat_ ) {
+      WARN("GetBandWith() produces wrong results for rectangular matrices.");
+      return;
+    }
     // If both values are still 0, they have not been computed yet,
     // so we do it now (or we have a diagonal matrix, which is unlikely)
     if ( (bwlower_ == 0) && (bwupper_ == 0) ) {
 
       UInt bwu, bwl; // distance of current edge
+      Integer bwtmp;
+      bwavg_ = 0;
 
       // Loop over all nodes, i.e. all matrix rows
       for ( UInt node = 0; node < numNodes_; node++ ) {
@@ -600,13 +566,17 @@ namespace CoupledField {
 
         // The row entries are stored with the diagonal entry first,
         // followed by the remaining entries in ascending lexicographic
-        // ordering, so the entry with smalles column index is the second
+        // ordering, so the entry with smallest column index is the second
         // one in this row. If the second entry in the row is right of the
         // diagonal, bwl will get < 0, which is okay, but we risk segfault,
         // if we do not test for the case that the row contains only one
         // entry.
-        if ( csNodes_[node+1] - csNodes_[node] > 1 ) {
-          bwl = (UInt)node - csEdges_[ csNodes_[node] + 1 ];
+        if ( (Integer) csNodes_[node+1] - (Integer) csNodes_[node] > 1 ) {
+          // In case of general rectangular matrices, we can not rely on the
+          // strict ordering, so we have to check the sign.
+          bwtmp = Integer(node - csEdges_[ csNodes_[node] ]);
+          if ( bwtmp > 0 )
+            bwl = (UInt) bwtmp;
         }
 
         // The row entries are stored with the diagonal entry first,
@@ -615,8 +585,14 @@ namespace CoupledField {
         // one in this row. If the last entry in the row is left of the
         // diagonal, or the diagonal itself, bwu will get <= 0, which is
         // okay.
-        bwu = csEdges_[ csNodes_[node+1] - 1 ] - (UInt)node;
-           
+        bwtmp = Integer(csEdges_[csNodes_[node+1] -1  ] - node);
+        if( bwtmp > 0) {
+          bwu = (UInt) bwtmp;
+        }
+        
+        // Sum up for average total bandwidth
+        bwavg_ += bwl + bwu + 1;
+        
         // Has the lower bandwidth grown?
         bwlower_ = bwl > (UInt)bwlower_ ? (UInt)bwl : bwlower_;
 
@@ -624,9 +600,10 @@ namespace CoupledField {
         bwupper_ = bwu > (UInt)bwupper_ ? (UInt)bwu : bwupper_;
       }
     }
-
     bwlower = bwlower_;
     bwupper = bwupper_;
+    bwavg_  = UInt( bwavg_ / Double(numNodes_) );
+    bwAvg   = bwavg_;
 
 #ifdef DEBUG_BASEGRAPH
     (*debug) << "Bandwidth of the graph: l = " << bwlower_

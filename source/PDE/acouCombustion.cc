@@ -9,7 +9,7 @@
 #include <iomanip>
 #include <complex>
 
-#include "OLAS/algsys/basesystem.hh"
+#include "OLAS/algsys/algebraicSys.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "Driver/stdSolveStep.hh"
 #include "Driver/singleDriver.hh"

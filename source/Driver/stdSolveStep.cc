@@ -19,7 +19,7 @@
 #include "Driver/singleDriver.hh"
 #include "Optimization/Optimization.hh"
 
-#include "OLAS/algsys/basesystem.hh"
+#include "OLAS/algsys/algebraicSys.hh"
 
 namespace CoupledField {
 
@@ -57,10 +57,6 @@ namespace CoupledField {
     isHyst_           = PDE_.IsHysteresis();
     totalFormulation_ = PDE_.IsTotaFormulation();
     regionNonLinType_ = PDE_.GetNonLinRegionTypes();
-
-    // for direct coupled PDEs
-    pdeId1_   = NO_PDE_ID;
-    pdeId2_   = NO_PDE_ID;
 
     startStep_ = 1;
 
@@ -159,11 +155,11 @@ namespace CoupledField {
     if( assemble_->IsMatrixUpdated() ) {
       algsys_->SetupPrecond();
 
-      algsys_->SetupSolver(analysis_id);
+      algsys_->SetupSolver();
     }
 
     // Solve problem
-    algsys_->Solve(analysis_id);
+    algsys_->Solve();
 
     // Get the solution and store it
     Vector<Double> tmpSol;
@@ -219,8 +215,8 @@ namespace CoupledField {
           algsys_->ConstructEffectiveMatrix(matrix_factor_);
           algsys_->BuildInDirichlet();
           algsys_->SetupPrecond();
-          algsys_->SetupSolver(child_id);
-          algsys_->Solve(child_id);
+          algsys_->SetupSolver();
+          algsys_->Solve();
 
           // new solution is only an increment of the full solution =============
           algsys_->GetSolutionVal( solInc );
@@ -345,8 +341,8 @@ namespace CoupledField {
           algsys_->ConstructEffectiveMatrix(matrix_factor_);
           algsys_->BuildInDirichlet();
           algsys_->SetupPrecond();
-          algsys_->SetupSolver(child_id);
-          algsys_->Solve(child_id);
+          algsys_->SetupSolver();
+          algsys_->Solve();
 
           // new solution 
           algsys_->GetSolutionVal( actSol );
@@ -497,10 +493,10 @@ namespace CoupledField {
 
     if( effectiveMatrixUpdated ){
       algsys_->SetupPrecond( );
-      algsys_->SetupSolver(analysis_id);
+      algsys_->SetupSolver();
     }
 
-    algsys_->Solve(analysis_id);
+    algsys_->Solve();
 
     Vector<Double> tmpSol;
     algsys_->GetSolutionVal( tmpSol );
@@ -574,8 +570,8 @@ namespace CoupledField {
         algsys_->BuildInDirichlet();
 
         algsys_->SetupPrecond();
-        algsys_->SetupSolver(child_id);
-        algsys_->Solve(child_id);
+        algsys_->SetupSolver();
+        algsys_->Solve();
 
         // new solution is only an increment of the full solution =============
         algsys_->GetSolutionVal( solInc );
@@ -721,10 +717,10 @@ namespace CoupledField {
         // build in the Dirichlet vales in system matrix and rhs
         algsys_->BuildInDirichlet();
         
-        algsys_->SetupSolver(child_id);
+        algsys_->SetupSolver();
         algsys_->SetupPrecond();
         
-        algsys_->Solve(child_id);
+        algsys_->Solve();
         algsys_->GetSolutionVal(newSol); 
         
         //store solution for (n+1)
@@ -822,8 +818,8 @@ namespace CoupledField {
       TS_alg_->SubstractStiffnessFromRHS(actSol);
 
       algsys_->SetupPrecond();
-      algsys_->SetupSolver(child_id);
-      algsys_->Solve(child_id);
+      algsys_->SetupSolver();
+      algsys_->Solve();
 
       // new solution is only an increment of the full solution =============
       algsys_->GetSolutionVal( solInc );
@@ -964,8 +960,8 @@ namespace CoupledField {
         algsys_->BuildInDirichlet();
 
         algsys_->SetupPrecond();
-        algsys_->SetupSolver(child_id);
-        algsys_->Solve(child_id);
+        algsys_->SetupSolver();
+        algsys_->Solve();
 
         // new solution is only an increment of the full solution =============
         algsys_->GetSolutionVal( solInc );
@@ -1120,10 +1116,10 @@ namespace CoupledField {
 
     if( assemble_->IsMatrixUpdated() ) {
       algsys_->SetupPrecond();
-      algsys_->SetupSolver(analysis_id);
+      algsys_->SetupSolver();
     }
 
-    algsys_->Solve(analysis_id);
+    algsys_->Solve();
 
     algsys_->GetSolutionVal(tmpSol);
     PDE_.SaveSolution(tmpSol.GetPointer(), tmpSol.GetSize());

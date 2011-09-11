@@ -305,30 +305,6 @@ namespace CoupledField {
     }
   }
 
-  //! Reorder the equation Map (just for compatibility)
-  void FeSpaceH1::ReorderEqnMap( StdVector<UInt> newOrder ){
-    if(!newOrder.GetSize()){
-      return;
-    }
-    //NODAL PART
-    std::map< Integer , StdVector<Integer> >::iterator mapIt = nodeMap_.eqns.begin();
-    while(mapIt != nodeMap_.eqns.end()){
-      for(UInt iDof =0; iDof < mapIt->second.GetSize(); iDof++){
-        if(mapIt->second[iDof] > 0){
-          mapIt->second[iDof] = (Integer)newOrder[mapIt->second[iDof]-1];
-        }else if (mapIt->second[iDof] < 0){
-          mapIt->second[iDof] = -(Integer)newOrder[-mapIt->second[iDof]-1];
-        }
-      }
-      mapIt++;
-    }
-    // EDGE PART
-    
-    // FACE PART
-    
-    // INNER PART
-  }
-  
   void FeSpaceH1::PreCalcShapeFncs(){
     //now pre-calculate all available integration points
     //stupid but simple

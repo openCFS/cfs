@@ -743,13 +743,4 @@ namespace CoupledField {
     
   }
 
-
-  FeFctIdType BasePairCoupling::GetPdeId1() {
-    return pde1_->GetPDEId();
-  }
-
-  FeFctIdType BasePairCoupling::GetPdeId2() {
-    return pde2_->GetPDEId();
-  }
-
 } // end of namespace

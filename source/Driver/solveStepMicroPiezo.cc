@@ -6,7 +6,7 @@
 #include <iostream>
 #include <string>
 
-#include "OLAS/algsys/basesystem.hh"
+#include "OLAS/algsys/algebraicSys.hh"
 #include "solveStepMicroPiezo.hh"
 #include "Utils/preisach.hh"
 #include "Utils/jiles.hh"

@@ -22,7 +22,7 @@
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/Logging/cfslog.hh"
 #include "OLAS/algsys/baseentrymanipulator.hh"
-#include "OLAS/algsys/basesystem.hh"
+#include "OLAS/algsys/algebraicSys.hh"
 #include "MatVec/basematrix.hh"
 #include "MatVec/stdmatrix.hh"
 

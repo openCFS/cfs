@@ -44,7 +44,7 @@ namespace CoupledField {
     void GetLocDerivShFnc( Matrix<Double>& deriv, const LocPoint& lp,
                            const Elem* elem, UInt comp = 1 );
 
-    //! @see BaseFE::SetFunctionsAtIp
+    //! @copydoc BaseFE::SetFunctionsAtIp
     void SetFunctionsAtIp(const StdVector<LocPoint>& iPoints);
         
 

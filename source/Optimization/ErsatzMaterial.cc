@@ -37,7 +37,7 @@
 #include "DataInOut/ParamHandling/ParamTools.hh"
 #include "DataInOut/programOptions.hh"
 #include "DataInOut/Logging/cfslog.hh"
-#include "OLAS/algsys/basesystem.hh"
+#include "OLAS/algsys/algebraicSys.hh"
 #include "OLAS/algsys/baseentrymanipulator.hh"
 #include "MatVec/basematrix.hh"
 #include "MatVec/stdmatrix.hh"
@@ -3182,7 +3182,7 @@ SingleVector* ErsatzMaterial::Solution::Read(StorageType st, StdPDE* pde, Applic
       // might not check about a further adjont calculation
 
       // get access to solution
-      BaseSystem* bs = em_->assemble_->GetAlgSys();
+      AlgebraicSys* bs = em_->assemble_->GetAlgSys();
       Vector<T> tmp;
 
       if(st == RAW_VECTOR)

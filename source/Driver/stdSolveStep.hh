@@ -163,10 +163,6 @@ namespace CoupledField
     //! returns that L2-norm of an algsys vector
     Double AlgsysL2Norm(Double * pt);
 
-    //! set the identification tag of the PDE
-    void SetPDEId( const FeFctIdType pdeId )
-    { pdeId1_ = pdeId;};
-
     //! returns the hysteresis operator
     Hysteresis * GetHystOperator(UInt iSD) {
       return hyst_[iSD];
@@ -205,7 +201,7 @@ namespace CoupledField
     std::map<RegionIdType, BaseMaterial*> materialData_;  
 
     Grid * ptgrid_;                  //!< pointer to grid object
-    BaseSystem* algsys_;             //!< pointer to algsys object
+    AlgebraicSys* algsys_;             //!< pointer to algsys object
     BaseNodeStoreSol * sol_;         //!< pointer to solution object
     ResultList results_;
     Assemble * assemble_;            //!< pointer to assemble object  
@@ -238,13 +234,6 @@ namespace CoupledField
     //hysteresis operator;    
     StdVector<Hysteresis *> hyst_;
 
-    //! \todo Currently only two pdes can couple. This has to be extended
-    //! for the general case
-    //! Identification tag for first PDE
-    FeFctIdType pdeId1_;
-
-    //! Identification tag for second PDE (coupled case)
-    FeFctIdType pdeId2_;
 
     std::ofstream logFile_;
     MathParser::HandleType mHandle_;

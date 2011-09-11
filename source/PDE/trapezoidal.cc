@@ -8,12 +8,12 @@
 
 #include "trapezoidal.hh"
 
-#include "OLAS/algsys/basesystem.hh"
+#include "OLAS/algsys/algebraicSys.hh"
 
 namespace CoupledField
 {
 
-  Trapezoidal::Trapezoidal( BaseSystem * algebraicsystem, 
+  Trapezoidal::Trapezoidal( AlgebraicSys * algebraicsystem, 
                             PtrParamNode systemNode )
     :TimeStepping( algebraicsystem )
   {
@@ -122,7 +122,7 @@ namespace CoupledField
   //---------------------------- Effective Mass ------------------
   //====================================================================
 
-  TrapezoidalEffMass::TrapezoidalEffMass( BaseSystem * algebraicsystem,
+  TrapezoidalEffMass::TrapezoidalEffMass( AlgebraicSys * algebraicsystem,
                                           PtrParamNode systemNode)
     :TimeStepping( algebraicsystem )
   {

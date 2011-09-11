@@ -277,7 +277,7 @@ namespace CoupledField {
 
     BaseNodeStoreSol * getPDESolutionPrev() {return solPrev_;};
     
-    BaseSystem * getPDE_algsys(){return algsys_;};
+    AlgebraicSys * getPDE_algsys(){return algsys_;};
   
     UInt getPDE_numElems(){return numElems_;};
 
@@ -646,7 +646,7 @@ namespace CoupledField {
     //! pointer to SolveStep classes
     StdSolveStep * solveStep_;
     
-    BaseSystem * algsys_;      //!< pointer to algebraic system
+    AlgebraicSys * algsys_;      //!< pointer to algebraic system
   
     /** This is the node for linear system responsible for this pde. */
     PtrParamNode olasInfo_;

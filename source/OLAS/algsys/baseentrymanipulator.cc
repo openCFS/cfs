@@ -8,7 +8,7 @@
 
 #include "OLAS/algsys/baseentrymanipulator.hh"
 #include "OLAS/algsys/baseidbchandler.hh"
-#include "OLAS/algsys/standardsys.hh"
+#include "OLAS/algsys/algebraicSys.hh"
 
 #include "MatVec/vector.hh"
 #include "MatVec/stdmatrix.hh"
@@ -664,13 +664,13 @@ namespace CoupledField {
   //   AdaptSystemMatrix
   // *********************
   void BaseEntryManipulator::AdaptSystemMatrix( StdMatrix &stdMat,
-                                                UInt *dirichletEQN,
-                                                UInt numIDBC,
+                                                StdVector<UInt>& dirichletEQN,
                                                 Double &penaltyTerm ) {
 
     // Loop over all Dirichlet equation numbers and replace
     // diagonal matrix entry by penalty term (no components
     // required in this scalar case)
+    UInt numIDBC = dirichletEQN.GetSize();
     if( stdMat.GetEntryType() == BaseMatrix::COMPLEX ) { 
       Complex penaltyC(penaltyTerm, 0.0);
       for ( UInt i = 0; i < numIDBC; i++ ) {
@@ -688,8 +688,8 @@ namespace CoupledField {
   //   AdaptRHSForIDBC
   // *******************
   void BaseEntryManipulator::AdaptRHSForIDBC( SingleVector &rhs,
-                                              UInt *dirichletEQN,
-                                              SingleVector &dirichletValue,
+                                              StdVector<UInt>& dirichletEQN,
+                                              SingleVector& dirichletValues,
                                               Double &penaltyTerm,
                                               UInt numIDBC ) {
 
@@ -698,7 +698,7 @@ namespace CoupledField {
       Complex entry;
 
       for( UInt i = 0; i < numIDBC; i++ ) {
-        dirichletValue.GetEntry( i, entry );
+        dirichletValues.GetEntry( i, entry );
         entry *= penaltyC;
         rhs.SetEntry( dirichletEQN[i] - 1, entry );
       }
@@ -706,7 +706,7 @@ namespace CoupledField {
       Double entry;
 
       for( UInt i = 0; i < numIDBC; i++ ) {
-        dirichletValue.GetEntry( i, entry );
+        dirichletValues.GetEntry( i, entry );
         entry *= penaltyTerm;
         rhs.SetEntry( dirichletEQN[i] - 1, entry );
       }

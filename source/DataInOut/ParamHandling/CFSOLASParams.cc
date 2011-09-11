@@ -220,7 +220,9 @@ namespace CoupledField {
     // ===========================
     //  Determine Matrix symmetry
     // ===========================
-    bool symmetricMat = assemble->IsFEMatSymmetric();
+//    bool symmetricMat = assemble->IsFEMatSymmetric();
+    bool symmetricMat = true;
+    WARN("Determination of symmetric systemn not really working in CFSOLASPARAMS");
 
     // ==============
     //  EigenSolver stuff

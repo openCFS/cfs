@@ -13,8 +13,7 @@
 
 #include "Utils/biotSavart.hh"
 
-#include "OLAS/algsys/basesystem.hh"
-#include "OLAS/algsys/standardsys.hh"
+#include "OLAS/algsys/algebraicSys.hh"
 
 // header for scripting
 #include <def_use_scripting.hh>
@@ -68,7 +67,6 @@ namespace CoupledField {
     StdPDE( aptgrid, paramNode ),
     ptError_(NULL),
     tolSpaceErr_(0.0),
-    pdeId_(NO_PDE_ID),
     isDirectCoupled_(false),
     isInitialized_(false),
     usePenalty_(true),
@@ -208,11 +206,12 @@ namespace CoupledField {
     // direct coupled
     if( needsAlgsys_ == true ) {
       if ( isDirectCoupled_ == false) {
-        algsys_ = new StandardSystem(FindLinearSystem(pdename_));
+        olasInfo_ = info->Get("OLAS")->Get(pdename_);
+        algsys_ = new AlgebraicSys(FindLinearSystem(pdename_), olasInfo_);
       }
 
-      // Obtain unique pde identifier
-      pdeId_ = algsys_->ObtainPDEId( pdename_ );
+      // Obtain unique pde identifier => Ob
+      //pdeId_ = algsys_->ObtainPDEId( pdename_ );
 
 
       // Determine, if this is a parallel run
@@ -260,6 +259,17 @@ namespace CoupledField {
     // trigger the creation of functionDescriptors
     //======================================================================
     DefineFeFunctions();
+    
+    // Register all fe functions with the algebraic system
+    std::map<SolutionType, shared_ptr<BaseFeFunction> >::iterator fncIt= feFunctions_.begin();
+    while(fncIt != feFunctions_.end()){
+      shared_ptr<BaseFeFunction> actFct = fncIt->second;
+      shared_ptr<FeSpace> actSpace = fncIt->second->GetFeSpace();
+      std::string fctName = SolutionTypeEnum.ToString(fncIt->first);
+      FeFctIdType fctId = algsys_->ObtainFctId( fctName );
+      actFct->SetFctId(fctId);
+      fncIt++;
+    }
     
     // =====================================================================
     // trigger definition of available results
@@ -424,20 +434,15 @@ namespace CoupledField {
     
     // Finish equation mapping
     LOG_TRACE(pde) << pdename_ << ": Mapping Equations";
-//    eqnMap_->SetHomoDirichletBCs ( hdBcs_ );
-//    eqnMap_->SetInhomDirichletBCs( idBcs_ );
-//    eqnMap_->SetInhomDirichFileBCs( idFiBcs_ );
-//    eqnMap_->SetConstraints( constraints_ );
-//    eqnMap_->Finalize();
 
     
     //Gather informations about all spaces for this PDE
     //--------------------------------------------
-    std::map<SolutionType, shared_ptr<BaseFeFunction> >::iterator fncIt= feFunctions_.begin();
+    fncIt= feFunctions_.begin();
     while(fncIt != feFunctions_.end()){
-      fncIt->second->SetGrid(shared_ptr<Grid>(ptgrid_));
+      shared_ptr<BaseFeFunction> actFct = fncIt->second;
       shared_ptr<FeSpace> actSpace = fncIt->second->GetFeSpace();
-
+      actFct->SetGrid(shared_ptr<Grid>(ptgrid_));
       actSpace->Finalize();
       actSpace->PreCalcShapeFncs();
       numPdeEquations_ += actSpace->GetNumEquations();
@@ -2167,61 +2172,141 @@ namespace CoupledField {
     // Afterwards the matrix-graph has to be set up
     if ( isDirectCoupled_ == false ) {
 
-      // forward the complete xml description of the linear system
-      // might be NULL!
-      // algsys_->SetXML(FindLinearSystem(pdename_));
 
       // Set linear system parameters for OLAS
       ReadOlasParams( pdename_ );
-      olasInfo_ = info->Get("OLAS")->Get(pdename_);
+      
+      // Determine number of superBlocks:
+      // This is currently hard-coded to the number of 
+      // feFunctions
+      UInt numFcts = feFunctions_.size();
+      
+      // HARD-CODED section
+      UInt numBlocks = 1;
+      bool useDistinctGraphs = false;
+      algsys_->GraphSetupInit( numFcts, numBlocks,
+                               useDistinctGraphs );
+      
+      //  Loop over all FeFunctions and register themselves
+      std::map<SolutionType, shared_ptr<BaseFeFunction> >::iterator it;
+      for(it = feFunctions_.begin(); it != feFunctions_.end(); ++it ) {
+        shared_ptr<FeSpace> actSpace = it->second->GetFeSpace();
+        FeFctIdType fctId = it->second->GetFctId();
+      
+        // register function
+        algsys_->RegisterFct( fctId, actSpace->GetNumEquations(),
+                              actSpace->GetNumFreeEquations() );
+      }
+      
+
+      // HARD CODED
+      // HARD CODED
+      //Define SBM-Blocks, at the moment hard coded to
+      // one function == one block
+      it = feFunctions_.begin();
+//      for( UInt iBlock = 0; iBlock < numBlocks; ++iBlock ) {
+//        if( iBlock == 0 ) {
+//          // === BLOCK 1 ===
+//          UInt numEquations = it->second->GetFeSpace()->GetNumEquations();
+//          std::map<FeFctIdType,StdVector<Integer> > fncEqns;
+//          StdVector<Integer> & eqns = fncEqns[it->second->GetFctId()];
+//
+//          eqns.Resize(4);
+//          eqns[0] = 1;
+//          eqns[1] = 2;
+//          eqns[2] = numEquations-1;
+//          eqns[3] = numEquations;
+//          algsys_->DefineSBMMatrixBlock(iBlock, fncEqns );
+//        } else {
+//          // === BLOCK 2 ===
+//          UInt numEquations = it->second->GetFeSpace()->GetNumEquations();
+//          std::map<FeFctIdType,StdVector<Integer> > fncEqns;
+//          StdVector<Integer> & eqns = fncEqns[it->second->GetFctId()];
+//          eqns.Resize(numEquations-4);
+//          for( UInt iEqn = 0; iEqn < numEquations-4; ++iEqn ) {
+//            eqns[iEqn] = iEqn+3;
+//          } 
+//          algsys_->DefineSBMMatrixBlock(iBlock, fncEqns );
+//        }
+//      }
+      
+      // JUST ONE BLOCK
+//#ifdef OLD_VERSION         
+      
+      std::map<FeFctIdType,StdVector<Integer> > fncEqns;
+      UInt numEquations = it->second->GetFeSpace()->GetNumEquations();
+          fncEqns[0].Resize(numEquations);
+          for( UInt iEqn = 0; iEqn < numEquations; ++iEqn ) {
+            fncEqns[0][iEqn] = iEqn+1;
+          } 
+          algsys_->DefineSBMMatrixBlock(0, fncEqns );
+//#endif
+
       
       
-      // Initialize the matrix graph object
-      algsys_->GraphSetupInit(1);
-
-      //WARNING Here again the SBM System should fix the pretty nasty
-      //situation when dealing with multiple FE Spaces
-      algsys_->RegisterPDE( pdeId_, numPdeEquations_, numPdeUnknowns_);
-      // HARD-CODED SECTION
-      feFunctions_[results_[0]->resultType]->SetFctId(pdeId_);
+      //Define SBM-Blocks, at the moment hard coded to
+      // one function == one block
+      // for fine cube
+//      it = feFunctions_.begin();
+//      for( UInt iBlock = 0; iBlock < numBlocks; ++iBlock ) {
+//        if( iBlock == 0 ) {
+//          // === BLOCK 1 ===
+//          UInt numEquations = it->second->GetFeSpace()->GetNumEquations();
+//          std::map<FeFctIdType,StdVector<Integer> > fncEqns;
+//          StdVector<Integer> & eqns = fncEqns[it->second->GetFctId()];
+//#ifdef OLD_VERSION          
+//          eqns.Resize(numEquations);
+//          for( UInt iEqn = 0; iEqn < numEquations; ++iEqn ) {
+//            eqns[iEqn] = iEqn+1;
+//          } 
+//#endif
+//          eqns.Resize(20);
+//           for( UInt i = 0; i < 20; ++i ){ 
+//             //eqns[i] = i+1;
+//             eqns[i] = numEquations-i;
+//           }
+//                   
+//          algsys_->DefineSBMMatrixBlock(iBlock, fncEqns );
+//        } else {
+//          // === BLOCK 2 ===
+//          UInt numEquations = it->second->GetFeSpace()->GetNumEquations();
+//          std::map<FeFctIdType,StdVector<Integer> > fncEqns;
+//          StdVector<Integer> & eqns = fncEqns[it->second->GetFctId()];
+//          eqns.Resize(numEquations-20);
+//          for( UInt iEqn = 0; iEqn < numEquations-20; ++iEqn ) {
+//            eqns[iEqn] = iEqn+1;
+//          } 
+//          algsys_->DefineSBMMatrixBlock(iBlock, fncEqns );
+//        }
+//      }
       
-      //assemble_->SetPDEId( pdeId_ );
-      solveStep_->SetPDEId( pdeId_ );
+              
+      // Setup sparsity patterns
+      std::map<SolutionType, shared_ptr<BaseFeFunction> >::iterator it1;
+      std::map<SolutionType, shared_ptr<BaseFeFunction> >::iterator it2;
+      for( it1 = feFunctions_.begin(); it1 != feFunctions_.end(); ++it1 ) {
+        for( it2 = feFunctions_.begin(); it2 != feFunctions_.end(); ++it2 ) {
+          FeFctIdType fctId1 = it1->second->GetFctId();
+          FeFctIdType fctId2 = it2->second->GetFctId();
 
+          // assemble upper diagonal blocks including diagonal
+          bool symm = assemble_->IsFEMatSymmetric(fctId1, fctId2);
+          algsys_->AssembleInit(fctId1, fctId2, symm, false);
+          assemble_->SetupMatrixGraph(fctId1, fctId2);
+          algsys_->AssembleDone(fctId1, fctId2, false);
 
-
-      // trigger the creation and assembly of the matrix graph
-      algsys_->AssembleInit( pdeId_, pdeId_, false );
-      assemble_->SetupMatrixGraph(pdeId_, pdeId_);
-      algsys_->AssembleDone( pdeId_, pdeId_, false );
+          // assemble strictly lower diagonal blocks
+          if(fctId1 != fctId2) {
+            algsys_->AssembleInit(fctId2, fctId1, symm, false);
+            assemble_->SetupMatrixGraph(fctId2, fctId1);
+            algsys_->AssembleDone(fctId2, fctId1, false);
+          } // lower diagonal
+        } // it2
+      } // it1
 
       // finish the assembly of the matrix graph
       algsys_->GraphSetupDone();
-
-      // obtain reordering of the matrix graph and pass it to the EQN-object.
-      StdVector<UInt> newOrder;
-      //TODO WARNING!: No reordering supported
-      WARN("Reordering is only supported if there is only one Space available!! Otherwise there will be errors");
-
-      algsys_->GetReordering( pdeId_, newOrder );
-      feFunctions_[results_[0]->resultType]->GetFeSpace()->ReorderEqnMap( newOrder );
     }
-
-    // pass information about dofs, number of dirichlet equations
-    // and constraints to the algebraic system
-    //algsys_->SetBlockSize( pdeId_, 1 );
-
-    //TODO: AGAIN THIS HAS TO BE CHANGED WITH OLAS SBM
-    std::map<SolutionType, shared_ptr<BaseFeFunction> >::iterator fncIt= feFunctions_.begin();
-    UInt numBC = 0;
-    while(fncIt != feFunctions_.end()){
-      shared_ptr<FeSpace> actSpace = fncIt->second->GetFeSpace();
-      numBC += actSpace->GetNumInhomDirichletBc();
-
-      fncIt++;
-    }
-    UInt numDir = numBC + numCouplingBcs_;
-    algsys_->SetNumDirichletBCs(pdeId_, numDir );
 
     // create matrices and solver object, if PDE is not direct coupled
     if ( isDirectCoupled_ == false ) {
@@ -2242,7 +2327,9 @@ namespace CoupledField {
         IncorporateMemento();
       }
     }
+    
     //Pass the system to every feFunction
+    std::map<SolutionType, shared_ptr<BaseFeFunction> >::iterator fncIt= feFunctions_.begin();
     fncIt= feFunctions_.begin();
     while(fncIt != feFunctions_.end()){
       fncIt->second->SetSystem(algsys_);

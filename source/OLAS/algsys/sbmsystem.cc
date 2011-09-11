@@ -9,6 +9,7 @@
 
 #include <boost/algorithm/string/replace.hpp>
 #include "MatVec/sbmmatrix.hh"
+#include "MatVec/generatematvec.hh"
 
 #include "OLAS/algsys/sbmsystem.hh"
 
@@ -168,7 +169,7 @@ namespace CoupledField {
 
     // Determine row and column index of sub-matrix
     UInt rowInd = pdeID1;
-    UInt colInd = pdeID2 == NO_PDE_ID ? pdeID1 : pdeID2;
+    UInt colInd = pdeID2 == NO_FCT_ID ? pdeID1 : pdeID2;
 
     // Do nothing for nothing :)
     if( matType != NOTYPE ) {
@@ -624,7 +625,7 @@ namespace CoupledField {
   void SBM_System::InitRHS( FeFctIdType pdeID ) {
 
 
-    if ( pdeID == NO_PDE_ID ) {
+    if ( pdeID == NO_FCT_ID ) {
       rhs_->Init();
     }
     else {
@@ -639,7 +640,7 @@ namespace CoupledField {
   void SBM_System::InitSol( FeFctIdType pdeID ) {
 
 
-    if ( pdeID == NO_PDE_ID ) {
+    if ( pdeID == NO_FCT_ID ) {
       sol_->Init();
     }
     else {

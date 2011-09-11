@@ -69,19 +69,9 @@ namespace CoupledField {
     feFct2_->GetFeSpace()->GetEqns( eqnVec2, it2 );
 
     // Get PDE IDs
-    id1 = ptPde1_->GetPDEId();
-    id2 = ptPde2_->GetPDEId();
+    id1 = feFct1_->GetFctId();
+    id2 = feFct2_->GetFctId();
 
-  }
-  
-  void BiLinFormContext::SetPtPdes(shared_ptr<SinglePDE> aPDE1, 
-                                   shared_ptr<SinglePDE> aPDE2 ) {
-
-    //ptPde1_ = aPDE1;
-    //ptPde2_ = aPDE2;
-    //OBSOLETE
-    //map1_ = ptPde1_->GetEqnMap();
-    //map2_ = ptPde2_->GetEqnMap();
   }
     
   //! Set the result types and entities the bilinearform is working on
@@ -193,7 +183,7 @@ namespace CoupledField {
     feFct_->GetFeSpace()->GetEqns(eqnVec,it);
     
     // Get Pde Id
-    id = ptPde_->GetPDEId();
+    id = feFct_->GetFctId();
     
   }
   
@@ -290,8 +280,8 @@ namespace CoupledField {
     }
     
     // Get PDE IDs
-    id1 = ptPde1_->GetPDEId();
-    id2 = ptPde2_->GetPDEId();
+    id1 = feFct1_->GetFctId();
+    id2 = feFct2_->GetFctId();
 
   }
   

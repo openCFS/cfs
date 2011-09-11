@@ -1,9 +1,9 @@
 SET(ALGSYS_SRCS
-    basesystem.cc
+    algebraicSys.cc
     baseentrymanipulator.cc
     generateidbchandler.cc
-    sbmsystem.cc
-    standardsys.cc
+    #sbmsystem.cc
+    #    standardsys.cc
     )
 
 IF(EXPLICIT_TEMPLATE_INSTANTIATION)

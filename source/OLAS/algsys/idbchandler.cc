@@ -4,14 +4,16 @@
 
 
 #include "MatVec/stdmatrix.hh"
-#include "MatVec/sbmmatrix.hh"
-#include "MatVec/sbmvector.hh"
-
-#include "OLAS/graph/graphmanagersbmmat.hh"
-
+#include "OLAS/graph/graphmanager.hh"
 #include "OLAS/algsys/idbchandler.hh"
 
+#include "DataInOut/Logging/cfslog.hh"
+
+DECLARE_LOG(idbcElim)
+DEFINE_LOG(idbcElim, "idbcElim")
+
 namespace CoupledField {
+  
 
 
   // ***************
@@ -19,47 +21,39 @@ namespace CoupledField {
   // ***************
   template <typename T>
   IDBC_Handler<T>::IDBC_Handler( const std::set<FEMatrixType> &usedFEMatrices,
-                                 BaseGraphManager *graphManager,
-                                 UInt numPDEs, bool sbmCase ) {
+                                 GraphManager *gM,
+                                 UInt numBlocks ) {
 
-
+    LOG_TRACE(idbcElim) << "Generating IDBC_Handler for " << numBlocks << "blocks";
+    
     // -----------------------
     // Obtain basic dimensions
     // -----------------------
 
     // Determine number of dofs fixed by inhomogeneous Dirichlet BCs
     // and number of free dofs
-    if ( sbmCase == false ) {
-      NEWARRAY( numFixedDofs_, UInt, 1 );
-      NEWARRAY( numFreeDofs_ , UInt, 1 );
-      numFreeDofs_[0]  = graphManager->GetIDBCGraph()->GetSize();
-      numFixedDofs_[0] = graphManager->GetIDBCGraph()->GetNumColsMat();
+    numFixedDofs_.Resize( numBlocks );
+    numFreeDofs_.Resize( numBlocks );
+
+    // Determine number of free dofs per block
+    // and initialise number of fixed dofs to zero
+    for ( UInt i = 0; i < numBlocks; i++ ) {
+      numFreeDofs_[i]  = gM->GetGraph(i)->GetSize();
+      numFixedDofs_[i] = 0;
     }
-    else {
 
-      // Down-cast graph manager
-      GraphManagerSBMMat *gmSBM = NULL;
-      gmSBM = dynamic_cast<GraphManagerSBMMat *>(graphManager);
-      if ( gmSBM == NULL ) {
-        EXCEPTION( WRONG_CAST_MSG );
-      }
+    // Set number of fixed dofs per PDE
+    for ( UInt i = 0; i < numBlocks; i++ ) {
+      for ( UInt j = 0; j < numBlocks; j++ ) {
+        LOG_DBG(idbcElim) << "Block (" << i  << ", " << j << "):";
+        LOG_DBG(idbcElim) << "\t#free dofs: " << numFreeDofs_[i];
 
-      NEWARRAY( numFixedDofs_, UInt, numPDEs );
-      NEWARRAY( numFreeDofs_ , UInt, numPDEs );
-
-      // Determine number of free dofs per PDE
-      // and initialise number of fixed dofs to zero
-      for ( UInt i = 0; i < numPDEs; i++ ) {
-        numFreeDofs_[i]  = gmSBM->GetGraph(i)->GetSize();
-        numFixedDofs_[i] = 0;
-      }
-
-      // Set number of fixed dofs per PDE
-      for ( UInt i = 0; i < numPDEs; i++ ) {
-        for ( UInt j = 0; j < numPDEs; j++ ) {
-          if ( gmSBM->IDBCGraphExists(i,j) == true ) {
-            numFixedDofs_[i] = gmSBM->GetIDBCGraph(i,j)->GetNumColsMat();
-          }
+        if ( gM->IDBCGraphExists(i,j) == true ) {
+          numFixedDofs_[i] = gM->GetIDBCGraph(i,j)->GetNumColsMat();
+          
+          LOG_DBG(idbcElim) << "\t#fixed dofs: " << numFixedDofs_[i];
+        } else {
+          LOG_DBG(idbcElim) << "\t#fixed dofs: -";
         }
       }
     }
@@ -102,117 +96,63 @@ namespace CoupledField {
       EXCEPTION( "Internal template error! No swearing please!" );
     }
 
-    // Initialise basic pointer structure
-    NEWARRAY( auxMat_, BaseMatrix*, MAX_NUM_FE_MATRICES );
-    for ( UInt i = 0; i < MAX_NUM_FE_MATRICES; i++ ) {
-      auxMat_[i] = NULL;
-    }
-
-    // SPARSE_MATRIX case:
-    if ( sbmCase == false ) {
-
-      // Note: We always use CRS_Matrices currently. The entry type depends
-      //       on the class' template parameter and the blocksize is
-      //       restricted to the scalar setting.
-
-      // Get hold of matrix graph
-      BaseGraph *graph = graphManager->GetIDBCGraph();
-
-      // Generation of required StdMatrices
-      StdMatrix *stdMat = NULL;
-      for ( it = myMatrices_.begin(); it != myMatrices_.end(); it++ ) {
-
-        // First generate empty object
-        stdMat = GenerateStdMatrixObject( eType,
-                                          BaseMatrix::SPARSE_NONSYM,
-                                          numFreeDofs_[0],
-                                          numFixedDofs_[0],
-                                          graph->GetNNE() );
-
-        // Now set sparsity pattern
-        stdMat->SetSparsityPattern( *graph );
-
-        // Insert pointer into BaseMatrix array
-        auxMat_[*it] = stdMat;
-      }
-    }
-
     // SBMMATRIX case:
-    else {
+    SBM_Matrix *sbmMat = NULL;
+    BaseGraph *graph = NULL;
+    
+    // Generation of required SBM_Matrices
+    LOG_DBG(idbcElim) << "Generating Auxiliary matrices for:";
+    for ( it = myMatrices_.begin(); it != myMatrices_.end(); it++ ) {
 
-      SBM_Matrix *sbmMat = NULL;
-      BaseGraph *graph = NULL;
-
-      // Down-cast graph manager
-      GraphManagerSBMMat *gmSBM = NULL;
-      gmSBM = dynamic_cast<GraphManagerSBMMat *>(graphManager);
-      if ( gmSBM == NULL ) {
-        EXCEPTION( WRONG_CAST_MSG );
+      LOG_DBG(idbcElim) << "\t-" << feMatrixType.ToString(*it);
+      
+      // Generate empty SBM_Matrix
+      sbmMat = new SBM_Matrix( numBlocks, numBlocks, false );
+      if ( sbmMat == NULL ) {
+        std::string tmp;
+        Enum2String( *it, tmp );
+        EXCEPTION( "IDBC_Handler::IDBC_Handler: "
+            << "Failed to generate SBM companion matrix for "
+            << "FE-Matrix '" << tmp << "'");
       }
 
-      // Generation of required SBM_Matrices
-      for ( it = myMatrices_.begin(); it != myMatrices_.end(); it++ ) {
+      // Populate matrix with sub-matrices for storing free-fixed-dof
+      // connectivity
+      for ( UInt i = 0; i < numBlocks; i++ ) {
+        for ( UInt k = 0; k < numBlocks; k++ ) {
+          
+          if ( gM->IDBCGraphExists(i,k) == true ) {
+            graph = gM->GetIDBCGraph(i,k);
 
-        // Generate empty SBM_Matrix
-        sbmMat = new SBM_Matrix( numPDEs, numPDEs, false );
-        if ( sbmMat == NULL ) {
-          std::string tmp;
-          Enum2String( *it, tmp );
-          EXCEPTION( "IDBC_Handler::IDBC_Handler: "
-                   << "Failed to generate SBM companion matrix for "
-                   << "FE-Matrix '" << tmp << "'");
-        }
-
-        // Populate matrix with sub-matrices for storing free-fixed-dof
-        // connectivity
-        for ( UInt i = 0; i < numPDEs; i++ ) {
-          for ( UInt k = 0; k < numPDEs; k++ ) {
-
-            if ( gmSBM->IDBCGraphExists(i,k) == true ) {
-
-              graph = gmSBM->GetIDBCGraph(i,k);
-
-              sbmMat->SetSubMatrix( i, k, eType, BaseMatrix::SPARSE_NONSYM,
-                                    graph->GetSize(),
-                                    graph->GetNumColsMat(),
-                                    graph->GetNNE() );
-
-              sbmMat->GetPointer(i,k)->SetSparsityPattern( *graph );
-            }
+            sbmMat->SetSubMatrix( i, k, eType, BaseMatrix::SPARSE_NONSYM,
+                                  graph->GetSize(),
+                                  graph->GetNumColsMat(),
+                                  graph->GetNNE() );
+            LOG_DBG3(idbcElim) << "\t\tblock(" << i << ", " << k << "), size " 
+                                << graph->GetSize() << " x " << graph->GetNumColsMat()
+                                << " with " <<  graph->GetNNE()  << " entries";
+            sbmMat->GetPointer(i,k)->SetSparsityPattern( *graph );
           }
         }
-
-        // Insert pointer into BaseMatrix array
-        auxMat_[*it] = sbmMat;
       }
+
+      // Insert pointer into BaseMatrix array
+      auxMat_[*it] = sbmMat;
     }
 
 
     // ------------------------------------------------
     // Generate vector for storing the Dirichlet values
     // ------------------------------------------------
-    vecIDBC_ = GenerateVectorObject( *auxMat_[*(myMatrices_.begin())] );
+    vecIDBC_ = dynamic_cast<SBM_Vector*>(
+        GenerateVectorObject( *auxMat_[*(myMatrices_.begin())] ));
     vecIDBC_->Init();
-
 
     // -------------------------
     // Set internal status flags
     // -------------------------
     addIDBCPossible_ = false;
     remIDBCPossible_ = false;
-    sbmCase_         = sbmCase;
-
-
-    // --------------------
-    // Log some information
-    // --------------------
-    if ( sbmCase == false ) {
-      (*cla) << "\n IDBC_Handler: Administrating "
-             << numFixedDofs_[0] << " inhom. Dirichlet BCs.\n\n";
-    }
-    else {
-    }
-
   }
 
 
@@ -221,20 +161,14 @@ namespace CoupledField {
   // **************
   template <typename T> IDBC_Handler<T>::~IDBC_Handler() {
 
-
     // Delete vector of Dirichlet values
     delete vecIDBC_;
-
-    // Delete equation number splitting arrays
-    delete [] ( numFreeDofs_  );
-    delete [] ( numFixedDofs_ );
 
     // Delete internal FE matrices
     mySetIterator it;
     for ( it = myMatrices_.begin(); it != myMatrices_.end(); it++ ) {
       delete auxMat_[*it];
     }
-    delete [] ( auxMat_ );
   }
 
 
@@ -243,7 +177,6 @@ namespace CoupledField {
   // *********************
   template <typename T> void IDBC_Handler<T>::
   BuiltSystemMatrix( const std::map<FEMatrixType, Double> &factors ) {
-
 
     BaseMatrix *sys = auxMat_[SYSTEM];
 
@@ -260,30 +193,61 @@ namespace CoupledField {
     // Adapt internal status flags
     addIDBCPossible_ = true;
   }
+  // ****************
+  //   AddIDBCToRHS
+  // ****************
+  //! @copydoc BaseIDBC_Handler::AddIDBCToRHS()
+  template <typename T> void IDBC_Handler<T>::
+  AddIDBCToRHS( SBM_Vector *rhs ) {
+    
+    if ( addIDBCPossible_ == false ) {
+      EXCEPTION( "IDBCHandler::AddIDBCToRHS: Internal error! Refusing to "
+          << "add Dirichlet BCs, since addIDBCPossible_ = false! "
+          << "Did you call BuiltSystemMatrix()?");
+    }
+    
+    auxMat_[SYSTEM]->MultSub( *vecIDBC_, *rhs );
+    remIDBCPossible_ = true;
+  }
+
+  // **********************
+  //   RemoveIDBCFromRHS
+  // **********************
+  template <typename T> void IDBC_Handler<T>::
+  RemoveIDBCFromRHS( SBM_Vector *rhs ) {
+    
+    if ( remIDBCPossible_ == false ) {
+      EXCEPTION( "IDBCHandler::RemoveIDBCFromRHS: Internal error! "
+          << "Refusing to remove Dirichlet BCs, since "
+          << "remIDBCPossible_ = false! "
+          << "Either FE matrices or Dirichlet values have changed "
+          << "since last call to AddIDBCToRHS()!");
+    }
+    auxMat_[SYSTEM]->MultAdd( *vecIDBC_, *rhs );
+  }
 
 
   // ***********
   //   SetIDBC
   // ***********
   template <typename T>
-  void IDBC_Handler<T>::SetIDBC( FeFctIdType pdeID, UInt eqnNo, const T &val ) {
+  void IDBC_Handler<T>::SetIDBC( UInt blockNum, UInt index, const T &val ) {
 
-
-    // CASE 1: SingleVector
-    if ( sbmCase_ == false ) {
-      vecIDBC_->SetEntry( eqnNo - numFreeDofs_[0] - 1, val );
-    }
-
-    // CASE 2: SBM_Vector
-    else {
-      SBM_Vector* sbmVec = dynamic_cast<SBM_Vector*>(vecIDBC_);
-      if(sbmVec == NULL) EXCEPTION("Invalid cast attempt!");
-      sbmVec->GetPointer(pdeID)->SetEntry( eqnNo - numFreeDofs_[pdeID] - 1,
-                                           val );
-    }
+    vecIDBC_->GetPointer(blockNum)->
+        SetEntry( index - numFreeDofs_[blockNum] - 1, val);
 
     // Adapt status flags
     remIDBCPossible_ = false;
+  }
+  
+  // ***********
+  //   GetIDBC
+  // ***********
+  template <typename T>
+  void IDBC_Handler<T>::GetIDBC( UInt blockNum, UInt index, T &val ) {
+
+    vecIDBC_->GetPointer(blockNum)->
+        GetEntry( index - numFreeDofs_[blockNum] - 1, val);
   }
 
  // ************************
@@ -291,41 +255,13 @@ namespace CoupledField {
   // ************************
   template <typename T>
   void IDBC_Handler<T>::AddWeightFixedToFree( FEMatrixType matID,
-                                              FeFctIdType pdeID1,
-                                              FeFctIdType pdeID2,
+                                              UInt rowBlock,
+                                              UInt colBlock,
                                               UInt rowInd,
                                               UInt colInd,
                                               const T& val ) {
 
-
-    // ---------------------------
-    // Obtain pointer to StdMatrix
-    // ---------------------------
-    StdMatrix *stdMat = NULL;
-
-    // CASE 1: StdMatrix
-    if ( sbmCase_ == false ) {
-      stdMat = dynamic_cast<StdMatrix*>( auxMat_[matID] );
-    }
-
-    // CASE 2: SBM_Matrix
-    else {
-
-      SBM_Matrix *sbmMat = dynamic_cast<SBM_Matrix*>( auxMat_[matID] );
-      stdMat = sbmMat->GetPointer( pdeID1, pdeID2 );
-
-#ifdef DEBUG_IDBCHANDLER
-      if ( stdMat == NULL ) {
-        EXCEPTION("IDBC_Handler::SetWeightFixedToFree: Invalid access "
-                 << "to non-existant sub-matrix (" << pdeID1
-                 << ", " << pdeID2);
-      }
-#endif
-    }
-
-    // -----------------
-    // Now add the value
-    // -----------------
+    StdMatrix *stdMat = auxMat_[matID]->GetPointer(rowBlock, colBlock);
     stdMat->AddToMatrixEntry( rowInd, colInd, val );
   }
 
@@ -335,41 +271,13 @@ namespace CoupledField {
   // ************************
   template <typename T>
   void IDBC_Handler<T>::SetWeightFixedToFree( FEMatrixType matID,
-                                              FeFctIdType pdeID1,
-                                              FeFctIdType pdeID2,
+                                              UInt rowBlock,
+                                              UInt colBlock,
                                               UInt rowInd,
                                               UInt colInd,
                                               const T& val ) {
 
-
-    // ---------------------------
-    // Obtain pointer to StdMatrix
-    // ---------------------------
-    StdMatrix *stdMat = NULL;
-
-    // CASE 1: StdMatrix
-    if ( sbmCase_ == false ) {
-      stdMat = dynamic_cast<StdMatrix*>( auxMat_[matID] );
-    }
-
-    // CASE 2: SBM_Matrix
-    else {
-
-      SBM_Matrix *sbmMat = dynamic_cast<SBM_Matrix*>( auxMat_[matID] );
-      stdMat = sbmMat->GetPointer( pdeID1, pdeID2 );
-
-#ifdef DEBUG_IDBCHANDLER
-      if ( stdMat == NULL ) {
-        EXCEPTION("IDBC_Handler::SetWeightFixedToFree: Invalid access "
-                 << "to non-existant sub-matrix (" << pdeID1
-                 << ", " << pdeID2);
-      }
-#endif
-    }
-
-    // -----------------
-    // Now set the value
-    // -----------------
+    StdMatrix *stdMat = auxMat_[matID]->GetPointer( rowBlock, colBlock );
     stdMat->SetMatrixEntry( rowInd, colInd, val, false );
   }
 
@@ -377,124 +285,41 @@ namespace CoupledField {
   //   GetWeightFixedToFree
   // ************************
   template <typename T>
-  void IDBC_Handler<T>::GetWeightFixedToFree( FEMatrixType matID, 
-                                              FeFctIdType pdeID1,
-                                              FeFctIdType pdeID2, 
-                                              UInt rowInd, UInt colInd,
-                                              T& val ) const {
-
-
-      // ---------------------------
-    // Obtain pointer to StdMatrix
-    // ---------------------------
-    StdMatrix *stdMat = NULL;
-
-    // CASE 1: StdMatrix
-    if ( sbmCase_ == false ) {
-      stdMat = dynamic_cast<StdMatrix*>( auxMat_[matID] );
-    }
-
-    // CASE 2: SBM_Matrix
-    else {
-
-      SBM_Matrix *sbmMat = dynamic_cast<SBM_Matrix*>( auxMat_[matID] );
-      stdMat = sbmMat->GetPointer( pdeID1, pdeID2 );
-
-#ifdef DEBUG_IDBCHANDLER
-      if ( stdMat == NULL ) {
-        EXCEPTION("IDBC_Handler::GetWeightFixedToFree: Invalid access "
-                 << "to non-existant sub-matrix (" << pdeID1
-                 << ", " << pdeID2);
-      }
-#endif
-    }
-
-    // -----------------
-    // Now get the value
-    // -----------------
+  void IDBC_Handler<T>::GetWeightFixedToFree( FEMatrixType matID,
+                                              UInt rowBlock,
+                                              UInt colBlock,
+                                              UInt rowInd,
+                                              UInt colInd,
+                                              T& val )  {
+    
+    StdMatrix *stdMat = auxMat_[matID]->GetPointer( rowBlock, colBlock );
     stdMat->GetMatrixEntry( rowInd, colInd, val );
-    
   }
     
-
-  // *****************
-  //   SetRowWeights
-  // *****************
-  template <typename T>
-  void IDBC_Handler<T>::SetRowWeights( FEMatrixType matID, 
-                                       FeFctIdType pdeID, UInt rowInd,
-                                       const T& val ) {
-
-
-  }
-
-
-  // *****************
-  //   SetColWeights
-  // *****************
-  template <typename T>
-  void IDBC_Handler<T>::SetColWeights( FEMatrixType matID, 
-                                       FeFctIdType pdeID,UInt colInd,
-                                       const T& val ) {
-
-  }
-  
   // *****************
   //   SetDofsToIDBC
   // *****************
   template <typename T>
-  void IDBC_Handler<T>::SetDofsToIDBC( BaseVector *vec ) {
+  void IDBC_Handler<T>::SetDofsToIDBC( SBM_Vector *vec ) {
 
+    // Loop over all sub-vectors
+    SingleVector *stdVec = NULL;
+    SingleVector *stdVal = NULL;
+    for ( UInt i = 0; i < vec->GetSize(); i++ ) {
 
-    // ------------------
-    // CASE 1: SBM_Vector
-    // ------------------
-    if ( sbmCase_ == true ) {
-
-      // Down-cast vector
-      SBM_Vector *sbmVec = dynamic_cast<SBM_Vector*>( vec );
-      SBM_Vector *sbmVal = dynamic_cast<SBM_Vector*>( vecIDBC_ );
-      if ( sbmVec == NULL || sbmVal == NULL ) {
-        EXCEPTION( WRONG_CAST_MSG );
-      }
-
-      // Loop over all sub-vectors
-      SingleVector *stdVec = NULL;
-      SingleVector *stdVal = NULL;
-      for ( UInt i = 0; i < sbmVec->GetSize(); i++ ) {
-
-        stdVec = sbmVec->GetPointer( i );
-        stdVal = sbmVal->GetPointer( i );
-
-        // Insert values
-        for ( UInt j = 0; j < numFixedDofs_[i]; j++ ) {
-          T aux;
-          stdVal->GetEntry( j, aux );
-          stdVec->SetEntry( j + numFreeDofs_[i], aux );
-        }
-      }
-    }
-
-    // -----------------
-    // CASE 2: SingleVector
-    // -----------------
-    else {
-
-      // Down-cast vector
-      SingleVector *stdVec = dynamic_cast<SingleVector*>( vec );
-      if ( stdVec == NULL ) {
-        EXCEPTION( WRONG_CAST_MSG );
-      }
+      stdVec = vec->GetPointer( i );
+      stdVal = vecIDBC_->GetPointer( i );
 
       // Insert values
-      for ( UInt i = 0; i < numFixedDofs_[0]; i++ ) {
+      for ( UInt j = 0; j < numFixedDofs_[i]; j++ ) {
         T aux;
-        vecIDBC_->GetEntry( i, aux );
-        vec->SetEntry( i + numFreeDofs_[0], aux );
+        stdVal->GetEntry( j, aux );
+        stdVec->SetEntry( j + numFreeDofs_[i], aux );
       }
     }
+   
   }
-
+  
   // Explicit template instantiation
   #ifdef EXPLICIT_TEMPLATE_INSTANTIATION
     template class IDBC_Handler<Double>;

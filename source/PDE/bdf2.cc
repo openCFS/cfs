@@ -4,7 +4,7 @@
 
 #include "DataInOut/Logging/cfslog.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
-#include "OLAS/algsys/basesystem.hh"
+#include "OLAS/algsys/algebraicSys.hh"
 #include "bdf2.hh"
 
 namespace CoupledField
@@ -12,7 +12,7 @@ namespace CoupledField
   DECLARE_LOG(bdf2)
   DEFINE_LOG(bdf2, "bdf2")
 
-  Bdf2 :: Bdf2( BaseSystem * algebraicsystem)
+  Bdf2 :: Bdf2( AlgebraicSys * algebraicsystem)
     :TimeStepping( algebraicsystem )
   {
     // Commented out the warning, since defaults are not bad at all and the

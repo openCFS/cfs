@@ -6,7 +6,7 @@
 
 #include "MatVec/opdefs.hh"
 #include "MatVec/generatematvec.hh"
-#include "OLAS/algsys/basesystem.hh"
+//#include "OLAS/algsys/algebraicSys.hh"
 #include "OLAS/precond/baseprecond.hh"
 
 #include "Utils/tools.hh"

@@ -8,7 +8,7 @@
 #include <set>
 #include <map>
 
-#include "OLAS/algsys/basesystem.hh"
+#include "OLAS/algsys/algebraicSys.hh"
 
 namespace CoupledField 
 {
@@ -200,7 +200,7 @@ namespace CoupledField
     //! \param pdeID    identifier for a PDE as assigned by the ObtainPDEId()
     //!                 method
     void InitMatrix( FEMatrixType matrixID = NOTYPE,
-                     const FeFctIdType pdeID = NO_PDE_ID );
+                     const FeFctIdType pdeID = NO_FCT_ID );
 
     //! Set right hand side vector to zero
 
@@ -208,7 +208,7 @@ namespace CoupledField
     //! If no PDE identifier is given, the complete rhs vector is zeroed.
     //! \param identifierPDE  identifier for a PDE as assigned by the
     //!                       ObtainPDEId() method
-    void InitRHS( const FeFctIdType identifierPDE = NO_PDE_ID );
+    void InitRHS( const FeFctIdType identifierPDE = NO_FCT_ID );
 
     //! Set the global rhs to given values
 
@@ -226,7 +226,7 @@ namespace CoupledField
     //! vector is zeroed.
     //! \param identifierPDE unique identifier for a PDE registered with the
     //!                       graph manager
-    void InitSol( const FeFctIdType identifierPDE = NO_PDE_ID );
+    void InitSol( const FeFctIdType identifierPDE = NO_FCT_ID );
     
     //! Set the global solution vector to given initial values
 
@@ -490,7 +490,7 @@ namespace CoupledField
     //! until the next call of this method (after solving the next step)!
     void GetSolutionVal( SingleVector& ptSol,
                          const FeFctIdType identifierPDE
-                         = NO_PDE_ID );
+                         = NO_FCT_ID );
                             
     //! Return the pointer to the current rhs value of a PDE
     
@@ -505,7 +505,7 @@ namespace CoupledField
     //! until the next call of this method!
     void GetRHSVal( SingleVector &ptRhs,
                     const FeFctIdType identifierPDE
-                    = NO_PDE_ID );
+                    = NO_FCT_ID );
     //@}
 
 
@@ -527,7 +527,7 @@ namespace CoupledField
     //!                       graph manager
     void SetFEMatrixType( const FEMatrixType matType,
                           const FeFctIdType identifierPDE1,
-                          const FeFctIdType identifierPDE2 = NO_PDE_ID );
+                          const FeFctIdType identifierPDE2 = NO_FCT_ID );
 
     //@}
 

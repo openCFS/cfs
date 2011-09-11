@@ -23,13 +23,13 @@ namespace CoupledField {
   //! Auxilliary class for manipulating matrix and vector entries
 
   //! This is the base class for a collection of child classes that act as
-  //! auxilliaries for the children of the BaseSystem class. The child classes
+  //! auxilliaries for the children of the AlgebraicSys class. The child classes
   //! fix a problem of the CFS++/%OLAS interface. CFS++ does not know about
   //! tiny matrices or tiny vectors and scarcely supports use of the Complex
   //! data type. Thus floating point values are passed between CFS++ and OLAS
   //! mostly in the form of plain Double arrays. The children of this class
   //! allow conversion of the double arrays into Complex numbers or tiny
-  //! matrices/vectors and relieve the children of BaseSystem from this
+  //! matrices/vectors and relieve the children of AlgebraicSys from this
   //! task. The classes also provide some specialised methods used in the
   //! generation of the linear system.
   struct BaseEntryManipulator {
@@ -216,14 +216,14 @@ namespace CoupledField {
 
     //@{
     //! Modify system matrix for penalty approach
-    void AdaptSystemMatrix( StdMatrix &stdMat, UInt *dirichletEQN,
-                            UInt numIDBC,
+    void AdaptSystemMatrix( StdMatrix &stdMat, 
+                            StdVector<UInt>& dirichletEQN,
                             Double& penaltyTerm );
                             
     //! Modify right-hand side vector following penalty approach
     void AdaptRHSForIDBC( SingleVector &rhs,
-                          UInt *dirichletEQN,
-                          SingleVector &dirichletValue,
+                          StdVector<UInt>& dirichletEQN,
+                          SingleVector& dirichletValues,
                           Double& penaltyTerm,
                           UInt numIDBC );
     //@}

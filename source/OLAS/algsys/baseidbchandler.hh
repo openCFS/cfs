@@ -11,8 +11,8 @@
 #include "General/environment.hh"
 #include "General/defs.hh"
 
-#include "MatVec/basevector.hh"
-#include "MatVec/basematrix.hh"
+#include "MatVec/sbmvector.hh"
+#include "MatVec/sbmmatrix.hh"
 
 #include "OLAS/algsys/baseidbchandler.hh"
 
@@ -48,7 +48,7 @@ namespace CoupledField {
     //! modification of the system matrix in order to incorporate
     //! inhomogeneous Dirichlet boundary conditions into the linear system,
     //! like e.g. the penalty approach.
-    virtual void AdaptSystemMatrix( BaseMatrix &sysMat ) = 0;
+    virtual void AdaptSystemMatrix( SBM_Matrix &sysMat ) = 0;
 
     //! Incorporate inhomogeneous Dirichlet BCs into right hand side
 
@@ -61,7 +61,7 @@ namespace CoupledField {
     //!       values from previous calls, since the method will not eliminate
     //!       them.
     //! \param rhs vector with right-hand side entries
-    virtual void AddIDBCToRHS( BaseVector *rhs ) = 0;
+    virtual void AddIDBCToRHS( SBM_Vector *rhs ) = 0;
 
     //! Remove inhomogeneous Dirichlet BCs from right hand side
 
@@ -74,27 +74,46 @@ namespace CoupledField {
     //!       values from previous calls, since the method cannot eliminate
     //!       them.
     //! \param rhs vector with right-hand side entries
-    virtual void RemoveIDBCFromRHS( BaseVector *rhs ) = 0;
-
+    virtual void RemoveIDBCFromRHS( SBM_Vector *rhs ) = 0;
     //@{
     //! Set value for a Dirichlet boundary condition
 
     //! This method can be used to set the value of a degree of freedom that
-    //! is fixed by a homogeneous Dirichlet boundary condition.
-    //! \param pdeID identifier of PDE; this is only used in the case of an
-    //!              SBM_System in order to identify the sub-vector in which
-    //!              the value must be stored
-    //! \param eqnNo equation number for the degree of freedom whose value
-    //!              should be set
-    //! \param val   inhomogeneous Dirichlet value
-    virtual void SetIDBC( FeFctIdType pdeID, UInt eqnNo, const Double &val ) {
+    //! is fixed by an inhomogeneous Dirichlet boundary condition.
+    //! \param rowBlock sbm row Number
+    //! \param rowNum number of the row for the degree of freedom whose value
+    //!               should be set
+    //! \param val    inhomogeneous Dirichlet value
+    virtual void SetIDBC( UInt rowBlock, UInt rowNum, const Double &val ) {
       EXCEPTION("BaseIDBC_Handler::SetIDBC: The derived class does " \
                 << "obviously not support the Double version of this " \
                 << "interface! So it is probably a Complex instance!");
     }
 
-    virtual void SetIDBC( FeFctIdType pdeID, UInt eqnNo, const Complex &val )  {
+    virtual void SetIDBC( UInt rowBlock, UInt rowNum, const Complex &val )  {
       EXCEPTION("BaseIDBC_Handler::SetIDBC: The derived class does " \
+                << "obviously not support the Complex version of this " \
+                << "interface! So it is probably a Double instance!");
+    }
+    //@}
+    
+    //@{
+    //! Get value for a Dirichlet boundary condition
+
+    //! This method can be used to set the value of a degree of freedom that
+    //! is fixed by an inhomogeneous Dirichlet boundary condition.
+    //! \param rowBlock sbm row Number
+    //! \param rowNum number of the row for the degree of freedom whose value
+    //!               should be set
+    //! \param val    inhomogeneous Dirichlet value
+    virtual void GetIDBC( UInt rowBlock, UInt rowNum, Double &val ) {
+      EXCEPTION("BaseIDBC_Handler::GetIDBC: The derived class does " \
+                << "obviously not support the Double version of this " \
+                << "interface! So it is probably a Complex instance!");
+    }
+
+    virtual void GetIDBC( UInt rowBlock, UInt rowNum, Complex &val )  {
+      EXCEPTION("BaseIDBC_Handler::GetIDBC: The derived class does " \
                 << "obviously not support the Complex version of this " \
                 << "interface! So it is probably a Double instance!");
     }
@@ -108,8 +127,8 @@ namespace CoupledField {
     //! an inhomogeneous Dirichlet boundary condition into the desired
     //! Finite Element matrix.
     //! \param matID    specifies the FE matrix type of the auxilliary matrix
-    //! \param pdeID1   row index of sub-matrix in the SBM_Matrix case
-    //! \param pdeID2   column index of sub-matrix in the SBM_Matrix case
+    //! \param rowBlock row index of sub-matrix in the SBM_Matrix case
+    //! \param colBlock column index of sub-matrix in the SBM_Matrix case
     //! \param rowInd   row index of entry to be set, i.e. the equation
     //!                 number of the free degree of freedom
     //! \param colInd   column index of entry to be set, i.e. the equation
@@ -118,8 +137,8 @@ namespace CoupledField {
     //!                 to a one-based index itself.
     //! \param val value of the weight of the coupling
     virtual void AddWeightFixedToFree( FEMatrixType matID,
-                                       FeFctIdType pdeID1,
-                                       FeFctIdType pdeID2,
+                                       UInt rowBlock,
+                                       UInt colBlock,
                                        UInt rowInd,
                                        UInt colInd,
                                        const Double& val ) {
@@ -129,8 +148,8 @@ namespace CoupledField {
     }
     
     virtual void AddWeightFixedToFree( FEMatrixType matID,
-                                       FeFctIdType pdeID1,
-                                       FeFctIdType pdeID2,
+                                       UInt rowBlock,
+                                       UInt colBlock,
                                        UInt rowInd,
                                        UInt colInd,
                                        const Complex& val ) {
@@ -148,8 +167,8 @@ namespace CoupledField {
     //! an inhomogeneous Dirichlet boundary condition into the desired
     //! Finite Element matrix.
     //! \param matID    specifies the FE matrix type of the auxilliary matrix
-    //! \param pdeID1   row index of sub-matrix in the SBM_Matrix case
-    //! \param pdeID2   column index of sub-matrix in the SBM_Matrix case
+    //! \param rowBlock row index of sub-matrix in the SBM_Matrix case
+    //! \param colBlock column index of sub-matrix in the SBM_Matrix case
     //! \param rowInd   row index of entry to be set, i.e. the equation
     //!                 number of the free degree of freedom
     //! \param colInd   column index of entry to be set, i.e. the equation
@@ -158,8 +177,8 @@ namespace CoupledField {
     //!                 to a one-based index itself.
     //! \param val      value of the weight of the coupling
     virtual void SetWeightFixedToFree( FEMatrixType matID,
-                                       FeFctIdType pdeID1,
-                                       FeFctIdType pdeID2,
+                                       UInt rowBlock,
+                                       UInt colBlock,
                                        UInt rowInd,
                                        UInt colInd,
                                        const Double& val ) {
@@ -168,8 +187,8 @@ namespace CoupledField {
                 << "interface! So it is probably a Complex instance!");
     }
     virtual void SetWeightFixedToFree( FEMatrixType matID,
-                                       FeFctIdType pdeID1,
-                                       FeFctIdType pdeID2,
+                                       UInt rowBlock,
+                                       UInt colBlock,
                                        UInt rowInd,
                                        UInt colInd,
                                        const Complex& val ) {
@@ -187,8 +206,8 @@ namespace CoupledField {
     //! an inhomogeneous Dirichlet boundary condition from the desired
     //! Finite Element matrix.
     //! \param matID    specifies the FE matrix type of the auxiliary matrix
-    //! \param pdeID1   row index of sub-matrix in the SBM_Matrix case
-    //! \param pdeID2   column index of sub-matrix in the SBM_Matrix case
+    //! \param rowBlock row index of sub-matrix in the SBM_Matrix case
+    //! \param colBlock column index of sub-matrix in the SBM_Matrix case
     //! \param rowInd   row index of entry to get, i.e. the equation
     //!                 number of the free degree of freedom
     //! \param colInd   column index of entry to get, i.e. the equation
@@ -197,8 +216,8 @@ namespace CoupledField {
     //!                 to a one-based index itself.
     //! \param val      value of the weight of the coupling
     virtual void GetWeightFixedToFree( FEMatrixType matID,
-                                       FeFctIdType pdeID1,
-                                       FeFctIdType pdeID2,
+                                       UInt rowBlock,
+                                       UInt colBlock,
                                        UInt rowInd,
                                        UInt colInd,
                                        Double & val ) {
@@ -208,8 +227,8 @@ namespace CoupledField {
 
     }
     virtual void GetWeightFixedToFree( FEMatrixType matID,
-                                       FeFctIdType pdeID1,
-                                       FeFctIdType pdeID2,
+                                       UInt rowBlock,
+                                       UInt colBlock,
                                        UInt rowInd,
                                        UInt colInd,
                                        Complex & val ) {
@@ -225,7 +244,7 @@ namespace CoupledField {
     //! Calling this method re-sets the specified internal matrix of the
     //! object to its initial state, i.e. Init() is called on that matrix
     //! object.
-    virtual void InitMatrix( FEMatrixType matrixID ) = 0;
+    virtual void InitMatrix( FEMatrixType matrixType ) = 0;
 
     //! Re-set vector of Dirichlet values
 
@@ -234,13 +253,13 @@ namespace CoupledField {
     //! by inhomogeneous Dirichlet boundary conditions.
     virtual void InitDirichletValues() = 0;
 
-    //! Set fixed dofs to specified Dirichlet boundary values
+    //! Set fixed dofs in given vector to specified Dirichlet boundary values
 
     //! This method replaces the values of all fixed degrees of freedom in the
     //! specified input vector by new values. These new values are taken to
     //! be the values specified via the inhomogeneous Dirichlet boundary
     //! condition that fixes the respective degrre of freedom.
-    virtual void SetDofsToIDBC( BaseVector *vec ) = 0;
+    virtual void SetDofsToIDBC( SBM_Vector *vec ) = 0;
 
   };
 

@@ -159,25 +159,25 @@ public:
   //! Get Equation numbers for a specific element
   virtual void GetElemEqns(StdVector<Integer>& eqns,const Elem* elem, UInt dof) = 0;
 
-  //! Reorder the equation Map (just for comptibility)
-  virtual void ReorderEqnMap( StdVector<UInt> newOrder ) = 0;
-
   //! Add result
   virtual void AddFeFunction( shared_ptr<BaseFeFunction> fct ) = 0;
 
   //! Precalculate integration points
   virtual void PreCalcShapeFncs() {};
 
-  //! Get number of equaitons thich are not fixed by BCs this space has assinged
+  //! Get number of equations which are not fixed by BCs this space
+  
+  //! This method returns the number of equations, which are free,
+  //! i.e. not fixed by a (non)homogeneous Dirichlet boundary
+  //! condition. As the free equations are numbered first internally
+  //! we can use this method to determine, if an equation number belongs
+  //! to a free equations (<= numFreeEquations) or if it is a Dirichlet
+  //! equations (>numFreeEquations)
   virtual UInt GetNumFreeEquations(){
-    // in this approach we assume the penalty approach towards
-    // solution. otherwise we would need to return only the free equations
-    return numEqns_;
-    //return numFreeEquations_;
+    return numFreeEquations_;
   }
 
-  
-  //! Get number of equaitons this space has assinged
+  //! Get number of equations this space has assigned
   virtual UInt GetNumEquations(){
     return numEqns_;
   }

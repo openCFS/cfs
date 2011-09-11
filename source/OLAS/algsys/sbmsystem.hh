@@ -8,7 +8,7 @@
 #include <set>
 #include <map>
 
-#include "OLAS/algsys/basesystem.hh"
+#include "OLAS/algsys/algebraicSys.hh"
 #include "MatVec/basematrix.hh"
 
 
@@ -215,7 +215,7 @@ namespace CoupledField {
     //! \param matrixID  type of Finite Element matrix (STIFFNESS, MASS, ...)
     //! \param pdeID     identifier obtained from the ObtainPDEId() method
     void InitMatrix( FEMatrixType matrixID = NOTYPE,
-                     const FeFctIdType pdeID = NO_PDE_ID );
+                     const FeFctIdType pdeID = NO_FCT_ID );
 
     //! Set right hand side vector to zero
 
@@ -227,7 +227,7 @@ namespace CoupledField {
     //!       related to a single PDE to zero in this case.
     //! \param identifierPDE unique identifier obtained from the ObtainPDEId()
     //!                      method
-    void InitRHS( const FeFctIdType identifierPDE = NO_PDE_ID );
+    void InitRHS( const FeFctIdType identifierPDE = NO_FCT_ID );
 
     //! Set the global rhs to given values
 
@@ -251,7 +251,7 @@ namespace CoupledField {
     //!       related to a single PDE to zero.
     //! \param identifierPDE unique identifier obtained from the ObtainPDEId()
     //!                      method
-    void InitSol( const FeFctIdType identifierPDE = NO_PDE_ID );
+    void InitSol( const FeFctIdType identifierPDE = NO_FCT_ID );
 
     //! Set the global solution vector to given initial values
 
@@ -559,7 +559,7 @@ namespace CoupledField {
     //! until the next call of this method (after solving the next step)!
     void GetSolutionVal( SingleVector& ptSol,
                          const FeFctIdType identifierPDE
-                         = NO_PDE_ID );
+                         = NO_FCT_ID );
     //@}
 
     //! Return the pointer to the current rhs value of a PDE
@@ -574,7 +574,7 @@ namespace CoupledField {
     //! until the next call of this method!
     void GetRHSVal( SingleVector &ptRhs,
                     const FeFctIdType identifierPDE
-                    = NO_PDE_ID );
+                    = NO_FCT_ID );
 
 
     // ***********************************************************************
@@ -599,7 +599,7 @@ namespace CoupledField {
     //! \param pdeID2  unique identifier for a PDE as obtained by the
     //!                ObtainPDEId() method
     void SetFEMatrixType( const FEMatrixType matType, const FeFctIdType pdeID1,
-                          const FeFctIdType pdeID2 = NO_PDE_ID );
+                          const FeFctIdType pdeID2 = NO_FCT_ID );
 
     //! Set block size of a matrix entry
 

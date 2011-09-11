@@ -93,15 +93,9 @@ namespace CoupledField
     // GET /SET  METHODS
     // ======================================================
 
-    //! get algsys identification tag of PDE
-    FeFctIdType GetPDEId()
-    { return pdeId_; }
-
     /** return sub type. The string is stored internally any we need to convert. :(
      * @return if StdPDE::subType_ is not set we return NO_TENSOR  */
     SubTensorType GetSubTensorType() const;
-
-
 
     //! Set Direct coupling information
     virtual void SetDirectCoupling();
@@ -515,9 +509,6 @@ namespace CoupledField
     //@{
     //! \name Miscellanous paramters
 
-    //! Identifier of the PDE which is used in the algebraic system
-    FeFctIdType  pdeId_;
-  
     //! flag for direct coupling
     bool isDirectCoupled_;
 

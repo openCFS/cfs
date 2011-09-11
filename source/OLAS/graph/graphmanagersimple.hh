@@ -186,8 +186,8 @@ namespace CoupledField {
     //! \param identifierPDE2 identifier for second PDE related to sub-graph
     //! \return a BaseGraph object according to the specified identifier
     //! combination
-    BaseGraph* GetGraph( const FeFctIdType identifierPDE1 = NO_PDE_ID,
-                         const FeFctIdType identifierPDE2 = NO_PDE_ID );
+    BaseGraph* GetGraph( const FeFctIdType identifierPDE1 = NO_FCT_ID,
+                         const FeFctIdType identifierPDE2 = NO_FCT_ID );
 
     //! Get a specified (sub-)graph for inhom. Dirichlet BC
 
@@ -198,8 +198,8 @@ namespace CoupledField {
     //! \param pdeID1 identifier for the first PDE of the pair
     //! \param pdeID2 identifier for the second PDE of the pair
     //! \return a BaseGraph object according to the specified identifier
-    BaseGraph* GetIDBCGraph( const FeFctIdType pdeID1 = NO_PDE_ID,
-                             const FeFctIdType pdeID2 = NO_PDE_ID ) const;
+    BaseGraph* GetIDBCGraph( const FeFctIdType pdeID1 = NO_FCT_ID,
+                             const FeFctIdType pdeID2 = NO_FCT_ID ) const;
 
     //! Print some statistics on the graph manager
     void PrintStats( std::ostream *log );

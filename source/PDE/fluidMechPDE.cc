@@ -5,7 +5,7 @@
 #include <sstream>
 #include <iomanip>
 
-#include "OLAS/algsys/basesystem.hh"
+#include "OLAS/algsys/algebraicSys.hh"
 
 #include "Forms/fluidMechInt.hh"
 #include "Forms/fluidMechMassInt.hh"

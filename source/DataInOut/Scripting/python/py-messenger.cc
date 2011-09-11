@@ -25,7 +25,7 @@ namespace CoupledField {
 // Vector wrapping
 // ==================================================================
 
-BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(ToString_overloads, ToString, 0, 1);
+BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(ToString_overloads, ToString, 0, 1)
 
 // conversion function numpy-array => vector
 Vector<Double> array2vec (boost::python::numeric::array&  in)
@@ -53,6 +53,7 @@ boost::python::numeric::array vec2array (Vector<Double>&  in) {
   for( UInt i = 0; i < in.GetSize(); i++ ) {
     ret[i] = in[i];
   }
+  return ret;
 }
 
 

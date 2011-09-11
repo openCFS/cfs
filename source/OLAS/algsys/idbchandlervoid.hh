@@ -23,93 +23,94 @@ namespace CoupledField {
 
   public:
 
+    //! Default constructor
     IDBC_HandlerVoid() {};
 
     //! Destructor
     virtual ~IDBC_HandlerVoid() {};
 
-    //! Combine different FE matrices into a single system matrix
+    //! @copydoc BaseIDBC_Handler::BuiltSystemMatrix
     void BuiltSystemMatrix( const std::map<FEMatrixType,
                             Double> &factors ) {};
 
-    //! Adapt system matrix
-    void AdaptSystemMatrix( BaseMatrix &sysMat ) {};
+    //! @copydoc BaseIDBC_Handler::AdaptSystemMatrix()
+    void AdaptSystemMatrix( SBM_Matrix &sysMat ) {};
 
-    //! Incorporate inhomogeneous Dirichlet BCs into right hand side
-    void AddIDBCToRHS( BaseVector *rhs ) {};
+    //! @copydoc BaseIDBC_Handler::AddIDBCToRHS()
+    void AddIDBCToRHS( SBM_Vector *rhs ) {};
 
-    //! Remove inhomogeneous Dirichlet BCs from right hand side
-    void RemoveIDBCFromRHS( BaseVector *rhs ) {};
+    //! @copydoc BaseIDBC_Handler::RemoveIDBCFromRHS()
+    void RemoveIDBCFromRHS( SBM_Vector *rhs ) {};
 
-    //! Set value for a Dirichlet boundary condition
-    void SetIDBC( FeFctIdType pdeID, UInt eqnNo, UInt comp, UInt bcNum,
-                  const Double &val ) {};
+    //! @copydoc BaseIDBC_Handler::SetIDBC()
+    void SetIDBC( UInt rowBlock, UInt rowNum, const Double &val ) {};
 
-    //! Set value for a Dirichlet boundary condition
-    void SetIDBC( FeFctIdType pdeID, UInt eqnNo, UInt comp, UInt bcNum,
-                  const Complex &val ) {};
+    //! @copydoc BaseIDBC_Handler::SetIDBC()
+    void SetIDBC( UInt rowBlock, UInt rowNum, const Complex &val ) {};
+    
+    //! @copydoc BaseIDBC_Handler::GetIDBC()
+    void GetIDBC( UInt rowBlock, UInt rowNum, Double &val ) {};
 
-    //! Re-set specified internal matrix to zero
-    void InitMatrix( FEMatrixType matrixID ) {};
+    //! @copydoc BaseIDBC_Handler::GetIDBC()
+    void GetIDBC( UInt rowBlock, UInt rowNum, Complex &val ) {};
 
-    //! Re-set vector of Dirichlet values
+    //! @copydoc BaseIDBC_Handler::InitMatrix()
+    void InitMatrix( FEMatrixType matrixType ) {};
+
+    //! @copydoc BaseIDBC_Handler::InitDirichletValues()
     void InitDirichletValues() {};
 
-    //! Set fixed dofs to specified Dirichlet boundary values
-    void SetDofsToIDBC( BaseVector *vec ) {};
+    //! @copydoc BaseIDBC_Handler::SetDofsToIDBC()
+    void SetDofsToIDBC( SBM_Vector *vec ) {};
 
-    //! Add weight of coupling between a fixed and a free dof into matrix
+    //! @copydoc BaseIDBC_Handler::AddWeightFixedToFree()
     void AddWeightFixedToFree( FEMatrixType matID,
-                               FeFctIdType pdeID1,
-                               FeFctIdType pdeID2,
+                               UInt rowBlock,
+                               UInt colBlock,
                                UInt rowInd,
                                UInt colInd,
                                const Double& val ) {};
 
-    //! Add weight of coupling between a fixed and a free dof into matrix
+    //! @copydoc BaseIDBC_Handler::AddWeightFixedToFree()
     void AddWeightFixedToFree( FEMatrixType matID,
-                               FeFctIdType pdeID1,
-                               FeFctIdType pdeID2,
+                               UInt rowBlock,
+                               UInt colBlock,
                                UInt rowInd,
                                UInt colInd,
                                const Complex& val ) {};
 
 
-    //! Set weight of coupling between a fixed and a free dof into matrix
+    //! @copydoc BaseIDBC_Handler::SetWeightFixedToFree()
     void SetWeightFixedToFree( FEMatrixType matID,
-                               FeFctIdType pdeID1,
-                               FeFctIdType pdeID2,
+                               UInt rowBlock,
+                               UInt colBlock,
                                UInt rowInd,
                                UInt colInd,
                                const Double& val ) {};
 
-    //! Set weight of coupling between a fixed and a free dof into matrix
+    //! @copydoc BaseIDBC_Handler::SetWeightFixedToFree()
     void SetWeightFixedToFree( FEMatrixType matID,
-                               FeFctIdType pdeID1,
-                               FeFctIdType pdeID2,
+                               UInt rowBlock,
+                               UInt colBlock,
                                UInt rowInd,
                                UInt colInd,
                                const Complex& val ) {};
 
-     //! Get weight of coupling between a fixed and a free dof from matrix
-    void GetWeightFixedToFree( FEMatrixType matID, FeFctIdType pdeID1,
-                               FeFctIdType pdeID2, UInt rowInd, UInt colInd,
-                               Double & val ) const  {};
+    //! @copydoc BaseIDBC_Handler::GetWeightFixedToFree()
+    void GetWeightFixedToFree( FEMatrixType matID,
+                               UInt rowBlock,
+                               UInt colBlock,
+                               UInt rowInd,
+                               UInt colInd,
+                               Double & val )  {};
 
-    //! Get weight of coupling between a fixed and a free dof from matrix
-    void GetWeightFixedToFree( FEMatrixType matID, FeFctIdType pdeID1,
-                               FeFctIdType pdeID2, UInt rowInd, UInt colInd,
-                               Complex & realPart ) const  {};
-
-    //! Set the value of all coupling weights of a free dof to its fixed ones
-    void SetRowWeights( FEMatrixType matID, FeFctIdType pdeID, UInt rowInd,
-                        Double realPart, Double imagPart = 0.0 ) {};
-    
-    
-    //! Set the value of all coupling weights of a fixed dof to its free ones
-    void SetColWeights( FEMatrixType matID, FeFctIdType pdeID,UInt colInd,
-                        Double realPart, Double imagPart = 0.0 ) {};
-    
+    //! @copydoc BaseIDBC_Handler::GetWeightFixedToFree()
+    void GetWeightFixedToFree( FEMatrixType matID,
+                               UInt rowBlock,
+                               UInt colBlock,
+                               UInt rowInd,
+                               UInt colInd,
+                               Complex & val )  {};
   };
 
 }

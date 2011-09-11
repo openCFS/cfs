@@ -19,12 +19,12 @@
 #include "Domain/domain.hh"
 #include "Driver/singleDriver.hh"
 #include "General/exception.hh"
-#include "OLAS/algsys/basesystem.hh"
+#include "OLAS/algsys/algebraicSys.hh"
 
 namespace CoupledField {
 
   NewmarkFracDampMech::
-  NewmarkFracDampMech( BaseSystem * algebraicsystem,
+  NewmarkFracDampMech( AlgebraicSys * algebraicsystem,
                        const FeFctIdType apdeId,
                        shared_ptr<EqnMap> eqnMap,
                        Grid * aptgrid,

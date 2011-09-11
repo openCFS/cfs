@@ -25,7 +25,7 @@ namespace CoupledField {
   //   Deep destructor
   // *******************
   SBM_Vector::~SBM_Vector() {
-    for ( UInt i = 1; i <= size_; i++ ) {
+    for ( UInt i = 0; i < size_; i++ ) {
       delete subVec_[i];
     }
   }
@@ -35,7 +35,7 @@ namespace CoupledField {
   //   Set number of vector entries and re-size internal array
   // ***********************************************************
   void SBM_Vector::SetSize( UInt size ) {
-    for ( UInt i = 1; i <= size_; i++ ) {
+    for ( UInt i = 0; i < size_; i++ ) {
       delete subVec_[i];
     }
 
@@ -50,7 +50,7 @@ namespace CoupledField {
   SBM_Vector& SBM_Vector::operator= ( const SBM_Vector &bVec ) {
 
     // first, delete sub-vectors
-    for ( UInt i = 1; i <= size_; i++ ) {
+    for ( UInt i = 0; i < size_; i++ ) {
       delete subVec_[i];
     }
 

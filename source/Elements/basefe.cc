@@ -856,7 +856,7 @@ namespace CoupledField
 //
 //  void BaseFE::GetGlobalEdgeIndices(StdVector<UInt> & globEdgeIndex,
 //                                    UInt * pDENodes,
-//                                    BaseSystem * algsys)
+//                                    AlgebraicSys * algsys)
 //  {
 //
 //    EXCEPTION( "Edge functions are currently not supported!");

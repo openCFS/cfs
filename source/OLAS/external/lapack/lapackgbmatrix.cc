@@ -101,7 +101,8 @@ namespace CoupledField {
     }
 
     // obtain bandwidth info from graph
-    graph.GetBandwidth( wlower_, wupper_ );
+    UInt avgBw; // not really used
+    graph.GetBandwidth( wlower_, wupper_, avgBw );
 
     // we do not have additional storage space
     amEnlarged_ = false;

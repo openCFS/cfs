@@ -109,7 +109,7 @@ namespace CoupledField {
   //!   SPARSE_SYM for the sub-matrices on the diagonal.
   SBM_Matrix* GenerateSBMMatrixObject( BaseMatrix::EntryType eType,
                                        UInt rowDim, UInt colDim,
-                                       GraphManagerSBMMat *graphManager,
+                                       GraphManager *graphManager,
                                        bool symmetric );
 }
 

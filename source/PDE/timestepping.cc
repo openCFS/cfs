@@ -8,11 +8,11 @@
 
 #include "timestepping.hh"
 
-#include "OLAS/algsys/basesystem.hh"
+#include "OLAS/algsys/algebraicSys.hh"
 
 namespace CoupledField {
 
-  TimeStepping::TimeStepping(BaseSystem * algebraicsystem )
+  TimeStepping::TimeStepping(AlgebraicSys * algebraicsystem )
   {
     algsys_  = algebraicsystem;
     rhsSize_ = 0 ;

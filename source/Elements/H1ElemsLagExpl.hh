@@ -63,13 +63,13 @@ public:
 
 protected:
 
-  //! @see FeH1::CalcShFnc
+  //! @copydoc FeH1::CalcShFnc
   virtual void CalcShFnc( Vector<Double>& shape,
                           const Vector<Double>& point,
                           const Elem* ptElem,
                           UInt comp = 1 ) = 0;
 
-  //! @see FeH1::CalcLocDerivShFnc
+  //! @copydoc FeH1::CalcLocDerivShFnc
   virtual void CalcLocDerivShFnc( Matrix<Double> & deriv, 
                                   const Vector<Double>& point,
                                   const Elem* ptElem,
@@ -97,19 +97,19 @@ public:
 
 protected:
 
-  //! @see FeH1::CalcShFnc
+  //! @copydoc FeH1::CalcShFnc
   void CalcShFnc( Vector<Double>& shape,
                   const Vector<Double>& point,
                   const Elem* ptElem,
                   UInt comp = 1 );
 
-  //! @see FeH1::CalcLocDerivShFnc
+  //! @copydoc FeH1::CalcLocDerivShFnc
   void CalcLocDerivShFnc( Matrix<Double> & deriv, 
                           const Vector<Double>& point,
                           const Elem* ptElem,
                           UInt comp = 1 );
   
-  //! @see FeH1LagrangeExpl::CoordIsInsideElem
+  //! @copydoc FeH1LagrangeExpl::CoordIsInsideElem
   bool CoordIsInsideElem( const Vector<Double>& point,
                           Double tolerance );
 };
@@ -127,19 +127,19 @@ public:
 
 protected:
 
-  //! @see FeH1::CalcShFnc
+  //! @copydoc FeH1::CalcShFnc
   void CalcShFnc( Vector<Double>& shape,
                   const Vector<Double>& point,
                   const Elem* ptElem,
                   UInt comp = 1 );
 
-  //! @see FeH1::CalcLocDerivShFnc
+  //! @copydoc FeH1::CalcLocDerivShFnc
   void CalcLocDerivShFnc( Matrix<Double> & deriv, 
                           const Vector<Double>& point,
                           const Elem* ptElem,
                           UInt comp = 1 );
   
-  //! @see FeH1LagrangeExpl::CoordIsInsideElem
+  //! @copydoc FeH1LagrangeExpl::CoordIsInsideElem
     bool CoordIsInsideElem( const Vector<Double>& point,
                             Double tolerance );
 };
@@ -157,19 +157,19 @@ public:
 
 protected:
 
-  //! @see FeH1::CalcShFnc
+  //! @copydoc FeH1::CalcShFnc
   void CalcShFnc( Vector<Double>& shape,
                   const Vector<Double>& point,
                   const Elem* ptElem,
                   UInt comp = 1 );
 
-  //! @see FeH1::CalcLocDerivShFnc
+  //! @copydoc FeH1::CalcLocDerivShFnc
   void CalcLocDerivShFnc( Matrix<Double> & deriv, 
                           const Vector<Double>& point,
                           const Elem* ptElem,
                           UInt comp = 1 );
   
-  //! @see FeH1LagrangeExpl::CoordIsInsideElem
+  //! @copydoc FeH1LagrangeExpl::CoordIsInsideElem
   bool CoordIsInsideElem( const Vector<Double>& point,
                           Double tolerance );
 
@@ -191,19 +191,19 @@ public:
 
 protected:
 
-  //! @see FeH1::CalcShFnc
+  //! @copydoc FeH1::CalcShFnc
   void CalcShFnc( Vector<Double>& shape,
                   const Vector<Double>& point,
                   const Elem* ptElem,
                   UInt comp = 1 );
 
-  //! @see FeH1::CalcLocDerivShFnc
+  //! @copydoc FeH1::CalcLocDerivShFnc
   void CalcLocDerivShFnc( Matrix<Double> & deriv, 
                           const Vector<Double>& point,
                           const Elem* ptElem,
                           UInt comp = 1 );
   
-  //! @see FeH1LagrangeExpl::CoordIsInsideElem
+  //! @copydoc FeH1LagrangeExpl::CoordIsInsideElem
   bool CoordIsInsideElem( const Vector<Double>& point,
                           Double tolerance );
 
@@ -222,19 +222,19 @@ public:
 
 protected:
 
-  //! @see FeH1::CalcShFnc
+  //! @copydoc FeH1::CalcShFnc
   void CalcShFnc( Vector<Double>& shape,
                   const Vector<Double>& point,
                   const Elem* ptElem,
                   UInt comp = 1 );
 
-  //! @see FeH1::CalcLocDerivShFnc
+  //! @copydoc FeH1::CalcLocDerivShFnc
   void CalcLocDerivShFnc( Matrix<Double> & deriv, 
                           const Vector<Double>& point,
                           const Elem* ptElem,
                           UInt comp = 1 );
   
-  //! @see FeH1LagrangeExpl::CoordIsInsideElem
+  //! @copydoc FeH1LagrangeExpl::CoordIsInsideElem
   bool CoordIsInsideElem( const Vector<Double>& point,
                           Double tolerance );
 
@@ -253,19 +253,19 @@ public:
 
 protected:
 
-  //! @see FeH1::CalcShFnc
+  //! @copydoc FeH1::CalcShFnc
   void CalcShFnc( Vector<Double>& shape,
                   const Vector<Double>& point,
                   const Elem* ptElem,
                   UInt comp = 1 );
 
-  //! @see FeH1::CalcLocDerivShFnc
+  //! @copydoc FeH1::CalcLocDerivShFnc
   void CalcLocDerivShFnc( Matrix<Double> & deriv, 
                           const Vector<Double>& point,
                           const Elem* ptElem,
                           UInt comp = 1 );
 
-  //! @see FeH1LagrangeExpl::CoordIsInsideElem
+  //! @copydoc FeH1LagrangeExpl::CoordIsInsideElem
   bool CoordIsInsideElem( const Vector<Double>& point,
                           Double tolerance );
 

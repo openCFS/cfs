@@ -10,7 +10,7 @@
 #include "PDE/magEdgePDE.hh"
 #include "assemble.hh"
 #include "Forms/linearForm.hh"
-#include "OLAS/algsys/basesystem.hh"
+#include "OLAS/algsys/algebraicSys.hh"
 #include "Utils/Timer.hh"
 
 namespace CoupledField {

@@ -22,8 +22,8 @@ namespace CoupledField {
       offset2_(0),
       offsetIDBC1_(0),
       offsetIDBC2_(0),
-      idPDE1_(NO_PDE_ID),
-      idPDE2_(NO_PDE_ID),
+      idPDE1_(NO_FCT_ID),
+      idPDE2_(NO_FCT_ID),
       graph_(NULL),
       graphIDBC_(NULL),
       numPDEs_(0),
@@ -293,7 +293,7 @@ namespace CoupledField {
 
 
     // Perform a consistency check
-    if ( identifierPDE1 == NO_PDE_ID ) {
+    if ( identifierPDE1 == NO_FCT_ID ) {
       EXCEPTION("GraphManagerStdMat: First PDE identifier passed to "
                << "AssembleInit is empty!");
     }
@@ -317,7 +317,7 @@ namespace CoupledField {
     offset1_ = offset_[idPDE1_];
     offsetIDBC1_ = offsetIDBC_[idPDE1_];
     
-    if ( idPDE2_ != NO_PDE_ID ) {
+    if ( idPDE2_ != NO_FCT_ID ) {
       if ( idPDE2_ > static_cast<Integer>(numPDEs_) ) {
         EXCEPTION("GraphManagerStdMat::AssembleInit: "
                  << "PDE with identifier '" << idPDE2_ << "' was not "
@@ -342,7 +342,7 @@ namespace CoupledField {
 
 #ifdef DEBUG_GRAPHMANAGERSTDMAT
 
-    if ( identifierPDE1 == NO_PDE_ID ) {
+    if ( identifierPDE1 == NO_FCT_ID ) {
       EXCEPTION("GraphManagerStdMat: First PDE identifier passed to "
                 << "SetElementPos is empty!");
     }

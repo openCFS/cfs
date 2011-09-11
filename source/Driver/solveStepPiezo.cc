@@ -18,7 +18,7 @@
 #include "Utils/result.hh"
 #include "DataInOut/ResultCache.hh"
 
-#include "OLAS/algsys/basesystem.hh"
+#include "OLAS/algsys/algebraicSys.hh"
 
 namespace CoupledField {
 
