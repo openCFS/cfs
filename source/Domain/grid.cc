@@ -31,7 +31,8 @@ namespace CoupledField
   Grid::Grid()
   {
     isInitialized_ = false; // set by FinishInit()
-
+    isAxi_ = false;
+    
  #ifdef USE_SCRIPTING
     // Register functions
     RegisterFunctions();
@@ -181,7 +182,7 @@ namespace CoupledField
 
   UInt Grid::SetElementBarycenters(RegionIdType reg, bool updated)
   {
-    REFACTOR;
+    WARN("Grid::SetElementBarycenters needs to be refactored")
 //    RegionData& rd = regionData[reg];
 //
 //    if(rd.barycenters) return 0;
@@ -686,6 +687,9 @@ namespace CoupledField
     GetNodeCoordinate(c1, nodenum_c1);
     GetNodeCoordinate(d0, nodenum_d0);
     GetNodeCoordinate(d1, nodenum_d1);
+    
+    ElemShapeMap & sm = *(GetElemShapeMap(ifaceElem2));
+    LocPoint lp = Elem::shapes[ifaceElem2->type].midPointCoord;
 
     // Project master nodes onto slave element, if interface is not coplanar
     if (!collinear) {
@@ -697,7 +701,8 @@ namespace CoupledField
       tmp = d1 - d0;
       maxDist += tmp.NormL2();
       // compute normal vector of slave element
-      CalcSurfNormal(normal, *ifaceElem2);
+      sm.CalcNormal(normal, lp);
+      //CalcSurfNormal(normal, *ifaceElem2);
       // compute distance of c0 to plane of slave element
       tmp = c0 - d0;
       normal.Inner(tmp, fac);

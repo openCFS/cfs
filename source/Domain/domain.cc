@@ -157,6 +157,8 @@ void Domain::CreateGrid()
     // set flag about axisymmetry
     if( probGeo == "axi" ) {
       actGrid->SetAxi( true );
+    } else {
+      actGrid->SetAxi( false );
     }
 
     // add grid to internal map

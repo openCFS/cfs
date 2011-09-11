@@ -584,9 +584,123 @@ Double LagrangeElemShapeMap::CalcVolume( ) {
 
 void LagrangeElemShapeMap::CalcNormal( Vector<Double>& normal, 
                                        const LocPoint& lp ) {
-  EXCEPTION("Not implemented");
+  
+  
+  // check, that element is surface element at all
+  if( shape_.dim != ptGrid_->GetDim() - 1 ) {
+    EXCEPTION("Can not calculate normal of element #"
+              << ptElem_->elemNum << " which is of dimension "
+              <<  shape_.dim << " in a " 
+              << ptGrid_->GetDim() << "-dimensional grid!");
+  }
+  
+  // get neighboring volume element
+  const SurfElem & surfEl = dynamic_cast<const SurfElem&>(*ptElem_);
+  Elem * ptVolEl = surfEl.ptVolElem1;
+  
+  // Obtain shape map of neighboring volume element
+  LagrangeElemShapeMap sm(ptGrid_);
+  sm.SetElem(ptVolEl, isUpdated_);
+  
+  // Map local point of surface to global point 
+  Vector<Double> locNormal;
+  LocPoint volPoint;
+  sm.ptFe_->GetLocalIntPoints4Surface( ptElem_->connect, 
+                                       ptVolEl->connect,
+                                       lp, volPoint, locNormal);
+  
+  // Calculate Jacobian matrix of volume element in that point
+  Matrix<Double> jac;
+  sm.CalcJ( jac, volPoint);
+  
+  // Calculate global normal
+  normal =  jac * locNormal;
+
+  // normalize normal
+  Double norm = normal.NormL2();
+  normal /= norm;
 }
 
+void  LagrangeElemShapeMap::
+CalcNormalOutOfVol( Vector<Double> & normal,
+                        const LocPoint& lp, 
+                        const Elem & volElem ) {
+  
+  // Obtain shape map of neighboring volume element
+  LagrangeElemShapeMap sm(ptGrid_);
+  sm.SetElem(&volElem, isUpdated_);
+  
+  Matrix<Double> & volCoords = sm.coords_; 
+
+  // Calculate surface normal without defined sign
+  CalcNormal( normal, lp);
+  
+  UInt volCorners = sm.shape_.numVertices;
+
+  /* Idea:
+       - find a common surface / volume element node
+       - find additional node, which is not common (i.e. lies on the "volume side"
+       - calculate difference vector from  "additional" node to first common
+         one ( = pointing out of  the volume element)
+       - the scalar product of the normal and the difference vector determines
+         the normalSign
+   */
+
+  // find first common vertex index
+  Integer firstCommonIndex = -1;
+  for (UInt i=0; i<volCorners; i++)
+    if (volElem.connect[i] == ptElem_->connect[0]){
+      firstCommonIndex = i;
+      break;
+    }
+
+  // find additional node of the volume node, which is not contained in the
+  // surface element
+  std::set<UInt> volSet, surfSet, diffSet;
+  volSet = std::set<UInt>(sm.ptElem_->connect.Begin(), 
+                          sm.ptElem_->connect.End());
+  
+  surfSet = std::set<UInt>(ptElem_->connect.Begin(), 
+                           ptElem_->connect.End());
+  std::set_difference( volSet.begin(), volSet.end(),
+                       surfSet.begin(), surfSet.end(),
+                       std::inserter(diffSet,diffSet.begin()) );
+
+  Vector<double> diffVec( sm.shape_.dim );
+  Double scalarProd = 0.0;
+  std::set<UInt>::const_iterator it = diffSet.begin();
+  for( ; it != diffSet.end(); it++ ) {
+
+    UInt node = *it;
+
+    // search for volume 
+    UInt index = volElem.connect.Find(node);
+
+    // calculate difference vector (pointing out of the volume)
+    for( UInt iDim = 0; iDim < sm.shape_.dim; ++iDim ) {
+      diffVec[iDim] =  volCoords[iDim][firstCommonIndex]
+                     - volCoords[iDim][index];
+    }
+    // normalize difference vector to 1.0
+    diffVec /= diffVec.NormL2();
+
+    // calculate scalar product
+    scalarProd = diffVec * normal;
+
+    // check if scalar product is != 0 (otherwise we may have a degenerated
+    // element, where two nodes lie on the same location)
+    if( std::abs(scalarProd) < EPS ) {
+      // we have to find another node
+      continue;
+    } else {
+      if( scalarProd < 0.0 ) {
+        // original normal vector points into the volume -> reorient
+        normal *= -1.0;
+      }
+      break;
+    }
+  }
+}
 
 bool LagrangeElemShapeMap::
  CoordIsInsideElem( const Vector<Double>& point ) {
@@ -696,7 +810,6 @@ void LagrangeElemShapeMap::SetElem( const Elem* ptElem, bool isUpdated ) {
   // set reference element
   ptFe_ = feMap_[ptElem->type];
   shape_ = Elem::shapes[ptElem_->type];
-  
 }
 
 } // namespace CoupledField

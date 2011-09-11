@@ -60,7 +60,30 @@ public:
   //! \return flag if point is inside the element
   virtual bool CoordIsInsideElem( const Vector<Double>& point,
                                   Double tolerance ) = 0;
+  
+  //! Calculates corresponding volume point of neighboring surfaces
 
+  //! For a given surface element and a neighboring volume element this
+  //! method calculates the local volume-coordinates out of the given
+  //! local surface-coordinates, which have one less dimension.
+  //! This can be used to get the corresponding volume coordinates of
+  //! the integration points of a surface. Therefore it calculates
+  //! on which side of the volume element the surface element lies
+  //! and creates the according volume point.
+  /*!
+       \param surfConnect (input) Node numbers of surface element
+       \param volConnect (input) Node numbers of volume element
+       \param surfIntPoint (input) Surface integration point, which gets mapped
+       onto the volume element
+       \param volIntPoint (output) Corresponding volume integration point
+       \param locNormal (output) Normal direction of surface element in local 
+       coordinates of the volume element
+   */
+  virtual void GetLocalIntPoints4Surface(const StdVector<UInt> & surfConnect,
+                                         const StdVector<UInt> & volConnect,
+                                         const LocPoint & surfIntPoint,
+                                         LocPoint & volIntPoint,
+                                         Vector<Double>& locNormal ) = 0;
 protected:
 
   //! @copydoc FeH1::CalcShFnc
@@ -112,6 +135,13 @@ protected:
   //! @copydoc FeH1LagrangeExpl::CoordIsInsideElem
   bool CoordIsInsideElem( const Vector<Double>& point,
                           Double tolerance );
+  
+  //! @copydoc FeH1LagrangeExpl::GetLocalIntPoints4Surface
+  void GetLocalIntPoints4Surface(const StdVector<UInt> & surfConnect,
+                                 const StdVector<UInt> & volConnect,
+                                 const LocPoint & surfIntPoint,
+                                 LocPoint & volIntPoint,
+                                 Vector<Double>& locNormal );
 };
 
 //! Lagrangian quadrilateral element of 1st order (ET_QUAD4)
@@ -140,8 +170,15 @@ protected:
                           UInt comp = 1 );
   
   //! @copydoc FeH1LagrangeExpl::CoordIsInsideElem
-    bool CoordIsInsideElem( const Vector<Double>& point,
-                            Double tolerance );
+  bool CoordIsInsideElem( const Vector<Double>& point,
+                          Double tolerance );
+  
+  //! @copydoc FeH1LagrangeExpl::GetLocalIntPoints4Surface
+  void GetLocalIntPoints4Surface(const StdVector<UInt> & surfConnect,
+                                 const StdVector<UInt> & volConnect,
+                                 const LocPoint & surfIntPoint,
+                                 LocPoint & volIntPoint,
+                                 Vector<Double>& locNormal );
 };
 
 //! Lagrangian hexahedral element of 1st order (ET_HEX8)
@@ -172,6 +209,13 @@ protected:
   //! @copydoc FeH1LagrangeExpl::CoordIsInsideElem
   bool CoordIsInsideElem( const Vector<Double>& point,
                           Double tolerance );
+  
+  //! @copydoc FeH1LagrangeExpl::GetLocalIntPoints4Surface
+  void GetLocalIntPoints4Surface(const StdVector<UInt> & surfConnect,
+                                 const StdVector<UInt> & volConnect,
+                                 const LocPoint & surfIntPoint,
+                                 LocPoint & volIntPoint,
+                                 Vector<Double>& locNormal );
 
 };
 
@@ -207,6 +251,12 @@ protected:
   bool CoordIsInsideElem( const Vector<Double>& point,
                           Double tolerance );
 
+  //! @copydoc FeH1LagrangeExpl::GetLocalIntPoints4Surface
+  void GetLocalIntPoints4Surface(const StdVector<UInt> & surfConnect,
+                                 const StdVector<UInt> & volConnect,
+                                 const LocPoint & surfIntPoint,
+                                 LocPoint & volIntPoint,
+                                 Vector<Double>& locNormal );
 };
 
 //! Lagrangian quadrilateral element of 1st order (ET_QUAD8)
@@ -237,6 +287,13 @@ protected:
   //! @copydoc FeH1LagrangeExpl::CoordIsInsideElem
   bool CoordIsInsideElem( const Vector<Double>& point,
                           Double tolerance );
+  
+  //! @copydoc FeH1LagrangeExpl::GetLocalIntPoints4Surface
+  void GetLocalIntPoints4Surface(const StdVector<UInt> & surfConnect,
+                                 const StdVector<UInt> & volConnect,
+                                 const LocPoint & surfIntPoint,
+                                 LocPoint & volIntPoint,
+                                 Vector<Double>& locNormal );
 
 };
 
@@ -268,6 +325,13 @@ protected:
   //! @copydoc FeH1LagrangeExpl::CoordIsInsideElem
   bool CoordIsInsideElem( const Vector<Double>& point,
                           Double tolerance );
+
+  //! @copydoc FeH1LagrangeExpl::GetLocalIntPoints4Surface
+  void GetLocalIntPoints4Surface(const StdVector<UInt> & surfConnect,
+                                 const StdVector<UInt> & volConnect,
+                                 const LocPoint & surfIntPoint,
+                                 LocPoint & volIntPoint,
+                                 Vector<Double>& locNormal );
 
 };
 

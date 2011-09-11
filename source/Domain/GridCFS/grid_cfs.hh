@@ -346,40 +346,6 @@ namespace CoupledField
     // =======================================================================
     //@{ \name Geometry Calculation
     
-    //! Calculates area of a element
-    
-    //! Calculates the are of an element
-    //! \param elem (in) element object
-    Double CalcElemArea( const Elem* elem );
-
-    //! Returns surface element normal without defined orientation
-
-    //! This method calculates the normal of an surface element. The direction
-    //! is unspecified and dependend on the order or nodes of the element.
-    //! However, each surface element stores a flag \a normalSign, which 
-    //! indicates the direction of the resulting normal w.r.t. its first
-    //! volume element pointer.
-    //! \param n (out) vector containing surface normal
-    //! \param surfElem (in) reference to surface element
-    //! \param updated (in) flag indicating if updated geometry should be used
-    void CalcSurfNormal( Vector<Double> & n, 
-                         const Elem & surfElem,
-                         bool updated );
-
-    //! Returns surface element normal with defined orientation
-
-    //! Calculates the surface normal pointing OUT OF the neighbouring
-    //! volume element
-    //! \param n (out) normal vector
-    //! \param surfElem (in) surface element
-    //! \param volElem (in) volume element
-    //! \param updated (in) flag indicating if updated geometry should be used
-
-    void CalcSurfNormalOutOfVol( Vector<Double> & n,
-                                 const Elem & surfElem,
-                                 const Elem & volElem,
-                                 bool updated );
-
     //! Returns the volume of a given region
 
     //! This method returns the volume of a given region by iterating over
@@ -392,12 +358,6 @@ namespace CoupledField
     Double CalcVolumeOfRegion( const RegionIdType regionId ,
                                bool isaxi = false,
                                bool updated = false);
-
-    
-    //! Returns the global midpoint of an element
-    
-    //! This method return the global midpoint of an element
-    void GetGlobalElemMidPoint( UInt elemNum, Vector<Double>& coord );
 
     //@}
 

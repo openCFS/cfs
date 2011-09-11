@@ -349,15 +349,6 @@ class IDBC_Graph;
     //! Attribute to store the number of PDEs that belong to the manager
     UInt numBlocks_;
 
-    //! Attribute to store the number of PDEs that finished assembly
-
-    //! We use this attribute to keep track of the number of PDEs that have
-    //! already assembled their sub-graphs. This is useful for some
-    //! consistency checks. We can e.g. avoid that coupling objects try
-    //! to start their assembly before all PDEs have finished theirs, which
-    //! could lead to problems due to the re-ordering of the PDEs.
-    UInt numAssembledBlocks_;
-
     //! Attribute to keep track of number of PDEs that were registered
     UInt numRegisteredBlocks_;
 

@@ -258,8 +258,8 @@ namespace CoupledField {
 //        // Get hold of sub-vector
 //        stdVal = sbmVec->GetPointer(i);
 //
-//        // Print IDBCs for this PDE
-//        os << " PDE # " << i << " / numIDBCs = " << aux << std::endl;
+//        // Print IDBCs for this block
+//        os << " block # " << i << " / numIDBCs = " << aux << std::endl;
 //        if ( aux > 0 ) {
 //          os << " # | eqnNo | comp | value" << std::endl;
 //          for ( UInt j = 0; j < aux; j++ ) {

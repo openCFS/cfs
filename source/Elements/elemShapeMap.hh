@@ -38,6 +38,14 @@ namespace CoupledField {
     
     //! Conversion from standard vector
     LocPoint( const Vector<Double>& vec);
+    
+    //! Return coordinate component of point
+    inline Double& operator[]( UInt i) 
+    { return coord[i];}
+
+    //! Return coordinate component of point
+    inline const Double& operator[]( UInt i) const 
+    { return coord[i];}
 
     //! Alias for point, which is not explicitly represented by 
     //! a integration point
@@ -135,19 +143,19 @@ namespace CoupledField {
     static Enum<ShapeMapType> shapeMapType;
 
     //! Constructor
-    //! @param ptGrid input Pointer to Grid
-    //! @param isUpdated input Use of updated Lagrangian formulation
+    //! \param ptGrid input Pointer to Grid
+    //! \param isUpdated input Use of updated Lagrangian formulation
     ElemShapeMap( Grid* ptGrid );
 
     //! Destructor
     virtual ~ElemShapeMap();
 
     //! Set current element
-    //! @param ptElem output Current element
+    //! \param ptElem output Current element
     virtual void SetElem( const Elem* ptElem,bool isUpdated = false  );
     
     //! Set current element
-    //! @param ptElem output Current element
+    //! \param ptElem output Current element
     virtual const Elem* GetElem( ) {
       return ptElem_;
     }
@@ -163,46 +171,59 @@ namespace CoupledField {
     bool IsAxi() const {return isAxi_;}
 
     //! Calculate Local -> Global Mapping
-    //! @param globPoint output Global point in cartesian coordinates
-    //! @param locPoint input Element local point
+    //! \param globPoint output Global point in cartesian coordinates
+    //! \param locPoint input Element local point
     virtual void Local2Global( Vector<Double>& globPoint, 
                                const LocPoint& locPoint ) = 0;
 
     //! Calculate Global -> Local Mapping
 
     //! Calculates the mapping global->local using a Newton Raphson method
-    //! @param locPoint output Element local point
-    //! @param globPoint input Global point in cartesian coordinates
+    //! \param locPoint output Element local point
+    //! \param globPoint input Global point in cartesian coordinates
     virtual void Global2Local( Vector<Double>& locPoint, 
                                const Vector<Double>& globPoint ) = 0;
 
     //! Calculate global midpoint of element
-    //! @param midPoint output Global element midpoint
+    //! \param midPoint output Global element midpoint
     virtual void GetGlobMidPoint( Vector<Double>& midPoint ) = 0;
 
     //! Calculate volume of element
     virtual Double CalcVolume( ) = 0;
 
     //! Calculate normal of element
-    //! @param normal output Normal vector in global coordinates
-    //! @param lp input Element local point
+    //! \param normal output Normal vector in global coordinates
+    //! \param lp input Element local point
+    //! \note The direction of the normal has undefined sign!
     virtual void CalcNormal( Vector<Double>& normal, 
                              const LocPoint& lp ) = 0;
+    
+
+    //! Returns surface element normal with defined orientation
+
+    //! Calculates the surface normal pointing OUT OF the neighboring
+    //! volume element
+    //! \param n (out) normal vector
+    //! \param lp (input) Element local point
+    //! \param volElem (in) volume element
+    virtual void CalcNormalOutOfVol( Vector<Double> & normal,
+                                     const LocPoint& lp,
+                                     const Elem & volElem ) = 0;
 
     //! Returns whether a given local coordinate is within this element
-    //! @param point input Local point
-    //! @param tolerance input Additioanl (relative) tolerance
+    //! \param point input Local point
+    //! \param tolerance input Additioanl (relative) tolerance
     //! \return flag if point is inside the element
     virtual bool CoordIsInsideElem( const Vector<Double>& point ) = 0;
 
     //! Calculate the diameter vector of the element.
     //! Handles the element by itself and no axis-symmetric case.
-    //! @param diameter output vector with only positive entries. */
+    //! \param diameter output vector with only positive entries. */
     virtual void CalcDiameter( Vector<Double>& diameter ) = 0;
 
     //! Calculates the barycenter of the element. For 3D and 2D (z=0 then)
     //! This is the average of every coordinate.
-    //! @param barycenter the output. In 2D z=0. If you want 2D then overload */
+    //! \param barycenter the output. In 2D z=0. If you want 2D then overload */
     virtual void CalcBarycenter( Vector<Double>& baryCenter )  = 0;
 
     //! Compute length of edge with maximal/minimal size
@@ -210,7 +231,7 @@ namespace CoupledField {
 
     //! Compute the average side length for all dimenstions. Clearly works only 
     //! for quadrilaterals ans hexahedrons.
-    //! @param edges_out array with index 0 for x, ... */
+    //! \param edges_out array with index 0 for x, ... */
     virtual void GetEdgeLength( StdVector<Double>& edges_out) = 0;
 
     // ---------------------------------------------------
@@ -218,7 +239,7 @@ namespace CoupledField {
     // ---------------------------------------------------
 
     //! Calculate Jacobian Matrix
-    /*! @param jac output Jacobian Matrix
+    /*! \param jac output Jacobian Matrix
     \f$ J = \left( \begin{array}{ccc} x_{\xi} & x_{\eta} & x_{\zeta} \\
     y_{\xi} & y_{\eta} & y_{\zeta} \\
     z_{\xi} & z_{\eta} & z_{\zeta} 
@@ -302,6 +323,11 @@ namespace CoupledField {
     //! @copydoc ElemShapeMap::CalcNormal
     void CalcNormal( Vector<Double>& normal, 
                      const LocPoint& lp );
+    
+    //! @copydoc ElemShapeMap::CalcNormalOutOfVol
+    void CalcNormalOutOfVol( Vector<Double> & normal,
+                             const LocPoint& lp,
+                             const Elem & volElem );
 
     //! @copydoc ElemShapeMap::CoordIsInsideElem
     bool CoordIsInsideElem( const Vector<Double>& point );

@@ -338,8 +338,9 @@ double BaseForm::MaterialDescriptor::GetErsatzMaterial(BaseForm* form, const Ele
     
     if( it.GetType() == EntityList::SURF_ELEM_LIST ) {
       actElem_ = it.GetSurfElem();
-      domain->GetGrid()->CalcSurfNormal(normal_,*actElem_ );
-      normal_ *= (Double) actElem_->normalSign;
+      //domain->GetGrid()->CalcSurfNormal(normal_,*actElem_ );
+      WARN("Surface normal is not calcualted here anymore");
+//      normal_ *= (Double) actElem_->normalSign;
     }
 
     domain->GetGrid()->GetElemNodesCoord( ptCoord_, 

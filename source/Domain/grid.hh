@@ -238,33 +238,6 @@ namespace CoupledField
     virtual void GetElemNodes( StdVector<UInt> & connect,
                                const UInt iElem ) = 0;
 
-    //! Returns surface element normal without defined orientation
-
-    //! This method calculates the normal of an surface element. The direction
-    //! is unspecified and dependend on the order or nodes of the element.
-    //! However, each surface element stores a flag \a normalSign, which
-    //! indicates the direction of the resulting normal w.r.t. its first
-    //! volume element pointer.
-    //! \param n (out) vector containing surface normal
-    //! \param surfElem (in) reference to surface element
-    //! \param updated (in) flag indicating if updated geometry should be used
-    virtual void CalcSurfNormal( Vector<Double> & n,
-                                 const Elem & surfElem,
-                                 bool updated = false ) = 0;
-
-    //! Returns surface element normal with defined orientation
-
-    //! Calculates the surface normal pointing OUT OF the neighbouring
-    //! volume element
-    //! \param n (out) normal vector
-    //! \param surfElem (in) surface element
-    //! \param volElem (in) volume element
-    //! \param updated (in) flag indicating if updated geometry should be used
-    virtual void CalcSurfNormalOutOfVol( Vector<Double> & n,
-                                         const Elem & surfElem,
-                                         const Elem & volElem,
-                                         bool updated = false ) = 0;
-
     //! Returns node numbers of a list of Elements
 
     //! This method returns the unique node numbers of
@@ -275,11 +248,6 @@ namespace CoupledField
     virtual void GetNodesOfElemList( StdVector<UInt> & nodeList,
                                      const StdVector<Elem*> & elemList,
 				     bool onlyLinNodes = false ) = 0;
-
-    //! Returns the global midpoint of an element
-
-    //! This method return the global midpoint of an element
-    virtual void GetGlobalElemMidPoint( UInt elemNum, Vector<Double>& coord ) = 0;
 
     //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     //+++++++++++++++++++++++++++ REGION INFORMATION +++++++++++++++++++++++++

@@ -617,6 +617,8 @@ namespace CoupledField {
 
   void GridCFS::FinishInit()
   {
+    
+    LOG_TRACE(gridcfs) << "Finalizing GridCFS (FinishInit)";
     volElemNodes_.Clear();
     volRegionIds_.Clear();
     surfElemNodes_.Clear();
@@ -638,19 +640,18 @@ namespace CoupledField {
     std::map<RegionIdType, std::set<UInt> > volRegionNodes, surfRegionNodes;
     std::map<RegionIdType, UInt > regionDims;
 
+    LOG_DBG(gridcfs) << "Determine list of surface elements";
+    
     // set of elements, which get surface-mapped
     std::set<Elem*> surfElems;
+    
+    // loop over all e,ements
     for(e=0; e<numElems; e++)
     {
       Elem* el = orderedElems_[e];
-
-      // Check if element exists at all
-//      if( el->ptElem == NULL ) {
-//        EXCEPTION( "Element with number " << e+1
-//                   << " does not exist in grid. Please ensure that all elements "
-//                       "from 1 to " << numElems << " are defined in the mesh!");
-//      }
+      
       Elem::FEType type = el->type;
+      std::cerr << "element # " << e << " has type " << el->type << std::endl;
       numNodes = Elem::shapes[type].numNodes;
 
       maxNumElemNodes_ = maxNumElemNodes_ < numNodes ?
@@ -665,6 +666,10 @@ namespace CoupledField {
       if(!regionDims[el->regionId]) 
       {
         regionDims[el->regionId] = Elem::shapes[type].dim;
+        LOG_DBG3(gridcfs) << "\tRegion '" 
+                          << region_.ToString(regionDims[el->regionId]) 
+                          << "' has dimension " << regionDims[el->regionId];
+        
       }
       else
       {
@@ -683,20 +688,23 @@ namespace CoupledField {
 
       // get dimbnsion of element
       UInt elemDim = Elem::shapes[type].dim;
-      bool isSurfElem = (elemDim - dim_) == 1 ? true : false; 
+      bool isSurfElem = (dim_ - elemDim) == 1 ? true : false; 
 
       // decide, what to do with the element
       if( isSurfElem ) {
         surfElems.insert( el );
+        LOG_DBG3(gridcfs) << "\tadding elem #" << el->elemNum 
+                          << " to list of surface elements.";
       } else  {
         if( el->regionId != NO_REGION_ID ) {
           volRegionElems[el->regionId].Push_back(el);
-          
+          LOG_DBG3(gridcfs) << "\tadding elem #" << el->elemNum 
+                                    << " to list of volume elements.";
           volRegionNodes[el->regionId].insert( el->connect.Begin(),
                                                el->connect.End() );
         }
-      }
-    }
+      } // if surfElem
+    } // loop ordered elems
 
 
     std::map<RegionIdType, StdVector<Elem*> >::iterator regionElemIt, regionElemEnd;
@@ -799,313 +807,318 @@ namespace CoupledField {
   void GridCFS::
   CreateGridInformation( ResultHandler* ptRes,
                          std::map<std::string, CoordSystem*>& coordSysMap ) {
-    REFACTOR;
+    WARN("CreateGridInformation must be refactored");
     
-//    // This method crates a "dummy" multisequence step, in
-//    // wchich some grid-information rsults are created:
-//    // - Local directions (xi,eta,zeta) of elements
-//    // - Jacobian determinant
-//    // - surface element normals
-//    //
-//    // In addition we create for every local coordinate system
-//    // a results for the local directions.
-//    
-//    // Register results
-//    shared_ptr<BaseResult> sol;
-//    shared_ptr<EntityList> ent;
-//    
-//    // create result descriptions
-//    Vector<Double> locDir_xi(dim_), locDir_eta(dim_), locDir_zeta(dim_);
-//    shared_ptr<ResultInfo> locDir1( new ResultInfo );
-//    shared_ptr<ResultInfo> locDir2( new ResultInfo );
-//    shared_ptr<ResultInfo> locDir3( new ResultInfo );
-//    shared_ptr<ResultInfo> jacRes( new ResultInfo );
-//    shared_ptr<ResultInfo> surfNormal( new ResultInfo );
-//
-//    StdVector<std::string> dirVec (dim_);
-//    if( dim_ == 3 ) {
-//      dirVec = "x", "y", "z";
-//    } else {
-//      dirVec = "x", "y";
-//    }
-//    // 1) Local directions
-//    locDir1->resultType = ELEM_LOC_DIR;
-//    locDir1->resultName = "xi";
-//    locDir1->definedOn = ResultInfo::ELEMENT;
-//    locDir1->entryType = ResultInfo::VECTOR;
-//    locDir1->dofNames = dirVec;
-//    locDir_xi[0] = 1.0;
-//    locDir1->unit = "";
-//    
-//    locDir2->resultType = ELEM_LOC_DIR;
-//    locDir2->resultName = "eta";
-//    locDir2->definedOn = ResultInfo::ELEMENT;
-//    locDir2->entryType = ResultInfo::VECTOR;
-//    locDir2->dofNames = dirVec;
-//    locDir_eta[1] = 1.0;
-//    locDir2->unit = "";
-//    
-//    if (dim_ == 3 )  {
-//      locDir3->resultType = ELEM_LOC_DIR;
-//      locDir3->resultName = "zeta";
-//      locDir3->definedOn = ResultInfo::ELEMENT;
-//      locDir3->entryType = ResultInfo::VECTOR;
-//      locDir3->dofNames = dirVec;
-//      locDir_zeta[2] = 1.0;
-//      locDir3->unit = "";
-//    }
-//    // 2) Jacobian Determinanat
-//    jacRes->resultType = JACOBIAN;
-//    jacRes->resultName = "Jacobian";
-//    jacRes->definedOn = ResultInfo::ELEMENT;
-//    jacRes->entryType = ResultInfo::SCALAR;
-//    jacRes->dofNames = "";
-//    jacRes->unit = "";
-//    
-//    // 3) Surface element normals
-//    surfNormal->resultType = ELEM_LOC_DIR;
-//    surfNormal->resultName = "SurfaceNormal";
-//    surfNormal->definedOn = ResultInfo::ELEMENT;
-//    surfNormal->entryType = ResultInfo::VECTOR;
-//    surfNormal->dofNames = dirVec;
-//    surfNormal->unit = "";
-//    
-//    // === create results for all coordinate systems available ===
-//    std::map<std::string, StdVector<shared_ptr<ResultInfo> > > coordDirs;
-//    std::map<std::string, CoordSystem*>::const_iterator coordIt;
-//    
-//    // loop over all coordinate systems
-//    for( coordIt = coordSysMap.begin(); 
-//         coordIt != coordSysMap.end(); ++coordIt ) {
-//       
-//      std::string id = coordIt->first;
-//      CoordSystem * actCosy = coordIt->second;
-//      
-//      // Create ResultInfo objects for every local direction
-//      StdVector<shared_ptr<ResultInfo> > dirInfo(dim_);
-//      for( UInt iDim = 0; iDim < dim_; ++iDim ) {
-//        shared_ptr<ResultInfo> locDir( new ResultInfo );
-//        locDir->resultType = ELEM_LOC_DIR;
-//        locDir->resultName = "CooSy-"+id+"-"+actCosy->GetDofName(iDim+1);
-//        locDir->definedOn = ResultInfo::ELEMENT;
-//        locDir->entryType = ResultInfo::VECTOR;
-//        locDir->dofNames = dirVec;
-//        locDir->unit = "";
-//        
-//        dirInfo[iDim] = locDir;
-//      }
-//      coordDirs[id] = dirInfo;
-//    }
-//
-//    
-//    // loop over all volume regions
-//    StdVector<std::string> outDest;
-//    outDest.Push_back("");
-//    StdVector<shared_ptr<BaseResult> > resultList;
-//    std::map<std::string, StdVector<shared_ptr<BaseResult> > > coordResultList;
-//    for ( UInt i = 0, numRegions = volRegionIds_.GetSize();
-//        i < numRegions; i++) {
-//      
-//      // get elements
-//      ent = GetEntityList( EntityList::ELEM_LIST, region_.ToString(volRegionIds_[i]),
-//                           EntityList::REGION );
-//      
-//      // create result objects
-//      sol = shared_ptr<BaseResult> (new Result<Double>());
-//      sol->SetEntityList(ent);
-//      sol->SetResultInfo(jacRes);
-//      ptRes->RegisterResult( sol,0,0,1,1,outDest,"",true,false);
-//      resultList.Push_back(sol);
-//
-//      sol = shared_ptr<BaseResult> (new Result<Double>());
-//      sol->SetEntityList(ent);
-//      sol->SetResultInfo(locDir1);
-//      ptRes->RegisterResult( sol,0, 0,1,1,outDest,"",true,false);
-//      resultList.Push_back(sol);
-//
-//      sol = shared_ptr<BaseResult> (new Result<Double>());
-//      sol->SetEntityList(ent);
-//      sol->SetResultInfo(locDir2);
-//      ptRes->RegisterResult( sol,0, 0,1,1,outDest,"",true,false);
-//      resultList.Push_back(sol);
-//
-//
-//      if( dim_ == 3 ) {
-//        sol = shared_ptr<BaseResult> (new Result<Double>());
-//        sol->SetEntityList(ent);
-//        sol->SetResultInfo(locDir3);
-//        ptRes->RegisterResult( sol,0, 0,1,1,outDest,"",true,false);
-//        resultList.Push_back(sol);
-//      }
-//      
-//      // loop over all coordinate systems
-//      std::map<std::string, StdVector<shared_ptr<ResultInfo> > >
-//      ::iterator coordResIt;
-//      for( coordResIt = coordDirs.begin(); 
-//           coordResIt != coordDirs.end();
-//           ++coordResIt )   {
-//        
-//      // loop over all local directions
-//        StdVector<shared_ptr<ResultInfo> >& dirResults = coordResIt->second;
-//        for( UInt iDir = 0; iDir < dirResults.GetSize(); ++iDir ) {
-//          sol = shared_ptr<BaseResult> (new Result<Double>());
-//          sol->SetEntityList(ent);
-//          sol->SetResultInfo(dirResults[iDir]);
-//          ptRes->RegisterResult( sol,0, 0,1,1,outDest,"",true,false);
-//          coordResultList[coordResIt->first].Push_back(sol);
-//        }
-//      }
-//    }
-//    
-//    // loop over all surface regions
-//    StdVector<shared_ptr<BaseResult> > surfResultList;
-//    for ( UInt i = 0, numSurfaces = surfRegionIds_.GetSize();
-//        i < numSurfaces; i++) {
-//
-//      // get elements
-//      ent = GetEntityList( EntityList::SURF_ELEM_LIST, 
-//                           region_.ToString(surfRegionIds_[i]),
-//                           EntityList::REGION );
-//
-//      // create result objects
-//      sol = shared_ptr<BaseResult> (new Result<Double>());
-//      sol->SetEntityList(ent);
-//      sol->SetResultInfo(surfNormal);
-//      ptRes->RegisterResult( sol,0, 0,1,1,outDest,"",true,false);
-//      surfResultList.Push_back(sol);
-//    }
-//    
-//    // begin writing of results
-//    ptRes->BeginMultiSequenceStep( 0, BasePDE::STATIC, 1);
-//    ptRes->BeginStep(0,0);
-//    
-//    Matrix<Double> actCoord, jac, jacInv, jacInvT;
-//    Vector<Double> midPoint, globVec, actLocDir;
-//    Double jacDet;
-//    
-//    // loop over all volume region results
-//    for( UInt i = 0; i < resultList.GetSize(); ++i ) {
-//      
-//      // fetch result object
-//      Result<Double> &  actSol = 
-//          dynamic_cast<Result<Double>&>(*resultList[i]);
-//      EntityIterator it = actSol.GetEntityList()->GetIterator();
-//      Vector<Double> & actVal = actSol.GetVector();
-//      actVal.Resize( actSol.GetEntityList()->GetSize() * dim_ );
-//
-//      // check, which result is required
-//      bool isJacobian = false;
-//      if (actSol.GetResultInfo()->resultName == "xi") {
-//        actLocDir = locDir_xi;
-//      } else  if (actSol.GetResultInfo()->resultName == "eta") {
-//        actLocDir = locDir_eta;
-//      } else  if (actSol.GetResultInfo()->resultName == "zeta") {
-//        actLocDir = locDir_zeta;
-//      } else {
-//        isJacobian = true;
-//      }
-//      
-//      if (!isJacobian ) {
-//        // loop over elements
-//        for ( it.Begin(); !it.IsEnd(); it++ ) {
-//
-//          const Elem * ptElem = it.GetElem();
-//          ptElem->ptElem->GetCoordMidPoint( midPoint);
-//          GetElemNodesCoord( actCoord, ptElem->connect, false );
-//          ptElem->ptElem->CalcJacobian( jac, midPoint, actCoord, ptElem );
-//
-//          // calculate for every element jacobian and map "local" direction vector
-//          jac.Invert( jacInv );
-//          globVec = Transpose(jacInv) * actLocDir;
-//          globVec /= globVec.NormL2();
-//          for(UInt iDim = 0; iDim < dim_; iDim++ ) {
-//            actVal[it.GetPos()*dim_ + iDim] = globVec[iDim];
-//          }
-//        }
-//      } else {
-//        // loop over elements
-//        for ( it.Begin(); !it.IsEnd(); it++ ) {
-//
-//          const Elem * ptElem = it.GetElem();
-//          ptElem->ptElem->GetCoordMidPoint( midPoint);
-//          GetElemNodesCoord( actCoord, ptElem->connect, false );
-//          ptElem->ptElem->CalcJacobian( jac, midPoint, actCoord, ptElem );
-//          jac.Determinant(jacDet);
-//            actVal[it.GetPos()] = jacDet;
-//        } // loop over elements
-//      }
-//      ptRes->UpdateResult(resultList[i]);
-//    } // loop over volume results
-//    
-//    // loop over all coordinate systems
-//    for( coordIt = coordSysMap.begin(); coordIt != coordSysMap.end(); ++coordIt){
-//
-//      std::string id = coordIt->first;
-//      CoordSystem * actCosy = coordIt->second;
-//      // obtain result vector
-//      StdVector<shared_ptr<BaseResult> >  & resList = coordResultList[id];
-//
-//      // loop over all results 
-//      // (= components of the coordinate system x regions) 
-//      for( UInt iPos = 0; iPos < resList.GetSize(); ++iPos ) {
-//
-//        // fetch result object
-//        Result<Double> &  actSol = 
-//            dynamic_cast<Result<Double>&>(*resList[iPos]);
-//        EntityIterator it = actSol.GetEntityList()->GetIterator();
-//        Vector<Double> & actVal = actSol.GetVector();
-//        actVal.Resize( actSol.GetEntityList()->GetSize() * dim_ );
-//        
-//        // determine coordinate component
-//        UInt actComp = iPos % dim_;
-//
-//        // loop over all elements
-//        Vector<Double> coordDir, locDir(dim_);
-//        locDir.Init();
-//        locDir[actComp] = 1.0;
-//        for ( it.Begin(); !it.IsEnd(); it++ ) {
-//
-//          GetGlobalElemMidPoint( it.GetElem()->elemNum, midPoint);
-//          actCosy->Local2GlobalVector(coordDir, locDir, midPoint);
-//          for( UInt i = 0; i < dim_; ++i ) {
-//            actVal[it.GetPos()*dim_ + i] = coordDir[i];
-//          } // components of the local coordinate direction
-//        } // loop over elements
-//        ptRes->UpdateResult(resList[iPos]);
-//      } // loop over components of coordinate system
-//    } // loop over all coordinate systems
-//    
-//    Vector<Double> normal;
-//    // loop over all surface region results
-//    for( UInt i = 0; i < surfResultList.GetSize(); ++i ) {
-//      // fetch result object
-//      Result<Double> &  actSol = 
-//          dynamic_cast<Result<Double>&>(*surfResultList[i]);
-//      EntityIterator it = actSol.GetEntityList()->GetIterator();
-//      Vector<Double> & actVal = actSol.GetVector();
-//      actVal.Resize( actSol.GetEntityList()->GetSize() * dim_ );
-//      
-//      // loop over surface elements
-//      for ( it.Begin(); !it.IsEnd(); it++ ) {
-//        const SurfElem * ptElem = it.GetSurfElem();
-//        CalcSurfNormal(normal, *ptElem, false );
-//        normal *= (Double) ptElem->normalSign;
-//        
-//        for(UInt iDim = 0; iDim < dim_; iDim++ ) {
-//          actVal[it.GetPos()*dim_ + iDim] = normal[iDim];
-//        }
-//      } // loop over elements
-//      
-//      ptRes->UpdateResult(surfResultList[i]);
-//    } // loop over surface results
-//
-//    ptRes->FinishStep();
-//    ptRes->FinishMultiSequenceStep();
+    // This method crates a "dummy" multisequence step, in
+    // wchich some grid-information rsults are created:
+    // - Local directions (xi,eta,zeta) of elements
+    // - Jacobian determinant
+    // - surface element normals
+    //
+    // In addition we create for every local coordinate system
+    // a results for the local directions.
+    
+    // Register results
+    shared_ptr<BaseResult> sol;
+    shared_ptr<EntityList> ent;
+    
+    // create result descriptions
+    Vector<Double> locDir_xi(dim_), locDir_eta(dim_), locDir_zeta(dim_);
+    shared_ptr<ResultInfo> locDir1( new ResultInfo );
+    shared_ptr<ResultInfo> locDir2( new ResultInfo );
+    shared_ptr<ResultInfo> locDir3( new ResultInfo );
+    shared_ptr<ResultInfo> jacRes( new ResultInfo );
+    shared_ptr<ResultInfo> surfNormal( new ResultInfo );
+
+    StdVector<std::string> dirVec (dim_);
+    if( dim_ == 3 ) {
+      dirVec = "x", "y", "z";
+    } else {
+      dirVec = "x", "y";
+    }
+    // 1) Local directions
+    locDir1->resultType = ELEM_LOC_DIR;
+    locDir1->resultName = "xi";
+    locDir1->definedOn = ResultInfo::ELEMENT;
+    locDir1->entryType = ResultInfo::VECTOR;
+    locDir1->dofNames = dirVec;
+    locDir_xi[0] = 1.0;
+    locDir1->unit = "";
+    
+    locDir2->resultType = ELEM_LOC_DIR;
+    locDir2->resultName = "eta";
+    locDir2->definedOn = ResultInfo::ELEMENT;
+    locDir2->entryType = ResultInfo::VECTOR;
+    locDir2->dofNames = dirVec;
+    locDir_eta[1] = 1.0;
+    locDir2->unit = "";
+    
+    if (dim_ == 3 )  {
+      locDir3->resultType = ELEM_LOC_DIR;
+      locDir3->resultName = "zeta";
+      locDir3->definedOn = ResultInfo::ELEMENT;
+      locDir3->entryType = ResultInfo::VECTOR;
+      locDir3->dofNames = dirVec;
+      locDir_zeta[2] = 1.0;
+      locDir3->unit = "";
+    }
+    // 2) Jacobian Determinanat
+    jacRes->resultType = JACOBIAN;
+    jacRes->resultName = "Jacobian";
+    jacRes->definedOn = ResultInfo::ELEMENT;
+    jacRes->entryType = ResultInfo::SCALAR;
+    jacRes->dofNames = "";
+    jacRes->unit = "";
+    
+    // 3) Surface element normals
+    surfNormal->resultType = ELEM_LOC_DIR;
+    surfNormal->resultName = "SurfaceNormal";
+    surfNormal->definedOn = ResultInfo::ELEMENT;
+    surfNormal->entryType = ResultInfo::VECTOR;
+    surfNormal->dofNames = dirVec;
+    surfNormal->unit = "";
+    
+    // === create results for all coordinate systems available ===
+    std::map<std::string, StdVector<shared_ptr<ResultInfo> > > coordDirs;
+    std::map<std::string, CoordSystem*>::const_iterator coordIt;
+    
+    // loop over all coordinate systems
+    for( coordIt = coordSysMap.begin(); 
+         coordIt != coordSysMap.end(); ++coordIt ) {
+       
+      std::string id = coordIt->first;
+      CoordSystem * actCosy = coordIt->second;
+      
+      // Create ResultInfo objects for every local direction
+      StdVector<shared_ptr<ResultInfo> > dirInfo(dim_);
+      for( UInt iDim = 0; iDim < dim_; ++iDim ) {
+        shared_ptr<ResultInfo> locDir( new ResultInfo );
+        locDir->resultType = ELEM_LOC_DIR;
+        locDir->resultName = "CooSy-"+id+"-"+actCosy->GetDofName(iDim+1);
+        locDir->definedOn = ResultInfo::ELEMENT;
+        locDir->entryType = ResultInfo::VECTOR;
+        locDir->dofNames = dirVec;
+        locDir->unit = "";
+        
+        dirInfo[iDim] = locDir;
+      }
+      coordDirs[id] = dirInfo;
+    }
+
+    
+    // loop over all volume regions
+    StdVector<std::string> outDest;
+    outDest.Push_back("");
+    StdVector<shared_ptr<BaseResult> > resultList;
+    std::map<std::string, StdVector<shared_ptr<BaseResult> > > coordResultList;
+    for ( UInt i = 0, numRegions = volRegionIds_.GetSize();
+        i < numRegions; i++) {
+      
+      // get elements
+      ent = GetEntityList( EntityList::ELEM_LIST, region_.ToString(volRegionIds_[i]),
+                           EntityList::REGION );
+      
+      // create result objects
+      sol = shared_ptr<BaseResult> (new Result<Double>());
+      sol->SetEntityList(ent);
+      sol->SetResultInfo(jacRes);
+      ptRes->RegisterResult( sol,0,0,1,1,outDest,"",true,false);
+      resultList.Push_back(sol);
+
+      sol = shared_ptr<BaseResult> (new Result<Double>());
+      sol->SetEntityList(ent);
+      sol->SetResultInfo(locDir1);
+      ptRes->RegisterResult( sol,0, 0,1,1,outDest,"",true,false);
+      resultList.Push_back(sol);
+
+      sol = shared_ptr<BaseResult> (new Result<Double>());
+      sol->SetEntityList(ent);
+      sol->SetResultInfo(locDir2);
+      ptRes->RegisterResult( sol,0, 0,1,1,outDest,"",true,false);
+      resultList.Push_back(sol);
+
+
+      if( dim_ == 3 ) {
+        sol = shared_ptr<BaseResult> (new Result<Double>());
+        sol->SetEntityList(ent);
+        sol->SetResultInfo(locDir3);
+        ptRes->RegisterResult( sol,0, 0,1,1,outDest,"",true,false);
+        resultList.Push_back(sol);
+      }
+      
+      // loop over all coordinate systems
+      std::map<std::string, StdVector<shared_ptr<ResultInfo> > >
+      ::iterator coordResIt;
+      for( coordResIt = coordDirs.begin(); 
+           coordResIt != coordDirs.end();
+           ++coordResIt )   {
+        
+      // loop over all local directions
+        StdVector<shared_ptr<ResultInfo> >& dirResults = coordResIt->second;
+        for( UInt iDir = 0; iDir < dirResults.GetSize(); ++iDir ) {
+          sol = shared_ptr<BaseResult> (new Result<Double>());
+          sol->SetEntityList(ent);
+          sol->SetResultInfo(dirResults[iDir]);
+          ptRes->RegisterResult( sol,0, 0,1,1,outDest,"",true,false);
+          coordResultList[coordResIt->first].Push_back(sol);
+        }
+      }
+    }
+    
+    // loop over all surface regions
+    StdVector<shared_ptr<BaseResult> > surfResultList;
+    for ( UInt i = 0, numSurfaces = surfRegionIds_.GetSize();
+        i < numSurfaces; i++) {
+
+      // get elements
+      ent = GetEntityList( EntityList::SURF_ELEM_LIST, 
+                           region_.ToString(surfRegionIds_[i]),
+                           EntityList::REGION );
+
+      // create result objects
+      sol = shared_ptr<BaseResult> (new Result<Double>());
+      sol->SetEntityList(ent);
+      sol->SetResultInfo(surfNormal);
+      ptRes->RegisterResult( sol,0, 0,1,1,outDest,"",true,false);
+      surfResultList.Push_back(sol);
+    }
+    
+    // begin writing of results
+    ptRes->BeginMultiSequenceStep( 0, BasePDE::STATIC, 1);
+    ptRes->BeginStep(0,0);
+    
+    Matrix<Double> actCoord, jac, jacInv, jacInvT;
+    Vector<Double> midPoint, globVec, actLocDir;
+    Double jacDet;
+    
+    // loop over all volume region results
+    for( UInt i = 0; i < resultList.GetSize(); ++i ) {
+      
+      // fetch result object
+      Result<Double> &  actSol = 
+          dynamic_cast<Result<Double>&>(*resultList[i]);
+      EntityIterator it = actSol.GetEntityList()->GetIterator();
+      Vector<Double> & actVal = actSol.GetVector();
+      actVal.Resize( actSol.GetEntityList()->GetSize() * dim_ );
+
+      // check, which result is required
+      bool isJacobian = false;
+      if (actSol.GetResultInfo()->resultName == "xi") {
+        actLocDir = locDir_xi;
+      } else  if (actSol.GetResultInfo()->resultName == "eta") {
+        actLocDir = locDir_eta;
+      } else  if (actSol.GetResultInfo()->resultName == "zeta") {
+        actLocDir = locDir_zeta;
+      } else {
+        isJacobian = true;
+      }
+      
+      if (!isJacobian ) {
+        // loop over elements
+        for ( it.Begin(); !it.IsEnd(); it++ ) {
+          const Elem * ptElem = it.GetElem();
+          ElemShapeMap & esm = *GetElemShapeMap(ptElem);
+          Vector<Double> midPoint = 
+              Elem::shapes[ptElem->type].midPointCoord;
+          esm.CalcJ( jac, midPoint );
+
+          // calculate for every element jacobian and map "local" direction vector
+          jac.Invert( jacInv );
+          globVec = Transpose(jacInv) * actLocDir;
+          globVec /= globVec.NormL2();
+          for(UInt iDim = 0; iDim < dim_; iDim++ ) {
+            actVal[it.GetPos()*dim_ + iDim] = globVec[iDim];
+          }
+        }
+      } else {
+        // loop over elements
+        for ( it.Begin(); !it.IsEnd(); it++ ) {
+
+          const Elem * ptElem = it.GetElem();
+          ElemShapeMap & esm = *GetElemShapeMap(ptElem);
+          Vector<Double> midPoint = 
+              Elem::shapes[ptElem->type].midPointCoord;
+          esm.CalcJ( jac, midPoint );
+
+          jac.Determinant(jacDet);
+          actVal[it.GetPos()] = jacDet;
+        } // loop over elements
+      }
+      ptRes->UpdateResult(resultList[i]);
+    } // loop over volume results
+    
+    // loop over all coordinate systems
+    for( coordIt = coordSysMap.begin(); coordIt != coordSysMap.end(); ++coordIt){
+
+      std::string id = coordIt->first;
+      CoordSystem * actCosy = coordIt->second;
+      // obtain result vector
+      StdVector<shared_ptr<BaseResult> >  & resList = coordResultList[id];
+
+      // loop over all results 
+      // (= components of the coordinate system x regions) 
+      for( UInt iPos = 0; iPos < resList.GetSize(); ++iPos ) {
+
+        // fetch result object
+        Result<Double> &  actSol = 
+            dynamic_cast<Result<Double>&>(*resList[iPos]);
+        EntityIterator it = actSol.GetEntityList()->GetIterator();
+        Vector<Double> & actVal = actSol.GetVector();
+        actVal.Resize( actSol.GetEntityList()->GetSize() * dim_ );
+        
+        // determine coordinate component
+        UInt actComp = iPos % dim_;
+
+        // loop over all elements
+        Vector<Double> coordDir, locDir(dim_);
+        locDir.Init();
+        locDir[actComp] = 1.0;
+        for ( it.Begin(); !it.IsEnd(); it++ ) {
+          Vector<Double> midPoint = 
+              Elem::shapes[it.GetElem()->type].midPointCoord;
+          actCosy->Local2GlobalVector(coordDir, locDir, midPoint);
+          for( UInt i = 0; i < dim_; ++i ) {
+            actVal[it.GetPos()*dim_ + i] = coordDir[i];
+          } // components of the local coordinate direction
+        } // loop over elements
+        ptRes->UpdateResult(resList[iPos]);
+      } // loop over components of coordinate system
+    } // loop over all coordinate systems
+    
+    Vector<Double> normal;
+    // loop over all surface region results
+    for( UInt i = 0; i < surfResultList.GetSize(); ++i ) {
+      // fetch result object
+      Result<Double> &  actSol = 
+          dynamic_cast<Result<Double>&>(*surfResultList[i]);
+      EntityIterator it = actSol.GetEntityList()->GetIterator();
+      Vector<Double> & actVal = actSol.GetVector();
+      actVal.Resize( actSol.GetEntityList()->GetSize() * dim_ );
+      
+      // loop over surface elements
+      for ( it.Begin(); !it.IsEnd(); it++ ) {
+        const SurfElem * ptElem = it.GetSurfElem();
+        ElemShapeMap & esm = *GetElemShapeMap(ptElem);
+        Vector<Double> midPoint = 
+            Elem::shapes[it.GetElem()->type].midPointCoord;
+        esm.CalcNormal( normal, midPoint );
+        normal *= (Double) ptElem->normalSign;
+        
+        for(UInt iDim = 0; iDim < dim_; iDim++ ) {
+          actVal[it.GetPos()*dim_ + iDim] = normal[iDim];
+        }
+      } // loop over elements
+      
+      ptRes->UpdateResult(surfResultList[i]);
+    } // loop over surface results
+
+    ptRes->FinishStep();
+    ptRes->FinishMultiSequenceStep();
   }
 
   bool GridCFS::CheckForRegularRegion(RegionIdType reg)
   {
-    REFACTOR;
+    WARN("GridCFS::CheckForRegularRegion must be refactored");
 //    LOG_DBG(gridcfs) << "CFRR::CheckForRegularRegion(" << reg << ")...";
 //    // determine grid parameter
 //    RegionData& rd = regionData[reg];
@@ -1607,69 +1620,12 @@ namespace CoupledField {
     switch(type)
     {
     case Elem::ET_LINE2:
-      //el->ptElem = ptL1;
       break;
-//    case Elem::LINE3:
-//      el->ptElem = ptL2;
-//      isQuadratic_ = true;
-//      break;
-//    case Elem::TRIA3:
-//      el->ptElem = ptTr1;
-//      break;
-//    case Elem::TRIA6:
-//      el->ptElem = ptTr2;
-//      isQuadratic_ = true;
-//      break;
     case Elem::ET_QUAD4:
-      //el->ptElem = ptQ1;
       break;
-//    case Elem::QUAD8:
-//      el->ptElem = ptQ2;
-//      isQuadratic_ = true;
-//      break;
-//    case Elem::QUAD9:
-//      el->ptElem = ptQ9;
-//      break;
-//    case Elem::TET4:
-//      d=3;
-//      el->ptElem = ptTet1;
-//      break;
-//    case Elem::TET10:
-//      d=3;
-//      el->ptElem = ptTet2;
-//      isQuadratic_ = true;
-//      break;
     case Elem::ET_HEXA8:
       d=3;
-//      el->ptElem = ptHexa1;
       break;
-//    case Elem::HEXA20:
-//      d=3;
-//      el->ptElem = ptHexa2;
-//      isQuadratic_ = true;
-//      break;
-//    case Elem::HEXA27:
-//      d=3;
-//      el->ptElem = ptHexa27;
-//      break;
-//    case Elem::PYRA5:
-//      d=3;
-//      el->ptElem = ptPyra1;
-//      break;
-//    case Elem::PYRA13:
-//      d=3;
-//      el->ptElem = ptPyra2;
-//      isQuadratic_ = true;
-//      break;
-//    case Elem::WEDGE6:
-//      d=3;
-//      el->ptElem = ptWedge1;
-//      break;
-//    case Elem::WEDGE15:
-//      d=3;
-//      el->ptElem = ptWedge2;
-//      isQuadratic_ = true;
-//      break;
     default:
       break;
     }
@@ -1777,7 +1733,7 @@ namespace CoupledField {
 
   void GridCFS::FindElementNeighorhood()
   {
-    REFACTOR;
+    WARN("GridCFS::FindElementNeighorhood needs to be refactored");
     
 //    // check if already filled.
 //    if(orderedElems_[0]->neighborhood != NULL) return;
@@ -2253,7 +2209,8 @@ namespace CoupledField {
 
     std::set<Elem*>::iterator elIt;
 
-    LOG_DBG(gridcfs) << "There are " << elems.size() << " surface element to be mapped";
+    LOG_DBG(gridcfs) << "There are " << elems.size() 
+                     << " surface elements to be mapped";
     for( elIt = elems.begin(); elIt != elems.end(); elIt++ ) {
 
       oldElem = *elIt;
@@ -2363,12 +2320,11 @@ namespace CoupledField {
         //         }
         myElem->normalSign = 0;
       } else {
-        CalcSurfNormal( normalUndefSign, *myElem, false );
-        CalcSurfNormalOutOfVol( normalDefSign,
-                                *myElem,
-                                *myElem->ptVolElem1,
-                                false );
-
+        
+        shared_ptr<ElemShapeMap> es = GetElemShapeMap(myElem, false);
+        LocPoint lp = Elem::shapes[myElem->type].midPointCoord;
+        es->CalcNormal( normalUndefSign, lp );
+        es->CalcNormalOutOfVol( normalDefSign, lp, *myElem->ptVolElem1 );
 
         // Check if all entries have the same sign by calculating
         // a scalar product between both vectors.
@@ -2491,134 +2447,6 @@ namespace CoupledField {
   } 
 
 
-  void GridCFS::CalcSurfNormal( Vector<Double> & n, 
-                                const Elem & surfElem,
-                                bool updated ) {
-   WARN( "Calculation of Surface normal has to be moved to element shape map");
-//
-//    //compute normal vector
-//    Matrix<Double>  ptCoord;
-//
-//    GetElemNodesCoord(ptCoord, surfElem.connect, updated );
-//    UInt surfCorners = surfElem.ptElem->GetNumCorners();
-//
-//    // Check for dimension:
-//    if (surfElem.ptElem->GetDim() == 1) {
-//
-//      // 1. step: compute vector perpendicular to line element
-//      // but without defined sign
-//      Double dx  = ptCoord[0][1] - ptCoord[0][0];
-//      Double dy  = ptCoord[1][1] - ptCoord[1][0];
-//      Double len = sqrt(dx*dx + dy*dy);
-//      if (len <= 0.0) {
-//        EXCEPTION( "length of normal vector is zero!" );
-//      }
-//      n.Resize(2);
-//      n[0] = dy/len;
-//      n[1] = -dx/len;
-//    }
-//    else {
-//      // 1. step: compute vector perpendicular to surface element
-//      // but without defined sign
-//
-//      //compute the two vectors in the plane
-//      Vector<Double> vec1(3), vec2(3);
-//      for (UInt i=0; i<3; i++) {
-//        vec1[i] = ptCoord[i][1]             - ptCoord[i][0];
-//        vec2[i] = ptCoord[i][surfCorners-1] - ptCoord[i][0];
-//      }
-//      //compute cross product
-//      n.Resize(3);
-//      n[0] = vec1[1] * vec2[2] - vec1[2]*vec2[1];
-//      n[1] = vec1[2] * vec2[0] - vec1[0]*vec2[2];
-//      n[2] = vec1[0] * vec2[1] - vec1[1]*vec2[0];
-//      //normalize the length to 1
-//      Double length = n.NormL2();
-//      assert(length > 0.0); // length must be well defined
-//      n /= length;
-//
-//    }
-  }
-
-  void GridCFS::CalcSurfNormalOutOfVol(Vector<Double> & n,
-                                       const Elem & surfElem,
-                                       const Elem & volElem,
-                                       bool updated )
-  {
-
-    WARN( "Calculation of directional Surface normal has to be moved to element shape map");
-
-//    //compute normal vector
-//    Matrix<Double>  ptVolCoord;
-//
-//    // First, calculate undefined normal
-//    CalcSurfNormal(n, surfElem, updated );
-//
-//    GetElemNodesCoord(ptVolCoord, volElem.connect, updated );
-//    UInt volCorners = volElem.ptElem->GetNumCorners();
-//    
-//    /* Idea:
-//     - find a common surface / volume element node
-//     - find additional node, which is not common (i.e. lies on the "volume side"
-//     - calculate difference vector from  "additional" node to first common
-//       one ( = pointing out of  the volume element)
-//     - the scalar product of the normal and the difference vector determines
-//       the normalSign
-//     */
-//    
-//    // find first common vertex index
-//    Integer firstCommonIndex = -1;
-//    for (UInt i=0; i<volCorners; i++)
-//      if (volElem.connect[i] == surfElem.connect[0]){
-//        firstCommonIndex = i;
-//        break;
-//      }
-//    
-//    // find additional node of the volume node, which is not contained in the
-//    // surface element
-//    std::set<UInt> volSet, surfSet, diffSet;
-//    volSet = std::set<UInt>(volElem.connect.Begin(), volElem.connect.End());
-//    surfSet = std::set<UInt>(surfElem.connect.Begin(), surfElem.connect.End());
-//    std::set_difference( volSet.begin(), volSet.end(),
-//                         surfSet.begin(), surfSet.end(),
-//                         std::inserter(diffSet,diffSet.begin()) );
-//    
-//    Vector<double> diffVec( dim_ );
-//    Double scalarProd = 0.0;
-//    std::set<UInt>::const_iterator it = diffSet.begin();
-//    for( ; it != diffSet.end(); it++ ) {
-//      
-//      UInt node = *it;
-//      
-//      // search for volume 
-//      UInt index = volElem.connect.Find(node);
-//      
-//      // calculate difference vector (pointing out of the volume)
-//      for( UInt iDim = 0; iDim < dim_; ++iDim ) {
-//        diffVec[iDim] =  ptVolCoord[iDim][firstCommonIndex]
-//                       - ptVolCoord[iDim][index];
-//      }
-//      // normalize difference vector to 1.0
-//      diffVec /= diffVec.NormL2();
-//
-//      // calculate scalar product
-//      scalarProd = diffVec * n;
-//
-//      // check if scalar product is != 0 (otherwise we may have a degenerated
-//      // element, where two nodes lie on the same location)
-//      if( std::abs(scalarProd) < EPS ) {
-//        // we have to find another node
-//        continue;
-//      } else {
-//        if( scalarProd < 0.0 ) {
-//          // original normal vector points into the volume -> reorient
-//          n *= -1.0;
-//        }
-//        break;
-//      }
-//    }
-  }
-
   Double GridCFS::CalcVolumeOfRegion( const RegionIdType regionId,
                                       bool isaxi,
                                       bool updated ) {
@@ -2637,28 +2465,6 @@ namespace CoupledField {
     //return volume;
     return -1.0;
   }
-
-
-  void GridCFS::GetGlobalElemMidPoint( UInt elemNum, Vector<Double>& coord ) {
-
-    EXCEPTION("Implement me");
-    //    if( elemNum > numElems_ ) {
-//      EXCEPTION("Eleement number " << elemNum << " is bigger than total "
-//                << "number of elements within the grid" );
-//    }
-//    Vector<Double> locMidPoint;
-//    Matrix<Double> connectCoord;
-//
-//    Elem * actElem = orderedElems_[elemNum-1];
-//    BaseFE * ptFE = actElem->ptElem;
-//
-//    GetElemNodesCoord( connectCoord, actElem->connect, false );
-//    ptFE->GetCoordMidPoint(locMidPoint);
-//    ptFE->Local2GlobalCoord( coord, locMidPoint,
-//                             connectCoord, actElem );
-  }
-
-
 
   void GridCFS::AddNode( const Point & coord, UInt & inode)
   {

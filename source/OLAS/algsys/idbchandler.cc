@@ -42,7 +42,7 @@ namespace CoupledField {
       numFixedDofs_[i] = 0;
     }
 
-    // Set number of fixed dofs per PDE
+    // Set number of fixed dofs per block
     for ( UInt i = 0; i < numBlocks; i++ ) {
       for ( UInt j = 0; j < numBlocks; j++ ) {
         LOG_DBG(idbcElim) << "Block (" << i  << ", " << j << "):";

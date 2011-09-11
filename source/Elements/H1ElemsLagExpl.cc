@@ -119,6 +119,15 @@ namespace CoupledField {
            xi <= (1.0 + tolerance));
   }
   
+  void FeH1LagrangeLine1::
+  GetLocalIntPoints4Surface(const StdVector<UInt> & surfConnect,
+                                                    const StdVector<UInt> & volConnect,
+                                                    const LocPoint & surfIntPoint,
+                                                    LocPoint & volIntPoint,
+                                                    Vector<Double>& locNormal ) {
+    EXCEPTION("Not implemented");
+  }
+  
   // --- Quad 1st order ---
    
   FeH1LagrangeQuad1::FeH1LagrangeQuad1() {
@@ -165,6 +174,84 @@ namespace CoupledField {
             (eta >= (-1.0 - tolerance)) &&
             ( xi <= (1.0 + tolerance)) &&
             (eta <= (1.0 + tolerance));  
+  }
+  
+  void FeH1LagrangeQuad1::
+  GetLocalIntPoints4Surface(const StdVector<UInt> & surfConnect,
+                            const StdVector<UInt> & volConnect,
+                            const LocPoint & surfIntPoint,
+                            LocPoint & volIntPoint,
+                            Vector<Double>& locNormal ) {
+    // Try to find out, which vertices are in common with
+      // the surface element. Then calculate the product of both
+      // and compare them
+      //
+      //      eta
+      //       ^
+      // 4 +---|---+ 3    
+      //   |   |   |      
+      //   |   0---|-> xi     REFERENCE VOLUME ELEMENT
+      //   |       |
+      // 1 +-------+ 2
+
+
+
+      StdVector<UInt> commonIndex(2);
+      UInt found = 0;
+      UInt indexProduct = 0;
+      std::string errMsg;
+    
+      volIntPoint.coord.Resize(2);
+      locNormal.Resize(2);
+    
+      // loop over surface connect
+      for (UInt iSurf=0; iSurf<2; iSurf++)
+        // loop over volume connect
+        for (UInt iVol=0; iVol<4; iVol++)
+          if (surfConnect[iSurf] == volConnect[iVol])
+            {
+              commonIndex[found++] = iVol+1;
+            }
+
+      indexProduct= commonIndex[0] * commonIndex[1];
+      switch(indexProduct)
+        {
+        case 2:
+          // Edge[1,2] is common
+          volIntPoint[0] = surfIntPoint[0];
+          volIntPoint[1] = -1.0;
+          locNormal[0] =  0.0;
+          locNormal[1] = -1.0;
+          break;
+
+        case 12:
+          // Edge[4,3] is common
+          volIntPoint[0] = surfIntPoint[0];
+          volIntPoint[1] = 1.0;
+          locNormal[0] =  0.0;
+          locNormal[1] =  1.0;
+          break;
+
+        case 4:
+          // Edge[1,4] is common
+          volIntPoint[0] = -1.0;
+          volIntPoint[1] = surfIntPoint[0];
+          locNormal[0] = -1.0;
+          locNormal[1] =  0.0;
+          break;
+
+        case 6:
+          // Edge[2,3] is common
+          volIntPoint[0] = 1.0;
+          volIntPoint[1] = surfIntPoint[0];
+          locNormal[0] =  1.0;
+          locNormal[1] =  0.0;
+          break;
+
+        default:
+          EXCEPTION( "RectangleFE::GetLocalIntPoints4Surface: surface and volume element "
+                     <<  "have not two nodes in common. Check your .mesh-file.");
+        }
   }
   
   // --- Hex 1st order ---
@@ -230,6 +317,121 @@ namespace CoupledField {
            (zeta <= (1.0 + tolerance));  
   }
   
+  void FeH1LagrangeHex1::
+  GetLocalIntPoints4Surface(const StdVector<UInt> & surfConnect,
+                            const StdVector<UInt> & volConnect,
+                            const LocPoint & surfIntPoint,
+                            LocPoint & volIntPoint,
+                            Vector<Double>& locNormal ) {
+
+    // Try to find out, which vertices are in common with
+    // the surface element. Then calculate the product of all four
+    // and compare them
+    //
+    //                    zeta 
+    //                     ^ eta 
+    //    8 +-------+ 7    |/
+    //     /|      /|      0--> xi 
+   //    / |     / |
+    // 5 +--+----+6 |   
+    //   |  +-- -|- + 3    
+    //   | / 4   | /    REFERENCE VOLUME ELEMENT
+    //   |/      |/
+    // 1 +-------+ 2
+
+
+
+    StdVector<UInt> commonIndex(4);
+    UInt found = 0;
+    UInt indexProduct = 0;
+    std::string errMsg;
+  
+    volIntPoint.coord.Resize(3);
+    locNormal.Resize(3);
+  
+    // loop over surface connect
+    for (UInt iSurf=0; iSurf<4; iSurf++)
+      // loop over volume connect
+      for (UInt iVol=0; iVol<8; iVol++)
+        if (surfConnect[iSurf] == volConnect[iVol])
+          {
+            commonIndex[found++] = iVol+1;
+          }
+
+    // std::cerr << std::endl << std::endl;
+    //std::cerr << "commonIndex = " << std::endl << commonIndex << std::endl << std::endl;
+    indexProduct =  commonIndex[0] * commonIndex[1];
+    indexProduct *= commonIndex[2] * commonIndex[3];
+
+    //std::cerr << "indexProduct = " << indexProduct << std::endl;
+    switch(indexProduct)
+      {
+      case 24:
+        // Surface[1,2,3,4] is common
+        volIntPoint[0] = surfIntPoint[0];
+        volIntPoint[1] = surfIntPoint[1];
+        volIntPoint[2] = -1.0;
+        locNormal[0] =  0.0;
+        locNormal[1] =  0.0;
+        locNormal[2] = -1.0;
+        break;
+
+      case 1680:
+        // Surface[5,6,7,8] is common
+        volIntPoint[0] = surfIntPoint[0];
+        volIntPoint[1] = surfIntPoint[1];
+        volIntPoint[2] = 1.0;
+        locNormal[0] =  0.0;
+        locNormal[1] =  0.0;
+        locNormal[2] =  1.0;
+        break;
+
+      case 252:
+        // Surface[2,3,7,6] is common
+        volIntPoint[0] = 1.0;
+        volIntPoint[1] = surfIntPoint[0];
+        volIntPoint[2] = surfIntPoint[1];
+        locNormal[0] =  1.0;
+        locNormal[1] =  0.0;
+        locNormal[2] =  0.0;
+        break;
+      
+      case 160:
+        // Surface[1,5,8,4] is common
+        volIntPoint[0] = -1.0;
+        volIntPoint[1] = surfIntPoint[0];
+        volIntPoint[2] = surfIntPoint[1];
+        locNormal[0] = -1.0;
+        locNormal[1] =  0.0;
+        locNormal[2] =  0.0;
+        break;
+      
+      case 672:
+        // Surface[4,3,7,8] is common
+        volIntPoint[0] = surfIntPoint[0];
+        volIntPoint[1] = 1.0;
+        volIntPoint[2] = surfIntPoint[1];
+        locNormal[0] =  0.0;
+        locNormal[1] =  1.0;
+        locNormal[2] =  0.0;
+        break;
+      
+      case 60:
+        // Surface[1,2,6,5] is common
+        volIntPoint[0] = surfIntPoint[0];
+        volIntPoint[1] = -1.0;
+        volIntPoint[2] = surfIntPoint[1];
+        locNormal[0] =  0.0;
+        locNormal[1] = -1.0;
+        locNormal[2] =  0.0;
+        break;
+      
+      default:
+        EXCEPTION("HexaFE::GetLocalIntPoints4Surface: surface and volume element "
+                  << "have not four nodes in common. Check your .mesh-file.");
+      }
+   }
+  
   // ========================================================================
   //  Lagrangian Elements of 2nd order
   // ========================================================================
@@ -272,6 +474,15 @@ namespace CoupledField {
     return (xi >= (-1.0 - tolerance) &&
             xi <= (1.0 + tolerance));
   }
+  
+  void FeH1LagrangeLine2::
+   GetLocalIntPoints4Surface(const StdVector<UInt> & surfConnect,
+                                                     const StdVector<UInt> & volConnect,
+                                                     const LocPoint & surfIntPoint,
+                                                     LocPoint & volIntPoint,
+                                                     Vector<Double>& locNormal ) {
+     EXCEPTION("Not implemented");
+   }
   
   // --- Quad 2nd order ---
    
@@ -345,11 +556,18 @@ namespace CoupledField {
     const Double & eta = point[0];
     return  ( xi >= (-1.0 - tolerance)) &&
             (eta >= (-1.0 - tolerance)) &&
-            ( xi <= (1.0 + tolerance)) &
+            ( xi <= (1.0 + tolerance)) &&
             (eta <= (1.0 + tolerance));  
     }
   
-  
+  void FeH1LagrangeQuad2::
+   GetLocalIntPoints4Surface(const StdVector<UInt> & surfConnect,
+                                                     const StdVector<UInt> & volConnect,
+                                                     const LocPoint & surfIntPoint,
+                                                     LocPoint & volIntPoint,
+                                                     Vector<Double>& locNormal ) {
+     EXCEPTION("Not implemented");
+   }
   // --- Hex 2nd order ---
   FeH1LagrangeHex2::FeH1LagrangeHex2() {
     feType_ = Elem::ET_HEXA20;
@@ -402,18 +620,27 @@ namespace CoupledField {
   //  }
     
   }
-  
+
   bool FeH1LagrangeHex2::CoordIsInsideElem( const Vector<Double>& point,
                                             Double tolerance )  {
     const Double & xi = point[0];
     const Double & eta = point[1];
     const Double & zeta = point[2];
     return (  xi >= (-1.0 - tolerance)) &&
-           ( eta >= (-1.0 - tolerance)) &&
-           (zeta >= (-1.0 - tolerance)) &&
-           (  xi <= (1.0 + tolerance)) &&
-           ( eta <= (1.0 + tolerance)) &&
-           (zeta <= (1.0 + tolerance));  
-    }
+        ( eta >= (-1.0 - tolerance)) &&
+        (zeta >= (-1.0 - tolerance)) &&
+        (  xi <= (1.0 + tolerance)) &&
+        ( eta <= (1.0 + tolerance)) &&
+        (zeta <= (1.0 + tolerance));  
+  }
+
+  void FeH1LagrangeHex2::
+  GetLocalIntPoints4Surface(const StdVector<UInt> & surfConnect,
+                            const StdVector<UInt> & volConnect,
+                            const LocPoint & surfIntPoint,
+                            LocPoint & volIntPoint,
+                            Vector<Double>& locNormal ) {
+    EXCEPTION("Not implemented");
+  }
 
 } // namespace CoupledField

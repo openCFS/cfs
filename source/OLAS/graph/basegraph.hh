@@ -11,26 +11,14 @@
 #include "General/environment.hh"
 #include "baseordering.hh"
 
-
-// Variation of the GRAPH-Implementation
-//
-// 1) Each edge is inserted, regardless if it is already contained in the
-//    matrix graph. Fast, but not memory efficient
-// 2) For each edge it is checked, if it is already contained in the graph.
-//    Slow, but memory efficient
-//
-// Second variant is used, if GRAPH_VECTOR_SORT macro is enabled. This is
-// done by setting FAST_EDGE_INSERTION = no in Makefile.option
-
-
 namespace CoupledField {
 
   //! Base Class for handling the graph associated with a matrix
+  
   //! This class represents the base class for all classes related to the
   //! handling of graphs associated with a matrix.
-
-  // It basically implements a node graph based on linked lists which can be
-  // transformed to compressed storage after Setup
+  //! It basically implements a node graph based on linked lists which can be
+  //! transformed to compressed storage after Setup
   class BaseGraph {
 
   public:
@@ -206,7 +194,7 @@ namespace CoupledField {
     //!       \mbox{ and } a_{ij}\neq 0 \right\}\right)\enspace.
     //! \end{array}
     //! \f]
-    //! In adddition the average totoal bandwidth is returned
+    //! In addition the average total bandwidth is returned
     void GetBandwidth( UInt &bwlower, UInt& bwupper, UInt& bwAvg );
 
     //! Query the number of neighbours of node i

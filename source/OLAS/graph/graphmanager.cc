@@ -23,7 +23,6 @@ namespace CoupledField {
   GraphManager::GraphManager() {
 
     numBlocks_           = 0;
-    numAssembledBlocks_  = 0;
     numRegisteredBlocks_ = 0;
 
     reorderingDone_      = false;
@@ -107,7 +106,8 @@ namespace CoupledField {
   //   SetupDone
   // =============
   void GraphManager::SetupDone() {
-    LOG_TRACE(graphMan) << "Finalize graphmanager (SetupDone)";
+    
+    LOG_TRACE(graphMan) << "Finalize Graphmanager (SetupDone)";
     
     // do first loop over all diagonal blocks
     for( UInt iBlock = 0; iBlock < numBlocks_; ++iBlock ) {
@@ -151,7 +151,7 @@ namespace CoupledField {
       }
     }
     
-    // set flag for successfull reordering
+    // set flag for successful reordering
     reorderingDone_ = true;
 
     // Print statistics to standard log stream
@@ -161,7 +161,7 @@ namespace CoupledField {
 
 
   // ===============
-  //   RegisterPDE
+  //   RegisterBlock
   // ===============
   void GraphManager::RegisterBlock( const UInt blockNum,
                                     SBMBlockInfo* blockInfo,
@@ -178,7 +178,7 @@ namespace CoupledField {
 
     // Be cautious
     if ( registrationDone_ == true ) {
-      EXCEPTION("Attempt to use RegisterPDE() after end of "
+      EXCEPTION("Attempt to use RegisterBlock() after end of "
                << "registration phase, i.e. after the first call to "
                << "AssembleInit()!");
     }
@@ -218,7 +218,7 @@ namespace CoupledField {
     GenerateIDBCGraph( blockNum, blockNum );
     
 
-    // If reordering is going to be performed for the current PDE then
+    // If reordering is going to be performed for the current block then
     // we need to allocate memory to store the resulting permutation
     // vector
     if ( reorder != BaseOrdering::NOREORDERING ) {
@@ -484,7 +484,7 @@ namespace CoupledField {
 //    //  Assemble info for pretty-printing
 //    // ***********************************
 //
-//    // Compute maximal column widths (PDE table)
+//    // Compute maximal column widths (block table)
 //    UInt cw1 = 0, cw2 = 0, cw3 = 0, cw4 = 0, tw = 0, aux;
 //    for ( UInt i = 1; i <= numBlocks_; i++) {
 //      aux = numEqn_[i] > 0 ? (UInt)std::log10( (float)numEqn_[i] ) + 1 : 1;
@@ -497,8 +497,8 @@ namespace CoupledField {
 //
 //    // Compute maximal column widths (sub-graph table)
 //    UInt idx = 0;
-//    for ( UInt i = 1; i <= numPDEs_; i++ ) {
-//      for ( UInt j = 1; j <= numPDEs_; j++ ) {
+//    for ( UInt i = 1; i <= numBlocks_; i++ ) {
+//      for ( UInt j = 1; j <= numBlocks_; j++ ) {
 //        idx = ComputeIndex(i,j);
 //        if ( graph_[idx] != NULL ) {
 //          aux = graph_[idx]->GetSize() > 0 ?
@@ -552,7 +552,7 @@ namespace CoupledField {
 //
 //    // now the table rows
 //    log->setf( std::ios::right, std::ios::adjustfield );
-//    for ( UInt i = 1; i <= numPDEs_; i++) {
+//    for ( UInt i = 1; i <= numBlocks_; i++) {
 //      (*log) << std::setw(8) << i
 //             << " | " << std::setw(cw1) << numEqn_[i]
 //             << " | " << std::setw(cw2) << numLastFreeDof_[i]
@@ -569,8 +569,8 @@ namespace CoupledField {
 //           << std::setfill( ' ' );
 //
 //    idx = 0;
-//    for ( UInt i = 1; i <= numPDEs_; i++ ) {
-//      for ( UInt j = 1; j <= numPDEs_; j++ ) {
+//    for ( UInt i = 1; i <= numBlocks_; i++ ) {
+//      for ( UInt j = 1; j <= numBlocks_; j++ ) {
 //        idx = ComputeIndex(i,j);
 //        if ( graph_[idx] != NULL ) {
 //          (*log) << std::setw(5) << i << " | "
