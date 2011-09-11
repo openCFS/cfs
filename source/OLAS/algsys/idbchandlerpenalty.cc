@@ -7,7 +7,6 @@
 
 #include "OLAS/algsys/algebraicSys.hh"
 #include "DataInOut/Logging/cfslog.hh"
-#include "OLAS/algsys/baseentrymanipulator.hh"
 
 #include "idbchandlerpenalty.hh"
 
