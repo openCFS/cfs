@@ -19,12 +19,12 @@ namespace CoupledField {
   
   
   //! Constructor
-  FeSpace::FeSpace(PtrParamNode paramNode){
+  FeSpace::FeSpace(PtrParamNode paramNode, PtrParamNode infoNode ){
     
     myParam_ = paramNode;
+    infoNode_ = infoNode;
     isFinalized_ = false;
     isContinuous_ = true;
-    isoOrder_ = 0;
     numEqns_ = 0;
     numUnknowns_ = 0;
     numFreeEquations_ = 0;
@@ -42,7 +42,9 @@ namespace CoupledField {
   FeSpace::~FeSpace(){
   }
 
-  shared_ptr<FeSpace> FeSpace::CreateInstance(PtrParamNode aNode, SpaceType reqType ) {
+  shared_ptr<FeSpace> FeSpace::CreateInstance(PtrParamNode aNode, 
+                                              PtrParamNode infoNode,
+                                              SpaceType reqType ) {
     
 
     /* One big Problem> Due to the splitting of spaces in Hi and Lo/Lagrange, it is not
@@ -65,6 +67,9 @@ namespace CoupledField {
          determine the correct reference elements.
     */
 
+    LOG_TRACE(feSpace) << "Creating FeSpace instance";
+    LOG_DBG(feSpace) << "\trequired type: " << SpaceTypeEnum.ToString(reqType);
+    
     //= PolyTypeEnum.Parse(polyStr);
     PolyType polyType = UNDEF_POLY;
     //obtain the fePolynomialList
@@ -72,6 +77,7 @@ namespace CoupledField {
     if(!polyNode){
       WARN("No Polynomial specified falling back to Defaults");
       polyType = LAGRANGE;
+      LOG_DBG(feSpace) << "No explicit definition available, using default";
     }else{
       ParamNodeList lagList  = polyNode->GetList("Lagrange");
       ParamNodeList legList  = polyNode->GetList("Legendre");
@@ -89,17 +95,19 @@ namespace CoupledField {
     shared_ptr<FeSpace> ret;
     switch( reqType ) {
       case H1:
+        LOG_DBG(feSpace) << "Creating H1 space";
         if( polyType == LAGRANGE )  {
-          ret.reset(new FeSpaceH1Lagrange(aNode));
+          ret.reset(new FeSpaceH1Lagrange(aNode, infoNode));
         } else {  
-          ret.reset(new FeSpaceH1Hi(aNode));
+          ret.reset(new FeSpaceH1Hi(aNode, infoNode));
         }
         break;
       case HCURL:
+        LOG_DBG(feSpace) << "Creating HCurl space";
         if( polyType == LAGRANGE )  {
           // create explicit lower order HCurl space
         } else {
-          ret.reset(new FeSpaceHCurlHi(aNode));
+          ret.reset(new FeSpaceHCurlHi(aNode, infoNode));
         }
         break;
       case CONST:
@@ -331,10 +339,12 @@ namespace CoupledField {
 
       if ( ! (actListType == EntityList::ELEM_LIST ||
               actListType == EntityList::SURF_ELEM_LIST) )  {
+        LOG_DBG(feSpace) << "\tLEAVING";
         continue;
+        
       }
       //cast down to element list
-      ElemList* actElemList = dynamic_cast<ElemList*>(fctEntList[actList].get());
+      EntityList* actElemList = fctEntList[actList].get();
 //      RegionIdType curReg = actElemList->GetRegion();
 
       curMap = POLYNOMIAL;
@@ -488,6 +498,8 @@ namespace CoupledField {
   //NOTE: This function seems to be overhead but it already prepares for the time when we
   //      drop the different spaces for Hi and Lo/Lagrange
   void FeSpace::CreateRefElems(){
+    LOG_TRACE(feSpace) << "Creating reference elements";
+    
     //extract polynomial ids from parmater file
     std::map<std::string,PtrParamNode> polyNodes;
     std::map<std::string,PtrParamNode> integNodes;
@@ -496,6 +508,7 @@ namespace CoupledField {
 
     if(polyNodes.find("default") == polyNodes.end() ){
       //the user did not specify a default value. so we set it
+      LOG_DBG(feSpace) << "Creating default elements";
       CreateDefaultElements();
     }
     //now obtain the RegionList

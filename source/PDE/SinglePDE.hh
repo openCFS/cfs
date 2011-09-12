@@ -319,7 +319,9 @@ namespace CoupledField
     virtual void DefineFeFunctions();
 
     //! Create FeSpaces according to formulation
-    virtual std::map<SolutionType, shared_ptr<FeSpace> > CreateFeSpaces(std::string formulation) = 0;
+    virtual std::map<SolutionType, shared_ptr<FeSpace> > 
+    CreateFeSpaces( const std::string&  formulation,
+                    PtrParamNode infoNode ) = 0;
 
     //@{
     //! Save load part of RHS to private variable

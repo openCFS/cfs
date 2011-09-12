@@ -1400,10 +1400,12 @@ namespace CoupledField {
     } 
   }
   
-  std::map<SolutionType, shared_ptr<FeSpace> > ElecPDE::CreateFeSpaces(std::string formulation){
+  std::map<SolutionType, shared_ptr<FeSpace> >
+ ElecPDE::CreateFeSpaces(const std::string& formulation, PtrParamNode infoNode) {
     std::map<SolutionType, shared_ptr<FeSpace> > crSpaces;
     if(formulation == "default" || formulation == "H1"){
-      crSpaces[ELEC_POTENTIAL] = FeSpace::CreateInstance(myParam_,FeSpace::H1);
+      crSpaces[ELEC_POTENTIAL] =
+          FeSpace::CreateInstance(myParam_,infoNode,FeSpace::H1);
       crSpaces[ELEC_POTENTIAL]->Init();
     }else{
       EXCEPTION("The formulation " << formulation << "of electric PDE is not known!");

@@ -16,14 +16,18 @@
 // 
 // =====================================================================================
 #include "Elements/fespaceH1Lagrange.hh"
+#include "DataInOut/Logging/cfslog.hh"
 //#include "Domain/elem.hh"
 //#include "Elements/integrationScheme.hh"
 
+  DECLARE_LOG(feSpaceH1Lag)
+  DEFINE_LOG(feSpaceH1Lag, "feSpaceH1Lag")
 namespace CoupledField{
 
     //! Constructor
-    FeSpaceH1Lagrange::FeSpaceH1Lagrange(PtrParamNode aNode) 
-    : FeSpaceH1(aNode) {
+    FeSpaceH1Lagrange::FeSpaceH1Lagrange(PtrParamNode aNode, 
+                                         PtrParamNode infoNode) 
+    : FeSpaceH1(aNode, infoNode) {
       type_ = H1;
       isHierarchical_ = false;
       mapType_ = GRID;
@@ -60,11 +64,21 @@ namespace CoupledField{
 
     BaseFE* FeSpaceH1Lagrange::GetFe( const EntityIterator ent ){
 
-      if(ent.GetType() != EntityList::ELEM_LIST){
+      if(ent.GetType() != EntityList::ELEM_LIST &&
+          ent.GetType() != EntityList::SURF_ELEM_LIST){
         EXCEPTION("This version of GetFe expects a element iterator")
       }
 
-      RegionIdType eRegion = ent.GetElem()->regionId;
+      
+      // Note: if the element is a surface element, we must omit the regionId
+      // and look for the neigbor. Which one to take? Well, we had the 
+      // discussion already ....
+      RegionIdType eRegion = NO_REGION_ID;
+      if( ent.GetType() == EntityList::SURF_ELEM_LIST) {
+       eRegion = ent.GetSurfElem()->ptVolElem1->regionId;
+      } else {
+        eRegion = ent.GetElem()->regionId;
+      }
 
       //Check if the region is there, otherwise fall back to default
       if(refElems_.find(eRegion) == refElems_.end()){
@@ -148,7 +162,9 @@ namespace CoupledField{
       isFinalized_ = true;
     }
 
-    void FeSpaceH1Lagrange::SetRegionElements(RegionIdType region, MappingType mType,Matrix<Integer> order){
+    void FeSpaceH1Lagrange::SetRegionElements(RegionIdType region, 
+                                              MappingType mType,
+                                              const Matrix<Integer>& order){
       //This method may not be called after the space is finalized!
       if(isFinalized_){
         Exception("FeSpace::SetRegionMapping is called after finalization");
@@ -182,7 +198,9 @@ namespace CoupledField{
     }
 
 
-    void FeSpaceH1Lagrange::SetRegionIntegration(RegionIdType region, IntScheme::IntegMethod method, Matrix<Integer> order){
+    void FeSpaceH1Lagrange::SetRegionIntegration( RegionIdType region, 
+                                                  IntScheme::IntegMethod method, 
+                                                  const Matrix<Integer>& order){
       //TODO:Implementation of defaults (ALL_REGIONS) and XML
       regionIntegration_[region].first = method;
       regionIntegration_[region].second = order;
@@ -204,9 +222,12 @@ namespace CoupledField{
 
 
     void FeSpaceH1Lagrange::ProcessPolyRegionNode(PtrParamNode node, RegionIdType region){
+      LOG_DBG(feSpaceH1Lag) << "Processing polyRegioNode for region " << region;
+      
       Matrix<Integer> order(1,1);
       order[0][0] = -1;
       PtrParamNode isoOrderNode = node->Get("isoOrder", ParamNode::PASS );
+      
       bool spectral = node->Get("spectral",ParamNode::EX)->As<bool>();
       bool grid = node->Get("useGridOrder",ParamNode::EX)->As<bool>();
 
@@ -219,6 +240,7 @@ namespace CoupledField{
       if(isoOrderNode){
         Integer isoOrder = isoOrderNode->As<Integer>();
         order[0][0] = isoOrder;
+        LOG_DBG(feSpaceH1Lag) << "isoOrder is " << isoOrder << std::endl;
       }else{
         if(spectral){
           WARN("No order specified for spectral element region. setting it to 1");

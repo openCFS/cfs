@@ -152,7 +152,7 @@ namespace CoupledField {
     // =====================================================================
     // Get type of analysis
     // =====================================================================
-    LOG_TRACE(pde) << pdename_ << ": Obtaining analysistye";
+    LOG_TRACE(pde) << pdename_ << ": Obtaining analysis type";
     analysistype_ = domain->GetSingleDriver()->GetAnalysisType();
 
     // NOTE: The concept of isAlwaysStatic bites with Direct Coupling
@@ -209,14 +209,6 @@ namespace CoupledField {
         olasInfo_ = info->Get("OLAS")->Get(pdename_);
         algsys_ = new AlgebraicSys(FindLinearSystem(pdename_), olasInfo_);
       }
-
-      // Obtain unique pde identifier => Ob
-      //pdeId_ = algsys_->ObtainPDEId( pdename_ );
-
-
-      // Determine, if this is a parallel run
-      // and pass this information to OLAS
-      // bool parallel = false;
     }
 
     // =====================================================================
@@ -258,6 +250,7 @@ namespace CoupledField {
     //======================================================================
     // trigger the creation of functionDescriptors
     //======================================================================
+    LOG_TRACE(pde) << pdename_ << ": Define FE-Functions";
     DefineFeFunctions();
     
     // Register all fe functions with the algebraic system
@@ -340,38 +333,6 @@ namespace CoupledField {
       infoNode_->Get(ParamNode::HEADER)->Get("idbc")->Get("handling_of_IDBCs")->SetValue(aux);
     }
     
-    
-    //Due to our FeSpace we will no longer need a equation Map
-//    //determine which kind of equationmap will be needed
-//    if(results_.GetSize() == 1){
-//      if(results_[0]->fctType->IsDiscontinuous()){
-//        shared_ptr<DiscontinuousEqnMap> tempmap(new DiscontinuousEqnMap( ptgrid_, pdeId_, usePenalty_ ));
-//        eqnMap_ = tempmap;
-//      }else{
-//        shared_ptr<EqnMap> tempmap(new EqnMap( ptgrid_, pdeId_, usePenalty_ ));
-//        eqnMap_ = tempmap;
-//      }
-//    }else if(results_.GetSize() >= 2){
-//      if(!results_[0]->fctType->IsDiscontinuous() && results_[1]->fctType->IsDiscontinuous()){
-//        eqnMap_ = shared_ptr<MixedEqnMap>(new MixedEqnMap( ptgrid_, pdeId_, usePenalty_ ));
-//      }else if(results_[0]->fctType->IsDiscontinuous() && results_[1]->fctType->IsDiscontinuous()){
-//        eqnMap_ = shared_ptr<DiscontinuousEqnMap>(new DiscontinuousEqnMap( ptgrid_, pdeId_, usePenalty_ ));
-//      }else{
-//        eqnMap_ = shared_ptr<EqnMap>(new EqnMap( ptgrid_, pdeId_, usePenalty_ ));
-//      }
-//    }else{
-//      //this is the defulat case
-//      //more cases can be implemented as needed
-//      shared_ptr<EqnMap> tempmap(new EqnMap( ptgrid_, pdeId_, usePenalty_ ));
-//      eqnMap_ = tempmap;
-//    }
-
-
-
-
-    // Create a new equation map
-
-
     // =====================================================================
     // read in boundary conditions
     // =====================================================================
@@ -1419,7 +1380,7 @@ namespace CoupledField {
         actBc->entities = actList;
         actBc->result = actFeFunction->GetResultInfo();
         if( dof.empty() ) {
-          actBc->dof = 1;
+          actBc->dof = 0;
         } else {
           actBc->dof = actFeFunction->GetResultInfo()->GetDofIndex( dof );
         }
@@ -1472,7 +1433,7 @@ namespace CoupledField {
         actBc->result = actFeFunction->GetResultInfo();
         //actBc->eqnMap = eqnMap_;
         if( dof.empty() ) {
-          actBc->dof = 1;
+          actBc->dof = 0;
         } else {
           actBc->dof = actFeFunction->GetResultInfo()->GetDofIndex( dof );
         }
@@ -1575,7 +1536,7 @@ namespace CoupledField {
         actBc->entities = actList;
         actBc->result =  actFeFunction->GetResultInfo();
         if( dof.empty() ) {
-          actBc->dof = 1;
+          actBc->dof = 0;
         } else {
           actBc->dof = actFeFunction->GetResultInfo()->GetDofIndex( dof );
         }
@@ -1625,12 +1586,12 @@ namespace CoupledField {
         actBc->masterEntities = actList;
         actBc->slaveEntities = actList;
         if( masterDof.empty() ) {
-          actBc->masterDof = 1;
+          actBc->masterDof = 0;
         } else {
           actBc->masterDof = actFeFunction->GetResultInfo()->GetDofIndex( masterDof );
         }
         if( slaveDof.empty() ) {
-          actBc->slaveDof = 1;
+          actBc->slaveDof = 0;
         } else {
           actBc->slaveDof = actFeFunction->GetResultInfo()->GetDofIndex( masterDof );
         }
@@ -1708,7 +1669,7 @@ namespace CoupledField {
           actBc->masterEntities = nodePair;
           actBc->slaveEntities = nodePair;
           if( dof.empty() ) {
-            actBc->masterDof = 1;
+            actBc->masterDof = 0;
           } else {
             actBc->masterDof = actFeFunction->GetResultInfo()->GetDofIndex( dof );
           }
@@ -1774,7 +1735,7 @@ namespace CoupledField {
         actLoad->entities = actList;
         actLoad->result = actResultInfo;
         if ( dof.empty() ) {
-          actLoad->dof = 1;
+          actLoad->dof = 0;
         } else {
           actLoad->dof = actResultInfo->GetDofIndex(dof);
         }
@@ -3768,7 +3729,9 @@ namespace CoupledField {
       //DOGMA: PRO UNBEKANNTE EINE FUNCTION UND EIN SPACE
       std::string formulation;
       myParam_->GetValue("feSpaceFormulation",formulation,ParamNode::EX);
-      std::map<SolutionType, shared_ptr<FeSpace> > spaces = CreateFeSpaces(formulation);
+      PtrParamNode feSpaceNode = infoNode_->Get("feSpaces");
+      std::map<SolutionType, shared_ptr<FeSpace> > spaces = 
+          CreateFeSpaces(formulation, feSpaceNode);
 
       //loop over all spaces and set an FeFunction
       std::map<SolutionType, shared_ptr<FeSpace> >::iterator spIt = spaces.begin();

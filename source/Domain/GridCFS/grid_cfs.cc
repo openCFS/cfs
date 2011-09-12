@@ -651,7 +651,6 @@ namespace CoupledField {
       Elem* el = orderedElems_[e];
       
       Elem::FEType type = el->type;
-      std::cerr << "element # " << e << " has type " << el->type << std::endl;
       numNodes = Elem::shapes[type].numNodes;
 
       maxNumElemNodes_ = maxNumElemNodes_ < numNodes ?
@@ -807,7 +806,6 @@ namespace CoupledField {
   void GridCFS::
   CreateGridInformation( ResultHandler* ptRes,
                          std::map<std::string, CoordSystem*>& coordSysMap ) {
-    WARN("CreateGridInformation must be refactored");
     
     // This method crates a "dummy" multisequence step, in
     // wchich some grid-information rsults are created:

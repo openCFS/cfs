@@ -241,7 +241,10 @@ namespace CoupledField
     //! List of points, where fluxdensity gets calculated
     StdVector<FluxAtPoints> calcFlux_;
     
-    std::map<SolutionType, shared_ptr<FeSpace> > CreateFeSpaces(std::string formulation);
+    //! \copydoc SinglePDE::CreateFeSpace
+    std::map<SolutionType, shared_ptr<FeSpace> > 
+    CreateFeSpaces( const std::string& formulation, 
+                    PtrParamNode infoNode );
     
   private:
   };

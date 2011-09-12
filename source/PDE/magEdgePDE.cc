@@ -1445,15 +1445,19 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
 //     }
   }
   
-  std::map<SolutionType, shared_ptr<FeSpace> > MagEdgePDE::CreateFeSpaces(std::string formulation){
+  std::map<SolutionType, shared_ptr<FeSpace> > 
+  MagEdgePDE::CreateFeSpaces(const std::string& formulation,
+                             PtrParamNode infoNode ) {
     //ok default case so we create grid based approximation H1 elements
     //and standard Gauss integration
     std::map<SolutionType, shared_ptr<FeSpace> > crSpaces;
     if(formulation == "default" || formulation == "H_CURL"){
-      crSpaces[MAG_POTENTIAL] = FeSpace::CreateInstance(myParam_,FeSpace::HCURL);
+      crSpaces[MAG_POTENTIAL] = 
+          FeSpace::CreateInstance(myParam_, infoNode, FeSpace::HCURL );
       crSpaces[MAG_POTENTIAL]->Init();
     }else{
-      EXCEPTION("The formulation " << formulation << "of magnetig edge PDE is not known!");
+      EXCEPTION("The formulation " << formulation 
+                << "of magnetic edge PDE is not known!");
     }
     return crSpaces;
   }

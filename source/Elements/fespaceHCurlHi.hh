@@ -16,7 +16,7 @@ class FeSpaceHCurlHi : public FeSpaceH1 {
 public:
 
   //! Constructor
-  FeSpaceHCurlHi(PtrParamNode aNode);
+  FeSpaceHCurlHi(PtrParamNode aNode, PtrParamNode infoNode);
 
   //! Destructor
   ~FeSpaceHCurlHi();
@@ -49,10 +49,14 @@ protected:
   // INTERNAL INITIALIZATION
   // ====================================================================
   //! read in integration data and set defaults
-  virtual void SetRegionIntegration(RegionIdType region, IntScheme::IntegMethod method, Matrix<Integer> order);
+  virtual void SetRegionIntegration( RegionIdType region, 
+                                     IntScheme::IntegMethod method, 
+                                     const Matrix<Integer>& order );
 
   //! Set the order and mapping type of a specific region
-  virtual void SetRegionElements(RegionIdType region, MappingType mType,Matrix<Integer> order);
+  virtual void SetRegionElements( RegionIdType region, 
+                                  MappingType mType,
+                                  const Matrix<Integer>& order );
 
   //! Here the spaces have the possibility to check if user definitions makes sense
   //! e.g. if the chosen integration is correct or the element order is nice

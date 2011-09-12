@@ -111,7 +111,9 @@ namespace CoupledField {
     void DefineSolveStep();
 
     //! Create FeSpaces according to formulation
-    virtual std::map<SolutionType, shared_ptr<FeSpace> > CreateFeSpaces(std::string formulation);
+    virtual std::map<SolutionType, shared_ptr<FeSpace> >
+    CreateFeSpaces( const std::string&  formulation,
+                    PtrParamNode infoNode );
 
     // ========================
     // Postprocessing

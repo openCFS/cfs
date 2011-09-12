@@ -9,8 +9,8 @@ namespace CoupledField {
  DEFINE_LOG(feSpaceH1, "feSpaceH1")
 
   //! Constructor
-  FeSpaceH1::FeSpaceH1(PtrParamNode aNode) 
-  : FeSpace(aNode) {
+  FeSpaceH1::FeSpaceH1(PtrParamNode aNode, PtrParamNode infoNode) 
+  : FeSpace(aNode, infoNode ) {
     type_ = H1;
   }
   
@@ -90,7 +90,7 @@ namespace CoupledField {
       UInt node = ent.GetNode();
       eqns.Resize(1);
       eqns.Init();
-      eqns[0] = nodeMap_[gridToVirtualNodes_[node]][dof-1];
+      eqns[0] = nodeMap_[gridToVirtualNodes_[node]][dof];
 
     } else if( ent.GetType() == EntityList::ELEM_LIST ||
                ent.GetType() == EntityList::SURF_ELEM_LIST){
@@ -99,7 +99,7 @@ namespace CoupledField {
       eqns.Resize( nodes.GetSize() );
       eqns.Init();
       for (UInt iNode = 0; iNode < nodes.GetSize(); iNode++ ) {
-        eqns[iNode] = nodeMap_[nodes[iNode]][dof-1];
+        eqns[iNode] = nodeMap_[nodes[iNode]][dof];
       }
     } else {
       EXCEPTION("In FeSpaceH1::GetEqns(StdVector,EntityIterator,UInt):  Supplied an iterator which is not supported by FeSpace");
@@ -167,7 +167,7 @@ namespace CoupledField {
            nodeMap_.BcKeys[actNodes[iNode]] = StdVector<BcType>(dofsPerUnknown);
            nodeMap_.BcKeys[actNodes[iNode]].Init(NOBC);
          }
-         nodeMap_.BcKeys[actNodes[iNode]][(*actHBC)->dof-1] = HDBC;
+         nodeMap_.BcKeys[actNodes[iNode]][(*actHBC)->dof] = HDBC;
          bcCounter_[HDBC]++;
       }
     }
@@ -187,8 +187,8 @@ namespace CoupledField {
            nodeMap_.BcKeys[actNodes[iNode]].Init(NOBC);
          }
          // check first, if this node was already processed
-         if( nodeMap_.BcKeys[actNodes[iNode]][(*actIBC)->dof-1] != IDBC) {
-           nodeMap_.BcKeys[actNodes[iNode]][(*actIBC)->dof-1] = IDBC;
+         if( nodeMap_.BcKeys[actNodes[iNode]][(*actIBC)->dof] != IDBC) {
+           nodeMap_.BcKeys[actNodes[iNode]][(*actIBC)->dof] = IDBC;
            bcCounter_[IDBC]++;
          }
       }
@@ -209,8 +209,8 @@ namespace CoupledField {
           nodeMap_.BcKeys[slaveNodes[iNode]] = StdVector<BcType>(dofsPerUnknown);
           nodeMap_.BcKeys[slaveNodes[iNode]].Init(NOBC);
         }
-        nodeMap_.BcKeys[slaveNodes[iNode]][slaveDof-1] = CS;
-        nodeMap_.constraintNodes[std::pair<Integer,Integer>(slaveNodes[iNode],slaveDof-1)] = std::pair<Integer,Integer>(mNode,masterDof);
+        nodeMap_.BcKeys[slaveNodes[iNode]][slaveDof] = CS;
+        nodeMap_.constraintNodes[std::pair<Integer,Integer>(slaveNodes[iNode],slaveDof)] = std::pair<Integer,Integer>(mNode,masterDof);
         bcCounter_[CS]++;
       }
     }

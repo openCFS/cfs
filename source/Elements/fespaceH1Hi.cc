@@ -70,11 +70,15 @@
  Face      -   F   F
  Inner     -   -   I    I
 */
+#include "DataInOut/Logging/cfslog.hh"
+
+DECLARE_LOG(feSpaceH1Hi)
+DEFINE_LOG(feSpaceH1Hi, "feSpaceH1Hi")
 namespace CoupledField{
 
   //! Constructor
-  FeSpaceH1Hi::FeSpaceH1Hi(PtrParamNode aNode)
-  : FeSpaceH1(aNode) {
+  FeSpaceH1Hi::FeSpaceH1Hi(PtrParamNode aNode, PtrParamNode infoNode )
+  : FeSpaceH1(aNode, infoNode ) {
 
     type_ = H1;
     isHierarchical_ = true;
@@ -168,10 +172,23 @@ namespace CoupledField{
   }
 
   BaseFE* FeSpaceH1Hi::GetFe( const EntityIterator ent ){
-    RegionIdType eRegion =  ent.GetElem()->regionId;
 
+    // Note: if the element is a surface element, we must omit the regionId
+    // and look for the neighbor. Which one to take? Well, we had the 
+    // discussion already ....
+    RegionIdType eRegion = NO_REGION_ID;
+    if( ent.GetType() == EntityList::SURF_ELEM_LIST) {
+      eRegion = ent.GetSurfElem()->ptVolElem1->regionId;
+    } else {
+      eRegion = ent.GetElem()->regionId;
+    }
+    LOG_DBG3(feSpaceH1Hi) << "Returning FE #" << ent.GetElem()->elemNum
+        << " of region " 
+        << domain->GetGrid()->GetRegion().ToString(eRegion);
+    
     //Check if the region is there, otherwise fall back to default
     if(refElems_.find(eRegion) == refElems_.end()){
+      LOG_DBG3(feSpaceH1Hi) << "\t-> No reference element found, use default region";
       eRegion = ALL_REGIONS;
     }
 
@@ -183,7 +200,7 @@ namespace CoupledField{
 
     // ToDo: Currently hard coded to isotropic order. Here we should generalize the 
     // setting of entitiy orders.
-    myFe->SetIsoOrder( isoOrder_);
+//    myFe->SetIsoOrder( isoOrder_);
 
     return myFe;
   }
@@ -204,7 +221,8 @@ namespace CoupledField{
 
     // ToDo: Currently hard coded to isotropic order. Here we should generalize the 
     // setting of entitiy orders.
-    myFe->SetIsoOrder( isoOrder_);
+//    std::cerr << "isoOrder is " << isoOrder_ << std::endl;
+////    myFe->SetIsoOrder( isoOrder_);
 
     return myFe;
   }
@@ -247,7 +265,13 @@ namespace CoupledField{
 //    } // loop over elements
   }
 
-  void FeSpaceH1Hi::SetRegionElements(RegionIdType region, MappingType mType,Matrix<Integer> order){
+  void FeSpaceH1Hi::SetRegionElements(RegionIdType region, 
+                                      MappingType mType,
+                                      const Matrix<Integer>& order){
+    
+    LOG_DBG3(feSpaceH1Hi) << "FeSpaceH1HI: SetRegionElements for Region " <<
+        domain->GetGrid()->GetRegion().ToString(region) << std::endl;
+    
     //This method may not be called after the space is finalized!
     if(isFinalized_){
       Exception("FeSpaceH1Hi::SetRegionMapping is called after finalization");
@@ -267,10 +291,13 @@ namespace CoupledField{
     for( ; i != refElems_[region].end(); ++i ) {
       i->second->SetIsoOrder(order[0][0]+orderOffset_);
     }
+    mapType_ = POLYNOMIAL;
   }
 
 
-  void FeSpaceH1Hi::SetRegionIntegration(RegionIdType region, IntScheme::IntegMethod method, Matrix<Integer> order){
+  void FeSpaceH1Hi::SetRegionIntegration(RegionIdType region, 
+                                         IntScheme::IntegMethod method, 
+                                         const Matrix<Integer>& order){
     //TODO:Implementation of defaults (ALL_REGIONS) and XML
     regionIntegration_[region].first = method;
     regionIntegration_[region].second = order;

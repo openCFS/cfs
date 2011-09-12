@@ -66,7 +66,8 @@ namespace CoupledField {
     for( UInt i = 0; i < shape_.numEdges; ++i ) {
       unknowns = (orderEdge_[i]-1);
       edgeFncs[i] = unknowns;
-      LOG_DBG(feH1Hi) <<   "edge " << i+1 << " has " << unknowns << "unknowns";
+      LOG_DBG(feH1Hi) <<   "edge " << i+1 << " has order" <<  orderEdge_[i]-1
+            << " and " << unknowns << "unknowns";
       actNumFncs_ += unknowns;
     }
 #endif
@@ -107,6 +108,10 @@ namespace CoupledField {
   
   void FeH1Hi::SetIsoOrder( UInt order ) {
     
+    LOG_DBG3(feH1Hi) << "SetIsoOrder " << order 
+        << " for H1Hi elem of type " 
+        << Elem::feType.ToString(feType_);
+    
     orderEdge_.Resize(shape_.numEdges);
     orderFace_.Resize(shape_.numFaces);
     
@@ -129,6 +134,7 @@ namespace CoupledField {
                                     EntityType fctEntityType,
                                     UInt entNumber){
     if (updateUnknowns_) CalcNumUnknowns();
+    
    
     if( fctEntityType == VERTEX ) {
       UInt numFncs = entityFncs_[VERTEX][entNumber];

@@ -80,8 +80,9 @@ DEFINE_LOG(feSpaceHCurlHi, "feSpaceHCurlHi")
 namespace CoupledField{
 
   //! Constructor
-  FeSpaceHCurlHi::FeSpaceHCurlHi(PtrParamNode aNode)
-  : FeSpaceH1(aNode) {
+  FeSpaceHCurlHi::FeSpaceHCurlHi( PtrParamNode aNode, 
+                                  PtrParamNode infoNode)
+  : FeSpaceH1(aNode, infoNode) {
     mapType_ = POLYNOMIAL;
     type_ = HCURL;
     isHierarchical_ = true;
@@ -148,7 +149,9 @@ namespace CoupledField{
   }
 
 
-  void FeSpaceHCurlHi::SetRegionElements(RegionIdType region, MappingType mType,Matrix<Integer> order){
+  void FeSpaceHCurlHi::SetRegionElements(RegionIdType region, 
+                                         MappingType mType,
+                                         const Matrix<Integer>& order){
     //This method may not be called after the space is finalized!
     if(isFinalized_){
       Exception("FeSpace::SetRegionMapping is called after finalization");
@@ -170,7 +173,9 @@ namespace CoupledField{
 
   }
 
-  void FeSpaceHCurlHi::SetRegionIntegration(RegionIdType region, IntScheme::IntegMethod method, Matrix<Integer> order){
+  void FeSpaceHCurlHi::SetRegionIntegration(RegionIdType region, 
+                                            IntScheme::IntegMethod method, 
+                                            const Matrix<Integer>& order){
     //TODO:Implementation of defaults (ALL_REGIONS) and XML
     regionIntegration_[region].first = method;
     regionIntegration_[region].second = order;

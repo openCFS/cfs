@@ -78,7 +78,7 @@ public:
   typedef std::map< BaseFE::EntityType , StdVector<UInt> > ElemVirtualNodes;
 
   //! Constructor
-  FeSpace(PtrParamNode paramNode);
+  FeSpace(PtrParamNode paramNode, PtrParamNode infoNode);
 
   //! Destructor
   ~FeSpace();
@@ -90,7 +90,9 @@ public:
   SpaceType GetSpaceType() { return type_;}
   
   //! Generate instance of specific element space type
-  static shared_ptr<FeSpace> CreateInstance(PtrParamNode aNode, SpaceType reqType  );
+  static shared_ptr<FeSpace> CreateInstance(PtrParamNode aNode, 
+                                            PtrParamNode infoNode,
+                                            SpaceType reqType  );
   
   // ========================================================================
   //  INITIALIZATION 
@@ -215,7 +217,7 @@ public:
   virtual UInt GetEntityOrder( UInt elemNum, BaseFE::EntityType type, 
                                UInt entityNum, UInt comp = 1 ) = 0;
   
-  //! Get maximum polynomial orde per enntity (maximum over all components) 
+  //! Get maximum polynomial orde per entity (maximum over all components) 
   virtual UInt GetMaxEntityOrder( UInt elemNum, BaseFE::EntityType type, 
                                   UInt entityNum ) = 0;
     
@@ -231,6 +233,9 @@ protected:
 
   //! Parameter node
   PtrParamNode myParam_;
+  
+  //! Infor node
+  PtrParamNode infoNode_;
   
   //! Type of element space
   SpaceType type_;
@@ -273,10 +278,6 @@ protected:
   //! Flag indicating use of hierarchical polynomials
   bool isHierarchical_;
   
-  //! Isotropic polynomial approximation order
-  //OBSOLETE and replaced by regionMappings_ map
-  UInt isoOrder_;
-  
   //! Number of equations administrated by this space
   UInt numEqns_;
 
@@ -291,10 +292,6 @@ protected:
   //! map for storing the number of different boundary conditions
   std::map< BcType, UInt> bcCounter_;
 
-  //! sotres if equation numbering is grid based or order based
-  //OBSOLETE and replaced by regionMappings_ map
-  //MappingType mapType_;
-
   // =====================================================
   // REGION SPECIFIC DATA
   // =====================================================
@@ -304,16 +301,20 @@ protected:
   //! in the anisotrpopic case,the order matrix represents in each row, the component
   //! of (vectorial) unknowns and in each column the order for each space direction
   //! to distinguish cleanly one could define an isIsoOrderInt flag....
-  std::map<RegionIdType,std::pair<IntScheme::IntegMethod,Matrix<Integer> > > regionIntegration_;
+  std::map<RegionIdType,
+           std::pair<IntScheme::IntegMethod,Matrix<Integer> > > regionIntegration_;
 
   //! Set the order and mapping type of a specific region
-  virtual void SetRegionElements(RegionIdType region, MappingType mType,Matrix<Integer> order)=0;
+  virtual void SetRegionElements( RegionIdType region, MappingType mType,
+                                  const Matrix<Integer>& order)=0;
 
   //! read in region mapping data and set defaults
   virtual void CreateRefElems();
 
   //! read in integration data and set defaults
-  virtual void SetRegionIntegration(RegionIdType region, IntScheme::IntegMethod method, Matrix<Integer> order)=0;
+  virtual void SetRegionIntegration(RegionIdType region, 
+                                    IntScheme::IntegMethod method,
+                                    const Matrix<Integer>& order)=0;
 
 
   // ====================================================================
