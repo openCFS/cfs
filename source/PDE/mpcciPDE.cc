@@ -271,9 +271,6 @@ namespace CoupledField {
     UInt pdeNode;
     UInt k, couplingDof;
     UInt * nodeIds;
-
-    // Reset counter for boundary conditions
-    couplingBCsCounter_ = 0;
   
     // Outer loop over all INPUT coupling terms
     for (UInt i=0; i<ptCoupling_->GetNumInputCouplings(); i++)

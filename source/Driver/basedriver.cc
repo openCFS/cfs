@@ -13,10 +13,14 @@
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/programOptions.hh"
 #include "DataInOut/resultHandler.hh"
+#include "DataInOut/Logging/cfslog.hh"
 #include "Driver/driver_header.hh"
 #include "Domain/domain.hh"
 
 using namespace CoupledField;
+
+DECLARE_LOG(driver)
+DEFINE_LOG(driver, "driver")
 
 BaseDriver::BaseDriver( )
 {
@@ -79,11 +83,17 @@ std::string BaseDriver::ConcatAnalysisId(PtrParamNode analysis_id, const std::st
   assert(!(child_name == "" && child_2_name != ""));
   assert(!(child_2_name != "" && child_id == -1));
   
+  std::string old = (analysis_id->Has("analysis_id") ? analysis_id->Get("analysis_id")->As<std::string>() : "");
+
   std::stringstream ss;
-  ss << (analysis_id->Has("analysis_id") ? analysis_id->Get("analysis_id")->As<std::string>() : ""); 
+
+  // if we simply concatenate, the string becomes very long for optimization and other iterative stuff.
+  // therefore create a new string if child_name already is in the string.
+  if(old.find(child_name) < 0) // when child_name is not given we use the old string
+    ss << old;
 
   if(child_name != "")
-  ss << ":" << child_name;
+    ss << (ss.str().length() > 0 ? ":" : "") << child_name;
 
   if(child_id != -1) 
     ss << ":" << child_id;
@@ -93,6 +103,8 @@ std::string BaseDriver::ConcatAnalysisId(PtrParamNode analysis_id, const std::st
   
   if(child_2_id != -1) 
       ss << ":" << child_2_id;
+
+  LOG_DBG3(driver) << "BD:CAI -> " << ss.str();
 
   return ss.str();
 }

@@ -77,7 +77,7 @@ namespace CoupledField
     elemMat.Resize(numFncs); elemMat.Init();
 
     // get pointer to nonlinear BH curve approximation
-    nlinFnc_ = ptMaterial->GetNonlinFncBH();
+    nlinFnc_ = ptMaterial->GetNonlinFncBH(MAG_PERMEABILITY);
 
     for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++)
       {
@@ -244,7 +244,7 @@ namespace CoupledField
     const Vector<Double> & intWeights = ptelem->GetIntWeights();  
 
     // get pointer to nonlinear BH curve approximation
-    nlinFnc_ = ptMaterial->GetNonlinFncBH();
+    nlinFnc_ = ptMaterial->GetNonlinFncBH(MAG_PERMEABILITY);
 
     // Loop over all integration points
     for ( UInt actIntPt = 1; actIntPt <= nrIntPts; actIntPt++ ) {

@@ -79,6 +79,7 @@ class Function
       GLOBAL_JUMP,
       STRESS,                    /*!< global stress constraint: Kocvara and Stingl; 2007. Has adjoint! */
       STRESS_DENSITY,            /*!< global stress divided by volume */
+      PROJECTION,                /*!< Michael's idea: sum_i || nu(rho_i) - H_eta_beta(rho_i) ||^2 <= eps */
 
       // This is constraint only!
       GREYNESS,                  /*!< inaccurate - best for observation only */
@@ -90,6 +91,7 @@ class Function
       MOLE,                      /*!< Feature size control from T. Poulsen */
       OSCILLATION,               /*!< Feature size control by Fabian W. :) */
       JUMP,                      /*!< Weak greyness control by Fabian W. :) */
+      BUMP,                      /*!< Prevent intermediate change of slope ('hobbala') by Fabian W. */
       DESIGN_TRACKING            /*!< Tracking against physical densities in designTarget. Either for region or periodic (constraint nodes) elements */
     } Type;
 
@@ -319,6 +321,10 @@ class Function
         double CalcJump() const;
         double CalcJumpGradient(int neigh_id) const;
 
+        /** no change of slope sign */
+        double CalcBump() const;
+        double CalcBumpGradient(int neigh_idx) const;
+
         /** CalcStress() and the gradient are actually done in EM/SIMP */
 
         DesignElement* element; // this represents DesignSpace::data[element_idx]
@@ -421,6 +427,9 @@ class Function
     /** Give the local information. Check for NULL */
     Local* GetLocal() { return local; }
 
+    /** Give the projection data */
+    StdVector<DesignElement>& GetProjectionDesignClone();
+
     /** We also store here the info ptr. When overload, call also this. */
     virtual void ToInfo(PtrParamNode info);
 
@@ -441,6 +450,9 @@ class Function
     StdVector<DesignElement*> elements;
 
   protected:
+
+    /** common constructor stuff. To be called from special Objective constructor, too */
+    void Init();
 
     /** Is reentrant save. Initialize the local variable
      * @return either a new Local or the old one */
@@ -487,8 +499,14 @@ class Function
     /** Do we have local information? E.G. (global) slopes */
     Local* local;
 
-    /** Here we store our info node */
+    /** Do we have a filter element? Only for the projection function we store an alternative design set which we can filter */
+    DesignSpace* projectionDesign_;
+
+    /** Here we store our info node. Set only by ToInfo() *after* PostProc. Use preInfo_ instead. Is null when not set, yet. */
     PtrParamNode info_;
+
+    /** In case info_ is not set, yet. ToInfo applies this information. Is initialized in the constructor */
+    PtrParamNode preInfo_;
 
     StressType stressType_;
 };

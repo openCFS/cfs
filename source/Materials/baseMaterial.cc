@@ -36,7 +36,7 @@ namespace CoupledField
 
     materialDatabaseName_ = "";
     matFileName_ = "";
-    nonlinFileName_ = "";
+    //    nonlinFileName_ = "";
 
     coosy_ = NULL;
     hyst_  = NULL;
@@ -221,12 +221,22 @@ namespace CoupledField
 
       if(posTens != tensorParams_.end())
       {
+        const Matrix<Complex>& mat = posTens->second;
+
+        // TODO: It makes sense to output the actual sub tensor type,
+        // the "problem" is that ComputeSubTensor() is not virtual, has different signature and is not transparent to full
+
         // get the tensor by default as complex
         if(isComplex)
-          in_->Get("tensor")->SetValue(posTens->second);
+        {
+          if(mat.GetPart(Global::IMAG).NormL2() == 0.0)
+            in_->Get("tensor")->SetValue(mat.GetPart(Global::REAL));
+          else
+            in_->Get("tensor")->SetValue(mat);
+        }
         else
         {
-          in_->Get("tensor")->SetValue(posTens->second.GetPart(Global::REAL));
+          in_->Get("tensor")->SetValue(mat.GetPart(Global::REAL));
         }
       }
 

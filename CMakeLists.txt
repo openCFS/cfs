@@ -36,14 +36,14 @@ PROJECT(CFS C CXX Fortran)
 # CFS version number.  Simply the last modification date
 #-----------------------------------------------------------------------------
 SET(CFS_VERSION_YEAR "11")
-SET(CFS_VERSION_MONTH "06")
+SET(CFS_VERSION_MONTH "09")
 SET(CFS_VERSION
   "${CFS_VERSION_YEAR}.${CFS_VERSION_MONTH}")
 
 #-----------------------------------------------------------------------------
 # Version Name. Every major release gets a label/name
 #-----------------------------------------------------------------------------
-SET(CFS_NAME "Querulous Quokka")
+SET(CFS_NAME "Heldendaemmerung")
 
 #-----------------------------------------------------------------------------
 # Set hostname of build host
@@ -269,6 +269,8 @@ MARK_AS_ADVANCED(USE_GMV)
 MARK_AS_ADVANCED(USE_MESH)
 MARK_AS_ADVANCED(USE_MPCCI)
 MARK_AS_ADVANCED(USE_XERCES)
+MARK_AS_ADVANCED(USE_KNITRO)
+MARK_AS_ADVANCED(USE_IPOPT)
 MARK_AS_ADVANCED(CMAKE_BUILD_TYPE)
 MARK_AS_ADVANCED(CMAKE_BACKWARDS_COMPATIBILITY)
 MARK_AS_ADVANCED(CMAKE_INSTALL_PREFIX)
@@ -278,6 +280,7 @@ MARK_AS_ADVANCED(BUILD_HDFVIEW)
 MARK_AS_ADVANCED(COVERAGE)
 MARK_AS_ADVANCED(PROFILING)
 MARK_AS_ADVANCED(XMLSCHEMA)
+
 
 #-----------------------------------------------------------------------------
 # Set some variables according to build type DEBUG / RELEASE

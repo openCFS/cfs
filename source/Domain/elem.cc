@@ -228,6 +228,17 @@ namespace CoupledField {
       break;
     }
   }
+  Point Elem::ExpensiveCalcBarycenter(bool updated) const
+  {
+    Matrix<double> coords;
+    domain->GetGrid()->GetElemNodesCoord(coords, this->connect, updated);
+
+    Point result;
+
+    BaseFE::CalcBarycenter(coords, result);
+
+    return result;
+  }
   
   std::ostream & operator<<(std::ostream &out, const std::pair<Elem*, int>& data)
   {

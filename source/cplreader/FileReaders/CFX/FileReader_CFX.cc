@@ -3,11 +3,12 @@
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
 #include <string>
+#include <cstring>
 #include <iostream>
 #include <map>
 #include <set>
 #include <fstream>
-#include <stdio.h>
+#include <cstdio>
 #include <iomanip>
 
 #include <boost/regex.hpp>
@@ -17,6 +18,8 @@
 #include <boost/filesystem/exception.hpp>
 namespace fs=boost::filesystem;
 #include <boost/algorithm/string/predicate.hpp>
+#include <boost/algorithm/string/trim.hpp>
+#include <boost/tokenizer.hpp>
 namespace algo=boost::algorithm;
 
 // #include <pcrecpp.h>
@@ -150,6 +153,8 @@ namespace CoupledField
       numSteps_ = 0;
       transientFNs_.clear();
       timeStepNumbers_.clear();
+      transientFNs_.reserve(ntrn);
+      timeStepNumbers_.reserve(ntrn);
 
       for(int i = 0; i< ntrn; i++)
       {
@@ -166,16 +171,20 @@ namespace CoupledField
           }
         }
 
-        snprintf(fn, sizeof(fn), "%s%s/%s", baseName_.c_str(), name_.c_str(), trnnam);
+        std::string fileName;
+        sstr.clear();
+        sstr.str("");
+        sstr << baseName_ << name_ << "/" << trnnam;
+        fileName = sstr.str();
 
         inFile_.clear();
-        inFile_.open(fn);
+        inFile_.open(fileName.c_str());
         if (inFile_)
         {
           inFile_.close();
 
           numSteps_++;
-          transientFNs_.push_back(fn);
+          transientFNs_.push_back(fileName);
           timeStepNumbers_.push_back(its);
         }
 
@@ -196,6 +205,7 @@ namespace CoupledField
       iopt   = __stop_if_failed__;
       ioptar = 0;
       charvec.resize(length*nsize);
+      std::fill(charvec.begin(), charvec.end(), 0);
       
       redsht_(&dattyp,&length,&nerr,what,where,&when,&nsize,
               &iopt, &ioptar,
@@ -212,7 +222,7 @@ namespace CoupledField
       //     get infos about definition file, time unit and timestep
       //-----------------------------------------------------------------------
 
-      GetInfosFromCommand();
+      GetInfosFromCommand(nsize);
     }
     else
     {
@@ -231,7 +241,6 @@ namespace CoupledField
         {
           fn = dir_itr->leaf();
 
-          //          if(fn.rfind(".trn") == (fn.length() - 4)) // endswith
           if(algo::ends_with(fn, ".trn"))
           {
             sstr.clear(); sstr.str("");
@@ -244,6 +253,10 @@ namespace CoupledField
 
       it = stepNumSet.begin();
       end = stepNumSet.end();
+      
+      transientFNs_.reserve(stepNumSet.size());
+      timeStepNumbers_.reserve(stepNumSet.size());
+
       for( ; it != end; it++ )
       {
         stepNum = *it;
@@ -382,9 +395,61 @@ namespace CoupledField
       printf("Number of element sets, NES= %d\n", nes);
     }
 
-    numRegions_ = nes;
-    numNodesPerRegion_.resize(numRegions_);
-    numElemsPerRegion_.resize(numRegions_);
+    numVolRegions_ = nes;
+
+    //
+    //---- Number of boundary patches
+    //
+    sprintf(what, "G/NBCP");
+    sprintf(where, "EVERY");
+    when  = 0;
+    int nbcp;
+
+    dattyp = __int_data_type__;
+    length = 1;
+    nsize  = 1;
+    iopt   = __stop_if_failed__;
+    ioptar = 0;
+
+    redsht_(&dattyp,&length,&nerr,what,where,&when,&nsize,
+            &iopt, &ioptar,
+            rarr,&nbcp,carr,larr,darr,sarr, strlen(what), strlen(where), 0);
+    CHECK_CFX_IO(nerr);
+
+    if(settings.GetInt("verbose"))
+    {
+      printf("Number of boundary patches, NBCP = %d\n", nbcp);
+    }
+
+    numRegions_ = numVolRegions_ + nbcp;
+    numNodesPerRegion_.resize(numRegions_, nvx);
+    numElemsPerRegion_.resize(numRegions_, 0);
+
+    //
+    //---- Number of face sets
+    //
+    sprintf(what, "G/NFS");
+    sprintf(where, "ZN1");
+    when  = 0;
+    int nfs;
+
+    dattyp = __int_data_type__;
+    length = 1;
+    nsize  = 1;
+    iopt   = __stop_if_failed__;
+    ioptar = 0;
+
+    redsht_(&dattyp,&length,&nerr,what,where,&when,&nsize,
+            &iopt, &ioptar,
+            rarr,&nfs,carr,larr,darr,sarr, strlen(what), strlen(where), 0);
+    CHECK_CFX_IO(nerr);
+
+    if(settings.GetInt("verbose"))
+    {
+      printf("Number of face sets, NFS = %d\n", nfs);
+    }
+    
+    numFaceSets_ = nfs;
 
     //
     //---- Number of elements per set
@@ -395,7 +460,7 @@ namespace CoupledField
 
     dattyp = __int_data_type__;
     length = 1;
-    nsize  = nes;
+    nsize  = numVolRegions_;
     iopt   = __stop_if_failed__;
     ioptar = 0;
     intvec.resize(length*nsize);
@@ -407,11 +472,128 @@ namespace CoupledField
              strlen(what), strlen(where), 0);
     CHECK_CFX_IO(nerr);
 
-    for ( UInt i=0; i<numRegions_; ++i )
+    for ( UInt i=0; i<numVolRegions_; ++i )
     {
       numElemsPerRegion_[i] = intvec[i];
       numElems_ += numElemsPerRegion_[i];
-      numNodesPerRegion_[i] = nvx;
+    }
+    
+    //
+    //---- start index (in KSFBCP) of surfaces per boundary patch
+    //
+    sprintf(what, "G/IPSFBCP");
+    sprintf(where, "EVERY");
+    when  = 0;
+
+    dattyp = __int_data_type__;
+    length = 1;
+    nsize  = nbcp+1;
+    iopt   = __stop_if_failed__;
+    ioptar = 0;
+    intvec.resize(length*nsize);
+
+    redsht_( &dattyp, &length, &nerr,
+             what, where, &when, &nsize,
+             &iopt, &ioptar,
+             rarr, &intvec[0], carr, larr, darr, sarr,
+             strlen(what), strlen(where), 0);
+    CHECK_CFX_IO(nerr);
+    
+    std::vector<UInt> bcpStartFS;
+    bcpStartFS.resize(nsize, 0);
+    std::copy(intvec.begin(), intvec.end(), bcpStartFS.begin());
+    
+    //
+    //---- map surface => face set
+    //
+    // KSFFS is a permutation of the surface numbers to obtain face set numbers
+    sprintf(what, "G/KSFFS");
+    sprintf(where, "ZN1");
+    when  = 0;
+
+    dattyp = __int_data_type__;
+    length = 1;
+    nsize  = numFaceSets_;
+    iopt   = __stop_if_failed__;
+    ioptar = 0;
+    intvec.resize(length*nsize);
+
+    redsht_(&dattyp,&length,&nerr,what,where,&when,&nsize,
+            &iopt, &ioptar,
+            rarr,&intvec[0],carr,larr,darr,sarr, strlen(what), strlen(where), 0);
+    CHECK_CFX_IO(nerr);
+
+		// Here we assume, that there are as many surfaces as face sets (NSF==NFS).
+		// If that is not the case, things will go wrong!
+    std::vector<UInt> mapSurface2FaceSet;
+    mapSurface2FaceSet.resize(numFaceSets_, 0);
+    
+    for ( UInt i=0; i<numFaceSets_; ++i )
+    {
+      mapSurface2FaceSet[intvec[i]-1] = i;
+    }
+    
+    //
+    //---- surfaces per boundary patch
+    //
+    // Unify those surfaces that form a boundary patch
+    sprintf(what, "G/KSFBCP");
+    sprintf(where, "EVERY");
+    when  = 0;
+
+    dattyp = __int_data_type__;
+    length = 1;
+    nsize  = numFaceSets_;
+    iopt   = __stop_if_failed__;
+    ioptar = 0;
+    intvec.resize(length*nsize);
+
+    redsht_(&dattyp,&length,&nerr,what,where,&when,&nsize,
+            &iopt, &ioptar,
+            rarr,&intvec[0],carr,larr,darr,sarr, strlen(what), strlen(where), 0);
+    CHECK_CFX_IO(nerr);
+
+		// initialize vector with -1, which means that face set will not be used
+    mapFaceSet2Region_.resize(numFaceSets_, -1);
+    
+    for ( UInt iBCP=0; iBCP<(UInt)nbcp; ++iBCP )
+    {
+      UInt iFS = bcpStartFS[iBCP];
+      do {
+        if (intvec[iFS-1] > 0) // intvec[iFS-1]==0 means that surface is unused
+          mapFaceSet2Region_[ mapSurface2FaceSet[ intvec[iFS-1] -1 ] ] = iBCP+numVolRegions_;
+      } while ( ++iFS < bcpStartFS[iBCP+1] );
+    }
+    
+    //
+    //---- number of surface elements per surface region
+    //
+    sprintf(what, "G/NFCFS");
+    sprintf(where, "ZN1");
+    when = 0;
+
+    dattyp = __int_data_type__;
+    length = 1;
+    nsize  = numFaceSets_;
+    iopt   = __stop_if_failed__;
+    ioptar = 0;
+    intvec.resize(length*nsize);
+
+    redsht_( &dattyp, &length, &nerr,
+             what, where, &when, &nsize,
+             &iopt, &ioptar,
+             rarr, &intvec[0], carr, larr, darr, sarr,
+             strlen(what), strlen(where), 0);
+    CHECK_CFX_IO(nerr);
+
+    numElemsPerFaceSet_.resize(numFaceSets_);
+    
+    for ( UInt i=0; i<numFaceSets_; ++i )
+    {
+      numElemsPerFaceSet_[i] = intvec[i];
+      if ( mapFaceSet2Region_[i] < 0 ) continue;
+      numElemsPerRegion_[mapFaceSet2Region_[i]] += intvec[i];
+      numElems_ += intvec[i];
     }
     
     //---- Element type per element set
@@ -426,7 +608,7 @@ namespace CoupledField
 
     dattyp = __int_data_type__;
     length = 1;
-    nsize  = nes;
+    nsize  = numVolRegions_;
     iopt   = __stop_if_failed__;
     ioptar = 0;
     intvec.resize(length*nsize);
@@ -441,7 +623,9 @@ namespace CoupledField
     //
     //---- loop over all element sets
     //
-    for(int ies = 1; ies <= nes; ies++)
+    regionElemTypes_.resize(numVolRegions_);
+    
+    for (int ies = 1; ies <= (int)numVolRegions_; ++ies)
     {
       //
       //---- number of nodes per element
@@ -449,16 +633,19 @@ namespace CoupledField
       switch (intvec[ies-1])
       {
         case 4:
-          regionElemTypes_.push_back(Elem::TET4);
+          regionElemTypes_[ies-1] = Elem::TET4;
           break;
         case 5:
-          regionElemTypes_.push_back(Elem::WEDGE6);
+          regionElemTypes_[ies-1] = Elem::WEDGE6;
           break;
         case 6:
-          regionElemTypes_.push_back(Elem::HEXA8);
+          regionElemTypes_[ies-1] = Elem::HEXA8;
           break;
         case 7:
-          regionElemTypes_.push_back(Elem::PYRA5);
+          regionElemTypes_[ies-1] = Elem::PYRA5;
+          break;
+        default:
+          regionElemTypes_[ies-1] = Elem::UNDEF;
           break;
       }
 
@@ -479,6 +666,138 @@ namespace CoupledField
       }
     }
 
+    
+    //
+    //---- read regions names
+    //
+    sprintf(what, "G/CLBVL");
+    sprintf(where, "ZN1");
+
+    dattyp = __string_data_type__;
+    when   = 0;
+    length = numVolRegions_;
+    nsize  = 80;
+    iopt   = __stop_if_failed__;
+    ioptar = 0;
+    charvec.resize(length*nsize);
+    
+    redsht_(&dattyp,&length,&nerr,what,where,&when,&nsize,
+            &iopt, &ioptar,
+            rarr,iarr,carr,larr,darr,&charvec[0],
+            strlen(what), strlen(where), 0);
+    CHECK_CFX_IO(nerr);
+
+    regionNames_.resize(numRegions_);
+    
+    for ( UInt iRegion=0; iRegion<numVolRegions_; ++iRegion )
+    {
+      char *regionName = &charvec[iRegion*80];
+      
+      for ( UInt n=79; n>0; --n )
+      {
+        if ( isblank(regionName[n]) )
+          regionName[n] = 0;
+        else
+          break;
+      }
+      
+      sstr.str("");
+      sstr << regionName;
+      regionNames_[iRegion] = sstr.str();
+      
+      std::replace( regionNames_[iRegion].begin(),
+                    regionNames_[iRegion].end(),
+                    ' ', '_' );
+    }
+
+    //
+    //---- read regions names
+    //
+    sprintf(what, "G/NAMEMAP");
+    sprintf(where, "EVERY");
+
+    dattyp = __string_data_type__;
+    when   = 0;
+    length = 4;
+    nsize  = numRegions_;
+    iopt   = __stop_if_failed__;
+    ioptar = 0;
+    charvec.resize(80*length*nsize);
+    
+    redsht_(&dattyp,&length,&nerr,what,where,&when,&nsize,
+            &iopt, &ioptar,
+            rarr,iarr,carr,larr,darr,&charvec[0],
+            strlen(what), strlen(where), 0);
+    CHECK_CFX_IO(nerr);
+    
+    // get rid of trailing spaces
+    for ( UInt i=0; i<(UInt)nsize; ++i ) {
+      char *name = &charvec[i*80];
+      for ( UInt n=79; n>0; --n ) {
+        if ( isblank(name[n]) )
+          name[n] = 0;
+        else
+          break;
+      }
+    }
+    
+    for ( UInt i=0; i<numRegions_; ++i)
+    {
+      char *regionName = &charvec[i*4*80];
+      char *cfxID = &charvec[(i*4+1)*80];
+      
+      // if cfxID begins in "BCP", we have a boundary patch
+      // (there are other entities in NAMEMAP as well)
+      if ( strncmp(cfxID, "BCP", 3) == 0 )
+      {
+        UInt bcpNum = 0;
+        
+        // overwrite "BCP" with blanks, so we can parse the trailing number
+        cfxID[0] = ' '; cfxID[1] = ' '; cfxID[2] = ' ';
+        sstr.clear();
+        sstr.str(cfxID);
+        sstr >> bcpNum;
+        
+        if ( sstr.fail() || bcpNum < 1 || bcpNum > (UInt)nbcp) {
+          EXCEPTION("Invalid boundary patch number: " << cfxID);
+        }
+        
+        // store name of boundary patch
+        sstr.clear();
+        sstr.str("");
+        sstr << regionName;
+        regionNames_[bcpNum-1+numVolRegions_] = sstr.str();
+      }
+    }
+    
+    //
+    //---- read CFX Release No. for UserData
+    //
+    sprintf(what, "G/CRELNO");
+    sprintf(where, "EVERY");
+
+    dattyp = __string_data_type__;
+    when  = 0;
+    length= 1;
+    nsize = 101;
+    iopt   = __stop_if_failed__;
+    ioptar = 0;
+    charvec.resize(length*nsize);
+    
+    redsht_(&dattyp,&length,&nerr,what,where,&when,&nsize,
+            &iopt, &ioptar,
+            rarr,iarr,&charvec[0],larr,darr,carr,
+            strlen(what), strlen(where), 0);
+    CHECK_CFX_IO(nerr);
+
+    sstr.str("");
+    sstr << &charvec[0];
+    userDataCFXRelease = sstr.str();
+
+    
+    //
+    //---- close file
+    //
     whatfile = __io_close_primaryfile__;
     closefile_(&nerr, &whatfile);
     CHECK_CFX_IO(nerr);
@@ -537,29 +856,61 @@ namespace CoupledField
     doublevec.clear();
   }
 
-  void FileReader_CFX::ReadTopology(std::vector<UInt> & TOPOLOGYDATA,
+  void FileReader_CFX::ReadTopology( std::vector<UInt> & TOPOLOGYDATA,
                                          std::vector<UInt> & elemTypes)
   {
     Settings& settings = Settings::Instance();
-    UInt elem=0;
-    int numRegionElems=0;
-    int numElemNodes;
-    int elemType = Elem::UNDEF;
+    UInt elem = 0;
+    UInt elemType = Elem::UNDEF;
+    UInt numRegionElems=0;
+    UInt numElemNodes;
     std::vector<UInt> elConnect(maxNumElemNodes_);
 
+    std::cout  << "Reading connectivity from .def file" << std::endl;
+
+    // open .def file
     snprintf(fn, sizeof(fn),"%s", defFile.c_str());
     whatfile = __io_open_primaryfile__;
     openfile_(&nerr, fn, &whatfile, strlen(fn));
     CHECK_CFX_IO(nerr);
 
-    TOPOLOGYDATA.resize(numElems_ * maxNumElemNodes_);
+    // allocate memory
+    TOPOLOGYDATA.resize(numElems_ * maxNumElemNodes_, 0);
+    elemTypes.resize(numElems_, Elem::UNDEF);
 
-    for ( UInt actRegion=0; actRegion<numRegions_; ++actRegion )
+    // first read volume regions
+    for ( UInt actRegion=0; actRegion<numVolRegions_; ++actRegion )
     {
       elemType = regionElemTypes_[actRegion];
       numRegionElems = numElemsPerRegion_[actRegion];
       numElemNodes = Elem::GetNumElemNodes((Elem::FEType)elemType);
 
+      // read element numbers
+      sprintf(what, "G/KELPE");
+      sprintf(where, "ZN1/ES%d", actRegion+1);
+      when = 0;
+
+      dattyp = __int_data_type__;
+      length = numRegionElems;
+      nsize  = 1;
+      iopt   = __stop_if_failed__;
+      intvec.resize(length*nsize);
+
+      readlong_( &dattyp, &nerr, what, where, &when, &nsize, &iopt,
+                 rarr, &intvec[0], carr, larr, darr, sarr,
+                 strlen(what), strlen(where), 0 );
+      CHECK_CFX_IO(nerr);
+
+      regionElems_[actRegion].resize(numRegionElems, 0);
+      std::copy( intvec.begin(), intvec.end(),
+                 regionElems_[actRegion].begin() );
+      
+      std::vector<int>::const_iterator it = intvec.begin(),
+          itEnd = intvec.end();
+      for ( ; it != itEnd; ++it ) {
+        elemTypes[(*it)-1] = elemType;
+      }
+      
       //---- reading connectivity for each element set
       //     outer loop:  i_element
       //     inner loop:  i_vx per element (1 ... nelvx)
@@ -581,17 +932,14 @@ namespace CoupledField
                  strlen(what), strlen(where), 0 );
       CHECK_CFX_IO(nerr);
 
-      std::cout  << "read connectivity from def file" << std::endl;
-
       if ( settings.GetInt("verbose") )
       {
         printf("Length of Connectivity array: %d\n", nsize);
       }
 
       UInt baseIdx=0;
-      for ( int i=0; i<numRegionElems; ++i, baseIdx += numElemNodes )
+      for ( UInt i=0; i<numRegionElems; ++i, baseIdx += numElemNodes )
       {
-        elemTypes.push_back(elemType);
         std::fill(elConnect.begin(), elConnect.end(), 0);
 
         if ( elemType == Elem::HEXA8 )
@@ -612,16 +960,62 @@ namespace CoupledField
                      &elConnect[0] );
         }
 
-        regionElems_[actRegion].push_back(elem+1);
-
         std::copy(elConnect.begin(), elConnect.end(),
-                  TOPOLOGYDATA.begin() + elem*maxNumElemNodes_);
-        elem++;
-
+                  TOPOLOGYDATA.begin() + 
+                  (regionElems_[actRegion][i]-1)*maxNumElemNodes_);
+        ++elem;
       }
 
     }
 
+		// Make sure that std::vector's automatic allocation (via push_back)
+		// does not waste memory and time.
+    for ( UInt i=numVolRegions_; i<numRegions_; ++i )
+    {
+      regionElems_[i].reserve(numElemsPerRegion_[i]);
+    }
+    
+    for ( UInt iFS=0; iFS<numFaceSets_; ++iFS )
+    {
+      Integer iRegion = mapFaceSet2Region_[iFS];
+      if ( iRegion < 0 )
+        continue;
+      
+      numRegionElems = numElemsPerFaceSet_[iFS];
+      
+      sprintf(what,"G/KELPF");
+      sprintf(where, "ZN1/FS%d", iFS+1);
+      when  = 0;
+      
+      dattyp = __int_data_type__;
+      length = numRegionElems;
+      nsize  = 2;
+      iopt   = __stop_if_failed__;
+      intvec.resize(length*nsize);
+
+      readlong_( &dattyp, &nerr, what, where, &when, &nsize, &iopt,
+                 rarr, &intvec[0], carr, larr, darr, sarr,
+                 strlen(what), strlen(where), 0 );
+      CHECK_CFX_IO(nerr);
+      
+      for ( UInt i=0; i<numRegionElems; ++i )
+      {
+        std::vector<UInt>::const_iterator connectIt
+            = TOPOLOGYDATA.begin() + (intvec[2*i]-1)*maxNumElemNodes_;
+        
+        elemTypes[elem] = GetFaceOfElement( (UInt)elemTypes[intvec[2*i]-1],
+                                            (UInt)intvec[2*i+1],
+                                            connectIt,
+                                            elConnect);
+        
+        std::copy(elConnect.begin(), elConnect.end(),
+                  TOPOLOGYDATA.begin() + elem*maxNumElemNodes_);
+
+        regionElems_[iRegion].push_back(++elem);
+      }
+    }
+
+    // close .def file
     whatfile = __io_close_primaryfile__;
     closefile_(&nerr, &whatfile);
     CHECK_CFX_IO(nerr);
@@ -665,7 +1059,7 @@ namespace CoupledField
     openfile_(&nerr, fn, &whatfile, strlen(fn));
     CHECK_CFX_IO(nerr);
 
-    for ( UInt actPart=0; actPart < numRegions_; ++actPart )
+    for ( UInt actPart=0; actPart < numVolRegions_; ++actPart )
     {
       int nvx = numNodesPerRegion_[actPart];
       FlowDataType& fd = nodalFlowData[actPart];
@@ -993,11 +1387,48 @@ namespace CoupledField
     CHECK_CFX_IO(nerr);
   }
 
-  void FileReader_CFX::GetInfosFromCommand()
+  void FileReader_CFX::GetInfosFromCommand(UInt numLines)
   {
     std::string cmd, attrib;
     int pos=0;
     std::ostringstream sstr;
+
+    //    std::cout << charvec << std::endl;
+    
+    std::stringbuf *pbuf;
+    std::stringstream ss;
+    
+    pbuf=ss.rdbuf();
+    pbuf->sputn (&charvec[0], charvec.size());
+                 //numLines*80);
+    //    std::cout << pbuf->str();
+
+    rootNode.reset(new ParamNode(ParamNode::EX, ParamNode::ELEMENT ) );
+    rootNode->SetName("CFX_COMMANDS_DATASET");
+    rootNode->SetValue("Uninteresting");
+    currNode = rootNode;
+    parents.push(rootNode);
+    multiLine = false;
+    
+    // Split COMMANDS dataset into 80 character tokens
+    std::string str = pbuf->str();
+    int offsets[] = {80};
+    boost::offset_separator f(offsets, offsets+1,true,false);
+    boost::tokenizer<boost::offset_separator> tok(str,f);
+    UInt i = 0;
+    for(boost::tokenizer<boost::offset_separator>::iterator beg=tok.begin();
+        beg!=tok.end(), i < numLines;
+        ++beg, i++)
+    {
+      std::string trimmed = boost::algorithm::trim_copy(*beg);
+      ParseCCLLine(trimmed);
+      // std::cout << trimmed << "\n";
+      // std::cout << *beg << "\n";
+    }
+
+    // std::string ds;
+    // rootNode->ToXML(std::cout, 5);
+    // std::cout << ds << "\n";
 
     ParseCommand(charvec, pos, cmd, attrib, "", sstr);
     ParseCommand(charvec, pos, cmd, attrib, "", sstr);
@@ -1101,6 +1532,127 @@ namespace CoupledField
       }
     */
 #endif
+  }
+
+  void FileReader_CFX::ParseCCLLine(const std::string& line) 
+  {
+    typedef boost::char_separator<char> charsep;
+    typedef boost::tokenizer< charsep > chartok;
+    bool mlSwitch = multiLine;
+
+    // Check if the current line is a continuation of a previous line.
+    if((*line.rbegin()) == '\\') 
+    {
+      multiLine = true;
+
+      mlSwitch = (multiLine != mlSwitch);
+
+      if(!mlSwitch) 
+      {
+        std::stringstream sstr;
+        std::string val;
+        val = latestNode->As<std::string>();
+        
+        sstr << val << line;
+        latestNode->SetValue(sstr.str());
+
+        return;
+      }      
+    } else 
+    {
+      if(multiLine)
+      {
+        multiLine = false;
+
+        std::stringstream sstr;
+        std::string val;
+        val = latestNode->As<std::string>();
+        
+        // Replace continuation backslashes with nothing
+        const boost::regex datExp("\\\\");
+        const std::string name_format("");
+    
+        sstr << regex_replace(val, datExp, name_format,
+                              boost::match_default | boost::format_sed);
+
+        sstr << line;
+        latestNode->SetValue(sstr.str());
+        return;
+      }
+    }    
+
+    // Cut line into parts at = character. If we have more than one token on a
+    // line which  contains a =, then we  just add child nodes  to the current
+    // node and we do NOT introduce a new hierarchy level.
+
+    charsep sep("=");
+    chartok tok(line, sep);
+    
+    if(std::distance(tok.begin(), tok.end()) > 1) 
+    {
+      UInt i = 0;
+      std::vector<std::string> keyValue(2);
+      
+      for(chartok::iterator beg=tok.begin();
+          beg!=tok.end(), i < 2;
+          ++beg, i++)
+      {
+        keyValue[i] = boost::algorithm::trim_copy(*beg);
+      }
+
+      latestNode = 
+        PtrParamNode(new ParamNode(ParamNode::EX, ParamNode::ELEMENT));
+      
+      latestNode->SetName(keyValue[0]);
+      latestNode->SetValue(keyValue[1]);
+
+      currNode->AddChildNode( latestNode );
+    } else 
+    {
+
+      // Otherwise cut line into parts at  : character in order to introduce a
+      // new hierarchy level
+
+      charsep sep2(":");
+      chartok tok2(line, sep2);
+      std::string elemName = *tok2.begin();
+
+      if(elemName != "END")
+      {
+
+        // If we have  encountered a new element name add a  new child node to
+        // the current node.
+
+        latestNode = PtrParamNode(new ParamNode(ParamNode::EX,
+                                                ParamNode::ELEMENT));
+        latestNode->SetName(elemName);
+        latestNode->SetValue(elemName);
+
+        currNode->AddChildNode( latestNode );
+        parents.push(currNode);
+        currNode = latestNode;
+
+        // If there exists a second token  add it as an attribute to the newly
+        // generated node.
+
+        if(std::distance(tok2.begin(), tok2.end()) > 1) 
+        {
+          chartok::iterator it = tok2.begin();
+          it++;
+
+          latestNode = 
+            PtrParamNode(new ParamNode(ParamNode::EX, ParamNode::ATTRIBUTE));
+          latestNode->SetName("name");
+          latestNode->SetValue(boost::algorithm::trim_copy(*it));
+          currNode->AddChildNode( latestNode );
+        }        
+      } else 
+      {
+        // Go one level up in the hierarchy.
+        currNode = parents.top();
+        parents.pop();
+      }
+    }
   }
 
   void FileReader_CFX::ParseCommand(std::vector<char>& cmdstr,
@@ -1306,6 +1858,11 @@ namespace CoupledField
     }
 
     userData["TRN_TO_STEP_MAP"] = sstr.str();
+    
+    if (userDataCFXRelease.length() > 0)
+    {
+      userData["CFX_Release"] = userDataCFXRelease;
+    }
   }
 
   void FileReader_CFX::IOErrorToString(int ioerr, std::string& errStr)
@@ -1543,6 +2100,7 @@ namespace CoupledField
     end = transientFNs_.end();
 
     timeStepNumbers_.clear();
+    timeStepNumbers_.reserve(transientFNs_.size());
     
     for( ; it != end; it++ ) 
     {
@@ -1557,19 +2115,195 @@ namespace CoupledField
 
     numSteps_ = timeStepNumbers_.size();
     
-    /// **************************timeStepNumbers_[timeStepIdx]; ************************
-
-    /*    std::vector<FlowDataType> nodalFlowData;
-    std::vector<bool> activeParts;
-    activeParts.push_back(1);
-
-    numRegions_ = 1;
-    numNodesPerRegion_.resize(numRegions_);
-    numNodesPerRegion_[0] = 1;
-
-    ReadNodalValues(nodalFlowData, activeParts, 0);
-    determineFloatDS_ = false;
-    */
   }
   
+  std::string FileReader_CFX::GetRegionName(const UInt regionIdx)
+  {
+    if ( regionIdx >= numRegions_ )
+      EXCEPTION("Region index too large.");
+    return regionNames_[regionIdx];
+  }
+  
+  UInt FileReader_CFX::GetFaceOfElement( UInt elemType, UInt face,
+                           std::vector<UInt>::const_iterator &elemConnect,
+                           std::vector<UInt> &faceConnect )
+  {
+    /* This function fills faceConnect with the nodes of the request face.
+     * The element's connectivity must be given by elemConnect.
+     * 
+     * Face indexes are taken from "ANSYS CFX Reference Guide Rel 13.0,
+     * Sec. 3.4.7.1. cfxExportFaceNodes", except for hexahedron (which has to
+     * be renumbered for compatibility with CFS++).
+     */
+    switch ( elemType )
+    {
+      case Elem::TET4:
+        faceConnect.resize(3, 0);
+        switch ( face )
+        {
+          case 1:
+            faceConnect[0] = *(elemConnect+0);
+            faceConnect[1] = *(elemConnect+1);
+            faceConnect[2] = *(elemConnect+2);
+            break;
+          case 2:
+            faceConnect[0] = *(elemConnect+0);
+            faceConnect[1] = *(elemConnect+3);
+            faceConnect[2] = *(elemConnect+1);
+            break;
+          case 3:
+            faceConnect[0] = *(elemConnect+1);
+            faceConnect[1] = *(elemConnect+3);
+            faceConnect[2] = *(elemConnect+2);
+            break;
+          case 4:
+            faceConnect[0] = *(elemConnect+0);
+            faceConnect[1] = *(elemConnect+2);
+            faceConnect[2] = *(elemConnect+3);
+            break;
+          default:
+            EXCEPTION("Invalid face index: " << face);
+            break;
+        }
+        return Elem::TRIA3;
+        break;
+        
+      case Elem::PYRA5:
+        faceConnect.resize(3, 0);
+        switch ( face )
+        {
+          case 1:
+            faceConnect[0] = *(elemConnect+0);
+            faceConnect[1] = *(elemConnect+3);
+            faceConnect[2] = *(elemConnect+4);
+            break;
+          case 2:
+            faceConnect[0] = *(elemConnect+1);
+            faceConnect[1] = *(elemConnect+4);
+            faceConnect[2] = *(elemConnect+2);
+            break;
+          case 3:
+            faceConnect[0] = *(elemConnect+0);
+            faceConnect[1] = *(elemConnect+4);
+            faceConnect[2] = *(elemConnect+1);
+            break;
+          case 4:
+            faceConnect[0] = *(elemConnect+2);
+            faceConnect[1] = *(elemConnect+4);
+            faceConnect[2] = *(elemConnect+3);
+            break;
+          case 5:
+            faceConnect.resize(4, 0);
+            faceConnect[0] = *(elemConnect+0);
+            faceConnect[1] = *(elemConnect+1);
+            faceConnect[2] = *(elemConnect+2);
+            faceConnect[3] = *(elemConnect+3);
+            return Elem::QUAD4;
+            break;
+          default:
+            EXCEPTION("Invalid face index: " << face);
+            break;
+        }
+        return Elem::TRIA3;
+        break;
+        
+      case Elem::WEDGE6:
+        faceConnect.resize(4, 0);
+        switch ( face )
+        {
+          case 1:
+            faceConnect[0] = *(elemConnect+0);
+            faceConnect[1] = *(elemConnect+2);
+            faceConnect[2] = *(elemConnect+5);
+            faceConnect[3] = *(elemConnect+3);
+            break;
+          case 2:
+            faceConnect[0] = *(elemConnect+0);
+            faceConnect[1] = *(elemConnect+3);
+            faceConnect[2] = *(elemConnect+4);
+            faceConnect[3] = *(elemConnect+1);
+            break;
+          case 3:
+            faceConnect[0] = *(elemConnect+1);
+            faceConnect[1] = *(elemConnect+4);
+            faceConnect[2] = *(elemConnect+5);
+            faceConnect[3] = *(elemConnect+2);
+            break;
+          case 4:
+            faceConnect.resize(3, 0);
+            faceConnect[0] = *(elemConnect+0);
+            faceConnect[1] = *(elemConnect+1);
+            faceConnect[2] = *(elemConnect+2);
+            return Elem::TRIA3;
+            break;
+          case 5:
+            faceConnect.resize(3, 0);
+            faceConnect[0] = *(elemConnect+3);
+            faceConnect[1] = *(elemConnect+5);
+            faceConnect[2] = *(elemConnect+4);
+            return Elem::TRIA3;
+            break;
+          default:
+            EXCEPTION("Invalid face index: " << face);
+            break;
+        }
+        return Elem::QUAD4;
+        break;
+        
+      case Elem::HEXA8:
+        faceConnect.resize(4, 0);
+        switch ( face )
+        {
+          /* These indexes are different from those in the CFX Reference,
+           * because the connectivity of hexahedra was renumbered before
+           * (in function ReadTopology).
+           */
+          case 1:
+            faceConnect[0] = *(elemConnect+4);
+            faceConnect[1] = *(elemConnect+5);
+            faceConnect[2] = *(elemConnect+1);
+            faceConnect[3] = *(elemConnect+0);
+            break;
+          case 2:
+            faceConnect[0] = *(elemConnect+7);
+            faceConnect[1] = *(elemConnect+3);
+            faceConnect[2] = *(elemConnect+2);
+            faceConnect[3] = *(elemConnect+6);
+            break;
+          case 3:
+            faceConnect[0] = *(elemConnect+4);
+            faceConnect[1] = *(elemConnect+0);
+            faceConnect[2] = *(elemConnect+3);
+            faceConnect[3] = *(elemConnect+7);
+            break;
+          case 4:
+            faceConnect[0] = *(elemConnect+5);
+            faceConnect[1] = *(elemConnect+6);
+            faceConnect[2] = *(elemConnect+2);
+            faceConnect[3] = *(elemConnect+1);
+            break;
+          case 5:
+            faceConnect[0] = *(elemConnect+4);
+            faceConnect[1] = *(elemConnect+7);
+            faceConnect[2] = *(elemConnect+6);
+            faceConnect[3] = *(elemConnect+5);
+            break;
+          case 6:
+            faceConnect[0] = *(elemConnect+0);
+            faceConnect[1] = *(elemConnect+1);
+            faceConnect[2] = *(elemConnect+2);
+            faceConnect[3] = *(elemConnect+3);
+            break;
+          default:
+            EXCEPTION("Invalid face index: " << face);
+            break;
+        }
+        return Elem::QUAD4;
+        break;
+      default:
+        EXCEPTION("Element type " << elemType << " not supported");
+        break;
+    }
+  }
+
 }

@@ -845,7 +845,7 @@ namespace CoupledField {
       if ( regionNonLinType_[actRegion] == PERMEABILITY ) {
 
         // Obtain nonlinear approximation functional
-        ApproxData * approx  = materials_[actRegion]->GetNonlinFncBH();
+        ApproxData * approx  = materials_[actRegion]->GetNonlinFncBH(MAG_PERMEABILITY);
 
         // Calculate flux density in element midpoint
         CalcFluxDensityAtIP( it, 0, elemFlux );

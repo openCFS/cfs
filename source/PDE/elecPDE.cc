@@ -232,7 +232,7 @@ namespace CoupledField {
         
         else if (  regionNonLinType_[actRegion] == MATERIAL ) {
           
-          std::string nlfnc = materials_[actRegion]->GetNonlinFileName();
+          std::string nlfnc = materials_[actRegion]->GetNonlinFileName(ELEC_PERMITTIVITY);
           materials_[actRegion]->GetScalar(nlfnc,NONLIN_DATA_NAME);           
           
           ApproxData *nlinFnc = new SmoothSpline(nlfnc);

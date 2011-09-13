@@ -97,16 +97,16 @@ namespace CoupledField{
 
      char firstBaseName[200];
      char firstZoneName[200];
-     Integer vertSize[9];
+     int vertSize[9];
      Integer dim = 0;
      Integer physDim = 0;
      ZoneType_t gridType;
 
-     memset(vertSize,0,9*sizeof(Integer));
+     //memset(vertSize,0,9*sizeof(cgsize_t));
 
      cg_base_read(fn,1,firstBaseName , &dim , &physDim );
      cg_zone_type(fn,1,1,&gridType);
-     cg_zone_read(fn,1,1,firstZoneName,vertSize);
+     cg_zone_read(fn,1,1,firstZoneName,(cgsize_t*)vertSize);
 
      switch(gridType)
      {
@@ -125,8 +125,8 @@ namespace CoupledField{
       case Unstructured:
           std::cout << "Going to read " << vertSize[0] << " Vertices, building " << vertSize[1] << " Cells ";
           std::cout << "of a " << dim << "D, unstructured mesh ...." << std::endl;
-          ReadUnstructuredGrid(fn,physDim,vertSize);
-          
+          ReadUnstructuredGrid(fn,physDim,(cgsize_t*)vertSize);
+
           break;
      }
      CalcNumNodesPerRegion();
@@ -151,7 +151,6 @@ namespace CoupledField{
       }
       regIter++;
     }
-
   }
   
   //! get nodal values from the corresponding fluid datafile the new way
@@ -198,8 +197,8 @@ namespace CoupledField{
         cg_field_info(fn, 1, 1, numsols, aSol, &datatype , fieldName );
         UInt spaceIdx = MapVelocityIndex(fieldName);
         if(spaceIdx != 9999){
-          Integer range_min[3] = {1,1,1};
-          Integer range_max[3] = {numVertices_,1,1};
+          cgsize_t range_min[3] = {1,1,1};
+          cgsize_t range_max[3] = {numVertices_,1,1};
           Double * curSol = new Double[numVertices_];
           cg_field_read(fn,1,1,1, fieldName, RealDouble , range_min, range_max, (void *)curSol );
           solution[spaceIdx].resize(numVertices_,0);
@@ -216,7 +215,7 @@ namespace CoupledField{
      //but we assume that this is not hte case
      char sectionName[33];
      ElementType_t eType;
-     Integer start,end = 0;
+     cgsize_t start,end = 0;
      Integer nboundary = 0;
      Integer parentFlag = 0;
 
@@ -272,7 +271,6 @@ namespace CoupledField{
     // //open the first cgns file
     // Integer fn = GetFileHandle(firstFile);
     cg_close(fn);
-
   }
   
   Double FileReader_CGNS::GetTimeStep(UInt stepNumber){
@@ -317,7 +315,7 @@ namespace CoupledField{
   void FileReader_CGNS::ReadCGNSDirectory(std::string dirname, std::map<Double, std::string> & fileNames){
      Settings& settings = Settings::Instance();
      
-     UInt firstStep = settings.GetInt("firststep");
+
      fs::path trnDir( dirname );
      fs::directory_iterator end_iter;
 
@@ -329,61 +327,132 @@ namespace CoupledField{
      stepNum = 0;
      std::string fn;
      
-     //give a wanring that the user knows whats going on
-     std::cout << "Assuming that the step numbers are the last thing in the filename before the extension.\n"<< 
-           "If this is not the case the algorithm will fail!" << std::endl;
 
+     //new idea
+     // 1. first fill an array with all cgns files
+     // 2. check for the justmesh option
+     // 2a. if true, and i found multiple files, ask the user which one to convert
+     // 2b. if false we can continue with the standard
+
+     //make a one based file counter
+     UInt counter = 0;
      for ( fs::directory_iterator dir_itr( trnDir );
            dir_itr != end_iter;
            ++dir_itr ) {
         if ( !fs::is_directory( *dir_itr ) ) { 
           fn = dir_itr->leaf();
           if(algo::ends_with(fn, ".cgns")) {
-            boost::tokenizer<> tok(fn);
-            //for(boost::tokenizer<>::iterator beg=tok.begin(); beg!=tok.end();++beg){
-            //ASSUME THE element before the last token to be the number
-            std::vector<std::string> parts( tok.begin(), tok.end() ) ;
-            try{
-              std::string doub =  parts[parts.size()-3] + "." + parts[parts.size()-2];
-              Double number = boost::lexical_cast< Double >( doub  );
-              fileNames[number] = fn;
-            }catch( const boost::bad_lexical_cast & ){
-              std::cout << "Cannot cast to integer. Maybe your files have a different name convention than expected.";
-              //std::cerr << "Cannot cast to double. Trying with int." std::endl;
-              try{
-                Double number = boost::lexical_cast< UInt >( parts[parts.size()-2]  );
-                fileNames[number] = fn;
-              }catch( const boost::bad_lexical_cast & ){
-                std::cout<< "Cannot cast to integer. Maybe your files have a different name convention than expected.";
-              }
-            }
-          }else{
-            std::cout << "Ignoring File " << fn << std::endl;
+            fileNames[++counter] = fn;
           }
         }
      }
-     //now erase the number of files according to startstepo parameter
-     for(UInt i = 1;i<=firstStep;i++){
-       fileNames.erase(fileNames.begin());
+     UInt justmesh = settings.GetInt("justmesh");
+     UInt calcsrc = settings.GetInt("calcsrc");
+
+     if(justmesh == 1){
+       std::cout << "Going to convert a CGNS file to hdf5..." << std::endl;
+
+       if(counter > 1){
+         std::string filename;
+         std::cout << "Found more than one CGNS file";
+         if(counter > 10){
+           std::cout << " please type in the filename (case sensitive): " << std::endl;
+           std::cin >> filename;
+         }else{
+           //print out each file with its number
+           std::map<Double, std::string>::iterator mIter = fileNames.begin();
+           std::cout <<std::endl;
+           while(mIter!=fileNames.end()){
+             std::cout << mIter->first << ") \t" << mIter->second << std::endl;
+             mIter++;
+           }
+           UInt fNum = 0;
+           while(true){
+            if(fNum<1 || fNum > counter){
+              std::cout << std::endl << "Please give the number of the file you want to convert:";
+              std::cin >> fNum;
+            }else{
+              break;
+            }
+           }
+           filename = fileNames[fNum];
+         }
+
+         //check if the file is there
+         std::string ftest = name_ + "/" + filename;
+         if(std::fopen(ftest.c_str(),"r")==0){
+           std::cerr << "File not found " << filename << std::endl;
+           exit(0);
+         }else{
+           fileNames.clear();
+           fileNames[0] = filename;
+           std::cout << "converting file " << filename << std::endl;
+         }
+       }
+
+     }else if(calcsrc == 1){
+       std::cout << "Going to iterate through the CGNS directory to obtain all source files" << std::endl;
+       //give a wanring that the user knows whats going on
+       std::cout << "Assuming that the step numbers are the last thing in the filename before the extension.\n"<<
+             "If this is not the case the algorithm will fail!" << std::endl;
+       boost::tokenizer<> tok(fn);
+       UInt firstStep = settings.GetInt("firststep");
+       for ( fs::directory_iterator dir_itr( trnDir );
+                  dir_itr != end_iter;
+                  ++dir_itr ) {
+         if ( !fs::is_directory( *dir_itr ) ) {
+           fn = dir_itr->leaf();
+           if(algo::ends_with(fn, ".cgns")) {
+
+             //for(boost::tokenizer<>::iterator beg=tok.begin(); beg!=tok.end();++beg){
+              //ASSUME THE element before the last token to be the number
+              std::vector<std::string> parts( tok.begin(), tok.end() ) ;
+              try{
+                std::string doub =  parts[parts.size()-3] + "." + parts[parts.size()-2];
+                Double number = boost::lexical_cast< Double >( doub  );
+                fileNames[number] = fn;
+              }catch( const boost::bad_lexical_cast & ){
+                std::cout << "Cannot cast to integer. Maybe your files have a different name convention than expected.";
+                //std::cerr << "Cannot cast to double. Trying with int." std::endl;
+                try{
+                  Double number = boost::lexical_cast< UInt >( parts[parts.size()-2]  );
+                  fileNames[number] = fn;
+                }catch( const boost::bad_lexical_cast & ){
+                  std::cout<< "Cannot cast to integer. Maybe your files have a different name convention than expected.";
+                }
+              }
+            }else{
+              std::cout << "Ignoring File " << fn << std::endl;
+            }
+          }
+       }
+       //now erase the number of files according to startstep parameter
+       for(UInt i = 1;i<=firstStep;i++){
+         fileNames.erase(fileNames.begin());
+       }
+       std::cout << "Found " << fileNames.size() << " files/steps which appear to be valid" << std::endl;
+       //std::map<Double, std::string>::iterator iter = fileNames.begin();
+       //for(UInt i = 1;i<=fileNames.size();i++){
+       //  std::cout << iter->first << " with name " << iter->second << std::endl;
+       //  iter++;
+       //}
+     }else{
+       std::cerr << "Please specify either calcsrc ot justmesh option" << std::endl;
+       exit(0);
      }
-     std::cout << "Found " << fileNames.size() << " files/steps which appear to be valid" << std::endl;
-     //std::map<Double, std::string>::iterator iter = fileNames.begin();
-     //for(UInt i = 1;i<=fileNames.size();i++){
-     //  std::cout << iter->first << " with name " << iter->second << std::endl;
-     //  iter++;
-     //}
+
      numSteps_ = fileNames.size();
   }
   
   Integer FileReader_CGNS::GetFileHandle(std::string fName){
     Integer fn = -1;
     if(fs::exists(fName)){
-#ifdef CG_MODE_READ
-     if(cg_open(fName.c_str(), CG_MODE_READ, &fn) != CG_OK)
-#else
+//#ifdef CG_MODE_READ
+    if(cg_open(fName.c_str(), CG_MODE_READ, &fn) != CG_OK)
+//#else
      // Still support pre 2.5 CGNS
-     if(cg_open(fName.c_str(), MODE_READ, &fn) != CG_OK)
-#endif
+ //    if(cg_open(fName.c_str(), MODE_READ, &fn) != CG_OK)
+//#endif
      {
         std::cerr << "File open failed: " << fName << "... Going to exit" << std::endl; 
         EXCEPTION(cg_get_error());
@@ -393,6 +462,7 @@ namespace CoupledField{
       std::cerr << "File does not exists: " << fName << "... Going to exit" << std::endl; 
       exit(1);
     }
+    std::cout << "file opened" << std::endl;
     return fn;
   }
   void FileReader_CGNS::CheckFileValidity(Integer fileHandle){
@@ -452,7 +522,7 @@ namespace CoupledField{
     return coordinateIndex;
   }
 
-  void FileReader_CGNS::ReadUnstructuredGrid(Integer fileHandle,Integer dim,Integer* size){
+  void FileReader_CGNS::ReadUnstructuredGrid(Integer fileHandle,Integer dim,cgsize_t* size){
      char gridCoordName[33];
      char curCoordName[33];
      Integer ncoords = 0;
@@ -472,8 +542,8 @@ namespace CoupledField{
      //==================================================================
      // READ IN COORDINATES
      //==================================================================
-     Integer range_min[3] = {1,1,1};
-     Integer range_max[3] = {numVertices_,1,1};
+     cgsize_t range_min[3] = {1,1,1};
+     cgsize_t range_max[3] = {numVertices_,1,1};
 
      nodeCoords_.Resize(ncoords);
      Double * curCoord = new Double[numVertices_];
@@ -513,10 +583,10 @@ namespace CoupledField{
      for(Integer curReg = 1; curReg<=nsections;curReg++){
        char sectionName[33];
        ElementType_t eType;
-       Integer start,end = 0;
+       cgsize_t start,end = 0;
        Integer nboundary = 0;
        Integer parentFlag = 0;
-       Integer elemArraySize= 0;
+       cgsize_t elemArraySize= 0;
        Integer numEs = 0;
        Integer vertsPerElem= 0;
 
@@ -542,7 +612,7 @@ namespace CoupledField{
        std::cout << "ParentFlag: " << parentFlag << std::endl << std::endl;
 
        //create the elements array
-       Integer * curElems = new Integer[elemArraySize];
+       cgsize_t * curElems = new cgsize_t[elemArraySize];
 
        regionIndexToNameMap_[curReg] = std::string(sectionName);
        elemRegionMap_[curReg] = StdVector<CGNSElem>(numEs);

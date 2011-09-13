@@ -12,6 +12,21 @@ therefore also  describe how to obtain  the pre- and  postprocessors which are
 supported by CFS++.  In the last section we give hints  on what other chapters
 and sections are a good further reading for users with different interests.
 
+In order  to get started with  CFS++ development it  is a good idea,  to learn
+about  the   usage  of   CFS++  first  before   going  into  the   details  of
+development. The  document which you  should therefore consider first,  is the
+CFS++ user's tutorial \cite{Simkovics2010}. If you are comfortable using CFS++
+the next  question to ask is,  wether you want to  setup up a  new machine for
+doing  development, or  if  you are  going  to use  one  of the  preconfigured
+machines in Erlangen or Klagenfurt.  In  the former case you should start with
+sections  \ref{sec:list_of_ext_packages}  and \ref{sec:obtaining_prepostprocs}
+before following the  steps outlined in the remaining  sections of the current
+chapter.    In  Sec.    \ref{sec:first_time_implementing}  a   somewhat  rough
+description is given about the  structure of CFS++ by explaining the necessary
+code parts for  a pseudo PDE.  To get hands-on experience  with the code, Sec.
+\ref{sec:code_in_action}  describes how  to examine  the static  and transient
+behavior of the code by recording callgraphs and by using a debugger.
+
 \section{Setting up a Machine for CFS++ Development}
 \label{sec:list_of_ext_packages}
 
@@ -212,6 +227,7 @@ $\rightarrow$  Existing  Project  into  Workspace  $\rightarrow$  Select  Root
 Directory {\tt \$DEVDIR/build/debug}.
 
 \section{Obtaining Pre-/Postprocessors}
+\label{sec:obtaining_prepostprocs}
 
 \subsection{GiD} GiD  may be  downloaded along with  a free  one-month license
 from    \url{http://gid.cimne.upc.es/download/official-versions}.    The   GiD

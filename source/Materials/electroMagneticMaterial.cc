@@ -363,7 +363,7 @@ namespace CoupledField
 
     // check, if we need to approx BH curve
     if (  needApproxMatCurves_.find( magBH ) != needApproxMatCurves_.end() ) {
-      std::string nlfnc = GetNonlinFileName();
+      std::string nlfnc = GetNonlinFileName(MAG_PERMEABILITY);
       nlinFncBH_ = new SmoothSpline(nlfnc, BH);
 
       //get accuracy of approximation

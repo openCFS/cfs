@@ -14,6 +14,15 @@ Filter::Filter()
   beta_          = -1.0;
   heaviside_corr = -1.0;
   eta            = -1.0;
+  explicit_lower_bound_ = std::numeric_limits<double>::min();
+}
+
+double Filter::GetLowerBound(const DesignElement* de) const
+{
+  if(explicit_lower_bound_ != std::numeric_limits<double>::min())
+    return explicit_lower_bound_;
+  else
+    return de->GetLowerBound();
 }
 
 
@@ -31,16 +40,16 @@ void Filter::SetBeta(double val, const DesignSpace* space)
   }
   else
   {
-    double lb = space->data[0].GetLowerBound();
+    double lb = GetLowerBound(&(space->data[0]));
     // we assume a constant lower bound, if this is not he case we need another implementation
     for(unsigned int i = 0, n = space->data.GetSize(); i < n; i++)
-      assert(space->data[i].GetLowerBound() == lb);
+      assert(GetLowerBound(&(space->data[i])) == lb);
 
     DesignElement de = DesignElement();
     de.simp = new SIMPElement(&de);
     de.simp->filter = *this;
     de.elem = space->data[0].elem;
-    de.SetLowerBound(lb);
+    explicit_lower_bound_ = lb;
     de.SetDesign(lb);
 
     // find haviside_corr by a simple bisection (results in 0.2 ... 0.99999)
@@ -48,6 +57,12 @@ void Filter::SetBeta(double val, const DesignSpace* space)
     double upper = 2.0;
     while(upper - lower > 1e-6) // so close that it doesn't matter in the end which value [lower:upper] is best
     {
+      // this is nonsense!! TODO
+      // why not like
+      // double mid = 0.5 * (ub + lb);
+      // double test = tf->Transform(NULL, DesignElement::PLAIN, mid);
+      // if(test < physical)
+
       double mid = 0.5 * (upper + lower);
       de.simp->filter.heaviside_corr = 0.5 * (upper + mid);
       double err_u = lb - de.simp->CalcHeaviside(lb);

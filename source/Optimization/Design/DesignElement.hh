@@ -24,6 +24,7 @@ class LevelSetElement;
 class Function;
 class Objective;
 class Condition;
+class TransferFunction;
 
 /** This DesignElement package provides information about the direct neighbours for uniform cartesian
  * quadrilateral or hexahedral meshes. */
@@ -133,6 +134,7 @@ public:
     MAX_JUMP, /* weak greyness constraint formulation */
     PENALIZED_STRESS, /* stess with own transfer function */
     DESIGN_TRACKING, /* (rho-rho^*)^2 but without 1/N */
+    PROJECTION, /* local value from projection || nu(rho_i) - H_eta_beta(rho_i) ||^2 */
     LEVEL_SET_GRAD_XP, LEVEL_SET_GRAD_XN, LEVEL_SET_GRAD_YP, LEVEL_SET_GRAD_YN, LEVEL_SET_GRAD_ZP, LEVEL_SET_GRAD_ZN } ValueSpecifier;
 
   BaseDesignElement();
@@ -229,10 +231,12 @@ public:
    * Is slow as it does the same evaluation often but is only O(n)
    * @param space to output 'penalizedDesign' the pointer is needed to find the transfer function
    * @param index location within the design space */
-  DesignElement(PtrParamNode pn, Elem* elem, unsigned int index);
+  DesignElement(Type dt, double lower, double upper, Elem* elem, unsigned int index);
 
   /** Dummy elements for Funtion */
   DesignElement(Elem* elem, Type type, unsigned int index, int pseudoElementIndex);
+
+
 
   virtual ~DesignElement();
 
@@ -262,7 +266,9 @@ public:
       COMPLIANCE, VOLUME, PENALIZED_VOLUME, GAP, TRACKING, HOMOGENIZATION_TRACKING,
       POISSONS_RATIO, YOUNGS_MODULUS, YOUNGS_MODULUS_E1, YOUNGS_MODULUS_E2,
       TYCHONOFF, GREYNESS, REALVOLUME,
-      GLOBAL_SLOPE, GLOBAL_CHECKERBOARD, STRESS} Detail;
+      GLOBAL_SLOPE, GLOBAL_CHECKERBOARD, STRESS,
+      /*!< only for the projection function. This is the element wise fake filter part */
+      PROJECTION_FILTER } Detail;
 
     /** Gets the design element
      * @param access if plain the rho value if SMART and filtering is enabled the filtered value */
@@ -298,8 +304,9 @@ public:
 
     Type GetType() const { return type_; }
     
-    /** Write key values as attributes */
-    void ToInfo(PtrParamNode in) const;
+    /** Write key values as attributes
+     * @param tf if given prints the physical lower bound */
+    void ToInfo(PtrParamNode in, TransferFunction* tf) const;
 
     std::string ToString() const { return ToString(this); }
 
@@ -308,6 +315,10 @@ public:
     
     /** helper for LOG output */
     static std::string ToString(const StdVector<DesignElement*>& vec);
+
+    /** Calculates the volume of the element, used static helpers.
+     * caches the result, hence cheap to query again */
+    double CalcVolume();
 
     /** to make the class polymorphi and we can dynamic_cast<> it */
     /** Pointer to the element of the region, parameter for integration, ... */
@@ -378,6 +389,9 @@ private:
   /** what is our design type */
   Type type_;
 
+  /** the element volume calculated on request by CalcVolume() */
+  double elemVol_;
+
   /** up to now only needed to extract 'penalizedDesign'. Make it protected
    * if you need it. */
   static DesignSpace* space_;
@@ -406,7 +420,8 @@ public:
   double CalcTanh(double input_value) const;
 
   /** only for sensitivities for density filtering.
-   * See Sigmund; Morpology-based black and white filters for topology optimization; 2007; (35) and (36) */
+   * See Sigmund; Morpology-based black and white filters for topology optimization; 2007; (35) and (36)
+   * @param sp COST_GRADIENT, CONSTRAINT_GRADIENT or DENSITY for PROJECTION only */
   double GetDensityFilteredGradient(DesignElement::ValueSpecifier sp, Condition* g) const;
 
   /** Sums up the weights of the neighbors and optionally the own element */
@@ -487,9 +502,11 @@ public:
 inline
 double SIMPElement::CalcHeaviside(double input_value) const
 {
-  Filter* f = &de_->simp->filter;
+  const Filter* f = &de_->simp->filter;
   assert(f->type_ == Filter::DENSITY);
   assert(f->density_ == Filter::HEAVISIDE || f->density_ == Filter::MOD_HEAVISIDE);
+
+  double result;
 
   double b = f->GetBeta();
   assert(b >= 0.0 && b < 2000);
@@ -498,26 +515,28 @@ double SIMPElement::CalcHeaviside(double input_value) const
   {
     // we apply the correction factor in a way that H(rho_min) = rho_min and H(1) = 1
     double corr = (1.0 - (1.0 - input_value) * f->heaviside_corr) * input_value;
-    double result = 1.0 - std::exp(-1.0 * b * corr) + corr * std::exp(-1.0 * b);
+    result = 1.0 - std::exp(-1.0 * b * corr) + corr * std::exp(-1.0 * b);
 
-    // LOG_DBG3(desel) << "CH: de=" << de_->elem->elemNum << " f=" << f->density.ToString(f->density_)
-    //                 << " hc=" << f->heaviside_corr << " corr=" << corr << " iv=" << input_value << " -> " << result;
-    return result;
+    // no LOG_DBG possible due to inline
+    // std::cout << "CH: de=" << de_->elem->elemNum << " f=" << f->density.ToString(f->density_)
+    ///          << " hc=" << f->heaviside_corr << " corr=" << corr << " iv=" << input_value << " -> " << result << std::endl;
   }
   else // if(f->density_ == Filter::MOD_HEAVISIDE)
   {
     // make sure we are within the bounds
     double ub = this->de_->GetUpperBound();
-    double lb = this->de_->GetLowerBound();
+    double lb = f->GetLowerBound(this->de_); // might be force_lower_bound from the filter setting
 
     double first    = std::exp(-1.0 * b * (1.0 - input_value));
     double second   = -1.0 * (1.0 - input_value) * std::exp(-1.0 * b);
 
-    return (ub-lb) * (first + second) + lb;
+    result = (ub-lb) * (first + second) + lb;
 
-    // LOG_DBG3(desel) << "GDFV: el=" << de_->elem->elemNum << " b=" << b << " lb=" << lb << " (ub-lb)=" << (ub-lb)
-    //                << " c=" << constant << " +1st=" << first << " +2nd=" << second << " =" << (constant + first + second) << " -> " << p_filt;
+    // std::cout << "CH: el=" << de_->elem->elemNum << " iv=" << input_value << " b=" << b << " lb=" << lb << " (ub-lb)=" << (ub-lb)
+    //           << " +1st=" << first << " +2nd=" << second << " -> " << result << std::endl;
   }
+
+  return result;
 }
 
 } // end of namespace
