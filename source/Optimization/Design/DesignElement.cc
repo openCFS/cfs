@@ -640,6 +640,7 @@ double SIMPElement::GetSensitivityFilteredValue(DesignElement::ValueSpecifier sp
 }
 
 
+
 inline
 double SIMPElement::GetDensityFilteredValue(DesignElement::ValueSpecifier sp, Filter::Density fd) const
 {
@@ -726,7 +727,8 @@ double SIMPElement::CalcTanh(double input_value) const
   return result;
 }
 
-inline
+// this inline could improve speed, works with gcc 4.5.1 but fails for older ones :(
+// inline
 double SIMPElement::GetDensityFilteredGradient(DesignElement::ValueSpecifier sp, Condition* g) const
 {
   // We filter over this element and the neighbors.

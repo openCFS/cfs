@@ -89,7 +89,7 @@ std::string BaseDriver::ConcatAnalysisId(PtrParamNode analysis_id, const std::st
 
   // if we simply concatenate, the string becomes very long for optimization and other iterative stuff.
   // therefore create a new string if child_name already is in the string.
-  if(old.find(child_name) < 0) // when child_name is not given we use the old string
+  if(old.find(child_name)  == std::string::npos) // when child_name is not given we use the old string
     ss << old;
 
   if(child_name != "")
