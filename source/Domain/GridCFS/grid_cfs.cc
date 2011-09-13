@@ -333,7 +333,7 @@ namespace CoupledField {
 
     // find minimum entry in the vector
     std::vector<Double>::iterator it ;
-    it = min_element(entityDist.begin(), entityDist.end());
+    it = std::min_element(entityDist.begin(), entityDist.end());
     entityNum = std::distance(entityDist.begin(), it) + 1;
     return entityNum;
 

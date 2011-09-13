@@ -35,6 +35,7 @@
 #include <time.h>
 #include <fstream>
 #include <iostream>
+#include <cstdio>
 #include <boost/bind.hpp>
 
 #ifdef BOOST_LOG_WIN32

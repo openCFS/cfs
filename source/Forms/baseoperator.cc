@@ -19,11 +19,4 @@ namespace CoupledField
     this->coordUpdate_ = coordUpdate;
   }
 
-
-  BaseOperator::~BaseOperator()
-  {
-
-    ;
-  }
-
 } // end of namespace

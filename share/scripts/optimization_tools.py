@@ -710,28 +710,30 @@ def is_valid_density_file(infile):
     if len(ls) < 1:
       continue
 
+    ls0strip = ls[0].strip()
+
     # we assume the first line is <?xml version="1.0"?>
     if lc == 1:
-      if ls[0].strip() != '<?xml':
+      if ls0strip != '<?xml':
         return False
       continue
 
-    ls0strip = ls[0].strip()
     if ls0strip == '<cfsErsatzMaterial' or ls0strip == '<cfsErsatzMaterial>':
       ersatzfound = True
+
     if ls0strip == '<header' or ls0strip == '<header>':
       headerfound = True
+
+    # if we find a set, all requirements are met, so we break
     if ls0strip == '<set' or ls0strip == '<set>':
       setfound = True
+      break
 
     # if all is found, then we break
-    if ersatzfound and headerfound and setfound:
-      break
-    # we will never have a header longer than 100 lines...
-    if lc > 100:
+    if (ersatzfound and headerfound and setfound):
       break
 
-  return ersatzfound and headerfound and setfound
+  return (ersatzfound and headerfound and setfound)
 
 
 
