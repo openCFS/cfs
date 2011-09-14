@@ -666,7 +666,7 @@ namespace CoupledField {
       {
         regionDims[el->regionId] = Elem::shapes[type].dim;
         LOG_DBG3(gridcfs) << "\tRegion '" 
-                          << region_.ToString(regionDims[el->regionId]) 
+                          << region_.ToString(el->regionId)
                           << "' has dimension " << regionDims[el->regionId];
         
       }

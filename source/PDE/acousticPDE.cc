@@ -2853,6 +2853,7 @@ namespace CoupledField {
   AcousticPDE::CreateFeSpaces( const std::string& formulation,
                                PtrParamNode infoNode ){
     std::map<SolutionType, shared_ptr<FeSpace> > crSpaces;
+    //obtain Polytype
     if(formulation == "default" || formulation == "H1"){
       crSpaces[ACOU_POTENTIAL] = 
           FeSpace::CreateInstance(myParam_, infoNode, FeSpace::H1 );

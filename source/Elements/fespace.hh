@@ -77,6 +77,15 @@ public:
   //! their definition on vertices,edges,faces and interior
   typedef std::map< BaseFE::EntityType , StdVector<UInt> > ElemVirtualNodes;
 
+  typedef enum {ABSOLUTE,RELATIVE} IntegOrderMode;
+  static Enum<IntegOrderMode> IntegOrderModeEnum;
+
+  struct IntegDefinition{
+      IntScheme::IntegMethod method;
+      Matrix<Integer> order;
+      IntegOrderMode mode;
+  };
+
   //! Constructor
   FeSpace(PtrParamNode paramNode, PtrParamNode infoNode);
 
@@ -119,6 +128,10 @@ public:
 
   //! Get the Integration method and its order for the current region
   void GetIntegration(RegionIdType region, IntScheme::IntegMethod & method,Matrix<Integer> & order);
+
+  //! Set the approximation for the given region according to the passed poly and integ Ids
+  //! ToDO if integration and polynomial nodes are merged, of course only an orderId has to be passed
+  void SetRegionApproximation(RegionIdType region, std::string polyId, std::string integId);
 
   //@}
   // ========================================================================
@@ -257,6 +270,12 @@ protected:
   //! Map for reference elements by region
   std::map< RegionIdType, std::map<Elem::FEType, BaseFE* > > refElems_;
 
+  //!Map for the parameter nodes for polyList for easier access
+  std::map< std::string, PtrParamNode > integNodes_;
+
+  //!Map for the parameter nodes for integrationList for easier access
+  std::map< std::string, PtrParamNode > polyNodes_;
+
   //! Storing the FeFunctions associated with this space
   shared_ptr<BaseFeFunction> feFunction_;
 
@@ -301,20 +320,18 @@ protected:
   //! in the anisotrpopic case,the order matrix represents in each row, the component
   //! of (vectorial) unknowns and in each column the order for each space direction
   //! to distinguish cleanly one could define an isIsoOrderInt flag....
-  std::map<RegionIdType,
-           std::pair<IntScheme::IntegMethod,Matrix<Integer> > > regionIntegration_;
+  std::map<RegionIdType, IntegDefinition > regionIntegration_;
 
   //! Set the order and mapping type of a specific region
   virtual void SetRegionElements( RegionIdType region, MappingType mType,
                                   const Matrix<Integer>& order)=0;
 
-  //! read in region mapping data and set defaults
-  virtual void CreateRefElems();
-
   //! read in integration data and set defaults
   virtual void SetRegionIntegration(RegionIdType region, 
                                     IntScheme::IntegMethod method,
-                                    const Matrix<Integer>& order)=0;
+                                    Matrix<Integer> order,
+                                    IntegOrderMode mode);
+
 
 
   // ====================================================================
@@ -329,7 +346,10 @@ protected:
   virtual void SetDefaultIntegration() = 0;
 
   //! Create default finite elements to be used if nothing else is requested
-  virtual void CreateDefaultElements() = 0;
+  virtual void SetDefaultElements() = 0;
+
+  //! reads in special options for the space under consideration
+  virtual void ReadCustomAttributes(PtrParamNode pNode,RegionIdType region){;}
 
   // =====================================================
   //  Nodal section
@@ -379,20 +399,24 @@ protected:
   // =========================================================
 
   //! Read the contents of the given parameter node and call the SetRegionIntegration Function
-  virtual void ProcessIntegRegionNode(PtrParamNode node, RegionIdType reg);
+  virtual void ReadIntegNode(PtrParamNode node,  IntScheme::IntegMethod & iMeth,
+                                Matrix<Integer> &orderMat, IntegOrderMode & mode);
+
+  //! Here we pass a fePolynomial node such that the feSpace can extract the information
+  //! which is important for the specific space
+  virtual void ReadPolyNode(PtrParamNode node, MappingType & mapType,
+                                 Matrix<Integer> & order);
 
   //! Read the IntegrationSchemeList from the xml and put the nodes in the map
   //! according to their id's
-  virtual void ExtractIntegSchemeIds(std::map<std::string,PtrParamNode> & integNodes);
+  virtual void ReadIntegList();
 
   //! Read the fePolynomialList from the xml and put the nodes in the map
   //! according to their id's
   //! This makes it easier later on to assign the correct elements
-  virtual void ExtractPolynomialIds(std::map<std::string,PtrParamNode>& pnodes);
+  virtual void ReadPolyList();
 
-  //! Here we pass a fePolynomial node such that the feSpace can extract the information
-  //! which is important for the specific space
-  virtual void ProcessPolyRegionNode(PtrParamNode node, RegionIdType region) = 0;
+
 
 };
 

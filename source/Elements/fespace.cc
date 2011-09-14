@@ -9,6 +9,8 @@
 #include "fespaceH1Lagrange.hh"
 #include "fespaceH1Hi.hh"
 #include "fespaceHCurlHi.hh"
+#include <boost/tokenizer.hpp>
+#include <boost/lexical_cast.hpp>
 
 namespace CoupledField {
 
@@ -36,6 +38,7 @@ namespace CoupledField {
     bcCounter_[HDBC] = 0;
     bcCounter_[IDBC] = 0;
     bcCounter_[CS] = 0;
+
 
   }
 
@@ -229,12 +232,16 @@ namespace CoupledField {
 
 
   void FeSpace::GetIntegration(RegionIdType region, IntScheme::IntegMethod & method,Matrix<Integer> & order){
+    //TODO> this ignores the mode of integration.
+    // the plan is the following> the Get Integration should only be called
+    // from within the Form. Then we can determine here on an element level
+    // the correct integration order according to the mode.
     if(regionIntegration_.find(region) == regionIntegration_.end() ){
-      method = regionIntegration_[ALL_REGIONS].first;
-      order = regionIntegration_[ALL_REGIONS].second;
+      method = regionIntegration_[ALL_REGIONS].method;
+      order = regionIntegration_[ALL_REGIONS].order;
     }else{
-      method = regionIntegration_[region].first;
-      order = regionIntegration_[region].second;
+      method = regionIntegration_[region].method;
+      order = regionIntegration_[region].order;
     }
   }
 
@@ -490,98 +497,131 @@ namespace CoupledField {
   }
   
   // ************************************************************************
-  // GENERATE REFERENCE ELEMENTS
+  // GENERATE REGION SPECIFIC DATA AND PROCESS USER INPUT
   // ************************************************************************
-  //This function reads the parameter node and calls the space specific
-  //SetRegionElements function to create the correct reference elements according
-  //to the user parameters
-  //NOTE: This function seems to be overhead but it already prepares for the time when we
-  //      drop the different spaces for Hi and Lo/Lagrange
-  void FeSpace::CreateRefElems(){
-    LOG_TRACE(feSpace) << "Creating reference elements";
-    
-    //extract polynomial ids from parmater file
-    std::map<std::string,PtrParamNode> polyNodes;
-    std::map<std::string,PtrParamNode> integNodes;
-    ExtractPolynomialIds(polyNodes);
-    ExtractIntegSchemeIds(integNodes);
-
-    if(polyNodes.find("default") == polyNodes.end() ){
-      //the user did not specify a default value. so we set it
-      LOG_DBG(feSpace) << "Creating default elements";
-      CreateDefaultElements();
+  void FeSpace::SetRegionApproximation(RegionIdType region, std::string polyId, std::string integId){
+    //SECTION1: Polynomials
+    if(polyNodes_.find(polyId)!=polyNodes_.end()){
+      //the user specified a valid polyId so we read its data and call create ref elems
+      //additionally we let the space read specific attributes only valid for himself
+      PtrParamNode pNode = polyNodes_[polyId];
+      ReadCustomAttributes(pNode,region);
+      Matrix<Integer> order;
+      MappingType curMap;
+      ReadPolyNode(pNode,curMap,order);
+      SetRegionElements(region,curMap,order);
+    }else if(polyId=="default"){
+      //the user requested the default but did not specify it so we set it here
+      SetDefaultElements();
+    }else{
+      EXCEPTION("The polynomial id does not match any in the fePolynomialList: " << polyId);
     }
-    //now obtain the RegionList
-    ParamNodeList reNodes = myParam_->Get("regionList")->GetList("region");
-    for(UInt curReg = 0; curReg < reNodes.GetSize();curReg++){
-      std::string pId,iId,rName;
-      RegionIdType curRegId;
-      pId = reNodes[curReg]->Get("polyId")->As<std::string>();
-      iId = reNodes[curReg]->Get("integId")->As<std::string>();
-      rName = reNodes[curReg]->Get("name")->As<std::string>();
-
-      curRegId = domain->GetGrid()->GetRegion().Parse( rName );
-
-      if(polyNodes.find(pId) == polyNodes.end()){
-         continue;
-      }else{
-        ProcessPolyRegionNode(polyNodes[pId],curRegId);
-      }
-      if(integNodes.find(iId) == integNodes.end()){
-         continue;
-      }else{
-        ProcessIntegRegionNode(integNodes[iId],curRegId);
-      }
-    }
-  }
-
-  void FeSpace::ProcessIntegRegionNode(PtrParamNode node, RegionIdType reg){
-    std::string method = node->Get("method")->As<std::string>();
-    IntScheme::IntegMethod iMeth = IntScheme::UNDEFINED;
-    IntScheme::IntegMethodEnum.Parse(method,iMeth);
-    UInt order = node->Get("order")->As<UInt>();
-
-    //create order Matrix, we only support isotropic interation right now
-    Matrix<Integer> orderMat(1,1);
-    orderMat[0][0] = order;
-    SetRegionIntegration(reg,iMeth,orderMat);
-  }
-
-  void FeSpace::ExtractIntegSchemeIds(std::map<std::string,PtrParamNode> & integNodes){
-    //obtain the fePolynomialList
-    PtrParamNode integNode = param->Get("integrationSchemeList", ParamNode::PASS );
-    if(!integNode){
-      //WARN("No Integration method specified falling back to Defaults");
-      integNodes.clear();
+    //Section2: Integral Definitions
+    if(integNodes_.find(integId)!=integNodes_.end()){
+      //the user specified a valid polyId so we read its data and set the region integration
+      PtrParamNode iNode = integNodes_[integId];
+      Matrix<Integer> order;
+      IntegOrderMode curMode;
+      IntScheme::IntegMethod iMeth;
+      ReadIntegNode(iNode,iMeth,order,curMode);
+      SetRegionIntegration(region,iMeth,order,curMode);
+    }else if(integId=="default"){
+      //the user requested the default but did not specify it so we set it here
       SetDefaultIntegration();
     }else{
+      EXCEPTION("The integration id does not match any in the IntegratoinSchemeList: " << integId);
+    }
+  }
+
+  void FeSpace::SetRegionIntegration(RegionIdType region, IntScheme::IntegMethod method ,Matrix<Integer> order,IntegOrderMode mode){
+    regionIntegration_[region].method = method;
+    regionIntegration_[region].order = order;
+    regionIntegration_[region].mode = mode;
+  }
+
+  void FeSpace::ReadIntegNode(PtrParamNode node,  IntScheme::IntegMethod & iMeth,
+                                 Matrix<Integer> &orderMat, IntegOrderMode & mode){
+    std::string methodStr = node->Get("method")->As<std::string>();
+    iMeth = IntScheme::IntegMethodEnum.Parse(methodStr,IntScheme::UNDEFINED);
+    if(iMeth == IntScheme::UNDEFINED){
+      EXCEPTION("got undefined integration. This will lead to errors! Input string: " << methodStr);
+    }
+    std::string modeStr = node->Get("mode")->As<std::string>();
+    mode = IntegOrderModeEnum.Parse(modeStr,ABSOLUTE);
+
+    //only isotropic order supported right now
+    UInt order = node->Get("order")->As<UInt>();
+    //create order Matrix, we only support isotropic interation right now
+    orderMat.Resize(1,1);
+    orderMat[0][0] = order;
+  }
+
+  void FeSpace::ReadPolyNode(PtrParamNode node, MappingType & mapType, Matrix<Integer> & order){
+
+    bool grid = node->Get("useGridOrder",ParamNode::EX)->As<bool>();
+    //determine mapping type
+    mapType = (grid)? GRID : POLYNOMIAL;
+
+    //Read isoOrder or Aniso Order
+    PtrParamNode isoOrderNode = node->Get("isoOrder", ParamNode::PASS );
+    if(isoOrderNode){
+      Integer isoOrder = isoOrderNode->As<Integer>();
+      order.Resize(1,1);
+      order[0][0] = isoOrder;
+    }
+    PtrParamNode anIsoOrderNode = node->Get("anIsoOrder", ParamNode::PASS );
+    if(anIsoOrderNode){
+      StdVector<std::string> dofs(3);
+      dofs[0] = anIsoOrderNode->Get("dof1")->As<std::string>();
+      dofs[1] = anIsoOrderNode->Get("dof2")->As<std::string>();
+      dofs[2] = anIsoOrderNode->Get("dof3")->As<std::string>();
+      if(dofs[2] == ""){
+        order.Resize(2,2);
+      }else{
+        order.Resize(3,3);
+      }
+      char_separator<char> sep(" ");
+
+      for(UInt i = 0;i < order.GetNumRows();i++){
+        boost::tokenizer<char_separator<char> > tokens(dofs[i],sep);
+        boost::tokenizer<char_separator<char> >::iterator tokIt=tokens.begin();
+        for(UInt j = 0;j < order.GetNumCols();j++){
+          order[i][j] = lexical_cast<Integer>(*tokIt);
+          tokIt++;
+        }
+      }
+    }
+  }
+
+
+  void FeSpace::ReadIntegList(){
+    //obtain the fePolynomialList
+    PtrParamNode integNode = param->Get("integrationSchemeList", ParamNode::PASS );
+    if(integNode){
       ParamNodeList iList = integNode->GetList("scheme");
       for(UInt aInt = 0; aInt < iList.GetSize();aInt++){
         std::string curId = iList[aInt]->Get("id")->As<std::string>();
-        if(integNodes.find(curId) != integNodes.end()){
+        if(integNodes_.find(curId) != integNodes_.end()){
           EXCEPTION("Found multiple IntegrationSchemes with the same id in XML.\n" << \
                     "Im confused and going to exit...");
         }
-        integNodes[curId] = iList[aInt];
+        integNodes_[curId] = iList[aInt];
       }
     }
   }
 
-  void FeSpace::ExtractPolynomialIds(std::map<std::string,PtrParamNode>& pnodes){
+  void FeSpace::ReadPolyList(){
         PtrParamNode polyNode = param->Get("fePolynomialList", ParamNode::PASS );
-        if(!polyNode){
-          //WARN("No Polynomial specified falling back to Defaults");
-          pnodes.clear();
-        }else{
+        if(polyNode){
           std::string polyName = PolyTypeEnum.ToString(polyType_);
           ParamNodeList pList = polyNode->GetList(polyName);
           for(UInt aPol = 0; aPol < pList.GetSize();aPol++){
             std::string curId =  pList[aPol]->Get("id")->As<std::string>();
-            if(pnodes.find(curId) != pnodes.end()){
+            if(polyNodes_.find(curId) != polyNodes_.end()){
               EXCEPTION("Found multiple fePolynomials with the same id in XML.\n" << \
                         "Im confused and going to exit...");
             }
-            pnodes[curId] = pList[aPol];
+            polyNodes_[curId] = pList[aPol];
           }
         }
       }
@@ -616,6 +656,15 @@ namespace CoupledField {
            sizeof(polyTypeTuples) / sizeof(EnumTuple),
            polyTypeTuples);
    
+    // Definition of integration oder mode types
+    static EnumTuple integModeTuples[] = {
+      EnumTuple(FeSpace::ABSOLUTE, "absolute"),
+      EnumTuple(FeSpace::RELATIVE, "relative")
+    };
+    Enum<FeSpace::IntegOrderMode> FeSpace::IntegOrderModeEnum = \
+       Enum<FeSpace::IntegOrderMode>("Types of FE Spaces",
+           sizeof(integModeTuples) / sizeof(EnumTuple),
+           integModeTuples);
   
   // Definition of types of boundary conditions
   static EnumTuple bcTypeTuples[] = {

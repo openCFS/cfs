@@ -9,6 +9,7 @@
     	<xsd:sequence>
     		<xsd:element name="method" type="DT_IntegScheme"/>
     		<xsd:element name="order" type="xsd:int"/>
+    		<xsd:element name="mode" type="DT_IntegOrderMode"/>
     	</xsd:sequence>
     	<xsd:attribute name="id" type="xsd:string" use="optional"	default="default"/>
     </xsd:complexType>
@@ -21,6 +22,13 @@
         <xsd:enumeration value="Lobatto" />
         <xsd:enumeration value="Chebyshev" />
         <xsd:enumeration value="Special" />
+    	</xsd:restriction>
+    </xsd:simpleType>
+    <xsd:simpleType name="DT_IntegOrderMode">
+    	<xsd:restriction base="xsd:string">
+    		<xsd:enumeration value="absolute" />
+        <!-- not consdered right now because not really implemented-->
+    		<!--xsd:enumeration value="relative" /-->
     	</xsd:restriction>
     </xsd:simpleType>
 </xsd:schema>

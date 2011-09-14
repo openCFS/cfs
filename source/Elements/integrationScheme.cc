@@ -72,7 +72,7 @@ IntScheme::IntScheme() {
 //  intPoints_[ECONOMICAL][2][Elem::ST_HEXA] = points;
 //  intWeights_[ECONOMICAL][2][Elem::ST_HEXA] = weights;
   
-  FillIntegPoints(5);
+  FillIntegPoints(10);
 }
 
 
@@ -708,7 +708,7 @@ void IntScheme::GetIntPoints( Elem::ShapeType elemType,
        EnumTuple(IntScheme::GAUSS_ECO, "GaussEco"),
        EnumTuple(IntScheme::LOBATTO, "Lobatto"),
        EnumTuple(IntScheme::CHEBYSHEV, "Chebyshev" ),
-       EnumTuple(IntScheme::SPECIAL, "Special"),
+       EnumTuple(IntScheme::SPECIAL, "Special")
      };
      Enum<IntScheme::IntegMethod> 
      IntScheme::IntegMethodEnum = 

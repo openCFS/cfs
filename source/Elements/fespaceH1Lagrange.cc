@@ -59,7 +59,9 @@ namespace CoupledField{
          SetMapType(POLYNOMIAL);
        }
       }*/
-      CreateRefElems();
+      //read in polyLists and integLists for easier access later
+      ReadIntegList();
+      ReadPolyList();
     }
 
     BaseFE* FeSpaceH1Lagrange::GetFe( const EntityIterator ent ){
@@ -197,15 +199,6 @@ namespace CoupledField{
       }
     }
 
-
-    void FeSpaceH1Lagrange::SetRegionIntegration( RegionIdType region, 
-                                                  IntScheme::IntegMethod method, 
-                                                  const Matrix<Integer>& order){
-      //TODO:Implementation of defaults (ALL_REGIONS) and XML
-      regionIntegration_[region].first = method;
-      regionIntegration_[region].second = order;
-    }
-
     void FeSpaceH1Lagrange::CheckConsistency(){
       //just set lobatto integration with element order for each spectral region
       std::map<RegionIdType,bool>::iterator spIt = spectralRegions_.begin();
@@ -214,43 +207,20 @@ namespace CoupledField{
         Matrix<Integer> order(1,1);
         //every reference element has the same order
         order[0][0] = refElems_[spIt->first][Elem::ET_LINE2]->GetIsoOrder();
-        SetRegionIntegration(spIt->first,IntScheme::LOBATTO,order);
+        SetRegionIntegration(spIt->first,IntScheme::LOBATTO,order,ABSOLUTE);
         spIt++;
       }
 
     }
 
 
-    void FeSpaceH1Lagrange::ProcessPolyRegionNode(PtrParamNode node, RegionIdType region){
+    void FeSpaceH1Lagrange::ReadCustomAttributes(PtrParamNode node, RegionIdType region){
       LOG_DBG(feSpaceH1Lag) << "Processing polyRegioNode for region " << region;
-      
-      Matrix<Integer> order(1,1);
-      order[0][0] = -1;
-      PtrParamNode isoOrderNode = node->Get("isoOrder", ParamNode::PASS );
-      
       bool spectral = node->Get("spectral",ParamNode::EX)->As<bool>();
-      bool grid = node->Get("useGridOrder",ParamNode::EX)->As<bool>();
-
       spectralRegions_[region] = spectral;
-      //determine mapping type
-      MappingType curMap = POLYNOMIAL;
-      if(!spectral && grid){
-        curMap = GRID;
-      }
-      if(isoOrderNode){
-        Integer isoOrder = isoOrderNode->As<Integer>();
-        order[0][0] = isoOrder;
-        LOG_DBG(feSpaceH1Lag) << "isoOrder is " << isoOrder << std::endl;
-      }else{
-        if(spectral){
-          WARN("No order specified for spectral element region. setting it to 1");
-        }
-        order[0][0] = 1;
-      }
-      SetRegionElements(region,curMap,order);
     }
 
-    void FeSpaceH1Lagrange::CreateDefaultElements(){
+    void FeSpaceH1Lagrange::SetDefaultElements(){
       //but it could be, that the PDE requires a minimum order of elements..
       Matrix<Integer> order(1,1);
       if(orderOffset_>0){
@@ -264,9 +234,10 @@ namespace CoupledField{
 
     //! sets the default integration scheme and order
     void FeSpaceH1Lagrange::SetDefaultIntegration(){
-      regionIntegration_[ALL_REGIONS].first = IntScheme::GAUSS;
-      regionIntegration_[ALL_REGIONS].second = Matrix<Integer>(1,1);
-      regionIntegration_[ALL_REGIONS].second[0][0] = -1;
+      regionIntegration_[ALL_REGIONS].method = IntScheme::GAUSS;
+      regionIntegration_[ALL_REGIONS].order = Matrix<Integer>(1,1);
+      regionIntegration_[ALL_REGIONS].order[0][0] = 2;
+      regionIntegration_[ALL_REGIONS].mode = ABSOLUTE;
     }
 
  }//namespace

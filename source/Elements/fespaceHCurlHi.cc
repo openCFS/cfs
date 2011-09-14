@@ -109,8 +109,9 @@ namespace CoupledField{
        SetMapType(POLYNOMIAL);
      }
     }*/
-    CreateRefElems();
-    
+    //read in polyLists and integLists for easier access later
+    ReadIntegList();
+    ReadPolyList();
   }
   
   void FeSpaceHCurlHi::SetStrategy( SolStrategyType strategy, UInt step ) {
@@ -173,22 +174,17 @@ namespace CoupledField{
 
   }
 
-  void FeSpaceHCurlHi::SetRegionIntegration(RegionIdType region, 
-                                            IntScheme::IntegMethod method, 
-                                            const Matrix<Integer>& order){
-    //TODO:Implementation of defaults (ALL_REGIONS) and XML
-    regionIntegration_[region].first = method;
-    regionIntegration_[region].second = order;
-  }
+
   void FeSpaceHCurlHi::CheckConsistency(){
 
   }
 
   //! sets the default integration scheme and order
   void FeSpaceHCurlHi::SetDefaultIntegration(){
-    regionIntegration_[ALL_REGIONS].first = IntScheme::GAUSS;
-    regionIntegration_[ALL_REGIONS].second = Matrix<Integer>(1,1);
-    regionIntegration_[ALL_REGIONS].second[0][0] = -1;
+    regionIntegration_[ALL_REGIONS].method = IntScheme::GAUSS;
+    regionIntegration_[ALL_REGIONS].order = Matrix<Integer>(1,1);
+    regionIntegration_[ALL_REGIONS].order[0][0] = -1;
+    regionIntegration_[ALL_REGIONS].mode = ABSOLUTE;
   }
 
   UInt FeSpaceHCurlHi::GetEntityOrder( UInt elemNum, BaseFE::EntityType type, 
@@ -573,26 +569,7 @@ namespace CoupledField{
     
   }
 
-  void FeSpaceHCurlHi::ProcessPolyRegionNode(PtrParamNode node, RegionIdType region){
-    Matrix<Integer> order(1,1);
-    order[0][0] = -1;
-    PtrParamNode isoOrderNode = node->Get("isoOrder", ParamNode::PASS);
-    PtrParamNode anIsoOrderNode = node->Get("anIsoOrder", ParamNode::PASS );
-
-    if(isoOrderNode){
-      Integer isoOrder = isoOrderNode->As<Integer>();
-      order[0][0] = isoOrder;
-    }else if(anIsoOrderNode){
-      //TO BE DONE
-      EXCEPTION("Anisotropic element orders are not supported");
-    }else{
-      WARN("Did not find a order node. setting it to 1");
-      order[0][0] = 1;
-    }
-    SetRegionElements(region,POLYNOMIAL,order);
-  }
-
-  void FeSpaceHCurlHi::CreateDefaultElements(){
+  void FeSpaceHCurlHi::SetDefaultElements(){
     //but it could be, that the PDE requires a minimum order of elements...
     Matrix<Integer> order(1,1);
     if(orderOffset_>0){

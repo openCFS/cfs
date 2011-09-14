@@ -180,6 +180,7 @@ namespace CoupledField {
 
     // Define integrators for "standard" materials
     std::map<RegionIdType, BaseMaterial*>::iterator it;
+    shared_ptr<FeSpace> mySpace = feFunctions_[ELEC_POTENTIAL]->GetFeSpace();
     for ( it = materials_.begin(); it != materials_.end(); it++ ) {
       
       // Set current region and material
@@ -196,6 +197,12 @@ namespace CoupledField {
       // ==========================================================
       // New implementation
       // ==========================================================
+      // --- Set the approximation for the current region ---
+      PtrParamNode curRegNode = myParam_->Get("regionList")->GetByVal("region","name",regionName.c_str());
+      std::string polyId = curRegNode->Get("polyId")->As<std::string>();
+      std::string integId = curRegNode->Get("integId")->As<std::string>();
+      mySpace->SetRegionApproximation(actRegion, polyId,integId);
+
       // --- standard real-valued stiffness integrator ---
       linElecInt *  linElecForm = new linElecInt( actSDMat, tensorType,
                                                   upLagrangeForm );

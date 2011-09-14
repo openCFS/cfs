@@ -45,10 +45,6 @@ class FeSpaceH1Hi : public FeSpaceH1 {
     // ====================================================================
     // INTERNAL INITIALIZATION
     // ====================================================================
-    //! read in integration data and set defaults
-    virtual void SetRegionIntegration( RegionIdType region, 
-                                       IntScheme::IntegMethod method, 
-                                       const Matrix<Integer>& order);
 
     //! Set the order and mapping type of a specific region
     virtual void SetRegionElements( RegionIdType region, 
@@ -64,7 +60,7 @@ class FeSpaceH1Hi : public FeSpaceH1 {
     virtual void SetDefaultIntegration();
 
     //! Create default finite elements to be used if nothing else is requested
-    virtual void CreateDefaultElements();
+    virtual void SetDefaultElements();
 
     //! Adjust orders of edges / faces according to min/max rule
     void AdjustEntityOrder();
@@ -79,13 +75,6 @@ class FeSpaceH1Hi : public FeSpaceH1 {
     //! Map containing the polynomial order for every element interior
 //    std::map<UInt, UInt> faceOrder_;
 
-
-    // ====================================================================
-    // PROCESS USER INPUT
-    // ====================================================================
-    //! Here we pass a fePolynomial parameter node such that the feSpace can extract the information
-    //! which is important for the specific space
-    virtual void ProcessPolyRegionNode(PtrParamNode node, RegionIdType region);
 
   private:
 };

@@ -131,10 +131,6 @@ protected:
   // ====================================================================
   // INTERNAL INITIALIZATION
   // ====================================================================
-  //! read in integration data and set defaults
-  virtual void SetRegionIntegration(RegionIdType region, 
-                                    IntScheme::IntegMethod method, 
-                                    const Matrix<Integer>& order)=0;
 
   //! Set the order and mapping type of a specific region
   virtual void SetRegionElements( RegionIdType region, 
@@ -150,15 +146,11 @@ protected:
   virtual void SetDefaultIntegration() = 0;
 
   //! Create default finite elements to be used if nothing else is requested
-  virtual void CreateDefaultElements() = 0;
+  virtual void SetDefaultElements() = 0;
 
   // ====================================================================
   // PROCESS USER INPUT
   // ====================================================================
-  //! Here we pass a fePolynomial parameter node such that the feSpace can extract the information
-  //! which is important for the specific space
-  virtual void ProcessPolyRegionNode(PtrParamNode node, RegionIdType region) = 0;
-
 
   //! Nodal Equation Map
   SingleEqnMap nodeMap_;

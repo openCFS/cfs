@@ -198,6 +198,7 @@ namespace CoupledField {
       }
           
       subdoms_.Push_back( actRegionId );
+
       complexMatData_[actRegionId] = complexMat;
     }
 

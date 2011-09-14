@@ -114,7 +114,9 @@ namespace CoupledField {
           dII = (ptElem->faceFlags[entNumber].test(1))? 0:order_-2;
           for(UInt i = 0; i< order_-1 ; i++){
             for(UInt j = 0; j< order_-1 ; j++){
-              fncPermutation[(i*(order_-1)) + j] = (abs(dI-i)*(order_-1)) + abs(dII-j);
+              Integer numI = dI-(Integer)i;
+              Integer numII = dII-(Integer)j;
+              fncPermutation[(i*(order_-1)) + j] = (abs(numI)*(order_-1)) + abs(numII);
             }
           }
         }else{
@@ -124,7 +126,9 @@ namespace CoupledField {
           dII = (ptElem->faceFlags[entNumber].test(2))? 0:order_-2;
           for(UInt i = 0; i< order_-1 ; i++){
             for(UInt j = 0; j< order_-1 ; j++){
-              fncPermutation[(i*(order_-1)) + j] = (abs(dI - j)*(order_-1)) + abs(dII - i);
+              Integer numI = dI-(Integer)j;
+              Integer numII = dII-(Integer)i;
+              fncPermutation[(i*(order_-1)) + j] = (abs(numI)*(order_-1)) + abs(numII);
             }
           }
         }

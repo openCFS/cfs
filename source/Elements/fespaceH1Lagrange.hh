@@ -75,10 +75,6 @@ class FeSpaceH1Lagrange : public FeSpaceH1 {
     // ====================================================================
     // INTERNAL INITIALIZATION
     // ====================================================================
-    //! read in integration data and set defaults
-    virtual void SetRegionIntegration(RegionIdType region, 
-                                      IntScheme::IntegMethod method, 
-                                      const Matrix<Integer>& order);
 
     //! Set the order and mapping type of a specific region
     virtual void SetRegionElements( RegionIdType region, 
@@ -94,14 +90,14 @@ class FeSpaceH1Lagrange : public FeSpaceH1 {
     virtual void SetDefaultIntegration();
 
     //! Create default finite elements to be used if nothing else is requested
-    virtual void CreateDefaultElements();
+    virtual void SetDefaultElements();
 
     // ====================================================================
     // PROCESS USER INPUT
     // ====================================================================
-    //! Here we pass a fePolynomial parameter node such that the feSpace can extract the information
-    //! which is important for the specific space
-    virtual void ProcessPolyRegionNode(PtrParamNode node, RegionIdType region);
+    //! reads in special options for the space under consideration
+    //! here it cosideres the spectral flag
+    virtual void ReadCustomAttributes(PtrParamNode pNode,RegionIdType region);
 
     //! This array stores all nodes, including the virtual ones, which are available in the feSpace
     //StdVector<UInt> nodes;
