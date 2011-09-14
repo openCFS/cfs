@@ -2,12 +2,10 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-
-
-
 #include <iostream>
 #include <cmath>
 #include <vector>
+#include <set>
 #include <algorithm>
 
 #include <def_use_metis.hh>
@@ -21,10 +19,12 @@ extern "C"{
 
 #endif
 
-
-
+#include "DataInOut/Logging/cfslog.hh"
 #include "OLAS/graph/basegraph.hh"
 #include "OLAS/graph/sloan.hh"
+
+DECLARE_LOG(graph)
+DEFINE_LOG(graph, "graph")
 
 namespace CoupledField {
 
@@ -41,16 +41,17 @@ namespace CoupledField {
     }
 
     // Initialise attributes
-    csEdges_     = NULL;
-    csNodes_     = NULL;
-    amAssembled_ = false;
-    amReordered_ = false;
-    newOrder_    = reorder;
-    numNodes_    = nRows;
-    numRowsMat_  = nRows;
-    numColsMat_  = nCols;
-    bwlower_     = 0;
-    bwupper_     = 0;
+    csEdges_        = NULL;
+    csNodes_        = NULL;
+    amAssembled_    = false;
+    amReordered_    = false;
+    newOrder_       = reorder;
+    numNodes_       = nRows;
+    numRowsMat_     = nRows;
+    numColsMat_     = nCols;
+    bwlower_        = 0;
+    bwupper_        = 0;
+    unsortedBlocks_ = NULL;
 
     // Allocate memory for linked lists
     if ( numNodes_ > 0 ) {
@@ -118,6 +119,71 @@ namespace CoupledField {
     }
   }
 
+  // ****************
+  //   SetBlockInfo
+  // ****************
+  void BaseGraph::
+  SetBlockInfo( const StdVector<StdVector<UInt> >* indexBlocks ) {
+    unsortedBlocks_ = indexBlocks;
+  }
+  
+  // ********************
+  //   ReorderForBlocks  
+  // ********************
+  void BaseGraph::ReorderForBlocks( StdVector<UInt>& order ) {
+    
+    LOG_TRACE(graph) << "Calling ReorderForBlocks";
+    
+    // Check, if we are not yet finalized
+    if( amAssembled_ ) {
+      EXCEPTION("Can not reorder an already finalised graph.");
+    }
+    
+    // Resize order
+    order.Resize(numNodes_);
+    order.Init();
+    
+    // temporary set for already used indices
+    std::set<UInt> usedIndices;
+    
+    // Loop over all unsorted blocks
+    UInt newIndex = 0;
+    UInt numBlocks = unsortedBlocks_->GetSize();
+    UInt blockStart = 0, blockEnd = 0;
+    LOG_DBG(graph) << "graph has " << numBlocks << " blocks";
+    sortedBlocks_.Resize(numBlocks);
+    
+    for( UInt i = 0; i < numBlocks; ++i ) {
+      LOG_DBG3(graph) << "treating block " << i;
+      const StdVector<UInt> & actBlock = (*unsortedBlocks_)[i]; 
+      UInt blockSize = actBlock.GetSize();
+      blockStart =  newIndex;
+      for( UInt j = 0; j < blockSize; ++j ) {
+
+        LOG_DBG3(graph) << "\tblock-size is " << blockSize;
+        // check, if index was already used in different block
+        const UInt & index = actBlock[j]; 
+        if( usedIndices.find(index) != usedIndices.end() ) {
+          EXCEPTION("Index " << index << " was already used in a block.");
+        }
+        usedIndices.insert(index);
+        order[index] = ++newIndex;
+        LOG_DBG3(graph) << "\torder[" << index << "] = " << newIndex;
+      } // entries in one block
+      
+      blockEnd = newIndex-1;
+      sortedBlocks_[i] = std::pair<UInt,UInt>(blockStart,blockEnd);
+    } // loop over blocks
+    
+    // Consistency check: Make sure, that all indices are reordered
+    if( numNodes_ != newIndex ) {
+      EXCEPTION("BaseGraph::ReorderForBlocks: Graph has " << numNodes_
+                << " nodes but there was only a block definition for " 
+                << newIndex << " nodes! In case blocks are defined,"
+                    "all nodes have to be referenced." );
+    }
+  }
+  
 
   // *******************
   //   Count non-zeros
@@ -173,6 +239,7 @@ namespace CoupledField {
                                     StdVector<UInt>* edgeOrder  ) {
 
 
+    assert(vertexOrder != NULL);
     NodeListIterator iter;
 
     // Sort lists and remove duplicate entries
@@ -197,6 +264,12 @@ namespace CoupledField {
     //    and store the reordering mapping back in the vector vertexOrder
     if( !useExternalOrdering ) {
       
+      // check, a block-reordering was set
+      if( unsortedBlocks_ != NULL &&
+          newOrder_ != BaseOrdering::NOREORDERING ) {
+        EXCEPTION( "Can not reorder the graph, as there are sub-blocks defined!");
+      }
+      
       // resize ordering array
       vertexOrder->Resize(numNodes_);
       edgeOrder = vertexOrder;
@@ -210,16 +283,31 @@ namespace CoupledField {
         Reorder( newOrder_, *vertexOrder );
       } else {
         
-        // set vertexOrder and edgeOrder accordingly
-        vertexOrder->Resize(numNodes_);
-        for( UInt i = 0; i < numNodes_; ++i ) {
-          (*vertexOrder)[i] = i+1;
+        // check, if sub-blocks are defined. If yes, we have to reorder
+        // the graph to make the blocks continuously numbered. Otherwise we
+        // just return the identity mapping.
+        if( unsortedBlocks_ != NULL) {
+          ReorderForBlocks(*vertexOrder);
+        } else {
+
+          // set vertexOrder and edgeOrder accordingly
+          vertexOrder->Resize(numNodes_);
+          for( UInt i = 0; i < numNodes_; ++i ) {
+            (*vertexOrder)[i] = i+1;
+          }
         }
       }
       
     }  else {
       // 2) An external ordering (maybe differnt for vertices and edges)
       //    was provided, so we just take these.
+      
+      // check if  block-reordering was set
+      if( unsortedBlocks_ != NULL ) {
+        EXCEPTION( "Can not reorder the graph according to externally provided "
+                   "vector, as there are sub-blocks defined!" );
+      }
+      
       if( edgeOrder == NULL )
         edgeOrder = vertexOrder;
     }

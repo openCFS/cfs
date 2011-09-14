@@ -9,6 +9,7 @@
 
 #include "OLAS/algsys/algebraicSys.hh"
 #include "MatVec/sbmmatrix.hh"
+#include "MatVec/vbr_matrix.hh"
 
 #include "OLAS/algsys/generateidbchandler.hh"
 #include "OLAS/algsys/baseidbchandler.hh"
@@ -30,6 +31,8 @@ DECLARE_LOG(algSys)
 DEFINE_LOG(algSys, "algSys")
 namespace CoupledField {
 
+  
+ 
 
   // ***********************
   //   Default Constructor
@@ -76,8 +79,6 @@ namespace CoupledField {
     else {
       assembleDirichletToSysMat_ = false;
     }
-    
-    
   }
 
 
@@ -295,12 +296,14 @@ namespace CoupledField {
     LOG_TRACE(algSys) << "Creating preconditioner";
     
     // Check: If we have just one block, use directly the STDMAt
+    PtrParamNode precondNode = myInfo_->Get("precond");
+    
     if( numBlocks_ == 1) {
       precond_ = GenerateStdPrecondObject((*sysMat_[SYSTEM])(0,0),
-                                          myParam_, myInfo_ );
+                                          myParam_, precondNode );
     } else {
       precond_ = GenerateSBMPrecondObject( *(sysMat_[SYSTEM]), 
-                                           myParam_, myInfo_ );
+                                           myParam_, precondNode );
     }
     
   }
@@ -308,12 +311,14 @@ namespace CoupledField {
   void AlgebraicSys::CreateSolver() {
     
     LOG_TRACE(algSys) << "Creating solver";
+    PtrParamNode solverNode = myInfo_->Get("solver");
+    
     if( numBlocks_ == 1) {
       solver_ = GenerateSolverObject( (*sysMat_[SYSTEM])(0,0), 
-                                      myParam_, myInfo_);
+                                      myParam_, solverNode);
     } else {
       solver_ = GenerateSolverObject( *(sysMat_[SYSTEM]), 
-                                      myParam_, myInfo_);
+                                      myParam_, solverNode);
     }
      
   }
@@ -327,6 +332,7 @@ namespace CoupledField {
   void AlgebraicSys::SetupPrecond()  {
     
     LOG_TRACE(algSys) << "Setup of preconditioner";
+    
     if( numBlocks_ == 1) {
       precond_->Setup( (*sysMat_[SYSTEM])(0,0));
     } else {
@@ -694,7 +700,9 @@ namespace CoupledField {
     
     LOG_TRACE(algSys) << "Registering " << numMinorBlocks 
         << " sub-matrix blocks for SBM block #" << sbmIndex;
-    REFACTOR;
+
+    blockInfo_[sbmIndex]->indexBlocks.Resize( numMinorBlocks );
+    blockInfo_[sbmIndex]->hasSubBlocks = true;
   } 
 
 
@@ -704,7 +712,31 @@ namespace CoupledField {
 
     LOG_DBG2(algSys) << "Defining sub-matrix block " << blockIndex 
                     << " for SBM block #" << blockIndex;
-    REFACTOR;
+    
+    
+    // check for sensible block size
+    if( fctIds.GetSize() == 0 ) {
+      EXCEPTION("SubMatrixBlock definition " << blockIndex << " within sbmBlock #" 
+                << sbmIndex << " has 0 size!");
+    }
+    
+    // map (fctIds,eqnNrs) to (sbmIndex, row/colIndex)
+    StdVector<UInt> blockNums, indices;
+    MapFctIdEqnToIndex(fctIds, eqns, blockNums, indices);
+    UInt subBlockSize = fctIds.GetSize();
+    for( UInt i = 0; i < subBlockSize; ++i ) {
+      GraphManager::SBMBlockInfo & bi = *blockInfo_[blockNums[i]];
+//      if( bi.indexBlocks[blockIndex].GetSize() != 0 ) {
+//        EXCEPTION("Submatrix block " << blockIndex << " for sbm block #" << sbmIndex
+//                  << " was already defined!");
+//      }
+      if( indices[i] != 0  && indices[i] <= bi.numLastFreeIndex ) {
+        bi.indexBlocks[blockIndex].Push_back(indices[i]-1);
+        LOG_DBG3(algSys) << "\tsbmBlock #" << blockNums[i] 
+                                                        << ", block " << blockIndex
+                                                        << ": adding " << indices[i];
+      }
+    }
   }
 
 
@@ -911,6 +943,43 @@ namespace CoupledField {
       LOG_DBG3(algSys) << "\t(fctId,eqnNr) -> (blockNum,index)";
       for( UInt i = 0; i < numEqns; ++i ) {
         LOG_DBG3(algSys) << "\t(" << fctId << ", " << eqns[i]
+                         << ") -> (" << blockNums[i] << ", "
+                         << indices[i] << ")";
+      }
+    }
+  }
+  void AlgebraicSys::MapFctIdEqnToIndex( const StdVector<FeFctIdType>& fctIds,
+                                         const StdVector<Integer>& eqns,
+                                         StdVector<UInt>& blockNums,
+                                         StdVector<UInt>& indices ) {
+    LOG_DBG(algSys) << "Mapping fctId,eqnNr to blockNum,indices";
+
+    blockNums.Resize(eqns.GetSize());
+    indices.Resize(eqns.GetSize());
+
+
+    UInt numEqns = eqns.GetSize();
+    for( UInt iEqn = 0; iEqn < numEqns; ++iEqn ) {
+      const UInt & eqnNr = eqns[iEqn];
+      const FeFctIdType & fctId = fctIds[iEqn];
+      // get hold of fct-specific map
+      std::map<Integer,UInt>& eqnToBlock = eqnToSBMBlock_[fctId];
+
+      // take care of homogeneous BCs
+      if( eqnNr == 0) {
+        blockNums[iEqn] = 0;
+        indices[iEqn] = 0;
+      } else {
+        const UInt & blockNum = eqnToBlock[eqnNr];
+        blockNums[iEqn] = blockNum;
+        indices[iEqn] = blockInfo_[blockNum]->eqnToIndex[fctId][eqnNr];
+      }
+    }
+
+    if( IS_LOG_ENABLED(algSys,dbg3)) {
+      LOG_DBG3(algSys) << "\t(fctId,eqnNr) -> (blockNum,index)";
+      for( UInt i = 0; i < numEqns; ++i ) {
+        LOG_DBG3(algSys) << "\t(" << fctIds[i] << ", " << eqns[i]
                          << ") -> (" << blockNums[i] << ", "
                          << indices[i] << ")";
       }
@@ -1437,6 +1506,21 @@ namespace CoupledField {
           << "Generation of empty SBM_Matrix failed!" );
     }
 
+    
+    // TEMPORARY: find out matrix storage type by looking at the matrix element
+    // determine matrix storage type
+    BaseMatrix::StorageType sT = BaseMatrix::SPARSE_SYM;
+    PtrParamNode matrixNode = myParam_->Get("matrix");
+    if( matrixNode ) {
+      std::string storageString;
+      matrixNode->GetValue("storage", storageString );
+      sT = BaseMatrix::storageType.Parse(storageString);
+      std::cerr << "storageString is " << storageString << std::endl;
+    }
+    
+    // HARD-coded section
+    //sT = BaseMatrix::VAR_BLOCK_ROW;
+    
     // STEP 2: Populate with sub-matrices
     std::set<SubMatrixID,SortSubMatrixID>::iterator sIt;
     BaseGraph *graph = NULL;
@@ -1457,8 +1541,10 @@ namespace CoupledField {
         // Trigger generation of sub-matrix
         graph = graphManager_->GetGraph( sbmRow, sbmCol );
         if ( sbmRow == sbmCol && sbmSymm_ == true ) {
+          // for diagonal blocks we allow a variable
+          // matrix layout
           retMat->SetSubMatrix ( sbmRow, sbmCol, entryType, 
-                                 BaseMatrix::SPARSE_SYM,
+                                 sT,
                                  nrows, ncols, graph->GetNNE() );
         } else {
           retMat->SetSubMatrix ( sbmRow, sbmCol, 
@@ -1526,9 +1612,37 @@ namespace CoupledField {
             Double(stdMat->GetNumRows() * stdMat->GetNumCols()); 
         mNode->Get("fillLevelPerCent")->SetValue(fillLevel);
         
+        
+        // special check for VBR-block matrix type
+        if( stdMat->GetStorageType() == BaseMatrix::VAR_BLOCK_ROW ) {
+          UInt nbRows, nbCols, nBlocks, numOffDiagEntries, effNNZ;
+          Double avgBlockSize;
+          
+          if( stdMat->GetEntryType() == BaseMatrix::DOUBLE ) {
+            VBR_Matrix<Double> & vMat = 
+                dynamic_cast<VBR_Matrix<Double> &>(*stdMat);
+            vMat.GetNumBlocks( nbRows, nbCols, nBlocks );
+            effNNZ = vMat.GetEffNnz();
+            avgBlockSize = vMat.GetAvgBlockSize();
+            numOffDiagEntries = vMat.GetNumOffDiagonalEntries();
+          } else {
+            VBR_Matrix<Complex> & vMat = 
+                dynamic_cast<VBR_Matrix<Complex> &>(*stdMat);
+            vMat.GetNumBlocks( nbRows, nbCols, nBlocks );
+            effNNZ = vMat.GetEffNnz();
+            avgBlockSize = vMat.GetAvgBlockSize();
+            numOffDiagEntries = vMat.GetNumOffDiagonalEntries();
+          }
+          mNode->Get("numBlockRows")->SetValue(nbRows);
+          mNode->Get("numBlockCols")->SetValue(nbCols);
+          mNode->Get("numBlocks")->SetValue(nBlocks);
+          mNode->Get("avgBlockSize")->SetValue(avgBlockSize);
+          mNode->Get("numNonZerosEff")->SetValue(effNNZ);
+          mNode->Get("numOffDiagEntries")->SetValue(numOffDiagEntries);
+        }
+        
        
         totalNumNonZeros += stdMat->GetNnz();
-        
         BaseGraph * graph = graphManager_->GetGraph(smId.rowInd,smId.colInd); 
         
         // bandwidth gets just written for diagonal blocks 

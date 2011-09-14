@@ -109,6 +109,13 @@ namespace CoupledField {
     void AddVertexNeighbours( std::vector<UInt> vertexList,
                               std::vector<UInt> neighbourList );
 
+    
+    //! Set block definition
+    
+    //! This method can be used to define non-overlapping blocks within a
+    //! graph / matrix. This can be later used to define block matrices.
+    //! \param indexBlock contains the blocks. First index is the blockindex
+    void SetBlockInfo( const StdVector<StdVector<UInt> >* indexBlocks );
     //@}
 
     // =======================================================================
@@ -207,6 +214,11 @@ namespace CoupledField {
     inline UInt GetRowSize( UInt i ) const {
       return csNodes_[i+1] - csNodes_[i];
     }
+    
+    //! Return block definition
+    StdVector<std::pair<UInt,UInt> >& GetBlockDefinition() {
+      return sortedBlocks_;
+    }
 
     //@}
 
@@ -289,6 +301,15 @@ namespace CoupledField {
     void Reorder( BaseOrdering::ReorderingType newOrder, StdVector<UInt>& order );
 
 
+    //! Create reordering to get consecutive arranges blocks
+    
+    //! This methosd tries to sort generate a reordering such that all defined
+    //! blocks contain indices in sequential order. 
+    //! If the method can not find a ordering (e.g. due to overlapping blocks)
+    //! it will throw an exception.
+    //! \param order 1-based reordering array
+    void ReorderForBlocks( StdVector<UInt>& order );
+    
     // =======================================================================
     // CRS FORMAT stuff
     // =======================================================================
@@ -358,6 +379,15 @@ namespace CoupledField {
     //! represents the sparsity pattern of a matrix. This attribute stores
     //! the number of rows in this associated matrix.
     UInt numRowsMat_;
+    
+    //! Original definition of blocks (unsorted)
+    //! \note The graph object will not take ownership of this pointer, i.e.
+    //! the user has to delete this pointer from outside after the graph
+    //! object is deleted.
+    const StdVector<StdVector<UInt> > *unsortedBlocks_;
+    
+    //! Final representation of blocks
+    StdVector<std::pair<UInt,UInt> > sortedBlocks_;
 
   };
 

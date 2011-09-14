@@ -166,6 +166,7 @@
           <xsd:enumeration value="Id"/>
           <xsd:enumeration value="MG"/>
           <xsd:enumeration value="Jacobi"/>
+          <xsd:enumeration value="BlockJacobi"/>
           <xsd:enumeration value="SSOR"/>
           <xsd:enumeration value="IC0"/>
           <xsd:enumeration value="ILU0"/>
@@ -241,6 +242,7 @@
         <xsd:restriction base="xsd:token">
           <xsd:enumeration value="sparseSym"/>
           <xsd:enumeration value="sparseNonSym"/>
+          <xsd:enumeration value="variableBlockRow"/>
           <xsd:enumeration value="skylineSym"/>
           <xsd:enumeration value="skylineNonSym"/>
           <xsd:enumeration value="lapackGBMatrix"/>

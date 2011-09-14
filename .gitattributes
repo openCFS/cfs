@@ -1174,6 +1174,7 @@ source/MatVec/generatematvec.cc svneol=native#text/x-c%2B%2Bsrc
 source/MatVec/generatematvec.hh svneol=native#text/x-c%2B%2Bhdr
 source/MatVec/matrix.cc svneol=native#text/x-c%2B%2Bsrc
 source/MatVec/matrix.hh svneol=native#text/x-c%2B%2Bhdr
+source/MatVec/matrixBLASSupport.hh -text
 source/MatVec/matrixLapackSupport.hh svneol=native#text/x-c%2B%2Bhdr
 source/MatVec/matrixSerialization.cc svneol=native#text/x-c%2B%2Bsrc
 source/MatVec/matrixSerialization.hh svneol=native#text/x-c%2B%2Bhdr
@@ -1192,6 +1193,8 @@ source/MatVec/stdmatrix.cc svneol=native#text/x-c%2B%2Bsrc
 source/MatVec/stdmatrix.hh svneol=native#text/x-c%2B%2Bhdr
 source/MatVec/typedefs.cc svneol=native#text/x-c%2B%2Bsrc
 source/MatVec/typedefs.hh svneol=native#text/x-c%2B%2Bhdr
+source/MatVec/vbr_matrix.cc svneol=native#text/x-c%2B%2Bsrc
+source/MatVec/vbr_matrix.hh svneol=native#text/x-c%2B%2Bhdr
 source/MatVec/vector.cc svneol=native#text/x-c%2B%2Bsrc
 source/MatVec/vector.hh svneol=native#text/x-c%2B%2Bhdr
 source/MatVec/vectorSerialization.cc svneol=native#text/x-c%2B%2Bsrc

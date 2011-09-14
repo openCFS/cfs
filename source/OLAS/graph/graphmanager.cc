@@ -113,9 +113,14 @@ namespace CoupledField {
     for( UInt iBlock = 0; iBlock < numBlocks_; ++iBlock ) {
       UInt idx = ComputeIndex( iBlock, iBlock );
 
+      if( blockInfo_[iBlock]->hasSubBlocks) {
+        graph_[idx]->SetBlockInfo(&(blockInfo_[iBlock]->indexBlocks));
+      }
+      
       // finalise assembly of graph
       LOG_DBG(graphMan) << "Finalize diagonal graph (" << iBlock
                             << ", " << iBlock << ")";
+      
       graph_[idx]->FinaliseAssembly( false, &newOrdering_[iBlock] );
       LOG_DBG3(graphMan) << "Reordering array is " << newOrdering_[iBlock].ToString(); 
       

@@ -37,8 +37,8 @@ namespace CoupledField {
     //! - ILDLK
     //! - ILDLTP
     //! - ILDLCN
-    typedef enum {NOPRECOND, ID, MG, JACOBI, SSOR, ILU0,ILUTP, ILUK, ILDL0, ILDLK, ILDLTP,
-                  ILDLCN, IC0} PrecondType;
+    typedef enum {NOPRECOND, ID, MG, JACOBI, BLOCK_JACOBI, SSOR, ILU0,ILUTP, 
+                  ILUK, ILDL0, ILDLK, ILDLTP, ILDLCN, IC0} PrecondType;
     static Enum<PrecondType> precondType;
     
   public:

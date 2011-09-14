@@ -23,6 +23,7 @@
 #include "crs_matrix.hh"
 #include "scrs_matrix.hh"
 #include "diag_matrix.hh"
+#include "vbr_matrix.hh"
 #include "sbmmatrix.hh"
 
 #include "sbmvector.hh"
@@ -220,6 +221,12 @@ ASSERTMEM( retMat, sizeof(matrix_obj_type) );\
   typedef SCRS_Matrix<Double>      SCRSRealDof1;
   typedef SCRS_Matrix<Complex>     SCRSComplexDof1;
 
+  // ****************
+  //   VBR Matrices
+  // ****************
+  typedef VBR_Matrix<Double>       VBRRealDof1;
+  typedef VBR_Matrix<Complex>      VBRComplexDof1;
+
   // *****************
   //   Diag Matrices
   // *****************
@@ -250,6 +257,12 @@ ASSERTMEM( retMat, sizeof(matrix_obj_type) );\
     case BaseMatrix::SPARSE_SYM:
       MATRIX_OBJ( BaseMatrix::DOUBLE,  BaseMatrix::SPARSE_SYM, SCRSRealDof1    );
       MATRIX_OBJ( BaseMatrix::COMPLEX, BaseMatrix::SPARSE_SYM, SCRSComplexDof1 );
+      break;
+      
+      // VBR Matrices
+    case BaseMatrix::VAR_BLOCK_ROW:
+      MATRIX_OBJ( BaseMatrix::DOUBLE,  BaseMatrix::VAR_BLOCK_ROW, VBRRealDof1    );
+      MATRIX_OBJ( BaseMatrix::COMPLEX, BaseMatrix::VAR_BLOCK_ROW, VBRComplexDof1 );
       break;
 
       // NSK Matrices

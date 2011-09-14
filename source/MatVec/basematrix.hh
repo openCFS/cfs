@@ -69,7 +69,7 @@ namespace CoupledField {
     //! - LAPACK_GBMATRIX
     typedef enum { NOSTORAGETYPE, SPARSE_SYM, SPARSE_NONSYM,
        SKYLINE_SYM, SKYLINE_NONSYM,
-       LAPACK_GBMATRIX, DIAG } StorageType;
+       LAPACK_GBMATRIX, DIAG, VAR_BLOCK_ROW} StorageType;
     static Enum<StorageType> storageType;
 
     //! Default Constructor

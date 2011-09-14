@@ -18,6 +18,7 @@ namespace CoupledField {
     EnumTuple( BasePrecond::ID, "Id" ),
     EnumTuple( BasePrecond::MG, "MG"),
     EnumTuple( BasePrecond::JACOBI, "Jacobi"),
+    EnumTuple( BasePrecond::BLOCK_JACOBI, "BlockJacobi"),
     EnumTuple( BasePrecond::SSOR, "SSOR" ),
     EnumTuple( BasePrecond::ILU0, "ILU0" ),
     EnumTuple( BasePrecond::ILUTP, "ILUTP"),

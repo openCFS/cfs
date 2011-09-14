@@ -91,8 +91,8 @@ class IDBC_Graph;
 
       //! Define mappings for subBlocks
       //! 1st index: blockIndex
-      //! pair: [begin,end] of one index block
-      StdVector<std::pair<UInt,UInt> > indexBlocks;
+      //! 2nd vector contains indices
+      StdVector<StdVector<UInt> > indexBlocks;
 
       //! Total number of equations in this block
       UInt size;

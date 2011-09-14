@@ -18,6 +18,7 @@
 #include "OLAS/precond/ic0precond.hh"
 
 #include "MatVec/diag_matrix.hh"
+#include "MatVec/vbr_matrix.hh"
 #include "MatVec/sbmmatrix.hh"
 
 namespace CoupledField {
@@ -51,6 +52,10 @@ retVal = new precondObjType( mat, solverXML, olasInfo );\
   // Diagonal matrix
   typedef JacPrecond<Diag_Matrix<Double>,Double> RDIAGJacDof1;
   typedef JacPrecond<Diag_Matrix<Complex>,Complex> CDIAGJacDof1;
+  
+  // Block Jacobi preconditioner for VBR matrix
+  typedef BlockJacPrecond<VBR_Matrix<Double>,Double> RVBRBlockJac;
+  typedef BlockJacPrecond<VBR_Matrix<Complex>,Complex> CVBRBlockJac;
 
 
   // **********************
@@ -126,6 +131,19 @@ retVal = new precondObjType( mat, solverXML, olasInfo );\
       PRECOND_OBJ(BaseMatrix::DOUBLE,BaseMatrix::DIAG,RDIAGJacDof1);
       //complex diag jacobi
       PRECOND_OBJ(BaseMatrix::COMPLEX,BaseMatrix::SPARSE_SYM,CDIAGJacDof1);
+
+      break;
+      
+      // ===============================
+      //   Block Jacobi Preconditioner
+      // ===============================
+    case BasePrecond::BLOCK_JACOBI:
+      
+      // real VBR Block Jacobi
+      PRECOND_OBJ(BaseMatrix::DOUBLE, BaseMatrix::VAR_BLOCK_ROW, RVBRBlockJac);
+      
+      // complex VBR Block Jacobi
+      PRECOND_OBJ(BaseMatrix::COMPLEX, BaseMatrix::VAR_BLOCK_ROW, CVBRBlockJac);
 
       break;
 

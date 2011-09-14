@@ -17,6 +17,7 @@ SET(MATVEC_SRCS
     scrs_matrix.cc
     typedefs.cc
     vector.cc
+    vbr_matrix.cc
     matrix.cc
     )
 ENDIF(EXPLICIT_TEMPLATE_INSTANTIATION)

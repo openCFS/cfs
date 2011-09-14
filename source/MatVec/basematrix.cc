@@ -46,6 +46,7 @@ static EnumTuple storageTypeTuples[] =
  EnumTuple( BaseMatrix::SKYLINE_SYM, "skylineSym" ),
  EnumTuple( BaseMatrix::SKYLINE_NONSYM, "skylineNonSym"),
  EnumTuple( BaseMatrix::DIAG, "diag" ),
+ EnumTuple( BaseMatrix::VAR_BLOCK_ROW, "variableBlockRow" ),
  EnumTuple( BaseMatrix::LAPACK_GBMATRIX, "lapackGBMatrix" )
 };
 

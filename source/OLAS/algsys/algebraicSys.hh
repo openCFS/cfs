@@ -412,12 +412,18 @@ namespace CoupledField {
                              StdVector<UInt>& indices );
 
     //! @see MapFctIdEqnToIndex()
+    void MapFctIdEqnToIndex( const StdVector<FeFctIdType>& fctId,
+                             const StdVector<Integer>& eqns,
+                             StdVector<UInt>& blockNums,
+                             StdVector<UInt>& indices );
+
+    //! @see MapFctIdEqnToIndex()
     //! We only map one specific (fctId,eqn) to (blockNum,index)
     void MapFctIdEqnToIndex( const FeFctIdType fctId,
                              const Integer eqn,
                              UInt& blockNum,
                              UInt& index );
-    
+
     //! @see MapFctIdEqnToIndex()
     //! Return all (blockNum,index)-pairs for a given fctId 
     void MapCompleteFctIdToIndex( const FeFctIdType fctId,
