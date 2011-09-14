@@ -631,6 +631,12 @@ namespace CoupledField {
 
     } // load step loop
 
+    UInt& iterCoupledCounter = PDE_.GetIterCoupledCounter();
+    if ( PDE_.IsIterCoupled() )
+    {
+      ++iterCoupledCounter;
+    }
+
     //perform corrector step
     TS_alg_->Corrector(actSol);
   }
