@@ -769,8 +769,6 @@ namespace CoupledField {
 
     }
 
-    // in case of internalMesh the region is already marked as regular
-    // so we can skip the test here
     for(unsigned int i = 0; i < regionData.GetSize(); i++)
       regionData[i].regular = (regionData[i].regular || CheckForRegularRegion(i));
 

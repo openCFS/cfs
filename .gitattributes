@@ -774,9 +774,6 @@ source/DataInOut/SimInOut/hdf5/simInputHDF5.cc svneol=native#text/x-c%2B%2Bsrc
 source/DataInOut/SimInOut/hdf5/simInputHDF5.hh svneol=native#text/x-c%2B%2Bhdr
 source/DataInOut/SimInOut/hdf5/simOutputHDF5.cc svneol=native#text/x-c%2B%2Bsrc
 source/DataInOut/SimInOut/hdf5/simOutputHDF5.hh svneol=native#text/x-c%2B%2Bhdr
-source/DataInOut/SimInOut/internalMesh/CMakeLists.txt -text
-source/DataInOut/SimInOut/internalMesh/internalMesh.cc -text
-source/DataInOut/SimInOut/internalMesh/internalMesh.hh -text
 source/DataInOut/SimInOut/xdmf/CMakeLists.txt -text
 source/DataInOut/SimInOut/xdmf/simOutputXDMF.cc -text
 source/DataInOut/SimInOut/xdmf/simOutputXDMF.hh -text
