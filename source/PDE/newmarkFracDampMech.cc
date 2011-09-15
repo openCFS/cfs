@@ -322,7 +322,7 @@ namespace CoupledField {
           else if (model=="KelvinVoigt")
           {
             assert(false);
-            rhsAssemble  = rhsAssemble; // +  resultStressVector;
+            rhsAssemble  = rhsAssemble +  resultStressVector;
           }
           else
             std::cerr << "unknown model for fractional damping" << std::endl;

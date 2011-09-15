@@ -149,7 +149,7 @@ void MultipleExcitation::PrepareMultipleExcitations(SinglePDE* pde, PtrParamNode
       Excitation& ex = excitations[i];
       ex.index = i;
       ex.frequency = hd->freqs[i].freq;
-      ex.label == lexical_cast<string>(ex.frequency);
+      ex.label = lexical_cast<string>(ex.frequency);
       ex.weight    = hd->freqs[i].weight;
       ex.f_link    = &hd->freqs[i];
 

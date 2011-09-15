@@ -703,21 +703,38 @@ def is_valid_density_file(infile):
   headerfound = False
   setfound = False
 
-  infi = open(infile, "r")
-  for event, element in etree.iterparse(infi):
-    if element.tag == "cfsErsatzMaterial":
+  lc = 0
+  for line in open(infile, 'r'):
+    lc += 1
+    ls = line.strip().split()
+    if len(ls) < 1:
+      continue
+
+    ls0strip = ls[0].strip()
+
+    # we assume the first line is <?xml version="1.0"?>
+    if lc == 1:
+      if ls0strip != '<?xml':
+        return False
+      continue
+
+    if ls0strip == '<cfsErsatzMaterial' or ls0strip == '<cfsErsatzMaterial>':
       ersatzfound = True
-    if element.tag == "header":
+
+    if ls0strip == '<header' or ls0strip == '<header>':
       headerfound = True
-    if element.tag == "set":
+
+    # if we find a set, all requirements are met, so we break
+    if ls0strip == '<set' or ls0strip == '<set>':
       setfound = True
+      break
 
     # if all is found, then we break
-    if ersatzfound and headerfound and setfound:
+    if (ersatzfound and headerfound and setfound):
       break
-  infi.close()
 
-  return ersatzfound and headerfound and setfound
+  return (ersatzfound and headerfound and setfound)
+
 
 
 # do an ascii print of the density data

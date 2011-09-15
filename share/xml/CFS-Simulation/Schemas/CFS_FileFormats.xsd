@@ -81,7 +81,6 @@
       <xsd:element name="mesh" type="DT_InputMesh"/>
       <xsd:element name="hdf5" type="DT_InputHDF5"/>      
       <xsd:element name="unv" type="DT_InputUNV"/>
-      <xsd:element name="internal" type="DT_InputInternal"/>
     </xsd:choice>
   </xsd:group>
 

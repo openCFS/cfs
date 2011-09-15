@@ -1,3 +1,0 @@
-SET(INTERNALMESH_SRCS internalMesh.cc)
-
-ADD_LIBRARY(internalmesh STATIC ${INTERNALMESH_SRCS})
