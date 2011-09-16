@@ -34,7 +34,6 @@ ADD_LIBRARY(utils STATIC ${UTILS_SRCS})
 SET(TARGET_LL 
   datainout
   matvec
-  odedescr
   odesolver
   ${BOOST_SERIALIZATION_LIB}
 )
