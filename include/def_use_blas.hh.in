@@ -1,5 +1,4 @@
 // Define used to check if BLAS library is used
-
 #cmakedefine USE_BLAS
 
 #define BLAS_LIBRARY "@BLAS_LIBRARY@"
@@ -9,6 +8,9 @@
 #cmakedefine USE_ACML
 #cmakedefine USE_MKL
 #cmakedefine USE_NETLIB
+
+#ifndef CFS_DEF_USE_BLAS_HH
+#define CFS_DEF_USE_BLAS_HH
 
 #ifdef USE_MKL
 // Since Intel senselessly decided to rename the BuildNumber member variable
@@ -25,4 +27,6 @@ struct {
   char *    Processor; 
   char *    Platform;
 } CFSMKLVersion;
+#endif
+
 #endif
