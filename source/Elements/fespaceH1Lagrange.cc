@@ -32,6 +32,8 @@ namespace CoupledField{
       isHierarchical_ = false;
       mapType_ = GRID;
       polyType_ = LAGRANGE;
+      
+      infoNode_ = infoNode->Get("h1Lagrange");
     }
 
     //! Destructor
@@ -63,6 +65,29 @@ namespace CoupledField{
       ReadIntegList();
       ReadPolyList();
     }
+    
+    BaseFE* FeSpaceH1Lagrange::GetFe( const EntityIterator ent, 
+                                      shared_ptr<IntScheme>& intScheme ) {
+      BaseFE * ret = GetFe(ent);
+
+      // Set correct integration order
+      RegionIdType eRegion;// =  ent.GetElem()->regionId;
+      if( ent.GetType() == EntityList::SURF_ELEM_LIST) {
+        eRegion = ent.GetSurfElem()->ptVolElem1->regionId;
+      } else {
+        eRegion = ent.GetElem()->regionId;
+      }
+
+      intScheme = intScheme_;
+      IntScheme::IntegMethod  method;
+      Matrix<Integer>  order;
+      this->GetIntegration(ret, eRegion, method, order);
+      // Note: The order is currently more or less hard-coded for isotropic order
+      intScheme->SetOrder( method, order[0][0] );
+      
+      return ret;
+       
+     }
 
     BaseFE* FeSpaceH1Lagrange::GetFe( const EntityIterator ent ){
 
@@ -117,6 +142,8 @@ namespace CoupledField{
 
     }
     
+    
+    
     UInt FeSpaceH1Lagrange::GetEntityOrder( UInt elemNum, BaseFE::EntityType type, 
                                               UInt entityNum, UInt comp  ) {
       
@@ -140,6 +167,33 @@ namespace CoupledField{
         return 0;
       }
     }
+
+    void FeSpaceH1Lagrange::PreCalcShapeFncs(){
+      //now pre-calculate all available integration points
+      //stupid but simple
+      //get grip of the integrationScheme object
+
+      // leave, if element space is hierarchical
+      if (isHierarchical_)return;
+      shared_ptr<IntScheme> integScheme = feFunction_->GetGrid()->GetIntegrationScheme();
+
+      StdVector<LocPoint> integPoints;
+      std::map<RegionIdType, std::map<Elem::FEType, FeH1* > >::iterator regIt = refElems_.begin();
+
+      Elem::ShapeType shape;
+      while(regIt != refElems_.end()){
+        std::map<Elem::FEType, FeH1* >::iterator elemIt = regIt->second.begin();
+        while(elemIt != regIt->second.end()){
+          shape = Elem::GetShapeType(elemIt->first);
+          integScheme->GetAllIntegrationPoints(integPoints,shape);
+          dynamic_cast<FeH1*>(elemIt->second)->SetFunctionsAtIp(integPoints);
+          elemIt++;
+        }
+        regIt++;
+      }
+    }
+
+    
     
     //! Map equations i.e. intialize object
     void FeSpaceH1Lagrange::Finalize(){
@@ -166,7 +220,15 @@ namespace CoupledField{
 
     void FeSpaceH1Lagrange::SetRegionElements(RegionIdType region, 
                                               MappingType mType,
-                                              const Matrix<Integer>& order){
+                                              const Matrix<Integer>& order,
+                                              PtrParamNode infoNode ){
+      
+      LOG_DBG(feSpaceH1Lag) << "Setting region elements";
+      LOG_DBG2(feSpaceH1Lag) << "\tegion: "
+          << domain->GetGrid()->GetRegion().ToString(region);
+      LOG_DBG2(feSpaceH1Lag) << "\tmappingType: " << mType;
+      LOG_DBG2(feSpaceH1Lag) << "\torder: " << order[0][0];
+      
       //This method may not be called after the space is finalized!
       if(isFinalized_){
         Exception("FeSpace::SetRegionMapping is called after finalization");
@@ -179,6 +241,10 @@ namespace CoupledField{
         refElems_[region][Elem::ET_LINE3]  = new FeH1LagrangeLine2();
         refElems_[region][Elem::ET_QUAD8]  = new FeH1LagrangeQuad2();
         refElems_[region][Elem::ET_HEXA20] = new FeH1LagrangeHex2();
+        
+        UInt gridOrder = domain->GetGrid()->IsQuadratic() ? 2 : 1;
+        infoNode->Get("order")->SetValue(gridOrder);
+        
       } else if (mType == POLYNOMIAL) {
         refElems_[region][Elem::ET_LINE2]  = new FeH1LagrangeLineVar();
         refElems_[region][Elem::ET_QUAD4]  = new FeH1LagrangeQuadVar();
@@ -187,27 +253,38 @@ namespace CoupledField{
         refElems_[region][Elem::ET_QUAD8]  = new FeH1LagrangeQuadVar();
         refElems_[region][Elem::ET_HEXA20] = new FeH1LagrangeHexVar();
 
-        //now set the order
+        //now set the order   
         if(order.GetNumCols() != 1 || order.GetNumRows() != 1){
           Exception("FeSpaceH1Lagrange::SetRegionMapping : The order matrix may have only one entry for lagrange elements");
         }
-        std::map<Elem::FEType, BaseFE* >::iterator i = refElems_[region].begin();
+        std::map<Elem::FEType, FeH1* >::iterator i = refElems_[region].begin();
         for( ; i != refElems_[region].end(); ++i ) {
-          i->second->SetIsoOrder(order[0][0]+orderOffset_);
+          FeH1LagrangeVar * ptFe = dynamic_cast<FeH1LagrangeVar*>(i->second);
+          ptFe->SetIsoOrder(order[0][0]+orderOffset_);
         }
         mapType_ = POLYNOMIAL;
+        infoNode->Get("order")->SetValue(order[0][0]);
       }
+      
+      // print information to info.xml
+      
+      
     }
 
     void FeSpaceH1Lagrange::CheckConsistency(){
       //just set lobatto integration with element order for each spectral region
-      std::map<RegionIdType,bool>::iterator spIt = spectralRegions_.begin();
+      std::set<RegionIdType>::iterator spIt = spectralRegions_.begin();
 
       while(spIt != spectralRegions_.end()){
+      
+        // get region node
+        std::string regionName = domain->GetGrid()->GetRegion().ToString(*spIt);
+        PtrParamNode regionNode = infoNode_->Get("regionList")->Get(regionName);
         Matrix<Integer> order(1,1);
         //every reference element has the same order
-        order[0][0] = refElems_[spIt->first][Elem::ET_LINE2]->GetIsoOrder();
-        SetRegionIntegration(spIt->first,IntScheme::LOBATTO,order,ABSOLUTE);
+        order[0][0] = refElems_[*spIt][Elem::ET_LINE2]->GetIsoOrder();
+        SetRegionIntegration( *spIt,IntScheme::LOBATTO, order, ABSOLUTE,
+                              regionNode );
         spIt++;
       }
 
@@ -216,28 +293,31 @@ namespace CoupledField{
 
     void FeSpaceH1Lagrange::ReadCustomAttributes(PtrParamNode node, RegionIdType region){
       LOG_DBG(feSpaceH1Lag) << "Processing polyRegioNode for region " << region;
+      
       bool spectral = node->Get("spectral",ParamNode::EX)->As<bool>();
-      spectralRegions_[region] = spectral;
+      
+      if(spectral)
+        spectralRegions_.insert(spectral);
     }
 
-    void FeSpaceH1Lagrange::SetDefaultElements(){
+    void FeSpaceH1Lagrange::SetDefaultElements(PtrParamNode infoNode ){
       //but it could be, that the PDE requires a minimum order of elements..
       Matrix<Integer> order(1,1);
       if(orderOffset_>0){
         order[0][0] = orderOffset_;
-        SetRegionElements(ALL_REGIONS,POLYNOMIAL,order);
+        SetRegionElements(ALL_REGIONS,POLYNOMIAL,order,infoNode);
       }else{
         //now we are pretty sure that we need a grid mapping
-        SetRegionElements(ALL_REGIONS,GRID,order);
+        SetRegionElements(ALL_REGIONS,GRID,order,infoNode);
       }
     }
 
     //! sets the default integration scheme and order
-    void FeSpaceH1Lagrange::SetDefaultIntegration(){
+    void FeSpaceH1Lagrange::SetDefaultIntegration(PtrParamNode infoNode ){
       regionIntegration_[ALL_REGIONS].method = IntScheme::GAUSS;
       regionIntegration_[ALL_REGIONS].order = Matrix<Integer>(1,1);
-      regionIntegration_[ALL_REGIONS].order[0][0] = 2;
-      regionIntegration_[ALL_REGIONS].mode = ABSOLUTE;
+      regionIntegration_[ALL_REGIONS].order[0][0] = 0;
+      regionIntegration_[ALL_REGIONS].mode = RELATIVE;
     }
 
  }//namespace

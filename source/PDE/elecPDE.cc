@@ -207,12 +207,6 @@ namespace CoupledField {
       linElecInt *  linElecForm = new linElecInt( actSDMat, tensorType,
                                                   upLagrangeForm );
       linElecForm->SetFactor( factor );
-      IntScheme::IntegMethod curMethod;
-      Matrix<Integer> order;
-      feFunctions_[ELEC_POTENTIAL]->GetFeSpace()->GetIntegration(actRegion,curMethod,order);
-      linElecForm->SetIntegration(ptgrid_->GetIntegrationScheme(),
-                                  curMethod,(UInt)order[0][0]);
-
       BiLinFormContext * stiffIntDescr =
           new BiLinFormContext(linElecForm, STIFFNESS );
 
@@ -1411,8 +1405,9 @@ namespace CoupledField {
  ElecPDE::CreateFeSpaces(const std::string& formulation, PtrParamNode infoNode) {
     std::map<SolutionType, shared_ptr<FeSpace> > crSpaces;
     if(formulation == "default" || formulation == "H1"){
+      PtrParamNode potSpaceNode = infoNode->Get("elecPotential");
       crSpaces[ELEC_POTENTIAL] =
-          FeSpace::CreateInstance(myParam_,infoNode,FeSpace::H1);
+          FeSpace::CreateInstance(myParam_,potSpaceNode,FeSpace::H1);
       crSpaces[ELEC_POTENTIAL]->Init();
     }else{
       EXCEPTION("The formulation " << formulation << "of electric PDE is not known!");

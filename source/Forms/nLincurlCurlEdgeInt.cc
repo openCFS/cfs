@@ -60,7 +60,8 @@ namespace CoupledField
                                            EntityIterator& ent2 ) {
     // Extract physical element
     const Elem* ptElem = ent1.GetElem();
-    FeHCurl* ptFe = dynamic_cast<FeHCurl*>(ptFeSpace1_->GetFe( ent1 )); 
+    shared_ptr<IntScheme> intScheme;
+    FeHCurl* ptFe = dynamic_cast<FeHCurl*>(ptFeSpace1_->GetFe( ent1,intScheme )); 
     UInt nrFncs = ptFe->GetNumFncs();
     shared_ptr<ElemShapeMap> esm = domain->GetGrid()->GetElemShapeMap( ptElem );
 
@@ -68,7 +69,7 @@ namespace CoupledField
     // IntegrationScheme class)
     StdVector<LocPoint> intPoints;
     StdVector<Double> weights;
-    intScheme_->GetIntPoints( Elem::GetShapeType(ptElem->type), intPoints, weights );
+    intScheme->GetIntPoints( Elem::GetShapeType(ptElem->type), intPoints, weights );
 
     elemMat.Resize( nrFncs );
     elemMat.Init();

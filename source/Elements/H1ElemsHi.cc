@@ -25,14 +25,16 @@ namespace CoupledField {
   
   FeH1Hi::FeH1Hi() {
     updateUnknowns_ = true;
+    isIsotropic_ = false;
+    isoOrder_ = 0; 
   }
   
   FeH1Hi::~FeH1Hi() {
   }
   
   void FeH1Hi::GetNumFncs( StdVector<UInt>& numFcns,
-                       EntityType entityType,
-                       UInt dof ) {
+                           EntityType entityType,
+                           UInt dof ) {
     // this can be implemented in a general way, as the information about
     // the number of function is already stored in entityFncs_
     
@@ -127,6 +129,9 @@ namespace CoupledField {
     orderInner_ = innerOrder;
     
     updateUnknowns_ = true;
+    isIsotropic_ = true;
+    isoOrder_ = order;
+   
   }
   
   void FeH1Hi::GetNodalPermutation( StdVector<UInt>& fncPermutation,
@@ -163,6 +168,35 @@ namespace CoupledField {
     }
   }
 
+  UInt FeH1Hi::GetIsoOrder() const {
+      if( isIsotropic_) {
+        return isoOrder_;
+      } else {
+        EXCEPTION("Implement me");
+        return 0;
+      }
+    return 0;
+  }
+  
+  UInt FeH1Hi::GetMaxOrder() const {
+    if( isIsotropic_) {
+      return isoOrder_;
+    } else {
+      EXCEPTION("Implement me");
+      return 0;
+    }
+  }
+
+  void FeH1Hi::GetMaxOrderLocDir(StdVector<UInt>& order ) {
+    if( isIsotropic_ ) {
+      order.Resize( Elem::shapes[feType_].dim);
+      order.Init(isoOrder_);
+    } else {
+      EXCEPTION("Implement me");
+    }
+  }
+  
+  
   void FeH1Hi::EvalPolynom( Double& value, Double& deriv,
                             const UInt order, const Double* coeff,
                             const Double xVal ) {

@@ -8,6 +8,8 @@
 
 namespace CoupledField {
 
+// forward class declaration
+class FeH1Hi;
 
 //! Finite element space for hierarchical H1 elements
 class FeSpaceH1Hi : public FeSpaceH1 {
@@ -23,10 +25,14 @@ class FeSpaceH1Hi : public FeSpaceH1 {
     //! Initialize class (read order etc.)
     void Init();
         
-    //! Return pointer to reference element
+    //! \copydoc FeSpace::GetFe(EntityIterator,shared_ptr<IntScheme>&)
+    virtual BaseFE* GetFe( const EntityIterator ent ,
+                           shared_ptr<IntScheme>& intScheme );
+
+    //! \copydoc FeSpace::GetFe(EntityIterator)
     virtual BaseFE* GetFe( const EntityIterator ent );
-    
-    //! Return pointer to reference element (by element number)
+
+    //! \copydoc FeSpace::GetFe(UInt)
     virtual BaseFE* GetFe( UInt elemNum );
 
     //! @copydoc FeSpace::GetNumEntityOrder
@@ -49,7 +55,8 @@ class FeSpaceH1Hi : public FeSpaceH1 {
     //! Set the order and mapping type of a specific region
     virtual void SetRegionElements( RegionIdType region, 
                                     MappingType mType,
-                                    const Matrix<Integer>& order );
+                                    const Matrix<Integer>& order,
+                                    PtrParamNode infoNode );
 
     //! Here the spaces have the possibility to check if user definitions makes sense
     //! e.g. if the chosen integration is correct or the element order is nice
@@ -57,13 +64,16 @@ class FeSpaceH1Hi : public FeSpaceH1 {
     virtual void CheckConsistency();
 
     //! sets the default integration scheme and order
-    virtual void SetDefaultIntegration();
+    virtual void SetDefaultIntegration( PtrParamNode infoNode );
 
     //! Create default finite elements to be used if nothing else is requested
-    virtual void SetDefaultElements();
+    virtual void SetDefaultElements( PtrParamNode infoNode );
 
     //! Adjust orders of edges / faces according to min/max rule
     void AdjustEntityOrder();
+    
+    //! Map for reference elements by region
+    std::map< RegionIdType, std::map<Elem::FEType, FeH1Hi* > > refElems_;
     
     //! Map containing the polynomial order for every edge
     std::map<UInt, StdVector<UInt> > edgeOrder_;

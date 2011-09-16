@@ -332,6 +332,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
     //==============================================================
     //begin new implementation
     //==============================================================
+    shared_ptr<FeSpace> mySpace = feFunctions_[MAG_POTENTIAL]->GetFeSpace();
     for(UInt iRegion = 0; iRegion < subdoms_.GetSize() ; iRegion ++){
       actRegion = subdoms_[iRegion];
       actMat    = materials_[actRegion];
@@ -340,10 +341,11 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
       shared_ptr<BaseFeFunction> feFunc = feFunctions_[MAG_POTENTIAL];
       shared_ptr<FeSpace> feSpace = feFunc->GetFeSpace();
 
-      //obtain integration method and order of current subdomain
-      IntScheme::IntegMethod curMethod;
-      Matrix<Integer> order;
-      feSpace->GetIntegration(actRegion,curMethod,order);
+      PtrParamNode curRegNode = myParam_->Get("regionList")->GetByVal("region","name",regionName.c_str());
+      std::string polyId = curRegNode->Get("polyId")->As<std::string>();
+      std::string integId = curRegNode->Get("integId")->As<std::string>();
+      mySpace->SetRegionApproximation(actRegion, polyId,integId);
+      
 
       // create new entity list
       shared_ptr<ElemList> actSDList( new ElemList(ptgrid_ ) );
@@ -355,10 +357,6 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
        // =================================
        nLinCurlCurlEdgeInt* curlcurlNL =
            new nLinCurlCurlEdgeInt( actMat, upLagrangeForm );
-
-
-       curlcurlNL->SetIntegration(ptgrid_->GetIntegrationScheme(),
-                                  curMethod,order[0][0]);
        curlcurlNL->SetNonLinMethod( nonLinMethod_ );
        curlcurlNL->SetSolution( dynamic_cast<NodeStoreSol<Double>&>(*sol_ ));
        curlcurlNL->SetFeSpace( feSpace );
@@ -375,8 +373,6 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
        // =================================
        nLinMagEdge_linFormInt* rhsSource
        = new nLinMagEdge_linFormInt( actMat, upLagrangeForm);
-       rhsSource->SetIntegration(ptgrid_->GetIntegrationScheme(),
-                                 curMethod,order[0][0]);
        rhsSource->SetSolution( dynamic_cast<NodeStoreSol<Double>&>(*sol_ ));
        rhsSource->SetFeSpace( feSpace );
        LinearFormContext * rhsContext =
@@ -396,8 +392,6 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
        // ===============================
        CurlCurlEdgeInt* curlcurl =
            new CurlCurlEdgeInt( actMat, upLagrangeForm);
-       curlcurl->SetIntegration(ptgrid_->GetIntegrationScheme(),
-                                curMethod,order[0][0]);
        curlcurl->SetFeSpace( feSpace );
 
        BiLinFormContext * stiffContext =
@@ -411,8 +405,6 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
        if ( nonLin_ == true ) {
          nLinMagEdge_linFormInt* rhsSource =
              new nLinMagEdge_linFormInt( actMat, upLagrangeForm );
-         rhsSource->SetIntegration(ptgrid_->GetIntegrationScheme(),
-                                   curMethod,order[0][0]);
          rhsSource->SetFeSpace( feSpace );
          rhsSource->SetSolution( dynamic_cast<NodeStoreSol<Double>&>(*sol_ ));
 
@@ -442,8 +434,6 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
 
       MassEdgeInt *massInt =
           new MassEdgeInt(conductivity, scaleByEdgeSize, upLagrangeForm );
-      massInt->SetIntegration(ptgrid_->GetIntegrationScheme(),
-                              curMethod,order[0][0]);
       massInt->SetFeSpace( feSpace );
 
       BiLinFormContext * massContext;
@@ -483,8 +473,6 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
           LinearFormContext * coilContext =
               new LinearFormContext( coilSource3d );
           coilSource3d->SetFeSpace(feSpace );
-          coilSource3d->SetIntegration( ptgrid_->GetIntegrationScheme(),
-                                        curMethod,order[0][0] );
           coilContext->SetEntities( actSDList );
           coilContext->SetFeFunction( feFunc );
           assemble_->AddLinearForm( coilContext );
@@ -939,7 +927,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
     availResults_.insert( res1 );
     
     feFunctions_[MAG_POTENTIAL]->SetResultInfo(res1);
-    feFunctions_[MAG_POTENTIAL]->SetPDE(shared_ptr<MagEdgePDE>(this));
+    //feFunctions_[MAG_POTENTIAL]->SetPDE(shared_ptr<MagEdgePDE>(this));
     
     // === MAGNETIC FLUX DENSITY ===
     shared_ptr<ResultInfo> flux(new ResultInfo);
@@ -1452,8 +1440,9 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
     //and standard Gauss integration
     std::map<SolutionType, shared_ptr<FeSpace> > crSpaces;
     if(formulation == "default" || formulation == "H_CURL"){
+      PtrParamNode potSpaceNode = infoNode->Get("magPotential");
       crSpaces[MAG_POTENTIAL] = 
-          FeSpace::CreateInstance(myParam_, infoNode, FeSpace::HCURL );
+          FeSpace::CreateInstance(myParam_, potSpaceNode, FeSpace::HCURL );
       crSpaces[MAG_POTENTIAL]->Init();
     }else{
       EXCEPTION("The formulation " << formulation 

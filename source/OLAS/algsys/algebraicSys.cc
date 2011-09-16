@@ -1280,10 +1280,37 @@ namespace CoupledField {
   void AlgebraicSys::SetElementRHS( const Vector<T>& elemRHS, 
                                     const FeFctIdType fctId,
                                     StdVector<Integer>& eqnNrs ) {
+
+    LOG_DBG(algSys) << "Setting element RHS for fctId ("<< fctId << ")";
+    LOG_DBG2(algSys) << "EqnVec: " << eqnNrs.ToString();
+    LOG_DBG3(algSys) << "vector is:\n " << elemRHS.ToString();
     
-    LOG_DBG(algSys) << "Setting real-valued element RHS";
-    REFACTOR;
-  }
+    // Re-map entries from (fctId,eqnNr) -> (blockNum,index)
+    StdVector<UInt> rowBlocks, rowNums;
+    MapFctIdEqnToIndex(fctId, eqnNrs, rowBlocks, rowNums);
+    
+    // Now, dismantle equations
+     UInt numRows = rowBlocks.GetSize();
+     
+     // Loop over all rows
+     for( UInt iRow = 0; iRow < numRows; ++iRow ) {
+       // get hold of block numbers and indices
+       const UInt & rowBlock = rowBlocks[iRow];
+       const UInt & rowNum = rowNums[iRow];
+
+       // get limits of free indices
+       const UInt & lastFreeRowIndex = blockInfo_[rowBlock]->numLastFreeIndex;
+       
+       // get vector
+       SingleVector &vec = (*rhs_)(rowBlock);
+       
+       if ( rowNum > 0 && rowNum <= lastFreeRowIndex ) {
+         if ( rowNum <= lastFreeRowIndex ) {
+           vec.AddToEntry( rowNum-1, elemRHS[iRow]);
+         }
+       } // loop over rows
+     } // loop over blocks 
+  } 
 
 
   template<typename T>

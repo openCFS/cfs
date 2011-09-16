@@ -295,11 +295,22 @@ class ElemShape;
     //! Contains for each edge all node numbers
     StdVector<StdVector<UInt> > edgeNodes;
     
+    //! Contains for each local direction the edges pointing in this direction
+    StdVector<StdVector<UInt> > locDirEdges;
+    
     //! Contains for each face the corner node numbers
     StdVector<StdVector<UInt> > faceVertices;
 
     //! Contains for each face all node numbers
     StdVector<StdVector<UInt> > faceNodes;
+    
+    //! Contains for each local direction faces pointing in this direction
+
+    //! This array contains for every local direction (fist index) all
+    //! faces (first component of the pair) where at least one edge points
+    //! in this direction (second component of the pair denotes the face-local
+    //! direction component)
+    StdVector<StdVector<std::pair<UInt,UInt> > > locDirFaces;
 
     // ========================================================================
     //  PUBLIC METHODS

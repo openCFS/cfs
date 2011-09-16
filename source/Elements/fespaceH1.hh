@@ -113,8 +113,6 @@ public:
   //! Add result
   virtual void AddFeFunction( shared_ptr<BaseFeFunction> fct );
 
-  //! Precalculate integration points
-  virtual void PreCalcShapeFncs();
 
     //! Dump information to screen
   virtual void PrintEqnMap();
@@ -127,26 +125,6 @@ protected:
   
   //! Map Nodal Equation Numbers
   virtual void MapNodalEqns(UInt phase);
-
-  // ====================================================================
-  // INTERNAL INITIALIZATION
-  // ====================================================================
-
-  //! Set the order and mapping type of a specific region
-  virtual void SetRegionElements( RegionIdType region, 
-                                  MappingType mType,
-                                  const Matrix<Integer>& order)=0;
-
-  //! Here the spaces have the possibility to check if user definitions makes sense
-  //! e.g. if the chosen integration is correct or the element order is nice
-  //! here one could e.g. adjust the integration oder according to the element order
-  virtual void CheckConsistency() = 0;
-
-  //! sets the default integration scheme and order
-  virtual void SetDefaultIntegration() = 0;
-
-  //! Create default finite elements to be used if nothing else is requested
-  virtual void SetDefaultElements() = 0;
 
   // ====================================================================
   // PROCESS USER INPUT

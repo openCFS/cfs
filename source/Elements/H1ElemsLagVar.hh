@@ -73,11 +73,22 @@ namespace CoupledField {
     //! Returns the number of functions for a single edge or face
     UInt GetNumFncsPerEntType( EntityType fctEntityType, UInt dof = 1 );
 
-    //!obtain iso order of the current element
-    //!if there is no order is set, we return -1
-    virtual UInt GetIsoOrder(){
+    //! Set the polynomial order of the element
+    virtual void SetIsoOrder( UInt order ) = 0;
+    
+    //! \copydoc BaseFE::GetIsoOrder
+    virtual UInt GetIsoOrder() const {
       return order_;
     }
+    
+    //! \copydoc BaseFE::GetMaxOrder
+    virtual UInt GetMaxOrder() const {
+      return order_;
+    }
+
+    //! \copydoc BaseFE::GetMaxOrderLocDir
+    virtual void GetMaxOrderLocDir(StdVector<UInt>& order );
+    
   protected:
 
     //! @copydoc FeH1::CalcShFnc

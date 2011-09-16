@@ -17,7 +17,8 @@ void MassEdgeInt::CalcElementMatrix( Matrix<Double>& elemMat,
   // Extract physical element
   const Elem* ptElem = ent1.GetElem();
   // Obtain FE element from feSpace
-  FeHCurlHi* ptFe = dynamic_cast<FeHCurlHi*>(ptFeSpace1_->GetFe( ent1 )); 
+  shared_ptr<IntScheme> intScheme;
+  FeHCurlHi* ptFe = dynamic_cast<FeHCurlHi*>(ptFeSpace1_->GetFe( ent1, intScheme )); 
   
   // Special: Only use lower order functions
   ptFe->SetOnlyLowestOrder(true);
@@ -30,7 +31,7 @@ void MassEdgeInt::CalcElementMatrix( Matrix<Double>& elemMat,
   // IntegrationScheme class)
   StdVector<LocPoint> intPoints;
   StdVector<Double> weights;
-  intScheme_->GetIntPoints( Elem::GetShapeType(ptElem->type), intPoints, weights );
+  intScheme->GetIntPoints( Elem::GetShapeType(ptElem->type), intPoints, weights );
 
   elemMat.Resize( nrFncs );
   elemMat.Init();

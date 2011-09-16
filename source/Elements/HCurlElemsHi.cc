@@ -30,6 +30,7 @@ inline AutoDiff<Double,3> Cross (const AutoDiff<Double,3> & u,
 FeHCurlHi::FeHCurlHi() {
   updateUnknowns_ = true;
   onlyLowestOrder_ = false;
+  isoOrder_ = 0;
   
   // disable by default use of gradient functions
   useGrad_[EDGE]     = false;
@@ -68,8 +69,69 @@ void FeHCurlHi::SetIsoOrder(UInt order) {
   orderInner_ = innerOrder;
 
   updateUnknowns_ = true;
+  isIsotropic_ = true;
+  isoOrder_ = order;
 }
-  
+
+void FeHCurlHi::GetNodalPermutation( StdVector<UInt>& fncPermutation,
+                                  const Elem* ptElem,
+                                  EntityType fctEntityType,
+                                  UInt entNumber){
+  if (updateUnknowns_) CalcNumUnknowns();
+ 
+  if( fctEntityType == VERTEX ) {
+    UInt numFncs = entityFncs_[VERTEX][entNumber];
+    fncPermutation.Resize( numFncs );
+    for(UInt i = 0; i < numFncs; ++i ) {
+      fncPermutation[i] = i;
+    }
+  }else if( fctEntityType == EDGE ) {
+    UInt numFncs = entityFncs_[EDGE][entNumber];
+    fncPermutation.Resize( numFncs );
+    for(UInt i = 0; i < numFncs; ++i ) {
+      fncPermutation[i] = i;
+    }
+  }else if( fctEntityType == FACE ) {
+    UInt numFncs = entityFncs_[FACE][entNumber];
+    fncPermutation.Resize( numFncs );
+    for(UInt i = 0; i < numFncs; ++i ) {
+      fncPermutation[i] = i;
+    }
+  }else if( fctEntityType == INTERIOR ) {
+    UInt numFncs = entityFncs_[INTERIOR][entNumber];
+    fncPermutation.Resize( numFncs );
+    for(UInt i = 0; i < numFncs; ++i ) {
+      fncPermutation[i] = i;
+    }
+  }
+}
+
+UInt FeHCurlHi::GetIsoOrder() const {
+    if( isIsotropic_) {
+      return isoOrder_;
+    } else {
+      EXCEPTION("Implement me");
+      return 0;
+    }
+}
+
+UInt FeHCurlHi::GetMaxOrder() const {
+  if( isIsotropic_) {
+    return isoOrder_;
+  } else {
+    EXCEPTION("Implement me");
+    return 0;
+  }
+}
+
+void FeHCurlHi::GetMaxOrderLocDir(StdVector<UInt>& order ) {
+  if( isIsotropic_ ) {
+    order.Resize( Elem::shapes[feType_].dim);
+    order.Init(isoOrder_);
+  } else {
+    EXCEPTION("Implement me");
+  }
+}
 
 // ========================================================================
 //  FeHCurlHi explicit element definition 
@@ -138,41 +200,7 @@ void FeHCurlHiQuad::CalcNumUnknowns() {
   updateUnknowns_ = false;
 
 }
-
-void FeHCurlHi::GetNodalPermutation( StdVector<UInt>& fncPermutation,
-                                  const Elem* ptElem,
-                                  EntityType fctEntityType,
-                                  UInt entNumber){
-  if (updateUnknowns_) CalcNumUnknowns();
- 
-  if( fctEntityType == VERTEX ) {
-    UInt numFncs = entityFncs_[VERTEX][entNumber];
-    fncPermutation.Resize( numFncs );
-    for(UInt i = 0; i < numFncs; ++i ) {
-      fncPermutation[i] = i;
-    }
-  }else if( fctEntityType == EDGE ) {
-    UInt numFncs = entityFncs_[EDGE][entNumber];
-    fncPermutation.Resize( numFncs );
-    for(UInt i = 0; i < numFncs; ++i ) {
-      fncPermutation[i] = i;
-    }
-  }else if( fctEntityType == FACE ) {
-    UInt numFncs = entityFncs_[FACE][entNumber];
-    fncPermutation.Resize( numFncs );
-    for(UInt i = 0; i < numFncs; ++i ) {
-      fncPermutation[i] = i;
-    }
-  }else if( fctEntityType == INTERIOR ) {
-    UInt numFncs = entityFncs_[INTERIOR][entNumber];
-    fncPermutation.Resize( numFncs );
-    for(UInt i = 0; i < numFncs; ++i ) {
-      fncPermutation[i] = i;
-    }
-  }
-}
-
-
+  
 void FeHCurlHiQuad::CalcLocShFnc( Matrix<Double>& shape, LocPointMapped& lp,
                               const Elem* elem, UInt comp  ) {
   if (updateUnknowns_) CalcNumUnknowns();

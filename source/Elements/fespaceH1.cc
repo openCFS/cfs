@@ -26,18 +26,8 @@ namespace CoupledField {
 
   //! Returns the number of (vectorial) unkowns on the element
   UInt FeSpaceH1::GetNumFunctions( const EntityIterator ent ){
-    RegionIdType eRegion =  ent.GetElem()->regionId;
-
-    //Check if the region is there, otherwise fall back to default
-    if(refElems_.find(eRegion) == refElems_.end()){
-      eRegion = ALL_REGIONS;
-    }
-    //just for debugging purpose
-    if(refElems_[eRegion].find(ent.GetElem()->type) == refElems_[eRegion].end()){
-      EXCEPTION("FeSpaceH1::GetNumFunctions(const EnitityIterator): requested fetype which is noch supported by space");
-    }
-    //return refElems_[ent.GetElem()->ptElem->feType()]->GetNumFncs(feFunction_->GetResultInfo()->fctType);
-    return refElems_[eRegion][ent.GetElem()->type]->GetNumFncs();
+    BaseFE * fe = GetFe(ent);
+    return fe->GetNumFncs();
   }
 
   //! Return equation numbers for a all DOFs
@@ -302,31 +292,6 @@ namespace CoupledField {
       default:
         EXCEPTION("In FeSpaceH1::MapNodalEqns(): Supplied wrong argument for the numbering phase");
         break;
-    }
-  }
-
-  void FeSpaceH1::PreCalcShapeFncs(){
-    //now pre-calculate all available integration points
-    //stupid but simple
-    //get grip of the integrationScheme object
-
-    // leave, if element space is hierarchical
-    if (isHierarchical_)return;
-    shared_ptr<IntScheme> integScheme = feFunction_->GetGrid()->GetIntegrationScheme();
-
-    StdVector<LocPoint> integPoints;
-    std::map<RegionIdType, std::map<Elem::FEType, BaseFE* > >::iterator regIt = refElems_.begin();
-
-    Elem::ShapeType shape;
-    while(regIt != refElems_.end()){
-      std::map<Elem::FEType, BaseFE* >::iterator elemIt = regIt->second.begin();
-      while(elemIt != regIt->second.end()){
-        shape = Elem::GetShapeType(elemIt->first);
-        integScheme->GetAllIntegrationPoints(integPoints,shape);
-        dynamic_cast<FeH1*>(elemIt->second)->SetFunctionsAtIp(integPoints);
-        elemIt++;
-      }
-      regIt++;
     }
   }
 

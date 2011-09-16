@@ -19,100 +19,7 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
     regionId( NO_REGION_ID )
   {}
 
-//  void Elem::Initialize()
-//  {
-//    if(!numElemNodes_.empty())
-//      return;
 //
-//    numElemNodes_[UNDEF] =  0;
-//    numElemNodes_[POINT] =  1;
-//    numElemNodes_[LINE2] =  2;
-//    numElemNodes_[LINE3] =  3;
-//    numElemNodes_[TRIA3] =  3;
-//    numElemNodes_[TRIA6] =  6;
-//    numElemNodes_[QUAD4] =  4;
-//    numElemNodes_[QUAD8] =  8;
-//    numElemNodes_[QUAD9] =  9;
-//    numElemNodes_[TET4]  =  4;
-//    numElemNodes_[TET10] =  10;
-//    numElemNodes_[HEXA8] =  8;
-//    numElemNodes_[HEXA20]=  20;
-//    numElemNodes_[HEXA27]=  27;
-//    numElemNodes_[PYRA5] =  5;
-//    numElemNodes_[PYRA13]=  13;
-//    numElemNodes_[WEDGE6]=  6;
-//    numElemNodes_[WEDGE15]= 15;      
-//
-//    elemDims_[UNDEF] =   0;
-//    elemDims_[POINT] =   0;
-//    elemDims_[LINE2] =   1;
-//    elemDims_[LINE3] =   1;
-//    elemDims_[TRIA3] =   2;
-//    elemDims_[TRIA6] =   2;
-//    elemDims_[QUAD4] =   2;
-//    elemDims_[QUAD8] =   2;
-//    elemDims_[QUAD9] =   2;
-//    elemDims_[TET4] =    3;
-//    elemDims_[TET10] =   3;
-//    elemDims_[HEXA8] =   3;
-//    elemDims_[HEXA20] =  3;
-//    elemDims_[HEXA27] =  3;
-//    elemDims_[PYRA5] =   3;
-//    elemDims_[PYRA13] =  3;
-//    elemDims_[WEDGE6] =  3;
-//    elemDims_[WEDGE15] = 3;      
-//
-//    elemQuadratic_[UNDEF] =   false;
-//    elemQuadratic_[POINT] =   false;
-//    elemQuadratic_[LINE2] =   false;
-//    elemQuadratic_[LINE3] =   true;
-//    elemQuadratic_[TRIA3] =   false;
-//    elemQuadratic_[TRIA6] =   true;
-//    elemQuadratic_[QUAD4] =   false;
-//    elemQuadratic_[QUAD8] =   true;
-//    elemQuadratic_[QUAD9] =   true;
-//    elemQuadratic_[TET4] =    false;
-//    elemQuadratic_[TET10] =   true;
-//    elemQuadratic_[HEXA8] =   false;
-//    elemQuadratic_[HEXA20] =  true;
-//    elemQuadratic_[HEXA27] =  true;
-//    elemQuadratic_[PYRA5] =   false;
-//    elemQuadratic_[PYRA13] =  true;
-//    elemQuadratic_[WEDGE6] =  false;
-//    elemQuadratic_[WEDGE15] = true;   
-//  }
-//
-//  UInt Elem::GetNumElemNodes(Elem::FEType type) {
-//    if(numElemNodes_.empty())
-//      Initialize();
-//
-//    if(numElemNodes_.find(type) != numElemNodes_.end())
-//      return numElemNodes_[type];
-//    else
-//      return 0;
-//  } 
-//
-//  
-//  UInt Elem::GetElemDim(Elem::FEType type) {
-//    if(numElemNodes_.empty())
-//      Initialize();
-//
-//    if(elemDims_.find(type) != elemDims_.end())
-//      return elemDims_[type];
-//    else
-//      return 0;
-//  }
-//
-//  bool Elem::GetElemQuadratic(FEType type) 
-//  {
-//    if(numElemNodes_.empty())
-//      Initialize();
-//
-//    if(elemQuadratic_.find(type) != elemQuadratic_.end())
-//      return elemQuadratic_[type];
-//    else
-//      return 0;
-//  }
 
   std::string Elem::ToString() const {
     std::ostringstream os;
@@ -174,8 +81,10 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
   void SetElemInfo( ElemShape& shape, Double midPoint[], 
                       Double nodeCoords[], UInt edgeVertices[],
                       UInt numEdgeNodes[], UInt edgeNodes[],
+                      UInt numEdgesPerDir[],  UInt locDirEdges[],
                       UInt numFaceVertices[] = NULL, UInt faceVertices[] = NULL,
-                      UInt numFaceNodes[] = NULL, UInt faceNodes[] = NULL) {
+                      UInt numFaceNodes[] = NULL, UInt faceNodes[] = NULL,
+                      UInt numFacesPerDir[] = NULL, UInt locDirFaces[][2] = NULL) {
 
       // midPoint
       UInt dim = shape.dim;
@@ -210,6 +119,15 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
           shape.edgeNodes[iEdge][iNode] = edgeNodes[pos++];
         }
       }
+      
+      // locDirEdges
+      pos = 0;
+      shape.locDirEdges.Resize( shape.dim );
+      for( UInt iDim = 0; iDim < shape.dim; iDim++ ) {
+        shape.locDirEdges[iDim].Resize( numEdgesPerDir[iDim]);
+        for( UInt iEdge = 0; iEdge < numEdgesPerDir[iDim]; iEdge++ )
+          shape.locDirEdges[iDim][iEdge] = locDirEdges[pos++];
+      }
 
       // faceVertices
       shape.faceVertices.Resize( shape.numFaces );
@@ -228,6 +146,21 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
         shape.faceNodes[iFace].Resize( numFaceNodes[iFace] );
         for( UInt iNode = 0; iNode < numFaceNodes[iFace]; iNode++ ) {
           shape.faceNodes[iFace][iNode] = faceNodes[pos++];
+        }
+      }
+      
+      // locDirFaces
+      if( shape.numFaces > 0 ) {
+        pos = 0;
+        shape.locDirFaces.Resize( shape.dim );
+        for( UInt iDim = 0; iDim < shape.dim; iDim++ ) {
+          shape.locDirFaces[iDim].Resize( numFacesPerDir[iDim]);
+          for( UInt iFace = 0; iFace < numFacesPerDir[iDim]; iFace++ ) {
+            shape.locDirFaces[iDim][iFace] = 
+                std::pair<UInt,UInt>(locDirFaces[pos][0], 
+                                     locDirFaces[pos][1]);
+            pos++;
+          }
         }
       }
     }
@@ -276,8 +209,17 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
       { 
        2 // #1
       };
+      UInt numEdgesPerDir[] =
+      {
+       1 // #edges in xi-dir
+      };
+      UInt locDirEdges[] =
+      {
+       1 // xi
+      };
       SetElemInfo( s, midPoint, nodeCoords, edgeVertices, numEdgeNodes,
-                   edgeVertices, NULL, NULL );
+                   edgeVertices, numEdgesPerDir, locDirEdges, 
+                   NULL, NULL, NULL, NULL );
       Elem::shapes[Elem::ET_LINE2] = s;
     }
     
@@ -335,6 +277,16 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
        2  // #4
       };
       UInt * edgeNodes  = edgeVertices; // nodes = vertices
+      UInt numEdgesPerDir[] =
+      {
+       2, // #edges in xi-dir
+       2  // #edges in eta-dir
+      };
+      UInt locDirEdges[] =
+      {
+       1,3, // xi
+       2,4  // eta
+      };
       UInt numFaceVertices[] = 
       {
        4 // #1
@@ -345,10 +297,21 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
       };
       UInt * numFaceNodes = numFaceVertices;
       UInt * faceNodes = faceVertices;
+      UInt numFacesPerDir[] = 
+      {
+       1, // #faces in xi-dir
+       1  // #faces in eta-dir
+      };
+      UInt locDirFaces[][2] = 
+      {
+       {1,0}, // #faces in xi-dir & component
+       {1,1}, // #faces in eta-dir & component
+      };
 
       SetElemInfo( s, midPoint, nodeCoords, edgeVertices, numEdgeNodes,
-                   edgeNodes, numFaceVertices, faceVertices, 
-                   numFaceNodes, faceNodes );
+                   edgeNodes, numEdgesPerDir, locDirEdges,
+                   numFaceVertices, faceVertices, numFaceNodes, faceNodes,
+                   numFacesPerDir, locDirFaces );
       Elem::shapes[Elem::ET_QUAD4] = s;
     }
 
@@ -405,6 +368,16 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
         4, 3, 7, // #3
         1, 4, 8  // #4 
        };
+       UInt numEdgesPerDir[] =
+       {
+        2, // #edges in xi-dir
+        2  // #edges in eta-dir
+       };
+       UInt locDirEdges[] =
+       {
+        1,3, // xi
+        2,4  // eta
+       };
        UInt numFaceVertices[] = 
        {
         4 // #1
@@ -421,9 +394,21 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
        {
         1, 2, 3, 4, 5, 6, 7, 8 // #1
        };
+       UInt numFacesPerDir[] = 
+       {
+        1, // #faces in xi-dir
+        1  // #faces in eta-dir
+       };
+       UInt locDirFaces[][2] = 
+       {
+        {1,0}, // #faces in xi-dir & component
+        {1,1}, // #faces in eta-dir & component
+       };
+
        SetElemInfo( s, midPoint, nodeCoords, edgeVertices, numEdgeNodes,
-                    edgeNodes, numFaceVertices, faceVertices, 
-                    numFaceNodes, faceNodes );
+                    edgeNodes, numEdgesPerDir, locDirEdges,
+                    numFaceVertices, faceVertices, numFaceNodes, faceNodes,
+                    numFacesPerDir, locDirFaces );
        Elem::shapes[Elem::ET_QUAD8] = s;
      }
     // ************************************************************************
@@ -502,6 +487,17 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
        2  // #12
       };
       UInt * edgeNodes = edgeVertices;
+      UInt numEdgesPerDir[] =
+      {
+       4, // #edges in xi-dir
+       4, // #edges in eta-dir
+       4, // #edges in zeta-dir
+      };
+      UInt locDirEdges[] =
+      {
+       1,3,9,11,  // xi
+       2,4,10,12  // eta
+      };
       UInt numFaceVertices[] = 
       {
        4, // #1
@@ -522,9 +518,22 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
       };
       UInt * numFaceNodes = numFaceVertices;
       UInt * faceNodes = faceVertices;
+      UInt numFacesPerDir[] = 
+      {
+       4, // #faces in xi-dir
+       4, // #faces in eta-dir
+       4  // #faces in zeta-dir
+      };
+      UInt locDirFaces[][2] = 
+      {
+       {1,0},{2,0},{4,0},{6,0}, // faces in xi-dir & component
+       {1,1},{3,0},{5,0},{6,1}, // faces in eta-dir & component
+       {2,1},{3,1},{4,1},{5,1}
+      };
       SetElemInfo( s, midPoint, nodeCoords, edgeVertices, numEdgeNodes,
-                   edgeNodes, numFaceVertices, faceVertices, 
-                   numFaceNodes, faceNodes );
+                    edgeNodes, numEdgesPerDir, locDirEdges,
+                    numFaceVertices, faceVertices, numFaceNodes, faceNodes,
+                    numFacesPerDir, locDirFaces );
       Elem::shapes[Elem::ET_HEXA8] = s;
     }
     // ************************************************************************

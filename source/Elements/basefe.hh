@@ -100,16 +100,41 @@ namespace CoupledField
                                       UInt entNumber){
     };
 
-    //! Set the isotropic order of the Element. This methods gets overwritten 
-    //! by the child classes to calculate the number of functions according to
-    //! the given order
-    //! \param order (input) The desired order of the element
-    virtual void SetIsoOrder(UInt order){};
+      //! Query if element has isotropic polynomial order
+      bool IsIsotropic() const { 
+        return isIsotropic_;
+      }
+    
+//    //! Set the isotropic order of the Element. This methods gets overwritten 
+//    //! by the child classes to calculate the number of functions according to
+//    //! the given order
+//    //! \param order (input) The desired order of the element
+//    virtual void SetIsoOrder(UInt order){};
 
     //!obtain iso order of the current element
     //!if there is no order is set, we return -1
-    virtual UInt GetIsoOrder(){
-      return -1;
+    virtual UInt GetIsoOrder() const {
+      EXCEPTION("Not implemented");
+      return 0;
+    }
+
+    //! Return the maximum polynomial order of the element
+    virtual UInt GetMaxOrder() const {
+      EXCEPTION("Not implemented");
+      return 0;
+    }
+
+    //! Return maximum polynomial order for local directions
+    
+    //! This methods returns the maximum polynomial order of the element
+    //! in all local directions (xi, eta, zeta). This is especially
+    //! useful for determining the optimal integration method:
+    //! In case of Gaussian integration, we can define the integration
+    //! rule by means of a tensor product of 1D Gaussian points,
+    //! \param order maximum polynomial order in all local directions
+    //!              \f[xi, eta, zeta \f]
+    virtual void GetMaxOrderLocDir(StdVector<UInt>& order ) const {
+      EXCEPTION( "Not implemented in base class");
     }
 
   protected:
@@ -119,6 +144,9 @@ namespace CoupledField
 
     //! Geometrix type of finite element
     Elem::FEType feType_;
+    
+    //! Flag for isotropic polynomial order
+    bool isIsotropic_;
   };
 
 }

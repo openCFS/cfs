@@ -38,6 +38,12 @@ namespace CoupledField {
     bcCounter_[HDBC] = 0;
     bcCounter_[IDBC] = 0;
     bcCounter_[CS] = 0;
+    
+    // get already integrationScheme from grid
+    // In the future we could also create our own instance,
+    // where only the maximum integration order defined by 
+    // the user gets initialized
+    intScheme_ = domain->GetGrid()->GetIntegrationScheme();
 
 
   }
@@ -109,6 +115,7 @@ namespace CoupledField {
         LOG_DBG(feSpace) << "Creating HCurl space";
         if( polyType == LAGRANGE )  {
           // create explicit lower order HCurl space
+          EXCEPTION("Explicit lower order space H-Curl not defined yet");
         } else {
           ret.reset(new FeSpaceHCurlHi(aNode, infoNode));
         }
@@ -231,17 +238,53 @@ namespace CoupledField {
 
 
 
-  void FeSpace::GetIntegration(RegionIdType region, IntScheme::IntegMethod & method,Matrix<Integer> & order){
-    //TODO> this ignores the mode of integration.
-    // the plan is the following> the Get Integration should only be called
-    // from within the Form. Then we can determine here on an element level
-    // the correct integration order according to the mode.
-    if(regionIntegration_.find(region) == regionIntegration_.end() ){
-      method = regionIntegration_[ALL_REGIONS].method;
-      order = regionIntegration_[ALL_REGIONS].order;
-    }else{
-      method = regionIntegration_[region].method;
-      order = regionIntegration_[region].order;
+  void FeSpace::GetIntegration( BaseFE * fe, 
+                                RegionIdType region,
+                                IntScheme::IntegMethod & method,
+                                Matrix<Integer> & order){
+    
+    
+    // find integration definition for this region 
+    std::map<RegionIdType, IntegDefinition>::iterator it;
+    it = regionIntegration_.find(region);
+    if( it == regionIntegration_.end() ) {
+      it = regionIntegration_.find(ALL_REGIONS);
+    }
+    IntegDefinition &id = it->second;
+    LOG_DBG(feSpace) << "returning integScheme for region " << region;
+    
+    // We distinguish the following cases:
+    // 1) order is given ABSOLUTE: 
+    //    in this case we use directly this value
+    // 2) order is given RELATIVE:
+    //    distinguish if element is
+    //    a) ISOTROPIC: get order p of element and set integration
+    //                  order to 2*(p+1) + relativeOrder
+    //    b) ANISOTROPIC: get maximum order in each direction
+    //                    and set integration oder to
+    //                    2*(p_maxLicDir) + relativeOrder_locDir
+    method = id.method;
+    LOG_DBG2(feSpace) << "\tmethod: " 
+                      << IntScheme::IntegMethodEnum.ToString(method);
+    if( id.mode == ABSOLUTE ) {
+      // ABSOLUTE order given
+      order = id.order;
+      LOG_DBG2(feSpace) << "\torder (absolute):" << order[0][0];
+    } else {
+      // RELATIVE order given
+      if( fe->IsIsotropic() ){
+        LOG_DBG2(feSpace) << "\torder (relative): " << id.order[0][0];
+        // a) isotropic
+        UInt p = fe->GetMaxOrder();
+        order = id.order;
+        // dirty hack: we still assume, that we only take [0][0]
+        // for isotropic integration order
+        order[0][0] += 2*(p+1);
+        LOG_DBG2(feSpace) << "\torder (final): " << order[0][0];
+      } else {
+        // b) anisotropic
+        EXCEPTION("Anisotropic case not yet implemented");
+      }
     }
   }
 
@@ -500,6 +543,10 @@ namespace CoupledField {
   // GENERATE REGION SPECIFIC DATA AND PROCESS USER INPUT
   // ************************************************************************
   void FeSpace::SetRegionApproximation(RegionIdType region, std::string polyId, std::string integId){
+    
+    std::string regionName = domain->GetGrid()->GetRegion().ToString(region);
+    PtrParamNode regionNode = infoNode_->Get("regionList")->Get(regionName);
+    
     //SECTION1: Polynomials
     if(polyNodes_.find(polyId)!=polyNodes_.end()){
       //the user specified a valid polyId so we read its data and call create ref elems
@@ -509,10 +556,10 @@ namespace CoupledField {
       Matrix<Integer> order;
       MappingType curMap;
       ReadPolyNode(pNode,curMap,order);
-      SetRegionElements(region,curMap,order);
+      SetRegionElements(region,curMap,order,regionNode);
     }else if(polyId=="default"){
       //the user requested the default but did not specify it so we set it here
-      SetDefaultElements();
+      SetDefaultElements(infoNode_->Get("regionList")->Get("default"));
     }else{
       EXCEPTION("The polynomial id does not match any in the fePolynomialList: " << polyId);
     }
@@ -524,16 +571,17 @@ namespace CoupledField {
       IntegOrderMode curMode;
       IntScheme::IntegMethod iMeth;
       ReadIntegNode(iNode,iMeth,order,curMode);
-      SetRegionIntegration(region,iMeth,order,curMode);
+      SetRegionIntegration(region,iMeth,order,curMode, regionNode);
     }else if(integId=="default"){
       //the user requested the default but did not specify it so we set it here
-      SetDefaultIntegration();
+      SetDefaultIntegration(infoNode_->Get("regionList")->Get("default"));
     }else{
       EXCEPTION("The integration id does not match any in the IntegratoinSchemeList: " << integId);
     }
   }
 
-  void FeSpace::SetRegionIntegration(RegionIdType region, IntScheme::IntegMethod method ,Matrix<Integer> order,IntegOrderMode mode){
+  void FeSpace::SetRegionIntegration(RegionIdType region, IntScheme::IntegMethod method ,Matrix<Integer> order,
+                                     IntegOrderMode mode, PtrParamNode infoNode ){
     regionIntegration_[region].method = method;
     regionIntegration_[region].order = order;
     regionIntegration_[region].mode = mode;

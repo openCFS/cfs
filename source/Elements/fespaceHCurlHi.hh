@@ -9,6 +9,8 @@
 
 namespace CoupledField {
 
+// forward class declaration
+class FeHCurlHi;
 
 //! Finite element space for hierarchical H1 elements
 class FeSpaceHCurlHi : public FeSpaceH1 {
@@ -23,20 +25,26 @@ public:
   
   //! Initialize class (read order etc.)
   void Init();
-  //! Set Solution strategy and solution step
-    void SetStrategy( SolStrategyType strategy, UInt step );
 
-  //! Return pointer to reference element
+  //! Set Solution strategy and solution step
+  void SetStrategy( SolStrategyType strategy, UInt step );
+
+  //! \copydoc FeSpace::GetFe(EntityIterator,shared_ptr<IntScheme>&)
+  virtual BaseFE* GetFe( const EntityIterator ent ,
+                         shared_ptr<IntScheme>& intScheme );
+
+  //! \copydoc FeSpace::GetFe(EntityIterator)
   virtual BaseFE* GetFe( const EntityIterator ent );
 
-  //! Return pointer to reference element (by element number)
+  //! \copydoc FeSpace::GetFe(UInt)
   virtual BaseFE* GetFe( UInt elemNum );
 
-  //! @copydoc FeSpace::GetNumEntityOrder
+
+  //! \copydoc FeSpace::GetNumEntityOrder
   UInt GetEntityOrder( UInt elemNum, BaseFE::EntityType type, 
                        UInt entityNum, UInt comp = 1 );
 
-  //! @copydoc FeSpace::GetMaxEntityOrder
+  //! \copydoc FeSpace::GetMaxEntityOrder
   UInt GetMaxEntityOrder( UInt elemNum, BaseFE::EntityType type, 
                           UInt entityNum );
 
@@ -52,7 +60,8 @@ protected:
   //! Set the order and mapping type of a specific region
   virtual void SetRegionElements( RegionIdType region, 
                                   MappingType mType,
-                                  const Matrix<Integer>& order );
+                                  const Matrix<Integer>& order,
+                                  PtrParamNode infoNode );
 
   //! Here the spaces have the possibility to check if user definitions makes sense
   //! e.g. if the chosen integration is correct or the element order is nice
@@ -60,10 +69,10 @@ protected:
   virtual void CheckConsistency();
 
   //! sets the default integration scheme and order
-  virtual void SetDefaultIntegration();
+  virtual void SetDefaultIntegration( PtrParamNode infoNode );
 
   //! Create default finite elements to be used if nothing else is requested
-  virtual void SetDefaultElements();
+  virtual void SetDefaultElements( PtrParamNode infoNode );
 
   //! Specialized version of the method of the base class
   //! We number the lowest order dofs consecutively 
@@ -83,10 +92,12 @@ protected:
   
   //! Virtual node numbers for higher order inner functions
   boost::array<UInt,2> innerNodeRange_;
-  
-  
+    
   //! Map containing the polynomial order for every edge
   std::map<UInt, StdVector<UInt> > edgeOrder_;
+  
+  //! Map for reference elements by region
+  std::map< RegionIdType, std::map<Elem::FEType, FeHCurlHi* > > refElems_;
 
   // ====================================================================
   // PROCESS USER INPUT

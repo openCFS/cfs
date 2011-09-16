@@ -50,6 +50,18 @@ public:
 
   //! returns the number of functions for a single edge or face
   UInt GetNumFncsPerEntType( EntityType fctEntityType, UInt dof = 1);
+
+  //! \copydoc BaseFE::GetIsoOrder
+  virtual UInt GetIsoOrder() const {
+    return order_;
+  }
+  //! \copydoc BaseFE::GetMaxOrder
+  virtual UInt GetMaxOrder() const {
+    return order_;
+  }
+  
+  //! \copydoc BaseFE::GetMaxOrderLocDir
+  virtual void GetMaxOrderLocDir(StdVector<UInt>& order );
   
   //! =======================================================================
   //! G E O M E T R I C   I N F O R M A T I O N

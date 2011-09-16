@@ -162,7 +162,8 @@ DEFINE_LOG(linForm, "linForm")
      const Elem* ptElem = ent.GetElem();
      
      // Obtain FE element from feSpace
-     FeHCurlHi* ptFe = dynamic_cast<FeHCurlHi*>(ptFeSpace1_->GetFe( ent ));
+     shared_ptr<IntScheme> intScheme;
+     FeHCurlHi* ptFe = dynamic_cast<FeHCurlHi*>(ptFeSpace1_->GetFe( ent,intScheme ));
      //ptFe->SetOnlyLowestOrder(true);
      UInt nrFncs = ptFe->BaseFE::GetNumFncs();
          
@@ -173,7 +174,7 @@ DEFINE_LOG(linForm, "linForm")
      // IntegrationScheme class)
      StdVector<LocPoint> intPoints;
      StdVector<Double> weights;
-     intScheme_->GetIntPoints( Elem::GetShapeType(ptElem->type), intPoints, weights );
+     intScheme->GetIntPoints( Elem::GetShapeType(ptElem->type), intPoints, weights );
 
      // derivation of shape functions after global coordinates 
      Matrix<Double> shapeEdge;
@@ -576,14 +577,10 @@ DEFINE_LOG(linForm, "linForm")
       if ( nlinFnc_ == NULL )  {
         curlCurlInt_ = new CurlCurlEdgeInt( ptMaterial, coordUpdate_);        
         //define the linear element matrix
-        curlCurlInt_->SetIntegration( intScheme_, intScheme_->GetMethod(),
-                                      intScheme_->GetOrder() );
         curlCurlInt_->SetFeSpace(ptFeSpace1_);
       } else {
         curlCurlInt_ = new nLinCurlCurlEdgeInt( ptMaterial, coordUpdate_);
         //define the nonlinear element matrix
-        curlCurlInt_->SetIntegration( intScheme_, intScheme_->GetMethod(),
-                                      intScheme_->GetOrder() );
         curlCurlInt_->SetFeSpace(ptFeSpace1_);
         curlCurlInt_->SetNonLinMethod(FIXEDPOINT);
 

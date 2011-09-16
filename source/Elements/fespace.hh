@@ -127,7 +127,8 @@ public:
   //@{ \name Region Handling
 
   //! Get the Integration method and its order for the current region
-  void GetIntegration(RegionIdType region, IntScheme::IntegMethod & method,Matrix<Integer> & order);
+  void GetIntegration(BaseFE * fe, RegionIdType region, 
+                      IntScheme::IntegMethod & method,Matrix<Integer> & order);
 
   //! Set the approximation for the given region according to the passed poly and integ Ids
   //! ToDO if integration and polynomial nodes are merged, of course only an orderId has to be passed
@@ -141,6 +142,16 @@ public:
 
   //! Return pointer to reference element
   virtual BaseFE* GetFe( const EntityIterator ent ) = 0;
+  
+  //! Return pointer to reference element and adjusted integrationScheme
+  
+  //! This method returns the pointer to the reference according to the
+  //! physical element. In addition it returns the integration scheme,
+  //! which is already initialized to the order depending on the definition
+  //! of the region of the element and the order of the element (if a 
+  //! relative integration order was specified). 
+  virtual BaseFE* GetFe( const EntityIterator ent ,
+                         shared_ptr<IntScheme>& intScheme ) = 0;
   
   //! Return pointer to reference element (by element number)
   virtual BaseFE* GetFe( UInt elemNum ) = 0;
@@ -239,7 +250,7 @@ public:
 
   //! Dump information of the equation map to the console
   virtual void PrintEqnMap() = 0;
-
+  
   //@}
   
 protected:
@@ -258,7 +269,7 @@ protected:
   //! some region needs e.g. higher order or edge elements
   MappingType mapType_;
 
-  //! store the Polznomial of the space
+  //! store the Polynomial of the space
   //! not very clean. in the near future we should make the spaces
   //! capable to store any kind of polynomial
   PolyType polyType_;
@@ -266,9 +277,6 @@ protected:
   //! Stores an offset to the element orders created
   //! is ignored in case of grid mapping
   UInt orderOffset_;
-
-  //! Map for reference elements by region
-  std::map< RegionIdType, std::map<Elem::FEType, BaseFE* > > refElems_;
 
   //!Map for the parameter nodes for polyList for easier access
   std::map< std::string, PtrParamNode > integNodes_;
@@ -310,6 +318,9 @@ protected:
   
   //! map for storing the number of different boundary conditions
   std::map< BcType, UInt> bcCounter_;
+  
+  //! Pointer to integration scheme
+  shared_ptr<IntScheme> intScheme_;
 
   // =====================================================
   // REGION SPECIFIC DATA
@@ -324,13 +335,15 @@ protected:
 
   //! Set the order and mapping type of a specific region
   virtual void SetRegionElements( RegionIdType region, MappingType mType,
-                                  const Matrix<Integer>& order)=0;
+                                  const Matrix<Integer>& order,
+                                  PtrParamNode infoNode )=0;
 
   //! read in integration data and set defaults
   virtual void SetRegionIntegration(RegionIdType region, 
                                     IntScheme::IntegMethod method,
                                     Matrix<Integer> order,
-                                    IntegOrderMode mode);
+                                    IntegOrderMode mode,
+                                    PtrParamNode infoNode );
 
 
 
@@ -343,10 +356,10 @@ protected:
   virtual void CheckConsistency() = 0;
 
   //! sets the default integration scheme and order
-  virtual void SetDefaultIntegration() = 0;
+  virtual void SetDefaultIntegration(PtrParamNode infoNode ) = 0;
 
   //! Create default finite elements to be used if nothing else is requested
-  virtual void SetDefaultElements() = 0;
+  virtual void SetDefaultElements(PtrParamNode infoNode) = 0;
 
   //! reads in special options for the space under consideration
   virtual void ReadCustomAttributes(PtrParamNode pNode,RegionIdType region){;}

@@ -23,26 +23,18 @@ namespace CoupledField {
     Matrix<Double> dMat, bMat, dbMat;
     Double fac = 0.0;
 
-    // Obtain FE element from feSpace
-    BaseFE* ptFe = ptFeSpace1_->GetFe( ent1 ); 
+    // Obtain FE element from feSpace and integration scheme
+    shared_ptr<IntScheme> intScheme;
+    BaseFE* ptFe = ptFeSpace1_->GetFe( ent1, intScheme ); 
     UInt nrFncs = ptFe->GetNumFncs();
 
     // Get shape map from grid
     shared_ptr<ElemShapeMap> esm = domain->GetGrid()->GetElemShapeMap( ptElem );
 
-    // Get integration points (shortcut: from basefe instead of 
-    // IntegrationScheme class)
-    //obtain current integration scheme and order from fe space
-    IntScheme::IntegMethod method;
-    Matrix<Integer> order(1,1);
-    order.Init();
-    //TODO again we have a little problem in case of surface integrators
-    // were we would need the volume region for the surface element....
-    ptFeSpace1_->GetIntegration(ent1.GetElem()->regionId,method,order);
-    intScheme_->SetOrder(method,(UInt)order[0][0]);
+    // Get integration points 
     StdVector<LocPoint> intPoints;
     StdVector<Double> weights;
-    intScheme_->GetIntPoints( Elem::GetShapeType(ptElem->type), intPoints, weights );
+    intScheme->GetIntPoints( Elem::GetShapeType(ptElem->type), intPoints, weights );
 
     const UInt nrDofs   = getNrDofs();
     elemMat.Resize( nrFncs * nrDofs);

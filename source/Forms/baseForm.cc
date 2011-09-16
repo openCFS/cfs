@@ -179,11 +179,6 @@ double BaseForm::MaterialDescriptor::GetErsatzMaterial(BaseForm* form, const Ele
 //     }
   }
 
-  void BaseForm::SetIntegration(shared_ptr<IntScheme> intScheme, 
-                                IntScheme::IntegMethod integScheme,UInt order){
-    intScheme_ = intScheme;
-    intScheme_->SetOrder(integScheme,order);
-  }
 
   // ***************
   //   SetMaterial

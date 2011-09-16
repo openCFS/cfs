@@ -53,7 +53,8 @@ namespace CoupledField
     // Extract physical element
     const Elem* ptElem = ent1.GetElem();
     // Obtain FE element from feSpace
-    BaseFE* ptFe = ptFeSpace1_->GetFe( ent1 ); 
+    shared_ptr<IntScheme> intScheme;
+    BaseFE* ptFe = ptFeSpace1_->GetFe( ent1, intScheme ); 
     UInt nrFncs = ptFe->GetNumFncs();
 
     // Get shape map from grid
@@ -63,8 +64,8 @@ namespace CoupledField
     // IntegrationScheme class)
     StdVector<LocPoint> intPoints;
     StdVector<Double> weights;
-    intScheme_->GetIntPoints( Elem::GetShapeType(ptElem->type), intPoints, weights );
-
+    intScheme->GetIntPoints( Elem::GetShapeType(ptElem->type), intPoints, weights );
+    
     elemMat.Resize( nrFncs );
     elemMat.Init();
 

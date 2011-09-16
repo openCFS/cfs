@@ -47,10 +47,14 @@ class FeSpaceH1Lagrange : public FeSpaceH1 {
     //! Initialize class (read order etc.)
     void Init();
 
-    //! Return pointer to reference element
+    //! \copydoc FeSpace::GetFe(EntityIterator,shared_ptr<IntScheme>&)
+    virtual BaseFE* GetFe( const EntityIterator ent ,
+                           shared_ptr<IntScheme>& intScheme );
+    
+    //! \copydoc FeSpace::GetFe(EntityIterator)
     virtual BaseFE* GetFe( const EntityIterator ent );
     
-    //! Return pointer to reference element (by element number)
+    //! \copydoc FeSpace::GetFe(UInt)
     virtual BaseFE* GetFe( UInt elemNum );
     
     ////! Return equation numbers
@@ -60,14 +64,17 @@ class FeSpaceH1Lagrange : public FeSpaceH1 {
     //virtual void GetEqns( StdVector<Integer>& eqns, const EntityIterator ent
     //                      , UInt dof );
     
-    //! @copydoc FeSpace::GetEntityOrder
+    //! \copydoc FeSpace::GetEntityOrder
     UInt GetEntityOrder( UInt elemNum, BaseFE::EntityType type, 
                            UInt entityNum, UInt comp = 1 );
     
-    //! @copydoc FeSpace:: GetMaxEntityOrder
+    //! \copydoc FeSpace:: GetMaxEntityOrder
     UInt GetMaxEntityOrder( UInt elemNum, BaseFE::EntityType type, 
                             UInt entityNum );
 
+    //! Precalculate integration points
+    virtual void PreCalcShapeFncs();
+      
     //! Map equations i.e. initialize object
     virtual void Finalize();
 
@@ -79,7 +86,8 @@ class FeSpaceH1Lagrange : public FeSpaceH1 {
     //! Set the order and mapping type of a specific region
     virtual void SetRegionElements( RegionIdType region, 
                                     MappingType mType,
-                                    const Matrix<Integer>& order);
+                                    const Matrix<Integer>& order,
+                                    PtrParamNode infoNode );
 
     //! Here the spaces have the possibility to check if user definitions makes sense
     //! e.g. if the chosen integration is correct or the element order is nice
@@ -87,10 +95,10 @@ class FeSpaceH1Lagrange : public FeSpaceH1 {
     virtual void CheckConsistency();
 
     //! sets the default integration scheme and order
-    virtual void SetDefaultIntegration();
+    virtual void SetDefaultIntegration( PtrParamNode infoNode );
 
     //! Create default finite elements to be used if nothing else is requested
-    virtual void SetDefaultElements();
+    virtual void SetDefaultElements( PtrParamNode infoNode );
 
     // ====================================================================
     // PROCESS USER INPUT
@@ -104,7 +112,11 @@ class FeSpaceH1Lagrange : public FeSpaceH1 {
 
 
   private:
-    std::map<RegionIdType,bool> spectralRegions_;
+    //! Set with all regions being treated as spectral
+    std::set<RegionIdType> spectralRegions_;
+    
+    //! Map for reference elements by region
+    std::map< RegionIdType, std::map<Elem::FEType, FeH1* > > refElems_;
 };
 }
 #endif //

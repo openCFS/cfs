@@ -150,6 +150,13 @@ namespace CoupledField {
         fncPermutation.Resize(0);
       }
     }
+    
+    void FeH1LagrangeVar::GetMaxOrderLocDir(StdVector<UInt>& order ) {
+
+      // resize vector to dimenson of local element
+      order.Resize( Elem::shapes[feType_].dim);
+      order.Init(order_);
+    }
 
     //void FeH1LagrangeVar::GetShFnc( Vector<Double> & S, const LocPoint& lp,
     //               const Elem* ptElem,  UInt comp ){

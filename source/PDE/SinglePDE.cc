@@ -3770,6 +3770,7 @@ namespace CoupledField {
       //DOGMA: PRO UNBEKANNTE EINE FUNCTION UND EIN SPACE
       std::string formulation;
       myParam_->GetValue("feSpaceFormulation",formulation,ParamNode::EX);
+      infoNode_->SetComment("List of defined Spaces");
       PtrParamNode feSpaceNode = infoNode_->Get("feSpaces");
       std::map<SolutionType, shared_ptr<FeSpace> > spaces = 
           CreateFeSpaces(formulation, feSpaceNode);

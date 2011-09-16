@@ -54,7 +54,15 @@ public:
                                     const Elem* ptElem,
                                     EntityType fctEntityType,
                                     UInt entNumber);
-  
+  //! \copydoc BaseFE::GetIsoOrder
+  virtual UInt GetIsoOrder() const;
+
+  //! \copydoc BaseFE::GetMaxOrder
+  virtual UInt GetMaxOrder() const;
+
+  //! \copydoc BaseFE::GetMaxOrderLocDir
+  virtual void GetMaxOrderLocDir(StdVector<UInt>& order );
+       
 protected:
   
   //! Calculate number of unknowns
@@ -66,6 +74,9 @@ protected:
   //! the unumber of unknowns (actNumFncs_) is necessary.
   bool updateUnknowns_;
 
+  //! Isotropic order. 0 if anisotropic
+  UInt isoOrder_;
+    
   //! Number of shape functions per entity
   std::map<EntityType,StdVector<UInt> > entityFncs_;
 

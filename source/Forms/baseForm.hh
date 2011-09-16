@@ -259,8 +259,6 @@ namespace CoupledField
     //! Get reference element and coordinates from element iterator
     virtual void ExtractElemInfo( EntityIterator& it);
     
-    virtual void SetIntegration(shared_ptr<IntScheme> intScheme, 
-                                IntScheme::IntegMethod integScheme,UInt order);
     /**
      * Set Timestepping for non linear solvers
      * @param ts_alg the time stepping algorithm
@@ -365,9 +363,6 @@ namespace CoupledField
     Vector<Double> intPoint_;
     //
     bool isSetIntPoint_;
-
-    //! The Integration Scheme used for this bilinear form
-    shared_ptr<IntScheme> intScheme_;
 
     Global::ComplexPart matDataType_;     //! default = realMaterialParamter, piezoMatType_ = imagMaterialParamter if we consider complex-valued material Paramter;
 

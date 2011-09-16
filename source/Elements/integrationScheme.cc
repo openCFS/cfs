@@ -72,7 +72,7 @@ IntScheme::IntScheme() {
 //  intPoints_[ECONOMICAL][2][Elem::ST_HEXA] = points;
 //  intWeights_[ECONOMICAL][2][Elem::ST_HEXA] = weights;
   
-  FillIntegPoints(10);
+  FillIntegPoints(20);
 }
 
 
@@ -243,8 +243,8 @@ void IntScheme::SetOrder(IntegMethod method, Integer order) {
 
 
 void IntScheme::GetIntPoints( Elem::ShapeType elemType,
-                                      StdVector<LocPoint>& intPts, 
-                                      StdVector<Double>& weights ) {
+                              StdVector<LocPoint>& intPts, 
+                              StdVector<Double>& weights ) {
 
   if( intPoints_.find(integMethod_) == intPoints_.end() ) {
     EXCEPTION( "No integration points defined for  '"

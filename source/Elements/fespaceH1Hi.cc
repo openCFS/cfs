@@ -83,6 +83,8 @@ namespace CoupledField{
     type_ = H1;
     isHierarchical_ = true;
     polyType_ = LEGENDRE;
+    
+    infoNode_ = infoNode->Get("h1Hierarchical");
   }
 
   //! Destructor
@@ -154,13 +156,9 @@ namespace CoupledField{
 //    UInt numEqns_ = 0;
 //    UInt numFreeEquations_ = 0;
     CreateVirtualNodes();
-//    CreateVirtualEdges();
-//    CreateVirtualFaces();
 
     // Apply minimum rule to edges / faces to adjust polynomial order
     AdjustEntityOrder();
-    
-    
         
     //Determine boundary Unknowns
     MapNodalBCs();
@@ -171,6 +169,28 @@ namespace CoupledField{
     //PrintEqnMap();
 
     isFinalized_ = true;
+  }
+  
+  BaseFE* FeSpaceH1Hi::GetFe( const EntityIterator ent, 
+                              shared_ptr<IntScheme>& intScheme ) {
+    BaseFE * ret = GetFe(ent);
+
+    // Set correct integration order
+    RegionIdType eRegion;// =  ent.GetElem()->regionId;
+    if( ent.GetType() == EntityList::SURF_ELEM_LIST) {
+      eRegion = ent.GetSurfElem()->ptVolElem1->regionId;
+    } else {
+      eRegion = ent.GetElem()->regionId;
+    }
+
+    intScheme = intScheme_;
+    IntScheme::IntegMethod  method;
+    Matrix<Integer>  order;
+    this->GetIntegration(ret, eRegion, method, order);
+    // Note: The order is currently more or less hard-coded for isotropic order
+    intScheme->SetOrder( method, order[0][0] );
+
+    return ret;
   }
 
   BaseFE* FeSpaceH1Hi::GetFe( const EntityIterator ent ){
@@ -269,7 +289,8 @@ namespace CoupledField{
 
   void FeSpaceH1Hi::SetRegionElements(RegionIdType region, 
                                       MappingType mType,
-                                      const Matrix<Integer>& order){
+                                      const Matrix<Integer>& order,
+                                      PtrParamNode infoNode ){
     
     LOG_DBG3(feSpaceH1Hi) << "FeSpaceH1HI: SetRegionElements for Region " <<
         domain->GetGrid()->GetRegion().ToString(region) << std::endl;
@@ -289,18 +310,20 @@ namespace CoupledField{
     if(order.GetNumCols() != 1 || order.GetNumRows() != 1){
       Exception("FeSpaceHCurlHi::SetRegionElements : Only Iso-Order is supported right now");
     }
-    std::map<Elem::FEType, BaseFE* >::iterator i = refElems_[region].begin();
+    std::map<Elem::FEType, FeH1Hi* >::iterator i = refElems_[region].begin();
     for( ; i != refElems_[region].end(); ++i ) {
       i->second->SetIsoOrder(order[0][0]+orderOffset_);
     }
     mapType_ = POLYNOMIAL;
+    
+    infoNode->Get("order")->SetValue(order[0][0]);
   }
 
   void FeSpaceH1Hi::CheckConsistency(){
 
   }
 
-  void FeSpaceH1Hi::SetDefaultElements(){
+  void FeSpaceH1Hi::SetDefaultElements( PtrParamNode infoNode ){
     //but it could be, that the PDE requires a minimum order of elements...
     Matrix<Integer> order(1,1);
     if(orderOffset_>0){
@@ -308,14 +331,14 @@ namespace CoupledField{
     }else{
       order[0][0] = 1;
     }
-    SetRegionElements(ALL_REGIONS,POLYNOMIAL,order);
+    SetRegionElements( ALL_REGIONS, POLYNOMIAL, order, infoNode );
   }
 
   //! sets the default integration scheme and order
-  void FeSpaceH1Hi::SetDefaultIntegration(){
+  void FeSpaceH1Hi::SetDefaultIntegration( PtrParamNode infoNode ){
     regionIntegration_[ALL_REGIONS].method = IntScheme::GAUSS;
     regionIntegration_[ALL_REGIONS].order = Matrix<Integer>(1,1);
-    regionIntegration_[ALL_REGIONS].order[0][0] = 2;
-    regionIntegration_[ALL_REGIONS].mode = ABSOLUTE;
+    regionIntegration_[ALL_REGIONS].order[0][0] = 0;
+    regionIntegration_[ALL_REGIONS].mode = RELATIVE;
   }
 } // end of namespace

@@ -59,7 +59,15 @@ namespace CoupledField {
                                       EntityType fctEntityType,
                                       UInt entNumber);
 
+    //! \copydoc BaseFE::GetIsoOrder
+    virtual UInt GetIsoOrder() const;
     
+    //! \copydoc BaseFE::GetMaxOrder
+    virtual UInt GetMaxOrder() const;
+
+    //! \copydoc BaseFE::GetMaxOrderLocDir
+    virtual void GetMaxOrderLocDir(StdVector<UInt>& order );
+
   protected:
     
     //! Calculate number of unknowns
@@ -73,6 +81,9 @@ namespace CoupledField {
     
     //! Number of shape functions per entity
     std::map<EntityType,StdVector<UInt> > entityFncs_;
+    
+    //! Isotropic order. 0 if anisotropic
+    UInt isoOrder_;
     
     // ========================================================================
     // DEFINITION OF (ANISOTROPIC) ORDER

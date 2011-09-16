@@ -74,7 +74,13 @@ namespace CoupledField {
     }
     return numFnc;
   }
-
+  
+  void FeH1LagrangeExpl::GetMaxOrderLocDir(StdVector<UInt>& order ) {
+    
+    // resize vector to dimenson of local element
+    order.Resize( Elem::shapes[feType_].dim);
+    order.Init(order_);
+  }
   
   // ========================================================================
   //  Lagrangian Elements of 1st order
