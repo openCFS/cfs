@@ -5,6 +5,7 @@
 #include <string>
 #include <cmath>
 #include <def_build_type_options.hh>
+#include <def_use_blas.hh>
 #include "matrix.hh"
 #include "MatVec/vector.hh"
 #include "MatVec/opdefs.hh"
@@ -15,6 +16,9 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/type_traits/is_same.hpp>
 
+#ifdef USE_BLAS
+#include "matrixBLASSupport.hh"
+#endif
 namespace CoupledField
 {      
 
@@ -524,6 +528,101 @@ namespace CoupledField
     for(UInt k = 0, s = size_row_ * size_col_; k < s; ++k)
       data_[0][k] = factor * other_mat.data_[0][k];
   }
+  
+  
+  // perform matrix-matrix multiplication using BLAS (general case)
+  template<class TYPE>
+  void Matrix<TYPE>::Mult_Blas( const Matrix<TYPE>& mMat, 
+                                Matrix<TYPE>& rMat, 
+                                bool trans_a, bool trans_b) const {
+    EXCEPTION("General BLAS matrix, matrix multiplication not implemented");
+  }
+  
+  template<>
+  void Matrix<Double>::Mult_Blas(const Matrix<Double>&  mMat1, Matrix<Double>& rMat1, 
+                                 bool trans_a, bool trans_b) const{
+
+#ifdef USE_BLAS
+#ifdef CHECK_INDEX
+      if((trans_a == true) && (trans_b == true)){
+        if (size_row_ != mMat1.GetNumCols())
+          EXCEPTION("incompatible dimension");
+      } else if((trans_a == false) && (trans_b == true)){
+        if (size_col_ != mMat1.GetNumCols())
+          EXCEPTION("incompatible dimension");
+      } else if((trans_a == true) && (trans_b == false)){
+        if (size_row_ != mMat1.GetNumRows())
+          EXCEPTION("incompatible dimension");
+      } else {
+        if (size_col_ != mMat1.GetNumRows())
+          EXCEPTION("incompatible dimension");
+      }
+  #endif
+
+    #ifdef CHECK_INITIALIZED
+      UInt size_mMatRow = mMat1.GetNumRows();
+      UInt size_mMatCol = mMat1.GetNumCols();
+      UInt size_rMatRow = rMat1.GetNumRows();
+      UInt size_rMatCol = rMat1.GetNumCols();
+
+      if (size_row_ == 0 || size_col_ == 0)
+        EXCEPTION("undefined Matrix");
+      if (size_mMatRow == 0 || size_mMatCol==0)
+          EXCEPTION("undefined Matrix");
+      if (size_rMatRow == 0||size_rMatCol==0)
+        EXCEPTION("undefined Matrix");
+    #endif
+
+      /*
+       * because of the column-wise access of fortran the routine would calc
+       * C^T = A^T * B^T if you give it C, A and B
+       * but because A^T * B^T = (B * A)^T you can just calculate:
+       * C = B * A
+       *
+       * --> swap A and B
+       *
+       */
+
+      char transa = trans_a ? 't' : 'n';
+      char transb = trans_b ? 't' : 'n';
+
+      int lda, ldb, ldc;
+      int m,n,k;
+
+      double alpha = 1.0;
+      double beta = 0.0;
+
+      double* A = data_[0];
+      double* B = mMat1.data_[0];
+      double* C = rMat1.data_[0];
+
+  /*
+   *  m would normally be the number of rows of C but Fortran accesses it as C^T so m is the number of columns
+   *  in the same way n is now the number of rows
+   *  k is the number of rows of op(B) and in our case op(B) = A or A^T so k would be rows of A in the first case and cols of A in the second one
+   *  but here you also have to remember the column wise access so cols and rows are swapped like for c
+   */
+
+      n = rMat1.GetNumRows();
+      m = rMat1.GetNumCols();
+      k = trans_a ? size_row_ : size_col_;
+
+  /*
+   * here you use the same properties as in the documentation of dgemm with the difference, 
+   * that our lda is LDB and ldb is LDA because we swapped A and B
+   */
+
+      lda = trans_a ? n : k;
+      ldb = trans_b ? k : m;
+      ldc = m;
+      
+
+
+    DGEMM(&transb,&transa,&m,&n,&k,&alpha,B,&ldb,A,&lda,&beta,C,&ldc);
+#else
+    EXCEPTION("Compile with USE_BLAS = yes ");
+#endif
+   }
   
   // Perform a matrix-vector multiplication rvec = this*mvec
   template<class TYPE>

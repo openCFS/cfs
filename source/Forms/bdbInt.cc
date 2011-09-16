@@ -40,6 +40,13 @@ namespace CoupledField {
     elemMat.Resize( nrFncs * nrDofs);
     elemMat.Init();
 
+ #define USE_BLAS_VERSION      
+#ifdef USE_BLAS_VERSION
+    Matrix<Double> bdbMat;
+    bdbMat.Resize(nrFncs * nrDofs);
+#endif
+    
+    
     // Loop over all integration points
     LocPointMapped lp;
     for( UInt i = 0; i < intPoints.GetSize(); i++  ) {
@@ -54,11 +61,20 @@ namespace CoupledField {
       calcDMat(dMat, ent1.GetElem());
 
       fac = lp.jacDet * weights[i];
-      // Compute the matrix product D * B and store as intermediate matrix
-      // resize dbMat to handle SurfaceNortmalInt
-      dbMat.Resize(bMat.GetNumRows(), bMat.GetNumCols());
+      
+      dbMat.Resize(dMat.GetNumRows(),nrFncs*nrDofs);
+
+#ifdef USE_BLAS_VERSION
+      dMat.Mult_Blas(bMat,dbMat,false,false);
+      dbMat = dbMat * fac;
+      //Transpose(bMat).Mult(dbMat,bdbMat);
+      bMat.Mult_Blas(dbMat,bdbMat,true,false);
+      elemMat += bdbMat;
+
+#else
       dbMat = (dMat * bMat) * fac;
       elemMat += Transpose(bMat) * dbMat;
+#endif
     }
 //    // Extract pointer to reference element and get coordinates
 //    ExtractElemInfo( ent1 );

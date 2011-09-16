@@ -69,6 +69,13 @@ namespace CoupledField
     elemMat.Resize( nrFncs );
     elemMat.Init();
 
+    
+#define USE_BLAS_VERSION      
+#ifdef USE_BLAS_VERSION
+    Matrix<Double> bdbMat;
+    bdbMat.Resize(nrFncs);
+#endif
+    
     // Loop over all integration points
     LocPointMapped lp;
     Matrix<Double> bMat;
@@ -82,8 +89,14 @@ namespace CoupledField
       CalcBMat( bMat, lp, ptFe);
 
       fac = lp.jacDet * weights[i] * matVal_;
+      
+#ifdef USE_BLAS_VERSION
+      bMat.Mult_Blas(bMat,bdbMat,true,false);
+      elemMat += bdbMat * fac;
+#else 
       // Compute the matrix product D * B and store as intermediate matrix
       elemMat += Transpose(bMat) * bMat * fac;
+#endif
     }
   }
   

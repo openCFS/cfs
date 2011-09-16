@@ -248,11 +248,34 @@ namespace CoupledField
     //! Perform a matrix-matrix multiplication rMat = this*mMat
     void Mult(const DenseMatrix & mMat, DenseMatrix & rMat) const;
 
+    //! Perform a matrix-matrix multiplication using BLAS
+    
+    //! This method calculates the matrix-matrix product 
+    //! rMat = this * mMat using BLAS optimized d/xgemm method.
+    //! If #trans_a or #trans_b are set to yes, the corresponding matrix is 
+    //! transposed.
+    //! \note Currently we assume the #rMat to have the correct size already
+    //! \note If CFS is compiled without BLAS support, we use as fallback the
+    //!       internal matrix-matrix multiplication.
+    void Mult_Blas(const Matrix& mMat, Matrix& rMat, 
+                   bool trans_a, bool trans_b) const;
+    
     //! Perform a matrix-matrix multiplication rMat = Transpose(this)*mMat
     void MultT(const DenseMatrix & mMat, DenseMatrix & rMat) const;
 
     //! Perform a matrix-vector multiplication rvec = this*mvec
     void Mult( const SingleVector & mvec, SingleVector & rvec ) const;
+
+
+    //! Perform generalized matrix-vector multiplication using BLAS
+    
+    //! This method performs the generalized matrix-vector multiplication of
+    //! the form rvec = alpha* this * mvec + beta * rvec.
+    //! If #transposed is set to yes, the matrix is acces in trasnposed fashion.
+    //! \note If CFS is compiled without BLAS support, we use as fallback the
+    //!       internal matrix-vector multiplication.
+    void Mult_Blas( const SingleVector &mvec, SingleVector &rvec,
+                    Double alpha, Double beta, bool transposed) const;
 
     /** Perform a matrix-vector multiplication rvec = this*mvec via the Inner product.
      * Hence in the complex case this is the conjugate complex rvec = this*conj(mvec) */
