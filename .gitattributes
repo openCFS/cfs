@@ -1134,6 +1134,7 @@ source/Materials/thermoelasticMaterial.hh -text
 source/MpCCIcpl/CMakeLists.txt svneol=native#text/plain
 source/MpCCIcpl/MpCCIexch.cc svneol=native#text/x-c%2B%2Bsrc
 source/MpCCIcpl/MpCCIexch.hh svneol=native#text/x-c%2B%2Bhdr
+source/ODESolve/BaseODEProblem.hh -text
 source/ODESolve/BaseODESolver.hh svneol=native#text/plain
 source/ODESolve/CMakeLists.txt svneol=native#text/plain
 source/ODESolve/ODESolver_ExplEuler.cc svneol=native#text/plain
