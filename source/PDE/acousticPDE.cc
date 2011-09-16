@@ -17,7 +17,6 @@
 #include "Forms/linNeumannInt.hh"
 #include "Forms/nonConformingInt.hh"
 #include "Forms/acouRHSLinForm.hh"
-#include "Estimator/spaceerror.hh"
 #include "newmark.hh"
 #include "newmarkFracDamp.hh"
 #include "DataInOut/WriteInfo.hh"

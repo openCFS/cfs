@@ -14,7 +14,7 @@
 #include "General/environment.hh"
 #include "Materials/baseMaterial.hh"
 #include "ODESolve/BaseODESolver.hh" 
-#include "ODEDescr/BaseODEProblem.hh"
+#include "ODESolve/BaseODEProblem.hh"
 
 typedef boost::multi_array<Matrix<double>, 1> array1_Matrix;
 typedef boost::multi_array<Matrix<double>, 2> array2_Matrix;

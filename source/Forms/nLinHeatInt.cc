@@ -160,7 +160,6 @@ namespace CoupledField {
       
       //get nonlinear capacity value
       heatCapacity = nlinFnc_->EvaluateFunc( tempAtIP);
-      std::cout << "T: " << tempAtIP << ";  c=" << heatCapacity << std::endl;
 
       partElemMat.DyadicMult(ShpFncAtIp);
       

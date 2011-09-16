@@ -10,9 +10,6 @@
 
 
 #include "ODESolver_RKF45.hh"
-#include "ODEDescr/Gilmore.hh"
-#include "ODEDescr/Gilmoredimlos.hh"
-#include "ODEDescr/KellerMiksis.hh"
 
 namespace CoupledField
 {

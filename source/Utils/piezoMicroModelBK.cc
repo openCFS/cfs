@@ -3,7 +3,7 @@
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
 #include "piezoMicroModelBK.hh"
-#include "ODEDescr/piezoSwitch.hh"
+#include "ODESolve/piezoSwitch.hh"
 #include "ODESolve/ODESolver_Rosenbrock.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 

@@ -654,6 +654,7 @@ namespace CoupledField {
     Vector<Double> newSol( numEqns_ ); 
     Vector<Double> oldSol( numEqns_ );
     Vector<Double> solPrev( numEqns_ );
+    Vector<Double> solMinus( numEqns_ );
 
     oldSol.Init(0);
     newSol.Init(0);
@@ -685,9 +686,7 @@ namespace CoupledField {
       // setup right hand side
       Double RhsLinL2Norm = SetLinRHS(loadFactor);
 
-      // inner forces due to nonlin formulation
-      assemble_->AssembleNonLinRHS();  
-
+ 
       do {
         iterationCounter++;
         
@@ -701,7 +700,11 @@ namespace CoupledField {
         
         //init RHS with linear part!
         algsys_->InitRHS(RhsLinVal_);
-        
+ 
+        // inner forces due to nonlin formulation
+        // currently just fixed point, so AssembleNonLinRHS() is not necessary
+        // assemble_->AssembleNonLinRHS();  
+       
         PtrParamNode child_id = BaseDriver::CreateAnalysisIdChild(base_analysis_id, "load", iload, "nonLin", iterationCounter);
         
         //perform new assembly
@@ -743,6 +746,25 @@ namespace CoupledField {
         etaLineSearch = 1.0;
         residualErr   = incrementalErr;
         
+//         //computation of residuum ====== Start
+//         assemble_->AssembleMatrices();
+//         algsys_->InitRHS(RhsLinVal_);
+
+//         //RHS - timeparam*M ( solpred - actsol )
+//         TS_alg_->UpdateRHS(newSol);
+//         solMinus = -newSol;
+//         algsys_->UpdateRHS(STIFFNESS,solMinus);
+
+//         Vector<Double> actRHS;
+//         algsys_->GetRHSVal( actRHS );
+//         residualErr = actRHS.NormL2();
+//         std::cout << "RhsLinL2Norm: " << RhsLinL2Norm << std::endl;
+
+//         if (  RhsLinL2Norm > 1.0 )
+//           residualErr /= RhsLinL2Norm;
+        
+//         //computation of residuum ====== END
+
         // output of norms and data
         nonLinLogging_ = true;
         if ( nonLinLogging_ == true )
