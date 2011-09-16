@@ -1142,6 +1142,8 @@ source/ODESolve/ODESolver_RKF45.cc svneol=native#text/plain
 source/ODESolve/ODESolver_RKF45.hh svneol=native#text/plain
 source/ODESolve/ODESolver_Rosenbrock.cc svneol=native#text/plain
 source/ODESolve/ODESolver_Rosenbrock.hh svneol=native#text/plain
+source/ODESolve/piezoSwitch.cc -text
+source/ODESolve/piezoSwitch.hh -text
 source/OLAS/algsys/CMakeLists.txt svneol=native#text/plain
 source/OLAS/algsys/baseentrymanipulator.cc svneol=native#text/x-c%2B%2Bsrc
 source/OLAS/algsys/baseentrymanipulator.hh svneol=native#text/x-c%2B%2Bhdr
