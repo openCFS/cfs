@@ -29,7 +29,7 @@ namespace CoupledField {
 
     // Set pointers to communication objects
     this->xml_ = solverNode;
-    this->olasInfo_ = olasInfo;
+    this->infoNode_ = olasInfo;
 
     // No factorisation was performed yet
     this->readyToUse_ = false;
@@ -69,7 +69,7 @@ namespace CoupledField {
   // *********************************
   template <typename T>
   void ILUK_Precond<T>::Apply( const CRS_Matrix<T> &sysMat,
-				const Vector<T> &res, Vector<T> &sol ) const {
+				const Vector<T> &res, Vector<T> &sol ) {
 
 
     // Test that a factorisation is available, if not issue an error.
@@ -89,7 +89,8 @@ namespace CoupledField {
   //   Setup of Preconditioner
   // ***************************
   template <typename T>
-  void ILUK_Precond<T>::Setup( CRS_Matrix<T> &sysMat ) {
+  void ILUK_Precond<T>::Setup( CRS_Matrix<T> &sysMat,
+                               PtrParamNode infoNode ) {
 
 
 

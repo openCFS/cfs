@@ -298,6 +298,8 @@ namespace CoupledField {
     // Check: If we have just one block, use directly the STDMAt
     PtrParamNode precondNode = myInfo_->Get("precond");
     
+    
+    // hard-coded sectio
     if( numBlocks_ == 1) {
       precond_ = GenerateStdPrecondObject((*sysMat_[SYSTEM])(0,0),
                                           myParam_, precondNode );
@@ -329,25 +331,30 @@ namespace CoupledField {
     REFACTOR;
   }
 
-  void AlgebraicSys::SetupPrecond()  {
+  void AlgebraicSys::SetupPrecond(PtrParamNode analysis_id)  {
     
     LOG_TRACE(algSys) << "Setup of preconditioner";
     
     if( numBlocks_ == 1) {
-      precond_->Setup( (*sysMat_[SYSTEM])(0,0));
+      precond_->Setup( (*sysMat_[SYSTEM])(0,0), analysis_id);
     } else {
-      precond_->Setup( *(sysMat_[SYSTEM]));
+      precond_->Setup( *(sysMat_[SYSTEM]), analysis_id);
     }
 
   }
 
-  void AlgebraicSys::SetupSolver() {
+  void AlgebraicSys::SetupSolver(PtrParamNode analysis_id) {
     
     LOG_TRACE(algSys) << "Setup of solver";
     if( numBlocks_ == 1 ) {
-      solver_->Setup( (*sysMat_[SYSTEM])(0,0) );
+      solver_->Setup( (*sysMat_[SYSTEM])(0,0), analysis_id );
     } else {
-      solver_->Setup( *sysMat_[SYSTEM]);
+      solver_->Setup( *sysMat_[SYSTEM], analysis_id);
+    }
+    
+   // in any case, pass preconditioner object to solver, if created
+    if( precond_ != NULL ) {
+      solver_->SetPrecond( precond_ );
     }
   }
 
@@ -358,7 +365,7 @@ namespace CoupledField {
     REFACTOR;
   }
 
-  void AlgebraicSys::Solve() {
+  void AlgebraicSys::Solve(PtrParamNode analysis_id) {
     
     LOG_TRACE(algSys) << "Solving problem";
     
@@ -435,10 +442,12 @@ namespace CoupledField {
 
     // Trigger solution
     if( numBlocks_ == 1 ) { 
-      solver_->Solve( (*sysMat_[SYSTEM])(0,0), *precond_, 
-                      (*rhs_)(0), (*sol_)(0) );
+      solver_->Solve( (*sysMat_[SYSTEM])(0,0), 
+                      (*rhs_)(0), (*sol_)(0),
+                      analysis_id);
     } else {
-      solver_->Solve( *sysMat_[SYSTEM], *precond_, *rhs_, *sol_ );
+      solver_->Solve( *sysMat_[SYSTEM], *rhs_, 
+                      *sol_, analysis_id );
     }
 
     // Export solution if desired
@@ -553,22 +562,22 @@ namespace CoupledField {
   
   void AlgebraicSys::
   DefineSBMMatrixBlock( UInt sbmIndex, 
-                        const std::map<FeFctIdType,StdVector<Integer> >& eqns ) {
+                        const std::map<FeFctIdType,std::set<Integer> >& eqns ) {
     
     // Just logging output
     LOG_TRACE(algSys) << "Defining SBM block #" << sbmIndex;
     if (IS_LOG_ENABLED(algSys, dbg3)) {
       LOG_DBG3(algSys) << "Mapping is as follows:";
       LOG_DBG3(algSys) << "\tfctId\teqn";
-      std::map<FeFctIdType,StdVector<Integer> >::const_iterator it = eqns.begin();
+      std::map<FeFctIdType,std::set<Integer> >::const_iterator it = eqns.begin();
       
       // loop over all fctIds
       for( ; it != eqns.end(); ++it ) {
-        const StdVector<Integer> & fctEqns = it->second;
+        const std::set<Integer> & fctEqns = it->second;
         // loop over all eqns
-        UInt numEqns = fctEqns.GetSize();
-        for( UInt iEqn = 0; iEqn < numEqns; ++iEqn ) {
-          LOG_DBG3(algSys) << "\t" << it->first << "\t" << fctEqns[iEqn];
+        std::set<Integer>::const_iterator setIt = fctEqns.begin();
+        for( ; setIt != fctEqns.end(); ++setIt) {
+          LOG_DBG3(algSys) << "\t" << it->first << "\t" << *setIt;
         }
       }
     } // if logging enabled
@@ -586,16 +595,17 @@ namespace CoupledField {
     bi.eqnToIndex.Resize(eqns.size());
     
     // loop over all entries
-    std::map<FeFctIdType,StdVector<Integer> >::const_iterator it = eqns.begin();
+    std::map<FeFctIdType,std::set<Integer> >::const_iterator it = eqns.begin();
     
     // loop over all fctIds
     for( ; it != eqns.end(); ++it ) {
       FeFctIdType fctId = it->first;
-      const StdVector<Integer> & fctEqns = it->second;
+      const std::set<Integer> & fctEqns = it->second;
       
      // loop over all equations of one fct
-      for( UInt iEqn = 0; iEqn < fctEqns.GetSize(); ++iEqn ) {
-        UInt actEqn = std::abs(fctEqns[iEqn]);
+      std::set<Integer>::const_iterator eqnIt = fctEqns.begin();
+      for( ; eqnIt != fctEqns.end(); ++eqnIt) {
+        UInt actEqn = std::abs(*eqnIt);
         
         // omit homogeneous BCs
         if( actEqn == 0)
@@ -711,7 +721,7 @@ namespace CoupledField {
                                             const StdVector<Integer>& eqns ) {
 
     LOG_DBG2(algSys) << "Defining sub-matrix block " << blockIndex 
-                    << " for SBM block #" << blockIndex;
+                    << " for SBM block #" << sbmIndex;
     
     
     // check for sensible block size
@@ -724,17 +734,15 @@ namespace CoupledField {
     StdVector<UInt> blockNums, indices;
     MapFctIdEqnToIndex(fctIds, eqns, blockNums, indices);
     UInt subBlockSize = fctIds.GetSize();
+    
     for( UInt i = 0; i < subBlockSize; ++i ) {
       GraphManager::SBMBlockInfo & bi = *blockInfo_[blockNums[i]];
-//      if( bi.indexBlocks[blockIndex].GetSize() != 0 ) {
-//        EXCEPTION("Submatrix block " << blockIndex << " for sbm block #" << sbmIndex
-//                  << " was already defined!");
-//      }
+      
       if( indices[i] != 0  && indices[i] <= bi.numLastFreeIndex ) {
         bi.indexBlocks[blockIndex].Push_back(indices[i]-1);
         LOG_DBG3(algSys) << "\tsbmBlock #" << blockNums[i] 
-                                                        << ", block " << blockIndex
-                                                        << ": adding " << indices[i];
+                                           << ", block " << blockIndex
+                                           << ": adding " << indices[i];
       }
     }
   }
@@ -1570,6 +1578,18 @@ namespace CoupledField {
         if ( sbmRow == sbmCol && sbmSymm_ == true ) {
           // for diagonal blocks we allow a variable
           // matrix layout
+          
+          // ====================
+          //  HARD-CODED SECTION
+          // ====================
+          if( sbmRow == 0) {
+            
+            sT = BaseMatrix::SPARSE_SYM;
+          } else {
+            sT = BaseMatrix::VAR_BLOCK_ROW;
+          }
+          
+          
           retMat->SetSubMatrix ( sbmRow, sbmCol, entryType, 
                                  sT,
                                  nrows, ncols, graph->GetNNE() );

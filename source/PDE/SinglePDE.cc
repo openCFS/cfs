@@ -57,6 +57,11 @@
 #include "Elements/fespaceH1Hi.hh"
 using std::string;
 
+
+// TEMPORARY
+#include "magEdgePDE.hh"
+#include "../Elements/fespaceHCurlHi.hh"
+
 namespace CoupledField {
 
   // declare logging stream
@@ -2143,144 +2148,197 @@ namespace CoupledField {
       // feFunctions
       UInt numFcts = feFunctions_.size();
       
-      // HARD-CODED section
-      UInt numBlocks = 1;
-      bool useDistinctGraphs = false;
-      algsys_->GraphSetupInit( numFcts, numBlocks,
-                               useDistinctGraphs );
+      // ==============================================
+      //   SPECIAL MAGNETIC SECTION
+      // ==============================================
+//      if( false ) {
+      if( pdename_ == "magneticEdge" ) {
+        StdVector<std::set<Integer> > sbmBlocks;
+        std::map<UInt,StdVector<std::set<Integer> > > minorBlocks;
+        FeSpaceHCurlHi & feSpace  
+        =dynamic_cast<FeSpaceHCurlHi&>(*(feFunctions_[MAG_POTENTIAL]->GetFeSpace()));
+        FeFctIdType fctId =  feFunctions_[MAG_POTENTIAL]->GetFctId();
+        MagEdgePDE & pde = dynamic_cast<MagEdgePDE&>(*this);
+        
+        // get mapping according to strategy
+        feSpace.SetStrategy( pde.solStrategy_, 1);
+        
+        
+        // 1) Define SBM-block
+        feSpace.GetOlasMappings( sbmBlocks, minorBlocks);
+        UInt numBlocks = 3;
+        algsys_->GraphSetupInit( 1, numBlocks, false);
+        algsys_->RegisterFct( fctId, feSpace.GetNumEquations(),
+                              feSpace.GetNumFreeEquations() );
+        for( UInt i = 0; i < sbmBlocks.GetSize(); ++i ) {
+          std::map<FeFctIdType, std::set<Integer> > block;
+          block[fctId] = sbmBlocks[i];
+          algsys_->DefineSBMMatrixBlock(i, block);
+        }
+        
+        // 2) Define minor blocks
+        // loop over all sbm blocks
+        for( UInt i = 1; i < sbmBlocks.GetSize(); ++i ) {
+          StdVector<std::set<Integer> >& sbmSubBlocks = minorBlocks[i];
+          algsys_->RegisterSubMatrixBlocks(i, sbmSubBlocks.GetSize());
+          // loop over all minor blocks
+          for(UInt j = 0; j < sbmSubBlocks.GetSize(); ++j ) {
+            UInt blockSize = sbmSubBlocks[j].size();
+            StdVector<FeFctIdType> fctIds(blockSize);
+            fctIds.Init(fctId);
+            StdVector<Integer> eqns(blockSize);
+            std::set<Integer>::iterator it = sbmSubBlocks[j].begin();
+            UInt pos = 0;
+            // loop over all eqns
+            for( UInt k = 0; k < blockSize; ++k ) {
+              eqns[pos++] = *it++;
+            }
+//            std::cerr << "SubBlock #" << j << ": " << eqns.ToString() << std::endl;
+            algsys_->DefineSubMatrixBlocks(i,j, fctIds, eqns);
+          }
+        }
+        
+        
+      } else {
       
-      //  Loop over all FeFunctions and register themselves
-      std::map<SolutionType, shared_ptr<BaseFeFunction> >::iterator it;
-      for(it = feFunctions_.begin(); it != feFunctions_.end(); ++it ) {
-        shared_ptr<FeSpace> actSpace = it->second->GetFeSpace();
-        FeFctIdType fctId = it->second->GetFctId();
-      
-        // register function
-        algsys_->RegisterFct( fctId, actSpace->GetNumEquations(),
-                              actSpace->GetNumFreeEquations() );
-      }
-      
+        // HARD-CODED section
+        UInt numBlocks = 1;
+        bool useDistinctGraphs = false;
+        algsys_->GraphSetupInit( numFcts, numBlocks,
+                                 useDistinctGraphs );
 
-      // HARD CODED
-      // HARD CODED
-      //Define SBM-Blocks, at the moment hard coded to
-      // one function == one block
-      it = feFunctions_.begin();
-      //      for( UInt iBlock = 0; iBlock < numBlocks; ++iBlock ) {
-      //        if( iBlock == 0 ) {
-      //          // === BLOCK 1 ===
-      //          UInt numEquations = it->second->GetFeSpace()->GetNumEquations();
-      //          std::map<FeFctIdType,StdVector<Integer> > fncEqns;
-      //          StdVector<Integer> & eqns = fncEqns[it->second->GetFctId()];
-      //
-      //          eqns.Resize(4);
-      //          eqns[0] = 1;
-      //          eqns[1] = 2;
-      //          eqns[2] = numEquations-1;
-      //          eqns[3] = numEquations;
-      //          algsys_->DefineSBMMatrixBlock(iBlock, fncEqns );
-      //        } else {
-      //          // === BLOCK 2 ===
-      //          UInt numEquations = it->second->GetFeSpace()->GetNumEquations();
-      //          std::map<FeFctIdType,StdVector<Integer> > fncEqns;
-      //          StdVector<Integer> & eqns = fncEqns[it->second->GetFctId()];
-      //          eqns.Resize(numEquations-4);
-      //          for( UInt iEqn = 0; iEqn < numEquations-4; ++iEqn ) {
-      //            eqns[iEqn] = iEqn+3;
-      //          } 
-      //          algsys_->DefineSBMMatrixBlock(iBlock, fncEqns );
-      //        }
-      //      }
+        //  Loop over all FeFunctions and register themselves
+        std::map<SolutionType, shared_ptr<BaseFeFunction> >::iterator it;
+        for(it = feFunctions_.begin(); it != feFunctions_.end(); ++it ) {
+          shared_ptr<FeSpace> actSpace = it->second->GetFeSpace();
+          FeFctIdType fctId = it->second->GetFctId();
 
-      // JUST ONE BLOCK
-      //#ifdef OLD_VERSION         
-
-      std::map<FeFctIdType,StdVector<Integer> > fncEqns;
-      UInt numEquations = it->second->GetFeSpace()->GetNumEquations();
-      fncEqns[0].Resize(numEquations);
-      for( UInt iEqn = 0; iEqn < numEquations; ++iEqn ) {
-        fncEqns[0][iEqn] = iEqn+1;
-      } 
-      algsys_->DefineSBMMatrixBlock(0, fncEqns );
-      //#endif
+          // register function
+          algsys_->RegisterFct( fctId, actSpace->GetNumEquations(),
+                                actSpace->GetNumFreeEquations() );
+        }
 
 
+        // HARD CODED
+        // HARD CODED
+        //Define SBM-Blocks, at the moment hard coded to
+        // one function == one block
+        it = feFunctions_.begin();
+        //      for( UInt iBlock = 0; iBlock < numBlocks; ++iBlock ) {
+        //        if( iBlock == 0 ) {
+        //          // === BLOCK 1 ===
+        //          UInt numEquations = it->second->GetFeSpace()->GetNumEquations();
+        //          std::map<FeFctIdType,StdVector<Integer> > fncEqns;
+        //          StdVector<Integer> & eqns = fncEqns[it->second->GetFctId()];
+        //
+        //          eqns.Resize(4);
+        //          eqns[0] = 1;
+        //          eqns[1] = 2;
+        //          eqns[2] = numEquations-1;
+        //          eqns[3] = numEquations;
+        //          algsys_->DefineSBMMatrixBlock(iBlock, fncEqns );
+        //        } else {
+        //          // === BLOCK 2 ===
+        //          UInt numEquations = it->second->GetFeSpace()->GetNumEquations();
+        //          std::map<FeFctIdType,StdVector<Integer> > fncEqns;
+        //          StdVector<Integer> & eqns = fncEqns[it->second->GetFctId()];
+        //          eqns.Resize(numEquations-4);
+        //          for( UInt iEqn = 0; iEqn < numEquations-4; ++iEqn ) {
+        //            eqns[iEqn] = iEqn+3;
+        //          } 
+        //          algsys_->DefineSBMMatrixBlock(iBlock, fncEqns );
+        //        }
+        //      }
 
-      //Define SBM-Blocks, at the moment hard coded to
-      // one function == one block
-      // for fine cube
-      //      it = feFunctions_.begin();
-      //      for( UInt iBlock = 0; iBlock < numBlocks; ++iBlock ) {
-      //        if( iBlock == 0 ) {
-      //          // === BLOCK 1 ===
-      //          UInt numEquations = it->second->GetFeSpace()->GetNumEquations();
-      //          std::map<FeFctIdType,StdVector<Integer> > fncEqns;
-      //          StdVector<Integer> & eqns = fncEqns[it->second->GetFctId()];
-      //#ifdef OLD_VERSION          
-      //          eqns.Resize(numEquations);
-      //          for( UInt iEqn = 0; iEqn < numEquations; ++iEqn ) {
-      //            eqns[iEqn] = iEqn+1;
-      //          } 
-      //#endif
-      //          eqns.Resize(20);
-      //           for( UInt i = 0; i < 20; ++i ){ 
-      //             //eqns[i] = i+1;
-      //             eqns[i] = numEquations-i;
-      //           }
-      //                   
-      //          algsys_->DefineSBMMatrixBlock(iBlock, fncEqns );
-      //        } else {
-      //          // === BLOCK 2 ===
-      //          UInt numEquations = it->second->GetFeSpace()->GetNumEquations();
-      //          std::map<FeFctIdType,StdVector<Integer> > fncEqns;
-      //          StdVector<Integer> & eqns = fncEqns[it->second->GetFctId()];
-      //          eqns.Resize(numEquations-20);
-      //          for( UInt iEqn = 0; iEqn < numEquations-20; ++iEqn ) {
-      //            eqns[iEqn] = iEqn+1;
-      //          } 
-      //          algsys_->DefineSBMMatrixBlock(iBlock, fncEqns );
-      //        }
-      //      }
+        // JUST ONE BLOCK
+        //#ifdef OLD_VERSION         
+
+        std::map<FeFctIdType,std::set<Integer> > fncEqns;
+        UInt numEquations = it->second->GetFeSpace()->GetNumEquations();
+        for( UInt iEqn = 0; iEqn < numEquations; ++iEqn ) {
+          fncEqns[0].insert(iEqn+1);
+        } 
+        algsys_->DefineSBMMatrixBlock(0, fncEqns );
+        //#endif
+
+
+
+        //Define SBM-Blocks, at the moment hard coded to
+        // one function == one block
+        // for fine cube
+        //      it = feFunctions_.begin();
+        //      for( UInt iBlock = 0; iBlock < numBlocks; ++iBlock ) {
+        //        if( iBlock == 0 ) {
+        //          // === BLOCK 1 ===
+        //          UInt numEquations = it->second->GetFeSpace()->GetNumEquations();
+        //          std::map<FeFctIdType,StdVector<Integer> > fncEqns;
+        //          StdVector<Integer> & eqns = fncEqns[it->second->GetFctId()];
+        //#ifdef OLD_VERSION          
+        //          eqns.Resize(numEquations);
+        //          for( UInt iEqn = 0; iEqn < numEquations; ++iEqn ) {
+        //            eqns[iEqn] = iEqn+1;
+        //          } 
+        //#endif
+        //          eqns.Resize(20);
+        //           for( UInt i = 0; i < 20; ++i ){ 
+        //             //eqns[i] = i+1;
+        //             eqns[i] = numEquations-i;
+        //           }
+        //                   
+        //          algsys_->DefineSBMMatrixBlock(iBlock, fncEqns );
+        //        } else {
+        //          // === BLOCK 2 ===
+        //          UInt numEquations = it->second->GetFeSpace()->GetNumEquations();
+        //          std::map<FeFctIdType,StdVector<Integer> > fncEqns;
+        //          StdVector<Integer> & eqns = fncEqns[it->second->GetFctId()];
+        //          eqns.Resize(numEquations-20);
+        //          for( UInt iEqn = 0; iEqn < numEquations-20; ++iEqn ) {
+        //            eqns[iEqn] = iEqn+1;
+        //          } 
+        //          algsys_->DefineSBMMatrixBlock(iBlock, fncEqns );
+        //        }
+        //      }
 
 #ifdef USE_SUB_BLOCKS
-      // ===========================
-      //   Define submatrix blocks
-      // ===========================
-      UInt blockSize = 18;
-      UInt numSubBlocks = numEquations / blockSize;
-      UInt rest = numEquations % blockSize;
-      algsys_->RegisterSubMatrixBlocks(0,numSubBlocks);
-      for( UInt i = 0; i < numSubBlocks; ++i ) {
-        StdVector<Integer> eqnsBlock;
-        StdVector<FeFctIdType> idsBlock;
+        // ===========================
+        //   Define submatrix blocks
+        // ===========================
+        UInt blockSize = 18;
+        UInt numSubBlocks = numEquations / blockSize;
+        UInt rest = numEquations % blockSize;
+        algsys_->RegisterSubMatrixBlocks(0,numSubBlocks);
+        for( UInt i = 0; i < numSubBlocks; ++i ) {
+          StdVector<Integer> eqnsBlock;
+          StdVector<FeFctIdType> idsBlock;
 
-        if( i != numSubBlocks-1) {
-          // pure inner block
-          eqnsBlock.Resize(blockSize);
-          idsBlock.Resize(blockSize);
-          for(UInt j = 0; j < blockSize; ++j ) {
-            eqnsBlock[j] = fncEqns[0][j*numSubBlocks+i];
-            idsBlock[j] = 0;
+          if( i != numSubBlocks-1) {
+            // pure inner block
+            eqnsBlock.Resize(blockSize);
+            idsBlock.Resize(blockSize);
+            for(UInt j = 0; j < blockSize; ++j ) {
+              eqnsBlock[j] = fncEqns[0][j*numSubBlocks+i];
+              idsBlock[j] = 0;
+            }
+          } else {
+            // last block
+            eqnsBlock.Resize(rest+blockSize);
+            idsBlock.Resize(rest+blockSize);
+            for(UInt j = 0; j < blockSize; ++j ) {
+              eqnsBlock[j] = fncEqns[0][j*numSubBlocks+i];
+              idsBlock[j] = 0;
+            }
+            // add rest
+            for(UInt j = 0; j < rest; ++j ) {
+              eqnsBlock[blockSize+j] = fncEqns[0][numSubBlocks*blockSize+j];
+              idsBlock[blockSize+j] = 0;
+            }
+            //
           }
-        } else {
-          // last block
-          eqnsBlock.Resize(rest+blockSize);
-          idsBlock.Resize(rest+blockSize);
-          for(UInt j = 0; j < blockSize; ++j ) {
-            eqnsBlock[j] = fncEqns[0][j*numSubBlocks+i];
-            idsBlock[j] = 0;
-          }
-          // add rest
-          for(UInt j = 0; j < rest; ++j ) {
-            eqnsBlock[blockSize+j] = fncEqns[0][numSubBlocks*blockSize+j];
-            idsBlock[blockSize+j] = 0;
-          }
-          //
-        }
-        algsys_->DefineSubMatrixBlocks(0,i,idsBlock, eqnsBlock);
-      } // loop
+          algsys_->DefineSubMatrixBlocks(0,i,idsBlock, eqnsBlock);
+        } // loop
 #endif      
       
+      } // endif "magneticEdgePDE"
 
               
       // Setup sparsity patterns

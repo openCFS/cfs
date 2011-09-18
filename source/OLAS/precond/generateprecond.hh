@@ -17,7 +17,7 @@
 //!
 namespace CoupledField {
 
-  class BaseStdPrecond;
+  class BasePrecond;
   class BaseSBMPrecond;
   class StdMatrix;
   class SBM_Matrix;
@@ -31,10 +31,10 @@ namespace CoupledField {
   //! \param ptype    Type of desired preconditoner
   //! \param myParams Pointer to parameter object for the preconditioner
   //! \param myReport Pointer to report object for the preconditioner
-  BaseStdPrecond* GenerateStdPrecondObject( const StdMatrix &mat,
-                                            PtrParamNode solverNode,
-                                            PtrParamNode olasInfo );
-  
+  BasePrecond* GenerateStdPrecondObject( const StdMatrix &mat,
+                                         PtrParamNode solverNode,
+                                         PtrParamNode olasInfo );
+
   
   //! Generate a SBM preconditioner object
   

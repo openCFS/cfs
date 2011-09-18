@@ -16,6 +16,8 @@ namespace CoupledField {
   {
     EnumTuple( BasePrecond::NOPRECOND, "noPrecond" ),
     EnumTuple( BasePrecond::ID, "Id" ),
+    
+    // Initialization of Classical Preconditioners
     EnumTuple( BasePrecond::MG, "MG"),
     EnumTuple( BasePrecond::JACOBI, "Jacobi"),
     EnumTuple( BasePrecond::BLOCK_JACOBI, "BlockJacobi"),
@@ -28,6 +30,21 @@ namespace CoupledField {
     EnumTuple( BasePrecond::ILDLTP, "ILDLTP"),
     EnumTuple( BasePrecond::ILDLCN, "ILDLCN"),
     EnumTuple( BasePrecond::IC0, "IC0" ),
+    // Initialization of Solver type preconditioners
+    EnumTuple( BasePrecond::RICHARDSON, "richardson" ),
+    EnumTuple( BasePrecond::DIAGSOLVER, "diagsolver"),
+    EnumTuple( BasePrecond::CG, "cg"),
+    EnumTuple( BasePrecond::GMRES, "gmres" ),
+    EnumTuple( BasePrecond::MINRES, "minres" ),
+    EnumTuple( BasePrecond::SYMMLQ, "symmlq"),
+    EnumTuple( BasePrecond::LAPACK_LU, "lapackLU"),
+    EnumTuple( BasePrecond::LAPACK_LL, "lapackLL" ),
+    EnumTuple( BasePrecond::LU_SOLVER, "directLU" ),
+    EnumTuple( BasePrecond::LDL_SOLVER, "directLDL"),
+    EnumTuple( BasePrecond::LDL_SOLVER2, "directLDL2"),
+    EnumTuple( BasePrecond::PARDISO, "pardiso" ),
+    EnumTuple( BasePrecond::ILUPACK, "ilupack" ),
+    EnumTuple( BasePrecond::CHOLMOD, "cholmod")
   };
 
   Enum<BasePrecond::PrecondType> BasePrecond::precondType = \
@@ -36,18 +53,18 @@ namespace CoupledField {
       precondTypeTuples); 
 
 
-  void BaseStdPrecond::Apply( const BaseMatrix &sysmat, const BaseVector &r, 
-                           BaseVector &z ) const {
-    const StdMatrix& stdsysmat = dynamic_cast<const StdMatrix&>(sysmat);
-    const SingleVector& stdr = dynamic_cast<const SingleVector&>(r);
-    SingleVector& stdz = dynamic_cast<SingleVector&>(z);
-
-    Apply(stdsysmat,stdr,stdz);
-  }
-  
-  void BaseStdPrecond::Setup( BaseMatrix &sysMat ) {
-    Setup( dynamic_cast<StdMatrix&>(sysMat) );
-  }
+//  void BaseStdPrecond::Apply( const BaseMatrix &sysmat, const BaseVector &r, 
+//                           BaseVector &z ){
+//    const StdMatrix& stdsysmat = dynamic_cast<const StdMatrix&>(sysmat);
+//    const SingleVector& stdr = dynamic_cast<const SingleVector&>(r);
+//    SingleVector& stdz = dynamic_cast<SingleVector&>(z);
+//
+//    Apply(stdsysmat,stdr,stdz);
+//  }
+//  
+//  void BaseStdPrecond::Setup( BaseMatrix &sysMat, PtrParamNode analysis_id ) {
+//    Setup( dynamic_cast<StdMatrix&>(sysMat), analysis_id );
+//  }
 
   // ------------------------------------------------------------------------
   //  S B M   -  P R E C O N D I T I O N E R
@@ -70,7 +87,7 @@ namespace CoupledField {
     stdPreconds_.Clear();
   }
   
-  void BaseSBMPrecond::SetPrecond(UInt blockNum, BaseStdPrecond* stdPrecond ) {
+  void BaseSBMPrecond::SetPrecond(UInt blockNum, BasePrecond* stdPrecond ) {
     
     // check block index
     if( blockNum > numBlocks_ ) {
@@ -90,7 +107,7 @@ namespace CoupledField {
   }
   
   void BaseSBMPrecond::Apply( const BaseMatrix& sysmat, const BaseVector& r, 
-                              BaseVector& z ) const {
+                              BaseVector& z ) {
       const SBM_Matrix& sbmsysmat = dynamic_cast<const SBM_Matrix&>(sysmat);
       const SBM_Vector& sbmr      = dynamic_cast<const SBM_Vector&>(r);
       SBM_Vector& sbmz            = dynamic_cast<SBM_Vector&>(z);
@@ -98,7 +115,7 @@ namespace CoupledField {
     }
   
   void BaseSBMPrecond::Apply( const SBM_Matrix &A, const SBM_Vector &r,
-                              SBM_Vector &z ) const {
+                              SBM_Vector &z ) {
     
     // Loop over all rows
     for( UInt iRow = 0; iRow < numBlocks_; ++iRow ) {
@@ -113,16 +130,16 @@ namespace CoupledField {
     }
   }
 
-  void BaseSBMPrecond::Setup( BaseMatrix &A ) {
+  void BaseSBMPrecond::Setup( BaseMatrix &A, PtrParamNode analysis_id ) {
     SBM_Matrix& sbmA = dynamic_cast<SBM_Matrix&>(A);
-    Setup(sbmA);
+    Setup(sbmA, analysis_id);
   }
   
-  void BaseSBMPrecond::Setup( SBM_Matrix &A ) {
+  void BaseSBMPrecond::Setup( SBM_Matrix &A, PtrParamNode analysis_id ) {
     for( UInt iRow = 0; iRow < numBlocks_; ++iRow ) {
       // If preconditioner for row is defined, apply it
       if( stdPreconds_[iRow] != NULL ) {
-        stdPreconds_[iRow]->Setup(A(iRow,iRow));
+        stdPreconds_[iRow]->Setup(A(iRow,iRow),analysis_id);
       }
     }
   }

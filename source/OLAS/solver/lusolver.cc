@@ -24,7 +24,7 @@ namespace CoupledField {
 
     // Set pointers to communication objects
     xml_ = solverNode;
-    solverInfo_ = olasInfo->Get("directLU");
+    infoNode_ = olasInfo->Get("directLU");
 
     // No factorisation was performed yet
     amFactorised_ = false;
@@ -112,7 +112,6 @@ namespace CoupledField {
   // *********
   template<typename T>
   void LUSolver<T>::Solve( const BaseMatrix &sysMat,
-			   const BasePrecond &precond,
 			   const BaseVector &rhs, BaseVector &sol, PtrParamNode analysis_step ) {
 
 
@@ -175,7 +174,7 @@ namespace CoupledField {
     // Now this currently is of dubious value, since the two things queried
     // from olasReport are actually meaningless in the context of a direct
     // solver. Nevertheless we supply some values for consistency
-    PtrParamNode out = solverInfo_->Get(ParamNode::PROCESS)->Get("solver", ParamNode::APPEND);
+    PtrParamNode out = infoNode_->Get(ParamNode::PROCESS)->Get("solver", ParamNode::APPEND);
     out->Get("numIter")->SetValue(-1);
     out->Get("finalNorm")->SetValue(-1.0);
 

@@ -343,10 +343,10 @@ namespace CoupledField {
       // ---------------
       std::cout << "a) Nodal mapping\n" 
       << "----------------\n";
-      StdVector<UInt> & vVertexNodes = elemIt->second[BaseFE::VERTEX];
-      StdVector<UInt> & vEdgeNodes = elemIt->second[BaseFE::EDGE];
-      StdVector<UInt> & vFaceNodes = elemIt->second[BaseFE::FACE];
-      StdVector<UInt> & vInnerNodes = elemIt->second[BaseFE::INTERIOR];
+      StdVector<UInt> & vVertexNodes = elemIt->second[BaseFE::VERTEX].vNodes;
+      StdVector<UInt> & vEdgeNodes = elemIt->second[BaseFE::EDGE].vNodes;
+      StdVector<UInt> & vFaceNodes = elemIt->second[BaseFE::FACE].vNodes;
+      StdVector<UInt> & vInnerNodes = elemIt->second[BaseFE::INTERIOR].vNodes;
       
       StdVector<UInt> rVertexNodes(vVertexNodes.GetSize());
       StdVector<UInt> rEdgeNodes(vEdgeNodes.GetSize());

@@ -69,7 +69,7 @@ namespace CoupledField {
     RichardsonSolver( PtrParamNode solverNode, PtrParamNode olasInfo ) :
       r_(NULL), w_(NULL) {
       xml_ = solverNode;
-      solverInfo_ = olasInfo->Get("richardson");
+      infoNode_ = olasInfo->Get("richardson");
     };
 
     //! Default destructor
@@ -81,10 +81,9 @@ namespace CoupledField {
     //! Solve the linear system sysmat*sol=rhs for sol
 
     //! \param sysmat System matrix of the linear system to be solved
-    //! \param premat The preconditioning object
     //! \param rhs Right-hand side vector of the linear system
     //! \param sol Solution vector of linear system
-    void Solve(const BaseMatrix& sysmat, const BasePrecond& premat, 
+    void Solve(const BaseMatrix& sysmat,
 	       const BaseVector& rhs, BaseVector& sol, PtrParamNode analysis_step);
 
     //! Dummy setup method

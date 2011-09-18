@@ -18,7 +18,7 @@ namespace CoupledField {
     xml_ = solverNode;
 
     // Set pointers to communication objects
-    solverInfo_ = olasInfo->Get("minres");
+    infoNode_ = olasInfo->Get("minres");
 
     // Prepare remaining internal attributes
     w0_ = NULL;
@@ -162,7 +162,6 @@ namespace CoupledField {
   // *********
   template<typename T>
   void MINRESSolver<T>::Solve( const BaseMatrix &sysMat,
-                               const BasePrecond &precond,
                                const BaseVector &rhs, BaseVector &sol, PtrParamNode analysis_step ) {
 
 
@@ -193,14 +192,14 @@ namespace CoupledField {
     // ---------------------------------
 
     // Determine norm of preconditioned right hand side
-    precond.Apply( sysMat, rhs, *pV_ );
+    ptPrecond_->Apply( sysMat, rhs, *pV_ );
     Double rhsNorm = pV_->NormL2();
 
     // Compute residual of initial guess
     sysMat.CompRes( *pV_, sol, rhs );
 
     // Apply preconditioner
-    precond.Apply( sysMat, *pV_, *q0_ );
+    ptPrecond_->Apply( sysMat, *pV_, *q0_ );
 
     // Compute norm of residual of preconditioned system
     rho = q0_->NormL2();
@@ -264,7 +263,7 @@ namespace CoupledField {
       //   Compute basis vector q_(k+1)
       //   of the Krylov subspace
       // --------------------------------
-      lanczos_->CompNextVector( sysMat, precond, *q1_, *q0_, *qN_, *pV_,
+      lanczos_->CompNextVector( sysMat, *ptPrecond_, *q1_, *q0_, *qN_, *pV_,
 				alpha, beta1, beta0 );
 
 
@@ -352,7 +351,7 @@ namespace CoupledField {
 
         // Test for false convergence
         sysMat.CompRes( *pV_, sol, rhs );
-        precond.Apply( sysMat, *pV_, *q0_ );
+        ptPrecond_->Apply( sysMat, *pV_, *q0_ );
         rho = q0_->NormL2();
         if ( rho > threshold ) {
           WARN(" MINRESSolver::Solve\n"
@@ -378,11 +377,11 @@ namespace CoupledField {
 
     // Compute real residual of preconditioned system
     sysMat.CompRes( *pV_, sol, rhs );
-    precond.Apply( sysMat, *pV_, *q0_ );
+    ptPrecond_->Apply( sysMat, *pV_, *q0_ );
     rho = q0_->NormL2();
 
     // Compose report
-    PtrParamNode out = solverInfo_->Get(ParamNode::PROCESS)->Get("solver", ParamNode::APPEND);
+    PtrParamNode out = infoNode_->Get(ParamNode::PROCESS)->Get("solver", ParamNode::APPEND);
     out->Get("finalNorm")->SetValue(rho);
     out->Get("numIter")->SetValue((Integer)(k-1));
 

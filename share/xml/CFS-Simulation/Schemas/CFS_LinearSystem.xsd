@@ -173,6 +173,23 @@
           <xsd:enumeration value="ILUK"/>
           <xsd:enumeration value="ILDLK"/>
           <xsd:enumeration value="ILDL0"/>
+          <!-- Here we repeat the list of solvers, as every
+          solver could be also used as a preconditioner -->
+          <xsd:enumeration value="expertsChoice"/>
+          <xsd:enumeration value="richardson"/>
+          <xsd:enumeration value="diagsolver"/>
+          <xsd:enumeration value="cg"/>
+          <xsd:enumeration value="gmres"/>
+          <xsd:enumeration value="minres"/>
+          <xsd:enumeration value="symmlq"/>
+          <xsd:enumeration value="qmr"/>
+          <xsd:enumeration value="lapackLU"/>
+          <xsd:enumeration value="lapackLL"/>
+          <xsd:enumeration value="directLU"/>
+          <xsd:enumeration value="directLDL"/>
+          <xsd:enumeration value="pardiso"/>
+          <xsd:enumeration value="ilupack"/>
+          <xsd:enumeration value="cholmod"/>
         </xsd:restriction>
       </xsd:simpleType>
     </xsd:attribute>

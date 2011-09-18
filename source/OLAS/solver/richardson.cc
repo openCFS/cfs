@@ -25,7 +25,6 @@ namespace CoupledField {
   // ****************
   template<typename T>
   void RichardsonSolver<T>::Solve( const BaseMatrix &sysmat,
-				   const BasePrecond &precond,
 				   const BaseVector &rhs, BaseVector &sol, PtrParamNode analysis_step ) {
 
     EXCEPTION("The Richardson solver has not been in use for a very long time."
@@ -85,7 +84,7 @@ namespace CoupledField {
 #endif
 
     // Compute preconditioned residual
-    precond.Apply( sysmat, *r_, *w_ );
+    ptPrecond_->Apply( sysmat, *r_, *w_ );
 
 
     // TEST: Due to the use of the penalty method we currently
@@ -127,7 +126,7 @@ namespace CoupledField {
       sysmat.CompRes( *r_, sol, rhs );
 
       // Compute w = P^-1*r by applying preconditioner
-      precond.Apply( sysmat, *r_, *w_ );
+      ptPrecond_->Apply( sysmat, *r_, *w_ );
 
       norm_old = norm_new;
 
@@ -167,7 +166,7 @@ namespace CoupledField {
     // ****************************
     //   Generate solution report
     // ****************************
-    PtrParamNode out = solverInfo_->Get(ParamNode::PROCESS)->Get("solver", ParamNode::APPEND);
+    PtrParamNode out = infoNode_->Get(ParamNode::PROCESS)->Get("solver", ParamNode::APPEND);
     out->Get("numIter")->SetValue(niter);
     out->Get("finalPrecondResNorm")->SetValue(norm_new);
     

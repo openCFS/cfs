@@ -36,7 +36,7 @@ namespace CoupledField {
                                        PtrParamNode solverNode,
 				                               PtrParamNode olasInfo )  {
     this->xml_ = solverNode;
-    this->olasInfo_ = olasInfo->Get("jacobi");
+    this->infoNode_ = olasInfo->Get("jacobi");
     size_     = mat.GetNumRows();
     NEWARRAY( diagInv_, T, size_ );
   }
@@ -57,7 +57,7 @@ namespace CoupledField {
   template<class T_storage,typename T>
   void JacPrecond<T_storage,T>::Apply( const T_storage &sysmat,	
 				       const Vector<T> &r,
-				       Vector<T> &z ) const {
+				       Vector<T> &z ) {
 
 #pragma omp parallel for 
     for ( UInt i = 0; i < size_; i++ ) {
@@ -70,7 +70,7 @@ namespace CoupledField {
   //   Setup of preconditioner
   // ***************************
   template<class T_storage,typename T>
-  void JacPrecond<T_storage,T>::Setup( T_storage &sysmat ) {
+  void JacPrecond<T_storage,T>::Setup( T_storage &sysmat, PtrParamNode analysis_id ) {
 
 #pragma omp parallel for 
     for ( UInt i = 0; i < size_; i++ ) {
@@ -109,7 +109,7 @@ namespace CoupledField {
                                                   PtrParamNode solverNode,
                                                   PtrParamNode olasInfo )  {
      this->xml_ = solverNode;
-     this->olasInfo_ = olasInfo->Get("blockJacobi");
+     this->infoNode_ = olasInfo->Get("blockJacobi");
      numRows_ = 0;
      
    }
@@ -129,14 +129,14 @@ namespace CoupledField {
    template<class T_storage,typename T>
    void BlockJacPrecond<T_storage,T>::Apply( const T_storage &sysmat, 
                                              const Vector<T> &rhs,
-                                             Vector<T> &sol ) const {
+                                             Vector<T> &sol ) {
      EXCEPTION("No general implementation available");
    }
        
    template<>
    void BlockJacPrecond<VBR_Matrix<Double>,Double>::Apply( const VBR_Matrix<Double> &sysmat, 
                                                            const Vector<Double> &rhs,
-                                                           Vector<Double> &sol ) const {
+                                                           Vector<Double> &sol ){
 
      UInt rStart = 0;
      char trans = 'T';
@@ -166,12 +166,14 @@ namespace CoupledField {
    //   Setup of preconditioner
    // ***************************
    template<class T_storage,typename T>
-     void BlockJacPrecond<T_storage,T>::Setup( T_storage &sysmat ) {
+     void BlockJacPrecond<T_storage,T>::Setup( T_storage &sysmat,
+                                               PtrParamNode analysis_id ) {
      EXCEPTION("No general implementation available");
    }
    
    template<>
-   void BlockJacPrecond<VBR_Matrix<Double>,Double>::Setup( VBR_Matrix<Double> &sysmat ) {
+   void BlockJacPrecond<VBR_Matrix<Double>,Double>::Setup( VBR_Matrix<Double> &sysmat,
+                                                           PtrParamNode infoNode ) {
 
      
      // get block information
@@ -202,6 +204,15 @@ namespace CoupledField {
        inv.Resize(bs);
        std::copy(ptDiag,ptDiag+bs*bs, inv[0]);
        numEntries += (bs * bs);
+#ifdef DEBUG_JAC_PRECOND
+       std::cerr << "\n original block #" << i <<"\n";
+       for( UInt k = 0; k < bs; ++k ) {
+         for( UInt l = 0; l < bs; ++l ) {
+           std::cerr << ptDiag[k*bs+l] << ", ";
+         }
+         std::cerr << "\n";
+       }
+#endif
        
        // ===================================================================
        // VERSION 1: LU BASED INVERSION (also for non-symmetric or  non SPD)
@@ -227,12 +238,22 @@ namespace CoupledField {
        
        delete[] ipiv;
        delete[] work;
+
+#ifdef DEBUG_JAC_PRECOND       
+       std::cerr << "\n inverted block #" << i <<"\n";
+       for( UInt k = 0; k < bs; ++k ) {
+         for( UInt l = 0; l < bs; ++l ) {
+           std::cerr << ptDiag[k*bs+l] << ", ";
+         }
+         std::cerr << "\n";
+       }
+#endif
      }
      
 
      // log some information to info
-     olasInfo_->Get("numDiagBlocks")->SetValue(numRows_);
-     olasInfo_->Get("numEntries")->SetValue(numEntries);
+     infoNode_->Get("numDiagBlocks")->SetValue(numRows_);
+     infoNode_->Get("numEntries")->SetValue(numEntries);
    }
    
  // Explicit template instantiation

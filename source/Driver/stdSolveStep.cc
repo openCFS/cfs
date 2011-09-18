@@ -153,13 +153,13 @@ namespace CoupledField {
     algsys_->BuildInDirichlet();
 
     if( assemble_->IsMatrixUpdated() ) {
-      algsys_->SetupPrecond();
+      algsys_->SetupPrecond(analysis_id);
 
-      algsys_->SetupSolver();
+      algsys_->SetupSolver(analysis_id);
     }
 
     // Solve problem
-    algsys_->Solve();
+    algsys_->Solve(analysis_id);
 
     // Get the solution and store it
     Vector<Double> tmpSol;
@@ -214,9 +214,9 @@ namespace CoupledField {
 
           algsys_->ConstructEffectiveMatrix(matrix_factor_);
           algsys_->BuildInDirichlet();
-          algsys_->SetupPrecond();
-          algsys_->SetupSolver();
-          algsys_->Solve();
+          algsys_->SetupPrecond(analysis_id);
+          algsys_->SetupSolver(analysis_id);
+          algsys_->Solve(analysis_id);
 
           // new solution is only an increment of the full solution =============
           algsys_->GetSolutionVal( solInc );
@@ -340,9 +340,9 @@ namespace CoupledField {
 
           algsys_->ConstructEffectiveMatrix(matrix_factor_);
           algsys_->BuildInDirichlet();
-          algsys_->SetupPrecond();
-          algsys_->SetupSolver();
-          algsys_->Solve();
+          algsys_->SetupPrecond(analysis_id);
+          algsys_->SetupSolver(analysis_id);
+          algsys_->Solve(analysis_id);
 
           // new solution 
           algsys_->GetSolutionVal( actSol );
@@ -492,11 +492,11 @@ namespace CoupledField {
     algsys_->BuildInDirichlet();
 
     if( effectiveMatrixUpdated ){
-      algsys_->SetupPrecond( );
-      algsys_->SetupSolver();
+      algsys_->SetupPrecond( analysis_id);
+      algsys_->SetupSolver(analysis_id);
     }
 
-    algsys_->Solve();
+    algsys_->Solve(analysis_id);
 
     Vector<Double> tmpSol;
     algsys_->GetSolutionVal( tmpSol );
@@ -569,9 +569,9 @@ namespace CoupledField {
         algsys_->ConstructEffectiveMatrix(matrix_factor_);
         algsys_->BuildInDirichlet();
 
-        algsys_->SetupPrecond();
-        algsys_->SetupSolver();
-        algsys_->Solve();
+        algsys_->SetupPrecond(child_id);
+        algsys_->SetupSolver(child_id);
+        algsys_->Solve(child_id);
 
         // new solution is only an increment of the full solution =============
         algsys_->GetSolutionVal( solInc );
@@ -717,10 +717,10 @@ namespace CoupledField {
         // build in the Dirichlet vales in system matrix and rhs
         algsys_->BuildInDirichlet();
         
-        algsys_->SetupSolver();
-        algsys_->SetupPrecond();
+        algsys_->SetupSolver(child_id);
+        algsys_->SetupPrecond(child_id);
         
-        algsys_->Solve();
+        algsys_->Solve(child_id);
         algsys_->GetSolutionVal(newSol); 
         
         //store solution for (n+1)
@@ -817,9 +817,9 @@ namespace CoupledField {
       // substract K^* u^k from RHS
       TS_alg_->SubstractStiffnessFromRHS(actSol);
 
-      algsys_->SetupPrecond();
-      algsys_->SetupSolver();
-      algsys_->Solve();
+      algsys_->SetupPrecond(analysis_id);
+      algsys_->SetupSolver(analysis_id);
+      algsys_->Solve(analysis_id);
 
       // new solution is only an increment of the full solution =============
       algsys_->GetSolutionVal( solInc );
@@ -959,9 +959,9 @@ namespace CoupledField {
         algsys_->ConstructEffectiveMatrix(matrix_factor_);
         algsys_->BuildInDirichlet();
 
-        algsys_->SetupPrecond();
-        algsys_->SetupSolver();
-        algsys_->Solve();
+        algsys_->SetupPrecond(analysis_id);
+        algsys_->SetupSolver(analysis_id);
+        algsys_->Solve(analysis_id);
 
         // new solution is only an increment of the full solution =============
         algsys_->GetSolutionVal( solInc );
@@ -1115,11 +1115,11 @@ namespace CoupledField {
     algsys_->BuildInDirichlet();
 
     if( assemble_->IsMatrixUpdated() ) {
-      algsys_->SetupPrecond();
-      algsys_->SetupSolver();
+      algsys_->SetupPrecond(analysis_id);
+      algsys_->SetupSolver(analysis_id);
     }
 
-    algsys_->Solve();
+    algsys_->Solve(analysis_id);
 
     algsys_->GetSolutionVal(tmpSol);
     PDE_.SaveSolution(tmpSol.GetPointer(), tmpSol.GetSize());

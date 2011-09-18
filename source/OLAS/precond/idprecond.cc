@@ -11,8 +11,8 @@
 #include "idprecond.hh"
 
 namespace CoupledField {
-  void IdPrecondStd::Apply( const StdMatrix &sysmat, const SingleVector &rhs,
-                         SingleVector &sol ) const {
+  void IdPrecondStd::Apply( const BaseMatrix &sysmat, const BaseVector &rhs,
+                         BaseVector &sol ) {
     sol = rhs;
   }
   

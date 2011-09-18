@@ -16,7 +16,7 @@ namespace CoupledField {
                              PtrParamNode olasInfo )
   {
     this->xml_ = solverNode;
-    this->olasInfo_ = olasInfo;
+    this->infoNode_ = olasInfo;
     size_           = mat.GetNumRows();
     amFactorised_   = false;
   }
@@ -38,7 +38,7 @@ namespace CoupledField {
   //   Setup
   // *********
   template<typename T>
-  void IC0Precond<T>::Setup( SCRS_Matrix<T> &sysmat ) {
+  void IC0Precond<T>::Setup( SCRS_Matrix<T> &sysmat, PtrParamNode analysis_id ) {
 
     UInt nnzA = (size_ + sysmat.GetNnz() ) / 2;
 
@@ -356,7 +356,7 @@ namespace CoupledField {
   // *******************************
   template <typename T>
   void IC0Precond<T>::Apply( const SCRS_Matrix<T> &sysmat,
-                             const Vector<T> &r, Vector<T> &z ) const {
+                             const Vector<T> &r, Vector<T> &z ) {
 
     //set values of solution to RHS
     for (UInt k=0; k<size_; k++) {

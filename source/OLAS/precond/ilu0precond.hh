@@ -63,7 +63,7 @@ namespace CoupledField {
     //! The latter can simply be done by performing a pair of backward/forward
     //! substitution using the approximate factors \f$L\f$ and \f$U\f$.
     void Apply( const CRS_Matrix<T> &sysmat, const Vector<T> &r,
-		Vector<T> &z ) const;
+		Vector<T> &z );
 
     //! Triggers setup of the ILU Preconditioner
 
@@ -72,7 +72,7 @@ namespace CoupledField {
     //! the factors sparse, the factorisation is only incomplete, i.e.
     //! A = LU + R with a remainder matrix R. LU preserves the sparsity pattern
     //! of A, so this is an ILU(0) factorisation.
-    void Setup( CRS_Matrix<T> & sysmat );
+    void Setup( CRS_Matrix<T> & sysmat, PtrParamNode analysis_id );
 
     //! Query type of preconditioner object
 

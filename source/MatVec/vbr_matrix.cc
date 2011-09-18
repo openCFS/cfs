@@ -9,6 +9,10 @@
 
 #include "MatVec/vbr_matrix.hh"
 #include "opdefs.hh"
+#include "DataInOut/Logging/cfslog.hh"
+
+DECLARE_LOG(vbrMat)
+DEFINE_LOG(vbrMat, "vbrMatrix")
 
 namespace CoupledField {
 
@@ -101,6 +105,8 @@ namespace CoupledField {
     // Obtain block definition from graph object
     StdVector<std::pair<UInt,UInt> >& blockInfo 
     = graph.GetBlockDefinition();
+    
+    
 
     // we know already numbers of block rows / cols
     nbRows_ = blockInfo.GetSize();
@@ -114,10 +120,19 @@ namespace CoupledField {
     NEWARRAY( rowPtr_, UInt, nbRows_ + 1 );
     NEWARRAY( diagBlockPtr_, UInt, nbRows_ + 1 );
 
+    
+    LOG_DBG(vbrMat) << "================================\n";
+    LOG_DBG(vbrMat) << "VBR - Block Definition\n";
+    LOG_DBG(vbrMat) << "================================\n";
+
     for( UInt i = 0; i < nbRows_; ++i ) {
       bRow_[i] = blockInfo[i].first;
       bCol_[i] = blockInfo[i].first;
+      LOG_DBG(vbrMat) << "\t#" << i << ": " << blockInfo[i].first << ", " 
+          << blockInfo[i].second << std::endl;
     }
+
+    
     bRow_[nbRows_] = this->nrows_;
     bCol_[nbCols_] = this->ncols_;
 
@@ -311,8 +326,37 @@ namespace CoupledField {
   template<typename T>
   inline void VBR_Matrix<T>::MultAdd( const Vector<T> & mvec,
                                       Vector<T> & rvec ) const {
-    EXCEPTION("Implement me");
-  }
+      UInt rStart; // start index of row
+      UInt cStart; // start index of col
+      UInt rbs;    // row block size
+      UInt cbs;    // col block size
+      UInt colNum; // column number
+      UInt ind;    //index to data array
+
+      // initialize return vector
+      rvec = mvec;
+
+      // loop over row blocks
+      for( UInt ibr = 0; ibr < nbRows_; ++ibr ) {      
+        rStart = bRow_[ibr];
+        rbs = bRow_[ibr+1] -  bRow_[ibr];
+
+        // loop over col blocks
+        for( UInt ibc = rowPtr_[ibr]; ibc < rowPtr_[ibr+1]; ++ibc) {
+          colNum = colInd_[ibc];
+          cStart = bCol_[colNum];
+          cbs = bCol_[colNum+1] - bCol_[colNum];
+          ind = valPtr_[ibc];
+
+          // perform mat-vec multiplication on dense sub-block
+          for( UInt i = rStart; i < rStart+rbs; ++i ) {
+            for( UInt j = cStart; j <cStart+cbs; ++j ) {
+              rvec[i] += data_[ind++] * mvec[j];
+            }  // loop over cols within block
+          } // loop over rows within block
+        } //block cols
+      } // block rows
+    }
 
 
   template<typename T>

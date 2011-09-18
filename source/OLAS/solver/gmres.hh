@@ -220,12 +220,14 @@ namespace CoupledField {
 
     //! Prepare internal data structures
 
-    //! The implementation of the Setup method for the GMRES solver performs
+    //! The implementation of the up method for the GMRES solver performs
     //! mainly memory management tasks. It will prepare the internal data
     //! structures. If this is the first call to Setup or if maxKrylovDim_
     //! has changed, it will allocate new memory, freeing previously allocated
     //! memory if necessary.
     void Setup( BaseMatrix &sysMat, PtrParamNode analysis_step );
+    
+    //! Set preconditioner object at solver
 
     //! Solve a linear system using GMRES.
 
@@ -233,11 +235,10 @@ namespace CoupledField {
     //! right-hand side \f$b\f$ for \f$x\f$ using right preconditioned
     //! GMRES(m).
     //! \param sysMat  system matrix \f$A\f$
-    //! \param precond preconditioner to be used for right preconditioning
     //! \param rhs     right-hand side vector \f$b\f$
     //! \param sol     on input initial guess for the solution \f$x\f$, on
     //!                exit approximate solution
-    void Solve( const BaseMatrix &sysMat, const BasePrecond &precond,
+    void Solve( const BaseMatrix &sysMat, 
 		const BaseVector &rhs, BaseVector &sol, PtrParamNode analysis_step );
 
     //! Query type of this solver.

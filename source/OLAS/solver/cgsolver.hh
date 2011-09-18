@@ -145,7 +145,7 @@ namespace CoupledField {
           d_(NULL),
           q_(NULL) {
       xml_       = xml;
-      solverInfo_ = olasInfo->Get("cg");
+      infoNode_ = olasInfo->Get("cg");
       resDirectly_ = 0;
     };
 
@@ -159,10 +159,9 @@ namespace CoupledField {
     //! Solve the linear system sysmat*sol=rhs for sol
 
     //! \param sysmat System matrix of the linear system to be solved
-    //! \param premat The preconditioning object
     //! \param rhs Right-hand side vector of the linear system
     //! \param sol Solution vector of linear system
-    void Solve(const BaseMatrix& sysmat, const BasePrecond& premat, 
+    void Solve(const BaseMatrix& sysmat,  
 	       const BaseVector& rhs, BaseVector& sol, PtrParamNode analysis_step );
 
     //! Dummy setup method

@@ -100,9 +100,6 @@ namespace CoupledField {
     //! Auxilliary vector for computing/storing the update \f$\delta x\f$
     BaseVector *update_;
 
-    //! Dummy preconditioner
-    BasePrecond *dummyPrecond_;
-
   };
 
 }

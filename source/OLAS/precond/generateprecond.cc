@@ -3,9 +3,16 @@
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
 #include <def_use_lapack.hh>
+#include <def_use_pardiso.hh>
 
 #include "OLAS/precond/idprecond.hh"
 #include "OLAS/precond/generateprecond.hh"
+#include "MatVec/basematrix.hh"
+
+
+#ifdef USE_PARDISO
+#include "OLAS/external/pardiso/pardisosolver.hh"
+#endif
 
 // include source code for templated preconditioners
 #include "OLAS/precond/jacprecond.hh"
@@ -61,12 +68,12 @@ retVal = new precondObjType( mat, solverXML, olasInfo );\
   // **********************
   //   Generation routine
   // **********************
-  BaseStdPrecond* GenerateStdPrecondObject( const StdMatrix &mat,
+  BasePrecond* GenerateStdPrecondObject( const StdMatrix &mat,
                                             PtrParamNode systemNode,
                                             PtrParamNode olasInfo ) {
 
 
-    BaseStdPrecond *retVal = NULL;
+    BasePrecond *retVal = NULL;
     
     // Obtain matrix type information
     BaseMatrix::EntryType entryType = mat.GetEntryType();
@@ -285,13 +292,69 @@ retVal = new precondObjType( mat, solverXML, olasInfo );\
         EXCEPTION( " Request for unsupported version of MGPrecond" );
       }
       break;
+      
+      
+      // ============================
+      //   Pardiso Preconditioner
+      // ============================
+    case BasePrecond::PARDISO:
+#ifdef USE_PARDISO
+      // Check suitability of matrix
+      if ( mat.GetStructureType() != BaseMatrix::SPARSE_MATRIX ) {
+        EXCEPTION( "PardisoSolver only works with (S)CRS_Matrix class!" );
+      }
+      else {
+        const StdMatrix &stdmat = dynamic_cast<const StdMatrix &>(mat);
+        if ( stdmat.GetStorageType() != BaseMatrix::SPARSE_NONSYM &&
+            stdmat.GetStorageType() != BaseMatrix::SPARSE_SYM  ) {
+          EXCEPTION( "PardisoSolver only works with (S)CRS_Matrix class!" );
+        }
+      }
 
+      if ( entryType == BaseMatrix::DOUBLE ) {
+        retVal = new PardisoSolver<Double>( solverXML, olasInfo );
+        ASSERTMEM( retVal, sizeof(PardisoSolver<Double>) );
+        (*cla) << " GeneratePrecond: Generated real Pardiso precond"
+            << std::endl;
+      }
+      if ( entryType == BaseMatrix::COMPLEX ) {
+        retVal = new PardisoSolver<Complex>( solverXML, olasInfo );
+        ASSERTMEM( retVal, sizeof(PardisoSolver<Complex>) );
+        (*cla) << " GeneratePrecond: Generated complex Pardiso precond"
+            << std::endl;
+      }
+#else
+
+      EXCEPTION( "Compile with USE_PARDISO to enable interface to Pardiso "
+          "library" );
+#endif
+      break;
+
+    case BasePrecond::DIRECT:
+    case BasePrecond::RICHARDSON:
+    case BasePrecond::CG:
+    case BasePrecond::LANCZOS:
+    case BasePrecond::QMR:
+    case BasePrecond::GMRES:
+    case BasePrecond::MINRES:
+    case BasePrecond::SYMMLQ:
+    case BasePrecond::LAPACK_LU: 
+    case BasePrecond::LAPACK_LL:
+    case BasePrecond::ILUPACK:
+    case BasePrecond::LU_SOLVER: 
+    case BasePrecond::CHOLMOD:
+    case BasePrecond::LDL_SOLVER:
+    case BasePrecond::LDL_SOLVER2:
+    case BasePrecond::DIAGSOLVER:
+      EXCEPTION("Missing cases for solvers as preconditioners");
+      break;
       // ======================
       //   Something's broken
       // ======================
 
     default:
       EXCEPTION( "GeneratePrecondObject failed: Preconditioner type unknown" );
+      break;
     }
 
     // test, if preconditioner object could be generated
@@ -337,6 +400,9 @@ retVal = new precondObjType( mat, solverXML, olasInfo );\
     ptype = BasePrecond::precondType.Parse(precondStr);
 
     // Branch depending on desired preconditioner
+    BasePrecond * p = NULL;
+    PtrParamNode pardisoNode(new ParamNode(ParamNode::INSERT));
+    PtrParamNode blockJacobiNode(new ParamNode(ParamNode::INSERT));
     switch( ptype ) {
 
     // ==============================
@@ -353,12 +419,36 @@ retVal = new precondObjType( mat, solverXML, olasInfo );\
 //      break;
     case BasePrecond::JACOBI:
       retVal = new BaseSBMPrecond(numBlocks);
+     
+      // ========================
+      // MAGNETIC CASE
+      // ========================
+      // Block #0: Pardiso solver
       
-      // hard-coded: set for each block the specified standard preconditioner
-      for(UInt i = 0; i < numBlocks; ++i ) {
-        BaseStdPrecond * p = GenerateStdPrecondObject(mat(i,i), solverNode, olasInfo );
-        retVal->SetPrecond(i, p);
-      }
+      pardisoNode->Get("solver")->Get("precond")->SetValue("pardiso");
+      p = GenerateStdPrecondObject(mat(0,0), pardisoNode, olasInfo );
+      retVal->SetPrecond(0, p);
+      
+      // Block #1: Block-Jacobi-preconditioner
+      blockJacobiNode->Get("solver")->Get("precond")->SetValue("BlockJacobi");
+//      p = GenerateStdPrecondObject(mat(1,1), pardisoNode, olasInfo );
+      p = GenerateStdPrecondObject(mat(1,1), blockJacobiNode, olasInfo );
+      retVal->SetPrecond(1, p);
+      
+      // Block #1: Block-Jacobi preconditioner
+      //p = GenerateStdPrecondObject(mat(2,2), pardisoNode, olasInfo );
+      p = GenerateStdPrecondObject(mat(2,2), blockJacobiNode, olasInfo );
+      retVal->SetPrecond(2, p);
+      
+      
+      // ========================
+      // Standard Case
+      // ========================
+//      // hard-coded: set for each block the specified standard preconditioner
+//      for(UInt i = 0; i < numBlocks; ++i ) {
+//        BasePrecond * p = GenerateStdPrecondObject(mat(i,i), solverNode, olasInfo );
+//        retVal->SetPrecond(i, p);
+//      }
       break;
       
     default:
@@ -375,3 +465,5 @@ retVal = new precondObjType( mat, solverXML, olasInfo );\
 
   }
 }
+
+// ========================

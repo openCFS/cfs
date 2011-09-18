@@ -36,6 +36,7 @@ namespace CoupledField {
       sizeof(solverTypeTuples) / sizeof(EnumTuple),
       solverTypeTuples); 
 
+  
   // *******************
   //   Log Convergence
   // *******************
@@ -194,12 +195,22 @@ namespace CoupledField {
   void BaseSolver::PostInit()
   {
     // not all solvers are switched to ParamNode yet
-    PtrParamNode base = solverInfo_ != NULL ? solverInfo_ : info->Get("OLAS/legacySolver", ParamNode::APPEND);
+    PtrParamNode base = infoNode_ != NULL ? infoNode_ : info->Get("OLAS/legacySolver", ParamNode::APPEND);
     setupTimer_ = boost::shared_ptr<Timer>(new Timer());
     base->Get(ParamNode::SUMMARY)->Get("setup/timer")->SetValue( setupTimer_ );
     solveTimer_ = boost::shared_ptr<Timer>(new Timer());
     base->Get(ParamNode::SUMMARY)->Get("solve/timer")->SetValue( solveTimer_ );
   }
+  
+  void BaseSolver::SetPrecond( BasePrecond* precond ) {
+    ptPrecond_ = precond;
+  }
+  
+   void BaseSolver::Apply(const BaseMatrix& sysmat, const BaseVector& r, 
+                          BaseVector& z) {
+     this->Solve(sysmat, r, z, infoNode_);
+   }
+   
 
   void BaseSolver::CheckParameter(PtrParamNode out, char** val, const char* param_name)
   {

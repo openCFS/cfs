@@ -121,34 +121,34 @@ namespace CoupledField{
     solStrategy_ = strategy;
     solStep_ = step;
 
-    // Check: If we have TWO_LEVEL strategy and we are in the 2nd step we 
-    // have to do the following:
-    if(solStrategy_ == STRAT_TWO_LEVEL && solStep_ == 1 ) {
-      
-      // in the 1st step we use hard-codedo order 0
-      //SetMapType(POLYNOMIAL);
-      //isoOrder_ = 0;
-      mapType_ = POLYNOMIAL;
-    }
-    
-    if( solStrategy_ == STRAT_TWO_LEVEL && solStep_ == 2 ) {
-      isFinalized_ = false;
-      numEqns_ = 0;
-      numFreeEquations_ = 0;
-      numUnknowns_ = 0;
-      bcCounter_.clear();
-      gridToVirtualNodes_.clear();
-      nodes_.Clear();
-      nodesType_.clear();
-      virtualNodes_.clear();
-      nodeMap_.eqns.clear();
-      nodeMap_.BcKeys.clear();
-      nodeMap_.constraintNodes.clear();
-    
-    // Re-initialize structure
-      this->Init();
-      this->Finalize();
-    }
+//    // Check: If we have TWO_LEVEL strategy and we are in the 2nd step we 
+//    // have to do the following:
+//    if(solStrategy_ == STRAT_TWO_LEVEL && solStep_ == 1 ) {
+//      
+//      // in the 1st step we use hard-codedo order 0
+//      //SetMapType(POLYNOMIAL);
+//      //isoOrder_ = 0;
+//      mapType_ = POLYNOMIAL;
+//    }
+//    
+//    if( solStrategy_ == STRAT_TWO_LEVEL && solStep_ == 2 ) {
+//      isFinalized_ = false;
+//      numEqns_ = 0;
+//      numFreeEquations_ = 0;
+//      numUnknowns_ = 0;
+//      bcCounter_.clear();
+//      gridToVirtualNodes_.clear();
+//      nodes_.Clear();
+//      nodesType_.clear();
+//      virtualNodes_.clear();
+//      nodeMap_.eqns.clear();
+//      nodeMap_.BcKeys.clear();
+//      nodeMap_.constraintNodes.clear();
+//    
+//    // Re-initialize structure
+//      this->Init();
+//      this->Finalize();
+//    }
   }
 
 
@@ -365,6 +365,7 @@ namespace CoupledField{
 //    } // loop over elements
   }
   
+
   void FeSpaceHCurlHi::CreateVirtualNodes() {
 
     //follow the following algorithm
@@ -454,9 +455,11 @@ namespace CoupledField{
             }
 
             //fill the virtual Nodes in the correct ordering
+            EntityTypeNodes & etn =  virtualNodes_[actEl->elemNum][BaseFE::EDGE];
             for ( UInt i = 0; i < numEdgeNodes ; i++ ) {
-              virtualNodes_[actEl->elemNum][BaseFE::EDGE].Push_back(edgenodes[edgeNum][ permutations[i] ]);
+              etn.vNodes.Push_back(edgenodes[edgeNum][ permutations[i] ]);
             }
+            etn.offset.Push_back( permutations.GetSize() );
           } // loop over edges
         } // if POLYNOMIAL
       } // loop over elements
@@ -532,9 +535,11 @@ namespace CoupledField{
               }
             }
             //fill the virtual Nodes in the correct ordering
+            EntityTypeNodes & etn =  virtualNodes_[actEl->elemNum][BaseFE::FACE];
             for ( UInt i = 0; i < numFaceNodes ; i++ ) {
-              virtualNodes_[actEl->elemNum][BaseFE::FACE].Push_back(facenodes[faceNum][ permutations[i] ]);
+              etn.vNodes.Push_back(facenodes[faceNum][ permutations[i] ]);
             }
+            etn.offset.Push_back( permutations.GetSize() );
           }
         } // if POLYNOMIAL
       } // loop over elements
@@ -591,9 +596,11 @@ namespace CoupledField{
             }
           }
           //fill the virtual Nodes in the correct ordering
+          EntityTypeNodes & etn =  virtualNodes_[actEl->elemNum][BaseFE::INTERIOR];
           for ( UInt i = 0; i  < numIntNodes ; i++ ) {
-            virtualNodes_[actEl->elemNum][BaseFE::INTERIOR].Push_back(interiornodes[actEl->elemNum][ permutations[i] ]);
+            etn.vNodes.Push_back(interiornodes[actEl->elemNum][ permutations[i] ]);
           }
+          etn.offset.Push_back(permutations.GetSize());
         } // if POLYNOMIAL
       } // loop over elements
     } // loop over entitylists
@@ -604,6 +611,121 @@ namespace CoupledField{
     faceNodeRange_[0] = nedelecNodeRange_[1]+1;
     faceNodeRange_[1] = offset-1;
     
+  }
+
+
+  
+  void FeSpaceHCurlHi::GetOlasMappings( StdVector<std::set<Integer> >& sbmBlocks,
+                                        std::map<UInt,StdVector<std::set<Integer> > >&
+                                        minorBlocks ) {
+    
+    LOG_DBG(feSpaceHCurlHi) << "Performing OLAS mappings ...";
+    
+    // maintain of already used entities
+    std::set<UInt> edges, faces, elems;
+    
+    // Resize sbm-blocks
+    sbmBlocks.Resize(3);
+    
+    // Loop over all elements
+    Grid * grid = domain->GetGrid();
+    std::map< UInt, ElemVirtualNodes >::iterator elemIt = virtualNodes_.begin();
+    for( ; elemIt != virtualNodes_.end(); ++elemIt ) {
+      const UInt elemNum = elemIt->first;
+      const Elem * elem = grid->GetElem(elemNum);
+      UInt dim = Elem::shapes[elem->type].dim;;
+      LOG_DBG(feSpaceHCurlHi) << "\nDim of elem #" 
+          << elemNum << ": " << dim << std::endl;
+//      if (dim != 3 ) continue;
+//          
+      
+      
+      ElemVirtualNodes& vn = elemIt->second;
+
+      // ===================
+      //  1) SBM-Definition
+      // ===================
+      
+      // loop over all edges -> block #0 (if gradients are disabled)
+      const StdVector<UInt> & edgeNodes = vn[BaseFE::EDGE].vNodes;
+      for(UInt i = 0; i < edgeNodes.GetSize(); ++i ) {
+        sbmBlocks[0].insert(nodeMap_[edgeNodes[i]].Begin(),
+                            nodeMap_[edgeNodes[i]].End());
+      } 
+
+      // loop over all faces -> block #1
+      StdVector<UInt> & faceNodes = vn[BaseFE::FACE].vNodes;
+      LOG_DBG(feSpaceHCurlHi) << "\n\nfaceNodes has size "
+                              << faceNodes.GetSize() << std::endl;
+      for(UInt i = 0; i < faceNodes.GetSize(); ++i ) {
+        sbmBlocks[1].insert(nodeMap_[faceNodes[i]].Begin(),
+                            nodeMap_[faceNodes[i]].End());
+      }
+
+      // collect all inner nodes -> block #2
+      StdVector<UInt> & innerNodes = vn[BaseFE::INTERIOR].vNodes;
+      LOG_DBG(feSpaceHCurlHi) << "innerNode has size " << innerNodes.GetSize() 
+                              << std::endl;
+      for(UInt i = 0; i < innerNodes.GetSize(); ++i ) {
+        sbmBlocks[2].insert(nodeMap_[innerNodes[i]].Begin(),
+                            nodeMap_[innerNodes[i]].End());
+      }
+
+      // ======================
+      //  2) Matrix Sub-Blocks
+      // ======================
+
+      // SBM block #1: Group per face
+      StdVector<UInt> & faceOffsets = vn[BaseFE::FACE].offset;
+      LOG_DBG(feSpaceHCurlHi)<< "faceOffset of elem #" << elemIt->first 
+                             << " is "<< faceOffsets.ToString() << std::endl;
+      UInt pos = 0;
+      // loop over faces
+      for( UInt iFace = 0; iFace < faceOffsets.GetSize(); ++iFace ) {
+        LOG_DBG(feSpaceHCurlHi) << "treating face " << iFace << std::endl;
+        std::set<Integer>  faceEqns;
+        
+        // loop over faceNodes
+        LOG_DBG(feSpaceHCurlHi) << "looping from " << pos << " to " 
+                                << faceOffsets[iFace]+pos << std::endl;
+        for(UInt iNode = pos; iNode < faceOffsets[iFace]+pos; ++iNode ) {
+          LOG_DBG(feSpaceHCurlHi) << "treating facenode " << iNode << std::endl;
+          // check, if face was already numbered
+          if( faces.find(faceNodes[iNode]) == faces.end()) {
+            LOG_DBG(feSpaceHCurlHi) << "=> inserting " 
+                                    << nodeMap_[faceNodes[iNode]].GetSize()
+                                    << " equations\n";
+            faceEqns.insert(nodeMap_[faceNodes[iNode]].Begin(),
+                            nodeMap_[faceNodes[iNode]].End() );
+            faces.insert(faceNodes[iNode]);
+          }
+        }
+        pos += faceOffsets[iFace];
+        if( faceEqns.size()) {
+          LOG_DBG(feSpaceHCurlHi) << "faceEqns has size " << faceEqns.size() 
+                                  << std::endl;
+          minorBlocks[1].Push_back(faceEqns);
+        }
+        
+      }
+      
+      // SBM block #2
+      std::set<Integer> innerEqns;
+      LOG_DBG(feSpaceHCurlHi) << "size of innerNodes is " 
+                              << innerNodes.GetSize() << std::endl;
+      for(UInt i = 0; i < innerNodes.GetSize(); ++i ) {
+        innerEqns.insert(nodeMap_[innerNodes[i]].Begin(),
+                         nodeMap_[innerNodes[i]].End());
+      }
+      if( innerEqns.size() ) {
+        minorBlocks[2].Push_back(innerEqns);
+        LOG_DBG(feSpaceHCurlHi) << "innerEqns has size " 
+                                << innerEqns.size() << std::endl;
+      }
+      
+    }
+
+
   }
 
   void FeSpaceHCurlHi::SetDefaultElements(PtrParamNode infoNode ){

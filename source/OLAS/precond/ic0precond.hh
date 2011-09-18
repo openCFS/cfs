@@ -45,13 +45,13 @@ namespace CoupledField {
     //! This method applies the IC0 preconditioner and does
     //! the forward and backward substitution
     void Apply( const SCRS_Matrix<T> &sysmat,
-		const Vector<T> &r, Vector<T> &z ) const;
+		const Vector<T> &r, Vector<T> &z );
 
     //! Triggers setup of the IC0 Preconditioner
 
     //! The setup phase generates the incomplete cholesky factorization
     //! with zero fill in
-    void Setup( SCRS_Matrix<T> &sysMat );
+    void Setup( SCRS_Matrix<T> &sysMat, PtrParamNode analysis_id );
 
 
     //! Query type of preconditioner object

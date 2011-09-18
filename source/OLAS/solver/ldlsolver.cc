@@ -30,7 +30,7 @@ namespace CoupledField {
   LDLSolver<T>::LDLSolver( PtrParamNode solverNode, PtrParamNode olasInfo ) {
 
     xml_ = solverNode;
-    solverInfo_ = olasInfo->Get("directLDL");
+    infoNode_ = olasInfo->Get("directLDL");
 
     // No factorisation was performed yet
     amFactorised_ = false;
@@ -257,7 +257,6 @@ namespace CoupledField {
   // *********
   template<typename T>
   void LDLSolver<T>::Solve( const BaseMatrix  &sysMat,
-                            const BasePrecond &precond,
                             const BaseVector  &rhs,
                             BaseVector &sol, PtrParamNode analysis_step ) {
 
@@ -320,7 +319,7 @@ namespace CoupledField {
     // from olasReport are actually meaningless in the context of a direct
     // solver. Nevertheless we supply some values for consistency
     if( logging ) {
-      PtrParamNode out = solverInfo_->Get(ParamNode::PROCESS)->Get("solver", ParamNode::APPEND);
+      PtrParamNode out = infoNode_->Get(ParamNode::PROCESS)->Get("solver", ParamNode::APPEND);
       out->Get("numIter")->SetValue(-1);
       out->Get("finalNorm")->SetValue(-1.0);
     }

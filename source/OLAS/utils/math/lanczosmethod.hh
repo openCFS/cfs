@@ -80,7 +80,7 @@ namespace CoupledField {
     //! \param alpha2  (output) \f$\alpha_2 = q_2^\ast Aq_2\f$
     //! \param beta1   (input)  \f$\|r_1\|_2\f$
     //! \param beta2   (output) \f$\|r_2\|_2\f$
-    void CompNextVector( const BaseMatrix &mat, const BasePrecond &precond,
+    void CompNextVector( const BaseMatrix &mat,  BasePrecond &precond,
 			 const BaseVector &q1, const BaseVector &q2,
 			 BaseVector &q3, BaseVector &aux, Double &alpha2,
 			 const Double &beta1, Double &beta2 ) {
@@ -96,7 +96,7 @@ namespace CoupledField {
 
     };
 
-    void CompNextVector( const BaseMatrix &mat, const BasePrecond &precond,
+    void CompNextVector( const BaseMatrix &mat, BasePrecond &precond,
 			 const BaseVector &q1, const BaseVector &q2,
 			 BaseVector &q3, BaseVector &aux, Complex &alpha2,
 			 const Complex &beta1, Complex &beta2 ) {

@@ -118,7 +118,7 @@ extern "C" {
 
     // Set pointers to communication objects
     xml_ = solverNode;
-    solverInfo_ = olasInfo->Get("pardiso");
+    infoNode_ = olasInfo->Get("pardiso");
 
     // Initialise attributes
     firstCall_ = true;
@@ -691,7 +691,6 @@ extern "C" {
   // *************************
   template<typename T>
   void PardisoSolver<T>::Solve( const BaseMatrix &sysmat,
-                                const BasePrecond &precond,
                                 const BaseVector &rhs, BaseVector &sol, PtrParamNode analysis_step ) {
 
     LOG_TRACE(pardisoSolver) << " -----------------------------------------"
@@ -786,7 +785,7 @@ extern "C" {
 
     // Create Report (no sensible things to write for direct solvers yet)
     ParamNode::ActionType at = progOpts->DoDetailedInfo() ? ParamNode::APPEND : ParamNode::DEFAULT;
-    PtrParamNode out = solverInfo_->Get(ParamNode::PROCESS)->Get("solver", at);
+    PtrParamNode out = infoNode_->Get(ParamNode::PROCESS)->Get("solver", at);
     out->Get("numIter")->SetValue(-1);
     out->Get("finalNorm")->SetValue(-1.0);
   }

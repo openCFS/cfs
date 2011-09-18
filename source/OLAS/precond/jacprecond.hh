@@ -55,13 +55,14 @@ namespace CoupledField {
 
     //! Scales the residual with the inverse diagonal of system matrix
     void Apply( const T_storage &sysmat, const Vector<T> &r,
-		Vector<T> &z ) const;
+		Vector<T> &z );
 
     //! Triggers setup of the Jacobi Preconditioner
 
     //! The setup phase generates a vector containing the inverses of the
     //! diagonal entries of the system matrix
-    void Setup( T_storage &sysmat );
+    void Setup( T_storage &sysmat,
+                PtrParamNode analysis_id);
 
     //! Query type of preconditioner object
 
@@ -128,13 +129,14 @@ namespace CoupledField {
 
     //! Scales the residual with the inverse diagonal of system matrix
     void Apply( const T_storage &sysmat, const Vector<T> &r,
-                Vector<T> &z ) const;
+                Vector<T> &z );
 
     //! Triggers setup of the Jacobi Preconditioner
 
     //! The setup phase generates a vector containing the inverses of the
     //! diagonal entries of the system matrix
-    void Setup( T_storage &sysmat );
+    void Setup( T_storage &sysmat,
+                PtrParamNode analysis_id);
 
     //! Query type of preconditioner object
 

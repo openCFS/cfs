@@ -153,7 +153,7 @@ namespace CoupledField {
     //! \note This method must not be called if an eigenfrequency analysis
     //! is performed, since this method creates only a preconditioner
     //! to solver which solves a system Ax=b. */
-    void SetupPrecond();
+    void SetupPrecond(PtrParamNode analysis_id);
 
     //! Trigger setup of solution method.
     
@@ -161,7 +161,7 @@ namespace CoupledField {
     //! is especially important for direct solvers, where typically the
     //! factorisation of the problem matrix will be performed at this stage.
     //! The setup is performed using the system matrix of the linear system.*/
-    void SetupSolver();
+    void SetupSolver(PtrParamNode analysis_id);
 
     //! Trigger setup of eigenvalue solver
 
@@ -185,10 +185,12 @@ namespace CoupledField {
     //! For iterative solvers an initial guess is created by inserting the
     //! Dirichlet values in the correct positions of the solution vector in
     //! case of the penalty formulation.
+    //! \param analysis_id identifies the analysis step.
+    //!        When the linear system is exported via file, the comment is used. 
     //! \note This method must not be called if an eigenfrequency analysis
     //! is performed, since this method is only used to solve a system of the
     //! form Ax=b.*/
-    void Solve();
+    void Solve( PtrParamNode analysis_id );
 
     //! Calculate eigenfrequencies of a generalized eigenvalue problem
 
@@ -302,7 +304,7 @@ namespace CoupledField {
     //! the call to this function can be omitted.  
     void DefineSBMMatrixBlock( UInt sbmIndex, 
                                const std::map<FeFctIdType, 
-                               StdVector<Integer> >& eqns );
+                               std::set<Integer> >& eqns );
 
     //! Register submatrix blocks within a sparse matrix
 

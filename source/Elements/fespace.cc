@@ -212,23 +212,23 @@ namespace CoupledField {
           <<      domain->GetGrid()->GetRegion().ToString(ptElem->regionId));
     }
     if(entType == BaseFE::ALL){
-      nodes.Resize(virtualNodes_[elemNum][BaseFE::VERTEX].GetSize()+
-                   virtualNodes_[elemNum][BaseFE::EDGE].GetSize()+
-                   virtualNodes_[elemNum][BaseFE::FACE].GetSize()+
-                   virtualNodes_[elemNum][BaseFE::INTERIOR].GetSize());
+      nodes.Resize(virtualNodes_[elemNum][BaseFE::VERTEX].vNodes.GetSize()+
+                   virtualNodes_[elemNum][BaseFE::EDGE].vNodes.GetSize()+
+                   virtualNodes_[elemNum][BaseFE::FACE].vNodes.GetSize()+
+                   virtualNodes_[elemNum][BaseFE::INTERIOR].vNodes.GetSize());
       ElemVirtualNodes::iterator nodeIt = virtualNodes_[elemNum].begin();
       UInt c = 0;
       while(nodeIt !=virtualNodes_[elemNum].end()){
 
-        StdVector<UInt> entNodes =  nodeIt->second;
+        StdVector<UInt> & entNodes =  nodeIt->second.vNodes;
         for (UInt i = 0; i < entNodes.GetSize(); i++ ){
           nodes[c++] =  entNodes[i];
         }
         nodeIt++;
       }
     }else{
-      nodes.Resize(virtualNodes_[elemNum][entType].GetSize());
-      StdVector<UInt> entNodes =  virtualNodes_[elemNum][entType];
+      nodes.Resize(virtualNodes_[elemNum][entType].vNodes.GetSize());
+      const StdVector<UInt>& entNodes =  virtualNodes_[elemNum][entType].vNodes;
       for (UInt i = 0; i < entNodes.GetSize(); i++ ){
         nodes[i] =  entNodes[i];
       }
@@ -334,7 +334,7 @@ namespace CoupledField {
 
         const Elem* actEl = entIt.GetElem();
         const StdVector<UInt> & elemNodes = actEl->connect;
-        virtualNodes_[actEl->elemNum][BaseFE::VERTEX] = elemNodes;
+        virtualNodes_[actEl->elemNum][BaseFE::VERTEX].vNodes = elemNodes;
       }
     }
 
@@ -434,12 +434,14 @@ namespace CoupledField {
                 nodesType_[offset] = BaseFE::VERTEX;
             }
           } // is continuous
-          
+          EntityTypeNodes & etn =  virtualNodes_[actEl->elemNum][BaseFE::VERTEX];
           for( UInt i = 0; i < numVertexNodes; ++i ) {
-            virtualNodes_[actEl->elemNum][BaseFE::VERTEX].Push_back(vertexNodes[vertexNum][permutations[i] ]);
+            etn.vNodes.Push_back(vertexNodes[vertexNum][permutations[i] ]);
             LOG_DBG3(feSpace) << "adding " << vertexNodes[vertexNum][permutations[i] ]
                               << " as virtual vertex node to element " << actEl->elemNum;
           }
+          etn.offset.Push_back( permutations.GetSize() );
+          
           if(gridToVirtualNodes_.find(vertexNum) == gridToVirtualNodes_.end()){
             LOG_DBG3(feSpace) << "gridToVirtualNodes[" << vertexNum << "] = " << offset;
             gridToVirtualNodes_[vertexNum] =  offset;
@@ -477,9 +479,11 @@ namespace CoupledField {
           }
 
           //fill the virtual Nodes in the correct ordering
+          EntityTypeNodes & etn =  virtualNodes_[actEl->elemNum][BaseFE::EDGE];
           for ( UInt i = 0; i < numEdgeNodes ; i++ ) {
-            virtualNodes_[actEl->elemNum][BaseFE::EDGE].Push_back(edgenodes[edgeNum][ permutations[i] ]);
+            etn.vNodes.Push_back(edgenodes[edgeNum][ permutations[i] ]);
           }
+          etn.offset.Push_back( permutations.GetSize() );
         }
 
         //===========================================================
@@ -506,9 +510,11 @@ namespace CoupledField {
             }
           }
           //fill the virtual Nodes in the correct ordering
+          EntityTypeNodes & etn =  virtualNodes_[actEl->elemNum][BaseFE::FACE];
           for ( UInt i = 0; i < numFaceNodes ; i++ ) {
-            virtualNodes_[actEl->elemNum][BaseFE::FACE].Push_back(facenodes[faceNum][ permutations[i] ]);
+            etn.vNodes.Push_back(facenodes[faceNum][ permutations[i] ]);
           }
+          etn.offset.Push_back( permutations.GetSize() );
         }
 
         //===========================================================
@@ -531,7 +537,8 @@ namespace CoupledField {
         }
         //fill the virtual Nodes in the correct ordering
         for ( UInt i = 0; i  < numIntNodes ; i++ ) {
-          virtualNodes_[actEl->elemNum][BaseFE::INTERIOR].Push_back(interiornodes[actEl->elemNum][ permutations[i] ]);
+          virtualNodes_[actEl->elemNum][BaseFE::INTERIOR].vNodes.
+          Push_back(interiornodes[actEl->elemNum][ permutations[i] ]);
         }
       } // loop elements 
     } // loop entity lists

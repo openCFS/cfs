@@ -19,7 +19,7 @@ ILU0Precond<T>::ILU0Precond( const StdMatrix& mat, PtrParamNode solverNode,
 
   // Set pointers to communication objects
   this->xml_ = solverNode;
-  this->olasInfo_ = olasInfo;
+  this->infoNode_ = olasInfo;
 
   // Set size information
   size_ = mat.GetNumRows();
@@ -51,7 +51,7 @@ ILU0Precond<T>::~ILU0Precond() {
 // =================================
 template <typename T>
 void ILU0Precond<T>::Apply( const CRS_Matrix<T> &mat,
-                            const Vector<T> & f, Vector<T> & u ) const {
+                            const Vector<T> & f, Vector<T> & u ) {
 
 
 
@@ -84,7 +84,7 @@ void ILU0Precond<T>::Apply( const CRS_Matrix<T> &mat,
 //   Setup of Preconditioner
 // ===========================
 template <typename T>
-void ILU0Precond<T>::Setup( CRS_Matrix<T> &mat ) {
+void ILU0Precond<T>::Setup( CRS_Matrix<T> &mat, PtrParamNode analysis_id ) {
 
   // get correct ParamNode
   PtrParamNode pNode = this->xml_->Get("ILU0", ParamNode::INSERT );

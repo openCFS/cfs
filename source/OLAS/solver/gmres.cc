@@ -26,7 +26,7 @@ namespace CoupledField {
     xml_ = solverNode;
 
     // Set pointers to communication objects
-    solverInfo_ = olasInfo->Get("gmres");
+    infoNode_ = olasInfo->Get("gmres");
 
     // Prepare remaining internal attributes
     c_              = NULL;
@@ -162,7 +162,6 @@ namespace CoupledField {
   // *********
   template<typename T>
   void GMRESSolver<T>::Solve( const BaseMatrix &sysMat,
-                              const BasePrecond &precond,
                               const BaseVector &rhs, BaseVector &sol,
                               PtrParamNode analysis_step ) {
 
@@ -234,7 +233,7 @@ namespace CoupledField {
     for ( Integer k = 1; k <= maxIter; k++ ) {
 
       // Perform one inner loop
-      InnerLoop( sysMat, precond, rhs, sol, resNorm, tolerance,
+      InnerLoop( sysMat, *ptPrecond_, rhs, sol, resNorm, tolerance,
                  approxIsGood, stepCount, stepCountGlobal );
 
       // Increase global iteration counter
@@ -276,7 +275,7 @@ namespace CoupledField {
     // ----------------------------
 
     // Number of iterations: Depends on GMRES(m) -> Full GMRES
-    PtrParamNode out = solverInfo_->Get(ParamNode::PROCESS)->Get("solver", ParamNode::APPEND);
+    PtrParamNode out = infoNode_->Get(ParamNode::PROCESS)->Get("solver", ParamNode::APPEND);
     
     if ( maxIter == 1 ) {
       out->Get("numIter")->SetValue( (Integer)stepCount );
@@ -351,7 +350,7 @@ namespace CoupledField {
       // ------------------------------------
 
       // Apply preconditioner to previous basis vector
-      precond.Apply( sysMat, *(vMat_[i]), *pVec_ );
+      ptPrecond_->Apply( sysMat, *(vMat_[i]), *pVec_ );
 
       // Candidate for next basis vector
       sysMat.Mult( *pVec_, *(vMat_[i+1]) );
@@ -437,7 +436,7 @@ namespace CoupledField {
     }
 
     // Apply preconditioner to update vector
-    precond.Apply( sysMat, *(vMat_[1]), *pVec_ );
+    ptPrecond_->Apply( sysMat, *(vMat_[1]), *pVec_ );
 
     // Update approximate solution (initial guess)
     sol.Add( *pVec_ );

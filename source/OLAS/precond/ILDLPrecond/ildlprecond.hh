@@ -130,7 +130,7 @@ namespace CoupledField {
     //! The setup method takes care of the incomplete LDL factorisation of the
     //! problem matrix. The actual factorisation is delegated to the internal
     //! factoriser_ object.
-    void Setup( StdMatrix &sysMat );
+    void Setup( BaseMatrix &sysMat, PtrParamNode analysis_id );
 
     //! Direct solution of the linear system
 
@@ -141,8 +141,8 @@ namespace CoupledField {
     //! Note that the method will neglect the precond input parameter, since
     //! we perform a direct solution. Note also, that the sysmat input
     //! parameter will only be used, when an iterative refinement is performed.
-    void Apply( const StdMatrix &stdMat, const SingleVector &,
-                SingleVector &z ) const;
+    void Apply( const BaseMatrix &stdMat, const BaseVector &,
+                BaseVector &z ) const;
 
     //! Query type of this preconditioner.
 

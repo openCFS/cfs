@@ -122,9 +122,8 @@ namespace CoupledField {
     //! The solution is computed via a backward/forward substitution pair
     //! using the Cholesky factorisation of the problem matrix computed in the
     //! setup phase.
-    //! Note that the method will neglect the precond input parameter as well
-    //! as the sysMat input parameter.
-    void Solve( const BaseMatrix &sysmat, const BasePrecond &precond,
+    //! Note that the method will neglect the sysMat input parameter.
+    void Solve( const BaseMatrix &sysmat, 
 		const BaseVector &rhs, BaseVector &sol, PtrParamNode analysis_id );
 
     //! Query type of this solver.

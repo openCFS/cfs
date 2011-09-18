@@ -264,11 +264,10 @@ namespace CoupledField {
     //! right-hand side \f$b\f$ for \f$x\f$ using right preconditioned
     //! MINRES(m).
     //! \param sysMat  system matrix \f$A\f$
-    //! \param precond preconditioner to be used for right preconditioning
     //! \param rhs     right-hand side vector \f$b\f$
     //! \param sol     on input initial guess for the solution \f$x\f$, on
     //!                exit approximate solution
-    void Solve( const BaseMatrix &sysMat, const BasePrecond &precond,
+    void Solve( const BaseMatrix &sysMat,
                 const BaseVector &rhs, BaseVector &sol, PtrParamNode analysis_step );
 
     //! Query type of this solver.

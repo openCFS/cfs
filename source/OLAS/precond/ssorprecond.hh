@@ -72,13 +72,13 @@ namespace CoupledField {
     //! routine and calls the appropriate private method which implements
     //! SOR for the specific storage type of the matrix.
     void Apply( const CRS_Matrix<T> &sysmat,
-		const Vector<T> &r, Vector<T> &z ) const;
+		const Vector<T> &r, Vector<T> &z ) ;
 
     //! Triggers setup of the SSOR Preconditioner
 
     //! The setup phase generates a vector containing the inverses of the
     //! diagonal entries of the system matrix
-    void Setup( CRS_Matrix<T> &sysMat );
+    void Setup( CRS_Matrix<T> &sysMat, PtrParamNode analysis_id );
 
     //! Query type of preconditioner object
 

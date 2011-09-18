@@ -15,7 +15,7 @@ namespace CoupledField {
   //! standard preconditioners. It essentially casts
   //! standard Matrices and Vectors into template types
   template<class T_precond, class T_storage, typename T>
-  class BNPrecond : public BaseStdPrecond {
+  class BNPrecond : public BasePrecond {
 
   public:
     
@@ -41,16 +41,16 @@ namespace CoupledField {
 
     //! cast the matrix into its full type and perform the Setup 
     //! of the preconditioner as subclass
-    virtual void Setup( StdMatrix &A ) {
+    virtual void Setup( BaseMatrix &A, PtrParamNode analysis_id ) {
       AssocMatrixType& idA = dynamic_cast<AssocMatrixType&>(A);
-      SubClass().Setup(idA);
+      SubClass().Setup(idA, analysis_id);
       readyToUse_ = true;
     }
 
     //! cast the Matrix and Vectors into their full types and
     //! apply the preconditioner if Setup has been called in advance
-    virtual void Apply( const StdMatrix &A, 
-        const SingleVector &r, SingleVector &z) const {
+    virtual void Apply( const BaseMatrix &A, 
+                        const BaseVector &r, BaseVector &z)  {
       const AssocMatrixType& idA = dynamic_cast<const AssocMatrixType&>(A);
       const AssocVectorType& idr = dynamic_cast<const AssocVectorType&>(r);
       AssocVectorType& idz = dynamic_cast<AssocVectorType&>(z);

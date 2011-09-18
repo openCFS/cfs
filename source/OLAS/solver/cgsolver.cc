@@ -26,7 +26,6 @@ namespace CoupledField {
   // ****************
   template<typename T>
   void CGSolver<T>::Solve( const BaseMatrix &sysmat,
-                           const BasePrecond &precond,
                            const BaseVector &rhs, BaseVector &sol, PtrParamNode analysis_step ) {
 
     // Tracing information
@@ -119,7 +118,7 @@ namespace CoupledField {
     }
 
     // Compute d by applying preconditioner
-    precond.Apply( sysmat, *r_, *d_ );
+    ptPrecond_->Apply( sysmat, *r_, *d_ );
 
     // Compute new delta as inner product of r and d
     r_->Inner( *d_, delta_new );
@@ -179,7 +178,7 @@ namespace CoupledField {
       }
 
       // Compute s = M^-1*r by applying preconditioner
-      precond.Apply( sysmat, *r_, *s_ );
+      ptPrecond_->Apply( sysmat, *r_, *s_ );
 
       // Save old delta and compute new one
       delta_old = delta_new;
@@ -216,7 +215,7 @@ namespace CoupledField {
     //   Generate solution report
     // ============================
     Double reduction = resNorm / scalFac_;
-    PtrParamNode out = solverInfo_->Get(ParamNode::PROCESS)->Get("solver", ParamNode::APPEND);
+    PtrParamNode out = infoNode_->Get(ParamNode::PROCESS)->Get("solver", ParamNode::APPEND);
     out->Get("numIter")->SetValue(niter);
     out->Get("finalNorm")->SetValue(resNorm);
     if ( loop == false ) {
@@ -231,7 +230,7 @@ namespace CoupledField {
     accIters_ += niter;
     accReduction_ += reduction;
     
-    PtrParamNode stat = solverInfo_->Get(ParamNode::SUMMARY)->Get("statistics");
+    PtrParamNode stat = infoNode_->Get(ParamNode::SUMMARY)->Get("statistics");
     stat->Get("avgIterations")->SetValue(accIters_ / numCalls_);
     stat->Get("avgResReduction")->SetValue( accReduction_ / numCalls_);
   }

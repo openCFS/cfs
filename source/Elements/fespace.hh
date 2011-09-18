@@ -73,9 +73,18 @@ public:
   //! Flag for Grid determined mapping of element DOFs or polynomial based mapping 
   typedef enum {GRID,POLYNOMIAL} MappingType; 
 
+  
+  //! Struct containing all virtual nodes for on entity type (Vertex, Face
+  struct EntityTypeNodes {
+    //! Nodes for all numbers of entity (edgeNodes, faceNodes, innerNodes)
+    StdVector<UInt> vNodes;
+    //! Offset to vNodes array
+    StdVector<UInt> offset;
+  };
+  
   //! Enum which stores the (Virtual) Nodes of an element according to
-  //! their definition on vertices,edges,faces and interior
-  typedef std::map< BaseFE::EntityType , StdVector<UInt> > ElemVirtualNodes;
+    //! their definition on vertices,edges,faces and interior
+  typedef std::map< BaseFE::EntityType , EntityTypeNodes> ElemVirtualNodes;
 
   typedef enum {ABSOLUTE,RELATIVE} IntegOrderMode;
   static Enum<IntegOrderMode> IntegOrderModeEnum;
@@ -428,8 +437,6 @@ protected:
   //! according to their id's
   //! This makes it easier later on to assign the correct elements
   virtual void ReadPolyList();
-
-
 
 };
 

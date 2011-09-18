@@ -22,7 +22,7 @@ namespace CoupledField {
         "numbering, i.e. it will NOT work correctly!" );
     
     this->xml_ = solverNode;
-    this->olasInfo_ = olasInfo;
+    this->infoNode_ = olasInfo;
     size_     = mat.GetNumRows();
     NEWARRAY( diagInv_, T, size_ );
   }
@@ -41,7 +41,8 @@ namespace CoupledField {
   //   Setup
   // *********
   template<typename T>
-  void SSORPrecond<T>::Setup( CRS_Matrix<T> &sysmat ) {
+  void SSORPrecond<T>::Setup( CRS_Matrix<T> &sysmat,
+                              PtrParamNode analysis_id ) {
     for ( UInt i=1; i<=size_; i++ ) {
       diagInv_[i] = OpType<T>::invert(sysmat.GetDiag(i));
     }
@@ -53,7 +54,7 @@ namespace CoupledField {
   // *******************************
   template <typename T> 
   void SSORPrecond<T>::Apply( const CRS_Matrix<T> &sysmat,
-			      const Vector<T> &r, Vector<T> &z ) const {
+			      const Vector<T> &r, Vector<T> &z ) {
 
 
     UInt i;

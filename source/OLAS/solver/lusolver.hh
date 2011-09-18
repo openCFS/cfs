@@ -114,7 +114,7 @@ namespace CoupledField {
     //! Note that the method will neglect the precond input parameter, since
     //! we perform a direct solution. Note also, that the sysmat input
     //! parameter will only be used, when an iterative refinement is performed.
-    void Solve( const BaseMatrix &sysMat, const BasePrecond &precond,
+    void Solve( const BaseMatrix &sysMat, 
 		const BaseVector &rhs, BaseVector &sol, PtrParamNode analysis_step = PtrParamNode() );
 
     //! Query type of this solver.

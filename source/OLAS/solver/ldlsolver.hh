@@ -129,10 +129,9 @@ namespace CoupledField {
     //! The solution is computed via a backward/forward substitution pair
     //! using the LDL factorisation of the problem matrix computed in the
     //! setup phase.
-    //! Note that the method will neglect the precond input parameter, since
-    //! we perform a direct solution. Note also, that the sysmat input
+    //! Note that the sysmat input
     //! parameter will only be used, when an iterative refinement is performed.
-    void Solve( const BaseMatrix &sysMat, const BasePrecond &precond,
+    void Solve( const BaseMatrix &sysMat,
                 const BaseVector &rhs, BaseVector &sol, PtrParamNode analysis_step );
 
     //! Query type of this solver.

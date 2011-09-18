@@ -7,10 +7,10 @@
 
 #include "General/environment.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
+#include "OLAS/precond/baseprecond.hh"
 
 namespace CoupledField {
 
-  class BasePrecond;
   class BaseMatrix;
   class BaseVector;
   class OLAS_Report;
@@ -23,7 +23,7 @@ namespace CoupledField {
 
 
   //! Base class for algebraic system solver
-  class BaseSolver {
+  class BaseSolver : public BasePrecond {
     
   public:
     //! Type of solver
@@ -64,19 +64,25 @@ namespace CoupledField {
     /** Does constructor stuff only possible after child constructors are called */
     void PostInit();
 
-    //! General setup routine
+    //! Set preconditioner object 
+    void SetPrecond( BasePrecond* precond);
+    
+    //! \see BasePrecond::Setup
+    virtual void Setup( BaseMatrix& sysmat,
+                        PtrParamNode analysis_id ) = 0;
+    
   
-    /** For direct solvers this might involve a factorization, for Krylov
-     * solvers just construction of some vectors etc.
-     * @param analysis_id references to the info/analysis/progress/step(/substep) 
-     *                   element with the "analysis_id" attribute */
-    virtual void Setup( BaseMatrix &sysmat, PtrParamNode analysis_id = PtrParamNode()) = 0;
+    //! Solve the linear system sysmat*sol=rhs for sol
+     //! \param analysis_id @see Setup() */
+    virtual void Solve( const BaseMatrix &sysmat,
+                        const BaseVector &rhs, BaseVector &sol, 
+                        PtrParamNode analysis_id = PtrParamNode()) = 0;
 
-    /** Solve the linear system sysmat*sol=rhs for sol
-     * @param analysis_id @see Setup() */
-    virtual void Solve( const BaseMatrix &sysmat, const BasePrecond &precond,
-			const BaseVector &rhs, BaseVector &sol, PtrParamNode analysis_id = PtrParamNode()) = 0;
-
+    //! Apply the solver as preconditioner
+    //! \see BasePrecond::Apply
+    void Apply(const BaseMatrix& sysmat, const BaseVector& r, 
+               BaseVector& z);
+    
     //! Query type of the solver
 
     //! This method can be used to query the type of this solver. The answer
@@ -118,15 +124,9 @@ namespace CoupledField {
       }
     }
     
-    /** This is the description of the solver part in XML
-     * This may not be NULL since proper default values have to be set
-     * before the solver gets constructed. */
-    PtrParamNode xml_;
+    //! Pointer to preconditioner object
+    BasePrecond* ptPrecond_;
     
-    /** This stores the general solver Information (HEADER, SUMMARY) ->
-     * For the current solve steps the pointer is given */
-    PtrParamNode solverInfo_;
-
     /** This is a pointer to the setup timer. Located within PtrParamNode*/
     boost::shared_ptr<Timer> setupTimer_;
     boost::shared_ptr<Timer> solveTimer_;

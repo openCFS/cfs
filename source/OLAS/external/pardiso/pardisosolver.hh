@@ -118,9 +118,7 @@ namespace CoupledField {
 
     //! After Solve is called the matrix (which has already to be factorised
     //! by a call of Setup) is finally solved by backward-forward substitution.
-    //! Note that the method will neglect the precond input parameter, since
-    //! we perform a direct solution.
-    void Solve( const BaseMatrix &sysmat, const BasePrecond &precond,
+    void Solve( const BaseMatrix &sysmat,
                 const BaseVector &rhs, BaseVector &sol, PtrParamNode analysis_id );
 
     //! Query type of this solver.

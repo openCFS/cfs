@@ -41,7 +41,7 @@ namespace CoupledField {
         
     // Set pointers to communication objects
     this->xml_ = solverNode;
-    this->olasInfo_ = olasInfo;
+    this->infoNode_ = olasInfo;
 
     // No factorisation was computed yet
     amFactorised_ = false;
@@ -91,10 +91,11 @@ namespace CoupledField {
   //   Setup
   // *********
   template<typename T>
-  void ILDLPrecond<T>::Setup( StdMatrix &stdMat ) {
+  void ILDLPrecond<T>::Setup( BaseMatrix &mat, PtrParamNode analysis_id ) {
 
 
     // Test the storage layout
+    StdMatrix & stdMat = dynamic_cast<StdMatrix&>(mat);
     BaseMatrix::StorageType sType = stdMat.GetStorageType();
     if ( sType != BaseMatrix::SPARSE_SYM ) {
       EXCEPTION( "ILDLPrecond::Setup: The ILDLPrecond requires the system "
@@ -188,8 +189,8 @@ namespace CoupledField {
   //   Apply
   // *********
   template<typename T>
-  void ILDLPrecond<T>::Apply( const StdMatrix &stdMat, const SingleVector &r,
-                              SingleVector &z ) const {
+  void ILDLPrecond<T>::Apply( const BaseMatrix &stdMat, const BaseVector &r,
+                              BaseVector &z ) const {
 
 
 
@@ -328,22 +329,22 @@ namespace CoupledField {
 
       // ILDLK factoriser
     case BasePrecond::ILDL0:
-      factoriser_ = new ILDL0Factoriser<T>( this->xml_, this->olasInfo_ );
+      factoriser_ = new ILDL0Factoriser<T>( this->xml_, this->infoNode_ );
       break;
 
       // ILDLK factoriser
     case BasePrecond::ILDLK:
-      factoriser_ = new ILDLKFactoriser<T>( this->xml_, this->olasInfo_ );
+      factoriser_ = new ILDLKFactoriser<T>( this->xml_, this->infoNode_ );
       break;
 
       // ILDLTP factoriser
     case BasePrecond::ILDLTP:
-      factoriser_ = new ILDLTPFactoriser<T>( this->xml_, this->olasInfo_ );
+      factoriser_ = new ILDLTPFactoriser<T>( this->xml_, this->infoNode_ );
       break;
 
       // ILDLK factoriser
     case BasePrecond::ILDLCN:
-      factoriser_ = new ILDLCNFactoriser<T>( this->xml_, this->olasInfo_ );
+      factoriser_ = new ILDLCNFactoriser<T>( this->xml_, this->infoNode_ );
       break;
 
       // Wrong preconditioner type

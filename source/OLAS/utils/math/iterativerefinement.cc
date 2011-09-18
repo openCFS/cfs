@@ -17,13 +17,11 @@ namespace CoupledField {
     residual_(NULL),
     update_(NULL)
   {
-    dummyPrecond_ = new IdPrecondStd();    
   }
   
   IterativeRefinement::~IterativeRefinement() {
     delete residual_;
     delete update_;
-    delete dummyPrecond_;
   }
 
   // *****************************
@@ -97,7 +95,7 @@ namespace CoupledField {
       }
 
       // STEP 2: Solve update equation ( A * dx = r )
-      mySolver.Solve( sysMat, *dummyPrecond_, *residual_, *update_ );
+      mySolver.Solve( sysMat, *residual_, *update_ );
 
       // STEP 3: Perform upate ( x <- x + dx )
       sol.Add( *update_ );

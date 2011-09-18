@@ -19,7 +19,6 @@ namespace CoupledField
 {
   class BaseMatrix;  
   class BaseVector;
-  class BasePrecond;
   class Flags;
   
   template<typename T>
@@ -36,9 +35,8 @@ namespace CoupledField
      
     /** solve using a pre computed factorization 
      * @param sysmat shall be the one Setup() is called with
-     * @param precond ignored
      * @param analysis_id @see Setup() */
-    void Solve( const BaseMatrix &sysmat, const BasePrecond &precond,
+    void Solve( const BaseMatrix &sysmat, 
                 const BaseVector &rhs, BaseVector &sol, PtrParamNode analysis_id);
 
     /** Return what solver is used (here CholMod) */

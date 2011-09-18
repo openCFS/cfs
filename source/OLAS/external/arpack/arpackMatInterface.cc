@@ -50,6 +50,7 @@ namespace CoupledField {
     // Copy references
     solver_ = solver;
     precond_ = precond;
+    solver_->SetPrecond(precond_);
 
     // Note: At this point I am not really sure, if we have to copy the
     // matrix into a new one
@@ -91,8 +92,8 @@ namespace CoupledField {
     //matrixC_->Export("cmat.mat");
       
     // Setup solver and precond-object
-    precond_->Setup( *matrixC_ );
-    solver_->Setup( *matrixC_ );
+    precond_->Setup( *matrixC_, shared_ptr<ParamNode>() );
+    solver_->Setup( *matrixC_, shared_ptr<ParamNode>() );
   }
     
   void ArpackMatInterface::MultShiftOpV( Double* x, Double* y ) {
@@ -107,7 +108,7 @@ namespace CoupledField {
     vecY.Replace( size_, y1, false );
     
     // Solve system 
-    solver_->Solve( *matrixC_, *precond_, vecX, vecY );
+    solver_->Solve( *matrixC_, vecX, vecY );
 
   }
 
@@ -127,7 +128,7 @@ namespace CoupledField {
     matrixA_->Mult( vecX, ax );
 
     // Solve system 
-    solver_->Solve( *matrixC_, *precond_, ax, vecY );
+    solver_->Solve( *matrixC_,   ax, vecY );
 
   }
   

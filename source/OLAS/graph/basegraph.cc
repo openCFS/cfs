@@ -151,12 +151,17 @@ namespace CoupledField {
     UInt numBlocks = unsortedBlocks_->GetSize();
     UInt blockStart = 0, blockEnd = 0;
     LOG_DBG(graph) << "graph has " << numBlocks << " blocks";
-    sortedBlocks_.Resize(numBlocks);
+    sortedBlocks_.Reserve(numBlocks);
     
     for( UInt i = 0; i < numBlocks; ++i ) {
       LOG_DBG3(graph) << "treating block " << i;
       const StdVector<UInt> & actBlock = (*unsortedBlocks_)[i]; 
       UInt blockSize = actBlock.GetSize();
+      
+      // Note: we can have empty blocks
+      if (blockSize == 0 ) 
+        continue;
+      
       blockStart =  newIndex;
       for( UInt j = 0; j < blockSize; ++j ) {
 
@@ -172,7 +177,7 @@ namespace CoupledField {
       } // entries in one block
       
       blockEnd = newIndex-1;
-      sortedBlocks_[i] = std::pair<UInt,UInt>(blockStart,blockEnd);
+      sortedBlocks_.Push_back(std::pair<UInt,UInt>(blockStart,blockEnd));
     } // loop over blocks
     
     // Consistency check: Make sure, that all indices are reordered

@@ -31,7 +31,7 @@ Ilupack<T>::Ilupack(PtrParamNode xml, PtrParamNode olasInfo, BaseMatrix::EntryTy
 {
   // we work with out 
   xml_ = xml->Get("ilupack", ParamNode::PASS);
-  solverInfo_ = olasInfo->Get("ilupack");
+  infoNode_ = olasInfo->Get("ilupack");
 
   if (type != BaseMatrix::COMPLEX && type != BaseMatrix::DOUBLE)EXCEPTION("unhandled type " << type);
   isComplex_ = type == BaseMatrix::COMPLEX;
@@ -168,7 +168,7 @@ void Ilupack<T>::Setup(BaseMatrix &sysMat, PtrParamNode analysis_id)
 {
   // do we really want to create a new entry? Might blast up the output
   ParamNode::ActionType at = progOpts->DoDetailedInfo() ? ParamNode::APPEND : ParamNode::DEFAULT;
-  PtrParamNode out = solverInfo_->Get(ParamNode::PROCESS)->Get("setup", at);
+  PtrParamNode out = infoNode_->Get(ParamNode::PROCESS)->Get("setup", at);
   if(analysis_id != NULL) // TODO only very quick and dirty fix for eigenfrequency analsys
     out->Get("analysis_id")->SetValue(analysis_id->Get("analysis_id"));
   // determine the matrix type. Symmetric/nonsymmetric, positive definite, ...
@@ -243,11 +243,11 @@ void Ilupack<T>::Setup(BaseMatrix &sysMat, PtrParamNode analysis_id)
 
 
 template<typename T>
-void Ilupack<T>::Solve(const BaseMatrix &base_mat, const BasePrecond &base_precond, 
+void Ilupack<T>::Solve(const BaseMatrix &base_mat, 
     const BaseVector &base_rhs,  BaseVector &base_sol, PtrParamNode analysis_id)
 {
   ParamNode::ActionType at = progOpts->DoDetailedInfo() ? ParamNode::APPEND : ParamNode::DEFAULT;
-  PtrParamNode out = solverInfo_->Get(ParamNode::PROCESS)->Get("solver", at);
+  PtrParamNode out = infoNode_->Get(ParamNode::PROCESS)->Get("solver", at);
   if(analysis_id != NULL) // TODO only very quick and dirty fix for eigenfrequency analsys
     out->Get("analysis_id")->SetValue(analysis_id->Get("analysis_id"));
 
@@ -311,7 +311,7 @@ void Ilupack<T>::InitParameters()
   IlupackAMGInit();
   
   // dump the parameter block and overwrite
-  PtrParamNode out = solverInfo_->Get(ParamNode::HEADER)->Get("parameters");
+  PtrParamNode out = infoNode_->Get(ParamNode::HEADER)->Get("parameters");
 
   CheckParameter(out, reinterpret_cast<bool*>(&param.matching), "matching");
   CheckParameter(out, &param.ordering, "ordering");

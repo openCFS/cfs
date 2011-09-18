@@ -24,7 +24,7 @@ namespace CoupledField {
     : pivots_(NULL), facmat_(NULL), amFactorised_(false) {
 
     xml_ = solverNode;
-    solverInfo_ = olasInfo->Get("lapackLU");
+    infoNode_ = olasInfo->Get("lapackLU");
 
     // Initialise pointers for LAPACK workspaces
     workspaceF77REAL8_     = NULL;
@@ -48,7 +48,7 @@ namespace CoupledField {
     : pivots_(NULL), facmat_(NULL), amFactorised_(false) {
 
     xml_ = solverNode;
-    solverInfo_ = olasInfo->Get("lapackLU");
+    infoNode_ = olasInfo->Get("lapackLU");
 
     // Initialise pointers for LAPACK workspaces
     workspaceF77REAL8_     = NULL;
@@ -460,7 +460,7 @@ namespace CoupledField {
   // ***********************
   //   Solve linear system
   // ***********************
-  void Lapack_LU::Solve( const BaseMatrix &sysmat, const BasePrecond &precond,
+  void Lapack_LU::Solve( const BaseMatrix &sysmat, 
       const BaseVector &rhs, BaseVector &sol, PtrParamNode analysis_step ) {
 
 
@@ -678,7 +678,7 @@ namespace CoupledField {
     // from olasReport are actually meaningless in the context of a direct
     // solver. Nevertheless we supply some values for consistency
 
-    PtrParamNode out = solverInfo_->Get(ParamNode::PROCESS)->Get("solver", ParamNode::APPEND);
+    PtrParamNode out = infoNode_->Get(ParamNode::PROCESS)->Get("solver", ParamNode::APPEND);
     out->Get("numIter")->SetValue(-1);
     out->Get("finalNorm")->SetValue(-1.0);
 
@@ -867,7 +867,7 @@ namespace CoupledField {
     // from olasReport are actually meaningless in the context of a direct
     // solver. Nevertheless we supply some values for consistency
     /* FIXME this pollutes the xml file and needs to be updated to provide more information
-    PtrParamNode out = solverInfo_->Get(ParamNode::PROCESS)->Get("solver", ParamNode::APPEND);
+    PtrParamNode out = infoNode_->Get(ParamNode::PROCESS)->Get("solver", ParamNode::APPEND);
     out->Get("numIter")->SetValue(-1);
     out->Get("finalNorm")->SetValue(-1.0);
     */
