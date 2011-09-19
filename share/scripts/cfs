@@ -4,7 +4,12 @@
 # CFS_DIST/bin under the name 'cfs'
 
 # Source shell script for setting some common variables.
-. `dirname $0`/common.sh
+COMMON_SH=`dirname $0`/common.sh
+if [ ! -x "$COMMON_SH" ]; then
+  echo "Could not execute $COMMON_SH. Exiting..."
+  exit 1
+fi
+source $COMMON_SH
 
 SUSEPackageHint()
 {

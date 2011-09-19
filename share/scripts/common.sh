@@ -24,6 +24,10 @@ else
 fi
 
 DISTRO_SH=$CFS_ROOT_DIR/share/scripts/distro.sh
+if [ ! -x "$DISTRO_SH" ]; then
+  echo "Could not execute $DISTRO_SH. Exiting..."
+  exit 1
+fi
 
 # Get operating system
 OS=$($DISTRO_SH -h | cut -d' ' -f1)
