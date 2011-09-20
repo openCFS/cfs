@@ -608,13 +608,18 @@ void LagrangeElemShapeMap::CalcNormal( Vector<Double>& normal,
   sm.ptFe_->GetLocalIntPoints4Surface( ptElem_->connect, 
                                        ptVolEl->connect,
                                        lp, volPoint, locNormal);
+//  std::cerr << "\nlp = " << lp.coord.ToString() << std::endl;
+//  std::cerr << "volPoint = " << volPoint.coord.ToString() << std::endl;
+//  std::cerr << "locNormal = " << locNormal.ToString() << std::endl;
   
   // Calculate Jacobian matrix of volume element in that point
   Matrix<Double> jac;
   sm.CalcJ( jac, volPoint);
   
   // Calculate global normal
-  normal =  jac * locNormal;
+  Matrix<Double> jInv;
+  jac.Invert(jInv);
+  normal =  Transpose(jInv) * locNormal;
 
   // normalize normal
   Double norm = normal.NormL2();
