@@ -247,8 +247,8 @@ namespace CoupledField{
     MapNodalEqns(1);
     MapNodalEqns(2);
 
-    // Just for debugging purpose
-    //PrintEqnMap();
+//    // Just for debugging purpose
+//    PrintEqnMap();
 
     
     // Print information to .info.xml
@@ -556,7 +556,7 @@ namespace CoupledField{
       LOG_DBG(feSpaceHCurlHi) << "treating entityList '" << fctEntList[actList]->GetName() << "'";
       EntityIterator entIt = fctEntList[actList]->GetIterator();
 
-      // loop over all elements
+      // loop over all elementsStdVector<UInt> & vNodes = elemIt->second[BaseFE::VERTEX].vNodes;
       for(entIt.Begin(); !entIt.IsEnd();entIt++){
 
         //check if we got what we expected
@@ -709,7 +709,7 @@ namespace CoupledField{
         
       }
       
-      // SBM block #2
+      // SBM block #2: interior equations per element
       std::set<Integer> innerEqns;
       LOG_DBG(feSpaceHCurlHi) << "size of innerNodes is " 
                               << innerNodes.GetSize() << std::endl;

@@ -536,10 +536,11 @@ namespace CoupledField {
           }
         }
         //fill the virtual Nodes in the correct ordering
+        EntityTypeNodes & etn =  virtualNodes_[actEl->elemNum][BaseFE::INTERIOR];
         for ( UInt i = 0; i  < numIntNodes ; i++ ) {
-          virtualNodes_[actEl->elemNum][BaseFE::INTERIOR].vNodes.
-          Push_back(interiornodes[actEl->elemNum][ permutations[i] ]);
+          etn.vNodes.Push_back(interiornodes[actEl->elemNum][ permutations[i] ]);
         }
+        etn.offset.Push_back( permutations.GetSize());
       } // loop elements 
     } // loop entity lists
 

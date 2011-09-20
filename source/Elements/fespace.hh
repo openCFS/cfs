@@ -385,6 +385,7 @@ protected:
    virtual void CreatePolynomialNodes();
 
    virtual void CreateGridNodes();
+   
    //! Get all Node Numbers according to the mapping GRID based or
    //! POLYNOMIAL Based according to the Type requested
    virtual void GetNodesOfEntities( StdVector<UInt>& nodes,
@@ -422,12 +423,12 @@ protected:
 
   //! Read the contents of the given parameter node and call the SetRegionIntegration Function
   virtual void ReadIntegNode(PtrParamNode node,  IntScheme::IntegMethod & iMeth,
-                                Matrix<Integer> &orderMat, IntegOrderMode & mode);
+                             Matrix<Integer> &orderMat, IntegOrderMode & mode);
 
   //! Here we pass a fePolynomial node such that the feSpace can extract the information
   //! which is important for the specific space
   virtual void ReadPolyNode(PtrParamNode node, MappingType & mapType,
-                                 Matrix<Integer> & order);
+                            Matrix<Integer> & order);
 
   //! Read the IntegrationSchemeList from the xml and put the nodes in the map
   //! according to their id's

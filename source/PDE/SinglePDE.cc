@@ -2154,10 +2154,10 @@ namespace CoupledField {
       // ==============================================
       //   SPECIAL MAGNETIC SECTION
       // ==============================================
-      if( false ) {
-        EXCEPTION("MAY NOT HaPPEN");
+//      if( false ) {
+//        EXCEPTION("MAY NOT HaPPEN");
 
-//        if( pdename_ == "magneticEdge" ) {
+        if( pdename_ == "magneticEdge" ) {
         StdVector<std::set<Integer> > sbmBlocks;
         std::map<UInt,StdVector<std::set<Integer> > > minorBlocks;
         FeSpaceHCurlHi & feSpace  
@@ -2398,8 +2398,13 @@ namespace CoupledField {
     fncIt= feFunctions_.begin();
     while(fncIt != feFunctions_.end()){
       fncIt->second->SetSystem(algsys_);
+      
+      // Print equation information
+      //fncIt->second->GetFeSpace()->PrintEqnMap();
       fncIt++;
     }
+    
+    
 
   }
 

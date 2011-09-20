@@ -331,7 +331,7 @@ namespace CoupledField {
     //! that the sub-graph belongs to one FeFunction only the corresponding identifier
     //! (obtained from RegisterFct) needs to be supplied. In the case that the
     //! graph describes the coupling between two FeFunctions both related 
-    //! identifiersmust be specified.
+    //! identifiers must be specified.
     //! \param identifierFct1 identifier for first Fct related to sub-graph
     //! \param identifierFct2 identifier for second Fct related to sub-graph
     //! \param isSymmetric flag indicating, if matrix block will be symmetric
@@ -401,7 +401,7 @@ namespace CoupledField {
     //! to the OLAS-block oriented (blockNum, row/colIndex). This allows a 
     //! transparent re-mapping and re-ordering of the block structure
     //! independent of the physical view
-    //! \param fctId identifiert of the feFunction to be mapped
+    //! \param fctId identifier of the feFunction to be mapped
     //! \param eqns vector containing the equations numbers related to the 
     //!             feFunction
     //! \param blockNum contains for each equation the block number

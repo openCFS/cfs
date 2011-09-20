@@ -408,7 +408,7 @@ namespace CoupledField {
     //! \param offset offset to the #data_ array, i.e. the entry
     //!        can be accessed by _data[offset] 
     void FindBlock(UInt row, UInt col, UInt& bRow, UInt& bCol,
-                   UInt& offset );
+                   UInt& offset ) const;
     
     //! Effective number of nonzero elements (including padding zeros)
     

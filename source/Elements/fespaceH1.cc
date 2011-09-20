@@ -1,6 +1,7 @@
 #include "fespaceH1.hh"
 #include "H1Elems.hh"
 #include "DataInOut/Logging/cfslog.hh"
+#include "OLAS/algsys/algebraicSys.hh"
 
 namespace CoupledField {
 
@@ -298,11 +299,17 @@ namespace CoupledField {
 
   void FeSpaceH1::PrintEqnMap(){
     
-    // =================================
-    // 1) Virtual Nodes / Edges / Faces
-    // =================================
+
+    // obtain (fctId,eqnNr) -> (sbm,index) mapping from OLAS
+    StdVector<UInt> blockNums, indices;
+    AlgebraicSys * algSys = feFunction_->GetSystem();
+    FeFctIdType fctId = feFunction_->GetFctId();
+    algSys->MapCompleteFctIdToIndex(fctId, blockNums, indices);
     
-    // Print virtual Nodes information in the following form
+    
+    // =================================
+    // 1) ELEMENT INFORMATION
+    // =================================
     
     // iterate over all elements
     shared_ptr<Grid> ptGrid = feFunction_->GetGrid();
@@ -313,9 +320,9 @@ namespace CoupledField {
      
       // print element information (type, region, connect, edges, faces)
       const Elem * ptElem = ptGrid->GetElem(elemIt->first);
-      std::cout << "=========================================\n"
+      std::cout << "=============\n"
                 << " Elem #" << elemIt->first << std::endl
-                << "=========================================\n";
+                << "=============\n";
       std::cout << "Type: " << Elem::feType.ToString( ptElem->type ) << std::endl;
       std::cout << "Connect: " << ptElem->connect.ToString( 0 ) << std::endl;
       
@@ -327,7 +334,7 @@ namespace CoupledField {
         std::cout << "E #" << edgeNum << " (" 
                   << myEdge.nodes[0] << "-> " << myEdge.nodes[1] << "), ";
       }
-      std::cout << "\n\n";
+      std::cout << "\n";
       
       // Print face  information
       std::cout << "Faces: ";
@@ -338,69 +345,176 @@ namespace CoupledField {
       }
       std::cout << "\n\n";
 
-      // ---------------
-      //  VIRTUAL NODES 
-      // ---------------
-      std::cout << "a) Nodal mapping\n" 
-      << "----------------\n";
-      StdVector<UInt> & vVertexNodes = elemIt->second[BaseFE::VERTEX].vNodes;
-      StdVector<UInt> & vEdgeNodes = elemIt->second[BaseFE::EDGE].vNodes;
-      StdVector<UInt> & vFaceNodes = elemIt->second[BaseFE::FACE].vNodes;
-      StdVector<UInt> & vInnerNodes = elemIt->second[BaseFE::INTERIOR].vNodes;
-      
-      StdVector<UInt> rVertexNodes(vVertexNodes.GetSize());
-      StdVector<UInt> rEdgeNodes(vEdgeNodes.GetSize());
-      StdVector<UInt> rFaceNodes(vFaceNodes.GetSize());
-      StdVector<UInt> rInnerNodes(vInnerNodes.GetSize());
-      rVertexNodes.Init(0);
-      rEdgeNodes.Init(0);
-      rFaceNodes.Init(0);
-      rInnerNodes.Init(0);
-      
 
-      // loop over nodal connectivity of element and try to find corresponding virtual node
-      for( UInt i = 0; i < ptElem->connect.GetSize(); ++i ) {
-        UInt actNode = ptElem->connect[i];
+      // print header
+      std::cout << "\t\t#num\tgridNodes\tvNodes\tEqnNrs\tSBM-Block\tindex\n";
+      std::cout << "\t\t=================================================================\n";
+
+      std::string prefix = "\t\t\t\t\t ";
+      
+      // print vertex / edge / face / inner information
+      StdVector<BaseFE::EntityType> entTypes;
+      entTypes = BaseFE::VERTEX, BaseFE::EDGE, BaseFE::FACE, BaseFE::INTERIOR;
+      
+      for( UInt iType = 0; iType < entTypes.GetSize(); ++iType ) {
         
-        // vertex nodes
-        Integer index = vVertexNodes.Find(gridToVirtualNodes_[actNode]); 
-        if( index > -1 ) {
-          rVertexNodes[index] = actNode;
+        BaseFE::EntityType type = entTypes[iType];
+        
+        // vector containing entity numbers
+        StdVector<UInt> entNumbers;
+        StdVector<UInt> & vNodes = elemIt->second[type].vNodes;
+        StdVector<UInt> & offset = elemIt->second[type].offset;
+        StdVector<UInt> rNodes(vNodes.GetSize());
+        rNodes.Init(0);
+        
+        // fill vector containing entity types
+        if( type == BaseFE::VERTEX ) {
+          entNumbers = ptElem->connect;
+        } else if( type == BaseFE::EDGE ) {
+          entNumbers.Resize(ptElem->edges.GetSize());
+          for( UInt i=0; i < ptElem->edges.GetSize(); ++i )
+            entNumbers[i] = std::abs(ptElem->edges[i]);
+        } else if( type == BaseFE::FACE ) {
+          entNumbers.Resize(ptElem->faces.GetSize());
+          for( UInt i=0; i < ptElem->faces.GetSize(); ++i )
+            entNumbers[i] = ptElem->faces[i];
+        } else if( type == BaseFE::INTERIOR ) {
+          // only treat "interior", if we have any unknowns at all assigned
+          // (= size of vNodes != 0)
+          if( vNodes.GetSize() ) {
+            entNumbers.Resize(1);
+            entNumbers.Init(0);
+          }
         }
-        // edge nodes
-        index = vEdgeNodes.Find(gridToVirtualNodes_[actNode]); 
-        if( index > -1 ) {
-          rEdgeNodes[index] = vEdgeNodes[index];
+        
+        // try to find real nodes (currently only for vertices)
+        if( type == BaseFE::VERTEX ) {
+          for( UInt i = 0; i < vNodes.GetSize(); ++i ) {
+            UInt actNode = ptElem->connect[i];
+            Integer index = vNodes.Find(gridToVirtualNodes_[actNode]); 
+            if( index > -1 ) {
+              rNodes[index] = actNode;
+            }
+          }
         }
-        // face nodes
-        index = vFaceNodes.Find(gridToVirtualNodes_[actNode]); 
-        if( index > -1 ) {
-          rFaceNodes[index] = vFaceNodes[index];
+        // if any nodes are available
+        if( vNodes.GetSize() ) {
+          std::cout << iType+1 << ") " << BaseFE::entityType.ToString(type) << std::endl;
+          std::cout << "========\n";
+        } else {
+          continue;
         }
-        // inner nodes
-        index = vInnerNodes.Find(gridToVirtualNodes_[actNode]); 
-        if( index > -1 ) {
-          rInnerNodes[index] = vInnerNodes[index];
-        }
-      }
-      std::cout << "vVertexNodes: " << vVertexNodes.ToString(0) << std::endl;
-      std::cout << "real nodes:   " << rVertexNodes.ToString(0) << std::endl << std::endl;
-      
-      std::cout << "vEdgeNodes:   " << vEdgeNodes.ToString(0) << std::endl;
-      std::cout << "real nodes:   " << rEdgeNodes.ToString(0) << std::endl << std::endl;
-      
-      std::cout << "vFaceNodes:   " << vFaceNodes.ToString(0) << std::endl;
-      std::cout << "real nodes:   " << rFaceNodes.ToString(0) << std::endl << std::endl;
-      
-      std::cout << "vInnerNodes:  " << vInnerNodes.ToString(0) << std::endl;
-      std::cout << "real nodes:   " << rInnerNodes.ToString(0) << std::endl << std::endl;
-    
-    std::cout << std::endl;
-    }  
-    
-    
+        // loop over all entities
+        UInt pos = 0;
+        for( UInt i = 0; i < entNumbers.GetSize(); ++i ) {
+          std::cout << "\t\t#" << std::abs(entNumbers[i]) << "\t\t";
+
+          // leave, virtual node numbers are assigned
+          for( UInt j = 0; j < offset[i]; ++j ) {
+
+            // print virtual node only for first entry            
+            if( j > 0 ) {
+              std::cout << prefix;
+            } else {
+              // physicalnode
+              if( rNodes[pos] > 0 ) {
+              std::cout << rNodes[pos] << "\t";
+              } else {
+                std::cout <<  "-\t ";
+              }
+            }
+            // print virtual node
+            std::cout << vNodes[pos] << "\t";
+            
+
+            // equation numbers (loop)
+            StdVector<Integer> & eqns = nodeMap_[vNodes[pos]];
+            for( UInt iEqn = 0; iEqn < eqns.GetSize(); ++iEqn ) {
+              Integer & eqn = eqns[iEqn];
+
+              //equation number
+              std::cout << eqn << "\t";
+
+              if( eqn > 0 ) {
+                // SBM-Block
+                std::cout << blockNums[eqn-1] << "\t";
+
+                // index
+                std::cout << indices[eqn-1] << "\n";
+              } else {
+                std::cout << "-\t-\n";
+              }
+            }
+            pos++;
+          } // loop over virtual nodes
+        } // loop over entity numbers
+        std::cout << "\n";
+      } // loop over entity types
+      std::cout << "\n\n";
+    } // loop over elements
+
+    //      //  VIRTUAL NODES 
+    //      // ---------------
+    //      std::cout << "a) Nodal mapping\n" 
+    //      << "----------------\n";
+    //      StdVector<UInt> & vVertexNodes = elemIt->second[BaseFE::VERTEX].vNodes;
+    //      StdVector<UInt> & vEdgeNodes = elemIt->second[BaseFE::EDGE].vNodes;
+    //      StdVector<UInt> & vFaceNodes = elemIt->second[BaseFE::FACE].vNodes;
+    //      StdVector<UInt> & vInnerNodes = elemIt->second[BaseFE::INTERIOR].vNodes;
+    //      
+    //      StdVector<UInt> rVertexNodes(vVertexNodes.GetSize());
+    //      StdVector<UInt> rEdgeNodes(vEdgeNodes.GetSize());
+    //      StdVector<UInt> rFaceNodes(vFaceNodes.GetSize());
+    //      StdVector<UInt> rInnerNodes(vInnerNodes.GetSize());
+    //      rVertexNodes.Init(0);
+    //      rEdgeNodes.Init(0);
+    //      rFaceNodes.Init(0);
+    //      rInnerNodes.Init(0);
+    //      
+    //
+    //      // loop over nodal connectivity of element and try to find corresponding virtual node
+    //      for( UInt i = 0; i < ptElem->connect.GetSize(); ++i ) {
+    //        UInt actNode = ptElem->connect[i];
+    //        
+    //        // vertex nodes
+    //        Integer index = vVertexNodes.Find(gridToVirtualNodes_[actNode]); 
+    //        if( index > -1 ) {
+    //          rVertexNodes[index] = actNode;
+    //        }
+    //        // edge nodes
+    //        index = vEdgeNodes.Find(gridToVirtualNodes_[actNode]); 
+    //        if( index > -1 ) {
+    //          rEdgeNodes[index] = vEdgeNodes[index];
+    //        }
+    //        // face nodes
+    //        index = vFaceNodes.Find(gridToVirtualNodes_[actNode]); 
+    //        if( index > -1 ) {
+    //          rFaceNodes[index] = vFaceNodes[index];
+    //        }
+    //        // inner nodes
+    //        index = vInnerNodes.Find(gridToVirtualNodes_[actNode]); 
+    //        if( index > -1 ) {
+    //          rInnerNodes[index] = vInnerNodes[index];
+    //        }
+    //      }
+    //      std::cout << "vVertexNodes: " << vVertexNodes.ToString(0) << std::endl;
+    //      std::cout << "real nodes:   " << rVertexNodes.ToString(0) << std::endl << std::endl;
+    //      
+    //      std::cout << "vEdgeNodes:   " << vEdgeNodes.ToString(0) << std::endl;
+    //      std::cout << "real nodes:   " << rEdgeNodes.ToString(0) << std::endl << std::endl;
+    //      
+    //      std::cout << "vFaceNodes:   " << vFaceNodes.ToString(0) << std::endl;
+    //      std::cout << "real nodes:   " << rFaceNodes.ToString(0) << std::endl << std::endl;
+    //      
+    //      std::cout << "vInnerNodes:  " << vInnerNodes.ToString(0) << std::endl;
+    //      std::cout << "real nodes:   " << rInnerNodes.ToString(0) << std::endl << std::endl;
+    //    
+    //    std::cout << std::endl;
+    //    }  
+
+
     // =================================
-    // 1) Equation numbering
+    // 2) Global Equation numbering
     // =================================
     shared_ptr<ResultInfo> feFctResult = feFunction_->GetResultInfo();
     // ---------------
@@ -408,11 +522,12 @@ namespace CoupledField {
     // ---------------
     std::map< Integer , StdVector<Integer> >::iterator nodeIt = nodeMap_.eqns.begin();
     std::map< Integer , StdVector<BcType> >::iterator nodeBcIt;
-    
+
     std::cout << "EQUATION MAPPING" << std::endl << std::endl;
-    std::cout << "nodeNr \t|"  << " type  | " <<  std::setw (8)
-              <<"  Comp" << "|\t eqnNr \t|\t BC" << std::endl;
-    std::cout << "-----------------------------------------------" << std::endl;
+    std::cout << "nodeNr \t|"  << " type  | " <<  std::setw (7)
+    <<" Comp" << "|\teqnNr  \t| SBM\t|\tindex   |\t BC" << std::endl;
+    std::cout << "----------------------------------------------------------------------------" 
+              << std::endl;
     while(nodeIt != nodeMap_.eqns.end()){
       nodeBcIt = nodeMap_.BcKeys.find(nodeIt->first);
       for(UInt iDof =0; iDof < nodeIt->second.GetSize(); iDof++){
@@ -425,11 +540,27 @@ namespace CoupledField {
         } else {
           std::cout << "       |\t";
         }
- 
+
         // component 
         std::cout << "\t|" << std::setw (8) << feFctResult->dofNames[iDof];
-         // eqn number
-        std::cout << "|\t" << nodeIt->second[iDof];
+        // eqn number
+        Integer & eqn = nodeIt->second[iDof];
+        std::cout << "|\t" << eqn;
+
+
+        if( eqn == 0) {
+          std::cout << "\t|" << std::setw(1) << "-";; 
+
+          // index
+          std::cout << "\t|" << std::setw(8) << "-";
+        } else {
+          // sbm-block  
+          std::cout << "\t|" << std::setw(1) << blockNums[eqn-1]; 
+
+          // index
+          std::cout << "\t|" << std::setw(8) << indices[eqn-1];
+        }
+
         // bc type
         std::cout << "\t|\t"; 
         if(  nodeBcIt != nodeMap_.BcKeys.end() ) {
@@ -441,9 +572,8 @@ namespace CoupledField {
       }
       nodeIt++;
     }
-    
-  }
 
+  }
 
  
 

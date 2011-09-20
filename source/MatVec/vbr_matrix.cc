@@ -17,6 +17,8 @@ DEFINE_LOG(vbrMat, "vbrMatrix")
 namespace CoupledField {
 
 
+  void TestVBRMatrix();
+  
   template<typename T>
   VBR_Matrix<T>::VBR_Matrix() {
     
@@ -248,7 +250,6 @@ namespace CoupledField {
   void VBR_Matrix<T>::CopySparsityPattern( StdMatrix &mat ) const {
 
     EXCEPTION( "VBR_Matrix::CopySparsityPattern: Not implemented" );
-
   }
   
   template<typename T>
@@ -327,9 +328,6 @@ namespace CoupledField {
       UInt colNum; // column number
       UInt ind;    //index to data array
 
-      // initialize return vector
-      //rvec = mvec;
-
       // loop over row blocks
       for( UInt ibr = 0; ibr < nbRows_; ++ibr ) {      
         rStart = bRow_[ibr];
@@ -348,7 +346,7 @@ namespace CoupledField {
               rvec[i] += data_[ind++] * mvec[j];
             }  // loop over cols within block
           } // loop over rows within block
-        } //block cols
+        } // block cols
       } // block rows
     }
 
@@ -485,7 +483,7 @@ namespace CoupledField {
             // store non-zero entry
             OpType<T>::ExportEntry( this->data_[ind++],
                                           0, 0, fp );
-                  fprintf( fp, "\n" );
+            fprintf( fp, "\n" );
         }  // loop over cols within block
       } // loop over rows within block
     } //block cols
@@ -503,7 +501,8 @@ namespace CoupledField {
 
 
   template<typename T> 
-  void VBR_Matrix<T>::FindBlock(UInt row, UInt col, UInt& rowB, UInt& colB, UInt& offset) {
+  void VBR_Matrix<T>::FindBlock( UInt row, UInt col, UInt& rowB, 
+                                UInt& colB, UInt& offset ) const {
     UInt l = 0;
     UInt u = nbRows_-1; 
     UInt k;
@@ -531,7 +530,6 @@ namespace CoupledField {
       }
       k = (l+u) >> 1; // half the interval
     }
-//    std::cerr << "sarch-iter I: " << numIter << std::endl;
     // look for col
     l = rowPtr_[rowB];
     u = rowPtr_[rowB+1]-1;
@@ -555,7 +553,6 @@ namespace CoupledField {
       EXCEPTION("Index pair (" << row << ", " << col << ") not found");
     }
     
-//   std::cerr << "sarch-iter: " << numIter << std::endl;
   }
 
   
@@ -563,22 +560,10 @@ namespace CoupledField {
   void VBR_Matrix<T>::AddToMatrixEntry( UInt i, UInt j, const T& v ){
 
     
-    // loop over bRow_ until block row is found (log search)
     UInt rowB, colB, offset;
-//    std::cerr << "\n\n===============================\n";
+    // get correct block (double search)
     FindBlock(i,j,rowB,colB, offset);
-//    std::cerr << "rowB of row " << i << " is " << rowB << std::endl;
-//    std::cerr << "colB of col " << j << " is " << colB << std::endl;
-//    std::cerr << "offset = " << offset << std::endl;
-//    
     data_[offset] += v;
-    // loop over bCol until block col is found (log search)
-   
-    // calculate diff blockRow_[r]-i and blockCol_[c]-j to find entry
-    
-    // set entry in data_ array
-    
-    
   }
 
 
@@ -586,14 +571,19 @@ namespace CoupledField {
   void VBR_Matrix<T>::SetMatrixEntry( UInt i, UInt j, const T &v,
                                       bool setCounterPart ) {
     
-    EXCEPTION("Implement me");
+    UInt rowB, colB, offset;
+    // get correct block (double search)
+    FindBlock(i,j,rowB,colB, offset);
+    data_[offset] = v;
   }
   
   template<typename T>
   void VBR_Matrix<T>::GetMatrixEntry( UInt i, UInt j,
                                       T &v ) const {
-
-    EXCEPTION("Implement me");
+    UInt rowB, colB, offset;
+    // get correct block (double search)
+    FindBlock(i,j,rowB,colB, offset);
+    v =  data_[offset];
   }
 
 
@@ -622,18 +612,15 @@ namespace CoupledField {
     return ret;
   }
   
-  
-
   template<typename T>
   void VBR_Matrix<T>::Scale( Double factor ) {
     
 EXCEPTION("Not implemented");
   }
 
-
   template<typename T>
   Double VBR_Matrix<T>::GetMaxDiag() const {
-    
+
     double maxDiag = 0;
     double current = 0;
     UInt i = 0;
@@ -641,7 +628,7 @@ EXCEPTION("Not implemented");
       current = OpType<T>::MaxDiag( data_[ diagPtr_[i] ] );
       maxDiag = maxDiag > current ? maxDiag : current; 
     }
-    
+
     return maxDiag;
   }
 
@@ -684,6 +671,7 @@ EXCEPTION("Not implemented");
   //    http://dl.acm.org/citation.cfm?doid=567806.567811
   
 #ifdef VBR_TEST_SECTION
+#include "MatVec/matrix.hh"
 #include "MatVec/crs_matrix.hh"
 #include "MatVec/matrixLapackSupport.hh"
 #include "MatVec/matrixBLASSupport.hh"
@@ -770,8 +758,6 @@ template<typename T>
  
  
  void TestVBRMatrix() {
-   
-   WARN("Remove temporary inlcludes for matrix");
    
    std::cerr << "==============================\n";
    std::cerr << "    Perform VBR matrix  test      \n";
@@ -924,7 +910,7 @@ template<typename T>
    std::cerr << "VBR maxDiag = " << vbrMat.GetMaxDiag() << std::endl;
    std::cerr << "CRS maxDiag = " << crsMat.GetMaxDiag() << std::endl;
    
-   // create rhs row vecrtor and compare
+   // create rhs row vector and compare
    Vector<Double> solVec(11), rhsVec(11), retVec(11);
    for(UInt i = 0; i < 11; ++i ) {
      solVec[i] = i+1;
@@ -945,8 +931,25 @@ template<typename T>
    crsMat.CompRes(retVec, solVec, rhsVec);
    std::cerr << "CRS: " << retVec.ToString() << std::endl;
    
+   // use MultAdd
+   Vector<Double> temp;
+   temp = retVec;
+   std::cerr << "\n\nMultAdd r += mat * solVec\n";
+   vbrMat.MultAdd(solVec, retVec);
+   std::cerr << "VBR: " << retVec.ToString() << std::endl;
+   retVec = temp;
+   crsMat.MultAdd(solVec, retVec);
+   std::cerr << "CRS: " << retVec.ToString() << std::endl;
    
-   // Get diagonal blocks and invert them
+   
+   
+   // ========================
+   //  INVERT GENERAL MATRIX
+   // ========================
+   std::cerr << "===================================\n";
+   std::cerr << " TEST INVERSION OF DIAGONAL BLOCKS \n";
+   std::cerr << "===================================\n";
+
    UInt size, rowStart;
    
    Double * block = NULL;
@@ -961,37 +964,6 @@ template<typename T>
        std::cerr << std::endl;
      }
      
-     // now try to invert block
-//      // ------------------------
-//      //defines if the upper (U) or lower (L) triangle of the solution is stored
-//      char uplo;
-//      int n, nrhs, lda, ldb, info;
-//      //A is symmetric, so it makes no difference is the data are accessed row or columnwise
-//      double * A = block;
-//      //B is not necessary symmetric. so you have to give the function the transposed matrix
-//      double * B = inv;
-//
-//      //set up parameters according to the netlib reference
-//      //we want to store the lower triangle
-//      uplo = 'U';
-//      //n is the dimension of A
-//      n = size;;
-//      //nrhs is th enumber of colums of B and therefore the number of rows of B_trans
-//      nrhs = size;;
-//      //lda is the leading dimension of A -> max(1,n);
-//      lda = n;
-//      //ldb is the leading dimension of B -> max(1,n);
-//      ldb = n;
-//      StdVector<Integer> piv(size);
-//      //solve system with dposv_
-//      //dposv_(&uplo, &n , &nrhs, A,&lda, B, &ldb, &info);
-//      dgesv_(&n , &nrhs, A,&lda, &piv[0], B, &ldb, &info);
-//      std::cerr << "info: " << info << std::endl;
-//      
-     
-     // ========================
-     //  INVERT GENERAL MATRIX
-     // ========================
      double * fac = new double[size*size];
      std::copy(block,block+size*size, fac);
      int N = size;
@@ -1020,39 +992,39 @@ template<typename T>
    }
    
    
-   // ========================
-   //  TEST BLAS DGEMMV
-   // ========================
-   
-   // test 
-   {
-     Matrix<Double> a(2,2);
-     a[0][0] = 1.0;
-     a[0][1] = 2.0;
-     a[1][0] = 3.0;
-     a[1][1] = 4.0;
-     Vector<Double> r(4), s(4);
-     s.Init(1.0);
-     r.Init(0.0);
-     
-     char trans = 'T';
-     int size = 2;
-     double alpha = 1.0;
-     double beta = 0.0;
-     int inc = 1;
-     
-     DGEMV(&trans, 
-           &size,
-           &size,
-           &alpha,
-           a[0],
-           &size,
-           &s[1], 
-           &inc,
-           &beta,  &r[1], &inc);
-     std::cerr << "r = " << r.ToString() << std::endl;
-
-   }
+//   // ========================
+//   //  TEST BLAS DGEMMV
+//   // ========================
+//   
+//   // test 
+//   {
+//     Matrix<Double> a(2,2);
+//     a[0][0] = 1.0;
+//     a[0][1] = 2.0;
+//     a[1][0] = 3.0;
+//     a[1][1] = 4.0;
+//     Vector<Double> r(4), s(4);
+//     s.Init(1.0);
+//     r.Init(0.0);
+//     
+//     char trans = 'T';
+//     int size = 2;
+//     double alpha = 1.0;
+//     double beta = 0.0;
+//     int inc = 1;
+//     
+//     DGEMV(&trans, 
+//           &size,
+//           &size,
+//           &alpha,
+//           a[0],
+//           &size,
+//           &s[1], 
+//           &inc,
+//           &beta,  &r[1], &inc);
+//     std::cerr << "r = " << r.ToString() << std::endl;
+//
+//   }
   
  }
 }
