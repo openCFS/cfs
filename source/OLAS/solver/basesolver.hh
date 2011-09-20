@@ -67,6 +67,11 @@ namespace CoupledField {
     //! Set preconditioner object 
     void SetPrecond( BasePrecond* precond);
     
+    //! Get preconditioner object
+    BasePrecond* GetPrecond() {
+      return ptPrecond_;
+    }
+    
     //! \see BasePrecond::Setup
     virtual void Setup( BaseMatrix& sysmat,
                         PtrParamNode analysis_id ) = 0;

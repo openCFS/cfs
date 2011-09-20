@@ -116,7 +116,6 @@ namespace CoupledField {
     if ( logging == true ) {
       LogConvergence( resNorm, 0, true );
     }
-
     // Compute d by applying preconditioner
     ptPrecond_->Apply( sysmat, *r_, *d_ );
 
@@ -150,7 +149,11 @@ namespace CoupledField {
       niter++;
 
       // Determine new q <- A*d
+      
       sysmat.Mult( *d_, *q_ );
+//      std::cerr << "in loop " << niter << std::endl;
+//      std::cerr << "\nd_ is " << d_->ToString() << std::endl;
+//      std::cerr << "\nq_ is " << q_->ToString() << std::endl;
 
       // Compute the new parameter alpha <- delta_new / (d^T * q)
       d_->Inner( *q_, aux );

@@ -403,6 +403,7 @@ retVal = new precondObjType( mat, solverXML, olasInfo );\
     BasePrecond * p = NULL;
     PtrParamNode pardisoNode(new ParamNode(ParamNode::INSERT));
     PtrParamNode blockJacobiNode(new ParamNode(ParamNode::INSERT));
+    PtrParamNode infoNode;
     switch( ptype ) {
 
     // ==============================
@@ -418,7 +419,8 @@ retVal = new precondObjType( mat, solverXML, olasInfo );\
 //      << std::endl;
 //      break;
     case BasePrecond::JACOBI:
-      retVal = new BaseSBMPrecond(numBlocks);
+      retVal = new BaseSBMPrecond(numBlocks, olasInfo);
+       infoNode = retVal->GetInfoNode();
      
       // ========================
       // MAGNETIC CASE
@@ -426,18 +428,18 @@ retVal = new precondObjType( mat, solverXML, olasInfo );\
       // Block #0: Pardiso solver
       
       pardisoNode->Get("solver")->Get("precond")->SetValue("pardiso");
-      p = GenerateStdPrecondObject(mat(0,0), pardisoNode, olasInfo );
+      p = GenerateStdPrecondObject(mat(0,0), pardisoNode, infoNode );
       retVal->SetPrecond(0, p);
       
       // Block #1: Block-Jacobi-preconditioner
       blockJacobiNode->Get("solver")->Get("precond")->SetValue("BlockJacobi");
-//      p = GenerateStdPrecondObject(mat(1,1), pardisoNode, olasInfo );
-      p = GenerateStdPrecondObject(mat(1,1), blockJacobiNode, olasInfo );
+      //p = GenerateStdPrecondObject(mat(1,1), pardisoNode, olasInfo );
+      p = GenerateStdPrecondObject(mat(1,1), blockJacobiNode, infoNode );
       retVal->SetPrecond(1, p);
       
       // Block #1: Block-Jacobi preconditioner
       //p = GenerateStdPrecondObject(mat(2,2), pardisoNode, olasInfo );
-      p = GenerateStdPrecondObject(mat(2,2), blockJacobiNode, olasInfo );
+      p = GenerateStdPrecondObject(mat(2,2), blockJacobiNode, infoNode );
       retVal->SetPrecond(2, p);
       
       

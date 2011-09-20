@@ -1068,6 +1068,9 @@ namespace CoupledField {
         }
       }
     }
+    
+    // Trigger calculation of special results
+    CalcSpecialResults();
 
 #ifdef USE_SCRIPTING
     StdVector<std::string> context;
@@ -2151,8 +2154,10 @@ namespace CoupledField {
       // ==============================================
       //   SPECIAL MAGNETIC SECTION
       // ==============================================
-//      if( false ) {
-      if( pdename_ == "magneticEdge" ) {
+      if( false ) {
+        EXCEPTION("MAY NOT HaPPEN");
+
+//        if( pdename_ == "magneticEdge" ) {
         StdVector<std::set<Integer> > sbmBlocks;
         std::map<UInt,StdVector<std::set<Integer> > > minorBlocks;
         FeSpaceHCurlHi & feSpace  
@@ -2170,7 +2175,7 @@ namespace CoupledField {
         algsys_->GraphSetupInit( 1, numBlocks, false);
         algsys_->RegisterFct( fctId, feSpace.GetNumEquations(),
                               feSpace.GetNumFreeEquations() );
-        for( UInt i = 0; i < sbmBlocks.GetSize(); ++i ) {
+        for( UInt i = 0; i < numBlocks; ++i ) {
           std::map<FeFctIdType, std::set<Integer> > block;
           block[fctId] = sbmBlocks[i];
           algsys_->DefineSBMMatrixBlock(i, block);
@@ -2178,7 +2183,7 @@ namespace CoupledField {
         
         // 2) Define minor blocks
         // loop over all sbm blocks
-        for( UInt i = 1; i < sbmBlocks.GetSize(); ++i ) {
+        for( UInt i = 1; i < numBlocks; ++i ) {
           StdVector<std::set<Integer> >& sbmSubBlocks = minorBlocks[i];
           algsys_->RegisterSubMatrixBlocks(i, sbmSubBlocks.GetSize());
           // loop over all minor blocks

@@ -17,6 +17,7 @@
 
 #include "OLAS/solver/basesolver.hh"
 #include "OLAS/solver/generatesolver.hh"
+#include "OLAS/solver/generateEigensolver.hh"
 #include "OLAS/solver/baseEigensolver.hh"
 
 #include "OLAS/precond/generateprecond.hh"
@@ -368,6 +369,47 @@ namespace CoupledField {
   void AlgebraicSys::Solve(PtrParamNode analysis_id) {
     
     LOG_TRACE(algSys) << "Solving problem";
+    
+    // ======================================================================
+    //  CHECK FOR CALCULATION OF CONDITION NUMBER
+    // ======================================================================
+    // Check, if condition number is to be calculated
+      bool calcCapa = false;
+      myParam_->Get("matrix", ParamNode::INSERT)
+      ->GetValue("calcConditionNumber", calcCapa, ParamNode::INSERT );
+      
+      if( calcCapa ) {
+        Double condNumber = 0.0;
+        Vector<Double> ev, err;
+        BaseEigenSolver * evs = 
+          GenerateEigenSolverObject( *(sysMat_[SYSTEM]), myParam_, 
+                                     myInfo_->Get("solve_eigen") );
+        PtrParamNode in = myInfo_->
+            Get(ParamNode::PROCESS)->Get("conditionNumber", ParamNode::APPEND);
+        in->Get("analysis_id")->SetValue(analysis_id);
+        try {
+          evs->CalcConditionNumber( (*sysMat_[SYSTEM])(0,0), condNumber,
+                                    ev, err );
+          in->Get("value")->SetValue(condNumber);
+          in = in->Get("extremalEigenValues");
+
+          for( UInt i = 0; i < ev.GetSize(); i++ )  {
+            PtrParamNode t = in->Get("eigenvalue", ParamNode::APPEND);
+            t->Get("value")->SetValue(ev[i]);
+            t->Get("tolerance")->SetValue(err[i]);
+          }
+
+        } catch (Exception& ex ) {
+          WARN("Calculation of condition number for system matrix did not converge");
+        
+          in->Get("value")->SetValue(0.0);
+        }
+        
+        delete evs;
+        // in the end prevent-relcaulation of evs by re-setting the value for CalcConditionNumber
+        myParam_->Get("matrix")->Get("calcConditionNumber")->SetValue( boost::any(false) );
+      }
+    // ======================================================================
     
     // If the penalty formulation is used and we have inhomogeneous
     // Dirichlet boundary conditions, then the righ-hand side is
@@ -1583,8 +1625,9 @@ namespace CoupledField {
           //  HARD-CODED SECTION
           // ====================
           if( sbmRow == 0) {
-            
             sT = BaseMatrix::SPARSE_SYM;
+            
+            
           } else {
             sT = BaseMatrix::VAR_BLOCK_ROW;
           }

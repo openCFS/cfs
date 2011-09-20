@@ -36,7 +36,7 @@ namespace CoupledField {
                                        PtrParamNode solverNode,
 				                               PtrParamNode olasInfo )  {
     this->xml_ = solverNode;
-    this->infoNode_ = olasInfo->Get("jacobi");
+    this->infoNode_ = olasInfo->Get("jacobi",ParamNode::APPEND);
     size_     = mat.GetNumRows();
     NEWARRAY( diagInv_, T, size_ );
   }
@@ -109,7 +109,7 @@ namespace CoupledField {
                                                   PtrParamNode solverNode,
                                                   PtrParamNode olasInfo )  {
      this->xml_ = solverNode;
-     this->infoNode_ = olasInfo->Get("blockJacobi");
+     this->infoNode_ = olasInfo->Get("blockJacobi",ParamNode::APPEND);
      numRows_ = 0;
      
    }
@@ -146,6 +146,7 @@ namespace CoupledField {
      Double beta = 0.0;
      Integer inc = 1;
      sol.Init();
+     //std::cerr << "rhs is \n" << rhs << std::endl;
      
      // loop over all diagonals
      for( UInt i = 0; i < numRows_; ++i ) {
@@ -155,10 +156,21 @@ namespace CoupledField {
        Integer size = inv.GetNumRows();
        DGEMV( &trans, &size, &size, &alpha, inv[0], &size, 
               &rhs[rStart], &inc, &beta, &sol[rStart], &inc);
+       
+//       std::cerr << "\nBlockPrecond: Row "<< i << ", Diag is \n" << inv.ToString() << std::endl;
+//       std::cerr << "rhs is\n";
+//       for( int j = 0; j < size; ++j  ) {
+//         std::cerr << rhs[j+rStart] << ";";
+//       }
+//       std::cerr << "\nsol is\n";
+//              for( int j = 0; j < size; ++j  ) {
+//                std::cerr << sol[j+rStart] << ";";
+//              }
 
        // sum up current offset
        rStart += size;
      }
+//     std::cerr << "sol is \n" << sol.ToString() << std::endl;
    }
 
 
@@ -204,6 +216,7 @@ namespace CoupledField {
        inv.Resize(bs);
        std::copy(ptDiag,ptDiag+bs*bs, inv[0]);
        numEntries += (bs * bs);
+//#define DEBUG_JAC_PRECOND
 #ifdef DEBUG_JAC_PRECOND
        std::cerr << "\n original block #" << i <<"\n";
        for( UInt k = 0; k < bs; ++k ) {
@@ -241,12 +254,13 @@ namespace CoupledField {
 
 #ifdef DEBUG_JAC_PRECOND       
        std::cerr << "\n inverted block #" << i <<"\n";
-       for( UInt k = 0; k < bs; ++k ) {
-         for( UInt l = 0; l < bs; ++l ) {
-           std::cerr << ptDiag[k*bs+l] << ", ";
-         }
-         std::cerr << "\n";
-       }
+       std::cerr << inv << std::endl;
+//       for( UInt k = 0; k < bs; ++k ) {
+//         for( UInt l = 0; l < bs; ++l ) {
+//           std::cerr << inv[k*bs+l] << ", ";
+//         }
+//         std::cerr << "\n";
+//       }
 #endif
      }
      

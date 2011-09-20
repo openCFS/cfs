@@ -292,7 +292,7 @@ namespace CoupledField{
     }
 
     if(refElems_[eRegion].find(ent.GetElem()->type) == refElems_[eRegion].end()){
-      EXCEPTION("fespaceh1::getfe( const entityiterator): requested fetype which is noch supported by space");
+      EXCEPTION("FeSpaceHCurlHi: requested fetype which is noch supported by space");
     }
 
     BaseFE * myFe = refElems_[eRegion][ent.GetElem()->type];

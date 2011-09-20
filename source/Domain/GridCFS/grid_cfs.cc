@@ -1036,6 +1036,12 @@ namespace CoupledField {
           ElemShapeMap & esm = *GetElemShapeMap(ptElem);
           Vector<Double> midPoint = 
               Elem::shapes[ptElem->type].midPointCoord;
+
+          if( midPoint.GetSize() == 3) {
+            midPoint[0]=-0.7;
+            midPoint[1]=-0.7;
+            midPoint[2]=0.08;
+          }
           esm.CalcJ( jac, midPoint );
 
           jac.Determinant(jacDet);

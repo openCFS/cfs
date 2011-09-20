@@ -180,10 +180,14 @@ namespace CoupledField {
     //! The constructor has nothing to do but to set the attribute
     //! readyToUse_ to false.
     //! \param numBlocks number of SBM-blocks
-    BaseSBMPrecond(UInt numBlocks);
+    BaseSBMPrecond(UInt numBlocks, 
+                   PtrParamNode olasInfo);
 
     //! Default Destructor
     virtual ~BaseSBMPrecond();
+
+    //! Return pointer to info object
+    PtrParamNode GetInfoNode() { return infoNode_;}
     
     //! Set preconditioner for standard matrices for block \blockNum
     

@@ -118,7 +118,7 @@ extern "C" {
 
     // Set pointers to communication objects
     xml_ = solverNode;
-    infoNode_ = olasInfo->Get("pardiso");
+    infoNode_ = olasInfo->Get("pardiso",ParamNode::APPEND);
 
     // Initialise attributes
     firstCall_ = true;

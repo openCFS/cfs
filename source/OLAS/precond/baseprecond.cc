@@ -70,9 +70,10 @@ namespace CoupledField {
   //  S B M   -  P R E C O N D I T I O N E R
   // ------------------------------------------------------------------------
   
-  BaseSBMPrecond::BaseSBMPrecond( UInt numBlocks ) {
+  BaseSBMPrecond::BaseSBMPrecond( UInt numBlocks, PtrParamNode infoNode ) {
     readyToUse_ = false;
     numBlocks_ = numBlocks;
+    infoNode_ = infoNode->Get("SBMPrecond");
     stdPreconds_.Resize( numBlocks_ );
     stdPreconds_.Init(NULL);
   }
@@ -126,6 +127,7 @@ namespace CoupledField {
         const SingleVector * rStd = r.GetPointer(iRow);
         SingleVector * zStd = z.GetPointer(iRow);
         stdPreconds_[iRow]->Apply(*stdMat, *rStd, *zStd );
+        
       }
     }
   }

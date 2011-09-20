@@ -615,12 +615,12 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
   
   void MagEdgePDE::CalcSpecialResults() {
     
+
+    // fetch fluxlist
+    for( UInt iList = 0; iList < calcFlux_.GetSize(); ++iList ) {
 #ifndef USE_INTERPOLATION
     EXCEPTION("Special Results can just be calculated with INTERPOLATION active");
 #else
-    // fetch fluxlist
-    for( UInt iList = 0; iList < calcFlux_.GetSize(); ++iList ) {
-
       FluxAtPoints & actList = calcFlux_[iList];
 
       // open file
@@ -639,7 +639,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
         if( !ptElem ) {
           std::string warnStr = "Cold not find element at position " 
               + actList.points[iPoint].coord.ToString(); 
-          Warning( warnStr.c_str());
+          WARN( warnStr.c_str());
         } else {
           LocPoint lp(locCoord);
           CalcFluxDensityAtIP(ptElem, lp, flux);
@@ -654,8 +654,9 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
       }
       // close file
       out.close();
-    }
 #endif
+    }
+
   }
 
 
