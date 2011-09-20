@@ -46,7 +46,7 @@ namespace CoupledField {
   template<typename T>
   VBR_Matrix<T>::VBR_Matrix( const VBR_Matrix<T> &origMat ) {
     
-    WARN("Implement me");
+    EXCEPTION("Implement me");
   }
 
   template<typename T>
@@ -307,15 +307,9 @@ namespace CoupledField {
             //                      << ind << "] * mvec[" << j << "]\n";
             //            std::cerr << "\t\t\t revc[" << i << "] += " << data_[ind]
             //                      << "* " << mvec[j] << "\n\n";
-            if( OpType<T>::NormL2(data_[ind]) > 1e-14 ) {
               rvec[i] += data_[ind++] * mvec[j];
-//              std::cerr << "\t\t\t revc[" << i << "] += " << data_[ind]
-//                        << "* " << mvec[j] << "\n\n";
-            } else { 
-              
-              ind++;
-               
-            }
+              //              std::cerr << "\t\t\t revc[" << i << "] += " << data_[ind]
+              //                        << "* " << mvec[j] << "\n\n";
           }  // loop over cols within block
         } // loop over rows within block
       } //block cols
@@ -334,7 +328,7 @@ namespace CoupledField {
       UInt ind;    //index to data array
 
       // initialize return vector
-      rvec = mvec;
+      //rvec = mvec;
 
       // loop over row blocks
       for( UInt ibr = 0; ibr < nbRows_; ++ibr ) {      
