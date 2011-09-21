@@ -1259,6 +1259,7 @@ namespace CoupledField {
     // General (grid related) results
     SolutionTypeEnum.Add(ELEM_LOC_DIR, "localDirection");
     SolutionTypeEnum.Add(JACOBIAN, "jacobian");
+    SolutionTypeEnum.Add(ASPECT_RATIO, "aspectRatio");
 
     // ==== Initialization of Material Constants ====
     MaterialTypeEnum.Add( NO_MATERIAL, "noMaterial" );

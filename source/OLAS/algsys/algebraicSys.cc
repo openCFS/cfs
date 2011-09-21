@@ -470,6 +470,16 @@ namespace CoupledField {
       {
         sysMat_[SYSTEM]->Export((base+".mtx").c_str() );
 
+        // HARD-CODED: Export also preconditioner
+        SBM_Matrix * copy = new SBM_Matrix(*(sysMat_[SYSTEM]));
+        if( numBlocks_ == 1 ) {
+          precond_->GetPrecondSysMat((*copy)(0,0));
+        } else {
+          precond_->GetPrecondSysMat(*copy);
+        }
+        copy->Export((base+"_precond.mtx").c_str());
+        
+        
         if(els->HasByVal("damping", true) && sysMat_[DAMPING] != NULL)
           sysMat_[DAMPING]->Export((base+"_damping.mtx").c_str() );
 

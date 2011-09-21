@@ -8,6 +8,7 @@
 #include "MatVec/scrs_matrix.hh"
 #include "MatVec/vbr_matrix.hh"
 #include "MatVec/matrixBLASSupport.hh"
+#include "MatVec/generatematvec.hh"
 
 #include "jacprecond.hh"
 
@@ -86,6 +87,24 @@ namespace CoupledField {
 #endif
 
   }
+  
+  // ***********************************
+  //   Export of preconditioned matrix
+  // ***********************************
+  template<class T_storage,typename T>
+  void JacPrecond<T_storage,T>::
+  GetPrecondSysMat( BaseMatrix& sysMat ) {
+    
+    // generate copy of system matrix
+    StdMatrix & std =  dynamic_cast<StdMatrix&>(sysMat);
+    std.Init();
+    
+    // loop over diagonals and set it to 1
+    for( UInt i = 0; i < size_; ++i ) {
+      std.SetDiagEntry(i, diagInv_[i]);
+   }
+  }
+  
   
 // Explicit template instantiation
 #ifdef EXPLICIT_TEMPLATE_INSTANTIATION
@@ -269,7 +288,36 @@ namespace CoupledField {
      infoNode_->Get("numDiagBlocks")->SetValue(numRows_);
      infoNode_->Get("numEntries")->SetValue(numEntries);
    }
-   
+
+   template<class T_storage,typename T>
+   void BlockJacPrecond<T_storage,T>::
+   GetPrecondSysMat( BaseMatrix& sysMat ) {
+
+     VBR_Matrix<T>& ret = dynamic_cast<VBR_Matrix<T>& >(sysMat);
+
+     T * ptDiag = NULL;
+     sysMat.Init();
+
+     // loop over all diagonal blocks
+     UInt bs = 0, rStart = 0;
+     for( UInt i = 0; i < numRows_; ++i ) {
+       
+       Matrix<T> & inv = factors_[i];
+
+       // obtain block information
+       ptDiag = ret.GetDiagBlock( i,bs, rStart);
+
+       // set b
+       for( UInt i = 0; i < bs ; ++i ) {
+         for( UInt j = 0; j < bs ; ++j ) {
+         ptDiag[i*bs +j] = inv[i][j];
+         }
+       }
+
+     }
+
+   }
+
  // Explicit template instantiation
  #ifdef EXPLICIT_TEMPLATE_INSTANTIATION
    template class BlockJacPrecond< VBR_Matrix<Double>, Double>;

@@ -364,12 +364,18 @@ catch(...){};
     COPY_MATRIX_OBJ( COMPLEX, SPARSE_NONSYM, CRSComplexDof1 )
 
     // SCRS_Matrix case
-    COPY_MATRIX_OBJ( DOUBLE,  SPARSE_SYM, SCRSRealDof1    );
-    COPY_MATRIX_OBJ( COMPLEX, SPARSE_SYM, SCRSComplexDof1 );
-
+    COPY_MATRIX_OBJ( DOUBLE,  SPARSE_SYM, SCRSRealDof1      );
+    COPY_MATRIX_OBJ( COMPLEX, SPARSE_SYM, SCRSComplexDof1   );
+    
+    // VBR_Matrix case
+    COPY_MATRIX_OBJ( DOUBLE,  VAR_BLOCK_ROW, VBRRealDof1    );
+    COPY_MATRIX_OBJ( COMPLEX, VAR_BLOCK_ROW, VBRComplexDof1 );
+    
     // DIAG_Matrix case
     COPY_MATRIX_OBJ( DOUBLE,  DIAG, SCRSRealDof1    );
     COPY_MATRIX_OBJ( COMPLEX, DIAG, SCRSComplexDof1 );
+    
+    
 
     // Invalid or unimplemented case
     if ( retMat == NULL ) {

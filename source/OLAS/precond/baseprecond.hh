@@ -85,6 +85,17 @@ namespace CoupledField {
     virtual void Apply(const BaseMatrix& sysmat, const BaseVector& r, 
                        BaseVector& z) = 0;
 
+    //! Export precontitioned matrix \f[C^{-1}A\f]
+    
+    //! This methods tries to export the preconditioner matrix \f[C^{-1}\f]. 
+    //! This is inly possible in some rare cases, where we can explicitly
+    //! calculate the preconditioner in matrix form (e.g. Jacobi, Id).
+    //! \note The argument #sysMat gets overwritten upon method return
+    //! \note If the calculation is not implemented by the derived class,
+    //! we issue a warning an silently return an empty matrix.
+    virtual void GetPrecondSysMat( BaseMatrix& sysMat );
+
+    
     //! Query type of preconditioner object
     virtual PrecondType GetPrecondType() const {
       return NOPRECOND;
@@ -228,6 +239,9 @@ namespace CoupledField {
     //! corresponding interface. Thus, using this method with SBM matrices
     //! or vectors will lead to a run-time error.
     virtual void Setup( BaseMatrix &A, PtrParamNode analysis_id );
+    
+    //! \copydoc BasePrecond::ExportPrecondSysMat
+    virtual void GetPrecondSysMat( BaseMatrix& sysMat );
     
     virtual PrecondType GetPrecondType() const {return NOPRECOND;}
 

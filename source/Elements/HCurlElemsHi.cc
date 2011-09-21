@@ -15,6 +15,21 @@ namespace CoupledField {
 DECLARE_LOG(feHCurlHi)
 DEFINE_LOG(feHCurlHi, "feHCurlHi")
 
+
+//! This method makes uses of the following vector identity
+//!
+//!     curl(b*F) = b x curl(F) + grad(b) x F
+//!
+//! If we further assume, that F=grad(b), we arrive at
+//!
+//!     curl(b*grad(a)) = b x curl(grad(a)) + grad(b) x grad(a)
+//!
+//! As the first term is 0, we get
+//!
+//!     curl(b*(grad(a)) = grad(b) x grad(a) = Cross(b,a)
+//!
+//! This second term is calculated within this method.
+
 inline AutoDiff<Double,3> Cross (const AutoDiff<Double,3> & u,
                                  const AutoDiff<Double,3> & v)
   {
@@ -347,7 +362,7 @@ void FeHCurlHiHex::CalcLocShFnc( Matrix<Double>& shape, LocPointMapped& lpm,
 
     // a) standard Nedelec shape functions
     for( UInt k = 0; k < 3; ++k ) {
-      shape[k][i] = 0.5 * xi.DVal(k)*eta.Val() * fac;
+      shape[k][i] = xi.DVal(k)*eta.Val()*fac;
     }
     // b) gradient functions
     if( useGrad_[EDGE] && !onlyLowestOrder_ ) {
@@ -456,8 +471,9 @@ void FeHCurlHiHex::CalcLocShFnc( Matrix<Double>& shape, LocPointMapped& lpm,
 //                              xiVals[k].Val() * etVals[j]*DVal(l));
             // alternative variant:
             shape[l][pos] =
-                sum_lambda.Val() * (xiVals[k].DVal(l) * etaVals[j].Val()*xi.DVal(l)-
-                                    xiVals[k].Val() * etaVals[j].DVal(l)*eta.DVal(l));
+                sum_lambda.Val() * (xiVals[k].DVal(l) * etaVals[j].Val()-
+                                    xiVals[k].Val() * etaVals[j].DVal(l))
+                                    + horiz * sum_lambda.DVal(l)*xiVals[k].Val()*etaVals[j].Val();
           }
           pos++;
         }
@@ -466,14 +482,14 @@ void FeHCurlHiHex::CalcLocShFnc( Matrix<Double>& shape, LocPointMapped& lpm,
       // c) remaining functions
       for( UInt k = 0; k < order1; ++k ) {
         for( UInt l = 0; l < 3; ++l) {
-          shape[l][pos] = 0.5 * eta.DVal(l) * xiVals[k].Val() * sum_lambda.Val();
+          shape[l][pos] = eta.DVal(l) * xiVals[k].Val() * sum_lambda.Val();
         }
         pos++;
       }
       
       for( UInt k = 0; k < order1; ++k ) {
         for( UInt l = 0; l < 3; ++l) {
-          shape[l][pos] = 0.5 * xi.DVal(l) * etaVals[k].Val() * sum_lambda.Val();
+          shape[l][pos] =  xi.DVal(l) * etaVals[k].Val() * sum_lambda.Val();
         }
         pos++;
       }
@@ -585,7 +601,7 @@ void FeHCurlHiHex::CalcLocCurlShFnc( Matrix<Double>& curl, LocPointMapped& lpm,
     AutoDiff<Double, 3> eta = lambda[index1] + lambda[index2];
 
     // a) standard Nedelec shape functions
-    AutoDiff<Double, 3> temp = 0.5 * fac* Cross(eta, xi);
+    AutoDiff<Double, 3> temp =  Cross(eta, fac * xi);
     for( UInt j = 0; j < 3; ++j ) {
       curl[j][i] = temp.DVal(j);
     }
@@ -730,28 +746,50 @@ void FeHCurlHiHex::CalcLocCurlShFnc( Matrix<Double>& curl, LocPointMapped& lpm,
 //        std::cerr << "etaLambdaVals = " << etaLambdaVals << std::endl;
 //      }
       
-
-      for( UInt i = 0; i < order1; ++i ) {
-        for( UInt j = 0; j < order2; ++j ) {
-          AutoDiff<Double,3> temp1 = Cross(etaLambdaVals[j], xiVals[i]);
-          AutoDiff<Double,3> temp2 = Cross(xiLambdaVals[i], etaVals[j]);
-          for( UInt l = 0; l < 3; ++l) {  
-            curl[l][pos] = temp1.DVal(l) - temp2.DVal(l);
+    
+//        for( UInt i = 0; i < order1; ++i ) {
+//          for( UInt j = 0; j < order2; ++j ) {
+//            AutoDiff<Double,3> temp1 = Cross(etaLambdaVals[j], xiVals[i]);
+//            AutoDiff<Double,3> temp2 = Cross(xiLambdaVals[i], etaVals[j]);
+//            for( UInt l = 0; l < 3; ++l) {  
+//              curl[l][pos] = temp1.DVal(l) - temp2.DVal(l);
+//            }
+//            pos++;
+//          }
+//        } 
+      if(horiz == 1 ) {
+        for( UInt i = 0; i < order1; ++i ) {
+          for( UInt j = 0; j < order2; ++j ) {
+            AutoDiff<Double,3> temp = Cross(etaVals[j], xiLambdaVals[i]);
+            for( UInt l = 0; l < 3; ++l) {  
+              curl[l][pos] = temp.DVal(l);
+            }
+            pos++;
           }
-          pos++;
+        }
+      } else {
+        for( UInt i = 0; i < order1; ++i ) {
+          for( UInt j = 0; j < order2; ++j ) {
+            AutoDiff<Double,3> temp = Cross(etaLambdaVals[j], xiVals[i]);
+            for( UInt l = 0; l < 3; ++l) {  
+              curl[l][pos] = temp.DVal(l);
+            }
+            pos++;
+          }
         }
       }
+        
 
       // c) remaining functions
       for( UInt i = 0; i < order1; ++i ) {
-        AutoDiff<Double,3> hd = 0.5  * Cross(xiLambdaVals[i],eta);
+        AutoDiff<Double,3> hd =  Cross(xiLambdaVals[i],eta);
         for( UInt l = 0; l < 3; ++l) {
           curl[l][pos] = hd.DVal(l);
         }
         pos++;
       }
       for( UInt j = 0; j < order2; ++j ) {
-        AutoDiff<Double,3> hd = 0.5  * Cross(etaLambdaVals[j],xi);
+        AutoDiff<Double,3> hd =  Cross(etaLambdaVals[j],xi);
         for( UInt l = 0; l < 3; ++l) {
           curl[l][pos] = hd.DVal(l);
         }

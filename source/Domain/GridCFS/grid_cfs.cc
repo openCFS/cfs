@@ -827,6 +827,7 @@ namespace CoupledField {
     shared_ptr<ResultInfo> locDir3( new ResultInfo );
     shared_ptr<ResultInfo> jacRes( new ResultInfo );
     shared_ptr<ResultInfo> surfNormal( new ResultInfo );
+    shared_ptr<ResultInfo> aspectRatio( new ResultInfo );
 
     StdVector<std::string> dirVec (dim_);
     if( dim_ == 3 ) {
@@ -876,6 +877,14 @@ namespace CoupledField {
     surfNormal->dofNames = dirVec;
     surfNormal->unit = "";
     
+    // 4) Jacobian Determinanat
+    aspectRatio->resultType = ASPECT_RATIO;
+    aspectRatio->resultName = "aspectRatio";
+    aspectRatio->definedOn = ResultInfo::ELEMENT;
+    aspectRatio->entryType = ResultInfo::SCALAR;
+    aspectRatio->dofNames = "";
+    aspectRatio->unit = "";
+    
     // === create results for all coordinate systems available ===
     std::map<std::string, StdVector<shared_ptr<ResultInfo> > > coordDirs;
     std::map<std::string, CoordSystem*>::const_iterator coordIt;
@@ -920,6 +929,12 @@ namespace CoupledField {
       sol = shared_ptr<BaseResult> (new Result<Double>());
       sol->SetEntityList(ent);
       sol->SetResultInfo(jacRes);
+      ptRes->RegisterResult( sol,0,0,1,1,outDest,"",true,false);
+      resultList.Push_back(sol);
+      
+      sol = shared_ptr<BaseResult> (new Result<Double>());
+      sol->SetEntityList(ent);
+      sol->SetResultInfo(aspectRatio);
       ptRes->RegisterResult( sol,0,0,1,1,outDest,"",true,false);
       resultList.Push_back(sol);
 
@@ -1001,17 +1016,20 @@ namespace CoupledField {
 
       // check, which result is required
       bool isJacobian = false;
+      bool isAspect = false;
       if (actSol.GetResultInfo()->resultName == "xi") {
         actLocDir = locDir_xi;
       } else  if (actSol.GetResultInfo()->resultName == "eta") {
         actLocDir = locDir_eta;
       } else  if (actSol.GetResultInfo()->resultName == "zeta") {
         actLocDir = locDir_zeta;
+      } else  if (actSol.GetResultInfo()->resultName == "aspectRatio") {
+        isAspect = true;
       } else {
         isJacobian = true;
       }
       
-      if (!isJacobian ) {
+      if (!isJacobian &&!isAspect) {
         // loop over elements
         for ( it.Begin(); !it.IsEnd(); it++ ) {
           const Elem * ptElem = it.GetElem();
@@ -1028,6 +1046,16 @@ namespace CoupledField {
             actVal[it.GetPos()*dim_ + iDim] = globVec[iDim];
           }
         }
+      } else if(isAspect) {
+        // loop over elements
+        for ( it.Begin(); !it.IsEnd(); it++ ) {
+
+          const Elem * ptElem = it.GetElem();
+          ElemShapeMap & esm = *GetElemShapeMap(ptElem);
+          Double minEdge, maxEdge;
+          esm.GetMaxMinEdgeLength(maxEdge,minEdge);
+          actVal[it.GetPos()] = maxEdge / minEdge;
+        } // loop over elements
       } else {
         // loop over elements
         for ( it.Begin(); !it.IsEnd(); it++ ) {
@@ -1036,12 +1064,6 @@ namespace CoupledField {
           ElemShapeMap & esm = *GetElemShapeMap(ptElem);
           Vector<Double> midPoint = 
               Elem::shapes[ptElem->type].midPointCoord;
-
-          if( midPoint.GetSize() == 3) {
-            midPoint[0]=-0.7;
-            midPoint[1]=-0.7;
-            midPoint[2]=0.08;
-          }
           esm.CalcJ( jac, midPoint );
 
           jac.Determinant(jacDet);

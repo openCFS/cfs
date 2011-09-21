@@ -66,6 +66,13 @@ namespace CoupledField {
 //    Setup( dynamic_cast<StdMatrix&>(sysMat), analysis_id );
 //  }
 
+  
+  void BasePrecond::GetPrecondSysMat( BaseMatrix& sysMat ) {
+    WARN("Using fall-back default export for preconditioner matrix");
+    sysMat.Init();
+  }
+    
+  
   // ------------------------------------------------------------------------
   //  S B M   -  P R E C O N D I T I O N E R
   // ------------------------------------------------------------------------
@@ -142,6 +149,25 @@ namespace CoupledField {
       // If preconditioner for row is defined, apply it
       if( stdPreconds_[iRow] != NULL ) {
         stdPreconds_[iRow]->Setup(A(iRow,iRow),analysis_id);
+      }
+    }
+  }
+  
+  void BaseSBMPrecond::GetPrecondSysMat( BaseMatrix& sysMat ) {
+
+    SBM_Matrix& sbmA = dynamic_cast<SBM_Matrix&>(sysMat);
+    // loop over all diagonal
+    for( UInt iRow = 0; iRow < numBlocks_; ++iRow ) {
+      for( UInt iCol = iRow; iCol < numBlocks_; ++iCol ) {
+
+        if( iCol == iRow ) {
+          if( stdPreconds_[iRow] != NULL ) {
+            // get preconditioned sysmat from diagonal precond
+            stdPreconds_[iRow]->GetPrecondSysMat( sbmA(iRow,iRow) );
+          }
+        } else { 
+          sbmA(iRow,iCol).Init();
+        }
       }
     }
   }

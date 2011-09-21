@@ -64,6 +64,9 @@ namespace CoupledField {
     void Setup( T_storage &sysmat,
                 PtrParamNode analysis_id);
 
+    //! \copydoc BasePrecond::ExportPrecondSysMat
+    virtual void GetPrecondSysMat( BaseMatrix& sysMat );
+    
     //! Query type of preconditioner object
 
     //! When called this method returns the type of the preconditioner object.
@@ -145,6 +148,9 @@ namespace CoupledField {
     BasePrecond::PrecondType GetPrecondType() const {
       return BasePrecond::BLOCK_JACOBI;
     };
+    
+    //! \copydoc BasePrecond::ExportPrecondSysMat
+    virtual void GetPrecondSysMat( BaseMatrix& sysMat );
 
   private:
 

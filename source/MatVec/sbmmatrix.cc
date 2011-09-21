@@ -32,6 +32,24 @@ namespace CoupledField {
 
   }
 
+  // ********************
+  //   Copy Constructor
+  // ********************
+  SBM_Matrix::SBM_Matrix( const SBM_Matrix& origMat ) {
+
+    //  initialize from origMat
+    nrows_ = origMat.nrows_;
+    ncols_ = origMat.ncols_;
+    amSymm_ = origMat.amSymm_;
+    myEntryType_  = origMat.myEntryType_;
+    subMat_.Resize( nrows_ * ncols_ );
+    subMat_.Init( NULL );
+    for ( UInt k = 0; k < subMat_.GetSize(); k++ ) {
+      if(origMat.subMat_[k] != NULL)
+        subMat_[k] = CopyStdMatrixObject( *(origMat.subMat_[k]));
+    }
+  }
+  
 
   // *****************************
   //   Initialise matrix to zero

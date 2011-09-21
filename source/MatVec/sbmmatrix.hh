@@ -135,6 +135,12 @@ namespace CoupledField {
         delete subMat_[k];
       }
     }
+    
+    //! Copy Constructor
+    
+    //! This method creates a deep copy of the original matrix, i.e. a copy of
+    //! all the sub-matrices.
+    SBM_Matrix( const SBM_Matrix& origMat );
 
     //! Insert a StdMatrix into the SBM_Matrix
 

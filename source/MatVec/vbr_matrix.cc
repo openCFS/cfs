@@ -48,7 +48,51 @@ namespace CoupledField {
   template<typename T>
   VBR_Matrix<T>::VBR_Matrix( const VBR_Matrix<T> &origMat ) {
     
-    EXCEPTION("Implement me");
+    this->nnz_   = origMat.nnz_;
+    this->ncols_ = origMat.ncols_;
+    this->nrows_ = origMat.nrows_;
+
+    nNzEff_  = origMat.nNzEff_;
+    nbRows_  = origMat.nbRows_;
+    nbCols_  = origMat.nbCols_;
+    nBlocks_ = origMat.nBlocks_;
+    oneOverBlockSize_ = origMat.oneOverBlockSize_;
+    numNonDiagBlockEntires_ = origMat.numNonDiagBlockEntires_;
+
+    // Create empty data structurs
+    NEWARRAY( bRow_,   UInt, nbRows_ + 1 );
+    NEWARRAY( rowPtr_, UInt, nbRows_ + 1 );
+    NEWARRAY( diagBlockPtr_, UInt, nbRows_ + 1 );
+    for(UInt i=0; i < nbRows_+1; ++i ) {
+      bRow_[i] = origMat.bRow_[i];
+      rowPtr_[i] = origMat.rowPtr_[i];
+      diagBlockPtr_[i] = origMat.diagBlockPtr_[i];
+    }
+
+    NEWARRAY( bCol_,   UInt, nbCols_ + 1 );
+    for(UInt i=0; i < nbCols_+1; ++i ) {
+      bCol_[i] = origMat.bCol_[i];
+    }
+
+    NEWARRAY( valPtr_, UInt, nBlocks_ + 1);
+    for(UInt i=0; i < nBlocks_+1; ++i ) {
+      valPtr_[i] = origMat.valPtr_[i];
+    }
+
+    NEWARRAY( colInd_, UInt, nBlocks_);
+    for(UInt i=0; i < nBlocks_; ++i ) {
+      colInd_[i] = origMat.colInd_[i];
+    }
+
+    NEWARRAY( data_, T, this->nNzEff_ );
+    for(UInt i=0; i < this->nNzEff_ ; ++i ) {
+      data_[i] = origMat.data_[i];
+    }
+
+    NEWARRAY( diagPtr_, UInt, this->nrows_ );
+    for(UInt i=0; i < this->nrows_ ; ++i ) {
+      diagPtr_[i] = origMat.diagPtr_[i];
+    }
   }
 
   template<typename T>
