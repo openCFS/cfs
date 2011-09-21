@@ -810,15 +810,30 @@ namespace CoupledField
           nodalVel[d][n] = velField[velIdx+d];
         }
       }
+      if(flowData.find(SMOOTH_DISPLACEMENT) != flowData.end())
+      {
+        FlowDataPartStruct& dataSmoothDispl = flowData[SMOOTH_DISPLACEMENT];
+        std::vector<Double>& mechSmoothVec = dataSmoothDispl.data;
+        for( UInt n=0; n<numElemNodes; n++)
+        {
+          nodeNum = topology_[elemIdx * maxNENodes + n];
+          UInt smoothIdx = regionNodeIndices_[regionIdx][nodeNum] * dim_;
+
+          for( UInt d=0; d<elemDim; d++)
+          {
+            coordMat[d][n] += mechSmoothVec[smoothIdx +d];
+          }
+        }
+      }
 
       try {
         if (doIntAverageCentre_)
         {
           ptElemIntegr_[elemType]->PerformIntegrationCentre( coordMat, nodalVel,
-                                                       elemVec, nodalLoadDensity, divLHTensor, density);
+                               elemVec, nodalLoadDensity, divLHTensor, density);
         } else {
           ptElemIntegr_[elemType]->PerformIntegration( coordMat, nodaldTijdxj, nodalVel,
-                                                       elemVec, nodalLoadDensity, divLHTensor, density);
+                               elemVec, nodalLoadDensity, divLHTensor, density);
         }
       } catch (CoupledField::Exception &ex)
       {
