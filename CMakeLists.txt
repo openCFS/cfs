@@ -560,6 +560,7 @@ ENDIF(USE_GMSH)
 IF(USE_HDF5)
   SUBDIRS(source/DataInOut/SimInOut/hdf5)
   SUBDIRS(source/DataInOut/SimInOut/xdmf)
+  SUBDIRS(source/DataInOut/SimInOut/MatlabFile)
 ENDIF(USE_HDF5)
 
 IF(USE_GIDPOST)

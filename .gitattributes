@@ -732,6 +732,11 @@ source/DataInOut/SimInOut/GiD/simOutGiD.hh svneol=native#text/x-c%2B%2Bhdr
 source/DataInOut/SimInOut/InfoResultOutput/CMakeLists.txt svneol=native#text/plain
 source/DataInOut/SimInOut/InfoResultOutput/SimOutputInfo.cc svneol=native#text/x-c%2B%2Bsrc
 source/DataInOut/SimInOut/InfoResultOutput/SimOutputInfo.hh svneol=native#text/x-c%2B%2Bhdr
+source/DataInOut/SimInOut/MatlabFile/CMakeLists.txt -text
+source/DataInOut/SimInOut/MatlabFile/MatFile.cc -text
+source/DataInOut/SimInOut/MatlabFile/MatFile.hh -text
+source/DataInOut/SimInOut/MatlabFile/MatFileDemo.cc -text
+source/DataInOut/SimInOut/MatlabFile/license.txt -text
 source/DataInOut/SimInOut/Streaming/CMakeLists.txt -text
 source/DataInOut/SimInOut/Streaming/SimOutputStreaming.cc -text
 source/DataInOut/SimInOut/Streaming/SimOutputStreaming.hh -text
