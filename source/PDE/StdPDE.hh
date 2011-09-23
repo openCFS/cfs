@@ -487,11 +487,16 @@ namespace CoupledField {
     //! map for each id the nonlinearity
     std::map<std::string, NonLinType> nonLinIdType_;
 
-    //! name for input file, which contains grid deformations
-    std::string fileName4GridDisplacements_ ;
-
-    //! regions for ggrid displacements
-    StdVector<std::string> regions4GridDisplacements_;
+    struct GridDisplData {
+      //! name for input file, which contains grid deformations
+      std::string fileName4GridDisplacements_ ;
+      //! type from which to use the deformation
+      //! (SMOOTH_DISPLACEMENT or MECH_DISPLACEMENT)
+      SolutionType solType;
+    };
+    //! regions for grid displacements
+    // TODO: change StdVector<std::string> regions4GridDisplacements_;
+    std::map<RegionIdType, GridDisplData> gridDisplData_;
 
     //@}
 

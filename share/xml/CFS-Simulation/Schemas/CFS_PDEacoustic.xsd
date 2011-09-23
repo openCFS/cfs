@@ -43,6 +43,10 @@
                       use="optional" default=""/>
                     <xsd:attribute name="nonLinId" type="xsd:token" 
                       use="optional" default=""/>
+                    <xsd:attribute name="displInputId" type="xsd:token" 
+                      use="optional" default=""/>
+                    <xsd:attribute name="displSolType" type="xsd:token" 
+                      use="optional" default="mechDisplacement"/>
                   </xsd:complexType>
                 </xsd:element>
               </xsd:sequence>

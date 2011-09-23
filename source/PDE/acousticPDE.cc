@@ -394,6 +394,17 @@ namespace CoupledField {
 
       PtrParamNode actRegionNode =
         myParam_->Get("regionList")->GetByVal( "region", "name", actRegionName );
+      std::string displInputId;
+      actRegionNode->GetValue("displInputId", displInputId);
+      if (updatedLagrangeForm_ &&  displInputId != "")
+      {
+        std::string solType;
+        GridDisplData gridDispData;
+        gridDispData.fileName4GridDisplacements_ = displInputId;
+        actRegionNode->GetValue("displSolType", solType);
+        gridDispData.solType = SolutionTypeEnum.Parse(solType);
+        gridDisplData_[actRegion] = gridDispData;
+      }
 
       // ********************************************************************
       //   Attention:
@@ -1216,11 +1227,6 @@ namespace CoupledField {
         acouRHSContext->SetPtPde( this );
         acouRHSContext->SetResult( results_[0], acouRHSRegionNodeList );
         assemble_->AddLinearForm( acouRHSContext );
-
-        //
-        (*regionIter)->GetValue("inputId", fileName4GridDisplacements_ );
-        regions4GridDisplacements_.Push_back(rhsRegion);
-
       }
     }
   }
