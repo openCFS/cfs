@@ -105,7 +105,9 @@ namespace CoupledField {
       if( actType == HYSTERESIS ) {
         isHysteresis_ = true;
       }
-      nonLinIdType_[actId] = actType;
+
+      //save for each nonlinearity type the id
+      nonLinTypes_[actId] = actType;      
     }
 
     // Run over all region and set entry in "regionNonLinId"
@@ -127,29 +129,31 @@ namespace CoupledField {
       if( actNonLinId == "" )
         continue;
 
+      typedef boost::tokenizer< boost::char_separator<char> > Tok;
+      boost::char_separator<char> sep(";|, ");
+      
+      Tok tok(actNonLinId, sep);
+
       actRegionId = ptgrid_->GetRegion().Parse( actRegionName );
 
-      // Check nonLinId was already registerd
-      if( nonLinIdType_.find( actNonLinId) == nonLinIdType_.end() ) {
-        EXCEPTION( "NonLinearity with id '" << actNonLinId
-                   << "' was not defined in 'nonLinList'" );
+      for(Tok::iterator it=tok.begin(); it!=tok.end(); ++it) {
+        std::string nonLinId = (*it);
+
+        if(nonLinTypes_.find(nonLinId) == nonLinTypes_.end()) {
+          WARN( "NonLinearity with id '" << nonLinId 
+                << "' was not defined in 'nonLinList'");
+          continue;
+        }
+
+        regionNonLinTypes_[actRegionId].Push_back( nonLinTypes_[nonLinId] );
+
+        //write info
+        std::string nonLinString;
+        Enum2String( nonLinTypes_[nonLinId], nonLinString );
+        Info->PrintF( pdename_, " %s: %s\n", actRegionName.c_str(), 
+                      nonLinString.c_str() );
+
       }
-
-      regionNonLinId_[actRegionId] = actNonLinId;
-      regionNonLinType_[actRegionId] = nonLinIdType_[actNonLinId];
-
-      // Log to info file
-      std::string nonLinString;
-      Enum2String( nonLinIdType_[actNonLinId], nonLinString );
-      Info->PrintF( pdename_, " %s: %s\n", actRegionName.c_str(),
-                    nonLinString.c_str() );
-
-    }
-
-    // set nonlinearity flag only, if any region references
-    // a nonlinearity at all
-    if( regionNonLinId_.size() > 0 ) {
-      nonLin_ = true;
     }
 
     // Here we need in addition the nonLinMethod_ for the definition
@@ -179,49 +183,55 @@ namespace CoupledField {
    // Define integrators for "standard" materials
     std::map<RegionIdType, BaseMaterial*>::iterator it;
     for ( it = materials_.begin(); it != materials_.end(); it++ ) {
-
+      
       // Set current region and material
-       actRegion = it->first;
-       actMat    = it->second;
-
+      actRegion = it->first;
+      actMat    = it->second;
+      
       // Get current region node
       std::string regionName = ptgrid_->GetRegion().ToString(actRegion);
-
+      
       // create new entity list
       shared_ptr<ElemList> actSDList( new ElemList(ptgrid_ ) );
       actSDList->SetRegion( actRegion );
-
-      if ( regionNonLinType_[actRegion] != NO_NONLINEARITY ) {
-
-//       
-        if ( regionNonLinType_[actRegion] == HYSTERESIS ) {
+      
+      //get possible nonlinearities defined in this region
+      StdVector<NonLinType> nonLinTypes = regionNonLinTypes_[actRegion]; 
+    
+      if ( nonLinTypes.GetSize() > 0 ) {
+      
+        if ( nonLinTypes.Find(HYSTERESIS) != -1 ) {
           EXCEPTION("Magnetics with nonlineaity in 3D not supported");
         }
-
-        nLinCurlCurlEdgeInt* curlcurlNL = 
+        
+        if ( nonLinTypes.Find(PERMEABILITY) != -1 ) {
+          
+          // informs material that approx./interpol. for permeability is needed
+          actMat->NeedApproxMatCurve( MAG_PERMEABILITY );
+          
+          nLinCurlCurlEdgeInt* curlcurlNL = 
             new nLinCurlCurlEdgeInt( actMat, upLagrangeForm );
-
-        curlcurlNL->SetNonLinMethod( nonLinMethod_ );      
-        curlcurlNL->SetSolution( dynamic_cast<NodeStoreSol<Double>&>(*sol_ ));
-
-        BiLinFormContext * stiffContext = 
+          
+          curlcurlNL->SetNonLinMethod( nonLinMethod_ );      
+          curlcurlNL->SetSolution( dynamic_cast<NodeStoreSol<Double>&>(*sol_ ));
+          
+          BiLinFormContext * stiffContext = 
             new BiLinFormContext( curlcurlNL, STIFFNESS );
-        stiffContext->SetPtPdes(this, this);   
-        stiffContext->SetResults( results_[0], results_[0],
-                                  actSDList, actSDList );     
-        assemble_->AddBiLinearForm( stiffContext);
-
-        //save bilinearForm
-        pdeBilinearForms_[actRegion][curlcurlNL->GetName()] = curlcurlNL;
-
-        if ( regionNonLinType_[actRegion] == PERMEABILITY ) {
+          stiffContext->SetPtPdes(this, this);   
+          stiffContext->SetResults( results_[0], results_[0],
+                                    actSDList, actSDList );     
+          assemble_->AddBiLinearForm( stiffContext);
+          
+          //save bilinearForm
+          pdeBilinearForms_[actRegion][curlcurlNL->GetName()] = curlcurlNL;
+          
           // nonlinear RHS linearform!!
           nLinMagEdge_linFormInt* rhsSource 
-          = new nLinMagEdge_linFormInt( actMat, upLagrangeForm);
-
+            = new nLinMagEdge_linFormInt( actMat, upLagrangeForm);
+          
           rhsSource->SetSolution( dynamic_cast<NodeStoreSol<Double>&>(*sol_ ));
           LinearFormContext * rhsContext = 
-              new LinearFormContext( rhsSource );
+            new LinearFormContext( rhsSource );
           rhsContext->SetPtPde( this );
           rhsContext->SetResult( results_[0], actSDList );
           assemble_->AddLinearForm( rhsContext );
@@ -499,7 +509,7 @@ namespace CoupledField {
 
 
         // Create stiffness integrator
-        if ( regionNonLinType_[regionIt.GetRegion()] != NO_NONLINEARITY ) {
+        //        if ( regionNonLinType_[regionIt.GetRegion()] != NO_NONLINEARITY ) {
 
 //          bilinear_stiff = new nLinCurlCurlEdgeInt( materials_[regionIt.GetRegion()],
 //                                                    true );
@@ -509,10 +519,10 @@ namespace CoupledField {
 //          // VERY IMPORTANT: Set nonlinear-method "fixpoint", as otherwise also
 //          // the Frechet part of the stiffness is calculated!
 //          bilinear_stiff->SetNonLinMethod( "fixPoint" );
-        } else {
+//        } else {
           bilinear_stiff = new CurlCurlEdgeInt( materials_[regionIt.GetRegion()], true);
 
-        }
+          //        }
         ElemList actSDList(ptgrid_ );
         actSDList.SetRegion( regionIt.GetRegion() );
         EntityIterator elemIt = actSDList.GetIterator();
@@ -702,7 +712,11 @@ namespace CoupledField {
     RegionIdType actRegionId = it.GetElem()->regionId;
     
     CurlCurlEdgeInt* curlOp = NULL;
-    if ( regionNonLinType_[actRegionId] != NO_NONLINEARITY ) {
+
+    //get possible nonlinearities defined in this region
+    StdVector<NonLinType> nonLinTypes = regionNonLinTypes_[actRegionId]; 
+
+    if ( nonLinTypes.Find(PERMEABILITY) != -1 ) {
       std::string bilinearName = "nLinCurlCurlEdgeInt";
       curlOp = dynamic_cast<nLinCurlCurlEdgeInt*>(pdeBilinearForms_[actRegionId][bilinearName]);
     }
@@ -842,10 +856,11 @@ namespace CoupledField {
       RegionIdType actRegion = actEl.regionId; 
 
       // Check, if region is nonlinear
-      if ( regionNonLinType_[actRegion] == PERMEABILITY ) {
+      StdVector<NonLinType> nonLinTypes = regionNonLinTypes_[actRegion]; 
 
+      if ( nonLinTypes.Find(PERMEABILITY) != -1 ) {      
         // Obtain nonlinear approximation functional
-        ApproxData * approx  = materials_[actRegion]->GetNonlinFncBH(MAG_PERMEABILITY);
+        ApproxData * approx  = materials_[actRegion]->GetNonlinFnc(MAG_PERMEABILITY);
 
         // Calculate flux density in element midpoint
         CalcFluxDensityAtIP( it, 0, elemFlux );

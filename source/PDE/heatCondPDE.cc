@@ -9,6 +9,8 @@
 #include <string>
 #include <math.h>
 
+#include <boost/tokenizer.hpp>
+
 #include "heatCondPDE.hh"
 
 #include "Forms/laplaceInt.hh"
@@ -174,7 +176,8 @@ void HeatCondPDE::ReadSpecialBCs() {
         NonLinType actType;
         String2Enum( actTypeString, actType );
 
-        nonLinIdType_[actId] = actType;
+        //save for each nonlinearity type the id
+        nonLinTypes_[actId] = actType;
       }
     }
 
@@ -188,8 +191,10 @@ void HeatCondPDE::ReadSpecialBCs() {
     if( regionNodes.GetSize() > 0 ) {
       Info->PrintF( pdename_, "Non-linearity in following region(s)\n" );
     }
+
     for( UInt i = 0; i < regionNodes.GetSize(); i++ ) {
-      
+      //take cae: one region can have more then one nonlinearity!!
+
       // get data
       regionNodes[i]->GetValue( "name", actRegionName );
       regionNodes[i]->GetValue( "nonLinId", actNonLinId );
@@ -197,36 +202,70 @@ void HeatCondPDE::ReadSpecialBCs() {
       if( actNonLinId == "" )
         continue;
       
+      typedef boost::tokenizer< boost::char_separator<char> > Tok;
+      boost::char_separator<char> sep(";|, ");
+      
+      Tok tok(actNonLinId, sep);
+
       actRegionId = ptgrid_->GetRegion().Parse( actRegionName );
-      
-      // Check nonLinId was already registerd
-      if( nonLinIdType_.find( actNonLinId) == nonLinIdType_.end() ) {
-        EXCEPTION( "NonLinearity with id '" << actNonLinId 
-                   << "' was not defined in 'nonLinList'" );
-      }
-      NonLinType actType = nonLinIdType_[actNonLinId];
-      regionNonLinId_[actRegionId] = actNonLinId;
-      regionNonLinType_[actRegionId] = actType;
 
-      // check type
-      if( actType == NLHEAT_CONDUCTIVITY || actType == NLHEAT_CAPACITY ) {
+      for(Tok::iterator it=tok.begin(); it!=tok.end(); ++it) {
+        std::string nonLinId = (*it);
+
+        if(nonLinTypes_.find(nonLinId) == nonLinTypes_.end()) {
+          WARN( "NonLinearity with id '" << nonLinId 
+                << "' was not defined in 'nonLinList'");
+          continue;
+        }
+
+        regionNonLinTypes_[actRegionId].Push_back( nonLinTypes_[nonLinId] );
+
+        //write info
+        std::string nonLinString;
+        Enum2String( nonLinTypes_[nonLinId], nonLinString );
+        Info->PrintF( pdename_, " %s: %s\n", actRegionName.c_str(), 
+                      nonLinString.c_str() );
+
+        //if one nonlinearity is set, then the whole PDE is set to nonlinear
         nonLin_ = true;
+        totalFormulation_ = true;
       }
+    }
+  
+ //      //go over all nonlinearities
+//       std::map<NonLinType, std::string>::iterator it;
+//       for ( it=nonLinTypes_.begin() ; it != nonLinTypes_.end(); it++ ) {
+//         nonLinTypesRegionId_[ (*it).first ] = actRegionId;
 
-      // Log to info file
-      std::string nonLinString;
-      Enum2String( nonLinIdType_[actNonLinId], nonLinString );
-      Info->PrintF( pdename_, " %s: %s\n", actRegionName.c_str(), 
-                    nonLinString.c_str() );
+//       // Check nonLinId was already registerd
+//       if( nonLinIdType_.find( actNonLinId) == nonLinIdType_.end() ) {
+//         EXCEPTION( "NonLinearity with id '" << actNonLinId 
+//                    << "' was not defined in 'nonLinList'" );
+//       }
+//       NonLinType actType = nonLinIdType_[actNonLinId];
+//       regionNonLinId_[actRegionId] = actNonLinId;
+//       regionNonLinType_[actRegionId] = actType;
+//       std::cout << "Init: type: " << actType << std::endl;
+
+//       // check type
+//       if( actType == NLHEAT_CONDUCTIVITY || actType == NLHEAT_CAPACITY ) {
+//         nonLin_ = true;
+//       }
+
+//       // Log to info file
+//       std::string nonLinString;
+//       Enum2String( nonLinIdType_[actNonLinId], nonLinString );
+//       Info->PrintF( pdename_, " %s: %s\n", actRegionName.c_str(), 
+//                     nonLinString.c_str() );
       
-    }
+//     }
 
-    // set nonlinearity flag only, if any region references
-    // a nonlinearity at all
-    if( regionNonLinId_.size() > 0 ) {
-      nonLin_ = true;
-      totalFormulation_ = true;
-    }
+//     // set nonlinearity flag only, if any region references
+//     // a nonlinearity at all
+//     if( regionNonLinId_.size() > 0 ) {
+//       nonLin_ = true;
+//       totalFormulation_ = true;
+//     }
     
     // Here we need in addition the nonLinMethod_ for the definition
     // of the integrators
@@ -277,7 +316,15 @@ void HeatCondPDE::DefineIntegrators()
     // stiffness integrator
     // ====================================================================
 
-    if ( regionNonLinType_[subdoms_[actSD]] == NLHEAT_CONDUCTIVITY ) {
+    //get possible nonlinearities defined in this region
+    //regionID = subdoms_[actSD]
+    StdVector<NonLinType> nonLinTypes = regionNonLinTypes_[subdoms_[actSD]]; 
+    
+    if ( nonLinTypes.Find(NLHEAT_CONDUCTIVITY) != -1 ) {
+      // informs material that approx./interpol. for heat conductivity is needed
+      std::cout << "Do NL Cond" << std::endl;
+
+      actMat->NeedApproxMatCurve( HEAT_CONDUCTIVITY );
 
       BaseForm *nlBilinearStiff = new nlinHeatStiffInt( actMat, tensorType, false );
 
@@ -355,7 +402,10 @@ void HeatCondPDE::DefineIntegrators()
 
     if (isElectroCoupled_ == false && isMechCoupled_ == false ) {
 
-      if ( regionNonLinType_[actSD] == NLHEAT_CAPACITY ) {
+      if ( nonLinTypes.Find( NLHEAT_CAPACITY) != -1 ) {
+        // informs material that approx./interpol. for heat conductivity is needed
+        actMat->NeedApproxMatCurve( HEAT_CAPACITY );
+
         BaseForm *nlBilinearMass = new nlinHeatMassInt( actMat, tensorType, false );
 
         nlBilinearMass->SetNonLinMethod( nonLinMethod_ );      

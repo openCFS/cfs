@@ -822,6 +822,25 @@ namespace CoupledField {
     }
   }
 
+
+  template<>
+  void String2Enum<ApproxCurveType>( const std::string &in,  ApproxCurveType &out ) {
+
+    if ( in == "linInterpolation" ) {
+      out = LIN_INTERPOLATE;
+    }
+    else if ( in == "cubicSplines" ) {
+      out = CUBIC_SPLINES;
+    }
+    else if ( in == "smoothSplines" ) {
+      out = SMOOTH_SPLINES;
+    }
+    else {
+      EXCEPTION( "'" << in << "' cannot be converted into an '"
+                 << "DataType' item!" );
+    }
+  }
+
   template<>
   void Enum2String<Directions>(const Directions &in,
 			       std::string &out) {
@@ -1132,6 +1151,27 @@ namespace CoupledField {
     default:
       EXCEPTION( "No string value found for the specified value of the "
                << "enumeration datatype IDBCType.\n"
+               << "Seems to indicate a missing case implementation!" );
+    }
+  }
+
+  template<>
+  void Enum2String<ApproxCurveType>(const ApproxCurveType &in,
+                             std::string &out) {
+    switch( in ) {
+
+    case LIN_INTERPOLATE:
+      out = "linInterpolation";
+      break;
+    case CUBIC_SPLINES:
+      out = "cubicSplines";
+      break;
+    case SMOOTH_SPLINES:
+      out = "smoothSplines";
+      break;
+    default:
+      EXCEPTION( "No string value found for the specified value of the "
+               << "enumeration datatype ApproxCurveType.\n"
                << "Seems to indicate a missing case implementation!" );
     }
   }

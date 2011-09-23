@@ -805,22 +805,35 @@ namespace CoupledField {
 
       // we know only nonlinear isotropic material
       if(mag->Get("magneticPermeability")->Has("nonlinear") && 
-         mag->Get("magneticPermeability")->Get("nonlinear")->Has("isotropic"))
-      {
+         mag->Get("magneticPermeability")->Get("nonlinear")->Has("isotropic")) {
         PtrParamNode iso = mag->Get("magneticPermeability")->Get("nonlinear")->Get("isotropic");
-        // In r7562  dependency and  approxType are not set in Material
-        
-        // read nonlinear approxType of magnetic permeability
-        if(iso->Has("measAccuracy"))
-          material->SetScalar(iso->Get("measAccuracy")->As<Double>(), DATA_ACCURACY, Global::REAL );
-                  
-        // read nonlinear approxType of magnetic permeability
-        if(iso->Has("maxApproxVal"))
-          material->SetScalar(iso->Get("maxApproxVal")->As<Double>(), MAX_APPROX_VAL, Global::REAL );
 
-        // read nonlinear dataName of magnetic permeability
-        if(iso->Has("dataName"))
-          material->SetNonlinFileName(iso->Get("dataName")->As<std::string>().c_str(), MAG_PERMEABILITY);
+        nlMatDescriptor info;
+        info. approxType = NO_APPROX_TYPE;
+        info.measAccuracy = 0.01;
+        info.maxVal = 2.5;
+        info.fileName = "";
+        
+        // read approximation type  
+        if(iso->Has("approxType")) {
+          std::string type =  iso->Get("approxType")->As<std::string>();
+          String2Enum(type,info.approxType );
+        }
+        
+        // read measurement accuracy
+        if(iso->Has("measAccuracy")) 
+          info.measAccuracy = iso->Get("measAccuracy")->As<Double>();
+        
+        // read maximum value for approximation
+        if(iso->Has("maxApproxVal")) 
+          info.maxVal = iso->Get("maxApproxVal")->As<Double>();
+        
+        // read name of function file 
+        if(iso->Has("dataName")) 
+          info.fileName = iso->Get("dataName")->As<std::string>().c_str();
+
+        //set info to material class
+        material->SetNonLinMat(MAG_PERMEABILITY, info);
       } // nonlinear isotropic material   
     } // end of magneticPermeability  
 
@@ -886,18 +899,34 @@ namespace CoupledField {
          therm->Get("heatCapacity")->Get("nonlinear")->Has("isotropic"))
         {
           PtrParamNode iso = therm->Get("heatCapacity")->Get("nonlinear")->Get("isotropic");
-              
-          // read nonlinear approxType of magnetic permeability
-          if(iso->Has("measAccuracy"))
-            material->SetScalar(iso->Get("measAccuracy")->As<Double>(), DATA_ACCURACY, Global::REAL );
+
+          nlMatDescriptor info;
+          info. approxType = NO_APPROX_TYPE;
+          info.measAccuracy = 0.01;
+          info.maxVal = 1000;
+          info.fileName = "";
+
+          // read approximation type  
+          if(iso->Has("approxType")) {
+            std::string type =  iso->Get("approxType")->As<std::string>();
+            String2Enum(type,info.approxType );
+          }
+
+          // read measurement accuracy
+          if(iso->Has("measAccuracy")) 
+            info.measAccuracy = iso->Get("measAccuracy")->As<Double>();
           
-          // read nonlinear approxType of magnetic permeability
-          if(iso->Has("maxApproxVal"))
-            material->SetScalar(iso->Get("maxApproxVal")->As<Double>(), MAX_APPROX_VAL, Global::REAL );
-          
-          // read nonlinear dataName of magnetic permeability
-          if(iso->Has("dataName"))
-            material->SetNonlinFileName(iso->Get("dataName")->As<std::string>().c_str(), HEAT_CAPACITY);
+          // read maximum value for approximation
+          if(iso->Has("maxApproxVal")) 
+            info.maxVal = iso->Get("maxApproxVal")->As<Double>();
+                   
+          // read name of function file 
+          if(iso->Has("dataName")) 
+            info.fileName = iso->Get("dataName")->As<std::string>().c_str();
+
+          //set info to material class
+          material->SetNonLinMat(HEAT_CAPACITY, info);
+
         } // nonlinear isotropic material  
     }
 
@@ -932,17 +961,32 @@ namespace CoupledField {
           {
             PtrParamNode iso = therm->Get("heatConductivity")->Get("nonlinear")->Get("isotropic");
             
-            // read nonlinear approxType 
-            if(iso->Has("measAccuracy"))
-              material->SetScalar(iso->Get("measAccuracy")->As<Double>(), DATA_ACCURACY, Global::REAL );
+            nlMatDescriptor info;
+            info. approxType = NO_APPROX_TYPE;
+            info.measAccuracy = 0.01;
+            info.maxVal = 1000;
+            info.fileName = "";
             
-            // read nonlinear approxType 
-            if(iso->Has("maxApproxVal"))
-              material->SetScalar(iso->Get("maxApproxVal")->As<Double>(), MAX_APPROX_VAL, Global::REAL );
+            // read approximation type  
+            if(iso->Has("approxType")) {
+              std::string type =  iso->Get("approxType")->As<std::string>();
+              String2Enum(type,info.approxType );
+            }
             
-            // read nonlinear dataName 
-            if(iso->Has("dataName"))
-              material->SetNonlinFileName(iso->Get("dataName")->As<std::string>().c_str(), HEAT_CONDUCTIVITY);
+            // read measurement accuracy
+            if(iso->Has("measAccuracy")) 
+              info.measAccuracy = iso->Get("measAccuracy")->As<Double>();
+            
+            // read maximum value for approximation
+            if(iso->Has("maxApproxVal")) 
+              info.maxVal = iso->Get("maxApproxVal")->As<Double>();
+            
+            // read name of function file 
+            if(iso->Has("dataName")) 
+              info.fileName = iso->Get("dataName")->As<std::string>().c_str();
+            
+            //set info to material class
+            material->SetNonLinMat(HEAT_CONDUCTIVITY, info);
           } // nonlinear isotropic material  
         
       }

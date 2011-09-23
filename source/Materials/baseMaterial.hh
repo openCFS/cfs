@@ -25,6 +25,15 @@ namespace CoupledField {
   class PiezoMicroModelHF;
   class PiezoMicroModelBK;
 
+
+  struct nlMatDescriptor {
+    ApproxCurveType approxType;
+    std::string fileName;
+    Double measAccuracy;
+    Double maxVal;
+  };
+
+
   //! Class for Material Data
   /*! 
     Base class for handling material data
@@ -39,6 +48,7 @@ namespace CoupledField {
     typedef std::map<MaterialType, std::string > stringMap;
     typedef std::map<MaterialType, Integer > integerMap;
     typedef std::map<MaterialType, MathParser::HandleType > handleMap;
+    typedef std::map<MaterialType, nlMatDescriptor> nonLinMatInfoMap;
 
     typedef enum {GENERAL, ISOTROPIC, ORTHOTROPIC, TRANS_OTHOTROP } SymmetryType;
 
@@ -94,26 +104,12 @@ namespace CoupledField {
     integerMap GetIntegerParams() const
     { return integerParams_;};
 
-    //! set file name containing the nonlinear data
-    void SetNonlinFileName( const char *filename, MaterialType matType) {
-      nonlinFileName_[matType].assign( filename );
-    }
+    //! set, which material parameter has to be approx. /interp. 
+    //! and is needed by bi- and linear-forms
+    void NeedApproxMatCurve(  MaterialType type );
 
-    //! get nonlinear file name
-    std::string GetNonlinFileName( MaterialType matType ) {
-      stringMap::const_iterator pos;
-      pos = nonlinFileName_.find( matType );
-      if ( pos == nonlinFileName_.end() ) 
-        return "";
-      else
-        return (pos->second);
-    }
-
-    //! set, which nonlinear curves are needed by forms
-    void NeedApproxMatCurve( ApproxMaterialCurves type );
-
-    virtual ApproxData* GetNonlinFncBH( MaterialType matType ) {
-      EXCEPTION("BaseMaterial: GetNlinFncBH() not implemented");
+    virtual ApproxData* GetNonlinFnc( MaterialType matType ) {
+      EXCEPTION("BaseMaterial: GetNlinFnc() not implemented");
       return NULL;
     };
 
@@ -172,6 +168,10 @@ namespace CoupledField {
       EXCEPTION("not implemented");
     }
 
+    //! set info for the nonliear approx. / interp. of a material
+    virtual void SetNonLinMat(MaterialType matType, nlMatDescriptor& data ) {
+      nonLinMatInfo_[matType] = data;
+    }
 
     //! get a string material parameter
     virtual void GetScalar( std::string& param, MaterialType matType) const;
@@ -387,11 +387,12 @@ namespace CoupledField {
     //! name of material file
     std::string matFileName_;
 
-    //! name of file containing the nonlinear data
-    stringMap nonlinFileName_;
+    //! contains all info to a nonlinear material parameter
+    //! e.g., approximation Type, accuracy, etc.
+    nonLinMatInfoMap nonLinMatInfo_;
 
-    //! set, which knows, which material parameters have been set
-    std::set<ApproxMaterialCurves> needApproxMatCurves_;
+    //! set, which knows the material parameter to be approximated
+    std::set<MaterialType> needApproxMatCurves_;
 
     //! set, which knows about the allowed material parameters for a material class
     std::set<MaterialType> isAllowed_;

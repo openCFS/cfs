@@ -16,13 +16,16 @@ namespace CoupledField {
   public:
 
     //! constructor
-    ApproxData( std::string nlFncName, ApproxCurveType curveType );
+    ApproxData( std::string nlFncName, MaterialType matType );
 
     //! destructor: nothing to do
     virtual ~ApproxData() {;};
 
     //! reads in the sampled data form file with name fncName
     void ReadNlinFunc( std::string fncName );
+
+    //! perform checks
+    void PerformChecksOnInputData();
 
     //! performs the approximation
     virtual void CalcApproximation( bool start=true ) = 0;
@@ -72,8 +75,8 @@ namespace CoupledField {
     Vector<Double> x_;  //!< independent value
     Vector<Double> y_;  //!< function value
     UInt numMeas_;      //!< number of sampled points
-    ApproxCurveType curveType_; //!< type of measured curve to be approximated
-
+    MaterialType matType_; //!< material parameter to be approximated
+    std::string nlFileName_; //!< name of file
   };
 
 

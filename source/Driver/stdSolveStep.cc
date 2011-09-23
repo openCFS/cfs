@@ -57,7 +57,7 @@ namespace CoupledField {
     nonLinMaterial_   = PDE_.IsNonLinMaterial();
     isHyst_           = PDE_.IsHysteresis();
     totalFormulation_ = PDE_.IsTotaFormulation();
-    regionNonLinType_ = PDE_.GetNonLinRegionTypes();
+    regionNonLinTypes_ = PDE_.GetNonLinRegionTypes();
 
     // for direct coupled PDEs
     pdeId1_   = NO_PDE_ID;

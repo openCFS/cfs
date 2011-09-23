@@ -10,6 +10,8 @@
 #include <list>
 #include <map>
 
+#include <boost/tokenizer.hpp>
+
 #include "DataInOut/Scripting/scriptable.hh"
 #include "Utils/mathParser/mathParser.hh"
 #include "Domain/resultInfo.hh"

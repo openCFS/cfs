@@ -301,7 +301,7 @@ namespace CoupledField {
 
         NonLinType actType;
         String2Enum( actTypeString, actType );
-        nonLinIdType_[actId] = actType;
+        nonLinTypes_[actId] = actType;
       }
     }
 
@@ -323,46 +323,92 @@ namespace CoupledField {
       if( actNonLinId == "" )
         continue;
 
-      actRegionId = ptgrid_->GetRegion().Parse(actRegionName);
+      typedef boost::tokenizer< boost::char_separator<char> > Tok;
+      boost::char_separator<char> sep(";|, ");
+      
+      Tok tok(actNonLinId, sep);
 
-      // Check nonLinId was already registerd
-      if( nonLinIdType_.find( actNonLinId) == nonLinIdType_.end() ) {
-        EXCEPTION( "NonLinearity with id '" << actNonLinId
-                   << "' was not defined in 'nonLinList'" );
-      }
+      actRegionId = ptgrid_->GetRegion().Parse( actRegionName );
 
-      regionNonLinId_[actRegionId] = actNonLinId;
+      for(Tok::iterator it=tok.begin(); it!=tok.end(); ++it) {
+        std::string nonLinId = (*it);
 
-      // get related type of nonlinearity
-      NonLinType actType = nonLinIdType_[actNonLinId];
-      regionNonLinType_[actRegionId] = actType;
-
-
-      // check for specific types
-      if( actType == WESTERVELT ) {
-        nonLin_ = true;
-        if ( formulation_ == ACOU_POTENTIAL )
-          EXCEPTION( "Acoustic potential formulation not supported for "
-                     << "Westervelt equation" );
-      } else if( actType == KUZNETSOV ) {
-        nonLin_ = true;
-        if ( formulation_ == ACOU_PRESSURE ) {
-          EXCEPTION( "Acoustic pressure formulation not supported for"
-                     << "Kuznetsov equation!" );
+        if( nonLinTypes_.find(nonLinId) == nonLinTypes_.end() ) {
+          WARN( "NonLinearity with id '" << nonLinId 
+                << "' was not defined in 'nonLinList'");
+          continue;
         }
-      } else if( actType == VARIABLE_SOS_CN1 ||
-                 actType == VARIABLE_SOS_CN2 ||
-                 actType == VARIABLE_SOS_CN2Mean ) {
-        variableSpeedOfSoundCN_ = true;
+
+        regionNonLinTypes_[actRegionId].Push_back( nonLinTypes_[nonLinId] );
+
+        //write info
+        std::string nonLinString;
+
+        Enum2String( nonLinTypes_[nonLinId], nonLinString );
+        Info->PrintF( pdename_, " %s: %s\n", actRegionName.c_str(), 
+                      nonLinString.c_str() );
+
+        // check for specific types
+        NonLinType actType = nonLinTypes_[nonLinId];
+        if( actType == WESTERVELT ) {
+          nonLin_ = true;
+          if ( formulation_ == ACOU_POTENTIAL )
+            EXCEPTION( "Acoustic potential formulation not supported for "
+                       << "Westervelt equation" );
+        } else if( actType == KUZNETSOV ) {
+          nonLin_ = true;
+          if ( formulation_ == ACOU_PRESSURE ) {
+            EXCEPTION( "Acoustic pressure formulation not supported for"
+                       << "Kuznetsov equation!" );
+          }
+        } else if( actType == VARIABLE_SOS_CN1 ||
+                   actType == VARIABLE_SOS_CN2 ||
+                   actType == VARIABLE_SOS_CN2Mean ) {
+          variableSpeedOfSoundCN_ = true;
+        }
       }
-
-      // Log to info file
-      std::string nonLinString;
-      Enum2String( nonLinIdType_[actNonLinId], nonLinString );
-      Info->PrintF( pdename_, " %s: %s\n", actRegionName.c_str(),
-                    nonLinString.c_str() );
-
     }
+
+//       actRegionId = ptgrid_->GetRegion().Parse(actRegionName);
+
+//       // Check nonLinId was already registerd
+//       if( nonLinIdType_.find( actNonLinId) == nonLinIdType_.end() ) {
+//         EXCEPTION( "NonLinearity with id '" << actNonLinId
+//                    << "' was not defined in 'nonLinList'" );
+//       }
+
+//       regionNonLinId_[actRegionId] = actNonLinId;
+
+//       // get related type of nonlinearity
+//       NonLinType actType = nonLinIdType_[actNonLinId];
+//       regionNonLinType_[actRegionId] = actType;
+
+
+//       // check for specific types
+//       if( actType == WESTERVELT ) {
+//         nonLin_ = true;
+//         if ( formulation_ == ACOU_POTENTIAL )
+//           EXCEPTION( "Acoustic potential formulation not supported for "
+//                      << "Westervelt equation" );
+//       } else if( actType == KUZNETSOV ) {
+//         nonLin_ = true;
+//         if ( formulation_ == ACOU_PRESSURE ) {
+//           EXCEPTION( "Acoustic pressure formulation not supported for"
+//                      << "Kuznetsov equation!" );
+//         }
+//       } else if( actType == VARIABLE_SOS_CN1 ||
+//                  actType == VARIABLE_SOS_CN2 ||
+//                  actType == VARIABLE_SOS_CN2Mean ) {
+//         variableSpeedOfSoundCN_ = true;
+//       }
+
+//       // Log to info file
+//       std::string nonLinString;
+//       Enum2String( nonLinIdType_[actNonLinId], nonLinString );
+//       Info->PrintF( pdename_, " %s: %s\n", actRegionName.c_str(),
+//                     nonLinString.c_str() );
+
+//     }
 
     Info->PrintF( pdename_, "\n" );
   }

@@ -417,10 +417,6 @@ DEFINE_LOG(linForm, "linForm")
     coordUpdate_ = coordUpdate;
     ptMaterial->GetScalar( startmatVal_, MAG_RELUCTIVITY,Global::REAL);
 
-    // need nonlinear BH curve approximation
-
-    if (  ptMaterial->GetNonlinFileName( MAG_PERMEABILITY ) != "" )  
-      ptMaterial->NeedApproxMatCurve( magBH );
   }
   
   nLinMagNode2D_linFormInt::~nLinMagNode2D_linFormInt()
@@ -438,7 +434,7 @@ DEFINE_LOG(linForm, "linForm")
     ptelem->SetAnsatzFct( ansatzFct1_ );
 
     // get pointer to nonlinear BH curve approximation
-    nlinFnc_ = ptMaterial->GetNonlinFncBH(MAG_PERMEABILITY);
+    nlinFnc_ = ptMaterial->GetNonlinFnc(MAG_PERMEABILITY);
 
     BaseForm * curlcurl2D;
     if (nlinFnc_== NULL) 
@@ -480,10 +476,6 @@ DEFINE_LOG(linForm, "linForm")
     coordUpdate_ = coordUpdate;
     ptMaterial->GetScalar( startmatVal_, MAG_RELUCTIVITY,Global::REAL);
 
-    // need nonlinear BH curve approximation
-    // need nonlinear BH curve approximation
-    if (  ptMaterial->GetNonlinFileName(MAG_PERMEABILITY) != "" )  
-      ptMaterial->NeedApproxMatCurve( magBH );
   }
   
   nLinMagNode3D_linFormInt::~nLinMagNode3D_linFormInt()
@@ -500,7 +492,7 @@ DEFINE_LOG(linForm, "linForm")
     ptelem->SetAnsatzFct( ansatzFct1_ );
 
     // get pointer to nonlinear BH curve approximation
-    nlinFnc_ = ptMaterial->GetNonlinFncBH(MAG_PERMEABILITY);
+    nlinFnc_ = ptMaterial->GetNonlinFnc(MAG_PERMEABILITY);
 
     BaseForm * curlcurl3D;
     if (nlinFnc_== NULL) 
@@ -556,7 +548,7 @@ DEFINE_LOG(linForm, "linForm")
     ptelem->SetAnsatzFct( ansatzFct1_ );
 
     // get pointer to nonlinear BH curve approximation
-    ApproxData* nlinFnc_ = ptMaterial->GetNonlinFncBH(MAG_PERMEABILITY);
+    ApproxData* nlinFnc_ = ptMaterial->GetNonlinFnc(MAG_PERMEABILITY);
 
     BaseForm * curlcurl3D;
     if ( nlinFnc_ == NULL ) 

@@ -1356,89 +1356,35 @@ namespace CoupledField {
         rhsContextMech->SetResult( results1_[0], actSDList );
         assemble_->AddLinearForm( rhsContextMech );
       }
-
       else {
-        if (  nonLinMaterial_ ) {
-          //material nonlinearity
-
-          ApproxData *nlinFnc;
-          std::string nlfnc = materials_[actRegion]->GetNonlinFileName(ELEC_PERMITTIVITY);
-          materials_[actRegion]->GetScalar(nlfnc,NONLIN_DATA_NAME);
-
-          nlinFnc = new SmoothSpline(nlfnc);
-          // ApproxData *nlinFnc = new SmoothSpline("PZT4_Coupl33NL.dat");
-          // oder        ApproxData *nlinFnc = new LinInterpolate(nlfnc);
-          nlinFnc->CalcBestParameter();
-          nlinFnc->CalcApproximation();
-
-          // get material from mechanics
-          std::map<RegionIdType, BaseMaterial*> mechMat =
-            pde1_->getPDEMaterialData();
-
-          // get material from electrostatics
-          std::map<RegionIdType, BaseMaterial*> elecMat =
-            pde2_->getPDEMaterialData();
-
-          // add nonlinear stiffness
-          nLinPiezoCoupling * bilinearStiffNonLin;
-          bilinearStiffNonLin =  new nLinPiezoCoupling(nlinFnc, materials_[actRegion],
-                                                       mechMat[actRegion],
-                                                       elecMat[actRegion],
-                                                       tensorType);
-
-          BaseNodeStoreSol * solPDE1 = pde1_->getPDESolution();
-          BaseNodeStoreSol * solPDE2 = pde2_->getPDESolution();
-
-          NodeStoreSol<Double> * solhelp1 =
-            dynamic_cast<NodeStoreSol<Double>*>(solPDE1);
-          NodeStoreSol<Double> * solhelp2 =
-            dynamic_cast<NodeStoreSol<Double>*>(solPDE2);
-
-          bilinearStiffNonLin->SetSolution1(*solhelp1);
-          bilinearStiffNonLin->SetSolution2(*solhelp2);
-
-          bilinearStiffNonLin->Set4NonLinMaterial(ptGrid_, pde2_, eqnMap2_,
-                                                  results2_[0]);
-
-          bilinearStiffNonLin->SetMatDataType( matType );
-
-          actContextStiff =
-            new BiLinFormContext( bilinearStiffNonLin, STIFFNESS  );
-
-          // We also need to set the transposed of the coupling
-          // matrix to the lower diagonal side
-          actContextStiff->SetCounterPart( true );
-        }
-        else {
-          // add linear stiffness
-          BaseForm *bilinearStiff =
-            new linPiezoCoupling(materials_[actRegion], tensorType);
-
-          bilinearStiff->SetMatDataType( matType );
-
-          actContextStiff =
-            new BiLinFormContext( bilinearStiff, STIFFNESS  );
-        }
-
+        // add linear stiffness
+        BaseForm *bilinearStiff =
+          new linPiezoCoupling(materials_[actRegion], tensorType);
+        
+        bilinearStiff->SetMatDataType( matType );
+        
+        actContextStiff =
+          new BiLinFormContext( bilinearStiff, STIFFNESS  );
+      
 
         // We also need to set the transposed of the coupling
         // matrix to the lower diagonal side
         actContextStiff->SetCounterPart( true );
-
+        
         actContextStiff->SetEntryType( matType );
         actContextStiff->SetPtPdes( pde1_, pde2_ );
         actContextStiff->SetResults( results1_[0], results2_[0],
                                      actSDList, actSDList );
-
+        
         assemble_->AddBiLinearForm( actContextStiff );
-
+        
         // check for complex valued material parameter
         if( complexMatData_[actRegion] ) {
           matType = Global::IMAG;
-
+          
           BaseForm * bilinearStiffC =
             new linPiezoCoupling( materials_[actRegion], tensorType);
-
+          
           //GetStiffIntegrator(materialData_[actSD]);
           BiLinFormContext *actComplexContextStiff =
             new BiLinFormContext(bilinearStiffC, STIFFNESS );
@@ -1448,7 +1394,7 @@ namespace CoupledField {
           // We also need to set the transposed of the coupling
           // matrix to the lower diagonal side
           actComplexContextStiff->SetCounterPart( true );
-
+          
           actComplexContextStiff->SetEntryType(matType);
           bilinearStiffC->SetMatDataType(matType);
           assemble_->AddBiLinearForm( actComplexContextStiff );
