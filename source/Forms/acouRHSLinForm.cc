@@ -362,7 +362,10 @@ namespace CoupledField {
                                                  regionName_ );
           
           result = dynamic_cast<Result<Double>*>(&(*acouRHSVal));
-        } catch (Exception& ex) {};
+        } catch (Exception& ex) {
+          RETHROW_EXCEPTION(ex, "Error while trying to read acourRhsLoad from file,"
+              << std::endl << "for region: " << regionName_);
+        };
         
         if (result == NULL) {
           if(!interpolate_)
