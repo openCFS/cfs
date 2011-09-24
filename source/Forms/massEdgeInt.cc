@@ -40,6 +40,7 @@ void MassEdgeInt::CalcElementMatrix( Matrix<Double>& elemMat,
   // we divide the jacobian determinant by h^2
   Double factor = conductivity_;
   Matrix<Double> partElemMat;
+  partElemMat.Resize(nrFncs);
   if( scaleByEdgeSize_ ) {
     esm->GetMaxMinEdgeLength(maxEdgeLength_,minEdgeLength_);
     factor /= ( minEdgeLength_ * minEdgeLength_);
@@ -53,9 +54,17 @@ void MassEdgeInt::CalcElementMatrix( Matrix<Double>& elemMat,
     lp.Set( intPoints[i], esm );
     
     ptFe->GetShFnc( shape, lp, lp.shapeMap->GetElem(), 0);
+    
+#define USE_BLAS_VERSION
+#ifdef USE_BLAS_VERSION
+    shape.Mult_Blas( shape,elemMat,true,false,
+                     lp.jacDet * weights[i] * factor, 1 );
+#else
     partElemMat =   Transpose(shape) * shape;
     partElemMat *= lp.jacDet * weights[i] * factor;
     elemMat += partElemMat;
+#endif
+    
   }
   ptFe->SetOnlyLowestOrder(false);
 }

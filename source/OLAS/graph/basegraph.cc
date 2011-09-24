@@ -40,7 +40,7 @@ namespace CoupledField {
                << nRows << " x " << nCols << " matrix!");
     }
 
-    // Initialise attributes
+    // Initialize attributes
     csEdges_        = NULL;
     csNodes_        = NULL;
     amAssembled_    = false;
@@ -52,6 +52,8 @@ namespace CoupledField {
     bwlower_        = 0;
     bwupper_        = 0;
     unsortedBlocks_ = NULL;
+    rowDiagGraph_   = NULL;
+    colDiagGraph_   = NULL;
 
     // Allocate memory for linked lists
     if ( numNodes_ > 0 ) {
@@ -82,6 +84,9 @@ namespace CoupledField {
     element_     = NULL;
     bwlower_     = 0;
     bwupper_     = 0;
+    rowDiagGraph_   = NULL;
+    colDiagGraph_   = NULL;
+
     amAssembled_ = true;
   }
 
@@ -124,7 +129,29 @@ namespace CoupledField {
   // ****************
   void BaseGraph::
   SetBlockInfo( const StdVector<StdVector<UInt> >* indexBlocks ) {
+    
     unsortedBlocks_ = indexBlocks;
+  }
+  
+  // **********************
+  //   SetRowColDigaGraph
+  // **********************
+  void BaseGraph::SetRowColDiagGraphs( BaseGraph* rowDiagGraph,
+                                       BaseGraph* colDiagGraph ) {
+    
+    // Check, if graph are defined at all
+    if( rowDiagGraph == 0 || colDiagGraph == NULL ) {
+      EXCEPTION("row/colDiagGraph object is not set.")
+    }
+    // check coupling graphs for size
+    if( rowDiagGraph->numNodes_ != numNodes_ )  {
+      EXCEPTION( "Node mismatch: Row diagonal graph has " << 
+                 rowDiagGraph->numNodes_ << " nodes, own graph has " <<
+                 numNodes_ );
+    }
+    
+    rowDiagGraph_ = rowDiagGraph;
+    colDiagGraph_ = colDiagGraph;
   }
   
   // ********************
@@ -137,6 +164,14 @@ namespace CoupledField {
     // Check, if we are not yet finalized
     if( amAssembled_ ) {
       EXCEPTION("Can not reorder an already finalised graph.");
+    }
+    
+    // Check, if this graph has set diagonal block graphs, i.e.
+    // if this graph is on a non-diagonal position
+    if( rowDiagGraph_ != NULL || colDiagGraph_ != NULL ) {
+      EXCEPTION("This graph object seems to be a coupling graph. "
+                "Thus, no internal reordering accorings to blocks "
+                "can be performed ");
     }
     
     // Resize order
@@ -263,9 +298,11 @@ namespace CoupledField {
           << "Who you think you are? I'm mortally offended! ;-)");
     }
 
-    // Distinguish case
+    // ==============================
+    //  Distinguish reordering cases
+    // ==============================
     
-    // 1) no external ordering: We use the internal reordering strategy
+    // 1) no external ordering provided : We use the internal reordering strategy
     //    and store the reordering mapping back in the vector vertexOrder
     if( !useExternalOrdering ) {
       
@@ -304,7 +341,7 @@ namespace CoupledField {
       }
       
     }  else {
-      // 2) An external ordering (maybe differnt for vertices and edges)
+      // 2) An external ordering (maybe different for vertices and edges)
       //    was provided, so we just take these.
       
       // check if  block-reordering was set
@@ -703,6 +740,33 @@ namespace CoupledField {
              << ", u = " << bwupper_ << std::endl;
 #endif
 
+  }
+  
+  // ***************************
+  //   Return block definitions
+  // ***************************
+  StdVector<std::pair<UInt,UInt> >& BaseGraph::GetRowBlockDefinition() {
+    
+    // Check if graph is already assembled at all
+    if( !amAssembled_ ) {
+      EXCEPTION("")
+    }
+    // check, if we have coupling graphs set
+    if( rowDiagGraph_ != NULL) {
+      return rowDiagGraph_->GetRowBlockDefinition();
+    } else {
+      return sortedBlocks_;
+    }
+  }
+  
+  StdVector<std::pair<UInt,UInt> >& BaseGraph::GetColBlockDefinition() {
+    
+    // check, if we have coupling graphs set
+    if( colDiagGraph_ != NULL) {
+      return colDiagGraph_->GetColBlockDefinition();
+    } else {
+      return sortedBlocks_;
+    }
   }
 
 }

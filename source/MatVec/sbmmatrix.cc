@@ -13,6 +13,7 @@ namespace CoupledField {
   // ***************
   SBM_Matrix::SBM_Matrix( UInt nrows, UInt ncols, bool amSymm ) :
     nrows_(nrows), ncols_(ncols) {
+    ownSubMatrices_ = true;
 
 
     // Set symmetry flag and check for matrix being square
@@ -41,12 +42,38 @@ namespace CoupledField {
     nrows_ = origMat.nrows_;
     ncols_ = origMat.ncols_;
     amSymm_ = origMat.amSymm_;
+    ownSubMatrices_ = true;
+    
     myEntryType_  = origMat.myEntryType_;
     subMat_.Resize( nrows_ * ncols_ );
     subMat_.Init( NULL );
     for ( UInt k = 0; k < subMat_.GetSize(); k++ ) {
       if(origMat.subMat_[k] != NULL)
         subMat_[k] = CopyStdMatrixObject( *(origMat.subMat_[k]));
+    }
+  }
+  
+  // *************************
+  //   Weak Copy Constructor
+  // *************************
+  SBM_Matrix::SBM_Matrix( const SBM_Matrix& origMat,
+                          UInt numRows, UInt numCols ) {
+
+    //  initialize from origMat
+    nrows_ = numRows;
+    ncols_ = numCols;
+    amSymm_ = origMat.amSymm_;
+    // This is a weak copy, so no ownership of the pointers
+    ownSubMatrices_ = false;
+    
+    myEntryType_  = origMat.myEntryType_;
+    subMat_.Resize( nrows_ *  ncols_ );
+    subMat_.Init( NULL );
+    for( UInt iRow = 0; iRow < nrows_; ++iRow ) {
+      for( UInt iCol = 0; iCol < nrows_; ++iCol ) {
+      subMat_[ComputeIndex(iRow,iCol)] = 
+          origMat.subMat_[origMat.ComputeIndex(iRow,iCol)];
+      }
     }
   }
   
@@ -71,6 +98,12 @@ namespace CoupledField {
                                  BaseMatrix::StorageType sType,
                                  UInt nrows, UInt ncols,
                                  UInt nnz ) {
+    
+    // Only set submatrix, if this is not a cheap copy
+    if( !ownSubMatrices_ ) {
+      EXCEPTION( "As this is a weak copy of a SBM-matrix, I refuse to "
+                 "set a submatrix" );
+    }
 
 
     // If matrix is symmetric check that the submatrix lies

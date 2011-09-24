@@ -72,7 +72,7 @@ namespace CoupledField {
     //! Method to be called after all vertices were inserted into the graph
 
     //! This method must be called after all vertices were inserted into the
-    //! graph. This finalises the assembly phase of the graph and triggers
+    //! graph. This finalizes the assembly phase of the graph and triggers
     //! the re-ordering and the conversion into CRS storage format.
     //! This method two possible strategies:
     //! - 1) If useExternalOrdering = false, the internal reordering strategy
@@ -80,7 +80,7 @@ namespace CoupledField {
     //!      in vertexOrder
     //! - 2) If useExternalOrdering = true, the two vector vertexOrder and 
     //!      edgeOrder will be used to re-order the graph. If only the vertex-
-    //!      reordering array is provieded, it will be also applied to the 
+    //!      reordering array is provided, it will be also applied to the 
     //!      edges.
     //! \param useExternalOrdering use the ordering provided in the array(s)
     //!                            vertexOrder (optionally: also edgeOrder)
@@ -116,6 +116,22 @@ namespace CoupledField {
     //! graph / matrix. This can be later used to define block matrices.
     //! \param indexBlock contains the blocks. First index is the blockindex
     void SetBlockInfo( const StdVector<StdVector<UInt> >* indexBlocks );
+    
+    
+    //! Set related diagonal graphs of SBM row / col
+    
+    //! If this graph object represents not a diagonal block in the 
+    //! SBM-structure, we can set here the related diagonal graphs of
+    //! the SBM structure. This is especially useful, if the graph has a 
+    //! block definition. In this case, the non-diagonal graph is not 
+    //! allowed to perform any reordering to match the block information,
+    //! but rather uses the block information provided by the diagonal
+    //! graphs.
+    //! \param rowDiaGraph graph object of the corresponding row diagonal block
+    //! \param colDiagGraph graph object of the corresponding col diagonal block
+    void SetRowColDiagGraphs( BaseGraph* rowDiagGraph,
+                              BaseGraph* colDiagGraph );
+    
     //@}
 
     // =======================================================================
@@ -215,11 +231,21 @@ namespace CoupledField {
       return csNodes_[i+1] - csNodes_[i];
     }
     
-    //! Return block definition
-    StdVector<std::pair<UInt,UInt> >& GetBlockDefinition() {
-      return sortedBlocks_;
-    }
-
+    //! Return block definition of rows
+    
+    //! This method returns the row block definition. If this graph represents
+    //! a diagonal one, this method just return the internal 
+    //! #sortedBlocks-array, otherwise it returns the row-block-definition of 
+    //! the related block row-diagonal.
+    StdVector<std::pair<UInt,UInt> >& GetRowBlockDefinition();
+    
+    //! Return block definition of columns
+    
+    //! This method returns the col block definition. If this graph represents
+    //! a diagonal one, this method just return the internal 
+    //! #sortedBlocks-array, otherwise it returns the col-block-definition of 
+    //! the related block col-diagonal.
+    StdVector<std::pair<UInt,UInt> >& GetColBlockDefinition();
     //@}
 
 
@@ -281,6 +307,16 @@ namespace CoupledField {
     //! store the average total bandwidth of the graph
     UInt bwavg_;
 
+
+    // =======================================================================
+    // Neighbouring graphs
+    // =======================================================================
+    
+    //! Row diagonal graph
+    BaseGraph * rowDiagGraph_;
+    
+    //! Column diagonal graph
+    BaseGraph * colDiagGraph_;
 
     // =======================================================================
     // REORDERING stuff

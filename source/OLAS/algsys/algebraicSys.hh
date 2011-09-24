@@ -257,10 +257,14 @@ namespace CoupledField {
     //! \param useDistinctGraphs flag, indicating if different matrix types
     //!                          (STIFFNESS, MASS) should have different
     //!                          sparsity patterns (e.g. pure (block)diagonal,
-    //!                          crs, etc.) 
-    
+    //!                          CRS etc.)
+    //! \param staticCondensation flag indicating use of static condensation 
+    //!
+    //! \note In case of static condensation, we assume that the last SBM-block
+    //!       holds the element interior entries.
     void GraphSetupInit( UInt numFcts, UInt numBlocks,
-                         bool useDistinctGraphs );
+                         bool useDistinctGraphs,
+                         bool staticCondensation );
 
     //! Finalises setup of the graph manager
 
@@ -441,15 +445,15 @@ namespace CoupledField {
 
     //! Initialize specified matrix with zeros
 
-    //! Calling this method initialises the Finite-Element matrix designated
+    //! Calling this method initializes the Finite-Element matrix designated
     //! by the provided FEMatrixType identifier with zeros.
     //! After initialization all matrix entries in the matrix' sparsity
     //! pattern are zero. If no FEMatrixType identifier is specified all
-    //! matrices in the internal set (see #matrixTypes_) will be initialised.
+    //! matrices in the internal set (see #matrixTypes_) will be initialized.
     //! In the case of an SBM_System the FeFctIdType identifier can be used to
-    //! initialise only a sub-matrix of the Finite Element matrix. If no
+    //! initialize only a sub-matrix of the Finite Element matrix. If no
     //! FeFctIdType identifier is specified the complete matrix will be
-    //! initialised.
+    //! initialized.
     //! \param matrixType type of Finite Element matrix
     //!                   (STIFFNESS, MASS, ...)
     //! \param fctId unique identifier obtained from the ObtainFctId()
@@ -526,7 +530,7 @@ namespace CoupledField {
     //!                with different Fct identifiers.
     template<typename T>
     void SetElementMatrix( FEMatrixType matrixType, 
-                           const Matrix<T>& elemmat,
+                           Matrix<T>& elemmat,
                            FeFctIdType fctId1,
                            const StdVector<Integer>& eqnNrs1,
                            FeFctIdType fctId2,
@@ -738,6 +742,12 @@ namespace CoupledField {
     //! for example STIFFNESS, MASS...
     //! \param matrixTypes set of enums of global matrices
     void GetFEMatrixTypes( std::set<FEMatrixType> &matrixTypes ) const;
+    
+    
+    //! Return, if a non-zero static condensation block is present
+    bool UseStaticCondensation() {
+      return statCond_;
+    }
     //@}
 
 
@@ -877,12 +887,21 @@ namespace CoupledField {
     //! algebraic system. In the case of the %SBM_System class these are of
     //! course SBM_Matrix objects.
     std::map<FEMatrixType, SBM_Matrix*> sysMat_;
+    
+    //! Effective system matrix (without condensation block)
+    SBM_Matrix *effMat_;
 
     //! Vector containing right-hand side of the linear system
     SBM_Vector *rhs_;
-
+    
+    //! Effective rhs vector
+    SBM_Vector *effRhs_;
+    
     //! Vector containing (approximate) solution of the linear system
     SBM_Vector *sol_;
+    
+    //! Effective solution vector
+    SBM_Vector *effSol_;
 
     //! Flag signaling symmetry of SBM matrices
     bool sbmSymm_;
@@ -964,6 +983,9 @@ namespace CoupledField {
     
     //! Flag indicating use of idbc elimination via Penalty approach
     bool usingPenalty_;
+    
+    //! Flag indicating use of static condensation
+    bool statCond_;
   };
 
 } // namespace

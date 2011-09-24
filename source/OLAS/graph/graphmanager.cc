@@ -109,45 +109,68 @@ namespace CoupledField {
     
     LOG_TRACE(graphMan) << "Finalize Graphmanager (SetupDone)";
     
-    // do first loop over all diagonal blocks
+    // ----------------------------------
+    //   D I A G O N A L    B L O C K S 
+    // ----------------------------------
     for( UInt iBlock = 0; iBlock < numBlocks_; ++iBlock ) {
       UInt idx = ComputeIndex( iBlock, iBlock );
 
+      // Before we finalize the graph (i.e. make column entries unique,
+      // sort entries, perform reordering, convert to CRS-structure),
+      // we have to provide the sub-matrix block information, so the
+      // graph can reorder internally the entries in a way that entries
+      // in one submatrix block are numbered consecutively.
       if( blockInfo_[iBlock]->hasSubBlocks) {
         graph_[idx]->SetBlockInfo(&(blockInfo_[iBlock]->indexBlocks));
       }
       
-      // finalise assembly of graph
+      // Finalize assembly of graph
       LOG_DBG(graphMan) << "Finalize diagonal graph (" << iBlock
-                            << ", " << iBlock << ")";
-      
+                        << ", " << iBlock << ")";
       graph_[idx]->FinaliseAssembly( false, &newOrdering_[iBlock] );
-      LOG_DBG3(graphMan) << "Reordering array is " << newOrdering_[iBlock].ToString(); 
+      LOG_DBG3(graphMan) << "Reordering array is "  
+                         << newOrdering_[iBlock].ToString(); 
       
-      // Now finalise the assembly of the associated IDBC graph
+      // Now finalize the assembly of the associated IDBC graph
       if ( graphIDBC_[idx] != NULL ) {
         LOG_DBG(graphMan) << "Finalize IDBC graph (" << iBlock
-                                    << ", " << iBlock << ")";
+                          << ", " << iBlock << ")";
         graphIDBC_[idx]->FinaliseAssembly( &newOrdering_[iBlock] );
       }
     }
 
-    // perform finalization and reordering at off diagonal blocks
+    // -------------------------------------------
+    //   O F F  - D I A G O N A L    B L O C K S 
+    // -------------------------------------------
     for( UInt iRow = 0; iRow < numBlocks_; ++iRow ) {
       for( UInt iCol = 0; iCol < numBlocks_; ++iCol ) {
+        
         // leave at diagonal blocks
         if( iRow == iCol)
           continue;
 
         UInt idx = ComputeIndex( iRow, iCol );
 
-        // finalise assembly of graph
+        //  Finalize assembly of graph (sorting, re-ordering, conversion to 
+        // CRS-structure)
+        // Note: For the off-diagonal entries we use the re-ordering arrays
+        //       of the related row/col diagonal blocks
         LOG_DBG(graphMan) << "Finalize off-diagonal graph (" << iRow
-                                    << ", " << iCol << ")";
+                          << ", " << iCol << ")";
         graph_[idx]->FinaliseAssembly( true, &newOrdering_[iRow],
                                        &newOrdering_[iCol] );
 
-        // Now finalise the assembly of the associated IDBC graph
+        // Set also the corresponding diagonal graph objects of the row/col.
+        // This is needed, as the matrix sub block definition of the coupling
+        // graph has to be taken from the corresponding diagonal blocks.
+        BaseGraph * rowDiagGraph = graph_[ComputeIndex(iRow,iRow)];
+        BaseGraph * colDiagGraph = graph_[ComputeIndex(iCol,iCol)];
+        graph_[idx]->SetRowColDiagGraphs( rowDiagGraph, colDiagGraph );
+
+
+        // Now finalize the assembly of the associated IDBC graph
+        // Note: Also here we use the external re-ordering provided by
+        //       the diagonal block of the same column
         if ( graphIDBC_[idx] != NULL ) {
           LOG_DBG(graphMan) << "Finalize off-diagonal IDBC-graph (" 
                             << iRow << ", " << iCol << ")";
@@ -161,7 +184,6 @@ namespace CoupledField {
 
     // Print statistics to standard log stream
     PrintStats();
-
   }
 
 
@@ -324,7 +346,6 @@ namespace CoupledField {
     // we can loop explictly over vertices (=rows) and edges (=cols)
     // of each block.
     
-    
     // loop over all blocks and pass for every block the information to
     // the corresponding graph / IDBC graph
     for( UInt row = 0; row < numBlocks_; ++row ) {
@@ -377,9 +398,11 @@ namespace CoupledField {
         graphIDBC_[idx]->AddVertexNeighbours( vertexList1_[row], edgeList2_[col] );
 //        if( row!= col ) {
 //          std::cerr << "IDBC (" << row << ", " << col << ": Inserting ";
-//          for( UInt i = 0; i < vertexList1_[row].size(); ++i ) std::cerr << vertexList1_[row][i] << ", ";
+//          for( UInt i = 0; i < vertexList1_[row].size(); ++i ) 
+//            std::cerr << vertexList1_[row][i] << ", ";
 //          std::cerr << " AND ";
-//          for( UInt i = 0; i < edgeList2_[col].size(); ++i ) std::cerr << edgeList2_[col][i] << ", ";
+//          for( UInt i = 0; i < edgeList2_[col].size(); ++i ) 
+//            std::cerr << edgeList2_[col][i] << ", ";
 //          std::cerr << std::endl;
 //        }
 
@@ -397,9 +420,11 @@ namespace CoupledField {
 
           graphIDBC_[idx]->AddVertexNeighbours( vertexList1_[col], edgeList2_[row] );
 //          std::cerr << "IDBC (" << col << ", " << row << "): Inserting ";
-//          for( UInt i = 0; i < vertexList1_[col].size(); ++i ) std::cerr << vertexList1_[col][i] << ", ";
+//          for( UInt i = 0; i < vertexList1_[col].size(); ++i ) 
+//            std::cerr << vertexList1_[col][i] << ", ";
 //          std::cerr << " AND ";
-//          for( UInt i = 0; i < edgeList2_[row].size(); ++i ) std::cerr << edgeList2_[row][i] << ", ";
+//          for( UInt i = 0; i < edgeList2_[row].size(); ++i ) 
+//            std::cerr << edgeList2_[row][i] << ", ";
 //          std::cerr << std::endl;
         }
       } // row loop
@@ -619,7 +644,6 @@ namespace CoupledField {
                << ") and a " << blockInfo_[rowNum]->numLastFreeIndex
                << " x " << blockInfo_[colNum]->numLastFreeIndex << " matrix failed ");
     }
-
     
     // log message
     LOG_DBG(graphMan) << " GraphManager: Generated sub-graph for  pair ("

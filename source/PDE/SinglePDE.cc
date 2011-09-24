@@ -2172,7 +2172,8 @@ namespace CoupledField {
         // 1) Define SBM-block
         feSpace.GetOlasMappings( sbmBlocks, minorBlocks);
         UInt numBlocks = 3;
-        algsys_->GraphSetupInit( 1, numBlocks, false);
+        bool useStaticCondens = true;
+        algsys_->GraphSetupInit( 1, numBlocks, false, useStaticCondens );
         algsys_->RegisterFct( fctId, feSpace.GetNumEquations(),
                               feSpace.GetNumFreeEquations() );
         for( UInt i = 0; i < numBlocks; ++i ) {
@@ -2208,9 +2209,11 @@ namespace CoupledField {
       
         // HARD-CODED section
         UInt numBlocks = 1;
+        bool useStaticCons = false;
         bool useDistinctGraphs = false;
         algsys_->GraphSetupInit( numFcts, numBlocks,
-                                 useDistinctGraphs );
+                                 useDistinctGraphs,
+                                 useStaticCons );
 
         //  Loop over all FeFunctions and register themselves
         std::map<SolutionType, shared_ptr<BaseFeFunction> >::iterator it;

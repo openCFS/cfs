@@ -143,6 +143,21 @@ namespace CoupledField {
       rvec[i] += data_[i] * mvec[i];
     }
   }
+  
+  // ************
+   //   MultTSub
+   // ************
+   template<typename T>
+   inline void Diag_Matrix<T>::MultTSub( const Vector<T> &mvec,
+                                        Vector<T> &rvec ) const {
+
+     UInt i;
+
+     // loop over matrix rows
+     for( i = 0; i < this->nrows_; i++ ) {
+       rvec[i] -= data_[i] * mvec[i];
+     }
+   }
 
 
   // ****************************

@@ -65,10 +65,10 @@ namespace CoupledField {
       dbMat.Resize(dMat.GetNumRows(),nrFncs*nrDofs);
 
 #ifdef USE_BLAS_VERSION
-      dMat.Mult_Blas(bMat,dbMat,false,false);
+      dMat.Mult_Blas(bMat,dbMat,false,false,1.0,0);
       dbMat = dbMat * fac;
       //Transpose(bMat).Mult(dbMat,bdbMat);
-      bMat.Mult_Blas(dbMat,bdbMat,true,false);
+      bMat.Mult_Blas(dbMat,bdbMat,true,false,1.0,0);
       elemMat += bdbMat;
 
 #else

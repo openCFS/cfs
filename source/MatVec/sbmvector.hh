@@ -29,6 +29,17 @@ namespace CoupledField {
     //! state the entries will all be NULL pointers.
     SBM_Vector( UInt size );
 
+    
+    //! Create a weak copy of the SBM-vector
+    
+    //! This method creates a weak copy of size #numRows of the original 
+    //! vector. This weak copy will not get ownership of the sub-vectors,
+    //! but just get hold of the pointers. Thus, the wak copy is not
+    //! allowed to set new sub-vectors.
+    //! \param origVector vector to be copied
+    //! \param numRows number of rows to be copied
+    SBM_Vector( const SBM_Vector& origVector, UInt numRows );
+    
     //! Destructor
 
     //! The destructor is deep, i.e. it will free all dynamically
@@ -231,6 +242,9 @@ namespace CoupledField {
 
     //! Number of sub-vectors
     UInt size_;
+    
+    //! Flag indicating if object is is responsible for deletion of subvectors
+    bool ownSubVectors_;
 
     //! Attrribute storing the entry type of the vector
 

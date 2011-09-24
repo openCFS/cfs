@@ -16,6 +16,10 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/type_traits/is_same.hpp>
 
+#ifdef USE_LAPACK
+#include "matrixLapackSupport.hh"
+#endif
+
 #ifdef USE_BLAS
 #include "matrixBLASSupport.hh"
 #endif
@@ -534,13 +538,15 @@ namespace CoupledField
   template<class TYPE>
   void Matrix<TYPE>::Mult_Blas( const Matrix<TYPE>& mMat, 
                                 Matrix<TYPE>& rMat, 
-                                bool trans_a, bool trans_b) const {
+                                bool trans_a, bool trans_b,
+                                TYPE alpha, TYPE beta ) const {
     EXCEPTION("General BLAS matrix, matrix multiplication not implemented");
   }
   
   template<>
   void Matrix<Double>::Mult_Blas(const Matrix<Double>&  mMat1, Matrix<Double>& rMat1, 
-                                 bool trans_a, bool trans_b) const{
+                                 bool trans_a, bool trans_b, 
+                                 Double alpha, Double beta ) const{
 
 #ifdef USE_BLAS
 #ifdef CHECK_INDEX
@@ -588,9 +594,6 @@ namespace CoupledField
 
       int lda, ldb, ldc;
       int m,n,k;
-
-      double alpha = 1.0;
-      double beta = 0.0;
 
       double* A = data_[0];
       double* B = mMat1.data_[0];
@@ -1176,6 +1179,49 @@ namespace CoupledField
   {
     EXCEPTION("Matrix<Complex>::Invert: Not implemented!" );
   }
+  
+  template<class TYPE>
+    void Matrix<TYPE>::Invert_Lapack() {
+    EXCEPTION("General case not implemented");
+  }
+  
+  template<> void Matrix<Double>::Invert_Lapack() {
+#ifdef CHECK_INDEX
+    if( size_row_ != size_col_) {
+      EXCEPTION("Can only invert square matrices");
+    }
+#endif
+
+#ifndef USE_LAPACK
+    EXCEPTIO("Compile with LAPACK support for matrix inversion");
+#else
+    
+    
+    int *ipiv = new int[size_row_];
+    int n = size_row_;
+    int lwork = size_row_ * size_row_;
+    double *work = new double[lwork];
+    int info;
+
+    // calculate LU-factorization of block
+    LP_DGETRF(&n,&n,data_[0],&n,ipiv,&info);
+    if( info != 0 ) {
+      EXCEPTION("Error during LU-factorization of matrix. "
+                << "Error value is " << info );
+    }
+    // invert matrix using previous LU factorization
+    LP_DGETRI(&n,data_[0],&n,ipiv,work,&lwork,&info);
+    if( info != 0 ) {
+      EXCEPTION("Error during inversion of matrix. "
+                << "Error value is " << info );
+    }
+
+    delete[] ipiv;
+    delete[] work;
+#endif
+  }
+
+  
 
   template<class TYPE>
   TYPE Matrix<TYPE>::Adjunct (UInt i, UInt j) const
@@ -1452,6 +1498,52 @@ namespace CoupledField
       columnMat [i][0] = data_[i][i];
 
   }
+  
+  template<class TYPE>
+  void Matrix<TYPE>::SetSubMatrixByInd( const Matrix<TYPE>& subMat,
+                                        const StdVector<UInt>& rowInd,
+                                        const StdVector<UInt>& colInd ) {
+
+    UInt nrows = rowInd.GetSize();
+    UInt ncols = colInd.GetSize();
+    for( UInt iRow = 0; iRow < nrows; iRow++ ) {
+      for( UInt iCol = 0; iCol < ncols; iCol++ ) {
+#ifdef CHECK_INDEX
+      if( rowInd[iRow] > size_row_ || 
+          colInd[iCol] > size_col_ ) {
+        EXCEPTION("Index pair (" << rowInd[iRow] << ", " << colInd[iCol]
+                  << ") larger than matrix size being " << size_row_
+                  << " x " << size_col_);
+      }
+#endif
+      data_[rowInd[iRow]][colInd[iCol]]= subMat[iRow][iCol];
+      }
+    }
+  }
+  
+  template<class TYPE>void Matrix<TYPE>::
+  GetSubMatrixByInd( Matrix<TYPE>&ret, 
+                     const StdVector<UInt>& rowInd,
+                     const StdVector<UInt>& colInd ) const {
+
+    UInt nrows = rowInd.GetSize();
+    UInt ncols = colInd.GetSize();
+    ret.Resize(nrows,ncols);
+    for( UInt iRow = 0; iRow < nrows; iRow++ ) {
+      for( UInt iCol = 0; iCol < ncols; iCol++ ) {
+#ifdef CHECK_INDEX
+      if( rowInd[iRow] > size_row_ || 
+          colInd[iCol] > size_col_ ) {
+        EXCEPTION("Index pair (" << rowInd[iRow] << ", " << colInd[iCol]
+                  << ") larger than matrix size being " << size_row_
+                  << " x " << size_col_);
+      }
+#endif
+        ret[iRow][iCol] = data_[rowInd[iRow]][colInd[iCol]];
+      }
+    }
+  }
+  
 
   template<class TYPE>
   bool Matrix<TYPE>::IsSymmetric() const

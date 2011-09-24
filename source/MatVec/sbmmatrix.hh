@@ -131,8 +131,10 @@ namespace CoupledField {
     //! The destructor is deep, i.e. it deletes all dynamically allocated
     //! objects as well as the sub-matrices
     ~SBM_Matrix() {
-      for ( UInt k = 0; k < subMat_.GetSize(); k++ ) {
-        delete subMat_[k];
+      if( ownSubMatrices_ ) {
+        for ( UInt k = 0; k < subMat_.GetSize(); k++ ) {
+          delete subMat_[k];
+        }
       }
     }
     
@@ -142,6 +144,19 @@ namespace CoupledField {
     //! all the sub-matrices.
     SBM_Matrix( const SBM_Matrix& origMat );
 
+    
+    //! Create a weak copy of the SBM-matrix
+    
+    //! This method creates a weak copy of #numRows and #numCols of the
+    //! original matrix.
+    //! This weak copy will not get ownership of the sub-matrices, but just
+    //! get hold of the pointers. Thus, the weak copy is also not allowed
+    //! to set new sub-matrices.
+    //! \param origMat matrix to be copied
+    //! \param numRows number of rows of the sub-matix
+    //! \param numCols number of cols of the sub-matrx
+    SBM_Matrix( const SBM_Matrix& origMat, UInt numRows, UInt numCols );
+    
     //! Insert a StdMatrix into the SBM_Matrix
 
     //! The method inserts a standard StdMatrix into the super-block-matrix
@@ -452,8 +467,11 @@ namespace CoupledField {
     //! sub-matrices are assumed to be symmetric (though they need not be
     //! stored in a symmetric format).
     bool amSymm_;
+    
+    //! Flag indicating if object is responsible for deletion of submatrices
+    bool ownSubMatrices_;
 
-    //! Attrribute storing the entry type of the matrix
+    //! Attribute storing the entry type of the matrix
 
     //! Currently the %SBM_Matrix class only allows for storing sub-matrices
     //! that share a common entry type. This attribute stores the entry type

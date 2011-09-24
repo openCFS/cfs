@@ -579,6 +579,15 @@ namespace CoupledField {
                                         Vector<T> & rvec ) const {
     MultAdd( mvec, rvec );
   }
+  
+  // ************
+  //   MultTSub
+  // ************
+  template<typename T>
+  inline void SCRS_Matrix<T>::MultTSub( const Vector<T> & mvec,
+                                        Vector<T> & rvec ) const {
+    MultSub( mvec, rvec );
+  }
 
 
   // ****************************

@@ -97,7 +97,7 @@ namespace CoupledField
       for(UInt k = 0, s = size_row_ * size_col_; k < s; ++k)
         data_[0][k] = val;
     }
-
+    
     //! Change the size of the matrix
 
     //! Change size of general matrix 
@@ -226,6 +226,29 @@ namespace CoupledField
     //! Gets the diagonal elements of a  matrix in a one column matrix
     void GetDiagInMatrix( Matrix<TYPE>& columnMat ) const;
 
+    //! Get submatrix indirect by row/col indices
+
+    //! This matrix returns a sub-matrix, defined by the row- and column-
+    //! indices.
+    //! \param ret requested submatrix of size rowInd.Size() x colInd.Size()
+    //! \param rowInd indices of the requested row indices
+    //! \param colInd indices of the requested column indices
+    void GetSubMatrixByInd( Matrix<TYPE>&ret, 
+                            const StdVector<UInt>& rowInd,
+                            const StdVector<UInt>& colInd ) const;
+        
+    
+    //! Set submatrix by row/col indices
+    
+    //! This matrix sets a sub-matrix, defined by the row- and column-
+    //! indices.
+    //! \param ret  submatrix to set of size rowInd.Size x colInd.Size()
+    //! \param rowInd indices of the requested row indices
+    //! \param colInd indices of the requested column indices
+    void SetSubMatrixByInd( const Matrix<TYPE>&ret, 
+                            const StdVector<UInt>& rowInd,
+                            const StdVector<UInt>& colInd );
+    
     //@}
 
     // =======================================================================
@@ -248,17 +271,29 @@ namespace CoupledField
     //! Perform a matrix-matrix multiplication rMat = this*mMat
     void Mult(const DenseMatrix & mMat, DenseMatrix & rMat) const;
 
-    //! Perform a matrix-matrix multiplication using BLAS
+    //! Perform generalized matrix-matrix multiplication using BLAS
     
-    //! This method calculates the matrix-matrix product 
-    //! rMat = this * mMat using BLAS optimized d/xgemm method.
-    //! If #trans_a or #trans_b are set to yes, the corresponding matrix is 
+    //! This method calculates the matrix-matrix product
+    //! 
+    //!     rMat = alpha * this * mMat + beta * rMat
+    //! 
+    //! using BLAS optimized d/xgemm method.
+    //! If \a trans_a or \a trans_b are set to yes, the corresponding matrix is 
     //! transposed.
-    //! \note Currently we assume the #rMat to have the correct size already
+    //! \param mMat second argument for the matrix-matrix product
+    //! \param rMat final matrix result
+    //! \param trans_a true, if own matrix should multiplied in transposed 
+    //!        state
+    //! \param trans_b true, if own \a mMat should multiplied in transposed 
+    //!        state
+    //! \param alpha additional scalar factor for matrix-matrix product
+    //! \param beta scalar factor for re-use of \a rMat
+    //! \note Currently we assume the \a rMat to have the correct size already
     //! \note If CFS is compiled without BLAS support, we use as fallback the
     //!       internal matrix-matrix multiplication.
     void Mult_Blas(const Matrix& mMat, Matrix& rMat, 
-                   bool trans_a, bool trans_b) const;
+                   bool trans_a, bool trans_b, TYPE alpha,
+                   TYPE beta) const;
     
     //! Perform a matrix-matrix multiplication rMat = Transpose(this)*mMat
     void MultT(const DenseMatrix & mMat, DenseMatrix & rMat) const;
@@ -270,8 +305,15 @@ namespace CoupledField
     //! Perform generalized matrix-vector multiplication using BLAS
     
     //! This method performs the generalized matrix-vector multiplication of
-    //! the form rvec = alpha* this * mvec + beta * rvec.
-    //! If #transposed is set to yes, the matrix is acces in trasnposed fashion.
+    //! the form 
+    //!
+    //!     rvec = alpha* this * mvec + beta * rvec.
+    //! 
+    //! \param mvec source multiplication vector
+    //! \param rvec destination vector
+    //! \param alpha additional scalar factor for multiplication
+    //! \param beta scalar factor for re-use of \a rcvec
+    //! \param transposed if true, the transposed of the matrix is taken
     //! \note If CFS is compiled without BLAS support, we use as fallback the
     //!       internal matrix-vector multiplication.
     void Mult_Blas( const SingleVector &mvec, SingleVector &rvec,
@@ -359,18 +401,28 @@ namespace CoupledField
     
     //@}
 
-    //@{
-    //! Invert the matrix and store it in 'inv' (up to size 3)
-    void Invert ( Matrix <TYPE> & inv ) const;
-    //@}
+    //! Invert the matrix and store it in 'inv'
     
-    //@{
+    //! This method calculates the inverse of the matrix and stores it
+    //! into \a inv. The original matrix remains unchanged.
+    //! This method is explicitly and efficient coded for matrices up 
+    //! to size 3 x 3 and thus intneded e.g. for Jacobian matrices.
+    //! For larger ones it uses a factorization scheme.
+    //! \param inv matrix which will hold the inverse
+    void Invert ( Matrix <TYPE> & inv ) const;
+    
+    //! Invert the matrix itself with Lapack
+    
+    //! This methods inverts a general matrix using a LU-factorization of
+    //! Lapack. 
+    //! \note The matrix itself gets overwritten in this method.
+    void Invert_Lapack();
+    
     //! Transpose the matrix and store the result in \a transposedMat
     //! \note The matrix itself gets not changed.
     //! \note If the transposed of a matrix is needed for a operation
     //! with a vector, the according function like 'MultT' should be used
     void Transpose( Matrix<TYPE> & transposedMat ) const;  
-    //@}
 
     
     /** Check if the matrix contains NAN. To be used by asserts() */

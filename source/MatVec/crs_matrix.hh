@@ -468,6 +468,13 @@ namespace CoupledField {
     //! of the matrix object followed by an addition:
     //! rvec += transpose(this)*mvec.
     void MultTAdd( const Vector<T> & mvec, Vector<T> & rvec ) const;
+    
+    //! Perform a matrix-vector multiplication rvec -= transpose(this)*mvec
+
+    //! This method performs a matrix-vector multiplication with the transpose
+    //! of the matrix object followed by an addition:
+    //! rvec -= transpose(this)*mvec.
+    void MultTSub( const Vector<T> & mvec, Vector<T> & rvec ) const;
 
     //@}
 

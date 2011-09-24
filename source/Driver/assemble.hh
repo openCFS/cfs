@@ -29,7 +29,8 @@ namespace CoupledField {
   public:
 
     //! Constructor
-    Assemble( AlgebraicSys* algsys, BasePDE::AnalysisType analysis, UInt maxTimeDerivOrder );
+    Assemble( AlgebraicSys* algsys, BasePDE::AnalysisType analysis, 
+              UInt maxTimeDerivOrder );
 
     //! Destructor
     virtual ~Assemble();
@@ -123,8 +124,8 @@ namespace CoupledField {
      * TODO check if really used */
     AlgebraicSys* GetAlgSys() { return algsys_; }
 
-    /** Returns the bilinear forms list for Shape Optimization does need to loop these as assemble does */
-    StdVector<BiLinFormContext*>& GetBiLinForms() { return *biLinForms_; }
+//    /** Returns the bilinear forms list for Shape Optimization does need to loop these as assemble does */
+//    StdVector<BiLinFormContext*>& GetBiLinForms() { return *biLinForms_; }
     
 
     /** Returns the linear forms list for external modification */
@@ -132,7 +133,14 @@ namespace CoupledField {
 
   protected:
 
-    //! Assemb2le linearForms of right hand side
+    //! Assemble matrices without static condensation
+    void AssembleMatrices_Std();
+    
+    //! Assemble matrices with satic condensation
+    void AssembleMatrices_Cond();
+
+    
+    //! Assemble linearForms of right hand side
     void AssembleRHSLinForms(bool nonLin );
 
     //! Transform real-valued element matrix to harmonic representation
@@ -206,8 +214,14 @@ namespace CoupledField {
     std::map<FEMatrixType,FEMatrixType> matrixMap_;
 
     //! List of bilinear integrator contexts
-    StdVector<BiLinFormContext*>* biLinForms_;
+    typedef std::map<
+        std::pair<shared_ptr<EntityList>,shared_ptr<EntityList> >, 
+        StdVector<BiLinFormContext*> > BiLinContextListType;  
+     BiLinContextListType biLinForms_;
 
+    //! Set containing all bilinear integrator contexts
+    std::set<BiLinFormContext*> allBiLinForms_;
+    
     //! List of linear integrator contexts
     StdVector<LinearFormContext*>* linForms_;
 

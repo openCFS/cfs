@@ -54,7 +54,8 @@ namespace CoupledField
     const Elem* ptElem = ent1.GetElem();
     // Obtain FE element from feSpace
     shared_ptr<IntScheme> intScheme;
-    BaseFE* ptFe = ptFeSpace1_->GetFe( ent1, intScheme ); 
+    FeHCurl *ptFe = 
+        dynamic_cast<FeHCurl*>(ptFeSpace1_->GetFe( ent1, intScheme ));
     UInt nrFncs = ptFe->GetNumFncs();
 
     // Get shape map from grid
@@ -72,8 +73,8 @@ namespace CoupledField
     
 #define USE_BLAS_VERSION      
 #ifdef USE_BLAS_VERSION
-    Matrix<Double> bdbMat;
-    bdbMat.Resize(nrFncs);
+//    Matrix<Double> bdbMat;
+//    bdbMat.Resize(nrFncs);
 #endif
     
     // Loop over all integration points
@@ -91,8 +92,7 @@ namespace CoupledField
       fac = lp.jacDet * weights[i] * matVal_;
       
 #ifdef USE_BLAS_VERSION
-      bMat.Mult_Blas(bMat,bdbMat,true,false);
-      elemMat += bdbMat * fac;
+      bMat.Mult_Blas(bMat,elemMat,true,false,fac,1);
 #else 
       // Compute the matrix product D * B and store as intermediate matrix
       elemMat += Transpose(bMat) * bMat * fac;
@@ -101,26 +101,27 @@ namespace CoupledField
   }
   
   void CurlCurlEdgeInt::CalcBMat( Matrix<Double>& bMat, 
-                                  LocPointMapped& lp, BaseFE* ptFe ) {
-    FeHCurl *fe = (dynamic_cast<FeHCurl*>(ptFe));
+                                  LocPointMapped& lp, FeHCurl* ptFe ) {
+   
     
-    fe->GetCurlShFnc(bMat, lp, lp.shapeMap->GetElem(), 1);
+    ptFe->GetCurlShFnc(bMat, lp, lp.shapeMap->GetElem(), 1);
   }
   
   void CurlCurlEdgeInt::ApplyBMat( Vector<Double>& retVec,  
                                    LocPointMapped& lpm, BaseFE* ptFe, 
                                    const Vector<Double>& solVec ) {
-    
+    FeHCurl *fe = dynamic_cast<FeHCurl*>(ptFe);
     Matrix<Double> bMat;
-    CalcBMat( bMat, lpm, ptFe);
+    CalcBMat( bMat, lpm, fe);
     retVec = bMat * solVec;
   }
   void CurlCurlEdgeInt::ApplyBMat( Vector<Complex>& retVec,  
                                      LocPointMapped& lpm, BaseFE* ptFe, 
                                      const Vector<Complex>& solVec ) {
       
+    FeHCurl *fe = dynamic_cast<FeHCurl*>(ptFe);
       Matrix<Double> bMat;
-      CalcBMat( bMat, lpm, ptFe);
+      CalcBMat( bMat, lpm, fe);
       retVec = bMat * solVec;
     }
 

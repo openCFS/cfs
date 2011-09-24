@@ -282,6 +282,23 @@ namespace CoupledField {
     //! It offers an appropriate interface for SingleVectors.
     virtual void MultSub( const SingleVector& mvec, SingleVector& rvec ) const = 0;
 
+    
+    //! Perform a matrix-vector multiplication rvec -= transpose(this)*mvec
+
+    //! This method performs a matrix-vector multiplication with the transpose
+    //! of the matrix object followed by a subtraction:
+    //! rvec -= transpose(this)*mvec.
+    //! However, all it does is downcast the BaseVectors to SingleVectors and
+    //! delegate the work to the method with the appropriate interface. It
+    //! implements the method defined in the BaseMatrix class.
+    void MultTSub(const BaseVector& mvec, BaseVector& rvec) const
+    {
+      MultTSub(dynamic_cast<const SingleVector&>(mvec), dynamic_cast<SingleVector&>(rvec));
+    }
+
+    virtual void MultTSub(const SingleVector& mvec, SingleVector& rvec) const {
+      EXCEPTION( "Function MultTSub not re-implemented in derived class!" );
+       }
     //@}
 
     // *****************************************************

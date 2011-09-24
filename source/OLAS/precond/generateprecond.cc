@@ -4,6 +4,7 @@
 
 #include <def_use_lapack.hh>
 #include <def_use_pardiso.hh>
+#include <def_use_cholmod.hh>
 
 #include "OLAS/precond/idprecond.hh"
 #include "OLAS/precond/generateprecond.hh"
@@ -13,6 +14,11 @@
 #ifdef USE_PARDISO
 #include "OLAS/external/pardiso/pardisosolver.hh"
 #endif
+
+#ifdef USE_CHOLMOD
+#include "OLAS/external/cholmod/CholMod.hh"
+#endif
+#include "OLAS/solver/ldlsolver.hh"
 
 // include source code for templated preconditioners
 #include "OLAS/precond/jacprecond.hh"
@@ -330,6 +336,49 @@ retVal = new precondObjType( mat, solverXML, olasInfo );\
 #endif
       break;
 
+   
+      
+      // ============================
+      //   Pardiso Preconditioner
+      // ============================
+    case BasePrecond::CHOLMOD:
+#ifdef USE_CHOLMOD
+  {
+    if(mat.GetStructureType() != BaseMatrix::SPARSE_MATRIX || 
+        dynamic_cast<const StdMatrix &>(mat).GetStorageType() != BaseMatrix::SPARSE_SYM){
+      EXCEPTION("CholMod only works with SCRS_Matrix class!");
+    }
+    if(entryType == BaseMatrix::DOUBLE){
+      retVal = new CholMod<Double>(solverXML, olasInfo, entryType);
+      (*cla) << " GenerateSolver: Generated real CholMod solver" << std::endl;
+    }else if(entryType == BaseMatrix::COMPLEX){
+      retVal = new CholMod<Complex>(solverXML, olasInfo, entryType);
+      (*cla) << " GenerateSolver: Generated complex CholMod solver" << std::endl;
+    }
+  }
+#else
+    EXCEPTION("Compile with USE_CHOLMOD to enable interface to CholMod");
+#endif
+    break;
+    
+    case BasePrecond::LDL_SOLVER:
+      if(mat.GetStructureType() != BaseMatrix::SPARSE_MATRIX 
+          || dynamic_cast<const StdMatrix &>(mat).GetStorageType() != BaseMatrix::SPARSE_SYM){
+         EXCEPTION("DirectLDL solver only works with SCRS_Matrix class!");
+       }
+       if(entryType == BaseMatrix::DOUBLE){
+         retVal = new LDLSolver<Double>(solverXML, olasInfo );
+         (*cla) << " GenerateSolver: Generated real CholMod solver" << std::endl;
+       }else if(entryType == BaseMatrix::COMPLEX){
+         retVal = new LDLSolver<Complex>(solverXML, olasInfo);
+         (*cla) << " GenerateSolver: Generated complex CholMod solver" << std::endl;
+       }
+       break;
+       
+       // ======================
+       //   Something's broken
+       // ======================
+    case BasePrecond::LDL_SOLVER2:
     case BasePrecond::DIRECT:
     case BasePrecond::RICHARDSON:
     case BasePrecond::CG:
@@ -342,16 +391,10 @@ retVal = new precondObjType( mat, solverXML, olasInfo );\
     case BasePrecond::LAPACK_LL:
     case BasePrecond::ILUPACK:
     case BasePrecond::LU_SOLVER: 
-    case BasePrecond::CHOLMOD:
-    case BasePrecond::LDL_SOLVER:
-    case BasePrecond::LDL_SOLVER2:
     case BasePrecond::DIAGSOLVER:
       EXCEPTION("Missing cases for solvers as preconditioners");
       break;
-      // ======================
-      //   Something's broken
-      // ======================
-
+   
     default:
       EXCEPTION( "GeneratePrecondObject failed: Preconditioner type unknown" );
       break;
@@ -437,10 +480,13 @@ retVal = new precondObjType( mat, solverXML, olasInfo );\
       p = GenerateStdPrecondObject(mat(1,1), blockJacobiNode, infoNode );
       retVal->SetPrecond(1, p);
       
-      // Block #1: Block-Jacobi preconditioner
-      //p = GenerateStdPrecondObject(mat(2,2), pardisoNode, olasInfo );
-      p = GenerateStdPrecondObject(mat(2,2), blockJacobiNode, infoNode );
-      retVal->SetPrecond(2, p);
+      // if we have static condensation, we have no third row
+      if( mat.GetNumRows() == 3 ) {
+        // Block #1: Block-Jacobi preconditioner
+        //p = GenerateStdPrecondObject(mat(2,2), pardisoNode, olasInfo );
+        p = GenerateStdPrecondObject(mat(2,2), blockJacobiNode, infoNode );
+        retVal->SetPrecond(2, p);
+      }
       
       
       // ========================

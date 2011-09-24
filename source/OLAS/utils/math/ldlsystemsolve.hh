@@ -3,7 +3,7 @@
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
 #ifndef LDL_SYSTEM_SOLVE_HH
-#define LDL_SYSTEM__STEP_HH
+#define LDL_SYSTEM_SOLVE_HH
 
 #include <vector>
 

@@ -412,6 +412,28 @@ namespace CoupledField {
       }
     }
   }
+  
+  // ************
+  //   MultTSub
+  // ************
+  template<typename T>
+  inline void CRS_Matrix<T>::MultTSub( const Vector<T> &mvec,
+                                       Vector<T> &rvec ) const {
+
+    UInt i, j, end;
+
+    // loop over matrix rows
+    for( i = 0; i < this->nrows_; i++ ) {
+
+      // get end of row
+      end = rowPtr_[i+1];
+
+      // loop over this row
+      for( j = rowPtr_[i]; j < end; j++ ) {
+        rvec[colInd_[j]] -= this->data_[j] * mvec[i];
+      }
+    }
+   }
 
   template<typename T>
   void CRS_Matrix<T>::Transpose(UInt* col_ptr, UInt* row_ptr, T* data_ptr) const

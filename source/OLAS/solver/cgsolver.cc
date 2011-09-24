@@ -19,6 +19,7 @@ namespace CoupledField {
     delete r_;
     delete s_;
     delete d_;
+    delete q_;
   }
 
   // ****************

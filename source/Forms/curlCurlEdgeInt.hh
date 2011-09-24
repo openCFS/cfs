@@ -10,6 +10,9 @@
 namespace CoupledField
 {
 
+// forward class declaration
+class FeHCurl;
+
   /// Class for calculation of curl curl of edge elements
 class CurlCurlEdgeInt : public BaseForm
 {
@@ -27,7 +30,7 @@ public:
 
   /// Calculate curl derivative matrix
   void CalcBMat( Matrix<Double>& bMat, 
-                 LocPointMapped& lp, BaseFE* ptFE );
+                 LocPointMapped& lp, FeHCurl* ptFE );
 
   /// calculates the curl, if the global derivates are already given in shapeDeriv
   /*!

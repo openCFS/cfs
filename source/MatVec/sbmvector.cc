@@ -16,17 +16,39 @@ namespace CoupledField {
   SBM_Vector::SBM_Vector( UInt size ) {
     size_ = size;
     myEntryType_ = BaseMatrix::NOENTRYTYPE;
+    ownSubVectors_ = true;
     subVec_.Resize( size );
     subVec_.Init( NULL );
   }
 
 
+  // *************************
+  //   Weak Copy Constructor
+  // *************************
+  SBM_Vector::SBM_Vector( const SBM_Vector& origVector, UInt numRows ) {
+    
+    size_ = numRows;
+    myEntryType_ = origVector.myEntryType_;
+    // This is a weak copy, so no ownership of the pointers
+    ownSubVectors_ = false;
+    subVec_.Resize( size_ );
+    subVec_.Init( NULL );
+    for ( UInt k = 0; k < subVec_.GetSize(); k++ ) {
+      subVec_[k] = origVector.subVec_[k];
+    }
+  }
+  
+  
   // *******************
   //   Deep destructor
   // *******************
   SBM_Vector::~SBM_Vector() {
-    for ( UInt i = 0; i < size_; i++ ) {
-      delete subVec_[i];
+   
+    // only delete if we have ownership
+    if( ownSubVectors_ ) {
+      for ( UInt i = 0; i < size_; i++ ) {
+        delete subVec_[i];
+      }
     }
   }
 
@@ -35,6 +57,12 @@ namespace CoupledField {
   //   Set number of vector entries and re-size internal array
   // ***********************************************************
   void SBM_Vector::SetSize( UInt size ) {
+    
+    if( !ownSubVectors_ ) {
+      EXCEPTION( "As this is a weak copy of a SBM-vector, I refuse to "
+                 "change the size" );
+    }
+    
     for ( UInt i = 0; i < size_; i++ ) {
       delete subVec_[i];
     }
@@ -49,6 +77,12 @@ namespace CoupledField {
   // **********************
   SBM_Vector& SBM_Vector::operator= ( const SBM_Vector &bVec ) {
 
+    // Only set submatrix, if this is not a cheap copy
+    if( !ownSubVectors_ ) {
+      EXCEPTION( "As this is a weak copy of a SBM-vector, I refuse to "
+                 "get overwritten" );
+    }
+    
     // first, delete sub-vectors
     for ( UInt i = 0; i < size_; i++ ) {
       delete subVec_[i];

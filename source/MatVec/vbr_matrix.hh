@@ -101,6 +101,12 @@ namespace CoupledField {
     //! node itself, in case of a self-reference) in lexicographic
     //! ordering, i.e. in increasing number of node indices. Thus, the
     //! resulting %VBR_Matrix is in LEX sub-format.
+    //! \note
+    //! If the graph provides information about minor blocks (via 
+    //! BaseGraph::GetRowBlockDefinition or BaseGraph::GetColBlockDefinition),
+    //! the internal block structure will be set in accordance to that layout.
+    //! If not block information is present (either for rows or columns),
+    //! a default block size of 1 is assumed. 
     void SetSparsityPattern( BaseGraph &graph );
 
     //! Copy the sparsity pattern of this matrix to another 
@@ -168,7 +174,7 @@ namespace CoupledField {
     }
     
     //! Get average row block size
-    Double GetAvgBlockSize() const {
+    Double GetAvgRowBlockSize() const {
       return 1.0 / oneOverBlockSize_;
     }
     
@@ -322,6 +328,12 @@ namespace CoupledField {
     //! rvec += transpose(this)*mvec.
     void MultTAdd( const Vector<T> & mvec, Vector<T> & rvec ) const;
 
+    //! Perform a matrix-vector multiplication rvec -= transpose(this)*mvec
+
+     //! This method performs a matrix-vector multiplication with the transpose
+     //! of the matrix object followed by an addition:
+     //! rvec -= transpose(this)*mvec.
+     void MultTSub( const Vector<T> & mvec, Vector<T> & rvec ) const;
     //@}
 
 
@@ -426,30 +438,30 @@ namespace CoupledField {
     //! Total number of non-zero blocks
     
     //! This is total number of non zero blocks.
-    //! \note: #nBlocks \f[ \neq \f] #nbRows_ x #nbCols_
+    //! \note: #nBlocks_ != #nbRows_ x #nbCols_
     UInt nBlocks_;
     
     //! Array containing the starting row positions of each block row
     
     //! This array stores for each blockRow the starting rowNumber.
-    //! The i-th block row starts at row bRow_[i] and ends at row 
-    //! bRow_[i+1]-1. The last entry stores the number of row #nrows_.
+    //! The i-th block row starts at row #bRow_[i] and ends at row 
+    //! #bRow_[i+1]-1. The last entry stores the number of row #nrows_.
     //! The array has a length of #nbRows_ + 1. 
     UInt *bRow_;
     
     //! Array containing the starting column positions of each column block
     
     //! This array stores for each blockCol the starting column number.
-    //! The j-th block column starts at at column bCol_[j] and end at column
-    //! bCol_[j+1]-1. The last entry stores the number of columns #ncols_;
+    //! The j-th block column starts at at column #bCol_[j] and end at column
+    //! #bCol_[j+1]-1. The last entry stores the number of columns #ncols_;
     //! The array has a length of #nbCols_ +1.
     UInt *bCol_;
     
     //! Array containing the starting index for each block
  
     //! This array stores for each block the starting index within #data_.
-    //! The b-th block starts at position valPtr_[b] in the array #data_.
-    //! The last element valPtr_[nBlocks_] contains the total number of 
+    //! The b-th block starts at position #valPtr_[b] in the array #data_.
+    //! The last element #valPtr_[nBlocks_] contains the total number of 
     //! nonzero scalar values #nnz_. 
     //! The array has a length of #nBlocks_+1.
     UInt *valPtr_;
@@ -457,7 +469,7 @@ namespace CoupledField {
     //! Array containing the column indices of the blocks
     
     //! This array stores fore each block the block column index.
-    //! The b-th block begins at column bCol_[colInd_[b]].
+    //! The b-th block begins at column #bCol_[colInd_[b]].
     //! The array has a length of #nBlocks_. 
     UInt *colInd_;
     
@@ -466,7 +478,7 @@ namespace CoupledField {
     //! This array stores for each block row the starting offset within
     //! #colInd_. The i-th block row starts at position rowPtr_[i] in
     //! #colInd_. The last entry contains the total number of blocks
-    //! rowPtr_[nbRows_] = #nBlocks_.
+    //! #rowPtr_[nbRows_] = #nBlocks_.
     //! The array has a length of #nbRows_ + 1;
     UInt *rowPtr_;
     

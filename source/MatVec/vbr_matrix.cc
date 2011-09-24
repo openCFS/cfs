@@ -10,9 +10,15 @@
 #include "MatVec/vbr_matrix.hh"
 #include "opdefs.hh"
 #include "DataInOut/Logging/cfslog.hh"
+#include "MatVec/matrixBLASSupport.hh"
 
 DECLARE_LOG(vbrMat)
 DEFINE_LOG(vbrMat, "vbrMatrix")
+
+
+// switch for using BLAS-methods for
+// matrix-vector multiplication
+#define USE_BLAS_VERSION 1
 
 namespace CoupledField {
 
@@ -149,35 +155,59 @@ namespace CoupledField {
   void VBR_Matrix<T>::SetSparsityPattern( BaseGraph &graph ) {
 
     // Obtain block definition from graph object
-    StdVector<std::pair<UInt,UInt> >& blockInfo 
-    = graph.GetBlockDefinition();
-    
-    
+    StdVector<std::pair<UInt,UInt> >& rBlockInfo 
+    = graph.GetRowBlockDefinition();
 
-    // we know already numbers of block rows / cols
-    nbRows_ = blockInfo.GetSize();
-    nbCols_ = blockInfo.GetSize();
-
-    // we know already the sizes of the blocks. Assuming, that
-    // every diagonal block is present, we can initialize
-    // bRow_, bCols_ 
-    NEWARRAY( bRow_,   UInt, nbRows_ + 1 );
-    NEWARRAY( bCol_,   UInt, nbCols_ + 1 );
-    NEWARRAY( rowPtr_, UInt, nbRows_ + 1 );
-    NEWARRAY( diagBlockPtr_, UInt, nbRows_ + 1 );
-
+    StdVector<std::pair<UInt,UInt> >& cBlockInfo 
+    = graph.GetColBlockDefinition();
     
     LOG_DBG(vbrMat) << "================================\n";
     LOG_DBG(vbrMat) << "VBR - Block Definition\n";
     LOG_DBG(vbrMat) << "================================\n";
-
-    for( UInt i = 0; i < nbRows_; ++i ) {
-      bRow_[i] = blockInfo[i].first;
-      bCol_[i] = blockInfo[i].first;
-      LOG_DBG(vbrMat) << "\t#" << i << ": " << blockInfo[i].first << ", " 
-          << blockInfo[i].second << std::endl;
+    
+    // Check row blocks
+    // If no definition is available, we assume block size 1 for row blocks
+    if( rBlockInfo.GetSize() > 0 ) {
+      nbRows_ = rBlockInfo.GetSize();
+      NEWARRAY( bRow_,   UInt, nbRows_ + 1 );
+      NEWARRAY( rowPtr_, UInt, nbRows_ + 1 );
+      NEWARRAY( diagBlockPtr_, UInt, nbRows_ + 1 );
+      LOG_DBG(vbrMat) << "1) ROW-BLOCKS:";
+      for( UInt i = 0; i < nbRows_; ++i ) {
+        bRow_[i] = rBlockInfo[i].first;
+        LOG_DBG(vbrMat) << "\t#" << i << ": " << rBlockInfo[i].first << ", " 
+            << rBlockInfo[i].second << std::endl;
+      }
+    }else {
+      // generate block-size 1 system
+      nbRows_ = this->nrows_;
+      NEWARRAY( bRow_,   UInt, nbRows_ + 1 );
+      NEWARRAY( rowPtr_, UInt, nbRows_ + 1 );
+      NEWARRAY( diagBlockPtr_, UInt, nbRows_ + 1 );
+      for( UInt i = 0; i < nbRows_; ++i ) {
+        bRow_[i] = i;
+      }
     }
 
+    // Check column blocks:
+    // If no definition is available, we assume block size 1 for col blocks
+    if( cBlockInfo.GetSize() > 0 ) {
+      nbCols_ = cBlockInfo.GetSize();  
+      NEWARRAY( bCol_,   UInt, nbCols_ + 1 );
+      LOG_DBG(vbrMat) << "2) COL-BLOCKS:";
+      for( UInt i = 0; i < nbCols_; ++i ) {
+        bCol_[i] = cBlockInfo[i].first;
+        LOG_DBG(vbrMat) << "\t#" << i << ": " << cBlockInfo[i].first << ", " 
+            << cBlockInfo[i].second << std::endl;
+      }
+    } else {
+      // generate block-size 1 system
+      nbCols_ = this->ncols_;  
+      NEWARRAY( bCol_,   UInt, nbCols_ + 1 );
+      for( UInt i = 0; i < nbCols_; ++i ) {
+        bCol_[i] = i;
+      }
+    }
     
     bRow_[nbRows_] = this->nrows_;
     bCol_[nbCols_] = this->ncols_;
@@ -285,9 +315,11 @@ namespace CoupledField {
     // FindBlock()-method
     oneOverBlockSize_ = 1.0 / (accBlockSize / nbRows_);
 
-    // find diagonal entries
-    NEWARRAY( diagPtr_, UInt, this->nrows_ );
-    FindDiagonalEntries();
+    // find diagonal entries, if this is a square matrix
+    if( this->nrows_ == this->ncols_ ) {
+      NEWARRAY( diagPtr_, UInt, this->nrows_ );
+      FindDiagonalEntries();
+    }
   }
 
   template<typename T>
@@ -361,17 +393,31 @@ namespace CoupledField {
     } // block rows
   
   }
-
+  
   template<typename T>
   inline void VBR_Matrix<T>::MultAdd( const Vector<T> & mvec,
                                       Vector<T> & rvec ) const {
-      UInt rStart; // start index of row
-      UInt cStart; // start index of col
-      UInt rbs;    // row block size
-      UInt cbs;    // col block size
+    EXCEPTION("General case not implemented");
+    
+  }
+
+  template<>
+  inline void VBR_Matrix<Double>::MultAdd( const Vector<Double> & mvec,
+                                      Vector<Double> & rvec ) const {
+      int rStart; // start index of row
+      int cStart; // start index of col
+      int rbs;    // row block size
+      int cbs;    // col block size
       UInt colNum; // column number
       UInt ind;    //index to data array
-
+      
+#ifdef USE_BLAS_VERSION
+      char trans = 'T';
+      Double alpha = 1.0;
+      Double beta = 1.0;
+      Integer inc = 1;
+#endif
+      
       // loop over row blocks
       for( UInt ibr = 0; ibr < nbRows_; ++ibr ) {      
         rStart = bRow_[ibr];
@@ -385,32 +431,100 @@ namespace CoupledField {
           ind = valPtr_[ibc];
 
           // perform mat-vec multiplication on dense sub-block
-          for( UInt i = rStart; i < rStart+rbs; ++i ) {
-            for( UInt j = cStart; j <cStart+cbs; ++j ) {
+#ifdef USE_BLAS_VERSION
+          DGEMV( &trans, &cbs, &rbs, &alpha, &(data_[ind]), &cbs, 
+                 &mvec[cStart], &inc, &beta, &rvec[rStart], &inc);
+          ind+=cbs*rbs;
+#else
+          for( int i = rStart; i < rStart+rbs; ++i ) {
+            for( int j = cStart; j <cStart+cbs; ++j ) {
               rvec[i] += data_[ind++] * mvec[j];
             }  // loop over cols within block
           } // loop over rows within block
+
+#endif
         } // block cols
       } // block rows
     }
 
-
   template<typename T>
-  inline void VBR_Matrix<T>::MultSub( const Vector<T> &mvec,
-                                      Vector<T> &rvec ) const {
-
-    EXCEPTION("Implement me");
+    inline void VBR_Matrix<T>::MultSub( const Vector<T> &mvec,
+                                        Vector<T> &rvec ) const {
+    EXCEPTION("General case not implemented");
   }
+
+  template<>
+  inline void VBR_Matrix<Double>::MultSub( const Vector<Double> &mvec,
+                                           Vector<Double> &rvec ) const {
+
+    int rStart; // start index of row
+    int cStart; // start index of col
+    int rbs;    // row block size
+    int cbs;    // col block size
+    UInt colNum; // column number
+    UInt ind;    //index to data array
+
+#ifdef USE_BLAS_VERSION
+    char trans = 'T';
+    Double alpha = -1.0;
+    Double beta = 1.0;
+    Integer inc = 1;
+#endif
+
+    // loop over row blocks
+    for( UInt ibr = 0; ibr < nbRows_; ++ibr ) {      
+      rStart = bRow_[ibr];
+      rbs = bRow_[ibr+1] -  bRow_[ibr];
+
+      // loop over col blocks
+      for( UInt ibc = rowPtr_[ibr]; ibc < rowPtr_[ibr+1]; ++ibc) {
+        colNum = colInd_[ibc];
+        cStart = bCol_[colNum];
+        cbs = bCol_[colNum+1] - bCol_[colNum];
+        ind = valPtr_[ibc];
+        
+        // perform mat-vec multiplication on dense sub-block
+#ifdef USE_BLAS_VERSION
+        DGEMV( &trans, &cbs, &rbs, &alpha, &(data_[ind]), &cbs, 
+               &mvec[cStart], &inc, &beta, &rvec[rStart], &inc);
+        ind+=cbs*rbs;
+#else
+        for( int i = rStart; i < rStart+rbs; ++i ) {
+          for( int j = cStart; j <cStart+cbs; ++j ) {
+            rvec[i] -= data_[ind++] * mvec[j];
+          }  // loop over cols within block
+        } // loop over rows within block
+
+#endif
+      } // block cols
+    } // block rows
+  }
+
 
   template<typename T>
   inline void VBR_Matrix<T>::CompRes( Vector<T> &r, const Vector<T> &x,
                                       const Vector<T> &b ) const {
-    UInt rStart; // start index of row
-    UInt cStart; // start index of col
-    UInt rbs;    // row block size
-    UInt cbs;    // col block size
+    
+    EXCEPTION("General case not implemented");
+  }
+  
+  template<>
+  inline void VBR_Matrix<Double>::CompRes( Vector<Double> &r, 
+                                           const Vector<Double> &x,
+                                           const Vector<Double> &b ) const {
+    int rStart; // start index of row
+    int cStart; // start index of col
+    int rbs;    // row block size
+    int cbs;    // col block size
     UInt colNum; // column number
     UInt ind;    //index to data array
+    
+#ifdef USE_BLAS_VERSION
+    char trans = 'T';
+    Double alpha = -1.0;
+    Double beta = 1.0;
+    Integer inc = 1;
+#endif
 
     // initialize return vector
     r = b;
@@ -428,11 +542,17 @@ namespace CoupledField {
         ind = valPtr_[ibc];
         
         // perform mat-vec multiplication on dense sub-block
-        for( UInt i = rStart; i < rStart+rbs; ++i ) {
-          for( UInt j = cStart; j <cStart+cbs; ++j ) {
+#ifdef USE_BLAS_VERSION
+        DGEMV( &trans, &cbs, &rbs, &alpha, &(data_[ind]), &cbs, 
+               &x[cStart], &inc, &beta, &r[rStart], &inc);
+        ind+=cbs*rbs;
+#else
+        for( int i = rStart; i < rStart+rbs; ++i ) {
+          for( int j = cStart; j <cStart+cbs; ++j ) {
             r[i] -= data_[ind++] * x[j];
           }  // loop over cols within block
         } // loop over rows within block
+#endif
       } //block cols
     } // block rows
   }
@@ -447,7 +567,108 @@ namespace CoupledField {
   template<typename T>
   inline void VBR_Matrix<T>::MultTAdd( const Vector<T> &mvec,
                                        Vector<T> &rvec ) const {
-    EXCEPTION("Implement me");
+    EXCEPTION("Not implemented");
+  }
+    
+
+  template<>
+  inline void VBR_Matrix<Double>::MultTAdd( const Vector<Double> &mvec,
+                                            Vector<Double> &rvec ) const {
+    int rStart; // start index of row
+    int cStart; // start index of col
+    int rbs;    // row block size
+    int cbs;    // col block size
+    UInt colNum; // column number
+    UInt ind;    //index to data array
+
+#ifdef USE_BLAS_VERSION
+    char trans = 'N';
+    Double alpha = 1.0;
+    Double beta = 1.0;
+    Integer inc = 1;
+#endif
+
+    // loop over row blocks
+    for( UInt ibr = 0; ibr < nbRows_; ++ibr ) {      
+      rStart = bRow_[ibr];
+      rbs = bRow_[ibr+1] -  bRow_[ibr];
+
+      // loop over col blocks
+      for( UInt ibc = rowPtr_[ibr]; ibc < rowPtr_[ibr+1]; ++ibc) {
+        colNum = colInd_[ibc];
+        cStart = bCol_[colNum];
+        cbs = bCol_[colNum+1] - bCol_[colNum];
+        ind = valPtr_[ibc];
+
+        //perform mat-vec multiplication on dense sub-block
+#ifdef USE_BLAS_VERSION
+        DGEMV( &trans, &cbs, &rbs, &alpha, &(data_[ind]), &cbs, 
+               &mvec[rStart], &inc, &beta, &rvec[cStart], &inc);
+        ind+=cbs*rbs;
+#else
+        for( int i = rStart; i < rStart+rbs; ++i ) {
+          for( int j = cStart; j <cStart+cbs; ++j ) {
+            rvec[j] += data_[ind++] * mvec[i];
+          }  // loop over cols within block
+        } // loop over rows within block
+#endif
+
+      } // block cols
+    } // block rows
+  }
+
+
+  template<typename T>
+  inline void VBR_Matrix<T>::MultTSub( const Vector<T> &mvec,
+                                       Vector<T> &rvec ) const {
+    EXCEPTION("Not implemented")
+
+  }
+    
+  template<>
+  inline void VBR_Matrix<Double>::MultTSub( const Vector<Double> &mvec,
+                                            Vector<Double> &rvec ) const {
+    int rStart; // start index of row
+   int cStart; // start index of col
+   int rbs;    // row block size
+   int cbs;    // col block size
+   UInt colNum; // column number
+   UInt ind;    //index to data array
+
+#ifdef USE_BLAS_VERSION
+   char trans = 'N';
+   Double alpha = -1.0;
+   Double beta = 1.0;
+   Integer inc = 1;
+#endif
+
+   // loop over row blocks
+   for( UInt ibr = 0; ibr < nbRows_; ++ibr ) {      
+     rStart = bRow_[ibr];
+     rbs = bRow_[ibr+1] -  bRow_[ibr];
+
+     // loop over col blocks
+     for( UInt ibc = rowPtr_[ibr]; ibc < rowPtr_[ibr+1]; ++ibc) {
+       colNum = colInd_[ibc];
+       cStart = bCol_[colNum];
+       cbs = bCol_[colNum+1] - bCol_[colNum];
+       ind = valPtr_[ibc];
+
+       //perform mat-vec multiplication on dense sub-block
+#ifdef USE_BLAS_VERSION
+       DGEMV( &trans, &cbs, &rbs, &alpha, &(data_[ind]), &cbs, 
+              &mvec[rStart], &inc, &beta, &rvec[cStart], &inc);
+       ind+=cbs*rbs;
+#else
+        for( int i = rStart; i < rStart+rbs; ++i ) {
+          for( int j = cStart; j <cStart+cbs; ++j ) {
+          }  // loop over cols within block
+        } // loop over rows within block
+#endif
+       // alternative: BLAS version
+
+     } // block cols
+   } // block rows
   }
 
   template<typename T>
@@ -584,7 +805,11 @@ namespace CoupledField {
         found = true;
         colB = colInd_[k];
         colSize = bCol_[colInd_[k]+1] - bCol_[colInd_[k]];
+
+        // determine offset within current block 
         offset = (col - bCol_[colInd_[k]])+offset*colSize; 
+        
+        // add offset of block start
         offset += valPtr_[k];
         break;
       } else if (bCol_[colInd_[k]] > col ){
@@ -658,8 +883,7 @@ namespace CoupledField {
   
   template<typename T>
   void VBR_Matrix<T>::Scale( Double factor ) {
-    
-EXCEPTION("Not implemented");
+    EXCEPTION("Not implemented");
   }
 
   template<typename T>
@@ -968,6 +1192,8 @@ template<typename T>
    crsMat.Mult(solVec, retVec);
    std::cerr << "CRS: " << retVec.ToString() << std::endl;
    
+   
+   
    // compute residual:
    std::cerr << "\nRedidual r = rhsVec - mat*solVec:\n";
    vbrMat.CompRes(retVec, solVec, rhsVec);
@@ -983,6 +1209,24 @@ template<typename T>
    std::cerr << "VBR: " << retVec.ToString() << std::endl;
    retVec = temp;
    crsMat.MultAdd(solVec, retVec);
+   std::cerr << "CRS: " << retVec.ToString() << std::endl;
+   
+   // use MultAdd-Transposed
+   temp = retVec;
+   std::cerr << "\n\nMultAdd r += mat^T * solVec\n";
+   vbrMat.MultTAdd(solVec, retVec);
+   std::cerr << "VBR: " << retVec.ToString() << std::endl;
+   retVec = temp;
+   crsMat.MultTAdd(solVec, retVec);
+   std::cerr << "CRS: " << retVec.ToString() << std::endl;
+   
+   // use MultSub-Transposed
+   temp = retVec;
+   std::cerr << "\n\nMultSub  r -= mat^T * solVec\n";
+   vbrMat.MultTSub(solVec, retVec);
+   std::cerr << "VBR: " << retVec.ToString() << std::endl;
+   retVec = temp;
+   crsMat.MultTSub(solVec, retVec);
    std::cerr << "CRS: " << retVec.ToString() << std::endl;
    
    

@@ -117,6 +117,18 @@ namespace CoupledField {
 
     virtual void MultSub( const Vector<T>& mvec, Vector<T>& rvec ) const = 0;
     //@}
+    
+    //@{
+    //! Perform a matrix-vector multiplication rvec += transpose(this)*mvec
+    void MultTSub( const SingleVector& mvec, SingleVector& rvec ) const {
+      const Vector<T>& tmvec = dynamic_cast<const Vector<T>&>(mvec);
+      Vector<T>& trvec = dynamic_cast<Vector<T>&>(rvec);
+
+      MultTSub( tmvec, trvec );
+    }
+
+    virtual void MultTSub( const Vector<T>& mvec, Vector<T>& rvec ) const = 0;
+        //@}
 
     // ========================================================================
     // QUERY GENERAL MATRIX INFORMATION
