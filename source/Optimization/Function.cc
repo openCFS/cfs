@@ -51,18 +51,18 @@ Function::Function(PtrParamNode pn)
 
   bool tensor_ok = ReadTensor(pn, this->tensor_); // is save and sets default
   
-  if(type_ == HOMOGENIZATION_TRACKING && !tensor_ok)
+  if((type_ == HOM_TRACKING || type_ == HOM_FROBENIUS_PRODUCT) && !tensor_ok)
    EXCEPTION("A 'tensor' element is mandatory  for 'homTracking'");
 
-  if(type_ == HOMOGENIZATION_TENSOR || type_ == HOMOGENIZATION_TRACKING)
+  if(type_ == HOM_TENSOR || type_ == HOM_TRACKING)
   {
     // we must not give a value when there is a tensor
-    if(type_ == HOMOGENIZATION_TENSOR && pn->Has("tensor") && pn->Has("value"))
+    if(type_ == HOM_TENSOR && pn->Has("tensor") && pn->Has("value"))
       throw Exception("a value must not be given when a tensor is used in a homogenization constraint");
-
-    if(type_ == HOMOGENIZATION_TRACKING && (!pn->Has("tensor") && !pn->Has("isotropic")))
-      throw Exception("a 'tensor' is mandatory for homogenization tracking");
   }
+
+  if(type_ == HOM_TRACKING && (!pn->Has("tensor") && !pn->Has("isotropic")))
+    throw Exception("a 'tensor' is mandatory for homogenization tracking");
 
   // check parameter
   switch(type_)
@@ -256,8 +256,9 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
     case REALVOLUME:
     case TYCHONOFF:
     case GREYNESS:
-    case HOMOGENIZATION_TENSOR:
-    case HOMOGENIZATION_TRACKING:
+    case HOM_TENSOR:
+    case HOM_TRACKING:
+    case HOM_FROBENIUS_PRODUCT:
     case POISSONS_RATIO:
     case YOUNGS_MODULUS:
     case YOUNGS_MODULUS_E1:
@@ -377,8 +378,9 @@ bool Function::IsHomogenization() const
 {
   switch(type_)
   {
-    case HOMOGENIZATION_TENSOR:
-    case HOMOGENIZATION_TRACKING:
+    case HOM_TENSOR:
+    case HOM_TRACKING:
+    case HOM_FROBENIUS_PRODUCT:
     case POISSONS_RATIO:
     case YOUNGS_MODULUS:
     case YOUNGS_MODULUS_E1:
@@ -424,8 +426,9 @@ bool Function::ForSensitivityFiltering() const
   // objective and constraint
   case COMPLIANCE:
   case TRACKING:
-  case HOMOGENIZATION_TENSOR:
-  case HOMOGENIZATION_TRACKING:
+  case HOM_TENSOR:
+  case HOM_TRACKING:
+  case HOM_FROBENIUS_PRODUCT:
   case POISSONS_RATIO:
   case YOUNGS_MODULUS:
   case YOUNGS_MODULUS_E1:
@@ -460,6 +463,7 @@ bool Function::ForSensitivityFiltering() const
   case ORTHOTROPY:
   case MULTI_OBJECTIVE:
     EXCEPTION("Invalid query: " << type.ToString(type_));
+    break;
   }
 
   EXCEPTION("can never reach! Stupid C++");

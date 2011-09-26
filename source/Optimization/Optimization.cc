@@ -256,8 +256,9 @@ void Optimization::SetEnums()
   Function::type.Add(Function::TRACKING, "tracking");
   Function::type.Add(Function::ELEC_ENERGY, "elecEnergy");
   Function::type.Add(Function::ENERGY_FLUX, "energyFlux");
-  Function::type.Add(Function::HOMOGENIZATION_TENSOR, "homTensor");
-  Function::type.Add(Function::HOMOGENIZATION_TRACKING, "homTracking");
+  Function::type.Add(Function::HOM_TENSOR, "homTensor");
+  Function::type.Add(Function::HOM_TRACKING, "homTracking");
+  Function::type.Add(Function::HOM_FROBENIUS_PRODUCT, "homFrobeniusProduct");
   Function::type.Add(Function::POISSONS_RATIO, "poissonsRatio");
   Function::type.Add(Function::YOUNGS_MODULUS, "youngsModulus");
   Function::type.Add(Function::YOUNGS_MODULUS_E1, "youngsModulusE1");

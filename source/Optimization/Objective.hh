@@ -34,7 +34,7 @@ class Objective : public Function
     /** overwrites Function::IsObjective() */
     bool IsObjective() const { return true; }
 
-    /** The name eventually enriched by the coord information for HOMOGENIZATION_TENSOR */
+    /** The name eventually enriched by the coord information for HOM_TENSOR */
     std::string GetName() const;
 
     /** Adds the value but don't touch penalty */
@@ -51,7 +51,7 @@ class Objective : public Function
     /** overloads Function::ToInfo() */
     void ToInfo(PtrParamNode info);
 
-    /** This defines the optional coord pair for HOMOGENIZATION_TRACKING.
+    /** This defines the optional coord pair for HOM_TRACKING, HOM_FROBENIUS_PRODUCT.
      *  e.g. (1,1) for tensor entry (0,0). For Condition this is a list! The double shall be by default 1.0 */
     tuple<int, int, double> coord;
 
