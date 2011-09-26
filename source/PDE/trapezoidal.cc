@@ -27,6 +27,7 @@ namespace CoupledField
     if ( systemNode->Has("timeSteppingParameters") ) {
       PtrParamNode myParam = systemNode->Get("timeSteppingParameters");
       myParam->GetValue("omitInitialSol", omitFirstPredictor_, ParamNode::PASS);
+      myParam->GetValue("gamma", gamma_, ParamNode::PASS);
     }
 
   }

@@ -401,6 +401,8 @@ bool DesignSpace::RegisterPseudoDesignRegion(RegionIdType region, DesignElement:
   // add if the stuff does not exist
   if(ptr == NULL)
   {
+    domain->GetGrid()->SetElementBarycenters(region, true);
+
     StdVector<Elem*> elems;
     domain->GetGrid()->GetElems(elems, region);
 
@@ -938,8 +940,10 @@ void DesignSpace::WriteSparseGradientToExtern(StdVector<double>& out, DesignElem
 {
   // Bastian did some complicated reordering stuff. For the only case of sparse Jacobians (slope constraints)
   // we'll have only the simple standard situation .. if this changes you have at least a test case :) Fabian
-  
-  assert(regions.GetSize() == 1 && regions[0].GetSize() == 1); // only one region with one design
+
+  // only one region with one design
+  // had to weaken this condition for DESIGN_TRACKING in debug mode
+  assert((regions.GetSize() == 1 && regions[0].GetSize() == 1) || (g->GetType() != Function::DESIGN_TRACKING)); 
   assert(g != NULL); // only constraints can have sparse Jacobians 
 
   const double scaling = use_scaling ? regions[0][0].scale_design : 1.0;

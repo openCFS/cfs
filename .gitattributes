@@ -551,6 +551,7 @@ share/scripts/identify_compiler.pl svneol=native#text/plain
 share/scripts/log.py -text
 share/scripts/log.tcl svneol=native#text/x-tcl
 share/scripts/nas-tool-gid-to-nas.py -text
+share/scripts/nas-tool-nas2msh.py -text
 share/scripts/nas-tool-voidmesh.py -text
 share/scripts/optimization_tools.py -text
 share/scripts/printElemMatVec.py -text
@@ -773,9 +774,6 @@ source/DataInOut/SimInOut/hdf5/simInputHDF5.cc svneol=native#text/x-c%2B%2Bsrc
 source/DataInOut/SimInOut/hdf5/simInputHDF5.hh svneol=native#text/x-c%2B%2Bhdr
 source/DataInOut/SimInOut/hdf5/simOutputHDF5.cc svneol=native#text/x-c%2B%2Bsrc
 source/DataInOut/SimInOut/hdf5/simOutputHDF5.hh svneol=native#text/x-c%2B%2Bhdr
-source/DataInOut/SimInOut/internalMesh/CMakeLists.txt -text
-source/DataInOut/SimInOut/internalMesh/internalMesh.cc -text
-source/DataInOut/SimInOut/internalMesh/internalMesh.hh -text
 source/DataInOut/SimInOut/xdmf/CMakeLists.txt -text
 source/DataInOut/SimInOut/xdmf/simOutputXDMF.cc -text
 source/DataInOut/SimInOut/xdmf/simOutputXDMF.hh -text

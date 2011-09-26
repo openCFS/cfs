@@ -334,7 +334,7 @@ namespace CoupledField {
 
     // find minimum entry in the vector
     std::vector<Double>::iterator it ;
-    it = min_element(entityDist.begin(), entityDist.end());
+    it = std::min_element(entityDist.begin(), entityDist.end());
     entityNum = std::distance(entityDist.begin(), it) + 1;
     return entityNum;
 
@@ -769,8 +769,6 @@ namespace CoupledField {
 
     }
 
-    // in case of internalMesh the region is already marked as regular
-    // so we can skip the test here
     for(unsigned int i = 0; i < regionData.GetSize(); i++)
       regionData[i].regular = (regionData[i].regular || CheckForRegularRegion(i));
 

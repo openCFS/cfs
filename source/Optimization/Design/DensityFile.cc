@@ -63,7 +63,7 @@ DesignSpace* DensityFile::ReadErsatzMaterial(DesignSpace* ersatzMaterial)
   string file = cmd ? progOpts->GetErsatzMaterialStr() : pn->Get("file")->As<string>();
 
   // to be appended by the set name
-  std::cout << "++ Load ersatz material file: '" << file << "'";
+  std::cout << "++ Load ersatz material file: '" << file << "'" << std::flush;
 
   // we read something like <loadErsatzMaterial region="piezo" file="piezo_density.xml" set="last"/>
   // Initialize our xerces dom parser to handle the external xml file

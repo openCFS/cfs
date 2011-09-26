@@ -32,7 +32,7 @@ namespace CoupledField
                  bool coordUpdate_ = false );
   
     //! Destructor
-    virtual ~BaseOperator() = 0;
+    virtual ~BaseOperator() {}
 
   protected:
 
