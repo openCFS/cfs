@@ -202,8 +202,9 @@ void ErsatzMaterial::PostInit()
       case Objective::COMPLIANCE:
       case Objective::OUTPUT: // it would work but is saver not to allow
       case Objective::TRACKING:
-      case Objective::HOMOGENIZATION_TENSOR:
-      case Objective::HOMOGENIZATION_TRACKING:
+      case Objective::HOM_TENSOR:
+      case Objective::HOM_TRACKING:
+      case Objective::HOM_FROBENIUS_PRODUCT:
       case Objective::POISSONS_RATIO:
       case Objective::YOUNGS_MODULUS:
       case Objective::YOUNGS_MODULUS_E1:
@@ -381,6 +382,8 @@ StdVector<std::pair<string, double> > ErsatzMaterial::GetOrthotropeProperties(co
       bm = GetForm(design->GetRegionId(), pde, pde, "linElastInt")->GetMaterial();
     }
     Objective vf(Function::VOLUME, 0.0, true); // physical!
+    assert(design->GetRegionIds().GetSize() ==1);
+    vf.SetElements(design, design->GetRegionId());
     double vol = CalcVolume(&vf, NULL, false, true);
     StdVector<std::pair<string, double> > ortho = MechanicMaterial::CalcOrthotropeProperties(homogenizedTensor, bm, pde->GetSubTensorType(), vol);
     return ortho;
@@ -974,7 +977,7 @@ double ErsatzMaterial::CalcFunction(Excitation& excite, Function* f, bool deriva
          result = CalcDesignTracking(g, derivative);
          break;
 
-    case Function::HOMOGENIZATION_TENSOR:
+    case Function::HOM_TENSOR:
           if(c != NULL && derivative && c->HasHomogenizationEntry())
           {
             // if there s no "coord" set it is only meant for evaluate for forward homogenization
@@ -1018,7 +1021,7 @@ double ErsatzMaterial::CalcFunction(Excitation& excite, Function* f, bool deriva
           }
           break;
 
-    case Function::HOMOGENIZATION_TRACKING:
+    case Function::HOM_TRACKING:
          if(derivative)
          {
            CalcHomogenizedTrackingGradient(f->GetTensor(), CalcHomogenizedTensor(), f);
@@ -1029,6 +1032,13 @@ double ErsatzMaterial::CalcFunction(Excitation& excite, Function* f, bool deriva
            result = 0.5 * diff * diff;
          }
          break;
+
+    case Function::HOM_FROBENIUS_PRODUCT:
+      if(derivative)
+        CalcHomFrobeniusProductGradient(f->GetTensor(), CalcHomogenizedTensor(), f);
+      else
+        return f->GetTensor().FrobeniusProduct(CalcHomogenizedTensor());
+      break;
 
     case Function::POISSONS_RATIO:
     case Function::YOUNGS_MODULUS:
@@ -1281,6 +1291,7 @@ double ErsatzMaterial::CalcVolume(Objective* f, Condition* g, bool derivative, b
 
 double ErsatzMaterial::CalcTrivialVolume(Function* f, bool derivative, bool normalized)
 {
+  assert(!f->elements.IsEmpty());
   // In CalcOrthotropeMaterialProperties() we construct a dummy function, this has Function::elements not set :(
 
   // only for physical
@@ -2149,10 +2160,37 @@ void ErsatzMaterial::CalcHomogenizedTrackingGradient(const Matrix<double>& targe
 
     // hom_tensor_deriv is completely set.
     // (E^* - E^H) * - d(E^H)/d(rho_e) -> therefore the minus !
-    double grad = -1.0 * diff_tensor.ScalarProduct(hom_tensor_deriv);
+    double grad = -1.0 * diff_tensor.FrobeniusProduct(hom_tensor_deriv);
 
     de->AddGradient(f, grad);
   } // element loop
+}
+
+void ErsatzMaterial::CalcHomFrobeniusProductGradient(const Matrix<double>& par, const Matrix<double>& hom, Function* f)
+{
+  // J  = sum_ij E_ij*D_ij
+  // dJ = sum_ij dE_ij*D_ij
+
+  // CalcHomogenizedTensorEntry((i, j), derivative = true, tmp_grad_out) sets the dE_ij in tmp_grad_out
+  StdVector<double> tmp_grad_out;
+
+  for(unsigned int y = 0; y < par.GetNumRows(); y++)
+  {
+    for(unsigned int x = 0; x < par.GetNumCols(); x++)
+    {
+      tuple<int, int, double> entry = make_tuple(x+1, y+1, 0.0);
+      tmp_grad_out.Init(0.0);
+      CalcHomogenizedTensorEntry(entry, true, tmp_grad_out);
+
+      double d_ij = par[y][x];
+
+      for(int e = 0, ne = design->GetNumberOfElements(); e < ne; ++e)
+      {
+        DesignElement* de = &design->data[e];
+        de->AddGradient(f, tmp_grad_out[e] * d_ij);
+      }
+    }
+  }
 }
 
 

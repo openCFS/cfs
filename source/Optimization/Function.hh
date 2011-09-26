@@ -63,10 +63,12 @@ class Function
       PENALIZED_VOLUME,          /*!< normalized sum of design elements penalized by parameter */
       GAP,                       /*!< The stingl constraint: volume - penalized volume */
       TRACKING,
-      HOMOGENIZATION_TENSOR,     /*!< optimize for the given coordinate if coord is set or console print of tensor.
-                                      For a constraint it might blow up to several HOMOGENIZATION_TENSOR if a tensor is given */
+      HOM_TENSOR,                /*!< optimize for the given coordinate if coord is set or console print of tensor.
+                                      For a constraint it might blow up to several HOM_TENSOR if a tensor is given */
 
-      HOMOGENIZATION_TRACKING,   /*!< match a given tensor by L2 norm  */
+      HOM_TRACKING,              /*!< match a given tensor by L2 norm  */
+      HOM_FROBENIUS_PRODUCT,     /*!< The Frobenius inner product for a given tensor sum_ij E^H_ij*D_ij. From Michael. The idea is
+                                      maximize the inner mech energy <S, E^H S> for strains from a macro-problem. D = S*S^T */
       POISSONS_RATIO,            /*!< Poisson's Ration (\nu) within homogenization */
       YOUNGS_MODULUS,            /*!< Young's Modulus (E) within homogenization */
       YOUNGS_MODULUS_E1,         /*!< Young's Modulus (E1) within orthotrope homogenization */
@@ -430,6 +432,11 @@ class Function
     /** Give the projection data */
     StdVector<DesignElement>& GetProjectionDesignClone();
 
+    /** This are the elements the Function is defined on. Either references to the
+     * elements within the design space to to dummy elements if the region is not within the design (stress)
+     * @param region as long as only the Condition has this stuff it is an parameter*/
+    void SetElements(DesignSpace* space, RegionIdType region);
+
     /** We also store here the info ptr. When overload, call also this. */
     virtual void ToInfo(PtrParamNode info);
 
@@ -461,15 +468,10 @@ class Function
     /** extract the "coord" element and parse it to coord */
     static void ParseCoord(PtrParamNode pn, tuple<int, int, double>& coord);
 
-    /** This are the elements the Function is defined on. Either references to the
-     * elements within the design space to to dummy elements if the region is not within the design (stress)
-     * @param region as long as only the Condition has this stuff it is an parameter*/
-    void SetElements(DesignSpace* space, RegionIdType region);
-
     /** The actual kind of cost function. */
     Type type_;
 
-    /** for HOMOGENIZATION_TRACKING this is the target tensor. */
+    /** for HOM_TRACKING this is the target tensor. For HOM_FROBENIUS_PRODUCT this is the parameter */
     Matrix<double> tensor_;
 
     /** The current function value */

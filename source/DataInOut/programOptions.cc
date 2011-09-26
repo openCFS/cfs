@@ -161,7 +161,7 @@ namespace CoupledField {
         "force a segmentation fault at exceptions")
 
       ( "printGrid,g",
-        "read grid from input and write it to output file" )
+        "export mesh to output file w/o simulation" )
 
       ( "exportGrid,G",
         "export the grid to the info.xml file, best with -g")

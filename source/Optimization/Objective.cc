@@ -27,7 +27,7 @@ Objective::Objective(PtrParamNode pn, PtrParamNode pn_type, unsigned int idx)
   get<2>(coord) = 1.0;
   if(pn_type->Has("coord"))
   {
-    if(pn_type->Get("coord")->As<std::string>() == "all" && type_ == HOMOGENIZATION_TENSOR)
+    if(pn_type->Get("coord")->As<std::string>() == "all" && type_ == HOM_TENSOR)
       EXCEPTION("homogenization tensor as objective does not support coord='all'!");
     ParseCoord(pn_type, coord);
   }

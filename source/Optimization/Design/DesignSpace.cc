@@ -401,6 +401,8 @@ bool DesignSpace::RegisterPseudoDesignRegion(RegionIdType region, DesignElement:
   // add if the stuff does not exist
   if(ptr == NULL)
   {
+    domain->GetGrid()->SetElementBarycenters(region, true);
+
     StdVector<Elem*> elems;
     domain->GetGrid()->GetElems(elems, region);
 

@@ -136,7 +136,7 @@ namespace CoupledField {
     mathParser_->SetExpr(secMatFacHandle_, aSecMatFac);  
     Double dummy = mathParser_->Eval(secMatFacHandle_);
     dummy +=1.0;
-    std::cerr << "Secondary matrix factor is " << mathParser_->GetExpr(secMatFacHandle_) << std::endl;
+    // std::cerr << "Secondary matrix factor is " << mathParser_->GetExpr(secMatFacHandle_) << std::endl;
   }
   std::string BiLinFormContext::GetSecMatFac() const {
     return mathParser_->GetExpr(secMatFacHandle_);
