@@ -498,24 +498,24 @@ namespace CoupledField
                actContext.MapEqns( it1, it2, eqnVec1, eqnVec2, fctId1, fctId2 );
 
 
-   //#ifdef USE_SCRIPTING
-   //            // Check, if current list is element list and if element matrix
-   //            // should be printed
-   //            if( actContext.GetFirstEntities()->GetType() == EntityList::ELEM_LIST ) {
-   //              if( printElemNums_.count( it1.GetElem()->elemNum ) ) {
-   //                StdVector<std::string> args;
-   //                args.Push_back( form->GetName() );
-   //                args.Push_back( it1.GetIdString() );
-   //                args.Push_back( it2.GetIdString() );
-   //                if( form->IsComplex() ) {
-   //                  args.Push_back( elemMatrixC.ToString(1) );
-   //                } else {
-   //                  args.Push_back( elemMatrix.ToString(1) );
-   //                }
-   //                messenger->TriggerEvent( CFSMessenger::CFS_AssembleMat, args );
-   //              }
-   //            }
-   //#endif
+   #ifdef USE_SCRIPTING
+               // Check, if current list is element list and if element matrix
+               // should be printed
+               if( actContext.GetFirstEntities()->GetType() == EntityList::ELEM_LIST ) {
+                 if( printElemNums_.count( it1.GetElem()->elemNum ) ) {
+                   StdVector<std::string> args;
+                   args.Push_back( form->GetName() );
+                   args.Push_back( it1.GetIdString() );
+                   args.Push_back( it2.GetIdString() );
+                   if( form->IsComplex() ) {
+                     args.Push_back( elemMatrixC.ToString(1) );
+                   } else {
+                     args.Push_back( elemMatrix.ToString(1) );
+                   }
+                   messenger->TriggerEvent( CFSMessenger::CFS_AssembleMat, args );
+                 }
+               }
+   #endif
 
    //            assert((form->IsComplex() && 
    //                    eqnVec1.GetSize() == elemMatrixC.GetNumRows() && 
@@ -712,27 +712,27 @@ namespace CoupledField
 
             // Map equation numbers
             actContext.MapEqns( it1, it2, eqnVec1, eqnVec2, fctId1, fctId2 );
+       
+
+#ifdef USE_SCRIPTING
+            // Check, if current list is element list and if element matrix
+            // should be printed
+            if( actContext.GetFirstEntities()->GetType() == EntityList::ELEM_LIST ) {
+              if( printElemNums_.count( it1.GetElem()->elemNum ) ) {
+                StdVector<std::string> args;
+                args.Push_back( form->GetName() );
+                args.Push_back( it1.GetIdString() );
+                args.Push_back( it2.GetIdString() );
+                if( form->IsComplex() ) {
+                  args.Push_back( elemMatrixC.ToString(1) );
+                } else {
+                  args.Push_back( elemMatrix.ToString(1) );
+                }
+                messenger->TriggerEvent( CFSMessenger::CFS_AssembleMat, args );
+              }
+            }
+#endif
         } // loop over bilinearforms    // increment iterators
-
-//#ifdef USE_SCRIPTING
-//            // Check, if current list is element list and if element matrix
-//            // should be printed
-//            if( actContext.GetFirstEntities()->GetType() == EntityList::ELEM_LIST ) {
-//              if( printElemNums_.count( it1.GetElem()->elemNum ) ) {
-//                StdVector<std::string> args;
-//                args.Push_back( form->GetName() );
-//                args.Push_back( it1.GetIdString() );
-//                args.Push_back( it2.GetIdString() );
-//                if( form->IsComplex() ) {
-//                  args.Push_back( elemMatrixC.ToString(1) );
-//                } else {
-//                  args.Push_back( elemMatrix.ToString(1) );
-//                }
-//                messenger->TriggerEvent( CFSMessenger::CFS_AssembleMat, args );
-//              }
-//            }
-//#endif
-
 //            assert((form->IsComplex() && 
 //                    eqnVec1.GetSize() == elemMatrixC.GetNumRows() && 
 //                    eqnVec2.GetSize() == elemMatrixC.GetNumCols()) || !form->IsComplex());
