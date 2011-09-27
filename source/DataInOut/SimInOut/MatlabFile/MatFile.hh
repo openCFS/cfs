@@ -6,6 +6,8 @@
 
 #include <string>
 
+namespace CoupledField {
+
 // Class for writing matlab's .mat files. These are HDF5 files with a simple (and pointless) header.
 // Currently only simple matrix and vector variables are supported. TODO: cell arrays would be nice.
 class MatFile
@@ -53,7 +55,7 @@ private:
 	hid_t file; // -ve is invalid.
 };
 
-
+} // end namespace CoupledField
 
 
 #endif // MATFILE_H

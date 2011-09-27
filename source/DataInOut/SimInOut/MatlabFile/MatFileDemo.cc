@@ -2,6 +2,7 @@
 
 // This sample program shows how to  use the MatFile class to write Matlab 7.3
 // .mat files, which are HDF5 based.
+// Source: http://www.mathworks.com/matlabcentral/fileexchange/27350-c-class-to-write-hdf5-mat-files
 
 // The  .mat files  are normal  HDF5 files,  which have  a prepended  512 byte
 // header.  To view  them  in hdfview  one  can remove  the  header using  the
@@ -12,7 +13,7 @@
 int main(int argc, char** argv) 
 {
   // Create new MatFile object.
-  MatFile mf("test.mat");
+  CoupledField::MatFile mf("test.mat");
 
   // Prepare some data
   double data[6];

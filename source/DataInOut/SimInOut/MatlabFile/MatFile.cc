@@ -6,6 +6,10 @@ using namespace std;
 #include <iostream>
 #include <cstring>
 
+#include <General/exception.hh>
+
+namespace CoupledField {
+
 MatFile::MatFile() : file(-1)
 {
 }
@@ -81,7 +85,7 @@ bool MatFile::PrependHeader(const char* filename)
 	FILE* fd = fopen(filename, "r+b");
 	if (!fd)
         {
-		cerr << "Couldn't open file for writing header." << endl;
+		EXCEPTION("Couldn't open file for writing header.");
 		return false;
 	}
 
@@ -99,19 +103,20 @@ bool MatFile::PrependHeader(const char* filename)
 	fseek(fd, 0, SEEK_SET);
 
 	// TODO: Do this properly without reading entire file into memory.
-	if (length > 1024L*1024L*1024L*10L) // 10 GB.
+        size_t one_gb = 1024L*1024L*1024L*1;
+	if (length > one_gb) // 1 GB.
 	{
-		cerr << "File too big to write header, sorry.";
-		fclose(fd);
+                fclose(fd);
+		EXCEPTION("File too big to write header, sorry.");
 		return false;
 	}
 
 	unsigned char* buffer = new unsigned char[length];
 	if (fread(buffer, 1, length, fd) != length)
 	{
+                fclose(fd);
 		delete[] buffer;
-		cerr << "Couldn't read file, sorry.";
-		fclose(fd);
+		EXCEPTION("Couldn't read file, sorry.");
 		return false;
 	}
 
@@ -125,3 +130,5 @@ bool MatFile::PrependHeader(const char* filename)
 
 	return true;
 }
+
+} // end namespace CoupledField
