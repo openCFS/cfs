@@ -134,6 +134,131 @@ namespace CoupledField {
     EXCEPTION("Not implemented");
   }
   
+  // --- Tria 1st order ---
+
+  FeH1LagrangeTria1::FeH1LagrangeTria1() {
+    feType_ = Elem::ET_TRIA3;
+    shape_ = Elem::shapes[feType_];
+    actNumFncs_ = 3;
+    order_ = 1; 
+  }
+
+  FeH1LagrangeTria1::~FeH1LagrangeTria1() {
+
+  }
+
+  void FeH1LagrangeTria1::CalcShFnc( Vector<Double>& shape,
+                                     const Vector<Double>& point,
+                                     const Elem* ptElem,
+                                     UInt comp ) {
+    shape.Resize( 3 );
+    shape[0] = 1.0 - point[0] - point[1]; 
+    shape[1] = point[0];
+    shape[2] = point[1];
+  }
+
+  void FeH1LagrangeTria1::CalcLocDerivShFnc( Matrix<Double> & deriv, 
+                                             const Vector<Double>& point,
+                                             const Elem* ptElem,
+                                             UInt comp ) {
+    
+    deriv.Resize( 3, 2 );
+    deriv[0][0] = -1;
+    deriv[0][1] = -1;
+    
+    deriv[1][0] =  1;
+    deriv[1][1] =  0;
+    
+    deriv[2][0] =  0;
+    deriv[2][1] =  1;
+  }
+
+
+  bool FeH1LagrangeTria1::CoordIsInsideElem( const Vector<Double>& point,
+                                             Double tolerance )  {
+    const Double & xi = point[0];
+    const Double & eta = point[0];
+    return ( xi >= (0 - tolerance)) &&
+           ( eta >= (0 - tolerance)) &&
+           ((xi + eta) <= (1 + tolerance));
+  }
+
+  void FeH1LagrangeTria1::
+  GetLocalIntPoints4Surface(const StdVector<UInt> & surfConnect,
+                            const StdVector<UInt> & volConnect,
+                            const LocPoint & surfIntPoint,
+                            LocPoint & volIntPoint,
+                            Vector<Double>& locNormal ) {
+
+    // Try to find out, which vertices are in common with
+    // the surface element. Then calculate the product of both
+    // and compare them
+    //
+    //            
+    //            
+    // 3 +        
+    //   |\         eta
+    //   | \       ^        REFERENCE VOLUME ELEMENT
+    //   |  \      | 
+    // 1 +---+ 2   +--> xi
+
+
+
+    // NOTE: Since the line element is defined in the range [-1;+1]
+    // we have to calculate (1+surfCoord)/2 in order to get the right
+    // position on the triangular element
+
+    StdVector<UInt> commonIndex(2);
+    UInt found = 0;
+    UInt indexProduct = 0;
+    std::string errMsg;
+
+    volIntPoint.coord.Resize(2);
+    locNormal.Resize(2);
+
+    // loop over surface connect
+    for (UInt iSurf=0; iSurf<2; iSurf++)
+      // loop over volume connect
+      for (UInt iVol=0; iVol<3; iVol++)
+        if (surfConnect[iSurf] == volConnect[iVol])
+        {
+          commonIndex[found++] = iVol+1;
+        }
+
+    indexProduct= commonIndex[0] * commonIndex[1];
+    switch(indexProduct)
+    {
+      case 2:
+        // Edge[1,2] is common
+        volIntPoint[0] = 0.5 + (surfIntPoint[0] / 2.0);
+        volIntPoint[1] = 0.0;
+        locNormal[0] = 0;
+        locNormal[1] = -1.0;
+        break;
+
+      case 3:
+        // Edge[1,3] is common
+        volIntPoint[0] = 0.0;
+        volIntPoint[1] = 0.5 + (surfIntPoint[0] / 2.0);
+        locNormal[0] = -1.0;
+        locNormal[1] =  0.0;
+        break;
+
+      case 6:
+        // Edge[2,3] is common
+        volIntPoint[0] = 0.5 - (surfIntPoint[0] / 2.0);
+        volIntPoint[1] = 0.5 + (surfIntPoint[0] / 2.0);
+        locNormal[0] = .5;
+        locNormal[1] = .5;
+        break;
+
+      default:
+        EXCEPTION( "TriangleFE::GetLocalIntPoints4Surface: surface and volume element "
+            << "have not two nodes in common. Check your .mesh-file.");
+    }
+  }
+
+  
   // --- Quad 1st order ---
    
   FeH1LagrangeQuad1::FeH1LagrangeQuad1() {

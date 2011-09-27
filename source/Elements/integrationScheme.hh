@@ -72,12 +72,29 @@ private:
     void FillIntegPoints(UInt order);
 
     //! Calculate the Gauss-Lobatto points an weights for the given order
-    void CalcGaussLobattoPointsWeights(UInt order,StdVector<Double>& points, StdVector<Double>& weights);
+    void CalcGaussLobattoPointsWeights( UInt order,StdVector<Double>& points, 
+                                        StdVector<Double>& weights );
     
     //! Calculate the Gauss-Lobatto points an weights for the given order
-    void CalcGaussLegendrePointsWeights(UInt order, StdVector<Double>& points, 
-                                        StdVector<Double>& weights );
-  
+    void CalcGaussLegendrePointsWeights( UInt order, StdVector<Double>& points, 
+                                         StdVector<Double>& weights );
+
+    //! Add single integration point set
+    
+    //! This method allows to define by hand integrations points for a 
+    //! given element.
+    //! \param method Integration method  
+    //! \param shape Shape of element
+    //! \param order Integration order
+    //! \param numPoints Number of points
+    //! \param data Actually [][2] for 1D (coord + weight) and [][3] 
+    //!             for 2D and  [][4] for 3D
+    void AddIntegrationSet( IntegMethod method, Elem::ShapeType shape, 
+                            UInt order, UInt numPoints, Double* data );
+    
+    //! Define integrations points / weights for triangular elements
+    void DefineTriagPoints();
+    
     //! Map with integration points for each element type According to the Template Paramter Integration Scheme
     std::map<IntegMethod, std::map< UInt, IntegrationPoints > > intPoints_;
     

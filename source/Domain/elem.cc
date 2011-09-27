@@ -230,6 +230,78 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
     // ************************************************************************
     // TRIA3
     // ************************************************************************
+    //            
+    //            
+    // 3 +        
+    //   |\         eta
+    //   | \       ^        REFERENCE VOLUME ELEMENT
+    //   |  \      | 
+    // 1 +---+ 2   +--> xi
+    
+    ElemShape s;
+    s.dim = 2;
+    s.order = 1;
+    s.numVertices = 3;
+    s.numNodes = 3;
+    s.numEdges = 3;
+    s.numFaces = 1;
+    Double midPoint[2] = {1.0/0.3, 1.0/0.3};
+    Double nodeCoords[] = 
+    { 
+      0.0,  0.0, // #1
+      1.0,  0.0, // #2
+      0.0,  1.0, // #3
+    };
+    UInt edgeVertices[] = 
+    { 
+     1, 2, // #1
+     2, 3, // #2
+     1, 3, // #3
+    };
+    UInt numEdgeNodes[] = 
+    {
+     2, // #1
+     2, // #2
+     2, // #3
+    };
+    UInt * edgeNodes  = edgeVertices; // nodes = vertices
+    UInt numEdgesPerDir[] =
+    {
+     2, // #edges in xi-dir
+     2  // #edges in eta-dir
+    };
+    UInt locDirEdges[] =
+    {
+     1,2, // xi
+     2,3  // eta
+    };
+    UInt numFaceVertices[] = 
+    {
+     3 // #1
+    };
+    UInt faceVertices[] = 
+    {
+     1, 2, 3 // #1
+    };
+    UInt * numFaceNodes = numFaceVertices;
+    UInt * faceNodes = faceVertices;
+    UInt numFacesPerDir[] = 
+    {
+     1, // #faces in xi-dir
+     1  // #faces in eta-dir
+    };
+    UInt locDirFaces[][2] = 
+    {
+     {1,0}, // #faces in xi-dir & component
+     {1,1}, // #faces in eta-dir & component
+    };
+
+    SetElemInfo( s, midPoint, nodeCoords, edgeVertices, numEdgeNodes,
+                 edgeNodes, numEdgesPerDir, locDirEdges,
+                 numFaceVertices, faceVertices, numFaceNodes, faceNodes,
+                 numFacesPerDir, locDirFaces );
+    Elem::shapes[Elem::ET_TRIA3] = s;
+    
     
     // ************************************************************************
     // TRIA6
@@ -606,6 +678,39 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
       return ret;
     }
     
+    ElemShape& Elem::GetShape( Elem::ShapeType st) {
+
+      Elem::FEType feType = Elem::ET_UNDEF;
+      switch( st ) {
+        case ST_POINT:
+          feType = ET_POINT;
+          break;
+        case ST_LINE:
+          feType = ET_LINE2;
+          break;
+        case ST_TRIA:
+          feType = ET_TRIA3;
+          break;
+        case ST_QUAD:
+          feType = ET_QUAD4;
+          break;
+        case ST_TET:
+          feType = ET_TET4;
+          break;
+        case ST_HEXA:
+          feType = ET_HEXA8;
+          break;
+        case ST_PYRA:
+          feType = ET_PYRA5;
+          break;
+        case ST_WEDGE:
+          feType = ET_WEDGE6;
+          break;
+        case ST_UNDEF:
+          EXCEPTION("Unknown shape type");
+      }
+      return Elem::shapes[feType]; 
+    }
     // ************************************************************************
     // ENUM INITIALIZATION
     // ************************************************************************

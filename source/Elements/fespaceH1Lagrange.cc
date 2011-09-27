@@ -236,6 +236,7 @@ namespace CoupledField{
 
       if(mType == GRID){
         refElems_[region][Elem::ET_LINE2]  = new FeH1LagrangeLine1();
+        refElems_[region][Elem::ET_TRIA3]  = new FeH1LagrangeTria1();
         refElems_[region][Elem::ET_QUAD4]  = new FeH1LagrangeQuad1();
         refElems_[region][Elem::ET_HEXA8]  = new FeH1LagrangeHex1();
         refElems_[region][Elem::ET_LINE3]  = new FeH1LagrangeLine2();

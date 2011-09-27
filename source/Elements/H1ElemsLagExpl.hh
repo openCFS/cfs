@@ -156,6 +156,43 @@ protected:
                                  Vector<Double>& locNormal );
 };
 
+//! Lagrangian triangular element of 1st order (ET_TRIA3)
+class FeH1LagrangeTria1 : public FeH1LagrangeExpl {
+
+public:
+
+  //! Constructor
+  FeH1LagrangeTria1();
+
+  //! Destructor
+  virtual ~FeH1LagrangeTria1();
+
+protected:
+
+  //! @copydoc FeH1::CalcShFnc
+  void CalcShFnc( Vector<Double>& shape,
+                  const Vector<Double>& point,
+                  const Elem* ptElem,
+                  UInt comp = 1 );
+
+  //! @copydoc FeH1::CalcLocDerivShFnc
+  void CalcLocDerivShFnc( Matrix<Double> & deriv, 
+                          const Vector<Double>& point,
+                          const Elem* ptElem,
+                          UInt comp = 1 );
+  
+  //! @copydoc FeH1LagrangeExpl::CoordIsInsideElem
+  bool CoordIsInsideElem( const Vector<Double>& point,
+                          Double tolerance );
+  
+  //! @copydoc FeH1LagrangeExpl::GetLocalIntPoints4Surface
+  void GetLocalIntPoints4Surface(const StdVector<UInt> & surfConnect,
+                                 const StdVector<UInt> & volConnect,
+                                 const LocPoint & surfIntPoint,
+                                 LocPoint & volIntPoint,
+                                 Vector<Double>& locNormal );
+};
+
 //! Lagrangian quadrilateral element of 1st order (ET_QUAD4)
 class FeH1LagrangeQuad1 : public FeH1LagrangeExpl {
 

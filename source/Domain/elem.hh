@@ -240,6 +240,13 @@ class ElemShape;
     //! Return for given FEtype the corresponding ShapeType 
     static Elem::ShapeType GetShapeType( Elem::FEType type );
     
+    //! Return for given ShapeType corresponding element shape
+    
+    //! This method returns for a given shape (ST_QUAD, ST_LINE)
+    //! the corresponding element shape. In our case, we always
+    //! return the shape to the 1st order elements.
+    static ElemShape& GetShape( Elem::ShapeType );
+    
     //@}
    
   public:

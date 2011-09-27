@@ -114,12 +114,14 @@ namespace CoupledField {
 
   void FeH1::SetFunctionsAtIp(const StdVector<LocPoint>& iPoints){
     
+    
     // can only be performed for non-hierarchical elements
     shapeFncsAtIp_.Resize(iPoints.GetSize());
     shapeFncDerivsAtIp_.Resize(iPoints.GetSize());
     for(UInt aPoint = 0; aPoint < iPoints.GetSize();aPoint++){
-      CalcShFnc( shapeFncsAtIp_[aPoint], iPoints[aPoint].coord, NULL, 1);
-      CalcLocDerivShFnc( shapeFncDerivsAtIp_[aPoint], iPoints[aPoint].coord,
+     const LocPoint& lp = iPoints[aPoint];
+      CalcShFnc( shapeFncsAtIp_[lp.number], lp.coord, NULL, 1);
+      CalcLocDerivShFnc( shapeFncDerivsAtIp_[lp.number], lp.coord,
                          NULL, 1);
     }
   }

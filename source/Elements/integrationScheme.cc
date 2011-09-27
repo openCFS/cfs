@@ -72,7 +72,7 @@ IntScheme::IntScheme() {
 //  intPoints_[ECONOMICAL][2][Elem::ST_HEXA] = points;
 //  intWeights_[ECONOMICAL][2][Elem::ST_HEXA] = weights;
   
-  FillIntegPoints(20);
+  FillIntegPoints(5);
 }
 
 
@@ -152,9 +152,17 @@ void IntScheme::FillIntegPoints(UInt order){
   // -----------------------------
   // GAUSS - Legendre Points
   // -----------------------------
+  
+ 
+  // A) TENSOR-PRODUCT RULE
+  
   // loop over every all orders
   UInt num1DPoints = 0;
+//  std::cerr << "==============================================\n";
+//  std::cerr << " CALCULATING GAUSS-LEGENDRE INTEGRATION RULES\n";
+//  std::cerr << "==============================================\n\n";
   for(UInt ord = 1; ord <= order ; ord++){
+//    std::cerr << "=> ORDER: " << ord << std::endl;
       CalcGaussLegendrePointsWeights(ord,intPoints1D,weights1D);
       num1DPoints = intPoints1D.GetSize();
       
@@ -178,6 +186,7 @@ void IntScheme::FillIntegPoints(UInt order){
       points.Resize(numPts);
       weights.Resize(numPts);
 
+//      std::cerr << "\t QUAD-points\n"; 
       for (UInt i = 0; i < num1DPoints; i ++ ){
         for (UInt j = 0; j < num1DPoints; j ++ ){
           LocPoint lp;
@@ -185,10 +194,12 @@ void IntScheme::FillIntegPoints(UInt order){
           lp.coord[0] = intPoints1D[i];
           lp.coord[1] = intPoints1D[j];
           lp.number = numIntPts_[Elem::ST_QUAD]++;
+//          std::cerr << "\t\tpoint number " << lp.number << ": " << lp.coord.ToString() << std::endl;
           points[(i*num1DPoints + j)] = lp;
           weights[(i*num1DPoints + j)] =  weights1D[i]*weights1D[j];
         }
       }
+//      std::cerr << "\n";
       intPoints_[GAUSS][ord][Elem::ST_QUAD] = points;
       intWeights_[GAUSS][ord][Elem::ST_QUAD] = weights;
 
@@ -216,11 +227,47 @@ void IntScheme::FillIntegPoints(UInt order){
       intWeights_[GAUSS][ord][Elem::ST_HEXA] = weights;
     }
   
+  // B) OTHER ELEMENT SHAPES (TRIA, TET, WEDGE, PYRA)
+  DefineTriagPoints();
+    
+  
 }
 
 IntScheme::~IntScheme() {
   
 }
+
+void IntScheme::AddIntegrationSet( IntegMethod method, Elem::ShapeType shape, 
+                                   UInt order, UInt numPoints, Double* data ) {
+  
+  // check, if integration points are already defined for combination
+  // (method, shape, order)
+  if( intPoints_[method][order][shape].GetSize() != 0 ) {
+    WARN("Integration rule of type ' " <<
+         IntegMethodEnum.ToString(method) << "' for element '"
+         << Elem::shapeType.ToString(shape) << "' of order "
+         << order << " was already defined!");
+  }
+  
+  StdVector<LocPoint> points( numPoints );
+  StdVector<Double> weights( numPoints );
+  
+  // get dimension of element
+  UInt dim = Elem::GetShape(shape).dim;
+  for( UInt i = 0; i < numPoints; ++i ) {
+    LocPoint lp;
+    lp.coord.Resize(dim);
+    for( UInt j= 0 ; j < dim; ++j ) {
+      lp.coord[j] = data[i*(dim+1) + j];
+    }
+    lp.number = numIntPts_[shape]++;
+    points[i] = lp;
+    weights[i] = data[i*(dim+1) + dim];
+  }
+  intPoints_[method][order][shape] = points;
+  intWeights_[method][order][shape] = weights;
+ }
+ 
 
 
 void IntScheme::SetOrder(std::string method, Integer order) {
@@ -245,7 +292,7 @@ void IntScheme::SetOrder(IntegMethod method, Integer order) {
 void IntScheme::GetIntPoints( Elem::ShapeType elemType,
                               StdVector<LocPoint>& intPts, 
                               StdVector<Double>& weights ) {
-
+  
   if( intPoints_.find(integMethod_) == intPoints_.end() ) {
     EXCEPTION( "No integration points defined for  '"
         << IntegMethodEnum.ToString(integMethod_) 
@@ -329,24 +376,102 @@ void IntScheme::GetIntPoints( Elem::ShapeType elemType,
     }
   }
 
+  
+  void IntScheme::DefineTriagPoints() {
+
+    // Values take from the old SetIntPoints() - order 1
+    Double c1[][3] = 
+    { 
+     { 1.0/3.0,  1.0/3.0,  0.500000000000000 }
+    };
+    AddIntegrationSet(GAUSS, Elem::ST_TRIA, 1, 1 , (Double*)c1);
+
+    // Values take from the old SetIntPoints() - order 2
+    static Double c2[][3] = 
+    { 
+     { 0.166666666666667,  0.166666666666667,  0.166666666666667 },
+     { 0.666666666666667,  0.166666666666667,  0.166666666666667 },       
+     { 0.166666666666667,  0.666666666666667,  0.166666666666667 }                
+    };
+    AddIntegrationSet(GAUSS, Elem::ST_TRIA, 2, 3 , (Double*) c2);
+
+    // Values take from the old SetIntPoints() - order 3
+    // In the original code the weights were given twice with different values! 
+    // -> they have to sum up to 0.5
+    Double a3[][3] = 
+    { 
+     {0.333333333333333,  0.333333333333333,  -0.28125 },
+     {0.2,  0.2,  0.260416666666667 },
+     {0.2,  0.6,  0.260416666666667 },
+     {0.6,  0.2,  0.260416666666667 },
+    };
+    AddIntegrationSet(GAUSS, Elem::ST_TRIA, 3, 4 , (Double*) a3);
+
+    // Values take from the old SetIntPoints() - order 4
+    // original comment: but the paper has other coordinates!? - Fabian
+    // http://www3.interscience.wiley.com/cgi-bin/abstract/110545966/ABSTRACT?CRETRY=1&SRETRY=0
+    // D. A. Dunavant: High Degree Efficient Symmetrical ...
+    // Int. J. Numer. Methods in Eng.  Vol 21  S. 1129-1148   1985
+    // (c) Kaskade
+
+    static Double c4[][3] = 
+    { 
+     {0.445948490915965,  0.445948490915965,  0.111690794839005 },
+     {0.445948490915965,  0.10810301816807,  0.111690794839005 },
+     {0.10810301816807,  0.445948490915965,  0.111690794839005 },
+     {0.091576213509771,  0.091576213509771,  0.054975871827661 },
+     {0.091576213509771,  0.816847572980459,  0.054975871827661 },
+     {0.816847572980459,  0.091576213509771,  0.054975871827661 },
+    };
+    AddIntegrationSet(GAUSS, Elem::ST_TRIA, 4, 6 , (Double*) c4);
+
+    // Values take from the old SetIntPoints() - order 5
+    // original comment: but the paper has other coordinates!? - Fabian
+    // http://www3.interscience.wiley.com/cgi-bin/abstract/110545966/ABSTRACT?CRETRY=1&SRETRY=0
+    // D. A. Dunavant: High Degree Efficient Symmetrical ...
+    // Int. J. Numer. Methods in Eng.  Vol 21  S. 1129-1148   1985
+    // (c) Kaskade
+    static Double c5[][3] = 
+    { 
+     {0.333333333333333,  0.333333333333333,  0.1125 },
+     {0.470142064105115,  0.470142064105115,  0.066197076394253 },
+     {0.470142064105115,  0.05971587178977,  0.066197076394253 },
+     {0.05971587178977,  0.470142064105115,  0.066197076394253 },
+     {0.101286507323456,  0.101286507323456,  0.0629695902724135 },
+     {0.101286507323456,  0.797426985353087,  0.0629695902724135 },
+     {0.797426985353087,  0.101286507323456,  0.0629695902724135 },
+    };
+    AddIntegrationSet(GAUSS, Elem::ST_TRIA, 5, 7 , (Double*) c5);
+    
+    // Generate remaining integration points up to maximum order 20
+    // using Duffy transformation
+    
+    // .... Implement me
+
+  }
 
   void IntScheme::GetAllIntegrationPoints(StdVector< LocPoint >& points,
                                           Elem::ShapeType type){ 
 
     points.Resize(numIntPts_[type]);
     points.Init();
-    UInt counter = 0;
+
     //loop over all defined methods
     std::map<IntegMethod, std::map< UInt, IntegrationPoints > >::iterator methods;
     for(methods = intPoints_.begin();methods != intPoints_.end() ; methods++){
+      
       //loop over every order available
       std::map< UInt, IntegrationPoints >::iterator orders;
       for(orders = methods->second.begin();orders != methods->second.end(); orders++){
-        //get the vector for the given FeType and fill the vector
-        if(orders->second[type].GetSize() > 0){
-          StdVector<LocPoint> curPoints = orders->second[type];
-          for(UInt curPoint = 0; curPoint < curPoints.GetSize();curPoint++){
-            points[counter++] = orders->second[type][curPoint];
+        
+        IntegrationPoints& ips = orders->second;
+        IntegrationPoints::const_iterator ipIt = ips.find(type);
+        // check if any integration points at all are defined for this shapeType
+        if( ipIt != orders->second.end() ) {
+          const StdVector<LocPoint>& curPoints = ipIt->second; 
+          for( UInt curPoint = 0; curPoint < curPoints.GetSize();curPoint++){
+            const LocPoint& lp = curPoints[curPoint];
+            points[lp.number] = lp;
           }
         }
       }

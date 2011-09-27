@@ -115,6 +115,7 @@ LagrangeElemShapeMap::LagrangeElemShapeMap( Grid* ptGrid  )
   feMap_[Elem::ET_LINE3] = new FeH1LagrangeLine2();
 //  feMap_[ET_TRIA3] = new FeH1Lagrange();
 //  feMap_[ET_TRIA6] = new FeH1LagrangeLine1();
+  feMap_[Elem::ET_TRIA3] = new FeH1LagrangeTria1();
   feMap_[Elem::ET_QUAD4] = new FeH1LagrangeQuad1();
   feMap_[Elem::ET_QUAD8] = new FeH1LagrangeQuad2();
 //  feMap_[ET_QUAD9] = new FeH1LagrangeQuad1();
@@ -131,7 +132,7 @@ LagrangeElemShapeMap::LagrangeElemShapeMap( Grid* ptGrid  )
 
 LagrangeElemShapeMap::~LagrangeElemShapeMap() {
   
-  // Remove pointers to all refrence elements
+  // Remove pointers to all reference elements
   std::map<Elem::FEType, FeH1LagrangeExpl *>::iterator it = feMap_.begin();
   for( ; it != feMap_.end(); it++ ) {
     delete  it->second;
@@ -597,6 +598,7 @@ void LagrangeElemShapeMap::CalcNormal( Vector<Double>& normal,
   // get neighboring volume element
   const SurfElem & surfEl = dynamic_cast<const SurfElem&>(*ptElem_);
   Elem * ptVolEl = surfEl.ptVolElem1;
+  
   
   // Obtain shape map of neighboring volume element
   LagrangeElemShapeMap sm(ptGrid_);
