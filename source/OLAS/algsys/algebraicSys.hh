@@ -470,14 +470,15 @@ namespace CoupledField {
     //!              method
     void InitRHS( const FeFctIdType fctId = NO_FCT_ID );
 
-    //! Set the global rhs to given values
+    //! Set the global RHS to given values
 
-    //! Set the right hand side vector to the values specified in the array
-    //! newRHS
-    //! \param newRHS Pointer to new right-hand-side values
-    //! \note The values of newRHS are copied, so the pointer to newRHS
-    //! can be changed afterwards!
-    void InitRHS( const BaseVector& newRHS );
+    //! Set the right hand side vector to the values specified in the 
+    //! SBM-vector \a newRHS. The SBM-vector contains for each FeFunction
+    //! a sub-vector. 
+    //! \param newRHS SBM-Vector with RHS for all FeFunctions of the system
+    //! \note The vector \a newRHS has the same layout as the one returned
+    //!       by GetRHSVal(SBM_Vector)
+    void InitRHS( const SBM_Vector& newRHS );
 
     //! Set the solution vector of the specified Fct to zero
 
@@ -488,15 +489,14 @@ namespace CoupledField {
     //!              method
     void InitSol( const FeFctIdType fctId = NO_FCT_ID );
 
-    //! Set the global solution vector to given initial values
-
-    //! Set the solution vector to the values specified in the array
-    //! newSol
-    //! \param newSol Pointer to new solution values
-    //! \note The values of newSol are copied, so the pointer to newSol
-    //! can be changed afterwards!
-    void InitSol( const BaseVector& newSol );
-
+    //! Set the solution vector to the values specified in the 
+    //! SBM-vector \a newRHS. The SBM-vector contains for each FeFunction
+    //! a sub-vector. 
+    //! \param newSol SBM-Vector with solution for all FeFunctions of the 
+    //!               system
+    //! \note The vector \a newRHS has the same layout as the one returned
+    //!       by GetSolutionVal(SBM_Vector)
+    void InitSol( const SBM_Vector& newSol );
 
     //! Assemble an element matrix into the global one
 
@@ -576,7 +576,7 @@ namespace CoupledField {
     //! \param matrixType type of finite element matrix (STIFFNESS, MASS, ...)
     //!                 which gets multiplied
     //! \param fup array with vector entries, which get multiplied
-    void UpdateRHS(FEMatrixType matrixType, const BaseVector& fup);
+    void UpdateRHS(FEMatrixType matrixType, const SBM_Vector& fup);
 
     //! Add a value to a diagonal matrix entry
 
@@ -686,28 +686,44 @@ namespace CoupledField {
     //! the solver have to be set up again.
     void BuildInDirichlet();
 
-    //! Return the pointer to the current solution of a Fct
+    //! Return complete solution vector
 
-    //! This method passes the current solution of one given Fct
-    //! as a pointer to a buffer containing the solution entries.
-    //!
-    //! \param ptSol solution vector
-    //! \param fctId identifier for Fct related to sub-graph
-    void GetSolutionVal( SingleVector& ptSol,
-                         const FeFctIdType fctId = NO_FCT_ID );
+    
+    //! This method returns the complete current solution as 
+    //! SBM-vector. The blocks are split per FctIdType,
+    //! i.e. every FeFunction solution resides in its own SBM-block.
+    //! \param sbmSolVec solution vector for all fctIds (FeFctId can be used
+    //!                  as SBM-index)
+    void GetSolutionVal( SBM_Vector& sbmSolVec );
+    
+    //! Return solution vector for one single FeFct
 
-    //! Return the pointer to the current rhs value of a Fct
+    //! This method returns the solution vector associated with one specific
+    //! FeFunction. The entries are numbered according to the equations numbers
+    //! of this FeFunction.
+    //! \param solVec solution vector for specified FeFcunction
+    //! \param fctId identifier for function related to sub-graph
+    void GetSolutionVal( SingleVector& solVec,
+                         const FeFctIdType fctId  );
 
-    //! This method passes the current rhs as a pointer to buffer with
-    //! right hand side entries.
-    //!
-    //! \param ptRhs pointer (0-based) to the buffer with rhs values
-    //! \param fctId identifier for Fct related to sub-graph
-    //!
-    //! \note The return buffer is guaranteed to retain the current rhs
-    //! until the next call of this method!
-    void GetRHSVal( SingleVector &ptRhs,
-                    const FeFctIdType fctId = NO_FCT_ID );
+    //! Return complete right-hand-side (RHS) vector
+
+    //! This method returns the complete right-hand-side as 
+    //! SBM-vector. The blocks are split per FctIdType,
+    //! i.e. every FeFunction solution resides in its own SBM-block.
+    //! \param sbmRhsVec RHS vector for all fctIds (FeFctId can be used
+    //!                  as SBM-index)
+    void GetRHSVal( SBM_Vector& sbmRhsVec );
+    
+    //! Return right-hand-side (RHS) vector for one single FeFct
+
+    //! This method returns the RHS vector associated with one specific
+    //! FeFunction. The entries are numbered according to the equations numbers
+    //! of this FeFunction.
+    //! \param rhsVec RHS vector for specified FeFcunction
+    //! \param fctId identifier for function related to sub-graph
+    void GetRHSVal( SingleVector &rhsVec,
+                    const FeFctIdType fctId );
 
 
     // ***********************************************************************

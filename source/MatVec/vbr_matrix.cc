@@ -68,13 +68,14 @@ namespace CoupledField {
     // Create empty data structurs
     NEWARRAY( bRow_,   UInt, nbRows_ + 1 );
     NEWARRAY( rowPtr_, UInt, nbRows_ + 1 );
+    
     NEWARRAY( diagBlockPtr_, UInt, nbRows_ + 1 );
     for(UInt i=0; i < nbRows_+1; ++i ) {
       bRow_[i] = origMat.bRow_[i];
       rowPtr_[i] = origMat.rowPtr_[i];
       diagBlockPtr_[i] = origMat.diagBlockPtr_[i];
     }
-
+    
     NEWARRAY( bCol_,   UInt, nbCols_ + 1 );
     for(UInt i=0; i < nbCols_+1; ++i ) {
       bCol_[i] = origMat.bCol_[i];
@@ -94,10 +95,13 @@ namespace CoupledField {
     for(UInt i=0; i < this->nNzEff_ ; ++i ) {
       data_[i] = origMat.data_[i];
     }
-
-    NEWARRAY( diagPtr_, UInt, this->nrows_ );
-    for(UInt i=0; i < this->nrows_ ; ++i ) {
-      diagPtr_[i] = origMat.diagPtr_[i];
+    
+    // Only copy diagonal pointer, if matrix is quadratic
+    if( this->ncols_ == this->nrows_ ) {
+      NEWARRAY( diagPtr_, UInt, this->nrows_ );
+      for(UInt i=0; i < this->nrows_ ; ++i ) {
+        diagPtr_[i] = origMat.diagPtr_[i];
+      }
     }
   }
 

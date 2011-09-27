@@ -29,19 +29,19 @@ namespace CoupledField
     void Init( Double dt, UInt rhsSize );
 
     //! perform predictor step
-    void Predictor(Vector<Double>& solold);
+    void Predictor(SBM_Vector& solold);
 
     //! perform corrector step
-    void Corrector(Vector<Double>& solnew);
+    void Corrector(SBM_Vector& solnew);
 
     //! perform an update to RHS
     void UpdateRHS();
 
     //! perform an update to RHS with actual solution (for nonlin calculation)
-    void UpdateRHS(Vector<Double>& actSol);
+    void UpdateRHS(SBM_Vector& actSol);
 
     //! Substract Stiffness from RHS
-    virtual void SubstractStiffnessFromRHS(Vector<Double>& actSol)
+    virtual void SubstractStiffnessFromRHS(SBM_Vector& actSol)
     {;};
 
     //! set gamma coefficient 
@@ -58,7 +58,7 @@ namespace CoupledField
     Double gamma_;  
 
     //! predictor of solution
-    Vector<Double> solpred_;
+    SBM_Vector solpred_;
   };
 
 
@@ -77,19 +77,19 @@ namespace CoupledField
     void Init( Double dt, UInt rhsSize );
 
     //! perform predictor step
-    void Predictor(Vector<Double>& solold);
+    void Predictor(SBM_Vector& solold);
 
     //! perform corrector step
-    void Corrector(Vector<Double>& solnew);
+    void Corrector(SBM_Vector& solnew);
 
     //! perform an update to RHS
     void UpdateRHS();
 
     //! perform an update to RHS with actual solution (for nonlin calculation)
-    void UpdateRHS(Vector<Double>& actSol);
+    void UpdateRHS(SBM_Vector& actSol);
 
     //! Substract Stiffness from RHS
-    virtual void SubstractStiffnessFromRHS(Vector<Double>& actSol)
+    virtual void SubstractStiffnessFromRHS(SBM_Vector& actSol)
     {;};
 
     //! Dirichlet boundary condition has to be adapted
@@ -105,7 +105,7 @@ namespace CoupledField
     Double gamma_;  
 
     //! predictor of solution
-    Vector<Double> sol_, solpred_, solderiv1_;
+    SBM_Vector sol_, solpred_, solderiv1_;
   };
 
 

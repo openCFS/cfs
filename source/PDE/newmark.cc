@@ -52,7 +52,7 @@ namespace CoupledField
   void Newmark::Init( Double dt, UInt rhsSize ) {
 
     rhsSize_ = rhsSize;
-    Vector<Double> dummyVec;
+    SBM_Vector dummyVec;
     dummyVec.Resize(rhsSize_);
     dummyVec.Init();
 
@@ -90,8 +90,8 @@ namespace CoupledField
   }
   
   void Newmark::ReInit(){
-    std::map<TIMEStepType, Vector<Double> >::iterator iterTime = sol_timeStepVec_.begin();
-    std::map<DERIVType, Vector<Double> >::iterator iterDeriv = solDeriv_vec_.begin();
+    std::map<TIMEStepType, SBM_Vector >::iterator iterTime = sol_timeStepVec_.begin();
+    std::map<DERIVType, SBM_Vector >::iterator iterDeriv = solDeriv_vec_.begin();
     for (;iterTime != sol_timeStepVec_.end(); ++iterTime)
     {
       iterTime->second.Init();
@@ -133,13 +133,23 @@ namespace CoupledField
     solderiv1pred_ = solderiv1predSAVE_;
   }
 
-  void Newmark::Predictor(Vector<Double>& solold)
+  void Newmark::Predictor(SBM_Vector& solold)
   {
     if( !omitFirstPredictor_) {
-      solpred_ = solold + solDeriv_vec_[FIRST_DERIV] * dt_ \
-               + solDeriv_vec_[SECOND_DERIV] * sol_timeStepCoeff_[PREDICTOR_1];
-      solderiv1pred_ = solDeriv_vec_[FIRST_DERIV] 
-                    + solDeriv_vec_[SECOND_DERIV] * sol_timeStepCoeff_[PREDICTOR_2];
+
+      solpred_ = solold;
+      solpred_.Add( dt_, solDeriv_vec_[FIRST_DERIV] );
+      solpred_.Add( sol_timeStepCoeff_[PREDICTOR_1], 
+                    solDeriv_vec_[SECOND_DERIV] );
+      
+      solderiv1pred_ = solDeriv_vec_[FIRST_DERIV];
+      solderiv1pred_.Add( sol_timeStepCoeff_[PREDICTOR_2],
+                          solDeriv_vec_[SECOND_DERIV] );
+      // old, Single-Vector based code
+//      solpred_ = solold + solDeriv_vec_[FIRST_DERIV] * dt_ \
+//               + solDeriv_vec_[SECOND_DERIV] * sol_timeStepCoeff_[PREDICTOR_1];
+//      solderiv1pred_ = solDeriv_vec_[FIRST_DERIV] 
+//                    + solDeriv_vec_[SECOND_DERIV] * sol_timeStepCoeff_[PREDICTOR_2];
     } else {
       omitFirstPredictor_ = false;
     }
@@ -148,68 +158,90 @@ namespace CoupledField
   void Newmark::UpdateRHS()
   {
 
-    Vector<Double> coeffMass;
+    SBM_Vector coeffMass;
 
     // mass part
-    coeffMass = solpred_*sol_timeStepCoeff_[CORRECTOR_1];
+    coeffMass = solpred_;
+    coeffMass.ScalarMult( sol_timeStepCoeff_[CORRECTOR_1] );
+    
+//    coeffMass = solpred_*sol_timeStepCoeff_[CORRECTOR_1];
     algsys_->UpdateRHS(MASS,coeffMass);
 
     // damping part
     if ( FeMatrixPresent( DAMPING ) ) {
-      Vector<Double> coeffDamp;
-        
-      coeffDamp = -solderiv1pred_ + solpred_*sol_timeStepCoeff_[COEFFRHS];
+      SBM_Vector coeffDamp;
+      coeffDamp.Add( -1.0, solderiv1pred_,
+                     sol_timeStepCoeff_[COEFFRHS], solpred_ );
+      
+//      coeffDamp = -solderiv1pred_ + solpred_*sol_timeStepCoeff_[COEFFRHS];
       algsys_->UpdateRHS(DAMPING,coeffDamp);
     }
 
     //just in case of alpha-Method
     if (abs(alpha_) > 0) {
-      Vector<Double> coeffStiff;
-      coeffStiff = solpred_*alpha_;
+      SBM_Vector coeffStiff;
+      coeffStiff = solpred_;
+      coeffStiff.ScalarMult(alpha_);
+//      coeffStiff = solpred_*alpha_;
       algsys_->UpdateRHS(DAMPING,coeffStiff);
     }
 
   }
 
-  void Newmark::SubstractStiffnessFromRHS(Vector<Double>& actSol) {
+  void Newmark::SubstractStiffnessFromRHS(SBM_Vector& actSol) {
 
 
-    Vector<Double> actSolTemp;
-    actSolTemp=-actSol;
+    SBM_Vector actSolTemp;
+    actSolTemp = actSol;
+    actSolTemp.ScalarMult(-1.0);
+//    actSolTemp=-actSol;
 
     algsys_->UpdateRHS(STIFFNESS,actSolTemp);
   }
 
-  void Newmark::UpdateRHS(Vector<Double>& actSol)
+  void Newmark::UpdateRHS(SBM_Vector& actSol)
   {
 
     // mass part
-    Vector<Double> coeffMass;
-    coeffMass = (solpred_ - actSol) * sol_timeStepCoeff_[CORRECTOR_1];
+    SBM_Vector coeffMass;
+    coeffMass.Add( sol_timeStepCoeff_[CORRECTOR_1], solpred_,
+                  -sol_timeStepCoeff_[CORRECTOR_1], actSol ); 
+    
+    //coeffMass = (solpred_ - actSol) * sol_timeStepCoeff_[CORRECTOR_1];
     algsys_->UpdateRHS(MASS, coeffMass);
 
 
     // damping part
     if ( FeMatrixPresent( DAMPING ) ) {
-      Vector<Double> coeffDamp;
-        
-      coeffDamp = -solderiv1pred_ + (solpred_-actSol)*sol_timeStepCoeff_[COEFFRHS];
+      SBM_Vector coeffDamp;
+      coeffDamp.Add( sol_timeStepCoeff_[COEFFRHS], solpred_,
+                     - sol_timeStepCoeff_[COEFFRHS], actSol );
+      coeffDamp.Add( -1.0, solderiv1pred_);
+      //coeffDamp = -solderiv1pred_ + (solpred_-actSol)*sol_timeStepCoeff_[COEFFRHS];
       algsys_->UpdateRHS(DAMPING,coeffDamp);
     }
 
     //just in case of alpha-Method
     if (abs(alpha_) > 0) {
-      Vector<Double> coeffStiff;
-      coeffStiff = solpred_*alpha_;
+      SBM_Vector coeffStiff;
+      coeffStiff = solpred_;
+      coeffStiff.ScalarMult( alpha_ );
+      //coeffStiff = solpred_*alpha_;
       algsys_->UpdateRHS(DAMPING,coeffStiff);
     }
 
   }
 
-  void Newmark::Corrector(Vector<Double>& solnew)
+  void Newmark::Corrector(SBM_Vector& solnew)
   {
-    solDeriv_vec_[SECOND_DERIV] = (solnew - solpred_) * sol_timeStepCoeff_[CORRECTOR_1];
-    solDeriv_vec_[FIRST_DERIV] = solderiv1pred_ + solDeriv_vec_[SECOND_DERIV]*sol_timeStepCoeff_[CORRECTOR_2];
+    solDeriv_vec_[SECOND_DERIV].Add( sol_timeStepCoeff_[CORRECTOR_1], solnew,
+                                     -sol_timeStepCoeff_[CORRECTOR_1], solpred_ );
+    solDeriv_vec_[FIRST_DERIV].Add( 1.0, solderiv1pred_,
+                                    sol_timeStepCoeff_[CORRECTOR_2], 
+                                    solDeriv_vec_[SECOND_DERIV] );
+//    solDeriv_vec_[SECOND_DERIV] = (solnew - solpred_) * sol_timeStepCoeff_[CORRECTOR_1];
+//    solDeriv_vec_[FIRST_DERIV] = solderiv1pred_ +
+//        solDeriv_vec_[SECOND_DERIV]*sol_timeStepCoeff_[CORRECTOR_2];
   }
 
 
@@ -229,7 +261,7 @@ namespace CoupledField
     sol_timeStepCoeff_[COEFFRHS] = (1+alpha_) * gamma_ / (beta_*dt_);
   }
 
-  void Newmark::AdvanceTimestep(Vector<Double>& solnew)
+  void Newmark::AdvanceTimestep(SBM_Vector& solnew)
   {
     sol_timeStepVec_[TIMESTEP_1]=solnew;
   }
@@ -277,7 +309,7 @@ namespace CoupledField
     std::cout<<"Newmark uses Effective Mass Formulation " <<std::endl;
 
     rhsSize_ = rhsSize;
-    Vector<Double> dummyVec;
+    SBM_Vector dummyVec;
     dummyVec.Resize(rhsSize_);
     dummyVec.Init();
 
@@ -319,14 +351,22 @@ namespace CoupledField
   }
 
 
-  void NewmarkEffMass::Predictor(Vector<Double>& solold)
+  void NewmarkEffMass::Predictor(SBM_Vector& solold)
   {
 
     if( !omitFirstPredictor_) {
-      solpred_ = sol_ + solDeriv_vec_[FIRST_DERIV] * dt_ \
-        + solDeriv_vec_[SECOND_DERIV]*sol_timeStepCoeff_[PREDICTOR_1];
-      solderiv1pred_ = solDeriv_vec_[FIRST_DERIV] \
-        + solDeriv_vec_[SECOND_DERIV]*sol_timeStepCoeff_[PREDICTOR_2];
+      solpred_ = sol_;
+      solpred_.Add( dt_, solDeriv_vec_[FIRST_DERIV] );
+      solpred_.Add( sol_timeStepCoeff_[PREDICTOR_1], 
+                    solDeriv_vec_[SECOND_DERIV] );
+      
+      solderiv1pred_ = solDeriv_vec_[FIRST_DERIV];
+      solderiv1pred_.Add( sol_timeStepCoeff_[PREDICTOR_2],
+                          solDeriv_vec_[SECOND_DERIV] );
+//      solpred_ = sol_ + solDeriv_vec_[FIRST_DERIV] * dt_ \
+//        + solDeriv_vec_[SECOND_DERIV]*sol_timeStepCoeff_[PREDICTOR_1];
+//      solderiv1pred_ = solDeriv_vec_[FIRST_DERIV] \
+//        + solDeriv_vec_[SECOND_DERIV]*sol_timeStepCoeff_[PREDICTOR_2];
     } else {
       omitFirstPredictor_ = false;
     }
@@ -334,13 +374,17 @@ namespace CoupledField
 
   }
 
-  void NewmarkEffMass::Corrector(Vector<Double>& aNew)
+  void NewmarkEffMass::Corrector(SBM_Vector& aNew)
   {
 
     // after solving the algebraic system of equation, we obtain as solution
     // the 2nd time derivative: aNew .. 2nd second time derivative
-    sol_ = solpred_ + aNew * sol_timeStepCoeff_[CORRECTOR_1];
-    solDeriv_vec_[FIRST_DERIV] = solderiv1pred_ + aNew * sol_timeStepCoeff_[CORRECTOR_2];
+    sol_.Add( 1.0, solpred_, 
+              sol_timeStepCoeff_[CORRECTOR_1], aNew );
+    solDeriv_vec_[FIRST_DERIV].Add( 1.0, solderiv1pred_,
+                                    sol_timeStepCoeff_[CORRECTOR_2], aNew );
+//    sol_ = solpred_ + aNew * sol_timeStepCoeff_[CORRECTOR_1];
+//    solDeriv_vec_[FIRST_DERIV] = solderiv1pred_ + aNew * sol_timeStepCoeff_[CORRECTOR_2];
     solDeriv_vec_[SECOND_DERIV] = aNew;
 
     //now overwrite the solution with the physical quantity itself
@@ -351,16 +395,20 @@ namespace CoupledField
   void NewmarkEffMass::UpdateRHS()
   {
 
-    Vector<Double> coeffStiff;
-    coeffStiff = -solpred_;
+    SBM_Vector coeffStiff;
+    coeffStiff = solpred_;
+    coeffStiff.ScalarMult( -1.0 );
+//    coeffStiff = -solpred_;
 
     algsys_->UpdateRHS(STIFFNESS, coeffStiff);
 
     // damping part
     if ( FeMatrixPresent( DAMPING ) )
       {
-        Vector<Double> coeffDamp;
-        coeffDamp = -solderiv1pred_;
+        SBM_Vector coeffDamp;
+        coeffDamp = solderiv1pred_;
+        coeffDamp.ScalarMult(-1.0);
+//        coeffDamp = -solderiv1pred_;
 
         algsys_->UpdateRHS(DAMPING, coeffDamp);
       }
@@ -381,11 +429,16 @@ namespace CoupledField
 
   Double NewmarkEffMass::DirichletBC4EffMassMatrix(Double val, Integer eq)
   {
-
-    Double accval;
-
-    accval = (val- solpred_[eq-1]) / sol_timeStepCoeff_[CORRECTOR_1];
-    return accval;
+    EXCEPTION("This method won't work correctly. We should consider "
+              "modifying the Dirichlet BC handling in the algebraic system "
+              "to associate the IDBC-matrix with the STIFFNESS-matrix, so "
+              "that is gets automatically multiplicated within the "
+              "AlgebraicSys::ConstructEffectiveMatrix() method" );
+//    Double accval;
+//  
+//    accval = (val- solpred_[eq-1]) / sol_timeStepCoeff_[CORRECTOR_1];
+//    return accval;
+    return 0.0;
   }
 
 

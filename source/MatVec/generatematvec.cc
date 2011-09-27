@@ -105,7 +105,7 @@ if ( ( eType == MATRIX_ENTRY )  ) {\
       m_storagetype = m_StdMatrix->GetStorageType();
 
       // Delegate work to factory for sequential SingleVectors
-      retVector = GenerateSingleVectorObject( m_storagetype, m_entrytype,
+      retVector = GenerateSingleVectorObject(  m_entrytype,
                                               (UInt) m_Ncols );
       break;
 
@@ -122,9 +122,8 @@ if ( ( eType == MATRIX_ENTRY )  ) {\
   // **************************************************
   //   Dynamic generation of vector of specified type
   // **************************************************
-  BaseVector* GenerateSingleVectorObject( const BaseMatrix::StorageType sType,
-                                          const BaseMatrix::EntryType eType,
-                                          const UInt length ) {
+  SingleVector* GenerateSingleVectorObject( const BaseMatrix::EntryType eType,
+                                            const UInt length ) {
 
 
     SingleVector *retVector = NULL;

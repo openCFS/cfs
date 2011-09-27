@@ -529,62 +529,95 @@ namespace CoupledField {
     return stt;
   }
 
-  void SinglePDE::SaveSolution( const Double * ptSol, UInt size ) {
+  void SinglePDE::SaveSolution( SBM_Vector& sol ) {
 
-    Vector<Double> & solHelp = dynamic_cast<Vector<Double>&>(*solVec_);
-    solHelp.Resize(size);
-    for ( UInt i = 0; i < size; i++ ) {
-      solHelp[i] = ptSol[i];
+    // Note: This method is a real shortcut: If we have
+    // more than one solution type, we need to split
+    // the solution up.
+    // Ultimately, the functionality of this methods has 
+    // to be moved to the FeFunction
+    if( sol.GetSize() > 1 ) {
+      EXCEPTION("Okay, now I definitely give up:"
+          "Get rid of the f****ing StoreSolution class!");
     }
+    if( sol.GetEntryType() == BaseMatrix::DOUBLE ) {
+      Vector<Double> & solHelp = dynamic_cast<Vector<Double>&>(*solVec_);
+      Vector<Double> & tmp = 
+          dynamic_cast<Vector<Double>& >(sol(0));
+      solHelp.Resize(tmp.GetSize());
+      for ( UInt i = 0; i < tmp.GetSize(); i++ ) {
+        solHelp[i] = tmp[i];
+      }
 
-    sol_->SetAlgSysDataPointer( size, solHelp.GetPointer() );
+      sol_->SetAlgSysDataPointer( tmp.GetSize(), solHelp.GetPointer() );
+    } else {
+      if( sol.GetEntryType() == BaseMatrix::COMPLEX ) {
+        Vector<Complex> & solHelp = dynamic_cast<Vector<Complex>&>(*solVec_);
+        Vector<Complex> & tmp = 
+            dynamic_cast<Vector<Complex>& >(sol(0));
+        solHelp.Resize(tmp.GetSize());
+        for ( UInt i = 0; i < tmp.GetSize(); i++ ) {
+          solHelp[i] = tmp[i];
+        }
+
+        sol_->SetAlgSysDataPointer( tmp.GetSize(), solHelp.GetPointer() );
+      }
+    }
+  }
+
+  void SinglePDE::SavePrevSolution( SBM_Vector& solPrev ) {
+    EXCEPTION("Implement me")
+//    if( sol.GetSize() > 1 ) {
+//      EXCEPTION("Okay, now I definitely give up:"
+//          "Get rid of the f****ing StoreSolution class!");
+//    }
+//    Vector<Double> & solHelp = dynamic_cast<Vector<Double>&>(*solVecPrev_);
+//
+//    solHelp.Resize(size);
+//
+//    for ( UInt i = 0; i < size; i++ ) {
+//      solHelp[i] = ptSolPrev[i];
+//    }
+//
+//    solPrev_->SetAlgSysDataPointer( size, solHelp.GetPointer() );
 
   }
 
-  void SinglePDE::SaveSolution( const Complex * ptSol, UInt size ) {
+  void SinglePDE::SaveRHS( SBM_Vector& rhs) {
 
-    Vector<Complex> & solHelp = dynamic_cast<Vector<Complex>&>(*solVec_);
-    solHelp.Resize(size);
-    for ( UInt i = 0; i < size; i++ ) {
-      solHelp[i] = ptSol[i];
-    }
+    // Note: This method is a real shortcut: If we have
+      // more than one solution type, we need to split
+      // the solution up.
+      // Ultimately, the functionality of this methods has 
+      // to be moved to the FeFunction
+      if( rhs.GetSize() > 1 ) {
+        EXCEPTION("Okay, now I definitely give up:"
+            "Get rid of the f****ing StoreSolution class!");
+      }
+      if( rhs.GetEntryType() == BaseMatrix::DOUBLE ) {
+        Vector<Double> & solHelp = dynamic_cast<Vector<Double>&>(*rhsVec_);
+        Vector<Double> & tmp = 
+            dynamic_cast<Vector<Double>& >(rhs(0));
+        solHelp.Resize(tmp.GetSize());
+        for ( UInt i = 0; i < tmp.GetSize(); i++ ) {
+          solHelp[i] = tmp[i];
+        }
 
-    sol_->SetAlgSysDataPointer( size, solHelp.GetPointer() );
+        sol_->SetAlgSysDataPointer( tmp.GetSize(), solHelp.GetPointer() );
+      } else {
+        if( rhs.GetEntryType() == BaseMatrix::COMPLEX ) {
+          Vector<Complex> & solHelp = dynamic_cast<Vector<Complex>&>(*rhsVec_);
+          Vector<Complex> & tmp = 
+              dynamic_cast<Vector<Complex>& >(rhs(0));
+          solHelp.Resize(tmp.GetSize());
+          for ( UInt i = 0; i < tmp.GetSize(); i++ ) {
+            solHelp[i] = tmp[i];
+          }
 
-  }
-
-  void SinglePDE::SavePrevSolution( const Double * ptSolPrev, UInt size ) {
-
-    Vector<Double> & solHelp = dynamic_cast<Vector<Double>&>(*solVecPrev_);
-
-    solHelp.Resize(size);
-
-    for ( UInt i = 0; i < size; i++ ) {
-      solHelp[i] = ptSolPrev[i];
-    }
-
-    solPrev_->SetAlgSysDataPointer( size, solHelp.GetPointer() );
-
-  }
-
-  void SinglePDE::SaveRHS( const Double * ptSol, UInt size ) {
-
-     Vector<Double> & solHelp = dynamic_cast<Vector<Double>&>(*rhsVec_);
-     solHelp.Resize(size);
-     for ( UInt i = 0; i < size; i++ ) {
-       solHelp[i] = ptSol[i];
-     }
+          sol_->SetAlgSysDataPointer( tmp.GetSize(), solHelp.GetPointer() );
+        }
+      }
    }
-
-   void SinglePDE::SaveRHS( const Complex * ptSol, UInt size ) {
-
-     Vector<Complex> & solHelp = dynamic_cast<Vector<Complex>&>(*rhsVec_);
-     solHelp.Resize(size);
-     for ( UInt i = 0; i < size; i++ ) {
-       solHelp[i] = ptSol[i];
-     }
-   }
-
 
    /** can generally be called multiple times. We overwrite old values! Brute force but keeps data size */
    void SinglePDE::WriteGeneralPDEdefines()
@@ -2583,285 +2616,289 @@ namespace CoupledField {
 
   void SinglePDE::WriteRestart()
   {
+    EXCEPTION( "Restart-Functionality should be adapted to new"
+                "FeSpace / FeFunction structure");
     // prepare output file
-    shared_ptr<SimOutput> restartOutFile;
-    Grid* grid = domain->GetGrid();
-    const std::string simName = progOpts->GetSimName();
-    std::string restartFileName = simName+"_"+pdename_+".restart";
-    PtrParamNode h5Node (new ParamNode(ParamNode::EX, ParamNode::ELEMENT));
-    PtrParamNode eFiles (new ParamNode(ParamNode::EX, ParamNode::ATTRIBUTE));
-    eFiles->SetName("externalFiles");
-    eFiles->SetValue( "false" );
-    h5Node->AddChildNode(eFiles);
-    restartOutFile = shared_ptr<SimOutput>(new SimOutputHDF5(restartFileName, h5Node));
-    restartOutFile->Init(grid, true);
-
-    // time stepping variables
-    const Double& dt = TS_alg_->GetTimeStep();
-    Double timeTmp;
-    UInt lastTimeStep = domain->GetSingleDriver()->GetActStep(pdename_);
-    if (isComplex_)
-    {
-      EXCEPTION("restart file for harmonic results not implemented");
-    }
-
-    shared_ptr<EntityList> entList;
-    ResultMap::iterator it = resultLists_.begin();
-
-    // time stepping vectors in which the results will be stored to write out
-    Vector<Double> solutionTmp;
-    std::map<TIMEStepType, StdVector<shared_ptr<BaseResult> > > outResults;
-    std::map<DERIVType, StdVector<shared_ptr<BaseResult> > > outResults_deriv;
-    std::map<TIMEStepType, Vector<Double> > TsMap = TS_alg_->GetTimeStepMap();
-    /* the number of time steps needed for the algorithm
-     * INFO: TIMESTEP_0 is the new time step */
-    UInt numTimeSteps = TsMap.size();
-    if (TS_alg_->is_SolTimeStep_set(TIMESTEP_0))
-      --numTimeSteps;
-    if (numTimeSteps > lastTimeStep)
-    {
-      EXCEPTION("not enough time steps done to create a feasible restart");
-    }
-
-    // collect all necessary data
-    for (; it != resultLists_.end(); it++)
-    {
-      ResultList& actList = it->second;
-      // iterate over all solutions for each result type
-      for (UInt i = 0; i < actList.GetSize(); ++i)
-      {
-        shared_ptr<ResultInfo> actResultInfo = actList[i]->GetResultInfo();
-        if (TS_alg_->isDeriv(actResultInfo->resultType))
-        {
-          // do not get result if it is a derivative of another result
-          // derivative will be written later
-          continue;
-        }
-        entList = actList[i]->GetEntityList();
-
-        shared_ptr<BaseResult> outResult;
-        outResult = shared_ptr<BaseResult>(new Result<Double>());
-        outResult->SetResultInfo( actResultInfo );
-        outResult->SetEntityList( entList );
-        solutionTmp = TS_alg_->GetOld(TIMESTEP_1);
-        ExtractResult<Double>(outResult, solutionTmp);
-        if (outResults.find(TIMESTEP_1) == outResults.end())
-        {
-          StdVector<shared_ptr<BaseResult> > tmp;
-          outResults[TIMESTEP_1] = tmp;
-        }
-        outResults[TIMESTEP_1].Push_back(outResult);
-        restartOutFile->RegisterResult( outResult, \
-            lastTimeStep - numTimeSteps +1, 1, lastTimeStep, false );
-
-        /* go over all time step except TIMESTEP_1*/
-        std::map<TIMEStepType, Vector<Double> >::iterator itTs = TsMap.begin();
-        for (; itTs != TsMap.end(); ++itTs)
-        {
-          TIMEStepType timeStepType = itTs->first;
-          if (timeStepType == TIMESTEP_0 || timeStepType == TIMESTEP_1)
-          {
-            continue;
-          }
-          shared_ptr<BaseResult> outResult;
-          outResult = shared_ptr<BaseResult>(new Result<Double>());
-          outResult->SetResultInfo( actResultInfo );
-          outResult->SetEntityList( entList );
-
-          solutionTmp = TS_alg_->GetOld(timeStepType);
-          ExtractResult<Double>(outResult, solutionTmp);
-          if (outResults.find(timeStepType) == outResults.end())
-          {
-            StdVector<shared_ptr<BaseResult> > tmp;
-            outResults[timeStepType] = tmp;
-          }
-          outResults[timeStepType].Push_back(outResult);
-        }
-
-        /* go over all derivatives */
-        std::map<DERIVType, Vector<Double> >& DerivMap = TS_alg_->GetDeriveMap();
-        std::map<DERIVType, Vector<Double> >::iterator itDeriv = DerivMap.begin();
-        for (; itDeriv != DerivMap.end(); ++itDeriv)
-        {
-          DERIVType derivType = itDeriv->first;
-          shared_ptr<BaseResult> outResult_solDeriv;
-          outResult_solDeriv = shared_ptr<BaseResult>(new Result<Double>());
-          shared_ptr<ResultInfo> actResultInfo_deriv(new ResultInfo);
-          *actResultInfo_deriv = *actResultInfo;
-
-          outResult_solDeriv->SetResultInfo( actResultInfo_deriv );
-          outResult_solDeriv->SetEntityList( entList );
-          solutionTmp = TS_alg_->GetDeriv(derivType);
-          ExtractResult<Double>(outResult_solDeriv, solutionTmp);
-
-          const SolutionType& tmpSolType = \
-            TS_alg_->mapDerivToSolutionType(actResultInfo_deriv->resultType, derivType);
-          actResultInfo_deriv->resultType = tmpSolType;
-          actResultInfo_deriv->resultName = SolutionTypeEnum.ToString(tmpSolType);
-
-          outResult_solDeriv->SetResultInfo( actResultInfo_deriv );
-          if (outResults_deriv.find(derivType) == outResults_deriv.end())
-          {
-            StdVector<shared_ptr<BaseResult> > tmp;
-            outResults_deriv[derivType] = tmp;
-          }
-          outResults_deriv[derivType].Push_back(outResult_solDeriv);
-          restartOutFile->RegisterResult( outResult_solDeriv, \
-              lastTimeStep - numTimeSteps +1, 1, lastTimeStep, false );
-        }
-      }
-    }
-
-    // start the real storring of the files
-    restartOutFile->BeginMultiSequenceStep(1, analysistype_, lastTimeStep);
-    UInt timeStepTypeAsInt = numTimeSteps;
-    for (UInt i = lastTimeStep - timeStepTypeAsInt +1; i <= lastTimeStep; ++i)
-    {
-      timeTmp = solveStep_->GetActTime() -  (timeStepTypeAsInt -1) * dt;
-      restartOutFile->BeginStep(lastTimeStep - timeStepTypeAsInt +1, timeTmp);
-      writeOutTimeStep(restartOutFile, outResults[(TIMEStepType)timeStepTypeAsInt]);
-      if (timeStepTypeAsInt == TIMESTEP_1)
-      {
-        std::map<DERIVType, StdVector<shared_ptr<BaseResult> > >::iterator itDerivRes = \
-          outResults_deriv.begin();
-        for (; itDerivRes != outResults_deriv.end(); ++itDerivRes)
-        {
-          writeOutTimeStep(restartOutFile, itDerivRes->second);
-        }
-      }
-      restartOutFile->FinishStep();
-      timeStepTypeAsInt -= 1;
-    }
-
-    restartOutFile->FinishMultiSequenceStep();
-    restartOutFile->Finalize();
+//    shared_ptr<SimOutput> restartOutFile;
+//    Grid* grid = domain->GetGrid();
+//    const std::string simName = progOpts->GetSimName();
+//    std::string restartFileName = simName+"_"+pdename_+".restart";
+//    PtrParamNode h5Node (new ParamNode(ParamNode::EX, ParamNode::ELEMENT));
+//    PtrParamNode eFiles (new ParamNode(ParamNode::EX, ParamNode::ATTRIBUTE));
+//    eFiles->SetName("externalFiles");
+//    eFiles->SetValue( "false" );
+//    h5Node->AddChildNode(eFiles);
+//    restartOutFile = shared_ptr<SimOutput>(new SimOutputHDF5(restartFileName, h5Node));
+//    restartOutFile->Init(grid, true);
+//
+//    // time stepping variables
+//    const Double& dt = TS_alg_->GetTimeStep();
+//    Double timeTmp;
+//    UInt lastTimeStep = domain->GetSingleDriver()->GetActStep(pdename_);
+//    if (isComplex_)
+//    {
+//      EXCEPTION("restart file for harmonic results not implemented");
+//    }
+//
+//    shared_ptr<EntityList> entList;
+//    ResultMap::iterator it = resultLists_.begin();
+//
+//    // time stepping vectors in which the results will be stored to write out
+//    SBM_Vector solutionTmp;
+//    std::map<TIMEStepType, StdVector<shared_ptr<BaseResult> > > outResults;
+//    std::map<DERIVType, StdVector<shared_ptr<BaseResult> > > outResults_deriv;
+//    std::map<TIMEStepType, SBM_Vector > TsMap = TS_alg_->GetTimeStepMap();
+//    /* the number of time steps needed for the algorithm
+//     * INFO: TIMESTEP_0 is the new time step */
+//    UInt numTimeSteps = TsMap.size();
+//    if (TS_alg_->is_SolTimeStep_set(TIMESTEP_0))
+//      --numTimeSteps;
+//    if (numTimeSteps > lastTimeStep)
+//    {
+//      EXCEPTION("not enough time steps done to create a feasible restart");
+//    }
+//
+//    // collect all necessary data
+//    for (; it != resultLists_.end(); it++)
+//    {
+//      ResultList& actList = it->second;
+//      // iterate over all solutions for each result type
+//      for (UInt i = 0; i < actList.GetSize(); ++i)
+//      {
+//        shared_ptr<ResultInfo> actResultInfo = actList[i]->GetResultInfo();
+//        if (TS_alg_->isDeriv(actResultInfo->resultType))
+//        {
+//          // do not get result if it is a derivative of another result
+//          // derivative will be written later
+//          continue;
+//        }
+//        entList = actList[i]->GetEntityList();
+//
+//        shared_ptr<BaseResult> outResult;
+//        outResult = shared_ptr<BaseResult>(new Result<Double>());
+//        outResult->SetResultInfo( actResultInfo );
+//        outResult->SetEntityList( entList );
+//        solutionTmp = TS_alg_->GetOld(TIMESTEP_1);
+//        ExtractResult<Double>(outResult, solutionTmp);
+//        if (outResults.find(TIMESTEP_1) == outResults.end())
+//        {
+//          StdVector<shared_ptr<BaseResult> > tmp;
+//          outResults[TIMESTEP_1] = tmp;
+//        }
+//        outResults[TIMESTEP_1].Push_back(outResult);
+//        restartOutFile->RegisterResult( outResult, \
+//            lastTimeStep - numTimeSteps +1, 1, lastTimeStep, false );
+//
+//        /* go over all time step except TIMESTEP_1*/
+//        std::map<TIMEStepType, SBM_Vector >::iterator itTs = TsMap.begin();
+//        for (; itTs != TsMap.end(); ++itTs)
+//        {
+//          TIMEStepType timeStepType = itTs->first;
+//          if (timeStepType == TIMESTEP_0 || timeStepType == TIMESTEP_1)
+//          {
+//            continue;
+//          }
+//          shared_ptr<BaseResult> outResult;
+//          outResult = shared_ptr<BaseResult>(new Result<Double>());
+//          outResult->SetResultInfo( actResultInfo );
+//          outResult->SetEntityList( entList );
+//
+//          solutionTmp = TS_alg_->GetOld(timeStepType);
+//          ExtractResult<Double>(outResult, solutionTmp);
+//          if (outResults.find(timeStepType) == outResults.end())
+//          {
+//            StdVector<shared_ptr<BaseResult> > tmp;
+//            outResults[timeStepType] = tmp;
+//          }
+//          outResults[timeStepType].Push_back(outResult);
+//        }
+//
+//        /* go over all derivatives */
+//        std::map<DERIVType, Vector<Double> >& DerivMap = TS_alg_->GetDeriveMap();
+//        std::map<DERIVType, Vector<Double> >::iterator itDeriv = DerivMap.begin();
+//        for (; itDeriv != DerivMap.end(); ++itDeriv)
+//        {
+//          DERIVType derivType = itDeriv->first;
+//          shared_ptr<BaseResult> outResult_solDeriv;
+//          outResult_solDeriv = shared_ptr<BaseResult>(new Result<Double>());
+//          shared_ptr<ResultInfo> actResultInfo_deriv(new ResultInfo);
+//          *actResultInfo_deriv = *actResultInfo;
+//
+//          outResult_solDeriv->SetResultInfo( actResultInfo_deriv );
+//          outResult_solDeriv->SetEntityList( entList );
+//          solutionTmp = TS_alg_->GetDeriv(derivType);
+//          ExtractResult<Double>(outResult_solDeriv, solutionTmp);
+//
+//          const SolutionType& tmpSolType = \
+//            TS_alg_->mapDerivToSolutionType(actResultInfo_deriv->resultType, derivType);
+//          actResultInfo_deriv->resultType = tmpSolType;
+//          actResultInfo_deriv->resultName = SolutionTypeEnum.ToString(tmpSolType);
+//
+//          outResult_solDeriv->SetResultInfo( actResultInfo_deriv );
+//          if (outResults_deriv.find(derivType) == outResults_deriv.end())
+//          {
+//            StdVector<shared_ptr<BaseResult> > tmp;
+//            outResults_deriv[derivType] = tmp;
+//          }
+//          outResults_deriv[derivType].Push_back(outResult_solDeriv);
+//          restartOutFile->RegisterResult( outResult_solDeriv, \
+//              lastTimeStep - numTimeSteps +1, 1, lastTimeStep, false );
+//        }
+//      }
+//    }
+//
+//    // start the real storring of the files
+//    restartOutFile->BeginMultiSequenceStep(1, analysistype_, lastTimeStep);
+//    UInt timeStepTypeAsInt = numTimeSteps;
+//    for (UInt i = lastTimeStep - timeStepTypeAsInt +1; i <= lastTimeStep; ++i)
+//    {
+//      timeTmp = solveStep_->GetActTime() -  (timeStepTypeAsInt -1) * dt;
+//      restartOutFile->BeginStep(lastTimeStep - timeStepTypeAsInt +1, timeTmp);
+//      writeOutTimeStep(restartOutFile, outResults[(TIMEStepType)timeStepTypeAsInt]);
+//      if (timeStepTypeAsInt == TIMESTEP_1)
+//      {
+//        std::map<DERIVType, StdVector<shared_ptr<BaseResult> > >::iterator itDerivRes = \
+//          outResults_deriv.begin();
+//        for (; itDerivRes != outResults_deriv.end(); ++itDerivRes)
+//        {
+//          writeOutTimeStep(restartOutFile, itDerivRes->second);
+//        }
+//      }
+//      restartOutFile->FinishStep();
+//      timeStepTypeAsInt -= 1;
+//    }
+//
+//    restartOutFile->FinishMultiSequenceStep();
+//    restartOutFile->Finalize();
   }
 
   void SinglePDE::ReadRestart(UInt &startStep)
   {
-    /* initialisation for data reading */
-    std::string simName = progOpts->GetSimName();
-    std::string restartFileName = "results_hdf5/"+simName+"_"+pdename_+".restart.h5";
-    PtrParamNode h5Node (new ParamNode(ParamNode::EX, ParamNode::ELEMENT));
-    PtrParamNode eFiles (new ParamNode(ParamNode::EX, ParamNode::ATTRIBUTE));
-    eFiles->SetName("externalFiles");
-    eFiles->SetValue( "false" );
-    h5Node->AddChildNode(eFiles);
-    shared_ptr<SimInput> input(new SimInputHDF5(restartFileName, h5Node));
-    // read in mesh of input
-    input->InitModule();
-    UInt dim = input->GetDim();
-    Grid* ptGrid = new GridCFS(dim);
-    input->ReadMesh(ptGrid);
-    // FinishInit() does not work if we have named nodes which are added by
-    // coords. This is a not so dirty work around
-    *ptGrid = *ptgrid_;
-    /* ptGrid->FinishInit(); */
-
-    std::map<UInt, BasePDE::AnalysisType> types;
-    std::map<UInt, UInt> numMultiSteps;
-    const bool isHistory = false;
-    input->GetNumMultiSequenceSteps( types, numMultiSteps, isHistory );
-    const UInt lastMultiStep = numMultiSteps.size();
-    if (lastMultiStep != 1)
-    {
-      EXCEPTION("Restart can not handle multiple multistep!")
-    }
-    const UInt lastTimeStep = numMultiSteps[lastMultiStep];
-    startStep = lastTimeStep;
-    std::map<TIMEStepType, Vector<Double> > TsMap = TS_alg_->GetTimeStepMap();
-    // collect all necessary data
-    Vector<Double> tmpVec;
-
-    StdVector<shared_ptr<BaseResult> > inResults;
-
-    ResultMap::iterator it = resultLists_.begin();
-    shared_ptr<EntityList> entList;
-    std::map<shared_ptr<ResultInfo>, std::map<UInt, Double> > resultSteps;
-    for (; it != resultLists_.end(); it++)
-    {
-      ResultList & actList = it->second;
-      // iterate over all solutions for each result type
-      for (UInt i = 0; i < actList.GetSize(); ++i)
-      {
-        shared_ptr<ResultInfo> actResultInfo = actList[i]->GetResultInfo();
-        if (TS_alg_->isDeriv(actResultInfo->resultType))
-        {
-          // do not get result if it is a derivative of another result
-          // derivative will be fetched later
-          continue;
-        }
-        input->GetStepValues( lastMultiStep, actResultInfo,
-            resultSteps[actResultInfo], false);
-
-        // iterate over all regions
-        StdVector<shared_ptr<EntityList> > regions;
-        input->GetResultEntities(lastMultiStep, actResultInfo, regions, isHistory);
-        for (UInt iRegion = 0; iRegion < regions.GetSize(); iRegion++)
-        {
-          // generate new result object and add it to output writer
-          shared_ptr<BaseResult > inResult;
-          if (types[1] != BasePDE::HARMONIC)
-          {
-            inResult  = shared_ptr<BaseResult>( new Result<Double>() );
-          } else {
-            EXCEPTION("restarting over harmonic results ist not implemented");
-          }
-          inResult->SetEntityList( regions[iRegion] );
-          inResult->SetResultInfo( actResultInfo );
-
-          /* read in all time steps */
-          std::map<TIMEStepType, Vector<Double> >::iterator itTs = TsMap.begin();
-          for (; itTs != TsMap.end(); ++itTs)
-          {
-            TIMEStepType timeStepType = itTs->first;
-            if (timeStepType == TIMESTEP_0)
-            {
-              continue;
-            }
-            input->GetResult(lastMultiStep, lastTimeStep - timeStepType +1, \
-                inResult, isHistory);
-            tmpVec = TS_alg_->GetOld(timeStepType);
-            InsertResult<Double>(tmpVec, inResult);
-            if (timeStepType == TIMESTEP_1)
-            {
-              sol_->SetAlgSysVector(tmpVec);
-              algsys_->InitSol(tmpVec);
-            }
-            TS_alg_->SetOld(tmpVec, timeStepType);
-          }
-
-          /* read in all derivatives steps */
-          std::map<DERIVType, Vector<Double> >& DerivMap = TS_alg_->GetDeriveMap();
-          std::map<DERIVType, Vector<Double> >::iterator itDeriv = DerivMap.begin();
-          for (; itDeriv != DerivMap.end(); ++itDeriv)
-          {
-            DERIVType derivType = itDeriv->first;
-            shared_ptr<ResultInfo> actResultInfo_deriv(new ResultInfo);
-            *actResultInfo_deriv = *actList[i]->GetResultInfo();
-            SolutionType tmpSolType = \
-              TS_alg_->mapDerivToSolutionType(actResultInfo_deriv->resultType, derivType);
-
-            actResultInfo_deriv->resultType = tmpSolType;
-            actResultInfo_deriv->resultName = SolutionTypeEnum.ToString(tmpSolType);
-
-            inResult->SetResultInfo( actResultInfo_deriv );
-            input->GetResult(lastMultiStep, lastTimeStep, inResult, isHistory);
-
-            /* revert the changes from actResultInfo_deriv */
-            inResult->SetResultInfo( actResultInfo);
-            tmpVec = TS_alg_->GetDeriv(derivType);
-            InsertResult<Double>(tmpVec, inResult);
-            TS_alg_->SetDeriv(tmpVec, derivType);
-          }
-        }
-      }
-    }
-    if (isIterCoupled_)
-    {
-      CalcOutputCoupling();
-      CalcInputCoupling();
-    }
+    EXCEPTION( "Restart-Functionality should be adapted to new"
+                "FeSpace / FeFunction structure");
+//    /* initialisation for data reading */
+//    std::string simName = progOpts->GetSimName();
+//    std::string restartFileName = "results_hdf5/"+simName+"_"+pdename_+".restart.h5";
+//    PtrParamNode h5Node (new ParamNode(ParamNode::EX, ParamNode::ELEMENT));
+//    PtrParamNode eFiles (new ParamNode(ParamNode::EX, ParamNode::ATTRIBUTE));
+//    eFiles->SetName("externalFiles");
+//    eFiles->SetValue( "false" );
+//    h5Node->AddChildNode(eFiles);
+//    shared_ptr<SimInput> input(new SimInputHDF5(restartFileName, h5Node));
+//    // read in mesh of input
+//    input->InitModule();
+//    UInt dim = input->GetDim();
+//    Grid* ptGrid = new GridCFS(dim);
+//    input->ReadMesh(ptGrid);
+//    // FinishInit() does not work if we have named nodes which are added by
+//    // coords. This is a not so dirty work around
+//    *ptGrid = *ptgrid_;
+//    /* ptGrid->FinishInit(); */
+//
+//    std::map<UInt, BasePDE::AnalysisType> types;
+//    std::map<UInt, UInt> numMultiSteps;
+//    const bool isHistory = false;
+//    input->GetNumMultiSequenceSteps( types, numMultiSteps, isHistory );
+//    const UInt lastMultiStep = numMultiSteps.size();
+//    if (lastMultiStep != 1)
+//    {
+//      EXCEPTION("Restart can not handle multiple multistep!")
+//    }
+//    const UInt lastTimeStep = numMultiSteps[lastMultiStep];
+//    startStep = lastTimeStep;
+//    std::map<TIMEStepType, Vector<Double> > TsMap = TS_alg_->GetTimeStepMap();
+//    // collect all necessary data
+//    Vector<Double> tmpVec;
+//
+//    StdVector<shared_ptr<BaseResult> > inResults;
+//
+//    ResultMap::iterator it = resultLists_.begin();
+//    shared_ptr<EntityList> entList;
+//    std::map<shared_ptr<ResultInfo>, std::map<UInt, Double> > resultSteps;
+//    for (; it != resultLists_.end(); it++)
+//    {
+//      ResultList & actList = it->second;
+//      // iterate over all solutions for each result type
+//      for (UInt i = 0; i < actList.GetSize(); ++i)
+//      {
+//        shared_ptr<ResultInfo> actResultInfo = actList[i]->GetResultInfo();
+//        if (TS_alg_->isDeriv(actResultInfo->resultType))
+//        {
+//          // do not get result if it is a derivative of another result
+//          // derivative will be fetched later
+//          continue;
+//        }
+//        input->GetStepValues( lastMultiStep, actResultInfo,
+//            resultSteps[actResultInfo], false);
+//
+//        // iterate over all regions
+//        StdVector<shared_ptr<EntityList> > regions;
+//        input->GetResultEntities(lastMultiStep, actResultInfo, regions, isHistory);
+//        for (UInt iRegion = 0; iRegion < regions.GetSize(); iRegion++)
+//        {
+//          // generate new result object and add it to output writer
+//          shared_ptr<BaseResult > inResult;
+//          if (types[1] != BasePDE::HARMONIC)
+//          {
+//            inResult  = shared_ptr<BaseResult>( new Result<Double>() );
+//          } else {
+//            EXCEPTION("restarting over harmonic results ist not implemented");
+//          }
+//          inResult->SetEntityList( regions[iRegion] );
+//          inResult->SetResultInfo( actResultInfo );
+//
+//          /* read in all time steps */
+//          std::map<TIMEStepType, Vector<Double> >::iterator itTs = TsMap.begin();
+//          for (; itTs != TsMap.end(); ++itTs)
+//          {
+//            TIMEStepType timeStepType = itTs->first;
+//            if (timeStepType == TIMESTEP_0)
+//            {
+//              continue;
+//            }
+//            input->GetResult(lastMultiStep, lastTimeStep - timeStepType +1, \
+//                inResult, isHistory);
+//            tmpVec = TS_alg_->GetOld(timeStepType);
+//            InsertResult<Double>(tmpVec, inResult);
+//            if (timeStepType == TIMESTEP_1)
+//            {
+//              sol_->SetAlgSysVector(tmpVec);
+//              algsys_->InitSol(tmpVec);
+//            }
+//            TS_alg_->SetOld(tmpVec, timeStepType);
+//          }
+//
+//          /* read in all derivatives steps */
+//          std::map<DERIVType, Vector<Double> >& DerivMap = TS_alg_->GetDeriveMap();
+//          std::map<DERIVType, Vector<Double> >::iterator itDeriv = DerivMap.begin();
+//          for (; itDeriv != DerivMap.end(); ++itDeriv)
+//          {
+//            DERIVType derivType = itDeriv->first;
+//            shared_ptr<ResultInfo> actResultInfo_deriv(new ResultInfo);
+//            *actResultInfo_deriv = *actList[i]->GetResultInfo();
+//            SolutionType tmpSolType = \
+//              TS_alg_->mapDerivToSolutionType(actResultInfo_deriv->resultType, derivType);
+//
+//            actResultInfo_deriv->resultType = tmpSolType;
+//            actResultInfo_deriv->resultName = SolutionTypeEnum.ToString(tmpSolType);
+//
+//            inResult->SetResultInfo( actResultInfo_deriv );
+//            input->GetResult(lastMultiStep, lastTimeStep, inResult, isHistory);
+//
+//            /* revert the changes from actResultInfo_deriv */
+//            inResult->SetResultInfo( actResultInfo);
+//            tmpVec = TS_alg_->GetDeriv(derivType);
+//            InsertResult<Double>(tmpVec, inResult);
+//            TS_alg_->SetDeriv(tmpVec, derivType);
+//          }
+//        }
+//      }
+//    }
+//    if (isIterCoupled_)
+//    {
+//      CalcOutputCoupling();
+//      CalcInputCoupling();
+//    }
   }
 
   void SinglePDE::GetMemento( shared_ptr<PDEMemento>& memento) {
@@ -3363,84 +3400,85 @@ namespace CoupledField {
 
   void SinglePDE::ExtractDerivResult( shared_ptr<BaseResult> res, DERIVType derivType ) {
 
-    StdVector<Integer> eqnNums;
-
-
-    ResultInfo & actDof = *(res->GetResultInfo() );
-    UInt numDofs = actDof.dofNames.GetSize();
-    EntityIterator it = res->GetEntityList()->GetIterator();
-
-    if ( analysistype_ == TRANSIENT )
-    {
-      const Vector<Double> & solHelp = TS_alg_->GetDeriv(derivType);
-      Vector<Double> & actSol = (dynamic_cast<Result<Double>&>
-                                 (*(res))).GetVector();
-      actSol.Resize( res->GetEntityList()->GetSize() *
-                     actDof.dofNames.GetSize() );
-
-      // iterate over all elements
-      shared_ptr<BaseFeFunction> actFct;
-      for( it.Begin(); !it.IsEnd(); it++ ) {
-        actFct = GetFeFunction(actDof.resultType);
-
-        actFct->GetFeSpace()->GetEqns( eqnNums , it );
-
-        // iterate over all dofs
-        for( UInt iDof = 0; iDof < eqnNums.GetSize(); iDof++ ) {
-          if( eqnNums[iDof] != 0 ) {
-            actSol[it.GetPos()*numDofs+iDof] = solHelp[abs(eqnNums[iDof])-1];
-          } else {
-            actSol[it.GetPos()*numDofs+iDof] = 0.0;
-          }
-        }
-      }
-    }
-    else if ( analysistype_ == HARMONIC )
-    {
-      Double omega = solveStep_->GetActFreq() * 2 * PI;
-
-      // determine correct factor
-      Complex factor = Complex(0.0, 0.0);
-      switch( derivType ) {
-        case FIRST_DERIV:
-          factor = Complex( 0.0, omega );
-          break;
-        case SECOND_DERIV:
-          factor = Complex( -omega*omega, 0.0 );
-          break;
-        default :
-          EXCEPTION( "Only derivatives up to order 2 possible" );
-      }
-
-      Vector<Complex> & solHelp =
-          dynamic_cast<Vector<Complex>& > (*solVec_);
-      Vector<Complex> & actSol = dynamic_cast<Result<Complex>&>
-          (*(res)).GetVector();
-      actSol.Resize( res->GetEntityList()->GetSize() *
-                     actDof.dofNames.GetSize() );
-      
-      shared_ptr<BaseFeFunction> actFct;
-      for( it.Begin(); !it.IsEnd(); it++ ) {
-        actFct = GetFeFunction(actDof.resultType);
-        actFct->GetFeSpace()->GetEqns( eqnNums , it );
-        // iterate over all dofs
-        for( UInt iDof = 0; iDof < eqnNums.GetSize(); iDof++ ) {
-          if( eqnNums[iDof] != 0 ) {
-            actSol[it.GetPos()*numDofs+iDof] = factor * solHelp[abs(eqnNums[iDof])-1];
-          } else {
-            actSol[it.GetPos()*numDofs+iDof] = 0.0;
-          }
-        }
-      }
-    }
-    else
-    {
-      WARN("Cannot compute time derivative '"
-          << res->GetResultInfo()->resultName
-          << "' in a "
-          << BasePDE::analysisType.ToString(analysistype_)
-          << " analysis.");
-    }
+    EXCEPTION("Adjust ExtractDerivResult to new structure");
+//    StdVector<Integer> eqnNums;
+//
+//
+//    ResultInfo & actDof = *(res->GetResultInfo() );
+//    UInt numDofs = actDof.dofNames.GetSize();
+//    EntityIterator it = res->GetEntityList()->GetIterator();
+//
+//    if ( analysistype_ == TRANSIENT )
+//    {
+//      const Vector<Double> & solHelp = TS_alg_->GetDeriv(derivType);
+//      Vector<Double> & actSol = (dynamic_cast<Result<Double>&>
+//                                 (*(res))).GetVector();
+//      actSol.Resize( res->GetEntityList()->GetSize() *
+//                     actDof.dofNames.GetSize() );
+//
+//      // iterate over all elements
+//      shared_ptr<BaseFeFunction> actFct;
+//      for( it.Begin(); !it.IsEnd(); it++ ) {
+//        actFct = GetFeFunction(actDof.resultType);
+//
+//        actFct->GetFeSpace()->GetEqns( eqnNums , it );
+//
+//        // iterate over all dofs
+//        for( UInt iDof = 0; iDof < eqnNums.GetSize(); iDof++ ) {
+//          if( eqnNums[iDof] != 0 ) {
+//            actSol[it.GetPos()*numDofs+iDof] = solHelp[abs(eqnNums[iDof])-1];
+//          } else {
+//            actSol[it.GetPos()*numDofs+iDof] = 0.0;
+//          }
+//        }
+//      }
+//    }
+//    else if ( analysistype_ == HARMONIC )
+//    {
+//      Double omega = solveStep_->GetActFreq() * 2 * PI;
+//
+//      // determine correct factor
+//      Complex factor = Complex(0.0, 0.0);
+//      switch( derivType ) {
+//        case FIRST_DERIV:
+//          factor = Complex( 0.0, omega );
+//          break;
+//        case SECOND_DERIV:
+//          factor = Complex( -omega*omega, 0.0 );
+//          break;
+//        default :
+//          EXCEPTION( "Only derivatives up to order 2 possible" );
+//      }
+//
+//      Vector<Complex> & solHelp =
+//          dynamic_cast<Vector<Complex>& > (*solVec_);
+//      Vector<Complex> & actSol = dynamic_cast<Result<Complex>&>
+//          (*(res)).GetVector();
+//      actSol.Resize( res->GetEntityList()->GetSize() *
+//                     actDof.dofNames.GetSize() );
+//      
+//      shared_ptr<BaseFeFunction> actFct;
+//      for( it.Begin(); !it.IsEnd(); it++ ) {
+//        actFct = GetFeFunction(actDof.resultType);
+//        actFct->GetFeSpace()->GetEqns( eqnNums , it );
+//        // iterate over all dofs
+//        for( UInt iDof = 0; iDof < eqnNums.GetSize(); iDof++ ) {
+//          if( eqnNums[iDof] != 0 ) {
+//            actSol[it.GetPos()*numDofs+iDof] = factor * solHelp[abs(eqnNums[iDof])-1];
+//          } else {
+//            actSol[it.GetPos()*numDofs+iDof] = 0.0;
+//          }
+//        }
+//      }
+//    }
+//    else
+//    {
+//      WARN("Cannot compute time derivative '"
+//          << res->GetResultInfo()->resultName
+//          << "' in a "
+//          << BasePDE::analysisType.ToString(analysistype_)
+//          << " analysis.");
+//    }
   }
 
   template<class TYPE>

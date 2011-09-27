@@ -24,7 +24,7 @@ namespace CoupledField
   void PseudoTS::Init( Double dt, UInt rhsSize ) {
 
     rhsSize_ = rhsSize;
-    Vector<Double> dummyVec;
+    SBM_Vector dummyVec;
     dummyVec.Resize(rhsSize_);
     dummyVec.Init();
 
@@ -51,18 +51,23 @@ namespace CoupledField
     }
   }
 
-  void PseudoTS::Predictor(Vector<Double>& solold)
+  void PseudoTS::Predictor(SBM_Vector& solold)
   {
   }
 
-  void PseudoTS::Corrector(Vector<Double>& solnew)
+  void PseudoTS::Corrector(SBM_Vector& solnew)
   {
     const Double inv_dt_2 = 1.0 / ( dt_ * 2.0);
-    solDeriv_vec_[FIRST_DERIV] = (solnew * 3.0 - sol_timeStepVec_[TIMESTEP_1] * 4.0 + \
-        sol_timeStepVec_[TIMESTEP_2] ) * inv_dt_2;
+    SBM_Vector & dvec = solDeriv_vec_[FIRST_DERIV];
+    dvec.Add( 3.0, solnew,
+              -4.0, sol_timeStepVec_[TIMESTEP_1] );
+    dvec.Add( inv_dt_2, sol_timeStepVec_[TIMESTEP_2] );
+//    solDeriv_vec_[FIRST_DERIV] = (solnew * 3.0 - 
+//         sol_timeStepVec_[TIMESTEP_1] * 4.0 + \
+//        sol_timeStepVec_[TIMESTEP_2] ) * inv_dt_2;
   }
 
-  void PseudoTS::AdvanceTimestep(Vector<Double>& solnew)
+  void PseudoTS::AdvanceTimestep(SBM_Vector& solnew)
   {
     sol_timeStepVec_[TIMESTEP_2] = sol_timeStepVec_[TIMESTEP_1];
     sol_timeStepVec_[TIMESTEP_1] = solnew;

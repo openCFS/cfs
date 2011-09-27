@@ -51,9 +51,8 @@ namespace CoupledField {
   //!   cannot be generated via this method.
   //! - The vector is initialised so that the entries on the scalar level are
   //!   all identical to zero.
-  BaseVector* GenerateSingleVectorObject( const BaseMatrix::StorageType sType,
-                                          const BaseMatrix::EntryType eType,
-                                          const UInt length );
+  SingleVector* GenerateSingleVectorObject( const BaseMatrix::EntryType eType,
+                                            const UInt length );
 
   //! Craeate a vector by copy
 

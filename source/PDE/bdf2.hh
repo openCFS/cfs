@@ -25,25 +25,25 @@ namespace CoupledField
     void Init( Double dt, UInt rhsSize );
 
     //! perform predictor step
-    void Predictor(Vector<Double>& solold);
+    void Predictor(SBM_Vector& solold);
 
     //! perform predictor step
-    void RelaxedPredictor(Vector<Double>& solold,
-                          Vector<Double>& solpredRelaxed,
-                          Vector<Double>& solderiv1predRelaxed,
+    void RelaxedPredictor(SBM_Vector& solold,
+                          SBM_Vector& solpredRelaxed,
+                          SBM_Vector& solderiv1predRelaxed,
                           Double omega){;};
 
     //! perform corrector step
-    void Corrector(Vector<Double>& solnew);
+    void Corrector(SBM_Vector& solnew);
 
     //! perform an update to RHS
     void UpdateRHS();
 
     //! perform calculations at end of timestep (set the new timestep)
-    void AdvanceTimestep(Vector<Double>& solnew);
+    void AdvanceTimestep(SBM_Vector& solnew);
 
     //! Substract Stiffness from RHS
-    virtual void SubstractStiffnessFromRHS(Vector<Double>& actSol)
+    virtual void SubstractStiffnessFromRHS(SBM_Vector& actSol)
     {;};
 
   private:
@@ -51,7 +51,7 @@ namespace CoupledField
     //! compute parameters for multiplication
     void CalcParameters(Double dt);
     bool firstTime_;
-    Vector<Double> coeffMass_;
+    SBM_Vector coeffMass_;
 
   };
 

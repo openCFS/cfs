@@ -5,6 +5,7 @@
 #include "StdPDE.hh"
 
 #include "MatVec/vector.hh"
+#include "MatVec/generatematvec.hh"
 #include "Driver/stdSolveStep.hh"
 #include "Driver/transientdriver.hh"
 
@@ -72,22 +73,22 @@ namespace CoupledField {
   {
     
   }
-
-  const Vector<Double>& StdPDE::getDeriv(DERIVType derivType) const {
-  
-    if ( TS_alg_ == NULL ) {
-      EXCEPTION( pdename_ << ":getDeriv: No derivative defined for this PDE" );
-    }
-    return TS_alg_->GetDeriv(derivType);
-  }
-  
-  const Vector<Double>& StdPDE::getOld(TIMEStepType timeStepType) const {
-
-    if ( TS_alg_ == NULL ) {
-      EXCEPTION( pdename_ << ":getOld: No time stepping defined for this PDE");
-    }
-    return TS_alg_->GetOld(timeStepType);
-  }
+//
+//  const Vector<Double>& StdPDE::getDeriv(DERIVType derivType) const {
+//  
+//    if ( TS_alg_ == NULL ) {
+//      EXCEPTION( pdename_ << ":getDeriv: No derivative defined for this PDE" );
+//    }
+//    return TS_alg_->GetDeriv(derivType);
+//  }
+//  
+//  const Vector<Double>& StdPDE::getOld(TIMEStepType timeStepType) const {
+//
+//    if ( TS_alg_ == NULL ) {
+//      EXCEPTION( pdename_ << ":getOld: No time stepping defined for this PDE");
+//    }
+//    return TS_alg_->GetOld(timeStepType);
+//  }
 
   bool StdPDE::HasPeriodicBC()
   {
@@ -241,30 +242,48 @@ namespace CoupledField {
   }
 
 
+  void StdPDE::GetSolutionVector(SBM_Vector& newSol) {
+    
+    // Okay, again hard-coded stuff
+    newSol.Resize(1);
+    newSol.SetSubVector( CopySingleVectorObject(*solVec_), 0);
+    
+    
+  }
+  
+  void StdPDE::GetPrevSolutionVector(SBM_Vector& ) {
+    EXCEPTION("Implement me");
+  }
+  
+  void StdPDE::GetRHSVector( SBM_Vector& rhs) {
+    EXCEPTION("Implement me");
+  }
+  
   // real valued method (for TRANSIENT and STATIC)
   void StdPDE::GetSolVecOfElement( Vector<Double>& elemSol,
                                    const EntityIterator& it,
                                    shared_ptr<ResultInfo> res ) {
-
-
-    StdVector<Integer> eqns;
-    shared_ptr<BaseFeFunction> aFct = GetFeFunction(res->resultType);
-    aFct->GetFeSpace()->GetEqns( eqns, it );
-
-
-    elemSol.Resize( eqns.GetSize() );
-    elemSol.Init(0);
-    NodeStoreSol<Double> * solhelp = 
-      dynamic_cast<NodeStoreSol<Double>*>(sol_);
-    Vector<Double> & sol = solhelp->GetAlgSysVector();
     
-    for( UInt i = 0; i < eqns.GetSize(); i++ ) {
-      if ( eqns[i] != 0 ) {
-        elemSol[i] = sol[abs(eqns[i])-1];
-      } else {
-        elemSol[i] = 0.0;
-      }
-     }
+    EXCEPTION("This method should be moved to FeFunction");
+
+//    StdVector<Integer> eqns;
+//    shared_ptr<BaseFeFunction> aFct = GetFeFunction(res->resultType);
+//    aFct->GetFeSpace()->GetEqns( eqns, it );
+//
+//
+//    elemSol.Resize( eqns.GetSize() );
+//    elemSol.Init(0);
+//    NodeStoreSol<Double> * solhelp = 
+//      dynamic_cast<NodeStoreSol<Double>*>(sol_);
+//    Vector<Double> & sol = solhelp->GetAlgSysVector();
+//    
+//    for( UInt i = 0; i < eqns.GetSize(); i++ ) {
+//      if ( eqns[i] != 0 ) {
+//        elemSol[i] = sol[abs(eqns[i])-1];
+//      } else {
+//        elemSol[i] = 0.0;
+//      }
+//     }
   }
 
 
@@ -273,25 +292,25 @@ namespace CoupledField {
                                    const EntityIterator& it,
                                    shared_ptr<ResultInfo> res ) {
 
-
-    StdVector<Integer> eqns;
-    shared_ptr<BaseFeFunction> aFct = GetFeFunction(res->resultType);
-    aFct->GetFeSpace()->GetEqns( eqns, it );
-
-
-    elemSol.Resize( eqns.GetSize() );
-    elemSol.Init( Complex(0.0, 0.0) );
-    NodeStoreSol<Complex> * solhelp = 
-      dynamic_cast<NodeStoreSol<Complex>*>(sol_);
-    Vector<Complex> & sol = solhelp->GetAlgSysVector();
-    
-    for( UInt i = 0; i < eqns.GetSize(); i++ ) {
-      if ( eqns[i] != 0 ) {
-        elemSol[i] = sol[abs(eqns[i])-1];
-      } else {
-        elemSol[i] = Complex(0.0, 0.0);
-      }
-     }
+    EXCEPTION("This method should be moved to FeFunction");
+//    StdVector<Integer> eqns;
+//    shared_ptr<BaseFeFunction> aFct = GetFeFunction(res->resultType);
+//    aFct->GetFeSpace()->GetEqns( eqns, it );
+//
+//
+//    elemSol.Resize( eqns.GetSize() );
+//    elemSol.Init( Complex(0.0, 0.0) );
+//    NodeStoreSol<Complex> * solhelp = 
+//      dynamic_cast<NodeStoreSol<Complex>*>(sol_);
+//    Vector<Complex> & sol = solhelp->GetAlgSysVector();
+//    
+//    for( UInt i = 0; i < eqns.GetSize(); i++ ) {
+//      if ( eqns[i] != 0 ) {
+//        elemSol[i] = sol[abs(eqns[i])-1];
+//      } else {
+//        elemSol[i] = Complex(0.0, 0.0);
+//      }
+//     }
   }
 
   
@@ -300,23 +319,24 @@ namespace CoupledField {
                                        const EntityIterator& it,
                                        shared_ptr<ResultInfo> res) {
 
-    StdVector<Integer> eqns;
-    shared_ptr<BaseFeFunction> aFct = GetFeFunction(res->resultType);
-    aFct->GetFeSpace()->GetEqns( eqns, it );
-    sol.Resize( eqns.GetSize() );
-    sol.Init( 0.0 ); 
-    
-    if (  analysistype_ == TRANSIENT) {
-      const Vector<Double> & sol_der1 = getDeriv(FIRST_DERIV);
-        
-      for( UInt i = 0; i < eqns.GetSize(); i++ ) {
-        if ( eqns[i] != 0 ) {
-          sol[i] = sol_der1[abs(eqns[i])-1];
-        } else {
-          sol[i] = 0.0;
-        }
-      }
-    }
+    EXCEPTION("This method should be moved to FeFunction");
+//    StdVector<Integer> eqns;
+//    shared_ptr<BaseFeFunction> aFct = GetFeFunction(res->resultType);
+//    aFct->GetFeSpace()->GetEqns( eqns, it );
+//    sol.Resize( eqns.GetSize() );
+//    sol.Init( 0.0 ); 
+//    
+//    if (  analysistype_ == TRANSIENT) {
+//      const Vector<Double> & sol_der1 = getDeriv(FIRST_DERIV);
+//        
+//      for( UInt i = 0; i < eqns.GetSize(); i++ ) {
+//        if ( eqns[i] != 0 ) {
+//          sol[i] = sol_der1[abs(eqns[i])-1];
+//        } else {
+//          sol[i] = 0.0;
+//        }
+//      }
+//    }
   }
 
 
@@ -326,31 +346,31 @@ namespace CoupledField {
                                        const EntityIterator& it,
                                        shared_ptr<ResultInfo> res) {
 
-
-    StdVector<Integer> eqns;
-    shared_ptr<BaseFeFunction> aFct = GetFeFunction(res->resultType);
-    aFct->GetFeSpace()->GetEqns( eqns, it );
-    
-    sol.Resize( eqns.GetSize() );
-    sol.Init( 0.0 );
-    
-    // we obtain from assemble: frequency =  2*PI*actFreq
-    Double omega = solveStep_->GetActFreq() * 2 * PI;
-    Complex jomega = Complex(0.0,omega);
-    
-    if ( analysistype_ == HARMONIC ) {
-      NodeStoreSol<Complex> * solhelp = 
- 	dynamic_cast<NodeStoreSol<Complex>*>(sol_);
-      const Vector<Complex> & solAtNode = solhelp->GetAlgSysVector();
-
-      for( UInt i = 0; i < eqns.GetSize(); i++ ) {
-        if ( eqns[i] != 0 ) {
-          sol[i] = jomega * solAtNode[abs(eqns[i])-1];
-        } else {
-          sol[i] = Complex(0.0, 0.0);
-        }
-      }
-    }
+    EXCEPTION("This method should be moved to FeFunction");
+//    StdVector<Integer> eqns;
+//    shared_ptr<BaseFeFunction> aFct = GetFeFunction(res->resultType);
+//    aFct->GetFeSpace()->GetEqns( eqns, it );
+//    
+//    sol.Resize( eqns.GetSize() );
+//    sol.Init( 0.0 );
+//    
+//    // we obtain from assemble: frequency =  2*PI*actFreq
+//    Double omega = solveStep_->GetActFreq() * 2 * PI;
+//    Complex jomega = Complex(0.0,omega);
+//    
+//    if ( analysistype_ == HARMONIC ) {
+//      NodeStoreSol<Complex> * solhelp = 
+// 	dynamic_cast<NodeStoreSol<Complex>*>(sol_);
+//      const Vector<Complex> & solAtNode = solhelp->GetAlgSysVector();
+//
+//      for( UInt i = 0; i < eqns.GetSize(); i++ ) {
+//        if ( eqns[i] != 0 ) {
+//          sol[i] = jomega * solAtNode[abs(eqns[i])-1];
+//        } else {
+//          sol[i] = Complex(0.0, 0.0);
+//        }
+//      }
+//    }
   }
 
 
@@ -360,24 +380,24 @@ namespace CoupledField {
                                          const EntityIterator& it,
                                          shared_ptr<ResultInfo> res) {
 
-
-    StdVector<Integer> eqns;
-    shared_ptr<BaseFeFunction> aFct = GetFeFunction(res->resultType);
-    aFct->GetFeSpace()->GetEqns( eqns, it );
-    
-    sol.Resize( eqns.GetSize() );
-    sol.Init( 0.0 );
-    
-    if ( analysistype_ == TRANSIENT ) {
-      const Vector<Double> & sol_der2 = getDeriv(SECOND_DERIV);
-      for( UInt i = 0; i < eqns.GetSize(); i++ ) {
-        if ( eqns[i] != 0 ) {
-          sol[i] = sol_der2[abs(eqns[i])-1];
-        } else {
-          sol[i] = 0.0;
-        }
-      }
-    }
+    EXCEPTION("This method should be moved to FeFunction");
+//    StdVector<Integer> eqns;
+//    shared_ptr<BaseFeFunction> aFct = GetFeFunction(res->resultType);
+//    aFct->GetFeSpace()->GetEqns( eqns, it );
+//    
+//    sol.Resize( eqns.GetSize() );
+//    sol.Init( 0.0 );
+//    
+//    if ( analysistype_ == TRANSIENT ) {
+//      const Vector<Double> & sol_der2 = getDeriv(SECOND_DERIV);
+//      for( UInt i = 0; i < eqns.GetSize(); i++ ) {
+//        if ( eqns[i] != 0 ) {
+//          sol[i] = sol_der2[abs(eqns[i])-1];
+//        } else {
+//          sol[i] = 0.0;
+//        }
+//      }
+//    }
   }
 
 
@@ -453,9 +473,6 @@ namespace CoupledField {
     }
   }
 
-  SingleVector *  StdPDE::GetPrevSolutionVector() {
-    return solVecPrev_;
-  }
 
   shared_ptr<ResultInfo> StdPDE::GetResultInfo( SolutionType solType ) {
     

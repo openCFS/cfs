@@ -548,100 +548,71 @@ namespace CoupledField {
 
   }
 
-  SingleVector* DirectCoupledPDE::GetSolutionVector() {
-    return singlePDEs_[0]->GetSolutionVector();
+  void DirectCoupledPDE::GetSolutionVector( SBM_Vector& ) {
+    EXCEPTION("Re-design concept");
+//    return singlePDEs_[0]->GetSolutionVector();
   }
 
-  SingleVector* DirectCoupledPDE::GetPrevSolutionVector() {
-    return singlePDEs_[0]->GetPrevSolutionVector();
+  void DirectCoupledPDE::GetPrevSolutionVector( SBM_Vector& ) {
+    EXCEPTION("Re-design concept");
+//    return singlePDEs_[0]->GetPrevSolutionVector();
   }
 
-  void DirectCoupledPDE::SaveSolution( const Double * ptSol, UInt size) {
-
-    BaseNodeStoreSol *ptNodeSol;
-    Vector<Double> & solHelp = dynamic_cast<Vector<Double>&>(*solVec_);
-    solHelp.Resize(size);
-
-    for ( UInt i = 0; i < size; i++ ) {
-      solHelp[i] = ptSol[i];
-    }
-
-    for (UInt i=0; i<singlePDEs_.GetSize(); i++) {
-      // set pointer to solution object of the PDE
-      ptNodeSol = singlePDEs_[i]->getPDESolution();
-      ptNodeSol->SetAlgSysDataPointer( size, solHelp.GetPointer() );
-      singlePDEs_[i]->solVec_  = solVec_;
-
-    }
+  void DirectCoupledPDE::SaveSolution( SBM_Vector& ) {
+    REFACTOR;
+//
+//    BaseNodeStoreSol *ptNodeSol;
+//    Vector<Double> & solHelp = dynamic_cast<Vector<Double>&>(*solVec_);
+//    solHelp.Resize(size);
+//
+//    for ( UInt i = 0; i < size; i++ ) {
+//      solHelp[i] = ptSol[i];
+//    }
+//
+//    for (UInt i=0; i<singlePDEs_.GetSize(); i++) {
+//      // set pointer to solution object of the PDE
+//      ptNodeSol = singlePDEs_[i]->getPDESolution();
+//      ptNodeSol->SetAlgSysDataPointer( size, solHelp.GetPointer() );
+//      singlePDEs_[i]->solVec_  = solVec_;
+//
+//    }
   }
 
-  void DirectCoupledPDE::SaveSolution( const Complex * ptSol, UInt size) {
 
-    BaseNodeStoreSol *ptNodeSol;
-    Vector<Complex> & solHelp = dynamic_cast<Vector<Complex>&>(*solVec_);
-    solHelp.Resize(size);
-
-    for ( UInt i = 0; i < size; i++ ) {
-      solHelp[i] = ptSol[i];
-    }
-
-    for (UInt i=0; i<singlePDEs_.GetSize(); i++) {
-      // set pointer to solution object of the PDE
-      ptNodeSol = singlePDEs_[i]->getPDESolution();
-      ptNodeSol->SetAlgSysDataPointer( size, solHelp.GetPointer() );
-
-    }
+  void DirectCoupledPDE::SaveRHS( SBM_Vector& ) {
+    REFACTOR;
+//    Vector<Double> & solHelp = dynamic_cast<Vector<Double>&>(*rhsVec_);
+//    solHelp.Resize(size);
+//
+//    for ( UInt i = 0; i < size; i++ ) {
+//      solHelp[i] = ptSol[i];
+//    }
+//
+//    for (UInt i=0; i<singlePDEs_.GetSize(); i++) {
+//      // set pointer to solution object of the PDE
+//      singlePDEs_[i]->rhsVec_  = rhsVec_;
+//
+//    }
   }
 
-  void DirectCoupledPDE::SaveRHS( const Double * ptSol, UInt size) {
-
-    Vector<Double> & solHelp = dynamic_cast<Vector<Double>&>(*rhsVec_);
-    solHelp.Resize(size);
-
-    for ( UInt i = 0; i < size; i++ ) {
-      solHelp[i] = ptSol[i];
-    }
-
-    for (UInt i=0; i<singlePDEs_.GetSize(); i++) {
-      // set pointer to solution object of the PDE
-      singlePDEs_[i]->rhsVec_  = rhsVec_;
-
-    }
-  }
-
-  void DirectCoupledPDE::SaveRHS( const Complex * ptSol, UInt size) {
-
-    Vector<Complex> & solHelp = dynamic_cast<Vector<Complex>&>(*rhsVec_);
-    solHelp.Resize(size);
-
-    for ( UInt i = 0; i < size; i++ ) {
-      solHelp[i] = ptSol[i];
-    }
-
-    for (UInt i=0; i<singlePDEs_.GetSize(); i++) {
-      // set pointer to solution object of the PDE
-      singlePDEs_[i]->rhsVec_  = rhsVec_;
-
-    }
- }
-  void DirectCoupledPDE::SavePrevSolution( const Double * ptSolPrev, UInt size) {
-
-    if ( needSolPrev_ ) {
-      BaseNodeStoreSol *ptNodeSol;
-      Vector<Double> & solHelp = dynamic_cast<Vector<Double>&>(*solVecPrev_);
-      solHelp.Resize(size);
-
-      for ( UInt i = 0; i < size; i++ ) {
-        solHelp[i] = ptSolPrev[i];
-      }
-
-      for (UInt i=0; i<singlePDEs_.GetSize(); i++) {
-        // set pointer to solution object of the PDE
-        ptNodeSol = singlePDEs_[i]->getPDESolutionPrev();
-        ptNodeSol->SetAlgSysDataPointer( size, solHelp.GetPointer() );
-        singlePDEs_[i]->solVecPrev_  = solVecPrev_;
-      }
-    }
+  void DirectCoupledPDE::SavePrevSolution( SBM_Vector& ) {
+REFACTOR;
+//    if ( needSolPrev_ ) {
+//      BaseNodeStoreSol *ptNodeSol;
+//      Vector<Double> & solHelp = dynamic_cast<Vector<Double>&>(*solVecPrev_);
+//      solHelp.Resize(size);
+//
+//      for ( UInt i = 0; i < size; i++ ) {
+//        solHelp[i] = ptSolPrev[i];
+//      }
+//
+//      for (UInt i=0; i<singlePDEs_.GetSize(); i++) {
+//        // set pointer to solution object of the PDE
+//        ptNodeSol = singlePDEs_[i]->getPDESolutionPrev();
+//        ptNodeSol->SetAlgSysDataPointer( size, solHelp.GetPointer() );
+//        singlePDEs_[i]->solVecPrev_  = solVecPrev_;
+//      }
+//    }
   }
 
   // ********************

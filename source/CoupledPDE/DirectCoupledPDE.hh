@@ -68,24 +68,22 @@ namespace CoupledField {
     void DefineAlgSys();
 
     //! return the solution
-    SingleVector * GetSolutionVector();
+    virtual void GetSolutionVector( SBM_Vector& );
 
     //! return the previous solution
-    SingleVector * GetPrevSolutionVector();
+    virtual void GetPrevSolutionVector( SBM_Vector& );
 
     //@{
     //! store the new solution returned by the algebraic system
     //! \param ptSol pointer to solution array
     //! \param size legnth of solution array
-    void SaveSolution( const Double * ptSol, UInt size );
-    void SaveSolution( const Complex * ptSol, UInt size );
-    void SavePrevSolution( const Double * ptSol, UInt size );
+    void SaveSolution( SBM_Vector& );
+    void SavePrevSolution( SBM_Vector& );
     //@}
 
     //@{
     //! Save load part of RHS to private variable
-    void SaveRHS( const Double * ptSol, UInt size );
-    void SaveRHS( const Complex * ptSol, UInt size );
+    void SaveRHS( SBM_Vector& );
     //@}
 
     //!

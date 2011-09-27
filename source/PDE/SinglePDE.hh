@@ -180,10 +180,9 @@ namespace CoupledField
     //! store the new solution returned by the algebraic system
     //! \param ptSol pointer to solution array
     //! \param size legnth of solution array
-    void SaveSolution( const Double * ptSol, UInt size );
-    void SaveSolution( const Complex * ptSol, UInt size );
+    void SaveSolution( SBM_Vector& );
     
-    void SavePrevSolution( const Double * ptSol, UInt size );
+    void SavePrevSolution( SBM_Vector& );
 
     /** Return the native solution type, MECH_DISPLACEMENT, ... */
     virtual SolutionType GetNativeSolutionType() const { EXCEPTION("not implemented"); }
@@ -325,8 +324,7 @@ namespace CoupledField
 
     //@{
     //! Save load part of RHS to private variable
-    void SaveRHS( const Double * ptSol, UInt size );
-    void SaveRHS( const Complex * ptSol, UInt size );
+    void SaveRHS( SBM_Vector& );
     
   public:
 

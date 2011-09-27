@@ -45,13 +45,11 @@ namespace CoupledField {
       delete residual_;
       delete update_;
 
-      residual_ = GenerateSingleVectorObject( stdMat.GetStorageType(),
-          stdMat.GetEntryType(),
-          stdMat.GetNumCols() );
+      residual_ = GenerateSingleVectorObject( stdMat.GetEntryType(),
+                                              stdMat.GetNumCols() );
 
-      update_   = GenerateSingleVectorObject( stdMat.GetStorageType(),
-          stdMat.GetEntryType(),
-          stdMat.GetNumCols() );
+      update_   = GenerateSingleVectorObject( stdMat.GetEntryType(),
+                                              stdMat.GetNumCols() );
     }
   }
 

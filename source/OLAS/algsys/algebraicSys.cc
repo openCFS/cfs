@@ -1258,13 +1258,49 @@ namespace CoupledField {
     }
   }
   
-  void AlgebraicSys::InitRHS( const BaseVector& newRHS ) {
+  void AlgebraicSys::InitRHS( const SBM_Vector& newRHS ) {
     
     LOG_TRACE(algSys) << "Initializing RHS with new vector";
-   
-    WARN("It is a tricky situtation, if we want to handle complete "
-       "vectors transparently");
-   REFACTOR;
+
+    
+    // ensure that the RHS vector to set consists of as many
+    // sub-vectors as the RHS of the system
+    if( newRHS.GetSize() != numFcts_ ) {
+      EXCEPTION( "New rhs consists of " << newRHS.GetSize()
+                 << " sub-vectors, the RHS of the algebraic system of "
+                 << rhs_->GetSize() << " entries." )
+    }
+    
+    // loop over all feFctIDs
+    for(UInt i = 0; i < numFcts_; ++i ) {
+
+      // get all (blockId,index)-combinations for the current fctId
+      StdVector<UInt> blockNums, indices;
+      MapCompleteFctIdToIndex( i, blockNums, indices);
+      UInt size = blockNums.GetSize();
+  
+      // security check: ensure that sub-vector has the same size
+      // as the block indices
+      if( newRHS(i).GetSize() != indices.GetSize() ) {
+        EXCEPTION( "Number of entries of " << i << "-th sub-vector and number "
+                   "of indices do not match!");
+      }
+      
+      if( newRHS.GetEntryType() == BaseMatrix::DOUBLE ) {
+        Vector<Double> & nRHS = 
+            dynamic_cast<Vector<Double>&>( newRHS(i) );
+        for( UInt j = 0; j < size; ++j ) {
+          // omit entries for Dirichlet values
+          if( indices[j] <= blockInfo_[blockNums[j]]->numLastFreeIndex) {
+            rhs_->GetPointer(blockNums[j])
+                ->SetEntry(indices[j]-1, nRHS[j] );
+          }
+        }
+        
+      } else {
+        EXCEPTION("Implement me. Dont worry: mostly C&P code");
+      }
+    }
   }
   
   void AlgebraicSys::InitSol( const FeFctIdType fctId ) {
@@ -1285,7 +1321,7 @@ namespace CoupledField {
     }
   }
   
-  void AlgebraicSys::InitSol( const BaseVector& newSol ) {
+  void AlgebraicSys::InitSol( const SBM_Vector& newSol ) {
     
     LOG_TRACE(algSys) << "Initializing solution with new vector";
     REFACTOR;
@@ -1435,10 +1471,10 @@ namespace CoupledField {
           
           // Fast method: use BLAS 
           invMat.Mult_Blas(k_ic, temp,false,false,1.0,0.0);
-          k_ri.Mult_Blas(temp,k_rc,false,false,1.0,-1.0);
+          k_ri.Mult_Blas(temp,k_rc,false,false,-1.0,1.0);
           // Alternative solution without BLAS
-          //  temp = invMat * k_ic;
-          //  k_rc -= k_ri*temp;
+//            temp = invMat * k_ic;
+//            k_rc -= k_ri*temp;
           elemMat.SetSubMatrixByInd( k_rc,rowIndList1[iRow],
                                      colIndList1[iCol]);
         } // col blocks
@@ -1553,7 +1589,8 @@ namespace CoupledField {
   }
 
 
-  void AlgebraicSys::UpdateRHS(FEMatrixType matrixType, const BaseVector& fup) {
+  void AlgebraicSys::UpdateRHS(FEMatrixType matrixType, 
+                               const SBM_Vector& fup) {
     
     LOG_TRACE(algSys) << "Updating RHS of matrix " 
                       << feMatrixType.ToString(matrixType);
@@ -1707,6 +1744,20 @@ namespace CoupledField {
     }
   }
 
+  
+  void AlgebraicSys::GetSolutionVal( SBM_Vector& solVec ) {
+    
+    // resize solVec to match number of functions
+    solVec.Resize( numFcts_);
+    
+    // loop over all feFctIDs
+    for(UInt i = 0; i < numFcts_; ++i ) {
+    
+      // call specialized GetSolutionVal method
+      GetSolutionVal(solVec(i), i);
+    }
+  }
+  
   void AlgebraicSys::GetRHSVal( SingleVector &ptRhs,
                                 const FeFctIdType fctId  ) {
     
@@ -1749,6 +1800,19 @@ namespace CoupledField {
     }
   }
   
+  void AlgebraicSys::GetRHSVal( SBM_Vector& rhsVec ) {
+    
+    // resize rhsVec to match number of functions
+    rhsVec.Resize( numFcts_);
+
+    // loop over all feFctIDs
+    for(UInt i = 0; i < numFcts_; ++i ) {
+
+      // call specialized GetSolutionVal method
+      GetRHSVal(rhsVec(i), i);
+    }
+      
+  }
   
   SBM_Matrix* AlgebraicSys::GenerateSBM_Matrix( FEMatrixType matType,
                                               BaseMatrix::EntryType entryType ) {
@@ -1771,7 +1835,6 @@ namespace CoupledField {
       std::string storageString;
       matrixNode->GetValue("storage", storageString );
       sT = BaseMatrix::storageType.Parse(storageString);
-      std::cerr << "storageString is " << storageString << std::endl;
     }
     
     // STEP 2: Populate with sub-matrices
@@ -1815,13 +1878,13 @@ namespace CoupledField {
         } else {
            //Test: Check, if performance increases by use of VBR-matrix
 //          if( sbmRow > 0 && sbmCol > 0) {
-          retMat->SetSubMatrix ( sbmRow, sbmCol, 
-                                 entryType, BaseMatrix::VAR_BLOCK_ROW,
-                                 nrows, ncols, graph->GetNNE() );
-//          } else {
 //          retMat->SetSubMatrix ( sbmRow, sbmCol, 
-//                                 entryType, BaseMatrix::SPARSE_NONSYM,
+//                                 entryType, BaseMatrix::VAR_BLOCK_ROW,
 //                                 nrows, ncols, graph->GetNNE() );
+//          } else {
+          retMat->SetSubMatrix ( sbmRow, sbmCol, 
+                                 entryType, BaseMatrix::SPARSE_NONSYM,
+                                 nrows, ncols, graph->GetNNE() );
 //          }
         }
 

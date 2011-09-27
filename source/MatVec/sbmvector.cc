@@ -10,15 +10,35 @@
 namespace CoupledField {
 
 
+  // ***********************
+  //   Default Constructor
+  // ***********************
+  SBM_Vector::SBM_Vector(  BaseMatrix::EntryType entryType ) {
+    size_ = 0;
+    myEntryType_ = entryType;
+    ownSubVectors_ = true;
+  }
+
   // *****************************************************
   //   Constructor for empty vectors of specified length
   // *****************************************************
-  SBM_Vector::SBM_Vector( UInt size ) {
+  SBM_Vector::SBM_Vector( UInt size,
+                          BaseMatrix::EntryType entryType ) {
     size_ = size;
-    myEntryType_ = BaseMatrix::NOENTRYTYPE;
     ownSubVectors_ = true;
+    myEntryType_ = entryType;
     subVec_.Resize( size );
-    subVec_.Init( NULL );
+    
+    // Create vectors, if entryType is set. Otherwise initialize with
+    // NULL-pointer
+    if( myEntryType_ != BaseMatrix::NOENTRYTYPE ) {
+      for( UInt i = 0; i < size_; ++i ) {
+        subVec_[i] = 
+            GenerateSingleVectorObject(myEntryType_, 0 );
+      }
+    } else {
+      subVec_.Init( NULL );
+    }
   }
 
 
@@ -66,18 +86,89 @@ namespace CoupledField {
     for ( UInt i = 0; i < size_; i++ ) {
       delete subVec_[i];
     }
-
+    
     size_ = (UInt)size;
     subVec_.Resize( size_ );
     subVec_.Init( NULL );
   }
+  
+  
+  
+  // **********************
+  //   Perform, Resize
+  // **********************
+  void SBM_Vector::Resize( UInt newSize) {
+    
+    // If new and old size are the same, just leave
+    if( newSize == size_)
+      return;
+    
+    // check for weak copy of SBM vector
+    if( !ownSubVectors_ ) {
+      EXCEPTION( "As this is a weak copy of a SBM-vector, I refuse to "
+                 "change the size" );
+    }
+    
+    UInt keepSize = std::min(newSize, size_);
+    
+    // delete all vectors not needed anymore
+    for( UInt i = keepSize; i < size_; ++i ) {
+      delete subVec_[i];
+    }
+    
+    subVec_.Resize( newSize );
+    size_ = newSize;
+    
+    // Create new, empty sub-vectors, if the entryType is set
+    for( UInt i = keepSize; i < size_; ++i ) {
+      if( myEntryType_ != BaseMatrix::NOENTRYTYPE ) {
+        subVec_[i] = 
+            GenerateSingleVectorObject(myEntryType_, 0 );
+      } else {
+        subVec_[i] = NULL;
+      }
+    }
+  }
+  
+  // **********************
+  //   Assign Sub-vector
+  // **********************
+  void SBM_Vector::SetSubVector( SingleVector *subvec, UInt i ) {
+
+    // Check if we are even allowed to set a new sub-vector
+    if ( !ownSubVectors_ ) {
+      EXCEPTION( "As this is a weak copy of a SBM-vector, I refuse to "
+          "get overwritten" );
+    }
+    
+    // Check index of the new vector
+#ifdef CHECK_INDEX
+    if( i >= size_ ) {
+      EXCEPTION( "SetSubVector: Can not set sub-vector " << i
+                 << " as size of the SBM-vector is " << size_ );
+    }
+#endif
+    // Check if entryType of new vector is the same as of the SBM-vector 
+    if( myEntryType_ != BaseMatrix::NOENTRYTYPE &&
+        subvec->GetEntryType() != myEntryType_ ) {
+      EXCEPTION( "Can not set sub-vector of type '"
+          << BaseMatrix::entryType.ToString( subvec->GetEntryType() )
+          << "', as the SBM-vector is of type '"
+          << BaseMatrix::entryType.ToString( myEntryType_ ) << "'." )
+    }
+    
+    delete subVec_[i];
+    subVec_[i] = subvec;
+    myEntryType_ = subvec->GetEntryType();
+  }
+
 
   // **********************
   //   Assignment operator
   // **********************
   SBM_Vector& SBM_Vector::operator= ( const SBM_Vector &bVec ) {
 
-    // Only set submatrix, if this is not a cheap copy
+    // Only set subvectors, if this is not a cheap copy
     if( !ownSubVectors_ ) {
       EXCEPTION( "As this is a weak copy of a SBM-vector, I refuse to "
                  "get overwritten" );
@@ -89,12 +180,11 @@ namespace CoupledField {
     }
 
     size_ = 0;
-
     // then, copy sub-vectors from original vector class
     size_ = bVec.size_;
     subVec_.Resize( size_ );
+    myEntryType_ = bVec.myEntryType_;
     for ( UInt i =  0; i < size_; i++ ) {
-      // determine entrytype
       subVec_[i] = CopySingleVectorObject( *bVec.subVec_[i]);
     }
 

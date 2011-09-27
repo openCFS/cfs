@@ -43,7 +43,7 @@ void MassEdgeInt::CalcElementMatrix( Matrix<Double>& elemMat,
   partElemMat.Resize(nrFncs);
   if( scaleByEdgeSize_ ) {
     esm->GetMaxMinEdgeLength(maxEdgeLength_,minEdgeLength_);
-    factor /= ( minEdgeLength_ * minEdgeLength_);
+    factor /= ( maxEdgeLength_ * maxEdgeLength_);
   }
 
   // Loop over all integration points

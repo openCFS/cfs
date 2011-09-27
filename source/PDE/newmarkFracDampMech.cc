@@ -76,264 +76,264 @@ namespace CoupledField {
 
   void NewmarkFracDampMech::Init( Double dt, UInt rhsSize ) {
 	
-
-    dt_ = dt;
-    rhsSize_ = rhsSize;
-    CalcParameters(dt_);
-    Vector<Double> dummyVec;
-    dummyVec.Resize(rhsSize_);
-    dummyVec.Init();
-
-    //elastModule_ = 1.0;  
-    //elastModule_ = 658.2;  
-    PtrParamNode firstRegionNode = (mechNode_->Get("regionList")->GetList("region"))[0];
-    firstRegionNode->Get("damping")->GetValue("ElastModul", elastModule_ );
-    
-    Double timeSlot;
-    firstRegionNode->Get("damping")->GetValue("timeSlot", timeSlot );
-  
-    Double temp;
-    temp   = (timeSlot/GetTimeStep())/fracMemory_;
-  
-    if (temp < 1.0)
-      std::cerr << "The fracMemory value is to big for the given timeSlot and the timeStepSize" << std::endl;
-  
-    modulo_ = Integer(temp);
-    
-    matrix_factors_[STIFFNESS] = 1.0;
-    matrix_factors_[DAMPING] = 1.0*a4_; // needed for thermoviscous damping
-    matrix_factors_[CONVECTION] = 0.0;
-    matrix_factors_[MASS] = 1.0*a2_;
-
-
-    // get the memory
-    if ( !is_Deriv_set(FIRST_DERIV) )
-    {
-      solDeriv_vec_[FIRST_DERIV] = dummyVec;
-    }
-    if ( !is_Deriv_set(SECOND_DERIV) )
-    {
-      solDeriv_vec_[SECOND_DERIV] = dummyVec;
-    }
-  
-
-    solpred_.Resize(rhsSize_); 
-    solpred_.Init();
-    solderiv1pred_.Resize(rhsSize_); 
-    solderiv1pred_.Init();
-  
-    if ( fracMemory_ <= 1 ) {
-      EXCEPTION("Damping model needs frac_memory larger than 1" );
-    } else {
-
-      //UInt numElems = ptgrid_->GetNumElems(subdoms_);
-      UInt numElems = eqnMap_->GetNumLocalElems();
-      UInt dimStressVector = getStressDim();
-
-      // get the memory
-      solMemory_  = new Vector<Double>[fracMemory_];
-      stressHistoryEl_ = new Vector<Double>[fracMemory_];
-
-      for (UInt i=0; i<fracMemory_; i++) {
-        solMemory_[i].Resize(rhsSize_);  
-        solMemory_[i].Init();
-        stressHistoryEl_[i].Resize(numElems*dimStressVector);
-        stressHistoryEl_[i].Init();
-      }
-    }
+    REFACTOR;
+//    dt_ = dt;
+//    rhsSize_ = rhsSize;
+//    CalcParameters(dt_);
+//    Vector<Double> dummyVec;
+//    dummyVec.Resize(rhsSize_);
+//    dummyVec.Init();
+//
+//    //elastModule_ = 1.0;  
+//    //elastModule_ = 658.2;  
+//    PtrParamNode firstRegionNode = (mechNode_->Get("regionList")->GetList("region"))[0];
+//    firstRegionNode->Get("damping")->GetValue("ElastModul", elastModule_ );
+//    
+//    Double timeSlot;
+//    firstRegionNode->Get("damping")->GetValue("timeSlot", timeSlot );
+//  
+//    Double temp;
+//    temp   = (timeSlot/GetTimeStep())/fracMemory_;
+//  
+//    if (temp < 1.0)
+//      std::cerr << "The fracMemory value is to big for the given timeSlot and the timeStepSize" << std::endl;
+//  
+//    modulo_ = Integer(temp);
+//    
+//    matrix_factors_[STIFFNESS] = 1.0;
+//    matrix_factors_[DAMPING] = 1.0*a4_; // needed for thermoviscous damping
+//    matrix_factors_[CONVECTION] = 0.0;
+//    matrix_factors_[MASS] = 1.0*a2_;
+//
+//
+//    // get the memory
+//    if ( !is_Deriv_set(FIRST_DERIV) )
+//    {
+//      solDeriv_vec_[FIRST_DERIV] = dummyVec;
+//    }
+//    if ( !is_Deriv_set(SECOND_DERIV) )
+//    {
+//      solDeriv_vec_[SECOND_DERIV] = dummyVec;
+//    }
+//  
+//
+//    solpred_.Resize(rhsSize_); 
+//    solpred_.Init();
+//    solderiv1pred_.Resize(rhsSize_); 
+//    solderiv1pred_.Init();
+//  
+//    if ( fracMemory_ <= 1 ) {
+//      EXCEPTION("Damping model needs frac_memory larger than 1" );
+//    } else {
+//
+//      //UInt numElems = ptgrid_->GetNumElems(subdoms_);
+//      UInt numElems = eqnMap_->GetNumLocalElems();
+//      UInt dimStressVector = getStressDim();
+//
+//      // get the memory
+//      solMemory_  = new Vector<Double>[fracMemory_];
+//      stressHistoryEl_ = new Vector<Double>[fracMemory_];
+//
+//      for (UInt i=0; i<fracMemory_; i++) {
+//        solMemory_[i].Resize(rhsSize_);  
+//        solMemory_[i].Init();
+//        stressHistoryEl_[i].Resize(numElems*dimStressVector);
+//        stressHistoryEl_[i].Init();
+//      }
+//    }
   }
 
 
   void NewmarkFracDampMech::Predictor(Vector<Double>& solold) {
 
-
-    actStep_ = domain->GetSingleDriver()->GetActStep( pdename_ );
-
-    // determine number of terms over which BDF is calculated
-    //   assumes first nstep = 1 (see transientdriver.cc)!
-    numValues_ = solMemoryVal_.size();
-
-    // determine number of past values stored in solMemory_
-    numTrueValues_ = 0;
-    for ( UInt i=0; i < numValues_; i++ ) {
-      if ( solMemoryVal_[i] == trueVAL )
-        numTrueValues_++;
-    }
-    if( !omitFirstPredictor_) {
-      solpred_ = solold + solDeriv_vec_[FIRST_DERIV]*dt_ + solDeriv_vec_[SECOND_DERIV]*a0_;
-      solderiv1pred_ = solDeriv_vec_[FIRST_DERIV] + solDeriv_vec_[SECOND_DERIV]*a1_;
-    } else {
-      omitFirstPredictor_ = false;
-    }
+    REFACTOR;
+//    actStep_ = domain->GetSingleDriver()->GetActStep( pdename_ );
+//
+//    // determine number of terms over which BDF is calculated
+//    //   assumes first nstep = 1 (see transientdriver.cc)!
+//    numValues_ = solMemoryVal_.size();
+//
+//    // determine number of past values stored in solMemory_
+//    numTrueValues_ = 0;
+//    for ( UInt i=0; i < numValues_; i++ ) {
+//      if ( solMemoryVal_[i] == trueVAL )
+//        numTrueValues_++;
+//    }
+//    if( !omitFirstPredictor_) {
+//      solpred_ = solold + solDeriv_vec_[FIRST_DERIV]*dt_ + solDeriv_vec_[SECOND_DERIV]*a0_;
+//      solderiv1pred_ = solDeriv_vec_[FIRST_DERIV] + solDeriv_vec_[SECOND_DERIV]*a1_;
+//    } else {
+//      omitFirstPredictor_ = false;
+//    }
   }
 
 
   void NewmarkFracDampMech::UpdateRHS() {
 
-    
-    // mass part
-    Vector<Double> coeffMass;
-
-    coeffMass = solpred_*a2_;
-    algsys_->UpdateRHS(MASS,coeffMass);
-
-    // damping part
-    Matrix<Double>  elemmat;
-//    BaseFE          * ptElem;
-    StdVector<UInt> connecth;
-    Vector<Double>  rhsAssemble, rhsvec, elemsol;
-    Vector<Double>  fracDerivStressVec_, resultStressVector,stressVector;
-
-    fracDerivStressVec_.Resize(getDim());
-    stressVector.Resize(getDim());
-
-    std::map<RegionIdType, BaseMaterial*> mymaterialData;
-    mymaterialData = ptStdPDE_->getPDEMaterialData();
-
-    BaseMaterial * firstMat = mymaterialData.begin()->second;
-
-    firstMat->GetScalar(dampAlpha_,ACOU_ALPHA,Global::REAL);
-    firstMat->GetScalar(dampBeta_,FRACTIONAL_EXPONENT,Global::REAL);
-
-    PtrParamNode firstRegionNode = (mechNode_->GetList("region"))[0];
-    Double fracDeriv_;
-    firstRegionNode->Get("damping")->GetValue("fracDeriv", fracDeriv_ );
-
-    Double timeStep = GetTimeStep();
-    timeStepPowerFracDeriv_ = std::pow(timeStep,-fracDeriv_);
-
-
-    std::string model;
-    firstRegionNode->Get("damping")->GetValue( "model", model );
-
-    for ( UInt actSD=0; actSD < subdoms_.GetSize(); actSD++ ) {
-      if ( dampingList_[subdoms_[actSD]] == NONE ) {
-        // no damping term has to be computed
-      }
-      else if ( dampingList_[subdoms_[actSD]] == RAYLEIGH ) {
-	
-        Vector<Double> coeffDamp;
-        coeffDamp = -solderiv1pred_ + solpred_*a4_;
-        algsys_->UpdateRHS(DAMPING,coeffDamp);
-      }
-      else {
-        if ( dampingList_[subdoms_[actSD]]== FRACTIONAL_GL ) {
-          //factor *= std::exp(-(y-1.0)*std::log(dt_));
-          //GLWeights(numValues_, y);
-          GLWeights(numValues_ + 1, fracDeriv_); // calclimit_+1 because the coeffcients in the loop start with i+1
-        }
-            
-         
-	//transform the type
-	SubTensorType type;
-	String2Enum(subType_,type);
-
-        BDBInt * rhsViscoMat = new LinViscoElastInt(mymaterialData[subdoms_[actSD]],
-                                                    type,
-                                                    "MatDepRHSMatrix",
-                                                    GetTimeStep() );
-
-        BDInt * bdInt = new BDInt(mymaterialData[subdoms_[actSD]],
-                                  subType_, 
-                                  GetTimeStep());
-
-
-        ElemList actSDList(ptgrid_ );
-        actSDList.SetRegion( subdoms_[actSD] );
-        
-        EntityIterator it = actSDList.GetIterator();
-        for ( it.Begin(); !it.IsEnd(); it++ ) {
-
-          //ptElem=it.GetElem()->ptElem;
-          const UInt nrNodes  = (it.GetElem()->connect).GetSize();
-          dofs_ = Elem::shapes[it.GetElem()->type].dim;
-          //dofs_ = ptElem->GetDim();
-          
-          resultStressVector.Resize(nrNodes * dofs_);
-          rhsvec.Resize(nrNodes * dofs_);
-          rhsvec.Init();
-              
-          connecth=it.GetElem()->connect;
-          
-          rhsViscoMat->CalcElementMatrix(elemmat,it,it);
-          
-          // map connect to PDE node numbers
-          StdVector<Integer> connect_PDE;
-          eqnMap_->GetNodeEqn(connecth, connect_PDE);
-
-          /*
-          // output matrix with which BDF is computed
-          (*debug) << "fractional Damping matrix of Element" << std::endl;
-          (*debug) << elemmat << std::endl;
-          (*debug) << "actStep_=" << actStep_ << std::endl;
-          (*debug) << "numValues_=" << numValues_ << std::endl;
-           */
-              
-          for (UInt i=1; i<=numValues_; i++) {
-            if ( solMemoryVal_[i-1] == trueVAL )
-              {
-                GetElemSolution(solMemory_[i-1], elemsol, connect_PDE);
-                rhsvec += elemsol * coeff_[i];	     
-
-                // (*debug) << "elemsolOld" << std::endl;
-                // (*debug) << elemsol << std::endl;
-              }
-            else { // see NewmarkFracDamp
-            }		
-          }
-              
-          rhsAssemble = -(elemmat  * rhsvec *timeStepPowerFracDeriv_);
-          
-          // compute stress history from displacement history with the fractional constitutive equation
-          // later perhabs  this method should be implemented in a own class
-          
-          // calculates the stress history from the displacement history	  
-          //CalcStressHistoryForElement( connect_PDE, ptElem->GetNumNodes(),ptCoord,mymaterialData[actSD],ptElem,el);
-          // calculate linear stresses for stress history
-          //	  CalcStressHist( ptCoord, mymaterialData[actSD],connect_PDE,ptElem);
-          
-          fracDerivStressVec_.Init();
-          resultStressVector.Init();
-          
-          for (UInt i=1; i<numValues_; i++) {	     
-            Integer localElemNum = eqnMap_->Mesh2PdeElem(it.GetElem()->elemNum); 
-            GetStressVector(stressVector,localElemNum,i-1);
-            fracDerivStressVec_ += stressVector * coeff_[i+1];
-          }
-              
-          bdInt->calcElementVector(resultStressVector,it,fracDerivStressVec_);
-          
-          //                   double t1,t2;
-          //                   t1=0;
-          //                   t2=0;
-              
-          //                   for (UInt i=0;i<rhsAssemble.GetSize();i++)
-          //                     {
-          //                       t1 += rhsAssemble[i];
-          //                       t2 += resultStressVector[i];
-          //                     }
-
-          /*
-          (*debug) << "actStep_=" << actStep_ << std::endl 
-                   << "rhsAssemble=" << std::endl << rhsAssemble << std::endl
-                   << "resultStressVector=" << std::endl << resultStressVector << std::endl;
-          */         
-          if(model== "3param")
-            rhsAssemble  = rhsAssemble +  resultStressVector;
-          else if (model=="KelvinVoigt")
-          {
-            assert(false);
-            rhsAssemble  = rhsAssemble; // +  resultStressVector;
-          }
-          else
-            std::cerr << "unknown model for fractional damping" << std::endl;
-          //(*debug) <<  "rhs vector of timestep " << actStep_ << std::endl;
-          //(*debug) << rhsvec << std::endl;
-          //assemble to RHS
-          algsys_->SetElementRHS( rhsAssemble, pdeId_, connect_PDE );
-        }
-      }
-    }
+    REFACTOR;
+//    // mass part
+//    Vector<Double> coeffMass;
+//
+//    coeffMass = solpred_*a2_;
+//    algsys_->UpdateRHS(MASS,coeffMass);
+//
+//    // damping part
+//    Matrix<Double>  elemmat;
+////    BaseFE          * ptElem;
+//    StdVector<UInt> connecth;
+//    Vector<Double>  rhsAssemble, rhsvec, elemsol;
+//    Vector<Double>  fracDerivStressVec_, resultStressVector,stressVector;
+//
+//    fracDerivStressVec_.Resize(getDim());
+//    stressVector.Resize(getDim());
+//
+//    std::map<RegionIdType, BaseMaterial*> mymaterialData;
+//    mymaterialData = ptStdPDE_->getPDEMaterialData();
+//
+//    BaseMaterial * firstMat = mymaterialData.begin()->second;
+//
+//    firstMat->GetScalar(dampAlpha_,ACOU_ALPHA,Global::REAL);
+//    firstMat->GetScalar(dampBeta_,FRACTIONAL_EXPONENT,Global::REAL);
+//
+//    PtrParamNode firstRegionNode = (mechNode_->GetList("region"))[0];
+//    Double fracDeriv_;
+//    firstRegionNode->Get("damping")->GetValue("fracDeriv", fracDeriv_ );
+//
+//    Double timeStep = GetTimeStep();
+//    timeStepPowerFracDeriv_ = std::pow(timeStep,-fracDeriv_);
+//
+//
+//    std::string model;
+//    firstRegionNode->Get("damping")->GetValue( "model", model );
+//
+//    for ( UInt actSD=0; actSD < subdoms_.GetSize(); actSD++ ) {
+//      if ( dampingList_[subdoms_[actSD]] == NONE ) {
+//        // no damping term has to be computed
+//      }
+//      else if ( dampingList_[subdoms_[actSD]] == RAYLEIGH ) {
+//	
+//        Vector<Double> coeffDamp;
+//        coeffDamp = -solderiv1pred_ + solpred_*a4_;
+//        algsys_->UpdateRHS(DAMPING,coeffDamp);
+//      }
+//      else {
+//        if ( dampingList_[subdoms_[actSD]]== FRACTIONAL_GL ) {
+//          //factor *= std::exp(-(y-1.0)*std::log(dt_));
+//          //GLWeights(numValues_, y);
+//          GLWeights(numValues_ + 1, fracDeriv_); // calclimit_+1 because the coeffcients in the loop start with i+1
+//        }
+//            
+//         
+//	//transform the type
+//	SubTensorType type;
+//	String2Enum(subType_,type);
+//
+//        BDBInt * rhsViscoMat = new LinViscoElastInt(mymaterialData[subdoms_[actSD]],
+//                                                    type,
+//                                                    "MatDepRHSMatrix",
+//                                                    GetTimeStep() );
+//
+//        BDInt * bdInt = new BDInt(mymaterialData[subdoms_[actSD]],
+//                                  subType_, 
+//                                  GetTimeStep());
+//
+//
+//        ElemList actSDList(ptgrid_ );
+//        actSDList.SetRegion( subdoms_[actSD] );
+//        
+//        EntityIterator it = actSDList.GetIterator();
+//        for ( it.Begin(); !it.IsEnd(); it++ ) {
+//
+//          //ptElem=it.GetElem()->ptElem;
+//          const UInt nrNodes  = (it.GetElem()->connect).GetSize();
+//          dofs_ = Elem::shapes[it.GetElem()->type].dim;
+//          //dofs_ = ptElem->GetDim();
+//          
+//          resultStressVector.Resize(nrNodes * dofs_);
+//          rhsvec.Resize(nrNodes * dofs_);
+//          rhsvec.Init();
+//              
+//          connecth=it.GetElem()->connect;
+//          
+//          rhsViscoMat->CalcElementMatrix(elemmat,it,it);
+//          
+//          // map connect to PDE node numbers
+//          StdVector<Integer> connect_PDE;
+//          eqnMap_->GetNodeEqn(connecth, connect_PDE);
+//
+//          /*
+//          // output matrix with which BDF is computed
+//          (*debug) << "fractional Damping matrix of Element" << std::endl;
+//          (*debug) << elemmat << std::endl;
+//          (*debug) << "actStep_=" << actStep_ << std::endl;
+//          (*debug) << "numValues_=" << numValues_ << std::endl;
+//           */
+//              
+//          for (UInt i=1; i<=numValues_; i++) {
+//            if ( solMemoryVal_[i-1] == trueVAL )
+//              {
+//                GetElemSolution(solMemory_[i-1], elemsol, connect_PDE);
+//                rhsvec += elemsol * coeff_[i];	     
+//
+//                // (*debug) << "elemsolOld" << std::endl;
+//                // (*debug) << elemsol << std::endl;
+//              }
+//            else { // see NewmarkFracDamp
+//            }		
+//          }
+//              
+//          rhsAssemble = -(elemmat  * rhsvec *timeStepPowerFracDeriv_);
+//          
+//          // compute stress history from displacement history with the fractional constitutive equation
+//          // later perhabs  this method should be implemented in a own class
+//          
+//          // calculates the stress history from the displacement history	  
+//          //CalcStressHistoryForElement( connect_PDE, ptElem->GetNumNodes(),ptCoord,mymaterialData[actSD],ptElem,el);
+//          // calculate linear stresses for stress history
+//          //	  CalcStressHist( ptCoord, mymaterialData[actSD],connect_PDE,ptElem);
+//          
+//          fracDerivStressVec_.Init();
+//          resultStressVector.Init();
+//          
+//          for (UInt i=1; i<numValues_; i++) {	     
+//            Integer localElemNum = eqnMap_->Mesh2PdeElem(it.GetElem()->elemNum); 
+//            GetStressVector(stressVector,localElemNum,i-1);
+//            fracDerivStressVec_ += stressVector * coeff_[i+1];
+//          }
+//              
+//          bdInt->calcElementVector(resultStressVector,it,fracDerivStressVec_);
+//          
+//          //                   double t1,t2;
+//          //                   t1=0;
+//          //                   t2=0;
+//              
+//          //                   for (UInt i=0;i<rhsAssemble.GetSize();i++)
+//          //                     {
+//          //                       t1 += rhsAssemble[i];
+//          //                       t2 += resultStressVector[i];
+//          //                     }
+//
+//          /*
+//          (*debug) << "actStep_=" << actStep_ << std::endl 
+//                   << "rhsAssemble=" << std::endl << rhsAssemble << std::endl
+//                   << "resultStressVector=" << std::endl << resultStressVector << std::endl;
+//          */         
+//          if(model== "3param")
+//            rhsAssemble  = rhsAssemble +  resultStressVector;
+//          else if (model=="KelvinVoigt")
+//          {
+//            assert(false);
+//            rhsAssemble  = rhsAssemble; // +  resultStressVector;
+//          }
+//          else
+//            std::cerr << "unknown model for fractional damping" << std::endl;
+//          //(*debug) <<  "rhs vector of timestep " << actStep_ << std::endl;
+//          //(*debug) << rhsvec << std::endl;
+//          //assemble to RHS
+//          algsys_->SetElementRHS( rhsAssemble, pdeId_, connect_PDE );
+//        }
+//      }
+//    }
   }
   
 
@@ -396,50 +396,51 @@ namespace CoupledField {
 
   void NewmarkFracDampMech::CalcParameters(Double dt)
   {
-
-    //for predictors
-    a0_ = 0.5*(1-2.0*beta_)*dt_*dt_;
-    a1_ = (1-gamma_)*dt_;
-
-    //for correctors, matrices
-    a2_ = 1.0/(beta_*dt_*dt_);
-    a3_ = gamma_*dt_;
-
-    //for RHS, matrices
-    a4_ = gamma_ / (beta_*dt_);
+     REFACTOR;
+//
+//    //for predictors
+//    a0_ = 0.5*(1-2.0*beta_)*dt_*dt_;
+//    a1_ = (1-gamma_)*dt_;
+//
+//    //for correctors, matrices
+//    a2_ = 1.0/(beta_*dt_*dt_);
+//    a3_ = gamma_*dt_;
+//
+//    //for RHS, matrices
+//    a4_ = gamma_ / (beta_*dt_);
   }
 
 
   void NewmarkFracDampMech::GetElemSolution ( const Vector<Double>& sol, 
                                               Vector<Double>& elemsol,
                                               const StdVector<Integer> & connectPDE ) {
-
-   
-    elemsol.Resize(connectPDE.GetSize());
-    elemsol.Init();
-
-    for (UInt eqn=0; eqn<connectPDE.GetSize(); eqn++) {
-      if (connectPDE[eqn]>=1)
-        elemsol[eqn] = sol[connectPDE[eqn]-1];
-    }
+    REFACTOR;
+//   
+//    elemsol.Resize(connectPDE.GetSize());
+//    elemsol.Init();
+//
+//    for (UInt eqn=0; eqn<connectPDE.GetSize(); eqn++) {
+//      if (connectPDE[eqn]>=1)
+//        elemsol[eqn] = sol[connectPDE[eqn]-1];
+//    }
   }
 
   void NewmarkFracDampMech::GLWeights(UInt memory, Double y ) {
 
-   
-    // reserve memory for weights of BDF, order of derivative is y-1
-    coeff_.resize(memory+1);
-    coeff_[0] = 1.0; // Index 0
-
-    // (*debug) << "coeff_" <<std::endl;
-    // (*debug) << coeff_[0]<<std::endl;
-
-    for (UInt i=1; i <= memory; i++) { // Index 1 .. memory 
-      coeff_[i] = coeff_[i-1] * (i-1-y)/(i);
-
-      // (*debug) << coeff_[i] << "   " << coeff_[i-1] * (i-1-y)/(i) <<std::endl;
-
-    }
+   REFACTOR;
+//    // reserve memory for weights of BDF, order of derivative is y-1
+//    coeff_.resize(memory+1);
+//    coeff_[0] = 1.0; // Index 0
+//
+//    // (*debug) << "coeff_" <<std::endl;
+//    // (*debug) << coeff_[0]<<std::endl;
+//
+//    for (UInt i=1; i <= memory; i++) { // Index 1 .. memory 
+//      coeff_[i] = coeff_[i-1] * (i-1-y)/(i);
+//
+//      // (*debug) << coeff_[i] << "   " << coeff_[i-1] * (i-1-y)/(i) <<std::endl;
+//
+//    }
   }
 
 void NewmarkFracDampMech::CalcStress(BaseFE * aptelem, 

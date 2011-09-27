@@ -19,22 +19,27 @@ namespace CoupledField {
     //! Default Constructor
 
     //! The default constructor generates an empty vector, so size is set to
-    //! 0 and subVec_ to NULL
-    SBM_Vector() :  size_(0) {}
-
+    //! 0 and subVec_ to NULL. In addition the entryType of this vector is set,
+    //! so any subsequent call to Resize will create sub-vectors of the 
+    //! given type. 
+    explicit SBM_Vector(  BaseMatrix::EntryType entryType = 
+                          BaseMatrix::NOENTRYTYPE );
+    
     //! Constructor for empty vectors of specified length
 
-    //! The constructor will generate a SBM_Vector of length nlength and
-    //! dynamically allocate memory to store the sub-vectors. In this initial
-    //! state the entries will all be NULL pointers.
-    SBM_Vector( UInt size );
-
+    //! The constructor will generate a SBM_Vector of length \a size and
+    //! dynamically allocate memory to store the sub-vectors.
+    //! If the \a entryType is not given explicitly, the entries will be
+    //! NULL-pointers. Otherwise 0-size sub-vectors of the given type 
+    //! will be created. 
+    explicit SBM_Vector( UInt size, BaseMatrix::EntryType entryType = 
+                         BaseMatrix::NOENTRYTYPE );
     
     //! Create a weak copy of the SBM-vector
     
     //! This method creates a weak copy of size #numRows of the original 
     //! vector. This weak copy will not get ownership of the sub-vectors,
-    //! but just get hold of the pointers. Thus, the wak copy is not
+    //! but just get hold of the pointers. Thus, the weak copy is not
     //! allowed to set new sub-vectors.
     //! \param origVector vector to be copied
     //! \param numRows number of rows to be copied
@@ -56,34 +61,36 @@ namespace CoupledField {
       return myEntryType_;
     }
 
-    //! Set number of vector entries
+    //! Set number of vector entries without creation of sub-vectors
 
     //! This sets the length of the vector and allocates memory accordingly.
     //! In the case the size was not zero previously the internal array subVec_
     //! will be re-sized. The new vector will have NULL pointers as entries.
     void SetSize( UInt size );
-
+    
     //! Obtain size of vector, i.e. number of sub-vector entries
     UInt GetSize() const {
       return size_;
     }
 
-    //! Resize the vector to new size 
-    virtual void Resize( UInt newSize )
-    {
-      throw Exception("not implemented");
-    }
+    //! Resize the vector to new size with optional creation of sub-vectors
+    
+    //! This sets the length of the vector to the specified size.
+    //! This method tries to keep as much data as possible, i.e. if the new
+    //! size is smaller than the current one, smaller number of entries is
+    //! maintained. If the new size is larger than the old one, all old
+    //! entries are copied into the new Vector. Newly created entries
+    //! sill be initialized with 0-size vectors of the given #entryType_,
+    //! i.e. after the call of this methods, no new NULL-pointers are 
+    //! created.
+    virtual void Resize( UInt newSize );
 
     //! Insert a sub-vector
 
     //! A call to this method will set the i-th entry of the SBM_Vector to
     //! be the given SingleVector subvec.
-    void SetSubVector( SingleVector *subvec, UInt i ) {
-      delete subVec_[i];
-      subVec_[i] = subvec;
-      myEntryType_ = subvec->GetEntryType();
-    }
-
+    void SetSubVector( SingleVector *subvec, UInt i );
+   
     //! Overload assignment operator
     virtual BaseVector& operator= ( const BaseVector &bVec ) {
       const SBM_Vector& sVec = dynamic_cast<const SBM_Vector&>(bVec);
@@ -93,6 +100,7 @@ namespace CoupledField {
 
     //! Overload assignment operator
     virtual SBM_Vector& operator= ( const SBM_Vector &bVec );
+    
 
     //! Add to sub-vector
 
@@ -204,8 +212,7 @@ namespace CoupledField {
     //! Overload () operator to retrieve sub-vectors
 
     //! The () operator is overloaded to allow to retrieve individual
-    //! sub-vectors. The access follows the one-based indexing convention
-    //! of OLAS.
+    //! sub-vectors. 
     SingleVector& operator()( UInt i ) const {
       if ( subVec_[i] == NULL ) {
         EXCEPTION( "Cannot return reference to non-existing sub-vector "

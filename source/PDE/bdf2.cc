@@ -30,7 +30,7 @@ namespace CoupledField
   {
     dt_ = dt;
     rhsSize_ = rhsSize;
-    Vector<Double> dummyVec;
+    SBM_Vector dummyVec;
     dummyVec.Resize(rhsSize_);
     dummyVec.Init();
     coeffMass_ = dummyVec;
@@ -61,7 +61,7 @@ namespace CoupledField
   }
 
 
-  void Bdf2::Predictor(Vector<Double>& solold)
+  void Bdf2::Predictor(SBM_Vector& solold)
   {
     /** szoerner: put into AdvanceTime since bdf is not a predictor corrector
      * method
@@ -75,7 +75,7 @@ namespace CoupledField
   {
     // mass part
     // the last term occurs due to the newton method
-    Vector<Double> currentSol;
+    SBM_Vector currentSol;
 
     algsys_->GetSolutionVal(currentSol);
     algsys_->UpdateRHS(AUXILIARY, currentSol);
@@ -83,13 +83,17 @@ namespace CoupledField
     // the minus occurs due to the newton method
     const Double coeff1 = - sol_timeStepCoeff_[TIMESTEP_1];
     const Double coeff2 = - sol_timeStepCoeff_[TIMESTEP_2];
-    coeffMass_  = sol_timeStepVec_[TIMESTEP_1] * coeff1;
-    coeffMass_ += sol_timeStepVec_[TIMESTEP_2] * coeff2;
+    
+    coeffMass_.Add( coeff1, sol_timeStepVec_[TIMESTEP_1],
+                    coeff2, sol_timeStepVec_[TIMESTEP_2] );
+    
+//    coeffMass_  = sol_timeStepVec_[TIMESTEP_1] * coeff1;
+//    coeffMass_ += sol_timeStepVec_[TIMESTEP_2] * coeff2;
     algsys_->UpdateRHS(MASS, coeffMass_);
   }
 
 
-  void Bdf2::Corrector(Vector<Double>& solnew)
+  void Bdf2::Corrector(SBM_Vector& solnew)
   {
     //in solderiv1_ and solderiv2_ for bdf2 not the derivatives are stored.
     // in order to realize restart functionality the last solutions [t_(n-1) t_(n-2)} are stored to retrace a simulation
@@ -97,7 +101,7 @@ namespace CoupledField
     //solderiv2_=sol_tn_1_;
   }
 
-  void Bdf2::AdvanceTimestep(Vector<Double>& solnew)
+  void Bdf2::AdvanceTimestep(SBM_Vector& solnew)
   {
     // TODO: were should the derivative be calculated??? Necessary only for
     // calculating acoustics

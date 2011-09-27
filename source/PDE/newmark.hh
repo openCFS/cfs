@@ -33,22 +33,22 @@ namespace CoupledField
     void resetDeltaT( );
 
     //! perform predictor step
-    void Predictor(Vector<Double>& solold);
+    void Predictor(SBM_Vector& solold);
 
     //! perform corrector step
-    void Corrector(Vector<Double>& solnew);
+    void Corrector(SBM_Vector& solnew);
 
     //! perform an update to RHS
     void UpdateRHS();
     
     //! perform an update to RHS with actual solution (for nonlin calculation)
-    virtual void UpdateRHS(Vector<Double>& actSol);  
+    virtual void UpdateRHS(SBM_Vector& actSol);  
     
     //! substracts -Ku from RHS
-    virtual void SubstractStiffnessFromRHS(Vector<Double>& actSol);
+    virtual void SubstractStiffnessFromRHS(SBM_Vector& actSol);
     
     //! perform calculations at end of timestep (set the new timestep)
-    void AdvanceTimestep(Vector<Double>& solnew);
+    void AdvanceTimestep(SBM_Vector& solnew);
 
     Double GetNewmarkBeta(){
       return beta_;
@@ -71,10 +71,10 @@ namespace CoupledField
     //@}
 
     //! predictor for nodal solution
-    Vector<Double> solpred_, solpredSAVE_;
+    SBM_Vector solpred_, solpredSAVE_;
 
     //! predictor for derivative of solution
-    Vector<Double> solderiv1pred_, solderiv1predSAVE_;
+    SBM_Vector solderiv1pred_, solderiv1predSAVE_;
 
   };
 
@@ -98,10 +98,10 @@ namespace CoupledField
     void Init( Double dt, UInt rhsSize );
     
     //! perform predictor step
-    void Predictor(Vector<Double>& solold);
+    void Predictor(SBM_Vector& solold);
 
     //! perform corrector step
-    void Corrector(Vector<Double>& solnew);
+    void Corrector(SBM_Vector& solnew);
 
     //! perform an update to RHS
     void UpdateRHS();
@@ -128,13 +128,13 @@ namespace CoupledField
     //@}
 
     //! nodal solution
-    Vector<Double> sol_;
+    SBM_Vector sol_;
     
     //! predictor for nodal solution
-    Vector<Double> solpred_;
+    SBM_Vector solpred_;
     
     //! predictor for derivative of solution
-    Vector<Double> solderiv1pred_;
+    SBM_Vector solderiv1pred_;
   
     // if true, we perform explicit time stepping
     bool intExplicit_;

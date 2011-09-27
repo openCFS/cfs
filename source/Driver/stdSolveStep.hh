@@ -9,7 +9,7 @@
 #include <fstream>
 #include "assemble.hh"
 #include "baseSolveStep.hh"
-#include "MatVec/vector.hh"
+#include "MatVec/sbmvector.hh"
 #include "Utils/hysteresis.hh"
 #include "Materials/baseMaterial.hh"
 #include "DataInOut/resultHandler.hh"
@@ -147,21 +147,16 @@ namespace CoupledField
     //! computes ldelta inear part of RHS; in case of sub stepping
     UInt SetDeltaLinRHS();
 
-    //! stores an algsys_ vector into a StdVector and returns that L2-norm
-    void StoreAlgsysToVec(Vector<Double>& vec, Double * pt);
-
     //! does a line search and returns the optimal residual norm
-    Double LineSearch(Vector<Double>& solIncrement, Vector<Double>& actSol, 
+    Double LineSearch(SBM_Vector& solIncrement, SBM_Vector& actSol, 
                       Double& etaLineSearch, bool trans=false);
 
     //! does a line search and returns the optimal residual norm
-    Double LineSearchMaterial(Vector<Double>& solIncrement, Vector<Double>& actSol, 
+    Double LineSearchMaterial(SBM_Vector& solIncrement, 
+                              SBM_Vector& actSol, 
                               Double& etaLineSearch, Double& RHSLin2Norm,
                               bool trans=false);
 
-
-    //! returns that L2-norm of an algsys vector
-    Double AlgsysL2Norm(Double * pt);
 
     //! returns the hysteresis operator
     Hysteresis * GetHystOperator(UInt iSD) {
@@ -181,12 +176,12 @@ namespace CoupledField
 
     //------------- storage vectors for nonlinear analysis --------------
     //Vector<Double> RhsLinVal_; //!< external forces (for nonlin simulations)
-    Vector<Double> oldRhsLinVal_; //!< external forces (for nonlin simulations)
-    Vector<Double> tmpOldRhsLinVal_; //!< external forces (for nonlin simulations)
-    Vector<Double> DeltaRhsLinVal_; //!< external forces (for nonlin simulations)
+    SBM_Vector oldRhsLinVal_; //!< external forces (for nonlin simulations)
+    SBM_Vector tmpOldRhsLinVal_; //!< external forces (for nonlin simulations)
+    SBM_Vector DeltaRhsLinVal_; //!< external forces (for nonlin simulations)
 
     //------------- storage vectors for nonlinear analysis --------------
-    Vector<Double> RhsLinVal_; //!< external forces (for nonlin simulations)
+    SBM_Vector RhsLinVal_; //!< external forces (for nonlin simulations)
 
 
     //-------------------------------- Pointers to (Copies of) StdPDE -------------------
@@ -225,11 +220,8 @@ namespace CoupledField
     //! map for each region the type of nonlinearity
     std::map<RegionIdType, NonLinType> regionNonLinType_;
 
-    //! size of rhs and algsys vector
-    UInt numEqns_;
-    
-    Vector<Double> solIncr_;   //! needed in iterative coupled computation 
-    Vector<Double> actSol_;    //! needed in iterative coupled computation 
+    SBM_Vector solIncr_;   //! needed in iterative coupled computation 
+    SBM_Vector actSol_;    //! needed in iterative coupled computation 
 
     //hysteresis operator;    
     StdVector<Hysteresis *> hyst_;

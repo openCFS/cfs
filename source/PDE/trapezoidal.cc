@@ -40,7 +40,7 @@ namespace CoupledField
     
     dt_ = dt;
     rhsSize_ = rhsSize;
-    Vector<Double> dummyVec;
+    SBM_Vector dummyVec;
     dummyVec.Resize(rhsSize_);
     dummyVec.Init();
     
@@ -68,10 +68,12 @@ namespace CoupledField
   }
 
 
-  void Trapezoidal::Predictor(Vector<Double>& solold)
+  void Trapezoidal::Predictor(SBM_Vector& solold)
   {
     if( !omitFirstPredictor_) {
-      solpred_ = solold + solDeriv_vec_[FIRST_DERIV]*sol_timeStepCoeff_[PREDICTOR_1];
+      solpred_.Add( 1.0, solold,
+                    sol_timeStepCoeff_[PREDICTOR_1], solDeriv_vec_[FIRST_DERIV] );
+//      solpred_ = solold + solDeriv_vec_[FIRST_DERIV]*sol_timeStepCoeff_[PREDICTOR_1];
     } else {
       omitFirstPredictor_ = false;
     }
@@ -81,29 +83,35 @@ namespace CoupledField
   void Trapezoidal::UpdateRHS()
   {
 
-    Vector<Double> coeffMass;
+    SBM_Vector coeffMass;
 
     // mass part
-    coeffMass = solpred_*sol_timeStepCoeff_[CORRECTOR_1];
+    coeffMass = solpred_;
+    coeffMass.ScalarMult( sol_timeStepCoeff_[CORRECTOR_1] );
+    //coeffMass = solpred_*sol_timeStepCoeff_[CORRECTOR_1];
     algsys_->UpdateRHS(MASS,coeffMass);
   }
 
 
-  void Trapezoidal::UpdateRHS(Vector<Double>& actSol)
+  void Trapezoidal::UpdateRHS(SBM_Vector& actSol)
   {
 
-    Vector<Double> coeffMass;
+    SBM_Vector coeffMass;
 
     // mass part
-    coeffMass = (solpred_ - actSol) *sol_timeStepCoeff_[CORRECTOR_1];
+    coeffMass.Add( sol_timeStepCoeff_[CORRECTOR_1], solpred_,
+                   -sol_timeStepCoeff_[CORRECTOR_1], actSol );
+    //coeffMass = (solpred_ - actSol) *sol_timeStepCoeff_[CORRECTOR_1];
     algsys_->UpdateRHS(MASS,coeffMass);
   }
 
 
-  void Trapezoidal::Corrector(Vector<Double>& solnew)
+  void Trapezoidal::Corrector(SBM_Vector& solnew)
   {
 
-    solDeriv_vec_[FIRST_DERIV] = (solnew - solpred_)*sol_timeStepCoeff_[CORRECTOR_1];
+    solDeriv_vec_[FIRST_DERIV].Add( sol_timeStepCoeff_[CORRECTOR_1], solnew,
+                                    - sol_timeStepCoeff_[CORRECTOR_1], solpred_ );
+    //solDeriv_vec_[FIRST_DERIV] = (solnew - solpred_)*sol_timeStepCoeff_[CORRECTOR_1];
   }
 
   void Trapezoidal::CalcParameters(Double dt)
@@ -167,10 +175,13 @@ namespace CoupledField
   }
 
 
-  void TrapezoidalEffMass::Predictor(Vector<Double>& solold)
+  void TrapezoidalEffMass::Predictor(SBM_Vector& solold)
   {
     if( !omitFirstPredictor_) {
-      solpred_ = solold + solDeriv_vec_[FIRST_DERIV]*sol_timeStepCoeff_[PREDICTOR_1];
+      solpred_.Add( 1.0, solold, 
+                    sol_timeStepCoeff_[PREDICTOR_1], solDeriv_vec_[FIRST_DERIV] );
+         
+      //solpred_ = solold + solDeriv_vec_[FIRST_DERIV]*sol_timeStepCoeff_[PREDICTOR_1];
     } else {
       omitFirstPredictor_ = false;
     }
@@ -180,25 +191,30 @@ namespace CoupledField
   void TrapezoidalEffMass::UpdateRHS()
   {
 
-    Vector<Double> coeffStiff;
+    SBM_Vector coeffStiff;
 
     // mass part
-    coeffStiff = -solpred_;
+    coeffStiff = solpred_;
+    coeffStiff.ScalarMult( -1.0 );
+//    coeffStiff = -solpred_;
     algsys_->UpdateRHS(STIFFNESS,coeffStiff);
   }
 
 
-  void TrapezoidalEffMass::UpdateRHS(Vector<Double>& actSol)
+  void TrapezoidalEffMass::UpdateRHS(SBM_Vector& actSol)
   {
     UpdateRHS();
   }
 
 
-  void TrapezoidalEffMass::Corrector(Vector<Double>& vNew)
+  void TrapezoidalEffMass::Corrector(SBM_Vector& vNew)
   {
     // after solving the algebraic system of equation, we obtain as solution
     // the 1st time derivative: vNew .. 1st time derivative
-    sol_ = solpred_ + vNew * sol_timeStepCoeff_[CORRECTOR_1];
+    sol_.Add( 1.0, solpred_,
+              sol_timeStepCoeff_[CORRECTOR_1], vNew ); 
+    
+//    sol_ = solpred_ + vNew * sol_timeStepCoeff_[CORRECTOR_1];
     solDeriv_vec_[FIRST_DERIV] = vNew;
 
     //now overwrite the solution with the physical quantity itself
@@ -218,11 +234,16 @@ namespace CoupledField
 
   Double TrapezoidalEffMass::DirichletBC4EffMassMatrix(Double val, Integer eq)
   {
-
-    Double velVal;
-
-    velVal = (val- solpred_[eq-1]) / sol_timeStepCoeff_[CORRECTOR_1];
-    return velVal;
+    EXCEPTION("This method won't work correctly. We should consider "
+                 "modifying the Dirichlet BC handling in the algebraic system "
+                 "to associate the IDBC-matrix with the STIFFNESS-matrix, so "
+                 "that is gets automatically multiplicated within the "
+                 "AlgebraicSys::ConstructEffectiveMatrix() method" );
+//    Double velVal;
+//
+//    velVal = (val- solpred_[eq-1]) / sol_timeStepCoeff_[CORRECTOR_1];
+//    return velVal;
+    return 0;
   }
 
 

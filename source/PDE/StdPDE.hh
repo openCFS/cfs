@@ -118,14 +118,14 @@ namespace CoupledField {
       return false;
     }
   
-    //! @return pointer to vector of derivative of solution
-    //! @param derivType the type of derivative you want
-    virtual const Vector<Double> & getDeriv(DERIVType derivType) const;
-
-    //! @return pointer to vector of time step
-    //! @param timeStepType type if time step you want
-    virtual const Vector<Double> & getOld(TIMEStepType timeStepType) const;
-    
+//    //! @return pointer to vector of derivative of solution
+//    //! @param derivType the type of derivative you want
+//    virtual const Vector<Double> & getDeriv(DERIVType derivType) const;
+//
+//    //! @return pointer to vector of time step
+//    //! @param timeStepType type if time step you want
+//    virtual const Vector<Double> & getOld(TIMEStepType timeStepType) const;
+//    
 
     //! Also for fractional damping model do obtain
     virtual UInt GetFracMemory() {
@@ -190,25 +190,23 @@ namespace CoupledField {
     //! store the new solution returned by the algebraic system
     //! \param ptSol pointer to solution array
     //! \param size legnth of solution array
-    virtual void SaveSolution( const Double * ptSol, UInt size ) = 0;
-    virtual void SaveSolution( const Complex * ptSol, UInt size ) = 0;
-    virtual void SavePrevSolution( const Double * ptSol, UInt size ) = 0;
+    virtual void SaveSolution( SBM_Vector& ) = 0;
+    virtual void SavePrevSolution( SBM_Vector& ) = 0;
     //@}
 
     //@{
     //! Save load part of RHS to private variable
-    virtual void SaveRHS( const Double * ptSol, UInt size ) = 0;
-    virtual void SaveRHS( const Complex * ptSol, UInt size ) = 0;
+    virtual void SaveRHS( SBM_Vector& ) = 0;
     //@}
 
     /** Get the data vector of the current solution of the algebraic system */
-    virtual SingleVector* GetSolutionVector() { return solVec_;} 
+    virtual void GetSolutionVector(SBM_Vector&); 
 
     /** Get the data vector of the current rhs of the algebraic system. */
-    SingleVector* GetRHSVector() { return rhsVec_;}
+    void GetRHSVector(SBM_Vector&);
 
     //! get the data vector of the previous solution of a PDE.
-    virtual SingleVector * GetPrevSolutionVector();
+    virtual void GetPrevSolutionVector(SBM_Vector& );
     
     /// returns the vector of the solution belonging to all nodes of the actual element
     void GetSolVecOfElement( Vector<Double>& sol, const EntityIterator& it, 
@@ -294,9 +292,6 @@ namespace CoupledField {
     Assemble * getPDE_assemble(){return assemble_;}
   
     StdVector<RegionIdType> getPDE_subdoms(){return subdoms_;}
-   
-    Vector<Complex> getPDE_complexValuedCharge()
-    {return complexValuedCharge_;};
     
     void setPDE_MatDataType(Global::ComplexPart & pMatType){
       matDataType_ = pMatType;};
@@ -306,9 +301,6 @@ namespace CoupledField {
 
     //! get pointer to time stepping object
     TimeStepping * getTimeStepping() { return TS_alg_;};
-
-    void setPDE_complexValuedCharge(Vector<Complex> chargeVec)
-    {complexValuedCharge_=chargeVec;};
 
     // set if PDE is nonlinear
     virtual void SetNonLinearity(bool nonLin){

@@ -9,6 +9,7 @@
 
 #include "General/environment.hh"
 #include "Utils/nodestoresol.hh"
+#include "MatVec/sbmvector.hh"
 
 namespace CoupledField {
 
@@ -62,32 +63,32 @@ namespace CoupledField {
     GetEffSysMatFactors( ) const;
 
     //! perform predictor step
-    virtual void Predictor(Vector<Double>& solold)=0;
+    virtual void Predictor(SBM_Vector& solold)=0;
   
     //! perform corrector step
-    virtual void Corrector(Vector<Double>& solnew)=0;
+    virtual void Corrector(SBM_Vector& solnew)=0;
   
     //! perform an update to RHS
     virtual void UpdateRHS()=0;
 
     //! Substract Stiffness from RHS
-    virtual void SubstractStiffnessFromRHS(Vector<Double>& actSol)
+    virtual void SubstractStiffnessFromRHS(SBM_Vector& actSol)
     {EXCEPTION("Error not implemented!");};
 
     //! perform an update to RHS with actual solution (for nonlin calculation)
-    virtual void UpdateRHS(Vector<Double>& actSol)
+    virtual void UpdateRHS(SBM_Vector& actSol)
     {EXCEPTION("Error not implemented!");};
 
     //! perform calculations at end of timestep different from above methods 
     //! e.g. when fractional damping is used, store current in memory
-    virtual void AdvanceTimestep(Vector<Double>& solnew){;};
+    virtual void AdvanceTimestep(SBM_Vector& solnew){;};
 
     /**
      * Sets the time step timeStepType to the value timeStep_vec
      * @param timeStep_vec The time step which should be set
      * @param timeStepType Which time step is to be set
      */
-    virtual void SetOld(const Vector<Double> & timeStep_vec, TIMEStepType timeStepType)
+    virtual void SetOld(const SBM_Vector & timeStep_vec, TIMEStepType timeStepType)
     {
       sol_timeStepVec_[timeStepType] = timeStep_vec;
     }
@@ -98,9 +99,9 @@ namespace CoupledField {
      * @retrun The vector of a particular time step
      * @throws exception if time step has not been set
      */
-    virtual const Vector<Double>& GetOld(TIMEStepType timeStepType)
+    virtual const SBM_Vector& GetOld(TIMEStepType timeStepType)
     {
-      std::map<TIMEStepType, Vector<Double> >::iterator iter = \
+      std::map<TIMEStepType, SBM_Vector >::iterator iter = \
         sol_timeStepVec_.find(timeStepType);
       if (iter == sol_timeStepVec_.end())
       {
@@ -114,7 +115,7 @@ namespace CoupledField {
      * @param timeStep_vec The time step which should be set
      * @param timeStepType Which time step is to be set
      */
-    virtual void SetDeriv(const Vector<Double> & deriv_vec, DERIVType derivType)
+    virtual void SetDeriv(const SBM_Vector & deriv_vec, DERIVType derivType)
     {
       solDeriv_vec_[derivType] = deriv_vec;
     }
@@ -125,9 +126,9 @@ namespace CoupledField {
      * @retrun The vector of a particular derivative
      * @throws exception if derivative has not been set
      */
-    virtual const Vector<Double>& GetDeriv(DERIVType derivType)
+    virtual const SBM_Vector& GetDeriv(DERIVType derivType)
     {
-      std::map<DERIVType, Vector<Double> >::iterator iter = \
+      std::map<DERIVType, SBM_Vector >::iterator iter = \
         solDeriv_vec_.find(derivType);
       if (iter == solDeriv_vec_.end())
       {
@@ -143,7 +144,7 @@ namespace CoupledField {
      */
     virtual bool is_SolTimeStep_set(TIMEStepType timeStepType)
     {
-      std::map<TIMEStepType, Vector<Double> >::iterator iter = \
+      std::map<TIMEStepType, SBM_Vector >::iterator iter = \
         sol_timeStepVec_.find(timeStepType);
       if (iter == sol_timeStepVec_.end())
       {
@@ -159,7 +160,7 @@ namespace CoupledField {
      */
     virtual bool is_Deriv_set(DERIVType derivType)
     {
-      std::map<DERIVType, Vector<Double> >::iterator iter = \
+      std::map<DERIVType, SBM_Vector >::iterator iter = \
         solDeriv_vec_.find(derivType);
       if (iter == solDeriv_vec_.end())
       {
@@ -183,7 +184,7 @@ namespace CoupledField {
      * Gives back the derivatives
      * @return returns a map of the derivatives
      */
-    virtual std::map<TIMEStepType, Vector<Double> >& GetTimeStepMap()
+    virtual std::map<TIMEStepType, SBM_Vector >& GetTimeStepMap()
     {
       return sol_timeStepVec_;
     }
@@ -191,7 +192,7 @@ namespace CoupledField {
      * Gives back the derivatives
      * @return returns a map of the derivatives
      */
-    virtual std::map<DERIVType, Vector<Double> >& GetDeriveMap()
+    virtual std::map<DERIVType, SBM_Vector >& GetDeriveMap()
     {
       return solDeriv_vec_;
     }
@@ -268,8 +269,8 @@ namespace CoupledField {
     std::map<FEMatrixType,Double> matrix_factors_;
 
     //! Derivative and time steps stored in a map
-    std::map<TIMEStepType, Vector<Double> > sol_timeStepVec_;
-    std::map<DERIVType, Vector<Double> > solDeriv_vec_;
+    std::map<TIMEStepType, SBM_Vector > sol_timeStepVec_;
+    std::map<DERIVType, SBM_Vector > solDeriv_vec_;
     //! coefficient vector for time stepping
     //! @param sol_timeStepCoeff_, [TIMESTEP_0] is the last calculated time step, [TIMESTEP_1] is the
     //! time step before that and so forth

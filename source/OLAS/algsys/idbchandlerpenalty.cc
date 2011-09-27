@@ -49,7 +49,7 @@ namespace CoupledField {
       // NOTE: We use SPARSE_NONSYM as matrix storage type in order to
       //       obtain a Vector<T> object
       if ( numIDBC[i] > 0 ) {
-        bVec = GenerateSingleVectorObject( BaseMatrix::SPARSE_NONSYM, eType_, numIDBC[i]);
+        bVec = GenerateSingleVectorObject( eType_, numIDBC[i]);
         stdVec = dynamic_cast<SingleVector*>(bVec);
         sbmVec->SetSubVector( stdVec, i );
       }
