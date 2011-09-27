@@ -583,8 +583,9 @@ DEFINE_LOG(linForm, "linForm")
         //define the nonlinear element matrix
         curlCurlInt_->SetFeSpace(ptFeSpace1_);
         curlCurlInt_->SetNonLinMethod(FIXEDPOINT);
-
+        curlCurlInt_->SetSolution(*sol_);
       }
+      
       firstTime_ = false;
     }
     //      std::cout << "Mvec:\n" << elemVec << std::endl;
