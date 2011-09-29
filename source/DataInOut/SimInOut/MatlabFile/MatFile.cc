@@ -25,13 +25,32 @@ MatFile::~MatFile()
 
 bool MatFile::Open(const string& fn)
 {
-	if (file >= 0)
-		Close();
-
-	filename = fn;
-
-	file = H5Fcreate(fn.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
-	return file >= 0;
+  herr_t status;
+  hid_t fcpl;
+  
+  if (file >= 0)
+    Close();
+  
+  filename = fn;
+  
+  // Create a copy  or instance of the File  Creation property list with
+  // H5Pcreate.
+  fcpl = H5Pcreate (H5P_FILE_CREATE);
+  
+  //Modify the property list with one of the File Creation property list
+  //functions. For example, modify  the User Block with H5Pset_userblock
+  //:
+  status = H5Pset_userblock(fcpl, 512);
+  
+  //Call H5Fcreate, passing in the  identifier of the property list that
+  //was just modified. For example:
+  
+  file = H5Fcreate(filename.c_str(), H5F_ACC_TRUNC, fcpl, H5P_DEFAULT);
+  
+  // Lastly, close the property list with H5Pclose:
+  status = H5Pclose (fcpl);
+  
+  return file >= 0;
 }
 
 bool MatFile::Close()
@@ -97,6 +116,7 @@ bool MatFile::PrependHeader(const char* filename)
 	header[126] = 'I';
 	header[127] = 'M';
 
+#if 0
 	// Get file length.
 	fseek(fd, 0, SEEK_END);
 	size_t length = ftell(fd);
@@ -121,12 +141,13 @@ bool MatFile::PrependHeader(const char* filename)
 	}
 
 	fseek(fd, 0, SEEK_SET);
+#endif
 
 	fwrite(header, 1, sizeof(header), fd);
-	fwrite(buffer, 1, length, fd);
+        //	fwrite(buffer, 1, length, fd);
 	fclose(fd);
 
-	delete[] buffer;
+        //	delete[] buffer;
 
 	return true;
 }
