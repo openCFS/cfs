@@ -58,9 +58,7 @@ namespace CoupledField
 
 
   void BaseMaterial::NeedApproxMatCurve(  MaterialType type ) {
-    std::cout << "Do be inserted: " << type << std::endl;
     if ( needApproxMatCurves_.find( type ) == needApproxMatCurves_.end() ) {
-      std::cout << "Insert: " << type << std::endl;
       needApproxMatCurves_.insert( type );
     }
   }

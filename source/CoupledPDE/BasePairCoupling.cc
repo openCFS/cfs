@@ -31,7 +31,6 @@ namespace CoupledField {
     ptGrid_         = NULL;
     algsys_         = NULL;
     nonLin_         = false;
-    nonLinMaterial_ = false;
     isHysteresis_   = false;
     nonLinHysteresis_ = false;
 
@@ -45,6 +44,8 @@ namespace CoupledField {
     
     dim_ = domain->GetGrid()->GetDim();
     infoNode_ = info->Get("PDE")->Get(couplingName_, ParamNode::APPEND);
+
+
   }
 
 
@@ -199,9 +200,6 @@ namespace CoupledField {
 
     // Define available results
     DefineAvailResults();
-
-    // Initialize nonlinearities
-    InitNonLin();
 
     // Read in material data
     ReadMaterialData();
@@ -384,6 +382,87 @@ namespace CoupledField {
       }
     } // over composite 
   }
+
+
+  // ****************************
+  //  Initialize Nonlinearities
+  // ****************************
+  void BasePairCoupling::InitNonLin() {
+
+    nonLin_ = false;
+
+    // Check, if "nonLinList" is present
+    PtrParamNode nonLinListNode = myParam_->Get("nonLinList", ParamNode::PASS );
+    if( nonLinListNode ) { 
+
+      // Get nonlinear types
+      ParamNodeList nonLinNodes = nonLinListNode->GetChildren();
+      for( UInt i = 0; i < nonLinNodes.GetSize(); i++ ) {
+
+        std::string actTypeString = nonLinNodes[i]->GetName();
+        std::string actId = nonLinNodes[i]->Get("id")->As<std::string>();
+
+        NonLinType actType;
+        String2Enum( actTypeString, actType );
+
+        //save for each nonlinearity type the id
+        nonLinTypes_[actId] = actType;
+      }
+    }
+
+    // Run over all region and set entry in "regionNonLinId"
+    ParamNodeList regionNodes = 
+      myParam_->Get("regionList")->GetChildren();
+    
+    RegionIdType actRegionId;
+    std::string actRegionName, actNonLinId;
+    
+    if( regionNodes.GetSize() > 0 ) {
+      Info->PrintF( couplingName_, "Non-linearity in following region(s)\n" );
+    }
+
+    for( UInt i = 0; i < regionNodes.GetSize(); i++ ) {
+      //take cae: one region can have more then one nonlinearity!!
+
+      // get data
+      regionNodes[i]->GetValue( "name", actRegionName );
+      regionNodes[i]->GetValue( "nonLinIds", actNonLinId );
+      
+      if( actNonLinId == "" )
+        continue;
+      
+      typedef boost::tokenizer< boost::char_separator<char> > Tok;
+      boost::char_separator<char> sep(";|, ");
+      
+      Tok tok(actNonLinId, sep);
+
+      actRegionId = ptGrid_->GetRegion().Parse( actRegionName );
+
+      for(Tok::iterator it=tok.begin(); it!=tok.end(); ++it) {
+        std::string nonLinId = (*it);
+
+        if(nonLinTypes_.find(nonLinId) == nonLinTypes_.end()) {
+          WARN( "NonLinearity with id '" << nonLinId 
+                << "' was not defined in 'nonLinList'");
+          continue;
+        }
+
+        regionNonLinTypes_[actRegionId].Push_back( nonLinTypes_[nonLinId] );
+
+        //write info
+        std::string nonLinString;
+        Enum2String( nonLinTypes_[nonLinId], nonLinString );
+        Info->PrintF( couplingName_, " %s: %s\n", actRegionName.c_str(), 
+                      nonLinString.c_str() );
+
+        //if one nonlinearity is set, then the whole PDE is set to nonlinear
+        nonLin_ = true;
+      }
+    }
+
+  }
+
+
 
   void BasePairCoupling::ReadStoreResults() {
 

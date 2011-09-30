@@ -41,7 +41,7 @@
                     <xsd:attribute name="name" type="xsd:token" use="required"/>
                     <xsd:attribute name="dampingId" type="xsd:token" 
                       use="optional" default=""/>
-                    <xsd:attribute name="nonLinId" type="xsd:token" 
+                    <xsd:attribute name="nonLinIds" type="xsd:token" 
                       use="optional" default=""/>
                     <xsd:attribute name="displInputId" type="xsd:token" 
                       use="optional" default=""/>

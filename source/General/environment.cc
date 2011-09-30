@@ -884,8 +884,6 @@ namespace CoupledField {
       out = VARIABLE_SOS_CN2;
     } else if( in == "variableSOS_CN2Mean") {
       out = VARIABLE_SOS_CN2Mean;
-    } else if( in == "material") {
-      out = MATERIAL;
     } else if( in == "geometric") {
       out = GEOMETRIC;
     } else if( in == "hysteresis") {
@@ -927,9 +925,6 @@ namespace CoupledField {
       break;
     case VARIABLE_SOS_CN2Mean:
       out = "variableSOS_CN2Mean";
-      break;
-    case MATERIAL:
-      out = "material";
       break;
     case GEOMETRIC:
       out = "geometric";

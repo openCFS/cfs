@@ -302,10 +302,6 @@ namespace CoupledField {
     virtual void SetNonLinearity(bool nonLin){
       nonLin_=nonLin;};
 
-    // set if PDE is nonlinear (material dependency)
-    virtual void SetMaterialNonLinearity(bool nonLin){
-      nonLinMaterial_=nonLin;};
-
     //! reads in the displacement at time step "step" and fills deltCoord-array of
     //! grid
     virtual void ReadDisplacementAndUpdateGrid( UInt step);
@@ -317,9 +313,6 @@ namespace CoupledField {
 
     bool IsNonLin() 
     { return nonLin_;};
-
-    bool IsNonLinMaterial() 
-    { return nonLinMaterial_;};
 
     bool IsHysteresis() 
     { return isHysteresis_;};
@@ -474,7 +467,6 @@ namespace CoupledField {
     //@{
     //! \name Attributes connected to nonlinearity
     bool nonLin_;           //!< flag for nonlinear calculations
-    bool nonLinMaterial_;           //!< flag for nonlinear material calculations
     bool isHysteresis_;     //!< flag for hysteresis
     bool totalFormulation_;   //!< flag for total formulation in nonlinear calculations
 
@@ -483,6 +475,9 @@ namespace CoupledField {
 
     //! map for each nonlinearity the id
     std::map<std::string, NonLinType> nonLinTypes_;
+
+    // type of nonlinear algorithm (e.g., Newton)
+    NonLinMethodType nonLinMethod_;
 
     struct GridDisplData {
       //! name for input file, which contains grid deformations

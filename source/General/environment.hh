@@ -118,7 +118,7 @@ namespace CoupledField {
   //! Type of nonlinearity for certain pdes
   typedef enum { NO_NONLINEARITY, WESTERVELT, KUZNETSOV, VARIABLE_SOS_CN1,
                  VARIABLE_SOS_CN2, VARIABLE_SOS_CN2Mean,
-                 MATERIAL, GEOMETRIC, HYSTERESIS, PIEZO_MICRO_HF, PERMEABILITY,
+                 GEOMETRIC, HYSTERESIS, PIEZO_MICRO_HF, PERMEABILITY,
                  NLHEAT_CONDUCTIVITY, NLHEAT_CAPACITY} NonLinType;
 
 

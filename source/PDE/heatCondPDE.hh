@@ -120,8 +120,6 @@ namespace CoupledField {
     //! flag for thermoelastic-coupling
     bool isMechCoupled_;
     
-    NonLinMethodType nonLinMethod_;
-
     //Double InitialTemp_;
 
     //! vector containing regionIds of non-conforming interfaces

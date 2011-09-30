@@ -60,7 +60,6 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
     fracDamping_   = false;
     effectiveMass_ = false;
     nonLin_        = false;
-    nonLinMaterial_= false;
     isHeatCoupled_ = false;
 
     needSolPrev_ = true;
@@ -506,115 +505,26 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
   void MechPDE::InitNonLin()
   {
 
-    nonLin_ = false;
+   SinglePDE::InitNonLin();
 
-    // ==============================================================
-    // NOTE: Currently we can only treat geometric non-linearity and
-    //       we assume that for a mechanic PDE all regions either
-    //       are linear or non-linear!
-    // ==============================================================
+   //now do PDE specifics
+   nonLin_ = false;
+   std::map<std::string, NonLinType>::iterator it;
+   for ( it=nonLinTypes_.begin() ; it != nonLinTypes_.end(); it++ ) {
+     if ( (*it).second == GEOMETRIC )
+       nonLin_ = true;
+   }
 
-    // Check, if "nonLinList" is present
-    PtrParamNode nonLinListNode = myParam_->Get("nonLinList", ParamNode::PASS );
-    if( nonLinListNode) {
-
-      // Get nonlinear types
-      ParamNodeList nonLinNodes = nonLinListNode->GetChildren();
-      for( UInt i = 0; i < nonLinNodes.GetSize(); i++ ) {
-
-        std::string actTypeString = nonLinNodes[i]->GetName();
-        std::string actId = nonLinNodes[i]->Get("id")->As<std::string>();
-
-        NonLinType actType;
-        String2Enum( actTypeString, actType );
-
-        //save for each nonlinearity type the id
-        nonLinTypes_[actId] = actType;
-      }
-    }
-
-    // Run over all regions and get entry in "regionNonLinId"
-    ParamNodeList regionNodes =
-      myParam_->Get("regionList")->GetChildren();
-
-    RegionIdType actRegionId;
-    std::string actRegionName, actNonLinId;
-
-    if( regionNodes.GetSize() > 0 ) {
-      Info->PrintF( pdename_, "Non-linearity in following region(s)\n" );
-    }
-    for( UInt i = 0; i < regionNodes.GetSize(); i++ ) {
-
-      // get data
-      regionNodes[i]->GetValue( "name", actRegionName );
-      regionNodes[i]->GetValue( "nonLinId", actNonLinId );
-
-      if( actNonLinId == "" )
-        continue;
-
-      
-      typedef boost::tokenizer< boost::char_separator<char> > Tok;
-      boost::char_separator<char> sep(";|, ");
-      
-      Tok tok(actNonLinId, sep);
-
-      actRegionId = ptgrid_->GetRegion().Parse( actRegionName );
-
-      for(Tok::iterator it=tok.begin(); it!=tok.end(); ++it) {
-        std::string nonLinId = (*it);
-
-        if(nonLinTypes_.find(nonLinId) == nonLinTypes_.end()) {
-          WARN( "NonLinearity with id '" << nonLinId 
-                << "' was not defined in 'nonLinList'");
-          continue;
-        }
-
-        regionNonLinTypes_[actRegionId].Push_back( nonLinTypes_[nonLinId] );
-
-        // check type
-        NonLinType actType = nonLinTypes_[nonLinId];
-        if( actType == GEOMETRIC ) {
-          nonLin_ = true;
-        }
-        
-        if( actType == MATERIAL ) {
-          nonLin_ = true;
-          nonLinMaterial_ = true;
-        }
-
-        //write info
-        std::string nonLinString;
-        Enum2String( nonLinTypes_[nonLinId], nonLinString );
-        Info->PrintF( pdename_, " %s: %s\n", actRegionName.c_str(), 
-                      nonLinString.c_str() );
-
-      }
-    }
-  
-//     // Check, if nonlinear type is the same for all regions
-//     if( regionNonLinType_.size() > 1 ) {
-//       std::map<RegionIdType, NonLinType>::iterator it;
-//       it = regionNonLinType_.begin();
-//       NonLinType firstType = it->second;
-//       for( ; it != regionNonLinType_.end(); it++ ) {
-//         if( it->second != firstType ) {
-//           EXCEPTION( "Non-linearity should be the same for all regions!" );
-//         }
-//       }
-//     }
-
-    // ------------------------------------------
-    //   Get information on reduced integration
-    // ------------------------------------------
-    if ( nonLin_ == true ) {
-      for ( UInt i = 0; i < regionNodes.GetSize(); i++ ) {
-        if ( regionNodes[i]->Get("reducedInt")->As<std::string>() == "yes" ) {
-          EXCEPTION( "Currently we do not support non-linearity with "
-                     << "reduced integration!" );
-        }
-      }
-    }
-    Info->PrintF( pdename_, "\n" );
+   ParamNodeList regionNodes = 
+     myParam_->Get("regionList")->GetChildren();
+   if ( nonLin_ == true ) {
+     for ( UInt i = 0; i < regionNodes.GetSize(); i++ ) {
+       if ( regionNodes[i]->Get("reducedInt")->As<std::string>() == "yes" ) {
+         EXCEPTION( "Currently we do not support non-linearity with "
+                    << "reduced integration!" );
+       }
+     }
+   }
   }
 
 
@@ -751,8 +661,9 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
       } // end of pml part
 
       else {
-        // ==============  add "standard" linear stiffness ===========================     
-        if ( nonLinTypes.Find(MATERIAL) == -1 &&  !isMicroPiezo ) { 
+        // ==============  add "standard" linear stiffness ===========================  
+        // this we also have to do for geometric nonlinearity   
+        if ( !isMicroPiezo ) { 
           BaseForm * bilinearStiff = GetStiffIntegrator(actSDMat, actRegion);
 
           //check  for softening!
@@ -850,35 +761,6 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
         //      actMatData, elDisp);
       }
 
-      if ( (nonLin_ && ( nonLinTypes.Find(MATERIAL) != -1 ) ) &&  !isMicroPiezo) {
-
-        BaseForm *nLinMaterial = NULL;
-
-        std::string nlfnc;
-        materials_[actRegion]->GetScalar(nlfnc,NONLIN_DATA_NAME);
-
-        ApproxData *nlinFnc = new SmoothSpline(nlfnc, MECH_EMODULUS);
-        //            ApproxData *nlinFnc = new LinInterpolate(nlfnc);
-        nlinFnc->CalcBestParameter();
-        nlinFnc->CalcApproximation();
-
-        if (subType_ == "3d")
-          {
-            nLinMaterial = new nLinMech3dInt_Material(nlinFnc, actSDMat);
-          }
-
-        nLinMaterial->SetSolution( dynamic_cast<NodeStoreSol<Double>&>(*sol_ ));
-
-        BiLinFormContext * stiffNLMaterialDescr =
-          new BiLinFormContext(nLinMaterial, STIFFNESS );
-
-        stiffNLMaterialDescr->SetPtPdes(this, this);
-        stiffNLMaterialDescr->SetResults( results_[0], results_[0],
-                                          actSDList, actSDList );
-        assemble_->AddBiLinearForm(stiffNLMaterialDescr);
-
-      }
-
       // ==============  add mass ===========================================
 
       if ( !isRegionPML ) {
@@ -930,7 +812,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
 
 
       // ==================== RHS ===========================================
-      if ( nonLin_ && ( nonLinTypes.Find(MATERIAL) == -1 ) ) {
+      if ( nonLin_  && ( nonLinTypes.Find(GEOMETRIC) != -1) ) {
 
         LinearForm * rhsSource = new nLinMech_linFormInt(actSDMat, isaxi_);
         rhsSource->SetSolution( dynamic_cast<NodeStoreSol<Double>&>(*sol_ ));

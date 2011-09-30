@@ -139,92 +139,21 @@ DEFINE_LOG(magpde, "magpde")
   // ****************************
   void MagPDE::InitNonLin() {
 
-    nonLin_ = false;
-    isHysteresis_ = false;
-
-    // Check, if "nonLinList" is present
-    PtrParamNode nonLinListNode = myParam_->Get("nonLinList", ParamNode::PASS );
-    if( nonLinListNode ) { 
-
-      // Get nonlinear types
-      ParamNodeList nonLinNodes = nonLinListNode->GetChildren();
-      for( UInt i = 0; i < nonLinNodes.GetSize(); i++ ) {
-
-        std::string actTypeString = nonLinNodes[i]->GetName();
-        std::string actId = nonLinNodes[i]->Get("id")->As<std::string>();
-
-        NonLinType actType;
-        String2Enum( actTypeString, actType );
-
-        nonLinTypes_[actId] = actType;
+    SinglePDE::InitNonLin();
+    
+    //now do PDE specifics
+    std::map<std::string, NonLinType>::iterator it;
+    for ( it=nonLinTypes_.begin() ; it != nonLinTypes_.end(); it++ ) {
+      if ( (*it).second == HYSTERESIS ) {
+        nonLin_ = false;
+        isHysteresis_ = true;
+      }
+      else if ( (*it).second == PERMEABILITY ) {
+        nonLin_ = true;
+        isHysteresis_ = false;
       }
     }
-
-    // Run over all region and set entry in "regionNonLinId"
-    ParamNodeList regionNodes = 
-      myParam_->Get("regionList")->GetChildren();
     
-    RegionIdType actRegionId;
-    std::string actRegionName, actNonLinId;
-    
-    if( regionNodes.GetSize() > 0 ) {
-      Info->PrintF( pdename_, "Non-linearity in following region(s)\n" );
-    }
-    for( UInt i = 0; i < regionNodes.GetSize(); i++ ) {
-      
-      // get data
-      regionNodes[i]->GetValue( "name", actRegionName );
-      regionNodes[i]->GetValue( "nonLinId", actNonLinId );
-      
-      if( actNonLinId == "" )
-        continue;
- 
-      typedef boost::tokenizer< boost::char_separator<char> > Tok;
-      boost::char_separator<char> sep(";|, ");
-      
-      Tok tok(actNonLinId, sep);
-
-      actRegionId = ptgrid_->GetRegion().Parse( actRegionName );
-
-      for(Tok::iterator it=tok.begin(); it!=tok.end(); ++it) {
-        std::string nonLinId = (*it);
-
-        if(nonLinTypes_.find(nonLinId) == nonLinTypes_.end()) {
-          WARN( "NonLinearity with id '" << nonLinId 
-                << "' was not defined in 'nonLinList'");
-          continue;
-        }
-
-        regionNonLinTypes_[actRegionId].Push_back( nonLinTypes_[nonLinId] );
-
-        // check type
-        NonLinType actType = nonLinTypes_[nonLinId];
-        if( actType == PERMEABILITY ) {
-          nonLin_ = true;
-        }
-        if( actType == HYSTERESIS ) {
-          isHysteresis_ = true;
-        }
-
-        //write info
-        std::string nonLinString;
-        Enum2String( nonLinTypes_[nonLinId], nonLinString );
-        Info->PrintF( pdename_, " %s: %s\n", actRegionName.c_str(), 
-                      nonLinString.c_str() );
-
-      }
-    }     
-
-    // Here we need in addition the nonLinMethod_ for the definition
-    // of the integrators
-    nonLinMethod_ = FIXEDPOINT;
-    PtrParamNode nonLinNode = myParam_->Get("nonLinear", ParamNode::PASS );
-    if( nonLinNode ) {
-      std::string methodString;
-      nonLinNode->GetValue(  "method", methodString, ParamNode::PASS );
-      nonLinMethod_ = NonLinMethodTypeEnum.Parse(methodString);
-    }
-
   }
 
 

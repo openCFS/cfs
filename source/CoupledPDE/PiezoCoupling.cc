@@ -50,27 +50,16 @@ namespace CoupledField {
     // determine subtype from mechanic pde
     pde1_->GetParamNode()->GetValue( "subType", subType_ );
 
+
     // read nonlinearity
     nonLin_ = false;
     nonLinHysteresis_ = false;
     nonLinPiezoMicroHF_ = false;
-    nonLinMaterial_ = false;
-    
     nonLinPiezoCoupling_=false;
-    PtrParamNode nonLinNode = myParam_->Get("nonLinList", ParamNode::PASS );
-    if( nonLinNode ) {
-       ParamNodeList nonLinNodes = nonLinNode->GetChildren();
-       for( UInt i = 0; i < nonLinNodes.GetSize(); i++ ) {
 
-         std::string nonLinearity = nonLinNodes[i]->GetName();
-         if( nonLinearity == "material" || nonLinearity == "hysteresis"
-             || nonLinearity == "geo" || nonLinearity == "piezoMicroHF" ) {
-           nonLinPiezoCoupling_=true;
-           ReadPiezoNonLin();
-           break;
-         }
-       }
-    }
+    // Initialize nonlinearities
+    InitNonLin();
+
 
   }
 
@@ -79,6 +68,53 @@ namespace CoupledField {
   //   Destructor
   // **************
   PiezoCoupling::~PiezoCoupling() {
+  }
+
+
+  // ****************************
+  //  Initialize Nonlinearities
+  // ****************************
+  void PiezoCoupling::InitNonLin() {
+
+    BasePairCoupling::InitNonLin();
+
+    // Check, if nonlinear type is the same for all regions
+    if( regionNonLinTypes_.size() > 1 ) {
+      std::map<std::string, NonLinType>::iterator it;
+      it = nonLinTypes_.begin();
+      NonLinType firstType = it->second;
+      for( ; it != nonLinTypes_.end(); it++ ) {
+        if( it->second != firstType ) {
+          EXCEPTION( "Non-linearity should be the same for all regions!" );
+        }
+      }
+    }
+
+
+    //now do coupling specifics
+    std::map<std::string, NonLinType>::iterator it;
+    for ( it=nonLinTypes_.begin() ; it != nonLinTypes_.end(); it++ ) {
+      if ( (*it).second == HYSTERESIS ) {
+        nonLin_ = true;
+        nonLinHysteresis_ = true;
+      }
+      else if ( (*it).second ==  PIEZO_MICRO_HF ) {
+        nonLin_ = true;
+        nonLinPiezoMicroHF_ = true;
+      }
+      else if ( (*it).second == GEOMETRIC ) {
+        nonLin_ = true;
+      }
+    }
+
+    if(nonLin_) {
+      nonLinPiezoCoupling_=true;
+      if ( !nonLinHysteresis_ ) {
+        pde1_->SetNonLinearity(nonLin_);
+        pde2_->SetNonLinearity(nonLin_);
+      }
+    }
+
   }
 
 
@@ -845,120 +881,6 @@ namespace CoupledField {
     // Delete integrator again (Stressabbau ;-)
     delete mechStrainOp;
     delete FieldOp2;
-  }
-
-
-  void PiezoCoupling::ReadPiezoNonLin(){
-
-
-    // Check, if "nonLinList" is present
-    PtrParamNode nonLinListNode = myParam_->Get("nonLinList", ParamNode::PASS );
-
-
-    // --------------------------------------
-    // @Tom:
-    // Shouldn't it be possible to define various types of non-linearities
-    // for different regions like in the other PDEs (e.g. acoustic PDE)?
-    // Currently the non-linearity type is only determined by the first entry
-    // --------------------------------------
-
-    
-    if( nonLinListNode) {
-      // Get nonlinear types
-      ParamNodeList nonLinNodes = nonLinListNode->GetChildren();
-      for( UInt i = 0; i < nonLinNodes.GetSize(); i++ ) {
-
-        std::string actTypeString = nonLinNodes[i]->GetName();
-        std::string actId = nonLinNodes[i]->Get("id")->As<std::string>();
-
-        NonLinType actType;
-        String2Enum( actTypeString, actType );
-        nonLinIdType_[actId] = actType;
-
-        // check type
-        if( actType == HYSTERESIS ) {
-          nonLin_ = true;
-          nonLinHysteresis_ = true;
-        }
-
-        if( actType == PIEZO_MICRO_HF ) {
-          nonLin_ = true;
-          nonLinPiezoMicroHF_ = true;
-        }
-
-        if( actType == MATERIAL ) {
-          nonLin_ = true;
-          nonLinMaterial_ = true;
-        }
-
-        if( actType == GEOMETRIC ) {
-          nonLin_ = true;
-        }
-      }
-    }
-
-    // Run over all region and set entry in "regionNonLinId"
-    ParamNodeList regionNodes =
-      myParam_->Get("regionList")->GetChildren();
-
-    RegionIdType actRegionId;
-    std::string actRegionName, actNonLinId;
-
-    for( UInt i = 0; i < regionNodes.GetSize(); i++ ) {
-
-      // get data
-      regionNodes[i]->GetValue( "name", actRegionName );
-      regionNodes[i]->GetValue( "nonLinId", actNonLinId );
-
-      if( actNonLinId == "" )
-        continue;
-
-      actRegionId = ptGrid_->GetRegion().Parse( actRegionName );
-
-      // Check nonLinId was already registerd
-      if( nonLinIdType_.find( actNonLinId) == nonLinIdType_.end() ) {
-        EXCEPTION( "NonLinearity with id '" << actNonLinId
-                   << "' was not defined in 'nonLinList'" );
-      }
-
-      regionNonLinId_[actRegionId] = actNonLinId;
-      regionNonLinType_[actRegionId] = nonLinIdType_[actNonLinId];
-
-      // Log to info file
-      std::string nonLinString;
-      Enum2String( nonLinIdType_[actNonLinId], nonLinString );
-      PtrParamNode in = infoNode_->Get("nonlinear")->Get("region", ParamNode::APPEND);
-      in->Get("region")->SetValue(actRegionName);
-      in->Get("nonlin")->SetValue(nonLinString);
-    }
-
-
-    // Check, if nonlinear type is the same for all regions
-    if( regionNonLinType_.size() > 1 ) {
-      std::map<RegionIdType, NonLinType>::iterator it;
-      it = regionNonLinType_.begin();
-      NonLinType firstType = it->second;
-      for( ; it != regionNonLinType_.end(); it++ ) {
-        if( it->second != firstType ) {
-          EXCEPTION( "Non-linearity should be the same for all regions!" );
-        }
-      }
-    }
-
-
-    if(nonLin_) {
-      if ( !nonLinHysteresis_ ) {
-        pde1_->SetNonLinearity(nonLin_);
-        pde2_->SetNonLinearity(nonLin_);
-        //    this->SetNonLinearity(nonLin_);
-
-        if ( nonLinMaterial_ ) {
-          pde1_->SetMaterialNonLinearity(nonLinMaterial_);
-          pde2_->SetMaterialNonLinearity(nonLinMaterial_);
-          //      this->SetMaterialNonLinearity(nonLin_);
-        }
-      }
-    }
   }
 
 

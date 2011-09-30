@@ -45,15 +45,15 @@ namespace CoupledField
     //! Initialization method
     virtual void Init( UInt sequenceStep );
 
+    //! Initialize NonLinearities
+    virtual void InitNonLin();
+
     //! Trigger calculation of postprocessing results
     virtual void CalcResults( shared_ptr<BaseResult> result ) {};
 
     //! Write solutions of postprocessing into gmv/unv ... files
     void WriteResultsInFile( const UInt kstep,
                              const Double asteptime );
-
-    //! initialize nonlinearities
-    virtual void InitNonLin() {};
 
     //! Do last caluclation step and cleanup
     virtual void Finalize() {};
@@ -103,16 +103,11 @@ namespace CoupledField
     PtrParamNode GetParamNode() { return myParam_; }
 
     bool nonLin_;             //!< flag for nonlinear calculations
-    bool nonLinMaterial_;     //!< flag for nonlinear material calculations
     bool nonLinHysteresis_;   //!< flag for hysteresis calculations
     bool nonLinPiezoMicroHF_; //!< flag for micro-piezoelectric Huber Fleck model
 
     void SetNonLinearity(bool nonLin){
       nonLin_=nonLin;};
-
-    void SetMaterialNonLinearity(bool nonLin){
-      nonLinMaterial_=nonLin;};
-
 
   protected:
 
@@ -168,13 +163,11 @@ namespace CoupledField
     std::string lineSearch_;   //!< switch for lineSearch
 
     //! map for each region the type of nonlinearity
-    std::map<RegionIdType, NonLinType> regionNonLinType_;
+    std::map<RegionIdType, StdVector<NonLinType> > regionNonLinTypes_;
 
-    //! map for each region the id of the nonlinearity
-    std::map<RegionIdType, std::string> regionNonLinId_;
+    //! map for each nonlinearity the id
+    std::map<std::string, NonLinType> nonLinTypes_;
 
-    //! map for each id the nonlinearity
-    std::map<std::string, NonLinType> nonLinIdType_;
     //@}
 
     // ======================================================

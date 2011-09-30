@@ -331,7 +331,7 @@ namespace CoupledField
     virtual void IncorporateMemento();
 
     //! Initialize NonLinearities
-    virtual void InitNonLin(){};
+    virtual void InitNonLin();
 
 
     //@{

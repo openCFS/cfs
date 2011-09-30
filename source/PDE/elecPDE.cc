@@ -61,7 +61,6 @@ namespace CoupledField {
     maxTimeDerivOrder_ = 0;
  
     nonLin_    = false;
-    nonLinMaterial_ = false;
     isAlwaysStatic_ = true;
     isPiezoCoupled_ = false;
     isThermoCoupled_= false;
@@ -75,79 +74,15 @@ namespace CoupledField {
 
   void ElecPDE::InitNonLin() {
 
-    // Check, if "nonLinList" is present
-    PtrParamNode nonLinListNode = myParam_->Get("nonLinList", ParamNode::PASS );
-    if( nonLinListNode ) { 
+    SinglePDE::InitNonLin();
 
-      // Get nonlinear types
-      ParamNodeList nonLinNodes = nonLinListNode->GetChildren();
-      for( UInt i = 0; i < nonLinNodes.GetSize(); i++ ) {
-
-        std::string actTypeString = nonLinNodes[i]->GetName();
-        std::string actId = nonLinNodes[i]->Get("id")->As<std::string>();
-
-        NonLinType actType;
-        String2Enum( actTypeString, actType );
-        nonLinTypes_[actId] = actType;
+    //now do PDE specifics
+    std::map<std::string, NonLinType>::iterator it;
+    for ( it=nonLinTypes_.begin() ; it != nonLinTypes_.end(); it++ ) {
+      if ( (*it).second == HYSTERESIS ) {
+        isHysteresis_ = true;
       }
     }
-    
-    // Run over all region and set entry in "regionNonLinId"
-    ParamNodeList regionNodes = 
-      myParam_->Get("regionList")->GetChildren();
-
-    RegionIdType actRegionId;
-    std::string actRegionName, actNonLinId;
-
-    if( regionNodes.GetSize() > 0 ) {
-      Info->PrintF( pdename_, "Non-linearity in following region(s)\n" );
-    }
-    for( UInt i = 0; i < regionNodes.GetSize(); i++ ) {
-      
-      regionNodes[i]->GetValue( "name", actRegionName );
-      regionNodes[i]->GetValue( "nonLinId", actNonLinId );
-      
-      if( actNonLinId == "" )
-        continue;
-
-      typedef boost::tokenizer< boost::char_separator<char> > Tok;
-      boost::char_separator<char> sep(";|, ");
-      
-      Tok tok(actNonLinId, sep);
-
-      actRegionId = ptgrid_->GetRegion().Parse( actRegionName );
-
-      for(Tok::iterator it=tok.begin(); it!=tok.end(); ++it) {
-        std::string nonLinId = (*it);
-
-        if( nonLinTypes_.find(nonLinId) == nonLinTypes_.end() ) {
-          WARN( "NonLinearity with id '" << nonLinId 
-                << "' was not defined in 'nonLinList'");
-          continue;
-        }
-
-        regionNonLinTypes_[actRegionId].Push_back( nonLinTypes_[nonLinId] );
-
-        //write info
-        std::string nonLinString;
-
-        Enum2String( nonLinTypes_[nonLinId], nonLinString );
-        Info->PrintF( pdename_, " %s: %s\n", actRegionName.c_str(), 
-                      nonLinString.c_str() );
-
-        // check type
-        NonLinType actType = nonLinTypes_[nonLinId];
-        if( actType == HYSTERESIS ) {
-          isHysteresis_ = true;
-        }
-        
-        if( actType == MATERIAL ) {
-          nonLin_ = true;
-          nonLinMaterial_ = true;
-        }
-      }
-    }
-    Info->PrintF( pdename_, "\n" );
 
   }
 
@@ -198,7 +133,7 @@ namespace CoupledField {
       actSDList->SetRegion( actRegion );
 
       // isPiezoHyst (isMicroPiezo) = true means, that the bilinear-forms 
-      // will be defined in PiezoCupling.cc!!
+      // will be defined in PiezoCoupling.cc!!
       bool isPiezoHyst  = false;
       bool isMicroPiezo = false;
       if ( isPiezoCoupled_ == true ) {
