@@ -38,6 +38,7 @@
 #include "Elements/fespaceH1.hh"
 #include "Elements/fespaceH1Lagrange.hh"
 //#include "Optimization/Design/DesignSpace.hh"
+#include "Elements/fefunction.hh"
 
 #ifdef USE_SCRIPTING
 #include "DataInOut/Scripting/cfsmessenger.hh" 
@@ -712,6 +713,92 @@ namespace CoupledField {
              << "' type not computable by electric PDE" );
      }
      
+   }
+   
+   template <class TYPE>
+   void ElecPDE::CalcElecPot( StdVector<const Elem*>& elems,
+                              StdVector<LocPoint>& points,
+                              Vector<TYPE>& values )  {
+     Vector<TYPE> elemSol;
+     Vector<Double> shape;
+     NodeStoreSol<TYPE> & solhelp = dynamic_cast<NodeStoreSol<TYPE>&>(*sol_);
+     values.Resize(elems.GetSize());
+     values.Init();
+     FeFunction<TYPE>& fct = 
+           dynamic_cast<FeFunction<TYPE>& >(*(GetFeFunction(ELEC_POTENTIAL)));
+     FeSpaceH1& space = dynamic_cast<FeSpaceH1&>(*(fct.GetFeSpace()));
+     LocPointMapped lpm;
+     for ( UInt iElem = 0; iElem < elems.GetSize(); ++iElem ) {
+       const Elem * el = elems[iElem];
+       FeH1*  ptFe = dynamic_cast<FeH1*>(space.GetFe( el->elemNum ));
+       solhelp.GetElemSolution( elemSol, el );
+       ptFe->GetShFnc(shape, points[iElem], el);
+//       elemSol.Init(1.0);
+//       for( UInt i = 0; i < elemSol.GetSize()-1; ++i ) {
+//         elemSol[i] = 0;
+//       }
+//       std::cerr << "elemSOl = " << elemSol.ToString() << std::endl;
+//       elemSol[0] = 0;
+//       elemSol[1] = 0;
+//       elemSol[2] = 0;
+//       }
+       values[iElem] = shape * elemSol;
+     }
+   }
+   
+   template <class TYPE>
+   void ElecPDE::CalcElecField( StdVector<const Elem*>& elems,
+                                StdVector<LocPoint>& points,
+                                Vector<TYPE>& values )  {
+     Vector<TYPE> tempE, elemSol;
+     NodeStoreSol<TYPE> & solhelp = dynamic_cast<NodeStoreSol<TYPE>&>(*sol_);
+     FeFunction<TYPE>& fct = 
+         dynamic_cast<FeFunction<TYPE>& >(*(GetFeFunction(ELEC_POTENTIAL)));
+     values.Resize( elems.GetSize() * dim_ );
+
+     // loop over elements
+     LocPointMapped lpm;
+     for ( UInt iElem = 0; iElem < elems.GetSize(); ++iElem ) {
+       const Elem * el = elems[iElem];
+       linElecInt * li = biLinForms_[el->regionId];
+       shared_ptr<ElemShapeMap> esm = ptgrid_->GetElemShapeMap( el, true );
+       BaseFE*  ptFe = fct.GetFeSpace()->GetFe( el->elemNum );
+       lpm.Set( points[iElem], esm );
+       solhelp.GetElemSolution( elemSol, el);
+       li->ApplyBMat( tempE, lpm, ptFe, elemSol);
+       // loop over dofs
+       for(UInt iDim = 0; iDim < dim_; iDim++ ) {
+         values[iElem*dim_ + iDim] = -tempE[iDim];
+       }
+     }
+   }
+
+   void ElecPDE::CalcField( SolutionType solType, StdVector<const Elem*>& elems,
+                            StdVector<LocPoint>& points, SingleVector& values ) {
+
+     // switch, depending on solutionType
+     switch(solType) {
+       case ELEC_POTENTIAL:
+         if(isComplex_) {
+           Vector<Complex>& temp = dynamic_cast<Vector<Complex>& >(values);
+           CalcElecPot(elems, points, temp );
+         } else {
+           Vector<Double>& temp = dynamic_cast<Vector<Double>& >(values);
+           CalcElecPot<Double>(elems, points, temp );
+         }
+         break;
+       case ELEC_FIELD_INTENSITY:
+         if(isComplex_) {
+           Vector<Complex>& temp = dynamic_cast<Vector<Complex>& >(values);
+           CalcElecField(elems, points, temp );
+         } else {
+           Vector<Double>& temp = dynamic_cast<Vector<Double>& >(values);
+           CalcElecField<Double>(elems, points, temp );
+         }
+         break;
+       default:
+         EXCEPTION("Result not computable by this PDE");
+     }
    }
 
 

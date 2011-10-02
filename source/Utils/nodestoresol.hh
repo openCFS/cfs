@@ -398,6 +398,16 @@ namespace CoupledField{
                           const EntityIterator& it,
                           UInt solIndex = 0 ) const;
     
+    //! Return the solution of all nodes of an element
+
+     //! This method returns the solution of an element. 
+     //! \param elemSol Vector containing the element solution
+     //! \param it Entiyiterator containing the current element
+     //! \param solIndex Index for the desired solution type
+     void GetElemSolution( SingleVector & elemSol,
+                           const Elem* el,
+                           UInt solIndex = 0 ) const;
+    
     //! Return the solution of all nodes of an element as matrix
 
     //! This method returns the solution of an element as matrix. 

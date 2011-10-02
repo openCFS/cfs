@@ -283,6 +283,11 @@
       <xsd:enumeration value="elecCharge"/>
     </xsd:restriction>
   </xsd:simpleType>
+  
+  <!-- Definition of field variables -->
+  <xsd:simpleType name="DT_ElecFieldResult">
+    <xsd:union memberTypes="DT_ElecNodeResult DT_ElecElemResult"/>
+  </xsd:simpleType>
 
   <!-- Global type for specifying desired electrostatic output quantities -->
   <xsd:complexType name="DT_ElecStoreResults">
@@ -337,7 +342,17 @@
             </xsd:complexContent>
           </xsd:complexType>
         </xsd:element>
-
+        
+        <!-- FieldResults -->
+        <xsd:element name="field" minOccurs="0" maxOccurs="unbounded">
+          <xsd:complexType>
+            <xsd:complexContent>
+              <xsd:extension base="DT_FieldResult">
+                <xsd:attribute name="type" type="DT_ElecFieldResult"/>
+              </xsd:extension>
+            </xsd:complexContent>           
+          </xsd:complexType>
+        </xsd:element>
       </xsd:choice>
     </xsd:sequence>
   </xsd:complexType>

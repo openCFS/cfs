@@ -789,6 +789,29 @@ namespace CoupledField {
        }
      }
   }
+  
+  template<class TYPE>
+   void NodeStoreSol<TYPE>::GetElemSolution(SingleVector & elemSol,
+                                            const Elem* elem,
+                                            UInt solIndex ) const
+   {
+
+     Vector<TYPE> & temp = dynamic_cast<Vector<TYPE>&>(elemSol);
+
+     StdVector<Integer> eqns;
+     //eqnMap_->GetEqns( eqns, *results_[solIndex], it );
+     feSpace_->GetElemEqns(eqns, elem);
+     temp.Resize(eqns.GetSize());
+     temp.Init();
+
+      for( UInt i = 0; i < eqns.GetSize(); i++ ) {
+        if ( eqns[i] != 0 ) {
+          temp[i] = data_[(abs(eqns[i])-1)];
+        } else {
+          temp[i] = 0.0 ;
+        }
+      }
+   }
 
   
   template<class TYPE>

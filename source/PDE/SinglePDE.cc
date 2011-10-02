@@ -3,6 +3,11 @@
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 #include "PDE/SinglePDE.hh"
 
+#include <fstream>
+
+// use of interpolation
+#include <def_use_interpolation.hh>
+
 // for coordinate handling
 #include "Domain/domain.hh"
 #include "Utils/coordSystem.hh"
@@ -489,7 +494,7 @@ namespace CoupledField {
     LOG_TRACE(pde) << pdename_ << ": Reading store results";
 
     ReadStoreResults();
-    ReadSpecialResults();
+    ReadFieldResults();
 
     // Set information at sol_ object
     sol_->SetResults( results_ );
@@ -1102,8 +1107,53 @@ namespace CoupledField {
       }
     }
     
-    // Trigger calculation of special results
-    CalcSpecialResults();
+    // Check for additional field variable
+    UInt numFields = fields_.GetSize();
+    
+    // loop over all fields variables
+    for( UInt i = 0; i < numFields; ++i ) {
+    
+      // call specialized calculation method in sub-class
+      FieldAtPoints& fap = fields_[i];
+      CalcField( fap.resultInfo->resultType, fap.elems, 
+                 fap.locPoints, *fap.field );
+      
+      
+      // print out information
+      if( isComplex_ ){
+        EXCEPTION("not yet implemented");
+      } else {
+        // cast solution vector
+        Vector<Double>& vec = dynamic_cast<Vector<Double> &>(*(fap.field));
+        std::ofstream  out(fap.fileName.c_str(),std::ios::out );
+
+        // obtain result info and print header
+        UInt numDofs = fap.resultInfo->dofNames.GetSize();
+        
+        
+        // Loop over all points
+        Vector<Double> globPoint;
+        for( UInt iPoint = 0; iPoint < fap.locPoints.GetSize(); iPoint++) { 
+          
+          ElemShapeMap& esm = *(ptgrid_->GetElemShapeMap(fap.elems[iPoint], true));
+          esm.Local2Global(globPoint, fap.locPoints[iPoint]);
+          // write to file
+          out << fap.elems[iPoint]->elemNum << "\t";
+          out << globPoint.ToString(0, '\t') << "\t";
+          for(UInt j = 0; j < numDofs; ++j ) {
+            out << vec[iPoint*numDofs + j] << "\t";
+          }
+          for(UInt j = 0; j < dim_; ++j ) {
+            out << fap.locPoints[iPoint][j] << "\t";
+          }
+          out << fap.elems[iPoint]->elemNum << "\t";
+          out << std::endl;
+        }
+        out.close();
+      
+      }
+      
+    }
 
 #ifdef USE_SCRIPTING
     StdVector<std::string> context;
@@ -1119,6 +1169,119 @@ namespace CoupledField {
     messenger->TriggerEvent( CFSMessenger::CFS_CalcResults,
                              context );
 #endif
+  }
+  
+  
+  void SinglePDE::ReadFieldResults() {
+    // check, if calculation of field variables is requested at all
+
+    ParamNodeList fieldNodes;
+    fieldNodes = myParam_->Get("storeResults")->GetList("field");
+    std::string solTypeString;
+    
+    fields_.Resize(fieldNodes.GetSize());
+    // loop over all parts
+    for( UInt iPart = 0; iPart <fieldNodes.GetSize(); ++iPart ) {
+      PtrParamNode  actNode = fieldNodes[iPart];
+      ParamNodeList listNodes = actNode->GetList("list");
+      std::cerr << "found " << listNodes.GetSize() << "listNodes\n";
+      
+      FieldAtPoints & actField = fields_[iPart];
+      actField.fileName = actNode->Get("fileName")->As<std::string>();
+      
+      // check for solution type
+      solTypeString = actNode->Get("type")->As<std::string>();
+      
+      SolutionType solType = SolutionTypeEnum.Parse(solTypeString);
+      
+      // find related result resultinfo
+      ResultSet::const_iterator it = availResults_.begin();
+      for( ; it != availResults_.end(); ++it ) {
+        if( (*it)->resultType == solType ) {
+          actField.resultInfo = *it;
+          break;
+        }
+      }
+      
+      // loop over all components
+      StdVector<Double> start(3), stop(3), inc(3);
+      StdVector<UInt> numSamples(3);
+      start.Init(0);
+      stop.Init(0);
+      inc.Init(1);
+      numSamples.Init(1);
+      
+
+      UInt totalPoints = 1;
+      std::string comp;
+      UInt compIndex;
+      for( UInt iComp = 0; iComp < listNodes.GetSize(); iComp++ ) {
+        PtrParamNode actCompNode = listNodes[iComp];
+        actCompNode->GetValue("comp", comp);
+        compIndex = domain->GetCoordSystem("default")->GetVecComponent(comp)-1;
+        actCompNode->GetValue("start", start[compIndex]);
+        actCompNode->GetValue("stop", stop[compIndex]);
+        actCompNode->GetValue("inc", inc[compIndex]);
+        numSamples[compIndex]  = 
+            UInt(floor( (stop[compIndex]-start[compIndex]) / inc[compIndex] ) )+1;
+        totalPoints *= numSamples[compIndex];
+      }
+      // create list
+
+      // generate new vector
+      if(isComplex_) {
+        actField.field = new Vector<Complex>();
+      } else {
+        actField.field = new Vector<Double>();
+      }
+      
+      Vector<Double> globPoint(3);
+      for( UInt xSample = 0; xSample < numSamples[0]; xSample++ ) {
+        Double actX = start[0] + xSample * inc[0];
+        for( UInt ySample = 0; ySample < numSamples[1]; ySample++ ) {
+          Double actY = start[1] + ySample * inc[1];
+          for( UInt zSample = 0; zSample < numSamples[2]; zSample++ ) {
+            Double actZ = start[2] + zSample * inc[2];
+            globPoint[0] = actX;
+            globPoint[1] = actY;
+            if( dim_ > 2) {
+              globPoint[2] = actZ;
+            } else {
+              globPoint[2] = 0.0;
+            }
+//#define USE_INTERPOLATION            
+#ifndef USE_INTERPOLATION
+             EXCEPTION("Special Results can just be calculated with INTERPOLATION active");
+#else
+             Vector<Double> locPoint;
+             const Elem * ptElem = NULL;
+             // now, map global point to localpoint
+             ptElem = ptgrid_->GetElemAtGlobalCoord( globPoint, locPoint );
+             
+             if( !ptElem ) {
+               std::string warnStr = "Could not find element at position " 
+                   + globPoint.ToString(); 
+               WARN( warnStr.c_str());
+             } else {
+//               std::cerr << "locPoint for globPoint " << globPoint.ToString() 
+//                                    << " is " << locPoint.ToString() 
+//                                    << " in Elem " << ptElem->elemNum << std::endl;
+               
+               // check again mapping by performing loc->glob mapping
+               shared_ptr<ElemShapeMap>  esm = ptgrid_->GetElemShapeMap(ptElem);
+               esm->Local2Global(globPoint, locPoint);
+//               std::cerr << "\tAdditional check loc->glob delivers global point " 
+//                   << globPoint.ToString() << std::endl << std::endl;
+               
+               actField.elems.Push_back(ptElem);
+               actField.locPoints.Push_back(LocPoint(locPoint));
+             }
+#endif
+            
+          } // z
+        } // y
+      } // x
+    } // loop over <field> entries
   }
 
 
@@ -2436,7 +2599,7 @@ namespace CoupledField {
       fncIt->second->SetSystem(algsys_);
       
       // Print equation information
-      //fncIt->second->GetFeSpace()->PrintEqnMap();
+//      fncIt->second->GetFeSpace()->PrintEqnMap();
       fncIt++;
     }
     

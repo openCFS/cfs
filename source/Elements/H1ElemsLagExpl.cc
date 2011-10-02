@@ -177,7 +177,7 @@ namespace CoupledField {
   bool FeH1LagrangeTria1::CoordIsInsideElem( const Vector<Double>& point,
                                              Double tolerance )  {
     const Double & xi = point[0];
-    const Double & eta = point[0];
+    const Double & eta = point[1];
     return ( xi >= (0 - tolerance)) &&
            ( eta >= (0 - tolerance)) &&
            ((xi + eta) <= (1 + tolerance));
@@ -300,7 +300,7 @@ namespace CoupledField {
   bool FeH1LagrangeQuad1::CoordIsInsideElem( const Vector<Double>& point,
                                              Double tolerance )  {
     const Double & xi = point[0];
-    const Double & eta = point[0];
+    const Double & eta = point[1];
     return  ( xi >= (-1.0 - tolerance)) &&
             (eta >= (-1.0 - tolerance)) &&
             ( xi <= (1.0 + tolerance)) &&

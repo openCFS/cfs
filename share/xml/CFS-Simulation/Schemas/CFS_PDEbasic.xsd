@@ -386,8 +386,24 @@
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
-
-
+  
+  <!-- ******************************************************************** -->
+  <!--   Definition of field interpolation -->
+  <!-- ******************************************************************** -->
+  <xsd:complexType name="DT_FieldResult">
+    <xsd:sequence>
+      <xsd:element name="list" minOccurs="0" maxOccurs="3">
+        <xsd:complexType>
+          <xsd:attribute name="comp" type="DT_CosyCompType" use="required"/>
+          <xsd:attribute name="start" type="xsd:double" use="required"/>
+          <xsd:attribute name="stop" type="xsd:double" use="required"/>
+          <xsd:attribute name="inc" type="xsd:double" use="required"/>
+        </xsd:complexType>
+      </xsd:element>
+    </xsd:sequence>
+    <xsd:attribute name="fileName" default="xsd:token"/>
+  </xsd:complexType>
+  
   
   <!-- ******************************************************************** -->
   <!--   Definition of single region result description type -->

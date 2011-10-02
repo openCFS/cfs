@@ -613,51 +613,51 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
 
   }
   
-  void MagEdgePDE::CalcSpecialResults() {
-    
-
-    // fetch fluxlist
-    for( UInt iList = 0; iList < calcFlux_.GetSize(); ++iList ) {
-#ifndef USE_INTERPOLATION
-    EXCEPTION("Special Results can just be calculated with INTERPOLATION active");
-#else
-      FluxAtPoints & actList = calcFlux_[iList];
-
-      // open file
-      std::ofstream  out(actList.fileName.c_str(),std::ios::out );
-
-      out << "# Flux density\n";
-      out << "# #elem \t x\t y \t z \t x(Vs/Am) \ty(Vs/Am( \t z(Vs/Am)\txi \teta \tzeta\n";
-
-      // Loop over all points 
-      Vector<Double> locCoord, flux;
-      for( UInt iPoint = 0; iPoint < actList.points.GetSize(); iPoint++) { 
-        const Elem * ptElem = NULL;
-        const Vector<Double> & globCoord =actList.points[iPoint].coord;
-        if( globCoord.GetSize() == 0) continue;
-        ptElem = ptgrid_->GetElemAtGlobalCoord( globCoord, locCoord );
-        if( !ptElem ) {
-          std::string warnStr = "Cold not find element at position " 
-              + actList.points[iPoint].coord.ToString(); 
-          WARN( warnStr.c_str());
-        } else {
-          LocPoint lp(locCoord);
-          CalcFluxDensityAtIP(ptElem, lp, flux);
-
-          // write to file
-          out << ptElem->elemNum << "\t";
-          out << globCoord[0] << "\t" << globCoord[1] << "\t" << globCoord[2] << "\t";
-          out << flux[0] << "\t" << flux[1] << "\t" << flux[2] << "\t"
-              << locCoord[0] << "\t" << locCoord[1] << "\t" << locCoord[2] << std::endl;
-        }
-
-      }
-      // close file
-      out.close();
-#endif
-    }
-
-  }
+//  void MagEdgePDE::CalcSpecialResults() {
+//    
+//
+//    // fetch fluxlist
+//    for( UInt iList = 0; iList < calcFlux_.GetSize(); ++iList ) {
+//#ifndef USE_INTERPOLATION
+//    EXCEPTION("Special Results can just be calculated with INTERPOLATION active");
+//#else
+//      FluxAtPoints & actList = calcFlux_[iList];
+//
+//      // open file
+//      std::ofstream  out(actList.fileName.c_str(),std::ios::out );
+//
+//      out << "# Flux density\n";
+//      out << "# #elem \t x\t y \t z \t x(Vs/Am) \ty(Vs/Am( \t z(Vs/Am)\txi \teta \tzeta\n";
+//
+//      // Loop over all points 
+//      Vector<Double> locCoord, flux;
+//      for( UInt iPoint = 0; iPoint < actList.points.GetSize(); iPoint++) { 
+//        const Elem * ptElem = NULL;
+//        const Vector<Double> & globCoord =actList.points[iPoint].coord;
+//        if( globCoord.GetSize() == 0) continue;
+//        ptElem = ptgrid_->GetElemAtGlobalCoord( globCoord, locCoord );
+//        if( !ptElem ) {
+//          std::string warnStr = "Cold not find element at position " 
+//              + actList.points[iPoint].coord.ToString(); 
+//          WARN( warnStr.c_str());
+//        } else {
+//          LocPoint lp(locCoord);
+//          CalcFluxDensityAtIP(ptElem, lp, flux);
+//
+//          // write to file
+//          out << ptElem->elemNum << "\t";
+//          out << globCoord[0] << "\t" << globCoord[1] << "\t" << globCoord[2] << "\t";
+//          out << flux[0] << "\t" << flux[1] << "\t" << flux[2] << "\t"
+//              << locCoord[0] << "\t" << locCoord[1] << "\t" << locCoord[2] << std::endl;
+//        }
+//
+//      }
+//      // close file
+//      out.close();
+//#endif
+//    }
+//
+//  }
 
 
 
@@ -950,6 +950,8 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
     magPot->entryType = ResultInfo::VECTOR;
     availResults_.insert( magPot );
     
+    //resultFncs_[MAG_POTENTIAL] = &MagEdgePDE::CalcFluxDensityAtIP;
+    
 //    // === EDDY CURRENT DENSITY ===
 //    shared_ptr<ResultInfo> eddy(new ResultInfo);
 //    eddy->resultType = MAG_EDDY_CURRENT;
@@ -989,68 +991,6 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
     availResults_.insert( energy );
     postProcResults_[MAG_ENERGY] = MAG_POTENTIAL;
   }
-
-  void MagEdgePDE::ReadSpecialResults() {
-
-    // check, if flux density should be written at special points
-
-    PtrParamNode node; 
-    node = myParam_->Get("storeResults")->Get("interpolate",ParamNode::PASS);
-    if (!node) return;
-    ParamNodeList partList = node->GetList("part");
-
-    // loop over all parts
-    for( UInt iPart = 0; iPart < partList.GetSize(); ++iPart ) {
-      PtrParamNode  actPartNode = partList[iPart];
-      ParamNodeList listNodes = actPartNode->GetList("list");
-      calcFlux_.Push_back(FluxAtPoints());
-      FluxAtPoints & actFlux = calcFlux_.Last();
-      actFlux.fileName = actPartNode->Get("fileName")->As<std::string>();
-
-      // loop over all components
-      StdVector<Double> start(3), stop(3), inc(3);
-      StdVector<UInt> numSamples(3);
-
-      UInt totalPoints = 1;
-      std::string comp;
-      UInt compIndex;
-      for( UInt iComp = 0; iComp < listNodes.GetSize(); iComp++ ) {
-        PtrParamNode actCompNode = listNodes[iComp];
-        actCompNode->GetValue("comp", comp);
-        compIndex = domain->GetCoordSystem("default")->GetVecComponent(comp)-1;
-        actCompNode->GetValue("start", start[compIndex]);
-        actCompNode->GetValue("stop", stop[compIndex]);
-        actCompNode->GetValue("inc", inc[compIndex]);
-        numSamples[compIndex]  = 
-            UInt(floor( (stop[compIndex]-start[compIndex]) / inc[compIndex] ) )+1;
-        totalPoints *= numSamples[compIndex];
-      }
-      // create list
-
-      actFlux.points.Resize(totalPoints);
-      actFlux.flux.Resize(totalPoints);
-      UInt pos = 0;
-      for( UInt xSample = 0; xSample < numSamples[0]; xSample++ ) {
-        Double actX = start[0] + xSample * inc[0];
-        for( UInt ySample = 0; ySample < numSamples[1]; ySample++ ) {
-          Double actY = start[1] + ySample * inc[1];
-          for( UInt zSample = 0; zSample < numSamples[2]; zSample++ ) {
-            Double actZ = start[2] + zSample * inc[2];
-            Vector<Double> point(3);
-            point[0] = actX;
-            point[1] = actY;
-            point[2] = actZ;
-            LocPoint lp(point);
-            actFlux.points[pos++] = lp;
-          } // z
-        } // y
-      } // x
-        
-
-      
-    } // loop over parts
-  }
-
 
   // =======================================================================
   //   HELPER METHODS FOR CALCULATING AUXILIARY QUANTITIES

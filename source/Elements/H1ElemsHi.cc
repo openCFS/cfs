@@ -41,7 +41,7 @@ namespace CoupledField {
     // Note: at the moment we ignore the dof parameter
     
     // numFcns has the length Vertices / Edges / Faces / Inner degrees
-    if(updateUnknowns_) CalcNumUnknowns();
+    if(updateUnknowns_) this->CalcNumUnknowns();
     numFcns = entityFncs_[entityType]; 
     
   }
@@ -258,6 +258,151 @@ namespace CoupledField {
                                       const Elem * elem,  UInt comp ) {
     if (updateUnknowns_) CalcNumUnknowns();
   }
+  // ====================
+  //  TRIANGULAR ELEMENT 
+  // ====================
+     
+    FeH1HiTria::FeH1HiTria() {
+      feType_ = Elem::ET_TRIA3;
+      shape_ = Elem::shapes[feType_];
+    }
+      
+    FeH1HiTria::~FeH1HiTria() {
+      
+    }
+    
+    void FeH1HiTria::CalcShFnc( Vector<Double>& shape, 
+                                const Vector<Double>& lp,
+                               const Elem * elem, UInt comp ) {
+      if (updateUnknowns_) CalcNumUnknowns();
+      _CalcShFnc(lp[0], lp[1], elem, shape);
+    }
+    
+    void FeH1HiTria::CalcLocDerivShFnc( Matrix<Double> & deriv, 
+                                        const Vector<Double>& lp,
+                                        const Elem * elem,  UInt comp )  {
+      if (updateUnknowns_) CalcNumUnknowns();
+      AutoDiff<Double,2> x(lp[0],0), y(lp[1],1);
+      StdVector<AutoDiff<Double,2> > dShape;
+      _CalcShFnc(x,y,elem,dShape);
+      UInt size = dShape.GetSize();
+      deriv.Resize(size, 2);
+      for( UInt i = 0; i < size; ++i ) {
+        for(UInt j = 0; j < 2; ++j ) {
+          deriv[i][j] = dShape[i].DVal(j);
+        }
+      }
+    }
+
+    template<typename T_SCAL, typename T_VEC>
+    void FeH1HiTria::_CalcShFnc( const T_SCAL x, const T_SCAL y, 
+                                 const Elem * elem,
+                                 T_VEC& ret ) {
+      
+      T_SCAL lambda[3] = { 1.0 - x - y,
+                           x,
+                           y };
+      
+      UInt pos = 0;
+      ret.Resize(actNumFncs_);
+
+      // 1) Vertex shape functions
+      for( UInt i = 0; i < 3; ++i ) {
+        ret[i] = lambda[i];
+      }
+
+      pos = 3;
+  #ifdef USE_EDGES 
+      // 2) Edge shape functions
+      for( UInt i = 0; i < 3; ++ i ) {
+        Double fac = elem->edges[i] < 0 ? -1.0 : 1.0;
+        UInt order = orderEdge_[i];
+        
+        // if order of edge is below two, we leave
+        if( order == 1 ) continue;
+        UInt index1 = shape_.edgeVertices[i][0]-1;
+        UInt index2 = shape_.edgeVertices[i][1]-1;
+        
+
+        // edge: parameterization of edge [-1;+1]
+        // edgeNormal: parameterization of extension into element [-1;+1]
+        T_SCAL edge  =  lambda[index2] -  lambda[index1]; 
+        T_SCAL edgeNormal = lambda[index2] + lambda[index1];
+
+        T_VEC vals;
+        ScaledIntLegendreP2<T_SCAL,T_VEC>( vals, order, edgeNormal, fac*edge );
+        for( UInt j = 0; j < order-1; ++j ) {
+          ret[pos++] = vals[j];
+        } 
+      }   
+  #endif
+//      
+#ifdef USE_FACES
+      // 3) Inner shape functions
+      UInt order = orderFace_[0][0];
+      if (order >= 3 ) {
+        // Note: Determination of orientation is still to come.
+        // In our case this means cyclic re-ordering of the nodes, to
+        // match a given global numbering
+        T_VEC f1, f2;
+        ScaledIntLegendreP2(f1, order-1, lambda[1]+lambda[0],lambda[1]-lambda[0]);
+        Legendre(f2, order-3, lambda[2]*2.0 - T_SCAL(1));
+        for( UInt i = 0; i <= order - 3; ++i ) {
+          for( UInt j = 0; j <= order - 3 - i; ++j ) {
+            ret[pos++] = f1[i] * f2[j] * lambda[2];
+          }
+        }
+      }
+  #endif
+    }
+    void FeH1HiTria::CalcNumUnknowns() {
+
+      LOG_DBG(feH1Hi) << "CalcNumUnknowns for element "
+          << Elem::feType.ToString(feType_);
+
+      actNumFncs_ = 0;
+
+      // Vertices
+      StdVector<UInt>& vertFncs = entityFncs_[VERTEX];
+      vertFncs.Resize(3);
+      vertFncs.Init(1); // Vertices have always order 1
+      actNumFncs_ += 3;
+
+      // Edges
+      StdVector<UInt>& edgeFncs = entityFncs_[EDGE];
+      edgeFncs.Resize(3);
+      edgeFncs.Init(0);
+      UInt unknowns = 0;
+#ifdef USE_EDGES
+      for( UInt i = 0; i < 3; ++i ) {
+        unknowns = (orderEdge_[i]-1);
+        edgeFncs[i] = unknowns;
+        LOG_DBG(feH1Hi) <<   "edge " << i+1 << " has order" <<  orderEdge_[i]-1
+            << " and " << unknowns << "unknowns";
+        actNumFncs_ += unknowns;
+      }
+#endif
+
+      // Faces
+      StdVector<UInt>& faceFncs = entityFncs_[FACE];
+      faceFncs.Resize(1);
+      faceFncs.Init(0);
+#ifdef USE_FACES
+      if( orderFace_[0][0] > 2 ) {
+        unknowns = (orderFace_[0][0]-2) * (orderFace_[0][0]-1) / 2;
+        faceFncs[0] = unknowns;
+        LOG_DBG(feH1Hi) << "face 0 has " << unknowns << "unknowns";
+        actNumFncs_ += unknowns;
+      }
+#endif
+      // Interior
+      StdVector<UInt>& innerFncs = entityFncs_[INTERIOR];
+      innerFncs.Resize(1);
+      innerFncs.Init(0);
+      
+      LOG_DBG(feH1Hi) <<  "totalUnknowns: " << actNumFncs_  << std::endl;
+      updateUnknowns_ = false;
+    }
   
   // =======================
   //  QUADRILATERAL ELEMENT 
@@ -335,7 +480,7 @@ namespace CoupledField {
       T_SCAL eta = lambda[index1] + lambda[index2];
 
       T_VEC vals;
-      IntLegendrePoly<T_SCAL,T_VEC>( vals, order, fac*xi );
+      IntLegendreP2<T_SCAL,T_VEC>( vals, order, fac*xi );
 
       for( UInt i = 0; i < order-1; ++i ) {
         ret[pos++] = eta * vals[i];
@@ -360,8 +505,8 @@ namespace CoupledField {
       eta = elem->faceFlags[0][1] ? eta : -eta;
       
       T_VEC xiVals, etaVals;
-      IntLegendrePoly<T_SCAL,T_VEC>( xiVals, order1, xi );
-      IntLegendrePoly<T_SCAL,T_VEC>( etaVals, order2, eta );
+      IntLegendreP2<T_SCAL,T_VEC>( xiVals, order1, xi );
+      IntLegendreP2<T_SCAL,T_VEC>( etaVals, order2, eta );
       for( UInt k = 0; k < order1-1; ++k)
         for( UInt j = 0; j < order2-1; ++j)
           ret[pos++] = etaVals[k] * xiVals[j];
@@ -641,7 +786,7 @@ namespace CoupledField {
       T_SCAL eta = lambda[index1] + lambda[index2];
 
       T_VEC vals;
-      IntLegendrePoly<T_SCAL,T_VEC>( vals, order, fac*xi );
+      IntLegendreP2<T_SCAL,T_VEC>( vals, order, fac*xi );
 
       for( UInt i = 0; i < order-1; ++i ) {
         ret[pos++] = eta * vals[i];
@@ -677,8 +822,8 @@ namespace CoupledField {
         xi =  elem->faceFlags[i][0] ? xi : -xi;
         eta = elem->faceFlags[i][2] ? eta : -eta;
 
-        IntLegendrePoly<T_SCAL,T_VEC>( xiVals, order1, xi );
-        IntLegendrePoly<T_SCAL,T_VEC>( etaVals, order2, eta );
+        IntLegendreP2<T_SCAL,T_VEC>( xiVals, order1, xi );
+        IntLegendreP2<T_SCAL,T_VEC>( etaVals, order2, eta );
         for( UInt k = 0; k < order1-1; ++k)
           for( UInt j = 0; j <  order2-1; ++j)
             ret[pos++] = etaVals[k] * xiVals[j] * sum_lambda;
@@ -690,9 +835,9 @@ namespace CoupledField {
         orderInner_[1] >= 2 &&
         orderInner_[2] >= 2 ) {
       T_VEC zetaVals;
-      IntLegendrePoly<T_SCAL,T_VEC>( xiVals, orderInner_[0], x );
-      IntLegendrePoly<T_SCAL,T_VEC>( etaVals, orderInner_[1], y );
-      IntLegendrePoly<T_SCAL,T_VEC>( zetaVals, orderInner_[2], z );
+      IntLegendreP2<T_SCAL,T_VEC>( xiVals, orderInner_[0], x );
+      IntLegendreP2<T_SCAL,T_VEC>( etaVals, orderInner_[1], y );
+      IntLegendreP2<T_SCAL,T_VEC>( zetaVals, orderInner_[2], z );
       for( UInt i = 0; i < orderInner_[0]-1; ++i ) {
         for( UInt j = 0; j < orderInner_[1]-1; ++j ) {
           T_SCAL temp = xiVals[i] * etaVals[j];

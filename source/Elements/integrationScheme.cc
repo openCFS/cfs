@@ -72,7 +72,7 @@ IntScheme::IntScheme() {
 //  intPoints_[ECONOMICAL][2][Elem::ST_HEXA] = points;
 //  intWeights_[ECONOMICAL][2][Elem::ST_HEXA] = weights;
   
-  FillIntegPoints(5);
+  FillIntegPoints(20);
 }
 
 
@@ -380,7 +380,7 @@ void IntScheme::GetIntPoints( Elem::ShapeType elemType,
   void IntScheme::DefineTriagPoints() {
 
     // Values take from the old SetIntPoints() - order 1
-    Double c1[][3] = 
+    static Double c1[][3] = 
     { 
      { 1.0/3.0,  1.0/3.0,  0.500000000000000 }
     };
@@ -398,7 +398,7 @@ void IntScheme::GetIntPoints( Elem::ShapeType elemType,
     // Values take from the old SetIntPoints() - order 3
     // In the original code the weights were given twice with different values! 
     // -> they have to sum up to 0.5
-    Double a3[][3] = 
+    static Double a3[][3] = 
     { 
      {0.333333333333333,  0.333333333333333,  -0.28125 },
      {0.2,  0.2,  0.260416666666667 },
@@ -443,9 +443,67 @@ void IntScheme::GetIntPoints( Elem::ShapeType elemType,
     };
     AddIntegrationSet(GAUSS, Elem::ST_TRIA, 5, 7 , (Double*) c5);
     
+    static Double c6[][3] = 
+    { 
+     {0.24928674517091,  0.24928674517091,  0.0583931378631895 },
+     {0.24928674517091,  0.501426509658179,  0.0583931378631895 },
+     {0.501426509658179,  0.24928674517091,  0.0583931378631895 },
+     {0.063089014491502,  0.063089014491502,  0.0254224531851035 },
+     {0.063089014491502,  0.873821971016996,  0.0254224531851035 },
+     {0.873821971016996,  0.063089014491502,  0.0254224531851035 },
+     {0.310352451033784,  0.636502499121399,  0.041425537809187 },
+     {0.636502499121399,  0.053145049844817,  0.041425537809187 },
+     {0.053145049844817,  0.310352451033784,  0.041425537809187 },
+     {0.310352451033784,  0.053145049844817,  0.041425537809187 },
+     {0.636502499121399,  0.310352451033784,  0.041425537809187 },
+     {0.053145049844817,  0.636502499121399,  0.041425537809187 },
+    };
+    AddIntegrationSet(GAUSS, Elem::ST_TRIA, 6, 12 , (Double*) c6);
+    
     // Generate remaining integration points up to maximum order 20
     // using Duffy transformation
     
+    for( UInt iOrder = 7; iOrder <= 20; ++iOrder ) {
+      StdVector<Double> weights;
+      StdVector<LocPoint> points;
+      StdVector<Double> xPoints, xWeights;
+      StdVector<Double> yPoints, yWeights;
+      // Obtain Gauss Rule in x-direction
+      CalcGaussLegendrePointsWeights(iOrder, xPoints, xWeights);
+      // Obtain Gauss-Rule in y-direction (careful: order + 1,
+      // due to Duffy- transformation)
+      CalcGaussLegendrePointsWeights(iOrder+1, yPoints, yWeights);
+      
+      UInt nPoints = xPoints.GetSize() * yPoints.GetSize();
+      weights.Resize(nPoints);
+      points.Resize(nPoints);
+      
+      // Loop over all y-points
+      UInt pos = 0;
+      for(UInt iY = 0; iY < yPoints.GetSize(); ++iY ) {
+        for(UInt iX = 0; iX < xPoints.GetSize(); ++iX ) {
+          LocPoint lp;
+          lp.coord.Resize(2);
+          lp.coord[0] = 0.25 * (1.0 + xPoints[iX]) * ( 1.0 - yPoints[iY]);
+          lp.coord[1] = 0.5 *  (1.0 + yPoints[iY] );
+          lp.number = numIntPts_[Elem::ST_TRIA]++;
+          points[pos] = lp;
+          weights[pos] = 1.0/8.0 * xWeights[iX] * yWeights[iY] * ( 1.0 - yPoints[iY]);
+          pos++;
+        }
+      }
+//      std::cerr << "points for order " << iOrder << " = " << iOrder << std::endl;
+//      Double sum = 0.0;
+//      for( UInt i = 0; i < points.GetSize(); ++i ) {
+//        std::cerr << points[i].coord.ToString() << std::endl;
+//        sum += weights[i];
+//      }
+//      std::cerr << "sum is " << sum << std::endl;
+      //std::cerr << points << std::endl;
+      intPoints_[GAUSS][iOrder][Elem::ST_TRIA] = points;
+      intWeights_[GAUSS][iOrder][Elem::ST_TRIA] = weights;
+    }
+
     // .... Implement me
 
   }

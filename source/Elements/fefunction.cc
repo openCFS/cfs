@@ -114,38 +114,65 @@ namespace CoupledField {
   template<typename T>
   void FeFunction<T>::GetEntitySolution( SingleVector& elemSol, 
                         const EntityIterator& it ){
-    Vector<T> & temp = dynamic_cast<Vector<T>&>(elemSol);
-    StdVector<Integer> eqns;
-    feSpace_->GetEqns(eqns, it);
-    temp.Resize(eqns.GetSize());
-    for(UInt iDof = 0 ; iDof < eqns.GetSize(); iDof++){
-      temp[iDof] = coeffs_[eqns[iDof]]; 
-    }
+    EXCEPTION("Not working: coeffs_ vector is not initialized yet");
+//    Vector<T> & temp = dynamic_cast<Vector<T>&>(elemSol);
+//    StdVector<Integer> eqns;
+//    feSpace_->GetEqns(eqns, it);
+//    temp.Resize(eqns.GetSize());
+//    for(UInt iDof = 0 ; iDof < eqns.GetSize(); iDof++){
+//      temp[iDof] = coeffs_[eqns[iDof]]; 
+//    }
   }
-                        
+
+  template<typename T>
+  void FeFunction<T>::GetElemSolution( Vector<T>& elemSol,
+                                         const Elem* elem ) {
+    EXCEPTION("Not working: coeffs_ vector is not initialized yet");
+//    StdVector<Integer> eqns;
+//    
+//    feSpace_->GetElemEqns(eqns, elem);
+//    std::cerr << "eqns of elem " << elem->elemNum << "are: " << eqns.ToString() << std::endl;
+//    std::cerr << "size of coefficients is " << coeffs_.GetSize() << std::endl;
+//    elemSol.Resize(eqns.GetSize());
+//    for(UInt i= 0 ; i< eqns.GetSize(); i++){
+//      if( eqns[i] != 0 ) {
+//        elemSol[i] = coeffs_[std::abs(eqns[i])]; 
+//      } else {
+//        elemSol[i] = 0.0;
+//      }
+//    }
+  }
+
   //! Get solution as matrix for specific entity
   template<typename T>
   void FeFunction<T>::GetEntitySolutionAsMatrix( DenseMatrix& elemSol,
                                   const EntityIterator& it ){
-    //for now we put the unkowns in the columns
-    //and the dof entrys in rows
-    Matrix<T> & temp = dynamic_cast<Matrix<T>&>(elemSol);
-    UInt dofsPerUnknown = result_->dofNames.GetSize();
-    StdVector<Integer> eqns;
-    temp.Resize(feSpace_->GetNumFunctions(it), dofsPerUnknown);
-    for(UInt iDof = 0 ; iDof < dofsPerUnknown ; iDof++){
-      feSpace_->GetEqns(eqns, it,iDof);
-      for(UInt iEqn = 0;iEqn < eqns.GetSize() ; iEqn++){
-        temp[iDof][iEqn] = coeffs_[eqns[iEqn]];
-      }
-    }
+    EXCEPTION("Not working: coeffs_ vector is not initialized yet");
+//    //for now we put the unkowns in the columns
+//    //and the dof entrys in rows
+//    Matrix<T> & temp = dynamic_cast<Matrix<T>&>(elemSol);
+//    UInt dofsPerUnknown = result_->dofNames.GetSize();
+//    StdVector<Integer> eqns;
+//    temp.Resize(feSpace_->GetNumFunctions(it), dofsPerUnknown);
+//    for(UInt iDof = 0 ; iDof < dofsPerUnknown ; iDof++){
+//      feSpace_->GetEqns(eqns, it,iDof);
+//      for(UInt iEqn = 0;iEqn < eqns.GetSize() ; iEqn++){
+//        temp[iDof][iEqn] = coeffs_[eqns[iEqn]];
+//      }
+//    }
   }
 
+  template<typename T>
+  void   FeFunction<T>::ApplyBC(){
+    EXCEPTION("Not implemented for this type");
+  }
 
+  template<>
   void FeFunction<Complex>::ApplyBC(){
     EXCEPTION("Complex Valued BCs are not supported yet");
   }
 
+  template<>
   void FeFunction<Double>::ApplyBC(){
     //basic algo idea for nodes;
     //1. Compute Dirichlet Values with the help of math-parser and FeSpace
@@ -251,6 +278,9 @@ namespace CoupledField {
       }
     }
   }
-
-
+  // Explicit template instantiation
+#ifdef EXPLICIT_TEMPLATE_INSTANTIATION
+  template class FeFunction<Double>;
+  template class FeFunction<Complex>;
+#endif
 }

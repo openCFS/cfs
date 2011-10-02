@@ -84,6 +84,9 @@ class FeSpaceH1Hi : public FeSpaceH1 {
     
     //! Map containing the polynomial order for every element interior
 //    std::map<UInt, UInt> faceOrder_;
+    
+    //! Test continuity of shape functions
+    void TestContinuity();
 
 
   private:

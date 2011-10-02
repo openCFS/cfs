@@ -274,8 +274,6 @@ namespace CoupledField
     //! the internal format by setting the corresponding class attributes.
     void ReadStoreResults();
 
-    //! Read special store results information
-    virtual void ReadSpecialResults(){};
 
     //! define all (bilinearform) integrators needed for this pde
     virtual void DefineIntegrators( )=0;
@@ -283,9 +281,39 @@ namespace CoupledField
     /** Trigger calculation of results. */
     virtual void CalcResults( shared_ptr<BaseResult> result ) { };
     
-    //! Calculate special results, not handled by resulthandler
-    virtual void CalcSpecialResults( ) {};
+    //! Read results information for interpolation of continuous fields
+    virtual void ReadFieldResults();
+    
+    //! Calculate field variables at arbitrary points
+    virtual void CalcField( SolutionType solType, StdVector<const Elem*>& elems,
+                            StdVector<LocPoint>& points, SingleVector& values ) {}
 
+    // =======================================================================
+    //   INTERPOLATION OF FIELD VARIABLES
+    // =======================================================================
+    
+    //! Helper struct for interpolating field variables at arbitrary points
+    struct FieldAtPoints {
+
+      //! Physical Quantity
+      shared_ptr<ResultInfo> resultInfo;
+     
+      //! Filename where points get written to
+      std::string fileName;
+
+      //! Vector with elements 
+      StdVector<const Elem*> elems;
+      
+      //! Vector with local points
+      StdVector<LocPoint> locPoints;
+
+      //! Flux values for each point
+      SingleVector* field;
+    };
+    
+    //! List of fields to be interpolated
+    StdVector<FieldAtPoints> fields_;
+    
     //! read damping information
     virtual void ReadDampingInformation( ){
     };

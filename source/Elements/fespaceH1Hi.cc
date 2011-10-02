@@ -166,7 +166,7 @@ namespace CoupledField{
     MapNodalEqns(2);
 
     // Just for debugging purpose
-    //PrintEqnMap();
+//    PrintEqnMap();
 
     isFinalized_ = true;
   }
@@ -304,6 +304,7 @@ namespace CoupledField{
     // QUERY FOR USER PARAMS IS STILL TO COME
     refElems_[region][Elem::ET_LINE2]  = new FeH1HiLine();
     refElems_[region][Elem::ET_QUAD4]  = new FeH1HiQuad();
+    refElems_[region][Elem::ET_TRIA3]  = new FeH1HiTria();
     refElems_[region][Elem::ET_HEXA8]  = new FeH1HiHex();
 
     //now set the order
@@ -340,5 +341,54 @@ namespace CoupledField{
     regionIntegration_[ALL_REGIONS].order = Matrix<Integer>(1,1);
     regionIntegration_[ALL_REGIONS].order[0][0] = 0;
     regionIntegration_[ALL_REGIONS].mode = RELATIVE;
+  }
+  
+  // Conduct test for continuuity of basis functions
+  void FeSpaceH1Hi::TestContinuity(){
+    
+    // Specify entity type (V/E/F)
+    BaseFE::EntityType et = BaseFE::VERTEX;
+    
+    // Loop over all entities of that type
+    UInt numEntities = 0;
+    Grid * grid = domain->GetGrid();
+    switch(et) {
+      case BaseFE::VERTEX:
+        numEntities = grid->GetNumNodes();
+        break;
+      case BaseFE::EDGE:
+        numEntities = grid->GetNumEdges();
+        break;
+      case BaseFE::FACE:
+        numEntities = grid->GetNumFaces();
+        break;
+      default:
+        EXCEPTION("Not implemented");
+    }
+    
+    UInt numElems = grid->GetNumElems();
+    // Loop over all entities
+    for( UInt iEnt = 0; iEnt < numEntities; ++iEnt ) {
+
+      // Loop over all elements
+
+      for(UInt iElem = 0; iElem < numElems; ++iElem ) {
+
+        // if element contains that entity:
+//        switch(et) {
+//          
+//        }
+
+        //    -> Loop over all points of that element (distinguish shape type)
+
+        //    -> Calculate basis functions
+
+        //    -> extract the one of the given entity
+
+        //    -> print result into file
+      } // loop over elements
+      // 
+    } // loop over entities
+    
   }
 } // end of namespace

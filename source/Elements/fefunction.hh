@@ -50,7 +50,7 @@ public:
   BaseFeFunction();
   
   //! Destructor
-  ~BaseFeFunction();
+  virtual ~BaseFeFunction();
   
   // ========================================================================
   //  Function Meta Information
@@ -212,7 +212,7 @@ class FeFunction : public BaseFeFunction {
 public:
   FeFunction();
 
-  ~FeFunction();
+  virtual ~FeFunction();
 
   /////////////////////////////////////////////////////////////////
   // Solution Access functions 
@@ -221,38 +221,42 @@ public:
   //! Get solution for specific entity
   void GetEntitySolution( SingleVector& elemSol, 
                         const EntityIterator& it );
+  
+  //! Get solution for specific element 
+  void GetElemSolution( Vector<T>& elemSol,
+                        const Elem* elem );
                         
   //! Get solution as matrix for specific entity
   void GetEntitySolutionAsMatrix( DenseMatrix& elemSol,
                                   const EntityIterator& it );
 
-  virtual void ApplyBC(){};
+  virtual void ApplyBC();
 protected:
 
   //! Coefficient vector
   Vector<T> coeffs_;
 };
 
-/////////////////////////////////////////////////////////////////
-// Specialized version for  different treatment of Boundary Conditions
-/////////////////////////////////////////////////////////////////
-template<>
-class FeFunction<Double> : public BaseFeFunction {
-public:
-  FeFunction(){};
-
-  ~FeFunction(){};
-    virtual void ApplyBC();
-};
-
-template<>
-class FeFunction<Complex> : public BaseFeFunction {
-public:
-  FeFunction(){};
-
-  ~FeFunction(){};
-    virtual void ApplyBC();
-};
+///////////////////////////////////////////////////////////////////
+//// Specialized version for  different treatment of Boundary Conditions
+///////////////////////////////////////////////////////////////////
+//template<>
+//class FeFunction<Double> : public BaseFeFunction {
+//public:
+//  FeFunction(){};
+//
+//  ~FeFunction(){};
+//    virtual void ApplyBC();
+//};
+//
+//template<>
+//class FeFunction<Complex> : public BaseFeFunction {
+//public:
+//  FeFunction(){};
+//
+//  ~FeFunction(){};
+//    virtual void ApplyBC();
+//};
 
 
 }  // namespace CoupledField

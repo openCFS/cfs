@@ -71,7 +71,11 @@ namespace CoupledField {
   protected:
     
     //! Calculate number of unknowns
-    void CalcNumUnknowns();
+    
+    //! This method calculates the number of unknowns functions
+    //! for real tensor-product elements, i.e. line, quadrilateral
+    //! and hexahedral elements.
+    virtual void CalcNumUnknowns();
     
     //! Flag if re-calculation of number of unknowns is needed
     
@@ -150,6 +154,43 @@ namespace CoupledField {
 
 
   };
+  
+  //! H1 conforming hierarchical higher order triangular element
+  class  FeH1HiTria : public FeH1Hi {
+
+  public:
+
+    //! Constructor
+    FeH1HiTria();
+
+
+    //! Destructor
+    virtual ~FeH1HiTria();
+
+  protected:
+
+    //! @copydoc FeH1::CalcShFnc
+    void CalcShFnc( Vector<Double>& shape,
+                    const Vector<Double>& point,
+                    const Elem* ptElem,
+                    UInt comp = 1 );
+
+    //! @copydoc FeH1::CalcLocDerivShFnc
+    void CalcLocDerivShFnc( Matrix<Double> & deriv, 
+                            const Vector<Double>& point,
+                            const Elem* ptElem,
+                            UInt comp = 1 );
+
+
+    //! Templatized version of calculation for shape function
+    template<typename T_SCAL, typename T_VEC>
+    void _CalcShFnc( const T_SCAL x, const T_SCAL y, 
+                     const Elem * elem,
+                     T_VEC& ret );
+
+    //! @copydoc FeH1::GetNumFncs
+    void CalcNumUnknowns();
+  };
 
   //! H1 conforming hierarchical higher order quadrilateral element
   class  FeH1HiQuad : public FeH1Hi {
@@ -158,7 +199,7 @@ namespace CoupledField {
 
     //! Constructor
     FeH1HiQuad();
-    
+
 
     //! Destructor
     virtual ~FeH1HiQuad();
@@ -177,13 +218,13 @@ namespace CoupledField {
                             const Elem* ptElem,
                             UInt comp = 1 );
 
-    
+
     //! Templatized version of calculation for shape function
     template<typename T_SCAL, typename T_VEC>
     void _CalcShFnc( const T_SCAL x, const T_SCAL y, 
                      const Elem * elem,
                      T_VEC& ret );
-    };
+  };
 
   
   //! H1 conforming hierarchical higher order hexahedral element

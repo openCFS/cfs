@@ -366,7 +366,7 @@ void FeHCurlHiHex::CalcLocShFnc( Matrix<Double>& shape, LocPointMapped& lpm,
     }
     // b) gradient functions
     if( useGrad_[EDGE] && !onlyLowestOrder_ ) {
-      IntLegendrePoly(xiVals, order+1, fac*xi );
+      IntLegendreP2(xiVals, order+1, fac*xi );
       
       for( UInt j = 0; j < order; ++j ) {
         for( UInt k = 0; k < 3; ++k ) {
@@ -455,8 +455,8 @@ void FeHCurlHiHex::CalcLocShFnc( Matrix<Double>& shape, LocPointMapped& lpm,
 
 #endif
       
-      IntLegendrePoly(xiVals, order1+1, xi );
-      IntLegendrePoly(etaVals, order2+1, eta );
+      IntLegendreP2(xiVals, order1+1, xi );
+      IntLegendreP2(etaVals, order2+1, eta );
       
       // a) gradient fields
       if( useGrad_[FACE])
@@ -500,9 +500,9 @@ void FeHCurlHiHex::CalcLocShFnc( Matrix<Double>& shape, LocPointMapped& lpm,
   // 3) Interior shape functions
   // ----------------------------
 #ifdef USE_INNER
-  IntLegendrePoly(xiVals,   orderInner_[0]+1, x );
-  IntLegendrePoly(etaVals,  orderInner_[1]+1, y );
-  IntLegendrePoly(zetaVals, orderInner_[2]+1, z );
+  IntLegendreP2(xiVals,   orderInner_[0]+1, x );
+  IntLegendreP2(etaVals,  orderInner_[1]+1, y );
+  IntLegendreP2(zetaVals, orderInner_[2]+1, z );
 
   // a) gradient fiels
   if( useGrad_[INTERIOR]) {
@@ -723,8 +723,8 @@ void FeHCurlHiHex::CalcLocCurlShFnc( Matrix<Double>& curl, LocPointMapped& lpm,
 #endif
 
       
-      IntLegendrePoly(xiVals, order1+1, xi );
-      IntLegendrePoly(etaVals, order2+1,eta );
+      IntLegendreP2(xiVals, order1+1, xi );
+      IntLegendreP2(etaVals, order2+1,eta );
 
       // a) gradient fields
       if( useGrad_[FACE])
@@ -805,9 +805,9 @@ void FeHCurlHiHex::CalcLocCurlShFnc( Matrix<Double>& curl, LocPointMapped& lpm,
 
   
 #ifdef USE_INNER
-  IntLegendrePoly(xiVals,   orderInner_[0]+1, x );
-  IntLegendrePoly(etaVals,  orderInner_[1]+1, y );
-  IntLegendrePoly(zetaVals, orderInner_[2]+1, z );
+  IntLegendreP2(xiVals,   orderInner_[0]+1, x );
+  IntLegendreP2(etaVals,  orderInner_[1]+1, y );
+  IntLegendreP2(zetaVals, orderInner_[2]+1, z );
 
   // a) gradient fiels
   if( useGrad_[INTERIOR]) {

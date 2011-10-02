@@ -245,7 +245,7 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
     s.numNodes = 3;
     s.numEdges = 3;
     s.numFaces = 1;
-    Double midPoint[2] = {1.0/0.3, 1.0/0.3};
+    Double midPoint[2] = {1.0/3.0, 1.0/3.0};
     Double nodeCoords[] = 
     { 
       0.0,  0.0, // #1
@@ -256,7 +256,7 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
     { 
      1, 2, // #1
      2, 3, // #2
-     1, 3, // #3
+     3, 1, // #3
     };
     UInt numEdgeNodes[] = 
     {

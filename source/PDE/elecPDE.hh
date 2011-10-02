@@ -114,6 +114,10 @@ namespace CoupledField
 
     /** @see virtual SinglePDE::GetNativeDOF() */
     virtual UInt GetNativeDOF() const { return 1; }
+    
+    //! Calculate field variables at arbitrary points
+    void CalcField( SolutionType solType, StdVector<const Elem*>& elems,
+                                StdVector<LocPoint>& points, SingleVector& values );
 
   protected:
 
@@ -134,6 +138,21 @@ namespace CoupledField
     template <class TYPE>
     void CalcElectricField( shared_ptr<BaseResult> vals );
     
+    
+    
+    //! Calculate electric potential for several points
+    template<class TYPE>
+    void CalcElecPot( StdVector<const Elem*>& elems,
+                      StdVector<LocPoint>& points,
+                      Vector<TYPE>& values );
+
+    
+    //! Calculate electric field intensity for several points
+    template<class TYPE>
+    void CalcElecField( StdVector<const Elem*>& elems,
+                        StdVector<LocPoint>& points,
+                        Vector<TYPE>& values );
+
     //! Calculate electrid flux density
     template <class TYPE>
     void CalcElectricFluxDensity( shared_ptr<BaseResult> vals );

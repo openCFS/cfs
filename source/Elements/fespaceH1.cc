@@ -134,6 +134,22 @@ namespace CoupledField {
 
   //! Get Equation numbers for a specific element
   void FeSpaceH1::GetElemEqns(StdVector<Integer>& eqns,const Elem* elem){
+    //Get result for the feFunction
+    shared_ptr<ResultInfo> feFctResult = feFunction_->GetResultInfo();
+
+    //Get "dimension" of one Unknown
+    UInt dofsPerUnknown = feFctResult->dofNames.GetSize();
+
+    StdVector<UInt> nodes;
+    GetNodesOfElement(nodes,elem);
+    eqns.Resize( nodes.GetSize() * dofsPerUnknown );
+    eqns.Init();
+    for (UInt iNode = 0; iNode < nodes.GetSize(); iNode++ ) {
+      for(UInt iDof = 0; iDof < dofsPerUnknown; iDof++){
+        eqns[(iNode*dofsPerUnknown) + iDof] = 
+            nodeMap_[nodes[iNode]][iDof];
+      }
+    }
   }
 
   //! Get Equation numbers for a specific element

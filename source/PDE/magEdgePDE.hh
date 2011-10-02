@@ -41,9 +41,6 @@ namespace CoupledField
     //! read special boundary conditions (coils, magnets)
     void ReadSpecialBCs();
 
-    //! Read special store results
-    void ReadSpecialResults();
-
     //! define all (bilinearform) integrators needed for this pde
     void DefineIntegrators();
 
@@ -57,8 +54,9 @@ namespace CoupledField
     //! do PostProcessing step
     void CalcResults( shared_ptr<BaseResult> result );
     
-    //! Perform additional result calculation (just once per step)
-    void CalcSpecialResults(  );
+    //! Calculate fiel variable at arbitrary points
+    void CalcField( SolutionType solType, StdVector<const Elem*>& elems,
+                    StdVector<LocPoint>& points, SingleVector& values ) {}
 
     // ======================================================
     // COUPLING SECTION
