@@ -562,7 +562,7 @@ namespace CoupledField
   }
 
   template<class TYPE>
-  TYPE Matrix<TYPE>::ScalarProduct(const Matrix<TYPE>& other_mat) const
+  TYPE Matrix<TYPE>::FrobeniusProduct(const Matrix<TYPE>& other_mat) const
   {
 #ifdef CHECK_INITIALIZED
     if(size_row_ == 0 || size_col_ == 0)

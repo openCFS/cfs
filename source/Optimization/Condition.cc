@@ -71,10 +71,14 @@ Condition::Condition(PtrParamNode pn) : Function(pn)
   {
     switch(type_)
     {
-    case HOMOGENIZATION_TENSOR:
-    case HOMOGENIZATION_TRACKING:
+    case HOM_TENSOR:
+    case HOM_TRACKING:
       if(!pn->Has("tensor") && !pn->Has("value") && !pn->Has("isotropic"))
         throw Exception("Neither value nor tensor is given for constraint '" + type.ToString(type_) + "'");
+      break;
+    case HOM_FROBENIUS_PRODUCT:
+      if(!pn->Has("tensor"))
+        throw Exception("Tensor is mandatory for '" + type.ToString(type_) + "'");
       break;
 
     case ISOTROPY:
@@ -144,7 +148,7 @@ void Condition::AddCondition(PtrParamNode pn, StdVector<Condition*>& list)
   g->index_ = -1; // to be defined by the virtual "all" list in the ConditionContainer::Read() method
 
   // homogenization are special constraints which constraints which "blow up" to more constraints
-  if(g->type_ == HOMOGENIZATION_TENSOR)
+  if(g->type_ == HOM_TENSOR)
     AddHomogenizationTensorConstraints(pn, list, g);
 
   // isotropy is a special constraint which blows up special tensor entry constraints
@@ -167,8 +171,8 @@ void Condition::AddXtropyConstraints(PtrParamNode pn, StdVector<Condition*>& lis
   if(g->bound_ != EQUAL)
     throw Exception("the 'isotropy'/'iso-orthotropy'/'orthotropy' constraint requires equality constraint type");
 
-  // become an HOMOGENIZATION_TENSOR constraint!
-  g->type_ = HOMOGENIZATION_TENSOR;
+  // become an HOM_TENSOR constraint!
+  g->type_ = HOM_TENSOR;
 
   // isotropic specific is a condition relating E11, shear and off-diagonal. See Lame-notation in Richter
   // all constraints in isotropic are equal zero.
@@ -331,7 +335,7 @@ void Condition::AddXtropyConstraints(PtrParamNode pn, StdVector<Condition*>& lis
 void Condition::AddHomogenizationTensorConstraints(PtrParamNode pn, StdVector<Condition*>& list, Condition* g)
 {
   // homogenization are special constraints which constraints which "blow up" to more constraints
-  assert(g->GetType() == HOMOGENIZATION_TENSOR);
+  assert(g->GetType() == HOM_TENSOR);
   // there has been a extensive test in the constructor
   // do we need to blow-up?
   if(!g->ReadCoord(pn)) // this is done if coord="all" is given in xml!
@@ -549,7 +553,7 @@ std::string Condition::ToString(MultipleExcitation* me) const
   if(design != DesignElement::DEFAULT)
     os << "_(" << DesignElement::type.ToString(design) << ")";
 
-  if(type_ == HOMOGENIZATION_TENSOR)
+  if(type_ == HOM_TENSOR)
     os << ToString(coords);
 
   // e.g. stresses are extended for every excitation
@@ -603,10 +607,10 @@ void Condition::ToInfo(PtrParamNode in, MultipleExcitation* me)
   if(IsActive())
   {
     in->Get("bound")->SetValue(bound.ToString(bound_));
-    if(type_ != HOMOGENIZATION_TRACKING)
+    if(type_ != HOM_TRACKING)
       in->Get("bound_value")->SetValue(boundValue_);
   }
-  if(type_ == HOMOGENIZATION_TENSOR)
+  if(type_ == HOM_TENSOR)
   {
     in->Get("tensor_entry")->SetValue(ToString(coords));
   }

@@ -8,6 +8,7 @@
 #include "PDE/SinglePDE.hh"
 #include "Domain/domain.hh"
 #include "DataInOut/MaterialHandler.hh"
+#include "DataInOut/programOptions.hh"
 #include "Materials/piezoMaterial.hh"
 #include "Driver/assemble.hh"
 #include "DataInOut/resultHandler.hh"
@@ -259,12 +260,14 @@ namespace CoupledField {
         // Read data
         materials_[actRegionId] = matLoader->LoadMaterial( material, materialClass_ );
 
-        // log the just read material. LoadMaterial() so to say initializes the ToInfo()
-        PtrParamNode in = infoNode_->GetByVal("material", "name", material);
-        // additional regions are automatically appended
-        in->Get("regionList")->GetByVal("region", "name", domain->GetGrid()->GetRegion().ToString(actRegionId));
-        materials_[actRegionId]->ToInfo(in);
-
+        if(progOpts->DoDetailedInfo())
+        {
+          // log the just read material. LoadMaterial() so to say initializes the ToInfo()
+          PtrParamNode in = infoNode_->GetByVal("material", "name", material);
+          // additional regions are automatically appended
+          in->Get("regionList")->GetByVal("region", "name", domain->GetGrid()->GetRegion().ToString(actRegionId));
+          materials_[actRegionId]->ToInfo(in);
+        }
         
         // Check for local coordinate system
         if( refCoordSys != "" ) {

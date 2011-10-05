@@ -258,9 +258,9 @@ namespace CoupledField
      * Hence in the complex case this is the conjugate complex rvec = this*conj(mvec) */
     void MultInner( const SingleVector & mvec, SingleVector & rvec ) const;
     
-    /** This implements the Frobenius norm of two matrices.
+    /** This implements the Frobenius inner product of two matrices. This is NOT the Frobenius norm!
      * @return the sum of the element wise product: sum this_ij * other_ij */
-    TYPE ScalarProduct(const Matrix<TYPE>& other_mat) const;
+    TYPE FrobeniusProduct(const Matrix<TYPE>& other_mat) const;
 
     //! Perform a matrix-vector multiplication rvec = transpose(this)*mvec
     void MultT( const SingleVector & mvec, SingleVector & rvec ) const;

@@ -149,7 +149,7 @@ public:
   SinglePDE* pde;
 
   /** This is the current homogenized tensor.
-   * Evaluated by HOMOGENIZATION_TRACKING and HOMOGENIZED_TENSOR (as objective only).
+   * Evaluated by HOM_TRACKING, HOM_TENSOR, HOM_FROBENIUS_PRODUCT (as objective only).
    * MechPDE reads it when "homogenizedTensor" is a region result! */
   Matrix<double> homogenizedTensor;
 
@@ -500,11 +500,13 @@ public:
    * the this calulates -1 (E^* - E^H) * d(E^H)/d(rho_e) using a matrix scalar product
    * @param target E^* what we want
    * @param hom the pre calculated tensor E^H */
-  virtual void CalcHomogenizedTrackingGradient(const Matrix<double>& target,
-      const Matrix<double>& hom, Function* f);
+  virtual void CalcHomogenizedTrackingGradient(const Matrix<double>& target, const Matrix<double>& hom, Function* f);
+
+  /** Calculates the gradient for the Frobenius inner prodcut. */
+  void CalcHomFrobeniusProductGradient(const Matrix<double>& target, const Matrix<double>& hom, Function* f);
 
   /** Calculates the gradient if the constraints E^H = E^* where for each interested
-   * tensor entry a own HOMOGENIZATION_TENSOR constraint is required.
+   * tensor entry a own HOM_TENSOR constraint is required.
    * @param derivative this sets d(E^H)/d(rho_e) for the current tensor entry
    * @param g the constraint is mandatory. It defines in the coord pair the tensor entry
    * @return the E^H tensor entry if !derivative */

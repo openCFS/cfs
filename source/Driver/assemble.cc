@@ -391,17 +391,26 @@ namespace CoupledField
           // info.xml logging in detailed logging case for the first element only
           if(i == 0 && progOpts->DoDetailedInfo())
           {
-            PtrParamNode in = info->Get("PDE")->Get(actContext.GetFirstPde()->GetName())->Get(ParamNode::PROCESS)->Get("matrices");
-            in = in->Get("tensor", ParamNode::APPEND);
-            in->Get("form")->SetValue(form->GetName());
-            in->Get("region")->SetValue(domain->GetGrid()->GetRegion().ToString(it1.GetElem()->regionId));
-            in->Get("element")->SetValue(it1.GetElem()->elemNum);
-            // it makes sense to add the analysis id here
-            if(form->IsComplex())
-              in->Get("matrix")->SetValue(elemMatrixC);
-            else
+            PtrParamNode in = info->Get("PDE")->Get(actContext.GetFirstPde()->GetName())->Get(ParamNode::PROCESS)->Get("local_FEM_matrices");
+            // make sure to have only one output for non-static case (e.g. optimization)
+            std::string reg_name = domain->GetGrid()->GetRegion().ToString(it1.GetElem()->regionId);
+            bool found = false;
+            ParamNodeList list = in->GetListByVal("tensor", "form", form->GetName());
+            for(unsigned int li = 0; li < list.GetSize(); li++)
+              if(list[li]->HasByVal("region", reg_name) && list[li]->HasByVal("element", it1.GetElem()->elemNum))
+                found = true;
+
+            if(!found)
             {
-              in->Get("matrix")->SetValue(elemMatrix);
+              in = in->Get("tensor", ParamNode::APPEND);
+              in->Get("form")->SetValue(form->GetName());
+              in->Get("region")->SetValue(reg_name);
+              in->Get("element")->SetValue(it1.GetElem()->elemNum);
+              // it makes sense to add the analysis id here
+              if(form->IsComplex())
+                in->Get("matrix")->SetValue(elemMatrixC);
+              else
+                in->Get("matrix")->SetValue(elemMatrix);
             }
           }
 
