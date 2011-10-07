@@ -367,6 +367,7 @@ namespace CoupledField
   {
     Settings& settings = Settings::Instance();
     bool calcSrc = settings.GetInt("calcsrc") != 0;
+    UInt stepInc = settings.GetInt("stepincr");
     UInt counter = 0;
     Double stepVal = 0;
     UInt numFiles = ptFileReader_->GetNumFiles();
@@ -409,7 +410,7 @@ namespace CoupledField
       for (actRegion = 0; actRegion<numRegions; actRegion++)
         regionNames.push_back(ptFileReader_->GetRegionName(actRegion));
       
-      while ( ( counter < numFiles ) && readOK)
+      while ( ( counter < numFiles*stepInc ) && readOK)
       {
         stepVal = ptFileReader_->GetTimeStep(counter);
         stepNum = counter + ptFileReader_->GetStartIndex();
@@ -597,7 +598,7 @@ namespace CoupledField
         }
         
         // increment time step counter
-        counter++;
+        counter = counter + stepInc;
       }//end of while
 
       owIt = outputWriters_.begin();
