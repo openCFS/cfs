@@ -27,6 +27,10 @@ namespace fs=boost::filesystem;
 #include "OutputWriter.hh"
 #include "CouplingHandler.hh"
 
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
 namespace CoupledField
 {
 
@@ -784,6 +788,19 @@ namespace CoupledField
     UInt maxNENodes = ptFileReader_->GetMaxNumElemNodes();
     UInt nodeNum;
 
+#ifdef _OPENMP
+    IntegrationMap ptElemI(ptElemIntegr_);
+    std::cout << "...parallel loop over " << nElems << " elements..." ;
+#else
+    std::cout << "...serial loop over " << nElems << " elements..." ;
+#endif
+    std::cout.flush();
+    UInt velIdx,topoIdx,idx;
+#pragma omp parallel private(elemIdx,elemType,numElemNodes,elemDim,coordMat, \
+                                 nodaldTijdxj,nodalVel,nodeNum, \
+                                 elemVec,nodalLoadDensity,velIdx,topoIdx,idx) firstprivate(divLHTensor,ptElemI) 
+{
+    #pragma omp for nowait
     for( int i=0; i<nElems; i++)
     {
       elemIdx = regionElems_[regionIdx][i] - 1;
@@ -802,8 +819,8 @@ namespace CoupledField
       for( UInt n=0; n<numElemNodes; n++)
       {
         nodeNum = topology_[elemIdx * maxNENodes + n];
-        UInt topoIdx = (nodeNum - 1) * 3;
-        UInt velIdx = regionNodeIndices_[regionIdx][nodeNum] * dim_;
+        topoIdx = (nodeNum - 1) * 3;
+        velIdx = regionNodeIndices_[regionIdx][nodeNum] * dim_;
 
         for( UInt d=0; d<elemDim; d++)
         {
@@ -828,6 +845,16 @@ namespace CoupledField
       }
 
       try {
+#ifdef _OPENMP
+        if (doIntAverageCentre_)
+        {
+          ptElemI[elemType].PerformIntegrationCentre( coordMat, nodalVel,
+                               elemVec, nodalLoadDensity, divLHTensor, density);
+        } else {
+          ptElemI[elemType].PerformIntegration( coordMat, nodaldTijdxj, nodalVel,
+                               elemVec, nodalLoadDensity, divLHTensor, density);
+        }
+#else
         if (doIntAverageCentre_)
         {
           ptElemIntegr_[elemType]->PerformIntegrationCentre( coordMat, nodalVel,
@@ -836,6 +863,8 @@ namespace CoupledField
           ptElemIntegr_[elemType]->PerformIntegration( coordMat, nodaldTijdxj, nodalVel,
                                elemVec, nodalLoadDensity, divLHTensor, density);
         }
+#endif
+
       } catch (CoupledField::Exception &ex)
       {
         std::cerr << "WARN: An Exception occurred during source term "
@@ -868,7 +897,6 @@ namespace CoupledField
       // Add contributions of all element nodes
       for( UInt n=0; n<numElemNodes; n++)
       {
-        UInt idx;
         nodeNum = topology_[elemIdx * maxNENodes + n];
         idx = regionNodeIndices_[regionIdx][nodeNum];
 
@@ -879,7 +907,9 @@ namespace CoupledField
         }
 #endif
 
+#pragma omp atomic 
         acouRhsField[idx] -= elemVec[n];
+#pragma omp atomic 
         acouRhsDensityField[idx] -= nodalLoadDensity[n];
       }
       
@@ -889,6 +919,7 @@ namespace CoupledField
         acouDivLighthillTensor[i*dim_ + n] = divLHTensor[n];
       }      
     }
+}//end of parallel region
 
     std::cout << "done." << std::endl;
   }

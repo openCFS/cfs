@@ -1580,6 +1580,142 @@ namespace CoupledField
        }   
    }
   
+   void Hexa1FE::Global2LocalCoords(Matrix<Double> & localCoords,
+                                    const Matrix<Double> & globalCoords,
+                                    const Matrix<Double> & coordMat ){
+     //BaseFE::Global2LocalCoords(localCoords,globalCoords,coordMat);
+     //return;
+     //Version 0 algorithm from duester script
+     Vector<Double> delta_xi; // update for Newton-Raphson method
+     Vector<Double> xi_start; // local start point for Newton-Raphson method
+     Vector<Double> xi_k; // local point at iteration k
+     Vector<Double> f; //current right hand side
+     Vector<Double> f_start; //current right hand side
+     Vector<Double> globalPoint; // global point coordinates
+     //doubles for components of jacobian
+     Double j11,j12,j13,j21,j22,j23,j31,j32,j33;
+     UInt numPoints = globalCoords.GetNumCols(); // number of global points
+     Double f_old; //storing the absolute value of search direction
+     Double f_test; //storing the absolute value of search direction
+     Double jac_det = 0;
+     UInt k = 0; //iteration counter
+     Integer l = 0; //stepping value
+     Matrix<Double> J; // Jacobian at local point xi_k
+     localCoords.Resize(3, numPoints);
+     localCoords.Init();
+
+     Double tolerance = 1e-14;
+
+     //initialize everything
+     xi_start.Resize(3);
+     delta_xi.Resize(3);
+     xi_k.Resize(3);
+     J.Resize(3, 3); 
+     globalPoint.Resize(3);
+
+     //first initial guess is zero
+     f.Resize(3);
+
+    // Perform Newton-Raphson method on the list of global points
+    // to find local coordinates within this element.
+    for(UInt i = 0; i < numPoints; i++)
+    {
+      f.Init();
+      globalPoint.Init();
+      J.Init();
+      xi_start.Init();
+      xi_k.Init();
+      k = 0;
+      f_old = 222e20; 
+      f_test = 0;
+      for(UInt j = 0; j < 3; j++) {
+        globalPoint[j] = globalCoords[j][i];
+      }
+      Local2GlobalCoord(f, xi_k, coordMat, NULL);
+      f = f - globalPoint;
+      f_old = f.NormL2();
+      f_start = f;
+      for(Double w=0.5; w <= 1.0; w+=0.5){
+        for(UInt j=1;j<3;j++){
+          for(UInt m=1;m<3;m++){
+            for(UInt n=1;n<3;n++){
+              xi_k[0] = pow(-1,j)*w;
+              xi_k[1] = pow(-1,m)*w;
+              xi_k[2] = pow(-1,n)*w;
+              Local2GlobalCoord(f, xi_k, coordMat, NULL);
+              f = f - globalPoint;
+              f_test = f.NormL2();
+              if(f_old > f_test){
+                xi_start  = xi_k;
+                f_start = f;
+                f_old = f_test;
+              }
+            }
+          }
+        }
+      }
+      xi_k = xi_start;
+      f = f_start;
+      //std::cout << J << std::endl << std::endl;
+      while(f_test > tolerance && k < 13){
+         delta_xi.Init();
+         xi_start.Init();
+         // Calculate Jacobian at iteration point xi_k
+         CalcJacobian(J, xi_k, coordMat, NULL );
+         j11 = J[0][0]; j12 = J[0][1]; j13 = J[0][2];
+         j21 = J[1][0]; j22 = J[1][1]; j23 = J[1][2];
+         j31 = J[2][0]; j32 = J[2][1]; j33 = J[2][2];
+
+         jac_det =   j11*j22*j33 - j11*j32*j23 - j21*j12*j33
+                   + j32*j21*j13 - j22*j31*j13 + j31*j12*j23;
+         delta_xi[0] = - j22*j33 * f[0] + j32*j23 * f[0] 
+                       - j32*j13 * f[1] + j12*j33 * f[1]
+                       - j12*j23 * f[2] + j22*j13 * f[2];
+         delta_xi[1] = - j23*j31 * f[0] + j21*j33 * f[0] 
+                       - j11*j33 * f[1] + j31*j13 * f[1]
+                       - j21*j13 * f[2] + j23*j11 * f[2];
+         delta_xi[2] = - j21*j32 * f[0] + j31*j22 * f[0] 
+                       - j12*j31 * f[1] + j32*j11 * f[1]
+                       - j11*j22 * f[2] + j21*j12 * f[2];
+         delta_xi[0] /= jac_det;
+         delta_xi[1] /= jac_det;
+         delta_xi[2] /= jac_det;
+         l = 0;
+         //perform damping
+         while(l<30 && f_test >= f_old){
+            l++;
+            Double dampFac = 1.0/pow(2.0,(Double)(l-1.0)); 
+            xi_start = xi_k + (delta_xi * dampFac); 
+            Local2GlobalCoord(f, xi_start, coordMat, NULL);
+            f = f - globalPoint;
+            f_test = f.NormL2();
+         }
+         f_old = f_test;
+         xi_k = xi_start;
+         k++;
+      }
+      if( f_test > tolerance){
+        std::cout << "performed " << k << " iterations to reach the point" << std::endl<< xi_k << std::endl;
+        //ONLY for DEBUGGING
+        Local2GlobalCoord(f, xi_k, coordMat, NULL);
+        std::cout << "Calculated global point :" << std::endl << f << std::endl;
+        std::cout << "Original global coord " << std::endl << globalPoint << std::endl;
+        std::cout << "The error was: " << f_test << " and l: " << l << std::endl<< std::endl;
+        std::cout << "The last search direction: " << delta_xi << std::endl<< std::endl;
+      }
+
+      // Put local coordinate of point into matrix.
+      for(UInt j = 0; j < 3; j++) {
+        if(xi_k.GetSize() == 0){
+          std::cerr << "local2global messed up setting everything to zero" << std::endl;
+          std::cerr << globalCoords << std::endl;
+          xi_k.Resize(2);
+          xi_k.Init();
+        }
+        localCoords[j][i] = xi_k[j];
+      }
+    }
+  }
   
   
 
