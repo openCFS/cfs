@@ -40,11 +40,6 @@ function build {
     echo " Generating CFS++ developer's manual "
     echo "====================================="
 
-    # Copy university logos to manual directory
-    cp @CMAKE_CURRENT_SOURCE_DIR@/../auxilliaries/Pics/ls_am_klu.pdf @CMAKE_CURRENT_SOURCE_DIR@/develManual/pics
-    cp @CMAKE_CURRENT_SOURCE_DIR@/../auxilliaries/Pics/cfs-logo.pdf @CMAKE_CURRENT_SOURCE_DIR@/develManual/pics
-    cp @CMAKE_CURRENT_SOURCE_DIR@/../auxilliaries/Pics/lse_logo.pdf @CMAKE_CURRENT_SOURCE_DIR@/develManual/pics
-
     # Auto generate bootstrap_devel_machine.txt from distro.sh and bootstrap_devel_machine.sh
     cat @CMAKE_CURRENT_SOURCE_DIR@/../../scripts/distro.sh | sed '/^Help\(\)/, /^fi/d' | sed '/^      while \:$/, /^      done$/d' > @CMAKE_CURRENT_SOURCE_DIR@/develManual/attachments/bootstrap_devel_machine.txt
     echo "echo \$OSSTR" >> @CMAKE_CURRENT_SOURCE_DIR@/develManual/attachments/bootstrap_devel_machine.txt

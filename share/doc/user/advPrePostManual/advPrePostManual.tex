@@ -1,94 +1,86 @@
 \documentclass[12pt]{report}
 %
-\usepackage{ifpdf}
-
+\usepackage{graphicx}
+\graphicspath{{../../auxilliaries/Pics/}{../../developer/develManual/pics}}
 %
 %
 \usepackage{../../auxilliaries/LaTeX/lsepaper}
 \usepackage{ifthen}
-\usepackage[utf8]{inputenc}
+\usepackage[isolatin]{inputenc}
 \usepackage{subfig}
-\usepackage{amssymb,amsmath}
+\usepackage{amssymb}
 \usepackage{array}
 \usepackage{longtable}
-\usepackage{booktabs}
-\newcommand{\otoprule}{\midrule[\heavyrulewidth]}
-
-\usepackage{rotating}
-\usepackage{tikz}
-
 %
 % =============================================================================
 % PDF STUFF
 % =============================================================================
 %
-\ifpdf
+\ifx\pdfoutput\undefined
+\else
 \typeout{--> PDF: Output mode detected}
 \typeout{--> PDF: Setting general document info}
-
-\usepackage{graphicx}
-\graphicspath{{./pics/}}
-\DeclareGraphicsExtensions{.jpg,.pdf,.png}
-\usepackage[pdftex,bookmarks,breaklinks]{hyperref}
+%
 \usepackage{thumbpdf}
-\usepackage{url}
+%
+\usepackage[pdftex,bookmarks=true]{hyperref}
 \hypersetup{pdfpagemode=UseThumbs}
 \hypersetup{colorlinks=true}
 \hypersetup{linkcolor=red}
 \hypersetup{citecolor=blue}
-
-\hypersetup{pdfauthor=cfs-devel}
-\hypersetup{pdftitle={CFS++ --- Developer's Manual}}
-\hypersetup{pdfsubject={Developer's Guide}}
-\else
-\usepackage{graphicx}
-\DeclareGraphicsExtensions{.jpg,.pdf,.png}
-\graphicspath{{./pics/}{../../auxilliaries/Pics/}}
+%
+%\hypersetup{pdfauthor=cfs-devel} 
+\hypersetup{pdftitle={Advanced Pre- and Postprocessing Manual}}
+\hypersetup{pdfsubject={User's Guide}}
 \fi
-
-\usepackage[percent]{overpic}
-
-%% Using  pdflatex one may attach  arbitrary files to the  generated PDF.
-\usepackage{attachfile}
-
-%% Package for entering TODO notes
-\usepackage{todonotes}
-
 %
 % =============================================================================
 %
-\include{mycommands}
-\include{pygmentized/pygmentize}
+% Special Commands related to Tcl documentation 
 %
+\setcounter{secnumdepth}{2}
+\setcounter{tocdepth}{3}
+\def\tcl-command#1{\subsubsection {#1}}
+\newcommand{\param}[3]{ & {\bf #1} (#2) & #3  \\ }
+\newcommand{\paramlist}{Parameters:\\}
+\newcommand{\returnlist}{Return:\\}
+\newenvironment{tcl-params}{\newline \begin{tabular}{p{0.2\textwidth}
+      p{0.35\textwidth}
+      p{0.4\textwidth}}
+    \hline\noalign{\smallskip}}
+  { \end{tabular}}
+% 
 % =============================================================================
+
+\usepackage[x11names, rgb]{xcolor}
+\usepackage{tikz}
+\usetikzlibrary{snakes,arrows,shapes}
+\usepackage{amsmath}
+
+
 \begin{document}
 % =============================================================================
 %
 %
-\LSETITLE{CFS++ -- Developer's Manual}{\hspace{1em}}{\hspace{1em}}
+\LSETITLE{CFS++ -- Advanced Pre- and Postprocessing Manual}{cfs-user}{User's Guide}
 %
 %
 \tableofcontents
+%
 %
 \clearpage
 \pagestyle{headings}
 \pagenumbering{arabic}
 %
 %
-
-\listoftodos
-
-\include{introduction}
-\include{quickstart}
-\include{infrastructure}
-\include{concepts}
-\include{howtos}
-\include{tools}
+\include{intro}
+\include{preproc}
+\include{postproc}
+\include{special}
 
 \addcontentsline{toc}{chapter}{Bibliography}
 \bibliographystyle{alpha}
-\bibliography{develManual}
-
+\bibliography{advPrePostManual,../../developer/develManual/develManual}
 %
 %
 % =============================================================================

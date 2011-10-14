@@ -1,0 +1,212 @@
+\chapter{Common Postprocessing Tasks}
+
+\section{Data Exchange with CFS++}
+
+\subsection{ANSYS Classic}
+\subsection{GiD}
+\subsection{Gmsh}
+\subsection{ANSYS CFDPost}
+\subsection{GMV}
+
+\subsection{EnSight}
+
+EnSight  supports the  ANSYS .rst  file format  and can  therefore  read files
+generated   by  our   ANSYS  output   writer  (cf.   Figs.  \ref{fig:ensight},
+\ref{fig:cfs_soft_landscape}).  In order for  EnSight to recognize our regions
+as parts, it is  necessary to specify the fact that our  regions get mapped to
+material  ids in the  .rst files  to its  ANSYS reader.  One has  therefore to
+switch to  the advanced  interface and  then select 'Use  Material Id'  in the
+'Regular          Part          Creation         Convention'          combobox
+(cf. Fig. \ref{fig:ensight_rst_mat_to_part}).
+
+\begin{figure}[htb] 
+  \centering 
+  \subfloat[The EnSight main window.]{
+    \label{fig:ensight}
+    \includegraphics[height=7.5cm]{pics/ensight_man} }
+  \qquad
+  \subfloat[Let EnSight make parts out of materials.]{
+    \label{fig:ensight_rst_mat_to_part}
+    \includegraphics[height=7.56cm]{pics/ensight_rst_mat_to_part}
+  } 
+  \caption{Postprocessing with EnSight.}
+\end{figure}
+
+\subsection{Tecplot}
+\subsection{VisIt}
+\subsection{ParaView}
+\subsection{Matlab}
+\subsection{Gnuplot}
+
+\section{Creating Color Mapped Plots}
+
+\subsection{ParaView}
+\url{https://visualization.hpc.mil/wiki/Coloring_Data_in_Paraview}
+\url{http://paraview.org/OnlineHelpCurrent/Cut.html}
+
+\subsection{GiD}
+\url{http://gid.cimne.upc.es/component/manual/24170?id=24170}
+
+\url{https://lse17.e-technik.uni-erlangen.de:2001/docu/tutorial/html/cfsManual-html.html}
+
+\section{Creating Slices}
+
+\subsection{Tecplot}
+\url{http://www.tecplot.com/Portals/0/Tutorials/Slice.htm}
+
+\subsection{ParaView}
+\url{https://visualization.hpc.mil/wiki/Paraview_Slice}
+
+\subsection{GiD}
+\url{http://gid.cimne.upc.es/component/manual/24170?id=24170}
+
+\subsection{EnSight}
+\url{https://visualization.hpc.mil/wiki/Working_with_Slicing_Planes}
+
+\section{Creating Isocontuour and Isosurface Plots}
+
+\subsection{ParaView}
+\url{https://visualization.hpc.mil/wiki/Paraview_Contours_and_Isosurfaces}
+
+\url{http://paraview.org/OnlineHelpCurrent/Contour.html}
+
+\subsection{GiD}
+\url{http://gid.cimne.upc.es/component/manual/24164?id=24164}
+\url{https://lse17.e-technik.uni-erlangen.de:2001/docu/tutorial/html/cfsManual-html.html}
+
+
+\subsection{Tecplot}
+\url{http://www.tecplot.com/Portals/0/Tutorials/Contour.htm}
+
+\url{http://www.tecplot.com/Portals/0/Tutorials/3DContour.htm}
+
+\url{http://www.tecplot.com/Portals/0/Tutorials/Isosurface.htm}
+
+\subsection{EnSight}
+\url{https://visualization.hpc.mil/wiki/Working_with_Isosurfaces}
+
+\section{Visualizing Deformed Geometry}
+
+\subsection{ParaView}
+\url{http://paraview.org/OnlineHelpCurrent/WarpVector.html}
+\url{http://paraview.org/OnlineHelpCurrent/WarpScalar.html}
+
+\subsection{GiD}
+\url{https://lse17.e-technik.uni-erlangen.de:2001/docu/tutorial/html/cfsManual-html.html}
+
+\subsection{GMV}
+
+Although GMV is  very good in visualizing scalar and  vector data with contour
+plots, isosurfaces  and glyphs,  it has unfortunately  no built-in  ability to
+visualize  deformed geometries.   This  situation will  not  change in  future
+versions  of GMV,  since at  LANL there  is no  need for  visualizing deformed
+meshes.
+
+The only  possibilty is to  re-write gmv files with  mechanical displacements,
+where  the  displacements are  added  to  the  nodal coordinates  as  offsets.
+Fortunately, there exists  a GMV writer/reader-library\footnote{GMV I/O source
+codes:  \url{http://www.generalmeshviewer.com/io_util.html}},  which was  used
+for     the    program     gmv-addDisp\footnote{GMV     displacement    tools:
+\url{https://lse17.e-technik.uni-erlangen.de:2001/files/precompiled/GMV/gmv-tools.tgz}}.
+It can be used  to read in a GMV file, add the  displacements as offset to the
+nodal coordinates and write a new result file with a new name.  The program is
+also located in /home/data/programs/bin.
+
+\noindent The syntax is as follows:
+\begin{verbatim}
+  gmv-addDisp [in-filename] [out-filename] [relative/absolute] [factor]
+\end{verbatim}
+
+\noindent with the following parameters
+
+\begin{itemize}
+    \item in-filename: Name of the input gmv file
+    \item out-filename: Name of the resulting deformed gmv file
+    \item relative/absolute:  Indicates if  relative (= 1)  or absolute  (= 0)
+scaling  should be  used.  For relative  scaling,  factor is  relative to  the
+bounding box of the geometry
+    \item factor: Scaling factor for the nodal displacements
+\end{itemize}
+
+A example run, where a given file  bar.gmv is deformed by a relative factor of
+10\% and written to the new file def-bar.gmv, would look like this:
+
+\begin{verbatim}
+user@lse90: gmv-addDisp bar.gmv def-bar.gmv 1 0.1
+
+Determine bounding box.
+Maximum displacement: 5.568630e-08
+Abs. Factor: 2.514083e+07
+Converting nodev.
+Converting cells.
+Converting materials.
+Converting groups.
+Converting variables.
+Converting problem time.
+Converting cycle number.
+Success!
+user@lse90:
+\end{verbatim}
+
+\begin{figure}[htb] 
+  \centering 
+  \subfloat[Undeformed bar.]{
+    \label{fig:gmv_def_bar}
+    \includegraphics[width=6cm]{Bar-undef} }
+  \qquad
+  \subfloat[Deformed bar.]{
+    \label{fig:gmv_undef_bar}
+    \includegraphics[width=6cm]{Bar-def}
+  } 
+  \caption{The  maximum deformation  of  the bar  can  be also  seen from  the
+output.}
+  \label{fig:gmv_bars}
+\end{figure}
+
+For  a larger  number of  files the  script gmv-deform.sh  can be  used, which
+iterates over a given list of GMV files and creates deformed output files with
+the prefix def-. Therefore an absolute factor has to be provided:
+
+\begin{verbatim}
+  gmv-deform.sh [absolute factor] '[list of GMV files]'
+\end{verbatim}
+
+NOTE: Don't  forget to put the  ' ' around  the filenames in order  to prevent
+filename-expansion by the shell!
+
+
+\section{Visualizing Vector and Tensor Data with Glyphs}
+
+\subsection{ParaView}
+\url{https://visualization.hpc.mil/wiki/Glyph}
+
+\subsection{GiD}
+\url{https://lse17.e-technik.uni-erlangen.de:2001/docu/tutorial/html/cfsManual-html.html}
+
+\subsection{Tecplot}
+\url{http://www.tecplot.com/Portals/0/Tutorials/Vector.htm}
+
+\section{Selecting Elements or Nodes}
+
+\section{Restoring Visualizations from State Files}
+
+
+\section{Creating Animations}
+
+\subsection{GiD}
+\url{https://lse17.e-technik.uni-erlangen.de:2001/docu/tutorial/html/cfsManual-html.html}
+
+
+\section{Obtaining Signal Data from Mesh Postprocessors}
+
+\subsection{GiD}
+\url{https://lse17.e-technik.uni-erlangen.de:2001/docu/tutorial/html/cfsManual-html.html}
+\url{http://gid.cimne.upc.es/component/manual/24180?id=24180}
+
+\section{Plotting Output/History Signals}
+
+\section{Creating Directivity Plots}
+
+\subsection{Matlab/Octave}
+
+\subsection{Gnuplot}
