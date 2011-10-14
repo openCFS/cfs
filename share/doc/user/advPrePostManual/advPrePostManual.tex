@@ -1,63 +1,66 @@
 \documentclass[12pt]{report}
 %
-\usepackage{graphicx}
-\graphicspath{{../../auxilliaries/Pics/}{../../developer/develManual/pics}}
+\usepackage{ifpdf}
+
 %
 %
 \usepackage{../../auxilliaries/LaTeX/lsepaper}
 \usepackage{ifthen}
-\usepackage[isolatin]{inputenc}
+\usepackage[utf8]{inputenc}
 \usepackage{subfig}
-\usepackage{amssymb}
+\usepackage{amssymb,amsmath}
 \usepackage{array}
 \usepackage{longtable}
+\usepackage{booktabs}
+\newcommand{\otoprule}{\midrule[\heavyrulewidth]}
+
+\usepackage{rotating}
+\usepackage{tikz}
+
 %
 % =============================================================================
 % PDF STUFF
 % =============================================================================
 %
-\ifx\pdfoutput\undefined
-\else
+\ifpdf
 \typeout{--> PDF: Output mode detected}
 \typeout{--> PDF: Setting general document info}
-%
+
+\usepackage{graphicx}
+\graphicspath{{./pics/}{../../auxilliaries/Pics/}}
+\DeclareGraphicsExtensions{.jpg,.pdf,.png}
+\usepackage[pdftex,bookmarks,breaklinks]{hyperref}
 \usepackage{thumbpdf}
-%
-\usepackage[pdftex,bookmarks=true]{hyperref}
+\usepackage{url}
 \hypersetup{pdfpagemode=UseThumbs}
 \hypersetup{colorlinks=true}
 \hypersetup{linkcolor=red}
 \hypersetup{citecolor=blue}
-%
-%\hypersetup{pdfauthor=cfs-devel} 
-\hypersetup{pdftitle={Advanced Pre- and Postprocessing Manual}}
-\hypersetup{pdfsubject={User's Guide}}
+
+\hypersetup{pdfauthor=cfs-user}
+\hypersetup{pdftitle={CFS++ -- Advanced Pre- and Postprocessing Manual}}
+\hypersetup{pdfsubject={Pre-/Post Guide}}
+\else
+\usepackage{graphicx}
+\DeclareGraphicsExtensions{.jpg,.pdf,.png}
+\graphicspath{{./pics/}{../../auxilliaries/Pics/}}
 \fi
+
+\usepackage[percent]{overpic}
+
+%% Using  pdflatex one may attach  arbitrary files to the  generated PDF.
+\usepackage{attachfile}
+
+%% Package for entering TODO notes
+\usepackage{todonotes}
+
 %
 % =============================================================================
 %
-% Special Commands related to Tcl documentation 
+\include{mycommands}
+\include{pygmentized/pygmentize}
 %
-\setcounter{secnumdepth}{2}
-\setcounter{tocdepth}{3}
-\def\tcl-command#1{\subsubsection {#1}}
-\newcommand{\param}[3]{ & {\bf #1} (#2) & #3  \\ }
-\newcommand{\paramlist}{Parameters:\\}
-\newcommand{\returnlist}{Return:\\}
-\newenvironment{tcl-params}{\newline \begin{tabular}{p{0.2\textwidth}
-      p{0.35\textwidth}
-      p{0.4\textwidth}}
-    \hline\noalign{\smallskip}}
-  { \end{tabular}}
-% 
 % =============================================================================
-
-\usepackage[x11names, rgb]{xcolor}
-\usepackage{tikz}
-\usetikzlibrary{snakes,arrows,shapes}
-\usepackage{amsmath}
-
-
 \begin{document}
 % =============================================================================
 %
@@ -73,6 +76,11 @@
 \pagenumbering{arabic}
 %
 %
+
+\listoftodos
+
+\todo[inline]{Move common parts of all manuals  (e.g. common preambles) up the directory hierarchy and unify the build process of as many manuals as possible (cplreader, scripting, xml, devel, etc...)}
+
 \include{intro}
 \include{preproc}
 \include{postproc}

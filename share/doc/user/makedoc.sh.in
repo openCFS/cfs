@@ -31,6 +31,9 @@ function build {
     cd @CMAKE_CURRENT_SOURCE_DIR@/advPrePostManual
     DOCUMENT=advPrePostManual
 
+    # Apply syntax coloring to files in sources directory
+    sources/pygmentize.sh $PWD/sources $PWD
+
     @PDFLATEX_COMPILER@ $DOCUMENT
     @BIBTEX_COMPILER@   $DOCUMENT
     @PDFLATEX_COMPILER@ $DOCUMENT
@@ -38,6 +41,8 @@ function build {
     @PDFLATEX_COMPILER@ $DOCUMENT
     thumbpdf $DOCUMENT
     @PDFLATEX_COMPILER@ $DOCUMENT
+
+    exit 0;
 
     cd @CMAKE_CURRENT_SOURCE_DIR@
 

@@ -6,35 +6,120 @@
 \subsection{GiD}
 \subsection{Gmsh}
 \subsection{ANSYS CFDPost}
+
 \subsection{GMV}
+\label{sec:postproc_gmv}
+\noindent File $\rightarrow$ Read GMV File  $\rightarrow$ New Simulation
+
+\noindent Display $\rightarrow$ Cells $\rightarrow$ Select $\rightarrow$ Select On Materials and Flags $\rightarrow$ Man  $\rightarrow$ Apply
+
+\noindent Cells dialogue  $\rightarrow$ Color By: $\rightarrow$ Node Field  $\rightarrow$ Cells dialogue: Apply
+
+\noindent Cells dialogue  $\rightarrow$ Shaded $\rightarrow$ Apply
+
+\noindent Menu: Calculate $\rightarrow$ Cutplanes $\rightarrow$ 1 NONE $\rightarrow$ (1,0,-0.3), (0,1,-0.3), (0,0,-0.3) $\rightarrow$ Add
+
+\noindent The current GMV  version is located in {\tt /home/data/programs/bin}
+in Erlangen and in {\tt /opt/pckg/bin} in Klagenfurt.
+
+\noindent Currently there are three binaries:
+
+\begin{itemize}
+    \item gmv:  This is the basic version  of gmv which is  linked against the
+MESA library. This version uses only  software rendering and should run on any
+platform, although is may be slow for big problems.
+    \item  gmv-ogl:   This  version  links  dynamically   against  the  OpenGL
+libraries. Therefore it allows very fast rendering even for big result files /
+meshes. If no OpenGL-compatible hardware is found, it switches to gmv software
+rendering, which is even slower than the MESA-version.
+    \item gmv-batch:  As the name indicates,  this version runs  only in batch
+mode with no GUI. It is statically  linked against the MESA library and can be
+used on any  hardware to perform off-screen rendering  of gmv-imput files. The
+pictures are written in SGI RGB format.
+\end{itemize}
+
+GMV is able to visualize almost all data provided by CFS++. Some of them are
+
+\begin{itemize}
+    \item Mixed volume and surface mesh viewing: GMV can display not only pure
+3D  / 2D  meshes,  but also  surfaces  meshes, which  are  used for  interface
+coupling or boundary conditions (absorbing  BCs). By default, all elements (3D
+and 2D) are shown when loading a GMV file. The surface elements are treated as
+normal materials  within GMV.  They can  be switched on  / off  under 'Display
+$\rightarrow$ Nodes / Cells $\rightarrow$ Select (button) $\rightarrow$ Select
+On 'Materials and Flags '
+    \item  Displaying  named nodes  (boundary  nodes):  Named nodes  (boundary
+nodes,  history nodes)  can be  visualized  by '  Display $\rightarrow$  Nodes
+$\rightarrow$ Select (button) $\rightarrow$ Select On 'Node Groups '. It might
+also be  advisable to increase the  size of nodes under  ' Ctl-2 $\rightarrow$
+Point Size ' in order to recognize the nodes in the mesh.
+    \item  Visualizing  scalar  /  vector  data: Scalar  data  can  either  be
+visualized as continuous color mapping  (' Display $\rightarrow$ Nodes / Cells
+$\rightarrow$  Color by  'Node  / Cell  field'  '), contour  plots ('  Display
+$\rightarrow$  Cells  $\rightarrow$  Contour'  ) and  isosurfaces/-volumes  ('
+Calculate $\rightarrow$ Isosurfaces  / Isovolume '). Vector data  has first to
+be  defined   by  its  components   in  the  according  submenus   ('  Display
+$\rightarrow$ Nodes  / Cells $\rightarrow$ Vectors  $\rightarrow$ Build Vector
+').
+\end{itemize}
+
+One big advantage of GMV is, that the node and element numbering is consistent
+with the original  numbering in ANSYS. Therefore it very  useful to verify the
+geometry and elements of a model.
+
+There are many other possibilities to combine different results, calculate new
+quantities from the given ones or select only a subset of elements / nodes for
+visualizing.  For further  information refer  to the  GMV  pdf-manual.
+
 
 \subsection{EnSight}
-
-EnSight  supports the  ANSYS .rst  file format  and can  therefore  read files
-generated   by  our   ANSYS  output   writer  (cf.   Figs.  \ref{fig:ensight},
+\label{sec:postproc_ensight} EnSight  supports the ANSYS .rst  file format and
+can  therefore read  files generated  by our  ANSYS output  writer  (cf.  Fig.
 \ref{fig:cfs_soft_landscape}).  In order for  EnSight to recognize our regions
 as parts, it is  necessary to specify the fact that our  regions get mapped to
-material  ids in the  .rst files  to its  ANSYS reader.  One has  therefore to
+material ids  in the  .rst files to  its ANSYS  reader.  One has  therefore to
 switch to  the advanced  interface and  then select 'Use  Material Id'  in the
 'Regular          Part          Creation         Convention'          combobox
 (cf. Fig. \ref{fig:ensight_rst_mat_to_part}).
 
 \begin{figure}[htb] 
   \centering 
-  \subfloat[The EnSight main window.]{
-    \label{fig:ensight}
-    \includegraphics[height=7.5cm]{pics/ensight_man} }
-  \qquad
-  \subfloat[Let EnSight make parts out of materials.]{
-    \label{fig:ensight_rst_mat_to_part}
-    \includegraphics[height=7.56cm]{pics/ensight_rst_mat_to_part}
-  } 
-  \caption{Postprocessing with EnSight.}
+  \label{fig:ensight_rst_mat_to_part}
+  \includegraphics[height=7.56cm]{pics/ensight_rst_mat_to_part}
+  \caption{Let EnSight make parts out of ANSYS materials.}
 \end{figure}
 
 \subsection{Tecplot}
-\subsection{VisIt}
-\subsection{ParaView}
+
+What  has been said  in Sec.   \ref{sec:postproc_ensight} about  reading ANSYS
+.rst files should also apply to  Tecplot. Tecplot just has not been thoroughly
+tested so far.
+
+Tecplot  360 2011  is known  to  crash with  ANSYS .rst  files generated  with
+CFS++.  A fair  amount of  debugging  effort should  be invested  to fix  this
+problem.
+
+\subsection{VisIt} 
+
+As Fig.  \ref{fig:cfs_soft_landscape} shows,  the main data gateway from CFS++
+is through using Xdmf files.  But VisIt can also read GMV data files (at least
+ASCII ones).
+
+\subsection{ParaView} A ParaView plugin for reading CFS++'s native HDF5 format
+is provided. It  will be built along ParaView,  if BUILD\_PARAVIEW is switched
+ON in the CMake build environment of CFS++. Building ParaView will take a long
+time, since also Qt4  must be built for it. Prebuilt binaries  for a number of
+platforms  along  with  a few  sample  datasets  can  be  found on  the  CFS++
+development                              server                             at
+\url{https://lse17.e-technik.uni-erlangen.de:2001/files/precompiled/Paraview}.
+
+CFS++  can  also  generate  Xdmf  \url{http://www.xdmf.org}  \cite{Clarke2002,
+  Clarke2007} output which  can be read using ParaView.  When using Xdmf data,
+also the  downloaded binaries from the  ParaView website may be  used since no
+extra plugins are required any more.  This configuration will lack some of the
+convenient  features  (e.g.  animation  of  harmonic results)  of  our  plugin
+however.
+
 \subsection{Matlab}
 \subsection{Gnuplot}
 
@@ -152,11 +237,11 @@ user@lse90:
   \centering 
   \subfloat[Undeformed bar.]{
     \label{fig:gmv_def_bar}
-    \includegraphics[width=6cm]{Bar-undef} }
+    \includegraphics[width=6cm]{pics/Bar-undef} }
   \qquad
   \subfloat[Deformed bar.]{
     \label{fig:gmv_undef_bar}
-    \includegraphics[width=6cm]{Bar-def}
+    \includegraphics[width=6cm]{pics/Bar-def}
   } 
   \caption{The  maximum deformation  of  the bar  can  be also  seen from  the
 output.}
@@ -195,6 +280,100 @@ filename-expansion by the shell!
 
 \subsection{GiD}
 \url{https://lse17.e-technik.uni-erlangen.de:2001/docu/tutorial/html/cfsManual-html.html}
+
+\subsection{GMV}
+
+GMV  can  not  directly  create  a  movie or  animation,  but  there  are  two
+possibilities to create a sequence of images:
+
+\begin{itemize}
+    \item Under ' File $\rightarrow$ Read GMV File $\rightarrow$ Auto Read - Same Simulation ' one can load sequentially a series of GMV input files and display them. If the checkbox Auto Snapshots is activated, the pictures are written in the SGI RGB format. Note, that during the rendering, the GMV window has to be completely visible, since the snapshot function uses some of the X-system internal functions.
+    \item Another way of making image sequences is to use the script gmv-animate.sh.
+\end{itemize}
+
+\noindent   This   script  is   also   located   on   the  CFS++   development
+server\footnote{gmv-render.sh:
+\url{https://lse17.e-technik.uni-erlangen.de:2001/files/precompiled/GMV/gmv-tools.tgz}}.
+It is used like:
+
+\begin{verbatim}
+  gmv-render.sh '[gmv files]' [attribute file] [x-dim] [y-dim] [output file name]
+\end{verbatim}
+
+\noindent The parameters are as follows:
+
+\begin{itemize}
+    \item gmv files: List of input .gmv-files.
+    \item  attribute file:  GMV  .attr-file with  display  options. This  file
+stores  the  current  viewing  settings  of GMV,  like  e.g.  current  viewing
+perspective, data  limits, active  materials and quantity.  It can  be written
+from within GMV with File $\rightarrow$ Put attributes.
+    \item x-dim: x-dimension of result image (e.g. 900)
+    \item y-dim: y-dimension of result image (e.g. 700)
+    \item output file  name: Base name of output files.  The output files have
+the sequence number plus '.rgb' as suffix.
+\end{itemize}
+
+NOTE: Don't forget  to put the '  'around the input gmv filenames  in order to
+prevent filename-expansion by the shell!
+
+This script  reads in each .gmv-input  file and uses the  perspective and data
+provided in the  attribute-file to create a .rgb-image.  Therefore it uses the
+gmv-batch binary, which has to be included in the search path.
+
+Some Remarks:
+
+\begin{itemize}
+    \item It is advisable to adjust  the data limits of the current visualized
+field in GMV  by ' Ctl-2 $\rightarrow$ Data  Limits $\rightarrow$ Node/Element
+field ' to  maximum of the whole sequence  in order to have a  fixed color bar
+over the whole range.
+    \item Sometimes, if one visualizes a deformed structure, some of the outer
+elements get  clipped, since  the GMV attribute  file also  stores information
+about the bounding  box of the geometry. One  way to prevent this is  to use a
+smaller deformation factor.
+\end{itemize}
+
+So now we  have a sequence of .rgb  files. There exist many tools  to create a
+movie or  animation from a series of  images. Here, two tools  from the famous
+ImageMagick  library are  used as  an example:  animate and  convert.  One big
+advantage of this library is its  large number of supported image formats (see
+also  man ImageMagick).  It can  directly read  the .rgb  files  without prior
+conversion.
+
+\subsubsection{Using 'animate'}
+
+The tool animate takes as input a  list of images, which are then displayed as
+animation. The tool  itself can be only used for viewing  purposes but not for
+creating a movie. The pictures are shown in an infinite loop. The speed can be
+varied by the keys '$<$' and '$>$'.
+
+To view for example all pictures of the deformed bar, one would use
+
+\begin{verbatim}
+  animate def-bar*.rgb
+\end{verbatim}
+
+For further information see man animate.
+
+\subsubsection{Using 'convert'}
+
+One way to create a movie is the tool convert. Although its main purpose is to
+convert  pictures from  different formats,  it can  also be  used  to generate
+simple .mpg movies. Therefore convert firstly creates temporary jpg images and
+afterwards uses  the tool  mpeg2encode to  create a movie.  This tool  is also
+located in /home/data/programs/bin and its  location has to be included in the
+search path in order to work correctly with convert.
+
+\noindent A typical call to convert looks like this:
+
+\begin{verbatim}
+  convert -delay 20 *.rgb movie.mpg
+\end{verbatim}
+
+\noindent  The parameter  -delay  controls the  delay  between two  subsequent
+images in the movie. The list  of command line parameter is almost endless and
+can be seen by man convert.
 
 
 \section{Obtaining Signal Data from Mesh Postprocessors}
