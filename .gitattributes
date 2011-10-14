@@ -338,8 +338,6 @@ share/doc/developer/develManual/pics/totalview_acou_define_int.png -text svneol=
 share/doc/developer/develManual/pics/totalview_acou_define_int_callgraph.png -text svneol=unset#image/png
 share/doc/developer/develManual/pics/totalview_enable_replay_engine.png -text svneol=unset#image/png
 share/doc/developer/develManual/quickstart.tex -text
-share/doc/developer/develManual/sources/cplreader_meshgen.xml -text
-share/doc/developer/develManual/sources/crosspoint_test.c svneol=native#text/plain
 share/doc/developer/develManual/sources/emacs_settings.sh svneol=native#text/plain
 share/doc/developer/develManual/sources/git_checkout_cfs.sh svneol=native#text/plain
 share/doc/developer/develManual/sources/hdf5_file_format.xml -text
@@ -416,6 +414,8 @@ share/doc/user/advPrePostManual/preproc.tex -text
 share/doc/user/advPrePostManual/sources/Pfeifenfussmodell_modificated_swept.in.txt -text
 share/doc/user/advPrePostManual/sources/ansys_surf_vol_mesh.txt -text
 share/doc/user/advPrePostManual/sources/ansys_transitional_pyra.txt svneol=native#text/plain
+share/doc/user/advPrePostManual/sources/cplreader_meshgen.xml -text
+share/doc/user/advPrePostManual/sources/crosspoint_test.c svneol=native#text/plain
 share/doc/user/advPrePostManual/sources/emacs_settings.sh svneol=native#text/plain
 share/doc/user/advPrePostManual/sources/gid_batch.tcl svneol=native#text/plain
 share/doc/user/advPrePostManual/sources/gid_pw_server.sh svneol=native#text/plain

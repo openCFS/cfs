@@ -42,8 +42,6 @@ function build {
     thumbpdf $DOCUMENT
     @PDFLATEX_COMPILER@ $DOCUMENT
 
-    exit 0;
-
     cd @CMAKE_CURRENT_SOURCE_DIR@
 
     echo "==================================="

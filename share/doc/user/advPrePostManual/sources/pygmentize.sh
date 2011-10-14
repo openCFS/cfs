@@ -9,7 +9,7 @@ PYG=pygmentize
 
 mkdir -p $DEST_DIR
 
-$PYG -f latex -O full,style=$STYLE $SOURCES_DIR/hdf5_file_format.xml > $DEST_DIR/dummy.tex
+$PYG -f latex -O full,style=$STYLE $SOURCES_DIR/photo.c > $DEST_DIR/dummy.tex
 # Grep the definitions for the fancy verbatim environments from dummy.tex (for older pygmentize)
 fgrep newcommand $DEST_DIR/dummy.tex > $DEST_DIR/pygmentize.tex
 # Extract the definitions (for newer pygmentize)
@@ -36,6 +36,8 @@ function Pygmentize {
 }
 
 Pygmentize photo.c gmsh_mesh_from_pic.tex
+Pygmentize crosspoint_test.c gmsh_cp_test.tex
+Pygmentize cplreader_meshgen.xml cplreader_meshgen.tex
 Pygmentize gid_batch.tcl gid_batch.tex
 Pygmentize gid_pw_server.sh gid_pw_server.tex
 Pygmentize pv_analytical_sol.py pv_analytical_sol.tex

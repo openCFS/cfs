@@ -36,8 +36,6 @@ function Pygmentize {
 }
 
 Pygmentize hdf5_file_format.xml hdf5_file_format.tex
-Pygmentize crosspoint_test.c gmsh_cp_test.tex
-Pygmentize cplreader_meshgen.xml cplreader_meshgen.tex
 Pygmentize qs_obtain_sources.sh qs_obtain_sources.tex
 Pygmentize git_checkout_cfs.sh git_checkout_cfs.tex
 Pygmentize qs_configure_build.sh qs_configure_build.tex
