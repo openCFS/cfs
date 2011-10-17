@@ -53,3 +53,7 @@ Pygmentize pv_tria_local_global_mapping.py pv_tria_local_global_mapping.tex
 Pygmentize pv_xi_eta.py pv_xi_eta.tex
 Pygmentize gmsh_wing_points.cpp gmsh_wing_points.tex
 Pygmentize ansys_transitional_pyra.txt ansys_transitional_pyra.tex
+Pygmentize gnuplot_csv.plt gnuplot_csv.tex
+Pygmentize pv_dirplot.m pv_dirplot.tex
+Pygmentize polarplot.plt polarplot.tex
+Pygmentize polarloop.plt polarloop.tex

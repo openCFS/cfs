@@ -3,6 +3,8 @@
 This chapter introduces the interaction between CFS++ and a number of pre- and
 postprocessing packages.
 
+Scientific Visualization Artist Tools \url{http://svat.sourceforge.net/}.
+
 \section{Software Landscape}
 
 \begin{figure}[htp]
@@ -68,8 +70,9 @@ Fig. \ref{fig:gmsh_cutplanes}).
 \end{description}
 
 
-\subsubsection{ANSYS} An ANSYS Classic  APDL preprocessing extension is available
-from  \url{https://lse17.e-technik.uni-erlangen.de:2001/svn/mkmesh/trunk}  for
+\subsubsection{ANSYS}
+  An   ANSYS  Classic   APDL   preprocessing  extension   is  available   from
+\url{https://lse17.e-technik.uni-erlangen.de:2001/svn/mkmesh/trunk}         for
 generating  ASCII  based mesh  files  readable  by  CFS++.  An  extension  for
 generating  HDF5 mesh files  based on  cplreader (cf.   Sec.  \ref{cplreader},
 \cite{cplreadermanual} ) is  presented in Sec.  \ref{sec:ansys_mkmesh_mkhdf5}.
@@ -92,6 +95,25 @@ in   ANSYS'   in  \cite{Simkovics2010}.   Please   also   refer  to   sections
 postprocessing of CFS++ meshes and  results and to Sec. \ref{sec:cfs_tool} for
 the possible ways of data conversion.
 
+
+
+\begin{description}
+\item[Modeling and Meshing Guide] \cite{ANSYSModelMeshGuide2010}
+\item[ANSYS   Post-processing]   The   main   source  of   documentation   for
+post-processing   in    ANSYS   Classic   is   the    Basic   Analysis   Guide
+\cite{ANSYSBasicAnaGuide2010} chapters 6-8.
+\item[APDL Command Reference] \cite{ANSYSCommandRef2010}
+\item[ANSYS Learning Modules at Cornell University] Covers ANSYS Workbench and
+ANSYS                                                                   Classic
+\url{https://confluence.cornell.edu/display/SIMULATION/ANSYS+Learning+Modules}
+
+\item[Modelling             and             post-processing             guide]
+\url{http://www-old.hallf.kth.se/\~mart/Demo\_Ansys\_classic.pdf}
+
+\item[Example   in   CADFEM   Service  Newsletter]   Ergebnisbeurteilung   bei
+symmetrischen                          Modellen                         6/2003
+\url{http://www.cadfem.at/fileadmin/files/9\_service\_newsletter/2003/0306/Newsletter\_06\_2003.pdf}
+\end{description}
 
 \subsubsection{ParaView} 
 
@@ -119,29 +141,24 @@ analyze datasets of terascale as well as on laptops for smaller data.}
 For  post-processing  of  results  from  CFS++ we  (Andreas  Hauck  and  Simon
 Triebenbacher)  have implemented a  file reader  for our  HDF5 files  into the
 Visualization   Toolkit  (VTK)  \cite{VTKWebSite,VTKWiki,VTKTextbook,VTKGuide}
-which ParaView is  built upon.  The basis for this  endeavour was the OpenFOAM
-reader                                by                                Takuya
-Oshima\footnote{\url{http://openfoamwiki.net/index.php/Contrib_Parallelized_Native_OpenFOAM_Reader_for_ParaView}}.
-In the  following sections  we will briefly  describe the architecture  of our
-plugin, how it integrates with VTK/ParaView, where the source code resides and
-how it is  built into ParaView by CFSDEPS. Moreover  we provide some tutorials
-on common tasks which are relevant for both development and analysis.
-
- A   good  starting   point  for   the   ParaView  newbie   is  the   tutorial
-.  Please
-refer to Sec. \ref{sec:paraview}  for further details about the implementation
-of the CFS++ HDF5 plugin  and some advanced visualization techniques involving
-data from CFS++.
+which  ParaView is  built  upon.  Please  refer  to \cite{CFSDevelManual}  for
+further details about the implementation of the CFS++ HDF5 plugin.
 
 \begin{description}
 \item[ParaView website] \url{http://www.paraview.org} \cite{ParaViewWebSite}
-\item[ParaView Guide] The official ParaView Manual \cite{PVGuide2007}
+\item[ParaView Guide] The official ParaView Manual \cite{PVGuide2007} is also available as a free online resource inside the ParaView Wiki at \url{http://paraview.org/Wiki/ParaView/Users_Guide/Table_Of_Contents} since ParaView 3.10.
 \item[ParaView Wiki] \cite{PVWiki}
-\item[ParaView Online documentaion] \url{http://www.paraview.org/paraview/help/documentation.html}
-\item[PV 3.8 Tutorial] \url{http://www.paraview.org/Wiki/images/8/88/ParaViewTutorial38.pdf}
+\item[ParaView Online documentation] \url{http://www.paraview.org/paraview/help/documentation.html}
+\item[PV 3.8 Tutorial]  A good starting point for the  ParaView newbie is the tutorial. \url{http://www.paraview.org/Wiki/images/8/88/ParaViewTutorial38.pdf}
 \item[Tutorial for 3.10] \url{http://www.vtk.org/Wiki/images/2/2d/ParaViewTutorial310.pdf}
 \item[Data     Analysis    and     Assessment    Center     (DAAC)    ParaView
 page]\url{http://daac.hpc.mil/paraview}
+\item[Precompiled ParaView Binaries with our plugin] \url{https://lse17.e-technik.uni-erlangen.de:2001/files/precompiled/Paraview}.
+\item[Kitware - The Source] The official newsletter provides reports about the
+latest  features   of  ParaView  and  other  Kitware   toolkits  (CMake,  VTK,
+etc.).   This    information   is    relevant   to   developers    and   users
+alike. \url{http://www.kitware.com/products/thesource.html}
+\item[Kitware blog] The latest issues of The Source also appear as blog articles at \url{http://www.kitware.com/source/}.
 \end{description}
 
 \paragraph{Installing SciPy/NumPy}
@@ -173,14 +190,14 @@ is  developed at  Lawrence  Livermore National  Laboratories.
 \end{description}
 
 \subsubsection{Tecplot}
-Getting started Manual:
-\url{http://download.tecplot.com/360/tpgs.pdf}
 
-\url{http://www.tecplot.com/Training/GettingStarted.aspx}
-
-\url{http://www.tecplot.com/Training/FeatureTutorials.aspx}
-
-\url{http://www.genias-graphics.de/cms/tp-360-tutorials.html}
+\begin{description}
+\item[Getting Started Manual] \url{http://download.tecplot.com/360/tpgs.pdf}
+\item[User's Manual] http://download.tecplot.com/360/tpum.pdf
+\item[Getting Started Videos] \url{http://www.tecplot.com/Training/GettingStarted.aspx}
+\item[Feature Tutorial Videos] \url{http://www.tecplot.com/Training/FeatureTutorials.aspx}
+\item[Further Video Tutorials] \url{http://www.genias-graphics.de/cms/tp-360-tutorials.html}
+\end{description}
 
 \subsubsection{EnSight}
 
@@ -214,16 +231,15 @@ formats.   We   also  support  reading  EnSight  data   files  with  cplreader
 
 
 
-\subsubsection{ANSYS CFDPost}
-CFD Post Users Guide:
-\url{http://www1.ansys.com/customer/content/documentation/120/cfx/xpost.pdf}
+\subsubsection{ANSYS CFD-Post}
 
+\begin{description}
+\item[CFD-Post Users Guide] \cite{ANSYSCFDPostUG2010}
+\item[FLUENT simulation of an elbow and CFD-Post]
 \url{http://www1.ansys.com/customer/content/documentation/121/fluent/flcfd.pdf}
-\url{http://www.cfd-online.com/Wiki/FLUENT}
 
-\url{http://www.ansys.com/Products/Simulation+Technology/Fluid+Dynamics/ANSYS+CFD-Post}
-
-\subsubsection{FieldView}
+\item[FLUENT Wiki on CFD Online] \url{http://www.cfd-online.com/Wiki/FLUENT}
+\end{description}
 
 \subsubsection{GMV  -  General  Mesh  Viewer}
 
@@ -371,7 +387,7 @@ octave:53> system("h5dump -d /matrix/value -y foo.mat | sed -n '/DATA {/,/}/p' |
 \subsubsection{Gnuplot}
 
 
-Gnuplot book: \cite{Janert2009} \url{http://fig.if.usp.br/~lucmod/tips/gnuplotbook.pdf}
+Gnuplot book: \cite{Janert2009} 
 Gnuplot website: \url{http://www.gnuplot.info/}
 
 Plot HDF5 Data in GnuPlot:

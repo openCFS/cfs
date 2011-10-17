@@ -24,42 +24,6 @@ Siehe DevelManual
 \url{http://www.mathworks.de/help/techdoc/ref/colormapeditor.html}
 
 
-\section{Lighting Options}
-
-\subsection{ParaView}
-
-In order to  get a one-to-one correspondence from the chosen  color map to the
-shaded 3D  object it is desirable  to switch off  lighting alltogether.  Since
-this  cannot be  achieved  easily in  ParaView  a different  trick  has to  be
-applied.  By  setting all  directional light sources  to white color  and same
-intensity       (cf.       Figs.        \ref{fig:pv_default_lighting}      and
-\ref{fig:pv_no_lighting})  the  impression  of  depth can  overcome  as  Figs.
-\ref{fig:pv_default_lighthing_arrow}     and    \ref{fig:pv_no_lighting_arrow}
-show. The 3D model  now looks completely flat. It is therefore  a good idea to
-switch on the mesh to maintain the impression of depth.
-
-\begin{figure}[htb] 
-  \centering 
-  \subfloat[Default options.]{
-    \label{fig:pv_default_lighting}
-    \includegraphics[height=5cm]{pics/pv_light_default} }
-  \qquad
-  \subfloat[No lighting options.]{
-    \label{fig:pv_no_lighting}
-    \includegraphics[height=5cm]{pics/pv_nolight}
-  } \\
-  \subfloat[Arrow with default lighting.]{
-    \label{fig:pv_default_lighthing_arrow}
-    \includegraphics[height=5cm]{pics/pv_light_default_arrow} }
-  \qquad
-  \subfloat[Arrow with no lighting.]{
-    \label{fig:pv_no_lighting_arrow}
-    \includegraphics[height=5cm]{pics/pv_nolight_arrow}
-  }
-  \caption{Lighting options in ParaView.}
-  \label{fig:pv_lighting}
-\end{figure}
-
 \section{Extracting Vector Graphics of the Mesh on Slices}
 
 \subsection{GMV}
@@ -523,175 +487,6 @@ analytical solution script from paraview to compute L2 norm.
 \end{itemize}
 
 
-\section{ANSYS Specific Tasks}
-\label{sec:ansys_post}
-
-\todo[inline]{Check what ANSYS specific content can be moved to common postproc chapter.}
-
-The main source  of documentation for post-processing in  ANSYS Classic is the
-{\it  Basic Analysis  Guide -  Chapter 5.  The General  Postprocessor (POST1)}
-which can be  found in the ANSYS online help.  A modelling and post-processing
-guide               can               also              be               found
-here\footnote{\url{http://www-old.hallf.kth.se/\~mart/Demo\_Ansys\_classic.pdf}}.
-One  Example  in CADFEM  Service  Newsletter  6/2003 (Ergebnisbeurteilung  bei
-symmetrischen
-Modellen)\footnote{\url{http://www.cadfem.at/fileadmin/files/9\_service\_newsletter/2003/0306/Newsletter\_06\_2003.pdf}}
-
-The mapping  from CFS++ result  types to ANSYS  results is done in  the method
-{\tt    void    AnsysBinlibIfaceGeneral::MapInternal2ANSYSNodeDof(SolutionType
-solType)}                    in                    the                    file
-{\tt source/DataInOut/SimInOut/AnsysRST/AnsysBinlibIfaceGeneral.cc}.
-
-\textcolor{red}{ATTENTION AGAIN:  At the moment, the ANSYS  .rst writer within
-cfs/cfstool is  hardwired in the  startup scripts to  the version 11.0  of the
-ANSYS libbin.so.  If a different version of  the libbin.so has to  be used the
-startup scripts have to be changed.}
-
-Plot    nodal   solution   elecPot    on   .rst    from   test    suite   case
-{\tt CFS\_TESTSUITE/TESTSUIT/cfstool/ hdf5\_to\_rst/results\_rst}
-
-\begin{verbatim}
-/POST1  
-INRES,ALL
-
-! Read result file
-FILE,'output_ms1','rst','.' 
-
-! Read components/regions from components file
-cdread,db,'output_ms1','cm'
-
-! List available components/regions
-cmlist
-
-SET,FIRST   
-plnsol,volt
-\end{verbatim}%
-%
-Postprocessing  can also  be accessed  via the  ANSYS Main  Menu $\rightarrow$
-General  Postproc $\rightarrow$  Results Viewer  $\rightarrow$  Select Results
-File  $\rightarrow$   Choose  a  result  item   $\rightarrow$  Nodal  Solution
-$\rightarrow$ DOF Solution $\rightarrow$ Electric Potential $\rightarrow$ Plot
-Results Button (left-most colorful one)
-
-For plotting element results use the {\tt plesol} command.
-
-\begin{figure}[htb]
-  \centering
-  \begin{overpic}[grid,tics=10,width=0.5\textwidth]{pics/ansys}
-    \put(10,20){\textcolor{white}{\bf The electrostatic man!}}
-  \end{overpic}
-  \caption{Postprocessing the electrostatic man with ANSYS Classic}
-  \label{fig:ansys}
-\end{figure}%
-
-The  plot  in  Fig.  \ref{fig:ansys}  has  been  generated  by  the  following
-commands\footnote{\url{http://www.mece.ualberta.ca/tutorials/ansys/PP/Slice/Slice.html}}:
-
-\begin{verbatim}
-/POST1  
-INRES,ALL   
-FILE,'man_model_ms1','rst','.' 
-SET,FIRST
-wpoffs,,,-0.3
-/type,,8
-/cplane,1
-plnsol,volt
-\end{verbatim}%
-%
-The information about which elements  belong to which region is encoded either
-as  material  number  in the  the  .rst  file  or  as  components in  the  .cm
-file. Moreover, the  .cm file also contains information  about named nodes and
-named elements.  To  show elements colored by region  and the according region
-number (which  is encoded as material  MAT in .rst) and  afterwards select the
-elements  with  MAT=4   the  following  sequence  of  commands   may  be  used
-(cf. Fig. \ref{fig:ansys_eplo_mat}):
-%
-\begin{verbatim}
-/POST1  
-INRES,ALL   
-FILE,'chargeaxi_ms1','rst','.' 
-SET,FIRST
-/PNUM,MAT,1
-eplo
-esel,s,mat,,4
-elist
-\end{verbatim}%
-%
-\begin{figure}[htb] 
-  \centering
-  \begin{overpic}[width=0.5\textwidth]{pics/ansys_eplo_mat}
-%    \put(10,20){\textcolor{white}{\bf The electrostatic man!}}
-  \end{overpic}
-  \caption{Element plot with material numbers}
-  \label{fig:ansys_eplo_mat}
-\end{figure}%
-
-To get information about available result sets, one can write the following sequence of commands
-%
-\begin{verbatim}
-/POST1  
-INRES,ALL   
-FILE,'pml3d_ms1','rst','.' 
-SET,list,2
-\end{verbatim}%
-%
-which will produce the following output
-%
-\begin{verbatim}
-  *****  INDEX OF DATA SETS ON RESULTS FILE  *****
-
-   SET   TIME/FREQ    LOAD STEP   SUBSTEP  CUMULATIVE
-     1  119.37             1         1         1
-    pml3d step: 1, frequency: 119.366, real                                 
-
-     2  119.37             1         1         1 (IMAGINARY)
-    pml3d step: 1, frequency: 119.366, imag
-\end{verbatim}%
-%
-Therefore to display the imaginary part of the solution the following sequence
-of commands can be used (cf. Fig. \ref{fig:ansys_pml3d})
-%
-\begin{verbatim}
-% Select imaginary part of first load step
-set,1,,,1
-plnsol,pres
-% Select real part of first load step
-set,1,,,0
-plnsol,pres
-\end{verbatim}%
-%
-Whether the  real/imag parts or  the abs/phase parts  of a complex  result are
-saved in  the {\tt .rst} file depends  on the settings made  in the simulation
-{\tt .xml} file.
-
-\begin{figure}[htb] 
-  \centering 
-  \subfloat[Real part.]{
-    \label{fig:ansys_pml3d_real}
-    \includegraphics[width=6cm]{pics/ansys_pml3d_real} }
-  \qquad
-  \subfloat[Imaginary part.]{
-    \label{fig:ansys_pml3d_imag}
-    \includegraphics[width=6cm]{pics/ansys_pml3d_imag}
-  } 
-  \caption{Contour plots of acoustic pressure for acoustic pml3d testsuite example.}
-  \label{fig:ansys_pml3d}
-\end{figure}
-
-While debugging the  ANSYS {\tt .rst} output writer it  was often necessary to
-dump the {\tt .rst} file within ANSYS. This can be achieved using the follwing
-sequence of commands.
-%
-\begin{verbatim}
-/AUX2   
-FORM,LONG   
-FILEAUX2,'chargeaxi_ms1','rst',' '  
-DUMP,ALL
-\end{verbatim}
-%
-In the ANSYS GUI the same  functionality can be reached via File $\rightarrow$
-List $\rightarrow$ Binary Files...
-
 \section{Gmsh Specific Preproc Tasks}
 \label{sec:gmsh_pre}
 
@@ -868,19 +663,6 @@ $\rightarrow$ Import Mesh and choosing the .cdb extension in the file dialog.
 \todo[inline]{Check  if this  material  belongs here  (especially the  section
 about the password server on rom) and move material to common tasks sections.}
 
-\subsubsection{Installing   the  GiD   CFS++   Pre-processing  Extension}   The
-preprocessing extension can be obtained  from the CFS++ development server. It
-has to be  installed into the problem types subdirectory of  GiD e.g. by using
-the following sequence of commands:
-
-\begin{verbatim}
-cd gid-9.0.2-x86_64/problemtypes
-svn co https://lse17.e-technik.uni-erlangen.de:2001/svn/CAESAR.gid/trunk CAESAR.gid
-cd ..
-
-# Start GiD using CAESER problem type.
-./gid -p CAESAR
-\end{verbatim}
 
 \subsubsection{GiD im Batchmodus}
 
@@ -913,62 +695,49 @@ dem Button See File... den Inhalt anzeigen lassen
 
 \section{ANSYS Specific Tasks}
 
-\todo[inline]{Check if  this ANSYS specific  preproc material can be  moved to
-common tasks sections.}
 
-\label{sec:ansys_pre}
-
-\noindent \url{http://www.bauwesen.uni-dortmund.de/nmi/Medienpool/Skripte/ansys-workshop061002.pdf}
-
-\noindent \url{http://www-old.hallf.kth.se/~mart/Demo_Ansys_classic.pdf}
-
-\noindent \url{http://www.me.umn.edu/education/courses/me5341/handouts/essay\%205AC.pdf}
-
-\noindent \url{http://people.civil.aau.dk/~ask/ansys/FEM-ANSYS-Classic-mdl.pdf}
-
-\noindent \url{http://people.civil.aau.dk/~ask/ansys/FEM-ANSYS-Classic-introduction.pdf}
-
-\noindent \url{http://people.civil.aau.dk/~ask/ansys/FEM-ANSYS-Classic-2d-plane-models.pdf}
-
-
-\subsubsection{ANSYS mkmesh/mkhdf5 Interface}
-\label{sec:ansys_mkmesh_mkhdf5}
-The extensions to ANSYS for writing out the mesh to either the .mesh or to the
-.h5 format  readable by CFS++ are implemented  in part as APDL  scripts and in
-part  by  an  AWK  script  (mkmesh)  or  as  reader  module  within  cplreader
-(mkhdf5).  The  source  code  of  the  extension  can  be  obtained  from  SVN
-\url{https://lse17.e-technik.uni-erlangen.de:2001/svn/mkmesh/trunk/}  or  from
-the attached files in this document.   The following APDL code has to be added
-either to  {\tt \$HOME/start110.ans} or  to {\tt v110/ansys/apdl/start110.ans}
-for the extension to be initialized:
+\subsection{Manually Creating a Single Pyramid Element and Solving Elastostatics}
 
 \begin{verbatim}
-! Settings for the mkmesh-Interface
-*ulib,mkmesh,mlib,/opt/pckg/ansys/local
-*abbr,init,*use,init
+/prep7
+
+n,,1.0, 1.0,    0.0
+n,,-1.0,        1.0,    0.0
+n,,-1.0,        -1.0,   0.0
+n,,1.0, -1.0,   0.0
+n,,0.0, 0.0,    1.0
+n,,0.0, 1.0,    0.0
+n,,-1.0,        0.0,    0.0
+n,,0.0, -1.0,   0.0
+n,,1.0, 0.0,    0.0
+n,,0.5, 0.5,    0.5
+n,,-0.5,        0.5,    0.5
+n,,-0.5,        -0.5,   0.5
+n,,0.5, -0.5,   0.5
+
+et,1,Solid95
+
+TYPE,1           ! ET 1
+MAT,1            ! MP 1
+REAL,1           ! Shape 1
+
+mp,ex,1,2e11
+mp,dens,1,7800
+mp,prxy,1,0.3
+
+e,1,2,3,4,5,5,5,5
+emore,6,7,8,9,5,5,5,5
+emore,10,11,12,13
+
+/SOL
+nsel,s,loc,z,-0.001,0.001
+D,all, ,0, , , ,UX,UY,UZ, , ,
+nsel,s,loc,z,1-0.001,1+0.001
+D,all, ,0.1, , , ,UX, , , , ,
+solve
 \end{verbatim}
 
-\noindent ANSYS APDL extension script for mkmesh/mkhdf5:
-\attachfile[icon=PushPin,description={ANSYS mkmesh and mkhdf5 extension.},mimetype=text/plain]{attachments/mkmesh.mlib.txt}
-
-\noindent AWK script implementing mkmesh:
-\attachfile[icon=PushPin,description={ANSYS mkmesh AWK script.},mimetype=text/plain]{attachments/mkmesh.txt}
-
-\noindent The syntax of the mkhdf5 APDL macro is as follows:
-
-\noindent {\tt mkhdf5,['degen'],['tolerant'],['nodeltemp'],['verbose']}
-
-If  'degen' is  specified  degenerated quadrilaterals  and  hexehedra will  be
-generated  instead  of  triangles,   tetrahedra,  pyramids  and  wedges.   The
-'tolerant' flag admits  gaps in node or element  numbering. The resulting node
-and  element numbers  in the  HDF5 file  may therefore  be different  from the
-numbers in  the ANSYS  mesh. When 'nodeltemp'  is specified,  the intermediate
-files generated  by our interface will not  be deleted once the  HDF5 file has
-been  successfully written. The  'verbose' flag  instructs cplreader  to print
-more information on the console.
-
-
-\subsubsection{Create Volume and Surface Mesh from Surface Mesh of Closed Body}
+\subsection{Create Volume and Surface Mesh from Surface Mesh of Closed Body}
 \label{sec:ansys_surf_vol_mesh}
 
 Sometimes one  has the problem to create  a volume mesh from  a closed surface
@@ -993,69 +762,5 @@ this surface. In the end we write out our new HDF5 file.
 \noindent  For creating volume  meshes from  surface meshes  in Gmsh  refer to
 Sec. \ref{sec:gmsh_surf_vol_mesh}.
 
-\subsubsection{Creating Transitional Pyramid Elements and Wedges by Extrusion}
-
-If you want to  mesh a model which contains hexas and  tetras or wedges with a
-conforming                              mesh                              (cf.
-\url{http://www.andrew.cmu.edu/user/sowen/hextet/hextotet2.htm}),  you have to
-use transitional pyramids as Fig.  \ref{fig:ansys_trans_pyras} shows.  Here is
-the    script    \attachfile[icon=PushPin,description={Creating   transitional
-pyramids                                                                     in
-ANSYS.},mimetype=text/plain]{attachments/ansys_transitional_pyra.txt},    which
-has been  used to  generate this  mesh. Also refer  to sections  Mesh Controls
-$\rightarrow$  Creating  Transitional  Pyramid  Elements  and  Solid  Modeling
-$\rightarrow$ Extruding Volumes in \cite{ANSYSModeling}.
-
-\begin{figure}[htb] 
-  \centering 
-  \subfloat[Complex model containing hexas, pyras and tetras.]{
-    \label{fig:ansys_heatsink}
-    \begin{overpic}[height=4.5cm]{pics/ansys_heatsink}
-    \end{overpic}
-    }
-  \qquad
-  \subfloat[Mesh containing hexas, transitional pyramids, tetras and wedges.]{
-    \label{fig:ansys_trans_pyras}
-    \begin{overpic}[height=4.5cm]{pics/ansys_trans_pyras}
-    \end{overpic}
-  } 
-  \caption{Examples for transitional pyramids.}
-  \label{fig:ansys_pyras}
-\end{figure}
 
 
-\subsubsection{Export of ICEM Meshes to ANSYS and Modification of Element Types}
-
-To export  an ICEM 12 mesh into  ANSYS /PREP7 format go  to File $\rightarrow$
-Export $\rightarrow$ ANSYS. Activate the  Advanced Edit Options and click Edit
-Attributes.  In the  dialogue box set the element type to  MESH200 for all 3D,
-2D and 1D elements (cf. Fig. \ref{fig:icem_export_ansys_opts})
-
-\begin{figure}[htb] 
-  \centering 
-  \subfloat[Export to ANSYS tab.]{
-    \label{fig:icem_export_ansys}
-    \begin{overpic}{pics/icem_export_ans}
-%      \put(10,20){\textcolor{red}{\bf Test}}
-    \end{overpic}
-    }
-  \qquad
-  \subfloat[Element type options.]{
-    \label{fig:icem_element_type_opts}
-    \begin{overpic}{pics/icem_export_ansys_opts}
-      \put(56,16){\textcolor{red}{\sf {\tiny \shortstack[c]{Edit options for\\3D, 2D and 1D elements}}}}
-      \put(66,27){\textcolor{red}{\sf {\tiny \shortstack[c]{Set element type\\to MESH200}}}}
-    \end{overpic}
-  } 
-  \caption{Export options for ANSYS /PREP7 mesh in ICEM.}
-  \label{fig:icem_export_ansys_opts}
-\end{figure}
-
-The exported mesh contains node components (cmlist) and element regions tagged
-by element types (etlist). Please note,  that no pyramids will be written out,
-if the element types are not switched to MESH200.
-
-\attachfile[icon=PushPin,description={Result of File -> Export -> ANSYS in ICEM CFD.},mimetype=text/plain]{attachments/Pfeifenfussmodell_modificated_swept.in.txt}
-
-\noindent How to modify third party ANSYS /prep7 meshes to write them with mkhdf5
-\attachfile[icon=PushPin,description={ANSYS input script for converting ICEM mesh to mkhdf5 mesh.},mimetype=text/plain]{attachments/icem_to_ansys.in.txt}

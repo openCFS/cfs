@@ -392,6 +392,7 @@ share/doc/user/advPrePostManual/pics/pv/paraview_named_nodes_glyph.png -text
 share/doc/user/advPrePostManual/pics/pv/paraview_named_nodes_select_thresh.pdf -text
 share/doc/user/advPrePostManual/pics/pv/paraview_named_nodes_select_threshold.png -text
 share/doc/user/advPrePostManual/pics/pv/paraview_named_nodes_select_threshold.svg -text
+share/doc/user/advPrePostManual/pics/pv/polar_plot.png -text
 share/doc/user/advPrePostManual/pics/pv/pv_xi_eta.pdf -text svneol=unset#application/pdf
 share/doc/user/advPrePostManual/pics/pv/pv_xi_eta.svg -text
 share/doc/user/advPrePostManual/pics/pv/pv_xi_eta_mapped.png -text svneol=unset#image/png
@@ -420,6 +421,7 @@ share/doc/user/advPrePostManual/sources/emacs_settings.sh svneol=native#text/pla
 share/doc/user/advPrePostManual/sources/gid_batch.tcl svneol=native#text/plain
 share/doc/user/advPrePostManual/sources/gid_pw_server.sh svneol=native#text/plain
 share/doc/user/advPrePostManual/sources/gmsh_wing_points.cpp svneol=native#text/plain
+share/doc/user/advPrePostManual/sources/gnuplot_csv.plt -text
 share/doc/user/advPrePostManual/sources/icem_to_ansys.in.txt -text
 share/doc/user/advPrePostManual/sources/lmboot.sh -text
 share/doc/user/advPrePostManual/sources/mkmesh.mlib.txt -text
@@ -430,7 +432,10 @@ share/doc/user/advPrePostManual/sources/nacs_win_build_howto.txt svneol=native#t
 share/doc/user/advPrePostManual/sources/org.eclipse.core.resources.prefs -text
 share/doc/user/advPrePostManual/sources/org.eclipse.ui.editors.prefs -text
 share/doc/user/advPrePostManual/sources/photo.c svneol=native#text/plain
+share/doc/user/advPrePostManual/sources/polarloop.plt -text
+share/doc/user/advPrePostManual/sources/polarplot.plt -text
 share/doc/user/advPrePostManual/sources/pv_analytical_sol.py -text
+share/doc/user/advPrePostManual/sources/pv_dirplot.m -text
 share/doc/user/advPrePostManual/sources/pv_matlab_besselh.m -text
 share/doc/user/advPrePostManual/sources/pv_scipy_hankel1.py -text
 share/doc/user/advPrePostManual/sources/pv_texture_map.py -text
