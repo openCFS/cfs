@@ -268,6 +268,44 @@ protected:
 
 };
 
+
+//! Lagrangian wedge element of 1st order (ET_WEDGE6)
+class FeH1LagrangeWedge1 : public FeH1LagrangeExpl {
+
+public:
+
+  //! Constructor  
+  FeH1LagrangeWedge1();
+
+  //! Destructor
+  virtual  ~FeH1LagrangeWedge1();
+
+protected:
+
+  //! @copydoc FeH1::CalcShFnc
+  void CalcShFnc( Vector<Double>& shape,
+                  const Vector<Double>& point,
+                  const Elem* ptElem,
+                  UInt comp = 1 );
+
+  //! @copydoc FeH1::CalcLocDerivShFnc
+  void CalcLocDerivShFnc( Matrix<Double> & deriv, 
+                          const Vector<Double>& point,
+                          const Elem* ptElem,
+                          UInt comp = 1 );
+
+  //! @copydoc FeH1LagrangeExpl::CoordIsInsideElem
+  bool CoordIsInsideElem( const Vector<Double>& point,
+                          Double tolerance );
+
+  //! @copydoc FeH1LagrangeExpl::GetLocalIntPoints4Surface
+  void GetLocalIntPoints4Surface(const StdVector<UInt> & surfConnect,
+                                 const StdVector<UInt> & volConnect,
+                                 const LocPoint & surfIntPoint,
+                                 LocPoint & volIntPoint,
+                                 Vector<Double>& locNormal );
+};
+
 // ========================================================================
 // Lagrange H1 elements of 2nd order
 // ========================================================================

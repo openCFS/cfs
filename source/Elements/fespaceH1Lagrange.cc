@@ -239,6 +239,7 @@ namespace CoupledField{
         refElems_[region][Elem::ET_TRIA3]  = new FeH1LagrangeTria1();
         refElems_[region][Elem::ET_QUAD4]  = new FeH1LagrangeQuad1();
         refElems_[region][Elem::ET_HEXA8]  = new FeH1LagrangeHex1();
+        refElems_[region][Elem::ET_WEDGE6] = new FeH1LagrangeWedge1();
         refElems_[region][Elem::ET_LINE3]  = new FeH1LagrangeLine2();
         refElems_[region][Elem::ET_QUAD8]  = new FeH1LagrangeQuad2();
         refElems_[region][Elem::ET_HEXA20] = new FeH1LagrangeHex2();

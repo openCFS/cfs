@@ -5,6 +5,7 @@
 #include "H1ElemsHi.hh"
 #include "Utils/autodiff.hh"
 #include "polynomials.hh"
+#include "Domain/edgeFace.hh"
 #include "DataInOut/Logging/cfslog.hh"
 
 namespace CoupledField {
@@ -35,6 +36,7 @@ namespace CoupledField {
   void FeH1Hi::GetNumFncs( StdVector<UInt>& numFcns,
                            EntityType entityType,
                            UInt dof ) {
+    
     // this can be implemented in a general way, as the information about
     // the number of function is already stored in entityFncs_
     
@@ -47,6 +49,10 @@ namespace CoupledField {
   }
 
   void FeH1Hi::CalcNumUnknowns() {
+    
+    // This method calculates the number of unknowns for all
+    // elements based on the tensor product, i.e. the 
+    // line, quad and hex element.
     
     LOG_DBG(feH1Hi) << "CalcNumUnknowns for element "
         << Elem::feType.ToString(feType_);
@@ -261,149 +267,157 @@ namespace CoupledField {
   // ====================
   //  TRIANGULAR ELEMENT 
   // ====================
-     
-    FeH1HiTria::FeH1HiTria() {
-      feType_ = Elem::ET_TRIA3;
-      shape_ = Elem::shapes[feType_];
-    }
-      
-    FeH1HiTria::~FeH1HiTria() {
-      
-    }
-    
-    void FeH1HiTria::CalcShFnc( Vector<Double>& shape, 
-                                const Vector<Double>& lp,
-                               const Elem * elem, UInt comp ) {
-      if (updateUnknowns_) CalcNumUnknowns();
-      _CalcShFnc(lp[0], lp[1], elem, shape);
-    }
-    
-    void FeH1HiTria::CalcLocDerivShFnc( Matrix<Double> & deriv, 
-                                        const Vector<Double>& lp,
-                                        const Elem * elem,  UInt comp )  {
-      if (updateUnknowns_) CalcNumUnknowns();
-      AutoDiff<Double,2> x(lp[0],0), y(lp[1],1);
-      StdVector<AutoDiff<Double,2> > dShape;
-      _CalcShFnc(x,y,elem,dShape);
-      UInt size = dShape.GetSize();
-      deriv.Resize(size, 2);
-      for( UInt i = 0; i < size; ++i ) {
-        for(UInt j = 0; j < 2; ++j ) {
-          deriv[i][j] = dShape[i].DVal(j);
-        }
+
+  FeH1HiTria::FeH1HiTria() {
+    feType_ = Elem::ET_TRIA3;
+    shape_ = Elem::shapes[feType_];
+  }
+
+  FeH1HiTria::~FeH1HiTria() {
+
+  }
+
+  void FeH1HiTria::CalcShFnc( Vector<Double>& shape, 
+                              const Vector<Double>& lp,
+                              const Elem * elem, UInt comp ) {
+    if (updateUnknowns_) CalcNumUnknowns();
+    _CalcShFnc(lp[0], lp[1], elem, shape);
+  }
+
+  void FeH1HiTria::CalcLocDerivShFnc( Matrix<Double> & deriv, 
+                                      const Vector<Double>& lp,
+                                      const Elem * elem,  UInt comp )  {
+    if (updateUnknowns_) CalcNumUnknowns();
+    AutoDiff<Double,2> x(lp[0],0), y(lp[1],1);
+    StdVector<AutoDiff<Double,2> > dShape;
+    _CalcShFnc(x,y,elem,dShape);
+    UInt size = dShape.GetSize();
+    deriv.Resize(size, 2);
+    for( UInt i = 0; i < size; ++i ) {
+      for(UInt j = 0; j < 2; ++j ) {
+        deriv[i][j] = dShape[i].DVal(j);
       }
     }
+  }
 
-    template<typename T_SCAL, typename T_VEC>
-    void FeH1HiTria::_CalcShFnc( const T_SCAL x, const T_SCAL y, 
-                                 const Elem * elem,
-                                 T_VEC& ret ) {
-      
-      T_SCAL lambda[3] = { 1.0 - x - y,
-                           x,
-                           y };
-      
-      UInt pos = 0;
-      ret.Resize(actNumFncs_);
+  template<typename T_SCAL, typename T_VEC>
+  void FeH1HiTria::_CalcShFnc( const T_SCAL x, const T_SCAL y, 
+                               const Elem * elem,
+                               T_VEC& ret ) {
 
-      // 1) Vertex shape functions
-      for( UInt i = 0; i < 3; ++i ) {
-        ret[i] = lambda[i];
-      }
+    T_SCAL lambda[3] = { 1.0 - x - y,
+                         x,
+                         y };
 
-      pos = 3;
-  #ifdef USE_EDGES 
-      // 2) Edge shape functions
-      for( UInt i = 0; i < 3; ++ i ) {
-        Double fac = elem->edges[i] < 0 ? -1.0 : 1.0;
-        UInt order = orderEdge_[i];
-        
-        // if order of edge is below two, we leave
-        if( order == 1 ) continue;
-        UInt index1 = shape_.edgeVertices[i][0]-1;
-        UInt index2 = shape_.edgeVertices[i][1]-1;
-        
+    UInt pos = 0;
+    ret.Resize(actNumFncs_);
 
-        // edge: parameterization of edge [-1;+1]
-        // edgeNormal: parameterization of extension into element [-1;+1]
-        T_SCAL edge  =  lambda[index2] -  lambda[index1]; 
-        T_SCAL edgeNormal = lambda[index2] + lambda[index1];
+    // 1) Vertex shape functions
+    for( UInt i = 0; i < 3; ++i ) {
+      ret[i] = lambda[i];
+    }
 
-        T_VEC vals;
-        ScaledIntLegendreP2<T_SCAL,T_VEC>( vals, order, edgeNormal, fac*edge );
-        for( UInt j = 0; j < order-1; ++j ) {
-          ret[pos++] = vals[j];
-        } 
-      }   
-  #endif
-//      
+    pos = 3;
+#ifdef USE_EDGES 
+    // 2) Edge shape functions
+    for( UInt i = 0; i < 3; ++ i ) {
+      Double fac = elem->edges[i] < 0 ? -1.0 : 1.0;
+      UInt order = orderEdge_[i];
+
+      // if order of edge is below two, we leave
+      if( order == 1 ) continue;
+      UInt index1 = shape_.edgeVertices[i][0]-1;
+      UInt index2 = shape_.edgeVertices[i][1]-1;
+
+      // edge: parameterization of edge [-1;+1]
+      // edgeNormal: parameterization of extension into element [-1;+1]
+      T_SCAL edge  =  lambda[index2] -  lambda[index1]; 
+      T_SCAL edgeNormal = lambda[index2] + lambda[index1];
+
+      T_VEC vals;
+      ScaledIntLegendreP2<T_SCAL,T_VEC>( vals, order, edgeNormal, fac*edge );
+      for( UInt j = 0; j < order-1; ++j ) {
+        ret[pos++] = vals[j];
+      } 
+    }   
+#endif
+    //      
 #ifdef USE_FACES
-      // 3) Inner shape functions
-      UInt order = orderFace_[0][0];
-      if (order >= 3 ) {
-        // Note: Determination of orientation is still to come.
-        // In our case this means cyclic re-ordering of the nodes, to
-        // match a given global numbering
-        T_VEC f1, f2;
-        ScaledIntLegendreP2(f1, order-1, lambda[1]+lambda[0],lambda[1]-lambda[0]);
-        Legendre(f2, order-3, lambda[2]*2.0 - T_SCAL(1));
-        for( UInt i = 0; i <= order - 3; ++i ) {
-          for( UInt j = 0; j <= order - 3 - i; ++j ) {
-            ret[pos++] = f1[i] * f2[j] * lambda[2];
-          }
-        }
-      }
-  #endif
+    // 3) Inner shape functions
+    UInt order = orderFace_[0][0];
+    if (order >= 3 ) {
+      
+      // obtain nodes of face
+      const StdVector<UInt>& unsorted = shape_.faceNodes[0];
+      StdVector<UInt> ind;
+      Face::GetSortedIndices( ind, unsorted, 3, elem->faceFlags[0]);
+      
+      // calculate inner shape functions
+      UInt nFct =  TriaInnerLegendre( ret, pos, order, 
+                                      lambda[ind[0]], lambda[ind[1]],
+                                      lambda[ind[2]]);
+      pos += nFct;
+//        // OLD VERSION WITH EXPLITICLY CODED CALCULATION
+//      T_VEC f1, f2;
+//      ScaledIntLegendreP2(f1, order-1, lambda[1]+lambda[0],lambda[1]-lambda[0]);
+//      Legendre(f2, order-3, lambda[2]*2.0 - T_SCAL(1));
+//      for( UInt i = 0; i <= order - 3; ++i ) {
+//        for( UInt j = 0; j <= order - 3 - i; ++j ) {
+//          ret[pos++] = f1[i] * f2[j] * lambda[2];
+//        }
+//      }
     }
-    void FeH1HiTria::CalcNumUnknowns() {
+#endif
+  }
+  void FeH1HiTria::CalcNumUnknowns() {
 
-      LOG_DBG(feH1Hi) << "CalcNumUnknowns for element "
-          << Elem::feType.ToString(feType_);
+    LOG_DBG(feH1Hi) << "CalcNumUnknowns for element "
+        << Elem::feType.ToString(feType_);
 
-      actNumFncs_ = 0;
+    actNumFncs_ = 0;
 
-      // Vertices
-      StdVector<UInt>& vertFncs = entityFncs_[VERTEX];
-      vertFncs.Resize(3);
-      vertFncs.Init(1); // Vertices have always order 1
-      actNumFncs_ += 3;
+    // Vertices
+    StdVector<UInt>& vertFncs = entityFncs_[VERTEX];
+    vertFncs.Resize(3);
+    vertFncs.Init(1); // Vertices have always order 1
+    actNumFncs_ += 3;
 
-      // Edges
-      StdVector<UInt>& edgeFncs = entityFncs_[EDGE];
-      edgeFncs.Resize(3);
-      edgeFncs.Init(0);
-      UInt unknowns = 0;
+    // Edges
+    StdVector<UInt>& edgeFncs = entityFncs_[EDGE];
+    edgeFncs.Resize(3);
+    edgeFncs.Init(0);
+    UInt unknowns = 0;
 #ifdef USE_EDGES
-      for( UInt i = 0; i < 3; ++i ) {
-        unknowns = (orderEdge_[i]-1);
-        edgeFncs[i] = unknowns;
-        LOG_DBG(feH1Hi) <<   "edge " << i+1 << " has order" <<  orderEdge_[i]-1
-            << " and " << unknowns << "unknowns";
-        actNumFncs_ += unknowns;
-      }
+    for( UInt i = 0; i < 3; ++i ) {
+      unknowns = (orderEdge_[i]-1);
+      edgeFncs[i] = unknowns;
+      LOG_DBG(feH1Hi) <<   "edge " << i+1 << " has order" <<  orderEdge_[i]-1
+          << " and " << unknowns << "unknowns";
+      actNumFncs_ += unknowns;
+    }
 #endif
 
-      // Faces
-      StdVector<UInt>& faceFncs = entityFncs_[FACE];
-      faceFncs.Resize(1);
-      faceFncs.Init(0);
+    // Faces
+    StdVector<UInt>& faceFncs = entityFncs_[FACE];
+    faceFncs.Resize(1);
+    faceFncs.Init(0);
 #ifdef USE_FACES
-      if( orderFace_[0][0] > 2 ) {
-        unknowns = (orderFace_[0][0]-2) * (orderFace_[0][0]-1) / 2;
-        faceFncs[0] = unknowns;
-        LOG_DBG(feH1Hi) << "face 0 has " << unknowns << "unknowns";
-        actNumFncs_ += unknowns;
-      }
-#endif
-      // Interior
-      StdVector<UInt>& innerFncs = entityFncs_[INTERIOR];
-      innerFncs.Resize(1);
-      innerFncs.Init(0);
-      
-      LOG_DBG(feH1Hi) <<  "totalUnknowns: " << actNumFncs_  << std::endl;
-      updateUnknowns_ = false;
+    if( orderFace_[0][0] > 2 ) {
+      unknowns = (orderFace_[0][0]-2) * (orderFace_[0][0]-1) / 2;
+      faceFncs[0] = unknowns;
+      LOG_DBG(feH1Hi) << "face 0 has " << unknowns << "unknowns";
+      actNumFncs_ += unknowns;
     }
-  
+#endif
+    // Interior
+    StdVector<UInt>& innerFncs = entityFncs_[INTERIOR];
+    innerFncs.Resize(1);
+    innerFncs.Init(0);
+
+    LOG_DBG(feH1Hi) <<  "totalUnknowns: " << actNumFncs_  << std::endl;
+    updateUnknowns_ = false;
+  }
+
   // =======================
   //  QUADRILATERAL ELEMENT 
   // =======================
@@ -449,11 +463,12 @@ namespace CoupledField {
                         0.25*(1.0+x)*(1.0-y),
                         0.25*(1.0+x)*(1.0+y),
                         0.25*(1.0-x)*(1.0+y)};
-    
+#ifdef USE_EDGES
     T_SCAL sigma[4]  = {0.5*((1.0-x)+(1.0-y)),
                         0.5*((1.0+x)+(1.0-y)),
                         0.5*((1.0+x)+(1.0+y)),
                         0.5*((1.0-x)+(1.0+y))};
+#endif
     UInt pos = 0;
     ret.Resize(actNumFncs_);
 
@@ -494,15 +509,20 @@ namespace CoupledField {
     UInt order2 = orderFace_[0][1];
     if (order1 >= 2 && order2 >= 2 ) {
 
-      T_SCAL xi = x;
-      T_SCAL eta = y;
-      // test, if xi and eta get reversed
-      if( elem->faceFlags[0][2] == false) {
-        std::swap(order1, order2);
-        std::swap(xi, eta);
-      }
-      xi = elem->faceFlags[0][0] ? xi : -xi;
-      eta = elem->faceFlags[0][1] ? eta : -eta;
+      const StdVector<UInt>& unsorted = shape_.faceNodes[0];
+      StdVector<UInt> ind;
+      Face::GetSortedIndices( ind, unsorted, 4, elem->faceFlags[0]);
+
+      T_SCAL xi  = sigma[ind[1]] - sigma[ind[0]];
+      T_SCAL eta = sigma[ind[3]] - sigma[ind[0]];
+      // === OLD IMPLEMENTATION ===
+//      // test, if xi and eta get reversed
+//      if( elem->faceFlags[0][2] == false) {
+//        std::swap(order1, order2);
+//        std::swap(xi, eta);
+//      }
+//      xi = elem->faceFlags[0][0] ? xi : -xi;
+//      eta = elem->faceFlags[0][1] ? eta : -eta;
       
       T_VEC xiVals, etaVals;
       IntLegendreP2<T_SCAL,T_VEC>( xiVals, order1, xi );
@@ -513,186 +533,11 @@ namespace CoupledField {
     }
 #endif
   }
-    
-  
-//  void FeH1HiQuad::CalcShFnc( Vector<Double>& shape, const LocPoint& lp,
-//                             const Elem * elem, UInt comp ) {
-//    
-//    // create nodal shape functions
-//    shape.Resize( actNumFncs_ );
-//    const Vector<Double> & point = lp.coord;
-//    // --------------------
-//    //  a) nodal functions
-//    // --------------------
-//    shape[0] = 0.25 * ( 1.0 - point[0] ) * ( 1.0 - point[1] ); 
-//    shape[1] = 0.25 * ( 1.0 + point[0] ) * ( 1.0 - point[1] );
-//    shape[2] = 0.25 * ( 1.0 + point[0] ) * ( 1.0 + point[1] );
-//    shape[3] = 0.25 * ( 1.0 - point[0] ) * ( 1.0 + point[1] );
-//    
-//    UInt offset = 4;
-//    
-//    // ToDo: The following section is just temporary, as we want to replace
-//    // it by the recursive calculation of shape functions taken from ngsolve
-//    // --------------------
-//    //  b) edge functions
-//    // --------------------
-//    // Obtain order of element
-//    Integer order;
-//    Double val, factor, deriv;
-//
-//#define QUAD_EDGE_FCN(edgeNum,  sign_1, dir_1, dir_2 )                  \
-//    factor = elem->edges[edgeNum-1] < 0 ? -1.0 : 1.0;                 \
-//    for( Integer iDof = 2; iDof <= order; iDof++, offset++ ) {        \
-//      EvalPolynom( val, deriv, iDof, lCoeff_[iDof],                   \
-//                   factor*point[dir_2] );                          \
-//                   shape[offset] = 0.5 * ( 1 sign_1 point[dir_1] ) * val;       \
-//    }
-//
-//    //  EDGE #1
-//    order = entityOrder_[EDGE][0];
-//    QUAD_EDGE_FCN( 1, -, 1, 0 );
-//
-//    //  EDGE #2
-//    order = entityOrder_[EDGE][1];
-//    QUAD_EDGE_FCN( 2, +, 0, 1 );
-//
-//    //  EDGE #3
-//    order = entityOrder_[EDGE][2];
-//    QUAD_EDGE_FCN( 3, +, 1, 0 );
-//
-//    //  EDGE #4
-//    order = entityOrder_[EDGE][3];
-//    QUAD_EDGE_FCN( 4, -, 0, 1 );
-//    
-////    // --------------------
-////    //  c) face functions
-////    // --------------------
-////    Double val_2, deriv_2, val_3, deriv_3;
-////    Double sFlag2, sFlag3;
-////    Integer order_2, order_3;
-////    UInt d2, d3;
-////
-////    order_2 = entityOrder_[EDGE][0];
-////    order_3 = entityOrder_[EDGE][1];
-////    if( elem->faceFlags[0].test(0) == true) {
-////      sFlag2 = (elem->faceFlags[0].
-////          test(2) == true) ? 1.0 : -1.0;
-////      sFlag3 = (elem->faceFlags[0].
-////          test(1) == true) ? 1.0 : -1.0;
-////      d2 = 0;
-////      d3 = 1;
-////    } else {
-////      sFlag3 = (elem->faceFlags[0].test(2) == true) ? 1.0 : -1.0;
-////      sFlag2 = (elem->faceFlags[0].test(1) == true) ? 1.0 : -1.0;
-////      d3 = 0;
-////      d2 = 1;
-////    }
-////    for( Integer i = 2; i <= (order_2)-2; i++ ) {
-////      for( Integer j = 2; j <= (order_3)-2; j++ ) {
-////        if( (i + j) > std::max(order_2, order_3) ) {
-////          continue;
-////        }
-////        EvalPolynom( val_2, deriv_2, i, lCoeff_[i],
-////                     sFlag2* point[d2] );
-////        EvalPolynom( val_3, deriv_3, j, lCoeff_[j],
-////                     sFlag3*point[d3] );
-////        shape[offset] = val_2  * val_3;
-////        offset++;
-////      }
-////    }
-//
-//  }
-//
-//  void FeH1HiQuad::GetDerivShFnc( Matrix<Double> & deriv, const LocPoint& lp,
-//                                  const Elem * elem,  UInt comp )  {
-//    // nodal shape functions
-//    
-//   const Vector<Double> & point = lp.coord;
-//    StdVector<StdVector<Double> >& coords = shape_.nodeCoords;
-//    deriv.Resize( actNumFncs_, 2 );
-//    for( UInt i = 0; i < 4; i++ ) {
-//      deriv[i][0] = 0.25 * coords[i][0] * (1 + coords[i][1] * point[1] );
-//      deriv[i][1] = 0.25 * (1 + coords[i][0] * point[0] ) * coords[i][1];
-//    }
-//    
-//    // -------------------
-//    //  b) edge functions
-//    // -------------------
-//    UInt offset = 4;
-//
-//    // Obtain order of element
-//    Integer order_2, order_3;
-//    Double val, deriv1D, factor;
-//#define QUAD_EDGE_DERIV( edgeNum, sign_1, dir_1, dir_2 )                \
-//    factor = elem->edges[edgeNum-1] < 0 ? -1.0 : 1.0;                 \
-//    for( Integer iDof = 2; iDof <= order; iDof++, offset++ ) {        \
-//      EvalPolynom( val, deriv1D, iDof, lCoeff_[iDof],                   \
-//                   factor*point[dir_2] );                          \
-//                   deriv[offset][dir_1] = sign_1(0.5 * val);                      \
-//                   deriv[offset][dir_2] =  0.5 * ( 1.0 sign_1 point[dir_1])    \
-//                   * deriv1D * factor;                  \
-//    }
-//
-//    // EDGE #1
-//    UInt order = entityOrder_[EDGE][0];
-//    QUAD_EDGE_DERIV( 1, -, 1, 0 );
-//
-//    // EDGE #2
-//    order = entityOrder_[EDGE][1];
-//    QUAD_EDGE_DERIV( 2, +, 0, 1 );
-//
-//    // EDGE #3
-//    order = entityOrder_[EDGE][2];
-//    QUAD_EDGE_DERIV( 3, +, 1, 0 );
-//
-//    // EDGE #4
-//    order = entityOrder_[EDGE][3];
-//    QUAD_EDGE_DERIV( 4, -, 0, 1 );
-//
-////    // -------------------
-////    //  c) face functions
-////    // -------------------
-////
-////    Double val_2, deriv_2, val_3, deriv_3;
-////    Double sFlag2, sFlag3;
-////    UInt d2, d3;
-////
-////    order_2 = order = entityOrder_[EDGE][1];
-////    order_3 = order = entityOrder_[EDGE][2];
-////    if( elem->faceFlags[0].test(0) == true) {
-////      sFlag2 = (elem->faceFlags[0].
-////          test(2) == true) ? 1.0 : -1.0;
-////      sFlag3 = (elem->faceFlags[0].
-////          test(1) == true) ? 1.0 : -1.0;
-////      d2 = 0;
-////      d3 = 1;
-////    } else {
-////      sFlag3 = (elem->faceFlags[0].test(2) == true) ? 1.0 : -1.0;
-////      sFlag2 = (elem->faceFlags[0].test(1) == true) ? 1.0 : -1.0;
-////      d3 = 0;
-////      d2 = 1;
-////
-////    }
-//////    for( Integer i = 2; i <= (order_2) - 2; i++ ) {
-//////      for( Integer j = 2; j <= (order_3) - 2; j++ ) {
-////    for( Integer i = 2; i <= (order_2) ; i++ ) {
-////      for( Integer j = 2; j <= (order_3) ; j++ ) {
-////        //if( (i + j) > std::max(order_2,order_3) ) { continue; }
-////        EvalPolynom( val_2, deriv_2, i, lCoeff_[i],
-////                     sFlag2* point[d2] );
-////        EvalPolynom( val_3, deriv_3, j, lCoeff_[j],
-////                     sFlag3*point[d3] );
-////        deriv[offset][d2] = deriv_2 * sFlag2 * val_3;
-////        deriv[offset][d3] = val_2 * deriv_3 * sFlag3;
-////        offset++;
-////      }
-////    }
-//  }
 
   
-  // ============================
-  //  HEXAHEDRAL ELEMENT ELEMENT 
-  // ============================
+  // ====================
+  //  HEXAHEDRAL ELEMENT  
+  // ====================
   
   FeH1HiHex::FeH1HiHex() {
     feType_ = Elem::ET_HEXA8;
@@ -727,13 +572,6 @@ namespace CoupledField {
         deriv[i][j] = dShape[i].DVal(j);
       }
     }
-    
-    // Debugging stuff
-//    StdVector<Double> shape(size);
-//    for( UInt i = 0; i < size; ++i ) {
-//      shape[i] = dShape[i].Val();
-//    }
-//    std::cerr << "shape functions are " << shape << std::endl;
   }
   
   template<typename T_SCAL, typename T_VEC>
@@ -799,28 +637,24 @@ namespace CoupledField {
       UInt order1 = orderFace_[i][0];
       UInt order2 = orderFace_[i][1];
       if (order1 >= 2 && order2 >= 2 ) {
+        
+        // get unique sorting of the face
+        const StdVector<UInt>& unsorted = shape_.faceNodes[i];
+        StdVector<UInt> ind;
+        Face::GetSortedIndices( ind, unsorted, 4, elem->faceFlags[i]);
+        
         // calculate face extension parameter which is the sum
         // of all lambdas of one face
         T_SCAL sum_lambda = 0.0;
         for( UInt j = 0; j < 4; ++j)
-          sum_lambda += lambda[shape_.faceVertices[i][j]-1];
+          sum_lambda += lambda[ind[j]];
         
         // Parameterization of first edge, connecting the
         // local nodes of the face 1->2
-        T_SCAL xi  =  sigma[shape_.faceVertices[i][1]-1]
-                    - sigma[shape_.faceVertices[i][0]-1];
+        T_SCAL xi  =  sigma[ind[1]] - sigma[ind[0]];
         // Parameterization of second edge, connecting the
         // local nodes of the face 1->4
-        T_SCAL eta  =  sigma[shape_.faceVertices[i][3]-1]
-                     - sigma[shape_.faceVertices[i][0]-1];
-        
-        // test, if xi and eta get reversed
-        if( elem->faceFlags[i][2]) {
-          std::swap(order1, order2);
-          std::swap(xi, eta);
-        }
-        xi =  elem->faceFlags[i][0] ? xi : -xi;
-        eta = elem->faceFlags[i][2] ? eta : -eta;
+        T_SCAL eta  =  sigma[ind[3]]- sigma[ind[0]];
 
         IntLegendreP2<T_SCAL,T_VEC>( xiVals, order1, xi );
         IntLegendreP2<T_SCAL,T_VEC>( etaVals, order2, eta );
@@ -847,6 +681,331 @@ namespace CoupledField {
         } //j
       }//i
     } // if
+  }
+
+  // ===============
+  //  WEDGE ELEMENT  
+  // ===============
+  
+  FeH1HiWedge::FeH1HiWedge() {
+    feType_ = Elem::ET_WEDGE6;
+    shape_ = Elem::shapes[feType_];
+  }
+    
+  FeH1HiWedge::~FeH1HiWedge() {
+    
+  }
+
+
+  void FeH1HiWedge::CalcShFnc( Vector<Double>& shape, 
+                               const Vector<Double>& lp,
+                               const Elem * elem, UInt comp ) {
+    if (updateUnknowns_) CalcNumUnknowns();
+    _CalcShFnc(lp[0], lp[1], lp[2],  elem, shape);
+
+
+  }
+
+  void FeH1HiWedge::CalcLocDerivShFnc( Matrix<Double> & deriv, 
+                                       const Vector<Double>& lp,
+                                       const Elem * elem,  UInt comp ) {
+    if (updateUnknowns_) CalcNumUnknowns();
+    AutoDiff<Double,3> x(lp[0],0), y(lp[1],1),z(lp[2],2);
+    StdVector<AutoDiff<Double,3> > dShape;
+    _CalcShFnc(x,y,z,elem,dShape);
+    UInt size = dShape.GetSize();
+    deriv.Resize(size, 3);
+    for( UInt i = 0; i < size; ++i ) {
+      for(UInt j = 0; j < 3; ++j ) {
+        deriv[i][j] = dShape[i].DVal(j);
+      }
+    }
+
+  }
+  
+  template<typename T_SCAL, typename T_VEC>
+  void FeH1HiWedge::_CalcShFnc( const T_SCAL x,  const T_SCAL y, const T_SCAL z, 
+                                const Elem * elem,
+                                T_VEC& ret ) {
+
+//    std::cerr << "\n-------------------\n"
+//              << " ELEM " << elem->elemNum << "\n"
+//              << "-------------------\n";
+    
+    T_SCAL lambda[6] = { 1.0 - x - y, x,  y, 
+                         1.0 - x - y, x,  y };
+    T_SCAL mu[6]     = { 0.5 * (1.0-z), 0.5 * (1.0-z), 0.5 * (1.0-z),
+                         0.5 * (1.0+z), 0.5 * (1.0+z), 0.5 * (1.0+z) };  
+    
+    UInt pos = 0;
+    ret.Resize(actNumFncs_);
+
+    // 1) Vertex shape functions
+    for( UInt i = 0; i < 6; ++i ) {
+      ret[i] = lambda[i] * mu[i];
+    }
+
+    pos = 6;
+    
+#ifdef USE_EDGES
+    // 2) Edge shape functions
+
+    // a) horizontal edges (triangular edges)
+    for( UInt i = 0; i < 6; ++i ) {
+      Double fac = elem->edges[i] < 0 ? -1.0 : 1.0;
+      UInt order = orderEdge_[i];
+
+      // if order of edge is below two, we leave
+      if( order == 1 ) continue;
+      UInt index1 = shape_.edgeVertices[i][0]-1;
+      UInt index2 = shape_.edgeVertices[i][1]-1;
+
+      // edge: parameterization of edge [-1;+1]
+      // edgeNormal: parameterization of extension into element [-1;+1]
+      T_SCAL edge  =  lambda[index2] -  lambda[index1]; 
+      T_SCAL edgeNormal = lambda[index2] + lambda[index1];
+
+      T_VEC vals;
+      ScaledIntLegendreP2<T_SCAL,T_VEC>( vals, order, edgeNormal, fac*edge );
+      for( UInt j = 0; j < order-1; ++j ) {
+        ret[pos++] = vals[j] * mu[index1];
+      } 
+    }
+    
+    // b) vertical edges (quadrilateral faces)
+    for( UInt i = 6; i < 9; ++i ) {
+      Double fac = elem->edges[i] < 0 ? -1.0 : 1.0;
+      UInt order = orderEdge_[i];
+
+      // if order of edge is below two, we leave
+      if( order == 1 ) continue;
+      UInt index1 = shape_.edgeVertices[i][0]-1;
+      UInt index2 = shape_.edgeVertices[i][1]-1;
+
+      // zeta: parameterization of edge [-1;+1]
+      T_SCAL zeta  =  mu[index2] -  mu[index1]; 
+
+      T_VEC vals;
+      IntLegendreP2<T_SCAL,T_VEC>( vals, order, fac*zeta );
+
+      for( UInt i = 0; i < order-1; ++i ) {
+        ret[pos++] =  lambda[index1]* vals[i];
+      } 
+    }
+//    std::cerr << "pos = " << pos << std::endl;
+//    std::cerr << "size of functions: " << actNumFncs_;
+#endif 
+    // 3) Face shape functions
+#ifdef USE_FACES
+    // a) horizontal faces (triangular faces top/bottom)
+//std::cerr << "zeta is " << z << std::endl;
+    for( UInt i = 0; i < 2; ++i ) {
+//            std::cerr << "\n\t  Loc Face #" << i << ", glob Face #" << elem->faces[i] << std::endl;
+      UInt order = orderFace_[i][0]; 
+      if( order < 3) continue;
+      
+      // obtain nodal permutation, i.e. sort the indices in ascending order
+      const StdVector<UInt>& unsorted = shape_.faceNodes[i];
+      StdVector<UInt> ind;
+//      std::cerr << "unsorted: " << unsorted.ToString() << std::endl;
+      Face::GetSortedIndices( ind, unsorted, 3, elem->faceFlags[i]);
+      //std::cerr << "sorted: " << ind.ToString() << std::endl;
+//      std::cerr << "\tNodes:" << elem->connect[ind[0]] << ", "
+//                                << elem->connect[ind[1]] << ", "
+//                                << elem->connect[ind[2]] << "\n";      
+      // take inner shape functions of triangle and
+      // extend them via mu-lifting function
+      UInt nFct =  TriaInnerLegendre( ret, pos, order, 
+                                      lambda[ind[0]], lambda[ind[1]],
+                                      lambda[ind[2]]);
+//      std::cerr << "face #" << i << " has " << nFct << " unknowns\n";
+//      std::cerr << "extension node is " << elem->connect[ind[0]]
+//                << ", loc Node " << ind[0] << std::endl;
+      for( UInt j = 0; j < nFct; ++j ) {
+//        std::cerr << "mu is " << mu[ind[0]] << std::endl;
+//        std::cerr << "ret is " << ret[pos] << std::endl;
+        ret[pos] = ret[pos] * mu[ind[0]];
+//        std::cerr << "ret is " << ret[pos] << std::endl;
+        pos++;
+//        std::cerr << " pos is " << pos << std::endl;
+      }
+    }
+    
+//    std::cerr << "b) QUAD-Faces" << std::endl;  
+    // b) vertical faces (triangular faces top/bottom)
+    for( UInt i = 2; i < 5; ++i ) {
+     
+      if( orderFace_[i][0] < 2 || orderFace_[i][1] < 2) continue;
+      
+//      std::cerr << "\n\t  Loc Face #" << i << ", glob Face #" << elem->faces[i] << std::endl;
+      const StdVector<UInt>& unsorted = shape_.faceNodes[i];
+      
+      StdVector<UInt> ind;
+      // obtain nodal permutation, i.e. sort the indices in ascending order
+      Face::GetSortedIndices( ind, unsorted, 4, elem->faceFlags[i]);
+//      std::cerr << "\tNodes:" << elem->connect[ind[0]] << ", "
+//                          << elem->connect[ind[1]] << ", "
+//                          << elem->connect[ind[2]] << ", "
+//                          << elem->connect[ind[3]] << "\n";
+//      
+
+      T_VEC horiz, vert;
+      // we have to determine 2 things
+      // 1) Determine, if first edge in sorted array is horizontal or
+      //    vertical one (how to do this ....?)
+      if( shape_.nodeCoords[ind[0]][2] == shape_.nodeCoords[ind[1]][2] ) {
+        // edge [0] -> [1] is the horizontal one with order p[0] by definition
+        // edge [0] -> [3] is the vertical one 
+
+//        std::cerr << "\tTopology Case a): \n";
+//        std::cerr << "\t\thorizontal edge: " 
+//                  << elem->connect[ind[0]] << " -> " 
+//                  << elem->connect[ind[1]]<< std::endl;
+//        std::cerr << "\t\tvertical edge: " 
+//                          << elem->connect[ind[0]] << " -> " 
+//                          << elem->connect[ind[3]]<< std::endl;
+        // triangular shape function on horizontal edge 
+        ScaledIntLegendreP2( horiz, orderFace_[i][0], 
+                             lambda[ind[1]]+lambda[ind[0]],
+                             lambda[ind[1]]-lambda[ind[0]] );
+
+        // exension on vertical edge with p[1]
+        IntLegendreP2( vert, orderFace_[i][1], mu[ind[0]]*2.0-1.0 );
+//        std::cerr << "\t\tmu = " << mu[ind[0]] << std::endl;
+        
+        for( UInt j = 0;  j < orderFace_[i][0]-1; ++j ) {
+          for( UInt k = 0;  k < orderFace_[i][1]-1; ++k ) {
+            ret[pos++] = horiz[j] * vert[k];
+          }
+        }
+
+      } else {
+        // edge [0] -> [1] is the vertical one with order p[0]
+        // edge [0] -> [3] is the horizontal one with order p[1]
+        
+        // triangular shape function on horizontal edge
+//        std::cerr << "\tTopology Case b): \n";
+//        std::cerr << "\t\thorizontal edge: " 
+//            << elem->connect[ind[0]] << " -> " 
+//            << elem->connect[ind[3]]<< std::endl;
+//        std::cerr << "\t\tvertical edge: " 
+//            << elem->connect[ind[0]] << " -> " 
+//            << elem->connect[ind[1]]<< std::endl;
+        ScaledIntLegendreP2( horiz, orderFace_[i][1], 
+                             lambda[ind[3]]+lambda[ind[0]],
+                             lambda[ind[3]]-lambda[ind[0]] );
+
+        // exension on vertical edge with p[0]
+        IntLegendreP2( vert, orderFace_[i][0], mu[ind[0]]*2.0-1.0 );
+//        std::cerr << "\t\tmu = " << mu[ind[0]] << std::endl;
+        for( UInt j = 0;  j < orderFace_[i][1]-1; ++j ) {
+          for( UInt k = 0;  k < orderFace_[i][0]-1; ++k ) {
+            ret[pos++] = horiz[j] * vert[k];
+          }
+        }
+      }
+      
+      // take edge shape function of triangular element and extend
+      // it via mu-lifting function in 3rd direction
+      //T_SCAL lamb
+      
+      
+     
+      
+    }
+//    std::cerr << "ret is " << ret.ToString() << std::endl;
+#endif
+
+    // 4) Inner shape functions
+#ifdef USE_INNER
+    if( orderInner_[0] > 2 && 
+        orderInner_[2] > 1 ) {
+      
+      T_VEC triaVals(orderInner_[0]*orderInner_[0]);
+      UInt nFct =  TriaInnerLegendre( triaVals, 0, orderInner_[0], 
+                                      lambda[0], lambda[1],
+                                      lambda[2]);
+      T_VEC zetaVals;
+      IntLegendreP2( zetaVals, orderInner_[2], mu[0]*2.0-1.0 );
+      for( UInt i = 0; i < nFct; ++i ) {
+        for( UInt k = 0; k < orderInner_[2]-1; ++k ) {
+          ret[pos++] = triaVals[i] * zetaVals[k];
+        } //i 
+      } //j 
+    } // if
+#endif
+    
+    // additional check
+    if( ret.GetSize() != pos ) {
+      EXCEPTION("Should have " << ret.GetSize()
+                << " unknowns but just got " << pos << " functions");
+    }
+  }
+
+  void FeH1HiWedge::CalcNumUnknowns( ) {
+    LOG_DBG(feH1Hi) << "CalcNumUnknowns for element "
+        << Elem::feType.ToString(feType_);
+
+    actNumFncs_ = 0;
+
+    // Vertices
+    StdVector<UInt>& vertFncs = entityFncs_[VERTEX];
+    vertFncs.Resize(6);
+    vertFncs.Init(1); // Vertices have always order 1
+    actNumFncs_ += 6;
+
+    // Edges
+    StdVector<UInt>& edgeFncs = entityFncs_[EDGE];
+    edgeFncs.Resize(9);
+    edgeFncs.Init(0);
+    UInt unknowns = 0;
+#ifdef USE_EDGES
+    for( UInt i = 0; i < 9; ++i ) {
+      unknowns = (orderEdge_[i]-1);
+      edgeFncs[i] = unknowns;
+      LOG_DBG(feH1Hi) <<   "edge " << i+1 << " has order" <<  orderEdge_[i]-1
+          << " and " << unknowns << "unknowns";
+      actNumFncs_ += unknowns;
+    }
+#endif
+
+    // Faces
+    StdVector<UInt>& faceFncs = entityFncs_[FACE];
+    faceFncs.Resize(5);
+    faceFncs.Init(0);
+#ifdef USE_FACES
+    if( orderFace_[0][0] > 1 ) {
+      for( UInt i = 0; i < 5; ++i ) {
+        // check for triangular face
+        if( i < 2 ) {
+          unknowns = (orderFace_[i][0]-2) * (orderFace_[0][0]-1) / 2;
+        } else {
+          unknowns = (orderInner_[0]-1) * (orderInner_[1]-1);
+//          unknowns = 0;
+         
+        }
+        faceFncs[i] = unknowns;
+        LOG_DBG(feH1Hi) << "face 0 has " << unknowns << "unknowns";
+        actNumFncs_ += unknowns;
+      }
+    }
+#endif
+    // Interior
+    StdVector<UInt>& innerFncs = entityFncs_[INTERIOR];
+    innerFncs.Resize(1);
+    innerFncs.Init(0);
+#ifdef USE_INNER
+    if( orderInner_[0] > 2 && orderInner_[2] > 1 ) {
+      UInt unknowns = (orderInner_[0]-1) * (orderInner_[0]-2) * 0.5 
+                    * (orderInner_[2]-1) ; 
+    innerFncs.Init( unknowns );
+    LOG_DBG(feH1Hi) << "interior has " << unknowns << "unknowns";
+    actNumFncs_ += unknowns;
+    }
+#endif
+
+    LOG_DBG(feH1Hi) <<  "totalUnknowns: " << actNumFncs_  << std::endl;
+    updateUnknowns_ = false;
   }
   
 } // namespace CoupledField

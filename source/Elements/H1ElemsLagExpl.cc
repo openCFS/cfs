@@ -248,8 +248,8 @@ namespace CoupledField {
         // Edge[2,3] is common
         volIntPoint[0] = 0.5 - (surfIntPoint[0] / 2.0);
         volIntPoint[1] = 0.5 + (surfIntPoint[0] / 2.0);
-        locNormal[0] = .5;
-        locNormal[1] = .5;
+        locNormal[0] = sqrt(.5);
+        locNormal[1] = sqrt(.5);
         break;
 
       default:
@@ -562,6 +562,220 @@ namespace CoupledField {
                   << "have not four nodes in common. Check your .mesh-file.");
       }
    }
+  
+  
+  // --- Wedge 1st order ---
+  FeH1LagrangeWedge1::FeH1LagrangeWedge1() {
+    feType_ = Elem::ET_WEDGE6;
+    shape_ = Elem::shapes[feType_];
+    actNumFncs_ = 6;
+    order_ = 1; 
+  }
+    
+  FeH1LagrangeWedge1::~FeH1LagrangeWedge1() {
+    
+  }
+  
+  void FeH1LagrangeWedge1::CalcShFnc( Vector<Double>& shape,
+                                    const Vector<Double>& point,
+                                    const Elem* ptElem,
+                                    UInt comp ) {
+    shape.Resize( 6 );
+    //"Wedge Elements"
+    // from "Dhatt, G.: The Finite Element Method Displayed, p. 120"
+    // corner nodes
+
+    shape[0] = 0.5 * (1 - point[2]) * (1 - point[0] - point[1]);
+    shape[1] = 0.5 * (1 - point[2]) * point[0];
+    shape[2] = 0.5 * (1 - point[2]) * point[1];
+    shape[3] = 0.5 * (1 + point[2]) * (1 - point[0] - point[1]);
+    shape[4] = 0.5 * (1 + point[2]) * point[0];
+    shape[5] = 0.5 * (1 + point[2]) * point[1];
+  }
+  
+  void FeH1LagrangeWedge1::CalcLocDerivShFnc( Matrix<Double> & deriv, 
+                                            const Vector<Double>& point,
+                                            const Elem* ptElem,
+                                            UInt comp ) {
+    deriv.Resize( 6, 3 );
+
+    deriv[0][0] = -0.5 * (1 - point[2]);
+    deriv[0][1] = -0.5 * (1 - point[2]);
+    deriv[0][2] = -0.5 * (1 - point[0] - point[1]);
+
+    deriv[1][0] =  0.5 * (1 - point[2]);
+    deriv[1][1] =  0.0;
+    deriv[1][2] = -0.5 * point[0];
+
+    deriv[2][0] =  0.0;
+    deriv[2][1] =  0.5 * (1 - point[2]);
+    deriv[2][2] = -0.5 * point[1];
+
+    deriv[3][0] = -0.5 * (1+ point[2]);
+    deriv[3][1] = -0.5 * (1+ point[2]);
+    deriv[3][2] =  0.5 * (1- point[0] - point[1]);
+
+    deriv[4][0] =  0.5 * (1+ point[2]);
+    deriv[4][1] =  0.0;
+    deriv[4][2] =  0.5 * point[0];
+
+    deriv[5][0] =  0.0;
+    deriv[5][1] =  0.5 * (1 + point[2]);
+    deriv[5][2] =  0.5 * point[1];
+  }
+
+  bool FeH1LagrangeWedge1::CoordIsInsideElem( const Vector<Double>& point,
+                                              Double tolerance )  {
+    const Double & xi = point[0];
+    const Double & eta = point[1];
+    const Double & zeta = point[2];
+    bool isInside = 
+        (        xi >= ( 0 - tolerance)) &&
+        (       eta >= ( 0 - tolerance)) &&
+        ((xi + eta) <= ( 1 + tolerance)) &&
+        (      zeta >= (-1 - tolerance)) &&
+        (      zeta <= ( 1 + tolerance));
+    return isInside;
+  }
+  
+  void FeH1LagrangeWedge1::
+  GetLocalIntPoints4Surface(const StdVector<UInt> & surfConnect,
+                            const StdVector<UInt> & volConnect,
+                            const LocPoint & surfIntPoint,
+                            LocPoint & volIntPoint,
+                            Vector<Double>& locNormal ) {
+
+    // Try to find out, which vertices are in common with
+    // the surface element. Then calculate the product of all four
+    // and compare them
+    //      + 6    
+    //     /|\   
+    //    / |  \           zeta
+    // 4 +----- + 5         ^  eta
+    //   |  + 3 |           |/ 
+    //   | / \  |           0--> xi
+    //   |/    \|   
+    // 1 +------+ 2
+
+    // Check if surface element is triangle 
+    // or quadrilateral
+    if (surfConnect.GetSize() == 3 ||
+        surfConnect.GetSize() == 6) 
+    {
+      // ---- Triangle Surface ---
+      StdVector<Integer> commonIndex(3);
+      Integer found = 0;
+      Integer indexSum = 0;
+      std::string errMsg;
+
+      volIntPoint.coord.Resize(3);
+      locNormal.Resize(3);
+
+      // loop over surface connect
+      for (Integer iSurf=0; iSurf<3; iSurf++)
+        // loop over volume connect
+        for (Integer iVol=0; iVol<6; iVol++)
+          if (surfConnect[iSurf] == volConnect[iVol])
+          {
+            commonIndex[found++] = iVol+1;
+          }
+
+
+      indexSum =  commonIndex[0] + commonIndex[1] + commonIndex[2];
+
+      switch(indexSum)
+      {
+        case 6:
+          // Surface[1,2,3] is common
+          volIntPoint[0] = surfIntPoint[0];
+          volIntPoint[1] = surfIntPoint[1];
+          volIntPoint[2] = -1.0;
+          locNormal[0] =  0.0;
+          locNormal[1] =  0.0;
+          locNormal[2] = -1.0;
+          break;
+
+        case 15:
+          // Surface[4,5,6] is common
+          volIntPoint[0] = surfIntPoint[0];
+          volIntPoint[1] = surfIntPoint[1];
+          volIntPoint[2] = 1.0;
+          locNormal[0] =  0.0;
+          locNormal[1] =  0.0;
+          locNormal[2] =  1.0;
+          break;
+
+        default:
+          EXCEPTION( "WedgeFE::GetLocalIntPoints4Surface: surface and volume element "
+              << "have not three nodes in common. Check your .mesh-file.");
+      }
+
+    } else {
+      // ---- Quadrilateral Surface ---
+      StdVector<Integer> commonIndex(4);
+      Integer found = 0;
+      Integer indexSum = 0;
+      std::string errMsg;
+
+      volIntPoint.coord.Resize(3);
+      locNormal.Resize(3);
+
+      // loop over surface connect
+      for (Integer iSurf=0; iSurf<4; iSurf++)
+        // loop over volume connect
+        for (Integer iVol=0; iVol<6; iVol++)
+          if (surfConnect[iSurf] == volConnect[iVol])
+          {
+            commonIndex[found++] = iVol+1;
+          }
+
+
+      indexSum = 
+          commonIndex[0] + commonIndex[1] 
+          + commonIndex[2] + commonIndex[3];
+
+      // NOTE: Since the line quad-element is defined in the range [-1;+1]
+      // we have to calculate (1+surfCoord)/2 in order to get the right
+      // position on the wedge element
+
+      switch(indexSum)
+      {
+        case 16:
+          // Surface[2,3,5,6] is common
+          volIntPoint[0] = 0.5 - (surfIntPoint[0] / 2.0);
+          volIntPoint[1] = 0.5 + (surfIntPoint[0] / 2.0);
+          volIntPoint[2] = surfIntPoint[1];
+          locNormal[0] = sqrt(.5);
+          locNormal[1] = sqrt(.5);
+          locNormal[2] = 0.0;
+          break;
+
+        case 14:
+          // Surface[1,3,4,6] is common
+          volIntPoint[0] = 0.0;
+          volIntPoint[1] = 0.5 * (1 + surfIntPoint[0]);
+          volIntPoint[2] = 0.5 * (1 + surfIntPoint[1]);
+          locNormal[0] = -1.0;
+          locNormal[1] =  0.0;
+          locNormal[2] =  0.0;
+          break;
+
+        case 12:
+          // Surface[1,2,4,5] is common
+          volIntPoint[0] = 0.5 * (1 + surfIntPoint[1]);
+          volIntPoint[1] = 0.0;
+          volIntPoint[2] = 0.5 * (1 + surfIntPoint[0]);
+          locNormal[0] =  0.0;
+          locNormal[1] = -1.0;
+          locNormal[2] =  0.0;
+          break;
+
+        default:
+          EXCEPTION("WedgeFE::GetLocalIntPoints4Surface: surface and volume element "
+              << "have not four nodes in common. Check your .mesh-file.");
+      } // switch
+    } // if
+  }
   
   // ========================================================================
   //  Lagrangian Elements of 2nd order

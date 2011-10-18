@@ -733,9 +733,9 @@ namespace CoupledField {
        FeH1*  ptFe = dynamic_cast<FeH1*>(space.GetFe( el->elemNum ));
        solhelp.GetElemSolution( elemSol, el );
        ptFe->GetShFnc(shape, points[iElem], el);
-//       elemSol.Init(1.0);
-//       for( UInt i = 0; i < elemSol.GetSize()-1; ++i ) {
-//         elemSol[i] = 0;
+//       elemSol.Init(0.0);
+//       for( UInt i = 6; i < elemSol.GetSize(); ++i ) {
+//         elemSol[i] = 1;
 //       }
 //       std::cerr << "elemSOl = " << elemSol.ToString() << std::endl;
 //       elemSol[0] = 0;

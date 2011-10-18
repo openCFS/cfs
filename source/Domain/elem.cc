@@ -509,7 +509,7 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
       //   | / 4   | /    REFERENCE VOLUME ELEMENT
       //   |/      |/
       // 1 +-------+ 2
-
+      
       ElemShape s;
       s.dim = 3;
       s.order = 1;
@@ -600,7 +600,7 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
       {
        {1,0},{2,0},{4,0},{6,0}, // faces in xi-dir & component
        {1,1},{3,0},{5,0},{6,1}, // faces in eta-dir & component
-       {2,1},{3,1},{4,1},{5,1}
+       {2,1},{3,1},{4,1},{5,1}  // faces in zeta-dir & component
       };
       SetElemInfo( s, midPoint, nodeCoords, edgeVertices, numEdgeNodes,
                     edgeNodes, numEdgesPerDir, locDirEdges,
@@ -627,6 +627,105 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
     // ************************************************************************
     // WEDGE6
     // ************************************************************************
+    {
+      //      + 6    
+      //     /|\   
+      //    / |  \           zeta
+      // 4 +----- + 5         ^  eta
+      //   |  + 3 |           |/ 
+      //   | / \  |           0--> xi
+      //   |/    \|   
+      // 1 +------+ 2
+
+      ElemShape s;
+      s.dim = 3;
+      s.order = 1;
+      s.numVertices = 6;
+      s.numNodes = 6;
+      s.numEdges = 9;
+      s.numFaces = 5;
+
+      Double midPoint[3] = {1.0/3.0, 1.0/3.0, 0.0};
+      Double nodeCoords[] = 
+      { 0.0,  0.0, -1.0, // #1
+        1.0,  0.0, -1.0, // #2
+        0.0,  1.0, -1.0, // #3
+        0.0,  0.0,  1.0, // #4
+        1.0,  0.0,  1.0, // #5
+        0.0,  1.0,  1.0  // #6
+      };
+      UInt edgeVertices[] = 
+      { 1, 2, // #1
+        2, 3, // #2
+        3, 1, // #3
+        4, 5, // #4
+        5, 6, // #5
+        6, 4, // #6
+        1, 4, // #7
+        2, 5, // #8
+        3, 6  // #9
+      };
+      UInt numEdgeNodes[] = 
+      {
+       2, // #1
+       2, // #2
+       2, // #3
+       2, // #4
+       2, // #5
+       2, // #6
+       2, // #7
+       2, // #8
+       2  // #9
+      };
+      UInt * edgeNodes = edgeVertices;
+      UInt numEdgesPerDir[] =
+      {
+       4, // #edges in xi-dir
+       4, // #edges in eta-dir
+       3, // #edges in zeta-dir
+      };
+      UInt locDirEdges[] =
+      {
+       1,2,4,5,  // xi
+       2,3,5,6,  // eta
+       7,8,9     // zeta
+      };
+      UInt numFaceVertices[] = 
+      {
+       3, // #1
+       3, // #2
+       4, // #3
+       4, // #4
+       4, // #5
+      };
+      UInt faceVertices[] = 
+      {
+       1, 2, 3,    // #1
+       4, 5, 6,    // #2
+       1, 2, 5, 4, // #3
+       2, 3, 6, 5, // #4
+       3, 1, 4, 6, // #5
+      };
+      UInt * numFaceNodes = numFaceVertices;
+      UInt * faceNodes = faceVertices;
+      UInt numFacesPerDir[] = 
+      {
+       4, // #faces in xi-dir
+       4, // #faces in eta-dir
+       3  // #faces in zeta-dir
+      };
+      UInt locDirFaces[][2] = 
+      {
+       {1,0},{2,0},{3,0},{4,0}, // faces in xi-dir & component
+       {1,1},{2,1},{4,0},{5,0}, // faces in eta-dir & component
+       {3,1},{4,1},{5,1}        // faces in zeta-dir & component
+      };
+      SetElemInfo( s, midPoint, nodeCoords, edgeVertices, numEdgeNodes,
+                   edgeNodes, numEdgesPerDir, locDirEdges,
+                   numFaceVertices, faceVertices, numFaceNodes, faceNodes,
+                   numFacesPerDir, locDirFaces );
+      Elem::shapes[Elem::ET_WEDGE6] = s;
+    }
     
     // ************************************************************************
     // WEDGE15

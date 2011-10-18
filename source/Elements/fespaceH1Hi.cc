@@ -306,6 +306,7 @@ namespace CoupledField{
     refElems_[region][Elem::ET_QUAD4]  = new FeH1HiQuad();
     refElems_[region][Elem::ET_TRIA3]  = new FeH1HiTria();
     refElems_[region][Elem::ET_HEXA8]  = new FeH1HiHex();
+    refElems_[region][Elem::ET_WEDGE6] = new FeH1HiWedge();
 
     //now set the order
     if(order.GetNumCols() != 1 || order.GetNumRows() != 1){

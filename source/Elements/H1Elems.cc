@@ -95,7 +95,7 @@ namespace CoupledField {
     Matrix<Double> locDeriv;
     
     //check if the shfunction is already computed
-    if(lpm.lp.number>= (Integer) shapeFncDerivsAtIp_.GetSize()){
+    if(lpm.lp.number >= (Integer) shapeFncDerivsAtIp_.GetSize()){
       CalcLocDerivShFnc( locDeriv, lpm.lp.coord, elem, comp);
     }else{
       locDeriv = shapeFncDerivsAtIp_[lpm.lp.number];

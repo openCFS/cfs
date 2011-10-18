@@ -16,6 +16,13 @@ namespace CoupledField {
     number = NOT_SET;
     coord = vec;
   }
+  
+  std::ostream& operator << ( std::ostream& out, 
+                              const LocPoint& lp ) {
+    out << "number = " << lp.number << std::endl;
+    out << "vector: " << lp.coord.ToString();
+    return out;
+  }
 
 // ===========================================================================
 //  C L A S S   LocPointMapped
@@ -122,6 +129,7 @@ LagrangeElemShapeMap::LagrangeElemShapeMap( Grid* ptGrid  )
 //  feMap_[ET_TET4] = new FeH1LagrangeLine1();
 //  feMap_[ET_TET10] = new FeH1LagrangeLine1();
   feMap_[Elem::ET_HEXA8] = new FeH1LagrangeHex1();
+  feMap_[Elem::ET_WEDGE6] = new FeH1LagrangeWedge1();
 //  feMap_[ET_HEXA20] = new FeH1LagrangeHexa2();
 //  feMap_[ET_HEXA27] = new FeH1LagrangeLine1();
 //  feMap_[ET_PYRA5] = new FeH1LagrangeLine1();

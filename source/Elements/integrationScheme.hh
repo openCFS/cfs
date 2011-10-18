@@ -95,6 +95,14 @@ private:
     //! Define integrations points / weights for triangular elements
     void DefineTriagPoints();
     
+    //! Calculate integration points for triangles with Duffy transformation
+    void CalcIntTria( IntegMethod, UInt order,StdVector<LocPoint>& points,
+                      StdVector<Double>& weights, bool numberPoints );
+    
+   //! Define integration points for wedge
+   void DefineWedgePoints();
+    
+    
     //! Map with integration points for each element type According to the Template Paramter Integration Scheme
     std::map<IntegMethod, std::map< UInt, IntegrationPoints > > intPoints_;
     

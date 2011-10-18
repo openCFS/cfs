@@ -32,6 +32,13 @@ namespace CoupledField {
     //! See also the faceFlags bitset of the class Elem.
     void Normalize( std::bitset<3>& flags); 
 
+    
+    //! Return permutation vector for face nodes according to bit-field
+    static void GetSortedIndices( StdVector<UInt>& sorted, 
+                                  const StdVector<UInt>& unsorted,
+                                  UInt numVertices,
+                                  const std::bitset<3>& flags );
+    
     //! Global node numbers defining a face
     StdVector<UInt> nodes;
 

@@ -214,7 +214,24 @@ inline void ScaledIntLegendreP2( T_VEC& values, UInt order,
 //   T R I A N G U L A R   S H A P E   F U N C T I O N S
 // =======================================================
 
-
+template <typename T_SCAL, class T_VEC>
+inline UInt TriaInnerLegendre( T_VEC& values,
+                               const UInt& pos, UInt order,
+                               const T_SCAL& lambda1, const T_SCAL& lambda2,
+                               const T_SCAL& lambda3 ) {
+  T_VEC f1, f2;
+  UInt nfct = 0;
+  UInt myPos = pos;
+  ScaledIntLegendreP2(f1, order-1, lambda2+lambda1,lambda2-lambda1);
+  Legendre(f2, order-3, lambda3*2.0 - T_SCAL(1));
+  for( UInt i = 0; i <= order - 3; ++i ) {
+    for( UInt j = 0; j <= order - 3 - i; ++j ) {
+      values[myPos++] = f1[i] * f2[j] * lambda3;
+      nfct++;
+    }
+  }
+  return nfct;
+}
 
 
 template <typename T_SCAL, class T_VEC>

@@ -72,7 +72,7 @@ IntScheme::IntScheme() {
 //  intPoints_[ECONOMICAL][2][Elem::ST_HEXA] = points;
 //  intWeights_[ECONOMICAL][2][Elem::ST_HEXA] = weights;
   
-  FillIntegPoints(20);
+  FillIntegPoints(30);
 }
 
 
@@ -229,6 +229,7 @@ void IntScheme::FillIntegPoints(UInt order){
   
   // B) OTHER ELEMENT SHAPES (TRIA, TET, WEDGE, PYRA)
   DefineTriagPoints();
+  DefineWedgePoints();
     
   
 }
@@ -463,48 +464,231 @@ void IntScheme::GetIntPoints( Elem::ShapeType elemType,
     // Generate remaining integration points up to maximum order 20
     // using Duffy transformation
     
-    for( UInt iOrder = 7; iOrder <= 20; ++iOrder ) {
+    for( UInt iOrder = 7; iOrder <= 30; ++iOrder ) {
       StdVector<Double> weights;
       StdVector<LocPoint> points;
-      StdVector<Double> xPoints, xWeights;
-      StdVector<Double> yPoints, yWeights;
-      // Obtain Gauss Rule in x-direction
-      CalcGaussLegendrePointsWeights(iOrder, xPoints, xWeights);
-      // Obtain Gauss-Rule in y-direction (careful: order + 1,
-      // due to Duffy- transformation)
-      CalcGaussLegendrePointsWeights(iOrder+1, yPoints, yWeights);
-      
-      UInt nPoints = xPoints.GetSize() * yPoints.GetSize();
-      weights.Resize(nPoints);
-      points.Resize(nPoints);
-      
-      // Loop over all y-points
-      UInt pos = 0;
-      for(UInt iY = 0; iY < yPoints.GetSize(); ++iY ) {
-        for(UInt iX = 0; iX < xPoints.GetSize(); ++iX ) {
-          LocPoint lp;
-          lp.coord.Resize(2);
-          lp.coord[0] = 0.25 * (1.0 + xPoints[iX]) * ( 1.0 - yPoints[iY]);
-          lp.coord[1] = 0.5 *  (1.0 + yPoints[iY] );
-          lp.number = numIntPts_[Elem::ST_TRIA]++;
-          points[pos] = lp;
-          weights[pos] = 1.0/8.0 * xWeights[iX] * yWeights[iY] * ( 1.0 - yPoints[iY]);
-          pos++;
-        }
-      }
-//      std::cerr << "points for order " << iOrder << " = " << iOrder << std::endl;
-//      Double sum = 0.0;
-//      for( UInt i = 0; i < points.GetSize(); ++i ) {
-//        std::cerr << points[i].coord.ToString() << std::endl;
-//        sum += weights[i];
-//      }
-//      std::cerr << "sum is " << sum << std::endl;
-      //std::cerr << points << std::endl;
-      intPoints_[GAUSS][iOrder][Elem::ST_TRIA] = points;
+      CalcIntTria( GAUSS, iOrder, points, weights, true);
+;      intPoints_[GAUSS][iOrder][Elem::ST_TRIA] = points;
       intWeights_[GAUSS][iOrder][Elem::ST_TRIA] = weights;
     }
 
-    // .... Implement me
+  }
+
+  void IntScheme::CalcIntTria( IntegMethod, UInt order,StdVector<LocPoint>& points,
+                               StdVector<Double>& weights, bool numberPoints ) {
+    StdVector<Double> xPoints, xWeights;
+    StdVector<Double> yPoints, yWeights;
+    // Obtain Gauss Rule in x-direction
+    CalcGaussLegendrePointsWeights(order, xPoints, xWeights);
+    // Obtain Gauss-Rule in y-direction (careful: order + 1,
+    // due to Duffy- transformation)
+    CalcGaussLegendrePointsWeights(order+1, yPoints, yWeights);
+
+    UInt nPoints = xPoints.GetSize() * yPoints.GetSize();
+    weights.Resize(nPoints);
+    points.Resize(nPoints);
+
+    // Loop over all y-points
+    UInt pos = 0;
+    for(UInt iY = 0; iY < yPoints.GetSize(); ++iY ) {
+      for(UInt iX = 0; iX < xPoints.GetSize(); ++iX ) {
+        LocPoint lp;
+        lp.coord.Resize(2);
+        lp.coord[0] = 0.25 * (1.0 + xPoints[iX]) * ( 1.0 - yPoints[iY]);
+        lp.coord[1] = 0.5 *  (1.0 + yPoints[iY] );
+        if(numberPoints ) {
+          lp.number = numIntPts_[Elem::ST_TRIA]++;
+        }
+        points[pos] = lp;
+        weights[pos] = 1.0/8.0 * xWeights[iX] * yWeights[iY] * ( 1.0 - yPoints[iY]);
+        pos++;
+      } 
+    }
+  }
+
+  void IntScheme::DefineWedgePoints(){
+    // Cartesian product rule applied on ECONOMICAL values as given by
+    // Solin, Segeth, Dolezel, Higher-Order Finite Element Methods!! p.250
+    static Double a1[][4] = 
+    {
+     {0.333333333333333,  0.333333333333333,  0,  0.5 },
+    };
+    AddIntegrationSet(GAUSS, Elem::ST_WEDGE, 1, 1 , (Double*) a1);
+
+    // This values come from the originial WedgeFE::SetIntPoints() Implementation and are NOT from
+    // the Solin, Segeth, Dolezel, Higher-Order Finite Element Methods!! No guarantee!! (Fabian) 
+    static Double a2[][4] = 
+    { 
+     { 0.166666666666667,  0.166666666666667,  -0.57735026919, 0.166666666666667 },
+     { 0.666666666666667,  0.166666666666667,  -0.57735026919, 0.166666666666667 },        
+     { 0.166666666666667,  0.666666666666667,  -0.57735026919, 0.166666666666667 },        
+     { 0.166666666666667,  0.166666666666667,  0.57735026919, 0.166666666666667 },        
+     { 0.666666666666667,  0.166666666666667,  0.57735026919, 0.166666666666667 },        
+     { 0.166666666666667,  0.666666666666667,  0.57735026919, 0.166666666666667 },        
+    };
+    AddIntegrationSet(GAUSS, Elem::ST_WEDGE, 2, 6 , (Double*) a2);
+
+    // Cartesian product rule applied on ECONOMICAL values as given by
+    // Solin, Segeth, Dolezel, Higher-Order Finite Element Methods!! p.250
+    static Double a3[][4] = 
+    {
+     {0.333333333333333,  0.333333333333333,  -0.577350269189626,  -0.28125 },
+     {0.2,  0.2,  -0.577350269189626,  0.260416666666667 },
+     {0.2,  0.6,  -0.577350269189626,  0.260416666666667 },
+     {0.6,  0.2,  -0.577350269189626,  0.260416666666667 },
+     {0.333333333333333,  0.333333333333333,  0.577350269189626,  -0.28125 },
+     {0.2,  0.2,  0.577350269189626,  0.260416666666667 },
+     {0.2,  0.6,  0.577350269189626,  0.260416666666667 },
+     {0.6,  0.2,  0.577350269189626,  0.260416666666667 },
+    };
+    AddIntegrationSet(GAUSS, Elem::ST_WEDGE, 3, 8 , (Double*) a3);
+
+    // Cartesian product rule applied on ECONOMICAL values as given by
+    // Solin, Segeth, Dolezel, Higher-Order Finite Element Methods!! p.250
+    static Double a4[][4] = 
+    {
+     {0.445948490915965,  0.445948490915965,  -0.774596669241483,  0.062050441577225 },
+     {0.445948490915965,  0.10810301816807,  -0.774596669241483,  0.062050441577225 },
+     {0.10810301816807,  0.445948490915965,  -0.774596669241483,  0.062050441577225 },
+     {0.091576213509771,  0.091576213509771,  -0.774596669241483,  0.0305421510153672 },
+     {0.091576213509771,  0.816847572980459,  -0.774596669241483,  0.0305421510153672 },
+     {0.816847572980459,  0.091576213509771,  -0.774596669241483,  0.0305421510153672 },
+     {0.445948490915965,  0.445948490915965,  0,  0.09928070652356 },
+     {0.445948490915965,  0.10810301816807,  0,  0.09928070652356 },
+     {0.10810301816807,  0.445948490915965,  0,  0.09928070652356 },
+     {0.091576213509771,  0.091576213509771,  0,  0.0488674416245876 },
+     {0.091576213509771,  0.816847572980459,  0,  0.0488674416245876 },
+     {0.816847572980459,  0.091576213509771,  0,  0.0488674416245876 },
+     {0.445948490915965,  0.445948490915965,  0.774596669241483,  0.062050441577225 },
+     {0.445948490915965,  0.10810301816807,  0.774596669241483,  0.062050441577225 },
+     {0.10810301816807,  0.445948490915965,  0.774596669241483,  0.062050441577225 },
+     {0.091576213509771,  0.091576213509771,  0.774596669241483,  0.0305421510153672 },
+     {0.091576213509771,  0.816847572980459,  0.774596669241483,  0.0305421510153672 },
+     {0.816847572980459,  0.091576213509771,  0.774596669241483,  0.0305421510153672 },
+    };
+    AddIntegrationSet(GAUSS, Elem::ST_WEDGE, 4, 18 , (Double*) a4);
+
+    // Cartesian product rule applied on ECONOMICAL values as given by
+    // Solin, Segeth, Dolezel, Higher-Order Finite Element Methods!! p.250
+    static Double a5[][4] = 
+    {
+     {0.333333333333333,  0.333333333333333,  -0.774596669241483,  0.0625 },
+     {0.470142064105115,  0.470142064105115,  -0.774596669241483,  0.0367761535523628 },
+     {0.470142064105115,  0.05971587178977,  -0.774596669241483,  0.0367761535523628 },
+     {0.05971587178977,  0.470142064105115,  -0.774596669241483,  0.0367761535523628 },
+     {0.101286507323456,  0.101286507323456,  -0.774596669241483,  0.0349831057068964 },
+     {0.101286507323456,  0.797426985353087,  -0.774596669241483,  0.0349831057068964 },
+     {0.797426985353087,  0.101286507323456,  -0.774596669241483,  0.0349831057068964 },
+     {0.333333333333333,  0.333333333333333,  0,  0.1 },
+     {0.470142064105115,  0.470142064105115,  0,  0.0588418456837804 },
+     {0.470142064105115,  0.05971587178977,  0,  0.0588418456837804 },
+     {0.05971587178977,  0.470142064105115,  0,  0.0588418456837804 },
+     {0.101286507323456,  0.101286507323456,  0,  0.0559729691310342 },
+     {0.101286507323456,  0.797426985353087,  0,  0.0559729691310342 },
+     {0.797426985353087,  0.101286507323456,  0,  0.0559729691310342 },
+     {0.333333333333333,  0.333333333333333,  0.774596669241483,  0.0625 },
+     {0.470142064105115,  0.470142064105115,  0.774596669241483,  0.0367761535523628 },
+     {0.470142064105115,  0.05971587178977,  0.774596669241483,  0.0367761535523628 },
+     {0.05971587178977,  0.470142064105115,  0.774596669241483,  0.0367761535523628 },
+     {0.101286507323456,  0.101286507323456,  0.774596669241483,  0.0349831057068964 },
+     {0.101286507323456,  0.797426985353087,  0.774596669241483,  0.0349831057068964 },
+     {0.797426985353087,  0.101286507323456,  0.774596669241483,  0.0349831057068964 },
+    };
+    AddIntegrationSet(GAUSS, Elem::ST_WEDGE, 5, 21 , (Double*) a5);
+
+    // Cartesian product rule applied on ECONOMICAL values as given by
+    // Solin, Segeth, Dolezel, Higher-Order Finite Element Methods!! p.250
+    static Double a6[][4] =
+    {
+     {0.24928674517091,  0.24928674517091,  -0.861136311594053,  0.0203123359284898 },
+     {0.24928674517091,  0.501426509658179,  -0.861136311594053,  0.0203123359284898 },
+     {0.501426509658179,  0.24928674517091,  -0.861136311594053,  0.0203123359284898 },
+     {0.063089014491502,  0.063089014491502,  -0.861136311594053,  0.00884332351571835 },
+     {0.063089014491502,  0.873821971016996,  -0.861136311594053,  0.00884332351571835 },
+     {0.873821971016996,  0.063089014491502,  -0.861136311594053,  0.00884332351571835 },
+     {0.310352451033784,  0.636502499121399,  -0.861136311594053,  0.0144100740393505 },
+     {0.636502499121399,  0.053145049844817,  -0.861136311594053,  0.0144100740393505 },
+     {0.053145049844817,  0.310352451033784,  -0.861136311594053,  0.0144100740393505 },
+     {0.310352451033784,  0.053145049844817,  -0.861136311594053,  0.0144100740393505 },
+     {0.636502499121399,  0.310352451033784,  -0.861136311594053,  0.0144100740393505 },
+     {0.053145049844817,  0.636502499121399,  -0.861136311594053,  0.0144100740393505 },
+     {0.24928674517091,  0.24928674517091,  -0.339981043584856,  0.0380808019346997 },
+     {0.24928674517091,  0.501426509658179,  -0.339981043584856,  0.0380808019346997 },
+     {0.501426509658179,  0.24928674517091,  -0.339981043584856,  0.0380808019346997 },
+     {0.063089014491502,  0.063089014491502,  -0.339981043584856,  0.0165791296693851 },
+     {0.063089014491502,  0.873821971016996,  -0.339981043584856,  0.0165791296693851 },
+     {0.873821971016996,  0.063089014491502,  -0.339981043584856,  0.0165791296693851 },
+     {0.310352451033784,  0.636502499121399,  -0.339981043584856,  0.0270154637698365 },
+     {0.636502499121399,  0.053145049844817,  -0.339981043584856,  0.0270154637698365 },
+     {0.053145049844817,  0.310352451033784,  -0.339981043584856,  0.0270154637698365 },
+     {0.310352451033784,  0.053145049844817,  -0.339981043584856,  0.0270154637698365 },
+     {0.636502499121399,  0.310352451033784,  -0.339981043584856,  0.0270154637698365 },
+     {0.053145049844817,  0.636502499121399,  -0.339981043584856,  0.0270154637698365 },
+     {0.24928674517091,  0.24928674517091,  0.339981043584856,  0.0380808019346997 },
+     {0.24928674517091,  0.501426509658179,  0.339981043584856,  0.0380808019346997 },
+     {0.501426509658179,  0.24928674517091,  0.339981043584856,  0.0380808019346997 },
+     {0.063089014491502,  0.063089014491502,  0.339981043584856,  0.0165791296693851 },
+     {0.063089014491502,  0.873821971016996,  0.339981043584856,  0.0165791296693851 },
+     {0.873821971016996,  0.063089014491502,  0.339981043584856,  0.0165791296693851 },
+     {0.310352451033784,  0.636502499121399,  0.339981043584856,  0.0270154637698365 },
+     {0.636502499121399,  0.053145049844817,  0.339981043584856,  0.0270154637698365 },
+     {0.053145049844817,  0.310352451033784,  0.339981043584856,  0.0270154637698365 },
+     {0.310352451033784,  0.053145049844817,  0.339981043584856,  0.0270154637698365 },
+     {0.636502499121399,  0.310352451033784,  0.339981043584856,  0.0270154637698365 },
+     {0.053145049844817,  0.636502499121399,  0.339981043584856,  0.0270154637698365 },
+     {0.24928674517091,  0.24928674517091,  0.861136311594053,  0.0203123359284898 },
+     {0.24928674517091,  0.501426509658179,  0.861136311594053,  0.0203123359284898 },
+     {0.501426509658179,  0.24928674517091,  0.861136311594053,  0.0203123359284898 },
+     {0.063089014491502,  0.063089014491502,  0.861136311594053,  0.00884332351571835 },
+     {0.063089014491502,  0.873821971016996,  0.861136311594053,  0.00884332351571835 },
+     {0.873821971016996,  0.063089014491502,  0.861136311594053,  0.00884332351571835 },
+     {0.310352451033784,  0.636502499121399,  0.861136311594053,  0.0144100740393505 },
+     {0.636502499121399,  0.053145049844817,  0.861136311594053,  0.0144100740393505 },
+     {0.053145049844817,  0.310352451033784,  0.861136311594053,  0.0144100740393505 },
+     {0.310352451033784,  0.053145049844817,  0.861136311594053,  0.0144100740393505 },
+     {0.636502499121399,  0.310352451033784,  0.861136311594053,  0.0144100740393505 },
+     {0.053145049844817,  0.636502499121399,  0.861136311594053,  0.0144100740393505 },
+    };
+    AddIntegrationSet(GAUSS, Elem::ST_WEDGE, 6, 48 , (Double*) a6);
+   
+
+    // Generate remaining integration points up to maximum order 20
+    // using Duffy transformation
+
+    for( UInt iOrder = 7; iOrder <= 30; ++iOrder ) {
+      StdVector<Double> triaWeights, lineWeights, weights, linePoints;
+      StdVector<LocPoint> triaPoints, points;
+      
+      // line points
+      CalcGaussLegendrePointsWeights( iOrder, linePoints, lineWeights );
+      
+      // triangular points
+      CalcIntTria( GAUSS, iOrder, triaPoints, triaWeights, false);
+
+      UInt numPts = linePoints.GetSize() * triaPoints.GetSize();
+      points.Resize( numPts );
+      weights.Resize( numPts );
+      UInt pos = 0;
+      for( UInt i = 0; i < linePoints.GetSize(); ++i ) {
+        for( UInt j = 0; j < triaPoints.GetSize(); ++j ) {
+          LocPoint lp;
+          lp.coord.Resize(3);
+          lp.coord[0] = triaPoints[j].coord[0];
+          lp.coord[1] = triaPoints[j].coord[1];
+          lp.coord[2] = linePoints[i];
+          lp.number = numIntPts_[Elem::ST_WEDGE]++;
+          points[pos] = lp;
+          weights[pos] = lineWeights[i] * triaWeights[j];
+          pos++;
+        } // triangular points 
+      } // line along zeta
+      
+      intPoints_[GAUSS][iOrder][Elem::ST_WEDGE] = points;
+      intWeights_[GAUSS][iOrder][Elem::ST_WEDGE] = weights;
+//      std::cerr << "\nWedge integration of order " << iOrder << "\n========================\n";
+//      std::cerr << "\tpoints: " << points << std::endl;
+//      std::cerr << "\tweights: " << weights << std::endl;
+    } // order
 
   }
 

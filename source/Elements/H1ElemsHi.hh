@@ -127,7 +127,9 @@ namespace CoupledField {
 
  
   
-  //! H1 conforming hierarchical higher order line element
+  // ======
+  //  LINE
+  // =======
   class FeH1HiLine : public FeH1Hi {
 
   public:
@@ -151,10 +153,11 @@ namespace CoupledField {
                             const Vector<Double>& point,
                             const Elem* ptElem,
                             UInt comp = 1 );
-
-
   };
   
+  // ==========
+  //  TRIANGLE
+  // ==========
   //! H1 conforming hierarchical higher order triangular element
   class  FeH1HiTria : public FeH1Hi {
 
@@ -162,7 +165,6 @@ namespace CoupledField {
 
     //! Constructor
     FeH1HiTria();
-
 
     //! Destructor
     virtual ~FeH1HiTria();
@@ -192,6 +194,10 @@ namespace CoupledField {
     void CalcNumUnknowns();
   };
 
+  // ===============
+  //  QUADRILATERAL 
+  // ===============
+  
   //! H1 conforming hierarchical higher order quadrilateral element
   class  FeH1HiQuad : public FeH1Hi {
 
@@ -199,7 +205,6 @@ namespace CoupledField {
 
     //! Constructor
     FeH1HiQuad();
-
 
     //! Destructor
     virtual ~FeH1HiQuad();
@@ -226,7 +231,9 @@ namespace CoupledField {
                      T_VEC& ret );
   };
 
-  
+  // ============
+  //  HEXAHEDRAL 
+  // ============
   //! H1 conforming hierarchical higher order hexahedral element
   class  FeH1HiHex : public FeH1Hi {
 
@@ -259,6 +266,45 @@ namespace CoupledField {
                      T_VEC& ret );
 
   };
+  
+  // =======
+  //  WEDGE  
+  // =======
+  
+  //! H1 conforming hierarchical higher order wedge element
+   class  FeH1HiWedge : public FeH1Hi {
+
+   public:
+
+     //! Constructor
+     FeH1HiWedge();
+
+     //! Destructor
+     virtual ~FeH1HiWedge();
+
+   protected:
+
+     //! @copydoc FeH1::CalcShFnc
+     void CalcShFnc( Vector<Double>& shape,
+                     const Vector<Double>& point,
+                     const Elem* ptElem,
+                     UInt comp = 1 );
+
+     //! @copydoc FeH1::CalcLocDerivShFnc
+     void CalcLocDerivShFnc( Matrix<Double> & deriv, 
+                             const Vector<Double>& point,
+                             const Elem* ptElem,
+                             UInt comp = 1 );
+
+     //! Templatized version of calculation for shape function
+     template<typename T_SCAL, typename T_VEC>
+     void _CalcShFnc( const T_SCAL x, const T_SCAL y, const T_SCAL z,
+                      const Elem * elem,
+                      T_VEC& ret );
+     
+     //! @copydoc FeH1::GetNumFncs
+     void CalcNumUnknowns();
+   };
 
 } // namespace CoupledField
 

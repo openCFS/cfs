@@ -57,7 +57,10 @@ namespace CoupledField {
     //! Coordinate of local point
     Vector<Double> coord;
   };
-
+  
+  // free outstream operator
+  //! Overloading << for class LocPoint
+  std::ostream& operator << ( std::ostream & , const LocPoint &);
 
   // ===========================================================================
   //  C L A S S   LocPointMapped
