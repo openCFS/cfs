@@ -200,6 +200,8 @@ void BaseOptimizer::SolveOptimizationProblem()
 {
   timer_->Start();
   SolveProblem();
+  // dirty fix to have the final status streamed for iTop
+  optimization->CommitIteration(true);
   timer_->Stop();
 }
 

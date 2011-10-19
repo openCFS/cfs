@@ -721,6 +721,15 @@ PtrParamNode Optimization::CommitIteration(bool keep_iteration_number)
   // eventually set special result
   EvaluateSpecialResults();
 
+  // also log to info node, append the iteration
+  PtrParamNode iteration = optInfoNode->Get(ParamNode::PROCESS)->Get("iteration", ParamNode::APPEND);
+
+  // write the header only once - we might keep the iteration number
+  if(log.file) if(objectives.GetHistorySize() == 1) *log.file << log.fileHeader << endl;
+  LogFileLine(log.file, iteration); // also ParamNode is to be written
+  baseOptimizer_->LogFileLine(log.file, iteration);
+  if(log.file) *log.file << endl;
+
   // this writes the most current solved forward problem via the driver to gid or whatever
   bool store = currentIteration == 0 || commitStride == 1 || (commitStride > 0 && currentIteration % commitStride == 0);
   LOG_TRACE2(opt) << "CommitIteration " << currentIteration << " objective=" << objectives.GetHistoryValue() << " store=" << store;
@@ -730,15 +739,6 @@ PtrParamNode Optimization::CommitIteration(bool keep_iteration_number)
     lastStoredResult_ = currentIteration;
     // see FinalizeStoreResults() !
   }
-
-  // also log to info node, append the iteration
-  PtrParamNode iteration = optInfoNode->Get(ParamNode::PROCESS)->Get("iteration", ParamNode::APPEND);
-
-  // write the header only once - we might keep the iteration number
-  if(log.file) if(objectives.GetHistorySize() == 1) *log.file << log.fileHeader << endl;
-  LogFileLine(log.file, iteration); // also ParamNode is to be written
-  baseOptimizer_->LogFileLine(log.file, iteration);
-  if(log.file) *log.file << endl;
 
   // IPOPT does own logging -> otherwise show the user we are alive
   std::string f = GetIterationFrequency();

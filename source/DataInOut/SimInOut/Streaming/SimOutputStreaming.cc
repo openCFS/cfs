@@ -100,6 +100,12 @@ void SimOutputStreaming::Transmit(std::ostream& out)
   // add the complete info.xml treee
   content.Get("info")->SetValue(info, true); // use own name and make sure we are not seed as stupid boost::any
 
+  ParamNodeList list = info->Get("optimization/process")->GetChildren();
+  if(!list.IsEmpty())
+    list.Last()->Dump();
+  if(info->Has("optimization/summary"))
+    info->Get("optimization/summary")->Dump();
+
   // add mesh
   if(send_mesh_) domain->GetGrid()->ExportGrid(content.Get("mesh"));
 
