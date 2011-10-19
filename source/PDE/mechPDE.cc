@@ -2477,9 +2477,6 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
     Vector<TYPE> & actVal = actRes.GetVector();
     actVal.Resize( actRes.GetEntityList()->GetSize() * (do_von_mises ? 1 : stressDim_) );
 
-    // we need it only when we do midpoint in axis symmetrix case
-    Vector<double> intPoint;
-
     // element solution
     Matrix<TYPE> sol;
 
@@ -2503,9 +2500,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
     for ( it.Begin(); !it.IsEnd(); it++ )
     {
       // we integrate over the element by averages summation and then multiplying with the volume
-      const UInt nrIntPts = it.GetElem()->ptElem->GetNumIntPoints();
       const Vector<Double>& intWeights = it.GetElem()->ptElem->GetIntWeights();
-      assert(intWeights.GetSize() == nrIntPts); // 0-based
 
       // the real element volume
       domain->GetGrid()->GetElemNodesCoord(coords, it.GetElem()->connect, true); // updated coordinates
@@ -2518,10 +2513,6 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
       // to sum up von Mises inner product
       TYPE inner = 0.0;
 
-      // I simply don't know how to do it in the axis symmetric case. Here we do the single mid point integration!
-      //bool midpoint = isaxi_;
-      //bool midpoint = false;
-
       Vector<Double>* intPoints = it.GetElem()->ptElem->GetIntPoints();
       // loop over the integration points.
       Matrix<Double> elemCoord;
@@ -2530,7 +2521,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
       //set element solution once
       sol_->GetElemSolutionAsMatrix(sol, it);
       stress_strain->SetActElemSol(sol);
-      for(UInt ip = 1; ip <=  nrIntPts; ip++)
+      for(UInt ip = 1, n = intPoints->GetSize(); ip <= n; ip++)
       {
         stress_strain->SetIntPoint(intPoints[ip-1]); // fuck 1-based!!
 

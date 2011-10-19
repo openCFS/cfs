@@ -84,13 +84,15 @@ void ParamNode::SetValue(PtrParamNode node, bool overwrite_name)
   SetValue(node->value_);
 
   ParamNodeList& children = node->GetChildren();
+  // reserve own children size
+  children_.Resize(children.GetSize());
 
-  // run recusively through all children
+  // run recursively through all children
   for(UInt i = 0; i < children.GetSize(); i++)
   {
     // add new element
     PtrParamNode other = children[i];
-    PtrParamNode new_node = Get(other->GetName(), APPEND);
+    PtrParamNode new_node = SetNewChild(other->GetName(), i); // faster for large arrays
     new_node->SetValue(other, false);
   }
 }
@@ -762,8 +764,13 @@ void ParamNode::ToString(std::string& ret, int depth) const
   }
 }
 
-void ParamNode::ToXML(std::ostream& os, int depth)
+void ParamNode::ToXML(std::ostream& os, int depth, bool adjust_element_type)
 {
+  // normally this does not need to be called!
+  if(adjust_element_type)
+    AdjustElementType(); // is recursively!
+
+
   // note, that this is an recursive method!
 
   std::string strValue;
@@ -783,7 +790,7 @@ void ParamNode::ToXML(std::ostream& os, int depth)
   //Sort(); // (HEADER before) PROCESS before SUMMARY
 
   // if we start a new element or are part of an element is same/same
-  os << std::endl << string(depth, ' ');
+  os << std::endl << string(std::max(depth, 0), ' ');
 
   if (type_ != COMMENT && type_ != SELF_XML)
   {
@@ -874,7 +881,7 @@ void ParamNode::ToXML(std::ostream& os, int depth)
     // do we close in the same line?
     if (chsize != 0 && !endl_written)
       os << std::endl;
-    os << string(depth, ' ');
+    os << string(std::max(depth, 0), ' ');
     if (type_ != COMMENT)
     {
       os  << "</" << name_ << ">";

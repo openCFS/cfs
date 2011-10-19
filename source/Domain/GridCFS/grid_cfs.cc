@@ -2403,75 +2403,80 @@ namespace CoupledField {
 
     // in the cfstool case progOpts is not set
     if(progOpts != NULL && progOpts->DoExportGrid())
+      ExportGrid(in->Get("grid"));
+  }
+
+
+  void GridCFS::ExportGrid(PtrParamNode out)
+  {
+    PtrParamNode nl = out->Get("nodeList");
+    // Setup large array to resolve zero to many node names
+    StdVector<StdVector<unsigned int> > node_names(coords_.GetSize() + 1); // 1-based!
+    for(unsigned int s = 0, sn = namedNodeNames_.GetSize(); s < sn; s++)
     {
-      PtrParamNode nl = in->Get("grid/nodeList");
-      // Setup large array to resolve zero to many node names
-      StdVector<StdVector<unsigned int> > node_names(coords_.GetSize() + 1); // 1-based!
-      for(unsigned int s = 0, sn = namedNodeNames_.GetSize(); s < sn; s++)
-      {
-        const StdVector<unsigned int>& nn = namedNodes_[s];
-        for(unsigned int n = 0; n < nn.GetSize(); n++)
-          node_names[nn[n]-1].Push_back(s); // fuck mixed 1-based and 0-based :(
-      }
+      const StdVector<unsigned int>& nn = namedNodes_[s];
+      for(unsigned int n = 0; n < nn.GetSize(); n++)
+        node_names[nn[n]-1].Push_back(s); // fuck mixed 1-based and 0-based :(
+    }
 
-      for(unsigned int n = 0, nn = coords_.GetSize(); n < nn; n++)
-      {
-        PtrParamNode node = nl->Get("node", ParamNode::APPEND);
-        node->Get("id", ParamNode::APPEND)->SetValue(n+1); // 1-based!
-        node->Get("x", ParamNode::APPEND)->SetValue(coords_[n].data[0]);
-        node->Get("y", ParamNode::APPEND)->SetValue(coords_[n].data[1]);
-        node->Get("z", ParamNode::APPEND)->SetValue(dim_ > 2 ? coords_[n].data[2] : 0.0); // unfortunately there is garbage set :(
+    ParamNodeList& list = nl->GetChildren();
+    list.Resize(coords_.GetSize());
+    for(unsigned int n = 0, nn = coords_.GetSize(); n < nn; n++)
+    {
+      PtrParamNode node = nl->SetNewChild("node", n); // much faster than append which has to search always
+      node->Get("id", ParamNode::APPEND)->SetValue(n+1); // 1-based!
+      node->Get("x", ParamNode::APPEND)->SetValue(coords_[n].data[0]);
+      node->Get("y", ParamNode::APPEND)->SetValue(coords_[n].data[1]);
+      node->Get("z", ParamNode::APPEND)->SetValue(dim_ > 2 ? coords_[n].data[2] : 0.0); // unfortunately there is garbage set :(
 
-        const StdVector<unsigned int>& ni = node_names[n];
-        node->Get("names", ParamNode::APPEND)->SetValue(ni.GetSize());
+      const StdVector<unsigned int>& ni = node_names[n];
+      node->Get("names", ParamNode::APPEND)->SetValue(ni.GetSize());
+      for(unsigned int c = 0; c < ni.GetSize(); c++)
+        node->Get("name_" + lexical_cast<std::string>(c), ParamNode::APPEND)->SetValue(namedNodeNames_[ni[c]]);
+    }
+    node_names.Clear();
+    // same game for the element names as for the nodes
+    StdVector<StdVector<unsigned int> > elem_names(GetNumElems() + 1); // 1-based!
+    for(unsigned int s = 0, sn = namedElemNames_.GetSize(); s < sn; s++)
+    {
+      const StdVector<unsigned int>& nn = namedElems_[s];
+      for(unsigned int n = 0; n < nn.GetSize(); n++)
+        elem_names[nn[n]-1].Push_back(s);
+    }
+
+    PtrParamNode rl = out->Get("regionList");
+    for(unsigned int r = 0; r < regionData.GetSize(); r++)
+    {
+      RegionData& rd = regionData[r];
+      SetElementBarycenters(rd.id, false);
+      PtrParamNode reg = rl->Get("region", ParamNode::APPEND);
+      reg->Get("name")->SetValue(rd.name);
+      const StdVector<Elem*>& elems = rd.type == VOLUME_REGION ? volElems_[rd.type_idx] : surfElems_[rd.type_idx];
+      ParamNodeList& list = reg->GetChildren();
+      list.Resize(elems.GetSize() + 1); // there is already the child 'name'
+      for(unsigned int e = 0, n = elems.GetSize(); e < n; e++)
+      {
+        Elem* elem = elems[e];
+        PtrParamNode el = reg->SetNewChild("element", e + 1); // the 'name' child
+        el->Get("id", ParamNode::APPEND)->SetValue(elem->elemNum);
+        el->Get("type", ParamNode::APPEND)->SetValue(Elem::feType.ToString(elem->ptElem->feType()));
+        Point& bc = elem->barycenter;
+        el->Get("x")->SetValue(bc.data[0], ParamNode::APPEND);
+        el->Get("y")->SetValue(bc.data[1], ParamNode::APPEND);
+        el->Get("z")->SetValue(bc.data[2], ParamNode::APPEND);
+
+        const StdVector<unsigned int>& con = elem->connect;
+        el->Get("nodes", ParamNode::APPEND)->SetValue(con.GetSize());
+        for(unsigned int c = 0; c < con.GetSize(); c++)
+          el->Get("node_" + lexical_cast<std::string>(c), ParamNode::APPEND)->SetValue(con[c]);
+
+        const StdVector<unsigned int>& ni = elem_names[n];
+        el->Get("names", ParamNode::APPEND)->SetValue(ni.GetSize());
         for(unsigned int c = 0; c < ni.GetSize(); c++)
-          node->Get("name_" + lexical_cast<std::string>(c), ParamNode::APPEND)->SetValue(namedNodeNames_[ni[c]]);
-      }
-      node_names.Clear();
-      // same game for the element names as for the nodes
-      StdVector<StdVector<unsigned int> > elem_names(GetNumElems() + 1); // 1-based!
-      for(unsigned int s = 0, sn = namedElemNames_.GetSize(); s < sn; s++)
-      {
-        const StdVector<unsigned int>& nn = namedElems_[s];
-        for(unsigned int n = 0; n < nn.GetSize(); n++)
-          elem_names[nn[n]-1].Push_back(s);
-      }
-
-      PtrParamNode rl = in->Get("grid/regionList");
-      for(unsigned int r = 0; r < regionData.GetSize(); r++)
-      {
-        RegionData& rd = regionData[r];
-        SetElementBarycenters(rd.id, false);
-        PtrParamNode reg = rl->Get("region", ParamNode::APPEND);
-        reg->Get("name")->SetValue(rd.name);
-        const StdVector<Elem*>& elems = rd.type == VOLUME_REGION ? volElems_[rd.type_idx] : surfElems_[rd.type_idx];
-        for(unsigned int e = 0, n = elems.GetSize(); e < n; e++)
-        {
-          Elem* elem = elems[e];
-          PtrParamNode el = reg->Get("element", ParamNode::APPEND);
-          el->Get("id", ParamNode::APPEND)->SetValue(elem->elemNum);
-          el->Get("type", ParamNode::APPEND)->SetValue(Elem::feType.ToString(elem->ptElem->feType()));
-          Point& bc = elem->barycenter;
-          el->Get("x")->SetValue(bc.data[0], ParamNode::APPEND);
-          el->Get("y")->SetValue(bc.data[1], ParamNode::APPEND);
-          el->Get("z")->SetValue(bc.data[2], ParamNode::APPEND);
-
-          const StdVector<unsigned int>& con = elem->connect;
-          el->Get("nodes", ParamNode::APPEND)->SetValue(con.GetSize());
-          for(unsigned int c = 0; c < con.GetSize(); c++)
-            el->Get("node_" + lexical_cast<std::string>(c), ParamNode::APPEND)->SetValue(con[c]);
-
-          const StdVector<unsigned int>& ni = elem_names[n];
-          el->Get("names", ParamNode::APPEND)->SetValue(ni.GetSize());
-          for(unsigned int c = 0; c < ni.GetSize(); c++)
-            el->Get("name_" + lexical_cast<std::string>(c), ParamNode::APPEND)->SetValue(namedElemNames_[ni[c]]);
-
-        }
-
+          el->Get("name_" + lexical_cast<std::string>(c), ParamNode::APPEND)->SetValue(namedElemNames_[ni[c]]);
       }
     }
-  } 
-
+  }
 
   void GridCFS::CalcSurfNormal( Vector<Double> & n, 
                                 const Elem & surfElem,

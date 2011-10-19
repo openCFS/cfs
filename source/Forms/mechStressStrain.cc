@@ -59,8 +59,6 @@ namespace CoupledField
     Vector<TYPE> linStrain(linBMat.GetNumRows());
     linStrain.Init();
     stressVec.Init();
-    //Matrix<TYPE>(linBMat).Mult(displVec,linStrain);
-    //Matrix<TYPE>(dMat).Mult(linStrain,stressVec);
     linStrain = linBMat * displVec;
     stressVec = dMat * linStrain;
 
@@ -77,9 +75,6 @@ namespace CoupledField
   CalcStrainVec(Vector<TYPE>& strainVec, UInt ip, EntityIterator& ent) {
     // Extract pointer to reference element and get coordinates
     ExtractElemInfo( ent );
-
-//     Matrix<Double> dMat;
-//     linElastInt::calcDMat(dMat, ent.GetElem());
 
     // convert displacement of all elem nodes into one vector:
     // (uNode1X, uNode1Y, uNode2X, uNode2Y, ...)

@@ -1,6 +1,7 @@
 #include "SimOutputStreaming.hh"
 
 #include "Domain/domain.hh"
+#include "Domain/grid.hh"
 #include <boost/asio.hpp>
 #include <boost/bind.hpp>
 
@@ -19,6 +20,8 @@ SimOutputStreaming::SimOutputStreaming(PtrParamNode outputNode) :
   host_ = outputNode->Get("host")->As<string>();
   port_ = outputNode->Get("port")->As<string>();
   path_ = outputNode->Get("path")->As<string>();
+  send_mesh_ = outputNode->Get("sendMesh")->As<bool>();
+  compressed_ = outputNode->Get("compressed")->As<bool>();
 
   if(outputNode->Has("silent"))
     silent_ = outputNode->Get("silent")->As<bool>();
@@ -86,6 +89,72 @@ UInt SimOutputStreaming::GetContentLength()
   return(v + 2);
 }
 
+
+void SimOutputStreaming::Transmit(std::ostream& out)
+{
+  // create a new Param Node
+  // ParamNode content = PtrParamNode(new ParamNode(ParamNode::INSERT, ParamNode::ELEMENT ));
+  ParamNode content(ParamNode::INSERT);
+  content.SetName("cfsStreaming");
+
+  // add the complete info.xml treee
+  content.Get("info")->SetValue(info, true); // use own name and make sure we are not seed as stupid boost::any
+
+  // add mesh
+  if(send_mesh_) domain->GetGrid()->ExportGrid(content.Get("mesh"));
+
+  // now the actual results
+  PtrParamNode results = content.Get("results");
+  for(unsigned int r = 0; r < results_.GetSize(); r++)
+  {
+    shared_ptr<BaseResult> sol = results_[r];
+    shared_ptr<ResultInfo> resInfo = sol->GetResultInfo();
+
+    PtrParamNode rpn = results->Get("result", ParamNode::APPEND);
+    std::string tmp;
+    resInfo->Enum2String(resInfo->definedOn, tmp); // how ugly! :(
+    rpn->Get("solution")->SetValue(tmp);
+
+    rpn->Get("name")->SetValue(resInfo->resultName);
+    rpn->Get("region")->SetValue(sol->GetEntityList()->GetName());
+
+    unsigned int dofs = resInfo->dofNames.GetSize();
+    rpn->Get("dofs")->SetValue(dofs);
+    for(unsigned int d = 0; d < dofs; d++)
+      rpn->Get("dof_" + boost::lexical_cast<std::string>(d))->SetValue(resInfo->dofNames[d]);
+
+    rpn->Get("unit")->SetValue(resInfo->unit);
+
+    // TODO now only real valued!
+    // the stuff goes into the data element and we set the elements directly
+    PtrParamNode data = rpn->Get("data");
+    ParamNodeList& list = data->GetChildren();
+    // the result vector is a set of dofs
+    Vector<double>& resultVec = dynamic_cast<Result<double>&>(*sol).GetVector();
+    // the actual item size
+    unsigned int items = resultVec.GetSize() / dofs;
+
+    list.Resize(items);
+    for(unsigned int e = 0; e < items; e++)
+    {
+      PtrParamNode el = data->SetNewChild("item", e);
+
+      for(unsigned int d = 0; d < dofs; d++)
+        el->Get("v_" + boost::lexical_cast<std::string>(d))->SetValue(resultVec[dofs * e + d]);
+
+      // add the optional index only at the end to allow save attribute retrieval by index
+      if(!compressed_)
+        el->Get("idx")->SetValue(e);
+    }
+  }
+
+
+  // write the stuff
+  content.ToXML(out, compressed_ ? -99 : 0, true); // adjust element type!
+
+}
+
+/*
 void SimOutputStreaming::Transmit(std::ostream& out)
 {
   out << "Iteration: "; 
@@ -113,33 +182,34 @@ void SimOutputStreaming::Transmit(std::ostream& out)
     {
       out << resultVec[d] << std::endl;
     }
-
   }
   out << std::endl << std::endl;
 }
+*/
 
 SimOutputStreaming::Client::Client(boost::asio::io_service& io_service,
       const std::string& server, const std::string& port, const std::string& path, SimOutputStreaming* base)
     : resolver_(io_service),
       socket_(io_service)
 {
-    // Form the request. We specify the "Connection: close" header so that the
-    // server will close the socket after transmitting the response. This will
-    // allow us to treat all data up until the EOF as the content.
+    // it is more robust known the content length a priori, therefore we use a memory stream
+    std::stringstream mem;
+    // fill with all our data
+    base->Transmit(mem);
+
     std::ostream request_stream(&request_);
     request_stream << "POST " << path << " HTTP/1.1\r\n";
     request_stream << "Host: " << server << "\r\n";
     request_stream << "Accept: */*\r\n";
     request_stream << "Connection: close\r\n";
-    request_stream << "Content-Length: " << base->GetContentLength() << "\r\n";
+    request_stream << "Content-Length: " << mem.tellp() << "\r\n";
     request_stream << "Content-Type: text/plain\r\n\r\n";
 
-    base->Transmit(request_stream);
-
-//    request_stream << "\r\n\r\n";
+    // copy data
+    request_stream << mem.rdbuf() << "\r\n\r\n";
 
     if(!base->silent_)
-      std::cout << " try to connect " << server << " port " << port << std::endl;
+      std::cout << "try to connect " << server << " port " << port << " to transmit " << mem.tellp() << " bytes" << std::endl;
 
     // Start an asynchronous resolve to translate the server and service names
     // into a list of endpoints.
