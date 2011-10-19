@@ -394,6 +394,8 @@ share/doc/user/advPrePostManual/pics/pv/paraview_named_nodes_select_thresh.pdf -
 share/doc/user/advPrePostManual/pics/pv/paraview_named_nodes_select_threshold.png -text
 share/doc/user/advPrePostManual/pics/pv/paraview_named_nodes_select_threshold.svg -text
 share/doc/user/advPrePostManual/pics/pv/polar_plot.png -text
+share/doc/user/advPrePostManual/pics/pv/pv_adv_io.dot -text
+share/doc/user/advPrePostManual/pics/pv/pv_adv_io.pdf -text
 share/doc/user/advPrePostManual/pics/pv/pv_xi_eta.pdf -text svneol=unset#application/pdf
 share/doc/user/advPrePostManual/pics/pv/pv_xi_eta.svg -text
 share/doc/user/advPrePostManual/pics/pv/pv_xi_eta_mapped.png -text svneol=unset#image/png
@@ -413,6 +415,8 @@ share/doc/user/advPrePostManual/pics/pv_nolight_arrow.png -text
 share/doc/user/advPrePostManual/pics/soft_landscape.png -text
 share/doc/user/advPrePostManual/pics/tecplot.png -text
 share/doc/user/advPrePostManual/pics/visit.png -text
+share/doc/user/advPrePostManual/pics/visit_adv_io.dot -text
+share/doc/user/advPrePostManual/pics/visit_adv_io.pdf -text
 share/doc/user/advPrePostManual/postproc.tex -text
 share/doc/user/advPrePostManual/preproc.tex -text
 share/doc/user/advPrePostManual/sources/Pfeifenfussmodell_modificated_swept.in.txt -text

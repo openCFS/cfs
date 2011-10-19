@@ -181,6 +181,9 @@ switch to  the advanced  interface and  then select 'Use  Material Id'  in the
 'Regular          Part          Creation         Convention'          combobox
 (cf. Fig. \ref{fig:ensight_rst_mat_to_part}).
 
+Another option for getting data into EnSight is by converting it to the Exodus
+II format in ParaView (cf. \ref{sec:pv_adv_io}).
+
 \begin{figure}[htb] 
   \centering 
   \label{fig:ensight_rst_mat_to_part}
@@ -199,7 +202,7 @@ CFS++.  A fair  amount of  debugging  effort should  be invested  to fix  this
 problem.
 
 \subsubsection{Using Exodus  II to get Data  into Tecplot}
-
+\label{sec:tecplot_exodus}
  Once the  data from CFS++ has been  imported into VisIt as  described in Sec.
 \ref{sec:visit_exodus}, the database can be exported into Tecplot format using
 File$\rightarrow$Export           Database...$\rightarrow$Export           To:
@@ -213,11 +216,19 @@ is through using Xdmf files.  But VisIt can also read GMV data files (at least
 ASCII ones).
 
 \subsubsection{Using Exodus II to get Data into VisIt}
-\label{sec:visit_exodus}  Another possible  way to  get data  from  CFS++ into
-VisIt is by loading HDF5 files  into ParaView and exporting them to the Exodus
-II   files   by    doing   File$\rightarrow$Save   Data$\rightarrow$Files   of
-Type$\rightarrow$Exodus  II. In  Visit the  Exodus files  can be  loaded using
-File$\rightarrow$Open File...$\rightarrow$Open file as type: Exodus.
+
+\label{sec:visit_exodus}  In Visit Exodus  II (cf.   Sec. \ref{sec:pv_adv_io})
+files can be  loaded using File$\rightarrow$Open File...$\rightarrow$Open file
+as type: Exodus. VisIt can export its  databases to a number of file format as
+Fig. \ref{fig:visit_adv_io} shows. It can also export data into Tecplot format
+(cf. Sec. \ref{sec:tecplot_exodus}).
+
+\begin{figure}[htb] 
+  \centering 
+  \label{fig:visit_adv_io}
+  \includegraphics[scale=0.8]{pics/visit_adv_io}
+  \caption{Advanced options for VisIt data I/O.}
+\end{figure}
 
 
 \subsection{ParaView} A ParaView plugin for reading CFS++'s native HDF5 format
@@ -243,6 +254,21 @@ also the  downloaded binaries from the  ParaView website may be  used since no
 extra plugins are required any more.  This configuration will lack some of the
 convenient  features  (e.g.  animation  of  harmonic results)  of  our  plugin
 however.
+
+\subsubsection{Exporting Data from ParaView for Use in other Postprocs}
+\label{sec:pv_adv_io} Another possible way to  get data from CFS++ into VisIt,
+EnSight or Tecplot  is by loading HDF5 files into  ParaView and exporting them
+to Exodus  II files  by doing File$\rightarrow$Save  Data$\rightarrow$Files of
+Type$\rightarrow$Exodus II.  ParaView can also  save data to native  VTK multi
+block files or XDMF2 files (cf. Fig. \ref{fig:pv_adv_io}).
+
+\begin{figure}[htb] 
+  \centering 
+  \label{fig:pv_adv_io}
+  \includegraphics[scale=0.8]{pics/pv/pv_adv_io}
+  \caption{Advanced options for ParaView data I/O.}
+\end{figure}
+
 
 \subsection{Matlab}
 \subsection{Gnuplot}
