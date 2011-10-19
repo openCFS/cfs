@@ -95,6 +95,14 @@ in   ANSYS'   in  \cite{Simkovics2010}.   Please   also   refer  to   sections
 postprocessing of CFS++ meshes and  results and to Sec. \ref{sec:cfs_tool} for
 the possible ways of data conversion.
 
+\begin{figure}[htb]
+  \centering
+  \begin{overpic}[width=0.5\textwidth]{pics/ansys}
+%    \put(10,20){\textcolor{white}{\bf The electrostatic man!}}
+  \end{overpic}
+  \caption{Postprocessing the electrostatic man with ANSYS Classic}
+  \label{fig:ansys}
+\end{figure}%
 
 
 \begin{description}
@@ -150,16 +158,18 @@ further details about the implementation of the CFS++ HDF5 plugin.
 \item[ParaView Guide] The official ParaView Manual \cite{PVGuide2007} is also available as a free online resource inside the ParaView Wiki at \url{http://paraview.org/Wiki/ParaView/Users_Guide/Table_Of_Contents} since ParaView 3.10.
 \item[ParaView Wiki] \cite{PVWiki}
 \item[ParaView Online documentation] \url{http://www.paraview.org/paraview/help/documentation.html}
-\item[PV 3.8 Tutorial]  A good starting point for the  ParaView newbie is the tutorial. \url{http://www.paraview.org/Wiki/images/8/88/ParaViewTutorial38.pdf}
-\item[Tutorial for 3.10] \url{http://www.vtk.org/Wiki/images/2/2d/ParaViewTutorial310.pdf}
-\item[Data     Analysis    and     Assessment    Center     (DAAC)    ParaView
-page]\url{http://daac.hpc.mil/paraview}
 \item[Precompiled ParaView Binaries with our plugin] \url{https://lse17.e-technik.uni-erlangen.de:2001/files/precompiled/Paraview}.
 \item[Kitware - The Source] The official newsletter provides reports about the
 latest  features   of  ParaView  and  other  Kitware   toolkits  (CMake,  VTK,
 etc.).   This    information   is    relevant   to   developers    and   users
 alike. \url{http://www.kitware.com/products/thesource.html}
 \item[Kitware blog] The latest issues of The Source also appear as blog articles at \url{http://www.kitware.com/source/}.
+\item[Tutorial for 3.8]  A good starting point for the  ParaView newbie is the tutorial. \url{http://www.paraview.org/Wiki/images/8/88/ParaViewTutorial38.pdf}
+\item[Tutorial for 3.10] \url{http://www.vtk.org/Wiki/images/2/2d/ParaViewTutorial310.pdf}
+\item[Data     Analysis    and     Assessment    Center     (DAAC)    ParaView
+page] \url{http://daac.hpc.mil/paraview}
+\item[ParaView at NERSC] \url{http://www.nersc.gov/users/software/vis-analytics/paraview/}
+\item[ParaViewGeo] is an open source multi-processor ready visualization package for the exploration and mining industry. \url{http://paraviewgeo.mirarco.org}
 \end{description}
 
 \paragraph{Installing SciPy/NumPy}
@@ -177,24 +187,46 @@ VisIt is another VTK-based visualization  tool with broad support for CFD data
 formats. E.g. it has native readers  for CGNS and StarCCM+ files.  Like GMV it
 is  developed at  Lawrence  Livermore National  Laboratories.
 
+\begin{figure}[htb]
+  \centering
+  \begin{overpic}[width=0.5\textwidth]{pics/visit}
+%    \put(10,20){\textcolor{white}{\bf The electrostatic man!}}
+  \end{overpic}
+  \caption{Postprocessing the electrostatic man with VisIt}
+  \label{fig:visit}
+\end{figure}%
+
 \begin{description}
 \item[VisIt website] \url{https://wci.llnl.gov/codes/visit/}
 
-\item[Data    Analysis   and    Assessment   Center    (DAAC)    VisIt   page]
-\url{https://visualization.hpc.mil/wiki/VisIt}
-
-\item[VisIt user's Wiki]
+\item[VisIt User's Wiki]
 \url{http://www.visitusers.org}
 
 \item[Official VisIt documentation]
 \url{https://wci.llnl.gov/codes/visit/doc.html}
+
+\item[VisIt podcast] \url{http://www.rce-cast.com/index.php/Podcast/rce06-visit.html}
+
+\item[Data    Analysis   and    Assessment   Center    (DAAC)    VisIt   page]
+\url{https://visualization.hpc.mil/wiki/VisIt}
+
+\item[VisIt at NERSC] \url{http://www.nersc.gov/users/software/vis-analytics/visit/}
 \end{description}
 
 \subsubsection{Tecplot}
 
+\begin{figure}[htb]
+  \centering
+  \begin{overpic}[width=0.5\textwidth]{pics/tecplot}
+%    \put(10,20){\textcolor{white}{\bf The electrostatic man!}}
+  \end{overpic}
+  \caption{Postprocessing the electrostatic man with Tecplot}
+  \label{fig:gid}
+\end{figure}%
+
 \begin{description}
 \item[Getting Started Manual] \url{http://download.tecplot.com/360/tpgs.pdf}
-\item[User's Manual] http://download.tecplot.com/360/tpum.pdf
+\item[User's Manual] \url{http://download.tecplot.com/360/tpum.pdf}
 \item[Getting Started Videos] \url{http://www.tecplot.com/Training/GettingStarted.aspx}
 \item[Feature Tutorial Videos] \url{http://www.tecplot.com/Training/FeatureTutorials.aspx}
 \item[Further Video Tutorials] \url{http://www.genias-graphics.de/cms/tp-360-tutorials.html}
@@ -221,6 +253,8 @@ formats.   We   also  support  reading  EnSight  data   files  with  cplreader
 
 \item[Data Analysis and Assessment Center (DAAC) EnSight page] \url{http://daac.hpc.mil/ensight}
 
+\item[CEI's EnSight at NERSC] \url{http://www-vis.lbl.gov/NERSC/Software/ensight}
+
 \item[Short  introduction in German] \url{http://www.scc.kit.edu/produkte/3847.php}
 
 \item[EnSight 9 to 10] \url{http://wiki.ensight.com/w/EnSight10Transition}
@@ -233,6 +267,13 @@ formats.   We   also  support  reading  EnSight  data   files  with  cplreader
 
 
 \subsubsection{ANSYS CFD-Post}
+
+\begin{figure}[htb] 
+  \centering 
+  \label{fig:ensight}
+  \includegraphics[height=7.5cm]{pics/cfdpost} 
+  \caption{Postprocessing with ANSYS CFD-Post.}
+\end{figure}
 
 \begin{description}
 \item[CFD-Post Users Guide] \cite{ANSYSCFDPostUG2010}

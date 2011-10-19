@@ -370,6 +370,7 @@ share/doc/user/advPrePostManual/pics/ansys_heatsink.png -text svneol=unset#image
 share/doc/user/advPrePostManual/pics/ansys_pml3d_imag.png -text svneol=unset#image/png
 share/doc/user/advPrePostManual/pics/ansys_pml3d_real.png -text svneol=unset#image/png
 share/doc/user/advPrePostManual/pics/ansys_trans_pyras.png -text svneol=unset#image/png
+share/doc/user/advPrePostManual/pics/cfdpost.png -text
 share/doc/user/advPrePostManual/pics/cfx_gmsh_man_model.png -text svneol=unset#image/png
 share/doc/user/advPrePostManual/pics/ensight_man.png -text
 share/doc/user/advPrePostManual/pics/ensight_rst_mat_to_part.png -text
@@ -410,6 +411,8 @@ share/doc/user/advPrePostManual/pics/pv_light_default_arrow.png -text
 share/doc/user/advPrePostManual/pics/pv_nolight.png -text
 share/doc/user/advPrePostManual/pics/pv_nolight_arrow.png -text
 share/doc/user/advPrePostManual/pics/soft_landscape.png -text
+share/doc/user/advPrePostManual/pics/tecplot.png -text
+share/doc/user/advPrePostManual/pics/visit.png -text
 share/doc/user/advPrePostManual/postproc.tex -text
 share/doc/user/advPrePostManual/preproc.tex -text
 share/doc/user/advPrePostManual/sources/Pfeifenfussmodell_modificated_swept.in.txt -text

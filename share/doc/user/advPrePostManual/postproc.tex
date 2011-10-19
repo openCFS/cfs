@@ -198,11 +198,27 @@ Tecplot  360 2011  is known  to  crash with  ANSYS .rst  files generated  with
 CFS++.  A fair  amount of  debugging  effort should  be invested  to fix  this
 problem.
 
+\subsubsection{Using Exodus  II to get Data  into Tecplot}
+
+ Once the  data from CFS++ has been  imported into VisIt as  described in Sec.
+\ref{sec:visit_exodus}, the database can be exported into Tecplot format using
+File$\rightarrow$Export           Database...$\rightarrow$Export           To:
+Tecplot$\rightarrow$Export.   In Tecplot  the data  can then  be  loaded using
+File$\rightarrow$Load Data File(s)...
+
 \subsection{VisIt} 
 
 As Fig.  \ref{fig:cfs_soft_landscape} shows,  the main data gateway from CFS++
 is through using Xdmf files.  But VisIt can also read GMV data files (at least
 ASCII ones).
+
+\subsubsection{Using Exodus II to get Data into VisIt}
+\label{sec:visit_exodus}  Another possible  way to  get data  from  CFS++ into
+VisIt is by loading HDF5 files  into ParaView and exporting them to the Exodus
+II   files   by    doing   File$\rightarrow$Save   Data$\rightarrow$Files   of
+Type$\rightarrow$Exodus  II. In  Visit the  Exodus files  can be  loaded using
+File$\rightarrow$Open File...$\rightarrow$Open file as type: Exodus.
+
 
 \subsection{ParaView} A ParaView plugin for reading CFS++'s native HDF5 format
 is provided.   We (Andreas Hauck  and Simon Triebenbacher) have  implemented a
@@ -280,15 +296,6 @@ $\rightarrow$ DOF Solution $\rightarrow$ Electric Potential $\rightarrow$ Plot
 Results Button (left-most colorful one)
 
 For plotting element results use the {\tt plesol} command.
-
-\begin{figure}[htb]
-  \centering
-  \begin{overpic}[grid,tics=10,width=0.5\textwidth]{pics/ansys}
-    \put(10,20){\textcolor{white}{\bf The electrostatic man!}}
-  \end{overpic}
-  \caption{Postprocessing the electrostatic man with ANSYS Classic}
-  \label{fig:ansys}
-\end{figure}%
 
 To get information about available result sets, one can write the following sequence of commands
 %
