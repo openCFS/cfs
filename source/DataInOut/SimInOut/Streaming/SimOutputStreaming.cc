@@ -100,12 +100,6 @@ void SimOutputStreaming::Transmit(std::ostream& out)
   // add the complete info.xml treee
   content.Get("info")->SetValue(info, true); // use own name and make sure we are not seed as stupid boost::any
 
-  ParamNodeList list = info->Get("optimization/process")->GetChildren();
-  if(!list.IsEmpty())
-    list.Last()->Dump();
-  if(info->Has("optimization/summary"))
-    info->Get("optimization/summary")->Dump();
-
   // add mesh
   if(send_mesh_) domain->GetGrid()->ExportGrid(content.Get("mesh"));
 
@@ -157,41 +151,7 @@ void SimOutputStreaming::Transmit(std::ostream& out)
 
   // write the stuff
   content.ToXML(out, compressed_ ? -99 : 0, true); // adjust element type!
-
 }
-
-/*
-void SimOutputStreaming::Transmit(std::ostream& out)
-{
-  out << "Iteration: "; 
-  out.width(8);
-  out << actStep_ << std::endl;
-  for(UInt r = 0; r < results_.GetSize(); r++)
-  {
-    shared_ptr<BaseResult> sol = results_[r];
-
-    //std::string regionName = sol->GetEntityList()->GetName();
-    shared_ptr<ResultInfo> resInfo = sol->GetResultInfo();
-    std::string resultName = resInfo->resultName;
-    //std::cout << "result: " << resultName << std::endl;
-    // UInt numDOFs = resInfo->dofNames.GetSize();
-
-    if(resultName != "physicalPseudoDensity") continue;
-    Vector<Double>& resultVec = dynamic_cast<Result<Double>&>(*sol).GetVector();
-    out << "Densities: "; 
-    out.width(8);
-    out << resultVec.GetSize() << std::endl;
-
-    out.setf(std::ios::fixed);
-    out.precision(4); // we need to be below 16K for the current reader or reading might break
-    for(UInt d = 0; d < resultVec.GetSize(); d++)
-    {
-      out << resultVec[d] << std::endl;
-    }
-  }
-  out << std::endl << std::endl;
-}
-*/
 
 SimOutputStreaming::Client::Client(boost::asio::io_service& io_service,
       const std::string& server, const std::string& port, const std::string& path, SimOutputStreaming* base)

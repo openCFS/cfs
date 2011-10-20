@@ -3,6 +3,7 @@
 #include "Optimization/Design/DesignSpace.hh"
 #include "General/exception.hh"
 #include "Utils/StdVector.hh"
+#include "DataInOut/resultHandler.hh"
 #include "DataInOut/Logging/cfslog.hh"
 #include "Utils/Timer.hh"
 #include "Domain/domain.hh"
@@ -200,8 +201,11 @@ void BaseOptimizer::SolveOptimizationProblem()
 {
   timer_->Start();
   SolveProblem();
+
   // dirty fix to have the final status streamed for iTop
-  optimization->CommitIteration(true);
+  if(domain->GetResultHandler()->GetOutputWriter("streaming", true) != NULL)
+    optimization->CommitIteration(true);
+
   timer_->Stop();
 }
 
