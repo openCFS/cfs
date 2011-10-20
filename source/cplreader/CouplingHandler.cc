@@ -561,8 +561,12 @@ namespace CoupledField
               UInt regIdx = 0;
               while (regionNames[regIdx] != regName )
                 ++regIdx;
-              if (flowData[regIdx][ACOU_RHS_LOAD].isActive)
-                accumValNodes += flowData[regIdx][ACOU_RHS_LOAD].data[node];
+              if ( flowData[actRegion].find(ACOU_RHS_LOAD)
+                  != flowData[actRegion].end() )
+              {
+                if (flowData[regIdx][ACOU_RHS_LOAD].isActive)
+                  accumValNodes += flowData[regIdx][ACOU_RHS_LOAD].data[node];
+              }
             }
             // set accumulated values
             iterRegions = iterMultiNodes->second.begin();
@@ -573,8 +577,12 @@ namespace CoupledField
               UInt regIdx = 0;
               while (regionNames[regIdx] != regName )
                 ++regIdx;
-              if (flowData[regIdx][ACOU_RHS_LOAD].isActive)
-                flowData[regIdx][ACOU_RHS_LOAD].data[node] = accumValNodes;
+              if ( flowData[actRegion].find(ACOU_RHS_LOAD)
+                  != flowData[actRegion].end() )
+              {
+                if (flowData[regIdx][ACOU_RHS_LOAD].isActive)
+                  flowData[regIdx][ACOU_RHS_LOAD].data[node] = accumValNodes;
+              }
             }
           }
         }// end of nodes on multiple region correction
