@@ -537,9 +537,13 @@ namespace CoupledField
             UInt regIdx = 0;
             while (regionNames[regIdx] != iterRegionAct->first )
               ++regIdx;
-            if (flowData[regIdx][ACOU_RHS_LOAD].isActive)
+            if ( flowData[regIdx].find(ACOU_RHS_LOAD)
+                 != flowData[regIdx].end() )
             {
-              regionNodesActive[iterRegionAct->first] = &iterRegionAct->second;
+              if (flowData[regIdx][ACOU_RHS_LOAD].isActive)
+              {
+                regionNodesActive[iterRegionAct->first] = &iterRegionAct->second;
+              }
             }
           }
           findNodeMultiRegion(regionNodesActive, multiNodes);
@@ -561,8 +565,8 @@ namespace CoupledField
               UInt regIdx = 0;
               while (regionNames[regIdx] != regName )
                 ++regIdx;
-              if ( flowData[actRegion].find(ACOU_RHS_LOAD)
-                  != flowData[actRegion].end() )
+              if ( flowData[regIdx].find(ACOU_RHS_LOAD)
+                  != flowData[regIdx].end() )
               {
                 if (flowData[regIdx][ACOU_RHS_LOAD].isActive)
                   accumValNodes += flowData[regIdx][ACOU_RHS_LOAD].data[node];
@@ -577,8 +581,8 @@ namespace CoupledField
               UInt regIdx = 0;
               while (regionNames[regIdx] != regName )
                 ++regIdx;
-              if ( flowData[actRegion].find(ACOU_RHS_LOAD)
-                  != flowData[actRegion].end() )
+              if ( flowData[regIdx].find(ACOU_RHS_LOAD)
+                  != flowData[regIdx].end() )
               {
                 if (flowData[regIdx][ACOU_RHS_LOAD].isActive)
                   flowData[regIdx][ACOU_RHS_LOAD].data[node] = accumValNodes;
