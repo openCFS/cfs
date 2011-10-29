@@ -4,18 +4,18 @@
 
 #include "formsContext.hh"
 
-#include "Forms/baseForm.hh"
-#include "Forms/linearForm.hh"
+//#include "Forms/linearForm.hh"
 #include "Domain/entityList.hh"
 #include "PDE/SinglePDE.hh"
 #include "PDE/eqnMap.hh"
 #include "Domain/grid.hh"
 #include "Domain/domain.hh"
+#include "Forms/integrator.hh"
 
 namespace CoupledField {
 
 
-  BiLinFormContext::BiLinFormContext( BaseForm* biLinForm, 
+  BiLinFormContext::BiLinFormContext( Integrator* biLinForm,
                                       FEMatrixType destMat) {
 
     integrator_ = biLinForm;
@@ -102,14 +102,15 @@ namespace CoupledField {
     // - bilinearform is solution dependent (true non-linearity)
     // - bilinearform has updated Lagrangian formulation and 
     //   there are coordinate updated present in the grid class
-    Grid * grid = domain->GetGrid();
+/*    Grid * grid = domain->GetGrid();
     if( integrator_->IsSolDependent() 
         || (integrator_->IsCoordUpdate()  
             && grid->HasNodalOffset() ) ) {
       return true;
     } else {
       return false;
-    }
+    }*/
+    return false;
   }
 
 //  void BiLinFormContext::SetDampLayer(std::string& typeFnc, 
@@ -156,7 +157,7 @@ namespace CoupledField {
 
 // -------------------------------------------------------------------------
 
-  LinearFormContext::LinearFormContext( LinearForm* linearForm ) {
+  LinearFormContext::LinearFormContext( Integrator* linearForm ) {
 
     integrator_ = linearForm;
 
@@ -209,12 +210,13 @@ namespace CoupledField {
 
   bool LinearFormContext::IsNonLin() {
    // Return true if linearform is solution-dependent
-
-    if( integrator_->IsSolDependent() ) {
-      return true;
-    } else {
-      return false;
-    }
+    REFACTOR;
+    return false;
+    //if( integrator_->IsSolDependent() ) {
+    //  return true;
+    //} else {
+    //  return false;
+    //}
   }
 
 
@@ -228,9 +230,9 @@ namespace CoupledField {
   }
   
   // -------------------------------------------------------------------------
-  NcBiLinFormContext::NcBiLinFormContext( BaseForm* biLinForm, 
+  NcBiLinFormContext::NcBiLinFormContext( Integrator* biLinForm,
                                           FEMatrixType destMat ) 
-    : BiLinFormContext( biLinForm, destMat ) {
+    : BiLinFormContext( NULL, destMat ) {
 
   }
   

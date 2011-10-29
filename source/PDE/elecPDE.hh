@@ -7,6 +7,7 @@
 
 #include "SinglePDE.hh" 
 
+
 namespace CoupledField
 {
 
@@ -125,7 +126,7 @@ namespace CoupledField
     std::string subType_;
 
     //! list of bilienar forms
-    std::map<RegionIdType, linElecInt*> biLinForms_;
+    std::map<RegionIdType, Integrator*> biLinForms_;
 
     // *****************
     //  POSTPROCESSING

@@ -5,8 +5,8 @@
 #ifndef FILE_CURLCURLNODEINT
 #define FILE_CURLCURLNODEINT
 
-#include "baseForm.hh"
-
+//#include "baseForm.hh"
+/*
 namespace CoupledField
 {
 
@@ -27,7 +27,7 @@ public:
                           EntityIterator& ent1, 
                           EntityIterator& ent2 );
 
-  // @see BaseForm::CalcBMat() */
+  // @see BaseForm::CalcBMat()
   void CalcBMat( Matrix<Double> &rotMat, UInt ip, const Matrix<Double> &ptCoord );
   
 protected: 
@@ -102,5 +102,5 @@ private:
 
 
 }
-
+*/
 #endif // FILE_CURLCURLNODEINT

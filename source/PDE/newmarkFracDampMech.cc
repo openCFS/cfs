@@ -7,9 +7,9 @@
 #include <string>
 #include <cmath>
 
-#include "Forms/bdInt.hh"
-#include "Forms/bdbInt.hh"
-#include "Forms/linViscoElastInt.hh"
+//#include "Forms/bdInt.hh"
+//#include "Forms/bdbInt.hh"
+//#include "Forms/linViscoElastInt.hh"
 #include "newmarkFracDampMech.hh"
 #include "DataInOut/WriteInfo.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
@@ -602,18 +602,18 @@ void NewmarkFracDampMech::GetAlphaMat(Matrix<Double> & alphaMat)
 void NewmarkFracDampMech::GetBetaMat(Matrix<Double>& betaMat,  Double E, 
 				     BaseMaterial* matData)
    { 
-
-     double val = 0.0;
+     REFACTOR;
+     //double val = 0.0;
 
      //transform the type
-    SubTensorType tensorType;
-    String2Enum(subType_,tensorType);
+    //SubTensorType tensorType;
+    //String2Enum(subType_,tensorType);
 
-    BDBInt * matMat = new linElastInt(matData, tensorType);
-    matMat->calcDMat(betaMat);
-
-    val = (dampBeta_/(E)) * timeStepPowerFracDeriv_;
-    betaMat  = (betaMat *  val);
+    //BDBInt * matMat = new linElastInt(matData, tensorType);
+    //matMat->calcDMat(betaMat);
+    //
+    //val = (dampBeta_/(E)) * timeStepPowerFracDeriv_;
+    //betaMat  = (betaMat *  val);
    }
 
   

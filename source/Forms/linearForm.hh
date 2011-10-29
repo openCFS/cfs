@@ -5,7 +5,7 @@
 #ifndef FILE_LINEARFORM_2
 #define FILE_LINEARFORM_2
 
-#include "baseForm.hh"
+//#include "baseForm.hh"
 #include "nLinElastInt.hh"
 #include "Utils/ApproxData.hh"
 //#include "gradfieldop.hh"
@@ -23,6 +23,7 @@ namespace CoupledField
   class linElastInt;
   class BiotSavart;
   class LinMagStrictInt;
+
 
   /// base class class for calculation right hand side
   class LinearForm : public BaseForm

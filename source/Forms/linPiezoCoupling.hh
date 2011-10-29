@@ -7,7 +7,7 @@
 
 
 #include "Elements/basefe.hh"
-#include "Forms/adbInt.hh"
+//#include "Forms/adbInt.hh"
 #include "Materials/baseMaterial.hh"
 
 #include <Utils/ApproxData.hh>
@@ -23,7 +23,7 @@ namespace CoupledField {
   //! The main objective of this class is to implement the pure virtual
   //! methods of the ADBInt parent class for the case of a linear
   //! piezoelectric coupling operator 
-  class linPiezoCoupling : public ADBInt {
+  class linPiezoCoupling {
 
 
   public:

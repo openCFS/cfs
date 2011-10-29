@@ -30,6 +30,7 @@ namespace CoupledField
   class DirectCoupledPDE;
   class Assemble;
   class BaseForm;
+  class Integrator;
   class PDEMemento;
 
   
@@ -367,10 +368,10 @@ namespace CoupledField
       void ToInfo(PtrParamNode in) const;
       
       //! Returns the RHS-integrator
-      VolForceInt *  GetIntegrator();
+      void GetIntegrator();
 
       //! Returns the RHS-integrator for scalar source
-      VolumeSrcInt *  GetSrcScalarIntegrator();
+      void GetSrcScalarIntegrator();
       
       // ----------------------------
       //   Data members

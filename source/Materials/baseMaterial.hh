@@ -16,6 +16,7 @@
 #include "Utils/coordSystem.hh"
 #include "Utils/mathParser/mathParser.hh"
 
+
 namespace CoupledField {
 
   // forward class declarations
@@ -24,6 +25,7 @@ namespace CoupledField {
   class ElemList;
   class PiezoMicroModelHF;
   class PiezoMicroModelBK;
+  class CoefFunction;
 
   //! Class for Material Data
   /*! 
@@ -356,6 +358,9 @@ namespace CoupledField {
     void ComputeRayleighDamping( std::string& alpha, std::string& beta,
                                  Double dampFreq, Double RatioDeltaF,
                                  bool adjustDamping, bool isHarmonic );
+
+    //========================== Create Coeficient Function for use in integrators====
+    virtual shared_ptr<CoefFunction> GetCoefFunction(MaterialType matType,SubTensorType type,Global::ComplexPart matDataType);
 
   protected:
 

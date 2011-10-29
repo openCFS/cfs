@@ -54,7 +54,7 @@
 #include "DataInOut/postProc.hh"
 #include "CoupledPDE/DirectCoupledPDE.hh"
 #include "CoupledPDE/BasePairCoupling.hh"
-#include "Forms/linearForm.hh"
+//#include "Forms/linearForm.hh"
 
 //feSpaces
 #include "Elements/fespaceH1Lagrange.hh"
@@ -65,7 +65,7 @@ using std::string;
 
 // TEMPORARY
 #include "magEdgePDE.hh"
-#include "../Elements/fespaceHCurlHi.hh"
+#include "Elements/fespaceHCurlHi.hh"
 
 namespace CoupledField {
 
@@ -4167,31 +4167,31 @@ namespace CoupledField {
    }
 
 
-   VolForceInt * SinglePDE::RegionLoad::GetIntegrator() {
-
-     VolForceInt * forceInt = new VolForceInt( value.GetSize(), phase, isAxi_); 
-
-     // Check, if type is "unit"
-     bool isUnit;
-     if ( type == "total" ) {
-       isUnit = false;
-     } else {
-       isUnit = true;
-     }
-     forceInt->SetVolForceVector( value,
-                                  domain->GetCoordSystem( refCoord),
-                                  isUnit, volume );
-
-     return forceInt;
+   void SinglePDE::RegionLoad::GetIntegrator() {
+     REFACTOR;
+     //BBInt * forceInt = new VolForceInt( value.GetSize(), phase, isAxi_);
+     //
+     //// Check, if type is "unit"
+     //bool isUnit;
+     //if ( type == "total" ) {
+     //  isUnit = false;
+     //} else {
+     //  isUnit = true;
+     //}
+     //forceInt->SetVolForceVector( value,
+     //                             domain->GetCoordSystem( refCoord),
+     //                             isUnit, volume );
+     //
+     //return NULL;
    }
 
-   VolumeSrcInt * SinglePDE::RegionLoad::GetSrcScalarIntegrator() {
+   void SinglePDE::RegionLoad::GetSrcScalarIntegrator() {
      REFACTOR;
      //simple volume source integrator
 
      //VolumeSrcInt *srcInt = new VolumeSrcInt( value[0], isAxi_ );
 
-     return NULL;
+    /// return NULL;
    }
 
    void SinglePDE::RegionLoad::ToInfo(PtrParamNode in) const

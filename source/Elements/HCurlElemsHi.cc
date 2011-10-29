@@ -159,6 +159,7 @@ void FeHCurlHi::GetMaxOrderLocDir(StdVector<UInt>& order ) {
 FeHCurlHiQuad::FeHCurlHiQuad() {
   feType_ = Elem::ET_QUAD4;
   shape_ = Elem::shapes[feType_];
+  elemDim_ = 2;
 }
 
 
@@ -236,6 +237,7 @@ void FeHCurlHiQuad::CalcLocCurlShFnc( Matrix<Double>& curl, LocPointMapped& lp,
 FeHCurlHiHex::FeHCurlHiHex() {
   feType_ = Elem::ET_HEXA8;
   shape_ = Elem::shapes[feType_];
+  elemDim_ = 3;
 }
 
 

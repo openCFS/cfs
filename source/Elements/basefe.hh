@@ -137,6 +137,9 @@ namespace CoupledField
       EXCEPTION( "Not implemented in base class");
     }
 
+    UInt GetElemDim(){
+      return elemDim_;
+    }
   protected:
 
     //! Actual number of ansatz functions
@@ -147,6 +150,9 @@ namespace CoupledField
     
     //! Flag for isotropic polynomial order
     bool isIsotropic_;
+
+    //! UInt string the dimension of the element (1d/2d/3d)
+    UInt elemDim_;
   };
 
 }

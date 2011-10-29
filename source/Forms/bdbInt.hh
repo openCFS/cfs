@@ -1,150 +1,159 @@
-// -*- mode: c++; coding: utf-8; indent-tabs-mode: nil; -*-
-// kate: space-indent on; indent-width 2; encoding utf-8;
-// kate: auto-brackets on; mixedindent off; indent-mode cstyle;
+// =====================================================================================
+// 
+//       Filename:  bdbInt_NEW.hh
+// 
+//    Description:  New implementation of the BDB integrator class
+//                  Takes as a template parameter the operator it should evaulate
+//                  new implementation to avoid old structures
+// 
+//        Version:  1.0
+//        Created:  10/04/2011 09:28:38 AM
+//       Revision:  none
+//       Compiler:  g++
+// 
+//         Author:  Andreas Hueppe (AHU), andreas.hueppe@uni-klu.ac.at
+//        Company:  Universitaet Klagenfurt
+// 
+// =====================================================================================
 
-#ifndef FILE_BDBINT
-#define FILE_BDBINT
+#ifndef FILE_BDBINT_NEW
+#define FILE_BDBINT_NEW
 
-#include "baseForm.hh"
-#include "Optimization/Design/DesignElement.hh" 
+#include "integrator.hh"
+#include "Elements/basefe.hh"
+#include <boost/tr1/type_traits.hpp>
 
 namespace CoupledField {
 
-  //! abstract class for calculation of bdb forms
-  class BDBInt : public BaseForm {
-
-  public:
-
-    //! Constructor with pointer to BaseElem
-    BDBInt(BaseMaterial* matData, SubTensorType type = FULL,
-           bool coordUpdate = false );
-
-    //! Destructor
-    virtual ~BDBInt();
-
-    //! Compute element matrix associated to ADB form
-    void CalcElementMatrix( Matrix<Double>& elemMat,
-                            EntityIterator& ent1,
-                            EntityIterator& ent2 ){
-      CalcElementMatrix( elemMat, ent1, ent2, DesignElement::NO_DERIVATIVE);
-    }
-
-    void CalcElementMatrix( Matrix<Double>& elemMat,
-                            EntityIterator& ent1, 
-                            EntityIterator& ent2,
-                            const DesignElement::Type direction );
-
-    //! \note This memorial is dedicated to the undocumented function
-    void CalcComplexElementMatrix( Matrix<Complex> & elemMat,
-                                   EntityIterator& ent1,
-                                   EntityIterator& ent2,
-                                   Double & beta, Double & omega );
-
-    //! Apply differential operator to vector
-    virtual void ApplyBMat( Vector<Double>& retVec,  
-                            LocPointMapped& lp, BaseFE* ptFE, 
-                            const Vector<Double>& solVec ) {
-      EXCEPTION("Not implemented");
-    }
-    //! Apply differential operator to vector
-        virtual void ApplyBMat( Vector<Complex>& retVec,  
-                                LocPointMapped& lp, BaseFE* ptFE, 
-                                const Vector<Complex>& solVec ) {
-          EXCEPTION("Not implemented");
-        }
-    
-
-    virtual void calcBMat(Matrix<Double>& bMat, 
-                             LocPointMapped& lp, BaseFE* ptFE ) {};
-    
-    //! Get B-Matrix of element midpoint
-    virtual void calcBMat(EntityIterator it, Matrix<Double> & bMat);
-
-    //! Get DB-Matrix of element midpoint
-    virtual void calcDBMat( EntityIterator it,
-                    Matrix<Double> & bMat );
 
 
-    //! returns G - matrix for GDG (incompatible modes)
-    virtual void calcGMat( Matrix<Double> &bMat, UInt ip,
-                           Matrix<Double> &ptCoord ) {
-      EXCEPTION( "BDBInt::calcGMat not implemented!");
-    };
+  //! general class for calculation of bdb forms
+  template<template<class,class> class B_OP,
+            class FE_TYPE,
+            class MAT_DATA_TYPE=Double>
+  class BDBInt_NEW : public Integrator {
+    public:
 
-    /** Implement this in your form to return your actual physical tensor.
-     * Note, BDBInt and ADBInt use calcDMat(Matrix<Double>, const Elem*)
-     * which calls overwritten methods of this method but linElastInt,
-     * linGradInt and linPiezoCoupling have calcDMat(Matrix<Double>, const Elem*)
-     * implementations. This means, that all direct childs of these three
-     * classes must provive a own version of calcDMat with the elem parameter!
-     * @see calcDMat(Matrix<Double>, Elem*, Double&) */
-    virtual void calcDMat(Matrix<Double> &dMat)
-    {
-      EXCEPTION("not correctly overwritten!");
-    };
+      //! Constructor with pointer to BaseElem
+      BDBInt_NEW(shared_ptr<CoefFunction> dData, MAT_DATA_TYPE factor);
 
+      //! Destructor
+      virtual ~BDBInt_NEW();
 
-    /** This is the SIMP version, where the physical tensor [c], [\epsilon], ... is
-     * multiplied with the design variable (pseudo density, pseudo polarization).
-     * This could be implemented in CalcElementMatrix but this way we handle read
-     * and complex case as easy as the mechanical softening implementations.
-     * Note, if you want to do SIMP you have to properly implement this method!
-     * This is tricky - you are warned!
-     * @see linElastInt::calcDMat(Matrix<Double>, const Elem*)
-     * @param dMat the output variable
-     * @param elem only relevant for SIMP, the D-Mat is in general no element specific! */
-    virtual void calcDMat(Matrix<Double> &dMat, const Elem* elem)
-    {
-      calcDMat(dMat);
-    };
-    /** This is the ParamMat optimization version, overwrite this to provide Derivatives for the tensor
-     * used in parametric material optimization. */
-    virtual void calcDMat(Matrix<Double> &dMat, const Elem* elem, DesignElement::Type direction, double force_factor = 0.0)
-    {
-      calcDMat(dMat, elem); 
-    };
+      //! Compute element matrix associated to BDB form
+      void CalcElementMatrix( Matrix<MAT_DATA_TYPE>& elemMat,
+                                 EntityIterator& ent1,
+                                 EntityIterator& ent2 );
 
 
-    //! returns D - matrix for BDB
-    virtual void calcDMaterialMatWithComplexDamping( Matrix<Complex> &dMat,
-                                                     Double &beta,
-                                                     Double &omega ) {
-      EXCEPTION("BDBInt::calcDMaterialMatWithComplexDamping"
-               << "(Matrix<Complex> &dMat, Double &beta, Double &omega) "
-               << "not correctly overwritten!" );
-    };
+      bool IsComplex(){
+        return std::tr1::is_same<MAT_DATA_TYPE,Complex>::value;
+      }
+
+    protected:
+      B_OP<FE_TYPE,MAT_DATA_TYPE> operator_;
 
 
-    /** returns D - matrix for BDB, changes in every integration point
-     * @see calcDMat(Matrix<Double>, EntityIterator*) */
-    virtual void calcDMat( Matrix<Double> &dMat, UInt ip,
-                           Matrix<Double> &ptCoord ) {
-      EXCEPTION( "BDBInt::calcDMat(Matrix<Double>&, int, Matrix<Double>&) "
-               << "not correct overwritten!" );
-    };
-
-    //! returns dimension of D matrix
-    virtual UInt getDimD() = 0;
-
-    //! returns nr. of degrees of freedom
-    virtual UInt getNrDofs() = 0;
-
-    //! Query material type for \f$D\f$ tensor
-    virtual MaterialType getDMaterialType() = 0;
-
-  protected:
-
-    //! bool for signaling that D matrix is non-constant
-
-    //! In some cases, e.g. in non-linear computations, it may be
-    //! necessary to compute the D matrix for each integration point
-    //! individually. This attribute is used to signal when the latter is
-    //! required.
-    bool updateDMatInEveryIP_;
-
+      //! set a constant factor for multiplication with the element matrix
+      MAT_DATA_TYPE factor_;
   };
 
-}
+  //=========================================================================================
+  //Implementation of BDB Int
+  //=========================================================================================
 
+  template<template<class,class> class B_OP,
+            class FE_TYPE,
+            class MAT_DATA_TYPE>
+  BDBInt_NEW<B_OP,FE_TYPE,MAT_DATA_TYPE>::BDBInt_NEW(shared_ptr<CoefFunction> dData, MAT_DATA_TYPE factor){
+      name_ = "BDBInt";
+      isSymmetric_ = true;
+      dData_ = dData;
+      factor_ = factor;
+  }
+
+  //! Destructor
+  template<template<class,class> class B_OP,
+  class FE_TYPE,
+  class MAT_DATA_TYPE>
+  BDBInt_NEW<B_OP,FE_TYPE,MAT_DATA_TYPE>::~BDBInt_NEW(){
+
+  }
+
+  //! Calculate the
+  template<template<class,class> class B_OP,
+            class FE_TYPE,
+            class MAT_DATA_TYPE>
+  void BDBInt_NEW<B_OP,FE_TYPE,MAT_DATA_TYPE>::CalcElementMatrix( Matrix<MAT_DATA_TYPE>& elemMat,
+                                  EntityIterator& ent1,
+                                  EntityIterator& ent2) {
+
+    // Extract physical element
+    const Elem* ptElem = ent1.GetElem();
+
+    operator_.SetSolDim(Bdim_);
+
+    Matrix<MAT_DATA_TYPE> dMat, bMat, dbMat;
+    MAT_DATA_TYPE fac = 0.0;
+
+    // Obtain FE element from feSpace and integration scheme
+    shared_ptr<IntScheme> intScheme;
+    FE_TYPE* ptFe = dynamic_cast<FE_TYPE*>(ptFeSpace1_->GetFe( ent1, intScheme ));
+
+    UInt nrFncs = ptFe->GetNumFncs();
+
+    // Get shape map from grid
+    shared_ptr<ElemShapeMap> esm = domain->GetGrid()->GetElemShapeMap( ptElem );
+
+    // Get integration points
+    StdVector<LocPoint> intPoints;
+    StdVector<Double> weights;
+    intScheme->GetIntPoints( Elem::GetShapeType(ptElem->type), intPoints, weights );
+
+    elemMat.Resize( nrFncs * Bdim_);
+    elemMat.Init();
+
+ #define USE_BLAS_VERSION
+#ifdef USE_BLAS_VERSION
+    Matrix<MAT_DATA_TYPE> bdbMat;
+    bdbMat.Resize(nrFncs * Bdim_);
 #endif
 
+
+    // Loop over all integration points
+    LocPointMapped lp;
+    for( UInt i = 0; i < intPoints.GetSize(); i++  ) {
+
+      // Calculate for each integration point the LocPointMapped
+      lp.Set( intPoints[i], esm );
+
+      // Call the CalcBMat()-method
+      operator_.CalcOpMat( bMat, lp, ptFe);
+
+      // Calculate D-Mat
+      //calcDMat(dMat, ent1.GetElem());
+      dData_->GetMatrix(dMat,lp,ptElem);
+      //ptMaterial_->GetTensor(dMat,ELEC_PERMITTIVITY,Global::REAL,PLANE_STRAIN);
+
+      fac = MAT_DATA_TYPE(lp.jacDet * weights[i]);
+      operator_.TransformJacDet(fac,lp,ptFe);
+
+      dbMat.Resize(dMat.GetNumRows(),nrFncs*Bdim_);
+      dbMat.Init();
+
+#ifdef USE_BLAS_VERSION
+      dMat.Mult_Blas(bMat,dbMat,false,false,1.0,0);
+      dbMat = dbMat * fac;
+      //Transpose(bMat).Mult(dbMat,bdbMat);
+      bMat.Mult_Blas(dbMat,bdbMat,true,false,1.0,0);
+      elemMat += bdbMat * factor_;
+
+#else
+      dbMat = (dMat * bMat) * fac;
+      elemMat += Transpose(bMat) * dbMat * factor_;
+#endif
+
+    }
+  }
+}
+#endif

@@ -19,6 +19,7 @@
 #include "Utils/piezoMicroModelBK.hh"
 #include "Domain/domain.hh"
 #include "baseMaterial.hh"
+#include "Forms/coefFunctionAnalytic.hh"
 
 using std::string;
 using std::map;
@@ -672,4 +673,24 @@ namespace CoupledField
                                                      elecFieldPrev, idx);
    }
 
+
+   shared_ptr<CoefFunction>  BaseMaterial::GetCoefFunction(MaterialType matType,SubTensorType type,Global::ComplexPart matDataType){
+     shared_ptr<CoefFunction> mFunct;
+     if(matDataType == Global::REAL){
+       mFunct.reset(new CoefFunctionAnalytic());
+       Matrix<Double> coefMat;
+       GetTensor(coefMat,matType,matDataType,type);
+       mFunct->SetConstMatrix(coefMat);
+       mFunct->SetCoordinateSystem(shared_ptr<CoordSystem>(this->coosy_));
+     }else if(matDataType == Global::COMPLEX){
+       mFunct.reset(new CoefFunctionAnalytic());
+       Matrix<Complex> coefMat;
+       GetTensor(coefMat,matType,matDataType,type);
+       mFunct->SetConstMatrix(coefMat);
+       mFunct->SetCoordinateSystem(shared_ptr<CoordSystem>(this->coosy_));
+     }else{
+       EXCEPTION("Material Data Type not supported");
+     }
+     return mFunct;
+   }
 }

@@ -167,10 +167,10 @@ namespace CoupledField
                                UInt numCouplingNodes );
     
     //! Linear curl-curl integrators for every domain
-    std::map<RegionIdType, CurlCurlEdgeInt*> linBilinForms_;
+    std::map<RegionIdType, Integrator*> linBilinForms_;
     
     //! Nonlinear curl-curl integrators for every domain
-    std::map<RegionIdType, nLinCurlCurlEdgeInt*> nlinBilinForms_;
+    std::map<RegionIdType, Integrator*> nlinBilinForms_;
 
     // =======================================================================
     //   COILS

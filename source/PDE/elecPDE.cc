@@ -11,18 +11,18 @@
 
 #include "elecPDE.hh"
 
-#include "Forms/linElecInt.hh"
-#include "Forms/linNeumannInt.hh"
+//#include "Forms/linElecInt.hh"
+//#include "Forms/linNeumannInt.hh"
 //#include "Forms/nLinElecHystInt.hh"
 //#include "Forms/nLinElecMaterial.hh"
-#include "Forms/elecchargeop.hh"
-#include "Forms/laplaceInt.hh"
-#include "Forms/FlatShellElecInt.hh"
-#include "Forms/nonConformingInt.hh"
-#include "Forms/singleEntryInt.hh"
-#include "Forms/massInt.hh"
+//#include "Forms/elecchargeop.hh"
+//#include "Forms/laplaceInt.hh"
+//#include "Forms/FlatShellElecInt.hh"
+//#include "Forms/nonConformingInt.hh"
+//#include "Forms/singleEntryInt.hh"
+//#include "Forms/massInt.hh"
 //#include "Forms/gradfieldop.hh"
-#include "Forms/piezoPolarizationMatrixRHSInt.hh"
+//#include "Forms/piezoPolarizationMatrixRHSInt.hh"
 #include "General/defs.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/ParamHandling/ParamTools.hh"
@@ -39,6 +39,11 @@
 #include "Elements/fespaceH1Lagrange.hh"
 //#include "Optimization/Design/DesignSpace.hh"
 #include "Elements/fefunction.hh"
+
+//new integrator concept
+#include "Forms/bdbInt.hh"
+#include "Forms/gradientOp.hh"
+#include "Forms/coefFunction.hh"
 
 #ifdef USE_SCRIPTING
 #include "DataInOut/Scripting/cfsmessenger.hh" 
@@ -156,7 +161,7 @@ namespace CoupledField {
     
     // flag for updatedLagrange formulation
     bool upLagrangeForm = true;
- 
+    upLagrangeForm = true;
     //transform the type
     SubTensorType tensorType;
 
@@ -205,21 +210,26 @@ namespace CoupledField {
       mySpace->SetRegionApproximation(actRegion, polyId,integId);
 
       // --- standard real-valued stiffness integrator ---
-      linElecInt *  linElecForm = new linElecInt( actSDMat, tensorType,
-                                                  upLagrangeForm );
-      linElecForm->SetFactor( factor );
+      shared_ptr<CoefFunction> curCoef = actSDMat->GetCoefFunction(ELEC_PERMITTIVITY,tensorType,Global::REAL);
+
+
+      BDBInt_NEW< GradientOperator ,FeH1,Double >* stiffInt;
+      stiffInt = new BDBInt_NEW<GradientOperator,FeH1,Double >(curCoef,1.0 );
+      //linElecInt *  linElecForm = new linElecInt( actSDMat, tensorType,
+       //                                           upLagrangeForm );
+      //linElecForm->SetFactor( factor );
       BiLinFormContext * stiffIntDescr =
-          new BiLinFormContext(linElecForm, STIFFNESS );
+          new BiLinFormContext(stiffInt, STIFFNESS );
 
       feFunctions_[ELEC_POTENTIAL]->AddEntityList( actSDList );
 
       //stiffIntDescr->SetPtPdes(this, this);
       stiffIntDescr->SetEntities( actSDList, actSDList );
       stiffIntDescr->SetFeFunctions( feFunctions_[ELEC_POTENTIAL],feFunctions_[ELEC_POTENTIAL]);
-      linElecForm->SetFeSpace( feFunctions_[ELEC_POTENTIAL]->GetFeSpace());
+      stiffInt->SetFeSpace( feFunctions_[ELEC_POTENTIAL]->GetFeSpace());
 
       assemble_->AddBiLinearForm( stiffIntDescr );
-      biLinForms_[actRegion] = linElecForm;
+      biLinForms_[actRegion] = stiffInt;
 
       
       // ==========================================================
@@ -818,12 +828,12 @@ namespace CoupledField {
      LocPointMapped lpm;
      for ( it.Begin(); !it.IsEnd(); it++ ) {
        const Elem * el = it.GetElem();
-       linElecInt * li = biLinForms_[el->regionId];
+       GradientOperator<FeH1,TYPE> li;
        shared_ptr<ElemShapeMap> esm = ptgrid_->GetElemShapeMap( el, true );
        BaseFE*  ptFe = fct->GetFeSpace()->GetFe( it );
        lpm.Set( Elem::shapes[el->type].midPointCoord, esm );
        solhelp.GetElemSolution( elemSol, it );
-       li->ApplyBMat( tempE, lpm, ptFe, elemSol);
+       li.ApplyOp( tempE, lpm, ptFe, elemSol);
        // loop over dofs
        for(UInt iDim = 0; iDim < dim_; iDim++ ) {
          actVal[it.GetPos()*dim_ + iDim] = -tempE[iDim];
@@ -1104,7 +1114,7 @@ namespace CoupledField {
     for( regionIt.Begin(); !regionIt.IsEnd(); regionIt++ ) {
       ElemList actSDList(ptgrid_ );
       actSDList.SetRegion( regionIt.GetRegion() );
-      linElecInt * bilinear_stiff = biLinForms_[regionIt.GetRegion()];
+      Integrator * bilinear_stiff = biLinForms_[regionIt.GetRegion()];
 
       EntityIterator elemIt = actSDList.GetIterator();
 
@@ -1113,7 +1123,8 @@ namespace CoupledField {
       Vector<TYPE> elpot;
       for( elemIt.Begin(); !elemIt.IsEnd(); elemIt++ ) {
 
-        bilinear_stiff->SetFactor(factor);
+        //COMMENTED OUT DUE TO REFACTORING
+        //bilinear_stiff->SetFactor(factor);
         bilinear_stiff->CalcElementMatrix( elemmat, elemIt, elemIt );
 
         sol_->GetElemSolution(elpot, elemIt );

@@ -15,8 +15,7 @@ namespace CoupledField
 {
 
   //! Forward class declarations
-  class BaseForm;
-  class LinearForm;
+  //class LinearForm;
   class EntityList;
   class SinglePDE;
   class EqnMap;
@@ -24,6 +23,8 @@ namespace CoupledField
   struct ResultInfo;
   class FeSpace;
   class BaseFeFunction;
+  class Integrator;
+  //class BaseForm;
 
 
 
@@ -47,7 +48,7 @@ namespace CoupledField
     //! \param biLinForm pointer to the bilinearform to be wrapped
     //! \param destMat destination Matrix (STIFFNESS, MASS, ...) of the
     //!                bilinearform
-    BiLinFormContext( BaseForm* biLinForm, FEMatrixType destMat );
+    BiLinFormContext( Integrator* biLinForm, FEMatrixType destMat );
 
     //! Destructor
     virtual ~BiLinFormContext();
@@ -90,7 +91,7 @@ namespace CoupledField
     Double EvalSecMatFac() const;
     
     //! Returns the integrator
-    BaseForm * GetIntegrator() {return integrator_; };
+    Integrator * GetIntegrator() {return integrator_; };
 
     //! Return entry type of matrix (real/imag part)
     Global::ComplexPart GetEntryType() {return entryType_;};
@@ -176,7 +177,7 @@ namespace CoupledField
   protected:
 
     //! Pointer to bilinearform
-    BaseForm * integrator_;
+    Integrator * integrator_;
 
     //! Destination matrix type
     FEMatrixType destMat_;
@@ -241,13 +242,13 @@ namespace CoupledField
   public:
 
     //! Constructor
-    LinearFormContext( LinearForm* linearForm );
+    LinearFormContext( Integrator* linearForm );
 
     //! Destructor
     virtual ~LinearFormContext();
 
     //! Return integrator
-    LinearForm* GetIntegrator() { return integrator_; }
+    Integrator* GetIntegrator() { return integrator_; }
 
     //! Returns true if a non-linear dependency (geometry,
     //! solution) is present for the wrapped linearform
@@ -289,7 +290,7 @@ namespace CoupledField
   protected:
 
     //! Pointer to bilinearform
-    LinearForm * integrator_;
+    Integrator * integrator_;
 
     // ======================================================
     //  MAPPING DATA
@@ -321,7 +322,7 @@ namespace CoupledField
     //! \param biLinForm pointer to the bilinearform to be wrapped
     //! \param destMat destination Matrix (STIFFNESS, MASS, ...) of the
     //!                bilinearform
-    NcBiLinFormContext( BaseForm* biLinForm,
+    NcBiLinFormContext( Integrator* biLinForm,
                         FEMatrixType destMat );
 
     //! Destructor

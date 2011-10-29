@@ -241,6 +241,10 @@ public:
     return bcCounter_[CS];
   }
 
+  shared_ptr<BaseFeFunction> GetFeFunction(){
+    return feFunction_;
+  }
+
   //! Get polynomial order per entity per dof
   
   //! This method returns the number of unknowns per entitytype (NODE / EDGE / FACE / INTERIOR)

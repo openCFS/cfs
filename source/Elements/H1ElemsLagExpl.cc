@@ -93,6 +93,7 @@ namespace CoupledField {
     shape_ = Elem::shapes[feType_];
     actNumFncs_ = 2;
     order_ = 1;
+    elemDim_ = 1;
   }
   FeH1LagrangeLine1::~FeH1LagrangeLine1() {
     
@@ -141,6 +142,7 @@ namespace CoupledField {
     shape_ = Elem::shapes[feType_];
     actNumFncs_ = 3;
     order_ = 1; 
+    elemDim_ = 2;
   }
 
   FeH1LagrangeTria1::~FeH1LagrangeTria1() {
@@ -266,6 +268,7 @@ namespace CoupledField {
     shape_ = Elem::shapes[feType_];
     actNumFncs_ = 4;
     order_ = 1; 
+    elemDim_ = 2;
   }
     
   FeH1LagrangeQuad1::~FeH1LagrangeQuad1() {
@@ -391,6 +394,7 @@ namespace CoupledField {
     shape_ = Elem::shapes[feType_];
     actNumFncs_ = 8;
     order_ = 1; 
+    elemDim_ = 3;
   }
     
   FeH1LagrangeHex1::~FeH1LagrangeHex1() {
@@ -788,6 +792,7 @@ namespace CoupledField {
     shape_ = Elem::shapes[feType_];
     actNumFncs_ = 3;
     order_ = 2; 
+    elemDim_ = 1;
   }
   FeH1LagrangeLine2::~FeH1LagrangeLine2() {
     
@@ -919,6 +924,7 @@ namespace CoupledField {
     shape_ = Elem::shapes[feType_];
     actNumFncs_ = 20;
     order_ = 2;
+    elemDim_ = 3;
   }
     
   FeH1LagrangeHex2::~FeH1LagrangeHex2() {

@@ -247,6 +247,7 @@ namespace CoupledField {
   FeH1HiLine::FeH1HiLine() {
     feType_ = Elem::ET_LINE2;
     shape_ = Elem::shapes[feType_];
+    elemDim_ = 1;
   }
 
   FeH1HiLine::~FeH1HiLine() {
@@ -425,6 +426,7 @@ namespace CoupledField {
   FeH1HiQuad::FeH1HiQuad() {
     feType_ = Elem::ET_QUAD4;
     shape_ = Elem::shapes[feType_];
+    elemDim_ = 2;
   }
     
   FeH1HiQuad::~FeH1HiQuad() {
@@ -542,6 +544,7 @@ namespace CoupledField {
   FeH1HiHex::FeH1HiHex() {
     feType_ = Elem::ET_HEXA8;
     shape_ = Elem::shapes[feType_];
+    elemDim_ = 3;
   }
     
   FeH1HiHex::~FeH1HiHex() {

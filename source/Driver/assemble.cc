@@ -9,8 +9,8 @@
 #include <boost/lexical_cast.hpp>
 
 #include "Domain/entityList.hh"
-#include "Forms/baseForm.hh"
-#include "Forms/linearForm.hh"
+//#include "Forms/baseForm.hh"
+//#include "Forms/linearForm.hh"
 #include "PDE/SinglePDE.hh"
 #include "Domain/domain.hh"
 #include "Domain/grid.hh"
@@ -27,6 +27,7 @@
 #include "Optimization/Design/DesignSpace.hh"
 #include "Materials/mechanicMaterial.hh"
 #include "DataInOut/ResultCache.hh"
+#include "Forms/integrator.hh"
 
 namespace CoupledField
 {
@@ -143,30 +144,31 @@ namespace CoupledField
      return result;
   }
 
-  LinearFormContext* Assemble::GetLinearForm(RegionIdType regionId, StdPDE* pde,  const std::string& integrator, bool silent)
+  Integrator* Assemble::GetLinearForm(RegionIdType regionId, StdPDE* pde,  const std::string& integrator, bool silent)
   {
+     REFACTOR;
      // the EntityList has the region name as name but not the id
      std::string region = domain->GetGrid()->GetRegion().ToString(regionId);
 
-     LinearFormContext* result = NULL;
+     Integrator* result = NULL;
 
-     // iterate over all descriptors
-     for(UInt i = 0; i < linForms_->GetSize(); i++)
-     {
-       // we are wrong if the region does not match
-       LinearFormContext* lfc = (*linForms_)[i];
-       if(lfc->GetEntities()->GetName() != region) continue;
-       // when pde1 is given we compare it by name and continue if the names are different
-       if(lfc->GetPde()->GetName() != pde->GetName()) continue;
-       if(lfc->GetIntegrator()->GetName() != integrator) continue;
-
-       // we come here because we had no contradiction - check for uniqueness
-       if(result != NULL) throw Exception("parameters not unique!");
-       result = lfc;
-     }
-
-     if(result == NULL && !silent)
-       EXCEPTION("LinearFormContext '" << integrator << "' at region '" << region << "' not found");
+     //// iterate over all descriptors
+     //for(UInt i = 0; i < linForms_->GetSize(); i++)
+     //{
+     //  // we are wrong if the region does not match
+     //  LinearFormContext* lfc = (*linForms_)[i];
+     //  if(lfc->GetEntities()->GetName() != region) continue;
+     //  // when pde1 is given we compare it by name and continue if the names are different
+     //  if(lfc->GetPde()->GetName() != pde->GetName()) continue;
+     //  if(lfc->GetIntegrator()->GetName() != integrator) continue;
+     //
+     //  // we come here because we had no contradiction - check for uniqueness
+     //  if(result != NULL) throw Exception("parameters not unique!");
+     //  result = lfc;
+     //}
+     //
+     //if(result == NULL && !silent)
+     //  EXCEPTION("LinearFormContext '" << integrator << "' at region '" << region << "' not found");
      return result;
   }
 
@@ -458,7 +460,7 @@ namespace CoupledField
           // Update flag
           matrixUpdated_ = true;
 
-          BaseForm * form = actContext.GetIntegrator();
+          Integrator * form = actContext.GetIntegrator();
 
           try {
             ++progress;
@@ -525,6 +527,7 @@ namespace CoupledField
    //                    eqnVec2.GetSize() == elemMatrix.GetNumCols()) || form->IsComplex());
 
                // Pass element matrix to algebraic system (primary matrix)
+
                if ( form->IsComplex() )
                  InsertMatrix( destMat, actContext, elemMatrixC, eqnVec1, eqnVec2, fctId1, fctId2);
                else
@@ -665,7 +668,7 @@ namespace CoupledField
           // Update flag
           matrixUpdated_ = true;
 
-          BaseForm * form = actContext.GetIntegrator();
+          Integrator * form = actContext.GetIntegrator();
 
          
     
@@ -890,7 +893,7 @@ namespace CoupledField
         continue;
       }
 
-      LinearForm * form = actContext.GetIntegrator();
+      Integrator * form = actContext.GetIntegrator();
 
       try {
 

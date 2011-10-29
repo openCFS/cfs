@@ -181,6 +181,7 @@ namespace CoupledField {
       //this is always element order +1
       actNumFncs_ = 2;
       order_ = 1;
+      elemDim_ = 1;
 
     }
 
@@ -246,6 +247,7 @@ namespace CoupledField {
       shape_ = Elem::shapes[feType_];
       actNumFncs_ = 4;
       order_ = 1;
+      elemDim_ = 2;
     }
 
     FeH1LagrangeQuadVar::~FeH1LagrangeQuadVar(){
@@ -371,6 +373,7 @@ namespace CoupledField {
     FeH1LagrangeHexVar::FeH1LagrangeHexVar(){
       feType_ = Elem::ET_HEXA8;
       shape_ = Elem::shapes[feType_];
+      elemDim_ = 3;
     }
 
     FeH1LagrangeHexVar::~FeH1LagrangeHexVar(){

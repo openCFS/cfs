@@ -9,7 +9,7 @@
 #include "solveStepMagEdge.hh"
 #include "PDE/magEdgePDE.hh"
 #include "assemble.hh"
-#include "Forms/linearForm.hh"
+//#include "Forms/linearForm.hh"
 #include "OLAS/algsys/algebraicSys.hh"
 #include "Utils/Timer.hh"
 

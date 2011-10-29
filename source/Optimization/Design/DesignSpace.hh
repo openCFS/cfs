@@ -6,7 +6,7 @@
 #include "Optimization/Design/DesignElement.hh"
 #include "Optimization/ErsatzMaterial.hh"
 #include "Optimization/Design/DesignMaterial.hh"
-#include "Forms/baseForm.hh"
+//#include "Forms/baseForm.hh"
 #include "General/Enum.hh"
 
 // we need it for the template implementation
@@ -72,9 +72,11 @@ namespace CoupledField
 
      /** Convenience version
       * @see  GetErsatzMaterialFactor(unsigned int, Optimization::Application) */
-     double GetErsatzMaterialFactor(unsigned int design_index, const BaseForm* form)
+     double GetErsatzMaterialFactor(unsigned int design_index, const Integrator* form)
      {
-       return GetErsatzMaterialFactor(design_index, (Optimization::Application) applicationForm.Parse(form->GetName()));
+       REFACTOR;
+       //return GetErsatzMaterialFactor(design_index, (Optimization::Application) applicationForm.Parse(form->GetName()));
+       return 1.0;
      }
 
      /** Returns true if optimization does provide a complete tensor, not just a density */

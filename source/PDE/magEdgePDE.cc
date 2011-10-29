@@ -10,11 +10,8 @@
 #include "Utils/Coil.hh"
 #include "Utils/SmoothSpline.hh"
 #include "Utils/LinInterpolate.hh"
-#include "Forms/curlfieldop.hh"
-#include "Forms/curlCurlEdgeInt.hh"
-#include "Forms/nLincurlCurlEdgeInt.hh"
-#include "Forms/massEdgeInt.hh"
-#include "Forms/linearForm.hh"
+//#include "Forms/curlfieldop.hh"
+
 #include "trapezoidal.hh"
 #include "CoupledPDE/pdecoupling.hh"
 #include "Domain/ansatzFct.hh"
@@ -23,6 +20,12 @@
 #include "Elements/fespaceHCurlHi.hh"
 #include "Elements/HCurlElems.hh"
 #include "DataInOut/Logging/cfslog.hh"
+
+
+#include "Forms/bdbInt.hh"
+#include "Forms/bbInt.hh"
+#include "Forms/curlOp.hh"
+#include "Forms/identityOp.hh"
 
 #ifdef USE_SCRIPTING
 #include "DataInOut/Scripting/cfsmessenger.hh"
@@ -319,7 +322,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
     BaseMaterial * actMat = NULL;
 
     // flag for updatedLagrange formulation
-    bool upLagrangeForm = true;
+    //bool upLagrangeForm = true;
 
     
     // initially, check for regularization factor
@@ -352,34 +355,35 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
       actSDList->SetRegion( actRegion );
       // Switch, if region is linear / nonlinear
       if ( regionNonLinType_[actRegion] != NO_NONLINEARITY ) {
+        REFACTOR;
        // =================================
        //  Nonlinear Stiffness Integrator
-       // =================================
-       nLinCurlCurlEdgeInt* curlcurlNL =
-           new nLinCurlCurlEdgeInt( actMat, upLagrangeForm );
-       curlcurlNL->SetNonLinMethod( nonLinMethod_ );
-       curlcurlNL->SetSolution( dynamic_cast<NodeStoreSol<Double>&>(*sol_ ));
-       curlcurlNL->SetFeSpace( feSpace );
-       BiLinFormContext * stiffContext = new BiLinFormContext( curlcurlNL, STIFFNESS );
-       stiffContext->SetEntities( actSDList, actSDList );
-       stiffContext->SetFeFunctions( feFunc, feFunc );
-       assemble_->AddBiLinearForm( stiffContext );
-
-       // we have to save the bilinear form for later usage
-       nlinBilinForms_[actRegion] = curlcurlNL;
-
-       // =================================
-       //  Nonlinear RHS-integrator
-       // =================================
-       nLinMagEdge_linFormInt* rhsSource
-       = new nLinMagEdge_linFormInt( actMat, upLagrangeForm);
-       rhsSource->SetSolution( dynamic_cast<NodeStoreSol<Double>&>(*sol_ ));
-       rhsSource->SetFeSpace( feSpace );
-       LinearFormContext * rhsContext =
-           new LinearFormContext( rhsSource );
-       rhsContext->SetEntities( actSDList );
-       rhsContext->SetFeFunction( feFunc );
-       assemble_->AddLinearForm( rhsContext );
+       //// =================================
+       //nLinCurlCurlEdgeInt* curlcurlNL =
+       //    new nLinCurlCurlEdgeInt( actMat, upLagrangeForm );
+       //curlcurlNL->SetNonLinMethod( nonLinMethod_ );
+       //curlcurlNL->SetSolution( dynamic_cast<NodeStoreSol<Double>&>(*sol_ ));
+       //curlcurlNL->SetFeSpace( feSpace );
+       ////BiLinFormContext * stiffContext = new BiLinFormContext( curlcurlNL, STIFFNESS );
+       ////stiffContext->SetEntities( actSDList, actSDList );
+       ////stiffContext->SetFeFunctions( feFunc, feFunc );
+       ////assemble_->AddBiLinearForm( stiffContext );
+       //
+       //// we have to save the bilinear form for later usage
+      //// nlinBilinForms_[actRegion] = curlcurlNL;
+       //
+       //// =================================
+       ////  Nonlinear RHS-integrator
+       //// =================================
+       //nLinMagEdge_linFormInt* rhsSource
+       //= new nLinMagEdge_linFormInt( actMat, upLagrangeForm);
+       //rhsSource->SetSolution( dynamic_cast<NodeStoreSol<Double>&>(*sol_ ));
+       //rhsSource->SetFeSpace( feSpace );
+       //LinearFormContext * rhsContext =
+       //    new LinearFormContext( rhsSource );
+       //rhsContext->SetEntities( actSDList );
+       //rhsContext->SetFeFunction( feFunc );
+       //assemble_->AddLinearForm( rhsContext );
 
       } else {
 
@@ -390,29 +394,32 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
        // ===============================
        //  Standard Stiffness Integrator
        // ===============================
-       CurlCurlEdgeInt* curlcurl =
-           new CurlCurlEdgeInt( actMat, upLagrangeForm);
-       curlcurl->SetFeSpace( feSpace );
+        shared_ptr<CoefFunction> curCoef = actMat->GetCoefFunction(MAG_RELUCTIVITY,FULL,Global::REAL);
+        BDBInt_NEW< CurlOperator ,FeHCurl,Double >* curlcurl;
+        curlcurl = new BDBInt_NEW< CurlOperator ,FeHCurl,Double >(curCoef,1.0) ;
+        curlcurl->SetFeSpace( feSpace );
 
-       BiLinFormContext * stiffContext =
-           new BiLinFormContext(curlcurl, STIFFNESS );
-       stiffContext->SetEntities( actSDList, actSDList );
-       stiffContext->SetFeFunctions( feFunc, feFunc );
-       assemble_->AddBiLinearForm( stiffContext );
-       linBilinForms_[actRegion] = curlcurl;
+
+       //BiLinFormContext * stiffContext =
+      //     new BiLinFormContext(curlcurl, STIFFNESS );
+     //  stiffContext->SetEntities( actSDList, actSDList );
+    //   stiffContext->SetFeFunctions( feFunc, feFunc );
+  //     assemble_->AddBiLinearForm( stiffContext );
+   //    linBilinForms_[actRegion] = curlcurl;
 
        // === Additional RHS integrator in case of Non-linearity ===
        if ( nonLin_ == true ) {
-         nLinMagEdge_linFormInt* rhsSource =
-             new nLinMagEdge_linFormInt( actMat, upLagrangeForm );
-         rhsSource->SetFeSpace( feSpace );
-         rhsSource->SetSolution( dynamic_cast<NodeStoreSol<Double>&>(*sol_ ));
-
-         LinearFormContext * rhsContext =
-             new LinearFormContext( rhsSource );
-         rhsContext->SetEntities( actSDList );
-         rhsContext->SetFeFunction( feFunc );
-         assemble_->AddLinearForm( rhsContext );
+         REFACTOR;
+         //nLinMagEdge_linFormInt* rhsSource =
+         //    new nLinMagEdge_linFormInt( actMat, upLagrangeForm );
+         //rhsSource->SetFeSpace( feSpace );
+         //rhsSource->SetSolution( dynamic_cast<NodeStoreSol<Double>&>(*sol_ ));
+         //
+         //LinearFormContext * rhsContext =
+         //    new LinearFormContext( rhsSource );
+         //rhsContext->SetEntities( actSDList );
+         //rhsContext->SetFeFunction( feFunc );
+         //assemble_->AddLinearForm( rhsContext );
        }
      } // END OF NOLIN / LIN PART
 
@@ -432,22 +439,23 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
         conductivity =  regularizationFactor / perm;
       }
 
-      MassEdgeInt *massInt =
-          new MassEdgeInt(conductivity, scaleByEdgeSize, upLagrangeForm );
+
+      BBIntMassEdge<ScaledByEdgeIdentityOperator,FeHCurl,Double> *massInt;
+      massInt = new BBIntMassEdge<ScaledByEdgeIdentityOperator,FeHCurl,Double>(conductivity);
       massInt->SetFeSpace( feSpace );
 
-      BiLinFormContext * massContext;
+    //  BiLinFormContext * massContext;
       if ( analysistype_ == STATIC) {
         // we have to guarantee, that we add some mass to
         // the curl-curl-matrix!!
-        massContext =  new BiLinFormContext(massInt, STIFFNESS );
+     //   massContext =  new BiLinFormContext(massInt, STIFFNESS );
       } else {
-        massContext =
-            new BiLinFormContext(massInt, MASS );
+  //      massContext =
+  //          new BiLinFormContext(massInt, MASS );
       }
-      massContext->SetEntities( actSDList, actSDList );
-      massContext->SetFeFunctions( feFunc, feFunc );
-      assemble_->AddBiLinearForm( massContext );
+ //     massContext->SetEntities( actSDList, actSDList );
+  //    massContext->SetFeFunctions( feFunc, feFunc );
+  //    assemble_->AddBiLinearForm( massContext );
 
       feFunc->AddEntityList( actSDList );
       // ============================
@@ -456,26 +464,27 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
       // If this subdomain is a coil we have to do special things
       for ( UInt coil = 0; coil < coilDef_.GetSize(); coil++ ) {
         if ( actRegion == coilRegionId_[coil] ) {
-          std::string factor = coilDef_[coil]->value_ + "/" +
-            lexical_cast<std::string>(coilDef_[coil]->windingCrossSection_);
-
-          VolForceInt *coilSource3d =
-              new LinearEdgeSrcInt ( 3, coilDef_[coil]->phase_,
-                                     isaxi_ );
-
-          StdVector<std::string> currDensity(3);
-          currDensity[0] = factor + "*" + lexical_cast<std::string>(coilDef_[coil]->locFlowDir_[0]);
-          currDensity[1] = factor + "*" + lexical_cast<std::string>(coilDef_[coil]->locFlowDir_[1]);
-          currDensity[2] = factor + "*" + lexical_cast<std::string>(coilDef_[coil]->locFlowDir_[2]);
-          coilSource3d->SetVolForceVector( currDensity,
-                                           coilDef_[coil]->flowCoordSys_,
-                                           true, 1.0 );
-          LinearFormContext * coilContext =
-              new LinearFormContext( coilSource3d );
-          coilSource3d->SetFeSpace(feSpace );
-          coilContext->SetEntities( actSDList );
-          coilContext->SetFeFunction( feFunc );
-          assemble_->AddLinearForm( coilContext );
+          REFACTOR;
+          //std::string factor = coilDef_[coil]->value_ + "/" +
+          //  lexical_cast<std::string>(coilDef_[coil]->windingCrossSection_);
+          //
+          //VolForceInt *coilSource3d =
+          //    new LinearEdgeSrcInt ( 3, coilDef_[coil]->phase_,
+          //                           isaxi_ );
+          //
+          //StdVector<std::string> currDensity(3);
+          //currDensity[0] = factor + "*" + lexical_cast<std::string>(coilDef_[coil]->locFlowDir_[0]);
+          //currDensity[1] = factor + "*" + lexical_cast<std::string>(coilDef_[coil]->locFlowDir_[1]);
+          //currDensity[2] = factor + "*" + lexical_cast<std::string>(coilDef_[coil]->locFlowDir_[2]);
+          //coilSource3d->SetVolForceVector( currDensity,
+          //                                 coilDef_[coil]->flowCoordSys_,
+          //                                 true, 1.0 );
+          //LinearFormContext * coilContext =
+          //    new LinearFormContext( coilSource3d );
+          //coilSource3d->SetFeSpace(feSpace );
+          //coilContext->SetEntities( actSDList );
+          //coilContext->SetFeFunction( feFunc );
+          //assemble_->AddLinearForm( coilContext );
         }
       }
 
@@ -731,8 +740,8 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
   
   template<class TYPE>
   void MagEdgePDE::CalcEnergy( shared_ptr<BaseResult> result ) {
-
-    Result<TYPE> &  actSol = 
+    REFACTOR;
+    /*Result<TYPE> &  actSol =
         dynamic_cast<Result<TYPE>&>(*result);      
     EntityIterator regionIt = actSol.GetEntityList()->GetIterator();
 
@@ -769,7 +778,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
         energy += 0.5 * (help * magPot);
 
       }  
-      actVal[regionIt.GetPos()] = energy;
+      actVal[regionIt.GetPos()] = energy;*/
     }
     
     
@@ -828,7 +837,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
 //        actVal[regionIt.GetPos()] = energy;
 //        delete bilinear_stiff;   
 //      }
-  }
+
 
 
   // ******************************************************
@@ -1008,20 +1017,16 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
     shared_ptr<ElemShapeMap> esm = ptgrid_->GetElemShapeMap( el, true );
     shared_ptr<BaseFeFunction> fct = GetFeFunction(MAG_POTENTIAL);
 
-    CurlCurlEdgeInt * li = NULL;
+    CurlOperator<FeHCurl,TYPE> li;
+    //CurlCurlEdgeInt * li = NULL;
 
-    if ( regionNonLinType_[el->regionId] != NO_NONLINEARITY ) {
-      li = nlinBilinForms_[el->regionId];
-    } else {
-      li = linBilinForms_[el->regionId];
-    }
     BaseFE*  ptFe = fct->GetFeSpace()->GetFe( el->elemNum );
     lpm.Set(lp, esm );
     ElemList elist(ptgrid_);
     elist.SetElement(el);
     solhelp.GetElemSolution( elemSol, elist.GetIterator() );
 
-    li->ApplyBMat( field, lpm, ptFe, elemSol);
+    li.ApplyOp( field, lpm, ptFe, elemSol);
   }
   
   template<class TYPE>

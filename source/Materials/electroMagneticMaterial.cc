@@ -307,6 +307,14 @@ namespace CoupledField
         dataTypeNotAllowed4SetGet( dataType, msg );
       }
     }
+    if(matType==MAG_RELUCTIVITY){
+      for(UInt i = 0; i<param.GetNumRows();i++){
+        for(UInt j = 0; j<param.GetNumCols();j++){
+          Double tmp = param[i][j];
+          param[i][j] = 1/tmp;
+        }
+      }
+    }
   }
 
   void ElectroMagneticMaterial::GetTensor( Matrix<Complex>& param, 
@@ -341,6 +349,14 @@ namespace CoupledField
         param = matTensor;
       }
     }
+    if(matType==MAG_RELUCTIVITY){
+       for(UInt i = 0; i<param.GetNumRows();i++){
+         for(UInt j = 0; j<param.GetNumCols();j++){
+           Complex tmp = param[i][j];
+           param[i][j] = Complex(1.0,0.0) / tmp;
+         }
+       }
+     }
   }
 
 
@@ -789,5 +805,6 @@ namespace CoupledField
             << symmetryType_ << "' not implemented!" );
     }
   }
+
 
 }

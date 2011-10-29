@@ -9,7 +9,7 @@
 #include "solveStepElec.hh"
 #include "Utils/preisach.hh"
 #include "assemble.hh"
-#include "Forms/linearForm.hh"
+//#include "Forms/linearForm.hh"
 #include "Utils/nodestoresol.hh"
 #include "PDE/StdPDE.hh"
 #include "DataInOut/ResultCache.hh"

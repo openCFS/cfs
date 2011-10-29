@@ -10,10 +10,10 @@
 
 #include "magneticScalarPDE.hh"
 
-#include "Forms/linGradBDBInt.hh"
-#include "Forms/linNeumannInt.hh"
-#include "Forms/linBiotSavartSurfInt.hh"
-#include "Forms/gradfieldop.hh"
+//#include "Forms/linGradBDBInt.hh"
+//#include "Forms/linNeumannInt.hh"
+//#include "Forms/linBiotSavartSurfInt.hh"
+//#include "Forms/gradfieldop.hh"
 #include "General/defs.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/ParamHandling/ParamTools.hh"
