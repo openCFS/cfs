@@ -1,7 +1,6 @@
-\chapter{Quickstart Guide}
-
-This  quickstart guide  is meant  to help  a new  CFS++ developer  to  get the
-necessary environment running  on his machine for doing  CFS++ development. We
+\chapter{Getting, Configure and Compile CFS++}
+This section provides a description for new  CFS++ developer  to  get the
+necessary environment running for doing  CFS++ development. We
 start with the  required software packages from the  operating system software
 distribution services  and give the  required commands to install  them. After
 that we describe how to get the CFS++ sources from the development server.  In
@@ -39,20 +38,20 @@ for some of the  OSes most often in use by the CFS++  developers.
 
 Only one script is required to set up a development machine. It is embedded in
 this PDF as
-\begin{itemize}
-\item                    {\tt                   bootstrap\_devel\_machine.txt}
-\attachfile[icon=PushPin,description={Shell script for installing the packages
-required                               for                               CFS++
-development.},mimetype=text/plain]{attachments/bootstrap_devel_machine.txt}
-\end{itemize}%
+%\begin{itemize}
+%\item                    {\tt                   bootstrap\_devel\_machine.txt}
+%\attachfile[icon=PushPin,description={Shell script for installing the packages
+%required                               for                               CFS++
+%development.},mimetype=text/plain]{attachments/bootstrap_devel_machine.txt}
+%\end{itemize}%
 %
 Please extract the file  as described in Sec. \ref{sec:embedded_listings}. The
 shell  script  needs  to  be   renamed  and  then  executed  with  super  user
 priviledges.  This can  be achieved  with the  following sequence  of commands
 executed in the directory where the two script has been extracted to:
 
-\input{pygmentized/qs_bootstrap.tex}
-\attachfile[icon=PushPin,description={Shell script for bootstrapping a development machine.},mimetype=text/plain]{attachments/qs_bootstrap.txt}
+%\input{pygmentized/qs_bootstrap.tex}
+%\attachfile[icon=PushPin,description={Shell script for bootstrapping a development machine.},mimetype=text/plain]{attachments/qs_bootstrap.txt}
 
 If  you use a  different distribution  you should  be able  to figure  out the
 required  packages  by  examining  {\tt  bootstrap\_devel\_machine.txt}  quite
@@ -115,10 +114,11 @@ The following list includes a number of required packages on Mac OS X.
 \item XCode - \url{http://developer.apple.com/technologies/tools/xcode.html}
 \item MacPorts - \url{http://www.macports.org}
 \item CMake - \url{http://www.cmake.org}
-\item g++, tcl,  etc. from MacPorts \attachfile[icon=PushPin,description={List
-of                   packages                  installed                  from
-MacPorts.},mimetype=text/plain]{attachments/mac_ports_installed_pckgs.txt}
-cf. \url{http://pc.freeshell.org/comp/macbook}
+\item g++, tcl,  etc. from MacPorts 
+%\attachfile[icon=PushPin,description={List
+%of                   packages                  installed                  from
+%MacPorts.},mimetype=text/plain]{attachments/mac_ports_installed_pckgs.txt}
+%cf. \url{http://pc.freeshell.org/comp/macbook}
 \item For Fortran go to \url{http://www.macresearch.org/gfortran-leopard}. Also
 visit \url{http://hpc.sourceforge.net/}.
 \item Building a cross compiler for Mac OS X on Linux: \url{http://devs.openttd.org/~truebrain/compile-farm/apple-darwin9.txt}
@@ -150,10 +150,10 @@ Pre-installed   VBoxes  containg   all  required   packages  are   located  at
 
 \noindent {\tt qnap:/share//AM\_Data/Software/NACS\_Windows\_Development\_VBOXes/[WINXP*\&nacs\_dev*\&local*]}.
 
-Refer   to   the   howto  \attachfile[icon=PushPin,description={NACS   Windows
-development           howto           on           dedicated           Virtual
-Boxes.},mimetype=text/plain]{attachments/nacs_win_build_howto.txt} for getting
-these up and running.
+%Refer   to   the   howto  \attachfile[icon=PushPin,description={NACS   Windows
+%development           howto           on           dedicated           Virtual
+%Boxes.},mimetype=text/plain]{attachments/nacs_win_build_howto.txt} for getting
+%these up and running.
 
 \newpage
 \section{Obtaining the Sources}
@@ -268,10 +268,3 @@ registered as administrators  may change the server settings  by accessing the
 Administration link.
 
 
-\section{Next Steps}
-
-\todo[inline]{Write  about  which  further  directions  to  go.  Is  the  user
-interested  in making  a new  lib available  in CFSDEPS?  Is he  interested in
-implementing  new PDEs,  writers  etc.  Then point  him  to the  corresponding
-sections. Also  describe a continuous  path for reading  if the user  wants to
-learn every detail about CFS++.}

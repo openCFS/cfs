@@ -271,11 +271,15 @@ share/doc/developer/Protokolle/Treffen_14_04_2005.pdf -text svneol=unset#applica
 share/doc/developer/Protokolle/Treffen_16_11_2005.pdf -text svneol=unset#application/pdf
 share/doc/developer/Protokolle/Treffen_25_09_2007.pdf -text svneol=unset#application/pdf
 share/doc/developer/Protokolle/Treffen_27_07_2005.pdf -text svneol=unset#application/pdf
+share/doc/developer/develManual/Int.bib -text
 share/doc/developer/develManual/attachfile.sty svneol=native#text/plain
 share/doc/developer/develManual/concepts.tex -text
+share/doc/developer/develManual/debugging.tex -text
 share/doc/developer/develManual/develManual.bib -text
 share/doc/developer/develManual/develManual.cfg -text
 share/doc/developer/develManual/develManual.tex -text
+share/doc/developer/develManual/firstTimeImplementing.tex -text
+share/doc/developer/develManual/getConfigCompile.tex -text
 share/doc/developer/develManual/howtos.tex -text
 share/doc/developer/develManual/html/banner.png -text
 share/doc/developer/develManual/html/next.png -text
@@ -283,6 +287,8 @@ share/doc/developer/develManual/html/prev.png -text
 share/doc/developer/develManual/html/up.png -text
 share/doc/developer/develManual/infrastructure.tex -text
 share/doc/developer/develManual/introduction.tex -text
+share/doc/developer/develManual/matdata.tex -text
+share/doc/developer/develManual/mounting.tex -text
 share/doc/developer/develManual/mycommands.tex -text
 share/doc/developer/develManual/pics/ccivis.pdf -text svneol=unset#application/pdf
 share/doc/developer/develManual/pics/ccivis.svg -text
@@ -294,6 +300,7 @@ share/doc/developer/develManual/pics/cdash_emailtype.png -text svneol=unset#imag
 share/doc/developer/develManual/pics/cdash_project_roles.png -text svneol=unset#image/png
 share/doc/developer/develManual/pics/cfs_calcStructure.pdf -text
 share/doc/developer/develManual/pics/cfs_calcStructure.svg -text
+share/doc/developer/develManual/pics/cfs_data_formats.pdf -text
 share/doc/developer/develManual/pics/cfs_devel_cdash.png -text svneol=unset#image/png
 share/doc/developer/develManual/pics/cfs_devel_server.pdf -text svneol=unset#application/pdf
 share/doc/developer/develManual/pics/cfs_devel_server.png -text svneol=unset#image/png
@@ -313,6 +320,7 @@ share/doc/developer/develManual/pics/cfspp_orcan.png -text svneol=unset#image/pn
 share/doc/developer/develManual/pics/cfspp_workshop.pdf -text svneol=unset#application/pdf
 share/doc/developer/develManual/pics/cfspp_workshop.svg -text
 share/doc/developer/develManual/pics/cmake-gui.png -text svneol=unset#image/png
+share/doc/developer/develManual/pics/coupled-system.pdf -text
 share/doc/developer/develManual/pics/eclipse_editor_settings.png -text svneol=unset#image/png
 share/doc/developer/develManual/pics/eclipse_workspace_settings.png -text svneol=unset#image/png
 share/doc/developer/develManual/pics/elems_hexa.png -text
@@ -337,7 +345,7 @@ share/doc/developer/develManual/pics/software-process.png -text svneol=unset#ima
 share/doc/developer/develManual/pics/totalview_acou_define_int.png -text svneol=unset#image/png
 share/doc/developer/develManual/pics/totalview_acou_define_int_callgraph.png -text svneol=unset#image/png
 share/doc/developer/develManual/pics/totalview_enable_replay_engine.png -text svneol=unset#image/png
-share/doc/developer/develManual/quickstart.tex -text
+share/doc/developer/develManual/piezo_coupling.tex -text
 share/doc/developer/develManual/sources/emacs_settings.sh svneol=native#text/plain
 share/doc/developer/develManual/sources/git_checkout_cfs.sh svneol=native#text/plain
 share/doc/developer/develManual/sources/hdf5_file_format.xml -text
@@ -355,11 +363,11 @@ share/doc/developer/develManual/sources/qs_bootstrap.sh svneol=native#text/plain
 share/doc/developer/develManual/sources/qs_configure_build.sh svneol=native#text/plain
 share/doc/developer/develManual/sources/qs_obtain_sources.sh -text
 share/doc/developer/develManual/todonotes.sty svneol=native#text/plain
-share/doc/developer/develManual/tools.tex -text
 share/doc/developer/makedoc.sh.in -text
 share/doc/user/CMakeLists.txt svneol=native#text/plain
 share/doc/user/advPrePostManual/advPrePostManual.bib -text
 share/doc/user/advPrePostManual/advPrePostManual.tex -text
+share/doc/user/advPrePostManual/internalTools.tex -text
 share/doc/user/advPrePostManual/intro.tex -text
 share/doc/user/advPrePostManual/mycommands.tex -text
 share/doc/user/advPrePostManual/pics/Bar-def.png -text svneol=unset#image/png
