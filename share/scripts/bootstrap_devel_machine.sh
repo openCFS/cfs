@@ -253,6 +253,7 @@ case "$DIST" in
      OPENSUSE) SetupOpenSuse ;;
      DEBIAN) SetupDebian ;;
      UBUNTU) SetupDebian ;;
+     LINUXMINT) SetupDebian ;;
      FEDORA) SetupFedora ;;
      CENTOS) SetupCentOS ;;
      *)
