@@ -228,6 +228,8 @@ namespace CoupledField
     bool nonLinLogging_;    //!< log progress of non-linear iterations
     //! map for each region the type of nonlinearity
     std::map<RegionIdType, NonLinType> regionNonLinType_;
+    
+    bool effectiveMatrixIsWrong_; //!< indicate that the effectiveMatrix was replaced by just K (in Optimization, this might be used for starting a simulation in deformed state) and has to be recalculated
 
     //! size of rhs and algsys vector
     UInt numEqns_;

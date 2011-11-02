@@ -49,17 +49,11 @@ namespace CoupledField
       diagMass_ = true;
     };
 
-  protected:
-    
     //! generates a multi-dof-matrix with similar entries for all dofs
-    virtual void MassMultiDof(Matrix<Double>& massMultDof, const Matrix<Double>& massMatSingleDof,  
-                              const UInt nrDofs);
+    void MassMultiDof(Matrix<Double>& massMultDof, const Matrix<Double>& massMatSingleDof);
 
-    virtual void MassMultiDofZero(Matrix<Double>& massMultDofZero, 
-                                  const Matrix<Double>& massMatSingleDof);
-    
     double GetErsatzMaterialMass(const Elem* elem, DesignElement::Type direction);
-  
+    
   private:
     /** commond constructor */
     void Init(const UInt nrDofsPerNode, bool axi, bool coordUpdate);

@@ -488,6 +488,12 @@ void DesignElement::SetEnums()
   type.Add(DAMPINGALPHA, "damping-alpha");
   type.Add(DAMPINGBETA, "damping-beta");
   type.Add(UNITY, "unity");
+  type.Add(TENSOR11, "tensor11");
+  type.Add(TENSOR22, "tensor22");
+  type.Add(TENSOR33, "tensor33");
+  type.Add(TENSOR23, "tensor23");
+  type.Add(TENSOR13, "tensor13");
+  type.Add(TENSOR12, "tensor12");
 
   access.SetName("DesignElement::Access");
   access.Add(PLAIN, "plain");

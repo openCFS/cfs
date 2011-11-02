@@ -566,7 +566,7 @@ void ErsatzMaterial::CalcNewmarkDerivative(Excitation& excite, Solutions& forwar
         for(unsigned int tp = t+1; tp < timesteps; ++tp){ // loop over all time steps in p
           Vector<double>& p_vec = dynamic_cast<Vector<double>& >(*(*adjoints[tp])[e]);
           // these are the scalar factors for the parts of the derivative of F
-          double ut = u +  (up + 0.5*upp*(1.0-2.0*beta)*dt ) *dt;
+          double ut = u + (up + upp*(0.5-beta)*dt ) *dt;
           double upt = up + (1.0 - gamma) * dt * upp;
           double pdMu = p_vec * dMu;
           double tvM = ut * pdMu;
@@ -1561,12 +1561,10 @@ void ErsatzMaterial::SetAdjointRhs(AdjointParameters* adjointParams){
     std::set<FEMatrixType> matTypes;    
     assemble_->GetAlgSys()->GetFEMatrixTypes(matTypes);
     bool damping = ( matTypes.find(CoupledField::DAMPING) != matTypes.end() );
-    double u = 1.0; double upp = 1.0 / (beta*dt*dt); double up = upp * gamma * dt;
-    upp = 0.0;
-    up = 0.0;
+    double u = 1.0; double upp = 0.0; double up = 0.0;
     for(unsigned int t = 1; t < nts; ++t){
       Vector<Double>& p_vec = adjoint.Get(excite, adjointParams->GetFunction(), t)->GetRealVector(Solution::RAW_VECTOR);
-      double ut = u +  (up + 0.5*upp*(1.0-2.0*beta)*dt ) *dt;
+      double ut = u + (up + upp*(0.5-beta)*dt ) *dt;
       double upt = up + (1.0 - gamma) * dt * upp;
       // now we have the factor ut / (beta * dt * dt) for the mass matrix
       coeffMass = p_vec * (ut / (beta * dt * dt));
