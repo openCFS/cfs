@@ -2,6 +2,7 @@
 # These defaults are for sedici cluster at Applied Mechatronics Klagenfurt.
 #-----------------------------------------------------------------------------
 SET(CFS_BLAS_LAPACK_DEFAULT "MKL")
+SET(USE_PARDISO_DEFAULT "ON")
 SET(CFS_PARDISO_DEFAULT "MKL")
 
 SET(USE_TCL_DEFAULT OFF)

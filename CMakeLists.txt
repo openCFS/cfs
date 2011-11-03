@@ -143,11 +143,11 @@ ENDIF(USE_PARDISO OR
       USE_ILUPACK OR
       USE_CHOLMOD)
 
-IF(CFS_PARDISO STREQUAL "MKL")
+IF(USE_PARDISO AND CFS_PARDISO STREQUAL "MKL")
   SET(CFS_BLAS_LAPACK "MKL" CACHE STRING
     "BLAS/LAPACK implementation for CFS. May be one of ACML, GOTO, MKL, NETLIB"
     FORCE)
-ENDIF(CFS_PARDISO STREQUAL "MKL")
+ENDIF(USE_PARDISO AND CFS_PARDISO STREQUAL "MKL")
 
 #-----------------------------------------------------------------------------
 # Options which have become so important that they are not optional anymore
