@@ -35,7 +35,7 @@ int SnOpt_C_Callback(int* Status, int *n,
 }
 
 SnOpt::SnOpt(Optimization* opt, PtrParamNode pn) :
-  BaseOptimizer(opt, pn),
+  BaseOptimizer(opt, pn, Optimization::SNOPT_SOLVER),
   f_evals(0),       // number of function evaluations
   g_evals(0),       // number of gradient evaluations
   nxname(1),

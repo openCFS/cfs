@@ -87,6 +87,9 @@ namespace CoupledField
     /** root in info.xml */
     PtrParamNode info_root;
 
+    /** do http streaming or file? */
+    bool http_;
+
     /** by default localhost */
     std::string host_;
 

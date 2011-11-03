@@ -4,6 +4,7 @@
 #include "Domain/grid.hh"
 #include <boost/asio.hpp>
 #include <boost/bind.hpp>
+#include <fstream>
 
 using boost::asio::ip::tcp;
 
@@ -17,6 +18,7 @@ SimOutputStreaming::SimOutputStreaming(PtrParamNode outputNode) :
   formatName_ = "streaming";
   capabilities_.insert(MESH_RESULTS);
 
+  http_ = outputNode->Get("protocol")->As<string>() == "http";
   host_ = outputNode->Get("host")->As<string>();
   port_ = outputNode->Get("port")->As<string>();
   path_ = outputNode->Get("path")->As<string>();
@@ -71,10 +73,19 @@ void SimOutputStreaming::AddResult( shared_ptr<BaseResult> sol)
 
 void SimOutputStreaming::FinishStep()
 {
-  boost::asio::io_service io_service;
-  Client client(io_service, host_, port_, path_, this);
-  io_service.run();
-  results_.Clear();
+  if(http_)
+  {
+    boost::asio::io_service io_service;
+    Client client(io_service, host_, port_, path_, this);
+    io_service.run();
+    results_.Clear();
+  }
+  else
+  {
+     std::ofstream out(path_.c_str());
+     Transmit(out);
+     out.close();
+  }
 }
 
 UInt SimOutputStreaming::GetContentLength()
@@ -92,6 +103,8 @@ UInt SimOutputStreaming::GetContentLength()
 
 void SimOutputStreaming::Transmit(std::ostream& out)
 {
+  Grid* grid = domain->GetGrid();
+
   // create a new Param Node
   // ParamNode content = PtrParamNode(new ParamNode(ParamNode::INSERT, ParamNode::ELEMENT ));
   ParamNode content(ParamNode::INSERT);
@@ -101,7 +114,7 @@ void SimOutputStreaming::Transmit(std::ostream& out)
   content.Get("info")->SetValue(info, true); // use own name and make sure we are not seed as stupid boost::any
 
   // add mesh
-  if(send_mesh_) domain->GetGrid()->ExportGrid(content.Get("mesh"));
+  if(send_mesh_) domain->GetGrid()->ExportGrid(content.Get("grid"));
 
   // now the actual results
   PtrParamNode results = content.Get("results");
@@ -117,6 +130,7 @@ void SimOutputStreaming::Transmit(std::ostream& out)
 
     rpn->Get("name")->SetValue(resInfo->resultName);
     rpn->Get("region")->SetValue(sol->GetEntityList()->GetName());
+    RegionIdType regid = grid->GetRegion().Parse(sol->GetEntityList()->GetName());
 
     unsigned int dofs = resInfo->dofNames.GetSize();
     rpn->Get("dofs")->SetValue(dofs);
@@ -134,6 +148,15 @@ void SimOutputStreaming::Transmit(std::ostream& out)
     // the actual item size
     unsigned int items = resultVec.GetSize() / dofs;
 
+
+    // TODO handle only simple cases here!
+    StdVector<unsigned int> nodes; // nodes per region
+    StdVector<Elem*> elems;   // // elements per region
+    if(resInfo->definedOn == ResultInfo::NODE)
+      grid->GetNodesByRegion(nodes, regid);
+    else
+      grid->GetElems(elems, regid);
+
     list.Resize(items);
     for(unsigned int e = 0; e < items; e++)
     {
@@ -142,12 +165,13 @@ void SimOutputStreaming::Transmit(std::ostream& out)
       for(unsigned int d = 0; d < dofs; d++)
         el->Get("v_" + boost::lexical_cast<std::string>(d))->SetValue(resultVec[dofs * e + d]);
 
-      // add the optional index only at the end to allow save attribute retrieval by index
-      if(!compressed_)
-        el->Get("idx")->SetValue(e);
+      // mandatory for nodes
+      if(resInfo->definedOn == ResultInfo::NODE)
+        el->Get("id")->SetValue(nodes[e]);
+      else if(!compressed_) // for elements it is redundand so we skip it in compressed mode
+        el->Get("id")->SetValue(elems[e]->elemNum);
     }
   }
-
 
   // write the stuff
   content.ToXML(out, compressed_ ? -99 : 0, true); // adjust element type!

@@ -15,7 +15,7 @@ DECLARE_LOG(scpip)
 DEFINE_LOG(scpip, "scpip")
 
 SCPIP::SCPIP(Optimization* optimization, PtrParamNode optimizer_pn) :
- BaseOptimizer(optimization, optimizer_pn)
+ BaseOptimizer(optimization, optimizer_pn, Optimization::SCPIP_SOLVER)
 {
   LOG_TRACE(scpip) << "Initialize SCPIP";
 

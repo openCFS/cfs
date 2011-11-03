@@ -2,6 +2,7 @@
 #define BASEOPTIMIZER_HH_
 
 #include "Utils/StdVector.hh"
+#include "Optimization/Optimization.hh"
 #include <string>
 #include "DataInOut/ParamHandling/ParamNode.hh"
 
@@ -25,7 +26,7 @@ namespace CoupledField
   public:
     /** @param optimization this is the actual optimization problem
      * @param pn to hold the complete "optimizer" element!. Not NULL! */
-    BaseOptimizer(Optimization* optimization, PtrParamNode pn); 
+    BaseOptimizer(Optimization* optimization, PtrParamNode pn, Optimization::Optimizer type);
 
     virtual ~BaseOptimizer();
 
@@ -164,6 +165,9 @@ namespace CoupledField
     };
     
     Optimization* optimization;
+
+    /** out type */
+    Optimization::Optimizer type_;
 
     /** Info Node base */
     PtrParamNode info_;

@@ -378,15 +378,25 @@
   <!-- ******************************************************************** -->
   <xsd:complexType name="DT_OutputStreaming">
     <xsd:attribute name="id" type="xsd:token" default="streaming"/>
-    <!-- e.g. "127.0.0.1" -->
-    <xsd:attribute name="host" type="xsd:token" default="localhost"/>
+    <!-- e.g. "127.0.0.1" or "localhost". Mandatory for protocol = http -->
+    <xsd:attribute name="host" type="xsd:token" use="optional" default="localhost"/>
     <!-- e.g. "80" -->
-    <xsd:attribute name="port" type="xsd:nonNegativeInteger" default="8888"/>
-    <!-- e.g. "/iTop/cfspost.php" -->
+    <xsd:attribute name="port" type="xsd:nonNegativeInteger" use="optional" default="80"/>
+    <!-- e.g. "/iTop/cfspost.php" or the file -->
     <xsd:attribute name="path" type="xsd:token" use="required"/>
+    <!-- the protocol. http is what streaming is meant for, file for iTop compression test. A fast
+    XML output -->
+    <xsd:attribute name="protocol" default="http">
+      <xsd:simpleType>
+        <xsd:restriction base="xsd:token">
+          <xsd:enumeration value="http"/>
+          <xsd:enumeration value="file"/>
+        </xsd:restriction>
+      </xsd:simpleType>
+    </xsd:attribute>
     <!-- shall also the grid be transmitted -->
     <xsd:attribute name="sendMesh" type="xsd:boolean" use="optional" default="false" />
-    <!-- compress is not zipped but no identation and no 'nr' attribute in the result/data items -->
+    <!-- compress is not zipped but no identation and no redundand 'id' attribute for element results -->
     <xsd:attribute name="compressed" type="xsd:boolean" use="optional" default="true" />
     <!-- if not silent prints on which port a connectiont is attempted to -->
     <xsd:attribute name="silent" type="xsd:boolean" use="optional"/>
