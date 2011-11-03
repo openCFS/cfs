@@ -575,6 +575,7 @@ share/scripts/cfs-testsuite-extractor.py -text
 share/scripts/cfs_grid.py -text
 share/scripts/cfs_utils.py -text
 share/scripts/cfstool -text
+share/scripts/checkbashisms -text
 share/scripts/common.sh svneol=native#text/plain
 share/scripts/compile_mkl_test.sh.in -text
 share/scripts/continuation.py -text

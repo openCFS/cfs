@@ -20,12 +20,12 @@ echo "DIST: $DIST"
 echo "REV: $REV"
 echo "ARCH: $ARCH"
 
-function ExitFail {
+ExitFail() {
     echo "A problem has occured. Please try to fix the reason and try again."
     exit 1;
 }
 
-function SetupDebian {
+SetupDebian() {
     apt-get install subversion gcc g++ gfortran automake autoconf cmake \
         perl-base graphviz texlive-latex-base tex4ht \
         python-pygments doxygen tcl-dev python-dev git-svn \
@@ -37,7 +37,7 @@ function SetupDebian {
     ln -s /usr/lib/libXmu.so.6.2.0 /usr/lib/libXmu.so || ExitFail
 }
 
-function SetupOpenSuse {
+SetupOpenSuse() {
     zypper install subversion gcc gcc-c++ gcc-fortran automake autoconf \
         cmake perl-base graphviz texlive-latex texlive-tex4ht \
         python-pygments doxygen tcl-devel python-devel git-svn \
@@ -53,18 +53,18 @@ function SetupOpenSuse {
         for repo in $REPO
         do
           zypper addrepo --check $repo Gmsh
-          if [[ $? -eq 0 ]]; then
+          if [ $? -eq 0 ]; then
             break;
           fi
         done
-        if [[ $? -ne 0 ]]; then
+        if [ $? -ne 0 ]; then
           ExitFail
         fi
 	zypper install gmsh || ExitFail
     fi
 }
 
-function SetupFedora {
+SetupFedora() {
     yum install subversion gcc gcc-c++ gcc-gfortran automake autoconf cmake \
         perl graphviz texlive-latex tetex-tex4ht \
         python-pygments doxygen tcl-devel python-devel git-svn \
@@ -72,34 +72,54 @@ function SetupFedora {
         patch diffutils zip libXt-devel libXp || ExitFail
 }
 
-function SetupCentOS {
+SetupCentOS() {
+    RHEL_REL=$(echo $REV | cut -d'.' -f1)
+
+    case "${RHEL_REL}" in
+	5) echo "Fine! CentOS release ${RHEL_REL} is supported!";;
+	6) echo "Fine! CentOS release ${RHEL_REL} is supported!";;
+	*)
+            echo "CentOS release ${RHEL_REL} is NOT supported!"
+            ;;
+    esac
+
     cd /etc/yum.repos.d && \
+    rm -f graphviz-rhel.repo || ExitFail 
     wget http://www.graphviz.org/graphviz-rhel.repo || ExitFail
 
     YC=atrpms.repo
     echo "[atrpms]" > $YC && \
     echo "name=Redhat Enterprise Linux RHEL\$releasever - \$basearch - ATrpms" >> $YC && \
-    echo "baseurl=http://dl.atrpms.net/el5-\$basearch/atrpms/stable/" >> $YC && \
+    echo "baseurl=http://dl.atrpms.net/el${RHEL_REL}-\$basearch/atrpms/stable/" >> $YC && \
     echo "gpgkey=http://ATrpms.net/RPM-GPG-KEY.atrpms" >> $YC && \
     echo "gpgcheck=1" >> $YC || ExitFail
-    wget http://ATrpms.net/RPM-GPG-KEY.atrpms || ExitFail
-    rpm --import http://ATrpms.net/RPM-GPG-KEY.atrpms || ExitFail
+    rpm --import http://ATrpms.net/RPM-GPG-KEY.atrpms
 
     YC=epel.repo
     echo "[epel]" > $YC && \
     echo "name=EPEL RHEL\$releasever - \$basearch" >> $YC && \
-    echo "baseurl=http://ftp.ucr.ac.cr/epel/5/\$basearch" >> $YC || ExitFail
-    wget http://ftp.ucr.ac.cr/epel/RPM-GPG-KEY-EPEL || ExitFail
-    rpm --import RPM-GPG-KEY-EPEL || ExitFail
+    echo "baseurl=http://ftp.ucr.ac.cr/epel/${RHEL_REL}/\$basearch" >> $YC || ExitFail
+    rm -f RPM-GPG-KEY-EPEL-${RHEL_REL} || ExitFail
+    wget http://ftp.ucr.ac.cr/epel/RPM-GPG-KEY-EPEL-${RHEL_REL} || ExitFail
+    rpm --import RPM-GPG-KEY-EPEL-${RHEL_REL}
 
     ARCH=$(uname -m | sed 's/i[0-9]86/i386/') || ExitFail
-    BASE=http://apt.sw.be/redhat/el5/en
-    RPM=$ARCH/rpmforge/RPMS/rpmforge-release-0.3.6-1.el5.rf.$ARCH.rpm
-    rpm -Uhv $BASE/$RPM || ExitFail
+    BASE=http://apt.sw.be/redhat/el${RHEL_REL}/en
+    case "${RHEL_REL}" in
+	5) RPM=$ARCH/rpmforge/RPMS/rpmforge-release-0.3.6-1.el5.rf.$ARCH.rpm
+	    ;;
+	6) RPM=$ARCH/rpmforge/RPMS/rpmforge-release-0.5.2-2.el6.rf.$ARCH.rpm
+	    ;;
+	*)
+            echo "CentOS release ${RHEL_REL} is not supported!"
+            ;;
+    esac
+    rpm -Uhv --force $BASE/$RPM || ExitFail
 
     yum makecache || ExitFail
 
     cd /opt && \
+    rm -f org.tmatesoft.svn_1.3.5.standalone.zip || ExitFail
     wget http://www.svnkit.com/org.tmatesoft.svn_1.3.5.standalone.zip && \
     unzip org.tmatesoft.svn_1.3.5.standalone.zip || ExitFail
 
@@ -114,6 +134,7 @@ function SetupCentOS {
     else
 	LIB="lib"
     fi 
+    rm -f /usr/$LIB/libXext.so
     ln -s /usr/$LIB/libXext.so.6.4.0 /usr/$LIB/libXext.so || ExitFail
 
     echo "Please add the following lines to your \$HOME/.bashrc and open a new shell for all environment settings to become active."
@@ -122,7 +143,7 @@ function SetupCentOS {
 
 }
 
-function SetupMacOS {
+SetupMacOS() {
     ISOK=1
 
     # Install Xcode from the MacOS X installation DVD (optional packages -> Xcode)
@@ -165,7 +186,7 @@ function SetupMacOS {
 	fi
     done
 
-    if [ "$CMAKEDIR" == "" ]; then
+    if [ "$CMAKEDIR" = "" ]; then
 	echo "CMake not found! Please  go to www.cmake.org and download the latest"
 	echo "CMake package for Mac.";
 	ISOK=0

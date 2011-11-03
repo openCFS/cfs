@@ -93,7 +93,7 @@ elif [ "${OS}" = "Linux" ] ; then
             SUSEREL="/etc/SuSE-release"
             FIRSTLINE=`head -1 $SUSEREL | sed 'y/'$LOWER'/'$UPPER'/'`
             ENTERPRISE=`echo $FIRSTLINE | cut -f3 -d' '`
-            if [ "$ENTERPRISE" == "ENTERPRISE" ]; then
+            if [ "$ENTERPRISE" = "ENTERPRISE" ]; then
                 DIST="SLES"
                 REV=`echo $FIRSTLINE | cut -f5 -d' '`
                 PSEUDONAME=`head -3 $SUSEREL | tail -1 | sed 's/ = //'`
@@ -167,7 +167,8 @@ elif [ "${OS}" = "Linux" ] ; then
                             "lucid") PSEUDONAME="Lucid Lynx";; # 10.04 LTS
                             "maverick") PSEUDONAME="Maverick Meerkat";; # 10.10
                             "natty") PSEUDONAME="Natty Narwhal";; # 11.04
-                            "oneiric") PSEUDONAME="Oneiric Ocelot";; # 11.10 
+                            "oneiric") PSEUDONAME="Oneiric Ocelot";; # 11.10
+                            "precise") PSEUDONAME="Precise Pangolin";; # 12.04
 	                 esac;;
 		    "knoppix")
 			DIST=Knoppix;
