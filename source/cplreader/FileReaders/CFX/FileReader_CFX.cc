@@ -1080,7 +1080,11 @@ namespace CoupledField
       if(requiredResults_[FLUIDMECH_VELOCITY] ||
          requiredResults_[NO_SOLUTION_TYPE])
       {
-        sprintf(what, "G/VEL_FL1");
+        if ( settings.GetInt("cfxUseStnFrame") ) {
+          sprintf(what, "G/VELS_FL1");
+        } else {
+          sprintf(what, "G/VEL_FL1");
+        }
         sprintf(where, "ZN1/VX");
         when  = timeStepNumbers_[timeStepIdx];
 
