@@ -423,7 +423,7 @@ namespace CoupledField {
         // loop over all entities
         UInt pos = 0;
         for( UInt i = 0; i < entNumbers.GetSize(); ++i ) {
-          std::cout << "\t\t#" << std::abs(entNumbers[i]) << "\t\t";
+          std::cout << "\t\t#" << std::abs(static_cast<Double>(entNumbers[i])) << "\t\t";
 
           // leave, virtual node numbers are assigned
           for( UInt j = 0; j < offset[i]; ++j ) {

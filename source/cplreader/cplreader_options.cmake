@@ -379,5 +379,5 @@ ADD_OPTION(cfxUseStnFrame
 CONFIGURE_FILE("ParamsInit.cc.in"
   "${CMAKE_CURRENT_BINARY_DIR}/ParamsInit.cc")
 
-CONFIGURE_FILE("Documentation/latex/cplreader_options.tex.in"
-  "${CMAKE_CURRENT_BINARY_DIR}/Documentation/latex/cplreader_options.tex")
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/share/doc/user/cplreader/cplreader_options.tex.in"
+  "${CFS_BINARY_DIR}/share/doc/user/cplreader/cplreader_options.tex")

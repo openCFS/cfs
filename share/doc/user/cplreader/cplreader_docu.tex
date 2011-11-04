@@ -7,6 +7,8 @@
 
 \RequirePackage[english]{babel}
 
+\usepackage{../../auxilliaries/LaTeX/lsepaper}
+
 \usepackage[utf8]{inputenc} % the current paper is set using utf-8 keyboard coding
 \usepackage{graphicx} % used to insert the figure
 \usepackage{multirow} % used for the table
@@ -20,7 +22,6 @@
             menucolor=darkblue, urlcolor=darkblue, citecolor=darkblue]{hyperref}
 \usepackage{bm}
 \usepackage{amssymb}
-\usepackage{times}
 \usepackage{tikz}
 \usepackage{subfig}
 
@@ -33,13 +34,19 @@
 \pagestyle{empty}
 \columnsep 1cm
 
+\graphicspath{{./pics/}{../../auxilliaries/Pics/}}
+
+
+\include{pygmentized/pygmentize}
+\include{mycommands}
+
 \begin{document}
 \selectlanguage{english}
 
-\include{sources/pygmentize}
-
-\include{Title}
-\include{mycommands}
+\LSETITLE{CPLREADER -\\ \vspace{2mm}
+      A CFD Data Reader and Acoustic Source Term\\ \vspace{2mm} Generator for CFS++}
+    {Max Escobar, Jens Grabinger,\\\vspace{2mm}
+      Simon Triebenbacher and Stefan Zörner\vspace{2mm}}{User's Guide}
 
 % new commands for referring to different things
 \newcommand{\figref}[1]{Fig.~\ref{fig:#1}}
@@ -1668,7 +1675,7 @@ shell grids  composed of  all available element  types (including  HEXA27) for
 nonmatching grids.   It can be  only used through  a settings XML file  at the
 moment. Here is an example for an XML file for generating spherical shells.
 
-\input{sources/gengrids_spherical_shells}
+\input{pygmentized/gengrids_spherical_shells}
 
 \noindent  Figure  \ref{fig:octant_parameter}   shows  the  influence  of  the
 'octantRegions'  parameter  on the  distribution  of  the  regions inside  the
@@ -1719,7 +1726,7 @@ following the naming convention 'lines\_[left$|$right$|$front$|$back]'. Due to
 this one can also create 2D  meshes with line elements on the boundaries. Here
 is a sample XML file.
 
-\input{sources/gengrids_rectlin}
+\input{pygmentized/gengrids_rectlin}
 
 \noindent Figure \ref{fig:gengrids_rectlin_grid} shows the grid generated from
 the above XML file.
@@ -1739,7 +1746,7 @@ This generator just outputs a single reference element of specified type using
 the  coordinates and  node  numbering  as used  internally  within CFS++.  The
 following gives an example of generating a wedge element.
 
-\input{sources/gengrids_refelems}
+\input{pygmentized/gengrids_refelems}
 
 \noindent Figure \ref{fig:gengrids_refelems} shows the available element types
 file.
@@ -1754,7 +1761,7 @@ file.
 \newpage
 \subsubsection{Defining Analytical Fields using MuParser}
 
-\input{sources/gengrids_fields}
+\input{pygmentized/gengrids_fields}
 
 \noindent Figure \ref{fig:gengrids_fields} shows the resulting velocity field.
 
@@ -1780,7 +1787,7 @@ simulation has to be set up. One needs to have a XML file, a material file and
 the  mesh files  for the  acoustic mesh  and the  CFD mesh  with  the acoustic
 sources. A typical XML file for doing the interpolation looks like this:
 
-\input{sources/cfs_interpolation}
+\input{pygmentized/cfs_interpolation}
 
 \noindent Figure  \ref{fig:interpolation_tolerances} shows the  meaning of the
 tolerance parameters in the interpolation section of the XML file. In order to
@@ -1846,7 +1853,7 @@ The evaluation of the sum may be performed by reading in the datasets
 \end{verbatim}
 on the source and destination HDF5 files and summing them up. This may be done
 by the following Matlab code
-\input{sources/check_cons_interp}
+\input{pygmentized/check_cons_interp}
 
 \noindent      Never     use      the     text      output      of     h5dump\footnote{http://www.speedup.ch/workshops/w37\_2008/HDF5-Tutorial-PDF/HDF5-Tools.pdf}
 or the CSV  output of ParaView to do comparisons since  both programs cut down
@@ -1860,7 +1867,7 @@ h5dump -o out.bin -b MEMORY -d $DS file.h5
 
 \noindent The resulting binary data may  be read by Octave using the following
 script
-\input{sources/sumup}
+\input{pygmentized/sumup}
 
 \subsection{Getting into the Code}
 

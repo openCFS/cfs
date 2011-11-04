@@ -1,39 +1,6 @@
-#!/bin/bash
+#!/bin/sh
 
-SOURCES_DIR=$1
-DEST_DIR="$2/pygmentized"
-ATTACH_DIR="$2/attachments"
-STYLE=tango
-OPTIONS="-f latex -O linenos=True,linenostep=5,style=$STYLE"
-PYG=pygmentize
-
-mkdir -p $DEST_DIR
-
-$PYG -f latex -O full,style=$STYLE $SOURCES_DIR/photo.c > $DEST_DIR/dummy.tex
-# Grep the definitions for the fancy verbatim environments from dummy.tex (for older pygmentize)
-fgrep newcommand $DEST_DIR/dummy.tex > $DEST_DIR/pygmentize.tex
-# Extract the definitions (for newer pygmentize)
-cat $DEST_DIR/dummy.tex | sed -e '/./{H;$!d;}' -e 'x;/def/!d;' >> $DEST_DIR/pygmentize.tex
-#echo $SOURCES_DIR
-#echo $DEST_DIR
-
-function Pygmentize {
-  INPUT=$1
-  OUTPUT=$2
- 
-  if [ ! -d $DEST_DIR ]; then
-      mkdir -p $DEST_DIR
-  fi
-  if [ ! -d $ATTACH_DIR ]; then
-      mkdir -p $ATTACH_DIR
-  fi
-
-  $PYG $OPTIONS $SOURCES_DIR/$INPUT > $DEST_DIR/dummy.tex
-  cat $DEST_DIR/dummy.tex | sed 's/commandchars/frame=lines,framesep=2mm,fontsize=\\\small,commandchars/' > $DEST_DIR/$OUTPUT
-  
-  ATTACHFILE=$(echo $OUTPUT | sed 's/\.tex/\.txt/')
-  cp $SOURCES_DIR/$INPUT "$ATTACH_DIR/$ATTACHFILE"
-}
+. ../../auxilliaries/pyg.sh
 
 Pygmentize photo.c gmsh_mesh_from_pic.tex
 Pygmentize crosspoint_test.c gmsh_cp_test.tex

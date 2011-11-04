@@ -1,8 +1,8 @@
-#!/bin/bash
+#!/bin/sh
 
 MODE=$1
 
-function clean {
+clean() {
     echo "==================================="
     echo " Cleaning up user doc directory..."
     echo "==================================="
@@ -22,7 +22,7 @@ function clean {
     echo "==================================="
 }
 
-function build {
+build() {
 
     echo "==================================="
     echo " Generating advanced pre/post docu."
@@ -40,12 +40,12 @@ function build {
     # Apply syntax coloring to files in sources directory
     sources/pygmentize.sh $PWD/sources $PWD
 
-    @PDFLATEX_COMPILER@ $DOCUMENT
-    @BIBTEX_COMPILER@   $DOCUMENT
-    @PDFLATEX_COMPILER@ $DOCUMENT
-    @PDFLATEX_COMPILER@ $DOCUMENT
-    @PDFLATEX_COMPILER@ $DOCUMENT
-    thumbpdf $DOCUMENT
+    @PDFLATEX_COMPILER@ $DOCUMENT && \
+    @BIBTEX_COMPILER@   $DOCUMENT && \
+    @PDFLATEX_COMPILER@ $DOCUMENT && \
+    @PDFLATEX_COMPILER@ $DOCUMENT && \
+    @PDFLATEX_COMPILER@ $DOCUMENT && \
+    thumbpdf $DOCUMENT && \
     @PDFLATEX_COMPILER@ $DOCUMENT
 
     cd @CMAKE_CURRENT_SOURCE_DIR@
@@ -70,12 +70,12 @@ function build {
     # add pygments tex style to own files
     cat style.tex >> mycommands.tex
 
-    @PDFLATEX_COMPILER@ $DOCUMENT
-    @BIBTEX_COMPILER@   $DOCUMENT
-    @PDFLATEX_COMPILER@ $DOCUMENT
-    @PDFLATEX_COMPILER@ $DOCUMENT
-    @PDFLATEX_COMPILER@ $DOCUMENT
-    thumbpdf $DOCUMENT
+    @PDFLATEX_COMPILER@ $DOCUMENT && \
+    @BIBTEX_COMPILER@   $DOCUMENT && \
+    @PDFLATEX_COMPILER@ $DOCUMENT && \
+    @PDFLATEX_COMPILER@ $DOCUMENT && \
+    @PDFLATEX_COMPILER@ $DOCUMENT && \
+    thumbpdf $DOCUMENT && \
     @PDFLATEX_COMPILER@ $DOCUMENT
 
     # move back files
@@ -95,7 +95,7 @@ function build {
     cd matFile
     DOCUMENT=matRef
 
-    @PDFLATEX_COMPILER@ $DOCUMENT
+    @PDFLATEX_COMPILER@ $DOCUMENT && \
     @PDFLATEX_COMPILER@ $DOCUMENT
 
     cd @CMAKE_CURRENT_SOURCE_DIR@
@@ -109,10 +109,38 @@ function build {
     cd scripting
     DOCUMENT=scripting
 
-    @PDFLATEX_COMPILER@ $DOCUMENT
+    @PDFLATEX_COMPILER@ $DOCUMENT && \
     @PDFLATEX_COMPILER@ $DOCUMENT
 
     cd @CMAKE_CURRENT_SOURCE_DIR@
+
+    if [ "@CPLREADER@" = "ON" ]; then
+	echo "==================================="
+	echo " Generating cplreader manual.      "
+	echo "==================================="
+	
+	cd @CMAKE_CURRENT_BINARY_DIR@
+	rsync -vaz "@CMAKE_CURRENT_SOURCE_DIR@/cplreader" .
+	cd cplreader
+	
+	DOCUMENT=cplreader_docu
+	
+        # Apply syntax coloring to files in sources directory
+	sources/pygmentize.sh $PWD/sources $PWD
+	
+	@PDFLATEX_COMPILER@ $DOCUMENT && \
+	@BIBTEX_COMPILER@   $DOCUMENT && \
+	@PDFLATEX_COMPILER@ $DOCUMENT && \
+	@PDFLATEX_COMPILER@ $DOCUMENT && \
+	@PDFLATEX_COMPILER@ $DOCUMENT && \
+	thumbpdf $DOCUMENT && \
+	@PDFLATEX_COMPILER@ $DOCUMENT
+
+        if [ "$?" = 0 ]; then
+	    cp $DOCUMENT.pdf @CMAKE_CURRENT_SOURCE_DIR@/cplreader
+	fi
+
+    fi
 
     echo ""
     echo "==================================="
@@ -128,13 +156,20 @@ function build {
     echo " |   \`-- matRef.pdf"
     echo " |-- scripting"
     echo " |   \`-- scripting.pdf"
+    if [ "@CPLREADER@" = "ON" ]; then
+    echo " |-- xmlFile"
+    echo " |   \`-- xmlReference.pdf"
+    echo " \`-- cplreader"
+    echo "     \`-- cplreader_docu.pdf"
+    else
     echo " \`-- xmlFile"
     echo "     \`-- xmlReference.pdf"
+    fi
     echo ""
 
 }
 
-function buildhtml {
+buildhtml() {
 
     echo "============================================="
     echo " Generating XML-REFERENCE HTML documentation"

@@ -1,8 +1,8 @@
-#!/bin/bash
+#!/bin/sh
 
 MODE=$1
 
-function clean {
+clean() {
     echo "========================================"
     echo " Cleaning up developer doc directory... "
     echo "========================================"
@@ -35,7 +35,7 @@ function clean {
 
 }
 
-function build {
+build() {
     echo "====================================="
     echo " Generating CFS++ developer's manual "
     echo "====================================="

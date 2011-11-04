@@ -123,6 +123,7 @@ share/doc/auxilliaries/Pics/lse_logo.eps -text svneol=unset#application/postscri
 share/doc/auxilliaries/Pics/lse_logo.pdf -text svneol=unset#application/pdf
 share/doc/auxilliaries/Pics/lse_logo.svg -text
 share/doc/auxilliaries/cfs-logo.cdr -text svneol=unset#application/coreldraw
+share/doc/auxilliaries/pyg.sh.in -text
 share/doc/developer/AddDoc/coding-rules/coding_rules.html svneol=native#text/html
 share/doc/developer/AddDoc/coding-rules/coding_rules.tex svneol=native#text/plain
 share/doc/developer/AddDoc/element_types/elementtypes.doc -text

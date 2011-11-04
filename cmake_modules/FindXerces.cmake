@@ -17,7 +17,7 @@ SET(XERCES_FOUND 0)
 #-------------------------------------------------------------------------------
 BUILD_EXTLIB("Xerces-C"
   "${CFS_BINARY_DIR}/include/xercesc"
-  "${CFS_DEPS_ROOT}/xerces/build_xerces.pl"
+  "${CFS_DEPS_ROOT}/xerces/build_xerces_311.pl"
   "build_xercesc.log")
 
 #-------------------------------------------------------------------------------
