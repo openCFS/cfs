@@ -73,13 +73,13 @@ SET(FORMS_SRCS
 #  nLinHeatInt.cc
   )
 
-ADD_LIBRARY(forms STATIC ${FORMS_SRCS})
+#ADD_LIBRARY(forms STATIC ${FORMS_SRCS})
 
 
-TARGET_LINK_LIBRARIES(forms
-  domain
-  materials
-  mathparser
-  matvec
-  utils
-)
+#TARGET_LINK_LIBRARIES(forms
+#  domain
+#  materials
+#  mathparser
+#  matvec
+#  utils
+#)

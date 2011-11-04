@@ -30,7 +30,7 @@ namespace CoupledField
   class DirectCoupledPDE;
   class Assemble;
   class BaseForm;
-  class Integrator;
+  class BiLinearForm;
   class PDEMemento;
 
   
@@ -125,6 +125,15 @@ namespace CoupledField
      * @param either the loads_ of StdPDE or for optimization */
     void ReadLoads(ParamNodeList loadNodes, LoadList& out_list);
     
+    /** This method defines right hand side integrators
+     * It reads the rhsValues tag from the xml-file
+     * and asks the PDE to return an appropriate integrator
+     * including possible material coeficients
+     * then we call the setCoefFunction from LinearForm to
+     * set the value and pass everything to the assemble class
+     */
+    void DefineRhsIntegrators();
+
     /** Write general defines (BCs, loads, etc.) to info.xml.
      * Note, that only the current state is (over) written! */
     void WriteGeneralPDEdefines();

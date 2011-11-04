@@ -108,7 +108,7 @@ namespace CoupledField {
                                    StdPDE* pde2, const std::string& integrator, bool silent = false);
 
     /** @see GetBiLinForm() */
-    Integrator* GetLinearForm(RegionIdType regionId, StdPDE* pde,  const std::string& integrator, bool silent = false);
+    LinearForm* GetLinearForm(RegionIdType regionId, StdPDE* pde,  const std::string& integrator, bool silent = false);
 
     /** Returns the load list for external modification */
     LoadList& GetLoads() { return loads_; }

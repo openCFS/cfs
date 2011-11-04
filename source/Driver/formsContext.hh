@@ -23,8 +23,9 @@ namespace CoupledField
   struct ResultInfo;
   class FeSpace;
   class BaseFeFunction;
-  class Integrator;
-  //class BaseForm;
+  class LinearForm;
+  class BiLinearForm;
+
 
 
 
@@ -48,7 +49,7 @@ namespace CoupledField
     //! \param biLinForm pointer to the bilinearform to be wrapped
     //! \param destMat destination Matrix (STIFFNESS, MASS, ...) of the
     //!                bilinearform
-    BiLinFormContext( Integrator* biLinForm, FEMatrixType destMat );
+    BiLinFormContext( BiLinearForm* biLinForm, FEMatrixType destMat );
 
     //! Destructor
     virtual ~BiLinFormContext();
@@ -91,7 +92,7 @@ namespace CoupledField
     Double EvalSecMatFac() const;
     
     //! Returns the integrator
-    Integrator * GetIntegrator() {return integrator_; };
+    BiLinearForm * GetIntegrator() {return integrator_; };
 
     //! Return entry type of matrix (real/imag part)
     Global::ComplexPart GetEntryType() {return entryType_;};
@@ -177,7 +178,7 @@ namespace CoupledField
   protected:
 
     //! Pointer to bilinearform
-    Integrator * integrator_;
+    BiLinearForm * integrator_;
 
     //! Destination matrix type
     FEMatrixType destMat_;
@@ -242,13 +243,13 @@ namespace CoupledField
   public:
 
     //! Constructor
-    LinearFormContext( Integrator* linearForm );
+    LinearFormContext( LinearForm* linearForm );
 
     //! Destructor
     virtual ~LinearFormContext();
 
     //! Return integrator
-    Integrator* GetIntegrator() { return integrator_; }
+    LinearForm* GetIntegrator() { return integrator_; }
 
     //! Returns true if a non-linear dependency (geometry,
     //! solution) is present for the wrapped linearform
@@ -289,8 +290,8 @@ namespace CoupledField
 
   protected:
 
-    //! Pointer to bilinearform
-    Integrator * integrator_;
+    //! Pointer to linearform
+    LinearForm * integrator_;
 
     // ======================================================
     //  MAPPING DATA
@@ -311,33 +312,6 @@ namespace CoupledField
     //! Pointer to FeFunction
     shared_ptr<BaseFeFunction> feFct_;
 
-  };
-
-  //! Specialized context for non-conforming interfaces
-  class NcBiLinFormContext : public BiLinFormContext  {
-
-  public:
-
-    //! Constructor
-    //! \param biLinForm pointer to the bilinearform to be wrapped
-    //! \param destMat destination Matrix (STIFFNESS, MASS, ...) of the
-    //!                bilinearform
-    NcBiLinFormContext( Integrator* biLinForm,
-                        FEMatrixType destMat );
-
-    //! Destructor
-    virtual ~NcBiLinFormContext();
-
-    // ======================================================
-    //  MAPPING METHODS
-    // ======================================================
-
-    //! Map equations for bilinear form for combination of two given entities
-    void MapEqns( EntityIterator& it1,
-                  EntityIterator& it2,
-                  StdVector<Integer>& eqnVec1,
-                  StdVector<Integer>& eqnVec2,
-                  FeFctIdType& id1, FeFctIdType& id2 );
   };
 
 } // end of namespace

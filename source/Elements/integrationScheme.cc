@@ -720,6 +720,34 @@ void IntScheme::GetIntPoints( Elem::ShapeType elemType,
     }
   }
   
+  void IntScheme::GetIntegrationPoints(std::map<Integer, LocPoint >& points,
+                                            Elem::ShapeType type,
+                                            UInt order,
+                                            IntegMethod method){
+
+    if( intPoints_.find(method) == intPoints_.end() ) {
+        EXCEPTION( "No integration points defined for  '"
+            << IntegMethodEnum.ToString(integMethod_)
+            << "' integration!");
+      }
+      if( intPoints_[method].find(order) == intPoints_[method].end() ) {
+        EXCEPTION( "No integration points defined for  order '"
+            << order_
+            << "' !");
+      }
+      if( intPoints_[method][order].find(type) == intPoints_[method][order].end() ) {
+        EXCEPTION( "No integration points defined for element of type '"
+            << Elem::shapeType.ToString( type )
+            << "'!");
+      }
+      points.clear();
+      const StdVector<LocPoint>& curPoints = intPoints_[method][order][type];
+      for( UInt curPoint = 0; curPoint < curPoints.GetSize();curPoint++){
+        const LocPoint& lp = curPoints[curPoint];
+        points[lp.number] = lp;
+      }
+    }
+
   // =========================================================================
   //  GAUSS-LEGENDRE integration of arbitrary order
   //  This section is based on the library by Pavel Holoborodko, see 

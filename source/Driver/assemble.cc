@@ -23,11 +23,10 @@
 #include "DataInOut/Scripting/cfsmessenger.hh"
 #include <boost/progress.hpp>
 #include "Utils/Timer.hh"
-#include "Optimization/Optimization.hh"
-#include "Optimization/Design/DesignSpace.hh"
 #include "Materials/mechanicMaterial.hh"
 #include "DataInOut/ResultCache.hh"
-#include "Forms/integrator.hh"
+#include "Forms/biLinearForm.hh"
+#include "Forms/linearForm.hh"
 
 namespace CoupledField
 {
@@ -144,13 +143,13 @@ namespace CoupledField
      return result;
   }
 
-  Integrator* Assemble::GetLinearForm(RegionIdType regionId, StdPDE* pde,  const std::string& integrator, bool silent)
+  LinearForm* Assemble::GetLinearForm(RegionIdType regionId, StdPDE* pde,  const std::string& integrator, bool silent)
   {
      REFACTOR;
      // the EntityList has the region name as name but not the id
      std::string region = domain->GetGrid()->GetRegion().ToString(regionId);
 
-     Integrator* result = NULL;
+     LinearForm* result = NULL;
 
      //// iterate over all descriptors
      //for(UInt i = 0; i < linForms_->GetSize(); i++)
@@ -460,7 +459,7 @@ namespace CoupledField
           // Update flag
           matrixUpdated_ = true;
 
-          Integrator * form = actContext.GetIntegrator();
+          BiLinearForm * form = actContext.GetIntegrator();
 
           try {
             ++progress;
@@ -668,7 +667,7 @@ namespace CoupledField
           // Update flag
           matrixUpdated_ = true;
 
-          Integrator * form = actContext.GetIntegrator();
+          BiLinearForm * form = actContext.GetIntegrator();
 
          
     
@@ -850,28 +849,12 @@ namespace CoupledField
   
   void Assemble::AssembleLinRHS(AdjointParameters* adjointParams)
   {
-    Optimization* opt = domain->GetOptimization();
-    if(adjointParams != NULL && opt != NULL){
-      opt->SetAdjointRhs(adjointParams);
-    }else{
-      AssembleRHSLinForms(false );
-      AssembleRHSLoads();
-      if(opt != NULL){
-        opt->RhsCalculated(adjointParams);
-      }
-    }
+    AssembleRHSLinForms(false );
+    AssembleRHSLoads();
   }
 
   void Assemble::AssembleNonLinRHS(AdjointParameters* adjointParams) {
-    Optimization* opt = domain->GetOptimization();
-    if(adjointParams != NULL && opt != NULL){
-      domain->GetOptimization()->SetAdjointRhs(adjointParams);
-    }else{
-      AssembleRHSLinForms(true );
-      if(opt != NULL){
-        opt->RhsCalculated(adjointParams);
-      }
-    }
+    AssembleRHSLinForms(true );
   }
 
   void Assemble::AssembleRHSLinForms(bool nonLin ) {
@@ -893,7 +876,7 @@ namespace CoupledField
         continue;
       }
 
-      Integrator * form = actContext.GetIntegrator();
+      LinearForm * form = actContext.GetIntegrator();
 
       try {
 

@@ -17,7 +17,6 @@
 #include "Utils/result.hh"
 #include "Utils/biotSavart.hh" 
 #include "Driver/singleDriver.hh"
-#include "Optimization/Optimization.hh"
 
 #include "OLAS/algsys/algebraicSys.hh"
 
@@ -448,15 +447,6 @@ namespace CoupledField {
     UInt& iterCoupledCounter = PDE_.GetIterCoupledCounter();
     bool isIterCoupled    = PDE_.IsIterCoupled();
 
-    if(domain->GetOptimization() && domain->GetOptimization()->IsFirstTransientStepStatic()){
-      if(actStep_ == 2 && adjointParams == NULL){ // reset everything but the solution after the first step
-        PDE_.getTimeStepping()->ReInit();
-      }
-      if(actStep_ == 1 && adjointParams != NULL){ // reset everything before first step backwards
-        ReInit();
-      }
-    }
-
     // perform predictor step: if we have an iterative coupled
     // PDE-system, we should perform the predictor state just
     // in the first iteration
@@ -469,17 +459,7 @@ namespace CoupledField {
     assemble_->AssembleMatrices();
     bool effectiveMatrixUpdated = false;
 
-    // calculate first step static, and the adjoint will also be static and restore the parameters after that
-    if(domain->GetOptimization() && domain->GetOptimization()->IsFirstTransientStepStatic() && actStep_ == 1){
-      double tMass = matrix_factor_[MASS];        
-      double tDamp = matrix_factor_[DAMPING];
-      matrix_factor_[MASS] = 0.0;
-      matrix_factor_[DAMPING] = 0.0;
-      algsys_->ConstructEffectiveMatrix(matrix_factor_);
-      matrix_factor_[MASS] = tMass;
-      matrix_factor_[DAMPING] = tDamp;
-      effectiveMatrixUpdated = true;
-    }else if(assemble_->IsMatrixUpdated() || (domain->GetOptimization() && domain->GetOptimization()->IsFirstTransientStepStatic() && actStep_ == 2 && adjointParams == NULL) ){
+   if(assemble_->IsMatrixUpdated()){
       // we have to construct the effective matrix in 2 cases
       // either, the matrix was updated
       // or we have the second step after the first step had been static (the time runs forward, not in adjoint case)

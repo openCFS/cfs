@@ -24,7 +24,6 @@
 #include "Domain/domain.hh"
 #include "DataInOut/resultHandler.hh"
 #include "DataInOut/Logging/cfslog.hh"
-#include "Optimization/Optimization.hh"
 
 using std::cout;
 using std::endl;
@@ -108,8 +107,6 @@ namespace CoupledField {
     Double  dt = firstdt_;
     bool haltFlag=false;
     
-    Optimization* optimization = domain->GetOptimization();
-
     Double timeStepPercent = (double)numstep_/10;
     Double percentCounter = timeStepPercent;
     if(direction < 0){
@@ -118,9 +115,6 @@ namespace CoupledField {
   
     if(write_results){
       resHandler->BeginMultiSequenceStep( sequenceStep_, analysis_, numstep_ );
-      if(optimization != NULL){ // we have to save everytime to a new multisequencestep
-        sequenceStep_++;
-      }
     }
   
     ptPDE_->WriteGeneralPDEdefines();
@@ -172,30 +166,26 @@ namespace CoupledField {
 
       // Determine when to write logging information on terminal
       bool log = false;
-      if(optimization != NULL){
-        cout << ".";
-        cout.flush();
-      }else{
-        if(numstep_ <= 50)
-          log = true;
-        if(numstep_ > 50 && numstep_ <= 500 && ! (actTimeStep_ % 10)) // every tenth step, not all but the tenth  
-          log = true;
-        if(numstep_ > 500 && ( (direction > 0 &&  (double) actTimeStep_ >= percentCounter) || (direction < 0 && (double) actTimeStep_ <= percentCounter) ) ){
-          log = true;
-          percentCounter += timeStepPercent * direction;
-        }
+      if(numstep_ <= 50)
+        log = true;
+      if(numstep_ > 50 && numstep_ <= 500 && ! (actTimeStep_ % 10)) // every tenth step, not all but the tenth
+        log = true;
+      if(numstep_ > 500 && ( (direction > 0 &&  (double) actTimeStep_ >= percentCounter) || (direction < 0 && (double) actTimeStep_ <= percentCounter) ) ){
+        log = true;
+        percentCounter += timeStepPercent * direction;
+      }
 
-        if(log)
-        {
-          if(progOpts->IsQuiet())
-            cout << ptPDE_->GetName() << ": Time step " << actTimeStep_ << " time " << steptime << endl; 
-          else
-            // write std::out info    
-            cout << endl << ptPDE_->GetName() << ": Time step " 
-            << actTimeStep_ <<" ======================= " << endl;
-        }
+      if(log)
+      {
+        if(progOpts->IsQuiet())
+          cout << ptPDE_->GetName() << ": Time step " << actTimeStep_ << " time " << steptime << endl;
+        else
+          // write std::out info
+          cout << endl << ptPDE_->GetName() << ": Time step "
+          << actTimeStep_ <<" ======================= " << endl;
       }
       
+
       if(given_analysis_id == NULL)
       {
         // do we really want to create a new entry? Might blast up the output
@@ -217,11 +207,7 @@ namespace CoupledField {
       ptPDE_->GetSolveStep()->PreStepTrans();
       ptPDE_->GetSolveStep()->SolveStepTrans(analysis_id_, adjointParams);
       ptPDE_->GetSolveStep()->PostStepTrans();
-      
-      if(optimization != NULL){
-        optimization->TimeStepCalculated(actTimeStep_, adjointParams);
-      }
-      
+
       if(write_results){
         // writing results in output-file(s)
         resHandler->BeginStep( actTimeStep_, steptime );
@@ -260,16 +246,11 @@ namespace CoupledField {
       envNode->Get("estimatedEnd")->SetValue(pt::to_simple_string( now ));
       envNode->Get("remainingTime")->SetValue(remainingTime);
     }
-    if(optimization){
-      cout << endl;
-    }
+
 
     // notify resultHandler about finishing of current sequence step
     if(!isPartOfSequence_ && write_results) {
       resHandler->FinishMultiSequenceStep();
-      if(optimization == NULL){ // in transient-optimization, finalization may only occur after the last iteration
-        resHandler->Finalize();
-      }
     }
     
   }

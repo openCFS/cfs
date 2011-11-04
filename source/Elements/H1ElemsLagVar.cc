@@ -37,8 +37,8 @@ namespace CoupledField {
   
     FeH1LagrangeVar::FeH1LagrangeVar(){
     order_ = 0;
-    // Precalculate the supporting Points up do order 5
-      CalcAllSupportingPoints(5);
+    // Precalculate the supporting Points up do order 10
+      CalcAllSupportingPoints(10);
     }
 
     FeH1LagrangeVar::~FeH1LagrangeVar(){

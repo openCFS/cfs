@@ -16,7 +16,6 @@
 #include "Utils/coordSystem.hh"
 #include "Utils/mathParser/mathParser.hh"
 
-
 namespace CoupledField {
 
   // forward class declarations
@@ -360,7 +359,9 @@ namespace CoupledField {
                                  bool adjustDamping, bool isHarmonic );
 
     //========================== Create Coeficient Function for use in integrators====
-    virtual shared_ptr<CoefFunction> GetCoefFunction(MaterialType matType,SubTensorType type,Global::ComplexPart matDataType);
+    virtual shared_ptr<CoefFunction > GetCoefFunction(MaterialType matType,
+                                                                  SubTensorType type,
+                                                                  Global::ComplexPart matDataType);
 
   protected:
 

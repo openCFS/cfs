@@ -19,7 +19,7 @@
 #ifndef FILE_BDBINT_NEW
 #define FILE_BDBINT_NEW
 
-#include "integrator.hh"
+#include "biLinearForm.hh"
 #include "Elements/basefe.hh"
 #include <boost/tr1/type_traits.hpp>
 
@@ -30,15 +30,16 @@ namespace CoupledField {
   //! general class for calculation of bdb forms
   template<template<class,class> class B_OP,
             class FE_TYPE,
-            class MAT_DATA_TYPE=Double>
-  class BDBInt_NEW : public Integrator {
+            class MAT_DATA_TYPE=Double,
+            class COEF_DATA_TYPE=Double>
+  class BDBInt : public BiLinearForm {
     public:
 
       //! Constructor with pointer to BaseElem
-      BDBInt_NEW(shared_ptr<CoefFunction> dData, MAT_DATA_TYPE factor);
+      BDBInt(shared_ptr<CoefFunction> dData, MAT_DATA_TYPE factor);
 
       //! Destructor
-      virtual ~BDBInt_NEW();
+      virtual ~BDBInt();
 
       //! Compute element matrix associated to BDB form
       void CalcElementMatrix( Matrix<MAT_DATA_TYPE>& elemMat,
@@ -50,110 +51,41 @@ namespace CoupledField {
         return std::tr1::is_same<MAT_DATA_TYPE,Complex>::value;
       }
 
+      void SetFeSpace( shared_ptr<FeSpace> feSpace ) {
+        this->ptFeSpace1_ = feSpace;
+        UInt opDim = feSpace->GetFeFunction()->GetResultInfo()->dofNames.GetSize();
+        Bdim_ = opDim;
+      }
+
+      virtual void SetFeSpace( shared_ptr<FeSpace> feSpace1, shared_ptr<FeSpace> feSpace2) {
+        this->ptFeSpace1_ = feSpace1;
+        this->ptFeSpace2_ = feSpace2;
+        UInt opADim = feSpace1->GetFeFunction()->GetResultInfo()->dofNames.GetSize();
+        UInt opBDim = feSpace2->GetFeFunction()->GetResultInfo()->dofNames.GetSize();
+        Adim_ = opADim;
+        Bdim_ = opBDim;
+      }
+
     protected:
       B_OP<FE_TYPE,MAT_DATA_TYPE> operator_;
 
 
       //! set a constant factor for multiplication with the element matrix
       MAT_DATA_TYPE factor_;
+
+      //! Pointer to coefficient function computing the d-matrix of the BDB Integrator
+      shared_ptr<CoefFunction > dData_;
+
+      //! dimension of a-operator (first B-Operator)
+      UInt Adim_;
+
+      //! dimension of b-operator (second B-Operator)
+      UInt Bdim_;
   };
 
-  //=========================================================================================
-  //Implementation of BDB Int
-  //=========================================================================================
-
-  template<template<class,class> class B_OP,
-            class FE_TYPE,
-            class MAT_DATA_TYPE>
-  BDBInt_NEW<B_OP,FE_TYPE,MAT_DATA_TYPE>::BDBInt_NEW(shared_ptr<CoefFunction> dData, MAT_DATA_TYPE factor){
-      name_ = "BDBInt";
-      isSymmetric_ = true;
-      dData_ = dData;
-      factor_ = factor;
-  }
-
-  //! Destructor
-  template<template<class,class> class B_OP,
-  class FE_TYPE,
-  class MAT_DATA_TYPE>
-  BDBInt_NEW<B_OP,FE_TYPE,MAT_DATA_TYPE>::~BDBInt_NEW(){
-
-  }
-
-  //! Calculate the
-  template<template<class,class> class B_OP,
-            class FE_TYPE,
-            class MAT_DATA_TYPE>
-  void BDBInt_NEW<B_OP,FE_TYPE,MAT_DATA_TYPE>::CalcElementMatrix( Matrix<MAT_DATA_TYPE>& elemMat,
-                                  EntityIterator& ent1,
-                                  EntityIterator& ent2) {
-
-    // Extract physical element
-    const Elem* ptElem = ent1.GetElem();
-
-    operator_.SetSolDim(Bdim_);
-
-    Matrix<MAT_DATA_TYPE> dMat, bMat, dbMat;
-    MAT_DATA_TYPE fac = 0.0;
-
-    // Obtain FE element from feSpace and integration scheme
-    shared_ptr<IntScheme> intScheme;
-    FE_TYPE* ptFe = dynamic_cast<FE_TYPE*>(ptFeSpace1_->GetFe( ent1, intScheme ));
-
-    UInt nrFncs = ptFe->GetNumFncs();
-
-    // Get shape map from grid
-    shared_ptr<ElemShapeMap> esm = domain->GetGrid()->GetElemShapeMap( ptElem );
-
-    // Get integration points
-    StdVector<LocPoint> intPoints;
-    StdVector<Double> weights;
-    intScheme->GetIntPoints( Elem::GetShapeType(ptElem->type), intPoints, weights );
-
-    elemMat.Resize( nrFncs * Bdim_);
-    elemMat.Init();
-
- #define USE_BLAS_VERSION
-#ifdef USE_BLAS_VERSION
-    Matrix<MAT_DATA_TYPE> bdbMat;
-    bdbMat.Resize(nrFncs * Bdim_);
-#endif
-
-
-    // Loop over all integration points
-    LocPointMapped lp;
-    for( UInt i = 0; i < intPoints.GetSize(); i++  ) {
-
-      // Calculate for each integration point the LocPointMapped
-      lp.Set( intPoints[i], esm );
-
-      // Call the CalcBMat()-method
-      operator_.CalcOpMat( bMat, lp, ptFe);
-
-      // Calculate D-Mat
-      //calcDMat(dMat, ent1.GetElem());
-      dData_->GetMatrix(dMat,lp,ptElem);
-      //ptMaterial_->GetTensor(dMat,ELEC_PERMITTIVITY,Global::REAL,PLANE_STRAIN);
-
-      fac = MAT_DATA_TYPE(lp.jacDet * weights[i]);
-      operator_.TransformJacDet(fac,lp,ptFe);
-
-      dbMat.Resize(dMat.GetNumRows(),nrFncs*Bdim_);
-      dbMat.Init();
-
-#ifdef USE_BLAS_VERSION
-      dMat.Mult_Blas(bMat,dbMat,false,false,1.0,0);
-      dbMat = dbMat * fac;
-      //Transpose(bMat).Mult(dbMat,bdbMat);
-      bMat.Mult_Blas(dbMat,bdbMat,true,false,1.0,0);
-      elemMat += bdbMat * factor_;
-
-#else
-      dbMat = (dMat * bMat) * fac;
-      elemMat += Transpose(bMat) * dbMat * factor_;
-#endif
-
-    }
-  }
 }
+
+//Include template definition file
+#include "bdbInt.cc"
+
 #endif

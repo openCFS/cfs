@@ -169,15 +169,15 @@ namespace CoupledField{
     }
 
     void FeSpaceH1Lagrange::PreCalcShapeFncs(){
-      //now pre-calculate all available integration points
-      //stupid but simple
+      //now pre-calculate shape functions for the
+      // desired element orders
       //get grip of the integrationScheme object
 
       // leave, if element space is hierarchical
       if (isHierarchical_)return;
       shared_ptr<IntScheme> integScheme = feFunction_->GetGrid()->GetIntegrationScheme();
 
-      StdVector<LocPoint> integPoints;
+      std::map<Integer,LocPoint> integPoints;
       std::map<RegionIdType, std::map<Elem::FEType, FeH1* > >::iterator regIt = refElems_.begin();
 
       Elem::ShapeType shape;
@@ -185,7 +185,10 @@ namespace CoupledField{
         std::map<Elem::FEType, FeH1* >::iterator elemIt = regIt->second.begin();
         while(elemIt != regIt->second.end()){
           shape = Elem::GetShapeType(elemIt->first);
-          integScheme->GetAllIntegrationPoints(integPoints,shape);
+          Matrix<Integer> curOrder;
+          IntScheme::IntegMethod curMethod;
+          GetIntegration(elemIt->second,regIt->first,curMethod,curOrder);
+          integScheme->GetIntegrationPoints(integPoints,shape,curOrder[0][0],curMethod);
           dynamic_cast<FeH1*>(elemIt->second)->SetFunctionsAtIp(integPoints);
           elemIt++;
         }

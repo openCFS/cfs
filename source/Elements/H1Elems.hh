@@ -46,7 +46,10 @@ namespace CoupledField {
 
     //! @copydoc BaseFE::SetFunctionsAtIp
     void SetFunctionsAtIp(const StdVector<LocPoint>& iPoints);
-        
+
+    //! @copydoc BaseFE::SetFunctionsAtIp
+    //! Overloaded method to be able to set only specific points
+    void SetFunctionsAtIp(const std::map<Integer, LocPoint >& iPoints);
 
 
   protected:
@@ -90,13 +93,16 @@ namespace CoupledField {
     
     // =======================================================================
     //  PRE CALCULATION OF SHAPE FUNCTIONS AT INTEGRATION POINTS
+    //  Changed here to map data structure as it is more versatile and
+    //  seeing the fact, that we do not have millions of integration points,
+    //  it should be ok
     // =======================================================================
 
     //! Stores Shape Functions for each integration point definied
-    StdVector< Vector<Double> > shapeFncsAtIp_;
+    std::map<Integer, Vector<Double> > shapeFncsAtIp_;
 
     //! Stores shape function derivatives for each integration point
-    StdVector< Matrix<Double> > shapeFncDerivsAtIp_;
+    std::map<Integer, Matrix<Double> > shapeFncDerivsAtIp_;
     
     //! Stores the Locations of the Element DOFs for a line for every order
     std::map<UInt,StdVector<Double> > supportingPoints_;

@@ -8,12 +8,12 @@
 //                  change in the derivatives. 
 //
 //                  Example1: consider the PML
-//                  Coeficient function provides a material matrix multiplied by the
+//                  Coefficient function provides a material matrix multiplied by the
 //                  complex jacobian. Moreover the same coeffient function is passed to
-//                  the operator to provide the daming paraeters for the "streched"
+//                  the operator to provide the daming parameters for the "streched"
 //                  derivatives.
 //
-//                  Example2: Consider geomatric non-linear mechanics
+//                  Example2: Consider geometric non-linear mechanics
 //                  The CoefFunction can provide the solution at the current integration
 //                  point to enable the b-operator to compute its matrix of derivatives
 //
@@ -51,28 +51,51 @@
 
 namespace CoupledField{
 
-
 class CoefFunction{
   public:
+
+    typedef enum{ UNDEF,SCALAR,VECTOR,TENSOR } CoefType;
+
     CoefFunction(){
-      ;
+      mType_ = UNDEF;
     }
 
     ~CoefFunction(){
       ;
     }
 
-    virtual void GetMatrix(Matrix<Complex>& CoefMat, LocPointMapped lp, const Elem* elem)=0;
+    virtual void GetTensor(Matrix<Double>& CoefMat, LocPointMapped lp, const Elem* elem){
+      EXCEPTION("CoefFunction::GetTensor<Double> called: This may not happen");
+    }
 
-    virtual void GetMatrix(Matrix<Double>& CoefMat, LocPointMapped lp, const Elem* elem)=0;
+    virtual void GetVector(Vector<Double>& CoefMat, LocPointMapped lp, const Elem* elem){
+      EXCEPTION("CoefFunction::GetVector<Double> called: This may not happen");
+    }
+
+    virtual void GetScalar(Double& CoefMat, LocPointMapped lp, const Elem* elem){
+      EXCEPTION("CoefFunction::GetScalar<Double> called: This may not happen");
+    }
+
+    virtual void GetTensor(Matrix<Complex>& CoefMat, LocPointMapped lp, const Elem* elem){
+      EXCEPTION("CoefFunction::GetTensor<Complex> called: This may not happen");
+    }
+
+    virtual void GetVector(Vector<Complex>& CoefMat, LocPointMapped lp, const Elem* elem){
+      EXCEPTION("CoefFunction::GetVector<Complex> called: This may not happen");
+    }
+
+    virtual void GetScalar(Complex& CoefMat, LocPointMapped lp, const Elem* elem){
+      EXCEPTION("CoefFunction::GetScalar<Complex> called: This may not happen");
+    }
+
 
     void SetCoordinateSystem(shared_ptr<CoordSystem> cSys){
       coordSys_ = cSys;
     }
 
-    virtual void SetConstMatrix(Matrix<Double>& CoefMat)=0;
-
-    virtual void SetConstMatrix(Matrix<Complex>& CoefMat)=0;
+    virtual CoefType GetType(){
+      return mType_;
+    }
 
     //ElemList GetSupport(){
     //  return ElementList();
@@ -81,6 +104,8 @@ class CoefFunction{
   protected:
 
     shared_ptr<CoordSystem> coordSys_;
+
+    CoefType mType_;
 
 
 };

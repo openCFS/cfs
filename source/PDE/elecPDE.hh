@@ -126,7 +126,7 @@ namespace CoupledField
     std::string subType_;
 
     //! list of bilienar forms
-    std::map<RegionIdType, Integrator*> biLinForms_;
+    std::map<RegionIdType, BiLinearForm*> biLinForms_;
 
     // *****************
     //  POSTPROCESSING

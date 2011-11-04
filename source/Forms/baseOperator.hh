@@ -39,6 +39,8 @@ namespace CoupledField{
 
       virtual void CalcOpMat(Matrix<Double> & bMat,LocPointMapped& lp, BaseFE* ptFe ) = 0;
 
+      virtual void CalcOpMatTransposed(Matrix<Double> & bMat,LocPointMapped& lp, BaseFE* ptFe ) = 0;
+
       virtual void CalcOpMat(Matrix<Complex> & bMat,LocPointMapped& lp, BaseFE* ptFe ){
         Matrix<Double> realMat;
         this->CalcOpMat(realMat,lp,ptFe);
@@ -52,6 +54,20 @@ namespace CoupledField{
           }
         }
       }
+
+      virtual void CalcOpMatTransposed(Matrix<Complex> & bMat,LocPointMapped& lp, BaseFE* ptFe ){
+          Matrix<Double> realMat;
+          this->CalcOpMatTransposed(realMat,lp,ptFe);
+          UInt nrow = realMat.GetNumRows();
+          UInt ncol = realMat.GetNumCols();
+          bMat.Resize(nrow,ncol);
+          bMat.Init();
+          for(UInt i=0;i<nrow;++i){
+            for(UInt j=0;j<ncol;++j){
+              bMat[i][j] = Complex(1.0,0.0) * realMat[i][j];
+            }
+          }
+        }
 
       virtual void ApplyOp(Vector<DATA_TYPE>& retVec,
                             LocPointMapped& lp,

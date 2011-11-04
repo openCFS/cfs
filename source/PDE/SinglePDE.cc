@@ -1896,10 +1896,34 @@ namespace CoupledField {
     // =====================================================================
 
     // fetch paramnodes for loads
-    ReadLoads(bcsNode->GetList("load"), loads_);
-    assemble_->AddLoads( loads_ );
+    // loads are deaktivated for now first we try to accomplish the
+    // functionality by a rhsValues tag in the xml which gets evaluated
+    // during the define integrators step
+    // please add pros and cons about this concept::
+    // ....
+    //ReadLoads(bcsNode->GetList("load"), loads_);
+    //assemble_->AddLoads( loads_ );
   }
 
+  void SinglePDE::DefineRhsIntegrators(){
+    std::string rhsRegion;
+    PtrParamNode rhsValuesNode, bcsNode;
+    StdVector<PtrParamNode> regionList;
+    bcsNode = myParam_->Get("bcsAndLoads", ParamNode::PASS );
+    if( bcsNode )
+      rhsValuesNode = bcsNode->Get("rhsValues", ParamNode::PASS );
+    if(!rhsValuesNode)
+      return;
+
+    //first i consider only volume regions. we have to
+    //think about the surface regions....
+    regionList = rhsValuesNode->GetList("region");
+    for (StdVector<PtrParamNode>::iterator regionIter = regionList.Begin();
+        regionIter != regionList.End(); ++regionIter)
+    {
+
+    }
+  }
 
   void SinglePDE::ReadLoads(ParamNodeList loadNodes, LoadList& out_list)
   {
@@ -3775,56 +3799,7 @@ namespace CoupledField {
 
   //   Obtain information on desired output quantities from parameter file
   // ***********************************************************************
-  void SinglePDE::ReadDataPML(std::string& dampingTypePML,
-                              Matrix<Double>& inner,
-                              Double& dampPML,
-                              std::string& coordSysId,
-                              PtrParamNode actNode ) {
-
-
-    // Check, if pml node has a child "propRegion"
-    PtrParamNode propRegionNode = actNode->Get( "propRegion", ParamNode::PASS );
-
-    // check, if propagation region is defined in a non-standard
-    // coordinate system
-    coordSysId = "default";
-    actNode->GetValue("coordSysId", coordSysId, ParamNode::PASS );
-    CoordSystem * actCosy = domain->GetCoordSystem(coordSysId);
-    
-    
-    // If no propagation region is defined explicitly, we
-    // let the method GetPMLLayerData() extract the geometric information
-    // for the propagation region
-    if( propRegionNode && propRegionNode->HasChildren() ) {
-
-      //resize data for propagation region
-      inner.Resize(2,dim_);
-      inner.Init();
-      
-      ParamNodeList & dirNodes = propRegionNode->GetChildren();
-      
-      // loop over all coordinate components
-      std::string dirName;
-      UInt dirIndex = 0;
-      for( UInt iDir = 0; iDir < dirNodes.GetSize(); ++iDir ) {
-         dirNodes[iDir]->GetValue( "comp", dirName );
-         dirIndex = actCosy->GetVecComponent( dirName );
-         inner[0][dirIndex-1] = dirNodes[iDir]->Get("min")->MathParse<Double>();
-         inner[1][dirIndex-1] = dirNodes[iDir]->Get("max")->MathParse<Double>();
-      }
-    }
-
-    //get type of damping function
-    actNode ->GetValue( "type", dampingTypePML );
-
-    //get factor for damping function
-    if(actNode->Has("dampFactor") )
-      dampPML = actNode->Get( "dampFactor" )->MathParse<Double>();
-
-  }
-
-
-  // ***********************************************************************
+    // ***********************************************************************
   //   Obtain information on desired output quantities from parameter file
   // ***********************************************************************
   void SinglePDE::GetPMLLayerData(Matrix<Double>& inner,

@@ -27,8 +27,6 @@ namespace CoupledField
   class FileType;
   class CoordSystem;
   class MaterialHandler;
-  class Optimization;
-  class DesignSpace;
   class DesignElement;
   class SingleDriver;
   class MultiSequenceDriver;
@@ -194,9 +192,6 @@ namespace CoupledField
 //     
 //    /** Returns the optimization
 //     *  @return null if there is none */
-    Optimization* GetOptimization() { 
-      // Note: due to refactoring, this method will always return FALSE!
-      return optimization_; };
 //    
 //    /** Sets the optimization from outside, like the driver */
 //    void SetOptimization(Optimization* optimization) { this->optimization_ = optimization; };  
@@ -320,13 +315,6 @@ namespace CoupledField
 
     //! Mapping between name and coordinate sysem pointer
     std::map<std::string, CoordSystem*> coordSys_;
-
-    /** an optinal optimizer */
-    Optimization* optimization_;
-
-    /** The ersatz material pointer is set be the domain or it points 
-     * to optimization data */    
-    DesignSpace* ersatzMaterial;
 
     //! Mathematic parser object
     MathParser mathParser_;

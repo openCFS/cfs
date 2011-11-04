@@ -32,9 +32,15 @@ namespace CoupledField{
         EXCEPTION(__FILE__ << __LINE__ << "Curl Operator not implemented for general functions yet")
       }
 
+      virtual void CalcOpMatTransposed(Matrix<Double> & bMat,LocPointMapped& lp, BaseFE* ptFe ){
+        EXCEPTION(__FILE__ << __LINE__ << "Curl Operator not implemented for general functions yet")
+      }
+
       //avoid reimplementation of complex operator by making the bas class function
       //available, template caused
       using BaseBOperator<FE,TYPE>::CalcOpMat;
+
+      using BaseBOperator<FE,TYPE>::CalcOpMatTransposed;
 
     protected:
 
@@ -57,9 +63,18 @@ namespace CoupledField{
         fe->GetCurlShFnc(bMat, lp, lp.shapeMap->GetElem(), 1);
       }
 
+      virtual void CalcOpMatTransposed(Matrix<Double> & bMat,LocPointMapped& lp, BaseFE* ptFe ){
+        FeHCurl *fe = (static_cast<FeHCurl*>(ptFe));
+        Matrix<Double> xiDx;
+        fe->GetCurlShFnc(xiDx, lp, lp.shapeMap->GetElem(), 1);
+        xiDx.Transpose(bMat);
+      }
+
       //avoid reimplementation of complex operator by making the bas class function
       //available, template caused
       using BaseBOperator<FeHCurl,TYPE>::CalcOpMat;
+
+      using BaseBOperator<FeHCurl,TYPE>::CalcOpMatTransposed;
 
     protected:
 
@@ -84,9 +99,18 @@ namespace CoupledField{
         bMat /= maxE;
       }
 
+      virtual void CalcOpMatTransposed(Matrix<Double> & bMat,LocPointMapped& lp, BaseFE* ptFe ){
+        CurlOperator<FeHCurl,TYPE>::CalcOpMatTransposed(bMat,lp,ptFe);
+        Double minE,maxE;
+        lp.shapeMap->GetMaxMinEdgeLength(maxE,minE);
+        bMat /= maxE;
+      }
+
       //avoid reimplementation of complex operator by making the bas class function
       //available, template caused
       using BaseBOperator<FE,TYPE>::CalcOpMat;
+
+      using BaseBOperator<FE,TYPE>::CalcOpMatTransposed;
 
     protected:
 

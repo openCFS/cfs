@@ -67,6 +67,9 @@ namespace CoupledField {
     //! Returns all definied integration points in a single vector
     void GetAllIntegrationPoints(StdVector< LocPoint >& points, Elem::ShapeType type); 
 
+    //! Returns definied integration points in a single vector for a given order
+    void GetIntegrationPoints(std::map<Integer, LocPoint >& points, Elem::ShapeType type,UInt order,IntegMethod method);
+
 private:
     //! Adds the Gauss Lobatto/Legendre  Points up to the given order to the Integration maps
     void FillIntegPoints(UInt order);

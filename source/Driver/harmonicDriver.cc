@@ -79,9 +79,7 @@ namespace CoupledField
     // relies on the result handler to know already about the current
     // sequencestep. However, in case of optimization, the sequence step
     // gets initialized in Optimization::SolveProblem()
-    if( !domain->GetOptimization()) {
-      handler_->BeginMultiSequenceStep( sequenceStep_, analysis_, numFreq_ );
-    }
+    handler_->BeginMultiSequenceStep( sequenceStep_, analysis_, numFreq_ );
     InitializePDEs();
   }
 

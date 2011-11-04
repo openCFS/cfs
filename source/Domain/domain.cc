@@ -27,21 +27,8 @@
 #include "Utils/defaultCoordSys.hh"
 #include "DataInOut/Scripting/cfsmessenger.hh"
 #include "DataInOut/resultHandler.hh"
-#include "Optimization/Optimization.hh"
-#include "Optimization/Design/DesignSpace.hh"
-#include "Optimization/Design/DensityFile.hh"
-#include "PDE/acousticPDE.hh"
 #include "PDE/elecPDE.hh"
-//#include "PDE/mechPDE.hh"
-//#include "PDE/smoothPDE.hh"
-//#include "PDE/magneticPDE.hh"
-//#include "PDE/magneticScalarPDE.hh"
 #include "PDE/magEdgePDE.hh"
-//#include "PDE/mpcciPDE.hh"
-//#include "PDE/heatCondPDE.hh"
-//#include "PDE/acouCombustion.hh"
-//#include "PDE/acousticMixedPDE.hh"
-//#include "PDE/fluidMechPDE.hh"
 #include "Utils/result.hh"
 
 // Coupling of single PDEs
@@ -83,8 +70,6 @@ Domain::Domain(
   ptIterCoupledPde_ = NULL;
   ptSingleDriver_ = NULL;
   multiSequenceDriver_ = NULL;
-  optimization_ = NULL;
-  ersatzMaterial = NULL;
   
   // register variables defined in "variableList" element
   RegisterVariables();
@@ -321,19 +306,6 @@ Domain::~Domain()
     ptSingleDriver_ = NULL;
   }
 
-  // the optimization is optional. Important, before ersatzMaterial!
-  if (optimization_ != NULL)
-  {
-    delete optimization_;
-    optimization_ = NULL;
-  }
-
-  // ersatzMaterial is either set by PostInit()->ReadErsatzMaterial or Optimization
-  if (ersatzMaterial != NULL)
-  {
-    delete ersatzMaterial;
-    ersatzMaterial = NULL;
-  }
 }
 
 void Domain::SolveProblem()
@@ -343,12 +315,12 @@ void Domain::SolveProblem()
     driver = ptSingleDriver_;
 
   // PostInit needs to be called in advance!
-  if (GetOptimization() != NULL) {
-    EXCEPTION("Optiization not yet adapted to new structure");
+//  if (GetOptimization() != NULL) {
+//    EXCEPTION("Optiization not yet adapted to new structure");
 //    GetOptimization()->SolveProblem(); // will call multiple driver-SolveProblem
-  } else {
+//  } else {
     driver->SolveProblem();
-  }
+//  }
 }
 
   // **********************
@@ -568,16 +540,16 @@ void Domain::CreateSinglePDEs(UInt sequenceStep)
 //    else if (actPdeName == "mechanic")
 //      ptSinglePde_[i] = new MechPDE(defaultGrid, actPdeNode);
 
-    else if (actPdeName == "acoustic")
-    {
-
-      std::string acouSubType = actPdeNode->Get("subType")->As<std::string>();
-
+//    else if (actPdeName == "acoustic")
+//    {
+//
+//      std::string acouSubType = actPdeNode->Get("subType")->As<std::string>();
+//
 //      if (acouSubType == "combustionNoise")
 //        ptSinglePde_[i] = new AcouCombustionNoise(defaultGrid, actPdeNode);
 //      else
-        ptSinglePde_[i] = new AcousticPDE(defaultGrid, actPdeNode);
-    }
+//        ptSinglePde_[i] = new AcousticPDE(defaultGrid, actPdeNode);
+//    }
 
 //    else if (actPdeName == "acousticMixed")
 //      ptSinglePde_[i] = new AcousticMixedPDE(defaultGrid, actPdeNode);

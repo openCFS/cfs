@@ -39,7 +39,12 @@ namespace CoupledField{
 
       virtual void CalcOpMat(Matrix<Double> & bMat,LocPointMapped& lp, BaseFE* ptFe );
 
+      virtual void CalcOpMatTransposed(Matrix<Double> & bMat,LocPointMapped& lp, BaseFE* ptFe );
+
       using BaseBOperator<FE,TYPE>::CalcOpMat;
+
+      using BaseBOperator<FE,TYPE>::CalcOpMatTransposed;
+
 
     protected:
 
@@ -59,6 +64,22 @@ namespace CoupledField{
     FE *fe = (static_cast<FE*>(ptFe));
     fe->GetGlobDerivShFnc( xiDx, lp, lp.shapeMap->GetElem() , 1 );
     xiDx.Transpose(bMat);
+
+  }
+
+  template<class FE, class TYPE>
+  void GradientOperator<FE,TYPE>::CalcOpMatTransposed(Matrix<Double> & bMat,LocPointMapped& lp, BaseFE* ptFe ){
+    UInt numFncs = ptFe->GetNumFncs();
+    // Set correct size of matrix B and initialise with zeros
+    UInt eDim = ptFe->GetElemDim();
+    bMat.Resize(numFncs , eDim );
+    bMat.Init();
+
+    // Get derivatives of local shape functions with respect to global
+    // coords (format: spaceDim x nrNodes )
+    FE *fe = (static_cast<FE*>(ptFe));
+    fe->GetGlobDerivShFnc( bMat, lp, lp.shapeMap->GetElem() , 1 );
+
 
   }
 }

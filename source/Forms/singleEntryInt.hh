@@ -5,7 +5,6 @@
 #ifndef CFS_SINGLEENTRY_INT_HH
 #define CFS_SINGLEENTRY_INT_HH
 
-#include "baseForm.hh"
 #include "Utils/mathParser/mathParser.hh"
 
 namespace CoupledField {

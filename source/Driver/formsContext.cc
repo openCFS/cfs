@@ -10,12 +10,13 @@
 #include "PDE/eqnMap.hh"
 #include "Domain/grid.hh"
 #include "Domain/domain.hh"
-#include "Forms/integrator.hh"
+#include "Forms/linearForm.hh"
+#include "Forms/biLinearForm.hh"
 
 namespace CoupledField {
 
 
-  BiLinFormContext::BiLinFormContext( Integrator* biLinForm,
+  BiLinFormContext::BiLinFormContext( BiLinearForm* biLinForm,
                                       FEMatrixType destMat) {
 
     integrator_ = biLinForm;
@@ -157,7 +158,7 @@ namespace CoupledField {
 
 // -------------------------------------------------------------------------
 
-  LinearFormContext::LinearFormContext( Integrator* linearForm ) {
+  LinearFormContext::LinearFormContext( LinearForm* linearForm ) {
 
     integrator_ = linearForm;
 
@@ -229,63 +230,4 @@ namespace CoupledField {
     return os.str(); 
   }
   
-  // -------------------------------------------------------------------------
-  NcBiLinFormContext::NcBiLinFormContext( Integrator* biLinForm,
-                                          FEMatrixType destMat ) 
-    : BiLinFormContext( NULL, destMat ) {
-
-  }
-  
-  NcBiLinFormContext::~NcBiLinFormContext() {
-    
-    // delete bilinearform
-    if( integrator_ != NULL ) {
-      delete integrator_;
-      integrator_ = NULL;
-    }
-  }
-
-  void NcBiLinFormContext::MapEqns( EntityIterator& it1, 
-                                    EntityIterator& it2,
-                                    StdVector<Integer>& eqnVec1, 
-                                    StdVector<Integer>& eqnVec2,
-                                    FeFctIdType& id1, FeFctIdType& id2 ) {
-
-    const NCElem *elem = dynamic_cast< const NCElem* >(it1.GetElem()); 
-
-    ElemList masterSide(domain->GetGrid() );
-    ElemList slaveSide(domain->GetGrid() );
-   
-    masterSide.SetElement( elem->ptSurfParent );
-    slaveSide.SetElement( elem->ptLagrangeParent );
-
-    EntityIterator masterIt, slaveIt;
-    masterIt = masterSide.GetIterator();
-    slaveIt = slaveSide.GetIterator();
-
-    if (ptPde1_ == ptPde2_) {
-      feFct1_->GetFeSpace()->GetEqns( eqnVec1,  masterIt );
-      feFct2_->GetFeSpace()->GetEqns( eqnVec2, slaveIt );
-    } else {
-      // check which pde is on master side (via materials)
-      std::map<RegionIdType, BaseMaterial*> pdeMat = 
-        ptPde1_->getPDEMaterialData();
-      std::map<RegionIdType, BaseMaterial*>::iterator itMat =
-        pdeMat.find(elem->ptSurfParent->ptVolElem1->regionId);
-      if (itMat != pdeMat.end()) { // pde1 is master
-        feFct1_->GetFeSpace()->GetEqns( eqnVec1, masterIt );
-        feFct2_->GetFeSpace()->GetEqns( eqnVec2, slaveIt );
-      } else {
-        feFct1_->GetFeSpace()->GetEqns( eqnVec1, slaveIt );
-        feFct2_->GetFeSpace()->GetEqns( eqnVec2, masterIt );
-      }
-    }
-    
-    // Get PDE IDs
-    id1 = feFct1_->GetFctId();
-    id2 = feFct2_->GetFctId();
-
-  }
-  
-
 }

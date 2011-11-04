@@ -82,8 +82,9 @@ namespace CoupledField {
                  const Elem* ptElem,  UInt comp ){
     
     //check if the shape function is already computed
-    if(lp.number>= (Integer)shapeFncDerivsAtIp_.GetSize() || comp!=1){
+    if(shapeFncsAtIp_.find(lp.number) == shapeFncsAtIp_.end() || comp !=1 ){
       CalcShFnc( S, lp.coord, ptElem, comp);
+      shapeFncsAtIp_[lp.number] = S;
     }else{
       S = shapeFncsAtIp_[lp.number];
     }
@@ -95,8 +96,10 @@ namespace CoupledField {
     Matrix<Double> locDeriv;
     
     //check if the shfunction is already computed
-    if(lpm.lp.number >= (Integer) shapeFncDerivsAtIp_.GetSize()){
+    if(shapeFncDerivsAtIp_.find(lpm.lp.number) == shapeFncDerivsAtIp_.end() || comp !=1 ){
       CalcLocDerivShFnc( locDeriv, lpm.lp.coord, elem, comp);
+      //add them to the map
+      shapeFncDerivsAtIp_[lpm.lp.number] = locDeriv;
     }else{
       locDeriv = shapeFncDerivsAtIp_[lpm.lp.number];
     }
@@ -105,8 +108,10 @@ namespace CoupledField {
   
   void FeH1::GetLocDerivShFnc( Matrix<Double>& deriv, const LocPoint& lp,
                                const Elem* elem, UInt comp  ) {
-    if(lp.number>= (Integer) shapeFncDerivsAtIp_.GetSize()){
+    if(shapeFncDerivsAtIp_.find(lp.number) == shapeFncDerivsAtIp_.end()){
       CalcLocDerivShFnc( deriv, lp.coord, elem, comp);
+      //add them to the map
+      shapeFncDerivsAtIp_[lp.number] = deriv;
     }else{
       deriv = shapeFncDerivsAtIp_[lp.number];
     }
@@ -116,8 +121,8 @@ namespace CoupledField {
     
     
     // can only be performed for non-hierarchical elements
-    shapeFncsAtIp_.Resize(iPoints.GetSize());
-    shapeFncDerivsAtIp_.Resize(iPoints.GetSize());
+    //shapeFncsAtIp_.resize(iPoints.GetSize());
+    //shapeFncDerivsAtIp_.resize(iPoints.GetSize());
     for(UInt aPoint = 0; aPoint < iPoints.GetSize();aPoint++){
      const LocPoint& lp = iPoints[aPoint];
       CalcShFnc( shapeFncsAtIp_[lp.number], lp.coord, NULL, 1);
@@ -126,12 +131,29 @@ namespace CoupledField {
     }
   }
   
+  void FeH1::SetFunctionsAtIp(const std::map<Integer,LocPoint>& iPoints){
+
+
+    // can only be performed for non-hierarchical elements
+    //shapeFncsAtIp_.resize(iPoints.GetSize());
+    //shapeFncDerivsAtIp_.resize(iPoints.GetSize());
+    std::map<Integer,LocPoint>::const_iterator pIt = iPoints.begin();
+    while(pIt != iPoints.end()){
+     const LocPoint& lp = pIt->second;
+      CalcShFnc( shapeFncsAtIp_[lp.number], lp.coord, NULL, 1);
+      CalcLocDerivShFnc( shapeFncDerivsAtIp_[lp.number], lp.coord,
+                         NULL, 1);
+      pIt++;
+    }
+  }
+
   void FeH1::CalcAllSupportingPoints(UInt maxOrder){
     if(maxOrder == 0){
       return;
     }else{
       for ( UInt i = 1; i <= maxOrder; i += 1 ){
         supportingPoints_[i] = CalcGaussLobattoPoints(i);
+        std::cout <<  supportingPoints_[i] << std::endl;
       }
     }
   }
@@ -158,11 +180,12 @@ namespace CoupledField {
     for ( i = 0; i < N1; i += 1 ){
       x[i]=cos(M_PI * i/order);
     }
+
     // Compute P_N using the recursion relation
     // Compute its first and second derivatives and 
     // update x using the Newton-Raphson method.
   
-    while (*std::max_element(xUpdate.Begin(), xUpdate.End() ) >  1e-18) {
+    while (*std::max_element(xUpdate.Begin(), xUpdate.End() ) >  1e-14) {
   
       xold = x;
       

@@ -40,9 +40,13 @@ namespace CoupledField{
 
       virtual void CalcOpMat(Matrix<Double> & bMat,LocPointMapped& lp, BaseFE* ptFe );
 
+      virtual void CalcOpMatTransposed(Matrix<Double> & bMat,LocPointMapped& lp, BaseFE* ptFe );
+
       //avoid reimplementation of complex operator by making the bas class function
       //available
       using BaseBOperator<FE,TYPE>::CalcOpMat;
+
+      using BaseBOperator<FE,TYPE>::CalcOpMatTransposed;
 
 
     protected:
@@ -62,6 +66,13 @@ namespace CoupledField{
       virtual void CalcOpMat(Matrix<Double> & bMat,LocPointMapped& lp, BaseFE* ptFe ){
         FeHCurl* fe = static_cast<FeHCurl*>(ptFe);
         fe->GetShFnc( bMat, lp, lp.shapeMap->GetElem(), 0);
+      }
+
+      virtual void CalcOpMatTransposed(Matrix<Double> & bMat,LocPointMapped& lp, BaseFE* ptFe ){
+        FeHCurl* fe = static_cast<FeHCurl*>(ptFe);
+        Matrix<Double> xiDx;
+        fe->GetShFnc( xiDx, lp, lp.shapeMap->GetElem(), 0);
+        xiDx.Transpose(bMat);
       }
 
     protected:
@@ -87,6 +98,14 @@ namespace CoupledField{
         bMat /= maxE;
       }
 
+      virtual void CalcOpMatTransposed(Matrix<Double> & bMat,LocPointMapped& lp, BaseFE* ptFe ){
+        IdentityOperator<FeHCurl,TYPE>::CalcOpMatTransposed(bMat,lp,ptFe);
+        //scale By Edge
+        Double minE,maxE;
+        lp.shapeMap->GetMaxMinEdgeLength(maxE,minE);
+        bMat /= maxE;
+      }
+
   };
 
   template<class FE, class TYPE>
@@ -104,6 +123,26 @@ namespace CoupledField{
       fe->GetShFnc( S, lp, lp.shapeMap->GetElem() , d );
       for(UInt sh = 0; sh < S.GetSize(); sh ++){
         bMat[d][sh*(this->dim_-1) + d] = S[sh];
+      }
+    }
+
+  }
+
+  template<class FE, class TYPE>
+  void IdentityOperator<FE,TYPE>::CalcOpMatTransposed(Matrix<Double> & bMat,LocPointMapped& lp, BaseFE* ptFe){
+    UInt numFncs = ptFe->GetNumFncs();
+    // Set correct size of matrix B and initialise with zeros
+    bMat.Resize( numFncs * this->dim_ , this->dim_ );
+    bMat.Init();
+
+    // Get derivatives of local shape functions with respect to global
+    // coords (format: nrNodes x spaceDim)
+    Vector<Double> S;
+    FE *fe = (static_cast<FE*>(ptFe));
+    for(UInt d = 0; d < this->dim_ ; d ++){
+      fe->GetShFnc( S, lp, lp.shapeMap->GetElem() , d );
+      for(UInt sh = 0; sh < S.GetSize(); sh ++){
+        bMat[sh*(this->dim_-1) + d][d] = S[sh];
       }
     }
 
