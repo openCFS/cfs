@@ -1,6 +1,6 @@
 // =====================================================================================
 // 
-//       Filename:  bdbInt_NEW.hh
+//       Filename:  bdbInt.hh
 // 
 //    Description:  New implementation of the BDB integrator class
 //                  Takes as a template parameter the operator it should evaulate

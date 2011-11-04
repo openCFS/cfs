@@ -3,7 +3,6 @@
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
 #include "basePDE.hh"
-#include "PDE/mechPDE.hh" // to set the enum
 #include "Driver/baseSolveStep.hh"
 
 

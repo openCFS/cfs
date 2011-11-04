@@ -5,7 +5,6 @@
 #include <string>
 #include "Utils/StdVector.hh"
 #include "Domain/grid.hh"
-#include "PDE/eqnMap.hh"
 #include "PDE/SinglePDE.hh"
 #include "Utils/mathParser/mathParser.hh"
 

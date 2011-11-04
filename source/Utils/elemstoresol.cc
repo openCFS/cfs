@@ -243,28 +243,7 @@ namespace CoupledField{
   template<class TYPE>
   void ElemStoreSol<TYPE>::GetGlobalSolVector(const SolutionType solType, SingleVector & val) const
   {
-    // killme ! the solType is not queried
-#ifdef CHECK_INITIALIZED
-    if (length_ == 0) WARN("Use of uninitialized object!");
-#endif
-  
-    Vector<TYPE> & temp = dynamic_cast<Vector<TYPE>&>(val);
-    temp.Resize(ptGrid_->GetNumElems()*totalDofs_);
-    temp.Init();
-
-    // Loop over all PDE elements
-    for (UInt iElem=1; iElem<numElems_+1; iElem++)
-      // Loop over all dimensions
-      for (UInt iDof=0; iDof<totalDofs_; iDof++)
-        {
-          //temp.data_[(mapping_[iElem]-1)*totalDofs_ + iDof] = data_[iElem*totalDofs_ + iDof];
-          // temp.data_[(ptEQN_->PDE2MeshElem(iElem)-1)*totalDofs_ + iDof] = 
-//             data_[(iElem-1)*totalDofs_ + iDof];
-          temp.data_[(eqnMap_->Pde2MeshElem(iElem)-1)*totalDofs_ + iDof] = 
-            data_[(iElem-1)*totalDofs_ + iDof];
-        }
-
-
+      REFACTOR;
   }
 
   template<class TYPE>
@@ -279,19 +258,7 @@ namespace CoupledField{
   template<class TYPE>
   void ElemStoreSol<TYPE>::GetGlobalSolVectorSingleDof(const UInt dof, SingleVector & val) const
   {
-#ifdef CHECK_INITIALIZED
-    if (length_ == 0) EXCEPTION("ElemStoreSol: Use of uninitialized object!");
-#endif
-
-    Vector<TYPE> & temp = dynamic_cast<Vector<TYPE>&>(val);
-    temp.Resize( ptGrid_->GetNumElems() );
-    temp.Init();
-
-    // Loop over all PDE elements
-    for (UInt iElem=1; iElem<numElems_+1; iElem++)
-      // Loop over all dimensions
-      temp.data_[eqnMap_->Pde2MeshElem(iElem)-1] = data_[(iElem-1)*totalDofs_ + dof];
-  
+    REFACTOR;
   }
 
 
@@ -347,23 +314,7 @@ namespace CoupledField{
   void ElemStoreSol<TYPE>::TransformElemSolution(SingleVector & transformedSolution,
                                                  Grid * ptGrid) const
   {
-#ifdef CHECK_INITIALIZED
-    if (length_ == 0) WARN("Use of uninitialized object!");
-#endif
-  
-    Vector<TYPE> & temp = dynamic_cast<Vector<TYPE>&>(transformedSolution);
-    temp.Resize(ptGrid->GetNumElems()*totalDofs_);
-    temp.Init();
-
-    // Loop over all PDE elements
-    for (UInt iElem=1; iElem<numElems_+1; iElem++)
-      // Loop over all dimensions
-      for (UInt iDof=0; iDof<totalDofs_; iDof++)
-        {
-          //temp.data_[(mapping_[iElem]-1)*totalDofs_ + iDof] = data_[iElem*totalDofs_ + iDof];
-          temp.data_[(eqnMap_->Pde2MeshElem(iElem)-1)*totalDofs_ + iDof] = 
-            data_[(iElem-1)*totalDofs_ + iDof];
-        }
+      REFACTOR;
   }
 
 

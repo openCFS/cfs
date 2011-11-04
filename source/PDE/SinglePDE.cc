@@ -45,7 +45,6 @@
 
 // header for memento/restart handling
 #include "MatVec/vectorSerialization.hh"
-#include "pdememento.hh"
 
 // header for resultHandling
 #include "DataInOut/resultHandler.hh"

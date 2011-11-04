@@ -9,9 +9,7 @@ ENDIF(USE_IPOPT)
 SET(PDE_SRCS
 #  acouCombustion.cc
 # acousticMixedPDE.cc
-  acousticPDE.cc
   basePDE.cc
-  bdf2.cc
 #  disContEqnMap.cc
   elecPDE.cc
 #  eqnMap.cc
@@ -22,11 +20,7 @@ SET(PDE_SRCS
 # magneticScalarPDE.cc
 #  mechPDE.cc
 #  mixedEqnMap.cc
-#  mpcciPDE.cc
   newmark.cc
-  newmarkFracDamp.cc
-  newmarkFracDampMech.cc
-  pdememento.cc
   pseudoTS.cc
   SinglePDE.cc
 #  smoothPDE.cc
@@ -58,8 +52,6 @@ ENDIF(USE_HDF5)
 IF(USE_MPCCI)
   SET(TARGET_LL
     ${TARGET_LL}
-    mpccicpl
-    ${MPCCI_LIBRARIES}
     )
 ENDIF(USE_MPCCI)
 

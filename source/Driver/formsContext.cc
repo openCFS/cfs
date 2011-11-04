@@ -7,7 +7,6 @@
 //#include "Forms/linearForm.hh"
 #include "Domain/entityList.hh"
 #include "PDE/SinglePDE.hh"
-#include "PDE/eqnMap.hh"
 #include "Domain/grid.hh"
 #include "Domain/domain.hh"
 #include "Forms/linearForm.hh"

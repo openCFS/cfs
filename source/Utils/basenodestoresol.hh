@@ -14,9 +14,6 @@
 #include "General/environment.hh"
 #include "Utils/tools.hh"
 #include "MatVec/vector.hh"
-#include "PDE/eqnMap.hh"
-#include "PDE/disContEqnMap.hh"
-#include "PDE/mixedEqnMap.hh"
 #include "Elements/fespace.hh"
 
 
