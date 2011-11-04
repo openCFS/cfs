@@ -472,6 +472,65 @@ share/doc/user/advPrePostManual/sources/pv_xi_eta.py -text
 share/doc/user/advPrePostManual/sources/pygmentize.sh -text
 share/doc/user/advPrePostManual/special.tex -text
 share/doc/user/advPrePostManual/todonotes.sty svneol=native#text/plain
+share/doc/user/cplreader/CMakeLists.txt svneol=native#text/plain
+share/doc/user/cplreader/FigElementTypes.tex svneol=native#text/plain
+share/doc/user/cplreader/Manual_TechnicalReference.pdf -text svneol=unset#application/pdf
+share/doc/user/cplreader/Title.tex svneol=native#text/plain
+share/doc/user/cplreader/UseLATEX.cmake -text
+share/doc/user/cplreader/cplreader_defs.tex svneol=native#text/plain
+share/doc/user/cplreader/cplreader_docu.bib svneol=native#text/plain
+share/doc/user/cplreader/cplreader_docu.pdf -text svneol=unset#application/pdf
+share/doc/user/cplreader/cplreader_docu.tex svneol=native#text/plain
+share/doc/user/cplreader/cplreader_options.tex.in -text
+share/doc/user/cplreader/mycommands.tex svneol=native#text/plain
+share/doc/user/cplreader/pics/FASTESTexample.eps -text svneol=unset#application/postscript
+share/doc/user/cplreader/pics/FASTESTexample.pdf -text svneol=unset#application/pdf
+share/doc/user/cplreader/pics/FASTESTexample.svg -text
+share/doc/user/cplreader/pics/acousticfluidregions.eps -text svneol=unset#application/postscript
+share/doc/user/cplreader/pics/acousticfluidregions.pdf -text svneol=unset#application/pdf
+share/doc/user/cplreader/pics/acousticfluidregions.svg -text
+share/doc/user/cplreader/pics/colorbar.png -text svneol=unset#image/png
+share/doc/user/cplreader/pics/cons_interpolation.eps -text svneol=unset#application/postscript
+share/doc/user/cplreader/pics/cons_interpolation.pdf -text svneol=unset#application/pdf
+share/doc/user/cplreader/pics/cons_interpolation.svg -text
+share/doc/user/cplreader/pics/couplingscheme.eps -text svneol=unset#application/postscript
+share/doc/user/cplreader/pics/couplingscheme.pdf -text svneol=unset#application/pdf
+share/doc/user/cplreader/pics/couplingscheme.svg -text
+share/doc/user/cplreader/pics/fastest.png -text svneol=unset#image/png
+share/doc/user/cplreader/pics/fields_gengrids.png -text svneol=unset#image/png
+share/doc/user/cplreader/pics/gengrids_rectlin_grid.png -text svneol=unset#image/png
+share/doc/user/cplreader/pics/gengrids_rectlin_surf.eps -text svneol=unset#application/postscript
+share/doc/user/cplreader/pics/gengrids_rectlin_surf.pdf -text svneol=unset#application/pdf
+share/doc/user/cplreader/pics/gengrids_rectlin_surf.svg -text
+share/doc/user/cplreader/pics/gengrids_rectlin_volumes.eps -text svneol=unset#application/postscript
+share/doc/user/cplreader/pics/gengrids_rectlin_volumes.pdf -text svneol=unset#application/pdf
+share/doc/user/cplreader/pics/gengrids_rectlin_volumes.svg -text
+share/doc/user/cplreader/pics/interpolation_tolerances.eps -text svneol=unset#application/postscript
+share/doc/user/cplreader/pics/interpolation_tolerances.pdf -text svneol=unset#application/pdf
+share/doc/user/cplreader/pics/interpolation_tolerances.svg -text
+share/doc/user/cplreader/pics/klu.eps -text svneol=unset#application/postscript
+share/doc/user/cplreader/pics/klu.pdf -text svneol=unset#application/pdf
+share/doc/user/cplreader/pics/klu.svg -text
+share/doc/user/cplreader/pics/lse.eps -text svneol=unset#application/postscript
+share/doc/user/cplreader/pics/lse.pdf -text svneol=unset#application/pdf
+share/doc/user/cplreader/pics/lse.svg -text
+share/doc/user/cplreader/pics/refelems.eps -text svneol=unset#application/postscript
+share/doc/user/cplreader/pics/refelems.pdf -text svneol=unset#application/pdf
+share/doc/user/cplreader/pics/refelems.svg -text
+share/doc/user/cplreader/pics/refelems_legend.png -text svneol=unset#image/png
+share/doc/user/cplreader/pics/refelems_pic.png -text svneol=unset#image/png
+share/doc/user/cplreader/pics/spherical_shell_normal.png -text svneol=unset#image/png
+share/doc/user/cplreader/pics/spherical_shell_octant.png -text svneol=unset#image/png
+share/doc/user/cplreader/sources/cfs_interpolation.xml svneol=native#text/xml
+share/doc/user/cplreader/sources/check_cons_interp.m -text
+share/doc/user/cplreader/sources/gengrids_fields.xml svneol=native#text/xml
+share/doc/user/cplreader/sources/gengrids_rectlin.xml svneol=native#text/xml
+share/doc/user/cplreader/sources/gengrids_refelems.xml svneol=native#text/xml
+share/doc/user/cplreader/sources/gengrids_spherical_shells.xml svneol=native#text/xml
+share/doc/user/cplreader/sources/gridgen_rectlin.xml svneol=native#text/xml
+share/doc/user/cplreader/sources/gridgen_spherical_shells.xml svneol=native#text/xml
+share/doc/user/cplreader/sources/pygmentize.sh svneol=native#text/plain
+share/doc/user/cplreader/sources/sumup.m -text
 share/doc/user/makedoc.sh.in -text
 share/doc/user/matFile/coupledPDEs.tex svneol=native#text/plain
 share/doc/user/matFile/matRef.tex svneol=native#text/plain
@@ -1411,65 +1470,6 @@ source/cplreader/Documentation/GetPDFDocumentation.hh svneol=native#text/plain
 source/cplreader/Documentation/WriteDocumentation.cc svneol=native#text/plain
 source/cplreader/Documentation/WriteDocumentation.hh svneol=native#text/plain
 source/cplreader/Documentation/docfilestocpp.pl svneol=native#text/plain
-source/cplreader/Documentation/latex/CMakeLists.txt svneol=native#text/plain
-source/cplreader/Documentation/latex/FigElementTypes.tex svneol=native#text/plain
-source/cplreader/Documentation/latex/Manual_TechnicalReference.pdf -text svneol=unset#application/pdf
-source/cplreader/Documentation/latex/Title.tex svneol=native#text/plain
-source/cplreader/Documentation/latex/UseLATEX.cmake -text
-source/cplreader/Documentation/latex/cplreader_defs.tex svneol=native#text/plain
-source/cplreader/Documentation/latex/cplreader_docu.bib svneol=native#text/plain
-source/cplreader/Documentation/latex/cplreader_docu.pdf -text svneol=unset#application/pdf
-source/cplreader/Documentation/latex/cplreader_docu.tex svneol=native#text/plain
-source/cplreader/Documentation/latex/cplreader_options.tex.in -text
-source/cplreader/Documentation/latex/mycommands.tex svneol=native#text/plain
-source/cplreader/Documentation/latex/pics/FASTESTexample.eps -text svneol=unset#application/postscript
-source/cplreader/Documentation/latex/pics/FASTESTexample.pdf -text svneol=unset#application/pdf
-source/cplreader/Documentation/latex/pics/FASTESTexample.svg -text
-source/cplreader/Documentation/latex/pics/acousticfluidregions.eps -text svneol=unset#application/postscript
-source/cplreader/Documentation/latex/pics/acousticfluidregions.pdf -text svneol=unset#application/pdf
-source/cplreader/Documentation/latex/pics/acousticfluidregions.svg -text
-source/cplreader/Documentation/latex/pics/colorbar.png -text svneol=unset#image/png
-source/cplreader/Documentation/latex/pics/cons_interpolation.eps -text svneol=unset#application/postscript
-source/cplreader/Documentation/latex/pics/cons_interpolation.pdf -text svneol=unset#application/pdf
-source/cplreader/Documentation/latex/pics/cons_interpolation.svg -text
-source/cplreader/Documentation/latex/pics/couplingscheme.eps -text svneol=unset#application/postscript
-source/cplreader/Documentation/latex/pics/couplingscheme.pdf -text svneol=unset#application/pdf
-source/cplreader/Documentation/latex/pics/couplingscheme.svg -text
-source/cplreader/Documentation/latex/pics/fastest.png -text svneol=unset#image/png
-source/cplreader/Documentation/latex/pics/fields_gengrids.png -text svneol=unset#image/png
-source/cplreader/Documentation/latex/pics/gengrids_rectlin_grid.png -text svneol=unset#image/png
-source/cplreader/Documentation/latex/pics/gengrids_rectlin_surf.eps -text svneol=unset#application/postscript
-source/cplreader/Documentation/latex/pics/gengrids_rectlin_surf.pdf -text svneol=unset#application/pdf
-source/cplreader/Documentation/latex/pics/gengrids_rectlin_surf.svg -text
-source/cplreader/Documentation/latex/pics/gengrids_rectlin_volumes.eps -text svneol=unset#application/postscript
-source/cplreader/Documentation/latex/pics/gengrids_rectlin_volumes.pdf -text svneol=unset#application/pdf
-source/cplreader/Documentation/latex/pics/gengrids_rectlin_volumes.svg -text
-source/cplreader/Documentation/latex/pics/interpolation_tolerances.eps -text svneol=unset#application/postscript
-source/cplreader/Documentation/latex/pics/interpolation_tolerances.pdf -text svneol=unset#application/pdf
-source/cplreader/Documentation/latex/pics/interpolation_tolerances.svg -text
-source/cplreader/Documentation/latex/pics/klu.eps -text svneol=unset#application/postscript
-source/cplreader/Documentation/latex/pics/klu.pdf -text svneol=unset#application/pdf
-source/cplreader/Documentation/latex/pics/klu.svg -text
-source/cplreader/Documentation/latex/pics/lse.eps -text svneol=unset#application/postscript
-source/cplreader/Documentation/latex/pics/lse.pdf -text svneol=unset#application/pdf
-source/cplreader/Documentation/latex/pics/lse.svg -text
-source/cplreader/Documentation/latex/pics/refelems.eps -text svneol=unset#application/postscript
-source/cplreader/Documentation/latex/pics/refelems.pdf -text svneol=unset#application/pdf
-source/cplreader/Documentation/latex/pics/refelems.svg -text
-source/cplreader/Documentation/latex/pics/refelems_legend.png -text svneol=unset#image/png
-source/cplreader/Documentation/latex/pics/refelems_pic.png -text svneol=unset#image/png
-source/cplreader/Documentation/latex/pics/spherical_shell_normal.png -text svneol=unset#image/png
-source/cplreader/Documentation/latex/pics/spherical_shell_octant.png -text svneol=unset#image/png
-source/cplreader/Documentation/latex/sources/cfs_interpolation.xml svneol=native#text/xml
-source/cplreader/Documentation/latex/sources/check_cons_interp.m -text
-source/cplreader/Documentation/latex/sources/gengrids_fields.xml svneol=native#text/xml
-source/cplreader/Documentation/latex/sources/gengrids_rectlin.xml svneol=native#text/xml
-source/cplreader/Documentation/latex/sources/gengrids_refelems.xml svneol=native#text/xml
-source/cplreader/Documentation/latex/sources/gengrids_spherical_shells.xml svneol=native#text/xml
-source/cplreader/Documentation/latex/sources/gridgen_rectlin.xml svneol=native#text/xml
-source/cplreader/Documentation/latex/sources/gridgen_spherical_shells.xml svneol=native#text/xml
-source/cplreader/Documentation/latex/sources/pygmentize.sh svneol=native#text/plain
-source/cplreader/Documentation/latex/sources/sumup.m -text
 source/cplreader/FileReader.cc svneol=native#text/plain
 source/cplreader/FileReader.hh svneol=native#text/plain
 source/cplreader/FileReaders/ANSYS/CMakeLists.txt svneol=native#text/plain
