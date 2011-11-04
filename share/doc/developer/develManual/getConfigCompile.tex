@@ -86,9 +86,10 @@ PackMan (\url{http://packman.links2linux.org}).
 rpm -q --whatprovides /usr/bin/g++
 \end{verbatim}
 
-\item[Ubuntu]  Ubuntu versions  from 10.04  LTS  are known  to work.   Earlier
+\item[Debian Based]  Ubuntu versions  from 10.04  LTS  are known  to work.   Earlier
 versions  may also  work. Since  Ubuntu is  derived from  Debian,  also recent
-Debian releases should work.
+Debian releases should work. Support for Linux Mint, which is in turn a
+spinoff from Ubuntu, has also been incorporated.
 
 \noindent Checking which package provides an already installed file:
 \begin{verbatim}
@@ -98,7 +99,10 @@ dpkg -S /usr/bin/g++
 Ubuntu is a little  special among other Linux distros since it  uses Dash as a
 shell instead of  Bash. Therefore some shell scripts written  for Bash may not
 work on  Ubuntu. Go  to \url{https://wiki.ubuntu.com/DashAsBinSh} for  tips on
-how to make your scripts POSIX compliant.
+how to make your scripts POSIX compliant. We also provide the script
+\tt{share/scripts/checkbashisms} which gives warnings about bash-specific
+syntax. On Ubuntu, there exists also the \tt{devscripts} package, which
+contains a lot of other tools for script development.
 
 \item[Fedora] Fedora support has been tested on release 13.
 

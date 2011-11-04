@@ -1,5 +1,8 @@
 #!/bin/sh
-. `dirname $0`/distro.sh -h
+
+MODE="-h"
+
+. `dirname $0`/distro.sh
 
 # This script is not primarily meant to be used on its own. It will get merged
 # into    one   script    bootstrap_devel_machine.txt   with    distro.sh   by
@@ -26,6 +29,7 @@ ExitFail() {
 }
 
 SetupDebian() {
+    # Setup Debian, Ubuntu, Linux Mint, etc...
     apt-get install subversion gcc g++ gfortran automake autoconf cmake \
         perl-base graphviz texlive-latex-base tex4ht \
         python-pygments doxygen tcl-dev python-dev git-svn \
@@ -33,6 +37,7 @@ SetupDebian() {
         patch diffutils zip libxt-dev libxp6 tk-dev \
         libgl1-mesa-dev libglu1-mesa-dev libxmuu-dev || ExitFail
 
+    rm -f /usr/lib/libXext.so /usr/lib/libXmu.so
     ln -s /usr/lib/libXext.so.6.4.0 /usr/lib/libXext.so || ExitFail
     ln -s /usr/lib/libXmu.so.6.2.0 /usr/lib/libXmu.so || ExitFail
 }
@@ -72,14 +77,15 @@ SetupFedora() {
         patch diffutils zip libXt-devel libXp || ExitFail
 }
 
-SetupCentOS() {
+SetupRHEL() {
+    # Setup Red Hat Enterprise Linux, CentOS, Oracle, Scientific Linux, etc.
     RHEL_REL=$(echo $REV | cut -d'.' -f1)
 
     case "${RHEL_REL}" in
-	5) echo "Fine! CentOS release ${RHEL_REL} is supported!";;
-	6) echo "Fine! CentOS release ${RHEL_REL} is supported!";;
+	5) echo "Fine! RHEL release ${RHEL_REL} is supported!";;
+	6) echo "Fine! RHEL release ${RHEL_REL} is supported!";;
 	*)
-            echo "CentOS release ${RHEL_REL} is NOT supported!"
+            echo "RHEL release ${RHEL_REL} is NOT supported!"
             ;;
     esac
 
@@ -111,7 +117,7 @@ SetupCentOS() {
 	6) RPM=$ARCH/rpmforge/RPMS/rpmforge-release-0.5.2-2.el6.rf.$ARCH.rpm
 	    ;;
 	*)
-            echo "CentOS release ${RHEL_REL} is not supported!"
+            echo "RHEL release ${RHEL_REL} is not supported!"
             ;;
     esac
     rpm -Uhv --force $BASE/$RPM || ExitFail
@@ -276,7 +282,9 @@ case "$DIST" in
      UBUNTU) SetupDebian ;;
      LINUXMINT) SetupDebian ;;
      FEDORA) SetupFedora ;;
-     CENTOS) SetupCentOS ;;
+     RHEL) SetupRHEL ;;
+     CENTOS) SetupRHEL ;;
+     SCIENTIFIC) SetupRHEL ;;
      *)
         echo "Your distribution $DIST is currently not supported by this script."
         echo "You are encouraged to contribute a new boostrap routine by taking"

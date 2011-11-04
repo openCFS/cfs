@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 # This is the start script for CFSTOOL. It should be placed in
 # CFS_DIST/bin under the name 'cfstool'
@@ -149,7 +149,8 @@ SetANSYSParameters()
 #    fi
 
 
-    export LD_LIBRARY_PATH=$CFS_ROOT_DIR$LIB/$ARCH_STR:$CFS_ROOT_DIR$LIB/$ARCH_STR/v110/$ANS_ARCH:$ANSYS_ROOT_DIR/ansys/syslib/$ANS_ARCH:$ANSYS_ROOT_DIR/ansys/customize/misc/$ANS_ARCH:$LD_LIBRARY_PATH
+    LD_LIBRARY_PATH=$CFS_ROOT_DIR$LIB/$ARCH_STR:$CFS_ROOT_DIR$LIB/$ARCH_STR/v110/$ANS_ARCH:$ANSYS_ROOT_DIR/ansys/syslib/$ANS_ARCH:$ANSYS_ROOT_DIR/ansys/customize/misc/$ANS_ARCH:$LD_LIBRARY_PATH
+    export LD_LIBRARY_PATH
 }
 
 SetGIDParameters()
@@ -159,7 +160,8 @@ SetGIDParameters()
 }
 
 # Set XML schema root path
-export CFS_SCHEMA_ROOT=$CFS_ROOT_DIR/share/xml
+CFS_SCHEMA_ROOT=$CFS_ROOT_DIR/share/xml
+export CFS_SCHEMA_ROOT
 
 # Get settings concerning the distribution type of CFS: GiD/ANSYS
 #if [ "$CFS_DIST_TYPE" != "" ]

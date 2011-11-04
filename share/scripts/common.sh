@@ -5,7 +5,8 @@
 # strieben, june 2007
 
 # Set language
-export LANG=en_US.UTF-8
+LANG=en_US.UTF-8
+export LANG
 
 # Get name of CFS/bin directory
 CFS_BIN_DIR=`dirname $0`
