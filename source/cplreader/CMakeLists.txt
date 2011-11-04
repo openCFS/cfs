@@ -88,8 +88,8 @@ ADD_EXECUTABLE(cplreader ${CPLREADER_SRCS})
 
 SET(TARGET_LL ${TARGET_LL}
   siminouthdf5
-  forms
   elements
+  mathparser
   matvec
   utils
   cfsgeneral

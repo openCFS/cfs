@@ -41,8 +41,8 @@ SET(TARGET_LL
   datainout
   domain
   algsys-olas
-  forms
   driver
+  mathparser
   paramh
   matvec
   utils

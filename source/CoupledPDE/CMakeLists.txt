@@ -16,7 +16,7 @@ ADD_LIBRARY(coupledpde STATIC ${COUPLED_PDE_SRCS})
 
 SET(TARGET_LL
   driver
-  forms
+  mathparser
 )
 
 TARGET_LINK_LIBRARIES(coupledpde ${TARGET_LL})

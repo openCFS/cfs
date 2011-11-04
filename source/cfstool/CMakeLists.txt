@@ -31,7 +31,6 @@ SET(TARGET_LL ${TARGET_LL}
   materials
   mathparser
   coupledpde
-  forms
   elements
   definefiles
   simouttext
