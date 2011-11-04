@@ -274,7 +274,7 @@ share/doc/developer/DoxygenConfig/changeDate.sh svneol=native#text/plain
 share/doc/developer/DoxygenConfig/doxy-config.in -text
 share/doc/developer/DoxygenConfig/doxygen_manual.pdf -text svneol=unset#application/pdf
 share/doc/developer/DoxygenConfig/footerTemplate.html svneol=native#text/html
-share/doc/developer/DoxygenConfig/header.html svneol=native#text/html
+share/doc/developer/DoxygenConfig/headerTemplate.html svneol=native#text/html
 share/doc/developer/DoxygenConfig/mainpage.txt svneol=native#text/plain
 share/doc/developer/Protokolle/Treffen_03_11_2003.pdf -text svneol=unset#application/pdf
 share/doc/developer/Protokolle/Treffen_07_06_2005.pdf -text svneol=unset#application/pdf

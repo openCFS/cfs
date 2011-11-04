@@ -9,10 +9,10 @@ function clean {
 
     echo "============================================="
     echo " Deleting Doxygen Documentation for CFS++ in "
-    echo " @CMAKE_CURRENT_SOURCE_DIR@/html"
+    echo " @CMAKE_CURRENT_BINARY_DIR@/html"
     echo "============================================="
 
-    rm -rfv @CMAKE_CURRENT_SOURCE_DIR@/html
+    rm -rfv @CMAKE_CURRENT_BINARY_DIR@/html
     RETCODE=$?
 
     if [ "$RETCODE" != "0" ]; then
@@ -20,14 +20,14 @@ function clean {
 	exit 1;
     fi
 
-    rm -fv @CMAKE_CURRENT_SOURCE_DIR@/develManual/*.bbl
-    rm -fv @CMAKE_CURRENT_SOURCE_DIR@/develManual/*.aux
-    rm -fv @CMAKE_CURRENT_SOURCE_DIR@/develManual/*.toc
-    rm -fv @CMAKE_CURRENT_SOURCE_DIR@/develManual/*.pdf
-    rm -fv @CMAKE_CURRENT_SOURCE_DIR@/develManual/*.log
-    rm -fv @CMAKE_CURRENT_SOURCE_DIR@/develManual/*.blg
-    rm -fv @CMAKE_CURRENT_SOURCE_DIR@/develManual/*.out
-    rm -fv @CMAKE_CURRENT_SOURCE_DIR@/develManual/*.tpt
+    rm -fv @CMAKE_CURRENT_BINARY_DIR@/develManual/*.bbl
+    rm -fv @CMAKE_CURRENT_BINARY_DIR@/develManual/*.aux
+    rm -fv @CMAKE_CURRENT_BINARY_DIR@/develManual/*.toc
+    rm -fv @CMAKE_CURRENT_BINARY_DIR@/develManual/*.pdf
+    rm -fv @CMAKE_CURRENT_BINARY_DIR@/develManual/*.log
+    rm -fv @CMAKE_CURRENT_BINARY_DIR@/develManual/*.blg
+    rm -fv @CMAKE_CURRENT_BINARY_DIR@/develManual/*.out
+    rm -fv @CMAKE_CURRENT_BINARY_DIR@/develManual/*.tpt
 
     echo "==================================="
     echo " Done cleaning up!"
@@ -40,9 +40,12 @@ function build {
     echo " Generating CFS++ developer's manual "
     echo "====================================="
 
+    cd @CMAKE_CURRENT_BINARY_DIR@/..
+    rsync -vaz "@CMAKE_CURRENT_SOURCE_DIR@/../auxilliaries" .
+
     # Auto    generate   bootstrap_devel_machine.txt   from    distro.sh   and
     # bootstrap_devel_machine.sh
-    ATTACHMENT_DIR="@CMAKE_CURRENT_SOURCE_DIR@/develManual/attachments"
+    ATTACHMENT_DIR="@CMAKE_CURRENT_BINARY_DIR@/develManual/attachments"
     BOOTSTRAP_SCRIPT="$ATTACHMENT_DIR/bootstrap_devel_machine.txt"
     mkdir -p "$ATTACHMENT_DIR"
     cat @CMAKE_CURRENT_SOURCE_DIR@/../../scripts/distro.sh | \
@@ -54,7 +57,9 @@ function build {
 	sed '/^\#\!\/bin\/sh/, /^\. /d' \
 	>> "$BOOTSTRAP_SCRIPT"
 
-    cd @CMAKE_CURRENT_SOURCE_DIR@/develManual
+    cd @CMAKE_CURRENT_BINARY_DIR@
+    rsync -vaz "@CMAKE_CURRENT_SOURCE_DIR@/develManual" .
+    cd develManual
     DOCUMENT=develManual
 
     # Apply syntax coloring to files in sources directory
@@ -78,7 +83,7 @@ function build {
     
     @CMAKE_CURRENT_SOURCE_DIR@/DoxygenConfig/changeDate.sh \
 	@CMAKE_CURRENT_SOURCE_DIR@/DoxygenConfig/footerTemplate.html \
-	@CMAKE_CURRENT_SOURCE_DIR@/DoxygenConfig/footer.html
+	@CMAKE_CURRENT_BINARY_DIR@/DoxygenConfig/footer.html
     @DOXYGEN_EXECUTABLE@ @DOXY_CONFIG@
     RETCODE_DOXY=$?
 
@@ -87,7 +92,7 @@ function build {
 	exit 1;
     else
 	echo " "
-	echo " See @CMAKE_CURRENT_SOURCE_DIR@/html/index.html for doc."
+	echo " See @CMAKE_CURRENT_BINARY_DIR@/html/index.html for doc."
 	echo " "
     fi
 
@@ -95,7 +100,7 @@ function build {
 	echo " Could not make developer's manual!"
 	exit 1;
     else
-	echo " See @CMAKE_CURRENT_SOURCE_DIR@/devManual/devManual.pdf developer's manual."
+	echo " See @CMAKE_CURRENT_BINARY_DIR@/devManual/devManual.pdf developer's manual."
 	echo " "
     fi
 

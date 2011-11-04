@@ -7,7 +7,7 @@ function clean {
     echo " Cleaning up user doc directory..."
     echo "==================================="
 
-    cd @CMAKE_CURRENT_SOURCE_DIR@
+    cd @CMAKE_CURRENT_BINARY_DIR@
 
     rm -fv */*.aux
     rm -fv */*.toc
@@ -28,7 +28,13 @@ function build {
     echo " Generating advanced pre/post docu."
     echo "==================================="
 
-    cd @CMAKE_CURRENT_SOURCE_DIR@/advPrePostManual
+    cd @CMAKE_CURRENT_BINARY_DIR@/..
+    rsync -vaz "@CMAKE_CURRENT_SOURCE_DIR@/../auxilliaries" .
+
+    cd @CMAKE_CURRENT_BINARY_DIR@
+    rsync -vaz "@CMAKE_CURRENT_SOURCE_DIR@/advPrePostManual" .
+    cd advPrePostManual
+
     DOCUMENT=advPrePostManual
 
     # Apply syntax coloring to files in sources directory
@@ -48,7 +54,9 @@ function build {
     echo " Generating XML-REFERENCE document"
     echo "==================================="
 
-    cd @CMAKE_CURRENT_SOURCE_DIR@/xmlFile
+    cd @CMAKE_CURRENT_BINARY_DIR@
+    rsync -vaz "@CMAKE_CURRENT_SOURCE_DIR@/xmlFile" .
+    cd xmlFile
     DOCUMENT=xmlReference
 
     # make copy of tex files and make syntax coloring
@@ -82,7 +90,9 @@ function build {
     echo " Generating XML-Material document"
     echo "==================================="
 
-    cd @CMAKE_CURRENT_SOURCE_DIR@/matFile
+    cd @CMAKE_CURRENT_BINARY_DIR@
+    rsync -vaz "@CMAKE_CURRENT_SOURCE_DIR@/matFile" .
+    cd matFile
     DOCUMENT=matRef
 
     @PDFLATEX_COMPILER@ $DOCUMENT
@@ -94,7 +104,9 @@ function build {
     echo " Generating Scripting docu."
     echo "==================================="
 
-    cd @CMAKE_CURRENT_SOURCE_DIR@/scripting
+    cd @CMAKE_CURRENT_BINARY_DIR@
+    rsync -vaz "@CMAKE_CURRENT_SOURCE_DIR@/scripting" .
+    cd scripting
     DOCUMENT=scripting
 
     @PDFLATEX_COMPILER@ $DOCUMENT
@@ -109,7 +121,9 @@ function build {
     echo ""
     echo " Documentation has been generated in:"
     echo ""
-    echo " @CMAKE_CURRENT_SOURCE_DIR@/"
+    echo " @CMAKE_CURRENT_BINARY_DIR@/"
+    echo " |-- advPrePostManual"
+    echo " |   \`-- advPrePostManual.pdf"
     echo " |-- matFile"
     echo " |   \`-- matRef.pdf"
     echo " |-- scripting"
@@ -126,7 +140,9 @@ function buildhtml {
     echo " Generating XML-REFERENCE HTML documentation"
     echo "============================================="
 
-    cd @CMAKE_CURRENT_SOURCE_DIR@/xmlFile
+    cd @CMAKE_CURRENT_BINARY_DIR@
+    rsync -vaz "@CMAKE_CURRENT_SOURCE_DIR@/xmlFile" .
+    cd xmlFile
     DOCUMENT=xmlReference
 
     # make copy of tex files and make syntax coloring
@@ -155,7 +171,7 @@ function buildhtml {
     # remove obselete files in base-directory
     rm *.html *.css *.idv *.lg
 
-    cd @CMAKE_CURRENT_SOURCE_DIR@
+    cd @CMAKE_CURRENT_BINARY_DIR@
 
     echo ""
     echo "================================"
@@ -164,7 +180,7 @@ function buildhtml {
     echo ""
     echo " Documentation has been generated in:"
     echo ""
-    echo " @CMAKE_CURRENT_SOURCE_DIR@/"
+    echo " @CMAKE_CURRENT_BINARY_DIR@/"
     echo " |-- xmlFile"
     echo "     \`-- html"
     echo "          \`-- xmlReference.html"
