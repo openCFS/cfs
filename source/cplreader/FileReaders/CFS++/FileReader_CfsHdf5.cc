@@ -49,7 +49,7 @@ void FileReader_CfsHdf5::Init()
     EXCEPTION(strEx);
   };
 
-  reduce_elementOrder_ = settings.GetInt("reduce_elementOrder");
+  reduce_elementOrder_ = settings.GetInt("reduceElementOrder");
   dim_ = hdf5Reader_.GetDim();
 
   hdf5Reader_.GetAllRegionNames(regionNames_);

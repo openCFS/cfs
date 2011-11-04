@@ -24,9 +24,13 @@ Help()
 	echo "-u      print distribution info unique"
 }
 
-if [ -z "$1" ]; then
+if [ ! -z "$1" ]; then
+    MODE=$1
+else
+    if [ "$MODE" = "" ]; then
 	Help
 	exit 1
+    fi
 fi
 
 # Set default sub-architecture
@@ -86,14 +90,24 @@ elif [ "${OS}" = "Linux" ] ; then
                 # Mandriva Linux release 2007.0 (Official) for i586
                 # Fedora Core release 6 (Zod)
 		# DIST='RedHat'
-	        DIST=`cat /etc/redhat-release | cut -d' ' -f1`
-		PSEUDONAME=`cat /etc/redhat-release | sed s/.*\(// | sed s/\)//`
-		REV=`cat /etc/redhat-release | sed s/.*release\ // | sed s/\ .*//`
+	    RH_REL=$(cat /etc/redhat-release)
+            DIST=`echo $RH_REL | cut -d' ' -f1`
+            PSEUDONAME=`echo $RH_REL | sed s/.*\(// | sed s/\)//`
+            REV=`echo $RH_REL | sed s/.*release\ // | sed s/\ .*//`
+
+	    if [ `echo $DIST | tr [:upper:] [:lower:]` = "red" ]; then
+		DIST="Redhat"
+		RHEL=$(echo $RH_REL | sed 's/.*\(Enterprise Linux\).*/\1/')
+		if [ "$RHEL" = "Enterprise Linux" ]; then
+		    DIST="RHEL";
+		fi
+	    fi
+
 	elif [ -f /etc/SuSE-release ] ; then
             SUSEREL="/etc/SuSE-release"
             FIRSTLINE=`head -1 $SUSEREL | sed 'y/'$LOWER'/'$UPPER'/'`
             ENTERPRISE=`echo $FIRSTLINE | cut -f3 -d' '`
-            if [ "$ENTERPRISE" == "ENTERPRISE" ]; then
+            if [ "$ENTERPRISE" = "ENTERPRISE" ]; then
                 DIST="SLES"
                 REV=`echo $FIRSTLINE | cut -f5 -d' '`
                 PSEUDONAME=`head -3 $SUSEREL | tail -1 | sed 's/ = //'`
@@ -167,7 +181,8 @@ elif [ "${OS}" = "Linux" ] ; then
                             "lucid") PSEUDONAME="Lucid Lynx";; # 10.04 LTS
                             "maverick") PSEUDONAME="Maverick Meerkat";; # 10.10
                             "natty") PSEUDONAME="Natty Narwhal";; # 11.04
-                            "oneiric") PSEUDONAME="Oneiric Ocelot";; # 11.10 
+                            "oneiric") PSEUDONAME="Oneiric Ocelot";; # 11.10
+                            "precise") PSEUDONAME="Precise Pangolin";; # 12.04
 	                 esac;;
 		    "knoppix")
 			DIST=Knoppix;
@@ -215,15 +230,11 @@ elif [ ${OS} = "Darwin" ]; then
 	fi
 fi
 
-      while :
-      do
-          case "$1" in
-              -h) echo ${OSSTR} ;;
-              -a) echo "${DIST} ${REV} ${ARCH} ${SUBARCH}" | sed 'y/'$LOWER'/'$UPPER'/';;
-              -u) echo "${DIST}_${REV}_${ARCH}" | sed 'y/'$LOWER'/'$UPPER'/' ;;
-              -c) echo "${DIST};${REV};${ARCH};${SUBARCH}" | sed 'y/'$LOWER'/'$UPPER'/' ;;
-              *) break ;;
-          esac
-          shift
-      done
+case "$MODE" in
+    -h) echo ${OSSTR} ;;
+    -a) echo "${DIST} ${REV} ${ARCH} ${SUBARCH}" | sed 'y/'$LOWER'/'$UPPER'/';;
+    -u) echo "${DIST}_${REV}_${ARCH}" | sed 'y/'$LOWER'/'$UPPER'/' ;;
+    -c) echo "${DIST};${REV};${ARCH};${SUBARCH}" | sed 'y/'$LOWER'/'$UPPER'/' ;;
+    *) break ;;
+esac
 

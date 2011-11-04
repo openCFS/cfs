@@ -42,11 +42,11 @@ IF(CFS_ARCH STREQUAL "X86_64")
   ENDIF(CFS_SUBARCH STREQUAL "EM64T")
   
   SET(ANSYS_V120_LIBBIN
-    "${LD}/v120/libbin.so;-lguide;-lpthread"
+    "${LD}/v120/libbin.so;-lpthread"
     CACHE FILEPATH "ANSYS binary interface library.")
 
   SET(ANSYS_V130_LIBBIN
-    "${LD}/v130/libbin.so;-lguide;-lpthread"
+    "${LD}/v130/libbin.so;-lpthread"
     CACHE FILEPATH "ANSYS binary interface library.")
   
 ENDIF(CFS_ARCH STREQUAL "X86_64")

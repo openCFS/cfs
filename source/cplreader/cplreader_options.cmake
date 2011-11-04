@@ -366,6 +366,16 @@ ADD_OPTION(doCalcMultiNodes
   This flag should be set on otherwise artifacts at the region interface occur."
   )
 
+ADD_OPTION(cfxUseStnFrame
+  bool
+  false
+  "Use velocity in stationary frame (CFX only)"
+  "When moving meshes are used in CFX, the velocity is usually computed in
+  the moving frame (i.e. velocity relative to the moving mesh). Activate this
+  option if you need the velocity in the stationary frame (i.e. absolute
+  velocity)."
+  )
+
 CONFIGURE_FILE("ParamsInit.cc.in"
   "${CMAKE_CURRENT_BINARY_DIR}/ParamsInit.cc")
 

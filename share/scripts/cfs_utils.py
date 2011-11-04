@@ -159,15 +159,18 @@ def getNDArrayEntry(data, i, j, k):
   raise RuntimeError("cannot handle dimension")
     
 # see getNDArrayEntry(data, dim, i, j, k)
-def setNDArrayEntry(data, i, j, k, value):
+# save_out_of_dim do nothing if infeasible dimensions are not 0
+def setNDArrayEntry(data, i, j, k, value, save_out_of_dim = False):
   if data.ndim == 3:
     data[i,j,k] = value
     return
   if data.ndim == 2:
-    data[i, j] = value
+    if not save_out_of_dim or k == 0:
+      data[i, j] = value
     return
   if data.ndim == 1:
-    data[i] = value
+    if not save_out_of_dim or (j == 0 and k == 0):
+      data[i] = value
     return
   raise RuntimeError("cannot handle dimension")
 

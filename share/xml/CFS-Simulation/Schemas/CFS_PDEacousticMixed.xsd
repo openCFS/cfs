@@ -41,6 +41,8 @@
                     <xsd:attribute name="name" type="xsd:token" use="required"/>
                     <xsd:attribute name="dampingId" type="xsd:token" 
                       use="optional" default=""/>
+                    <xsd:attribute name="nonLinIds" type="xsd:token" 
+                      use="optional" default=""/>
                     <xsd:attribute name="flowId" type="xsd:token" 
                       use="optional" default=""/>
                   </xsd:complexType>

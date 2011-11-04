@@ -1,0 +1,278 @@
+\chapter{First Time Implementing}
+\label{sec:first_time_implementing}
+This chapter is for first time coders, who want to get acquainted with the
+structure of CFS++, how the Finite Element method is structured into C++
+classes. We start off with the structure itself and the idea behind it and then
+by example explain how to start off implementing. But first some general hints
+for starting to implement:
+\begin{itemize}
+  \item First start off by getting to know the helper programs: svn (see
+    \ref{sec:svn}), cmake (see \ref{sec:cmake}), etc. 
+  \item Do not be scared, just start off implementing. You can not really
+    destroy CFS++ since we use subversion. This is the only way to learn,
+    talking to CFS++ coders will not help much since talking about the
+    procedures in the code and really seeing how it is done are two separate
+    things.
+  \item The code is kept in relative good shape, lets keep it that way. Keep
+    to the object oriented idea and write well readable code.
+  \item CFS++ is big, you can not know everything, so think abstract. If you
+    want to implement a new time stepping do not worry on how the mass-,
+    stiffness matrix or other components are calculated. You just need to know
+    that they are there and how to get them.
+  \item For your first implementation clear your schedule at least for a week.
+    Do not do other stuff on the side.
+  \item Keep a sophisticated coder around you, who knows CFS++. Buy him beer and
+    be nice to him.
+\end{itemize}
+\section{The CFS++ Structure}
+If you ask a CFS++ coder how the code is structured he will tell you about
+forms, pde, drivers etc. For the first time the names are often confusing and
+everybody has their own idea of how to structure and name method. But
+(allegedly) a lot of thought has been put into it so lets look at it by
+regarding the Finite Element method.\\
+So lets look at an equation and have a look were which part is being handled.
+For that we take a pseudo equation 
+\begin{equation}
+  \int\limits_\Omega \frac{d}{dt}u\psi dx 
+  +\int\limits_\Omega\nabla u\cdot\psi dx =
+  \int\limits_\Omega f\psi dx
+  \label{eq:pseudoFe}
+\end{equation}
+with the unknown $u$, the test function $\psi$ and the right hand side $f$. This
+should cover the most import features, like mass-, stiffness matrix and time
+derivative. So lets look at each part in detail, how it is implemented and were
+it can be found. Looking at it discrete it would look like
+\begin{equation}
+  \int\limits_\Omega \frac{1}{\delta t}u_i^{n+1}\varphi_i\psi_j dx 
+  -\int\limits_\Omega \frac{1}{\delta t}u_i^n\varphi_i\psi_j dx 
+  +\int\limits_\Omega\nabla u_i^{n+1}\varphi_i\cdot\psi_j dx =
+  \int\limits_\Omega f_i^{n+1}\psi_j dx\qquad\forall i,j
+  \label{eq:pseudoFeDisc}
+\end{equation}
+for a simple explicit Euler scheme to discretise the time step. $n$ are the time
+steps, with time step size $\delta t$ and $i$ are the discrete nodes.
+In matrix vector notation it would be
+\begin{equation}
+  \frac{1}{\delta t}\mathbf{M}\mathbf{u}^{n+1} + \mathbf{Ku}^{n+1}
+  =\frac{1}{\delta t}\mathbf{Mu}^n + \mathbf{F}
+  \label{eq:pseudoFeMtx}
+\end{equation}
+Figure~\ref{fig:cfs_calcStructure} schematically shows the most import classes and
+methods which are needed to calculate the PDE. There are more calculations
+involve but for sake of abstraction this covers the main features.
+\begin{figure}[htb] 
+  \centering
+  \begin{overpic}[width=1.0\textwidth]{pics/cfs_calcStructure}
+%    \put(10,20){\textcolor{white}{\bf The electrostatic man!}}
+  \end{overpic}
+  \caption{Main structure of how a PDE is implemented and which classes are
+  necessary.}
+  \label{fig:cfs_calcStructure}
+\end{figure}%
+Registration and setting up the PDE are done in different routines and it should
+be regarded separately. The reason is to only do one thing either to read in
+values or to use values but not worry about how they got there, otherwise it
+will get to complex and confusing. This interface between the xml-File and CFS++
+is sketched in Fig.~\ref{fig:cfs_setPdeStructure}.
+\begin{figure}[htb] 
+  \centering
+  \begin{overpic}[width=1.0\textwidth]{pics/cfs_setPdeStructure}
+%    \put(10,20){\textcolor{white}{\bf The electrostatic man!}}
+  \end{overpic}
+  \caption{Main structure of where data from the xml-file is read to use in the
+  PDE.}
+  \label{fig:cfs_setPdeStructure}
+\end{figure}%
+
+\subsection{Forms}
+\label{sssec:forms}
+To calculate the entries of the matrices in \eqref{eq:pseudoFeMtx} the bilinear
+forms need to be calculated as
+\begin{equation}
+  \int\limits_{\Omega_e} \varphi_i\cdot\psi_j dx
+  \label{eq:bilinForm}
+\end{equation}
+at element $e$. This is an entry of the mass matrix entry of
+\eqref{eq:pseudoFeDisc}. The time step size $\delta t$ is handled separately by
+the time stepping algorithm (see section \ref{sssec:timeStep}) Form can be found in the directory 
+\texttt{CFS++/source/Forms}. These are filled with all different kind of forms
+which names already give some information and to which PDE it belongs. As it is
+object orientated a \texttt{baseForm.*} can be found with the main methods. Most
+import is the \texttt{CalcElemMatrix(\ldots)} method which calculates
+\eqref{eq:bilinForm}, the matrix entries from one element.
+To implement \eqref{eq:bilinForm} into this method:
+\begin{itemize}
+  \item get integration points -- the element class will help
+  \item loop over all integration points
+  \item get test function -- the element class will help
+  \item get integration weights -- the element class will help
+  \item multiply $\psi_i$ with $\varphi_j$
+  \item store result in element matrix
+\end{itemize}
+\subsection{Time Stepping}
+\label{sssec:timeStep}
+The time stepping is called after the assembly. It calculates
+\eqref{eq:pseudoFeMtx} to
+\begin{equation}
+  \mathbf{Ax}=\mathbf{b}.
+  \label{eq:Axb}
+\end{equation}
+So it needs the time step size and the matrices (in this case mass and
+stiffness). It may need some additional solution types, like old time steps,
+derivatives, etc. -- these need to be initialised in the constructor. Further
+parameters from the xml-simulation file can be gathered (see CFS++/source/PDE/newmark.cc) as
+example.
+In an \texttt{Init()} step necessary variables will be set. Like the matrix
+factors, in the case of \eqref{eq:pseudoFeMtx} the stiffness matrix gets the
+factor $1$, mass matrix $0$ and unused matrices like the damping matrix are set
+to $0$. See General/environment.hh for a list of matrix types.
+
+Some hints on the methods
+\begin{description}
+  \item[Predictor] For methods which need a predictor
+  \item[Corrector] For methods which need a corrector
+  \item[{\color{red} AdvanceTimestep}] After this method the solution vector
+    should hold the new solution. The last time step vector should also hold the
+    new solution. That way everything is prepared for the next time step. The
+    reason is that other methods depend on this guarantee (Restart file writing).
+    Basically do:
+    \begin{equation}
+      x_n := x_{n+1}
+    \end{equation}
+    Do not do this earlier (e.g. Corrector) this may lead to conflicts with
+    Iterative-Coupled problems.
+\end{description}
+The newmark scheme \texttt{CFS++/source/PDE/newmark.*} has most features and still is easy to
+read, so a good start to read yourself into.
+
+\subsection{PDE}
+\label{sssec:pde}
+The PDEs located in \texttt{CFS++/source/PDE} is an interface between user and
+the method itself. Example of information that is gathered
+\begin{itemize}
+  \item Is it plane, 3d, axi \ldots?
+  \item Is it linear, nonlinear \ldots ?
+  \item Is it a moving mesh \ldots?
+  \item what non linear solver should be used?
+  \item \ldots
+\end{itemize}
+Now, not every PDE support them all, and not all PDEs need this information. What
+options can be set are given in the xml-Schemes.
+
+Important here is the method \texttt{DefineIntegrators} which gathers all
+integrator which are necessary. It gathers the forms, which in our case have
+been implemented in section \ref{sssec:forms}. These are added into the assemble
+object.\\
+One special note. If you have a PDE with multiple physical variable
+(Navier-Stokes; pressure and velocity) the assemble object needs to know at
+which position in the matrix the bilinear form is to be set. Lets look at
+\begin{equation}
+  \left(\begin{array}{cc}
+    A_{11} & A_{12}\\
+    A_{21} & A_{22}
+  \end{array}\right)
+  \left(\begin{array}{c}
+    u_1\\
+    u_2
+  \end{array}\right)=f
+\end{equation}
+in which the result is split into two vectors $u_1$ and $u_2$ which are coupled
+by the matrix entries $A_{12}$ and $A_{21}$. Each of the sub matrices may be
+different bilinear forms and this can be set by
+\begin{verbatim}
+    actStiffContext_UV->SetResults( results_[#1],results_[#2],actSDList, actSDList);
+\end{verbatim}
+Were \texttt{\#1} sets the matrix block in vertical direction and \texttt{\#2} in horizontal
+direction. \texttt{\hyphenation{actStiffContext}} is a \texttt{BiLinFormContext} object which
+gets the form and after further initialisation is then stored into the assemble
+object.
+
+\section{Examining the code in action}
+\label{sec:code_in_action}
+
+The explanations in  the previous section are for a  pseudo equation only. The
+best  way to  get  started with  the hands-on  CFS++  experience is  to run  a
+debugger  on an  existing  example from  the  test suite,  which most  closely
+resembles  the problem  to be  investigated.  To  get information  about which
+function  calls another  function, static  callgraphs are  a great  tool. Such
+graphs can  be generated  using the callgrind  tool of valgrind.   Valgrind is
+primarily a profiling tool for  examining and fixing memory leaks in programs.
+By using  its callgrind functionality  one can get out  additional information
+about the calling  hierarchy of a program. Let's say we  are interested in the
+calling hierarchy of an acoustic problem. We can navigate into a corresponding
+directory          within         the         test          suite         tree
+(e.g. TESTSUITE/singlefield/acoustics/abc3d)  and start the  CFS++ binary from
+within valgrind:
+
+\begin{verbatim}
+valgrind --tool=callgrind $CFS_BINARY_DIR/bin/OPENSUSE_11.3_X86_64/cfsbin abc3d
+kcachegrind
+\end{verbatim}
+
+The first  command starts  the CFS++ process  within valgrind and  records the
+complete calling history. The second command starts up a GUI in which the call
+graph can be  examined visually as Fig.  \ref{fig:kcachegrind}  shows.  
+
+\begin{figure}[htb] 
+  \centering 
+  \label{fig:kcachegrind}
+  \begin{overpic}[height=8cm]{pics/kcachegrind_acou_define_int_callgraph}
+  \end{overpic}
+  \caption{Callgraph for AcousticPDE::DefineIntegrators() in KCachegrind.}
+\end{figure}
+
+While this
+display conveys already much information  about the calling hierarchy, it does
+not give too many hints about the transient behaviour of the program. In order
+to get that kind of information, it is  a good idea to start a debugger on the
+same problem.  In  Klagenfurt we have a license for  the TotalView debugger. A
+license for  TotalView is also available  on the RRZE machines  in Erlangen. A
+nice feature, which sets TotalView apart  from other debuggers is, that it can
+also step backwards in time. This  feature is especially useful for a beginner
+in CFS++,  since the process  does not have  to be restarted everytime  to get
+back to a previous breakpoint. To  start CFS++ in TotalView, use the following
+command:
+
+\begin{verbatim}
+totalview $CFS_BINARY_DIR/bin/OPENSUSE_11.3_X86_64/cfsbin -a abc3d
+\end{verbatim}
+
+It is important to enable the replay engine feature in the window that pops up
+(c.f. Fig. \ref{fig:totalview_enable_replay_engine}).
+
+\begin{figure}[htb] 
+  \centering 
+  \label{fig:totalview_enable_replay_engine}
+  \begin{overpic}[height=6cm]{pics/totalview_enable_replay_engine}
+  \end{overpic}
+  \caption{Enabling backward stepping in TotalView.}
+\end{figure}
+
+Afterwards one can  set breakpoints in the main window  and start the process.
+Figures show the main window and  the callgraph window (Tools $->$ Call Graph)
+of   TotalView  (c.f.   Fig.   \ref{fig:totalview_acou_define_int_callgraph}).
+Please note,  that next  to the  forward stepping buttons  there are  also the
+backward      stepping     pendants      available     in      the     toolbar
+(Fig. \ref{fig:totalview_acou_define_int}).
+
+\begin{figure}[htb] 
+  \centering 
+  \subfloat[TotalView stopped at DefineIntegrators() in AcousticPDE.]{
+    \label{fig:totalview_acou_define_int}
+    \begin{overpic}[height=8cm]{pics/totalview_acou_define_int}
+%      \put(10,20){\textcolor{red}{\bf Test}}
+    \end{overpic}
+    }
+  \qquad
+  \subfloat[Corresponding call graph.]{
+    \label{fig:totalview_acou_define_int_callgraph}
+    \begin{overpic}[height=8cm]{pics/totalview_acou_define_int_callgraph}
+    \end{overpic}
+  } 
+  \caption{CFS++ running the abc3d example in TotalView.}
+  \label{fig:totalview_abc3d}
+\end{figure}
+
+
+
+\section{First implementation by example}
