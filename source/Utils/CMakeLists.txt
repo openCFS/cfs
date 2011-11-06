@@ -7,14 +7,12 @@ SET(UTILS_SRCS
   cylCoordSys.cc
   dampLayer.cc
   defaultCoordSys.cc
-  elemstoresol.cc
   hysteresis.cc
   interpolate.cc
   jiles.cc
   LinInterpolate.cc
   mathfunctions.cc
   Timer.cc
-  nodestoresol.cc
   polCoordSys.cc
   preisach.cc
   readCFDbinary.cc

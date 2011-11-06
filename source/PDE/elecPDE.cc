@@ -26,6 +26,7 @@
 #include "Elements/fespaceH1.hh"
 #include "Elements/fespaceH1Lagrange.hh"
 #include "Elements/fefunction.hh"
+#include "DataInOut/WriteInfo.hh"
 
 //new integrator concept
 #include "Forms/bdbInt.hh"
@@ -108,7 +109,7 @@ namespace CoupledField {
 
       actRegionId = ptgrid_->GetRegion().Parse(actRegionName);
 
-      // Check nonLinId was already registerd
+      // Check nonLinId was already registered
       if( nonLinIdType_.find( actNonLinId) == nonLinIdType_.end() ) {
         EXCEPTION( "NonLinearity with id '" << actNonLinId 
                    << "' was not defined in 'nonLinList'" );
@@ -289,19 +290,11 @@ namespace CoupledField {
      
      switch (res->GetResultInfo()->resultType ) {
      case ELEC_POTENTIAL:
-       if( isComplex_ ) {
-         ExtractResult<Complex>( res, sol_ );
-       } else {
-         ExtractResult<Double>( res, sol_ );
-       }
+       feFunctions_[ELEC_POTENTIAL]->ExtractResult( res );
        break;
 
      case ELEC_RHS_LOAD:
-      if( isComplex_ ) {
-        ExtractRhsResult<Complex>( res, results_[0] );
-      } else {
-        ExtractRhsResult<Double>( res, results_[0] );
-      }
+       rhsFeFunctions_[ELEC_POTENTIAL]->ExtractResult( res );
       break;
        
      case ELEC_FIELD_INTENSITY:
@@ -334,7 +327,6 @@ namespace CoupledField {
                               Vector<TYPE>& values )  {
      Vector<TYPE> elemSol;
      Vector<Double> shape;
-     NodeStoreSol<TYPE> & solhelp = dynamic_cast<NodeStoreSol<TYPE>&>(*sol_);
      values.Resize(elems.GetSize());
      values.Init();
      FeFunction<TYPE>& fct = 
@@ -342,9 +334,10 @@ namespace CoupledField {
      FeSpaceH1& space = dynamic_cast<FeSpaceH1&>(*(fct.GetFeSpace()));
      LocPointMapped lpm;
      for ( UInt iElem = 0; iElem < elems.GetSize(); ++iElem ) {
+       
        const Elem * el = elems[iElem];
        FeH1*  ptFe = dynamic_cast<FeH1*>(space.GetFe( el->elemNum ));
-       solhelp.GetElemSolution( elemSol, el );
+       fct.GetElemSolution(elemSol, el);
        ptFe->GetShFnc(shape, points[iElem], el);
        values[iElem] = shape * elemSol;
      }
@@ -354,27 +347,52 @@ namespace CoupledField {
    void ElecPDE::CalcElecField( StdVector<const Elem*>& elems,
                                 StdVector<LocPoint>& points,
                                 Vector<TYPE>& values )  {
-     Vector<TYPE> tempE, elemSol;
-     NodeStoreSol<TYPE> & solhelp = dynamic_cast<NodeStoreSol<TYPE>&>(*sol_);
-     FeFunction<TYPE>& fct = 
-         dynamic_cast<FeFunction<TYPE>& >(*(GetFeFunction(ELEC_POTENTIAL)));
-     values.Resize( elems.GetSize() * dim_ );
-
-     // loop over elements
-     LocPointMapped lpm;
-     for ( UInt iElem = 0; iElem < elems.GetSize(); ++iElem ) {
-       const Elem * el = elems[iElem];
-       GradientOperator<FeH1,TYPE> li;
-       shared_ptr<ElemShapeMap> esm = ptgrid_->GetElemShapeMap( el, true );
-       BaseFE*  ptFe = fct.GetFeSpace()->GetFe( el->elemNum );
-       lpm.Set( points[iElem], esm );
-       solhelp.GetElemSolution( elemSol, el);
-       li.ApplyOp( tempE, lpm, ptFe, elemSol);
-       // loop over dofs
-       for(UInt iDim = 0; iDim < dim_; iDim++ ) {
-         values[iElem*dim_ + iDim] = -tempE[iDim];
-       }
-     }
+     REFACTOR;
+//<<<<<<< .mine
+//     Vector<TYPE> tempE, elemSol;
+//     NodeStoreSol<TYPE> & solhelp = dynamic_cast<NodeStoreSol<TYPE>&>(*sol_);
+//     FeFunction<TYPE>& fct = 
+//         dynamic_cast<FeFunction<TYPE>& >(*(GetFeFunction(ELEC_POTENTIAL)));
+//     values.Resize( elems.GetSize() * dim_ );
+//
+//     // loop over elements
+//     LocPointMapped lpm;
+//     for ( UInt iElem = 0; iElem < elems.GetSize(); ++iElem ) {
+//       const Elem * el = elems[iElem];
+//       linElecInt * li = biLinForms_[el->regionId];
+//       shared_ptr<ElemShapeMap> esm = ptgrid_->GetElemShapeMap( el, true );
+//       BaseFE*  ptFe = fct.GetFeSpace()->GetFe( el->elemNum );
+//       lpm.Set( points[iElem], esm );
+//       solhelp.GetElemSolution( elemSol, el);
+//       li->ApplyBMat( tempE, lpm, ptFe, elemSol);
+//       // loop over dofs
+//       for(UInt iDim = 0; iDim < dim_; iDim++ ) {
+//         values[iElem*dim_ + iDim] = -tempE[iDim];
+//       }
+//     }
+//=======
+//     Vector<TYPE> tempE, elemSol;
+//     NodeStoreSol<TYPE> & solhelp = dynamic_cast<NodeStoreSol<TYPE>&>(*sol_);
+//     FeFunction<TYPE>& fct = 
+//         dynamic_cast<FeFunction<TYPE>& >(*(GetFeFunction(ELEC_POTENTIAL)));
+//     values.Resize( elems.GetSize() * dim_ );
+//
+//     // loop over elements
+//     LocPointMapped lpm;
+//     for ( UInt iElem = 0; iElem < elems.GetSize(); ++iElem ) {
+//       const Elem * el = elems[iElem];
+//       GradientOperator<FeH1,TYPE> li;
+//       shared_ptr<ElemShapeMap> esm = ptgrid_->GetElemShapeMap( el, true );
+//       BaseFE*  ptFe = fct.GetFeSpace()->GetFe( el->elemNum );
+//       lpm.Set( points[iElem], esm );
+//       solhelp.GetElemSolution( elemSol, el);
+//       li.ApplyOp( tempE, lpm, ptFe, elemSol);
+//       // loop over dofs
+//       for(UInt iDim = 0; iDim < dim_; iDim++ ) {
+//         values[iElem*dim_ + iDim] = -tempE[iDim];
+//       }
+//     }
+//>>>>>>> .r11288
    }
 
    void ElecPDE::CalcField( SolutionType solType, StdVector<const Elem*>& elems,
@@ -409,13 +427,13 @@ namespace CoupledField {
    template <class TYPE>
    void ElecPDE::CalcElectricField( shared_ptr<BaseResult> sol ) {
      Vector<TYPE> tempE, elemSol;
-     NodeStoreSol<TYPE> & solhelp = dynamic_cast<NodeStoreSol<TYPE>&>(*sol_);
      Result<TYPE> &  actSol = 
          dynamic_cast<Result<TYPE>&>(*sol);
      EntityIterator it = actSol.GetEntityList()->GetIterator();
      Vector<TYPE> & actVal = actSol.GetVector();
      actVal.Resize( actSol.GetEntityList()->GetSize() * dim_ );
-     shared_ptr<BaseFeFunction> fct = GetFeFunction(actSol.GetResultInfo()->resultType);
+     FeFunction<TYPE>& fct = 
+         dynamic_cast<FeFunction<TYPE>& >(*(GetFeFunction(actSol.GetResultInfo()->resultType)));
 
 
      // loop over elements
@@ -424,9 +442,9 @@ namespace CoupledField {
        const Elem * el = it.GetElem();
        GradientOperator<FeH1,TYPE> li;
        shared_ptr<ElemShapeMap> esm = ptgrid_->GetElemShapeMap( el, true );
-       BaseFE*  ptFe = fct->GetFeSpace()->GetFe( it );
+       BaseFE*  ptFe = fct.GetFeSpace()->GetFe( it );
        lpm.Set( Elem::shapes[el->type].midPointCoord, esm );
-       solhelp.GetElemSolution( elemSol, it );
+       fct.GetElemSolution( elemSol, it.GetElem() );
        li.ApplyOp( tempE, lpm, ptFe, elemSol);
        // loop over dofs
        for(UInt iDim = 0; iDim < dim_; iDim++ ) {
@@ -490,7 +508,7 @@ namespace CoupledField {
         //bilinear_stiff->SetFactor(factor);
         bilinear_stiff->CalcElementMatrix( elemmat, elemIt, elemIt );
 
-        sol_->GetElemSolution(elpot, elemIt );
+        feFunctions_[ELEC_POTENTIAL]->GetEntitySolution(elpot, elemIt);
         help =  elemmat * elpot;
         energy += 0.5 * (help * elpot);
 

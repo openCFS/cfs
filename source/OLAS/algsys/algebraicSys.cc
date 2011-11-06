@@ -619,7 +619,7 @@ namespace CoupledField {
 
   void AlgebraicSys::CalcEigenMode( UInt numMode )  {
     
-    LOG_TRACE(algSys) << "Calculting eigenmode #" << numMode;
+    LOG_TRACE(algSys) << "Calculating eigenmode #" << numMode;
     REFACTOR;
 
   }
@@ -1524,7 +1524,7 @@ namespace CoupledField {
            } // j
         } // i
         
-        // 3) Assemble all free <-> fixed entries ( TRANSODED)
+        // 3) Assemble all free <-> fixed entries ( TRANSPOSED )
         if( sbmRow != sbmCol && setCounterPart == true) {
           for ( UInt i = 0; i < rList2.size(); i++ ) {
             rowInd = rIndList2[i];

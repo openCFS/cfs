@@ -22,8 +22,8 @@ namespace CoupledField {
     //! 0 and subVec_ to NULL. In addition the entryType of this vector is set,
     //! so any subsequent call to Resize will create sub-vectors of the 
     //! given type. 
-    explicit SBM_Vector(  BaseMatrix::EntryType entryType = 
-                          BaseMatrix::NOENTRYTYPE );
+    explicit SBM_Vector( BaseMatrix::EntryType entryType = 
+                         BaseMatrix::NOENTRYTYPE );
     
     //! Constructor for empty vectors of specified length
 
@@ -71,6 +71,15 @@ namespace CoupledField {
     //! Obtain size of vector, i.e. number of sub-vector entries
     UInt GetSize() const {
       return size_;
+    }
+    
+    //! Set ownership status for sub-vectors
+    
+    //! If set to true, the SBM vector will not delete the sub-vectors upon
+    //! destruction. If set to yes, the sub-vectors will be deleted,
+    //! independent of the original setting.
+    void SetOwnership( bool ownsVectors ) {
+      ownSubVectors_ = ownsVectors;
     }
 
     //! Resize the vector to new size with optional creation of sub-vectors
@@ -253,7 +262,7 @@ namespace CoupledField {
     //! Flag indicating if object is is responsible for deletion of subvectors
     bool ownSubVectors_;
 
-    //! Attrribute storing the entry type of the vector
+    //! Attribute storing the entry type of the vector
 
     //! Currently the %SBM_Vector class only allows for storing sub-matrices
     //! that share a common entry type. This attribute stores the entry type

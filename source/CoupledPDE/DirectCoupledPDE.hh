@@ -40,10 +40,6 @@ namespace CoupledField {
     StdVector<SinglePDE*>& GetSinglePDEs()
     { return singlePDEs_;};
 
-    // get total number of unknowns
-    UInt GetTotalUnknowns()
-    { return totalUnknowns_;};
-
     //! Set Coupling objects
     void SetCouplings( const StdVector<BasePairCoupling*> &couplings);
 
@@ -60,31 +56,8 @@ namespace CoupledField {
     //! set boundary condition
     void SetBCs();
 
-    //! compute norm of RHS removing IDBCs
-    //! \param sctRHS
-    Double RhsL2Norm(Vector<Double>&actRHS);
-
     //! define algebraic system 
     void DefineAlgSys();
-
-    //! return the solution
-    virtual void GetSolutionVector( SBM_Vector& );
-
-    //! return the previous solution
-    virtual void GetPrevSolutionVector( SBM_Vector& );
-
-    //@{
-    //! store the new solution returned by the algebraic system
-    //! \param ptSol pointer to solution array
-    //! \param size legnth of solution array
-    void SaveSolution( SBM_Vector& );
-    void SavePrevSolution( SBM_Vector& );
-    //@}
-
-    //@{
-    //! Save load part of RHS to private variable
-    void SaveRHS( SBM_Vector& );
-    //@}
 
     //!
     virtual void InitTimeStepping();
@@ -145,12 +118,6 @@ namespace CoupledField {
 
     //! References to pairwise coupling objects
     StdVector<BasePairCoupling*> couplings_;
-
-    //! Number of total unknowns 
-
-    //! Number of total unknowns, which is the sum of each PDE's
-    //! number of equations times its equations dof
-    UInt totalUnknowns_;
 
   };
 

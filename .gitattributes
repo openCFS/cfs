@@ -1384,14 +1384,6 @@ source/PDE/timestepping.cc svneol=native#text/x-c%2B%2Bsrc
 source/PDE/timestepping.hh svneol=native#text/x-c%2B%2Bhdr
 source/PDE/trapezoidal.cc svneol=native#text/x-c%2B%2Bsrc
 source/PDE/trapezoidal.hh svneol=native#text/x-c%2B%2Bhdr
-source/ParamIdent/CMakeLists.txt svneol=native#text/plain
-source/ParamIdent/leastSquare.cc svneol=native#text/x-c%2B%2Bsrc
-source/ParamIdent/newtonCG1.cc svneol=native#text/x-c%2B%2Bsrc
-source/ParamIdent/nonlinLandweber.cc svneol=native#text/x-c%2B%2Bsrc
-source/ParamIdent/nuMethods.cc svneol=native#text/x-c%2B%2Bsrc
-source/ParamIdent/piezoParamIdent.cc svneol=native#text/x-c%2B%2Bsrc
-source/ParamIdent/piezoParamIdent.hh svneol=native#text/x-c%2B%2Bhdr
-source/ParamIdent/piezoParamIdent_methods.cc svneol=native#text/x-c%2B%2Bsrc
 source/Utils/ApproxData.cc svneol=native#text/x-c%2B%2Bsrc
 source/Utils/ApproxData.hh svneol=native#text/x-c%2B%2Bhdr
 source/Utils/CMakeLists.txt svneol=native#text/plain
@@ -1412,8 +1404,6 @@ source/Utils/StdVectorSerialize.hh svneol=native#text/x-c%2B%2Bhdr
 source/Utils/Timer.cc -text
 source/Utils/Timer.hh -text
 source/Utils/autodiff.hh svneol=native#text/x-c%2B%2Bhdr
-source/Utils/baseelemstoresol.hh svneol=native#text/x-c%2B%2Bhdr
-source/Utils/basenodestoresol.hh svneol=native#text/x-c%2B%2Bhdr
 source/Utils/biotSavart.cc svneol=native#text/x-c%2B%2Bsrc
 source/Utils/biotSavart.hh svneol=native#text/x-c%2B%2Bhdr
 source/Utils/boost-serialization.hh svneol=native#text/x-c%2B%2Bhdr
@@ -1427,8 +1417,6 @@ source/Utils/dampLayer.cc svneol=native#text/x-c%2B%2Bsrc
 source/Utils/dampLayer.hh svneol=native#text/x-c%2B%2Bhdr
 source/Utils/defaultCoordSys.cc svneol=native#text/x-c%2B%2Bsrc
 source/Utils/defaultCoordSys.hh svneol=native#text/x-c%2B%2Bhdr
-source/Utils/elemstoresol.cc svneol=native#text/x-c%2B%2Bsrc
-source/Utils/elemstoresol.hh svneol=native#text/x-c%2B%2Bhdr
 source/Utils/hysteresis.cc svneol=native#text/x-c%2B%2Bsrc
 source/Utils/hysteresis.hh svneol=native#text/x-c%2B%2Bhdr
 source/Utils/interpolate.cc svneol=native#text/x-c%2B%2Bsrc
@@ -1440,8 +1428,6 @@ source/Utils/mathParser/mathParser.cc svneol=native#text/x-c%2B%2Bsrc
 source/Utils/mathParser/mathParser.hh svneol=native#text/x-c%2B%2Bhdr
 source/Utils/mathfunctions.cc svneol=native#text/x-c%2B%2Bsrc
 source/Utils/mathfunctions.hh svneol=native#text/x-c%2B%2Bhdr
-source/Utils/nodestoresol.cc svneol=native#text/x-c%2B%2Bsrc
-source/Utils/nodestoresol.hh svneol=native#text/x-c%2B%2Bhdr
 source/Utils/piezoMicroModel.cc -text
 source/Utils/piezoMicroModel.hh -text
 source/Utils/piezoMicroModelBK.cc -text

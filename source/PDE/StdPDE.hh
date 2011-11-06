@@ -31,7 +31,8 @@ namespace CoupledField {
   
   //! Base class for all single-field and direct-coupled problems
 
-  class StdPDE : public BasePDE {
+  class StdPDE : public BasePDE
+  {
   
   public:
 
@@ -94,7 +95,19 @@ namespace CoupledField {
 
     //! Returns the feFunction which holds a result related to the specified solutionType
     virtual shared_ptr<BaseFeFunction> GetFeFunction( SolutionType solType);
-
+    
+    //! Return all solution FeFunctions
+    virtual  
+    std::map<SolutionType, shared_ptr<BaseFeFunction> > GetFeFunctions( ) {
+      return feFunctions_;
+    }
+    
+    //! Return all Rhs FeFunctions
+    virtual 
+    std::map<SolutionType, shared_ptr<BaseFeFunction> > GetRhsFeFunctions() {
+      return rhsFeFunctions_;
+    }
+    
     //! Return pointer to the SolveStep object
     BaseSolveStep * GetSolveStep();
 
@@ -118,15 +131,6 @@ namespace CoupledField {
       return false;
     }
   
-//    //! @return pointer to vector of derivative of solution
-//    //! @param derivType the type of derivative you want
-//    virtual const Vector<Double> & getDeriv(DERIVType derivType) const;
-//
-//    //! @return pointer to vector of time step
-//    //! @param timeStepType type if time step you want
-//    virtual const Vector<Double> & getOld(TIMEStepType timeStepType) const;
-//    
-
     //! Also for fractional damping model do obtain
     virtual UInt GetFracMemory() {
       return fracMemory_;
@@ -186,57 +190,9 @@ namespace CoupledField {
     bool IsSetInitialCondition() { return isSetInitialCondition_;};
     double getInitialCondition(){return InitialCondition_;}; 
     
-    //@{
-    //! store the new solution returned by the algebraic system
-    //! \param ptSol pointer to solution array
-    //! \param size legnth of solution array
-    virtual void SaveSolution( SBM_Vector& ) = 0;
-    virtual void SavePrevSolution( SBM_Vector& ) = 0;
-    //@}
-
-    //@{
-    //! Save load part of RHS to private variable
-    virtual void SaveRHS( SBM_Vector& ) = 0;
-    //@}
-
-    /** Get the data vector of the current solution of the algebraic system */
-    virtual void GetSolutionVector(SBM_Vector&); 
-
-    /** Get the data vector of the current rhs of the algebraic system. */
-    void GetRHSVector(SBM_Vector&);
-
-    //! get the data vector of the previous solution of a PDE.
-    virtual void GetPrevSolutionVector(SBM_Vector& );
-    
-    /// returns the vector of the solution belonging to all nodes of the actual element
-    void GetSolVecOfElement( Vector<Double>& sol, const EntityIterator& it, 
-                             shared_ptr<ResultInfo> res );
-    void GetSolVecOfElement( Vector<Complex>& sol, const EntityIterator& it,
-                             shared_ptr<ResultInfo> res );
-   
-    
-    /// returns the vector of time derivative of the solution belonging 
-    /// to all nodes of the actual element
-    void GetDerivSolVecOfElement( Vector<Double>& sol, const EntityIterator& it,
-                                  shared_ptr<ResultInfo> res );
-    void GetDerivSolVecOfElement( Vector<Complex>& sol, const EntityIterator& it,
-                                  shared_ptr<ResultInfo> res );
-    
-    /// returns the vector of 2nd time derivative of the solution belonging to all nodes 
-    /// of the actual element
-    void GetDeriv2SolVecOfElement( Vector<Double>& sol, const EntityIterator& it,
-                                   shared_ptr<ResultInfo> res );
-    void GetDeriv2SolVecOfElement( Vector<Complex>& sol, const EntityIterator& it, 
-                                   shared_ptr<ResultInfo> res);
-
-    /// returns the vector of the previous solution belonging to all nodes of the actual element
-    void GetPrevSolVecOfElement( Vector<Double>& sol, const EntityIterator& it, 
-                                 shared_ptr<ResultInfo> res );
-
     //! Init the time stepping
     virtual void InitTimeStepping()
     {EXCEPTION("InitTimeStepping not implemented");};
-    
 
     //! Get couplings object
     virtual StdVector<BasePairCoupling*>* GetCouplingsObject() 
@@ -254,9 +210,6 @@ namespace CoupledField {
     //!  The following methods are used only durig parameter
     //!  identification process! Maybe one day a more to CFS++ consistent 
     //!  nomenclature would be nice ...
-
-    //shared_ptr<EqnMap> GetEqnMap() { return eqnMap_; }
-    //
     
 
     /** Do we have at least some periodic boundary conditions?
@@ -271,33 +224,14 @@ namespace CoupledField {
     std::map<RegionIdType, BaseMaterial*>  getPDEMaterialData()
     {return materials_;};
     
-    BaseNodeStoreSol * getPDESolution() {return sol_;};
-
-    BaseNodeStoreSol * getPDESolutionPrev() {return solPrev_;};
-    
-    AlgebraicSys * getPDE_algsys(){return algsys_;};
-  
-    UInt getPDE_numElems(){return numElems_;};
-
-    UInt GetNumPdeEquations(){return numPdeEquations_;};
-
-    UInt GetNumPdeUnknowns(){return numPdeUnknowns_;};
-
-    UInt GetNumInHomBcs(){return numPdeInHomDirBc_;};
-  
-    UInt getPDE_spaceDim(){return dim_;};
-  
-    Grid * getPDE_grid(){return ptgrid_;};  
-  
     Assemble * getPDE_assemble(){return assemble_;}
-  
+
     StdVector<RegionIdType> getPDE_subdoms(){return subdoms_;}
+
+    AlgebraicSys * getPDE_algsys(){return algsys_;}
     
-    void setPDE_MatDataType(Global::ComplexPart & pMatType){
-      matDataType_ = pMatType;};
+    Grid * getPDE_grid() {return ptgrid_;}
   
-    Global::ComplexPart getPDE_MatDataType()
-    {return matDataType_;}
 
     //! get pointer to time stepping object
     TimeStepping * getTimeStepping() { return TS_alg_;};
@@ -343,10 +277,6 @@ namespace CoupledField {
     bool IsInstationary()  
     { return isInstationary_;};
 
-
-    Double GetRhsL2Norm(Vector<Double>& actRHS) 
-    { return RhsL2Norm(actRHS);};
-
     std::map<RegionIdType, NonLinType>& GetNonLinRegionTypes() 
     { return regionNonLinType_;};
 
@@ -391,13 +321,6 @@ namespace CoupledField {
     };
   
 
-
-    //! stores an algsys_ vector into a StdVector
-    void StoreAlgsysToVec(Vector<Double>& vec, Double * pt);
-
-    //! calculates L2-norm of RHS regarding entries due to penalty formulation
-    virtual Double RhsL2Norm(Vector<Double>& stdVec);
-
     //! Get coefficient for damping matrix in fractional damping model
     //! \todo This function has to be removed when the fractional
     //! damping model gets implemented in a separate Forms-class
@@ -434,11 +357,6 @@ namespace CoupledField {
   
     //@{
     //! \name Attributes related to geometry and node numbering 
-    UInt numPdeEquations_;  //!< Overall Number of Equations in this PDE 
-    UInt numPdeUnknowns_;  //!< Overall number of Free(!) equations for this PDE
-    UInt numPdeInHomDirBc_;  //!< overall number of inhomogenious BCs for this PDE
-    UInt numElems_;     //!< number of elements in subdomains
-  
     //! defines subtype of mechanic PDE: plainStrain, 3d, ...
     std::string subType_;
     //@}
@@ -516,12 +434,7 @@ namespace CoupledField {
 
     //! material class
     MaterialClass pdematerialclass_;   
-  
-    //! Data Type which decides wheather material is real or complex
-    Global::ComplexPart  matDataType_;
-    //! contains element results of complex valued charge 
-    Vector<Complex> complexValuedCharge_;
-    Vector<Complex> complexValuedEfield_;
+
     //@}
 
 
@@ -583,28 +496,8 @@ namespace CoupledField {
     UInt dim_;                  //!< space dimension of pde
     bool isaxi_;             //!< true: axisymmetric problem
     bool isComplex_;         //!< true, if some part of PDE is complex (Material, solution)
-    //shared_ptr<EqnMap> eqnMap_; //!< new equation handling
     bool needSolPrev_;          //! true, if solution at time step n has also to bve stored
 
-    BaseNodeStoreSol * sol_;    //!< solution
-    SingleVector * solVec_;        //! needed in iterative coupled computation 
-    SingleVector * rhsVec_;        //! needed when writing the RHS to file
-    BaseNodeStoreSol * solPrev_;    //!< solution at time step n
-    SingleVector * solVecPrev_;        //! needed in coupled computation 
-
-    // ======================================================
-    // FeSpace and FeFunction
-    // ======================================================
-    // @{
-    // ! \name FeSpace and Function of the Unknown
-
-    ////! FeSpace Vector associated with the PDE
-    //StdVector<shared_ptr<FeSpace>> feSpaces_;
-
-    ////! FeFunction of the unknown
-    //shared_ptr<BaseFeFunction> feFunction_;
-    //@}
-    
     //! list of damping types for all regions
     std::map<RegionIdType,DampingType> dampingList_;
     
@@ -645,18 +538,23 @@ namespace CoupledField {
     
     //! flag to check if there are initial conditions in the set up
     bool isSetInitialCondition_;
+    
     //! initial value.
     Double InitialCondition_;
     
     //@}
-
-
 
     //! map which associates a Postprocessing result to its corresponding Primary Result
     std::map<SolutionType,SolutionType> postProcResults_;
 
     //! Map Storing FeSpaces for each unknown of PDE
     std::map<SolutionType, shared_ptr<BaseFeFunction> > feFunctions_;
+    
+    //! Map storing the feFunctions of the previous step
+    std::map<SolutionType, shared_ptr<BaseFeFunction> > prevFeFunctions_;
+    
+    //! Map storing the feFunctions of the RHS
+    std::map<SolutionType, shared_ptr<BaseFeFunction> > rhsFeFunctions_;
 
   }; // class StdPDE
 

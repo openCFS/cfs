@@ -36,9 +36,6 @@ namespace CoupledField {
   DirectCoupledPDE::DirectCoupledPDE( Grid *aptgrid, PtrParamNode paramNode )
 
     : StdPDE( aptgrid, paramNode ) {
-
-
-    totalUnknowns_ = 0;
   }
 
 
@@ -68,20 +65,6 @@ namespace CoupledField {
     }
     couplings_.Clear();
 
-    if( solVec_ ) {
-      delete solVec_;
-      solVec_ = NULL;
-    }
-    if( rhsVec_ ) {
-      delete rhsVec_;
-      rhsVec_ = NULL;
-    }
-    if ( needSolPrev_ ) {
-      delete solVecPrev_;
-      solVecPrev_ = NULL;
-    }
-    
-    
     if(assemble_) {
       delete assemble_;
       assemble_ = NULL;
@@ -254,66 +237,13 @@ namespace CoupledField {
 
     // Iterate over all single PDEs and collect data about
     // included boundary conditions
-    for ( UInt i=0; i<singlePDEs_.GetSize(); i++ ) {
-      totalUnknowns_ += singlePDEs_[i]->GetNumPdeEquations();
-    }
 
     if ( analysistype_ == BasePDE::TRANSIENT ) {
       Double dt;
       dt = dynamic_cast<TransientDriver*>(domain->GetSingleDriver())
         ->GetDeltaT();
-      TS_alg_->Init( dt, totalUnknowns_ );
+      TS_alg_->Init( dt, 1 );
     }
-
-
-    // Set correct size of direct solution value
-    if ( analysistype_ == BasePDE::HARMONIC  ) {
-      solVec_ = new Vector<Complex>;
-      rhsVec_ = new Vector<Complex>;
-    }
-    else {
-      solVec_ = new Vector<Double>;
-      rhsVec_ = new Vector<Double>;
-      if ( needSolPrev_ ) {
-        solVecPrev_ = new Vector<Double>;
-        solVecPrev_->Resize(totalUnknowns_);
-      }
-    }
-
-    solVec_->Resize(totalUnknowns_);
-
-    // TEMPORARY CHANGE CHANGE CHANGE
-    BaseNodeStoreSol *ptNodeSol, *ptNodeSolPrev;
-
-    if ( analysistype_ == BasePDE::HARMONIC  ) {
-      solVec_->Init( );
-      Vector<Complex> & solHelp = dynamic_cast<Vector<Complex>&>(*solVec_);
-      for (UInt i=0; i<singlePDEs_.GetSize(); i++) {
-        singlePDEs_[i]->solVec_ = solVec_;
-        ptNodeSol = singlePDEs_[i]->getPDESolution();
-        ptNodeSol->SetAlgSysDataPointer(totalUnknowns_, solHelp.GetPointer());
-      }
-    } else {
-      solVec_->Init( );
-      Vector<Double> & solHelp = dynamic_cast<Vector<Double>&>(*solVec_);
-      for (UInt i=0; i<singlePDEs_.GetSize(); i++) {
-        singlePDEs_[i]->solVec_ = solVec_;
-        ptNodeSol = singlePDEs_[i]->getPDESolution();
-        ptNodeSol->SetAlgSysDataPointer(totalUnknowns_, solHelp.GetPointer());
-      }
-
-      if (  needSolPrev_ ) {
-        solVecPrev_->Init( );
-        Vector<Double> & solHelp = dynamic_cast<Vector<Double>&>(*solVecPrev_);
-        for (UInt i=0; i<singlePDEs_.GetSize(); i++) {
-          singlePDEs_[i]->solVecPrev_ = solVecPrev_;
-          ptNodeSolPrev = singlePDEs_[i]->getPDESolutionPrev();
-          ptNodeSolPrev->SetAlgSysDataPointer(totalUnknowns_, solHelp.GetPointer());
-        }
-      }
-    }
-
-
 
     //! Augment nonlinearity information
     //! from PiezoCoupling, mechPDE and elecPDE
@@ -396,43 +326,6 @@ namespace CoupledField {
     for ( UInt i = 0; i < singlePDEs_.GetSize(); i++ ) {
       singlePDEs_[i]->SetBCs();
     }
-  }
-
-
-
-  // calculates L2-norm of RHS regarding dirichlet entries due to penalty
-  // formulation by setting them 0
-  Double DirectCoupledPDE::RhsL2Norm(Vector<Double>& actRHS)
-  {
-
-    StdVector<Integer> eqns;
-
-    for ( UInt j = 0; j < singlePDEs_.GetSize(); j++ ) {
-
-      IdBcList idbcList = singlePDEs_[j]->GetIDBCList();
-
-      // Eliminate inhom. dirichlet node from RHS (due to penalty formulation)
-      for ( UInt i = 0; i < idbcList.GetSize(); i++ ) {
-
-        // Get grip of current idBC
-        InhomDirichletBc const & actBc = *idbcList[i];
-
-        // Get entity iterator
-        EntityIterator it = actBc.entities->GetIterator();
-
-
-        for ( it.Begin(); !it.IsEnd(); it++ ) {
-          singlePDEs_[j]->GetFeFunction(actBc.result->resultType)->GetFeSpace()->GetEqns( eqns, it, actBc.dof );
-          for(UInt iEqn = 0 ; iEqn < eqns.GetSize();iEqn ++){
-            if ( eqns[iEqn] != 0 ) {
-              actRHS[eqns[iEqn]] = 0.0;
-            }
-          }
-        }
-      }
-    }
-
-    return actRHS.NormL2();
   }
 
 
@@ -546,73 +439,6 @@ namespace CoupledField {
 //      }
 //    }
 
-  }
-
-  void DirectCoupledPDE::GetSolutionVector( SBM_Vector& ) {
-    EXCEPTION("Re-design concept");
-//    return singlePDEs_[0]->GetSolutionVector();
-  }
-
-  void DirectCoupledPDE::GetPrevSolutionVector( SBM_Vector& ) {
-    EXCEPTION("Re-design concept");
-//    return singlePDEs_[0]->GetPrevSolutionVector();
-  }
-
-  void DirectCoupledPDE::SaveSolution( SBM_Vector& ) {
-    REFACTOR;
-//
-//    BaseNodeStoreSol *ptNodeSol;
-//    Vector<Double> & solHelp = dynamic_cast<Vector<Double>&>(*solVec_);
-//    solHelp.Resize(size);
-//
-//    for ( UInt i = 0; i < size; i++ ) {
-//      solHelp[i] = ptSol[i];
-//    }
-//
-//    for (UInt i=0; i<singlePDEs_.GetSize(); i++) {
-//      // set pointer to solution object of the PDE
-//      ptNodeSol = singlePDEs_[i]->getPDESolution();
-//      ptNodeSol->SetAlgSysDataPointer( size, solHelp.GetPointer() );
-//      singlePDEs_[i]->solVec_  = solVec_;
-//
-//    }
-  }
-
-
-  void DirectCoupledPDE::SaveRHS( SBM_Vector& ) {
-    REFACTOR;
-//    Vector<Double> & solHelp = dynamic_cast<Vector<Double>&>(*rhsVec_);
-//    solHelp.Resize(size);
-//
-//    for ( UInt i = 0; i < size; i++ ) {
-//      solHelp[i] = ptSol[i];
-//    }
-//
-//    for (UInt i=0; i<singlePDEs_.GetSize(); i++) {
-//      // set pointer to solution object of the PDE
-//      singlePDEs_[i]->rhsVec_  = rhsVec_;
-//
-//    }
-  }
-
-  void DirectCoupledPDE::SavePrevSolution( SBM_Vector& ) {
-REFACTOR;
-//    if ( needSolPrev_ ) {
-//      BaseNodeStoreSol *ptNodeSol;
-//      Vector<Double> & solHelp = dynamic_cast<Vector<Double>&>(*solVecPrev_);
-//      solHelp.Resize(size);
-//
-//      for ( UInt i = 0; i < size; i++ ) {
-//        solHelp[i] = ptSolPrev[i];
-//      }
-//
-//      for (UInt i=0; i<singlePDEs_.GetSize(); i++) {
-//        // set pointer to solution object of the PDE
-//        ptNodeSol = singlePDEs_[i]->getPDESolutionPrev();
-//        ptNodeSol->SetAlgSysDataPointer( size, solHelp.GetPointer() );
-//        singlePDEs_[i]->solVecPrev_  = solVecPrev_;
-//      }
-//    }
   }
 
   // ********************

@@ -24,10 +24,6 @@ namespace CoupledField {
   StdPDE::StdPDE(Grid *aptgrid, PtrParamNode paramNode ) :
     BasePDE(paramNode),
     ptgrid_(aptgrid),
-    numPdeEquations_(0),
-    numPdeUnknowns_(0),
-    numPdeInHomDirBc_(0),
-    numElems_(0),
     subType_(),
     numCouplingBcs_(0),
     nonLin_(false),
@@ -49,11 +45,6 @@ namespace CoupledField {
     isaxi_(param->Get("domain")->Get("geometryType")->As<std::string>() == "axi"),
     isComplex_(false),    
     needSolPrev_(false),
-    sol_(NULL),  
-    solVec_(NULL),
-    rhsVec_(NULL),
-    solPrev_(NULL),
-    solVecPrev_(NULL),
     fracDamping_(false),
     fracMemory_(0),
     isBiotSavart_(false),
@@ -73,22 +64,6 @@ namespace CoupledField {
   {
     
   }
-//
-//  const Vector<Double>& StdPDE::getDeriv(DERIVType derivType) const {
-//  
-//    if ( TS_alg_ == NULL ) {
-//      EXCEPTION( pdename_ << ":getDeriv: No derivative defined for this PDE" );
-//    }
-//    return TS_alg_->GetDeriv(derivType);
-//  }
-//  
-//  const Vector<Double>& StdPDE::getOld(TIMEStepType timeStepType) const {
-//
-//    if ( TS_alg_ == NULL ) {
-//      EXCEPTION( pdename_ << ":getOld: No time stepping defined for this PDE");
-//    }
-//    return TS_alg_->GetOld(timeStepType);
-//  }
 
   bool StdPDE::HasPeriodicBC()
   {
@@ -101,38 +76,6 @@ namespace CoupledField {
   // ======================================================
   // GRID SECTION (Meshing, ...) 
   // ======================================================
-
-  // calculates L2-norm of RHS regarding dirichlet entries due to penalty 
-  // formulation by setting them 0
-  Double StdPDE::RhsL2Norm(Vector<Double>& actRHS)
-  {
-
-    StdVector<Integer> eqns;
-    shared_ptr<BaseFeFunction> actFunction; 
-    // Eliminate inhom. dirichlet node from RHS (due to penalty formulation)
-    for ( UInt i = 0; i < idBcs_.GetSize(); i++ ) {
-
-      // Get grip of current idBC
-      InhomDirichletBc const & actBc = *idBcs_[i];
-
-      // Get entity iterator
-      EntityIterator it = actBc.entities->GetIterator();
-      
-      for ( it.Begin(); !it.IsEnd(); it++ ) {
-        actFunction = GetFeFunction(actBc.result->resultType);
-        actFunction->GetFeSpace()->GetEqns( eqns, it, actBc.dof );
-        for(UInt iEqn = 0 ; iEqn < eqns.GetSize();iEqn++){
-          if ( eqns[iEqn] != 0 ) {
-            actRHS[eqns[iEqn]] = 0.0;
-          }
-        }
-      }
-    } 
-    
-
-    return actRHS.NormL2();
-  }
-
 
   void StdPDE::CreateMatrices_Solver() {
     
@@ -239,238 +182,6 @@ namespace CoupledField {
     std::map<RegionIdType,DampingType>::const_iterator it = dampingList_.find(reg_id);
 
     return it != dampingList_.end() ? it->second : NONE;
-  }
-
-
-  void StdPDE::GetSolutionVector(SBM_Vector& newSol) {
-    
-    // Okay, again hard-coded stuff
-    newSol.Resize(1);
-    newSol.SetSubVector( CopySingleVectorObject(*solVec_), 0);
-    
-    
-  }
-  
-  void StdPDE::GetPrevSolutionVector(SBM_Vector& ) {
-    EXCEPTION("Implement me");
-  }
-  
-  void StdPDE::GetRHSVector( SBM_Vector& rhs) {
-    EXCEPTION("Implement me");
-  }
-  
-  // real valued method (for TRANSIENT and STATIC)
-  void StdPDE::GetSolVecOfElement( Vector<Double>& elemSol,
-                                   const EntityIterator& it,
-                                   shared_ptr<ResultInfo> res ) {
-    
-    EXCEPTION("This method should be moved to FeFunction");
-
-//    StdVector<Integer> eqns;
-//    shared_ptr<BaseFeFunction> aFct = GetFeFunction(res->resultType);
-//    aFct->GetFeSpace()->GetEqns( eqns, it );
-//
-//
-//    elemSol.Resize( eqns.GetSize() );
-//    elemSol.Init(0);
-//    NodeStoreSol<Double> * solhelp = 
-//      dynamic_cast<NodeStoreSol<Double>*>(sol_);
-//    Vector<Double> & sol = solhelp->GetAlgSysVector();
-//    
-//    for( UInt i = 0; i < eqns.GetSize(); i++ ) {
-//      if ( eqns[i] != 0 ) {
-//        elemSol[i] = sol[abs(eqns[i])-1];
-//      } else {
-//        elemSol[i] = 0.0;
-//      }
-//     }
-  }
-
-
-  // complex valued method (for HARMONIC)
-  void StdPDE::GetSolVecOfElement( Vector<Complex>& elemSol,
-                                   const EntityIterator& it,
-                                   shared_ptr<ResultInfo> res ) {
-
-    EXCEPTION("This method should be moved to FeFunction");
-//    StdVector<Integer> eqns;
-//    shared_ptr<BaseFeFunction> aFct = GetFeFunction(res->resultType);
-//    aFct->GetFeSpace()->GetEqns( eqns, it );
-//
-//
-//    elemSol.Resize( eqns.GetSize() );
-//    elemSol.Init( Complex(0.0, 0.0) );
-//    NodeStoreSol<Complex> * solhelp = 
-//      dynamic_cast<NodeStoreSol<Complex>*>(sol_);
-//    Vector<Complex> & sol = solhelp->GetAlgSysVector();
-//    
-//    for( UInt i = 0; i < eqns.GetSize(); i++ ) {
-//      if ( eqns[i] != 0 ) {
-//        elemSol[i] = sol[abs(eqns[i])-1];
-//      } else {
-//        elemSol[i] = Complex(0.0, 0.0);
-//      }
-//     }
-  }
-
-  
-  // real valued method (for TRANSIENT)
-  void StdPDE::GetDerivSolVecOfElement(Vector<Double>& sol,
-                                       const EntityIterator& it,
-                                       shared_ptr<ResultInfo> res) {
-
-    EXCEPTION("This method should be moved to FeFunction");
-//    StdVector<Integer> eqns;
-//    shared_ptr<BaseFeFunction> aFct = GetFeFunction(res->resultType);
-//    aFct->GetFeSpace()->GetEqns( eqns, it );
-//    sol.Resize( eqns.GetSize() );
-//    sol.Init( 0.0 ); 
-//    
-//    if (  analysistype_ == TRANSIENT) {
-//      const Vector<Double> & sol_der1 = getDeriv(FIRST_DERIV);
-//        
-//      for( UInt i = 0; i < eqns.GetSize(); i++ ) {
-//        if ( eqns[i] != 0 ) {
-//          sol[i] = sol_der1[abs(eqns[i])-1];
-//        } else {
-//          sol[i] = 0.0;
-//        }
-//      }
-//    }
-  }
-
-
-
-  // complex valued method (for HARMONIC)
-  void StdPDE::GetDerivSolVecOfElement(Vector<Complex>& sol,
-                                       const EntityIterator& it,
-                                       shared_ptr<ResultInfo> res) {
-
-    EXCEPTION("This method should be moved to FeFunction");
-//    StdVector<Integer> eqns;
-//    shared_ptr<BaseFeFunction> aFct = GetFeFunction(res->resultType);
-//    aFct->GetFeSpace()->GetEqns( eqns, it );
-//    
-//    sol.Resize( eqns.GetSize() );
-//    sol.Init( 0.0 );
-//    
-//    // we obtain from assemble: frequency =  2*PI*actFreq
-//    Double omega = solveStep_->GetActFreq() * 2 * PI;
-//    Complex jomega = Complex(0.0,omega);
-//    
-//    if ( analysistype_ == HARMONIC ) {
-//      NodeStoreSol<Complex> * solhelp = 
-// 	dynamic_cast<NodeStoreSol<Complex>*>(sol_);
-//      const Vector<Complex> & solAtNode = solhelp->GetAlgSysVector();
-//
-//      for( UInt i = 0; i < eqns.GetSize(); i++ ) {
-//        if ( eqns[i] != 0 ) {
-//          sol[i] = jomega * solAtNode[abs(eqns[i])-1];
-//        } else {
-//          sol[i] = Complex(0.0, 0.0);
-//        }
-//      }
-//    }
-  }
-
-
-
-  // real valued method (for TRANSIENT)
-  void StdPDE::GetDeriv2SolVecOfElement( Vector<Double>& sol,
-                                         const EntityIterator& it,
-                                         shared_ptr<ResultInfo> res) {
-
-    EXCEPTION("This method should be moved to FeFunction");
-//    StdVector<Integer> eqns;
-//    shared_ptr<BaseFeFunction> aFct = GetFeFunction(res->resultType);
-//    aFct->GetFeSpace()->GetEqns( eqns, it );
-//    
-//    sol.Resize( eqns.GetSize() );
-//    sol.Init( 0.0 );
-//    
-//    if ( analysistype_ == TRANSIENT ) {
-//      const Vector<Double> & sol_der2 = getDeriv(SECOND_DERIV);
-//      for( UInt i = 0; i < eqns.GetSize(); i++ ) {
-//        if ( eqns[i] != 0 ) {
-//          sol[i] = sol_der2[abs(eqns[i])-1];
-//        } else {
-//          sol[i] = 0.0;
-//        }
-//      }
-//    }
-  }
-
-
-  // real valued method (for HARMONIC)
-  void StdPDE::GetDeriv2SolVecOfElement( Vector<Complex>& sol,
-                                         const EntityIterator& it,
-                                         shared_ptr<ResultInfo> res) {
-
-
-    StdVector<Integer> eqns;
-    shared_ptr<BaseFeFunction> aFct = GetFeFunction(res->resultType);
-    aFct->GetFeSpace()->GetEqns( eqns, it );
-    
-    sol.Resize( eqns.GetSize() );
-    sol.Init( 0.0 );
-    
-    // we obtain from assemble: frequency 
-    Double omega = solveStep_->GetActFreq() * 2 * PI;
-    
-    if ( analysistype_ == HARMONIC ) {
-      NodeStoreSol<Complex> * solhelp = 
- 	dynamic_cast<NodeStoreSol<Complex>*>(sol_);
-      Vector<Complex> & solAtNode = solhelp->GetAlgSysVector();
-
-      for( UInt i = 0; i < eqns.GetSize(); i++ ) {
-        if ( eqns[i] != 0 ) {
-          sol[i] = - omega * omega *solAtNode[abs(eqns[i])-1];
-        } else {
-          sol[i] = Complex(0.0, 0.0);
-        }
-      }
-    }
-  }
-
-  // real valued method (for TRANSIENT ): returns previous solution
-  //                                      for element
-  void StdPDE::GetPrevSolVecOfElement( Vector<Double>& elemSol,
-                                       const EntityIterator& it,
-                                       shared_ptr<ResultInfo> res ) {
-
-    if ( solPrev_ == NULL ) 
-      EXCEPTION("Previous Solution not defined");
-
-    StdVector<Integer> eqns;
-    shared_ptr<BaseFeFunction> aFct = GetFeFunction(res->resultType);
-    aFct->GetFeSpace()->GetEqns( eqns, it );
-
-
-    elemSol.Resize( eqns.GetSize() );
-    elemSol.Init(0);
-    NodeStoreSol<Double> * solhelp = 
-      dynamic_cast<NodeStoreSol<Double>*>(solPrev_);
-    Vector<Double> & sol = solhelp->GetAlgSysVector();
-    
-    for( UInt i = 0; i < eqns.GetSize(); i++ ) {
-      if ( eqns[i] != 0 ) {
-        elemSol[i] = sol[abs(eqns[i])-1];
-      } else {
-        elemSol[i] = 0.0;
-      }
-     }
-  }
-
-  //stores an algsys_ vector into an StdVector
-  void StdPDE::StoreAlgsysToVec(Vector<Double>& vec, Double * pt) {
-
-
-    const UInt numElems = numPdeUnknowns_;
-
-    vec.Resize(numElems);
-    for (UInt i=0; i<numElems; i++) {
-      vec[i] = pt[i];
-    }
   }
 
 

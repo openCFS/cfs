@@ -19,10 +19,9 @@ namespace CoupledField {
 
   // forward class declarations
   class FeSpace;
-//  class StdPDE;
   class SinglePDE;
   class MathParser;
-//  class AlgebraicSys;
+  class BaseResult;
 
 //!  Base class for a function approximated by Finite Elements 
 /*!
@@ -51,6 +50,9 @@ public:
   
   //! Destructor
   virtual ~BaseFeFunction();
+  
+  //! Finalize initialization
+  virtual void Finalize() = 0;
   
   // ========================================================================
   //  Function Meta Information
@@ -82,10 +84,10 @@ public:
   FeFctIdType GetFctId() const {return fctId_;}
   
   //! Set the PDE pointer of the function
-  void SetPDE(shared_ptr<SinglePDE> pde);
+  void SetPDE(SinglePDE* pde);
 
   //! Get the PDE Pointer
-  shared_ptr<SinglePDE> GetPDE();
+  SinglePDE* GetPDE();
 
   //! Set the PDE pointer of the function
   void SetGrid(shared_ptr<Grid>  grid);
@@ -148,14 +150,20 @@ public:
   
   //! Get solution for specific entity
   virtual void GetEntitySolution( SingleVector& elemSol, 
-                        const EntityIterator& it );
+                        const EntityIterator& it ) = 0;
                         
   //! Get solution as matrix for specific entity
   virtual void GetEntitySolutionAsMatrix( DenseMatrix& elemSol,
-                                  const EntityIterator& it );
+                                  const EntityIterator& it ) = 0;
+  
+  //! Copy values into result object
+  virtual void ExtractResult( shared_ptr<BaseResult> res ) = 0;
+  
+  //! Return vector containing the function coefficients
+  virtual SingleVector* GetSingleVector() = 0;
   
   //! Compute the BC values and hand them over to the Algebraic System
-  virtual void ApplyBC(){};
+   virtual void ApplyBC() = 0;
   //@}
   
 
@@ -187,7 +195,7 @@ protected:
 
   //! Pointer to the creating PDE
   //shared_ptr<StdPDE> pde_;
-  shared_ptr<SinglePDE> pde_;
+  SinglePDE* pde_;
 
   //! Pointer to the grid 
   shared_ptr<Grid> grid_;
@@ -214,50 +222,47 @@ public:
 
   virtual ~FeFunction();
 
+  //! \see BaseFeFunction::Finalize()
+  void Finalize();
+  
   /////////////////////////////////////////////////////////////////
   // Solution Access functions 
   /////////////////////////////////////////////////////////////////
   //
+  
+  //! Copy values into result object
+  void ExtractResult( shared_ptr<BaseResult> res ); 
+  
   //! Get solution for specific entity
   void GetEntitySolution( SingleVector& elemSol, 
-                        const EntityIterator& it );
+                          const EntityIterator& it );
+  
+   //! Get solution as matrix for specific entity
+  void GetEntitySolutionAsMatrix( DenseMatrix& elemSol,
+                                   const EntityIterator& it );
+  
   
   //! Get solution for specific element 
   void GetElemSolution( Vector<T>& elemSol,
                         const Elem* elem );
-                        
-  //! Get solution as matrix for specific entity
-  void GetEntitySolutionAsMatrix( DenseMatrix& elemSol,
-                                  const EntityIterator& it );
+  
+  //! Return vector containing the function coefficients
+  SingleVector* GetSingleVector() {return &coeffs_;}
+    
+  //! Return complete coefficient vector
+  Vector<T>& GetVector() {return coeffs_;}
+  
+  //! Return complete coefficient vector (const)
+  const Vector<T>& GetVector() const {return coeffs_;}
 
   virtual void ApplyBC();
+  
+  
 protected:
 
   //! Coefficient vector
   Vector<T> coeffs_;
 };
-
-///////////////////////////////////////////////////////////////////
-//// Specialized version for  different treatment of Boundary Conditions
-///////////////////////////////////////////////////////////////////
-//template<>
-//class FeFunction<Double> : public BaseFeFunction {
-//public:
-//  FeFunction(){};
-//
-//  ~FeFunction(){};
-//    virtual void ApplyBC();
-//};
-//
-//template<>
-//class FeFunction<Complex> : public BaseFeFunction {
-//public:
-//  FeFunction(){};
-//
-//  ~FeFunction(){};
-//    virtual void ApplyBC();
-//};
-
 
 }  // namespace CoupledField
 #endif

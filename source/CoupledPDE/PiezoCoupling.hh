@@ -6,8 +6,6 @@
 #define FILE_PIEZOCOUPLING_HH
 
 #include "BasePairCoupling.hh"
-#include "Utils/elemstoresol.hh"
-#include "Utils/nodestoresol.hh"
 #include "PDE/SinglePDE.hh"
 
 

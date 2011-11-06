@@ -188,7 +188,7 @@ namespace CoupledField {
     
   }
   
-  void LinearFormContext::SetPtPde(shared_ptr<SinglePDE> ptPde ) {
+  void LinearFormContext::SetPtPde(SinglePDE* ptPde ) {
     
     ptPde_ = ptPde;
     //map_ = ptPde_->GetEqnMap();

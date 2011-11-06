@@ -6,7 +6,6 @@
 #define FILE_CFS_RESULTHANDLER_HH
 
 #include "Utils/result.hh"
-#include "Utils/nodestoresol.hh"
 #include "PDE/basePDE.hh"
 
 namespace CoupledField {

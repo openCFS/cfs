@@ -5,9 +5,11 @@
 #include "fefunction.hh"
 #include "PDE/SinglePDE.hh"
 #include "OLAS/algsys/algebraicSys.hh"
-
+#include "DataInOut/Logging/cfslog.hh"
 namespace CoupledField {
-
+DECLARE_LOG(fefunc)
+ DEFINE_LOG(fefunc, "feFunction")
+ 
   BaseFeFunction::BaseFeFunction(){
     
     fctId_ = NO_FCT_ID;
@@ -48,12 +50,12 @@ namespace CoupledField {
   }
   
   //! Set the PDE pointer of the function
-  void BaseFeFunction::SetPDE(shared_ptr<SinglePDE> pde){
+  void BaseFeFunction::SetPDE(SinglePDE* pde){
     pde_ = pde;
   }
 
   //! Get the PDE Pointer
-  shared_ptr<SinglePDE> BaseFeFunction::GetPDE(){
+  SinglePDE* BaseFeFunction::GetPDE(){
     return pde_;
   }
 
@@ -91,17 +93,10 @@ namespace CoupledField {
   void BaseFeFunction::AddConstraint( shared_ptr<Constraint> bc ){
     constraints_.Push_back(bc);
   }
-
-  //! Get solution for specific entity
-  void BaseFeFunction::GetEntitySolution( SingleVector& elemSol, 
-                        const EntityIterator& it ){
-  }
-                        
-  //! Get solution as matrix for specific entity
-  void BaseFeFunction::GetEntitySolutionAsMatrix( DenseMatrix& elemSol,
-                                  const EntityIterator& it ){
-  }
-
+  
+  // ========================================================================
+  //  T E M P L A T I Z E D    V E R S I O N 
+  // ========================================================================
 
   template<typename T>
   FeFunction<T>::FeFunction(){
@@ -110,57 +105,96 @@ namespace CoupledField {
   template<typename T>
   FeFunction<T>::~FeFunction(){
   }
-
+  
   template<typename T>
-  void FeFunction<T>::GetEntitySolution( SingleVector& elemSol, 
-                        const EntityIterator& it ){
-    EXCEPTION("Not working: coeffs_ vector is not initialized yet");
-//    Vector<T> & temp = dynamic_cast<Vector<T>&>(elemSol);
-//    StdVector<Integer> eqns;
-//    feSpace_->GetEqns(eqns, it);
-//    temp.Resize(eqns.GetSize());
-//    for(UInt iDof = 0 ; iDof < eqns.GetSize(); iDof++){
-//      temp[iDof] = coeffs_[eqns[iDof]]; 
-//    }
+  void FeFunction<T>::Finalize(){
+    coeffs_.Resize( feSpace_->GetNumEquations());
   }
 
   template<typename T>
-  void FeFunction<T>::GetElemSolution( Vector<T>& elemSol,
-                                         const Elem* elem ) {
-    EXCEPTION("Not working: coeffs_ vector is not initialized yet");
-//    StdVector<Integer> eqns;
-//    
-//    feSpace_->GetElemEqns(eqns, elem);
-//    std::cerr << "eqns of elem " << elem->elemNum << "are: " << eqns.ToString() << std::endl;
-//    std::cerr << "size of coefficients is " << coeffs_.GetSize() << std::endl;
-//    elemSol.Resize(eqns.GetSize());
-//    for(UInt i= 0 ; i< eqns.GetSize(); i++){
-//      if( eqns[i] != 0 ) {
-//        elemSol[i] = coeffs_[std::abs(eqns[i])]; 
-//      } else {
-//        elemSol[i] = 0.0;
-//      }
-//    }
+  void FeFunction<T>::ExtractResult( shared_ptr<BaseResult> baseRes ) {
+
+    ResultInfo& resInfo = *(baseRes->GetResultInfo() );
+    //UInt numDofs = resInfo.dofNames.GetSize();
+    shared_ptr<EntityList> list = baseRes->GetEntityList();
+    Vector<T> & actSol = dynamic_cast<Result<T>&>(*baseRes).GetVector();
+    actSol.Resize( list->GetSize() * resInfo.dofNames.GetSize() );
+    EntityIterator it = list->GetIterator();
+    actSol.Init();
+
+    StdVector<Integer> eqnNums;
+    UInt pos = 0;
+    for ( it.Begin(); !it.IsEnd(); it++ ) {
+
+      // get equation numbers
+      feSpace_->GetEqns( eqnNums, it );
+      for ( UInt iDof = 0; iDof < eqnNums.GetSize(); iDof++ ){
+   
+        // check for homogeneous Dirichlet boundary condition
+        if ( eqnNums[iDof] != 0 ) {
+          actSol[pos++] = coeffs_[abs(eqnNums[iDof])-1];
+        } else {
+          actSol[pos++] = 0.0;
+        }
+      }
+    }
+  }
+  
+  template<typename T>
+  void FeFunction<T>::GetEntitySolution( SingleVector& elemSol, 
+                                         const EntityIterator& it ){
+    Vector<T> & temp = dynamic_cast<Vector<T>&>(elemSol);
+    StdVector<Integer> eqns;
+    feSpace_->GetEqns(eqns, it);
+    temp.Resize(eqns.GetSize());
+    for(UInt iDof = 0 ; iDof < eqns.GetSize(); iDof++){
+      if( eqns[iDof] != 0 ) {
+        temp[iDof] = coeffs_[eqns[iDof]-1];
+      } else {
+        temp[iDof] = 0.0;
+      }
+    }
   }
 
   //! Get solution as matrix for specific entity
+   template<typename T>
+   void FeFunction<T>::GetEntitySolutionAsMatrix( DenseMatrix& elemSol,
+                                   const EntityIterator& it ){
+     //for now we put the unkowns in the columns
+     //and the dof entrys in rows
+     Matrix<T> & temp = dynamic_cast<Matrix<T>&>(elemSol);
+     UInt dofsPerUnknown = result_->dofNames.GetSize();
+     StdVector<Integer> eqns;
+     temp.Resize(feSpace_->GetNumFunctions(it), dofsPerUnknown);
+     for(UInt iDof = 0 ; iDof < dofsPerUnknown ; iDof++){
+       feSpace_->GetEqns(eqns, it,iDof);
+       for(UInt iEqn = 0;iEqn < eqns.GetSize() ; iEqn++){
+         if( eqns[iEqn] > 0 ) {
+         temp[iDof][iEqn] = coeffs_[eqns[iEqn]-1];
+       } else {
+         temp[iDof][iEqn] = 0.0;
+       }
+     }
+   }
+   }
+   
   template<typename T>
-  void FeFunction<T>::GetEntitySolutionAsMatrix( DenseMatrix& elemSol,
-                                  const EntityIterator& it ){
-    EXCEPTION("Not working: coeffs_ vector is not initialized yet");
-//    //for now we put the unkowns in the columns
-//    //and the dof entrys in rows
-//    Matrix<T> & temp = dynamic_cast<Matrix<T>&>(elemSol);
-//    UInt dofsPerUnknown = result_->dofNames.GetSize();
-//    StdVector<Integer> eqns;
-//    temp.Resize(feSpace_->GetNumFunctions(it), dofsPerUnknown);
-//    for(UInt iDof = 0 ; iDof < dofsPerUnknown ; iDof++){
-//      feSpace_->GetEqns(eqns, it,iDof);
-//      for(UInt iEqn = 0;iEqn < eqns.GetSize() ; iEqn++){
-//        temp[iDof][iEqn] = coeffs_[eqns[iEqn]];
-//      }
-//    }
+  void FeFunction<T>::GetElemSolution( Vector<T>& elemSol,
+                                         const Elem* elem ) {
+    StdVector<Integer> eqns;
+    
+    feSpace_->GetElemEqns(eqns, elem);
+    elemSol.Resize(eqns.GetSize());
+    for(UInt i= 0 ; i< eqns.GetSize(); i++){
+      if( eqns[i] != 0 ) {
+        elemSol[i] = coeffs_[std::abs(eqns[i])-1]; 
+      } else {
+        elemSol[i] = 0.0;
+      }
+    }
   }
+
+ 
 
   template<typename T>
   void   FeFunction<T>::ApplyBC(){

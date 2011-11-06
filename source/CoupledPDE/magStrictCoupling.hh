@@ -7,8 +7,6 @@
 #define FILE_MAGNETOSTRICTION_COUPLING_HH_
 
 #include "BasePairCoupling.hh"
-#include "Utils/elemstoresol.hh"
-#include "Utils/nodestoresol.hh"
 #include "PDE/SinglePDE.hh"
 
 namespace CoupledField {

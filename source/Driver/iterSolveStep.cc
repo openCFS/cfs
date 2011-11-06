@@ -11,6 +11,7 @@
 #include "CoupledPDE/itercoupledpde.hh"
 #include "CoupledPDE/pdecoupling.hh"
 #include "DataInOut/ResultCache.hh"
+#include "DataInOut/WriteInfo.hh"
 
 namespace CoupledField
 {

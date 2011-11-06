@@ -10,13 +10,13 @@
 
 #include "stdSolveStep.hh"
 #include "assemble.hh"
-#include "Utils/nodestoresol.hh"
 #include "PDE/StdPDE.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/ResultCache.hh"
 #include "Utils/result.hh"
 #include "Utils/biotSavart.hh" 
 #include "Driver/singleDriver.hh"
+#include "DataInOut/WriteInfo.hh"
 
 #include "OLAS/algsys/algebraicSys.hh"
 
@@ -30,14 +30,11 @@ namespace CoupledField {
 
 
     pdename_      = PDE_.GetName();
-    numPDENodes_  = PDE_.GetNumPdeEquations();
-    numPDEElems_  = PDE_.getPDE_numElems();
     isaxi_        = PDE_.GetIsaxi();
     subdoms_      = PDE_.getPDE_subdoms();
     materialData_ = PDE_.getPDEMaterialData();
     ptgrid_       = PDE_.getPDE_grid();
     algsys_       = PDE_.getPDE_algsys();
-    sol_          = PDE_.getPDESolution();
     assemble_     = PDE_.getPDE_assemble();
     TS_alg_       = PDE_.getTimeStepping();
 
@@ -47,6 +44,34 @@ namespace CoupledField {
 
     results_      = PDE_.GetResultInfos();
 
+    // copy FE functions of PDE
+    feFunctions_ = PDE_.GetFeFunctions();
+    rhsFeFunctions_ = PDE_.GetRhsFeFunctions();
+    
+    // Copy vectors FE functions in SBM-vector for communication
+    // with OLAS and time stepping
+    solVec_.SetSize( feFunctions_.size() );
+    rhsVec_.SetSize( feFunctions_.size() );
+    
+    std::map<SolutionType, shared_ptr<BaseFeFunction> >::iterator it;
+    it = feFunctions_.begin();
+    UInt pos = 0;
+    for( ; it != feFunctions_.end(); ++it ){
+      shared_ptr<BaseFeFunction> & ptFct = it->second;
+      solVec_.SetSubVector(ptFct->GetSingleVector(), pos++);
+    }
+    pos = 0;
+    it = rhsFeFunctions_.begin();
+    for( ; it != rhsFeFunctions_.end(); ++it ){
+      shared_ptr<BaseFeFunction> & ptFct = it->second;
+      rhsVec_.SetSubVector(ptFct->GetSingleVector(), pos++);
+    }
+    // Make sure to have both vectors as "weak" vectors,
+    // as the feFunctions themselves are responsible for
+    // creation and destruction.
+    solVec_.SetOwnership(false);
+    rhsVec_.SetOwnership(false);
+    
     // nonlinear parameters
     incStopCrit_ = 1e-2;
     residualStopCrit_ = 1e-3;
@@ -142,9 +167,7 @@ namespace CoupledField {
     PDE_.SetBCs();
 
     // store rhs vector back to PDE
-    SBM_Vector tmpRhs(BaseMatrix::DOUBLE);
-    algsys_->GetRHSVal(tmpRhs);
-    PDE_.SaveRHS( tmpRhs );
+    algsys_->GetRHSVal(rhsVec_);
 
     // Only if the matrices have changed (e.g. due to updated lagrangian
     // formulation) the system matrix has to be rebuild
@@ -166,228 +189,227 @@ namespace CoupledField {
     algsys_->Solve(analysis_id);
 
     // Get the solution and store it
-    SBM_Vector tmpSol(BaseMatrix::DOUBLE);
-    algsys_->GetSolutionVal(tmpSol);
-    PDE_.SaveSolution(tmpSol);
+    algsys_->GetSolutionVal(solVec_);
   }
 
 
   void StdSolveStep::StepStaticNonLin(PtrParamNode analysis_id)
   {
+    REFACTOR;
 
-    bool performOneMoreStep;
-
-    SBM_Vector solInc(BaseMatrix::DOUBLE);
-
-    //get actual solution
-    SBM_Vector  actSol(BaseMatrix::DOUBLE);
-    PDE_.GetSolutionVector(actSol);
-
-    // set the boundary conditions
-    PDE_.SetBCs();
-
-    //perform the load-steps
-    Double loadFactor = 0.0;
-
-    // currently just for testing!!
-    // loop over load factor
-    for ( UInt iload=0; iload<1; iload++ ) {
-      loadFactor += 1.0;
-      info->Get("PDE")->Get(pdename_)->Get("load_factor")->SetValue(loadFactor);
-
-      // setup right hand side
-      Double RhsLinL2Norm = SetLinRHS(loadFactor);
-      std::cerr << "RhsLinL2Norm: " << RhsLinL2Norm << std::endl;
-      
-      // assemble nonlinear pars to RHS
-      assemble_->AssembleNonLinRHS();
-
-      // set iteration counter
-      UInt iterationCounter=0;
-
-      do
-        {
-          iterationCounter++;
-          // RHS is already set up!!
-      
-          PtrParamNode child_id = BaseDriver::CreateAnalysisIdChild(analysis_id, "nonLin", iterationCounter);
-          
-          // setup and solve new system (rhs is already set) =====================
-          //assemble_.InitNonLinMatrices();
-          assemble_->AssembleMatrices();
-
-          algsys_->ConstructEffectiveMatrix(matrix_factor_);
-          algsys_->BuildInDirichlet();
-          algsys_->SetupPrecond(analysis_id);
-          algsys_->SetupSolver(analysis_id);
-          algsys_->Solve(analysis_id);
-
-          // new solution is only an increment of the full solution =============
-          algsys_->GetSolutionVal( solInc );
-
-          Double residualL2Norm = 0.0;
-          Double etaLineSearch  = 1.0;
-          if ( lineSearch_ == "none" ) {
-            actSol.Add(1.0, solInc);
-//            actSol += solInc;
-          }
-          else {
-            // true is for transient simulation
-            residualL2Norm = LineSearch(solInc, actSol, etaLineSearch);
-          }
-
-          // store the new solution
-          PDE_.SaveSolution( actSol);
-
-          if ( lineSearch_ == "none" ) {
-            // recalculate RHS with new values to get new residual (f^(k+1))========
-            algsys_->InitRHS(RhsLinVal_);
-            assemble_->AssembleNonLinRHS();  
-
-            // compute the norm of the residual
-            SBM_Vector actRHS(BaseMatrix::DOUBLE);
-            algsys_->GetRHSVal(actRHS);
-
-            // calculation of residual error =======================================
-            residualL2Norm = actRHS.NormL2(); // L2Norm of  ( f_i^(k+1) - f_a )
-          } else {
-            algsys_->InitRHS(RhsLinVal_ );
-            assemble_->AssembleNonLinRHS();
-          }
-
-          // calculation of residual error =======================================
-          Double residualErr;
-          if ( RhsLinL2Norm > 1.0 )
-            residualErr = residualL2Norm / RhsLinL2Norm;
-          else
-            residualErr = residualL2Norm;
-
-          // calculate incremental error ========================================
-      	  Double incrementalErr;
-      	  Double solIncrL2Norm = solInc.NormL2();
-          Double actSolL2Norm  = actSol.NormL2();
-
-          if ( actSolL2Norm )
-            incrementalErr = solIncrL2Norm / actSolL2Norm;
-          else {
-            incrementalErr = solIncrL2Norm;
-            WARN("Zero solution vector!! ");
-          }
-
-          // output of norms and data
-          if ( nonLinLogging_ == true ) {
-            WriteNonLinIterToInfoXML(pdename_, iterationCounter, residualErr, incrementalErr, etaLineSearch);
-            // write norm to file
-            logFile_ <<  iterationCounter << "\t"
-                << residualErr << "\t"
-                << incrementalErr << "\t"
-                << etaLineSearch << std::endl;
-          }
-
-          // boolean variable, holds condition if another iteration step is necessary
-          performOneMoreStep =
-            (incrementalErr > incStopCrit_) || (residualErr > residualStopCrit_);
-
-        } while(performOneMoreStep && iterationCounter < nonLinMaxIter_);
-
-    } // load step loop
+//    bool performOneMoreStep;
+//
+//    SBM_Vector solInc(BaseMatrix::DOUBLE);
+//
+//    //get actual solution
+//    SBM_Vector  actSol(BaseMatrix::DOUBLE);
+//    PDE_.GetSolutionVector(actSol);
+//
+//    // set the boundary conditions
+//    PDE_.SetBCs();
+//
+//    //perform the load-steps
+//    Double loadFactor = 0.0;
+//
+//    // currently just for testing!!
+//    // loop over load factor
+//    for ( UInt iload=0; iload<1; iload++ ) {
+//      loadFactor += 1.0;
+//      info->Get("PDE")->Get(pdename_)->Get("load_factor")->SetValue(loadFactor);
+//
+//      // setup right hand side
+//      Double RhsLinL2Norm = SetLinRHS(loadFactor);
+//      std::cerr << "RhsLinL2Norm: " << RhsLinL2Norm << std::endl;
+//      
+//      // assemble nonlinear pars to RHS
+//      assemble_->AssembleNonLinRHS();
+//
+//      // set iteration counter
+//      UInt iterationCounter=0;
+//
+//      do
+//        {
+//          iterationCounter++;
+//          // RHS is already set up!!
+//      
+//          PtrParamNode child_id = BaseDriver::CreateAnalysisIdChild(analysis_id, "nonLin", iterationCounter);
+//          
+//          // setup and solve new system (rhs is already set) =====================
+//          //assemble_.InitNonLinMatrices();
+//          assemble_->AssembleMatrices();
+//
+//          algsys_->ConstructEffectiveMatrix(matrix_factor_);
+//          algsys_->BuildInDirichlet();
+//          algsys_->SetupPrecond(analysis_id);
+//          algsys_->SetupSolver(analysis_id);
+//          algsys_->Solve(analysis_id);
+//
+//          // new solution is only an increment of the full solution =============
+//          algsys_->GetSolutionVal( solInc );
+//
+//          Double residualL2Norm = 0.0;
+//          Double etaLineSearch  = 1.0;
+//          if ( lineSearch_ == "none" ) {
+//            actSol.Add(1.0, solInc);
+////            actSol += solInc;
+//          }
+//          else {
+//            // true is for transient simulation
+//            residualL2Norm = LineSearch(solInc, actSol, etaLineSearch);
+//          }
+//
+//          // store the new solution
+//          PDE_.SaveSolution( actSol);
+//
+//          if ( lineSearch_ == "none" ) {
+//            // recalculate RHS with new values to get new residual (f^(k+1))========
+//            algsys_->InitRHS(RhsLinVal_);
+//            assemble_->AssembleNonLinRHS();  
+//
+//            // compute the norm of the residual
+//            SBM_Vector actRHS(BaseMatrix::DOUBLE);
+//            algsys_->GetRHSVal(actRHS);
+//
+//            // calculation of residual error =======================================
+//            residualL2Norm = actRHS.NormL2(); // L2Norm of  ( f_i^(k+1) - f_a )
+//          } else {
+//            algsys_->InitRHS(RhsLinVal_ );
+//            assemble_->AssembleNonLinRHS();
+//          }
+//
+//          // calculation of residual error =======================================
+//          Double residualErr;
+//          if ( RhsLinL2Norm > 1.0 )
+//            residualErr = residualL2Norm / RhsLinL2Norm;
+//          else
+//            residualErr = residualL2Norm;
+//
+//          // calculate incremental error ========================================
+//      	  Double incrementalErr;
+//      	  Double solIncrL2Norm = solInc.NormL2();
+//          Double actSolL2Norm  = actSol.NormL2();
+//
+//          if ( actSolL2Norm )
+//            incrementalErr = solIncrL2Norm / actSolL2Norm;
+//          else {
+//            incrementalErr = solIncrL2Norm;
+//            WARN("Zero solution vector!! ");
+//          }
+//
+//          // output of norms and data
+//          if ( nonLinLogging_ == true ) {
+//            WriteNonLinIterToInfoXML(pdename_, iterationCounter, residualErr, incrementalErr, etaLineSearch);
+//            // write norm to file
+//            logFile_ <<  iterationCounter << "\t"
+//                << residualErr << "\t"
+//                << incrementalErr << "\t"
+//                << etaLineSearch << std::endl;
+//          }
+//
+//          // boolean variable, holds condition if another iteration step is necessary
+//          performOneMoreStep =
+//            (incrementalErr > incStopCrit_) || (residualErr > residualStopCrit_);
+//
+//        } while(performOneMoreStep && iterationCounter < nonLinMaxIter_);
+//
+//    } // load step loop
 
   }
 
 
   void StdSolveStep::StepStaticNonLinTotal(PtrParamNode analysis_id)
   {
-
-    bool performOneMoreStep;
-    std::cout << "In  stdSolveStep-NL-Total" << std::endl;
-
-    SBM_Vector prevSol(BaseMatrix::DOUBLE);
-
-    //get actual solution
-    SBM_Vector  actSol(BaseMatrix::DOUBLE), temp(BaseMatrix::DOUBLE);
-    PDE_.GetSolutionVector(actSol);
-
-    // set the boundary conditions
-    PDE_.SetBCs();
-
-    //perform the load-steps
-    Double loadFactor = 0.0;
-
-    // currently just for testing!!
-    // loop over load factor
-    for ( UInt iload=0; iload<1; iload++ ) {
-      loadFactor += 1.0;
-      Info->PrintF(pdename_, "\n");
-      Info->PrintF(pdename_, "LoadFactor: %g \n", loadFactor);
-
-      // setup right hand side
-      Double RhsLinL2Norm = SetLinRHS(loadFactor);
-
-      // set iteration counter
-      UInt iterationCounter=0;
-
-      do
-        {
-          iterationCounter++;
-
-          //init RHS with linear part!
-          algsys_->InitRHS(RhsLinVal_);
-
-          // copy current solution, with which we start, to previous solution
-          prevSol = actSol;
-
-          // RHS is already set up!!
-          PtrParamNode child_id = BaseDriver::CreateAnalysisIdChild(analysis_id, "nonLin", iterationCounter);
-          
-          // setup and solve new system (rhs is already set) =====================
-          //assemble_.InitNonLinMatrices();
-          assemble_->AssembleMatrices();
-
-          algsys_->ConstructEffectiveMatrix(matrix_factor_);
-          algsys_->BuildInDirichlet();
-          algsys_->SetupPrecond(analysis_id);
-          algsys_->SetupSolver(analysis_id);
-          algsys_->Solve(analysis_id);
-
-          // new solution 
-          algsys_->GetSolutionVal( actSol );
-          //          std::cout << "actSol:\n" << actSol << std::endl;
-
-          // store the new solution
-          PDE_.SaveSolution( actSol );
-
-          // compute L2-Norm of error between last incremental solution and
-          // actual incremental solution
-          Double solIncrL2Norm=0;
-          temp.Add(1.0, actSol, -1.0, prevSol);
-          solIncrL2Norm = temp.NormL2();
-          Double actSolL2Norm = actSol.NormL2();
-    
-          Double incrementalErr, residualErr;
-          if (actSolL2Norm > 1)
-            incrementalErr = solIncrL2Norm / actSolL2Norm;
-          else
-            incrementalErr = solIncrL2Norm;
- 
-          //just dummies for log-file
-          Double etaLineSearch = RhsLinL2Norm;
-          etaLineSearch = 1.0;
-          residualErr   = incrementalErr;
-
-          // output of norms and data
-          if ( nonLinLogging_ == true )
-            WriteNonLinIterToInfoXML(pdename_, iterationCounter, residualErr, incrementalErr, etaLineSearch);
-
-          // boolean variable, holds condition if another iteration step is necessary
-          performOneMoreStep =
-            (incrementalErr > incStopCrit_) || (residualErr > residualStopCrit_);
-
-          //set previous solution of iteration to actual solution
-          //prevSol = actSol;
-
-        } while(performOneMoreStep && iterationCounter < nonLinMaxIter_);
-
-    } // load step loop
+    REFACTOR;
+//    bool performOneMoreStep;
+//    std::cout << "In  stdSolveStep-NL-Total" << std::endl;
+//
+//    SBM_Vector prevSol(BaseMatrix::DOUBLE);
+//
+//    //get actual solution
+//    SBM_Vector  actSol(BaseMatrix::DOUBLE), temp(BaseMatrix::DOUBLE);
+//    PDE_.GetSolutionVector(actSol);
+//
+//    // set the boundary conditions
+//    PDE_.SetBCs();
+//
+//    //perform the load-steps
+//    Double loadFactor = 0.0;
+//
+//    // currently just for testing!!
+//    // loop over load factor
+//    for ( UInt iload=0; iload<1; iload++ ) {
+//      loadFactor += 1.0;
+//      Info->PrintF(pdename_, "\n");
+//      Info->PrintF(pdename_, "LoadFactor: %g \n", loadFactor);
+//
+//      // setup right hand side
+//      Double RhsLinL2Norm = SetLinRHS(loadFactor);
+//
+//      // set iteration counter
+//      UInt iterationCounter=0;
+//
+//      do
+//        {
+//          iterationCounter++;
+//
+//          //init RHS with linear part!
+//          algsys_->InitRHS(RhsLinVal_);
+//
+//          // copy current solution, with which we start, to previous solution
+//          prevSol = actSol;
+//
+//          // RHS is already set up!!
+//          PtrParamNode child_id = BaseDriver::CreateAnalysisIdChild(analysis_id, "nonLin", iterationCounter);
+//          
+//          // setup and solve new system (rhs is already set) =====================
+//          //assemble_.InitNonLinMatrices();
+//          assemble_->AssembleMatrices();
+//
+//          algsys_->ConstructEffectiveMatrix(matrix_factor_);
+//          algsys_->BuildInDirichlet();
+//          algsys_->SetupPrecond(analysis_id);
+//          algsys_->SetupSolver(analysis_id);
+//          algsys_->Solve(analysis_id);
+//
+//          // new solution 
+//          algsys_->GetSolutionVal( actSol );
+//          //          std::cout << "actSol:\n" << actSol << std::endl;
+//
+//          // store the new solution
+//          PDE_.SaveSolution( actSol );
+//
+//          // compute L2-Norm of error between last incremental solution and
+//          // actual incremental solution
+//          Double solIncrL2Norm=0;
+//          temp.Add(1.0, actSol, -1.0, prevSol);
+//          solIncrL2Norm = temp.NormL2();
+//          Double actSolL2Norm = actSol.NormL2();
+//    
+//          Double incrementalErr, residualErr;
+//          if (actSolL2Norm > 1)
+//            incrementalErr = solIncrL2Norm / actSolL2Norm;
+//          else
+//            incrementalErr = solIncrL2Norm;
+// 
+//          //just dummies for log-file
+//          Double etaLineSearch = RhsLinL2Norm;
+//          etaLineSearch = 1.0;
+//          residualErr   = incrementalErr;
+//
+//          // output of norms and data
+//          if ( nonLinLogging_ == true )
+//            WriteNonLinIterToInfoXML(pdename_, iterationCounter, residualErr, incrementalErr, etaLineSearch);
+//
+//          // boolean variable, holds condition if another iteration step is necessary
+//          performOneMoreStep =
+//            (incrementalErr > incStopCrit_) || (residualErr > residualStopCrit_);
+//
+//          //set previous solution of iteration to actual solution
+//          //prevSol = actSol;
+//
+//        } while(performOneMoreStep && iterationCounter < nonLinMaxIter_);
+//
+//    } // load step loop
 
   }
 
@@ -440,9 +462,7 @@ namespace CoupledField {
     PDE_.ComputeRHS( actTime_ );
 
     // store rhs vector back to PDE
-    SBM_Vector tmpRhs(BaseMatrix::DOUBLE);
-    algsys_->GetRHSVal(tmpRhs);
-    PDE_.SaveRHS( tmpRhs );
+    algsys_->GetRHSVal(rhsVec_);
 
     UInt& iterCoupledCounter = PDE_.GetIterCoupledCounter();
     bool isIterCoupled    = PDE_.IsIterCoupled();
@@ -451,9 +471,7 @@ namespace CoupledField {
     // PDE-system, we should perform the predictor state just
     // in the first iteration
     if ( isIterCoupled == false || iterCoupledCounter == 0 ) {
-      SBM_Vector solHelp(BaseMatrix::DOUBLE);
-        PDE_.GetSolutionVector( solHelp );
-      TS_alg_->Predictor(solHelp);
+      TS_alg_->Predictor(solVec_);
     }
 
     assemble_->AssembleMatrices();
@@ -481,16 +499,8 @@ namespace CoupledField {
     }
 
     algsys_->Solve(analysis_id);
-
-    SBM_Vector tmpSol(BaseMatrix::DOUBLE);
-    algsys_->GetSolutionVal( tmpSol );
-    PDE_.SaveSolution(tmpSol);
-
-    SBM_Vector solHelp(BaseMatrix::DOUBLE);
-    PDE_.GetSolutionVector(solHelp);
-
-
-    TS_alg_->Corrector(solHelp);
+    algsys_->GetSolutionVal(solVec_);
+    TS_alg_->Corrector(solVec_);
 
     if ( isIterCoupled ) {
       iterCoupledCounter++;
@@ -507,8 +517,7 @@ namespace CoupledField {
     SBM_Vector solInc(BaseMatrix::DOUBLE);
 
     //get actual solution
-    SBM_Vector  actSol(BaseMatrix::DOUBLE);
-    PDE_.GetSolutionVector( actSol );
+    algsys_->GetSolutionVal( actSol_ );
 
     // perform predictor step
     if ( TS_alg_== NULL ) {
@@ -516,7 +525,7 @@ namespace CoupledField {
     }
     else {
       //compute predictors
-      TS_alg_->Predictor(actSol);
+      TS_alg_->Predictor(actSol_);
     }
 
     //! account for Dirichlet BCs
@@ -537,7 +546,7 @@ namespace CoupledField {
       assemble_->AssembleNonLinRHS();  
 
       //Update RHS (mass matrix on right hand side)
-      TS_alg_->UpdateRHS(actSol);
+      TS_alg_->UpdateRHS(actSol_);
 
       // set iteration counter
       UInt iterationCounter=0;
@@ -565,14 +574,14 @@ namespace CoupledField {
         Double etaLineSearch = 1.0;
 
         if ( lineSearch_ == "none" ) {
-          actSol.Add(1.0, solInc);
+          actSol_.Add(1.0, solInc);
         }
         else {
-          residualL2Norm = LineSearch(solInc, actSol, etaLineSearch, true);
+          residualL2Norm = LineSearch(solInc, actSol_, etaLineSearch, true);
         }
 
         //store A_(n+1) in the solution-object sol_
-        PDE_.SaveSolution( actSol );
+        solVec_ = actSol_;
 
         if ( lineSearch_ == "none" ) {
           // calculation of error norms
@@ -580,7 +589,7 @@ namespace CoupledField {
           algsys_->InitRHS(RhsLinVal_);
 
           //Update RHS (mass matrix on right hand side)
-          TS_alg_->UpdateRHS(actSol);
+          TS_alg_->UpdateRHS(actSol_);
 
           // inner forces due to nonlin formulation
           assemble_->AssembleNonLinRHS();
@@ -600,7 +609,7 @@ namespace CoupledField {
 
         // calculate incremental error
         Double solIncrL2Norm = solInc.NormL2();
-        Double actSolL2Norm = actSol.NormL2();
+        Double actSolL2Norm = actSol_.NormL2();
         Double incrementalErr;
 
         if ( actSolL2Norm > 1.0)
@@ -624,7 +633,7 @@ namespace CoupledField {
     } // load step loop
 
     //perform corrector step
-    TS_alg_->Corrector(actSol);
+    TS_alg_->Corrector(actSol_);
   }
 
 
@@ -638,13 +647,10 @@ namespace CoupledField {
     Double incrementalErr, residualErr;
 
     SBM_Vector newSol(BaseMatrix::DOUBLE), 
-         oldSol(BaseMatrix::DOUBLE), solPrev(BaseMatrix::DOUBLE);
+               oldSol(BaseMatrix::DOUBLE), solPrev(BaseMatrix::DOUBLE);
   
-    //get solution of previous time step  
-    SBM_Vector solHelp(BaseMatrix::DOUBLE); 
-    PDE_.GetSolutionVector( solHelp );
-
-    solPrev = solHelp;
+    // remember previous solution  
+    solPrev = solVec_;
 
     // perform predictor step
     if ( TS_alg_== NULL ) {
@@ -704,7 +710,7 @@ namespace CoupledField {
         algsys_->GetSolutionVal(newSol); 
         
         //store solution for (n+1)
-        PDE_.SaveSolution( newSol );
+        solVec_ = newSol;
         
         // compute L2-Norm of error between last incremental solution and
         // actual incremental solution
@@ -1083,13 +1089,10 @@ namespace CoupledField {
     }
 
     assemble_->AssembleMatrices( );
-
     PDE_.SetBCs();
 
     // store rhs vector back to PDE
-    SBM_Vector tmpSol(BaseMatrix::COMPLEX);
-    algsys_->GetRHSVal( tmpSol );
-    PDE_.SaveRHS( tmpSol );
+    algsys_->GetRHSVal( rhsVec_ );
 
     if( assemble_->IsMatrixUpdated() ) {
       algsys_->ConstructEffectiveMatrix( matrix_factor_ );
@@ -1103,9 +1106,7 @@ namespace CoupledField {
     }
 
     algsys_->Solve(analysis_id);
-
-    algsys_->GetSolutionVal(tmpSol);
-    PDE_.SaveSolution(tmpSol);
+    algsys_->GetSolutionVal(solVec_);
   }
 
 
@@ -1159,9 +1160,7 @@ namespace CoupledField {
     algsys_->CalcEigenMode( numMode );
 
     // Get the solution and store it
-    SBM_Vector tmpSol(BaseMatrix::DOUBLE);
-    algsys_->GetSolutionVal(tmpSol);
-    PDE_.SaveSolution( tmpSol );
+    algsys_->GetSolutionVal(solVec_);
   }
 
 
@@ -1253,8 +1252,8 @@ namespace CoupledField {
 //      actSol += solOld;
 
       //store new solution
-      PDE_.SaveSolution( actSol );
-
+      solVec_ = actSol;
+      
       // recalculate RHS with new values to get new residual (f^(k+1))========
       algsys_->InitRHS(RhsLinVal_ );
 
@@ -1319,7 +1318,7 @@ namespace CoupledField {
 
       //store new solution
       tmpSol = actSol;
-      PDE_.SaveSolution( tmpSol );
+      solVec_ = tmpSol;
 
       // Recalculate residual, f-Cu-Mu-K*u
       algsys_->InitRHS();
@@ -1469,10 +1468,6 @@ namespace CoupledField {
     iter->Get("incrementalErr")->SetValue(incrementalErr);
     if(etaLineSearch)
       iter->Get("eta_linesearch")->SetValue(etaLineSearch);
-
-  
-  
   }
-
+  
 } // end of namespace
-

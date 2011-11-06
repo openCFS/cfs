@@ -61,14 +61,6 @@ namespace CoupledField {
     analysisType.Add(HARMONIC, "paramIdent", false); // the value is not unique
     analysisType.Add(EIGENFREQUENCY, "eigenFrequency");
     analysisType.Add(MULTI_SEQUENCE, "multiSequence");
-
-//    MechPDE::testStrain.SetName("MechPDE::TestStrain");
-//    MechPDE::testStrain.Add(MechPDE::X, "x");
-//    MechPDE::testStrain.Add(MechPDE::Y, "y");
-//    MechPDE::testStrain.Add(MechPDE::Z, "z");
-//    MechPDE::testStrain.Add(MechPDE::YZ, "yz");
-//    MechPDE::testStrain.Add(MechPDE::XZ, "xz");
-//    MechPDE::testStrain.Add(MechPDE::XY, "xy");
   }
   
 }

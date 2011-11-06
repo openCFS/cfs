@@ -135,7 +135,7 @@ namespace CoupledField {
   // **********************
   void SBM_Vector::SetSubVector( SingleVector *subvec, UInt i ) {
 
-    // Check if we are even allowed to set a new sub-vector
+    //Check if we are even allowed to set a new sub-vector
     if ( !ownSubVectors_ ) {
       EXCEPTION( "As this is a weak copy of a SBM-vector, I refuse to "
           "get overwritten" );

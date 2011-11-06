@@ -80,12 +80,7 @@ namespace CoupledField{
     elemMat.Resize( nrFncs * Bdim_);
     elemMat.Init();
 
- #define USE_BLAS_VERSION
-#ifdef USE_BLAS_VERSION
-    Matrix<MAT_DATA_TYPE> bdbMat;
-    bdbMat.Resize(nrFncs * Bdim_);
-#endif
-
+#define USE_BLAS_VERSION
 
     // Loop over all integration points
     LocPointMapped lp;
@@ -106,15 +101,10 @@ namespace CoupledField{
       operator_.TransformJacDet(fac,lp,ptFe);
 
       dbMat.Resize(dMat.GetNumRows(),nrFncs*Bdim_);
-      dbMat.Init();
 
 #ifdef USE_BLAS_VERSION
       dMat.Mult_Blas(bMat,dbMat,false,false,1.0,0);
-      dbMat = dbMat * fac;
-      //Transpose(bMat).Mult(dbMat,bdbMat);
-      bMat.Mult_Blas(dbMat,bdbMat,true,false,1.0,0);
-      elemMat += bdbMat * factor_;
-
+      bMat.Mult_Blas(dbMat,elemMat,true,false,factor_*fac,1.0);
 #else
       dbMat = (dMat * bMat) * fac;
       elemMat += Transpose(bMat) * dbMat * factor_;

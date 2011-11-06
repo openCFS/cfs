@@ -166,8 +166,11 @@ namespace CoupledField
     void ReInit();
 
   protected:
-
-
+    
+    // ========================================================
+    //  Helper Methods
+    // ========================================================
+    
     //! Read nonlinear data from pdenode 
     virtual void ReadNonLinData();
     
@@ -187,8 +190,6 @@ namespace CoupledField
     //-------------------------------- Pointers to (Copies of) StdPDE -------------------
     StdPDE& PDE_;                   //!< reference to PDE
     std::string pdename_;            //!< name of PDE 
-    UInt numPDENodes_;            //!< number of nodes belonging to the PDE
-    UInt numPDEElems_;            //!< number of elements belonging to PDE
     bool isaxi_;                  //!< true: axisymmetric problem
     StdVector<RegionIdType> subdoms_;//!< subdomain-levels belonging to PDE
 
@@ -197,7 +198,6 @@ namespace CoupledField
 
     Grid * ptgrid_;                  //!< pointer to grid object
     AlgebraicSys* algsys_;             //!< pointer to algsys object
-    BaseNodeStoreSol * sol_;         //!< pointer to solution object
     ResultList results_;
     Assemble * assemble_;            //!< pointer to assemble object  
     //! factors for computingn effective system matrix
@@ -223,6 +223,17 @@ namespace CoupledField
     SBM_Vector solIncr_;   //! needed in iterative coupled computation 
     SBM_Vector actSol_;    //! needed in iterative coupled computation 
 
+    //! Vector containing all solution vectors of the FE-functions
+    SBM_Vector solVec_;
+    
+    //! Vector containing all solution vectors of the FE-functions
+    SBM_Vector rhsVec_;
+    
+    //! Map Storing FeSpaces for each solution type of PDE
+    std::map<SolutionType, shared_ptr<BaseFeFunction> > feFunctions_;
+    
+    //! Map Storing FeSpaces for each solution type of PDE
+    std::map<SolutionType, shared_ptr<BaseFeFunction> > rhsFeFunctions_;
     //hysteresis operator;    
     StdVector<Hysteresis *> hyst_;
 

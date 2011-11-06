@@ -20,7 +20,7 @@
 #include "Elements/fespaceHCurlHi.hh"
 #include "Elements/HCurlElems.hh"
 #include "DataInOut/Logging/cfslog.hh"
-
+#include "DataInOut/WriteInfo.hh"
 
 #include "Forms/bdbInt.hh"
 #include "Forms/bbInt.hh"
@@ -561,11 +561,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
 
     switch (res->GetResultInfo()->resultType ) {
       case MAG_RHS_LOAD:
-        if( isComplex_ ) {
-          ExtractRhsResult<Complex>( res, results_[0] );
-        } else {
-          ExtractRhsResult<Double>( res, results_[0] );
-        }
+        feFunctions_[MAG_POTENTIAL]->ExtractResult( res );
         break;
 
       case MAG_FLUX_DENSITY:
@@ -1010,7 +1006,6 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
                                         LocPoint lp,
                                         Vector<TYPE>& field ) {
     Vector<TYPE> tempE, elemSol;
-    NodeStoreSol<TYPE> & solhelp = dynamic_cast<NodeStoreSol<TYPE>&>(*sol_);
     field.Resize(dim_);
     LocPointMapped lpm;
 
@@ -1024,7 +1019,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
     lpm.Set(lp, esm );
     ElemList elist(ptgrid_);
     elist.SetElement(el);
-    solhelp.GetElemSolution( elemSol, elist.GetIterator() );
+    fct->GetEntitySolution(elemSol, elist.GetIterator() );
 
     li.ApplyOp( field, lpm, ptFe, elemSol);
   }
@@ -1034,7 +1029,6 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
                                          LocPoint lp,
                                          Vector<TYPE>& field ) {
       Vector<TYPE> elemSol;
-      NodeStoreSol<TYPE> & solhelp = dynamic_cast<NodeStoreSol<TYPE>&>(*sol_);
       field.Resize(dim_);
       LocPointMapped lpm;
       const Elem * el = it.GetElem();
@@ -1043,7 +1037,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
                                                      
       FeHCurl*  ptFe = dynamic_cast<FeHCurl*>(fct->GetFeSpace()->GetFe( it ));
       lpm.Set(Elem::shapes[el->type].midPointCoord, esm );
-      solhelp.GetElemSolution( elemSol, it );
+      fct->GetEntitySolution(elemSol, it );
       
       Matrix<Double> shape;
       ptFe->GetShFnc(shape, lpm, el);

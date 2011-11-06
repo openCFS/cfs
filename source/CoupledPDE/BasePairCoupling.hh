@@ -23,7 +23,6 @@ namespace CoupledField
   class AlgebraicSys;
   class Grid;
   class BaseMaterial;
-  class BaseNodeStoreSol;
   struct Composite;
   class ParamNode;
   class FunctionDescription;
@@ -138,8 +137,6 @@ namespace CoupledField
     // =====================================================
 
     PtrParamNode infoNode_; // from constructor()
-
-    BaseNodeStoreSol * sol_;    //!< solution
 
     bool isaxi_;             //!< true: axisymmetric problem
 

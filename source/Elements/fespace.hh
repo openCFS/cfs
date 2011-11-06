@@ -222,13 +222,6 @@ public:
     return mapType_;
   }
 
-  //! Get number of (vectorial) unknowns this space has assinged
-  //! Including those, of which one Dof might be fixed by BCs
-  //! Deprecated. Just for compatibility with NodeStoreSolution Class
-  UInt GetNumUnknowns(){
-    return numUnknowns_;
-  }
-
   UInt GetNumHomDirichletBc(){
     return bcCounter_[HDBC];
   }
@@ -324,11 +317,6 @@ protected:
   //! Number of equations administrated by this space not fixed by BCs
   UInt numFreeEquations_;
 
-  //! Number of (vectorial) unknowns administrated by this space
-  //! Including those, of which one Dof might be fixed by BCs
-  //TODO: Perhaps think of another name. Unknowns is a little misleading
-  UInt numUnknowns_;
-  
   //! map for storing the number of different boundary conditions
   std::map< BcType, UInt> bcCounter_;
   

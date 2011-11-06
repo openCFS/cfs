@@ -130,10 +130,10 @@ namespace CoupledField
     shared_ptr<EntityList> GetSecondEntities() { return ent2_; }
 
     //! Returns pointer to first pde
-    shared_ptr<SinglePDE> GetFirstPde ()  { return ptPde1_; }
+    SinglePDE* GetFirstPde ()  { return ptPde1_; }
 
     //! Returns pointer to second pde
-    shared_ptr<SinglePDE> GetSecondPde () { return ptPde2_; }
+    SinglePDE* GetSecondPde () { return ptPde2_; }
 
     //! Returns information about first result info
     shared_ptr<ResultInfo> GetFirstResultInfo() { return result1_; }
@@ -210,10 +210,10 @@ namespace CoupledField
     // ======================================================
 
     //! Pointer to first pde
-    shared_ptr<SinglePDE> ptPde1_;
+    SinglePDE* ptPde1_;
 
     //! Pointer to second pde
-    shared_ptr<SinglePDE> ptPde2_;
+    SinglePDE* ptPde2_;
 
     //! Pointer to first result type
     shared_ptr<ResultInfo> result1_;
@@ -269,7 +269,7 @@ namespace CoupledField
     // ======================================================
 
     //! Set pointer to pde where the form is defined from
-    void SetPtPde(shared_ptr<SinglePDE> ptPde );
+    void SetPtPde(SinglePDE* ptPde );
 
     //! Set pointer to pde where the form is defined from
     void SetFeFunction(shared_ptr<BaseFeFunction>  fct );
@@ -281,7 +281,7 @@ namespace CoupledField
     shared_ptr<EntityList> GetEntities() { return ent_; }
 
     //! returns pointer to first pde
-    shared_ptr<SinglePDE> GetPde () { return ptPde_; }
+    SinglePDE* GetPde () { return ptPde_; }
     
     //! Returns information about result info
     shared_ptr<ResultInfo> GetResultInfo() { return result_; }
@@ -298,7 +298,7 @@ namespace CoupledField
     // ======================================================
 
     //! Pointer to pde
-    shared_ptr<SinglePDE> ptPde_;
+    SinglePDE* ptPde_;
 
     //! Pointer to result type
     shared_ptr<ResultInfo> result_;

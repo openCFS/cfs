@@ -261,7 +261,6 @@ namespace CoupledField {
             nodeMap_[actNode] = StdVector<Integer>(dofsPerUnknown);
             nodeMap_[actNode].Init(-1);
           }
-          numUnknowns_++;
 
           for(UInt iDof = 0; iDof < dofsPerUnknown; iDof ++){
             if(nodeMap_.BcKeys.find(actNode) != nodeMap_.BcKeys.end()){

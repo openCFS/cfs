@@ -203,9 +203,9 @@ void Face::Normalize( std::bitset<3>& flags ) {
    (reordered)
    */
 
-  std::cerr << "\n=====================================\n"
-      << " Face Orientation\n" << "=====================================\n";
-  std::cerr << "\tconnect:" << nodes.ToString() << std::endl;
+//  std::cerr << "\n=====================================\n"
+//      << " Face Orientation\n" << "=====================================\n";
+//  std::cerr << "\tconnect:" << nodes.ToString() << std::endl;
 
   StdVector<UInt> indices( nodes.GetSize() );
   UInt size = nodes.GetSize();
@@ -252,7 +252,7 @@ void Face::Normalize( std::bitset<3>& flags ) {
   }
   
 //  // Check flags for orientation
-  std::cerr << "\tsorted: " << nodes.ToString() << std::endl;
+//  std::cerr << "\tsorted: " << nodes.ToString() << std::endl;
 //  std::cerr << "\tindices: " << indices.ToString() << std::endl;
 //  std::cerr << "\tflag: " << flags << " (" << flags.to_ulong() << ")"
 //      << std::endl;

@@ -78,7 +78,6 @@ namespace CoupledField {
     tolSpaceErr_(0.0),
     isDirectCoupled_(false),
     isInitialized_(false),
-    usePenalty_(true),
     maxTimeDerivOrder_(0),
     mHandle_(domain->GetMathParser()->GetNewHandle()) // Obtain mathParser handler
   {
@@ -112,27 +111,6 @@ namespace CoupledField {
         delete assemble_;
         assemble_ = NULL;
       }
-    }
-
-
-    if (sol_) {
-      delete sol_;
-      sol_ = NULL;
-    }
-    if( !isDirectCoupled_ ) {
-      if (solVec_) {
-        delete solVec_;
-        solVec_ = NULL;
-      }
-      if (rhsVec_) {
-        delete rhsVec_;
-        rhsVec_ = NULL;
-      }
-    }
-
-    if ( needSolPrev_ && (solPrev_ != NULL)) {
-      delete solPrev_;
-      solPrev_ = NULL;
     }
 
 
@@ -230,33 +208,6 @@ namespace CoupledField {
       assemble_ = new Assemble( algsys_, analysistype_, maxTimeDerivOrder_ );
     }
 
-    // Determine if solution is of complex type or not
-    if ( analysistype_ == HARMONIC ) {
-      sol_ = new NodeStoreSol<Complex>;
-      //if(!isDirectCoupled_ ) {
-        solVec_ = new Vector<Complex>;
-        rhsVec_ = new Vector<Complex>;
-      //}
-    }
-    else {
-      sol_ = new NodeStoreSol<Double>;
-
-     // if(!isDirectCoupled_ ) {
-        solVec_ = new Vector<Double>;
-        rhsVec_ = new Vector<Double>;
-
-      //}
-
-      if ( needSolPrev_ ) {
-        solPrev_ = new NodeStoreSol<Double>;
-      }
-    }
-
-    ///TODO: the algorithm for filling the FeFunctions need to be more failsafe
-    //right now, the PDE pointers get assigned in the DefineResults Function
-    //this means that the algorithm works only if the two functions are called 
-    //in the correct order!
-    //This is not that good....
     //======================================================================
     // trigger the creation of functionDescriptors
     //======================================================================
@@ -303,6 +254,7 @@ namespace CoupledField {
     // for(std::map<RegionIdType,DampingType>::const_iterator it = dampingList_.begin(); it != dampingList_.end(); it++)
     //   std::cout << "pde:" << pdename_ << " key=" << it->first << " load=" << it->second << std::endl;
 
+    // Todo: Move this part to the definition of damping
     PtrParamNode in = infoNode_->Get(ParamNode::HEADER);
     for(UInt i = 0; i < subdoms_.GetSize(); i++ )
     {
@@ -314,35 +266,8 @@ namespace CoupledField {
     }
 
 
-    // =====================================================================
-    // initialize EQN-object and Storeresults class
-    // =====================================================================
 
-    // Name of linear system depends of coupling type
-    std::string systemName = pdename_;
-    if ( isDirectCoupled_ )
-      systemName  = "direct";
 
-    // How do we want to treat inhomogeneous Dirichlet boundary conditions?
-    {
-      std::string aux = "penalty";
-      PtrParamNode systemsNode =
-        param->GetByVal("sequenceStep", "index", sequenceStep_)
-        ->Get("linearSystems",ParamNode::PASS);
-      if( systemsNode ) {
-        PtrParamNode mySystemNode = systemsNode->
-          GetByVal("system", "name", systemName, ParamNode::PASS);
-        if( mySystemNode) {
-          PtrParamNode setupNode = mySystemNode->Get("setup", ParamNode::PASS);
-          if( setupNode ) {
-            setupNode->GetValue("idbcHandling", aux, ParamNode::PASS );
-          }
-        }
-      }
-      usePenalty_ = aux == "penalty" ? true : false;
-      infoNode_->Get(ParamNode::HEADER)->Get("idbc")->Get("handling_of_IDBCs")->SetValue(aux);
-    }
-    
     // =====================================================================
     // read in boundary conditions
     // =====================================================================
@@ -380,8 +305,6 @@ namespace CoupledField {
       }
     }
 
-
-
     // =====================================================================
     // define the integrators for PDE and initialize eqn object
     // =====================================================================
@@ -401,14 +324,13 @@ namespace CoupledField {
     for ( itMat = materials_.begin(); itMat != materials_.end(); itMat++ ) {
       itMat->second->InitApproxCurves();
     }
-
     
-    // Finish equation mapping
+    // =====================================================================
+    //  map equations (FeSpaces) and finalize FeFunction (vector creation)
+    // =====================================================================
     LOG_TRACE(pde) << pdename_ << ": Mapping Equations";
-
     
-    //Gather informations about all spaces for this PDE
-    //--------------------------------------------
+    // Finalize spaces and fefunctions
     fncIt= feFunctions_.begin();
     while(fncIt != feFunctions_.end()){
       shared_ptr<BaseFeFunction> actFct = fncIt->second;
@@ -416,12 +338,14 @@ namespace CoupledField {
       actFct->SetGrid(shared_ptr<Grid>(ptgrid_));
       actSpace->Finalize();
       actSpace->PreCalcShapeFncs();
-      numPdeEquations_ += actSpace->GetNumEquations();
-      numPdeUnknowns_ += actSpace->GetNumFreeEquations();
-      numPdeInHomDirBc_ += actSpace->GetNumInhomDirichletBc();
+      
+      // finalize feFunctions
+      actFct->Finalize();
+      rhsFeFunctions_[fncIt->first]->Finalize();
       fncIt++;
     }
-    infoNode_->Get(ParamNode::HEADER)->Get("equations")->SetValue(numPdeUnknowns_);
+    
+    //infoNode_->Get(ParamNode::HEADER)->Get("equations")->SetValue(numPdeUnknowns_);
 
     //TODO: Add debugging output to FeSpace Class
     // writes numerous lists about mapping -> might be huge!
@@ -430,54 +354,21 @@ namespace CoupledField {
     }
 
 
-    // Initialize Storesolution class
-    sol_->SetNumSolutions(results_.GetSize());
-    sol_->SetNumNodes(numPdeEquations_);
-    for (UInt iSol=0; iSol<results_.GetSize(); iSol++) {
-      sol_->SetSolutionType(results_[iSol]->resultType,iSol);
-      sol_->SetNumDofs( results_[iSol]->dofNames.GetSize(),
-                        results_[iSol]->resultType );
-      //AGAIN THE DOGMA ONE FUNCTION AND ONE SPACE PER UNKNOWN
-      sol_->SetPtrEQNData(feFunctions_[results_[iSol]->resultType]->GetFeSpace(), ptgrid_);
-      sol_->SetRegions( subdoms_ );
-      sol_->Init();
-    }
-
-    if ( solPrev_ != NULL ) {
-      solPrev_->SetNumSolutions(results_.GetSize());
-      solPrev_->SetNumNodes(numPdeEquations_);
-      for (UInt iSol=0; iSol<results_.GetSize(); iSol++) {
-        solPrev_->SetSolutionType(results_[iSol]->resultType,iSol);
-        solPrev_->SetNumDofs( results_[iSol]->dofNames.GetSize(),
-                              results_[iSol]->resultType );
-        solPrev_->SetPtrEQNData(feFunctions_[results_[0]->resultType]->GetFeSpace(), ptgrid_);
-        solPrev_->SetRegions( subdoms_ );
-        solPrev_->Init();
-      }
-    }
-
-    if(!isDirectCoupled_ ) {
-      solVec_->Resize(numPdeUnknowns_);
-      solVec_->Init();
-      rhsVec_->Resize(numPdeUnknowns_);
-      rhsVec_->Init();
-
-      if ( analysistype_ == HARMONIC ) {
-        sol_->SetAlgSysDataPointer(solVec_->GetSize(),
-                                   dynamic_cast<Vector<Complex>&>(*solVec_).GetPointer() );
-      } else {
-        sol_->SetAlgSysDataPointer(solVec_->GetSize(),
-                                   dynamic_cast<Vector<Double>&>(*solVec_).GetPointer() );
-
-      }
-    }
-
     if ( analysistype_ == TRANSIENT &&
          isDirectCoupled_ == false) {
       Double dt;
       dt = dynamic_cast<TransientDriver*>(domain->GetSingleDriver())
         ->GetDeltaT();
-      TS_alg_->Init( dt, numPdeUnknowns_ );
+      WARN("Note: The initialization of the timestepping class is currently wrong: "
+          "The 2nd argument must be the complete SBM-vector of the algebraic system in "
+          "order to correclty initialize the internal vectors of the timestepping method. "
+          "In the old implementation it was sufficient to know the number of unknowns. "
+          "In the current implementation, the SBM-vectors are just defined within the "
+          "SolveStep classed. Thus maybe the right thing to do is to shift the creation and "
+          "initialization of the timestepping scheme to the solveStep classes.")
+          
+      // NOTE: the second argument of the following code must be adjusted
+      TS_alg_->Init( dt, 1 );  
     }
 
 //    // =====================================================================
@@ -494,13 +385,6 @@ namespace CoupledField {
 
     ReadStoreResults();
     ReadFieldResults();
-
-    // Set information at sol_ object
-    sol_->SetResults( results_ );
-
-
-    if ( solPrev_ != NULL )
-      solPrev_->SetResults( results_ );
 
     PreparePDE4Computation();
 
@@ -533,95 +417,7 @@ namespace CoupledField {
     return stt;
   }
 
-  void SinglePDE::SaveSolution( SBM_Vector& sol ) {
-
-    // Note: This method is a real shortcut: If we have
-    // more than one solution type, we need to split
-    // the solution up.
-    // Ultimately, the functionality of this methods has 
-    // to be moved to the FeFunction
-    if( sol.GetSize() > 1 ) {
-      EXCEPTION("Okay, now I definitely give up:"
-          "Get rid of the f****ing StoreSolution class!");
-    }
-    if( sol.GetEntryType() == BaseMatrix::DOUBLE ) {
-      Vector<Double> & solHelp = dynamic_cast<Vector<Double>&>(*solVec_);
-      Vector<Double> & tmp = 
-          dynamic_cast<Vector<Double>& >(sol(0));
-      solHelp.Resize(tmp.GetSize());
-      for ( UInt i = 0; i < tmp.GetSize(); i++ ) {
-        solHelp[i] = tmp[i];
-      }
-
-      sol_->SetAlgSysDataPointer( tmp.GetSize(), solHelp.GetPointer() );
-    } else {
-      if( sol.GetEntryType() == BaseMatrix::COMPLEX ) {
-        Vector<Complex> & solHelp = dynamic_cast<Vector<Complex>&>(*solVec_);
-        Vector<Complex> & tmp = 
-            dynamic_cast<Vector<Complex>& >(sol(0));
-        solHelp.Resize(tmp.GetSize());
-        for ( UInt i = 0; i < tmp.GetSize(); i++ ) {
-          solHelp[i] = tmp[i];
-        }
-
-        sol_->SetAlgSysDataPointer( tmp.GetSize(), solHelp.GetPointer() );
-      }
-    }
-  }
-
-  void SinglePDE::SavePrevSolution( SBM_Vector& solPrev ) {
-    EXCEPTION("Implement me")
-//    if( sol.GetSize() > 1 ) {
-//      EXCEPTION("Okay, now I definitely give up:"
-//          "Get rid of the f****ing StoreSolution class!");
-//    }
-//    Vector<Double> & solHelp = dynamic_cast<Vector<Double>&>(*solVecPrev_);
-//
-//    solHelp.Resize(size);
-//
-//    for ( UInt i = 0; i < size; i++ ) {
-//      solHelp[i] = ptSolPrev[i];
-//    }
-//
-//    solPrev_->SetAlgSysDataPointer( size, solHelp.GetPointer() );
-
-  }
-
-  void SinglePDE::SaveRHS( SBM_Vector& rhs) {
-
-    // Note: This method is a real shortcut: If we have
-      // more than one solution type, we need to split
-      // the solution up.
-      // Ultimately, the functionality of this methods has 
-      // to be moved to the FeFunction
-      if( rhs.GetSize() > 1 ) {
-        EXCEPTION("Okay, now I definitely give up:"
-            "Get rid of the f****ing StoreSolution class!");
-      }
-      if( rhs.GetEntryType() == BaseMatrix::DOUBLE ) {
-        Vector<Double> & solHelp = dynamic_cast<Vector<Double>&>(*rhsVec_);
-        Vector<Double> & tmp = 
-            dynamic_cast<Vector<Double>& >(rhs(0));
-        solHelp.Resize(tmp.GetSize());
-        for ( UInt i = 0; i < tmp.GetSize(); i++ ) {
-          solHelp[i] = tmp[i];
-        }
-
-        sol_->SetAlgSysDataPointer( tmp.GetSize(), solHelp.GetPointer() );
-      } else {
-        if( rhs.GetEntryType() == BaseMatrix::COMPLEX ) {
-          Vector<Complex> & solHelp = dynamic_cast<Vector<Complex>&>(*rhsVec_);
-          Vector<Complex> & tmp = 
-              dynamic_cast<Vector<Complex>& >(rhs(0));
-          solHelp.Resize(tmp.GetSize());
-          for ( UInt i = 0; i < tmp.GetSize(); i++ ) {
-            solHelp[i] = tmp[i];
-          }
-
-          sol_->SetAlgSysDataPointer( tmp.GetSize(), solHelp.GetPointer() );
-        }
-      }
-   }
+  
 
    /** can generally be called multiple times. We overwrite old values! Brute force but keeps data size */
    void SinglePDE::WriteGeneralPDEdefines()
@@ -3485,265 +3281,6 @@ namespace CoupledField {
 
   }
 
-  template<class TYPE>
-   void SinglePDE::ExtractResult( shared_ptr<BaseResult> res,
-                                  BaseNodeStoreSol * ptStoreSol ) {
-
-     StdVector<Integer> eqnNums;
-     ResultInfo & actDof = *(res->GetResultInfo() );
-     UInt numDofs = actDof.dofNames.GetSize();
-
-     Vector<TYPE> & solHelp =
-       dynamic_cast<NodeStoreSol<TYPE>&> ( *ptStoreSol ).GetAlgSysVector();
-
-     EntityIterator it = res->GetEntityList()->GetIterator();
-     Vector<TYPE> & actSol = dynamic_cast<Result<TYPE>&>
-       (*(res)).GetVector();
-     actSol.Resize( res->GetEntityList()->GetSize() *
-                    actDof.dofNames.GetSize() );
-
-     shared_ptr<BaseFeFunction> actFct;
-     for( it.Begin(); !it.IsEnd(); it++ ) {
-        actFct = GetFeFunction(actDof.resultType);
-
-        actFct->GetFeSpace()->GetEqns( eqnNums , it );
-
-       for( UInt iDof = 0; iDof < eqnNums.GetSize(); iDof++ ) {
-         if( eqnNums[iDof] != 0 ) {
-           actSol[it.GetPos()*numDofs+iDof] = solHelp[abs(eqnNums[iDof])-1];
-         } else {
-           actSol[it.GetPos()*numDofs+iDof] = 0.0;
-         }
-       }
-     }
-
-   }
-  
-  // Instantiate functions
-  template void SinglePDE::ExtractResult<Double>( shared_ptr<BaseResult> res,
-                                                  BaseNodeStoreSol* ptStoreSol );
-  template void SinglePDE::ExtractResult<Complex>( shared_ptr<BaseResult> res,
-                                                  BaseNodeStoreSol* ptStoreSol );
-
-  template<class TYPE>
-  void SinglePDE::ExtractResult( shared_ptr<BaseResult> toBaseStore,
-                                 const Vector<TYPE>& fromVec )
-  {
-    EXCEPTION("SinglePDE::ExtractResult  not yet adpated");
-//    StdVector<Integer> eqnNums;
-//    ResultInfo& actDof = *(toBaseStore->GetResultInfo() );
-//    UInt numDofs = actDof.dofNames.GetSize();
-//
-//    EntityIterator it = toBaseStore->GetEntityList()->GetIterator();
-//    Vector<TYPE>& actSol = dynamic_cast<Result<TYPE>&> (*toBaseStore).GetVector();
-//    actSol.Resize( toBaseStore->GetEntityList()->GetSize() *
-//                   actDof.dofNames.GetSize() );
-//
-//    actSol.Init();
-//    for ( it.Begin(); !it.IsEnd(); it++ )
-//    {
-//      // get equation numbers
-//      eqnMap_->GetEqns( eqnNums, actDof, it );
-//      //check for discontinuous results and compute the average if necessary
-//      if (actDof.fctType->IsDiscontinuous()){
-//        //Compute the number of discontinuous dofs
-//        UInt numDisNodes = eqnNums.GetSize() / numDofs;
-//        Double factor = 1.0 / numDisNodes;
-//        for ( UInt iNode = 0; iNode < numDisNodes; iNode++ )
-//        {
-//          for ( UInt iDof = 0; iDof < numDofs; iDof++ )
-//          {
-//            if ( eqnNums[iDof] != 0 )
-//            {
-//              actSol[it.GetPos()*numDofs+iDof] += \
-//                fromVec[abs(eqnNums[(iNode*numDofs) + iDof])-1] * factor;
-//            } else {
-//              actSol[it.GetPos()*numDofs+iDof] += 0.0;
-//            }
-//          }
-//        }
-//      } else {
-//        for ( UInt iDof = 0; iDof < eqnNums.GetSize(); iDof++ )
-//        {
-//          if ( eqnNums[iDof] != 0 )
-//          {
-//            actSol[it.GetPos()*numDofs+iDof] = fromVec[abs(eqnNums[iDof])-1];
-//          } else {
-//            actSol[it.GetPos()*numDofs+iDof] = 0.0;
-//          }
-//        }
-//      }
-//    }
-
-  }
-  // Instantiate functions
-  template
-  void SinglePDE::ExtractResult<Double>( shared_ptr<BaseResult> toBaseStore,
-                                 const Vector<Double>& fromVec );
-  template
-  void SinglePDE::ExtractResult<Complex>( shared_ptr<BaseResult> toBaseStore,
-                                 const Vector<Complex>& fromVec );
-
-  void SinglePDE::ExtractDerivResult( shared_ptr<BaseResult> res, DERIVType derivType ) {
-
-    EXCEPTION("Adjust ExtractDerivResult to new structure");
-//    StdVector<Integer> eqnNums;
-//
-//
-//    ResultInfo & actDof = *(res->GetResultInfo() );
-//    UInt numDofs = actDof.dofNames.GetSize();
-//    EntityIterator it = res->GetEntityList()->GetIterator();
-//
-//    if ( analysistype_ == TRANSIENT )
-//    {
-//      const Vector<Double> & solHelp = TS_alg_->GetDeriv(derivType);
-//      Vector<Double> & actSol = (dynamic_cast<Result<Double>&>
-//                                 (*(res))).GetVector();
-//      actSol.Resize( res->GetEntityList()->GetSize() *
-//                     actDof.dofNames.GetSize() );
-//
-//      // iterate over all elements
-//      shared_ptr<BaseFeFunction> actFct;
-//      for( it.Begin(); !it.IsEnd(); it++ ) {
-//        actFct = GetFeFunction(actDof.resultType);
-//
-//        actFct->GetFeSpace()->GetEqns( eqnNums , it );
-//
-//        // iterate over all dofs
-//        for( UInt iDof = 0; iDof < eqnNums.GetSize(); iDof++ ) {
-//          if( eqnNums[iDof] != 0 ) {
-//            actSol[it.GetPos()*numDofs+iDof] = solHelp[abs(eqnNums[iDof])-1];
-//          } else {
-//            actSol[it.GetPos()*numDofs+iDof] = 0.0;
-//          }
-//        }
-//      }
-//    }
-//    else if ( analysistype_ == HARMONIC )
-//    {
-//      Double omega = solveStep_->GetActFreq() * 2 * PI;
-//
-//      // determine correct factor
-//      Complex factor = Complex(0.0, 0.0);
-//      switch( derivType ) {
-//        case FIRST_DERIV:
-//          factor = Complex( 0.0, omega );
-//          break;
-//        case SECOND_DERIV:
-//          factor = Complex( -omega*omega, 0.0 );
-//          break;
-//        default :
-//          EXCEPTION( "Only derivatives up to order 2 possible" );
-//      }
-//
-//      Vector<Complex> & solHelp =
-//          dynamic_cast<Vector<Complex>& > (*solVec_);
-//      Vector<Complex> & actSol = dynamic_cast<Result<Complex>&>
-//          (*(res)).GetVector();
-//      actSol.Resize( res->GetEntityList()->GetSize() *
-//                     actDof.dofNames.GetSize() );
-//      
-//      shared_ptr<BaseFeFunction> actFct;
-//      for( it.Begin(); !it.IsEnd(); it++ ) {
-//        actFct = GetFeFunction(actDof.resultType);
-//        actFct->GetFeSpace()->GetEqns( eqnNums , it );
-//        // iterate over all dofs
-//        for( UInt iDof = 0; iDof < eqnNums.GetSize(); iDof++ ) {
-//          if( eqnNums[iDof] != 0 ) {
-//            actSol[it.GetPos()*numDofs+iDof] = factor * solHelp[abs(eqnNums[iDof])-1];
-//          } else {
-//            actSol[it.GetPos()*numDofs+iDof] = 0.0;
-//          }
-//        }
-//      }
-//    }
-//    else
-//    {
-//      WARN("Cannot compute time derivative '"
-//          << res->GetResultInfo()->resultName
-//          << "' in a "
-//          << BasePDE::analysisType.ToString(analysistype_)
-//          << " analysis.");
-//    }
-  }
-
-  template<class TYPE>
-  void SinglePDE::ExtractRhsResult( shared_ptr<BaseResult> res,
-                                    shared_ptr<ResultInfo> eqnResultInfo ) {
-
-    StdVector<Integer> eqnNums;
-    ResultInfo & actDof = *(res->GetResultInfo() );
-    UInt numDofs = actDof.dofNames.GetSize();
-
-    Vector<TYPE> & solHelp =
-      dynamic_cast<Vector<TYPE>&> (*rhsVec_ );
-
-    EntityIterator it = res->GetEntityList()->GetIterator();
-    Vector<TYPE> & actSol = dynamic_cast<Result<TYPE>&>
-      (*(res)).GetVector();
-    actSol.Resize( res->GetEntityList()->GetSize() *
-                   actDof.dofNames.GetSize() );
-    
-    shared_ptr<BaseFeFunction> actFct;
-    actFct = GetFeFunction(actDof.resultType);
-    for( it.Begin(); !it.IsEnd(); it++ ) {
-
-      // get equation numbes
-      
-      actFct->GetFeSpace()->GetEqns( eqnNums , it );
-      for( UInt iDof = 0; iDof < eqnNums.GetSize(); iDof++ ) {
-        if( eqnNums[iDof] != 0 ) {
-          actSol[it.GetPos()*numDofs+iDof] = solHelp[abs(eqnNums[iDof])-1];
-        } else {
-          actSol[it.GetPos()*numDofs+iDof] = 0.0;
-        }
-      }
-    }
-
-  }
-  // Instantiate functions
-  template void
-  SinglePDE::ExtractRhsResult<Double>( shared_ptr<BaseResult> res,
-                                       shared_ptr<ResultInfo> eqnResultInfo );
-  template void
-  SinglePDE::ExtractRhsResult<Complex>( shared_ptr<BaseResult> res,
-                                        shared_ptr<ResultInfo> eqnResultInfo );
-
-  template<class TYPE>
-  void SinglePDE::InsertResult( Vector<TYPE>& toVec,
-                                shared_ptr<BaseResult> fromBaseResult)
-  {
-    StdVector<Integer> eqnNums;
-    ResultInfo & actDof = *(fromBaseResult->GetResultInfo() );
-    UInt numDofs = actDof.dofNames.GetSize();
-
-    EntityIterator it = fromBaseResult->GetEntityList()->GetIterator();
-    Vector<TYPE> & actSol = dynamic_cast<Result<TYPE>&>
-    (*(fromBaseResult)).GetVector();
-
-    shared_ptr<BaseFeFunction> actFct = GetFeFunction(actDof.resultType);
-    for (it.Begin(); !it.IsEnd(); it++)
-    {
-      // get equation numbers
-      actFct->GetFeSpace()->GetEqns( eqnNums,  it );
-      //check for discontinuous results and compute the average if necessary
-      for ( UInt iDof = 0; iDof < eqnNums.GetSize(); iDof++ )
-      {
-        if ( eqnNums[iDof] != 0 )
-        {
-          toVec[abs(eqnNums[iDof])-1] = actSol[it.GetPos()*numDofs+iDof];
-        }
-      }
-    }
-  }
-  // Instantiate functions
-  template
-  void SinglePDE::InsertResult<Double>( Vector<Double>& toVec,
-                                shared_ptr<BaseResult> fromBaseResult);
-  template
-  void SinglePDE::InsertResult<Complex>( Vector<Complex>& toVec,
-                                shared_ptr<BaseResult> fromBaseResult);
-
   // ======================================================
   // SCRIPTING SECTION
   // ======================================================
@@ -3764,12 +3301,6 @@ namespace CoupledField {
     name.Push_back( "setIdbc" );
 
 
-    // --- GetValue ---
-    a.Push_back();
-    a.Last().RegisterParam( "name", ArgList::STRING );
-    pt.Push_back( new FCPT( this, &SinglePDE::Wrap_GetValue) );
-    name.Push_back( "getValue" );
-
     // Now register all functions with scripting
     for (UInt i = 0; i < pt.GetSize(); i++ ) {
       Script_RegisterFct(name[i], pt[i], a[i] );
@@ -3783,18 +3314,6 @@ namespace CoupledField {
     SCRIPT_GET( std::string, phase );
     SetIDBC(name, dof, value, phase );
   }
-
-  void SinglePDE::Wrap_GetValue() {
-    SCRIPT_GET( std::string, name );
-    StdVector<UInt> nodeNrs;
-    ptgrid_->GetNodesByName( nodeNrs, name );
-    for (UInt i=0; i<nodeNrs.GetSize(); i++) {
-      Double val;
-      sol_->Get(nodeNrs[i]-1,0,val);
-      SCRIPT_RETVAL.Push_back(lexical_cast<std::string>(val));
-    }
-  }
-
 
   //   Obtain information on desired output quantities from parameter file
   // ***********************************************************************
@@ -4032,14 +3551,22 @@ namespace CoupledField {
 
         if(analysistype_ == HARMONIC){
           feFunctions_[spIt->first] = shared_ptr<BaseFeFunction >(new FeFunction<Complex>());
+          rhsFeFunctions_[spIt->first] = shared_ptr<BaseFeFunction >(new FeFunction<Complex>());
         }else{
           feFunctions_[spIt->first] = shared_ptr<BaseFeFunction >(new FeFunction<Double>());
+          rhsFeFunctions_[spIt->first] = shared_ptr<BaseFeFunction >(new FeFunction<Double>());
+         
+          // Note: in the transient case, we also need fefunctions for the time derivatives
+          // ... todo: add initialization
         }
         spIt->second->SetStrategy(solStrategy_, solStep_);
         //let the objects know about each other
         spIt->second->AddFeFunction(feFunctions_[spIt->first]);
         feFunctions_[spIt->first]->SetFeSpace(spIt->second);
-        feFunctions_[spIt->first]->SetPDE(shared_ptr<SinglePDE>(this));
+        feFunctions_[spIt->first]->SetPDE(this);
+        
+        rhsFeFunctions_[spIt->first]->SetFeSpace(spIt->second);
+        rhsFeFunctions_[spIt->first]->SetPDE(this);
         spIt++;
       }
     }

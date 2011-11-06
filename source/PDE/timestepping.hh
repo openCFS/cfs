@@ -8,7 +8,6 @@
 #include <map>
 
 #include "General/environment.hh"
-#include "Utils/nodestoresol.hh"
 #include "MatVec/sbmvector.hh"
 
 namespace CoupledField {

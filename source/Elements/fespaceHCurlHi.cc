@@ -135,7 +135,6 @@ namespace CoupledField{
 //      isFinalized_ = false;
 //      numEqns_ = 0;
 //      numFreeEquations_ = 0;
-//      numUnknowns_ = 0;
 //      bcCounter_.clear();
 //      gridToVirtualNodes_.clear();
 //      nodes_.Clear();

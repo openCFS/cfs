@@ -24,7 +24,6 @@ namespace CoupledField {
 
     
     // initialize pointers
-    sol_            = NULL;
     solVec_         = NULL;
     pde1_           = NULL;
     pde2_           = NULL;
