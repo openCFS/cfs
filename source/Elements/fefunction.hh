@@ -90,10 +90,10 @@ public:
   SinglePDE* GetPDE();
 
   //! Set the PDE pointer of the function
-  void SetGrid(shared_ptr<Grid>  grid);
+  void SetGrid(Grid*  grid);
 
   //! Get the PDE Pointer
-  shared_ptr<Grid>  GetGrid();
+  Grid*  GetGrid();
 
   //! Set the algebraic System
   void SetSystem( AlgebraicSys* sys );
@@ -198,7 +198,7 @@ protected:
   SinglePDE* pde_;
 
   //! Pointer to the grid 
-  shared_ptr<Grid> grid_;
+  Grid* grid_;
   
   //! Handle for MathParser object
   MathParser::HandleType mHandle_;
@@ -263,6 +263,7 @@ protected:
   //! Coefficient vector
   Vector<T> coeffs_;
 };
+
 
 }  // namespace CoupledField
 #endif

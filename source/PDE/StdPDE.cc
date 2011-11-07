@@ -188,9 +188,10 @@ namespace CoupledField {
   shared_ptr<ResultInfo> StdPDE::GetResultInfo( SolutionType solType ) {
     
     shared_ptr<ResultInfo> res;
-    for( UInt i = 0; i < results_.GetSize(); i++ ) {
-      if( results_[i]->resultType == solType) {
-        res = results_[i];
+    ResultSet::const_iterator it = availResults_.begin();
+    for( ; it != availResults_.end(); ++it )  {
+      if( (*it)->resultType == solType) {
+        res = *it;
         break;
       }
     }

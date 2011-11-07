@@ -107,6 +107,9 @@ namespace CoupledField {
     
     //! Constructor
     ElemList( Grid * grid);
+    
+    //! Create explicitly element list from single element
+    explicit ElemList( const Elem* elem, Grid* grid );
 
     virtual ~ElemList();
     
@@ -299,6 +302,7 @@ namespace CoupledField {
     friend class CoilList;
     friend class NumberList;
 
+    //! Constructor
     EntityIterator();
     
     //! Get type of iterator

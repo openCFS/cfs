@@ -77,9 +77,12 @@ namespace CoupledField
     //  Initialization
     // =======================================================================
 
-    //! Define availabe result types
-    void DefineAvailResults();
+    //! Define available primary result types
+    void DefinePrimaryResults();
 
+    //! Define available postprocessing results
+    void DefinePostProcResults();
+    
     //! Query parameter object for information on coils
     void ReadCoils();
     

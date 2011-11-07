@@ -914,7 +914,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
   }
 
 
-  void MagEdgePDE::DefineAvailResults() {
+  void MagEdgePDE::DefinePrimaryResults() {
 
     StdVector<std::string> vecComponents;
     vecComponents = "x", "y", "z";
@@ -934,68 +934,74 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
     
     feFunctions_[MAG_POTENTIAL]->SetResultInfo(res1);
     //feFunctions_[MAG_POTENTIAL]->SetPDE(shared_ptr<MagEdgePDE>(this));
-    
-    // === MAGNETIC FLUX DENSITY ===
-    shared_ptr<ResultInfo> flux(new ResultInfo);
-    flux->resultType = MAG_FLUX_DENSITY;
-    flux->dofNames = vecComponents;
-    flux->unit = "Vs/m^2";
-    flux->definedOn = ResultInfo::ELEMENT;
-    flux->entryType = ResultInfo::VECTOR;
-//    flux->fctType = shared_ptr<ConstFct>(new ConstFct() );
-    availResults_.insert( flux );
-    postProcResults_[MAG_FLUX_DENSITY] = MAG_POTENTIAL;
-
-    // === MAGNETIC VECTOR POTENTIAL ===
-    shared_ptr<ResultInfo> magPot(new ResultInfo);
-    magPot->resultType = MAG_POTENTIAL;
-    magPot->dofNames = vecComponents;
-    magPot->unit = "A/m^2";
-    magPot->definedOn = ResultInfo::ELEMENT;
-    magPot->entryType = ResultInfo::VECTOR;
-    availResults_.insert( magPot );
-    
-    //resultFncs_[MAG_POTENTIAL] = &MagEdgePDE::CalcFluxDensityAtIP;
-    
-//    // === EDDY CURRENT DENSITY ===
-//    shared_ptr<ResultInfo> eddy(new ResultInfo);
-//    eddy->resultType = MAG_EDDY_CURRENT;
-//    eddy->dofNames = vecComponents;
-//    eddy->unit = "A/m^2";
-//    eddy->definedOn = ResultInfo::ELEMENT;
-//    eddy->entryType = ResultInfo::VECTOR;
-//    eddy->fctType = shared_ptr<ConstFct>(new ConstFct() );
-//    availResults_.insert( eddy );
-//    
-//    // === DIVERGENCE OF MAGNETIC POTENTIAL ===
-//    shared_ptr<ResultInfo> div(new ResultInfo);
-//    div->resultType = MAG_POTENTIAL_DIV;
-//    div->dofNames = "";
-//    div->unit = "Vs/m^3";
-//    div->definedOn = ResultInfo::ELEMENT;
-//    div->entryType = ResultInfo::SCALAR;
-//    div->fctType = shared_ptr<ConstFct>(new ConstFct() );
-//    availResults_.insert( div );
-    
-    // === PERMEABILITY  ===
-    shared_ptr<ResultInfo> perm(new ResultInfo);
-    perm->resultType = MAG_ELEM_PERMEABILITY;
-    perm->dofNames = "";
-    perm->unit = "Vs/Am";
-    perm->definedOn = ResultInfo::ELEMENT;
-    perm->entryType = ResultInfo::SCALAR;
-    availResults_.insert( perm );
-
-    // === MAGNETIC ENERGY ===
-    shared_ptr<ResultInfo> energy(new ResultInfo);
-    energy->resultType = MAG_ENERGY;
-    energy->dofNames = "";
-    energy->unit = "Ws";
-    energy->definedOn = ResultInfo::REGION;
-    energy->entryType = ResultInfo::SCALAR;
-    availResults_.insert( energy );
-    postProcResults_[MAG_ENERGY] = MAG_POTENTIAL;
+   
   }
+  
+  void MagEdgePDE::DefinePostProcResults() {
+
+      StdVector<std::string> vecComponents;
+      vecComponents = "x", "y", "z";
+
+      // === MAGNETIC FLUX DENSITY ===
+      shared_ptr<ResultInfo> flux(new ResultInfo);
+      flux->resultType = MAG_FLUX_DENSITY;
+      flux->dofNames = vecComponents;
+      flux->unit = "Vs/m^2";
+      flux->definedOn = ResultInfo::ELEMENT;
+      flux->entryType = ResultInfo::VECTOR;
+      availResults_.insert( flux );
+      postProcResults_[MAG_FLUX_DENSITY] = MAG_POTENTIAL;
+
+      // === MAGNETIC VECTOR POTENTIAL ===
+      shared_ptr<ResultInfo> magPot(new ResultInfo);
+      magPot->resultType = MAG_POTENTIAL;
+      magPot->dofNames = vecComponents;
+      magPot->unit = "A/m^2";
+      magPot->definedOn = ResultInfo::ELEMENT;
+      magPot->entryType = ResultInfo::VECTOR;
+      availResults_.insert( magPot );
+      
+      //resultFncs_[MAG_POTENTIAL] = &MagEdgePDE::CalcFluxDensityAtIP;
+      
+  //    // === EDDY CURRENT DENSITY ===
+  //    shared_ptr<ResultInfo> eddy(new ResultInfo);
+  //    eddy->resultType = MAG_EDDY_CURRENT;
+  //    eddy->dofNames = vecComponents;
+  //    eddy->unit = "A/m^2";
+  //    eddy->definedOn = ResultInfo::ELEMENT;
+  //    eddy->entryType = ResultInfo::VECTOR;
+  //    eddy->fctType = shared_ptr<ConstFct>(new ConstFct() );
+  //    availResults_.insert( eddy );
+  //    
+  //    // === DIVERGENCE OF MAGNETIC POTENTIAL ===
+  //    shared_ptr<ResultInfo> div(new ResultInfo);
+  //    div->resultType = MAG_POTENTIAL_DIV;
+  //    div->dofNames = "";
+  //    div->unit = "Vs/m^3";
+  //    div->definedOn = ResultInfo::ELEMENT;
+  //    div->entryType = ResultInfo::SCALAR;
+  //    div->fctType = shared_ptr<ConstFct>(new ConstFct() );
+  //    availResults_.insert( div );
+      
+      // === PERMEABILITY  ===
+      shared_ptr<ResultInfo> perm(new ResultInfo);
+      perm->resultType = MAG_ELEM_PERMEABILITY;
+      perm->dofNames = "";
+      perm->unit = "Vs/Am";
+      perm->definedOn = ResultInfo::ELEMENT;
+      perm->entryType = ResultInfo::SCALAR;
+      availResults_.insert( perm );
+
+      // === MAGNETIC ENERGY ===
+      shared_ptr<ResultInfo> energy(new ResultInfo);
+      energy->resultType = MAG_ENERGY;
+      energy->dofNames = "";
+      energy->unit = "Ws";
+      energy->definedOn = ResultInfo::REGION;
+      energy->entryType = ResultInfo::SCALAR;
+      availResults_.insert( energy );
+      postProcResults_[MAG_ENERGY] = MAG_POTENTIAL;
+    }
 
   // =======================================================================
   //   HELPER METHODS FOR CALCULATING AUXILIARY QUANTITIES

@@ -265,6 +265,7 @@
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="elecFieldIntensity"/>
       <xsd:enumeration value="elecFluxDensity"/>
+      <xsd:enumeration value="elecEnergyDensity"/>
       <xsd:enumeration value="elecPolarization"/>
       <xsd:enumeration value="elecPseudoPolarization"/>      
     </xsd:restriction>

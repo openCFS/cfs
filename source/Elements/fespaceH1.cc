@@ -327,7 +327,7 @@ namespace CoupledField {
     // =================================
     
     // iterate over all elements
-    shared_ptr<Grid> ptGrid = feFunction_->GetGrid();
+    Grid* ptGrid = feFunction_->GetGrid();
     std::map< UInt, ElemVirtualNodes >::iterator elemIt;
     
     for( elemIt = virtualNodes_.begin(); 

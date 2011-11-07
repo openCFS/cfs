@@ -17,6 +17,8 @@ namespace CoupledField
   class linElecInt;
   class LinearFormContext;
   class ElecForceOp;
+  class BaseBDBInt;
+  class ResultFunctor;
   
   //! Class for electrostatic equation (no adaptivity)
   class ElecPDE : public SinglePDE {
@@ -125,21 +127,16 @@ namespace CoupledField
     //! SubType of electrostatic section
     std::string subType_;
 
-    //! list of bilienar forms
-    std::map<RegionIdType, BiLinearForm*> biLinForms_;
-
     // *****************
     //  POSTPROCESSING
     // *****************
-
-    //! Define availabe result types
-    void DefineAvailResults();
-
-    //! Calculate electrid field intensity
-    template <class TYPE>
-    void CalcElectricField( shared_ptr<BaseResult> vals );
     
+    //! Define available primary result types
+    void DefinePrimaryResults();
     
+    //! Define available postprocessing results
+    void DefinePostProcResults();
+
     
     //! Calculate electric potential for several points
     template<class TYPE>
@@ -147,27 +144,12 @@ namespace CoupledField
                       StdVector<LocPoint>& points,
                       Vector<TYPE>& values );
 
-    
-    //! Calculate electric field intensity for several points
-    template<class TYPE>
-    void CalcElecField( StdVector<const Elem*>& elems,
-                        StdVector<LocPoint>& points,
-                        Vector<TYPE>& values );
-
-    //! Calculate electrid flux density
-    template <class TYPE>
-    void CalcElectricFluxDensity( shared_ptr<BaseResult> vals );
-
     //! Calculates the polarization vector
     void CalcPolarizationField( shared_ptr<BaseResult> vals );
 
     //! Calculate electric charges
     template <class TYPE>
     void CalcCharges( shared_ptr<BaseResult> vals );
-
-    //! Computes the electric energy for each subdomain
-    template <class TYPE>
-    void CalcEnergy( shared_ptr<BaseResult> vals );
 
     //! Contains the (Volume) subdomains next to the surface
     //! elements where the charges are computed

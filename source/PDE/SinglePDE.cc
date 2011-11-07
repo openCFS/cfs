@@ -74,8 +74,6 @@ namespace CoupledField {
 
   SinglePDE::SinglePDE( Grid *aptgrid, PtrParamNode paramNode ) :
     StdPDE( aptgrid, paramNode ),
-    ptError_(NULL),
-    tolSpaceErr_(0.0),
     isDirectCoupled_(false),
     isInitialized_(false),
     maxTimeDerivOrder_(0),
@@ -228,7 +226,7 @@ namespace CoupledField {
     // =====================================================================
     // trigger definition of available results
     // =====================================================================
-    DefineAvailResults();
+    DefinePrimaryResults();
     
     // =====================================================================
     // read in material data
@@ -335,7 +333,7 @@ namespace CoupledField {
     while(fncIt != feFunctions_.end()){
       shared_ptr<BaseFeFunction> actFct = fncIt->second;
       shared_ptr<FeSpace> actSpace = fncIt->second->GetFeSpace();
-      actFct->SetGrid(shared_ptr<Grid>(ptgrid_));
+      //actFct->SetGrid(shared_ptr<Grid>(ptgrid_));
       actSpace->Finalize();
       actSpace->PreCalcShapeFncs();
       
@@ -383,6 +381,7 @@ namespace CoupledField {
     // =====================================================================
     LOG_TRACE(pde) << pdename_ << ": Reading store results";
 
+    DefinePostProcResults();
     ReadStoreResults();
     ReadFieldResults();
 
@@ -3564,9 +3563,11 @@ namespace CoupledField {
         spIt->second->AddFeFunction(feFunctions_[spIt->first]);
         feFunctions_[spIt->first]->SetFeSpace(spIt->second);
         feFunctions_[spIt->first]->SetPDE(this);
+        feFunctions_[spIt->first]->SetGrid(ptgrid_);
         
         rhsFeFunctions_[spIt->first]->SetFeSpace(spIt->second);
         rhsFeFunctions_[spIt->first]->SetPDE(this);
+        rhsFeFunctions_[spIt->first]->SetGrid(ptgrid_);
         spIt++;
       }
     }

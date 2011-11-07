@@ -59,11 +59,11 @@ DECLARE_LOG(fefunc)
     return pde_;
   }
 
-  void BaseFeFunction::SetGrid(shared_ptr<Grid> grid){
+  void BaseFeFunction::SetGrid(Grid* grid){
     grid_ = grid;
   }
 
-  shared_ptr<Grid> BaseFeFunction::GetGrid(){
+  Grid* BaseFeFunction::GetGrid(){
     return grid_;
   }
 

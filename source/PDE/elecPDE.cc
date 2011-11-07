@@ -34,6 +34,10 @@
 #include "Forms/coefFunction.hh"
 #include "Forms/buInt.hh"
 
+//new postprocessing concept
+#include "resultFunctor.hh"
+
+
 #ifdef USE_SCRIPTING
 #include "DataInOut/Scripting/cfsmessenger.hh" 
 #endif
@@ -144,7 +148,6 @@ namespace CoupledField {
 
   void ElecPDE::DefineIntegrators() {
 
-    
     RegionIdType actRegion;
     BaseMaterial * actSDMat = NULL;
     
@@ -218,9 +221,10 @@ namespace CoupledField {
       stiffInt->SetFeSpace( feFunctions_[ELEC_POTENTIAL]->GetFeSpace());
 
       assemble_->AddBiLinearForm( stiffIntDescr );
-      biLinForms_[actRegion] = stiffInt;
+      bdbInts_[actRegion] = stiffInt;
+      
     }
-
+    
     // Define integrators for composite materials
     // (only for subType "flatShell")
     std::map<RegionIdType, Composite>::iterator compIt;
@@ -286,40 +290,40 @@ namespace CoupledField {
   // ***************
   //   CalcResults
   // ***************
-   void ElecPDE::CalcResults( shared_ptr<BaseResult> res ) {
-     
-     switch (res->GetResultInfo()->resultType ) {
-     case ELEC_POTENTIAL:
-       feFunctions_[ELEC_POTENTIAL]->ExtractResult( res );
-       break;
+  void ElecPDE::CalcResults( shared_ptr<BaseResult> res ) {
 
-     case ELEC_RHS_LOAD:
-       rhsFeFunctions_[ELEC_POTENTIAL]->ExtractResult( res );
-      break;
-       
-     case ELEC_FIELD_INTENSITY:
-       if( isComplex_ ) {
-         CalcElectricField<Complex>( res );
-       } else {
-         CalcElectricField<Double>( res );
-       }
-       break;
-       
-     case ELEC_ENERGY:
-       if( isComplex_ ) {
-         CalcEnergy<Complex>( res );
-       } else {
-         CalcEnergy<Double>( res );
-       }
-       break;
+    switch (res->GetResultInfo()->resultType ) {
+      case ELEC_POTENTIAL:
+        feFunctions_[ELEC_POTENTIAL]->ExtractResult( res );
+        break;
 
-     default:
-       WARN( "Result '" << 
-             SolutionTypeEnum.ToString(res->GetResultInfo()->resultType)
-             << "' type not computable by electric PDE" );
-     }
-     
-   }
+      case ELEC_RHS_LOAD:
+        rhsFeFunctions_[ELEC_POTENTIAL]->ExtractResult( res );
+        break;
+
+      case ELEC_FIELD_INTENSITY:
+        resultFunctors_[ELEC_FIELD_INTENSITY]->EvalResult(res);
+        break;
+        
+      case ELEC_FLUX_DENSITY:
+        resultFunctors_[ELEC_FLUX_DENSITY]->EvalResult(res);
+        break;
+
+      case ELEC_ENERGY_DENSITY:
+        resultFunctors_[ELEC_ENERGY_DENSITY]->EvalResult(res);
+        break;
+        
+      case ELEC_ENERGY:
+        resultFunctors_[ELEC_ENERGY]->EvalResult(res);
+        break;
+
+      default:
+        WARN( "Result '" << 
+              SolutionTypeEnum.ToString(res->GetResultInfo()->resultType)
+              << "' type not computable by electric PDE" );
+    }
+
+  }
    
    template <class TYPE>
    void ElecPDE::CalcElecPot( StdVector<const Elem*>& elems,
@@ -343,124 +347,33 @@ namespace CoupledField {
      }
    }
    
-   template <class TYPE>
-   void ElecPDE::CalcElecField( StdVector<const Elem*>& elems,
-                                StdVector<LocPoint>& points,
-                                Vector<TYPE>& values )  {
-     REFACTOR;
-//<<<<<<< .mine
-//     Vector<TYPE> tempE, elemSol;
-//     NodeStoreSol<TYPE> & solhelp = dynamic_cast<NodeStoreSol<TYPE>&>(*sol_);
-//     FeFunction<TYPE>& fct = 
-//         dynamic_cast<FeFunction<TYPE>& >(*(GetFeFunction(ELEC_POTENTIAL)));
-//     values.Resize( elems.GetSize() * dim_ );
-//
-//     // loop over elements
-//     LocPointMapped lpm;
-//     for ( UInt iElem = 0; iElem < elems.GetSize(); ++iElem ) {
-//       const Elem * el = elems[iElem];
-//       linElecInt * li = biLinForms_[el->regionId];
-//       shared_ptr<ElemShapeMap> esm = ptgrid_->GetElemShapeMap( el, true );
-//       BaseFE*  ptFe = fct.GetFeSpace()->GetFe( el->elemNum );
-//       lpm.Set( points[iElem], esm );
-//       solhelp.GetElemSolution( elemSol, el);
-//       li->ApplyBMat( tempE, lpm, ptFe, elemSol);
-//       // loop over dofs
-//       for(UInt iDim = 0; iDim < dim_; iDim++ ) {
-//         values[iElem*dim_ + iDim] = -tempE[iDim];
-//       }
-//     }
-//=======
-//     Vector<TYPE> tempE, elemSol;
-//     NodeStoreSol<TYPE> & solhelp = dynamic_cast<NodeStoreSol<TYPE>&>(*sol_);
-//     FeFunction<TYPE>& fct = 
-//         dynamic_cast<FeFunction<TYPE>& >(*(GetFeFunction(ELEC_POTENTIAL)));
-//     values.Resize( elems.GetSize() * dim_ );
-//
-//     // loop over elements
-//     LocPointMapped lpm;
-//     for ( UInt iElem = 0; iElem < elems.GetSize(); ++iElem ) {
-//       const Elem * el = elems[iElem];
-//       GradientOperator<FeH1,TYPE> li;
-//       shared_ptr<ElemShapeMap> esm = ptgrid_->GetElemShapeMap( el, true );
-//       BaseFE*  ptFe = fct.GetFeSpace()->GetFe( el->elemNum );
-//       lpm.Set( points[iElem], esm );
-//       solhelp.GetElemSolution( elemSol, el);
-//       li.ApplyOp( tempE, lpm, ptFe, elemSol);
-//       // loop over dofs
-//       for(UInt iDim = 0; iDim < dim_; iDim++ ) {
-//         values[iElem*dim_ + iDim] = -tempE[iDim];
-//       }
-//     }
-//>>>>>>> .r11288
-   }
-
    void ElecPDE::CalcField( SolutionType solType, StdVector<const Elem*>& elems,
                             StdVector<LocPoint>& points, SingleVector& values ) {
-
-     // switch, depending on solutionType
-     switch(solType) {
-       case ELEC_POTENTIAL:
-         if(isComplex_) {
-           Vector<Complex>& temp = dynamic_cast<Vector<Complex>& >(values);
-           CalcElecPot(elems, points, temp );
-         } else {
-           Vector<Double>& temp = dynamic_cast<Vector<Double>& >(values);
-           CalcElecPot<Double>(elems, points, temp );
-         }
-         break;
-       case ELEC_FIELD_INTENSITY:
-         if(isComplex_) {
-           Vector<Complex>& temp = dynamic_cast<Vector<Complex>& >(values);
-           CalcElecField(elems, points, temp );
-         } else {
-           Vector<Double>& temp = dynamic_cast<Vector<Double>& >(values);
-           CalcElecField<Double>(elems, points, temp );
-         }
-         break;
-       default:
-         EXCEPTION("Result not computable by this PDE");
-     }
+REFACTOR;
+//     // switch, depending on solutionType
+//     switch(solType) {
+//       case ELEC_POTENTIAL:
+//         if(isComplex_) {
+//           Vector<Complex>& temp = dynamic_cast<Vector<Complex>& >(values);
+//           CalcElecPot(elems, points, temp );
+//         } else {
+//           Vector<Double>& temp = dynamic_cast<Vector<Double>& >(values);
+//           CalcElecPot<Double>(elems, points, temp );
+//         }
+//         break;
+//       case ELEC_FIELD_INTENSITY:
+//         if(isComplex_) {
+//           Vector<Complex>& temp = dynamic_cast<Vector<Complex>& >(values);
+//           CalcElecField(elems, points, temp );
+//         } else {
+//           Vector<Double>& temp = dynamic_cast<Vector<Double>& >(values);
+//           CalcElecField<Double>(elems, points, temp );
+//         }
+//         break;
+//       default:
+//         EXCEPTION("Result not computable by this PDE");
+//     }
    }
-
-
-   template <class TYPE>
-   void ElecPDE::CalcElectricField( shared_ptr<BaseResult> sol ) {
-     Vector<TYPE> tempE, elemSol;
-     Result<TYPE> &  actSol = 
-         dynamic_cast<Result<TYPE>&>(*sol);
-     EntityIterator it = actSol.GetEntityList()->GetIterator();
-     Vector<TYPE> & actVal = actSol.GetVector();
-     actVal.Resize( actSol.GetEntityList()->GetSize() * dim_ );
-     FeFunction<TYPE>& fct = 
-         dynamic_cast<FeFunction<TYPE>& >(*(GetFeFunction(actSol.GetResultInfo()->resultType)));
-
-
-     // loop over elements
-     LocPointMapped lpm;
-     for ( it.Begin(); !it.IsEnd(); it++ ) {
-       const Elem * el = it.GetElem();
-       GradientOperator<FeH1,TYPE> li;
-       shared_ptr<ElemShapeMap> esm = ptgrid_->GetElemShapeMap( el, true );
-       BaseFE*  ptFe = fct.GetFeSpace()->GetFe( it );
-       lpm.Set( Elem::shapes[el->type].midPointCoord, esm );
-       fct.GetElemSolution( elemSol, it.GetElem() );
-       li.ApplyOp( tempE, lpm, ptFe, elemSol);
-       // loop over dofs
-       for(UInt iDim = 0; iDim < dim_; iDim++ ) {
-         actVal[it.GetPos()*dim_ + iDim] = -tempE[iDim];
-       }
-     }
-   }
-   
-  
-  template <class TYPE>
-  void ElecPDE::CalcElectricFluxDensity( shared_ptr<BaseResult> sol )
-  {
-    REFACTOR;
-  }
-  
-  
 
 
   void ElecPDE::CalcPolarizationField( shared_ptr<BaseResult> res )
@@ -473,51 +386,8 @@ namespace CoupledField {
   template <class TYPE>
   void ElecPDE::CalcCharges( shared_ptr<BaseResult> res ) {
     REFACTOR;
-  }
-
-  template <class TYPE>
-  void ElecPDE::CalcEnergy( shared_ptr<BaseResult> vals )
-  {
-    Matrix<Double> elemmat;  
-    Vector<TYPE> help;
-    std::string factor = "1.0";
-    TYPE energy;
-
-    Result<TYPE> &  actSol = 
-        dynamic_cast<Result<TYPE>&>(*vals);      
-    EntityIterator regionIt = actSol.GetEntityList()->GetIterator();
-
-    // resize vector
-    Vector<TYPE> & actVal = actSol.GetVector();
-    actVal.Resize( actSol.GetEntityList()->GetSize() );
-
-    // Loop over regions
-    for( regionIt.Begin(); !regionIt.IsEnd(); regionIt++ ) {
-      ElemList actSDList(ptgrid_ );
-      actSDList.SetRegion( regionIt.GetRegion() );
-      BiLinearForm * bilinear_stiff = biLinForms_[regionIt.GetRegion()];
-
-      EntityIterator elemIt = actSDList.GetIterator();
-
-      // Loop over elements
-      energy = 0;
-      Vector<TYPE> elpot;
-      for( elemIt.Begin(); !elemIt.IsEnd(); elemIt++ ) {
-
-        //COMMENTED OUT DUE TO REFACTORING
-        //bilinear_stiff->SetFactor(factor);
-        bilinear_stiff->CalcElementMatrix( elemmat, elemIt, elemIt );
-
-        feFunctions_[ELEC_POTENTIAL]->GetEntitySolution(elpot, elemIt);
-        help =  elemmat * elpot;
-        energy += 0.5 * (help * elpot);
-
-        LOG_DBG3(elecpde) << "CalcEnergy: elem=" << elemIt.GetElem()->elemNum << " mat=" << elemmat.ToString();
-        LOG_DBG3(elecpde) << "CalcEnergy: elemIt=" << elemIt.GetElem()->elemNum << " elpot=" << elpot.ToString();
-        LOG_DBG3(elecpde) << "CalcEnergy: elemIt=" << elemIt.GetElem()->elemNum << " sum energy -> " << energy;
-      }  
-      actVal[regionIt.GetPos()] = energy;
-    }
+    // This will be also moved to the resultFunctor class,
+    // as soon as the surface B-operators are defined
   }
 
 
@@ -583,7 +453,7 @@ namespace CoupledField {
     REFACTOR;
   }
 
-  void ElecPDE::DefineAvailResults() {
+  void ElecPDE::DefinePrimaryResults() {
     
     // Electric Potential
     shared_ptr<ResultInfo> res1( new ResultInfo);
@@ -632,77 +502,6 @@ namespace CoupledField {
     rhs->entryType = ResultInfo::SCALAR;
     availResults_.insert( rhs );
     postProcResults_[ELEC_RHS_LOAD] = ELEC_POTENTIAL;
-    
-    // Electric Field Intensity
-    // create new resultDof object
-    shared_ptr<ResultInfo> res ( new ResultInfo );
-    res->resultType = ELEC_FIELD_INTENSITY;
-    res->SetVectorDOFs(dim_, isaxi_);
-    res->unit = "V/m";
-    res->definedOn = ResultInfo::ELEMENT;
-    res->entryType = ResultInfo::VECTOR;
-    availResults_.insert( res );
-    postProcResults_[ELEC_FIELD_INTENSITY] = ELEC_POTENTIAL;
-    
-    // Electric Flux Density
-    shared_ptr<ResultInfo> flux ( new ResultInfo );
-    flux->resultType = ELEC_FLUX_DENSITY;
-    flux->SetVectorDOFs(dim_, isaxi_);
-    flux->unit = "C/m^2";
-    flux->definedOn = ResultInfo::ELEMENT;
-    flux->entryType = ResultInfo::VECTOR;
-    availResults_.insert( flux );
-    postProcResults_[ELEC_FLUX_DENSITY] = ELEC_POTENTIAL;
-    
-    // Electric charge
-    shared_ptr<ResultInfo> charge( new ResultInfo );
-    charge->resultType = ELEC_CHARGE;
-    charge->definedOn = ResultInfo::SURF_ELEM;
-    charge->entryType = ResultInfo::SCALAR;
-    charge->dofNames = "";
-    charge->unit = "C";
-    availResults_.insert( charge );
-    postProcResults_[ELEC_CHARGE] = ELEC_POTENTIAL;
-
-    // Electric energy
-    shared_ptr<ResultInfo> energy( new ResultInfo );
-    energy->resultType = ELEC_ENERGY;
-    energy->definedOn = ResultInfo::REGION;
-    energy->entryType = ResultInfo::SCALAR;
-    energy->dofNames = "";
-    energy->unit = "Ws";
-    availResults_.insert ( energy );
-    postProcResults_[ELEC_ENERGY] = ELEC_POTENTIAL;
-    
-    // Electric polarization
-    shared_ptr<ResultInfo> pol( new ResultInfo );
-    pol->resultType = ELEC_POLARIZATION;
-    pol->definedOn = ResultInfo::ELEMENT;
-    pol->entryType = ResultInfo::VECTOR;
-    pol->SetVectorDOFs(dim_, isaxi_);
-    pol->unit = "C/m^2";
-    availResults_.insert( pol );
-    postProcResults_[ELEC_POLARIZATION] = ELEC_POTENTIAL;
-    
-    // pesudo electric polarization for piezo simp
-    shared_ptr<ResultInfo> pseudoPol( new ResultInfo );
-    pseudoPol->resultType = ELEC_PSEUDO_POLARIZATION;
-    pseudoPol->definedOn = ResultInfo::ELEMENT;
-    pseudoPol->entryType = ResultInfo::SCALAR;
-    pseudoPol->dofNames = "";
-    pseudoPol->unit = "";
-    availResults_.insert( pseudoPol );
-    postProcResults_[ELEC_PSEUDO_POLARIZATION] = ELEC_POTENTIAL;
-
-    // grad elec potential
-    shared_ptr<ResultInfo> grad_sol(new ResultInfo);
-    grad_sol->resultType = GRAD_ELEC_POTENTIAL;
-    grad_sol->SetVectorDOFs(dim_, isaxi_);
-    grad_sol->unit = "V/m";
-    grad_sol->entryType = ResultInfo::VECTOR;
-    grad_sol->definedOn = ResultInfo::NODE;
-    availResults_.insert( grad_sol );
-    postProcResults_[GRAD_ELEC_POTENTIAL] = ELEC_POTENTIAL;
 
     // ===================================
     // Check for non-conforming interfaces
@@ -765,6 +564,130 @@ namespace CoupledField {
       results_.Push_back( lagr );
     } 
   }
+  
+  
+  void ElecPDE::DefinePostProcResults() {
+
+    shared_ptr<BaseFeFunction> feFct = feFunctions_[ELEC_POTENTIAL];
+    
+    // Electric Field Intensity
+    // create new resultDof object
+    shared_ptr<ResultInfo> ef ( new ResultInfo );
+    ef->resultType = ELEC_FIELD_INTENSITY;
+    ef->SetVectorDOFs(dim_, isaxi_);
+    ef->unit = "V/m";
+    ef->definedOn = ResultInfo::ELEMENT;
+    ef->entryType = ResultInfo::VECTOR;
+    availResults_.insert( ef );
+    postProcResults_[ELEC_FIELD_INTENSITY] = ELEC_POTENTIAL;
+    shared_ptr<BaseFieldFunctor> eFunc;
+    if( isComplex_ ) {
+      eFunc.reset(new DiffFieldFunctor<Complex>(feFct, ef));
+    } else {
+      eFunc.reset(new DiffFieldFunctor<Double>(feFct, ef));
+    }
+    resultFunctors_[ELEC_FIELD_INTENSITY] = eFunc;
+    fieldFunctors_[ELEC_FIELD_INTENSITY] = eFunc;
+    
+    // Electric Flux Density
+    shared_ptr<ResultInfo> flux ( new ResultInfo );
+    flux->resultType = ELEC_FLUX_DENSITY;
+    flux->SetVectorDOFs(dim_, isaxi_);
+    flux->unit = "C/m^2";
+    flux->definedOn = ResultInfo::ELEMENT;
+    flux->entryType = ResultInfo::VECTOR;
+    availResults_.insert( flux );
+    postProcResults_[ELEC_FLUX_DENSITY] = ELEC_POTENTIAL;
+    shared_ptr<BaseFieldFunctor> fluxFunc;
+    if( isComplex_ ) {
+      fluxFunc.reset(new FluxFieldFunctor<Complex>(feFct, ef));
+    } else {
+      fluxFunc.reset(new FluxFieldFunctor<Double>(feFct, ef));
+    }
+    resultFunctors_[ELEC_FLUX_DENSITY] = fluxFunc;
+    fieldFunctors_[ELEC_FLUX_DENSITY] = fluxFunc;
+
+    // Electric charge
+    shared_ptr<ResultInfo> charge( new ResultInfo );
+    charge->resultType = ELEC_CHARGE;
+    charge->definedOn = ResultInfo::SURF_ELEM;
+    charge->entryType = ResultInfo::SCALAR;
+    charge->dofNames = "";
+    charge->unit = "C";
+    availResults_.insert( charge );
+    postProcResults_[ELEC_CHARGE] = ELEC_POTENTIAL;
+
+    // Electric Energy Density
+    shared_ptr<ResultInfo> ed ( new ResultInfo );
+    ed->resultType = ELEC_ENERGY_DENSITY;
+    ed->dofNames = "";
+    ed->unit = "Ws/m^3";
+    ed->definedOn = ResultInfo::ELEMENT;
+    ed->entryType = ResultInfo::SCALAR;
+    availResults_.insert( ed );
+    postProcResults_[ELEC_ENERGY_DENSITY] = ELEC_POTENTIAL;
+    shared_ptr<BaseFieldFunctor> edFunc;
+    if( isComplex_ ) {
+      edFunc.reset(new EnergyDensFieldFunctor<Complex>(feFct, ed));
+    } else {
+      edFunc.reset(new EnergyDensFieldFunctor<Double>(feFct, ed));
+    }
+    resultFunctors_[ELEC_ENERGY_DENSITY] = edFunc;
+    fieldFunctors_[ELEC_ENERGY_DENSITY] = edFunc;
+    
+    // Electric energy
+    shared_ptr<ResultInfo> energy( new ResultInfo );
+    energy->resultType = ELEC_ENERGY;
+    energy->definedOn = ResultInfo::REGION;
+    energy->entryType = ResultInfo::SCALAR;
+    energy->dofNames = "";
+    energy->unit = "Ws";
+    availResults_.insert ( energy );
+    postProcResults_[ELEC_ENERGY] = ELEC_POTENTIAL;
+    shared_ptr<ResultFunctor> energyFunc;
+    if( isComplex_ ) {
+      energyFunc.reset(new EnergyResultFunctor<Complex>(feFct, ef));
+    } else {
+      energyFunc.reset(new EnergyResultFunctor<Double>(feFct, ef));
+    }
+    resultFunctors_[ELEC_ENERGY] = energyFunc;
+    
+
+    // Electric polarization
+    shared_ptr<ResultInfo> pol( new ResultInfo );
+    pol->resultType = ELEC_POLARIZATION;
+    pol->definedOn = ResultInfo::ELEMENT;
+    pol->entryType = ResultInfo::VECTOR;
+    pol->SetVectorDOFs(dim_, isaxi_);
+    pol->unit = "C/m^2";
+    availResults_.insert( pol );
+    postProcResults_[ELEC_POLARIZATION] = ELEC_POTENTIAL;
+
+    // pesudo electric polarization for piezo simp
+    shared_ptr<ResultInfo> pseudoPol( new ResultInfo );
+    pseudoPol->resultType = ELEC_PSEUDO_POLARIZATION;
+    pseudoPol->definedOn = ResultInfo::ELEMENT;
+    pseudoPol->entryType = ResultInfo::SCALAR;
+    pseudoPol->dofNames = "";
+    pseudoPol->unit = "";
+    availResults_.insert( pseudoPol );
+    postProcResults_[ELEC_PSEUDO_POLARIZATION] = ELEC_POTENTIAL;
+
+    // Initialize result functors:
+    // 1) Loop over all BDB-integrators
+    std::map<RegionIdType, BaseBDBInt*>::iterator it = bdbInts_.begin();
+    for( ; it != bdbInts_.end(); ++it ) {
+      RegionIdType region = it->first;
+      BaseBDBInt* bdb = it->second;
+
+      // 2) pass integrators to functors
+      eFunc->AddIntegrator(bdb, region);
+      fluxFunc->AddIntegrator(bdb, region);
+      energyFunc->AddIntegrator(bdb, region);
+      edFunc->AddIntegrator(bdb, region);
+    }
+  }
+
   
   std::map<SolutionType, shared_ptr<FeSpace> >
  ElecPDE::CreateFeSpaces(const std::string& formulation, PtrParamNode infoNode) {

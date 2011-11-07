@@ -44,6 +44,18 @@ namespace CoupledField {
     type_ = ELEM_LIST;
     region_ = NO_REGION_ID;
   }
+  
+  ElemList::ElemList(  const Elem* elem, Grid* grid ) 
+      : EntityList( grid ) {
+
+      type_ = ELEM_LIST;
+      region_ = NO_REGION_ID;
+      defineType_ = NO_TYPE;
+      region_ = NO_REGION_ID;
+      list_.Push_back( elem->elemNum );
+  }
+  
+  
   ElemList::~ElemList() {
   }
 

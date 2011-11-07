@@ -41,6 +41,8 @@ namespace CoupledField {
 
     // public typedefs
     typedef StdVector<shared_ptr<ResultInfo> > ResultInfoList;
+    //! typedefs for result handling
+    typedef std::set<shared_ptr<ResultInfo> > ResultSet;
 
 
     //! Virtual destructor
@@ -485,7 +487,9 @@ namespace CoupledField {
     //! Vector containing the results calculated by this PDE
     //! OBSOLETE
     ResultInfoList results_;
-
+    
+    //! Set containing the types of possible results
+    ResultSet availResults_;
     //!
 
     //! flag indicating if this PDE needs the algebraic system

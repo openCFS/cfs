@@ -30,7 +30,11 @@ namespace CoupledField
   class Assemble;
   class BaseForm;
   class BiLinearForm;
+  class BaseBDBInt;
   class PDEMemento;
+  class ResultFunctor;
+  class BaseFieldFunctor;
+  
 
   
   //! Base class for all kinds of single field problems.
@@ -45,8 +49,6 @@ namespace CoupledField
     friend class DirectCoupledPDE;
 
     
-    //! typedefs for result handling
-    typedef std::set<shared_ptr<ResultInfo> > ResultSet;
     typedef StdVector<shared_ptr<BaseResult> > ResultList;
     typedef std::map<shared_ptr<ResultInfo> , ResultList > ResultMap;
 
@@ -221,8 +223,18 @@ namespace CoupledField
     // INITIALIZATION METHODS
     // ======================================================
 
-    /** define all computable results. */
-    virtual void DefineAvailResults() { };
+    //! Define primary results
+    
+    //! Initialize the primary results, i.e. the results corresponding to the
+    //! primary variables and their unknowns.
+    virtual void DefinePrimaryResults() { };
+    
+    //! Define post-processing results
+    
+    //! This method defines the post-processing results, which are computed
+    //! mostly using the bilienarform of the main problem.
+    //! Thus, this method gets called after the integrators are defined
+    virtual void DefinePostProcResults() {};
 
     /** The gradSolution is common for (almost) all PDEs.
      * @param dof for mech displacement, 1 = grad of x displacement, ... */
@@ -434,8 +446,7 @@ namespace CoupledField
     //@{
     //! \name Attributes connected to storing information
     
-    //! Set containing the types of possible results
-    ResultSet availResults_;
+    
 
     //! Map containing the result types and the results
     ResultMap resultLists_;
@@ -444,24 +455,6 @@ namespace CoupledField
     std::map<shared_ptr<BaseResult>,RegionIdType> surfNeighborRegions_;
     //@}
     
-    // -----------------------------------------------------------------------
-    // Adaptivity
-    // -----------------------------------------------------------------------
-
-    //@{
-    //! \name Attributes connected to adaptivity
-
-    //! object with methods for error estimation
-    SpaceErrorEstimator * ptError_;
-
-    //! array where  we store the number of refinement for the element
-    StdVector<Double> markingElems_;
-
-    Vector<Double> errorMap_;  //!< array with error map
-    Double tolSpaceErr_;       //!< tolerance
-    //@}
-    
-
     // -----------------------------------------------------------------------
     // Miscellaneous paramters
     // -----------------------------------------------------------------------
@@ -489,8 +482,19 @@ namespace CoupledField
 
     //! map for storing bilinear forms needed for postprocessing
     std::map< RegionIdType, std::map< std::string, BaseForm* > > pdeBilinearForms_;
-
-
+    
+    //! Map for storing the primary BDB integrators of the problem
+    
+    //! This map stores the primary BDB integratorsm, which can be used for 
+    //! calculating spatial derivatives, fluxes and energy.
+    std::map<RegionIdType, BaseBDBInt*> bdbInts_;
+    
+    //! Map storing functors for calculating general results
+    std::map<SolutionType, shared_ptr<ResultFunctor> > resultFunctors_;
+    
+    //! Map storing functors for calculating field results (real valued)
+    std::map<SolutionType, shared_ptr<BaseFieldFunctor> > fieldFunctors_;
+    
     //@}
   private:
     /** write out results for restart

@@ -328,6 +328,10 @@ namespace CoupledField {
       case ELEC_ENERGY:
         return "Ws";
         break;
+        
+      case ELEC_ENERGY_DENSITY:
+        return "Ws/m^3";
+        break;
 
       case ELEC_POLARIZATION:
         return "C/m^2";
@@ -1168,6 +1172,7 @@ namespace CoupledField {
     SolutionTypeEnum.Add(ELEC_CHARGE, "elecCharge");
     SolutionTypeEnum.Add(ELEC_FLUX_DENSITY, "elecFluxDensity");
     SolutionTypeEnum.Add(ELEC_ENERGY, "elecEnergy");
+    SolutionTypeEnum.Add(ELEC_ENERGY_DENSITY, "elecEnergyDensity");
     SolutionTypeEnum.Add(ELEC_RHS_LOAD, "elecRhsLoad");
     //smoothing PDE
     SolutionTypeEnum.Add(SMOOTH_DISPLACEMENT, "smoothDisplacement");

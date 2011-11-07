@@ -23,7 +23,9 @@ namespace CoupledField{
             class FE_TYPE,
             class MAT_DATA_TYPE,
             class COEF_DATA_TYPE>
-  BDBInt<B_OP,FE_TYPE,MAT_DATA_TYPE,COEF_DATA_TYPE>::BDBInt(shared_ptr<CoefFunction> dData, MAT_DATA_TYPE factor){
+  BDBInt<B_OP,FE_TYPE,MAT_DATA_TYPE,COEF_DATA_TYPE>::BDBInt(shared_ptr<CoefFunction> dData, MAT_DATA_TYPE factor)
+  : BaseBDBInt() 
+  {
       name_ = "BDBInt";
       isSymmetric_ = true;
       assert(dData->GetType() == CoefFunction::TENSOR);
@@ -45,14 +47,15 @@ namespace CoupledField{
 
   }
 
-  //! Calculate the
+  //! Calculate the element matrix
   template<template<class,class> class B_OP,
               class FE_TYPE,
               class MAT_DATA_TYPE,
               class COEF_DATA_TYPE>
-  void BDBInt<B_OP,FE_TYPE,MAT_DATA_TYPE,COEF_DATA_TYPE>::CalcElementMatrix( Matrix<MAT_DATA_TYPE>& elemMat,
-                                  EntityIterator& ent1,
-                                  EntityIterator& ent2) {
+  void BDBInt<B_OP,FE_TYPE,MAT_DATA_TYPE,COEF_DATA_TYPE>::
+  CalcElementMatrix( Matrix<MAT_DATA_TYPE>& elemMat,
+                     EntityIterator& ent1,
+                     EntityIterator& ent2) {
 
     // Extract physical element
     const Elem* ptElem = ent1.GetElem();
@@ -112,5 +115,101 @@ namespace CoupledField{
 
     }
   }
+  
+  //! Multiply element matrix with vector
+  template<template<class,class> class B_OP,
+  class FE_TYPE,
+  class MAT_DATA_TYPE,
+  class COEF_DATA_TYPE>
+  template<class VEC_DATA_TYPE> 
+  void BDBInt<B_OP,FE_TYPE,MAT_DATA_TYPE,COEF_DATA_TYPE>::
+  ApplyElemMat( Vector<VEC_DATA_TYPE>&ret, const Vector<Double>& sol,
+                EntityIterator& ent1,
+                EntityIterator& ent2 ) {
+    Matrix<MAT_DATA_TYPE> elemMat;
+    CalcElementMatrix(elemMat, ent1, ent2);
+    ret = elemMat * sol;
+  }
 
+  
+  //! Apply B-operator on vector
+  //template<class VEC_DATA_TYPE>
+  template<template<class,class> class B_OP,
+  class FE_TYPE,
+  class MAT_DATA_TYPE,
+  class COEF_DATA_TYPE>
+  void BDBInt<B_OP,FE_TYPE,MAT_DATA_TYPE,COEF_DATA_TYPE>::
+  ApplyBMat( Vector<MAT_DATA_TYPE>&ret, 
+             const Vector<MAT_DATA_TYPE>& sol,
+             const Elem* ptElem, LocPointMapped& lpm ) {
+    Matrix<MAT_DATA_TYPE> bOp;
+    FE_TYPE* ptFe = static_cast<FE_TYPE*>(ptFeSpace1_->GetFe( ptElem->elemNum ));
+    operator_.CalcOpMat(bOp, lpm, ptFe);
+    ret = bOp * sol;
+  }
+
+  //! Apply dB-operator on vector
+  //template<class VEC_DATA_TYPE> 
+  template<template<class,class> class B_OP,
+   class FE_TYPE,
+   class MAT_DATA_TYPE,
+   class COEF_DATA_TYPE>
+   void BDBInt<B_OP,FE_TYPE,MAT_DATA_TYPE,COEF_DATA_TYPE>::
+   ApplydBMat( Vector<MAT_DATA_TYPE>&ret, 
+               const Vector<MAT_DATA_TYPE>& sol,
+               const Elem* ptElem, LocPointMapped& lpm ) {
+     Matrix<MAT_DATA_TYPE> bOp, dMat, dbMat;
+     FE_TYPE* ptFe = static_cast<FE_TYPE*>(ptFeSpace1_->GetFe( ptElem->elemNum ));
+     operator_.CalcOpMat(bOp, lpm, ptFe);
+     dData_->GetTensor(dMat,lpm,ptElem);
+     dbMat.Resize(dMat.GetNumRows(), bOp.GetNumCols());
+     dMat.Mult_Blas(bOp,dbMat,false,false,1.0,0);
+     ret = dbMat* sol;
+   }
+
+  //! Calculate the integration kernel
+  template<template<class,class> class B_OP,
+  class FE_TYPE,
+  class MAT_DATA_TYPE,
+  class COEF_DATA_TYPE>
+  void BDBInt<B_OP,FE_TYPE,MAT_DATA_TYPE,COEF_DATA_TYPE>::
+  CalcKernel( Matrix<MAT_DATA_TYPE>& kernel, 
+              const Elem* ptElem,
+              LocPointMapped& lpm ) {
+
+    operator_.SetSolDim(Bdim_);
+
+    Matrix<MAT_DATA_TYPE> bMat, dbMat;
+    Matrix<COEF_DATA_TYPE> dMat;
+    MAT_DATA_TYPE fac = 0.0;
+
+    // Obtain FE element from feSpace and integration scheme
+    FE_TYPE* ptFe = static_cast<FE_TYPE*>(ptFeSpace1_->GetFe( ptElem->elemNum ));
+
+    UInt nrFncs = ptFe->GetNumFncs();
+
+    kernel.Resize( nrFncs * Bdim_);
+    kernel.Init();
+
+#define USE_BLAS_VERSION
+
+    // Call the CalcBMat()-method
+    operator_.CalcOpMat( bMat, lpm, ptFe);
+
+    // Calculate D-Mat
+    dData_->GetTensor(dMat,lpm,ptElem);
+    operator_.TransformJacDet(fac,lpm,ptFe);
+    dbMat.Resize(dMat.GetNumRows(),nrFncs*Bdim_);
+
+#ifdef USE_BLAS_VERSION
+    dMat.Mult_Blas(bMat,dbMat,false,false,1.0,0);
+    bMat.Mult_Blas(dbMat,kernel,true,false,factor_,1.0);
+#else
+    dbMat = (dMat * bMat) * fac;
+    kernel += Transpose(bMat) * dbMat * factor_;
+#endif
+
+  }
+  
+  
 }
