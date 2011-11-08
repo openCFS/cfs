@@ -283,6 +283,14 @@ namespace CoupledField {
     sstr << revision;
     sstr >> ansysBinlibRev_;
 
+    // Since ANSYS 13.0 the switched the byte order...
+    if(ansysBinlibRev_ < 4) 
+    {
+      std::reverse(revision.begin(), revision.end());
+      sstr << revision;
+      sstr >> ansysBinlibRev_;      
+    }
+
     sstr.clear(); sstr.str("");
     sstr << compiled_rev;
     sstr >> compiledAnsysRev_;

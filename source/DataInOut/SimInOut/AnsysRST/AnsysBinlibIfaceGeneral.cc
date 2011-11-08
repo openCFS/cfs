@@ -109,26 +109,26 @@ namespace CoupledField
 
     // Map RST elem type id to Ansys element types.
     // linear element types
-    ansysType2TypeId_[LINE002] = 0;
+    ansysType2TypeId_[BEAM188] = 3;
     ansysType2TypeId_[PLANE42] = 1;
     ansysType2TypeId_[SOLID45] = 2;
 
     // quadratic element types
-    ansysType2TypeId_[LINE003] = 0;
+    ansysType2TypeId_[BEAM189] = 3;
     ansysType2TypeId_[PLANE82] = 1;
     ansysType2TypeId_[SOLID95] = 2;
 
     // Store the number of nodes of the used elem types in a map.
-    ansysType2NumNodes_[LINE002] = 0;
-    ansysType2NumNodes_[LINE003] = 0;
+    ansysType2NumNodes_[BEAM188] = 2;
+    ansysType2NumNodes_[BEAM189] = 3;
     ansysType2NumNodes_[PLANE42] = 4;
     ansysType2NumNodes_[SOLID45] = 8;
     ansysType2NumNodes_[PLANE82] = 8;
     ansysType2NumNodes_[SOLID95] = 20;
 
     // Map internal element types to ANSYS element types.
-    elemType2AnsysType_[Elem::LINE2]   = LINE002;
-    elemType2AnsysType_[Elem::LINE3]   = LINE003;
+    elemType2AnsysType_[Elem::LINE2]   = BEAM188;
+    elemType2AnsysType_[Elem::LINE3]   = BEAM189;
     elemType2AnsysType_[Elem::TRIA3]   = PLANE42;
     elemType2AnsysType_[Elem::TRIA6]   = PLANE82;
     elemType2AnsysType_[Elem::QUAD4]   = PLANE42;
@@ -539,9 +539,9 @@ namespace CoupledField
     Integer lenJobName;
 
     // variables for element information header
-    AnsysElementType ansysElementType[2];
-    Integer MAXTYPE = 2;
-    Integer NumType = 2;
+    AnsysElementType ansysElementType[3];
+    Integer MAXTYPE = 3;
+    Integer NumType = 3;
     Integer MAXREAL = 0;
     Integer NumReal = 0;
     Integer MAXCSYS = 0;
@@ -575,7 +575,8 @@ namespace CoupledField
       ncFname = resFN_.length();
       std::fill(Title, Title+sizeof(Title), ' ');
       std::copy(fileName_.begin(), fileName_.end(), Title);
-      lenTitle = sizeof(Title);
+      lenTitle = sizeof(Title)-1;
+      Title[lenTitle]=0;
       std::fill(JobName, JobName+sizeof(JobName), ' ');
       std::copy(resFN_.begin(), resFN_.begin()+sizeof(JobName), JobName);
       lenJobName = sizeof(JobName);
@@ -585,25 +586,25 @@ namespace CoupledField
       switch(analysisType_)
       {
       case BasePDE::STATIC:
-        MaxResultSet = ((numSteps_/100)+1)*100;
+        MaxResultSet = ((numSteps_/100)+1)*1000;
         complexResults_ = false;
         timeFreq_ = "time";
         kan = 0;
         break;
       case BasePDE::TRANSIENT:
-        MaxResultSet = ((numSteps_/100)+1)*100;
+        MaxResultSet = ((numSteps_/100)+1)*1000;
         complexResults_ = false;
         timeFreq_ = "time";
         kan = 4;
         break;
       case BasePDE::HARMONIC:
-        MaxResultSet = ((2*numSteps_/100)+1)*100;
+        MaxResultSet = ((2*numSteps_/100)+1)*1000;
         complexResults_ = true;
         timeFreq_ = "frequency";
         kan = 3;
         break;
       case BasePDE::EIGENFREQUENCY:
-        MaxResultSet = ((numSteps_/100)+1)*100;
+        MaxResultSet = ((numSteps_/100)+1)*1000;
         complexResults_ = false;
         timeFreq_ = "frequency";
         kan = 2;
@@ -655,13 +656,15 @@ namespace CoupledField
       if(!ptGrid_->IsQuadratic())
       {
         //      ansysElementType[0] = 153; // SURF153
+        SetElementType188(ansysElementType[2], 3); // BEAM188
         SetElementType42(ansysElementType[0], 1); // PLANE42
-        SetElementType45(ansysElementType[1], 2); // PLANE45
+        SetElementType45(ansysElementType[1], 2); // SOLID45
       }
       else
       {
         //      ansysElementType[0] = 153; // SURF153
-        SetElementType82(ansysElementType[0], 1); // SOLID82
+        SetElementType189(ansysElementType[2], 3); // BEAM189
+        SetElementType82(ansysElementType[0], 1); // PLANE82
         SetElementType95(ansysElementType[1], 2); // SOLID95
       }
 
@@ -1063,11 +1066,11 @@ namespace CoupledField
       break;
 
     case Elem::LINE2:
-      //std::copy(&connect[0], &connect[0]+numElemNodes, &connectANSYS[0]);
+      std::copy(&connect[0], &connect[0]+numElemNodes, &connectANSYS[0]);
       break;
 
     case Elem::LINE3:
-      //std::copy(&connect[0], &connect[0]+numElemNodes, &connectANSYS[0]);
+      std::copy(&connect[0], &connect[0]+numElemNodes, &connectANSYS[0]);
       break;
 
     default:
@@ -1078,18 +1081,116 @@ namespace CoupledField
     return ansysElemType;
   }
 
-  void AnsysBinlibIfaceGeneral::SetElementType00(AnsysElementType& eltype,
-                                      Integer TypeNumber)
+  void AnsysBinlibIfaceGeneral::SetElementType188(AnsysElementType& eltype,
+                                                  Integer TypeNumber)
   {
     eltype.elementtypid = TypeNumber;
     std::fill(eltype.ielc, eltype.ielc+IELCSZ+50, 0);
 
     eltype.ielc[IETYP-1] = TypeNumber;
 
-    eltype.ielc[JETYP-1] = 0;
+    eltype.ielc[JETYP-1] = BEAM188;
+    eltype.ielc[20] = 3;
+    eltype.ielc[21] = 2;
+    eltype.ielc[26] = 8;
+    eltype.ielc[32] = 63;
+    eltype.ielc[33] = 63;
+    eltype.ielc[34] = 2;
+    eltype.ielc[37] = 1;
+    eltype.ielc[38] = 4;
+    eltype.ielc[39] = 4;
+    eltype.ielc[46] = 1;
+    eltype.ielc[49] = 2;
+    eltype.ielc[51] = 3;
+    eltype.ielc[55] = 	2;
+    eltype.ielc[60] = 	3;
+    eltype.ielc[61] = 	2;
+    eltype.ielc[62] = 	2;
+    eltype.ielc[63] = 	6;
+    eltype.ielc[64] = 	2;
+    eltype.ielc[65] = 	30;
+    eltype.ielc[66] = 	2;
+    eltype.ielc[67] = 	2;
+    eltype.ielc[70] = 	1;
+    eltype.ielc[71] = 	2;
+    eltype.ielc[73] =  10;
+    eltype.ielc[74] = 	5;
+    eltype.ielc[82] = 	6;
+    eltype.ielc[90] = 	5;
+    eltype.ielc[93] = 	2;
+    eltype.ielc[96] = 	2;
+    eltype.ielc[97] = 	20;
+    eltype.ielc[110] = 	6;
+    eltype.ielc[111] = 	100;
+    eltype.ielc[112] = 	50;
+    eltype.ielc[116] = 	1;
+    eltype.ielc[121] = 	231;
+    eltype.ielc[126] = 	9;
 
+    eltype.ielc[133] = 	1111834957;
+    eltype.ielc[134] = 	825767968;
+
+    eltype.ielc[144] = 	1;
+
+    eltype.ielc[152] = 	3;
+    eltype.ielc[159] = 	3;
   }
 
+  void AnsysBinlibIfaceGeneral::SetElementType189(AnsysElementType& eltype,
+                                                  Integer TypeNumber)
+  {
+    eltype.elementtypid = TypeNumber;
+    std::fill(eltype.ielc, eltype.ielc+IELCSZ+50, 0);
+
+    eltype.ielc[IETYP-1] = TypeNumber;
+
+    eltype.ielc[JETYP-1] = BEAM189;
+    eltype.ielc[20] = 3;
+    eltype.ielc[21] = 2;
+    eltype.ielc[24] = 3;
+    eltype.ielc[32] = 63;
+    eltype.ielc[33] = 63;
+    eltype.ielc[34] = 2;
+    eltype.ielc[37] = 1;
+    eltype.ielc[38] = 4;
+    eltype.ielc[39] = 4;
+    eltype.ielc[46] = 1;
+    eltype.ielc[49] = 2;
+    eltype.ielc[51] = 3;
+    eltype.ielc[55] = 	2;
+    eltype.ielc[60] = 	4;
+    eltype.ielc[61] = 	3;
+    eltype.ielc[62] = 	3;
+    eltype.ielc[63] = 	6;
+    eltype.ielc[64] = 	3;
+    eltype.ielc[65] = 	30;
+    eltype.ielc[66] = 	3;
+    eltype.ielc[67] = 	3;
+    eltype.ielc[70] = 	1;
+    eltype.ielc[71] = 	2;
+    eltype.ielc[73] =  10;
+    eltype.ielc[74] = 	5;
+    eltype.ielc[82] = 	9;
+    eltype.ielc[90] = 	5;
+    eltype.ielc[93] = 	2;
+    eltype.ielc[96] = 	2;
+    eltype.ielc[97] = 	20;
+    eltype.ielc[110] = 	6;
+    eltype.ielc[111] = 	140;
+    eltype.ielc[112] = 	70;
+    eltype.ielc[116] = 	1;
+    eltype.ielc[121] = 	231;
+    eltype.ielc[126] = 	9;
+
+    eltype.ielc[133] = 	1111834957;
+    eltype.ielc[134] = 	825768224;
+
+    eltype.ielc[144] = 	1;
+
+    eltype.ielc[152] = 	3;
+    eltype.ielc[159] = 	3;
+  }
+  
   void AnsysBinlibIfaceGeneral::SetElementType42(AnsysElementType& eltype,
                                       Integer TypeNumber)
   {

@@ -62,14 +62,28 @@ namespace CoupledField
     //! Offset for step value in case of multisequence analysis
     Double stepValOffset_;
 
-    //! dataset 666. 
+    //! Output for CAPA .unverg if true, otherwise output standard I-DEAS .unv files.
+    bool capaOut_;
+
+    //! Dataset 666. - CAPA specific information
     void Dataset666();
 
-    //! dataset 781
+    //! Dataset 781 - Nodes in old CAPA format
     void Dataset781();   
 
-    //! dataset 780
+    //! dataset 780 - Elements in old CAPA format
     void Dataset780();
+
+    //! Dataset 2411 - Nodes in new I-DEAS format
+    void Dataset2411();   
+
+    //! Dataset 2412 - Elements in new I-DEAS format
+    void Dataset2412();
+
+    //! Dataset 2467 - Regions and Named Elements
+    void Dataset2467();   
+
+    void ElemType2UnvElemId(Elem::FEType et, UInt & id);
 
     //! for printing nodal results of simulation (static/transient)
     /*!
@@ -105,7 +119,10 @@ namespace CoupledField
                               const UInt nrDofs=1);
   
     //! Convertes enum SolutionType to string
-    std::string SolutionTypeToString(const SolutionType type) const;
+    void SolutionTypeToString(const SolutionType type,
+                              std::string& capaSolType,
+                              std::string& ideas5xSolType,
+                              UInt& ideas2414SolType) const;
   
     //! Re-sort stresses according to vector with dofnames
     template<class TYPE>

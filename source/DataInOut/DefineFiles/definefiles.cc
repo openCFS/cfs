@@ -55,8 +55,8 @@
 #endif
 
 #ifdef USE_UNV
-#include "DataInOut/SimInOut/Unverg/simInputUnv.hh"
-#include "DataInOut/SimInOut/Unverg/simOutUnv.hh"
+#include "DataInOut/SimInOut/Unverg/SimInputUnv.hh"
+#include "DataInOut/SimInOut/Unverg/SimOutputUnv.hh"
 #endif
 
 #ifdef USE_ANSYSRST

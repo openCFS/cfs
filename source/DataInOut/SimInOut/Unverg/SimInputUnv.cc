@@ -10,7 +10,7 @@
 #include <set>
 #include <map>
 
-#include "simInputUnv.hh"
+#include "SimInputUnv.hh"
 #include "unv_if.hh"
 
 extern const char *nodeDataTypesStr[30];
@@ -265,8 +265,8 @@ namespace CoupledField {
           elemNodes[5] = elemNodes[4];
           elemNodes[4] = dummy;
           break;
-				default:
-					break;
+        default:
+          break;
         }
       }        
 

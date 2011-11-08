@@ -599,6 +599,7 @@ share/scripts/optimization_tools.py -text
 share/scripts/printElemMatVec.py -text
 share/scripts/printElemMatVec.tcl svneol=native#text/x-tcl
 share/scripts/probe_ilupack_parameters.py -text
+share/scripts/rstinfo.sh -text
 share/scripts/voidmesh.pl -text
 share/scripts/xmlreplace.py -text
 share/xml/CFS-Material/CFS_Material.xsd -text svneol=unset#text/xml
@@ -787,14 +788,15 @@ source/DataInOut/SimInOut/TextOutput/CMakeLists.txt svneol=native#text/plain
 source/DataInOut/SimInOut/TextOutput/textSimOutput.cc svneol=native#text/x-c%2B%2Bsrc
 source/DataInOut/SimInOut/TextOutput/textSimOutput.hh svneol=native#text/x-c%2B%2Bhdr
 source/DataInOut/SimInOut/Unverg/CMakeLists.txt svneol=native#text/plain
-source/DataInOut/SimInOut/Unverg/simInputUnv.cc svneol=native#text/plain
-source/DataInOut/SimInOut/Unverg/simInputUnv.hh svneol=native#text/plain
-source/DataInOut/SimInOut/Unverg/simOutUnv.cc svneol=native#text/x-c%2B%2Bsrc
-source/DataInOut/SimInOut/Unverg/simOutUnv.hh svneol=native#text/x-c%2B%2Bhdr
+source/DataInOut/SimInOut/Unverg/SimInputUnv.cc svneol=native#text/plain
+source/DataInOut/SimInOut/Unverg/SimInputUnv.hh svneol=native#text/plain
+source/DataInOut/SimInOut/Unverg/SimOutputUnv.cc svneol=native#text/x-c%2B%2Bsrc
+source/DataInOut/SimInOut/Unverg/SimOutputUnv.hh svneol=native#text/x-c%2B%2Bhdr
 source/DataInOut/SimInOut/Unverg/unv.cc svneol=native#text/plain
 source/DataInOut/SimInOut/Unverg/unv.hh svneol=native#text/plain
 source/DataInOut/SimInOut/Unverg/unv_dat.cc svneol=native#text/plain
 source/DataInOut/SimInOut/Unverg/unv_dat.hh svneol=native#text/plain
+source/DataInOut/SimInOut/Unverg/unv_dataset_numbers.txt -text
 source/DataInOut/SimInOut/Unverg/unv_if.cc svneol=native#text/plain
 source/DataInOut/SimInOut/Unverg/unv_if.hh svneol=native#text/plain
 source/DataInOut/SimInOut/Unverg/unv_reader.cc svneol=native#text/plain

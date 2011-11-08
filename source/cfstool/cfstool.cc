@@ -57,8 +57,8 @@ namespace fs = boost::filesystem;
 #endif
 
 #ifdef USE_UNV
-#include "DataInOut/SimInOut/Unverg/simInputUnv.hh"
-#include "DataInOut/SimInOut/Unverg/simOutUnv.hh"
+#include "DataInOut/SimInOut/Unverg/SimInputUnv.hh"
+#include "DataInOut/SimInOut/Unverg/SimOutputUnv.hh"
 #endif
 
 #ifdef USE_ANSYSRST
@@ -216,6 +216,13 @@ namespace CFSTool {
 #ifdef USE_UNV
       baseName = std::string(fileName, 0, fileName.find(".unv"));
       PtrParamNode unvNode (new ParamNode(ParamNode::EX, ParamNode::ELEMENT));
+      if(fileName.find( ".unverg") != std::string::npos) 
+      {
+        PtrParamNode flavor (new ParamNode(ParamNode::EX, ParamNode::ATTRIBUTE));
+        flavor->SetName("flavor");
+        flavor->SetValue( "CAPA" );
+        unvNode->AddChildNode(flavor);
+      }
       writer =  shared_ptr<SimOutput>( new SimOutputUnv( baseName, unvNode ) );
 #else
       EXCEPTION( "No support for IDEAS universal output file format." );
@@ -1065,6 +1072,8 @@ int main(int argc, char** argv)
     } else {
       Exception::segfault_ = false;
     }
+
+      Exception::segfault_ = true;
 
     std::string param_mode = param->Get("mode")->As<std::string>();
 

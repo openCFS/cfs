@@ -10,7 +10,7 @@
 namespace fs = boost::filesystem;
 
 #include <fstream>
-#include "simOutUnv.hh"
+#include "SimOutputUnv.hh"
 #include "DataInOut/Logging/cfslog.hh"
 
 namespace CoupledField {
@@ -21,10 +21,22 @@ namespace CoupledField {
   // ***************
   SimOutputUnv::SimOutputUnv(  const std::string& filename,
                                PtrParamNode outputNode ) 
-    : SimOutput ( filename, outputNode ) {
+    : SimOutput ( filename, outputNode ),
+      capaOut_(false) {
     std::string sysPathSep;
+
+    std::string flavor;
+    outputNode->GetValue("flavor", flavor, ParamNode::PASS );
+    if(flavor == "CAPA") {
+      capaOut_ = true;
+    }
+
+    if(capaOut_) {
+      formatName_ = "unverg";
+    } else {
+      formatName_ = "unv";
+    }
     
-    formatName_ = "unv";
     dirName_ = "results_" + formatName_;
     outputNode->GetValue("directory", dirName_, ParamNode::PASS );
     try 
@@ -36,6 +48,7 @@ namespace CoupledField {
     }
 
     fileName_ = dirName_ + sysPathSep + filename;
+    
     stepNumOffset_ = 0;
     stepValOffset_ = 0.0;
     
@@ -63,9 +76,17 @@ namespace CoupledField {
       EXCEPTION( "File for output results is not initialized" );
     }
 
-    Dataset666();
-    Dataset781();
-    Dataset780();
+    if(capaOut_) 
+    {
+      Dataset666();
+      Dataset781();
+      Dataset780();
+    } else 
+    {    
+      Dataset2411();
+      Dataset2412();
+      Dataset2467();
+    }    
   }
 
 
@@ -121,6 +142,49 @@ namespace CoupledField {
         (*output) << "   " << Point[1];
       }
       (*output) << std::endl;
+    }
+ 
+    (*output) << std::setw(6) << -1 << std::endl;
+  }
+
+  void  SimOutputUnv::Dataset2411() {
+    //
+    if (!ptGrid_)
+      EXCEPTION("ptGrid_ is not initialized" );
+
+    (*output) << std::setw(6) << -1 << std::endl << std::setw(6) << 2411
+              << std::endl;
+
+    UInt dim=ptGrid_->GetDim();
+    UInt maxnumnodes=ptGrid_->GetNumNodes();
+
+    (*output).setf(std::ios::scientific);
+    (*output).precision(16);
+
+    for ( UInt i = 0; i < maxnumnodes; i++ ) {
+      (*output) << std::setw(10) << i+1 << std::setw(10) << 1
+                << std::setw(10) << 1 << std::setw(10) << 11 << std::endl;
+
+      (*output).setf(std::ios::uppercase);
+
+      Point Point;
+      Double x,y,z;
+      ptGrid_->GetNodeCoordinate(Point,i+1);
+      if( dim == 3 ) {
+        x = Point[0];
+        y = Point[1];
+        z = Point[2];
+      } else {
+        x = Point[0];
+        y = Point[1];
+        z = 0.0;
+      }
+
+      // hack to print the numbers with "D+XX" exponents
+      char tmp[128];
+      sprintf(tmp, "%25.16E%25.16E%25.16E", x, y, z);
+      for(unsigned int i = 0; i < strlen(tmp); i++) if(tmp[i] == 'E') tmp[i] = 'D';
+      (*output) << tmp << std::endl;
     }
  
     (*output) << std::setw(6) << -1 << std::endl;
@@ -215,6 +279,290 @@ namespace CoupledField {
     (*output) << std::setw(6) << -1 << std::endl;
   }
 
+  void  SimOutputUnv::Dataset2412()
+  {
+    //
+    if (!ptGrid_)
+      EXCEPTION("ptGrid_ is not initialized");
+
+    (*output) << std::setw(6) << -1 << std::endl << std::setw(6)
+              << 2412 << std::endl;
+
+    StdVector<UInt> connect;
+    StdVector<Elem*> elemssd;
+    UInt elmsgrp=1;
+    std::string errMsg;
+
+    StdVector<RegionIdType> subdoms;
+    ptGrid_->GetVolRegionIds(subdoms);
+    StdVector<RegionIdType> surfsubdoms;
+    ptGrid_->GetSurfRegionIds(surfsubdoms);
+
+    UInt i, j, k;
+    k = 0;
+    for (i=0; i<surfsubdoms.GetSize(); i++) {
+      subdoms.Push_back(surfsubdoms[i]);
+    }
+
+    for (i=0; i<subdoms.GetSize(); i++) {
+
+      ptGrid_->GetElems(elemssd,subdoms[i]);
+
+      for ( j = 0; j < elemssd.GetSize(); j++ ) {  
+        k++;
+        connect=elemssd[j]->connect;
+        UInt unvId = 0;
+        
+        Elem::FEType elemType = elemssd[j]->ptElem->feType();
+        ElemType2UnvElemId(elemType, unvId);
+
+        (*output) << std::setw(10) << elemssd[j]->elemNum;
+        (*output) << std::setw(10) << unvId;
+        (*output) << std::setw(10) << elmsgrp
+                  << std::setw(10) << elmsgrp 
+                  << std::setw(10) << ((UInt) elemType)
+                  << std::setw(10);
+
+        switch(elemType) 
+        {
+        case Elem::LINE2:
+          (*output) << std::setw(10) << 2 << std::endl;
+          (*output) << std::setw(10) << 0;
+          (*output) << std::setw(10) << 1;
+          (*output) << std::setw(10) << 1 << std::endl;;
+          (*output) << std::setw(10) << connect[0];
+          (*output) << std::setw(10) << connect[1];
+          break;
+
+        case Elem::LINE3:
+          (*output) << std::setw(10) << 2 << std::endl;
+          (*output) << std::setw(10) << 0;
+          (*output) << std::setw(10) << 1;
+          (*output) << std::setw(10) << 1 << std::endl;;
+          (*output) << std::setw(10) << connect[0];
+          (*output) << std::setw(10) << connect[1];
+          (*output) << std::setw(10) << connect[2];
+          break;
+          
+        case Elem::PYRA5:
+          (*output) << std::setw(10) << 8 << std::endl;
+          (*output) << std::setw(10) << connect[0];
+          (*output) << std::setw(10) << connect[1];
+          (*output) << std::setw(10) << connect[2];
+          (*output) << std::setw(10) << connect[3];
+          (*output) << std::setw(10) << connect[4];
+          (*output) << std::setw(10) << connect[4];
+          (*output) << std::setw(10) << connect[4];
+          (*output) << std::setw(10) << connect[4];
+          break;
+
+    case Elem::PYRA13:
+          (*output) << std::setw(10) << 20 << std::endl;
+          (*output) << std::setw(10) << connect[0];
+          (*output) << std::setw(10) << connect[1];
+          (*output) << std::setw(10) << connect[2];
+          (*output) << std::setw(10) << connect[3];
+          (*output) << std::setw(10) << connect[4];
+          (*output) << std::setw(10) << connect[4];
+          (*output) << std::setw(10) << connect[4];
+          (*output) << std::setw(10) << connect[4];
+          (*output) << std::setw(10) << connect[5];
+          (*output) << std::setw(10) << connect[6];
+          (*output) << std::setw(10) << connect[7];
+          (*output) << std::setw(10) << connect[8];
+          (*output) << std::setw(10) << connect[9];
+          (*output) << std::setw(10) << connect[10];
+          (*output) << std::setw(10) << connect[11];
+          (*output) << std::setw(10) << connect[12];
+          (*output) << std::setw(10) << connect[4];
+          (*output) << std::setw(10) << connect[4];
+          (*output) << std::setw(10) << connect[4];
+          (*output) << std::setw(10) << connect[4];
+          break;
+        default:
+          (*output) << connect.GetSize() << std::endl;
+
+          for (UInt ii=0; ii < connect.GetSize(); ii++) { 
+            (*output).width(10);
+            (*output) << connect[ii];
+          }
+          break;
+        }
+        
+        (*output) << std::endl;
+      } // over elements of group
+      elmsgrp++;
+    } // over groups
+    (*output) << std::setw(6) << -1 << std::endl;
+  }
+
+  void SimOutputUnv::ElemType2UnvElemId(Elem::FEType et, UInt & id)
+  {
+    switch(et)
+    {
+    case Elem::LINE2:
+      id       = 21;
+      break;
+    case Elem::LINE3:
+      id       = 24;
+      break;
+    case Elem::TRIA3:
+      id       = 91;
+      break;
+    case Elem::TRIA6:
+      id       = 92;
+      break;
+    case Elem::QUAD4:
+      id       = 94;
+      break;
+    case Elem::QUAD8:
+    case Elem::QUAD9:
+      id       = 95;
+      break;
+    case Elem::TET4:
+      id       = 111;
+      break;
+    case Elem::TET10:
+      id       = 118;
+      break;
+    case Elem::HEXA8:
+      id       = 115;
+      break;
+    case Elem::HEXA20:
+      id       = 116;
+      break;
+    case Elem::HEXA27:
+      id       = 117;
+      break;
+    case Elem::PYRA5:
+      id       = 115;
+      break;
+    case Elem::PYRA13:
+      id       = 116;
+      break;
+    case Elem::WEDGE6:
+      id       = 112;
+      break;
+    case Elem::WEDGE15:
+      id       = 113;
+      break;
+    default:
+      id       = 0;
+      break;
+    }
+
+  }
+
+  void  SimOutputUnv::Dataset2467()
+  {
+    //
+    if (!ptGrid_)
+      EXCEPTION("ptGrid_ is not initialized");
+
+    (*output) << std::setw(6) << -1 << std::endl << std::setw(6)
+              << 2467 << std::endl;
+
+    StdVector<Elem*> elems;
+    StdVector<UInt> entityNums;
+
+    StdVector<RegionIdType> subdoms;
+    ptGrid_->GetVolRegionIds(subdoms);
+    StdVector<RegionIdType> surfsubdoms;
+    ptGrid_->GetSurfRegionIds(surfsubdoms);
+
+    StdVector<std::string> regionNames;
+    ptGrid_->GetRegionNames(regionNames);
+
+    UInt i, j, k,n;
+    k = 0;
+    for (i=0; i<surfsubdoms.GetSize(); i++) {
+      subdoms.Push_back(surfsubdoms[i]);
+    }
+
+    StdVector<std::string> names;
+    StdVector<UInt> entityTypeCodes;
+    StdVector< StdVector<UInt> > entities;
+
+    // Collect region elements
+    for (i=0; i<subdoms.GetSize(); i++) {
+      UInt numElems = ptGrid_->GetNumElems(subdoms[i]);
+      ptGrid_->GetElems(elems,subdoms[i]);
+
+      names.Push_back(regionNames[subdoms[i]]);
+      entityTypeCodes.Push_back(8);
+
+      entityNums.Clear();
+      for ( j = 0; j < numElems; j++) {  
+        entityNums.Push_back(elems[j]->elemNum);
+      }
+
+      entities.Push_back(entityNums);      
+    }
+
+    StdVector<std::string> nodeNames, elemNames;
+    UInt numNamedEntities = 0;
+
+    // Collect named elements
+    ptGrid_->GetListElemNames(elemNames);
+    numNamedEntities = elemNames.GetSize();
+
+    for( UInt i = 0; i < numNamedEntities; i++ ) {
+      
+      // get elements
+      ptGrid_->GetElemsByName(elems, elemNames[i]);
+      UInt numElems = elems.GetSize();
+
+      names.Push_back(elemNames[i]);
+      entityTypeCodes.Push_back(8);
+
+      entityNums.Clear();
+      for ( j = 0; j < numElems; j++) {  
+        entityNums.Push_back(elems[j]->elemNum);
+      }
+
+      entities.Push_back(entityNums);      
+    }
+    
+    // Collect named nodes
+    ptGrid_->GetListNodeNames(nodeNames);
+    numNamedEntities = nodeNames.GetSize();
+
+    for( UInt i = 0; i < numNamedEntities; i++ ) {      
+      // get nodes
+      entityNums.Clear();
+      ptGrid_->GetNodesByName(entityNums, nodeNames[i]);
+      
+      names.Push_back(nodeNames[i]);
+      entityTypeCodes.Push_back(7);
+      entities.Push_back(entityNums);      
+    }
+  
+    UInt group=1;
+    for (i=0, n=names.GetSize(); i<n; i++) {    
+      UInt numEntities = entities[i].GetSize();
+
+      (*output) << std::setw(10) << (group++);
+      (*output) << std::setw(10) << 0;
+      (*output) << std::setw(10) << 0;
+      (*output) << std::setw(10) << 0;
+      (*output) << std::setw(10) << 0;
+      (*output) << std::setw(10) << 0;
+      (*output) << std::setw(10) << 0;
+      (*output) << std::setw(10) << numEntities << std::endl;
+      (*output) << names[i] << std::endl;
+
+      for ( j = 0; j < numEntities; j++, k++ ) {  
+        (*output) << std::setw(10) << entityTypeCodes[i];
+        (*output) << std::setw(10) << entities[i][j];
+        (*output) << std::setw(10) << 0;
+        (*output) << std::setw(10) << 0;
+        if( (j % 2) == 1 ) (*output) << std::endl;
+      } // over elements of group
+      if( (j % 2) == 1 ) (*output) << std::endl;
+    } // over groups
+    (*output) << std::setw(6) << -1 << std::endl;
+  }
+
   void  SimOutputUnv::NodeElemDataTransient(const UInt dataSetNr,
                                                   const std::string & title, 
                                                   const Vector<Double> & x, 
@@ -258,10 +606,20 @@ namespace CoupledField {
         //      dataCharac = 5; // unsymmetric tensor
       }
      
- 
-    (*output) << " " << title << " step" << std::setw(6) << step <<
-      " time   " << time << std::endl;  
-    (*output) << std::endl << std::endl << std::endl << std::endl;
+    if(capaOut_) 
+    {
+      (*output) << " " << title << " step" << std::setw(6) << step <<
+        " time   " << time << std::endl;  
+      (*output) << std::endl << std::endl << std::endl << std::endl;
+    }
+    else 
+    {
+      (*output) << " " << title << std::endl;  
+      (*output) << "NONE" << std::endl 
+                << "NONE" << std::endl 
+                << "NONE" << std::endl 
+                << "NONE" << std::endl;
+    }
     (*output) << std::setw(10) << 1 << std::setw(10) << 4 << std::setw(10) 
               << dataCharac  << std::setw(10) << specDataCharac
               << std::setw(10) << 2 << std::setw(10) << valsPerNode << std::endl;
@@ -328,7 +686,14 @@ namespace CoupledField {
     if (format == REAL_IMAG)
       {
         // write out realpart
-        (*output) << " " << title << " cw realpart" << std::setw(6) <<" frequency   " << frequency << std::endl;  
+        if(capaOut_) 
+        {
+          (*output) << " " << title << " cw realpart" << std::setw(6) <<" frequency   " << frequency << std::endl;  
+        } else 
+        {        
+          (*output) << " " << title << "_RE" << std::endl;  
+        }
+        
         (*output) << std::endl << std::endl << std::endl << std::endl;
         (*output) << std::setw(10) << 1 << std::setw(10) << 5 << std::setw(10) << dataCharact << std::setw(10) << 0
                   << std::setw(10) << 2 << std::setw(10) << valsPerNode << std::endl;
@@ -358,7 +723,14 @@ namespace CoupledField {
 
         // write out imag part
         (*output) << std::setw(6) << -1 << std::endl << std::setw(6) << 55 << std::endl;
-        (*output) << " " << title << " cw imagpart" << std::setw(6) <<" frequency   " << frequency << std::endl;  
+        if(capaOut_) 
+        {
+          (*output) << " " << title << " cw imagpart" << std::setw(6) <<" frequency   " << frequency << std::endl;  
+        } else 
+        {        
+          (*output) << " " << title << "_IM" << std::endl;
+        }
+        
         (*output) << std::endl << std::endl << std::endl << std::endl;
         (*output) << std::setw(10) << 1 << std::setw(10) << 5 << std::setw(10) << dataCharact << std::setw(10) << 0
                   << std::setw(10) << 2 << std::setw(10) << valsPerNode << std::endl;
@@ -387,7 +759,12 @@ namespace CoupledField {
   
     else if (format == AMPLITUDE_PHASE) {
       // write out amplitude
-      (*output) << " " << title << " cw amplitude" << std::setw(6) <<" frequency   " << frequency << std::endl;  
+        if(capaOut_) 
+        {
+          (*output) << " " << title << " cw amplitude" << std::setw(6) <<" frequency   " << frequency << std::endl;  
+        } else {
+          (*output) << " " << title << "_AM" << std::endl;
+        }        
       (*output) << std::endl << std::endl << std::endl << std::endl;
       (*output) << std::setw(10) << 1 << std::setw(10) << 5 << std::setw(10) << dataCharact << std::setw(10) << 0
                 << std::setw(10) << 2 << std::setw(10) << valsPerNode << std::endl;
@@ -417,7 +794,12 @@ namespace CoupledField {
     
       // write out phase
       (*output) << std::setw(6) << -1 << std::endl << std::setw(6) << 55 << std::endl;
-      (*output) << " " << title << " cw phase" << std::setw(6) <<" frequency   " << frequency << std::endl;  
+        if(capaOut_) 
+        {
+          (*output) << " " << title << " cw phase" << std::setw(6) <<" frequency   " << frequency << std::endl;  
+        } else {
+          (*output) << " " << title << "_PH" << std::endl;
+        }        
       (*output) << std::endl << std::endl << std::endl << std::endl;
       (*output) << std::setw(10) << 1 << std::setw(10) << 5 << std::setw(10) << dataCharact << std::setw(10) << 0
                 << std::setw(10) << 2 << std::setw(10) << valsPerNode << std::endl;
@@ -458,7 +840,7 @@ namespace CoupledField {
       EXCEPTION(ex.what());
     }
 
-    std::string name = fileName_ + ".unv";
+    std::string name = fileName_ + "." + formatName_;
     output = NULL;
     output = new std::ofstream(name.c_str());
     if(!output)
@@ -502,8 +884,69 @@ namespace CoupledField {
       if(!ValidateNodesAndElements(actInfo)) continue;      
       
       ResultInfo::EntityUnknownType entityType = actInfo.definedOn;
-      std::string title =  SolutionTypeToString( actInfo.resultType );
+      std::string title;
+      std::string ideas5xSolType;
+      UInt ideas2414SolType;
       
+
+      SolutionTypeToString( actInfo.resultType, title,
+                            ideas5xSolType, ideas2414SolType );
+      
+      if(!capaOut_) 
+      {
+        title = ideas5xSolType;
+      }
+      
+      // The ideas2414SolType  is meant to  provide a mapping from  our result
+      // types to the I-DEAS types defined for dataset number 2414 which we do
+      // not currently write, but may do  so in the future. Here is an example
+      // for a scalar and a 6-dof dataset for a three-node triangle:
+
+      //     -1
+      //   2414   
+      //          3
+      //  Sound Pressure 
+      //          1
+      // NONE  
+      // MODEL_SOLUTION_SOLVE
+      // LOAD SET 1                   
+      // Analysis time was     11-Nov-99       17:09:55   
+      // NONE     
+      //          1         1         1       301         2         1
+      //        -10         0         1         1         1         0         0         0
+      //          2         0
+      //   0.00000E+00  0.00000E+00  0.00000E+00  0.00000E+00  0.00000E+00  0.00000E+00
+      //   0.00000E+00  0.00000E+00  0.00000E+00  0.00000E+00  0.00000E+00  0.00000E+00
+      //          1
+      //   1.00000E-03
+      //          2
+      //   0.00000E-03
+      //          3
+      //   2.00000E-03
+      //     -1
+      //     -1
+      //   2414
+      //          2
+      //  B.C. 1,REACTION FORCE_2,LOAD SET 1
+      //          1
+      // NONE  
+      // MODEL_SOLUTION_SOLVE                                             
+      // LOAD SET 1            
+      // Analysis time was     11-Nov-99       17:09:55
+      // NONE    
+      //          1         1         3         9         2         6
+      //        -10         0         1         1         1         0         0         0
+      //          2         0
+      //   0.00000E+00  0.00000E+00  0.00000E+00  0.00000E+00  0.00000E+00  0.00000E+00
+      //   0.00000E+00  0.00000E+00  0.00000E+00  0.00000E+00  0.00000E+00  0.00000E+00
+      //          1
+      //   4.43730E-03 -1.75471E-02 -6.28080E-03  0.00000E+00  0.00000E+00  0.00000E+00
+      //          2
+      //   8.61587E-03 -2.87617E-02 -2.40538E-03  0.00000E+00  0.00000E+00  0.00000E+00
+      //          3
+      //   8.58183E-03 -2.80713E-02 -9.58135E-04  0.00000E+00  0.00000E+00  0.00000E+00
+      //     -1
+
       // if result could not be mapped, omit it
       if( title == "") {
         WARN("Result '" << actInfo.resultName
@@ -644,41 +1087,63 @@ namespace CoupledField {
     vec = sorted;
   }
   
-  std::string SimOutputUnv::SolutionTypeToString(const SolutionType type) const
+  void SimOutputUnv::SolutionTypeToString(const SolutionType type,
+                                          std::string& capaSolType,
+                                          std::string& ideas5xSolType,
+                                          UInt& ideas2414SolType) const
   {
-
-    //   std::string warnMsg;
-
+    capaSolType = "";
+    ideas5xSolType = "UNK";
+    ideas2414SolType = 0;
     switch (type)
       {
       case MECH_DISPLACEMENT:
-        return "displacement";
+        capaSolType = "displacement";
+        ideas5xSolType = "U";
+        ideas2414SolType = 8;
         break;
       case MECH_ACCELERATION:
-        return "acceleration";
+        capaSolType = "acceleration";
+        ideas5xSolType = "A";
+        ideas2414SolType = 12;
         break;
       case MECH_VELOCITY:
-        return "velocity";
+        capaSolType = "velocity";
+        ideas5xSolType = "V";
+        ideas2414SolType = 11;
         break;
       case MECH_FORCE:
+        ideas5xSolType = "F";
+        ideas2414SolType = 9;
         break;
       case MECH_STRESS:
-        return "stress";
+        capaSolType = "stress";
+        ideas5xSolType = "STRESS";
+        ideas2414SolType = 2;
         break;
       case MECH_STRAIN:
         EXCEPTION("Not implemented" );
+        ideas5xSolType = "STRAIN";
+        ideas2414SolType = 3;
         break;
       case MECH_PSEUDO_DENSITY:
-        return "pseudo density";
+        capaSolType = "pseudo density";
+        ideas5xSolType = "PSEUDENS";
         break;
       case MECH_RHS_LOAD:
-        return "mechRhsLoad";
-         break;
+        capaSolType = "mechRhsLoad";
+        ideas5xSolType = "MECHRHS";
+        ideas2414SolType = 4;
+        break;
       case ELEC_POTENTIAL:
-        return "electric potential";
+        capaSolType = "electric potential";
+        ideas5xSolType = "VOLT";
+        ideas2414SolType = 94;
         break;
       case ELEC_FIELD_INTENSITY:
-        return "electric field";
+        capaSolType = "electric field";
+        ideas5xSolType = "EFIELD";
+        ideas2414SolType = 95;
         break;
       case ELEC_FORCE_VWP: 
         EXCEPTION("Not implemented" );
@@ -687,7 +1152,8 @@ namespace CoupledField {
         EXCEPTION("Not implemented" );
         break; 
       case ELEC_CHARGE:
-        return "electric charge";
+        capaSolType = "electric charge";
+        ideas5xSolType = "ECHARGE";
         break;
       case ELEC_FLUX_DENSITY:
         EXCEPTION("Not implemented");
@@ -696,44 +1162,54 @@ namespace CoupledField {
         EXCEPTION("Not implemented");
         break;
       case ELEC_RHS_LOAD:
-        return "elecRhsLoad";
+        capaSolType = "elecRhsLoad";
+        ideas5xSolType = "ERHS";
         break;
       case SMOOTH_DISPLACEMENT:
-        return "displacement";
+        capaSolType = "displacement";
+        ideas5xSolType = "USMOOTH";
         break;
       case ACOU_POTENTIAL:
-        return "fluid potential";
+        capaSolType = "fluid potential";
+        ideas5xSolType = "APOT";
+        ideas2414SolType = 301;
         break;
-      case ACOU_PRESSUREXYZ:
-        return "displacement";
-        break;
-
       case ACOU_RHS_LOAD:
-        return "fluid potential";
+        capaSolType = "fluid potential";
+        ideas5xSolType = "ALHRHS";
+        ideas2414SolType = 94;
         break;
       case ACOU_PRESSURE:
         //       warnMsg = "Due to the restrictions in the .unv file format, the ";
         //       warnMsg += "acoustic pressure is written as acoustic (fluid) potential!";
         //       WARN(warnMsg.c_str());
-        return "fluid potential";
+        capaSolType = "fluid potential";
+        ideas5xSolType = "APRES";
+        ideas2414SolType = 301;
         break;
       case ACOU_FORCE:
         EXCEPTION("Not implemented" );
         break;
       case ACOU_POTENTIAL_DERIV_1:
-        return "fluid potential, 1st deriv.";
+        capaSolType = "fluid potential, 1st deriv.";
+        ideas5xSolType = "APOTD1";
+        ideas2414SolType = 94;
         break;
       case ACOU_POTENTIAL_DERIV_2:
-        return "fluid potential, 2nd deriv.";
+        capaSolType = "fluid potential, 2nd deriv.";
+        ideas5xSolType = "APOTD2";
         break;
       case MAG_POTENTIAL:
-        return "mag. vector potential";
+        capaSolType = "mag. vector potential";
+        ideas5xSolType = "MAGPOT";
         break;
       case MAG_FLUX_DENSITY:
-        return "mag. flux density";
+        capaSolType = "mag. flux density";
+        ideas5xSolType = "MAGFLUX";
         break;
       case MAG_EDDY_CURRENT:
-        return "eddy current";
+        capaSolType = "eddy current";
+        ideas5xSolType = "MAGEDDY";
         break;
       case MAG_FORCE_VWP:
         EXCEPTION("Not implemented");
@@ -745,20 +1221,23 @@ namespace CoupledField {
         EXCEPTION("Not implemented");
         break;
       case MAG_RHS_LOAD:
-        return "magRhsLoad";
+        capaSolType = "magRhsLoad";
+        ideas5xSolType = "MAGRHS";
         break;
 
       case HEAT_TEMPERATURE:
-        return "temperature";
+        capaSolType = "temperature";
+        ideas5xSolType = "TEMP";
+        ideas2414SolType = 5;
         break;
       case HEAT_RHS_LOAD:
-        return "temperatureRhsLoad";
+        capaSolType = "temperatureRhsLoad";
+        ideas5xSolType = "TEMPRHS";
         break;
 
       default:
-        return "";
+        capaSolType = "";
       }
-    return std::string();
   }
 
 
