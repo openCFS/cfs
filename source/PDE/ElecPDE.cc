@@ -701,7 +701,7 @@ REFACTOR;
   }
 
   LinearFormContext* ElecPDE::CreateRhsLinearForm(SolutionType rhsType,shared_ptr<CoefFunction > rhsCoef){
-    LinearFormContext * mContext;
+    LinearFormContext * mContext = NULL;
     switch(rhsType){
     case ELEC_CHARGE_DENSITY:
       BUIntegrator<IdentityOperator,FeH1,Double>* curInt;

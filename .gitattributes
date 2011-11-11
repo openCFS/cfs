@@ -920,6 +920,7 @@ source/Domain/CoordinateSystems/TrivialCartesianCoordSystem.cc svneol=native#tex
 source/Domain/CoordinateSystems/TrivialCartesianCoordSystem.hh svneol=native#text/plain
 source/Domain/Domain.cc svneol=native#text/x-c%2B%2Bsrc
 source/Domain/Domain.hh svneol=native#text/x-c%2B%2Bhdr
+source/Domain/ElemMapping/CMakeLists.txt -text
 source/Domain/ElemMapping/EdgeFace.cc svneol=native#text/x-c%2B%2Bsrc
 source/Domain/ElemMapping/EdgeFace.hh svneol=native#text/x-c%2B%2Bhdr
 source/Domain/ElemMapping/Elem.cc svneol=native#text/plain
