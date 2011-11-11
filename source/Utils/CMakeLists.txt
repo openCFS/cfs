@@ -1,39 +1,23 @@
 SET(UTILS_SRCS
   ApproxData.cc
-  biotSavart.cc
-  cartesianCoordSys.cc
   Coil.cc
-  coordSystem.cc
-  cylCoordSys.cc
-  dampLayer.cc
-  defaultCoordSys.cc
-  hysteresis.cc
-  interpolate.cc
-  jiles.cc
+  DampLayer.cc
+  Interpolate1D.cc
   LinInterpolate.cc
   mathfunctions.cc
   Timer.cc
-  polCoordSys.cc
-  preisach.cc
   readCFDbinary.cc
-  result.cc
   SmoothSpline.cc
   tools.cc
   Point.cc
-  trivialCartesianCoordSys.cc
-  piezoMicroModel.cc
-  piezoMicroModelBK.cc
-  simplePreisachInv.cc
   )
-
 
 ADD_LIBRARY(utils STATIC ${UTILS_SRCS})
 
 SET(TARGET_LL 
   datainout
   matvec
-  odedescr
-  odesolver
+  coordsystems
   ${BOOST_SERIALIZATION_LIB}
 )
 

@@ -1,85 +1,10 @@
-SET(FORMS_SRCS
-#  abcInt.cc
-#  acouMechInt.cc
-#  acouMechNcInt.cc
-#  acouPowerDensityOp.cc
-#  acouRHSLinForm.cc
-#  adbInt.cc
-#  baseForceOp.cc
-#  baseForm.cc
-#  baseoperator.cc
-#  bdbInt.cc
-#  bdInt.cc
-#  curlCurlEdgeInt.cc
-#  curlCurlNodeInt.cc
-#  curlfieldop.cc
-#  elecchargeop.cc
-#  elecforceop.cc
-#  FlatShellElecInt.cc
-#  FlatShellInt.cc
-#  FlatShellMassInt.cc
-#  FlatShellPiezoInt.cc
-#  FlatShellStiffInt.cc
-#  gradfieldop.cc
-#  laplaceInt.cc
-#  linearForm.cc
-#  linBiotSavartSurfInt.cc
-#  linElecInt.cc
-#  linElastInt.cc
-#  linGradBDBInt.cc
-#  linNeumannInt.cc
-#  linPiezoCoupling.cc
-#  linPressureInt.cc
-#  linStrainOp.cc
-#  linSurfForm.cc
-#  linSurfStressInt.cc
-#  linThermoElectricInt.cc 
-#  linThermoMechInt.cc
-#  linThermoElecDampInt.cc 
-#  linThermoMechDampInt.cc 
-#  linHeatCondInt.cc
-#  linViscoElastInt.cc
-#  magforceop.cc
-#  massEdgeInt.cc
-#  massInt.cc
-#  mechStressStrain.cc
-#  nLincurlCurlEdgeInt.cc
-#  nLincurlCurlNodeInt.cc
-#  nLinElastInt.cc
-#  nLinElecHystInt.cc
-#  nLinElecMaterial.cc
-#  nlinLaplaceInt.cc
-#  nLinMassInt.cc
-#  nLinPiezoCoupling.cc
-#  nLinPiezoHyst.cc
-#  nLinPiezoHystRHS.cc
-#  nonConformingInt.cc
-#  pierceInt.cc
-#  piezoPolarizationMatrixRHSInt.cc
-#  pmlBasics.cc
-#  PMLInt.cc
-#  singleEntryInt.cc
-#  smoothInt.cc
-#  smoothNLInt.cc
-#  nLinMagHystInt2D.cc
-#  mixedInt.cc
-#  fluidMechInt.cc
-#  fluidMechShearStress.cc
-#  fluidMechMassInt.cc
-#  fluidMechStiffInt.cc
-#  nLinPiezoMicro.cc
-#  nLinPiezoMicroRHS.cc
-#  linMagStrictInt.cc
-#  nLinHeatInt.cc
+SET(INTEGRATION_SRCS
+  IntScheme.cc 
   )
 
-#ADD_LIBRARY(forms STATIC ${FORMS_SRCS})
+ADD_LIBRARY(integration STATIC ${INTEGRATION_SRCS})
 
 
-#TARGET_LINK_LIBRARIES(forms
-#  domain
-#  materials
-#  mathparser
-#  matvec
-#  utils
-#)
+TARGET_LINK_LIBRARIES(integration
+  elemmapping
+)

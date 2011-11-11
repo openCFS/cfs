@@ -1,11 +1,7 @@
-// -*- mode: c++; coding: utf-8; indent-tabs-mode: nil; -*-
-// kate: space-indent on; indent-width 2; encoding utf-8;
-// kate: auto-brackets on; mixedindent off; indent-mode cstyle;
-
 #include <vector>
 #include <cstdio>
 
-#include "MatVec/scrs_matrix.hh"
+#include "MatVec/SCRS_Matrix.hh"
 
 #include "OLAS/precond/ILDLPrecond/ildlkfactoriser.hh"
 #include "OLAS/precond/ILDLPrecond/ildlprecond.hh"

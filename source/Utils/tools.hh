@@ -1,14 +1,10 @@
-// -*- mode: c++; coding: utf-8; indent-tabs-mode: nil; -*-
-// kate: space-indent on; indent-width 2; encoding utf-8;
-// kate: auto-brackets on; mixedindent off; indent-mode cstyle;
-
 #ifndef TOOLS_2001
 #define TOOLS_2001
 
 #include <string>
 #include <iostream>
 
-#include "General/environment.hh"
+#include "General/Environment.hh"
 #include "Utils/Point.hh"
 
 namespace CoupledField {

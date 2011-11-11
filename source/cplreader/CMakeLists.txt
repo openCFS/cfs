@@ -85,12 +85,13 @@ ADD_EXECUTABLE(cplreader ${CPLREADER_SRCS})
 
 SET(TARGET_LL ${TARGET_LL}
   siminouthdf5
-  elements
+  febasis
   mathparser
   matvec
   utils
   cfsgeneral
   cplreader_cfs
+  elemmapping
 )
 
 IF(CPLREADER_ANSYS)

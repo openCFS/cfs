@@ -1,27 +1,23 @@
-// -*- mode: c++; coding: utf-8; indent-tabs-mode: nil; -*-
-// kate: space-indent on; indent-width 2; encoding utf-8;
-// kate: auto-brackets on; mixedindent off; indent-mode cstyle;
-
 #include <def_use_xerces.hh>
 #include "XMLMaterialHandler.hh"
 
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/ParamHandling/ParamTools.hh"
 #include "DataInOut/ParamHandling/Xerces.hh"
-#include "DataInOut/programOptions.hh"
+#include "DataInOut/ProgramOptions.hh"
 #include "DataInOut/WriteInfo.hh"
 
 // header for materials
-#include "Materials/electroMagneticMaterial.hh"
-#include "Materials/electrostaticMaterial.hh"
-#include "Materials/heatMaterial.hh"
-#include "Materials/acousticMaterial.hh"
-#include "Materials/mechanicMaterial.hh"
-#include "Materials/piezoMaterial.hh"
-#include "Materials/flowMaterial.hh"
-#include "Materials/thermoelasticMaterial.hh"
-#include "Materials/pyroelectricMaterial.hh"
-#include "Materials/magStrictMaterial.hh"
+#include "Materials/ElectroMagneticMaterial.hh"
+#include "Materials/ElectroStaticMaterial.hh"
+//#include "Materials/heatMaterial.hh"
+//#include "Materials/acousticMaterial.hh"
+//#include "Materials/mechanicMaterial.hh"
+//#include "Materials/piezoMaterial.hh"
+//#include "Materials/flowMaterial.hh"
+//#include "Materials/thermoelasticMaterial.hh"
+//#include "Materials/pyroelectricMaterial.hh"
+//#include "Materials/magStrictMaterial.hh"
 
 // Note, that the methods ComputeIso/OrthoMechStiffnesTensor were commented out
 // in revision 7562 and are not in the code -> check the repository!
@@ -73,16 +69,19 @@ namespace CoupledField {
    
     try {
     if ( matClass == PIEZO ) {
-      material = new PiezoMaterial();
-      ReadPiezo( material, pn);
+      REFACTOR;
+      //material = new PiezoMaterial();
+      //ReadPiezo( material, pn);
     }
     else if ( matClass == MECHANIC ) {
-      material = new MechanicMaterial();
-      ReadMechanic( material, pn );
+      REFACTOR;
+      //material = new MechanicMaterial();
+      //ReadMechanic( material, pn );
     }    
-    else if ( matClass == FLUID ) {
-      material = new AcousticMaterial();
-      ReadAcoustic( material, pn );
+    else if ( matClass == FLUID ) {\
+      REFACTOR;
+      //material = new AcousticMaterial();
+      //ReadAcoustic( material, pn );
     }
     else if ( matClass == ELECTROMAGNETIC ) {
       material = new ElectroMagneticMaterial();
@@ -93,24 +92,29 @@ namespace CoupledField {
       ReadElectrostatic( material, pn );
     }
     else if ( matClass == THERMIC ) {
-      material = new HeatMaterial();
-      ReadThermic( material, pn );
+      REFACTOR;
+      //material = new HeatMaterial();
+      //ReadThermic( material, pn );
     }
     else if ( matClass == FLOW ) {
-      material = new FlowMaterial();
-      ReadFlow( material, pn );
+      REFACTOR;
+      //material = new FlowMaterial();
+      //ReadFlow( material, pn );
     }
     else if ( matClass == PYROELECTRIC ) {
-      material = new PyroelectricMaterial();
-      ReadPyroelectric( material,pn );
+      REFACTOR;
+      //material = new PyroelectricMaterial();
+      //ReadPyroelectric( material,pn );
     }
     else if ( matClass == THERMOELASTIC ) {
-      material = new ThermoelasticMaterial();
-      ReadThermoelastic( material, pn );
+      REFACTOR;
+      //material = new ThermoelasticMaterial();
+      //ReadThermoelastic( material, pn );
     }
     else if ( matClass == MAGNETOSTRICTIVE ) {
-      material = new MagStrictMaterial();
-      ReadMagStrict( material, pn );
+      REFACTOR;
+      //material = new MagStrictMaterial();
+      //ReadMagStrict( material, pn );
     }
     else {
       EXCEPTION( "material type:" << matClass << " not defined" );

@@ -1,12 +1,8 @@
-// -*- mode: c++; coding: utf-8; indent-tabs-mode: nil; -*-
-// kate: space-indent on; indent-width 2; encoding utf-8;
-// kate: auto-brackets on; mixedindent off; indent-mode cstyle;
-
 #ifndef FILE_MATRIX_LAPACK_SUPPORT
 #define FILE_MATRIX_LAPACK_SUPPORT
 
 #include <def_use_lapack.hh>
-#include "OLAS/external/lapack/olasf77mapping.hh"
+#include "OLAS/external/lapack/OlasF77Mappings.hh"
 
 namespace CoupledField 
 {

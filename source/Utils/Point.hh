@@ -1,7 +1,7 @@
 #ifndef POINT_HH_
 #define POINT_HH_
 
-#include "General/environment.hh" // for the CFS types Double and UInt
+#include "General/Environment.hh" // for the CFS types Double and UInt
 
 namespace CoupledField
 {

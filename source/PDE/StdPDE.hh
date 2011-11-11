@@ -1,18 +1,15 @@
-// -*- mode: c++; coding: utf-8; indent-tabs-mode: nil; -*-
-// kate: space-indent on; indent-width 2; encoding utf-8;
-// kate: auto-brackets on; mixedindent off; indent-mode cstyle;
-
 #ifndef FILE_STDPDE
 #define FILE_STDPDE
+
 #include <fstream>
-#include "PDE/basePDE.hh"
+#include "PDE/BasePDE.hh"
 
 #include <set>
 
-#include "PDE/timestepping.hh"
-#include "Domain/Composite.hh"
-#include "Elements/fefunction.hh"
-#include "Elements/fespace.hh"
+#include "Driver/TimeSchemes/TimeStepping.hh"
+#include "Materials/Composite.hh"
+#include "FeBasis/FeFunctions.hh"
+#include "FeBasis/FeSpace.hh"
 
 namespace CoupledField {
 

@@ -9,8 +9,8 @@
 #include <map>
 #include <string>
 
-#include "General/environment.hh"
-#include "Domain/elem.hh"
+#include "General/Environment.hh"
+#include "Domain/ElemMapping/Elem.hh"
 #include "FlowDataTypes.hh"
 
 namespace CoupledField

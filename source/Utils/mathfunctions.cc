@@ -1,15 +1,11 @@
-// -*- mode: c++; coding: utf-8; indent-tabs-mode: nil; -*-
-// kate: space-indent on; indent-width 2; encoding utf-8;
-// kate: auto-brackets on; mixedindent off; indent-mode cstyle;
-
 #include <cmath>
 #include <iostream>
 
 #include "mathfunctions.hh"
-#include "MatVec/vector.hh"
+#include "MatVec/Vector.hh"
 #include "Utils/tools.hh"
-#include "General/environment.hh"
-#include "MatVec/matrix.hh"
+#include "General/Environment.hh"
+#include "MatVec/Matrix.hh"
 
 #include <boost/math/special_functions/bessel.hpp>
 

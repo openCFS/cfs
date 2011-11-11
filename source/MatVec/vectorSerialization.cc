@@ -1,9 +1,5 @@
-// -*- mode: c++; coding: utf-8; indent-tabs-mode: nil; -*-
-// kate: space-indent on; indent-width 2; encoding utf-8;
-// kate: auto-brackets on; mixedindent off; indent-mode cstyle;
-
 #include "vectorSerialization.hh"
-#include "vector.cc"
+#include "Vector.cc"
 #include "Utils/boost-serialization.hh"
 #include <boost/serialization/export.hpp>
 

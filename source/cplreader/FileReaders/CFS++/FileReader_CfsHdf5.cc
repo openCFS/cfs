@@ -12,7 +12,7 @@
 #include "DataInOut/SimInOut/hdf5/hdf5io.hh"
 namespace fs=boost::filesystem;
 
-#include "General/exception.hh"
+#include "General/Exception.hh"
 #include "cplreader/Settings.hh"
 #include "FileReader_CfsHdf5.hh"
 

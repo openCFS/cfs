@@ -15,7 +15,7 @@
 #include <boost/filesystem/path.hpp>
 namespace fs=boost::filesystem;
 
-#include "General/exception.hh"
+#include "General/Exception.hh"
 #include "cplreader/Settings.hh"
 #include "FileReader_MKHDF5.hh"
 
@@ -174,7 +174,7 @@ namespace CoupledField
   Elem::FEType FileReader_MKHDF5::ANSYSTypeToFEType(UInt type, UInt numNodes,
                                              bool& readAnotherLine)
   {
-    Elem::FEType ret = Elem::UNDEF;
+    Elem::FEType ret = Elem::ET_UNDEF;
     readAnotherLine = false;
 
     switch(type)
@@ -182,112 +182,112 @@ namespace CoupledField
     case 2:
     case 100:
       if(numNodes == 2 || numNodes == 0)
-        ret = Elem::LINE2;
+        ret = Elem::ET_LINE2;
       break;
 
     case 3:
     case 101:
       if(numNodes == 3 || numNodes == 0)
-        ret = Elem::LINE3;
+        ret = Elem::ET_LINE3;
       break;
 
     case 4:
       if(numNodes == 3 || numNodes == 0)
-        ret = Elem::TRIA3;
+        ret = Elem::ET_TRIA3;
       break;
 
     case 5:
       if(numNodes == 6 || numNodes == 0)
-        ret = Elem::TRIA6;
+        ret = Elem::ET_TRIA6;
       break;
 
     case 6: // rectangle
       if(numNodes == 0)
-        ret = Elem::QUAD4;
+        ret = Elem::ET_QUAD4;
 
       switch(numNodes)
       {
       case 3:
-        ret = Elem::TRIA3;
+        ret = Elem::ET_TRIA3;
         break;
 
       case 4:
-        ret = Elem::QUAD4;
+        ret = Elem::ET_QUAD4;
         break;
       }
       break;
 
     case 7: // quad. rectangle
       if(numNodes == 0)
-        ret = Elem::QUAD8;
+        ret = Elem::ET_QUAD8;
 
       switch(numNodes)
       {
       case 6:
-        ret = Elem::TRIA6;
+        ret = Elem::ET_TRIA6;
         break;
 
       case 8:
-        ret = Elem::QUAD8;
+        ret = Elem::ET_QUAD8;
         break;
       }
       break;
 
     case 8:
       if(numNodes == 4 || numNodes == 0)
-        ret = Elem::TET4;
+        ret = Elem::ET_TET4;
       break;
 
     case 9:
       if(numNodes == 10 || numNodes == 0)
-        ret = Elem::TET10;
+        ret = Elem::ET_TET10;
       readAnotherLine = true;
       break;
 
     case 10: // hexa
       if(numNodes == 0)
-        ret = Elem::HEXA8;
+        ret = Elem::ET_HEXA8;
 
       switch(numNodes)
       {
       case 4:
-        ret = Elem::TET4;
+        ret = Elem::ET_TET4;
         break;
 
       case 5:
-        ret = Elem::PYRA5;
+        ret = Elem::ET_PYRA5;
         break;
 
       case 6:
-        ret = Elem::WEDGE6;
+        ret = Elem::ET_WEDGE6;
         break;
 
       case 8:
-        ret = Elem::HEXA8;
+        ret = Elem::ET_HEXA8;
         break;
       }
       break;
 
     case 11: // quad. hexa
       if(numNodes == 0)
-        ret = Elem::HEXA20;
+        ret = Elem::ET_HEXA20;
 
       switch(numNodes)
       {
       case 10:
-      ret = Elem::TET10;
+      ret = Elem::ET_TET10;
       break;
 
       case 13:
-      ret = Elem::PYRA13;
+      ret = Elem::ET_PYRA13;
       break;
 
       case 15:
-      ret = Elem::WEDGE15;
+      ret = Elem::ET_WEDGE15;
       break;
 
       case 20:
-      ret = Elem::HEXA20;
+      ret = Elem::ET_HEXA20;
       break;
       }
 
@@ -296,23 +296,23 @@ namespace CoupledField
 
     case 12:
       if(numNodes == 5 || numNodes == 0)
-        ret = Elem::PYRA5;
+        ret = Elem::ET_PYRA5;
       break;
 
     case 13:
       if(numNodes == 13 || numNodes == 0)
-        ret = Elem::PYRA13;
+        ret = Elem::ET_PYRA13;
       readAnotherLine = true;
       break;
 
     case 14:
       if(numNodes == 6 || numNodes == 0)
-        ret = Elem::WEDGE6;
+        ret = Elem::ET_WEDGE6;
       break;
 
     case 15:
       if(numNodes == 15 || numNodes == 0)
-        ret = Elem::WEDGE15;
+        ret = Elem::ET_WEDGE15;
       readAnotherLine = true;
       break;
     }
@@ -487,7 +487,7 @@ namespace CoupledField
       actualElemType = ANSYSTypeToFEType(ansysElemType,
                                          numElemNodes,
                                          readAnotherLine);
-      if(actualElemType == Elem::UNDEF)
+      if(actualElemType == Elem::ET_UNDEF)
         EXCEPTION("Found undefined element type for elem " << elemNum
                   << " (region: " << (*regionNames_.rbegin())
                   << ", type: " << Elem::feType.ToString(prelimElemType)
@@ -500,7 +500,8 @@ namespace CoupledField
       if(degen_)
       {
         DegenerateElement(prelimElemType, actualElemType, elemNodes);
-        numElemNodes = Elem::GetNumElemNodes(actualElemType);
+        Exception("Elem::GetNumElemNodes() no longer definied due to refactoring");
+        //numElemNodes = Elem::GetNumElemNodes(actualElemType);
       }
 
       // Dieser Fehler ist fatal! Er hat nichts mit strict oder relaxed zu tun.
@@ -550,7 +551,10 @@ namespace CoupledField
         
         maxOrigElemNum_ = maxOrigElemNum_ < elemNum ? elemNum : maxOrigElemNum_;
         maxNumElemNodes_ = maxNumElemNodes_ < numElemNodes ? numElemNodes : maxNumElemNodes_;
-        elemDim = Elem::GetElemDim(actualElemType);
+
+        Exception("Elem::GetElemDim() no longer definied due to refactoring");
+        //elemDim = Elem::GetElemDim(actualElemType);
+        elemDim = 0;
         dim = dim < elemDim ? elemDim : dim;
       }
       else 

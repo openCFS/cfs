@@ -22,50 +22,50 @@
 namespace fs = boost::filesystem;
 
 #include "ParamsInit.hh"
-#include "General/environment.hh"
-#include "DataInOut/programOptions.hh"
-#include "DataInOut/simInput.hh"
-#include "DataInOut/simOutput.hh"
-#include "Domain/GridCFS/grid_cfs.hh"
+#include "General/Environment.hh"
+#include "DataInOut/ProgramOptions.hh"
+#include "DataInOut/SimInput.hh"
+#include "DataInOut/SimOutput.hh"
+#include "Domain/Mesh/GridCFS/GridCFS.hh"
 
 #ifdef USE_MESH
-#include "DataInOut/SimInOut/AnsysFile/simInputMESH.hh"
+#include "DataInOut/SimInOut/AnsysFile/SimInputMESH.hh"
 #endif
 
 #ifdef USE_GMSH
-#include "DataInOut/SimInOut/gmsh/simInputGmsh.hh"
-#include "DataInOut/SimInOut/gmsh/simOutputGmsh.hh"
+#include "DataInOut/SimInOut/gmsh/SimInputGmsh.hh"
+#include "DataInOut/SimInOut/gmsh/SimOutputGmsh.hh"
 #endif
 
 #ifdef USE_GMV_INPUT
-#include "DataInOut/SimInOut/gmv/simInputGMV.hh"
+#include "DataInOut/SimInOut/gmv/SimInputGMV.hh"
 #endif
 
 #ifdef USE_GMV_OUTPUT
-#include "DataInOut/SimInOut/gmv/simOutGMV.hh"
+#include "DataInOut/SimInOut/gmv/SimOutGMV.hh"
 #endif
 
 #ifdef USE_HDF5
-#include "DataInOut/SimInOut/hdf5/simInputHDF5.hh"
-#include "DataInOut/SimInOut/hdf5/simOutputHDF5.hh"
+#include "DataInOut/SimInOut/hdf5/SimInputHDF5.hh"
+#include "DataInOut/SimInOut/hdf5/SimOutputHDF5.hh"
 
-#include "DataInOut/SimInOut/xdmf/simOutputXDMF.hh"
+#include "DataInOut/SimInOut/xdmf/SimOutputXDMF.hh"
 #endif
 
 #ifdef USE_GIDPOST
-#include "DataInOut/SimInOut/GiD/simOutGiD.hh"
+#include "DataInOut/SimInOut/GiD/SimOutGiD.hh"
 #endif
 
 #ifdef USE_UNV
-#include "DataInOut/SimInOut/Unverg/simInputUnv.hh"
-#include "DataInOut/SimInOut/Unverg/simOutUnv.hh"
+#include "DataInOut/SimInOut/Unverg/SimInputUnv.hh"
+#include "DataInOut/SimInOut/Unverg/SimOutputUnv.hh"
 #endif
 
 #ifdef USE_ANSYSRST
-#include "DataInOut/SimInOut/AnsysRST/simOutputRST.hh"
+#include "DataInOut/SimInOut/AnsysRST/SimOutputRST.hh"
 #endif
 
-#include "DataInOut/SimInOut/TextOutput/textSimOutput.hh"
+#include "DataInOut/SimInOut/TextOutput/TextSimOutput.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 
 using namespace CoupledField;

@@ -563,19 +563,35 @@ ENDIF(USE_ANSYSRST)
 SUBDIRS(source/DataInOut/SimInOut/TextOutput)
 SUBDIRS(source/DataInOut/SimInOut/InfoResultOutput)
 SUBDIRS(source/DataInOut/SimInOut/Streaming)
+
 SUBDIRS(source/Domain)
-SUBDIRS(source/Domain/GridCFS)
+#SUBDIRS(source/Domain/CoefFunction)
+SUBDIRS(source/Domain/CoordinateSystems)
+SUBDIRS(source/Domain/ElemMapping)
+SUBDIRS(source/Domain/Mesh)
+SUBDIRS(source/Domain/Results)
+
 SUBDIRS(source/Driver)
-SUBDIRS(source/Elements)
-#SUBDIRS(source/Forms)
+SUBDIRS(source/Driver/TimeSchemes)
+
+SUBDIRS(source/FeBasis)
+
+SUBDIRS(source/Forms)
+#here we have to discussed
+#as the forms are almost completely templates
+#we have just headers right now. but perhaps this will change...
+#SUBDIRS(source/Forms/Operators)
+#SUBDIRS(source/Forms/LinForms)
+#SUBDIRS(source/Forms/BiLinForms)
+
 SUBDIRS(source/General)
 SUBDIRS(source/Materials)
 SUBDIRS(source/MatVec)
-SUBDIRS(source/ODEDescr)
 SUBDIRS(source/ODESolve)
 SUBDIRS(source/PDE)
 SUBDIRS(source/Utils)
 SUBDIRS(source/Utils/mathParser)
+SUBDIRS(source/Utils/EvalIntegrals)
 #SUBDIRS(source/Optimization/Optimizer)
 #SUBDIRS(source/Optimization/Design)
 #SUBDIRS(source/Optimization)

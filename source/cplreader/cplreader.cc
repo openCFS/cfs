@@ -20,8 +20,8 @@ namespace fs=boost::filesystem;
 #include <def_cfs_stats.hh>
 #include <def_cplreader.hh>
 
-#include "General/exception.hh"
-#include "DataInOut/Logging/cfslog.hh"
+#include "General/Exception.hh"
+#include "DataInOut/Logging/LogConfigurator.hh"
 
 #include "ParamsInit.hh"
 #include "Settings.hh"

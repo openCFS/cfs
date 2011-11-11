@@ -1,6 +1,3 @@
-// -*- mode: c++; coding: utf-8; indent-tabs-mode: nil; -*-
-// kate: space-indent on; indent-width 2; encoding utf-8;
-// kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 #include "PDE/SinglePDE.hh"
 
 #include <fstream>
@@ -9,62 +6,66 @@
 #include <def_use_interpolation.hh>
 
 // for coordinate handling
-#include "Domain/domain.hh"
-#include "Utils/coordSystem.hh"
+#include "Domain/Domain.hh"
+#include "Domain/CoordinateSystems/CoordSystem.hh"
 
 #include "DataInOut/ParamHandling/CFSOLASParams.hh"
-#include "DataInOut/programOptions.hh"
+#include "DataInOut/ProgramOptions.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 
-#include "Utils/biotSavart.hh"
+#include "Utils/EvalIntegrals/BiotSavart.hh"
 
-#include "OLAS/algsys/algebraicSys.hh"
+#include "OLAS/algsys/AlgebraicSys.hh"
 
 // header for scripting
 #include <def_use_scripting.hh>
 #ifdef USE_SCRIPTING
-#include "DataInOut/Scripting/cfsmessenger.hh"
+#include "DataInOut/Scripting/CFSMessenger.hh"
 #endif
 
 // header for logging
-#include "DataInOut/Logging/cfslog.hh"
+#include "DataInOut/Logging/LogConfigurator.hh"
 
 // header for Materialhandling
 #include "DataInOut/MaterialHandler.hh"
-#include "Domain/GridCFS/grid_cfs.hh"
+#include "Domain/Mesh/GridCFS/GridCFS.hh"
 
 // header for Solvestep and assemble
-#include "Driver/stdSolveStep.hh"
-#include "Driver/assemble.hh"
-#include "Driver/singleDriver.hh"
-#include "Driver/transientdriver.hh"
-#include "Driver/harmonicDriver.hh"
+#include "Driver/SolveSteps/StdSolveStep.hh"
+#include "Driver/Assemble.hh"
+#include "Driver/SingleDriver.hh"
+#include "Driver/TransientDriver.hh"
+#include "Driver/HarmonicDriver.hh"
 
 // header for iterative coupling
-#include "CoupledPDE/pdecoupling.hh"
+#include "CoupledPDE/PDECoupling.hh"
 
 // header for memento/restart handling
 #include "MatVec/vectorSerialization.hh"
 
 // header for resultHandling
-#include "DataInOut/resultHandler.hh"
+#include "DataInOut/ResultHandler.hh"
 #include "DataInOut/ResultCache.hh"
 
-#include "DataInOut/postProc.hh"
+#include "DataInOut/PostProc.hh"
 #include "CoupledPDE/DirectCoupledPDE.hh"
 #include "CoupledPDE/BasePairCoupling.hh"
 //#include "Forms/linearForm.hh"
 
 //feSpaces
-#include "Elements/fespaceH1Lagrange.hh"
-#include "Elements/fespaceH1.hh"
-#include "Elements/fespaceH1Hi.hh"
+#include "FeBasis/H1/FeSpaceH1Nodal.hh"
+#include "FeBasis/H1/FeSpaceH1.hh"
+#include "FeBasis/H1/FeSpaceH1Hi.hh"
 using std::string;
 
+//coefFunctions
+#include "Domain/CoefFunction/CoefFunctionConst.hh"
+#include "Domain/CoefFunction/CoefFunctionExpression.hh"
 
 // TEMPORARY
-#include "magEdgePDE.hh"
-#include "Elements/fespaceHCurlHi.hh"
+#include "MagEdgePDE.hh"
+#include "FeBasis/HCurl/FeSpaceHCurlHi.hh"
+
 
 namespace CoupledField {
 
@@ -310,6 +311,7 @@ namespace CoupledField {
     // Call initialization of (bi)linear integrators
     LOG_TRACE(pde) << pdename_ << ": Defining integrators";
     DefineIntegrators();
+    DefineRhsLoadIntegrators();
 
     // Print information about defined integrators
     if( !isDirectCoupled_ && needsAlgsys_ == true)
@@ -1699,24 +1701,118 @@ namespace CoupledField {
     //assemble_->AddLoads( loads_ );
   }
 
-  void SinglePDE::DefineRhsIntegrators(){
+  void SinglePDE::DefineRhsLoadIntegrators(){
     std::string rhsRegion;
-    PtrParamNode rhsValuesNode, bcsNode;
+    PtrParamNode bcsNode;
+    ParamNodeList rhsValueNodes;
     StdVector<PtrParamNode> regionList;
+
+
     bcsNode = myParam_->Get("bcsAndLoads", ParamNode::PASS );
     if( bcsNode )
-      rhsValuesNode = bcsNode->Get("rhsValues", ParamNode::PASS );
-    if(!rhsValuesNode)
+      rhsValueNodes = bcsNode->GetList("regionLoad");
+    if(rhsValueNodes.GetSize()==0)
       return;
 
-    //first i consider only volume regions. we have to
-    //think about the surface regions....
-    regionList = rhsValuesNode->GetList("region");
-    for (StdVector<PtrParamNode>::iterator regionIter = regionList.Begin();
-        regionIter != regionList.End(); ++regionIter)
-    {
 
+    StdVector<PtrParamNode>::iterator rhsIter =  rhsValueNodes.Begin();
+    while(rhsIter != rhsValueNodes.End()){
+      //Now obtian coefficient function for the user specified values
+      PtrParamNode curNode = *rhsIter;
+      shared_ptr<CoefFunction> myCoef;
+      CreateRhsLoadCoefFunction(myCoef,curNode);
+
+      //obtain the quantity we want to set
+      std::string rhsString;
+      curNode->GetValue("quantity",rhsString);
+      SolutionType rhsType =  NO_SOLUTION_TYPE;
+      rhsType = SolutionTypeEnum.Parse(rhsString);
+
+      //get the region name (only a single region supported yet)
+      //ant the element list
+      std::string regName;
+      curNode->GetValue("name",regName,ParamNode::PASS);
+      shared_ptr<EntityList> actList =
+          ptgrid_->GetEntityList( EntityList::ELEM_LIST,
+                                  regName, EntityList::REGION );
+
+      //add the list to coefficient function
+      //this is not really necessary right now except for the case of
+      //grid values...
+      myCoef->AddEntities(actList);
+
+      //get the integratorConstext from the PDE
+      //set its entitylist and add to assemble
+      LinearFormContext* curForm = CreateRhsLinearForm(rhsType,myCoef);
+      curForm->SetEntities(actList);
+      assemble_->AddLinearForm(curForm);
+
+      rhsIter++;
     }
+  }
+
+  void SinglePDE::CreateRhsLoadCoefFunction(shared_ptr<CoefFunction>& cFunct,PtrParamNode valNode ){
+    //NOTE:
+    //The coeficient Function for the right hand side is expected to represent a vector
+    //Thereby we proceed as the following:
+    // - if the user specified the vector we just read it in
+    // - if the user specified a scalar we create a 1-element vector
+    // - if the user specified a tensor, we pass it to the PDE to transform it to vector
+    //   this is the case for tensorial rhs Values as used in mechanical PDE!
+    PtrParamNode mNode;
+    MathParser * parser = domain->GetMathParser();
+    MathParser::HandleType mHandle = parser->GetNewHandle(true);
+    if(valNode->Has("grid")){
+       Exception(": Not implemented for grid");
+       //the grid case is special so we return after creating the stuff...
+    }else {
+      StdVector<std::string> valueVec;
+      StdVector<std::string> phaseVec;
+      if(valNode->Has("scalar")){
+        std::string valueStr = "";
+        mNode = valNode->Get("scalar",ParamNode::PASS);
+        mNode->GetValue("value",valueStr,ParamNode::PASS);
+        valueVec.Resize(1);
+        valueVec[0] = valueStr;
+      }else if(valNode->Has("vector")){
+         Exception(": Not implemented for vectors");
+      }else if(valNode->Has("tensor")){
+       Exception(": Not implemented for tensors");
+      }else{
+        Exception(": unrecognized value label");
+      }
+      //now we have a vector of stings representing the load
+      //so we can create a coefFunction constant or expression
+      //determine if we are constant or variable
+      //this will be changed with mathparser 2 in which we direcly evaluate
+      //a string representing the vector
+      bool constant = false;
+      for(UInt i =0;i<valueVec.GetSize();i++){
+        parser->SetExpr(mHandle,valueVec[i]);
+        if(parser->IsExprConstant(mHandle)){
+          constant = true;
+          break;
+        }
+      }
+      if(constant){
+        Vector<Double> values(valueVec.GetSize());
+        values.Init();
+        for(UInt i =0;i<valueVec.GetSize();i++){
+          parser->SetExpr(mHandle,valueVec[i]);
+          values[i] = parser->Eval(mHandle);
+        }
+        shared_ptr<CoefFunctionConst<Double> > tmpFnc;
+        tmpFnc.reset(new CoefFunctionConst<Double>());
+        tmpFnc->SetVector(values);
+        cFunct = tmpFnc;
+      }else{
+        shared_ptr<CoefFunctionExpression<Double> > tmpFnc;
+        tmpFnc.reset(new CoefFunctionExpression<Double>());
+        tmpFnc->SetVector(valueVec);
+        cFunct = tmpFnc;
+      }
+    }
+    return;
   }
 
   void SinglePDE::ReadLoads(ParamNodeList loadNodes, LoadList& out_list)

@@ -9,7 +9,7 @@
 #include <vector>
 
 #include <def_cplreader.hh>
-#include "Domain/elem.hh"
+#include "Domain/ElemMapping/Elem.hh"
 #include "FlowDataTypes.hh"
 
 //! Base class for reading topology and nodal data from results of fluid computations

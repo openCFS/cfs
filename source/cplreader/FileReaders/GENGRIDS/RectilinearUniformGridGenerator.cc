@@ -6,7 +6,7 @@
 #include <cmath>
 #include <iterator>
 
-#include "Domain/elem.hh"
+#include "Domain/ElemMapping/Elem.hh"
 #include "cplreader/Settings.hh"
 #include "RectilinearUniformGridGenerator.hh"
 
@@ -552,13 +552,13 @@ namespace CoupledField
                 switch(hexaType) 
                 {
                 case LINEAR:
-                  elemTypes_.push_back(Elem::HEXA8);
+                  elemTypes_.push_back(Elem::ET_HEXA8);
                   break;
                 case SERENDIPITY:
-                  elemTypes_.push_back(Elem::HEXA20);
+                  elemTypes_.push_back(Elem::ET_HEXA20);
                   break;
                 case LAGRANGE:
-                  elemTypes_.push_back(Elem::HEXA27);
+                  elemTypes_.push_back(Elem::ET_HEXA27);
                   break;
                 }
                 elem++;
@@ -585,13 +585,13 @@ namespace CoupledField
                   switch(hexaType) 
                   {
                   case LINEAR:
-                    elemTypes_.push_back(Elem::QUAD4);
+                    elemTypes_.push_back(Elem::ET_QUAD4);
                     break;
                   case SERENDIPITY:
-                    elemTypes_.push_back(Elem::QUAD8);
+                    elemTypes_.push_back(Elem::ET_QUAD8);
                     break;
                   case LAGRANGE:
-                    elemTypes_.push_back(Elem::QUAD9);
+                    elemTypes_.push_back(Elem::ET_QUAD9);
                     break;
                   }
                   elem++;
@@ -610,11 +610,11 @@ namespace CoupledField
                       switch(hexaType) 
                       {
                       case LINEAR:
-                        elemTypes_.push_back(Elem::LINE2);
+                        elemTypes_.push_back(Elem::ET_LINE2);
                         break;
                       case SERENDIPITY:
                       case LAGRANGE:
-                        elemTypes_.push_back(Elem::LINE3);
+                        elemTypes_.push_back(Elem::ET_LINE3);
                         break;
                       }
                       elem++;
@@ -632,11 +632,11 @@ namespace CoupledField
                       switch(hexaType) 
                       {
                       case LINEAR:
-                        elemTypes_.push_back(Elem::LINE2);
+                        elemTypes_.push_back(Elem::ET_LINE2);
                         break;
                       case SERENDIPITY:
                       case LAGRANGE:
-                        elemTypes_.push_back(Elem::LINE3);
+                        elemTypes_.push_back(Elem::ET_LINE3);
                         break;
                       }
                       elem++;
@@ -654,11 +654,11 @@ namespace CoupledField
                       switch(hexaType) 
                       {
                       case LINEAR:
-                        elemTypes_.push_back(Elem::LINE2);
+                        elemTypes_.push_back(Elem::ET_LINE2);
                         break;
                       case SERENDIPITY:
                       case LAGRANGE:
-                        elemTypes_.push_back(Elem::LINE3);
+                        elemTypes_.push_back(Elem::ET_LINE3);
                         break;
                       }
                       elem++;
@@ -676,11 +676,11 @@ namespace CoupledField
                       switch(hexaType) 
                       {
                       case LINEAR:
-                        elemTypes_.push_back(Elem::LINE2);
+                        elemTypes_.push_back(Elem::ET_LINE2);
                         break;
                       case SERENDIPITY:
                       case LAGRANGE:
-                        elemTypes_.push_back(Elem::LINE3);
+                        elemTypes_.push_back(Elem::ET_LINE3);
                         break;
                       }
                       elem++;
@@ -709,13 +709,13 @@ namespace CoupledField
                   switch(hexaType) 
                   {
                   case LINEAR:
-                    elemTypes_.push_back(Elem::QUAD4);
+                    elemTypes_.push_back(Elem::ET_QUAD4);
                     break;
                   case SERENDIPITY:
-                    elemTypes_.push_back(Elem::QUAD8);
+                    elemTypes_.push_back(Elem::ET_QUAD8);
                     break;
                   case LAGRANGE:
-                    elemTypes_.push_back(Elem::QUAD9);
+                    elemTypes_.push_back(Elem::ET_QUAD9);
                     break;
                   }
                   elem++;
@@ -742,13 +742,13 @@ namespace CoupledField
                   switch(hexaType) 
                   {
                   case LINEAR:
-                    elemTypes_.push_back(Elem::QUAD4);
+                    elemTypes_.push_back(Elem::ET_QUAD4);
                     break;
                   case SERENDIPITY:
-                    elemTypes_.push_back(Elem::QUAD8);
+                    elemTypes_.push_back(Elem::ET_QUAD8);
                     break;
                   case LAGRANGE:
-                    elemTypes_.push_back(Elem::QUAD9);
+                    elemTypes_.push_back(Elem::ET_QUAD9);
                     break;
                   }
                   elem++;
@@ -775,13 +775,13 @@ namespace CoupledField
                   switch(hexaType) 
                   {
                   case LINEAR:
-                    elemTypes_.push_back(Elem::QUAD4);
+                    elemTypes_.push_back(Elem::ET_QUAD4);
                     break;
                   case SERENDIPITY:
-                    elemTypes_.push_back(Elem::QUAD8);
+                    elemTypes_.push_back(Elem::ET_QUAD8);
                     break;
                   case LAGRANGE:
-                    elemTypes_.push_back(Elem::QUAD9);
+                    elemTypes_.push_back(Elem::ET_QUAD9);
                     break;
                   }
                   elem++;
@@ -808,13 +808,13 @@ namespace CoupledField
                   switch(hexaType) 
                   {
                   case LINEAR:
-                    elemTypes_.push_back(Elem::QUAD4);
+                    elemTypes_.push_back(Elem::ET_QUAD4);
                     break;
                   case SERENDIPITY:
-                    elemTypes_.push_back(Elem::QUAD8);
+                    elemTypes_.push_back(Elem::ET_QUAD8);
                     break;
                   case LAGRANGE:
-                    elemTypes_.push_back(Elem::QUAD9);
+                    elemTypes_.push_back(Elem::ET_QUAD9);
                     break;
                   }
                   elem++;
@@ -841,13 +841,13 @@ namespace CoupledField
                   switch(hexaType) 
                   {
                   case LINEAR:
-                    elemTypes_.push_back(Elem::QUAD4);
+                    elemTypes_.push_back(Elem::ET_QUAD4);
                     break;
                   case SERENDIPITY:
-                    elemTypes_.push_back(Elem::QUAD8);
+                    elemTypes_.push_back(Elem::ET_QUAD8);
                     break;
                   case LAGRANGE:
-                    elemTypes_.push_back(Elem::QUAD9);
+                    elemTypes_.push_back(Elem::ET_QUAD9);
                     break;
                   }
                   elem++;

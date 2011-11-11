@@ -1,14 +1,10 @@
 #ifndef PARAMTOOLS_HH_
 #define PARAMTOOLS_HH_
 
-// -*- mode: c++; coding: utf-8; indent-tabs-mode: nil; -*-
-// kate: space-indent on; indent-width 2; encoding utf-8;
-// kate: auto-brackets on; mixedindent off; indent-mode cstyle;
-
 #include "DataInOut/ParamHandling/ParamNode.hh"
-#include "General/exception.hh"
+#include "General/Exception.hh"
 #include "Utils/tools.hh"
-#include "MatVec/matrix.hh"
+#include "MatVec/Matrix.hh"
 #include "boost/lexical_cast.hpp"
 
 namespace CoupledField

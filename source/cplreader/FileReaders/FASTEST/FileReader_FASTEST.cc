@@ -10,7 +10,7 @@
 #include <iomanip>
 #include <sstream>
 
-#include "General/exception.hh"
+#include "General/Exception.hh"
 #include "cplreader/Settings.hh"
 #include "FileReader_FASTEST.hh"
 
@@ -342,7 +342,7 @@ namespace CoupledField
     {
       std::string filename;
       char buf[128];
-      UInt dummy, numNodes, elemType = Elem::UNDEF;
+      UInt dummy, numNodes, elemType = Elem::ET_UNDEF;
       UInt regionIdx;
       UInt numElems = 0;
       UInt elemIdx = 0;
@@ -376,31 +376,31 @@ namespace CoupledField
         switch(numNodes)
         {
         case 2:
-          elemType = Elem::LINE2;
+          elemType = Elem::ET_LINE2;
           break;
         case 3:
-          elemType = Elem::TRIA3;
+          elemType = Elem::ET_TRIA3;
           break;
         case 4:
           if(dim_ == 3)
-            elemType = Elem::TET4;
+            elemType = Elem::ET_TET4;
           else
-            elemType = Elem::QUAD4;
+            elemType = Elem::ET_QUAD4;
           break;
         case 8:
           if (dim_ == 3)
-            elemType = Elem::HEXA8;
+            elemType = Elem::ET_HEXA8;
           else
-            elemType = Elem::QUAD8;
+            elemType = Elem::ET_QUAD8;
           break;
         case 5:
-          elemType = Elem::PYRA5;
+          elemType = Elem::ET_PYRA5;
           break;
         case 6:
           if (dim_ == 3)
-            elemType = Elem::WEDGE6;
+            elemType = Elem::ET_WEDGE6;
           else
-            elemType = Elem::TRIA6;
+            elemType = Elem::ET_TRIA6;
           break;
         }
 

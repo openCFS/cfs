@@ -1,15 +1,11 @@
-// -*- mode: c++; coding: utf-8; indent-tabs-mode: nil; -*-
-// kate: space-indent on; indent-width 2; encoding utf-8;
-// kate: auto-brackets on; mixedindent off; indent-mode cstyle;
-
 #ifndef ILDL_PRECOND_HH
 #define ILDL_PRECOND_HH
 
 #include <def_expl_templ_inst.hh>
 
-#include "OLAS/utils/math/ldlsystemsolve.hh"
+#include "OLAS/utils/math/LDLSystemSolve.hh"
 
-#include "OLAS/precond/bnprecond.hh"
+#include "OLAS/precond/BNPrecond.hh"
 #include "baseildlfactoriser.hh"
 #include "ildlkfactoriser.hh"
 

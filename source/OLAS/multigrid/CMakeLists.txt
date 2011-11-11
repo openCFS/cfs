@@ -1,4 +1,4 @@
-SET(MATVEC_SRCS stdmatrix.cc stdvector.cc sbmvector.cc sbmmatrix.cc
+SET(MATVEC_SRCS StdMatrix.cc StdVector.cc SBM_Vector.cc SBM_Matrix.cc
 	        generatematvec.cc)
 
 ADD_DEFINITIONS()

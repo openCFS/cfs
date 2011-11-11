@@ -11,8 +11,8 @@
 
 namespace fs = boost::filesystem;
 
-#include "General/exception.hh"
-#include "DataInOut/programOptions.hh"
+#include "General/Exception.hh"
+#include "DataInOut/ProgramOptions.hh"
 #include "ParamsInit.hh"
 
 namespace CoupledField

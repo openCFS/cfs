@@ -1,4 +1,4 @@
-SET(LOGGING_SRCS functions.cc log.cc log_manager.cc cfslog.cc)
+SET(LOGGING_SRCS functions.cc log.cc log_manager.cc LogConfigurator.cc)
 
 IF(CFS_CXX_COMPILER_NAME STREQUAL "GCC" AND
    CFS_CXX_COMPILER_VER MATCHES "4.4")

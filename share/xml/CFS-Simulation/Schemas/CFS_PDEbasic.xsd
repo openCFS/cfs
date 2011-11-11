@@ -44,6 +44,33 @@
       </xsd:restriction>
     </xsd:complexContent>
   </xsd:complexType>
+  
+  <!-- ******************************************************************** -->
+  <!--   Definition of standard type for right hand side values -->
+  <!-- ******************************************************************** -->
+  
+  <!-- Base element type for specifying boundary conditions -->
+  <xsd:complexType name="DT_RHSBasic">    
+    <xsd:complexContent>
+      <xsd:restriction base="xsd:anyType">
+      </xsd:restriction>
+    </xsd:complexContent>
+  </xsd:complexType>
+  
+  <xsd:complexType name="DT_RHSValueBasic">
+    <xsd:complexContent mixed="true">
+      <xsd:extension base="DT_RHSBasic">
+        <xsd:choice minOccurs="1" maxOccurs="1">
+          <xsd:element name="scalar" type="DT_Scalar" maxOccurs="1" minOccurs="0"/>
+          <xsd:element name="vector" type="DT_Vector" maxOccurs="1" minOccurs="0"/>
+          <xsd:element name="tensor" type="DT_Tensor" maxOccurs="1" minOccurs="0"/>
+        </xsd:choice>
+        <xsd:attribute name="quantity" type="xsd:string"  use="required"/>
+        <xsd:attribute name="name" type="xsd:string"  use="required"/>
+      </xsd:extension>
+    </xsd:complexContent> 
+  </xsd:complexType>
+
 
   <!-- ******************************************************************** -->
   <!--   Definition of standard type for nonlinearity -->

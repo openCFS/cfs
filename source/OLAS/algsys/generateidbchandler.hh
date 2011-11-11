@@ -1,7 +1,5 @@
-// -*- mode: c++; coding: utf-8; indent-tabs-mode: nil; -*-
-// kate: space-indent on; indent-width 2; encoding utf-8;
-// kate: auto-brackets on; mixedindent off; indent-mode cstyle;
-
+#ifndef OLAS_GENERATE_IDBC_HANLDER_HH
+#define OLAS_GENERATE_IDBC_HANLDER_HH
 /*! \file generateidbchandler.hh
 
     This file provides functions that act as factories for the generation
@@ -10,10 +8,6 @@
     is not be found here, but in the description of the namespace
     OLAS to which they belong.
 */
-
-
-#ifndef OLAS_GENERATE_IDBC_HANLDER_HH
-#define OLAS_GENERATE_IDBC_HANLDER_HH
 
 #include <set>
 

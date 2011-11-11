@@ -2,8 +2,8 @@
 INCLUDE_DIRECTORIES(${CFSDEPS_INCLUDE_DIR})
 
 SET(SOLVER_SRCS
-    basesolver.cc
-    baseEigensolver.cc
+    BaseSolver.cc
+    BaseEigenSolver.cc
     generateEigensolver.cc    
     generatesolver.cc
     )
@@ -11,13 +11,13 @@ SET(SOLVER_SRCS
 IF(EXPLICIT_TEMPLATE_INSTANTIATION)
 SET(SOLVER_SRCS
     ${SOLVER_SRCS}
-    cgsolver.cc
-    diagsolver.cc
-    gmres.cc
-    ldlsolver.cc
-    lusolver.cc
-    minres.cc
-    richardson.cc
+    CGSolver.cc
+    DiagSolver.cc
+    GMRESSolver.cc
+    LDLSolver.cc
+    LUSolver.cc
+    MINRESSolver.cc
+    RichardsonSolver.cc
     )
 ENDIF(EXPLICIT_TEMPLATE_INSTANTIATION)
 

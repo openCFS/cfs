@@ -1,10 +1,3 @@
-/*
- * matrixBLASSupport.hh
- *
- *  Created on: Apr 30, 2011
- *      Author: mnierla
- */
-
 #ifndef MATRIXBLASSUPPORT_HH_
 #define MATRIXBLASSUPPORT_HH_
 

@@ -18,7 +18,7 @@
 #include <boost/filesystem/exception.hpp>
 namespace fs=boost::filesystem;
 
-#include "Domain/resultInfo.hh"
+#include "Domain/Results/ResultInfo.hh"
 
 #include "cplreader/Settings.hh"
 #include "FileReader_VTKMultiBlock.hh"
@@ -322,7 +322,7 @@ namespace CoupledField
       vtkCell* cell;
       std::set<UInt> regionNodes;
       std::map< UInt, UInt > regionNodeMap;
-      std::vector<UInt> &elemNodeMapping = unstrucElemNodeMapping_[ Elem::POINT ];
+      std::vector<UInt> &elemNodeMapping = unstrucElemNodeMapping_[ Elem::ET_POINT ];
   
       if(ugrid)
       {
@@ -376,10 +376,10 @@ namespace CoupledField
           case VTK_RECTILINEAR_GRID: // 3
           case VTK_IMAGE_DATA: // 6
             if (numPoints == 4) {
-              elemTypes[elemIdx] = Elem::QUAD4;
+              elemTypes[elemIdx] = Elem::ET_QUAD4;
               elemNodeMapping = uniformElemNodeMapping_[ elemTypes[elemIdx] ];
             } else {
-              elemTypes[elemIdx] = Elem::HEXA8;
+              elemTypes[elemIdx] = Elem::ET_HEXA8;
               elemNodeMapping = uniformElemNodeMapping_[ elemTypes[elemIdx] ];
             }            
             break;
@@ -661,52 +661,52 @@ namespace CoupledField
     switch(cellType) 
     {
     case VTK_VERTEX:
-      return Elem::POINT;
+      return Elem::ET_POINT;
     case VTK_LINE:
-      return Elem::LINE2;
+      return Elem::ET_LINE2;
     case VTK_TRIANGLE:
-      return Elem::TRIA3;
+      return Elem::ET_TRIA3;
     case VTK_QUAD:
-      return Elem::QUAD4;
+      return Elem::ET_QUAD4;
     case VTK_TETRA:
-      return Elem::TET4;
+      return Elem::ET_TET4;
     case VTK_HEXAHEDRON:
-      return Elem::HEXA8;
+      return Elem::ET_HEXA8;
     case VTK_WEDGE:
-      return Elem::WEDGE6;
+      return Elem::ET_WEDGE6;
     case VTK_PYRAMID:
-      return Elem::PYRA5;
+      return Elem::ET_PYRA5;
 
     // Quadratic, isoparametric cells
     case VTK_QUADRATIC_EDGE:
-      return Elem::LINE3;
+      return Elem::ET_LINE3;
     case VTK_QUADRATIC_TRIANGLE:
-      return Elem::TRIA6;
+      return Elem::ET_TRIA6;
     case VTK_QUADRATIC_QUAD:
-      return Elem::QUAD8;
+      return Elem::ET_QUAD8;
     case VTK_QUADRATIC_TETRA:
-      return Elem::TET10;
+      return Elem::ET_TET10;
     case VTK_QUADRATIC_HEXAHEDRON:
-      return Elem::HEXA20;
+      return Elem::ET_HEXA20;
     case VTK_QUADRATIC_WEDGE:
-      return Elem::WEDGE15;
+      return Elem::ET_WEDGE15;
     case VTK_QUADRATIC_PYRAMID:
-      return Elem::PYRA13;
+      return Elem::ET_PYRA13;
     case VTK_BIQUADRATIC_QUAD:
-      return Elem::QUAD9;
+      return Elem::ET_QUAD9;
     case VTK_TRIQUADRATIC_HEXAHEDRON:
-      return Elem::HEXA27;
+      return Elem::ET_HEXA27;
     case VTK_QUADRATIC_LINEAR_QUAD:
-      return Elem::QUAD4;
+      return Elem::ET_QUAD4;
     case VTK_QUADRATIC_LINEAR_WEDGE:
-      return Elem::WEDGE6;
+      return Elem::ET_WEDGE6;
     case VTK_BIQUADRATIC_QUADRATIC_WEDGE:
-      return Elem::WEDGE15;
+      return Elem::ET_WEDGE15;
     case VTK_BIQUADRATIC_QUADRATIC_HEXAHEDRON:
-      return Elem::HEXA20;
+      return Elem::ET_HEXA20;
 
     default:
-      return Elem::UNDEF;
+      return Elem::ET_UNDEF;
     }
   }
 
@@ -720,7 +720,9 @@ namespace CoupledField
     for( ; it != end; it++ ) 
     {
       UInt et = it->first;
-      UInt numElemNodes = Elem::GetNumElemNodes((Elem::FEType)et);
+      Exception("Elem::GetNumElemNodes() no longer definied due to refactoring");
+      //UInt numElemNodes = Elem::GetNumElemNodes((Elem::FEType)et);
+      UInt numElemNodes = 0;
       
       unstrucElemNodeMapping_[et].resize(numElemNodes);
       uniformElemNodeMapping_[et].resize(numElemNodes);
@@ -733,14 +735,14 @@ namespace CoupledField
 
       switch((Elem::FEType)et)
       {
-      case Elem::QUAD4:
+      case Elem::ET_QUAD4:
         uniformElemNodeMapping_[et][0] = 0;
         uniformElemNodeMapping_[et][1] = 1;
         uniformElemNodeMapping_[et][2] = 3;
         uniformElemNodeMapping_[et][3] = 2;
         break;
         
-      case Elem::WEDGE6:
+      case Elem::ET_WEDGE6:
         unstrucElemNodeMapping_[et][0] = 3;
         unstrucElemNodeMapping_[et][1] = 4;
         unstrucElemNodeMapping_[et][2] = 5;
@@ -748,7 +750,7 @@ namespace CoupledField
         unstrucElemNodeMapping_[et][4] = 1;
         unstrucElemNodeMapping_[et][5] = 2;
         break;
-      case Elem::HEXA8:
+      case Elem::ET_HEXA8:
         unstrucElemNodeMapping_[et][0] = 4;
         unstrucElemNodeMapping_[et][1] = 5;
         unstrucElemNodeMapping_[et][2] = 6;

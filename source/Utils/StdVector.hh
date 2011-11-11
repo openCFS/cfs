@@ -1,13 +1,9 @@
-// -*- mode: c++; coding: utf-8; indent-tabs-mode: nil; -*-
-// kate: space-indent on; indent-width 2; encoding utf-8;
-// kate: auto-brackets on; mixedindent off; indent-mode cstyle;
-
 #ifndef FILE_STDVECTOR_2004
 #define FILE_STDVECTOR_2004
 
 #include <boost/iterator/iterator_facade.hpp>
 #include <vector>
-#include "General/exception.hh"
+#include "General/Exception.hh"
 #include <def_build_type_options.hh>
 
 namespace CoupledField {

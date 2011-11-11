@@ -8,7 +8,7 @@
 
 namespace fs=boost::filesystem;
 
-#include "General/exception.hh"
+#include "General/Exception.hh"
 #include "cplreader/Settings.hh"
 #include "GetPDFDocumentation.hh"
 #include "WriteDocumentation.hh"

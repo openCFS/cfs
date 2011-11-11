@@ -1,3 +1,3 @@
-SET(SCRIPTING_SRCS scriptable.cc cfsmessenger.cc)
+SET(SCRIPTING_SRCS Scriptable.cc CFSMessenger.cc)
 
 ADD_LIBRARY(scripting STATIC ${SCRIPTING_SRCS})

@@ -1,7 +1,3 @@
-// -*- mode: c++; coding: utf-8; indent-tabs-mode: nil; -*-
-// kate: space-indent on; indent-width 2; encoding utf-8;
-// kate: auto-brackets on; mixedindent off; indent-mode cstyle;
-
 #include <def_use_metis.hh>
 #include <def_use_pardiso.hh>
 #include <def_use_lapack.hh>
@@ -9,12 +5,12 @@
 #include <def_use_cholmod.hh>
 #include <def_use_arpack.hh>
 
-#include "General/environment.hh"
+#include "General/Environment.hh"
 #include "DataInOut/WriteInfo.hh"
 #include "DataInOut/ParamHandling/CFSOLASParams.hh"
-#include "Domain/domain.hh"
-#include "Driver/singleDriver.hh"
-#include "Driver/assemble.hh"
+#include "Domain/Domain.hh"
+#include "Driver/SingleDriver.hh"
+#include "Driver/Assemble.hh"
 
 namespace CoupledField {
 

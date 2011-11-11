@@ -1,7 +1,3 @@
-// -*- mode: c++; coding: utf-8; indent-tabs-mode: nil; -*-
-// kate: space-indent on; indent-width 2; encoding utf-8;
-// kate: auto-brackets on; mixedindent off; indent-mode cstyle;
-
 #include <complex>
 
 #include <def_use_lapack.hh>
@@ -10,27 +6,19 @@
 // Include LAPACK stuff
 #ifdef USE_LAPACK
 #include "OLAS/external/lapack/lapack.hh"
-#include "OLAS/external/lapack/lapackgbmatrix.hh"
+#include "OLAS/external/lapack/LapackGBMatrix.hh"
 #endif
 
-
-// include source code for templated vectors
-//#include "MatVec/vector.cc"
-//#include "matvec/vector_specialised.cc"
-#include "vector.hh"
+#include "Vector.hh"
 
 // include source code for templated matrices
-#include "crs_matrix.hh"
-#include "scrs_matrix.hh"
-#include "diag_matrix.hh"
-#include "vbr_matrix.hh"
-#include "sbmmatrix.hh"
+#include "CRS_Matrix.hh"
+#include "SCRS_Matrix.hh"
+#include "Diag_Matrix.hh"
+#include "VBR_Matrix.hh"
+#include "SBM_Matrix.hh"
 
-#include "sbmvector.hh"
-
-// Include that prematrix stuff
-// #include "multigrid/prematrix.cc"
-
+#include "SBM_Vector.hh"
 
 
 namespace CoupledField {

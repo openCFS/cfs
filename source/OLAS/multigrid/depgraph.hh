@@ -7,7 +7,7 @@
 #ifndef OLAS_DEPGRAPH_HH
 #define OLAS_DEPGRAPH_HH
 
-#include "matvec/crs_matrix.hh"
+#include "MatVec/CRS_Matrix.hh"
 #include "multigrid/ppflags.hh"
 
 namespace CoupledField {

@@ -10,8 +10,8 @@
 #include <boost/detail/endian.hpp>
 #include <boost/bimap.hpp>
 
-#include "General/environment.hh"
-#include "Domain/elem.hh"
+#include "General/Environment.hh"
+#include "Domain/ElemMapping/Elem.hh"
 
 namespace CoupledField {
 

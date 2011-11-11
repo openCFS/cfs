@@ -1,17 +1,12 @@
-  // -*- mode: c++; coding: utf-8; indent-tabs-mode: nil; -*-
-// kate: space-indent on; indent-width 2; encoding utf-8;
-// kate: auto-brackets on; mixedindent off; indent-mode cstyle;
-
 #include "mathParser.hh"
 
 #include <boost/algorithm/string/replace.hpp>
 
-#include "MatVec/vector.hh"
-#include "Utils/coordSystem.hh"
-#include "Utils/interpolate.hh"
+#include "MatVec/Vector.hh"
+#include "Domain/CoordinateSystems/CoordSystem.hh"
+#include "Utils/Interpolate1D.hh"
 #include "DataInOut/ResultCache.hh"
-#include "Domain/domain.hh"
-#include "Utils/coordSystem.hh"
+#include "Domain/Domain.hh"
 #include "Utils/mathfunctions.hh"
 
 

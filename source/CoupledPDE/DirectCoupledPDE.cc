@@ -5,27 +5,24 @@
 #include "DirectCoupledPDE.hh"
 
 #include "BasePairCoupling.hh"
-#include "PDE/newmark.hh"
 
+#include "Driver/TimeSchemes/Newmark.hh"
 // include solveStep drivers
-#include "Driver/stdSolveStep.hh"
-#include "Driver/solveStepAcoustic.hh"
-#include "Driver/solveStepPiezo.hh"
-#include "Driver/solveStepMicroPiezo.hh"
-#include "Driver/assemble.hh"
+#include "Driver/SolveSteps/StdSolveStep.hh"
+#include "Driver/Assemble.hh"
 
 // include PDE classes
 #include "PDE/SinglePDE.hh"
 
 
-#include "Domain/domain.hh"
-#include "Driver/singleDriver.hh"
-#include "Driver/transientdriver.hh"
+#include "Domain/Domain.hh"
+#include "Driver/SingleDriver.hh"
+#include "Driver/TransientDriver.hh"
 
 #include "DataInOut/ParamHandling/ParamNode.hh"
-#include "DataInOut/resultHandler.hh"
+#include "DataInOut/ResultHandler.hh"
 
-#include "OLAS/algsys/algebraicSys.hh"
+#include "OLAS/algsys/AlgebraicSys.hh"
 
 namespace CoupledField {
 

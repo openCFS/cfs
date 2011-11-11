@@ -36,7 +36,7 @@
 #include <boost/filesystem/exception.hpp>
 namespace fs=boost::filesystem;
 
-#include "Domain/resultInfo.hh"
+#include "Domain/Results/ResultInfo.hh"
 
 #include "cplreader/Settings.hh"
 
@@ -211,7 +211,7 @@ void FileReader_fvuns::ReadTopology(std::vector<UInt> & TOPOLOGYDATA,
         Topologydata.push_back(parts[i].hex_ids[j]+nodecount+1); //+1, weil VertID bei 0 beginnt!
       for(int j=0; j< parts[i].nhex; j++)
       {
-        elemTypes.push_back(Elem::HEXA8);
+        elemTypes.push_back(Elem::ET_HEXA8);
 
       }
     }
@@ -222,7 +222,7 @@ void FileReader_fvuns::ReadTopology(std::vector<UInt> & TOPOLOGYDATA,
         std::cout<<"Nodes: "<< parts[i].tet_ids[j]+nodecount<<std::endl;
       Topologydata.push_back(parts[i].tet_ids[j]+nodecount+1);} //+1, weil VertID bei 0 beginnt!
       for(int j=0; j< parts[i].ntet; j++)
-        elemTypes.push_back(Elem::TET4);
+        elemTypes.push_back(Elem::ET_TET4);
       std::cout<<" tets"<<parts[i].ntet<<std::endl;
 
     }
@@ -231,7 +231,7 @@ void FileReader_fvuns::ReadTopology(std::vector<UInt> & TOPOLOGYDATA,
       for(int j=0; j<5*parts[i].npyr; j++)
         Topologydata.push_back(parts[i].pyr_ids[j]+nodecount+1); //+1, weil VertID bei 0 beginnt!
       for(int j=0; j< parts[i].npyr; j++)
-        elemTypes.push_back(Elem::PYRA5);
+        elemTypes.push_back(Elem::ET_PYRA5);
 
     }
     if(parts[i].npri!=0)
@@ -239,7 +239,7 @@ void FileReader_fvuns::ReadTopology(std::vector<UInt> & TOPOLOGYDATA,
       for(int j=0; j<6*parts[i].npri; j++)
         Topologydata.push_back(parts[i].pri_ids[j]+nodecount+1); //+1, weil VertID bei 0 beginnt!
       for(int j=0; j< parts[i].npri; j++)
-        elemTypes.push_back(Elem::WEDGE6);
+        elemTypes.push_back(Elem::ET_WEDGE6);
       std::cout<<" pris"<<parts[i].npri<<std::endl;
     }
 
@@ -254,7 +254,7 @@ void FileReader_fvuns::ReadTopology(std::vector<UInt> & TOPOLOGYDATA,
   for(unsigned int k=0; k<elemTypes.size(); k++)
   {
 
-    if(elemTypes[k]==Elem::HEXA8)
+    if(elemTypes[k]==Elem::ET_HEXA8)
     {
       TOPOLOGYDATA[0+bigtopowalker]=Topologydata[0+topowalker];
       TOPOLOGYDATA[1+bigtopowalker]=Topologydata[1+topowalker];
@@ -266,7 +266,7 @@ void FileReader_fvuns::ReadTopology(std::vector<UInt> & TOPOLOGYDATA,
       TOPOLOGYDATA[7+bigtopowalker]=Topologydata[6+topowalker];
       topowalker+=8;
     }
-    if(elemTypes[k]==Elem::TET4)
+    if(elemTypes[k]==Elem::ET_TET4)
     {
       TOPOLOGYDATA[0+bigtopowalker]=Topologydata[1+topowalker];
       TOPOLOGYDATA[1+bigtopowalker]=Topologydata[2+topowalker];
@@ -275,7 +275,7 @@ void FileReader_fvuns::ReadTopology(std::vector<UInt> & TOPOLOGYDATA,
       topowalker+=4;
     }
 
-    if(elemTypes[k]==Elem::PYRA5)
+    if(elemTypes[k]==Elem::ET_PYRA5)
     {
       TOPOLOGYDATA[0+bigtopowalker]=Topologydata[0+topowalker];
       TOPOLOGYDATA[1+bigtopowalker]=Topologydata[1+topowalker];
@@ -285,7 +285,7 @@ void FileReader_fvuns::ReadTopology(std::vector<UInt> & TOPOLOGYDATA,
       topowalker+=5;
     }
 
-    if(elemTypes[k]==Elem::WEDGE6)
+    if(elemTypes[k]==Elem::ET_WEDGE6)
     {
       TOPOLOGYDATA[0+bigtopowalker]=Topologydata[0+topowalker];
       TOPOLOGYDATA[1+bigtopowalker]=Topologydata[3+topowalker];

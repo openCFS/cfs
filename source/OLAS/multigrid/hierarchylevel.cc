@@ -12,8 +12,8 @@
 #include "multigrid/jacobi.hh"
 
 #include "solver/generatesolver.hh"
-#include "solver/basesolver.hh"
-#include "precond/idprecond.hh"
+#include "solver/BaseSolver.hh"
+#include "precond/IdPrecondStd.hh"
 
 #ifdef USE_LAPACK
 #include "external/lapack/lapack.hh"
@@ -21,8 +21,8 @@
 
 // avoid linking problems with icc and old g++
 #if defined(__INTEL_COMPILER)||(!__GNUC_PREREQ(3,3) )
-#include "matvec/crs_matrix.cc"
-#include "matvec/vector.cc"
+#include "MatVec/CRS_Matrix.cc"
+#include "MatVec/Vector.cc"
 #endif
 
 /**********************************************************

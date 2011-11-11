@@ -7,7 +7,7 @@
 #include <string.h>
 
 #include "multigrid/depgraph.hh"
-#include "DataInOut/coloredConsole.hh"
+#include "DataInOut/ColoredConsole.hh"
 
 /**********************************************************/
 #ifdef DEBUG_TO_CERR

@@ -1,10 +1,3 @@
-// -*- mode: c++; coding: utf-8; indent-tabs-mode: nil; -*-
-// kate: space-indent on; indent-width 2; encoding utf-8;
-// kate: auto-brackets on; mixedindent off; indent-mode cstyle;
-
-// This code is also based on the gmvread library from the official GMV
-// website at: http://www-xdiv.lanl.gov/XCM/gmv/GMVHome.html
-
 #include <set>
 #include <iostream>
 
@@ -15,14 +8,15 @@
 #include <sys/types.h>
 #include <math.h>
 
-#include <General/exception.hh>
-#include <DataInOut/simInput.hh>
+#include <General/Exception.hh>
+#include <DataInOut/SimInput.hh>
 
 #undef RDATA_INIT
 #include "gmvread.hh"
 
 namespace CoupledField {
-
+// This code is also based on the gmvread library from the official GMV
+// website at: http://www-xdiv.lanl.gov/XCM/gmv/GMVHome.html
 int ignore_me;
 
   DEFINE_LOG(gmvread, "gmvread")

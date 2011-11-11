@@ -1,38 +1,34 @@
-// -*- mode: c++; coding: utf-8; indent-tabs-mode: nil; -*-
-// kate: space-indent on; indent-width 2; encoding utf-8;
-// kate: auto-brackets on; mixedindent off; indent-mode cstyle;
-
 #include <def_use_lapack.hh>
 #include <def_use_pardiso.hh>
 #include <def_use_cholmod.hh>
 
-#include "OLAS/precond/idprecond.hh"
+#include "OLAS/precond/IdPrecondStd.hh"
 #include "OLAS/precond/generateprecond.hh"
-#include "MatVec/basematrix.hh"
+#include "MatVec/BaseMatrix.hh"
 
 
 #ifdef USE_PARDISO
-#include "OLAS/external/pardiso/pardisosolver.hh"
+#include "OLAS/external/pardiso/PardisoSolver.hh"
 #endif
 
 #ifdef USE_CHOLMOD
 #include "OLAS/external/cholmod/CholMod.hh"
 #endif
-#include "OLAS/solver/ldlsolver.hh"
+#include "OLAS/solver/LDLSolver.hh"
 
 // include source code for templated preconditioners
-#include "OLAS/precond/jacprecond.hh"
-#include "OLAS/precond/ssorprecond.hh"
-#include "OLAS/precond/ilu0precond.hh"
-#include "OLAS/precond/ilutpprecond.hh"
-#include "OLAS/precond/ilukprecond.hh"
+#include "OLAS/precond/JacPrecond.hh"
+#include "OLAS/precond/SSORPrecond.hh"
+#include "OLAS/precond/ILU0Precond.hh"
+#include "OLAS/precond/ILUTP_Precond.hh"
+#include "OLAS/precond/ILUK_Precond.hh"
 //#include "precond/mgmakeprecond.cc"
 #include "OLAS/precond/ILDLPrecond/ildlprecond.hh"
-#include "OLAS/precond/ic0precond.hh"
+#include "OLAS/precond/IC0Precond.hh"
 
-#include "MatVec/diag_matrix.hh"
-#include "MatVec/vbr_matrix.hh"
-#include "MatVec/sbmmatrix.hh"
+#include "MatVec/Diag_Matrix.hh"
+#include "MatVec/VBR_Matrix.hh"
+#include "MatVec/SBM_Matrix.hh"
 
 namespace CoupledField {
 

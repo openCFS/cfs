@@ -12,9 +12,9 @@ namespace fs=boost::filesystem;
 #include <def_cfs_stats.hh>
 #include <def_use_hdf5.hh>
 
-#include "General/exception.hh"
+#include "General/Exception.hh"
 #include "Settings.hh"
-#include "General/environment.hh"
+#include "General/Environment.hh"
 #include "DataInOut/SimInOut/hdf5/hdf5io.hh"
 #include "cplreader/CouplingHandler.hh"
 
@@ -151,9 +151,11 @@ namespace CoupledField
 
     for( ; it != end; it++ )
     {
-      numElemsOfDim[ Elem::GetElemDim((Elem::FEType)*it) ]++;
-      quadrElems &= static_cast<UInt>(Elem::GetElemQuadratic((Elem::FEType)*it));
-      numElemsOfType[(Elem::FEType)*it]++;
+      Exception("Elem::GetNumElemNodes() no longer definied due to refactoring");
+
+      //numElemsOfDim[ Elem::GetElemDim((Elem::FEType)*it) ]++;
+      //quadrElems &= static_cast<UInt>(Elem::GetElemQuadratic((Elem::FEType)*it));
+      //numElemsOfType[(Elem::FEType)*it]++;
     }
 
     // This has still to to be checked

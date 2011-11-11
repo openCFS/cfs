@@ -1,12 +1,8 @@
-// -*- mode: c++; coding: utf-8; indent-tabs-mode: nil; -*-
-// kate: space-indent on; indent-width 2; encoding utf-8;
-// kate: auto-brackets on; mixedindent off; indent-mode cstyle;
-
 #include <vector>
 
-#include "General/exception.hh"
+#include "General/Exception.hh"
 
-#include "MatVec/scrs_matrix.hh"
+#include "MatVec/SCRS_Matrix.hh"
 
 #include "ildl0factoriser.hh"
 

@@ -11,17 +11,17 @@ IF(USE_SCRIPTING_TCL)
 ENDIF(USE_SCRIPTING_TCL)
 
 IF(CFS_BLAS_LAPACK STREQUAL "MKL")
-  SET_SOURCE_FILES_PROPERTIES(programOptions.cc
+  SET_SOURCE_FILES_PROPERTIES(ProgramOptions.cc
     PROPERTIES COMPILE_FLAGS "-I${MKL_INCLUDE_DIR} -fno-strict-aliasing")
 ENDIF(CFS_BLAS_LAPACK STREQUAL "MKL")
 
 SET(DATAINOUT_SRCS 
-  coloredConsole.cc
-  postProc.cc
-  programOptions.cc
+  ColoredConsole.cc
+  PostProc.cc
+  ProgramOptions.cc
   ResultCache.cc
-  resultHandler.cc
-  simOutput.cc
+  ResultHandler.cc
+  SimOutput.cc
   WriteInfo.cc
   XMLMaterialHandler.cc
 )

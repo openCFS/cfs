@@ -1,13 +1,13 @@
 SET(ALGSYS_SRCS
-    algebraicSys.cc
+    AlgebraicSys.cc
     generateidbchandler.cc
     )
 
 IF(EXPLICIT_TEMPLATE_INSTANTIATION)
 SET(ALGSYS_SRCS
     ${ALGSYS_SRCS}
-    idbchandler.cc
-    idbchandlerpenalty.cc
+    IDBC_Handler.cc
+    IDBC_HandlerPenalty.cc
     )
 ENDIF(EXPLICIT_TEMPLATE_INSTANTIATION)
 

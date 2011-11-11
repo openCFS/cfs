@@ -18,7 +18,7 @@
 #include <boost/filesystem/exception.hpp>
 namespace fs=boost::filesystem;
 
-#include "Domain/resultInfo.hh"
+#include "Domain/Results/ResultInfo.hh"
 
 #include "cplreader/Settings.hh"
 #include "FileReader_EnSight.hh"

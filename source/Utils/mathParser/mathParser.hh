@@ -1,7 +1,3 @@
-// -*- mode: c++; coding: utf-8; indent-tabs-mode: nil; -*-
-// kate: space-indent on; indent-width 2; encoding utf-8;
-// kate: auto-brackets on; mixedindent off; indent-mode cstyle;
-
 #ifndef MATHPARSER_HH
 #define MATHPARSER_HH
 
@@ -11,8 +7,8 @@
 #include <boost/signals.hpp>
 #include "muParser.h"
 #include "Utils/StdVector.hh"
-#include "MatVec/vector.hh"
-#include "General/environment.hh"
+#include "MatVec/Vector.hh"
+#include "General/Environment.hh"
 
 namespace CoupledField {
 

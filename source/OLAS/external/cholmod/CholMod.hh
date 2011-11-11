@@ -1,14 +1,10 @@
-// -*- mode: c++; coding: utf-8; indent-tabs-mode: nil; -*-
-// kate: space-indent on; indent-width 2; encoding utf-8;
-// kate: auto-brackets on; mixedindent off; indent-mode cstyle;
-
 #ifndef CHOLMOD_HH
 #define CHOLMOD_HH
 
 #include <def_expl_templ_inst.hh>
 
-#include "General/environment.hh"
-#include "OLAS/solver/basesolver.hh"
+#include "General/Environment.hh"
+#include "OLAS/solver/BaseSolver.hh"
 
 #include "General/Enum.hh"
 

@@ -17,10 +17,10 @@
 #include <sstream>
 #include <ostream>
 #include <fstream>
-#include "PDE/basePDE.hh"
-#include "Domain/bcs.hh"
-#include "General/environment.hh"
-#include "MatVec/matrix.hh"
+#include "PDE/BasePDE.hh"
+#include "Domain/BCs.hh"
+#include "General/Environment.hh"
+#include "MatVec/Matrix.hh"
 
 namespace CoupledField {
 

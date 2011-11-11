@@ -1,15 +1,11 @@
-// -*- mode: c++; coding: utf-8; indent-tabs-mode: nil; -*-
-// kate: space-indent on; indent-width 2; encoding utf-8;
-// kate: auto-brackets on; mixedindent off; indent-mode cstyle;
-
 #ifndef FILE_CFSOLASPARAMS
 #define FILE_CFSOLASPARAMS
 
-#include "OLAS/solver/basesolver.hh"
-#include "OLAS/solver/baseEigensolver.hh"
-#include "OLAS/precond/baseprecond.hh"
-#include "OLAS/graph/baseordering.hh"
-#include "PDE/basePDE.hh"
+#include "OLAS/solver/BaseSolver.hh"
+#include "OLAS/solver/BaseEigenSolver.hh"
+#include "OLAS/precond/BasePrecond.hh"
+#include "OLAS/graph/BaseOrdering.hh"
+#include "PDE/BasePDE.hh"
 
 #include "DataInOut/ParamHandling/ParamNode.hh"
 

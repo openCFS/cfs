@@ -11,5 +11,5 @@ ADD_LIBRARY(cplreader_hdf5 STATIC ${CPLREADER_OUTPUTWRITER_HDF5_SRCS})
 
 TARGET_LINK_LIBRARIES(cplreader_hdf5 
   siminouthdf5
-  elements
+  febasis
 )

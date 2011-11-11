@@ -1,7 +1,3 @@
-// -*- mode: c++; coding: utf-8; indent-tabs-mode: nil; -*-
-// kate: space-indent on; indent-width 2; encoding utf-8;
-// kate: auto-brackets on; mixedindent off; indent-mode cstyle;
-
 #include <def_use_ilupack.hh>
 #include <def_use_lapack.hh>
 #include <def_use_pardiso.hh>
@@ -11,15 +7,15 @@
 #include "General/Enum.hh"
 
 #include "generatesolver.hh"
-#include "General/exception.hh"
+#include "General/Exception.hh"
 
 #ifdef USE_LAPACK
-#include "OLAS/external/lapack/lapacklu.hh"
-#include "OLAS/external/lapack/lapackll.hh"
+#include "OLAS/external/lapack/Lapack_LU.hh"
+#include "OLAS/external/lapack/Lapack_LL.hh"
 #endif
 
 #ifdef USE_PARDISO
-#include "OLAS/external/pardiso/pardisosolver.hh"
+#include "OLAS/external/pardiso/PardisoSolver.hh"
 #endif
 
 #ifdef USE_ILUPACK
@@ -31,14 +27,14 @@
 #endif
 
 // include source code for templated solvers
-#include "basesolver.hh"
-#include "richardson.hh"
-#include "cgsolver.hh"
-#include "gmres.hh"
-#include "minres.hh"
-#include "lusolver.hh"
-#include "ldlsolver.hh"
-#include "diagsolver.hh"
+#include "BaseSolver.hh"
+#include "RichardsonSolver.hh"
+#include "CGSolver.hh"
+#include "GMRESSolver.hh"
+#include "MINRESSolver.hh"
+#include "LUSolver.hh"
+#include "LDLSolver.hh"
+#include "DiagSolver.hh"
 
 namespace CoupledField {
 

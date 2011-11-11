@@ -1,7 +1,3 @@
-// -*- mode: c++; coding: utf-8; indent-tabs-mode: nil; -*-
-// kate: space-indent on; indent-width 2; encoding utf-8;
-// kate: auto-brackets on; mixedindent off; indent-mode cstyle;
-
 #include <fstream>
 #include <iostream>
 #include <string>
@@ -10,9 +6,7 @@
 
 
 #include "ODESolver_RKF45.hh"
-#include "ODEDescr/Gilmore.hh"
-#include "ODEDescr/Gilmoredimlos.hh"
-#include "ODEDescr/KellerMiksis.hh"
+
 
 namespace CoupledField
 {

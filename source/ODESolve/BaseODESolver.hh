@@ -1,13 +1,11 @@
-// -*- mode: c++; coding: utf-8; indent-tabs-mode: nil; -*-
-// kate: space-indent on; indent-width 2; encoding utf-8;
-// kate: auto-brackets on; mixedindent off; indent-mode cstyle;
-
 #ifndef BASE_ODE_SOLVER_HH
 #define BASE_ODE_SOLVER_HH
 
-#include "General/environment.hh"
+#include "BaseODEProblem.hh"
+
+#include "General/Environment.hh"
 #include "Utils/StdVector.hh"
-#include "ODEDescr/BaseODEProblem.hh"
+
 
 namespace CoupledField {
 

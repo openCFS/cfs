@@ -108,6 +108,8 @@
   								type="DT_ElecLoad" />
   							<xsd:element name="impedance"
   								type="DT_ElecImpedance" />
+  						  <xsd:element name="regionLoad" 
+  						    type="DT_RHSValueBasic"/>
   						</xsd:choice>
   					</xsd:complexType>
   				</xsd:element>

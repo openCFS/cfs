@@ -1,7 +1,3 @@
-// -*- mode: c++; coding: utf-8; indent-tabs-mode: nil; -*-
-// kate: space-indent on; indent-width 2; encoding utf-8;
-// kate: auto-brackets on; mixedindent off; indent-mode cstyle;
-
 #ifndef ParamNode_HH_
 #define ParamNode_HH_
 
@@ -12,7 +8,7 @@
 #include <boost/any.hpp>
 
 #include "Utils/StdVector.hh"
-#include "General/exception.hh"
+#include "General/Exception.hh"
 
 namespace CoupledField
 {

@@ -15,15 +15,15 @@
 #include "WriteInfo.hh"
 #include "Utils/tools.hh"
 #include "Utils/Coil.hh"
-#include "Utils/coordSystem.hh"
-#include "Materials/baseMaterial.hh"
-#include "coloredConsole.hh"
-#include "Domain/resultInfo.hh"
-#include "DataInOut/programOptions.hh"
-#include "MatVec/vector.hh"
+#include "Domain/CoordinateSystems/CoordSystem.hh"
+#include "Materials/BaseMaterial.hh"
+#include "ColoredConsole.hh"
+#include "Domain/Results/ResultInfo.hh"
+#include "DataInOut/ProgramOptions.hh"
+#include "MatVec/Vector.hh"
 
 #ifdef USE_SCRIPTING 
-#include "DataInOut/Scripting/cfsmessenger.hh"
+#include "DataInOut/Scripting/CFSMessenger.hh"
 #endif
 
 using std::cout;

@@ -1,14 +1,10 @@
-// -*- mode: c++; coding: utf-8; indent-tabs-mode: nil; -*-
-// kate: space-indent on; indent-width 2; encoding utf-8;
-// kate: auto-brackets on; mixedindent off; indent-mode cstyle;
-
-#include "idbchandler.hh"
-#include "idbchandlervoid.hh"
-#include "idbchandlerpenalty.hh"
+#include "IDBC_Handler.hh"
+#include "IDBC_HandlerVoid.hh"
+#include "IDBC_HandlerPenalty.hh"
 #include "generateidbchandler.hh"
 
 // Required for using AssocType
-#include "MatVec/typedefs.hh"
+#include "MatVec/TypeDefs.hh"
 
 
 namespace CoupledField {

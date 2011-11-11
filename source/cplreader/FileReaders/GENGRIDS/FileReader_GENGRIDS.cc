@@ -7,7 +7,7 @@
 #include "SphericalShellGenerator.hh"
 #include "RectilinearUniformGridGenerator.hh"
 #include "ReferenceElementGenerator.hh"
-#include "Utils/trivialCartesianCoordSys.hh"
+#include "Domain/CoordinateSystems/TrivialCartesianCoordSystem.hh"
 
 #include "FileReader_GENGRIDS.hh"
 

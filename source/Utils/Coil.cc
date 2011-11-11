@@ -1,13 +1,9 @@
-// -*- mode: c++; coding: utf-8; indent-tabs-mode: nil; -*-
-// kate: space-indent on; indent-width 2; encoding utf-8;
-// kate: auto-brackets on; mixedindent off; indent-mode cstyle;
-
 #include "Coil.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/WriteInfo.hh"
-#include "Domain/grid.hh"
-#include "Domain/domain.hh"
-#include "Utils/coordSystem.hh"
+#include "Domain/Mesh/Grid.hh"
+#include "Domain/Domain.hh"
+#include "Domain/CoordinateSystems/CoordSystem.hh"
 #include <fstream>
 
 

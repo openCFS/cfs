@@ -5,10 +5,10 @@
 #include <string>
 #include <fstream>
 
-#include <Domain/elem.hh>
-#include <General/environment.hh>
-#include <Forms/linearForm.hh>
-#include "Elements/elements_header.hh"
+#include <Domain/ElemMapping/Elem.hh>
+#include <General/Environment.hh>
+#include <Forms/LinForms/LinearForm.hh>
+
 
 namespace CoupledField
 {

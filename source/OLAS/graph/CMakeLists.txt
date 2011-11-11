@@ -2,11 +2,11 @@
 INCLUDE_DIRECTORIES(${METIS_INCLUDE_DIR})
 
 SET(GRAPH_SRCS
-    basegraph.cc
-    baseordering.cc
-    graphmanager.cc
-    idbcgraph.cc
-    sloan.cc
+    BaseGraph.cc
+    BaseOrdering.cc
+    GraphManager.cc
+    IDBC_Graph.cc
+    Sloan.cc
 	)
 
 ADD_DEFINITIONS()

@@ -21,17 +21,17 @@ ADD_EXECUTABLE(cfstoolbin ${CFSTOOL_SRCS})
 SET(TARGET_LL ${TARGET_LL}
 #  optimization
   driver
-  gridcfs
+  mesh 
   pde
   domain
-  gridcfs
+  mesh 
   pde
   domain
 #  optimization
   materials
   mathparser
   coupledpde
-  elements
+  febasis
   definefiles
   simouttext
   simoutinfo
@@ -80,8 +80,8 @@ ENDIF(USE_PYTHON)
 # Target link libraries for cfstool target.
 SET(TARGET_LL ${TARGET_LL}  
   domain
-  elements
-  domain
+  mesh
+  febasis
   datainout
   materials
   paramh

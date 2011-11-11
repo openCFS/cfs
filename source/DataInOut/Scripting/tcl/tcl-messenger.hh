@@ -8,7 +8,7 @@
 #include <tcl.h>
 #include <map>
 
-#include "DataInOut/Scripting/cfsmessenger.hh"
+#include "DataInOut/Scripting/CFSMessenger.hh"
 
 
 namespace CoupledField {

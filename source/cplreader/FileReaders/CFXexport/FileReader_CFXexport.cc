@@ -7,7 +7,7 @@
 #include <sstream>
 #include <string>
 
-#include "General/exception.hh"
+#include "General/Exception.hh"
 #include "cplreader/Settings.hh"
 #include "FileReader_CFXexport.hh"
 
@@ -317,7 +317,7 @@ namespace CoupledField {
 
           switch (connect.size()) {
             case 4:
-              elemTypes.push_back(Elem::QUAD4);
+              elemTypes.push_back(Elem::ET_QUAD4);
               TOPOLOGYDATA.push_back(connect[2]);
               TOPOLOGYDATA.push_back(connect[3]);
               TOPOLOGYDATA.push_back(connect[0]);
@@ -327,7 +327,7 @@ namespace CoupledField {
               ++lineNum;
               break;
             case 3:
-              elemTypes.push_back(Elem::TRIA3);
+              elemTypes.push_back(Elem::ET_TRIA3);
               TOPOLOGYDATA.push_back(connect[0]);
               TOPOLOGYDATA.push_back(connect[1]);
               TOPOLOGYDATA.push_back(connect[2]);
@@ -338,19 +338,19 @@ namespace CoupledField {
               break;
 
             case 5:
-              elemTypes.push_back(Elem::TRIA3);
+              elemTypes.push_back(Elem::ET_TRIA3);
               TOPOLOGYDATA.push_back(connect[0]);
               TOPOLOGYDATA.push_back(connect[1]);
               TOPOLOGYDATA.push_back(connect[2]);
               TOPOLOGYDATA.push_back(0);
 
-              elemTypes.push_back(Elem::TRIA3);
+              elemTypes.push_back(Elem::ET_TRIA3);
               TOPOLOGYDATA.push_back(connect[0]);
               TOPOLOGYDATA.push_back(connect[2]);
               TOPOLOGYDATA.push_back(connect[4]);
               TOPOLOGYDATA.push_back(0);
 
-              elemTypes.push_back(Elem::TRIA3);
+              elemTypes.push_back(Elem::ET_TRIA3);
               TOPOLOGYDATA.push_back(connect[4]);
               TOPOLOGYDATA.push_back(connect[2]);
               TOPOLOGYDATA.push_back(connect[3]);

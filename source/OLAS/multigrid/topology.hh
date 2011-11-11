@@ -1,15 +1,8 @@
-// -*- mode: c++; coding: utf-8; indent-tabs-mode: nil; -*-
-// kate: space-indent on; indent-width 2; encoding utf-8;
-// kate: auto-brackets on; mixedindent off; indent-mode cstyle;
-
-/* $Id$ */
-
 #ifndef OLAS_TOPOLOGY_HH
 #define OLAS_TOPOLOGY_HH
 
 /**********************************************************/
 
-#include  "matvec/matvec.hh"
 #include  "multigrid/ppflags.hh"
 #include  "multigrid/depgraph.hh"
 

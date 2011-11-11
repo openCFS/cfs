@@ -1,7 +1,3 @@
-// -*- mode: c++; coding: utf-8; indent-tabs-mode: nil; -*-
-// kate: space-indent on; indent-width 2; encoding utf-8;
-// kate: auto-brackets on; mixedindent off; indent-mode cstyle;
-
 #include <string>
 #include <cstring>
 #include <iostream>
@@ -25,7 +21,7 @@ namespace algo=boost::algorithm;
 // #include <pcrecpp.h>
 // #include <muParser.h>
 
-#include "General/exception.hh"
+#include "General/Exception.hh"
 #include "cplreader/Settings.hh"
 #include "FileReader_CFX.hh"
 #include "cfx_fortran_defs.h"
@@ -70,6 +66,8 @@ namespace CoupledField
 
   void FileReader_CFX::Init()
   {
+    REFACTOR;
+    /*
     Settings& settings = Settings::Instance();
     
     std::stringstream sstr;
@@ -279,7 +277,7 @@ namespace CoupledField
     if (settings.GetInt("numsteps"))
     {
       UInt tmp = (UInt) settings.GetInt("numsteps");
-      /* only take argument if tmp does not exceed the maximal number of timesteps possible */
+      // only take argument if tmp does not exceed the maximal number of timesteps possible
       if (tmp < numSteps_)
       {
         numSteps_ = tmp;
@@ -633,23 +631,27 @@ namespace CoupledField
       switch (intvec[ies-1])
       {
         case 4:
-          regionElemTypes_[ies-1] = Elem::TET4;
+          REFACTOR;
+          //regionElemTypes_[ies-1] = Elem::TET4;
           break;
         case 5:
-          regionElemTypes_[ies-1] = Elem::WEDGE6;
+          REFACTOR;
+          //regionElemTypes_[ies-1] = Elem::WEDGE6;
           break;
         case 6:
-          regionElemTypes_[ies-1] = Elem::HEXA8;
+          regionElemTypes_[ies-1] = Elem::ET_HEXA8;
           break;
         case 7:
-          regionElemTypes_[ies-1] = Elem::PYRA5;
+          REFACTOR;
+          //regionElemTypes_[ies-1] = Elem::PYRA5;
           break;
         default:
-          regionElemTypes_[ies-1] = Elem::UNDEF;
+          regionElemTypes_[ies-1] = Elem::ET_UNDEF;
           break;
       }
-
-      UInt nENod = Elem::GetNumElemNodes(*regionElemTypes_.rbegin());
+      REFACTOR;
+      //UInt nENod = Elem::GetNumElemNodes(*regionElemTypes_.rbegin());
+      UInt nENod = 0;
       if ( nENod > maxNumElemNodes_ )
         maxNumElemNodes_ = nENod;
 
@@ -806,6 +808,7 @@ namespace CoupledField
     doublevec.clear();
     floatvec.clear();
     intvec.clear();
+    */
   }
 
   void FileReader_CFX::ReadNodalCoords(std::vector<Double> & NODECOORD)
@@ -859,9 +862,11 @@ namespace CoupledField
   void FileReader_CFX::ReadTopology( std::vector<UInt> & TOPOLOGYDATA,
                                          std::vector<UInt> & elemTypes)
   {
+    REFACTOR;
+    /*
     Settings& settings = Settings::Instance();
     UInt elem = 0;
-    UInt elemType = Elem::UNDEF;
+    UInt elemType = Elem::ET_UNDEF;
     UInt numRegionElems=0;
     UInt numElemNodes;
     std::vector<UInt> elConnect(maxNumElemNodes_);
@@ -876,7 +881,7 @@ namespace CoupledField
 
     // allocate memory
     TOPOLOGYDATA.resize(numElems_ * maxNumElemNodes_, 0);
-    elemTypes.resize(numElems_, Elem::UNDEF);
+    elemTypes.resize(numElems_, Elem::ET_UNDEF);
 
     // first read volume regions
     for ( UInt actRegion=0; actRegion<numVolRegions_; ++actRegion )
@@ -1021,6 +1026,7 @@ namespace CoupledField
     CHECK_CFX_IO(nerr);
     
     intvec.clear();
+    */
   }
 
   void FileReader_CFX::GetRegionElements(std::vector<UInt> & regionElements,
@@ -2141,7 +2147,7 @@ namespace CoupledField
      */
     switch ( elemType )
     {
-      case Elem::TET4:
+      case Elem::ET_TET4:
         faceConnect.resize(3, 0);
         switch ( face )
         {
@@ -2169,10 +2175,10 @@ namespace CoupledField
             EXCEPTION("Invalid face index: " << face);
             break;
         }
-        return Elem::TRIA3;
+        return Elem::ET_TRIA3;
         break;
         
-      case Elem::PYRA5:
+      case Elem::ET_PYRA5:
         faceConnect.resize(3, 0);
         switch ( face )
         {
@@ -2202,16 +2208,16 @@ namespace CoupledField
             faceConnect[1] = *(elemConnect+1);
             faceConnect[2] = *(elemConnect+2);
             faceConnect[3] = *(elemConnect+3);
-            return Elem::QUAD4;
+            return Elem::ET_QUAD4;
             break;
           default:
             EXCEPTION("Invalid face index: " << face);
             break;
         }
-        return Elem::TRIA3;
+        return Elem::ET_TRIA3;
         break;
         
-      case Elem::WEDGE6:
+      case Elem::ET_WEDGE6:
         faceConnect.resize(4, 0);
         switch ( face )
         {
@@ -2238,23 +2244,23 @@ namespace CoupledField
             faceConnect[0] = *(elemConnect+0);
             faceConnect[1] = *(elemConnect+1);
             faceConnect[2] = *(elemConnect+2);
-            return Elem::TRIA3;
+            return Elem::ET_TRIA3;
             break;
           case 5:
             faceConnect.resize(3, 0);
             faceConnect[0] = *(elemConnect+3);
             faceConnect[1] = *(elemConnect+5);
             faceConnect[2] = *(elemConnect+4);
-            return Elem::TRIA3;
+            return Elem::ET_TRIA3;
             break;
           default:
             EXCEPTION("Invalid face index: " << face);
             break;
         }
-        return Elem::QUAD4;
+        return Elem::ET_QUAD4;
         break;
         
-      case Elem::HEXA8:
+      case Elem::ET_HEXA8:
         faceConnect.resize(4, 0);
         switch ( face )
         {
@@ -2302,7 +2308,7 @@ namespace CoupledField
             EXCEPTION("Invalid face index: " << face);
             break;
         }
-        return Elem::QUAD4;
+        return Elem::ET_QUAD4;
         break;
       default:
         EXCEPTION("Element type " << elemType << " not supported");

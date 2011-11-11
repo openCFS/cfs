@@ -1,9 +1,9 @@
 #include <cstdlib>
 
 #include "ResultCache.hh"
-#include "resultHandler.hh"
-#include "simInput.hh"
-#include "Domain/domain.hh"
+#include "ResultHandler.hh"
+#include "SimInput.hh"
+#include "Domain/Domain.hh"
 
 namespace CoupledField
 {

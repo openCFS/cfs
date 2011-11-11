@@ -1,8 +1,3 @@
-
-// -*- mode: c++; coding: utf-8; indent-tabs-mode: nil; -*-
-// kate: space-indent on; indent-width 2; encoding utf-8;
-// kate: auto-brackets on; mixedindent off; indent-mode cstyle;
-
 #ifndef FILE_SINGLEPDE
 #define FILE_SINGLEPDE
 
@@ -11,19 +6,17 @@
 #include <list>
 #include <map>
 
-#include "DataInOut/Scripting/scriptable.hh"
+#include "DataInOut/Scripting/Scriptable.hh"
 #include "Utils/mathParser/mathParser.hh"
-#include "Domain/resultInfo.hh"
-#include "Domain/bcs.hh"
-#include "Utils/result.hh"
-#include "DataInOut/SimInOut/hdf5/simOutputHDF5.hh"
-#include "DataInOut/SimInOut/hdf5/simInputHDF5.hh"
+#include "Domain/Results/ResultInfo.hh"
+#include "Domain/BCs.hh"
+#include "Domain/Results/BaseResults.hh"
+#include "DataInOut/SimInOut/hdf5/SimOutputHDF5.hh"
+#include "DataInOut/SimInOut/hdf5/SimInputHDF5.hh"
 
 namespace CoupledField
 {
   // forward class declaration
-  class VolForceInt;
-  class VolumeSrcInt;
   class SpaceErrorEstimator;
   class BasePairCoupling;
   class DirectCoupledPDE;
@@ -34,6 +27,8 @@ namespace CoupledField
   class PDEMemento;
   class ResultFunctor;
   class BaseFieldFunctor;
+  class LinearFormContext;
+  class CoefFunction;
   
 
   
@@ -130,7 +125,9 @@ namespace CoupledField
      * then we call the setCoefFunction from LinearForm to
      * set the value and pass everything to the assemble class
      */
-    void DefineRhsIntegrators();
+    void DefineRhsLoadIntegrators();
+
+    virtual LinearFormContext* CreateRhsLinearForm(SolutionType rhsType,shared_ptr<CoefFunction > rhsCoef)=0;
 
     /** Write general defines (BCs, loads, etc.) to info.xml.
      * Note, that only the current state is (over) written! */
@@ -250,6 +247,8 @@ namespace CoupledField
 
     //! define all (bilinearform) integrators needed for this pde
     virtual void DefineIntegrators( )=0;
+
+    virtual void CreateRhsLoadCoefFunction(shared_ptr<CoefFunction>& cFunct,PtrParamNode valNode );
 
     /** Trigger calculation of results. */
     virtual void CalcResults( shared_ptr<BaseResult> result ) { };

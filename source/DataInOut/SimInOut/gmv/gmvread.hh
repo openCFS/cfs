@@ -11,7 +11,7 @@
 
 #include <vector>
 
-#include <DataInOut/Logging/cfslog.hh>
+#include "DataInOut/Logging/LogConfigurator.hh"
 
 namespace CoupledField {
 

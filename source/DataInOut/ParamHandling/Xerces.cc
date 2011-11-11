@@ -1,7 +1,3 @@
-// -*- mode: c++; coding: utf-8; indent-tabs-mode: nil; -*-
-// kate: space-indent on; indent-width 2; encoding utf-8;
-// kate: auto-brackets on; mixedindent off; indent-mode cstyle;
-
 #include <def_use_xerces.hh>
 
 #ifdef USE_XERCES
@@ -13,7 +9,7 @@
 #include <boost/filesystem/operations.hpp>
 #include <boost/algorithm/string.hpp>
 
-#include "General/exception.hh"
+#include "General/Exception.hh"
 #include "DataInOut/ParamHandling/Xerces.hh"
 
 

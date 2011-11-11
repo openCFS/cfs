@@ -1,0 +1,44 @@
+IF(USE_XERCES)
+  INCLUDE_DIRECTORIES(${XERCES_INCLUDE_DIR})
+ENDIF(USE_XERCES)
+
+
+SET(MESH_SRCS 
+  Grid.cc
+  GridCFS/GridCFS.cc
+  )
+
+
+ADD_LIBRARY(mesh STATIC ${MESH_SRCS})
+
+SET(TARGET_LL
+  utils
+  elemmapping
+  coordsystems
+  datainout
+  scripting
+  paramh
+  matvec
+  cfsgeneral
+  integration
+  )
+
+IF(USE_INTERPOLATION)
+  SET(TARGET_LL
+    ${TARGET_LL}
+    ${CGAL_LIBRARY}
+    ${BOOST_THREAD_LIB}
+  )
+ENDIF(USE_INTERPOLATION)
+
+IF(USE_XERCES)
+  SET(TARGET_LL
+    ${TARGET_LL}
+    ${XERCES_LIBRARY}
+  )
+ENDIF(USE_XERCES)
+
+
+TARGET_LINK_LIBRARIES(mesh
+  ${TARGET_LL}
+  )

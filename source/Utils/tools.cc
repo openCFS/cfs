@@ -1,7 +1,3 @@
-// -*- mode: c++; coding: utf-8; indent-tabs-mode: nil; -*-
-// kate: space-indent on; indent-width 2; encoding utf-8;
-// kate: auto-brackets on; mixedindent off; indent-mode cstyle;
-
 #include <fstream>
 #include <iostream>
 #include <math.h>
@@ -10,13 +6,10 @@
 #include <boost/algorithm/string/classification.hpp>
 
 #include "tools.hh"
-#include "MatVec/matrix.hh"
-#include "Elements/elements_header.hh"
-#include "Domain/elem.hh"
-#include "Domain/grid.hh"
-#include "DataInOut/Logging/cfslog.hh"
-#include "General/exception.hh"
-
+#include "MatVec/Matrix.hh"
+#include "MatVec/Vector.hh"
+#include "DataInOut/Logging/LogConfigurator.hh"
+#include "General/Exception.hh"
 
 DECLARE_LOG(tools)
 DEFINE_LOG(tools, "tools")
@@ -129,27 +122,6 @@ namespace CoupledField {
                          const UInt noOfChilds){
     Double tmp = log( tolElem/tolTotal ) / log( (Double) noOfChilds );
     return (UInt)tmp + 1;
-  }
-
-  Double CalcArea(Elem * ptE, Grid * ptgrid, const UInt level){
-     EXCEPTION( "Clean up tools: No mor element geometic information");
-//    Double         area = 0;
-//    BaseFE         * ptelem = ptE->ptElem;
-//    const StdVector<UInt> & connect = ptE->connect;
-//    Matrix<Double> ptCoord;
-//    UInt        nrIntPnts = ptelem->GetNumIntPoints();
-//    const Vector<Double> & intWeights = ptelem->GetIntWeights();
-//    UInt        i;
-//    Double         jacDet;
-//
-//    ptgrid->GetElemNodesCoord(ptCoord,connect);
-//
-//    for (i=0; i<nrIntPnts; i++) {
-//      jacDet = ptelem->CalcJacobianDetAtIp(i+1, ptCoord, NULL);
-//      area +=jacDet*intWeights[i];
-//    }
-
-    return -1.0;
   }
 
   std::string ToValidXML(const std::string& input)

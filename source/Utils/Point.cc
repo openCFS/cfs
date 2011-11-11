@@ -1,5 +1,5 @@
 #include "Utils/Point.hh"
-#include "MatVec/vector.hh"
+#include "MatVec/Vector.hh"
 
 namespace CoupledField
 {

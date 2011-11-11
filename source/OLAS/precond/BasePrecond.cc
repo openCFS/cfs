@@ -1,0 +1,171 @@
+#include "MatVec/StdMatrix.hh"
+#include "MatVec/SBM_Matrix.hh"
+
+#include "MatVec/BaseVector.hh"
+#include "MatVec/SBM_Vector.hh"
+
+#include "BasePrecond.hh"
+
+namespace CoupledField {
+
+  static EnumTuple precondTypeTuples[] = 
+  {
+    EnumTuple( BasePrecond::NOPRECOND, "noPrecond" ),
+    EnumTuple( BasePrecond::ID, "Id" ),
+    
+    // Initialization of Classical Preconditioners
+    EnumTuple( BasePrecond::MG, "MG"),
+    EnumTuple( BasePrecond::JACOBI, "Jacobi"),
+    EnumTuple( BasePrecond::BLOCK_JACOBI, "BlockJacobi"),
+    EnumTuple( BasePrecond::SSOR, "SSOR" ),
+    EnumTuple( BasePrecond::ILU0, "ILU0" ),
+    EnumTuple( BasePrecond::ILUTP, "ILUTP"),
+    EnumTuple( BasePrecond::ILUK, "ILUK"),
+    EnumTuple( BasePrecond::ILDL0, "ILDL0" ),
+    EnumTuple( BasePrecond::ILDLK, "ILDLK" ),
+    EnumTuple( BasePrecond::ILDLTP, "ILDLTP"),
+    EnumTuple( BasePrecond::ILDLCN, "ILDLCN"),
+    EnumTuple( BasePrecond::IC0, "IC0" ),
+    // Initialization of Solver type preconditioners
+    EnumTuple( BasePrecond::RICHARDSON, "richardson" ),
+    EnumTuple( BasePrecond::DIAGSOLVER, "diagsolver"),
+    EnumTuple( BasePrecond::CG, "cg"),
+    EnumTuple( BasePrecond::GMRES, "gmres" ),
+    EnumTuple( BasePrecond::MINRES, "minres" ),
+    EnumTuple( BasePrecond::SYMMLQ, "symmlq"),
+    EnumTuple( BasePrecond::LAPACK_LU, "lapackLU"),
+    EnumTuple( BasePrecond::LAPACK_LL, "lapackLL" ),
+    EnumTuple( BasePrecond::LU_SOLVER, "directLU" ),
+    EnumTuple( BasePrecond::LDL_SOLVER, "directLDL"),
+    EnumTuple( BasePrecond::LDL_SOLVER2, "directLDL2"),
+    EnumTuple( BasePrecond::PARDISO, "pardiso" ),
+    EnumTuple( BasePrecond::ILUPACK, "ilupack" ),
+    EnumTuple( BasePrecond::CHOLMOD, "cholmod")
+  };
+
+  Enum<BasePrecond::PrecondType> BasePrecond::precondType = \
+  Enum<BasePrecond::PrecondType>("Preconditioner Types",
+      sizeof(precondTypeTuples) / sizeof(EnumTuple),
+      precondTypeTuples); 
+
+
+//  void BaseStdPrecond::Apply( const BaseMatrix &sysmat, const BaseVector &r, 
+//                           BaseVector &z ){
+//    const StdMatrix& stdsysmat = dynamic_cast<const StdMatrix&>(sysmat);
+//    const SingleVector& stdr = dynamic_cast<const SingleVector&>(r);
+//    SingleVector& stdz = dynamic_cast<SingleVector&>(z);
+//
+//    Apply(stdsysmat,stdr,stdz);
+//  }
+//  
+//  void BaseStdPrecond::Setup( BaseMatrix &sysMat, PtrParamNode analysis_id ) {
+//    Setup( dynamic_cast<StdMatrix&>(sysMat), analysis_id );
+//  }
+
+  
+  void BasePrecond::GetPrecondSysMat( BaseMatrix& sysMat ) {
+    WARN("Using fall-back default export for preconditioner matrix");
+    sysMat.Init();
+  }
+    
+  
+  // ------------------------------------------------------------------------
+  //  S B M   -  P R E C O N D I T I O N E R
+  // ------------------------------------------------------------------------
+  
+  BaseSBMPrecond::BaseSBMPrecond( UInt numBlocks, PtrParamNode infoNode ) {
+    readyToUse_ = false;
+    numBlocks_ = numBlocks;
+    infoNode_ = infoNode->Get("SBMPrecond");
+    stdPreconds_.Resize( numBlocks_ );
+    stdPreconds_.Init(NULL);
+  }
+  
+  BaseSBMPrecond::~BaseSBMPrecond() {
+    
+    for( UInt i = 0; i < numBlocks_; ++i) {
+      if( stdPreconds_[i] != NULL ) {
+        delete stdPreconds_[i];
+      }
+    }
+    stdPreconds_.Clear();
+  }
+  
+  void BaseSBMPrecond::SetPrecond(UInt blockNum, BasePrecond* stdPrecond ) {
+    
+    // check block index
+    if( blockNum > numBlocks_ ) {
+      EXCEPTION("Can not assign a standard preconditioner for block #" << blockNum
+               << " as the system has only size of " << numBlocks_ );
+    }
+    
+    // check if preconditioner was already set for given block
+    if( stdPreconds_[blockNum] != NULL ) {
+      EXCEPTION("Can not set preconditioner for SBM block #" << blockNum 
+                << " as there is already a preconditioner of type "
+                << precondType.ToString(stdPreconds_[blockNum]->GetPrecondType())
+                << " assigned." );
+    }
+    stdPreconds_[blockNum] = stdPrecond;
+    
+  }
+  
+  void BaseSBMPrecond::Apply( const BaseMatrix& sysmat, const BaseVector& r, 
+                              BaseVector& z ) {
+      const SBM_Matrix& sbmsysmat = dynamic_cast<const SBM_Matrix&>(sysmat);
+      const SBM_Vector& sbmr      = dynamic_cast<const SBM_Vector&>(r);
+      SBM_Vector& sbmz            = dynamic_cast<SBM_Vector&>(z);
+      Apply(sbmsysmat,sbmr,sbmz);
+    }
+  
+  void BaseSBMPrecond::Apply( const SBM_Matrix &A, const SBM_Vector &r,
+                              SBM_Vector &z ) {
+    
+    // Loop over all rows
+    for( UInt iRow = 0; iRow < numBlocks_; ++iRow ) {
+    
+      // If preconditioner for row is defined, apply it
+      if( stdPreconds_[iRow] != NULL ) {
+        const StdMatrix * stdMat = A.GetPointer(iRow,iRow);
+        const SingleVector * rStd = r.GetPointer(iRow);
+        SingleVector * zStd = z.GetPointer(iRow);
+        stdPreconds_[iRow]->Apply(*stdMat, *rStd, *zStd );
+        
+      }
+    }
+  }
+
+  void BaseSBMPrecond::Setup( BaseMatrix &A, PtrParamNode analysis_id ) {
+    SBM_Matrix& sbmA = dynamic_cast<SBM_Matrix&>(A);
+    Setup(sbmA, analysis_id);
+  }
+  
+  void BaseSBMPrecond::Setup( SBM_Matrix &A, PtrParamNode analysis_id ) {
+    for( UInt iRow = 0; iRow < numBlocks_; ++iRow ) {
+      // If preconditioner for row is defined, apply it
+      if( stdPreconds_[iRow] != NULL ) {
+        stdPreconds_[iRow]->Setup(A(iRow,iRow),analysis_id);
+      }
+    }
+  }
+  
+  void BaseSBMPrecond::GetPrecondSysMat( BaseMatrix& sysMat ) {
+
+    SBM_Matrix& sbmA = dynamic_cast<SBM_Matrix&>(sysMat);
+    // loop over all diagonal
+    for( UInt iRow = 0; iRow < numBlocks_; ++iRow ) {
+      for( UInt iCol = iRow; iCol < numBlocks_; ++iCol ) {
+
+        if( iCol == iRow ) {
+          if( stdPreconds_[iRow] != NULL ) {
+            // get preconditioned sysmat from diagonal precond
+            stdPreconds_[iRow]->GetPrecondSysMat( sbmA(iRow,iRow) );
+          }
+        } else { 
+          sbmA(iRow,iCol).Init();
+        }
+      }
+    }
+  }
+
+}

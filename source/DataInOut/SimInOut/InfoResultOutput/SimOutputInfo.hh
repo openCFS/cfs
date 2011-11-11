@@ -1,8 +1,8 @@
 #ifndef SIMOUTPUTINFO_HH_
 #define SIMOUTPUTINFO_HH_
 
-#include "DataInOut/simOutput.hh"
-#include "Domain/entityList.hh"
+#include "DataInOut/SimOutput.hh"
+#include "Domain/ElemMapping/EntityLists.hh"
 
 namespace CoupledField 
 {

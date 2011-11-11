@@ -713,28 +713,28 @@ namespace CoupledField{
   }
   void FileReader_CGNS::InitElemTypeMap(){
     elemTypeMap_.clear();
-    elemTypeMap_[CGNSLIB_H::ElementTypeNull] = Elem::UNDEF;
-    elemTypeMap_[CGNSLIB_H::ElementTypeUserDefined] = Elem::UNDEF;
-    elemTypeMap_[CGNSLIB_H::NODE] = Elem::POINT;
-    elemTypeMap_[CGNSLIB_H::BAR_2] = Elem::LINE2;
-    elemTypeMap_[CGNSLIB_H::BAR_3] = Elem::LINE3;
-    elemTypeMap_[CGNSLIB_H::TRI_3] = Elem::TRIA3;
-    elemTypeMap_[CGNSLIB_H::TRI_6] = Elem::TRIA6;
-    elemTypeMap_[CGNSLIB_H::QUAD_4] = Elem::QUAD4;
-    elemTypeMap_[CGNSLIB_H::QUAD_8] = Elem::QUAD8;
-    elemTypeMap_[CGNSLIB_H::QUAD_9] = Elem::QUAD9;
-    elemTypeMap_[CGNSLIB_H::TETRA_4] = Elem::TET4;
-    elemTypeMap_[CGNSLIB_H::TETRA_10] = Elem::TET10;
-    elemTypeMap_[CGNSLIB_H::PYRA_5] = Elem::PYRA5;
-    elemTypeMap_[CGNSLIB_H::PYRA_14] = Elem::PYRA13;
-    elemTypeMap_[CGNSLIB_H::PENTA_6] = Elem::UNDEF;
-    elemTypeMap_[CGNSLIB_H::PENTA_15] = Elem::UNDEF;
-    elemTypeMap_[CGNSLIB_H::PENTA_18] = Elem::UNDEF;
-    elemTypeMap_[CGNSLIB_H::HEXA_8] = Elem::HEXA8;
-    elemTypeMap_[CGNSLIB_H::HEXA_20] = Elem::HEXA20;
-    elemTypeMap_[CGNSLIB_H::HEXA_27] = Elem::HEXA27;
-    elemTypeMap_[CGNSLIB_H::MIXED] = Elem::UNDEF;
-    elemTypeMap_[CGNSLIB_H::NGON_n] = Elem::UNDEF;
+    elemTypeMap_[CGNSLIB_H::ElementTypeNull] = Elem::ET_UNDEF;
+    elemTypeMap_[CGNSLIB_H::ElementTypeUserDefined] = Elem::ET_UNDEF;
+    elemTypeMap_[CGNSLIB_H::NODE] = Elem::ET_POINT;
+    elemTypeMap_[CGNSLIB_H::BAR_2] = Elem::ET_LINE2;
+    elemTypeMap_[CGNSLIB_H::BAR_3] = Elem::ET_LINE3;
+    elemTypeMap_[CGNSLIB_H::TRI_3] = Elem::ET_TRIA3;
+    elemTypeMap_[CGNSLIB_H::TRI_6] = Elem::ET_TRIA6;
+    elemTypeMap_[CGNSLIB_H::QUAD_4] = Elem::ET_QUAD4;
+    elemTypeMap_[CGNSLIB_H::QUAD_8] = Elem::ET_QUAD8;
+    elemTypeMap_[CGNSLIB_H::QUAD_9] = Elem::ET_QUAD9;
+    elemTypeMap_[CGNSLIB_H::TETRA_4] = Elem::ET_TET4;
+    elemTypeMap_[CGNSLIB_H::TETRA_10] = Elem::ET_TET10;
+    elemTypeMap_[CGNSLIB_H::PYRA_5] = Elem::ET_PYRA5;
+    elemTypeMap_[CGNSLIB_H::PYRA_14] = Elem::ET_PYRA13;
+    elemTypeMap_[CGNSLIB_H::PENTA_6] = Elem::ET_UNDEF;
+    elemTypeMap_[CGNSLIB_H::PENTA_15] = Elem::ET_UNDEF;
+    elemTypeMap_[CGNSLIB_H::PENTA_18] = Elem::ET_UNDEF;
+    elemTypeMap_[CGNSLIB_H::HEXA_8] = Elem::ET_HEXA8;
+    elemTypeMap_[CGNSLIB_H::HEXA_20] = Elem::ET_HEXA20;
+    elemTypeMap_[CGNSLIB_H::HEXA_27] = Elem::ET_HEXA27;
+    elemTypeMap_[CGNSLIB_H::MIXED] = Elem::ET_UNDEF;
+    elemTypeMap_[CGNSLIB_H::NGON_n] = Elem::ET_UNDEF;
   }
 
   void FileReader_CGNS::CalcNumNodesPerRegion(){

@@ -1,3 +1,0 @@
-SET(ESTIMATOR_SRCS spaceerror.cc)
-
-ADD_LIBRARY(estimator STATIC ${ESTIMATOR_SRCS})

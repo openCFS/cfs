@@ -1,14 +1,10 @@
-// -*- mode: c++; coding: utf-8; indent-tabs-mode: nil; -*-
-// kate: space-indent on; indent-width 2; encoding utf-8;
-// kate: auto-brackets on; mixedindent off; indent-mode cstyle;
-
 #ifndef OLAS_OPDEFS_HH
 #define OLAS_OPDEFS_HH
 
 #include <stdio.h>
 
-#include "General/exception.hh"
-#include "MatVec/typedefs.hh"
+#include "General/Exception.hh"
+#include "MatVec/TypeDefs.hh"
 
 //! \file opdefs.hh
 

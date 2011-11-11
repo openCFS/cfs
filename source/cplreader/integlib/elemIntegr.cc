@@ -91,42 +91,42 @@ namespace CoupledField
 
     switch(type)
     {
-    case Elem::LINE2:
+    case Elem::ET_LINE2:
       ptElem_->ptElem = new Line1FE();
       ptElem_->connect = 1, 2;
       ptElem_->edges = 1;
       ptElem_->faces = 1;
       break;
 
-    case Elem::TRIA3:
+    case Elem::ET_TRIA3:
       ptElem_->ptElem = new Triangle1FE();
       ptElem_->connect = 1, 2, 3;
       ptElem_->edges = 1, 2, 3;
       ptElem_->faces = 1;
       break;
 
-    case Elem::QUAD4:
+    case Elem::ET_QUAD4:
       ptElem_->ptElem = new Quad1FE();
       ptElem_->connect = 1, 2, 3, 4;
       ptElem_->edges = 1, 2, 3, 4;
       ptElem_->faces = 1;
       break;
 
-    case Elem::QUAD8:
+    case Elem::ET_QUAD8:
       ptElem_->ptElem = new Quad2FE();
       ptElem_->connect = 1, 5, 2, 6, 3, 7, 4, 8;
       ptElem_->edges = 1, 2, 3, 4;
       ptElem_->faces = 1;
       break;
 
-    case Elem::TET4:
+    case Elem::ET_TET4:
       ptElem_->ptElem = new Tetra1FE();
       ptElem_->connect = 1, 2, 3, 4;
       ptElem_->edges = 1, 2, 3, 4, 5, 6;
       ptElem_->faces = 1, 2, 3;
       break;
 
-    case Elem::HEXA8:
+    case Elem::ET_HEXA8:
       ptElem_->ptElem = new Hexa1FE();
       ptElem_->connect = 1, 2, 3, 4, 5, 6, 7, 8;
       ptElem_->edges = 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12;
@@ -134,14 +134,14 @@ namespace CoupledField
 
       break;
 
-    case Elem::PYRA5:
+    case Elem::ET_PYRA5:
       ptElem_->ptElem = new Pyra1FE();
       ptElem_->connect = 1, 2, 3, 4, 5;
       ptElem_->edges = 1, 2, 3, 4, 5, 6, 7, 8;
       ptElem_->faces = 1, 2, 3, 4, 5;
       break;
 
-    case Elem::WEDGE6:
+    case Elem::ET_WEDGE6:
       ptElem_->ptElem = new Wedge1FE();
       ptElem_->connect = 1, 2, 3, 4, 5, 6;
       ptElem_->edges = 1, 2, 3, 4, 5, 6, 7, 8, 9, 10;

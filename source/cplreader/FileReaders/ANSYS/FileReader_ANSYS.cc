@@ -15,7 +15,7 @@
 #include <boost/filesystem/path.hpp>
 namespace fs=boost::filesystem;
 
-#include "General/exception.hh"
+#include "General/Exception.hh"
 #include "cplreader/Settings.hh"
 #include "FileReader_ANSYS.hh"
 
@@ -120,9 +120,10 @@ namespace CoupledField
     for( ; it != end; it++ )
     {
       elemNum = it->first;
-      numElemNodes = Elem::GetNumElemNodes((Elem::FEType)elemTypes_[elemNum]);
+      Exception("Elem::GetNumElemNodes() no longer definied due to refactoring");
+      //numElemNodes = Elem::GetNumElemNodes((Elem::FEType)elemTypes_[elemNum]);
       elemTypes[idx] = elemTypes_[elemNum];
-
+      numElemNodes = 0;
       for(UInt i=0; i<numElemNodes; i++)
       {
         origNodeNum = topology_[elemNum][i];
@@ -252,8 +253,8 @@ namespace CoupledField
 
     switch(elemTypeIn)
     {
-    case Elem::TRIA3:
-      elemTypeOut = Elem::QUAD4;
+    case Elem::ET_TRIA3:
+      elemTypeOut = Elem::ET_QUAD4;
       if(idxMap[elemTypeIn].empty())
       {
         UInt elemIdxMap[] = {0, 1, 2, 2};
@@ -261,8 +262,8 @@ namespace CoupledField
       }
       break;
 
-    case Elem::TRIA6:
-      elemTypeOut = Elem::QUAD8;
+    case Elem::ET_TRIA6:
+      elemTypeOut = Elem::ET_QUAD8;
 
       if(idxMap[elemTypeIn].empty())
       {
@@ -271,8 +272,8 @@ namespace CoupledField
       }
       break;
 
-    case Elem::TET4:
-      elemTypeOut = Elem::HEXA8;
+    case Elem::ET_TET4:
+      elemTypeOut = Elem::ET_HEXA8;
 
       if(idxMap[elemTypeIn].empty())
       {
@@ -281,8 +282,8 @@ namespace CoupledField
       }
       break;
 
-    case Elem::TET10:
-      elemTypeOut = Elem::HEXA20;
+    case Elem::ET_TET10:
+      elemTypeOut = Elem::ET_HEXA20;
 
       if(idxMap[elemTypeIn].empty())
       {
@@ -295,8 +296,8 @@ namespace CoupledField
       }
       break;
 
-    case Elem::PYRA5:
-      elemTypeOut = Elem::HEXA8;
+    case Elem::ET_PYRA5:
+      elemTypeOut = Elem::ET_HEXA8;
 
       if(idxMap[elemTypeIn].empty())
       {
@@ -306,8 +307,8 @@ namespace CoupledField
       }
       break;
 
-    case Elem::PYRA13:
-      elemTypeOut = Elem::HEXA20;
+    case Elem::ET_PYRA13:
+      elemTypeOut = Elem::ET_HEXA20;
 
       if(idxMap[elemTypeIn].empty())
       {
@@ -320,8 +321,8 @@ namespace CoupledField
       }
       break;
 
-    case Elem::WEDGE6:
-      elemTypeOut = Elem::HEXA8;
+    case Elem::ET_WEDGE6:
+      elemTypeOut = Elem::ET_HEXA8;
 
       if(idxMap[elemTypeIn].empty())
       {
@@ -331,8 +332,8 @@ namespace CoupledField
       }
       break;
 
-    case Elem::WEDGE15:
-      elemTypeOut = Elem::HEXA20;
+    case Elem::ET_WEDGE15:
+      elemTypeOut = Elem::ET_HEXA20;
 
       if(idxMap[elemTypeIn].empty())
       {
@@ -349,7 +350,8 @@ namespace CoupledField
       return;
     }
 
-    newElemNodes.resize(Elem::GetNumElemNodes((Elem::FEType)elemTypeOut));
+    Exception("Elem::GetNumElemNodes() no longer definied due to refactoring");
+    //newElemNodes.resize(Elem::GetNumElemNodes((Elem::FEType)elemTypeOut));
     std::vector<UInt>::const_iterator it, end;
     it = idxMap[elemTypeIn].begin();
     end = idxMap[elemTypeIn].end();

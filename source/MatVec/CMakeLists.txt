@@ -1,10 +1,10 @@
 SET(MATVEC_SRCS
-    basematrix.cc
+    BaseMatrix.cc
     generatematvec.cc
-    sbmvector.cc
-    sbmmatrix.cc
+    SBM_Vector.cc
+    SBM_Matrix.cc
     SingleVector.cc
-    stdmatrix.cc
+    StdMatrix.cc
     matrixSerialization.cc
     vectorSerialization.cc
     )
@@ -12,13 +12,13 @@ SET(MATVEC_SRCS
 IF(EXPLICIT_TEMPLATE_INSTANTIATION)
 SET(MATVEC_SRCS
     ${MATVEC_SRCS}
-    crs_matrix.cc
-    diag_matrix.cc
-    scrs_matrix.cc
-    typedefs.cc
-    vector.cc
-    vbr_matrix.cc
-    matrix.cc
+    CRS_Matrix.cc
+    Diag_Matrix.cc
+    SCRS_Matrix.cc
+    TypeDefs.cc
+    Vector.cc
+    VBR_Matrix.cc
+    Matrix.cc
     )
 ENDIF(EXPLICIT_TEMPLATE_INSTANTIATION)
 

@@ -1,15 +1,11 @@
-// -*- mode: c++; coding: utf-8; indent-tabs-mode: nil; -*-
-// kate: space-indent on; indent-width 2; encoding utf-8;
-// kate: auto-brackets on; mixedindent off; indent-mode cstyle;
-
 #ifndef ODE_SOLVER_ROSENBROCK_HH
 #define ODE_SOLVER_ROSENBROCK_HH
 
-#include "General/environment.hh"
+#include "General/Environment.hh"
 #include "Utils/StdVector.hh"
 #include "Utils/tools.hh"
 #include "BaseODESolver.hh"  
-#include "MatVec/matrix.hh"
+#include "MatVec/Matrix.hh"
 
 namespace CoupledField {
 

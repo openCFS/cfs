@@ -16,7 +16,7 @@ IF(USE_XERCES)
 ENDIF(USE_XERCES)
 
 # List of source codes for current target.
-SET(CFS_SRCS cfs.cc)
+SET(CFS_SRCS CFS.cc)
 
 # Main CFS++ executable target.
 ADD_EXECUTABLE(cfsbin ${CFS_SRCS})
@@ -36,6 +36,7 @@ SET(TARGET_LL
   paramh
   utils
   domain
+  elemmapping
   ${CFS_FORTRAN_DYNRT_LIBS}
   )
 

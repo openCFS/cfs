@@ -11,7 +11,7 @@
 #ifndef OLAS_GENERATEPRECOND_HH
 #define OLAS_GENERATEPRECOND_HH
 
-#include "General/environment.hh"
+#include "General/Environment.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 
 //!

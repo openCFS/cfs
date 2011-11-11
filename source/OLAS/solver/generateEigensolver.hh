@@ -1,11 +1,7 @@
-// -*- mode: c++; coding: utf-8; indent-tabs-mode: nil; -*-
-// kate: space-indent on; indent-width 2; encoding utf-8;
-// kate: auto-brackets on; mixedindent off; indent-mode cstyle;
-
 #ifndef OLAS_GENERATE_EIGEN_SOLVER_HH
 #define OLAS_GENERATE_EIGEN_SOLVER_HH
 
-#include "General/environment.hh"
+#include "General/Environment.hh"
 #include "General/defs.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 

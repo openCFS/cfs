@@ -16,10 +16,10 @@
 #define OLAS_GENERATEMATVEC_HH
 
 
-#include "MatVec/basematrix.hh"
-#include "MatVec/basevector.hh"
-#include "MatVec/stdmatrix.hh"
-#include "MatVec/sbmmatrix.hh"
+#include "MatVec/BaseMatrix.hh"
+#include "MatVec/BaseVector.hh"
+#include "MatVec/StdMatrix.hh"
+#include "MatVec/SBM_Matrix.hh"
 
 
 namespace CoupledField {

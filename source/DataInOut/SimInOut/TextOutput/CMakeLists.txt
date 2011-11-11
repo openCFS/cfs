@@ -1,4 +1,4 @@
-SET(SIMOUTTEXT_SRCS textSimOutput.cc)
+SET(SIMOUTTEXT_SRCS TextSimOutput.cc)
 
 ADD_LIBRARY(simouttext STATIC ${SIMOUTTEXT_SRCS})
 

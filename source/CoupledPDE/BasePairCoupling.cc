@@ -1,16 +1,12 @@
-// -*- mode: c++; coding: utf-8; indent-tabs-mode: nil; -*-
-// kate: space-indent on; indent-width 2; encoding utf-8;
-// kate: auto-brackets on; mixedindent off; indent-mode cstyle;
-
 #include "BasePairCoupling.hh"
 
 #include "DataInOut/ParamHandling/ParamNode.hh" 
 #include "PDE/SinglePDE.hh"
-#include "Domain/domain.hh"
+#include "Domain/Domain.hh"
 #include "DataInOut/MaterialHandler.hh"
-#include "Materials/piezoMaterial.hh"
-#include "Driver/assemble.hh"
-#include "DataInOut/resultHandler.hh"
+//#include "Materials/PiezoMaterial.hh"
+#include "Driver/Assemble.hh"
+#include "DataInOut/ResultHandler.hh"
 
 namespace CoupledField {
 

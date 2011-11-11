@@ -27,7 +27,7 @@ namespace algo=boost::algorithm;
 namespace fs=boost::filesystem;
 namespace bios=boost::iostreams;
 
-#include "Domain/resultInfo.hh"
+#include "Domain/Results/ResultInfo.hh"
 
 #include "cplreader/Settings.hh"
 #include "FileReader_FLUENT.hh"

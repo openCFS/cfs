@@ -1,10 +1,8 @@
-// -*- mode: c++; coding: utf-8; indent-tabs-mode: nil; -*-
-
 #ifndef FILE_VECTOR_SERIALIZATION_HH
 #define FILE_VECTOR_SERIALIZATION_HH
 
 #include "SingleVector.hh"
-#include "vector.hh"
+#include "Vector.hh"
 #include "Utils/boost-serialization.hh"
 
 #include <boost/version.hpp>

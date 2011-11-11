@@ -7,26 +7,11 @@ IF(USE_IPOPT)
 ENDIF(USE_IPOPT)
 
 SET(PDE_SRCS
-#  acouCombustion.cc
-# acousticMixedPDE.cc
-  basePDE.cc
-#  disContEqnMap.cc
-  elecPDE.cc
-#  eqnMap.cc
-#  fluidMechPDE.cc
-#  heatCondPDE.cc
-  magEdgePDE.cc
-#  magneticPDE.cc
-# magneticScalarPDE.cc
-#  mechPDE.cc
-#  mixedEqnMap.cc
-  newmark.cc
-  pseudoTS.cc
+  BasePDE.cc
+  ElecPDE.cc
+  MagEdgePDE.cc
   SinglePDE.cc
-#  smoothPDE.cc
   StdPDE.cc
-  timestepping.cc
-  trapezoidal.cc
   )
 
 ADD_LIBRARY(pde STATIC ${PDE_SRCS})
@@ -40,6 +25,10 @@ SET(TARGET_LL
   paramh
   matvec
   utils
+  timeschemes
+  mesh
+  results
+  febasis
 )
 
 IF(USE_HDF5)

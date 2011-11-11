@@ -1,16 +1,12 @@
-// -*- mode: c++; coding: utf-8; indent-tabs-mode: nil; -*-
-// kate: space-indent on; indent-width 2; encoding utf-8;
-// kate: auto-brackets on; mixedindent off; indent-mode cstyle;
-
 #include "DataInOut/ParamHandling/ParamNode.hh"
-#include "DataInOut/programOptions.hh"
-#include "DataInOut/coloredConsole.hh"
+#include "DataInOut/ProgramOptions.hh"
+#include "DataInOut/ColoredConsole.hh"
 #include "General/defs.hh"
-#include "MatVec/matrix.hh"
-#include "MatVec/vector.hh"
+#include "MatVec/Matrix.hh"
+#include "MatVec/Vector.hh"
 #include "Utils/Timer.hh"
 #include "Utils/mathParser/mathParser.hh"
-#include "Domain/domain.hh"
+#include "Domain/Domain.hh"
 
 
 #include <boost/tokenizer.hpp>

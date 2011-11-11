@@ -6,8 +6,8 @@
 #define FILE_MATERIALHANDLER_HH
 
 
-#include "General/environment.hh"
-#include "Materials/baseMaterial.hh"
+#include "General/Environment.hh"
+#include "Materials/BaseMaterial.hh"
 
 #define bufLength 200
 

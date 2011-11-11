@@ -5,7 +5,7 @@
 #include <string>
 
 #include "General/defs.hh"
-#include "General/exception.hh"
+#include "General/Exception.hh"
 #include "Utils/StdVector.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 

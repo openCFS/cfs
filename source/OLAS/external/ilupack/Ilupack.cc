@@ -1,7 +1,3 @@
-// -*- mode: c++; coding: utf-8; indent-tabs-mode: nil; -*-
-// kate: space-indent on; indent-width 2; encoding utf-8;
-// kate: auto-brackets on; mixedindent off; indent-mode cstyle;
-
 #include <iostream>
 #include <string>
 #include <algorithm>
@@ -9,13 +5,13 @@
 #include <def_use_pardiso.hh>
 #include <def_use_metis.hh>
 
-#include "General/exception.hh"
-#include "MatVec/sparseolasmatrix.hh"
-#include "MatVec/scrs_matrix.hh"
-#include "MatVec/crs_matrix.hh"
-#include "DataInOut/Logging/cfslog.hh"
+#include "General/Exception.hh"
+#include "MatVec/SparseOLASMatrix.hh"
+#include "MatVec/SCRS_Matrix.hh"
+#include "MatVec/CRS_Matrix.hh"
+#include "DataInOut/Logging/LogConfigurator.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
-#include "DataInOut/programOptions.hh"
+#include "DataInOut/ProgramOptions.hh"
 #include "Utils/StdVector.hh"
 #include "Ilupack.hh"
 

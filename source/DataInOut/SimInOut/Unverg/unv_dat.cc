@@ -1,7 +1,7 @@
 #include <cstdlib>
 #include <cstdio>
 
-#include "simInputUnv.hh"
+#include "SimInputUnv.hh"
 #include "unv_dat.hh"
 
 char *UNV_FILE=NULL;

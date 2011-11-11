@@ -77,6 +77,25 @@
   <xsd:simpleType name="DT_DoubleList">
     <xsd:list itemType="xsd:double"/>
   </xsd:simpleType> 
+  
+  <!-- Data defining a scalar value -->
+  <xsd:complexType name="DT_Scalar" mixed="false">
+    <xsd:attribute name="value" type="xsd:token" use="required"/>
+    <xsd:attribute name="phase" type="xsd:token" use="optional" default="0.0"/>
+  </xsd:complexType>
+
+  <!-- Data defining a vectorial value -->
+  <xsd:complexType name="DT_Vector">
+    <xsd:attribute name="dim" type="xsd:token" use="required"/>
+    <!--fill here with remaining definitions of a vector-->
+  </xsd:complexType>
+  
+  <!-- Data defining a tensorial value -->
+  <xsd:complexType name="DT_Tensor">
+    <xsd:attribute name="dim1" type="xsd:token" use="required"/>
+    <xsd:attribute name="dim2" type="xsd:token" use="required"/>
+    <!--fill here with remaining definitions of a vector-->
+  </xsd:complexType>
 
 
   <!-- Data type for distinguishing the different PDEs in multiSequence -->

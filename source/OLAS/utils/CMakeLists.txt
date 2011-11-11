@@ -1,12 +1,12 @@
 SET(UTILS_SRCS
-    math/givensrotation.cc
-    math/iterativerefinement.cc)
+    math/GivensRotation.cc
+    math/IterativeRefinement.cc)
 
 
 IF(EXPLICIT_TEMPLATE_INSTANTIATION)
 SET(UTILS_SRCS
     ${UTILS_SRCS}
-    math/croutlu.cc
+    math/CroutLU.cc
     )
 ENDIF(EXPLICIT_TEMPLATE_INSTANTIATION)
 

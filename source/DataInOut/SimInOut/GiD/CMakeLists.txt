@@ -1,4 +1,4 @@
-SET(SIMOUTGID_SRCS simOutGiD.cc)
+SET(SIMOUTGID_SRCS SimOutGiD.cc)
 #  gidpost/gidpost.cpp
 #  gidpost/gidpostfor.c
 #  gidpost/gidpostInt.cpp)

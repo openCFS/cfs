@@ -1,13 +1,13 @@
 SET(LAPACK_SRCS
-  olasf77mapping.cc
-  lapackbasematrix.cc
-  lapacklu.cc
-  lapackll.cc)
+  OlasF77Mappings.cc
+  LapackBaseMatrix.cc
+  Lapack_LU.cc
+  Lapack_LL.cc)
 
 IF(EXPLICIT_TEMPLATE_INSTANTIATION)
 SET(LAPACK_SRCS
     ${LAPACK_SRCS}
-    lapackgbmatrix.cc
+    LapackGBMatrix.cc
     )
 ENDIF(EXPLICIT_TEMPLATE_INSTANTIATION)
 

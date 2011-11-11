@@ -1,8 +1,8 @@
 #ifndef SIMOUTSTREAMING_HH_
 #define SIMOUTSTREAMING_HH_
 
-#include "DataInOut/simOutput.hh"
-#include "Domain/entityList.hh"
+#include "DataInOut/SimOutput.hh"
+#include "Domain/ElemMapping/EntityLists.hh"
 #include <boost/asio.hpp>
 #include <boost/bind.hpp>
 

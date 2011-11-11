@@ -18,9 +18,9 @@
 #include <boost/algorithm/string/trim.hpp>
 namespace fs=boost::filesystem;
 
-#include "General/exception.hh"
+#include "General/Exception.hh"
 #include "Settings.hh"
-#include "General/environment.hh"
+#include "General/Environment.hh"
 #include "integlib/elemIntegr.hh"
 
 #include "FlowDataTypes.hh"
@@ -109,14 +109,14 @@ namespace CoupledField
     }
 
     // Initialize element integrators for source term calculation
-    ptElemIntegr_[Elem::LINE2]  = new ElemIntegr(Elem::LINE2);
-    ptElemIntegr_[Elem::TRIA3]  = new ElemIntegr(Elem::TRIA3);
-    ptElemIntegr_[Elem::QUAD4]  = new ElemIntegr(Elem::QUAD4);
-    ptElemIntegr_[Elem::QUAD8]  = new ElemIntegr(Elem::QUAD8);
-    ptElemIntegr_[Elem::TET4]   = new ElemIntegr(Elem::TET4);
-    ptElemIntegr_[Elem::WEDGE6] = new ElemIntegr(Elem::WEDGE6);
-    ptElemIntegr_[Elem::PYRA5]  = new ElemIntegr(Elem::PYRA5);
-    ptElemIntegr_[Elem::HEXA8]  = new ElemIntegr(Elem::HEXA8);
+    ptElemIntegr_[Elem::ET_LINE2]  = new ElemIntegr(Elem::ET_LINE2);
+    ptElemIntegr_[Elem::ET_TRIA3]  = new ElemIntegr(Elem::ET_TRIA3);
+    ptElemIntegr_[Elem::ET_QUAD4]  = new ElemIntegr(Elem::ET_QUAD4);
+    ptElemIntegr_[Elem::ET_QUAD8]  = new ElemIntegr(Elem::ET_QUAD8);
+    ptElemIntegr_[Elem::ET_TET4]   = new ElemIntegr(Elem::ET_TET4);
+    ptElemIntegr_[Elem::ET_WEDGE6] = new ElemIntegr(Elem::ET_WEDGE6);
+    ptElemIntegr_[Elem::ET_PYRA5]  = new ElemIntegr(Elem::ET_PYRA5);
+    ptElemIntegr_[Elem::ET_HEXA8]  = new ElemIntegr(Elem::ET_HEXA8);
 
   }
 

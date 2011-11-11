@@ -1,7 +1,7 @@
 SET(ARPACK_SRCS
-  arpackEigensolver.cc
-  arpackMatInterface.cc
-  arpackSolver.cc
+  ArpackEigenSolver.cc
+  ArpackMatInterface.cc
+  ArpackSolver.cc
   )
 
 ADD_LIBRARY(arpack-olas STATIC ${ARPACK_SRCS})

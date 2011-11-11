@@ -12,7 +12,7 @@
 
 // #include <muParser.h>
 
-#include "General/exception.hh"
+#include "General/Exception.hh"
 #include "Settings.hh"
 #include "FileReader.hh"
 

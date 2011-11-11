@@ -4,20 +4,20 @@
 
 #include "StdPDE.hh"
 
-#include "MatVec/vector.hh"
+#include "MatVec/Vector.hh"
 #include "MatVec/generatematvec.hh"
-#include "Driver/stdSolveStep.hh"
-#include "Driver/transientdriver.hh"
+#include "Driver/SolveSteps/StdSolveStep.hh"
+#include "Driver/TransientDriver.hh"
 
-#include "Domain/domain.hh"
-#include "Utils/coordSystem.hh"
+#include "Domain/Domain.hh"
+#include "Domain/CoordinateSystems/CoordSystem.hh"
 
 // headers for Paramhandling
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/ParamHandling/CFSOLASParams.hh"
-#include "Driver/assemble.hh"
+#include "Driver/Assemble.hh"
 
-#include "OLAS/algsys/algebraicSys.hh"
+#include "OLAS/algsys/AlgebraicSys.hh"
 
 namespace CoupledField {
 

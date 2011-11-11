@@ -9,9 +9,9 @@
 #include <map>
 #include <boost/any.hpp>
 
-#include "General/environment.hh"
-#include "Domain/resultInfo.hh"
-#include "DataInOut/simOutput.hh"
+#include "General/Environment.hh"
+#include "Domain/Results/ResultInfo.hh"
+#include "DataInOut/SimOutput.hh"
 
 #include "H5Cpp.h"
 

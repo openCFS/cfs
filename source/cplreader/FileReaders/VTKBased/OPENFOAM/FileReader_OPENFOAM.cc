@@ -18,7 +18,7 @@
 #include <boost/filesystem/exception.hpp>
 namespace fs=boost::filesystem;
 
-#include "Domain/resultInfo.hh"
+#include "Domain/Results/ResultInfo.hh"
 
 #include "cplreader/Settings.hh"
 #include "FileReader_OPENFOAM.hh"
@@ -474,8 +474,9 @@ namespace CoupledField
     for( ; it != end; it++ ) 
     {
       UInt et = it->first;
-      UInt numElemNodes = Elem::GetNumElemNodes((Elem::FEType)et);
-      
+      Exception("Elem::GetNumElemNodes() no longer definied due to refactoring");
+      //UInt numElemNodes = Elem::GetNumElemNodes((Elem::FEType)et);
+      UInt numElemNodes = 0;
       unstrucElemNodeMapping_[et].resize(numElemNodes);
       uniformElemNodeMapping_[et].resize(numElemNodes);
       
@@ -487,14 +488,14 @@ namespace CoupledField
 
       switch((Elem::FEType)et)
       {
-      case Elem::QUAD4:
+      case Elem::ET_QUAD4:
         uniformElemNodeMapping_[et][0] = 0;
         uniformElemNodeMapping_[et][1] = 1;
         uniformElemNodeMapping_[et][2] = 3;
         uniformElemNodeMapping_[et][3] = 2;
         break;
         
-      case Elem::WEDGE6:
+      case Elem::ET_WEDGE6:
         unstrucElemNodeMapping_[et][0] = 3;
         unstrucElemNodeMapping_[et][1] = 4;
         unstrucElemNodeMapping_[et][2] = 5;
@@ -502,7 +503,7 @@ namespace CoupledField
         unstrucElemNodeMapping_[et][4] = 1;
         unstrucElemNodeMapping_[et][5] = 2;
         break;
-      case Elem::HEXA8:
+      case Elem::ET_HEXA8:
         unstrucElemNodeMapping_[et][0] = 0;
         unstrucElemNodeMapping_[et][1] = 1;
         unstrucElemNodeMapping_[et][2] = 2;

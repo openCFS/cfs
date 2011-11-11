@@ -7,12 +7,12 @@
 
 #include <set>
 
-#include "General/environment.hh"
+#include "General/Environment.hh"
 #include "Utils/StdVector.hh"
-#include "MatVec/vector.hh"
-#include "Utils/result.hh"
-#include "PDE/basePDE.hh"
-#include "Elements/fefunction.hh"
+#include "MatVec/Vector.hh"
+#include "Domain/Results/BaseResults.hh"
+#include "PDE/BasePDE.hh"
+#include "FeBasis/FeFunctions.hh"
 
 namespace CoupledField
 {

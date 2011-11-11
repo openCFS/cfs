@@ -1,7 +1,3 @@
-IF(USE_XERCES)
-  INCLUDE_DIRECTORIES(${XERCES_INCLUDE_DIR})
-ENDIF(USE_XERCES)
-
 IF(USE_IPOPT)
   INCLUDE_DIRECTORIES(${IPOPT_INCLUDE_DIR})
 ENDIF(USE_IPOPT)
@@ -12,42 +8,27 @@ ENDIF(USE_XERCES)
 
 
 SET(DOMAIN_SRCS 
-  #ansatzFct.cc
-  bcs.cc
-  domain.cc
-  edgeFace.cc
-  elem.cc
-  entityList.cc
-  grid.cc
-  resultInfo.cc
+  BCs.cc
+  Domain.cc
   )
 
 ADD_LIBRARY(domain STATIC ${DOMAIN_SRCS})
 
 SET(TARGET_LL
-  elements
-#s  optimization
   cfsgeneral
-  driver
-  utils
+  mesh
+  coordsystems
+  results
   pde
   coupledpde
-  gridcfs
-  scripting
-  matvec
-# DIRTY, DIRTYYYY HACK!
+  driver
+  mathparser
+  utils
+# DIRTY, DIRTYYYY HACK! WHY?????
   datainout
   simouttext
   datainout
 )
-
-IF(USE_INTERPOLATION)
-  SET(TARGET_LL
-    ${TARGET_LL}
-    ${CGAL_LIBRARY}
-    ${BOOST_THREAD_LIB}
-  )
-ENDIF(USE_INTERPOLATION)
 
 IF(USE_XERCES)
   SET(TARGET_LL

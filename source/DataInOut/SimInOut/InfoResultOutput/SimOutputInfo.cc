@@ -1,7 +1,7 @@
 #include "SimOutputInfo.hh"
 
 #include "DataInOut/ParamHandling/ParamNode.hh"
-#include "Domain/domain.hh"
+#include "Domain/Domain.hh"
 
 using namespace CoupledField;
 using std::string;

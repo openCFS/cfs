@@ -8,8 +8,8 @@
 #include <vector>
 #include <map>
 
-#include "General/environment.hh"
-#include "Domain/elem.hh"
+#include "General/Environment.hh"
+#include "Domain/ElemMapping/Elem.hh"
 
 namespace CoupledField
 {

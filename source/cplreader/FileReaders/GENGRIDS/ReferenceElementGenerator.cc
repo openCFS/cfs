@@ -1,12 +1,8 @@
-// -*- mode: c++; coding: utf-8; indent-tabs-mode: nil; -*-
-// kate: space-indent on; indent-width 2; encoding utf-8;
-// kate: auto-brackets on; mixedindent off; indent-mode cstyle;
-
 #include <iostream>
 #include <cmath>
 #include <iterator>
 
-#include "Domain/elem.hh"
+#include "Domain/ElemMapping/Elem.hh"
 #include "cplreader/Settings.hh"
 #include "ReferenceElementGenerator.hh"
 
@@ -27,7 +23,8 @@ namespace CoupledField
     coords.clear();
     connect.clear();
 
-    maxNumElemNodes = Elem::GetNumElemNodes(elemType);
+    Exception("Elem::GetNumElemNodes() no longer definied due to refactoring");
+    //maxNumElemNodes = Elem::GetNumElemNodes(elemType);
     UInt idx;
     
     elemTypes.clear();
@@ -43,13 +40,13 @@ namespace CoupledField
     
     switch(elemType) 
     {
-    case Elem::LINE3:
+    case Elem::ET_LINE3:
       idx = 2;
       coords[idx*3+0] = 0.0;
       coords[idx*3+1] = 0.0;
       coords[idx*3+2] = 0.0;
       connect[idx] = idx+1;
-    case Elem::LINE2:
+    case Elem::ET_LINE2:
       idx = 0;
       coords[idx*3+0] = -1.0;
       coords[idx*3+1] = 0.0;
@@ -62,7 +59,7 @@ namespace CoupledField
       connect[idx] = idx+1;
       break;
 
-    case Elem::TRIA6:
+    case Elem::ET_TRIA6:
       idx = 3;
       coords[idx*3+0] = 0.5;
       coords[idx*3+1] = 0.0;
@@ -78,7 +75,7 @@ namespace CoupledField
       coords[idx*3+1] = 0.5;
       coords[idx*3+2] = 0.0;
       connect[idx] = idx+1;
-    case Elem::TRIA3:
+    case Elem::ET_TRIA3:
       idx = 0;
       coords[idx*3+0] = 0.0;
       coords[idx*3+1] = 0.0;
@@ -96,13 +93,13 @@ namespace CoupledField
       connect[idx] = idx+1;
       break;
 
-    case Elem::QUAD9:
+    case Elem::ET_QUAD9:
       idx = 8;
       coords[idx*3+0] = 0.0;
       coords[idx*3+1] = 0.0;
       coords[idx*3+2] = 0.0;
       connect[idx] = idx+1;
-    case Elem::QUAD8:
+    case Elem::ET_QUAD8:
       idx = 4;
       coords[idx*3+0] = 0.0;
       coords[idx*3+1] = -1.0;
@@ -123,7 +120,7 @@ namespace CoupledField
       coords[idx*3+1] = 0.0;
       coords[idx*3+2] = 0.0;
       connect[idx] = idx+1;
-    case Elem::QUAD4:
+    case Elem::ET_QUAD4:
       idx = 0;
       coords[idx*3+0] = -1.0;
       coords[idx*3+1] = -1.0;
@@ -146,7 +143,7 @@ namespace CoupledField
       connect[idx] = idx+1;
       break;
 
-    case Elem::TET10:
+    case Elem::ET_TET10:
       idx = 4;
       coords[idx*3+0] = 0.5;
       coords[idx*3+1] = 0;
@@ -183,7 +180,7 @@ namespace CoupledField
       coords[idx*3+2] = 0.5;
       connect[idx] = idx+1;
 
-    case Elem::TET4:
+    case Elem::ET_TET4:
       idx = 0;
       coords[idx*3+0] = 0;
       coords[idx*3+1] = 0;
@@ -209,7 +206,7 @@ namespace CoupledField
       connect[idx] = idx+1;
       break;
 
-    case Elem::HEXA27:
+    case Elem::ET_HEXA27:
       idx = 20;
       coords[idx*3+0] = 0;
       coords[idx*3+1] = -1;
@@ -252,7 +249,7 @@ namespace CoupledField
       coords[idx*3+2] = 0;
       connect[idx] = idx+1;
 
-    case Elem::HEXA20:
+    case Elem::ET_HEXA20:
       idx = 8;
       coords[idx*3+0] = 0;
       coords[idx*3+1] = -1;
@@ -325,7 +322,7 @@ namespace CoupledField
       coords[idx*3+2] = 0;
       connect[idx] = idx+1;
 
-    case Elem::HEXA8:
+    case Elem::ET_HEXA8:
       idx = 0;
       coords[idx*3+0] = -1;
       coords[idx*3+1] = -1;
@@ -375,7 +372,7 @@ namespace CoupledField
       connect[idx] = idx+1;
       break;
 
-    case Elem::PYRA13:
+    case Elem::ET_PYRA13:
       idx = 5;          
       coords[idx*3+0] = 0;
       coords[idx*3+1] = 1;
@@ -424,7 +421,7 @@ namespace CoupledField
       coords[idx*3+2] = 0.5;
       connect[idx] = idx+1;
 
-    case Elem::PYRA5:
+    case Elem::ET_PYRA5:
       idx = 0;
       coords[idx*3+0] = 1;
       coords[idx*3+1] = 1;
@@ -456,7 +453,7 @@ namespace CoupledField
       connect[idx] = idx+1;
       break;
 
-    case Elem::WEDGE15:
+    case Elem::ET_WEDGE15:
       idx = 6;           
       coords[idx*3+0] = 0.5;
       coords[idx*3+1] = 0;
@@ -511,7 +508,7 @@ namespace CoupledField
       coords[idx*3+2] = 0;
       connect[idx] = idx+1;
 
-    case Elem::WEDGE6:
+    case Elem::ET_WEDGE6:
       idx = 0;
       coords[idx*3+0] = 0;
       coords[idx*3+1] = 0;

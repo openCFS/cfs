@@ -14,7 +14,7 @@
 #include <boost/filesystem/convenience.hpp>
 namespace fs=boost::filesystem;
 
-#include "General/exception.hh"
+#include "General/Exception.hh"
 #include "cplreader/Settings.hh"
 #include "FileReader_NACS.hh"
 
@@ -177,11 +177,13 @@ namespace CoupledField
 
       elemTypes_[elemNum] = newFEType;
       elemNumsMap_[elemNum] = elemNum;
-      elemDim = Elem::GetElemDim(newFEType);
+      Exception("Elem::GetElemDim");
+      elemDim = 0;
+      //elemDim = Elem::GetElemDim(newFEType);
       dim = dim < elemDim ? elemDim : dim;
 
-      std::copy(elemNodes.begin(), elemNodes.begin() + Elem::GetNumElemNodes(newFEType),
-                std::back_inserter(topology_[elemNum]));
+      //std::copy(elemNodes.begin(), elemNodes.begin() + Elem::GetNumElemNodes(newFEType),
+       //         std::back_inserter(topology_[elemNum]));
 
       elemNum++;
     }
@@ -345,70 +347,70 @@ namespace CoupledField
 
     switch((Elem::FEType) type)
     {
-    case Elem::QUAD4: // rectangle
+    case Elem::ET_QUAD4: // rectangle
       switch(numNodes)
       {
       case 3:
-        ret = Elem::TRIA3;
+        ret = Elem::ET_TRIA3;
         break;
 
       case 4:
-        ret = Elem::QUAD4;
+        ret = Elem::ET_QUAD4;
         break;
       }
       break;
 
-    case Elem::QUAD8: // quad. rectangle
+    case Elem::ET_QUAD8: // quad. rectangle
       switch(numNodes)
       {
       case 6:
-        ret = Elem::TRIA6;
+        ret = Elem::ET_TRIA6;
         break;
 
       case 8:
-        ret = Elem::QUAD8;
+        ret = Elem::ET_QUAD8;
         break;
       }
       break;
 
-    case Elem::HEXA8: // hexa
+    case Elem::ET_HEXA8: // hexa
       switch(numNodes)
       {
       case 4:
-        ret = Elem::TET4;
+        ret = Elem::ET_TET4;
         break;
 
       case 5:
-        ret = Elem::PYRA5;
+        ret = Elem::ET_PYRA5;
         break;
 
       case 6:
-        ret = Elem::WEDGE6;
+        ret = Elem::ET_WEDGE6;
         break;
 
       case 8:
-        ret = Elem::HEXA8;
+        ret = Elem::ET_HEXA8;
         break;
       }
       break;
 
-    case Elem::HEXA20: // quad. hexa
+    case Elem::ET_HEXA20: // quad. hexa
       switch(numNodes)
       {
       case 10:
-      ret = Elem::TET10;
+      ret = Elem::ET_TET10;
       break;
 
       case 13:
-      ret = Elem::PYRA13;
+      ret = Elem::ET_PYRA13;
       break;
 
       case 15:
-      ret = Elem::WEDGE15;
+      ret = Elem::ET_WEDGE15;
       break;
 
       case 20:
-      ret = Elem::HEXA20;
+      ret = Elem::ET_HEXA20;
       break;
       }
 

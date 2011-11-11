@@ -1,16 +1,12 @@
-// -*- mode: c++; coding: utf-8; indent-tabs-mode: nil; -*-
-// kate: space-indent on; indent-width 2; encoding utf-8;
-// kate: auto-brackets on; mixedindent off; indent-mode cstyle;
-
 #include <def_use_arpack.hh>
 
-#include "MatVec/basematrix.hh"
+#include "MatVec/BaseMatrix.hh"
 
 #include "generateEigensolver.hh"
-#include "baseEigensolver.hh"
+#include "BaseEigenSolver.hh"
 
 #ifdef USE_ARPACK
-#include "OLAS/external/arpack/arpackEigensolver.hh"
+#include "OLAS/external/arpack/ArpackEigenSolver.hh"
 #endif
 
 
