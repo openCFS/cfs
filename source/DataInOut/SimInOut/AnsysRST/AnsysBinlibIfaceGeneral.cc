@@ -367,7 +367,8 @@ namespace CoupledField
     Integer solveStep = stepNum_;
     Integer subStep   = 1;
     Integer cumIterat = stepNum_;
-    if (analysisType_==BasePDE::EIGENFREQUENCY) {
+    if (analysisType_==BasePDE::EIGENFREQUENCY) { // ||
+        //        analysisType_==BasePDE::HARMONIC) {
         solveStep = 1;
         subStep   = stepNum_;
     }

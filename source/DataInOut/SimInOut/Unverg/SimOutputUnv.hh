@@ -65,6 +65,12 @@ namespace CoupledField
     //! Output for CAPA .unverg if true, otherwise output standard I-DEAS .unv files.
     bool capaOut_;
 
+    //! Dataset 151 - Header containing information about simulation run.
+    void Dataset151();
+
+    //! Dataset 164 - Header containing information about units.
+    void Dataset164();
+
     //! Dataset 666. - CAPA specific information
     void Dataset666();
 

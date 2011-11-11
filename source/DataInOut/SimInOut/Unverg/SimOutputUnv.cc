@@ -9,9 +9,17 @@
 #include <boost/filesystem/exception.hpp>
 namespace fs = boost::filesystem;
 
+#include <boost/date_time/posix_time/posix_time.hpp>
+#include <boost/date_time/posix_time/posix_time_io.hpp>
+namespace dt = boost::posix_time;
+
 #include <fstream>
-#include "SimOutputUnv.hh"
+
 #include "DataInOut/Logging/cfslog.hh"
+
+#include "def_cfs_stats.hh"
+
+#include "SimOutputUnv.hh"
 
 namespace CoupledField {
 
@@ -83,12 +91,84 @@ namespace CoupledField {
       Dataset780();
     } else 
     {    
+      Dataset151();
+      Dataset164();
       Dataset2411();
       Dataset2412();
       Dataset2467();
     }    
   }
 
+  void SimOutputUnv::Dataset151() 
+  {
+    if (!ptGrid_) {
+      EXCEPTION("ptGrid_ is not initialized" );
+    }
+    char buf[128];
+    std::string flavor = capaOut_ == true ? "CAPA" : "SDRC I-DEAS";
+
+    (*output) << std::setw(6) << -1 << std::endl << std::setw(6)
+              << 151 << std::endl ;
+
+    // Model name
+    snprintf(buf, 81, "%s", fileName_.c_str());
+    (*output) << buf << std::endl;
+
+    // Model description
+    snprintf(buf, 81, "UNV Flavor: %s", flavor.c_str());
+    (*output) << buf << std::endl;
+
+    // DB Application
+    (*output) << "CFS++ (Univ. of Klagenfurt and Univ. of Erlangen-Nuremberg)" << std::endl;
+
+    std::stringstream sstr;
+    dt::time_facet *facet = new dt::time_facet(" %d-%b-%y  %H:%M:%S");
+    sstr.imbue(std::locale(sstr.getloc(), facet));
+    sstr << dt::second_clock::local_time();
+    (*output) << sstr.str();
+    (*output) << std::setw(10) << 1 
+              << std::setw(10) << 0 
+              << std::setw(10) << 0
+              << std::endl;
+
+    (*output) << sstr.str() << std::endl;
+
+    // UNV Creating Application
+    (*output) << "CFS++" << std::endl;
+
+    UInt year, month;
+    (*output) << sstr.str();
+    sstr.clear(); sstr.str("");
+    sstr << CFS_VERSION_YEAR;
+    sstr >> year;    
+    sstr.clear(); sstr.str("");
+    sstr << CFS_VERSION_MONTH;
+    sstr >> month;    
+    (*output) << std::setw(10) << (year*100 + month);
+    sstr.clear(); sstr.str("");
+    sstr << CFS_SUBVERSION_REV;
+    UInt rev;
+    std::string modif;
+    sstr >> rev >> modif;
+    (*output) << std::setw(10) << rev;
+    (*output) << std::setw(10) << 0;
+    (*output) << std::setw(10) << (modif == "modified" ? 1 : 0);
+    (*output) << std::setw(10) << 0 << std::endl;
+    
+    (*output) << std::setw(6) << -1 << std::endl;
+    
+  }
+  
+  void SimOutputUnv::Dataset164()
+  {
+    // We use SI units in CFS++
+    (*output) << std::setw(6) << -1 << std::endl << std::setw(6)
+              << 164 << std::endl ;
+    (*output) << "         1Meter (newton)               2" << std::endl;
+    (*output) << "  1.00000000000000000D+00  1.00000000000000000D+00  1.00000000000000000D+00" << std::endl;
+    (*output) << "  2.73149999999999980D+02" << std::endl;
+    (*output) << std::setw(6) << -1 << std::endl;
+  }
 
   void  SimOutputUnv::Dataset666() {
 

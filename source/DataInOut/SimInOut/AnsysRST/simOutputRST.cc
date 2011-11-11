@@ -327,11 +327,11 @@ namespace CoupledField {
     // components into an ANSYS components .cm file.
     std::stringstream sstr;
     StdVector<Elem*> elems;
-    StdVector<RegionIdType> volRegions, surfRegions;
-    UInt numRegions;
+    StdVector<RegionIdType> volRegions, surfRegions, regions;
     StdVector< std::string > regionNames;
     std::string rstFileName;
     std::string compFileName;
+    StdVector< UInt > entities;
     
     sstr.clear();
     sstr.str("");
@@ -362,15 +362,21 @@ namespace CoupledField {
     compFile_ << "! The component/region information should also be available in ANSYS CFD-Post" << std::endl;
     compFile_ << "! when loading the .rst file." << std::endl;
 
-    numRegions = ptGrid_->GetNumRegions();
     ptGrid_->GetVolRegionIds( volRegions );
     ptGrid_->GetSurfRegionIds( surfRegions );
 
+    for (UInt i=0, n=volRegions.GetSize(); i<n; i++) {
+      regions.Push_back(volRegions[i]);
+    }
+    for (UInt i=0, n=surfRegions.GetSize(); i<n; i++) {
+      regions.Push_back(surfRegions[i]);
+    }
+
     ptGrid_->GetRegionNames(regionNames);
     // loop over regions and write out elements
-    for(UInt i = 0, n=volRegions.GetSize(); i < n; i++)
+    for(UInt i = 0, n=regions.GetSize(); i < n; i++)
     {
-      UInt idx = volRegions[i];
+      UInt idx = regions[i];
       std::string regionName = regionNames[idx];
       
       ptGrid_->GetElems(elems, idx);
@@ -383,28 +389,11 @@ namespace CoupledField {
       }
 
       WriteComponent(regionName, "ELEM", elemNums);
+
+      //      ptGrid_->GetNodesByRegion( entities, regions[i] );
+      //      WriteComponent(regionName, "NODE", entities);
     }
 
-    for(UInt i = 0, n=surfRegions.GetSize(); i < n; i++)
-    {
-      UInt idx = surfRegions[i];
-      std::string regionName = regionNames[idx];
-      
-      ptGrid_->GetElems(elems, idx);
-      UInt nElems = elems.GetSize();
-      StdVector<UInt> elemNums(nElems);
-
-      std::cout << "region: " << regionName << " " << nElems << std::endl;
-
-      UInt j=0;
-      for(j=0; j<nElems; j++) {
-        elemNums[j] = elems[j]->elemNum;
-      }
-
-      WriteComponent(regionName, "ELEM", elemNums);
-    }
-
-    StdVector< UInt > entities;
     StdVector<std::string> entityNames;
     UInt numEntityGroups = 0;
 
