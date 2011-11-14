@@ -10,7 +10,7 @@
 // header for materials
 #include "Materials/ElectroMagneticMaterial.hh"
 #include "Materials/ElectroStaticMaterial.hh"
-//#include "Materials/heatMaterial.hh"
+#include "Materials/HeatMaterial.hh"
 //#include "Materials/acousticMaterial.hh"
 //#include "Materials/mechanicMaterial.hh"
 //#include "Materials/piezoMaterial.hh"
@@ -92,9 +92,8 @@ namespace CoupledField {
       ReadElectrostatic( material, pn );
     }
     else if ( matClass == THERMIC ) {
-      REFACTOR;
-      //material = new HeatMaterial();
-      //ReadThermic( material, pn );
+      material = new HeatMaterial();
+      ReadThermic( material, pn );
     }
     else if ( matClass == FLOW ) {
       REFACTOR;
@@ -916,8 +915,9 @@ namespace CoupledField {
             if (lin->Has("isotropic"))
               {
                 material->SetScalar(lin->Get("isotropic")->As<Double>(), HEAT_CONDUCTIVITY, Global::REAL);
+                material->SetSymmetryType(BaseMaterial::ISOTROPIC);
               }
-            else if (lin->Has("tensor"))
+                  else if (lin->Has("tensor"))
               {
                 // can only be a real 3x3 tensor
                 Matrix<double> tensor(3,3);

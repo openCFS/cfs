@@ -276,8 +276,8 @@ namespace CoupledField {
     bool IsInstationary()  
     { return isInstationary_;};
 
-    std::map<RegionIdType, NonLinType>& GetNonLinRegionTypes() 
-    { return regionNonLinType_;};
+    std::map<RegionIdType, StdVector<NonLinType> >& GetNonLinRegionTypes() 
+    { return regionNonLinTypes_;};
 
     UInt& GetIterCoupledCounter() 
     { return iterCoupledCounter_;};
@@ -402,21 +402,27 @@ namespace CoupledField {
     bool totalFormulation_;   //!< flag for total formulation in nonlinear calculations
 
     //! map for each region the type of nonlinearity
-    std::map<RegionIdType, NonLinType> regionNonLinType_;
+    std::map<RegionIdType, StdVector<NonLinType> > regionNonLinTypes_;
 
-    //! map for each region the id of the nonlinearity
-    std::map<RegionIdType, std::string> regionNonLinId_;
+    //! map for each nonlinearity the id
+    std::map<std::string, NonLinType> nonLinTypes_;
 
-    //! map for each id the nonlinearity
-    std::map<std::string, NonLinType> nonLinIdType_;
+    // type of nonlinear algorithm (e.g., Newton)
+    NonLinMethodType nonLinMethod_;
 
-    //! name for input file, which contains grid deformations
-    std::string fileName4GridDisplacements_ ;
-
-    //! regions for ggrid displacements
-    StdVector<std::string> regions4GridDisplacements_;
+    struct GridDisplData {
+      //! name for input file, which contains grid deformations
+      std::string fileName4GridDisplacements_ ;
+      //! type from which to use the deformation
+      //! (SMOOTH_DISPLACEMENT or MECH_DISPLACEMENT)
+      SolutionType solType;
+    };
+    //! regions for grid displacements
+    // TODO: change StdVector<std::string> regions4GridDisplacements_;
+    std::map<RegionIdType, GridDisplData> gridDisplData_;
 
     //@}
+
 
     // -----------------------------------------------------------------------
     // Material data

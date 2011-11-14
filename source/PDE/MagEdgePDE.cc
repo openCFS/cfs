@@ -224,87 +224,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
   // ****************************
   void MagEdgePDE::InitNonLin() {
 
-    nonLin_ = false;
-    isHysteresis_ = false;
-
-    // Check, if "nonLinList" is present
-    PtrParamNode nonLinListNode = myParam_->Get("nonLinList", ParamNode::PASS );
-    if( !nonLinListNode)
-      return;
-
-    // Get nonlinear types
-    ParamNodeList nonLinNodes = nonLinListNode->GetChildren();
-    for( UInt i = 0; i < nonLinNodes.GetSize(); i++ ) {
-
-      std::string actTypeString = nonLinNodes[i]->GetName();
-      std::string actId = nonLinNodes[i]->Get("id")->As<std::string>();
-
-      NonLinType actType;
-      String2Enum( actTypeString, actType );
-
-      // check type
-      if( actType == PERMEABILITY ) {
-        nonLin_ = true;
-      }
-      if( actType == HYSTERESIS ) {
-        isHysteresis_ = true;
-      }
-      nonLinIdType_[actId] = actType;
-    }
-
-    // Run over all region and set entry in "regionNonLinId"
-    ParamNodeList regionNodes =
-      myParam_->Get("regionList")->GetChildren();
-
-    RegionIdType actRegionId;
-    std::string actRegionName, actNonLinId;
-
-    if( regionNodes.GetSize() > 0 ) {
-      Info->PrintF( pdename_, "Non-linearity in following region(s)\n" );
-    }
-    for( UInt i = 0; i < regionNodes.GetSize(); i++ ) {
-
-      // get data
-      regionNodes[i]->GetValue( "name", actRegionName );
-      regionNodes[i]->GetValue( "nonLinId", actNonLinId );
-
-      if( actNonLinId == "" )
-        continue;
-
-      actRegionId = ptgrid_->GetRegion().Parse( actRegionName );
-
-      // Check nonLinId was already registerd
-      if( nonLinIdType_.find( actNonLinId) == nonLinIdType_.end() ) {
-        EXCEPTION( "NonLinearity with id '" << actNonLinId
-                   << "' was not defined in 'nonLinList'" );
-      }
-
-      regionNonLinId_[actRegionId] = actNonLinId;
-      regionNonLinType_[actRegionId] = nonLinIdType_[actNonLinId];
-
-      // Log to info file
-      std::string nonLinString;
-      Enum2String( nonLinIdType_[actNonLinId], nonLinString );
-      Info->PrintF( pdename_, " %s: %s\n", actRegionName.c_str(),
-                    nonLinString.c_str() );
-
-    }
-
-    // set nonlinearity flag only, if any region references
-    // a nonlinearity at all
-    if( regionNonLinId_.size() > 0 ) {
-      nonLin_ = true;
-    }
-
-    // Here we need in addition the nonLinMethod_ for the definition
-    // of the integrators
-    nonLinMethod_ = FIXEDPOINT;
-    PtrParamNode nonLinNode = myParam_->Get("nonLinear", ParamNode::PASS );
-    if( nonLinNode ) {
-      std::string methodString;
-      nonLinNode->GetValue(  "method", methodString, ParamNode::PASS );
-      nonLinMethod_ = NonLinMethodTypeEnum.Parse(methodString);
-    }
+    SinglePDE::InitNonLin();
   }
 
 
@@ -344,12 +264,14 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
       std::string integId = curRegNode->Get("integId")->As<std::string>();
       mySpace->SetRegionApproximation(actRegion, polyId,integId);
       
+      //get possible nonlinearities defined in this region
+      StdVector<NonLinType> nonLinTypes = regionNonLinTypes_[actRegion]; 
 
       // create new entity list
       shared_ptr<ElemList> actSDList( new ElemList(ptgrid_ ) );
       actSDList->SetRegion( actRegion );
       // Switch, if region is linear / nonlinear
-      if ( regionNonLinType_[actRegion] != NO_NONLINEARITY ) {
+      if ( nonLinTypes.GetSize() > 0 ) {
         REFACTOR;
        // =================================
        //  Nonlinear Stiffness Integrator
@@ -1108,8 +1030,11 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
       const Elem & actEl = *(it.GetElem());
       RegionIdType actRegion = actEl.regionId; 
 
+      //get possible nonlinearities defined in this region
+      StdVector<NonLinType> nonLinTypes = regionNonLinTypes_[actRegion]; 
+
       // Check, if region is nonlinear
-      if ( regionNonLinType_[actRegion] == PERMEABILITY ) {
+      if ( nonLinTypes[actRegion] == PERMEABILITY ) {
 
         // Obtain nonlinear approximation functional
         ApproxData * approx  = materials_[actRegion]->GetNonlinFncBH(MAG_PERMEABILITY);

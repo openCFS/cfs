@@ -34,6 +34,7 @@
 
 #include "PDE/ElecPDE.hh"
 #include "PDE/MagEdgePDE.hh"
+#include "PDE/HeatPDE.hh"
 
 
 // Coupling of single PDEs
@@ -569,8 +570,8 @@ void Domain::CreateSinglePDEs(UInt sequenceStep)
 //    else if (actPdeName == "mpcci")
 //      ptSinglePde_[i] = new MpcciPDE(defaultGrid, actPdeNode);
 //
-//    else if (actPdeName == "heatConduction")
-//      ptSinglePde_[i] = new HeatCondPDE(defaultGrid, actPdeNode);
+    else if (actPdeName == "heatConduction")
+      ptSinglePde_[i] = new HeatPDE(defaultGrid, actPdeNode);
 //
 //    else if (actPdeName == "fluidMech")
 //      ptSinglePde_[i] = new FluidMechPDE(defaultGrid, actPdeNode);

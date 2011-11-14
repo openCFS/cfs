@@ -70,76 +70,17 @@ namespace CoupledField {
     paramNode->GetValue("subType", subType_);
   }
   
-
   void ElecPDE::InitNonLin() {
 
-    // Check, if "nonLinList" is present
-    PtrParamNode nonLinListNode = myParam_->Get("nonLinList", ParamNode::PASS );
-    if( nonLinListNode ) { 
+    SinglePDE::InitNonLin();
 
-      // Get nonlinear types
-      ParamNodeList nonLinNodes = nonLinListNode->GetChildren();
-      for( UInt i = 0; i < nonLinNodes.GetSize(); i++ ) {
-
-        std::string actTypeString = nonLinNodes[i]->GetName();
-        std::string actId = nonLinNodes[i]->Get("id")->As<std::string>();
-
-        NonLinType actType;
-        String2Enum( actTypeString, actType );
-        nonLinIdType_[actId] = actType;
-      }
-    }
-    
-    // Run over all region and set entry in "regionNonLinId"
-    ParamNodeList regionNodes = 
-      myParam_->Get("regionList")->GetChildren();
-
-    RegionIdType actRegionId;
-    std::string actRegionName, actNonLinId;
-
-    if( regionNodes.GetSize() > 0 ) {
-      Info->PrintF( pdename_, "Non-linearity in following region(s)\n" );
-    }
-    for( UInt i = 0; i < regionNodes.GetSize(); i++ ) {
-      
-      regionNodes[i]->GetValue( "name", actRegionName );
-      regionNodes[i]->GetValue( "nonLinId", actNonLinId );
-      
-      if( actNonLinId == "" )
-        continue;
-
-      actRegionId = ptgrid_->GetRegion().Parse(actRegionName);
-
-      // Check nonLinId was already registered
-      if( nonLinIdType_.find( actNonLinId) == nonLinIdType_.end() ) {
-        EXCEPTION( "NonLinearity with id '" << actNonLinId 
-                   << "' was not defined in 'nonLinList'" );
-      }
-      
-      regionNonLinId_[actRegionId] = actNonLinId;
-
-      // get related type of nonlinearity
-      NonLinType actType = nonLinIdType_[actNonLinId];
-      regionNonLinType_[actRegionId] = actType;
-
-      // check type
-      if( actType == HYSTERESIS ) {
+    //now do PDE specifics
+    std::map<std::string, NonLinType>::iterator it;
+    for ( it=nonLinTypes_.begin() ; it != nonLinTypes_.end(); it++ ) {
+      if ( (*it).second == HYSTERESIS ) {
         isHysteresis_ = true;
       }
-
-      if( actType == MATERIAL ) {
-        nonLin_ = true;
-        nonLinMaterial_ = true;
-      }
-
-      // Log to info file
-      std::string nonLinString;
-      Enum2String( nonLinIdType_[actNonLinId], nonLinString );
-      Info->PrintF( pdename_, " %s: %s\n", actRegionName.c_str(), 
-                    nonLinString.c_str() );
-      
     }
-    Info->PrintF( pdename_, "\n" );
 
   }
 
@@ -168,7 +109,7 @@ namespace CoupledField {
     }
 
     // if the pde is piezo-coupled, the electrostatic entries
-    // have to multiplied with -1
+    // have to be multiplied with -1
     std::string factor = "1.0";
     if ( isPiezoCoupled_ == true || isThermoCoupled_== true )
       factor = "-1.0";  
@@ -182,7 +123,7 @@ namespace CoupledField {
       actRegion = it->first;
       actSDMat = it->second;
 
-      // Get current region node
+      // Get current region name
       std::string regionName = ptgrid_->GetRegion().ToString(actRegion);
 
       // create new entity list
@@ -687,12 +628,12 @@ REFACTOR;
 
   
   std::map<SolutionType, shared_ptr<FeSpace> >
- ElecPDE::CreateFeSpaces(const std::string& formulation, PtrParamNode infoNode) {
+  ElecPDE::CreateFeSpaces(const std::string& formulation, PtrParamNode infoNode) {
     std::map<SolutionType, shared_ptr<FeSpace> > crSpaces;
     if(formulation == "default" || formulation == "H1"){
       PtrParamNode potSpaceNode = infoNode->Get("elecPotential");
       crSpaces[ELEC_POTENTIAL] =
-          FeSpace::CreateInstance(myParam_,potSpaceNode,FeSpace::H1);
+        FeSpace::CreateInstance(myParam_,potSpaceNode,FeSpace::H1);
       crSpaces[ELEC_POTENTIAL]->Init();
     }else{
       EXCEPTION("The formulation " << formulation << "of electric PDE is not known!");

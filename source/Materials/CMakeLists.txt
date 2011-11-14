@@ -9,6 +9,7 @@ SET(MATERIALS_SRCS
   BaseMaterial.cc
   ElectroMagneticMaterial.cc 
   ElectroStaticMaterial.cc 
+  HeatMaterial.cc 
   Models/Hysteresis.cc
   Models/Jiles.cc
   Models/PiezoMicroModelBK.cc

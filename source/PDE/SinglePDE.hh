@@ -311,7 +311,7 @@ namespace CoupledField
     virtual void IncorporateMemento();
 
     //! Initialize NonLinearities
-    virtual void InitNonLin(){};
+    virtual void InitNonLin();
 
     //! Define FeFunctions for this PDE according to the
     //! definition in the XML file

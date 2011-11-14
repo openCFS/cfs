@@ -1090,6 +1090,8 @@ source/Materials/ElectroMagneticMaterial.cc -text svneol=unset#text/x-c%2B%2Bsrc
 source/Materials/ElectroMagneticMaterial.hh -text svneol=unset#text/x-c%2B%2Bhdr
 source/Materials/ElectroStaticMaterial.cc -text svneol=unset#text/x-c%2B%2Bsrc
 source/Materials/ElectroStaticMaterial.hh -text svneol=unset#text/x-c%2B%2Bhdr
+source/Materials/HeatMaterial.cc -text
+source/Materials/HeatMaterial.hh -text
 source/Materials/Models/Hysteresis.cc svneol=native#text/x-c%2B%2Bsrc
 source/Materials/Models/Hysteresis.hh svneol=native#text/x-c%2B%2Bhdr
 source/Materials/Models/Jiles.cc svneol=native#text/x-c%2B%2Bsrc
@@ -1262,6 +1264,8 @@ source/PDE/BasePDE.hh svneol=native#text/x-c%2B%2Bhdr
 source/PDE/CMakeLists.txt svneol=native#text/plain
 source/PDE/ElecPDE.cc svneol=native#text/x-c%2B%2Bsrc
 source/PDE/ElecPDE.hh svneol=native#text/x-c%2B%2Bhdr
+source/PDE/HeatPDE.cc -text
+source/PDE/HeatPDE.hh -text
 source/PDE/MagEdgePDE.cc -text
 source/PDE/MagEdgePDE.hh -text
 source/PDE/SinglePDE.cc svneol=native#text/x-c%2B%2Bsrc

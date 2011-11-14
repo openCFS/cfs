@@ -41,6 +41,8 @@
                 <xsd:element name="region" minOccurs="1" maxOccurs="unbounded">
                   <xsd:complexType>
                     <xsd:attribute name="name" type="xsd:token" use="required"/>
+                    <xsd:attribute name="polyId" type="xsd:string" use="optional" default="default"> </xsd:attribute>
+                    <xsd:attribute name="integId" type="xsd:string" use="optional" default="default"> </xsd:attribute>
                     <xsd:attribute name="nonLinId" type="xsd:token" use="optional" default=""/>
                   </xsd:complexType>
                 </xsd:element>
@@ -85,10 +87,10 @@
                 <xsd:element name="dirichletHom"   type="DT_HeatHD"   />
                 <xsd:element name="dirichletInhom" type="DT_HeatID"   />
                 <xsd:element name="neumannInhom"   type="DT_HeatIN"   />
-                <xsd:element name="robin"         type="DT_HeatR"    />
+                <xsd:element name="robin"          type="DT_HeatR"    />
                 <xsd:element name="load"           type="DT_HeatLoad" />
                 <xsd:element name="rhsValues"      type="DT_HeatRHS"  />
-                <xsd:element name="regionLoad"     type="DT_HeatRegionLoad"/>
+                 <xsd:element name="regionLoad"    type="DT_RHSValueBasic"/>
               </xsd:choice>
             </xsd:complexType>
           </xsd:element>

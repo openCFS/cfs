@@ -215,8 +215,9 @@ namespace CoupledField
     UInt nonLinMaxIter_;    //!< maximal number of NL-iterations
     std::string nonLinMethod_; //!< method for handling the non-linearity
     bool nonLinLogging_;    //!< log progress of non-linear iterations
+
     //! map for each region the type of nonlinearity
-    std::map<RegionIdType, NonLinType> regionNonLinType_;
+    std::map<RegionIdType, StdVector<NonLinType> > regionNonLinTypes_;
 
     SBM_Vector solIncr_;   //! needed in iterative coupled computation 
     SBM_Vector actSol_;    //! needed in iterative coupled computation 

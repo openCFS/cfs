@@ -381,6 +381,10 @@ namespace CoupledField {
         return "?";
         break;
 
+      case HEAT_SOURCE_DENSITY:
+        return "W/m^3";
+        break;
+
       case MAG_FLUX_DENSITY:
         return "Vs/m^2";
         break;
@@ -1223,6 +1227,7 @@ namespace CoupledField {
     //heat conduction
     SolutionTypeEnum.Add(HEAT_TEMPERATURE, "heatTemperature");
     SolutionTypeEnum.Add(HEAT_RHS_LOAD, "heatRhsLoad");
+    SolutionTypeEnum.Add(HEAT_SOURCE_DENSITY, "heatSourceDensity");
     //mpcci
     SolutionTypeEnum.Add(FLUID_FORCE, "fluidForce");
     //fluidMech

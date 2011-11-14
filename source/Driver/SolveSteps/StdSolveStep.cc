@@ -70,11 +70,12 @@ namespace CoupledField {
     // nonlinear parameters
     incStopCrit_ = 1e-2;
     residualStopCrit_ = 1e-3;
-    nonLin_           = PDE_.IsNonLin();
-    nonLinMaterial_   = PDE_.IsNonLinMaterial();
-    isHyst_           = PDE_.IsHysteresis();
-    totalFormulation_ = PDE_.IsTotaFormulation();
-    regionNonLinType_ = PDE_.GetNonLinRegionTypes();
+
+    nonLin_            = PDE_.IsNonLin();
+    nonLinMaterial_    = PDE_.IsNonLinMaterial();
+    isHyst_            = PDE_.IsHysteresis();
+    totalFormulation_  = PDE_.IsTotaFormulation();
+    regionNonLinTypes_ = PDE_.GetNonLinRegionTypes();
 
     startStep_ = 1;
     

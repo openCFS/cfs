@@ -12,6 +12,7 @@ SET(PDE_SRCS
   MagEdgePDE.cc
   SinglePDE.cc
   StdPDE.cc
+  HeatPDE.cc
   )
 
 ADD_LIBRARY(pde STATIC ${PDE_SRCS})
