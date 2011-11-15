@@ -11,6 +11,27 @@ if [ ! -x "$COMMON_SH" ]; then
 fi
 . $COMMON_SH
 
+# Determine  ANSYS  revision  from .xml  file  in  order  to set  the  correct
+# LD_LIBRARY_PATH. The default is v110.
+ANSYS_REV="v110"
+
+for param in "$@"; do
+    if [ -f "${param}.xml" ]; then
+#	echo $param
+	RSTTAG=$(fgrep '<rst' "${param}.xml")
+	
+	for field in $RSTTAG; do 
+	    REV=$(echo $field | sed -n '/ansysRevision.*/p' | \
+		cut -d'"' -f2 | sed 's/\.//');
+	done
+#	echo "v$REV"
+    fi
+done
+
+if [ ! "$REV" = "" ]; then
+    ANSYS_REV="v$REV"
+fi
+
 SUSEPackageHint()
 {
     DISTRO=$1
@@ -154,7 +175,7 @@ SetANSYSParameters()
 #    fi
 
 
-    LD_LIBRARY_PATH=$CFS_ROOT_DIR$LIB/$ARCH_STR:$CFS_ROOT_DIR$LIB/$ARCH_STR/v110/$ANS_ARCH:$ANSYS_ROOT_DIR/ansys/syslib/$ANS_ARCH:$ANSYS_ROOT_DIR/ansys/customize/misc/$ANS_ARCH:$LD_LIBRARY_PATH
+    LD_LIBRARY_PATH=$CFS_ROOT_DIR$LIB/$ARCH_STR:$CFS_ROOT_DIR$LIB/$ARCH_STR/$ANSYS_REV/$ANS_ARCH:$ANSYS_ROOT_DIR/ansys/syslib/$ANS_ARCH:$ANSYS_ROOT_DIR/ansys/customize/misc/$ANS_ARCH:$LD_LIBRARY_PATH
     export LD_LIBRARY_PATH
 }
 
