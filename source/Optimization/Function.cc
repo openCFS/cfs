@@ -484,7 +484,13 @@ void Function::SetElements(DesignSpace* space, RegionIdType region)
   // set in the objective
 
   // if ALL_REGIONS for condition use what we define as design space which
-  elements.Reserve(region == ALL_REGIONS ? space->data.GetSize() : grid->GetNumElems(region));
+//  elements.Reserve(region == ALL_REGIONS ? space->data.GetSize() : grid->GetNumElems(region));
+// this is still not good enough
+  if(design == DesignElement::TENSOR_TRACE){
+    elements.Reserve(space->GetNumberOfVariables());
+  }else{
+    elements.Reserve(grid->GetNumElems(region));
+  }
 
   if(region == ALL_REGIONS || space->Contains(region))
   {
@@ -753,39 +759,40 @@ void Function::Local::SetupVirtualElementMap(Phase ph)
 
 
   // traverse all elements and check for full neighborhood
-  space->AssertOneDesignOnly(); // can be extended we use the design from the conditon
   for(int e = 0, ss = space->GetNumberOfElements(); e < ss; ++e)
   {
     DesignElement* de = &(space->data[e]);
-    VicinityElement* ve = de->vicinity;
+    if(de->GetType() == DesignElement::DENSITY){
+      VicinityElement* ve = de->vicinity;
 
-    // do we have a full neighborhood? All or none as in the original slope paper
-    bool full = true;
-    if(prev)
-    {
-      if(ve->design[VicinityElement::X_N] == NULL) full = false;
-      if(ve->design[VicinityElement::Y_N] == NULL) full = false;
-      if(dim == 3 && ve->design[VicinityElement::Z_N] == NULL) full = false;
-    }
-    if(next)
-    {
-      if(ve->design[VicinityElement::X_P] == NULL) full = false;
-      if(ve->design[VicinityElement::Y_P] == NULL) full = false;
-      if(dim == 3 && ve->design[VicinityElement::Z_P] == NULL) full = false;
-    }
-
-    LOG_DBG2(func) << "Local::Local e_num=" << de->elem->elemNum << " vicinity=" << ve->ToString() << " full=" << full;
-
-    if(full)
-    {
-      for(int a = 0; a < dim; a++)
+      // do we have a full neighborhood? All or none as in the original slope paper
+      bool full = true;
+      if(prev)
       {
-        DesignElement* prev_de = prev ? ve->GetNeighbour(VicinityElement::ToNeighbour(a, -1)) : NULL;
-        DesignElement* next_de = ve->GetNeighbour(VicinityElement::ToNeighbour(a, 1));
+        if(ve->design[VicinityElement::X_N] == NULL) full = false;
+        if(ve->design[VicinityElement::Y_N] == NULL) full = false;
+        if(dim == 3 && ve->design[VicinityElement::Z_N] == NULL) full = false;
+      }
+      if(next)
+      {
+        if(ve->design[VicinityElement::X_P] == NULL) full = false;
+        if(ve->design[VicinityElement::Y_P] == NULL) full = false;
+        if(dim == 3 && ve->design[VicinityElement::Z_P] == NULL) full = false;
+      }
 
-        virtual_elem_map.Push_back(Identifier(de, prev_de, next_de, sign_1));
-        if(two_signs)
-          virtual_elem_map.Push_back(Identifier(de, prev_de, next_de, sign_2));
+      LOG_DBG2(func) << "Local::Local e_num=" << de->elem->elemNum << " vicinity=" << ve->ToString() << " full=" << full;
+
+      if(full)
+      {
+        for(int a = 0; a < dim; a++)
+        {
+          DesignElement* prev_de = prev ? ve->GetNeighbour(VicinityElement::ToNeighbour(a, -1)) : NULL;
+          DesignElement* next_de = ve->GetNeighbour(VicinityElement::ToNeighbour(a, 1));
+
+          virtual_elem_map.Push_back(Identifier(de, prev_de, next_de, sign_1));
+          if(two_signs)
+            virtual_elem_map.Push_back(Identifier(de, prev_de, next_de, sign_2));
+        }
       }
     }
   }
