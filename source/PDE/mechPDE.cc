@@ -2513,7 +2513,12 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
       // to sum up von Mises inner product
       TYPE inner = 0.0;
 
-      Vector<Double>* intPoints = it.GetElem()->ptElem->GetIntPoints();
+      Vector<Double>* intPoints = it.GetElem()->ptElem->GetIntPoints(); // an array of Vectors :(
+      LOG_DBG3(mechpde) << "CSAS: el=" << it.GetElem()->elemNum << " #ip=" << intPoints->GetSize()
+                        << " NIP=" << it.GetElem()->ptElem->GetNumIntPoints() << " #w=" << intWeights.GetSize();
+
+      assert(intWeights.GetSize() == it.GetElem()->ptElem->GetNumIntPoints());
+
       // loop over the integration points.
       Matrix<Double> elemCoord;
       ptgrid_->GetElemNodesCoord( elemCoord, it.GetElem()->connect );
@@ -2521,7 +2526,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
       //set element solution once
       sol_->GetElemSolutionAsMatrix(sol, it);
       stress_strain->SetActElemSol(sol);
-      for(UInt ip = 1, n = intPoints->GetSize(); ip <= n; ip++)
+      for(UInt ip = 1, n = it.GetElem()->ptElem->GetNumIntPoints(); ip <= n; ip++) // is NOT intPoints->GetSize()!
       {
         stress_strain->SetIntPoint(intPoints[ip-1]); // fuck 1-based!!
 

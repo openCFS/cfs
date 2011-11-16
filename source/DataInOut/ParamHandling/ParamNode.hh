@@ -104,8 +104,9 @@ namespace CoupledField
      *          Note: Comment-nodes are not allowed to have children!
      * SELF_XML: Complex elements like Timer or Matrix which create an
      *           xml string by themselves.
+     * BULK:   A fast bulk block
      */
-    typedef enum { UNDEF, ELEMENT, ATTRIBUTE, COMMENT, SELF_XML } NodeType;
+    typedef enum { UNDEF, ELEMENT, ATTRIBUTE, COMMENT, SELF_XML, BULK } NodeType;
     
     /** The default constructor
      * @param type Type of the node (defaults to UNDEF)
@@ -147,6 +148,7 @@ namespace CoupledField
     
     /** If you really know what you do, you can set a child manually.
       * An existing value is overwritten and not deleted!
+      * It is even faster (and more dirty) to use fast bulk block writing!
       * @param name an element with this name will exist afterwards
       * @param index the children list must be large enough.
       * @return the newly created object. */
@@ -219,6 +221,16 @@ namespace CoupledField
     /************************************************************************
     * D A T A    G E T   M E T H O D S
     ************************************************************************/
+
+    /** by "fast bulk block" or better "dirty bulk block" we denote optinal content as xml formated strings.
+     * For high load applications as grid export (-G), streaming (grid and results and optimization design export
+     * this can save a significant amount of time.
+     * Logically the strings are written (ToXML() after param node childs but not considered in Getxx(). So it is
+     * rather dirty thand fast ! :(.
+     * The fast bulk block, a StdVector of std::string is stored as a boost::any type.
+     * @return create the block if it does not exist already. Exception if boost::any has already another type. */
+    StdVector<std::string>& GetFastBulkBlock();
+
 
     /** @return converted value
     * @throws an exception if the value is not set or not convertible
@@ -320,10 +332,13 @@ namespace CoupledField
     * M I S C    M E T H O D S
     ************************************************************************/
 
-    /** returns name and value, and child summary information
+    /** returns value as tring
      * @param depth if the elemen is matrix type the depth is mandatory for Matrix::ToXMLFormat(name, depth) */
     void ToString(std::string& ret, int depth ) const;
     
+    /** variant of other ToString() with more copy operations but also more convenient */
+    std::string ToString(int depth) const;
+
     /** Prints this as xml element to the stream. Builds a tree. Shall not be directly
      * called for an attribute.
      * Might change the order as Sort() is called to ensure HEADER < PROCESS < SUMMARY
@@ -339,7 +354,7 @@ namespace CoupledField
 
     /** This is a recursive Dump of the tree to std::cout
     * @param level start with 0, is used for ident */
-    void Dump(int level = 0) const;
+    void Dump(int level = 0);
 
     /** The ParamNode::Dump() shows all sub-content. This shows the parent path */
     void DumpParentPath();
@@ -400,6 +415,7 @@ namespace CoupledField
     int lastresultidx_;
    
   private:
+
     /** write_timer restricts the number of times the info.xml file is written
      *  if not enough time has passed, the file is not written
      *  this only affects ParamNode::ToFile()

@@ -2419,20 +2419,23 @@ namespace CoupledField {
         node_names[nn[n]-1].Push_back(s); // fuck mixed 1-based and 0-based :(
     }
 
-    ParamNodeList& list = nl->GetChildren();
-    list.Resize(coords_.GetSize());
+    StdVector<std::string>& block = nl->GetFastBulkBlock();
+    block.Resize(coords_.GetSize());
     for(unsigned int n = 0, nn = coords_.GetSize(); n < nn; n++)
     {
-      PtrParamNode node = nl->SetNewChild("node", n); // much faster than append which has to search always
-      node->Get("id", ParamNode::APPEND)->SetValue(n+1); // 1-based!
-      node->Get("x", ParamNode::APPEND)->SetValue(coords_[n].data[0]);
-      node->Get("y", ParamNode::APPEND)->SetValue(coords_[n].data[1]);
-      node->Get("z", ParamNode::APPEND)->SetValue(dim_ > 2 ? coords_[n].data[2] : 0.0); // unfortunately there is garbage set :(
+      std::stringstream ss;
+
+      ss << "<node id=\"" << (n + 1)
+         << "\" x=\"" << coords_[n].data[0]
+         << "\" y=\"" << coords_[n].data[1]
+         << "\" z=\"" << (dim_ > 2 ? coords_[n].data[2] : 0.0) << "\"";
 
       const StdVector<unsigned int>& ni = node_names[n];
-      node->Get("names", ParamNode::APPEND)->SetValue(ni.GetSize());
+      ss << " names=\"" << ni.GetSize() << "\"";
       for(unsigned int c = 0; c < ni.GetSize(); c++)
-        node->Get("name_" + lexical_cast<std::string>(c), ParamNode::APPEND)->SetValue(namedNodeNames_[ni[c]]);
+        ss << " name_" << c << "=\"" << namedNodeNames_[ni[c]] << "\"";
+      ss << "/>";
+      block[n] = ss.str();
     }
     node_names.Clear();
     // same game for the element names as for the nodes
@@ -2452,28 +2455,32 @@ namespace CoupledField {
       PtrParamNode reg = rl->Get("region", ParamNode::APPEND);
       reg->Get("name")->SetValue(rd.name);
       const StdVector<Elem*>& elems = rd.type == VOLUME_REGION ? volElems_[rd.type_idx] : surfElems_[rd.type_idx];
-      ParamNodeList& list = reg->GetChildren();
-      list.Resize(elems.GetSize() + 1); // there is already the child 'name'
+
+      StdVector<std::string>& block = reg->GetFastBulkBlock();
+      block.Resize(elems.GetSize());
       for(unsigned int e = 0, n = elems.GetSize(); e < n; e++)
       {
-        Elem* elem = elems[e];
-        PtrParamNode el = reg->SetNewChild("element", e + 1); // the 'name' child
-        el->Get("id", ParamNode::APPEND)->SetValue(elem->elemNum);
-        el->Get("type", ParamNode::APPEND)->SetValue(Elem::feType.ToString(elem->ptElem->feType()));
-        Point& bc = elem->barycenter;
-        el->Get("x")->SetValue(bc.data[0], ParamNode::APPEND);
-        el->Get("y")->SetValue(bc.data[1], ParamNode::APPEND);
-        el->Get("z")->SetValue(bc.data[2], ParamNode::APPEND);
-
+        const Elem* elem = elems[e];
+        const Point& bc = elem->barycenter;
         const StdVector<unsigned int>& con = elem->connect;
-        el->Get("nodes", ParamNode::APPEND)->SetValue(con.GetSize());
-        for(unsigned int c = 0; c < con.GetSize(); c++)
-          el->Get("node_" + lexical_cast<std::string>(c), ParamNode::APPEND)->SetValue(con[c]);
-
         const StdVector<unsigned int>& ni = elem_names[n];
-        el->Get("names", ParamNode::APPEND)->SetValue(ni.GetSize());
+
+        std::stringstream ss;
+        ss << "<element id=\"" << (e + 1)
+           << "\" type=\"" << Elem::feType.ToString(elem->ptElem->feType())
+           << "\" x=\"" << bc.data[0]
+           << "\" y=\"" << bc.data[1]
+           << "\" z=\"" << bc.data[2]
+           << "\" nodes=\"" << con.GetSize() << "\"";
+
+        for(unsigned int c = 0; c < con.GetSize(); c++)
+          ss << " node_" << c << "=\"" << con[c] << "\"";
+
+        ss << " name=\"" << ni.GetSize() << "\"";
         for(unsigned int c = 0; c < ni.GetSize(); c++)
-          el->Get("name_" + lexical_cast<std::string>(c), ParamNode::APPEND)->SetValue(namedElemNames_[ni[c]]);
+          ss << " name_" << c << "=\"" << namedElemNames_[ni[c]] << "\"";
+        ss << "/>";
+        block[e] = ss.str();
       }
     }
   }

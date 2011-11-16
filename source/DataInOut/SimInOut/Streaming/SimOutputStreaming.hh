@@ -107,6 +107,9 @@ namespace CoupledField
 
     /** should we output more information to the command line? */
     bool silent_;
+
+    /** this is the output data. overwritten to save multiple grid writing */
+    ParamNode content_;
   };
 }
 

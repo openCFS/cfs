@@ -13,7 +13,8 @@ using std::string;
 
 SimOutputStreaming::SimOutputStreaming(PtrParamNode outputNode) :
   SimOutput("", outputNode),
-  silent_(false)
+  silent_(false),
+  content_(ParamNode::INSERT)
 {
   formatName_ = "streaming";
   capabilities_.insert(MESH_RESULTS);
@@ -105,19 +106,22 @@ void SimOutputStreaming::Transmit(std::ostream& out)
 {
   Grid* grid = domain->GetGrid();
 
-  // create a new Param Node
-  // ParamNode content = PtrParamNode(new ParamNode(ParamNode::INSERT, ParamNode::ELEMENT ));
-  ParamNode content(ParamNode::INSERT);
-  content.SetName("cfsStreaming");
+  // we might write to content_ the first time or overwrite
+  content_.SetName("cfsStreaming");
 
   // add the complete info.xml treee
-  content.Get("info")->SetValue(info, true); // use own name and make sure we are not seed as stupid boost::any
+  content_.Get("info")->SetValue(info, true); // use own name and make sure we are not seed as stupid boost::any
 
-  // add mesh
-  if(send_mesh_) domain->GetGrid()->ExportGrid(content.Get("grid"));
+  // add mesh if it is new
+  if(send_mesh_ && !content_.Has("grid"))
+    domain->GetGrid()->ExportGrid(content_.Get("grid"));
+
 
   // now the actual results
-  PtrParamNode results = content.Get("results");
+  PtrParamNode results = content_.Get("results");
+  // delete all potential children -- shared pointers!
+  results->GetChildren().Resize(0);
+
   for(unsigned int r = 0; r < results_.GetSize(); r++)
   {
     shared_ptr<BaseResult> sol = results_[r];
@@ -140,14 +144,14 @@ void SimOutputStreaming::Transmit(std::ostream& out)
     rpn->Get("unit")->SetValue(resInfo->unit);
 
     // TODO now only real valued!
-    // the stuff goes into the data element and we set the elements directly
-    PtrParamNode data = rpn->Get("data");
-    ParamNodeList& list = data->GetChildren();
+
+    // we do the fast bulk block stuff as it saves a lot of time!
+    StdVector<std::string>& block = rpn->GetFastBulkBlock();
+
     // the result vector is a set of dofs
     Vector<double>& resultVec = dynamic_cast<Result<double>&>(*sol).GetVector();
     // the actual item size
     unsigned int items = resultVec.GetSize() / dofs;
-
 
     // TODO handle only simple cases here!
     StdVector<unsigned int> nodes; // nodes per region
@@ -157,24 +161,29 @@ void SimOutputStreaming::Transmit(std::ostream& out)
     else
       grid->GetElems(elems, regid);
 
-    list.Resize(items);
+    block.Resize(items);
+
     for(unsigned int e = 0; e < items; e++)
     {
-      PtrParamNode el = data->SetNewChild("item", e);
+      std::stringstream ss;
+
+      ss << "<item";
 
       for(unsigned int d = 0; d < dofs; d++)
-        el->Get("v_" + boost::lexical_cast<std::string>(d))->SetValue(resultVec[dofs * e + d]);
+        ss << " v_" << boost::lexical_cast<std::string>(d) << "=\"" << resultVec[dofs * e + d] << "\"";
 
       // mandatory for nodes
       if(resInfo->definedOn == ResultInfo::NODE)
-        el->Get("id")->SetValue(nodes[e]);
+        ss << " id=\"" << nodes[e] << "\"";
       else if(!compressed_) // for elements it is redundand so we skip it in compressed mode
-        el->Get("id")->SetValue(elems[e]->elemNum);
+        ss << " id=\"" << elems[e]->elemNum << "\"";
+      ss << "/>";
+      block[e] = ss.str();
     }
   }
 
   // write the stuff
-  content.ToXML(out, compressed_ ? -99 : 0, true); // adjust element type!
+  content_.ToXML(out, compressed_ ? -99 : 0, true); // adjust element type!
 }
 
 SimOutputStreaming::Client::Client(boost::asio::io_service& io_service,

@@ -297,9 +297,6 @@ bool SCPIP::intermediate_callback(int iter, bool next_iter)
 {
   if(iter == 0 || !next_iter) return true;
 
-  // DoStopOptimization() writes stuff to info.xml we need for streaming in CommitIteration
-  bool dso = optimization->DoStopOptimization();
-
   optimization->CommitIteration();
 
 
@@ -310,6 +307,6 @@ bool SCPIP::intermediate_callback(int iter, bool next_iter)
   LOG_DBG(scpip) << "ic: mactiv=" << mactiv;
   LOG_DBG2(scpip) << "ic: active=" << active.ToString();
   
-  return (restart_requested || dso) ? false : true;
+  return (restart_requested || optimization->DoStopOptimization()) ? false : true;
 }     
 

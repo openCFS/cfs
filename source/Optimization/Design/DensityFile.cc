@@ -210,34 +210,23 @@ void DensityFile::SetCurrent(int current_iteration)
   // add the entry, note that the iteration counter was incremented in base implementation
   in->Get("id")->SetValue(current_iteration);
 
-  // the loop can be quite long. When it is filled already, ParamNode::Get() is cached
-  // but when it is filled it would search. Do it faster!
+  // we use the fast (dirty) bulk block to be (measurable) faster
+  StdVector<std::string>& block = in->GetFastBulkBlock();
+  block.Resize(ersatzMaterial_->data.GetSize());
 
-  // even for !exportDesignAllIterations in is empty in the first commit
-
-  ParamNodeList& list = in->GetChildren();
-
-  const unsigned int bias = 1; // there one "id" element as first element
-
-  assert(list.GetSize() == bias || list.GetSize() == ersatzMaterial_->data.GetSize() + bias);
-  assert(list[0]->GetName() == "id");
-
-  bool append = list.GetSize() == bias;
-  assert(!(all_iterations_ && ! append));
-
-  if(append)
-    list.Resize(ersatzMaterial_->data.GetSize() + 1);
-
-  for(unsigned int i = 0, s = ersatzMaterial_->data.GetSize(); i < s; ++i)
+  for(unsigned int i = 0, n = ersatzMaterial_->data.GetSize(); i < n; ++i)
   {
     DesignElement* de = &ersatzMaterial_->data[i];
-    PtrParamNode el = append ? in->SetNewChild("element", i + bias) : list[i + bias];
-    el->Get("nr")->SetValue(de->elem->elemNum);
-    el->Get("type")->SetValue(DesignElement::type.ToString(de->GetType()));
-    el->Get("design")->SetValue(de->GetDesign(DesignElement::PLAIN), 11);
-    if(de->HasPhysicalDesign()){
-      el->Get("physical")->SetValue(de->GetPhysicalDesign(), 11);
-    }
+    std::stringstream ss;
+    ss << "<element nr=\"" << de->elem->elemNum
+       << "\" type=\"" << DesignElement::type.ToString(de->GetType())
+       << "\" design=\"";
+    ss.precision(11);
+    ss << de->GetDesign(DesignElement::PLAIN) << "\"";
+    if(de->HasPhysicalDesign())
+      ss << " physical=\"" << de->GetPhysicalDesign() << "\"";
+    ss << "/>";
+    block[i] = ss.str();
   }
 
   // do we need to write?
