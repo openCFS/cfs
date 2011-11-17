@@ -536,11 +536,12 @@ void Optimization::SolveProblem()
   if(e != NULL) throw *e;
   delete e;
 }
-PtrParamNode Optimization::CreateAdjointAnalysisIdNode(std::string child_name)
+PtrParamNode Optimization::CreateAdjointAnalysisIdNode(std::string child_name, Excitation* excite)
 {
   BaseDriver* driver = domain->GetDriver();
   PtrParamNode base = driver->GetAnalysisId();
-  PtrParamNode in = driver->CreateAnalysisIdChild(base, child_name);
+  std::string temp = "excite";
+  PtrParamNode in = excite == NULL ? driver->CreateAnalysisIdChild(base, child_name) : driver->CreateAnalysisIdChild(base, "excite", excite->index, child_name);
   
   return in;
 }
@@ -588,7 +589,7 @@ void Optimization::SolveAdjointProblem(Excitation* excite, Function* f){
 
   // Do not store the results. This is adjoint.
   if(!harmonic) 
-    driver->SolveProblem(false, CreateAdjointAnalysisIdNode(), &adjointParams); // static and transient optimization
+    driver->SolveProblem(false, CreateAdjointAnalysisIdNode("adjoint", excite), &adjointParams); // static and transient optimization
   else
       EXCEPTION("Harmonic adjoint not implemented!");
 }

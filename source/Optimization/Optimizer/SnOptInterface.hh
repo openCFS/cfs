@@ -4,7 +4,6 @@
 #define SNOPTINTERFACE_HH_
 
 #include <stdio.h>
-#include "f2c.h"
 
 extern "C" {
 

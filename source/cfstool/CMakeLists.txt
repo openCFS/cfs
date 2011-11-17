@@ -18,27 +18,6 @@ SET(CFSTOOL_SRCS
 ADD_EXECUTABLE(cfstoolbin ${CFSTOOL_SRCS})
 
 
-SET(TARGET_LL ${TARGET_LL}
-  optimization
-  driver
-  gridcfs
-  pde
-  domain
-  gridcfs
-  pde
-  domain
-  optimization
-  materials
-  mathparser
-  coupledpde
-  forms
-  elements
-  definefiles
-  simouttext
-  simoutinfo
-)
-
-
 IF(USE_GMV)
   IF(USE_GMV_INPUT)
     SET(TARGET_LL ${TARGET_LL} simingmv)
@@ -94,18 +73,16 @@ SET(TARGET_LL ${TARGET_LL}
   logging
   scripting
   simouttext
+  simoutxdmf
   ${BOOST_SERIALIZATION_LIB}
   ${BOOST_FILESYSTEM_LIB}
   ${BOOST_SYSTEM_LIB}
-  )
-  
-SET(TARGET_LL ${TARGET_LL} 
   algsys-olas
   graph-olas
   precond-olas
   solver-olas
   utils-olas
-)  
+  )
   
 IF(USE_ARPACK)
   SET(TARGET_LL ${TARGET_LL} arpack-olas)

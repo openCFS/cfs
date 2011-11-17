@@ -453,7 +453,11 @@ namespace CoupledField
           if(domain->HasErsatzMaterialDamping() && 
               domain->GetErsatzMaterial()->GetErsatzMaterialDampingParameterForIntegrator(it1.GetElem(), form, secMatFacOpt)){
             elemMatrix *= secMatFacOpt; // only in non-complex case, complex is not known in ParamMat
-            InsertMatrix(DAMPING, actContext, elemMatrix, eqnVec1, eqnVec2, pdeId1, pdeId2);
+            if(secDestMat != NOTYPE){
+              InsertMatrix(DAMPING, actContext, elemMatrix, eqnVec1, eqnVec2, pdeId1, pdeId2);
+            }else{
+              throw Exception("Damping is to be optimized, but not used!");
+            }
           }
           else if (secDestMat != NOTYPE ) { // Check for secondary matrix type
             Double dampFactor = 1.0;
@@ -549,9 +553,9 @@ namespace CoupledField
     }else{
       AssembleRHSLinForms(false );
       AssembleRHSLoads();
-      if(opt != NULL){
-        opt->RhsCalculated(adjointParams);
-      }
+    }
+    if(opt != NULL){
+      opt->RhsCalculated(adjointParams);
     }
   }
 
@@ -561,9 +565,9 @@ namespace CoupledField
       domain->GetOptimization()->SetAdjointRhs(adjointParams);
     }else{
       AssembleRHSLinForms(true );
-      if(opt != NULL){
-        opt->RhsCalculated(adjointParams);
-      }
+    }
+    if(opt != NULL){
+      opt->RhsCalculated(adjointParams);
     }
   }
 

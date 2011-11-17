@@ -222,7 +222,7 @@ public:
    * By definition the design elements are stored in the ordering of the type!! */
   typedef enum { UNITY = -5, NO_DERIVATIVE = -4, TENSOR_TRACE = -3, DEFAULT = -2, NO_TYPE = -1, DENSITY = 0,
                  POLARIZATION = 1, ACOU_DENSITY = 2, EMODUL, POISSON, LAMELAMBDA, LAMEMU, EMODULISO, POISSONISO,
-                 GMODUL, MASS, DAMPINGALPHA, DAMPINGBETA} Type;
+                 GMODUL, MASS, DAMPINGALPHA, DAMPINGBETA, TENSOR11, TENSOR22, TENSOR33, TENSOR23, TENSOR13, TENSOR12} Type;
 
   /** The empty constructor is the StdVector and for ghost elements */
   DesignElement();

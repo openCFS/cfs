@@ -14,7 +14,7 @@ namespace CoupledField {
     
   public:
     
-    typedef enum { ISOTROPIC, LAME_ISOTROPIC, TRANSVERSAL_ISOTROPIC, TRANSVERSAL_ISOTROPIC_BOXED } Type;
+    typedef enum { ISOTROPIC, LAME_ISOTROPIC, TRANSVERSAL_ISOTROPIC, TRANSVERSAL_ISOTROPIC_BOXED, DENSITY_TIMES_2D_TENSOR, DENSITY_TIMES_2D_TENSOR_CONSTANT_TRACE } Type;
     
     /* posibilities for the isotropic plane in transversal isotropy
      * note that parameters EMODULISO, POISSONISO are used for that plane
@@ -59,6 +59,15 @@ namespace CoupledField {
     /** damping is also optimized */
     bool dampingIsDesign_;
     
+    /** multiply mass with this, can be used to scale tensor trace */
+    double massFactor_;
+    
+    /** for density times 2d tensor, this is the penalization for density*/
+    double penalty_;
+    
+    /** for density times 2d tensor with constant trace */
+    double trace_;
+    
     static Enum<Type> type;
     Type type_;   
     static Enum<TransIsoType> transIsoType;
@@ -84,9 +93,15 @@ namespace CoupledField {
     /** Calculate the Trans-Iso Tensor */
     inline void GetTransIsoMaterialTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction);
     
+    /** Calculate the Tensor for Density times Tensor */
+    inline void GetDensityTimes2dTensorTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction);
+    
 
     /** initialize the tensor with zeros */
     inline void ZeroTensor(Matrix<double>& t, SubTensorType subTensor);
+    
+    /** put values from Voigt vector to correct positions in tensor */
+    inline void Set2dVoigtTensor(Matrix<double>& t, SubTensorType subTensor, double t11, double t22, double t33, double t23, double t13, double t12);
     
     /** put the entries of the transversal_isotropic tensor at the right places */
     inline void SetTransIsoTensor(Matrix<double>& t, SubTensorType subTensor, double iD, double inD, double iG, double oD, double onD, double oG);
