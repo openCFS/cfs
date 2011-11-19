@@ -400,7 +400,7 @@ namespace CoupledField {
         (*output) << std::setw(10) << unvId;
         (*output) << std::setw(10) << elmsgrp
                   << std::setw(10) << elmsgrp 
-                  << std::setw(10) << ((UInt) elemType)
+                  << std::setw(10) << elmsgrp // ((UInt) elemType)
                   << std::setw(10);
 
         switch(elemType) 
