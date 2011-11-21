@@ -806,11 +806,12 @@ namespace CoupledField {
     // get correct mechanical strain operator 
     mechStrainOp = new MechStressStrain<Double>(mechMatSD, type);
 
-    bool isMicroModel = false;
-    if ( matPiezo->GetMicroPiezoModel() != NULL ) 
-      isMicroModel = true;
-    else
-     EXCEPTION("CalcFluxDensity currently just implemented for PiezoMicroBK" );
+    // bool isMicroModel = false;  // TODO: Unused variable isMicroModel
+    // if ( matPiezo->GetMicroPiezoModel() != NULL ) 
+    //   isMicroModel = true;
+    //else
+    if ( matPiezo->GetMicroPiezoModel() == NULL )
+      EXCEPTION("CalcFluxDensity currently just implemented for PiezoMicroBK" );
  
 
     bool recompute = false;
@@ -840,13 +841,13 @@ namespace CoupledField {
       // currrent finite element
       nrEl  = it.GetElem()->elemNum;
       
-      Global::ComplexPart dataType;
-      if ( complexMatData_[it.GetElem()->regionId] ) {
-        dataType = Global::COMPLEX;
-      }
-      else {
-        dataType = Global::REAL;
-      }
+      // Global::ComplexPart dataType; // TODO: Unused variable dataType
+      // if ( complexMatData_[it.GetElem()->regionId] ) {
+      //  dataType = Global::COMPLEX;
+      // }
+      // else {
+      //  dataType = Global::REAL;
+      // }
 
       // get effective material tensors (currently just d-Tensor) 
       Matrix<Double> cTensor, sTensor, dTensor, epsTensor, eTensor;
@@ -891,7 +892,7 @@ namespace CoupledField {
 
     Global::ComplexPart matType = Global::REAL;
     RegionIdType actRegion;
-    BaseMaterial * actSDMat = NULL;
+    // BaseMaterial * actSDMat = NULL; // TODO: Unused variable actSDMat
 
 
     // get material from electrostatics
@@ -904,7 +905,7 @@ namespace CoupledField {
     for ( it = materials_.begin(); it != materials_.end(); it++ ) {
       // Set current region and material
       actRegion = it->first;
-      actSDMat = it->second;
+      // actSDMat = it->second;
       matType = Global::REAL;
 
       //transform the type

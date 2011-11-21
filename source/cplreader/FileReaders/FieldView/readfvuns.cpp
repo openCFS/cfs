@@ -141,7 +141,7 @@ void Initreadfvuns()
   FILE *outfp;
   int i;
   int endian_conv = 0;
-  float time;
+  // float time; // TODO: Unused variable time
 
   char cbuf[80];
   int ibuf[10];
@@ -206,7 +206,7 @@ void Initreadfvuns()
   if (file_type != FV_GRIDS_FILE)
   {
     READ(fbuf, 4); // constants for time, fsmach, alpha and re
-    time = fbuf[0];
+    // time = fbuf[0];
     if (VERBOSE)
     {
       std::cout << "time =" << fbuf[0] << std::endl;   

@@ -12,9 +12,12 @@
 #include "Utils/mathParser/mathParser.hh"
 #include "Domain/domain.hh"
 
-
 #include <boost/tokenizer.hpp>
 #include <boost/algorithm/string.hpp>
+#include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/convenience.hpp>
+#include <boost/filesystem/exception.hpp>
+
 #include <fstream>
 #include <string>
 
@@ -914,6 +917,12 @@ void ParamNode::ToFile(const std::string& filename, bool force)
 
   std::ofstream info_file(myFileName.c_str());
   info_file << "<?xml version=\"1.0\"?>" << std::endl;
+  fs::path fn = fs::system_complete(progOpts->GetSchemaPathStr() + "/../..");
+  fn = fn;
+  fn.normalize();
+  info_file << "<?xml-stylesheet href=\"file://"
+            << fn.native_directory_string()
+            << "/share/xsl/cfs_info_output_html.xsl\" type=\"text/xsl\"?>" << std::endl;
   
   // store how often we are written -> if the number is too high one should cancel some ToFile() calls
   //    if(writeCounter_.count(filename_) == 0) writeCounter_[filename_] = 0;

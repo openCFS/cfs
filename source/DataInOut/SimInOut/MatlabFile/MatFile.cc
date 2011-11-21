@@ -41,7 +41,8 @@ bool MatFile::Open(const string& fn)
   //functions. For example, modify  the User Block with H5Pset_userblock
   //:
   status = H5Pset_userblock(fcpl, 512);
-  
+  if(status < 0) return false;  
+ 
   //Call H5Fcreate, passing in the  identifier of the property list that
   //was just modified. For example:
   

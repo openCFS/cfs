@@ -374,11 +374,11 @@ namespace CoupledField {
     if ( analysistype_ == TRANSIENT &&
          isDirectCoupled_ == false) {
       InitTimeStepping();
-      if ( TS_alg_ != NULL ) {
-        Double dt;
-        dt = dynamic_cast<TransientDriver*>(domain->GetSingleDriver())
-          ->GetDeltaT();
-      }
+      // if ( TS_alg_ != NULL ) {
+        // Double dt; // TODO: Unused variable
+        // dt = dynamic_cast<TransientDriver*>(domain->GetSingleDriver())
+        //  ->GetDeltaT();
+      // }
     }
 
 

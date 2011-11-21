@@ -78,7 +78,8 @@ void linElastInt::ReorderBLikeMatrix(Matrix<Double>& in, Matrix<Double>& out, UI
   const UInt nrDofs   = getNrDofs();  
   const Vector<Double> * intPoints = elem->GetIntPoints();
 
-  UInt actDim, actNode, j, k;
+  UInt actDim, actNode;
+  // UInt j, k; // TODO: Unused variables j,k
 
   out.Resize(getDimD(), numFncs * nrDofs);
   out.Init();
@@ -90,8 +91,8 @@ void linElastInt::ReorderBLikeMatrix(Matrix<Double>& in, Matrix<Double>& out, UI
   switch(spaceDim)
   {
   case 2:
-    j = 1;
-    k = 0;
+    // j = 1;
+    // k = 0;
 
     for (actNode = 0; actNode < numFncs; actNode++)
     {
@@ -335,7 +336,8 @@ void linElastInt::calcGMat( Matrix<Double> &gMat, UInt ip,
   const UInt spaceDim = ptelem->GetDim();
   const UInt nrDofs   = getNrDofs();
 
-  UInt actDim, actNode, j, k;
+  UInt actDim, actNode;
+  // UInt j, k;  // TODO: Unused variables j,k
 
   gMat.Resize(getDimD(), nrICModes_ * nrDofs);
   gMat.Init();
@@ -354,8 +356,8 @@ void linElastInt::calcGMat( Matrix<Double> &gMat, UInt ip,
   switch(spaceDim)
   {
   case 2:
-    j = 1;
-    k = 0;
+    // j = 1;
+    // k = 0;
 
     for (actNode = 0; actNode < nrICModes_; actNode++)
     {

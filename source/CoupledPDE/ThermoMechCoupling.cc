@@ -84,7 +84,7 @@ namespace CoupledField {
 	// Calculate global thermo-mech integral
 	Global::ComplexPart matType = Global::REAL;
 	RegionIdType actRegion;
-	BaseMaterial * actSDMat= NULL;
+	// BaseMaterial * actSDMat= NULL; // TODO: Unused variable actSDMat
 
 	try {
 
@@ -105,7 +105,7 @@ namespace CoupledField {
 		std::map<RegionIdType, BaseMaterial*>::iterator it;
 		for (it = materials_.begin(); it != materials_.end(); it++) {
 			actRegion = it->first; // set current region
-			actSDMat = it->second; // set current material
+			// actSDMat = it->second; // set current material
 			matType = Global::REAL;
 
 			//transform the type

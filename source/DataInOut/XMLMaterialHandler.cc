@@ -242,8 +242,8 @@ namespace CoupledField {
   {
     bool     flagEModulReal=false;
     bool     flagPoissonReal=false;
-    bool     flagEModulImag=false;
-    bool     flagPoissonImag=false;
+    // bool     flagEModulImag=false; // TODO: Unused variable flagEModulImag
+    // bool     flagPoissonImag=false; // TODO: Unused variable flagPoissonImag
 
     bool     flagEModulXReal=false;
     bool     flagEModulYReal=false;
@@ -256,7 +256,7 @@ namespace CoupledField {
     bool     flagShearModulXYReal=false;
 
     bool     flagElastTensorReal=false;
-    bool     flagElastTensorImag=false;
+    // bool     flagElastTensorImag=false; // TODO: Unused variable flagElastTensorImag
 
     
 
@@ -285,7 +285,7 @@ namespace CoupledField {
         {
           ParamTools::AsTensor<double>(tens->Get("imag"),6,6,elasticityTensor); 
           material->SetTensor( elasticityTensor, MECH_STIFFNESS_TENSOR, Global::IMAG ); 
-          flagElastTensorImag = true;
+          // flagElastTensorImag = true;
         }
       } // end tensor  
  
@@ -320,14 +320,14 @@ namespace CoupledField {
           if(imag->Has("elasticityModulus"))
           {
             material->SetScalar(imag->Get("elasticityModulus")->As<std::string>(), MECH_EMODULUS, Global::IMAG ); 
-            flagEModulImag = true;
+            // flagEModulImag = true;
           }
 
           // read imaginary Poisson number
           if(imag->Has("poissonNumber"))
           {
             material->SetScalar(imag->Get("poissonNumber")->As<std::string>(), MECH_POISSON, Global::IMAG ); 
-            flagPoissonImag = true;
+            // flagPoissonImag = true;
           }
         }
       } // end of isotropic

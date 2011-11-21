@@ -33,12 +33,12 @@ namespace CoupledField {
 
     // First determine approach for handling inhomogeneous Dirichlet
     // boundary conditions
-    bool usingPenalty = true;
-    {
-      std::string aux = "penalty";
-      setupNode->GetValue("idbcHandling", aux, ParamNode::INSERT );
-      usingPenalty = aux == "penalty" ? true : false;
-    }
+    // bool usingPenalty = true; // TODO: Unused variable usingPenalty
+    // {
+    //  std::string aux = "penalty";
+    //  setupNode->GetValue("idbcHandling", aux, ParamNode::INSERT );
+    //  usingPenalty = aux == "penalty" ? true : false;
+    // }
 
     // Determine the type of solver for this PDE
     std::string sTypeString = "expertsChoice";

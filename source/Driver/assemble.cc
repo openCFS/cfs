@@ -1209,7 +1209,7 @@ namespace CoupledField
   void Assemble::Wrap_AddPrintElemNum( ) {
     SCRIPT_GET( StdVector<UInt>, elemNums );
     printElemNums_.insert( elemNums.Begin(), elemNums.End() );
-    StdVector<UInt>::iterator it = elemNums.Begin();
+    // StdVector<UInt>::iterator it = elemNums.Begin(); // TODO: Unused variable it
 
   }
 

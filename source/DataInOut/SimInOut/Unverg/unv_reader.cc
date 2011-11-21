@@ -527,7 +527,8 @@ int ReadUniversalFile(Widget w) {
   unv     unvf;
   dataset set;
   int     setid, maxNodeLabel = 0,maxElemLabel;
-  int     *nodeReverseLabels,*elemReverseLabels;
+  int     *nodeReverseLabels = NULL;
+  int     *elemReverseLabels = NULL;
   int     n_blocks=10, e_blocks=10, stopReading=0, i55,i56;
 
   free(SETS55);

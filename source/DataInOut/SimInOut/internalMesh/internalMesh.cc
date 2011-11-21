@@ -362,14 +362,15 @@ void InternalMesh::GetElements(StdVector<StdVector<UInt> > & elems,
     return;
 
   // Some additional variables
-  UInt eType(6), eNodes(4);
+  UInt eType(6);
+  // UInt eNodes(4); // TODO: Unused variable eNodes
   RegionIdType regionId(0);
   Integer regionIndex(0);
 
   if(dim_ == 3)
   {
     eType = 10;
-    eNodes = 8;
+    // eNodes = 8;
   }
 
   // prepare the vectors

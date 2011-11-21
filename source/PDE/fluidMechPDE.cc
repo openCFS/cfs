@@ -994,13 +994,13 @@ void FluidMechPDE::CalcMechCouplingRHS( StdVector<Elem*> * couplingElems,
       EXCEPTION( "No elements found for coupling!");
     }
 
-    BaseFE * ptElem = actCoupleElem->ptElem;
+    // BaseFE * ptElem = actCoupleElem->ptElem; // TODO: Unused variable ptElem
 
     StdVector<UInt> & connecth = actCoupleElem->connect;
     ptgrid_->GetElemNodesCoord( ptCoord, connecth, true );
 
-    Double surfArea;
-    surfArea=ptElem->CalcVolume(ptCoord, isaxi_);
+    // Double surfArea; // TODO: Unused variable surfArea
+    // surfArea=ptElem->CalcVolume(ptCoord, isaxi_);
 
     // Try to find according region for first neighbouring volume
     // element of the surface element
@@ -1161,7 +1161,7 @@ void FluidMechPDE::CalcAcouSurfSourceCouplingRHS( StdVector<Elem*> * couplingEle
   Double density = 0.0;
   Double sign = 0.0;
   Integer matIndex = -1;
-  Elem * ptVolElem = NULL;
+  // Elem * ptVolElem = NULL; // TODO: Unused variable ptVolElem
   Matrix<Double> ptCoord, elemMat;
   Vector<Double> normal, actElemAcouRHS;
   Vector<Double> veloDerivSol, nveloDerivSol;
@@ -1195,11 +1195,11 @@ void FluidMechPDE::CalcAcouSurfSourceCouplingRHS( StdVector<Elem*> * couplingEle
     // second one
     if ( matIndex == -1 ) {
       matIndex = subdoms_.Find(actCoupleElem->ptVolElem2->regionId);
-      ptVolElem = actCoupleElem->ptVolElem2;
+      // ptVolElem = actCoupleElem->ptVolElem2;
       sign = -1.0*actCoupleElem->normalSign;
 
     } else {
-      ptVolElem = actCoupleElem->ptVolElem1;
+      // ptVolElem = actCoupleElem->ptVolElem1;
       sign = actCoupleElem->normalSign;
     }
 

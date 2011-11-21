@@ -1266,12 +1266,12 @@ namespace CoupledField {
       // calculation of residual error =======================================
       Double residualL2Norm = PDE_.GetRhsL2Norm(actRHS); // L2Norm of  (f-Ku )
 
-      Double residualErr;
+      // Double residualErr; // TODO: Unused variable residualErr
 
-      if ( RhsLinL2Norm > 1.0 )
-        residualErr    = residualL2Norm /  RhsLinL2Norm;
-      else
-        residualErr    = residualL2Norm;
+      // if ( RhsLinL2Norm > 1.0 )
+      //   residualErr    = residualL2Norm /  RhsLinL2Norm;
+      // else
+      //  residualErr    = residualL2Norm;
 
       if (residualL2Norm < residualL2NormOpt) {
         residualL2NormOpt = residualL2Norm;

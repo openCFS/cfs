@@ -1157,17 +1157,19 @@ int main(int argc, char** argv)
       {
         EXCEPTION( "Please provide <inFile1>, <inFile2> and <outFile>" );
       }
-      Double maxDiff = 0.0;
-      maxDiff = CFSTool::Diff( inputFile, compareFile, outputFile, \
-                                false, false, maxDiffResultName);
+      // Double maxDiff = 0.0; // TODO: Unused variable maxDiff
+      // maxDiff = CFSTool::Diff( inputFile, compareFile, outputFile, \
+      CFSTool::Diff( inputFile, compareFile, outputFile, \
+                     false, false, maxDiffResultName);
     } else if (param_mode == "meshdiffnormed") {
       if (num_files != 3)
       {
         EXCEPTION( "Please provide <inFile1>, <inFile2> and <outFile>" );
       }
-      Double maxDiff = 0.0;
-      maxDiff = CFSTool::Diff( inputFile, compareFile, outputFile, \
-                                true, false, maxDiffResultName);
+      // Double maxDiff = 0.0; // TODO: Unused variable maxDiff
+      // maxDiff = CFSTool::Diff( inputFile, compareFile, outputFile, \
+      CFSTool::Diff( inputFile, compareFile, outputFile, \
+                     true, false, maxDiffResultName);
     } else {
       EXCEPTION( "No such mode: " << param_mode <<". See help for available modes" );
       return EXIT_FAILURE;

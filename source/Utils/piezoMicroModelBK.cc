@@ -666,11 +666,13 @@ namespace CoupledField{
    }
 
    //now, we have to rotate the tensor
-   Double cx, cy, cz, len, lenxy;
+   Double cx, cy, cz;
+   // Double len; // TODO: Unused variable len
+   Double lenxy;
     cx  = effElecPolAct_[elemIdx][0];
     cy  = effElecPolAct_[elemIdx][1];
     cz  = effElecPolAct_[elemIdx][2];
-    len = effElecPolAct_[elemIdx].NormL2();
+    // len = effElecPolAct_[elemIdx].NormL2();
 
     Double threshold =  sponP0_*1e-6;
 

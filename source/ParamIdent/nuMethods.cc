@@ -14,12 +14,16 @@ void piezoParamIdent::nuMethods() {
 
   UInt nrIterations=0;
   UInt nNuMethods=0;
-  Double theta, eta_acc, nu, omega;
-  nu=1.5;
+  Double theta, eta_acc;
+  // Double nu; //TODO: Unused variable nu
+  Double omega;
+  // nu=1.5;
 
   updateMaterialData(parameter_); //Writes initial guesses of parameters (read from MeasuredData.dat) to system
 
-  Double normJacMat, old_res_outer, res_outer, new_res_inner, old_res_inner,
+  Double normJacMat, old_res_outer;
+  // Double res_outer; // TODO: Unused variable res_outer
+  Double new_res_inner, old_res_inner,
       new_res_outer, maxres_inner;
   Double relax;
   relax=10.0;
@@ -46,7 +50,7 @@ void piezoParamIdent::nuMethods() {
   norm(act_res, new_res_outer, maxres_inner, y_hat_);
 
   std::cout<<"\n Norm of residual ||F(p)-y|| = "<< new_res_outer <<std::endl;
-  res_outer=new_res_outer;
+  // res_outer=new_res_outer;
 
   *parLog_<<" "<< new_res_outer<<"  ";
 

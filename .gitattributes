@@ -655,6 +655,7 @@ share/xml/CFS-Simulation/Schemas/CFS_Solvers.xsd svneol=native#text/xml
 share/xml/CMakeLists.txt svneol=native#text/plain
 share/xml/Tools/SchemaViewer2.zip -text svneol=unset#application/zip
 share/xsl/CMakeLists.txt svneol=native#text/plain
+share/xsl/cfs_info_output_html.xsl.in -text
 share/xsl/check_for_docu_tag.xsl -text
 share/xsl/ctest_notes_trafo.xsl -text
 share/xsl/ctest_update_trafo.xsl -text

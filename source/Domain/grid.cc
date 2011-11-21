@@ -684,7 +684,9 @@ namespace CoupledField
     Vector<Double> s, t;
     Vector<Double> normal;
     StdVector<UInt> connect2;
-    Double dist, dist1, dist2, fac;
+    Double dist;
+    // Double dist1, dist2; // TODO: Unused variables dist1, dist2
+    Double fac;
     UInt nodenum_c0, nodenum_c1, nodenum_d0, nodenum_d1;
     Double relativeElemVol;
 
@@ -758,14 +760,14 @@ namespace CoupledField
     // Compute x1 coordinate of line2 in respect
     // to line1.
     diff0 = d0 - c0;
-    dist1 = diff0.NormL2();
+    // dist1 = diff0.NormL2();
     diff0.Inner(diff1, s[0]);
     s[0] *= fac;
 
     // Compute x2 coordinate of line2 in respect
     // to line1.
     diff0 = d1 - c0;
-    dist2 = diff0.NormL2();
+    // dist2 = diff0.NormL2();
     diff0.Inner(diff1, s[1]);
     s[1] *= fac;
 
@@ -2010,12 +2012,12 @@ namespace CoupledField
 
     UInt nElemsRegion1 = region1Elems.GetSize();
     UInt numCorners;
-    UInt lastCornerInRegion2;
+    // UInt lastCornerInRegion2; // TODO: Unused variable lastCornerInRegion2
 
     for(UInt i=0; i<nElemsRegion1; i++) {
       el = region1Elems[i];
       numCorners = el->ptElem->GetNumCorners();
-      lastCornerInRegion2 = 0;
+      // lastCornerInRegion2 = 0;
       for(UInt n=0; n<numCorners; ) {
         if(region2Nodes.Find(el->connect[n]) < 0) {
           n++;

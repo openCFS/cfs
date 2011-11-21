@@ -560,6 +560,32 @@ namespace CoupledField {
           setIdx = datainfo_.Nsetinfo[i][stepNum-1].idx;
           resVecSize = numDofs * numResEntities;
           
+          if (analysis_ == CapaInterfaceC::CwData && 
+              result->GetEntryType() == BaseMatrix::COMPLEX ) {
+
+            Vector<Complex> &resVec
+                = dynamic_cast< Result<Complex>& >(*result).GetVector();
+            resVec.Resize(resVecSize);
+              std::cout << "i " << i << " stepNum " << stepNum << std::endl;
+            
+            EntityIterator eit = result->GetEntityList()->GetIterator();
+            for ( j=0; j<numResEntities; ++j ) {
+              UInt nodeNumber = eit.GetNode();
+//              setIdx = datainfo_.Nsetinfo[i][stepNum-1].idx;
+//              int setIdx2 = datainfo_.Nsetinfo[i][(stepNum-1)/2+1].idx;
+              capaIf_.GetNodeData(nodeNumber, setIdx, data1, data2);
+              for ( iDof=0; iDof<numDofs; ++iDof ) {
+                if((stepNum%2) == 0) {
+                  resVec[j*numDofs+iDof].real() = data2[iDof];
+                } else {
+                  resVec[j*numDofs+iDof].real() = data2[iDof];
+                }
+              }
+              eit++;
+            }
+
+                
+          } else {
           if (analysis_ == CapaInterfaceC::ComplexCwData) {
             if ( result->GetEntryType() != BaseMatrix::COMPLEX ) {
               EXCEPTION("Must provide storage of type Complex for result '"
@@ -579,6 +605,7 @@ namespace CoupledField {
               }
               eit++;
             }
+            
           } else {
             if ( result->GetEntryType() != BaseMatrix::DOUBLE ) {
               EXCEPTION("Must provide storage of type Double for result '"
@@ -599,8 +626,10 @@ namespace CoupledField {
               eit++;
             }
           }
+          }
           break;
         }
+        
       }
       
       if (datainfo_.numtype55 == 0) {

@@ -232,13 +232,13 @@ namespace CoupledField {
     Double Ecomp;
     UInt pdeElem;
     RegionIdType actRegion;
-    BaseMaterial * actSDMat = NULL;
+    // BaseMaterial * actSDMat = NULL; // TODO: Unused variable actSDMat
 
     std::map<RegionIdType, BaseMaterial*>::iterator it;
     for ( it = elecMat.begin(); it != elecMat.end(); it++ ) {
       // Set current region and material
       actRegion = it->first;
-      actSDMat = it->second;
+      // actSDMat = it->second;
 
       Hysteresis* hyst = elecMat[actRegion]->getHysteresis();
       if ( hyst!= NULL ) {

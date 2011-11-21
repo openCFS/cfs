@@ -1737,14 +1737,14 @@ namespace CoupledField {
 
         // If first volume element does not belong to acoustic PDE, try the
         // second one
-        Elem * ptVolElem = NULL;
+        // Elem * ptVolElem = NULL; // TODO: Unused variable ptVolElem
         if ( matIndex == -1 ) {
           matIndex = subdoms_.Find(actSaveElem->ptVolElem2->regionId);
-          ptVolElem = actSaveElem->ptVolElem2;
+          // ptVolElem = actSaveElem->ptVolElem2;
         }
-        else {
-          ptVolElem = actSaveElem->ptVolElem1;
-        }
+        // else {
+          // ptVolElem = actSaveElem->ptVolElem1;
+        // }
 
         if ( matIndex == -1) {
           EXCEPTION( "AcousticPDE::CalcForce: The two volume element"
@@ -2027,7 +2027,7 @@ namespace CoupledField {
     //some help variables
     Vector<Double> lCoordSurf;
     Vector<TYPE> elemIntensity(dim_);
-    BaseFE * ptSurfElemFE;
+    // BaseFE * ptSurfElemFE; // TODO: Unused variable ptSurfElemFE
     Double density  = 0.0;
 
     // Create vector with interpolation coordinate.
@@ -2061,7 +2061,7 @@ namespace CoupledField {
       bool vol_1 = surfNeighborRegions_[vals] == actSurfElem->ptVolElem1->regionId;
       Elem* ptVolElem = vol_1 ? actSurfElem->ptVolElem1 : actSurfElem->ptVolElem2;
 
-      ptSurfElemFE = actSurfElem->ptElem;
+      // ptSurfElemFE = actSurfElem->ptElem;
 
       const StdVector<UInt> & surfConnect = actSurfElem->connect;
 
@@ -2119,16 +2119,16 @@ namespace CoupledField {
     Double actFreq = parser->Eval( mHandle_ );
 
     //check solution type and compute factor
-    SolutionType solType;
+    // SolutionType solType; // TODO: Unused variable solType
     Complex multVal = 0;
 
     // factor 0.5 is due to the fact, that the values are peak values
     if ( formulation_ == ACOU_PRESSURE ) {
-      solType = ACOU_PRESSURE;
+      // solType = ACOU_PRESSURE;
       multVal = Complex(0.0, -0.5/ (2.0*PI*actFreq) );
     }
     else {
-      solType = ACOU_POTENTIAL;
+      // solType = ACOU_POTENTIAL;
       multVal = Complex(0.0, -0.5*(2.0*PI*actFreq));
     }
 

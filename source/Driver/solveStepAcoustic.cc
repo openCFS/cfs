@@ -154,7 +154,7 @@ namespace CoupledField {
   
 
     Vector<Double>     sol, solderiv1, solderiv2, rhs;
-    BaseFE             * ptElem;
+    // BaseFE             * ptElem; // TODO: Unused variable ptElem
     StdVector<UInt> connect;
     StdVector<Integer> connect_PDE;
   
@@ -208,7 +208,7 @@ namespace CoupledField {
         EntityIterator it = actSDList.GetIterator();
         for ( it.Begin(); !it.IsEnd(); it++) {
           
-          ptElem  = it.GetElem()->ptElem;
+          // ptElem  = it.GetElem()->ptElem;
           connect = it.GetElem()->connect;
           
           PDE_.GetSolVecOfElement(sol, it, results_[0]);

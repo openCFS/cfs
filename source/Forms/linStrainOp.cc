@@ -55,9 +55,9 @@ namespace CoupledField
     helpElemField.Resize(dim);
     helpElemField.Init();
    
-    UInt nShFnc = 0;
+    // UInt nShFnc = 0; // TODO: Unused variable nShFnc
     UInt ip=1;
-    nShFnc = ptElement->ptElem->GetNumNodes();
+    // nShFnc = ptElement->ptElem->GetNumNodes();
 
   
     Vector<TYPE> actDispl;
@@ -82,7 +82,8 @@ namespace CoupledField
     const UInt spaceDim = ptelem->GetDim();  
     const UInt nrDofs   = spaceDim;
 
-    UInt actDim, actNode, j, k;
+    UInt actDim, actNode;
+    // UInt j, k; // TODO: Unused variables j,k
     if (spaceDim==2)
       if (isaxi_)      
         bMat.Resize(4, numFncs * nrDofs);
@@ -110,8 +111,8 @@ namespace CoupledField
     switch(spaceDim)
       {
       case 2:
-        j = 1;
-        k = 0;
+        // j = 1;
+        // k = 0;
         
         for (actNode = 0; actNode < numFncs; actNode++)
           {
