@@ -52,7 +52,7 @@ namespace CoupledField {
 
     //! \name Construction, Destruction and Setup
     //! The following methods are related to construction and destruction of
-    //! VBR_Matrix objects, to initialisation of matrix values and to the
+    //! VBR_Matrix objects, to initialization of matrix values and to the
     //! setting and manipulation of the sparsity pattern of the matrix.
     //@{
 
@@ -397,12 +397,12 @@ namespace CoupledField {
     
     //! Auxiliary method for setting up the diagonal index array
 
-    //! This auxilliary method uses the existing VBR structure information,
+    //! This auxiliary method uses the existing VBR structure information,
     //! i.e. the rowPtr_ and colInd_ arrays, to determine the index positions
     //! of the diagonal matrix entries in the data_ and colInd_ arrays. 
     void FindDiagonalEntries();
     
-    //! Find for given row amd col index the rowBlock and colBlock
+    //! Find for given row and col index the rowBlock and colBlock
     
     //! This method find for a given row and column the corresponding
     //! rowBlock and columnBlock. Thus, it has to perform two search runs,

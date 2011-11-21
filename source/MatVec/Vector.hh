@@ -70,9 +70,6 @@ template<typename T> class ElemStoreSol;
     //! is initialized with zeroes.
     explicit Vector<T>(const UInt size, const T entry = 0);
 
-    //! Converting a 3-dimensional point to a vector
-    Vector(const Point &p);
-
     //! Copy Constructor
 
     //! This is a deep copy constructor. It will allocate its own data_

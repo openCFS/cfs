@@ -105,16 +105,16 @@ namespace CoupledField {
 
       (*output).setf(std::ios::uppercase);
 
-      Point Point;
-      ptGrid_->GetNodeCoordinate(Point,i+1);
+      Vector<Double> point(3);
+      ptGrid_->GetNodeCoordinate(point,i+1);
       if( dim == 3 ) {
-        (*output) << "   " << Point[0];
-        (*output) << "   " << Point[1];
-        (*output) << "   " << Point[2];
+        (*output) << "   " << point[0];
+        (*output) << "   " << point[1];
+        (*output) << "   " << point[2];
       } else {
         (*output) << "   " << 0.0;
-        (*output) << "   " << Point[0];
-        (*output) << "   " << Point[1];
+        (*output) << "   " << point[0];
+        (*output) << "   " << point[1];
       }
       (*output) << std::endl;
     }

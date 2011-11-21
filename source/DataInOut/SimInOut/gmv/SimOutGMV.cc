@@ -540,7 +540,7 @@ namespace CoupledField {
 
     // write x,y,z-coordinate
     for ( i = 1; i <= numnodes; i++) {
-      Point p;
+      Vector<Double> p;
       
       ptGrid_->GetNodeCoordinate(p, i);  
         

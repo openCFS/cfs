@@ -9,7 +9,6 @@
 
 #include "DataInOut/SimInput.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
-#include "Utils/Point.hh"
 
 namespace CoupledField
 {
@@ -209,10 +208,10 @@ namespace CoupledField
     UInt nelems_[3];
 
     //! Minimal coordinates
-    Point minimal_;
+    Vector<Double> minimal_;
 
     //! Maximal coordinates
-    Point maximal_;
+    Vector<Double> maximal_;
     
     //! Total number of elements
     UInt maxNumElems_;

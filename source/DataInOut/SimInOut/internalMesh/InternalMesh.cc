@@ -18,12 +18,18 @@ using std::endl;
 InternalMesh::InternalMesh(std::string fileName, PtrParamNode inputNode) :
             SimInput(fileName, inputNode),
             dim_(0),
-            minimal_(Point(0.0, 0.0, 0.0)),
-            maximal_(Point(1.0, 1.0, 0.0)), // maxz is set to 0.0 for 2D
             maxNumElems_(0),
             maxNumNodes_(0),
             info_(info->Get("header")->Get("domain")->Get("internal"))
 {
+  
+  // initialize minimal / maximal point
+  minimal_.Resize(3);
+  minimal_.Init(0.0);
+  maximal_.Resize(3);
+  maximal_[0] = 1.0;  // maxz is set to 0.0 for 2D
+  maximal_[1] = 1.0;   // maxz is set to 0.0 for 2D
+  
   // in base class
   capabilities_.insert(SimInput::MESH);
 
@@ -142,7 +148,11 @@ void InternalMesh::ReadMesh(Grid *mi)
     for(UInt y = 0; y <= nelems_[1]; ++y)
       for(UInt x = 0; x <= nelems_[0]; ++x)
       {
-        mi_->SetNodeCoordinate(++nodeNum, Point(xinc*x, yinc*y, zinc*z));
+        Vector<Double> loc(3);
+        loc[0] = xinc*x;
+        loc[1] = yinc*y;
+        loc[2] = zinc*z;
+        mi_->SetNodeCoordinate(++nodeNum, loc);
         regionNodes_[0].insert(nodeNum);
       }
 

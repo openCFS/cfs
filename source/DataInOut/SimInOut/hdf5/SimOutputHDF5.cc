@@ -765,7 +765,7 @@ namespace CoupledField {
     // collect all nodal coordinates
     std::vector<Double> locs( nNodes * 3 );
     for (UInt i = 0; i < nNodes; i++) {
-      Point p;
+      Vector<Double> p;
       ptGrid_->GetNodeCoordinate(p, i+1);
       locs[i*3+0] = p[0];
       locs[i*3+1] = p[1];

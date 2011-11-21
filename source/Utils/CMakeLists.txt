@@ -9,7 +9,6 @@ SET(UTILS_SRCS
   readCFDbinary.cc
   SmoothSpline.cc
   tools.cc
-  Point.cc
   )
 
 ADD_LIBRARY(utils STATIC ${UTILS_SRCS})

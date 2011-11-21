@@ -108,9 +108,6 @@ namespace CoupledField
     virtual void AddNodes(const UInt numNodes)
     { EXCEPTION( "Not implemented" ); }
 
-    virtual void SetNodeCoordinate(const UInt numNode, const Point & rfPoint)
-    { EXCEPTION( "Not implemented" ); }
-
     virtual void SetNodeCoordinate(const UInt numNode, const Vector<Double> & rfPoint)
     { EXCEPTION( "Not implemented" ); }
 
@@ -123,15 +120,6 @@ namespace CoupledField
     
     //! Set if grid is axisymmetric
     void SetAxi(bool isAxi ) { isAxi_ = isAxi;}
-
-    //! Get coordinates of node with global number inode
-    //! \param rfPoint (out) coordinates of point 3D
-    //! \param inode (in) node number
-    //! \param updated (in) flag indicating if updated geometry should be used
-    virtual void GetNodeCoordinate( Point & rfPoint,
-                                    const UInt inode,
-                                    bool updated = false ) const
-    { EXCEPTION( "Not implemented" ); }
 
     //! Get coordinates of node with global number inode as vector
     //! \param rfPoint (out) coordinates of point 3D
@@ -166,13 +154,6 @@ namespace CoupledField
     virtual void GetElemNodesCoord( Matrix<Double> & coordMat,
                                     const StdVector<UInt> & connect,
                                     bool updated = false ) = 0;
-
-
-    //! Set offset for a single node, called by shape optimization
-    virtual void SetNodeOffset( const UInt node, const Point& offset ) = 0;
-
-    //! Get offset for a single node, called by shape optimization
-    virtual void GetNodeOffset(const UInt node, Point& offset) = 0;
 
     //! Set offset for coordinates due to updated Lagrangian formulation
     virtual void SetNodeOffset( const StdVector<UInt>& nodes,
@@ -411,13 +392,6 @@ namespace CoupledField
                                        bool isaxi = false,
                                        bool updated = false ) = 0;
 
-    /** Calculate the volume spanned by all named nodes of all regions.
-     * For most proper convex grids this will be faster than CalcVolumeOfRegion() but one needs to
-     * be sure to have named nodes at the exterior points. Will hold for periodic
-     * boundary problems
-     * @param diameter_out returns the diameter of the convex domain if given. NULL is allowed*/
-    virtual Double CalcVolumeSpannedByNamedNodes(Point* dim_out = NULL) const
-    { EXCEPTION("not implemented here"); }
 
     //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     //+++++++++++++++++++++++++ NAMED NODES INFORMATION ++++++++++++++++++++++

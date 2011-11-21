@@ -69,9 +69,6 @@ namespace CoupledField
     //! Return if grid uses quadratic elements
     bool IsQuadratic() {return isQuadratic_; }
 
-    /** @see Grid::CalcVolumeSpannedByNamedNodes() */
-    Double CalcVolumeSpannedByNamedNodes(Point* dim_out = NULL) const;
-
     //! Return number of elements of a given type
     //! \param type Type of finite element (LINE, TRIA, ...)
     UInt GetNumElemOfType( Elem::FEType type );
@@ -85,13 +82,7 @@ namespace CoupledField
     //! two- and three-dimensional meshes are supported.
     UInt GetDim();  
 
-    //! Return maximum number of nodes
-  
     virtual void AddNodes(const UInt numNodes);
-      
-    virtual void SetNodeCoordinate(const UInt inode, const Point & rfPoint);
-      
-    virtual void SetNodeCoordinate(const UInt numNode, const Vector<Double> & rfPoint);
       
 
     /** @see Grid::GetNumNodes() */
@@ -169,15 +160,6 @@ namespace CoupledField
     void GetNodesByRegion( StdVector<UInt> & nodeList,
                            const RegionIdType regionId );
     
-    //! Get coordinates of node with global number inode
-    //! \param rfPoint (out) coordinates of point 2D
-    //! \param inode (in) node number
-    //! \param updated (in) flag indicating if updated geometry should be used
-    void GetNodeCoordinate( Point & rfPoint,
-                            const UInt inode,
-                            bool updated) const;
-  
-
     //! Get coordinates of node with global number inode as vector
     //! \param rfPoint (out) coordinates of point 3D
     //! \param inode (in) node number
@@ -185,6 +167,10 @@ namespace CoupledField
     void GetNodeCoordinate( Vector<Double> & rfPoint,
                             const UInt inode,
                             bool updated ) const;
+    
+    //! Set nodal coordinate
+    virtual void SetNodeCoordinate(const UInt numNode, 
+                                   const Vector<Double> & rfPoint );
     //@}
 
     // =======================================================================
@@ -375,14 +361,6 @@ namespace CoupledField
 			     bool onlyLinNodes = false);
     
 
-    //! Returns the names of all regions
-
-    //! Set offset for a single node, called from ShapeDesign
-    void SetNodeOffset( const UInt node, const Point& offset );
-
-    //! Get offset for a single node, called from mechpde
-    void GetNodeOffset(const UInt node, Point& offset);
-
     //! Set offset for coordinates due to updated Lagrangian formulation
     void SetNodeOffset( const StdVector<UInt>& nodes, 
                         const Vector<Double>& offsets );
@@ -394,11 +372,6 @@ namespace CoupledField
     //! NC_SIMON: add node to the grid
     //! USAGE OF THIS FUNCTION CAN BE DANGEROUS NOT
     //! ALL NECCESARY FEATURES MAY BE IMPLEMENTED 
-    virtual void AddNode( const Point & coord, UInt & inode);
-
-    //! NC_SIMON: add node to the grid
-    //! USAGE OF THIS FUNCTION CAN BE DANGEROUS NOT
-    //! ALL NECCESARY FEATURES MAY BE IMPLEMENTED 
     virtual void AddNode( const Vector<Double> & coord, UInt & inode );
     
     //! NC_SIMON: add multiple nodes to the grid
@@ -406,7 +379,7 @@ namespace CoupledField
     //! ALL NECCESARY FEATURES MAY BE IMPLEMENTED 
     //! \param coords (in) coordinates of points
     //! \param inode (out) node numbers
-    virtual void AddNodes( const StdVector< Point > & coords,
+    virtual void AddNodes( const StdVector< Vector<Double> > & coords,
                            StdVector< UInt > & inodes);
 
     //! NC_SIMON: Add surface elements
@@ -534,10 +507,10 @@ namespace CoupledField
     //@{ \name Mesh Attributes
   
     //! Vector with nodal coordinates
-    StdVector<Point> coords_;
+    StdVector<Vector<Double> > coords_;
 
     //! Vector with nodal coordinate offsets
-    StdVector<Point> deltCoords_;
+    StdVector<Vector<Double> > deltCoords_;
   
     //! Vector with elements (surface and volume), ordered by element number
     StdVector<Elem*> orderedElems_;

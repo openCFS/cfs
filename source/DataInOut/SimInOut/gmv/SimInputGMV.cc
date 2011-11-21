@@ -458,7 +458,7 @@ namespace CoupledField {
       mi_->AddNodes(gmv_meshdata.nnodes);
 
       for (node=0; node<gmv_meshdata.nnodes; node++) {
-        Point p;
+        Vector<Double> p(3);
         
         p[0] = gmv_meshdata.x[node];
         p[1] = gmv_meshdata.y[node];
@@ -605,7 +605,7 @@ namespace CoupledField {
       mi_->AddNodes(gmv_meshdata.nnodes);
 
       for (node=0; node<gmv_meshdata.nnodes; node++) {
-        Point p;
+        Vector<Double> p(3);
         
         p[0] = gmv_meshdata.x[node];
         p[1] = gmv_meshdata.y[node];

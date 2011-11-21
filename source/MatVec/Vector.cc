@@ -17,19 +17,6 @@ namespace CoupledField {
       data_ [i] = entry;
   }
 
-
-  // *******************************
-  //   Constructor from Point class
-  // *******************************
-  template<typename T>
-  Vector<T>::Vector(const Point & p) : 
-    SingleVector(), data_(new T[3]), capacity_(3), memBelongsToMe_(true)
-  {
-    size_ = 3;
-    for (unsigned int i = 0; i < 3; ++i)
-      data_ [i] = static_cast<T>(p[i]);
-  }
-
   // *******************
   //   Deep destructor
   // *******************

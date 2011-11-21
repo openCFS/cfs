@@ -3,7 +3,6 @@ SET(MAPPINGS_SRCS
   Elem.cc
   ElemShapeMap.cc
   EntityLists.cc
-  Jacobian.cc
   )
 
 

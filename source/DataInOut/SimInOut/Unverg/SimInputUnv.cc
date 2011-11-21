@@ -188,7 +188,7 @@ namespace CoupledField {
     // get coordinates
     LOG_TRACE(simInputUNV) << "reading vertex coordinates";
 
-    Point  p, pTemp;
+    Vector<Double> p(3), pTemp(3);
     long   node; // COMPWARNING: unused variable long elem;
     // COMPWARNING: unused variable bool   isDimPlausible = false;
     //    ocs::Vec3d oldNormal;

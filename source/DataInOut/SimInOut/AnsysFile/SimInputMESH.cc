@@ -56,8 +56,14 @@ namespace CoupledField {
     std::vector< double > coords;
     GetCoordinates( coords );
 
-    for(UInt i=0; i<numNodes; i++)
-      mi_->SetNodeCoordinate(i+1, Point(coords[i*3+0], coords[i*3+1], coords[i*3+2]));
+    for(UInt i=0; i<numNodes; i++) {
+      Vector<Double> loc(3);
+      loc[0] = coords[i*3+0];
+      loc[1] = coords[i*3+1];
+      loc[2] = coords[i*3+2];
+      mi_->SetNodeCoordinate(i+1, loc);
+    }
+      
 
     // Get Regions
     StdVector<std::string> regionNames;

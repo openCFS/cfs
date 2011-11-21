@@ -151,13 +151,13 @@ namespace CoupledField {
     GiD_BeginCoordinates();
     if ( dim_ == GiD_2D ) {
 
-      Point point;
+      Vector<Double> point(2);
       for ( UInt i = 1; i <= numNodes; i++ ) {
         ptGrid_->GetNodeCoordinate(point,i);
         GiD_WriteCoordinates2D(i, point[0], point[1]);
       }
     } else {
-      Point point;
+      Vector<Double> point(3);
       for ( UInt i = 1; i <= numNodes; i++ ) {
         ptGrid_->GetNodeCoordinate(point,i);
         GiD_WriteCoordinates(i, point[0], point[1], point[2]);

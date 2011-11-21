@@ -929,8 +929,6 @@ source/Domain/ElemMapping/ElemShapeMap.cc svneol=native#text/x-c%2B%2Bsrc
 source/Domain/ElemMapping/ElemShapeMap.hh svneol=native#text/x-c%2B%2Bhdr
 source/Domain/ElemMapping/EntityLists.cc svneol=native#text/x-c%2B%2Bsrc
 source/Domain/ElemMapping/EntityLists.hh svneol=native#text/x-c%2B%2Bhdr
-source/Domain/ElemMapping/Jacobian.cc svneol=native#text/x-c%2B%2Bsrc
-source/Domain/ElemMapping/Jacobian.hh svneol=native#text/x-c%2B%2Bhdr
 source/Domain/ElemMapping/SurfElem.hh svneol=native#text/x-c%2B%2Bhdr
 source/Domain/Mesh/CMakeLists.txt -text
 source/Domain/Mesh/Grid.cc svneol=native#text/x-c%2B%2Bsrc
@@ -1290,8 +1288,6 @@ source/Utils/Interpolate1D.cc svneol=native#text/x-c%2B%2Bsrc
 source/Utils/Interpolate1D.hh svneol=native#text/x-c%2B%2Bhdr
 source/Utils/LinInterpolate.cc svneol=native#text/x-c%2B%2Bsrc
 source/Utils/LinInterpolate.hh svneol=native#text/x-c%2B%2Bhdr
-source/Utils/Point.cc -text
-source/Utils/Point.hh -text
 source/Utils/SmoothSpline.cc svneol=native#text/x-c%2B%2Bsrc
 source/Utils/SmoothSpline.hh svneol=native#text/x-c%2B%2Bhdr
 source/Utils/StdVector.cc svneol=native#text/x-c%2B%2Bsrc
@@ -1305,7 +1301,6 @@ source/Utils/mathParser/mathParser.cc svneol=native#text/x-c%2B%2Bsrc
 source/Utils/mathParser/mathParser.hh svneol=native#text/x-c%2B%2Bhdr
 source/Utils/mathfunctions.cc svneol=native#text/x-c%2B%2Bsrc
 source/Utils/mathfunctions.hh svneol=native#text/x-c%2B%2Bhdr
-source/Utils/readCFDbinary.cc -text svneol=unset#text/x-c%2B%2Bsrc
 source/Utils/tools.cc -text
 source/Utils/tools.hh -text
 source/cfstool/CMakeLists.txt svneol=native#text/plain

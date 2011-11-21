@@ -5,7 +5,6 @@
 #include <iostream>
 
 #include "General/Environment.hh"
-#include "Utils/Point.hh"
 
 namespace CoupledField {
 
@@ -97,35 +96,35 @@ namespace CoupledField {
   UInt defineRefinements(const Double tolElem, const Double tolTotal,
                          const UInt noOfChilds);
 
-  //! calculate the normal to line with following orientation: a-->b
-  /*!
-    \param normal normal
-    \param a,b pointes
-  */
-  void calcNormal2Line(Vector<Double> & normal, const Point &a, const Point &b);
-
-  //! calculate the normal to line with following orientation: a-->b
-  /*!
-    \param normal normal
-    \param a,b points embedded in Matrix
-  */
-  void calcNormal2Line_Mat(Vector<Double> & normal, const Matrix<Double> &a);
-
-  //! calculate normal to surface element
-  /*!
-    \param normal normal
-    \param a,b,c vertices of element
-  */
-  void calcNormal2Surface(Vector<Double> & normal,
-                          const Point &a, const Point &b, const Point &c);
-
-
-  //! calculate normal to surface element using matrix parameter
-  /*!
-    \param normal normal
-    \param ptCoord matrix containing vertices of surface element
-  */
-  void calcNormal2Surface_Mat(Vector<Double> & normal, const Matrix<Double> &ptCoord);
+//  //! calculate the normal to line with following orientation: a-->b
+//  /*!
+//    \param normal normal
+//    \param a,b pointes
+//  */
+//  void calcNormal2Line(Vector<Double> & normal, const Point &a, const Point &b);
+//
+//  //! calculate the normal to line with following orientation: a-->b
+//  /*!
+//    \param normal normal
+//    \param a,b points embedded in Matrix
+//  */
+//  void calcNormal2Line_Mat(Vector<Double> & normal, const Matrix<Double> &a);
+//
+//  //! calculate normal to surface element
+//  /*!
+//    \param normal normal
+//    \param a,b,c vertices of element
+//  */
+//  void calcNormal2Surface(Vector<Double> & normal,
+//                          const Point &a, const Point &b, const Point &c);
+//
+//
+//  //! calculate normal to surface element using matrix parameter
+//  /*!
+//    \param normal normal
+//    \param ptCoord matrix containing vertices of surface element
+//  */
+//  void calcNormal2Surface_Mat(Vector<Double> & normal, const Matrix<Double> &ptCoord);
 
   /** Assigns the multiple of a matrix to another matrix. The target is resized.
    * This is silly copy & pase code. And is for the non-mixed variants already
@@ -215,43 +214,6 @@ namespace CoupledField {
   /** derivative of
    * @see CalcAbsApproximation() */
   double DerivSmoothAbs(double x, double eps);
-
-  /** A simple helper to write structured VTK point data in the
-      legacy ASCII. pre-XML format. */
-  class VTKStructuredPoints
-  {
-  public:
-    /** Number of points in x, y and z-direction, each > 1.
-     * The implementation is not optimized for large data sets!
-     * @param scalars label of the scalars set "" if there are no scalars
-     * @param vectors label for vector data or "" if there are none. */
-    VTKStructuredPoints(Integer i, Integer j, Integer k, const std::string& scalars, const std::string& vectors);
-
-    /** There is 0 or 1 scalar set possible, depending on the scalars label in the constructor.
-     * You can make a template if you want it more complicated.*/
-    void Set(Integer i, Integer j, Integer k, const Double value);
-
-    /** @see the other Set() */
-    void Set(Integer i, Integer j, Integer k, const Point& value);
-
-    /** @param value must be of size 2 or 3 */
-    void Set(Integer i, Integer j, Integer k, const Vector<Double>& value);
-
-    /** checks if the data is completely set */
-    void Write(std::ostream& out) const;
-
-  private:
-
-    // our 3D structure of a pair with scalar and Point for the data
-    StdVector<StdVector<StdVector<std::pair<Double, Point> > > > data_;
-
-    std::string scalar_label_;
-    std::string vector_label_;
-
-    Integer i_max;
-    Integer j_max;
-    Integer k_max;
-  };
 
 } // end of CoupledField
 

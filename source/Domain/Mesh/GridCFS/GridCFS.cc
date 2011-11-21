@@ -1245,27 +1245,12 @@ namespace CoupledField {
   void GridCFS::AddNodes(const UInt numNodes)
   {
     coords_.Resize(this->numNodes_ + numNodes);
+    for( UInt i = 0; i < coords_.GetSize(); ++i ) {
+      coords_[i].Resize(3);
+    }
     numNodes_ += numNodes;
   }
 
-
-  void GridCFS::SetNodeCoordinate(const UInt inode, const Point & rfPoint)
-  {
-    if ( inode > numNodes_) {
-      EXCEPTION( "GridCFS: There are only " << numNodes_
-                 << " nodes in the grid. You wanted to set coordinates for "
-                 << "node number " << inode );
-    }
-
-    if ( (dim_ == 2) && (rfPoint[2] != 0) ) {
-      EXCEPTION(  "GridCFS: Dimension of grid is 2D. "
-                  << "But you wanted to set the 3D coordinate " << "("
-                  << rfPoint[0] << ", " << rfPoint[1] << ", " << rfPoint[2]
-                  << ") for node number " << inode);
-    }
-
-    coords_[inode-1] = rfPoint;
-  }
 
   void GridCFS::SetNodeCoordinate(const UInt inode, const Vector<Double> & rfPoint)
   {
@@ -1431,44 +1416,6 @@ namespace CoupledField {
     namedElemNodes_.Push_back( nodeVec );
   }
 
-  Double GridCFS::CalcVolumeSpannedByNamedNodes(Point* dim_out) const
-  {
-    Double maximal = std::numeric_limits<Double>::max();
-    Double minimal = std::numeric_limits<Double>::min();
-
-    double mins[3] = { maximal, maximal, maximal};
-    double maxs[3] = { minimal, minimal, minimal};
-    Point p;
-    // namedNodes_ is indexed by names. We ignore it
-    for(unsigned int o = 0; o < namedNodes_.GetSize(); o++)
-    {
-      const StdVector<UInt>& nodes = namedNodes_[o];
-
-      for(unsigned int n = 0, nn = nodes.GetSize(); n < nn; n++)
-      {
-        GetNodeCoordinate(p , nodes[n], false);
-        for(unsigned int d = 0; d < 3; ++d)
-        {
-          if(mins[d] >  p.data[d]) mins[d] =  p.data[d];
-          if(maxs[d] <  p.data[d]) maxs[d] =  p.data[d];
-        }
-      }
-    }
-
-    double cube_vol = 1.0; // will be multiplied
-    if(dim_out) dim_out->SetZero();
-
-    for(unsigned int d = 0; d < dim_; d++)
-    {
-      cube_vol *= maxs[d] - mins[d];
-      if(dim_out)
-        (*dim_out)[d] = maxs[d] - mins[d];
-    }
-
-    return cube_vol;
-  }
-
-
   void GridCFS::GetListNodeNames( StdVector<std::string> & nodeNames) {
     nodeNames = namedNodeNames_;
   }
@@ -1557,25 +1504,6 @@ namespace CoupledField {
 
   }
 
-
-  void GridCFS::GetNodeCoordinate( Point & rfPoint,
-                                   const UInt inode,
-                                   bool updated ) const {
-
-    if ( inode > numNodes_ ) {
-      EXCEPTION( "GridCFS: There are only " << numNodes_
-                 << " nodes in the grid. You requested coordinates for "
-                 << "node number " << inode <<". Go check your mesh file!" );
-    }
-
-    rfPoint = coords_[inode-1];
-
-    if( updated && deltCoords_.GetSize() > 0 ) {
-      rfPoint += deltCoords_[inode-1];
-    }
-
-
-  }
 
 
   void GridCFS::GetNodeCoordinate( Vector<Double> & rfPoint,
@@ -2137,40 +2065,21 @@ namespace CoupledField {
   }
 
 
-  void GridCFS::SetNodeOffset( const UInt node, const Point& offset ){
-  
-    // Check if node offsets were already set
-    if( deltCoords_.GetSize() == 0 ) {
-      deltCoords_.Resize( coords_.GetSize() );
-      deltCoords_.Init();
-    }
-
-    deltCoords_[node] = offset;
-
-  }
-
-  void GridCFS::GetNodeOffset(const UInt node
-                              , Point& offset){
-    if(deltCoords_.GetSize()==0){
-      offset.SetZero();
-    }else{
-      offset = deltCoords_[node];
-    }
-  }
-
-
   void GridCFS::SetNodeOffset( const StdVector<UInt>& nodes,
                                const Vector<Double>& offsets ) {
 
     // Check if node offsets were already set
     if( deltCoords_.GetSize() == 0 ) {
       deltCoords_.Resize( coords_.GetSize() );
-      deltCoords_.Init();
+      for( UInt i = 0; i < coords_.GetSize(); ++i ) {
+        deltCoords_[i].Resize(3);
+        deltCoords_[i].Init();
+      }
     }
 
     // Set delta coordinates
     for( UInt iNode = 0; iNode < nodes.GetSize(); iNode++ ) {
-      Point actOffset;
+      Vector<Double> actOffset(3);
       for( UInt iDim = 0; iDim < dim_; iDim++ ) {
         actOffset[iDim] = offsets[iNode*dim_ + iDim];
       }
@@ -2413,9 +2322,9 @@ namespace CoupledField {
       {
         PtrParamNode node = nl->Get("node", ParamNode::APPEND);
         node->Get("id", ParamNode::APPEND)->SetValue(n+1); // 1-based!
-        node->Get("x", ParamNode::APPEND)->SetValue(coords_[n].data[0]);
-        node->Get("y", ParamNode::APPEND)->SetValue(coords_[n].data[1]);
-        node->Get("z", ParamNode::APPEND)->SetValue(dim_ > 2 ? coords_[n].data[2] : 0.0); // unfortunately there is garbage set :(
+        node->Get("x", ParamNode::APPEND)->SetValue(coords_[n][0]);
+        node->Get("y", ParamNode::APPEND)->SetValue(coords_[n][1]);
+        node->Get("z", ParamNode::APPEND)->SetValue(dim_ > 2 ? coords_[n][2] : 0.0); // unfortunately there is garbage set :(
 
         const StdVector<unsigned int>& ni = node_names[n];
         node->Get("names", ParamNode::APPEND)->SetValue(ni.GetSize());
@@ -2487,21 +2396,6 @@ namespace CoupledField {
     return -1.0;
   }
 
-  void GridCFS::AddNode( const Point & coord, UInt & inode)
-  {
-    if(!isInitialized_)
-      EXCEPTION("Cannot add node to uninitialized grid!");
-
-    coords_.Push_back(coord);
-    inode = ++numNodes_;
-
-    if (deltCoords_.GetSize() > 0) {
-      Point zero;
-      zero.SetZero();
-      deltCoords_.Push_back(zero);
-    }
-  }
-
   void GridCFS::AddNode( const Vector<Double> & coord, UInt & inode )
   {
     if(!isInitialized_)
@@ -2510,28 +2404,22 @@ namespace CoupledField {
     if(coord.GetSize() != 3)
       EXCEPTION("Node to be added has wrong dimension!");
 
-    Point p;
-
-    for(UInt i=0; i<3; i++)
-      p[i] = coord[i];
-
-    coords_.Push_back(p);
+    coords_.Push_back(coord);
     inode = ++numNodes_;
 
     if (deltCoords_.GetSize() > 0) {
-      Point zero;
-      zero.SetZero();
+      Vector<Double> zero(3);
+      zero.Init();
       deltCoords_.Push_back(zero);
     }
   }
 
-  void GridCFS::AddNodes( const StdVector< Point > & coords,
+  void GridCFS::AddNodes( const StdVector< Vector<Double> > & coords,
                           StdVector< UInt > & inodes)
   {
     if(!isInitialized_)
       EXCEPTION("Cannot add nodes to uninitialized grid!");
 
-    Point p;
     UInt i, n;
 
     n=coords.GetSize();
@@ -2545,8 +2433,8 @@ namespace CoupledField {
     }
 
     if (deltCoords_.GetSize() > 0) {
-      Point zero;
-      zero.SetZero();
+      Vector<Double> zero(3);
+      zero.Init();
       for (i = 0; i < n; ++i)
         deltCoords_.Push_back(zero);
     }
