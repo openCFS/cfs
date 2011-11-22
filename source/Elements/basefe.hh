@@ -408,7 +408,9 @@ namespace CoupledField
     //! Return space dimension
     UInt GetDim() const {return Dim_;}
 
-    //! Get integration points
+    //! Get integration points.
+    // This is ugly C-style. StdVector<Point>& would be much more appropriate!
+    // Therefore you need GetNumIntPoints()!
     Vector<Double> * GetIntPoints() {return IntPoints_;}
 
     //! Return number of nodes
@@ -423,7 +425,7 @@ namespace CoupledField
     //! Return number of corners
     UInt GetNumCorners() const {return NumCorners_;}
 
-    //! Returns number of integration points
+    //! Returns number of integration points. Note,
     UInt GetNumIntPoints() const {return NumIntPoints_;}
 
     //!

@@ -19,7 +19,7 @@ DECLARE_LOG(oc)
 DEFINE_LOG(oc, "optimalityCondition")
 
 OptimalityCondition::OptimalityCondition(Optimization* optimization, PtrParamNode pn)
- : BaseOptimizer(optimization, pn)
+ : BaseOptimizer(optimization, pn, Optimization::OPTIMALITY_CONDITION)
 {
   type.SetName("OptimalityCondition::Type");
   type.Add(FRAMED, "framed");

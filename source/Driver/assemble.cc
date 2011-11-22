@@ -78,7 +78,7 @@ namespace CoupledField
     delete linForms_;
   }
   
-  BiLinFormContext* Assemble::GetBiLinForm(RegionIdType regionId, StdPDE* pde1, StdPDE* pde2,  const std::string& integrator, bool silent)
+  BiLinFormContext* Assemble::GetBiLinForm(RegionIdType regionId, StdPDE* pde1, StdPDE* pde2,  const std::string& integrator, bool silent, Global::ComplexPart entryType)
   {
      // the EntityList has the region name as name but not the id
 //     std::string region = domain->GetGrid()->GetRegion().ToString(regionId);
@@ -92,16 +92,13 @@ namespace CoupledField
      {
        counter++;
        // we are wrong if the region does not match
-//       if((*iter)->GetFirstEntities()->GetName() != region) continue;
        if((*iter)->GetFirstEntities()->GetRegion() != regionId) continue;
        // when pde1 is given we compare it by name and continue if the names are different
-//       if(pde1 != NULL && (*iter)->GetFirstPde()->GetName() != pde1->GetName()) continue;
        if((*iter)->GetFirstPde() != pde1) continue;
-//       if(pde2 != NULL && (*iter)->GetSecondPde()->GetName() != pde2->GetName()) continue;
        if((*iter)->GetSecondPde() != pde2) continue;
        //std::cout << counter << ":" << (*iter)->GetIntegrator()->GetName() << " vs " << integrator << std::endl;
        if((*iter)->GetIntegrator()->GetName() != integrator) continue;
-
+       if(entryType <= Global::COMPLEX && (*iter)->GetEntryType() != entryType) continue;
        // we come here because we had no contradiction - check for uniqueness
        if(result != NULL) throw Exception("parameters not unique!");
        // absolutley no contradiction, save result and continue to

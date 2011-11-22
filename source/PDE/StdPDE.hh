@@ -262,8 +262,7 @@ namespace CoupledField {
      * @see DesignElement::InitFilter */
     ConstraintList& GetConstraints() { return constraints_; }
 
-    std::map<RegionIdType, BaseMaterial*>  getPDEMaterialData()
-    {return materials_;};
+    std::map<RegionIdType, BaseMaterial*>  getPDEMaterialData() { return materials_; };
     
     BaseNodeStoreSol * getPDESolution() {return sol_;};
 

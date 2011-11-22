@@ -3,6 +3,7 @@
 #include "Optimization/Design/DesignSpace.hh"
 #include "General/exception.hh"
 #include "Utils/StdVector.hh"
+#include "DataInOut/resultHandler.hh"
 #include "DataInOut/Logging/cfslog.hh"
 #include "Utils/Timer.hh"
 #include "Domain/domain.hh"
@@ -172,8 +173,9 @@ std::string BaseOptimizer::Scale::ToString()
   return os.str();
 }
 
-BaseOptimizer::BaseOptimizer(Optimization* opt, PtrParamNode pn) :
+BaseOptimizer::BaseOptimizer(Optimization* opt, PtrParamNode pn, Optimization::Optimizer type) :
   optimization(opt),
+  type_(type),
   info_(info->Get("optimization")->Get("optimizer")),
   objective(NULL),
   restart_requested(false),
@@ -181,6 +183,7 @@ BaseOptimizer::BaseOptimizer(Optimization* opt, PtrParamNode pn) :
   design_(DesignMemory(-1, 0.0)),
   optimizer_pn_(pn)
 {
+
   info_->Get(ParamNode::SUMMARY)->Get("timer")->SetValue(this->timer_ );
 }
 
@@ -200,6 +203,11 @@ void BaseOptimizer::SolveOptimizationProblem()
 {
   timer_->Start();
   SolveProblem();
+
+  // dirty fix to have the final status streamed for iTop
+  if(domain->GetResultHandler()->GetOutputWriter("streaming", true) != NULL && this->type_ != Optimization::EVALUATE_INITIAL_DESIGN)
+    optimization->CommitIteration(true);
+
   timer_->Stop();
 }
 

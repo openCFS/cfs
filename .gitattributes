@@ -682,8 +682,6 @@ source/DataInOut/MaterialHandler.hh svneol=native#text/x-c%2B%2Bhdr
 source/DataInOut/ParamHandling/CFSOLASParams.cc svneol=native#text/x-c%2B%2Bsrc
 source/DataInOut/ParamHandling/CFSOLASParams.hh svneol=native#text/x-c%2B%2Bhdr
 source/DataInOut/ParamHandling/CMakeLists.txt svneol=native#text/plain
-source/DataInOut/ParamHandling/InfoNode.cc svneol=native#text/x-c%2B%2Bsrc
-source/DataInOut/ParamHandling/InfoNode.hh svneol=native#text/x-c%2B%2Bhdr
 source/DataInOut/ParamHandling/ParamNode.cc -text svneol=unset#text/x-c%2B%2Bsrc
 source/DataInOut/ParamHandling/ParamNode.hh -text svneol=unset#text/x-c%2B%2Bhdr
 source/DataInOut/ParamHandling/ParamTools.hh svneol=native#text/x-c%2B%2Bhdr
@@ -973,6 +971,8 @@ source/Forms/FlatShellStiffInt.cc svneol=native#text/x-c%2B%2Bsrc
 source/Forms/FlatShellStiffInt.hh svneol=native#text/x-c%2B%2Bhdr
 source/Forms/PMLInt.cc svneol=native#text/x-c%2B%2Bsrc
 source/Forms/PMLInt.hh svneol=native#text/x-c%2B%2Bhdr
+source/Forms/PiezoStressStrain.cc -text
+source/Forms/PiezoStressStrain.hh -text
 source/Forms/abcInt.cc svneol=native#text/x-c%2B%2Bsrc
 source/Forms/abcInt.hh svneol=native#text/x-c%2B%2Bhdr
 source/Forms/acouMechInt.cc svneol=native#text/x-c%2B%2Bsrc

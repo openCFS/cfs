@@ -11,6 +11,7 @@
 
 // integrator (bi-)linear forms
 #include "Forms/mechStressStrain.hh"
+#include "Forms/PiezoStressStrain.hh"
 #include "Forms/gradfieldop.hh"
 #include "Forms/elecchargeop.hh"
 #include "Forms/nLinPiezoHyst.hh"
@@ -109,15 +110,10 @@ namespace CoupledField {
       break;
 
     case VON_MISES_STRESS:
-      if(isComplex_) {
+      if(isComplex_)
         CalcStressStrain<Complex>(result);
-        assert(false);
-//        dynamic_cast<MechPDE*>(pde1_)->CalcVonMises<Complex>(result);
-      } else {
+      else
         CalcStressStrain<Double>(result);
-        assert(false);
- //       dynamic_cast<MechPDE*>(pde1_)->CalcVonMises<Double>(result);
-      }
       break;
 
 
@@ -151,185 +147,164 @@ namespace CoupledField {
     }
   }
 
+
   template <class TYPE>
   void PiezoCoupling::CalcStressStrain(shared_ptr<BaseResult> res)
   {
     SolutionType resultType = res->GetResultInfo()->resultType;
-
-    Vector<Double> intPoint;
-    Vector<Double> LCoord;
-    Vector<TYPE> TempE;
-    Vector<TYPE> TempMechStrain;
-    Vector<TYPE> TempDField;
-
-    MechStressStrain<TYPE> * mechStressOp = NULL;
-
-    assert(GetPde1()->GetName() == "mechanic");
-    UInt stressDim = dynamic_cast<MechPDE*>(GetPde1())->GetStressStrainDim();
-    UInt elecDim   = stressDim == 6 ? 3 : 2;
-
-    // Retrieve solution from nodeStoreSolution Class
-    BaseNodeStoreSol * solPDE1 = pde1_->getPDESolution();
-    BaseNodeStoreSol * solPDE2 = pde2_->getPDESolution();
-
-    NodeStoreSol<TYPE> * solhelp1 =
-      dynamic_cast<NodeStoreSol<TYPE>*>(solPDE1);
-    NodeStoreSol<TYPE> * solhelp2 =
-      dynamic_cast<NodeStoreSol<TYPE>*>(solPDE2);
-
-    // Determines gradient of electric potential, i.e. E=\grad \phi
-    GradientFieldOp<TYPE> * FieldOp2
-      = new GradientFieldOp<TYPE>(ptGrid_, pde2_, eqnMap2_,
-                                  *solhelp2, results2_[0]->fctType,
-                                  isaxi_);
-
-    // Determines linear Strain S=Bu, i.e.
-    //  partial derivates of mechanical displacement
-    Vector<TYPE> elemElecStress, elemStressStrain, sortedStress;
-    elemElecStress.Resize(stressDim);
-    elemElecStress.Init(0);
-    elemStressStrain.Resize(stressDim);
-    elemStressStrain.Init(0);
-    TempMechStrain.Resize(stressDim);
-    TempMechStrain.Init();
-    TempDField.Resize(elecDim);
-    TempDField.Init();
-    sortedStress.Resize(6);
-
-    Matrix<TYPE> stiffnessMat, sTensor;
-    Matrix<TYPE> piezoCouplingMat;
-    Matrix<TYPE> piezoCouplingMatT;
-    Matrix<TYPE> permittivityMat;
-    Matrix<TYPE> elemDisp;
-
-    Global::ComplexPart dataType;
-   
-
-    // get material from mechanics
-    std::map<RegionIdType, BaseMaterial*> mechMat =
-      pde1_->getPDEMaterialData();
-
-
-    // get
-    Result<TYPE> &  actRes =
-      dynamic_cast<Result<TYPE>&>(*res);
+    Result<TYPE> &  actRes = dynamic_cast<Result<TYPE>&>(*res);
     EntityIterator it = actRes.GetEntityList()->GetIterator();
 
-    Vector<TYPE> & actVal = actRes.GetVector();
-    actVal.Resize( actRes.GetEntityList()->GetSize() * stressDim );
-
-    // Fetch material: As we assume, that all elements belong to
-    // one and the same region, we simply take the subdomain of the first
-    // element
-    it.Begin();
-
     // get the materials for the subdomain
+    std::map<RegionIdType, BaseMaterial*> mechMat = pde1_->getPDEMaterialData();
     BaseMaterial* matPiezo = materials_[it.GetElem()->regionId];
     BaseMaterial* mechMatSD = mechMat[it.GetElem()->regionId];
 
-    //transform the type
-    SubTensorType type;
-    String2Enum(subType_,type);
+    bool isMicroModel = matPiezo->GetMicroPiezoModel() != NULL;
 
-    // get correct mechanical stress operator and piezoelectric tensor
-    mechStressOp = new MechStressStrain<TYPE>(mechMatSD, type);
+    if(!isMicroModel)
+    {
+      // this is a "shared" mechanic implementation and is more accurate as we do not use the
+      // midpoints but integration points. Essential for vonMises stuff and higher order
+      // TODO: Manfred, it makes sense to add the micro model there - Fabian
+      PiezoStressStrain<TYPE> stress_strain(mechMatSD, pde1_->GetSubTensorType(), this);
+      stress_strain.CalcStressStrainResult(dynamic_cast<MechPDE*>(pde1_), res, resultType);
+    }
+    else
+    {
 
-    bool isMicroModel = false;
-    if ( matPiezo->GetMicroPiezoModel() != NULL ) 
-      isMicroModel = true;
+      Vector<Double> intPoint;
+      Vector<Double> LCoord;
+      Vector<TYPE> TempE;
+      Vector<TYPE> TempMechStrain;
+      Vector<TYPE> TempDField;
 
+      MechStressStrain<TYPE> * mechStressOp = NULL;
 
-    // loop over all elements
-    for ( it.Begin(); !it.IsEnd(); it++ ) {
+      assert(GetPde1()->GetName() == "mechanic");
+      UInt stressDim = dynamic_cast<MechPDE*>(GetPde1())->GetStressStrainDim();
+      UInt elecDim   = stressDim == 6 ? 3 : 2;
 
-      
-      if ( complexMatData_[it.GetElem()->regionId] ) {
-        dataType = Global::COMPLEX;
-      }
-      else {
-        dataType = Global::REAL;
-      }
-      
-      // Calc E - field;
-      it.GetElem()->ptElem->GetCoordMidPoint(LCoord);
+      // Retrieve solution from nodeStoreSolution Class
+      BaseNodeStoreSol * solPDE1 = pde1_->getPDESolution();
+      BaseNodeStoreSol * solPDE2 = pde2_->getPDESolution();
 
-      FieldOp2->CalcElemGradField( TempE, it, LCoord, 1);
+      NodeStoreSol<TYPE> * solhelp1 =
+          dynamic_cast<NodeStoreSol<TYPE>*>(solPDE1);
+      NodeStoreSol<TYPE> * solhelp2 =
+          dynamic_cast<NodeStoreSol<TYPE>*>(solPDE2);
 
-      // Calc linear mechanical stresses
-      //get coordinates of element
+      // Determines gradient of electric potential, i.e. E=\grad \phi
+      GradientFieldOp<TYPE> * FieldOp2
+      = new GradientFieldOp<TYPE>(ptGrid_, pde2_, eqnMap2_,
+          *solhelp2, results2_[0]->fctType,
+          isaxi_);
 
-      // compute strain
-      mechMatSD = mechMat[it.GetElem()->regionId];
-      mechStressOp->SetMaterial( mechMatSD );
-      solhelp1->GetElemSolutionAsMatrix(elemDisp, it);
-      mechStressOp->SetActElemSol(elemDisp);
-      mechStressOp->SetIntPoint(LCoord);
-      mechStressOp->CalcStrainVec(TempMechStrain,1,it);
-      mechStressOp->UnsetIntPoint();
+      // Determines linear Strain S=Bu, i.e.
+      //  partial derivates of mechanical displacement
+      Vector<TYPE> elemElecStress, elemStressStrain, sortedStress;
+      elemElecStress.Resize(stressDim);
+      elemElecStress.Init(0);
+      elemStressStrain.Resize(stressDim);
       elemStressStrain.Init(0);
+      TempMechStrain.Resize(stressDim);
+      TempMechStrain.Init();
+      TempDField.Resize(elecDim);
+      TempDField.Init();
+      sortedStress.Resize(6);
 
-      if ( resultType  == MECH_STRAIN ) {
-        elemStressStrain  = TempMechStrain;
-      }
-      else {
-        if ( isMicroModel ) {
-          //strain has to be reduced by irrebersibel strain
-          UInt nrEl  = it.GetElem()->elemNum;
-          Vector<Double> actPirr, actSirr;
-          actPirr.Resize(elecDim);
-          actSirr.Resize(stressDim);
+      Matrix<TYPE> stiffnessMat, sTensor;
+      Matrix<TYPE> piezoCouplingMat;
+      Matrix<TYPE> piezoCouplingMatT;
+      Matrix<TYPE> permittivityMat;
+      Matrix<TYPE> elemDisp;
 
-          // get effective irreversible strain and polarization
-          matPiezo->GetEffectiveIrreversibleValues( actPirr, actSirr, nrEl,
-                                                    false, false );
+      Global::ComplexPart dataType;
 
-          Matrix<Double> cTensor, sTensor, dTensor, epsTensor, dTensorTrans, eTensor;
-          Vector<Double> actStress(stressDim);
-          Vector<Double> actE(elecDim);
-          //get current tensors
-          matPiezo->GetEffectiveTensors( cTensor, sTensor, epsTensor, dTensor,   
-                                         actStress, actE, nrEl, 
-                                         false, false );
-          //compute actual stress
-          dTensor.Transpose( dTensorTrans );
-          eTensor = cTensor * dTensorTrans;
+      Vector<TYPE> & actVal = actRes.GetVector();
+      actVal.Resize( actRes.GetEntityList()->GetSize() * stressDim );
 
-          //reduce total strain by irreversible strain
-          Vector<TYPE> actStrain;
-          actStrain = TempMechStrain - actSirr;
+      // Fetch material: As we assume, that all elements belong to
+      // one and the same region, we simply take the subdomain of the first
+      // element
+      it.Begin();
 
-          //compute mechanical part of stress
-          elemStressStrain = cTensor * actStrain;
+      //transform the type
+      SubTensorType type;
+      String2Enum(subType_,type);
 
-          //electric part of stress
-          TempDField = eTensor*TempE;
+      // get correct mechanical stress operator and piezoelectric tensor
+      mechStressOp = new MechStressStrain<TYPE>(mechMatSD, type);
 
-          //total stress
-          elemStressStrain -= TempDField;
-        }
-        else {
-          // get correct coupling tensor and transpose it
-          matPiezo = materials_[it.GetElem()->regionId];
-          matPiezo->GetTensor(piezoCouplingMat,PIEZO_TENSOR,dataType,type);
-          piezoCouplingMat.Transpose(piezoCouplingMatT);
+      // loop over all elements
+      for ( it.Begin(); !it.IsEnd(); it++ ) {
 
-          mechMatSD->GetTensor(stiffnessMat,MECH_STIFFNESS_TENSOR,dataType,type);
-          elemStressStrain = stiffnessMat * TempMechStrain;
-                   
-          TempDField = piezoCouplingMatT*TempE;
-          elemStressStrain -= TempDField;
-        }
+        dataType = complexMatData_[it.GetElem()->regionId] ? Global::COMPLEX : Global::REAL;
+
+        // Calc E - field;
+        it.GetElem()->ptElem->GetCoordMidPoint(LCoord);
+
+        FieldOp2->CalcElemGradField( TempE, it, LCoord, 1);
+
+        // Calc linear mechanical stresses
+        //get coordinates of element
+
+        // compute strain
+        mechMatSD = mechMat[it.GetElem()->regionId];
+        mechStressOp->SetMaterial( mechMatSD );
+        solhelp1->GetElemSolutionAsMatrix(elemDisp, it);
+        mechStressOp->SetActElemSol(elemDisp);
+        mechStressOp->SetIntPoint(LCoord);
+        mechStressOp->CalcStrainVec(TempMechStrain,1,it);
+        mechStressOp->UnsetIntPoint();
+        elemStressStrain.Init(0);
+
+        // isMicroModel case!
+        //strain has to be reduced by irrebersibel strain
+        UInt nrEl  = it.GetElem()->elemNum;
+        Vector<Double> actPirr, actSirr;
+        actPirr.Resize(elecDim);
+        actSirr.Resize(stressDim);
+
+        // get effective irreversible strain and polarization
+        matPiezo->GetEffectiveIrreversibleValues( actPirr, actSirr, nrEl,
+            false, false );
+
+        Matrix<Double> cTensor, sTensor, dTensor, epsTensor, dTensorTrans, eTensor;
+        Vector<Double> actStress(stressDim);
+        Vector<Double> actE(elecDim);
+        //get current tensors
+        matPiezo->GetEffectiveTensors( cTensor, sTensor, epsTensor, dTensor,
+            actStress, actE, nrEl,
+            false, false );
+        //compute actual stress
+        dTensor.Transpose( dTensorTrans );
+        eTensor = cTensor * dTensorTrans;
+
+        //reduce total strain by irreversible strain
+        Vector<TYPE> actStrain;
+        actStrain = TempMechStrain - actSirr;
+
+        //compute mechanical part of stress
+        elemStressStrain = cTensor * actStrain;
+
+        //electric part of stress
+        TempDField = eTensor*TempE;
+
+        //total stress
+        elemStressStrain -= TempDField;
       }
 
       for(UInt iDof = 0; iDof < stressDim; iDof++ ) {
         actVal[it.GetPos()*stressDim + iDof] = elemStressStrain[iDof];
       }
 
+      // Delete integrator again (Stressabbau ;-)
+      delete mechStressOp;
+      delete FieldOp2;
     }
-    // Delete integrator again (Stressabbau ;-)
-    delete mechStressOp;
-    delete FieldOp2;
   }
+
 
   template <class TYPE>
   void PiezoCoupling::CalcCharges( shared_ptr<BaseResult> res,

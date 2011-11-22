@@ -20,7 +20,7 @@ namespace CoupledField
 {
 
 KNITRO::KNITRO(Optimization* opt, PtrParamNode pn)
-  : BaseOptimizer(opt, pn)
+  : BaseOptimizer(opt, pn, Optimization::KNITRO_SOLVER)
 {
   kc = KTR_new();
   if(kc == NULL)

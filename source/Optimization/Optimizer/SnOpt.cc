@@ -35,7 +35,7 @@ int SnOpt_C_Callback(int* Status, int *n,
 }
 
 SnOpt::SnOpt(Optimization* opt, PtrParamNode pn) :
-  BaseOptimizer(opt, pn),
+  BaseOptimizer(opt, pn, Optimization::SNOPT_SOLVER),
   f_evals(0),       // number of function evaluations
   g_evals(0),       // number of gradient evaluations
   nxname(1),
@@ -211,8 +211,12 @@ void SnOpt::SolveProblem()
 
 void SnOpt::InfoXMLOutput()
 {
-  info_->Get(ParamNode::SUMMARY)->Get("snopt_exit")->Get("exit")->SetValue(EXIT);
-  info_->Get(ParamNode::SUMMARY)->Get("snopt_exit")->Get("info")->SetValue(INFO);
+  // this is the snopt specific outout
+  info_->Get(ParamNode::SUMMARY)->Get("snopt_exit/exit")->SetValue(EXIT);
+  info_->Get(ParamNode::SUMMARY)->Get("snopt_exit/info")->SetValue(INFO);
+  info_->Get(ParamNode::SUMMARY)->Get("evaluations/f_evals")->SetValue(f_evals);
+  info_->Get(ParamNode::SUMMARY)->Get("evaluations/g_evals")->SetValue(g_evals);
+
   
   std::string exitstring;
   switch(INFO)
@@ -264,11 +268,16 @@ void SnOpt::InfoXMLOutput()
     break;
   default:
     exitstring = "not yet documented";
+    break;
   }
-  
-  info_->Get(ParamNode::SUMMARY)->Get("snopt_exit")->Get("string")->SetValue(exitstring);
-  info_->Get(ParamNode::SUMMARY)->Get("function_evaluations")->Get("f_evals")->SetValue(f_evals);
-  info_->Get(ParamNode::SUMMARY)->Get("function_evaluations")->Get("g_evals")->SetValue(g_evals);
+
+  // this is the break node used by all optimizers
+  PtrParamNode summary = optimization->optInfoNode->Get(ParamNode::SUMMARY);
+  summary->Get("break/converged")->SetValue(INFO == 1 || INFO == 3 ? "yes" : "no");
+  summary->Get("problem")->SetValue("SNOPT: " +exitstring);
+
+  // the old and not compatible stuff. Now common for iTop
+  //info_->Get(ParamNode::SUMMARY)->Get("snopt_exit/string")->SetValue(exitstring);
 }
 
 int SnOpt::Callback(int* Status, const int n,
