@@ -6,7 +6,6 @@ SET(UTILS_SRCS
   LinInterpolate.cc
   mathfunctions.cc
   Timer.cc
-  readCFDbinary.cc
   SmoothSpline.cc
   tools.cc
   )
