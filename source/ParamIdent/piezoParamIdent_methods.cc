@@ -763,13 +763,13 @@ namespace CoupledField {
 
   void piezoParamIdent::maxAndWeightedResNorm(Vector<Complex> & vec,
       Double & maxNorm, Double & wNorm, Vector<Complex> & q_meas) {
-    Double maxNormTemp = 0.0;
+    // Double maxNormTemp = 0.0; // TODO: Unused variable maxNormTemp
     maxNorm=0.0;
     wNorm=0.0;
     Double Denominator=0.0;
 
     for (UInt i=0; i<vec.GetSize(); i++) {
-      maxNormTemp=std::abs(vec[i]);
+      // maxNormTemp=std::abs(vec[i]);
       Denominator = std::abs(q_meas[i])*std::abs(q_meas[i]);
       wNorm = wNorm+((1.0/Denominator)*std::abs(vec[i])*std::abs(vec[i]));
     }

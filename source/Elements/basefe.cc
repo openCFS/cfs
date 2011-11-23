@@ -130,7 +130,7 @@ namespace CoupledField
                            // cubic root for 3D->3D mappings. Used to normalize distances.
     Double distMeasure; // global distance or local distance depending on distNormalizer
     Double TOL = 0.0000001; // tolerance for normalized distance
-    bool divergence; // does the Newton-Raphson algorithm diverge?
+    // bool divergence; // does the Newton-Raphson algorithm diverge? // TODO: Unused variable divergence
     bool converged; // have we found the local point?
     UInt iter = 0;
     const Double golden_ratio = (3 - sqrt(5)) / 2;
@@ -190,7 +190,7 @@ namespace CoupledField
       xi_k = xi_start;
       f = f_start;
       distance = f_min;
-      divergence = false;
+      // divergence = false;
       converged = false;
 
       do

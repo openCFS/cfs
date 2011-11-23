@@ -118,7 +118,7 @@ namespace CoupledField {
   //! Type of nonlinearity for certain pdes
   typedef enum { NO_NONLINEARITY, WESTERVELT, KUZNETSOV, VARIABLE_SOS_CN1,
                  VARIABLE_SOS_CN2, VARIABLE_SOS_CN2Mean,
-                 MATERIAL, GEOMETRIC, HYSTERESIS, PIEZO_MICRO_HF, PERMEABILITY,
+                 GEOMETRIC, HYSTERESIS, PIEZO_MICRO_HF, PERMEABILITY,
                  NLHEAT_CONDUCTIVITY, NLHEAT_CAPACITY} NonLinType;
 
 
@@ -215,12 +215,11 @@ namespace CoupledField {
                 MAGNETOSTRICTIVE } MaterialClass;
 
 
-  typedef enum{ noCurve, generic, magBH } ApproxMaterialCurves;
+  // type of approximation / interpolation
+  typedef enum{ NO_APPROX_TYPE, LIN_INTERPOLATE, CUBIC_SPLINES, SMOOTH_SPLINES } ApproxCurveType;
 
-  //! type of measured curve to be approximated
-  //! GENERAL   = any curve
-  //! BH        = magnetic BH curve
-  typedef enum{ GENERAL, BH } ApproxCurveType;
+  //! material parameter to be approximated / interpolated
+  typedef enum{ GENERIC, MAGNETIC_MAT_BH, HEAT_MAT_CONDUCTIVITY, HEAT_MAT_CAPACITY }  ApproxMaterialCurves;
 
   //! Enumberation for coupling method\n
   //! NO_COUPLING          = No coupling at all

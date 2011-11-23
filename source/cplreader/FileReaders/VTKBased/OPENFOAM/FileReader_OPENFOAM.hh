@@ -32,6 +32,7 @@ namespace CoupledField
     virtual void GetUserData(std::map<std::string, std::string>& userData);
 
   protected:
+    virtual void InitElemNodeMapping();
     void CreateReader();
     void EnableRegions();
     void GetTimeValues();

@@ -51,27 +51,16 @@ namespace CoupledField {
     // determine subtype from mechanic pde
     pde1_->GetParamNode()->GetValue( "subType", subType_ );
 
+
     // read nonlinearity
     nonLin_ = false;
     nonLinHysteresis_ = false;
     nonLinPiezoMicroHF_ = false;
-    nonLinMaterial_ = false;
-    
     nonLinPiezoCoupling_=false;
-    PtrParamNode nonLinNode = myParam_->Get("nonLinList", ParamNode::PASS );
-    if( nonLinNode ) {
-       ParamNodeList nonLinNodes = nonLinNode->GetChildren();
-       for( UInt i = 0; i < nonLinNodes.GetSize(); i++ ) {
 
-         std::string nonLinearity = nonLinNodes[i]->GetName();
-         if( nonLinearity == "material" || nonLinearity == "hysteresis"
-             || nonLinearity == "geo" || nonLinearity == "piezoMicroHF" ) {
-           nonLinPiezoCoupling_=true;
-           ReadPiezoNonLin();
-           break;
-         }
-       }
-    }
+    // Initialize nonlinearities
+    InitNonLin();
+
 
   }
 
@@ -80,6 +69,53 @@ namespace CoupledField {
   //   Destructor
   // **************
   PiezoCoupling::~PiezoCoupling() {
+  }
+
+
+  // ****************************
+  //  Initialize Nonlinearities
+  // ****************************
+  void PiezoCoupling::InitNonLin() {
+
+    BasePairCoupling::InitNonLin();
+
+    // Check, if nonlinear type is the same for all regions
+    if( regionNonLinTypes_.size() > 1 ) {
+      std::map<std::string, NonLinType>::iterator it;
+      it = nonLinTypes_.begin();
+      NonLinType firstType = it->second;
+      for( ; it != nonLinTypes_.end(); it++ ) {
+        if( it->second != firstType ) {
+          EXCEPTION( "Non-linearity should be the same for all regions!" );
+        }
+      }
+    }
+
+
+    //now do coupling specifics
+    std::map<std::string, NonLinType>::iterator it;
+    for ( it=nonLinTypes_.begin() ; it != nonLinTypes_.end(); it++ ) {
+      if ( (*it).second == HYSTERESIS ) {
+        nonLin_ = true;
+        nonLinHysteresis_ = true;
+      }
+      else if ( (*it).second ==  PIEZO_MICRO_HF ) {
+        nonLin_ = true;
+        nonLinPiezoMicroHF_ = true;
+      }
+      else if ( (*it).second == GEOMETRIC ) {
+        nonLin_ = true;
+      }
+    }
+
+    if(nonLin_) {
+      nonLinPiezoCoupling_=true;
+      if ( !nonLinHysteresis_ ) {
+        pde1_->SetNonLinearity(nonLin_);
+        pde2_->SetNonLinearity(nonLin_);
+      }
+    }
+
   }
 
 
@@ -745,11 +781,12 @@ namespace CoupledField {
     // get correct mechanical strain operator 
     mechStrainOp = new MechStressStrain<Double>(mechMatSD, type);
 
-    bool isMicroModel = false;
-    if ( matPiezo->GetMicroPiezoModel() != NULL ) 
-      isMicroModel = true;
-    else
-     EXCEPTION("CalcFluxDensity currently just implemented for PiezoMicroBK" );
+    // bool isMicroModel = false;  // TODO: Unused variable isMicroModel
+    // if ( matPiezo->GetMicroPiezoModel() != NULL ) 
+    //   isMicroModel = true;
+    //else
+    if ( matPiezo->GetMicroPiezoModel() == NULL )
+      EXCEPTION("CalcFluxDensity currently just implemented for PiezoMicroBK" );
  
 
     bool recompute = false;
@@ -779,13 +816,13 @@ namespace CoupledField {
       // currrent finite element
       nrEl  = it.GetElem()->elemNum;
       
-      Global::ComplexPart dataType;
-      if ( complexMatData_[it.GetElem()->regionId] ) {
-        dataType = Global::COMPLEX;
-      }
-      else {
-        dataType = Global::REAL;
-      }
+      // Global::ComplexPart dataType; // TODO: Unused variable dataType
+      // if ( complexMatData_[it.GetElem()->regionId] ) {
+      //  dataType = Global::COMPLEX;
+      // }
+      // else {
+      //  dataType = Global::REAL;
+      // }
 
       // get effective material tensors (currently just d-Tensor) 
       Matrix<Double> cTensor, sTensor, dTensor, epsTensor, eTensor;
@@ -823,120 +860,6 @@ namespace CoupledField {
   }
 
 
-  void PiezoCoupling::ReadPiezoNonLin(){
-
-
-    // Check, if "nonLinList" is present
-    PtrParamNode nonLinListNode = myParam_->Get("nonLinList", ParamNode::PASS );
-
-
-    // --------------------------------------
-    // @Tom:
-    // Shouldn't it be possible to define various types of non-linearities
-    // for different regions like in the other PDEs (e.g. acoustic PDE)?
-    // Currently the non-linearity type is only determined by the first entry
-    // --------------------------------------
-
-    
-    if( nonLinListNode) {
-      // Get nonlinear types
-      ParamNodeList nonLinNodes = nonLinListNode->GetChildren();
-      for( UInt i = 0; i < nonLinNodes.GetSize(); i++ ) {
-
-        std::string actTypeString = nonLinNodes[i]->GetName();
-        std::string actId = nonLinNodes[i]->Get("id")->As<std::string>();
-
-        NonLinType actType;
-        String2Enum( actTypeString, actType );
-        nonLinIdType_[actId] = actType;
-
-        // check type
-        if( actType == HYSTERESIS ) {
-          nonLin_ = true;
-          nonLinHysteresis_ = true;
-        }
-
-        if( actType == PIEZO_MICRO_HF ) {
-          nonLin_ = true;
-          nonLinPiezoMicroHF_ = true;
-        }
-
-        if( actType == MATERIAL ) {
-          nonLin_ = true;
-          nonLinMaterial_ = true;
-        }
-
-        if( actType == GEOMETRIC ) {
-          nonLin_ = true;
-        }
-      }
-    }
-
-    // Run over all region and set entry in "regionNonLinId"
-    ParamNodeList regionNodes =
-      myParam_->Get("regionList")->GetChildren();
-
-    RegionIdType actRegionId;
-    std::string actRegionName, actNonLinId;
-
-    for( UInt i = 0; i < regionNodes.GetSize(); i++ ) {
-
-      // get data
-      regionNodes[i]->GetValue( "name", actRegionName );
-      regionNodes[i]->GetValue( "nonLinId", actNonLinId );
-
-      if( actNonLinId == "" )
-        continue;
-
-      actRegionId = ptGrid_->GetRegion().Parse( actRegionName );
-
-      // Check nonLinId was already registerd
-      if( nonLinIdType_.find( actNonLinId) == nonLinIdType_.end() ) {
-        EXCEPTION( "NonLinearity with id '" << actNonLinId
-                   << "' was not defined in 'nonLinList'" );
-      }
-
-      regionNonLinId_[actRegionId] = actNonLinId;
-      regionNonLinType_[actRegionId] = nonLinIdType_[actNonLinId];
-
-      // Log to info file
-      std::string nonLinString;
-      Enum2String( nonLinIdType_[actNonLinId], nonLinString );
-      PtrParamNode in = infoNode_->Get("nonlinear")->Get("region", ParamNode::APPEND);
-      in->Get("region")->SetValue(actRegionName);
-      in->Get("nonlin")->SetValue(nonLinString);
-    }
-
-
-    // Check, if nonlinear type is the same for all regions
-    if( regionNonLinType_.size() > 1 ) {
-      std::map<RegionIdType, NonLinType>::iterator it;
-      it = regionNonLinType_.begin();
-      NonLinType firstType = it->second;
-      for( ; it != regionNonLinType_.end(); it++ ) {
-        if( it->second != firstType ) {
-          EXCEPTION( "Non-linearity should be the same for all regions!" );
-        }
-      }
-    }
-
-
-    if(nonLin_) {
-      if ( !nonLinHysteresis_ ) {
-        pde1_->SetNonLinearity(nonLin_);
-        pde2_->SetNonLinearity(nonLin_);
-        //    this->SetNonLinearity(nonLin_);
-
-        if ( nonLinMaterial_ ) {
-          pde1_->SetMaterialNonLinearity(nonLinMaterial_);
-          pde2_->SetMaterialNonLinearity(nonLinMaterial_);
-          //      this->SetMaterialNonLinearity(nonLin_);
-        }
-      }
-    }
-  }
-
-
   // *********************
   //   DefineIntegrators
   // *********************
@@ -944,7 +867,7 @@ namespace CoupledField {
 
     Global::ComplexPart matType = Global::REAL;
     RegionIdType actRegion;
-    BaseMaterial * actSDMat = NULL;
+    // BaseMaterial * actSDMat = NULL; // TODO: Unused variable actSDMat
 
 
     // get material from electrostatics
@@ -957,7 +880,7 @@ namespace CoupledField {
     for ( it = materials_.begin(); it != materials_.end(); it++ ) {
       // Set current region and material
       actRegion = it->first;
-      actSDMat = it->second;
+      // actSDMat = it->second;
       matType = Global::REAL;
 
       //transform the type
@@ -1331,89 +1254,35 @@ namespace CoupledField {
         rhsContextMech->SetResult( results1_[0], actSDList );
         assemble_->AddLinearForm( rhsContextMech );
       }
-
       else {
-        if (  nonLinMaterial_ ) {
-          //material nonlinearity
-
-          ApproxData *nlinFnc;
-          std::string nlfnc = materials_[actRegion]->GetNonlinFileName(ELEC_PERMITTIVITY);
-          materials_[actRegion]->GetScalar(nlfnc,NONLIN_DATA_NAME);
-
-          nlinFnc = new SmoothSpline(nlfnc);
-          // ApproxData *nlinFnc = new SmoothSpline("PZT4_Coupl33NL.dat");
-          // oder        ApproxData *nlinFnc = new LinInterpolate(nlfnc);
-          nlinFnc->CalcBestParameter();
-          nlinFnc->CalcApproximation();
-
-          // get material from mechanics
-          std::map<RegionIdType, BaseMaterial*> mechMat =
-            pde1_->getPDEMaterialData();
-
-          // get material from electrostatics
-          std::map<RegionIdType, BaseMaterial*> elecMat =
-            pde2_->getPDEMaterialData();
-
-          // add nonlinear stiffness
-          nLinPiezoCoupling * bilinearStiffNonLin;
-          bilinearStiffNonLin =  new nLinPiezoCoupling(nlinFnc, materials_[actRegion],
-                                                       mechMat[actRegion],
-                                                       elecMat[actRegion],
-                                                       tensorType);
-
-          BaseNodeStoreSol * solPDE1 = pde1_->getPDESolution();
-          BaseNodeStoreSol * solPDE2 = pde2_->getPDESolution();
-
-          NodeStoreSol<Double> * solhelp1 =
-            dynamic_cast<NodeStoreSol<Double>*>(solPDE1);
-          NodeStoreSol<Double> * solhelp2 =
-            dynamic_cast<NodeStoreSol<Double>*>(solPDE2);
-
-          bilinearStiffNonLin->SetSolution1(*solhelp1);
-          bilinearStiffNonLin->SetSolution2(*solhelp2);
-
-          bilinearStiffNonLin->Set4NonLinMaterial(ptGrid_, pde2_, eqnMap2_,
-                                                  results2_[0]);
-
-          bilinearStiffNonLin->SetMatDataType( matType );
-
-          actContextStiff =
-            new BiLinFormContext( bilinearStiffNonLin, STIFFNESS  );
-
-          // We also need to set the transposed of the coupling
-          // matrix to the lower diagonal side
-          actContextStiff->SetCounterPart( true );
-        }
-        else {
-          // add linear stiffness
-          BaseForm *bilinearStiff =
-            new linPiezoCoupling(materials_[actRegion], tensorType);
-
-          bilinearStiff->SetMatDataType( matType );
-
-          actContextStiff =
-            new BiLinFormContext( bilinearStiff, STIFFNESS  );
-        }
-
+        // add linear stiffness
+        BaseForm *bilinearStiff =
+          new linPiezoCoupling(materials_[actRegion], tensorType);
+        
+        bilinearStiff->SetMatDataType( matType );
+        
+        actContextStiff =
+          new BiLinFormContext( bilinearStiff, STIFFNESS  );
+      
 
         // We also need to set the transposed of the coupling
         // matrix to the lower diagonal side
         actContextStiff->SetCounterPart( true );
-
+        
         actContextStiff->SetEntryType( matType );
         actContextStiff->SetPtPdes( pde1_, pde2_ );
         actContextStiff->SetResults( results1_[0], results2_[0],
                                      actSDList, actSDList );
-
+        
         assemble_->AddBiLinearForm( actContextStiff );
-
+        
         // check for complex valued material parameter
         if( complexMatData_[actRegion] ) {
           matType = Global::IMAG;
-
+          
           BaseForm * bilinearStiffC =
             new linPiezoCoupling( materials_[actRegion], tensorType);
-
+          
           //GetStiffIntegrator(materialData_[actSD]);
           BiLinFormContext *actComplexContextStiff =
             new BiLinFormContext(bilinearStiffC, STIFFNESS );
@@ -1423,7 +1292,7 @@ namespace CoupledField {
           // We also need to set the transposed of the coupling
           // matrix to the lower diagonal side
           actComplexContextStiff->SetCounterPart( true );
-
+          
           actComplexContextStiff->SetEntryType(matType);
           bilinearStiffC->SetMatDataType(matType);
           assemble_->AddBiLinearForm( actComplexContextStiff );

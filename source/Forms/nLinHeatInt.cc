@@ -21,8 +21,6 @@ namespace CoupledField {
     
     name_ = "nlinHeatStiffInt";
     isSolDependent_ = true;
-    ptMaterial->NeedApproxMatCurve( generic );
-
   }
 
 
@@ -60,7 +58,7 @@ namespace CoupledField {
     temp.ConvertToVec_AppendRows( temperature_ );
 
     //nonlineasr function for approximation
-    nlinFnc_ = ptMaterial->GetNonlinFncBH(HEAT_CONDUCTIVITY );
+    nlinFnc_ = ptMaterial->GetNonlinFnc(HEAT_CONDUCTIVITY );
     
     Double heatConductivity = 1.0;
 
@@ -108,8 +106,6 @@ namespace CoupledField {
     
     name_ = "nlinHeatMassInt";
     isSolDependent_ = true;
-    ptMaterial->NeedApproxMatCurve( generic );
-
   }
 
 
@@ -145,7 +141,7 @@ namespace CoupledField {
     temp.ConvertToVec_AppendRows( temperature_ );
 
     //nonlineasr function for approximation
-    nlinFnc_ = ptMaterial->GetNonlinFncBH(HEAT_CAPACITY );
+    nlinFnc_ = ptMaterial->GetNonlinFnc(HEAT_CAPACITY );
     
     Double heatCapacity = 1.0;
 
@@ -160,7 +156,6 @@ namespace CoupledField {
       
       //get nonlinear capacity value
       heatCapacity = nlinFnc_->EvaluateFunc( tempAtIP);
-      std::cout << "T: " << tempAtIP << ";  c=" << heatCapacity << std::endl;
 
       partElemMat.DyadicMult(ShpFncAtIp);
       
@@ -191,10 +186,7 @@ namespace CoupledField {
     isaxi_       = axi;
     coordUpdate_ = coordUpdate;
 
-    // need nonlinear BH curve approximation
-    if (  ptMaterial->GetNonlinFileName( HEAT_CONDUCTIVITY ) != "" 
-          ||  ptMaterial->GetNonlinFileName( HEAT_CAPACITY ) != "" )  
-      ptMaterial->NeedApproxMatCurve( generic );
+    // need nonlinear curve approximation for conductivity and capacity
   }
   
   nLinHeat_linFormInt::~nLinHeat_linFormInt()
@@ -211,8 +203,8 @@ namespace CoupledField {
     UInt numFncs = ptelem->GetNumFncs( ansatzFct1_ );
     ptelem->SetAnsatzFct( ansatzFct1_ );
 
-    // get pointer to nonlinear BH curve approximation
-    nlinFnc_ = ptMaterial->GetNonlinFncBH(HEAT_CONDUCTIVITY);
+    // get pointer to nonlinear curve approximation
+    nlinFnc_ = ptMaterial->GetNonlinFnc(HEAT_CONDUCTIVITY);
 
     BaseForm * heatForm;
     if ( nlinFnc_ == NULL ) {

@@ -111,7 +111,22 @@ if ($CXX_ID ne "") {
 	    $CXX_VERSION =~ s/ //g;
 	    $CXX_GCC_VERSION =~ s/ //g; 
 	}
-	case "ICC" { 
+	case "ICC" {
+	    # Intel 12.x define __ICC and __INTEL_COMPILER to be 9999 therefore
+            # we read the output of $COMPILER --version
+	    ($version, $build_date) = split(/ /, $CXX_VERSION, 2);
+	    if($version eq "9999") {
+		foreach $line (`$COMPILER --version 2>&1`) {
+		    chomp($line);
+		    ($icc, $ICC_UPPER, $version, $date) = split(/ /, $line, 4);
+		    if($icc eq "icpc") {
+			$version =~ s/\.//g;
+			$CXX_VERSION="$version $date";
+		    }
+		}
+	    }
+
+
 	    $ICC_VER=$CXX_VERSION;
 	    $ICC_VER =~ s/ [0-9].*$//;
 	    {
@@ -157,6 +172,20 @@ if ($FC_ID ne "") {
 	    $FC_VERSION =~ s/ //g;
 	}
 	case "IFORT" { 
+	    # Intel 12.x define __ICC and __INTEL_COMPILER to be 9999 therefore
+            # we read the output of $COMPILER --version
+	    ($version, $build_date) = split(/ /, $FC_VERSION, 2);
+	    if($version eq "9999") {
+		foreach $line (`$COMPILER --version 2>&1`) {
+		    chomp($line);
+		    ($icc, $ICC_UPPER, $version, $date) = split(/ /, $line, 4);
+		    if($icc eq "ifort") {
+			$version =~ s/\.//g;
+			$FC_VERSION="$version $date";
+		    }
+		}
+	    }
+
 	    $ICC_VER=$FC_VERSION;
 	    $ICC_VER =~ s/ [0-9].*$//;
 	    {

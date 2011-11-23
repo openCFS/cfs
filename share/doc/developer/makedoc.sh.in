@@ -40,15 +40,19 @@ function build {
     echo " Generating CFS++ developer's manual "
     echo "====================================="
 
-    # Copy university logos to manual directory
-    cp @CMAKE_CURRENT_SOURCE_DIR@/../auxilliaries/Pics/ls_am_klu.pdf @CMAKE_CURRENT_SOURCE_DIR@/develManual/pics
-    cp @CMAKE_CURRENT_SOURCE_DIR@/../auxilliaries/Pics/cfs-logo.pdf @CMAKE_CURRENT_SOURCE_DIR@/develManual/pics
-    cp @CMAKE_CURRENT_SOURCE_DIR@/../auxilliaries/Pics/lse_logo.pdf @CMAKE_CURRENT_SOURCE_DIR@/develManual/pics
-
-    # Auto generate bootstrap_devel_machine.txt from distro.sh and bootstrap_devel_machine.sh
-    cat @CMAKE_CURRENT_SOURCE_DIR@/../../scripts/distro.sh | sed '/^Help\(\)/, /^fi/d' | sed '/^      while \:$/, /^      done$/d' > @CMAKE_CURRENT_SOURCE_DIR@/develManual/attachments/bootstrap_devel_machine.txt
-    echo "echo \$OSSTR" >> @CMAKE_CURRENT_SOURCE_DIR@/develManual/attachments/bootstrap_devel_machine.txt
-    cat @CMAKE_CURRENT_SOURCE_DIR@/../../scripts/bootstrap_devel_machine.sh | sed '/^\#\!\/bin\/sh/, /^\. /d' >> @CMAKE_CURRENT_SOURCE_DIR@/develManual/attachments/bootstrap_devel_machine.txt
+    # Auto    generate   bootstrap_devel_machine.txt   from    distro.sh   and
+    # bootstrap_devel_machine.sh
+    ATTACHMENT_DIR="@CMAKE_CURRENT_SOURCE_DIR@/develManual/attachments"
+    BOOTSTRAP_SCRIPT="$ATTACHMENT_DIR/bootstrap_devel_machine.txt"
+    mkdir -p "$ATTACHMENT_DIR"
+    cat @CMAKE_CURRENT_SOURCE_DIR@/../../scripts/distro.sh | \
+	sed 's/^Help\(\)/MODE="-h"\nHelp\(\)/' | \
+	sed '/^Help\(\)/, /^fi/d' | \
+	sed '/^      while \:$/, /^      done$/d' \
+	> "$BOOTSTRAP_SCRIPT"
+    cat @CMAKE_CURRENT_SOURCE_DIR@/../../scripts/bootstrap_devel_machine.sh | \
+	sed '/^\#\!\/bin\/sh/, /^\. /d' \
+	>> "$BOOTSTRAP_SCRIPT"
 
     cd @CMAKE_CURRENT_SOURCE_DIR@/develManual
     DOCUMENT=develManual

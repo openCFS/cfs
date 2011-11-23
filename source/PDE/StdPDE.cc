@@ -29,7 +29,6 @@ namespace CoupledField {
     subType_(),
     numCouplingBcs_(0),
     nonLin_(false),
-    nonLinMaterial_(false),
     isHysteresis_(false),
     totalFormulation_(false),
     isIterCoupled_(false),
@@ -476,23 +475,28 @@ namespace CoupledField {
    /* do not set new grid in the first step */
    if ( step != 0 )
    {
-     for ( UInt nreg = 0; nreg < regions4GridDisplacements_.GetSize(); nreg++ )
+     std::map<RegionIdType, GridDisplData>::iterator gridDisplIter \
+       = gridDisplData_.begin();
+     for (; gridDisplIter != gridDisplData_.end(); ++gridDisplIter)
      {
+       RegionIdType regId = gridDisplIter->first;
+       GridDisplData gridDispData = gridDisplIter->second;
        ResultHandler* resultHandler = domain->GetResultHandler();
-       shared_ptr<BaseResult> gridDisplacement = resultHandler->GetResult( fileName4GridDisplacements_,
+       shared_ptr<BaseResult> gridDisplacement = resultHandler->GetResult( gridDispData.fileName4GridDisplacements_,
            1,
            step,
-           MECH_DISPLACEMENT,        
-           regions4GridDisplacements_[nreg] );
+           gridDispData.solType,        
+           ptgrid_->GetRegion().ToString( regId ));
 
        Result<Double> *result =
          dynamic_cast<Result<Double>*>(&(*gridDisplacement));
        if (result == NULL)
        {
          EXCEPTION("Cannot read result 'Grid-Displacements' from input id '"
-             <<  fileName4GridDisplacements_ << "'");
+             <<  gridDispData.fileName4GridDisplacements_ << "'");
        }
        Vector<Double>& resVec = result->GetVector();
+       
        shared_ptr<EntityList> nodesList = gridDisplacement->GetEntityList();
        StdVector<UInt> nodes;
 

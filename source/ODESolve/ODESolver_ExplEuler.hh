@@ -7,7 +7,7 @@
 
 #include "General/environment.hh"
 #include "Utils/StdVector.hh"
-#include "ODEDescr/BaseODEProblem.hh"
+#include "BaseODEProblem.hh"
 #include "BaseODESolver.hh"
 
 namespace CoupledField {

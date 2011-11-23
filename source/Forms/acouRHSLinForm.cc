@@ -351,45 +351,33 @@ namespace CoupledField {
           }
         } // if (timeInterp)
 
-        // Get reference result
-        Result<Double> *result = NULL;
-        try {
-          // Try to read in RHS values from main grid file.
-          acouRHSVal = resultHandler->GetResult( id_,
-                                                 1,
-                                                 step_,
-                                                 ACOU_RHS_LOAD,
-                                                 regionName_ );
-          
-          result = dynamic_cast<Result<Double>*>(&(*acouRHSVal));
-        } catch (Exception& ex) {};
-        
-        if (result == NULL) {
-          if(!interpolate_)
-          {
-//            EXCEPTION("Cannot read result 'acouRhsLoad' from input id '"
-//                      << id_ << "'");
-              std::fill(rhsValues_.Begin(), rhsValues_.End(), 0.0);
+        if ( ! interpolate_ ) {
+          // Get reference result
+          Result<Double> *result = NULL;
+          try {
+            // Try to read in RHS values from main grid file.
+            acouRHSVal = resultHandler->GetResult( id_,
+                                                   1,
+                                                   step_,
+                                                   ACOU_RHS_LOAD,
+                                                   regionName_ );
+
+            result = dynamic_cast<Result<Double>*>(&(*acouRHSVal));
+          } catch (Exception& ex) {
+            RETHROW_EXCEPTION(ex, "Error while trying to read acouRhsLoad from file,"
+                              << std::endl << "for region: " << regionName_);
+          };
+
+          if (result != NULL) {
+            Vector<Double>& resVec = result->GetVector();
+
+            rhsValues_.Resize(resVec.GetSize());
+            for(UInt i=0, n=resVec.GetSize();
+                i < n;
+                i++)
+              rhsValues_[i] = resVec[i];
           }
-          else
-          {
-            ptGrid_->GetNodesByRegion( regionNodes, ptGrid_->GetRegion().Parse(regionName_));
-            rhsValues_.Resize(regionNodes.GetSize());
-            std::fill(rhsValues_.Begin(), rhsValues_.End(), 0.0);
-          }
-          
-        }
-        else 
-        {
-          Vector<Double>& resVec = result->GetVector();
-          
-          rhsValues_.Resize(resVec.GetSize());
-          for(UInt i=0, n=resVec.GetSize();
-              i < n;
-              i++)
-            rhsValues_[i] = resVec[i];
-        }
-        
+        }        
         
 
 
@@ -401,6 +389,10 @@ namespace CoupledField {
         UInt numSourceRegions = srcRegions_.GetSize();
         //        StdVector<UInt> regionNodes;
         StdVector<UInt> unmapped_nodes;
+
+        ptGrid_->GetNodesByRegion( regionNodes, ptGrid_->GetRegion().Parse(regionName_));
+        rhsValues_.Resize(regionNodes.GetSize());
+        std::fill(rhsValues_.Begin(), rhsValues_.End(), 0.0);
 
         // do we need data of previous time step for interpolation?
         if (timeInterp) {

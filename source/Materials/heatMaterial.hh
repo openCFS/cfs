@@ -62,7 +62,7 @@ namespace CoupledField {
 		    SubTensorType = FULL ) const;	
 
     //! get correct nonlinear function
-    ApproxData* GetNonlinFncBH( MaterialType matType ) {
+    virtual ApproxData* GetNonlinFnc( MaterialType matType ) {
       if ( matType == HEAT_CONDUCTIVITY )
         return nlinFncConductivity_;
       else 

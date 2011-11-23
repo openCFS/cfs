@@ -51,7 +51,6 @@ namespace CoupledField {
     maxTimeDerivOrder_ = 0;
  
     nonLin_    = false;
-    nonLinMaterial_ = false;
     isAlwaysStatic_ = true;
     isMagnetostrictiveCoupled_ = false;
     
@@ -66,86 +65,6 @@ namespace CoupledField {
   }
   
 
-  void MagScalarPDE::InitNonLin() {
-
-    // ----------------------------------------------------------------------
-    // At the moment, we do not consider any non-linear effects for this PDE.
-    // In this section we would have to add e.g. the reading in and 
-    // initialization of nonlinear regions, e.g. with hysteretic effects.
-    // ----------------------------------------------------------------------
-    
-    
-//    // Check, if "nonLinList" is present
-//    ParamNode * nonLinListNode = myParam_->Get("nonLinList", false );
-//    if( nonLinListNode ) { 
-//
-//      // Get nonlinear types
-//      StdVector<ParamNode*> nonLinNodes = nonLinListNode->GetChildren();
-//      for( UInt i = 0; i < nonLinNodes.GetSize(); i++ ) {
-//
-//        std::string actTypeString = nonLinNodes[i]->GetName();
-//        std::string actId = nonLinNodes[i]->Get("id")->AsString();
-//
-//        NonLinType actType;
-//        String2Enum( actTypeString, actType );
-//        nonLinIdType_[actId] = actType;
-//      }
-//    }
-//    
-//    // Run over all region and set entry in "regionNonLinId"
-//    StdVector<ParamNode*> regionNodes = 
-//      myParam_->Get("regionList")->GetChildren();
-//
-//    RegionIdType actRegionId;
-//    std::string actRegionName, actNonLinId;
-//
-//    if( regionNodes.GetSize() > 0 ) {
-//      Info->PrintF( pdename_, "Non-linearity in following region(s)\n" );
-//    }
-//    for( UInt i = 0; i < regionNodes.GetSize(); i++ ) {
-//      
-//      regionNodes[i]->Get( "name", actRegionName );
-//      regionNodes[i]->Get( "nonLinId", actNonLinId );
-//      
-//      if( actNonLinId == "" )
-//        continue;
-//
-//      actRegionId = ptgrid_->RegionNameToId( actRegionName );
-//
-//      // Check nonLinId was already registerd
-//      if( nonLinIdType_.find( actNonLinId) == nonLinIdType_.end() ) {
-//        EXCEPTION( "NonLinearity with id '" << actNonLinId 
-//                   << "' was not defined in 'nonLinList'" );
-//      }
-//      
-//      regionNonLinId_[actRegionId] = actNonLinId;
-//
-//      // get related type of nonlinearity
-//      NonLinType actType = nonLinIdType_[actNonLinId];
-//      regionNonLinType_[actRegionId] = actType;
-//
-//      // check type
-//      if( actType == HYSTERESIS ) {
-//        isHysteresis_ = true;
-//      }
-//
-//      if( actType == MATERIAL ) {
-//        nonLin_ = true;
-//        nonLinMaterial_ = true;
-//      }
-//
-//      // Log to info file
-//      std::string nonLinString;
-//      Enum2String( nonLinIdType_[actNonLinId], nonLinString );
-//      Info->PrintF( pdename_, " %s: %s\n", actRegionName.c_str(), 
-//                    nonLinString.c_str() );
-//      
-//    }
-//    Info->PrintF( pdename_, "\n" );
-
-  }
-
-  
   void MagScalarPDE::SetMagStrictCoupling() {
     isMagnetostrictiveCoupled_ = true;
   }

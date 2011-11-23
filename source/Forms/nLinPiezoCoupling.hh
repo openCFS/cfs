@@ -35,9 +35,8 @@ namespace CoupledField {
     //@{ \name Construction and destruction
 
     //! Default constructor
-   nLinPiezoCoupling(ApproxData *nlinFnc,BaseMaterial* matData,
-                     BaseMaterial* matDataMech, BaseMaterial* matDataElec,
-                     SubTensorType type); 
+   nLinPiezoCoupling( BaseMaterial* matData, BaseMaterial* matDataMech, 
+                      BaseMaterial* matDataElec, SubTensorType type); 
 
     //! Destructor
    ~nLinPiezoCoupling();
@@ -87,8 +86,6 @@ namespace CoupledField {
 
   private:
 
-    ApproxData *nLinFnc_;
-   
     /// scalar electric potential of all nodes of actual element
     Vector<Double> elemPot_;
     Matrix<Double> elemDispl_;

@@ -26,6 +26,7 @@ namespace fs=boost::filesystem;
 #include "ParamsInit.hh"
 #include "Settings.hh"
 #include "FileReader.hh"
+#include "Utils/Timer.hh"
 
 #include "FileReaders/CFS++/FileReader_CfsHdf5.hh"
 
@@ -257,6 +258,9 @@ using namespace CoupledField;
 int main(int argc, char *argv[])
 {
   int ret = 0;
+  boost::shared_ptr<Timer> timer;
+  timer.reset(new Timer());
+  timer->Start(); 
   shared_ptr<FileReader> fileReader;
   OutputWriterVectorType outputWriters;
 
@@ -323,6 +327,32 @@ int main(int argc, char *argv[])
   }
 
   delete logConf;
+  timer->Stop();
+  std::cout << ">> Total time: wall clock: '";
+  const int walltime((int) timer->GetWallTime());
+  const int cputime((int) timer->GetCPUTime());
+  if(walltime > 120) 
+  {
+    const int wallmin((int) (walltime / 60.0));
+    const int cpumin((int) (cputime / 60.0));
+    if(wallmin > 60)
+    {
+      std::cout << wallmin / 60 << "h " << (wallmin % 60) 
+           << "m' CPU time: '" << cpumin / 60 << "h " << (cpumin % 60) << "m'"; 
+    }
+    else
+    {
+      std::cout << wallmin << "m " << (walltime % 60) 
+           << "s' CPU time: '" << cpumin << "m " << (cputime % 60) << "s'"; 
+    }
+  }
+  else
+  {
+    std::cout << walltime << "s' CPU time: '" 
+         << cputime << "s'";
+  }
+  
+  std::cout << std::endl << std::endl;
   
   return ret;
 }

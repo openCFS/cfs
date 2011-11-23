@@ -143,11 +143,11 @@ ENDIF(USE_PARDISO OR
       USE_ILUPACK OR
       USE_CHOLMOD)
 
-IF(CFS_PARDISO STREQUAL "MKL")
+IF(USE_PARDISO AND CFS_PARDISO STREQUAL "MKL")
   SET(CFS_BLAS_LAPACK "MKL" CACHE STRING
     "BLAS/LAPACK implementation for CFS. May be one of ACML, GOTO, MKL, NETLIB"
     FORCE)
-ENDIF(CFS_PARDISO STREQUAL "MKL")
+ENDIF(USE_PARDISO AND CFS_PARDISO STREQUAL "MKL")
 
 #-----------------------------------------------------------------------------
 # Options which have become so important that they are not optional anymore
@@ -559,6 +559,7 @@ ENDIF(USE_GMSH)
 IF(USE_HDF5)
   SUBDIRS(source/DataInOut/SimInOut/hdf5)
   SUBDIRS(source/DataInOut/SimInOut/xdmf)
+  SUBDIRS(source/DataInOut/SimInOut/MatlabFile)
 ENDIF(USE_HDF5)
 
 IF(USE_GIDPOST)
@@ -584,7 +585,6 @@ SUBDIRS(source/Forms)
 SUBDIRS(source/General)
 SUBDIRS(source/Materials)
 SUBDIRS(source/MatVec)
-SUBDIRS(source/ODEDescr)
 SUBDIRS(source/ODESolve)
 SUBDIRS(source/ParamIdent)
 SUBDIRS(source/PDE)

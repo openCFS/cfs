@@ -364,7 +364,8 @@ DEFINE_LOG(linForm, "linForm")
     Vector<Double> CoordAtIP;
     Matrix<Double> bMatCurl, bMatDiv, bMatCurlTrans; 
     Vector<Double> helpVec;
-    Double jacDet, factor;
+    Double jacDet;
+    // Double factor; // TODO: Unused variable factor
 
     elemVec.Resize( numFncs * nrDofs_ );
     helpVec.Resize( numFncs * nrDofs_ );
@@ -385,7 +386,7 @@ DEFINE_LOG(linForm, "linForm")
                   << "negative Jacobian determinant!");
       }
 
-      factor = intWeights[actIntPt-1] * jacDet * reluctivity_;
+      // factor = intWeights[actIntPt-1] * jacDet * reluctivity_;
       bMatCurl.Transpose(bMatCurlTrans);  
 
       //      std::cout << "bMatT:\n" << bMatCurlTrans << std::endl;
@@ -417,10 +418,6 @@ DEFINE_LOG(linForm, "linForm")
     coordUpdate_ = coordUpdate;
     ptMaterial->GetScalar( startmatVal_, MAG_RELUCTIVITY,Global::REAL);
 
-    // need nonlinear BH curve approximation
-
-    if (  ptMaterial->GetNonlinFileName( MAG_PERMEABILITY ) != "" )  
-      ptMaterial->NeedApproxMatCurve( magBH );
   }
   
   nLinMagNode2D_linFormInt::~nLinMagNode2D_linFormInt()
@@ -438,7 +435,7 @@ DEFINE_LOG(linForm, "linForm")
     ptelem->SetAnsatzFct( ansatzFct1_ );
 
     // get pointer to nonlinear BH curve approximation
-    nlinFnc_ = ptMaterial->GetNonlinFncBH(MAG_PERMEABILITY);
+    nlinFnc_ = ptMaterial->GetNonlinFnc(MAG_PERMEABILITY);
 
     BaseForm * curlcurl2D;
     if (nlinFnc_== NULL) 
@@ -480,10 +477,6 @@ DEFINE_LOG(linForm, "linForm")
     coordUpdate_ = coordUpdate;
     ptMaterial->GetScalar( startmatVal_, MAG_RELUCTIVITY,Global::REAL);
 
-    // need nonlinear BH curve approximation
-    // need nonlinear BH curve approximation
-    if (  ptMaterial->GetNonlinFileName(MAG_PERMEABILITY) != "" )  
-      ptMaterial->NeedApproxMatCurve( magBH );
   }
   
   nLinMagNode3D_linFormInt::~nLinMagNode3D_linFormInt()
@@ -500,7 +493,7 @@ DEFINE_LOG(linForm, "linForm")
     ptelem->SetAnsatzFct( ansatzFct1_ );
 
     // get pointer to nonlinear BH curve approximation
-    nlinFnc_ = ptMaterial->GetNonlinFncBH(MAG_PERMEABILITY);
+    nlinFnc_ = ptMaterial->GetNonlinFnc(MAG_PERMEABILITY);
 
     BaseForm * curlcurl3D;
     if (nlinFnc_== NULL) 
@@ -556,7 +549,7 @@ DEFINE_LOG(linForm, "linForm")
     ptelem->SetAnsatzFct( ansatzFct1_ );
 
     // get pointer to nonlinear BH curve approximation
-    ApproxData* nlinFnc_ = ptMaterial->GetNonlinFncBH(MAG_PERMEABILITY);
+    ApproxData* nlinFnc_ = ptMaterial->GetNonlinFnc(MAG_PERMEABILITY);
 
     BaseForm * curlcurl3D;
     if ( nlinFnc_ == NULL ) 
@@ -2261,14 +2254,14 @@ void LinearFlowNoiseInt::ComputeNormalVec( const Matrix<Double>& ptCoord,
     const UInt nrIntPts = ptelem->GetNumIntPoints();
     UInt numFncs = ptelem->GetNumFncs( ansatzFct1_ );
    
-    const Vector<Double> & intWeights = ptelem->GetIntWeights();  
+    // const Vector<Double> & intWeights = ptelem->GetIntWeights(); // TODO: Unused variable intWeights 
     Vector<Double> ShpFncAtIp, CoordAtIP;
     Matrix<Double> xiDx;
 
     elemVec.Resize(numFncs);
     elemVec.Init(0);
 
-    Double factor;
+    // Double factor; // TODO: Unused variable factor
     for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++) {     
 
       Double jacDet = 0;
@@ -2284,7 +2277,7 @@ void LinearFlowNoiseInt::ComputeNormalVec( const Matrix<Double>& ptCoord,
         jacDet *= 2 * PI * CoordAtIP[0];
       }
 
-      factor = intWeights[actIntPt-1] * jacDet;
+      // factor = intWeights[actIntPt-1] * jacDet;
       for (UInt i=0; i<numFncs; i++) {
         for (UInt j=0; j<D_.GetSize(); j++) {
           elemVec[i] += xiDx[i][j] * D_[j];

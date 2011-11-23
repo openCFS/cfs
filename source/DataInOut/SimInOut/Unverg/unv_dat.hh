@@ -57,6 +57,17 @@ struct set_56 {
   elem_dat *dat;
 };
 
+struct set_58 {
+  int capaDataType;
+  header_58 header;
+  data_58 *data;
+};
+
+struct history_node {
+  int num_datasets;
+  set_58 *sets;
+};
+
 
 extern char* UNV_FILE;
 
@@ -77,6 +88,7 @@ extern int DIM;
 // --- Data structures -----
 extern set_55* SETS55;
 extern set_56* SETS56;
+extern history_node *NODES58;
 extern set_56* ELEMENT_CURRENT;
 extern int N_SETS55;
 extern int N_SETS56;

@@ -1,10 +1,36 @@
-#!/bin/bash
+#!/bin/sh
 
 # This is the start script for CFS. It should be placed in
 # CFS_DIST/bin under the name 'cfs'
 
 # Source shell script for setting some common variables.
-. `dirname $0`/common.sh
+COMMON_SH=`dirname $0`/common.sh
+if [ ! -x "$COMMON_SH" ]; then
+  echo "Could not execute $COMMON_SH. Exiting..."
+  exit 1
+fi
+. $COMMON_SH
+
+# Determine  ANSYS  revision  from .xml  file  in  order  to set  the  correct
+# LD_LIBRARY_PATH. The default is v110.
+ANSYS_REV="v110"
+
+for param in "$@"; do
+    if [ -f "${param}.xml" ]; then
+#	echo $param
+	RSTTAG=$(fgrep '<rst' "${param}.xml")
+	
+	for field in $RSTTAG; do 
+	    REV=$(echo $field | sed -n '/ansysRevision.*/p' | \
+		cut -d'"' -f2 | sed 's/\.//');
+	done
+#	echo "v$REV"
+    fi
+done
+
+if [ ! "$REV" = "" ]; then
+    ANSYS_REV="v$REV"
+fi
 
 SUSEPackageHint()
 {
@@ -149,7 +175,8 @@ SetANSYSParameters()
 #    fi
 
 
-    export LD_LIBRARY_PATH=$CFS_ROOT_DIR$LIB/$ARCH_STR:$CFS_ROOT_DIR$LIB/$ARCH_STR/v110/$ANS_ARCH:$ANSYS_ROOT_DIR/ansys/syslib/$ANS_ARCH:$ANSYS_ROOT_DIR/ansys/customize/misc/$ANS_ARCH:$LD_LIBRARY_PATH
+    LD_LIBRARY_PATH=$CFS_ROOT_DIR$LIB/$ARCH_STR:$CFS_ROOT_DIR$LIB/$ARCH_STR/$ANSYS_REV/$ANS_ARCH:$ANSYS_ROOT_DIR/ansys/syslib/$ANS_ARCH:$ANSYS_ROOT_DIR/ansys/customize/misc/$ANS_ARCH:$LD_LIBRARY_PATH
+    export LD_LIBRARY_PATH
 }
 
 SetGIDParameters()
@@ -159,7 +186,8 @@ SetGIDParameters()
 
 # Set XML schema root path
 if [ -r $CFS_ROOT_DIR/share/xml/CFS-Simulation/CFS.xsd ]; then
-    export CFS_SCHEMA_ROOT=$CFS_ROOT_DIR/share/xml
+    CFS_SCHEMA_ROOT=$CFS_ROOT_DIR/share/xml
+    export CFS_SCHEMA_ROOT
 fi
 
 # Get settings concerning the distribution type of CFS: GiD/ANSYS

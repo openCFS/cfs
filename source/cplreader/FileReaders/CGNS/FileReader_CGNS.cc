@@ -323,8 +323,8 @@ namespace CoupledField{
      fileNames.clear();
 
      std::set<UInt>::const_iterator it, end;
-     UInt stepNum;
-     stepNum = 0;
+     // UInt stepNum; // TODO: Unused variable stepNum
+     // stepNum = 0;
      std::string fn;
      
 

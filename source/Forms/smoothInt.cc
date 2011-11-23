@@ -21,7 +21,8 @@ namespace CoupledField
     const UInt spaceDim = ptelem->GetDim();  
     const UInt nrDofs   = getNrDofs();  
 
-    UInt actDim, actNode, j, k;
+    UInt actDim, actNode;
+    // UInt j, k; // TODO: Unused variables j,k
     
     
     bMat.Resize(getDimD(), numFncs * nrDofs);
@@ -40,8 +41,8 @@ namespace CoupledField
     switch(spaceDim)
       {
       case 2:
-        j = 1;
-        k = 0;
+        // j = 1;
+        // k = 0;
         
         for (actNode = 0; actNode < numFncs; actNode++)
           {

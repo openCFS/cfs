@@ -14,7 +14,6 @@
 #include "Forms/linGradBDBInt.hh"
 #include "Forms/linNeumannInt.hh"
 #include "Forms/nLinElecHystInt.hh"
-#include "Forms/nLinElecMaterial.hh"
 #include "Forms/elecchargeop.hh"
 #include "Forms/laplaceInt.hh"
 #include "Forms/FlatShellElecInt.hh"
@@ -62,7 +61,6 @@ namespace CoupledField {
     maxTimeDerivOrder_ = 0;
  
     nonLin_    = false;
-    nonLinMaterial_ = false;
     isAlwaysStatic_ = true;
     isPiezoCoupled_ = false;
     isThermoCoupled_= false;
@@ -76,73 +74,15 @@ namespace CoupledField {
 
   void ElecPDE::InitNonLin() {
 
-    // Check, if "nonLinList" is present
-    PtrParamNode nonLinListNode = myParam_->Get("nonLinList", ParamNode::PASS );
-    if( nonLinListNode ) { 
+    SinglePDE::InitNonLin();
 
-      // Get nonlinear types
-      ParamNodeList nonLinNodes = nonLinListNode->GetChildren();
-      for( UInt i = 0; i < nonLinNodes.GetSize(); i++ ) {
-
-        std::string actTypeString = nonLinNodes[i]->GetName();
-        std::string actId = nonLinNodes[i]->Get("id")->As<std::string>();
-
-        NonLinType actType;
-        String2Enum( actTypeString, actType );
-        nonLinIdType_[actId] = actType;
-      }
-    }
-    
-    // Run over all region and set entry in "regionNonLinId"
-    ParamNodeList regionNodes = 
-      myParam_->Get("regionList")->GetChildren();
-
-    RegionIdType actRegionId;
-    std::string actRegionName, actNonLinId;
-
-    if( regionNodes.GetSize() > 0 ) {
-      Info->PrintF( pdename_, "Non-linearity in following region(s)\n" );
-    }
-    for( UInt i = 0; i < regionNodes.GetSize(); i++ ) {
-      
-      regionNodes[i]->GetValue( "name", actRegionName );
-      regionNodes[i]->GetValue( "nonLinId", actNonLinId );
-      
-      if( actNonLinId == "" )
-        continue;
-
-      actRegionId = ptgrid_->GetRegion().Parse(actRegionName);
-
-      // Check nonLinId was already registerd
-      if( nonLinIdType_.find( actNonLinId) == nonLinIdType_.end() ) {
-        EXCEPTION( "NonLinearity with id '" << actNonLinId 
-                   << "' was not defined in 'nonLinList'" );
-      }
-      
-      regionNonLinId_[actRegionId] = actNonLinId;
-
-      // get related type of nonlinearity
-      NonLinType actType = nonLinIdType_[actNonLinId];
-      regionNonLinType_[actRegionId] = actType;
-
-      // check type
-      if( actType == HYSTERESIS ) {
+    //now do PDE specifics
+    std::map<std::string, NonLinType>::iterator it;
+    for ( it=nonLinTypes_.begin() ; it != nonLinTypes_.end(); it++ ) {
+      if ( (*it).second == HYSTERESIS ) {
         isHysteresis_ = true;
       }
-
-      if( actType == MATERIAL ) {
-        nonLin_ = true;
-        nonLinMaterial_ = true;
-      }
-
-      // Log to info file
-      std::string nonLinString;
-      Enum2String( nonLinIdType_[actNonLinId], nonLinString );
-      Info->PrintF( pdename_, " %s: %s\n", actRegionName.c_str(), 
-                    nonLinString.c_str() );
-      
     }
-    Info->PrintF( pdename_, "\n" );
 
   }
 
@@ -193,7 +133,7 @@ namespace CoupledField {
       actSDList->SetRegion( actRegion );
 
       // isPiezoHyst (isMicroPiezo) = true means, that the bilinear-forms 
-      // will be defined in PiezoCupling.cc!!
+      // will be defined in PiezoCoupling.cc!!
       bool isPiezoHyst  = false;
       bool isMicroPiezo = false;
       if ( isPiezoCoupled_ == true ) {
@@ -201,9 +141,12 @@ namespace CoupledField {
         isMicroPiezo = IsRegionMicroPiezo( regionName );
       }
 
+      //get possible nonlinearities defined in this region
+      StdVector<NonLinType> nonLinTypes = regionNonLinTypes_[actRegion]; 
+
       if ( !isPiezoHyst && !isMicroPiezo ) {
         // check for nonlinearity
-        if ( regionNonLinType_[actRegion] == HYSTERESIS) {
+        if ( nonLinTypes.Find(HYSTERESIS) != -1 ) {
           StdVector<Elem*> elemssd;
           ptgrid_->GetElems(elemssd, actRegion);
           UInt numElSD =  elemssd.GetSize();
@@ -228,34 +171,6 @@ namespace CoupledField {
                                      actSDList, actSDList );
           
           assemble_->AddBiLinearForm( stiffIntDescr );
-        }
-        
-        else if (  regionNonLinType_[actRegion] == MATERIAL ) {
-          
-          std::string nlfnc = materials_[actRegion]->GetNonlinFileName(ELEC_PERMITTIVITY);
-          materials_[actRegion]->GetScalar(nlfnc,NONLIN_DATA_NAME);           
-          
-          ApproxData *nlinFnc = new SmoothSpline(nlfnc);
-          //  oder        ApproxData *nlinFnc = new LinInterpolate(nlfnc);
-          nlinFnc->CalcBestParameter();
-          nlinFnc->CalcApproximation();
-          
-          //         if (dim_ == 3)
-          //           {   
-          nLinElec3dInt_Material* nLinMaterial;
-          nLinMaterial = new nLinElec3dInt_Material(nlinFnc, actSDMat, FULL);    
-          //          }
-          
-          nLinMaterial->SetSolution(dynamic_cast<NodeStoreSol<Double>&>(*sol_ ));
-          nLinMaterial->Set4NonLinMaterial(ptgrid_, this, eqnMap_,  results_[0]);
-          
-          BiLinFormContext * stiffNLMaterialDescr = 
-            new BiLinFormContext(nLinMaterial, STIFFNESS );
-          
-          stiffNLMaterialDescr->SetPtPdes(this, this);
-          stiffNLMaterialDescr->SetResults( results_[0], results_[0],
-                                            actSDList, actSDList );
-          assemble_->AddBiLinearForm(stiffNLMaterialDescr);
         }
         
         else {

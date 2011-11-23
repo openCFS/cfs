@@ -47,7 +47,6 @@ SET(FORMS_SRCS
   nLincurlCurlNodeInt.cc
   nLinElastInt.cc
   nLinElecHystInt.cc
-  nLinElecMaterial.cc
   nlinLaplaceInt.cc
   nLinMassInt.cc
   nLinPiezoCoupling.cc
