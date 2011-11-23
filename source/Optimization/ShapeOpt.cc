@@ -88,9 +88,8 @@ double ShapeOpt::CalcVolume(Objective* f, Condition* constraint, bool derivative
                       ptelem->CalcJacobianAtIp(dJ, ip, dCornerCoords, elem);
                       diJ.Resize(dimJ, dimJ);
                       iJ.Mult(dJ, diJ); // diJ = iJ * dJ;
-                      double tr;
-                      diJ.Trace(tr); // tr = trace(iJ*dJ) = trace(dJ*iJ)
-                      der[p] += w * tr;
+                      // double tr = diJ.Trace(); // tr = trace(iJ*dJ) = trace(dJ*iJ)
+                      der[p] += w * diJ.Trace();
                     } // if dCornerCoords
                   } // params
                 } // int.points
@@ -120,7 +119,7 @@ double ShapeOpt::CalcVolume(Objective* f, Condition* constraint, bool derivative
           double des;
           if(ersatzMaterialTensor){ // use the trace of the stiffness Tensor as "volume"
             GetErsatzMaterialTensor(material, de->elem);
-            material.Trace(des);
+            des = material.Trace();
           }else{
             des = de->GetDesign(DesignElement::PLAIN);
           }
@@ -140,8 +139,7 @@ double ShapeOpt::CalcVolume(Objective* f, Condition* constraint, bool derivative
                 ptelem->CalcJacobianAtIp(dJ, ip, dCornerCoords, elem);
                 diJ.Resize(dimJ, dimJ);
                 iJ.Mult(dJ, diJ); // diJ = iJ * dJ;
-                double tr;
-                diJ.Trace(tr);
+                double tr = diJ.Trace();
                 der[p] += fraction * intWeight * tr * det * (des - volume); // fraction * intWeight * dArea/dalpha * (d - volume)    ( fraction = 1 und volume = 0 in non-normalized version)
               }
             } // params
@@ -320,8 +318,7 @@ void ShapeOpt::CalcMinusU1dKU2(Solutions& forward, Solutions& adjoint, Objective
               A1.Resize(dimJ, dimJ);
               dJ.Mult(iJ, A1); // A1 = dJ J~ 
 
-              double trA1;
-              A1.Trace(trA1);
+              double trA1 = A1.Trace();
 
               A2.Resize(rowPhi, dimJ);
               dPhi.Mult(A1, A2); // A2 = (dPhi J~) dJ J~

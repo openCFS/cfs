@@ -321,7 +321,7 @@ namespace CoupledField
     
     //! Calculates the Trace
     //! works for non-square matrices of any size
-    void Trace( TYPE & val ) const;
+    TYPE Trace() const;
 
     /** Sum up the square of all entries */
     TYPE NormL2() const;
@@ -740,16 +740,17 @@ namespace CoupledField
   }
 
   template<class TYPE>
-  inline void Matrix<TYPE>::Trace(TYPE & ret) const {
+  inline TYPE Matrix<TYPE>::Trace() const {
 #ifdef CHECK_INITIALIZED
     if (size_row_ == 0|| size_col_ == 0) 
       EXCEPTION( "Undefined Matrix!" );
 #endif
     UInt smallersize = size_row_ < size_col_ ? size_row_ : size_col_;
-    ret = data_[0][0];
+    TYPE ret = data_[0][0];
     for(UInt i = 1; i < smallersize; i++){
       ret += data_[i][i];
     }
+    return ret;
   }
 
   // Perform a matrix-matrix multiplication rMat = this*mMat
