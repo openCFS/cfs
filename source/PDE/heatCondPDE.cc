@@ -9,6 +9,8 @@
 #include <string>
 #include <math.h>
 
+#include <boost/tokenizer.hpp>
+
 #include "heatCondPDE.hh"
 
 #include "Forms/laplaceInt.hh"
@@ -158,84 +160,12 @@ void HeatCondPDE::ReadSpecialBCs() {
   // ****************************
   void HeatCondPDE::InitNonLin() {
 
-    nonLin_ = false;
+    SinglePDE::InitNonLin();
 
-    // Check, if "nonLinList" is present
-    PtrParamNode nonLinListNode = myParam_->Get("nonLinList", ParamNode::PASS );
-    if( nonLinListNode ) { 
-
-      // Get nonlinear types
-      ParamNodeList nonLinNodes = nonLinListNode->GetChildren();
-      for( UInt i = 0; i < nonLinNodes.GetSize(); i++ ) {
-
-        std::string actTypeString = nonLinNodes[i]->GetName();
-        std::string actId = nonLinNodes[i]->Get("id")->As<std::string>();
-
-        NonLinType actType;
-        String2Enum( actTypeString, actType );
-
-        nonLinIdType_[actId] = actType;
-      }
-    }
-
-    // Run over all region and set entry in "regionNonLinId"
-    ParamNodeList regionNodes = 
-      myParam_->Get("regionList")->GetChildren();
-    
-    RegionIdType actRegionId;
-    std::string actRegionName, actNonLinId;
-    
-    if( regionNodes.GetSize() > 0 ) {
-      Info->PrintF( pdename_, "Non-linearity in following region(s)\n" );
-    }
-    for( UInt i = 0; i < regionNodes.GetSize(); i++ ) {
-      
-      // get data
-      regionNodes[i]->GetValue( "name", actRegionName );
-      regionNodes[i]->GetValue( "nonLinId", actNonLinId );
-      
-      if( actNonLinId == "" )
-        continue;
-      
-      actRegionId = ptgrid_->GetRegion().Parse( actRegionName );
-      
-      // Check nonLinId was already registerd
-      if( nonLinIdType_.find( actNonLinId) == nonLinIdType_.end() ) {
-        EXCEPTION( "NonLinearity with id '" << actNonLinId 
-                   << "' was not defined in 'nonLinList'" );
-      }
-      NonLinType actType = nonLinIdType_[actNonLinId];
-      regionNonLinId_[actRegionId] = actNonLinId;
-      regionNonLinType_[actRegionId] = actType;
-
-      // check type
-      if( actType == NLHEAT_CONDUCTIVITY || actType == NLHEAT_CAPACITY ) {
-        nonLin_ = true;
-      }
-
-      // Log to info file
-      std::string nonLinString;
-      Enum2String( nonLinIdType_[actNonLinId], nonLinString );
-      Info->PrintF( pdename_, " %s: %s\n", actRegionName.c_str(), 
-                    nonLinString.c_str() );
-      
-    }
-
-    // set nonlinearity flag only, if any region references
-    // a nonlinearity at all
-    if( regionNonLinId_.size() > 0 ) {
-      nonLin_ = true;
+    //now do PDE specifics
+    if ( nonLin_ ) {
+      //we perform a total formulation (no incremental one)
       totalFormulation_ = true;
-    }
-    
-    // Here we need in addition the nonLinMethod_ for the definition
-    // of the integrators
-    nonLinMethod_ = FIXEDPOINT;
-    PtrParamNode nonLinNode = myParam_->Get("nonLinear", ParamNode::PASS );
-    if( nonLinNode ) {
-      std::string methodString;
-      nonLinNode->GetValue(  "method", methodString, ParamNode::PASS );
-      nonLinMethod_ = NonLinMethodTypeEnum.Parse(methodString);
     }
 
   }
@@ -277,7 +207,15 @@ void HeatCondPDE::DefineIntegrators()
     // stiffness integrator
     // ====================================================================
 
-    if ( regionNonLinType_[subdoms_[actSD]] == NLHEAT_CONDUCTIVITY ) {
+    //get possible nonlinearities defined in this region
+    //regionID = subdoms_[actSD]
+    StdVector<NonLinType> nonLinTypes = regionNonLinTypes_[subdoms_[actSD]]; 
+    
+    if ( nonLinTypes.Find(NLHEAT_CONDUCTIVITY) != -1 ) {
+      // informs material that approx./interpol. for heat conductivity is needed
+      std::cout << "Do NL Cond" << std::endl;
+
+      actMat->NeedApproxMatCurve( HEAT_CONDUCTIVITY );
 
       BaseForm *nlBilinearStiff = new nlinHeatStiffInt( actMat, tensorType, false );
 
@@ -355,7 +293,10 @@ void HeatCondPDE::DefineIntegrators()
 
     if (isElectroCoupled_ == false && isMechCoupled_ == false ) {
 
-      if ( regionNonLinType_[actSD] == NLHEAT_CAPACITY ) {
+      if ( nonLinTypes.Find( NLHEAT_CAPACITY) != -1 ) {
+        // informs material that approx./interpol. for heat conductivity is needed
+        actMat->NeedApproxMatCurve( HEAT_CAPACITY );
+
         BaseForm *nlBilinearMass = new nlinHeatMassInt( actMat, tensorType, false );
 
         nlBilinearMass->SetNonLinMethod( nonLinMethod_ );      

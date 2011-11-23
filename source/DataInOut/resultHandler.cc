@@ -729,15 +729,31 @@ namespace CoupledField {
 
   }
 
-  shared_ptr<SimInput> ResultHandler::GetInputReader( const std::string& readerId ) {
-    
+  shared_ptr<SimInput> ResultHandler::GetInputReader(const std::string& readerId, bool silent)
+  {
     // check, if input read with specified id is present
-    if( inFiles_.find(readerId) == inFiles_.end() ) {
-      EXCEPTION( "Input reader with id '" << readerId << "' does not exist")
+    if(inFiles_.find(readerId) == inFiles_.end())
+    {
+      if(silent)
+        return shared_ptr<SimInput>();
+      else
+        EXCEPTION( "Input reader with id '" << readerId << "' does not exist")
     }
     return inFiles_[readerId];
   }
 
+  shared_ptr<SimOutput> ResultHandler::GetOutputWriter(const std::string& readerId, bool silent)
+  {
+    // check, if input read with specified id is present
+    if(outFiles_.find(readerId) == outFiles_.end())
+    {
+      if(silent)
+        return shared_ptr<SimOutput>();
+      else
+        EXCEPTION( "Input reader with id '" << readerId << "' does not exist")
+    }
+    return outFiles_[readerId];
+  }
 
 
   void ResultHandler::

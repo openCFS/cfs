@@ -37,7 +37,6 @@
 #include "PDE/magneticPDE.hh"
 #include "PDE/magneticScalarPDE.hh"
 #include "PDE/magEdgePDE.hh"
-#include "PDE/mpcciPDE.hh"
 #include "PDE/heatCondPDE.hh"
 #include "PDE/acouCombustion.hh"
 #include "PDE/acousticMixedPDE.hh"
@@ -586,9 +585,6 @@ void Domain::CreateSinglePDEs(UInt sequenceStep)
     
     else if (actPdeName == "magneticScalar")
           ptSinglePde_[i] = new MagScalarPDE(defaultGrid, actPdeNode);
-
-    else if (actPdeName == "mpcci")
-      ptSinglePde_[i] = new MpcciPDE(defaultGrid, actPdeNode);
 
     else if (actPdeName == "heatConduction")
       ptSinglePde_[i] = new HeatCondPDE(defaultGrid, actPdeNode);

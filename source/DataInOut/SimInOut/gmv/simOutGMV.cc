@@ -273,16 +273,16 @@ namespace CoupledField {
                           Double time ) {
     
     // get number of entities
-    UInt numEnt = 0;
+    // UInt numEnt = 0; // TODO: Unused variable numEnt
     UInt loc;
     
     if ( entityType == ResultInfo::NODE ||
          entityType == ResultInfo::PFEM ) {
       loc = 1;
-      numEnt = ptGrid_->GetNumNodes();
+      // numEnt = ptGrid_->GetNumNodes();
     } else {
       loc = 0;
-      numEnt = ptGrid_->GetNumElems();
+      // numEnt = ptGrid_->GetNumElems();
     }
 
     // write Result header

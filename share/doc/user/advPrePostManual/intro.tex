@@ -1,0 +1,447 @@
+\chapter{Introduction} 
+
+This chapter introduces the interaction between CFS++ and a number of pre- and
+postprocessing packages.
+
+Scientific Visualization Artist Tools \url{http://svat.sourceforge.net/}.
+
+\section{Software Landscape}
+
+\begin{figure}[htp]
+  \begin{center}
+    \includegraphics[width=\textwidth]{pics/soft_landscape} 
+  \end{center}
+  \caption{Software landscape for CFS++.}
+  \label{fig:cfs_soft_landscape}
+\end{figure}
+
+\section{Pre- and Postprocessors}
+
+\subsection{Mesh-based Tools}
+\subsubsection{GiD} GiD  may be  downloaded along with  a free  one-month license
+from    \url{http://gid.cimne.upc.es/download/official-versions}.    The   GiD
+preprocessing    script    extension    for    CFS++   is    available    from
+\url{https://lse17.e-technik.uni-erlangen.de:2001/svn/CAESAR.gid/trunk}. CFS++
+can write the GiD postprocessing format, therefore data can be opened directly
+in GiD.  Please  note, that the license servers  at Erlangen (131.188.140.136)
+and  Klagenfurt  (rom,  143.205.120.86)  only provide  licenses  for  versions
+9.x. In  order to register GiD,  start GiD, go to  Help $\rightarrow$ Register
+GiD $\rightarrow$ select sysinfo for local host $\rightarrow$ enter IP address
+of license server. For an introduction to modeling refer to the chapter 'Basic
+Steps of Modeling in GiD' in \cite{Simkovics2010}.
+
+\begin{figure}[htb] 
+  \centering
+  \begin{overpic}[width=0.5\textwidth]{pics/gid}
+%    \put(10,20){\textcolor{white}{\bf The electrostatic man!}}
+  \end{overpic}
+  \caption{Postprocessing the electrostatic man with GiD}
+  \label{fig:gid}
+\end{figure}%
+
+\subsubsection{Gmsh}  If  you  have  installed  the  packages  provided  in  Sec.
+\ref{sec:list_of_ext_packages} you should  already have Gmsh installed.  Since
+CFS++ can  read the Gmsh  mesh format and  write into the  Gmsh postprocessing
+format if USE\_GMSH is switched ON, no additional extensions are required. The 
+official Gmsh download site is \url{http://geuz.org/gmsh/#Download}.
+
+Please  refer  to  sections  \ref{sec:gmsh_pre}  and  \ref{sec:gmsh_post}  for
+informations about pre- and postprocessing  of CFS++ meshes and results and to
+Sec. \ref{sec:cfs_tool} for the possible ways of data conversion.
+
+\begin{figure}[htb] 
+  \centering
+  \begin{overpic}[grid,tics=10,width=0.3\textwidth]{pics/gmsh}
+    \put(10,20){\textcolor{white}{\bf The electrostatic man!}}
+  \end{overpic}
+  \caption{Postprocessing the electrostatic man with Gmsh}
+  \label{fig:gmsh}
+\end{figure}%
+
+The CFS++  entities (regions,  named nodes and  named elements) are  mapped to
+physical   entities  in   Gmsh  (cf.    the  Visibility   browser   window  in
+Fig. \ref{fig:gmsh_cutplanes}).
+
+\begin{description}
+\item[Gmsh Screencast: Postprocessing Basics]  \url{http://geuz.org/gmsh/screencasts/}
+\item[Einfache Datendarstellung mit Views] \url{http://www.femcfd.com/gmsh-postprocessing-view.html}
+\item[Erste Eindrücke beim Postprocessing mit Gmsh 2.2] \url{http://www.femcfd.com/gmsh-bietet-gutes-postprocessing.html}
+\item[gmshFoam in OpenFOAM Wiki] \url{http://openfoamwiki.net/index.php/Contrib_gmshFoam}
+\end{description}
+
+
+\subsubsection{ANSYS}
+  An   ANSYS  Classic   APDL   preprocessing  extension   is  available   from
+\url{https://lse17.e-technik.uni-erlangen.de:2001/svn/mkmesh/trunk}         for
+generating  ASCII  based mesh  files  readable  by  CFS++.  An  extension  for
+generating  HDF5 mesh files  based on  cplreader (cf.   Sec.  \ref{cplreader},
+\cite{cplreadermanual} ) is  presented in Sec.  \ref{sec:ansys_mkmesh_mkhdf5}.
+CFS++ can  write ANSYS  result files for  postprocessing if  the USE\_ANSYSRST
+configuration option in CMake  is set to ON. This is the  case for the nightly
+built executables ({\tt cfs\_nightly\_*, cfstool\_nightly\_*}) in Klagenfurt.
+
+\textcolor{red}{ATTENTION:  The  ANSYS  Classic  GUI  requires  the  OpenMotif
+library libXm.so.3.  Most modern Linux distributions, except openSUSE (package
+name:  openmotif22-libs),  ship  with   LessTif.   On  Ubuntu  the  multiverse
+repositories have  to be activated  in {\tt /etc/apt/sources.list}.   Then the
+package  libmotif3  can be  installed.   Linking  the  libXm.so.2 provided  by
+LessTif to libXm.so.3  does not work! In Klagenfurt we  solved this problem by
+setting the library load path in our  own start scripts to a path containing a
+valid libXm.so.3.}
+
+For an introduction to modeling refer  to the chapter 'Basic Steps of Modeling
+in   ANSYS'   in  \cite{Simkovics2010}.   Please   also   refer  to   sections
+\ref{sec:ansys_pre} and  \ref{sec:ansys_post} for informations  about pre- and
+postprocessing of CFS++ meshes and  results and to Sec. \ref{sec:cfs_tool} for
+the possible ways of data conversion.
+
+\begin{figure}[htb]
+  \centering
+  \begin{overpic}[width=0.5\textwidth]{pics/ansys}
+%    \put(10,20){\textcolor{white}{\bf The electrostatic man!}}
+  \end{overpic}
+  \caption{Postprocessing the electrostatic man with ANSYS Classic}
+  \label{fig:ansys}
+\end{figure}%
+
+
+\begin{description}
+\item[ANSYS Support Website] \url{http://www.ansys.com/Support}
+\item[Modeling and Meshing Guide] \cite{ANSYSModelMeshGuide2010}
+\item[ANSYS   Post-processing]   The   main   source  of   documentation   for
+post-processing   in    ANSYS   Classic   is   the    Basic   Analysis   Guide
+\cite{ANSYSBasicAnaGuide2010} chapters 6-8.
+\item[APDL Command Reference] \cite{ANSYSCommandRef2010}
+\item[ANSYS Learning Modules at Cornell University] Covers ANSYS Workbench and
+ANSYS                                                                   Classic
+\url{https://confluence.cornell.edu/display/SIMULATION/ANSYS+Learning+Modules}
+\item[University of Alberta - ANSYS Tutorials] \url{http://www.mece.ualberta.ca/tutorials/ansys/index.html}
+\item[Sheldon's ANSYS Tips] \url{http://ansys.net/ansys/ansys_tips.html}
+\item[XANSYS Mailing List] \url{http://www.xansys.org}
+\item[Modelling             and             post-processing             guide]
+\url{http://www-old.hallf.kth.se/\~mart/Demo\_Ansys\_classic.pdf}
+\item[Einführung in ANSYS]
+\url{http://www.bauwesen.tu-dortmund.de/nmi/Medienpool/Skripte/ansys-workshop061002.pdf}
+\item[Example   in   CADFEM   Service  Newsletter]   Ergebnisbeurteilung   bei
+symmetrischen                          Modellen                         6/2003
+\url{http://www.cadfem.at/fileadmin/files/9\_service\_newsletter/2003/0306/Newsletter\_06\_2003.pdf}
+\end{description}
+
+\subsubsection{ParaView} 
+
+Here is what the official web site says about ParaView:
+
+\emph{ParaView   is   an  open-source,   multi-platform   data  analysis   and
+visualization application. ParaView users  can quickly build visualizations to
+analyze their  data using qualitative  and quantitative techniques.   The data
+exploration  can  be  done  interactively  in  3D  or  programmatically  using
+ParaView's batch processing capabilities.}
+
+\emph{ParaView  was  developed  to  analyze  extremely  large  datasets  using
+distributed memory  computing resources.  It  can be run on  supercomputers to
+analyze datasets of terascale as well as on laptops for smaller data.}
+
+\begin{figure}[htb] 
+  \centering
+  \begin{overpic}[width=0.5\textwidth]{pics/pv/paraview}                      %
+%\put(10,20){\textcolor{white}{\bf The electrostatic man!}}
+  \end{overpic}
+  \caption{Postprocessing the electrostatic man with ParaView}
+  \label{fig:paraview}
+\end{figure}%
+
+For  post-processing  of  results  from  CFS++ we  (Andreas  Hauck  and  Simon
+Triebenbacher)  have implemented a  file reader  for our  HDF5 files  into the
+Visualization   Toolkit  (VTK)  \cite{VTKWebSite,VTKWiki,VTKTextbook,VTKGuide}
+which  ParaView is  built  upon.  Please  refer  to \cite{CFSDevelManual}  for
+further details about the implementation of the CFS++ HDF5 plugin.
+
+\begin{description}
+\item[ParaView website] \url{http://www.paraview.org} \cite{ParaViewWebSite}
+\item[ParaView Guide] The official ParaView Manual \cite{PVGuide2007} is also available as a free online resource inside the ParaView Wiki at \url{http://paraview.org/Wiki/ParaView/Users_Guide/Table_Of_Contents} since ParaView 3.10.
+\item[ParaView Wiki] \cite{PVWiki}
+\item[ParaView Online documentation] \url{http://www.paraview.org/paraview/help/documentation.html}
+\item[Precompiled ParaView Binaries with our plugin] \url{https://lse17.e-technik.uni-erlangen.de:2001/files/precompiled/Paraview}.
+\item[Kitware - The Source] The official newsletter provides reports about the
+latest  features   of  ParaView  and  other  Kitware   toolkits  (CMake,  VTK,
+etc.).   This    information   is    relevant   to   developers    and   users
+alike. \url{http://www.kitware.com/products/thesource.html}
+\item[Kitware blog] The latest issues of The Source also appear as blog articles at \url{http://www.kitware.com/source/}.
+\item[Tutorial for 3.8]  A good starting point for the  ParaView newbie is the tutorial. \url{http://www.paraview.org/Wiki/images/8/88/ParaViewTutorial38.pdf}
+\item[Tutorial for 3.10] \url{http://www.vtk.org/Wiki/images/2/2d/ParaViewTutorial310.pdf}
+\item[Data     Analysis    and     Assessment    Center     (DAAC)    ParaView
+page] \url{http://daac.hpc.mil/paraview}
+\item[ParaView at NERSC] \url{http://www.nersc.gov/users/software/vis-analytics/paraview/}
+\item[ParaViewGeo] is an open source multi-processor ready visualization package for the exploration and mining industry. \url{http://paraviewgeo.mirarco.org}
+\end{description}
+
+\paragraph{Installing SciPy/NumPy}
+In  order  to be  able  to calculate  analytical  solutions  on meshes  inside
+ParaView the SciPy and NumPy Python libs have to be present on the machine. An
+installation          howto          can          be         found          at
+\url{http://www.scipy.org/Installing_SciPy}.            The           pythonxy
+\url{http://www.pythonxy.com}   distribution   may   also  be   a   noteworthy
+alternative.
+
+\subsubsection{VisIt}
+\label{sec:intro_visit}
+
+VisIt is another VTK-based visualization  tool with broad support for CFD data
+formats. E.g. it has native readers  for CGNS and StarCCM+ files.  Like GMV it
+is  developed at  Lawrence  Livermore National  Laboratories.
+
+\begin{figure}[htb]
+  \centering
+  \begin{overpic}[width=0.5\textwidth]{pics/visit}
+%    \put(10,20){\textcolor{white}{\bf The electrostatic man!}}
+  \end{overpic}
+  \caption{Postprocessing the electrostatic man with VisIt}
+  \label{fig:visit}
+\end{figure}%
+
+\begin{description}
+\item[VisIt website] \url{https://wci.llnl.gov/codes/visit/}
+
+\item[VisIt User's Wiki]
+\url{http://www.visitusers.org}
+
+\item[Official VisIt documentation]
+\url{https://wci.llnl.gov/codes/visit/doc.html}
+
+\item[VisIt podcast] \url{http://www.rce-cast.com/index.php/Podcast/rce06-visit.html}
+
+\item[Data    Analysis   and    Assessment   Center    (DAAC)    VisIt   page]
+\url{https://visualization.hpc.mil/wiki/VisIt}
+
+\item[VisIt at NERSC] \url{http://www.nersc.gov/users/software/vis-analytics/visit/}
+\end{description}
+
+\subsubsection{Tecplot}
+
+\begin{figure}[htb]
+  \centering
+  \begin{overpic}[width=0.5\textwidth]{pics/tecplot}
+%    \put(10,20){\textcolor{white}{\bf The electrostatic man!}}
+  \end{overpic}
+  \caption{Postprocessing the electrostatic man with Tecplot}
+  \label{fig:gid}
+\end{figure}%
+
+\begin{description}
+\item[Getting Started Manual] \url{http://download.tecplot.com/360/tpgs.pdf}
+\item[User's Manual] \url{http://download.tecplot.com/360/tpum.pdf}
+\item[Getting Started Videos] \url{http://www.tecplot.com/Training/GettingStarted.aspx}
+\item[Feature Tutorial Videos] \url{http://www.tecplot.com/Training/FeatureTutorials.aspx}
+\item[Further Video Tutorials] \url{http://www.genias-graphics.de/cms/tp-360-tutorials.html}
+\end{description}
+
+\subsubsection{EnSight}
+
+EnSight is  a commercial postprocessor with  support for a wide  range of data
+formats.   We   also  support  reading  EnSight  data   files  with  cplreader
+(cf. \cite{cplreadermanual}).
+
+\begin{figure}[htb] 
+  \centering 
+  \label{fig:ensight}
+  \includegraphics[height=7.5cm]{pics/ensight_man} 
+  \caption{Postprocessing with EnSight.}
+\end{figure}
+
+\begin{description}
+\item[EnSight 9 website] \url{http://www.ensight.com}
+
+
+\item[EnSight tutorials] \url{http://www.ensight.com/Tutorials/}
+
+\item[Data Analysis and Assessment Center (DAAC) EnSight page] \url{http://daac.hpc.mil/ensight}
+
+\item[CEI's EnSight at NERSC] \url{http://www-vis.lbl.gov/NERSC/Software/ensight}
+
+\item[Short  introduction in German] \url{http://www.scc.kit.edu/produkte/3847.php}
+
+\item[EnSight 9 to 10] \url{http://wiki.ensight.com/w/EnSight10Transition}
+
+\item[EnSight 10 website] \url{http://www.ensight10.com}
+
+\item[EnSight 10 tutorials] \url{http://www.ensight10.com/sample-page/ensight-10-intro-tutorials/}
+\end{description}
+
+
+
+\subsubsection{ANSYS CFD-Post}
+
+\begin{figure}[htb] 
+  \centering 
+  \label{fig:ensight}
+  \includegraphics[height=7.5cm]{pics/cfdpost} 
+  \caption{Postprocessing with ANSYS CFD-Post.}
+\end{figure}
+
+\begin{description}
+\item[CFD-Post Users Guide] \cite{ANSYSCFDPostUG2010}
+\item[FLUENT simulation of an elbow and CFD-Post]
+\url{http://www1.ansys.com/customer/content/documentation/121/fluent/flcfd.pdf}
+
+\item[FLUENT Wiki on CFD Online] \url{http://www.cfd-online.com/Wiki/FLUENT}
+\end{description}
+
+\subsubsection{GMV  -  General  Mesh  Viewer}
+
+GMV  is an  easy to  use, 3D-scientific  visualization tool  designed  to view
+simulation data from any kind of  structured or unstructured mesh. GMV is free
+software  but not open  source (Terms  of use)  and was  developed at  the Los
+Alamos National  Laboratory.  The GMV postprocessor is  not publicly available
+any  more, but  is still  installed  at Erlangen  and Klagenfurt.   It may  be
+obtained also from the CFS++ development server.
+
+\noindent It has the following features:
+\begin{itemize}
+    \item Read and display cell geometry
+    \item Display nodes, cells, surfaces and particle tracers
+    \item Isosurface and cutplane interpolation of grid data
+    \item Ability to isolate a cell or groups of cells for closer analysis
+    \item A wide variety of animation options
+    \item A flight mode for interactive fly-throughs of the simulation
+    \item Many convenience features for high qualit video production
+    \item (A highly intuitive and well behaved user interface)
+    \item Visualizes data from any current or future 3-D simulation 
+\end{itemize}
+
+\begin{figure}[htb] 
+  \centering
+  \begin{overpic}[width=0.5\textwidth]{pics/gmv}
+%  \begin{overpic}[grid,tics=10,width=0.5\textwidth]{pics/gmv}
+%    \put(10,20){\textcolor{white}{\bf The electrostatic man!}}
+  \end{overpic}
+  \caption{Postprocessing with General Mesh Viewer (GMV)}
+  \label{fig:gmv}
+\end{figure}%
+
+  Another postprocessor,  which is capable of  reading GMV files,  is free and
+has    its   roots    also    at   Lawrence    Livermore    Labs   is    VisIt
+(cf. Sec. \ref{sec:intro_visit})
+
+\begin{description}
+\item[GMV website] \url{http://www.generalmeshviewer.com}
+\item[GMV binaries on CFS++ development server] \url{https://lse17.e-technik.uni-erlangen.de:2001/files/precompiled/GMV}
+\end{description}
+
+
+\subsection{Tools for In/Output Signal Processing}
+\subsubsection{HDF5 Tools}
+HDF5                                command                               line
+tools\footnote{\url{http://www.hdfgroup.org/products/hdf5_tools/\#h5dist}} get
+built along CFS++ in any case and are available in CFS\_BUILD\_DIR/bin/DISTRO.
+
+The  hdfview  HDF5 viewer\footnote{\url{http://www.hdfgroup.org/hdf-java-html/hdfview}}
+may be built  from source by switching the  BUILD\_HDFVIEW CMake configuration
+option ON.
+
+\url{http://ab-initio.mit.edu/wiki/index.php/H5utils}
+
+HDF5 in Perl:
+\url{http://search.cpan.org/~cerney/PDL-IO-HDF5-0.63/}
+
+
+\subsubsection{Matlab}
+Matlab        can        also         read        and        write        HDF5
+files\footnote{\url{http://www.mathworks.com/help/techdoc/ref/hdf5.html},
+\url{http://www.scipy.org/Cookbook/hdf5_in_Matlab}}   and   is  available   in
+Klagenfurt and Erlangen.
+
+\subsubsection{Octave}
+
+\begin{verbatim}
+d = load('-hdf5', 'check.h5')
+save -hdf5 out.mat
+\end{verbatim}
+
+Octave legt die Variablen in Groups ab und darin erst die Datensaetze:
+
+\begin{verbatim}
+octave:1> x = diag ([1,2,3]);
+octave:2> x
+x =
+
+   1   0   0
+   0   2   0
+   0   0   3
+
+octave:3> save -hdf5 foo.mat x
+octave:4> system("h5ls foo.mat/x")
+type                     Dataset {SCALAR}
+value                    Dataset {3, 3}
+ans = 0
+octave:5> system("h5dump -d /x/value foo.mat")HDF5 "foo.mat" {DATASET "/x/value" {
+   DATATYPE  H5T_IEEE_F64LE
+   DATASPACE  SIMPLE { ( 3, 3 ) / ( 3, 3 ) }
+   DATA {
+   (0,0): 1, 0, 0,
+   (1,0): 0, 2, 0,
+   (2,0): 0, 0, 3
+   }
+}
+}
+
+ans = 0
+\end{verbatim}
+
+Dritte Spalte einlesen:
+
+\begin{verbatim}
+octave:14> system("h5dump -d /x/value -s 0,2 -S 1,1 -c 3,1 -k 1,1 foo.mat")
+HDF5 "foo.mat" {
+DATASET "/x/value" {
+   DATATYPE  H5T_IEEE_F64LE
+   DATASPACE  SIMPLE { ( 3, 3 ) / ( 3, 3 ) }
+   SUBSET {
+      START ( 0, 2 );
+      STRIDE ( 1, 1 );
+      COUNT ( 3, 1 );
+      BLOCK ( 1, 1 );
+      DATA {
+      (0,2): 0,
+      (1,2):  0,
+      (2,2):  3
+      }
+   }
+}
+}
+ans = 0
+\end{verbatim}
+
+\begin{verbatim}
+octave:45> t=[0:100]
+octave:47> t2 = t/100*2*pi
+octave:48> sin = sin(t2)
+octave:49> cos = cos(t2)
+octave:51> matrix = [t2;sin;cos]
+octave:52> save -hdf5 foo.mat matrix
+octave:53> system("h5dump -d /matrix/value -y foo.mat | sed -n '/DATA {/,/}/p' | sed -e '1d' -e 's/,//g' -e '$d'")
+\end{verbatim}
+
+
+\subsubsection{Python Tools}
+
+\cite{Langtangen2011, Langtangen2008, Alchin2010, Pilgrim2009, Pilgrim2004}
+
+\url{http://www.pytables.org}
+
+\url{http://alfven.org/wp/hdf5-for-python/}
+
+\subsubsection{Gnuplot}
+
+
+Gnuplot book: \cite{Janert2009} 
+Gnuplot website: \url{http://www.gnuplot.info/}
+
+Plot HDF5 Data in GnuPlot:
+
+\begin{verbatim}
+plot "< magic_tool input file"
+plot "< h5dump -d /matrix/value -y foo.mat | sed -n '/DATA {/,/}/p' | sed -e '1d' -e 's/,//g' -e '$d'" using 1:3
+\end{verbatim}
+
+
+

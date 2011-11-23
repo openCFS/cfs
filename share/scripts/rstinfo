@@ -1,0 +1,193 @@
+#!/usr/bin/awk -f
+
+function reverse(s, f)
+{
+  p = ""
+  for(i=length(s); i > 0; i-=f) { 
+    p = p substr(s, i-(f-1), f)
+    #    printf "i: %d p: %s\n",i,  p
+  }
+  return p
+}
+
+function setFieldsByWidth( i,n,FWS,start,copyd0) {
+  # Licensed under GPL Peter S Tillier, 2003
+  # NB corrupts $0
+  copyd0 = $0 # make copy of $0 to work on
+  if (length(FIELDWIDTHS) == 0) {
+    print "You need to set the width of the fields that you require" > "/dev/stderr"
+    print "in the variable FIELDWIDTHS (NB: Upper case!)" > "/dev/stderr"
+    exit(1)
+  }
+
+  if (!match(FIELDWIDTHS,/^[0-9 ]+$/)) {
+    print "The variable FIELDWIDTHS must contain digits, separated" > "/dev/stderr"
+    print "by spaces." > "/dev/stderr"
+    exit(1)
+  }
+
+  n = split(FIELDWIDTHS,FWS," ")
+  
+  if (n == 1) {
+    print "Warning: FIELDWIDTHS contains only one field width." > "/dev/stderr"
+    print "Attempting to continue." > "/dev/stderr"
+  }
+  
+  start = 1
+  for (i=1; i <= n; i++) {
+    $i = substr(copyd0,start,FWS[i])
+    start = start + FWS[i]
+  }
+  
+}
+
+function printRSTString(start, num) 
+{
+  for (q = start; q <= start+(num-1)*2; q+=2) {
+    str = $q
+    if(REV == 1) str = reverse(str, 1)
+    printf "%s", str
+  }
+  print ""
+}
+
+function printRSTInt(start) 
+{
+  str = $start
+  if(REV == 1) str = reverse(str, 2)
+  str = "0x" str
+  if(GAWK) 
+  {
+    printf "%d", strtonum(str)
+  }
+  else 
+  {
+    printf "%d", str
+  }
+  
+  print ""
+}
+
+BEGIN {
+  if (ARGC < 2) {
+    print "rstinfo - Display infos from header of ANSYS result files.\n" > "/dev/stderr";
+    print "Supported files: .RST, .RTH, .RMG, .RFL, .MODE, .RDSP, " \
+          ".RFRQ, .EMAT, .SUB, .FULL\n"
+    print "USAGE: rstinfo filename.rst" > "/dev/stderr";
+    exit 1;
+  }
+
+  # Check awk version
+  AWK = ARGV[0] 
+  (AWK " --version") | getline AWKVER
+
+  if(AWKVER ~ /GNU/) 
+  {
+    GAWK=1
+  } else 
+  {
+    GAWK=0
+  }
+
+  
+  NINTS=512
+  FIELDWIDTHS=""
+  for (n = 1; n <= NINTS; n++) {
+    FIELDWIDTHS = FIELDWIDTHS" 8 4"
+  }
+  
+  RSTFILE=ARGV[1]
+
+  #  "mktemp -t rstinfo" | getline TMPFILE
+
+  # Create a hex dump of the first NINTS bytes of the .rst file.
+  # The 4 byte integers are output as 8 character hex values
+  # and as 4 character cleartext values.
+  "hexdump -v -e '\"\" 4/1 \"%02X\" \"\"' -e '\"%_p%_p%_p%_p\"' -n " NINTS " " RSTFILE | getline HD
+  $0 = HD
+  setFieldsByWidth()
+
+  #print HD
+  #  for (n = 1; n <= 220; n+=2) {
+  #    printf "%d: %s %s\n", n, $n, $(n+1)
+  #  }
+
+  # Check byte order of .rst file
+  REV = 0
+  if( substr($211,1,2) != "00" ) { REV = 1 }
+  #  print "REV " REV
+  
+  print "Informations on ANSYS result file '" RSTFILE "':\n"
+
+  printf "CREATION TIME: "
+  printRSTInt(9)
+  printf "CREATION DATE: "
+  printRSTInt(11)
+  printf "RELEASE: "
+  printRSTString(24,1)
+  printf "UPDATE: "
+  printRSTInt(25)
+  print ""
+
+  printf "SYSTEM: "  
+  printRSTString(28,3)
+  printf "PRODUCT NAME: "    
+  printRSTString(38,1)
+  printf "USER: "    
+  printRSTString(44,3)
+  print ""
+
+  printf "JOB NAME(1:8): "    
+  printRSTString(34,2)
+  printf "JOB NAME(1:32): "    
+  printRSTString(66,8)
+  printf "TITLE: "
+  printRSTString(86,20)
+  printf "SUBTITLE: "
+  printRSTString(126,20)
+  print ""
+
+  printf "UNITS: "
+  printRSTInt(13)
+
+  print "0 for user-defined units"
+  print "1 for SI units"
+  print "2 for CSG units"
+  print "3 for U. S. Customary units (feet)"
+  print "4 for U. S. Customary units (inches)"
+  print "5 for MKS units"
+  print "6 for MPA units"
+  print "7 for muMKS units"
+  print ""
+
+  printf "MAXIMUM NUMBER OF NODES: "
+  printRSTInt(213)
+  printf "ACTUAL NUMBER OF NODES: "
+  printRSTInt(215)
+  printf "MAXIMUM NUMBER OF ELEMENTS: "
+  printRSTInt(221)
+  printf "ACTUAL NUMBER OF ELEMENTS: "
+  printRSTInt(223)
+  print ""
+
+  printf "ANALYSIS TYPE: "
+  printRSTInt(225)
+  print "0 for STATIC"
+  print "2 for EIGENFREQUENCY"
+  print "3 for HARMONIC"
+  print "4 for TRANSIENT"
+  print ""
+  
+
+print "Enter the following APDL commands into ANSYS for a complete ASCII dump:"
+  print "/AUX2"
+  print "FORM,LONG"
+  print "FILEAUX2,'" RSTFILE "'"
+  print "DUMP,ALL"
+}
+{
+} 
+END {
+  #  system("rm -f " TMPFILE)
+}
+

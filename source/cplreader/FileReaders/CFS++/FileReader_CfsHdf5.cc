@@ -101,7 +101,8 @@ void FileReader_CfsHdf5::Init()
   if (elemTypesTmp.size() != 0)
   {
     elemTypes_.resize(elemTypesTmp.size());
-    std::vector<std::vector<unsigned int> >::const_iterator iterConnect_lvl1 = connectTmp.begin();
+    // std::vector<std::vector<unsigned int> >::const_iterator iterConnect_lvl1 = connectTmp.begin();
+    // TODO: Unused variable iterConnect_lvl1
     std::vector<unsigned int>::const_iterator iterConnect_lvl2, iterConnect_lvl2End;
     for (UInt i = 0; i < elemTypesTmp.size(); ++i)
     {

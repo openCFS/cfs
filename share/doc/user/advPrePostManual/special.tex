@@ -1,0 +1,766 @@
+\chapter{Special Tasks Cookbook}
+
+Siehe DevelManual
+
+\section{Creating Colormaps}
+
+\subsection{ParaView}
+\url{http://www.itk.org/Wiki/Manually_Creating_a_Colormap}
+
+\begin{figure}[htp]
+  \begin{center}
+    \includegraphics[height=4cm]{pics/pv_colormaps} 
+  \end{center}
+  \caption{Predefined colormaps from ParaView and CFS++.}
+  \label{fig:cfs_pv_colormaps}
+\end{figure}
+
+
+\subsection{Gnuplot}
+\url{http://gnuplot.sourceforge.net/demo/pm3dcolors.html}
+
+\subsection{Matlab}
+\url{http://www.mathworks.de/help/techdoc/ref/colormap.html}
+\url{http://www.mathworks.de/help/techdoc/ref/colormapeditor.html}
+
+
+\section{Extracting Vector Graphics of the Mesh on Slices}
+
+\subsection{GMV}
+GMV is the only postprocessor which does not generate triangle meshes during a
+mesh slice  operation. This means that slicing  a hexa in the  middle does not
+produce  two  triangles but  one  quadrilateral. This  is  even  the case  for
+quadratic elements.   This is important  for demonstrating the structure  of a
+mesh.   In order  to export  this data  to vector  format (postscript)  do the
+following.
+
+\begin{itemize}
+  \item Generate a cutplane as explained above.
+  \item Switch of Faces in Display $\rightarrow$ Cells dialogue
+  \item Switch  on Edges in  Cutplanes $\rightarrow$ Cutplane  X $\rightarrow$
+Options dialogue
+  \item Save snapshot by going to File $\rightarrow$ Snapshot $\rightarrow$ PS
+Lines $\rightarrow$ Snap
+\end{itemize}
+
+GMV may however crash during the operation, due to OpenGL problems.
+
+\section{Calculation of Some Aeroacoustic Variables}
+
+\subsection{ParaView}
+Given a flow field from a  CFD simulation (e.g. obtained through cplreader) it
+may  be  of interest  to  calculate secondary  variables  in  order to  better
+evaluate its  properties.  Such properties  for example include  the vorticity
+$\mathbf{w} = \nabla \times  \mathbf{v}$ and the divergence $div(\mathbf{v}) =
+\nabla \cdot \mathbf{v}$ of the flow field.  These quantities may be evaluated
+by using the Compute Derivatives filter while specifying the fluidMechVelocity
+as  input vector.   It  will  compute the  component-wise  derivatives of  the
+velocity    vector    as    an     element    result    in    the    following
+manner\footnote{\url{http://www.vtk.org/gitweb?p=VTK.git;a=blob;f=Graphics/vtkCellDerivatives.cxx},\url{http://www.vtk.org/doc/release/5.6/html/a00263.html\#ff3d8332e9d7d556a9d2e9f91173d068}}:
+
+\begin{displaymath}
+  \begin{pmatrix} 
+    \mathtt{VectorGradient\_0} & \mathtt{VectorGradient\_1} & \mathtt{VectorGradient\_2}\\
+    \mathtt{VectorGradient\_3} & \mathtt{VectorGradient\_4} & \mathtt{VectorGradient\_5}\\
+    \mathtt{VectorGradient\_6} & \mathtt{VectorGradient\_7} & \mathtt{VectorGradient\_8}
+  \end{pmatrix} = 
+  \begin{pmatrix} 
+    \frac{\partial v_x}{\partial x} & \frac{\partial v_y}{\partial x} & \frac{\partial v_z}{\partial x}\\
+    \frac{\partial v_x}{\partial y} & \frac{\partial v_y}{\partial y} & \frac{\partial v_z}{\partial y}\\
+    \frac{\partial v_x}{\partial z} & \frac{\partial v_y}{\partial z} & \frac{\partial v_z}{\partial z}
+  \end{pmatrix}
+\end{displaymath}
+
+From the Vector  Gradient the vorticity can be obtained  by using a Calculator
+filter with the following formula while choosing cell data as attribute mode.
+
+\begin{verbatim}
+( VectorGradient_7 - VectorGradient_5) * iHat +
+(-VectorGradient_6 + VectorGradient_2) * jHat +
+( VectorGradient_3 - VectorGradient_1) * kHat
+\end{verbatim}
+
+Whereas the divergence may be computed by the formula
+\begin{verbatim}
+VectorGradient_0 + VectorGradient_4 + VectorGradient_8
+\end{verbatim}
+
+The  Lamb  vector $\mathbf{L}  =  \mathbf{w}  \times  \mathbf{v}$ is  also  of
+interest in  aeroacoustics. Since the velocity  field is defined  on points it
+has to  be interpolated  to cells  first by using  a Point  Data to  Cell Data
+filter. Then the Lamb vector can be computed by the formula
+
+\begin{verbatim}
+( (-VectorGradient_6 + VectorGradient_2) * fluidMechVelocity_Z -
+  ( VectorGradient_3 - VectorGradient_1) * fluidMechVelocity_Y   ) * iHat +
+(-( VectorGradient_7 - VectorGradient_5) * fluidMechVelocity_Z + 
+  ( VectorGradient_3 - VectorGradient_1) * fluidMechVelocity_X   ) * jHat +
+( ( VectorGradient_7 - VectorGradient_5) * fluidMechVelocity_Y + 
+  (-VectorGradient_6 + VectorGradient_2) * fluidMechVelocity_X   ) * kHat
+\end{verbatim}
+
+Another  interesting quantity in  aeroacoustic research  is the  divergence of
+Lighthill's tensor $\nabla \cdot T_{ij} \approx \nabla \cdot \rho v_i v_j$ for
+low Mach number  flows.  According to Sec.  3.6. FE  evaluation of the acoustic
+source term  in \cite{Escobar2007} the  computation of this  quantity involves
+spatial  derivatives of  the velocity  vector field  as well  as  the velocity
+vector itself.   Therefore the  velocity vector field  has to  interpolated to
+cells first by  using the Point Data  to Cell Data filter. Once  this has been
+accomplished  a Calculator  filter in  cell  data mode  can be  used with  the
+following formula.
+
+\begin{verbatim}
+( 2 * fluidMechVelocity_X * VectorGradient_0 + 
+      fluidMechVelocity_Y * VectorGradient_3 +
+      fluidMechVelocity_X * VectorGradient_4 +
+      fluidMechVelocity_Z * VectorGradient_6 +
+      fluidMechVelocity_X * VectorGradient_8   ) * iHat +
+(     fluidMechVelocity_Y * VectorGradient_0 +
+      fluidMechVelocity_X * VectorGradient_1 + 
+  2 * fluidMechVelocity_Y * VectorGradient_4 + 
+      fluidMechVelocity_Z * VectorGradient_7 +
+      fluidMechVelocity_Y * VectorGradient_8   ) * jHat +
+(     fluidMechVelocity_Z * VectorGradient_0 +
+      fluidMechVelocity_X * VectorGradient_2 +
+      fluidMechVelocity_Z * VectorGradient_4 +
+      fluidMechVelocity_Y * VectorGradient_5 +
+  2 * fluidMechVelocity_Z * VectorGradient_8   ) * kHat
+\end{verbatim}
+
+\section{Texture Mapping}
+
+\subsection{ParaView}
+Textures can be  mapped to PolyData in ParaView by going  to the Display panel
+and  loading a  texture  image in  the  Color field.   If  however no  texture
+coordinates  are defined  for the  Poly Data  the corresponding  combo  box is
+greyed out. Texture  coordinates can be generated by using  the Texture Map to
+... filters or by using a  Programmable Filter and the following sample script
+\attachfile[icon=PushPin,description={Generation  of  texture  coordinates  in
+ParaView.},mimetype=text/plain]{attachments/pv_texture_map.txt}.
+
+\input{pygmentized/pv_texture_map}
+
+Figure \label{fig:pv_tex_map} shows  the result of applying a  2D texture to a
+spherical  source using the  texture coordinates  generated with  the previous
+script.
+
+\begin{figure}[htb] 
+  \centering 
+  \subfloat[2D texture map.]{
+    \label{fig:pv_texture}
+    \includegraphics[height=5cm]{pics/pv/vector_perforated_metal_pattern2} }
+  \qquad
+  \subfloat[Texture mapped to sphere.]{
+    \label{fig:pv_tex_mapped_sphere}
+    \includegraphics[height=5cm]{pics/pv/tex_mapped_sphere}
+  } 
+  \caption{Texture mapping in ParaView.}
+  \label{fig:pv_tex_map}
+\end{figure}
+
+\section{Visualizing Local-to-Global Mapping}
+
+\subsection{ParaView}
+Local-to-Global  Mapping visualisieren:  In diesem  Beispiel wird  ein Dreieck
+mithilfe   der  sechs   serendipity  Ansatzfunktionen   auf  ein   Achtel  der
+Kugeloberfläche projeziert, wie in Fig. \ref{fig:pv_tria_local_global_mapping}
+gezeigt.  Es wird dabei  ganz klar,  dass die  Oberfläche dadurch  nicht exakt
+wiedergegeben werden kann! Nur die Knoten liegen auf der Oberfläche.
+
+\begin{itemize}
+\item File $\rightarrow$ Open $\rightarrow$ CFS\_TESTSUITE/TESTSUIT/refelems/TRIA3.h5
+\item Extract Surface Filter
+\item Subdivide Filter (wenn nötig mehrmals)
+\item Programmable Filter \attachfile[icon=PushPin,description={Visualization
+of   triangle mapped to sphere.},mimetype=text/plain]{attachments/pv_tria_local_global_mapping.txt}
+\item Visualize 'MapVector' with Glyph filter (ScaleMode: Vector, Edit: On, Set Scale Factor: 1)
+\item transparente Kugel über Sphere Source
+\end{itemize}
+
+Hernach  kann man  die Fläche  des  gemappten Elements  ausrechnen (z.B.   zur
+Überprüfung von Jacobi Determinanten)  indem man über einen IntegrateVariables
+Filter alle Variablen aufintegrieren lässt. Das Ergebnis bekommt man dann wenn
+man  in dem  neuen  Spreadsheet  View auf  Attribute  $\rightarrow$ Cell  Data
+umschaltet. Dort gibt es eine Spalte Area.
+
+\begin{figure}[htb] 
+  \centering
+  \begin{overpic}[width=0.7\textwidth]{pics/pv/tria_local_global_mapping}
+  \end{overpic}
+  \caption{Visualization of second-order triangle local to global mapping.}
+  \label{fig:pv_tria_local_global_mapping}
+\end{figure}%
+
+In order to better understand the properties of the local-to-global mapping it
+is  sometimes   helpful,  to  visualize  how   the  local  $\boldsymbol{\xi}$,
+$\boldsymbol{\eta}$ and $\boldsymbol{\zeta}$  basis vectors get transformed to
+the global  coordinate system (cf. Fig.  \ref{fig:pv_xi_eta}).  The vectors to
+be visualized  are indeed the three  column vectors of the  Jacobian matrix of
+the  local  to global  mapping  (cf.   \cite{Kaltenbacher2007}  p.  30).   The
+following  attached script \attachfile[icon=PushPin,description={Visualization
+of   mapped   basis  vectors.},mimetype=text/plain]{attachments/pv_xi_eta.txt}
+extends  the  script  from  the  first  paragraph  of  this  section  for  the
+calculation of the mapped basis vectors for a four-node quadrilateral element.
+
+\begin{figure}[htb] 
+  \centering
+  \begin{overpic}{pics/pv/pv_xi_eta}
+  \end{overpic}
+  \caption{Visualization    of    mapped    $\boldsymbol{\xi}$-   (red)    and
+$\boldsymbol{\eta}$-vectors  (yellow).   The  global  element  is  colored  by
+Jacobian determinant.}
+  \label{fig:pv_xi_eta}
+\end{figure}%
+
+The corresponding visualization pipeline should contain the following items:
+
+\begin{itemize}
+\item Load QUAD4.h5 dataset from TESTSUITE/refelems
+\item Apply Delaunay2D filter
+\item Apply Subdivide filter
+\item Apply Programmable filter and enter the given script
+\item Visualize computed vectors with Glyph filter
+\end{itemize}
+
+\section{Visualizing Basis Functions}
+
+\subsection{ParaView}
+
+\paragraph{Second-Order Triangle}
+
+\begin{figure}[htb] 
+  \centering
+  \begin{overpic}[width=0.5\textwidth]{pics/pv/tria_shape_func}
+  \end{overpic}
+  \caption{Second-order shape function with colormap and warped by scalar.}
+  \label{fig:pv_tria_shape_func}
+\end{figure}%
+
+\paragraph{Second-Order Pyramid}
+
+\paragraph{Nédélec Tetrehedron}
+
+\begin{figure}[htb] 
+  \centering
+  \begin{overpic}[width=0.5\textwidth]{pics/pv/tet_nedelec_shape_func}
+  \end{overpic}
+  \caption{First-order Nédélec shape function with colormap and arrow glyphs.}
+  \label{fig:pv_tet_nedelec_shape_func}
+\end{figure}%
+
+\section{ParaView Specific Tasks}
+
+\subsubsection{ParaView Python Scripting}
+
+Some tips for Python scripting in ParaView:
+
+\begin{itemize}
+\item Open Python Shell under Tools $\rightarrow$ Python Shell
+\item {\tt help(obj|package)} provides help about a certain class or package
+\item By issuing {\tt print obj} the PrintSelf() function of VTK objects gets invoked
+\item Set {\tt obj.DebugOn()} if you want to see some more debug info about VTK objects.
+\end{itemize}
+
+
+\begin{table}[htb]
+\centering
+\begin{minipage}{18cc}\caption{Resources for ParaView Python Scripting}
+\label{tab:pv_python_scripting}
+\end{minipage}
+\par\medskip\noindent
+\begin{tabular}{ll}
+  \toprule
+  {\bf Description} & {\bf URL} \\ \otoprule
+  Python Programmable Filter & \url{http://www.cmake.org/Wiki/Python\_Programmable\_Filter} \\
+  Examples for Python Programmable Filters and Sources & \url{http://www.itk.org/Wiki/Here\_are\_some\_more\_examples\_of\_simple\_ParaView\_3\_python\_filters.} \\
+  Time Dependent Processing in a Parallel Pipeline Architecture \cite{Biddiscombe2007} & \url{http://www.computer.org/portal/web/csdl/doi/10.1109/TVCG.2007.70600} \\
+  ParaView Python Scripting Basics & \url{http://www.cmake.org/Wiki/ParaView/Python\_Scripting} \\
+  Composite datasets in VTK (e.g. vtkMultiBlockDataSet) \cite{Geveci2006} & \url{http://www.kitware.com/products/thesource/oct2006.html} \\
+  Python Scripting for ParaView & \url{http://www.vgtc.org/PDF/slides/2008/visweek/tutorial6_ayachit_python.pdf} \\
+  ParaView Scripting & \url{http://www.itk.org/Wiki/images/7/7c/PV_Vis09_Tut_Python.pdf} \url{http://www.itk.org/Wiki/images/7/7c/PV_Vis09_Tut_Python.pdf} \\
+  \bottomrule
+\end{tabular} 
+\end{table}
+
+\subsubsection{Interpolating volume dataset to surfaces}
+
+Since CFS++  only saves the fields on  the regions specified in  the XML file,
+there may  be no field information  available on surface  regions.  To perform
+visualizations on  these surface regions,  the fields have to  be interpolated
+there first.  This may be achieved  by using the Resample  with dataset filter
+and by specifying the surface regions as Input and the volume regions with the
+data on them as Source.
+
+\subsubsection{Extracting surface meshes for further simulations from ParaView}
+
+In order to extract some surface meshes from ParaView for use in CFS++ one can
+save them to  VRML format by using File $\rightarrow$  Export. The VRML format
+can be read in by Gmsh, which in turn can do some further preprocessing to the
+mesh.  The   mesh  generated  by  Gmsh   may  then  be   read  by  cfs/cfstool
+(cf. Sec. \ref{sec:ansys_surf_vol_mesh}).
+
+\subsubsection{Computing analytical fields using Programmable Filter and SciPy }
+
+This  piece of  code  can be  used  to compute  the  analytical solution  (cf.
+\cite{Triebenbacher2006},   Section   5.2   and   test  suite   example   {\tt
+TESTSUITE/singlefield/acoustics/l2d\_nmg})  of a  sound radiating  cylinder by
+making use  of a Hankel function  from SciPy. Whereby the  the following SciPy
+code            (cf.             SciPy            special            functions
+docu\footnote{\url{http://docs.scipy.org/doc/scipy-0.7.x/reference/tutorial/special.html}},
+Treatment             of             complex            numbers             in
+Python\footnote{\url{http://docs.python.org/tutorial/introduction.html}})
+
+\input{pygmentized/pv_scipy_hankel1}
+
+\noindent is equivalent to the following Matlab/Octave code
+
+\input{pygmentized/pv_matlab_besselh}
+
+\noindent The following  code will produce a new  nodal result 'AnalyticalSol'
+but also shows how to access the current time step and previous nodal results.
+For the  treatment of  element based results  or vector/tensor  results please
+refer                      to                      the                     VTK
+documentation\footnote{\url{http://www.vtk.org/doc/nightly/html/classvtkDataSet.html},\\\url{http://www.vtk.org/doc/nightly/html/classvtkDataArray.html}}
+
+\input{pygmentized/pv_analytical_sol}
+\attachfile[icon=PushPin,description={ParaView Programmable Filter script for computing analytical solution.},mimetype=text/plain]{attachments/pv_analytical_sol.txt}
+
+
+\subsubsection{Selecting which regions to load}
+
+\begin{itemize}
+\item Regions map to blocks
+\item Only selected regions will be loaded into blocks
+\item Extract  Block filter can be  used to further  subdivide refining region
+selection
+\end{itemize}
+
+\subsubsection{Displaying elements of certain element type}
+
+\begin{itemize}
+\item Cf. to Sec. \ref{sec:cfs_element_types} for the integer ids of the CFS++
+element types
+\item Create a Threshold Filter and set the Scalars attribute to 'elemTypes'
+\item Set lower and upper threshold according to the desired element types and click Apply
+\end{itemize}
+
+
+\subsubsection{Labeling or selecting by original elem/node numbers}
+
+\begin{itemize}
+\item In the  process of reading the HDF5 file VTK  gets different indices for
+nodes and elements than CFS++
+\item Therefore node and element  datasets are created containing the original
+node and element numbers (origNodeNumbers and origElemNumbers)
+\item These datasets may be used while selecting (View $\rightarrow$ Selection
+Inspector $\rightarrow$  threshold based,  element/node labels) or  to extract
+subsets using the threshold filter
+\end{itemize}
+
+\subsubsection{Plotting Element Results on Cell Centers}
+
+If element data should be displayed one has two options:
+
+\begin{itemize}
+\item For filters like isosurface or glyph point data is required. Therefore a
+CellDataToPointData has to  be applied which interpolates the  element data to
+nodes.
+
+\item The  more correct  option is to  directly display  the data in  the cell
+center, for which it actually was  computed. This can be achieved by using the
+CellCenters filter and by switching on Vertex Cells. The output of this filter
+are nodes  with the previous  element results as  nodal results. One  can then
+e.g. apply glyph visualizations.
+\end{itemize}
+
+\begin{itemize}
+\item In the  process of reading the HDF5 file VTK  gets different indices for
+nodes and elements than CFS++
+\item Therefore node and element  datasets are created containing the original
+node and element numbers (origNodeNumbers and origElemNumbers)
+\item These datasets may be used while selecting (View $\rightarrow$ Selection
+Inspector $\rightarrow$  threshold based,  element/node labels) or  to extract
+subsets using the threshold filter
+\end{itemize}
+
+\subsubsection{Animating harmonic/eigenfrequency results}
+
+\begin{itemize}
+\item Select frequency step from 'Time/Freq Step' slider
+\item Check 'Transient fields from harm./eigen. data' in HDF5 reader properties tab
+\item E.g. color by 'Resultname-mode at XXX Hz' or apply further filters
+\item Set number of frames in View $\rightarrow$ Animation View
+\item Click on play button
+\item To save the animation go to File $\rightarrow$ Save Animation
+\end{itemize}
+
+The animation time runs from $t = [0\ldots1]$ which corresponds to 0 to $2\pi$
+for the rotating phasor. For harmonic data the real part of the multiplication
+between the rotating  phasor ($\cos(2\pi t) + j\sin(2\pi  t)$) and the complex
+result value at a node or element is computed.  For real-valued eigenfrequency
+results just the cosine (real part)  of the rotating phasor is multiplied with
+the eigen-vector.
+
+
+\subsubsection{Visualizing named nodes and elements}
+
+Our  ParaView plugin provides  access to  named entities  via node  or element
+datasets. In these datasets the actual  named entities are assigned a value of
+one, whereas  all other  nodes or elements  are assigned  a value of  zero. By
+default no  named entity datasets will  be generated, since there  is a chance
+that  very many  named  entities might  exist  and the  memory  would then  be
+unnecessarily  cluttered.   The desired  entities  can  be  selected from  the
+properties tab of the HDF5 plugin (cf. Fig. \ref{fig:pv_named_entities}).
+
+\begin{figure}[htb] 
+  \centering
+  \begin{overpic}[width=0.3\textwidth]{pics/pv/paraview_named_entities}
+%    \put(29,4){\textcolor{red}{\sf {\tiny \shortstack[c]{Select named nodes\\in reader properties}}}}
+  \end{overpic}
+  \caption{Selecting named entity sets in ParaView.}
+  \label{fig:pv_named_entities}
+\end{figure}%
+
+The easiest way  to show named nodes or  entities is to color the  mesh by the
+corresponding  fields. It  is however  most often  desired to  mark  the named
+entities with  some kind of  glyphs to show  where they are, while  some other
+field information is  presented. This can be achieved in  the simplest case by
+applying a threshold filter on the named elements datasets by setting both max
+and min  to one. For  the named nodes  a simple solution  is to apply  a glyph
+filter with spheres as shown in Fig. \ref{pv_named_nodes_glyph}
+
+\begin{figure}[htb] 
+  \centering
+  \begin{overpic}[width=0.5\textwidth]{pics/pv/paraview_named_nodes_glyph}
+%    \put(29,4){\textcolor{red}{\sf {\tiny \shortstack[c]{Select named nodes\\in reader properties}}}}
+  \end{overpic}
+  \caption{Dataset colored  by named node  field and nodes marked  with sphere glyphs.}
+  \label{fig:pv_named_nodes_glyph}
+\end{figure}%
+
+It  is important to  switch the  'Scale by'  combo box  from vector  to scalar
+first. Afterwards the named node field (fix in this example) may be selected.
+
+In more  complicated situations  it may become  necessary to first  generate a
+selection of the nodes in order to perform some operations on it (most notably
+generating a  spreadsheet view  on the data  defined on  them or if  2D glyphs
+should be used).  To do so, a threshold-based selection has to be generated by
+opening the selection inspector (View $\rightarrow$ Selection Inspector)
+
+\begin{figure}[htb] 
+  \centering
+  \begin{overpic}[grid,tics=10,width=0.5\textwidth]{pics/pv/paraview_named_nodes_select_thresh}
+    \put(29,4){\textcolor{red}{\sf {\tiny \shortstack[c]{Select named nodes\\in reader properties}}}}
+    \put(40,52){\textcolor{red}{\sf {\tiny \shortstack[c]{Point selection is\\threshold based}}}}
+    \put(40,45){\textcolor{red}{\sf {\tiny \shortstack[c]{Threshold on 'excite'\\data array}}}}
+    \put(70,27){\textcolor{red}{\sf {\tiny \shortstack[c]{Only select nodes\\with a value of 1}}}}
+    \put(40,51){\begin{tikzpicture}[fill opacity=0.85]
+%        \draw [color=gray]  [step=1mm] (0,0) grid (2,2);
+%        \draw [fill=white!20] (0,0) rectangle (3.4,-.2);
+%        \draw [fill=blue!20] (0,0) rectangle (3.4,-.2);
+    \fill[red] (0,0) rectangle (1,0.5); 
+    \fill[white] (0.0,0) rectangle (1.5,0.5);
+%    \fill[blue] (0.5,0.5) rectangle (1.5,0.5);
+    \node[text opacity=1] at (0.1,0) {Lower node};
+
+%        \node at (0.2,0.2) {\sf 
+%          {\tiny
+%            \shortstack[c]{Select named nodes\\in reader properties}
+%          }
+%        };
+      \end{tikzpicture}
+    }
+  \end{overpic}
+  \caption{Generating a threshold based selection on named nodes.}
+  \label{fig:pv_named_nodes_thresh_sel}
+\end{figure}%
+
+
+\section{L2 Norm for transient datasets}
+
+\begin{itemize}
+\item Analytical solution not always best reference solution
+\item Use second simulation on same mesh as reference
+\item Problem: How to subtract fields from each other and compute L2 norm?
+\item  Solution:  Use meshdiff  mode  of  cfstool  to compute  difference  and
+analytical solution script from paraview to compute L2 norm.
+\end{itemize}
+
+
+\section{Gmsh Specific Preproc Tasks}
+\label{sec:gmsh_pre}
+
+\todo[inline]{Check what Gmsh specific content can be moved to common preproc chapter.}
+
+GMSH   \cite{Geuzaine2009,GmshWebSite,  Gmsh2008}  (simple   Meshes  erzeugen,
+einziges Format ausser  HDF5 und GMV (auch UNV), das  CFS++ sowohl lesen (HDF5
+Gitter und Daten, GMV: Gitter, GMSH: Gitter) als auch schreiben (HDF5,GMV,GMSH
+Gitter und Daten  und Named Enitities) kann), Vorteil:  Absolut frei verfügbar
+für Windows, Linux, Mac (ANSYS und GiD sind alles andere als frei)
+
+\begin{table}[tb]
+\centering
+\begin{minipage}{18cc}\caption{Gmsh Tutorials}
+\label{tab:tablelabel}
+\end{minipage}
+\par\medskip\noindent
+\begin{tabular}{ll}
+  \toprule
+  {\bf Tutorial} & {\bf URL} \\ \otoprule
+  Meshgenerierung für Dolfyn & \leavevmode \url{http://www.dolfyn.net/dolfyn/gmsh/tutorial00.html} \\
+  AMCG Tutorial & \leavevmode \url{http://amcg.ese.ic.ac.uk/index.php?title=Local:Gmsh_tutorial} \\
+  Introduction to Gmsh & \url{http://perso.uclouvain.be/vincent.legat/teaching/documents/meca2170-jfr-notes-v1.0.pdf}{Introduction to Gmsh} \\
+  Gmsh screencasts & \url{http://www.geuz.org/gmsh/screencasts/} \\
+  Meshgenerierung für TiberCAD & \url{http://www.tibercad.org/documentation/tutorial/list} \\
+  Gmsh GUI Tutorial I & \url{http://ffep.sourceforge.net/Download/gui\_tutorial.pdf}\\
+  Gmsh GUI Tutorial II & \url{http://www.geuz.org/gmsh/doc/gui\_tutorial\_2/gui\_tutorial\_2.pdf}\\
+  Demo Gmsh - Step import - Msh export & \url{http://vimeo.com/3287369}\\
+  .geo Demos from Gmsh source & \url{http://dtk.inria.fr/num3sis/num3sis-plugins/trees/master/gmsh/gmsh/demos}\\
+  \bottomrule
+\end{tabular} 
+\end{table}
+
+The  Gmsh scripting language  shares the  same syntax  with the  C programming
+language. Here we present a simple example where every geometrical entity will
+be mapped  to exactly  one finite  element.  This is  achieved by  setting the
+characteristic length  of the geometry nodes  to a value larger  than the edge
+length of the geometrical entities.  The grid achieved therewith has been used
+to test the crosspoint identification code.
+
+%\input{pygmentized/gmsh_cp_test}
+\noindent Gmsh input script for generating the crosspoint identification mesh:
+\attachfile[icon=PushPin,description={Gmsh input script for crosspoint mesh.},mimetype=text/plain]{attachments/gmsh_cp_test.txt}
+
+\begin{figure}[htb] 
+  \centering
+  \begin{overpic}[width=0.4\textwidth]{pics/gmsh_cp_test}
+%    \put(10,20){\textcolor{white}{\bf The electrostatic man!}}
+  \end{overpic}
+  \caption{Crosspoint test geometry in Gmsh}
+  \label{fig:gmsh_cp_test}
+\end{figure}%
+%
+
+The script presented here just generates the geometry. The Meshing needs to be
+done  by switching  to  {\it Mesh}  mode in  the  GUI and  then clicking  {\it
+2D}.  This will  generate a  mesh of  first order  elements. To  get quadratic
+elements one needs  to click on {\it Second order}.  Afterwards one just needs
+to click on {\it Save} or {\it File} $\rightarrow$ {\it Save Mesh}.
+
+The same thing may be achieved from the command line using the following command:
+\begin{verbatim}
+gmsh -2 -o output.msh -format msh2 -bin -nopopup -noview input.geo
+\end{verbatim}
+
+It  is  very important  to  assign the  elements  to  physical entities  ({\tt
+Physical Surface}  or {\tt Physical Volume}). Otherwise  elements of different
+dimensions  (e.g. triangles  and tetras)  may end  up in  the same  region for
+CFS++.  In such a  case CFS++  will obviously  complain! The  textual argument
+given to  {\tt Physical Surface} or  {\tt Physical Volume} will  be the region
+name for CFS++.
+
+\noindent Creating a mesh from an image:
+\input{pygmentized/gmsh_mesh_from_pic}
+\attachfile[icon=PushPin,description={Gmsh input script for generating a mesh from an image.},mimetype=text/plain]{attachments/gmsh_mesh_from_pic.txt}
+
+\subsubsection{Create Volume and Surface Mesh from Surface Mesh of Closed Body}
+\label{sec:gmsh_surf_vol_mesh}
+
+A  similar technique  for  generating  volume meshes  from  surface meshes  as
+described in  Sec. \ref{sec:ansys_surf_vol_mesh} is also possible  in Gmsh. An
+example  describing  this technique  can  be found  in  the  test suite  ({\tt
+TESTSUIT/cfstool/gmsh\_to\_hdf5/man.geo})
+
+\subsubsection{Recreate  Geometry  from  Point  Sets  or  Meshes}  The  method
+previously described for generating volume  meshes from surface meshes has the
+disadvantage, that  in areas  where there exist  very small  surface elements,
+only  very  small volume  elements  may  be created.   This  may  have a  very
+detrimental  influence on  the quality  of the  resulting mesh.   In  order to
+overcome this  problem it is often  necessary to first  recreate some geometry
+from  the given meshes  or point  sets. Therefore  one should  create geometry
+points (e.g. Point(1) = \{1, 1, 0\} in a text editor) from the grid points and
+then   generate   new   geometrical   entities   based   on   these.    Figure
+\ref{fig:gmsh_wing_spline} shows  this concept for an aircraft  wing for which
+only  the points  were given  \attachfile[icon=PushPin,description={Gmsh input
+points                    for                    an                   aircraft
+wing.},mimetype=text/plain]{attachments/gmsh_wing_points.txt}   and  which  is
+modelled  by connecting  the points  with  splines. This  is necessary,  since
+connecting the points with line  elements would result in very small elements,
+where the points are closely spaced.
+
+\begin{figure}[htb] 
+  \centering
+  \begin{overpic}[width=0.7\textwidth]{pics/gmsh_wing_spline}
+%    \put(10,20){\textcolor{white}{\bf The electrostatic man!}}
+  \end{overpic}
+  \caption{Connecting wing points using splines.}
+  \label{fig:gmsh_wing_spline}
+\end{figure}%
+
+\subsubsection{Creating an Input Mesh for ANSYS CFX from Gmsh}
+
+For doing comparative  studies between ANSYS CFX and  OpenFOAM it is obviously
+desirable  to  use  the  same   meshes.   Since  OpenFOAM  supports  the  Gmsh
+preprocessor and  ANSYS CFX does not,  a few intermediate  steps are necessary
+for converting the meshes. We assume  in this example, that we want to convert
+the       man      model       from      the       CFS++       test      suite
+(i.e. TESTSUITE/cfstool/gmsh\_to\_hdf5).  First we need to convert the mesh to
+ANSYS .rst format to start ANSYS Classic by issuing
+
+\begin{verbatim}
+cfstool -m convert -f 'input.msh output.rst'
+cd results_rst
+ansys
+\end{verbatim}
+
+\noindent Inside ANSYS  we load the .rst file by  using the following sequence
+of APDL commands.
+
+\begin{verbatim}
+/post1  
+INRES,ALL   
+file,'output_grid'   
+set,first
+\end{verbatim}
+
+\noindent To make the mesh regions  available as named entities to CFX we have
+to select  by material  and assign the  elements to components.  Afterwards we
+write a .cdb file which CFX-Pre can read.
+
+\begin{verbatim}
+/PREP7  
+esel,s,mat,,2
+cm,Bottom,elem  
+esel,s,mat,,3   
+cm,Fluid,elem   
+esel,s,mat,,4   
+cm,Front,elem   
+esel,s,mat,,5   
+cm,Man,elem 
+esel,s,mat,,6   
+cm,Back,elem
+esel,s,mat,,7   
+cm,Front,elem   
+allsel
+cdwrite,all 
+\end{verbatim}
+
+In CFX-Pre the  mesh file may then be  imported by doing a right  click on Mesh
+$\rightarrow$ Import Mesh and choosing the .cdb extension in the file dialog.
+
+\begin{figure}[htb] 
+  \centering
+  \begin{overpic}[width=0.6\textwidth]{pics/cfx_gmsh_man_model}
+  \end{overpic}
+  \caption{Model of the man inside CFX-Pre.}
+  \label{fig:cfx_gmsh_man_model}
+\end{figure}%
+
+
+
+\section{GiD Specific Stuff}
+
+\todo[inline]{Check  if this  material  belongs here  (especially the  section
+about the password server on rom) and move material to common tasks sections.}
+
+
+\subsubsection{GiD im Batchmodus}
+
+\noindent Wie ruf ich denn ein nacs gid script von der kommandozeile auf?
+
+\begin{enumerate}
+   \item{Erzeuge ein TCL-File example.bch (Endung bch wichtig) mit folgendem Inhalt: \input{pygmentized/gid_batch}}
+   \item{Starte dann GiD mittels: {\tt gid -p NACS -n2 -b example.bch}}
+\end{enumerate}
+
+\noindent und los gehts! Sollte  irgendwas nicht funktionieren, dann kannst Du
+erst mal einen Blick in das batch file werfen:
+
+\noindent Utilities $\rightarrow$ Tools $\rightarrow$ Read Batch Window ...
+
+\noindent und dann mittels des File  Dialoges das Batch File auswählen und mit
+dem Button See File... den Inhalt anzeigen lassen
+
+\paragraph{GiD Passwortserver auf rom}
+\begin{itemize}
+\item{Alle wichtigen Lizenzinformationen liegen auf rom:/usr/local/passerver/lic\_info\_rom.txt}
+\item{Eine Anleitung zur Installation des Passwortservers liegt in rom:/usr/local/passerver/gidlicinst.pdf }
+\item{Port 7073 in der Firewall freischalten}
+\item{Folgendes Shellscript nach /etc/init.d/gidpasserver speichern:
+  \input{pygmentized/gid_pw_server}
+  \attachfile[icon=PushPin,description={openSUSE Init script for GiD license server.},mimetype=text/plain]{attachments/gid_pw_server.txt}
+}
+\item{Skript in den Bootprozess aufnehmen mit: {\tt insserv /etc/init.d/gidpasserver} }
+\end{itemize}
+
+\section{ANSYS Specific Tasks}
+
+
+\subsection{Manually Creating a Single Pyramid Element and Solving Elastostatics}
+
+\begin{verbatim}
+/prep7
+
+n,,1.0, 1.0,    0.0
+n,,-1.0,        1.0,    0.0
+n,,-1.0,        -1.0,   0.0
+n,,1.0, -1.0,   0.0
+n,,0.0, 0.0,    1.0
+n,,0.0, 1.0,    0.0
+n,,-1.0,        0.0,    0.0
+n,,0.0, -1.0,   0.0
+n,,1.0, 0.0,    0.0
+n,,0.5, 0.5,    0.5
+n,,-0.5,        0.5,    0.5
+n,,-0.5,        -0.5,   0.5
+n,,0.5, -0.5,   0.5
+
+et,1,Solid95
+
+TYPE,1           ! ET 1
+MAT,1            ! MP 1
+REAL,1           ! Shape 1
+
+mp,ex,1,2e11
+mp,dens,1,7800
+mp,prxy,1,0.3
+
+e,1,2,3,4,5,5,5,5
+emore,6,7,8,9,5,5,5,5
+emore,10,11,12,13
+
+/SOL
+nsel,s,loc,z,-0.001,0.001
+D,all, ,0, , , ,UX,UY,UZ, , ,
+nsel,s,loc,z,1-0.001,1+0.001
+D,all, ,0.1, , , ,UX, , , , ,
+solve
+\end{verbatim}
+
+\subsection{Create Volume and Surface Mesh from Surface Mesh of Closed Body}
+\label{sec:ansys_surf_vol_mesh}
+
+Sometimes one  has the problem to create  a volume mesh from  a closed surface
+mesh.   At other  times one  may have  a volume  mesh, but  one  needs surface
+elements at  some surfaces  of this mesh  (e.g. for  Mortar FEM). In  the APDL
+script presented here we show how to do both things.  We create a surface mesh
+of a cuboid using the mesh  generator from cplreader. However any other closed
+surface  mesh which  can be  converted to  a .rst  file by  cfstool  will also
+do. Using cfstool, we convert the surface mesh to .rst format and read it into
+ANSYS  using  /POST1  macros.  We  then  switch  to  /PREP7, load  our  mkhdf5
+interface and create  a volume mesh from the surface  mesh while throwing away
+the old  surface elements. For  ANSYS to know  what new surfaces to  mesh, the
+nodes on this surface have to be selected and also all volume elements next to
+this surface. In the end we write out our new HDF5 file.
+
+\noindent Surface mesh generator script for cplreader:
+\attachfile[icon=PushPin,description={Surface mesh generator script for cplreader.},mimetype=text/plain]{attachments/cplreader_meshgen.txt}
+
+\noindent APDL script for surface/volume meshing based solely on existing elements:
+\attachfile[icon=PushPin,description={ANSYS surf./vol. meshing script.},mimetype=text/plain]{attachments/ansys_surf_vol_mesh.txt}
+
+\noindent  For creating volume  meshes from  surface meshes  in Gmsh  refer to
+Sec. \ref{sec:gmsh_surf_vol_mesh}.
+
+
+

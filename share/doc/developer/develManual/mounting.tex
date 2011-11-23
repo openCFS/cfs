@@ -1,0 +1,98 @@
+\chapter{Mounting Directories Using sshfs}
+
+By  making use  of the  user file  system service  FUSE one  can  easily mount
+dirctories from machines which are reachable  via SSH. The only thing to watch
+out for, is to add the corresponding user to the fuse user group.
+
+\section{Mounting HOME directory of laptop on a cluster node using sshfs}
+
+Due  to the  fact,  that everybody  at  Klagenfurt uses  a  laptop to  perform
+programming work,  most people  have local working  copies. In order  to avoid
+copying of  these working  copies, it is  most convenient  to mount them  to a
+directory  on  the cluster  servers  and to  do  compilation  to local  binary
+directories on these machines.
+
+The simplest  way of accomplishing this task  is to use sshfs.  By issuing the
+follwoing command  on e.g. on sedici the  home directory of the  user simon on
+the laptop mac will get mounted to the directory home\_mac on sedici.
+
+\begin{verbatim}
+sedici$ sshfs simon@mac: home_mac
+\end{verbatim}
+
+Please  make sure  to  do  the compilation  in  a local  directory  and not  a
+subdirectory of home\_mac because not  all file system requirements are met to
+do compilation there.
+
+\section{Bridging Firewalls using SSH Tunnels}
+
+If a  machine is not  directly reachable it  may become necessary to  bridge a
+connection using  cascaded SSH Tunnels. In  the following scenario  we want to
+mount the home directory of user  simon on mac at Klagenfurt (which is located
+in a  VPN) on the machine  nc2 at Simetris GmbH  (which is also in  a VPN). In
+order to do so we use the  intermediate machine lse81 at the LSE department in
+Erlangen. The first  step is to connect  to lse81 from mac and  creating a SSH
+tunnel which forwards the SSH port 22 on mac to port 22022 on lse81.
+
+\begin{verbatim}
+mac$ ssh -R 22022:mac:22 strieben@lse81.e-technik.uni-erlangen.de
+\end{verbatim}
+
+The next  step is  to forward the  port 22022  on lse81 to  port 22022  nc2 at
+Simetris by issuing the following command on nc2.
+
+\begin{verbatim}
+nc2$ ssh -L 22022:localhost:22022 strieben@lse81.e-technik.uni-erlangen.de
+\end{verbatim}
+
+In a different shell  on nc2 one can now mount the home  directory on mac to a
+directory on nc2 by issuing
+
+\begin{verbatim}
+nc2$ sshfs -p 22022 simon@localhost: home_mac
+\end{verbatim}
+
+\section{Unmounting a Share}
+
+To unmount a sshfs share enter
+
+\begin{verbatim}
+$ fusermount -u home_mac
+\end{verbatim}
+
+\section{Mounting via SSH on other operating systems}
+\begin{description}
+\item[Linux]    For   most   distributions    there   are    binary   packages
+  available.    Otherwise    SSHFS     can    be    compiled    from    source
+  \url{http://fuse.sourceforge.net/sshfs.html}
+
+\item[Mac  OS X] On  the Mac  one can  either install  MacFUSE and  SSHFS from
+\url{http://code.google.com/p/macfuse/wiki/MACFUSE_FS_SSHFS} or the commercial
+(40\$)  solution ExpanDrive  \url{http://www.expandrive.com/mac}. Also  have a
+look at Macfusion \url{http://macfusionapp.org/}.
+
+\item[Windows]  On Windows  there exist  two  possible solutions.  There is  a
+  similar     project     like     FUSE,     which     is     called     Dokan
+  \url{http://dokan-dev.net/en}  and which is  freeware. It  is however  in an
+  early  stage of  development  and  maybe very  slow.  The other  application
+  ExpanDrive is commercial (40\$) \url{http://www.expandrive.com/windows}.
+\end{description}
+
+\section{Other FUSE File Systems}
+
+\begin{description}
+\item[CurlFtpFS] is for locally  mounting FTP directories 
+  \url{http://curlftpfs.sourceforge.net/}
+
+\item[NTFS-3G] read/write access to NTFS file systems on the Mac
+  \url{http://www.tuxera.com/products/ntfs-open-source/}.
+
+\item[davfs2]        is        for        mounting        WebDAV        shares
+  \url{http://savannah.nongnu.org/projects/davfs2}.
+
+\item[VMDK]  by  using  FUSE   the  vmware-mount  utility  from  Virtual  Disk
+  Development Kit \url{http://www.vmware.com/support/developer/vddk/} on Linux
+  can mount .vmdk hard disk images. The vmware-mount utility is also available
+  on Windows.
+\end{description}
+

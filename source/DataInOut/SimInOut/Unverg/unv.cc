@@ -8,7 +8,7 @@
 #include <iomanip>
 #include <cstdio>
 
-#include "simInputUnv.hh"
+#include "SimInputUnv.hh"
 #include "unv.hh"
 
 unv::~unv() {
@@ -450,10 +450,14 @@ int dataset::write_data(void) {
 
 int dataset_15::read_data(int* stat) {
 
+//  std::cout << "dataset_15::read_data" << std::endl;
+
   if (mode==SETWrite || mode==SETNot) {
     WARN("In Method dataset_15::read_data: Open mode is not READ!");
     return 0;
   }
+
+//  std::cout << "pos1" << std::endl;
 
   std::ifstream* in;
 
@@ -461,14 +465,45 @@ int dataset_15::read_data(int* stat) {
     WARN("In Method dataset_15::read_data: Could not get std::ifstream!");
     return 0;
   }
+//  std::cout << "pos2" << std::endl;
 
-  *in >> data.node_label >> data.def_coord_sys_n >> data.dis_coord_sys_n \
-      >> data.color >> data.x1 >> data.x2 >> data.x3;
+  std::stringstream sstr;
+
+  *in >> data.node_label >> data.def_coord_sys_n \
+      >> data.dis_coord_sys_n >> data.color;
+  
+  char buf[1024];
+  std::fill(buf, buf+sizeof(buf), 0);
+
+//  while()
+//  in->getline(buf, sizeof(buf));
+
+  char coord_buf[1024];
+  in->getline(coord_buf, sizeof(buf));
+  in->getline(coord_buf, sizeof(buf));
+//  std::cout << "coord_buf " << coord_buf << std::endl;
+
+  for(unsigned int i = 0; i < strlen(coord_buf); i++) if(coord_buf[i] == 'D') coord_buf[i] = 'E';
+  sstr.clear(); sstr.str("");
+  sstr << coord_buf;
+  
+  sstr >> data.x1 >> data.x2 >> data.x3;
+
+#if 0  
+  std::cout << "data.node_label " << data.node_label << std::endl;
+  std::cout << "data.def_coord_sys_n " << data.def_coord_sys_n << std::endl;
+  std::cout << "data.dis_coord_sys_n " << data.dis_coord_sys_n << std::endl;
+  std::cout << "data.color " << data.color << std::endl;
+  std::cout << "data.x1 " << data.x1 << std::endl;
+  std::cout << "data.x2 " << data.x2 << std::endl;
+  std::cout << "data.x3 " << data.x3 << std::endl;
+#endif
 
   if (!in->good()) {
     WARN("In Method dataset_15::read_data: Error by reading data!");
     return 0;
   }
+
 
   int is_end;
 
@@ -809,14 +844,35 @@ int dataset_780::read_data(int* stat) {
   }
     
   *in >> data.element_label;
+  
+  //  std::cout << "set_num " << set_num << std::endl;
+  //  std::cout << "data.element_label " << data.element_label << std::endl;
     
   int is_end;
     
   if (data.element_label>0) {
-    *in >> data.fe_desc_id      >> data.phys_prob_tab_bin_n  \
-        >> data.phys_prob_tab_n >> data.mat_prob_tab_bin_n \
-        >> data.mat_prob_tab_n  >> data.color >> data.n_nodes;
-        
+    *in >> data.fe_desc_id;
+    if (set_num == 780)
+      *in >> data.phys_prob_tab_bin_n;
+    *in >> data.phys_prob_tab_n;
+    if (set_num == 780)
+      *in >> data.mat_prob_tab_bin_n;
+    *in >> data.mat_prob_tab_n  >> data.color >> data.n_nodes;
+    
+    // Disregard second line for beam elements
+    switch(data.fe_desc_id) 
+    {
+    case 11:
+    case 21:
+    case 22:
+    case 23:
+    case 24: {
+      int dummy;
+      *in >> dummy >> dummy >> dummy;
+      break;
+    }
+    }
+    
     int n=data.n_nodes;
         
     if (data.node_labels==NULL) {
@@ -935,6 +991,139 @@ int dataset_666::read_data(int* stat) {
 
   return 1;
 
+}
+
+
+dataset_58::dataset_58() {
+  set_num = 58;
+  header.num_values = 0;
+}
+
+int dataset_58::read_header() {
+  if (mode == SETWrite || mode == SETNot) {
+    WARN("dataset_58::read_header: open mode is not READ.");
+    return 0;
+  }
+  
+  std::ifstream *in;
+  
+  if (!get_in_stream(&in)) {
+    WARN("dataset_58::read_header: Could not get std::ifstream.");
+    return 0;
+  }
+
+  int i;
+  
+  do {
+    in->getline(header.id[1], 81);
+    strcpy(header.id[0], header.id[1]);
+  } while (strtok(header.id[1], " \n")==NULL);
+
+  // read 5 ID lines
+  for (i = 1; i < 5; ++i) {
+    in->getline(header.id[i], sizeof(header.id[i]));
+  }
+  
+  // read general header
+  *in >> header.fnc_type >> header.fnc_id >> header.seq_no >> header.load_id;
+  in->get(header.res_name, sizeof(header.res_name));
+  *in >> header.res_node >> header.res_dir;
+  in->get(header.ref_name, sizeof(header.ref_name));
+  *in >> header.ref_node >> header.ref_dir >> header.data_type
+      >> header.num_values >> header.abs_space >> header.abs_min
+      >> header.abs_inc >> header.z_value;
+  
+  // read 4 data characteristics records
+  for (i = 0; i < 4; ++i) {
+    *in >> header.axis_data[i].data_type >> header.axis_data[i].len_exp
+        >> header.axis_data[i].force_exp >> header.axis_data[i].temp_exp;
+    in->get(header.axis_data[i].label, sizeof(header.axis_data[i].label));
+    in->get(header.axis_data[i].unit, sizeof(header.axis_data[i].unit));
+  }
+  
+  if (!in->good()) {
+    WARN("dataset_58::read_header: error reading header.");
+    return 0;
+  }
+  
+  step_idx = 0;
+  
+  return 1;
+}
+
+int dataset_58::read_data(int *status) {
+  if (mode == SETWrite || mode == SETNot) {
+    WARN("dataset_58::read_data: open mode is not READ.");
+    return 0;
+  }
+  
+  std::ifstream *in;
+  
+  if (!get_in_stream(&in)) {
+    WARN("dataset_58::read_data: Could not get std::ifstream.");
+    return 0;
+  }
+
+  // make sure that header was read
+  if (header.num_values == 0) {
+    EXCEPTION("Must call dataset_58::read_header before calling"
+              << " dataset_58::read_data.");
+  }
+  
+  bool is_complex = false, is_even = true;
+  
+  switch (header.data_type) {
+    case 2:
+    case 4:
+      is_complex = false;
+      break;
+    case 5:
+    case 6:
+      is_complex = true;
+      break;
+    default:
+      EXCEPTION("dataset_58::read_data: unknown value in record 7, field 1");
+      break;
+  }
+  switch (header.abs_space) {
+    case 0:
+      is_even = false;
+      break;
+    case 1:
+      is_even = true;
+      break;
+    default:
+      EXCEPTION("dataset_58::read_data: unknown value in record 7, field 3");
+      break;
+  }
+  
+  if (is_even)
+    data.step_val = header.abs_min + header.abs_inc * (double) step_idx;
+  else
+    *in >> data.step_val;
+  ++step_idx;
+  
+  *in >> data.real;
+  
+  if (is_complex)
+    *in >> data.imag;
+  else
+    data.imag = 0.0;
+  
+  if (!in->good()) {
+    WARN("dataset_58::read_data: Error reading data.");
+    return 0;
+  }
+
+  int is_end;
+
+  if (!set_end(&is_end)) return 0;
+
+  *status=SETTrue;
+  if (is_end==SETTrue)
+    *status=SETEmpty;
+
+  return 1;
 }
 
 /// Local Variables:

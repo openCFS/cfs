@@ -42,11 +42,11 @@ SET(FORMS_SRCS
   massEdgeInt.cc
   massInt.cc
   mechStressStrain.cc
+  PiezoStressStrain.cc
   nLincurlCurlEdgeInt.cc
   nLincurlCurlNodeInt.cc
   nLinElastInt.cc
   nLinElecHystInt.cc
-  nLinElecMaterial.cc
   nlinLaplaceInt.cc
   nLinMassInt.cc
   nLinPiezoCoupling.cc

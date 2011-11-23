@@ -484,13 +484,11 @@ void Function::SetElements(DesignSpace* space, RegionIdType region)
   // set in the objective
 
   // if ALL_REGIONS for condition use what we define as design space which
-//  elements.Reserve(region == ALL_REGIONS ? space->data.GetSize() : grid->GetNumElems(region));
-// this is still not good enough
-  if(design == DesignElement::TENSOR_TRACE){
+  // this is still not good enough
+  if(design == DesignElement::TENSOR_TRACE)
     elements.Reserve(space->GetNumberOfVariables());
-  }else{
-    elements.Reserve(grid->GetNumElems(region));
-  }
+  else
+    elements.Reserve(region == ALL_REGIONS ? space->data.GetSize() : grid->GetNumElems(region));
 
   if(region == ALL_REGIONS || space->Contains(region))
   {

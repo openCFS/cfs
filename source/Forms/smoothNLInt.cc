@@ -109,9 +109,9 @@ namespace CoupledField
           dist=distNew;
       }
 
-      Double auxFac=1.0;
-      if(globIntPoint[0]<0.061 && abs(globIntPoint[1])<0.002)
-        auxFac=1.0;
+      // Double auxFac=1.0; // TODO: Unused variable auxFac
+      // if(globIntPoint[0]<0.061 && abs(globIntPoint[1])<0.002)
+        // auxFac=1.0;
       maxDist=characteristicLength_;
       exponent=exponent_;
       elastFactor=std::pow((dist/maxDist),exponent);
@@ -252,7 +252,8 @@ namespace CoupledField
     const UInt spaceDim = ptelem->GetDim();  
     const UInt nrDofs   = getNrDofs();  
 
-    UInt actDim, actNode, j, k;
+    UInt actDim, actNode;
+    // UInt j, k; // TODO: Unused variables j,k
     
     
     bMat.Resize(getDimD(), numFncs * nrDofs);
@@ -271,8 +272,8 @@ namespace CoupledField
     switch(spaceDim)
       {
       case 2:
-        j = 1;
-        k = 0;
+        // j = 1;
+        // k = 0;
         
         for (actNode = 0; actNode < numFncs; actNode++)
           {

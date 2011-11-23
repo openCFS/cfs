@@ -25,12 +25,28 @@ function clean {
 function build {
 
     echo "==================================="
-    echo " Generating XML-REFERENCE document"
+    echo " Generating advanced pre/post docu."
     echo "==================================="
 
-    cp @CMAKE_CURRENT_SOURCE_DIR@/../auxilliaries/Pics/ls_am_klu.pdf @CMAKE_CURRENT_SOURCE_DIR@/xmlFile/pics
-    cp @CMAKE_CURRENT_SOURCE_DIR@/../auxilliaries/Pics/cfs-logo.pdf @CMAKE_CURRENT_SOURCE_DIR@/xmlFile/pics
-    cp @CMAKE_CURRENT_SOURCE_DIR@/../auxilliaries/Pics/lse_logo.pdf @CMAKE_CURRENT_SOURCE_DIR@/xmlFile/pics
+    cd @CMAKE_CURRENT_SOURCE_DIR@/advPrePostManual
+    DOCUMENT=advPrePostManual
+
+    # Apply syntax coloring to files in sources directory
+    sources/pygmentize.sh $PWD/sources $PWD
+
+    @PDFLATEX_COMPILER@ $DOCUMENT
+    @BIBTEX_COMPILER@   $DOCUMENT
+    @PDFLATEX_COMPILER@ $DOCUMENT
+    @PDFLATEX_COMPILER@ $DOCUMENT
+    @PDFLATEX_COMPILER@ $DOCUMENT
+    thumbpdf $DOCUMENT
+    @PDFLATEX_COMPILER@ $DOCUMENT
+
+    cd @CMAKE_CURRENT_SOURCE_DIR@
+
+    echo "==================================="
+    echo " Generating XML-REFERENCE document"
+    echo "==================================="
 
     cd @CMAKE_CURRENT_SOURCE_DIR@/xmlFile
     DOCUMENT=xmlReference

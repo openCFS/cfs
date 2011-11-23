@@ -518,8 +518,13 @@ DEFINE_LOG(bisa, "biotSavart")
     vec2 = start - ob;
     vec3 = end -ob;
     
-    Double norm1,norm2,norm3,dotProd13,dotProd12,fac;
-    norm1 = vec1.NormL2();
+    // Double norm1; // TODO: Unused variable norm1
+    Double norm2;
+    Double norm3;
+    Double dotProd13;
+    Double dotProd12;
+    Double fac;
+    // norm1 = vec1.NormL2();
     norm2 = vec2.NormL2();
     norm3 = vec3.NormL2();
     dotProd13 = vec1 * vec3;

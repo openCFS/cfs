@@ -1,0 +1,19 @@
+digraph G {
+	VisIt -> "VTK";
+        VisIt -> ".tec";
+
+	"VTK" -> ParaView;
+        ".tec" -> "ParaView";
+	ParaView -> "Exodus II";
+
+        ".tec" -> "Tecplot";
+        ".tec" -> "EnSight";
+
+	"Exodus II"	 -> VisIt;
+	"VTK" -> VisIt;
+
+        VisIt [shape=box];
+        ParaView [shape=box];
+        Tecplot [shape=box];
+        EnSight [shape=box];
+}

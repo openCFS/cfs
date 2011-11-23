@@ -257,7 +257,9 @@ namespace CoupledField {
 
     //help variables 
 		//initialize or receive compiler warning
-    Double len1, len2, xa = 0.0, pos = 0.0, der, der2, omg, arg, factor, vel;
+    Double len1, len2, xa = 0.0, pos = 0.0;
+    // Double der; // TODO: Unused variable der
+    Double der2, omg, arg, factor, vel;
 
     UInt dim = coord.GetSize();
     Double dx = coord[0] - flowCenter_[0];
@@ -307,13 +309,13 @@ namespace CoupledField {
     if ( xa < flowRadius_ ) {
       if ( flowOrder_ == 0 ) {
 	vel = factor;
-	der = 0.0;
+	// der = 0.0;
       } 
       else {
 	arg = xa * xa/ ( flowRadius_ * flowRadius_ );
 	vel = std::pow( 1.0 - arg, 1./Double(flowOrder_) );
-	der = -2.*factor/ ( Double(flowOrder_) * flowRadius_ 
-			    * flowRadius_) * vel / ( 1.0-arg );
+	// der = -2.*factor/ ( Double(flowOrder_) * flowRadius_ 
+	//		    * flowRadius_) * vel / ( 1.0-arg );
 	vel *= factor;
       }
       

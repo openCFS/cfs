@@ -714,6 +714,12 @@ namespace CoupledField
     virtual void ClearRegion( const RegionIdType regionid)
     { EXCEPTION( "Not implemented" ); }
 
+
+    /** exports the grid to a param node. For command line option --export-grid or for streaming with mesh. */
+    virtual void ExportGrid(PtrParamNode out)
+    { EXCEPTION( "Not implemented" ); }
+
+
     //@}
 
     /** The enum is only for convenience and redundant to regionData.

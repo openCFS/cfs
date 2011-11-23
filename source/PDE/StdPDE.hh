@@ -262,8 +262,7 @@ namespace CoupledField {
      * @see DesignElement::InitFilter */
     ConstraintList& GetConstraints() { return constraints_; }
 
-    std::map<RegionIdType, BaseMaterial*>  getPDEMaterialData()
-    {return materials_;};
+    std::map<RegionIdType, BaseMaterial*>  getPDEMaterialData() { return materials_; };
     
     BaseNodeStoreSol * getPDESolution() {return sol_;};
 
@@ -302,10 +301,6 @@ namespace CoupledField {
     virtual void SetNonLinearity(bool nonLin){
       nonLin_=nonLin;};
 
-    // set if PDE is nonlinear (material dependency)
-    virtual void SetMaterialNonLinearity(bool nonLin){
-      nonLinMaterial_=nonLin;};
-
     //! reads in the displacement at time step "step" and fills deltCoord-array of
     //! grid
     virtual void ReadDisplacementAndUpdateGrid( UInt step);
@@ -317,9 +312,6 @@ namespace CoupledField {
 
     bool IsNonLin() 
     { return nonLin_;};
-
-    bool IsNonLinMaterial() 
-    { return nonLinMaterial_;};
 
     bool IsHysteresis() 
     { return isHysteresis_;};
@@ -343,8 +335,8 @@ namespace CoupledField {
     Double GetRhsL2Norm(Vector<Double>& actRHS) 
     { return RhsL2Norm(actRHS);};
 
-    std::map<RegionIdType, NonLinType>& GetNonLinRegionTypes() 
-    { return regionNonLinType_;};
+    std::map<RegionIdType, StdVector<NonLinType> >& GetNonLinRegionTypes() 
+    { return regionNonLinTypes_;};
 
     UInt& GetIterCoupledCounter() 
     { return iterCoupledCounter_;};
@@ -474,24 +466,28 @@ namespace CoupledField {
     //@{
     //! \name Attributes connected to nonlinearity
     bool nonLin_;           //!< flag for nonlinear calculations
-    bool nonLinMaterial_;           //!< flag for nonlinear material calculations
     bool isHysteresis_;     //!< flag for hysteresis
     bool totalFormulation_;   //!< flag for total formulation in nonlinear calculations
 
     //! map for each region the type of nonlinearity
-    std::map<RegionIdType, NonLinType> regionNonLinType_;
+    std::map<RegionIdType, StdVector<NonLinType> > regionNonLinTypes_;
 
-    //! map for each region the id of the nonlinearity
-    std::map<RegionIdType, std::string> regionNonLinId_;
+    //! map for each nonlinearity the id
+    std::map<std::string, NonLinType> nonLinTypes_;
 
-    //! map for each id the nonlinearity
-    std::map<std::string, NonLinType> nonLinIdType_;
+    // type of nonlinear algorithm (e.g., Newton)
+    NonLinMethodType nonLinMethod_;
 
-    //! name for input file, which contains grid deformations
-    std::string fileName4GridDisplacements_ ;
-
-    //! regions for ggrid displacements
-    StdVector<std::string> regions4GridDisplacements_;
+    struct GridDisplData {
+      //! name for input file, which contains grid deformations
+      std::string fileName4GridDisplacements_ ;
+      //! type from which to use the deformation
+      //! (SMOOTH_DISPLACEMENT or MECH_DISPLACEMENT)
+      SolutionType solType;
+    };
+    //! regions for grid displacements
+    // TODO: change StdVector<std::string> regions4GridDisplacements_;
+    std::map<RegionIdType, GridDisplData> gridDisplData_;
 
     //@}
 

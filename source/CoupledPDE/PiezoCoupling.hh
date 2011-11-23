@@ -36,17 +36,8 @@ namespace CoupledField
     //! Trigger calculation of postprocessing results
     void CalcResults( shared_ptr<BaseResult> result );
 
-//     template <class TYPE>
-//     void calcMaterialMatrices(Matrix<TYPE> &sMat,
-//                               Matrix<TYPE>&cMat,
-//                               Matrix<TYPE> &pMat,
-//                               Matrix<Double> *matDat,
-//                               Matrix<Complex> *complexMatDat);
-
-
-
-    //! Gathers all information concerning nonlinear computations
-    void ReadPiezoNonLin();
+    //! Initialize NonLinearities
+    virtual void InitNonLin();
 
     //! calculate Charges
     template <class TYPE>
@@ -67,7 +58,7 @@ namespace CoupledField
                                   Vector<Double>& mechStrainPrev,
                                   EntityIterator& ent );
 
-//!
+    //!
     void GetMaterialTensorMicroPiezo( Matrix<Double>& matTensor, 
                                       Vector<Double>& resultVec,
                                       std::string matTensorType,

@@ -18,9 +18,16 @@ namespace CoupledField
   {
   public:
     ElemIntegr(UInt elemType);
+
+    ElemIntegr();
+
+    ElemIntegr & operator=( ElemIntegr &rhs);
+
+    ElemIntegr & operator=(const ElemIntegr &rhs);
   
     virtual ~ElemIntegr();
   
+    UInt GetElemType() const;
 
     void CreatePt2Elems( UInt elemType );
   
@@ -78,7 +85,39 @@ namespace CoupledField
 
     LinearFlowNoiseInt * linearLoad_;
     Elem *ptElem_;
+    UInt elemType_;
 
+  };
+
+  //! This struct provides the funcionality to perform source calculation in parallel
+  //! Main feature to accomplish this is a copy constructor accessible by Open MP
+  //! For bigger problems, this overhead is not sgnificant
+  //! The motivation is within the pointer type of the original map<UInt,ElemIntegr*>
+  //! Therefor this map is created temporarily and stores the dereferenced pointers
+  //! The classes can then be copied by openmp
+  struct IntegrationMap{
+    public:
+    IntegrationMap(std::map<UInt, ElemIntegr *> inMap){
+      std::map<UInt, ElemIntegr *>::iterator it = inMap.begin();
+      while(it!=inMap.end()){
+        integMap_[it->first] = *it->second;
+        it++;
+      }
+    }
+
+    IntegrationMap( IntegrationMap & toCopy){
+      std::map<UInt, ElemIntegr>::iterator it = toCopy.integMap_.begin();
+      while(it!=toCopy.integMap_.end()){
+        integMap_[it->first] = it->second;
+        it++;
+      }
+    }
+
+    ElemIntegr & operator[](UInt key){
+      return integMap_[key];
+    }
+
+    std::map<UInt, ElemIntegr> integMap_;
   };
 }
 

@@ -1456,10 +1456,10 @@ namespace CoupledField {
       
       // Get grip of homogeneous and in-homogeneous boundary conditions
       // for this tpye of result
-      ResultHdBcMap::iterator hdBcIt = hdBcs_.find( actRes );
-      ResultIdBcMap::iterator idBcIt = idBcs_.find( actRes );
+      // ResultHdBcMap::iterator hdBcIt = hdBcs_.find( actRes ); // TODO: Unused variable hdBcIt
+      ResultIdBcMap::iterator idBcIt = idBcs_.find( actRes ); 
       ResultIdFileBcMap::iterator idFiBcIt = idFiBcs_.find( actRes );
-      ResultConstraintMap::iterator csIt = constraints_.find( actRes );
+      // ResultConstraintMap::iterator csIt = constraints_.find( actRes );  // TODO: Unused variable csIt
       
       StdVector<Vector<Integer> > & actMap = elemEqns_[actRes];
 
@@ -1802,25 +1802,33 @@ namespace CoupledField {
                   
                   Integer elemIdx1 = 0;
                   Integer elemIdx2 = 0;
-                  bool foundIdx1 = false;
-                  bool foundIdx2 = false;
+#ifndef NDEBUG
+                  bool foundIdx1 = false; // TODO: Unused variable foundIdx1
+                  bool foundIdx2 = false; // TODO: Unused variable foundIdx2
+#endif
                   // iterate over all dofs
                   for( UInt iDof = 0; iDof < dofsPerEdge; iDof++ ) {
                     elemIdx1 = -333;
                     elemIdx2 = -333;
+#ifndef NDEBUG
                     foundIdx1 = false;
                     foundIdx2 = false;
+#endif
                     //find the correct element the edge belons to
                     for ( UInt k=0;k< mesh2DisPdeNode_[edge.nodes[0]-1].GetSize() ;k++ ) {
                       if(static_cast<UInt>(mesh2DisPdeNode_[edge.nodes[0]-1][k][0])== actEl.elemNum ) {
                         elemIdx1=k;
+#ifndef NDEBUG
                         foundIdx1 = true;
+#endif
                       }
                     }
                     for ( UInt k=0;k< mesh2DisPdeNode_[edge.nodes[1]-1].GetSize() ;k++ ) {
                       if(static_cast<UInt>(mesh2DisPdeNode_[edge.nodes[1]-1][k][0])== actEl.elemNum ) {
                         elemIdx2=k;
+#ifndef NDEBUG
                         foundIdx2 = true;
+#endif
                       }
                     }
                     assert(foundIdx1); 

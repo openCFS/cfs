@@ -19,7 +19,7 @@ namespace CoupledField {
   {
   public:
     //! constructor getting x, y(x)
-    LinInterpolate(std::string nlFncName, ApproxCurveType curveType = GENERAL);
+    LinInterpolate(std::string nlFncName, MaterialType matType );
 
     //! destructor
     virtual ~ LinInterpolate();

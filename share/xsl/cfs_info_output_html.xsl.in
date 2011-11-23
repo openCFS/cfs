@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
+    xmlns:xs="http://www.w3.org/2001/XMLSchema" exclude-result-prefixes="xs"
+    xmlns:xd="http://www.oxygenxml.com/ns/doc/xsl" version="2.0">
+    <xd:doc scope="stylesheet">
+        <xd:desc>
+            <xd:p><xd:b>Created on:</xd:b> Nov 17, 2011</xd:p>
+            <xd:p><xd:b>Author:</xd:b> strieben</xd:p>
+            <xd:p></xd:p>
+        </xd:desc>
+    </xd:doc>
+    
+    <xsl:output method="html"/>
+
+    <xsl:template match="/">
+        <html>
+        <!--html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+              xsi:schemaLocation="http://www.w3.org/1999/xhtml
+                                  http://www.w3.org/2002/08/xhtml/xhtml1-strict.xsd"-->
+            <head>
+                <title>CFS++ Info</title>
+            </head>
+            
+            <body>
+                <pre>
+                    <xsl:apply-templates />
+                </pre>
+            </body>
+        </html>
+    </xsl:template>
+
+    <xsl:template match="progOpts">
+        <p><img src="file://@CFS_SOURCE_DIR@/share/doc/auxilliaries/Pics/cfs-logo.png" alt="CFS++ Logo"/></p>
+
+        Problem Name: <b><xsl:value-of select="@problem" /></b>
+        Parameter File: <b><xsl:value-of select="@parameterFile" /></b>
+        Schema Path: <b><xsl:value-of select="@schemaPath" /></b>
+    </xsl:template>
+
+    <xsl:template match="domain">
+        Dimension: <b><xsl:value-of select="@dimensions" /></b>
+        Elements: <b><xsl:value-of select="@elements" /></b>
+        Nodes: <b><xsl:value-of select="@nodes" /></b>
+    </xsl:template>
+</xsl:stylesheet>

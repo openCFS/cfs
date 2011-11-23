@@ -2,12 +2,13 @@
 # These defaults are for sedici cluster at Applied Mechatronics Klagenfurt.
 #-----------------------------------------------------------------------------
 SET(CFS_BLAS_LAPACK_DEFAULT "MKL")
+SET(USE_PARDISO_DEFAULT "ON")
 SET(CFS_PARDISO_DEFAULT "MKL")
 
 SET(USE_TCL_DEFAULT OFF)
 SET(USE_PYTHON_DEFAULT ON)
 
-SET(MKL_ROOT_DIR_DEFAULT "/opt/pckg/intel/Compiler/11.0/081/mkl")
+SET(MKL_ROOT_DIR_DEFAULT "/opt/pckg/intel/composer_xe_2011_sp1.6.233/mkl")
 
 #SET(CFS_GCC43_OPT_SWITCHES "${CFS_GCC43_OPT_SWITCHES} -mtune=native")
 #SET(CFS_GCC43_OPT_SWITCHES "${CFS_GCC43_OPT_SWITCHES} -march=native")

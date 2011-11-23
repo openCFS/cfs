@@ -346,10 +346,10 @@ namespace CoupledField {
 
      uint32_t elemNum;
     Elem::FEType eType;
-    Integer region;
+    // Integer region; // TODO: Unused variable region
 
     eType = ptEl->ptElem->feType();
-    region = ptEl->regionId+1;
+    // region = ptEl->regionId+1;
     elemNum = ptEl->elemNum;
     StdVector<UInt> const & connectDummy = ptEl->connect;
     StdVector<UInt> connect;

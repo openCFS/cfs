@@ -1235,8 +1235,8 @@ namespace CoupledField {
       // Get grip of homogeneous and in-homogeneous boundary conditions
       // for this tpye of result
       ResultHdBcMap::iterator hdBcIt = hdBcs_.find( actRes );
-      ResultIdBcMap::iterator idBcIt = idBcs_.find( actRes );
-      ResultIdFileBcMap::iterator idFiBcIt = idFiBcs_.find( actRes );
+      // ResultIdBcMap::iterator idBcIt = idBcs_.find( actRes ); // TODO: Unused variable idBcIt
+      // ResultIdFileBcMap::iterator idFiBcIt = idFiBcs_.find( actRes ); // TODO: Unused variable idFiBcIt
       ResultConstraintMap::iterator csIt = constraints_.find( actRes );
 
       Matrix<Integer> & actMap = nodeEqns_[actRes];

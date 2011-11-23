@@ -1,243 +1,294 @@
 \chapter{Introduction}
 
-\todo[inline]{A lot of information for  this manual has already been  collected
-at                                                                   Klagenfurt
-\url{http://rom/AMwiki/index.php5/CFS\%2B\%2B_Developer\%27s_Manual}}       and
-\url{http://rom/AMwiki/index.php5/Simons_Privatwiki}.   Somebody  just has  to
-assemble it here in a clean and structured manner.
+\section{History of CFS++}
+The Finite-Element (FE) software has been named {\sf CFS++} according
+to {\sf C}oupled {\sf F}ield {\sf S}imulation and the {\sf ++}
+indicates that as programming languange C++ has been
+chosen. Originally, the first struture of CFS++ has been designed by
+M.~Kaltenbacher and S.~Reitzinger during a stay of M.~Kaltenbacher in
+Linz, Austria in the year 2000 at the SFB013 (Numerical and Symbolic
+Scientific Computing). The idea was to set up a new simulation
+software for scientific computing capabale for multi-field
+applications. Since then on the group of M.~Kaltenbacher at the
+Department of Sensor Technology, University of Erlangen-Nuremberg in
+Germany was growing and the ideas were realized in the FE software
+CFS++. In 2008, M.~Kaltenbacher and many co-workers moved to
+University Klagenfurt, Austria.   Furthermore, within the Cluster of
+Excellence for Engineering of Advanced Materials (niversity
+Erlangen-Nuremberg, Germany), the research group of
+M.~Stingl contribute to CFS++ concerning shape and topology
+optimization. 
 
-In order to keep a large  software project with many contributors at different
-coding  skill levels in  a healthy  state and  to prevent  it from  becoming a
-so-called                  monster                  code                  (cf.
-\url{http://www.nature.com/news/2010/101013/full/467775a.html})  an  elaborate
-infrastructure has to be set up.  This infrastructure includes version control
-systems,  build  scripts  for   external  libraries,  good  documentation  and
-automated  testing  facilities.  Especially  the  last  requirement cannot  be
-overrated.  It  is a means  of maintaining a  basic principle in  science: the
-reproducibility of results.
+Among many scientists, who have contributed to CFS++, we want to
+acknowledge the following:
 
-It is the intention of this manual to describe not only the mentioned parts of
-the infrastructure  but also to give  an overview of the  internal workings of
-CFS++.
-
-
-\section{Some Words About this Document}
-\subsection{Embedded Listings}
-\label{sec:embedded_listings}
-
-Some of the listings later on in this manual are meant to be copied and pasted
-into external editors. It is okay to do this for short code snippets but it is
-often  too tedious with  longer scripts.   Therefore we  decided to  embed the
-corresponding   scripts  into  the   PDF,  like   attachments  to   an  email.
-Unfortunately  not all  PDF viewers  are  capable of  retrieving the  attached
-listings.    Some    viewers   which    support   this   feature    (cf   Fig.
-\ref{fig:pdf_attach}) include  Adobe Reader  since version 6.0,  Foxit Reader,
-Okular etc.
-
-\begin{figure}[htb] 
-  \centering 
-  \subfloat[Acrobat Reader.]{
-    \label{fig:pdf_attach_acroread}
-    \includegraphics[height=3.5cm]{pics/pdf_attach_acroread}
-  }
-  \qquad
-  \subfloat[Okular.]{
-    \label{fig:pdf_attach_okular}
-    \includegraphics[height=3.5cm]{pics/pdf_attach_okular} 
-  }
-  \qquad
-  \subfloat[Foxit Reader.]{
-    \label{fig:pdf_attach_foxit}
-    \includegraphics[height=3.5cm]{pics/pdf_attach_foxit}
-  }
-  \caption{Extracting PDF attachments using different viewers.}
-  \label{fig:pdf_attach}
-\end{figure}
-
-\section{History  of  CFS++} \todo[inline]{Write  a  few  sentences about  the
-history of  CFS++ (beginning  as Matlab code,  decision for  C++, cooperations
-e.g.  Gridlib  of LGDV,  adaptive meshing of  Roberto Grosso,  LSTM, Budapest,
-optimization mathematicians  etc.), introduction of CMake,  separation of NACS
-from CFS++, development of NACSDEPS  due to Windows port, backport of NACSDEPS
-to CFSDEPS, etc...}
-
-\todo[inline]{The   pre-CFS++   era,  capa,   capapost   (graphics  based   on
-PEX) ...}
-
-\url{http://en.wikipedia.org/wiki/PHIGS}
-
-\subsection{gridlib}  In  the beginning  of  CFS++  development a  cooperation
-between  the chair  of computer  graphics (LGDV)  in Erlangen  in the  area of
-adaptive grid  refinement, resulted  in the coupling  of CFS++ to  the gridlib
-\cite{Kipfer2003, gridlib, gridlib2001} library.  The goal of this library was
-to  provide  grid management  features  tailored  to  the needs  of  numerical
-simulation,  as   well  as  for  scientific   visualization.   A  socket-based
-communication system between  CFS++ and gridlib was implemented  to review the
-incremental performance  of adaptive simulations  in \cite{Triebenbacher2003}.
-Also new algorithms for slice  calculations were implemented into gridlib (cf.
-Fig.   \ref{fig:gridlib}).    After  the  main  developer   of  gridlib  Peter
-Kipfer\footnote{\url{http://www.kipfer.de}}   left  LGDV   for   his  post-doc
-position   at   TUM\footnote{\url{http://wwwcg.in.tum.de/people/Alumni}},  the
-gridlib project slowly died however.
-
-\begin{figure}[htp]
-  \begin{center}
-    \subfloat[Render modes of gridlib.]{ \label{fig:gridlib_render_modi}
-      \includegraphics[scale=1.0]{pics/gridlib_render_modi} }
-    \subfloat[Slicing algorithm in gridlib.]{ \label{fig:gridlib_slice}
-      \includegraphics[scale=1.0]{pics/gridlib_slice} }
-  \end{center}
-  \caption{Some of gridlib's capabilities.}
-  \label{fig:gridlib}
-\end{figure}
-
-\subsection{CFSPP} During a HiWi project at  LSE in the years 2004 and 2005 an
-attempt was made to implement  a first VTK-based postprocessor for CFS++.  Its
-name                                                                        was
-CFSPP\footnote{\url{https://lse17.e-technik.uni-erlangen.de:2001/files/precompiled/legacy/cfspp}},
-which   stood   for   CFS++   Post-Processor.    It   was   built   upon   the
-ORCAN\footnote{\url{http://orcan.sourceforge.net/}}   framework   for  modular
-application  development.    This  was  a  cooperation   project  between  the
-Fraunhofer  Institute  IIS-B, and  a  few  departments  of the  University  in
-Erlangen.   CFSPP implemented  a  few  features, which  are  now available  in
-ParaView. Most  notably it supported switching  regions on and  off, which was
-not  directly supported by  VTK at  that time.   CFSPP was  even used  für the
-excercise classes of two courses in Erlangen.  It was however abandoned, since
-only one  person was developing it,  its terse user documentation,  and due to
-the fact  that some people  just could  not agree with  the sound of  its name
-(pronounced: [si:æf:æs:pi:pi]).   But valuable  experience with VTK  and CMake
-was gathered  during this time.   Figure \ref{fig:cfspp} shows the  CFSPP GUIs
-running on  Windows and  Linux.  The panels  for the  visualization parameters
-should look strangely familiar to a ParaView user.
-
-\begin{figure}[htp]
-  \begin{center}
-    \subfloat[Windows GUI.]{ \label{fig:cfspp_windows}
-      \includegraphics[height=59mm]{pics/cfspp_orcan} }
-    \subfloat[Linux GUI.]{ \label{fig:cfspp_linux}
-      \includegraphics[scale=1.0]{pics/cfspp_workshop} }
-  \end{center}
-  \caption{CFSPP running on Windows and Linux.}
-  \label{fig:cfspp}
-\end{figure}
-
-\subsection{The  HDF5 File  Format} \todo[inline]{Introduction  of  HDF5 files
-\cite{hdf5, HDF5LibCongress},  HDF started in  1987 as a  platform independent
-architecture  and  file  format   for  super  computing  application  at  NCSA
-\url{http://www.ncsa.illinois.edu/},  interesting  anecdote:  the  Mosaic  web
-browser (forefather  of Internet Explorer, Netscape,  Firefox) provided access
-to         HDF         files         \cite{Meyer1995221,         hdf5history},
-\url{http://de.wikipedia.org/wiki/NCSA_Mosaic},   HDF5  is   basis   for  many
-scientific           data            formats           (e.g.            NetCDF
-\url{http://www.unidata.ucar.edu/software/netcdf}, CFD General Notation System
-CGNS \url{http://cgns.sourceforge.net/}),  idea for  HDF5 in CFS++  from MpCCI
-3.x  .ccv trace files  \cite{MpCCI306Doc} for  examining the  coupling process
-using the  MpCCI visualizer  (which was  also based on  VTK), in  the meantime
-MpCCI  4.x  can also  produce  trace  files  for ParaView/VTK,  our  principal
-hierarchical         layout        came        from         XMDF        format
-\url{http://www.wes.army.mil/ITL/XMDF/} with own  extensions, idea is to store
-everything   (mesh,  field   results,  history   results,   information  about
-simulation,  information about  machine, restart  data) hierarchically  in one
-place.}
-\begin{figure}[htp]
-  \begin{center}
-    \includegraphics[height=59mm]{pics/ccivis} 
-  \end{center}
-  \caption{Trace   files   for    visual   comparison   of   coupled   results
-(e.g. inspection of  orphaned nodes) were written in HDF5  format by the MpCCI
-3.x coupling server (screenshots taken from \cite{MpCCI306Doc}).}
-  \label{fig:cfspp}
-\end{figure}
-
-
-\subsection{CMake} \todo[inline]{Known  since CFSPP,  real boost by  switch of
-KDE4 project \cite{CMakeKDE4}, CMake also generates Visual Studio projects for
-Windows  port  of  NACS,  support  of parallel  (\tt{make  -j4})  builds  (cf.
-\url{http://people.gnome.org/~michael/blog/icecream.html},
-\url{http://old-en.opensuse.org/Icecream},
-\url{http://software.intel.com/en-us/articles/intel-c-compiler-for-windows-distributed-compilation-with-incredibuild-and-intel-c-compiler-on-windows/},
-\url{http://wiki.gridengine.info/wiki/index.php/Distributed-Compilation}    for
-distributed parallel  builds), first real  world test: STiSC winter  term 2006
-course,        implemented       into        CFS++        since       08/04/06
-\url{https://lse17.e-technik.uni-erlangen.de:2001/trac/browser/CFS\%2B\%2B/branches/SimonGrid_040806?rev=6656}
-on                    trunk                   since                   03/02/07
-\url{https://lse17.e-technik.uni-erlangen.de:2001/trac/changeset/7233}}
-
-\subsection{The  OLAS  Machete  Branch}  At  the  same  time  when  CMake  was
-introduced  to CFS++,  it was  also  decided that  the previously  independent
-linear algebra system should be merged  into the CFS++ source tree. There were
-some hurdles for doing so however
 \begin{itemize}
-\item  OLAS was  following a  mathematicians' or  Fortran-based  philosophy of
-using  one-based  array  indices  instead  of  zero-based  ones  like  C-style
-languages.
-\item OLAS was built as extra library  and therefore had it's own way of doing
-I/O and error handling.
-\item OLAS  used its  own matrix  and vector classes,  which were  not readily
-compatible with the ones in CFS++. Therefore the data exchange between the two
-systems was based on pure C-style arrays.
+\item M.~ Escobar: aeroacoustics
+\item J.~Grabinger: non-matching grids, aeroacoustics
+\item A.~Hauck: direct and iterative coupled PDEs, higher order FEM, revisions of class
+  structure (function space, BDB-operator, ..) 
+\item M.~Hofer: forms class
+\item A.~H\"uppe: spectral FEM, revisions of class structure (function
+  space, BDB-operator, ..)
+\item M.~Kaltenbacher: nonlinear PDEs, hysteresis, PML
+\item M.~Mohr: algebraic system and XML-structure
+\item T.~Lahmer: inverse schemes
+\item G.~Link: fluid flow and coupling to mechanics
+\item S.~Triebenbacher: non-matching grids, CFSDEPS, CMake
+  environment, ctest, ..
+\item F.~Wein: optimization
+\item E.~Zhelezina: first implementations. hFEM
+\item S.~Z\"orner: fluid-structure-acoustic, XFEM
 \end{itemize}
 
-\noindent Due to these  points a serious amount of work had  to be invested to
-thin  out the  redundant structures  within the  code.  After  a visit  to the
-cinema in fall 2007, where Gerhard Link, Simon Triebenbacher and the initiator
-Ludwig Bahr  took part, the  fitting name for  the working branch  was finally
-found. At the beginning of  the well-known zombie B-movie 'Planet Terror' (cf.
-Fig. \ref{fig:planet_terror}  and \url{http://www.imdb.com/title/tt1077258}) a
-fake   trailer  for  a   future  movie   (cf.   Fig.    \ref{fig:machete}  and
-\url{http://www.imdb.com/title/tt0985694}) was  shown, where a  former Mexican
-federal agent  imposes law and order  on corrupt Texan  officials and ruthless
-Mexican drug lords using his -- MACHETE!
 
-\begin{figure}[htp]
-  \begin{center}
-    \subfloat[Poster of 'Planet Terror']{ \label{fig:planet_terror}
-      \includegraphics[height=67mm]{pics/planet-terror} }
-    \subfloat[Poster of 'Machete'.]{ \label{fig:machete}
-      \includegraphics[height=67mm]{pics/machete} }
-  \end{center}
-  \caption{Advertisements for 'Planet Terror' and 'Machete'.}
-  \label{fig:movie_posters}
+\section{Structure of CFS++ and Programming Environment}
+\label{Sec:CFSstructure} 
+From  the beginning  on, the  main focus was  and still  is on
+numerical  schemes for  solving  the arising  system  of PDEs within
+multi-field   problems.  Therewith,  we   have  no 
+capabilities    concerning   geometric    modeling,    mesh   generation    or
+post-processing. Instead,  we provide  a variety of  interfaces to  obtain the
+appropriate   input   data  from   a   number  of   supported
+pre-processors\footnotemark[1],  as   well  as  to   write  different  file 
+formats   to  feed a variety of
+post-processing tools\footnotemark[2].
+
+\subsection{Data I/O and Class Structure }
+\noindent
+To obtain the necessary input information for our numerical simulation
+tool a number of input files need to be provided: \\
+
+
+\noindent
+{\it Mesh  and  field data:}  This  data provides  the
+coordinates and mesh  topology of all 3D (volume),  2D (surface/interface) and
+1D (interface)  elements. Due to the  fact, that all elements  are tagged with
+unique ids,  we can differ between  different physical regions
+where   different   material    properties   may   be   applied,   interfaces
+for the specification of couplings as well as surfaces within
+the computation. 
+Furthermore, it provides  special elements and nodes on which
+boundary  or/and  load  conditions can  be  specified  or  which are  used  as
+monitoring points  for saving special  physical data (e.g.,  acoustic pressure
+over  time). 
+In addition  to the  mesh information,  field
+information  may  be read  as  input for a simulation  (e.g. acoustic  source
+terms).  By default, this data is stored in the hierarchical file format HDF5
+\cite{hdf5}. However, we also support  a   number  of  different
+pre-processors and data sources \footnote[1]{Supported pre-processors
+  and CFD codes: ANSYS Classic, GiD, Gmsh, OpenFOAM, FASTEST,
+  ANSYS-CFX}. \\
+
+\noindent
+{\it  Physical problem description:}  To have a standardized  and easy
+extendable  file format,  we  use  for this  task  the XML-format.
+By specifying  schemas \cite{xmlschema} for our expected input
+formats, it  is possible to validate input  files written by humans  as well as
+automatically  generated ones.  
+ %
+\begin{figure}[htbp]
+  \centering
+    \input{piezo_coupling.tex}
+  \caption{XML input file listing for piezoelectric-acoustic coupling}
+  \label{fig:xml-piezo}
+\end{figure}
+%
+In addition  to that  when writing  the input
+files in  a XML editor,  tags can be suggested  by the editor
+and the  documentation of tags inside  the schema also assists  users, so that
+they seldomly  need to consult manuals.  Also the  availability of a vast
+range of  tools for transforming  XML data (e.g. XSLT  \cite{xslt}) simplifies
+conducting parameter studies by a great margin.  
+In Fig. \ref{fig:xml-piezo} we list the main commands for the coupling
+section within a piezoelectric-acoustic example. \\
+
+\noindent
+{\it Material data:} The XML-file format is also used for the
+  material description allowing for automatic processing entries with
+ 3rd party tools as well as integrity checking.  As an 
+  example, we show the specification of the electromagnetic
+  properties of aluminum (see Fig. \ref{fig:xml-mat}).
+%
+\begin{figure}[htbp]
+  \centering
+   \input{matdata}
+  \caption{XML material file: specification   of the electromagnetic
+  properties of aluminum}
+  \label{fig:xml-mat}
 \end{figure}
 
+\noindent
+Concerning  the  result  data,  our   standard  file  format  is  again  HDF5.
+This enables us to do  chained simulations, since the output of
+a simulation  may be used as an input for a subsequent simulation.  We may  also use
+third-party tools  like Matlab in  this chain, due  to the fact that  the HDF5
+format   is    supported   by  many tools.  Furthermore, as displayed
+in Fig.  \ref{fig:cfs_IO}, we  provide
+many  tool specific  input-  and output-file 
+formats   to   allow   a   use   of   different   post-processing
+tools\footnote[2]{Supported  post-processors: ANSYS, GiD,  Gmsh, GMV,
+VTK, ParaView}.
+%
+%
+ \begin{figure}[htb]
+ \begin{center}
+   \includegraphics[width=14cm]{pics/cfs_data_formats}
+   \caption[CFS++ I/O structure]{CFS++ I/O structure.}
+   \label{fig:cfs_IO}
+ \end{center}
+ \end{figure}
 
 
-\subsection{Forking  of NACS}  \todo[inline]{The initial  checkin of  the NACS
-repository was committed on 04/20/07, Subsequently development of Windows port
-by Simon  Triebenbacher took place, Hermann Landes  provided valuable guidance
-on  Windows-specific Fortran issues,  implementation of  reference development
-environment virtual  machine featuring support  for VS2003, VS2005  later also
-VS2008 and  Intel compilers,  platforms: Linux GCC+IFORT,  ICC+IFORT, Windows:
-MSVC+IFORT, ICC+IFORT}
+The whole software is written  in {\sf C++} and we exploit its class
+concept  without  loosing  numerical   performance  by  using  techniques  like
+e.g.  expression templates.  The  goal was and still is, that our numerical
+simulation tool  {\sf CFS++} can be easily  extended for any new  PDE, any new
+physical coupling as well as  new types of finite elements (e.g, discontinuous
+finite elements).
+%
+% Furthermore, a new developer  should be able  to adapt {\sf
+% CFS++} for her/his  purpose within a reasonable time.  
+%
+The flexibility of our program structure is
+demonstrated by the coupled piezoelectric-acoustic problem (ref. Fig.
+\ref{fig:xml-piezo}). In Fig.
+\ref{fig:cfs_coupl}  the resulting linear system, as well as the involved
+classes are depicted.
+%
+\begin{figure}[htb]
+\begin{center}
+  \includegraphics[width=14cm]{pics/coupled-system.pdf}
+  \caption{Class structure for the piezoelectric-acoustic coupled PDEs (left) and resulting
+linear system (right)}
+  \label{fig:cfs_coupl}
+\end{center}
+\end{figure}
+%The overall definition of the coupled problem is defined in the
+The main class \verb#DirectCoupledPDE# holds references to the three involved single
+field problems, as defined by the derived \verb#SinglePDE# objects of type
+\verb#ElecPDE#, \verb#MechPDE# and \verb#AcouPDE#. Each PDE defines the
+\verb#BilinearForm#s and passes it to the \verb#Assemble# class,
+which performs the loop over all the involved elements.
+%
+To achieve the fully coupled system, derived instances of the class
+\verb#Coupling# define the mutual coupling between each two PDEs (here
+\verb#PiezoCoupling# and \verb#MechAcouCoupling#). In the assembly phase, all element matrices of the
+\verb#BilinearForm# instances get passed to the
+\verb#AlgebraicSystem#.
+%, which
+%either assembles all terms in one matrix (e.g. for direct / iterative solution)
+%or sorts the entries in distinct matrices (e.g Schur complement method).
+%Note, that iterative coupled problems (e.g. magneto-mechanic) can be included
+%in our structure as well, where we get several linear systems.
+%\vspace*{-8mm}
+ 
+\subsection{Development Environment}
+\noindent
+%One of the most important points, when many persons collaborate on the
+%same program, is to have an advanced development environment.
+Concurrent development of a large software project by several programmers
+requires an advanced development environment.
+For this purpose, we utilize the following tools:\\
 
-\subsection{NACSDEPS} The idea  for NACSDEPS was born after  the first version
-of NACS  was finally running  on Windows (cf. Fig.  \ref{fig:nacs_win}).  Then
-the  need   to  setup  more  Windows  development   machines  within  Simetris
-GmbH\footnote{\url{http://www.simetris.de}}  arose and  therewith the  need to
-know  how  all the  libraries  on  which NACS  depends  have  to  be built  or
-installed.   After the  painful experiences  gathered, while  getting  all the
-libraries for the Windows port to work  on a single machine, it was decided on
-a weekly  NACS meeting, that  the build process  of these libraries  should be
-thoroughly documented.   In the next weeks  the idea of  documenting the build
-process by  providing automated build scripts  grew.  By doing  so, we finally
-ended up with a system, which  does not only build all our dependent libraries
-on Windows but also on all  other supported platforms.  In the first revisions
-of NACSDEPS  we also provided prebuilt  binaries for a  few platforms directly
-through  the  Subversion server.   It  became  however  quickly unfeasible  to
-provide binaries for all our platforms and the time and bandwidth requirements
-needed for a checkout just became to high.  Due to this, we decided, that only
-the  build descriptions,  checksums and  patches  should be  contained in  the
-central repository whenever  possible and that sources should  be fetched from
-the internet and binaries should be cached locally instead of centrally.
+\noindent
+{\sf SVN:} Subversion is a free and open source version control
+  system, which manages files, directories, and the changes made to
+  them over time. It facilitates the recovery of older versions and the
+concurrent management of  different developing branches \cite{svn}.\\
 
-\begin{figure}[htb] 
-  \centering
-  \begin{overpic}[width=0.55\textwidth]{pics/nacs_win}
-  \end{overpic}
-  \caption{The first version of NACS is running on Windows.}
-  \label{fig:nacs_win}
-\end{figure}%
+\noindent
+{\sf  CFSDEPS:} When  developing  a  general purpose  finite
+element  code   a  lot  of  external  libraries   (e.g.  BLAS, LAPACK,  ARPACK,
+Metis) have to be included.
+Many
+of these  libraries are present  on modern-day Linux/Unix distributions.  If a
+library is however not available, it has  to be built from
+source. Since
+more than the standard GNU compiler suite should  be supported, it is almost certain that
+incompatibilities  with pre-built  system  libraries will  arise. Therefore,  we
+decided to build all our dependencies in an automated script based manner. The
+scripts fetch the sources from  the web, unpack them, perform a checksum check,
+patch, configure, build and install  the libraries. This way we obtain maximum
+platform-independence  while   having  a  well-documented   and  SVN-versioned
+description of how to build external packages.\\
 
+\noindent
+{\sf CMake Build System:}  CMake is a family of platform
+independent tools designed to  build, test and package software
+\cite{Martin2007a}. %cmake, Schroeder2004, Martin2007a}. 
+It   is   mainly   targeted   towards  C,   C++   or   Fortran
+projects. 
+Instead of writing Makefiles or autoconf/automake scripts on Unix or
+Visual  Studio  projects on  Windows,  one  just  needs to  maintain  platform
+independent configuration files from  which CMake will generate the previously
+mentioned projects for the native build environments.\\
 
-\section{Outline of this Document}
-\todo[inline]{Write about where to find which information.)}
+%
+\noindent
+{\sf CTest:} In order to keep  the quality of a software project high, it
+is imperative to perform automated tests, which we specify in the same
+simple CMake syntax.  
+Every user should run 
+those tests before a commit of changes or additional software
+code. This ensures that all the old features are still working at
+least on the user's platform.\\ 
+
+\noindent
+{\sf CDash:} This is  an open source, web-based software testing server,
+which  aggregates,  analyzes and  displays  the  results  of software  testing
+processes  submitted from  different clients  \cite{cdash}. We
+use it to  gather information about nightly builds on various
+platforms to track errors, e.g. which are platform-dependent (e.g. 32 bit vs. 64
+bit). \\ 
+
+\noindent
+{\sf Trac:} This tool is an enhanced wiki and a tracking system
+  for software development projects. Therewith, we can discuss
+  different issues, fix upcoming development steps by assigning
+  tickets, browse the {\sf Subversion} repository and look
+  at the changes been made between different versions, \cite{track}.
+
+\section{Capabilities and Features}
+As mentioned, our main focus is on an efficient simulation tool for
+the development of sensors, actuators and
+sensor-actuator-systems \cite{makalten10:12,Kaltenbacher2011e}. Therewith, we have concentrated on FE
+formulations for electromagnetics, mechanics, acoustics, thermal and
+fluid flow. Furthermore, we have currently realized the
+following couplings: {\it electromagnetics - mechanics - acoustics}
+(electrodynamic
+  loudspeaker, electromagnetic valve, electric power transformer, see, e.g.,
+\cite{Kaltenbacher2011b}),
+{\it piezoelectricity} (ultrasound array, surface  
+  acoustic wave devices, stack actuators, see,
+  e.g. \cite{hegewald08:2}), {\it electrostatics - mechanics - acoustics}
+(capacitive micro-machined
+  ultrasound transducers, mirror systems and microphones, see,
+  e.g. \cite{kaltenbacher05:4}),  {\it fluid flow - mechanics -
+    acoustics} (flow-induced sound, human phonation, see, e.g.,
+  \cite{Link2009}). Most of the
+  implemented algorithms are described in \cite{Kaltenbacher2007}.
+
+Concerning special features, we may mention higher order finite
+elements ($p$-FEM) and spectral finite elements 
+(s-FEM) \cite{hauck06:1,Hueppe2011c,Huppe2011b,Hauck2011}, non-matching
+grid techniques (Mortar FEM)
+\cite{Triebenbacher2010b}, micro-macro-modeling by
+homogenization \cite{kaltenbacher09:8}, advanced material models
+including hysteresis \cite{kaltenbacher10:1},
+inverse schemes for the precise determination of material parameters
+\cite{bkaltenbacher06:3,lahmer08:1}, and topology
+optimization \cite{kaltenbacher09:10,wein10:1}.
+%
+
+\section{CFS++ Coding Style}
+
+There is no very strict coding style for CFS++. The main points which have been agreed upon are
+\begin{itemize}
+  \item No tabs only spaces.
+  \item The indentation width is two characters.
+  \item Source encoding is UTF-8.
+\end{itemize}
+
+\todo[inline]{Put informations from \url{https://lse17.e-technik.uni-erlangen.de:2001/trac/wiki/StyleGuide} here.}
+
