@@ -1,14 +1,3 @@
-# Depending on USE_SCRIPTING_TCL/PYTHON, we have to include the
-# tcl/python headers, as they get referenced already in the
-# tcl/py-messenger header
-IF(USE_TCL)
-  INCLUDE_DIRECTORIES(${TCL_INCLUDE_PATH})
-ENDIF(USE_TCL)
-
-IF(USE_PYTHON)
-  INCLUDE_DIRECTORIES(${PYTHON_INCLUDE_PATH})
-ENDIF(USE_PYTHON)
-
 IF(USE_HDF5)
   INCLUDE_DIRECTORIES(${HDF5_INCLUDE_DIR})
 ENDIF(USE_HDF5)
@@ -16,14 +5,6 @@ ENDIF(USE_HDF5)
 SET(DEFINEFILES_SRCS DefineInOutFiles.cc)
 
 ADD_LIBRARY(definefiles STATIC ${DEFINEFILES_SRCS})
-
-IF(USE_TCL)
-  SET(TARGET_LL ${TARGET_LL} tclmess scripting)
-ENDIF(USE_TCL)
-
-IF(USE_PYTHON)
-  SET(TARGET_LL ${TARGET_LL} pythonmess scripting)
-ENDIF(USE_PYTHON)
 
 IF(USE_MESH)
   SET(TARGET_LL ${TARGET_LL} siminmesh)
@@ -47,7 +28,6 @@ ENDIF(USE_GMSH)
 IF(USE_GIDPOST)
   SET(TARGET_LL ${TARGET_LL} simoutgid)
 ENDIF(USE_GIDPOST)
-
 
 IF(USE_UNV)
   SET(TARGET_LL ${TARGET_LL} simoutunv)

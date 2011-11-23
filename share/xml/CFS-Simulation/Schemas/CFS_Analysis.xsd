@@ -166,71 +166,6 @@
 
 
   <!-- ******************************************************************* -->
-  <!--   Definition of element paramIdent -->
-  <!-- ******************************************************************* -->
-  <xsd:element name="paramIdent" type="DT_AnalysisParamIdent"
-    substitutionGroup="AnalysisBasic"/>
-
-  <!-- Data type for parameter Identification and simple computations of
-       impedance curves -->
-  <xsd:complexType name="DT_AnalysisParamIdent">
-    <xsd:complexContent>
-      <xsd:extension base="DT_AnalysisBasic">
-        <xsd:sequence>        
-          <xsd:element name="fittingMethod" type="DT_ParameterFittingMethod"/>
-          <xsd:element name="fittingQuantity" type="DT_ParameterFittingQuantity"/>                          
-          
-          <xsd:element name="calcImpedanceCurve" type="DT_CFSBool"
-          minOccurs="0" maxOccurs="1" default="no"/>               
-          <xsd:element name="calcCharge">
-            <xsd:complexType>
-              <xsd:attribute name="name" type="xsd:token" use="required"/>
-              <xsd:attribute name="neighborRegion" type="xsd:token" use="required"/>
-            </xsd:complexType>
-          </xsd:element>
-          <xsd:element name="calcMechDisplacementCurve" type="DT_CFSBool"
-            minOccurs="0" maxOccurs="1" default="no"/>            
-          
-          <xsd:element name="computeCurveAfterIterationStep" type="xsd:nonNegativeInteger"/>
-          <xsd:element name="numFreq" type="xsd:nonNegativeInteger"/>
-          <xsd:element name="startFreq" type="DT_PosFloat"/>
-          <xsd:element name="stopFreq" type="DT_PosFloat"/>
-          <xsd:element name="sampling" minOccurs="0" maxOccurs="1"
-            default="linear">
-            <xsd:simpleType>
-              <xsd:restriction base="xsd:token">
-                <xsd:enumeration value="linear"/>
-                <xsd:enumeration value="log"/>
-                <xsd:enumeration value="reverseLog"/>
-              </xsd:restriction>
-            </xsd:simpleType>
-          </xsd:element>
-          <xsd:element name="maxNrIterations"
-            type="xsd:nonNegativeInteger"/>
-          
-          <xsd:element name="stopRes" type="DT_NonNegFloat" minOccurs="0"/>        
-          <xsd:element name="excitationVoltage" type="DT_PosFloat"/>
-          <xsd:element name="artDataNoise" type="DT_NonNegFloat"/>
-          
-          <xsd:element name="mechDisplAtNode0" type="xsd:nonNegativeInteger" minOccurs="0" />
-          <xsd:element name="mechDisplAtOppositeNode0" type="xsd:nonNegativeInteger" minOccurs="0" />
-          <xsd:element name="dofOfMechDispl0" type="xsd:nonNegativeInteger" minOccurs="0"/>
-          
-          <xsd:element name="mechDisplAtNode1" type="xsd:nonNegativeInteger" minOccurs="0" />
-          <xsd:element name="mechDisplAtOppositeNode1" type="xsd:nonNegativeInteger" minOccurs="0" />
-          <xsd:element name="dofOfMechDispl1" type="xsd:nonNegativeInteger" minOccurs="0"/>
-          
-          <xsd:element name="mechDisplAtNode2" type="xsd:nonNegativeInteger" minOccurs="0"/>
-          <xsd:element name="mechDisplAtOppositeNode2" type="xsd:nonNegativeInteger" minOccurs="0"/>
-          <xsd:element name="dofOfMechDispl2" type="xsd:nonNegativeInteger" minOccurs="0"/>
-          
-        </xsd:sequence>
-      </xsd:extension>
-    </xsd:complexContent>
-  </xsd:complexType> 
-  
-
-  <!-- ******************************************************************* -->
   <!--   Definition of data type for global non-linear parameters -->
   <!-- ******************************************************************* -->
   <xsd:simpleType name="DT_NonLinSolver">
@@ -263,34 +198,5 @@
     <xsd:attribute name="logging" type="DT_CFSBool" use="optional"
       default="no"/>
   </xsd:complexType>
-
-
-  <!-- ******************************************************************* -->
-  <!--   Definition of element bubbleDriver -->
-  <!-- ******************************************************************* -->
-  <xsd:element name="bubbleDriver" type="DT_AnalysisBubbleDriver"
-    substitutionGroup="AnalysisBasic"/>
-
-  <!-- Data type for bubbleDriver section, i.e. parameters required for
-       performing a bubbleDriver analysis -->
-  <xsd:complexType name="DT_AnalysisBubbleDriver">
-    <xsd:complexContent>
-      <xsd:extension base="DT_AnalysisBasic">
-        <xsd:sequence>
-          <xsd:element name="bubbleType">
-            <xsd:simpleType>
-              <xsd:restriction base="xsd:token">
-                <xsd:enumeration value="Gilmore"/>
-                <xsd:enumeration value="KellerMiksis"/>
-              </xsd:restriction>
-            </xsd:simpleType>
-          </xsd:element>
-          <xsd:element name="pressure" type="xsd:float"/>
-          <xsd:element name="frequency" type="DT_NonNegFloat"/>
-        </xsd:sequence>
-      </xsd:extension>
-    </xsd:complexContent>
-  </xsd:complexType>
-
 
 </xsd:schema>

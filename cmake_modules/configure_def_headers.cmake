@@ -63,15 +63,6 @@ CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_interpolation.hh.in"
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_xerces.hh.in"
   "${CFS_BINARY_DIR}/include/def_use_xerces.hh")
 
-CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_scripting.hh.in"
-  "${CFS_BINARY_DIR}/include/def_use_scripting.hh")
-
-CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_tcl.hh.in"
-  "${CFS_BINARY_DIR}/include/def_use_tcl.hh")
-
-CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_python.hh.in"
-  "${CFS_BINARY_DIR}/include/def_use_python.hh")
-
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_mesh.hh.in"
   "${CFS_BINARY_DIR}/include/def_use_mesh.hh")
 
@@ -100,13 +91,6 @@ CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_xmlschema.hh.in"
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_cfs_stats.hh.in"
   "${CFS_BINARY_DIR}/include/def_cfs_stats.hh"
   @ONLY )
-
-IF(USE_MPCCI)
-  SET(MpCCI 1)
-ENDIF(USE_MPCCI)
-
-CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_mpcci.hh.in"
-  "${CFS_BINARY_DIR}/include/def_use_mpcci.hh")
 
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_expl_templ_inst.hh.in"
   "${CFS_BINARY_DIR}/include/def_expl_templ_inst.hh"

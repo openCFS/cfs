@@ -22,10 +22,6 @@
 #include "Forms/Operators/CurlOperator.hh"
 #include "Forms/Operators/IdentityOperator.hh"
 
-#ifdef USE_SCRIPTING
-#include "DataInOut/Scripting/CFSMessenger.hh"
-#endif
-
 namespace CoupledField {
 
 // declare class specific logging stream

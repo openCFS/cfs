@@ -11,7 +11,6 @@
 
 // Include defs
 #include <def_build_type_options.hh>
-#include <def_use_scripting.hh>
 
 
 // Required for the CFS own data types
@@ -77,16 +76,14 @@ namespace CoupledField
     fs::path GetParamFile() const;
     std::string GetParamFileStr() const;
 
-#ifdef USE_SCRIPTING
-    //! Return (optional) name of scripting file
+    //! Return name of log configuration file
 
-    //! This method returns the full name of an (optional) scripting file,
-    //! e.g. a TCL-script that contains routines provided by the user to
-    //! interact dynamically with CFS. If no filename was provided an
-    //! empty string is returned.
-    fs::path GetScriptFile() const;
-    std::string GetScriptFileStr() const;
-#endif
+    //! This method returns the full name of an (optional) log configuration 
+    //! file, i.e. a xml file, which contains the module names, log levels
+    //! and destination, where the log stream gets logged to. 
+    //!  If no filename was provided an empty string is returned.
+    fs::path GetLogConfFile() const;
+    std::string GetLogConfFileStr() const;
 
     /** Return the optional ersatz  material density file
      * @return "" if nothing given. */
@@ -149,13 +146,6 @@ namespace CoupledField
     //! to get a stack trace.
     bool GetForceSegFault() const;
     //@}
-
-    /** Prints large lists to info.xml. These are mostly for debug purpose
-     * but shall work with release code. The lists are:
-     * * equation lists
-     * * local <-> global mapping
-     * * constraints */
-    bool DoListMapping() const;
 
     /** Also more detailed info.xml output as with DoListMapping */
     bool DoDetailedInfo() const;

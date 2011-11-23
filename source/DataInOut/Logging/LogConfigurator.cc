@@ -1,12 +1,14 @@
 #include "LogConfigurator.hh"
+#include "General/Exception.hh"
+#include "DataInOut/ProgramOptions.hh"
+
+#include "DataInOut/ParamHandling/Xerces.hh"
 
 namespace CoupledField {
 
   
   LogConfigurator::LogConfigurator() {
     
-    RegisterFunctions();
-
     // Set some default output modifiers for the log streams
     add_modifier("*", prepend_prefix);
     //add_modifier("*", prepend_time("$hh:$mm:$ss "), "", INT_MAX );
@@ -15,70 +17,89 @@ namespace CoupledField {
   }
 
 
-  void LogConfigurator::AddAppender() {
-    SCRIPT_GET( std::string, log ); 
-    SCRIPT_GET( std::string, appender ); 
-    SCRIPT_GET( std::string, detail ); 
-    
+  void LogConfigurator::AddAppender(const std::string& logStream,
+                                    const std::string& appender,
+                                    const std::string& detail ) {
     if( appender == "cout" ) {
-      add_appender( log, write_to_cout);
+      add_appender( logStream, write_to_cout);
     } else if ( appender == "file" ) {
-      add_appender( log, write_to_file(detail));
+      add_appender( logStream, write_to_file(detail));
     } else {
-      std::cerr << "Not working"  << std::endl;
+      EXCEPTION("LogConfigurator knows only appender of type 'cout' "
+                << "and 'file', but not '" << appender << "'");
     }
     flush_log_cache();
   }
 
-  void LogConfigurator::SetLogLevel() {
-    SCRIPT_GET( std::string, log ); 
-    SCRIPT_GET( std::string, level ); 
-
+  void LogConfigurator::SetLogLevel( const std::string& logStream,
+                                     const std::string& level ) {
     if( level == "off" ) {
-      manipulate_logs(log).disable();
+      manipulate_logs(logStream).disable();
     } else if( level == "dbg3" ) {
-      manipulate_logs(log).enable(::boost::logging::level::dbg3);
+      manipulate_logs(logStream).enable(::boost::logging::level::dbg3);
     } else if( level == "dbg2" ) {
-      manipulate_logs(log).enable(::boost::logging::level::dbg2);
+      manipulate_logs(logStream).enable(::boost::logging::level::dbg2);
     } else if( level == "dbg" ) {
-      manipulate_logs(log).enable(::boost::logging::level::dbg);
+      manipulate_logs(logStream).enable(::boost::logging::level::dbg);
     } else if( level == "trace2" ) {
-      manipulate_logs(log).enable(::boost::logging::level::trace2);
+      manipulate_logs(logStream).enable(::boost::logging::level::trace2);
     } else if( level == "trace" ) {
-      manipulate_logs(log).enable(::boost::logging::level::trace);
+      manipulate_logs(logStream).enable(::boost::logging::level::trace);
     } else if( level == "all" ) {
-      manipulate_logs(log).enable(::boost::logging::level::enable_all);
+      manipulate_logs(logStream).enable(::boost::logging::level::enable_all);
+    } else {
+      EXCEPTION("Log level '" << level << "' not defined!");
     }
     flush_log_cache();
   }
 
-  void LogConfigurator::RegisterFunctions() {
-
-    typedef FctPointer<LogConfigurator> FCPT;
-    StdVector<ArgList> a;
-    StdVector<FCPT*> pt;
-    StdVector<std::string> name;
-
-    // --- AddAppender ---
-    a.Push_back();
-    a.Last().RegisterParam("log", ArgList::STRING );
-    a.Last().RegisterParam("appender", ArgList::STRING );
-    a.Last().RegisterParam("detail", ArgList::STRING );
-    pt.Push_back( new FCPT( this, &LogConfigurator::AddAppender) );
-    name.Push_back( "addAppender" );
-
-    // --- SetLogLevel ---
-    a.Push_back();
-    a.Last().RegisterParam("log", ArgList::STRING );
-    a.Last().RegisterParam("level", ArgList::STRING );
-    pt.Push_back( new FCPT( this, &LogConfigurator::SetLogLevel) );
-    name.Push_back( "setLogLevel" );
-
-    // Now register all functions with scripting 
-    for (unsigned int i = 0; i < pt.GetSize(); i++ ) {
-      Script_RegisterFct(name[i], pt[i], a[i] );
+  void LogConfigurator::ParseLogConfFile() {
+   
+    // Query filename from option parser
+    std::string confFile = progOpts->GetLogConfFileStr();
+    if( confFile == "") return;
+    
+    // If file is defined, create new Xerces instance and parse file
+    Xerces xml(confFile);
+    
+    // Obtain ParamNode
+    PtrParamNode root = xml.CreateParamNodeInstance();
+    
+    // Get list of classes
+    
+    if( root->GetName() != "logging" ) {
+      EXCEPTION("Root-Node for logging definition must have name <logging>");
     }
+    
+    ParamNodeList classes  = root->GetChildren();
+    
+    // Loop over all classes
+    for( UInt iClass = 0; iClass < classes.GetSize(); ++iClass ) {
 
+      PtrParamNode classNode = classes[iClass];
+      std::string className = classNode->Get("name")->As<std::string>();
+      std::string level = classNode->Get("level")->As<std::string>();
+      
+      // Call for each class the SetLogLevel-method
+      this->SetLogLevel(className, level );
+
+      // Loop over all children (= appender definitions)
+      ParamNodeList appenderNodes = classNode->GetChildren();
+
+      // Call AddAppender for every childnode
+      for( UInt iApp = 0; iApp < appenderNodes.GetSize(); ++iApp ) {
+        PtrParamNode appNode = appenderNodes[iApp];
+        
+        // distinguish type of appender
+        if( appNode->GetName() == "cout") {
+          this->AddAppender(className, "cout", "");
+        }
+        if( appNode->GetName() == "file") {
+          std::string fileName = appNode->Get("name")->As<std::string>();
+          this->AddAppender(className, "file", fileName);
+        }
+      }
+    }
   }
 
 

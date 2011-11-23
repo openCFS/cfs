@@ -12,7 +12,6 @@
 #include "Domain/BCs.hh"
 #include "Utils/mathParser/mathParser.hh"
 #include "PDE/BasePDE.hh"
-#include "DataInOut/Scripting/Scriptable.hh"
 
 namespace CoupledField {
 
@@ -22,9 +21,10 @@ namespace CoupledField {
   class Timer;
   class StdPDE;
   class AdjointParameters;
+  class AlgebraicSys;
 
   //! Class for assembling element/entities matrices and RHS vectors
-  class Assemble : public Scriptable {
+  class Assemble {
 
   public:
 
@@ -64,8 +64,6 @@ namespace CoupledField {
     //! Trigger assembly of the matrices
     void AssembleMatrices();
 
-    void CalcMinMaxStrain();
-    
     //! Trigger assembly of all linear right hand side terms
     void AssembleLinRHS(AdjointParameters* adjointParams = NULL);
 
@@ -173,26 +171,6 @@ namespace CoupledField {
     //! non-linearities or updated lagrangian formulation
     //! if setall is set, set all to be reassembled, called from SetAllReassemble (on Init or from Optimization)
     void CheckNonLinearities(bool setall = false);
-
-    // ======================================================
-    // SCRIPTING SECTION
-    // ======================================================
-    //@{
-    //! \name Scripting Methods
-
-    //! Register scriptable functions
-    virtual void RegisterFunctions();
-    
-    //! Map with element numbers for which element matrix should be written
-    std::set<UInt> printElemNums_;
-    
-    //! Provide list of elements for which matrix / vector is printed
-    void Wrap_AddPrintElemNum( );
-    
-    //! Set all element matrices / vectors to be printed
-    void Wrap_PrintAllElems();
-    //@}
-       
 
     // ======================================================
     //  DATA MEMBERS

@@ -1,5 +1,0 @@
-// Define used to check if TCL scripting is used
-
-#cmakedefine USE_SCRIPTING_TCL
-
-#define CFS_TCL_VERSION "@CFS_TCL_VERSION@"

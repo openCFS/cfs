@@ -6,7 +6,6 @@
 #include <list>
 #include <map>
 
-#include "DataInOut/Scripting/Scriptable.hh"
 #include "Utils/mathParser/mathParser.hh"
 #include "Domain/Results/ResultInfo.hh"
 #include "Domain/BCs.hh"
@@ -34,7 +33,7 @@ namespace CoupledField
   
   //! Base class for all kinds of single field problems.
 
-  class SinglePDE : public StdPDE, public Scriptable 
+  class SinglePDE : public StdPDE 
   {
   
   public:
@@ -397,18 +396,6 @@ namespace CoupledField
      
     //@}
 
-    // ======================================================
-    // SCRIPTING SECTION
-    // ======================================================
-    //@{
-    //! \name Scripting Methods
-    
-    //! Register scriptable functions
-    virtual void RegisterFunctions();
-
-    //! Wrapper for setting an inhomogeneous boundary condition
-    void Wrap_IDBC();
-
     //! check if subdomain is a coupled piezo subdomain with hystersis
     bool IsRegionPiezoHyst( std::string regionName );
     
@@ -420,7 +407,6 @@ namespace CoupledField
     
     //! check if PDE is a coupled piezo subdomain with  micro-piezo-model
     bool BelongsPDE2MicroPiezo();    
-    //@}
     
     // ======================================================
     // DATA SECTION

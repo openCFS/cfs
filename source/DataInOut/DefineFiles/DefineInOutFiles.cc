@@ -17,9 +17,6 @@
 #include <def_use_gmsh.hh>
 #include <def_use_unv.hh>
 #include <def_use_ansysrst.hh>
-#include <def_use_scripting.hh>
-#include <def_use_tcl.hh>
-#include <def_use_python.hh>
 
 #include "DefineInOutFiles.hh"
 
@@ -71,18 +68,6 @@
 
 #include "DataInOut/ProgramOptions.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
-
-#ifdef USE_SCRIPTING
-#include "DataInOut/Scripting/CFSMessenger.hh"
-#endif
-
-#ifdef USE_SCRIPTING_TCL
-#include "DataInOut/Scripting/tcl/tcl-messenger.hh"
-#endif
-
-#ifdef USE_SCRIPTING_PYTHON
-#include "DataInOut/Scripting/python/py-messenger.hh"
-#endif
 
 namespace CoupledField
 {
@@ -509,42 +494,6 @@ void DefineInOutFiles::OpenFile(AuxFileType fileType)
     break;
 
   }
-}
-
-CFSMessenger* DefineInOutFiles::CreateScriptMessenger(
-    const std::string& fileName)
-{
-
-  CFSMessenger * messenger = NULL;
-
-#ifdef USE_SCRIPTING
-  // check filename, if it is not empty
-  if (fileName == "")
-  {
-    messenger = new CFSMessenger();
-  }
-
-#ifdef USE_SCRIPTING_TCL
-  else if (fileName.find(".tcl") != std::string::npos)
-  {
-    messenger = new TCL_CFSMessenger();
-  }
-#endif
-#ifdef USE_SCRIPTING_PYTHON
-  else if( fileName.find( ".py") != std::string::npos )
-  {
-    messenger = new PY_CFSMessenger();
-  }
-#endif
-  else
-  {
-    EXCEPTION( "Could not determine script language of file '"
-        << fileName << "'!" );
-  }
-#endif
-
-  return messenger;
-
 }
 
 } // end of namespace

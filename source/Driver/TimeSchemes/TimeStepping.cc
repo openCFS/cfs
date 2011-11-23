@@ -60,9 +60,6 @@ namespace CoupledField {
           case ACOU_POTENTIAL:
             retSolType = ACOU_POTENTIAL_DERIV_1;
             break;
-          case BUBBLE_RADIUS:
-            retSolType = BUBBLE_RADIUS_DERIV_1;
-            break;
           case SMOOTH_DISPLACEMENT:
             retSolType = SMOOTH_VELOCITY;
             break;
@@ -112,8 +109,6 @@ namespace CoupledField {
         return true;
       case SMOOTH_VELOCITY:
         return true;
-      case BUBBLE_RADIUS_DERIV_1:
-        return true;
       case ACOU_PRESSURE_DERIV_1:
         return true;
       case ACOU_PRESSURE_DERIV_2:
@@ -136,8 +131,6 @@ namespace CoupledField {
       case MECH_DISPLACEMENT:
         return false;
       case SMOOTH_DISPLACEMENT:
-        return false;
-      case BUBBLE_RADIUS:
         return false;
       case ACOU_PRESSURE:
         return false;

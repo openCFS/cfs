@@ -19,12 +19,9 @@ namespace OutInfo{
 namespace CoupledField {
 
 
+  // Define global objects 
   LogConfigurator * logConf = new LogConfigurator();
 
-
-#ifdef USE_SCRIPTING
-  CFSMessenger * messenger = NULL;
-#endif
 
   Domain * domain = NULL;
   // Initialisation of some global pointers
@@ -104,37 +101,6 @@ namespace CoupledField {
       break;
     default:  
       EXCEPTION("No conversion found for your 'CouplingInputType'" );
-    }
-  }
-
-  // BubbleDynType
-  template<>
-  void String2Enum<BubbleDynType>( const std::string &in,
-                                   BubbleDynType &out ) {
-
-    if ( in == "KellerMiksis" )
-      out = KELLERMIKSIS;
-    else if ( in == "Gilmore" )
-      out = GILMORE;
-    else {
-      EXCEPTION( "'" << in << "' cannot be converted into item of "
-                 << "'BubbleDynType'!" );
-    }
-  }
-
-  template<>
-  void Enum2String<BubbleDynType>( const BubbleDynType &in,
-                                   std::string &out ) {
-    switch(in) {
-
-    case KELLERMIKSIS:
-      out = "KellerMiksis";
-      break;
-    case GILMORE:
-      out = "Gilmore";
-      break;
-    default:
-      EXCEPTION( "No conversion found for your 'BubbleDynType'" );
     }
   }
 
@@ -1199,7 +1165,6 @@ namespace CoupledField {
     SolutionTypeEnum.Add(ACOU_DIV_LH_TENSOR, "acouDivLighthillTensor");
     SolutionTypeEnum.Add(ACOU_RHSVAL, "acouRHSval");
     SolutionTypeEnum.Add(ACOUSURF_RHSVAL, "acouSurfRHSval");
-    SolutionTypeEnum.Add(ACOU_BUBBLE_RHS_VAL, "acouBubbleRhsVal");
     SolutionTypeEnum.Add(ACOU_ELEM_SPEED_OF_SOUND,"acouSpeedOfSound");
     SolutionTypeEnum.Add(ACOU_PRESSUREXYZ, "acouPressureXYZ");
     SolutionTypeEnum.Add(ACOU_POWERDENSITY, "acouPowerDensity");
@@ -1228,9 +1193,8 @@ namespace CoupledField {
     SolutionTypeEnum.Add(HEAT_TEMPERATURE, "heatTemperature");
     SolutionTypeEnum.Add(HEAT_RHS_LOAD, "heatRhsLoad");
     SolutionTypeEnum.Add(HEAT_SOURCE_DENSITY, "heatSourceDensity");
-    //mpcci
-    SolutionTypeEnum.Add(FLUID_FORCE, "fluidForce");
     //fluidMech
+    SolutionTypeEnum.Add(FLUID_FORCE, "fluidForce");
     SolutionTypeEnum.Add(FLUIDMECH_VELOCITY, "fluidMechVelocity");
     SolutionTypeEnum.Add(FLUIDMECH_PRESSURE, "fluidMechPressure");
     SolutionTypeEnum.Add(FLUIDMECH_VELOCITY_DERIV_1, "fluidMechVelocity_deriv1");
@@ -1241,9 +1205,6 @@ namespace CoupledField {
     SolutionTypeEnum.Add(FLUIDMECH_DENSITY, "fluidMechDensity");
     SolutionTypeEnum.Add(FLUIDMECH_TKE, "fluidMechTKE");
     SolutionTypeEnum.Add(LAMBDA_K, "lambda_k");
-    // bubble
-    SolutionTypeEnum.Add(BUBBLE_RADIUS, "bubbleRadius");
-    SolutionTypeEnum.Add(BUBBLE_RADIUS_DERIV_1, "bubbleRadiusD1");
     // optimization
     SolutionTypeEnum.Add(HOMOGENIZED_TENSOR, "homogenizedTensor");
     // the actual result type is given in result descriptions

@@ -2,9 +2,6 @@ IF(USE_XERCES)
   INCLUDE_DIRECTORIES(${XERCES_INCLUDE_DIR})
 ENDIF(USE_XERCES)
 
-IF(USE_MPCCI)
-  INCLUDE_DIRECTORIES(${MPCCI_INCLUDE_DIR})
-ENDIF(USE_MPCCI)
 
 IF(USE_IPOPT)
   INCLUDE_DIRECTORIES(${IPOPT_INCLUDE_DIR})
@@ -25,10 +22,6 @@ ADD_EXECUTABLE(cfsbin ${CFS_SRCS})
 # are some nasty circular dependencies which should be resolved in
 # the future (see e.g. pde <-> domain, domain <-> gridcfs !!!)
   
-#IF(USE_MPCCI)
-#  SET(TARGET_LL ${TARGET_LL} mpccicpl)
-#ENDIF(USE_MPCCI)
-
 SET(TARGET_LL
   cfsgeneral
   utils

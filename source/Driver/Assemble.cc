@@ -15,7 +15,6 @@
 #include "DataInOut/ProgramOptions.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
-#include "DataInOut/Scripting/CFSMessenger.hh"
 #include "DataInOut/ResultCache.hh"
 
 #include "PDE/SinglePDE.hh"
@@ -59,9 +58,6 @@ namespace CoupledField
 
     // the timer object is used in every AssembleMatrices() call
     info->Get("analysis")->Get(ParamNode::SUMMARY)->Get("assemble/timer")->SetValue(timer_);
-
-    // Initialize scripting interface
-    RegisterFunctions();
   }
 
   Assemble::~Assemble() {
@@ -498,25 +494,6 @@ namespace CoupledField
                actContext.MapEqns( it1, it2, eqnVec1, eqnVec2, fctId1, fctId2 );
 
 
-   #ifdef USE_SCRIPTING
-               // Check, if current list is element list and if element matrix
-               // should be printed
-               if( actContext.GetFirstEntities()->GetType() == EntityList::ELEM_LIST ) {
-                 if( printElemNums_.count( it1.GetElem()->elemNum ) ) {
-                   StdVector<std::string> args;
-                   args.Push_back( form->GetName() );
-                   args.Push_back( it1.GetIdString() );
-                   args.Push_back( it2.GetIdString() );
-                   if( form->IsComplex() ) {
-                     args.Push_back( elemMatrixC.ToString(1) );
-                   } else {
-                     args.Push_back( elemMatrix.ToString(1) );
-                   }
-                   messenger->TriggerEvent( CFSMessenger::CFS_AssembleMat, args );
-                 }
-               }
-   #endif
-
    //            assert((form->IsComplex() && 
    //                    eqnVec1.GetSize() == elemMatrixC.GetNumRows() && 
    //                    eqnVec2.GetSize() == elemMatrixC.GetNumCols()) || !form->IsComplex());
@@ -541,10 +518,6 @@ namespace CoupledField
                if (secDestMat != NOTYPE ) { // Check for secondary matrix type
                  EXCEPTION("We do not want a second matrix factor");
                  Double dampFactor = 1.0;
-                 //            if ( actContext.getPtDamplayer() != NULL ) {
-                 //              actContext.getPtDamplayer()->CalcDampFactor(dampFactor, it1);
-                 //              // std::cout << "   dampFactor: " <<  dampFactor << std::endl;
-                 //            }
 
                  // damping with "exotic" complex material
                  if ( form->IsComplex() ) {
@@ -714,25 +687,6 @@ namespace CoupledField
             // Map equation numbers
             actContext.MapEqns( it1, it2, eqnVec1, eqnVec2, fctId1, fctId2 );
        
-
-#ifdef USE_SCRIPTING
-            // Check, if current list is element list and if element matrix
-            // should be printed
-            if( actContext.GetFirstEntities()->GetType() == EntityList::ELEM_LIST ) {
-              if( printElemNums_.count( it1.GetElem()->elemNum ) ) {
-                StdVector<std::string> args;
-                args.Push_back( form->GetName() );
-                args.Push_back( it1.GetIdString() );
-                args.Push_back( it2.GetIdString() );
-                if( form->IsComplex() ) {
-                  args.Push_back( elemMatrixC.ToString(1) );
-                } else {
-                  args.Push_back( elemMatrix.ToString(1) );
-                }
-                messenger->TriggerEvent( CFSMessenger::CFS_AssembleMat, args );
-              }
-            }
-#endif
         } // loop over bilinearforms    // increment iterators
 //            assert((form->IsComplex() && 
 //                    eqnVec1.GetSize() == elemMatrixC.GetNumRows() && 
@@ -765,10 +719,6 @@ namespace CoupledField
 //            if (secDestMat != NOTYPE ) { // Check for secondary matrix type
 //              EXCEPTION("We do not want a second matrix factor");
 //              Double dampFactor = 1.0;
-//              //            if ( actContext.getPtDamplayer() != NULL ) {
-//              //              actContext.getPtDamplayer()->CalcDampFactor(dampFactor, it1);
-//              //              // std::cout << "   dampFactor: " <<  dampFactor << std::endl;
-//              //            }
 //
 //              // damping with "exotic" complex material
 //              if ( form->IsComplex() ) {
@@ -810,39 +760,6 @@ namespace CoupledField
     matReassemble_.clear();
 
     timer_->Stop();
-  }
-
-  void Assemble::CalcMinMaxStrain() {
-    EXCEPTION("Not implemented");
-//    // iterate over all descriptors
-//    StdVector<BiLinFormContext*>::iterator formsIt;
-//    for ( formsIt = biLinForms_->Begin(); 
-//          formsIt != biLinForms_->End(); formsIt++ ) {
-//      
-//      // get integrator
-//      BiLinFormContext & actContext = **formsIt;
-//      
-//      BaseForm * form = actContext.GetIntegrator();
-//      
-//      form->ResetMinMaxStrain();
-//        
-//      // get entity iterators
-//      EntityIterator  it1 = actContext.GetFirstEntities()->GetIterator();
-//      EntityIterator  it2 = actContext.GetSecondEntities()->GetIterator();
-//      UInt size = actContext.GetFirstEntities()->GetSize();
-//      it1.Begin();
-//      it2.Begin();
-//        
-//      // iterate over all entities
-//      for ( UInt i=0; i<size; i++ ) {
-//          
-//        form->CalcMinMaxStrain(it1, it2 );
-//        
-//        // increment iterators
-//        it1++;
-//        it2++;
-//      }
-//    }
   }
 
   
@@ -901,36 +818,6 @@ namespace CoupledField
             // Map equation numbers
             actContext.MapEqns( entIt, eqnVec, fctId );
 
-#ifdef USE_SCRIPTING
-          // Check, if current list is element list and if element matrix
-          // should be printed
-          if( actContext.GetEntities()->GetType() == EntityList::ELEM_LIST ) {
-            if( printElemNums_.count( entIt.GetElem()->elemNum ) ) {
-              // Trigger event for scripting
-              StdVector<std::string> args;
-              args.Push_back( form->GetName() );
-              args.Push_back( entIt.GetIdString() );
-              args.Push_back( elemVec.ToString(' ') );
-              messenger->TriggerEvent( CFSMessenger::CFS_AssembleRhs, args );
-            }
-          }
-#endif
-
-#ifdef USE_SCRIPTING
-          // Check, if current list is element list and if element matrix
-          // should be printed
-          if( actContext.GetEntities()->GetType() == EntityList::ELEM_LIST ) {
-            if( printElemNums_.count( entIt.GetElem()->elemNum ) ) {
-              // Trigger event for scripting
-              StdVector<std::string> args;
-              args.Push_back( form->GetName() );
-              args.Push_back( entIt.GetIdString() );
-              args.Push_back( elemVec.ToString(' ') );
-              messenger->TriggerEvent( CFSMessenger::CFS_AssembleRhs, args );
-            }
-          }
-#endif
-
 
             assert(!elemVec.ContainsNaN() && !elemVec.ContainsInf());
 
@@ -953,34 +840,6 @@ namespace CoupledField
 
             // Map equation numbers
             actContext.MapEqns( entIt, eqnVec, fctId );
-#ifdef USE_SCRIPTING
-          // Check, if current list is element list and if element matrix
-          // should be printed
-          if( actContext.GetEntities()->GetType() == EntityList::ELEM_LIST ) {
-            if( printElemNums_.count( entIt.GetElem()->elemNum ) ) {
-              // Trigger event for scripting
-              StdVector<std::string> args;
-              args.Push_back( form->GetName() );
-              args.Push_back( entIt.GetIdString() );
-              args.Push_back( elemVec.ToString() );
-              messenger->TriggerEvent( CFSMessenger::CFS_AssembleRhs, args );
-            }
-          }
-#endif
-#ifdef USE_SCRIPTING
-          // Check, if current list is element list and if element matrix
-          // should be printed
-          if( actContext.GetEntities()->GetType() == EntityList::ELEM_LIST ) {
-            if( printElemNums_.count( entIt.GetElem()->elemNum ) ) {
-              // Trigger event for scripting
-              StdVector<std::string> args;
-              args.Push_back( form->GetName() );
-              args.Push_back( entIt.GetIdString() );
-              args.Push_back( elemVec.ToString() );
-              messenger->TriggerEvent( CFSMessenger::CFS_AssembleRhs, args );
-            }
-          }
-#endif
             
             assert(!elemVec.ContainsNaN() && !elemVec.ContainsInf());
 
@@ -1409,41 +1268,4 @@ namespace CoupledField
   }
 
 
-  void Assemble::Wrap_AddPrintElemNum( ) {
-    SCRIPT_GET( StdVector<UInt>, elemNums );
-    printElemNums_.insert( elemNums.Begin(), elemNums.End() );
-    StdVector<UInt>::iterator it = elemNums.Begin();
-
-  }
-
-  void Assemble::Wrap_PrintAllElems() {
-    UInt numElems = domain->GetGrid()->GetNumElems();
-    for( UInt i = 0; i < numElems; i++ ) {
-      printElemNums_.insert( i+ 1);
-    }
-  } 
-
-  void Assemble::RegisterFunctions() {
-    typedef FctPointer<Assemble> FCPT;
-    StdVector<ArgList> a;
-    StdVector<FCPT*> pt;
-    StdVector<std::string> name;
-
-    // --- AddPrintElemNum ---
-    a.Push_back();
-    a.Last().RegisterParam("elemNums", ArgList::STDVEC_UINT );
-    pt.Push_back( new FCPT( this, &Assemble::Wrap_AddPrintElemNum) );
-    name.Push_back( "printElemMatVec" );
-    
-    // --- PrintAllElemNum ---
-    a.Push_back();
-    pt.Push_back( new FCPT( this, &Assemble::Wrap_PrintAllElems) );
-    name.Push_back( "printAllElemMatVec" );
-    
-
-    // Now register all functions with scripting
-    for (UInt i = 0; i < pt.GetSize(); i++ ) {
-      Script_RegisterFct(name[i], pt[i], a[i] );
-    }
-  }
 }

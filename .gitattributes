@@ -25,7 +25,6 @@ cmake_modules/FindIntelMKL.cmake -text
 cmake_modules/FindKNITRO.cmake -text
 cmake_modules/FindLAPACK.cmake -text
 cmake_modules/FindMetis.cmake -text
-cmake_modules/FindMpCCI.cmake -text
 cmake_modules/FindMuParser.cmake -text
 cmake_modules/FindParaView.cmake -text
 cmake_modules/FindPardiso.cmake -text
@@ -34,7 +33,6 @@ cmake_modules/FindPythonForCFS.cmake -text
 cmake_modules/FindSCPIP.cmake -text
 cmake_modules/FindSnOpt.cmake -text
 cmake_modules/FindSuiteSparse.cmake -text
-cmake_modules/FindTCLForCFS.cmake -text
 cmake_modules/FindVTK.cmake -text
 cmake_modules/FindXerces.cmake -text
 cmake_modules/FindZlib.cmake -text
@@ -98,13 +96,9 @@ include/def_use_knitro.hh.in -text
 include/def_use_lapack.hh.in -text
 include/def_use_mesh.hh.in -text
 include/def_use_metis.hh.in -text
-include/def_use_mpcci.hh.in -text
 include/def_use_pardiso.hh.in -text
-include/def_use_python.hh.in -text
 include/def_use_scpip.hh.in -text
-include/def_use_scripting.hh.in -text
 include/def_use_snopt.hh.in -text
-include/def_use_tcl.hh.in -text
 include/def_use_unv.hh.in -text
 include/def_use_xerces.hh.in -text
 include/def_user_scpip.hh.in -text
@@ -663,8 +657,7 @@ share/scripts/hdf5_concat2.sh.in -text
 share/scripts/hdf5_import_dataset.sh.in svneol=native#text/plain
 share/scripts/hdf5_import_mesh.sh.in svneol=native#text/plain
 share/scripts/identify_compiler.pl svneol=native#text/plain
-share/scripts/log.py -text
-share/scripts/log.tcl svneol=native#text/x-tcl
+share/scripts/log.xml -text
 share/scripts/nas-tool-gid-to-nas.py -text
 share/scripts/nas-tool-voidmesh.py -text
 share/scripts/optimization_tools.py -text
@@ -688,11 +681,6 @@ share/xml/CFS-Material/Schemas/CFS_MATpyroelectric.xsd -text
 share/xml/CFS-Material/Schemas/CFS_MATthermoelastic.xsd -text
 share/xml/CFS-Material/Schemas/CFS_Misc.xsd -text svneol=unset#text/xml
 share/xml/CFS-Simulation/CFS.xsd svneol=native#text/xml
-share/xml/CFS-Simulation/Examples/SolverSpec.xml svneol=native#text/xml
-share/xml/CFS-Simulation/Examples/bubble.xml svneol=native#text/xml
-share/xml/CFS-Simulation/Examples/coordSys.xml svneol=native#text/xml
-share/xml/CFS-Simulation/Examples/plate1.xml svneol=native#text/xml
-share/xml/CFS-Simulation/Examples/thermo-piezoelectric_static.xml -text
 share/xml/CFS-Simulation/Schemas/CFS_Analysis.xsd svneol=native#text/xml
 share/xml/CFS-Simulation/Schemas/CFS_Coupling.xsd svneol=native#text/xml
 share/xml/CFS-Simulation/Schemas/CFS_DirectCoupling.xsd svneol=native#text/xml
@@ -701,12 +689,10 @@ share/xml/CFS-Simulation/Schemas/CFS_Domain.xsd svneol=native#text/xml
 share/xml/CFS-Simulation/Schemas/CFS_ErsatzMaterial.xsd -text
 share/xml/CFS-Simulation/Schemas/CFS_FePolynomial.xsd -text
 share/xml/CFS-Simulation/Schemas/CFS_FileFormats.xsd -text svneol=unset#text/xml
-share/xml/CFS-Simulation/Schemas/CFS_IntegRules.xsd svneol=native#text/xml
 share/xml/CFS-Simulation/Schemas/CFS_IntegrationScheme.xsd -text
 share/xml/CFS-Simulation/Schemas/CFS_LinearSystem.xsd svneol=native#text/xml
 share/xml/CFS-Simulation/Schemas/CFS_MeshDeformations.xsd -text
 share/xml/CFS-Simulation/Schemas/CFS_Misc.xsd svneol=native#text/xml
-share/xml/CFS-Simulation/Schemas/CFS_MpCCI.xsd svneol=native#text/xml
 share/xml/CFS-Simulation/Schemas/CFS_Optimization.xsd -text
 share/xml/CFS-Simulation/Schemas/CFS_PDEacoustic.xsd svneol=native#text/xml
 share/xml/CFS-Simulation/Schemas/CFS_PDEacousticMixed.xsd -text
@@ -718,15 +704,12 @@ share/xml/CFS-Simulation/Schemas/CFS_PDEmagedge.xsd svneol=native#text/xml
 share/xml/CFS-Simulation/Schemas/CFS_PDEmagnetic.xsd svneol=native#text/xml
 share/xml/CFS-Simulation/Schemas/CFS_PDEmagneticScalar.xsd svneol=native#text/xml
 share/xml/CFS-Simulation/Schemas/CFS_PDEmechanic.xsd svneol=native#text/xml
-share/xml/CFS-Simulation/Schemas/CFS_PDEmpcci.xsd svneol=native#text/xml
 share/xml/CFS-Simulation/Schemas/CFS_PDEsmooth.xsd svneol=native#text/xml
 share/xml/CFS-Simulation/Schemas/CFS_PDEstokesFluid.xsd svneol=native#text/xml
-share/xml/CFS-Simulation/Schemas/CFS_ParamIdent.xsd svneol=native#text/xml
 share/xml/CFS-Simulation/Schemas/CFS_PostProc.xsd -text svneol=unset#text/xml
 share/xml/CFS-Simulation/Schemas/CFS_Preconds.xsd svneol=native#text/xml
 share/xml/CFS-Simulation/Schemas/CFS_Solvers.xsd svneol=native#text/xml
 share/xml/CMakeLists.txt svneol=native#text/plain
-share/xml/Tools/SchemaViewer2.zip -text svneol=unset#application/zip
 share/xsl/CMakeLists.txt svneol=native#text/plain
 share/xsl/check_for_docu_tag.xsl -text
 share/xsl/ctest_notes_trafo.xsl -text
@@ -805,17 +788,6 @@ source/DataInOut/ResultCache.cc -text
 source/DataInOut/ResultCache.hh -text
 source/DataInOut/ResultHandler.cc svneol=native#text/x-c%2B%2Bsrc
 source/DataInOut/ResultHandler.hh svneol=native#text/x-c%2B%2Bhdr
-source/DataInOut/Scripting/CFSMessenger.cc svneol=native#text/x-c%2B%2Bsrc
-source/DataInOut/Scripting/CFSMessenger.hh svneol=native#text/x-c%2B%2Bhdr
-source/DataInOut/Scripting/CMakeLists.txt svneol=native#text/plain
-source/DataInOut/Scripting/Scriptable.cc svneol=native#text/x-c%2B%2Bsrc
-source/DataInOut/Scripting/Scriptable.hh svneol=native#text/x-c%2B%2Bhdr
-source/DataInOut/Scripting/python/CMakeLists.txt svneol=native#text/plain
-source/DataInOut/Scripting/python/py-messenger.cc svneol=native#text/x-c%2B%2Bsrc
-source/DataInOut/Scripting/python/py-messenger.hh svneol=native#text/x-c%2B%2Bhdr
-source/DataInOut/Scripting/tcl/CMakeLists.txt svneol=native#text/plain
-source/DataInOut/Scripting/tcl/tcl-messenger.cc svneol=native#text/x-c%2B%2Bsrc
-source/DataInOut/Scripting/tcl/tcl-messenger.hh svneol=native#text/x-c%2B%2Bhdr
 source/DataInOut/SimInOut/AnsysFile/CMakeLists.txt svneol=native#text/plain
 source/DataInOut/SimInOut/AnsysFile/SimInputMESH.cc svneol=native#text/x-c%2B%2Bsrc
 source/DataInOut/SimInOut/AnsysFile/SimInputMESH.hh svneol=native#text/x-c%2B%2Bhdr
@@ -1276,8 +1248,6 @@ source/Utils/AutoDiff.hh svneol=native#text/x-c%2B%2Bhdr
 source/Utils/CMakeLists.txt svneol=native#text/plain
 source/Utils/Coil.cc svneol=native#text/x-c%2B%2Bsrc
 source/Utils/Coil.hh svneol=native#text/x-c%2B%2Bhdr
-source/Utils/DampLayer.cc svneol=native#text/x-c%2B%2Bsrc
-source/Utils/DampLayer.hh svneol=native#text/x-c%2B%2Bhdr
 source/Utils/DynamicLibrary.cc svneol=native#text/plain
 source/Utils/DynamicLibrary.hh svneol=native#text/plain
 source/Utils/DynamicObject.hh svneol=native#text/plain
@@ -1365,8 +1335,6 @@ source/cplreader/FileReaders/GENGRIDS/ReferenceElementGenerator.cc svneol=native
 source/cplreader/FileReaders/GENGRIDS/ReferenceElementGenerator.hh svneol=native#text/plain
 source/cplreader/FileReaders/GENGRIDS/SphericalShellGenerator.cc svneol=native#text/plain
 source/cplreader/FileReaders/GENGRIDS/SphericalShellGenerator.hh svneol=native#text/plain
-source/cplreader/FileReaders/Stanford/filereader_Stanford.cc svneol=native#text/plain
-source/cplreader/FileReaders/Stanford/filereader_Stanford.hh svneol=native#text/plain
 source/cplreader/FileReaders/VTKBased/CMakeLists.txt -text
 source/cplreader/FileReaders/VTKBased/EnSight/CMakeLists.txt -text
 source/cplreader/FileReaders/VTKBased/EnSight/FileReader_EnSight.cc -text
@@ -1383,10 +1351,6 @@ source/cplreader/FileReaders/VTKBased/OPENFOAM/FileReader_OPENFOAM.hh svneol=nat
 source/cplreader/FlowDataTypes.hh svneol=native#text/plain
 source/cplreader/OutputWriter.cc svneol=native#text/plain
 source/cplreader/OutputWriter.hh svneol=native#text/plain
-source/cplreader/OutputWriters/MpCCI/CMakeLists.txt svneol=native#text/plain
-source/cplreader/OutputWriters/MpCCI/OutputWriter_MpCCI.cc svneol=native#text/plain
-source/cplreader/OutputWriters/MpCCI/OutputWriter_MpCCI.hh svneol=native#text/plain
-source/cplreader/OutputWriters/MpCCI/mpcci_defs.hh svneol=native#text/plain
 source/cplreader/OutputWriters/hdf5/CMakeLists.txt svneol=native#text/plain
 source/cplreader/OutputWriters/hdf5/OutputWriter_HDF5.cc svneol=native#text/plain
 source/cplreader/OutputWriters/hdf5/OutputWriter_HDF5.hh svneol=native#text/plain

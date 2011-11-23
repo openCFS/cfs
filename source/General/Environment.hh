@@ -68,11 +68,6 @@ namespace CoupledField {
   //! Global pointer to domain object
   extern Domain *domain;
 
-#ifdef USE_SCRIPTING
-  //! Global pointer to messenger object
-  extern CFSMessenger * messenger;
-#endif
-
 
   //! Damping type
   enum DampingType{NONE=0, RAYLEIGH=1, ABCDAMP=2, THERMOVISCOUS=3,
@@ -116,7 +111,7 @@ namespace CoupledField {
       ACOU_PSEUDO_DENSITY, ACOU_POWERDENSITY, ACOU_POWER, ACOU_INTENSITY, ACOU_ENERGY,
       ACOU_POTENTIAL_DERIV_1, ACOU_POTENTIAL_DERIV_2, ACOU_RHS_LOAD, ACOU_RHS_LOAD_DENSITY,
       ACOU_RHSVAL, ACOUSURF_RHSVAL,
-      ACOU_BUBBLE_RHS_VAL, ACOU_SURFINTENSITY, ACOU_DIV_LH_TENSOR,
+      ACOU_SURFINTENSITY, ACOU_DIV_LH_TENSOR,
       ACOU_PMLAUXVEC, ACOU_PMLAUXSCALAR,
       ACOU_ELEM_SPEED_OF_SOUND,
 
@@ -128,7 +123,7 @@ namespace CoupledField {
 
       // === Heat results ===
       HEAT_TEMPERATURE, HEAT_RHS_LOAD, HEAT_SOURCE_DENSITY,
-      MPCCI, FLUID_FORCE,
+      FLUID_FORCE,
       ACOU_PRESSUREXYZ,
       LAMBDA_K, FLUIDMECH_VELOCITY, FLUIDMECH_PRESSURE,
       FLUIDMECH_VELOCITY_DERIV_1, FLUIDMECH_PRESSURE_DERIV_1,
@@ -136,7 +131,6 @@ namespace CoupledField {
       FLUIDMECH_DENSITY, FLUIDMECH_FORCE, FLUIDMECH_TKE, 
       FLUIDMECH_STRESS, FLUIDMECH_STRAINRATE, FLUIDMECH_ENERGY, FLUIDMECH_STABILPARAM,
       HOMOGENIZED_TENSOR = 200,
-      BUBBLE_RADIUS, BUBBLE_RADIUS_DERIV_1, BUBBLE_VOLUME_FRAC,
       OPT_RESULT_1, OPT_RESULT_2, OPT_RESULT_3,
       OPT_RESULT_4, OPT_RESULT_5, OPT_RESULT_6,
       OPT_RESULT_7, OPT_RESULT_8, OPT_RESULT_9,
@@ -273,15 +267,6 @@ namespace CoupledField {
   //--------------------- Stuff for handling different IO files -------------
 
   typedef enum { OLAS_FILE} AuxFileType;
-
-
-  //------------------------ Stuff for bubble simulation --------------------
-
-  typedef enum {NOBUBBLETYPE, KELLERMIKSIS, GILMORE} BubbleDynType;
-
-  extern BubbleDynType bubbleDyn;
-
-
 
 
   //------------------------ Files for debug and information ---------

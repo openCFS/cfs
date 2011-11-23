@@ -48,9 +48,6 @@ namespace CoupledField
     //! create pointer to Materialfile Handler
     MaterialHandler* CreateMaterialHandler();
 
-    //! create instance of script handling class
-    CFSMessenger* CreateScriptMessenger( const std::string& fileName = "" );
-
   private:
 
     //! pointer to a class for reading input data

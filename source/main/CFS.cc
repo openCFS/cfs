@@ -7,7 +7,6 @@
 #include <iomanip>
 
 #include <def_use_xerces.hh>
-#include <def_use_mpcci.hh>
 #include <boost/version.hpp>
 
 #include "main/CFS.hh"
@@ -30,22 +29,8 @@
 
 #include <def_use_mesh.hh>
 
-#ifdef MpCCI
-
-#if (MpCCI_RELEASE == 305)
-#include <mpcci.h>
-#else
-#include <cci.h>
-#endif
-
-#endif
-
 #ifdef USE_MESH
 #include "DataInOut/SimInOut/AnsysFile/SimInputMESH.hh"
-#endif
-
-#ifdef USE_SCRIPTING
-#include "DataInOut/Scripting/CFSMessenger.hh"
 #endif
 
 using namespace CoupledField;
@@ -113,6 +98,9 @@ CFS::CFS(int argc, const char **argv) :
   // Log program startup
   progOpts->GetHeaderString( cout );
   
+  // Initialize logging class (read parameters from file if desired)
+  logConf->ParseLogConfFile();
+  
   // Get information about exception handling
   Exception::segfault_ = progOpts->GetForceSegFault();
   
@@ -147,68 +135,15 @@ CFS::CFS(int argc, const char **argv) :
   
   info->ToFile();
 
-  // =========================================================================
-  // GENERATE CENTRAL MESSENGER OBJECT
-  // =========================================================================
-#ifdef USE_SCRIPTING
-
-  // Try to determine (optional) script file name
-  string scriptFileName = progOpts->GetScriptFileStr();
-
-  messenger = fileHandler.CreateScriptMessenger( scriptFileName );
-
-  // Check if script file was provided
-  if ( scriptFileName != "" ) {
-    cout << "++ Script file: '" << scriptFileName << "'" << endl;
-
-    // Create new central messenger object (up to now only tcl available)
-    messenger->ReadScriptFile(scriptFileName );
-
-    // Call initialization procedure
-    StdVector<string> context;
-    context.Push_back( progOpts->GetSimName() );
-    messenger->TriggerEvent(CFSMessenger::CFS_Init, context);
-  }
-
-#endif
-
-  // =========================================================================
-  // SETUP OF MPCCI
-  // =========================================================================
-
-#ifdef MpCCI
-  cout << "++ Setting up MpCCI interface" << endl;
-
-  CCI_Init_with_id_string( &argc, const_cast<char***>(&argv), "simulationcode2" );
-  //  CCI_Init( &argc, const_cast<char***>(&argv));
-#endif
-
 }
 
 
 CFS::~CFS()
 {
-#ifdef MpCCI
-  CCI_Finalize();
-#endif
-
-#ifdef USE_SCRIPTING
-  delete messenger;
-  messenger = NULL;
-#endif
 
   // flush last information.
   info->ToFile(std::string(), true);
   
-  // TEMPORARY: Just for debug purpose
-//  std::cout << "Info tree:\n"
-//            << "=========\n";
-//  info->Dump(0);
-//  std::cout << "\n\n\n";
-//  std::cout << "Param tree:\n"
-//              << "=========\n";
-//  param->Dump(0);
-            
 
   // Delete objects
   //delete param;
@@ -353,12 +288,6 @@ void CFS::SolveProblem()
      << to_simple_string( second_clock::local_time() ) 
      << endl;
 
-#ifdef USE_SCRIPTING
-   // Call intialization procedure
-   StdVector<string> context;
-   context.Push_back( progOpts->GetSimName() );
-   messenger->TriggerEvent(CFSMessenger::CFS_Finish, context);
-#endif
 }
 
 

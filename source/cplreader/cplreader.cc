@@ -154,15 +154,6 @@ namespace CoupledField
                                                settings.GetInt("firststep")));
     }
 
- #if 0
-    if(type == "Stanford")
-    {
-      fileReader.reset(new FileReader_Stanford(settings.GetString("name"),
-                                           settings.GetInt("dim"),
-                                           settings.GetInt("numsteps")));
-    }
- #endif
-
     if(type == "CFX")
     {
 #ifdef CPLREADER_CFX
@@ -271,7 +262,7 @@ int main(int argc, char *argv[])
   std::cout << std::endl
             << "============================================================"
             << "===========" << std::endl;
-  std::cout << " cplreader (CFS++) - A fluid data reader for CFS++/MpCCI coupling" << std::endl << std::endl
+  std::cout << " cplreader (CFS++) - A fluid data reader for CFS++ coupling" << std::endl << std::endl
             << " v. " << CFS_VERSION << " - '" << CFS_NAME << "'"
             << " (rev " << CFS_SUBVERSION_REV << ")" << std::endl
             << " compiled " << __DATE__

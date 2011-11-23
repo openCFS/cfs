@@ -1,7 +1,6 @@
 SET(UTILS_SRCS
   ApproxData.cc
   Coil.cc
-  DampLayer.cc
   Interpolate1D.cc
   LinInterpolate.cc
   mathfunctions.cc

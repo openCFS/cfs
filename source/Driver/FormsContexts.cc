@@ -108,20 +108,6 @@ namespace CoupledField {
     return false;
   }
 
-//  void BiLinFormContext::SetDampLayer(std::string& typeFnc, 
-//				      Vector<Double>& mPoint, 
-//				      Double& dampFactor, 
-//				      Double& dampFactorMax, 
-//				      Double& startRadius, 
-//				      Double& endRadius) {
-//
-//    dampingLayer_ = new DampLayer(typeFnc);
-//    dampingLayer_->SetDampingParams(mPoint, dampFactor, 
-//				    dampFactorMax, startRadius, 
-//				    endRadius);
-//
-//  }
-  
   void BiLinFormContext::SetSecDestMat( FEMatrixType aSecMat,
                                         std::string aSecMatFac ) {
     secDestMat_ = aSecMat;

@@ -1,5 +1,3 @@
-#include <def_use_mpcci.hh>
-
 #include "IterSolveStep.hh"
 
 #include "MatVec/BaseMatrix.hh"
@@ -147,18 +145,6 @@ namespace CoupledField
       UInt counter = 0;
       normsReached = true;
 
-#ifdef MpCCI
-      // whenever iter == 0 the old time step has converged
-      // in CalcInputCoupling of mpcciPDE CFS++ tells with the 
-      // flag converged_==true that a new time step begins
-      //For the first iteration of the first time step this is ignored 
-      //because of the flag flagFirstTime in CalcInputCoupling of mpcciPDE
-      if (iter == 0)
-        rPDE_.PDEs_[0]->converged_ = true; 
-      else
-        rPDE_.PDEs_[0]->converged_ = false; 
-#endif
-
       for (UInt i=0; i<rPDE_.PDEs_.GetSize(); i++) {
         
         
@@ -168,17 +154,6 @@ namespace CoupledField
 
        
           
-#ifdef MpCCI
-        // check for a HALTCFS File
-        // if there exist a file with name HALTCFS in the executing directory
-        // than CFS++ will create a HALT file such that FASTEST also stops
-        std::ifstream readHALTCFS("HALTCFS", std::ios_base::in );
-        if (readHALTCFS && actStep_== numTimeStep_) {
-          readHALTCFS.close();
-          std::ofstream stopFASTEST3D("../HALT", std::ios_base::out );
-        }
-#endif
-
         rPDE_.PDEs_[i]->GetSolveStep()->SetActTime(actTime_);
         rPDE_.PDEs_[i]->GetSolveStep()->SetActStep(actStep_);
         rPDE_.PDEs_[i]->GetSolveStep()->PreStepTrans();
@@ -227,13 +202,6 @@ namespace CoupledField
       rPDE_.PDEs_[i]->GetSolveStep()->PostStepTrans();
 
 
-#ifdef MpCCI
-    if (actStep_== numTimeStep_) {
-      rPDE_.PDEs_[0]->converged_ = true;
-      rPDE_.PDEs_[0]->CalcInputCoupling();
-    }
-#endif
-    
   } 
 
   //----------------------- HARMONIC---------------------------------------

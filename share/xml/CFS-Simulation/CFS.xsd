@@ -22,7 +22,6 @@
   <xsd:include schemaLocation="Schemas/CFS_PDEmagneticScalar.xsd"/>
   <xsd:include schemaLocation="Schemas/CFS_PDEmagedge.xsd"/>
   <xsd:include schemaLocation="Schemas/CFS_PDEsmooth.xsd"/>
-  <xsd:include schemaLocation="Schemas/CFS_PDEmpcci.xsd"/>
   <xsd:include schemaLocation="Schemas/CFS_PDEheatConduction.xsd"/>
   <xsd:include schemaLocation="Schemas/CFS_PDEfluidMech.xsd"/>
 
@@ -42,14 +41,11 @@
 	<xsd:include schemaLocation="Schemas/CFS_Preconds.xsd" />
 	<xsd:include schemaLocation="Schemas/CFS_Analysis.xsd" />
 	<xsd:include schemaLocation="Schemas/CFS_Domain.xsd" />
-    <xsd:include schemaLocation="Schemas/CFS_Documentation.xsd"/>
+        <xsd:include schemaLocation="Schemas/CFS_Documentation.xsd"/>
 	<xsd:include schemaLocation="Schemas/CFS_Misc.xsd" />
 	<xsd:include schemaLocation="Schemas/CFS_FileFormats.xsd" />
-	<!-- xsd:include schemaLocation="Schemas/CFS_IntegRules.xsd" /-->
-	<xsd:include schemaLocation="Schemas/CFS_MpCCI.xsd" />
 	<xsd:include schemaLocation="Schemas/CFS_ErsatzMaterial.xsd" />
 	<xsd:include schemaLocation="Schemas/CFS_Optimization.xsd" />
-	<xsd:include schemaLocation="Schemas/CFS_ParamIdent.xsd" />
 	<xsd:include schemaLocation="Schemas/CFS_FePolynomial.xsd"/>
 	<xsd:include schemaLocation="Schemas/CFS_IntegrationScheme.xsd"/>
 
@@ -181,10 +177,6 @@
 					</xsd:complexType>
 				</xsd:element>
 
-				<!-- Parameters for MpCCI computation (semi-optional) -->
-				<xsd:element ref="MpCCI" minOccurs="0"
-					maxOccurs="unbounded" />
-
 				<!-- Optional paramteter for ersatz Material -->
 				<xsd:element name="loadErsatzMaterial"
 					type="DT_ErsatzMaterial" minOccurs="0" />
@@ -192,10 +184,6 @@
 				<!-- Parameters for specifying an optimization (optional) -->
 				<xsd:element name="optimization" type="DT_Optimization"
 					minOccurs="0" />
-
-				<!-- Parameters for specifying integration rules (optional) -->
-				<!--  xsd:element name="integRules" type="DT_IntegRules"
-					minOccurs="0" /-->
 
 				<!-- Enforce parameter settings by disabling Expert() (optional) -->
 				<xsd:element name="expert" minOccurs="0"

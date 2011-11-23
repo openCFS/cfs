@@ -219,25 +219,11 @@ IF(USE_PYTHON)
 ENDIF(USE_PYTHON)
 
 #-------------------------------------------------------------------------------
-# If USE_TCL option is defined find TCL library
-#-------------------------------------------------------------------------------
-IF(USE_TCL)
-  INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindTCLForCFS.cmake")
-ENDIF(USE_TCL)
-
-#-------------------------------------------------------------------------------
 # If USE_XERCES option is defined find Xerces library
 #-------------------------------------------------------------------------------
 IF(USE_XERCES)
   INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindXerces.cmake")
 ENDIF(USE_XERCES)
-
-#-----------------------------------------------------------------------------
-# Find MpCCI / MPICH
-#-----------------------------------------------------------------------------
-IF(USE_MPCCI)
-  INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindMpCCI.cmake")    
-ENDIF(USE_MPCCI)
 
 #-----------------------------------------------------------------------------
 # Find CGAL

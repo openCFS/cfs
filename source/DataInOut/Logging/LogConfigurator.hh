@@ -1,7 +1,6 @@
 #ifndef CFS_LOG_HH
 #define CFS_LOG_HH
 
-#include "DataInOut/Scripting/Scriptable.hh"
 
 // include files of BOOST's (unofficial) log library
 #include "DataInOut/Logging/log.hpp"
@@ -50,25 +49,31 @@ BOOST_LOG_DEFINE_LEVEL(trace2, 1450)
 namespace CoupledField {
   
   //! This class manages the output for the different logging streams (only per script)
-  class LogConfigurator : public Scriptable {
+  class LogConfigurator  {
     
   public:
     
     //! Constructor 
     LogConfigurator();
-
+    
+    //! Destructor
     virtual ~LogConfigurator() {}
     
+    //! Read logging configuration file
+    void ParseLogConfFile();
+    
     //! Add output destination for given stream
-    void AddAppender();
+    void AddAppender( const std::string& logStream,
+                      const std::string& destination,
+                      const std::string& destDetail );
     
     //! Set logging level
-    void SetLogLevel();
+    void SetLogLevel( const std::string& logStream,
+                      const std::string& level );
     
   protected:
     
-    //! Register functions with scripting object
-    void RegisterFunctions();
+
   };
 
 }

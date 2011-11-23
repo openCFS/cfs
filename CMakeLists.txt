@@ -66,12 +66,6 @@ INCLUDE("cmake_modules/platform_defaults.cmake")
 #-----------------------------------------------------------------------------
 # Switch on/off external libraries and other options for compile
 #-----------------------------------------------------------------------------
-OPTION(USE_TCL
-  "Use Tool Command Language (TCL) for scripting."
-  ${USE_TCL_DEFAULT})
-OPTION(USE_PYTHON
-  "Use Python for scripting."
-  ${USE_PYTHON_DEFAULT})
 OPTION(USE_MESH
   "Use the mesh file reader for input from ANSYS/GiD."
   ${USE_MESH_DEFAULT})
@@ -90,9 +84,6 @@ OPTION(USE_UNV
 OPTION(USE_ANSYSRST
   "Use ANSYS .RST format for simulation output."
   ${USE_ANSYSRST_DEFAULT})
-OPTION(USE_MPCCI
-  "Enable support for the Mesh parallel Code Coupling Interface."
-  ${USE_MPCCI_DEFAULT})
 
 #-----------------------------------------------------------------------------
 # Options concerning linear algebra and direct solver libraries
@@ -261,7 +252,6 @@ ENDIF(NOT TESTSUITE_DIR STREQUAL "TESTSUITE_DIR_NOT_FOUND")
 MARK_AS_ADVANCED(USE_UNV)
 MARK_AS_ADVANCED(USE_GMV)
 MARK_AS_ADVANCED(USE_MESH)
-MARK_AS_ADVANCED(USE_MPCCI)
 MARK_AS_ADVANCED(USE_XERCES)
 MARK_AS_ADVANCED(CMAKE_BUILD_TYPE)
 MARK_AS_ADVANCED(CMAKE_BACKWARDS_COMPATIBILITY)
@@ -513,17 +503,6 @@ SUBDIRS(source/DataInOut/DefineFiles)
 SUBDIRS(source/DataInOut/Logging)
 SUBDIRS(source/DataInOut/ParamHandling)
 
-SUBDIRS(source/DataInOut/Scripting)
-
-IF(USE_SCRIPTING_PYTHON)
-  SUBDIRS(source/DataInOut/Scripting/python)
-ENDIF(USE_SCRIPTING_PYTHON)
-
-IF(USE_SCRIPTING_TCL)
-  SUBDIRS(source/DataInOut/Scripting/tcl)
-ENDIF(USE_SCRIPTING_TCL)
-
-
 IF(USE_MESH)
   SUBDIRS(source/DataInOut/SimInOut/AnsysFile)
   SUBDIRS(source/DataInOut/SimInOut/internalMesh)
@@ -596,10 +575,6 @@ SUBDIRS(source/Utils/EvalIntegrals)
 #SUBDIRS(source/Optimization/Design)
 #SUBDIRS(source/Optimization)
 SUBDIRS(source/main)
-
-IF(USE_MPCCI)
-  SUBDIRS(source/MpCCIcpl)
-ENDIF(USE_MPCCI)
 
 IF(CFSTOOL)
   SUBDIRS(source/cfstool)

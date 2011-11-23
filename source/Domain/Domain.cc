@@ -29,7 +29,6 @@
 #include "General/Exception.hh"
 
 
-#include "DataInOut/Scripting/CFSMessenger.hh"
 #include "DataInOut/ResultHandler.hh"
 
 #include "PDE/ElecPDE.hh"
@@ -567,8 +566,6 @@ void Domain::CreateSinglePDEs(UInt sequenceStep)
 //    else if (actPdeName == "magneticScalar")
 //          ptSinglePde_[i] = new MagScalarPDE(defaultGrid, actPdeNode);
 //
-//    else if (actPdeName == "mpcci")
-//      ptSinglePde_[i] = new MpcciPDE(defaultGrid, actPdeNode);
 //
     else if (actPdeName == "heatConduction")
       ptSinglePde_[i] = new HeatPDE(defaultGrid, actPdeNode);

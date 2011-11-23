@@ -17,12 +17,6 @@
 
 #include "OLAS/algsys/AlgebraicSys.hh"
 
-// header for scripting
-#include <def_use_scripting.hh>
-#ifdef USE_SCRIPTING
-#include "DataInOut/Scripting/CFSMessenger.hh"
-#endif
-
 // header for logging
 #include "DataInOut/Logging/LogConfigurator.hh"
 
@@ -80,8 +74,7 @@ namespace CoupledField {
     maxTimeDerivOrder_(0),
     mHandle_(domain->GetMathParser()->GetNewHandle()) // Obtain mathParser handler
   {
-    // Register functions for scripting
-    RegisterFunctions();
+
   }
 
 
@@ -283,13 +276,6 @@ namespace CoupledField {
     ReadBCs();
     ReadSpecialBCs();
     //
-#ifdef USE_SCRIPTING
-    // Trigger event for scripting
-    StdVector<std::string> args;
-    args.Push_back( pdename_ );
-    messenger->TriggerEvent( CFSMessenger::CFS_ReadBCs, args );
-    args.Clear();
-#endif
 
     // =====================================================================
     // Create time stepping algorithm
@@ -345,14 +331,6 @@ namespace CoupledField {
       fncIt++;
     }
     
-    //infoNode_->Get(ParamNode::HEADER)->Get("equations")->SetValue(numPdeUnknowns_);
-
-    //TODO: Add debugging output to FeSpace Class
-    // writes numerous lists about mapping -> might be huge!
-    if(progOpts->DoListMapping()){
-      //eqnMap_->ToInfo(infoNode_->Get(InfoNode::HEADER)->Get("mapping"));
-    }
-
 
     if ( analysistype_ == TRANSIENT &&
          isDirectCoupled_ == false) {
@@ -394,14 +372,6 @@ namespace CoupledField {
       LOG_TRACE(pde) << pdename_ << ": Defining solveStep class";
       DefineSolveStep();
     }
-
-    // Call event procedure for scripting
-#ifdef USE_SCRIPTING
-        // Trigger event for scripting
-        args.Clear();
-        args.Push_back( pdename_ );
-        messenger->TriggerEvent( CFSMessenger::CFS_PdeInit, args );
-#endif
 
     // Finally set the initialization flag to true
     isInitialized_ = true;
@@ -580,7 +550,7 @@ namespace CoupledField {
     // constraints
     base = infoNode_->Get(ParamNode::HEADER)->Get("constraints");
     // periodic boundary conditions blow this up.
-    if(constraints_.GetSize() <= 5 || progOpts->DoListMapping())
+    if(constraints_.GetSize() <= 5 )
     {
       for(unsigned int i = 0, nn = constraints_.GetSize(); i < nn; i++)
       {
@@ -1037,21 +1007,6 @@ namespace CoupledField {
       }
       
     }
-
-#ifdef USE_SCRIPTING
-    StdVector<std::string> context;
-    context.Push_back( pdename_ );
-    context.Push_back( lexical_cast<std::string>(solveStep_->GetActStep() ) );
-
-    if ( analysistype_ == TRANSIENT ||
-         analysistype_ == STATIC ) {
-      context.Push_back( lexical_cast<std::string>(solveStep_->GetActTime() ) );
-    } else {
-      context.Push_back( lexical_cast<std::string>(solveStep_->GetActFreq() ) );
-    }
-    messenger->TriggerEvent( CFSMessenger::CFS_CalcResults,
-                             context );
-#endif
   }
   
   
@@ -1177,20 +1132,6 @@ namespace CoupledField {
          fncIt->second->ApplyBC();
          fncIt++;
        }
-//     // Trigger setting of BC from script file
-// #ifdef USE_SCRIPTING
-//     StdVector<std::string> context;
-//     context.Push_back( pdename_ );
-//     context.Push_back( lexical_cast<std::string>(solveStep_->GetActStep() ) );
-//
-//     if ( analysistype_ == TRANSIENT ||
-//          analysistype_ == STATIC ) {
-//       context.Push_back( lexical_cast<std::string>(solveStep_->GetActTime() ) );
-//     } else {
-//       context.Push_back( lexical_cast<std::string>(solveStep_->GetActFreq() ) );
-//     }
-//     messenger->TriggerEvent( CFSMessenger::CFS_SetBCs, context );
-// #endif
 //
 //     UInt dof;
 //     Double val;
@@ -1971,28 +1912,6 @@ namespace CoupledField {
     UInt locDof = 0;
     Integer index = -1;
 
-    // Check, if function was called by a scripting command
-#ifdef USE_SCRIPTING
-    if ( messenger->IsEvaluating() == true ) {
-
-      // obtain parameters from messenger object
-      // Note: If scripting is used, only one region load
-      // can be specified per call
-      SCRIPT_GET( std::string,name);
-      SCRIPT_GET( std::string, value );
-      SCRIPT_GET( std::string, dof );
-      SCRIPT_GET( std::string, refCoordSys );
-      SCRIPT_GET( std::string, type );
-
-      // Copy single entries into vectors
-      tempNames.Push_back( name );
-      tempLoadVec.Push_back( value );
-      tempDofs.Push_back( dof );
-      tempRefCoord.Push_back( refCoordSys );
-      tempType.Push_back( type );
-
-    } else {
-#endif
       // obtain parameters from ParamHandler
       // Note: Here all region loads are read (in contrast
       // when called by an external script)
@@ -2023,11 +1942,6 @@ namespace CoupledField {
         else
           tempType.Push_back( "");
       }
-
-#ifdef USE_SCRIPTING
-    }
-#endif
-
     // --- Common part for scripting and parameter file ---
 
 
@@ -3461,40 +3375,6 @@ namespace CoupledField {
 //      }// memento as Dirichlet
 //    } // HARMONIC Analysis
 
-  }
-
-  // ======================================================
-  // SCRIPTING SECTION
-  // ======================================================
-
-  void SinglePDE::RegisterFunctions() {
-    typedef FctPointer<SinglePDE> FCPT;
-    StdVector<ArgList> a;
-    StdVector<FCPT*> pt;
-    StdVector<std::string> name;
-
-    // --- IDBC ---
-    a.Push_back();
-    a.Last().RegisterParam("name", ArgList::STRING );
-    a.Last().RegisterParam("dof", ArgList::STRING );
-    a.Last().RegisterParam("value", ArgList::STRING );
-    a.Last().RegisterParam("phase", ArgList::STRING );
-    pt.Push_back( new FCPT( this, &SinglePDE::Wrap_IDBC) );
-    name.Push_back( "setIdbc" );
-
-
-    // Now register all functions with scripting
-    for (UInt i = 0; i < pt.GetSize(); i++ ) {
-      Script_RegisterFct(name[i], pt[i], a[i] );
-    }
-  }
-
-  void SinglePDE::Wrap_IDBC() {
-    SCRIPT_GET( std::string, name );
-    SCRIPT_GET( std::string, dof );
-    SCRIPT_GET( std::string, value );
-    SCRIPT_GET( std::string, phase );
-    SetIDBC(name, dof, value, phase );
   }
 
   //   Obtain information on desired output quantities from parameter file

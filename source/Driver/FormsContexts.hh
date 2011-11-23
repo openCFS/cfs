@@ -4,7 +4,6 @@
 
 #include "General/Environment.hh"
 #include "Utils/StdVector.hh"
-#include "Utils/DampLayer.hh"
 #include "Utils/mathParser/mathParser.hh"
 
 namespace CoupledField
@@ -69,14 +68,6 @@ namespace CoupledField
     //! Defines a secondary destination for the element matrix
     void SetSecDestMat( FEMatrixType aSecMat,
                         std::string aSecMatFac ); 
-
-    //! initialize object for damping layer
-//    void SetDampLayer(std::string& dampingTypeFnc,
-//		      Vector<Double>& mPoint,
-//		      Double& dampFactor,
-//		      Double& dampFactorMax,
-//		      Double& startRadius,
-//		      Double& endRadius);
 
     //! Returns matrix type of the secondary matrix
     FEMatrixType GetSecDestMat() const { return secDestMat_; }
@@ -143,10 +134,6 @@ namespace CoupledField
     //! Returns information about second feFunction
     shared_ptr<BaseFeFunction> GetSecondFeFunction() { return feFct2_; }
 
-    //get the pointer to damping layer object!
-//    DampLayer* getPtDamplayer() {
-//      return dampingLayer_;}
-
     //! Set function for SetCounterPart
     void SetCounterPart( bool setCounterPart ) {
       setCounterPart_ = setCounterPart;
@@ -190,9 +177,6 @@ namespace CoupledField
 
     //! Entry type of matrix (real/imag part)
     Global::ComplexPart entryType_;
-
-    //! for damping layer
-//    DampLayer* dampingLayer_;
 
     // Flag indicating assembling of the integrator
     // in the counterpart of the pde location

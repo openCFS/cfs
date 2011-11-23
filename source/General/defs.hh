@@ -17,8 +17,6 @@
 // Include build type options header containing the #defines
 #include <def_build_type_options.hh>
 #include <def_xmlschema.hh>
-// Include headers which define if CFS++ should support scripting
-#include <def_use_scripting.hh>
 
 namespace CoupledField{
 

@@ -20,7 +20,6 @@
 #include "Domain/ElemMapping/ElemShapeMap.hh"
 
 
-#include "DataInOut/Scripting/Scriptable.hh"
 #include "MatVec/Vector.hh"
 #include "Forms/IntScheme.hh"
 
@@ -50,7 +49,7 @@ namespace CoupledField
   //! and can be directly used as a index for vectors / arrays.
   //! - The region identifiers are used for surface AND volume elements
 
-  class Grid : public Scriptable {
+  class Grid {
 
   public:
 
@@ -674,28 +673,6 @@ namespace CoupledField
 
   protected:
 
-    // =======================================================================
-    // Method wrappers for function tracing
-    // =======================================================================
-    //@{ \name Scripting wrapper functions
-
-    //! Trigger function registering
-    void RegisterFunctions();
-
-    void Wrap_GetNodeCoordinate();
-    void Wrap_GetNodesByName();
-    void Wrap_GetNodesByRegion();
-    void Wrap_GetListNodeNames();
-    void Wrap_GetListElemNames();
-    void Wrap_GetRegionNames();
-    void Wrap_GetNumNodes();
-    void Wrap_GetNumElems();
-    void Wrap_GetNumSurfElems();
-    void Wrap_GetNumVolElems();
-    void Wrap_GetNumNodesOfRegion();
-    void Wrap_GetNumElemsOfRegion();
-    //@}
-    
     //! Flag for axi-symmetry
     bool isAxi_;
 

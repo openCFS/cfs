@@ -11,15 +11,12 @@
 #include <def_use_ilupack.hh>
 #include <def_use_cholmod.hh>
 #include <def_use_metis.hh>
-#include <def_use_python.hh>
 #include <def_use_xerces.hh>
 #include <def_use_arpack.hh>
 #include <def_use_gmv.hh>
 #include <def_use_gmsh.hh>
 #include <def_use_lapack.hh>
-#include <def_use_mpcci.hh>
 #include <def_use_interpolation.hh>
-#include <def_use_tcl.hh>
 #include <def_xmlschema.hh>
 
 #include "ProgramOptions.hh"
@@ -51,20 +48,6 @@
 
 #ifdef USE_CHOLMOD
 #include <cholmod.h> 
-#endif
-
-#ifdef USE_SCRIPTING_PYTHON
-#ifdef _POSIX_C_SOURCE
-#undef _POSIX_C_SOURCE
-#endif
-#ifdef _XOPEN_SOURCE
-#undef _XOPEN_SOURCE
-#endif
-#include <Python.h>
-#endif
-
-#ifdef USE_SCRIPTING_TCL
-#include <tcl.h>
 #endif
 
 #ifdef USE_ARPACK
@@ -169,12 +152,8 @@ namespace CoupledField {
       ( "writeSkeleton,w",
         "write skeleton of XML file for subsequent simulation" )
 
-#ifdef USE_SCRIPTING
-      ( "scriptFile,e", po::value<string>(),
-        "name of script file to be evaluated" )
-#endif
-      ( "mapping,l",
-        "equation and constraints to info.xml")
+      ( "logConfFile,l", po::value<string>(),
+        "name of configuration file for logging streams" )
 
       ( "detailed,d",
         "detailed output to info.xml")
@@ -356,24 +335,22 @@ namespace CoupledField {
     return paramPath.native_file_string();
   }
 
-#ifdef USE_SCRIPTING
-  fs::path ProgramOptions::GetScriptFile() const
+  fs::path ProgramOptions::GetLogConfFile() const
   {
-    if( varMap_.count("scriptFile") > 0 ) {
-      fs::path scriptPath( varMap_["scriptFile"].as<string>() );
-      return fs::system_complete( scriptPath);
+    if( varMap_.count("logConfFile") > 0 ) {
+      fs::path filePath( varMap_["logConfFile"].as<string>() );
+      return fs::system_complete( filePath);
     } else {
       return fs::path();
     }
   }
 
-  string ProgramOptions::GetScriptFileStr() const
+  string ProgramOptions::GetLogConfFileStr() const
   {
-    fs::path scriptPath = GetScriptFile();
+    fs::path filePath = GetLogConfFile();
 
-    return scriptPath.native_file_string();
+    return filePath.native_file_string();
   }
-#endif
 
   string ProgramOptions::GetErsatzMaterialStr() const
   {
@@ -467,11 +444,6 @@ namespace CoupledField {
     return (varMap_.count( "forceSegFault") > 0);
   }
 
-  bool ProgramOptions::DoListMapping() const
-  {
-    return varMap_.count("mapping") > 0;
-  }
-
   bool ProgramOptions::DoDetailedInfo() const
   {
     return varMap_.count("detailed") > 0;
@@ -495,10 +467,7 @@ namespace CoupledField {
     in->Get("parameterFile")->SetValue(GetParamFileStr());
     in->Get("schemaPath")->SetValue(GetSchemaPathStr());
     in->Get("meshFile")->SetValue(GetMeshFileStr());
-#ifdef USE_SCRIPTING
-    in->Get("scriptFile")->SetValue(GetScriptFileStr());
-#endif
-    in->Get("mapping")->SetValue(DoListMapping());
+    in->Get("logConfFile")->SetValue(GetLogConfFileStr());
     in->Get("detailed")->SetValue(DoDetailedInfo());
     in->Get("MKL_NUM_THREADS")->SetValue(getenv("MKL_NUM_THREADS") != NULL ? getenv("MKL_NUM_THREADS") : "-");
 
@@ -718,37 +687,6 @@ namespace CoupledField {
 
     out << endl;
 
- #ifdef USE_SCRIPTING_TCL
-    out << "USE_SCRIPTING_TCL:     "
-        << fg_blue  << "YES" << fg_reset << endl;
-    Integer tcl_major, tcl_minor, tcl_rev, tcl_patch;
-    Tcl_GetVersion(&tcl_major, &tcl_minor, &tcl_rev, &tcl_patch);
-    out << "CFS_TCL_VERSION:       "
-        << fg_blue << tcl_major << "." << tcl_minor << "." << tcl_rev
-        << fg_reset << endl;
- #else
-    out << "USE_SCRIPTING_TCL:     "
-        << fg_blue << "NO" << fg_reset << endl;
- #endif
-
- #ifdef USE_SCRIPTING_PYTHON
-    out << "USE_SCRIPTING_PYTHON:  "
-        << fg_blue << "YES" << fg_reset << endl;
-    string pyVersion = Py_GetVersion();
-    UInt i=0;
-    for(i=0; i < pyVersion.length(); i++) {
-      if(pyVersion[i] == ' ')
-        break;
-    }
-    pyVersion = pyVersion.substr(0, i);
-    out << "CFS_PYTHON_VERSION:    "
-        << fg_blue << pyVersion << fg_reset << endl;
- #else
-    out << "USE_SCRIPTING_PYTHON:  "
-        << fg_blue << "NO" << fg_reset << endl;
-#endif
-
-    out << endl;
 
 #ifdef USE_ANSYSRST
     out << "USE_ANSYSRST:          "
@@ -838,16 +776,6 @@ namespace CoupledField {
 
     out << endl;
 
-#ifdef MpCCI
-    out << "MpCCI:                 "
-        << fg_blue << "YES" << fg_reset << endl;
-    out << "MpCCI_RELEASE:         "
-        << fg_blue << MpCCI_RELEASE
-        << fg_reset << endl;
-#else
-    out << "MpCCI:                 "
-        << fg_blue << "NO" << fg_reset << endl;
-#endif
 #ifdef USE_INTERPOLATION
     out << "USE_INTERPOLATION:     "
         << fg_blue << "YES" << fg_reset << endl;

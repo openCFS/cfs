@@ -1,6 +1,0 @@
-// Define used to check if Python scripting is used
-
-#cmakedefine USE_SCRIPTING_PYTHON
-
-#define CFS_PYTHON_VERSION "@CFS_PYTHON_VERSION@"
-

@@ -16,7 +16,6 @@ SET(TARGET_LL
   elemmapping
   coordsystems
   datainout
-  scripting
   paramh
   matvec
   cfsgeneral

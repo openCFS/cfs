@@ -69,14 +69,6 @@ IF(USE_ANSYSRST)
   SET(TARGET_LL ${TARGET_LL} simoutansysrst)
 ENDIF(USE_ANSYSRST)
 
-IF(USE_TCL)
-  SET(TARGET_LL ${TARGET_LL} tclmess scripting)
-ENDIF(USE_TCL)
-
-IF(USE_PYTHON)
-  SET(TARGET_LL ${TARGET_LL} pythonmess scripting)
-ENDIF(USE_PYTHON)
-
 # Target link libraries for cfstool target.
 SET(TARGET_LL ${TARGET_LL}  
   domain
@@ -91,7 +83,6 @@ SET(TARGET_LL ${TARGET_LL}
   cfsgeneral
 #  paramident
   logging
-  scripting
   simouttext
   ${BOOST_SERIALIZATION_LIB}
   ${BOOST_FILESYSTEM_LIB}

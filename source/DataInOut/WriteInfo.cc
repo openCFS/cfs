@@ -22,10 +22,6 @@
 #include "DataInOut/ProgramOptions.hh"
 #include "MatVec/Vector.hh"
 
-#ifdef USE_SCRIPTING 
-#include "DataInOut/Scripting/CFSMessenger.hh"
-#endif
-
 using std::cout;
 using std::endl;
 

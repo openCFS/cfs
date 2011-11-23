@@ -35,10 +35,6 @@
 #include "Domain/Results/ResultFunctor.hh"
 
 
-#ifdef USE_SCRIPTING
-#include "DataInOut/Scripting/CFSMessenger.hh"
-#endif
-
 namespace CoupledField {
 
   DECLARE_LOG(elecpde)
