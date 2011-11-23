@@ -23,14 +23,12 @@ IF(WIN32)
     PATHS ${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}
     )
 ELSE(WIN32)
-  FIND_LIBRARY(CGNS_LIBRARY_DEBUG
-    NAMES cgns
-    PATHS ${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}
-    )
-  FIND_LIBRARY(CGNS_LIBRARY_RELEASE
-    NAMES cgns
-    PATHS ${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}
-    )
+  SET(CGNS_LIBRARY_DEBUG
+    "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}/libcgns.a"
+    CACHE FILEPATH "CFD General Notation System Library")
+  SET(CGNS_LIBRARY_RELEASE
+    "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}/libcgns.a"
+    CACHE FILEPATH "CFD General Notation System Library")
 ENDIF(WIN32)
 
 #-------------------------------------------------------------------------------
