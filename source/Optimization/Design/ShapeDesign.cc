@@ -153,8 +153,9 @@ void ShapeDesign::UpdateCoordinates(){
 }
 
 int ShapeDesign::WriteDesignToExtern(double* space_out, bool scale) const {
+  double rscaling = scale ? 1.0 / scaling : 1.0;
   for(unsigned int i=0; i < nshapeparams_; i++){
-    space_out[i] = shapeparams_[i].GetDesign() / scaling;
+    space_out[i] = shapeparams_[i].GetDesign() * rscaling;
     LOG_DBG(ShDes) << "WriteDesignToExtern: out[" << i << "]=" << space_out[i];
   }
   if(alsomatopt_){
@@ -166,7 +167,7 @@ int ShapeDesign::WriteDesignToExtern(double* space_out, bool scale) const {
 void ShapeDesign::WriteDenseGradientToExtern(StdVector<double>& out, DesignElement::ValueSpecifier vs, DesignElement::Access access, Condition* g, bool scaling) const
 {
   // makes use of the window within out even  if only a part of the window is used in the alsomatopt_ case
-  WriteShapeGradientToExtern(out, g);
+  WriteShapeGradientToExtern(out, g, scaling);
 
   if(alsomatopt_)
   {
@@ -187,12 +188,13 @@ void ShapeDesign::WriteDenseGradientToExtern(StdVector<double>& out, DesignEleme
   }
 }
 
-void ShapeDesign::WriteShapeGradientToExtern(StdVector<double>& out, Condition* g) const {
+void ShapeDesign::WriteShapeGradientToExtern(StdVector<double>& out, Condition* g, bool scale) const {
   unsigned int base = out.window.GetStart();
   assert(nshapeparams_ <= out.window.GetSize());
+  double s = scale ? scaling : 1.0;
   for(unsigned int i=0; i < nshapeparams_; i++)
   {
-    out[base + i] = shapeparams_[i].GetPlainGradient(NULL, g) * scaling;
+    out[base + i] = shapeparams_[i].GetPlainGradient(NULL, g) * s;
     LOG_DBG3(ShDes) << "WriteShapeGradientToExtern: out[" << base+i << "]=" << out[base+i];
   }
 }

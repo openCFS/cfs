@@ -109,7 +109,7 @@ namespace CoupledField
   template<class TYPE>
   std::string Matrix<TYPE>::ToXMLFormat(const std::string& name, int n_offset) const
   {
-    std::string offset(n_offset, ' ');
+    std::string offset(std::max(n_offset, 0), ' ');
 
     std::ostringstream os;
 
@@ -562,7 +562,7 @@ namespace CoupledField
   }
 
   template<class TYPE>
-  TYPE Matrix<TYPE>::ScalarProduct(const Matrix<TYPE>& other_mat) const
+  TYPE Matrix<TYPE>::FrobeniusProduct(const Matrix<TYPE>& other_mat) const
   {
 #ifdef CHECK_INITIALIZED
     if(size_row_ == 0 || size_col_ == 0)

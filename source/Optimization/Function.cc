@@ -51,18 +51,18 @@ Function::Function(PtrParamNode pn)
 
   bool tensor_ok = ReadTensor(pn, this->tensor_); // is save and sets default
   
-  if(type_ == HOMOGENIZATION_TRACKING && !tensor_ok)
+  if((type_ == HOM_TRACKING || type_ == HOM_FROBENIUS_PRODUCT) && !tensor_ok)
    EXCEPTION("A 'tensor' element is mandatory  for 'homTracking'");
 
-  if(type_ == HOMOGENIZATION_TENSOR || type_ == HOMOGENIZATION_TRACKING)
+  if(type_ == HOM_TENSOR || type_ == HOM_TRACKING)
   {
     // we must not give a value when there is a tensor
-    if(type_ == HOMOGENIZATION_TENSOR && pn->Has("tensor") && pn->Has("value"))
+    if(type_ == HOM_TENSOR && pn->Has("tensor") && pn->Has("value"))
       throw Exception("a value must not be given when a tensor is used in a homogenization constraint");
-
-    if(type_ == HOMOGENIZATION_TRACKING && (!pn->Has("tensor") && !pn->Has("isotropic")))
-      throw Exception("a 'tensor' is mandatory for homogenization tracking");
   }
+
+  if(type_ == HOM_TRACKING && (!pn->Has("tensor") && !pn->Has("isotropic")))
+    throw Exception("a 'tensor' is mandatory for homogenization tracking");
 
   // check parameter
   switch(type_)
@@ -256,8 +256,9 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
     case REALVOLUME:
     case TYCHONOFF:
     case GREYNESS:
-    case HOMOGENIZATION_TENSOR:
-    case HOMOGENIZATION_TRACKING:
+    case HOM_TENSOR:
+    case HOM_TRACKING:
+    case HOM_FROBENIUS_PRODUCT:
     case POISSONS_RATIO:
     case YOUNGS_MODULUS:
     case YOUNGS_MODULUS_E1:
@@ -377,8 +378,9 @@ bool Function::IsHomogenization() const
 {
   switch(type_)
   {
-    case HOMOGENIZATION_TENSOR:
-    case HOMOGENIZATION_TRACKING:
+    case HOM_TENSOR:
+    case HOM_TRACKING:
+    case HOM_FROBENIUS_PRODUCT:
     case POISSONS_RATIO:
     case YOUNGS_MODULUS:
     case YOUNGS_MODULUS_E1:
@@ -424,8 +426,9 @@ bool Function::ForSensitivityFiltering() const
   // objective and constraint
   case COMPLIANCE:
   case TRACKING:
-  case HOMOGENIZATION_TENSOR:
-  case HOMOGENIZATION_TRACKING:
+  case HOM_TENSOR:
+  case HOM_TRACKING:
+  case HOM_FROBENIUS_PRODUCT:
   case POISSONS_RATIO:
   case YOUNGS_MODULUS:
   case YOUNGS_MODULUS_E1:
@@ -460,6 +463,7 @@ bool Function::ForSensitivityFiltering() const
   case ORTHOTROPY:
   case MULTI_OBJECTIVE:
     EXCEPTION("Invalid query: " << type.ToString(type_));
+    break;
   }
 
   EXCEPTION("can never reach! Stupid C++");
@@ -480,7 +484,12 @@ void Function::SetElements(DesignSpace* space, RegionIdType region)
   // set in the objective
 
   // if ALL_REGIONS for condition use what we define as design space which
-  elements.Reserve(region == ALL_REGIONS ? space->data.GetSize() : grid->GetNumElems(region));
+  // this is still not good enough
+  int nd = 1;
+  if(design == DesignElement::TENSOR_TRACE || design == DesignElement::DEFAULT) {
+    nd = space->design.GetSize();
+  }
+  elements.Reserve(region == ALL_REGIONS ? space->data.GetSize() : nd * grid->GetNumElems(region));
 
   if(region == ALL_REGIONS || space->Contains(region))
   {
@@ -749,39 +758,40 @@ void Function::Local::SetupVirtualElementMap(Phase ph)
 
 
   // traverse all elements and check for full neighborhood
-  space->AssertOneDesignOnly(); // can be extended we use the design from the conditon
   for(int e = 0, ss = space->GetNumberOfElements(); e < ss; ++e)
   {
     DesignElement* de = &(space->data[e]);
-    VicinityElement* ve = de->vicinity;
+    if(de->GetType() == DesignElement::DENSITY){
+      VicinityElement* ve = de->vicinity;
 
-    // do we have a full neighborhood? All or none as in the original slope paper
-    bool full = true;
-    if(prev)
-    {
-      if(ve->design[VicinityElement::X_N] == NULL) full = false;
-      if(ve->design[VicinityElement::Y_N] == NULL) full = false;
-      if(dim == 3 && ve->design[VicinityElement::Z_N] == NULL) full = false;
-    }
-    if(next)
-    {
-      if(ve->design[VicinityElement::X_P] == NULL) full = false;
-      if(ve->design[VicinityElement::Y_P] == NULL) full = false;
-      if(dim == 3 && ve->design[VicinityElement::Z_P] == NULL) full = false;
-    }
-
-    LOG_DBG2(func) << "Local::Local e_num=" << de->elem->elemNum << " vicinity=" << ve->ToString() << " full=" << full;
-
-    if(full)
-    {
-      for(int a = 0; a < dim; a++)
+      // do we have a full neighborhood? All or none as in the original slope paper
+      bool full = true;
+      if(prev)
       {
-        DesignElement* prev_de = prev ? ve->GetNeighbour(VicinityElement::ToNeighbour(a, -1)) : NULL;
-        DesignElement* next_de = ve->GetNeighbour(VicinityElement::ToNeighbour(a, 1));
+        if(ve->design[VicinityElement::X_N] == NULL) full = false;
+        if(ve->design[VicinityElement::Y_N] == NULL) full = false;
+        if(dim == 3 && ve->design[VicinityElement::Z_N] == NULL) full = false;
+      }
+      if(next)
+      {
+        if(ve->design[VicinityElement::X_P] == NULL) full = false;
+        if(ve->design[VicinityElement::Y_P] == NULL) full = false;
+        if(dim == 3 && ve->design[VicinityElement::Z_P] == NULL) full = false;
+      }
 
-        virtual_elem_map.Push_back(Identifier(de, prev_de, next_de, sign_1));
-        if(two_signs)
-          virtual_elem_map.Push_back(Identifier(de, prev_de, next_de, sign_2));
+      LOG_DBG2(func) << "Local::Local e_num=" << de->elem->elemNum << " vicinity=" << ve->ToString() << " full=" << full;
+
+      if(full)
+      {
+        for(int a = 0; a < dim; a++)
+        {
+          DesignElement* prev_de = prev ? ve->GetNeighbour(VicinityElement::ToNeighbour(a, -1)) : NULL;
+          DesignElement* next_de = ve->GetNeighbour(VicinityElement::ToNeighbour(a, 1));
+
+          virtual_elem_map.Push_back(Identifier(de, prev_de, next_de, sign_1));
+          if(two_signs)
+            virtual_elem_map.Push_back(Identifier(de, prev_de, next_de, sign_2));
+        }
       }
     }
   }

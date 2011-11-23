@@ -99,6 +99,15 @@ namespace CoupledField
     //! Return identifier of second PDE
     PdeIdType GetPdeId2();
 
+
+    //! Return vector with resultInfo types
+    ResultInfoList& GetResultInfos1() { return results1_;}
+
+    ResultInfoList& GetResultInfos2() { return results2_;}
+
+    shared_ptr<EqnMap> GetEqnMap2() { return eqnMap2_; }
+
+
     //! Ger ParamNode of coupling object
     PtrParamNode GetParamNode() { return myParam_; }
 

@@ -272,6 +272,8 @@
                 <xsd:enumeration value="realvolume"/>
                 <xsd:enumeration value="homTensor"/>
                 <xsd:enumeration value="homTracking"/>
+                <!-- Calulates the Frobenius inner product -->
+                <xsd:enumeration value="homFrobeniusProduct"/>
                 <xsd:enumeration value="poissonsRatio"/>
                 <xsd:enumeration value="youngsModulus"/>
                 <xsd:enumeration value="youngsModulusE1"/>
@@ -937,6 +939,8 @@
                             <xsd:enumeration value="lame-isotropic"/>
                             <xsd:enumeration value="transversal-isotropic"/>
                             <xsd:enumeration value="transversal-isotropic-boxed"/>
+                            <xsd:enumeration value="density-times-2dtensor"/>
+                            <xsd:enumeration value="density-times-2dtensor-constant-trace"/>
                           </xsd:restriction>
                         </xsd:simpleType>
                       </xsd:attribute>
@@ -949,8 +953,11 @@
                           </xsd:restriction>
                         </xsd:simpleType>
                       </xsd:attribute>
+                      <xsd:attribute name="massFactor" type="xsd:float" default="1.0"/>
                       <xsd:attribute name="optimizeMass" type="xsd:boolean" use="optional" default="false"/>
                       <xsd:attribute name="optimizeDamping" type="xsd:boolean" use="optional" default="false"/>
+                      <xsd:attribute name="penalty" type="xsd:float" default="3.0"/>
+                      <xsd:attribute name="trace" type="xsd:float" default="3.0"/>
                     </xsd:complexType>              
                   </xsd:element>
                 </xsd:sequence>
@@ -1143,6 +1150,12 @@
       <xsd:enumeration value="mass"/>
       <xsd:enumeration value="damping-alpha"/>
       <xsd:enumeration value="damping-beta"/>
+      <xsd:enumeration value="tensor11"/>
+      <xsd:enumeration value="tensor22"/>
+      <xsd:enumeration value="tensor33"/>
+      <xsd:enumeration value="tensor23"/>
+      <xsd:enumeration value="tensor13"/>
+      <xsd:enumeration value="tensor12"/>
     </xsd:restriction>
   </xsd:simpleType>
 
@@ -1159,6 +1172,7 @@
       <xsd:enumeration value="elecEnergy"/>
       <xsd:enumeration value="homTensor"/>
       <xsd:enumeration value="homTracking"/>
+      <xsd:enumeration value="homFrobeniusProduct"/>
       <xsd:enumeration value="poissonsRatio"/>
       <xsd:enumeration value="youngsModulus"/>
       <xsd:enumeration value="youngsModulusE1"/>
@@ -1304,6 +1318,7 @@
       <xsd:enumeration value="greyness"/>
       <xsd:enumeration value="realvolume"/>
       <xsd:enumeration value="homTracking"/>
+      <xsd:enumeration value="homFrobeniusProduct"/>
       <xsd:enumeration value="poissonsRatio"/>
       <xsd:enumeration value="youngsModulus"/>
       <xsd:enumeration value="youngsModulusE1"/>

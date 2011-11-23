@@ -80,16 +80,8 @@ namespace CoupledField {
     elemMat.Resize(numFncs);
     elemMat.Init();
 
-    // applies topology optimization ersatz material to the density, including bimaterial!
-    Double density = md_.GetErsatzMaterial(this, ent1.GetElem(), density_);
-    // ErsatzMaterialMass is Bastian's stuff and not compatible with MaterialDescriptor::GetErsatzMaterial()
-    if(domain->HasErsatzMaterialMass())
-    {
-      assert(domain->GetErsatzBiMaterial(ent1.GetElem(), md_.mat_class) == NULL);
-      Double top_opt = domain->GetErsatzMaterial()->GetErsatzMaterialMass(ent1.GetElem(), direction);
-      density *= top_opt;
-    }
-
+    Double density = GetErsatzMaterialMass(ent1.GetElem(), direction);
+    
     Double factor = mParser_->Eval( mHandle_ );
 
     LOG_DBG3(forms) << GetName() << "::CEM(" << ent1.GetElem()->elemNum << ") density=" 
@@ -135,7 +127,7 @@ namespace CoupledField {
 
     if (nrDofsPerNode_ > 1 ) {
       Matrix <Double> multDofMass;
-      MassMultiDof(multDofMass, elemMat, nrDofsPerNode_);       
+      MassMultiDof(multDofMass, elemMat);       
       elemMat = multDofMass;
     }
 
@@ -145,7 +137,7 @@ namespace CoupledField {
   }
 
   void MassInt::MassMultiDof(Matrix<Double>& massMultDof, 
-                             const Matrix<Double>& massMatSingleDof,  const UInt nrDofs)
+                             const Matrix<Double>& massMatSingleDof)
   {
     
     const UInt singleDofSize = massMatSingleDof.GetNumRows();
@@ -158,40 +150,22 @@ namespace CoupledField {
     for (i=0; i < singleDofSize; i++) {
       for (j=0; j < singleDofSize; j++) {
         double v = massMatSingleDof[i][j];
-        for (actDof=0; actDof < nrDofs; actDof++) {
-          massMultDof[i*nrDofs + actDof][j*nrDofs + actDof] = v; 
+        for (actDof=0; actDof < nrDofsPerNode_; actDof++) {
+          massMultDof[i*nrDofsPerNode_ + actDof][j*nrDofsPerNode_ + actDof] = v; 
         }
       }
     }
   }
 
-
-  void MassInt::MassMultiDofZero(Matrix<Double>& massMultDofZero, const Matrix<Double>& massMatSingleDof)
-  {
-    
-    const UInt singleDofSize = massMatSingleDof.GetNumRows();
-    
-    UInt i, j, actDof;
-    
-    massMultDofZero.Resize(nrDofsPerNode_*singleDofSize);
-    massMultDofZero.Init();
-    
-    for (i=0; i < singleDofSize; i++)
-      for (j=0; j < singleDofSize; j++)
-        for (actDof=0; actDof < nrDofsPerNode_ ; actDof++)
-          {
-            massMultDofZero[i*nrDofsPerNode_ + actDof][j*nrDofsPerNode_ + actDof] = 
-              massMatSingleDof[i][j]; 
-          }
-  }
-  
   double MassInt::GetErsatzMaterialMass(const Elem* elem, DesignElement::Type direction){
     // now check whether we have Param Mat, density is ignored then!!! 
     if(elem != NULL && domain->HasErsatzMaterialMass()){
+      assert(domain->GetErsatzBiMaterial(elem, md_.mat_class) == NULL);
       return domain->GetErsatzMaterial()->GetErsatzMaterialMass(elem, direction);
     }else{
       // for the harmonic topology optimzation case (or load ersatz material)
-      double density = GetErsatzMaterialFactor(elem);
+      // applies topology optimization ersatz material to the density, including bimaterial!
+      Double density = md_.GetErsatzMaterial(this, elem, density_);
       LOG_DBG3(forms) << GetName() << "::CalcElementMatrix(" << elem->elemNum << ") -> density=" << density;    
       return density;
     }

@@ -1,8 +1,10 @@
 #include "SimOutputStreaming.hh"
 
 #include "Domain/domain.hh"
+#include "Domain/grid.hh"
 #include <boost/asio.hpp>
 #include <boost/bind.hpp>
+#include <fstream>
 
 using boost::asio::ip::tcp;
 
@@ -11,14 +13,18 @@ using std::string;
 
 SimOutputStreaming::SimOutputStreaming(PtrParamNode outputNode) :
   SimOutput("", outputNode),
-  silent_(false)
+  silent_(false),
+  content_(ParamNode::INSERT)
 {
   formatName_ = "streaming";
   capabilities_.insert(MESH_RESULTS);
 
+  http_ = outputNode->Get("protocol")->As<string>() == "http";
   host_ = outputNode->Get("host")->As<string>();
   port_ = outputNode->Get("port")->As<string>();
   path_ = outputNode->Get("path")->As<string>();
+  send_mesh_ = outputNode->Get("sendMesh")->As<bool>();
+  compressed_ = outputNode->Get("compressed")->As<bool>();
 
   if(outputNode->Has("silent"))
     silent_ = outputNode->Get("silent")->As<bool>();
@@ -68,10 +74,19 @@ void SimOutputStreaming::AddResult( shared_ptr<BaseResult> sol)
 
 void SimOutputStreaming::FinishStep()
 {
-  boost::asio::io_service io_service;
-  Client client(io_service, host_, port_, path_, this);
-  io_service.run();
-  results_.Clear();
+  if(http_)
+  {
+    boost::asio::io_service io_service;
+    Client client(io_service, host_, port_, path_, this);
+    io_service.run();
+    results_.Clear();
+  }
+  else
+  {
+     std::ofstream out(path_.c_str());
+     Transmit(out);
+     out.close();
+  }
 }
 
 UInt SimOutputStreaming::GetContentLength()
@@ -86,36 +101,89 @@ UInt SimOutputStreaming::GetContentLength()
   return(v + 2);
 }
 
+
 void SimOutputStreaming::Transmit(std::ostream& out)
 {
-  out << "Iteration: "; 
-  out.width(8);
-  out << actStep_ << std::endl;
-  for(UInt r = 0; r < results_.GetSize(); r++)
+  Grid* grid = domain->GetGrid();
+
+  // we might write to content_ the first time or overwrite
+  content_.SetName("cfsStreaming");
+
+  // add the complete info.xml treee
+  content_.Get("info")->SetValue(info, true); // use own name and make sure we are not seed as stupid boost::any
+
+  // add mesh if it is new
+  if(send_mesh_ && !content_.Has("grid"))
+    domain->GetGrid()->ExportGrid(content_.Get("grid"));
+
+
+  // now the actual results
+  PtrParamNode results = content_.Get("results");
+  // delete all potential children -- shared pointers!
+  results->GetChildren().Resize(0);
+
+  for(unsigned int r = 0; r < results_.GetSize(); r++)
   {
     shared_ptr<BaseResult> sol = results_[r];
-
-    //std::string regionName = sol->GetEntityList()->GetName();
     shared_ptr<ResultInfo> resInfo = sol->GetResultInfo();
-    std::string resultName = resInfo->resultName;
-    //std::cout << "result: " << resultName << std::endl;
-    // UInt numDOFs = resInfo->dofNames.GetSize();
 
-    if(resultName != "physicalPseudoDensity") continue;
-    Vector<Double>& resultVec = dynamic_cast<Result<Double>&>(*sol).GetVector();
-    out << "Densities: "; 
-    out.width(8);
-    out << resultVec.GetSize() << std::endl;
+    PtrParamNode rpn = results->Get("result", ParamNode::APPEND);
+    std::string tmp;
+    resInfo->Enum2String(resInfo->definedOn, tmp); // how ugly! :(
+    rpn->Get("solution")->SetValue(tmp);
 
-    out.setf(std::ios::fixed);
-    out.precision(4); // we need to be below 16K for the current reader or reading might break
-    for(UInt d = 0; d < resultVec.GetSize(); d++)
+    rpn->Get("name")->SetValue(resInfo->resultName);
+    rpn->Get("region")->SetValue(sol->GetEntityList()->GetName());
+    RegionIdType regid = grid->GetRegion().Parse(sol->GetEntityList()->GetName());
+
+    unsigned int dofs = resInfo->dofNames.GetSize();
+    rpn->Get("dofs")->SetValue(dofs);
+    for(unsigned int d = 0; d < dofs; d++)
+      rpn->Get("dof_" + boost::lexical_cast<std::string>(d))->SetValue(resInfo->dofNames[d]);
+
+    rpn->Get("unit")->SetValue(resInfo->unit);
+
+    // TODO now only real valued!
+
+    // we do the fast bulk block stuff as it saves a lot of time!
+    StdVector<std::string>& block = rpn->GetFastBulkBlock();
+
+    // the result vector is a set of dofs
+    Vector<double>& resultVec = dynamic_cast<Result<double>&>(*sol).GetVector();
+    // the actual item size
+    unsigned int items = resultVec.GetSize() / dofs;
+
+    // TODO handle only simple cases here!
+    StdVector<unsigned int> nodes; // nodes per region
+    StdVector<Elem*> elems;   // // elements per region
+    if(resInfo->definedOn == ResultInfo::NODE)
+      grid->GetNodesByRegion(nodes, regid);
+    else
+      grid->GetElems(elems, regid);
+
+    block.Resize(items);
+
+    for(unsigned int e = 0; e < items; e++)
     {
-      out << resultVec[d] << std::endl;
-    }
+      std::stringstream ss;
 
+      ss << "<item";
+
+      for(unsigned int d = 0; d < dofs; d++)
+        ss << " v_" << boost::lexical_cast<std::string>(d) << "=\"" << resultVec[dofs * e + d] << "\"";
+
+      // mandatory for nodes
+      if(resInfo->definedOn == ResultInfo::NODE)
+        ss << " id=\"" << nodes[e] << "\"";
+      else if(!compressed_) // for elements it is redundand so we skip it in compressed mode
+        ss << " id=\"" << elems[e]->elemNum << "\"";
+      ss << "/>";
+      block[e] = ss.str();
+    }
   }
-  out << std::endl << std::endl;
+
+  // write the stuff
+  content_.ToXML(out, compressed_ ? -99 : 0, true); // adjust element type!
 }
 
 SimOutputStreaming::Client::Client(boost::asio::io_service& io_service,
@@ -123,23 +191,24 @@ SimOutputStreaming::Client::Client(boost::asio::io_service& io_service,
     : resolver_(io_service),
       socket_(io_service)
 {
-    // Form the request. We specify the "Connection: close" header so that the
-    // server will close the socket after transmitting the response. This will
-    // allow us to treat all data up until the EOF as the content.
+    // it is more robust known the content length a priori, therefore we use a memory stream
+    std::stringstream mem;
+    // fill with all our data
+    base->Transmit(mem);
+
     std::ostream request_stream(&request_);
     request_stream << "POST " << path << " HTTP/1.1\r\n";
     request_stream << "Host: " << server << "\r\n";
     request_stream << "Accept: */*\r\n";
     request_stream << "Connection: close\r\n";
-    request_stream << "Content-Length: " << base->GetContentLength() << "\r\n";
+    request_stream << "Content-Length: " << mem.tellp() << "\r\n";
     request_stream << "Content-Type: text/plain\r\n\r\n";
 
-    base->Transmit(request_stream);
-
-//    request_stream << "\r\n\r\n";
+    // copy data
+    request_stream << mem.rdbuf() << "\r\n\r\n";
 
     if(!base->silent_)
-      std::cout << " try to connect " << server << " port " << port << std::endl;
+      std::cout << "try to connect " << server << " port " << port << " to transmit " << mem.tellp() << " bytes" << std::endl;
 
     // Start an asynchronous resolve to translate the server and service names
     // into a list of endpoints.

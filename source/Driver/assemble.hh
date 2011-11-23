@@ -94,9 +94,11 @@ namespace CoupledField {
      * @param pde2 the second pde, note the order -> see debug file.
      * @param integrator: linElastInt, MassInt, linElecInt, linPiezoCoupling
      * @param silent exception or NULL if nothing found
+     * @param entryType set non-negative compare entry type
      * @return the defined context, never NULL
      * @exception error when nothing found or not unique specification */
-    BiLinFormContext* GetBiLinForm(RegionIdType regionId, StdPDE* pde1, StdPDE* pde2, const std::string& integrator, bool silent = false);
+    BiLinFormContext* GetBiLinForm(RegionIdType regionId, StdPDE* pde1, StdPDE* pde2, const std::string& integrator,
+                                   bool silent = false, Global::ComplexPart entryType = (Global::ComplexPart) 4711);
 
     /** @see GetBiLinForm() */
     LinearFormContext* GetLinearForm(RegionIdType regionId, StdPDE* pde,  const std::string& integrator, bool silent = false);

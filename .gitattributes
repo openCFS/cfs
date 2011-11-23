@@ -581,6 +581,7 @@ share/scripts/compile_mkl_test.sh.in -text
 share/scripts/continuation.py -text
 share/scripts/cplreader -text
 share/scripts/create_density.py -text
+share/scripts/cubemesh.pl -text
 share/scripts/distro.sh svneol=native#text/plain
 share/scripts/extract_info_xml_results.py -text
 share/scripts/gid_screenshots.py -text
@@ -594,6 +595,7 @@ share/scripts/identify_compiler.pl svneol=native#text/plain
 share/scripts/log.py -text
 share/scripts/log.tcl svneol=native#text/x-tcl
 share/scripts/nas-tool-gid-to-nas.py -text
+share/scripts/nas-tool-nas2msh.py -text
 share/scripts/nas-tool-voidmesh.py -text
 share/scripts/optimization_tools.py -text
 share/scripts/printElemMatVec.py -text
@@ -725,8 +727,6 @@ source/DataInOut/MaterialHandler.hh svneol=native#text/x-c%2B%2Bhdr
 source/DataInOut/ParamHandling/CFSOLASParams.cc svneol=native#text/x-c%2B%2Bsrc
 source/DataInOut/ParamHandling/CFSOLASParams.hh svneol=native#text/x-c%2B%2Bhdr
 source/DataInOut/ParamHandling/CMakeLists.txt svneol=native#text/plain
-source/DataInOut/ParamHandling/InfoNode.cc svneol=native#text/x-c%2B%2Bsrc
-source/DataInOut/ParamHandling/InfoNode.hh svneol=native#text/x-c%2B%2Bhdr
 source/DataInOut/ParamHandling/ParamNode.cc -text svneol=unset#text/x-c%2B%2Bsrc
 source/DataInOut/ParamHandling/ParamNode.hh -text svneol=unset#text/x-c%2B%2Bhdr
 source/DataInOut/ParamHandling/ParamTools.hh svneol=native#text/x-c%2B%2Bhdr
@@ -824,9 +824,6 @@ source/DataInOut/SimInOut/hdf5/simInputHDF5.cc svneol=native#text/x-c%2B%2Bsrc
 source/DataInOut/SimInOut/hdf5/simInputHDF5.hh svneol=native#text/x-c%2B%2Bhdr
 source/DataInOut/SimInOut/hdf5/simOutputHDF5.cc svneol=native#text/x-c%2B%2Bsrc
 source/DataInOut/SimInOut/hdf5/simOutputHDF5.hh svneol=native#text/x-c%2B%2Bhdr
-source/DataInOut/SimInOut/internalMesh/CMakeLists.txt -text
-source/DataInOut/SimInOut/internalMesh/internalMesh.cc -text
-source/DataInOut/SimInOut/internalMesh/internalMesh.hh -text
 source/DataInOut/SimInOut/xdmf/CMakeLists.txt -text
 source/DataInOut/SimInOut/xdmf/simOutputXDMF.cc -text
 source/DataInOut/SimInOut/xdmf/simOutputXDMF.hh -text
@@ -982,6 +979,8 @@ source/Forms/FlatShellStiffInt.cc svneol=native#text/x-c%2B%2Bsrc
 source/Forms/FlatShellStiffInt.hh svneol=native#text/x-c%2B%2Bhdr
 source/Forms/PMLInt.cc svneol=native#text/x-c%2B%2Bsrc
 source/Forms/PMLInt.hh svneol=native#text/x-c%2B%2Bhdr
+source/Forms/PiezoStressStrain.cc -text
+source/Forms/PiezoStressStrain.hh -text
 source/Forms/abcInt.cc svneol=native#text/x-c%2B%2Bsrc
 source/Forms/abcInt.hh svneol=native#text/x-c%2B%2Bhdr
 source/Forms/acouMechInt.cc svneol=native#text/x-c%2B%2Bsrc

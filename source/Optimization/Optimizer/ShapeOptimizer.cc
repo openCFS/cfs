@@ -17,7 +17,7 @@ using boost::posix_time::second_clock;
 using boost::posix_time::time_duration;
 
 ShapeOptimizer::ShapeOptimizer(Optimization* optimization, PtrParamNode pn) :
-  BaseOptimizer(optimization, pn),
+  BaseOptimizer(optimization, pn, Optimization::SHAPE_SOLVER),
   topgrad_(false),
   levelset_(false),
   shapeopt_(false)

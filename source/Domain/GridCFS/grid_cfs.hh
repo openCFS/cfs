@@ -507,6 +507,10 @@ namespace CoupledField
     //! \param regionid (in) id of the region
     virtual void ClearRegion( const RegionIdType regionid );
 
+
+    /**  @see Grid::ExportGrid() */
+    void ExportGrid(PtrParamNode out);
+
   private:
 
     /** checks the domain in the xml file for a pattern region.

@@ -436,7 +436,7 @@ namespace CoupledField {
         PDE_.getTimeStepping()->ReInit();
       }
       if(actStep_ == 1 && adjointParams != NULL){ // reset everything before first step backwards
-        ReInit();
+        ReInit(); // this sets everything = 0, so predictor does just add 0
       }
     }
 
@@ -459,15 +459,16 @@ namespace CoupledField {
       matrix_factor_[MASS] = 0.0;
       matrix_factor_[DAMPING] = 0.0;
       algsys_->ConstructEffectiveMatrix(matrix_factor_);
+      effectiveMatrixIsWrong_ = true;
       matrix_factor_[MASS] = tMass;
       matrix_factor_[DAMPING] = tDamp;
       effectiveMatrixUpdated = true;
-    }else if(assemble_->IsMatrixUpdated() || (domain->GetOptimization() && domain->GetOptimization()->IsFirstTransientStepStatic() && actStep_ == 2 && adjointParams == NULL) ){
+    }else if(assemble_->IsMatrixUpdated() || effectiveMatrixIsWrong_ ){
       // we have to construct the effective matrix in 2 cases
       // either, the matrix was updated
       // or we have the second step after the first step had been static (the time runs forward, not in adjoint case)
-      // but we must not construct it again, if we just did for the static step
       algsys_->ConstructEffectiveMatrix(matrix_factor_);
+      effectiveMatrixIsWrong_ = false;
       effectiveMatrixUpdated = true;
     }
 

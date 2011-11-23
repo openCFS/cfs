@@ -540,7 +540,6 @@ ENDIF(USE_SCRIPTING_TCL)
 
 IF(USE_MESH)
   SUBDIRS(source/DataInOut/SimInOut/AnsysFile)
-  SUBDIRS(source/DataInOut/SimInOut/internalMesh)
 ENDIF(USE_MESH)
 
 IF(USE_GMV)

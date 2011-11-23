@@ -102,8 +102,12 @@ namespace CoupledField {
     //! Add input writer
     void AddInputReader( shared_ptr<SimInput> inClass, const std::string& readerId );
 
-    //! Retrieve input reader with given id
-    shared_ptr<SimInput> GetInputReader( const std::string& readerId );
+    /** Retrieve input reader with given id
+     * @param silent if false an exception is thrown, if true you have to test for NULL */
+    shared_ptr<SimInput> GetInputReader( const std::string& readerId, bool silent = false );
+
+    /** @see  GetInputReader */
+    shared_ptr<SimOutput> GetOutputWriter( const std::string& readerId, bool silent = false );
     
     //! Return number of multisequence steps for a givne inpute read
     void GetNumMultiSequenceSteps( const std::string& readerId,

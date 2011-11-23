@@ -15,6 +15,12 @@ DesignMaterial::DesignMaterial(PtrParamNode pn, StdVector<DesignElement::Type>& 
   
   massIsDesign_ = pn->Get("optimizeMass")->As<bool>();
   
+  massFactor_ = pn->Get("massFactor")->As<double>();
+  
+  penalty_ = pn->Get("penalty")->As<double>();
+  
+  trace_ = pn->Get("trace")->As<double>();
+  
   dampingIsDesign_ = pn->Get("optimizeDamping")->As<bool>();
 
   // collect all designs here, to check whether all are given
@@ -53,6 +59,10 @@ unsigned int DesignMaterial::RequiredParameters(){
   case TRANSVERSAL_ISOTROPIC:
   case TRANSVERSAL_ISOTROPIC_BOXED:
     return r+5;
+  case DENSITY_TIMES_2D_TENSOR_CONSTANT_TRACE:
+    return r+6;
+  case DENSITY_TIMES_2D_TENSOR:
+    return r+7;
   default:
     throw Exception("DesignMaterial Type not implemented yet (RequiredParameters)");
   }
@@ -80,6 +90,21 @@ bool DesignMaterial::CheckRequiredDesigns(StdVector<DesignElement::Type>& design
         && design.Find(DesignElement::EMODUL) >= 0 
         && design.Find(DesignElement::POISSON) >= 0 
         && design.Find(DesignElement::GMODUL) >= 0);
+  case DENSITY_TIMES_2D_TENSOR:
+    return(design.Find(DesignElement::DENSITY) >= 0
+        && design.Find(DesignElement::TENSOR11) >= 0
+        && design.Find(DesignElement::TENSOR22) >= 0
+        && design.Find(DesignElement::TENSOR33) >= 0
+        && design.Find(DesignElement::TENSOR23) >= 0
+        && design.Find(DesignElement::TENSOR13) >= 0
+        && design.Find(DesignElement::TENSOR12) >= 0);
+  case DENSITY_TIMES_2D_TENSOR_CONSTANT_TRACE:
+    return(design.Find(DesignElement::DENSITY) >= 0
+        && design.Find(DesignElement::TENSOR11) >= 0
+        && design.Find(DesignElement::TENSOR22) >= 0
+        && design.Find(DesignElement::TENSOR23) >= 0
+        && design.Find(DesignElement::TENSOR13) >= 0
+        && design.Find(DesignElement::TENSOR12) >= 0);
   default:
     throw Exception("DesignMaterial Type not implemented yet (CheckRequiredDesigns)");
   }
@@ -119,6 +144,7 @@ void DesignMaterial::GetIsoMaterialTensor(Matrix<double>& t, SubTensorType subTe
   }
   default:
     ZeroTensor(t, subTensor); // any derivative in any direction other than EMODUL or POISSON is zero
+    break;
   }  
 }
 
@@ -170,6 +196,7 @@ void DesignMaterial::GetLameMaterialTensor(Matrix<double>& t, SubTensorType subT
     break;
   default:
     ZeroTensor(t, subTensor); // any derivative in any direction other than EMODUL or POISSON is zero
+    break;
   }
 }
 
@@ -353,6 +380,69 @@ double DesignMaterial::GetTransIsoMaterialMass(DesignElement::Type direction){
   double dG = 0.5 * ( (1.0+nu)*dE - E*dnu ) / ( (1.0+nu)*(1.0+nu) );
   return(GetTransIsoMass(dD, dG, dD3, dG3));
 }
+
+void DesignMaterial::GetDensityTimes2dTensorTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction){
+  double e11 = 0;
+  double e22 = 0;
+  double e33 = 0;
+  double e23 = 0;
+  double e13 = 0;
+  double e12 = 0;
+  if(direction == DesignElement::NO_DERIVATIVE || direction == DesignElement::DENSITY){
+   e11 = params_[DesignElement::TENSOR11];
+   e22 = params_[DesignElement::TENSOR22];
+   if(type_ == DENSITY_TIMES_2D_TENSOR_CONSTANT_TRACE){
+     e33 = 0.5 * (trace_ - e11 - e22); 
+   }else{
+     e33 = params_[DesignElement::TENSOR33];
+   }
+   e23 = params_[DesignElement::TENSOR23];
+   e13 = params_[DesignElement::TENSOR13];
+   e12 = params_[DesignElement::TENSOR12];
+  }
+  double d = params_[DesignElement::DENSITY];
+  switch(direction){
+  case DesignElement::NO_DERIVATIVE:
+    d = exp(log(d)*penalty_);
+    Set2dVoigtTensor(t, subTensor, d*e11, d*e22, d*e33, d*e23, d*e13, d*e12);
+    break;
+  case DesignElement::DENSITY:
+    if(penalty_ == 1.0){
+      d = 1.0;
+    }else{
+      d = penalty_*exp(log(d)*(penalty_-1));
+    }
+    Set2dVoigtTensor(t, subTensor, d*e11, d*e22, d*e33, d*e23, d*e13, d*e12);
+    break;
+  case DesignElement::TENSOR11:
+    d = exp(log(d)*penalty_);
+    Set2dVoigtTensor(t, subTensor, d, 0.0, type_ == DENSITY_TIMES_2D_TENSOR_CONSTANT_TRACE ? -0.5*d : 0.0, 0.0, 0.0, 0.0);
+    break;
+  case DesignElement::TENSOR22:
+    d = exp(log(d)*penalty_);
+    Set2dVoigtTensor(t, subTensor, 0.0, d, type_ == DENSITY_TIMES_2D_TENSOR_CONSTANT_TRACE ? -0.5*d : 0.0, 0.0, 0.0, 0.0);
+    break;
+  case DesignElement::TENSOR33:
+    d = exp(log(d)*penalty_);
+    Set2dVoigtTensor(t, subTensor, 0.0, 0.0, d, 0.0, 0.0, 0.0);
+    break;
+  case DesignElement::TENSOR23:
+    d = exp(log(d)*penalty_);
+    Set2dVoigtTensor(t, subTensor, 0.0, 0.0, 0.0, d, 0.0, 0.0);
+    break;
+  case DesignElement::TENSOR13:
+    d = exp(log(d)*penalty_);
+    Set2dVoigtTensor(t, subTensor, 0.0, 0.0, 0.0, 0.0, d, 0.0);
+    break;
+  case DesignElement::TENSOR12:
+    d = exp(log(d)*penalty_);
+    Set2dVoigtTensor(t, subTensor, 0.0, 0.0, 0.0, 0.0, 0.0, d);
+    break;
+  default:
+    ZeroTensor(t, subTensor);
+    return;
+  }
+}
  
 void DesignMaterial::ZeroTensor(Matrix<double>& t, SubTensorType subTensor){
   switch(subTensor){
@@ -366,6 +456,20 @@ void DesignMaterial::ZeroTensor(Matrix<double>& t, SubTensorType subTensor){
     throw Exception("subTensor not implemented yet");
   }
   t.Init();
+}
+
+void DesignMaterial::Set2dVoigtTensor(Matrix<double>& t, SubTensorType subTensor, double t11, double t22, double t33, double t23, double t13, double t12){
+  switch(subTensor){
+  case PLANE_STRAIN:
+    t.Resize(3,3);
+    t.Init();
+    t[0][0] = t11; t[0][1] = t12; t[0][2] = t13;
+    t[1][0] = t12; t[1][1] = t22; t[1][2] = t23;
+    t[2][0] = t13; t[2][1] = t23; t[2][2] = t33;
+    break;
+  default:
+    throw Exception("subTensor not implemented yet");
+  }
 }
 
 void DesignMaterial::SetTransIsoTensor(Matrix<double>& t, SubTensorType subTensor, double iD, double inD, double iG, double oD, double onD, double oG){
@@ -433,7 +537,10 @@ double DesignMaterial::GetTransIsoMass(double iD, double iG, double oD, double o
     case TRANSISO_YZ:
     case TRANSISO_XZ:
       return(iD + oD + oG);
+    default:
+      throw Exception("transIsoType not implemented yet");
     }
+    break;
   case 3:
     return(2.0*iD + oD + iG + 2.0*oG);
   default:
@@ -457,6 +564,10 @@ void DesignMaterial::GetMaterialTensor(Matrix<double>& t, SubTensorType subTenso
   case TRANSVERSAL_ISOTROPIC_BOXED:
     GetTransIsoMaterialTensor(t, subTensor, direction);
     break;
+  case DENSITY_TIMES_2D_TENSOR:
+  case DENSITY_TIMES_2D_TENSOR_CONSTANT_TRACE:
+    GetDensityTimes2dTensorTensor(t, subTensor, direction);
+    break;
   default: // case default
     throw Exception("DesignMaterial Type not implemented yet");
   }  
@@ -466,21 +577,21 @@ double DesignMaterial::GetMaterialMass(DesignElement::Type direction){
   if(massIsDesign_){
     switch(direction){
     case DesignElement::MASS:
-      return(1.0);
+      return(massFactor_);
     case DesignElement::NO_DERIVATIVE:
-      return(params_[DesignElement::MASS]);
+      return(params_[DesignElement::MASS]*massFactor_);
     default:
       return(0.0);
     }
   }else{
     switch(type_){
     case ISOTROPIC:
-      return(GetIsoMaterialMass(direction));
+      return(GetIsoMaterialMass(direction)*massFactor_);
     case LAME_ISOTROPIC: // LAME_ISOTROPIC
-      return(GetLameMaterialMass(direction));
+      return(GetLameMaterialMass(direction)*massFactor_);
     case TRANSVERSAL_ISOTROPIC:
     case TRANSVERSAL_ISOTROPIC_BOXED:
-      return(GetTransIsoMaterialMass(direction));
+      return(GetTransIsoMaterialMass(direction)*massFactor_);
     default: // case default
       throw Exception("DesignMaterial Type not implemented yet");
     }
@@ -505,6 +616,7 @@ bool DesignMaterial::GetMaterialDamping(double& alpha, double& beta, DesignEleme
     default:
       alpha = 0.0;
       beta = 0.0;
+      break;
     }
     return(true);
   }else{
@@ -518,6 +630,8 @@ void DesignMaterial::SetEnums(){
   type.Add(LAME_ISOTROPIC, "lame-isotropic");
   type.Add(TRANSVERSAL_ISOTROPIC, "transversal-isotropic");
   type.Add(TRANSVERSAL_ISOTROPIC_BOXED, "transversal-isotropic-boxed");
+  type.Add(DENSITY_TIMES_2D_TENSOR, "density-times-2dtensor");
+  type.Add(DENSITY_TIMES_2D_TENSOR_CONSTANT_TRACE, "density-times-2dtensor-constant-trace");
   transIsoType.SetName("DesignMaterial::TransIsoType");
   transIsoType.Add(TRANSISO_XY, "xy");
   transIsoType.Add(TRANSISO_YZ, "yz");

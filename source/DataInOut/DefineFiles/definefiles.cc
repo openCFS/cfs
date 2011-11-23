@@ -25,7 +25,6 @@
 
 #ifdef USE_MESH
 #include "DataInOut/SimInOut/AnsysFile/simInputMESH.hh"
-#include "DataInOut/SimInOut/internalMesh/internalMesh.hh"
 #endif
 
 #ifdef USE_GMV_INPUT
@@ -244,17 +243,6 @@ void DefineInOutFiles::CreateSimInputFiles(std::map<std::string, shared_ptr<
 #else
       EXCEPTION( "No support for UNV input file format." );
 #endif // USE_UNV
-    }
-    else if (informat == "internal")
-    {
-#ifdef USE_MESH
-      if (meshFile.empty())
-        meshFile = simName + ".mesh";
-      inFiles[actId] = 
-          shared_ptr<SimInput> (new InternalMesh(meshFile, actNode));
-#else
-      EXCEPTION( "No support for internalMesh input file format." );
-#endif // USE_MESH
     }
     else
     {

@@ -43,7 +43,7 @@ namespace CoupledField{
                                DesignElement::Access access, Condition* constraint = NULL, bool scaling = true) const;
 
     /** write the shape gradient part */
-    void WriteShapeGradientToExtern(StdVector<double>& out, Condition* constraint) const;
+    void WriteShapeGradientToExtern(StdVector<double>& out, Condition* constraint, bool scale = true) const;
     
     /** same as in DesignSpace, setting elements to zero, but also shape elements */
     void Reset(DesignElement::ValueSpecifier vs, DesignElement::Type design = DesignElement::DEFAULT);

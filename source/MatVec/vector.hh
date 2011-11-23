@@ -115,6 +115,9 @@ template<typename T> class ElemStoreSol;
       return  CoupledField::EntryType<T>::M_EntryType;
     }
 
+    //! Returns the number of entries
+    inline unsigned int size() const { return size_; }
+
     //! Re-size the vector
 
     //! This method can be used to change the length of the vector.
@@ -320,9 +323,6 @@ template<typename T> class ElemStoreSol;
     Vector<T>&  operator=( const Vector<T>& rhs ) { 
       return this->assignFrom(rhs); 
     }
-    
-    //! Returns the number of entries
-    inline unsigned int size() const { return size_; }
     
     //! Access operator used for expression templates (const)
     inline T &  operator()( unsigned i ) { 

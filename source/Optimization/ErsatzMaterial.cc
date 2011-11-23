@@ -202,8 +202,9 @@ void ErsatzMaterial::PostInit()
       case Objective::COMPLIANCE:
       case Objective::OUTPUT: // it would work but is saver not to allow
       case Objective::TRACKING:
-      case Objective::HOMOGENIZATION_TENSOR:
-      case Objective::HOMOGENIZATION_TRACKING:
+      case Objective::HOM_TENSOR:
+      case Objective::HOM_TRACKING:
+      case Objective::HOM_FROBENIUS_PRODUCT:
       case Objective::POISSONS_RATIO:
       case Objective::YOUNGS_MODULUS:
       case Objective::YOUNGS_MODULUS_E1:
@@ -342,6 +343,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
   {
     PtrParamNode in = iter->Get("homogenizedTensor");
     in->Get("norm_L2")->SetValue(homogenizedTensor.NormL2());
+    in->Get("trace")->SetValue(homogenizedTensor.Trace());
     SubTensorType stt = pde->GetSubTensorType();
 
 
@@ -381,6 +383,8 @@ StdVector<std::pair<string, double> > ErsatzMaterial::GetOrthotropeProperties(co
       bm = GetForm(design->GetRegionId(), pde, pde, "linElastInt")->GetMaterial();
     }
     Objective vf(Function::VOLUME, 0.0, true); // physical!
+    assert(design->GetRegionIds().GetSize() ==1);
+    vf.SetElements(design, design->GetRegionId());
     double vol = CalcVolume(&vf, NULL, false, true);
     StdVector<std::pair<string, double> > ortho = MechanicMaterial::CalcOrthotropeProperties(homogenizedTensor, bm, pde->GetSubTensorType(), vol);
     return ortho;
@@ -563,7 +567,7 @@ void ErsatzMaterial::CalcNewmarkDerivative(Excitation& excite, Solutions& forwar
         for(unsigned int tp = t+1; tp < timesteps; ++tp){ // loop over all time steps in p
           Vector<double>& p_vec = dynamic_cast<Vector<double>& >(*(*adjoints[tp])[e]);
           // these are the scalar factors for the parts of the derivative of F
-          double ut = u +  (up + 0.5*upp*(1.0-2.0*beta)*dt ) *dt;
+          double ut = u + (up + upp*(0.5-beta)*dt ) *dt;
           double upt = up + (1.0 - gamma) * dt * upp;
           double pdMu = p_vec * dMu;
           double tvM = ut * pdMu;
@@ -974,7 +978,7 @@ double ErsatzMaterial::CalcFunction(Excitation& excite, Function* f, bool deriva
          result = CalcDesignTracking(g, derivative);
          break;
 
-    case Function::HOMOGENIZATION_TENSOR:
+    case Function::HOM_TENSOR:
           if(c != NULL && derivative && c->HasHomogenizationEntry())
           {
             // if there s no "coord" set it is only meant for evaluate for forward homogenization
@@ -1018,7 +1022,7 @@ double ErsatzMaterial::CalcFunction(Excitation& excite, Function* f, bool deriva
           }
           break;
 
-    case Function::HOMOGENIZATION_TRACKING:
+    case Function::HOM_TRACKING:
          if(derivative)
          {
            CalcHomogenizedTrackingGradient(f->GetTensor(), CalcHomogenizedTensor(), f);
@@ -1029,6 +1033,13 @@ double ErsatzMaterial::CalcFunction(Excitation& excite, Function* f, bool deriva
            result = 0.5 * diff * diff;
          }
          break;
+
+    case Function::HOM_FROBENIUS_PRODUCT:
+      if(derivative)
+        CalcHomFrobeniusProductGradient(f->GetTensor(), CalcHomogenizedTensor(), f);
+      else
+        return f->GetTensor().FrobeniusProduct(CalcHomogenizedTensor());
+      break;
 
     case Function::POISSONS_RATIO:
     case Function::YOUNGS_MODULUS:
@@ -1173,11 +1184,10 @@ double ErsatzMaterial::IntegrateDesignVariable(Objective* f, Condition* g, bool 
               if(calculateTensorTrace){
                 Matrix<double> material;
                 GetErsatzMaterialTensor(material, de->elem, de->GetType());
-                material.Trace(val);
+                val = material.Trace();
                 if(exponent != 1.0){
-                  double des;
                   GetErsatzMaterialTensor(material, de->elem);
-                  material.Trace(des);
+                  double des = material.Trace();
                   val *= exponent * std::pow(des, exponent - 1.0);
                 }
               }else{
@@ -1205,7 +1215,7 @@ double ErsatzMaterial::IntegrateDesignVariable(Objective* f, Condition* g, bool 
               if(calculateTensorTrace){ // use the trace of the stiffness Tensor as "volume"
                 Matrix<double> material;
                 GetErsatzMaterialTensor(material, de->elem);
-                material.Trace(des);
+                des = material.Trace();
               }
               else
               {
@@ -1281,6 +1291,7 @@ double ErsatzMaterial::CalcVolume(Objective* f, Condition* g, bool derivative, b
 
 double ErsatzMaterial::CalcTrivialVolume(Function* f, bool derivative, bool normalized)
 {
+  assert(!f->elements.IsEmpty());
   // In CalcOrthotropeMaterialProperties() we construct a dummy function, this has Function::elements not set :(
 
   // only for physical
@@ -1550,12 +1561,10 @@ void ErsatzMaterial::SetAdjointRhs(AdjointParameters* adjointParams){
     std::set<FEMatrixType> matTypes;    
     assemble_->GetAlgSys()->GetFEMatrixTypes(matTypes);
     bool damping = ( matTypes.find(CoupledField::DAMPING) != matTypes.end() );
-    double u = 1.0; double upp = 1.0 / (beta*dt*dt); double up = upp * gamma * dt;
-    upp = 0.0;
-    up = 0.0;
+    double u = 1.0; double upp = 0.0; double up = 0.0;
     for(unsigned int t = 1; t < nts; ++t){
       Vector<Double>& p_vec = adjoint.Get(excite, adjointParams->GetFunction(), t)->GetRealVector(Solution::RAW_VECTOR);
-      double ut = u +  (up + 0.5*upp*(1.0-2.0*beta)*dt ) *dt;
+      double ut = u + (up + upp*(0.5-beta)*dt ) *dt;
       double upt = up + (1.0 - gamma) * dt * upp;
       // now we have the factor ut / (beta * dt * dt) for the mass matrix
       coeffMass = p_vec * (ut / (beta * dt * dt));
@@ -2149,10 +2158,37 @@ void ErsatzMaterial::CalcHomogenizedTrackingGradient(const Matrix<double>& targe
 
     // hom_tensor_deriv is completely set.
     // (E^* - E^H) * - d(E^H)/d(rho_e) -> therefore the minus !
-    double grad = -1.0 * diff_tensor.ScalarProduct(hom_tensor_deriv);
+    double grad = -1.0 * diff_tensor.FrobeniusProduct(hom_tensor_deriv);
 
     de->AddGradient(f, grad);
   } // element loop
+}
+
+void ErsatzMaterial::CalcHomFrobeniusProductGradient(const Matrix<double>& par, const Matrix<double>& hom, Function* f)
+{
+  // J  = sum_ij E_ij*D_ij
+  // dJ = sum_ij dE_ij*D_ij
+
+  // CalcHomogenizedTensorEntry((i, j), derivative = true, tmp_grad_out) sets the dE_ij in tmp_grad_out
+  StdVector<double> tmp_grad_out;
+
+  for(unsigned int y = 0; y < par.GetNumRows(); y++)
+  {
+    for(unsigned int x = 0; x < par.GetNumCols(); x++)
+    {
+      tuple<int, int, double> entry = make_tuple(x+1, y+1, 0.0);
+      tmp_grad_out.Init(0.0);
+      CalcHomogenizedTensorEntry(entry, true, tmp_grad_out);
+
+      double d_ij = par[y][x];
+
+      for(int e = 0, ne = design->GetNumberOfElements(); e < ne; ++e)
+      {
+        DesignElement* de = &design->data[e];
+        de->AddGradient(f, tmp_grad_out[e] * d_ij);
+      }
+    }
+  }
 }
 
 

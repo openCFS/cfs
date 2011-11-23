@@ -256,8 +256,9 @@ void Optimization::SetEnums()
   Function::type.Add(Function::TRACKING, "tracking");
   Function::type.Add(Function::ELEC_ENERGY, "elecEnergy");
   Function::type.Add(Function::ENERGY_FLUX, "energyFlux");
-  Function::type.Add(Function::HOMOGENIZATION_TENSOR, "homTensor");
-  Function::type.Add(Function::HOMOGENIZATION_TRACKING, "homTracking");
+  Function::type.Add(Function::HOM_TENSOR, "homTensor");
+  Function::type.Add(Function::HOM_TRACKING, "homTracking");
+  Function::type.Add(Function::HOM_FROBENIUS_PRODUCT, "homFrobeniusProduct");
   Function::type.Add(Function::POISSONS_RATIO, "poissonsRatio");
   Function::type.Add(Function::YOUNGS_MODULUS, "youngsModulus");
   Function::type.Add(Function::YOUNGS_MODULUS_E1, "youngsModulusE1");
@@ -535,11 +536,12 @@ void Optimization::SolveProblem()
   if(e != NULL) throw *e;
   delete e;
 }
-PtrParamNode Optimization::CreateAdjointAnalysisIdNode(std::string child_name)
+PtrParamNode Optimization::CreateAdjointAnalysisIdNode(std::string child_name, Excitation* excite)
 {
   BaseDriver* driver = domain->GetDriver();
   PtrParamNode base = driver->GetAnalysisId();
-  PtrParamNode in = driver->CreateAnalysisIdChild(base, child_name);
+  std::string temp = "excite";
+  PtrParamNode in = excite == NULL ? driver->CreateAnalysisIdChild(base, child_name) : driver->CreateAnalysisIdChild(base, "excite", excite->index, child_name);
   
   return in;
 }
@@ -587,7 +589,7 @@ void Optimization::SolveAdjointProblem(Excitation* excite, Function* f){
 
   // Do not store the results. This is adjoint.
   if(!harmonic) 
-    driver->SolveProblem(false, CreateAdjointAnalysisIdNode(), &adjointParams); // static and transient optimization
+    driver->SolveProblem(false, CreateAdjointAnalysisIdNode("adjoint", excite), &adjointParams); // static and transient optimization
   else
       EXCEPTION("Harmonic adjoint not implemented!");
 }
@@ -720,6 +722,15 @@ PtrParamNode Optimization::CommitIteration(bool keep_iteration_number)
   // eventually set special result
   EvaluateSpecialResults();
 
+  // also log to info node, append the iteration
+  PtrParamNode iteration = optInfoNode->Get(ParamNode::PROCESS)->Get("iteration", ParamNode::APPEND);
+
+  // write the header only once - we might keep the iteration number
+  if(log.file) if(objectives.GetHistorySize() == 1) *log.file << log.fileHeader << endl;
+  LogFileLine(log.file, iteration); // also ParamNode is to be written
+  baseOptimizer_->LogFileLine(log.file, iteration);
+  if(log.file) *log.file << endl;
+
   // this writes the most current solved forward problem via the driver to gid or whatever
   bool store = currentIteration == 0 || commitStride == 1 || (commitStride > 0 && currentIteration % commitStride == 0);
   LOG_TRACE2(opt) << "CommitIteration " << currentIteration << " objective=" << objectives.GetHistoryValue() << " store=" << store;
@@ -729,15 +740,6 @@ PtrParamNode Optimization::CommitIteration(bool keep_iteration_number)
     lastStoredResult_ = currentIteration;
     // see FinalizeStoreResults() !
   }
-
-  // also log to info node, append the iteration
-  PtrParamNode iteration = optInfoNode->Get(ParamNode::PROCESS)->Get("iteration", ParamNode::APPEND);
-
-  // write the header only once - we might keep the iteration number
-  if(log.file) if(objectives.GetHistorySize() == 1) *log.file << log.fileHeader << endl;
-  LogFileLine(log.file, iteration); // also ParamNode is to be written
-  baseOptimizer_->LogFileLine(log.file, iteration);
-  if(log.file) *log.file << endl;
 
   // IPOPT does own logging -> otherwise show the user we are alive
   std::string f = GetIterationFrequency();
