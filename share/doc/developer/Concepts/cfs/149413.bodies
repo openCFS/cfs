@@ -1,6 +1,0 @@
-class GridInterfaceStruct
-!!!350373.cpp!!!	GridInterfaceStruct(in adim : UInt)
-    ENTER_FCN( "GridInterfaceStruct<DIM>::GridInterfaceStruct<DIM>" );
-    //  lastlevel_=0;
-    ptGridStruct=new GridStruct<DIM>(adim);
-  
