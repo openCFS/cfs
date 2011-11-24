@@ -245,8 +245,7 @@ namespace CoupledField {
 
     // get number of entities
     UInt numEnt = var.GetSize() / dofNames.GetSize();
-    if ( entityType == ResultInfo::NODE ||
-         entityType == ResultInfo::PFEM ) {
+    if ( entityType == ResultInfo::NODE ) {
       resultTag = "NodeData";
     } else {
       resultTag = "ElementData";
@@ -565,7 +564,7 @@ namespace CoupledField {
       numRegions_++;
 
       for( UInt j = 0, m = nodeNumbers.GetSize(); j < m; j++ ) {
-        Elem::FEType feType = Elem::POINT;
+        Elem::FEType feType = Elem::ET_POINT;
 
         // Assign element number
         elemRecord[0] = k;

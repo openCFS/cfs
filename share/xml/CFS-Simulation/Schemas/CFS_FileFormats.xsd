@@ -314,6 +314,8 @@
     <xsd:choice>
       <xsd:element name="gmsh" type="DT_OutputGMsh"
         minOccurs="0" maxOccurs="1"/>
+      <xsd:element name="gmshParsed" type="DT_OutputGMshParsed"
+        minOccurs="0" maxOccurs="1"/>
       <xsd:element name="gmv" type="DT_OutputGMV"
 		   minOccurs="0" maxOccurs="1"/>
       <xsd:element name="unv" type="DT_OutputUNV"
@@ -351,6 +353,14 @@
     <xsd:attribute name="id" type="xsd:token" default="gmsh"/>
   </xsd:complexType>
   
+  <!-- ******************************************************************** -->
+  <!--   Definition of data type for OutputGMshParsed output High order FEM -->
+  <!-- ******************************************************************** -->
+  <xsd:complexType name="DT_OutputGMshParsed">
+    <xsd:attribute name="id" type="xsd:token" default="gmshParsed"/>
+    <xsd:attribute name="writeMode" type="xsd:token" default="region"/>
+  </xsd:complexType>
+
   <!-- ******************************************************************** -->
   <!--   Definition of data type for GMV output -->
   <!-- ******************************************************************** -->

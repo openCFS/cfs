@@ -61,6 +61,8 @@ namespace CoupledField {
     /** Dumps a result list */
     static void Dump(StdVector<shared_ptr<BaseResult> >& resultList);
 
+
+
   protected:
 
     //! Object describing the type of result
@@ -72,6 +74,7 @@ namespace CoupledField {
     /** Some results, like region results with a single scalar, get here the ParamNode
      * to write the data at the right position in info.xml */
     PtrParamNode infoNode_;
+
   };
 
 

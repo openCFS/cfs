@@ -36,6 +36,7 @@
 #ifdef USE_GMSH
 #include "DataInOut/SimInOut/gmsh/SimInputGmsh.hh"
 #include "DataInOut/SimInOut/gmsh/SimOutputGmsh.hh"
+#include "DataInOut/SimInOut/gmsh/SimOutputParsed.hh"
 #endif
 
 #ifdef USE_HDF5
@@ -346,6 +347,17 @@ void DefineInOutFiles::CreateSimOutputFiles(std::map<std::string, shared_ptr<
       continue;
 #else
       EXCEPTION( "No support for Gmsh output file format." );
+#endif
+    }
+
+
+    if (actFormat == "gmshParsed")
+    {
+#ifdef USE_GMSH
+      out[actId] = shared_ptr<SimOutput> (new SimOutputParsed(simName, actNode));
+      continue;
+#else
+      EXCEPTION( "No support for Gmsh parsed output file format." );
 #endif
     }
 

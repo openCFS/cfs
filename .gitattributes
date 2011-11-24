@@ -757,6 +757,8 @@ source/DataInOut/SimInOut/gmsh/SimInputGmsh.cc svneol=native#text/plain
 source/DataInOut/SimInOut/gmsh/SimInputGmsh.hh svneol=native#text/plain
 source/DataInOut/SimInOut/gmsh/SimOutputGmsh.cc svneol=native#text/plain
 source/DataInOut/SimInOut/gmsh/SimOutputGmsh.hh svneol=native#text/plain
+source/DataInOut/SimInOut/gmsh/SimOutputParsed.cc -text
+source/DataInOut/SimInOut/gmsh/SimOutputParsed.hh -text
 source/DataInOut/SimInOut/gmv/CMakeLists.txt svneol=native#text/plain
 source/DataInOut/SimInOut/gmv/SimInputGMV.cc svneol=native#text/x-c%2B%2Bsrc
 source/DataInOut/SimInOut/gmv/SimInputGMV.hh svneol=native#text/x-c%2B%2Bhdr

@@ -1,5 +1,7 @@
 #include "H1Elems.hh"
 
+#include <algorithm>
+
 namespace CoupledField {
 
 
@@ -201,6 +203,12 @@ namespace CoupledField {
       }
   
     }
+    //x is now a vector ranging from 1 to -1
+    //in contradiction to our convention so we revert it
+    std::reverse(x.Begin(),x.End());
+    //std::cout << "ELEM" << std::endl;
+    //std::cout << x << std::endl << std::endl;
+
     return x;
   }
   } // namespace CoupledField

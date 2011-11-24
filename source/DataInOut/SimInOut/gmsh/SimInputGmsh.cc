@@ -266,7 +266,8 @@ namespace CoupledField {
 
             GmshHelper::ElemType2FEType(type, feType, numElementNodes);
 
-            dim_ = dim_ > Elem::GetElemDim(feType) ? dim_ : Elem::GetElemDim(feType);
+            UInt feDim = Elem::shapes[feType].dim;
+            dim_ = dim_ > feDim ? dim_ : feDim;
 
             elemRecordLength = 1 + numTags + numElementNodes;
             dummy.resize(numFollowingElements * elemRecordLength);
@@ -344,7 +345,8 @@ namespace CoupledField {
               }
               
               GmshHelper::ElemType2FEType(type, feType, numElementNodes);
-              dim_ = dim_ > Elem::GetElemDim(feType) ? dim_ : Elem::GetElemDim(feType);
+              UInt feDim = Elem::shapes[feType].dim;
+              dim_ = dim_ > feDim ? dim_ : feDim;
               
               elementTypes_[idx] = feType;
               elementPhysicsTypes_[idx] = regPhys;
@@ -546,22 +548,22 @@ namespace CoupledField {
     static std::map<Elem::FEType, Elem::FEType> elemTypeMap;
 
     if(!elemTypeMap.size()) {
-      elemTypeMap[Elem::LINE2]   = Elem::LINE2;
-      elemTypeMap[Elem::LINE3]   = Elem::LINE2;
-      elemTypeMap[Elem::TRIA3]   = Elem::TRIA3;
-      elemTypeMap[Elem::TRIA6]   = Elem::TRIA3;
-      elemTypeMap[Elem::QUAD4]   = Elem::QUAD4;
-      elemTypeMap[Elem::QUAD8]   = Elem::QUAD4;
-      elemTypeMap[Elem::QUAD9]   = Elem::QUAD4;
-      elemTypeMap[Elem::TET4]    = Elem::TET4;
-      elemTypeMap[Elem::TET10]   = Elem::TET4;
-      elemTypeMap[Elem::HEXA8]   = Elem::HEXA8;
-      elemTypeMap[Elem::HEXA20]  = Elem::HEXA8;
-      elemTypeMap[Elem::HEXA27]  = Elem::HEXA8;
-      elemTypeMap[Elem::PYRA5]   = Elem::PYRA5;
-      elemTypeMap[Elem::PYRA13]  = Elem::PYRA5;
-      elemTypeMap[Elem::WEDGE6]  = Elem::WEDGE6;
-      elemTypeMap[Elem::WEDGE15] = Elem::WEDGE6;
+      elemTypeMap[Elem::ET_LINE2]   = Elem::ET_LINE2;
+      elemTypeMap[Elem::ET_LINE3]   = Elem::ET_LINE2;
+      elemTypeMap[Elem::ET_TRIA3]   = Elem::ET_TRIA3;
+      elemTypeMap[Elem::ET_TRIA6]   = Elem::ET_TRIA3;
+      elemTypeMap[Elem::ET_QUAD4]   = Elem::ET_QUAD4;
+      elemTypeMap[Elem::ET_QUAD8]   = Elem::ET_QUAD4;
+      elemTypeMap[Elem::ET_QUAD9]   = Elem::ET_QUAD4;
+      elemTypeMap[Elem::ET_TET4]    = Elem::ET_TET4;
+      elemTypeMap[Elem::ET_TET10]   = Elem::ET_TET4;
+      elemTypeMap[Elem::ET_HEXA8]   = Elem::ET_HEXA8;
+      elemTypeMap[Elem::ET_HEXA20]  = Elem::ET_HEXA8;
+      elemTypeMap[Elem::ET_HEXA27]  = Elem::ET_HEXA8;
+      elemTypeMap[Elem::ET_PYRA5]   = Elem::ET_PYRA5;
+      elemTypeMap[Elem::ET_PYRA13]  = Elem::ET_PYRA5;
+      elemTypeMap[Elem::ET_WEDGE6]  = Elem::ET_WEDGE6;
+      elemTypeMap[Elem::ET_WEDGE15] = Elem::ET_WEDGE6;
     }
 
     *elemType = elemTypeMap[*elemType];
@@ -602,7 +604,8 @@ namespace CoupledField {
 
         // Iterate over all nodes of element and build up map of nodes
         // which must be transfered to the Grid.
-        UInt numElemNodes = Elem::GetNumElemNodes(elementTypes_[i]);
+
+        UInt numElemNodes = Elem::shapes[elementTypes_[i]].numNodes;
         //        std::cout << "numElemNodes " << numElemNodes << std::endl;
         for(UInt j=0; j<numElemNodes; j++) {
           UInt nodeNum = connectivity_[numNodesPerElem_*i + j];
@@ -647,7 +650,7 @@ namespace CoupledField {
     UInt numKnownElems = 0;
     for( UInt i=0; i < numElements; i++ ) {
       Elem::FEType feType = elementTypes_[readElemIndices[i]];
-      if(feType == Elem::UNDEF || feType == Elem::POINT)
+      if(feType == Elem::ET_UNDEF || feType == Elem::ET_POINT)
         continue;
       numKnownElems++;
     }
@@ -656,12 +659,12 @@ namespace CoupledField {
     mi->AddElems( numKnownElems );
     for( UInt i=0; i < numElements; i++ ) {
       Elem::FEType feType = elementTypes_[readElemIndices[i]];
-      if(feType == Elem::UNDEF || feType == Elem::POINT)
+      if(feType == Elem::ET_UNDEF || feType == Elem::ET_POINT)
         continue;
         
       UInt* conn = &connectivity_[numNodesPerElem_*readElemIndices[i]];
 
-      UInt numElemNodes = Elem::GetNumElemNodes(feType);
+      UInt numElemNodes = Elem::shapes[feType].numNodes;
       for(UInt j=0; j<numElemNodes; j++) {
         conn[j] = nodeNumMap2[conn[j]];
       }

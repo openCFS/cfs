@@ -365,12 +365,12 @@ void IntScheme::GetIntPoints( Elem::ShapeType elemType,
     StdVector<Double> tmpPoints = points;
     StdVector<Double> tmpWeights = weights;
     //hier uu noch einen algorithmus einbauen um nachkommstellen abzuschneiden
-    points[0] = tmpPoints[0];
-    points[1] = tmpPoints[N1-1];
+    points[0] = tmpPoints[N1-1];
+    points[1] = tmpPoints[0];
     weights[1] = tmpWeights[N1-1];
     for(i = 2; i < N1 ; i++){
-      points[i] = tmpPoints[i-1];
-      weights[i] = tmpWeights[i-1];
+      points[i] = tmpPoints[N1-i];
+      weights[i] = tmpWeights[N1-i];
     }
   }
 

@@ -13,6 +13,7 @@ SET(TARGET_LL
   matvec
   cfsgeneral
   utils
+  febasis
 #perhaps the following 
 #will become necessay in the future
 #  bilinforms

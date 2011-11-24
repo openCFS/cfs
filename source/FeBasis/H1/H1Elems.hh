@@ -48,6 +48,11 @@ namespace CoupledField {
     //! Overloaded method to be able to set only specific points
     void SetFunctionsAtIp(const std::map<Integer, LocPoint >& iPoints);
 
+    //! @copydoc BaseFE::ComputeMonomialCoefficients
+    //! Just a dummy
+    virtual void ComputeMonomialCoefficients(Matrix<Double> P, Matrix<Double> C){
+      Exception("Not implemented in base class");
+    }
 
   protected:
 

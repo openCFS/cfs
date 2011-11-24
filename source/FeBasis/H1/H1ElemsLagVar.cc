@@ -152,6 +152,59 @@ namespace CoupledField {
       }
     }
     
+    void FeH1LagrangeVar::ComputeMonomialCoefficients(Matrix<Integer>& P, Matrix<Double>& C){
+      //this algorithm is works for the lagrange tensorial polynomials
+      //CAREFUL: Other shape functions may require different algorithms
+
+      //start by  permutating the different orders to obtain the p matrix
+      P.Resize(actNumFncs_,3);
+      P.Init();
+
+      UInt dof1 = (shape_.dim>0)? order_+1 : 1;
+      UInt dof2 = (shape_.dim>1)? order_+1 : 1;
+      UInt dof3 = (shape_.dim>2)? order_+1 : 1;
+      UInt counter = 0;
+      for(UInt i=0;i<dof1;i++){
+        for(UInt j=0;j<dof2;j++){
+          for(UInt k=0;k<dof3;k++){
+            P[counter][0] = (Integer)i;
+            P[counter][1] = (Integer)j;
+            P[counter++][2] = (Integer)k;
+          }
+        }
+      }
+
+      //now we compute a temporary matrix by evaluating the sponentials
+      // at our supporting point. each line one supporting point
+      Matrix<Double> C_tmp(actNumFncs_,actNumFncs_);
+      C.Resize(actNumFncs_,actNumFncs_);
+      C_tmp.Init();
+      C.Init();
+
+      //now get the local coordinates in the correct ordering
+      //we expect a actNumFncs_x3 matrix
+      Matrix<Double> coords;
+      GetLocalDOFCoordinates(coords);
+
+      //now we compute the coefficients by an application of each coordinate
+      for(UInt row = 0; row<actNumFncs_ ;row++){
+        for(UInt col = 0; col<actNumFncs_;col++){
+          C_tmp[row][col] = std::pow(coords[row][0],P[col][0]) * std::pow(coords[row][1],P[col][1]) * std::pow(coords[row][2],P[col][2]);
+        }
+      }
+
+#ifndef USE_LAPACK
+      Matrix<Double> t;
+      C_tmp.Invert(t);
+      t.Transpose(C);
+#else
+      C_tmp.Invert_Lapack();
+      C_tmp.Transpose(C);
+#endif
+
+
+    }
+
     void FeH1LagrangeVar::GetMaxOrderLocDir(StdVector<UInt>& order ) {
 
       // resize vector to dimenson of local element
@@ -236,6 +289,25 @@ namespace CoupledField {
   void  FeH1LagrangeLineVar::SetIsoOrder(UInt order){
     order_ = order;
     actNumFncs_ = order+1;
+  }
+
+  void FeH1LagrangeLineVar::GetLocalDOFCoordinates(Matrix<Double> & coordMat){
+    if(supportingPoints_.find(order_) == supportingPoints_.end() )
+           supportingPoints_[order_] = CalcGaussLobattoPoints(order_);
+    StdVector<Double> supPoints1D = supportingPoints_[order_];
+
+    //This has to be a nx3 matrix even for 1D
+    coordMat.Resize(actNumFncs_,3);
+    coordMat.Init();
+
+    //vertices:
+    coordMat[0][0] = supPoints1D[0];
+    coordMat[1][0] = supPoints1D[order_];
+
+    //edges
+    for(UInt i=1;i<order_;i++){
+      coordMat[i][0] = supPoints1D[i];
+    }
   }
   //=========================================================================
   //Quadrilateral elements of arbitrary order
@@ -352,8 +424,8 @@ namespace CoupledField {
 
       for ( UInt i= 1;i< order_;i++ ){
         for ( UInt j = 1; j< order_;j++ ){
-          deriv[offset][0] = shapeDerivX[i] * shapeY[j];
-          deriv[offset++][1] = shapeX[i] * shapeDerivY[j];
+          deriv[offset][0] = shapeDerivX[j] * shapeY[i];
+          deriv[offset++][1] = shapeX[j] * shapeDerivY[i];
         }
       }
 
@@ -362,6 +434,59 @@ namespace CoupledField {
   void  FeH1LagrangeQuadVar::SetIsoOrder(UInt order){
     order_ = order;
     actNumFncs_ = (order+1)*(order+1);
+  }
+
+  void FeH1LagrangeQuadVar::GetLocalDOFCoordinates(Matrix<Double> & coordMat){
+    if(supportingPoints_.find(order_) == supportingPoints_.end() )
+           supportingPoints_[order_] = CalcGaussLobattoPoints(order_);
+    StdVector<Double> supPoints1D = supportingPoints_[order_];
+
+    //This has to be a nx3 matrix even for 1D
+    coordMat.Resize(actNumFncs_,3);
+    coordMat.Init();
+
+    //vertices:
+    coordMat[0][0] = supPoints1D[0];
+    coordMat[0][1] = supPoints1D[0];
+
+    coordMat[1][0] = supPoints1D[order_];
+    coordMat[1][1] = supPoints1D[0];
+
+    coordMat[2][0] = supPoints1D[order_];
+    coordMat[2][1] = supPoints1D[order_];
+
+    coordMat[3][0] = supPoints1D[0];
+    coordMat[3][1] = supPoints1D[order_];
+
+    UInt c = 4;
+    //edge1
+    for(UInt i=1;i<order_;i++){
+      coordMat[c][0] = supPoints1D[i];
+      coordMat[c++][1] = supPoints1D[0];
+    }
+    //edge2
+    for(UInt i=1;i<order_;i++){
+      coordMat[c][0] = supPoints1D[order_];
+      coordMat[c++][1] = supPoints1D[i];
+    }
+    //edge3
+    for(UInt i=1;i<order_;i++){
+      coordMat[c][0] = supPoints1D[i];
+      coordMat[c++][1] = supPoints1D[order_];
+    }
+    //edge4
+    for(UInt i=1;i<order_;i++){
+      coordMat[c][0] = supPoints1D[0];
+      coordMat[c++][1] = supPoints1D[i];
+    }
+
+    //inner
+    for(UInt i=1;i<order_;i++){
+      for(UInt j=1;j<order_;j++){
+        coordMat[c][0] = supPoints1D[j];
+        coordMat[c++][1] = supPoints1D[i];
+      }
+    }
   }
 
   //=========================================================================
@@ -652,4 +777,189 @@ namespace CoupledField {
       order_ = order;
       actNumFncs_ = (order+1)*(order+1)*(order+1);
     }
+
+    void FeH1LagrangeHexVar::GetLocalDOFCoordinates(Matrix<Double> & coordMat){
+        if(supportingPoints_.find(order_) == supportingPoints_.end() )
+               supportingPoints_[order_] = CalcGaussLobattoPoints(order_);
+        StdVector<Double> supPoints1D = supportingPoints_[order_];
+
+        //This has to be a nx3 matrix even for 1D
+        coordMat.Resize(actNumFncs_,3);
+        coordMat.Init();
+
+        //vertices:
+        coordMat[0][0] = supPoints1D[0];
+        coordMat[0][1] = supPoints1D[0];
+        coordMat[0][2] = supPoints1D[0];
+
+        coordMat[1][0] = supPoints1D[order_];
+        coordMat[1][1] = supPoints1D[0];
+        coordMat[1][2] = supPoints1D[0];
+
+        coordMat[2][0] = supPoints1D[order_];
+        coordMat[2][1] = supPoints1D[order_];
+        coordMat[2][2] = supPoints1D[0];
+
+        coordMat[3][0] = supPoints1D[0];
+        coordMat[3][1] = supPoints1D[order_];
+        coordMat[3][2] = supPoints1D[0];
+
+        coordMat[4][0] = supPoints1D[0];
+        coordMat[4][1] = supPoints1D[0];
+        coordMat[4][2] = supPoints1D[order_];
+
+        coordMat[5][0] = supPoints1D[order_];
+        coordMat[5][1] = supPoints1D[0];
+        coordMat[5][2] = supPoints1D[order_];
+
+        coordMat[6][0] = supPoints1D[order_];
+        coordMat[6][1] = supPoints1D[order_];
+        coordMat[6][2] = supPoints1D[order_];
+
+        coordMat[7][0] = supPoints1D[0];
+        coordMat[7][1] = supPoints1D[order_];
+        coordMat[7][2] = supPoints1D[order_];
+
+        UInt c = 4;
+        //edge1
+        for(UInt i=1;i<order_;i++){
+          coordMat[c][0] = supPoints1D[i];
+          coordMat[c][1] = supPoints1D[0];
+          coordMat[c++][2] = supPoints1D[0];
+        }
+        //edge2
+        for(UInt i=1;i<order_;i++){
+          coordMat[c][0] = supPoints1D[order_];
+          coordMat[c][1] = supPoints1D[i];
+          coordMat[c++][2] = supPoints1D[0];
+        }
+        //edge3
+        for(UInt i=1;i<order_;i++){
+          coordMat[c][0] = supPoints1D[i];
+          coordMat[c][1] = supPoints1D[order_];
+          coordMat[c++][2] = supPoints1D[0];
+        }
+        //edge4
+        for(UInt i=1;i<order_;i++){
+          coordMat[c][0] = supPoints1D[0];
+          coordMat[c][1] = supPoints1D[i];
+          coordMat[c++][2] = supPoints1D[0];
+        }
+
+        //edge5
+        for(UInt i=1;i<order_;i++){
+          coordMat[c][0] = supPoints1D[0];
+          coordMat[c][1] = supPoints1D[0];
+          coordMat[c++][2] = supPoints1D[i];
+        }
+        //edge6
+        for(UInt i=1;i<order_;i++){
+          coordMat[c][0] = supPoints1D[order_];
+          coordMat[c][1] = supPoints1D[0];
+          coordMat[c++][2] = supPoints1D[i];
+        }
+        //edge7
+        for(UInt i=1;i<order_;i++){
+          coordMat[c][0] = supPoints1D[order_];
+          coordMat[c][1] = supPoints1D[order_];
+          coordMat[c++][2] = supPoints1D[i];
+        }
+        //edge8
+        for(UInt i=1;i<order_;i++){
+          coordMat[c][0] = supPoints1D[0];
+          coordMat[c][1] = supPoints1D[order_];
+          coordMat[c++][2] = supPoints1D[i];
+        }
+
+        //edge9
+        for(UInt i=1;i<order_;i++){
+          coordMat[c][0] = supPoints1D[i];
+          coordMat[c][1] = supPoints1D[0];
+          coordMat[c++][2] = supPoints1D[order_];
+        }
+        //edge10
+        for(UInt i=1;i<order_;i++){
+          coordMat[c][0] = supPoints1D[order_];
+          coordMat[c][1] = supPoints1D[i];
+          coordMat[c++][2] = supPoints1D[order_];
+        }
+        //edge11
+        for(UInt i=1;i<order_;i++){
+          coordMat[c][0] = supPoints1D[i];
+          coordMat[c][1] = supPoints1D[order_];
+          coordMat[c++][2] = supPoints1D[order_];
+        }
+        //edge12
+        for(UInt i=1;i<order_;i++){
+          coordMat[c][0] = supPoints1D[0];
+          coordMat[c][1] = supPoints1D[i];
+          coordMat[c++][2] = supPoints1D[order_];
+        }
+
+        //face1
+        for(UInt i=1;i<order_;i++){
+          for(UInt j=1;j<order_;j++){
+            coordMat[c][0] = supPoints1D[j];
+            coordMat[c][1] = supPoints1D[i];
+            coordMat[c++][2] = supPoints1D[0];
+          }
+        }
+
+        //face2
+        for(UInt i=1;i<order_;i++){
+          for(UInt j=1;j<order_;j++){
+            coordMat[c][0] = supPoints1D[j];
+            coordMat[c][1] = supPoints1D[0];
+            coordMat[c++][2] = supPoints1D[i];
+          }
+        }
+
+        //face3
+        for(UInt i=1;i<order_;i++){
+          for(UInt j=1;j<order_;j++){
+            coordMat[c][0] = supPoints1D[order_];
+            coordMat[c][1] = supPoints1D[j];
+            coordMat[c++][2] = supPoints1D[i];
+          }
+        }
+
+        //face4
+        for(UInt i=1;i<order_;i++){
+          for(UInt j=1;j<order_;j++){
+            coordMat[c][0] = supPoints1D[j];
+            coordMat[c][1] = supPoints1D[order_];
+            coordMat[c++][2] = supPoints1D[i];
+          }
+        }
+
+        //face5
+        for(UInt i=1;i<order_;i++){
+          for(UInt j=1;j<order_;j++){
+            coordMat[c][0] = supPoints1D[0];
+            coordMat[c][1] = supPoints1D[j];
+            coordMat[c++][2] = supPoints1D[i];
+          }
+        }
+
+        //face6
+        for(UInt i=1;i<order_;i++){
+          for(UInt j=1;j<order_;j++){
+            coordMat[c][0] = supPoints1D[j];
+            coordMat[c][1] = supPoints1D[i];
+            coordMat[c++][2] = supPoints1D[order_];
+          }
+        }
+
+        //inner
+        for(UInt i=1;i<order_;i++){
+          for(UInt j=1;j<order_;j++){
+            for(UInt k=1;k<order_;k++){
+              coordMat[c][0] = supPoints1D[j];
+              coordMat[c][1] = supPoints1D[i];
+              coordMat[c++][2] = supPoints1D[k];
+            }
+          }
+        }
+
+      }
 }

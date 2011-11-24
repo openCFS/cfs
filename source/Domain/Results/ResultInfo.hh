@@ -5,12 +5,14 @@
 
 #include "Utils/StdVector.hh"
 #include "General/Environment.hh"
+#include "FeBasis/FeFunctions.hh"
 
 namespace CoupledField {
 
   //! Forward class declaration
   //class AnsatzFct;
   class EntityList;
+  class BaseFeFunction;
 
   //! This class describes the resultType
   struct ResultInfo {
@@ -56,6 +58,15 @@ namespace CoupledField {
     ResultInfo& operator=( const ResultInfo& data );
 
 
+    /** Set the FeFunction of the current result **/
+    void SetFeFunction(shared_ptr<BaseFeFunction > feFunct){
+      this->feFct_ = feFunct;
+    }
+
+    /** Get the FeFunction of the current result **/
+    shared_ptr<BaseFeFunction>  GetFeFunction(){
+      return feFct_;
+    }
 
     // =======================================================================
     // D A T A    M E M B E R S 
@@ -98,6 +109,11 @@ namespace CoupledField {
     //! Conversion from EntityUnknownType to string
     static void String2Enum( const std::string& in,
                              EntityUnknownType& out );
+
+  protected:
+
+    shared_ptr<BaseFeFunction> feFct_;
+
   };
 
   //! Comparison operator

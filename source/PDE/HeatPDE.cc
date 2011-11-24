@@ -1,6 +1,3 @@
-// -*- mode: c++; coding: utf-8; indent-tabs-mode: nil; -*-
-// kate: space-indent on; indent-width 2; encoding utf-8;
-// kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 #include <boost/lexical_cast.hpp>
 
 #include <fstream>
@@ -8,8 +5,6 @@
 #include <sstream>
 #include <string>
 #include <math.h>
-
-#include <boost/tokenizer.hpp>
 
 #include "HeatPDE.hh"
 
@@ -19,7 +14,7 @@
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "Domain/CoefFunction/CoefFunction.hh"
 #include "Utils/StdVector.hh"
-#include "Driver/SolveSteps/SolveStepElec.hh"
+
 #include "CoupledPDE/PDECoupling.hh"
 #include "Driver/Assemble.hh"
 #include "Utils/ApproxData.hh"
@@ -555,6 +550,8 @@ void HeatPDE::DefinePrimaryResults() {
   feFunctions_[HEAT_TEMPERATURE]->SetResultInfo(res1);
   results_.Push_back( res1 );
   availResults_.insert( res1 );
+
+  res1->SetFeFunction(feFunctions_[HEAT_TEMPERATURE]);
 
 
   // === TEMPERATURE RHS ===

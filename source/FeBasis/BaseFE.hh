@@ -132,6 +132,25 @@ namespace CoupledField
       EXCEPTION( "Not implemented in base class");
     }
 
+    //! Compute the coefficient and exponent matrix for an alternate desciption of
+    //! higher order results. I.e. monomial representation.
+    //! We assume a test function \f$ \phi_j(\xi,\eta,\zeta)\f$ whihc can be expressed as
+    //! a monomial in the following way
+    //! \f[
+    //!   \phi_j = \displaystyle \sum_{k=1}^{d} p_k \Phi_{ik}
+    //! \f]
+    //! In which the coefficients \f$p_k\f$ can be computed by the matrix P ( \f$d\times3\f$ )which denotes the
+    //! exponents of the local coordinates. i.e.
+    //! \f[
+    //!   p_i = \xi^{P_{i1}} \eta^{P_{i2}} \zeta^{P_{i3}} \ .
+    //! \f]
+    //! The \f$\Phi_{ik}\f$ are the coefficients of the polynomial and are stored in the matrix C
+    //! In case of Lagrange Polynomials C can be found by computing the inverse of the vandermonde-matrix
+    //! \param P Matrix storing the exponentials of the local directions
+    //! \param C Matrix monomial coefficients
+    virtual void ComputeMonomialCoefficients(Matrix<Integer>& P, Matrix<Double>& C){
+      Exception("Not implemented in base class");
+    }
   protected:
 
     //! Actual number of ansatz functions

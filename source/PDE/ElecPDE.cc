@@ -422,6 +422,9 @@ REFACTOR;
       res1->entryType = ResultInfo::SCALAR;
     }
     feFunctions_[ELEC_POTENTIAL]->SetResultInfo(res1);
+
+    res1->SetFeFunction(feFunctions_[ELEC_POTENTIAL]);
+
     results_.Push_back( res1 );
     availResults_.insert( res1 );
     

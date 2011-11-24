@@ -89,6 +89,10 @@ namespace CoupledField {
     //! \copydoc BaseFE::GetMaxOrderLocDir
     virtual void GetMaxOrderLocDir(StdVector<UInt>& order );
     
+    //! @copydoc BaseFE::ComputeMonomialCoefficients
+    //! Overloaded method for lagrange Elements
+    virtual void ComputeMonomialCoefficients(Matrix<Integer>& P, Matrix<Double>& C);
+
   protected:
 
     //! @copydoc FeH1::CalcShFnc
@@ -103,6 +107,10 @@ namespace CoupledField {
                                     const Elem* ptElem,
                                     UInt comp = 1 ) = 0;
     
+    virtual void GetLocalDOFCoordinates(Matrix<Double> & coordMat){
+      Exception("GetLocalDOFCoordinates: Not implemented here...");
+    }
+
     //! Polynomial order of the finite element
     UInt order_;
   };
@@ -137,6 +145,9 @@ namespace CoupledField {
                             const Vector<Double>& point,
                             const Elem* ptElem,
                             UInt comp = 1 );
+
+    //! Returns all coordinates of the given element in the correct ordering
+    virtual void GetLocalDOFCoordinates(Matrix<Double> & coordMat);
   };
   
   //! Lagrangian quadrilateral element of variable order 
@@ -169,6 +180,7 @@ namespace CoupledField {
                             const Vector<Double>& point,
                             const Elem* ptElem,
                             UInt comp = 1 );
+    virtual void GetLocalDOFCoordinates(Matrix<Double> & coordMat);
   };
   
   //! Lagrangian hexahedral element of varaiable order
@@ -201,6 +213,8 @@ namespace CoupledField {
                             const Vector<Double>& point,
                             const Elem* ptElem,
                             UInt comp = 1 );
+
+    virtual void GetLocalDOFCoordinates(Matrix<Double> & coordMat);
   };  
 }
 #endif  
