@@ -150,7 +150,8 @@ namespace CoupledField{
                          const Vector<TYPE> & locVec, 
                          const Vector<Double> & globModelPoint ) const { 
 
-    Double phi, r;
+    Double phi;
+    // Double r; // TODO: Unused variable r
     Vector<Double> localPoint(3), d(3);
     Vector<TYPE> temp(3);
 
@@ -162,8 +163,8 @@ namespace CoupledField{
     rotationMat_.Mult(d, localPoint);
 
 
-    r = std::sqrt(localPoint[0] * localPoint[0] 
-                   + localPoint[1] * localPoint[1]);
+    // r = std::sqrt(localPoint[0] * localPoint[0] 
+    //               + localPoint[1] * localPoint[1]);
     phi = std::atan2(localPoint[1], localPoint[0]);
     
     // calculate global coordinate of locVec, by applying the

@@ -20,7 +20,7 @@ namespace CoupledField
     nonLinType_ = NEWTON;
 
     // get pointer to nonlinear BH curve approximation
-    ptMaterial->NeedApproxMatCurve( magBH );
+    ptMaterial->NeedApproxMatCurve( MAG_PERMEABILITY );
     
     // fetch real start values for BH-curve
     if( isOrthotropic_ ) {
@@ -66,7 +66,7 @@ namespace CoupledField
     Double derivReluctivity = 0.0;  
   
     // get pointer to nonlinear BH curve approximation
-    ApproxData* nlinFnc = ptMaterial->GetNonlinFncBH(MAG_PERMEABILITY);
+    ApproxData* nlinFnc = ptMaterial->GetNonlinFnc(MAG_PERMEABILITY);
 
  
     // get solution of current element

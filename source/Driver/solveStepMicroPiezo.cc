@@ -76,7 +76,7 @@ namespace CoupledField {
     bool performOneMoreStep;
     UInt iterationCounter=0;
     Double etaLineSearch, residualNorm;
-    Double incrementalErrPrev = 1e20;
+    // Double incrementalErrPrev = 1e20; // TODO: Unused variable incrementalErrPrev
     Double incrementalErr;
 
     Vector<Double> newSol( numEqns_ ); 
@@ -233,7 +233,7 @@ namespace CoupledField {
 //       }
 
 
-      incrementalErrPrev = incrementalErr;
+      // incrementalErrPrev = incrementalErr;
       residualNorm = incrementalErr;
 
       // output of norms and data

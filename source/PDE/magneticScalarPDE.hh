@@ -36,9 +36,6 @@ namespace CoupledField
     //! Destructor
     virtual ~MagScalarPDE(){};
         
-    //! Initialize NonLinearities
-    void InitNonLin();    
-
     //! Define all (bilinearform) integrators needed for this pde
     void DefineIntegrators( );
 

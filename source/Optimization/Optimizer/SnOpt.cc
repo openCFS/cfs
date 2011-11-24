@@ -435,11 +435,11 @@ bool SnOpt::eval_g(int n, const double* x, int m, double* g)
 {
   LOG_TRACE(snopt) << "eval_g";
   
-  for(int i = 0; i < m; i++) LOG_DBG3(snopt) <<   "old G[" << i << "] = " << g[i];
+  // for(int i = 0; i < m; i++) LOG_DBG3(snopt) <<   "old G[" << i << "] = " << g[i];
 
   EvalConstraints(n, x, m, true, g);
   
-  for(int i = 0; i < m; i++) LOG_DBG3(snopt) <<   "new G[" << i << "] = " << g[i];
+  for(int i = 0; i < m; i++) LOG_DBG3(snopt) <<   "g[" << i << "] = " << g[i];
 
   return true;
 }
@@ -459,8 +459,9 @@ bool SnOpt::eval_jac_g(int n, const double* x, int m, int nele_jac, double* pG)
   
   for(int i = 0; i < nele_jac; i++)
   {
-    LOG_DBG3(snopt) <<   "old grad_G[" << i << "] = " << pG[i] << ", new grad_G[" << i << "] = " << gradhelper[i];
+    // LOG_DBG3(snopt) <<   "old grad_G[" << i << "] = " << pG[i] << ", new grad_G[" << i << "] = " << gradhelper[i];
     pG[i] = gradhelper[i];
+    LOG_DBG3(snopt) <<   "grad_g[" << i << "] = " << pG[i];
   }
 
   return true;

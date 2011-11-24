@@ -36,32 +36,14 @@ function Pygmentize {
 }
 
 Pygmentize hdf5_file_format.xml hdf5_file_format.tex
-Pygmentize crosspoint_test.c gmsh_cp_test.tex
-Pygmentize photo.c gmsh_mesh_from_pic.tex
-Pygmentize gid_batch.tcl gid_batch.tex
-Pygmentize gid_pw_server.sh gid_pw_server.tex
-Pygmentize pv_analytical_sol.py pv_analytical_sol.tex
-Pygmentize pv_scipy_hankel1.py pv_scipy_hankel1.tex
-Pygmentize pv_matlab_besselh.m pv_matlab_besselh.tex
-Pygmentize pv_texture_map.py pv_texture_map.tex
-Pygmentize icem_to_ansys.in.txt icem_to_ansys.in.tex
-Pygmentize Pfeifenfussmodell_modificated_swept.in.txt Pfeifenfussmodell_modificated_swept.in.tex
-Pygmentize mkmesh.txt mkmesh.tex
-Pygmentize mkmesh.mlib.txt mkmesh.mlib.tex
-Pygmentize ansys_surf_vol_mesh.txt ansys_surf_vol_mesh.tex
-Pygmentize cplreader_meshgen.xml cplreader_meshgen.tex
 Pygmentize qs_obtain_sources.sh qs_obtain_sources.tex
 Pygmentize git_checkout_cfs.sh git_checkout_cfs.tex
 Pygmentize qs_configure_build.sh qs_configure_build.tex
-Pygmentize pv_tria_local_global_mapping.py pv_tria_local_global_mapping.tex
-Pygmentize pv_xi_eta.py pv_xi_eta.tex
-Pygmentize gmsh_wing_points.cpp gmsh_wing_points.tex
 Pygmentize kreuzinger.sh kreuzinger.tex
 Pygmentize platform_defaults_mac.cmake platform_defaults_mac.tex
 Pygmentize macports_installed_pckgs.txt mac_ports_installed_pckgs.tex
 Pygmentize nacs_win.txt nacs_win.tex
 Pygmentize nacs_win_build_howto.txt nacs_win_build_howto.tex
-Pygmentize ansys_transitional_pyra.txt ansys_transitional_pyra.tex
 Pygmentize mpcci_reactivate_lse24_lic.txt mpcci_reactivate_lse24_lic.tex
 Pygmentize org.eclipse.ui.editors.prefs org.eclipse.ui.editors.prefs.tex
 Pygmentize org.eclipse.core.resources.prefs org.eclipse.core.resources.prefs.tex

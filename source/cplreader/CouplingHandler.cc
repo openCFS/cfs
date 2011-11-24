@@ -27,6 +27,10 @@ namespace fs=boost::filesystem;
 #include "OutputWriter.hh"
 #include "CouplingHandler.hh"
 
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
 namespace CoupledField
 {
 
@@ -367,6 +371,7 @@ namespace CoupledField
   {
     Settings& settings = Settings::Instance();
     bool calcSrc = settings.GetInt("calcsrc") != 0;
+    UInt stepInc = settings.GetInt("stepincr");
     UInt counter = 0;
     Double stepVal = 0;
     UInt numFiles = ptFileReader_->GetNumFiles();
@@ -409,7 +414,7 @@ namespace CoupledField
       for (actRegion = 0; actRegion<numRegions; actRegion++)
         regionNames.push_back(ptFileReader_->GetRegionName(actRegion));
       
-      while ( ( counter < numFiles ) && readOK)
+      while ( ( counter < numFiles*stepInc ) && readOK)
       {
         stepVal = ptFileReader_->GetTimeStep(counter);
         stepNum = counter + ptFileReader_->GetStartIndex();
@@ -532,9 +537,13 @@ namespace CoupledField
             UInt regIdx = 0;
             while (regionNames[regIdx] != iterRegionAct->first )
               ++regIdx;
-            if (flowData[regIdx][ACOU_RHS_LOAD].isActive)
+            if ( flowData[regIdx].find(ACOU_RHS_LOAD)
+                 != flowData[regIdx].end() )
             {
-              regionNodesActive[iterRegionAct->first] = &iterRegionAct->second;
+              if (flowData[regIdx][ACOU_RHS_LOAD].isActive)
+              {
+                regionNodesActive[iterRegionAct->first] = &iterRegionAct->second;
+              }
             }
           }
           findNodeMultiRegion(regionNodesActive, multiNodes);
@@ -556,8 +565,12 @@ namespace CoupledField
               UInt regIdx = 0;
               while (regionNames[regIdx] != regName )
                 ++regIdx;
-              if (flowData[regIdx][ACOU_RHS_LOAD].isActive)
-                accumValNodes += flowData[regIdx][ACOU_RHS_LOAD].data[node];
+              if ( flowData[regIdx].find(ACOU_RHS_LOAD)
+                  != flowData[regIdx].end() )
+              {
+                if (flowData[regIdx][ACOU_RHS_LOAD].isActive)
+                  accumValNodes += flowData[regIdx][ACOU_RHS_LOAD].data[node];
+              }
             }
             // set accumulated values
             iterRegions = iterMultiNodes->second.begin();
@@ -568,8 +581,12 @@ namespace CoupledField
               UInt regIdx = 0;
               while (regionNames[regIdx] != regName )
                 ++regIdx;
-              if (flowData[regIdx][ACOU_RHS_LOAD].isActive)
-                flowData[regIdx][ACOU_RHS_LOAD].data[node] = accumValNodes;
+              if ( flowData[regIdx].find(ACOU_RHS_LOAD)
+                  != flowData[regIdx].end() )
+              {
+                if (flowData[regIdx][ACOU_RHS_LOAD].isActive)
+                  flowData[regIdx][ACOU_RHS_LOAD].data[node] = accumValNodes;
+              }
             }
           }
         }// end of nodes on multiple region correction
@@ -597,7 +614,7 @@ namespace CoupledField
         }
         
         // increment time step counter
-        counter++;
+        counter = counter + stepInc;
       }//end of while
 
       owIt = outputWriters_.begin();
@@ -783,6 +800,19 @@ namespace CoupledField
     UInt maxNENodes = ptFileReader_->GetMaxNumElemNodes();
     UInt nodeNum;
 
+#ifdef _OPENMP
+    IntegrationMap ptElemI(ptElemIntegr_);
+    std::cout << "...parallel loop over " << nElems << " elements..." ;
+#else
+    std::cout << "...serial loop over " << nElems << " elements..." ;
+#endif
+    std::cout.flush();
+    UInt velIdx,topoIdx,idx;
+#pragma omp parallel private(elemIdx,elemType,numElemNodes,elemDim,coordMat, \
+                                 nodaldTijdxj,nodalVel,nodeNum, \
+                                 elemVec,nodalLoadDensity,velIdx,topoIdx,idx) firstprivate(divLHTensor,ptElemI) 
+{
+    #pragma omp for nowait
     for( int i=0; i<nElems; i++)
     {
       elemIdx = regionElems_[regionIdx][i] - 1;
@@ -801,8 +831,8 @@ namespace CoupledField
       for( UInt n=0; n<numElemNodes; n++)
       {
         nodeNum = topology_[elemIdx * maxNENodes + n];
-        UInt topoIdx = (nodeNum - 1) * 3;
-        UInt velIdx = regionNodeIndices_[regionIdx][nodeNum] * dim_;
+        topoIdx = (nodeNum - 1) * 3;
+        velIdx = regionNodeIndices_[regionIdx][nodeNum] * dim_;
 
         for( UInt d=0; d<elemDim; d++)
         {
@@ -810,16 +840,43 @@ namespace CoupledField
           nodalVel[d][n] = velField[velIdx+d];
         }
       }
+      if(flowData.find(SMOOTH_DISPLACEMENT) != flowData.end())
+      {
+        FlowDataPartStruct& dataSmoothDispl = flowData[SMOOTH_DISPLACEMENT];
+        std::vector<Double>& mechSmoothVec = dataSmoothDispl.data;
+        for( UInt n=0; n<numElemNodes; n++)
+        {
+          nodeNum = topology_[elemIdx * maxNENodes + n];
+          UInt smoothIdx = regionNodeIndices_[regionIdx][nodeNum] * dim_;
+
+          for( UInt d=0; d<elemDim; d++)
+          {
+            coordMat[d][n] += mechSmoothVec[smoothIdx +d];
+          }
+        }
+      }
 
       try {
+#ifdef _OPENMP
+        if (doIntAverageCentre_)
+        {
+          ptElemI[elemType].PerformIntegrationCentre( coordMat, nodalVel,
+                               elemVec, nodalLoadDensity, divLHTensor, density);
+        } else {
+          ptElemI[elemType].PerformIntegration( coordMat, nodaldTijdxj, nodalVel,
+                               elemVec, nodalLoadDensity, divLHTensor, density);
+        }
+#else
         if (doIntAverageCentre_)
         {
           ptElemIntegr_[elemType]->PerformIntegrationCentre( coordMat, nodalVel,
-                                                       elemVec, nodalLoadDensity, divLHTensor, density);
+                               elemVec, nodalLoadDensity, divLHTensor, density);
         } else {
           ptElemIntegr_[elemType]->PerformIntegration( coordMat, nodaldTijdxj, nodalVel,
-                                                       elemVec, nodalLoadDensity, divLHTensor, density);
+                               elemVec, nodalLoadDensity, divLHTensor, density);
         }
+#endif
+
       } catch (CoupledField::Exception &ex)
       {
         std::cerr << "WARN: An Exception occurred during source term "
@@ -852,7 +909,6 @@ namespace CoupledField
       // Add contributions of all element nodes
       for( UInt n=0; n<numElemNodes; n++)
       {
-        UInt idx;
         nodeNum = topology_[elemIdx * maxNENodes + n];
         idx = regionNodeIndices_[regionIdx][nodeNum];
 
@@ -863,7 +919,9 @@ namespace CoupledField
         }
 #endif
 
+#pragma omp atomic 
         acouRhsField[idx] -= elemVec[n];
+#pragma omp atomic 
         acouRhsDensityField[idx] -= nodalLoadDensity[n];
       }
       
@@ -873,6 +931,7 @@ namespace CoupledField
         acouDivLighthillTensor[i*dim_ + n] = divLHTensor[n];
       }      
     }
+}//end of parallel region
 
     std::cout << "done." << std::endl;
   }

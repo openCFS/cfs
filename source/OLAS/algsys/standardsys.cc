@@ -283,8 +283,14 @@ namespace CoupledField {
       {
         sysmat_[SYSTEM]->Export((base+".mtx").c_str() );
 
+        if(els->HasByVal("stiffness", true) && sysmat_[STIFFNESS] != NULL)
+          sysmat_[STIFFNESS]->Export((base+"_stiffness.mtx").c_str() );
+
         if(els->HasByVal("damping", true) && sysmat_[DAMPING] != NULL)
           sysmat_[DAMPING]->Export((base+"_damping.mtx").c_str() );
+
+        if(els->HasByVal("mass", true) && sysmat_[MASS] != NULL)
+          sysmat_[MASS]->Export((base+"_mass.mtx").c_str() );
 
         if(els->HasByVal("auxiliary", true) && sysmat_[AUXILIARY] != NULL)
           sysmat_[AUXILIARY]->Export((base+"_aux.mtx").c_str() );

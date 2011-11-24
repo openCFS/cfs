@@ -1,5 +1,8 @@
 #!/bin/sh
-. `dirname $0`/distro.sh -h
+
+MODE="-h"
+
+. `dirname $0`/distro.sh
 
 # This script is not primarily meant to be used on its own. It will get merged
 # into    one   script    bootstrap_devel_machine.txt   with    distro.sh   by
@@ -13,19 +16,20 @@ ARCH=$(echo $ARCH | sed 'y/'$LOWER'/'$UPPER'/')
 DIST=$(echo $DIST | sed 'y/'$LOWER'/'$UPPER'/')
 REV=$(echo $REV | sed 'y/'$LOWER'/'$UPPER'/')
 
-uid=$(/usr/bin/id -u) && [ "$uid" = "0" ] ||
-{ echo "$0 must be run as root!"; exit 1; }
+#uid=$(/usr/bin/id -u) && [ "$uid" = "0" ] ||
+#{ echo "$0 must be run as root!"; exit 1; }
 
 echo "DIST: $DIST"
 echo "REV: $REV"
 echo "ARCH: $ARCH"
 
-function ExitFail {
+ExitFail() {
     echo "A problem has occured. Please try to fix the reason and try again."
     exit 1;
 }
 
-function SetupDebian {
+SetupDebian() {
+    # Setup Debian, Ubuntu, Linux Mint, etc...
     apt-get install subversion gcc g++ gfortran automake autoconf cmake \
         perl-base graphviz texlive-latex-base tex4ht \
         python-pygments doxygen tcl-dev python-dev git-svn \
@@ -33,13 +37,14 @@ function SetupDebian {
         patch diffutils zip libxt-dev libxp6 tk-dev \
         libgl1-mesa-dev libglu1-mesa-dev libxmuu-dev || ExitFail
 
+    rm -f /usr/lib/libXext.so /usr/lib/libXmu.so
     ln -s /usr/lib/libXext.so.6.4.0 /usr/lib/libXext.so || ExitFail
     ln -s /usr/lib/libXmu.so.6.2.0 /usr/lib/libXmu.so || ExitFail
 }
 
-function SetupOpenSuse {
+SetupOpenSuse() {
     zypper install subversion gcc gcc-c++ gcc-fortran automake autoconf \
-        cmake perl-base graphviz texlive-latex texlive-tex4ht \
+        cmake perl-base perl-Switch graphviz texlive-latex texlive-tex4ht \
         python-pygments doxygen tcl-devel python-devel git-svn \
         java-1_6_0-openjdk-devel cmake-gui xorg-x11-libXt-devel \
         diffutils patch zip xorg-x11-libXp tk-devel Mesa-devel || ExitFail
@@ -53,18 +58,18 @@ function SetupOpenSuse {
         for repo in $REPO
         do
           zypper addrepo --check $repo Gmsh
-          if [[ $? -eq 0 ]]; then
+          if [ $? -eq 0 ]; then
             break;
           fi
         done
-        if [[ $? -ne 0 ]]; then
+        if [ $? -ne 0 ]; then
           ExitFail
         fi
 	zypper install gmsh || ExitFail
     fi
 }
 
-function SetupFedora {
+SetupFedora() {
     yum install subversion gcc gcc-c++ gcc-gfortran automake autoconf cmake \
         perl graphviz texlive-latex tetex-tex4ht \
         python-pygments doxygen tcl-devel python-devel git-svn \
@@ -72,34 +77,55 @@ function SetupFedora {
         patch diffutils zip libXt-devel libXp || ExitFail
 }
 
-function SetupCentOS {
+SetupRHEL() {
+    # Setup Red Hat Enterprise Linux, CentOS, Oracle, Scientific Linux, etc.
+    RHEL_REL=$(echo $REV | cut -d'.' -f1)
+
+    case "${RHEL_REL}" in
+	5) echo "Fine! RHEL release ${RHEL_REL} is supported!";;
+	6) echo "Fine! RHEL release ${RHEL_REL} is supported!";;
+	*)
+            echo "RHEL release ${RHEL_REL} is NOT supported!"
+            ;;
+    esac
+
     cd /etc/yum.repos.d && \
+    rm -f graphviz-rhel.repo || ExitFail 
     wget http://www.graphviz.org/graphviz-rhel.repo || ExitFail
 
     YC=atrpms.repo
     echo "[atrpms]" > $YC && \
     echo "name=Redhat Enterprise Linux RHEL\$releasever - \$basearch - ATrpms" >> $YC && \
-    echo "baseurl=http://dl.atrpms.net/el5-\$basearch/atrpms/stable/" >> $YC && \
+    echo "baseurl=http://dl.atrpms.net/el${RHEL_REL}-\$basearch/atrpms/stable/" >> $YC && \
     echo "gpgkey=http://ATrpms.net/RPM-GPG-KEY.atrpms" >> $YC && \
     echo "gpgcheck=1" >> $YC || ExitFail
-    wget http://ATrpms.net/RPM-GPG-KEY.atrpms || ExitFail
-    rpm --import http://ATrpms.net/RPM-GPG-KEY.atrpms || ExitFail
+    rpm --import http://ATrpms.net/RPM-GPG-KEY.atrpms
 
     YC=epel.repo
     echo "[epel]" > $YC && \
     echo "name=EPEL RHEL\$releasever - \$basearch" >> $YC && \
-    echo "baseurl=http://ftp.ucr.ac.cr/epel/5/\$basearch" >> $YC || ExitFail
-    wget http://ftp.ucr.ac.cr/epel/RPM-GPG-KEY-EPEL || ExitFail
-    rpm --import RPM-GPG-KEY-EPEL || ExitFail
+    echo "baseurl=http://ftp.ucr.ac.cr/epel/${RHEL_REL}/\$basearch" >> $YC || ExitFail
+    rm -f RPM-GPG-KEY-EPEL-${RHEL_REL} || ExitFail
+    wget http://ftp.ucr.ac.cr/epel/RPM-GPG-KEY-EPEL-${RHEL_REL} || ExitFail
+    rpm --import RPM-GPG-KEY-EPEL-${RHEL_REL}
 
     ARCH=$(uname -m | sed 's/i[0-9]86/i386/') || ExitFail
-    BASE=http://apt.sw.be/redhat/el5/en
-    RPM=$ARCH/rpmforge/RPMS/rpmforge-release-0.3.6-1.el5.rf.$ARCH.rpm
-    rpm -Uhv $BASE/$RPM || ExitFail
+    BASE=http://apt.sw.be/redhat/el${RHEL_REL}/en
+    case "${RHEL_REL}" in
+	5) RPM=$ARCH/rpmforge/RPMS/rpmforge-release-0.3.6-1.el5.rf.$ARCH.rpm
+	    ;;
+	6) RPM=$ARCH/rpmforge/RPMS/rpmforge-release-0.5.2-2.el6.rf.$ARCH.rpm
+	    ;;
+	*)
+            echo "RHEL release ${RHEL_REL} is not supported!"
+            ;;
+    esac
+    rpm -Uhv --force $BASE/$RPM || ExitFail
 
     yum makecache || ExitFail
 
     cd /opt && \
+    rm -f org.tmatesoft.svn_1.3.5.standalone.zip || ExitFail
     wget http://www.svnkit.com/org.tmatesoft.svn_1.3.5.standalone.zip && \
     unzip org.tmatesoft.svn_1.3.5.standalone.zip || ExitFail
 
@@ -114,15 +140,16 @@ function SetupCentOS {
     else
 	LIB="lib"
     fi 
+    rm -f /usr/$LIB/libXext.so
     ln -s /usr/$LIB/libXext.so.6.4.0 /usr/$LIB/libXext.so || ExitFail
 
-    echo "Please add the following lines to your \$HOME/.bashrc and open a new shell for all environment settings to become active."
-    echo "export JAVA_HOME=/usr"
-    echo "export PATH=/opt/svnkit-1.3.5.7406:\$PATH"
+    OUTPUT_STR="${OUTPUT_STR}\nPlease add the following lines to your \$HOME/.bashrc and open a new shell for all environment settings to become active.\n"
+    OUTPUT_STR="${OUTPUT_STR}export JAVA_HOME=/usr\n"
+    OUTPUT_STR="${OUTPUT_STR}export PATH=/opt/svnkit-1.3.5.7406:\$PATH\n"
 
 }
 
-function SetupMacOS {
+SetupMacOS() {
     ISOK=1
 
     # Install Xcode from the MacOS X installation DVD (optional packages -> Xcode)
@@ -165,7 +192,7 @@ function SetupMacOS {
 	fi
     done
 
-    if [ "$CMAKEDIR" == "" ]; then
+    if [ "$CMAKEDIR" = "" ]; then
 	echo "CMake not found! Please  go to www.cmake.org and download the latest"
 	echo "CMake package for Mac.";
 	ISOK=0
@@ -245,7 +272,81 @@ EOF
 
     rm -f /tmp/adjustenv.pl || ExitFail
 
-    echo "Please open a new shell for all environment settings to become active."
+    OUTPUT_STR="${OUTPUT_STR}\nPlease open a new shell for all environment settings to become active.\n"
+}
+
+SetupCMake() {
+    CMAKE_VERSION=$(cmake --version | cut -d' ' -f3 | cut -d'-' -f1)
+    CMAKE_MAJOR_VERSION=$(echo $CMAKE_VERSION | cut -d'.' -f1)
+    CMAKE_MINOR_VERSION=$(echo $CMAKE_VERSION | cut -d'.' -f2)
+
+    if [ $CMAKE_MAJOR_VERSION -ge 2 ] && [ $CMAKE_MINOR_VERSION -ge 8 ]; then
+        return 1
+    fi
+
+    PCKG_BASE_NAME="cmake-2.8.6";
+    MYTMPDIR="$TMPDIR/$(basename $0).$$"
+    echo "$MYTMPDIR"
+
+    (umask 077 && mkdir "$MYTMPDIR") || exit 1
+
+    cd "$MYTMPDIR"
+
+    # Define list of mirrors
+    mirrors="http://distfiles.macports.org/cmake/$PCKG_BASE_NAME.tar.gz
+             http://gentoo.tups.lv/source/distfiles/$PCKG_BASE_NAME.tar.gz
+             http://130.230.54.100/gentoo/distfiles/$PCKG_BASE_NAME.tar.gz
+             http://www.cmake.org/files/v2.8/$PCKG_BASE_NAME.tar.gz"
+
+    MD5SUM="2147da452fd9212bb9b4542a9eee9d5b"
+
+    # Download source
+    for mirror in $mirrors; do
+        if [ -f $PCKG_BASE_NAME.tar.gz ]; then
+            rm -f $PCKG_BASE_NAME.tar.gz
+        fi
+        wget $mirror
+        if [ $? -eq 0 ]; then break; fi
+    done
+
+    MD5SUM_ACTUAL=""
+    # Check MD5 sum on CMake >= 2.6
+    MD5SUM_ACTUAL="$MD5SUM_ACTUAL $(cmake -E md5sum cmake-2.8.6.tar.gz | cut -d' ' -f1)"
+    # Check MD5 sum on Mac OS X
+    MD5SUM_ACTUAL="$MD5SUM_ACTUAL $(md5 | cut -d'=' -f2 | cut -d' ' -f2)"
+    # Check MD5 sum on Linux
+    MD5SUM_ACTUAL="$MD5SUM_ACTUAL $(md5sum $PCKG_BASE_NAME.tar.gz | sed -e 's/ .*//')"
+
+    isokay=0
+    for sum in $MD5SUM_ACTUAL; do
+        if [ "$sum" = "$MD5SUM" ]; then isokay=1; break; fi
+    done
+
+    if [ $isokay -lt 1 ]; then
+        echo "MD5 sums for $PCKG_BASE_NAME do not match!";
+        exit 1
+    fi
+
+    tar xzf $PCKG_BASE_NAME.tar.gz
+
+    cd $PCKG_BASE_NAME
+
+    CC="gcc"; export CC
+    CXX="g++"; export CXX
+
+#    sh ./configure --prefix=/opt/$PCKG_BASE_NAME --no-qt-gui
+
+#    make
+
+#    make install
+
+    cd ..
+    rm -rf "$MYTMPDIR"
+
+    printf "\n# Setting PATH to CMake.\n" >> /etc/profile.local
+    printf "PATH=/opt/$PCKG_BASE_NAME/bin:\$PATH\n" >> /etc/profile.local
+    OUTPUT_STR="${OUTPUT_STR}\nPlease add the following line to your .bashrc or to an equivalent file:\n\n"
+    OUTPUT_STR="${OUTPUT_STR}PATH=/opt/$PCKG_BASE_NAME/bin:\$PATH; export PATH\n\n"
 }
 
 case "$DIST" in
@@ -253,8 +354,11 @@ case "$DIST" in
      OPENSUSE) SetupOpenSuse ;;
      DEBIAN) SetupDebian ;;
      UBUNTU) SetupDebian ;;
+     LINUXMINT) SetupDebian ;;
      FEDORA) SetupFedora ;;
-     CENTOS) SetupCentOS ;;
+     RHEL) SetupRHEL ;;
+     CENTOS) SetupRHEL ;;
+     SCIENTIFIC) SetupRHEL ;;
      *)
         echo "Your distribution $DIST is currently not supported by this script."
         echo "You are encouraged to contribute a new boostrap routine by taking"
@@ -264,3 +368,6 @@ case "$DIST" in
 	echo "or send it to one of the CFS++ developers."
         ;;
 esac
+
+SetupCMake
+printf "${OUTPUT_STR}"

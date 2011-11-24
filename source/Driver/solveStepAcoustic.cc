@@ -154,7 +154,7 @@ namespace CoupledField {
   
 
     Vector<Double>     sol, solderiv1, solderiv2, rhs;
-    BaseFE             * ptElem;
+    // BaseFE             * ptElem; // TODO: Unused variable ptElem
     StdVector<UInt> connect;
     StdVector<Integer> connect_PDE;
   
@@ -177,7 +177,10 @@ namespace CoupledField {
       c0 = sqrt(compressibility/density);
       materialData_[actRegionId]->GetScalar(BoverA,BOVERA,Global::REAL);
 
-      if ( regionNonLinType_[actRegionId] == WESTERVELT ) {
+      //get possible nonlinearities defined in this region
+      StdVector<NonLinType> nonLinTypes = regionNonLinTypes_[actRegionId]; 
+
+      if ( nonLinTypes.Find(WESTERVELT) != -1 ) {
         rhsWest = std::auto_ptr<nLinWesterveltRHSInt>(new nLinWesterveltRHSInt( isaxi_));
 
         // set correct factors for bilinear forms
@@ -185,7 +188,7 @@ namespace CoupledField {
         rhsWest->SetFactor( coeff1 );
         rhsInt = rhsWest;
       }
-      if ( regionNonLinType_[actRegionId] == KUZNETSOV ) {
+      if ( nonLinTypes.Find(KUZNETSOV) != -1 ) {
         rhsKuz = std::auto_ptr<nLinKuznetsovRHSInt>(new nLinKuznetsovRHSInt( isaxi_ ));
 
         // set correct factors for bilinear forms
@@ -198,14 +201,14 @@ namespace CoupledField {
       }
 
       // In case there is something nonlinear go on
-      if ( (regionNonLinType_[actRegionId] == WESTERVELT)
-           || (regionNonLinType_[actRegionId] == KUZNETSOV) ) {
+      if ( (nonLinTypes.Find(WESTERVELT) != -1) 
+           || (nonLinTypes.Find(KUZNETSOV) != -1) ) {
 
         // Get iterator
         EntityIterator it = actSDList.GetIterator();
         for ( it.Begin(); !it.IsEnd(); it++) {
           
-          ptElem  = it.GetElem()->ptElem;
+          // ptElem  = it.GetElem()->ptElem;
           connect = it.GetElem()->connect;
           
           PDE_.GetSolVecOfElement(sol, it, results_[0]);

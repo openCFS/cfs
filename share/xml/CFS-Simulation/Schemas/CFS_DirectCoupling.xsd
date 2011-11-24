@@ -69,7 +69,7 @@
 							  <xsd:sequence>
 								  <xsd:element name="region" minOccurs="1" maxOccurs="unbounded">
 									  <xsd:complexType>
-										  <xsd:attribute name="nonLinId" type="xsd:token" 
+										  <xsd:attribute name="nonLinIds" type="xsd:token" 
 														 use="optional" default=""/>
 										  <xsd:attribute name="name" type="xsd:token" use="required"/>
 									  </xsd:complexType>
@@ -115,7 +115,7 @@
 							  <xsd:sequence>
 								  <xsd:element name="region" minOccurs="1" maxOccurs="unbounded">
 									  <xsd:complexType>
-										  <xsd:attribute name="nonLinId" type="xsd:token" 
+										  <xsd:attribute name="nonLinIds" type="xsd:token" 
 														 use="optional" default=""/>
 										  <xsd:attribute name="name" type="xsd:token" use="required"/>
 									  </xsd:complexType>
@@ -163,7 +163,7 @@
                 <xsd:sequence>
                   <xsd:element name="region" minOccurs="1" maxOccurs="unbounded">
                     <xsd:complexType>
-                      <xsd:attribute name="nonLinId" type="xsd:token" 
+                      <xsd:attribute name="nonLinIds" type="xsd:token" 
                         use="optional" default=""/>
                       <xsd:attribute name="name" type="xsd:token" use="required"/>
                       <xsd:attribute name="complexMaterial" type="DT_CFSBool" use="optional" default="no"/>
@@ -222,7 +222,7 @@
                 <xsd:sequence>
                   <xsd:element name="region" minOccurs="1" maxOccurs="unbounded">
                     <xsd:complexType>
-                      <xsd:attribute name="nonLinId" type="xsd:token" 
+                      <xsd:attribute name="nonLinIds" type="xsd:token" 
                         use="optional" default=""/>
                       <xsd:attribute name="name" type="xsd:token" use="required"/>
                     </xsd:complexType>

@@ -1,0 +1,17 @@
+INCLUDE_DIRECTORIES(${HDF5_INCLUDE_DIR})
+
+SET(MATLABFILE_SRCS
+  MatFile.cc
+)
+
+ADD_LIBRARY(matlabfile STATIC ${MATLABFILE_SRCS})
+
+TARGET_LINK_LIBRARIES(matlabfile
+  cfsgeneral
+  ${HDF5_LT_LIBRARY}
+  ${HDF5_LIBRARY}
+  )
+
+ADD_EXECUTABLE(MatFileDemo   MatFileDemo.cc)
+
+TARGET_LINK_LIBRARIES(MatFileDemo matlabfile)

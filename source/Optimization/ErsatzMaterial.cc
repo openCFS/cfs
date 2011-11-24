@@ -343,6 +343,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
   {
     PtrParamNode in = iter->Get("homogenizedTensor");
     in->Get("norm_L2")->SetValue(homogenizedTensor.NormL2());
+    in->Get("trace")->SetValue(homogenizedTensor.Trace());
     SubTensorType stt = pde->GetSubTensorType();
 
 
@@ -1183,11 +1184,10 @@ double ErsatzMaterial::IntegrateDesignVariable(Objective* f, Condition* g, bool 
               if(calculateTensorTrace){
                 Matrix<double> material;
                 GetErsatzMaterialTensor(material, de->elem, de->GetType());
-                material.Trace(val);
+                val = material.Trace();
                 if(exponent != 1.0){
-                  double des;
                   GetErsatzMaterialTensor(material, de->elem);
-                  material.Trace(des);
+                  double des = material.Trace();
                   val *= exponent * std::pow(des, exponent - 1.0);
                 }
               }else{
@@ -1215,7 +1215,7 @@ double ErsatzMaterial::IntegrateDesignVariable(Objective* f, Condition* g, bool 
               if(calculateTensorTrace){ // use the trace of the stiffness Tensor as "volume"
                 Matrix<double> material;
                 GetErsatzMaterialTensor(material, de->elem);
-                material.Trace(des);
+                des = material.Trace();
               }
               else
               {

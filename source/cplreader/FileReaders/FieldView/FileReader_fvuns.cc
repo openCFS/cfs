@@ -167,8 +167,8 @@ void FileReader_fvuns::ReadTopology(std::vector<UInt> & TOPOLOGYDATA,
   int npyr_=0;
   int npri_=0;
   int ntet_=0;
-  int VertsPerCell;
-  int Cells=0;
+  // int VertsPerCell; // TODO: Unused variable VertsPerCell
+  // int Cells=0; // TODO: Unused variable Cells
 
 
   int allCells=0;
@@ -184,26 +184,26 @@ void FileReader_fvuns::ReadTopology(std::vector<UInt> & TOPOLOGYDATA,
     ntet_+=parts[i].ntet;
     npyr_+=parts[i].npyr;
     npri_+=parts[i].npri;
-    if(nhex_!=0) 
-    {
-      VertsPerCell=8;
-      Cells=parts[i].nhex;
-    }
-    if(ntet_!=0) 
-    {
-      VertsPerCell=4;
-      Cells=parts[i].ntet;
-    }
-    if(npyr_!=0) 
-    {
-      VertsPerCell=5;
-      Cells=parts[i].npyr;
-    }
-    if(npri_!=0) 
-    {
-      VertsPerCell=6;
-      Cells=parts[i].npri;
-    }
+    // if(nhex_!=0) 
+    // {
+      // VertsPerCell=8;
+      // Cells=parts[i].nhex;
+    // }
+    // if(ntet_!=0) 
+    // {
+      // VertsPerCell=4;
+      // Cells=parts[i].ntet;
+    // }
+    // if(npyr_!=0) 
+    // {
+      // VertsPerCell=5;
+      // Cells=parts[i].npyr;
+    // }
+    // if(npri_!=0) 
+    // {
+      // VertsPerCell=6;
+      // Cells=parts[i].npri;
+    // }
 
     if(parts[i].nhex!=0)
     {

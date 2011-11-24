@@ -13,7 +13,7 @@ SET(DRIVER_SRCS
   solveStepFluidMech.cc
   solveStepMagHyst.cc
   solveStepMech.cc
-  solveStepMpCCI.cc
+#  solveStepMpCCI.cc
   solveStepODE.cc
   solveStepMicroPiezo.cc
   solveStepPiezo.cc

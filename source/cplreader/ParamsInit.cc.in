@@ -42,8 +42,6 @@ namespace CoupledField
     settings.SetInt("segfault", param_segfault);
 
     int myargc = argc;
-    char** myargv = argv;
-    char* dummy[32];
 
     for (int n=1; n<argc; n++)
     {
@@ -55,13 +53,6 @@ namespace CoupledField
       {
         myargc = argc - 8;
 
-        dummy[0] = argv[0];
-        for(int i=0; i<myargc; i++)
-        {
-          dummy[i+1] = argv[8+i];
-        }
-
-        myargv = dummy;
         myargc++;
 
         break;

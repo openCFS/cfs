@@ -5,7 +5,8 @@
 # strieben, june 2007
 
 # Set language
-export LANG=en_US.UTF-8
+LANG=en_US.UTF-8
+export LANG
 
 # Get name of CFS/bin directory
 CFS_BIN_DIR=`dirname $0`
@@ -24,6 +25,10 @@ else
 fi
 
 DISTRO_SH=$CFS_ROOT_DIR/share/scripts/distro.sh
+if [ ! -x "$DISTRO_SH" ]; then
+  echo "Could not execute $DISTRO_SH. Exiting..."
+  exit 1
+fi
 
 # Get operating system
 OS=$($DISTRO_SH -h | cut -d' ' -f1)

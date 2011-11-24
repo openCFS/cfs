@@ -1,6 +1,6 @@
 SET(SIMOUTUNV_SRCS
-  simOutUnv.cc
-  simInputUnv.cc
+  SimOutputUnv.cc
+  SimInputUnv.cc
   unv_reader.cc
   unv.cc
   unv_dat.cc

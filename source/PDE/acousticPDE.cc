@@ -17,7 +17,6 @@
 #include "Forms/linNeumannInt.hh"
 #include "Forms/nonConformingInt.hh"
 #include "Forms/acouRHSLinForm.hh"
-#include "Estimator/spaceerror.hh"
 #include "newmark.hh"
 #include "newmarkFracDamp.hh"
 #include "DataInOut/WriteInfo.hh"
@@ -288,84 +287,33 @@ namespace CoupledField {
   // *************************************************************
   void  AcousticPDE::InitNonLin() {
 
+    SinglePDE::InitNonLin();
+
+   //now do PDE specifics
     nonLin_ = false;
-    // Check, if "nonLinList" is present
-    PtrParamNode nonLinListNode = myParam_->Get("nonLinList", ParamNode::PASS );
-    if( nonLinListNode ) {
 
-      // Get nonlinear types
-      ParamNodeList nonLinNodes = nonLinListNode->GetChildren();
-      for( UInt i = 0; i < nonLinNodes.GetSize(); i++ ) {
-
-        std::string actTypeString = nonLinNodes[i]->GetName();
-        std::string actId = nonLinNodes[i]->Get("id")->As<std::string>();
-
-        NonLinType actType;
-        String2Enum( actTypeString, actType );
-        nonLinIdType_[actId] = actType;
-      }
-    }
-
-    // Run over all region and set entry in "regionNonLinId"
-    ParamNodeList regionNodes =
-      myParam_->Get("regionList")->GetChildren();
-
-    RegionIdType actRegionId;
-    std::string actRegionName, actNonLinId;
-
-    if( regionNodes.GetSize() > 0 ) {
-      Info->PrintF( pdename_, "Non-linearity in following region(s)\n" );
-    }
-    for( UInt i = 0; i < regionNodes.GetSize(); i++ ) {
-
-      regionNodes[i]->GetValue( "name", actRegionName );
-      regionNodes[i]->GetValue( "nonLinId", actNonLinId );
-
-      if( actNonLinId == "" )
-        continue;
-
-      actRegionId = ptgrid_->GetRegion().Parse(actRegionName);
-
-      // Check nonLinId was already registerd
-      if( nonLinIdType_.find( actNonLinId) == nonLinIdType_.end() ) {
-        EXCEPTION( "NonLinearity with id '" << actNonLinId
-                   << "' was not defined in 'nonLinList'" );
-      }
-
-      regionNonLinId_[actRegionId] = actNonLinId;
-
-      // get related type of nonlinearity
-      NonLinType actType = nonLinIdType_[actNonLinId];
-      regionNonLinType_[actRegionId] = actType;
-
-
-      // check for specific types
-      if( actType == WESTERVELT ) {
+    std::map<std::string, NonLinType>::iterator it;
+    for ( it=nonLinTypes_.begin() ; it != nonLinTypes_.end(); it++ ) {
+      if ( (*it).second == WESTERVELT ) {
         nonLin_ = true;
         if ( formulation_ == ACOU_POTENTIAL )
           EXCEPTION( "Acoustic potential formulation not supported for "
                      << "Westervelt equation" );
-      } else if( actType == KUZNETSOV ) {
+      }
+      else if( (*it).second == KUZNETSOV ) {
         nonLin_ = true;
         if ( formulation_ == ACOU_PRESSURE ) {
           EXCEPTION( "Acoustic pressure formulation not supported for"
                      << "Kuznetsov equation!" );
         }
-      } else if( actType == VARIABLE_SOS_CN1 ||
-                 actType == VARIABLE_SOS_CN2 ||
-                 actType == VARIABLE_SOS_CN2Mean ) {
+      } else if( (*it).second == VARIABLE_SOS_CN1 ||
+                 (*it).second == VARIABLE_SOS_CN2 ||
+                 (*it).second == VARIABLE_SOS_CN2Mean ) {
         variableSpeedOfSoundCN_ = true;
       }
 
-      // Log to info file
-      std::string nonLinString;
-      Enum2String( nonLinIdType_[actNonLinId], nonLinString );
-      Info->PrintF( pdename_, " %s: %s\n", actRegionName.c_str(),
-                    nonLinString.c_str() );
-
     }
 
-    Info->PrintF( pdename_, "\n" );
   }
 
 
@@ -395,6 +343,17 @@ namespace CoupledField {
 
       PtrParamNode actRegionNode =
         myParam_->Get("regionList")->GetByVal( "region", "name", actRegionName );
+      std::string displInputId;
+      actRegionNode->GetValue("displInputId", displInputId);
+      if (updatedLagrangeForm_ &&  displInputId != "")
+      {
+        std::string solType;
+        GridDisplData gridDispData;
+        gridDispData.fileName4GridDisplacements_ = displInputId;
+        actRegionNode->GetValue("displSolType", solType);
+        gridDispData.solType = SolutionTypeEnum.Parse(solType);
+        gridDisplData_[actRegion] = gridDispData;
+      }
 
       // ********************************************************************
       //   Attention:
@@ -1217,11 +1176,6 @@ namespace CoupledField {
         acouRHSContext->SetPtPde( this );
         acouRHSContext->SetResult( results_[0], acouRHSRegionNodeList );
         assemble_->AddLinearForm( acouRHSContext );
-
-        //
-        (*regionIter)->GetValue("inputId", fileName4GridDisplacements_ );
-        regions4GridDisplacements_.Push_back(rhsRegion);
-
       }
     }
   }
@@ -1783,14 +1737,14 @@ namespace CoupledField {
 
         // If first volume element does not belong to acoustic PDE, try the
         // second one
-        Elem * ptVolElem = NULL;
+        // Elem * ptVolElem = NULL; // TODO: Unused variable ptVolElem
         if ( matIndex == -1 ) {
           matIndex = subdoms_.Find(actSaveElem->ptVolElem2->regionId);
-          ptVolElem = actSaveElem->ptVolElem2;
+          // ptVolElem = actSaveElem->ptVolElem2;
         }
-        else {
-          ptVolElem = actSaveElem->ptVolElem1;
-        }
+        // else {
+          // ptVolElem = actSaveElem->ptVolElem1;
+        // }
 
         if ( matIndex == -1) {
           EXCEPTION( "AcousticPDE::CalcForce: The two volume element"
@@ -2073,7 +2027,7 @@ namespace CoupledField {
     //some help variables
     Vector<Double> lCoordSurf;
     Vector<TYPE> elemIntensity(dim_);
-    BaseFE * ptSurfElemFE;
+    // BaseFE * ptSurfElemFE; // TODO: Unused variable ptSurfElemFE
     Double density  = 0.0;
 
     // Create vector with interpolation coordinate.
@@ -2107,7 +2061,7 @@ namespace CoupledField {
       bool vol_1 = surfNeighborRegions_[vals] == actSurfElem->ptVolElem1->regionId;
       Elem* ptVolElem = vol_1 ? actSurfElem->ptVolElem1 : actSurfElem->ptVolElem2;
 
-      ptSurfElemFE = actSurfElem->ptElem;
+      // ptSurfElemFE = actSurfElem->ptElem;
 
       const StdVector<UInt> & surfConnect = actSurfElem->connect;
 
@@ -2165,16 +2119,16 @@ namespace CoupledField {
     Double actFreq = parser->Eval( mHandle_ );
 
     //check solution type and compute factor
-    SolutionType solType;
+    // SolutionType solType; // TODO: Unused variable solType
     Complex multVal = 0;
 
     // factor 0.5 is due to the fact, that the values are peak values
     if ( formulation_ == ACOU_PRESSURE ) {
-      solType = ACOU_PRESSURE;
+      // solType = ACOU_PRESSURE;
       multVal = Complex(0.0, -0.5/ (2.0*PI*actFreq) );
     }
     else {
-      solType = ACOU_POTENTIAL;
+      // solType = ACOU_POTENTIAL;
       multVal = Complex(0.0, -0.5*(2.0*PI*actFreq));
     }
 

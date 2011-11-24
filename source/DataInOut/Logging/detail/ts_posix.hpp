@@ -69,27 +69,36 @@ public:
             throw std::runtime_error("could not create mutex");
     }
     ~mutex() {
-        int res = 0;
-        res = pthread_mutex_destroy(&m_mutex);
-        assert(res == 0);
+#ifndef NDEBUG
+        assert(pthread_mutex_destroy(&m_mutex) == 0);
+#else
+        pthread_mutex_destroy(&m_mutex);
+#endif
     }
 
     void Lock() {
-        int res = 0;
-        res = pthread_mutex_lock(&m_mutex);
-        assert(res == 0);
+#ifndef NDEBUG
+        assert(pthread_mutex_lock(&m_mutex) == 0);
+#else
+        pthread_mutex_lock(&m_mutex);
+#endif
         if (++m_count > 1)
         {
-            res = pthread_mutex_unlock(&m_mutex);
-            assert(res == 0);
+#ifndef NDEBUG
+            assert(pthread_mutex_unlock(&m_mutex) == 0);
+#else
+            pthread_mutex_unlock(&m_mutex);
+#endif
         }
     }
     void Unlock() {
         if (--m_count == 0)
         {
-            int res = 0;
-            res = pthread_mutex_unlock(&m_mutex);
-            assert(res == 0);
+#ifndef NDEBUG
+            assert(pthread_mutex_unlock(&m_mutex) == 0);
+#else
+            pthread_mutex_unlock(&m_mutex);
+#endif
         }
     }
 private:

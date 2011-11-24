@@ -40,7 +40,8 @@ namespace CoupledField
     Vector<Double> shFnc, globCoord;
     Matrix<Double> coordMat;
     BaseFE * ptElemFE = it.GetSurfElem()->ptElem;
-    UInt nrIntPts, nrNodes;
+    UInt nrIntPts;
+    // UInt nrNodes; // TODO: Unused variable nrNodes
     
   
     charge = 0;
@@ -48,7 +49,7 @@ namespace CoupledField
     jacDet =0;
     ptElemFE->SetAnsatzFct( result_->fctType );
     nrIntPts= ptElemFE->GetNumIntPoints();
-    nrNodes = ptElemFE->GetNumNodes();
+    // nrNodes = ptElemFE->GetNumNodes();
     const Vector<Double> & intWeights = ptElemFE->GetIntWeights();   
   
     ptGrid_->GetElemNodesCoord( coordMat, it.GetSurfElem()->connect, 

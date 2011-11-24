@@ -374,11 +374,11 @@ namespace CoupledField {
     if ( analysistype_ == TRANSIENT &&
          isDirectCoupled_ == false) {
       InitTimeStepping();
-      if ( TS_alg_ != NULL ) {
-        Double dt;
-        dt = dynamic_cast<TransientDriver*>(domain->GetSingleDriver())
-          ->GetDeltaT();
-      }
+      // if ( TS_alg_ != NULL ) {
+        // Double dt; // TODO: Unused variable
+        // dt = dynamic_cast<TransientDriver*>(domain->GetSingleDriver())
+        //  ->GetDeltaT();
+      // }
     }
 
 
@@ -516,6 +516,95 @@ namespace CoupledField {
     // Finally set the initialization flag to true
     isInitialized_ = true;
     LOG_TRACE(pde) << pdename_ << ": Finished initializaton";
+  }
+
+
+  // ****************************
+  //  Initialize Nonlinearities
+  // ****************************
+  void SinglePDE::InitNonLin() {
+
+    nonLin_ = false;
+
+    // Check, if "nonLinList" is present
+    PtrParamNode nonLinListNode = myParam_->Get("nonLinList", ParamNode::PASS );
+    if( nonLinListNode ) { 
+
+      // Get nonlinear types
+      ParamNodeList nonLinNodes = nonLinListNode->GetChildren();
+      for( UInt i = 0; i < nonLinNodes.GetSize(); i++ ) {
+
+        std::string actTypeString = nonLinNodes[i]->GetName();
+        std::string actId = nonLinNodes[i]->Get("id")->As<std::string>();
+
+        NonLinType actType;
+        String2Enum( actTypeString, actType );
+
+        //save for each nonlinearity type the id
+        nonLinTypes_[actId] = actType;
+      }
+    }
+
+    // Run over all region and set entry in "regionNonLinId"
+    ParamNodeList regionNodes = 
+      myParam_->Get("regionList")->GetChildren();
+    
+    RegionIdType actRegionId;
+    std::string actRegionName, actNonLinId;
+    
+    if( regionNodes.GetSize() > 0 ) {
+      Info->PrintF( pdename_, "Non-linearity in following region(s)\n" );
+    }
+
+    for( UInt i = 0; i < regionNodes.GetSize(); i++ ) {
+      //take cae: one region can have more then one nonlinearity!!
+
+      // get data
+      regionNodes[i]->GetValue( "name", actRegionName );
+      regionNodes[i]->GetValue( "nonLinIds", actNonLinId );
+      
+      if( actNonLinId == "" )
+        continue;
+      
+      typedef boost::tokenizer< boost::char_separator<char> > Tok;
+      boost::char_separator<char> sep(";|, ");
+      
+      Tok tok(actNonLinId, sep);
+
+      actRegionId = ptgrid_->GetRegion().Parse( actRegionName );
+
+      for(Tok::iterator it=tok.begin(); it!=tok.end(); ++it) {
+        std::string nonLinId = (*it);
+
+        if(nonLinTypes_.find(nonLinId) == nonLinTypes_.end()) {
+          WARN( "NonLinearity with id '" << nonLinId 
+                << "' was not defined in 'nonLinList'");
+          continue;
+        }
+
+        regionNonLinTypes_[actRegionId].Push_back( nonLinTypes_[nonLinId] );
+
+        //write info
+        std::string nonLinString;
+        Enum2String( nonLinTypes_[nonLinId], nonLinString );
+        Info->PrintF( pdename_, " %s: %s\n", actRegionName.c_str(), 
+                      nonLinString.c_str() );
+
+        //if one nonlinearity is set, then the whole PDE is set to nonlinear
+        nonLin_ = true;
+      }
+    }
+
+    // Here we need in addition the nonLinMethod_ for the definition
+    // of the integrators
+    nonLinMethod_ = FIXEDPOINT;
+    PtrParamNode nonLinNode = myParam_->Get("nonLinear", ParamNode::PASS );
+    if( nonLinNode ) {
+      std::string methodString;
+      nonLinNode->GetValue(  "method", methodString, ParamNode::PASS );
+      nonLinMethod_ = NonLinMethodTypeEnum.Parse(methodString);
+    }
+
   }
 
 
@@ -3735,7 +3824,7 @@ namespace CoupledField {
 
       // check for nonLin Id
       std::string nonLinId;
-      regionNode->GetValue("nonLinId", nonLinId, ParamNode::PASS);
+      regionNode->GetValue("nonLinIds", nonLinId, ParamNode::PASS);
 
       if (nonLinId == "" )
         return false;
@@ -3819,7 +3908,7 @@ namespace CoupledField {
 
       // check for nonLin Id
       std::string nonLinId;
-      regionNode->GetValue("nonLinId", nonLinId, ParamNode::PASS);
+      regionNode->GetValue("nonLinIds", nonLinId, ParamNode::PASS);
 
       if (nonLinId == "" )
         return false;

@@ -18,12 +18,12 @@ namespace CoupledField {
 
   public:
     //! constructor getting x, y(x)
-    SmoothSpline( std::string nlFncName, ApproxCurveType curveType = GENERAL );
+    SmoothSpline( std::string nlFncName, MaterialType matType );
 
     //! destructor
     virtual ~SmoothSpline();
 
-    //computes the approximation polynom
+     //computes the approximation polynom
     virtual void CalcApproximation( bool start=true );
 
     //! computes the regularization parameter

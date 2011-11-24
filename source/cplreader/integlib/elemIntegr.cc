@@ -12,9 +12,16 @@ namespace CoupledField
 {
 
 
+  ElemIntegr::ElemIntegr() :
+    linearLoad_(NULL),
+    ptElem_(NULL),
+    elemType_(0)
+  { }
+
   ElemIntegr::ElemIntegr(UInt elemType) :
     linearLoad_(NULL),
-    ptElem_(NULL)
+    ptElem_(NULL),
+    elemType_(0)
   {
 #ifdef TRACE
     (*trace) << " entering ElemIntegr::ElemIntegr " << std::endl;
@@ -22,6 +29,7 @@ namespace CoupledField
 
     CreatePt2Elems(elemType);
 
+    elemType_ = elemType;
     if(!ptElem_)
       return;
 
@@ -34,6 +42,44 @@ namespace CoupledField
     if(ptElem_)
       delete ptElem_->ptElem;
     delete ptElem_;
+  }
+
+  ElemIntegr & ElemIntegr::operator=( ElemIntegr &rhs){
+    if (this != &rhs) // protect against invalid self-assignment
+    {
+      this->elemType_ = rhs.GetElemType();
+      delete ptElem_;
+
+      CreatePt2Elems(this->elemType_);
+      if(!ptElem_)
+        return *this;
+      if(linearLoad_)
+        delete linearLoad_;
+
+      linearLoad_ = new LinearFlowNoiseInt(ptElem_->ptElem);
+    }
+    return *this;
+  }
+
+  ElemIntegr & ElemIntegr::operator=(const ElemIntegr &rhs){
+    if (this != &rhs) // protect against invalid self-assignment
+    {
+      this->elemType_ = rhs.GetElemType();
+      delete ptElem_;
+
+      CreatePt2Elems(this->elemType_);
+      if(!ptElem_)
+        return *this;
+      if(linearLoad_)
+        delete linearLoad_;
+
+      linearLoad_ = new LinearFlowNoiseInt(ptElem_->ptElem);
+    }
+    return *this;
+  }
+
+  UInt ElemIntegr::GetElemType() const{
+    return elemType_;
   }
 
   void ElemIntegr::CreatePt2Elems( UInt type )

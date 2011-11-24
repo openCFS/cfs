@@ -12,9 +12,12 @@
 #include "Utils/mathParser/mathParser.hh"
 #include "Domain/domain.hh"
 
-
 #include <boost/tokenizer.hpp>
 #include <boost/algorithm/string.hpp>
+#include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/convenience.hpp>
+#include <boost/filesystem/exception.hpp>
+
 #include <fstream>
 #include <string>
 
@@ -53,24 +56,34 @@ ParamNode::~ParamNode()
 
 void ParamNode::SetValue(const boost::any& value)
 {
-  this->value_ = value;
+  if(value.type() == typeid(PtrParamNode))
+    SetValue(boost::any_cast<PtrParamNode>(value), false);
+  else
+  {
+    this->value_ = value;
 
-  // check for a valid string if it is a string
-  assert(value_.type() != typeid(std::string) || (boost::any_cast<std::string&>(value_).find('<') == std::string::npos));
-  assert(value_.type() != typeid(std::string) || (boost::any_cast<std::string&>(value_).find('>') == std::string::npos));
+    // check for a valid string if it is a string
+    assert(value_.type() != typeid(std::string) || (boost::any_cast<std::string&>(value_).find('<') == std::string::npos));
+    assert(value_.type() != typeid(std::string) || (boost::any_cast<std::string&>(value_).find('>') == std::string::npos));
 
+    assert(name_ != "");
 
-  if(this->name_ == WARNING)
-    std::cerr  << std::endl << fg_red << "WARNING: " << boost::any_cast<std::string>(value_)<< fg_reset << std::endl;
+    if(this->name_ == WARNING)
+      std::cerr  << std::endl << fg_red << "WARNING: " << boost::any_cast<std::string>(value_)<< fg_reset << std::endl;
+  }
 }
 void ParamNode::SetValue(const char* value)
 {
+  assert(name_ != "");
+
   std::string str(value);
   SetValue(str);
 }
 
 void ParamNode::SetValue(const double value, const int precision)
 {
+  assert(name_ != "");
+
   this->precision_ = precision;
   SetValue(value);
 }
@@ -79,6 +92,8 @@ void ParamNode::SetValue(PtrParamNode node, bool overwrite_name)
 {
   if(overwrite_name)
     SetName(node->GetName());
+
+  assert(name_ != "");
 
   // set the value
   SetValue(node->value_);
@@ -149,6 +164,8 @@ PtrParamNode ParamNode::GetChild()
 PtrParamNode ParamNode::Get(const string& name_raw, ActionType action)
 {
   PtrParamNode result;
+  assert(name_raw != "");
+
   // make sure we have valid element and attribute names.
   string myName = ToValidLabel(name_raw);
   if (action == DEFAULT)
@@ -801,7 +818,7 @@ void ParamNode::ToXML(std::ostream& os, int depth, bool adjust_element_type)
   if(adjust_element_type)
     AdjustElementType(); // is recursively!
 
-
+  assert(name_ != "");
   // note, that this is an recursive method!
 
   std::string strValue;
@@ -939,8 +956,17 @@ void ParamNode::ToFile(const std::string& filename, bool force)
   // write preamble
 
   std::ofstream info_file(myFileName.c_str());
-  info_file << "<?xml version=\"1.0\"?>" << std::endl;
+  info_file << "<?xml version=\"1.0\"?>";
   
+  // in case we writa an info.xml file (and not a density file, ...) we add xslt stuff
+  if(myFileName.find("info.xml") != std::string::npos)
+  {
+    fs::path fn = fs::system_complete(progOpts->GetSchemaPathStr() + "/../..");
+    fn.normalize();
+    info_file << std::endl << "<?xml-stylesheet href=\"file://"
+              << fn.native_directory_string()
+              << "/share/xsl/cfs_info_output_html.xsl\" type=\"text/xsl\"?>";
+  }
   // store how often we are written -> if the number is too high one should cancel some ToFile() calls
   //    if(writeCounter_.count(filename_) == 0) writeCounter_[filename_] = 0;
   //    Get("writeCounter")->SetValue(++writeCounter_[filename_]);
