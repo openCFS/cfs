@@ -95,6 +95,11 @@ public:
                                          const LocPoint & surfIntPoint,
                                          LocPoint & volIntPoint,
                                          Vector<Double>& locNormal ) = 0;
+
+  //! @copydoc BaseFE::ComputeMonomialCoefficients
+  //! Overloaded method for lagrange Elements
+  //virtual void ComputeMonomialCoefficients(Matrix<Integer>& P, Matrix<Double>& C);
+
 protected:
 
   //! @copydoc FeH1::CalcShFnc

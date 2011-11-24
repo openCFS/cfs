@@ -388,10 +388,17 @@ namespace CoupledField {
 
     // write x,y,z-coordinate
     for (UInt i = 1; i <= numnodes; i++) {
-      Point p;
+      Vector<Double> p;
       
       ptGrid_->GetNodeCoordinate(p, i);  
-        
+
+      if(p.GetSize() == 2){
+        p.Push_back(0.0);
+      }else if(p.GetSize() == 1){
+        p.Push_back(0.0);
+        p.Push_back(0.0);
+      }
+
       if (ascii_) {
         (*output_) << i << " " << p[0] << " " << p[1] << " "
                    << p[2] << std::endl;
