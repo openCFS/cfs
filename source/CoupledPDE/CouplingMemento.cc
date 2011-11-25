@@ -30,7 +30,7 @@ namespace CoupledField{
 
 }
 
-#include <boost/serialization/export.hpp>
-BOOST_CLASS_EXPORT_GUID(CoupledField::CouplingMemento, 
-                        "CoupledField_CouplingMemento")
+//#include <boost/serialization/export.hpp>
+//BOOST_CLASS_EXPORT_GUID(CoupledField::CouplingMemento, 
+//                        "CoupledField_CouplingMemento")
 

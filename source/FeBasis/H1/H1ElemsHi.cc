@@ -124,11 +124,11 @@ namespace CoupledField {
     orderEdge_.Init(order);
     
     // set order for faces
-    array<UInt,2> faceOrder = {{order, order}};
+    boost::array<UInt,2> faceOrder = {{order, order}};
     orderFace_.Init(faceOrder);
 
     // set order for inner
-    array<UInt, 3> innerOrder = {{order, order, order}}; 
+    boost::array<UInt, 3> innerOrder = {{order, order, order}}; 
     orderInner_ = innerOrder;
     
     updateUnknowns_ = true;

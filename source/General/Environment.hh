@@ -33,7 +33,12 @@ namespace OutInfo{
 namespace CoupledField {
 
   // Import Boost's namespace
-  using namespace boost;
+  //using namespace boost;
+  using boost::shared_ptr;
+  using boost::any_cast;
+  using boost::lexical_cast;
+  using boost::char_separator;
+  using boost::dynamic_pointer_cast;
 
 
   // forward class declaration

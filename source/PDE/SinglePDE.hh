@@ -477,7 +477,7 @@ namespace CoupledField
     //! Map storing functors for calculating general results
     std::map<SolutionType, shared_ptr<ResultFunctor> > resultFunctors_;
     
-    //! Map storing functors for calculating field results (real valued)
+    //! Map storing functors for calculating field results 
     std::map<SolutionType, shared_ptr<BaseFieldFunctor> > fieldFunctors_;
     
     //@}

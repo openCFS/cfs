@@ -23,6 +23,8 @@
 #ifdef USE_BLAS
 #include "matrixBLASSupport.hh"
 #endif
+
+using boost::tokenizer;
 namespace CoupledField
 {      
 

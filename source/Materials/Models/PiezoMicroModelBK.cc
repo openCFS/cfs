@@ -169,12 +169,12 @@ namespace CoupledField{
     baseP[2] = sponP0_;
 
     //define the array dimensions
-    Ps_.resize(extents[numDomain_]);
-    Ss_.resize(extents[numDomain_]);
-    dTensor_.resize(extents[numDomain_]);
-    cTensor_.resize(extents[numDomain_]);
-    sTensor_.resize(extents[numDomain_]);
-    epsTensor_.resize(extents[numDomain_]);
+    Ps_.resize(boost::extents[numDomain_]);
+    Ss_.resize(boost::extents[numDomain_]);
+    dTensor_.resize(boost::extents[numDomain_]);
+    cTensor_.resize(boost::extents[numDomain_]);
+    sTensor_.resize(boost::extents[numDomain_]);
+    epsTensor_.resize(boost::extents[numDomain_]);
 
     for ( UInt i=0; i<numDomain_; i++ ) {
       Vector<Double> angle(dim_);
@@ -219,9 +219,9 @@ namespace CoupledField{
     }
 
     //compute the delta of the switching system
-    deltaPs_.resize(extents[numDomain_][numDomain_]);
-    deltaSponS_.resize(extents[numDomain_][numDomain_]);; 
-    deltaTensorCoupl_.resize(extents[numDomain_][numDomain_]);; 
+    deltaPs_.resize(boost::extents[numDomain_][numDomain_]);
+    deltaSponS_.resize(boost::extents[numDomain_][numDomain_]);; 
+    deltaTensorCoupl_.resize(boost::extents[numDomain_][numDomain_]);; 
 
     for ( UInt i=0; i<numDomain_; i++ ) {
       for ( UInt j=0; j<numDomain_; j++ ) {
@@ -256,10 +256,10 @@ namespace CoupledField{
     //std::cout << "switchingVal:\n" << switchingVal_ << std::endl;
 
     // allocate for driving forces and transformation rates
-    driveForcesElec_.resize(extents[numEl_][numDomain_][numDomain_]); 
-    driveForcesMech_.resize(extents[numEl_][numDomain_][numDomain_]);
-    driveForcesCouple_.resize(extents[numEl_][numDomain_][numDomain_]);
-    transformationRates_.resize(extents[numEl_][numDomain_][numDomain_]);
+    driveForcesElec_.resize(boost::extents[numEl_][numDomain_][numDomain_]); 
+    driveForcesMech_.resize(boost::extents[numEl_][numDomain_][numDomain_]);
+    driveForcesCouple_.resize(boost::extents[numEl_][numDomain_][numDomain_]);
+    transformationRates_.resize(boost::extents[numEl_][numDomain_][numDomain_]);
 
     // allocate for volume fractions 
     Double startVolFrac = 1.0/Double(numDomain_);
@@ -269,8 +269,8 @@ namespace CoupledField{
     volFracPrev_.InitValue( startVolFrac );
 
     // allocate for electric polarization
-    effElecPolAct_.resize(extents[numEl_]);
-    effElecPolPrev_.resize(extents[numEl_]);
+    effElecPolAct_.resize(boost::extents[numEl_]);
+    effElecPolPrev_.resize(boost::extents[numEl_]);
     for ( UInt i=0; i<numEl_; i++ ) {
       effElecPolAct_[i].Resize(dim_);
       effElecPolPrev_[i].Resize(dim_);
@@ -278,8 +278,8 @@ namespace CoupledField{
     }
 
     //allocate for irreversibel strain
-    effStrainIrrAct_.resize(extents[numEl_]);
-    effStrainIrrPrev_.resize(extents[numEl_]);
+    effStrainIrrAct_.resize(boost::extents[numEl_]);
+    effStrainIrrPrev_.resize(boost::extents[numEl_]);
     for ( UInt i=0; i<numEl_; i++ ) {
       effStrainIrrAct_[i].Resize(dimS_);
       effStrainIrrPrev_[i].Resize(dimS_);
@@ -781,8 +781,8 @@ namespace CoupledField{
         //3x6 Matrix to be rotated
         
         arrayD3 ten, trans_ten;
-        ten.resize(extents[3][3][3]);
-        trans_ten.resize(extents[3][3][3]);
+        ten.resize(boost::extents[3][3][3]);
+        trans_ten.resize(boost::extents[3][3][3]);
         
         for (UInt i=0; i<dim_; i++) {
           for (UInt j=0; j<dim_; j++) {
@@ -817,8 +817,8 @@ namespace CoupledField{
       else {
         //6x6 Matrix to be rotated
         arrayD4 ten, trans_ten;
-        ten.resize(extents[3][3][3][3]);
-        trans_ten.resize(extents[3][3][3][3]);
+        ten.resize(boost::extents[3][3][3][3]);
+        trans_ten.resize(boost::extents[3][3][3][3]);
         
         for (UInt i=0; i<dim_; i++) {
           for (UInt j=0; j<dim_; j++) {

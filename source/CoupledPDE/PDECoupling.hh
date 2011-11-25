@@ -34,7 +34,7 @@ namespace CoupledField
   public:
 
     // structure for coupling terms
-    struct CouplingInterface{
+    class CouplingInterface{
     public:
     
       //! constructor

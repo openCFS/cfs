@@ -190,7 +190,7 @@ protected:
 //! Functor for calculating fields based on the flux
 
 //! This class computes the flux  of the primary unknown by
-//! applying the dB-Ooperator of the related BDB-class. The BDB-bilinearforms
+//! applying the dB-Operator of the related BDB-class. The BDB-bilinearforms
 //! have to get passed to this class for every region the result might get
 //! calculated at.
 template<class TYPE>

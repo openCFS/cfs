@@ -869,6 +869,7 @@ namespace CoupledField
 
 } // end of namespace
 
-#include <boost/serialization/export.hpp>
-BOOST_CLASS_EXPORT_GUID(CoupledField::PDECoupling::CouplingInterface,
-                        "CoupledField_CouplingInterface")
+//#include <boost/serialization/export.hpp>
+//using namespace boost;
+//BOOST_CLASS_EXPORT_GUID(CoupledField::PDECoupling::CouplingInterface,
+//                        "CoupledField_CouplingInterface")

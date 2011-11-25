@@ -216,7 +216,7 @@ namespace CoupledField {
         {
           return lexical_cast<int>(data);
         }
-        catch(bad_lexical_cast &)
+        catch(boost::bad_lexical_cast &)
         {
           return 0;
         }

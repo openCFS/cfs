@@ -24,7 +24,7 @@ namespace CoupledField {
   //! Simple struct representing an element local point
 
   //! This struct represents an element local point (xi, eta, zeta)
-  //! which is either defined by its coordinates or by an ingegration 
+  //! which is either defined by its coordinates or by an integration 
   //! point
   struct LocPoint {
 
