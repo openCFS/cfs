@@ -214,6 +214,10 @@ void Function::ToInfo(PtrParamNode info)
   if(pn->Has("parameter"))
     info->Get("parameter")->SetValue(parameter_);
 
+  // We might have non-standard stresses
+  if(type_ == STRESS || type_ == STRESS_DENSITY)
+    info->Get("stress")->SetValue(stressType.ToString(stressType_));
+
   if(local != NULL)
     local->ToInfo(info_);
 }

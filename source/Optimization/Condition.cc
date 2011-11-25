@@ -550,6 +550,9 @@ std::string Condition::ToString(MultipleExcitation* me) const
 
   os << Function::ToString(); // includes physical
 
+  if(region != ALL_REGIONS)
+    os << "_" << domain->GetGrid()->GetRegion().ToString(region);
+
   if(design != DesignElement::DEFAULT)
     os << "_(" << DesignElement::type.ToString(design) << ")";
 
@@ -559,10 +562,6 @@ std::string Condition::ToString(MultipleExcitation* me) const
   // e.g. stresses are extended for every excitation
   if((type_ == STRESS || type_ == STRESS_DENSITY) && me != NULL && me->IsEnabled())
     os << "_" << me->excitations[excite_].label; // change to excite label
-
-  // We might have non-standard stresses
-  if((type_ == STRESS || type_ == STRESS_DENSITY) && stressType_ != MECH)
-    os << "_" << stressType.ToString(stressType_);
 
   return os.str();  
 }

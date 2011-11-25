@@ -2351,9 +2351,9 @@ double ErsatzMaterial::CalcGreyness(Condition* g, bool derivative)
   TransferFunction* tf = g->IsPhysical() ? design->GetTransferFunction(g->design, MECH) : NULL;
 
   // go over the complete design space to set gradients of other types to 0
-  for(unsigned int i = 0; i < design->data.GetSize(); i++)
+  for(unsigned int i = 0; i < g->elements.GetSize(); i++)
   {
-    DesignElement* de = &design->data[i];
+    DesignElement* de = g->elements[i];
     bool relevant = g->design == DesignElement::DEFAULT || g->design == de->GetType();
     if(relevant)
     {
@@ -2372,6 +2372,7 @@ double ErsatzMaterial::CalcGreyness(Condition* g, bool derivative)
 
       span = ub-lb;
 
+      if(span < 0.01) EXCEPTION("cannot calculate grayness with almost equal design bounds");
 
       // We normalize for a design variable from [0;1]
       // this has minor effect on density [0.001;1] but is important
@@ -2901,7 +2902,7 @@ void ErsatzMaterial::ConstructComplexAdjointRHS(Excitation& excite, Function* f)
 
 
   assemble_->GetAlgSys()->InitRHS(rhs);
-  assert(rhs.NormMax() != 0.0);
+  // assert(!(rhs.NormMax() == 0.0 && f->GetLocal() != NULL)); // globalized stuff might have zero adjoint!
   LOG_DBG2(em) << "CARHS<complex>: f=" << domain->GetDriver()->GetActStep(pde->GetName())
                << " rhs before solving: " << rhs.ToString(1);
 }
@@ -3097,7 +3098,7 @@ StdVector<Function*> ErsatzMaterial::Solutions::GetFunctions() const
 
   for(map<Function*, StdVector<Unit*> >::const_iterator it = data_.begin(); it != data_.end(); ++it)
   {
-    LOG_DBG2(em) << "GetFunctions(): f=" << (it->first == NULL ? "NULL" : it->first->ToString());
+    // LOG_DBG2(em) << "GetFunctions(): f=" << (it->first == NULL ? "NULL" : it->first->ToString());
     if(it->first != NULL)
       result.Push_back(it->first);
   }
