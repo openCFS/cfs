@@ -1,7 +1,8 @@
 #include "mathParser.hh"
 
-#include <boost/algorithm/string/replace.hpp>
+#include <def_build_type_options.hh>
 
+#include <boost/algorithm/string/replace.hpp>
 #include "MatVec/Vector.hh"
 #include "Domain/CoordinateSystems/CoordSystem.hh"
 #include "Utils/Interpolate1D.hh"
@@ -141,7 +142,9 @@ namespace CoupledField {
     VarPool::iterator varIt =  (poolsIt->second).find(varName);
 
     if ( varIt != (poolsIt->second).end() ) {
-      // Case1: variable was already defined
+      // -------------------------------------
+      //  Case1: variable was already defined
+      // -------------------------------------
 
       // Simply change value in pool
       varIt->second = val;
@@ -179,7 +182,10 @@ namespace CoupledField {
       }
       
     } else {
-      // Case: variable was not defined yet
+      
+      // -------------------------------------
+      //  Case2: variable was not defined yet
+      // -------------------------------------
 
       // create new entry in variable pool
       poolsIt->second[varName] = val;
@@ -288,11 +294,100 @@ namespace CoupledField {
     // Get parser related to handler
     mu::Parser & myParser = GetParser( handler );
 
+#ifdef CHECK_INDEX
+    // Consistency check: Ensure, that only 1 entry is set
+    if( myParser.GetNumResults() > 1 ) {
+      WARN("More than one expression set! Returning just last one.");
+    }
+#endif
+    
     // Evaluate expression with error checking
     Double ret = 0.0;
     MATHPARSER_EXEC( ret = myParser.Eval() );
 
     return ret;
+  }
+  
+  void MathParser::EvalVector( HandleType handle, Vector<Double>& vec ) {
+    
+    // Get parser related to handler
+    mu::Parser & myParser = GetParser( handle );
+
+    // Evaluate list of expression and store it in vector
+    Integer nExpr;
+    mu::value_type *v = NULL;
+    MATHPARSER_EXEC( v= myParser.Eval(nExpr) );
+    vec.Resize(nExpr);
+    for (Integer i = 0; i < nExpr; ++i )
+    {
+      vec[i] = v[i];
+    }
+
+  }
+     
+  void MathParser::EvalMatrix( HandleType handle, Matrix<Double>& matrix,
+                               UInt numRows , UInt numCols ) {
+    
+    // Get parser related to handler
+    mu::Parser & myParser = GetParser( handle );
+    
+    // Evaluate list of expressions
+    Integer nExpr;
+    mu::value_type *v = NULL;
+    MATHPARSER_EXEC( v= myParser.Eval(nExpr) );
+
+    // try to be smart about matrix size
+    if( nExpr == 1) {
+      // 1 entry
+      matrix.Resize(1,1);
+      matrix[0][0] = v[0];
+    } else {
+      // > 1 entries
+
+      // If neither rows/col size is given, try to use size of matrix
+      if( numRows == 0 && numCols == 0) {
+        numRows = matrix.GetNumRows();
+        numCols = matrix.GetNumCols();
+      }
+
+      // now we have to check, if two of them are zero
+      if( numRows ==0 && numCols == 0) {
+        EXCEPTION("Neither numRows/numCols was given, nor a "
+            "pre- initialized matrix");
+      }
+      
+      if( numRows == 0) {
+        if( nExpr % numCols != 0) {
+          EXCEPTION("Can not determine unique matrix size");
+        } else {
+          numRows = nExpr / numCols;
+        }
+      }
+      
+      if( numCols == 0) {
+        if( nExpr % numRows != 0) {
+          EXCEPTION("Can not determine unique matrix size.");
+        } else {
+          numCols = nExpr / numRows;
+        }
+      }
+      
+      // final consistency check
+#ifdef CHECK_INDEX
+      if( numCols * numRows != UInt(nExpr)) {
+        EXCEPTION("Can not store " << nExpr << " entries in a "
+                  << numRows << " x " << numCols << " matrix.");
+      }
+#endif
+      // finally, copy vlaues into matrix
+      matrix.Resize(numRows,numCols);
+      for( UInt i = 0; i < numRows; ++i ) {
+        for( UInt j = 0; j < numCols; ++j ) {
+          matrix[i][j] = v[i*numCols+j];
+        }
+      }
+
+    }    
   }
 
   void MathParser::InitParser( mu::Parser &parser, VarPool& actPool,

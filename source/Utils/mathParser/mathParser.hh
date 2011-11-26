@@ -4,10 +4,12 @@
 #include <map>
 #include <list>
 #include <set>
+#include <string>
 #include <boost/signals.hpp>
 #include "muParser.h"
 #include "Utils/StdVector.hh"
 #include "MatVec/Vector.hh"
+#include "MatVec/Matrix.hh"
 #include "General/Environment.hh"
 
 namespace CoupledField {
@@ -101,9 +103,39 @@ namespace CoupledField {
     
     //! Evaluate mathematical expression previously set by SetExpr()
 
-    //! This method evaluates the expression previously set by SetExpr()
+    //! This method evaluates the expression previously set by SetExpr().
+    //! If several, comma separated expressions are set, only the last
+    //! one is taken.
     //! \param handle MathParser handle for identifying specific parser
     Double Eval( HandleType handle );
+    
+    //! Evaluate list of mathematical expression, set by SetExpr()
+    
+    //! This method evaluated the expression previously set by SetExpr()
+    //! and stores the values in the vector.
+    //! \param handle MathParser handle for identifying specific parser
+    //! \param vec Vector to be filled
+    void EvalVector( HandleType handle, Vector<Double>& vec );
+    
+    //! Evaluate expressions to matrix, previously set by SetExpr()
+    
+    //! This method evaluates the expression previously set by SetExpr()
+    //! and stores the values in the matrix.
+    //! The function tries to be smart about the size of the matrix
+    //! as follows:
+    //! - If #numRows and / or #numCols are given, the matrix gets resized
+    //!   to the number of rows / cols given. If the number of entries does
+    //!   not match the final size of the matrix, an exception is thrown.
+    //! - If neither #numRows nor #numCols is prescribed, the initial size
+    //!   of the matrix is taken. If the number of entries does not match 
+    //!   the matrix size, an exception is thrown.
+    //! If neither #numRows nor #numCols are given and the matrix has zero
+    //! size, an exception is thrown as well.
+    //! \param handle MathParser handle for identifying specific parser
+    //! \param matrix A matrix where the values get stored into
+    //! \param numRows Number of rows, if 
+    void EvalMatrix( HandleType handle, Matrix<Double>& matrix,
+                     UInt numRows = 0, UInt numCols = 0 ); 
     
     //! Dump all parser instances, their variables and expression
     void Dump( std::ostream& os );
