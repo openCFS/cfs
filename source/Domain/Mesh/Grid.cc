@@ -2387,7 +2387,7 @@ namespace CoupledField
     if(elemBoxes_.empty())
     {
       StdVector<Elem*> elems;
-      Point p;
+      Vector<Double> p(3);
 
       GetVolElems(elems, ALL_REGIONS);
       UInt size = elems.GetSize();
