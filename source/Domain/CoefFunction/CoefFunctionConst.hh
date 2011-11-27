@@ -70,7 +70,7 @@ class CoefFunctionConst : public CoefFunction{
       this->dimType_ = VECTOR;
     }
 
-    std::string ToString() {
+    std::string ToString() const {
       switch( dimType_ ) {
         case NO_DIM:
           return "";
