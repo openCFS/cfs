@@ -28,14 +28,17 @@ namespace CoupledField {
 //  C L A S S   LocPointMapped
 // ===========================================================================
   LocPointMapped::LocPointMapped()
-  : jacDet( 0.0 ) {
-    
+  : ptEl( NULL ),
+    jacDet( 0.0 )
+  {
+
   }
   
   void LocPointMapped::Set( const LocPoint& lp, shared_ptr<ElemShapeMap> esm ) {
 
     shapeMap = esm;
     this->lp = lp;
+    ptEl = shapeMap->GetElem();
 
     // Calculate Jacobian, its inverse as well as determinant for local point
     esm->CalcJ( jac, lp);

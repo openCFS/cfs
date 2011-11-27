@@ -21,7 +21,8 @@ namespace CoupledField {
   FeHCurl::~FeHCurl() {
   }
   
-  void FeHCurl::GetShFnc( Matrix<Double>& shape, LocPointMapped& lpm,
+  void FeHCurl::GetShFnc( Matrix<Double>& shape, 
+                          const LocPointMapped& lpm,
                           const Elem* elem, UInt comp ) {
     
     // Perform local->global gradient transformation
@@ -30,8 +31,9 @@ namespace CoupledField {
     shape =  Transpose(lpm.jacInv) * locShape;
   }
   
-  void FeHCurl::GetCurlShFnc( Matrix<Double>& curl, LocPointMapped& lpm,
-                         const Elem* elem, UInt comp ) {
+  void FeHCurl::GetCurlShFnc( Matrix<Double>& curl, 
+                              const LocPointMapped& lpm,
+                              const Elem* elem, UInt comp ) {
     // Perform local->global curl transformation
     Matrix<Double> locCurl;    
     this->CalcLocCurlShFnc( locCurl, lpm, elem, comp );

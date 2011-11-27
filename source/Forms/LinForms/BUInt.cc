@@ -28,9 +28,9 @@ template<template< class,class > class B_OP,
                                                    :factor_(factor){
     this->name_ = "RhsBUIntegrator";
 
-         assert(rhsCoef->GetType() == CoefFunction::VECTOR);
+         assert(rhsCoef->GetDimType() == CoefFunction::VECTOR);
  #ifndef NDEBUG
-       if(rhsCoef->GetType() != CoefFunction::VECTOR){
+       if(rhsCoef->GetDimType() != CoefFunction::VECTOR){
          Exception("BDB integrator expects the coefficient function to be vectorial!\n \
                      For scalar valued Things, create a vectorial function with one component");
        }
@@ -85,7 +85,7 @@ template<template< class,class > class B_OP,
        // Call the CalcBMat()-method
        operator_.CalcOpMatTransposed( bMat, lp, ptFe);
 
-       rhsCoefs_->GetVector(cVec,lp,ptElem);
+       rhsCoefs_->GetVector(cVec,lp);
        cVec *= fac;
        elemVec += bMat * cVec;
      }

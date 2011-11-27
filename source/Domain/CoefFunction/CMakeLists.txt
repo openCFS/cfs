@@ -1,8 +1,9 @@
-#SET(COEFFUNCTION_SRCS
-#  #ok, nothing right now but will be in the future
-#  )
+SET(COEFFUNCTION_SRCS
+  CoefFunction.cc
+  CoefFunctionExpression.cc
+)
 #
-#ADD_LIBRARY(coeffunction STATIC $(COEFFUNCTION_SRCS))
+ADD_LIBRARY(coeffunction STATIC ${COEFFUNCTION_SRCS})
 #
 #SET(TARGET_LL
 #  elemmapping

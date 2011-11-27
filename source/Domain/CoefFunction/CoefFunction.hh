@@ -47,88 +47,173 @@
 #include "General/Environment.hh"
 #include "MatVec/Matrix.hh"
 #include "MatVec/Vector.hh"
+#include "Domain/Domain.hh"
 #include "Domain/ElemMapping/Elem.hh"
 #include "Domain/ElemMapping/ElemShapeMap.hh"
 #include "Domain/ElemMapping/EntityLists.hh"
-
 namespace CoupledField{
 
+
+// forward class declarations
+class CoordSystem;
+
 class CoefFunction{
-  public:
+public:
 
-    typedef enum{ UNDEF,SCALAR,VECTOR,TENSOR } CoefType;
+  // ========================
+  //  ENUMS / TYPEDEFS
+  // ========================
+  //@{ \name Public type definitions
 
-    CoefFunction(){
-      mType_ = UNDEF;
-      //set the default coordinate system
-      // can be reset later by user...
-      this->coordSys_ = domain->GetCoordSystem();
+  //! Dimension of coefficient functions
+  typedef enum{ 
+    NO_DIM,   /*!< Uninitialized */
+    SCALAR,   /*!< 0-dimensional scalar entry */
+    VECTOR,   /*!< 1-dimensional vector entry */
+    TENSOR    /*!< 2-dimensional tensor entry */ 
+  } CoefDimType;
+  
+  //! Dependency of coefficient function
+  typedef enum{ 
+    CONST,         /*!< No dependency on space or time */
+    TIMEFREQ,      /*!< Only depending on time / frequency, not space */
+    SPACE,         /*!< Only spatial dependency */
+    SPACE_TIMEFREQ /*!< Spatial and time/frequency dependency */
+  } CoefDependType;
+  
+  // ========================
+  //  FACTORY METHODS
+  // ========================
+  //@{ \name Factory Methods
+
+  //! Generate scalar-valued coefficient function
+  static shared_ptr<CoefFunction> 
+  Generate( Global::ComplexPart format, 
+            const std::string& realVal, 
+            const std::string& imagVal = "" );
+
+  //! Generate vector-valued coefficient function
+  static shared_ptr<CoefFunction> 
+  Generate( Global::ComplexPart format, 
+            const StdVector<std::string>& realVal, 
+            const StdVector<std::string>& imagVal = StdVector<std::string>() );
+
+
+  //! Generate tensor-valued coefficient function
+  static shared_ptr<CoefFunction> 
+  Generate( Global::ComplexPart format,
+            UInt numRows, UInt numCols,
+            const StdVector<std::string>& realVal,
+            const StdVector<std::string>& imagVal = StdVector<std::string>() );
+  //@}
+
+  // ========================
+  //  CONSTRUCTOR / DESTRUCTOR
+  // ========================
+  //@{ \name Constructor / Destructor
+
+  CoefFunction(){
+    dimType_ = NO_DIM;
+    dependType_ = CONST;
+    //set the default coordinate system
+    // can be reset later by user...
+    this->coordSys_ = domain->GetCoordSystem();
+  }
+
+  ~CoefFunction(){
+    ;
+  }
+  //@}
+  
+  // ========================
+  //  ACCESS METHODS
+  // ========================
+  //@{ \name Access Methods
+
+  virtual void GetTensor(Matrix<Double>& CoefMat, 
+                         const LocPointMapped& lpm ) {
+    EXCEPTION("CoefFunction::GetTensor<Double> called: This may not happen");
+  }
+
+  virtual void GetVector(Vector<Double>& CoefMat, 
+                         const LocPointMapped& lpm ) {
+    EXCEPTION("CoefFunction::GetVector<Double> called: This may not happen");
+  }
+
+  virtual void GetScalar(Double& CoefMat, 
+                         const LocPointMapped& lpm ) {
+    EXCEPTION("CoefFunction::GetScalar<Double> called: This may not happen");
+  }
+
+  virtual void GetTensor(Matrix<Complex>& CoefMat, 
+                         const LocPointMapped& lpm ) {
+    EXCEPTION("CoefFunction::GetTensor<Complex> called: This may not happen");
+  }
+
+  virtual void GetVector(Vector<Complex>& CoefMat, 
+                         const LocPointMapped& lpm ) {
+    EXCEPTION("CoefFunction::GetVector<Complex> called: This may not happen");
+  }
+
+  virtual void GetScalar(Complex& CoefMat, 
+                         const LocPointMapped& lpm ) {
+    EXCEPTION("CoefFunction::GetScalar<Complex> called: This may not happen");
+  }
+  //@}
+
+
+  void SetCoordinateSystem(CoordSystem* cSys){
+    coordSys_ = cSys;
+  }
+
+  virtual CoefDimType GetDimType(){
+    return dimType_;
+  }
+
+  virtual void AddEntities(shared_ptr<EntityList> ent){
+    if(!entities_.Contains(ent)){
+      entities_.Push_back(ent);
+    }else{
+      WARN("entity list " << ent->GetName() << " already contained in CoefFunction")
     }
+  }
 
-    ~CoefFunction(){
-      ;
-    }
+  virtual void UpdateCoefs(Double tfParam){
+    WARN(__FILE__ << __LINE__ << " Update Coefs has no functionality yet");
+  }
 
-    virtual void GetTensor(Matrix<Double>& CoefMat, LocPointMapped lp, const Elem* elem){
-      EXCEPTION("CoefFunction::GetTensor<Double> called: This may not happen");
-    }
-
-    virtual void GetVector(Vector<Double>& CoefMat, LocPointMapped lp, const Elem* elem){
-      EXCEPTION("CoefFunction::GetVector<Double> called: This may not happen");
-    }
-
-    virtual void GetScalar(Double& CoefMat, LocPointMapped lp, const Elem* elem){
-      EXCEPTION("CoefFunction::GetScalar<Double> called: This may not happen");
-    }
-
-    virtual void GetTensor(Matrix<Complex>& CoefMat, LocPointMapped lp, const Elem* elem){
-      EXCEPTION("CoefFunction::GetTensor<Complex> called: This may not happen");
-    }
-
-    virtual void GetVector(Vector<Complex>& CoefMat, LocPointMapped lp, const Elem* elem){
-      EXCEPTION("CoefFunction::GetVector<Complex> called: This may not happen");
-    }
-
-    virtual void GetScalar(Complex& CoefMat, LocPointMapped lp, const Elem* elem){
-      EXCEPTION("CoefFunction::GetScalar<Complex> called: This may not happen");
-    }
+  //! Dump coefficient function to string 
+  virtual std::string ToString() const {
+    EXCEPTION("CoefFuncion: ToString() not properly overwritten");
+  }
 
 
-    void SetCoordinateSystem(CoordSystem* cSys){
-      coordSys_ = cSys;
-    }
+protected:
 
-    virtual CoefType GetType(){
-      return mType_;
-    }
+  // ========================
+  //  HELPER METHODS
+  // ========================
+  //@{ \name Helper methods
+  
+  //! Returns true, if expression depends on time / freq
+  static bool ExprDependsOnTimeFreq(const std::string& expr);
+  
+  //! Returns true, if expression depends on space
+  static bool ExprDependsOnSpace(const std::string& expr);
+  //@}
+  
+  //TODO: CHANGE THIS TO SHARED POINTER
+  // i.e. change the daomin to hold a shared_ptr to the coordinate systems!
+  CoordSystem* coordSys_;
 
-    virtual void AddEntities(shared_ptr<EntityList> ent){
-      if(!entities_.Contains(ent)){
-        entities_.Push_back(ent);
-      }else{
-        WARN("entity list " << ent->GetName() << " already contained in CoefFunction")
-      }
-    }
+  //! Dimension of coefficient function (scalar, vector, tensor)
+  CoefDimType dimType_;
+  
+  //! Dependency type of the coefficient function
+  CoefDependType dependType_;
 
-    virtual void UpdateCoefs(Double tfParam){
-      WARN(__FILE__ << __LINE__ << " Update Coefs has no functionality yet");
-    }
-
-    //ElemList GetSupport(){
-    //  return ElementList();
-    //}
-
-  protected:
-
-    //TODO: CHANGE THIS TO SHARED POINTER
-    // i.e. change the daomin to hold a shared_ptr to the coordinate systems!
-    CoordSystem* coordSys_;
-
-    CoefType mType_;
-
-    StdVector<shared_ptr<EntityList> > entities_;
-
-
+  //! Support of the CoefFunction. Only needed for grid/solution results
+  StdVector<shared_ptr<EntityList> > entities_;
 };
 
 }

@@ -63,7 +63,10 @@ namespace CoupledField {
     //! This methods passes an expression to be evaluated to the parser
     //! itself. This will trigger the syntactical analysis of the 
     //! expression. In order to evaluate the expression, a successive call
-    //! to Eval() has to be performed
+    //! to Eval() has to be performed.
+    //! The expression can be composed of several subexrepssions, 
+    //! delimited by ','. In this case, all the subexpressions can be 
+    //! retrieved using either EvalVector() or EvalMatrix().
     //! \param handle MathParser handle for identifying specific parser
     //! \param expr Expression to be parsed
     void SetExpr( HandleType handle, const std::string &expr );
@@ -100,6 +103,13 @@ namespace CoupledField {
     //! \param handle MathParser handle for identifying specific parser
     //! \param varNames List of variables the expression depends on
     void GetExprVars( HandleType handle, StdVector<std::string>& varNames );
+    
+    
+    //! Return number of expressions set
+    
+    //! This method returns the number of expression set for the parser
+    //! denoted by #handle. 
+    UInt GetNumExprs( HandleType handle );
     
     //! Evaluate mathematical expression previously set by SetExpr()
 

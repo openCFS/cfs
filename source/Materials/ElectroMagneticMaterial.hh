@@ -5,11 +5,7 @@
 
 namespace CoupledField {
 
-  //! Class for Material Data
-  /*! 
-     Class for handling electromagnetic material data
-  */
-
+  //!Class for handling electromagnetic material data
   class ElectroMagneticMaterial : public BaseMaterial {
 
   public:

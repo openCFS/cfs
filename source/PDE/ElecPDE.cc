@@ -25,13 +25,13 @@
 #include "FeBasis/FeFunctions.hh"
 #include "DataInOut/WriteInfo.hh"
 
-//new integrator concept
+// new integrator concept
 #include "Forms/BiLinForms/BDBInt.hh"
 #include "Forms/LinForms/BUInt.hh"
 #include "Forms/Operators/GradientOperator.hh"
 #include "Forms/Operators/IdentityOperator.hh"
 
-//new postprocessing concept
+// new postprocessing concept
 #include "Domain/Results/ResultFunctor.hh"
 
 
@@ -155,6 +155,8 @@ namespace CoupledField {
       stiffInt->SetFeSpace( feFunctions_[ELEC_POTENTIAL]->GetFeSpace());
 
       assemble_->AddBiLinearForm( stiffIntDescr );
+      // Important: Add bdb-integrator to global list, as we need them later
+      // for calculation of postprocessing results
       bdbInts_[actRegion] = stiffInt;
       
     }
@@ -583,9 +585,9 @@ REFACTOR;
     postProcResults_[ELEC_ENERGY] = ELEC_POTENTIAL;
     shared_ptr<ResultFunctor> energyFunc;
     if( isComplex_ ) {
-      energyFunc.reset(new EnergyResultFunctor<Complex>(feFct, ef));
+      energyFunc.reset(new EnergyResultFunctor<Complex>(feFct, energy));
     } else {
-      energyFunc.reset(new EnergyResultFunctor<Double>(feFct, ef));
+      energyFunc.reset(new EnergyResultFunctor<Double>(feFct, energy));
     }
     resultFunctors_[ELEC_ENERGY] = energyFunc;
     
@@ -610,7 +612,9 @@ REFACTOR;
     availResults_.insert( pseudoPol );
     postProcResults_[ELEC_PSEUDO_POLARIZATION] = ELEC_POTENTIAL;
 
+    // ============================
     // Initialize result functors:
+    // ============================
     // 1) Loop over all BDB-integrators
     std::map<RegionIdType, BaseBDBInt*>::iterator it = bdbInts_.begin();
     for( ; it != bdbInts_.end(); ++it ) {

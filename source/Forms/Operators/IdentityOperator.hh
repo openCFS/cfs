@@ -39,9 +39,11 @@ namespace CoupledField{
         return;
       }
 
-      virtual void CalcOpMat(Matrix<Double> & bMat,LocPointMapped& lp, BaseFE* ptFe );
+      virtual void CalcOpMat(Matrix<Double> & bMat,
+                             const LocPointMapped& lp, BaseFE* ptFe );
 
-      virtual void CalcOpMatTransposed(Matrix<Double> & bMat,LocPointMapped& lp, BaseFE* ptFe );
+      virtual void CalcOpMatTransposed(Matrix<Double> & bMat,
+                                       const LocPointMapped& lp, BaseFE* ptFe );
 
       //avoid reimplementation of complex operator by making the bas class function
       //available
@@ -64,12 +66,14 @@ namespace CoupledField{
         return;
       }
 
-      virtual void CalcOpMat(Matrix<Double> & bMat,LocPointMapped& lp, BaseFE* ptFe ){
+      virtual void CalcOpMat(Matrix<Double> & bMat,
+                             const LocPointMapped& lp, BaseFE* ptFe ){
         FeHCurl* fe = static_cast<FeHCurl*>(ptFe);
         fe->GetShFnc( bMat, lp, lp.shapeMap->GetElem(), 0);
       }
 
-      virtual void CalcOpMatTransposed(Matrix<Double> & bMat,LocPointMapped& lp, BaseFE* ptFe ){
+      virtual void CalcOpMatTransposed(Matrix<Double> & bMat,
+                                       const LocPointMapped& lp, BaseFE* ptFe ){
         FeHCurl* fe = static_cast<FeHCurl*>(ptFe);
         Matrix<Double> xiDx;
         fe->GetShFnc( xiDx, lp, lp.shapeMap->GetElem(), 0);
@@ -91,7 +95,8 @@ namespace CoupledField{
         return;
       }
 
-      virtual void CalcOpMat(Matrix<Double> & bMat,LocPointMapped& lp, BaseFE* ptFe ){
+      virtual void CalcOpMat(Matrix<Double> & bMat,
+                             const LocPointMapped& lp, BaseFE* ptFe ){
         IdentityOperator<FeHCurl,TYPE>::CalcOpMat(bMat,lp,ptFe);
         //scale By Edge
         Double minE,maxE;
@@ -99,7 +104,8 @@ namespace CoupledField{
         bMat /= maxE;
       }
 
-      virtual void CalcOpMatTransposed(Matrix<Double> & bMat,LocPointMapped& lp, BaseFE* ptFe ){
+      virtual void CalcOpMatTransposed(Matrix<Double> & bMat,
+                                       const LocPointMapped& lp, BaseFE* ptFe ){
         IdentityOperator<FeHCurl,TYPE>::CalcOpMatTransposed(bMat,lp,ptFe);
         //scale By Edge
         Double minE,maxE;
@@ -110,7 +116,8 @@ namespace CoupledField{
   };
 
   template<class FE, class TYPE>
-  void IdentityOperator<FE,TYPE>::CalcOpMat(Matrix<Double> & bMat,LocPointMapped& lp, BaseFE* ptFe){
+  void IdentityOperator<FE,TYPE>::CalcOpMat(Matrix<Double> & bMat,
+                                            const LocPointMapped& lp, BaseFE* ptFe){
     UInt numFncs = ptFe->GetNumFncs();
     // Set correct size of matrix B and initialise with zeros
     bMat.Resize( this->dim_, numFncs * this->dim_ );
@@ -130,7 +137,9 @@ namespace CoupledField{
   }
 
   template<class FE, class TYPE>
-  void IdentityOperator<FE,TYPE>::CalcOpMatTransposed(Matrix<Double> & bMat,LocPointMapped& lp, BaseFE* ptFe){
+  void IdentityOperator<FE,TYPE>::
+  CalcOpMatTransposed(Matrix<Double> & bMat,
+                      const LocPointMapped& lp, BaseFE* ptFe){
     UInt numFncs = ptFe->GetNumFncs();
     // Set correct size of matrix B and initialise with zeros
     bMat.Resize( numFncs * this->dim_ , this->dim_ );

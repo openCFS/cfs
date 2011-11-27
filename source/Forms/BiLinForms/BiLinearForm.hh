@@ -44,7 +44,7 @@ namespace CoupledField
       virtual void CalcElementMatrix( Matrix<Double>& stiffMat,
                                           EntityIterator& ent1,
                                           EntityIterator& ent2){
-        EXCEPTION("Integrator::CalcElementMatrix called this may not happen!");
+        EXCEPTION("BiLinearForm::CalcElementMatrix called this may not happen!");
       }
 
       virtual void CalcElementMatrix( Matrix<Complex>& stiffMat,

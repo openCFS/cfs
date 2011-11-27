@@ -26,6 +26,7 @@ SET(TARGET_LL
   mesh
   results
   febasis
+  coeffunction
 )
 
 IF(USE_HDF5)

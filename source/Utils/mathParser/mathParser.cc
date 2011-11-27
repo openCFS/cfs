@@ -379,7 +379,7 @@ namespace CoupledField {
                   << numRows << " x " << numCols << " matrix.");
       }
 #endif
-      // finally, copy vlaues into matrix
+      // finally, copy values into matrix
       matrix.Resize(numRows,numCols);
       for( UInt i = 0; i < numRows; ++i ) {
         for( UInt j = 0; j < numCols; ++j ) {
@@ -520,6 +520,13 @@ namespace CoupledField {
     }
   }
   
+  
+  UInt MathParser::GetNumExprs( HandleType handle ) {
+    
+    // Get parser related to handle
+    mu::Parser & myParser = GetParser( handle );
+    return UInt(myParser.GetNumResults() );
+  }
   
   Double* MathParser::AddVariable( const char *varName ) {
     

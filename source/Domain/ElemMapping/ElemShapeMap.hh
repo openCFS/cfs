@@ -92,6 +92,9 @@ namespace CoupledField {
     //! Shape map for this element
     shared_ptr<ElemShapeMap> shapeMap;
 
+    //! Pointer to element
+    const Elem * ptEl;
+    
     //! Element local point
     LocPoint lp;
 

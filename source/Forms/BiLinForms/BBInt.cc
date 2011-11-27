@@ -35,7 +35,7 @@ namespace CoupledField{
 
           // Obtain FE element from feSpace and integration scheme
           shared_ptr<IntScheme> intScheme;
-          FE_TYPE* ptFe = dynamic_cast<FE_TYPE*>(ptFeSpace1_->GetFe( ent1, intScheme ));
+          FE_TYPE* ptFe = static_cast<FE_TYPE*>(ptFeSpace1_->GetFe( ent1, intScheme ));
 
           UInt nrFncs = ptFe->GetNumFncs();
 
@@ -51,10 +51,6 @@ namespace CoupledField{
           elemMat.Init();
 
        #define USE_BLAS_VERSION
-      #ifdef USE_BLAS_VERSION
-          Matrix<MAT_DATA_TYPE> bdbMat;
-          bbMat.Resize(nrFncs * Bdim_);
-      #endif
           // Loop over all integration points
           LocPointMapped lp;
           for( UInt i = 0; i < intPoints.GetSize(); i++  ) {
@@ -69,8 +65,7 @@ namespace CoupledField{
             operator_.TransformJacDet(fac,lp,ptFe);
 
       #ifdef USE_BLAS_VERSION
-            bMat.Mult_Blas(bMat,bbMat,true,false,1.0,0);
-            elemMat += bdbMat * factor_;
+            bMat.Mult_Blas(bMat,elemMat,true,false,this->factor_*fac,1.0);
       #else
             elemMat += Transpose(bMat) * bMat * factor_;
       #endif
@@ -96,7 +91,7 @@ namespace CoupledField{
        shared_ptr<IntScheme> intScheme;
        //TODO: we have to find another solution for this. The only reason for this class is within
        //these two lines. This functionaliy has to be moved to a pre-Integration function
-       FeHCurlHi* ptFe = dynamic_cast<FeHCurlHi*>(this->ptFeSpace1_->GetFe( ent1, intScheme ));
+       FeHCurlHi* ptFe = static_cast<FeHCurlHi*>(this->ptFeSpace1_->GetFe( ent1, intScheme ));
        // Special: Only use lower order functions
        ptFe->SetOnlyLowestOrder(true);
 
@@ -112,12 +107,7 @@ namespace CoupledField{
 
        elemMat.Resize( nrFncs * this->Bdim_);
        elemMat.Init();
-
-   #define USE_BLAS_VERSION
-      #ifdef USE_BLAS_VERSION
-        Matrix<MAT_DATA_TYPE> bdbMat;
-        bbMat.Resize(nrFncs * this->Bdim_);
-     #endif
+       
        // Loop over all integration points
        LocPointMapped lp;
        for( UInt i = 0; i < intPoints.GetSize(); i++  ) {
@@ -132,8 +122,7 @@ namespace CoupledField{
          this->operator_.TransformJacDet(fac,lp,ptFe);
 
    #ifdef USE_BLAS_VERSION
-         bMat.Mult_Blas(bMat,bbMat,true,false,1.0,0);
-         elemMat += bdbMat * this->factor_;
+         bMat.Mult_Blas(bMat,elemMat,true,false,this->factor_*fac,1.0);
    #else
          elemMat += Transpose(bMat) * bMat * factor_;
    #endif

@@ -34,11 +34,13 @@ namespace CoupledField {
                            const Elem* ptElem,  UInt comp = 1 );
     
     //! Return global derivative of shape functions
-    void GetGlobDerivShFnc( Matrix<Double>& deriv, const LocPointMapped& lp,
+    void GetGlobDerivShFnc( Matrix<Double>& deriv, 
+                            const LocPointMapped& lp,
                             const Elem* elem, UInt comp = 1 );
 
     //! Return global derivative of shape functions
-    void GetLocDerivShFnc( Matrix<Double>& deriv, const LocPoint& lp,
+    void GetLocDerivShFnc( Matrix<Double>& deriv, 
+                           const LocPoint& lp,
                            const Elem* elem, UInt comp = 1 );
 
     //! @copydoc BaseFE::SetFunctionsAtIp

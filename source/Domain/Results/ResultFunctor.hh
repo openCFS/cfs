@@ -62,7 +62,7 @@ protected:
   //! Pointer to grid
   Grid * ptGrid_;
 
-  //! Dimension of the result to be calcualted
+  //! Dimension of the result to be calculated
   UInt dim_;
   
   //! List of integrators
@@ -73,7 +73,14 @@ protected:
 //  FIELD RESULTS 
 // --------------------------------------------------------------------------
 //! Base class for evaluating spatially dependent fields
-class BaseFieldFunctor : public ResultFunctor {
+
+//! This class represents the base for all derived field results, i.e. 
+//! vector-valued results, which can be evaluated spatially resolved for
+//! global points. This is in contrast e.g. to integral results like 
+//! total energy.
+//! In addition this class derives the interface of the class CoefFunction,
+//! so it can be used within other integrators transparently.
+class BaseFieldFunctor : public ResultFunctor, public CoefFunction {
 public:
   
   //! Constructor    
@@ -93,6 +100,8 @@ protected:
 //  FIELD RESULTS (TEMPLATIZED)
 // --------------------------------------------------------------------------
 //! Templatized result functor for real/complex valued quantities
+
+//! This method
 template<class TYPE>
 class FieldFunctor : public BaseFieldFunctor {
 public:
@@ -120,7 +129,11 @@ public:
     for ( it.Begin(); !it.IsEnd(); it++ ) {
       const Elem * el = it.GetElem();
       LocPoint lp = Elem::shapes[el->type].midPointCoord;
-      this->Eval(tempField, el, lp );
+      LocPointMapped lpm;
+      shared_ptr<ElemShapeMap> esm = 
+          this->ptGrid_->GetElemShapeMap( el, true );
+      lpm.Set( lp, esm );
+      this->GetVector(tempField, lpm );
       // loop over dofs
       for(UInt iDim = 0; iDim < dim_; iDim++ ) {
         vec[it.GetPos()*dim_ + iDim] = tempField[iDim];
@@ -129,19 +142,60 @@ public:
   }
 
   //! Evaluate field at one local point within a given element
-  virtual void Eval(Vector<TYPE>& vec, const Elem* el, LocPoint lp) = 0;
+  virtual void GetVector(Vector<TYPE>& vec, const LocPointMapped& lpm ) = 0; 
 
 protected:
   
-  //! FeFunction containing the coefficients, on which the functor compuates
+  //! FeFunction containing the coefficients, on which the functor computes
   shared_ptr<FeFunction<TYPE> > feFct_;
   
 };
 
 // --------------------------------------------------------------------------
-//  FIELDS BASED ON PRIMARY RESULT
+//  FIELDS BASED ON INTERPOLATED PRIMARY RESULT
 // --------------------------------------------------------------------------
-// ... to be implemented (interpolation of "nodal" values to arbitrary points")
+
+//! Functor for interpolating fields based on primary variable
+template<template<class,class> class B_OP,
+                  class FE_TYPE,
+                  class DATA_TYPE>
+class FieldInterpolFunctor : public FieldFunctor<DATA_TYPE> {
+public:
+  
+  //! Constructor
+  FieldInterpolFunctor( shared_ptr<BaseFeFunction> feFct,
+                        shared_ptr<ResultInfo> inf ) :
+                          FieldFunctor<DATA_TYPE>( feFct, inf) {
+    feSpace_ = feFct->GetFeSpace();
+  }
+  
+  //! Destructor
+  ~FieldInterpolFunctor() {}
+  
+  //! Evaluate field at local point
+  virtual void GetVector(Vector<DATA_TYPE>& vec, 
+                         const LocPointMapped& lpm) {
+    vec.Resize(this->ptGrid_->GetDim());
+    this->feFct_->GetElemSolution( elemSol, lpm.ptEl);
+    BaseFE * ptFe = feSpace_->GetFe(lpm.ptEl->elemNum);
+    this->operator_.ApplyOp(vec, lpm, ptFe, elemSol );
+  }
+
+protected:
+
+  //! Id interpolation operator
+  B_OP<FE_TYPE,DATA_TYPE> operator_;
+
+  //! Store FeSpace
+  shared_ptr<FeSpace> feSpace_;
+
+  //! Mapped local points
+  LocPointMapped lpm;
+
+  //! Solution of element
+  Vector<DATA_TYPE> elemSol;
+};
+
 
 // --------------------------------------------------------------------------
 //  FIELDS BASED ON DERIVATIVE (GRADIENT, CURL)
@@ -150,7 +204,7 @@ protected:
 //! Functor for calculating fields based on the spatial derivative 
 
 //! This class computes the spatial derivative of the primary unknown by
-//! applying the B-Ooperator of the related BDB-class. The BDB-bilinearforms
+//! applying the B-Operator of the related BDB-class. The BDB-bilinearforms
 //! have to get passed to this class for every region the result might get
 //! calculated at.
 template<class TYPE>
@@ -167,12 +221,11 @@ public:
   virtual ~DiffFieldFunctor() {}
 
   //! Evaluate field at local point
-  virtual void Eval(Vector<TYPE>& vec, const Elem* el, LocPoint lp) {
+  virtual void GetVector(Vector<TYPE>& vec, 
+                           const LocPointMapped& lpm) {
     vec.Resize(this->ptGrid_->GetDim());
-    shared_ptr<ElemShapeMap> esm = this->ptGrid_->GetElemShapeMap( el, true );
-    lpm.Set( lp, esm );
-    this->feFct_->GetElemSolution( elemSol, el);
-    this->forms_[el->regionId]->ApplyBMat(vec, elemSol, el, lpm );
+    this->feFct_->GetElemSolution( elemSol, lpm.ptEl);
+    this->forms_[lpm.ptEl->regionId]->ApplyBMat(vec, elemSol, lpm );
   }
   
 protected:
@@ -207,13 +260,12 @@ public:
   virtual ~FluxFieldFunctor() {}
   
   //! Evaluate field at local point
-  virtual void Eval(Vector<TYPE>& vec, const Elem* el, LocPoint lp) {
+  virtual void GetVector(Vector<TYPE>& vec, 
+                         const LocPointMapped& lpm) {
     vec.Resize(this->ptGrid_->GetDim());
-    shared_ptr<ElemShapeMap> esm = this->ptGrid_->GetElemShapeMap( el, true );
-    lpm.Set( lp, esm );
-    this->feFct_->GetElemSolution( elemSol, el);
-    BaseBDBInt* bdb = this->forms_[el->regionId]; 
-    bdb->ApplydBMat(vec, elemSol, el, lpm );
+    this->feFct_->GetElemSolution( elemSol, lpm.ptEl);
+    BaseBDBInt* bdb = this->forms_[lpm.ptEl->regionId]; 
+    bdb->ApplydBMat(vec, elemSol, lpm );
   }
   
 protected:
@@ -251,14 +303,13 @@ public:
   ~EnergyDensFieldFunctor() {}
 
   //! Evaluate field at local point
-  virtual void Eval(Vector<TYPE>& vec, const Elem* el, LocPoint lp) {
+  virtual void GetVector(Vector<TYPE>& vec, 
+                         const LocPointMapped& lpm) {
     vec.Resize(1);
-    shared_ptr<ElemShapeMap> esm = this->ptGrid_->GetElemShapeMap( el, true );
-    lpm.Set( lp, esm );
-    this->forms_[el->regionId]->CalcKernel(elemMat, el, lpm);
+    this->forms_[lpm.ptEl->regionId]->CalcKernel(elemMat, lpm);
     
     // energy density is 1/2 * elemSol^T * kernel * elemSol
-    this->feFct_->GetElemSolution( elemSol, el);
+    this->feFct_->GetElemSolution( elemSol, lpm.ptEl);
     temp = elemMat * elemSol;
     vec[0] = (temp * elemSol) * 0.5;
   }

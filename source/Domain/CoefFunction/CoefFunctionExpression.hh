@@ -26,118 +26,128 @@
 
 namespace CoupledField{
 
+//! Base class for real- and complex valued coefficient functions
 template<class DATA_TYPE>
 class CoefFunctionExpression : public CoefFunction{
-  public:
-    CoefFunctionExpression():
-      mHandle_(domain->GetMathParser()->GetNewHandle(true))
-    {
-
-    }
-
-    ~CoefFunctionExpression(){
-      domain->GetMathParser()->ReleaseHandle(mHandle_);
-    }
-
-    void GetTensor(Matrix<DATA_TYPE>& CoefMat, LocPointMapped lp, const Elem* elem){
-      std::cerr << __FILE__ << __LINE__ << "CoefFunctionExpression::GetTensor not implemented" << std::endl;
-      return;
-    }
-
-    void GetVector(Vector<DATA_TYPE>& CoefVec, LocPointMapped lp, const Elem* elem){
-      std::cerr << __FILE__ << __LINE__ << "CoefFunctionExpression::GetVector not implemented" << std::endl;
-      return;
-    }
-
-    void GetScalar(DATA_TYPE& CoefScalar, LocPointMapped lp, const Elem* elem){
-      std::cerr << __FILE__ << __LINE__ << "CoefFunctionExpression::GetScalar not implemented" << std::endl;
-      return;
-    }
-
-    void SetTensor(StdVector< StdVector<std::string> > val){
-      assert((this->mType_ == UNDEF) || (this->mType_ == TENSOR) );
-      this->coefMat_ = val;
-      this->mType = CoefFunction::TENSOR;
-    }
-
-    void SetVector(StdVector<std::string> val){
-      assert((this->mType_ == UNDEF) || (this->mType_ == VECTOR) );
-      this->coefVec_ = val;
-      this->mType_ = CoefFunction::VECTOR;
-    }
-
-    void SetScalar(std::string val){
-      assert((this->mType_ == UNDEF) || (this->mType_ == SCALAR) );
-      this->coefScalar_ = val;
-      this->mType = CoefFunction::SCALAR;;
-    }
-
-  protected:
-    StdVector< StdVector<std::string> > coefMat_;
-
-    StdVector<std::string> coefVec_;
-
-    std::string coefScalar_;
-
-    MathParser::HandleType mHandle_;
-
-
 };
 
+// ===========================================================================
+//  REAL VALUED COEFFICIENT FUNCTION
+// ===========================================================================
+
+//! Coefficient function defined by real-valued mathematical expression
 template<>
-void CoefFunctionExpression<Double>::GetVector(Vector<Double>& CoefVec, LocPointMapped lp, const Elem* elem){
-  //evaluate class variable, vector of strings using math paser and return it
-  //in future implementations we want to distiguish between expressions that depend
-  //only on time or frequency and expressions which include a spatial dependency.
-  //The latter have to be evaluated every time while the first have to be evaluated only
-  //at the beginning of the time step
+class CoefFunctionExpression<Double> : public CoefFunction {
+  
+  public:
+    CoefFunctionExpression();
 
-  //FIRST IMPLEMENTATION
-  //we assume everything has to be evaluated everytime....
-  assert(this->mType_ == CoefFunction::VECTOR);
-  MathParser * parser = domain->GetMathParser();
-  Vector<Double> pointCoord;
+    ~CoefFunctionExpression();
 
-  CoefVec.Resize(this->coefVec_.GetSize());
-  CoefVec.Init();
+    void GetTensor(Matrix<Double>& CoefMat, const LocPointMapped& lpm );
 
-  lp.shapeMap->Local2Global(pointCoord,lp.lp);
-  parser->SetCoordinates( this->mHandle_, *this->coordSys_, pointCoord );
-  for(UInt i = 0; i<coefVec_.GetSize();++i){
-    parser->SetExpr( mHandle_, this->coefVec_[i] );
+    void GetVector(Vector<Double>& CoefVec, const LocPointMapped& lpm );
 
-    CoefVec[i] = parser->Eval( mHandle_ );
-  }
-}
+    void GetScalar(Double& CoefScalar, const LocPointMapped& lpm );
 
+    void SetTensor(const StdVector<std::string>& val, UInt nRows, UInt nCols );
 
+    void SetVector(const StdVector<std::string>& val);
 
+    void SetScalar(const std::string& val);
+    
+    std::string ToString() const;
+
+  protected:
+    
+    //! Coefficients for tensor
+    StdVector<std::string > coefMat_;
+    
+    //! Number of rows of tensor
+    UInt numRows_;
+    
+    //! Number of columns of tensor
+    UInt numCols_;
+    
+    //! Coefficients for vector
+    StdVector<std::string> coefVec_;
+
+    //! Scalar coefficient
+    std::string coefScalar_;
+
+    //! Pointer to math parser instance
+    MathParser* mp_;
+    
+    //! Handle for expression
+    MathParser::HandleType mHandle_;
+};
+
+// ===========================================================================
+//  COMPLEX VALUED COEFFICIENT FUNCTION
+// ===========================================================================
+
+//! Coefficient function defined by complex-valued mathematical expression
 template<>
-void CoefFunctionExpression<Complex>::GetVector(Vector<Complex>& CoefVec, LocPointMapped lp, const Elem* elem){
-  //This is the complex version. Ok right now, mathparser only supports
-  //Real valued expression. Therefore we implement this extra. In the future
-  //we hope that the mathParserX will enable us to automatically evaluate also
-  //real valued expressions as complex numbers....
+class CoefFunctionExpression<Complex> : public CoefFunction {
+  
+  public:
+    CoefFunctionExpression();
 
-  //FIRST IMPLEMENTATION
-  //we assume everything has to be evaluated everytime....
-  assert(this->mType_ == CoefFunction::VECTOR);
-  MathParser * parser = domain->GetMathParser();
-  Vector<Double> pointCoord;
-  UInt vSize = this->coefVec_.GetSize();
+    ~CoefFunctionExpression();
 
-  CoefVec.Resize(vSize);
-  CoefVec.Init();
+    void GetTensor(Matrix<Complex>& CoefMat, const LocPointMapped& lpm );
 
-  lp.shapeMap->Local2Global(pointCoord,lp.lp);
-  parser->SetCoordinates( this->mHandle_, *this->coordSys_, pointCoord );
+    void GetVector(Vector<Complex>& CoefVec, const LocPointMapped& lpm );
 
-  for(UInt i = 0; i<vSize;++i){
-    parser->SetExpr( mHandle_, coefVec_[i] );
-    CoefVec[i] = Complex(parser->Eval( mHandle_ ));
-  }
-}
+    void GetScalar(Complex& CoefScalar, const LocPointMapped& lpm );
 
+    void SetTensor(const StdVector<std::string>& realVal, 
+                   const StdVector<std::string>& imagVal,
+                   UInt nRows, UInt nCols );
+
+    void SetVector(const StdVector<std::string>& realVal,
+                   const StdVector<std::string>& imagVal );
+
+    void SetScalar(const std::string& realVal,
+                   const std::string& imagVal);
+    
+    std::string ToString() const;
+
+  protected:
+    
+    //@{
+    //! Coefficients for tensor
+    StdVector<std::string > coefMatReal_;
+    StdVector<std::string > coefMatImag_;
+    //@}
+    
+    //! Number of rows of tensor
+    UInt numRows_;
+    
+    //! Number of columns of tensor
+    UInt numCols_;
+    
+    //@{
+    //! Coefficients for vector
+    StdVector<std::string> coefVecReal_;
+    StdVector<std::string> coefVecImag_;
+    //@}
+
+    //@{
+    //! Scalar coefficient
+    std::string coefScalarReal_;
+    std::string coefScalarImag_;
+    //@}
+
+    //! Pointer to math parser instance
+    MathParser* mp_;
+    
+    //@{
+    //! Handle for expression
+    MathParser::HandleType mHandleReal_;
+    MathParser::HandleType mHandleImag_;
+    //@}
+};
 
 }
 #endif

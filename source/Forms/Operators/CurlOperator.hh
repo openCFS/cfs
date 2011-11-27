@@ -28,11 +28,13 @@ namespace CoupledField{
 
       ~CurlOperator();
 
-      virtual void CalcOpMat(Matrix<Double> & bMat,LocPointMapped& lp, BaseFE* ptFe ){
+      virtual void CalcOpMat(Matrix<Double> & bMat,
+                             const LocPointMapped& lp, BaseFE* ptFe ){
         EXCEPTION(__FILE__ << __LINE__ << "Curl Operator not implemented for general functions yet")
       }
 
-      virtual void CalcOpMatTransposed(Matrix<Double> & bMat,LocPointMapped& lp, BaseFE* ptFe ){
+      virtual void CalcOpMatTransposed(Matrix<Double> & bMat,
+                                       const LocPointMapped& lp, BaseFE* ptFe ){
         EXCEPTION(__FILE__ << __LINE__ << "Curl Operator not implemented for general functions yet")
       }
 
@@ -58,12 +60,14 @@ namespace CoupledField{
 
       }
 
-      virtual void CalcOpMat(Matrix<Double> & bMat,LocPointMapped& lp, BaseFE* ptFe ){
+      virtual void CalcOpMat(Matrix<Double> & bMat,
+                             const LocPointMapped& lp, BaseFE* ptFe ){
         FeHCurl *fe = (static_cast<FeHCurl*>(ptFe));
         fe->GetCurlShFnc(bMat, lp, lp.shapeMap->GetElem(), 1);
       }
 
-      virtual void CalcOpMatTransposed(Matrix<Double> & bMat,LocPointMapped& lp, BaseFE* ptFe ){
+      virtual void CalcOpMatTransposed(Matrix<Double> & bMat,
+                                       const LocPointMapped& lp, BaseFE* ptFe ){
         FeHCurl *fe = (static_cast<FeHCurl*>(ptFe));
         Matrix<Double> xiDx;
         fe->GetCurlShFnc(xiDx, lp, lp.shapeMap->GetElem(), 1);
@@ -92,14 +96,16 @@ namespace CoupledField{
 
       }
 
-      virtual void CalcOpMat(Matrix<Double> & bMat,LocPointMapped& lp, BaseFE* ptFe ){
+      virtual void CalcOpMat(Matrix<Double> & bMat,
+                             const LocPointMapped& lp, BaseFE* ptFe ){
         CurlOperator<FeHCurl,TYPE>::CalcOpMat(bMat,lp,ptFe);
         Double minE,maxE;
         lp.shapeMap->GetMaxMinEdgeLength(maxE,minE);
         bMat /= maxE;
       }
 
-      virtual void CalcOpMatTransposed(Matrix<Double> & bMat,LocPointMapped& lp, BaseFE* ptFe ){
+      virtual void CalcOpMatTransposed(Matrix<Double> & bMat,
+                                       const LocPointMapped& lp, BaseFE* ptFe ){
         CurlOperator<FeHCurl,TYPE>::CalcOpMatTransposed(bMat,lp,ptFe);
         Double minE,maxE;
         lp.shapeMap->GetMaxMinEdgeLength(maxE,minE);

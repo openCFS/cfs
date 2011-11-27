@@ -61,11 +61,11 @@ public:
   //@{
   //! Apply B-Operator on vector
   virtual void ApplyBMat( Vector<Double>&ret, const Vector<Double>& sol,
-                          const Elem* ptEle, LocPointMapped& lpm ) {
+                          const LocPointMapped& lpm ) {
     EXCEPTION("BaseBDBInt: ApplyBMat not implemented");
   }
   virtual void ApplyBMat( Vector<Complex>&ret, const Vector<Complex>& sol,
-                          const Elem* ptElem, LocPointMapped& lpm ) {
+                          const LocPointMapped& lpm ) {
     EXCEPTION("BaseBDBInt: ApplyBMat not implemented");
   }
   //@}
@@ -74,25 +74,25 @@ public:
   //@{
   //! Apply dB-Operator on vector
   virtual void ApplydBMat( Vector<Double>&ret, const Vector<Double>& sol,
-                           const Elem* ptElem, LocPointMapped& lpm ) {
+                           const LocPointMapped& lpm ) {
     EXCEPTION("BaseBDBInt: ApplydBMat not implemented");
   }
 
   virtual void ApplydBMat( Vector<Complex>&ret, const Vector<Complex>& sol,
-                           const Elem* ptElem, LocPointMapped& lpm ) {
+                           const LocPointMapped& lpm ) {
     EXCEPTION("BaseBDBInt: ApplydBMat not implemented");
   }
   //@}
 
   //@{
   //! Calculate integration kernel, i.e. B*d*B without integration
-  virtual void CalcKernel( Matrix<Double>& kernel, const Elem* ptElem,
-                           LocPointMapped& lpm ) {
+  virtual void CalcKernel( Matrix<Double>& kernel,
+                           const LocPointMapped& lpm ) {
     EXCEPTION("BaseBDBInt: CalcKernel not implemented");
   }
 
-  virtual void CalcKernel( Matrix<Complex>& kernel, const Elem* ptElem,
-                           LocPointMapped& lpm ) {
+  virtual void CalcKernel( Matrix<Complex>& kernel,
+                           const LocPointMapped& lpm ) {
     EXCEPTION("BaseBDBInt: CalcKernel not implemented");
   }
   //@}
@@ -116,8 +116,8 @@ public:
 
       //! Compute element matrix associated to BDB form
       void CalcElementMatrix( Matrix<MAT_DATA_TYPE>& elemMat,
-                                 EntityIterator& ent1,
-                                 EntityIterator& ent2 );
+                              EntityIterator& ent1,
+                              EntityIterator& ent2 );
 
       //! Multiply element matrix with vector
       template<class VEC_DATA_TYPE> 
@@ -127,20 +127,20 @@ public:
 
       
       //! Calculate integration kernel, i.e. B*d*B without integration
-      void CalcKernel( Matrix<MAT_DATA_TYPE>& kernel, const Elem* ptElem,
-                       LocPointMapped& lpm );
+      void CalcKernel( Matrix<MAT_DATA_TYPE>& kernel, 
+                       const LocPointMapped& lpm );
       
       //! Apply B-Operator on vector
       //template<class VEC_DATA_TYPE>
       void ApplyBMat( Vector<MAT_DATA_TYPE>&ret, 
                       const Vector<MAT_DATA_TYPE>& sol,
-                      const Elem* ptEle, LocPointMapped& lpm );
+                      const LocPointMapped& lpm );
 
       //! Apply dB-Operator on vector
       //template<class VEC_DATA_TYPE>
       void ApplydBMat( Vector<MAT_DATA_TYPE>&ret, 
                        const Vector<MAT_DATA_TYPE>& sol,
-                       const Elem* ptEle, LocPointMapped& lpm );
+                       const LocPointMapped& lpm );
 
       bool IsComplex(){
         return std::tr1::is_same<MAT_DATA_TYPE,Complex>::value;

@@ -544,7 +544,7 @@ SUBDIRS(source/DataInOut/SimInOut/InfoResultOutput)
 SUBDIRS(source/DataInOut/SimInOut/Streaming)
 
 SUBDIRS(source/Domain)
-#SUBDIRS(source/Domain/CoefFunction)
+SUBDIRS(source/Domain/CoefFunction)
 SUBDIRS(source/Domain/CoordinateSystems)
 SUBDIRS(source/Domain/ElemMapping)
 SUBDIRS(source/Domain/Mesh)

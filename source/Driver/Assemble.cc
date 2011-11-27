@@ -859,7 +859,7 @@ namespace CoupledField
 
   void Assemble::ToInfo(PtrParamNode in)
   {
-    WARN("Adjust to new implementation");
+//    WARN("Adjust to new implementation");
 //    PtrParamNode list = in->Get("matrixBiLinearForms");
 //
 //    // iterate over all descriptors

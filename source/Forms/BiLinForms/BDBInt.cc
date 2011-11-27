@@ -28,9 +28,9 @@ namespace CoupledField{
   {
       name_ = "BDBInt";
       isSymmetric_ = true;
-      assert(dData->GetType() == CoefFunction::TENSOR);
+      assert(dData->GetDimType() == CoefFunction::TENSOR);
 #ifndef NDEBUG
-      if(dData->GetType() != CoefFunction::TENSOR){
+      if(dData->GetDimType() != CoefFunction::TENSOR){
         Exception("BDB integrator expects the coefficient function to be tensorial");
       }
 #endif
@@ -97,7 +97,7 @@ namespace CoupledField{
 
       // Calculate D-Mat
       //calcDMat(dMat, ent1.GetElem());
-      dData_->GetTensor(dMat,lp,ptElem);
+      dData_->GetTensor(dMat,lp);
       //ptMaterial_->GetTensor(dMat,ELEC_PERMITTIVITY,Global::REAL,PLANE_STRAIN);
 
       fac = MAT_DATA_TYPE(lp.jacDet * weights[i]);
@@ -141,9 +141,10 @@ namespace CoupledField{
   void BDBInt<B_OP,FE_TYPE,MAT_DATA_TYPE,COEF_DATA_TYPE>::
   ApplyBMat( Vector<MAT_DATA_TYPE>&ret, 
              const Vector<MAT_DATA_TYPE>& sol,
-             const Elem* ptElem, LocPointMapped& lpm ) {
+             const LocPointMapped& lpm ) {
     Matrix<MAT_DATA_TYPE> bOp;
-    FE_TYPE* ptFe = static_cast<FE_TYPE*>(ptFeSpace1_->GetFe( ptElem->elemNum ));
+    FE_TYPE* ptFe = 
+        static_cast<FE_TYPE*>(ptFeSpace1_->GetFe( lpm.ptEl->elemNum ));
     operator_.CalcOpMat(bOp, lpm, ptFe);
     ret = bOp * sol;
   }
@@ -157,11 +158,12 @@ namespace CoupledField{
    void BDBInt<B_OP,FE_TYPE,MAT_DATA_TYPE,COEF_DATA_TYPE>::
    ApplydBMat( Vector<MAT_DATA_TYPE>&ret, 
                const Vector<MAT_DATA_TYPE>& sol,
-               const Elem* ptElem, LocPointMapped& lpm ) {
+               const LocPointMapped& lpm ) {
      Matrix<MAT_DATA_TYPE> bOp, dMat, dbMat;
-     FE_TYPE* ptFe = static_cast<FE_TYPE*>(ptFeSpace1_->GetFe( ptElem->elemNum ));
+     FE_TYPE* ptFe = 
+         static_cast<FE_TYPE*>(ptFeSpace1_->GetFe( lpm.ptEl->elemNum ));
      operator_.CalcOpMat(bOp, lpm, ptFe);
-     dData_->GetTensor(dMat,lpm,ptElem);
+     dData_->GetTensor(dMat,lpm);
      dbMat.Resize(dMat.GetNumRows(), bOp.GetNumCols());
      dMat.Mult_Blas(bOp,dbMat,false,false,1.0,0);
      ret = dbMat* sol;
@@ -174,8 +176,7 @@ namespace CoupledField{
   class COEF_DATA_TYPE>
   void BDBInt<B_OP,FE_TYPE,MAT_DATA_TYPE,COEF_DATA_TYPE>::
   CalcKernel( Matrix<MAT_DATA_TYPE>& kernel, 
-              const Elem* ptElem,
-              LocPointMapped& lpm ) {
+              const LocPointMapped& lpm ) {
 
     operator_.SetSolDim(Bdim_);
 
@@ -184,7 +185,8 @@ namespace CoupledField{
     MAT_DATA_TYPE fac = 0.0;
 
     // Obtain FE element from feSpace and integration scheme
-    FE_TYPE* ptFe = static_cast<FE_TYPE*>(ptFeSpace1_->GetFe( ptElem->elemNum ));
+    FE_TYPE* ptFe = 
+        static_cast<FE_TYPE*>(ptFeSpace1_->GetFe( lpm.ptEl->elemNum ));
 
     UInt nrFncs = ptFe->GetNumFncs();
 
@@ -197,7 +199,7 @@ namespace CoupledField{
     operator_.CalcOpMat( bMat, lpm, ptFe);
 
     // Calculate D-Mat
-    dData_->GetTensor(dMat,lpm,ptElem);
+    dData_->GetTensor(dMat,lpm);
     operator_.TransformJacDet(fac,lpm,ptFe);
     dbMat.Resize(dMat.GetNumRows(),nrFncs*Bdim_);
 

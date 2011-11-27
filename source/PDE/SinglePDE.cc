@@ -2265,58 +2265,59 @@ namespace CoupledField {
       // ==============================================
       //   SPECIAL MAGNETIC SECTION
       // ==============================================
-//      if( false ) {
+      if( false ) {
 //        EXCEPTION("MAY NOT HaPPEN");
 
-        if( pdename_ == "magneticEdge" ) {
-        StdVector<std::set<Integer> > sbmBlocks;
-        std::map<UInt,StdVector<std::set<Integer> > > minorBlocks;
-        FeSpaceHCurlHi & feSpace  
-        =dynamic_cast<FeSpaceHCurlHi&>(*(feFunctions_[MAG_POTENTIAL]->GetFeSpace()));
-        FeFctIdType fctId =  feFunctions_[MAG_POTENTIAL]->GetFctId();
-        MagEdgePDE & pde = dynamic_cast<MagEdgePDE&>(*this);
-        
-        // get mapping according to strategy
-        feSpace.SetStrategy( pde.solStrategy_, 1);
-        
-        
-        // 1) Define SBM-block
-        feSpace.GetOlasMappings( sbmBlocks, minorBlocks);
-        UInt numBlocks = 3;
-        bool useStaticCondens = true;
-        algsys_->GraphSetupInit( 1, numBlocks, false, useStaticCondens );
-        algsys_->RegisterFct( fctId, feSpace.GetNumEquations(),
-                              feSpace.GetNumFreeEquations() );
-        for( UInt i = 0; i < numBlocks; ++i ) {
-          std::map<FeFctIdType, std::set<Integer> > block;
-          block[fctId] = sbmBlocks[i];
-          algsys_->DefineSBMMatrixBlock(i, block);
-        }
-        
-        // 2) Define minor blocks
-        // loop over all sbm blocks
-        for( UInt i = 1; i < numBlocks; ++i ) {
-          StdVector<std::set<Integer> >& sbmSubBlocks = minorBlocks[i];
-          algsys_->RegisterSubMatrixBlocks(i, sbmSubBlocks.GetSize());
-          // loop over all minor blocks
-          for(UInt j = 0; j < sbmSubBlocks.GetSize(); ++j ) {
-            UInt blockSize = sbmSubBlocks[j].size();
-            StdVector<FeFctIdType> fctIds(blockSize);
-            fctIds.Init(fctId);
-            StdVector<Integer> eqns(blockSize);
-            std::set<Integer>::iterator it = sbmSubBlocks[j].begin();
-            UInt pos = 0;
-            // loop over all eqns
-            for( UInt k = 0; k < blockSize; ++k ) {
-              eqns[pos++] = *it++;
-            }
-//            std::cerr << "SubBlock #" << j << ": " << eqns.ToString() << std::endl;
-            algsys_->DefineSubMatrixBlocks(i,j, fctIds, eqns);
+//        if( pdename_ == "magneticEdge" ) {
+          StdVector<std::set<Integer> > sbmBlocks;
+          std::map<UInt,StdVector<std::set<Integer> > > minorBlocks;
+          FeSpaceHCurlHi & feSpace  
+          =dynamic_cast<FeSpaceHCurlHi&>(*(feFunctions_[MAG_POTENTIAL]->GetFeSpace()));
+          FeFctIdType fctId =  feFunctions_[MAG_POTENTIAL]->GetFctId();
+          MagEdgePDE & pde = dynamic_cast<MagEdgePDE&>(*this);
+
+          // get mapping according to strategy
+          feSpace.SetStrategy( pde.solStrategy_, 1);
+
+
+          // 1) Define SBM-block
+          feSpace.GetOlasMappings( sbmBlocks, minorBlocks);
+          UInt numBlocks = 3;
+          bool useStaticCondens = true;
+          algsys_->GraphSetupInit( 1, numBlocks, false, useStaticCondens );
+          algsys_->RegisterFct( fctId, feSpace.GetNumEquations(),
+                                feSpace.GetNumFreeEquations() );
+          for( UInt i = 0; i < numBlocks; ++i ) {
+            std::map<FeFctIdType, std::set<Integer> > block;
+            block[fctId] = sbmBlocks[i];
+            algsys_->DefineSBMMatrixBlock(i, block);
           }
-        }
+
+          // 2) Define minor blocks
+          // loop over all sbm blocks
+          for( UInt i = 1; i < numBlocks; ++i ) {
+            StdVector<std::set<Integer> >& sbmSubBlocks = minorBlocks[i];
+            algsys_->RegisterSubMatrixBlocks(i, sbmSubBlocks.GetSize());
+            // loop over all minor blocks
+            for(UInt j = 0; j < sbmSubBlocks.GetSize(); ++j ) {
+              UInt blockSize = sbmSubBlocks[j].size();
+              StdVector<FeFctIdType> fctIds(blockSize);
+              fctIds.Init(fctId);
+              StdVector<Integer> eqns(blockSize);
+              std::set<Integer>::iterator it = sbmSubBlocks[j].begin();
+              UInt pos = 0;
+              // loop over all eqns
+              for( UInt k = 0; k < blockSize; ++k ) {
+                eqns[pos++] = *it++;
+              }
+              //            std::cerr << "SubBlock #" << j << ": " << eqns.ToString() << std::endl;
+              algsys_->DefineSubMatrixBlocks(i,j, fctIds, eqns);
+            }
+          }
         
         
-      } else {
+      } else 
+      {
       
         // HARD-CODED section
         UInt numBlocks = 1;
@@ -2518,6 +2519,8 @@ namespace CoupledField {
       fncIt++;
     }
     
+    // Trigger writing of info file
+    info->ToFile("", true );
     
 
   }

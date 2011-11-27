@@ -37,9 +37,13 @@ namespace CoupledField{
 
       }
 
-      virtual void CalcOpMat(Matrix<Double> & bMat,LocPointMapped& lp, BaseFE* ptFe );
+      virtual void CalcOpMat(Matrix<Double> & bMat,
+                             const LocPointMapped& lp,
+                             BaseFE* ptFe );
 
-      virtual void CalcOpMatTransposed(Matrix<Double> & bMat,LocPointMapped& lp, BaseFE* ptFe );
+      virtual void CalcOpMatTransposed(Matrix<Double> & bMat,
+                                       const LocPointMapped& lp, 
+                                       BaseFE* ptFe );
 
       using BaseBOperator<FE,TYPE>::CalcOpMat;
 
@@ -51,7 +55,9 @@ namespace CoupledField{
   };
 
   template<class FE, class TYPE>
-  void GradientOperator<FE,TYPE>::CalcOpMat(Matrix<Double> & bMat,LocPointMapped& lp, BaseFE* ptFe ){
+  void GradientOperator<FE,TYPE>::CalcOpMat(Matrix<Double> & bMat,
+                                            const LocPointMapped& lp, 
+                                            BaseFE* ptFe ){
     UInt numFncs = ptFe->GetNumFncs();
     // Set correct size of matrix B and initialise with zeros
     UInt eDim = ptFe->shape_.dim;
@@ -68,7 +74,9 @@ namespace CoupledField{
   }
 
   template<class FE, class TYPE>
-  void GradientOperator<FE,TYPE>::CalcOpMatTransposed(Matrix<Double> & bMat,LocPointMapped& lp, BaseFE* ptFe ){
+  void GradientOperator<FE,TYPE>::CalcOpMatTransposed(Matrix<Double> & bMat,
+                                                      const LocPointMapped& lp, 
+                                                      BaseFE* ptFe ){
     UInt numFncs = ptFe->GetNumFncs();
     // Set correct size of matrix B and initialise with zeros
     UInt eDim = ptFe->shape_.dim;

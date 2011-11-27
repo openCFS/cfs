@@ -213,14 +213,14 @@ void FeHCurlHiQuad::CalcNumUnknowns() {
 
 }
   
-void FeHCurlHiQuad::CalcLocShFnc( Matrix<Double>& shape, LocPointMapped& lp,
+void FeHCurlHiQuad::CalcLocShFnc( Matrix<Double>& shape, const LocPointMapped& lp,
                               const Elem* elem, UInt comp  ) {
   if (updateUnknowns_) CalcNumUnknowns();
   EXCEPTION("Implement me");
   
 }
 
-void FeHCurlHiQuad::CalcLocCurlShFnc( Matrix<Double>& curl, LocPointMapped& lp,
+void FeHCurlHiQuad::CalcLocCurlShFnc( Matrix<Double>& curl, const LocPointMapped& lp,
                                      const Elem* elem, UInt comp ) {
   if (updateUnknowns_) CalcNumUnknowns();
   EXCEPTION("Implement me");
@@ -311,7 +311,7 @@ void FeHCurlHiHex::CalcNumUnknowns() {
 }
 
 
-void FeHCurlHiHex::CalcLocShFnc( Matrix<Double>& shape, LocPointMapped& lpm,
+void FeHCurlHiHex::CalcLocShFnc( Matrix<Double>& shape, const LocPointMapped& lpm,
                              const Elem* elem, UInt comp  ) {
   if (updateUnknowns_) CalcNumUnknowns();
   
@@ -551,7 +551,7 @@ void FeHCurlHiHex::CalcLocShFnc( Matrix<Double>& shape, LocPointMapped& lpm,
 #endif
 }
 
-void FeHCurlHiHex::CalcLocCurlShFnc( Matrix<Double>& curl, LocPointMapped& lpm,
+void FeHCurlHiHex::CalcLocCurlShFnc( Matrix<Double>& curl, const LocPointMapped& lpm,
                                      const Elem* elem, UInt comp ) {
   if (updateUnknowns_) CalcNumUnknowns();
 

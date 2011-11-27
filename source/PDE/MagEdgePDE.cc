@@ -6,7 +6,6 @@
 #include "Utils/Coil.hh"
 #include "Utils/SmoothSpline.hh"
 #include "Utils/LinInterpolate.hh"
-//#include "Forms/curlfieldop.hh"
 
 #include "Driver/TimeSchemes/Trapezoidal.hh"
 #include "CoupledPDE/PDECoupling.hh"
@@ -17,11 +16,16 @@
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "DataInOut/WriteInfo.hh"
 
+#include "Domain/CoefFunction/CoefFunctionExpression.hh"
+
 #include "Forms/BiLinForms/BDBInt.hh"
 #include "Forms/BiLinForms/BBInt.hh"
+#include "Forms/LinForms/BUInt.hh"
 #include "Forms/Operators/CurlOperator.hh"
 #include "Forms/Operators/IdentityOperator.hh"
 
+// new postprocessing concept
+#include "Domain/Results/ResultFunctor.hh"
 namespace CoupledField {
 
 // declare class specific logging stream
@@ -240,9 +244,6 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
     Double regularizationFactor = 1e-6;
     myParam_->GetValue("penaltyFactor", regularizationFactor, ParamNode::PASS);
     
-    std::cerr << "regularization factor is " << regularizationFactor << std::endl;
-    
-    
     //==============================================================
     //begin new implementation
     //==============================================================
@@ -308,17 +309,18 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
        //  Standard Stiffness Integrator
        // ===============================
         shared_ptr<CoefFunction> curCoef = actMat->GetCoefFunction(MAG_RELUCTIVITY,FULL,Global::REAL);
+        std::cerr << "reluctivity is" << curCoef->ToString() << std::endl;
         BDBInt< CurlOperator ,FeHCurl >* curlcurl;
         curlcurl = new BDBInt< CurlOperator ,FeHCurl >(curCoef,1.0) ;
-        curlcurl->SetFeSpace( feSpace );
 
-
-       //BiLinFormContext * stiffContext =
-      //     new BiLinFormContext(curlcurl, STIFFNESS );
-     //  stiffContext->SetEntities( actSDList, actSDList );
-    //   stiffContext->SetFeFunctions( feFunc, feFunc );
-  //     assemble_->AddBiLinearForm( stiffContext );
-   //    linBilinForms_[actRegion] = curlcurl;
+       BiLinFormContext * stiffContext =
+           new BiLinFormContext(curlcurl, STIFFNESS );
+       stiffContext->SetEntities( actSDList, actSDList );
+       stiffContext->SetFeFunctions( feFunc, feFunc );
+       assemble_->AddBiLinearForm( stiffContext );
+       // Important: Add bdb-integrator to global list, as we need them later
+       // for calculation of postprocessing results
+       bdbInts_[actRegion] = curlcurl;
 
        // === Additional RHS integrator in case of Non-linearity ===
        if ( nonLin_ == true ) {
@@ -344,31 +346,30 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
       materials_[actRegion]->GetScalar(conductivity,MAG_CONDUCTIVITY,Global::REAL);
 
       if ( conductivity < 1e-10 || analysistype_ == STATIC ) {
-        Double perm;
+        Matrix<Double> reluc; 
         // get tensor of permeability and determine max. value
-        materials_[actRegion]->GetScalar( perm, MAG_PERMEABILITY, Global::REAL );
+        materials_[actRegion]->GetTensor( reluc, MAG_RELUCTIVITY, Global::REAL );
         scaleByEdgeSize = true;
         //regularizationFactor = 1e-6;
-        conductivity =  regularizationFactor / perm;
+        conductivity =  regularizationFactor * reluc[0][0];
       }
 
 
       BBIntMassEdge<ScaledByEdgeIdentityOperator,FeHCurl,Double> *massInt;
       massInt = new BBIntMassEdge<ScaledByEdgeIdentityOperator,FeHCurl,Double>(conductivity);
-      massInt->SetFeSpace( feSpace );
 
-    //  BiLinFormContext * massContext;
+      BiLinFormContext * massContext;
       if ( analysistype_ == STATIC) {
         // we have to guarantee, that we add some mass to
         // the curl-curl-matrix!!
-     //   massContext =  new BiLinFormContext(massInt, STIFFNESS );
+        massContext =  new BiLinFormContext(massInt, STIFFNESS );
       } else {
-  //      massContext =
-  //          new BiLinFormContext(massInt, MASS );
+        massContext =
+            new BiLinFormContext(massInt, MASS );
       }
- //     massContext->SetEntities( actSDList, actSDList );
-  //    massContext->SetFeFunctions( feFunc, feFunc );
-  //    assemble_->AddBiLinearForm( massContext );
+      massContext->SetEntities( actSDList, actSDList );
+      massContext->SetFeFunctions( feFunc, feFunc );
+      assemble_->AddBiLinearForm( massContext );
 
       feFunc->AddEntityList( actSDList );
       // ============================
@@ -377,27 +378,25 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
       // If this subdomain is a coil we have to do special things
       for ( UInt coil = 0; coil < coilDef_.GetSize(); coil++ ) {
         if ( actRegion == coilRegionId_[coil] ) {
-          REFACTOR;
-          //std::string factor = coilDef_[coil]->value_ + "/" +
-          //  lexical_cast<std::string>(coilDef_[coil]->windingCrossSection_);
-          //
-          //VolForceInt *coilSource3d =
-          //    new LinearEdgeSrcInt ( 3, coilDef_[coil]->phase_,
-          //                           isaxi_ );
-          //
-          //StdVector<std::string> currDensity(3);
-          //currDensity[0] = factor + "*" + lexical_cast<std::string>(coilDef_[coil]->locFlowDir_[0]);
-          //currDensity[1] = factor + "*" + lexical_cast<std::string>(coilDef_[coil]->locFlowDir_[1]);
-          //currDensity[2] = factor + "*" + lexical_cast<std::string>(coilDef_[coil]->locFlowDir_[2]);
-          //coilSource3d->SetVolForceVector( currDensity,
-          //                                 coilDef_[coil]->flowCoordSys_,
-          //                                 true, 1.0 );
-          //LinearFormContext * coilContext =
-          //    new LinearFormContext( coilSource3d );
-          //coilSource3d->SetFeSpace(feSpace );
-          //coilContext->SetEntities( actSDList );
-          //coilContext->SetFeFunction( feFunc );
-          //assemble_->AddLinearForm( coilContext );
+          BUIntegrator<IdentityOperator,FeHCurl,Double>* curInt;
+          
+          std::string factor = coilDef_[coil]->value_ + "/" +
+            lexical_cast<std::string>(coilDef_[coil]->windingCrossSection_);
+
+          StdVector<std::string> currDensity(3);
+          currDensity[0] = factor + "*" + lexical_cast<std::string>(coilDef_[coil]->locFlowDir_[0]);
+          currDensity[1] = factor + "*" + lexical_cast<std::string>(coilDef_[coil]->locFlowDir_[1]);
+          currDensity[2] = factor + "*" + lexical_cast<std::string>(coilDef_[coil]->locFlowDir_[2]);
+          shared_ptr<CoefFunctionExpression<Double> > coef (new CoefFunctionExpression<Double>());
+          coef->SetVector( currDensity );
+          coef->SetCoordinateSystem(coilDef_[coil]->flowCoordSys_);
+          
+          curInt = new BUIntegrator<IdentityOperator,FeHCurl,Double>(1.0, coef);
+          LinearFormContext * coilContext =
+              new LinearFormContext( curInt );
+          coilContext->SetEntities( actSDList );
+          coilContext->SetFeFunction( feFunc );
+          assemble_->AddLinearForm( coilContext );
         }
       }
 
@@ -478,19 +477,21 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
         break;
 
       case MAG_FLUX_DENSITY:
-        if( isComplex_ ) {
-          CalcFluxDensity<Complex>( res );
-        } else {
-          CalcFluxDensity<Double>( res );
-        }
+        resultFunctors_[MAG_FLUX_DENSITY]->EvalResult(res);
+//        if( isComplex_ ) {
+//          CalcFluxDensity<Complex>( res );
+//        } else {
+//          CalcFluxDensity<Double>( res );
+//        }
         break;
         
       case MAG_POTENTIAL:
-        if( isComplex_ ) {
-          CalcVecPotential<Complex>( res );
-        } else {
-          CalcVecPotential<Double>( res );
-        }
+        resultFunctors_[MAG_POTENTIAL]->EvalResult(res);
+//        if( isComplex_ ) {
+//          CalcVecPotential<Complex>( res );
+//        } else {
+//          CalcVecPotential<Double>( res );
+//        }
         break;
       
 //      case MAG_POTENTIAL_DIV:
@@ -518,11 +519,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
         break;
          
       case MAG_ENERGY:
-        if( isComplex_ ) {
-          CalcEnergy<Complex>( res );
-        } else {
-          CalcEnergy<Double>( res );
-        }
+        resultFunctors_[MAG_ENERGY]->EvalResult(res);
         break;
 
       default:
@@ -855,6 +852,8 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
       StdVector<std::string> vecComponents;
       vecComponents = "x", "y", "z";
 
+      shared_ptr<BaseFeFunction> feFct = feFunctions_[MAG_POTENTIAL];
+      
       // === MAGNETIC FLUX DENSITY ===
       shared_ptr<ResultInfo> flux(new ResultInfo);
       flux->resultType = MAG_FLUX_DENSITY;
@@ -864,6 +863,14 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
       flux->entryType = ResultInfo::VECTOR;
       availResults_.insert( flux );
       postProcResults_[MAG_FLUX_DENSITY] = MAG_POTENTIAL;
+      shared_ptr<BaseFieldFunctor> bFunc;
+      if( isComplex_ ) {
+        bFunc.reset(new DiffFieldFunctor<Complex>(feFct, flux));
+      } else {
+        bFunc.reset(new DiffFieldFunctor<Double>(feFct, flux));
+      }
+      resultFunctors_[MAG_FLUX_DENSITY] = bFunc;
+      fieldFunctors_[MAG_FLUX_DENSITY] = bFunc;
 
       // === MAGNETIC VECTOR POTENTIAL ===
       shared_ptr<ResultInfo> magPot(new ResultInfo);
@@ -873,7 +880,22 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
       magPot->definedOn = ResultInfo::ELEMENT;
       magPot->entryType = ResultInfo::VECTOR;
       availResults_.insert( magPot );
-      
+      postProcResults_[MAG_POTENTIAL] = MAG_POTENTIAL;
+      shared_ptr<BaseFieldFunctor> aFunc;
+      if( isComplex_ ) {
+        aFunc.reset(
+            new FieldInterpolFunctor<IdentityOperator,
+            FeHCurl,
+            Complex>(feFct, magPot));
+      } else {
+        aFunc.reset(
+            new FieldInterpolFunctor<IdentityOperator,
+            FeHCurl,
+            Double>(feFct, magPot));
+      }
+      resultFunctors_[MAG_POTENTIAL] = aFunc;
+      fieldFunctors_[MAG_POTENTIAL] = aFunc;
+
       //resultFncs_[MAG_POTENTIAL] = &MagEdgePDE::CalcFluxDensityAtIP;
       
   //    // === EDDY CURRENT DENSITY ===
@@ -914,6 +936,27 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
       energy->entryType = ResultInfo::SCALAR;
       availResults_.insert( energy );
       postProcResults_[MAG_ENERGY] = MAG_POTENTIAL;
+      shared_ptr<ResultFunctor> energyFunc;
+      if( isComplex_ ) {
+        energyFunc.reset(new EnergyResultFunctor<Complex>(feFct, energy));
+      } else {
+        energyFunc.reset(new EnergyResultFunctor<Double>(feFct, energy));
+      }
+      resultFunctors_[MAG_ENERGY] = energyFunc;
+      // ============================
+      // Initialize result functors:
+      // ============================
+      // 1) Loop over all BDB-integrators
+      std::map<RegionIdType, BaseBDBInt*>::iterator it = bdbInts_.begin();
+      for( ; it != bdbInts_.end(); ++it ) {
+        RegionIdType region = it->first;
+        BaseBDBInt* bdb = it->second;
+
+        // 2) pass integrators to functors
+        bFunc->AddIntegrator(bdb, region);
+//        aFunc->AddIntegrator(bdb, region);
+        energyFunc->AddIntegrator(bdb, region);
+      }
     }
 
   // =======================================================================
