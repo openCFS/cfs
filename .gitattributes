@@ -105,9 +105,12 @@ include/def_user_scpip.hh.in -text
 include/def_xmlschema.hh.in -text
 share/MaterialFile/mat.xml svneol=native#text/xml
 share/doc/auxilliaries/LaTeX/lsepaper.sty svneol=native#text/plain
+share/doc/auxilliaries/Pics/am2_logo.pdf -text
+share/doc/auxilliaries/Pics/am2_logo.png -text
 share/doc/auxilliaries/Pics/cfs-logo.eps -text svneol=unset#application/postscript
 share/doc/auxilliaries/Pics/cfs-logo.pdf -text svneol=unset#application/pdf
 share/doc/auxilliaries/Pics/cfs-logo.png -text svneol=unset#image/png
+share/doc/auxilliaries/Pics/logo_am2.svg -text
 share/doc/auxilliaries/Pics/ls_am_klu.eps -text svneol=unset#application/postscript
 share/doc/auxilliaries/Pics/ls_am_klu.pdf -text svneol=unset#application/pdf
 share/doc/auxilliaries/Pics/ls_am_klu.svg -text
