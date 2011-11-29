@@ -30,7 +30,7 @@ class CoefFunctionConst : public CoefFunction{
       ;
     }
 
-    ~CoefFunctionConst(){
+    virtual ~CoefFunctionConst(){
       ;
     }
 

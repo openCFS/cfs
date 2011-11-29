@@ -310,7 +310,7 @@ namespace CoupledField {
     // Store average block size.
     // This value is used to accelerate searching for rows in the
     // FindBlock()-method
-    oneOverBlockSize_ = 1.0 / (accBlockSize / nbRows_);
+    oneOverBlockSize_ = float(1.0) / (float(accBlockSize) / nbRows_);
 
     // find diagonal entries, if this is a square matrix
     if( this->nrows_ == this->ncols_ ) {

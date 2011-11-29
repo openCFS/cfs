@@ -242,7 +242,7 @@ namespace CoupledField {
     StdVector< shared_ptr<EntityList> > fctEntList;
     StdVector< shared_ptr<EntityList> >::iterator entIt;
     std::map< Integer , StdVector<BcType> >::iterator bcIt;
-    UInt actNode = -1;
+    UInt actNode = 0;
 
     switch(phase){
       case 1:

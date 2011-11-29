@@ -198,8 +198,15 @@ IF(CFS_CXX_COMPILER_NAME STREQUAL "ICC")
   #---------------------------------------------------------------------------
   # Disable warnings about hidden overriden functions of base classes,
   # unknown pragmas (openmp, etc.) and multiline comments.
+  # Additionally the following warnings / remarks are suppressed:
+  #    191: type qualifier is meaningless on cast type
+  #    279: controlling expression is constant
+  #    654: overloaded virtual function 
+  #   1125: entity-kind "entity" is hidden by "entity" -- virtual function 
+  #         override intended?
+  #   2259: non-pointer conversion from "type" to "type" may lose significant bits
   #---------------------------------------------------------------------------
-  SET(CFS_SUPPRESSIONS "-wd1125,654")
+  SET(CFS_SUPPRESSIONS "-wd191,279,654,1125,2259")
   SET(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-unknown-pragmas")
   SET(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-comment")
 

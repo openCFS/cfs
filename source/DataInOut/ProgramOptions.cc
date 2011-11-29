@@ -26,9 +26,9 @@
 #include <cstdlib>
 
 #include <boost/bind.hpp>
-#include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/convenience.hpp>
 #include <boost/filesystem/exception.hpp>
+#include <boost/filesystem/operations.hpp>
 #include <boost/algorithm/string/trim.hpp>
 
 #ifdef USE_MKL
@@ -298,7 +298,7 @@ namespace CoupledField {
        // get complete path
        fs::path simPath ( varMap_["simName"].as<string>());
 
-       fs::absolute( simPath.parent_path()).string();
+       boost::filesystem::absolute( simPath.parent_path()).string();
 
        // return path to simulation
        return fs::absolute( simPath.parent_path());

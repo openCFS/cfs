@@ -916,7 +916,7 @@ void IntScheme::GetIntPoints( Elem::ShapeType elemType,
     int i, dtbl, m;
 
     // calculate number of points required according to p = 2n-1
-    int n = ((order + 1) / 2.0) + 0.5;
+    int n = int(((order + 1) / 2.0) + 0.5);
 
     // not sure, for what m is used for
     m = (n+1)>>1;

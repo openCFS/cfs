@@ -993,8 +993,8 @@ namespace CoupledField {
     innerFncs.Init(0);
 #ifdef USE_INNER
     if( orderInner_[0] > 2 && orderInner_[2] > 1 ) {
-      UInt unknowns = (orderInner_[0]-1) * (orderInner_[0]-2) * 0.5 
-                    * (orderInner_[2]-1) ; 
+      UInt unknowns = UInt ((orderInner_[0]-1) * (orderInner_[0]-2) * 0.5 
+                    * (orderInner_[2]-1) ); 
     innerFncs.Init( unknowns );
     LOG_DBG(feH1Hi) << "interior has " << unknowns << "unknowns";
     actNumFncs_ += unknowns;

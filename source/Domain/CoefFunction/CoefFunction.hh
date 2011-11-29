@@ -87,12 +87,34 @@ public:
   //@{ \name Factory Methods
 
   //! Generate scalar-valued coefficient function
+  
+  //! This method generates a scalar-valued coefficient function, either
+  //! real- or complex valued.
+  //! The method internally investigates the expression and generates
+  //! the appropriate coefficient function: If the expression evaluates
+  //! to a constant, a CoefFunctionConst-object is created, otherwise
+  //! the more general (but more expensive) CoefFunctionExpression.
+  //! \param format If COMPLEX, a complex valued CoefFunction is generated;
+  //!               If REAL, a real-valued CoefFunction is generated
+  //! \param realVal Real-part of the CoefFunction
+  //! \param imagVal Imag-part of the CoefFunction (optional)
   static shared_ptr<CoefFunction> 
   Generate( Global::ComplexPart format, 
             const std::string& realVal, 
             const std::string& imagVal = "" );
 
   //! Generate vector-valued coefficient function
+    
+  //! This method generates a vector-valued coefficient function, either
+  //! real- or complex valued.
+  //! The method internally investigates the expression and generates
+  //! the appropriate coefficient function: If the expression evaluates
+  //! to a constant, a CoefFunctionConst-object is created, otherwise
+  //! the more general (but more expensive) CoefFunctionExpression.
+  //! \param format If COMPLEX, a complex valued CoefFunction is generated;
+  //!               If REAL, a real-valued CoefFunction is generated
+  //! \param realVal Real-part vector of the CoefFunction
+  //! \param imagVal Imag-part vector of the CoefFunction (optional)
   static shared_ptr<CoefFunction> 
   Generate( Global::ComplexPart format, 
             const StdVector<std::string>& realVal, 
@@ -100,6 +122,19 @@ public:
 
 
   //! Generate tensor-valued coefficient function
+
+  //! This method generates a tensor-valued coefficient function, either
+  //! real- or complex valued.
+  //! The method internally investigates the expression and generates
+  //! the appropriate coefficient function: If the expression evaluates
+  //! to a constant, a CoefFunctionConst-object is created, otherwise
+  //! the more general (but more expensive) CoefFunctionExpression.
+  //! \param format If COMPLEX, a complex valued CoefFunction is generated;
+  //!               If REAL, a real-valued CoefFunction is generated
+  //! \param numRows Number of rows of the tensor function
+  //! \param numCols Number of columns of the tensor function
+  //! \param realVal Real-part tensor of the CoefFunction
+  //! \param imagVal Imag-part tensor of the CoefFunction (optional)
   static shared_ptr<CoefFunction> 
   Generate( Global::ComplexPart format,
             UInt numRows, UInt numCols,
@@ -120,7 +155,7 @@ public:
     this->coordSys_ = domain->GetCoordSystem();
   }
 
-  ~CoefFunction(){
+  virtual ~CoefFunction(){
     ;
   }
   //@}

@@ -387,8 +387,10 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
           currDensity[0] = factor + "*" + lexical_cast<std::string>(coilDef_[coil]->locFlowDir_[0]);
           currDensity[1] = factor + "*" + lexical_cast<std::string>(coilDef_[coil]->locFlowDir_[1]);
           currDensity[2] = factor + "*" + lexical_cast<std::string>(coilDef_[coil]->locFlowDir_[2]);
-          shared_ptr<CoefFunctionExpression<Double> > coef (new CoefFunctionExpression<Double>());
-          coef->SetVector( currDensity );
+          //shared_ptr<CoefFunctionExpression<Double> > coef (new CoefFunctionExpression<Double>());
+          //coef->SetVector( currDensity );
+          shared_ptr<CoefFunction> coef(CoefFunction::Generate(Global::REAL, currDensity));
+          std::cerr << "type of coef is " << coef->GetDimType() << std::endl;
           coef->SetCoordinateSystem(coilDef_[coil]->flowCoordSys_);
           
           curInt = new BUIntegrator<IdentityOperator,FeHCurl,Double>(1.0, coef);
