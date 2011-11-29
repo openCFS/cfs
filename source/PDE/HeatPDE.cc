@@ -254,13 +254,19 @@ void HeatPDE::DefineIntegrators() {
     // ====================================================================
     // mass integrator
     // ====================================================================
+    
+    // Todo: The following code is not implemented in a clean way:
+    // We should query ALL parameters via the BaseMaterial::GetCoefFunction
+    // interface.
     Double density, heatCapacity, massFactor;
     actSDMat->GetScalar(density,DENSITY,Global::REAL);
     actSDMat->GetScalar(heatCapacity,HEAT_CAPACITY,Global::REAL);
     massFactor = density * heatCapacity;
-
+    shared_ptr<CoefFunction> coeff 
+    = CoefFunction::Generate(Global::REAL, lexical_cast<std::string>(massFactor));
+    
     BBInt<IdentityOperator,FeH1,Double> *massInt;
-    massInt = new BBInt<IdentityOperator, FeH1, Double>(massFactor);
+    massInt = new BBInt<IdentityOperator, FeH1, Double>(coeff, 1.0);
     massInt->SetFeSpace( feFunctions_[HEAT_TEMPERATURE]->GetFeSpace() );
 
     BiLinFormContext *massContext =  new BiLinFormContext(massInt, MASS );

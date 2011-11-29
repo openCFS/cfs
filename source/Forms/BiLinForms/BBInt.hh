@@ -37,11 +37,7 @@ namespace CoupledField {
     public:
 
       //! Constructor with pointer to BaseElem
-      BBInt(MAT_DATA_TYPE factor){
-        this->name_ = "BBInt";
-        isSymmetric_ = true;
-        factor_ = factor;
-      }
+      BBInt( shared_ptr<CoefFunction> scalCoef, MAT_DATA_TYPE factor);
 
       //! Destructor
       ~BBInt(){
@@ -75,7 +71,9 @@ namespace CoupledField {
 
     protected:
       B_OP<FE_TYPE,MAT_DATA_TYPE> operator_;
-
+      
+      //! Pointer to scalar (!!) coefficient for BB-integrator 
+      shared_ptr<CoefFunction > scalCoef_;
 
       //! set a constant factor for multiplication with the element matrix
       MAT_DATA_TYPE factor_;
@@ -95,8 +93,8 @@ namespace CoupledField {
     public:
 
       //! Constructor with pointer to BaseElem
-      BBIntMassEdge(MAT_DATA_TYPE factor):
-        BBInt<B_OP,FE_TYPE,MAT_DATA_TYPE>(factor){
+      BBIntMassEdge(shared_ptr<CoefFunction> scalCoef, MAT_DATA_TYPE factor):
+        BBInt<B_OP,FE_TYPE,MAT_DATA_TYPE>(scalCoef, factor){
         this->name_ = "BBIntMassEdge";
       }
 

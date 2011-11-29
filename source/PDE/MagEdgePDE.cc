@@ -354,9 +354,10 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
         conductivity =  regularizationFactor * reluc[0][0];
       }
 
-
+      shared_ptr<CoefFunction> coeff =
+          CoefFunction::Generate(Global::REAL, lexical_cast<std::string>(conductivity));
       BBIntMassEdge<ScaledByEdgeIdentityOperator,FeHCurl,Double> *massInt;
-      massInt = new BBIntMassEdge<ScaledByEdgeIdentityOperator,FeHCurl,Double>(conductivity);
+      massInt = new BBIntMassEdge<ScaledByEdgeIdentityOperator,FeHCurl,Double>(coeff,1.0);
 
       BiLinFormContext * massContext;
       if ( analysistype_ == STATIC) {

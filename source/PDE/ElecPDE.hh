@@ -116,7 +116,7 @@ namespace CoupledField
     
     //! Calculate field variables at arbitrary points
     void CalcField( SolutionType solType, StdVector<const Elem*>& elems,
-                                StdVector<LocPoint>& points, SingleVector& values );
+                    StdVector<LocPoint>& points, SingleVector& values );
 
 
 
