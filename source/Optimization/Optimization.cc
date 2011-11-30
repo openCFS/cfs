@@ -257,8 +257,11 @@ void Optimization::SetEnums()
   Function::type.Add(Function::ELEC_ENERGY, "elecEnergy");
   Function::type.Add(Function::ENERGY_FLUX, "energyFlux");
   Function::type.Add(Function::HOM_TENSOR, "homTensor");
+  Function::type.Add(Function::MAXWELL_HOM_TENSOR, "maxwellHomTensor");
   Function::type.Add(Function::HOM_TRACKING, "homTracking");
   Function::type.Add(Function::HOM_FROBENIUS_PRODUCT, "homFrobeniusProduct");
+  Function::type.Add(Function::MAXWELL_HOMOGENIZATION_TRACKING, "maxwellHomTracking");
+  Function::type.Add(Function::BITENSOR, "bitensor");
   Function::type.Add(Function::POISSONS_RATIO, "poissonsRatio");
   Function::type.Add(Function::YOUNGS_MODULUS, "youngsModulus");
   Function::type.Add(Function::YOUNGS_MODULUS_E1, "youngsModulusE1");
@@ -270,6 +273,8 @@ void Optimization::SetEnums()
   Function::type.Add(Function::STRESS, "stress");
   Function::type.Add(Function::STRESS_DENSITY, "stressDensity");
   Function::type.Add(Function::ISOTROPY, "isotropy");
+  Function::type.Add(Function::MAXWELL_ISOTROPY, "maxwellIsotropy");
+  Function::type.Add(Function::BIISOTROPY, "biIsotropy");
   Function::type.Add(Function::ISO_ORTHOTROPY, "iso-orthotropy");
   Function::type.Add(Function::ORTHOTROPY, "orthotropy");
   Function::type.Add(Function::SLOPE, "slope");
@@ -348,6 +353,7 @@ void Optimization::SetEnums()
   OptimizationMaterial::system.Add(OptimizationMaterial::MECH, "mechanic");
   OptimizationMaterial::system.Add(OptimizationMaterial::HEAT, "heat");
   OptimizationMaterial::system.Add(OptimizationMaterial::ACOUSTIC, "acoustic");
+  OptimizationMaterial::system.Add(OptimizationMaterial::ELEC, "maxwellHom");
 
   application.SetName("Optimization::Application");
   application.Add(NO_APP, "no_app");
@@ -372,6 +378,7 @@ void Optimization::SetEnums()
   MultipleExcitation::type.Add(MultipleExcitation::FIXED_WEIGHT, "fixed_weights");
   MultipleExcitation::type.Add(MultipleExcitation::META_OBJECTIVE, "meta_objective");
   MultipleExcitation::type.Add(MultipleExcitation::HOMOGENIZATION_TEST_STRAINS, "homogenizationTestStrains");
+  MultipleExcitation::type.Add(MultipleExcitation::MAXWELL_HOMOGENIZATION_TEST_STRAINS, "maxwellHomogenizationTestStrains");
   MultipleExcitation::type.Add(MultipleExcitation::POLARIZATION_MATRIX, "polarizationMatrix");
 }
 
@@ -466,6 +473,7 @@ Optimization* Optimization::CreateInstance()
     case OptimizationMaterial::MECH:
     case OptimizationMaterial::ACOUSTIC:
     case OptimizationMaterial::HEAT:
+    case OptimizationMaterial::ELEC:
       opt = new SIMP(); // generally single PDE!
       break;
       
@@ -591,7 +599,7 @@ void Optimization::SolveAdjointProblem(Excitation* excite, Function* f){
   if(!harmonic) 
     driver->SolveProblem(false, CreateAdjointAnalysisIdNode("adjoint", excite), &adjointParams); // static and transient optimization
   else
-      EXCEPTION("Harmonic adjoint not implemented!");
+    EXCEPTION("Harmonic adjoint not implemented!");
 }
 
 void Optimization::SolveAdjointProblems(Excitation* excite)

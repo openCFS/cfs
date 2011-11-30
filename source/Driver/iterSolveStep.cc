@@ -245,7 +245,7 @@ namespace CoupledField
     ResultCache::SetStepValue( actFreq_ );
   }
   
-  void IterSolveStep::SolveStepHarmonic(PtrParamNode analysis_id)
+  void IterSolveStep::SolveStepHarmonic(PtrParamNode analysis_id, AdjointParameters* adjointParams)
   {
     EXCEPTION("Harmonic iterative coupling is not yet implemented"); 
   }

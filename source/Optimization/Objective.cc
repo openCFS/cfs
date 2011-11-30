@@ -60,6 +60,8 @@ void Objective::ToInfo(PtrParamNode info)
   Function::ToInfo(info);
   if(tensor_.GetNumRows() > 1)
     info->Get("tensor")->SetValue(tensor_);
+  if(maxwellTensor_.GetNumRows() > 1)
+    info->Get("tensor")->SetValue(new Matrix<Complex>(maxwellTensor_));
 
 }
 

@@ -11,6 +11,7 @@
 #include "gradfieldop.hh"
 #include "linPiezoCoupling.hh"
 #include "curlCurlNodeInt.hh"
+#include "Forms/linGradBDBInt.hh"
 
 #ifndef INTEGLIB
 #include "Utils/mathParser/mathParser.hh"
@@ -23,6 +24,7 @@ namespace CoupledField
   class linElastInt;
   class BiotSavart;
   class LinMagStrictInt;
+
 
   /// base class class for calculation right hand side
   class LinearForm : public BaseForm
@@ -617,6 +619,84 @@ namespace CoupledField
   };
   
   
+  // =========================================================================
+  // rhs maxwell homogenization integrator
+  // =========================================================================
+
+  //! Linear integrator for volume charge sources for maxwell homogenization.
+  //! This integrator can also work on different local coordinate systems
+  class VolChargeHomInt : public LinearForm {
+
+  public:
+
+    //! Constructor
+    VolChargeHomInt(BaseMaterial* matData, Global::ComplexPart matDataType, UInt numDof, const std::string& phase, bool isaxi);
+
+    //! Destructor
+    virtual ~VolChargeHomInt();
+
+    //! Set the volume force vector
+    //! \param volForce vector with volume force w.r.t. coordSys
+    //! \param coordSys pointer to reference coordinate system
+    void SetVolChargeVector(StdVector<std::string> & volChargex,
+        StdVector<std::string> & volChargey,
+        StdVector<std::string> & volChargez,
+        const CoordSystem * coordSys,
+        bool isUnit, Double volume, const int dim);
+
+    //! Calculation of vector of right hand side
+    //   template <typename T>
+    void CalcElemVector( Vector<double> & result,
+        EntityIterator& ent );
+
+    //! Calculation of vector of right hand side
+    void CalcElemVector( Vector<Complex> & result,
+        EntityIterator& ent );
+
+    linGradBDBInt* GetBDBInt() {return bilinearStiff_;};
+
+  protected:
+
+    //! Helper function for calculating part element vector
+    /*    template<class TYPE>
+      void CalcPartVector( Vector<TYPE>& elemVec,
+                           Vector<TYPE>& chargeVec,
+                           EntityIterator& ent );*/
+
+    //! Number of degrees of freedom
+    UInt numDofs_;
+
+    //! Vector with volume charge (local coordinate system)
+    StdVector<std::string> locChargex_;
+    StdVector<std::string> locChargey_;
+    StdVector<std::string> locChargez_;
+
+    //! Phase of force
+    std::string phase_;
+
+    Global::ComplexPart locMatDataType_;
+
+    //! Reference coordinate system
+    const CoordSystem * coordSys_;
+
+    //! Volume of region
+    Double volume_;
+
+    //! Dimension of Domain
+    UInt dim_;
+
+    //! Flag if force is unit value
+    bool isUnitValue_;
+
+    //! Material Data pointer
+    BaseMaterial* matData_;
+
+    //! linGradBDBInt pointer
+    linGradBDBInt *bilinearStiff_;
+
+  };
+
+
   // =========================================================================
   // rhs volume integrator
   // =========================================================================

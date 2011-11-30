@@ -968,21 +968,21 @@ namespace CoupledField {
   }
 
 
-  void StdSolveStep::SolveStepHarmonic(PtrParamNode analysis_id) {
+  void StdSolveStep::SolveStepHarmonic(PtrParamNode analysis_id, AdjointParameters* adjointParams) {
     if ( nonLin_ ) {
       StepHarmonicNonLin(analysis_id);
     }
     else {
-      StepHarmonicLin(analysis_id);
+      StepHarmonicLin(analysis_id, adjointParams);
     }
   }
 
 
-  void StdSolveStep::StepHarmonicLin(PtrParamNode analysis_id) {
+  void StdSolveStep::StepHarmonicLin(PtrParamNode analysis_id, AdjointParameters* adjointParams) {
 
 
     //this has to be done each frequency!
-    assemble_->AssembleLinRHS();
+    assemble_->AssembleLinRHS(adjointParams);
 
     if ( PDE_.IsComputeRHS4HarmSet() ) {
       // Evaluating RHS with nodal srcs for harmonic flownoise problems

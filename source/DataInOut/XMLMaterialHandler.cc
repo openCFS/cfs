@@ -623,6 +623,35 @@ namespace CoupledField {
       // KILLME isotropic permittivity is NOT set in r7562!!
     } // end of permittivity
     
+    // check for permeability (only used in maxwell homogenization for phase velocity)
+    if(elec->Has("permeability"))
+    {
+      PtrParamNode p = elec->Get("permeability");
+
+      // check for tensor with dim1 = 3 <tensor dim1="3">
+      if(p->HasByVal("tensor", "dim1", "3"))
+      {
+        Matrix<Double> permeabilityTensor(3,3);
+
+        // read real permittivity tensor
+        if(p->GetByVal("tensor", std::string("dim1"), "3")->Has("real"))
+        {
+          PtrParamNode tensor =  p->GetByVal("tensor","dim1","3")->Get("real");
+          ParamTools::AsTensor<double>(tensor, 3, 3, permeabilityTensor);
+          material->SetTensor(permeabilityTensor, MAG_PERMEABILITY, Global::REAL);
+        }
+
+        // read imaginary permittivity tensor
+        if(p->GetByVal("tensor", "dim1", "3")->Has("imag"))
+        {
+          PtrParamNode tensor =  p->GetByVal("tensor","dim1","3")->Get("imag");
+          ParamTools::AsTensor<double>(tensor, 3, 3, permeabilityTensor);
+          material->SetTensor(permeabilityTensor, MAG_PERMEABILITY, Global::IMAG);
+        }
+      } // end of <tensor dim1="3">
+
+    } // end of permeability
+
     // check for <permittivityCoefficient nonlinear="function">
     if(elec->HasByVal("permittivityCoefficient", "nonlinear", "function"))
     {

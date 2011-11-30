@@ -40,6 +40,7 @@ namespace CoupledField
     isAllowed_.insert( NONLIN_DEPENDENCY );
     isAllowed_.insert( NONLIN_APPROXIMATION_TYPE );
     isAllowed_.insert( NONLIN_DATA_NAME );
+    isAllowed_.insert( MAG_PERMEABILITY ); //only for maxwell homogenization
 
 
   }

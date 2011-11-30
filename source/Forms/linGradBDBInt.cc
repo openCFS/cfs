@@ -6,6 +6,7 @@
 #include <fstream>
 
 #include "General/environment.hh"
+#include "Domain/domain.hh"
 #include "linGradBDBInt.hh"
 #include "DataInOut/Logging/cfslog.hh"
 
@@ -62,9 +63,9 @@ namespace CoupledField {
     }
 
 
-// 	Matrix<Double> auxbMat;
-// 	auxbMat.Init();
-// 	bMat.Transpose (auxbMat);
+// Matrix<Double> auxbMat;
+// auxbMat.Init();
+// bMat.Transpose (auxbMat);
 //     std::cerr << "linGradBDBInt::bMat transpose = \n" << auxbMat << std::endl;
   }
 
@@ -78,7 +79,25 @@ namespace CoupledField {
     dMat *= mParser_->Eval( mHandle_ );
 
     Double density = elem != NULL ? GetErsatzMaterialFactor(elem) : 1.0;
-    if(density != 1.0) dMat *= density;  
+    if(density != 1.0)
+    {
+      dMat *= density;
+
+
+      // BiMaterial case only valid for "simpVar" scheme (rho^param MAT + (1-rho)^param) BIMAT)
+      BaseMaterial* bm = elem != NULL ? domain->GetErsatzBiMaterial(elem,  ELECTROSTATIC) : NULL;
+
+      if(bm != NULL)
+      {
+        Double bidensity = GetErsatzMaterialFactor(elem, true);
+        Matrix<Double> tmp;
+        bm->GetTensor(tmp, matType_, matDataType_, subTensorType_);
+       // tmp *= (1.0 - density);
+        tmp *= bidensity;
+        dMat +=  tmp;
+        LOG_DBG3(forms) << "linGradBDBInt::calcDMat: e=" << elem->elemNum << " bimat=" << tmp.ToString();
+      }
+    }
     LOG_DBG3(forms) << GetName() << "::calcDMat("
                     << (elem != NULL ? Integer(elem->elemNum) : -1)
                     << ") -> density=" << density;
@@ -90,6 +109,15 @@ namespace CoupledField {
     mParser_->SetExpr( mHandle_, factor );
   }
   
+  // returns B - matrix
+  void linGradBDBInt::calcBMatOnly( Matrix<Double> &bMat, UInt ip,
+      BaseFE* elem, Matrix<Double> &ptCoord ) {
+
+    ptelem = elem;
+    CalcBMat(bMat, ip, ptCoord);
+  }
+
+
 
   // ================
   //   Constructors

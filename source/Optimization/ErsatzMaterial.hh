@@ -113,12 +113,15 @@ public:
    * @see ToApp()*/
   SinglePDE* ToPDE(Application app, bool throw_exception = true) const;
 
+  static LinearFormContext* GetLinearFormContext(const RegionIdType regionId, StdPDE* pde,
+      const std::string& integrator, Global::ComplexPart entryType = (Global::ComplexPart) 4711);
+
   /** Helper which extracts the FormContext from assemble using the optimization region
    * @param regionId the corresponding region
    * @param pde1 the first pde (e.g. mech)
    * @param pde2 this is either the same as pde1 or the coupling partner
    * @param integrator there is no nice enum yet :( e.g. linElastInt, MechInt, ... */
-  static BiLinFormContext* GetFormContext(RegionIdType regionId, StdPDE* pde1, StdPDE* pde2, const std::string& integrator, bool throw_exception = true);
+  static BiLinFormContext* GetFormContext(RegionIdType regionId, StdPDE* pde1, StdPDE* pde2, const std::string& integrator, bool throw_exception = true, Global::ComplexPart entryType = (Global::ComplexPart) 4711);
 
   /** Get the standard integrators */
   BaseForm* GetForm(const RegionIdType reg, Application app1, Application app2 = NO_APP, bool throw_exception = true);
@@ -128,7 +131,7 @@ public:
    * @param pde1 the first pde (e.g. mech)
    * @param pde2 this is either the same as pde1 or the coupling partner
    * @param integrator there is no nice enum yet :( e.g. linElastInt, MechInt, ... */
-  static BaseForm* GetForm(RegionIdType regionId, StdPDE* pde1, StdPDE* pde2, const std::string& integrator, bool throw_exception = true);
+  static BaseForm* GetForm(RegionIdType regionId, StdPDE* pde1, StdPDE* pde2, const std::string& integrator, bool throw_exception = true, Global::ComplexPart entryType = (Global::ComplexPart) 4711);
 
   /** Types of ersatz material optimization methods, the strings are read from the xml file */
   typedef enum
@@ -151,7 +154,15 @@ public:
    * MechPDE reads it when "homogenizedTensor" is a region result! */
   Matrix<double> homogenizedTensor;
 
+  /** This is the current homogenized tensor.
+   * Evaluated by MAXWELL_HOMOGENIZATION_TRACKING and MAXWELL_HOMOGENIZED_TENSOR (as objective only).
+   * ElecPDE reads it when "maxwellHomogenizedTensor" is a region result! */
+  Matrix<Complex> maxwellHomogenizedTensor;
+  
   Assemble* GetAssemble() { return assemble_; }
+
+  //this is only used for BITENSOR objective
+  Matrix<Complex> maxwellHomogenizedTensorPermeability;
 
   OptimizationMaterial* GetMaterial() { return material; }
 
@@ -276,13 +287,13 @@ public:
 
     /** Returns the currently stored functions. Empty for forward */
     StdVector<Function*> GetFunctions() const;
-    
+
     /** Return whether this is the Solution of the forward problem */
     bool IsForward(){ return(isForward); };
-    
+
     /** Set whether this Solution is the Solution of the forward problem */
     void SetIsForward(bool forward){ isForward = forward; };
-    
+
   private:
 
     /** On the fly init when the function has not been used before */
@@ -306,10 +317,10 @@ public:
      * Stored are units which contains eventually multiple excitations.
      * @see Unit() */
     std::map<Function*, StdVector<Unit*> > data_;
-    
+
     // if this Solutions is forward, it does not use the value in function in Get
     bool isForward;
-    
+
     // Pointer to data[NULL] to speed up things
     StdVector<Unit*>* forward_data_;
 
@@ -329,7 +340,7 @@ public:
   {
     STANDARD = 0, /*!< add u1^T (K' u2  - f') or2 * Re{ u1^T (K' u2 - f')} in the harmonic case  */
     CONJ_QUAD
-  /*!< add <u, K' u> which is in the real case as STANDARD
+    /*!< add <u, K' u> which is in the real case as STANDARD
    and for the harmonic case u^T K' u^* (conj. complex). u1 = u2 = u!! */
   };
 
@@ -354,7 +365,7 @@ public:
    * @param g as f for constrained gradient
    * @param res_idx store in de->specialResult. use ErsatzMaterial::GetSpecialResultIndex() -1 is no special result*/
   double CalcU1KU2(TransferFunction* tf, StdVector<SingleVector*>& u1, Application k, StdVector<SingleVector*>& u2,
-                     DesignDependentRHS* rhs, double factor, CalcMode calcMode, Function* f, int res_idx = -1);
+      DesignDependentRHS* rhs, double factor, CalcMode calcMode, Function* f, int res_idx = -1);
 
   /** Helper calling CalcU1KU2()
    * If there is a result with value='costGradient' or 'constraintGradient' it is checked for detail='mech_mech',
@@ -369,6 +380,9 @@ public:
   virtual void SetElementK(DesignElement* de, const TransferFunction* tf, Application app,
       DenseMatrix* out, CalcMode calcMode, bool derivative = true) { throw Exception("not implemented"); }
 
+  virtual void SetElementRHS(DesignElement* de, const TransferFunction* tf, Application app,
+      SingleVector* out, CalcMode calcMode, bool derivative = true) { throw Exception("not implemented"); }
+
   /** Get the ErsatzMaterialTensor as the Tensor itself, not the stiffness matrix
    * @param mat holds the tensor
    * @param elem the Element for which the tensor should be returned
@@ -379,7 +393,7 @@ public:
   /** Helper that asks MechanicMaterial. Works only for a single region.
    * @return empty if multiple regions */
   StdVector<std::pair<std::string, double> > GetOrthotropeProperties(const Matrix<double>& tensor);
-  
+
   /** This is an extension to SolveStateProblem() where the forward problem is solved and stored.
    * Depending on the objective function SolveAdjointProblem() is called to additionally solve and store the
    * adjoint problem.
@@ -471,7 +485,7 @@ public:
    * @param q_u_glob output depending on adjoint flag. see u_glob */
   void SetEnergyFluxVector(Function* f,
       const Vector<std::complex<double> >& u_glob, bool adjoint, Vector<
-          std::complex<double> >& q_u_glob);
+      std::complex<double> >& q_u_glob);
 
   /** Find the node numbers which are common from a surface element and a volume element.
    * This maps from a surface element to the volume element.
@@ -494,11 +508,18 @@ public:
    *  Writes the tensor to info.log */
   virtual Matrix<double> CalcHomogenizedTensor();
 
+  template <class T>
+  Matrix<Complex> CalcMaxwellHomogenizedTensor(Solutions sol);
+
   /** Calculates the gradient of the homogenization tracking. When J = 0.5 * || E^* - E^H ||^2
    * the this calulates -1 (E^* - E^H) * d(E^H)/d(rho_e) using a matrix scalar product
    * @param target E^* what we want
    * @param hom the pre calculated tensor E^H */
   virtual void CalcHomogenizedTrackingGradient(const Matrix<double>& target, const Matrix<double>& hom, Function* f);
+
+  template <class T>
+  void CalcMaxwellHomogenizedTrackingGradient(const Matrix<Complex>& target,
+      const Matrix<Complex>& hom, Function* f);
 
   /** Calculates the gradient for the Frobenius inner prodcut. */
   void CalcHomFrobeniusProductGradient(const Matrix<double>& target, const Matrix<double>& hom, Function* f);
@@ -510,6 +531,8 @@ public:
    * @return the E^H tensor entry if !derivative */
   double CalcHomogenizedTensorConstraint(Condition* g, bool derivative);
 
+  double CalcMaxwellHomogenizedTensorConstraint(Condition* g, bool derivative, Solutions sol);
+
   /** Calculates a single homogenized tensor entry or it's derivative.
    * This is a helper for CalcHomogenizedTensorConstraint() but more general.
    * CalcHomogenizedTensor() could multiple times calls this but this would be slower.
@@ -518,6 +541,8 @@ public:
    * @param out_grad of derivative it is resized and the gradients are set otherwise it is untouched
    * @return the E^H tensor entry if !derivative or 0 */
   double CalcHomogenizedTensorEntry(const tuple<int, int, double> entry,  bool derivative, StdVector<double>& grad_out);
+
+  Complex CalcMaxwellHomogenizedTensorEntry(const tuple<int, int, double> entry, bool derivative, StdVector<Complex>& grad_out, Solutions sol);
 
   /** This is to be overwritten for any case there are other PDEs in ErsatzMaterial::pdes to be set.
    * PiezoSIMP does it simply in the constructor */
@@ -589,6 +614,12 @@ protected:
   /** Convenience class for writing the pseudo density file*/
   DensityFile* densityFile;
 
+  /** do we perform maxwell homogenization induced by any of the objective or constraints? */
+  bool maxwellHomogenization_;
+
+  /** do we perform phase velocity optimization? */
+  bool bitensor_;
+
 private:
 
   /** This is a helper for the calculation of the homogenized tensor or the derivative of it.
@@ -602,17 +633,35 @@ private:
       Vector<double>& u2, Matrix<double>& test_strain_matrix_ij,
       Matrix<double>& test_strain_matrix_kl);
 
+  /** This is a helper for the calculation of the homogenized tensor or the derivative of it.
+   * This is the inner of the sum for the homogenized tensor or the derivative formulation
+   * @param u1 the element solution vector
+   * @return the product test strain diff * (K or K') * test strain diff
+   */
+  static Complex CalcMaxwellHomogenizedElementProduct(ErsatzMaterial* obj, DesignElement* de, bool derivative,
+      Vector<Complex>& u1_vec, Vector<Complex>& u2_vec,
+      Vector<double>& test_k, Vector<double>& test_l);
+  static Complex CalcMaxwellHomogenizedElementProduct(ErsatzMaterial* obj, DesignElement* de, bool derivative,
+      Vector<double>& u1_vec, Vector<double>& u2_vec,
+      Vector<double>& test_k, Vector<double>& test_l);
+
+  /** Helper to switch between permittivity and permeability in the (bi)linearforms */
+  void SetMaxwellHomMatType(MaterialType type);
+
+  static Complex CalcU1KU2(ErsatzMaterial* obj, DesignElement* de, bool derivative,
+      Vector<Complex> u1_vec, Vector<Complex> u2_vec);
+
   /** See the non-template version for documentation! */
   template<class T>
   double
-      CalcU1KU2(TransferFunction* tf, StdVector<SingleVector*>& u1,
-          Application k, StdVector<SingleVector*>& u2, DesignDependentRHS* ref,
-          double factor, CalcMode calcMode, Function* f, int res_idx);
+  CalcU1KU2(TransferFunction* tf, StdVector<SingleVector*>& u1,
+      Application k, StdVector<SingleVector*>& u2, DesignDependentRHS* ref,
+      double factor, CalcMode calcMode, Function* f, int res_idx);
 
   /** Handles sensitive RHS, e.g. when we have sensitive Neuman boundary condition (elect surface charge).
-      * SurfaceRef is  given to CalcU1KU2 and this method does from \f$<l,K'u-f'>\f$ the \f$-f'\f$ part.
-      * It checks if any nodes of the design element are part of the surface and
-      * substracts for all dof of that node only */
+   * SurfaceRef is  given to CalcU1KU2 and this method does from \f$<l,K'u-f'>\f$ the \f$-f'\f$ part.
+   * It checks if any nodes of the design element are part of the surface and
+   * substracts for all dof of that node only */
   template<class T>
   void SubtractGradSurfaceRHS(DesignElement* de, TransferFunction* tf, DesignDependentRHS* ref, Vector<T>& in_out);
 
@@ -643,6 +692,8 @@ private:
 
   /** Set the rhs for the tracking adjoint */
   void SetTrackingAdjointRhs(Excitation& excite, int ts);
+
+  void SetMaxwellHomTrackingAdjointRhs(Excitation& excite);
 
   /** Takes care for making CFS solving the adjoint PDE. Sets the rhs as  adjoint[excite.index]->rhs[MECH] */
   template<class T>
@@ -701,6 +752,7 @@ private:
 
   /** do we perform homogenization induced by any of the objective or constraints? */
   bool homogenization_;
+
 };
 
 } // namespace
