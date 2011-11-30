@@ -43,8 +43,6 @@ class ErsatzMaterial: public Optimization
 {
 public:
 
-public:
-
   // forward declaration
   class Solutions;
 

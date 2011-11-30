@@ -21,9 +21,8 @@ namespace CoupledField {
   // ***************
   ThermoMechCoupling::ThermoMechCoupling( SinglePDE *pde1, SinglePDE *pde2,
                                       PtrParamNode paramNode  )
-    : BasePairCoupling( pde1, pde2, paramNode ) {
+    : BasePairCoupling( pde1, pde2, paramNode, "thermoMechDirect") {
 
-    couplingName_ = "thermoMechDirect";
     materialClass_ = THERMOELASTIC;
     
 
