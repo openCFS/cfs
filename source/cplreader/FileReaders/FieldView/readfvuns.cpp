@@ -8,7 +8,7 @@
 #include "fv_reader_tags.h"
 #include "readfvuns.h"
 
-#define READ(c,n) fread(c, sizeof(*c), n, outfp); if (endian_conv) endian_convert((char*) c, n*sizeof(*c));
+#define READ(c,n) if(fread(c, sizeof(*c), n, outfp)); if (endian_conv) endian_convert((char*) c, n*sizeof(*c));
 
 // defines for decoding of element headers
 #define MAX_NUM_ELEM_FACES  6
@@ -155,7 +155,7 @@ void Initreadfvuns()
     perror(NULL);
     exit(-1);
   }
-  fread(ibuf, sizeof(int), 1, outfp); // FV_MAGIC
+  if(fread(ibuf, sizeof(int), 1, outfp)); // FV_MAGIC
   int fv_magic = ibuf[0];
   if (fv_magic != FV_MAGIC)
   {
