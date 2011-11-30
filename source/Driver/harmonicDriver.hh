@@ -61,7 +61,7 @@ public:
   /** This allows optimization to handle the individual frequency steps, e.g. to compute
    * objective values. Internally this is is a service function for SolveProblem()
    * @param actFreqStep sets the actFreq_ attribute, to start with 1 and not to exceed numFreq_ */
-   Double ComputeFrequencyStep(UInt actFreqStep, PtrParamNode analysis_id);
+   Double ComputeFrequencyStep(UInt actFreqStep, PtrParamNode analysis_id, AdjointParameters* adjointParams = NULL);
 
    /** This StoreResults meant for Optimization only */
   void StoreResults(UInt stepNum,

@@ -148,6 +148,9 @@ namespace CoupledField
     CoordSystem * GetCoordSystem( const std::string & name 
                                   = std::string("default") );
 
+    //! Return dimension
+    UInt GetDim() { return dim_; }
+
     /** For some optimization (SIMP) or normal simulation with external
      * ersatz material file the forms get the density value by this
      * function. Any transfer function (e.g. x^3 in SIMP) is applied!
@@ -156,7 +159,7 @@ namespace CoupledField
      * @param form the actual bilinearform, this is used to find the power for SIMP
      * @param result we return the result in the parameter, to indicate clearly if it is valid
      * @return true if result was set,.false if there is no ersatz materal for the input params */
-    bool GetErsatzMaterial(const Elem* elem, const BaseForm* form, double& result);
+    bool GetErsatzMaterial(const Elem* elem, const BaseForm* form, double& result, bool forBimaterial = false);
     
     /** Check for the existence of bi-material.
      * Use as (1-result)*BM with result from GetErsatzMaterial() and add it to the original result*OrgMat
@@ -320,7 +323,7 @@ namespace CoupledField
     //! Pointer to material handler
     MaterialHandler * ptMatHandler_;
 
-    //! Mapping between name and coordinate sysem pointer
+    //! Mapping between name and coordinate system pointer
     std::map<std::string, CoordSystem*> coordSys_;
 
     /** an optinal optimizer */

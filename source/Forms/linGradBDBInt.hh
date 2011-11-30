@@ -56,6 +56,10 @@ namespace CoupledField {
     //! Query material type for \f$D\f$ tensor
     MaterialType getDMaterialType() { return matType_; }
 
+
+    //! Set material type for \f$D\f$ tensor
+    void setDMaterialType(MaterialType matType) { matType_ = matType; }
+
     //! Returns nr. of degrees of freedom
     UInt getNrDofs() {
       return 1;
@@ -66,6 +70,10 @@ namespace CoupledField {
     
     //@}
     
+    //! just for computation of B - matrix
+    void calcBMatOnly( Matrix<Double> &bMat, UInt ip,
+           BaseFE* elem, Matrix<Double> &ptCoord );
+
   protected:
     
     //! dimension

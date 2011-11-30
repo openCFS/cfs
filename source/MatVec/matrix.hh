@@ -262,6 +262,9 @@ namespace CoupledField
      * @return the sum of the element wise product: sum this_ij * other_ij */
     TYPE FrobeniusProduct(const Matrix<TYPE>& other_mat) const;
 
+    //! Entry-wise multiplication with another matrix
+    Matrix<double> EntryMult(const Matrix<double>& other_mat) const;
+
     //! Perform a matrix-vector multiplication rvec = transpose(this)*mvec
     void MultT( const SingleVector & mvec, SingleVector & rvec ) const;
   

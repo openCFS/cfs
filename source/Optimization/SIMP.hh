@@ -122,6 +122,8 @@ protected:
    * @param tf for heat and acoustic we canot uniquely identify the transfer function by app therefore give it. */
   virtual void SetElementK(DesignElement* de, const TransferFunction* tf, Application app, DenseMatrix* out, CalcMode calcMode, bool derivative = true);
 
+  virtual void SetElementRHS(DesignElement* de, const TransferFunction* tf, Application app, SingleVector* out, CalcMode, bool derivative = true);
+
   /** the mechanical element rhs, complex or real */
   DesignDependentRHS mechRHS;
 
@@ -130,6 +132,10 @@ private:
   /** This private, as no virtual templates are possible with C++ */
   template <class T>
   void SetElementK(DesignElement* de, const TransferFunction* tf, Application app, DenseMatrix* out, CalcMode, bool derivative = true);
+
+  /** This private, as no virtual templates are possible with C++ */
+  template <class T>
+  void SetElementRHS(DesignElement* de, const TransferFunction* tf, Application app, SingleVector* out, CalcMode, bool derivative = true);
 
   /** This is a helper for SetElementK() which adds for MECH in the harmonic case damping and mass
    * @param bimaterial describes only the material, the factor needs to be set as rho^3 or 1-rho^3 already! */

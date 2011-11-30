@@ -240,6 +240,10 @@ namespace CoupledField
     void SetMatDataType(Global::ComplexPart & pMatType)
     { matDataType_=pMatType; };
 
+    //!
+    Global::ComplexPart & GetMatDataType()
+    { return matDataType_; };
+
     //! set softening type for forms
     void SetSofteningModel(std::string type) {
       softeningModel_ = type;
@@ -285,7 +289,7 @@ namespace CoupledField
      * Domain::GetErsatzMaterial() identifies the proper penaltization via RTTI (typid)
      * @param elem the element
      * @return 1.0 if nothing is to be done or a factor */ 
-    virtual Double GetErsatzMaterialFactor(const Elem* elem); 
+    virtual Double GetErsatzMaterialFactor(const Elem* elem, bool forBimaterial = false);
 
     /** Some derived classes have a natural tensor e.g. PIEZO_TENSOR, MECH_STIFFNESS_TENSOR. Extend if you need it */
     virtual MaterialType getDMaterialType() { EXCEPTION("not implemented"); }

@@ -214,10 +214,10 @@ double BaseForm::MaterialDescriptor::GetErsatzMaterial(BaseForm* form, const Ele
   }
 
    /** for ersatz material w and w/o SIMP. */
-  Double BaseForm::GetErsatzMaterialFactor(const Elem* elem)
+  Double BaseForm::GetErsatzMaterialFactor(const Elem* elem, bool forBimaterial)
   {
     Double factor;
-    bool ok = domain->GetErsatzMaterial(elem, this, factor);
+    bool ok = domain->GetErsatzMaterial(elem, this, factor, forBimaterial);
     return ok ? factor : 1.0;
   }
   

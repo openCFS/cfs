@@ -107,6 +107,9 @@ namespace CoupledField {
     virtual AnalysisType GetAnalysisType() {
       return analysistype_;
     }
+
+    bool HasComplexMatData(RegionIdType actRegion)
+    {return complexMatData_[actRegion];}
   
     //! returns if PDE can compute the quantity
     virtual bool HasOutput(SolutionType output)
@@ -210,6 +213,12 @@ namespace CoupledField {
                              shared_ptr<ResultInfo> res );
     void GetSolVecOfElement( Vector<Complex>& sol, const EntityIterator& it,
                              shared_ptr<ResultInfo> res );
+
+    /// returns the vector of the RHS belonging to all nodes of the actual element
+    void GetRHSVecOfElement( Vector<Double>& elemRHS, const EntityIterator& it,
+                                     shared_ptr<ResultInfo> res );
+    void GetRHSVecOfElement( Vector<Complex>& elemRHS, const EntityIterator& it,
+                                     shared_ptr<ResultInfo> res );
    
     
     /// returns the vector of time derivative of the solution belonging 
@@ -507,7 +516,7 @@ namespace CoupledField {
     //! material class
     MaterialClass pdematerialclass_;   
   
-    //! Data Type which decides wheather material is real or complex
+    //! Data Type which decides whether material is real or complex
     Global::ComplexPart  matDataType_;
     //! contains element results of complex valued charge 
     Vector<Complex> complexValuedCharge_;

@@ -122,7 +122,7 @@ namespace CoupledField
 
     //! Constructor
     BasePairCoupling( SinglePDE *pde1, SinglePDE *pde2,
-                      PtrParamNode paramNode );
+                      PtrParamNode paramNode, const std::string& couplingName);
 
     //! Definition of the (bi)linear forms
     virtual void DefineIntegrators() = 0;

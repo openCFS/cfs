@@ -109,6 +109,9 @@ namespace CoupledField
     void DefinePolarizationMatrixIntegrators(const Vector<Double> &vals,
         StdVector<LinearFormContext*> *linForms, const int num);
 
+    // add the  integrators for maxwell homogenization formula to the linear forms
+    void DefineMaxwellHomIntegrators(StdVector<LinearFormContext*>* linForms);
+
     /** @see virtual SinglePDE::GetNativeSolutionType() */
     SolutionType GetNativeSolutionType() const { return ELEC_POTENTIAL; }
 
@@ -135,6 +138,9 @@ namespace CoupledField
     //! Calculate electrid flux density
     template <class TYPE>
     void CalcElectricFluxDensity( shared_ptr<BaseResult> vals );
+
+    //! Write homogenized tensor
+    void CalcHomogenizedTensor(shared_ptr<BaseResult> base_result);
 
     //! Calculates the polarization vector
     void CalcPolarizationField( shared_ptr<BaseResult> vals );
