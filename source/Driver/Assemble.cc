@@ -859,84 +859,87 @@ namespace CoupledField
 
   void Assemble::ToInfo(PtrParamNode in)
   {
-//    WARN("Adjust to new implementation");
-//    PtrParamNode list = in->Get("matrixBiLinearForms");
-//
-//    // iterate over all descriptors
-//    StdVector<BiLinFormContext*>::iterator it;
-//    for ( it = biLinForms_->Begin(); it != biLinForms_->End(); it++ )
-//    {
-//      // get integrator
-//      BiLinFormContext & context = **it;
-//
-//      PtrParamNode form = list->Get("bilinearForm", ParamNode::APPEND);
-//      // integrator name
-//      form->Get("integrator")->SetValue(context.GetIntegrator()->GetName());
-//
-//      // region name of entity list
-//      std::string regionName;
-//      if( context.GetFirstEntities()->GetType() == EntityList::ELEM_LIST )
-//      {
-//        shared_ptr<ElemList> list =
-//          boost::dynamic_pointer_cast<ElemList,EntityList>
-//          (context.GetFirstEntities());
-//        regionName = list->GetName();
-//      }
-//      else if ( context.GetFirstEntities()->GetType() == EntityList::SURF_ELEM_LIST )
-//      {
-//        shared_ptr<SurfElemList> list =
-//          boost::dynamic_pointer_cast<SurfElemList,EntityList>
-//          (context.GetFirstEntities());
-//        regionName = list->GetName();
-//      }
-//      form->Get("region")->SetValue(regionName);
-//
-//      // add information about row / column coordinate
-//      PtrParamNode row = form->Get("row", ParamNode::APPEND);
-//      PtrParamNode col = form->Get("column", ParamNode::APPEND);
-//      
-//     // associated PDEs
-//      row->Get("pde")->SetValue(context.GetFirstPde()->GetName());
-//      col->Get("pde")->SetValue(context.GetSecondPde()->GetName());
-//
-//      // associated result types
-//      std::string tmp;
-//      tmp = SolutionTypeEnum.ToString(context.GetFirstResultInfo()->resultType);
-//      row->Get("result")->SetValue(tmp);
-//      tmp = SolutionTypeEnum.ToString(context.GetSecondResultInfo()->resultType);
-//      col->Get("result")->SetValue(tmp);
-//      
-//      // matrix destination
-//      PtrParamNode dest = form->Get("destination", ParamNode::APPEND);
-//      
-//      // original destination matrix
-//      Enum2String(context.GetDestMat(), tmp );
-//      dest->Get("feMatrix")->SetValue(tmp);
-//            
-//      // mapped destination matrix
-//      Enum2String(matrixMap_[context.GetDestMat()], tmp );
-//      dest->Get("feMatrixMapped")->SetValue(tmp);
-//      
-//      // secondary destination matrix and factor
-//      Enum2String(context.GetSecDestMat(), tmp );
-//      dest->Get("feSecondMatrix")->SetValue(tmp);
-//      dest->Get("feSecondMatrixFac")->SetValue(context.GetSecMatFac());
-//      
-//      // additional attributes
-//      PtrParamNode attr = form->Get("attributes", ParamNode::APPEND);
-//      
-//      // entry Type (real / imag)
-//      tmp = Global::complexPart.ToString(context.GetEntryType());
-//      attr->Get("entryType")->SetValue( tmp );
-//      
-//      // flag setcounterpart
-//      tmp = context.IsSetCounterPart() ? "yes" : "no";
-//      attr->Get("counterPart")->SetValue( tmp );
-//      
-//      // issymmetric
-//      tmp = context.GetIntegrator()->IsSymmetric() ? "yes" : "no";
-//      attr->Get("symmetric")->SetValue( tmp );
-//      
+    PtrParamNode list = in->Get("matrixBiLinearForms");
+
+    // iterate over all descriptors
+    std::set<BiLinFormContext*>::iterator it;
+    for ( it = allBiLinForms_.begin(); it != allBiLinForms_.end(); it++ )
+    {
+      // get integrator
+      BiLinFormContext & context = **it;
+
+      PtrParamNode form = list->Get("bilinearForm", ParamNode::APPEND);
+      // integrator name
+      form->Get("integrator")->SetValue(context.GetIntegrator()->GetName());
+
+      // region name of entity list
+      std::string regionName;
+      if( context.GetFirstEntities()->GetType() == EntityList::ELEM_LIST )
+      {
+        shared_ptr<ElemList> list =
+          boost::dynamic_pointer_cast<ElemList,EntityList>
+          (context.GetFirstEntities());
+        regionName = list->GetName();
+      }
+      else if ( context.GetFirstEntities()->GetType() == EntityList::SURF_ELEM_LIST )
+      {
+        shared_ptr<SurfElemList> list =
+          boost::dynamic_pointer_cast<SurfElemList,EntityList>
+          (context.GetFirstEntities());
+        regionName = list->GetName();
+      }
+      form->Get("region")->SetValue(regionName);
+
+      // add information about row / column coordinate
+      PtrParamNode row = form->Get("row", ParamNode::APPEND);
+      PtrParamNode col = form->Get("column", ParamNode::APPEND);
+      
+     // associated PDEs
+      row->Get("pde")->SetValue(context.GetFirstPde()->GetName());
+      col->Get("pde")->SetValue(context.GetSecondPde()->GetName());
+      
+      // associated FeFunctions
+      row->Get("functionId")->SetValue(context.GetFirstFeFunction()->GetFctId());
+      col->Get("functionId")->SetValue(context.GetSecondFeFunction()->GetFctId());
+
+      // associated result types
+      std::string tmp;
+      tmp = SolutionTypeEnum.ToString(context.GetFirstResultInfo()->resultType);
+      row->Get("result")->SetValue(tmp);
+      tmp = SolutionTypeEnum.ToString(context.GetSecondResultInfo()->resultType);
+      col->Get("result")->SetValue(tmp);
+      
+      // matrix destination
+      PtrParamNode dest = form->Get("destination", ParamNode::APPEND);
+      
+      // original destination matrix
+      Enum2String(context.GetDestMat(), tmp );
+      dest->Get("feMatrix")->SetValue(tmp);
+            
+      // mapped destination matrix
+      Enum2String(matrixMap_[context.GetDestMat()], tmp );
+      dest->Get("feMatrixMapped")->SetValue(tmp);
+      
+      // secondary destination matrix and factor
+      Enum2String(context.GetSecDestMat(), tmp );
+      dest->Get("feSecondMatrix")->SetValue(tmp);
+      dest->Get("feSecondMatrixFac")->SetValue(context.GetSecMatFac());
+      
+      // additional attributes
+      PtrParamNode attr = form->Get("attributes", ParamNode::APPEND);
+      
+      // entry Type (real / imag)
+      tmp = Global::complexPart.ToString(context.GetEntryType());
+      attr->Get("entryType")->SetValue( tmp );
+      
+      // flag setcounterpart
+      tmp = context.IsSetCounterPart() ? "yes" : "no";
+      attr->Get("counterPart")->SetValue( tmp );
+      
+      // issymmetric
+      tmp = context.GetIntegrator()->IsSymmetric() ? "yes" : "no";
+      attr->Get("symmetric")->SetValue( tmp );
+      
 //      // isSolDependent
 //      tmp = context.GetIntegrator()->IsSolDependent() ? "yes" : "no";
 //      attr->Get("solutionDependent")->SetValue( tmp );
@@ -944,54 +947,54 @@ namespace CoupledField
 //      // updated geometry
 //      tmp = context.GetIntegrator()->IsCoordUpdate() ? "yes" : "no";
 //      attr->Get("updatedGeo")->SetValue( tmp );
-//      
-//    }
-//
-//    list = in->Get("rhsLinearForms");
-//
-//    // iterate over all descriptors
-//    StdVector<LinearFormContext*>::iterator linIt;
-//    for (linIt = linForms_->Begin(); linIt != linForms_->End(); linIt++)
-//    {
-//      PtrParamNode form = list->Get("linearForm", ParamNode::APPEND);
-//
-//      // get integrator
-//      LinearFormContext & context = **linIt;
-//
-//      form->Get("integrator")->SetValue(context.GetIntegrator()->GetName());
-//
-//      // region name of entity list
-//      std::string regionName;
-//      if( context.GetEntities()->GetType() == EntityList::ELEM_LIST )
-//      {
-//        shared_ptr<ElemList> list =
-//          boost::dynamic_pointer_cast<ElemList,EntityList>
-//          (context.GetEntities());
-//        regionName = list->GetName();
-//      }
-//      else if ( context.GetEntities()->GetType() == EntityList::SURF_ELEM_LIST )
-//      {
-//        shared_ptr<SurfElemList> list =
-//          boost::dynamic_pointer_cast<SurfElemList,EntityList>
-//          (context.GetEntities());
-//        regionName = list->GetName();
-//      }
-//
-//      form->Get("region")->SetValue(regionName);
-//      
-//
-//      // add information about row / column coordinate
-//      PtrParamNode row = form->Get("row", ParamNode::APPEND);
-//
-//      // associated PDEs
-//      row->Get("pde")->SetValue(context.GetPde()->GetName());
-//
-//      // associated result types
-//      std::string tmp;
-//      tmp = SolutionTypeEnum.ToString(context.GetResultInfo()->resultType);
-//      row->Get("result")->SetValue(tmp);
-//
-//    }
+      
+    }
+
+    list = in->Get("rhsLinearForms");
+
+    // iterate over all descriptors
+    StdVector<LinearFormContext*>::iterator linIt;
+    for (linIt = linForms_->Begin(); linIt != linForms_->End(); linIt++)
+    {
+      PtrParamNode form = list->Get("linearForm", ParamNode::APPEND);
+
+      // get integrator
+      LinearFormContext & context = **linIt;
+
+      form->Get("integrator")->SetValue(context.GetIntegrator()->GetName());
+
+      // region name of entity list
+      std::string regionName;
+      if( context.GetEntities()->GetType() == EntityList::ELEM_LIST )
+      {
+        shared_ptr<ElemList> list =
+          boost::dynamic_pointer_cast<ElemList,EntityList>
+          (context.GetEntities());
+        regionName = list->GetName();
+      }
+      else if ( context.GetEntities()->GetType() == EntityList::SURF_ELEM_LIST )
+      {
+        shared_ptr<SurfElemList> list =
+          boost::dynamic_pointer_cast<SurfElemList,EntityList>
+          (context.GetEntities());
+        regionName = list->GetName();
+      }
+
+      form->Get("region")->SetValue(regionName);
+      
+
+      // add information about row / column coordinate
+      PtrParamNode row = form->Get("row", ParamNode::APPEND);
+
+      // associated PDEs
+      row->Get("pde")->SetValue(context.GetPde()->GetName());
+
+      // associated result types
+      std::string tmp;
+      tmp = SolutionTypeEnum.ToString(context.GetResultInfo()->resultType);
+      row->Get("result")->SetValue(tmp);
+
+    }
   }
 
 
@@ -1136,7 +1139,9 @@ namespace CoupledField
       matrixMap_[AUXILIARY] = NOTYPE;
       break;
 
-    default: EXCEPTION("Analysistype '" << BasePDE::analysisType.ToString(analysisType_) << "' not known!");
+    default: 
+      EXCEPTION("Analysistype '" << BasePDE::analysisType.ToString(analysisType_) 
+                << "' not known!");
     }
   }
 
@@ -1145,59 +1150,57 @@ namespace CoupledField
   bool Assemble::IsFEMatSymmetric( FeFctIdType fctId1, FeFctIdType fctId2,
                                    FEMatrixType matType  ) {
 
-    REFACTOR;
-    return true;
-//    // Run over all bilinearform contexts
-//    std::map<FEMatrixType, bool> isSymmetric;
-//    StdVector<BiLinFormContext*>::iterator it;
-//
-//    // Assume at the beginning that all matrices are symmetric
-//    isSymmetric[SYSTEM] = true;
-//    isSymmetric[MASS] = true;
-//    isSymmetric[STIFFNESS] = true;
-//    isSymmetric[DAMPING] = true;
-//    isSymmetric[AUXILIARY] = true;
-//    
-//    // set collecting all result types
-//    
-//    // set collecting all diagonal-positions
-//    std::set<shared_ptr<ResultInfo> > allResults, diagResults;
-//
-//
-//    // iterate over all bilinear forms
-//    for( it = biLinForms_->Begin(); it != biLinForms_->End(); it++ ) {
-//
-//      BiLinFormContext & actCt = (**it);
-//
-//      // Check, where bilinearform gets assembled to diagonal block
-//      if( (actCt.GetFirstPde() == actCt.GetSecondPde() )
-//          && (actCt.GetFirstResultInfo() == actCt.GetSecondResultInfo() )
-//          && (actCt.GetFirstEntities() == actCt.GetSecondEntities() ) ) {
-//
-//        // Bilinearform gets assembled to main diagonal.
-//        // If bilinearform is non-symmetric, so is the related FE-matrix
-//        if( !actCt.GetIntegrator()->IsSymmetric()  ) {
-//          FEMatrixType mappedDest = matrixMap_[actCt.GetDestMat()];
-//          isSymmetric[mappedDest] = false;
-//          isSymmetric[SYSTEM] = false;
-//        }
-//      } else {
-//
-//        // BiLinearform gets assembled to off-diagonal block.
-//
-//        // If the bilinearorm is also assembled to the transposed block
-//        // we assume that the matrix still remains symmetric.
-//        // Otherwise we assume, that we need a non-symmetric matrix.
-//        if( !actCt.IsSetCounterPart() ) {
-//          FEMatrixType mappedDest = matrixMap_[actCt.GetDestMat()];
-//          isSymmetric[mappedDest] = false;
-//          isSymmetric[SYSTEM] = false;
-//        }
-//      }
-//    }
-//
-//    // return flag for matrix of interest
-//    return isSymmetric[feType];
+    // Run over all bilinearform contexts
+    std::map<FEMatrixType, bool> isSymmetric;
+    std::set<BiLinFormContext*>::iterator it;
+
+    // Assume at the beginning that all matrices are symmetric
+    isSymmetric[SYSTEM] = true;
+    isSymmetric[MASS] = true;
+    isSymmetric[STIFFNESS] = true;
+    isSymmetric[DAMPING] = true;
+    isSymmetric[AUXILIARY] = true;
+    
+    // set collecting all result types
+    
+    // set collecting all diagonal-positions
+    std::set<shared_ptr<ResultInfo> > allResults, diagResults;
+
+
+    // iterate over all bilinear forms
+    for( it = allBiLinForms_.begin(); it != allBiLinForms_.end(); it++ ) {
+
+      BiLinFormContext & actCt = (**it);
+
+      // Check, where bilinearform gets assembled to diagonal block
+      if( (actCt.GetFirstPde() == actCt.GetSecondPde() )
+          && (actCt.GetFirstResultInfo() == actCt.GetSecondResultInfo() )
+          && (actCt.GetFirstEntities() == actCt.GetSecondEntities() ) ) {
+
+        // Bilinearform gets assembled to main diagonal.
+        // If bilinearform is non-symmetric, so is the related FE-matrix
+        if( !actCt.GetIntegrator()->IsSymmetric()  ) {
+          FEMatrixType mappedDest = matrixMap_[actCt.GetDestMat()];
+          isSymmetric[mappedDest] = false;
+          isSymmetric[SYSTEM] = false;
+        }
+      } else {
+
+        // BiLinearform gets assembled to off-diagonal block.
+
+        // If the bilinearorm is also assembled to the transposed block
+        // we assume that the matrix still remains symmetric.
+        // Otherwise we assume, that we need a non-symmetric matrix.
+        if( !actCt.IsSetCounterPart() ) {
+          FEMatrixType mappedDest = matrixMap_[actCt.GetDestMat()];
+          isSymmetric[mappedDest] = false;
+          isSymmetric[SYSTEM] = false;
+        }
+      }
+    }
+
+    // return flag for matrix of interest
+    return isSymmetric[matType];
   }
 
 
@@ -1238,9 +1241,6 @@ namespace CoupledField
                                     context.IsSetCounterPart() );
     }
 
-    //LOG_DBG3(assemble) << "InsertMatrix dest=" << dest << " mappedDest=" << mappedDest << " data=["
-    //                   << elemMat  << "]\neqnVec1=" << eqnVec1.ToString() <<  "\neqnVec2=" << eqnVec2.ToString() << std::endl;
-   
   }
 
   void Assemble::InsertMatrix( FEMatrixType dest, BiLinFormContext& context,

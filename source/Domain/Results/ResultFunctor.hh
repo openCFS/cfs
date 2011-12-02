@@ -5,6 +5,7 @@
 #include "Domain/ElemMapping/ElemShapeMap.hh"
 #include "Domain/ElemMapping/EntityLists.hh"
 #include "Forms/BiLinForms/BiLinearForm.hh"
+#include "Forms/BiLinForms/BDBInt.hh"
 
 namespace CoupledField {
 
@@ -166,7 +167,9 @@ public:
   FieldInterpolFunctor( shared_ptr<BaseFeFunction> feFct,
                         shared_ptr<ResultInfo> inf ) :
                           FieldFunctor<DATA_TYPE>( feFct, inf) {
+    
     feSpace_ = feFct->GetFeSpace();
+    operator_.SetSolDim(inf->dofNames.GetSize());
   }
   
   //! Destructor

@@ -189,6 +189,8 @@ namespace CoupledField {
     std::map<FEMatrixType,FEMatrixType> matrixMap_;
 
     //! List of bilinear integrator contexts
+    
+    //! Associate pair of entity lists with bilinearform
     typedef std::map<
         std::pair<shared_ptr<EntityList>,shared_ptr<EntityList> >, 
         StdVector<BiLinFormContext*> > BiLinContextListType;  

@@ -61,7 +61,7 @@ namespace CoupledField {
       // 1D elements in 2D
       //see kaltenbacher, p.23, eq.(2.122)
       jacDet = sqrt(jac[0][0]*jac[0][0] + jac[1][0]*jac[1][0]);
-    }
+    };
 
     // Check, if geometry is axi-symmetric. In this case scale the 
     // Jacobian determinant with 2*pi*r
@@ -152,7 +152,7 @@ LagrangeElemShapeMap::~LagrangeElemShapeMap() {
 }
 
 void LagrangeElemShapeMap::Local2Global( Vector<Double>& globPoint, 
-                                              const LocPoint& lp ) {
+                                         const LocPoint& lp ) {
   
   //step 1: evaluate shape fncs. at local coordinate
   Vector<Double> shFnc;
@@ -313,21 +313,21 @@ void LagrangeElemShapeMap::Global2Local( Vector<Double>& locPoint,
         //  ( f_2  J_21  J_22 )
         delta_xi[0] = - J[1][1]*J[2][2]*f[0] + J[2][1]*J[1][2]*f[0]
                       - J[2][1]*J[0][2]*f[1] + J[0][1]*J[2][2]*f[1]
-                                                                                                            - J[0][1]*J[1][2]*f[2] + J[1][1]*J[0][2]*f[2];
+                      - J[0][1]*J[1][2]*f[2] + J[1][1]*J[0][2]*f[2];
 
         //  ( J_00  f_0  J_02 )
         //  ( J_10  f_1  J_12 )
         //  ( J_20  f_2  J_22 )
         delta_xi[1] = - J[1][2]*J[2][0]*f[0] + J[1][0]*J[2][2]*f[0]
                       - J[0][0]*J[2][2]*f[1] + J[2][0]*J[0][2]*f[1]
-                                                                                                            - J[1][0]*J[0][2]*f[2] + J[1][2]*J[0][0]*f[2];
+                      - J[1][0]*J[0][2]*f[2] + J[1][2]*J[0][0]*f[2];
 
         //  ( J_00  J_01  f_0 )
         //  ( J_10  J_11  f_1 )
         //  ( J_20  J_21  f_2 )
         delta_xi[2] = - J[1][0]*J[2][1]*f[0] + J[2][0]*J[1][1]*f[0]
-                                                                 - J[0][1]*J[2][0]*f[1] + J[2][1]*J[0][0]*f[1]
-                                                                                                            - J[0][0]*J[1][1]*f[2] + J[1][0]*J[0][1]*f[2];
+                      - J[0][1]*J[2][0]*f[1] + J[2][1]*J[0][0]*f[1]
+                      - J[0][0]*J[1][1]*f[2] + J[1][0]*J[0][1]*f[2];
 
         distNormalizer = std::pow(fabs(jacDet), 1.0 / 3.0);
       }
@@ -598,7 +598,7 @@ void LagrangeElemShapeMap::CalcNormal( Vector<Double>& normal,
                                        const LocPoint& lp ) {
   
   
-  // check, that element is surface element at all
+  // check, that element is a surface element at all
   if( shape_.dim != ptGrid_->GetDim() - 1 ) {
     EXCEPTION("Can not calculate normal of element #"
               << ptElem_->elemNum << " which is of dimension "
@@ -641,9 +641,9 @@ void LagrangeElemShapeMap::CalcNormal( Vector<Double>& normal,
 
 void  LagrangeElemShapeMap::
 CalcNormalOutOfVol( Vector<Double> & normal,
-                        const LocPoint& lp, 
-                        const Elem & volElem ) {
-  
+                    const LocPoint& lp, 
+                    const Elem & volElem ) {
+
   // Obtain shape map of neighboring volume element
   LagrangeElemShapeMap sm(ptGrid_);
   sm.SetElem(&volElem, isUpdated_);
@@ -727,8 +727,24 @@ bool LagrangeElemShapeMap::
 }
 
 void LagrangeElemShapeMap::CalcDiameter( Vector<Double>& diameter ) {
-  EXCEPTION("Not implemented");
-  // This method has to be implemented in the related finite element
+  Vector<Double> mins(shape_.dim), maxs(shape_.dim);
+  mins.Init(std::numeric_limits<double>::max());
+  maxs.Init(std::numeric_limits<double>::max());
+  diameter.Resize(shape_.dim);
+  diameter.Init();
+  for (UInt dim = 0, n_dims  = coords_.GetNumRows(); dim < n_dims; dim++)
+  {
+    for (UInt k = 0, n_elems = coords_.GetNumCols(); k < n_elems; k++)
+    {
+      Double test = coords_[dim][k];
+      Double& min = mins[dim];
+      Double& max = maxs[dim];
+      min = std::min(min, test);
+      max = std::max(max, test);
+    }
+
+    diameter[dim] = maxs[dim] - mins[dim];
+  }
 }
 
 void LagrangeElemShapeMap::CalcBarycenter( Vector<Double>& baryCenter ) {

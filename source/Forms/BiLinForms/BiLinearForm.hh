@@ -39,8 +39,6 @@ namespace CoupledField
 
       }
 
-
-
       virtual void CalcElementMatrix( Matrix<Double>& stiffMat,
                                           EntityIterator& ent1,
                                           EntityIterator& ent2){
@@ -65,6 +63,9 @@ namespace CoupledField
       }
 
       virtual bool IsComplex()=0;
+      
+      //! Return, if bilinear form produces symmetric matrices
+      bool IsSymmetric() {return isSymmetric_;}
 
     protected:
 

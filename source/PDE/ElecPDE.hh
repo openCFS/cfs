@@ -101,7 +101,8 @@ namespace CoupledField
     //! is negative compared to the normal one
     void SetThermoCoupling();
 
-    /** add the integrators for the polarization matrix to the linear forms, similar as in multiple load case;
+    /** add the integrators for the polarization matrix to the linear forms, 
+     * similar as in multiple load case;
      * called from Excitation::SetPolarizationMatrixRHS
      * @param vals contains the values from the xml test strains
      * @param linForms set to append linear Forms to, if NULL use assemble_ */
@@ -136,12 +137,6 @@ namespace CoupledField
     void DefinePostProcResults();
 
     
-    //! Calculate electric potential for several points
-    template<class TYPE>
-    void CalcElecPot( StdVector<const Elem*>& elems,
-                      StdVector<LocPoint>& points,
-                      Vector<TYPE>& values );
-
     //! Calculates the polarization vector
     void CalcPolarizationField( shared_ptr<BaseResult> vals );
 
@@ -161,44 +156,11 @@ namespace CoupledField
     CreateFeSpaces( const std::string&  formulation,
                     PtrParamNode infoNode );
 
-    virtual LinearFormContext* CreateRhsLinearForm(SolutionType rhsType,shared_ptr<CoefFunction > rhsCoef);
+    virtual LinearFormContext* CreateRhsLinearForm( SolutionType rhsType,
+                                                    shared_ptr<CoefFunction > rhsCoef );
 
   private:
 
-    //! Obtain information on desired output quantities from parameter file
-
-    //! This method is used to query the parameter handling object for the
-    //! desired output quantities and translate their literal description into
-    //! the internal format by setting the corresponding class attributes.
-    //! The output quantities currently supported by the electrostatics PDE are
-    //! given in the following table. Here 'Keyword' and 'Result Type' refer
-    //! to the XML parameter file, while 'Class Attribute' refers to the
-    //! internal attribute of the ElecPDE class that is set, if the keyword
-    //! is specified.\n\n
-    //! <table border="1">
-    //!   <tr>
-    //!     <td><b>Keyword</b></td>
-    //!     <td><b>Result Type</b></td>
-    //!     <td><b>Class Attribute</b></td>
-    //!   </tr>
-    //!   <tr>
-    //!     <td>potential</td>
-    //!     <td>nodeResults</td>
-    //!     <td>savesol_</td>
-    //!   </tr>
-    //!   <tr>
-    //!     <td>efield</td>
-    //!     <td>elemResults</td>
-    //!     <td>calcEfield_</td>
-    //!   </tr>
-    //!   <tr>
-    //!     <td>energy</td>
-    //!     <td>elemResults</td>
-    //!     <td>calcEnergy_</td>
-    //!   </tr>
-    //! </table>
-    void InitStoreResults();
- 
     //! Read definitions for electric impedances
     void ReadImpedances();
 

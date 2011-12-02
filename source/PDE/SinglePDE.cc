@@ -56,6 +56,9 @@ using std::string;
 #include "Domain/CoefFunction/CoefFunctionConst.hh"
 #include "Domain/CoefFunction/CoefFunctionExpression.hh"
 
+// new postprocessing concept
+#include "Domain/Results/ResultFunctor.hh"
+
 // TEMPORARY
 #include "MagEdgePDE.hh"
 #include "FeBasis/HCurl/FeSpaceHCurlHi.hh"
@@ -922,6 +925,10 @@ namespace CoupledField {
     ResultMap::iterator it = resultLists_.begin();
     ResultHandler * resHandler = domain->GetResultHandler();
 
+    // =======================================
+    //  Trigger calculation of normal results 
+    // =======================================
+    
     // iterate over all results
     for( ; it != resultLists_.end(); it++ ) {
       ResultList & actList = it->second;
@@ -960,6 +967,11 @@ namespace CoupledField {
       }
     }
     
+    
+    // ===================================================
+    //  Trigger calculation of interpolated field results 
+    // ===================================================
+    
     // Check for additional field variable
     UInt numFields = fields_.GetSize();
     
@@ -968,9 +980,60 @@ namespace CoupledField {
     
       // call specialized calculation method in sub-class
       FieldAtPoints& fap = fields_[i];
-      CalcField( fap.resultInfo->resultType, fap.elems, 
-                 fap.locPoints, *fap.field );
       
+      
+      // Obtain field resultFunctor object
+      SolutionType solType = fap.resultInfo->resultType;
+      UInt numDofs = fap.resultInfo->dofNames.GetSize();
+      std::map<SolutionType, shared_ptr<BaseFieldFunctor> >::iterator fctIt;
+      fctIt = fieldFunctors_.find(solType);
+      if( fctIt == fieldFunctors_.end() )  {
+        EXCEPTION( "Could not find field functor for result '" 
+            << SolutionTypeEnum.ToString(solType) << "'");
+      }
+       
+      // calculate vector entries
+      if( isComplex_) {
+        shared_ptr<FieldFunctor<Complex> > fct = 
+            dynamic_pointer_cast<FieldFunctor<Complex> >(fctIt->second);
+        Vector<Complex> temp;
+        Vector<Complex>& vec = dynamic_cast<Vector<Complex> &>(*fap.field);
+        vec.Resize(fap.elems.GetSize() * numDofs);
+        UInt pos = 0;
+        LocPointMapped lpm;
+        for ( UInt iElem = 0; iElem < fap.elems.GetSize(); ++iElem ) {
+          shared_ptr<ElemShapeMap> esm = 
+              ptgrid_->GetElemShapeMap( fap.elems[iElem] );
+          lpm.Set(fap.locPoints[iElem], esm);
+          fct->GetVector(temp, lpm );
+          
+          for( UInt i = 0; i < numDofs; ++i ) {
+            vec[pos++] = temp[i];
+          }
+        }
+      } else {
+        shared_ptr<FieldFunctor<Double> > fct = 
+            dynamic_pointer_cast<FieldFunctor<Double> >(fctIt->second);
+        Vector<Double> temp;
+        Vector<Double>& vec = dynamic_cast<Vector<Double> &>(*fap.field);
+        vec.Resize(fap.elems.GetSize() * numDofs);
+        UInt pos = 0;
+        LocPointMapped lpm;
+        for ( UInt iElem = 0; iElem < fap.elems.GetSize(); ++iElem ) {
+          shared_ptr<ElemShapeMap> esm = 
+              ptgrid_->GetElemShapeMap( fap.elems[iElem] );
+          lpm.Set(fap.locPoints[iElem], esm);
+          fct->GetVector(temp, lpm );
+
+          for( UInt i = 0; i < numDofs; ++i ) {
+            vec[pos++] = temp[i];
+          }
+        }
+      }
+      
+//      CalcField( fap.resultInfo->resultType, fap.elems, 
+//                 fap.locPoints, *fap.field );
+
       
       // print out information
       if( isComplex_ ){
@@ -1022,7 +1085,6 @@ namespace CoupledField {
     for( UInt iPart = 0; iPart <fieldNodes.GetSize(); ++iPart ) {
       PtrParamNode  actNode = fieldNodes[iPart];
       ParamNodeList listNodes = actNode->GetList("list");
-      std::cerr << "found " << listNodes.GetSize() << "listNodes\n";
       
       FieldAtPoints & actField = fields_[iPart];
       actField.fileName = actNode->Get("fileName")->As<std::string>();
@@ -1084,8 +1146,9 @@ namespace CoupledField {
             globPoint[1] = actY;
             if( dim_ > 2) {
               globPoint[2] = actZ;
-            } else {
-              globPoint[2] = 0.0;
+            } 
+            else {
+             globPoint[2] = 0.0;
             }
 //#define USE_INTERPOLATION            
 #ifndef USE_INTERPOLATION
@@ -1107,7 +1170,7 @@ namespace CoupledField {
                
                // check again mapping by performing loc->glob mapping
                shared_ptr<ElemShapeMap>  esm = ptgrid_->GetElemShapeMap(ptElem);
-               esm->Local2Global(globPoint, locPoint);
+               //esm->Local2Global(globPoint, locPoint);
 //               std::cerr << "\tAdditional check loc->glob delivers global point " 
 //                   << globPoint.ToString() << std::endl << std::endl;
                
@@ -1127,226 +1190,13 @@ namespace CoupledField {
   //   SetBCs
   // **********
   void SinglePDE::SetBCs() {
+    
+    // Todo: Is this method reallly necessary here or can we move it to the SolveStep-class?
     std::map<SolutionType, shared_ptr<BaseFeFunction> >::iterator fncIt= feFunctions_.begin();
-       while(fncIt != feFunctions_.end()){
-         fncIt->second->ApplyBC();
-         fncIt++;
-       }
-//
-//     UInt dof;
-//     Double val;
-//     StdVector<UInt> nodes;
-//     Integer eqnNr;
-//     Vector<Double> globCoord;
-//
-//     // get global coordinate system and math parser
-//     CoordSystem * coosy = domain->GetCoordSystem();
-//     MathParser * parser = domain->GetMathParser();
-//
-//
-//     // ---------------------------
-//     // INHOMOGENEOUS DIRICHLET BC
-//     // ---------------------------
-//
-//     Double phase = 0.0;
-//
-//     for ( UInt i=0, n=idBcs_.GetSize(); i < n; ++i ) {
-//
-//       // Get grip of actual idBC
-//       InhomDirichletBc const & actBc = *(idBcs_[i]);
-//
-//       dof = actBc.dof;
-//       // std::cout << "dof=" << dof << std::endl;
-//
-//       // Get EntityIterator
-//       EntityIterator it = actBc.entities->GetIterator();
-//
-//       // set info for input function
-//       ResultCache::SetInfo(ResultCache::OUT_REAL,
-//                            dof,
-//                            actBc.entities->GetName(),
-//                            actBc.result->resultType);
-//
-//       for ( it.Begin(); !it.IsEnd(); it++ ) {
-//
-//         try {
-//           StdVector<Integer> eqns;
-//           eqnMap_->GetEqns( eqns, *actBc.result, it, dof  );
-//
-//           // loop over all equations for the dirichlet conditions
-//           for ( UInt iEqn=0, nEqns=eqns.GetSize(); iEqn < nEqns; ++iEqn ) {
-//             eqnNr = eqns[iEqn];
-//
-//             // omit all equations, which are homogeneous dirichlet
-//             // boundary condition (0) or constraint slave eqn (<0)
-//             if( eqnNr <= 0 ) continue;
-//
-//             // If iterator points to a node, pass the current coordinate
-//             // to the parser
-//             if( it.GetType() == EntityList::NODE_LIST ) {
-//               // Get node coordinate
-//               ptgrid_->GetNodeCoordinate( globCoord, it.GetNode() );
-//               parser->SetCoordinates( mHandle_, *coosy, globCoord );
-//               ResultCache::SetIndex(it.GetNode());
-//             }
-//             else {
-//               // this case needs to be implemented ...
-//             }
-//
-//             // Now evaluate value of IDBC
-//             ResultCache::SetOutputType(ResultCache::OUT_AMPL);
-//             parser->SetExpr( mHandle_, actBc.value );
-//             val = parser->Eval( mHandle_ );
-//
-//             // Sanity check. This should not happen, but might appear
-//             // in the case that the same node/dof belongs to a region
-//             // with hom. and a region with inhom. Dirichlet BCs. This
-//             // problem was already encountered!
-//             if (eqnNr == 0) {
-//
-//               EXCEPTION( "Got eqn number 0 for inhom Dirichlet BC! "
-//                          << "Probably you have a node/dof that belongs to both "
-//                          << "a region with hom. and one with inhom. Dirichlet BCs."
-//                          << " Go check your .mesh file!" );
-//             }
-//
-//             // Transform Dirichlet boundary conditions for effmass-formulation
-//             if (effectiveMass_) {
-//               val = TS_alg_->DirichletBC4EffMassMatrix(val,eqnNr);
-//             }
-//             
-//             // if Biot-Savart is set (just relevant for magnetics ) we have to correct
-//             // the inhomog. Dirichlet values
-//             // (watch out for equation number offset!!!)
-//             if ( isBiotSavart_ ) {
-//               val -= biotSavart_->CalcFieldSingleEqn( eqnNr-1 );
-//             }
-//
-//             // Case of complex-valued entries
-//             if (analysistype_ == HARMONIC ) {
-//
-//               ResultCache::SetOutputType(ResultCache::OUT_PHASE);
-//               parser->SetExpr( mHandle_, actBc.phase );
-//               phase = parser->Eval( mHandle_ );
-//               Complex complexValue( val * cos( phase / 180 * PI ),
-//                                     val * sin( phase / 180 * PI ) );
-//               algsys_->SetDirichlet(  pdeId_, eqnNr, complexValue);
-//             }
-//             else {
-//               //   std::cout << "IHDBC val=" << val << std::endl;
-//               algsys_->SetDirichlet( pdeId_, eqnNr, val );
-//             }
-//           }
-//         } catch (Exception& ex ) {
-//           RETHROW_EXCEPTION(ex, pdename_ << ": Could not apply Inhom. Dirichlet boundary condition "
-//                             << " for nodes '" <<  actBc.entities->GetName()
-//                             << "' with value '" << actBc.value << "'" );
-//         }
-//       }
-//     }
-//
-//     // ------------------------------------
-//     // INHOMOGENEOUS DIRICHLET BC from File
-//     // ------------------------------------
-//
-//     phase = 0.0;
-//
-//     for ( UInt i = 0; i < idFiBcs_.GetSize(); i++ )
-//     {
-//       // Get grip of actual idBC
-//       InhomDirichFileBc const & actBc = *(idFiBcs_[i]);
-//
-//       dof = actBc.dof;
-//
-//       // Get EntityIterator
-//       EntityIterator it = actBc.entities->GetIterator();
-//
-//       // set info for input function
-//       ResultCache::SetInfo(ResultCache::OUT_REAL,
-//                            dof,
-//                            actBc.entities->GetName(),
-//                            actBc.result->resultType);
-//
-//       UInt step; // time step
-//       shared_ptr<BaseResult > dirichletVals;
-//
-//       /* TODO: szoerner */
-//       // Specify that we want to use the current step number.
-//       parser->SetExpr( mHandle_, "step" );
-//       step = (UInt) parser->Eval(mHandle_);
-//
-//       ResultHandler* resultHandler = domain->GetResultHandler();
-//
-//       // Get reference result
-//       Result<Double> *result = NULL;
-//       try {
-//         // Try to read in values from file.
-//         dirichletVals = resultHandler->GetResult( actBc.inputId, \
-//             1, \
-//             step, \
-//             actBc.result->resultType, \
-//             actBc.entities->GetName() );
-//
-//         result = dynamic_cast<Result<Double>*>(&(*dirichletVals));
-//       } catch (Exception& ex) {
-//           RETHROW_EXCEPTION(ex, "reading problem");
-//       };
-//
-//       Vector<Double>& resVec = result->GetVector();
-//       UInt numDofs = actBc.result->dofNames.GetSize();
-//
-//       for ( it.Begin(); !it.IsEnd(); it++ )
-//       {
-//         try {
-//           StdVector<Integer> eqns;
-//           eqnMap_->GetEqns( eqns, *actBc.result, it, dof  );
-//
-//           // loop over all equations for the file-dirichlet conditions
-//           for ( UInt iEqn = 0; iEqn < eqns.GetSize(); iEqn++)
-//           {
-//             eqnNr = eqns[iEqn];
-//             UInt eqnNr2 = it.GetPos()*numDofs+dof-1;
-//
-//             // omit all equations, which are homogeneous dirichlet
-//             // boundary condition (0) or constraint slave eqn (<0)
-//             if ( eqnNr <= 0 ) continue;
-//             val = resVec[eqnNr2];
-//
-//             // Sanity check. This should not happen, but might appear
-//             // in the case that the same node/dof belongs to a region
-//             // with hom. and a region with inhom. Dirichlet BCs. This
-//             // problem was already encountered!
-//             if (eqnNr == 0)
-//             {
-//               EXCEPTION( "Got eqn number 0 for inhom Dirichlet(File) BC! "
-//                          << "Probably you have a node/dof that belongs to both "
-//                          << "a region with hom. and one with inhom. Dirichlet BCs."
-//                          << " Go check your .mesh file!" );
-//             }
-//
-//             // Transform Dirichlet boundary conditions for effmass-formulation
-//             if (effectiveMass_)
-//             {
-//               val = TS_alg_->DirichletBC4EffMassMatrix(val,eqnNr);
-//             }
-//             
-//             // if Biot-Savart is set (just relevant for magnetics ) we have to correct
-//             // the inhomog. Dirichlet values
-//             // (watch out for equation number offset!!!)
-//             if ( isBiotSavart_ )
-//             {
-//               val -= biotSavart_->CalcFieldSingleEqn( eqnNr-1 );
-//             }
-//
-//             algsys_->SetDirichlet( pdeId_, eqnNr, val);
-//           }
-//         } catch (Exception& ex ) {
-//           RETHROW_EXCEPTION(ex, pdename_ << ": Could not apply Inhom. Dirichlet boundary condition from file"
-//                             << " for nodes '" <<  actBc.entities->GetName()
-//                             << "' with value '" << val << "'" );
-//         }
-//       }
-//     }
+    while(fncIt != feFunctions_.end()){
+      fncIt->second->ApplyBC();
+      fncIt++;
+    }
   }
   //! Transforms a given BoundaryCondition value according to Timestepping (i.e. TransientSim)
   void SinglePDE::TransformBC(Double& transVal, Double initValue, Integer eqnNumber){
@@ -3717,7 +3567,6 @@ namespace CoupledField {
       if ( IsRegionMicroPiezo( regionName ) ) 
       	isMicroPiezo = true;	
     }
-    //    std::cout << "PDE belongs to MicroPiezo" << std::endl;
     return isMicroPiezo;
   }
   
@@ -3773,211 +3622,6 @@ namespace CoupledField {
      }
    }
 
-//   template <class TYPE>
-//   void SinglePDE::CalcElemGradMatrix(const Elem* elem, \
-//       const StdVector<UInt>& wanted, UInt dof, \
-//       shared_ptr<AnsatzFct> fctType, Matrix<TYPE>& q_mat)
-//   {
-//     REFACTOR;
-//     assert(dof >= 1 && dof <= 3);
-//
-//     const StdVector<UInt>& connect = elem->connect;
-//
-//     q_mat.Resize(connect.GetSize(), connect.GetSize());
-//     q_mat.Init();
-//
-//     assert(wanted.GetSize() <= connect.GetSize());
-//
-//     // what ever it means, it is copy&paste from GradientFieldOp
-//     elem->ptElem->SetAnsatzFct(fctType);
-//     UInt nShFnc = elem->ptElem->GetNumFncs(fctType);
-//     assert(nShFnc = connect.GetSize());
-//
-//     Matrix<Double> glob_coords;
-//     domain->GetGrid()->GetElemNodesCoord(glob_coords, connect);
-//     assert(glob_coords.GetNumRows() == dim_);
-//     assert(glob_coords.GetNumCols() == connect.GetSize());
-//
-//     const Matrix<Double>& loc_coords = elem->ptElem->GetLocalCornerCoords();
-//     assert(loc_coords.GetNumCols() == glob_coords.GetNumCols());
-//     assert(loc_coords.GetNumRows() == glob_coords.GetNumRows());
-//     Vector<Double> local(dim_);
-//
-//     // traverse of all desired nodes of the element to set up the matrix
-//     for(UInt entry = 0; entry < connect.GetSize(); entry++)
-//     {
-//       // make a check the all wanted nodes are within the element nodes
-//       assert(entry >= wanted.GetSize() || connect.Contains(wanted[entry]));
-//
-//       // do we want this node(number) ?
-//       UInt nn = connect[entry];
-//       if(!wanted.Contains(nn))
-//         continue;
-//
-//       // current local node of reference element
-//       for(UInt d = 0; d < dim_; d++)
-//         local[d] = loc_coords[d][entry];
-//
-//
-//       Matrix<Double> glob_grad;
-//       elem->ptElem->GetGlobDerivShFnc(glob_grad, local, glob_coords, elem);
-//
-//       // copy the global gradient to the right row
-//       for(UInt j=0; j < nShFnc; j++)
-//         q_mat[entry][j] = -1.0 * glob_grad[j][dof-1];
-//     }
-//     LOG_DBG3(pde) << "CEGM: el=" << elem->elemNum << " dof=" << dof << " w=" << wanted.ToString();
-//     LOG_DBG3(pde) << "CEGM: el=" << elem->elemNum << " q=" << q_mat.ToString(0, true);
-//   }
-
-
-//   template <class TYPE>
-//   void SinglePDE::CalcGradNodeSolution(const Elem* elem, shared_ptr<AnsatzFct> fctType, UInt dof, StdVector<Vector<TYPE> >& grad_out, Vector<TYPE>* elem_data)
-//   {
-//     REFACTOR;
-//     Vector<TYPE> gradVal(dim_);
-//
-//     // the constructor is really cheap
-//     GradientFieldOp<TYPE>* gradOp = NULL;
-//     // do we hace the elem_data provided case or the PDE solution case?
-//     if(elem_data != NULL)
-//       gradOp = new GradientFieldOp<TYPE>(ptgrid_, this, fctType, isaxi_);
-//     else
-//     {
-//       NodeStoreSol<TYPE>& nss = dynamic_cast<NodeStoreSol<TYPE>&>(*sol_);
-//       gradOp = new GradientFieldOp<TYPE>(ptgrid_, this, eqnMap_, nss, fctType, isaxi_);
-//     }
-//
-//     // every node (with its dof-component) gets its gradient
-//     grad_out.Resize(elem->connect.GetSize());
-//
-//     ElemList list(ptgrid_);
-//     list.SetElement(elem);
-//     EntityIterator it = list.GetIterator();
-//
-//     // loop over all element nodes
-//     const Matrix<Double>& nodes = elem->ptElem->GetLocalCornerCoords();
-//     Vector<Double> localCoord(dim_);
-//
-//     for(UInt n = 0; n < nodes.GetNumCols(); n++)
-//     {
-//       // current node of reference element
-//       for(UInt d = 0; d < dim_; d++)
-//         localCoord[d] = nodes[d][n];
-//
-//       gradOp->CalcElemGradField(gradVal, it, localCoord, 1.0, dof, elem_data);
-//
-//       grad_out[n] = gradVal;
-//
-//       LOG_DBG3(pde) << "CGENS: el=" << elem->elemNum << " n=" << n << " lc=" << localCoord.ToString() << " grad=" << gradVal.ToString();
-//     }
-//
-//     delete gradOp;
-//   }
-
-
-//   template <class TYPE>
-//   void SinglePDE::CalcGradNodeSolution(shared_ptr<EntityList> list,  UInt dof, StdVector<Vector<TYPE> >& nodal_grad, StdVector<UInt>& counter)
-//   {
-//     REFACTOR;
-//     Grid* grid = domain->GetGrid();
-//
-//     assert(list->GetType() == EntityList::ELEM_LIST);
-//
-//     // reserve space for all nodal gradients, even if our list is small compared to *all* nodes!
-//     nodal_grad.Resize(grid->GetNumNodes() + 1); // nodes are 1 based!
-//     for(UInt i = 0, in = nodal_grad.GetSize(); i < in; i++)
-//       nodal_grad[i].Init(0.0); // might be reused - clean
-//
-//     // the counter is a helper, as parameter to be reused for performance reasons
-//     counter.Resize(grid->GetNumNodes() + 1);
-//     counter.Init(0);
-//
-//     EntityIterator it = list->GetIterator();
-//
-//     // this are the nodal gradients of a single element
-//     StdVector<Vector<TYPE> > elem_grads;
-//     // initial resize
-//     it.Begin();
-//     elem_grads.Resize(it.GetElem()->connect.GetSize());
-//
-//     // loop over all elements
-//     for (it.Begin(); !it.IsEnd(); it++ )
-//     {
-//       const Elem* elem = it.GetElem();
-//       // simple regular elements check
-//       assert(elem->connect.GetSize() == elem_grads.GetSize());
-//
-//       CalcGradNodeSolution(elem, elem->ptElem->GetAnsatzFct(), dof, elem_grads); // full data
-//
-//       // map results on nodes -> nodal_grad is node number and not equation based based!
-//       for(UInt n = 0, nn = elem->connect.GetSize(); n < nn; n++)
-//       {
-//         UInt node = elem->connect[n];
-//         // prepare the vector if it was not initialized before to add. size is dim_ or dim^2 for displacement
-//         nodal_grad[node].Resize(elem_grads[n].GetSize());
-//         nodal_grad[node] += elem_grads[n];
-//         counter[node]++;
-//       }
-//     }
-//
-//     // normalize
-//     for(UInt i = 0, in = nodal_grad.GetSize(); i < in; i++)
-//       if(counter[i] > 0)
-//         nodal_grad[i] /= (double) counter[i];
-//   }
-
-
-   template<class TYPE>
-   void SinglePDE::CalcGradSolution(shared_ptr<BaseResult> res, UInt dof)
-   {
-     REFACTOR;
-//     Grid* grid = domain->GetGrid();
-//     shared_ptr<ResultInfo> ri = res->GetResultInfo();
-//     // as a NodeStoreSolution we get nodes, but we need elements to calculate the gradient
-//     // efficiently.
-//     if(res->GetEntityList()->GetDefineType() != EntityList::REGION)
-//       EXCEPTION(ri->resultName + " needs to be defined on regions only!");
-//     assert(ri->entryType == ResultInfo::VECTOR || ri->entryType == ResultInfo::TENSOR);
-//     assert(ri->definedOn == ResultInfo::NODE);
-//     assert(res->GetEntityList()->GetType() == EntityList::NODE_LIST);
-//
-//     // we therefore assume that a regions was given which can be extracted and then the elements
-//     // are gained by the region
-//     std::string name = res->GetEntityList()->GetName();
-//
-//     shared_ptr<EntityList> list = grid->GetEntityList(EntityList::ELEM_LIST, name, EntityList::REGION);
-//     assert(list->GetSize() > 0);
-//
-//     // evaluate the gradients
-//     // this gets the gradients and stores them global node number wise
-//     StdVector<Vector<TYPE> > nodal_grad;
-//     // helper which gets also the huge size of nodal_grad
-//     StdVector<unsigned int> counter;
-//
-//     CalcGradNodeSolution(list, dof, nodal_grad, counter);
-//
-//     // the target data storage
-//     Vector<TYPE>& out = dynamic_cast<Result<TYPE>&>(*(res)).GetVector();
-//     // vectors are stored by their components. 0 based from the node list!
-//     const UInt dofs = ri->dofNames.GetSize();
-//     assert((ri->entryType == ResultInfo::TENSOR && dofs == dim_ * dim_) || dofs == dim_);
-//     out.Resize(res->GetEntityList()->GetSize() * dofs);
-//
-//     EntityIterator it = res->GetEntityList()->GetIterator();
-//
-//     for(it.Begin(); !it.IsEnd(); it++)
-//     {
-//       const UInt node = it.GetNode();
-//       const UInt idx = it.GetPos();
-//       Vector<TYPE>& grad = nodal_grad[node];
-//       assert(grad.GetSize() == dofs);
-//       assert(counter[node] != 0);
-//
-//       for(UInt d = 0; d < dofs; d++)
-//         out[idx*dofs + d] = grad[d];
-//     }
-   }
 
   inline void SinglePDE::writeOutTimeStep(shared_ptr<SimOutput>& outFile, \
       StdVector<shared_ptr<BaseResult> >& outResults)
@@ -3996,37 +3640,3 @@ namespace CoupledField {
   }
 } // end of namespace
 
-// explicit template instantiation for GCC compiler
-#ifdef __GNUC__
-
-
-//template
-//void SinglePDE::CalcGradNodeSolution<Complex>(
-//    shared_ptr<EntityList> list,
-//    UInt dof,
-//    StdVector<Vector<Complex> >& nodal_grad,
-//    StdVector<UInt>& counter);
-//
-//template
-//void SinglePDE::CalcGradNodeSolution<Complex>(
-//    const Elem* elem,
-//    shared_ptr<AnsatzFct> fctType,
-//    UInt dof,
-//    StdVector<Vector<Complex> >& grad_out,
-//    Vector<Complex>* elem_data);
-//
-//template
-//void SinglePDE::CalcElemGradMatrix<Complex>(
-//    const Elem* elem,
-//    const StdVector<UInt>& wanted,
-//    UInt dof,
-//    shared_ptr<AnsatzFct> fctType,
-//    Matrix<Complex>& q_mat);
-//
-//template
-//void SinglePDE::CalcGradSolution<Complex>(shared_ptr<BaseResult> res, UInt dof);
-//
-//template
-//void SinglePDE::CalcGradSolution<Double>(shared_ptr<BaseResult> res, UInt dof);
-
-#endif

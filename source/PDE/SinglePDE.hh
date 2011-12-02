@@ -232,11 +232,6 @@ namespace CoupledField
     //! Thus, this method gets called after the integrators are defined
     virtual void DefinePostProcResults() {};
 
-    /** The gradSolution is common for (almost) all PDEs.
-     * @param dof for mech displacement, 1 = grad of x displacement, ... */
-    template<class TYPE>
-    void CalcGradSolution(shared_ptr<BaseResult> res, UInt dof = 1);
-
     //! Obtain information on desired output quantities from parameter file
     //! This method is used to query the parameter handling object for the
     //! desired output quantities and translate their literal description into
@@ -255,10 +250,6 @@ namespace CoupledField
     //! Read results information for interpolation of continuous fields
     virtual void ReadFieldResults();
     
-    //! Calculate field variables at arbitrary points
-    virtual void CalcField( SolutionType solType, StdVector<const Elem*>& elems,
-                            StdVector<LocPoint>& points, SingleVector& values ) {}
-
     // =======================================================================
     //   INTERPOLATION OF FIELD VARIABLES
     // =======================================================================

@@ -36,6 +36,7 @@
 using namespace CoupledField;
 using namespace std;
 
+
 int main(int argc, const char **argv)
 {
   CFS cfs(argc, argv);
@@ -70,15 +71,6 @@ CFS::CFS(int argc, const char **argv) :
 
   resultHandler = NULL;
   materialHandler = NULL;
-
-  // Check if the boost version is >= 1.34, as the boost::filesystem::path
-  // interface has changed heavily.
-  // In version < 1.34 there is a name checking mechanism activated, which
-  // doest not allow file/directory names containing characters like '+', ..
-  // Therefore we need to replace this standard name checker.
-#if ( BOOST_VERSION < 103400)
-  boost::filesystem::path::default_name_check( boost::filesystem::native);
-#endif
 
   // Set segfault to false
   Exception::segfault_ = false;

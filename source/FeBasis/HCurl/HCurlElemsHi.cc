@@ -13,7 +13,7 @@ DECLARE_LOG(feHCurlHi)
 DEFINE_LOG(feHCurlHi, "feHCurlHi")
 
 
-//! This method makes uses of the following vector identity
+//! This method makes use of the following vector identity
 //!
 //!     curl(b*F) = b x curl(F) + grad(b) x F
 //!

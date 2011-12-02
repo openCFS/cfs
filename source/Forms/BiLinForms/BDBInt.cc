@@ -82,7 +82,7 @@ namespace CoupledField{
 
     elemMat.Resize( nrFncs * Bdim_);
     elemMat.Init();
-
+    
 #define USE_BLAS_VERSION
 
     // Loop over all integration points
@@ -96,9 +96,7 @@ namespace CoupledField{
       operator_.CalcOpMat( bMat, lp, ptFe);
 
       // Calculate D-Mat
-      //calcDMat(dMat, ent1.GetElem());
       dData_->GetTensor(dMat,lp);
-      //ptMaterial_->GetTensor(dMat,ELEC_PERMITTIVITY,Global::REAL,PLANE_STRAIN);
 
       fac = MAT_DATA_TYPE(lp.jacDet * weights[i]);
       operator_.TransformJacDet(fac,lp,ptFe);
@@ -145,8 +143,8 @@ namespace CoupledField{
     Matrix<MAT_DATA_TYPE> bOp;
     FE_TYPE* ptFe = 
         static_cast<FE_TYPE*>(ptFeSpace1_->GetFe( lpm.ptEl->elemNum ));
-    operator_.CalcOpMat(bOp, lpm, ptFe);
-    ret = bOp * sol;
+    operator_.CalcOpMatTransposed(bOp, lpm, ptFe);
+    ret = Transpose(bOp) * sol;
   }
 
   //! Apply dB-operator on vector

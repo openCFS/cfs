@@ -335,9 +335,9 @@ namespace CoupledField {
 
     //! Create reordering to get consecutive arranges blocks
     
-    //! This methosd tries to sort generate a reordering such that all defined
-    //! blocks contain indices in sequential order. 
-    //! If the method can not find a ordering (e.g. due to overlapping blocks)
+    //! This method tries to generate a reordering such that all defined
+    //! subBlocks contain indices in sequential order. 
+    //! If the method can not find a ordering (e.g. due to overlapping subBlocks)
     //! it will throw an exception.
     //! \param order 1-based reordering array
     void ReorderForBlocks( StdVector<UInt>& order );

@@ -175,7 +175,6 @@ namespace CoupledField {
           }
         break;
         case EntityList::SURF_ELEM_LIST:
-          WARN(" FeSpaceH1::GetNodesOfEntities(): Going to treat a SURF_ELEM_LIST as a ELEM_LIST...");
           for(entIt.Begin(); !entIt.IsEnd(); entIt++){
             StdVector<UInt> eNodes;
             GetNodesOfElement(eNodes,entIt.GetElem(),entType);

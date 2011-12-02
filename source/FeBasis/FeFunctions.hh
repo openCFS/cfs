@@ -13,8 +13,6 @@
 
 #include "Utils/mathParser/mathParser.hh"
 
-#include "OLAS/algsys/AlgebraicSys.hh"
-
 namespace CoupledField {
 
 
@@ -23,6 +21,7 @@ namespace CoupledField {
   class SinglePDE;
   class MathParser;
   class BaseResult;
+  class AlgebraicSys;
 
 //!  Base class for a function approximated by Finite Elements 
 /*!

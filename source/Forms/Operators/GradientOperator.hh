@@ -62,15 +62,13 @@ namespace CoupledField{
     // Set correct size of matrix B and initialise with zeros
     UInt eDim = ptFe->shape_.dim;
     bMat.Resize( eDim, numFncs );
-    bMat.Init();
 
     // Get derivatives of local shape functions with respect to global
     // coords (format: nrNodes x spaceDim)
     Matrix<Double> xiDx;
     FE *fe = (static_cast<FE*>(ptFe));
     fe->GetGlobDerivShFnc( xiDx, lp, lp.shapeMap->GetElem() , 1 );
-    xiDx.Transpose(bMat);
-
+    bMat= Transpose(xiDx);
   }
 
   template<class FE, class TYPE>
@@ -81,7 +79,6 @@ namespace CoupledField{
     // Set correct size of matrix B and initialise with zeros
     UInt eDim = ptFe->shape_.dim;
     bMat.Resize(numFncs , eDim );
-    bMat.Init();
 
     // Get derivatives of local shape functions with respect to global
     // coords (format: spaceDim x nrNodes )

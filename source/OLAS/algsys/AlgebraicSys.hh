@@ -874,9 +874,20 @@ namespace CoupledField {
     // =======================================================================
 
     //! Map (fctId,eqnNr) to SBM matrix block (only diagonals)
+    
+    //! This map is used to translate the CFS-oriented view (fctId, eqnNr)
+    //! into the OLAS-oriented view, i.e. SuperMatrixBlocks (SBMBlocks).
+    //! For each (fctId,eqnNr) it stores the destination SBMBlock. To get
+    //! the corresponding row/col index, one has to use the #eqnToIndex array
+    //! of the corresponding SBMBlockInfo, stored in #blockInfo_.
     StdVector<std::map<Integer, UInt> > eqnToSBMBlock_; 
       
-    //! Store for each sbmblock the block information
+    //! Store for each SBMBlock the block information
+    
+    //! This structure stores for each SBMBlock the definition, i.e.
+    //!  - a map (fctId,eqnNr) to (index)
+    //!  - a definition of (optional) subblocks (e.g. for block preconditioners)
+    //!  - a flag, if the block can be reordered
     StdVector<GraphManager::SBMBlockInfo*> blockInfo_;
     
     //! Store for each fctId in which sbmBlocks it occurs
@@ -884,7 +895,7 @@ namespace CoupledField {
     //! When interfacing with CFS, the algebraic systems gets requests on a
     //! fctId-Level (GetSolution(), InitMatrix() ...). Inside OLAS we have
     //! to know, which blocks are affected by this operation. Thus
-    //! this structure gets filled during definition of SBM blocks.
+    //! this structure gets filled during the definition of SBM blocks.
     std::map<FeFctIdType, std::set<UInt> > fctIdsInBlocks_;
     
     // =======================================================================
@@ -901,9 +912,15 @@ namespace CoupledField {
     std::map<FEMatrixType, SBM_Matrix*> sysMat_;
     
     //! Effective system matrix (without condensation block)
+    
+    //! This is the "effective" matrix to be solved, i.e. the one passed to 
+    //! the solver. This a shallow copy of the #sysMat and thus contains only
+    //! pointers into the global system matrix.
+    //! In case we use static condensation, the effective matrix does not 
+    //! contain the interior block and the related coupling matrices.
     SBM_Matrix *effMat_;
 
-    //! Vector containing right-hand side of the linear system
+    //! Vector containing right-hand side of the linear system (see #effMat_)
     SBM_Vector *rhs_;
     
     //! Effective rhs vector

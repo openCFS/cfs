@@ -391,7 +391,6 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
           //shared_ptr<CoefFunctionExpression<Double> > coef (new CoefFunctionExpression<Double>());
           //coef->SetVector( currDensity );
           shared_ptr<CoefFunction> coef(CoefFunction::Generate(Global::REAL, currDensity));
-          std::cerr << "type of coef is " << coef->GetDimType() << std::endl;
           coef->SetCoordinateSystem(coilDef_[coil]->flowCoordSys_);
           
           curInt = new BUIntegrator<IdentityOperator,FeHCurl,Double>(1.0, coef);
@@ -402,7 +401,6 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
           assemble_->AddLinearForm( coilContext );
         }
       }
-
         
     }
 
@@ -481,10 +479,6 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
 
       case MAG_FLUX_DENSITY:
         resultFunctors_[MAG_FLUX_DENSITY]->EvalResult(res);
-//        if( isComplex_ ) {
-//          CalcFluxDensity<Complex>( res );
-//        } else {
-//          CalcFluxDensity<Double>( res );
 //        }
         break;
         
@@ -580,53 +574,6 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
 
 
   template<class TYPE>
-  void MagEdgePDE::CalcFluxDensity( shared_ptr<BaseResult> result ) {
-     Vector<TYPE> elemFlux(dim_);
-
-    // fetch result object and convert data
-    Result<TYPE> &  actSol =
-      dynamic_cast<Result<TYPE>&>(*result);
-    Vector<TYPE> & actVal = actSol.GetVector();
-    actVal.Resize( actSol.GetEntityList()->GetSize() * dim_ );
-
-    // loop over elements
-    EntityIterator it = actSol.GetEntityList()->GetIterator();
-    for ( it.Begin(); !it.IsEnd(); it++ ) {
-      LocPoint lp;
-      const Elem * el = it.GetElem();
-      lp.coord = Elem::shapes[el->type].midPointCoord;
-      CalcFluxDensityAtIP( el, lp, elemFlux );
-      for( UInt iDof = 0; iDof < dim_; iDof++ ) {
-        actVal[it.GetPos()*dim_ + iDof] = elemFlux[iDof];
-      }
-    }
-  }
-
-  template<class TYPE>
-  void MagEdgePDE::CalcVecPotential( shared_ptr<BaseResult> result ) {
-    Vector<TYPE> elemVecPot(dim_);
-
-    // fetch result object and convert data
-    Result<TYPE> &  actSol =
-        dynamic_cast<Result<TYPE>&>(*result);
-    Vector<TYPE> & actVal = actSol.GetVector();
-    actVal.Resize( actSol.GetEntityList()->GetSize() * dim_ );
-
-    // loop over elements
-    EntityIterator it = actSol.GetEntityList()->GetIterator();
-    for ( it.Begin(); !it.IsEnd(); it++ ) {
-      LocPoint lp;
-      const Elem * el = it.GetElem();
-      lp.coord = Elem::shapes[el->type].midPointCoord;
-      CalcVecPotentialAtIP( it, lp, elemVecPot);
-      for( UInt iDof = 0; iDof < dim_; iDof++ ) {
-        actVal[it.GetPos()*dim_ + iDof] = elemVecPot[iDof];
-      }
-    }
-    }
-
-
-  template<class TYPE>
   void MagEdgePDE::CalcEddyCurrent( shared_ptr<BaseResult> result ) {
     EXCEPTION("Not yet adapted to new implementation")
 
@@ -647,51 +594,6 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
 //    }
   }
   
-  template<class TYPE>
-  void MagEdgePDE::CalcEnergy( shared_ptr<BaseResult> result ) {
-    REFACTOR;
-    /*Result<TYPE> &  actSol =
-        dynamic_cast<Result<TYPE>&>(*result);      
-    EntityIterator regionIt = actSol.GetEntityList()->GetIterator();
-
-    // resize vector
-    Vector<TYPE> & actVal = actSol.GetVector();
-    actVal.Resize( actSol.GetEntityList()->GetSize() );
-
-    Vector<TYPE> help;
-    TYPE energy;
-    Matrix<Double> elemmat;
-    
-    BaseForm *bilinear_stiff = NULL;
-    // Loop over regions
-    for( regionIt.Begin(); !regionIt.IsEnd(); regionIt++ ) {
-      if ( regionNonLinType_[regionIt.GetRegion()] != NO_NONLINEARITY ) {
-        nlinBilinForms_[regionIt.GetRegion()]->SetNonLinMethod(FIXEDPOINT);
-        bilinear_stiff = nlinBilinForms_[regionIt.GetRegion()];
-      } else {
-        bilinear_stiff = linBilinForms_[regionIt.GetRegion()];
-      }
-      
-      ElemList actSDList(ptgrid_ );
-      actSDList.SetRegion( regionIt.GetRegion() );
-      EntityIterator elemIt = actSDList.GetIterator();
-      // Loop over elements
-      energy = 0;
-      Vector<TYPE> magPot;
-      for( elemIt.Begin(); !elemIt.IsEnd(); elemIt++ ) {
-
-        bilinear_stiff->CalcElementMatrix( elemmat, elemIt, elemIt );
-
-        sol_->GetElemSolution(magPot, elemIt );
-        help =  elemmat * magPot;
-        energy += 0.5 * (help * magPot);
-
-      }  
-      actVal[regionIt.GetPos()] = energy;*/
-    }
-    
-    
-    
     
     //    EXCEPTION("Not yet adapted to new implementation")
 //    Matrix<Double> elemmat, ptCoord, massMat;

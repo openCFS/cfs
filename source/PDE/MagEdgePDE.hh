@@ -50,10 +50,6 @@ namespace CoupledField
     //! do PostProcessing step
     void CalcResults( shared_ptr<BaseResult> result );
     
-    //! Calculate fiel variable at arbitrary points
-    void CalcField( SolutionType solType, StdVector<const Elem*>& elems,
-                    StdVector<LocPoint>& points, SingleVector& values ) {}
-
     // ======================================================
     // COUPLING SECTION
     // ======================================================
@@ -98,22 +94,11 @@ namespace CoupledField
     // =======================================================================
     //  POSTPROCESSING
     // =======================================================================
-    //! computes the magnetic flux density
-    template<class TYPE>
-    void CalcVecPotential( shared_ptr<BaseResult> result );
-    
-    //! computes the magnetic flux density
-    template<class TYPE>
-    void CalcFluxDensity( shared_ptr<BaseResult> result );
 
     //! computes the eddy current denstiy
     template<class TYPE>
     void CalcEddyCurrent( shared_ptr<BaseResult> result );
 
-    //! computes the magnetic energy
-    template<class TYPE>
-    void CalcEnergy( shared_ptr<BaseResult> result );
-    
     template<class TYPE>
     void CalcPermeability( shared_ptr<BaseResult> result );
     

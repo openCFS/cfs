@@ -965,8 +965,8 @@ namespace CoupledField {
     graphManager_->SetupDone();
     
     // Now we have all graphs and IDBC in their re-order state,
-    // so we have to fetch the reordering array from the graphmanager and 
-    // update information in the blockInfo array. 
+    // so we have to fetch the reordering array from the GraphManager and 
+    // update information in the blockInfo array for all SBM-Blocks 
     
     // Loop over all blocks
     for( UInt iBlock = 0; iBlock < numBlocks_; ++iBlock ) {

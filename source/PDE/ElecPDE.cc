@@ -27,6 +27,7 @@
 
 // new integrator concept
 #include "Forms/BiLinForms/BDBInt.hh"
+#include "Forms/BiLinForms/BBInt.hh"
 #include "Forms/LinForms/BUInt.hh"
 #include "Forms/Operators/GradientOperator.hh"
 #include "Forms/Operators/IdentityOperator.hh"
@@ -261,57 +262,6 @@ namespace CoupledField {
 
   }
    
-   template <class TYPE>
-   void ElecPDE::CalcElecPot( StdVector<const Elem*>& elems,
-                              StdVector<LocPoint>& points,
-                              Vector<TYPE>& values )  {
-     Vector<TYPE> elemSol;
-     Vector<Double> shape;
-     values.Resize(elems.GetSize());
-     values.Init();
-     FeFunction<TYPE>& fct = 
-           dynamic_cast<FeFunction<TYPE>& >(*(GetFeFunction(ELEC_POTENTIAL)));
-     FeSpaceH1& space = dynamic_cast<FeSpaceH1&>(*(fct.GetFeSpace()));
-     LocPointMapped lpm;
-     for ( UInt iElem = 0; iElem < elems.GetSize(); ++iElem ) {
-       
-       const Elem * el = elems[iElem];
-       FeH1*  ptFe = dynamic_cast<FeH1*>(space.GetFe( el->elemNum ));
-       fct.GetElemSolution(elemSol, el);
-       ptFe->GetShFnc(shape, points[iElem], el);
-       values[iElem] = shape * elemSol;
-     }
-   }
-   
-   void ElecPDE::CalcField( SolutionType solType, StdVector<const Elem*>& elems,
-                            StdVector<LocPoint>& points, SingleVector& values ) {
-REFACTOR;
-//     // switch, depending on solutionType
-//     switch(solType) {
-//       case ELEC_POTENTIAL:
-//         if(isComplex_) {
-//           Vector<Complex>& temp = dynamic_cast<Vector<Complex>& >(values);
-//           CalcElecPot(elems, points, temp );
-//         } else {
-//           Vector<Double>& temp = dynamic_cast<Vector<Double>& >(values);
-//           CalcElecPot<Double>(elems, points, temp );
-//         }
-//         break;
-//       case ELEC_FIELD_INTENSITY:
-//         if(isComplex_) {
-//           Vector<Complex>& temp = dynamic_cast<Vector<Complex>& >(values);
-//           CalcElecField(elems, points, temp );
-//         } else {
-//           Vector<Double>& temp = dynamic_cast<Vector<Double>& >(values);
-//           CalcElecField<Double>(elems, points, temp );
-//         }
-//         break;
-//       default:
-//         EXCEPTION("Result not computable by this PDE");
-//     }
-   }
-
-
   void ElecPDE::CalcPolarizationField( shared_ptr<BaseResult> res )
   {
     REFACTOR;
@@ -391,6 +341,8 @@ REFACTOR;
 
   void ElecPDE::DefinePrimaryResults() {
     
+    shared_ptr<BaseFeFunction> feFct = feFunctions_[ELEC_POTENTIAL];
+    
     // Electric Potential
     shared_ptr<ResultInfo> res1( new ResultInfo);
     res1->resultType = ELEC_POTENTIAL;
@@ -426,9 +378,23 @@ REFACTOR;
     feFunctions_[ELEC_POTENTIAL]->SetResultInfo(res1);
 
     res1->SetFeFunction(feFunctions_[ELEC_POTENTIAL]);
-
     results_.Push_back( res1 );
     availResults_.insert( res1 );
+    shared_ptr<BaseFieldFunctor> vFunc;
+    if( isComplex_ ) {
+      vFunc.reset(
+          new FieldInterpolFunctor<IdentityOperator,
+          FeH1,
+          Complex>(feFct, res1));
+    } else {
+      vFunc.reset(
+          new FieldInterpolFunctor<IdentityOperator,
+          FeH1,
+          Double>(feFct, res1));
+    }
+    resultFunctors_[ELEC_POTENTIAL] = vFunc;
+    fieldFunctors_[ELEC_POTENTIAL] = vFunc;
+    
     
 
     // Electric RHS Load

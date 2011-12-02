@@ -25,6 +25,11 @@ namespace CoupledField {
     updateUnknowns_ = true;
     isIsotropic_ = false;
     isoOrder_ = 0; 
+    
+    // important: all higher order functions can not
+    // pre-compute the shape functions, as the functions depend on the global
+    // orientation, i.e. numbering of the nodal connectivity
+    preComputShFnc_ = false;
   }
   
   FeH1Hi::~FeH1Hi() {
@@ -348,7 +353,6 @@ namespace CoupledField {
       const StdVector<UInt>& unsorted = shape_.faceNodes[0];
       StdVector<UInt> ind;
       Face::GetSortedIndices( ind, unsorted, 3, elem->faceFlags[0]);
-      
       // calculate inner shape functions
       UInt nFct =  TriaInnerLegendre( ret, pos, order, 
                                       lambda[ind[0]], lambda[ind[1]],

@@ -94,10 +94,14 @@ namespace CoupledField {
     Matrix<Double> locDeriv;
     
     //check if the shfunction is already computed
-    if(shapeFncDerivsAtIp_.find(lpm.lp.number) == shapeFncDerivsAtIp_.end() || comp !=1 ){
+    if(shapeFncDerivsAtIp_.find(lpm.lp.number) == 
+        shapeFncDerivsAtIp_.end() || comp !=1 ){
       CalcLocDerivShFnc( locDeriv, lpm.lp.coord, elem, comp);
-      //add them to the map
-      shapeFncDerivsAtIp_[lpm.lp.number] = locDeriv;
+      
+      //add them to the map only, if we are allowed to!
+      if( preComputShFnc_) {
+        shapeFncDerivsAtIp_[lpm.lp.number] = locDeriv;
+      }
     }else{
       locDeriv = shapeFncDerivsAtIp_[lpm.lp.number];
     }
@@ -108,8 +112,10 @@ namespace CoupledField {
                                const Elem* elem, UInt comp  ) {
     if(shapeFncDerivsAtIp_.find(lp.number) == shapeFncDerivsAtIp_.end()){
       CalcLocDerivShFnc( deriv, lp.coord, elem, comp);
-      //add them to the map
-      shapeFncDerivsAtIp_[lp.number] = deriv;
+      //add them to the map only, if we are allowed to!
+      if( preComputShFnc_) {
+        shapeFncDerivsAtIp_[lp.number] = deriv;
+      }
     }else{
       deriv = shapeFncDerivsAtIp_[lp.number];
     }
@@ -117,8 +123,11 @@ namespace CoupledField {
 
   void FeH1::SetFunctionsAtIp(const StdVector<LocPoint>& iPoints){
     
-    
-    // can only be performed for non-hierarchical elements
+    //! Precompute shape functions only, if we are allowed to, i.e.
+    //! if we have no higher order shape functions, depending on 
+    //! the global orientation of the element
+    if( !preComputShFnc_ ) 
+      return;
     //shapeFncsAtIp_.resize(iPoints.GetSize());
     //shapeFncDerivsAtIp_.resize(iPoints.GetSize());
     for(UInt aPoint = 0; aPoint < iPoints.GetSize();aPoint++){

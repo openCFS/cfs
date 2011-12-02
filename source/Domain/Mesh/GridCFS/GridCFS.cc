@@ -1139,62 +1139,67 @@ namespace CoupledField {
 
   bool GridCFS::CheckForRegularRegion(RegionIdType reg)
   {
-    WARN("GridCFS::CheckForRegularRegion must be refactored");
-//    LOG_DBG(gridcfs) << "CFRR::CheckForRegularRegion(" << reg << ")...";
-//    // determine grid parameter
-//    RegionData& rd = regionData[reg];
-//    assert(rd.id == reg);
-//
-//    StdVector<Elem*>& elems = rd.type == VOLUME_REGION ? volElems_[rd.type_idx] : surfElems_[rd.type_idx];
-//    assert(rd.type == VOLUME_REGION ? volRegionIds_[rd.type_idx] == rd.id : surfRegionIds_[rd.type_idx] == rd.id);
-//
-//    LOG_DBG2(gridcfs) << "CFRR volume=" << (rd.type == VOLUME_REGION) << " #elems=" << elems.GetSize();
-//    if(elems.GetSize() == 0) return false;
-//
-//    // we do not know of the order of the nodes within the element,
-//    // hence we have to find the diameter vector and compare it.
-//
-//    BaseFE* ref = elems[0]->ptElem;
-//    Elem::FEType ref_fe = ref->feType();
-//
-//    // only line, quad and hexa can be regular. If you have a
-//    // regular tetra mesh add the code!
-//    if(dim_ == 2 && rd.type == SURFACE_REGION
-//       && (ref_fe != Elem::LINE2 && ref_fe != Elem::LINE3)) return false;
-//
-//    if(dim_ == 2 && rd.type == VOLUME_REGION
-//       && (ref_fe != Elem::QUAD4 && ref_fe != Elem::QUAD8 && ref_fe != Elem::QUAD9)) return false;
-//
-//    if(dim_ == 3 && rd.type == SURFACE_REGION
-//        && (ref_fe != Elem::QUAD4 && ref_fe != Elem::QUAD8 && ref_fe != Elem::QUAD9)) return false;
-//
-//    if(dim_ == 3 && rd.type == VOLUME_REGION
-//       && (ref_fe != Elem::HEXA8 && ref_fe != Elem::HEXA20 && ref_fe != Elem::HEXA27)) return false;
-//
-//    Matrix<double>  coords;
-//    Point diameter; // diameter of reference (first) element
-//
-//    GetElemNodesCoord(coords, elems[0]->connect, false);
-//    BaseFE::CalcDiameter(coords, diameter);
-//    double dist_tol = diameter.CalcLength() * 1e-6;
-//    LOG_DBG2(gridcfs) << "CFRR diameter=" << diameter.ToString() << " tol=" << dist_tol;
-//
-//    Point test_diameter; // diameter of current element;
-//
-//    for(unsigned int i = 1, in = elems.GetSize(); i < in; i++)
-//    {
-//      Elem* test = elems[i];
-//      if(test->ptElem != ref) return false;
-//
-//      GetElemNodesCoord(coords, test->connect, false);
-//      BaseFE::CalcDiameter(coords, test_diameter);
-//
-//      LOG_DBG3(gridcfs) << "CFRR test=" << test->elemNum << " dist=" << diameter.Dist(test_diameter)
-//                        << " test_diameter=" << test_diameter.ToString();
-//      if(diameter.Dist(test_diameter) > dist_tol) return false;
-//    }
-//
-//    LOG_DBG(gridcfs) << "CFRR: is regular";
+    LOG_DBG(gridcfs) << "CFRR::CheckForRegularRegion(" << reg << ")...";
+    
+    // determine grid parameter
+    RegionData& rd = regionData[reg];
+    assert(rd.id == reg);
+
+    StdVector<Elem*>& elems = rd.type == VOLUME_REGION ? 
+        volElems_[rd.type_idx] : surfElems_[rd.type_idx];
+    assert(rd.type == VOLUME_REGION ? 
+        volRegionIds_[rd.type_idx] == rd.id : 
+        surfRegionIds_[rd.type_idx] == rd.id);
+
+    LOG_DBG2(gridcfs) << "CFRR volume=" << (rd.type == VOLUME_REGION) 
+        << " #elems=" << elems.GetSize();
+    if(elems.GetSize() == 0) return false;
+
+    // we do not know of the order of the nodes within the element,
+    // hence we have to find the diameter vector and compare it.
+
+    ElemShapeMap& esm = *(this->GetElemShapeMap(elems[0]));
+    Elem::ShapeType refShape = Elem::GetShapeType(elems[0]->type);
+
+    // only line, quad and hexa can be regular. If you have a
+    // regular tetra mesh add the code!
+    if(dim_ == 2 && rd.type == SURFACE_REGION
+       && (refShape != Elem::ST_LINE)) return false;
+
+    if(dim_ == 2 && rd.type == VOLUME_REGION
+       && (refShape != Elem::ST_QUAD)) return false;
+
+    if(dim_ == 3 && rd.type == SURFACE_REGION
+        && (refShape != Elem::ST_QUAD)) return false;
+
+    if(dim_ == 3 && rd.type == VOLUME_REGION
+       && (refShape != Elem::ST_HEXA)) return false;
+
+    Matrix<Double>  coords;
+    Vector<Double> diameter; // diameter of reference (first) element
+
+    esm.CalcDiameter(diameter);
+    Double dist_tol = diameter.NormL2() * 1e-6;
+    LOG_DBG2(gridcfs) << "CFRR diameter=" << diameter.ToString() << " tol=" << dist_tol;
+
+    Vector<Double> test_diameter; // diameter of current element;
+    Vector<Double> diff; // difference vector
+    for(unsigned int i = 1, in = elems.GetSize(); i < in; i++)
+    {
+      ElemShapeMap& testEsm = *(this->GetElemShapeMap(elems[i]));
+      Elem::ShapeType testShape = Elem::GetShapeType(elems[i]->type);
+      if(testShape != refShape) return false;
+
+      testEsm.CalcDiameter(test_diameter);
+
+       diff= diameter-test_diameter; 
+      LOG_DBG3(gridcfs) << "CFRR test=" << elems[i]->elemNum
+                        << " dist=" << diff.NormL2()
+                        << " test_diameter=" << test_diameter.ToString();
+      if( diff.NormL2() > dist_tol) return false;
+    }
+
+    LOG_DBG(gridcfs) << "CFRR: is regular";
     return true; // seems to be regular
   }
 
@@ -1517,7 +1522,8 @@ namespace CoupledField {
     }
 
     UInt idx = inode-1;
-    rfPoint.Resize(dim_);
+    // Note: We always return a 3-dimensional vector for points!
+    rfPoint.Resize(3);
     rfPoint[0] = coords_[idx][0];
     rfPoint[1] = coords_[idx][1];
     if( dim_ == 3 ) {

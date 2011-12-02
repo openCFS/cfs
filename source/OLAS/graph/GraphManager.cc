@@ -23,7 +23,6 @@ namespace CoupledField {
 
     reorderingDone_      = false;
     registrationDone_    = false;
-    WARN("GraphManager: Adapt documentation!")
   }
 
 
@@ -89,10 +88,6 @@ namespace CoupledField {
       newOrdering_[i].Resize(0);
     }
 
-    // Setup empty array for coupling flags
-    isCoupled_.Resize( numBlocks_ * numBlocks_ );
-    isCoupled_.Init( false );
-    
     // Resize array with block information
     blockInfo_.Resize(numBlocks);
   }

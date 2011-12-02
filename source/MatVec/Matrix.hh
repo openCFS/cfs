@@ -299,22 +299,22 @@ namespace CoupledField
     void Mult( const SingleVector & mvec, SingleVector & rvec ) const;
 
 
-    //! Perform generalized matrix-vector multiplication using BLAS
-    
-    //! This method performs the generalized matrix-vector multiplication of
-    //! the form 
-    //!
-    //!     rvec = alpha* this * mvec + beta * rvec.
-    //! 
-    //! \param mvec source multiplication vector
-    //! \param rvec destination vector
-    //! \param alpha additional scalar factor for multiplication
-    //! \param beta scalar factor for re-use of \a rcvec
-    //! \param transposed if true, the transposed of the matrix is taken
-    //! \note If CFS is compiled without BLAS support, we use as fallback the
-    //!       internal matrix-vector multiplication.
-    void Mult_Blas( const SingleVector &mvec, SingleVector &rvec,
-                    Double alpha, Double beta, bool transposed) const;
+//    //! Perform generalized matrix-vector multiplication using BLAS
+//    
+//    //! This method performs the generalized matrix-vector multiplication of
+//    //! the form 
+//    //!
+//    //!     rvec = alpha* this * mvec + beta * rvec.
+//    //! 
+//    //! \param mvec source multiplication vector
+//    //! \param rvec destination vector
+//    //! \param alpha additional scalar factor for multiplication
+//    //! \param beta scalar factor for re-use of \a rcvec
+//    //! \param transposed if true, the transposed of the matrix is taken
+//    //! \note If CFS is compiled without BLAS support, we use as fallback the
+//    //!       internal matrix-vector multiplication.
+//    void Mult_Blas( const Vector<TYPE> &mvec, Vector<TYPE> &rvec,
+//                    Double alpha, Double beta, bool transposed) const;
 
     /** Perform a matrix-vector multiplication rvec = this*mvec via the Inner product.
      * Hence in the complex case this is the conjugate complex rvec = this*conj(mvec) */
