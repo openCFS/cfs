@@ -961,11 +961,16 @@ void ParamNode::ToFile(const std::string& filename, bool force)
   // in case we writa an info.xml file (and not a density file, ...) we add xslt stuff
   if(myFileName.find("info.xml") != std::string::npos)
   {
-    fs::path fn = fs::system_complete(progOpts->GetSchemaPathStr() + "/../..");
-    fn.normalize();
-    info_file << std::endl << "<?xml-stylesheet href=\"file://"
-              << fn.native_directory_string()
-              << "/share/xsl/cfs_info_output_html.xsl\" type=\"text/xsl\"?>";
+    
+    // attention: in case we call this method from the cfstool, there is
+    // not progOpts object available!
+    if( progOpts ) {
+      fs::path fn = fs::system_complete(progOpts->GetSchemaPathStr() + "/../..");
+      fn.normalize();
+      info_file << std::endl << "<?xml-stylesheet href=\"file://"
+          << fn.native_directory_string()
+          << "/share/xsl/cfs_info_output_html.xsl\" type=\"text/xsl\"?>";
+    }
   }
   // store how often we are written -> if the number is too high one should cancel some ToFile() calls
   //    if(writeCounter_.count(filename_) == 0) writeCounter_[filename_] = 0;
