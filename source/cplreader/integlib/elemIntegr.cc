@@ -169,7 +169,8 @@ namespace CoupledField
                                       Vector<Double>& elemvec,
                                       Vector<Double>& nodalLoadDensity,
                                       Vector<Double>& divLHTensor,
-                                      Double density)
+                                      Double density,
+                                      bool surfInt)
   {
 #ifdef TRACE
     (*trace) << " entering ElemIntegr::PerformIntegration" << std::endl;
@@ -178,15 +179,20 @@ namespace CoupledField
     if(!ptElem_)
       return;
 
-    linearLoad_->CalcElemVec4QuadwithVel(coordMat,  NodalVal, elemvec, nodalLoadDensity, divLHTensor, ptElem_, density);
+    std::cout << "Go to COMPUTE" << std::endl;
+    //perform volume or surface (surfInt = true) integration
+      linearLoad_->CalcElemVec4QuadwithVel(coordMat,  NodalVal, elemvec, 
+                                           nodalLoadDensity, divLHTensor, 
+                                           ptElem_, density, surfInt);
   }
 
   void ElemIntegr::PerformIntegrationCentre(const Matrix<Double> & coordMat,
-                                      const Matrix<Double>& NodalVel,
-                                      Vector<Double>& resVec,
-                                      Vector<Double>& nodalLoadDensity,
-                                      Vector<Double>& divLHTensor,
-                                      Double density)
+                                            const Matrix<Double>& NodalVel,
+                                            Vector<Double>& resVec,
+                                            Vector<Double>& nodalLoadDensity,
+                                            Vector<Double>& divLHTensor,
+                                            Double density,
+                                            bool surfInt)
   {
 #ifdef TRACE
     (*trace) << " entering ElemIntegr::PerformIntegrationCentre" << std::endl;
@@ -195,8 +201,10 @@ namespace CoupledField
     if(!ptElem_)
       return;
 
-    linearLoad_->CalcElemVec4QuadwithVelCentre(coordMat, \
-        NodalVel, resVec, nodalLoadDensity, divLHTensor, ptElem_, density);
+    linearLoad_->CalcElemVec4QuadwithVelCentre(coordMat, 
+                                               NodalVel, resVec, 
+                                               nodalLoadDensity, divLHTensor, 
+                                               ptElem_, density, surfInt);
   }
 
 

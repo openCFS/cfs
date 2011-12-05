@@ -1315,12 +1315,13 @@ DEFINE_LOG(linForm, "linForm")
   }
 
   void LinearFlowNoiseInt::CalcElemVec4QuadwithVelCentre(const Matrix<Double>& ptCoord,
-                                                   const Matrix<Double> & NodalVel,
-                                                   Vector<Double> & Result,
-                                                   Vector<Double> & nodalLoadDensity,
-                                                   Vector<Double>& divLHTensor,
-                                                   const Elem* elem,
-                                                   Double density)
+                                                         const Matrix<Double> & NodalVel,
+                                                         Vector<Double> & Result,
+                                                         Vector<Double> & nodalLoadDensity,
+                                                         Vector<Double>& divLHTensor,
+                                                         const Elem* elem,
+                                                         Double density,
+                                                         bool surfInt)
   {
 #ifdef TRACE
     (*trace) << "entering LinearFlowNoiseInt::CalcElemVec4QuadwithVelCentre" << std::endl;
@@ -1352,10 +1353,12 @@ DEFINE_LOG(linForm, "linForm")
     Vector<Double> partResult;
     partResult.Resize(numNodes);
     
-    Vector<Double> helpVec;
+    Vector<Double> helpVec, Sf;
     helpVec.Resize(dimelem);
 
     Double volume = 0.0;
+    Double sourceScalar=0.0;
+
     divLHTensor.Resize(dimelem);
     divLHTensorTmp.Resize(dimelem);
     divLHTensor.Init(0.0);
@@ -1378,22 +1381,41 @@ DEFINE_LOG(linForm, "linForm")
                      + VelAtCentre[0] * VelDerivAtCentre[1][0] 
                      + VelAtCentre[1] * VelDerivAtCentre[0][0]; 
     helpVec *= density;
+
+    //compute a simple normal vector (should be improved!!)
+    Vector<Double> nVec(dimelem);
+    if ( surfInt ) {
+      ComputeNormalVec(ptCoord, nVec);
+      helpVec.Inner(nVec, sourceScalar);
+    }
+
     // Loop over all integration points 
     for(Integer actInt=1; actInt <= numIntPoints; actInt++)
     {
       ptelem->GetGlobDerivShFncAtIp(xiDx, actInt, ptCoord, jacDet, elem);
       
       volume += jacDet * intWeights[actInt -1];
-      divLHTensorTmp = (helpVec * jacDet * intWeights[actInt -1]);
 
-      partResult  = xiDx * divLHTensorTmp;
-      Result     += partResult;
+      if ( surfInt ) {
+        ptelem->GetShFncAtIp(Sf, actInt, elem);
+        partResult = Sf * sourceScalar;
+        //need the minus, since this value is multiplied by -1 befor assembly
+        Result     -= partResult * jacDet * intWeights[actInt -1];
+      }
+      else {
+        divLHTensorTmp = (helpVec * jacDet * intWeights[actInt -1]);
+        partResult  = xiDx * divLHTensorTmp;
+        Result     += partResult;
 
-      divLHTensor += divLHTensorTmp;
+        divLHTensor += divLHTensorTmp;
+      }
+
     } // end integration loop
 
-    nodalLoadDensity = Result / volume;
-    divLHTensor /= volume;
+    if ( !surfInt ) {
+      nodalLoadDensity = Result / volume;
+      divLHTensor /= volume;
+    }
 
   } // end of method
 
@@ -1403,7 +1425,8 @@ DEFINE_LOG(linForm, "linForm")
                                                    Vector<Double> & nodalLoadDensity,
                                                    Vector<Double>& divLHTensor,
                                                    const Elem* elem,
-                                                   Double density)
+                                                   Double density,
+                                                   bool surfInt)
   {
 #ifdef TRACE
     (*trace) << "entering LinearFlowNoiseInt::CalcElemVector4Quad" << std::endl;
@@ -1446,6 +1469,14 @@ DEFINE_LOG(linForm, "linForm")
     
     Vector<double> intWeights = ptelem->GetIntWeights();
 
+    //compute a simple normal vector (should be improved!!)
+    Vector<Double> nVec(dimelem);
+    if ( surfInt ) {
+      ComputeNormalVec(ptCoord, nVec);
+    }
+
+    std::cout << "Normal:\n" << nVec << std::endl;
+
     // Loop over all integration points 
     for(Integer actInt=1; actInt <= l; actInt++)
     {
@@ -1485,17 +1516,30 @@ DEFINE_LOG(linForm, "linForm")
 
       helpVec *= density;
       divLHTensorTmp = (helpVec * jacDet * intWeights[actInt -1]);
-       
-      // Multiplication with the derivatives of the shape functions
-      partResult  = xiDx * divLHTensorTmp;
-      Result     += partResult;
+
+      if ( surfInt ) {
+        Double sourceScalar;
+        divLHTensorTmp.Inner(nVec, sourceScalar); 
+        partResult = Sf * sourceScalar;
+        //need the minus, since this value is multiplied by -1 befor assembly
+        Result     -= partResult * jacDet * intWeights[actInt -1];
+      }
+      else {    
+        // Multiplication with the derivatives of the shape functions
+        partResult  = xiDx * divLHTensorTmp;
+        Result     += partResult;
       
-      divLHTensor += divLHTensorTmp;
-      volume += jacDet * intWeights[actInt-1];
+        divLHTensor += divLHTensorTmp;
+        volume += jacDet * intWeights[actInt-1];
+      }
     }
 
-    nodalLoadDensity = Result / volume;
-    divLHTensor /= volume;
+    Result.Init(10.0);
+    if ( !surfInt ) {
+      Result.Init(1.0);
+      nodalLoadDensity = Result / volume;
+      divLHTensor /= volume;
+    }
 
   } // end of method
 
@@ -1673,9 +1717,9 @@ void LinearFlowNoiseInt::CalcElemVec4CombustionScalar(const Matrix<Double>& ptCo
 
 
 void LinearFlowNoiseInt::CalcElemVec4CombustionTijOnSurface(const Matrix<Double>& ptCoord,
-    const Matrix<Double>& NodalVel,
-    const Vector<Double>& NodalRho,
-    Vector<Double>& Result,
+                                                            const Matrix<Double>& NodalVel,
+                                                            const Vector<Double>& NodalRho,
+                                                            Vector<Double>& Result,
                                                             const Elem* elem) {
 
     // This functions computes the element RHS vector by integrating 

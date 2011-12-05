@@ -232,8 +232,8 @@ namespace CoupledField{
              requiredResults_[NO_SOLUTION_TYPE] ){
             /* copy the fluid velocity values */
           tmpSolStruct = &curType[FLUIDMECH_VELOCITY];
-
-          if(nboundary == 0){
+          
+          //          if(nboundary == 0){
             tmpSolStruct->isActive = true;
             if (tmpSolStruct->dofNames.empty()) {
               tmpSolStruct->unit = MapSolTypeToUnit(FLUIDMECH_VELOCITY);
@@ -258,9 +258,9 @@ namespace CoupledField{
               }
               curNodeIt++;
             }
-          }else{
-            tmpSolStruct->isActive = false;
-          }
+//           }else{
+//             tmpSolStruct->isActive = false;
+//           }
 
         }
 

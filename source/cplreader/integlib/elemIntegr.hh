@@ -37,8 +37,9 @@ namespace CoupledField
                             Vector<Double>& elemvec,
                             Vector<Double>& nodalLoadDensity,
                             Vector<Double>& divLHTensor,
-                            Double density);
-  
+                            Double density,
+                            bool surfInt);
+    
     /**
      * same as PerformIntegration except it takes only the velocity at the
      * centre of the element and not at each node. The advantage is, that it may
@@ -50,13 +51,15 @@ namespace CoupledField
      * @param resVec The vector in which the result is stored
      * @param nodalLoadDensity The result normed to the volume
      * @param divLHTensor The divergence of the Lighthill tensor
+     * @param surfInt true in case of surface integral computation
      */
     void PerformIntegrationCentre(const Matrix<Double> & coordMat,
-                            const Matrix<Double>& NodalVel,
-                            Vector<Double>& resVec,
-                            Vector<Double>& nodalLoadDensity,
-                            Vector<Double>& divLHTensor,
-                            Double density);
+                                  const Matrix<Double>& NodalVel,
+                                  Vector<Double>& resVec,
+                                  Vector<Double>& nodalLoadDensity,
+                                  Vector<Double>& divLHTensor,
+                                  Double density,
+                                  bool surfInt);
 
     void ComputeFromCombustionTij(const Matrix<Double> & coordMat,
                                   const Matrix<Double>& NodalVel, 
