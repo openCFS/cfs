@@ -732,7 +732,7 @@ void LagrangeElemShapeMap::CalcDiameter( Vector<Double>& diameter ) {
   maxs.Init(std::numeric_limits<double>::max());
   diameter.Resize(shape_.dim);
   diameter.Init();
-  for (UInt dim = 0, n_dims  = coords_.GetNumRows(); dim < n_dims; dim++)
+  for (UInt dim = 0; dim < shape_.dim; dim++)
   {
     for (UInt k = 0, n_elems = coords_.GetNumCols(); k < n_elems; k++)
     {

@@ -21,7 +21,7 @@ namespace CoupledField {
 
     xml_ = solverNode;
     infoNode_ = olasInfo->Get("lapackLU");
-
+    
     // Initialise pointers for LAPACK workspaces
     workspaceF77REAL8_     = NULL;
     workspaceF77COMPLEX16_ = NULL;
@@ -156,10 +156,8 @@ namespace CoupledField {
     // =======================================================
     bool tryScaling = true;
       
-    PtrParamNode sNode;
-    sNode = xml_->Get("lapackLU", ParamNode::INSERT);
-    if(sNode) {
-      sNode->GetValue("tryScaling", tryScaling, ParamNode::INSERT );
+    if(xml_) {
+      xml_->GetValue("tryScaling", tryScaling, ParamNode::INSERT );
     }
     
     if ( tryScaling ) {
@@ -319,10 +317,8 @@ namespace CoupledField {
 
     bool tryScaling = true;
       
-    PtrParamNode sNode;
-    sNode = xml_->Get("lapackLU", ParamNode::INSERT);
-    if(sNode) {
-      sNode->GetValue("tryScaling", tryScaling, ParamNode::INSERT );
+    if(xml_) {
+      xml_->GetValue("tryScaling", tryScaling, ParamNode::INSERT );
     }
     
     if ( tryScaling ) {
@@ -610,10 +606,8 @@ namespace CoupledField {
     // ==============================
     bool refineSol = true;
       
-    PtrParamNode sNode;
-    sNode = xml_->Get("lapackLU", ParamNode::INSERT );
-    if(sNode) {
-      sNode->GetValue("refineSol", refineSol, ParamNode::INSERT );
+    if(xml_) {
+      xml_->GetValue("refineSol", refineSol, ParamNode::INSERT );
     }
     
     if ( refineSol ) {
@@ -790,10 +784,8 @@ namespace CoupledField {
     // ==============================
     bool refineSol = true;
       
-    PtrParamNode sNode;
-    sNode = xml_->Get("lapackLU", ParamNode::INSERT );
-    if(sNode) {
-      sNode->GetValue("refineSol", refineSol, ParamNode::INSERT);
+    if(xml_) {
+      xml_->GetValue("refineSol", refineSol, ParamNode::INSERT);
     }
     
     if ( refineSol ) {

@@ -9,13 +9,14 @@ namespace CoupledField {
 //   Constructor (for use in GenerateStdPrecondObject)
 // =====================================================
 template <typename T>
-ILU0Precond<T>::ILU0Precond( const StdMatrix& mat, PtrParamNode solverNode,
+ILU0Precond<T>::ILU0Precond( const StdMatrix& mat, 
+                             PtrParamNode precondNode,
                              PtrParamNode olasInfo ) {
 
 
   // Set pointers to communication objects
-  this->xml_ = solverNode;
-  this->infoNode_ = olasInfo;
+  this->xml_ = precondNode;
+  this->infoNode_ = olasInfo->Get("ilu0", ParamNode::APPEND);
 
   // Set size information
   size_ = mat.GetNumRows();
@@ -83,8 +84,7 @@ template <typename T>
 void ILU0Precond<T>::Setup( CRS_Matrix<T> &mat, PtrParamNode analysis_id ) {
 
   // get correct ParamNode
-  PtrParamNode pNode = this->xml_->Get("ILU0", ParamNode::INSERT );
-  pNode->GetValue("logging", logging_, ParamNode::INSERT ) ;
+  this->xml_->GetValue("logging", logging_, ParamNode::INSERT ) ;
 
   // Assure that matrix is in proper format for current implementation
   // NOTE: By default while using CFS++ the matrix will be in LEX format,
@@ -234,8 +234,8 @@ void ILU0Precond<T>::Setup( CRS_Matrix<T> &mat, PtrParamNode analysis_id ) {
 
   // If the user wishes, we can export the LU factorisation to a file
   std::string saveFacFile = "ilu0_fac.out";
-  if(pNode->Has("saveFacFile")) {
-    pNode->GetValue("saveFacFile", saveFacFile, ParamNode::INSERT);
+  if(this->xml_->Has("saveFacFile")) {
+    this->xml_->GetValue("saveFacFile", saveFacFile, ParamNode::INSERT);
 
     this->ExportILUFactorisation( saveFacFile);
     if ( logging_ == true ) {

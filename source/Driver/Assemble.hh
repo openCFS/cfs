@@ -77,9 +77,11 @@ namespace CoupledField {
     //! Tell Assemble to Reassemble all the matrices the next time (done on init and from Optimization)
     void SetAllReassemble(){ CheckNonLinearities(true); }
 
-    //! Query if matrix related to (fctId1,fctId2) is symmetric
-    bool IsFEMatSymmetric(  FeFctIdType fctId1, FeFctIdType fctId2,
-                            FEMatrixType matType = SYSTEM );
+    //! Query if matrix related to BiLinearForm is symmetric
+    bool IsFEMatSymmetric(  BiLinFormContext* ctx );
+    
+    //! Query if matrix related to BiLinearForm is complex
+    bool IsFEMatComplex(  BiLinFormContext* ctx );
 
     //! Returns true, if matrices have changed since last call of
     //! AssembleMatrices

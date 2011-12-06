@@ -5,7 +5,6 @@
 #include "CoupledPDE/IterCoupledPDE.hh"
 #include "CoupledPDE/PDECoupling.hh"
 #include "DataInOut/ResultCache.hh"
-#include "DataInOut/WriteInfo.hh"
 
 namespace CoupledField
 {
@@ -39,11 +38,11 @@ namespace CoupledField
     while (iter < rPDE_.maxiter_ &&  (! normsReached)) {
 
       if (rPDE_.nonLinLogging_) {
-        
-        Info->PrintF(rPDE_.pdename_,"\n"); 
-        Info->PrintF(rPDE_.pdename_, 
-                     " COUPLED ITERATION %i =================================\n",
-                     iter+1);
+        WARN("Adjust printing of coupled iterations to InfoNode");
+//        Info->PrintF(rPDE_.pdename_,"\n"); 
+//        Info->PrintF(rPDE_.pdename_, 
+//                     " COUPLED ITERATION %i =================================\n",
+//                     iter+1);
       }
       
       normsReached = true;
@@ -51,8 +50,9 @@ namespace CoupledField
       for (UInt i=0; i<rPDE_.PDEs_.GetSize(); i++) {
         
         if (rPDE_.nonLinLogging_)
-          Info->PrintF(rPDE_.pdename_, " Processing PDE %s\n", 
-                       (rPDE_.PDEs_[i]->GetName()).c_str());
+          WARN("Adjust printing of coupled iterations to InfoNode");
+//          Info->PrintF(rPDE_.pdename_, " Processing PDE %s\n", 
+//                       (rPDE_.PDEs_[i]->GetName()).c_str());
         
         rPDE_.PDEs_[i]->GetSolveStep()->SetActTime(actTime_);
         rPDE_.PDEs_[i]->GetSolveStep()->SetActStep(actStep_);
@@ -78,11 +78,11 @@ namespace CoupledField
             CalcNorm(rCouplings_[i]->GetOutputNormType(k), *val, *oldVal);
           
           if (rPDE_.nonLinLogging_) {
-            
-            Info->PrintF(rPDE_.pdename_, " %s : Norm of %s = %g\n", 
-                         (rCouplings_[i]->GetPDE()->GetName()).c_str(),
-                         (SolutionTypeEnum.ToString(rCouplings_[i]->GetOutputQuantity(k))).c_str(),
-                         rPDE_.norms_[i]);
+            WARN("Adjust printing of coupled iterations to InfoNode");
+//            Info->PrintF(rPDE_.pdename_, " %s : Norm of %s = %g\n", 
+//                         (rCouplings_[i]->GetPDE()->GetName()).c_str(),
+//                         (SolutionTypeEnum.ToString(rCouplings_[i]->GetOutputQuantity(k))).c_str(),
+//                         rPDE_.norms_[i]);
           }
           
           if (rPDE_.norms_[i] > rCouplings_[i]->GetOutputEpsilon(k) && 
@@ -98,8 +98,6 @@ namespace CoupledField
       
       iter++;
       
-      if(rPDE_.nonLinLogging_)
-        Info->PrintF(rPDE_.pdename_, "\n");
       
     } // end of while-loop
     if (iter >= rPDE_.maxiter_)
@@ -135,11 +133,11 @@ namespace CoupledField
     while (iter < rPDE_.maxiter_ &&  (! normsReached)) {
       
       if (rPDE_.nonLinLogging_) {
-        
-        Info->PrintF(rPDE_.pdename_,"\n"); 
-        Info->PrintF(rPDE_.pdename_,
-                     " COUPLED ITERATION %i =================================\n", 
-                     iter+1);
+        WARN("Adjust printing of coupled iterations to InfoNode");
+//        Info->PrintF(rPDE_.pdename_,"\n"); 
+//        Info->PrintF(rPDE_.pdename_,
+//                     " COUPLED ITERATION %i =================================\n", 
+//                     iter+1);
       }
 
       UInt counter = 0;
@@ -148,9 +146,9 @@ namespace CoupledField
       for (UInt i=0; i<rPDE_.PDEs_.GetSize(); i++) {
         
         
-        if (rPDE_.nonLinLogging_)
-          Info->PrintF(rPDE_.pdename_, " Processing PDE %s\n", 
-                       (rPDE_.PDEs_[i]->GetName()).c_str());
+//        if (rPDE_.nonLinLogging_)
+//          Info->PrintF(rPDE_.pdename_, " Processing PDE %s\n", 
+//                       (rPDE_.PDEs_[i]->GetName()).c_str());
 
        
           
@@ -173,13 +171,13 @@ namespace CoupledField
             
           if (rPDE_.nonLinLogging_) {
               
-            Info->PrintF(rPDE_.pdename_, " %s : Norm of %s = %g\n", 
-                         (rCouplings_[i]->GetPDE()->GetName()).c_str(),
-                         (SolutionTypeEnum.ToString(rCouplings_[i]->GetOutputQuantity(k))).c_str(), 
-                         rPDE_.norms_[counter]);
-
-            Info->PrintF(rPDE_.pdename_, " actStep_ = %d\n", actStep_);
-            Info->PrintF(rPDE_.pdename_, " numTimeStep_ = %d\n", numTimeStep_);
+//            Info->PrintF(rPDE_.pdename_, " %s : Norm of %s = %g\n", 
+//                         (rCouplings_[i]->GetPDE()->GetName()).c_str(),
+//                         (SolutionTypeEnum.ToString(rCouplings_[i]->GetOutputQuantity(k))).c_str(), 
+//                         rPDE_.norms_[counter]);
+//
+//            Info->PrintF(rPDE_.pdename_, " actStep_ = %d\n", actStep_);
+//            Info->PrintF(rPDE_.pdename_, " numTimeStep_ = %d\n", numTimeStep_);
           }
           if (rPDE_.norms_[counter] > rCouplings_[i]->GetOutputEpsilon(k)) 
             normsReached = false;
@@ -192,8 +190,8 @@ namespace CoupledField
       } // end of for-loop
 
       iter++;
-      if (rPDE_.nonLinLogging_)
-        Info->PrintF(rPDE_.pdename_, "\n"); 
+//      if (rPDE_.nonLinLogging_)
+//        Info->PrintF(rPDE_.pdename_, "\n"); 
 
     } // end of while-loop
 

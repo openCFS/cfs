@@ -25,9 +25,9 @@ template<typename T>
 CholMod<T>::CholMod(PtrParamNode xml, PtrParamNode olasInfo, BaseMatrix::EntryType type)
 {
   // we work with out
-  xml_ =  xml->Get("cholmod", ParamNode::PASS);
+  xml_ =  xml;
   infoNode_ = olasInfo->Get("cholmod");
-
+  
   if(type != BaseMatrix::COMPLEX && type != BaseMatrix::DOUBLE){
     EXCEPTION("unhandled type " << type);
   }

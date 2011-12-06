@@ -6,8 +6,6 @@
 
 
 #include "OLAS/algsys/AlgebraicSys.hh"
-//#include "PDE/StdPDE.hh"
-#include "DataInOut/WriteInfo.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 
 
@@ -36,8 +34,9 @@ namespace CoupledField
 
     gamma_ = gamma_ + nu_;
 
-    Info->PrintF("","In Newmark TimeStepping Scheme use:\n  beta=%f\n  gamma=%f\n",
-                 beta_, gamma_);
+    WARN("Adjust printing of timestepping information to InfoNode");
+    //Info->PrintF("","In Newmark TimeStepping Scheme use:\n  beta=%f\n  gamma=%f\n",
+    //             beta_, gamma_);
 
   }
 
@@ -290,9 +289,9 @@ namespace CoupledField
     }
 
     gamma_ = gamma_ + nu_;
-
-    Info->PrintF("","In Newmark TimeStepping Scheme use:\n  beta=%f\n  gamma=%f\n",
-                 beta_, gamma_);
+    WARN("Adjust printing of timestepping information to InfoNode");
+    //Info->PrintF("","In Newmark TimeStepping Scheme use:\n  beta=%f\n  gamma=%f\n",
+    //             beta_, gamma_);
   }
 
   NewmarkEffMass::~NewmarkEffMass()

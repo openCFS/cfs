@@ -40,12 +40,10 @@ namespace CoupledField {
     //! neighbour lists for each node.
     //! \param nRows    number of rows of associated matrix
     //! \param nCols    number of columns of associated matrix
-    //! \param reorder  Specifies the re-ordering strategy to be applied to
-    //!                 to the graph once it was completely assembled.
     //! \note In the current implementation we use nRows to set the value of
     //!       the numNodes_ attribute, i.e. we generate a vertex for each
     //!       row of the matrix.
-    BaseGraph( UInt nRows, UInt nCols, BaseOrdering::ReorderingType reorder );
+    BaseGraph( UInt nRows, UInt nCols);
 
     //! Insert data into a graph
 
@@ -57,10 +55,8 @@ namespace CoupledField {
     //! \param cs_node  pointers to the position of the connectivity for node
     //!                 i in cs_edge
     //! \param cs_edge  stores the connectivity information for all nodes
-    //! \param reorder  Specifies the re-ordering strategy to be applied to
-    //!                 to the graph once it was completely assembled.
     BaseGraph( UInt nRows, UInt nCols, UInt numEdge, UInt *cs_node,
-               UInt *cs_edge, BaseOrdering::ReorderingType reorder );
+               UInt *cs_edge );
 
     //! Default destructor
     virtual ~BaseGraph();
@@ -78,6 +74,8 @@ namespace CoupledField {
     //!      edgeOrder will be used to re-order the graph. If only the vertex-
     //!      reordering array is provided, it will be also applied to the 
     //!      edges.
+    //! \param reorder  Specifies the re-ordering strategy to be applied to
+    //!                 to the graph once it was completely assembled.
     //! \param useExternalOrdering use the ordering provided in the array(s)
     //!                            vertexOrder (optionally: also edgeOrder)
     //! \param vertexOrder new ordering for vertices. If useExternalOrdering
@@ -87,7 +85,8 @@ namespace CoupledField {
     //! \param edgeOrder new ordering for edges as input. Can be omitted. 
     //! \param order One-based array for storing the re-ordering vector. If no
     //!              re-ordering is performed, this may be a NULL pointer
-    void FinaliseAssembly( bool useExternalOrdering,
+    void FinaliseAssembly( BaseOrdering::ReorderingType reorder, 
+                           bool useExternalOrdering,
                            StdVector<UInt>* vertexOrder,
                            StdVector<UInt>* edgeOrder = NULL );
 

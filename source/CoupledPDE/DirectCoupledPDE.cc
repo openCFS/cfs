@@ -186,7 +186,9 @@ namespace CoupledField {
     
     // Create algebraic system and pass it to SinglePDEs
     olasInfo_ = info->Get("OLAS")->Get("direct");
-    algsys_ = new AlgebraicSys(FindLinearSystem("direct"), olasInfo_);
+    WARN("At this point make sure, that all of the SinglePDEs have the same "
+        "OLAS -ParamNode and store their node to this->olasNode_");
+    algsys_ = new AlgebraicSys(olasNode_, olasInfo_);
     
     // ----------------------------
     //  Detection of analysis type
@@ -341,7 +343,6 @@ namespace CoupledField {
     // NOTE: Using current naming conventions in the XML Schema definitions
     //       the linear system for a direct coupled PDE problem is always
     //       called "direct", thus there can currently only be one of them.
-    ReadOlasParams( "direct" );
 
     REFACTOR;
 //    // Begin setup of the matrix graph
@@ -443,10 +444,8 @@ namespace CoupledField {
   // ********************
   void DirectCoupledPDE::InitTimeStepping() {
 
-    PtrParamNode systemNode = FindLinearSystem("direct");
-
     // Hard Coded
-    TS_alg_ = new Newmark( algsys_, systemNode );
+    TS_alg_ = new Newmark( algsys_, olasNode_ );
 
     // Pass time stepping object to single pdes
     for (UInt i=0; i<singlePDEs_.GetSize(); i++) {

@@ -11,7 +11,6 @@
 #include "Domain/Results/BaseResults.hh"
 #include "Utils/EvalIntegrals/BiotSavart.hh"
 #include "Driver/SingleDriver.hh"
-#include "DataInOut/WriteInfo.hh"
 
 #include "OLAS/algsys/AlgebraicSys.hh"
 
@@ -90,7 +89,7 @@ namespace CoupledField {
       ReadNonLinData();
     }
     
-    logFile_.open("nonlin.txt");
+    //logFile_.open("nonlin.txt");
 
     mHandle_ = domain->GetMathParser()->GetNewHandle();
     mParser_ = domain->GetMathParser();
@@ -100,7 +99,7 @@ namespace CoupledField {
 
   //! Destructor
   StdSolveStep::~StdSolveStep() {
-    logFile_.close();
+    //logFile_.close();
     mParser_->ReleaseHandle(mHandle_);
   }
 
@@ -456,8 +455,8 @@ namespace CoupledField {
     Double loadFactor = 0.0;
     for ( UInt iload=0; iload<1; iload++ ) {
       loadFactor += 1.0;
-      Info->PrintF(pdename_, "\n");
-      Info->PrintF(pdename_, "LoadFactor: %g \n", loadFactor);
+//      Info->PrintF(pdename_, "\n");
+//      Info->PrintF(pdename_, "LoadFactor: %g \n", loadFactor);
 
       // setup right hand side
       Double RhsLinL2Norm = SetLinRHS(loadFactor);

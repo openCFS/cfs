@@ -28,7 +28,7 @@ namespace CoupledField {
   //   Constructor
   // ***************
   template<typename T>
-  ILDLPrecond<T>::ILDLPrecond( const StdMatrix &stdMat, PtrParamNode solverNode,
+  ILDLPrecond<T>::ILDLPrecond( const StdMatrix &stdMat, PtrParamNode precondNode,
                                PtrParamNode olasInfo ) {
 
     // The ILDL preconditioner is currently not working
@@ -36,8 +36,8 @@ namespace CoupledField {
         "numbering, i.e. it will NOT work correctly!" );
         
     // Set pointers to communication objects
-    this->xml_ = solverNode;
-    this->infoNode_ = olasInfo;
+    this->xml_ = precondNode;
+    this->infoNode_ = olasInfo->Get("ildl", ParamNode::APPEND);
 
     // No factorisation was computed yet
     amFactorised_ = false;
@@ -47,7 +47,6 @@ namespace CoupledField {
 
     // Obtain and check variant information
     std::string subTypeStr = "NOPRECOND";
-    this->xml_->GetValue("precond", subTypeStr, ParamNode::INSERT);
     
     myVariant_ = BasePrecond::precondType.Parse(subTypeStr);
     if ( myVariant_ != BasePrecond::ILDL0 &&
@@ -63,8 +62,7 @@ namespace CoupledField {
                << tmp << "' is not a valid variant." );
     }
 
-    PtrParamNode pNode = this->xml_->Get(subTypeStr, ParamNode::INSERT);
-    pNode->GetValue("logging", logging_, ParamNode::INSERT ) ;
+    this->xml_->GetValue("logging", logging_, ParamNode::INSERT ) ;
     
     // Generate factorisation object
     GenerateFactoriser();
@@ -153,12 +151,11 @@ namespace CoupledField {
     std::string subTypeStr;
     
     subTypeStr = BasePrecond::precondType.ToString(myVariant_);
-    PtrParamNode pNode = this->xml_->Get(subTypeStr, ParamNode::INSERT);
 
-    if(pNode->Has("saveFacFile")) {
+    if(this->xml_->Has("saveFacFile")) {
       bool pattern = false;
-      pNode->GetValue("savePatternOnly", pattern, ParamNode::INSERT);
-      pNode->GetValue("saveFacFile", saveFacFile, ParamNode::INSERT);
+      this->xml_->GetValue("savePatternOnly", pattern, ParamNode::INSERT);
+      this->xml_->GetValue("saveFacFile", saveFacFile, ParamNode::INSERT);
       ExportFactorisation( saveFacFile.c_str(), pattern );
     }
     

@@ -24,7 +24,6 @@
 #include "FeBasis/H1/FeSpaceH1.hh"
 #include "FeBasis/H1/FeSpaceH1Nodal.hh"
 #include "FeBasis/FeFunctions.hh"
-#include "DataInOut/WriteInfo.hh"
 
 #include "Driver/TimeSchemes/Trapezoidal.hh"
 
@@ -514,10 +513,9 @@ void HeatPDE::DefineSolveStep() {
 
 void HeatPDE::InitTimeStepping() {
 
-  PtrParamNode systemNode = FindLinearSystem(pdename_);
   // Until now no effective mass formulation in the trapezoidal
   //  integration scheme is implemented!
-  TS_alg_ = new Trapezoidal( algsys_, systemNode );
+  TS_alg_ = new Trapezoidal( algsys_, olasNode_ );
 
 }
 

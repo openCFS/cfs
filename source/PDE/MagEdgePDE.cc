@@ -14,7 +14,6 @@
 #include "FeBasis/HCurl/FeSpaceHCurlHi.hh"
 #include "FeBasis/HCurl/HCurlElems.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
-#include "DataInOut/WriteInfo.hh"
 
 #include "Domain/CoefFunction/CoefFunctionExpression.hh"
 
@@ -452,20 +451,8 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
   // ======================================================
 
   void MagEdgePDE::InitTimeStepping() {
-    PtrParamNode systemNode = FindLinearSystem(pdename_);
-    TS_alg_ = new Trapezoidal( algsys_, systemNode );
+    TS_alg_ = new Trapezoidal( algsys_, olasNode_ );
   }
-
-
-  
-  void MagEdgePDE::ReadOlasParams( std::string sysName ) {
-    std::string name = pdename_;
-    if (solStrategy_ == STRAT_TWO_LEVEL && solStep_ == 2 ) {
-      name +="2";
-    }
-    StdPDE::ReadOlasParams(name);
-  }
-
 
   // ***************
   //   CalcResults
@@ -667,7 +654,8 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
 
     // Trigger reading in of definitions
     if( coilNodes.GetSize() > 0 ) {
-      Info->PrintF( pdename_, "Using the following coils:\n" );
+      WARN("Adapt printing of coils to InfoNode");
+      //Info->PrintF( pdename_, "Using the following coils:\n" );
       for( UInt i = 0; i < coilNodes.GetSize(); i++ ) {
 
         // get region name of actual coil
@@ -677,7 +665,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
         coilRegionId_.Push_back( regionId );
         coilDef_.Push_back( shared_ptr<Coil>( new Coil( regionId,
                                                         coilNodes[i], ptgrid_) ) );
-        Info->PrintCoil( *coilDef_.Last(), analysistype_ );
+        //Info->PrintCoil( *coilDef_.Last(), analysistype_ );
       }
     }
   }
@@ -699,8 +687,9 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
 
     // trigger definition of magnets
     if( magnetNodes.GetSize() > 0 ) {
-      Info->PrintF( pdename_,
-              "Found permanent magnets in the following regions:\n" );
+      WARN("Adjust printing of permanent magnet definition to InfoNode");
+//      Info->PrintF( pdename_,
+//              "Found permanent magnets in the following regions:\n" );
 
       Double tmpDir;
       for( UInt i = 0; i < magnetNodes.GetSize(); i++ ) {
@@ -722,9 +711,8 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
         magnetsOriZ_.Push_back( tmpDir );
 
         // report name to logfile
-        Info->PrintF( pdename_, " %s\n", regionName.c_str());
+        //Info->PrintF( pdename_, " %s\n", regionName.c_str());
       }
-      Info->PrintF( "", "\n" );
     }
   }
 

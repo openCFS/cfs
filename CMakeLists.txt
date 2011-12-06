@@ -43,7 +43,7 @@ SET(CFS_VERSION
 #-----------------------------------------------------------------------------
 # Version Name. Every major release gets a label/name
 #-----------------------------------------------------------------------------
-SET(CFS_NAME "Scintillant Scaplolite")
+SET(CFS_NAME "Scintillant Scapolite")
 
 #-----------------------------------------------------------------------------
 # Set hostname of build host

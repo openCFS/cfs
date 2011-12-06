@@ -21,7 +21,7 @@ namespace CoupledField {
     
     xml_ = solverNode;
     infoNode_ = olasInfo->Get("lapackLL");
-
+    
     // Initialise remaining attributes
     facMat_            = NULL;
     lapackRHS_         = NULL;

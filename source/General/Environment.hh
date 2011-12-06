@@ -285,7 +285,7 @@ namespace CoupledField {
   class WriteInfo;
 
   //! Global pointer to class performing logging to info file
-  extern WriteInfo *Info;
+  //extern WriteInfo *Info;
   
   //! conversion from strings to enum types
   template <class TYPE>

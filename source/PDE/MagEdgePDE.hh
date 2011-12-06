@@ -83,12 +83,10 @@ namespace CoupledField
 
     //! Init the time stepping
     void InitTimeStepping();
-    
-    //! Overwritten method, as we re-direct to the parameter section 
-    //! of the xml file for the twoLevel approach
-    void ReadOlasParams( std::string sysName );
 
-    virtual LinearFormContext* CreateRhsLinearForm(SolutionType rhsType,shared_ptr<CoefFunction > rhsCoef);
+    //! Crate RHS integrators
+    virtual LinearFormContext* CreateRhsLinearForm(SolutionType rhsType,
+                                                   shared_ptr<CoefFunction > rhsCoef);
 
 
     // =======================================================================

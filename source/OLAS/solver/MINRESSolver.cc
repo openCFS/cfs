@@ -15,7 +15,7 @@ namespace CoupledField {
 
     // Set pointers to communication objects
     infoNode_ = olasInfo->Get("minres");
-
+    
     // Prepare remaining internal attributes
     w0_ = NULL;
     w1_ = NULL;
@@ -229,9 +229,7 @@ namespace CoupledField {
     // Compute stopping threshold for loop
     double threshold = 1e-6;
 
-    PtrParamNode sNode;
-    sNode = xml_->Get("minres", ParamNode::INSERT);
-    sNode->GetValue("tol", threshold, ParamNode::INSERT);
+    xml_->GetValue("tol", threshold, ParamNode::INSERT);
     
     threshold *= rhsNorm;
 
@@ -249,7 +247,7 @@ namespace CoupledField {
     //   Main loop of the algorithm
     // ------------------------------
     UInt maxIter = 50;
-    sNode->GetValue("maxIter", maxIter, ParamNode::INSERT);
+    xml_->GetValue("maxIter", maxIter, ParamNode::INSERT);
     UInt k = 1;
     bool loop = true;
     while ( k <= maxIter && loop == true ) {

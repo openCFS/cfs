@@ -215,7 +215,7 @@ namespace CoupledField
       // unique within CFS, we have to ensure, that the names of 
       // the entity lists rather than the pointers match!
       
-      // Loop over all existing bilienarforms and check, 
+      // Loop over all existing bilinearforms and check, 
       // if pair (EntityList1, EntityList2) was already defined
       std::string ent1Name = biLinContext->GetFirstEntities()->GetName();
       std::string ent2Name = biLinContext->GetSecondEntities()->GetName();
@@ -239,11 +239,16 @@ namespace CoupledField
       // Pass needed matrix type to algebraic system
       FeFctIdType id1 = biLinContext->GetFirstFeFunction()->GetFctId();
       FeFctIdType id2 = biLinContext->GetSecondFeFunction()->GetFctId();
-      algsys_->SetFEMatrixType( mappedFEType, id1, id2 );
+
+      // determine symmetry type and complex status
+      bool isSym = IsFEMatSymmetric(biLinContext);
+      bool isComplex = IsFEMatComplex(biLinContext);
+      
+      algsys_->SetFEMatrixType( mappedFEType, isSym, isComplex, id1, id2 );
 
       // Check for secondary matrix type
       if( mappedSecFEType != NOTYPE ) {
-        algsys_->SetFEMatrixType( mappedSecFEType, id1, id2 );
+        algsys_->SetFEMatrixType( mappedSecFEType, isSym, isComplex, id1, id2 );
       }
     }
     else {
@@ -1147,60 +1152,46 @@ namespace CoupledField
 
 
 
-  bool Assemble::IsFEMatSymmetric( FeFctIdType fctId1, FeFctIdType fctId2,
-                                   FEMatrixType matType  ) {
+  bool Assemble::IsFEMatSymmetric( BiLinFormContext* actCt  ) {
 
-    // Run over all bilinearform contexts
-    std::map<FEMatrixType, bool> isSymmetric;
-    std::set<BiLinFormContext*>::iterator it;
 
-    // Assume at the beginning that all matrices are symmetric
-    isSymmetric[SYSTEM] = true;
-    isSymmetric[MASS] = true;
-    isSymmetric[STIFFNESS] = true;
-    isSymmetric[DAMPING] = true;
-    isSymmetric[AUXILIARY] = true;
-    
-    // set collecting all result types
-    
+    bool isSymmetric = true;
     // set collecting all diagonal-positions
     std::set<shared_ptr<ResultInfo> > allResults, diagResults;
 
+    // Check, where bilinearform gets assembled to diagonal block
+    if( (actCt->GetFirstFeFunction() == actCt->GetSecondFeFunction())
+        && (actCt->GetFirstEntities() == actCt->GetSecondEntities() ) ) {
 
-    // iterate over all bilinear forms
-    for( it = allBiLinForms_.begin(); it != allBiLinForms_.end(); it++ ) {
+      // Bilinearform gets assembled to main diagonal.
+      // If bilinearform is non-symmetric, so is the related FE-matrix
+      if( !actCt->GetIntegrator()->IsSymmetric()  ) {
+        isSymmetric = false;
+      }
+    } else {
 
-      BiLinFormContext & actCt = (**it);
+      // BiLinearform gets assembled to off-diagonal block.
 
-      // Check, where bilinearform gets assembled to diagonal block
-      if( (actCt.GetFirstPde() == actCt.GetSecondPde() )
-          && (actCt.GetFirstResultInfo() == actCt.GetSecondResultInfo() )
-          && (actCt.GetFirstEntities() == actCt.GetSecondEntities() ) ) {
-
-        // Bilinearform gets assembled to main diagonal.
-        // If bilinearform is non-symmetric, so is the related FE-matrix
-        if( !actCt.GetIntegrator()->IsSymmetric()  ) {
-          FEMatrixType mappedDest = matrixMap_[actCt.GetDestMat()];
-          isSymmetric[mappedDest] = false;
-          isSymmetric[SYSTEM] = false;
-        }
-      } else {
-
-        // BiLinearform gets assembled to off-diagonal block.
-
-        // If the bilinearorm is also assembled to the transposed block
-        // we assume that the matrix still remains symmetric.
-        // Otherwise we assume, that we need a non-symmetric matrix.
-        if( !actCt.IsSetCounterPart() ) {
-          FEMatrixType mappedDest = matrixMap_[actCt.GetDestMat()];
-          isSymmetric[mappedDest] = false;
-          isSymmetric[SYSTEM] = false;
-        }
+      // If the bilinearorm is also assembled to the transposed block
+      // we assume that the matrix still remains symmetric.
+      // Otherwise we assume, that we need a non-symmetric matrix.
+      if( !actCt->IsSetCounterPart() ) {
+        isSymmetric= false;
       }
     }
 
     // return flag for matrix of interest
-    return isSymmetric[matType];
+    return isSymmetric;
+  }
+  
+  bool Assemble::IsFEMatComplex( BiLinFormContext* actCt  ) {
+    
+    bool isComplex = false;
+    if (actCt->GetIntegrator()->IsComplex() || 
+        analysisType_ == BasePDE::HARMONIC ) { 
+      isComplex = true;
+    }
+    return isComplex;
   }
 
 

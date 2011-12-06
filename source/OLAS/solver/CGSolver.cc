@@ -69,12 +69,10 @@ namespace CoupledField {
     // overwrite if set in xml
     if(xml_ != NULL)
     {
-      PtrParamNode sNode;
-      sNode = xml_->Get("cg", ParamNode::INSERT);      
-      sNode->GetValue("maxIter", maxiter, ParamNode::INSERT);
-      sNode->GetValue("tol", eps, ParamNode::INSERT);
-      sNode->GetValue("resDirectly", tmp, ParamNode::INSERT);
-      sNode->GetValue("logging", logging, ParamNode::INSERT);
+      xml_->GetValue("maxIter", maxiter, ParamNode::INSERT);
+      xml_->GetValue("tol", eps, ParamNode::INSERT);
+      xml_->GetValue("resDirectly", tmp, ParamNode::INSERT);
+      xml_->GetValue("logging", logging, ParamNode::INSERT);
     } 
     if ( tmp <= 0 ) {
       EXCEPTION( "CGSolver::CGSolver: The current value of "

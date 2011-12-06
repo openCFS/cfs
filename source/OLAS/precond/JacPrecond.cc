@@ -30,9 +30,9 @@ namespace CoupledField {
   // ***********************
   template<class T_storage,typename T>
   JacPrecond<T_storage,T>::JacPrecond( const StdMatrix &mat, 
-                                       PtrParamNode solverNode,
+                                       PtrParamNode precondNode,
 				                               PtrParamNode olasInfo )  {
-    this->xml_ = solverNode;
+    this->xml_ = precondNode;
     this->infoNode_ = olasInfo->Get("jacobi",ParamNode::APPEND);
     size_     = mat.GetNumRows();
     NEWARRAY( diagInv_, T, size_ );
@@ -121,9 +121,9 @@ namespace CoupledField {
    // ***********************
    template<class T_storage,typename T>
    BlockJacPrecond<T_storage,T>::BlockJacPrecond( const StdMatrix &mat, 
-                                                  PtrParamNode solverNode,
+                                                  PtrParamNode precondNode,
                                                   PtrParamNode olasInfo )  {
-     this->xml_ = solverNode;
+     this->xml_ = precondNode;
      this->infoNode_ = olasInfo->Get("blockJacobi",ParamNode::APPEND);
      numRows_ = 0;
      

@@ -5,7 +5,8 @@
 #include "OLAS/precond/IdPrecondStd.hh"
 #include "OLAS/precond/generateprecond.hh"
 #include "MatVec/BaseMatrix.hh"
-
+#include "OLAS/algsys/SolStrategy.hh"
+#include "DataInOut/Logging/LogConfigurator.hh"
 
 #ifdef USE_PARDISO
 #include "OLAS/external/pardiso/PardisoSolver.hh"
@@ -32,6 +33,11 @@
 
 namespace CoupledField {
 
+// define logging stream
+DECLARE_LOG(genPrecond)
+DEFINE_LOG(genPrecond, "genPrecond")
+
+
 
   // *********************************************************
   //   Central macro for generation of preconditioner object
@@ -40,10 +46,10 @@ namespace CoupledField {
   // *********************************************************
 #define PRECOND_OBJ(matEntry,matStore,precondObjType)\
 if ((entryType==matEntry) && (storageType==matStore) ) {\
-retVal = new precondObjType( mat, solverXML, olasInfo );\
-(*cla) << " GenerateStdPrecondObject: Generated "\
+retVal = new precondObjType( mat, precondNode, olasInfo );\
+LOG_DBG(genPrecond) << " GenerateStdPrecondObject: Generated "\
        << MACRO2STRING(precondObjType)\
-       << " preconditioner" << std::endl; }
+       << " preconditioner"; }
 
 
   // **************************
@@ -71,26 +77,40 @@ retVal = new precondObjType( mat, solverXML, olasInfo );\
   //   Generation routine
   // **********************
   BasePrecond* GenerateStdPrecondObject( const StdMatrix &mat,
-                                            PtrParamNode systemNode,
-                                            PtrParamNode olasInfo ) {
+                                         shared_ptr<SolStrategy> strat,
+                                         PtrParamNode precondList,
+                                         PtrParamNode olasInfo ) {
 
 
     BasePrecond *retVal = NULL;
+    
+    
+    // Obtain current precond id from strategy object;
+    std::string precondId = strat->GetPrecondId(1);
+    ParamNodeList pNodes =  precondList->GetChildren();
+    PtrParamNode precondNode;
+    for( UInt i = 0; i < pNodes.GetSize(); ++i ) {
+      if( pNodes[i]->Get("id")->As<std::string>() == precondId ) {
+        precondNode = pNodes[i]; 
+      }
+    }
+    
+    if(!precondNode) {
+      EXCEPTION("Preconditioner with id '" << precondId 
+                << "' was not found!");
+    }
     
     // Obtain matrix type information
     BaseMatrix::EntryType entryType = mat.GetEntryType();
     BaseMatrix::StorageType storageType = mat.GetStorageType();
     std::string precondStr = "";
 
-    PtrParamNode solverXML;
-    solverXML = systemNode->Get("solver", ParamNode::INSERT );
-
     EnumMap::iterator it, end;
     it = BasePrecond::precondType.map.begin();
     end = BasePrecond::precondType.map.end();
     
     for( ; it != end; it++ ) {
-      if( solverXML->HasByVal("precond", it->second) ) {
+      if( precondNode->GetName() ==  it->second ) {
         if(precondStr != "")
           EXCEPTION("Two preconditioners have been specified: " << precondStr << " and " << (it->second))
         
@@ -116,9 +136,8 @@ retVal = new precondObjType( mat, solverXML, olasInfo );\
       //       generate an identity preconditioner to remain consistent.
     case BasePrecond::NOPRECOND:
     case BasePrecond::ID:
-      retVal = new IdPrecondStd;
-      (*cla) << " GenerateStdPrecondObject: Generated Identity preconditioner"
-	     << std::endl;
+      retVal = new IdPrecondStd(precondNode, olasInfo);
+      LOG_DBG(genPrecond) << " GenerateStdPrecondObject: Generated Identity preconditioner";
       break;
 
       // =========================
@@ -314,16 +333,15 @@ retVal = new precondObjType( mat, solverXML, olasInfo );\
       }
 
       if ( entryType == BaseMatrix::DOUBLE ) {
-        retVal = new PardisoSolver<Double>( solverXML, olasInfo );
+        retVal = new PardisoSolver<Double>( precondNode, olasInfo );
         ASSERTMEM( retVal, sizeof(PardisoSolver<Double>) );
-        (*cla) << " GeneratePrecond: Generated real Pardiso precond"
-            << std::endl;
+        LOG_DBG(genPrecond) << " GeneratePrecond: Generated real Pardiso precond";
       }
+      
       if ( entryType == BaseMatrix::COMPLEX ) {
-        retVal = new PardisoSolver<Complex>( solverXML, olasInfo );
+        retVal = new PardisoSolver<Complex>( precondNode, olasInfo );
         ASSERTMEM( retVal, sizeof(PardisoSolver<Complex>) );
-        (*cla) << " GeneratePrecond: Generated complex Pardiso precond"
-            << std::endl;
+        LOG_DBG(genPrecond) << " GeneratePrecond: Generated complex Pardiso precond";
       }
 #else
 
@@ -335,7 +353,7 @@ retVal = new precondObjType( mat, solverXML, olasInfo );\
    
       
       // ============================
-      //   Pardiso Preconditioner
+      //   Cholmod Preconditioner
       // ============================
     case BasePrecond::CHOLMOD:
 #ifdef USE_CHOLMOD
@@ -345,11 +363,11 @@ retVal = new precondObjType( mat, solverXML, olasInfo );\
       EXCEPTION("CholMod only works with SCRS_Matrix class!");
     }
     if(entryType == BaseMatrix::DOUBLE){
-      retVal = new CholMod<Double>(solverXML, olasInfo, entryType);
-      (*cla) << " GenerateSolver: Generated real CholMod solver" << std::endl;
+      retVal = new CholMod<Double>(precondNode, olasInfo, entryType);
+      LOG_DBG(genPrecond) << " GenerateSolver: Generated real CholMod solver";
     }else if(entryType == BaseMatrix::COMPLEX){
-      retVal = new CholMod<Complex>(solverXML, olasInfo, entryType);
-      (*cla) << " GenerateSolver: Generated complex CholMod solver" << std::endl;
+      retVal = new CholMod<Complex>(precondNode, olasInfo, entryType);
+      LOG_DBG(genPrecond) << " GenerateSolver: Generated complex CholMod solver";
     }
   }
 #else
@@ -363,11 +381,11 @@ retVal = new precondObjType( mat, solverXML, olasInfo );\
          EXCEPTION("DirectLDL solver only works with SCRS_Matrix class!");
        }
        if(entryType == BaseMatrix::DOUBLE){
-         retVal = new LDLSolver<Double>(solverXML, olasInfo );
-         (*cla) << " GenerateSolver: Generated real CholMod solver" << std::endl;
+         retVal = new LDLSolver<Double>(precondNode, olasInfo );
+         LOG_DBG(genPrecond) << " GenerateSolver: Generated real CholMod solver";
        }else if(entryType == BaseMatrix::COMPLEX){
-         retVal = new LDLSolver<Complex>(solverXML, olasInfo);
-         (*cla) << " GenerateSolver: Generated complex CholMod solver" << std::endl;
+         retVal = new LDLSolver<Complex>(precondNode, olasInfo);
+         LOG_DBG(genPrecond) << " GenerateSolver: Generated complex CholMod solver";
        }
        break;
        
@@ -406,6 +424,7 @@ retVal = new precondObjType( mat, solverXML, olasInfo );\
   }
 
   BaseSBMPrecond* GenerateSBMPrecondObject( const SBM_Matrix &mat,
+                                            shared_ptr<SolStrategy> strat,
                                             PtrParamNode solverNode,
                                             PtrParamNode olasInfo ) {
 
@@ -454,8 +473,7 @@ retVal = new precondObjType( mat, solverXML, olasInfo );\
     case BasePrecond::NOPRECOND:
     case BasePrecond::ID:
 //      retVal = new IdPrecondSBM;
-//      (*cla) << " GenerateStdPrecondObject: Generated Identity preconditioner"
-//      << std::endl;
+//      LOG_DBG(genPrecond) << " GenerateStdPrecondObject: Generated Identity preconditioner";
 //      break;
     case BasePrecond::JACOBI:
       retVal = new BaseSBMPrecond(numBlocks, olasInfo);
@@ -467,20 +485,20 @@ retVal = new precondObjType( mat, solverXML, olasInfo );\
       // Block #0: Pardiso solver
       
       pardisoNode->Get("solver")->Get("precond")->SetValue("pardiso");
-      p = GenerateStdPrecondObject(mat(0,0), pardisoNode, infoNode );
+      p = GenerateStdPrecondObject(mat(0,0), strat, pardisoNode, infoNode );
       retVal->SetPrecond(0, p);
       
       // Block #1: Block-Jacobi-preconditioner
       blockJacobiNode->Get("solver")->Get("precond")->SetValue("BlockJacobi");
       //p = GenerateStdPrecondObject(mat(1,1), pardisoNode, olasInfo );
-      p = GenerateStdPrecondObject(mat(1,1), blockJacobiNode, infoNode );
+      p = GenerateStdPrecondObject(mat(1,1), strat, blockJacobiNode, infoNode );
       retVal->SetPrecond(1, p);
       
       // if we have static condensation, we have no third row
       if( mat.GetNumRows() == 3 ) {
         // Block #1: Block-Jacobi preconditioner
         //p = GenerateStdPrecondObject(mat(2,2), pardisoNode, olasInfo );
-        p = GenerateStdPrecondObject(mat(2,2), blockJacobiNode, infoNode );
+        p = GenerateStdPrecondObject(mat(2,2), strat, blockJacobiNode, infoNode );
         retVal->SetPrecond(2, p);
       }
       
@@ -508,6 +526,97 @@ retVal = new precondObjType( mat, solverXML, olasInfo );\
     return retVal;
 
   }
+  
+  
+  std::set<BaseMatrix::StorageType> 
+   GetPrecondCompatMatrixFormats(BasePrecond::PrecondType pt) {
+    
+    std::set<BaseMatrix::StorageType> ret;
+    switch(pt) {
+      
+      case BasePrecond::MG:
+        ret.insert(BaseMatrix::SPARSE_SYM);
+        break;
+      
+      case BasePrecond::JACOBI:
+        ret.insert(BaseMatrix::SPARSE_SYM);
+        ret.insert(BaseMatrix::SPARSE_NONSYM);
+        ret.insert(BaseMatrix::DIAG);
+        break;
+
+      case BasePrecond::BLOCK_JACOBI :
+        ret.insert(BaseMatrix::VAR_BLOCK_ROW);
+        break;
+
+      case BasePrecond::SSOR:
+        ret.insert(BaseMatrix::SPARSE_NONSYM);
+        break;
+
+      case BasePrecond::ILU0:
+      case BasePrecond::ILUTP:
+      case BasePrecond::ILUK:
+        ret.insert(BaseMatrix::SPARSE_NONSYM);
+        break;
+
+      case BasePrecond::ILDL0:
+      case BasePrecond::ILDLK:
+      case BasePrecond::ILDLTP:
+      case BasePrecond::ILDLCN:
+        ret.insert(BaseMatrix::SPARSE_SYM);
+        break;
+            
+      case BasePrecond::IC0 :
+        ret.insert(BaseMatrix::SPARSE_SYM);
+        break;
+            
+        // Solver Based preconditioners
+      case BasePrecond::PARDISO :
+        ret.insert(BaseMatrix::SPARSE_SYM);
+        ret.insert(BaseMatrix::SPARSE_NONSYM);
+        break;
+
+      case BasePrecond::CHOLMOD:
+        ret.insert(BaseMatrix::SPARSE_SYM);
+        break;
+        
+      case BasePrecond::LDL_SOLVER2:
+      case BasePrecond::DIRECT:
+      case BasePrecond::RICHARDSON:
+      case BasePrecond::CG:
+      case BasePrecond::LANCZOS:
+      case BasePrecond::QMR:
+      case BasePrecond::GMRES:
+      case BasePrecond::MINRES:
+      case BasePrecond::SYMMLQ:
+      case BasePrecond::LAPACK_LU: 
+      case BasePrecond::LAPACK_LL:
+      case BasePrecond::ILUPACK:
+      case BasePrecond::LU_SOLVER: 
+      case BasePrecond::DIAGSOLVER:
+        EXCEPTION("Missing case statment for solvers as preconditioners");
+        break;
+      default:
+        EXCEPTION("Unhandled case statement");
+        break;
+    } 
+    return ret;
+  }
+
+  bool IsPreconndSBMCapable(BasePrecond::PrecondType pt) {
+    bool ret = false;
+    switch(pt) {
+
+      case BasePrecond::JACOBI:
+        ret = true;
+        break;
+
+      default:
+        ret = false;
+        break;
+    }
+    return ret;
+   }
+
 }
 
 // ========================

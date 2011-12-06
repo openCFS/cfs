@@ -21,15 +21,17 @@ namespace CoupledField {
   //! This method will generate a BaseEigenSolver solver object that fits
   //! to the input matrix and return a pointer to that object.
   //! \param mat    %Matrix that is preconditioned
-  //! \param solver Type of desired solver
-  //! \param xml    Pointer to ParamNode of <solver> section
-  //! \param params Pointer to a parameter object with steering parameters
-  //!               for the solver that is to be generated
-  //! \param report Pointer to report object into which the generated solver
-  //!               should write its solutiopn report.
+  //! \param strat  Pointer to solution strategy
+  //! \param eSolverList Pointer to <eigenSolverList> element
+  //! \param solverList Pointer to <solverList> element
+  //! \param precondList Pointer to <precondList> element
+  //! \param eigenInfo Output element in info-tree
   BaseEigenSolver * GenerateEigenSolverObject( BaseMatrix &mat, 
-                                               PtrParamNode xml,
-                                               PtrParamNode   eigenInfo );
+                                               shared_ptr<SolStrategy> strat,
+                                               PtrParamNode eSolverList,
+                                               PtrParamNode solverList,
+                                               PtrParamNode precondList,
+                                               PtrParamNode eigenInfo );
 
 }
 

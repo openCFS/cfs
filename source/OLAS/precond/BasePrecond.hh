@@ -57,6 +57,7 @@ namespace CoupledField {
     virtual ~BasePrecond() {
     };
 
+    
     //! A call of this method triggers the construction of the preconditioner.
 
     //! When this method is called the preconditioner will be constructed. This

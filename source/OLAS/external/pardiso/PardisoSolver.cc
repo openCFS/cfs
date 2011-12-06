@@ -126,9 +126,8 @@ extern "C" {
     dparm_.Resize(64); dparm_.Init(0.0);
 
     // Set default solver type to direct sparse solver
-    PtrParamNode sNode = xml_->Get("pardiso", ParamNode::INSERT);
     std::string solverType = "direct";
-    sNode->GetValue("type", solverType, ParamNode::INSERT);
+    xml_->GetValue("type", solverType, ParamNode::INSERT);
       
     if(solverType == "direct") {
       mSolver_ = 0;
@@ -136,9 +135,9 @@ extern "C" {
       mSolver_ = 1;
     }
 
-    sNode = xml_->Get("stoppingRule", ParamNode::INSERT);
+    PtrParamNode stopRulenode = xml_->Get("stoppingRule", ParamNode::INSERT);
     std::string sRule = "relNormRes0";
-    sNode->GetValue("type", sRule, ParamNode::INSERT);
+    stopRulenode->GetValue("type", sRule, ParamNode::INSERT);
 
     if(mSolver_ && sRule != "relNormRes0") {
       WARN("The iterative solver in PARDISO only supports relative " \
@@ -229,9 +228,6 @@ extern "C" {
     // Flag for check Pardiso's return status
     int errorFlag = 0;
 
-    PtrParamNode sNode;
-    sNode = xml_->Get("pardiso", ParamNode::INSERT);
-    
     // Determine, whether we are expected to be verbose
     LOG_TRACE(pardisoSolver) << " -----------------------------------------"
                              << "-------------------------------------";
@@ -335,13 +331,13 @@ extern "C" {
     mType_ = 0;
 
     defPard = false;
-    sNode->GetValue("posDef", defPard, ParamNode::INSERT);
+    xml_->GetValue("posDef", defPard, ParamNode::INSERT);
 
     herPard = false;
-    sNode->GetValue("hermitean", herPard, ParamNode::INSERT);
+    xml_->GetValue("hermitean", herPard, ParamNode::INSERT);
 
     strPard = false;
-    sNode->GetValue("symStruct", strPard, ParamNode::INSERT);
+    xml_->GetValue("symStruct", strPard, ParamNode::INSERT);
 
     if ( (etype == BaseMatrix::DOUBLE ) && (!symPard) && ( strPard) ) mType_ =  1;
     if ( (etype == BaseMatrix::DOUBLE ) && ( symPard) && ( defPard) ) mType_ =  2;
@@ -377,31 +373,31 @@ extern "C" {
 
     // Set default input values for dparm_;
     dparm_[0] = 300;   // Maximum number of Krylov-subspace iterations
-    sNode->GetValue("maxIter", dparm_[0], ParamNode::INSERT);
+    xml_->GetValue("maxIter", dparm_[0], ParamNode::INSERT);
 
     dparm_[1] = 1e-6;  // Relative residual reduction
-    sNode->GetValue("tol", dparm_[1], ParamNode::INSERT);
+    xml_->GetValue("tol", dparm_[1], ParamNode::INSERT);
 
     dparm_[2] = 1e-6;  // Coarse Grid Matrix Dimension.
-    sNode->GetValue("coarseGridDim", dparm_[2], ParamNode::INSERT);
+    xml_->GetValue("coarseGridDim", dparm_[2], ParamNode::INSERT);
 
     dparm_[3] = 10;    // Maximum Number of Grid Levels.
-    sNode->GetValue("maxNumGridLevels", dparm_[3], ParamNode::INSERT);
+    xml_->GetValue("maxNumGridLevels", dparm_[3], ParamNode::INSERT);
 
     dparm_[4] = 1e-2;  // Dropping value for the incomplete factor.
-    sNode->GetValue("incompFacDropVal", dparm_[4], ParamNode::INSERT);
+    xml_->GetValue("incompFacDropVal", dparm_[4], ParamNode::INSERT);
 
     dparm_[5] = 5e-5;  // Dropping value for the schurcomplement.
-    sNode->GetValue("schurcompDropVal", dparm_[5], ParamNode::INSERT);
+    xml_->GetValue("schurcompDropVal", dparm_[5], ParamNode::INSERT);
 
     dparm_[6] = 10;    // Maximum number of ﬁll-in in each column in the factor.
-    sNode->GetValue("maxNumFillIn", dparm_[6], ParamNode::INSERT);
+    xml_->GetValue("maxNumFillIn", dparm_[6], ParamNode::INSERT);
 
     dparm_[7] = 500;   // Bound for the inverse of the incomplete factor L.
-    sNode->GetValue("invBoundIncompFac", dparm_[0], ParamNode::INSERT);
+    xml_->GetValue("invBoundIncompFac", dparm_[0], ParamNode::INSERT);
 
     dparm_[8] = 25;    // Maximum number of non-improvement steps in Krylov-Subspace method
-    sNode->GetValue("maxNumStagnationSteps", dparm_[0], ParamNode::INSERT);
+    xml_->GetValue("maxNumStagnationSteps", dparm_[0], ParamNode::INSERT);
 
     // Remove output file for iterative solver
     if(mSolver_ && fs::exists("pardiso-ml.out")) {
@@ -452,9 +448,8 @@ extern "C" {
     // the initial ordering of the linear system, which might already have been
     // re-ordered via the graph)
     BaseOrdering::ReorderingType ordering = BaseOrdering::NESTED_DISSECTION;
-    sNode = xml_->Get("pardiso", ParamNode::INSERT);
     std::string orderStr = "nestedDissection";
-    sNode->GetValue("ordering", orderStr, ParamNode::INSERT);
+    xml_->GetValue("ordering", orderStr, ParamNode::INSERT);
     ordering = BaseOrdering::reorderingType.Parse( orderStr );
 
     switch ( ordering ) {
@@ -510,7 +505,7 @@ extern "C" {
     
     // Do we need to determine MFLOPs for the LU factorisation
     bool stats = false;
-      sNode->GetValue("stats", stats, ParamNode::INSERT);
+      xml_->GetValue("stats", stats, ParamNode::INSERT);
     
     if(stats)
       iparm_[18] = -1;
@@ -545,14 +540,14 @@ extern "C" {
     }
 
     // Switch on out-of-core
-    if (sNode->Has("outOfCore"))
+    if (xml_->Has("outOfCore"))
     {
       if(std::string(CFS_PARDISO) != "MKL") 
       {
         WARN( "The value of outOfCore has no effect for " << CFS_PARDISO << ".\n"
               << "Switch to MKL if want to use out-of-core memory." );
       }
-      sNode->GetValue("outOfCore", iparm_[59], ParamNode::INSERT);
+      xml_->GetValue("outOfCore", iparm_[59], ParamNode::INSERT);
     }
 
     // Switch to iterative solver
@@ -572,9 +567,9 @@ extern "C" {
      * this. (see O.Schenk et al "Solving unsymmetric sparse systems of linear
      * equations with PARDISO")
      */
-    if (sNode->Has("IterRefineSteps"))
+    if (xml_->Has("IterRefineSteps"))
     {
-      sNode->GetValue("IterRefineSteps", iparm_[7], ParamNode::INSERT);
+      xml_->GetValue("IterRefineSteps", iparm_[7], ParamNode::INSERT);
     } else if (iparm_[7] == 0 && mType_ > 10) {
       WARN( "Iterative refinement steps is not set!\n" 
             << "PARDISO did not set it neither.\n"

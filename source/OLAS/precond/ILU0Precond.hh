@@ -46,7 +46,7 @@ namespace CoupledField {
     typedef typename AssocType<T>::T_Stype T_Stype;
 
     //! Constructor (for use in GenerateStdPrecondObject)
-    ILU0Precond( const StdMatrix &mat, PtrParamNode solverNode,
+    ILU0Precond( const StdMatrix &mat, PtrParamNode precondNode,
 		 PtrParamNode olasInfo );
 
     //! Deep Destructor

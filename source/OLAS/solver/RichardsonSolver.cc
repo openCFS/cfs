@@ -47,16 +47,14 @@ namespace CoupledField {
     Double norm_old;
 
     // Query parameter object for values
-    PtrParamNode pn = xml_->Get("solver", ParamNode::INSERT); 
-    pn = pn->Get("richardson", ParamNode::INSERT); 
     Integer maxiter = 1; 
-    pn->GetValue("maxIter", maxiter, ParamNode::INSERT);
+    xml_->GetValue("maxIter", maxiter, ParamNode::INSERT);
     Double eps      = 1e-6;
-    pn->GetValue("tol", eps, ParamNode::INSERT);
+    xml_->GetValue("tol", eps, ParamNode::INSERT);
     Double epsmach  = 1e-20;
-    pn->GetValue("epsmach", epsmach, ParamNode::INSERT);
+    xml_->GetValue("epsmach", epsmach, ParamNode::INSERT);
     Double omega    = 1.0;
-    pn->GetValue("omega", omega, ParamNode::INSERT);
+    xml_->GetValue("omega", omega, ParamNode::INSERT);
 
 #ifdef DEBUG_RICHARDSON
     (*debug) << " ------- START RICHARDSON ITERATION -------- " << std::endl;

@@ -55,21 +55,6 @@ namespace CoupledField {
     //! Create the matrices and Solver as well as Preconditioner
     virtual void CreateMatrices_Solver();
     
-    /** Finds the xml node of the linear system
-     * @return might be NULL */
-    PtrParamNode FindLinearSystem(const std::string& sysName);
-    
-    //! Transfer parameters from CFS++ to OLAS parameter object
-
-    //! This method reads the parameters specified for the linear system
-    //! associated with the PDE from the parameter object of CFS++, adapts
-    //! them using an expert module and passes them to OLAS. It relies on
-    //! The SetParams() method of the CFSOLASParams class for doing this.
-    //! \param sysName name of the linear system in the XML file (in the
-    //!                case of a single PDE this coincides with pdename_)
-    virtual void ReadOlasParams( std::string sysName );
-
-
     // ======================================================
     // COUPLING SECTION
     // ======================================================
@@ -349,6 +334,9 @@ namespace CoupledField {
 
     /** This is our pde info node. To be set/overwritten in each PDE! */ 
     PtrParamNode infoNode_; 
+    
+    //! Parameter node for OLAS
+    PtrParamNode olasNode_;
 
     // -----------------------------------------------------------------------
     // Geometry & node numbering

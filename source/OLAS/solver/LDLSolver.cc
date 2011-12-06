@@ -45,11 +45,8 @@ namespace CoupledField {
     sysMatDim_  = 0;
     auxVecSize_ = 0;
 
-    PtrParamNode sNode;
-    sNode = xml_->Get("directLDL", ParamNode::INSERT);
-      
     itRefSteps_ = 2;
-    sNode->GetValue("itRefSteps", itRefSteps_, ParamNode::INSERT);
+    xml_->GetValue("itRefSteps", itRefSteps_, ParamNode::INSERT);
 
     // NOTE: The class currently gives wrong results, if used with
     //       block entries instead of scalar entries. Thus, we do
@@ -227,14 +224,12 @@ namespace CoupledField {
       std::string facFileName = "fac.out";
       bool savePatternOnly = false;
       
-      PtrParamNode sNode;
-      sNode = xml_->Get("directLDL", ParamNode::INSERT);
-      if(sNode->Has("saveFacFile")) {
+      if(xml_->Has("saveFacFile")) {
         saveFacToFile = true;
-        sNode->GetValue("saveFacFile", facFileName, ParamNode::INSERT);
+        xml_->GetValue("saveFacFile", facFileName, ParamNode::INSERT);
       }
 
-      sNode->GetValue("savePatternOnly", savePatternOnly, ParamNode::INSERT);
+      xml_->GetValue("savePatternOnly", savePatternOnly, ParamNode::INSERT);
       
       if( saveFacToFile &&  (!savePatternOnly) ) {
         ExportFactorisation( facFileName.c_str(), false );
@@ -285,9 +280,7 @@ namespace CoupledField {
       UInt logLevel = 2;
       UInt numSteps = itRefSteps_;
       
-      PtrParamNode sNode;
-      sNode = xml_->Get("directLDL", ParamNode::INSERT);
-      sNode->GetValue("itRefVerbosity", logLevel, ParamNode::INSERT);
+      xml_->GetValue("itRefVerbosity", logLevel, ParamNode::INSERT);
 
       if ( itRefSteps_ > 0 ) {
         // Avoid recursion, we do not want to do refinement on the
@@ -708,14 +701,12 @@ namespace CoupledField {
     std::string facFileName = "fac.out";
     bool savePatternOnly = false;
       
-    PtrParamNode sNode;
-    sNode = xml_->Get("directLDL", ParamNode::INSERT);
-    if(sNode->Has("saveFacFile")) {
+    if(xml_->Has("saveFacFile")) {
       saveFacToFile = true;
-      sNode->GetValue("saveFacFile", facFileName, ParamNode::INSERT);
+      xml_->GetValue("saveFacFile", facFileName, ParamNode::INSERT);
     }
 
-    sNode->GetValue("savePatternOnly", savePatternOnly, ParamNode::INSERT);
+    xml_->GetValue("savePatternOnly", savePatternOnly, ParamNode::INSERT);
     
     if( saveFacToFile && savePatternOnly ) {
       ExportFactorisation( facFileName.c_str(), false );

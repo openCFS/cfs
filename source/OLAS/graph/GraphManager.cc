@@ -96,7 +96,7 @@ namespace CoupledField {
   // =============
   //   SetupDone
   // =============
-  void GraphManager::SetupDone() {
+  void GraphManager::SetupDone(const StdVector<BaseOrdering::ReorderingType>& reorder ) {
     
     LOG_TRACE(graphMan) << "Finalize Graphmanager (SetupDone)";
     
@@ -118,7 +118,15 @@ namespace CoupledField {
       // Finalize assembly of graph
       LOG_DBG(graphMan) << "Finalize diagonal graph (" << iBlock
                         << ", " << iBlock << ")";
-      graph_[idx]->FinaliseAssembly( false, &newOrdering_[iBlock] );
+
+      // If reordering is going to be performed for the current block then
+      // we need to allocate memory to store the resulting permutation
+      // vector
+      if ( reorder[iBlock] != BaseOrdering::NOREORDERING ) {
+        newOrdering_[iBlock].Resize( blockInfo_[iBlock]->numLastFreeIndex );
+      }
+      graph_[idx]->FinaliseAssembly( reorder[iBlock], 
+                                     false, &newOrdering_[iBlock] );
       LOG_DBG3(graphMan) << "Reordering array is "  
                          << newOrdering_[iBlock].ToString(); 
       
@@ -148,7 +156,8 @@ namespace CoupledField {
         //       of the related row/col diagonal blocks
         LOG_DBG(graphMan) << "Finalize off-diagonal graph (" << iRow
                           << ", " << iCol << ")";
-        graph_[idx]->FinaliseAssembly( true, &newOrdering_[iRow],
+        graph_[idx]->FinaliseAssembly( BaseOrdering::NOREORDERING ,
+                                       true, &newOrdering_[iRow],
                                        &newOrdering_[iCol] );
 
         // Set also the corresponding diagonal graph objects of the row/col.
@@ -182,8 +191,7 @@ namespace CoupledField {
   //   RegisterBlock
   // ===============
   void GraphManager::RegisterBlock( const UInt blockNum,
-                                    SBMBlockInfo* blockInfo,
-                                    const BaseOrdering::ReorderingType reorder ) {
+                                    SBMBlockInfo* blockInfo ) {
     
     LOG_TRACE(graphMan) << "Registering block " << blockNum;
     
@@ -219,8 +227,8 @@ namespace CoupledField {
 
     // Generate graph object for this block
     UInt idx = ComputeIndex( blockNum, blockNum );
-    graph_[idx] = new BaseGraph( blockInfo->numLastFreeIndex, blockInfo->numLastFreeIndex,
-                                 reorder );
+    graph_[idx] = new BaseGraph( blockInfo->numLastFreeIndex, 
+                                 blockInfo->numLastFreeIndex );
     if ( graph_[idx] == NULL ) {
       EXCEPTION("Generation of graph object for block #" << blockNum 
                 << " failed!");
@@ -235,14 +243,9 @@ namespace CoupledField {
     // Generate IDBC graph object for this block
     GenerateIDBCGraph( blockNum, blockNum );
     
-
-    // If reordering is going to be performed for the current block then
-    // we need to allocate memory to store the resulting permutation
-    // vector
-    if ( reorder != BaseOrdering::NOREORDERING ) {
-      newOrdering_[blockNum].Resize( blockInfo->numLastFreeIndex );
-    }
   }
+
+   
 
   // =================
   //   SetElementPos
@@ -626,8 +629,7 @@ namespace CoupledField {
 
     // Generate graph object
     graph_[idx] = new BaseGraph( blockInfo_[rowNum]->numLastFreeIndex,
-                                 blockInfo_[colNum]->numLastFreeIndex, 
-                                 BaseOrdering::NOREORDERING );
+                                 blockInfo_[colNum]->numLastFreeIndex );
 
     if ( graph_[idx] == NULL ) {
       EXCEPTION("GraphManager: Generation of sub-graph "

@@ -17,14 +17,17 @@ namespace CoupledField {
   // =========================================================================
   
   
-  //! Class for interfacing to ARPACK++ solvers
+  //! Class for interfacing to ARPACK solvers
   class ArpackEigenSolver : public BaseEigenSolver {
     
   public:
     
     //! Default Constructor
-    ArpackEigenSolver( PtrParamNode xml, PtrParamNode eigenInfo,
-                       PtrParamNode olasInfo );
+    ArpackEigenSolver( shared_ptr<SolStrategy> strat,
+                       PtrParamNode xml, 
+                       PtrParamNode solverList,
+                       PtrParamNode precondList,
+                       PtrParamNode eigenInfo );
     
     //! Default Destructor
     virtual ~ArpackEigenSolver();
@@ -123,9 +126,6 @@ namespace CoupledField {
     /** Attribute for xml paramnode of <solver> section */
     PtrParamNode xml_;
     
-    /** Subsection within the OLAS linear system */
-    PtrParamNode eigenInfo_;
-
     //! Flag indicating if problem is generalized problem
     bool isGeneralized_;
 

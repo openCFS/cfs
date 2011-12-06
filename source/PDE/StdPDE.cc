@@ -14,7 +14,6 @@
 
 // headers for Paramhandling
 #include "DataInOut/ParamHandling/ParamNode.hh"
-#include "DataInOut/ParamHandling/CFSOLASParams.hh"
 #include "Driver/Assemble.hh"
 
 #include "OLAS/algsys/AlgebraicSys.hh"
@@ -115,32 +114,6 @@ namespace CoupledField {
   // ======================================================
   // ALGSYS SECTION (SOLVER, ...) 
   // ======================================================
-
-  PtrParamNode StdPDE::FindLinearSystem(const std::string& sysName) {
-
-    PtrParamNode pn, linSysNode;
-    
-    pn = param->GetByVal("sequenceStep", "index", sequenceStep_, ParamNode::PASS);
-    linSysNode = pn->Get("linearSystems", ParamNode::INSERT);
-    pn = linSysNode->GetByVal("system", "name", sysName, ParamNode::INSERT);
-    
-    // If no system with the specified name could be found in XML file
-    // we just generate a new ParamNode.
-    //WARN("Check, if <linearSystems> node is created properly");
-    //    if(!pn) {
-//      
-//      
-//      linSysNode->GetChildren().Push_back(PtrParamNode(new ParamNode());
-//      pn = linSysNode->GetChildren().Last();
-//      pn->SetName("system");
-//      pn->GetChildren().Push_back(new ParamNode());
-//      PtrParamNode nameNode = pn->GetChildren().Last();
-//      nameNode->SetName("name");
-//      nameNode->SetValue(sysName);
-//    }
-    
-    return pn;
-  }
 
   Double StdPDE::GetFracDampMatrixCoeff(RegionIdType regionId) {
     
@@ -252,30 +225,6 @@ namespace CoupledField {
      }
    }
  }
-
-  // ******************
-  //   ReadOlasParams
-  // ******************
-  void StdPDE::ReadOlasParams( std::string sysName ) {
-
-
-    // Log to .las file
-    (*cla) <<  " --- CFS: Setting parameters for linear system '"
-           << sysName << " ---" << std::endl;
-
-    // Set parameters for OLAS
-    std::string amExpert = "no";
-    param->GetValue( "override", amExpert, ParamNode::PASS );
-
-    PtrParamNode linSysNode;
-    PtrParamNode temp = param->GetByVal("sequenceStep", "index", sequenceStep_);
-    temp = temp->Get("linearSystems", ParamNode::INSERT);
-    linSysNode = temp ->GetByVal("system", "name", sysName, ParamNode::INSERT );
-    CFSOLASParams::SetParams( sysName, linSysNode, 
-                              analysistype_, assemble_,
-                              (amExpert == "yes") );
-
-  }
 
   //============================================================================================
   //FeFunction Methods

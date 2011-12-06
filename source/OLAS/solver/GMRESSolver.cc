@@ -22,7 +22,7 @@ namespace CoupledField {
 
     // Set pointers to communication objects
     infoNode_ = olasInfo->Get("gmres");
-
+    
     // Prepare remaining internal attributes
     c_              = NULL;
     s_              = NULL;
@@ -93,9 +93,7 @@ namespace CoupledField {
     UInt nRows = sysMat.GetNumRows();
 #endif
     UInt newKrylovDim = 50;
-    PtrParamNode sNode;
-    sNode = xml_->Get("gmres", ParamNode::INSERT);
-    sNode->GetValue("maxKrylovDim", newKrylovDim, ParamNode::INSERT);
+    xml_->GetValue("maxKrylovDim", newKrylovDim, ParamNode::INSERT);
     
 
     // Check that matrix is square
@@ -203,9 +201,7 @@ namespace CoupledField {
     // -------------------------------------------------------------
     Double resNorm = 0;
     Double eps = 1e-6;
-    PtrParamNode sNode;
-    sNode = xml_->Get("gmres", ParamNode::INSERT);
-    sNode->GetValue("tol", eps, ParamNode::INSERT);
+    xml_->GetValue("tol", eps, ParamNode::INSERT);
     
     Double tolerance = ComputeThreshold( eps, rhs, *(vMat_[1]), resNorm,
                                          logging );
@@ -218,7 +214,7 @@ namespace CoupledField {
     //   Perform the GMRES(m) iteration
     // ----------------------------------
     Integer maxIter = 1;
-    sNode->GetValue("maxIter", maxIter, ParamNode::INSERT);
+    xml_->GetValue("maxIter", maxIter, ParamNode::INSERT);
 
     Integer loopsDone = maxIter;
     UInt stepCount = 0;

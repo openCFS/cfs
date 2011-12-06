@@ -15,10 +15,12 @@
 
 namespace CoupledField {
 
-  ArpackEigenSolver::ArpackEigenSolver( PtrParamNode xml,
-                                        PtrParamNode eigenInfo,
-                                        PtrParamNode olasInfo )
-    : BaseEigenSolver( xml, olasInfo ){
+  ArpackEigenSolver::ArpackEigenSolver( shared_ptr<SolStrategy> strat,
+                                        PtrParamNode xml,
+                                        PtrParamNode solverList,
+                                        PtrParamNode precondList,
+                                        PtrParamNode eigenInfo)
+    : BaseEigenSolver( strat, xml, solverList, precondList, eigenInfo ){
 
     interface_    = NULL;
     matrixA_      = NULL;
@@ -29,7 +31,6 @@ namespace CoupledField {
     precond_      = NULL;
     which_        = NULL;
     xml_          = xml;
-    eigenInfo_    = eigenInfo;
     
     isGeneralized_ = false;
     shiftAndInvert_ = false;
@@ -121,14 +122,16 @@ namespace CoupledField {
     PrintInfo();
 
     // Create solver
-    solver_ = GenerateSolverObject( *matrixA_, xml_, eigenInfo_ );
+    solver_ = GenerateSolverObject( *matrixA_, solStrat_,
+                                    solverList_, eigenInfo_ );
 
     // Perform check, if matrix is std or sbm
     if ( matrixA_->GetStructureType() == BaseMatrix::SPARSE_MATRIX ) {
       const StdMatrix & mat = dynamic_cast< const StdMatrix &>( *matrixA_ );
 
       // Create preconditioner 
-      precond_ = GenerateStdPrecondObject( mat, xml_, eigenInfo_ );
+      precond_ = GenerateStdPrecondObject( mat, solStrat_, 
+                                           precondList_, eigenInfo_ );
     } else {
       EXCEPTION( "No preconditioner available for SBM-matrices!" );
     }
@@ -219,14 +222,16 @@ namespace CoupledField {
     PrintInfo();
 
     // Create solver
-    solver_ = GenerateSolverObject( *matrixB_, xml_, eigenInfo_ );
+    solver_ = GenerateSolverObject( *matrixB_, solStrat_, 
+                                    solverList_, eigenInfo_ );
 
     // Perform check, if matrix is std or sbm
     if ( matrixA_->GetStructureType() == BaseMatrix::SPARSE_MATRIX ) {
       const StdMatrix & mat = dynamic_cast< const StdMatrix &>( *matrixB_ );
 
       // Create preconditioner
-      precond_ = GenerateStdPrecondObject( mat, xml_, eigenInfo_ );
+      precond_ = GenerateStdPrecondObject( mat, solStrat_, 
+                                           precondList_, eigenInfo_ );
     } else {
       EXCEPTION( "No preconditioner available for SBM-matrices!" );
     }
@@ -410,16 +415,19 @@ namespace CoupledField {
     
     // Print log-info about EigenSolver
     PrintInfo();
-
+    std::cerr << "solverList in Arpack is \n";
+    solverList_->Dump();
     // Create standard solver
-    solver_ = GenerateSolverObject( *matrixA_, xml_, eigenInfo_ );
+    solver_ = GenerateSolverObject( *matrixA_, solStrat_, 
+                                    solverList_, eigenInfo_ );
 
     // Perform check, if matrix is std or sbm
     if ( matrixA_->GetStructureType() == BaseMatrix::SPARSE_MATRIX ) {
       const StdMatrix & mat = dynamic_cast< const StdMatrix &>( *matrixA_ );
 
       // Create preconditioner
-      precond_ = GenerateStdPrecondObject( mat, xml_, eigenInfo_ );
+      precond_ = GenerateStdPrecondObject( mat, solStrat_, 
+                                           precondList_, eigenInfo_ );
     } else {
       EXCEPTION( "No preconditioner available for SBM-matrices!" );
     }

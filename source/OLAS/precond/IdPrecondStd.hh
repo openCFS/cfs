@@ -21,8 +21,7 @@ namespace CoupledField {
     using BasePrecond::Setup;
 
     //! Default Constructor
-    IdPrecondStd() {
-    };
+    IdPrecondStd(PtrParamNode xml, PtrParamNode olasInfo );
 
     //! Default Destructor
     ~IdPrecondStd() {

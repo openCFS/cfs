@@ -8,11 +8,11 @@ namespace CoupledField {
   //   Constructor
   // ***************
   template <typename T>
-  IC0Precond<T>::IC0Precond( const StdMatrix& mat, PtrParamNode solverNode,
+  IC0Precond<T>::IC0Precond( const StdMatrix& mat, PtrParamNode precondNode,
                              PtrParamNode olasInfo )
   {
-    this->xml_ = solverNode;
-    this->infoNode_ = olasInfo;
+    this->xml_ = precondNode;
+    this->infoNode_ = olasInfo->Get("ic0", ParamNode::APPEND);
     size_           = mat.GetNumRows();
     amFactorised_   = false;
   }

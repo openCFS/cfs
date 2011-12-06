@@ -115,7 +115,8 @@ class IDBC_Graph;
     //! This method must be called after the assembly of all sub-graphs was
     //! done, i.e. once all blocks have conveyed their
     //! connectivity information to the graph manager.
-    void SetupDone();
+    //! \param reorder  re-ordering type for each block
+    void SetupDone(const StdVector<BaseOrdering::ReorderingType>& reorder);
 
     //! Register block with graph manager
     
@@ -129,16 +130,12 @@ class IDBC_Graph;
     //!                       col/row index, an (optional) definition of
     //!                       sub-blocks, as well as a flag, if the block
     //!                       can be reordered.
-    //! \param reorder        re-ordering type for this block (optional)
     //!
     //! \note A SBMBlock can only be reordered, if it has no subblocks defined,
     //!       as otherwise we can not guarantee for continuous indices within
     //!       one block.
     void RegisterBlock( const UInt blockNum,
-                        SBMBlockInfo* blockInfo,
-                        const BaseOrdering::ReorderingType reorder =
-                        BaseOrdering::NOREORDERING );
-
+                        SBMBlockInfo* blockInfo );
     //@}
 
     // =======================================================================

@@ -115,7 +115,7 @@ namespace CoupledField {
     using BNPrecond<ILUK_Precond<T>, CRS_Matrix<T>, T >::Setup;
 
     //! Constructor
-    ILUK_Precond( const StdMatrix &stdMat, PtrParamNode solverNode,
+    ILUK_Precond( const StdMatrix &stdMat, PtrParamNode precondNode,
                    PtrParamNode olasInfo );
 
     //! Destructor

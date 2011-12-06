@@ -40,7 +40,7 @@ namespace CoupledField {
     //!                    freedom; this number is used as number of columns
     //!                    of associated matrix
     IDBC_Graph( UInt numFreeDofs, UInt numFixedDofs ) :
-      BaseGraph( numFreeDofs, numFixedDofs, BaseOrdering::NOREORDERING ) {
+      BaseGraph( numFreeDofs, numFixedDofs) {
     }
 
     //! Default destructor

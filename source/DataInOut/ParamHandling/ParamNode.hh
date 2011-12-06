@@ -159,6 +159,9 @@ namespace CoupledField
     * If this element is already a leaf node, the list is empty.<br>
     * Be careful when editing this list! */
     ParamNodeList& GetChildren() { return children_;}
+    
+    /** Returns father element. If this element is the root node, NULL is returned */
+    ParamNode*  GetParent() { return parent_;}
            
     /** Returns the only child of an element which might be an attribute or simple xml element or in
     * other words a leaf node - and without any sorting a complex ParamNode which has children by itself. 

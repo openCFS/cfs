@@ -8,6 +8,7 @@
 #include "General/Enum.hh"
 #include "MatVec/BaseMatrix.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
+#include "General/Environment.hh"
 
 namespace CoupledField {
   
@@ -16,7 +17,7 @@ namespace CoupledField {
   template<typename> class Vector;
   
   // forward class declaration
-  //class BaseSolver;
+  class SolStrategy;
   
   // =========================================================================
   // BASE EIGENVALUE SOLVER
@@ -40,9 +41,16 @@ namespace CoupledField {
   public:
     
     //! Default Constructor
-    BaseEigenSolver( PtrParamNode solverParams, PtrParamNode olasInfo )
-      : xml_(solverParams),
-        olasInfo_(olasInfo),
+    BaseEigenSolver( shared_ptr<SolStrategy> strat, 
+                     PtrParamNode eSolverXML,
+                     PtrParamNode solverList,
+                     PtrParamNode precondList,
+                     PtrParamNode eigenInfo )
+      : solStrat_(strat),
+        xml_(eSolverXML),
+        solverList_(solverList),
+        precondList_(precondList),
+        eigenInfo_(eigenInfo),
         numFreq_(0),
         freqShift_(0.0),
         isQuadratic_(false)
@@ -129,17 +137,34 @@ namespace CoupledField {
     
   protected: 
 
+    //! Pointer to solution strategy object
+    shared_ptr<SolStrategy> solStrat_;
+    
     //! Pointer to parameter object
 
     //! This is a pointer to a parameter object containing the steering
     //! parameters for this solver.
     PtrParamNode xml_;
     
+    //! Pointer to solverList element
+    
+    //! Stores the pointer to the <solverList> xml. As the arpackSolver
+    //! internally also utilizes a solver, we need to pass this
+    //! information to the factory method for solver creation.
+    PtrParamNode solverList_;
+    
+    //! Pointer to precondList element
+
+    //! Stores the pointer to the <precondList> xml. As the arpackSolver
+    //! internally also utilizes a solver, we need to pass this
+    //! information to the factory method for solver creation.
+    PtrParamNode precondList_;
+    
     //! Pointer to report object
     
     //! This is a pointer to a report object in which the solver will store
     //! general information about the solution of a linear system.
-    PtrParamNode olasInfo_;
+    PtrParamNode eigenInfo_;
     
     //! Number of frequencies to be calculated
     UInt numFreq_;

@@ -14,7 +14,6 @@ SET(DATAINOUT_SRCS
   ResultCache.cc
   ResultHandler.cc
   SimOutput.cc
-  WriteInfo.cc
   XMLMaterialHandler.cc
 )
 

@@ -25,6 +25,7 @@ namespace CoupledField {
   class StdMatrix;
   class BaseVector;
   class SingleVector;
+  class SolStrategy;
   template <class TYPE> class StdVector;
   template <class TYPE> class Vector;
 
@@ -74,14 +75,14 @@ namespace CoupledField {
     //! Triple identifying a sub-matrix of a Finite-Element matrix
     typedef struct {
       FEMatrixType feType;
-      FeFctIdType rowInd;
-      FeFctIdType colInd;
+      Integer rowInd;
+      Integer colInd;
     } FeSubMatrixID;
 
     //! Tuple storing row and column index of an Finite-Element sub-matrix
     typedef struct {
-      FeFctIdType rowInd;
-      FeFctIdType colInd;
+      Integer rowInd;
+      Integer colInd;
     } SubMatrixID;
 
     //! For convenience and to help g++ parsing we define this shortcut
@@ -94,11 +95,9 @@ namespace CoupledField {
     //! Default Destructor
     virtual ~AlgebraicSys();
 
-    //! 
-    BaseIDBC_Handler* GetIdbcHandler() {
-      return idbcHandler_;
-     }
-
+    //! Return struct with solution strategy
+    shared_ptr<SolStrategy> GetSolStrategy() {return solStrat_;}
+    
     // ***********************************************************************
     //   Methods for creating and initializing the algebraic system
     // ***********************************************************************
@@ -334,13 +333,11 @@ namespace CoupledField {
     //! identifiers must be specified.
     //! \param identifierFct1 identifier for first Fct related to sub-graph
     //! \param identifierFct2 identifier for second Fct related to sub-graph
-    //! \param isSymmetric flag indicating, if matrix block will be symmetric
     //! \param assemblingTranspose indicates whether the graph of the
     //!                            transpose coupling object will be assembled
     //!                            together with the coupling object.
     void AssembleInit( const FeFctIdType identifierFct1,
                        const FeFctIdType identifierFct2,
-                       bool isSymmetric,
                        bool assemblingTranspose );
 
     //! Finalise assembly of a sub-graph
@@ -737,16 +734,22 @@ namespace CoupledField {
     //! required in the simulation. In the case of an SBM_System we use
     //! the supplied Fct identifiers to determine which sub-matrices of
     //! the specified Finite-Element matrix will be needed.
+    //! Thi method gets called once per bilinearform.
     //! \note The final problem matrix of type SYSTEM is always generated
     //!       by default.
     //! \param matrixType type of finite element matrix (STIFFNESS, MASS, ...)
+    //! \param isSymmetric true, if matrix is symmetric (only possible for 
+    //!                    fctId1 = fctid2).
+    //! \param isComplex true, if matrix entries are complex
     //! \param fctId1  unique identifier for a Fct registered with the
     //!                graph manager
     //! \param fctId2  unique identifier for a Fct registered with the
     //!                graph manager
     void SetFEMatrixType( const FEMatrixType matrixType,
+                          const bool isSymmetric,
+                          const bool isComplex,
                           const FeFctIdType fctId1,
-                          const FeFctIdType fctId2 = NO_FCT_ID);
+                          const FeFctIdType fctId2 = NO_FCT_ID );
 
     //! Get types of used matrices (STIFFNESS, MASS, ...)
 
@@ -822,6 +825,16 @@ namespace CoupledField {
     //! CreateLinSys().
     void PrintFeMatrixInfo();
 
+    //! Check consistency of setup (solver, preconditioner, matrix format)
+    
+    //! This method performs consistency checks on the type of solver,
+    //! the preconditioner and the matrix to be created.
+    //! It checks for example, if the symmetry type of the matrix matches 
+    //! the solver and matrix specifications.
+    //! \note This method basically performs the former CFSOLASParams 
+    //!       functionality.
+    void CheckConsistency();
+    
     //! Generate  SBM matrix according to graph information
     SBM_Matrix* GenerateSBM_Matrix( FEMatrixType matType,
                                     BaseMatrix::EntryType entryType );
@@ -837,6 +850,9 @@ namespace CoupledField {
     
     //! Pointer to eigenvalue solver
     BaseEigenSolver *eigenSolver_;
+    
+    //! Pointer to struct with solution strategy information
+    shared_ptr<SolStrategy> solStrat_; 
 
     //@{ \name Attributes storing information on individual functions / blocks
 
@@ -860,6 +876,9 @@ namespace CoupledField {
 
     //! STL map for associating Fct-identifiers with FeFunction name
     std::map<FeFctIdType,std::string> fctNames_;
+    
+    //! Store for each FeFct, if the assoicated system matrix is symmetric
+    std::map<FeFctIdType,bool> matIsSymm_;
 
     //@}
 
@@ -932,7 +951,10 @@ namespace CoupledField {
     //! Effective solution vector
     SBM_Vector *effSol_;
 
-    //! Flag signaling symmetry of SBM matrices
+    //! Store for each diagonal SBM-Block if it is symmetric.
+    StdVector<bool> isDiagBlockSymm_;
+    
+    //! Flag signaling symmetry of system matrix
     bool sbmSymm_;
 
     //@}
@@ -1015,6 +1037,9 @@ namespace CoupledField {
     
     //! Flag indicating use of static condensation
     bool statCond_;
+    
+    //! Flag indicating, if system matrix is complex
+    bool isComplex_;
   };
 
 } // namespace

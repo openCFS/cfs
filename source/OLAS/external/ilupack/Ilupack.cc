@@ -26,9 +26,9 @@ template<typename T>
 Ilupack<T>::Ilupack(PtrParamNode xml, PtrParamNode olasInfo, BaseMatrix::EntryType type)
 {
   // we work with out 
-  xml_ = xml->Get("ilupack", ParamNode::PASS);
+  xml_ = xml;
   infoNode_ = olasInfo->Get("ilupack");
-
+  
   if (type != BaseMatrix::COMPLEX && type != BaseMatrix::DOUBLE)EXCEPTION("unhandled type " << type);
   isComplex_ = type == BaseMatrix::COMPLEX;
 

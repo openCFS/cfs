@@ -1,9 +1,11 @@
 #ifndef OLAS_BASESOLVER_HH
 #define OLAS_BASESOLVER_HH
 
+#include <set>
 #include "General/Environment.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "OLAS/precond/BasePrecond.hh"
+#include "MatVec/BaseMatrix.hh"
 
 namespace CoupledField {
 
@@ -28,7 +30,6 @@ namespace CoupledField {
     //! is applied to solve the system. Note that not all solvers can handle
     //! all types of matrices. The enumeration contains the following values:
     //! - NOSOLVER
-    //! - DIRECT
     //! - RICHARDSON
     //! - CG
     //! - LANCZOS
@@ -42,9 +43,9 @@ namespace CoupledField {
     //! - LU_SOLVER
     //! - LDL_SOLVER
     //! - LDL_SOLVER2
-    typedef enum {NOSOLVER, DIRECT, RICHARDSON, CG, LANCZOS, QMR, GMRES,
+    typedef enum {NOSOLVER, RICHARDSON, CG, LANCZOS, QMR, GMRES,
                   MINRES, SYMMLQ, LAPACK_LU, LAPACK_LL, PARDISO,  ILUPACK, LU_SOLVER, CHOLMOD, 
-                  LDL_SOLVER, LDL_SOLVER2, DIAGSOLVER } SolverType;    
+                  LDL_SOLVER, DIAGSOLVER } SolverType;    
     static Enum<SolverType> solverType;
 
   public:

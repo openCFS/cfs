@@ -12,7 +12,6 @@
 #include "main/CFS.hh"
 #include "Utils/Timer.hh"
 #include "DataInOut/DefineFiles/DefineInOutFiles.hh"
-#include "DataInOut/WriteInfo.hh"
 #include "DataInOut/MaterialHandler.hh"
 #include "DataInOut/ProgramOptions.hh"
 #include "Domain/Domain.hh"
@@ -75,9 +74,6 @@ CFS::CFS(int argc, const char **argv) :
   // Set segfault to false
   Exception::segfault_ = false;
 
-
-  // Create object for logging information
-  Info = new WriteInfo();
 
   // =========================================================================
   // HANDLE COMMAND LINE PARAMETERS
@@ -143,9 +139,6 @@ CFS::~CFS()
   delete progOpts;
   delete resultHandler;
 
-  // Delete global string streams
-  delete Info;
-  
   // delete some global objects because valgrind complains otherwise
   // does not really matter anyway...
   param.reset();
@@ -350,9 +343,6 @@ void CFS::SetupIO()
 
   // generate material handler
   materialHandler = fileHandler.CreateMaterialHandler();
-
-  // Open file for status reports by CFS++
-  Info->CreateFile();
 
   // Create simulation output writer
   map<string, shared_ptr<SimOutput> > outFiles;

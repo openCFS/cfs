@@ -3,7 +3,15 @@
 #include <fstream> 
 #include <string> 
 
+#include <def_use_metis.hh>
+#include <def_use_pardiso.hh>
+#include <def_use_lapack.hh>
+#include <def_use_ilupack.hh>
+#include <def_use_cholmod.hh>
+#include <def_use_arpack.hh>
+
 #include "OLAS/algsys/AlgebraicSys.hh"
+#include "OLAS/algsys/SolStrategy.hh"
 #include "MatVec/SBM_Matrix.hh"
 #include "MatVec/VBR_Matrix.hh"
 
@@ -53,6 +61,7 @@ namespace CoupledField {
     sol_ = NULL;
     sbmSymm_            = true;
     statCond_           = false;
+    isComplex_          = false;
     effMat_             = NULL;
     effRhs_             = NULL;
     effSol_             = NULL;
@@ -63,15 +72,13 @@ namespace CoupledField {
     // Default is to always use a system matrix
     matrixTypes_.insert( SYSTEM );
     
+    // Setup solution strategy enum
+    PtrParamNode stratNode = myParam_->Get("solutionStrategy",ParamNode::INSERT);
+    solStrat_ = SolStrategy::Generate(stratNode);
+    
     // Set flag for insertion of penalty terms into matrix
-    PtrParamNode setupNode;
-    setupNode = myParam_->Get("setup", ParamNode::INSERT );
-
-    
-    std::string aux = "penalty";
-    setupNode->GetValue("idbcHandling", aux, ParamNode::INSERT );
-    usingPenalty_ = aux == "penalty" ? true : false;
-    
+    usingPenalty_ = solStrat_->UseDirichletPenalty();
+    std::string aux = usingPenalty_ ? "penalty" : "elimination";
     myInfo_->Get("setup")->Get("idbcHandling")->SetValue(aux);
     
     // Set flag for insertion of penalty terms into matrix
@@ -135,103 +142,19 @@ namespace CoupledField {
   void AlgebraicSys::CreateLinSys() {
     
     LOG_TRACE(algSys) << "Creating linear system";
+
     std::set<FEMatrixType>::iterator fIt;
-      std::set<SubMatrixID,SortSubMatrixID>::iterator sIt;
+    // ------------------------------
+    //  Generation of matrix objects
+    // ------------------------------
 
-      // -----------------------------------------------------------
-      // Up to now, the feSubMatrices are defined on a fctId level.
-      // However we need the mapping on the block level, so we have to map
-      // for each matrixType (SYSTEM, STIFFNESS etc.), how the fctIds are 
-      // spread to sbmBlocks and initialize the structure 
-      // feSubMatricesByBlocks_.
-      // -----------------------------------------------------------
-      
-      // loop over all matrix Types in feSubMatricesByFctId
-      std::map<FEMatrixType, SubMatrixSet>::const_iterator itMatByFct =
-          feSubMatricesByFctId_.begin();
-      for( ; itMatByFct != feSubMatricesByFctId_.end(); ++itMatByFct ) {
-
-        const FEMatrixType & matrixType = itMatByFct->first;
-        const SubMatrixSet & sbmSet = itMatByFct->second;
-        SubMatrixSet::const_iterator sbmIt = sbmSet.begin();
-
-        // loop over all blocks
-        for( ; sbmIt != sbmSet.end(); ++sbmIt ) {
-
-          const FeFctIdType rowFctId = sbmIt->rowInd;
-          const FeFctIdType colFctId = sbmIt->colInd;
-          
-          // get SBM blocks, in which the current (rowFctId, colFctId)
-          // occurs
-          std::set<UInt>& rowBlocks = fctIdsInBlocks_[rowFctId];
-          std::set<UInt>& colBlocks = fctIdsInBlocks_[colFctId];
-          
-          // insert all combinations (rowBlock,colBlock) feSubMatricesByBlock_
-          std::set<UInt>::const_iterator rowIt = rowBlocks.begin();
-          std::set<UInt>::const_iterator colIt = colBlocks.begin();
-          for( ; rowIt != rowBlocks.end(); ++rowIt ) {
-            for( ; colIt != colBlocks.end(); ++colIt ) {
-              SubMatrixID sID;
-              sID.rowInd = *rowIt;
-              sID.colInd = *colIt;
-
-              // Insert sub-matrix identifier into corresponding FE-Matrix set
-              feSubMatricesByBlocks_[matrixType].insert( sID );
-            } // loop over cols
-          } // loop over rows
-        } // loop over subblocks (byFctId)
-      } // loop over matrixType
-      
-      // --------------------------------------------------------------------
-      // Determine the set of sub-matrices that we need for the SYSTEM matrix
-      // There are two different cases:
-      //
-      // 1) We have other FE matrices, then we generate the set by creating
-      //    the union of all other sets
-      //
-      // 2) There are no other sets, so we generate a sub-matrix for each
-      //    sub-graph that the graph manager stores
-      // --------------------------------------------------------------------
-      if ( matrixTypes_.size() > 1 ) {
-        for ( fIt = matrixTypes_.begin(); fIt != matrixTypes_.end(); fIt++ ) {
-          if ( *fIt != SYSTEM ) {
-            feSubMatricesByBlocks_[SYSTEM].insert(
-                feSubMatricesByBlocks_[*fIt].begin(),
-                feSubMatricesByBlocks_[*fIt].end() );
-          }
-        }
-      }
-      else {
-        SubMatrixID sID;
-        for ( UInt i = 0; i < numBlocks_; i++ ) {
-          for ( UInt j = 0; j < numBlocks_; j++ ) {
-            if ( graphManager_->SubGraphExists( i, j ) == true ) {
-              sID.rowInd = i;
-              sID.colInd = j;
-              feSubMatricesByBlocks_[SYSTEM].insert( sID );
-            }
-          }
-        }
-      }
-
-      // determine overall number of entries (including fixed equations)
-      size_ = 0;
-      for( UInt i = 0; i < numBlocks_; i++ ) {
-        size_ += blockInfo_[i]->size;
-      }
-
-      // ------------------------------
-      //  Generation of matrix objects
-      // ------------------------------
-
-      // Obtain some info from parameter file
-      BaseMatrix::EntryType entryType;
-      std::string entryStr = "double";
-      entryType = BaseMatrix::entryType.Parse( entryStr );
-
-      for ( fIt = matrixTypes_.begin(); fIt != matrixTypes_.end(); fIt++ ) {
-        sysMat_[*fIt] = GenerateSBM_Matrix( *fIt, entryType );
-      }
+    // Obtain some info from parameter file
+    BaseMatrix::EntryType entryType = isComplex_ ? 
+        BaseMatrix::COMPLEX :
+        BaseMatrix::DOUBLE;
+    for ( fIt = matrixTypes_.begin(); fIt != matrixTypes_.end(); fIt++ ) {
+      sysMat_[*fIt] = GenerateSBM_Matrix( *fIt, entryType );
+    }
 
       // Log what we will do
       PrintFeMatrixInfo();
@@ -291,7 +214,7 @@ namespace CoupledField {
       }
 
       // ---------------------------------------
-      //   Generate efficient matrices vectors
+      //   Generate effective matrices vectors
       // ---------------------------------------
 
       // This depends on the status of static condensation
@@ -322,16 +245,19 @@ namespace CoupledField {
     
     LOG_TRACE(algSys) << "Creating preconditioner";
     
-    PtrParamNode precondNode = myInfo_->Get("precond");
+    
+    
+    PtrParamNode precondListNode = myParam_->Get("precondList");
+    PtrParamNode infoNode = myInfo_->Get("precond");
     
     // if we have just one SBM matrix block, use directly
     // the specialized methods for StdMatrices
     if( numBlocks_ == 1) {
-      precond_ = GenerateStdPrecondObject((*effMat_)(0,0),
-                                          myParam_, precondNode );
+      precond_ = GenerateStdPrecondObject((*effMat_)(0,0), solStrat_,
+                                          precondListNode, infoNode );
     } else {
-      precond_ = GenerateSBMPrecondObject( *(effMat_), 
-                                           myParam_, precondNode );
+      precond_ = GenerateSBMPrecondObject( *(effMat_), solStrat_,
+                                           precondListNode, infoNode );
     }
     
   }
@@ -339,16 +265,19 @@ namespace CoupledField {
   void AlgebraicSys::CreateSolver() {
     
     LOG_TRACE(algSys) << "Creating solver";
-    PtrParamNode solverNode = myInfo_->Get("solver");
+    
+    
+    PtrParamNode solverListNode = myParam_->Get("solverList");
+    PtrParamNode infoNode = myInfo_->Get("solver");
     
     // if we have just one SBM matrix block, use directly
     // the specialized methods for StdMatrices
     if( numBlocks_ == 1) {
-      solver_ = GenerateSolverObject( (*effMat_)(0,0), 
-                                      myParam_, solverNode);
+      solver_ = GenerateSolverObject( (*effMat_)(0,0), solStrat_, 
+                                      solverListNode, infoNode);
     } else {
-      solver_ = GenerateSolverObject( *(effMat_), 
-                                      myParam_, solverNode);
+      solver_ = GenerateSolverObject( *(effMat_), solStrat_,
+                                      solverListNode, infoNode);
     }
      
   }
@@ -406,15 +335,18 @@ namespace CoupledField {
     //  CHECK FOR CALCULATION OF CONDITION NUMBER
     // ======================================================================
     // Check, if condition number is to be calculated
-      bool calcCapa = false;
-      myParam_->Get("matrix", ParamNode::INSERT)
-      ->GetValue("calcConditionNumber", calcCapa, ParamNode::INSERT );
+      bool calcCapa = solStrat_->CalcConditionNumber();
       
       if( calcCapa ) {
         Double condNumber = 0.0;
         Vector<Double> ev, err;
+        PtrParamNode esNode = myParam_->Get("eigenSolverList");
+        PtrParamNode sNode = myParam_->Get("solverList");
+        PtrParamNode pNode = myParam_->Get("precondList");
+        
         BaseEigenSolver * evs = 
-          GenerateEigenSolverObject( *(sysMat_[SYSTEM]), myParam_, 
+          GenerateEigenSolverObject( *(sysMat_[SYSTEM]), solStrat_, 
+                                     esNode, sNode, pNode,
                                      myInfo_->Get("solve_eigen") );
         PtrParamNode in = myInfo_->
             Get(ParamNode::PROCESS)->Get("conditionNumber", ParamNode::APPEND);
@@ -438,13 +370,14 @@ namespace CoupledField {
         }
         
         delete evs;
-        // in the end prevent-relcaulation of evs by re-setting the value for CalcConditionNumber
-        myParam_->Get("matrix")->Get("calcConditionNumber")->SetValue( boost::any(false) );
+        // in the end prevent-recalculation of evs by 
+        //re-setting the value for CalcConditionNumber
+        solStrat_->GetSetupNode()->Get("calcConditionNumber")->SetValue( boost::any(false) );
       }
     // ======================================================================
     
     // If the penalty formulation is used and we have inhomogeneous
-    // Dirichlet boundary conditions, then the righ-hand side is
+    // Dirichlet boundary conditions, then the right-hand side is
     // "contaminated" with penalty terms
     if ( usingPenalty_ ) {
       solver_->SetUsingPenalty( false );
@@ -470,7 +403,7 @@ namespace CoupledField {
     // the solve part is commentet out, I see no reason to export linsys also here, it would
     // require a generalization anyway. Fabian 16.11.07
     // check if we do export stuff
-    PtrParamNode els = myParam_->Get("exportLinSys", ParamNode::PASS );
+    PtrParamNode els = solStrat_->GetExportLinSysNode();
     std::string file;
     std::string base;
 
@@ -487,11 +420,10 @@ namespace CoupledField {
     }
 
     // check if we do not only want the solution
-    if(els && els->Get("solution")->As<std::string>() != "exclusive")
-    {
+    if( els->Has("solution") &&  
+        els->Get("solution")->As<std::string>() != "exclusive") {
       // two formats. The harwell-boing format includes the rhs!
-      if(els->Get("format")->As<std::string>()  == "harwell-boeing")
-      {
+      if(els->Get("format")->As<std::string>()  == "harwell-boeing") {
         EXCEPTION( "Harwell-Boeing Format not implemented for SBM-case" );
       }
       else // classical (default) matrix-market
@@ -506,8 +438,8 @@ namespace CoupledField {
           precond_->GetPrecondSysMat(*copy);
         }
         copy->Export((base+"_precond.mtx").c_str());
-        
-        
+
+
         if(els->HasByVal("damping", true) && sysMat_[DAMPING] != NULL)
           sysMat_[DAMPING]->Export((base+"_damping.mtx").c_str() );
 
@@ -586,7 +518,7 @@ namespace CoupledField {
     }
 
     // Export solution if desired
-    if(els && els->Get("solution")->As<std::string>() != "no")
+    if(els->Has("solution") && els->Get("solution")->As<std::string>() != "no")
       sol_->Export((base+".sol.vec").c_str());
 
     // Now de-modifiy the right-hand side vector
@@ -642,6 +574,8 @@ namespace CoupledField {
     
     // block specific data
     numBlocks_ = numBlocks;
+    isDiagBlockSymm_.Resize(numBlocks_);
+    isDiagBlockSymm_.Init(true);
     
     // If we have static condensation, the last diagonal block is the 
     // inner-inner one, which will not be connected to a Dirichlet block. 
@@ -704,6 +638,7 @@ namespace CoupledField {
     // Remember number of equation numbers for each function
     numEqnsPerFct_[fctId] = numEqns;
     lastFreeEqnPerFct_[fctId] = numLastFreeEqn;
+    matIsSymm_[fctId] = true;
   }
   
   
@@ -793,7 +728,7 @@ namespace CoupledField {
       
       // Store number of Dirichlet values per SBM block
       // Note: if we perform static condensation, we have one block
-      // less for the IDBC-hanlder
+      // less for the IDBC-handler
       if( sbmIndex < numDirichletValuesPerBlock_.GetSize() ) {
         numDirichletValuesPerBlock_[sbmIndex] = index - numLastFreeIndex;
       }
@@ -805,8 +740,8 @@ namespace CoupledField {
         bi.size = index;
         bi.numLastFreeIndex = index;
       } else {
-        // Case b): If we use elimination approach, we create the graphmanager
-        //          creates an additional IDBC-graph and sorts the indices /
+        // Case b): If we use elimination approach, we 
+        //          create an additional IDBC-graph and sort the indices /
         //          equations according to the numLastFreeIndex value
         bi.size = index;
         bi.numLastFreeIndex = numLastFreeIndex;
@@ -843,17 +778,8 @@ namespace CoupledField {
       } // if logging enabled
     } // loop over fctIds
     
-    // Determine reordering 
-    // Note: At the moment we just allow for one reordering type, which is  the one
-    // taken from the <matrix> element.
-    BaseOrdering::ReorderingType reorder = BaseOrdering::NOREORDERING;
-    std::string reorderStr = "noReordering";
-    myParam_->Get( "matrix",ParamNode::INSERT)
-                    ->GetValue( "reordering", reorderStr, ParamNode::INSERT );
-    reorder = BaseOrdering::reorderingType.Parse( reorderStr ); 
-
     // Now register block with graph manager
-    graphManager_->RegisterBlock( sbmIndex, blockInfo_[sbmIndex], reorder );
+    graphManager_->RegisterBlock( sbmIndex, blockInfo_[sbmIndex]  );
     
   }
 
@@ -909,12 +835,22 @@ namespace CoupledField {
   }
 
   void AlgebraicSys::SetFEMatrixType( const FEMatrixType matrixType,
+                                      const bool isSymmetric,
+                                      const bool isComplex,
                                       const FeFctIdType fctId1,
-                                      const FeFctIdType fctId2) {
+                                      const FeFctIdType fctId2 ) {
 
     LOG_TRACE(algSys) << "Setting matrix type '" << feMatrixType.ToString(matrixType)
                            << "' for fct-Ids (" << fctId1 << ", " << fctId2 << ")";
 
+    
+    // Note: The "isSymmetric" attribute is a bit misleading, as its meaning differs,
+    // depending if we we have a diagonal block (fctId1 == fctId2) or an off-diagonal
+    // block.
+    // For a diagonal block, it really denotes, if the (quadratic) matrix is symmetric.
+    // For off-diagonal blocks (which are in general rectangular shaped and not
+    // "symmetric"), it denots, if the transposed (rectangular) matrix is also set
+    // and thus the overall system is symmetric again.
 
     // Do nothing for nothing :)
     if( matrixType != NOTYPE ) {
@@ -931,18 +867,43 @@ namespace CoupledField {
       // corresponding FE-Matrix set
       feSubMatricesByFctId_[matrixType].insert( sID );
 
-      // -----------------------------------------------------------
-      // NOTE: We temporarily insert also the transposed sub-matrix
-      if ( fctId1 != fctId2 ) {
-        sID.colInd = fctId1;
-        sID.rowInd = fctId2;
+      // Treat symmetry type  
+      if( fctId1 == fctId2 ) {
 
-        // Insert sub-matrix identifier into
-        // corresponding FE-Matrix set
-        feSubMatricesByFctId_[matrixType].insert( sID );
+        // === DIAGONAL BLOCK ===
+        
+        // if we have a diagonal block, we can check, if we need
+        // a symmetric sparse matrix by looking at the symmetry type. 
+        // Note: The sbmSymmetry is not affected in this case.
+        if( !isSymmetric) {
+          this->matIsSymm_[fctId1] = false;
+        }
+      
+      } else {
+        // === OFF-DIAGONAL BLOCK ===
+        
+        // For an off-diagonal entry the symmetric-flag denotes, if the 
+        // transposed matrix is set as well. Thus, we can determine the overall
+        // symmetry of the SBM-Matrix. In case at least one integrator
+        // is non-symmetric, so will be the SBM matrix.
+        this->sbmSymm_ &= isSymmetric;
+
+        // If matrix is symmetric
+        if( isSymmetric) {
+          sID.colInd = fctId1;
+          sID.rowInd = fctId2;
+
+          // Insert sub-matrix identifier into
+          // corresponding FE-Matrix set
+          feSubMatricesByFctId_[matrixType].insert( sID );
+        }
       }
-      // -----------------------------------------------------------
 
+      // Determine entry type of matrices. Currently we proceed as follows:
+      // If at least one matrix contains complex entries, we assume that
+      // the whole system will have complex entries.
+      if( isComplex )
+        this->isComplex_ = true;
     }
   }
 
@@ -955,16 +916,140 @@ namespace CoupledField {
   //   GraphSetupDone
   // ******************
   void AlgebraicSys::GraphSetupDone() {
-    
+
     LOG_TRACE(algSys) << "Finished setup of graph";
+
+    std::set<FEMatrixType>::iterator fIt;
+    std::set<SubMatrixID,SortSubMatrixID>::iterator sIt;
+
+    // -----------------------------------------------------------
+    // Up to now, the feSubMatrices are defined on a fctId level.
+    // However we need the mapping on the block level, so we have to map
+    // for each matrixType (SYSTEM, STIFFNESS etc.), how the fctIds are 
+    // spread to sbmBlocks and initialize the structure 
+    // feSubMatricesByBlocks_.
+    // -----------------------------------------------------------
+
+    // loop over all matrix Types in feSubMatricesByFctId
+    std::map<FEMatrixType, SubMatrixSet>::const_iterator itMatByFct =
+        feSubMatricesByFctId_.begin();
+    for( ; itMatByFct != feSubMatricesByFctId_.end(); ++itMatByFct ) {
+
+      const FEMatrixType & matrixType = itMatByFct->first;
+      const SubMatrixSet & sbmSet = itMatByFct->second;
+      SubMatrixSet::const_iterator sbmIt = sbmSet.begin();
+
+      // loop over all blocks
+      for( ; sbmIt != sbmSet.end(); ++sbmIt ) {
+
+        const FeFctIdType rowFctId = sbmIt->rowInd;
+        const FeFctIdType colFctId = sbmIt->colInd;
+
+        // get SBM blocks, in which the current (rowFctId, colFctId)
+        // occurs
+        std::set<UInt>& rowBlocks = fctIdsInBlocks_[rowFctId];
+        std::set<UInt>& colBlocks = fctIdsInBlocks_[colFctId];
+
+        // insert all combinations (rowBlock,colBlock) feSubMatricesByBlock_
+        std::set<UInt>::const_iterator rowIt = rowBlocks.begin();
+        std::set<UInt>::const_iterator colIt = colBlocks.begin();
+        for( ; rowIt != rowBlocks.end(); ++rowIt ) {
+          for( ; colIt != colBlocks.end(); ++colIt ) {
+            SubMatrixID sID;
+            sID.rowInd = *rowIt;
+            sID.colInd = *colIt;
+
+            // Insert sub-matrix identifier into corresponding FE-Matrix set
+            feSubMatricesByBlocks_[matrixType].insert( sID );
+          } // loop over cols
+        } // loop over rows
+      } // loop over subblocks (byFctId)
+    } // loop over matrixType
+
+    // --------------------------------------------------------------------
+    // Determine the set of sub-matrices that we need for the SYSTEM matrix.
+    // There are two different cases:
+    //
+    // 1) We have other FE matrices, then we generate the set by creating
+    //    the union of all other sets
+    //
+    // 2) There are no other sets, so we generate a sub-matrix for each
+    //    sub-graph that the graph manager stores
+    // --------------------------------------------------------------------
+    if ( matrixTypes_.size() > 1 ) {
+      for ( fIt = matrixTypes_.begin(); fIt != matrixTypes_.end(); fIt++ ) {
+        if ( *fIt != SYSTEM ) {
+          feSubMatricesByBlocks_[SYSTEM].insert(
+              feSubMatricesByBlocks_[*fIt].begin(),
+              feSubMatricesByBlocks_[*fIt].end() );
+        }
+      }
+    }
+    else {
+      SubMatrixID sID;
+      for ( UInt i = 0; i < numBlocks_; i++ ) {
+        for ( UInt j = 0; j < numBlocks_; j++ ) {
+          if ( graphManager_->SubGraphExists( i, j ) == true ) {
+            sID.rowInd = i;
+            sID.colInd = j;
+            feSubMatricesByBlocks_[SYSTEM].insert( sID );
+          }
+        }
+      }
+    }
+
+    // determine overall number of entries (including fixed equations)
+    size_ = 0;
+    for( UInt i = 0; i < numBlocks_; i++ ) {
+      size_ += blockInfo_[i]->size;
+    }
+
+    // Determine symmetry type of diagonal SBM-blocks.
+    // Up to now, we know only the symmetry of the matrices w.r.t. the
+    // FeFunctions (see matIsSymm_). 
+    std::map<FeFctIdType,bool>::iterator fctIt = matIsSymm_.begin();
+    for( ; fctIt != matIsSymm_.end(); ++fctIt ){
+
+      FeFctIdType fctId = fctIt->first;
+      bool isFctSymm = fctIt->second;
+
+      // loop over all diagonal SBMBlocks, where this fctId occurs
+      // and perform logical AND operation regarding symmetry (i.e.
+      // if at least one function in this block is non-symmetric, so
+      // will be the complete block)
+      std::set<UInt>& affectedBlocks = fctIdsInBlocks_[fctId];
+      std::set<UInt>::iterator blockIt = affectedBlocks.begin();
+      for( ; blockIt != affectedBlocks.end(); ++blockIt) {
+        isDiagBlockSymm_[*blockIt] &= isFctSymm; 
+      }
+
+    }
+
+    // --------------------------------------------------------
+    //  Perform Consistency Check Before Finalizing The System
+    // --------------------------------------------------------
+    // Check for:
+    // - symmetry of system
+    // - compatible solver type
+    // - compatible preconditioner type
+    // - compatible reordering type
+    CheckConsistency();
 
     // Print information about registered functions
     PrintRegistrationInfo( );
+
+    // Collect reordering of different matrices and assemble vector
+    StdVector<BaseOrdering::ReorderingType> reorder(numBlocks_);
+    for( UInt i = 0; i < numBlocks_; ++i ) {
+      std::string orderString = solStrat_->GetMatrixNode(i)->
+          Get("reordering")->As<std::string>();
+      reorder[i] = BaseOrdering::reorderingType.Parse(orderString);
+    }
     
     // Finalize graph manager setup
-    graphManager_->SetupDone();
+    graphManager_->SetupDone(reorder);
     
-    // Now we have all graphs and IDBC in their re-order state,
+    // Now we have all graphs and IDBC in their re-ordered state,
     // so we have to fetch the reordering array from the GraphManager and 
     // update information in the blockInfo array for all SBM-Blocks 
     
@@ -1011,17 +1096,11 @@ namespace CoupledField {
   // ****************
   void AlgebraicSys::AssembleInit( const FeFctIdType fctId1,
                                    const FeFctIdType fctId2,
-                                   bool isSymmetric,
                                    bool assemblingTranspose ) {
     
     LOG_DBG(algSys) << "Starting assembly of block ("
         << fctId1 << ", " << fctId2 << ")";
     
-    // Basic idea: if at least one combination (fctId1, fctId2)
-    // is not symmetric, so will be also the final SBM-system
-    if( !isSymmetric ) {
-      sbmSymm_ = false;
-    }
   }
 
 
@@ -1821,17 +1900,6 @@ namespace CoupledField {
           << "This is the end my friend!\n"
           << "Generation of empty SBM_Matrix failed!" );
     }
-
-    
-    // TEMPORARY: find out matrix storage type by looking at the matrix element
-    // determine matrix storage type
-    BaseMatrix::StorageType sT = BaseMatrix::SPARSE_SYM;
-    PtrParamNode matrixNode = myParam_->Get("matrix");
-    if( matrixNode ) {
-      std::string storageString;
-      matrixNode->GetValue("storage", storageString );
-      sT = BaseMatrix::storageType.Parse(storageString);
-    }
     
     // STEP 2: Populate with sub-matrices
     std::set<SubMatrixID,SortSubMatrixID>::iterator sIt;
@@ -1854,34 +1922,21 @@ namespace CoupledField {
         graph = graphManager_->GetGraph( sbmRow, sbmCol );
         if ( sbmRow == sbmCol && sbmSymm_ == true ) {
           // for diagonal blocks we allow a variable
-          // matrix layout
-          
-          // ====================
-          //  HARD-CODED SECTION
-          // ====================
-          if( sbmRow == 0) {
-            sT = BaseMatrix::SPARSE_SYM;
-            
-            
-          } else {
-            sT = BaseMatrix::VAR_BLOCK_ROW;
-          }
-          
+          // matrix layout which we query at the
+          // sol-strategy object
+          BaseMatrix::StorageType sT = solStrat_->GetStorageType(sbmRow);
           
           retMat->SetSubMatrix ( sbmRow, sbmCol, entryType, 
                                  sT,
                                  nrows, ncols, graph->GetNNE() );
         } else {
-           //Test: Check, if performance increases by use of VBR-matrix
-//          if( sbmRow > 0 && sbmCol > 0) {
-//          retMat->SetSubMatrix ( sbmRow, sbmCol, 
-//                                 entryType, BaseMatrix::VAR_BLOCK_ROW,
-//                                 nrows, ncols, graph->GetNNE() );
-//          } else {
+          // Off-diagonal entries are by nature rectangular and thus, only
+          // two possibilities remain: either sparse_nonsym crs format
+          // of the variable block row format. 
+          // CRS is the more general case and will be preferred.
           retMat->SetSubMatrix ( sbmRow, sbmCol, 
                                  entryType, BaseMatrix::SPARSE_NONSYM,
                                  nrows, ncols, graph->GetNNE() );
-//          }
         }
 
         // Set sparsity pattern of sub-matrix
@@ -1890,6 +1945,263 @@ namespace CoupledField {
     }
 
     return retMat;
+  }
+  
+  
+  void AlgebraicSys::CheckConsistency() {
+    
+    // First check, if we have a true SBM system.
+    // consisting of more than one SBM-Block
+    if( numBlocks_ == 1 ) {
+      
+      // ========================
+      //  Only one block present 
+      // ========================
+      
+      // --------------------------
+      //  Check Symmetry of Matrix
+      // --------------------------
+      // ... if not defined -> choose depending on symmetry of system
+      // ... if defined -> check with symmetry of matrix
+      PtrParamNode matNode = solStrat_->GetMatrixNode(0);
+      BaseMatrix::StorageType storType = BaseMatrix::NOSTORAGETYPE;
+      
+      // generate preferred storage format, based on symmetry type
+      std::string storageString = "sparseSym";
+      if(!isDiagBlockSymm_[0] ) 
+              storageString = "sparseNonSym";
+      
+      // check, if symmetry type was set or if we can change it
+      bool canChangeMatFormat = true;
+      if( matNode->Has("storage") && 
+          matNode->Get("storage")->As<std::string>() != "noStorageType" ) {
+        canChangeMatFormat = false; 
+        matNode->GetValue("storage",storageString);
+      } else {
+        matNode->Get("storage",ParamNode::INSERT)->SetValue(storageString);
+      }
+            
+      matNode->GetValue("storage",storageString, ParamNode::INSERT);
+      storType = BaseMatrix::storageType.Parse(storageString);
+      
+      // check, if unphysical setting was set
+      if( !isDiagBlockSymm_[0] && 
+          storType == BaseMatrix::SPARSE_SYM) {
+        EXCEPTION( "Can not use storage format 'sparseSym' for an "
+                   "unsymmetric system" );
+      }
+      
+      // -------------------------
+      //  Check Eigenvalue Solver 
+      // -------------------------
+      // .. to be implemented
+
+      // --------------
+      //  Check Solver
+      // --------------
+      // .. if not defined -> LDL / ILDL (depending on symmetry)
+      // .. if defined -> Check if solver suites symmetry type of matrix
+      std::string solverId = solStrat_->GetSolverId();
+      PtrParamNode solverList = myParam_->Get("solverList", 
+                                              ParamNode::INSERT);
+      ParamNodeList sNodes =  solverList->GetChildren();
+      PtrParamNode solverNode;
+      for( UInt i = 0; i < sNodes.GetSize(); ++i ) {
+        if( sNodes[i]->Get("id")->As<std::string>() == solverId ) {
+          solverNode = sNodes[i]; 
+        }
+      }
+      BaseSolver::SolverType st;
+      // set for allowed matrix types of the solver
+      std::set<BaseMatrix::StorageType> solverStorTypes;
+      if( !solverNode ) {
+        // -------------------------------------
+        //  no solver set -> use default direct 
+        // -------------------------------------
+
+        if( isDiagBlockSymm_[0] ) {
+          st = BaseSolver::LDL_SOLVER;
+          solverList->Get("directLDL",ParamNode::INSERT)->
+              Get("id",ParamNode::INSERT)->SetValue(solverId);
+        } else {
+          st = BaseSolver::LU_SOLVER;
+          solverList->Get("directLU",ParamNode::INSERT)->
+              Get("id",ParamNode::INSERT)->SetValue(solverId);
+        }
+      } else {
+        // ---------------------------------------------------
+        //  solver set -> check for compatibility with matrix
+        // ---------------------------------------------------
+
+        // convert solver string to enum
+       st = BaseSolver::solverType.Parse(solverNode->GetName());
+
+        // obtain list of allowed matrix format
+        solverStorTypes = GetSolverCompatMatrixFormats(st);
+
+        // check, if current matrix format is in allowed list
+        if( solverStorTypes.find(storType) == solverStorTypes.end() &&
+            solverStorTypes.size() != 0 ) {
+          //  matrix format is not allowed
+
+          //  a) we can change matrix -> do so
+          storType = *solverStorTypes.begin();
+          if( canChangeMatFormat) {
+            storageString = BaseMatrix::storageType.ToString(storType);
+            matNode->Get("storage")->SetValue(storageString);
+          } else {
+            EXCEPTION("Solver '" << solverNode->GetName() 
+                      << "' can not operate on matrix with storage type '" 
+                      << storageString << "'. \nChange format to '"
+                      << BaseMatrix::storageType.ToString(storType)
+                      << "'.");
+            // b) we can not change matrix -> EXCEPTION
+          } // canChangeFormat
+        } // find storageType
+      } // no solver set
+
+      // ---------------
+      //  Check Precond
+      // ---------------
+      std::string precondId = solStrat_->GetPrecondId(0);
+      PtrParamNode precondList = myParam_->Get("precondList", 
+                                               ParamNode::INSERT);
+      ParamNodeList pNodes =  precondList->GetChildren();
+      PtrParamNode precondNode;
+      for( UInt i = 0; i < pNodes.GetSize(); ++i ) {
+        if( pNodes[i]->Get("id")->As<std::string>() == precondId ) {
+          precondNode = pNodes[i]; 
+        }
+      }
+      
+      BaseSolver::PrecondType pt;
+      if( !precondNode ) {
+        // ----------------------------------
+        //  no precond set -> use default ID 
+        // ----------------------------------
+        pt = BasePrecond::ID;
+        precondList->Get("ID",ParamNode::INSERT)->
+            Get("id",ParamNode::INSERT)->SetValue(precondId);
+      } else {
+        // ---------------------------------------------------
+        //  precond set -> check for compatibility with matrix
+        // ---------------------------------------------------
+
+        // convert precond string to enum
+        pt = BaseSolver::precondType.Parse(precondNode->GetName());
+
+        // obtain list of allowed matrix format
+        std::set<BaseMatrix::StorageType> mf =
+            GetPrecondCompatMatrixFormats(pt);
+
+        // check, if current matrix format is in allowed list
+        if( mf.find(storType) == mf.end() &&
+            mf.size() != 0 ) {
+          //  matrix format is not allowed
+
+          //  a) we can change matrix AND (!!!) the requested
+          //     matrix layout is compatible with the solver -> change it
+
+          storType = *mf.begin();
+          bool isCompatibleWithSolver =
+              (solverStorTypes.size() == 0 ||
+                  solverStorTypes.find(storType) != solverStorTypes.end() );
+
+          if( canChangeMatFormat && isCompatibleWithSolver) {
+            storageString = BaseMatrix::storageType.ToString(storType);
+            matNode->Get("storage")->SetValue(storageString);
+          } else {
+            EXCEPTION("Precond '" << precondNode->GetName() 
+                      << "' can not operate on matrix with storage type '" 
+                      << storageString << "'. \nChange format to '"
+                      << BaseMatrix::storageType.ToString(storType)
+                      << "'.");
+            // b) we can not change matrix -> EXCEPTION
+          } // canChangeFormat
+        } // find storageType
+      } // no precond set
+
+      // ---------------------------------------------------
+      //  sensibility test for preconditioner
+      // ---------------------------------------------------
+      // a) all direct solver do not need any preconditioner
+      if(( st == BaseSolver::LDL_SOLVER ||
+          st == BaseSolver::LU_SOLVER  || 
+          st == BaseSolver::LAPACK_LU  ||
+          st == BaseSolver::LAPACK_LL  ||
+          st == BaseSolver::PARDISO )
+          && !(pt == BasePrecond::ID ||
+              pt == BasePrecond::NOPRECOND) ) {
+        EXCEPTION( "A direct solver only works with the Identity (ID) "
+                   "preconditioner." );
+      }
+      
+      // ---------------
+      //  Check Reordering
+      // ---------------
+      BaseOrdering::ReorderingType ot = BaseOrdering::SLOAN;
+#ifdef USE_METIS
+      ot = BaseOrdering::METIS;
+#endif
+      bool canChangeReordering = true;
+      if (matNode->Has("reordering") && 
+          matNode->Get("reordering")->As<std::string>() != "_default_" ) {
+        ot = BaseOrdering::reorderingType.Parse(
+            matNode->Get("reordering")->As<std::string>());
+        canChangeReordering = false;
+      }
+      
+      // a) for our own direct solvers we activate re-ordering
+      if( (st == BaseSolver::LU_SOLVER ||
+           st == BaseSolver::LDL_SOLVER || 
+           st == BaseSolver::LAPACK_LL || 
+           st == BaseSolver::LAPACK_LU ) &&
+           ot == BaseOrdering::NOREORDERING && 
+          canChangeReordering == true ) {
+#ifdef USE_METIS
+        ot = BaseOrdering::METIS;
+#else
+        ot = BaseOrdering::SLOAN;
+#endif
+      }
+      
+      // b) pardiso needs no reordering
+      if( st == BaseSolver::PARDISO && 
+          ot != BaseOrdering::NOREORDERING &&
+          canChangeReordering == true ) {
+        ot = BaseOrdering::NOREORDERING;
+      }
+      
+      // c) ilu-based preconditioners prefer reordering
+      if( ( pt == BasePrecond::ILUK ||
+            pt == BasePrecond::ILUTP ||
+            pt == BasePrecond::ILDLK ||
+            pt == BasePrecond::ILDLTP ||
+            pt == BasePrecond::ILDLCN ) &&
+            ot == BaseOrdering::NOREORDERING && 
+            canChangeReordering == true ) {
+#ifdef USE_METIS
+        ot = BaseOrdering::METIS;
+#else
+        ot = BaseOrdering::SLOAN;
+#endif
+      }
+      
+      // in the end store back the reordering type
+      matNode->Get("reordering",ParamNode::INSERT)->
+          SetValue(BaseOrdering::reorderingType.ToString(ot));
+      
+    } else {
+      // ======================
+      //  True SBM Case 
+      // ======================
+      WARN("This section is not yet implemented");
+    }
+    
+    // Dump tree in the end
+//    std::cerr << "Dump of parameter tree at the end of "
+//        << "AlgebraicSys::CheckConsistency():\n";
+//    myParam_->Dump();
   }
   
   void AlgebraicSys::PrintFeMatrixInfo( ) {

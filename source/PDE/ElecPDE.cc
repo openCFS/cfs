@@ -23,7 +23,6 @@
 #include "FeBasis/H1/FeSpaceH1.hh"
 #include "FeBasis/H1/FeSpaceH1Nodal.hh"
 #include "FeBasis/FeFunctions.hh"
-#include "DataInOut/WriteInfo.hh"
 
 // new integrator concept
 #include "Forms/BiLinForms/BDBInt.hh"

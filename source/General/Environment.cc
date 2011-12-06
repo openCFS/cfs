@@ -25,7 +25,7 @@ namespace CoupledField {
 
   Domain * domain = NULL;
   // Initialisation of some global pointers
-  WriteInfo *Info = NULL;
+  //WriteInfo *Info = NULL;
 
   // Definition of finite element type mappings
   static EnumTuple complexPartTuples[] = {

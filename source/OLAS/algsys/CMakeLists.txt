@@ -1,6 +1,7 @@
 SET(ALGSYS_SRCS
     AlgebraicSys.cc
     generateidbchandler.cc
+    SolStrategy.cc
     )
 
 IF(EXPLICIT_TEMPLATE_INSTANTIATION)

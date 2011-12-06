@@ -11,14 +11,15 @@
     </xsd:documentation>
   </xsd:annotation>
   
-  
   <!-- ******************************************************************* -->
   <!--   Definition of basic Solver data type -->
   <!-- ******************************************************************* -->
   
   <!-- This is an abstract basic type so that it cannot appear in an -->
   <!-- instance document -->
-  <xsd:complexType name="DT_SolverBasic" abstract="true"/>
+  <xsd:complexType name="DT_SolverBasic" abstract="true">
+    <xsd:attribute name="id" type="xsd:token" default="default"/>
+  </xsd:complexType>
   
   
   <!-- ******************************************************************* -->
@@ -35,7 +36,9 @@
   
   <!-- This is an abstract basic type so that it cannot appear in an -->
   <!-- instance document -->
-  <xsd:complexType name="DT_EigenSolverBasic" abstract="true"/>
+  <xsd:complexType name="DT_EigenSolverBasic" abstract="true">
+    <xsd:attribute name="id" type="xsd:token" default="default"/>
+  </xsd:complexType>
   
   
   <!-- ******************************************************************* -->
@@ -45,6 +48,24 @@
   <!-- This element is abstract in order to force substitution -->
   <!-- by the derived specialised Solver elements -->
   <xsd:element name="EigenSolverBasic" type="DT_EigenSolverBasic" abstract="true"/>
+  
+  
+  <!-- ******************************************************************* -->
+  <!--   Definition of stopping rule for iterative solvers -->
+  <!-- ******************************************************************* -->
+  <!-- Defines a the stopping criterion for iterative solver. 
+    Default should be relNormRes0 -->
+  <xsd:complexType name="DT_ItSolvStoppingRule">
+    <xsd:attribute name="type" default="relNormRes0">
+      <xsd:simpleType>
+        <xsd:restriction base="xsd:token">
+          <xsd:enumeration value="absNorm"/>
+          <xsd:enumeration value="relNormRHS"/>
+          <xsd:enumeration value="relNormRes0"/>
+        </xsd:restriction>
+      </xsd:simpleType>
+    </xsd:attribute>
+  </xsd:complexType>
   
   <!-- =================================================================== -->
   <!-- ==                                                               == -->
@@ -67,6 +88,9 @@
     <xsd:complexContent>
       <xsd:extension base="DT_SolverBasic">
         <xsd:sequence>
+          
+          <xsd:element name="stoppingRule" type="DT_ItSolvStoppingRule" minOccurs="0" maxOccurs="1"/>
+          
           <xsd:element name="tol" type="DT_PosFloat" minOccurs="0" default="1e-6">
             <xsd:annotation>
               <xsd:documentation xml:lang="en">
@@ -189,7 +213,7 @@
   <xsd:complexType name="DT_SolverPARDISO">
     <xsd:complexContent>
       <xsd:extension base="DT_SolverBasic">
-        <xsd:sequence>
+        <xsd:sequence minOccurs="0" maxOccurs="1">
           <xsd:element name="type"      type="DT_PardisoSolverType" minOccurs="0" default="direct"/>
           <xsd:element name="posDef"    type="DT_CFSBool" minOccurs="0"/>
           <xsd:element name="hermitean" type="DT_CFSBool" minOccurs="0"/>
@@ -218,6 +242,8 @@
               </xsd:documentation>
             </xsd:annotation>
           </xsd:element>
+          
+          <xsd:element name="stoppingRule" type="DT_ItSolvStoppingRule"/>
           
           <xsd:element name="tol" type="DT_PosFloat" minOccurs="0" default="1e-6">
             <xsd:annotation>
@@ -398,7 +424,15 @@
   <!-- ==                                                               == -->
   <!-- =================================================================== -->
   
-  <xsd:element name="diagsolver" substitutionGroup="SolverBasic"/>
+  <xsd:element name="diagsolver" substitutionGroup="SolverBasic"
+                type="DT_SolverOLASDiag"/>
+  
+  <xsd:complexType name="DT_SolverOLASDiag">
+    <xsd:complexContent>
+      <xsd:extension base="DT_SolverBasic"/>
+    </xsd:complexContent>
+  </xsd:complexType>
+    
   
   
   <!-- =================================================================== -->
@@ -422,6 +456,7 @@
     <xsd:complexContent>
       <xsd:extension base="DT_SolverBasic">
         <xsd:sequence>
+          <xsd:element name="stoppingRule" type="DT_ItSolvStoppingRule" minOccurs="0"/>
           <xsd:element name="tol" type="xsd:float" minOccurs="0"/>
           <xsd:element name="maxIter" type="xsd:positiveInteger"
             minOccurs="0"/>
@@ -523,7 +558,7 @@
             </xsd:complexType>
             </xsd:element>
             
-            
+          <xsd:element name="stoppingRule" type="DT_ItSolvStoppingRule" minOccurs="0"/>
             <xsd:element name="iterativeSolver" minOccurs="0" maxOccurs="1">
               <xsd:complexType>
                 <xsd:attribute name="solver" use="optional">
@@ -653,6 +688,7 @@
     <xsd:complexContent>
       <xsd:extension base="DT_SolverBasic">
         <xsd:sequence>
+          <xsd:element name="stoppingRule" type="DT_ItSolvStoppingRule" minOccurs="0"/>
           <xsd:element name="tol" type="DT_PosFloat" minOccurs="0"/>
           <xsd:element name="maxIter" type="xsd:positiveInteger"
             minOccurs="0"/>

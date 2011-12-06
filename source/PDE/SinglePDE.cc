@@ -9,7 +9,6 @@
 #include "Domain/Domain.hh"
 #include "Domain/CoordinateSystems/CoordSystem.hh"
 
-#include "DataInOut/ParamHandling/CFSOLASParams.hh"
 #include "DataInOut/ProgramOptions.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 
@@ -77,8 +76,16 @@ namespace CoupledField {
     maxTimeDerivOrder_(0),
     mHandle_(domain->GetMathParser()->GetNewHandle()) // Obtain mathParser handler
   {
-
+    
+    // get id for linear system
+    std::string systemId = myParam_->Get("systemId")->As<std::string>();
+    
+    PtrParamNode ls = myParam_->GetParent()
+        ->GetParent()->Get("linearSystems",ParamNode::INSERT);
+    olasNode_ = ls->GetByVal("system", "id", systemId, ParamNode::INSERT);
+    
   }
+
 
 
   // **************
@@ -190,7 +197,7 @@ namespace CoupledField {
     if( needsAlgsys_ == true ) {
       if ( isDirectCoupled_ == false) {
         olasInfo_ = info->Get("OLAS")->Get(pdename_);
-        algsys_ = new AlgebraicSys(FindLinearSystem(pdename_), olasInfo_);
+        algsys_ = new AlgebraicSys(olasNode_, olasInfo_);
       }
     }
 
@@ -2105,7 +2112,7 @@ namespace CoupledField {
 
 
       // Set linear system parameters for OLAS
-      ReadOlasParams( pdename_ );
+      //ReadOlasParams( pdename_ );
       
       // Determine number of superBlocks:
       // This is currently hard-coded to the number of 
@@ -2320,14 +2327,13 @@ namespace CoupledField {
           FeFctIdType fctId2 = it2->second->GetFctId();
 
           // assemble upper diagonal blocks including diagonal
-          bool symm = assemble_->IsFEMatSymmetric(fctId1, fctId2);
-          algsys_->AssembleInit(fctId1, fctId2, symm, false);
+          algsys_->AssembleInit(fctId1, fctId2, false);
           assemble_->SetupMatrixGraph(fctId1, fctId2);
           algsys_->AssembleDone(fctId1, fctId2, false);
 
           // assemble strictly lower diagonal blocks
           if(fctId1 != fctId2) {
-            algsys_->AssembleInit(fctId2, fctId1, symm, false);
+            algsys_->AssembleInit(fctId2, fctId1, false);
             assemble_->SetupMatrixGraph(fctId2, fctId1);
             algsys_->AssembleDone(fctId2, fctId1, false);
           } // lower diagonal

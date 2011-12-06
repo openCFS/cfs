@@ -2,12 +2,17 @@
 #include "IDBC_HandlerVoid.hh"
 #include "IDBC_HandlerPenalty.hh"
 #include "generateidbchandler.hh"
+#include "DataInOut/Logging/LogConfigurator.hh"
 
 // Required for using AssocType
 #include "MatVec/TypeDefs.hh"
 
 
 namespace CoupledField {
+
+// define logging stream
+DECLARE_LOG(genIdbc)
+DEFINE_LOG(genIdbc, "genIdbc")
 
 
   // ******************************
@@ -45,8 +50,8 @@ namespace CoupledField {
     if ( !hasIDBCs ) {
       retVal = new IDBC_HandlerVoid();
       ASSERTMEM( retVal, sizeof(IDBC_HandlerVoid) );
-      (*cla) << " GenerateIDBC_HandlerObject: Generated"
-             << " IDBC_HandlerVoid" << std::endl;
+      LOG_DBG(genIdbc) << " GenerateIDBC_HandlerObject: Generated"
+                        << " IDBC_HandlerVoid";
     }
 
     // Generate a real idbc handler
@@ -57,17 +62,15 @@ namespace CoupledField {
         retVal =
           new IDBC_Handler<Double>( usedFEMatrices, graphManager, numBlocks);
         ASSERTMEM( retVal, sizeof(IDBC_Handler<Double>) );
-        (*cla) << " GenerateIDBC_HandlerObject: Generated"
-               << " IDBC_Handler<Double>"
-               << std::endl;
+        LOG_DBG(genIdbc) << " GenerateIDBC_HandlerObject: Generated"
+                         << " IDBC_Handler<Double>";
       }
       else if ( eType == BaseMatrix::COMPLEX ) {
         retVal =
           new IDBC_Handler<Complex>( usedFEMatrices, graphManager, numBlocks );
         ASSERTMEM( retVal, sizeof(IDBC_Handler<Complex>) );
-        (*cla) << " GenerateIDBC_HandlerObject: Generated"
-               << " IDBC_Handler<Complex>"
-               << std::endl;
+        LOG_DBG(genIdbc) << " GenerateIDBC_HandlerObject: Generated"
+                         << " IDBC_Handler<Complex>";
       }
       else {
         EXCEPTION( "GenerateIDBC_HandlerObject: Cannot generate "
@@ -102,16 +105,14 @@ namespace CoupledField {
     if ( eType == BaseMatrix::DOUBLE ) {
       retVal = new IDBC_HandlerPenalty<Double>( numIDBC  );
       ASSERTMEM( retVal, sizeof(IDBC_HandlerPenalty<Double>) );
-      (*cla) << " GenerateIDBC_HandlerObject: Generated"
-             << " IDBC_HandlerPenalty<Double>"
-             << std::endl;
+      LOG_DBG(genIdbc) << " GenerateIDBC_HandlerObject: Generated"
+                       << " IDBC_HandlerPenalty<Double>";
     }
     else if ( eType == BaseMatrix::COMPLEX ) {
       retVal = new IDBC_HandlerPenalty<Complex>( numIDBC );
       ASSERTMEM( retVal, sizeof(IDBC_HandlerPenalty<Complex>) );
-      (*cla) << " GenerateIDBC_HandlerObject: Generated"
-             << " IDBC_HandlerPenalty<Complex>"
-             << std::endl;
+      LOG_DBG(genIdbc)<< " GenerateIDBC_HandlerObject: Generated"
+                      << " IDBC_HandlerPenalty<Complex>";
     }
     else {
       EXCEPTION( "GenerateIDBC_HandlerObject: Cannot generate "

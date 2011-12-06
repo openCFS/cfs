@@ -10,7 +10,6 @@
 
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
-#include "DataInOut/WriteInfo.hh"
 #include "DataInOut/ProgramOptions.hh"
 #include "General/Exception.hh"
 #include "Domain/CoordinateSystems/CoordSystem.hh"

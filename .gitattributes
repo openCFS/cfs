@@ -687,8 +687,6 @@ source/DataInOut/Logging/log.hpp svneol=native#text/x-c%2B%2Bhdr
 source/DataInOut/Logging/log_impl.hpp svneol=native#text/x-c%2B%2Bhdr
 source/DataInOut/Logging/log_manager.cc svneol=native#text/x-c%2B%2Bsrc
 source/DataInOut/MaterialHandler.hh svneol=native#text/x-c%2B%2Bhdr
-source/DataInOut/ParamHandling/CFSOLASParams.cc svneol=native#text/x-c%2B%2Bsrc
-source/DataInOut/ParamHandling/CFSOLASParams.hh svneol=native#text/x-c%2B%2Bhdr
 source/DataInOut/ParamHandling/CMakeLists.txt svneol=native#text/plain
 source/DataInOut/ParamHandling/InfoNode.cc svneol=native#text/x-c%2B%2Bsrc
 source/DataInOut/ParamHandling/InfoNode.hh svneol=native#text/x-c%2B%2Bhdr
@@ -787,8 +785,6 @@ source/DataInOut/SimInOut/xdmf/SimOutputXDMF.hh -text
 source/DataInOut/SimInput.hh svneol=native#text/x-c%2B%2Bhdr
 source/DataInOut/SimOutput.cc svneol=native#text/x-c%2B%2Bsrc
 source/DataInOut/SimOutput.hh svneol=native#text/x-c%2B%2Bhdr
-source/DataInOut/WriteInfo.cc svneol=native#text/x-c%2B%2Bsrc
-source/DataInOut/WriteInfo.hh svneol=native#text/x-c%2B%2Bhdr
 source/DataInOut/XMLMaterialHandler.cc svneol=native#text/x-c%2B%2Bsrc
 source/DataInOut/XMLMaterialHandler.hh svneol=native#text/x-c%2B%2Bhdr
 source/Domain/BCs.cc svneol=native#text/x-c%2B%2Bsrc
@@ -1017,6 +1013,8 @@ source/OLAS/algsys/IDBC_Handler.hh svneol=native#text/x-c%2B%2Bhdr
 source/OLAS/algsys/IDBC_HandlerPenalty.cc svneol=native#text/x-c%2B%2Bsrc
 source/OLAS/algsys/IDBC_HandlerPenalty.hh svneol=native#text/x-c%2B%2Bhdr
 source/OLAS/algsys/IDBC_HandlerVoid.hh svneol=native#text/x-c%2B%2Bhdr
+source/OLAS/algsys/SolStrategy.cc -text
+source/OLAS/algsys/SolStrategy.hh -text
 source/OLAS/algsys/generateidbchandler.cc svneol=native#text/x-c%2B%2Bsrc
 source/OLAS/algsys/generateidbchandler.hh svneol=native#text/x-c%2B%2Bhdr
 source/OLAS/external/arpack/ArpackEigenSolver.cc svneol=native#text/x-c%2B%2Bsrc

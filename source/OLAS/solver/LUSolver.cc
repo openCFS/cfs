@@ -21,14 +21,12 @@ namespace CoupledField {
     // Set pointers to communication objects
     xml_ = solverNode;
     infoNode_ = olasInfo->Get("directLU");
-
+    
     // No factorisation was performed yet
     amFactorised_ = false;
     
     itRefSteps_ = 2;
-    PtrParamNode sNode;
-    sNode = xml_->Get("directLU", ParamNode::INSERT);
-    sNode->GetValue("itRefSteps", itRefSteps_, ParamNode::INSERT);
+    xml_->GetValue("itRefSteps", itRefSteps_, ParamNode::INSERT);
   }
 
   // **************
@@ -89,11 +87,9 @@ namespace CoupledField {
     bool saveFacToFile = false;
     std::string facFileName = "fac.out";
     
-    PtrParamNode sNode;
-    sNode = xml_->Get("directLU", ParamNode::INSERT);
-    if(sNode->Has("saveFacFile")) {
+    if(xml_->Has("saveFacFile")) {
       saveFacToFile = true;
-      sNode->GetValue("saveFacFile", facFileName, ParamNode::INSERT);
+      xml_->GetValue("saveFacFile", facFileName, ParamNode::INSERT);
     }
     
     if ( saveFacToFile ) {
@@ -139,9 +135,7 @@ namespace CoupledField {
     UInt logLevel = 2;
     UInt numSteps = itRefSteps_;
       
-    PtrParamNode sNode;
-    sNode = xml_->Get("directLU", ParamNode::INSERT);
-    sNode->GetValue("itRefVerbosity", logLevel, ParamNode::INSERT);
+    xml_->GetValue("itRefVerbosity", logLevel, ParamNode::INSERT);
       
 
     if ( numSteps > 0 ) {

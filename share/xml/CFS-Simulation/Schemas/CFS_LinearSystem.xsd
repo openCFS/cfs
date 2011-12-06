@@ -18,217 +18,56 @@
 
   <xsd:complexType name="DT_SystemSpec">
     <xsd:sequence>
-
-      <!-- Syste setup (optional) -->
-      <xsd:element name="setup" type="DT_SetupDescription" minOccurs="0"/>
-
-      <!-- Matrix format, entries and layout (optional) -->
-      <xsd:choice minOccurs="0">
-        <xsd:element name="matrix" type="DT_MatrixDescription"/>
-        <xsd:element name="sbmMatrix" type="DT_SBMMatrixDescription"/>
-      </xsd:choice>
-
-      <!-- Export linear system? (optional) -->
-      <xsd:element name="exportLinSys" minOccurs="0">
-        <xsd:complexType>
-          <xsd:attribute name="baseName" use="optional" type="xsd:token"/>
-          <xsd:attribute name="solution" use="optional" default="no">
-            <xsd:simpleType>
-              <xsd:restriction base="xsd:token">
-                <xsd:enumeration value="yes"/>
-                <xsd:enumeration value="no"/>
-                <xsd:enumeration value="exclusive"/>
-              </xsd:restriction>
-            </xsd:simpleType>
-          </xsd:attribute>
-          <xsd:attribute name="format" use="optional" default="matrix-market">
-            <xsd:simpleType>
-              <xsd:restriction base="xsd:token">
-                <xsd:enumeration value="matrix-market"/>
-                <xsd:enumeration value="harwell-boeing"/>
-              </xsd:restriction>
-            </xsd:simpleType>
-          </xsd:attribute>
-          <xsd:attribute name="damping" use="optional" default="false" type="xsd:boolean"/>
-          <xsd:attribute name="auxiliary" use="optional" default="false" type="xsd:boolean"/>
-          <xsd:attribute name="initialGuess" use="optional" default="false" type="xsd:boolean"/>          
-        </xsd:complexType>
-      </xsd:element>
-
-      <!-- Description of eigensolver properties (optional) -->
-      <xsd:element name="eigenSolver" type="DT_EigenSolverSpec" minOccurs="0"/>
-
-      <!-- Description of solver properties (optional) -->
-      <xsd:element name="solver" type="DT_SolverSpec" minOccurs="0"/>
-
-      <!-- Time Stepping Formulation (optional)-->
-      <xsd:element name="timeSteppingFormulation" 
-        type="DT_TimeStep" minOccurs="0" default="effStiffMatrix"/>
-
-      <!-- Parameters in timestepping algorithm (optional) -->
-      <xsd:element name="timeSteppingParameters" minOccurs="0" maxOccurs="1">
+      
+      <!-- Solution Strategy -->
+      <xsd:element name="solutionStrategy" minOccurs="0" maxOccurs="1">
         <xsd:complexType>
           <xsd:sequence>
-            <xsd:element name="beta"  type="xsd:float" minOccurs="0"/>
-            <xsd:element name="gamma" type="xsd:float" minOccurs="0" />
-            <xsd:element name="nu"    type="xsd:float" minOccurs="0"/>
-            <xsd:element name="omitInitialSol" type="DT_CFSBool" minOccurs="0"/>
+            <xsd:element ref="StrategyBasic"
+              minOccurs="1" maxOccurs="1" />
           </xsd:sequence>
         </xsd:complexType>
       </xsd:element>
-
-    </xsd:sequence>
-
-    <!-- Name attribute to associate system with PDE -->
-    <xsd:attribute name="name" use="required">
-      <xsd:simpleType>
-        <xsd:restriction base="xsd:token">
-          <xsd:enumeration value="acoustic"/>
-          <xsd:enumeration value="acousticMixed"/>
-          <xsd:enumeration value="direct"/>
-          <xsd:enumeration value="electrostatic"/>
-          <xsd:enumeration value="magnetic"/>
-          <xsd:enumeration value="magneticScalar"/>
-          <xsd:enumeration value="magneticEdge"/>
-          <xsd:enumeration value="magneticEdge2"/>
-          <xsd:enumeration value="mechanic"/>
-          <xsd:enumeration value="piezo"/>
-          <xsd:enumeration value="smooth"/>
-          <xsd:enumeration value="heatConduction"/>
-          <xsd:enumeration value="fluidMech"/>
-        </xsd:restriction>
-      </xsd:simpleType>
-    </xsd:attribute>
-
-  </xsd:complexType>
-
-
-  <!-- ******************************************************************* -->
-  <!--   Definition of data type for solver specification -->
-  <!-- ******************************************************************* -->
-
-  <xsd:complexType name="DT_SolverSpec">
-
-    <xsd:sequence>
-
-      <!-- Select stopping rule to be used -->
-      <xsd:element name="stoppingRule" minOccurs="0">
+      
+      <!-- EigenSolver List -->
+      <xsd:element name="eigenSolverList" minOccurs="0" maxOccurs="1">
         <xsd:complexType>
-          <xsd:attribute name="type" use="optional" default="relNormRes0">
-            <xsd:simpleType>
-              <xsd:restriction base="xsd:token">
-                <xsd:enumeration value="absNorm"/>
-                <xsd:enumeration value="relNormRHS"/>
-                <xsd:enumeration value="relNormRes0"/>
-              </xsd:restriction>
-            </xsd:simpleType>
-          </xsd:attribute>
+          <xsd:sequence>
+            <xsd:element ref="EigenSolverBasic" minOccurs="0" maxOccurs="unbounded"/>
+          </xsd:sequence>
         </xsd:complexType>
       </xsd:element>
-
-      <!-- Parameters for solver (optional) -->
-      <xsd:element ref="SolverBasic" minOccurs="0" maxOccurs="unbounded"/>
-
-      <!-- Parameters for preconditioner (optional) -->
-      <xsd:element ref="PrecondBasic" minOccurs="0"/>
-
+      
+      <!-- Solver List -->
+      <xsd:element name="solverList" minOccurs="0" maxOccurs="1">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element ref="SolverBasic" minOccurs="0" maxOccurs="unbounded"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+      
+      <!-- Preconditioner List -->
+      <xsd:element name="precondList" minOccurs="0" maxOccurs="1">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element ref="PrecondBasic" minOccurs="0" maxOccurs="unbounded"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
     </xsd:sequence>
-
-    <!-- List of available solvers to chose from --> 
-    <xsd:attribute name="type" use="optional" default="expertsChoice">
-      <xsd:simpleType>
-        <xsd:restriction base="xsd:token">
-          <xsd:enumeration value="expertsChoice"/>
-          <xsd:enumeration value="richardson"/>
-          <xsd:enumeration value="diagsolver"/>
-          <xsd:enumeration value="cg"/>
-          <xsd:enumeration value="gmres"/>
-          <xsd:enumeration value="minres"/>
-          <xsd:enumeration value="symmlq"/>
-          <xsd:enumeration value="qmr"/>
-          <xsd:enumeration value="lapackLU"/>
-          <xsd:enumeration value="lapackLL"/>
-          <xsd:enumeration value="directLU"/>
-          <xsd:enumeration value="directLDL"/>
-          <xsd:enumeration value="pardiso"/>
-          <xsd:enumeration value="ilupack"/>
-          <xsd:enumeration value="cholmod"/>
-        </xsd:restriction>
-      </xsd:simpleType>
-    </xsd:attribute>
-
-    <!-- Desired Preconditioner (if any) -->
-    <xsd:attribute name="precond" use="optional" default="noPrecond">
-      <xsd:simpleType>
-        <xsd:restriction base="xsd:token">
-          <xsd:enumeration value="noPrecond"/>
-          <xsd:enumeration value="Id"/>
-          <xsd:enumeration value="MG"/>
-          <xsd:enumeration value="Jacobi"/>
-          <xsd:enumeration value="BlockJacobi"/>
-          <xsd:enumeration value="SSOR"/>
-          <xsd:enumeration value="IC0"/>
-          <xsd:enumeration value="ILU0"/>
-          <xsd:enumeration value="ILUK"/>
-          <xsd:enumeration value="ILDLK"/>
-          <xsd:enumeration value="ILDL0"/>
-          <!-- Here we repeat the list of solvers, as every
-          solver could be also used as a preconditioner -->
-          <xsd:enumeration value="expertsChoice"/>
-          <xsd:enumeration value="richardson"/>
-          <xsd:enumeration value="diagsolver"/>
-          <xsd:enumeration value="cg"/>
-          <xsd:enumeration value="gmres"/>
-          <xsd:enumeration value="minres"/>
-          <xsd:enumeration value="symmlq"/>
-          <xsd:enumeration value="qmr"/>
-          <xsd:enumeration value="lapackLU"/>
-          <xsd:enumeration value="lapackLL"/>
-          <xsd:enumeration value="directLU"/>
-          <xsd:enumeration value="directLDL"/>
-          <xsd:enumeration value="pardiso"/>
-          <xsd:enumeration value="ilupack"/>
-          <xsd:enumeration value="cholmod"/>
-        </xsd:restriction>
-      </xsd:simpleType>
-    </xsd:attribute>
-
+    
+    <!-- Unique identifier, refered to by PDEs -->
+    <xsd:attribute name="id" type="xsd:token" use="optional" default="default"/>
   </xsd:complexType>
-
+  
+ 
+  
   <!-- ******************************************************************* -->
-  <!--   Definition of data type for EigenSolver specification -->
+  <!--   Definition of data type for setup if sysmtem -->
   <!-- ******************************************************************* -->
-
-  <xsd:complexType name="DT_EigenSolverSpec">
-   <!-- Parameters for solver (optional) -->
-    <xsd:sequence>
-      <xsd:element ref="EigenSolverBasic" minOccurs="0"/>
-    </xsd:sequence>
-    <xsd:attribute name="type" use="optional" default="expertsChoice">
-      <xsd:simpleType>
-        <xsd:restriction base="xsd:token">
-          <xsd:enumeration value="expertsChoice"/>
-          <xsd:enumeration value="subspace"/>
-          <xsd:enumeration value="arpack"/>
-        </xsd:restriction>
-      </xsd:simpleType>
-    </xsd:attribute>
-  </xsd:complexType>
-
-
-  <!-- ******************************************************************* -->
-  <!--   Definition of linear system setup description type -->
-  <!-- ******************************************************************* -->
-
-  <xsd:complexType name="DT_SetupDescription">
-    <xsd:attribute name="eqnNumbering" use="optional" default="scalar">
-      <xsd:simpleType>
-        <xsd:restriction base="xsd:token">
-          <xsd:enumeration value="scalar"/>
-          <xsd:enumeration value="block"/>
-        </xsd:restriction>
-      </xsd:simpleType>
-    </xsd:attribute>
+  <xsd:complexType name="DT_SystemSetup">
+  <!-- How should Dirichlet equations be handled -->
     <xsd:attribute name="idbcHandling" use="optional" default="penalty">
       <xsd:simpleType>
         <xsd:restriction base="xsd:token">
@@ -237,6 +76,39 @@
         </xsd:restriction>
       </xsd:simpleType>
     </xsd:attribute>
+    <!-- Calculation of condition number -->
+    <xsd:attribute name="calcConditionNumber" type="DT_CFSBool" default="no"/>
+    
+    <!-- Perform static condensation -->
+    <xsd:attribute name="staticCondensation" type="DT_CFSBool" default="no"/>
+  </xsd:complexType>
+  
+  <!-- ******************************************************************* -->
+  <!--   Definition of data type for exporting the linear system -->
+  <!-- ******************************************************************* -->
+  
+  <xsd:complexType name="DT_ExportLinSys">
+    <xsd:attribute name="baseName" use="optional" type="xsd:token"/>
+    <xsd:attribute name="solution" use="optional" default="no">
+      <xsd:simpleType>
+        <xsd:restriction base="xsd:token">
+          <xsd:enumeration value="yes"/>
+          <xsd:enumeration value="no"/>
+          <xsd:enumeration value="exclusive"/>
+        </xsd:restriction>
+      </xsd:simpleType>
+    </xsd:attribute>
+    <xsd:attribute name="format" use="optional" default="matrix-market">
+      <xsd:simpleType>
+        <xsd:restriction base="xsd:token">
+          <xsd:enumeration value="matrix-market"/>
+          <xsd:enumeration value="harwell-boeing"/>
+        </xsd:restriction>
+      </xsd:simpleType>
+    </xsd:attribute>
+    <xsd:attribute name="damping" use="optional" default="false" type="xsd:boolean"/>
+    <xsd:attribute name="auxiliary" use="optional" default="false" type="xsd:boolean"/>
+    <xsd:attribute name="initialGuess" use="optional" default="false" type="xsd:boolean"/>          
   </xsd:complexType>
 
 
@@ -245,15 +117,7 @@
   <!-- ******************************************************************* -->
 
   <xsd:complexType name="DT_MatrixDescription">
-    <xsd:attribute name="entry" use="optional" default="double">
-      <xsd:simpleType>
-        <xsd:restriction base="xsd:token">
-          <xsd:enumeration value="double"/>
-          <xsd:enumeration value="complex"/>
-        </xsd:restriction>
-      </xsd:simpleType>
-    </xsd:attribute>
-    <xsd:attribute name="storage" use="optional" default="expertsChoice">
+    <xsd:attribute name="storage" use="optional" default="noStorageType">
       <xsd:simpleType>
         <xsd:restriction base="xsd:token">
           <xsd:enumeration value="sparseSym"/>
@@ -262,44 +126,41 @@
           <xsd:enumeration value="skylineSym"/>
           <xsd:enumeration value="skylineNonSym"/>
           <xsd:enumeration value="lapackGBMatrix"/>
-          <xsd:enumeration value="expertsChoice"/>
+          <xsd:enumeration value="noStorageType"/>
         </xsd:restriction>
       </xsd:simpleType>
     </xsd:attribute>
-    <xsd:attribute name="reordering" use="optional" default="expertsChoice">
+    <xsd:attribute name="reordering" use="optional" default="_default_">
       <xsd:simpleType>
         <xsd:restriction base="xsd:token">
-          <xsd:enumeration value="expertsChoice"/>
+          <xsd:enumeration value="_default_"/>
           <xsd:enumeration value="noReordering"/>
           <xsd:enumeration value="Metis"/>
           <xsd:enumeration value="Sloan"/>
         </xsd:restriction>
       </xsd:simpleType>
     </xsd:attribute>
-    <xsd:attribute name="calcConditionNumber" type="DT_CFSBool" default="no"/>
-  </xsd:complexType>
-
-  <!-- ******************************************************************* -->
-  <!--   Definition of matrix description type for SBM_Matrices -->
-  <!-- ******************************************************************* -->
-
-  <xsd:complexType name="DT_SBMMatrixDescription">
-    <xsd:attribute name="entry" use="optional" default="double">
-      <xsd:simpleType>
-        <xsd:restriction base="xsd:token">
-          <xsd:enumeration value="double"/>
-          <xsd:enumeration value="complex"/>
-        </xsd:restriction>
-      </xsd:simpleType>
-    </xsd:attribute>
-    <xsd:attribute name="symmetric" use="optional" default="no"
-      type="DT_CFSBool"/>
   </xsd:complexType>
 
   <!-- ******************************************************************* -->
   <!--   Definition of data type for time stepping formulation -->
   <!-- ******************************************************************* -->
-
+  <!-- Time Stepping Formulation (optional)-->
+  <!--<xsd:element name="timeSteppingFormulation" 
+    type="DT_TimeStep" minOccurs="0" default="effStiffMatrix"/> -->
+  
+  <!-- Parameters in timestepping algorithm (optional) -->
+  <!-- <xsd:element name="timeSteppingParameters" minOccurs="0" maxOccurs="1">
+    <xsd:complexType>
+    <xsd:sequence>
+    <xsd:element name="beta"  type="xsd:float" minOccurs="0"/>
+    <xsd:element name="gamma" type="xsd:float" minOccurs="0" />
+    <xsd:element name="nu"    type="xsd:float" minOccurs="0"/>
+    <xsd:element name="omitInitialSol" type="DT_CFSBool" minOccurs="0"/>
+    </xsd:sequence>
+    </xsd:complexType>
+    </xsd:element> -->
+  
   <xsd:simpleType name="DT_TimeStep">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="effMassMatrix"/>
@@ -307,5 +168,83 @@
       <xsd:enumeration value="diagMassMatrix"/>
     </xsd:restriction>
   </xsd:simpleType>
+  
+  
+  
+  <!-- ******************************************************************* -->
+  <!--   Definition of basic Solution Strategy data type                   -->
+  <!-- ******************************************************************* -->
+  <!-- This is an abstract basic type so that it cannot appear in an -->
+  <!-- instance document -->
+  <xsd:complexType name="DT_StrategyBasic" abstract="true"/>
+  
+  
+  
+  <!-- ******************************************************************* -->
+  <!--   Definition of basic Solution Strategy Element                     -->
+  <!-- ******************************************************************* -->
+  <!-- This element is abstract in order to force substitution -->
+  <!-- by the derived specialised PDE elements -->
+  <xsd:element name="StrategyBasic" type="DT_StrategyBasic" abstract="true"/>
+  
 
+  <!-- ==================================================================== -->
+  <!-- ==                                                                == -->
+  <!-- ==                     STANDARD solution Strategy                 == -->
+  <!-- ==                                                                == -->
+  <!-- ==================================================================== -->
+  
+  <!-- ******************************************************************* -->
+  <!--   Definition of element for standard solution strategy              -->
+  <!-- ******************************************************************* -->
+  <xsd:element name="standard" type="DT_StrategyStd"
+    substitutionGroup="StrategyBasic"/>
+  
+  <!-- ******************************************************************* -->
+  <!--   Definition of basic Solution Strategy data type                   -->
+  <!-- ******************************************************************* -->
+  <xsd:complexType name="DT_StrategyStd">
+    <xsd:complexContent>
+      <xsd:extension base="DT_StrategyBasic">
+        <xsd:sequence>
+          <!-- setup element-->
+          <xsd:element name="setup" type="DT_SystemSetup" 
+                       minOccurs="0" maxOccurs="1"/>
+          
+          <!-- exportLinSys element-->
+          <xsd:element name="exportLinSys" type="DT_ExportLinSys"
+                       minOccurs="0" maxOccurs="1"/>
+          
+          <!-- matrix element -->
+          <xsd:element name="matrix" type="DT_MatrixDescription"
+                       minOccurs="0" maxOccurs="1"/>
+          
+          <!-- eigenSolver element -->
+          <xsd:element name="eigenSolver" minOccurs="0" maxOccurs="1">
+            <xsd:complexType>
+              <xsd:attribute name="id" type="xsd:token" default="default"/>
+            </xsd:complexType>
+          </xsd:element>
+          
+          <!-- solver element -->
+          <xsd:element name="solver" minOccurs="0" maxOccurs="1">
+            <xsd:complexType>
+              <xsd:attribute name="id" type="xsd:token" default="default"/>
+            </xsd:complexType>
+          </xsd:element>
+          
+          <!-- preconditioner element -->
+          <xsd:element name="precond" minOccurs="0" maxOccurs="1">
+            <xsd:complexType>
+              <xsd:attribute name="id" type="xsd:token" default="default"/>
+            </xsd:complexType>
+          </xsd:element>
+          <!-- nonLinear element -->
+          <!-- timeStepping element -->         
+        </xsd:sequence>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+  
 </xsd:schema>
+

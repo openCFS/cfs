@@ -33,9 +33,9 @@ inline void Legendre( T_VEC& values, UInt order, T_SCAL loc ) {
   T_SCAL p2 =  0;
   T_SCAL p3 =  0;
   values.Resize(order+1);
-  if( order >= 0 ) {
+  //if( order >= 0 ) {
     values[0] = 1.0;
-  }
+  //}
   for (UInt j=1; j<=order; j++) {
     double inv = 1.0 / (double)j;
     p3=p2;

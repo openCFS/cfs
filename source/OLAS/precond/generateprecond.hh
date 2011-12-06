@@ -2,6 +2,7 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
+#include <set>
 
 /*! \file generateprecond.hh
  This module handles generation of preconditioner objects. It is also
@@ -13,6 +14,9 @@
 
 #include "General/Environment.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
+#include "MatVec/BaseMatrix.hh"
+#include "OLAS/precond/BasePrecond.hh"
+
 
 //!
 namespace CoupledField {
@@ -22,16 +26,18 @@ namespace CoupledField {
   class StdMatrix;
   class SBM_Matrix;
   class ParamNode;
+  class SolStrategy;
   
   //! Generate a standard preconditioner object
   
   //! This method will generate a standard preconditioner object that fits
   //! to the input matrix and return a pointer to that object.
   //! \param mat      %Matrix that is preconditioned
-  //! \param ptype    Type of desired preconditoner
-  //! \param myParams Pointer to parameter object for the preconditioner
-  //! \param myReport Pointer to report object for the preconditioner
+  //! \param strat    Pointer to solution strategy
+  //! \param xml      Pointer to ParamNode of <precondList> section
+  //! \param olasInfo Base below "OLAS" in info.xml
   BasePrecond* GenerateStdPrecondObject( const StdMatrix &mat,
+                                         shared_ptr<SolStrategy> strat,
                                          PtrParamNode solverNode,
                                          PtrParamNode olasInfo );
 
@@ -41,12 +47,26 @@ namespace CoupledField {
   //! This method will generate a SBM preconditioner object that fits
   //! to the input matrix and return a pointer to that object.
   //! \param mat      %Matrix that is preconditioned
-  //! \param ptype    Type of desired preconditoner
-  //! \param myParams Pointer to parameter object for the preconditioner
-  //! \param myReport Pointer to report object for the preconditioner
+  //! \param strat    Pointer to solution strategy
+  //! \param xml      Pointer to ParamNode of <precondList> section
+  //! \param olasInfo Base below "OLAS" in info.xml
   BaseSBMPrecond* GenerateSBMPrecondObject( const SBM_Matrix &mat,
+                                            shared_ptr<SolStrategy> strat,
                                             PtrParamNode solverNode,
                                             PtrParamNode olasInfo );
+  
+  //! Return list of compatible matrix types
+
+  //! This method returns a list of all matrix storage types the solver can 
+  //! handle. 
+  //! \note In case the solver can handle any type of sparse matrix (i.e.
+  //! Krylov based solvers, requiring just matrix-vector operations),
+  //! the return set will be empty!
+  std::set<BaseMatrix::StorageType> 
+  GetPrecondCompatMatrixFormats(BasePrecond::PrecondType );
+  
+  //! Return if preconditioner is capable of solving a SBM system
+  bool IsPreconndSBMCapable(BasePrecond::PrecondType );
 
 }
 

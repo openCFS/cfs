@@ -1,6 +1,5 @@
 #include "Coil.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
-#include "DataInOut/WriteInfo.hh"
 #include "Domain/Mesh/Grid.hh"
 #include "Domain/Domain.hh"
 #include "Domain/CoordinateSystems/CoordSystem.hh"

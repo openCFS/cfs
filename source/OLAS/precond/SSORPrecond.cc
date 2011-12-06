@@ -10,15 +10,15 @@ namespace CoupledField {
   //   Constructor
   // ***************
   template <typename T>
-  SSORPrecond<T>::SSORPrecond( const StdMatrix& mat, PtrParamNode solverNode,
+  SSORPrecond<T>::SSORPrecond( const StdMatrix& mat, PtrParamNode precondNode,
 			       PtrParamNode olasInfo ) {
     
     // The SSOR preconditioner is currently not working
     WARN("The SSOR-Preconditioner is not yet ported from 1 to 0 based"
         "numbering, i.e. it will NOT work correctly!" );
     
-    this->xml_ = solverNode;
-    this->infoNode_ = olasInfo;
+    this->xml_ = precondNode;
+    this->infoNode_ = olasInfo->Get("ssor", ParamNode::APPEND);
     size_     = mat.GetNumRows();
     NEWARRAY( diagInv_, T, size_ );
   }
@@ -59,8 +59,7 @@ namespace CoupledField {
 
     // Query relaxation parameter
     Double omega = 1.7;
-    PtrParamNode pNode = this->xml_->Get("SSOR", ParamNode::INSERT);
-    pNode->GetValue("omega", omega, ParamNode::INSERT);
+    this->xml_->GetValue("omega", omega, ParamNode::INSERT);
 
     // Extract matrix info/data
     const T *valA = sysmat.GetDataPointer();

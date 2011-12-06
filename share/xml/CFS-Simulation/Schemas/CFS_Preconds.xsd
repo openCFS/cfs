@@ -18,7 +18,9 @@
 
   <!-- This is an abstract basic type so that it cannot appear in an -->
   <!-- instance document -->
-  <xsd:complexType name="DT_PrecondBasic" abstract="true"/>
+  <xsd:complexType name="DT_PrecondBasic" abstract="true">
+    <xsd:attribute name="id" type="xsd:token" default="default"/>
+  </xsd:complexType>
 
 
   <!-- ******************************************************************** -->
@@ -38,6 +40,28 @@
     </xsd:restriction>
   </xsd:simpleType>
 
+  <!-- ==================================================================== -->
+  <!-- ==                                                                == -->
+  <!-- ==                      OLAS_ID preconditioner                    == -->
+  <!-- ==                                                                == -->
+  <!-- ==================================================================== -->
+  
+  <!-- ******************************************************************** -->
+  <!-- Definition of element for OLAS_ID Preconditioner (Dummy Definition) -->
+  <!-- ******************************************************************** -->
+  <xsd:element name="ID" type="DT_PrecondID"
+    substitutionGroup="PrecondBasic"/>
+  
+  <!-- ******************************************************************** -->
+  <!--   Definition of data type for OLAS_ID Preconditioner                 -->
+  <!-- ******************************************************************** -->
+  <xsd:complexType name="DT_PrecondID">
+    <xsd:complexContent>
+      <xsd:extension base="DT_PrecondBasic">
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+  
 
   <!-- ==================================================================== -->
   <!-- ==                                                                == -->

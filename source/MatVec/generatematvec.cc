@@ -19,11 +19,13 @@
 #include "SBM_Matrix.hh"
 
 #include "SBM_Vector.hh"
-
+#include "DataInOut/Logging/LogConfigurator.hh"
 
 namespace CoupledField {
 
-
+// define logging stream
+DECLARE_LOG(genMatVec)
+DEFINE_LOG(genMatVec, "genMatVec")
 
   // >>>>>>>>>>>>>>>>>>>>>>>>>>>> VECTOR PART <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
@@ -36,10 +38,9 @@ namespace CoupledField {
 if ( ( eType == MATRIX_ENTRY )  ) {\
    retVector = new VECTORCLASS( length );\
    ASSERTMEM( retVector, sizeof( VECTORCLASS ) );\
-}
-//   (*cla) << " GenerateSingleVectorObject: Generated "\
-//          << MACRO2STRING(VECTORCLASS) << " of dimension " << length\
-//   << std::endl;\
+   }\
+  LOG_DBG(genMatVec) << " GenerateSingleVectorObject: Generated "\
+          << MACRO2STRING(VECTORCLASS) << " of dimension ";
 
   // *******************************************************
   //   Dynamic generation of vector associated with matrix
@@ -82,7 +83,7 @@ if ( ( eType == MATRIX_ENTRY )  ) {\
 
       // Perform an upcast
       retVector = dynamic_cast<BaseVector*>(sbmvec);
-      (*cla) << " GenerateVectorObject: Generated an SBM_Vector" << std::endl;
+      LOG_DBG(genMatVec) << " GenerateVectorObject: Generated an SBM_Vector";
 
       break;
 
@@ -148,9 +149,10 @@ if ( ( eType == MATRIX_ENTRY ) ) { \
    const VECTORCLASS& auxVec = dynamic_cast<const VECTORCLASS&>(origVec); \
    retVector = new VECTORCLASS( auxVec ); \
    ASSERTMEM( retVector, sizeof( VECTORCLASS ) ); \
-}
-//  (*cla) << " GenerateSingleVectorObject: Generated copy of" \
-//         << MACRO2STRING(VECTORCLASS) << std::endl; 
+  }\
+  LOG_DBG(genMatVec) << " GenerateSingleVectorObject: Generated copy of" \
+         << MACRO2STRING(VECTORCLASS);
+  
   SingleVector* CopySingleVectorObject( const SingleVector& origVec ) {
 
     SingleVector *retVector = NULL;
@@ -192,8 +194,7 @@ if ( ( eType == MATRIX_ENTRY ) ) { \
 if ((etype==matEntry) && (stype==matStore) ){\
 retMat = new matrix_obj_type(nrows,ncols,fill);\
 ASSERTMEM( retMat, sizeof(matrix_obj_type) );\
-(*cla) << " Generated matrix of type: " << MACRO2STRING(matrix_obj_type) \
-       << std::endl;}
+LOG_DBG(genMatVec) << " Generated matrix of type: "<< MACRO2STRING(matrix_obj_type);}
 
 
   // ****************
@@ -279,8 +280,7 @@ ASSERTMEM( retMat, sizeof(matrix_obj_type) );\
         retMat = new LapackGBMatrix<F77real8,double>( nrows, ncols,
                                                       BaseMatrix::F77REAL8 );
         ASSERTMEM( retMat, sizeof(LapackGBMatrix<F77real8,double>) );
-        (*cla) << " Generated matrix of type: LapackGBMatrix<F77Double>"
-               << std::endl;
+        LOG_DBG(genMatVec) << " Generated matrix of type: LapackGBMatrix<F77Double>";
       }
 
       // complex entries
@@ -288,8 +288,7 @@ ASSERTMEM( retMat, sizeof(matrix_obj_type) );\
         retMat = new LapackGBMatrix<F77complex16,Complex>( nrows, ncols,
         		BaseMatrix::F77COMPLEX16 );
         ASSERTMEM(retMat, sizeof(LapackGBMatrix<F77complex16,Complex>) );
-        (*cla) << " Generated matrix of type: LapackGBMatrix<F77Complex16>"
-               << std::endl;
+        LOG_DBG(genMatVec) << " Generated matrix of type: LapackGBMatrix<F77Complex16>";
       }
 
       // nothing fits
@@ -326,11 +325,10 @@ try {\
    const matrixObjType& auxMat = dynamic_cast<const matrixObjType&>(origMat); \
    retMat = new matrixObjType( auxMat );\
    ASSERTMEM( retMat, sizeof( matrixObjType) );\
-   (*cla) << " Generated copy of matrix of type: "\
-          << MACRO2STRING( matrixObjType ) \
-          << std::endl;\
-}\
-catch(...){};
+   LOG_DBG(genMatVec) << " Generated copy of matrix of type: "\
+          << MACRO2STRING( matrixObjType ); \
+    }\
+    catch(...){};
 
 
 

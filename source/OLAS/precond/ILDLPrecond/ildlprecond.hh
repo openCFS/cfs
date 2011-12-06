@@ -111,7 +111,7 @@ namespace CoupledField {
     // friend class ILDLKFactoriser;
 
     //! Constructor
-    ILDLPrecond( const StdMatrix &stdMat, PtrParamNode solverNode,
+    ILDLPrecond( const StdMatrix &stdMat, PtrParamNode precondNode,
                  PtrParamNode olasInfo );
 
     //! Default Destructor

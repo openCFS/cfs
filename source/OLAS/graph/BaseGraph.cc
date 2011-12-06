@@ -27,7 +27,7 @@ namespace CoupledField {
   // ***************
   //   Constructor
   // ***************
-  BaseGraph::BaseGraph( UInt nRows, UInt nCols, BaseOrdering::ReorderingType reorder ) {
+  BaseGraph::BaseGraph( UInt nRows, UInt nCols ) {
 
 
     // Avoid problems with partially empty graphs
@@ -41,7 +41,7 @@ namespace CoupledField {
     csNodes_        = NULL;
     amAssembled_    = false;
     amReordered_    = false;
-    newOrder_       = reorder;
+    newOrder_       = BaseOrdering::NOREORDERING;
     numNodes_       = nRows;
     numRowsMat_     = nRows;
     numColsMat_     = nCols;
@@ -65,16 +65,15 @@ namespace CoupledField {
   //   Alternate Constructor
   // *************************
   BaseGraph::BaseGraph( UInt nRows, UInt nCols, UInt nne, UInt *cs_nodes,
-                        UInt *cs_edges, BaseOrdering::ReorderingType reorder ) :
+                        UInt *cs_edges ) :
     amReordered_(false),
     amAssembled_(false) {
 
-
-    newOrder_    = reorder;
     numNodes_    = nRows;
     numRowsMat_  = nRows;
     numColsMat_  = nCols;
     nne_         = nne;
+    newOrder_    = BaseOrdering::NOREORDERING;
     csNodes_     = cs_nodes;
     csEdges_     = cs_edges;
     element_     = NULL;
@@ -270,14 +269,19 @@ namespace CoupledField {
   // ********************
   //   FinaliseAssembly
   // ********************
-  void BaseGraph::FinaliseAssembly( bool useExternalOrdering,
+  void BaseGraph::FinaliseAssembly( BaseOrdering::ReorderingType reorder,  
+                                    bool useExternalOrdering,
                                     StdVector<UInt>* vertexOrder,
                                     StdVector<UInt>* edgeOrder  ) {
 
-
+    newOrder_ = reorder;
     assert(vertexOrder != NULL);
     NodeListIterator iter;
-
+    
+    // Store requested ordering scheme
+    newOrder_ = reorder;
+    
+    
     // Sort lists and remove duplicate entries
     SortLists();
 
@@ -285,7 +289,7 @@ namespace CoupledField {
     CountNNE();
 
     if ( vertexOrder == NULL ) {
-      std::string tmp = BaseOrdering::reorderingType.ToString( newOrder_ );
+      std::string tmp = BaseOrdering::reorderingType.ToString( reorder );
 
       EXCEPTION("BaseGraph::FinaliseAssembly: I was told to do a '"
           << tmp
@@ -304,7 +308,7 @@ namespace CoupledField {
       
       // check, a block-reordering was set
       if( unsortedBlocks_ != NULL &&
-          newOrder_ != BaseOrdering::NOREORDERING ) {
+          reorder != BaseOrdering::NOREORDERING ) {
         EXCEPTION( "Can not reorder the graph, as there are sub-blocks defined!");
       }
       
@@ -313,12 +317,12 @@ namespace CoupledField {
       edgeOrder = vertexOrder;
 
       // If user wants, try to reorder the graph, otherwise return identity array
-      if ( newOrder_ != BaseOrdering::NOREORDERING ) {
+      if ( reorder != BaseOrdering::NOREORDERING ) {
 
         // compute new ordering
         // in the array "order" we still have vertices starting with one
         // since we pass it back to eqnMap in CFS
-        Reorder( newOrder_, *vertexOrder );
+        Reorder( reorder, *vertexOrder );
       } else {
         
         // check, if sub-blocks are defined. If yes, we have to reorder
@@ -435,16 +439,17 @@ namespace CoupledField {
       }
     }
 
-#ifdef DEBUG_BASEGRAPH
-    (*cla) << "Graph in CRS format: " << std::endl;
-    for ( i = 0; i < numNodes_; i++ ) {
-      (*cla) << " Row " << i << ": ";
-      for ( j = csNodes_[i]; j < csNodes_[i+1]; j++ ) {
-        (*cla) << csEdges_[j] << " ";
+    // Debugging output
+    if (IS_LOG_ENABLED(graph, dbg3) ) {
+      LOG_DBG3(graph) << "Graph in CRS format:";
+      for ( i = 0; i < numNodes_; i++ ) {
+        LOG_DBG3(graph) << " Row " << i << ": ";
+        for ( j = csNodes_[i]; j < csNodes_[i+1]; j++ ) {
+          LOG_DBG3(graph) << csEdges_[j] << " ";
+        }
+        LOG_DBG3(graph) << std::endl;
       }
-      (*cla) << std::endl;
     }
-#endif
 
   }
 
@@ -491,16 +496,16 @@ namespace CoupledField {
 
     }
         
-#ifdef DEBUG_BASEGRAPH
-    (*debug) << "Graph in CRS format (minus self references): " << std::endl;
-    for ( i = 0; i < numNodes_; i++ ) {
-      for ( j = (*rptr)[i]; j < (*rptr)[i+1]; j++ ) {
-        (*debug) << (*cidx)[j-1] << " ";
+    // Debugging output
+    if (IS_LOG_ENABLED(graph, dbg3) ) {
+      LOG_DBG3(graph) << "Graph in CRS format (minus self references): " << std::endl;
+      for ( i = 0; i < numNodes_; i++ ) {
+        for ( j = (*rptr)[i]; j < (*rptr)[i+1]; j++ ) {
+          LOG_DBG3(graph) << (*cidx)[j-1] << " ";
+        }
+        LOG_DBG3(graph) << std::endl;
       }
-      (*debug) << std::endl;
     }
-#endif
-
   }
 
 
@@ -556,7 +561,7 @@ namespace CoupledField {
         delete [] ( cidx );  cidx  = NULL;
 
         // Generate log message
-        (*cla) << " Reordering: Re-ordered graph using Metis" << std::endl;
+        LOG_DBG(graph) << " Reordering: Re-ordered graph using Metis" << std::endl;
 
 #else
         EXCEPTION("Re-compile with USE_METIS = yes to get Metis support");
@@ -568,7 +573,7 @@ namespace CoupledField {
       {
 
         // Generate log message
-        (*cla) << " -----------------------------------------------\n"
+        LOG_DBG(graph) << " -----------------------------------------------\n"
                << " Sloan Reordering:"
                << std::endl;
 
@@ -603,15 +608,15 @@ namespace CoupledField {
         reorder.GetProfile( profOld, profNew );
 
         // Start report
-        (*cla) << "\n --> Old Profile: " << profOld
-               << "\n --> New Profile: " << profNew
-               << std::endl;
+        LOG_DBG(graph) << "\n --> Old Profile: " << profOld
+                       << "\n --> New Profile: " << profNew
+                        << std::endl;
 
         // If new ordering does not improve the profile, discard it
         if ( profOld <= profNew ) {
 
-          (*cla) << " Discarded re-ordering, since new profile >="
-                 << " old one\n";
+          LOG_DBG(graph) << " Discarded re-ordering, since new profile >="
+                         << " old one\n";
 
           for ( i = 0; i < numNodes_; i++ ) {
             order[i] = i;
@@ -619,14 +624,14 @@ namespace CoupledField {
         }
 
         else {
-          (*cla) << " --> Profile reduced to "
-                 << profNew/profOld * 100.0 << "%\n\n"
-                 << " Accepted re-ordering\n";
+          LOG_DBG(graph) << " --> Profile reduced to "
+                         << profNew/profOld * 100.0 << "%\n\n"
+                         << " Accepted re-ordering\n";
         }
 
         // Finish report
-        (*cla) << " -----------------------------------------------"
-               << std::endl;
+        LOG_DBG(graph)  << " -----------------------------------------------"
+                        << std::endl;
 
         // put it to zero based
         for ( i = 0; i < numNodes_; i++ ) {

@@ -5,7 +5,6 @@
 #include "DataInOut/ParamHandling/ParamTools.hh"
 #include "DataInOut/ParamHandling/Xerces.hh"
 #include "DataInOut/ProgramOptions.hh"
-#include "DataInOut/WriteInfo.hh"
 
 // header for materials
 #include "Materials/ElectroMagneticMaterial.hh"

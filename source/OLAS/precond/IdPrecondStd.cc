@@ -7,6 +7,11 @@
 #include "IdPrecondStd.hh"
 
 namespace CoupledField {
+
+  IdPrecondStd::IdPrecondStd(PtrParamNode xml, PtrParamNode olasInfo ) {
+    olasInfo->Get("idPrecond");
+  }
+  
   void IdPrecondStd::Apply( const BaseMatrix &sysmat, const BaseVector &rhs,
                          BaseVector &sol ) {
     sol = rhs;
