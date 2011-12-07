@@ -228,7 +228,7 @@ namespace CoupledField
     for ( actFreqStep_ = 1; actFreqStep_ <= numFreq_; actFreqStep_++ )
     {
       // Determine next frequency value
-      ComputeFrequencyStep(actFreqStep_, analysis_id);
+      ComputeFrequencyStep(actFreqStep_, analysis_id, adjointParams);
 
       // Write results into output-file(s) if we don't do optimization
       if(write_results) {
@@ -263,7 +263,7 @@ namespace CoupledField
     }
   }
 
-  Double HarmonicDriver::ComputeFrequencyStep(UInt actFreqStep, PtrParamNode given_analysis_id)
+  Double HarmonicDriver::ComputeFrequencyStep(UInt actFreqStep, PtrParamNode given_analysis_id, AdjointParameters* adjointParams)
   {
     assert(actFreqStep >= 1);
     assert(actFreqStep <= numFreq_);
@@ -295,7 +295,7 @@ namespace CoupledField
     ptPDE_->GetSolveStep()->SetActFreq( actFreq_ );
     ptPDE_->GetSolveStep()->SetActStep( actFreqStep_ );
     ptPDE_->GetSolveStep()->PreStepHarmonic();
-    ptPDE_->GetSolveStep()->SolveStepHarmonic(analysis_id_);
+    ptPDE_->GetSolveStep()->SolveStepHarmonic(analysis_id_, adjointParams);
     ptPDE_->GetSolveStep()->PostStepHarmonic();
 
     return actFreq_;

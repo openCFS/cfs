@@ -23,10 +23,8 @@ namespace CoupledField {
   // ***************
   MagStrictCoupling::MagStrictCoupling( SinglePDE *pde1, SinglePDE *pde2,
                                         PtrParamNode paramNode  )
-    : BasePairCoupling( pde1, pde2, paramNode ) {
+    : BasePairCoupling( pde1, pde2, paramNode, "magnetostriction") {
 
-
-    couplingName_ = "magnetostriction";
     materialClass_ = MAGNETOSTRICTIVE;
 
     // determine subtype from mechanic pde

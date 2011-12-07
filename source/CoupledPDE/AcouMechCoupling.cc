@@ -23,10 +23,8 @@ namespace CoupledField {
   // ***************
   AcouMechCoupling::AcouMechCoupling( SinglePDE *pde1, SinglePDE *pde2,
                                       PtrParamNode paramNode  )
-    : BasePairCoupling( pde1, pde2, paramNode ) {
-
-
-    couplingName_ = "acouMechDirect";
+    : BasePairCoupling( pde1, pde2, paramNode,"acouMechDirect")
+  {
     materialClass_ = FLUID;
 
 

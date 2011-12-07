@@ -67,7 +67,7 @@ namespace CoupledField
       * @param design_index use Find(Elem*, bool) to find your index -> is complicated, check it!
       * @param applic finds the real transfer function, see  GetErsatzMaterialFactor(unsigned int, const BaseForm*)
       * @return a good factor or an exception is thrown */
-     double GetErsatzMaterialFactor(unsigned int design_index, Optimization::Application applic);
+     double GetErsatzMaterialFactor(unsigned int design_index, Optimization::Application applic, bool forBimaterial = false);
 
      /** assigns the pamping matrix: pamping_ * rho * (1-rho) * M_0. (Sigmund; Morphology; 2007)
       * The mesh is assumed irregular as we have not the ErsatzMaterial::OptimizatioMaterial.
@@ -76,9 +76,9 @@ namespace CoupledField
 
      /** Convenience version
       * @see  GetErsatzMaterialFactor(unsigned int, Optimization::Application) */
-     double GetErsatzMaterialFactor(unsigned int design_index, const BaseForm* form)
+     double GetErsatzMaterialFactor(unsigned int design_index, const BaseForm* form, bool forBimaterial = false)
      {
-       return GetErsatzMaterialFactor(design_index, (Optimization::Application) applicationForm.Parse(form->GetName()));
+       return GetErsatzMaterialFactor(design_index, (Optimization::Application) applicationForm.Parse(form->GetName()), forBimaterial);
      }
 
      /** Returns true if optimization does provide a complete tensor, not just a density */

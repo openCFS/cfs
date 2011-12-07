@@ -29,6 +29,7 @@ SimOutputStreaming::SimOutputStreaming(PtrParamNode outputNode) :
   if(outputNode->Has("silent"))
     silent_ = outputNode->Get("silent")->As<bool>();
 
+  content_.SetName("cfsStreaming");
   info_root = info->Get("streaming")->Get(ParamNode::PROCESS); // TODO!
 }
 
@@ -106,16 +107,16 @@ void SimOutputStreaming::Transmit(std::ostream& out)
 {
   Grid* grid = domain->GetGrid();
 
-  // we might write to content_ the first time or overwrite
-  content_.SetName("cfsStreaming");
-
+  // saver than overwrite is to delete
+  PtrParamNode infos = content_.Get("cfsInfo");
+  // delete all potential children -- shared pointers!
+  infos->GetChildren().Resize(0);
   // add the complete info.xml treee
-  content_.Get("info")->SetValue(info, true); // use own name and make sure we are not seed as stupid boost::any
+  content_.Get("cfsInfo")->SetValue(info, false); // use own name and make sure we are not seed as stupid boost::any
 
   // add mesh if it is new
   if(send_mesh_ && !content_.Has("grid"))
     domain->GetGrid()->ExportGrid(content_.Get("grid"));
-
 
   // now the actual results
   PtrParamNode results = content_.Get("results");

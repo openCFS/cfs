@@ -19,11 +19,8 @@ namespace CoupledField {
   // ***************
   //   Constructor
   // ***************
-  BasePairCoupling::BasePairCoupling(SinglePDE *pde1, SinglePDE *pde2,
-                                     PtrParamNode paramNode)    
+  BasePairCoupling::BasePairCoupling(SinglePDE *pde1, SinglePDE *pde2, PtrParamNode paramNode, const std::string& couplingName)
   {
-
-    
     // initialize pointers
     sol_            = NULL;
     solVec_         = NULL;
@@ -39,6 +36,7 @@ namespace CoupledField {
     pde2_   = pde2;
     myParam_ = paramNode;
     ptGrid_ = domain->GetGrid();
+    couplingName_ = couplingName;
 
     isaxi_ = false;
     isComplex_ = false;

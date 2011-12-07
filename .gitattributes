@@ -51,6 +51,8 @@ cmake_modules/platform_defaults_woody.cmake -text
 ctest_scripts/CTestConfig.cmake -text
 ctest_scripts/README.txt svneol=native#text/plain
 ctest_scripts/ctest_eam_gcc_nightly_debug.cmake -text
+ctest_scripts/ctest_eam_gcc_nightly_master_debug.cmake -text
+ctest_scripts/ctest_eam_gcc_nightly_master_release.cmake -text
 ctest_scripts/ctest_eam_gcc_nightly_release.cmake -text
 ctest_scripts/ctest_mac_gcc_experimental.cmake -text
 ctest_scripts/ctest_mac_icc_experimental.cmake -text

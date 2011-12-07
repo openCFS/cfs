@@ -23,10 +23,8 @@ namespace CoupledField {
   // ***************
   ThermoElectricCoupling::ThermoElectricCoupling( SinglePDE *pde1, SinglePDE *pde2,
                                       PtrParamNode paramNode  )
-    : BasePairCoupling( pde1, pde2, paramNode ) {
+    : BasePairCoupling( pde1, pde2, paramNode, "thermoElectricDirect" ) {
 
-
-    couplingName_ = "thermoElectricDirect";
     materialClass_ = PYROELECTRIC;
 
 	// non linearities have been not yet implemented.

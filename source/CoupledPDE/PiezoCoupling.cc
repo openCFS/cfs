@@ -42,10 +42,8 @@ namespace CoupledField {
   // ***************
   PiezoCoupling::PiezoCoupling( SinglePDE *pde1, SinglePDE *pde2,
                                 PtrParamNode paramNode  )
-    : BasePairCoupling( pde1, pde2, paramNode ) {
-
-
-    couplingName_ = "piezoDirect";
+    : BasePairCoupling( pde1, pde2, paramNode, "piezoDirect")
+  {
     materialClass_ = PIEZO;
 
     // determine subtype from mechanic pde

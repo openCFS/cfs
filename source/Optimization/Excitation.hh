@@ -53,6 +53,8 @@ public:
 
   void ReadTestStrain(MechPDE::TestStrain ts);
 
+  void ReadTestCharges(const Vector<double>& vec);
+
   void AddLinFormsFromAssemble();
 
   /** set correct values of pol_rhs for calculation of polarization matrix */
@@ -104,6 +106,10 @@ public:
    * strains defined in ErsatzMaterial::SetHomogenizationTestStrains() */
   Vector<double> test_strain;
 
+  /** for the calculation of a homogenized material tensor, we use the test
+   * charges defined in ErsatzMaterial::SetMaxwellHomogenizationTestCharges() */
+  Vector<double> test_charge;
+
   /** for the calculation of the polarization matrix for the piezo topology gradient
    *  contains the rhs-values, length is 5 for 2D, 9 for 3D (mech + elec) */
   Vector<double> pol_rhs;
@@ -121,7 +127,7 @@ public:
 
   void ToInfo(PtrParamNode in) const;
 
-  typedef enum { NO_TYPE, FIXED_WEIGHT, META_OBJECTIVE, HOMOGENIZATION_TEST_STRAINS, POLARIZATION_MATRIX } Type;
+  typedef enum { NO_TYPE, FIXED_WEIGHT, META_OBJECTIVE, HOMOGENIZATION_TEST_STRAINS, POLARIZATION_MATRIX, MAXWELL_HOMOGENIZATION_TEST_STRAINS} Type;
 
   static Enum<Type> type;
   /** Do we do multiple excitation at all? */
@@ -135,6 +141,8 @@ public:
   bool DoAdjustWeights() const { return type_ == META_OBJECTIVE; }
 
   bool DoHomogenization() const { return type_ == HOMOGENIZATION_TEST_STRAINS; }
+
+  bool DoMaxwellHomogenization() const { return type_ == MAXWELL_HOMOGENIZATION_TEST_STRAINS; }
 
   bool DoPolarizationMatrix() const { return type_ == POLARIZATION_MATRIX; }
 
@@ -164,6 +172,9 @@ private:
 
   /** Helper for PrepareMultipleExcitations(). Excitations are set with hard coded test strains */
   int SetHomogenizationTestStrains();
+
+  /** Helper for PrepareMultipleExcitations(). Excitations are set with hard coded maxwell homogenization test charges */
+  int SetMaxwellHomogenizationTestCharges();
 
   /** Helper for PrepareMultipleExcitations(). Excitations are set with hard coded polarization matrix excitations
    * @param param where polarizationMatrix can be found */

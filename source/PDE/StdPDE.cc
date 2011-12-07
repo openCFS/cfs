@@ -153,7 +153,7 @@ namespace CoupledField {
         
     // now reset AlgebraicSystem 
     algsys_->InitRHS();
-  	algsys_->InitSol();
+    algsys_->InitSol();
   }
 
 
@@ -287,6 +287,58 @@ namespace CoupledField {
      }
   }
 
+
+  // complex valued method (for HARMONIC)
+  void StdPDE::GetRHSVecOfElement( Vector<Double>& elemRHS,
+                                   const EntityIterator& it,
+                                   shared_ptr<ResultInfo> res ) {
+
+
+    StdVector<Integer> eqns;
+    eqnMap_->GetEqns( eqns, *res, it );
+
+
+    elemRHS.Resize( eqns.GetSize() );
+    elemRHS.Init( 0.0 );
+    Vector<Double> rhs;
+    algsys_->GetRHSVal(rhs);
+
+
+    for( UInt i = 0; i < eqns.GetSize(); i++ ) {
+      if ( eqns[i] != 0 ) {
+        elemRHS[i] = rhs[abs(eqns[i])-1];
+      } else {
+        elemRHS[i] = 0.0;
+      }
+     }
+  }
+
+
+  // complex valued method (for HARMONIC)
+  void StdPDE::GetRHSVecOfElement( Vector<Complex>& elemRHS,
+                                   const EntityIterator& it,
+                                   shared_ptr<ResultInfo> res ) {
+
+
+    StdVector<Integer> eqns;
+    eqnMap_->GetEqns( eqns, *res, it );
+
+
+    elemRHS.Resize( eqns.GetSize() );
+    elemRHS.Init( Complex(0.0, 0.0) );
+    Vector<Complex> rhs;
+    algsys_->GetRHSVal(rhs);
+
+
+    for( UInt i = 0; i < eqns.GetSize(); i++ ) {
+      if ( eqns[i] != 0 ) {
+        elemRHS[i] = rhs[abs(eqns[i])-1];
+      } else {
+        elemRHS[i] = Complex(0.0, 0.0);
+      }
+     }
+  }
+
   
   // real valued method (for TRANSIENT)
   void StdPDE::GetDerivSolVecOfElement(Vector<Double>& sol,
@@ -331,7 +383,7 @@ namespace CoupledField {
     
     if ( analysistype_ == HARMONIC ) {
       NodeStoreSol<Complex> * solhelp = 
- 	dynamic_cast<NodeStoreSol<Complex>*>(sol_);
+          dynamic_cast<NodeStoreSol<Complex>*>(sol_);
       const Vector<Complex> & solAtNode = solhelp->GetAlgSysVector();
 
       for( UInt i = 0; i < eqns.GetSize(); i++ ) {
@@ -388,7 +440,7 @@ namespace CoupledField {
     
     if ( analysistype_ == HARMONIC ) {
       NodeStoreSol<Complex> * solhelp = 
- 	dynamic_cast<NodeStoreSol<Complex>*>(sol_);
+          dynamic_cast<NodeStoreSol<Complex>*>(sol_);
       Vector<Complex> & solAtNode = solhelp->GetAlgSysVector();
 
       for( UInt i = 0; i < eqns.GetSize(); i++ ) {

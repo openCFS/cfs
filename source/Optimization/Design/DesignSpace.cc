@@ -307,6 +307,7 @@ double DesignSpace::DetermineLowerBound(PtrParamNode pn, TransferFunction* tf)
   switch(tf->GetType())
   {
   case TransferFunction::SIMP_TYPE:
+  case TransferFunction::SIMP_VAR:
     return std::pow(physical, 1.0/tf->GetParam());
 
   case TransferFunction::RAMP:
@@ -631,7 +632,7 @@ int DesignSpace::FindDesign(DesignElement::Type dt, bool throw_exception)
 }
 
 
-double DesignSpace::GetErsatzMaterialFactor(unsigned int design_index, Optimization::Application applic)
+double DesignSpace::GetErsatzMaterialFactor(unsigned int design_index, Optimization::Application applic, bool forBimaterial)
 {
   // now do the trick, that the piezo coupling factor might be a product of the
   // density transfer function and the polarization transfer function
@@ -653,7 +654,7 @@ double DesignSpace::GetErsatzMaterialFactor(unsigned int design_index, Optimizat
     LOG_DBG3(designSpace) << "GEMF: dt=" << DesignElement::type.ToString(dt) << " app=" << Optimization::application.ToString(applic) << " tf found=" << (tf != NULL);
     // multiply our transfer function
     if(tf != NULL) {
-      double transformed = tf->Transform(de, DesignElement::SMART); // handles design filtering
+      double transformed = tf->Transform(de, DesignElement::SMART, -13.456, forBimaterial); // handles design filtering
       LOG_DBG3(designSpace) << "GEMF: ErsatzMaterial for " << de->elem->elemNum << "/"
                        << Optimization::application.ToString(applic) << " for "
                        << DesignElement::type.ToString(dt) << ": "

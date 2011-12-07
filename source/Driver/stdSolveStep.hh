@@ -98,10 +98,10 @@ namespace CoupledField
     virtual void PreStepHarmonic();
 
     //!  base method for solving one harmonic step 
-    virtual void SolveStepHarmonic(PtrParamNode analysis_id);
+    virtual void SolveStepHarmonic(PtrParamNode analysis_id, AdjointParameters* adjointParams = NULL);
     
     //! solves for one linear frequency step 
-    virtual void StepHarmonicLin(PtrParamNode analysis_id);
+    virtual void StepHarmonicLin(PtrParamNode analysis_id, AdjointParameters* adjointParams = NULL);
 
     //! solves for one nonlinear frequency step 
     virtual void StepHarmonicNonLin(PtrParamNode analysis_id)

@@ -10,8 +10,12 @@
 #include <list>
 #include <map>
 
-#include <boost/tokenizer.hpp>
+//#include <iostream>
+//#include <utility>
+//#include <string>
+//using namespace std;
 
+#include <boost/tokenizer.hpp>
 #include "DataInOut/Scripting/scriptable.hh"
 #include "Utils/mathParser/mathParser.hh"
 #include "Domain/resultInfo.hh"
@@ -25,8 +29,9 @@ namespace CoupledField
 {
   // forward class declaration
   class VolForceInt;
-  class VolumeSrcInt;
+  class VolChargeHomInt;
   class SpaceErrorEstimator;
+  class VolumeSrcInt;
   class BasePairCoupling;
   class DirectCoupledPDE;
   class Assemble;
@@ -51,6 +56,7 @@ namespace CoupledField
     typedef std::map<shared_ptr<ResultInfo> , ResultList > ResultMap;
 
     class RegionLoad;
+    class MaxwellHom;
 
     /** Initialize PDEs 
      * @param base pointer to InfoNode of this PDE */
@@ -145,7 +151,7 @@ namespace CoupledField
      * @param loadNodes the potential empty array from the xml file
      * @param either the loads_ of StdPDE or for optimization */
     void ReadLoads(ParamNodeList loadNodes, LoadList& out_list);
-    
+
     /** Write general defines (BCs, loads, etc.) to info.xml.
      * Note, that only the current state is (over) written! */
     void WriteGeneralPDEdefines();
@@ -222,6 +228,14 @@ namespace CoupledField
      * @param pressSurf StdVector containing the RegionLoads */
     void ReadRegionLoadsFromXML(PtrParamNode bcNode, std::map<RegionIdType, RegionLoad>& regionLoads_);
     
+    /** do the actual reading of charges
+         * @param bcNode paramnode that has "MaxwellHom" nodes as children
+         * @param pressSurf StdVector containing the MaxwellHoms */
+        void ReadRegionChargesFromXML(PtrParamNode bcNode, std::map<RegionIdType, std::pair<BaseMaterial*, MaxwellHom> >& regionCharges_);
+
+    //! set volume charges for maxwell homogenization
+    void SetRegionCharges(const Vector<double>& vals);
+
     /** reread the results, this is needed in transient optimization, so that the results are re registered for the new multisequencestep 
      */
     void ReReadResults(){
@@ -323,6 +337,9 @@ namespace CoupledField
     //! read in volume sources
     void ReadRegionLoads();
     
+    //! read in volume charges for maxwell homogenization
+    void ReadRegionCharges();
+
     //! write results in file
     void WriteResultsInFile( const UInt kstep, 
                              const Double actTimeFreq );
@@ -388,6 +405,57 @@ namespace CoupledField
 
     };
     
+    //! Class defining data needed for maxwell homogenization volume charges
+    class MaxwellHom {
+
+    public:
+
+      //! Constructor
+
+      MaxwellHom( UInt dim, bool isaxi );
+
+      //! Print region definition to info-file
+      void Print( bool onlyHeader, std::string pdeName );
+
+      //! Returns the RHS-integrator
+      VolChargeHomInt *  GetIntegrator(BaseMaterial* matData, Global::ComplexPart matDataType);
+
+      // ----------------------------
+      //   Data members
+      // ----------------------------
+
+      //@{
+      // \name Data members
+
+      //! Name of region
+      std::string name;
+
+      //! Value of charges
+      StdVector<std::string>  valuex;
+      StdVector<std::string>  valuey;
+      StdVector<std::string>  valuez;
+
+      //! Phase value
+      std::string phase;
+
+      //! Name of reference coordinate system
+      std::string refCoord;
+
+      //! Type of load (total/unit)
+      std::string type;
+
+      //! Volume of region
+      Double volume;
+
+      //! Dimension of Domain
+      UInt dim_;
+
+      //! Flag for axisymmetry
+      bool isAxi_;
+      //@}
+
+    };
+
     //! Class defining data needed for defining Rayleigh damping
     struct RaylDampingData {
       
@@ -410,6 +478,11 @@ namespace CoupledField
     //! List of region loads
      std::map<RegionIdType, RegionLoad> regionLoads_;
      
+    //! List of region charges for maxwell homogenization
+     std::map<RegionIdType, std::pair<BaseMaterial*, MaxwellHom> > regionCharges_;
+//     //! List of imaginary part of region charges for maxwell homogenization
+//      std::map<RegionIdType, std::pair<BaseMaterial*, MaxwellHom> > regionChargesC_;
+
     //@}
 
     // ======================================================
