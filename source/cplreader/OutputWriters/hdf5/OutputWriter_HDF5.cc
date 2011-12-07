@@ -372,6 +372,7 @@ namespace CoupledField
         numDOFs = fdps.dofNames.size();
         std::cout << "Writing result: " << fdps.resultName
                   << " on region " << regionNames_[actRegion] << "... ";
+        std::cout.flush();
         
         std::vector<Double> output;
         if ( fdps.definedOn == ResultInfo::NODE )

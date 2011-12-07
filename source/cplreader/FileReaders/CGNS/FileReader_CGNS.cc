@@ -172,16 +172,16 @@ namespace CoupledField{
        std::cerr << "Request for invalid stepIndex" << std::endl;
        exit(1);
      }
-     std::cout << "Going to read values from file " << fIter->second << std::endl;
+     //std::cout << "Going to read values from file " << fIter->second << std::endl;
 
      std::string firstFile = fileDir_ + "/" + fIter->second;
      //open the cgns file
      Integer fn = GetFileHandle(firstFile);
 
      cg_nsols(fn,1,1,&numsols);
-     std::cout << "found " << numsols << " solutions" << std::endl;
+     //std::cout << "found " << numsols << " solutions" << std::endl;
      cg_sol_info(fn, 1, 1, numsols, solname , &solLocation );
-     std::cout << "found " << solname << " solution" << std::endl;
+     //std::cout << "found " << solname << " solution" << std::endl;
      if(solLocation != Vertex){
        std::cout << "solution is definied on the cell center. mapping to nodes not supported right now" << std::endl;
        exit(1);
@@ -190,9 +190,15 @@ namespace CoupledField{
      char fieldName[33];
      DataType_t datatype;
      std::vector< std::vector<Double> > solution;
+     std::vector<Double> solutionPressure;
+     std::vector< std::vector<Double> > solutionSkinFriction;
      solution.resize(3,std::vector<Double>(numVertices_));
+     solutionSkinFriction.resize(3,std::vector<Double>(numVertices_));
 
      cg_nfields(fn, 1, 1, numsols, &nfields ); 
+     bool velocityFound = false;
+     bool pressureFound = false;
+     bool frictionFound = false;
      for(UInt aSol = 1 ; aSol <= (UInt) nfields; aSol++){
         cg_field_info(fn, 1, 1, numsols, aSol, &datatype , fieldName );
         UInt spaceIdx = MapVelocityIndex(fieldName);
@@ -203,9 +209,32 @@ namespace CoupledField{
           cg_field_read(fn,1,1,1, fieldName, RealDouble , range_min, range_max, (void *)curSol );
           solution[spaceIdx].resize(numVertices_,0);
           solution[spaceIdx].assign(curSol,curSol +numVertices_);
+          velocityFound = true;
+        }
+        spaceIdx = MapFrictionIndex(fieldName);
+        if(spaceIdx != 9999){
+          cgsize_t range_min[3] = {1,1,1};
+          cgsize_t range_max[3] = {numVertices_,1,1};
+          Double * curSol = new Double[numVertices_];
+          cg_field_read(fn,1,1,1, fieldName, RealDouble , range_min, range_max, (void *)curSol );
+          solutionSkinFriction[spaceIdx].resize(numVertices_,0);
+          solutionSkinFriction[spaceIdx].assign(curSol,curSol +numVertices_);
+          frictionFound = true;
+        }
+
+        if(strcmp(fieldName,"Pressure") == 0){
+          cgsize_t range_min[3] = {1,1,1};
+          cgsize_t range_max[3] = {numVertices_,1,1};
+          Double * curSol = new Double[numVertices_];
+          cg_field_read(fn,1,1,1, fieldName, RealDouble , range_min, range_max, (void *)curSol );
+          solutionPressure.resize(numVertices_,0);
+          solutionPressure.assign(curSol,curSol +numVertices_);
+          pressureFound = true;
         }
      }
-     
+     if(!velocityFound){
+       WARN("Did not find velocity field this could cause errors!");
+     }
      //Global solution vector created
      //now fill the stupid array
      //Obtain the information
@@ -228,8 +257,8 @@ namespace CoupledField{
        cg_section_read(fn,1,1,curReg+1,sectionName,&eType,&start,&end,&nboundary,&parentFlag);
        //do the following only for volume regions i.e. nboundary == 0
 
-        if ( requiredResults_[FLUIDMECH_VELOCITY] ||
-             requiredResults_[NO_SOLUTION_TYPE] ){
+        if ( (requiredResults_[FLUIDMECH_VELOCITY] ||
+             requiredResults_[NO_SOLUTION_TYPE]) && velocityFound ){
             /* copy the fluid velocity values */
           tmpSolStruct = &curType[FLUIDMECH_VELOCITY];
           
@@ -262,6 +291,62 @@ namespace CoupledField{
 //             tmpSolStruct->isActive = false;
 //           }
 
+        }
+
+        if (  pressureFound ){
+            /* copy the fluid velocity values */
+          tmpSolStruct = &curType[FLUIDMECH_PRESSURE];
+          
+          //          if(nboundary == 0){
+            tmpSolStruct->isActive = true;
+            if (tmpSolStruct->dofNames.empty()) {
+              tmpSolStruct->unit = MapSolTypeToUnit(FLUIDMECH_PRESSURE);
+              tmpSolStruct->dofNames.resize(1);
+            
+              tmpSolStruct->resultName = SolutionTypeEnum.ToString(FLUIDMECH_PRESSURE);
+              tmpSolStruct->definedOn = ResultInfo::NODE;
+              tmpSolStruct->entryType = ResultInfo::SCALAR;
+            }
+            std::set<UInt> curNodes = nodeIt->second;
+            std::set<UInt>::iterator curNodeIt = curNodes.begin();
+            UInt numDOFs = tmpSolStruct->dofNames.size();
+            tmpSolStruct->data.resize(numDOFs * curNodes.size());
+            for(UInt n = 0; n < curNodes.size() ;n++){
+              UInt idx = *curNodeIt;
+              tmpSolStruct->data[n] = solutionPressure[idx-1];
+              curNodeIt++;
+            }
+        }
+
+        if ( frictionFound){
+            /* copy the fluid velocity values */
+          tmpSolStruct = &curType[FLUIDMECH_SKINFRICTION];
+          
+          //          if(nboundary == 0){
+            tmpSolStruct->isActive = true;
+            if (tmpSolStruct->dofNames.empty()) {
+              tmpSolStruct->unit = MapSolTypeToUnit(FLUIDMECH_SKINFRICTION);
+              tmpSolStruct->dofNames.push_back("x");
+              tmpSolStruct->dofNames.push_back("y");
+              if(dim_ == 3){
+                tmpSolStruct->dofNames.push_back("z");
+              }
+            
+              tmpSolStruct->resultName = SolutionTypeEnum.ToString(FLUIDMECH_SKINFRICTION);
+              tmpSolStruct->definedOn = ResultInfo::NODE;
+              tmpSolStruct->entryType = ResultInfo::VECTOR;
+            }
+            std::set<UInt> curNodes = nodeIt->second;
+            std::set<UInt>::iterator curNodeIt = curNodes.begin();
+            UInt numDOFs = tmpSolStruct->dofNames.size();
+            tmpSolStruct->data.resize(numDOFs * curNodes.size());
+            for(UInt n = 0; n < curNodes.size() ;n++){
+              UInt idx = *curNodeIt;
+              for(UInt i = 0; i < dim_; i++){
+                tmpSolStruct->data[n*numDOFs+i] = solutionSkinFriction[i][idx-1];
+              }
+              curNodeIt++;
+            }
         }
 
       nodeIt++;
@@ -336,21 +421,21 @@ namespace CoupledField{
 
      //make a one based file counter
      UInt counter = 0;
-     for ( fs::directory_iterator dir_itr( trnDir );
-           dir_itr != end_iter;
-           ++dir_itr ) {
-        if ( !fs::is_directory( *dir_itr ) ) { 
-          fn = dir_itr->leaf();
-          if(algo::ends_with(fn, ".cgns")) {
-            fileNames[++counter] = fn;
-          }
-        }
-     }
      UInt justmesh = settings.GetInt("justmesh");
      UInt calcsrc = settings.GetInt("calcsrc");
 
      if(justmesh == 1){
        std::cout << "Going to convert a CGNS file to hdf5..." << std::endl;
+        for ( fs::directory_iterator dir_itr( trnDir );
+              dir_itr != end_iter;
+              ++dir_itr ) {
+           if ( !fs::is_directory( *dir_itr ) ) { 
+             fn = dir_itr->leaf();
+             if(algo::ends_with(fn, ".cgns")) {
+               fileNames[++counter] = fn;
+             }
+           }
+        }
 
        if(counter > 1){
          std::string filename;
@@ -395,13 +480,14 @@ namespace CoupledField{
        //give a wanring that the user knows whats going on
        std::cout << "Assuming that the step numbers are the last thing in the filename before the extension.\n"<<
              "If this is not the case the algorithm will fail!" << std::endl;
-       boost::tokenizer<> tok(fn);
        UInt firstStep = settings.GetInt("firststep");
+       UInt numSteps = settings.GetInt("numsteps");
        for ( fs::directory_iterator dir_itr( trnDir );
                   dir_itr != end_iter;
                   ++dir_itr ) {
          if ( !fs::is_directory( *dir_itr ) ) {
            fn = dir_itr->leaf();
+           boost::tokenizer<> tok(fn);
            if(algo::ends_with(fn, ".cgns")) {
 
              //for(boost::tokenizer<>::iterator beg=tok.begin(); beg!=tok.end();++beg){
@@ -410,10 +496,11 @@ namespace CoupledField{
               try{
                 std::string doub =  parts[parts.size()-3] + "." + parts[parts.size()-2];
                 Double number = boost::lexical_cast< Double >( doub  );
+                std::cout.precision(16);
                 fileNames[number] = fn;
               }catch( const boost::bad_lexical_cast & ){
-                std::cout << "Cannot cast to integer. Maybe your files have a different name convention than expected.";
-                //std::cerr << "Cannot cast to double. Trying with int." std::endl;
+                ///std::cout << "Cannot cast to Double. Maybe your files have a different name convention than expected.";
+                std::cerr << "Cannot cast to double. Trying with int..." <<  std::endl;
                 try{
                   Double number = boost::lexical_cast< UInt >( parts[parts.size()-2]  );
                   fileNames[number] = fn;
@@ -430,6 +517,14 @@ namespace CoupledField{
        for(UInt i = 1;i<=firstStep;i++){
          fileNames.erase(fileNames.begin());
        }
+       if(numSteps<fileNames.size()){
+         UInt diff = fileNames.size() - numSteps;
+         for(UInt i = 1;i<=diff;i++){
+          std::map<Double, std::string>::iterator fiter = fileNames.end();
+          fileNames.erase(--fiter);
+         }
+       }
+       
        std::cout << "Found " << fileNames.size() << " files/steps which appear to be valid" << std::endl;
        //std::map<Double, std::string>::iterator iter = fileNames.begin();
        //for(UInt i = 1;i<=fileNames.size();i++){
@@ -462,7 +557,7 @@ namespace CoupledField{
       std::cerr << "File does not exists: " << fName << "... Going to exit" << std::endl; 
       exit(1);
     }
-    std::cout << "file opened" << std::endl;
+    //std::cout << "file opened" << std::endl;
     return fn;
   }
   void FileReader_CGNS::CheckFileValidity(Integer fileHandle){
@@ -517,6 +612,20 @@ namespace CoupledField{
     }else if(strcmp(coordName,"VelocityY") == 0){
        coordinateIndex = 1;
     }else if(strcmp(coordName,"VelocityZ") == 0){
+       coordinateIndex = 2;
+    }
+    return coordinateIndex;
+  }
+
+  UInt FileReader_CGNS::MapFrictionIndex(char* coordName){
+    UInt coordinateIndex = 9999;
+    //check if the name fulfils the naming convention
+    //if not, we throw an error
+    if(strcmp(coordName,"SkinFrictionX") == 0 || strcmp(coordName,"SkinFriction") == 0){
+       coordinateIndex = 0;
+    }else if(strcmp(coordName,"SkinFrictionY") == 0){
+       coordinateIndex = 1;
+    }else if(strcmp(coordName,"SkinFrictionZ") == 0){
        coordinateIndex = 2;
     }
     return coordinateIndex;

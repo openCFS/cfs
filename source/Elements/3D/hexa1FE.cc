@@ -1579,7 +1579,6 @@ namespace CoupledField
          LDeriv[i+NumNodes_][2] = 0.5 * LCornerCoords_[2][i];
        }   
    }
-  
    void Hexa1FE::Global2LocalCoords(Matrix<Double> & localCoords,
                                     const Matrix<Double> & globalCoords,
                                     const Matrix<Double> & coordMat ){
@@ -1716,7 +1715,6 @@ namespace CoupledField
       }
     }
   }
-  
   
 
 } // end of namespace

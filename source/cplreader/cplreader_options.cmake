@@ -157,7 +157,7 @@ ADD_OPTION(activeparts
 ADD_OPTION(outputfields
   string
   acouRhsLoad
-  "Which physical fields should be output ([acouDivLighthillTensor | acouRhsLoad | acouRhsLoadDensity | fluidMechDensity | fluidMechPressure | fluidMechVelocity | fluidMechTKE]). Values may be separated by SPACE or SEMICOLON or |"
+  "Which physical fields should be output ([acouDivLighthillTensor | acouRhsLoad | acouRhsLoadDensity | fluidMechDensity | fluidMechPressure | fluidMechVelocity | fluidMechTKE | fluidMechSkinFriction | acouLambVec | acouLambRhs]).  Values may be separated by SPACE or SEMICOLON or |"
   "Sometimes it may be necessary to do some post-processing on the fluid fields
    to get some understanding of the problem at hand. For this reason it is possible
    to write the most important fields (velocity, pressure, source terms, turbulence

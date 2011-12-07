@@ -287,6 +287,7 @@ void FileReader_CfsHdf5::ReadNodalValues(std::vector<FlowDataType>& nodalFlowDat
         } catch (std::string &strEx) {
           EXCEPTION(strEx);
         }
+        //TODO: This fails if we have mesh dimension of 2 but 3 components in the results
         fdPtr->data = resultPtr->realVals;
       }
     }

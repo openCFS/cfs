@@ -1466,6 +1466,10 @@ DEFINE_LOG(linForm, "linForm")
     divLHTensorTmp.Init(0.0);
     divLHTensor.Resize(dimelem);
     divLHTensor.Init(0.0);
+    //as the suface stuff is not working yet, we return at this point
+    if(surfInt){
+      return;
+    }
     
     Vector<double> intWeights = ptelem->GetIntWeights();
 
@@ -1475,13 +1479,13 @@ DEFINE_LOG(linForm, "linForm")
       ComputeNormalVec(ptCoord, nVec);
     }
 
-    std::cout << "Normal:\n" << nVec << std::endl;
 
     // Loop over all integration points 
     for(Integer actInt=1; actInt <= l; actInt++)
     {
       ptelem->GetShFncAtIp(Sf, actInt, elem);
       ptelem->GetGlobDerivShFncAtIp(xiDx, actInt, ptCoord, jacDet, elem);
+      //std::cout << "Normal:\n" << nVec << std::endl;
 
       // velocity at integration point: (vx  vy)^T  (2x1)
       VelAtIP = NodalVel * Sf;

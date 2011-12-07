@@ -525,7 +525,6 @@ namespace CoupledField
             {
               flowData[actRegion][FLUIDMECH_VELOCITY].isActive = true;
             }
-            std::cout << "CalculateAcouSrcs" << std::endl;
             CalculateAcouSrcs(actRegion, flowData[actRegion], surfInt);
           }
           

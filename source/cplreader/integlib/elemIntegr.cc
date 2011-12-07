@@ -179,7 +179,6 @@ namespace CoupledField
     if(!ptElem_)
       return;
 
-    std::cout << "Go to COMPUTE" << std::endl;
     //perform volume or surface (surfInt = true) integration
       linearLoad_->CalcElemVec4QuadwithVel(coordMat,  NodalVal, elemvec, 
                                            nodalLoadDensity, divLHTensor, 

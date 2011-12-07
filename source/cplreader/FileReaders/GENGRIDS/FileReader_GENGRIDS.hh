@@ -67,6 +67,12 @@ namespace CoupledField
     std::map<std::string, std::vector<std::string> > fieldExprs_;
 
     MathParser mathParser_;
+
+    //Compute flow field of corotating vortex pair
+    void ComputeVortexPairVelocity(Vector<Double> coord, Double t, std::vector<Double> & velos);
+
+    //Compute source term Model of corotating vortex pair
+    void ComputeVortexPairSource(Vector<Double> coord, Double t, std::vector<Double> & velos);
   };
 
 

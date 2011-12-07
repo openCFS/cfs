@@ -327,6 +327,7 @@ int main(int argc, char *argv[])
   }
 
   delete logConf;
+  
   timer->Stop();
   std::cout << ">> Total time: wall clock: '";
   const int walltime((int) timer->GetWallTime());
@@ -353,7 +354,6 @@ int main(int argc, char *argv[])
   }
   
   std::cout << std::endl << std::endl;
-  
   return ret;
 }
 

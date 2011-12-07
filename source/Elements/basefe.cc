@@ -553,6 +553,8 @@ namespace CoupledField
       }
       while(iter < 16);
 
+      //if(iter>0)
+      //  std::cout << "performed " << iter << " iterations to reach the point" << std::endl<< xi_k << std::endl;
       // Put local coordinate of point into matrix.
       for(UInt l = 0; l < locDim; l++) {
         localCoords[l][i] = xi_k[l];
