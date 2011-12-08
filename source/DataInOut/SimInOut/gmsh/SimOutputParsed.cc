@@ -348,14 +348,9 @@ namespace CoupledField{
             std::stringstream coordstream;
 
             for(UInt i = 0;i<numVert;i++){
-              myGrid_->GetNodeCoordinate(curCoord,elemNodes[i]);
+              myGrid_->GetNodeCoordinate3D(curCoord,elemNodes[i]);
               for(UInt d = 0;d<curCoord.GetSize(); d++){
                 coordstream << curCoord[d] << ",";
-              }
-              if(curCoord.GetSize() == 2){
-                coordstream << "0.0,";
-              }else if(curCoord.GetSize() == 1){
-                coordstream << "0.0,0.0,";
               }
               coordstream << std::endl;
             }

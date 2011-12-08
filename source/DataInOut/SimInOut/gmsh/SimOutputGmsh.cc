@@ -390,14 +390,7 @@ namespace CoupledField {
     for (UInt i = 1; i <= numnodes; i++) {
       Vector<Double> p;
       
-      ptGrid_->GetNodeCoordinate(p, i);  
-
-      if(p.GetSize() == 2){
-        p.Push_back(0.0);
-      }else if(p.GetSize() == 1){
-        p.Push_back(0.0);
-        p.Push_back(0.0);
-      }
+      ptGrid_->GetNodeCoordinate3D(p, i);  
 
       if (ascii_) {
         (*output_) << i << " " << p[0] << " " << p[1] << " "

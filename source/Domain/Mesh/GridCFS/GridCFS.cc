@@ -1250,7 +1250,7 @@ namespace CoupledField {
   {
     coords_.Resize(this->numNodes_ + numNodes);
     for( UInt i = 0; i < coords_.GetSize(); ++i ) {
-      coords_[i].Resize(3);
+      coords_[i].Resize(dim_);
     }
     numNodes_ += numNodes;
   }
@@ -1272,9 +1272,10 @@ namespace CoupledField {
     }
 
     UInt idx = inode-1;
-    coords_[idx][0] = rfPoint[0];
-    coords_[idx][1] = rfPoint[1];
-    coords_[idx][2] = rfPoint[2];
+    for( UInt i = 0; i < dim_; ++i ) {
+      coords_[idx][i] = rfPoint[i];  
+    }
+    
   }
 
 
@@ -1521,20 +1522,34 @@ namespace CoupledField {
     }
 
     UInt idx = inode-1;
-    // Note: We always return a 3-dimensional vector for points!
-    rfPoint.Resize(3);
-    rfPoint[0] = coords_[idx][0];
-    rfPoint[1] = coords_[idx][1];
-    if( dim_ == 3 ) {
-      rfPoint[2] = coords_[idx][2];
-    }
+    rfPoint = coords_[idx];
 
     if (updated && deltCoords_.GetSize() > 0) {
-      rfPoint[0] += deltCoords_[idx][0];
-      rfPoint[1] += deltCoords_[idx][1];
-      if (dim_ == 3)
-        rfPoint[2] += deltCoords_[idx][2];
+      rfPoint += deltCoords_[idx];
     }
+  }
+  
+  void GridCFS::GetNodeCoordinate3D( Vector<Double> & rfPoint,
+                                   const UInt inode,
+                                   bool updated ) const {
+
+    if ( inode > numNodes_ ) {
+      EXCEPTION( "GridCFS: There are only " << numNodes_
+                 << " nodes in the grid. You requested coordinates for "
+                 << "node number " << inode <<". Go check your mesh file!" );
+    }
+
+    rfPoint.Resize(3);
+    rfPoint.Init();
+    UInt idx = inode-1;
+    for( UInt i = 0; i < dim_; ++i )
+      rfPoint[i] = coords_[idx][i];
+
+    if (updated && deltCoords_.GetSize() > 0) {
+      for( UInt i = 0; i < dim_; ++i )
+        rfPoint[i] += deltCoords_[idx][i];
+    }
+    
   }
 
   // ======================================================
@@ -2077,14 +2092,14 @@ namespace CoupledField {
     if( deltCoords_.GetSize() == 0 ) {
       deltCoords_.Resize( coords_.GetSize() );
       for( UInt i = 0; i < coords_.GetSize(); ++i ) {
-        deltCoords_[i].Resize(3);
+        deltCoords_[i].Resize(dim_);
         deltCoords_[i].Init();
       }
     }
 
     // Set delta coordinates
     for( UInt iNode = 0; iNode < nodes.GetSize(); iNode++ ) {
-      Vector<Double> actOffset(3);
+      Vector<Double> actOffset(dim_);
       for( UInt iDim = 0; iDim < dim_; iDim++ ) {
         actOffset[iDim] = offsets[iNode*dim_ + iDim];
       }
@@ -2413,7 +2428,7 @@ namespace CoupledField {
     inode = ++numNodes_;
 
     if (deltCoords_.GetSize() > 0) {
-      Vector<Double> zero(3);
+      Vector<Double> zero(dim_);
       zero.Init();
       deltCoords_.Push_back(zero);
     }
@@ -2438,7 +2453,7 @@ namespace CoupledField {
     }
 
     if (deltCoords_.GetSize() > 0) {
-      Vector<Double> zero(3);
+      Vector<Double> zero(dim_);
       zero.Init();
       for (i = 0; i < n; ++i)
         deltCoords_.Push_back(zero);

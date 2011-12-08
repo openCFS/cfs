@@ -107,8 +107,18 @@ namespace CoupledField
     virtual void AddNodes(const UInt numNodes)
     { EXCEPTION( "Not implemented" ); }
 
-    virtual void SetNodeCoordinate(const UInt numNode, const Vector<Double> & rfPoint)
-    { EXCEPTION( "Not implemented" ); }
+    //! Set coordinate of single node
+    
+    //! This method sets the coordinate of a single node. 
+    //! \param nodenNum (in) node number (1-based)
+    //! \param coord (in) coordinate (size: >= dimension of grid)
+    //!
+    //! \note The dimension of the coordinate must be 3 for 3D and can be 2 or 3
+    //!       for 2D. If a 3-dimensional coordinate is provided for a point in 
+    //!       2D, we assume the working plane is x-y and check, if the 3rd 
+    //!       coordinate component is zero, otherwise an exception is thrown.
+    virtual void SetNodeCoordinate( const UInt nodeNum, 
+                                    const Vector<Double> & coord ) = 0;
 
     
     //! Returns the maximum node number in the finite element grid or of a special region
@@ -120,13 +130,27 @@ namespace CoupledField
     //! Set if grid is axisymmetric
     void SetAxi(bool isAxi ) { isAxi_ = isAxi;}
 
-    //! Get coordinates of node with global number inode as vector
-    //! \param rfPoint (out) coordinates of point 3D
+    //! Get coordinates of node (dimension: grid dependent)
+    
+    //! This method returns the nodal coordinate of the point, where the dimension
+    //! of the point corresponds to the grid dimension.
+    //! \param rfPoint (out) coordinates of point (size: dim)
     //! \param inode (in) node number
     //! \param updated (in) flag indicating if updated geometry should be used
     virtual void GetNodeCoordinate( Vector<Double> & rfPoint,
                                     const UInt inode,
                                     bool updated = false ) const = 0;
+
+    
+    //! Get coordinates of node (dimension: 3D)
+
+    //! This method returns the nodal coordinate of the point always with 3 components.
+    //! \param rfPoint (out) coordinates of point (size: 3)
+    //! \param inode (in) node number
+    //! \param updated (in) flag indicating if updated geometry should be used
+    virtual void GetNodeCoordinate3D( Vector<Double> & rfPoint,
+                                      const UInt inode,
+                                      bool updated = false ) const = 0;
 
     //! Get elements associated with given nodes
 

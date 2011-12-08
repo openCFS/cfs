@@ -728,7 +728,7 @@ namespace CoupledField
     Point point;
     for ( i = 1; i <= numNodes; i++ ) {
       // Set coordinates for node i
-      ptGrid_->GetNodeCoordinate(point,i);
+      ptGrid_->GetNodeCoordinate3D(point,i);
       ansysNode_[0] = point[0];
       ansysNode_[1] = point[1];
       ansysNode_[2] = point[2];

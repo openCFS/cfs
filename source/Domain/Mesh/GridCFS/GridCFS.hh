@@ -160,17 +160,19 @@ namespace CoupledField
     void GetNodesByRegion( StdVector<UInt> & nodeList,
                            const RegionIdType regionId );
     
-    //! Get coordinates of node with global number inode as vector
-    //! \param rfPoint (out) coordinates of point 3D
-    //! \param inode (in) node number
-    //! \param updated (in) flag indicating if updated geometry should be used
+    //! \see Grid::GetNodeCoordinate
     void GetNodeCoordinate( Vector<Double> & rfPoint,
                             const UInt inode,
                             bool updated ) const;
     
-    //! Set nodal coordinate
-    virtual void SetNodeCoordinate(const UInt numNode, 
-                                   const Vector<Double> & rfPoint );
+    //! \see Grid::GetNodeCoordinate3D
+    void GetNodeCoordinate3D( Vector<Double> & rfPoint,
+                              const UInt inode,
+                              bool updated ) const;
+    
+    //! \see Grid::SetNodeCoordinate
+    void SetNodeCoordinate( const UInt nodeNum, 
+                            const Vector<Double> & coord );
     //@}
 
     // =======================================================================
