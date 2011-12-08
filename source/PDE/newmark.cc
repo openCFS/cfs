@@ -31,6 +31,7 @@ namespace CoupledField
 
     if ( systemNode->Has("timeSteppingParameters") ) {
       PtrParamNode myParam = systemNode->Get("timeSteppingParameters");
+      myParam->GetValue("alpha", alpha_, ParamNode::PASS);
       myParam->GetValue("beta", beta_, ParamNode::PASS);
       myParam->GetValue("gamma", gamma_, ParamNode::PASS);
       myParam->GetValue("nu", nu_, ParamNode::PASS);
@@ -62,7 +63,7 @@ namespace CoupledField
 
     CalcParameters(dt_);
         
-    matrix_factors_[STIFFNESS] = (1.0 + alpha_);
+    matrix_factors_[STIFFNESS] = (1.0 - alpha_);
     matrix_factors_[MASS] = 1.0*sol_timeStepCoeff_[CORRECTOR_1];   
     matrix_factors_[CONVECTION] = 0.0; 
     matrix_factors_[DAMPING] = 1.0*sol_timeStepCoeff_[COEFFRHS];
@@ -81,7 +82,11 @@ namespace CoupledField
       solDeriv_vec_[SECOND_DERIV] = dummyVec;
     }
 
-
+    if (abs(alpha_) > 0) {
+      solPrevious_ = dummyVec;
+      solderiv1Previous_ = dummyVec;
+    }
+    
     solpred_.Resize(rhsSize_);
     solpred_.Init();
     solderiv1pred_.Resize(rhsSize_);
@@ -110,7 +115,7 @@ namespace CoupledField
     dt_ = globalDeltaT_/Double(subSteps);
     CalcParameters(dt_);
         
-    matrix_factors_[STIFFNESS] = (1.0 + alpha_);
+    matrix_factors_[STIFFNESS] = (1.0 - alpha_);
     matrix_factors_[MASS] = 1.0*sol_timeStepCoeff_[CORRECTOR_1];   
     matrix_factors_[CONVECTION] = 0.0; 
     matrix_factors_[DAMPING] = 1.0*sol_timeStepCoeff_[COEFFRHS];
@@ -124,7 +129,7 @@ namespace CoupledField
     dt_ = globalDeltaT_;
     CalcParameters(dt_);
         
-    matrix_factors_[STIFFNESS] = (1.0 + alpha_);
+    matrix_factors_[STIFFNESS] = (1.0 - alpha_);
     matrix_factors_[MASS] = 1.0*sol_timeStepCoeff_[CORRECTOR_1];   
     matrix_factors_[CONVECTION] = 0.0; 
     matrix_factors_[DAMPING] = 1.0*sol_timeStepCoeff_[COEFFRHS];
@@ -148,27 +153,34 @@ namespace CoupledField
   void Newmark::UpdateRHS()
   {
 
-    Vector<Double> coeffMass;
-
     // mass part
-    coeffMass = solpred_*sol_timeStepCoeff_[CORRECTOR_1];
-    algsys_->UpdateRHS(MASS,coeffMass);
+    Vector<Double> helpVec;
+    helpVec = solpred_*sol_timeStepCoeff_[CORRECTOR_1];
+    algsys_->UpdateRHS(MASS,helpVec);
 
-    // damping part
-    if ( FeMatrixPresent( DAMPING ) ) {
-      Vector<Double> coeffDamp;
-        
-      coeffDamp = -solderiv1pred_ + solpred_*sol_timeStepCoeff_[COEFFRHS];
-      algsys_->UpdateRHS(DAMPING,coeffDamp);
-    }
-
-    //just in case of alpha-Method
     if (abs(alpha_) > 0) {
-      Vector<Double> coeffStiff;
-      coeffStiff = solpred_*alpha_;
-      algsys_->UpdateRHS(DAMPING,coeffStiff);
-    }
+      //alpha method
 
+     if ( FeMatrixPresent( DAMPING ) ) {      
+       //damping
+       helpVec = sol_timeStepCoeff_[COEFFRHS]*solpred_ 
+         - (1-alpha_)*solderiv1pred_ 
+         - alpha_*solderiv1Previous_;
+       algsys_->UpdateRHS(DAMPING,helpVec);
+     }
+
+     //stiffness
+     helpVec = -solPrevious_*alpha_;
+     algsys_->UpdateRHS(STIFFNESS,helpVec);
+    }
+    else {   
+      // damping part
+      if ( FeMatrixPresent( DAMPING ) ) {       
+        helpVec = -solderiv1pred_ + solpred_*sol_timeStepCoeff_[COEFFRHS];
+        algsys_->UpdateRHS(DAMPING,helpVec);
+      }
+    }
+      
   }
 
   void Newmark::SubstractStiffnessFromRHS(Vector<Double>& actSol) {
@@ -182,6 +194,10 @@ namespace CoupledField
 
   void Newmark::UpdateRHS(Vector<Double>& actSol)
   {
+
+    if (abs(alpha_) > 0) {
+      EXCEPTION( "Newmark::UpdateRHS : alpha method not implemented for nonlinear PDE" );
+    }
 
     // mass part
     Vector<Double> coeffMass;
@@ -197,19 +213,18 @@ namespace CoupledField
       algsys_->UpdateRHS(DAMPING,coeffDamp);
     }
 
-    //just in case of alpha-Method
-    if (abs(alpha_) > 0) {
-      Vector<Double> coeffStiff;
-      coeffStiff = solpred_*alpha_;
-      algsys_->UpdateRHS(DAMPING,coeffStiff);
-    }
-
   }
 
   void Newmark::Corrector(Vector<Double>& solnew)
   {
     solDeriv_vec_[SECOND_DERIV] = (solnew - solpred_) * sol_timeStepCoeff_[CORRECTOR_1];
     solDeriv_vec_[FIRST_DERIV] = solderiv1pred_ + solDeriv_vec_[SECOND_DERIV]*sol_timeStepCoeff_[CORRECTOR_2];
+
+    if (abs(alpha_) > 0) {
+      //alpha method
+      solPrevious_ = solnew;
+      solderiv1Previous_ = solDeriv_vec_[FIRST_DERIV];
+    }
   }
 
 
@@ -226,7 +241,7 @@ namespace CoupledField
     sol_timeStepCoeff_[CORRECTOR_2] = gamma_*dt_;
 
     //for RHS, Matrices
-    sol_timeStepCoeff_[COEFFRHS] = (1+alpha_) * gamma_ / (beta_*dt_);
+    sol_timeStepCoeff_[COEFFRHS] = (1-alpha_) * gamma_ / (beta_*dt_);
   }
 
   void Newmark::AdvanceTimestep(Vector<Double>& solnew)
