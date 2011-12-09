@@ -36,12 +36,23 @@ namespace CoupledField
       myParam->GetValue("gamma", gamma_, ParamNode::PASS);
       myParam->GetValue("nu", nu_, ParamNode::PASS);
       myParam->GetValue("omitInitialSol", omitFirstPredictor_, ParamNode::PASS);
+
+      //check for correct alpha
+      if ( alpha_ < -0.3 || alpha_ > 0 ) {
+        EXCEPTION( "Newmark::UNewmark : alpha has to be within [-0.3; 0]" );
+      }
+
+      if ( abs(alpha_) > 0 ) {
+        //adjust correctly beta and gamma; see Hughes 532
+        beta_ = (1.0 - alpha_) * (1 - alpha_) / 4.0;
+        gamma_ = (1.0 - 2.0*alpha_) / 2.0; 
+      }
     }
 
     gamma_ = gamma_ + nu_;
 
-    Info->PrintF("","In Newmark TimeStepping Scheme use:\n  beta=%f\n  gamma=%f\n",
-                 beta_, gamma_);
+    Info->PrintF("","In Newmark TimeStepping Scheme use:\n  alpha=%f\n beta=%f\n  gamma=%f\n",
+                 alpha_, beta_, gamma_);
 
   }
 
@@ -63,7 +74,7 @@ namespace CoupledField
 
     CalcParameters(dt_);
         
-    matrix_factors_[STIFFNESS] = (1.0 - alpha_);
+    matrix_factors_[STIFFNESS] = (1.0 + alpha_);
     matrix_factors_[MASS] = 1.0*sol_timeStepCoeff_[CORRECTOR_1];   
     matrix_factors_[CONVECTION] = 0.0; 
     matrix_factors_[DAMPING] = 1.0*sol_timeStepCoeff_[COEFFRHS];
@@ -115,7 +126,7 @@ namespace CoupledField
     dt_ = globalDeltaT_/Double(subSteps);
     CalcParameters(dt_);
         
-    matrix_factors_[STIFFNESS] = (1.0 - alpha_);
+    matrix_factors_[STIFFNESS] = (1.0 + alpha_);
     matrix_factors_[MASS] = 1.0*sol_timeStepCoeff_[CORRECTOR_1];   
     matrix_factors_[CONVECTION] = 0.0; 
     matrix_factors_[DAMPING] = 1.0*sol_timeStepCoeff_[COEFFRHS];
@@ -129,7 +140,7 @@ namespace CoupledField
     dt_ = globalDeltaT_;
     CalcParameters(dt_);
         
-    matrix_factors_[STIFFNESS] = (1.0 - alpha_);
+    matrix_factors_[STIFFNESS] = (1.0 + alpha_);
     matrix_factors_[MASS] = 1.0*sol_timeStepCoeff_[CORRECTOR_1];   
     matrix_factors_[CONVECTION] = 0.0; 
     matrix_factors_[DAMPING] = 1.0*sol_timeStepCoeff_[COEFFRHS];
@@ -164,13 +175,13 @@ namespace CoupledField
      if ( FeMatrixPresent( DAMPING ) ) {      
        //damping
        helpVec = sol_timeStepCoeff_[COEFFRHS]*solpred_ 
-         - (1-alpha_)*solderiv1pred_ 
-         - alpha_*solderiv1Previous_;
+         - (1+alpha_)*solderiv1pred_ 
+         + alpha_*solderiv1Previous_;
        algsys_->UpdateRHS(DAMPING,helpVec);
      }
 
      //stiffness
-     helpVec = -solPrevious_*alpha_;
+     helpVec = solPrevious_*alpha_;
      algsys_->UpdateRHS(STIFFNESS,helpVec);
     }
     else {   
@@ -241,7 +252,7 @@ namespace CoupledField
     sol_timeStepCoeff_[CORRECTOR_2] = gamma_*dt_;
 
     //for RHS, Matrices
-    sol_timeStepCoeff_[COEFFRHS] = (1-alpha_) * gamma_ / (beta_*dt_);
+    sol_timeStepCoeff_[COEFFRHS] = (1+alpha_) * gamma_ / (beta_*dt_);
   }
 
   void Newmark::AdvanceTimestep(Vector<Double>& solnew)
