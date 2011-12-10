@@ -5,6 +5,7 @@ namespace CoupledField {
 
   SolStrategy::SolStrategy( PtrParamNode param ) {
     param_ = param;
+    type_ = NO_STRATEGY;
     numSolSteps_ = 0;
   }
 
@@ -49,6 +50,8 @@ namespace CoupledField {
   
   SolStrategyStd::SolStrategyStd(PtrParamNode node ) 
   : SolStrategy(node) {
+    
+    type_ = STD_STRATEGY;
     
     // check, if subnodes are present. if not, generate them, but
     // without default attributes
@@ -160,9 +163,6 @@ namespace CoupledField {
     return calcCond;
   }
 
-  SolStrategyStd::SplittingType SolStrategyStd::GetSplitStrategy(){
-    return SolStrategy::NO_SPLIT_STRAT;
-  }
   
   
   PtrParamNode SolStrategyStd::GetSetupNode(){
@@ -218,4 +218,19 @@ namespace CoupledField {
     PtrParamNode ret;
     return ret;
   }
+
+// ************************************************************************
+// ENUM INITIALIZATION
+// ************************************************************************
+
+// Definition of stratey types
+static EnumTuple strategyTuples[] = {
+       EnumTuple(SolStrategy::NO_STRATEGY,  "NoStrategy"),
+       EnumTuple(SolStrategy::STD_STRATEGY, "StdStrategy"),
+       EnumTuple(SolStrategy::TWO_LEVEL_STRATEGY,  "TwoLevelStrategy")
+};
+Enum<SolStrategy::StrategyType> SolStrategy::strategyType = \
+     Enum<SolStrategy::StrategyType>("Solution Strategy Types",
+         sizeof(strategyTuples) / sizeof(EnumTuple),
+         strategyTuples);
 }

@@ -13,7 +13,6 @@ namespace CoupledField {
   SolveStepMagEdge::SolveStepMagEdge(StdPDE& apde) : 
       StdSolveStep(apde)
   {
-   strategy_ = STRAT_STANDARD;
     magEdgePDE_ = dynamic_cast<MagEdgePDE*>(&apde);
   }
   
@@ -21,9 +20,6 @@ namespace CoupledField {
   SolveStepMagEdge::~SolveStepMagEdge() {
   }
   
-  void SolveStepMagEdge::SetSolStrategy( SolStrategyType type ) {
-    strategy_ = type;
-  }
 
   // ======================================================
   // Solve Step Static SECTION  

@@ -21,9 +21,6 @@ namespace CoupledField
     //! Destructor
     virtual ~SolveStepMagEdge();
 
-    //! Set solver strategy
-    void SetSolStrategy( SolStrategyType strategy );
-    
     //----------------------- STATIC---------------------------------------
     //! routine for initilizations befor execution the SolveStep-method
     void PreStepStatic( );
@@ -60,9 +57,6 @@ namespace CoupledField
      //! Explicit pointer to MagEdgePDE
      MagEdgePDE * magEdgePDE_;
 
-     //! Solution strategy
-     SolStrategyType strategy_;
-     
      //! log file for time
      std::ofstream timeFile_;
   };

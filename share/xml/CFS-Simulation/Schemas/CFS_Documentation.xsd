@@ -57,6 +57,15 @@
           </xsd:documentation>
         </xsd:annotation>
       </xsd:element>
+      <xsd:element name="isVerified" minOccurs="1" maxOccurs="1" type="DT_CFSBool">
+        <xsd:annotation>
+          <xsd:documentation xml:lang="en">
+            Is this a verified example, i.e. an analytical solution or measured
+            values (yes), or is this just a "functional" example which ensures the 
+            operability of a certain feature (no)?
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:element>
       <xsd:element name="description" minOccurs="1" maxOccurs="1">
         <xsd:annotation>
           <xsd:documentation xml:lang="en">
@@ -108,29 +117,72 @@
     </xsd:annotation>
 
     <xsd:restriction base="xsd:string">
-     <!-- coupling realted keywords -->
-      <xsd:enumeration value="biot-savart"/>
-      <xsd:enumeration value="electrostatic-mechanic"/>
+      
+      <!-- ========================================================== -->
+      <!--  Analysis Related Keywords                                 -->
+      <!-- ========================================================== -->
+      <xsd:enumeration value="static"/>
+      <xsd:enumeration value="transient"/>
+      <xsd:enumeration value="harmonic"/>
+      <xsd:enumeration value="eigenFrequency"/>
+      <xsd:enumeration value="multiSequence"/>
+      
+      <!-- ========================================================== -->
+      <!--  Physic Related Keywords                                   -->
+      <!-- ========================================================== -->
+      
+      <!-- Acoustic -->
+      <xsd:enumeration value="acoustic"/>
+      <xsd:enumeration value="abc"/>
+      <xsd:enumeration value="pml"/>
+      <xsd:enumeration value="aeroacoustics"/>
+      
+      <!-- Electrostatic -->
+      <xsd:enumeration value="electrostatic"/>
+      
+      <!-- Fluid -->
+      
+      <!-- Heat / Thermal -->
+      <xsd:enumeration value="headConduction"/>
+      <xsd:enumeration value="volumeSrc"/>
+      
+      <!-- Magnetic -->
+      <xsd:enumeration value="magneticNodal"/>
       <xsd:enumeration value="magneticScalar"/>
       <xsd:enumeration value="magneticEdge"/>
+      <xsd:enumeration value="biot-savart"/>
+      
+      <!-- Mechanic -->
+      <xsd:enumeration value="mechanic"/>
+      <xsd:enumeration value="prestress"/>
+      <xsd:enumeration value="shell elements"/>
+      
+      <!-- ========================================================== -->
+      <!--  Coupling Related Keywords                                 -->
+      <!-- ========================================================== -->
+      <xsd:enumeration value="electrostatic-mechanic"/>
       <xsd:enumeration value="magneto-mechanic"/>
       <xsd:enumeration value="magneto-striction"/>
       <xsd:enumeration value="mechanic-acoustic"/>
       <xsd:enumeration value="piezo"/>
       <xsd:enumeration value="thermo-mechanic"/>
       
-        
-      <xsd:enumeration value="abc"/>
-      <xsd:enumeration value="acoustic"/>
-      <xsd:enumeration value="aeroacoustics"/>
+      <!-- ========================================================== -->
+      <!--  General Feature Keywords                                  -->
+      <!-- ========================================================== -->
       <xsd:enumeration value="complex material parameters"/>
       <xsd:enumeration value="damping"/>
-      <xsd:enumeration value="prestress"/>
+      
+      <!-- ========================================================== -->
+      <!--  Approximation Related Keywords                            -->
+      <!-- ========================================================== -->
       <xsd:enumeration value="mixed fem"/>
-      <xsd:enumeration value="pml"/>
       <xsd:enumeration value="spectral fem"/>
-      <xsd:enumeration value="shell elements"/>
-      <!-- optimization specific keywords -->
+      <xsd:enumeration value="p-FEM-Legendre"/>
+      
+      <!-- ========================================================== -->
+      <!--  Optimization Related Keywords                             -->
+      <!-- ========================================================== -->
       <xsd:enumeration value="optimization"/>      
       <xsd:enumeration value="filter"/>      
       <xsd:enumeration value="SIMP"/>      
@@ -138,9 +190,18 @@
       <xsd:enumeration value="snopt"/>      
       <xsd:enumeration value="shape_optimization"/>
       <xsd:enumeration value="tensor_tracking"/>
+      
+      <!-- ========================================================== -->
+      <!--  Solver Related Keywords                                   -->
+      <!-- ========================================================== -->
       <!-- this are solver keywords -->
       <xsd:enumeration value="solver"/>
-      <!-- nonmatching grids specific key words -->
+      <xsd:enumeration value="static condensation"/>
+      <xsd:enumeration value="elimination"/>
+      
+      <!-- ========================================================== -->
+      <!--  Nonmatching Grid Related Keywords                         -->
+      <!-- ========================================================== -->
       <xsd:enumeration value="lagrange multiplier"/>
       <xsd:enumeration value="mortar fem"/>
       <xsd:enumeration value="nonmatching grids"/>
@@ -150,13 +211,14 @@
       <xsd:enumeration value="intersection operations"/>
       <xsd:enumeration value="wire baskets"/>
       <xsd:enumeration value="automatic interface determination"/>
-      <!-- input/output related keywords -->
+      
+      <!-- ========================================================== -->
+      <!--  File-IO Related Keywords                                  -->
+      <!-- ========================================================== -->
       <xsd:enumeration value="input"/>
       <xsd:enumeration value="output"/>
       <xsd:enumeration value="file format"/>
       
-      <!-- miscelaneous keyowrds -->
-      <xsd:enumeration value="ansys verifcation example"/>
     </xsd:restriction>
   </xsd:simpleType>
   

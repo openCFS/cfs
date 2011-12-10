@@ -43,6 +43,10 @@ namespace CoupledField
 
 
   }
+  
+  void ElectroStaticMaterial::Finalize() {
+      ComputeFullEpsTensor();
+    }
 
   void ElectroStaticMaterial::SetScalar(const std::string& param, MaterialType matType) {
 
@@ -365,6 +369,20 @@ namespace CoupledField
     pos->second.GetSubMatrix(matMatrix, 0, 0);
 
 
+  }
+  
+  void ElectroStaticMaterial::ComputeFullEpsTensor() {
+    Matrix<Complex> epsTensor(3,3);
+    
+    // check, if tensor was already set
+    if( tensorParams_.find( ELEC_PERMITTIVITY ) == tensorParams_.end() ) {
+      Complex eps;
+      GetScalar(eps, ELEC_PERMITTIVITY, Global::COMPLEX);
+      epsTensor[0][0] = eps;
+      epsTensor[1][1] = eps;
+      epsTensor[2][2] = eps;
+      SetTensor( epsTensor, ELEC_PERMITTIVITY, Global::COMPLEX );
+    }
   }
 
 

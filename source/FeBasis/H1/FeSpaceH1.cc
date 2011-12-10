@@ -3,6 +3,7 @@
 
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "OLAS/algsys/AlgebraicSys.hh"
+#include "OLAS/algsys/SolStrategy.hh"
 
 namespace CoupledField {
 
@@ -312,6 +313,107 @@ namespace CoupledField {
     }
   }
 
+  
+  void FeSpaceH1::GetOlasMappings( shared_ptr<SolStrategy> solStrat, 
+                                   StdVector<std::set<Integer> >& sbmBlocks,
+                                   std::map<UInt,StdVector<std::set<Integer> > >&
+                                   minorBlocks ) {
+    
+    // currently we only support "standard" solution strategy
+    if( solStrat->GetType() != SolStrategy::STD_STRATEGY ) {
+      EXCEPTION( "Curently we just support the standard solution strategy for H1.");
+    }
+    
+    // Check, if static condensation is to be performed
+    bool statCond = solStrat->UseStaticCondensation();
+    if( !statCond ) {
+      // -------------------------
+      //  No Static Condensation
+      // -------------------------
+      // we have just one big matrix block, where all equations are put in
+      sbmBlocks.Resize(1);
+      std::set<Integer> & allEqns = sbmBlocks[0];
+      for( UInt i = 0; i < numEqns_; ++i ) {
+        allEqns.insert(i+1);
+      }
+    } else {
+
+      // ---------------------
+      //  Static Condensation
+      // ---------------------
+      // Create 2 SBM block sets:
+      // 1st block: Contains all nodal, edge and face contributions
+      // 2nd block: contains all element interior equations (in 2D: faces)
+      
+      
+      // Preliminary first set: all equations
+      // If we have lateron no interior equations, we can directly return
+      // this set
+      std::set<Integer>  nonIntEqns;
+      for( UInt i = 0; i < numEqns_; ++i ) {
+        nonIntEqns.insert(i+1);
+      }
+      
+      // Determine type of entity type to condensate
+      // 2D: faces, 3D: interior
+      BaseFE::EntityType intType;
+      if( domain->GetGrid()->GetDim() == 3) {
+        intType = BaseFE::INTERIOR;
+      } else {
+        intType = BaseFE::FACE;
+      }
+
+      // list with all equation numbers for interior block
+      std::set<Integer> intBlock;
+
+      // Loop over all elements
+      Grid * grid = domain->GetGrid();
+      std::map< UInt, ElemVirtualNodes >::iterator elemIt = virtualNodes_.begin();
+      for( ; elemIt != virtualNodes_.end(); ++elemIt ) {
+
+        const UInt elemNum = elemIt->first;
+        const Elem * elem = grid->GetElem(elemNum);
+        UInt dim = Elem::shapes[elem->type].dim;;
+        LOG_DBG(feSpaceH1) << "\nDim of elem #" 
+            << elemNum << ": " << dim << std::endl;
+
+        ElemVirtualNodes& vn = elemIt->second;
+        // collect all inner nodes 
+        StdVector<UInt> & innerNodes = vn[intType].vNodes;
+        LOG_DBG(feSpaceH1) << "innerNode has size " << innerNodes.GetSize() 
+                                                     << std::endl;
+        for(UInt i = 0; i < innerNodes.GetSize(); ++i ) {
+          intBlock.insert( nodeMap_[innerNodes[i]].Begin(),
+                           nodeMap_[innerNodes[i]].End() );
+        } // loop over interior nodes
+      } // loop over elements
+      
+      // now check, if we have inner equations at all
+//      if( intBlock.size() == 0 ) {
+//        // no interior equations -> just one block with all equations
+//        sbmBlocks.Resize(1);
+//        sbmBlocks[0] = nonIntEqns;
+//      } else {
+      
+      // take set-difference:
+      // so far we have collected all inner equations, now subtract them
+      // from the set of "all" equations, to get non-inner equations
+      std::set<Integer> diff;
+      std::insert_iterator<std::set<Integer> > insert_it (diff, diff.begin());
+      std::set_difference( nonIntEqns.begin(), nonIntEqns.end(),
+                           intBlock.begin(), intBlock.end(),
+                           insert_it );
+      sbmBlocks.Resize(2);
+      sbmBlocks[0] = diff;
+      sbmBlocks[1] = intBlock;
+//      }
+      
+      
+    } // if static condensation
+    
+    
+    
+  }
 
   void FeSpaceH1::PrintEqnMap(){
     

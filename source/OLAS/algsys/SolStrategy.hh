@@ -5,6 +5,7 @@
 #include "DataInOut/ProgramOptions.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "MatVec/BaseMatrix.hh"
+#include "General/Enum.hh"
 
 
 namespace CoupledField {
@@ -38,9 +39,9 @@ class SolStrategy {
   
 public:
 
-  //! Typedef for splitting strategy
-  typedef enum {NO_SPLIT_STRAT, ORDER_TWO_LEVEL} SplittingType;
-  Enum<SplittingType> SplittingTypeEnum;
+  //! Enum for different strategy types
+  typedef enum {NO_STRATEGY, STD_STRATEGY, TWO_LEVEL_STRATEGY} StrategyType;
+  static Enum<StrategyType> strategyType;
   
   //! Constructor
   SolStrategy( PtrParamNode param );
@@ -51,6 +52,11 @@ public:
   //! Factory methods
   static shared_ptr<SolStrategy> Generate( PtrParamNode );
   
+  //! Return type of solution strategy
+  StrategyType GetType() { 
+    return type_;
+  }
+  
   // ========================================================================
   //  SOLUTION STEPS
   // ========================================================================
@@ -60,22 +66,18 @@ public:
   //! Set current solution step
   virtual void SetActSolStep() = 0;
   
-  //! Return splitting strategy
-  virtual SplittingType GetSplitStrategy() = 0;
-  
   // ========================================================================
   //  OLAS-PARAMEER HANDLING
   // ========================================================================
   
   //! Return use of static condensation
   virtual bool UseStaticCondensation() = 0;
-
+  
   //! Return use of penalty approach for Dirichlet handling
   virtual bool UseDirichletPenalty() = 0;
 
   //! Return calculation of conditionNumber
   virtual bool CalcConditionNumber() = 0;
-
   
   //! Return pointer to <setup> element
   virtual PtrParamNode GetSetupNode() = 0;
@@ -108,6 +110,9 @@ protected:
   
   //! Paramnode for strategy element
   PtrParamNode param_;
+  
+  //! Strategy type of this class
+  StrategyType type_;
   
   //! Number of solution steps
   UInt numSolSteps_;
@@ -143,9 +148,6 @@ public:
 
   //! Return use of static condensation
   virtual bool UseStaticCondensation();
-
-  //! Return splitting strategy
-  virtual SplittingType GetSplitStrategy();
 
   // ========================================================================
   //  OLAS-PARAMETER HANDLING

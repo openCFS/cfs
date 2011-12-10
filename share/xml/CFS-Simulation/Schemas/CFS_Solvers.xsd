@@ -243,7 +243,7 @@
             </xsd:annotation>
           </xsd:element>
           
-          <xsd:element name="stoppingRule" type="DT_ItSolvStoppingRule"/>
+          <xsd:element name="stoppingRule" type="DT_ItSolvStoppingRule" minOccurs="0"/>
           
           <xsd:element name="tol" type="DT_PosFloat" minOccurs="0" default="1e-6">
             <xsd:annotation>
@@ -721,6 +721,13 @@
       <xsd:extension base="DT_EigenSolverBasic">
         
         <xsd:sequence>
+        
+          <!-- Allow separate solver within eigenfrequency calculation -->
+          <!-- <xsd:element name="solver" minOccurs="0" >
+            <xsd:complexType>
+              <xsd:attribute name="id"  type="xsd:token" default="default"/>
+            </xsd:complexType>
+          </xsd:element>-->
           <xsd:element name="tolerance" type="DT_PosFloat" minOccurs="0"/>
           <xsd:element name="maxIt" type="xsd:nonNegativeInteger" minOccurs="0"/>
           <xsd:element name="numVec" type="xsd:nonNegativeInteger" minOccurs="0"/>

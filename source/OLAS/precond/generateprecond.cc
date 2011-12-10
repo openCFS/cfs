@@ -430,6 +430,7 @@ LOG_DBG(genPrecond) << " GenerateStdPrecondObject: Generated "\
 
     BaseSBMPrecond *retVal = NULL;
 
+    WARN("adjust determination of SBM preconditioner");
     std::string precondStr = "";
 
     PtrParamNode solverXML;
@@ -593,10 +594,10 @@ LOG_DBG(genPrecond) << " GenerateStdPrecondObject: Generated "\
       case BasePrecond::ILUPACK:
       case BasePrecond::LU_SOLVER: 
       case BasePrecond::DIAGSOLVER:
-        EXCEPTION("Missing case statment for solvers as preconditioners");
+        EXCEPTION("Missing case statement for solvers as preconditioners");
         break;
       default:
-        EXCEPTION("Unhandled case statement");
+        EXCEPTION("Missing case statement");
         break;
     } 
     return ret;

@@ -36,6 +36,12 @@
             <xsd:element ref="EigenSolverBasic" minOccurs="0" maxOccurs="unbounded"/>
           </xsd:sequence>
         </xsd:complexType>
+        
+        <!-- Enforce uniqueness of eigenSolver ids -->
+        <xsd:unique name="uniqueEigenSolverId">
+          <xsd:selector xpath="./*"/>
+          <xsd:field xpath="@id"/>
+        </xsd:unique>
       </xsd:element>
       
       <!-- Solver List -->
@@ -45,6 +51,12 @@
             <xsd:element ref="SolverBasic" minOccurs="0" maxOccurs="unbounded"/>
           </xsd:sequence>
         </xsd:complexType>
+        
+        <!-- Enforce uniqueness of solver ids -->
+        <xsd:unique name="uniqueSolverId">
+          <xsd:selector xpath="./*"/>
+          <xsd:field xpath="@id"/>
+        </xsd:unique>
       </xsd:element>
       
       <!-- Preconditioner List -->
@@ -54,6 +66,12 @@
             <xsd:element ref="PrecondBasic" minOccurs="0" maxOccurs="unbounded"/>
           </xsd:sequence>
         </xsd:complexType>
+        
+        <!-- Enforce uniqueness of precond ids -->
+        <xsd:unique name="uniquePrecondId">
+          <xsd:selector xpath="./*"/>
+          <xsd:field xpath="@id"/>
+        </xsd:unique>
       </xsd:element>
     </xsd:sequence>
     

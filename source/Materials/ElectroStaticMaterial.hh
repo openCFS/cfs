@@ -69,7 +69,9 @@ namespace CoupledField {
 		    Global::ComplexPart dataType,
 		    SubTensorType = FULL ) const;	
 
-
+    //! Finalize material
+    void Finalize();
+    
     //======================== for hysteresis =======================================
     //! compute scalar differential parameter
     Double ComputeScalarDiffVal( UInt nrElem, Double Xval );
@@ -87,6 +89,9 @@ namespace CoupledField {
     void ComputeSubTensor(Matrix<Complex>& matMatrix,
 			  MaterialType matType, 
 			  SubTensorType subTensor) const;
+    
+    //! compute the full permittivity tensor in case of istoropic material
+    void ComputeFullEpsTensor();
 
     Complex scalarPermittivity_;
 

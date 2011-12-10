@@ -52,9 +52,6 @@ namespace CoupledField
     //! read the PDE state (pdememento)from a restart file: "simname_pdename.restart"
     virtual void ReadRestart(UInt &startStep ) = 0;
 
-    //! Set solution step in case of mulitlevel solution
-   virtual void SetSolutionStep(UInt solStep_ ) {};
-   
     // ======================================================
     // POSTPROC SECTION
     // ======================================================
@@ -121,16 +118,6 @@ namespace CoupledField
     //! name of the PDE
     std::string pdename_;
     
-    //! Solution strategy for problem
-    SolStrategyType solStrategy_;
-    
-    //! In case of several multilevel solution, this variable carries the step
-    
-    //! This variable indicates the step in case of a two- or mulit-level
-    //! solution strategy. It is 1 based.
-    UInt solStep_;
-
-
   };
 
 #ifdef DOXYGEN_DETAILED_DOC

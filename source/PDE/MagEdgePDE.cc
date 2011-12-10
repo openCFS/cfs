@@ -49,12 +49,6 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
     bool is3d = param->Get("domain")->Get("geometryType")->As<std::string>() == "3d";
     if ( !is3d )
       EXCEPTION("MagEdgePDE is just implemented for 3D setups!");
-  
-    // read in solution strategy for this PDE
-    PtrParamNode  solStratNode = myParam_->Get("solutionStrategy",ParamNode::PASS);
-    if( solStratNode )
-      solStrategy_  = SolStrategyEnum.Parse(solStratNode->As<std::string>());
-
   }
 
 
@@ -65,142 +59,6 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
   }
 
 
-  // *********************************
-  //  Re-Initialize PDE
-  // *********************************
-  void MagEdgePDE::SetSolutionStep(UInt stepNum ) {
-    solStep_ = stepNum;
-    if( solStrategy_ == STRAT_TWO_LEVEL && solStep_ == 2 ) {
-
-      // First, delete all stuff
-      // => Take code of destructors of SinglePDE and StdPDE
-      // => make sure to delete the algebraic system as well
-
-
-
-      // delete algebraic system
-      // delete Assemble class
-      // delete Time-Stepping class
-      // delete timestepping *** not allowed here
-      // delete solVec_, rhsVec_
-      // delete materials_
-
-
-
-      // Then, re-initialize the PDE (maybe we can adapt the init-method)
-      // (called from Domain::InitPDEs())
-      // - define analysis type
-      // - read in regions 
-      // - call DefineFEFunctions() *** Make sure in second step, to
-      // - call DefineAvailResults()
-      // - create new Standardsystem (hard coded -> change top SBM!)
-      // - create Assemble class
-      // - create new NodeStoreSol obejct and solution vector
-      // - call ReadMaterialData()
-      // - call ReadDampingInformation()
-      // - call InitNonLin()
-      // - determine "usePenalty_"
-      // - call ReadBCs()
-      // - call ReaSpecialBCs()
-      // - call InitTimeStepping()
-      // - call DefineIntegrators()
-      // - Loop over all FSpaces and initialize (map equations)
-      // - Initialize StoreSolution classes (numUnknowns, feSpace, regions)
-      // - Initialize solPrev_ objects
-      // - Initialize solVec_ and rhsVec_ objects
-      // - Initialize TimeStepping algorithm
-      // - call ReadStoreResults()
-      // - call ReadSpecialResults()
-      // - call DefineSolveStep() **** Prevent in 2nd step ****
-      // - call PreparePDE4Computation()
-
-
-      // Things performed in DefineAlgSys() (called from Domain::InitPDEs())
-      // - call ReadOLASParams()  *** Make sure to use iterative system
-      // - call olas->GraphSetupInit()
-      // - call olas->RegisterPDE() *** may have to be adjusted for multiple spaces
-      // - call solveStep->SetPDEId() *** may have to be adjusted
-      // - call algssys->AssembleInit()
-      // - call assemble_->SetupMatrixGraph()
-      // - call algsys->AssembleDone()
-      // - call algsys->GetReordering()
-      // - pass reordering to FeFunctions / FeSpaces
-      // - collect number of dirichletBCs from Spaces
-      // - call algsys->SetNumDirichletBCs
-      // - call SinglePDE::CreateMatricesSolver()
-      // - call SetInitialCondition()
-      // - Pass the algebraic system to all FeFunctions
-
-      // Thins performed in StdPDE::CreateMatricesSolver:
-      // - algsys->CreateLinSys()
-      // - algsys->InitMatrix()
-      // - algsys->CreateSolver
-      // - algsys->CreatePrecond
-      // - algsys->InitRHS()
-      // -algsys->InitSol()
-
-
-      // Alternative Approach is to keep as many objects as possible:
-      // - re-initialize FeSpace and FeFunctions
-      // - delete algebraic system and re-create it
-      // - re-initialize StoreSol-objects (check, if really needed)
-      // - re-size solPvec_, solVec_, rhsVec_ etc.
-      // - Maybe re-initialize timsteppeing
-      // - Create new algebraic system (and pass it to solvestep)
-      // 
-
-      // ----------------------------------------
-      
-      // delete old algebraic system and create new one
-      REFACTOR;
-      
-//      std::cerr << "algsys_ was : " << algsys_;
-//      delete algsys_;
-//      algsys_ = NULL;
-//      std::cerr << "algsys_ after delete is  " << algsys_ << std::endl;
-//      algsys_ = new StandardSystem(FindLinearSystem("magneticEdge2"));
-//      std::cerr << "algsys_ is : " << algsys_;
-//      // Get parameter and report object of OLAS
-//      olasParams_ = algsys_->GetOLASParams();
-//      olasReport_ = algsys_->GetOLASReport();
-//
-//      // Obtain unique pde identifier
-//      pdeId_ = algsys_->ObtainPDEId( pdename_ );
-//      assemble_->SetAlgSys(algsys_);
-//      assemble_->ResetMatrixReassembly();
-//      
-//      // Initialize FeSpace objects
-//      numPdeEquations_ = 0;
-//      numPdeUnknowns_ = 0;
-//      numPdeInHomDirBc_ = 0;
-//      //so this implementation is just for the magnetic potential
-//      shared_ptr<FeSpace> actSpace = feFunctions_[MAG_POTENTIAL]->GetFeSpace();
-//
-//      // IMPORTANT: Set 2nd step in two-Level scheme
-//      actSpace->SetStrategy(STRAT_TWO_LEVEL, 2);
-//      //actSpace->Finalize();
-//      actSpace->PreCalcShapeFncs();
-//      numPdeEquations_ += actSpace->GetNumEquations();
-//      numPdeUnknowns_ += actSpace->GetNumFreeEquations();
-//      numPdeInHomDirBc_ += actSpace->GetNumInhomDirichletBc();
-//      
-//      // Re-set store-solution and other vector objects
-//      sol_->Init();
-//      solVec_->Resize(numPdeUnknowns_);
-//      solVec_->Init();
-//      rhsVec_->Resize(numPdeUnknowns_);
-//      rhsVec_->Init();
-//      sol_->SetAlgSysDataPointer(solVec_->GetSize(),
-//                                         dynamic_cast<Vector<Double>&>(*solVec_).GetPointer() );
-//      
-//      DefineAlgSys();
-//      //CreateMatrices_Solver();
-    }
-  }
-  
-  // **********************************
-  //  Read special boundary conditions
-  // **********************************
 
   void MagEdgePDE::ReadSpecialBCs() {
 
@@ -441,7 +299,6 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
   {
     SolveStepMagEdge *magSolveStep = new SolveStepMagEdge(*this); 
     
-   magSolveStep->SetSolStrategy( solStrategy_ );
     solveStep_ = magSolveStep; 
   }
 

@@ -247,19 +247,13 @@ namespace CoupledField {
     //! object and before any other method. It allows the graph manager to
     //! prepare itself for the registration and generation of the sub-graphs.
     //! \param numFcts number of FeFunction objects 
-    //! \param numBlocks number of superBlocks whose connectivity graphs 
-    //!                     the graph manager will administer.
     //! \param useDistinctGraphs flag, indicating if different matrix types
     //!                          (STIFFNESS, MASS) should have different
     //!                          sparsity patterns (e.g. pure (block)diagonal,
     //!                          CRS etc.)
-    //! \param staticCondensation flag indicating use of static condensation 
     //!
-    //! \note In case of static condensation, we assume that the last SBM-block
-    //!       holds the element interior entries.
-    void GraphSetupInit( UInt numFcts, UInt numBlocks,
-                         bool useDistinctGraphs,
-                         bool staticCondensation );
+    void GraphSetupInit( UInt numFcts, 
+                         bool useDistinctGraphs );
 
     //! Finalises setup of the graph manager
 
@@ -297,13 +291,19 @@ namespace CoupledField {
     //! A SBMBlock is physically a sparse matrix, which can be composed
     //! of entries of several feFunctions. With this function we explicitly
     //! define the entries of one of those blocks.
-    //! \param sbmIndex index of the matrix within the SuperBlockMatrix
     //! \param eqns contains the set of equations for one super matrix block
-    //! \note In case only one sparse StandardMatrix / block is generated,
-    //! the call to this function can be omitted.  
-    void DefineSBMMatrixBlock( UInt sbmIndex, 
-                               const std::map<FeFctIdType, 
-                               std::set<Integer> >& eqns );
+    //! \param isInnerBlock flag, if block contains inner functions which can
+    //!                     get eliminates using static condensation
+    //! \return index of the matrix within the SuperBlockMatrix
+    //! 
+    //! \note Even in case of just one SBM matrix block, a call to this method
+    //!       is mandatory.
+    //! \note If a matrix block contains no equations at all, the return value
+    //!       of this method is -1, as OLAS internally does not allow empty
+    //!       matrices  
+    Integer DefineSBMMatrixBlock( const std::map<FeFctIdType, 
+                                  std::set<Integer> >& eqns,
+                                  bool isInnerBlock );
 
     //! Register submatrix blocks within a sparse matrix
 
@@ -322,42 +322,8 @@ namespace CoupledField {
                                 const StdVector<FeFctIdType>& fctIds,
                                 const StdVector<Integer>& eqns );
     
-    //! Prepare graph manager for assembling a sub-graph
-
-    //! Before the assembly phase of a sub-graph associated with a Function or the
-    //! coupling between two Functions can be started this method must be called
-    //! in order for the graph manager to do administrative stuff. In the case
-    //! that the sub-graph belongs to one FeFunction only the corresponding identifier
-    //! (obtained from RegisterFct) needs to be supplied. In the case that the
-    //! graph describes the coupling between two FeFunctions both related 
-    //! identifiers must be specified.
-    //! \param identifierFct1 identifier for first Fct related to sub-graph
-    //! \param identifierFct2 identifier for second Fct related to sub-graph
-    //! \param assemblingTranspose indicates whether the graph of the
-    //!                            transpose coupling object will be assembled
-    //!                            together with the coupling object.
-    void AssembleInit( const FeFctIdType identifierFct1,
-                       const FeFctIdType identifierFct2,
-                       bool assemblingTranspose );
-
-    //! Finalise assembly of a sub-graph
-
-    //! Once the assembly phase of a sub-graph associated with a Fct or the
-    //! coupling between two Fcts is done, this method must be called in order
-    //! to inform the graph about this. The call allows the graph manager to
-    //! immediately trigger associated tasks, like e.g. graph conversion or
-    //! re-ordering. In the case that the sub-graph belongs to one Fct only the
-    //! corresponding identifier (obtained from RegisterFct) needs to be
-    //! supplied. In the case that the graph describes the coupling between
-    //! two Fcts both related identifiers must be specified.
-    //! \param identifierFct1 identifier for first Fct related to sub-graph
-    //! \param identifierFct2 identifier for second Fct related to sub-graph
-    //! \param assemblingTranspose indicates whether the graph of the
-    //!                            transpose coupling object was assembled
-    //!                            together with the coupling object.
-    void AssembleDone( const FeFctIdType identifierFct1,
-                       const FeFctIdType identifierFct2,
-                       bool assemblingTranspose );
+    //! Finalize registration and definition of SBMMatrix / Submatrix blocks
+    void FinishRegistration( );
 
     //! Insert connectivity of a finite element into the matrix graph
 
@@ -867,6 +833,12 @@ namespace CoupledField {
 
     //! Number of registered FeFunctions so far
     UInt numRegFcts_;
+    
+    //! Flag, if registration is already finished
+    bool registrationFinished_;
+    
+    //! Flag, if system is already created
+    bool systemCreated_;
 
     //! Total number of equations per FeFunction
     StdVector<UInt> numEqnsPerFct_;
@@ -956,6 +928,9 @@ namespace CoupledField {
     
     //! Flag signaling symmetry of system matrix
     bool sbmSymm_;
+    
+    //! Flag if we have distinct matrix graphs for different matric types
+    bool distinctMatGraphs_;
 
     //@}
     

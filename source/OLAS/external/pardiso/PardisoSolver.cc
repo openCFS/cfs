@@ -440,7 +440,7 @@ extern "C" {
     //#if defined (_OPENMP)
     //iparm_[2] = omp_get_num_threads();
     //#else
-    iparm_[2] = 1;
+    //iparm_[2] = 1;
     //#endif
 
     // Determine the re-ordering strategy: We can either fo nested dissection

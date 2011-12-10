@@ -27,10 +27,6 @@ namespace CoupledField
     //! the ReadCoils() method brought into being.
     ~MagEdgePDE();
     
-    
-    //! Set solution step in case of mulitlevel solution
-    void SetSolutionStep(UInt step );
-       
     //! Initialize NonLinearities
     virtual void InitNonLin();
 

@@ -337,7 +337,7 @@ namespace CoupledField {
 
     
     // Now we have the edge/vertex list for every block available, so
-    // we can loop explictly over vertices (=rows) and edges (=cols)
+    // we can loop explictily over vertices (=rows) and edges (=cols)
     // of each block.
     
     // loop over all blocks and pass for every block the information to

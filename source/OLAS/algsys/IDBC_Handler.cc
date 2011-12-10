@@ -256,6 +256,14 @@ namespace CoupledField {
                                               UInt colInd,
                                               const T& val ) {
 
+    LOG_DBG2(idbcElim) << "AddWeightFixedToFree:";
+    LOG_DBG2(idbcElim) << "\tmatID:    " << matID;
+    LOG_DBG2(idbcElim) << "\trowBlock: " << rowBlock;
+    LOG_DBG2(idbcElim) << "\tcolBlock: " << colBlock;
+    LOG_DBG2(idbcElim) << "\trowInd:   " << rowInd;
+    LOG_DBG2(idbcElim) << "\tcolInd:   " << colInd;
+    
+    
     StdMatrix *stdMat = auxMat_[matID]->GetPointer(rowBlock, colBlock);
     stdMat->AddToMatrixEntry( rowInd, colInd, val );
   }

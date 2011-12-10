@@ -28,7 +28,6 @@ namespace CoupledField {
     isContinuous_ = true;
     numEqns_ = 0;
     numFreeEquations_ = 0;
-    solStrategy_ = STRAT_STANDARD;
     solStep_ = 1;
     orderOffset_ = 0;
 

@@ -30,7 +30,7 @@
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/ProgramOptions.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
-
+#include "Utils/Timer.hh"
 
 DECLARE_LOG(algSys)
 DEFINE_LOG(algSys, "algSys")
@@ -57,8 +57,12 @@ namespace CoupledField {
     numBlocks_          = 0;
     numRegFcts_         = 0;
     
-    rhs_ = NULL;
-    sol_ = NULL;
+    registrationFinished_ = false;
+    systemCreated_        = false;
+    distinctMatGraphs_    = false;
+    
+    rhs_                = NULL;
+    sol_                = NULL;
     sbmSymm_            = true;
     statCond_           = false;
     isComplex_          = false;
@@ -143,6 +147,14 @@ namespace CoupledField {
     
     LOG_TRACE(algSys) << "Creating linear system";
 
+    
+    // first check, if registration is finished
+    if( !registrationFinished_ ) {
+      EXCEPTION("AlgebraicSys::CreateLinSys() may just be called after "
+                "registration was finished using "
+                "AlgebraicSys::FinishRegistration()" );
+    }
+    
     std::set<FEMatrixType>::iterator fIt;
     // ------------------------------
     //  Generation of matrix objects
@@ -239,20 +251,27 @@ namespace CoupledField {
       // to free memory
       delete graphManager_;
       graphManager_ = NULL;
+      
+      // set flag
+      systemCreated_ = true;
   }
 
   void AlgebraicSys::CreatePrecond() {
     
     LOG_TRACE(algSys) << "Creating preconditioner";
     
-    
+    // check, if system was already created
+    if( !systemCreated_ ) {
+      EXCEPTION( "Matrices were not created yet. Please call "
+                 "AlgebraicSys::CreateLinSys() first!" );
+    }
     
     PtrParamNode precondListNode = myParam_->Get("precondList");
     PtrParamNode infoNode = myInfo_->Get("precond");
     
     // if we have just one SBM matrix block, use directly
     // the specialized methods for StdMatrices
-    if( numBlocks_ == 1) {
+    if( effMat_->GetNumRows() == 1 ) {
       precond_ = GenerateStdPrecondObject((*effMat_)(0,0), solStrat_,
                                           precondListNode, infoNode );
     } else {
@@ -266,13 +285,18 @@ namespace CoupledField {
     
     LOG_TRACE(algSys) << "Creating solver";
     
-    
+    // check, if system was already created
+    if( !systemCreated_ ) {
+      EXCEPTION( "Matrices were not created yet. Please call "
+          "AlgebraicSys::CreateLinSys() first!" );
+    }
+
     PtrParamNode solverListNode = myParam_->Get("solverList");
     PtrParamNode infoNode = myInfo_->Get("solver");
     
     // if we have just one SBM matrix block, use directly
     // the specialized methods for StdMatrices
-    if( numBlocks_ == 1) {
+    if( effMat_->GetNumRows() == 1) {
       solver_ = GenerateSolverObject( (*effMat_)(0,0), solStrat_, 
                                       solverListNode, infoNode);
     } else {
@@ -285,16 +309,26 @@ namespace CoupledField {
   void AlgebraicSys::CreateEigenSolver() {
     
     LOG_TRACE(algSys) << "Creating eigenvalue solver";
+    // check, if system was already created
+    if( !systemCreated_ ) {
+      EXCEPTION( "Matrices were not created yet. Please call "
+          "AlgebraicSys::CreateLinSys() first!" );
+    }
     REFACTOR;
   }
 
   void AlgebraicSys::SetupPrecond(PtrParamNode analysis_id)  {
     
     LOG_TRACE(algSys) << "Setup of preconditioner";
+    // check, if system was already created
+    if( !systemCreated_ ) {
+      EXCEPTION( "Matrices were not created yet. Please call "
+          "AlgebraicSys::CreateLinSys() first!" );
+    }
     
     // if we have just one SBM matrix block, use directly
     // the specialized methods for StdMatrices
-    if( numBlocks_ == 1) {
+    if( effMat_->GetNumRows() == 1 ) {
       precond_->Setup( (*effMat_)(0,0), analysis_id);
     } else {
       precond_->Setup( *(effMat_), analysis_id);
@@ -305,10 +339,18 @@ namespace CoupledField {
   void AlgebraicSys::SetupSolver(PtrParamNode analysis_id) {
     
     LOG_TRACE(algSys) << "Setup of solver";
+    // check, if system was already created
+    if( !systemCreated_ ) {
+      EXCEPTION( "Matrices were not created yet. Please call "
+          "AlgebraicSys::CreateLinSys() first!" );
+    }
+       
+    // start setup timer of solver
+    solver_->GetSetupTimer()->Start();
     
     // if we have just one SBM matrix block, use directly
     // the specialized methods for StdMatrices
-    if( numBlocks_ == 1 ) {
+    if( effMat_->GetNumRows() == 1 ) {
       solver_->Setup( (*effMat_)(0,0), analysis_id );
     } else {
       solver_->Setup( *effMat_, analysis_id);
@@ -318,63 +360,76 @@ namespace CoupledField {
     if( precond_ != NULL ) {
       solver_->SetPrecond( precond_ );
     }
+    
+    // stop setup timer of solver
+    solver_->GetSetupTimer()->Stop();
   }
 
   void AlgebraicSys::SetupEigenSolver( UInt numFreq, Double shift,
                                        bool quadratic ) {
     
     LOG_TRACE(algSys) << "Setup of eigenvalue solver";
+    // check, if system was already created
+    if( !systemCreated_ ) {
+      EXCEPTION( "Matrices were not created yet. Please call "
+          "AlgebraicSys::CreateLinSys() first!" );
+    }
     REFACTOR;
   }
 
   void AlgebraicSys::Solve(PtrParamNode analysis_id) {
     
     LOG_TRACE(algSys) << "Solving problem";
-    
+
     // ======================================================================
     //  CHECK FOR CALCULATION OF CONDITION NUMBER
     // ======================================================================
     // Check, if condition number is to be calculated
-      bool calcCapa = solStrat_->CalcConditionNumber();
-      
-      if( calcCapa ) {
-        Double condNumber = 0.0;
-        Vector<Double> ev, err;
-        PtrParamNode esNode = myParam_->Get("eigenSolverList");
-        PtrParamNode sNode = myParam_->Get("solverList");
-        PtrParamNode pNode = myParam_->Get("precondList");
-        
-        BaseEigenSolver * evs = 
+    bool calcCapa = solStrat_->CalcConditionNumber();
+
+    if( calcCapa ) {
+      Double condNumber = 0.0;
+      Vector<Double> ev, err;
+      PtrParamNode esNode = myParam_->Get("eigenSolverList");
+      PtrParamNode sNode = myParam_->Get("solverList");
+      PtrParamNode pNode = myParam_->Get("precondList");
+
+      BaseEigenSolver * evs = 
           GenerateEigenSolverObject( *(sysMat_[SYSTEM]), solStrat_, 
                                      esNode, sNode, pNode,
                                      myInfo_->Get("solve_eigen") );
-        PtrParamNode in = myInfo_->
-            Get(ParamNode::PROCESS)->Get("conditionNumber", ParamNode::APPEND);
-        in->Get("analysis_id")->SetValue(analysis_id);
-        try {
-          evs->CalcConditionNumber( (*sysMat_[SYSTEM])(0,0), condNumber,
-                                    ev, err );
-          in->Get("value")->SetValue(condNumber);
-          in = in->Get("extremalEigenValues");
+      PtrParamNode in = myInfo_->
+          Get(ParamNode::PROCESS)->Get("conditionNumber", ParamNode::APPEND);
+      in->Get("analysis_id")->SetValue(analysis_id);
+      try {
+        evs->CalcConditionNumber( (*sysMat_[SYSTEM])(0,0), condNumber,
+                                  ev, err );
+        in->Get("value")->SetValue(condNumber);
+        in = in->Get("extremalEigenValues");
 
-          for( UInt i = 0; i < ev.GetSize(); i++ )  {
-            PtrParamNode t = in->Get("eigenvalue", ParamNode::APPEND);
-            t->Get("value")->SetValue(ev[i]);
-            t->Get("tolerance")->SetValue(err[i]);
-          }
-
-        } catch (Exception& ex ) {
-          WARN("Calculation of condition number for system matrix did not converge");
-        
-          in->Get("value")->SetValue(0.0);
+        for( UInt i = 0; i < ev.GetSize(); i++ )  {
+          PtrParamNode t = in->Get("eigenvalue", ParamNode::APPEND);
+          t->Get("value")->SetValue(ev[i]);
+          t->Get("tolerance")->SetValue(err[i]);
         }
-        
-        delete evs;
-        // in the end prevent-recalculation of evs by 
-        //re-setting the value for CalcConditionNumber
-        solStrat_->GetSetupNode()->Get("calcConditionNumber")->SetValue( boost::any(false) );
+
+      } catch (Exception& ex ) {
+        WARN("Calculation of condition number for system matrix did not converge");
+
+        in->Get("value")->SetValue(0.0);
       }
+
+      delete evs;
+      // in the end prevent-recalculation of evs by 
+      //re-setting the value for CalcConditionNumber
+      solStrat_->GetSetupNode()->Get("calcConditionNumber")->SetValue( boost::any(false) );
+    }
     // ======================================================================
+
+    info->ToFile(); // write current info state
+
+    // start timer of solver
+    solver_->GetSolveTimer()->Start();
     
     // If the penalty formulation is used and we have inhomogeneous
     // Dirichlet boundary conditions, then the right-hand side is
@@ -396,8 +451,10 @@ namespace CoupledField {
     PtrParamNode out = myInfo_->Get(ParamNode::PROCESS)->Get("solver");
     out->Get("solutionIsOkay")->SetValue(true);
 
-    // Now modifiy the right-hand side vector
-    idbcHandler_->AddIDBCToRHS( effRhs_ );
+    // Now modifiy the right-hand side vector.
+    // Note: It is mandatory to incorporate the IDBC values to the
+    // complete RHS.
+    idbcHandler_->AddIDBCToRHS( rhs_ );
 
     // Remove the export linear system stuff, it has changed in standardsys.cc an as below
     // the solve part is commentet out, I see no reason to export linsys also here, it would
@@ -432,7 +489,7 @@ namespace CoupledField {
 
         // HARD-CODED: Export also preconditioner
         SBM_Matrix * copy = new SBM_Matrix(*(sysMat_[SYSTEM]));
-        if( numBlocks_ == 1 ) {
+        if( effMat_->GetNumRows() == 1 ) {
           precond_->GetPrecondSysMat((*copy)(0,0));
         } else {
           precond_->GetPrecondSysMat(*copy);
@@ -480,7 +537,7 @@ namespace CoupledField {
     }
     
     // Trigger solution
-    if( numBlocks_ == 1 ) { 
+    if( effMat_->GetNumRows() == 1 ) { 
       solver_->Solve( (*effMat_)(0,0), 
                       (*effRhs_)(0), (*effSol_)(0),
                       analysis_id);
@@ -510,6 +567,7 @@ namespace CoupledField {
           stdMat.MultTSub((*sol_)(c),*tmp);
         }
         S_ii.Mult(*tmp, (*sol_)(numBlocks_-1));
+        //(*sol_)(numBlocks_-1).Init();
       } else {
         EXCEPTION("Non-symmetric case not yet implemented");
       }
@@ -522,13 +580,16 @@ namespace CoupledField {
       sol_->Export((base+".sol.vec").c_str());
 
     // Now de-modifiy the right-hand side vector
-    idbcHandler_->RemoveIDBCFromRHS( effRhs_ );
+    idbcHandler_->RemoveIDBCFromRHS( rhs_ );
 
     // Check that solution went fine, if not issue a warning
     if ( out->Get("solutionIsOkay")->As<bool>() == false ) {
       WARN("Solver reports a problem! Consult .las file for "
           << "further diagnostics!");
     }
+    
+    // stop timer associated with solver
+    solver_->GetSolveTimer()->Stop();
   }
 
   void AlgebraicSys::CalcEigenFrequencies( Vector<Double>& frequencies,
@@ -552,16 +613,14 @@ namespace CoupledField {
 
   }
 
-  void AlgebraicSys::GraphSetupInit( UInt numFcts, UInt numBlocks,
-                                     bool useDistinctGraphs,
-                                     bool staticCondensation ) {
+  void AlgebraicSys::GraphSetupInit( UInt numFcts, 
+                                     bool useDistinctGraphs ) {
     
-    LOG_DBG(algSys) << "Setup matrix graph for " << numFcts 
-                    << " function(s) with " << numBlocks << " block(s)";
+    LOG_DBG(algSys) << "Setup matrix graph for " << numFcts << " functions.";
     LOG_DBG(algSys) << "Use distinct graphs:" << useDistinctGraphs << std::endl;
-    LOG_DBG(algSys) << "Static Condensation: " 
-                    << (staticCondensation ? "true" : "false"); 
     
+    
+    distinctMatGraphs_ = useDistinctGraphs;
     
     // feFunction specific data
     numFcts_ = numFcts;
@@ -570,28 +629,8 @@ namespace CoupledField {
     eqnToSBMBlock_.Resize(numFcts);
     
     // store flag for applying static condensation
-    statCond_ = staticCondensation;
-    
-    // block specific data
-    numBlocks_ = numBlocks;
-    isDiagBlockSymm_.Resize(numBlocks_);
-    isDiagBlockSymm_.Init(true);
-    
-    // If we have static condensation, the last diagonal block is the 
-    // inner-inner one, which will not be connected to a Dirichlet block. 
-    if( staticCondensation ) {
-      numDirichletValuesPerBlock_.Resize(numBlocks-1);
-    } else {
-      numDirichletValuesPerBlock_.Resize(numBlocks);
-    }
-    blockInfo_.Resize(numBlocks_);
-    for( UInt i = 0; i < numBlocks_; ++i ) {
-      blockInfo_[i] = new GraphManager::SBMBlockInfo();
-    }
-    
-    // create new graph manager object and initialize it
-    graphManager_ = new GraphManager();
-    graphManager_->SetupInit( numBlocks_, useDistinctGraphs );
+    statCond_ = solStrat_->UseStaticCondensation();
+    myInfo_->Get("setup")->Get("staticCondensation")->SetValue(statCond_);
   }
 
   
@@ -602,6 +641,12 @@ namespace CoupledField {
 
    LOG_TRACE(algSys) << "Obtaining FctId for fct '" << fctString << "'";
 
+   // Check, if system was already finalized
+   if( registrationFinished_ ) {
+     EXCEPTION("Can not register new Functions after "
+               "registration is completed" );
+   }
+   
     // Check if Fct is already registered
     std::map<FeFctIdType,std::string>::iterator it;
     for ( it = fctNames_.begin(); it != fctNames_.end(); it++ ) {
@@ -634,6 +679,11 @@ namespace CoupledField {
              << "\n --> numLastFreeDof = " << numLastFreeEqn
              << std::endl;
 
+    // Check, if system was already finalized
+    if( registrationFinished_ ) {
+      EXCEPTION("Can not register new Functions after "
+          "registration is completed" );
+    }
 
     // Remember number of equation numbers for each function
     numEqnsPerFct_[fctId] = numEqns;
@@ -642,12 +692,19 @@ namespace CoupledField {
   }
   
   
-  void AlgebraicSys::
-  DefineSBMMatrixBlock( UInt sbmIndex, 
-                        const std::map<FeFctIdType,std::set<Integer> >& eqns ) {
+  Integer AlgebraicSys::
+  DefineSBMMatrixBlock( const std::map<FeFctIdType,std::set<Integer> >& eqns,
+                        bool isInnerBlock ) {
+    
+    LOG_TRACE(algSys) << "Defining new SBM block #" << numBlocks_;
+
+    // Check, if system was already finalized
+    if( registrationFinished_ ) {
+      EXCEPTION("Can not define new SBM matrix blocks after "
+                "registration is completed" );
+    }
     
     // Just logging output
-    LOG_TRACE(algSys) << "Defining SBM block #" << sbmIndex;
     if (IS_LOG_ENABLED(algSys, dbg3)) {
       LOG_DBG3(algSys) << "Mapping is as follows:";
       LOG_DBG3(algSys) << "\tfctId\teqn";
@@ -664,6 +721,28 @@ namespace CoupledField {
       }
     } // if logging enabled
     
+    // return value: valid sbmIndex, if block is non-empty
+    UInt sbmIndex = -1;
+    
+    // check, if map contains any entries at all
+    if (eqns.size() == 0 || eqns.begin()->second.size() == 0) {
+      LOG_TRACE(algSys) << "\tBlock is empty, leaving";
+      // in addition, if this block is supposed to be the static condensation block,
+      // we deactivate it
+      if( isInnerBlock && statCond_) {
+        statCond_ = false;
+        LOG_TRACE(algSys) << "\tDeactivating static condensation";
+      }
+      return -1;
+    }
+    
+    sbmIndex = numBlocks_;
+    numBlocks_++;
+    isDiagBlockSymm_.Push_back(true);
+    //if( !isInnerBlock ) {
+      numDirichletValuesPerBlock_.Push_back(0);
+    //}
+    blockInfo_.Push_back( new GraphManager::SBMBlockInfo() );
     
     // counters for indices  
     UInt index = 0;
@@ -778,15 +857,19 @@ namespace CoupledField {
       } // if logging enabled
     } // loop over fctIds
     
-    // Now register block with graph manager
-    graphManager_->RegisterBlock( sbmIndex, blockInfo_[sbmIndex]  );
-    
+    // return newly created block
+    return sbmIndex;
   }
 
   void AlgebraicSys::RegisterSubMatrixBlocks( UInt sbmIndex, UInt numMinorBlocks ) {
     
     LOG_TRACE(algSys) << "Registering " << numMinorBlocks 
         << " sub-matrix blocks for SBM block #" << sbmIndex;
+
+    if( registrationFinished_ ) {
+      EXCEPTION("Can not register new submatrix matrix blocks after "
+          "registration is completed" );
+    }
 
     blockInfo_[sbmIndex]->indexBlocks.Resize( numMinorBlocks );
     blockInfo_[sbmIndex]->hasSubBlocks = true;
@@ -800,6 +883,10 @@ namespace CoupledField {
     LOG_DBG2(algSys) << "Defining sub-matrix block " << blockIndex 
                     << " for SBM block #" << sbmIndex;
     
+    if( registrationFinished_ ) {
+      EXCEPTION("Can not register new submatrix matrix blocks after "
+          "registration is completed" );
+    }
     
     // check for sensible block size
     if( fctIds.GetSize() == 0 ) {
@@ -1091,28 +1178,25 @@ namespace CoupledField {
   }
 
 
-  // ****************
-  //   AssembleInit
-  // ****************
-  void AlgebraicSys::AssembleInit( const FeFctIdType fctId1,
-                                   const FeFctIdType fctId2,
-                                   bool assemblingTranspose ) {
+  // **********************
+  //   FinishRegistration
+  // **********************
+  void AlgebraicSys::FinishRegistration( ) {
     
-    LOG_DBG(algSys) << "Starting assembly of block ("
-        << fctId1 << ", " << fctId2 << ")";
+    LOG_DBG(algSys) << "FinishRegistration";
+    // create new graph manager object and initialize it
+      graphManager_ = new GraphManager();
+      
+      graphManager_->SetupInit( numBlocks_, distinctMatGraphs_ );
     
-  }
-
-
-  // ****************
-  //   AssembleDone
-  // ****************
-  void AlgebraicSys::AssembleDone( const FeFctIdType fctId1,
-                                   const FeFctIdType fctId2,
-                                   bool assemblingTranspose ) {
-
-    LOG_DBG(algSys) << "Finishing assembly of block ("
-                    << fctId1 << ", " << fctId2 << ")";
+    // Loop over all blocks and register them with the graph manager
+    // Now register block with graph manager
+    for( UInt sbmIndex = 0; sbmIndex < numBlocks_; ++sbmIndex ) {
+       graphManager_->RegisterBlock( sbmIndex, blockInfo_[sbmIndex]  );
+    }
+    
+    // set flag for registration
+    registrationFinished_ = true;
   }
 
 
@@ -1132,7 +1216,15 @@ namespace CoupledField {
     LOG_DBG2(algSys) << "counterPart: " << (setCounterPart ? "yes" : "no");
     LOG_DBG2(algSys) << "EqnVec1: " << eqnNrs1.ToString();
     LOG_DBG2(algSys) << "EqnVec2: " << eqnNrs1.ToString();
-    
+
+    // check, if registration was already finished
+#ifndef NDEBUG
+    if( !registrationFinished_ ) {
+      EXCEPTION("Element connectivity can only be set after "
+                "AlgebraicSys::FinishRegistration() was called" );
+    }
+#endif
+      
     // Re-map entries from (fctId,eqnNr) -> (blockNum,index)
     StdVector<UInt> blockNums1, blockNums2, indices1, indices2;
     MapFctIdEqnToIndex(fctId1, eqnNrs1, blockNums1, indices1);
@@ -1195,7 +1287,6 @@ namespace CoupledField {
 
     blockNums.Resize(eqns.GetSize());
     indices.Resize(eqns.GetSize());
-
 
     UInt numEqns = eqns.GetSize();
     for( UInt iEqn = 0; iEqn < numEqns; ++iEqn ) {
@@ -1512,22 +1603,62 @@ namespace CoupledField {
     // 2) invert matrix K_II
     // 3) loop over all entries and calculate K_RR - K_RC^T * K_II^-1 * K_RC
     // 4) store back the matrices
-    if( statCond_ ) {
+    
+    // check for static condensation and if inner block has non-zero size
+    if( statCond_ && rowIndList1[numBlocks_-1].size() ) {
+      
       LOG_DBG(algSys) << "Performing static condensation";
+
+      // generate logging output
+      LOG_DBG3(algSys) << "\tComplete matrix is:\n" << elemMat << std::endl;
+      
       
       // For static condensation, we need all matrices explicitly.
       // Loop over all blocks and extract matrices
+      // --------------------------------
+      //  Extract all free-free matrices
+      // --------------------------------
       StdVector<Matrix<T> > matrices(numBlocks_*numBlocks_);
       for( UInt iRow = 0; iRow < numBlocks_; iRow++ ) {
         for( UInt iCol = 0; iCol < numBlocks_; iCol++ ) {
           Matrix<T>& mat = matrices[numBlocks_ * iRow + iCol];
           elemMat.GetSubMatrixByInd( mat, rowIndList1[iRow], 
                                      colIndList1[iCol]);
+          if( IS_LOG_ENABLED(algSys, dbg3) ){
+            StdVector<UInt> ind1(rowIndList1[iRow]);
+            StdVector<UInt> ind2(colIndList1[iCol]);
+
+            LOG_DBG3(algSys) << "\tMatrix (" << iRow << ", " << iCol << "), "
+                << "consisting of rowIndices: "  
+                << ind1.ToString() 
+                << "\n\tand colIndices: " 
+                << ind2.ToString()
+                << " is:\n"
+                << mat << std::endl;
+          }
         } // col blocks
       } // row blocks
       
+//      // --------------------------------
+//      //  Extract all free-idbc matrices
+//      // --------------------------------
+//      // Extract also Free-Dirichlet block
+//      StdVector<Matrix<T> > idbcMat(numBlocks_*numBlocks_);
+//      for( UInt iRow = 0; iRow < numBlocks_; iRow++ ) {
+//        for( UInt iCol = 0; iCol < numBlocks_; iCol++ ) {
+//          Matrix<T>& mat = idbcMat[numBlocks_ * iRow + iCol];
+//          elemMat.GetSubMatrixByInd( mat, rowIndList1[iRow], 
+//                                     colIndList2[iCol]);
+//          LOG_DBG3(algSys) << "\tMatrix (" << iRow << ", " << iCol << ") is \n"
+//              << mat << std::endl;
+//        } // col blocks
+//      } // row blocks
+
       // Invert inner block and store it back into element matrix
       matrices.Last().Invert_Lapack();
+      LOG_DBG3(algSys) << "\tInverted block  (" << numBlocks_-1 << ", " 
+                       << numBlocks_-1 << ") is \n"
+                       << matrices.Last() << std::endl;
       elemMat.SetSubMatrixByInd( matrices.Last(),
                                  rowIndList1[numBlocks_-1],
                                  colIndList1[numBlocks_-1] );
@@ -1536,8 +1667,8 @@ namespace CoupledField {
       Matrix<T> temp;
       
       // Loop over all blocks again, multiply matrices and re-insert afterwards
-      for( UInt iRow = 0; iRow < numBlocks_; iRow++ ) {
-        for( UInt iCol = 0; iCol < numBlocks_; iCol++ ) {
+      for( UInt iRow = 0; iRow < numBlocks_-1; iRow++ ) {
+        for( UInt iCol = 0; iCol < numBlocks_-1; iCol++ ) {
           // calc:  K_rc = K_rc - K_ri * K_ii^-1 * K_ic
           Matrix<T>& k_rc = matrices[numBlocks_ * iRow + iCol];
           Matrix<T>& k_ri = matrices[numBlocks_ * iRow + numBlocks_-1];
@@ -1554,7 +1685,41 @@ namespace CoupledField {
                                      colIndList1[iCol]);
         } // col blocks
       } // row blocks
+      
+      
+      // Note: Honestly I do not understand, why this block is NOT 
+      // necessary, as we also need to orthogonalize the free-idbc block w.r.t.
+      // to the inner one
+      
+//      // Loop over all blocks again, multiply matrices and re-insert afterwards
+//      for( UInt iRow = 0; iRow < numBlocks_-1; iRow++ ) {
+//        for( UInt iCol = 0; iCol < numBlocks_-1; iCol++ ) {
+//          // just continue, if Dirichlet values are present
+//          
+//          if( colIndList2[iCol].size() == 0) continue;
+//          // calc:  K_rc = K_rc - K_ri * K_ii^-1 * K_ic
+//          Matrix<T>& k_rc = idbcMat[numBlocks_ * iRow + iCol];
+//          Matrix<T>& k_ri = matrices[numBlocks_ * iRow + numBlocks_-1];
+//          Matrix<T>& k_ic = idbcMat[numBlocks_ * (numBlocks_-1) + iCol];
+//          temp.Resize(invMat.GetNumRows(),k_ic.GetNumCols());
+//
+//          // Fast method: use BLAS 
+//          //invMat.Mult_Blas(k_ic, temp,false,false,1.0,0.0);
+//          //k_ri.Mult_Blas(temp,k_rc,false,false,-1.0,1.0);
+//          // Alternative solution without BLAS
+//          LOG_DBG3(algSys) << "k_rc before was:\n" << k_rc;
+//          temp = invMat * k_ic;
+//          k_rc -= k_ri*temp;
+//          LOG_DBG3(algSys) << "k_rc afterwards is:\n" << k_rc;
+//          elemMat.SetSubMatrixByInd( k_rc,rowIndList1[iRow],
+//                                     colIndList2[iCol]);
+//        } // col blocks
+//      } // row blocks
+
+      
     } // if static cond
+    
+    
     // ======================================================================
     
     // loop over all blocks and pass for every block the information to
@@ -1587,20 +1752,21 @@ namespace CoupledField {
             } //j
           } //i
         }
-        
+
         // 2) Assemble all free <-> fixed entries
         for ( UInt i = 0; i < rList1.size(); i++ ) {
-           rowInd = rIndList1[i];
-           for ( UInt j = 0; j < cList2.size(); j++ ) {
-             colInd = cIndList2[j];
-             idbcHandler_->AddWeightFixedToFree( matrixType, sbmRow, sbmCol,
+          rowInd = rIndList1[i];
+          for ( UInt j = 0; j < cList2.size(); j++ ) {
+            colInd = cIndList2[j];
+            idbcHandler_->AddWeightFixedToFree( matrixType, sbmRow, sbmCol,
                                                 rList1[i], cList2[j],
                                                 elemMat[rowInd][colInd]);
-           } // j
+          } // j
         } // i
-        
+
         // 3) Assemble all free <-> fixed entries ( TRANSPOSED )
         if( sbmRow != sbmCol && setCounterPart == true) {
+          WARN("This block is not tested yet");
           for ( UInt i = 0; i < rList2.size(); i++ ) {
             rowInd = rIndList2[i];
             for ( UInt j = 0; j < cList1.size(); j++ ) {
@@ -1611,7 +1777,7 @@ namespace CoupledField {
             } // j
           } // i
         }
-        
+
       } //smbCol
     }// sbmRow
   }
@@ -1952,7 +2118,8 @@ namespace CoupledField {
     
     // First check, if we have a true SBM system.
     // consisting of more than one SBM-Block
-    if( numBlocks_ == 1 ) {
+    if( numBlocks_ == 1 ||
+        (numBlocks_ == 2 && statCond_) ) {
       
       // ========================
       //  Only one block present 
@@ -1994,7 +2161,28 @@ namespace CoupledField {
       // -------------------------
       //  Check Eigenvalue Solver 
       // -------------------------
-      // .. to be implemented
+      std::string eSolverId = solStrat_->GetEigenSolverId();
+      PtrParamNode eSolverList = myParam_->Get("eigenSolverList", 
+                                               ParamNode::INSERT);
+      ParamNodeList esNodes =  eSolverList->GetChildren();
+      PtrParamNode eSolverNode;
+      for( UInt i = 0; i < esNodes.GetSize(); ++i ) {
+        if( esNodes[i]->Get("id")->As<std::string>() == eSolverId ) {
+          eSolverNode = esNodes[i]; 
+        }
+      }
+
+      BaseEigenSolver::EigenSolverType est;
+      if( !eSolverNode ) {
+        // -------------------------------------
+        //  no eigensolver set -> use default direct 
+        // -------------------------------------
+        est = BaseEigenSolver::ARPACK;
+        eSolverList->Get("arpack",ParamNode::INSERT)->
+            Get("id",ParamNode::INSERT)->SetValue(eSolverId);
+      } else {
+        // .. nothing to be done yet
+      }
 
       // --------------
       //  Check Solver
@@ -2253,8 +2441,11 @@ namespace CoupledField {
         mNode->Get("numCols")->SetValue(stdMat->GetNumCols());
         mNode->Get("numNonZeros")->SetValue(stdMat->GetNnz());
         Double fillLevel = stdMat->GetNnz() * 100 / 
-            Double(stdMat->GetNumRows() * stdMat->GetNumCols()); 
+            (Double(stdMat->GetNumRows()) * Double(stdMat->GetNumCols()) ); 
         mNode->Get("fillLevelPerCent")->SetValue(fillLevel);
+        
+        
+        // get reordering strategy from solution strategy object
         
         
         // special check for VBR-block matrix type
@@ -2289,7 +2480,7 @@ namespace CoupledField {
         totalNumNonZeros += stdMat->GetNnz();
         BaseGraph * graph = graphManager_->GetGraph(smId.rowInd,smId.colInd); 
         
-        // bandwidth gets just written for diagonal blocks 
+        // bandwidth and reordering gets just written for diagonal blocks 
         if( smId.rowInd == smId.colInd ) {
           UInt bwLow = 0, bwUp = 0, bwAvg = 0;
           graph->GetBandwidth(bwLow, bwUp, bwAvg);
@@ -2309,8 +2500,8 @@ namespace CoupledField {
         
       } // matrix blocks
       
-      totalFillLevelPerCent = totalNumNonZeros * 100 / Double( totalNumRows * 
-                              totalNumCols);
+      totalFillLevelPerCent = totalNumNonZeros * 100 / (Double( totalNumRows) * 
+                              Double(totalNumCols));
       matTypeNode->Get("totalNumRows")->SetValue(totalNumRows);
       matTypeNode->Get("totalNumCols")->SetValue(totalNumCols);
       matTypeNode->Get("totalNumNonZeros")->SetValue(totalNumNonZeros);

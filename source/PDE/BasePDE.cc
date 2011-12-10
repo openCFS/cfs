@@ -16,8 +16,6 @@ namespace CoupledField {
     myParam_(paramNode),
     pdename_()
   {
-    solStrategy_ = STRAT_STANDARD;
-    solStep_ = 1;
   }
 
   // **************

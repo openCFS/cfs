@@ -1,6 +1,7 @@
 #include "FeSpaceHCurlHi.hh"
 #include "HCurlElemsHi.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
+#include "OLAS/algsys/SolStrategy.hh"
 
 /*
  The FeSpace always knows just vertex/nodal, edge, face
@@ -113,10 +114,10 @@ namespace CoupledField{
     ReadPolyList();
   }
   
-  void FeSpaceHCurlHi::SetStrategy( SolStrategyType strategy, UInt step ) {
-
-    solStrategy_ = strategy;
-    solStep_ = step;
+//  void FeSpaceHCurlHi::SetStrategy( SolStrategyType strategy, UInt step ) {
+//
+//    solStrategy_ = strategy;
+//    solStep_ = step;
 
 //    // Check: If we have TWO_LEVEL strategy and we are in the 2nd step we 
 //    // have to do the following:
@@ -145,7 +146,7 @@ namespace CoupledField{
 //      this->Init();
 //      this->Finalize();
 //    }
-  }
+//  }
 
 
   void FeSpaceHCurlHi::SetRegionElements(RegionIdType region, 
@@ -611,11 +612,21 @@ namespace CoupledField{
 
 
   
-  void FeSpaceHCurlHi::GetOlasMappings( StdVector<std::set<Integer> >& sbmBlocks,
+  void FeSpaceHCurlHi::GetOlasMappings( shared_ptr<SolStrategy> solStrat,
+                                        StdVector<std::set<Integer> >& sbmBlocks,
                                         std::map<UInt,StdVector<std::set<Integer> > >&
                                         minorBlocks ) {
     
     LOG_DBG(feSpaceHCurlHi) << "Performing OLAS mappings ...";
+    
+    // Check: If we have a "standard" solution strategy, just call the 
+    // method of the base class
+    if( solStrat->GetType() == SolStrategy::STD_STRATEGY ) {
+      FeSpaceH1::GetOlasMappings(solStrat, sbmBlocks, minorBlocks );
+      return;
+    }
+    
+    
     
     // maintain of already used entities
     std::set<UInt> edges, faces, elems;

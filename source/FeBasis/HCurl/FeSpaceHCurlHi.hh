@@ -23,9 +23,6 @@ public:
   //! Initialize class (read order etc.)
   void Init();
 
-  //! Set Solution strategy and solution step
-  void SetStrategy( SolStrategyType strategy, UInt step );
-
   //! \copydoc FeSpace::GetFe(EntityIterator,shared_ptr<IntScheme>&)
   virtual BaseFE* GetFe( const EntityIterator ent ,
                          shared_ptr<IntScheme>& intScheme );
@@ -49,7 +46,8 @@ public:
   virtual void Finalize();
   
   //! Return SBM-block and Matrix-SubBlockdefinition according to strategy
-  void GetOlasMappings( StdVector<std::set<Integer> >& sbmBlocks,
+  void GetOlasMappings( shared_ptr<SolStrategy> solStrat, 
+                        StdVector<std::set<Integer> >& sbmBlocks,
                         std::map<UInt,StdVector<std::set<Integer> > >&
                         minorBlocks );
   

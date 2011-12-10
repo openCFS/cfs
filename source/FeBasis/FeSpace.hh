@@ -22,6 +22,7 @@ namespace CoupledField {
 // forward class declarations
 class BaseFe;
 class BaseFeFunction;
+class SolStrategy;
 
 //!  Base class for the Finite Element Space (FeSpace) 
 /*!
@@ -121,9 +122,6 @@ public:
   //! Return, if the space is hierarchical
   bool IsHierarchical() { return isHierarchical_;};
   
-  //! Set Solution strategy and solution step
-  virtual void SetStrategy( SolStrategyType strategy, UInt step ) {}; 
-
   //@}
   
 
@@ -191,6 +189,20 @@ public:
   //! Get Equation numbers for a specific element
   virtual void GetElemEqns(StdVector<Integer>& eqns,const Elem* elem, UInt dof) = 0;
 
+  //! Return SBM-block and Matrix-SubBlock definition according to strategy
+  
+  //! This methods returns a list of SBMBlock definitions and minorBlock
+  //! definitions, according to the solution strategy provided.
+  //! \param solStrat    Solution strategy object, which defines splitting
+  //! \param sbmBlocks   Vector (length: numBlocks) with all equations in 
+  //!                    this block
+  //! \param minorBlocks Map (key: sbmBlockIndex) with Vector (index:
+  //!                    subBlockIndex) of set of equations for each minorBlock
+  virtual void GetOlasMappings( shared_ptr<SolStrategy> solStrat, 
+                                StdVector<std::set<Integer> >& sbmBlocks,
+                                std::map<UInt,StdVector<std::set<Integer> > >&
+                                minorBlocks ) = 0;
+  
   //! Add result
   virtual void AddFeFunction( shared_ptr<BaseFeFunction> fct ) = 0;
 
@@ -290,9 +302,6 @@ protected:
   //! Storing the FeFunctions associated with this space
   shared_ptr<BaseFeFunction> feFunction_;
 
-  //! Solution strategy to be used
-  SolStrategyType solStrategy_;
-  
   //! Solution step (in case of multistep solution)
   UInt solStep_;
   

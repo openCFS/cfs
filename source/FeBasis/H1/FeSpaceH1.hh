@@ -110,6 +110,13 @@ public:
   //! Get Equation numbers for a specific element
   virtual void GetElemEqns(StdVector<Integer>& eqns,const Elem* elem, UInt dof);
 
+  
+  //! \copydoc FeSpace::GetOlasMappings
+  virtual void GetOlasMappings( shared_ptr<SolStrategy> solStrat, 
+                                  StdVector<std::set<Integer> >& sbmBlocks,
+                                  std::map<UInt,StdVector<std::set<Integer> > >&
+                                  minorBlocks );
+  
   //! Add result
   virtual void AddFeFunction( shared_ptr<BaseFeFunction> fct );
 

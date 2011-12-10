@@ -229,6 +229,7 @@ public:
     vec.Resize(this->ptGrid_->GetDim());
     this->feFct_->GetElemSolution( elemSol, lpm.ptEl);
     this->forms_[lpm.ptEl->regionId]->ApplyBMat(vec, elemSol, lpm );
+    vec *= -1;
   }
   
 protected:
@@ -269,6 +270,7 @@ public:
     this->feFct_->GetElemSolution( elemSol, lpm.ptEl);
     BaseBDBInt* bdb = this->forms_[lpm.ptEl->regionId]; 
     bdb->ApplydBMat(vec, elemSol, lpm );
+    vec *= -1;
   }
   
 protected:
