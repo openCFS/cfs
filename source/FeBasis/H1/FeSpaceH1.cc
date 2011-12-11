@@ -345,6 +345,8 @@ namespace CoupledField {
       // 1st block: Contains all nodal, edge and face contributions
       // 2nd block: contains all element interior equations (in 2D: faces)
       
+      // push back empty set -> sbm block 0 has no minor blocks
+      minorBlocks[1]=(StdVector<std::set<Integer> >());
       
       // Preliminary first set: all equations
       // If we have lateron no interior equations, we can directly return
@@ -377,23 +379,28 @@ namespace CoupledField {
         LOG_DBG(feSpaceH1) << "\nDim of elem #" 
             << elemNum << ": " << dim << std::endl;
 
+        
         ElemVirtualNodes& vn = elemIt->second;
         // collect all inner nodes 
         StdVector<UInt> & innerNodes = vn[intType].vNodes;
         LOG_DBG(feSpaceH1) << "innerNode has size " << innerNodes.GetSize() 
-                                                     << std::endl;
+                                                             << std::endl;
+        std::set<Integer> innerEqns;
         for(UInt i = 0; i < innerNodes.GetSize(); ++i ) {
+          // collect entries for SBM block
           intBlock.insert( nodeMap_[innerNodes[i]].Begin(),
                            nodeMap_[innerNodes[i]].End() );
+          // collect entries for minor block
+          innerEqns.insert(nodeMap_[innerNodes[i]].Begin(),
+                           nodeMap_[innerNodes[i]].End());
         } // loop over interior nodes
+        
+        if( innerEqns.size() ) {
+          minorBlocks[1].Push_back(innerEqns);
+        }
       } // loop over elements
       
-      // now check, if we have inner equations at all
-//      if( intBlock.size() == 0 ) {
-//        // no interior equations -> just one block with all equations
-//        sbmBlocks.Resize(1);
-//        sbmBlocks[0] = nonIntEqns;
-//      } else {
+      
       
       // take set-difference:
       // so far we have collected all inner equations, now subtract them

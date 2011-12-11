@@ -1127,9 +1127,9 @@ namespace CoupledField {
         PtrParamNode actCompNode = listNodes[iComp];
         actCompNode->GetValue("comp", comp);
         compIndex = domain->GetCoordSystem("default")->GetVecComponent(comp)-1;
-        actCompNode->GetValue("start", start[compIndex]);
-        actCompNode->GetValue("stop", stop[compIndex]);
-        actCompNode->GetValue("inc", inc[compIndex]);
+        start[compIndex]=  actCompNode->Get("start")->MathParse<Double>();
+        stop[compIndex]=  actCompNode->Get("stop")->MathParse<Double>();
+        inc[compIndex] = actCompNode->Get("inc")->MathParse<Double>();
         numSamples[compIndex]  = 
             UInt(floor( (stop[compIndex]-start[compIndex]) / inc[compIndex] ) )+1;
         totalPoints *= numSamples[compIndex];
@@ -2157,7 +2157,7 @@ namespace CoupledField {
         // register block. In addition we check, if this is the inner block
         // and static condensation is activated
         bool isInnerBlock = solStrat->UseStaticCondensation() &&
-            i == numBlocks-1;
+            (i == numBlocks-1);
         sbmIndex = algsys_->DefineSBMMatrixBlock( block, isInnerBlock );
         if( minorBlocks.size() != 0 && sbmIndex != -1) {
           StdVector<std::set<Integer> >& sbmSubBlocks = minorBlocks[i];

@@ -926,40 +926,127 @@ namespace CoupledField {
                                     const Vector<Double>& point,
                                     const Elem* ptElem,
                                     UInt comp ) {
-    //WARN("FeH1LagrangeHex2::CalcShFnc: Implement me");
-    //  shape.Resize( 8 );
-  //  shape[0] = 0.25 * ( 1.0 - point[0] ) * ( 1.0 - point[1] ) * (1.0 - point[2]); 
-  //  shape[1] = 0.25 * ( 1.0 + point[0] ) * ( 1.0 - point[1] ) * (1.0 - point[2]);
-  //  shape[2] = 0.25 * ( 1.0 + point[0] ) * ( 1.0 + point[1] ) * (1.0 - point[2]);
-  //  shape[3] = 0.25 * ( 1.0 - point[0] ) * ( 1.0 + point[1] ) * (1.0 - point[2]);
-  //  shape[4] = 0.25 * ( 1.0 - point[0] ) * ( 1.0 - point[1] ) * (1.0 + point[2]); 
-  //  shape[5] = 0.25 * ( 1.0 + point[0] ) * ( 1.0 - point[1] ) * (1.0 + point[2]);
-  //  shape[6] = 0.25 * ( 1.0 + point[0] ) * ( 1.0 + point[1] ) * (1.0 + point[2]);
-  //  shape[7] = 0.25 * ( 1.0 - point[0] ) * ( 1.0 + point[1] ) * (1.0 + point[2]);
+    Double  xi, eta, zeta;
+    UInt i;
+    shape.Resize(20);
+
+    //integration points
+    xi   = point[0];
+    eta  = point[1];
+    zeta = point[2];
+
+    StdVector<StdVector<Double> >& coords = shape_.nodeCoords;
     
+    //Corner coordinates:
+    // Ni
+    for (i=0;i<8; i++) {
+      shape[i] =  0.125
+          *(1.0+xi  *coords[i][0])
+          *(1.0+eta *coords[i][1])
+          *(1.0+zeta*coords[i][2])
+          *(xi*coords[i][0]+eta*coords[i][1]+zeta*coords[i][2]-2.0);
+    }
+
+    //Midside nodes xi_i=0:
+    // Ni
+    for (i=8;i<=14; i+=2) {
+      shape[i]  = 0.25*(1.0-xi*xi)*
+                       (1.0+eta*coords[i][1])*
+                       (1.0+zeta*coords[i][2]);
+    }
+
+    //Midside nodes eta_i=0:
+    // Ni
+    for (i=9;i<=15; i+=2) {
+      shape[i]  = 0.25*(1.0+xi*coords[i][0])*
+                       (1.0-eta*eta)*
+                       (1.0+zeta*coords[i][2]);
+    }
+
+    //Midside nodes zeta_i=0:
+    // Ni
+    for (i=16;i<20; i++) {
+      shape[i] = 0.25*(1.0+xi*coords[i][0])*
+                      (1.0+eta*coords[i][1])*(1.0-zeta*zeta);
+    }
   }
   
   void FeH1LagrangeHex2::CalcLocDerivShFnc( Matrix<Double> & deriv, 
                                             const Vector<Double>& point,
                                             const Elem* ptElem,
-                                            UInt comp ) {
-    //WARN("FeH1LagrangeHex2::CalcLocDerivShFnc: Implement me");
-    //  deriv.Resize( 8, 3 );
-  //  StdVector<StdVector<Double> >& coords = shape_.nodeCoords;
-  //  for( UInt i = 0; i < 8; i++ ) {
-  //    deriv[i][0] = 0.125  * coords[i][0] 
-  //                         * (1 + coords[i][1] * point[1] ) 
-  //                         * (1 + coords[i][2] * point[2] );
-  //    
-  //    deriv[i][1] = 0.125  * (1 + coords[i][0] * point[0] )
-  //                         * coords[i][1] 
-  //                         * (1 + coords[i][2] * point[2] );
-  //    
-  //    deriv[i][2] = 0.125  * (1 + coords[i][0] * point[0] ) 
-  //                         * (1 + coords[i][1] * point[1] )
-  //                         * coords[i][2];
-  //  }
-    
+                                            UInt comp ) {  //shape function according to Zienkiewicz 2000 (Volume 1 - The Basis) "The Finite Element Method" S. 185 Kap. 8.11
+    Double  xi, eta, zeta;
+    UInt i;
+    deriv.Resize(20, 3);
+    deriv.Init();
+    xi   = point[0];
+    eta  = point[1];
+    zeta = point[2];
+
+    StdVector<StdVector<Double> >& coords = shape_.nodeCoords;
+    for (i=0;i<8; i++) {
+      //Corner coordinates: Ni,x
+      deriv[i][0] =  0.25 * xi * coords[i][0] * coords[i][0]
+        - 0.125 * coords[i][0]
+        + 0.25 * zeta * xi * coords[i][2] * coords[i][0] * coords[i][0]
+        + 0.125 * zeta * zeta * coords[i][0] * coords[i][2] * coords[i][2]
+        + 0.25 * eta * xi * coords[i][1] * coords[i][0] * coords[i][0]
+        + 0.125 * eta * eta * coords[i][0] * coords[i][1] * coords[i][1]
+        + 0.25 * xi * eta * zeta * coords[i][1] * coords[i][2] * coords[i][0] * coords[i][0]
+        + 0.125 * eta * eta * zeta * coords[i][0] * coords[i][1] * coords[i][1] * coords[i][2]
+        + 0.125 * eta * zeta * zeta * coords[i][0] * coords[i][1] * coords[i][2] * coords[i][2]
+        + 0.125 * eta * zeta * coords[i][0] * coords[i][1] * coords[i][2];
+      
+      //Corner coordinates: Ni,y
+      deriv[i][1] =  0.25 * eta * coords[i][1] * coords[i][1]
+        - 0.125 * coords[i][1]
+        + 0.25 * eta * zeta * coords[i][1] * coords[i][1] * coords[i][2]
+        + 0.125 * zeta * zeta * coords[i][1] * coords[i][2] * coords[i][2]
+        + 0.125 * xi * xi * coords[i][0] * coords[i][0] * coords[i][1]
+        + 0.25 * eta * xi * coords[i][0] * coords[i][1] * coords[i][1]
+        + 0.125 * xi * xi * zeta * coords[i][0] * coords[i][0] * coords[i][1] * coords[i][2]
+        + 0.25 * xi * eta * zeta * coords[i][0] * coords[i][1] * coords[i][1] * coords[i][2]
+        + 0.125 * xi * zeta * zeta * coords[i][0] * coords[i][1] * coords[i][2] * coords[i][2]
+        + 0.125 * xi * zeta * coords[i][0] * coords[i][1] * coords[i][2];
+
+      //Corner coordinates: Ni,z
+      deriv[i][2] =  0.25 * zeta * coords[i][2] * coords[i][2]
+        - 0.125 * coords[i][2]
+        + 0.125 * eta * eta * coords[i][1] * coords[i][1] * coords[i][2]
+        + 0.25 * eta * zeta * coords[i][1] * coords[i][2] * coords[i][2]
+        + 0.125 * xi * xi * coords[i][0] * coords[i][0] * coords[i][2]
+        + 0.25 * xi * zeta * coords[i][0] * coords[i][2] * coords[i][2]
+        + 0.125 * xi * xi * eta * coords[i][0] * coords[i][0] * coords[i][1] * coords[i][2]
+        + 0.125 * xi * eta * eta * coords[i][0] * coords[i][1] * coords[i][1] * coords[i][2]
+        + 0.25 * xi * eta * zeta * coords[i][0] * coords[i][1] * coords[i][2] * coords[i][2]
+        + 0.125 * xi * eta * coords[i][0] * coords[i][1] * coords[i][2];
+    }
+
+    for (i=8;i<=14; i+=2) {
+      //Midside nodes xi_i=0: Ni,x
+      deriv[i][0]  = -0.5 * xi * (1.0+eta * coords[i][1]) * (1.0+zeta * coords[i][2]);
+      //Midside nodes xi_i=0: Ni,y
+      deriv[i][1]  = -0.25 * (xi * xi - 1.0) * coords[i][1] * (1.0+zeta * coords[i][2]);
+      //Midside nodes xi_i=0: Ni,z
+      deriv[i][2]  = -0.25 * (xi * xi - 1.0) * (1.0+eta * coords[i][1]) * coords[i][2];
+    }
+
+    for (i=9;i<=15; i+=2) {
+      //Midside nodes eta_i=0: Ni,x
+      deriv[i][0]  = -0.25 * coords[i][0]  * (eta * eta-1.0) * (1.0+zeta * coords[i][2]);
+      //Midside nodes eta_i=0: Ni,y
+      deriv[i][1]  = -0.5 * (1.0+xi * coords[i][0]) * eta * (1.0+zeta * coords[i][2]);
+      //Midside nodes eta_i=0: Ni,z
+      deriv[i][2]  = -0.25 * (1.0+xi * coords[i][0]) * (eta * eta-1.0) * coords[i][2];
+    }
+    for (i=16;i<20; i++) {
+      //Midside nodes zeta_i=0: Ni,x
+      deriv[i][0] = -0.25 * coords[i][0] * (1+eta * coords[i][1]) * (zeta * zeta-1.0);
+      //Midside nodes zeta_i=0: Ni,y
+      deriv[i][1] = -0.25 * (1.0+xi * coords[i][0]) * coords[i][1] * (zeta * zeta-1.0);
+      //Midside nodes zeta_i=0:  Ni,z
+      deriv[i][2] = -0.5 * (1.0+xi * coords[i][0]) * (1.0+eta * coords[i][1]) * zeta;
+    }
   }
 
   bool FeH1LagrangeHex2::CoordIsInsideElem( const Vector<Double>& point,
@@ -981,7 +1068,112 @@ namespace CoupledField {
                             const LocPoint & surfIntPoint,
                             LocPoint & volIntPoint,
                             Vector<Double>& locNormal ) {
-    EXCEPTION("Not implemented");
+    // Try to find out, which vertices are in common with
+      // the surface element. Then calculate the product of all four
+      // and compare them
+      //
+      //                    zeta 
+      //                     ^ eta 
+      //    8 +-------+ 7    |/
+      //     /|      /|      0--> xi 
+     //    / |     / |
+      // 5 +--+----+6 |   
+      //   |  +-- -|- + 3    
+      //   | / 4   | /    REFERENCE VOLUME ELEMENT
+      //   |/      |/
+      // 1 +-------+ 2
+
+
+
+      StdVector<UInt> commonIndex(4);
+      UInt found = 0;
+      UInt indexProduct = 0;
+      std::string errMsg;
+    
+      volIntPoint.coord.Resize(3);
+      locNormal.Resize(3);
+    
+      // loop over surface connect
+      for (UInt iSurf=0; iSurf<4; iSurf++)
+        // loop over volume connect
+        for (UInt iVol=0; iVol<8; iVol++)
+          if (surfConnect[iSurf] == volConnect[iVol])
+            {
+              commonIndex[found++] = iVol+1;
+            }
+
+      // std::cerr << std::endl << std::endl;
+      //std::cerr << "commonIndex = " << std::endl << commonIndex << std::endl << std::endl;
+      indexProduct =  commonIndex[0] * commonIndex[1];
+      indexProduct *= commonIndex[2] * commonIndex[3];
+
+      //std::cerr << "indexProduct = " << indexProduct << std::endl;
+      switch(indexProduct)
+        {
+        case 24:
+          // Surface[1,2,3,4] is common
+          volIntPoint[0] = surfIntPoint[0];
+          volIntPoint[1] = surfIntPoint[1];
+          volIntPoint[2] = -1.0;
+          locNormal[0] =  0.0;
+          locNormal[1] =  0.0;
+          locNormal[2] = -1.0;
+          break;
+
+        case 1680:
+          // Surface[5,6,7,8] is common
+          volIntPoint[0] = surfIntPoint[0];
+          volIntPoint[1] = surfIntPoint[1];
+          volIntPoint[2] = 1.0;
+          locNormal[0] =  0.0;
+          locNormal[1] =  0.0;
+          locNormal[2] =  1.0;
+          break;
+
+        case 252:
+          // Surface[2,3,7,6] is common
+          volIntPoint[0] = 1.0;
+          volIntPoint[1] = surfIntPoint[0];
+          volIntPoint[2] = surfIntPoint[1];
+          locNormal[0] =  1.0;
+          locNormal[1] =  0.0;
+          locNormal[2] =  0.0;
+          break;
+        
+        case 160:
+          // Surface[1,5,8,4] is common
+          volIntPoint[0] = -1.0;
+          volIntPoint[1] = surfIntPoint[0];
+          volIntPoint[2] = surfIntPoint[1];
+          locNormal[0] = -1.0;
+          locNormal[1] =  0.0;
+          locNormal[2] =  0.0;
+          break;
+        
+        case 672:
+          // Surface[4,3,7,8] is common
+          volIntPoint[0] = surfIntPoint[0];
+          volIntPoint[1] = 1.0;
+          volIntPoint[2] = surfIntPoint[1];
+          locNormal[0] =  0.0;
+          locNormal[1] =  1.0;
+          locNormal[2] =  0.0;
+          break;
+        
+        case 60:
+          // Surface[1,2,6,5] is common
+          volIntPoint[0] = surfIntPoint[0];
+          volIntPoint[1] = -1.0;
+          volIntPoint[2] = surfIntPoint[1];
+          locNormal[0] =  0.0;
+          locNormal[1] = -1.0;
+          locNormal[2] =  0.0;
+          break;
+        
+        default:
+          EXCEPTION("HexaFE::GetLocalIntPoints4Surface: surface and volume element "
+                    << "have not four nodes in common. Check your .mesh-file.");
+        }
   }
 
 } // namespace CoupledField

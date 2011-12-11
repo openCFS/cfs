@@ -127,6 +127,16 @@ namespace CoupledField {
     } else {
       tsNode_ = param_->Get("timeStepping");
     }
+    
+    // matrix node for static condensation
+    {
+    statCondMatNode_.reset(new ParamNode());
+    statCondMatNode_->SetName("matrix");
+    statCondMatNode_->Get("storage",ParamNode::INSERT)
+        ->SetValue("variableBlockRow");
+    statCondMatNode_->Get("reordering",ParamNode::INSERT)
+            ->SetValue("noReordering");
+    }
 
    }
 
@@ -162,8 +172,6 @@ namespace CoupledField {
     setupNode_->GetValue("calcConditionNumber", calcCond, ParamNode::INSERT);
     return calcCond;
   }
-
-  
   
   PtrParamNode SolStrategyStd::GetSetupNode(){
       return setupNode_;
@@ -171,13 +179,15 @@ namespace CoupledField {
   
   BaseMatrix::StorageType SolStrategyStd::GetStorageType(UInt blockNum) {
     
-    // if we have static condensation active and this block is queried
-    // just return the &= operation of all previous matrices
-    
-    // in all other cases, just return the matrix type set at the
-    // matrix element
     std::string formatString;
-    GetMatrixNode(blockNum)->GetValue("storage",formatString);
+
+    // return 
+    if( UseStaticCondensation() && blockNum==1 ) {
+      statCondMatNode_->GetValue("storage",formatString);
+    } else {
+      GetMatrixNode(blockNum)->GetValue("storage",formatString);
+    }
+    
     BaseMatrix::StorageType st = BaseMatrix::storageType.Parse(formatString);
     return st;
     
@@ -185,7 +195,13 @@ namespace CoupledField {
   
 
   PtrParamNode SolStrategyStd::GetMatrixNode(UInt level){
-    return matrixNode_; 
+    PtrParamNode ret;
+    if( UseStaticCondensation() && level == 1 ) {
+      ret = statCondMatNode_;
+    } else {
+      ret = matrixNode_;
+    }
+    return ret; 
   }
 
   std::string SolStrategyStd::GetSolverId(){

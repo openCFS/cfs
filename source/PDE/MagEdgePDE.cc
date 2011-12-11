@@ -166,7 +166,6 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
        //  Standard Stiffness Integrator
        // ===============================
         shared_ptr<CoefFunction> curCoef = actMat->GetCoefFunction(MAG_RELUCTIVITY,FULL,Global::REAL);
-        std::cerr << "reluctivity is" << curCoef->ToString() << std::endl;
         BDBInt< CurlOperator ,FeHCurl >* curlcurl;
         curlcurl = new BDBInt< CurlOperator ,FeHCurl >(curCoef,1.0) ;
 

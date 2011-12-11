@@ -1182,19 +1182,19 @@ namespace CoupledField {
   //   FinishRegistration
   // **********************
   void AlgebraicSys::FinishRegistration( ) {
-    
+
     LOG_DBG(algSys) << "FinishRegistration";
-    // create new graph manager object and initialize it
-      graphManager_ = new GraphManager();
-      
-      graphManager_->SetupInit( numBlocks_, distinctMatGraphs_ );
     
+    // create new graph manager object and initialize it
+    graphManager_ = new GraphManager();
+    graphManager_->SetupInit( numBlocks_, distinctMatGraphs_ );
+
     // Loop over all blocks and register them with the graph manager
     // Now register block with graph manager
     for( UInt sbmIndex = 0; sbmIndex < numBlocks_; ++sbmIndex ) {
-       graphManager_->RegisterBlock( sbmIndex, blockInfo_[sbmIndex]  );
+      graphManager_->RegisterBlock( sbmIndex, blockInfo_[sbmIndex]  );
     }
-    
+
     // set flag for registration
     registrationFinished_ = true;
   }
@@ -1508,7 +1508,7 @@ namespace CoupledField {
     LOG_DBG2(algSys) << "Matrix: " << feMatrixType.ToString(matrixType);
     LOG_DBG2(algSys) << "EqnVec1: " << eqnNrs1.ToString();
     LOG_DBG2(algSys) << "EqnVec2: " << eqnNrs1.ToString();
-    LOG_DBG3(algSys) << "matrix is:\n " << elemMat.ToString();
+    LOG_DBG3(algSys) << "matrix is:\n " << elemMat;
     
     // Re-map entries from (fctId,eqnNr) -> (blockNum,index)
     StdVector<UInt> rowBlocks, colBlocks, rowNums, colNums;
@@ -1717,6 +1717,7 @@ namespace CoupledField {
 //      } // row blocks
 
       
+      LOG_DBG3(algSys) << "matrix AFTER static condensation is:\n " << elemMat;
     } // if static cond
     
     
@@ -2091,6 +2092,13 @@ namespace CoupledField {
           // matrix layout which we query at the
           // sol-strategy object
           BaseMatrix::StorageType sT = solStrat_->GetStorageType(sbmRow);
+          
+          // If we perform static condensation and this is the 
+          // inner-inner block, we use the variable block row
+          // format to increase performance.
+          if( statCond_ && sbmRow == numBlocks_-1 ) {
+            sT = BaseMatrix::VAR_BLOCK_ROW;
+          }
           
           retMat->SetSubMatrix ( sbmRow, sbmCol, entryType, 
                                  sT,

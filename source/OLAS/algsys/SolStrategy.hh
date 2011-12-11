@@ -188,29 +188,32 @@ public:
 
 protected:
   
-  // <setup> element
+  //! <setup> element
   PtrParamNode setupNode_;
   
-  // <exportLinSys> element
+  //! <exportLinSys> element
   PtrParamNode exportNode_;
   
-  // <matrix> element
+  //! <matrix> element
   PtrParamNode matrixNode_;
 
-  // <eigenSolver> element
+  //! <eigenSolver> element
   PtrParamNode esNode_;
   
-  // <solver> element
+  //! <solver> element
   PtrParamNode solverNode_;
   
-  // <precond> element
+  //! <precond> element
   PtrParamNode precondNode_;
   
-  // <nonLinear> element
+  //! <nonLinear> element
   PtrParamNode nonlinNode_;
   
-  // <timeStepping> element
+  //! <timeStepping> element
   PtrParamNode tsNode_;
+  
+  //! Special matrix element for static condensation
+  PtrParamNode statCondMatNode_;
   
 };
 

@@ -150,9 +150,10 @@ public:
   CoefFunction(){
     dimType_ = NO_DIM;
     dependType_ = CONST;
-    //set the default coordinate system
-    // can be reset later by user...
-    this->coordSys_ = domain->GetCoordSystem();
+    
+    // by default, the coefficients do not
+    // depend on any coordiante system
+    this->coordSys_ = NULL;
   }
 
   virtual ~CoefFunction(){

@@ -855,7 +855,7 @@ namespace CoupledField {
       locDir_zeta[2] = 1.0;
       locDir3->unit = "";
     }
-    // 2) Jacobian Determinanat
+    // 2) Jacobian Determinant
     jacRes->resultType = JACOBIAN;
     jacRes->resultName = "Jacobian";
     jacRes->definedOn = ResultInfo::ELEMENT;
@@ -871,7 +871,7 @@ namespace CoupledField {
     surfNormal->dofNames = dirVec;
     surfNormal->unit = "";
     
-    // 4) Jacobian Determinanat
+    // 4) Aspect Ratio
     aspectRatio->resultType = ASPECT_RATIO;
     aspectRatio->resultName = "aspectRatio";
     aspectRatio->definedOn = ResultInfo::ELEMENT;
@@ -1072,6 +1072,7 @@ namespace CoupledField {
 
       std::string id = coordIt->first;
       CoordSystem * actCosy = coordIt->second;
+
       // obtain result vector
       StdVector<shared_ptr<BaseResult> >  & resList = coordResultList[id];
 
@@ -1094,8 +1095,9 @@ namespace CoupledField {
         locDir.Init();
         locDir[actComp] = 1.0;
         for ( it.Begin(); !it.IsEnd(); it++ ) {
-          Vector<Double> midPoint = 
-              Elem::shapes[it.GetElem()->type].midPointCoord;
+          Vector<Double> midPoint;
+          ElemShapeMap & esm = *GetElemShapeMap(it.GetElem());
+          esm.GetGlobMidPoint(midPoint);
           actCosy->Local2GlobalVector(coordDir, locDir, midPoint);
           for( UInt i = 0; i < dim_; ++i ) {
             actVal[it.GetPos()*dim_ + i] = coordDir[i];

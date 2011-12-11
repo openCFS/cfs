@@ -288,7 +288,7 @@ class ElemShape;
     //! Coordinate of element midpoint
     Vector<Double> midPointCoord;
 
-    //! Coordinates of nodes
+    //! Coordinates of nodes (outer vector: number of nodes, inner: dim)
     StdVector<StdVector<Double> > nodeCoords; 
 
     //! Contains for each edge the vertex node numbers

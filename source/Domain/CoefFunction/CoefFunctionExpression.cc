@@ -10,6 +10,9 @@ namespace CoupledField{
 CoefFunctionExpression<Double>::CoefFunctionExpression() :
         mp_(domain->GetMathParser()),
         mHandle_(mp_->GetNewHandle(true)) {
+  
+  // always store default coordinate system
+  this->coordSys_ = domain->GetCoordSystem();
 }   
 
 CoefFunctionExpression<Double>::~CoefFunctionExpression(){

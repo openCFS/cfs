@@ -163,6 +163,9 @@ namespace CoupledField{
     // QUERY FOR USER PARAMS IS STILL TO COME
     refElems_[region][Elem::ET_QUAD4]  = new FeHCurlHiQuad();
     refElems_[region][Elem::ET_HEXA8]  = new FeHCurlHiHex();
+    
+    refElems_[region][Elem::ET_QUAD8]  = new FeHCurlHiQuad();
+    refElems_[region][Elem::ET_HEXA20]  = new FeHCurlHiHex();
 
     //now set the order
     if(order.GetNumCols() != 1 || order.GetNumRows() != 1){
@@ -289,7 +292,7 @@ namespace CoupledField{
     }
 
     if(refElems_[eRegion].find(ent.GetElem()->type) == refElems_[eRegion].end()){
-      EXCEPTION("FeSpaceHCurlHi: requested fetype which is noch supported by space");
+      EXCEPTION("FeSpaceHCurlHi: requested fetype which is not supported by space");
     }
 
     BaseFE * myFe = refElems_[eRegion][ent.GetElem()->type];

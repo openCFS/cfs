@@ -797,16 +797,11 @@ namespace CoupledField
     // Now we have the full mu-tensor, so we can invert the matrix
     // and store the reluctivity tensor
     Matrix<Double> nuTensor(3,3), temp;
-    std::cerr << "muTensor is \n" << muTensor << std::endl;
     temp = muTensor.GetPart(Global::REAL);
-    std::cerr << "temp is \n" << temp << std::endl;
     temp.Invert(nuTensor);
-    std::cerr << "nuTensor is \n" << nuTensor << std::endl;
     SetTensor( nuTensor, MAG_RELUCTIVITY, Global::REAL );
     
     GetTensor( temp, MAG_RELUCTIVITY, Global::REAL );
-    std::cerr << "temp afterwards\n" << temp << std::endl << std::endl;
-   
   }
 
 
