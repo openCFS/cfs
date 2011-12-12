@@ -1,4 +1,10 @@
-\documentclass[12pt]{report}
+\documentclass[%
+   %draft,     % Entwurfsstadium
+   final,      % fertiges Dokument
+   paper=a4, pagesize=auto, % Papier Einstellungen
+   fontsize=12pt, % Schriftgröße
+   english, % Sprache 
+ ]{scrreprt} % Classes: scrartcl, scrreprt, scrbook
 %
 \usepackage{ifpdf}
 
@@ -54,6 +60,8 @@
 %% Package for entering TODO notes
 \usepackage{todonotes}
 
+\usepackage{minted}
+
 %
 % =============================================================================
 %
@@ -65,7 +73,7 @@
 % =============================================================================
 %
 %
-\LSETITLE{CFS++ -- Advanced Pre- and Postprocessing Manual}{cfs-user}{User's Guide}
+\LSETITLE{CFS++ -- Advanced Pre- and Postprocessing Manual}{Simon Triebenbacher\vspace{2mm}}{User's Guide}
 %
 %
 \tableofcontents
@@ -81,10 +89,29 @@
 
 \todo[inline]{Move common parts of all manuals  (e.g. common preambles) up the directory hierarchy and unify the build process of as many manuals as possible (cplreader, scripting, xml, devel, etc...)}
 
+\begin{minted}[mathescape,
+               linenos,
+               numbersep=5pt,
+               gobble=2,
+               frame=lines,
+               framesep=2mm]{csharp}
+  string title = "This is a Unicode in the sky"
+  /*
+  Defined as $\pi=\lim_{n\to\infty}\frac{P_n}{d}$ where $P$ is the perimeter
+  of an $n$-sided regular polygon circumscribing a
+  circle of diameter $d$.
+  */
+  const double pi = 3.1415926535
+\end{minted}
+
+% \inputminted{c}{sources/photo.c}
+% \inputminted{text}{sources/mkmesh.txt}
+
 \include{intro}
 \include{internalTools}
 \include{preproc}
 \include{postproc}
+\include{videos}
 \include{special}
 
 \addcontentsline{toc}{chapter}{Bibliography}

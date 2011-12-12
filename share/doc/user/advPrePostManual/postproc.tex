@@ -88,7 +88,7 @@ cfstool -m convert input.h5 output.post.bin
 \end{verbatim}
 
 \subsection{Gmsh}
-
+\label{sec:postproc_gmsh}
 CFS++ can write  the native Gmsh version 2.1 file  format. Therefore, either a
 $<$gmsh$>$ output  tag needs to  be specified  in the XML  file or files  may be
 converted using:
@@ -98,6 +98,7 @@ cfstool -m convert input.h5 output.msh
 \end{verbatim}
 
 \subsection{ANSYS CFD-Post}
+\label{sec:postproc_cfdpost}
 
 The data transfer  from CFS++ to ANSYS CFD-Post can  commence in three possible
 ways:
@@ -182,7 +183,7 @@ switch to  the advanced  interface and  then select 'Use  Material Id'  in the
 (cf. Fig. \ref{fig:ensight_rst_mat_to_part}).
 
 Another option for getting data into EnSight is by converting it to the Exodus
-II format in ParaView (cf. \ref{sec:pv_adv_io}).
+II format \cite{Schoof1994} in ParaView (cf. \ref{sec:pv_adv_io}).
 
 \begin{figure}[htb] 
   \centering 
@@ -192,6 +193,7 @@ II format in ParaView (cf. \ref{sec:pv_adv_io}).
 \end{figure}
 
 \subsection{Tecplot}
+\label{sec:postproc_tecplot}
 
 What  has been said  in Sec.   \ref{sec:postproc_ensight} about  reading ANSYS
 .rst files should also apply to  Tecplot. Tecplot just has not been thoroughly
@@ -258,9 +260,10 @@ however.
 \subsubsection{Exporting Data from ParaView for Use in other Postprocs}
 \label{sec:pv_adv_io} Another possible way to  get data from CFS++ into VisIt,
 EnSight or Tecplot  is by loading HDF5 files into  ParaView and exporting them
-to Exodus  II files  by doing File$\rightarrow$Save  Data$\rightarrow$Files of
-Type$\rightarrow$Exodus II.  ParaView can also  save data to native  VTK multi
-block files or XDMF2 files (cf. Fig. \ref{fig:pv_adv_io}).
+to   Exodus  II   \cite{Schoof1994}  files   by   doing  File$\rightarrow$Save
+Data$\rightarrow$Files of Type$\rightarrow$Exodus  II.  ParaView can also save
+data    to    native    VTK    multi    block    files    or    XDMF2    files
+(cf. Fig. \ref{fig:pv_adv_io}).
 
 \begin{figure}[htb] 
   \centering 
@@ -374,6 +377,8 @@ saved in  the {\tt .rst} file depends  on the settings made  in the simulation
   \caption{Contour plots of acoustic pressure for acoustic pml3d testsuite example.}
   \label{fig:ansys_pml3d}
 \end{figure}
+
+\url{http://www.padtinc.com/blog/post/2011/03/09/Pretty_Plotting.aspx}
 
 \section{Creating Slices}
 
@@ -567,6 +572,63 @@ filename-expansion by the shell!
 \subsection{Tecplot}
 \url{http://www.tecplot.com/Portals/0/Tutorials/Vector.htm}
 
+\section{Computing New Fields from Existing Fields}
+
+\subsection{ParaView}  In  General new  fields  can  be  calculated using  the
+Calculator and Programmable Filters.
+
+\subsubsection{Harmonic Data}  Complex-valued results can  be switched between
+Re-Im-form and Ampl-Phase-form using the  Complex Mode field on the Properties
+pane of the CFS++ HDF5 plugin.
+
+\subsection{GMV}
+
+Calculate    $\rightarrow$    Field    Calc.    $\rightarrow$    Node    Field
+(cf. \cite{GMVManual2008} p. 42)
+
+\subsubsection{Harmonic  Data}  In  order   to  conpute  the  real  part  from
+Ampl-Phase  form  the following  sequence  of  field  calculations has  to  be
+applied:
+
+\begin{verbatim}
+FldClc1: PhaseRad = X/C, where X = acouPressure_phase and C = 180
+FldClc2: ReUnit = cos(X), where X = PhaseRad
+FldClc3: acouPressure_re = X*Y, where X = acouPressure_ampl and Y = ReUnit 
+\end{verbatim}
+
+\subsection{Tecplot}
+
+The dialog  for calculating new fields  from existing ones may  be reached via
+Data     $\rightarrow$     Alter     $\rightarrow$    Specify     Equations...
+(cf. \cite{TPUM2011} Sec. 21-1). Sometimes Tecplot will generate the same name
+for two  different datasets  (e.g.  for  real and imag  parts from  ANSYS .rst
+files).  In  such cases it  is neccesary to  change the variable names  in the
+Dataset Info...  $\rightarrow$  Zone/Variable Info $\rightarrow$ Variable Name
+Field.  
+
+\subsubsection{Harmonic Data} The frequency  steps from harmonic analyses from
+.rst  files get  mapped to  zones.  Usually  the last  zone/frequency  will be
+displayed. For  calculating the  absolute value and  phase of a  complex field
+variable in the current frequency/zone e.g. the following equation may be used
+
+\begin{verbatim}
+{Amplitude} = sqrt({Pres Real}*{Pres Real} + {Pres Imag}*{Pres Imag})
+{Phase} = atan2({Pres Imag}, {Pres Real})
+\end{verbatim}
+
+\subsection{EnSight}
+
+\url{https://visualization.hpc.mil/wiki/Ensight_Feature_Detail_Editor_Calculator}
+
+\subsubsection{Harmonic Data}  For calculating  the real and  imag parts  of a
+complex field variable e.g. the following equation may be used
+
+\begin{verbatim}
+APRES_RE = APRES_AM*COS(APRES_PH/180)
+APRES_IM = APRES_AM*SIN(APRES_PH/180)
+\end{verbatim}
+
+
 \section{Selecting Elements or Nodes}
 
 \subsection{ParaView}
@@ -673,6 +735,53 @@ lighting/shading do the following:
 
 
 \section{Creating Animations}
+
+\subsection{ParaView}
+\url{http://www.vtk.org/Wiki/ParaView/Users_Guide/Animation}
+
+\subsection{ANSYS Classic}
+
+General Information:
+
+\url{http://www.padtinc.com/blog/post/2011/09/28/ANSYS_Animated_GIFs.aspx}
+
+\url{http://www.xansys.org/forum/viewtopic.php?t=22851&highlight=animation}
+
+\subsubsection{Transient Data}
+
+\begin{description}
+\item[Using Results Viewer]
+Main Menu  $\rightarrow$  General Postproc  $\rightarrow$ Results Viewer 
+
+Result Item for  Viewing $\rightarrow$ View Result Item  As $\rightarrow$ Plot
+Results
+
+Animate Results $\rightarrow$ Over Time 
+
+\item[Using PlotCtrls]  Load .rst $\rightarrow$  Enter e.g. APDL  commands for
+plotting displaced structure
+\begin{verbatim}
+pldisp,1
+\end{verbatim}
+
+PlotCtrls $\rightarrow$ Animate $\rightarrow$ Over Time
+\end{description}
+
+\subsubsection{Harmonic and Eigenfrequency Data}
+
+Same as above just use Time Harmonic or Mode Shape instead of Over Time.
+
+\subsection{CFD-Post}
+
+General Information:
+
+\url{http://www.padtinc.com/blog/post/2011/10/26/ANSYS-FEA-RESULTS-IN-CFD-POST.aspx}
+\url{http://www.padtinc.com/blog/post/2011/05/04/CFD_Keyframe_Anim.aspx}
+
+\subsubsection{Transient Data}
+
+Tools  $\rightarrow$  Animation  $\rightarrow$ Quick  Animation  $\rightarrow$
+Timesteps $\rightarrow$ Start
 
 \subsection{GiD}
 \url{https://lse17.e-technik.uni-erlangen.de:2001/docu/tutorial/html/cfsManual-html.html}

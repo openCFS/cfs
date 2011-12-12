@@ -289,6 +289,11 @@ ELSE(DEBUG)
 ENDIF(DEBUG)
 
 #-----------------------------------------------------------------------------
+# Find executables of a few required programs
+#-----------------------------------------------------------------------------
+INCLUDE("cmake_modules/FindPrograms.cmake")
+
+#-----------------------------------------------------------------------------
 # Set compiler flags according to output target and debug setting
 # ( if necessesary )
 #-----------------------------------------------------------------------------
@@ -308,11 +313,6 @@ INCLUDE("cmake_modules/distro.cmake")
 # Include some utility macros (for building ext. libs, etc...) 
 #-----------------------------------------------------------------------------
 INCLUDE("cmake_modules/CFS_macros.cmake")
-
-#-----------------------------------------------------------------------------
-# Find executables of a few required programs
-#-----------------------------------------------------------------------------
-INCLUDE("cmake_modules/FindPrograms.cmake")
 
 #-----------------------------------------------------------------------------
 # Configure Dart testing support.  This should be done before any
@@ -408,7 +408,7 @@ ENDIF(EXISTS "${CFS_SOURCE_DIR}/.git")
 # Determine global revision of working copy
 #-----------------------------------------------------------------------------
 EXECUTE_PROCESS(
-  COMMAND ${PERL} ${CFS_DEPS_ROOT}/utils/perl/cfsdepsrev.pl
+  COMMAND ${PERL_EXECUTABLE} ${CFS_DEPS_ROOT}/utils/perl/cfsdepsrev.pl
   ${CFS_SOURCE_DIR} ${CFS_BINARY_DIR}/tmp
   OUTPUT_VARIABLE CFS_SUBVERSION_REV
   ERROR_VARIABLE CFS_SUBVERSION_REV
@@ -427,7 +427,7 @@ ENDIF(RETVAL STREQUAL 0)
 
 
 EXECUTE_PROCESS(
-  COMMAND ${PERL} ${CFS_DEPS_ROOT}/utils/perl/cfsdepsmodif.pl
+  COMMAND ${PERL_EXECUTABLE} ${CFS_DEPS_ROOT}/utils/perl/cfsdepsmodif.pl
   ${CFS_SOURCE_DIR} ${CFS_BINARY_DIR}/tmp
   OUTPUT_VARIABLE CFS_SUBVERSION_MODIF
   ERROR_VARIABLE CFS_SUBVERSION_MODIF

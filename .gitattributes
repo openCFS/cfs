@@ -285,7 +285,7 @@ share/doc/developer/develManual/sources/kreuzinger.sh svneol=native#text/plain
 share/doc/developer/develManual/sources/lmboot.sh -text
 share/doc/developer/develManual/sources/macports_installed_pckgs.txt svneol=native#text/plain
 share/doc/developer/develManual/sources/mpcci_reactivate_lse24_lic.txt svneol=native#text/plain
-share/doc/developer/develManual/sources/nacs_win.txt -text svneol=native#text/plain
+share/doc/developer/develManual/sources/nacs_win.txt svneol=native#text/plain
 share/doc/developer/develManual/sources/nacs_win_build_howto.txt svneol=native#text/plain
 share/doc/developer/develManual/sources/org.eclipse.core.resources.prefs -text
 share/doc/developer/develManual/sources/org.eclipse.ui.editors.prefs -text
@@ -304,7 +304,11 @@ share/doc/user/advPrePostManual/intro.tex -text
 share/doc/user/advPrePostManual/mycommands.tex -text
 share/doc/user/advPrePostManual/pics/Bar-def.png -text svneol=unset#image/png
 share/doc/user/advPrePostManual/pics/Bar-undef.png -text svneol=unset#image/png
+share/doc/user/advPrePostManual/pics/anim.0020.png -text
 share/doc/user/advPrePostManual/pics/ansys.png -text
+share/doc/user/advPrePostManual/pics/ansys/rst_io.dot -text
+share/doc/user/advPrePostManual/pics/ansys/rst_io.pdf -text
+share/doc/user/advPrePostManual/pics/ansys/rst_io.svg -text
 share/doc/user/advPrePostManual/pics/ansys_eplo_mat.png -text svneol=unset#image/png
 share/doc/user/advPrePostManual/pics/ansys_heatsink.png -text svneol=unset#image/png
 share/doc/user/advPrePostManual/pics/ansys_pml3d_imag.png -text svneol=unset#image/png
@@ -312,6 +316,10 @@ share/doc/user/advPrePostManual/pics/ansys_pml3d_real.png -text svneol=unset#ima
 share/doc/user/advPrePostManual/pics/ansys_trans_pyras.png -text svneol=unset#image/png
 share/doc/user/advPrePostManual/pics/cfdpost.png -text
 share/doc/user/advPrePostManual/pics/cfx_gmsh_man_model.png -text svneol=unset#image/png
+share/doc/user/advPrePostManual/pics/cgns/cgns_io.dia -text
+share/doc/user/advPrePostManual/pics/cgns/cgns_io.dot -text
+share/doc/user/advPrePostManual/pics/cgns/cgns_io.pdf -text
+share/doc/user/advPrePostManual/pics/cgns/cgns_io.svg -text
 share/doc/user/advPrePostManual/pics/ensight_man.png -text
 share/doc/user/advPrePostManual/pics/ensight_rst_mat_to_part.png -text
 share/doc/user/advPrePostManual/pics/gid.png -text
@@ -320,12 +328,18 @@ share/doc/user/advPrePostManual/pics/gmsh_cp_test.png -text svneol=unset#image/p
 share/doc/user/advPrePostManual/pics/gmsh_cutplanes.png -text svneol=unset#image/png
 share/doc/user/advPrePostManual/pics/gmsh_wing_spline.png -text svneol=unset#image/png
 share/doc/user/advPrePostManual/pics/gmv.png -text
+share/doc/user/advPrePostManual/pics/hdf5/hdf5_io.dot -text
+share/doc/user/advPrePostManual/pics/hdf5/hdf5_io.pdf -text
+share/doc/user/advPrePostManual/pics/hdf5/hdf5_io.svg -text
 share/doc/user/advPrePostManual/pics/icem_export_ans.pdf -text svneol=unset#unset
 share/doc/user/advPrePostManual/pics/icem_export_ans.svg -text
 share/doc/user/advPrePostManual/pics/icem_export_ansys.png -text
 share/doc/user/advPrePostManual/pics/icem_export_ansys_options.png -text
 share/doc/user/advPrePostManual/pics/icem_export_ansys_opts.pdf -text svneol=unset#unset
 share/doc/user/advPrePostManual/pics/icem_export_ansys_opts.svg -text
+share/doc/user/advPrePostManual/pics/out2.png -text
+share/doc/user/advPrePostManual/pics/out3.png -text
+share/doc/user/advPrePostManual/pics/out4.png -text
 share/doc/user/advPrePostManual/pics/pv/paraview.png -text
 share/doc/user/advPrePostManual/pics/pv/paraview_named_elems_threshold.png -text
 share/doc/user/advPrePostManual/pics/pv/paraview_named_entities.png -text
@@ -354,14 +368,31 @@ share/doc/user/advPrePostManual/pics/pv_nolight.png -text
 share/doc/user/advPrePostManual/pics/pv_nolight_arrow.png -text
 share/doc/user/advPrePostManual/pics/soft_landscape.png -text
 share/doc/user/advPrePostManual/pics/tecplot.png -text
+share/doc/user/advPrePostManual/pics/unv/01_iges_read.png -text
+share/doc/user/advPrePostManual/pics/unv/I-DEAS_logo.png -text
+share/doc/user/advPrePostManual/pics/unv/fem.png -text
+share/doc/user/advPrePostManual/pics/unv/ideas.png -text
+share/doc/user/advPrePostManual/pics/unv/ideas2.png -text
+share/doc/user/advPrePostManual/pics/unv/logo_ideas.png -text
+share/doc/user/advPrePostManual/pics/unv/nx_ideas.png -text
+share/doc/user/advPrePostManual/pics/unv/pumpenad_modell.png -text
+share/doc/user/advPrePostManual/pics/unv/siemens_nx75.png -text
+share/doc/user/advPrePostManual/pics/unv/tmm1-ideas.png -text
+share/doc/user/advPrePostManual/pics/unv/unv_io.dot -text
+share/doc/user/advPrePostManual/pics/unv/unv_io.pdf -text
+share/doc/user/advPrePostManual/pics/unv/unv_io.svg -text
+share/doc/user/advPrePostManual/pics/video_crop.pdf -text
+share/doc/user/advPrePostManual/pics/video_crop.svg -text
 share/doc/user/advPrePostManual/pics/visit.png -text
 share/doc/user/advPrePostManual/pics/visit_adv_io.dot -text
 share/doc/user/advPrePostManual/pics/visit_adv_io.pdf -text
 share/doc/user/advPrePostManual/postproc.tex -text
 share/doc/user/advPrePostManual/preproc.tex -text
 share/doc/user/advPrePostManual/sources/Pfeifenfussmodell_modificated_swept.in.txt -text
+share/doc/user/advPrePostManual/sources/ansys_doc_download.sh -text
 share/doc/user/advPrePostManual/sources/ansys_surf_vol_mesh.txt -text
 share/doc/user/advPrePostManual/sources/ansys_transitional_pyra.txt svneol=native#text/plain
+share/doc/user/advPrePostManual/sources/batch_renumber_files.txt -text
 share/doc/user/advPrePostManual/sources/cplreader_meshgen.xml -text
 share/doc/user/advPrePostManual/sources/crosspoint_test.c svneol=native#text/plain
 share/doc/user/advPrePostManual/sources/emacs_settings.sh svneol=native#text/plain
@@ -390,8 +421,10 @@ share/doc/user/advPrePostManual/sources/pv_tria_local_global_mapping.py -text
 share/doc/user/advPrePostManual/sources/pv_trial_local_global_mapping.py -text
 share/doc/user/advPrePostManual/sources/pv_xi_eta.py -text
 share/doc/user/advPrePostManual/sources/pygmentize.sh -text
+share/doc/user/advPrePostManual/sources/unv_dataset_numbers.txt -text
 share/doc/user/advPrePostManual/special.tex -text
 share/doc/user/advPrePostManual/todonotes.sty svneol=native#text/plain
+share/doc/user/advPrePostManual/videos.tex -text
 share/doc/user/cplreader/CMakeLists.txt svneol=native#text/plain
 share/doc/user/cplreader/FigElementTypes.tex svneol=native#text/plain
 share/doc/user/cplreader/Manual_TechnicalReference.pdf -text svneol=unset#application/pdf

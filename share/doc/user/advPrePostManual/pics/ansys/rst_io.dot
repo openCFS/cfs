@@ -1,0 +1,19 @@
+digraph G {
+        "CFX" -> ".res";
+        ".res" -> "cfx5export";
+        "cfx5export" -> ".cgns";
+        FLUENT -> ".cgns";
+
+	".cgns" -> "ANSYS CFD-Post";
+	".cgns" -> Tecplot;
+	".cgns" -> EnSight;
+	".cgns" -> VisIt;
+	".cgns" -> cplreader;
+
+        "cplreader" [shape=box];
+        VisIt [shape=box];
+	"ANSYS CFD-Post" [shape=box];
+        Tecplot [shape=box];
+        EnSight [shape=box];
+	FLUENT [shape=box];
+}

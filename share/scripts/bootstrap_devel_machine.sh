@@ -2,7 +2,7 @@
 
 MODE="-h"
 
-. `dirname $0`/distro.sh
+. `dirname $0`/distro.sh -h
 
 # This script is not primarily meant to be used on its own. It will get merged
 # into    one   script    bootstrap_devel_machine.txt   with    distro.sh   by
@@ -15,6 +15,8 @@ MODE="-h"
 ARCH=$(echo $ARCH | sed 'y/'$LOWER'/'$UPPER'/')
 DIST=$(echo $DIST | sed 'y/'$LOWER'/'$UPPER'/')
 REV=$(echo $REV | sed 'y/'$LOWER'/'$UPPER'/')
+
+ENV_CFS=/etc/env_cfs.sh
 
 uid=$(/usr/bin/id -u) && [ "$uid" = "0" ] ||
 { echo "$0 must be run as root!"; exit 1; }
@@ -44,7 +46,7 @@ SetupDebian() {
 
 SetupOpenSuse() {
     zypper install subversion gcc gcc-c++ gcc-fortran automake autoconf \
-        cmake perl-base graphviz texlive-latex texlive-tex4ht \
+        cmake perl-base perl-Switch graphviz texlive-latex texlive-tex4ht \
         python-pygments doxygen tcl-devel python-devel git-svn \
         java-1_6_0-openjdk-devel cmake-gui xorg-x11-libXt-devel \
         diffutils patch zip xorg-x11-libXp tk-devel Mesa-devel || ExitFail
@@ -143,9 +145,9 @@ SetupRHEL() {
     rm -f /usr/$LIB/libXext.so
     ln -s /usr/$LIB/libXext.so.6.4.0 /usr/$LIB/libXext.so || ExitFail
 
-    echo "Please add the following lines to your \$HOME/.bashrc and open a new shell for all environment settings to become active."
-    echo "export JAVA_HOME=/usr"
-    echo "export PATH=/opt/svnkit-1.3.5.7406:\$PATH"
+    printf "JAVA_HOME=/usr\n" >> $ENV_CFS
+    printf "PATH=/opt/svnkit-1.3.5.7406:\$PATH\n" >> $ENV_CFS
+    printf "export JAVA_HOME PATH\n" >> $ENV_CFS
 
 }
 
@@ -173,27 +175,33 @@ SetupMacOS() {
     fi
 
     # Check for gfortran.
-    if [ ! -f /usr/local/bin/gfortran ]; then
-	echo "No  proper gfortran is installed.  You can download  and install the"
-	echo "one from"
+    if [ ! -f /usr/bin/gfortran-4.2 ]; then
+	echo "Could not find /usr/bin/gfortran-4.2!"
+	echo "No  proper gfortran is installed.  You can download  and install "
+	echo "gfortran from http://r.research.att.com/tools/"
+        echo
+	echo "Different binaries are also available from:"
 	echo "http://www.macresearch.org/files/gfortran/gfortran-4.3-Nov.mpkg.zip"
-	echo "Also be sure to visit"
-	echo "http://www.macresearch.org/gfortran-leopard and"
+	echo "http://www.macresearch.org/gfortran-leopard"
 	echo "http://hpc.sourceforge.net."
 	ISOK=0
     fi
 
     # Find CMake
-    for dir in "`find /Applications -name 'CMake*'`"; do
-	if [ -f "$dir/Contents/bin/cmake" ]; then
-	    echo "Using cmake in $dir";
-	    CMAKEDIR="$dir/Contents/bin";
-            break;
+    TMPFILE=$(mktemp -t bootstrap) || exit 1
+    find /Applications -name 'CMake*.app' | while read dir; do 
+	CMAKE_VERSION=$("$dir/Contents/bin/cmake" --version | cut -d' ' -f3 | sed 's/\(2.8\)\(.*\)/\1/')
+	CMAKE_MAJOR_VERSION=$(echo $CMAKE_VERSION | cut -d'.' -f1)
+	CMAKE_MINOR_VERSION=$(echo $CMAKE_VERSION | cut -d'.' -f2)
+	if [ $CMAKE_MAJOR_VERSION -ge 2 -a $CMAKE_MINOR_VERSION -ge 8 ]; then
+	    echo "CMAKEDIR=\"$dir/Contents/bin\"" > $TMPFILE;
 	fi
     done
 
+    . $TMPFILE
+    rm $TMPFILE
     if [ "$CMAKEDIR" = "" ]; then
-	echo "CMake not found! Please  go to www.cmake.org and download the latest"
+	echo "CMake 2.8 not found! Please  go to www.cmake.org and download the latest"
 	echo "CMake package for Mac.";
 	ISOK=0
     fi
@@ -210,70 +218,118 @@ SetupMacOS() {
     /opt/local/bin/port install doxygen graphviz teTeX texlive_texmf-minimal wget  || ExitFail
     /opt/local/bin/port install git-core +svn || ExitFail
 
-    # Adjust environment of user with a small perl script
-    cat > /tmp/adjustenv.pl << EOF
-open(IN, "<\$ENV{'HOME'}/.profile");
-@profile=<IN>;
-close(IN);
+    # Make sure CMake 2.8 is on PATH
+    PATH=$CMAKEDIR:$PATH
+    export PATH
 
-open(OUT, ">\$ENV{'HOME'}/.profile2");
-foreach \$line (@profile) {
-    if(\$line =~ /export PATH/) {
-	@tokens = split(/=/, \$line);
-	@tokens = split(/:/, \$tokens[1]);
-
-	my \$last = undef; 
-	@pathcontents = grep { (\$last ne \$_) && (\$last = \$_) } sort(@tokens, @pathcontents); 
-	
-	print OUT "# \$line"
-    } else {
-	print OUT \$line;
-    }
+    printf "PATH=\"$CMAKEDIR\":\$PATH\n" >> $ENV_CFS
+    printf "export PATH\n" >> $ENV_CFS
 }
 
-\$newpath="export PATH=";
-foreach \$token (@pathcontents) {
-    if(\$token !~ /\\\$PATH/) {
-	chomp(\$token);
-#	print "\$token\n";
-	\$newpath="\$newpath\$token:";
-    }
+SetupNetBSD() {
+    BSDARCH=$(echo $ARCH | tr [A-Z] [a-z])
+    cd /tmp
+    ftp ftp://ftp.NetBSD.org/pub/pkgsrc/current/pkgsrc.tar.gz
+    ftp ftp://ftp7.de.netbsd.org/pub/ftp.netbsd.org/pub/NetBSD/NetBSD-$REV/${BSDARCH}/binary/sets/comp.tgz
+    ftp ftp://ftp7.de.netbsd.org/pub/ftp.netbsd.org/pub/NetBSD/NetBSD-$REV/${BSDARCH}/binary/sets/xcomp.tgz
+    tar -xzf pkgsrc.tar.gz -C /usr
+    tar -xzf comp.tgz -C /
+    tar -xzf xcomp.tgz -C /
+    rm pkgsrc.tar.gz comp.tgz xcomp.tgz
 
-    if(\$token =~ /\/opt\/local\/bin/) {
-	\$haveoptlocalbin = 1;
-    }
+    PKG_PATH="http://ftp.NetBSD.org/pub/pkgsrc/packages/NetBSD/${BSDARCH}/$REV/All"
+    export PKG_PATH
 
-    if(\$token =~ /\/opt\/local\/sbin/) {
-	\$haveoptlocalsbin = 1;
-    }
+    pkg_add cmake gcc44 perl openjdk7 python27 doxygen subversion \
+	    binutils automake autoconf gmake scmgit valgrind patch \
+	    libxml2 libxslt unzip wget
+
+    echo "PATH=/usr/pkg/gcc44/bin:/usr/pkg/${BSDARCH}--netbsdelf/bin:$PATH" >> $ENV_CFS
 }
 
-if( ! \$haveoptlocalbin ) {
-    \$newpath="\${newpath}/opt/local/bin:";
+SetupCMake() {
+    CMAKE_VERSION=$(cmake --version | cut -d' ' -f3 | cut -d'-' -f1)
+    CMAKE_MAJOR_VERSION=$(echo $CMAKE_VERSION | cut -d'.' -f1)
+    CMAKE_MINOR_VERSION=$(echo $CMAKE_VERSION | cut -d'.' -f2)
+
+    if [ $CMAKE_MAJOR_VERSION -ge 2 ] && [ $CMAKE_MINOR_VERSION -ge 8 ]; then
+        return 1
+    fi
+
+    PCKG_BASE_NAME="cmake-2.8.6";
+    MYTMPDIR="$TMPDIR/$(basename $0).$$"
+    echo "$MYTMPDIR"
+
+    (umask 077 && mkdir "$MYTMPDIR") || exit 1
+
+    cd "$MYTMPDIR"
+
+    # Define list of mirrors
+    mirrors="http://distfiles.macports.org/cmake/$PCKG_BASE_NAME.tar.gz
+             http://gentoo.tups.lv/source/distfiles/$PCKG_BASE_NAME.tar.gz
+             http://130.230.54.100/gentoo/distfiles/$PCKG_BASE_NAME.tar.gz
+             http://www.cmake.org/files/v2.8/$PCKG_BASE_NAME.tar.gz"
+
+    MD5SUM="2147da452fd9212bb9b4542a9eee9d5b"
+
+    # Download source
+    for mirror in $mirrors; do
+        if [ -f $PCKG_BASE_NAME.tar.gz ]; then
+            rm -f $PCKG_BASE_NAME.tar.gz
+        fi
+        wget $mirror
+        if [ $? -eq 0 ]; then break; fi
+    done
+
+    MD5SUM_ACTUAL=""
+    # Check MD5 sum on CMake >= 2.8
+    MD5SUM_ACTUAL="$MD5SUM_ACTUAL $(cmake -E md5sum cmake-2.8.6.tar.gz | cut -d' ' -f1)"
+    # Check MD5 sum on Mac OS X
+    MD5SUM_ACTUAL="$MD5SUM_ACTUAL $(md5 | cut -d'=' -f2 | cut -d' ' -f2)"
+    # Check MD5 sum on Linux
+    MD5SUM_ACTUAL="$MD5SUM_ACTUAL $(md5sum $PCKG_BASE_NAME.tar.gz | sed -e 's/ .*//')"
+
+    isokay=0
+    for sum in $MD5SUM_ACTUAL; do
+        if [ "$sum" = "$MD5SUM" ]; then isokay=1; break; fi
+    done
+
+    if [ $isokay -lt 1 ]; then
+        echo "MD5 sums for $PCKG_BASE_NAME do not match!";
+        exit 1
+    fi
+
+    tar xzf $PCKG_BASE_NAME.tar.gz
+
+    cd $PCKG_BASE_NAME
+
+    CC="gcc"; export CC
+    CXX="g++"; export CXX
+
+    sh ./configure --prefix=/opt/$PCKG_BASE_NAME --no-qt-gui
+
+    make
+
+    make install
+
+    cd ..
+    rm -rf "$MYTMPDIR"
+
+    printf "\n# Setting PATH to CMake.\n" >> $ENV_CFS
+    printf "PATH=/opt/$PCKG_BASE_NAME/bin:\$PATH\n" >> $ENV_CFS
 }
 
-if( ! \$haveoptlocalsbin ) {
-    \$newpath="\${newpath}/opt/local/sbin:";
-}
+HINTSTR="Please add the command\n\n"
+HINTSTR="${HINTSTR}. $ENV_CFS\n\n"
+HINTSTR="${HINTSTR}to one of the following files\n\n"
+HINTSTR="${HINTSTR}\$HOME/.bashrc (Linux)\n"
+HINTSTR="${HINTSTR}\$HOME/.profile (Mac)\n"
+HINTSTR="${HINTSTR}/etc/profile.local\n"
+HINTSTR="${HINTSTR}/etc/profile\n\n"
+HINTSTR="${HINTSTR}and open a new shell for all environment settings to become active.\n\n"
 
-\$newpath="\${newpath}'$CMAKEDIR':";
-\$newpath="\${newpath}\\\$PATH";
-
-print OUT "\$newpath\n";
-close(OUT);
-
-print "A new configuration for your environment has been written to \$ENV{'HOME'}/.profile2.\n";
-print "Either move it to \$ENV{'HOME'}/.profile or add the following line to your \$ENV{'HOME'}/.profile:\n\n";
-print "\$newpath\n";
-
-EOF
-
-    perl /tmp/adjustenv.pl || ExitFail
-
-    rm -f /tmp/adjustenv.pl || ExitFail
-
-    echo "Please open a new shell for all environment settings to become active."
-}
+echo "# Configuration for CFS++ shell environment." > $ENV_CFS
+printf "$HINTSTR" | sed 's/^/# /' >> $ENV_CFS
 
 case "$DIST" in
      MACOSX) SetupMacOS;;
@@ -285,6 +341,7 @@ case "$DIST" in
      RHEL) SetupRHEL ;;
      CENTOS) SetupRHEL ;;
      SCIENTIFIC) SetupRHEL ;;
+     NETBSD) SetupNetBSD ;;
      *)
         echo "Your distribution $DIST is currently not supported by this script."
         echo "You are encouraged to contribute a new boostrap routine by taking"
@@ -294,3 +351,10 @@ case "$DIST" in
 	echo "or send it to one of the CFS++ developers."
         ;;
 esac
+
+SetupCMake
+
+echo 
+echo "The configuration to set up an environment for CFS++ development has been"
+echo "written to $ENV_CFS."
+printf "$HINTSTR"

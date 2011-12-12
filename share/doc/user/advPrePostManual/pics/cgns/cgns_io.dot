@@ -1,0 +1,37 @@
+digraph G {
+        "CFX-Pre" -> "CFX";
+        "CFX" -> ".res";
+        ".res" -> "cfx5export";
+        "cfx5export" -> ".cgns";
+        FLUENT -> ".cgns";
+
+	".cgns" -> "ANSYS CFD-Post";
+	".cgns" -> Tecplot;
+	".cgns" -> EnSight;
+	".cgns" -> VisIt;
+	".cgns" -> cplreader;
+	".cgns" -> "CFX-Pre";
+	".cgns" -> FieldView;
+	".cgns" -> StarCD;
+	".cgns" -> Pointwise;
+        Pointwise -> ".cgns"
+        "ICEM CFD" -> ".cgns"
+
+	".cgns" -> OpenFOAM;
+        OpenFOAM -> ".cgns"
+
+        "cplreader" [shape=box];
+        VisIt [shape=box];
+	"ANSYS CFD-Post" [shape=box];
+        Tecplot [shape=box];
+        EnSight [shape=box];
+	FLUENT [shape=box];
+	CFX [shape=box];
+	cfx5export [shape=box];
+	"CFX-Pre" [shape=box];
+	"ICEM CFD" [shape=box];
+	"FieldView" [shape=box];
+	"StarCD" [shape=box];
+	Pointwise [shape=box];
+	OpenFOAM [shape=box];
+}

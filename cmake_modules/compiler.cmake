@@ -2,7 +2,7 @@
 # Determine what equivalent GNU version the compiler has, to check if it is
 # compatible with the GNU C++ compiler on the system PATH.
 #-------------------------------------------------------------------------------
-EXEC_PROGRAM("${PERL} ${CFS_SOURCE_DIR}/share/scripts/identify_compiler.pl g++ ${CFS_SOURCE_DIR}/share/scripts/IdentifyCXXCompiler.cpp cmake > ${CFS_BINARY_DIR}/CMakeFiles/out.cmake"
+EXEC_PROGRAM("${PERL_EXECUTABLE} ${CFS_SOURCE_DIR}/share/scripts/identify_compiler.pl g++ ${CFS_SOURCE_DIR}/share/scripts/IdentifyCXXCompiler.cpp cmake > ${CFS_BINARY_DIR}/CMakeFiles/out.cmake"
   ARGS
   OUTPUT_VARIABLE CC_COMPILER_INFO
   RETURN_VALUE RETVAL)
@@ -15,7 +15,7 @@ SET(GNU_CXX_COMPILER_VER "${CXX_VERSION}")
 # Collect output of compiler version command to determine compiler type and
 # version information. 
 #-------------------------------------------------------------------------------
-# EXEC_PROGRAM("${PERL} ${CFS_DEPS_ROOT}/utils/perl/identify_compiler.pl ${CMAKE_C_COMPILER} ${CFS_DEPS_ROOT}/utils/compiler/IdentifyCCompiler.c cmake > ${CFS_BINARY_DIR}/CMakeFiles/out.cmake"
+# EXEC_PROGRAM("${PERL_EXECUTABLE} ${CFS_DEPS_ROOT}/utils/perl/identify_compiler.pl ${CMAKE_C_COMPILER} ${CFS_DEPS_ROOT}/utils/compiler/IdentifyCCompiler.c cmake > ${CFS_BINARY_DIR}/CMakeFiles/out.cmake"
 #   ARGS
 #   OUTPUT_VARIABLE CC_COMPILER_INFO
 #   RETURN_VALUE RETVAL)
@@ -23,7 +23,7 @@ SET(GNU_CXX_COMPILER_VER "${CXX_VERSION}")
 # INCLUDE(${CFS_BINARY_DIR}/CMakeFiles/out.cmake)
 
 
-EXEC_PROGRAM("${PERL} ${CFS_SOURCE_DIR}/share/scripts/identify_compiler.pl ${CMAKE_CXX_COMPILER} ${CFS_SOURCE_DIR}/share/scripts/IdentifyCXXCompiler.cpp cmake > ${CFS_BINARY_DIR}/CMakeFiles/out.cmake"
+EXEC_PROGRAM("${PERL_EXECUTABLE} ${CFS_SOURCE_DIR}/share/scripts/identify_compiler.pl ${CMAKE_CXX_COMPILER} ${CFS_SOURCE_DIR}/share/scripts/IdentifyCXXCompiler.cpp cmake > ${CFS_BINARY_DIR}/CMakeFiles/out.cmake"
   ARGS
   OUTPUT_VARIABLE CXX_COMPILER_INFO
   RETURN_VALUE RETVAL)
@@ -36,7 +36,7 @@ SET(CFS_CXX_COMPILER_NAME ${CXX_ID})
 SET(CFS_CXX_COMPILER_VER "${CXX_VERSION}")
 SET(CFS_CXX_COMPILER_GNU_VER "${CXX_GCC_VERSION}")
 
-EXEC_PROGRAM("${PERL} ${CFS_SOURCE_DIR}/share/scripts/identify_compiler.pl ${CMAKE_Fortran_COMPILER} ${CFS_SOURCE_DIR}/share/scripts/IdentifyFortranCompiler.F90 cmake > ${CFS_BINARY_DIR}/CMakeFiles/out.cmake"
+EXEC_PROGRAM("${PERL_EXECUTABLE} ${CFS_SOURCE_DIR}/share/scripts/identify_compiler.pl ${CMAKE_Fortran_COMPILER} ${CFS_SOURCE_DIR}/share/scripts/IdentifyFortranCompiler.F90 cmake > ${CFS_BINARY_DIR}/CMakeFiles/out.cmake"
   ARGS
   OUTPUT_VARIABLE FORTRAN_COMPILER_INFO
   RETURN_VALUE RETVAL)
