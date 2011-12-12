@@ -296,11 +296,19 @@ namespace CoupledField{
 
     //TODO: Save the information somehow
     // QUERY FOR USER PARAMS IS STILL TO COME
+    // Generate reference elements for first order geoemtric element types
     refElems_[region][Elem::ET_LINE2]  = new FeH1HiLine();
     refElems_[region][Elem::ET_QUAD4]  = new FeH1HiQuad();
     refElems_[region][Elem::ET_TRIA3]  = new FeH1HiTria();
     refElems_[region][Elem::ET_HEXA8]  = new FeH1HiHex();
     refElems_[region][Elem::ET_WEDGE6] = new FeH1HiWedge();
+    
+    // Generate reference elements for second order geoemtric element types
+    refElems_[region][Elem::ET_LINE3]  = new FeH1HiLine();
+    refElems_[region][Elem::ET_QUAD8]  = new FeH1HiQuad();
+    refElems_[region][Elem::ET_TRIA6]  = new FeH1HiTria();
+    refElems_[region][Elem::ET_HEXA20]  = new FeH1HiHex();
+    refElems_[region][Elem::ET_WEDGE15] = new FeH1HiWedge();
 
     //now set the order
     if(order.GetNumCols() != 1 || order.GetNumRows() != 1){

@@ -234,6 +234,7 @@ namespace CoupledField{
         refElems_[region][Elem::ET_LINE3]  = new FeH1LagrangeLine2();
         refElems_[region][Elem::ET_QUAD8]  = new FeH1LagrangeQuad2();
         refElems_[region][Elem::ET_HEXA20] = new FeH1LagrangeHex2();
+        refElems_[region][Elem::ET_WEDGE15] = new FeH1LagrangeWedge2();
         
         UInt gridOrder = domain->GetGrid()->IsQuadratic() ? 2 : 1;
         infoNode->Get("order")->SetValue(gridOrder);

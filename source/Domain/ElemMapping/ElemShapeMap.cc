@@ -134,6 +134,7 @@ LagrangeElemShapeMap::LagrangeElemShapeMap( Grid* ptGrid  )
   feMap_[Elem::ET_HEXA8] = new FeH1LagrangeHex1();
   feMap_[Elem::ET_WEDGE6] = new FeH1LagrangeWedge1();
   feMap_[Elem::ET_HEXA20] = new FeH1LagrangeHex2();
+  feMap_[Elem::ET_WEDGE15] = new FeH1LagrangeWedge2();
 //  feMap_[ET_HEXA27] = new FeH1LagrangeLine1();
 //  feMap_[ET_PYRA5] = new FeH1LagrangeLine1();
 //  feMap_[ ET_PYRA13] = new FeH1LagrangeLine1();
@@ -842,6 +843,12 @@ void LagrangeElemShapeMap::SetElem( const Elem* ptElem, bool isUpdated ) {
   ptGrid_->GetElemNodesCoord( coords_,ptElem->connect, isUpdated_ );
 
   // set reference element
+#ifndef NDEBUG
+  if( feMap_.find(ptElem->type) == feMap_.end()) {
+    EXCEPTION("Element of type '" << Elem::feType.ToString(ptElem->type)
+              << "' not defined for Lagrangian Shape Map!");
+  }
+#endif
   ptFe_ = feMap_[ptElem->type];
   shape_ = Elem::shapes[ptElem_->type];
 }
