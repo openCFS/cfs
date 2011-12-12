@@ -174,9 +174,9 @@ namespace CoupledField
 
      if ( FeMatrixPresent( DAMPING ) ) {      
        //damping
-       helpVec = sol_timeStepCoeff_[COEFFRHS]*solpred_ 
-         - (1+alpha_)*solderiv1pred_ 
-         + alpha_*solderiv1Previous_;
+       helpVec = solpred_*sol_timeStepCoeff_[COEFFRHS] 
+         - solderiv1pred_*(1+alpha_) 
+         + solderiv1Previous_*alpha_;
        algsys_->UpdateRHS(DAMPING,helpVec);
      }
 
