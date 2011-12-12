@@ -129,7 +129,7 @@ namespace CoupledField {
     
     LOG_TRACE(simInputUNV) << "reading base mesh from file " << fileName_ << ":";
     
-    long n;
+    unsigned long n;
     
     if(capaIf_.ReadUniversalfile(fileName_.c_str()) < 0)
     {
@@ -188,7 +188,7 @@ namespace CoupledField {
     LOG_TRACE(simInputUNV) << "reading vertex coordinates";
 
     Point  p, pTemp;
-    long   node;
+    unsigned long   node;
 
     mi_->AddNodes(numNodes_);
 
@@ -635,7 +635,8 @@ namespace CoupledField {
       if (datainfo_.numtype55 == 0) {
         for ( i=0; i<datainfo_.numtype58; ++i ) {
           if (datainfo_.types58[i] == capaDataType) {
-            if (capaIf_.GetHistNumData(i) != numDofs) {
+	    UInt histNumData = capaIf_.GetHistNumData(i);
+            if (histNumData != numDofs) {
               EXCEPTION("Wrong number of DOFs for result '"
                         << resInfo->resultName << "': should be "
                         << capaIf_.GetHistNumData(i));
