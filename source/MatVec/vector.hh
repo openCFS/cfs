@@ -384,6 +384,14 @@ template<typename T> class ElemStoreSol;
     template <typename T2>
     Vector<PROMOTE(T,T2)> operator* ( const T2 &y ) const;
 
+    //! Create new vector by multiplication with scalar (new = y * this )
+    //! implemented as a friend, only calling the other implementation
+    //! (type promotion)
+    template <typename T2>
+    friend Vector<PROMOTE(T,T2)> operator* (const T2 &y, const Vector<T> &x) {
+      return(x * y);
+    } 
+
     //! Multiply entries of own vector by y
     Vector<T> &operator*= (T x);
     //@}
