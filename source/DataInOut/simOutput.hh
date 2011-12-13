@@ -5,16 +5,25 @@
 #ifndef FILE_CFS_SIMOUTPUT_HH
 #define FILE_CFS_SIMOUTPUT_HH
 
+#include <cmath>
+#include <map>
 #include <set>
+#include <string>
 
-#include "Utils/result.hh"
+#include "DataInOut/ParamHandling/ParamNode.hh"
 #include "Domain/resultInfo.hh"
+#include "General/defs.hh"
+#include "General/environment.hh"
 #include "PDE/basePDE.hh"
+#include "Utils/StdVector.hh"
+#include "Utils/tools.hh"
 
 namespace CoupledField {
 
   //! Forward class declaration
-  class ParamNode;
+class BaseResult;
+class Grid;
+template <typename T> class Vector;
   
 
   //! Base class for writing result objects to file

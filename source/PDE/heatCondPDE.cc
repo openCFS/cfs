@@ -1,40 +1,52 @@
 // -*- mode: c++; coding: utf-8; indent-tabs-mode: nil; -*-
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
-#include <boost/lexical_cast.hpp>
-
-#include <fstream>
 #include <iostream>
-#include <sstream>
 #include <string>
-#include <math.h>
+#include <utility>
 
-#include <boost/tokenizer.hpp>
-
-#include "heatCondPDE.hh"
-
-#include "Forms/laplaceInt.hh"
-#include "Forms/linHeatCondInt.hh"
-#include "Forms/nLinHeatInt.hh"
-#include "Forms/massInt.hh"
-#include "Forms/linNeumannInt.hh"
-#include "Forms/linearForm.hh"
-#include "Forms/abcInt.hh"
-#include "Forms/nonConformingInt.hh"
-
+#include "CoupledPDE/pdecoupling.hh"
 #include "DataInOut/Logging/cfslog.hh"
-
-#include "PDE/trapezoidal.hh"
-
-#include "DataInOut/WriteInfo.hh"
+#include "DataInOut/Logging/log.hpp"
 #include "DataInOut/ParamHandling/ParamNode.hh"
+#include "DataInOut/WriteInfo.hh"
 #include "Domain/ansatzFct.hh"
 #include "Domain/domain.hh"
-
-#include "Driver/stdSolveStep.hh"
+#include "Domain/entityList.hh"
+#include "Domain/grid.hh"
+#include "Domain/resultInfo.hh"
 #include "Driver/assemble.hh"
-#include "CoupledPDE/pdecoupling.hh"
+#include "Driver/formsContext.hh"
+#include "Driver/stdSolveStep.hh"
+#include "Forms/abcInt.hh"
+#include "Forms/baseForm.hh"
+#include "Forms/laplaceInt.hh"
+#include "Forms/linHeatCondInt.hh"
+#include "Forms/linNeumannInt.hh"
+#include "Forms/linSurfForm.hh"
+#include "Forms/linearForm.hh"
+#include "Forms/massInt.hh"
+#include "Forms/nLinHeatInt.hh"
+#include "Forms/nonConformingInt.hh"
+#include "General/Enum.hh"
+#include "General/defs.hh"
+#include "General/exception.hh"
+#include "MatVec/SingleVector.hh"
+#include "MatVec/matrix.hh"
+#include "MatVec/vector.hh"
+#include "Materials/baseMaterial.hh"
 #include "Optimization/Design/DesignSpace.hh"
+#include "PDE/SinglePDE.hh"
+#include "PDE/StdPDE.hh"
+#include "PDE/eqnMap.hh"
+#include "PDE/trapezoidal.hh"
+#include "Utils/basenodestoresol.hh"
+#include "Utils/nodestoresol.hh"
+#include "Utils/result.hh"
+#include "boost/lexical_cast.hpp"
+#include "boost/tokenizer.hpp"
+#include "heatCondPDE.hh"
+#include "math.h"
 
 
 namespace CoupledField {

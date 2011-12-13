@@ -5,11 +5,21 @@
 #ifndef FILE_BDINT
 #define FILE_BDINT
 
+#include <ostream>
+#include <string>
+
+#include "General/defs.hh"
+#include "General/exception.hh"
 #include "baseForm.hh" 
 
 namespace CoupledField {
 
   //! abstract class for calculation of bd forms
+class BaseMaterial;
+class EntityIterator;
+template <class TYPE> class Matrix;
+template <class TYPE> class Vector;
+
   class BDInt : public BaseForm {
 
   public:

@@ -2,9 +2,8 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include <iostream>
-#include <fstream>
-
+#include "Elements/2D/trianglefe.hh"
+#include "MatVec/matrix.hh"
 #include "triangle2fe.hh"
 
 namespace CoupledField
@@ -65,11 +64,6 @@ namespace CoupledField
     Shape[3] = 4 * LCoord[0] * t;
     Shape[4] = 4 * LCoord[0] * LCoord[1];
     Shape[5] = 4 * LCoord[1] * t;
-
-#ifndef NDEBUG
-    //  (*debug) << "LCoord \n " << LCoord << std::endl;
-    //  (*debug) << "Shape \n " << Shape << std::endl;
-#endif
 
   }
 

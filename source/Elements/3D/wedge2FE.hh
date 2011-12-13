@@ -5,7 +5,16 @@
 #ifndef FILE_WEDGE2FE
 #define FILE_WEDGE2FE
 
+#include "Domain/ansatzFct.hh"
+#include "Domain/elem.hh"
+#include "General/defs.hh"
+#include "General/environment.hh"
+#include "MatVec/vector.hh"
 #include "wedgeFE.hh"
+
+namespace CoupledField {
+template <class TYPE> class Matrix;
+}  // namespace CoupledField
 
 namespace CoupledField
 {

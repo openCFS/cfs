@@ -5,6 +5,10 @@
 #ifndef FILE_CFS_DISCONT_EQNMAP_HH
 #define FILE_CFS_DISCONT_EQNMAP_HH
 
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "General/defs.hh"
+#include "General/environment.hh"
+#include "Utils/StdVector.hh"
 #include "eqnMap.hh"
 //#include "Utils/StdVector.hh"
 //#include "Domain/resultInfo.hh"
@@ -20,6 +24,11 @@ namespace CoupledField {
   //class ParamNode; 
 
   //! Class for mapping entities and continuous ansatz functions to equation numbers
+class EntityIterator;
+class EntityList;
+class Grid;
+struct ResultInfo;
+
   class DiscontinuousEqnMap : public EqnMap {
     
   public:

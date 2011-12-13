@@ -5,13 +5,22 @@
 #ifndef OLAS_VECTOR_HH
 #define OLAS_VECTOR_HH
 
-#include <def_expl_templ_inst.hh>
-#include <def_build_type_options.hh>
+#include <math.h>
+#include <stddef.h>
+#include <complex>
+#include <ostream>
+#include <string>
 
+#include "General/defs.hh"
+#include "General/environment.hh"
+#include "General/exception.hh"
 #include "MatVec/SingleVector.hh"
-#include "Utils/tools.hh"
+#include "MatVec/basematrix.hh"
+#include "MatVec/promote.hh"
 #include "MatVec/typedefs.hh"
-#include "Utils/boost-serialization.hh"
+#include "Utils/Point.hh"
+#include "def_build_type_options.hh"
+#include "def_expl_templ_inst.hh"
 
 #ifdef EXPR_TEMPLATES
 #include "exprt/xpr1.hh"
@@ -21,11 +30,10 @@
 
 namespace CoupledField {
 
+template<typename T> class ElemStoreSol;
 // !Forward class declarations
 template<typename T> class Matrix;
-template<typename T> class Vector;
 template<typename T> class NodeStoreSol;
-template<typename T> class ElemStoreSol;
 
   //! Class for dense array-based algebraic vector
   template <typename T>

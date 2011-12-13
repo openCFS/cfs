@@ -1,12 +1,34 @@
-#include "Optimization/StressConstraint.hh"
-#include "Optimization/Design/DesignSpace.hh"
-#include "Optimization/Design/DesignElement.hh"
+#include <assert.h>
+#include <stdlib.h>
+#include <map>
+#include <ostream>
+#include <string>
+
 #include "DataInOut/Logging/cfslog.hh"
+#include "DataInOut/Logging/log.hpp"
 #include "Domain/domain.hh"
+#include "Domain/elem.hh"
+#include "Domain/grid.hh"
+#include "Elements/basefe.hh"
 #include "Forms/baseForm.hh"
-#include "Forms/linElastInt.hh"
-#include "Driver/assemble.hh"
+#include "General/defs.hh"
+#include "General/environment.hh"
+#include "General/exception.hh"
+#include "MatVec/SingleVector.hh"
 #include "MatVec/opdefs.hh"
+#include "Optimization/Design/DesignElement.hh"
+#include "Optimization/Design/DesignSpace.hh"
+#include "Optimization/Excitation.hh"
+#include "Optimization/Function.hh"
+#include "Optimization/StressConstraint.hh"
+#include "PDE/SinglePDE.hh"
+#include "PDE/eqnMap.hh"
+#include "PDE/mechPDE.hh"
+#include "Utils/tools.hh"
+
+namespace CoupledField {
+class BaseMaterial;
+}  // namespace CoupledField
 
 using namespace std;
 

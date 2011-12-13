@@ -1,19 +1,21 @@
   #ifndef BASEOPTIMIZER_HH_
 #define BASEOPTIMIZER_HH_
 
-#include "Utils/StdVector.hh"
-#include "Optimization/Optimization.hh"
+#include <iosfwd>
 #include <string>
+
 #include "DataInOut/ParamHandling/ParamNode.hh"
+#include "Optimization/Optimization.hh"
+
+namespace CoupledField {
+template <class TYPE> class StdVector;
+}  // namespace CoupledField
 
 
 namespace CoupledField
 {
-  class Optimization;
-  class ParamNode;
-  class ParamNode;
-  class Timer;
   class Condition;
+  class Timer;
   
   /** This is the base class of the optimizer tools.
    * Note that for SCPIP we have multiple inheritance */

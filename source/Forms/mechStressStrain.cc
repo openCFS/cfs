@@ -2,14 +2,29 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include <iostream>
+#include <assert.h>
 #include <fstream>
+#include <string>
 
-#include "Forms/mechStressStrain.hh"
 #include "DataInOut/Logging/cfslog.hh"
-#include "PDE/mechPDE.hh"
-#include "PDE/elecPDE.hh"
+#include "DataInOut/Logging/log.hpp"
+#include "Domain/elem.hh"
+#include "Domain/entityList.hh"
+#include "Domain/grid.hh"
+#include "Domain/resultInfo.hh"
+#include "Elements/basefe.hh"
+#include "Forms/mechStressStrain.hh"
+#include "General/Enum.hh"
 #include "MatVec/vector.hh"
+#include "PDE/StdPDE.hh"
+#include "PDE/mechPDE.hh"
+#include "Utils/StdVector.hh"
+#include "Utils/basenodestoresol.hh"
+#include "Utils/result.hh" // IWYU pragma: keep
+
+namespace CoupledField {
+class BaseMaterial;
+}  // namespace CoupledField
 
 
 DECLARE_LOG(ss)

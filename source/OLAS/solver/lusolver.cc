@@ -2,15 +2,21 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include "MatVec/crs_matrix.hh"
+#include <ostream>
+#include <string>
 
+#include "General/Enum.hh"
+#include "General/environment.hh"
+#include "General/exception.hh"
+#include "MatVec/basematrix.hh"
+#include "MatVec/crs_matrix.hh"
+#include "MatVec/stdmatrix.hh"
+#include "OLAS/solver/lusolver.hh"
 // Include source code of CroutLU class for template instantiation
 // Note: Might lead to double instantiation, since CroutLU is also
 // used in ILUTP_Precond. Going to implement better concept as soon
 // as time permits.
 #include "OLAS/utils/math/croutlu.hh"
-
-#include "OLAS/solver/lusolver.hh"
 
 namespace CoupledField {
 
@@ -18,6 +24,10 @@ namespace CoupledField {
   // ***************
   //   Constructor
   // ***************
+class BasePrecond;
+class BaseVector;
+template <typename > class Vector;
+
   template<typename T>
   LUSolver<T>::LUSolver( PtrParamNode solverNode, PtrParamNode olasInfo ) {
 

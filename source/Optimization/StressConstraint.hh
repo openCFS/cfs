@@ -1,8 +1,26 @@
 #ifndef STRESSCONSTRAINT_HH_
 #define STRESSCONSTRAINT_HH_
 
+#include <complex>
+#include <utility>
+
+#include "Domain/entityList.hh"
+#include "MatVec/matrix.hh"
+#include "MatVec/vector.hh"
 #include "Optimization/ErsatzMaterial.hh"
+#include "Optimization/Optimization.hh"
 #include "Optimization/TransferFunction.hh"
+#include "Utils/StdVector.hh"
+
+namespace CoupledField {
+class BaseForm;
+class DesignElement;
+class DesignSpace;
+class Excitation;
+class Function;
+class SingleVector;
+struct Elem;
+}  // namespace CoupledField
 
 namespace CoupledField
 {

@@ -1,16 +1,31 @@
-#include <string>
-#include <fstream>
+#include <assert.h>
+#include <algorithm>
 #include <cmath>
+#include <complex>
+#include <cstdlib>
+#include <fstream>
+#include <iostream>
+#include <string>
 
-#include "Optimization/Optimizer/OptimalityCondition.hh"
-#include "Optimization/Design/DesignSpace.hh"
-#include "Optimization/Design/DesignElement.hh"
-#include "General/exception.hh"
-#include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/Logging/cfslog.hh"
+#include "DataInOut/Logging/log.hpp"
+#include "DataInOut/ParamHandling/ParamNode.hh"
 #include "Domain/domain.hh"
-#include "PDE/basePDE.hh"
+#include "Domain/elem.hh"
 #include "Driver/assemble.hh"
+#include "General/defs.hh"
+#include "General/environment.hh"
+#include "General/exception.hh"
+#include "Optimization/Condition.hh"
+#include "Optimization/Design/DesignElement.hh"
+#include "Optimization/Design/DesignSpace.hh"
+#include "Optimization/Function.hh"
+#include "Optimization/Objective.hh"
+#include "Optimization/Optimization.hh"
+#include "Optimization/Optimizer/OptimalityCondition.hh"
+#include "PDE/basePDE.hh"
+#include "Utils/StdVector.hh"
+#include "Utils/tools.hh"
 
 using namespace CoupledField;
 using std::abs;

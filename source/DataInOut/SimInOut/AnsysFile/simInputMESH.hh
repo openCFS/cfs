@@ -5,10 +5,16 @@
 #ifndef FILE_MOD_ANSYSFILE_2002
 #define FILE_MOD_ANSYSFILE_2002
 
-#include <set>
 #include <fstream>
+#include <set>
+#include <string>
+#include <vector>
 
-#include <DataInOut/simInput.hh>
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "DataInOut/simInput.hh"
+#include "Domain/elem.hh"
+#include "General/defs.hh"
+#include "General/environment.hh"
 
 namespace CoupledField {
 
@@ -16,6 +22,10 @@ namespace CoupledField {
 
   //! Class, that is derived from class FileType for reading mesh-input data,
   //! which is produced by Ansys mkmesh-interface. 
+class BaseResult;
+class Grid;
+template <class TYPE> class StdVector;
+
   class SimInputMESH: virtual public SimInput {
 
   public:

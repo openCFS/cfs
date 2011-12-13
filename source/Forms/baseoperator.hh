@@ -5,9 +5,11 @@
 #ifndef FILE_BASEOPERATOR_2003
 #define FILE_BASEOPERATOR_2003
 
-#include "General/environment.hh"
-#include "Utils/StdVector.hh"
-#include "PDE/eqnMap.hh"
+#include "boost/shared_ptr.hpp"
+
+namespace CoupledField {
+class EqnMap;
+}  // namespace CoupledField
 
 namespace CoupledField
 {
@@ -27,7 +29,7 @@ namespace CoupledField
     //! Constructor
     BaseOperator(Grid * ptGrid, 
                  StdPDE * ptPDE,  
-                 shared_ptr<EqnMap> eqnMap,
+                 boost::shared_ptr<EqnMap> eqnMap,
                  bool isaxi=false,
                  bool coordUpdate_ = false );
   
@@ -38,7 +40,7 @@ namespace CoupledField
 
     Grid * ptGrid_;     //!< pointer to grid
     StdPDE * ptPDE_;   //!< pointer to PDE
-    shared_ptr<EqnMap> eqnMap_;
+    boost::shared_ptr<EqnMap> eqnMap_;
     bool isaxi_;
     bool coordUpdate_;
   };

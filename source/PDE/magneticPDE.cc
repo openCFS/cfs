@@ -2,37 +2,63 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include <fstream>
+#include <stddef.h>
+#include <cmath>
+#include <complex>
+#include <iostream>
+#include <string>
+#include <utility>
 
-#include "magneticPDE.hh"
-
-#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "CoupledPDE/pdecoupling.hh"
 #include "DataInOut/Logging/cfslog.hh"
-#include "Driver/stdSolveStep.hh"
+#include "DataInOut/Logging/log.hpp"
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "DataInOut/WriteInfo.hh"
+#include "Domain/ansatzFct.hh"
+#include "Domain/domain.hh"
+#include "Domain/elem.hh"
+#include "Domain/entityList.hh"
+#include "Domain/grid.hh"
+#include "Domain/resultInfo.hh"
+#include "Driver/assemble.hh"
+#include "Driver/formsContext.hh"
 #include "Driver/solveStepMagHyst.hh"
-#include "Utils/Coil.hh"
-#include "Utils/SmoothSpline.hh"
-#include "Utils/LinInterpolate.hh"
-#include "Forms/curlfieldop.hh"
+#include "Driver/stdSolveStep.hh"
+#include "Elements/basefe.hh"
+#include "Forms/baseForm.hh"
+#include "Forms/bdbInt.hh"
 #include "Forms/curlCurlNodeInt.hh"
-#include "Forms/nonConformingInt.hh"
-#include "Forms/nLincurlCurlNodeInt.hh"
-#include "Forms/nLinMagHystInt2D.hh"
 #include "Forms/laplaceInt.hh"
 #include "Forms/linGradBDBInt.hh"
 #include "Forms/linearForm.hh"
+#include "Forms/magforceop.hh"
 #include "Forms/massInt.hh"
-#include "trapezoidal.hh"
-#include "CoupledPDE/pdecoupling.hh"
-#include "Domain/ansatzFct.hh"
-#include "Driver/assemble.hh"
-#include "Utils/coordSystem.hh"
+#include "Forms/nLinMagHystInt2D.hh"
+#include "Forms/nLincurlCurlNodeInt.hh"
+#include "Forms/nonConformingInt.hh"
+#include "General/Enum.hh"
+#include "General/exception.hh"
+#include "MatVec/SingleVector.hh"
+#include "MatVec/exprt/xpr1.hh"
+#include "MatVec/exprt/xpr2.hh"
+#include "MatVec/matrix.hh"
+#include "MatVec/vector.hh"
+#include "Materials/baseMaterial.hh"
+#include "PDE/SinglePDE.hh"
+#include "PDE/StdPDE.hh"
+#include "PDE/basePDE.hh"
+#include "PDE/eqnMap.hh"
+#include "Utils/ApproxData.hh"
+#include "Utils/Coil.hh"
+#include "Utils/basenodestoresol.hh"
 #include "Utils/biotSavart.hh"
+#include "Utils/coordSystem.hh"
 #include "Utils/mathParser/mathParser.hh"
-
-#ifdef USE_SCRIPTING
-#include "DataInOut/Scripting/cfsmessenger.hh" 
-#endif
+#include "Utils/nodestoresol.hh"
+#include "Utils/result.hh"
+#include "Utils/tools.hh"
+#include "magneticPDE.hh"
+#include "trapezoidal.hh"
 
 namespace CoupledField {
 

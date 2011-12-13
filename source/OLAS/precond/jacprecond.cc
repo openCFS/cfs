@@ -3,10 +3,7 @@
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
 #include "MatVec/opdefs.hh"
-#include "MatVec/crs_matrix.hh"
-#include "MatVec/diag_matrix.hh"
-#include "MatVec/scrs_matrix.hh"
-
+#include "MatVec/stdmatrix.hh"
 #include "jacprecond.hh"
 
 namespace CoupledField {
@@ -24,6 +21,8 @@ namespace CoupledField {
   // ***********************
   //   Another Constructor
   // ***********************
+template <typename T> class Vector;
+
   template<class T_storage,typename T>
   JacPrecond<T_storage,T>::JacPrecond( const StdMatrix &mat, 
                                        PtrParamNode solverNode,

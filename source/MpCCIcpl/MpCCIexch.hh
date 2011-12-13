@@ -5,7 +5,7 @@
 #ifndef FILE_MPCCIEXCH_2003
 #define FILE_MPCCIEXCH_2003
 
-#include <def_use_mpcci.hh>
+#include "def_use_mpcci.hh"
 
 #include "MatVec/matrix.hh"
 #include "Domain/grid.hh"

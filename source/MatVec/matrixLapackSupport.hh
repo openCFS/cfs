@@ -5,7 +5,7 @@
 #ifndef FILE_MATRIX_LAPACK_SUPPORT
 #define FILE_MATRIX_LAPACK_SUPPORT
 
-#include <def_use_lapack.hh>
+#include "def_use_lapack.hh"
 #include "OLAS/external/lapack/olasf77mapping.hh"
 
 namespace CoupledField 

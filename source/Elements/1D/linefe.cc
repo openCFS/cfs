@@ -2,11 +2,15 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include <iostream>
-#include <fstream>
-#include <string>
+#include <math.h>
+#include <stddef.h>
 
+#include "Domain/ansatzFct.hh"
 #include "General/environment.hh"
+#include "MatVec/exprt/xpr2.hh"
+#include "MatVec/matrix.hh"
+#include "Utils/StdVector.hh"
+#include "Utils/tools.hh"
 #include "linefe.hh"
 
 namespace CoupledField

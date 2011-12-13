@@ -1,12 +1,15 @@
 #ifndef FILE_LINTHERMOELECTRICINT
 #define FILE_LINTHERMOELECTRICINT
 
-#include <Materials/baseMaterial.hh>
-#include <General/environment.hh>
+#include "General/environment.hh"
 
-#include "Elements/basefe.hh"
-
+#include "General/defs.hh"
 #include "adbInt.hh"
+
+namespace CoupledField {
+class BaseMaterial;
+template <class TYPE> class Matrix;
+}  // namespace CoupledField
 
 
 namespace CoupledField

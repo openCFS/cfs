@@ -6,21 +6,28 @@
 #define CFS_FORMS_CONTEXT_HH
 
 
+#include <string>
+
+#include "General/defs.hh"
 #include "General/environment.hh"
-#include "Utils/StdVector.hh"
-#include "Utils/dampLayer.hh"
 #include "Utils/mathParser/mathParser.hh"
+
+namespace CoupledField {
+class DampLayer;
+template <class TYPE> class StdVector;
+template <class TYPE> class Vector;
+}  // namespace CoupledField
 
 namespace CoupledField
 {
 
   //! Forward class declarations
   class BaseForm;
-  class LinearForm;
-  class EntityList;
-  class SinglePDE;
-  class EqnMap;
   class EntityIterator;
+  class EntityList;
+  class EqnMap;
+  class LinearForm;
+  class SinglePDE;
   struct ResultInfo;
 
 

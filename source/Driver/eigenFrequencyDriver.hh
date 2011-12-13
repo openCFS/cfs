@@ -5,12 +5,19 @@
 #ifndef FILE_EIGENVALUE_DRIVER_HH
 #define FILE_EIGENVALUE_DRIVER_HH
 
+#include <stddef.h>
+#include <string>
+
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "General/defs.hh"
 #include "singleDriver.hh"
 
 namespace CoupledField {
 
-template <class TYPE> class Vector;
 class SingleVector;
+class AdjointParameters;
+class ResultHandler;
+template <class TYPE> class Vector;
   
 
   //! Driver class for calculating a general eigenvalue problem

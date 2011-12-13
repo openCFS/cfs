@@ -1,13 +1,18 @@
 // -*- mode: c++; coding: utf-8; indent-tabs-mode: nil; -*-
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
-#include <map>
 #include <string>
+
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "General/defs.hh"
+#include "MatVec/vector.hh"
 #include "Utils/StdVector.hh"
-#include "Domain/grid.hh"
-#include "PDE/eqnMap.hh"
-#include "PDE/SinglePDE.hh"
 #include "Utils/mathParser/mathParser.hh"
+
+namespace CoupledField {
+class EqnMap;
+class Grid;
+}  // namespace CoupledField
 
 #ifndef FILE_CFS_BIOTSAVART_HH
 #define FILE_CFS_BIOTSAVART_HH

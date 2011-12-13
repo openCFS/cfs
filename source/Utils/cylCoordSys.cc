@@ -2,11 +2,20 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include "cylCoordSys.hh"
 #include <cmath>
+#include <complex>
 #include <sstream>
 
 #include "DataInOut/ParamHandling/ParamNode.hh"
+#include "Domain/grid.hh"
+#include "General/environment.hh"
+#include "General/exception.hh"
+#include "MatVec/exprt/xpr1.hh"
+#include "MatVec/exprt/xpr2.hh"
+#include "MatVec/matrix.hh"
+#include "Utils/coordSystem.hh"
+#include "Utils/tools.hh"
+#include "cylCoordSys.hh"
 
 namespace CoupledField{
 

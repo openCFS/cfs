@@ -5,17 +5,30 @@
 #ifndef FILE_ELECPDE_NEW
 #define FILE_ELECPDE_NEW
 
+#include <map>
+#include <string>
+
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "General/defs.hh"
+#include "General/environment.hh"
+#include "MatVec/vector.hh"
 #include "SinglePDE.hh" 
-#include "Forms/elecforceop.hh"
+#include "Utils/StdVector.hh"
+
+namespace CoupledField {
+class ElecForceOp;
+class EntityList;
+class Grid;
+class NodeList;
+class PDECoupling;
+}  // namespace CoupledField
 
 namespace CoupledField
 {
 
   // forward class declaration
   class BaseResult;
-  class ResultHandler;
   class LinearFormContext;
-  class set;
   
   //! Class for electrostatic equation (no adaptivity)
   class ElecPDE : public SinglePDE {

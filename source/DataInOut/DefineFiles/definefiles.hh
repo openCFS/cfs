@@ -5,14 +5,22 @@
 #ifndef DEFINEFILES_2001
 #define DEFINEFILES_2001
 
-#include "DataInOut/simInput.hh"
-#include "DataInOut/simOutput.hh"
-#include "DataInOut/MaterialHandler.hh"
+#include <map>
+#include <string>
+
+#include "General/environment.hh"
+
+namespace CoupledField {
+class CFSMessenger;
+class MaterialHandler;
+class SimInput;
+class SimOutput;
+template <class TYPE> class StdVector;
+}  // namespace CoupledField
 
 namespace CoupledField
 { 
 
-    class MeshIOModule;
 
   //! Define trace, debug, info files
 

@@ -2,7 +2,7 @@
 #define KNITRO_HH_
 
 #include "Optimization/Optimizer/BaseOptimizer.hh"
-#include <knitro.h>
+#include "knitro.h"
 namespace CoupledField
 {
 

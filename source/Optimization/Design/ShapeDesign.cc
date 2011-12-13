@@ -1,12 +1,21 @@
-#include "Optimization/Design/ShapeDesign.hh"
-#include "Utils/tools.hh"
+#include <assert.h>
+#include <ostream>
+#include <string>
+
+#include "DataInOut/Logging/cfslog.hh"
+#include "DataInOut/Logging/log.hpp"
+#include "DataInOut/ParamHandling/Xerces.hh"
 #include "Domain/domain.hh"
 #include "Domain/grid.hh"
-#include "DataInOut/programOptions.hh"
-#include "DataInOut/ParamHandling/Xerces.hh"
-#include "DataInOut/Logging/cfslog.hh"
+#include "General/exception.hh"
+#include "MatVec/matrix.hh"
+#include "Optimization/Design/ShapeDesign.hh"
+#include "Utils/Point.hh"
 
 namespace CoupledField {
+
+class Condition;
+class Objective;
 
 DECLARE_LOG(ShDes)
 DEFINE_LOG(ShDes, "ShapeDesign")

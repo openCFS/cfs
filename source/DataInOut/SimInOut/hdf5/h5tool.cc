@@ -1,11 +1,18 @@
+#include <stddef.h>
 #include <iostream>
-#include <sstream>
+#include <map>
+#include <set>
+#include <string>
+#include <vector>
 
-#include <boost/tokenizer.hpp>
-#include <boost/algorithm/string/trim.hpp>
+#include "boost/algorithm/string/trim.hpp"
+#include "boost/tokenizer.hpp"
 
 //#include <General/environment.hh>
 
+#include "General/defs.hh"
+#include "General/exception.hh"
+#include "Utils/StdVector.hh"
 #include "hdf5io.hh"
 
 using namespace CoupledField;

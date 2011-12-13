@@ -1,12 +1,29 @@
-#include "disContEqnMap.hh"
-#include "Domain/elem.hh"
-#include "Domain/grid.hh"
-#include "Domain/domain.hh" 
-#include "Utils/coordSystem.hh"
-#include "DataInOut/Logging/cfslog.hh"
-#include "DataInOut/ParamHandling/ParamNode.hh"
+#include <assert.h>
+#include <stdlib.h>
+#include <map>
+#include <ostream>
+#include <string>
+#include <utility>
 
-#include <boost/lexical_cast.hpp> 
+#include "DataInOut/Logging/cfslog.hh"
+#include "DataInOut/Logging/log.hpp"
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "Domain/ansatzFct.hh"
+#include "Domain/bcs.hh"
+#include "Domain/edgeFace.hh"
+#include "Domain/elem.hh"
+#include "Domain/entityList.hh"
+#include "Domain/grid.hh"
+#include "Domain/resultInfo.hh"
+#include "Elements/basefe.hh"
+#include "General/Enum.hh"
+#include "General/exception.hh"
+#include "MatVec/matrix.hh"
+#include "MatVec/vector.hh"
+#include "PDE/eqnMap.hh"
+#include "Utils/tools.hh"
+#include "boost/lexical_cast.hpp" 
+#include "disContEqnMap.hh"
 
 using std::string; 
 using boost::lexical_cast; 

@@ -2,8 +2,11 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
+#include "General/environment.hh"
+#include "General/exception.hh"
+#include "MatVec/basematrix.hh"
+#include "MatVec/basevector.hh"
 #include "MatVec/generatematvec.hh"
-
 #include "OLAS/precond/baseprecond.hh"
 #include "OLAS/solver/richardson.hh"
 

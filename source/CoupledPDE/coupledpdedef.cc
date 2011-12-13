@@ -2,10 +2,15 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include "coupledpdedef.hh"
-#include "Domain/grid.hh"
-#include "General/environment.hh"
+#include <stddef.h>
+
+#include "CoupledPDE/pdecoupling.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
+#include "General/Enum.hh"
+#include "General/environment.hh"
+#include "General/exception.hh"
+#include "PDE/StdPDE.hh"
+#include "coupledpdedef.hh"
 
 namespace CoupledField
 {
@@ -161,7 +166,7 @@ namespace CoupledField
   void CoupledPDEDef::DefineOrdering()
   {
 
-#include <CoupledPDE/coupledPDE.conf>
+#include "CoupledPDE/coupledPDE.conf"
   }
 
   Definition::Definition()

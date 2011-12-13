@@ -11,7 +11,7 @@
 
 //Filling Start
 
-#include <stdlib.h> // For exit()
+#include "stdlib.h" // For exit()
 #include <vector>
 #include <map>
 #include <iostream>
@@ -24,23 +24,23 @@
 
 //Manipulation Start
 #include <fstream>
-#include <stdio.h>
+#include "stdio.h"
 #include <iomanip>
 #include <sstream>
-#include <sys/stat.h>
+#include "sys/stat.h"
 
 
-#include <boost/filesystem/operations.hpp>
-#include <boost/filesystem/path.hpp>
-#include <boost/filesystem/convenience.hpp>
-#include <boost/filesystem/exception.hpp>
+#include "boost/filesystem/operations.hpp"
+#include "boost/filesystem/path.hpp"
+#include "boost/filesystem/convenience.hpp"
+#include "boost/filesystem/exception.hpp"
 namespace fs=boost::filesystem;
 
 #include "Domain/resultInfo.hh"
 
 #include "cplreader/Settings.hh"
 
-#include <def_cplreader.hh>
+#include "def_cplreader.hh"
 #include "cplreader/FileReader.hh"
 
 //Manipulation End

@@ -2,22 +2,26 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
+#include <stdlib.h>
+#include <algorithm>
 #include <iostream>
 #include <string>
-#include <algorithm>
 
-#include <def_use_pardiso.hh>
-#include <def_use_metis.hh>
-
-#include "General/exception.hh"
-#include "MatVec/sparseolasmatrix.hh"
-#include "MatVec/scrs_matrix.hh"
-#include "MatVec/crs_matrix.hh"
+#include "CholMod.hh"
 #include "DataInOut/Logging/cfslog.hh"
+#include "DataInOut/Logging/log.hpp"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/programOptions.hh"
-#include "Utils/StdVector.hh"
-#include "CholMod.hh"
+#include "General/exception.hh"
+#include "MatVec/basevector.hh"
+#include "MatVec/scrs_matrix.hh" // IWYU pragma: keep
+#include "MatVec/sparseolasmatrix.hh" // IWYU pragma: keep
+#include "def_use_metis.hh"
+#include "def_use_pardiso.hh"
+
+namespace CoupledField {
+template <typename T> class Vector;
+}  // namespace CoupledField
 
 DECLARE_LOG(cholmod)
 DEFINE_LOG(cholmod, "cholmod")

@@ -3,6 +3,9 @@
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
 #include <cmath>
+#include <new>
+
+#include "General/environment.hh" // IWYU pragma: keep
 #include "MatVec/sbmvector.hh"
 #include "generatematvec.hh"
 

@@ -1,6 +1,20 @@
-#include "Optimization/ParamMat.hh"
+#include <assert.h>
+#include <stddef.h>
+#include <string>
+
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "General/Enum.hh"
+#include "General/exception.hh"
+#include "MatVec/denseMatrix.hh"
+#include "MatVec/matrix.hh"
+#include "Optimization/Design/DesignElement.hh"
 #include "Optimization/Design/DesignSpace.hh"
 #include "Optimization/OptimizationMaterial.hh"
+#include "Optimization/ParamMat.hh"
+
+namespace CoupledField {
+class TransferFunction;
+}  // namespace CoupledField
 
 using namespace CoupledField;
 

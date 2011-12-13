@@ -1,11 +1,27 @@
-#include "Optimization/Optimizer/GradientCheck.hh"
-#include "Optimization/Optimization.hh"
-#include "Optimization/Design/DesignSpace.hh"
-#include "DataInOut/ParamHandling/ParamNode.hh"
-#include "Driver/harmonicDriver.hh"
-#include "Domain/domain.hh"
+#include <assert.h>
+#include <stddef.h>
+#include <iostream>
+#include <limits>
+#include <string>
+
 #include "DataInOut/Logging/cfslog.hh"
+#include "DataInOut/Logging/log.hpp"
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "Domain/domain.hh"
+#include "Domain/elem.hh"
 #include "Driver/assemble.hh"
+#include "General/Enum.hh"
+#include "General/defs.hh"
+#include "General/environment.hh"
+#include "General/exception.hh"
+#include "MatVec/vector.hh"
+#include "Optimization/Design/DesignElement.hh"
+#include "Optimization/Design/DesignSpace.hh"
+#include "Optimization/Optimization.hh"
+#include "Optimization/Optimizer/GradientCheck.hh"
+#include "PDE/basePDE.hh"
+#include "Utils/StdVector.hh"
+#include "Utils/tools.hh"
 
 using namespace CoupledField;
 

@@ -5,13 +5,15 @@
 #ifndef FILE_CFSOLASPARAMS
 #define FILE_CFSOLASPARAMS
 
-#include "OLAS/solver/basesolver.hh"
-#include "OLAS/solver/baseEigensolver.hh"
-#include "OLAS/precond/baseprecond.hh"
-#include "OLAS/graph/baseordering.hh"
-#include "PDE/basePDE.hh"
+#include <string>
 
 #include "DataInOut/ParamHandling/ParamNode.hh"
+#include "MatVec/basematrix.hh"
+#include "OLAS/graph/baseordering.hh"
+#include "OLAS/precond/baseprecond.hh"
+#include "OLAS/solver/baseEigensolver.hh"
+#include "OLAS/solver/basesolver.hh"
+#include "PDE/basePDE.hh"
 
 namespace CoupledField
 {

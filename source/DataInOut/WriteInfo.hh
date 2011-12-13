@@ -14,19 +14,20 @@
 /**************************************************************************/
 
 
-#include <sstream>
+#include <fstream> // iwyu
 #include <ostream>
-#include <fstream>
+#include <stddef.h>
+#include <sstream>
+#include <string>
+
+#include "General/defs.hh"
+#include "General/exception.hh"
 #include "PDE/basePDE.hh"
-#include "Domain/bcs.hh"
-#include "General/environment.hh"
-#include "MatVec/matrix.hh"
 
 namespace CoupledField {
 
 
   // Forward declarations
-  class BaseMaterial;
   class Coil;
   template <class TYPE> class Vector;
 

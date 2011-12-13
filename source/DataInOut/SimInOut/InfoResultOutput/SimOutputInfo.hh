@@ -1,12 +1,18 @@
 #ifndef SIMOUTPUTINFO_HH_
 #define SIMOUTPUTINFO_HH_
 
+#include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/simOutput.hh"
-#include "Domain/entityList.hh"
+#include "General/defs.hh"
+#include "PDE/basePDE.hh"
+
+namespace CoupledField {
+class BaseResult;
+class Grid;
+}  // namespace CoupledField
 
 namespace CoupledField 
 {
-  class InfoNode;
 
   /** This class collects the information, the basic text writer writes to files 
    * in to info.xml output.

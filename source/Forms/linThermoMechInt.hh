@@ -2,11 +2,15 @@
 #define FILE_LINTHERMOMECHINT
 
 
-#include <Materials/baseMaterial.hh>
-#include <General/environment.hh>
+#include "General/environment.hh"
 
-#include "Elements/basefe.hh"
+#include "General/defs.hh"
+#include "MatVec/matrix.hh"
 #include "adbInt.hh"
+
+namespace CoupledField {
+class BaseMaterial;
+}  // namespace CoupledField
 
 namespace CoupledField
 {

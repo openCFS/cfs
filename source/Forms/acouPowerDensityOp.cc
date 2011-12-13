@@ -2,20 +2,26 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include "Forms/acouPowerDensityOp.hh"
-
+#include <ostream>
 #include <string>
 
-#include "Elements/basefe.hh"
 #include "Domain/elem.hh"
+#include "Domain/entityList.hh"
 #include "Domain/grid.hh"
+#include "Elements/basefe.hh"
+#include "Forms/acouPowerDensityOp.hh"
 #include "General/environment.hh"
-#include "MatVec/vector.hh"
+#include "General/exception.hh"
+#include "MatVec/exprt/xpr1.hh"
 #include "MatVec/matrix.hh"
-
-#include <PDE/StdPDE.hh>
+#include "MatVec/vector.hh"
+#include "PDE/StdPDE.hh"
+#include "Utils/StdVector.hh"
 
 namespace CoupledField {
+
+class EqnMap;
+struct ResultInfo;
 
   template<class TYPE>  
   AcouPowerDensityOp<TYPE>::AcouPowerDensityOp(Grid * ptGrid, 

@@ -2,26 +2,32 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include <def_use_xerces.hh>
-#include "XMLMaterialHandler.hh"
+#include <stddef.h>
+#include <ostream>
 
+#include "DataInOut/MaterialHandler.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/ParamHandling/ParamTools.hh"
 #include "DataInOut/ParamHandling/Xerces.hh"
 #include "DataInOut/programOptions.hh"
-#include "DataInOut/WriteInfo.hh"
-
+#include "General/defs.hh"
+#include "General/exception.hh"
+#include "MatVec/matrix.hh"
+#include "MatVec/vector.hh"
+#include "Materials/acousticMaterial.hh"
+#include "Materials/baseMaterial.hh"
 // header for materials
 #include "Materials/electroMagneticMaterial.hh"
 #include "Materials/electrostaticMaterial.hh"
+#include "Materials/flowMaterial.hh"
 #include "Materials/heatMaterial.hh"
-#include "Materials/acousticMaterial.hh"
+#include "Materials/magStrictMaterial.hh"
 #include "Materials/mechanicMaterial.hh"
 #include "Materials/piezoMaterial.hh"
-#include "Materials/flowMaterial.hh"
-#include "Materials/thermoelasticMaterial.hh"
 #include "Materials/pyroelectricMaterial.hh"
-#include "Materials/magStrictMaterial.hh"
+#include "Materials/thermoelasticMaterial.hh"
+#include "XMLMaterialHandler.hh"
+#include "def_use_xerces.hh"
 
 // Note, that the methods ComputeIso/OrthoMechStiffnesTensor were commented out
 // in revision 7562 and are not in the code -> check the repository!

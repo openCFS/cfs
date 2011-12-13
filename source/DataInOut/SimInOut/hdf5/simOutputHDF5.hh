@@ -5,20 +5,26 @@
 #ifndef FILE_CFS_SIMOUTPUTHDF5_HH
 #define FILE_CFS_SIMOUTPUTHDF5_HH
 
-#include <set>
 #include <map>
+#include <set>
+#include <string>
+#include <vector>
 
-#include <boost/any.hpp>
-
-#include <Domain/grid.hh>
-#include <Domain/resultInfo.hh>
-#include <DataInOut/simOutput.hh>
-
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "DataInOut/simOutput.hh"
+#include "General/defs.hh"
 #include "H5Cpp.h"
+#include "PDE/basePDE.hh"
+#include "Utils/StdVector.hh"
+#include "boost/any.hpp"
 
 namespace CoupledField {
 
   //! define CFS-HDF5 file format version
+class BaseResult;
+class Grid;
+template <class TYPE> class Vector;
+
 #define CFS_HDF5_FORMAT_MAJOR 0
 #define CFS_HDF5_FORMAT_MINOR 9
 

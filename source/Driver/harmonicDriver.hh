@@ -5,13 +5,23 @@
 #ifndef FILE_HARMONICDRIVER_2001
 #define FILE_HARMONICDRIVER_2001
 
-#include <boost/shared_ptr.hpp>
+#include <stddef.h>
+#include <string>
+
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "General/defs.hh"
+#include "General/environment.hh"
+#include "Utils/StdVector.hh"
+#include "boost/shared_ptr.hpp"
 #include "singleDriver.hh"
+
+namespace CoupledField {
+class AdjointParameters;
+}  // namespace CoupledField
 
 namespace CoupledField
 {
 
-class ParamNode;
 class Timer;
 
 //! driver for harmonic problems. it is derived from BaseDriver

@@ -2,19 +2,23 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include <def_use_metis.hh>
-#include <def_use_pardiso.hh>
-#include <def_use_lapack.hh>
-#include <def_use_ilupack.hh>
-#include <def_use_cholmod.hh>
-#include <def_use_arpack.hh>
+#include <ostream>
 
-#include "General/environment.hh"
-#include "DataInOut/WriteInfo.hh"
 #include "DataInOut/ParamHandling/CFSOLASParams.hh"
+#include "DataInOut/WriteInfo.hh"
 #include "Domain/domain.hh"
-#include "Driver/singleDriver.hh"
 #include "Driver/assemble.hh"
+#include "Driver/singleDriver.hh"
+#include "General/Enum.hh"
+#include "General/defs.hh"
+#include "General/environment.hh"
+#include "General/exception.hh"
+#include "def_use_arpack.hh"
+#include "def_use_cholmod.hh"
+#include "def_use_ilupack.hh"
+#include "def_use_lapack.hh"
+#include "def_use_metis.hh"
+#include "def_use_pardiso.hh"
 
 namespace CoupledField {
 

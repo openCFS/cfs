@@ -2,9 +2,9 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include "basePDE.hh"
+#include "PDE/basePDE.hh"
 #include "PDE/mechPDE.hh" // to set the enum
-#include "Driver/baseSolveStep.hh"
+#include "basePDE.hh"
 
 
 namespace CoupledField {

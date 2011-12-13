@@ -2,12 +2,12 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include "MatVec/stdmatrix.hh"
-#include "MatVec/sbmmatrix.hh"
-
+#include "MatVec/SingleVector.hh"
+#include "MatVec/basematrix.hh"
 #include "MatVec/basevector.hh"
+#include "MatVec/sbmmatrix.hh"
 #include "MatVec/sbmvector.hh"
-
+#include "MatVec/stdmatrix.hh"
 #include "baseprecond.hh"
 
 namespace CoupledField {

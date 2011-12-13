@@ -4,38 +4,48 @@
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
 
-#include <iomanip>
+#include <stddef.h>
+#include <exception>
+#include <iostream>
+#include <utility>
 
-#include <def_use_xerces.hh>
-#include <def_use_mpcci.hh>
-#include <boost/version.hpp>
-
-#include "main/cfs.hh"
-#include "Utils/Timer.hh"
 #include "DataInOut/DefineFiles/definefiles.hh"
+#include "DataInOut/Logging/cfslog.hh"
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "DataInOut/ParamHandling/SkeletonConf.hh"
+#include "DataInOut/ParamHandling/Xerces.hh"
 #include "DataInOut/WriteInfo.hh"
-#include "DataInOut/MaterialHandler.hh"
+#include "DataInOut/coloredConsole.hh"
 #include "DataInOut/programOptions.hh"
+#include "DataInOut/resultHandler.hh"
+#include "DataInOut/simInput.hh"
 #include "Domain/domain.hh"
 #include "Domain/entityList.hh"
+#include "Elements/basefe.hh"
+#include "General/defs.hh"
 #include "General/environment.hh"
-#include "DataInOut/ParamHandling/SkeletonConf.hh"
-#include "DataInOut/ParamHandling/ParamNode.hh"
-#include "DataInOut/ParamHandling/Xerces.hh"
-#include "DataInOut/resultHandler.hh"
-#include "DataInOut/coloredConsole.hh"
-#include <unistd.h>
-#include <boost/date_time/posix_time/posix_time.hpp>
-#include "DataInOut/Logging/cfslog.hh"
+#include "General/exception.hh"
+#include "PDE/basePDE.hh"
+#include "Utils/Timer.hh"
+#include "Utils/tools.hh"
+#include "boost/date_time/posix_time/posix_time.hpp"
+#include "boost/version.hpp"
+#include "def_use_mesh.hh"
+#include "def_use_mpcci.hh"
+#include "def_use_xerces.hh"
+#include "main/cfs.hh"
+#include "unistd.h"
 
-#include <def_use_mesh.hh>
+namespace CoupledField {
+class SimOutput;
+}  // namespace CoupledField
 
 #ifdef MpCCI
 
 #if (MpCCI_RELEASE == 305)
-#include <mpcci.h>
+#include "mpcci.h"
 #else
-#include <cci.h>
+#include "cci.h"
 #endif
 
 #endif

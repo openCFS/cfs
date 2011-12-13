@@ -5,7 +5,7 @@
 #ifndef OLAS_OPDEFS_HH
 #define OLAS_OPDEFS_HH
 
-#include <stdio.h>
+#include "stdio.h"
 
 #include "General/exception.hh"
 #include "MatVec/typedefs.hh"

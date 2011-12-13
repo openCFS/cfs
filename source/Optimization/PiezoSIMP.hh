@@ -1,7 +1,21 @@
 #ifndef PIEZOSIMP_HH_
 #define PIEZOSIMP_HH_
 
+#include <complex>
+
+#include "Optimization/ErsatzMaterial.hh"
+#include "Optimization/Function.hh"
+#include "Optimization/Objective.hh"
+#include "Optimization/Optimization.hh"
 #include "Optimization/SIMP.hh"
+#include "Utils/tools.hh"
+
+namespace CoupledField {
+class DenseMatrix;
+class DesignElement;
+class Excitation;
+class TransferFunction;
+}  // namespace CoupledField
 
 namespace CoupledField
 {

@@ -5,12 +5,13 @@
 #ifndef ILUK_PRECOND_HH
 #define ILUK_PRECOND_HH
 
+#include "def_expl_templ_inst.hh"
 #include <vector>
 
-#include <def_expl_templ_inst.hh>
-
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "General/defs.hh"
+#include "General/exception.hh"
 #include "OLAS/utils/math/croutlu.hh"
-
 #include "baseprecond.hh"
 #include "bnprecond.hh"
 
@@ -109,6 +110,10 @@ namespace CoupledField {
   //! \note
   //! - Pivoting is currently not supported during the factorisation.
   //! - The class only works together with CRS_Matrices with scalar entries.
+class StdMatrix;
+template <typename > class CRS_Matrix;
+template <typename > class Vector;
+
   template <typename T>
   class ILUK_Precond : public BNPrecond<ILUK_Precond<T>, CRS_Matrix<T>, T >,
                        public CroutLU<T> {

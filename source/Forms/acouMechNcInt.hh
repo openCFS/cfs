@@ -1,6 +1,8 @@
 #ifndef _ACOU_MECH_NC_INT_2007_
 #define _ACOU_MECH_NC_INT_2007_
 
+#include "General/defs.hh"
+#include "General/environment.hh"
 #include "baseForm.hh"
 
 namespace CoupledField {
@@ -10,6 +12,9 @@ namespace CoupledField {
 
   //! This class implements the acoustic-mechanic coupling via non-conforming 
   //! grid interfaces for 2D, 2D-axissymmetric and 3D.
+class EntityIterator;
+template <class TYPE> class Matrix;
+
   class AcouMechNcInt : public SurfForm {
 
   public:

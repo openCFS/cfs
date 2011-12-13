@@ -2,20 +2,28 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include <def_use_ilupack.hh>
-#include <def_use_lapack.hh>
-#include <def_use_pardiso.hh>
-#include <def_use_cholmod.hh>
+#include <stddef.h>
+#include <map>
+#include <ostream>
+#include <string>
+#include <utility>
 
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "General/Enum.hh"
-
-#include "generatesolver.hh"
+#include "General/defs.hh"
+#include "General/environment.hh"
 #include "General/exception.hh"
+#include "MatVec/basematrix.hh"
+#include "MatVec/stdmatrix.hh"
+#include "def_use_cholmod.hh"
+#include "def_use_ilupack.hh"
+#include "def_use_lapack.hh"
+#include "def_use_pardiso.hh"
+#include "generatesolver.hh"
 
 #ifdef USE_LAPACK
-#include "OLAS/external/lapack/lapacklu.hh"
 #include "OLAS/external/lapack/lapackll.hh"
+#include "OLAS/external/lapack/lapacklu.hh"
 #endif
 
 #ifdef USE_PARDISO
@@ -32,13 +40,13 @@
 
 // include source code for templated solvers
 #include "basesolver.hh"
-#include "richardson.hh"
 #include "cgsolver.hh"
-#include "gmres.hh"
-#include "minres.hh"
-#include "lusolver.hh"
-#include "ldlsolver.hh"
 #include "diagsolver.hh"
+#include "gmres.hh"
+#include "ldlsolver.hh"
+#include "lusolver.hh"
+#include "minres.hh"
+#include "richardson.hh"
 
 namespace CoupledField {
 

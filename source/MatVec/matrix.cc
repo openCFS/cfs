@@ -2,18 +2,29 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include <string>
+#include <assert.h>
+#include <stddef.h>
+#include <algorithm>
 #include <cmath>
-#include <def_build_type_options.hh>
-#include "matrix.hh"
-#include "MatVec/vector.hh"
-#include "MatVec/opdefs.hh"
+#include <iomanip>
+#include <iostream>
+#include <string>
 
-#include "Utils/boost-serialization.hh"
+#include "MatVec/denseMatrix.hh"
+#include "MatVec/matrixLapackSupport.hh"
+#include "MatVec/opdefs.hh"
+#include "MatVec/vector.hh"
+#include "Utils/StdVector.hh"
 #include "Utils/tools.hh"
-#include <boost/tokenizer.hpp>
-#include <boost/lexical_cast.hpp>
-#include <boost/type_traits/is_same.hpp>
+#include "boost/lexical_cast.hpp"
+#include "boost/tokenizer.hpp"
+#include "boost/type_traits/is_same.hpp"
+#include "def_build_type_options.hh"
+#include "matrix.hh"
+
+namespace CoupledField {
+class SingleVector;
+}  // namespace CoupledField
 
 namespace CoupledField
 {      

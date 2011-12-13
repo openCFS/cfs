@@ -3,25 +3,31 @@
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
 
-#include <fstream>
+#include <math.h>
 #include <iostream>
 #include <string>
-#include <boost/algorithm/string.hpp>
 
-#include "stdSolveStep.hh"
-#include "assemble.hh"
-#include "Utils/nodestoresol.hh"
-#include "PDE/StdPDE.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/ResultCache.hh"
-#include "Utils/result.hh"
-#include "Utils/biotSavart.hh" 
+#include "DataInOut/WriteInfo.hh"
+#include "Domain/domain.hh"
+#include "Driver/baseSolveStep.hh"
+#include "Driver/basedriver.hh"
 #include "Driver/singleDriver.hh"
-#include "Optimization/Optimization.hh"
-
+#include "MatVec/SingleVector.hh"
+#include "MatVec/exprt/xpr1.hh"
 #include "OLAS/algsys/basesystem.hh"
+#include "Optimization/Optimization.hh"
+#include "PDE/StdPDE.hh"
+#include "PDE/timestepping.hh"
+#include "Utils/biotSavart.hh" 
+#include "assemble.hh"
+#include "boost/algorithm/string.hpp"
+#include "stdSolveStep.hh"
 
 namespace CoupledField {
+
+class Hysteresis;
 
   StdSolveStep::StdSolveStep(StdPDE & apde)
     :BaseSolveStep(),

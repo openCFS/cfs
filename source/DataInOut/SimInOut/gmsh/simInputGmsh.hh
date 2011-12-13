@@ -6,15 +6,22 @@
 #define FILE_GMSHREADER_2009
 
 #include <map>
+#include <string>
+#include <vector>
 
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "DataInOut/simInput.hh"
+#include "Domain/elem.hh"
+#include "General/defs.hh"
+#include "PDE/basePDE.hh"
+#include "Utils/StdVector.hh"
 // #include <boost/bimap/set_of.hpp>
-#include <boost/bimap.hpp>
-
-#include <DataInOut/simInput.hh>
+#include "boost/bimap.hpp"
 
 namespace CoupledField {
 
   class CoordSystem;
+class Grid;
   
   /**
    **/

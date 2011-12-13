@@ -1,13 +1,18 @@
 #ifndef FILE_LINTHERMOELECDAMPINT
 #define FILE_LINTHERMOELECDAMPINT
 
-#include <Materials/baseMaterial.hh>
-#include <General/environment.hh>
+#include "General/environment.hh"
 
-#include "Elements/basefe.hh"
-#include "PDE/SinglePDE.hh"
-
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "General/defs.hh"
+#include "MatVec/vector.hh"
 #include "baseForm.hh"
+
+namespace CoupledField {
+class BaseMaterial;
+class EntityIterator;
+template <class TYPE> class Matrix;
+}  // namespace CoupledField
 
 
 namespace CoupledField

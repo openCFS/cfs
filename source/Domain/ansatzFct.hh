@@ -5,10 +5,10 @@
 #ifndef FILE_CFS_ANSATZFCT_HH
 #define FILE_CFS_ANSATZFCT_HH
 
-#include "General/environment.hh"
+#include "General/defs.hh"
 #include "MatVec/matrix.hh"
-#include "Utils/StdVector.hh"
 #include "MatVec/vector.hh"
+#include "Utils/StdVector.hh"
 
 namespace CoupledField {
 

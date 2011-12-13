@@ -2,18 +2,31 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include "magStrictCoupling.hh"
+#include <stddef.h>
+#include <map>
+#include <string>
+#include <utility>
 
-#include "Driver/assemble.hh"
-#include "Materials/baseMaterial.hh"
+#include "CoupledPDE/BasePairCoupling.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
-
+#include "Domain/ansatzFct.hh"
+#include "Domain/entityList.hh"
+#include "Domain/resultInfo.hh"
+#include "Driver/assemble.hh"
+#include "Driver/formsContext.hh"
+#include "Forms/baseForm.hh"
 // integrator (bi-)linear forms
 #include "Forms/linMagStrictInt.hh"
 #include "Forms/linearForm.hh"
+#include "General/defs.hh"
+#include "General/environment.hh"
+#include "General/exception.hh"
 #include "PDE/SinglePDE.hh"
-#include "PDE/mechPDE.hh"
 #include "PDE/magneticScalarPDE.hh"
+#include "PDE/mechPDE.hh"
+#include "Utils/StdVector.hh"
+#include "Utils/result.hh"
+#include "magStrictCoupling.hh"
 
 namespace CoupledField {
 
@@ -21,6 +34,9 @@ namespace CoupledField {
   // ***************
   //   Constructor
   // ***************
+class BiotSavart;
+class BaseMaterial;
+
   MagStrictCoupling::MagStrictCoupling( SinglePDE *pde1, SinglePDE *pde2,
                                         PtrParamNode paramNode  )
     : BasePairCoupling( pde1, pde2, paramNode, "magnetostriction") {

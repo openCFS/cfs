@@ -5,10 +5,13 @@
 #ifndef CFS_TCL_MESSENGER_HH
 #define CFS_TCL_MESSENGER_HH
 
-#include <tcl.h>
 #include <map>
+#include <string>
 
 #include "DataInOut/Scripting/cfsmessenger.hh"
+#include "General/defs.hh"
+#include "Utils/StdVector.hh"
+#include "tcl.h"
 
 
 namespace CoupledField {

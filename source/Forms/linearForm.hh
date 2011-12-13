@@ -5,25 +5,37 @@
 #ifndef FILE_LINEARFORM_2
 #define FILE_LINEARFORM_2
 
+#include <stddef.h>
+#include <string>
+
+#include "General/defs.hh"
+#include "General/environment.hh"
+#include "MatVec/matrix.hh"
+#include "MatVec/vector.hh"
+#include "Utils/StdVector.hh"
 #include "baseForm.hh"
-#include "nLinElastInt.hh"
-#include "Utils/ApproxData.hh"
-#include "gradfieldop.hh"
-#include "linPiezoCoupling.hh"
-#include "curlCurlNodeInt.hh"
-#include "Forms/linGradBDBInt.hh"
+
+namespace CoupledField {
+class ApproxData;
+class BaseFE;
+class BaseMaterial;
+class CurlCurlNode3DInt;
+class EntityIterator;
+class linGradBDBInt;
+struct Elem;
+template <class TYPE> class NodeStoreSol;
+}  // namespace CoupledField
 
 #ifndef INTEGLIB
-#include "Utils/mathParser/mathParser.hh"
 #endif
 
 namespace CoupledField
 {
+  class BiotSavart;
   // forward class declaration
   class CoordSystem;
-  class linElastInt;
-  class BiotSavart;
   class LinMagStrictInt;
+  class linElastInt;
 
 
   /// base class class for calculation right hand side

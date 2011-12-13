@@ -5,15 +5,25 @@
 #ifndef FILE_CFS_TEXT_SIM_OUTPUT_HH
 #define FILE_CFS_TEXT_SIM_OUTPUT_HH
 
-#include "Domain/grid.hh"
+#include <iosfwd>
+#include <map>
+#include <set>
+#include <string>
+
+#include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/simOutput.hh"
-#include "Domain/entityList.hh"
+#include "General/defs.hh"
+#include "PDE/basePDE.hh"
+#include "Utils/StdVector.hh"
 
 namespace CoupledField {
 
 
+class BaseResult;
   // forward class declaration
   class CoordSystem;
+class EntityIterator;
+class Grid;
 
   class SimOutputText : public SimOutput {
 

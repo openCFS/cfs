@@ -1,13 +1,25 @@
 #ifndef SHAPEDESIGN_HH_
 #define SHAPEDESIGN_HH_
 
+#include <stddef.h>
+
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "General/defs.hh"
+#include "General/environment.hh"
+#include "Optimization/Design/DesignElement.hh"
 #include "Optimization/Design/DesignSpace.hh"
+#include "Optimization/ErsatzMaterial.hh"
+#include "Utils/StdVector.hh"
 
 namespace CoupledField{
   /** This adds the functionality needed for Shape Optimization to the DesignSpace:
    * Storage of the Design Parameters and Derivatives
    * as well as storage of the mesh-deformations
    * it is kept in a way to allow extension to Shape & Material Optimization, so there are some unnecessary parameters at times */
+class Condition;
+class Objective;
+template <class TYPE> class Matrix;
+
   class ShapeDesign : public DesignSpace {
 
   public:

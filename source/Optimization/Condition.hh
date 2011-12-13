@@ -1,14 +1,25 @@
 #ifndef CONDITION_HH_
 #define CONDITION_HH_
 
+#include <stddef.h>
+#include <string>
+
 #include "DataInOut/ParamHandling/ParamNode.hh"
-#include "Optimization/Function.hh"
+#include "General/Enum.hh"
+#include "General/environment.hh"
 #include "MatVec/vector.hh"
+#include "Optimization/Design/DesignElement.hh"
+#include "Optimization/Function.hh"
+#include "Utils/StdVector.hh"
+
+namespace CoupledField {
+class DesignStructure;
+class ErsatzMaterial;
+}  // namespace CoupledField
 
 namespace CoupledField
 {
    class DesignSpace;
-   class ConditionContainer;
    class MultipleExcitation;
 
    /** our constraint criteria. Can be filled directly from XML */

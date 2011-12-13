@@ -5,11 +5,22 @@
 #ifndef FILE_HEATCONDPDE_2001
 #define FILE_HEATCONDPDE_2001
 
+#include <stddef.h>
+#include <map>
+#include <string>
+
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "Domain/bcs.hh"
+#include "General/environment.hh"
 #include "SinglePDE.hh"
+#include "Utils/StdVector.hh"
  
 namespace CoupledField {
 
   class LinearFormContext;
+class BaseResult;
+class Grid;
+class PDECoupling;
 
   //! Class for heat conduction equation
   class HeatCondPDE: public SinglePDE

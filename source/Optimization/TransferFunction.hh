@@ -2,6 +2,10 @@
 #define TRANSFERFUNCTION_HH_
 
 #include <string>
+
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "General/Enum.hh"
+#include "Optimization/Design/DesignElement.hh"
 #include "Optimization/Optimization.hh"
 
 namespace CoupledField

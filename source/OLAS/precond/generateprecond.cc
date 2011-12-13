@@ -2,22 +2,31 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include <def_use_lapack.hh>
+#include <stddef.h>
+#include <map>
+#include <ostream>
+#include <string>
+#include <utility>
 
-#include "OLAS/precond/idprecond.hh"
+#include "General/Enum.hh"
+#include "General/defs.hh"
+#include "General/environment.hh"
+#include "General/exception.hh"
+#include "MatVec/basematrix.hh"
+#include "MatVec/stdmatrix.hh"
+//#include "precond/mgmakeprecond.cc"
+#include "OLAS/precond/ILDLPrecond/ildlprecond.hh"
+#include "OLAS/precond/baseprecond.hh"
 #include "OLAS/precond/generateprecond.hh"
-
+#include "OLAS/precond/ic0precond.hh"
+#include "OLAS/precond/idprecond.hh"
+#include "OLAS/precond/ilu0precond.hh"
+#include "OLAS/precond/ilukprecond.hh"
+#include "OLAS/precond/ilutpprecond.hh"
 // include source code for templated preconditioners
 #include "OLAS/precond/jacprecond.hh"
 #include "OLAS/precond/ssorprecond.hh"
-#include "OLAS/precond/ilu0precond.hh"
-#include "OLAS/precond/ilutpprecond.hh"
-#include "OLAS/precond/ilukprecond.hh"
-//#include "precond/mgmakeprecond.cc"
-#include "OLAS/precond/ILDLPrecond/ildlprecond.hh"
-#include "OLAS/precond/ic0precond.hh"
-
-#include "MatVec/diag_matrix.hh"
+#include "def_use_lapack.hh"
 
 namespace CoupledField {
 
@@ -27,6 +36,10 @@ namespace CoupledField {
   //   Its use also takes care of the instantiation in the
   //   case of the templated preconditioners
   // *********************************************************
+template <typename > class CRS_Matrix;
+template <typename > class SCRS_Matrix;
+template <typename T> class Diag_Matrix;
+
 #define PRECOND_OBJ(matEntry,matStore,precondObjType)\
 if ((entryType==matEntry) && (storageType==matStore) ) {\
 retVal = new precondObjType( mat, solverXML, olasInfo );\

@@ -5,7 +5,16 @@
 #ifndef FILE_RECTANGLEFE_2003
 #define FILE_RECTANGLEFE_2003
 
-#include <Elements/basefe.hh>
+#include "Elements/basefe.hh"
+
+#include "Domain/elem.hh"
+#include "General/defs.hh"
+#include "MatVec/vector.hh"
+#include "Utils/StdVector.hh"
+
+namespace CoupledField {
+template <class TYPE> class Matrix;
+}  // namespace CoupledField
 
 namespace CoupledField
 {

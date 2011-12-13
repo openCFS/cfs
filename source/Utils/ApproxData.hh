@@ -6,8 +6,12 @@
 #define FILE_ApproxData
 
 #include <string>
+
+#include "General/defs.hh"
 #include "General/environment.hh"
+#include "General/exception.hh"
 #include "MatVec/vector.hh"
+
 namespace CoupledField {
 
   //! Base class for approximation of sampled data

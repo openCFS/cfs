@@ -1,7 +1,10 @@
-#include <iostream>
-#include <fstream>
-
+#include "Domain/entityList.hh"
+#include "Elements/basefe.hh"
+#include "Forms/bdbInt.hh"
 #include "General/environment.hh"
+#include "MatVec/matrix.hh"
+#include "Materials/baseMaterial.hh"
+#include "Utils/mathParser/mathParser.hh"
 #include "linHeatCondInt.hh"
 
 namespace CoupledField {

@@ -5,7 +5,7 @@
 #ifndef FILE_COUPLINGHANDLER_2006
 #define FILE_COUPLINGHANDLER_2006
 
-#include <def_cplreader.hh>
+#include "def_cplreader.hh"
 #include "FileReader.hh"
 #include "OutputWriter.hh"
 

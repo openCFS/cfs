@@ -5,10 +5,16 @@
 #ifndef ILDLCN_FACTORISER_HH
 #define ILDLCN_FACTORISER_HH
 
-#include <def_expl_templ_inst.hh>
+#include <cmath>
+#include <complex>
+#include <ostream>
+#include <vector>
 
-
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "General/defs.hh"
+#include "Utils/tools.hh"
 #include "baseildlfactoriser.hh"
+#include "def_expl_templ_inst.hh"
 
 
 namespace CoupledField {
@@ -56,6 +62,8 @@ namespace CoupledField {
   //!     </tr>
   //!   </table>
   //! </center>
+template <typename > class SCRS_Matrix;
+
   template <class T>
   class ILDLCNFactoriser : public BaseILDLFactoriser<T> {
 

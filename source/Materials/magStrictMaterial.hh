@@ -5,6 +5,10 @@
 #ifndef MAGNETOSTRIMATERIAL_DATA
 #define MAGNETOSTRIMATERIAL_DATA
 
+#include <string>
+
+#include "General/defs.hh"
+#include "General/environment.hh"
 #include "baseMaterial.hh"
 
 namespace CoupledField {
@@ -13,6 +17,8 @@ namespace CoupledField {
   /*! 
      Class for handling magnetostrictive material data
   */
+
+template <class TYPE> class Matrix;
 
   class MagStrictMaterial : public BaseMaterial {
 

@@ -2,17 +2,19 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
+#include "Domain/resultInfo.hh"
+#include "Forms/gradfieldop.hh"
+#include "MatVec/vector.hh"
+#include "Materials/baseMaterial.hh"
 #include "elecforceop.hh"
 
-#include <string>
-
-#include "Domain/elem.hh"
-#include "Domain/grid.hh"
-#include "MatVec/vector.hh"
-#include "MatVec/matrix.hh"
-#include "PDE/StdPDE.hh"
-#include "Utils/elemstoresol.hh"
-#include "Materials/baseMaterial.hh"
+namespace CoupledField {
+class EntityIterator;
+class EqnMap;
+class Grid;
+class StdPDE;
+template <typename T> class NodeStoreSol;
+}  // namespace CoupledField
 
 namespace CoupledField
 {

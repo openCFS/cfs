@@ -1,13 +1,20 @@
 #ifndef TOPGRAD_HH_
 #define TOPGRAD_HH_
 
-#include "Optimization/ShapeGrad.hh"
-#include "Optimization/Optimizer/ShapeOptimizer.hh"
-#include "Optimization/Design/DesignElement.hh"
-#include "General/environment.hh"
-
-#include <boost/shared_ptr.hpp>
 #include <functional>
+#include <vector>
+
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "General/environment.hh"
+#include "MatVec/matrix.hh"
+#include "MatVec/vector.hh"
+#include "Optimization/Design/DesignElement.hh"
+#include "Optimization/Optimization.hh"
+#include "boost/shared_ptr.hpp"
+
+namespace CoupledField {
+class ShapeGrad;
+}  // namespace CoupledField
 
 namespace CoupledField
 {

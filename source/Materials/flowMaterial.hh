@@ -5,6 +5,8 @@
 #ifndef FLOWMATERIAL_DATA
 #define FLOWMATERIAL_DATA
 
+#include "General/defs.hh"
+#include "General/environment.hh"
 #include "baseMaterial.hh"
 
 namespace CoupledField {

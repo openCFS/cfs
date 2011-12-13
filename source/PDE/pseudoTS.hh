@@ -1,7 +1,13 @@
 #ifndef FILE_PSEUDOTS_2007
 #define FILE_PSEUDOTS_2007
 
+#include "General/defs.hh"
+#include "MatVec/vector.hh"
 #include "timestepping.hh"
+
+namespace CoupledField {
+class BaseSystem;
+}  // namespace CoupledField
 
 namespace CoupledField
 {

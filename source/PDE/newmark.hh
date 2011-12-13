@@ -5,11 +5,17 @@
 #ifndef FILE_NEWMARK_2001
 #define FILE_NEWMARK_2001
 
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "General/defs.hh"
+#include "MatVec/vector.hh"
 #include "timestepping.hh"
+
+namespace CoupledField {
+class BaseSystem;
+}  // namespace CoupledField
 
 namespace CoupledField
 {
-  class ParamNode;
 
   //! class for time stepping of hyperbolic PDE: method is Newmark
   class Newmark: public TimeStepping

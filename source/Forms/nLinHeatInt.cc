@@ -1,9 +1,20 @@
-#include <iostream>
-#include <fstream>
+#include <stddef.h>
+#include <string>
 
+#include "Domain/entityList.hh"
+#include "Elements/basefe.hh"
+#include "Forms/baseForm.hh"
+#include "Forms/linHeatCondInt.hh"
+#include "Forms/linearForm.hh"
 #include "General/environment.hh"
-#include "nLinHeatInt.hh"
+#include "MatVec/exprt/xpr1.hh"
+#include "MatVec/exprt/xpr2.hh"
+#include "MatVec/matrix.hh"
+#include "Materials/baseMaterial.hh"
+#include "Utils/ApproxData.hh"
+#include "Utils/nodestoresol.hh"
 #include "laplaceInt.hh"
+#include "nLinHeatInt.hh"
 
 namespace CoupledField {
 

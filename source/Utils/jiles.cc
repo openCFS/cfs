@@ -2,11 +2,14 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include <iostream>
+#include <cmath>
 #include <fstream>
-#include <math.h>
 
+#include "General/exception.hh"
+#include "Utils/hysteresis.hh"
+#include "Utils/tools.hh"
 #include "jiles.hh"
+#include "math.h"
 
 namespace CoupledField
 { 

@@ -5,12 +5,15 @@
 #ifndef GRAPH_MANAGER_SIMPLE
 #define GRAPH_MANAGER_SIMPLE
 
-#include <string>
 #include <iostream>
+#include <string>
+#include <vector>
 
-#include "OLAS/graph/basegraph.hh"
-#include "OLAS/graph/idbcgraph.hh"
+#include "General/defs.hh"
+#include "General/environment.hh"
 #include "OLAS/graph/basegraphmanager.hh"
+#include "OLAS/graph/baseordering.hh"
+#include "Utils/StdVector.hh"
 
 
 namespace CoupledField {
@@ -20,6 +23,9 @@ namespace CoupledField {
 
   //! This class implements the graph manager concept for the simple case that
   //! only a single PDE and only one associated graph exists.
+class BaseGraph;
+class IDBC_Graph;
+
   class GraphManagerSimple : public BaseGraphManager {
 
   public:

@@ -5,16 +5,25 @@
 #ifndef OLAS_DIAG_MATRIX_HH
 #define OLAS_DIAG_MATRIX_HH
 
+#include <stddef.h>
+#include <complex>
 #include <iostream>
+#include <string>
 
-#include <def_expl_templ_inst.hh>
-
+#include "General/defs.hh"
+#include "General/environment.hh"
+#include "General/exception.hh"
+#include "MatVec/basematrix.hh"
 #include "MatVec/sparseolasmatrix.hh"
-#include "MatVec/vector.hh"
-#include "MatVec/coordformat.hh"
+#include "def_expl_templ_inst.hh"
 
 namespace CoupledField {
 
+class BaseGraph;
+class PatternPool;
+class StdMatrix;
+template <typename T> class CoordFormat;
+template <typename T> class Vector;
 #if 0
   //forward declaration
   template <typename T>

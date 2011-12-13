@@ -5,7 +5,19 @@
 #ifndef FILE_SOLVESTEPMICROPIEZO
 #define FILE_SOLVESTEPMICROPIEZO
 
+#include <stddef.h>
+
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "General/defs.hh"
+#include "Utils/StdVector.hh"
 #include "stdSolveStep.hh"
+
+namespace CoupledField {
+class AdjointParameters;
+class StdPDE;
+struct ResultInfo;
+template <class TYPE> class Vector;
+}  // namespace CoupledField
 
 
 namespace CoupledField

@@ -5,14 +5,14 @@
 #ifndef OLAS_BASE_EIGENSOLVER_HH
 #define OLAS_BASE_EIGENSOLVER_HH
 
-#include "General/Enum.hh"
-#include "MatVec/basematrix.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
+#include "General/Enum.hh"
+#include "General/defs.hh"
 
 namespace CoupledField {
   
-  class OLAS_BaseMatrix;
-  class OLAS_BaseVector;
+class BaseMatrix;
+class BaseVector;
   template<typename> class Vector;
   
   // forward class declaration

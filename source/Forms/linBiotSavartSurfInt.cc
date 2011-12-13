@@ -2,10 +2,26 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include "linBiotSavartSurfInt.hh"
+#include <stddef.h>
+#include <map>
+#include <ostream>
+
 #include "DataInOut/Logging/cfslog.hh"
+#include "Domain/elem.hh"
+#include "Domain/entityList.hh"
+#include "Domain/surfElem.hh"
+#include "Elements/basefe.hh"
+#include "General/environment.hh"
+#include "General/exception.hh"
+#include "MatVec/exprt/xpr1.hh"
+#include "MatVec/vector.hh"
 #include "Utils/biotSavart.hh"
-#include "Domain/domain.hh"
+#include "Utils/mathParser/mathParser.hh"
+#include "linBiotSavartSurfInt.hh"
+
+namespace CoupledField {
+class BaseMaterial;
+}  // namespace CoupledField
 
 DECLARE_LOG(forms)
 

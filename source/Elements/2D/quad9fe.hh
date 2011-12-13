@@ -5,8 +5,17 @@
 #ifndef FILE_QUAD9FE_2008
 #define FILE_QUAD9FE_2008
 
-#include <Elements/basefe.hh>
-#include <Elements/2D/rectanglefe.hh>
+#include "Elements/2D/rectanglefe.hh"
+
+#include "Domain/ansatzFct.hh"
+#include "Domain/elem.hh"
+#include "General/defs.hh"
+#include "General/environment.hh"
+#include "MatVec/vector.hh"
+
+namespace CoupledField {
+template <class TYPE> class Matrix;
+}  // namespace CoupledField
 
 namespace CoupledField
 {

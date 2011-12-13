@@ -2,14 +2,25 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
+#include <algorithm>
 #include <cmath>
-#include <sstream>
+#include <complex>
+#include <iostream>
 
 #include "DataInOut/ParamHandling/ParamNode.hh"
+#include "General/environment.hh"
+#include "General/exception.hh"
+#include "MatVec/exprt/xpr1.hh"
+#include "MatVec/exprt/xpr2.hh"
+#include "MatVec/matrix.hh"
+#include "Utils/coordSystem.hh"
+#include "Utils/tools.hh"
 #include "cartesianCoordSys.hh"
 
 
 namespace CoupledField{
+
+class Grid;
 
   CartesianCoordSystem::CartesianCoordSystem(const std::string & name,
                                              Grid * ptGrid,

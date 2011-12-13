@@ -5,20 +5,22 @@
 #ifndef FILE_CFS_POSTPROC_HH
 #define FILE_CFS_POSTPROC_HH
 
-#include "General/environment.hh"
-#include "Utils/StdVector.hh"
-#include "Domain/resultInfo.hh"
-#include "Utils/mathParser/mathParser.hh"
-#include "MatVec/vector.hh"
+#include <string>
+
 #include "DataInOut/ParamHandling/ParamNode.hh"
+#include "Domain/resultInfo.hh"
+#include "General/defs.hh"
+#include "MatVec/vector.hh"
+#include "Utils/StdVector.hh"
+#include "Utils/mathParser/mathParser.hh"
 
 namespace CoupledField {
 
 
+  class BaseResult;
+class EntityList;
   // forward class declarations
   class Grid;
-  class BaseResult;
-  class ParamNode;
 
   //! Base class for defining interface for operations on result objects
   class PostProc {

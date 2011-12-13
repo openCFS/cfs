@@ -6,6 +6,17 @@
 #define FILE_FLATSHELLSTIFFINT
 
 #include "FlatShellInt.hh"
+#include "General/defs.hh"
+#include "MatVec/vector.hh"
+#include "Utils/StdVector.hh"
+
+namespace CoupledField {
+class BaseFE;
+class BaseMaterial;
+class EntityIterator;
+struct Composite;
+template <class TYPE> class Matrix;
+}  // namespace CoupledField
 
 namespace CoupledField
 {

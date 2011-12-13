@@ -6,11 +6,16 @@
 
 #include <cmath>
 #include <complex>
-#include <string.h>
-#include "lapackgbmatrix.hh"
-
 // the following headers are required for Export()
 #include <cstdio>
+#include <iostream>
+
+#include "MatVec/crs_matrix.hh" // IWYU pragma: keep
+#include "OLAS/external/lapack/olasf77mapping.hh"
+#include "OLAS/graph/basegraph.hh"
+#include "Utils/tools.hh"
+#include "lapackgbmatrix.hh"
+#include "string.h"
 
 namespace CoupledField {
 

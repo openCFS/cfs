@@ -5,8 +5,14 @@
 #ifndef FILE_FLATSHELLINT
 #define FILE_FLATSHELLINT
 
+#include "General/defs.hh"
 #include "baseForm.hh"
-#include "Domain/Composite.hh"
+
+namespace CoupledField {
+class BaseMaterial;
+struct Composite;
+template <class TYPE> class Matrix;
+}  // namespace CoupledField
 
 
 namespace CoupledField

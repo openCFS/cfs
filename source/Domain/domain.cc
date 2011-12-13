@@ -2,62 +2,65 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include "domain.hh"
-
+#include <assert.h>
+#include <iostream>
 #include <set>
-#include <memory>
-#include <boost/filesystem.hpp>
+#include <utility>
 
-#include "General/environment.hh"
-#include "General/exception.hh"
-#include "Domain/grid.hh"
-#include "Domain/GridCFS/grid_cfs.hh"
-#include "DataInOut/simInput.hh"
-#include "DataInOut/MaterialHandler.hh"
-#include "DataInOut/ParamHandling/ParamNode.hh"
-#include "DataInOut/ParamHandling/Xerces.hh"
-#include "DataInOut/programOptions.hh"
-#include "DataInOut/simInput.hh"
-#include "General/exception.hh"
-#include "Utils/coordSystem.hh"
-#include "Utils/cylCoordSys.hh"
-#include "Utils/polCoordSys.hh"
-#include "Utils/cartesianCoordSys.hh"
-#include "Utils/trivialCartesianCoordSys.hh"
-#include "Utils/defaultCoordSys.hh"
-#include "DataInOut/Scripting/cfsmessenger.hh"
-#include "DataInOut/resultHandler.hh"
-#include "Optimization/Optimization.hh"
-#include "Optimization/Design/DesignSpace.hh"
-#include "Optimization/Design/DensityFile.hh"
-#include "PDE/acousticPDE.hh"
-#include "PDE/elecPDE.hh"
-#include "PDE/mechPDE.hh"
-#include "PDE/smoothPDE.hh"
-#include "PDE/magneticPDE.hh"
-#include "PDE/magneticScalarPDE.hh"
-#include "PDE/magEdgePDE.hh"
-#include "PDE/heatCondPDE.hh"
-#include "PDE/acouCombustion.hh"
-#include "PDE/acousticMixedPDE.hh"
-#include "PDE/fluidMechPDE.hh"
-#include "Utils/result.hh"
-
+#include "CoupledPDE/AcouMechCoupling.hh"
 // Coupling of single PDEs
 #include "CoupledPDE/DirectCoupledPDE.hh"
-#include "CoupledPDE/itercoupledpde.hh"
-#include "CoupledPDE/coupledpdedef.hh"
-#include "CoupledPDE/pdecoupling.hh"
 #include "CoupledPDE/PiezoCoupling.hh"
-#include "CoupledPDE/AcouMechCoupling.hh"
-#include "CoupledPDE/ThermoMechCoupling.hh"
 #include "CoupledPDE/ThermoElectricCoupling.hh"
+#include "CoupledPDE/ThermoMechCoupling.hh"
+#include "CoupledPDE/coupledpdedef.hh"
+#include "CoupledPDE/itercoupledpde.hh"
 #include "CoupledPDE/magStrictCoupling.hh"
-
+#include "CoupledPDE/pdecoupling.hh"
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "DataInOut/programOptions.hh"
+#include "DataInOut/resultHandler.hh"
+#include "DataInOut/simInput.hh"
+#include "Domain/GridCFS/grid_cfs.hh"
+#include "Domain/elem.hh"
+#include "Domain/grid.hh"
 // Include driver
 #include "Driver/basedriver.hh"
-#include "Driver/singleDriver.hh"
 #include "Driver/multiSequenceDriver.hh"
+#include "Driver/singleDriver.hh"
+#include "Forms/baseForm.hh"
+#include "General/environment.hh"
+#include "General/exception.hh"
+#include "Optimization/Design/DensityFile.hh"
+#include "Optimization/Design/DesignSpace.hh"
+#include "Optimization/Optimization.hh"
+#include "PDE/SinglePDE.hh"
+#include "PDE/StdPDE.hh"
+#include "PDE/acouCombustion.hh"
+#include "PDE/acousticMixedPDE.hh"
+#include "PDE/acousticPDE.hh"
+#include "PDE/basePDE.hh"
+#include "PDE/elecPDE.hh"
+#include "PDE/fluidMechPDE.hh"
+#include "PDE/heatCondPDE.hh"
+#include "PDE/magEdgePDE.hh"
+#include "PDE/magneticPDE.hh"
+#include "PDE/magneticScalarPDE.hh"
+#include "PDE/mechPDE.hh"
+#include "PDE/smoothPDE.hh"
+#include "Utils/cartesianCoordSys.hh"
+#include "Utils/coordSystem.hh"
+#include "Utils/cylCoordSys.hh"
+#include "Utils/defaultCoordSys.hh"
+#include "Utils/polCoordSys.hh"
+#include "Utils/trivialCartesianCoordSys.hh"
+#include "boost/filesystem.hpp"
+#include "domain.hh"
+
+namespace CoupledField {
+class BasePairCoupling;
+template <class TYPE> class Matrix;
+}  // namespace CoupledField
 #ifdef ADAPTGRID
 #include "domain/AdaptGrid/interface_adgrid.hh"
 #endif

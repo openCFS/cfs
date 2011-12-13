@@ -1,56 +1,78 @@
 // -*- mode: c++; coding: utf-8; indent-tabs-mode: nil; -*-
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
-#include "PDE/SinglePDE.hh"
+// header for scripting
+#include <assert.h>
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <algorithm>
+#include <complex>
+#include <iomanip>
+#include <iostream>
+#include <sstream>
 
+#include "DataInOut/Logging/log.hpp"
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "DataInOut/SimInOut/hdf5/simInputHDF5.hh"
+#include "DataInOut/SimInOut/hdf5/simOutputHDF5.hh"
+#include "DataInOut/WriteInfo.hh"
+#include "DataInOut/programOptions.hh"
+#include "DataInOut/simInput.hh"
+#include "DataInOut/simOutput.hh"
+#include "Domain/Composite.hh"
+#include "Domain/ansatzFct.hh"
 // for coordinate handling
 #include "Domain/domain.hh"
-#include "Utils/coordSystem.hh"
-
-#include "DataInOut/ParamHandling/CFSOLASParams.hh"
-#include "DataInOut/programOptions.hh"
-#include "DataInOut/ParamHandling/ParamNode.hh"
-
-#include "Utils/biotSavart.hh"
-
+#include "Domain/elem.hh"
+#include "Domain/entityList.hh"
+#include "Domain/grid.hh"
+#include "Domain/resultInfo.hh"
+#include "Elements/basefe.hh"
+#include "Forms/gradfieldop.hh"
+#include "General/Enum.hh"
+#include "MatVec/SingleVector.hh"
+#include "MatVec/exprt/xpr1.hh"
+#include "MatVec/matrix.hh"
+#include "Materials/baseMaterial.hh"
 #include "OLAS/algsys/basesystem.hh"
 #include "OLAS/algsys/standardsys.hh"
-
-// header for scripting
-#include <def_use_scripting.hh>
+#include "PDE/SinglePDE.hh"
+#include "PDE/basePDE.hh"
+#include "PDE/disContEqnMap.hh"
+#include "PDE/eqnMap.hh"
+#include "PDE/mixedEqnMap.hh"
+#include "Utils/basenodestoresol.hh"
+#include "Utils/biotSavart.hh"
+#include "Utils/coordSystem.hh"
+#include "Utils/nodestoresol.hh"
+#include "Utils/result.hh"
+#include "Utils/tools.hh"
+#include "def_use_scripting.hh"
 #ifdef USE_SCRIPTING
 #include "DataInOut/Scripting/cfsmessenger.hh"
 #endif
 
-// header for logging
-#include "DataInOut/Logging/cfslog.hh"
-
-// header for Materialhandling
-#include "DataInOut/MaterialHandler.hh"
-#include "Domain/GridCFS/grid_cfs.hh"
-
-// header for Solvestep and assemble
-#include "Driver/stdSolveStep.hh"
-#include "Driver/assemble.hh"
-#include "Driver/singleDriver.hh"
-#include "Driver/transientdriver.hh"
-#include "Driver/harmonicDriver.hh"
-
+#include "CoupledPDE/BasePairCoupling.hh"
+#include "CoupledPDE/DirectCoupledPDE.hh"
 // header for iterative coupling
 #include "CoupledPDE/pdecoupling.hh"
-
-// header for memento/restart handling
-#include "MatVec/vectorSerialization.hh"
-#include "pdememento.hh"
-
+// header for logging
+#include "DataInOut/Logging/cfslog.hh"
+// header for Materialhandling
+#include "DataInOut/MaterialHandler.hh"
+#include "DataInOut/ResultCache.hh"
 // header for resultHandling
 #include "DataInOut/resultHandler.hh"
-#include "DataInOut/ResultCache.hh"
-
-#include "DataInOut/postProc.hh"
-#include "CoupledPDE/DirectCoupledPDE.hh"
-#include "CoupledPDE/BasePairCoupling.hh"
+#include "Domain/GridCFS/grid_cfs.hh"
+#include "Driver/assemble.hh"
+#include "Driver/harmonicDriver.hh"
+#include "Driver/singleDriver.hh"
+// header for Solvestep and assemble
+#include "Driver/stdSolveStep.hh"
+#include "Driver/transientdriver.hh"
 #include "Forms/linearForm.hh"
+#include "pdememento.hh"
 
 using std::string;
 
@@ -2691,25 +2713,6 @@ namespace CoupledField {
               algsys_->SetNodeRHS( help[ dof + couplingDof * j ], pdeId_,
                                    eqnNr );
             }
-
-#ifndef NDEBUG
-            /*
-            else if ( eqnNr > maxAllowedEqn ) {
-              (*debug) << "SinglePDE::CalcInputCoupling: "
-                       << "(" << pdename_ << ") "
-                       << "Refused to pass "
-                       << "eqnNr = " << eqnNr << " to SetNodeRHS(), since "
-                       << "it execeeds numLastFreeDof = " << maxAllowedEqn
-                       << std::endl;
-            }
-            else if ( eqnNr == 0 ) {
-              (*debug) << "SinglePDE::CalcInputCoupling: "
-                       << "(" << pdename_ << ") "
-                       << "Refused to pass node " << (*nodes)[j] << "to SetNodeRHS(), since "
-                       << "it is fixed by hom. Dirichlet BC" << std::endl;
-            }
-            */
-#endif
 
           }
         }

@@ -1,15 +1,34 @@
 #ifndef ERSATZ_MATERIAL_HH_
 #define ERSATZ_MATERIAL_HH_
 
+#include <stddef.h>
+#include <complex>
 #include <map>
-#include <boost/tuple/tuple.hpp>
+#include <string>
+#include <utility>
 
-#include "Optimization/Optimization.hh"
-#include "Optimization/Excitation.hh"
+#include "DataInOut/ParamHandling/ParamNode.hh"
 #include "Domain/bcs.hh"
-#include "Utils/result.hh"
-#include "MatVec/vector.hh"
+#include "General/Enum.hh"
+#include "General/defs.hh"
+#include "General/environment.hh"
+#include "General/exception.hh"
 #include "MatVec/matrix.hh"
+#include "MatVec/vector.hh"
+#include "Optimization/Design/DesignElement.hh"
+#include "Optimization/Function.hh"
+#include "Optimization/Optimization.hh"
+#include "Utils/StdVector.hh"
+#include "boost/tuple/tuple.hpp"
+
+namespace CoupledField {
+class DenseMatrix;
+class Excitation;
+class LinearFormContext;
+class Objective;
+class SingleVector;
+struct Elem;
+}  // namespace CoupledField
 
 
 using boost::tuple;
@@ -17,22 +36,18 @@ using boost::tuple;
 
 namespace CoupledField
 {
-class StdPDE;
-class SinglePDE;
+class Assemble;
 class BaseForm;
 class BiLinFormContext;
 class Condition;
-class Assemble;
+class DensityFile;
+class DesignDependentRHS;
+class DesignStructure;
+class OptimizationMaterial;
+class SinglePDE;
+class StdPDE;
 class TransferFunction;
 struct SurfElem;
-class DesignDependentRHS;
-class OptimizationMaterial;
-class DesignStructure;
-class DensityFile;
-
-template<class TYPE> class StdVector;
-template<class TYPE> class Vector;
-template<class TYPE> class Matrix;
 
 /** Base for optimization where the design variable is correlated to finite elements.
  * The classical case is SIMP, where one optimizes for a pseudo density. The sub-classes

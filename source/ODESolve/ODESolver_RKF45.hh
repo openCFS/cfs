@@ -5,15 +5,16 @@
 #ifndef ODE_SOLVER_RKF45_HH
 #define ODE_SOLVER_RKF45_HH
 
-#include "General/environment.hh"
-#include "Utils/StdVector.hh"
-#include "Utils/tools.hh"
 #include "BaseODESolver.hh"  
+#include "General/defs.hh"
+#include "Utils/StdVector.hh"
 
 namespace CoupledField {
 
 
   //! Runge-Kutta solver for systems of first order ode's.
+class BaseODEProblem;
+
   class ODESolver_RKF45 : public BaseODESolver {
 
   public:

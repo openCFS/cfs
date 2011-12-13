@@ -2,14 +2,14 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include <fstream>
-#include <iostream>
-#include <string>
-
+#include <algorithm>
 #include <cmath>     
 
-
+#include "General/exception.hh"
+#include "MatVec/matrix.hh"
+#include "ODESolve/BaseODEProblem.hh"
 #include "ODESolver_Rosenbrock.hh"
+#include "Utils/tools.hh"
 
 namespace CoupledField
 {

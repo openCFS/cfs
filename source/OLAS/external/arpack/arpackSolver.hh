@@ -5,7 +5,7 @@
 #ifndef OLAS_ARPACK_SOLVER_HH
 #define OLAS_ARPACK_SOLVER_HH
 
-#include "arpackMatInterface.hh"
+#include "General/defs.hh"
 #include "arpackFortranInterface.hh"
 
 namespace CoupledField {
@@ -16,6 +16,8 @@ namespace CoupledField {
   
   //! Class for interfacing with ARPACK FORTRAN library
   //class ArpackSolver : public BaseEigenSolver {
+class ArpackMatInterface;
+
   class ArpackSolver {
     
   public:

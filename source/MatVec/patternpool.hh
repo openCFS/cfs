@@ -9,6 +9,7 @@
 #include <vector>
 #include <algorithm>
 #include <iomanip>
+#include "General/environment.hh"
 #include "MatVec/sparsitypatterns.hh"
 
 

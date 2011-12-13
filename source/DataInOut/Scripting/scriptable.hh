@@ -6,17 +6,21 @@
 #define CFS_SCRIPTABLE_HH
 
 #include <map>
+#include <ostream>
 #include <string>
+#include <utility>
 
+#include "General/exception.hh"
 #include "Utils/StdVector.hh"
 // #include "MatVec/vector.hh"
 
 namespace CoupledField
 {
 
+  class ArgList;
   //! Forward class declaration
   class BaseFctPointer;
-  class ArgList;
+
   // Base class for implementing an interface to a central scripting instance.
   class Scriptable {
 

@@ -2,46 +2,69 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include <fstream>
+#include <stddef.h>
+#include <complex>
 #include <iostream>
-#include <sstream>
-#include <math.h>
 #include <string>
-#include <set>
+#include <utility>
 
-#include "elecPDE.hh"
-
-#include "Forms/linGradBDBInt.hh"
-#include "Forms/linNeumannInt.hh"
-#include "Forms/nLinElecHystInt.hh"
-#include "Forms/elecchargeop.hh"
-#include "Forms/laplaceInt.hh"
-#include "Forms/FlatShellElecInt.hh"
-#include "Forms/nonConformingInt.hh"
-#include "Forms/singleEntryInt.hh"
-#include "Forms/massInt.hh"
-#include "Forms/gradfieldop.hh"
-#include "Forms/piezoPolarizationMatrixRHSInt.hh"
-#include "General/defs.hh"
+#include "CoupledPDE/pdecoupling.hh"
+#include "DataInOut/Logging/cfslog.hh"
+#include "DataInOut/Logging/log.hpp"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/ParamHandling/ParamTools.hh"
-#include "DataInOut/Logging/cfslog.hh"
-#include "Utils/StdVector.hh"
-#include "Driver/solveStepElec.hh"
-#include "CoupledPDE/pdecoupling.hh"
+#include "DataInOut/WriteInfo.hh"
+#include "Domain/Composite.hh"
 #include "Domain/ansatzFct.hh"
+#include "Domain/bcs.hh"
+#include "Domain/domain.hh"
+#include "Domain/elem.hh"
+#include "Domain/entityList.hh"
+#include "Domain/grid.hh"
+#include "Domain/resultInfo.hh"
+#include "Domain/surfElem.hh"
 #include "Driver/assemble.hh"
-#include "Utils/ApproxData.hh"
-#include "Utils/SmoothSpline.hh"
-#include "Utils/hysteresis.hh"
-#include "Utils/preisach.hh"
+#include "Driver/formsContext.hh"
+#include "Driver/solveStepElec.hh"
+#include "Elements/basefe.hh"
+#include "Forms/FlatShellElecInt.hh"
+#include "Forms/elecchargeop.hh"
+#include "Forms/elecforceop.hh"
+#include "Forms/gradfieldop.hh"
+#include "Forms/linGradBDBInt.hh"
+#include "Forms/linNeumannInt.hh"
+#include "Forms/linSurfForm.hh"
+#include "Forms/linearForm.hh"
+#include "Forms/massInt.hh"
+#include "Forms/nLinElecHystInt.hh"
+#include "Forms/nonConformingInt.hh"
+#include "Forms/piezoPolarizationMatrixRHSInt.hh"
+#include "Forms/singleEntryInt.hh"
+#include "General/Enum.hh"
+#include "General/defs.hh"
+#include "General/exception.hh"
+#include "MatVec/SingleVector.hh"
+#include "MatVec/exprt/xpr1.hh"
+#include "MatVec/exprt/xpr2.hh"
+#include "MatVec/matrix.hh"
+#include "Materials/baseMaterial.hh"
 #include "Optimization/Design/DesignSpace.hh"
-
-#ifdef USE_SCRIPTING
-#include "DataInOut/Scripting/cfsmessenger.hh" 
-#endif
+#include "Optimization/ErsatzMaterial.hh"
+#include "Optimization/Optimization.hh"
+#include "PDE/SinglePDE.hh"
+#include "PDE/StdPDE.hh"
+#include "PDE/basePDE.hh"
+#include "PDE/eqnMap.hh"
+#include "Utils/StdVector.hh"
+#include "Utils/basenodestoresol.hh"
+#include "Utils/nodestoresol.hh"
+#include "Utils/result.hh"
+#include "elecPDE.hh"
+#include "math.h"
 
 namespace CoupledField {
+
+class Hysteresis;
 
   DECLARE_LOG(elecpde)
   DEFINE_LOG(elecpde, "pde.electrostatic")

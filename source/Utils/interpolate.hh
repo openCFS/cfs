@@ -8,7 +8,7 @@
 #include <map>
 #include <string>
 
-#include "General/environment.hh"
+#include "General/defs.hh"
 #include "MatVec/vector.hh"
 
 namespace CoupledField {

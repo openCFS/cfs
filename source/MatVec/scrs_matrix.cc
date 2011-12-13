@@ -2,12 +2,19 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
+#include <stdio.h>
 #include <cassert>
-#include <sstream>
+#include <iostream>
 
+#include "General/exception.hh"
+#include "MatVec/patternpool.hh"
+#include "MatVec/sparsitypatterns.hh"
+#include "MatVec/stdmatrix.hh"
+#include "MatVec/vector.hh"
+#include "OLAS/graph/basegraph.hh"
 #include "coordformat.hh"
-#include "scrs_matrix.hh"
 #include "opdefs.hh"
+#include "scrs_matrix.hh"
 
 // Implementation of methods for the symmetric compressed row storage SCRS
 // matrix class

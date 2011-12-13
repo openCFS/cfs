@@ -1,11 +1,12 @@
 #ifndef CFS_RESULTCACHE_HH_
 #define CFS_RESULTCACHE_HH_
 
-#include <complex>
 #include <map>
 #include <string>
 
+#include "General/defs.hh"
 #include "General/environment.hh"
+#include "MatVec/basematrix.hh"
 #include "MatVec/vector.hh"
 
 namespace CoupledField

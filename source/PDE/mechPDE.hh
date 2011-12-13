@@ -5,16 +5,36 @@
 #ifndef FILE_NEWBASEMECHPDE
 #define FILE_NEWBASEMECHPDE
 
+#include <stddef.h>
 #include <map>
+#include <string>
 
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "General/Enum.hh"
+#include "General/defs.hh"
+#include "General/environment.hh"
+#include "MatVec/matrix.hh"
+#include "MatVec/vector.hh"
 #include "SinglePDE.hh"
+#include "Utils/StdVector.hh"
+#include "Utils/nodestoresol.hh"
+
+namespace CoupledField {
+class BaseFE;
+class BaseMaterial;
+class BaseNodeStoreSol;
+class BaseResult;
+class EntityList;
+class Grid;
+class PDECoupling;
+struct Elem;
+}  // namespace CoupledField
 
 namespace CoupledField
 {
 
   class BaseForm;
   class LinearFormContext;
-  class set;
 
   //! Class for mechanic equation (no adaptivity)
   class MechPDE: public SinglePDE

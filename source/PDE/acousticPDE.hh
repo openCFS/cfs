@@ -5,13 +5,29 @@
 #ifndef FILE_ACOUSTICPDE_2001
 #define FILE_ACOUSTICPDE_2001
 
+#include <map>
+#include <string>
+
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "Domain/bcs.hh"
+#include "General/defs.hh"
+#include "General/environment.hh"
+#include "MatVec/vector.hh"
 #include "SinglePDE.hh"
+#include "Utils/StdVector.hh"
 #include "Utils/mathParser/mathParser.hh"
+#include "Utils/nodestoresol.hh"
  
 namespace CoupledField {
 
   //! Class for acoustic equation (no adaptivity)
 
+
+class BaseResult;
+class EntityList;
+class Grid;
+class PDECoupling;
+struct Elem;
 
   class AcousticPDE: public SinglePDE
   {

@@ -5,12 +5,22 @@
 #ifndef FILE_BDBINT
 #define FILE_BDBINT
 
-#include "baseForm.hh"
+#include <ostream>
+
+#include "General/defs.hh"
+#include "General/environment.hh"
+#include "General/exception.hh"
 #include "Optimization/Design/DesignElement.hh" 
+#include "baseForm.hh"
 
 namespace CoupledField {
 
   //! abstract class for calculation of bdb forms
+class BaseMaterial;
+class EntityIterator;
+struct Elem;
+template <class TYPE> class Matrix;
+
   class BDBInt : public BaseForm {
 
   public:

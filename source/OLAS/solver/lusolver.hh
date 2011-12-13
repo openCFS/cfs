@@ -5,12 +5,14 @@
 #ifndef LUSOLVER_HH
 #define LUSOLVER_HH
 
-#include <def_expl_templ_inst.hh>
+#include <vector>
 
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "General/defs.hh"
+#include "OLAS/solver/basesolver.hh"
 #include "OLAS/utils/math/croutlu.hh"
 #include "OLAS/utils/math/iterativerefinement.hh"
-
-#include "OLAS/solver/basesolver.hh"
+#include "def_expl_templ_inst.hh"
 
 namespace CoupledField {
 
@@ -82,6 +84,11 @@ namespace CoupledField {
   //!   will not affect the Solve unless Setup is called again.
   //! - Pivoting is currently not supported during the factorisation.
   //! - The class only works together with CRS_Matrices with scalar entries.
+class BaseMatrix;
+class BasePrecond;
+class BaseVector;
+template <typename > class CRS_Matrix;
+
   template<typename T>
   class LUSolver : public BaseDirectSolver, public CroutLU<T> {
 

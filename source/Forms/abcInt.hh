@@ -5,12 +5,19 @@
 #ifndef File_ABC_MECH_INT
 #define File_ABC_MECH_INT
 
+#include <string>
+
+#include "General/defs.hh"
+#include "Utils/mathParser/mathParser.hh"
 #include "baseForm.hh"
 
 namespace CoupledField {
 
   //! Class for calculation surface integrals of absorbing boundary
   //! elements
+class EntityIterator;
+template <class TYPE> class Matrix;
+
   class AbsorbingBCsInt : public SurfForm
   {
   public:

@@ -5,6 +5,7 @@
 #ifndef OLAS_SLOAN_HH
 #define OLAS_SLOAN_HH
 
+#include "General/defs.hh"
 #include "OLAS/graph/baseordering.hh"
 
 namespace CoupledField {
@@ -16,6 +17,8 @@ namespace CoupledField {
   //! approaches. For a detailed description see:
   //! <em>S.W. %Sloan, A Fortran Program for Profile and Wavefront Reduction,
   //! IJNME, Vol. 28, pp. 2651-2679, 1989</em>
+template <class TYPE> class StdVector;
+
   class Sloan : public BaseOrdering {
 
   public:

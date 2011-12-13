@@ -3,11 +3,17 @@
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
 #include <iostream>
-#include <fstream>
 #include <string>
-#include <cmath>
 
+#include "Forms/linElastInt.hh"
+#include "General/exception.hh"
+#include "MatVec/exprt/xpr2.hh"
+#include "MatVec/matrix.hh"
 #include "linViscoElastInt.hh"
+
+namespace CoupledField {
+class BaseMaterial;
+}  // namespace CoupledField
 
 namespace CoupledField
 {
