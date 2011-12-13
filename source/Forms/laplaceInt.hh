@@ -5,7 +5,14 @@
 #ifndef FILE_LAPLACEINT
 #define FILE_LAPLACEINT
 
+#include "General/defs.hh"
 #include "baseForm.hh"
+
+namespace CoupledField {
+class BaseMaterial;
+class EntityIterator;
+template <class TYPE> class Matrix;
+}  // namespace CoupledField
 
 namespace CoupledField
 {

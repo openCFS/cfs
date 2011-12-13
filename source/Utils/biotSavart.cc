@@ -2,13 +2,22 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include <boost/algorithm/string/trim.hpp>
-#include <boost/algorithm/string.hpp>
-#include <boost/tokenizer.hpp>
+#include <math.h>
+#include <fstream>
 
-#include "biotSavart.hh"
-#include "Domain/domain.hh"
 #include "DataInOut/Logging/cfslog.hh"
+#include "DataInOut/Logging/log.hpp"
+#include "Domain/domain.hh"
+#include "Domain/elem.hh"
+#include "Domain/grid.hh"
+#include "General/environment.hh"
+#include "General/exception.hh"
+#include "MatVec/exprt/xpr1.hh"
+#include "PDE/eqnMap.hh"
+#include "biotSavart.hh"
+#include "boost/algorithm/string.hpp"
+#include "boost/algorithm/string/trim.hpp"
+#include "boost/tokenizer.hpp"
 
 namespace CoupledField {
 

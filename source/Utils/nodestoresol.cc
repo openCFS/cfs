@@ -2,11 +2,27 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include "nodestoresol.hh"
+#include <complex>
+#include <map>
+#include <ostream>
+#include <string>
+#include <utility>
+
 #include "Domain/elem.hh"
+#include "Domain/entityList.hh"
 #include "Domain/grid.hh"
+#include "Domain/resultInfo.hh"
+#include "General/Enum.hh"
+#include "General/exception.hh"
+#include "PDE/eqnMap.hh"
+#include "nodestoresol.hh"
 
 namespace CoupledField {
+
+class BaseNodeStoreSol;
+class DenseMatrix;
+class SingleVector;
+template <class TYPE> class Matrix;
 
 
   // ***********************

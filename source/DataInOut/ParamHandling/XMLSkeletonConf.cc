@@ -2,22 +2,36 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include <stdlib.h>
-#include <iostream>
-#include <sstream>
-#include <iomanip>
 #include <fstream>
-#include <stdio.h>
+#include <iostream>
+#include <stddef.h>
+#include <string>
 
-#include <def_use_xerces.hh>
-
-#include "Utils/tools.hh"
-#include "General/environment.hh"
-#include "Domain/GridCFS/grid_cfs.hh"
-#include "Elements/elements_header.hh"
-#include "DataInOut/programOptions.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/ParamHandling/SkeletonConf.hh"
+#include "DataInOut/programOptions.hh"
+#include "DataInOut/simInput.hh"
+#include "Elements/1D/line1fe.hh"
+#include "Elements/1D/line2fe.hh"
+#include "Elements/2D/quad1fe.hh"
+#include "Elements/2D/quad2fe.hh"
+#include "Elements/2D/triangle1fe.hh"
+#include "Elements/2D/triangle2fe.hh"
+#include "Elements/3D/hexa1FE.hh"
+#include "Elements/3D/hexa2FE.hh"
+#include "Elements/3D/pyra1FE.hh"
+#include "Elements/3D/pyra2FE.hh"
+#include "Elements/3D/tetra1FE.hh"
+#include "Elements/3D/tetra2FE.hh"
+#include "Elements/3D/wedge1FE.hh"
+#include "Elements/3D/wedge2FE.hh"
+#include "General/defs.hh"
+#include "General/environment.hh"
+#include "General/exception.hh"
+#include "Utils/StdVector.hh"
+#include "def_use_xerces.hh"
+#include "stdio.h"
+#include "stdlib.h"
 
 #define WL( MSG ) \
 (*out_) << MSG << std::endl;

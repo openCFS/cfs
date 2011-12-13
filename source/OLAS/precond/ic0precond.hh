@@ -5,13 +5,20 @@
 #ifndef OLAS_IC0PRECOND_HH
 #define OLAS_IC0PRECOND_HH
 
-#include <def_expl_templ_inst.hh>
+#include <complex>
+#include <ostream>
 
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "General/defs.hh"
+#include "General/exception.hh"
 #include "baseprecond.hh"
 #include "bnprecond.hh"
+#include "def_expl_templ_inst.hh"
 
 namespace CoupledField {
 
+class StdMatrix;
+template <typename T> class Vector;
   template<typename> class SCRS_Matrix;
 
   //! IC0 preconditioner

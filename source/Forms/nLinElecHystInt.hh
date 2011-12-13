@@ -5,11 +5,12 @@
 #ifndef FILE_NLIN_ELEC_HYST_INT
 #define FILE_NLIN_ELEC_HYST_INT
 
-#include <Elements/basefe.hh>
-#include <Forms/bdbInt.hh>
-#include <Forms/gradfieldop.hh>
-#include <Materials/baseMaterial.hh>
-#include <General/environment.hh>
+#include <string>
+
+#include "Forms/bdbInt.hh"
+#include "General/defs.hh"
+#include "General/environment.hh"
+#include "MatVec/vector.hh"
 
 namespace CoupledField {
 
@@ -19,6 +20,15 @@ namespace CoupledField {
   //! The main objective of this class is to implement the pure vitual
   //! methods of the BDBInt parent class for the case of a hysteretic 
   //! electrostatic simulation.
+class BaseMaterial;
+class EntityIterator;
+class EqnMap;
+class Grid;
+class StdPDE;
+struct ResultInfo;
+template <class TYPE> class GradientFieldOp;
+template <class TYPE> class Matrix;
+
   class nlinElecHystInt : public BDBInt {
     
   public:

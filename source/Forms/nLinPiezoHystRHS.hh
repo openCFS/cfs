@@ -5,21 +5,30 @@
 #ifndef FILE_PIEZOHYSTRHS
 #define FILE_PIEZOHYSTRHS
 
+#include "General/defs.hh"
+#include "General/environment.hh"
+#include "General/exception.hh"
 #include "linearForm.hh"
-#include "nLinElastInt.hh"
-#include "Utils/ApproxData.hh"
-#include "gradfieldop.hh"
-#include "linPiezoCoupling.hh"
-#include "curlCurlNodeInt.hh"
+
+namespace CoupledField {
+class BaseMaterial;
+class EntityIterator;
+class EqnMap;
+class Grid;
+class StdPDE;
+class linPiezoCoupling;
+struct ResultInfo;
+template <class TYPE> class GradientFieldOp;
+template <class TYPE> class Vector;
+template <typename T> class NodeStoreSol;
+}  // namespace CoupledField
 
 #ifndef INTEGLIB
-#include "Utils/mathParser/mathParser.hh"
 #endif
 
 namespace CoupledField
 {
   // forward class declaration
-  class CoordSystem;
   class PiezoCoupling;
   template<typename> class MechStressStrain;
 

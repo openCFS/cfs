@@ -4,8 +4,8 @@
 
 /* $Id$ */
 
-#include <olas_use_lapack.hh>
-#include <olas_use_pardiso.hh>
+#include "olas_use_lapack.hh"
+#include "olas_use_pardiso.hh"
 
 #include "multigrid/hierarchylevel.hh"
 #include "multigrid/gaussseidel.hh"

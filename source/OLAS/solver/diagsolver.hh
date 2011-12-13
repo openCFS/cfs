@@ -5,12 +5,12 @@
 #ifndef OLAS_DIAGSOLVER_HH
 #define OLAS_DIAGSOLVER_HH
 
-#include <iostream>
 #include <fstream>
-
-#include <def_expl_templ_inst.hh>
-
+#include <iostream>
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "MatVec/typedefs.hh"
 #include "basesolver.hh"
+#include "def_expl_templ_inst.hh"
 
 namespace CoupledField {
 
@@ -20,6 +20,10 @@ namespace CoupledField {
    * matrix is a diagonal matrix. Therewith, we just have to divide
    * the RHS-vector by the diagonal entries
    */
+class BaseMatrix;
+class BasePrecond;
+class BaseVector;
+
   template<typename T>
   class DiagSolver : public BaseIterativeSolver {
 

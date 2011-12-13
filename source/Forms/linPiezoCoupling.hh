@@ -6,13 +6,10 @@
 #define FILE_LIN_PIEZO_COUPLING
 
 
-#include "Elements/basefe.hh"
-#include "Forms/adbInt.hh"
-#include "Materials/baseMaterial.hh"
 
-#include <Utils/ApproxData.hh>
-#include <Forms/bdbInt.hh>
-#include <Forms/gradfieldop.hh>
+#include "Forms/adbInt.hh"
+#include "General/defs.hh"
+#include "General/environment.hh"
 
 
 
@@ -23,6 +20,10 @@ namespace CoupledField {
   //! The main objective of this class is to implement the pure virtual
   //! methods of the ADBInt parent class for the case of a linear
   //! piezoelectric coupling operator 
+class BaseMaterial;
+struct Elem;
+template <class TYPE> class Matrix;
+
   class linPiezoCoupling : public ADBInt {
 
 

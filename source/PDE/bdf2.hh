@@ -1,8 +1,14 @@
 #ifndef FILE_BDF2_2007
 #define FILE_BDF2_2004
 
-#include <General/environment.hh>
+
+#include "General/defs.hh"
+#include "MatVec/vector.hh"
 #include "timestepping.hh"
+
+namespace CoupledField {
+class BaseSystem;
+}  // namespace CoupledField
 
 
 namespace CoupledField

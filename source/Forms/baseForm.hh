@@ -5,14 +5,27 @@
 #ifndef FILE_BASEFORM_
 #define FILE_BASEFORM_
 
-#include "Utils/StdVector.hh"
-#include "MatVec/vector.hh"
-#include "Elements/basefe.hh"
-#include "Domain/surfElem.hh"
-#include "Materials/baseMaterial.hh"
+#include <stddef.h>
+#include <map>
+#include <string>
+
 #include "Domain/entityList.hh"
+#include "General/defs.hh"
+#include "General/environment.hh"
+#include "General/exception.hh"
+#include "MatVec/matrix.hh"
+#include "MatVec/vector.hh"
 #include "Optimization/Design/DesignElement.hh"
-#include "PDE/timestepping.hh"
+
+namespace CoupledField {
+class BaseFE;
+class BaseMaterial;
+class DenseMatrix;
+class TimeStepping;
+struct Elem;
+struct SurfElem;
+template <typename T> class NodeStoreSol;
+}  // namespace CoupledField
 
 #ifndef INTEGLIB
 #include "Utils/mathParser/mathParser.hh"

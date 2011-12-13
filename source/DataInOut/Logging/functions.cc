@@ -28,18 +28,22 @@
 */
 
 
-#include "DataInOut/Logging/functions.hpp"
-#include <assert.h>
-#include <vector>
+#include <pthread.h>
 #include <algorithm>
-#include <time.h>
+#include <cstdio>
 #include <fstream>
 #include <iostream>
-#include <cstdio>
-#include <boost/bind.hpp>
+#include <sstream>
+#include <vector>
+
+#include "DataInOut/Logging/detail/log_fwd.hpp"
+#include "DataInOut/Logging/functions.hpp"
+#include "assert.h"
+#include "boost/bind.hpp"
+#include "time.h"
 
 #ifdef BOOST_LOG_WIN32
-#include <windows.h>
+#include "windows.h"
 #endif
 
 

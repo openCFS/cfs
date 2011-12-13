@@ -5,16 +5,21 @@
 #ifndef OLAS_CGSOLVER_HH
 #define OLAS_CGSOLVER_HH
 
+#include <stddef.h>
+#include <complex>
 #include <iostream>
-#include <fstream>
 
-#include <def_expl_templ_inst.hh>
-
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "General/defs.hh"
+#include "MatVec/typedefs.hh"
 #include "basesolver.hh"
+#include "def_expl_templ_inst.hh"
 
 namespace CoupledField {
 
   class BasePrecond;
+class BaseMatrix;
+class BaseVector;
 
   //! Class for a Preconditioned Conjugate Gradient Solver
 

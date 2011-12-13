@@ -12,7 +12,7 @@
 #undef _XOPEN_SOURCE
 #endif
 
-#include <Python.h>
+#include "Python.h"
 
 #include "DataInOut/Scripting/cfsmessenger.hh"
 

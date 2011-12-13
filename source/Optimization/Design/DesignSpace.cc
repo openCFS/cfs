@@ -1,24 +1,39 @@
-#include "Optimization/Design/DesignSpace.hh"
-#include "Optimization/Design/DesignElement.hh"
-#include "Optimization/Design/ShapeDesign.hh"
-#include "Optimization/TransferFunction.hh"
-#include "Optimization/Condition.hh"
-#include "Optimization/Optimizer/BaseOptimizer.hh"
-#include "Optimization/Optimizer/ShapeOptimizer.hh"
-#include "Optimization/LevelSet.hh"
-#include "Optimization/OptimizationMaterial.hh"
-#include "General/exception.hh"
-#include "General/Enum.hh"
+#include <assert.h>
+#include <math.h>
+#include <stdlib.h>
+#include <sstream>
+
+#include "DataInOut/Logging/cfslog.hh"
+#include "DataInOut/Logging/log.hpp"
+#include "DataInOut/MaterialHandler.hh"
+#include "Domain/ansatzFct.hh"
 #include "Domain/domain.hh"
+#include "Domain/elem.hh"
+#include "Domain/entityList.hh"
 #include "Domain/grid.hh"
 #include "Domain/resultInfo.hh"
-#include "DataInOut/MaterialHandler.hh"
-#include "Utils/result.hh"
-#include "Utils/StdVector.hh"
+#include "Domain/surfElem.hh"
+#include "General/Enum.hh"
+#include "General/exception.hh"
+#include "MatVec/matrix.hh"
+#include "Optimization/Condition.hh"
+#include "Optimization/Design/DesignElement.hh"
+#include "Optimization/Design/DesignSpace.hh"
+#include "Optimization/Design/ShapeDesign.hh"
+#include "Optimization/Function.hh"
+#include "Optimization/LevelSet.hh"
+#include "Optimization/OptimizationMaterial.hh"
+#include "Optimization/Optimizer/BaseOptimizer.hh"
+#include "Optimization/Optimizer/ShapeOptimizer.hh"
+#include "Optimization/TransferFunction.hh"
 #include "PDE/SinglePDE.hh"
-#include "DataInOut/Logging/cfslog.hh"
+#include "Utils/StdVector.hh"
+#include "Utils/result.hh" // IWYU pragma: keep
+#include "boost/lexical_cast.hpp"
 
-#include <boost/lexical_cast.hpp>
+namespace CoupledField {
+template <class TYPE> class Vector;
+}  // namespace CoupledField
 
 using namespace CoupledField;
 

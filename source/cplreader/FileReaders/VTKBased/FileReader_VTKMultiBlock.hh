@@ -5,7 +5,7 @@
 #ifndef FILE_FILEREADER_VTKMULTIBLOCK_2011
 #define FILE_FILEREADER_VTKMULTIBLOCK_2011
 
-#include <def_cplreader.hh>
+#include "def_cplreader.hh"
 #include "cplreader/FileReader.hh"
 
 class vtkUnstructuredGrid;

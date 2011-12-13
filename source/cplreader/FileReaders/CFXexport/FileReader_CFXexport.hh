@@ -7,7 +7,7 @@
 
 #include <map>
 
-#include <def_cplreader.hh>
+#include "def_cplreader.hh"
 #include "cplreader/FileReader.hh"
 
 namespace CoupledField {

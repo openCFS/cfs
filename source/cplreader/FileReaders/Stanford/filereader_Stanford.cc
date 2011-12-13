@@ -2,11 +2,11 @@
 #include <string>
 #include <iostream>
 #include <fstream>
-#include <stdio.h>
+#include "stdio.h"
 #include <iomanip>
 
 #ifdef MpCCI
-#include <mpcci.h>
+#include "mpcci.h"
 #endif
 
 #include "filereader_Stanford.hh"

@@ -2,24 +2,43 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include <iostream>
-#include <fstream>
+#include <assert.h>
 #include <math.h>
-#include <memory>
+#include <complex>
+#include <iostream>
 
-#include "linearForm.hh"
-#include "nLincurlCurlNodeInt.hh"
-#include "Utils/coordSystem.hh"
-#include "Domain/domain.hh"
-#include "DataInOut/resultHandler.hh"
-#include "Utils/SmoothSpline.hh"
 #include "DataInOut/Logging/cfslog.hh"
-#include "Utils/biotSavart.hh"
-#include "linMagStrictInt.hh"
+#include "DataInOut/Logging/log.hpp"
+#include "DataInOut/resultHandler.hh"
+#include "Domain/domain.hh"
+#include "Domain/elem.hh"
+#include "Domain/entityList.hh"
+#include "Domain/grid.hh"
+#include "Elements/basefe.hh"
+#include "Forms/baseForm.hh"
 #include "Forms/curlCurlEdgeInt.hh"
+#include "Forms/curlCurlNodeInt.hh"
+#include "Forms/linElastInt.hh"
+#include "Forms/linGradBDBInt.hh"
+#include "Forms/nLinElastInt.hh"
 #include "Forms/nLincurlCurlEdgeInt.hh"
+#include "General/exception.hh"
+#include "MatVec/exprt/xpr1.hh"
+#include "MatVec/exprt/xpr2.hh"
+#include "Materials/baseMaterial.hh"
+#include "Utils/biotSavart.hh"
+#include "Utils/coordSystem.hh"
+#include "Utils/mathParser/mathParser.hh"
+#include "Utils/nodestoresol.hh"
+#include "Utils/tools.hh"
+#include "linMagStrictInt.hh"
+#include "linearForm.hh"
+#include "math.h"
+#include "nLincurlCurlNodeInt.hh"
 
 namespace CoupledField {
+
+class ApproxData;
 
 DECLARE_LOG(linForm)
 DEFINE_LOG(linForm, "linForm")

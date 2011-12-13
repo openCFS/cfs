@@ -5,10 +5,18 @@
 #ifndef FILE_DOMAIN_2001
 #define FILE_DOMAIN_2001
 
+#include <stddef.h>
 #include <map>
+#include <string>
 
+#include "General/defs.hh"
+#include "General/environment.hh"
 #include "Utils/StdVector.hh"
-#include "Driver/basedriver.hh"
+
+namespace CoupledField {
+class BaseDriver;
+template <class TYPE> class Matrix;
+}  // namespace CoupledField
 #ifndef INTEGLIB
 #include "Utils/mathParser/mathParser.hh"
 #endif
@@ -16,27 +24,24 @@
 namespace CoupledField
 {
 
-  //! Forward class declarations
-  class BasePDE;
   class BaseForm;
   class BaseMaterial;
-  class StdPDE;
-  class SinglePDE;
-  class IterCoupledPDE;
-  class PDECoupling;
+  //! Forward class declarations
+  class BasePDE;
+  class CoordSystem;
+  class DesignSpace;
   class DirectCoupledPDE;
   class Grid;
-  class FileType;
-  class CoordSystem;
+  class IterCoupledPDE;
   class MaterialHandler;
-  class Optimization;
-  class DesignSpace;
-  class DesignElement;
-  class SingleDriver;
   class MultiSequenceDriver;
-  class SimInput;
+  class Optimization;
+  class PDECoupling;
   class ResultHandler;
-  class ParamNode;
+  class SimInput;
+  class SingleDriver;
+  class SinglePDE;
+  class StdPDE;
   struct Elem;
 
 

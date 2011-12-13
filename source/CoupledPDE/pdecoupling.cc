@@ -2,16 +2,28 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include "pdecoupling.hh"
+#include <stddef.h>
+#include <iostream>
+#include <map>
+#include <utility>
 
-#include "MatVec/basematrix.hh"
-#include "couplingmemento.hh"
-#include "PDE/StdPDE.hh"
+#include "DataInOut/ParamHandling/ParamNode.hh"
 #include "Domain/elem.hh"
 #include "Domain/grid.hh"
-#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "Domain/resultInfo.hh"
+#include "Domain/surfElem.hh"
+#include "General/Enum.hh"
 #include "General/exception.hh"
-#include "Utils/boost-serialization.hh"
+#include "MatVec/SingleVector.hh"
+#include "MatVec/basematrix.hh"
+#include "MatVec/vector.hh"
+#include "PDE/StdPDE.hh"
+#include "couplingmemento.hh"
+#include "pdecoupling.hh"
+
+namespace CoupledField {
+class BaseMaterial;
+}  // namespace CoupledField
 
 
 
@@ -869,6 +881,7 @@ namespace CoupledField
 
 } // end of namespace
 
-#include <boost/serialization/export.hpp>
+#include "boost/serialization/export.hpp"
+
 BOOST_CLASS_EXPORT_GUID(CoupledField::PDECoupling::CouplingInterface,
                         "CoupledField_CouplingInterface")

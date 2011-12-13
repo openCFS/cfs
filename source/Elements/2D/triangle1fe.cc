@@ -2,11 +2,10 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include <iostream>
-#include <fstream>
-
+#include "Elements/2D/trianglefe.hh"
+#include "MatVec/matrix.hh"
+#include "Utils/StdVector.hh"
 #include "Utils/mathfunctions.hh"
-#include "Domain/elem.hh"
 #include "triangle1fe.hh"
 
 namespace CoupledField
@@ -77,11 +76,6 @@ namespace CoupledField
 
     for( UInt i=1; i<NumNodes_; i++)
       Shape[i] = LCoord[i-1];
-
-#ifndef NDEBUG
-    //  (*debug) << "LCoord \n " << LCoord << std::endl;
-    //  (*debug) << "Shape \n " << Shape << std::endl;
-#endif
 
   }
 

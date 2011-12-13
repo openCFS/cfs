@@ -2,6 +2,15 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
+#include <iostream>
+#include <string>
+
+/* #include "DataInOut/Logging/detail/log_manager.hpp"
+#include "DataInOut/Logging/detail/manipulate_logs.hpp"
+#include "DataInOut/Logging/log_impl.hpp" */ // IWYU do not include these
+#include "DataInOut/Logging/functions.hpp"
+#include "DataInOut/Logging/log_impl.hpp"
+#include "Utils/StdVector.hh"
 #include "cfslog.hh"
 
 namespace CoupledField {

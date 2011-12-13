@@ -5,6 +5,15 @@
 #ifndef MECHANICMATERIAL_DATA
 #define MECHANICMATERIAL_DATA
 
+#include <string>
+#include <utility>
+
+#include "General/defs.hh"
+#include "General/environment.hh"
+#include "MatVec/matrix.hh"
+#include "MatVec/vector.hh"
+#include "Utils/StdVector.hh"
+#include "Utils/mathParser/mathParser.hh"
 #include "baseMaterial.hh"
 
 namespace CoupledField {

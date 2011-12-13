@@ -2,9 +2,13 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include <iostream>
-#include <fstream>
+#include <string>
 
+#include "Domain/entityList.hh"
+#include "Elements/basefe.hh"
+#include "Forms/bdbInt.hh"
+#include "MatVec/matrix.hh"
+#include "Materials/baseMaterial.hh"
 #include "smoothInt.hh"
 
 namespace CoupledField

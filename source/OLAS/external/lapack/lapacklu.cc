@@ -2,8 +2,19 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
+#include <complex>
 #include <cstring>
+#include <iostream>
 
+#include "General/defs.hh"
+#include "General/environment.hh"
+#include "General/exception.hh"
+#include "MatVec/basematrix.hh"
+#include "MatVec/basevector.hh"
+#include "MatVec/stdmatrix.hh"
+#include "MatVec/vector.hh"
+#include "OLAS/external/lapack/lapackbasematrix.hh"
+#include "OLAS/external/lapack/lapackgbmatrix.hh"
 #include "OLAS/external/lapack/lapacklu.hh"
 
 namespace CoupledField {
@@ -12,6 +23,8 @@ namespace CoupledField {
   // ***********************
   //   Default Constructor
   // ***********************
+class BasePrecond;
+
   Lapack_LU::Lapack_LU() {
     EXCEPTION( "Default constructor of LAPACK_LU is forbidden!" );
   }

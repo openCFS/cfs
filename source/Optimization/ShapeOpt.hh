@@ -1,8 +1,12 @@
 #ifndef SHAPEOPT_HH_
 #define SHAPEOPT_HH_
 
+#include <stddef.h>
+#include <string>
+
+#include "General/defs.hh"
+#include "MatVec/matrix.hh"
 #include "Optimization/ParamMat.hh"
-#include "Optimization/Design/ShapeDesign.hh"
 
 namespace CoupledField {
 
@@ -10,6 +14,13 @@ namespace CoupledField {
    * but overrides everything concerning derivative calculation
    * it uses ShapeDesign instead of the standard design space 
    * it inherites from ParamMat to be able to use shape & param concurrently */
+class Condition;
+class Excitation;
+class Function;
+class Objective;
+class ShapeDesign;
+template <class TYPE> class Vector;
+
   class ShapeOpt : public ParamMat {
   public:
 

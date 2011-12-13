@@ -2,25 +2,25 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include <def_use_xerces.hh>
+#include <string>
+
+#include "def_use_xerces.hh"
 
 #ifdef USE_XERCES
 
 #ifndef XERCES_HH_
 #define XERCES_HH_
 
-#include <xercesc/util/XercesDefs.hpp>
-#include <xercesc/dom/DOM.hpp>
-#include <xercesc/parsers/XercesDOMParser.hpp>
-#include <xercesc/sax/ErrorHandler.hpp>
-#include <xercesc/sax/SAXParseException.hpp>
-
 #include "DataInOut/ParamHandling/ParamNode.hh"
+#include "xercesc/dom/DOM.hpp"
+#include "xercesc/parsers/XercesDOMParser.hpp"
+#include "xercesc/sax/ErrorHandler.hpp"
+#include "xercesc/sax/SAXParseException.hpp"
+#include "xercesc/util/XercesDefs.hpp"
 
 
 namespace CoupledField {
 
-  class ParamNode;
 
   /** This class fills a ParamNode element with an XML file content using the DOM parser from xerces. 
    * <p>This might be a good place for any XML stuff besides only filling a ParamNode</p>

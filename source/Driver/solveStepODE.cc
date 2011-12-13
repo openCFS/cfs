@@ -2,6 +2,9 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
+#include <string>
+
+#include "Driver/stdSolveStep.hh"
 #include "General/exception.hh"
 #include "PDE/StdPDE.hh"
 #include "solveStepODE.hh"

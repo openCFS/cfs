@@ -7,15 +7,12 @@
 #define FILE_MAGNETOSTRICTION_COUPLING_HH_
 
 #include "BasePairCoupling.hh"
-#include "Utils/elemstoresol.hh"
-#include "Utils/nodestoresol.hh"
-#include "PDE/SinglePDE.hh"
+#include "DataInOut/ParamHandling/ParamNode.hh"
 
 namespace CoupledField {
 
   // Forward declarations
-  class BaseForm;
-  class BaseMaterial;
+class BaseResult;
   class SinglePDE;
 
   //! Class for pairwise magnetostrictive coupling

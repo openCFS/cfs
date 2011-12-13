@@ -5,24 +5,27 @@
 #ifndef BASEMATERIAL_DATA
 #define BASEMATERIAL_DATA
 
+#include <stddef.h>
 #include <map>
 #include <set>
+#include <string>
 
-#include <General/environment.hh>
-#include <MatVec/matrix.hh>
-#include <MatVec/vector.hh>
-#include <Utils/ApproxData.hh>
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "General/defs.hh"
+#include "General/environment.hh"
+#include "General/exception.hh"
+#include "MatVec/matrix.hh"
+#include "MatVec/vector.hh"
 //#include "Utils/piezoMicroModel.hh"
-#include "Utils/coordSystem.hh"
 #include "Utils/mathParser/mathParser.hh"
 
 namespace CoupledField {
 
+class ApproxData;
   // forward class declarations
   class CoordSystem;
-  class Hysteresis;
   class ElemList;
-  class PiezoMicroModelHF;
+  class Hysteresis;
   class PiezoMicroModelBK;
 
 

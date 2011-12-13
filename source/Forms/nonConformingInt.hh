@@ -5,6 +5,7 @@
 #ifndef File_NON_CONFORMING_INT
 #define File_NON_CONFORMING_INT
 
+#include "General/defs.hh"
 #include "baseForm.hh"
 
 namespace CoupledField {
@@ -13,6 +14,9 @@ namespace CoupledField {
 
   //! This class implements the acoustic-acoustic coupling via surface 
   //! elements for 2D, 2D-axisymmetric and 3D.
+class EntityIterator;
+template <class TYPE> class Matrix;
+
   class NonConformingInt : public SurfForm {
 
   public:

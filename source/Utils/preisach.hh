@@ -6,10 +6,10 @@
 #ifndef FILE_PREISACH_2004
 #define FILE_PREISACH_2004
 
-#include <list>
 
-#include "MatVec/vector.hh"
+#include "General/defs.hh"
 #include "MatVec/matrix.hh"
+#include "MatVec/vector.hh"
 #include "hysteresis.hh"
 
 namespace CoupledField {

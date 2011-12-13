@@ -5,11 +5,17 @@
 #ifndef OLAS_SBM_SYSTEM_HH
 #define OLAS_SBM_SYSTEM_HH
 
-#include <set>
+#include <stddef.h>
+#include <iosfwd>
 #include <map>
+#include <set>
 
-#include "OLAS/algsys/basesystem.hh"
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "General/defs.hh"
+#include "General/environment.hh"
+#include "General/exception.hh"
 #include "MatVec/basematrix.hh"
+#include "OLAS/algsys/basesystem.hh"
 
 
 namespace CoupledField {
@@ -17,14 +23,13 @@ namespace CoupledField {
 
   // Forward Declarations of classes
   class BaseSBMPrecond;
-  class StdMatrix;
-  class SingleVector;
+class BaseVector;
   class SBM_Matrix;
   class SBM_Vector;
-  struct BaseEntryManipulator;
-  class BaseIDBC_Handler;
-  class SBM_Matrix;
   class SingleVector;
+template <class TYPE> class Matrix;
+template <class TYPE> class StdVector;
+template <class TYPE> class Vector;
 
 
   //! Linear algebraic system for normal scalar- and blocksystems

@@ -1,10 +1,20 @@
-#include <iostream>
+#include <math.h>
 #include <fstream>
+#include <memory>
+#include <string>
 
+#include "Domain/elem.hh"
+#include "Domain/entityList.hh"
+#include "Elements/basefe.hh"
+#include "Forms/bdbInt.hh"
+#include "General/exception.hh"
+#include "MatVec/exprt/xpr2.hh"
+#include "MatVec/matrix.hh"
+#include "MatVec/vector.hh"
+#include "Materials/baseMaterial.hh"
 #include "Utils/nodestoresol.hh"
-
-#include "smoothNLInt.hh"
 #include "mechStressStrain.hh"
+#include "smoothNLInt.hh"
 
 
 namespace CoupledField

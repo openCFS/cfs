@@ -1,15 +1,28 @@
-#include "Optimization/ShapeGrad.hh"
-#include "Optimization/Design/DesignSpace.hh"
-#include "Optimization/Design/DesignElement.hh"
-#include "Optimization/OptimizationMaterial.hh"
-#include "DataInOut/Logging/cfslog.hh"
-#include "Domain/domain.hh"
-#include "PDE/mechPDE.hh"
-#include "Forms/mechStressStrain.hh"
-#include "Forms/linElastInt.hh"
-#include "Utils/nodestoresol.hh"
+#include <assert.h>
+#include <stddef.h>
 #include <string>
-#include <memory>
+
+#include "DataInOut/Logging/cfslog.hh"
+#include "DataInOut/Logging/log.hpp"
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "Domain/domain.hh"
+#include "Domain/elem.hh"
+#include "Domain/entityList.hh"
+#include "Elements/basefe.hh"
+#include "Forms/baseForm.hh"
+#include "Forms/linElastInt.hh"
+#include "Forms/mechStressStrain.hh"
+#include "General/defs.hh"
+#include "MatVec/matrix.hh"
+#include "MatVec/vector.hh"
+#include "Materials/baseMaterial.hh"
+#include "Optimization/Design/DesignElement.hh"
+#include "Optimization/Design/DesignSpace.hh"
+#include "Optimization/OptimizationMaterial.hh"
+#include "Optimization/ShapeGrad.hh"
+#include "PDE/SinglePDE.hh"
+#include "Utils/basenodestoresol.hh"
+#include "Utils/nodestoresol.hh"
 
 namespace CoupledField
 {

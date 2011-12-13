@@ -2,12 +2,14 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
+#include <cmath>
 #include <iostream>
-#include <fstream>
-#include <math.h>
-#include <time.h>
 
 #include "LinInterpolate.hh"
+#include "Utils/ApproxData.hh"
+#include "Utils/tools.hh"
+#include "math.h"
+#include "time.h"
 
 namespace CoupledField
 { 

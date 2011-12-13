@@ -6,9 +6,11 @@
 #define FILE_LININTERPOLATE
 
 #include<string>
-#include "Utils/StdVector.hh"
-#include "General/environment.hh"
 #include "ApproxData.hh"
+#include "General/defs.hh"
+#include "General/environment.hh"
+#include "General/exception.hh"
+#include "MatVec/vector.hh"
 
 namespace CoupledField {
 

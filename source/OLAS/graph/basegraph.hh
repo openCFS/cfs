@@ -6,8 +6,10 @@
 #define OLAS_BASEGRAPH_HH
 
 #include <iostream>
+#include <string>
 #include <vector>
 
+#include "General/defs.hh"
 #include "General/environment.hh"
 #include "baseordering.hh"
 
@@ -31,6 +33,8 @@ namespace CoupledField {
 
   // It basically implements a node graph based on linked lists which can be
   // transformed to compressed storage after Setup
+template <class TYPE> class StdVector;
+
   class BaseGraph {
 
   public:

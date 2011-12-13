@@ -5,8 +5,12 @@
 #ifndef FILE_MATRIX_SERIALIZATION_HH
 #define FILE_MATRIX_SERIALIZATION_HH
 
-#include "matrix.hh"
-#include "Utils/boost-serialization.hh"
+#include "General/defs.hh"
+#include "Utils/boost-serialization.hh" // IWYU pragma: keep
+
+namespace CoupledField {
+ template<class TYPE> class Matrix;
+}
 
 // Define Serialization for Matrix<T> class
 namespace boost {
@@ -15,6 +19,7 @@ namespace boost {
     // Save method for dense matrix class
     template<class T, class ARCHIVE> 
     void save( ARCHIVE & ar, const CoupledField::Matrix<T> &m, const unsigned int version ) {
+      using namespace CoupledField;
 
       // save own members
       UInt sizeRow = m.GetNumRows();
@@ -31,6 +36,7 @@ namespace boost {
 
     template<class T, class ARCHIVE>
     void load( ARCHIVE & ar, CoupledField::Matrix<T>& m, const unsigned int version ) {
+      using namespace CoupledField;
       UInt sizeCol, sizeRow;
       ar >> sizeRow;
       ar >> sizeCol;

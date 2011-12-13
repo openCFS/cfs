@@ -2,9 +2,16 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include "coordSystem.hh"
+#include <cmath>
+#include <ostream>
 
 #include "DataInOut/ParamHandling/ParamNode.hh"
+#include "Domain/grid.hh"
+#include "General/environment.hh"
+#include "General/exception.hh"
+#include "Utils/StdVector.hh"
+#include "Utils/tools.hh"
+#include "coordSystem.hh"
 
 
 namespace CoupledField{

@@ -4,30 +4,41 @@
 
 #ifndef FILE_STDPDE
 #define FILE_STDPDE
-#include <fstream>
-#include "PDE/basePDE.hh"
-
+#include <list>
+#include <map>
 #include <set>
+#include <string>
 
-#include "PDE/timestepping.hh"
+#include "DataInOut/ParamHandling/ParamNode.hh"
 #include "Domain/Composite.hh"
+#include "Domain/bcs.hh"
+#include "General/defs.hh"
+#include "General/environment.hh"
+#include "General/exception.hh"
+#include "MatVec/vector.hh"
+#include "PDE/basePDE.hh"
+#include "PDE/timestepping.hh"
+#include "Utils/StdVector.hh"
 
 namespace CoupledField {
 
 
+class Assemble;
+class BaseMaterial;
+  class BaseNodeStoreSol;
+  class BasePairCoupling;
+class BaseSolveStep;
+class BaseSystem;
+  class BiotSavart;
+class EntityIterator;
+  class EqnMap;
+class Grid;
   // forward class declarations
   class PDECoupling;
-  class BasePairCoupling;
-  class WriteResults;
-  class TimeStepping;
-  class BaseNodeStoreSol;
+class SingleVector;
   class StdSolveStep;
-  class PDECoupling;
-  class DiscontinuousEqnMap;
-  class MixedEqnMap;
-  class EqnMap;
-  class ParamNode;
-  class BiotSavart;
+struct Elem;
+struct ResultInfo;
   
   //! Base class for all single-field and direct-coupled problems
 

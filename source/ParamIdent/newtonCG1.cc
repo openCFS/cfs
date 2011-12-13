@@ -21,13 +21,13 @@
 #include "Utils/baseelemstoresol.hh"
 #include "Driver/singleDriver.hh"
 #include "PDE/nodeEQN.hh"
-#include <Domain/elem.hh>
+#include "Domain/elem.hh"
 
 
 #ifdef __sgi
-#include <stdarg.h>
-#include <stdio.h>
-#include <math.h>
+#include "stdarg.h"
+#include "stdio.h"
+#include "math.h"
 #define POW pow
 #else
 #include <cstdarg>
@@ -36,16 +36,16 @@
 #define POW std::pow
 #endif
 
-#include <stdlib.h>
+#include "stdlib.h"
 #include <sstream>
 #include <iomanip>
 
 
 
 #include "Utils/tools.hh"
-#include <PDE/pdes_header.hh>
+#include "PDE/pdes_header.hh"
 
-#include <Driver/piezoParamIdent.hh>
+#include "Driver/piezoParamIdent.hh"
 
 
 

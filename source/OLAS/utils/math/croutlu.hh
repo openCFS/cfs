@@ -5,11 +5,11 @@
 #ifndef CROUT_LU_HH
 #define CROUT_LU_HH
 
+#include <complex>
 #include <vector>
 
-#include <def_expl_templ_inst.hh>
-
 #include "General/defs.hh"
+#include "def_expl_templ_inst.hh"
 
 namespace CoupledField {
 

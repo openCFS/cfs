@@ -1,6 +1,8 @@
 #ifndef THERMOELASTICMATERIAL_DATA
 #define THERMOELASTICMATERIAL_DATA
 
+#include "General/defs.hh"
+#include "General/environment.hh"
 #include "baseMaterial.hh"
 
 namespace CoupledField {
@@ -9,6 +11,8 @@ namespace CoupledField {
   /*! 
      Class for handling thermoelastic material data
   */
+
+template <class TYPE> class Matrix;
 
   class ThermoelasticMaterial : public BaseMaterial {
 

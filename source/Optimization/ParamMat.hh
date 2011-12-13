@@ -2,10 +2,14 @@
 #define PARAMMAT_HH_
 
 #include "Optimization/ErsatzMaterial.hh"
+#include "Optimization/Optimization.hh"
 
 namespace CoupledField {
 
 class MechMat;
+class DenseMatrix;
+class DesignElement;
+class TransferFunction;
 
   class ParamMat : public ErsatzMaterial
   {

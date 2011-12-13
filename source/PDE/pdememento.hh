@@ -5,18 +5,24 @@
 #ifndef FILE_PDEMEMENTO
 #define FILE_PDEMEMENTO
 
-#include "General/environment.hh"
+#include <map>
+#include <string>
 
 // include serialization headers
 #include "CoupledPDE/couplingmemento.hh"
-#include "Utils/basenodestoresol.hh"
-#include "Utils/boost-serialization.hh"
+#include "General/defs.hh"
+#include "General/exception.hh"
+#include "MatVec/vector.hh"
+#include "PDE/basePDE.hh"
+
+namespace CoupledField {
+class SingleVector;
+}  // namespace CoupledField
 
 namespace CoupledField
 {
 
   // forward class declaration
-  class BasePDE;
 
   //! Class for saving the internal state of a PDE
   class PDEMemento

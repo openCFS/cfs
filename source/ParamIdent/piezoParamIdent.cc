@@ -2,17 +2,26 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include <iomanip>
-#include <PDE/SinglePDE.hh>
-#include "Domain/domain.hh"
-#include "piezoParamIdent.hh"
+#include <cmath>
+#include <iostream>
+#include <set>
+
+#include "CoupledPDE/BasePairCoupling.hh"
 #include "CoupledPDE/DirectCoupledPDE.hh"
 #include "CoupledPDE/PiezoCoupling.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/resultHandler.hh"
-#include "PDE/mechPDE.hh"
-#include "Forms/linPressureInt.hh"
+#include "Domain/domain.hh"
+#include "Domain/entityList.hh"
+#include "Domain/grid.hh"
+#include "Domain/resultInfo.hh"
+#include "General/Enum.hh"
+#include "MatVec/exprt/xpr2.hh"
 #include "Materials/baseMaterial.hh"
+#include "PDE/SinglePDE.hh"
+#include "PDE/basePDE.hh"
+#include "Utils/tools.hh"
+#include "piezoParamIdent.hh"
 
 namespace CoupledField {
 
@@ -21,6 +30,8 @@ namespace CoupledField {
 // ========================================================================
 
 
+
+class AdjointParameters;
 
 piezoParamIdent::piezoParamIdent(UInt sequenceStep, bool isPartOfSequence) :
   SingleDriver(sequenceStep, isPartOfSequence ) {

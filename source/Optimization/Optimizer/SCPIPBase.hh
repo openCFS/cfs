@@ -1,8 +1,10 @@
 #ifndef SCPIPBASE_HH_
 #define SCPIPBASE_HH_
 
-#include <string>
 #include <iostream>
+#include <string>
+
+#include "General/exception.hh"
 
 // This Interface is written to be used in Finite Element Simulation software CFS++
 // of chair for sensorics at the university of Erlangen in Germany.
@@ -10,12 +12,13 @@
 // The double usage in the C++SCPIP interface is realized via the USE_4_CFS compile
 // time flag.
 #ifdef USE_4_CFS
-  #include "Utils/StdVector.hh"
   #include "General/Enum.hh"
+  #include "Utils/StdVector.hh"
+
   using namespace CoupledField;
 #else
-  #include "BasicException.hh"
   #include "BasicEnum.hh"
+  #include "BasicException.hh"
   #include "BasicStdVector.hh"
 #endif
 

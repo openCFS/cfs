@@ -6,8 +6,28 @@
 #define FILE_NEWBASEFLUIDMECHPDE
 
 #include <map>
+#include <string>
 
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "General/defs.hh"
+#include "General/environment.hh"
+#include "MatVec/matrix.hh"
+#include "MatVec/vector.hh"
 #include "SinglePDE.hh"
+#include "Utils/StdVector.hh"
+#include "Utils/nodestoresol.hh"
+
+namespace CoupledField {
+class BaseFE;
+class BaseMaterial;
+class BaseNodeStoreSol;
+class BaseResult;
+class EntityIterator;
+class EntityList;
+class Grid;
+class PDECoupling;
+struct Elem;
+}  // namespace CoupledField
 
 namespace CoupledField
 {

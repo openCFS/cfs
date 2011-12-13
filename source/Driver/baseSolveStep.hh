@@ -5,17 +5,21 @@
 #ifndef FILE_BASESOLVESTEP
 #define FILE_BASESOLVESTEP
 
-#include "Utils/StdVector.hh"
-#include "General/environment.hh"
-#include "Utils/tools.hh"
+#include <stddef.h>
+
 #include "DataInOut/ParamHandling/ParamNode.hh"
+#include "General/defs.hh"
+#include "General/exception.hh"
+
+namespace CoupledField {
+template <class TYPE> class Vector;
+}  // namespace CoupledField
 
 namespace CoupledField
 {
 
-  class BaseDriver;
-  class InfoNode;
   class AdjointParameters;
+  class BaseDriver;
 
   //! Base class for solution of a single step
 

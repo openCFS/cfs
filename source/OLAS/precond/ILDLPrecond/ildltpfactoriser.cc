@@ -2,15 +2,18 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include <cmath>
-#include <vector>
+#include <stddef.h>
 #include <algorithm>
+#include <cmath>
+#include <functional>
+#include <iostream>
+#include <vector>
 
+#include "General/environment.hh"
+#include "General/exception.hh"
 #include "MatVec/opdefs.hh"
-#include "MatVec/scrs_matrix.hh"
-
+#include "MatVec/scrs_matrix.hh" // IWYU pragma: keep
 #include "OLAS/precond/ILDLPrecond/ildltpfactoriser.hh"
-#include "OLAS/precond/ILDLPrecond/ildlprecond.hh"
 
 // Used during development phase
 // #define DEBUG_ILDLTPFACTORISER

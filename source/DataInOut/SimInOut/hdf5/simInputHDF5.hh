@@ -5,12 +5,24 @@
 #ifndef FILE_CFS_SIMINPUT_HDF5_HH
 #define FILE_CFS_SIMINPUT_HDF5_HH
 
-#include <DataInOut/simInput.hh>
+#include <map>
+#include <set>
+#include <string>
+
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "DataInOut/simInput.hh"
+#include "General/defs.hh"
 #include "H5Cpp.h"
+#include "PDE/basePDE.hh"
+#include "Utils/StdVector.hh"
 
 namespace CoupledField {
 
   class CoordSystem;
+class BaseResult;
+class EntityList;
+class Grid;
+struct ResultInfo;
 
   //! Class for reading in mesh and simulation data from hdf5 file
 

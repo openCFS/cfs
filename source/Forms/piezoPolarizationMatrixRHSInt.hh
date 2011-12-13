@@ -6,7 +6,13 @@
 #define FILE_POLMAT_RHS_INT
 
 #include "Forms/linSurfForm.hh"
-#include "MatVec/matrix.hh"
+#include "General/defs.hh"
+#include "MatVec/vector.hh"
+
+namespace CoupledField {
+class EntityIterator;
+struct Elem;
+}  // namespace CoupledField
 
 namespace CoupledField 
 {

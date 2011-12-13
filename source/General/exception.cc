@@ -3,8 +3,9 @@
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
 #include <iostream>
+#include <sstream>
 
-#include <boost/algorithm/string/trim.hpp>
+#include "boost/algorithm/string/trim.hpp"
 #include "exception.hh"
 
 namespace CoupledField {

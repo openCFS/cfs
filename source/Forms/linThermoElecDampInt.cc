@@ -1,12 +1,17 @@
-#include <iostream>
+#include <stddef.h>
 #include <fstream>
+#include <string>
 
-#include "linThermoElecDampInt.hh"
-
-#include "Domain/domain.hh"
-#include "Domain/grid.hh"
+#include "Domain/entityList.hh"
+#include "Elements/basefe.hh"
+#include "Forms/baseForm.hh"
+#include "General/environment.hh"
+#include "General/exception.hh"
+#include "MatVec/matrix.hh"
+#include "Materials/baseMaterial.hh"
 //#include "Utils/result.hh"
 #include "Utils/nodestoresol.hh"
+#include "linThermoElecDampInt.hh"
 
 
 namespace CoupledField

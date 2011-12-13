@@ -5,22 +5,33 @@
 // This code is also based on the gmvread library from the official GMV
 // website at: http://www-xdiv.lanl.gov/XCM/gmv/GMVHome.html
 
+#include <string.h>
 #include <algorithm>
 #include <fstream>
-#include <iostream>
-#include <sstream>
-#include <vector>
 #include <set>
+#include <utility>
+#include <vector>
 
-#include <boost/filesystem/operations.hpp>
-#include <boost/filesystem/path.hpp>
-#include <boost/filesystem/convenience.hpp>
-#include <boost/filesystem/exception.hpp>
+#include "boost/filesystem/convenience.hpp"
+#include "boost/filesystem/exception.hpp"
+#include "boost/filesystem/operations.hpp"
+#include "boost/filesystem/path.hpp"
 
 namespace fs = boost::filesystem;
 
+#include "DataInOut/Logging/cfslog.hh"
+#include "DataInOut/Logging/log.hpp"
+#include "DataInOut/simInput.hh"
+#include "Domain/elem.hh"
+#include "Domain/entityList.hh"
+#include "Domain/grid.hh"
 #include "Domain/resultInfo.hh"
-
+#include "General/Enum.hh"
+#include "General/exception.hh"
+#include "MatVec/basematrix.hh"
+#include "MatVec/vector.hh"
+#include "Utils/Point.hh"
+#include "Utils/result.hh"
 #include "simInputGMV.hh"
 
 #undef RDATA_INIT

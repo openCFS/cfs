@@ -5,18 +5,30 @@
 #ifndef FILE_BASEFORCEOP_2005
 #define FILE_BASEFORCEOP_2005
 
+#include <map>
+
 #include "Forms/baseoperator.hh"
-#include "Utils/nodestoresol.hh"
+#include "General/defs.hh"
+#include "General/environment.hh"
+#include "Utils/StdVector.hh"
+
+namespace CoupledField {
+class EntityIterator;
+class EqnMap;
+class StdPDE;
+template <typename T> class ElemStoreSol;
+template <typename T> class NodeStoreSol;
+}  // namespace CoupledField
 
 namespace CoupledField
 {
 
+  class BaseMaterial;
   // Forward declaration of classes
   class Grid;
-  class BaseMaterial;
   struct Elem;
-  template<class TYPE> class Vector;
   template<class TYPE> class Matrix;
+  template<class TYPE> class Vector;
 
   //! Basae operator for calculating the force with VWP 
   class BaseForceOp : public BaseOperator

@@ -2,9 +2,24 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include "linSurfForm.hh"
+#include <stdlib.h>
+
 #include "Domain/domain.hh"
+#include "Domain/elem.hh"
+#include "Domain/entityList.hh"
 #include "Domain/grid.hh"
+#include "Domain/surfElem.hh"
+#include "Elements/basefe.hh"
+#include "MatVec/exprt/xpr1.hh"
+#include "MatVec/matrix.hh"
+#include "Utils/tools.hh"
+#include "linSurfForm.hh"
+
+namespace CoupledField {
+class BaseMaterial;
+class CoordSystem;
+template <class TYPE> class StdVector;
+}  // namespace CoupledField
 
 namespace CoupledField 
 {

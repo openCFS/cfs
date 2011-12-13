@@ -1,14 +1,14 @@
 #ifndef GRADIENTCHECK_HH_
 #define GRADIENTCHECK_HH_
 
+#include "DataInOut/ParamHandling/ParamNode.hh"
 #include "Optimization/Optimizer/BaseOptimizer.hh"
 
 namespace CoupledField
 {
-  class Optimization;
-  class ParamNode;
-  class DesignSpace;
   class DesignElement;
+  class DesignSpace;
+  class Optimization;
 
   /** Similar to EvaluateOnly only the first step is evaluated. This is done with finite differences
    * and compared to the gradient methods from the problem */

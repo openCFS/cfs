@@ -4,12 +4,12 @@
 
 
 #include <algorithm>
-#include <iterator>
+#include <ostream>
+#include <string>
 
-#include "MatVec/crs_matrix.hh"
-
+#include "General/environment.hh"
+#include "MatVec/crs_matrix.hh" // IWYU pragma: keep
 #include "OLAS/precond/ilukprecond.hh"
-
 // Include source code of CroutLU class for template instantiation
 // Note: Might lead to double instantiation, since CroutLU is also
 // used in LUSolver. Going to implement better concept as soon as
@@ -22,6 +22,9 @@ namespace CoupledField {
   // *****************************************************
   //   Constructor (for use in GenerateStdPrecondObject)
   // *****************************************************
+class StdMatrix;
+template <typename > class Vector;
+
   template <typename T>
   ILUK_Precond<T>::ILUK_Precond( const StdMatrix& stdMat, 
                                  PtrParamNode solverNode,

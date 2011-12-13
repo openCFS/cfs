@@ -7,11 +7,16 @@
 #ifndef OLAS_LAPACKGBMATRIX_HH
 #define OLAS_LAPACKGBMATRIX_HH
 
-#include <def_expl_templ_inst.hh>
+#include <stdio.h>
+#include <ostream>
 
-#include "olasf77mapping.hh"
+#include "General/defs.hh"
+#include "General/exception.hh"
+#include "MatVec/basematrix.hh"
+#include "MatVec/stdmatrix.hh"
+#include "def_expl_templ_inst.hh"
 #include "lapackbasematrix.hh"
-#include "MatVec/crs_matrix.hh"
+#include "olasf77mapping.hh"
 
 namespace CoupledField {
 
@@ -36,6 +41,9 @@ namespace CoupledField {
   //! - The amount of memory required to store an \f$n\times n\f$ matrix with
   //!   \f$w_u\f$ upper and \f$w_l\f$ lower diagonals is
   //!   \f$(w_l + 1 + w_u)\cdot n\f$ entries.
+class BaseGraph;
+template <typename T> class CRS_Matrix;
+
   template <class entryF, class entryC>
   class LapackGBMatrix : public LapackBaseMatrix {
 

@@ -2,11 +2,12 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include "scriptable.hh"
-#include "DataInOut/coloredConsole.hh"
-#include "General/environment.hh"
-#include "Utils/tools.hh"
 #include <cstdio>
+
+#include "DataInOut/coloredConsole.hh"
+#include "General/defs.hh"
+#include "Utils/tools.hh"
+#include "scriptable.hh"
 
 namespace CoupledField
 {

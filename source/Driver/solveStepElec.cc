@@ -2,22 +2,34 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include <fstream>
+#include <math.h>
 #include <iostream>
+#include <map>
 #include <string>
 
-#include "solveStepElec.hh"
-#include "Utils/preisach.hh"
-#include "assemble.hh"
-#include "Forms/linearForm.hh"
-#include "Forms/gradfieldop.hh"
-#include "Utils/nodestoresol.hh"
-#include "PDE/StdPDE.hh"
 #include "DataInOut/ResultCache.hh"
-
+#include "Domain/elem.hh"
+#include "Domain/entityList.hh"
+#include "Domain/resultInfo.hh"
+#include "Driver/basedriver.hh"
+#include "Driver/stdSolveStep.hh"
+#include "Elements/basefe.hh"
+#include "Forms/gradfieldop.hh"
+#include "General/environment.hh"
+#include "General/exception.hh"
+#include "Materials/baseMaterial.hh"
 #include "OLAS/algsys/basesystem.hh"
+#include "PDE/StdPDE.hh"
+#include "Utils/StdVector.hh"
+#include "Utils/basenodestoresol.hh"
+#include "Utils/nodestoresol.hh"
+#include "assemble.hh"
+#include "solveStepElec.hh"
 
 namespace CoupledField {
+
+class AdjointParameters;
+class Hysteresis;
 
   SolveStepElec::SolveStepElec(StdPDE& apde) : StdSolveStep(apde) {
     doInit_ = true;

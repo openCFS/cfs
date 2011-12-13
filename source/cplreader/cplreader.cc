@@ -5,20 +5,20 @@
 #include <iostream>
 #include <fstream>
 #include <string>
-#include <stdarg.h>
+#include "stdarg.h"
 #include <vector>
 #include <sstream>
-#include <stdlib.h>
-#include <sys/stat.h>
+#include "stdlib.h"
+#include "sys/stat.h"
 
-#include <boost/filesystem/operations.hpp>
-#include <boost/filesystem/path.hpp>
-#include <boost/filesystem/convenience.hpp>
-#include <boost/filesystem/exception.hpp>
+#include "boost/filesystem/operations.hpp"
+#include "boost/filesystem/path.hpp"
+#include "boost/filesystem/convenience.hpp"
+#include "boost/filesystem/exception.hpp"
 namespace fs=boost::filesystem;
 
-#include <def_cfs_stats.hh>
-#include <def_cplreader.hh>
+#include "def_cfs_stats.hh"
+#include "def_cplreader.hh"
 
 #include "General/exception.hh"
 #include "DataInOut/Logging/cfslog.hh"

@@ -2,10 +2,19 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include "linSurfStressInt.hh"
+#include <ostream>
+#include <string>
 
 #include "Domain/domain.hh"
+#include "Domain/elem.hh"
+#include "Domain/entityList.hh"
 #include "Domain/grid.hh"
+#include "Domain/surfElem.hh"
+#include "Elements/basefe.hh"
+#include "General/environment.hh"
+#include "General/exception.hh"
+#include "MatVec/exprt/xpr1.hh"
+#include "linSurfStressInt.hh"
 
 namespace CoupledField {
   

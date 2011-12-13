@@ -1,7 +1,19 @@
 #ifndef SHAPEGRAD_HH_
 #define SHAPEGRAD_HH_
 
+#include <iostream>
+#include <map>
+#include <string>
+
+#include "General/environment.hh"
 #include "Optimization/ErsatzMaterial.hh"
+#include "Optimization/Optimization.hh"
+#include "Utils/StdVector.hh"
+
+namespace CoupledField {
+class SingleVector;
+template <class TYPE> class Vector;
+}  // namespace CoupledField
 
 namespace CoupledField
 {

@@ -6,17 +6,23 @@
 #define OLAS_SPARSE_MATRIX_HH
 
 
+#include <stddef.h>
 #include <iostream>
+#include <string>
+#include <vector>
 
-#include "MatVec/typedefs.hh"
-#include "MatVec/basematrix.hh"
+#include "General/defs.hh"
+#include "General/environment.hh"
+#include "General/exception.hh"
 #include "MatVec/SingleVector.hh"
-#include "OLAS/graph/basegraph.hh"
+#include "MatVec/basematrix.hh"
+#include "MatVec/basevector.hh"
 
 
 namespace CoupledField {
 
 
+class BaseGraph;
   //! Forward declarations
   class PatternPool;
 

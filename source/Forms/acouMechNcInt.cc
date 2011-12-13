@@ -1,8 +1,27 @@
-#include "Domain/ncElem.hh"
-#include "Domain/grid.hh"
-#include "Domain/domain.hh"
-#include "DataInOut/Logging/cfslog.hh"
+#include <math.h>
+#include <stddef.h>
+#include <map>
+#include <ostream>
+#include <string>
+#include <utility>
 
+#include "DataInOut/Logging/cfslog.hh"
+#include "DataInOut/Logging/log.hpp"
+#include "Domain/domain.hh"
+#include "Domain/elem.hh"
+#include "Domain/entityList.hh"
+#include "Domain/grid.hh"
+#include "Domain/ncElem.hh"
+#include "Domain/surfElem.hh"
+#include "Elements/basefe.hh"
+#include "General/Enum.hh"
+#include "General/exception.hh"
+#include "MatVec/exprt/xpr1.hh"
+#include "MatVec/exprt/xpr2.hh"
+#include "MatVec/matrix.hh"
+#include "MatVec/vector.hh"
+#include "Materials/baseMaterial.hh"
+#include "Utils/StdVector.hh"
 #include "acouMechNcInt.hh"
 
 namespace CoupledField {

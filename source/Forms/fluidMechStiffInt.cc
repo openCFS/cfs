@@ -1,9 +1,20 @@
-#include <iostream>
-#include <fstream>
+#include <cmath>
+#include <map>
+#include <utility>
 
-#include "fluidMechStiffInt.hh"
+#include "Domain/elem.hh"
+#include "Domain/entityList.hh"
+#include "Elements/basefe.hh"
+#include "Forms/fluidMechInt.hh"
+#include "General/environment.hh"
+#include "MatVec/exprt/xpr1.hh"
+#include "MatVec/exprt/xpr2.hh"
+#include "MatVec/matrix.hh"
+#include "MatVec/vector.hh"
+#include "PDE/timestepping.hh"
 #include "Utils/nodestoresol.hh"
-#include "DataInOut/Logging/cfslog.hh"
+#include "Utils/tools.hh"
+#include "fluidMechStiffInt.hh"
 
 
 namespace CoupledField {

@@ -2,17 +2,30 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <cmath>
+#include <complex>
 #include <iostream>
-#include <fstream>
 #include <string>
 
-#include <PDE/SinglePDE.hh>
-#include "piezoParamIdent.hh"
-#include "Domain/domain.hh"
-#include "Driver/stdSolveStep.hh"
-#include "DataInOut/ParamHandling/ParamNode.hh"
 #include "CoupledPDE/PiezoCoupling.hh"
+#include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/resultHandler.hh"
+#include "Domain/domain.hh"
+#include "Driver/baseSolveStep.hh"
+#include "General/defs.hh"
+#include "General/environment.hh"
+#include "MatVec/matrix.hh"
+#include "MatVec/vector.hh"
+#include "PDE/SinglePDE.hh"
+#include "PDE/basePDE.hh"
+#include "Utils/basenodestoresol.hh"
+#include "Utils/mathParser/mathParser.hh"
+#include "Utils/nodestoresol.hh"
+#include "Utils/result.hh"
+#include "Utils/tools.hh"
+#include "piezoParamIdent.hh"
 
 namespace CoupledField {
 

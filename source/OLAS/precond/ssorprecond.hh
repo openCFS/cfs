@@ -5,16 +5,21 @@
 #ifndef OLAS_SSORPRECOND_HH
 #define OLAS_SSORPRECOND_HH
 
-#include <def_expl_templ_inst.hh>
+#include <complex>
 
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "General/defs.hh"
+#include "General/exception.hh"
+#include "MatVec/typedefs.hh"
 #include "baseprecond.hh"
 #include "bnprecond.hh"
+#include "def_expl_templ_inst.hh"
 
 namespace CoupledField {
 
-  template<typename> class Vector;
-  template<typename> class CRS_Matrix;
   class StdMatrix;
+  template<typename> class CRS_Matrix;
+  template<typename> class Vector;
   
 
   //! SSOR preconditioner

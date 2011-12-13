@@ -5,11 +5,17 @@
 #ifndef FILE_XMLMATERIALHANDLER
 #define FILE_XMLMATERIALHANDLER
 
+#include <string>
+
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "General/environment.hh"
 #include "MaterialHandler.hh"
 
 namespace CoupledField {
 
   //! Class for reading materials fron xml-file
+class BaseMaterial;
+
   class XMLMaterialHandler : public MaterialHandler {
   
   public:

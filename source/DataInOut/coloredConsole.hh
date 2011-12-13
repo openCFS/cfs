@@ -9,12 +9,13 @@
 
 //------------------------------------------------------------------"includes"--
 #include <iostream>
-#include <iomanip>
+#include <string>
+
+#include "General/defs.hh"
 #ifdef WIN32
-#include <windows.h>
+#include "windows.h"
 #endif
 
-#include <General/environment.hh>
 
 namespace CoupledField
 {

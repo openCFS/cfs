@@ -3,7 +3,7 @@
 #ifndef SNOPTINTERFACE_HH_
 #define SNOPTINTERFACE_HH_
 
-#include <stdio.h>
+#include "stdio.h"
 
 extern "C" {
 

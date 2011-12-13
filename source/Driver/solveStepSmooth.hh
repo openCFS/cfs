@@ -1,9 +1,12 @@
 #ifndef FILE_SOLVESTEPSMOOTH
 #define FILE_SOLVESTEPSMOOTH
 
-#include "OLAS/algsys/basesystem.hh"
-
+#include "DataInOut/ParamHandling/ParamNode.hh"
 #include "stdSolveStep.hh"
+
+namespace CoupledField {
+class StdPDE;
+}  // namespace CoupledField
 
 namespace CoupledField
 {

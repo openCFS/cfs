@@ -2,19 +2,20 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include <def_use_xerces.hh>
+#include <stddef.h>
+#include <iostream>
+
+#include "def_use_xerces.hh"
 
 #ifdef USE_XERCES
 
 #include <string>
-#include <fstream>
 
-#include <xercesc/util/PlatformUtils.hpp>
-#include <boost/filesystem/operations.hpp>
-#include <boost/algorithm/string.hpp>
-
-#include "General/exception.hh"
 #include "DataInOut/ParamHandling/Xerces.hh"
+#include "General/exception.hh"
+#include "boost/algorithm/string.hpp"
+#include "boost/filesystem/operations.hpp"
+#include "xercesc/util/PlatformUtils.hpp"
 
 
 // we want to use the Xerces-C++ namespace

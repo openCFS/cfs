@@ -1,8 +1,23 @@
 #ifndef DESIGNSTRUCTURE_HH_
 #define DESIGNSTRUCTURE_HH_
 
-#include "Optimization/Design/DesignElement.hh"
+#include <stddef.h>
+#include <string>
+#include <utility>
+
 #include "DataInOut/ParamHandling/ParamNode.hh"
+#include "General/Enum.hh"
+#include "General/environment.hh"
+#include "Optimization/Design/DesignElement.hh"
+#include "Optimization/Design/Filter.hh"
+#include "Utils/Point.hh"
+#include "Utils/StdVector.hh"
+
+namespace CoupledField {
+class DesignSpace;
+class Grid;
+struct Elem;
+}  // namespace CoupledField
 
 namespace CoupledField
 {

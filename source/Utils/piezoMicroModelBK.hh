@@ -6,15 +6,18 @@
 #define PIEZO_MICRO_MODELL_BK_HH
 
 #include <string>
-#include <boost/multi_array.hpp>
-
-#include "Domain/grid.hh"
-#include "Utils/tools.hh"
-#include "MatVec/vector.hh"
+#include "General/defs.hh"
 #include "General/environment.hh"
-#include "Materials/baseMaterial.hh"
-#include "ODESolve/BaseODESolver.hh" 
-#include "ODESolve/BaseODEProblem.hh"
+#include "MatVec/matrix.hh"
+#include "MatVec/vector.hh"
+#include "Utils/StdVector.hh"
+#include "boost/multi_array.hpp"
+
+namespace CoupledField {
+class BaseMaterial;
+class BaseODEProblem;
+class BaseODESolver;
+}  // namespace CoupledField
 
 typedef boost::multi_array<Matrix<double>, 1> array1_Matrix;
 typedef boost::multi_array<Matrix<double>, 2> array2_Matrix;
@@ -26,7 +29,6 @@ typedef boost::multi_array<Double, 4> arrayD4;
 namespace CoupledField {
 
   // forward class declarations
-  class ParamNode;
 
   //! class for Belov-Kreher micro-piezoelectric model
   class PiezoMicroModelBK {

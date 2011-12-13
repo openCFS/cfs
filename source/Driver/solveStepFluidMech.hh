@@ -5,7 +5,16 @@
 #ifndef FILE_SOLVESTEPFLUIDMECH
 #define FILE_SOLVESTEPFLUIDMECH
 
+#include <math.h>
+
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "General/defs.hh"
+#include "MatVec/vector.hh"
 #include "stdSolveStep.hh"
+
+namespace CoupledField {
+class StdPDE;
+}  // namespace CoupledField
 
 namespace CoupledField
 {

@@ -17,11 +17,15 @@
 
 #include <set>
 
+#include "General/defs.hh"
+#include "General/environment.hh"
+#include "MatVec/basematrix.hh"
+
 namespace CoupledField {
 
+  class BaseGraphManager;
   // forward declaration
   class BaseIDBC_Handler;
-  class BaseGraphManager;
 
   //! Function for generating an IDBC_Handler object for elimination approach
   BaseIDBC_Handler*

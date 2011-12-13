@@ -5,14 +5,14 @@
 #ifndef ParamNode_HH_
 #define ParamNode_HH_
 
+#include <iosfwd>
 #include <string>
-#include <boost/enable_shared_from_this.hpp>
-#include <boost/shared_ptr.hpp>
-#include <boost/tokenizer.hpp>
-#include <boost/any.hpp>
 
 #include "Utils/StdVector.hh"
-#include "General/exception.hh"
+#include "boost/any.hpp"
+#include "boost/enable_shared_from_this.hpp"
+#include "boost/shared_ptr.hpp"
+#include "boost/tokenizer.hpp"
 
 namespace CoupledField
 {

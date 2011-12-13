@@ -5,11 +5,23 @@
 #ifndef FILE_GMVWRITER_2002
 #define FILE_GMVWRITER_2002
 
+#include <iosfwd>
 #include <string>
 
-#include <DataInOut/simOutput.hh>
-#include <Domain/grid.hh>
-#include <Domain/resultInfo.hh>
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "DataInOut/simOutput.hh"
+#include "Domain/elem.hh"
+#include "Domain/resultInfo.hh"
+#include "General/defs.hh"
+#include "General/environment.hh"
+#include "MatVec/vector.hh"
+#include "PDE/basePDE.hh"
+#include "Utils/StdVector.hh"
+
+namespace CoupledField {
+class BaseResult;
+class Grid;
+}  // namespace CoupledField
 
 namespace CoupledField
 {

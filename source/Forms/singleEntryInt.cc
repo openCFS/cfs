@@ -2,12 +2,20 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include "singleEntryInt.hh"
+#include <stddef.h>
+#include <complex>
+
 #include "Domain/domain.hh"
+#include "Forms/baseForm.hh"
+#include "General/environment.hh"
+#include "MatVec/matrix.hh"
+#include "singleEntryInt.hh"
 
 
 namespace CoupledField {
 
+
+class EntityIterator;
 
  SingleEntryInt::SingleEntryInt(  const std::string& real,
                                   UInt dof, UInt numDofs )

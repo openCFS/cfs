@@ -1,8 +1,15 @@
-#include <iostream>
+#include <stddef.h>
 #include <fstream>
+#include <string>
 
-#include "linThermoMechDampInt.hh"
+#include "Domain/entityList.hh"
+#include "Elements/basefe.hh"
+#include "Forms/baseForm.hh"
+#include "General/environment.hh"
+#include "General/exception.hh"
+#include "Materials/baseMaterial.hh"
 #include "Utils/nodestoresol.hh"
+#include "linThermoMechDampInt.hh"
 
 
 namespace CoupledField

@@ -10,12 +10,12 @@
 #include <algorithm>
 #include <cmath>
 
-#include <boost/tokenizer.hpp>
-#include <boost/filesystem/operations.hpp>
-#include <boost/filesystem/path.hpp>
-#include <boost/filesystem/convenience.hpp>
-#include <boost/filesystem/exception.hpp>
-#include <boost/algorithm/string/trim.hpp>
+#include "boost/tokenizer.hpp"
+#include "boost/filesystem/operations.hpp"
+#include "boost/filesystem/path.hpp"
+#include "boost/filesystem/convenience.hpp"
+#include "boost/filesystem/exception.hpp"
+#include "boost/algorithm/string/trim.hpp"
 namespace fs=boost::filesystem;
 
 #include "General/exception.hh"
@@ -28,7 +28,7 @@ namespace fs=boost::filesystem;
 #include "CouplingHandler.hh"
 
 #ifdef _OPENMP
-#include <omp.h>
+#include "omp.h"
 #endif
 
 namespace CoupledField

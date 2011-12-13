@@ -2,13 +2,26 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include <iterator>
+#include <stdio.h>
 #include <list>
+#include <ostream>
+#include <string>
 
+#include "General/Enum.hh"
+#include "General/environment.hh"
+#include "General/exception.hh"
+#include "MatVec/basematrix.hh"
 #include "MatVec/opdefs.hh"
-#include "MatVec/scrs_matrix.hh"
-
+#include "MatVec/scrs_matrix.hh" // IWYU pragma: keep
+#include "MatVec/stdmatrix.hh"
+#include "MatVec/typedefs.hh"
 #include "ldlsolver.hh"
+
+namespace CoupledField {
+class BasePrecond;
+class BaseVector;
+template <typename T> class Vector;
+}  // namespace CoupledField
 
 #ifdef DEBUG_LDLSOLVER
 #define DEBUG_LDLSOLVER_ANALYSE

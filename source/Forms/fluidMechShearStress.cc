@@ -1,7 +1,12 @@
-#include <iostream>
-#include <fstream>
-
+#include "Forms/linElastInt.hh"
+#include "General/environment.hh"
+#include "MatVec/vector.hh"
+#include "Materials/baseMaterial.hh" // IWYU pragma: keep
 #include "fluidMechShearStress.hh"
+
+namespace CoupledField {
+class EntityIterator;
+}  // namespace CoupledField
 
 namespace CoupledField
 {

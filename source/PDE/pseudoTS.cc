@@ -1,10 +1,14 @@
-#include <fstream>
-#include <iostream>
-#include <string>
+#include <map>
 
+#include "General/environment.hh"
+#include "MatVec/exprt/xpr1.hh"
+#include "PDE/timestepping.hh"
 //#include "DataInOut/WriteInfo.hh"
 #include "pseudoTS.hh"
-#include "DataInOut/Logging/cfslog.hh"
+
+namespace CoupledField {
+class BaseSystem;
+}  // namespace CoupledField
 
 namespace CoupledField
 {

@@ -5,13 +5,22 @@
 #ifndef OLAS_ILU0_PRECOND_HH
 #define OLAS_ILU0_PRECOND_HH
 
-#include <def_expl_templ_inst.hh>
+#include <stdio.h>
+#include <complex>
+#include <ostream>
+#include <string>
 
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "General/defs.hh"
+#include "MatVec/typedefs.hh"
 #include "baseprecond.hh"
 #include "bnprecond.hh"
+#include "def_expl_templ_inst.hh"
 
 namespace CoupledField {
 
+class StdMatrix;
+template <typename T> class Vector;
   template<typename> class CRS_Matrix;
 
   //! ILU(0) Preconditioner

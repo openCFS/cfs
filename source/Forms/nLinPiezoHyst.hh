@@ -5,24 +5,28 @@
 #ifndef FILE_NONLIN_PIEZO_HYST
 #define FILE_NONLIN_PIEZO_HYST
 
-#include "Elements/basefe.hh"
-#include "Forms/adbInt.hh"
+#include "Forms/linGradBDBInt.hh"
+
+#include "Domain/entityList.hh"
 #include "Forms/linPiezoCoupling.hh"
-#include "Materials/baseMaterial.hh"
-#include "Utils/nodestoresol.hh"  
-
-
-#include <Utils/ApproxData.hh>
-#include <Forms/bdbInt.hh>
-#include <Forms/gradfieldop.hh>
-#include <Forms/linGradBDBInt.hh>
+#include "General/defs.hh"
+#include "General/environment.hh"
+#include "MatVec/matrix.hh"
+#include "MatVec/vector.hh"
 
 
 namespace CoupledField {
 
+class BaseMaterial;
+class EqnMap;
+class Grid;
   class PiezoCoupling;
-  class LinElastInt;
+class StdPDE;
+struct Elem;
+struct ResultInfo;
+template <class TYPE> class GradientFieldOp;
   template<typename> class MechStressStrain;
+template <typename T> class NodeStoreSol;
 
   class nLinPiezoHystCouple : public linPiezoCoupling {
 

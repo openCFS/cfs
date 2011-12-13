@@ -2,10 +2,9 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include "MatVec/stdmatrix.hh"
-#include "MatVec/crs_matrix.hh"
 #include "MatVec/opdefs.hh"
-
+#include "MatVec/crs_matrix.hh" // IWYU pragma: keep
+#include "MatVec/stdmatrix.hh"
 #include "OLAS/precond/ssorprecond.hh"
 
 namespace CoupledField {

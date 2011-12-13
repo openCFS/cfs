@@ -2,30 +2,46 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include "assemble.hh"
-
+#include <assert.h>
+#include <cmath>
+#include <complex>
 #include <iostream>
-#include <iomanip>
-#include <boost/lexical_cast.hpp>
+#include <utility>
 
+#include "DataInOut/Logging/cfslog.hh"
+#include "DataInOut/Logging/log.hpp"
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "DataInOut/ResultCache.hh"
+#include "DataInOut/Scripting/cfsmessenger.hh"
+#include "DataInOut/programOptions.hh"
+#include "Domain/domain.hh"
+#include "Domain/elem.hh"
 #include "Domain/entityList.hh"
+#include "Domain/grid.hh"
+#include "Domain/resultInfo.hh"
+#include "Driver/baseSolveStep.hh"
+#include "Driver/formsContext.hh"
 #include "Forms/baseForm.hh"
 #include "Forms/linearForm.hh"
-#include "PDE/SinglePDE.hh"
-#include "Domain/domain.hh"
-#include "Domain/grid.hh"
-#include "Driver/stdSolveStep.hh"
-#include "Driver/harmonicDriver.hh"
-#include "DataInOut/programOptions.hh"
-#include "DataInOut/Logging/cfslog.hh"
-#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "General/Enum.hh"
+#include "General/exception.hh"
+#include "MatVec/exprt/xpr2.hh"
+#include "MatVec/matrix.hh"
+#include "MatVec/vector.hh"
 #include "OLAS/algsys/basesystem.hh"
-#include "Utils/Timer.hh"
-#include "DataInOut/Scripting/cfsmessenger.hh"
-#include "Optimization/Optimization.hh"
 #include "Optimization/Design/DesignSpace.hh"
-#include "Materials/mechanicMaterial.hh"
-#include "DataInOut/ResultCache.hh"
+#include "Optimization/Optimization.hh"
+#include "PDE/SinglePDE.hh"
+#include "PDE/StdPDE.hh"
+#include "PDE/eqnMap.hh"
+#include "Utils/Timer.hh"
+#include "Utils/dampLayer.hh"
+#include "assemble.hh"
+#include "boost/lexical_cast.hpp"
+
+namespace CoupledField {
+class CoordSystem;
+}  // namespace CoupledField
 
 namespace CoupledField
 {

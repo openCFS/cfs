@@ -1,16 +1,17 @@
 #ifndef SNOPT_HH_
 #define SNOPT_HH_
 
-#include "Optimization/Optimizer/BaseOptimizer.hh"
-
 #include <string>
 #include <vector>
+
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "Optimization/Optimizer/BaseOptimizer.hh"
+#include "Utils/StdVector.hh"
 
 namespace CoupledField
 {
 
 class Optimization;
-class ParamNode;
 class Timer;
 
 using std::vector;

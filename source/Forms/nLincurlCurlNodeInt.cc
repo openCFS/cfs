@@ -2,10 +2,18 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include <iostream>
 #include <fstream>
+#include <string>
 
-#include "Utils/SmoothSpline.hh"
+#include "Domain/entityList.hh"
+#include "Elements/basefe.hh"
+#include "Forms/curlCurlNodeInt.hh"
+#include "General/exception.hh"
+#include "MatVec/exprt/xpr1.hh"
+#include "MatVec/exprt/xpr2.hh"
+#include "MatVec/matrix.hh"
+#include "Materials/baseMaterial.hh"
+#include "Utils/ApproxData.hh"
 #include "Utils/nodestoresol.hh"
 #include "nLincurlCurlNodeInt.hh"
 

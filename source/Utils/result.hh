@@ -5,17 +5,21 @@
 #ifndef FILE_CFS_RESULT_HH
 #define FILE_CFS_RESULT_HH
 
-#include "Domain/entityList.hh"
-#include "General/environment.hh"
-#include "MatVec/vector.hh"
-#include "DataInOut/ParamHandling/ParamNode.hh"
+#include <string>
 
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "General/defs.hh"
 #include "MatVec/basematrix.hh"
-#include "Domain/resultInfo.hh"
+#include "MatVec/vector.hh"
 
 namespace CoupledField {
 
   //! Base class representing a result object
+class EntityList;
+class SingleVector;
+struct ResultInfo;
+template <class TYPE> class StdVector;
+
   class BaseResult {
 
   public:

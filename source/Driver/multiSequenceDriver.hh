@@ -5,16 +5,24 @@
 #ifndef FILE_MULTISEQUENCEDRIVER_2004
 #define FILE_MULTISEQUENCEDRIVER_2004
 
-#include "basedriver.hh"
-#include "singleDriver.hh"
+#include <stddef.h>
+#include <string>
+
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "General/defs.hh"
+#include "PDE/basePDE.hh"
 #include "Utils/StdVector.hh"
-#include "PDE/pdememento.hh"
+#include "basedriver.hh"
+
+namespace CoupledField {
+class AdjointParameters;
+class SingleDriver;
+}  // namespace CoupledField
 
 namespace CoupledField
 {
 
   // forward class declaration
-  class BasePDE;
 
   //! Driver class for multi sequence simulations
 

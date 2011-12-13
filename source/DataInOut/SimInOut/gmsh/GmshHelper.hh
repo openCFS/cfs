@@ -5,13 +5,12 @@
 #ifndef FILE_GMSHHELPER_2009
 #define FILE_GMSHHELPER_2009
 
+#include "boost/bimap.hpp"
+#include "boost/detail/endian.hpp"
 #include <map>
 
-#include <boost/detail/endian.hpp>
-#include <boost/bimap.hpp>
-
-#include "General/environment.hh"
 #include "Domain/elem.hh"
+#include "General/defs.hh"
 
 namespace CoupledField {
 

@@ -2,31 +2,51 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
+#include <stdlib.h>
+#include <algorithm>
+#include <cmath>
+#include <complex>
+#include <exception>
+#include <iostream>
+#include <iterator>
+#include <map>
+#include <set>
+#include <string>
+#include <utility>
+#include <vector>
+
+#include "boost/filesystem/convenience.hpp"
+#include "boost/filesystem/path.hpp"
 // Include headers which define what types
 // of in/output files CFS++ should support
-#include <boost/lexical_cast.hpp>
+#include "boost/lexical_cast.hpp"
+#include "boost/tokenizer.hpp"
+#include "def_cfs_stats.hh"
+#include "def_use_ansysrst.hh"
+#include "def_use_gidpost.hh"
+#include "def_use_gmsh.hh"
+#include "def_use_gmv.hh"
+#include "def_use_hdf5.hh"
+#include "def_use_mesh.hh"
+#include "def_use_unv.hh"
 
-#include <def_cfs_stats.hh>
-#include <def_use_mesh.hh>
-#include <def_use_gidpost.hh>
-#include <def_use_hdf5.hh>
-#include <def_use_gmsh.hh>
-#include <def_use_gmv.hh>
-#include <def_use_unv.hh>
-#include <def_use_ansysrst.hh>
-
-#include <iostream>
-#include <boost/tokenizer.hpp>
-#include <boost/filesystem/path.hpp>
-#include <boost/filesystem/convenience.hpp>
 namespace fs = boost::filesystem;
 
-#include "ParamsInit.hh"
-#include "General/environment.hh"
-#include "DataInOut/programOptions.hh"
 #include "DataInOut/simInput.hh"
 #include "DataInOut/simOutput.hh"
 #include "Domain/GridCFS/grid_cfs.hh"
+#include "Domain/entityList.hh"
+#include "Domain/grid.hh"
+#include "Domain/resultInfo.hh"
+#include "General/defs.hh"
+#include "General/environment.hh"
+#include "General/exception.hh"
+#include "MatVec/exprt/xpr1.hh"
+#include "MatVec/vector.hh"
+#include "PDE/basePDE.hh"
+#include "ParamsInit.hh"
+#include "Utils/StdVector.hh"
+#include "Utils/result.hh"
 
 #ifdef USE_MESH
 #include "DataInOut/SimInOut/AnsysFile/simInputMESH.hh"
@@ -48,7 +68,6 @@ namespace fs = boost::filesystem;
 #ifdef USE_HDF5
 #include "DataInOut/SimInOut/hdf5/simInputHDF5.hh"
 #include "DataInOut/SimInOut/hdf5/simOutputHDF5.hh"
-
 #include "DataInOut/SimInOut/xdmf/simOutputXDMF.hh"
 #endif
 
@@ -65,7 +84,6 @@ namespace fs = boost::filesystem;
 #include "DataInOut/SimInOut/AnsysRST/simOutputRST.hh"
 #endif
 
-#include "DataInOut/SimInOut/TextOutput/textSimOutput.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 
 using namespace CoupledField;

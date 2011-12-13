@@ -5,23 +5,23 @@
 #include <string>
 #include <iostream>
 #include <fstream>
-#include <stdio.h>
+#include "stdio.h"
 #include <iomanip>
 #include <sstream>
 #include <set>
-#include <sys/stat.h>
+#include "sys/stat.h"
 
-#include <boost/regex.hpp>
-#include <boost/filesystem/operations.hpp>
-#include <boost/filesystem/path.hpp>
-#include <boost/filesystem/convenience.hpp>
-#include <boost/filesystem/exception.hpp>
+#include "boost/regex.hpp"
+#include "boost/filesystem/operations.hpp"
+#include "boost/filesystem/path.hpp"
+#include "boost/filesystem/convenience.hpp"
+#include "boost/filesystem/exception.hpp"
 
-#include <boost/iostreams/filtering_streambuf.hpp>
-#include <boost/iostreams/copy.hpp>
-#include <boost/iostreams/filter/gzip.hpp>
+#include "boost/iostreams/filtering_streambuf.hpp"
+#include "boost/iostreams/copy.hpp"
+#include "boost/iostreams/filter/gzip.hpp"
 
-#include <boost/algorithm/string/predicate.hpp>
+#include "boost/algorithm/string/predicate.hpp"
 namespace algo=boost::algorithm;
 
 namespace fs=boost::filesystem;
@@ -36,28 +36,28 @@ namespace bios=boost::iostreams;
 // This is due to the fucking OLAS New operator!!!
 #undef New
 
-#include <vtkFLUENTReader.h>
+#include "vtkFLUENTReader.h"
 
-#include <vtkDataArrayCollection.h>
-#include <vtkDataArrayCollectionIterator.h>
-#include <vtkInformation.h>
+#include "vtkDataArrayCollection.h"
+#include "vtkDataArrayCollectionIterator.h"
+#include "vtkInformation.h"
 
-#include <vtkCellArray.h>
-#include <vtkUnstructuredGrid.h>
-#include <vtkMergePoints.h>
+#include "vtkCellArray.h"
+#include "vtkUnstructuredGrid.h"
+#include "vtkMergePoints.h"
 
-#include <vtkSmartPointer.h>
-#include <vtkPoints.h>
+#include "vtkSmartPointer.h"
+#include "vtkPoints.h"
 
-#include <vtkMultiBlockDataSet.h>
-#include <vtkCompositeDataIterator.h>
-#include <vtkCellDataToPointData.h>
-#include <vtkPointSet.h>
-#include <vtkCell.h>
-#include <vtkDataArray.h>
-#include <vtkPointData.h>
-#include <vtkCellDataToPointData.h>
-#include <vtkArrayIteratorTemplate.h>
+#include "vtkMultiBlockDataSet.h"
+#include "vtkCompositeDataIterator.h"
+#include "vtkCellDataToPointData.h"
+#include "vtkPointSet.h"
+#include "vtkCell.h"
+#include "vtkDataArray.h"
+#include "vtkPointData.h"
+#include "vtkCellDataToPointData.h"
+#include "vtkArrayIteratorTemplate.h"
 
 namespace CoupledField
 {

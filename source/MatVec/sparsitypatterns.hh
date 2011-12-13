@@ -5,6 +5,8 @@
 #ifndef OLAS_SPARSITYPATTERNS
 #define OLAS_SPARSITYPATTERNS
 
+#include "General/defs.hh"
+
 namespace CoupledField {
 
   //! Base class for administration of sparsity patterns

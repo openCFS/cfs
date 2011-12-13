@@ -5,34 +5,49 @@
 #ifndef FILE_SCFE_GRID_2001
 #define FILE_SCFE_GRID_2001
 
+#include <stddef.h>
 #include <list>
+#include <map>
 #include <set>
-#include <def_use_interpolation.hh>
+#include <string>
+
+#include "def_use_interpolation.hh"
 
 #ifdef USE_INTERPOLATION
-#include <CGAL/box_intersection_d.h>
-#include <CGAL/Bbox_2.h>
-#include <CGAL/Bbox_3.h>
-#include <CGAL/Cartesian.h>
-#include <CGAL/Polygon_2_algorithms.h>
+#include "CGAL/Bbox_2.h"
+#include "CGAL/Bbox_3.h"
+#include "CGAL/Cartesian.h"
+#include "CGAL/Polygon_2_algorithms.h"
+#include "CGAL/box_intersection_d.h"
 #endif
 
-#include "Domain/elem.hh"
-#include "Elements/basefe.hh"
-#include "Domain/surfElem.hh"
-#include "Domain/ncElem.hh"
-#include "Domain/edgeFace.hh"
-#include "Domain/entityList.hh"
+#include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/Scripting/scriptable.hh"
+#include "Domain/elem.hh"
+#include "Domain/entityList.hh"
+#include "General/Enum.hh"
+#include "General/defs.hh"
+#include "General/environment.hh"
+#include "General/exception.hh"
+#include "MatVec/matrix.hh"
 #include "MatVec/vector.hh"
+#include "Utils/Point.hh"
+#include "Utils/StdVector.hh"
+
+namespace CoupledField {
+struct Edge;
+struct Face;
+struct NCElem;
+struct SurfElem;
+}  // namespace CoupledField
 
 
 namespace CoupledField
 {
 
+  class CoordSystem;
   //! forward class declaration
   class ResultHandler;
-  class CoordSystem;
 
 
   //! Class representing geometrical entities (elements, nodes, ...) of a

@@ -1,10 +1,10 @@
-#include <vtkSmartPointer.h>
+#include "vtkSmartPointer.h"
  
-#include <vtkMath.h>
-#include <vtkMergePoints.h>
-#include <vtkPointSource.h>
-#include <vtkPoints.h>
-#include <vtkPolyData.h>
+#include "vtkMath.h"
+#include "vtkMergePoints.h"
+#include "vtkPointSource.h"
+#include "vtkPoints.h"
+#include "vtkPolyData.h"
  
 int main(int argc, char *argv[])
 {

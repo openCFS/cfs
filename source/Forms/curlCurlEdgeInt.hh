@@ -5,7 +5,16 @@
 #ifndef FILE_CURLCURLEDGE
 #define FILE_CURLCURLEDGE
 
+#include "General/defs.hh"
+#include "MatVec/vector.hh"
+#include "Utils/StdVector.hh"
 #include "baseForm.hh"
+
+namespace CoupledField {
+class BaseMaterial;
+class EntityIterator;
+template <class TYPE> class Matrix;
+}  // namespace CoupledField
 
 namespace CoupledField
 {

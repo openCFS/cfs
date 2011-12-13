@@ -1,9 +1,17 @@
 #ifndef FILE_SMOOTHNLINT
 #define FILE_SMOOTHNLINT
 
-#include <Elements/basefe.hh>
-#include <Forms/bdbInt.hh>
-#include <Materials/baseMaterial.hh>
+#include <iosfwd>
+
+#include "Forms/bdbInt.hh"
+#include "General/defs.hh"
+#include "General/environment.hh"
+
+namespace CoupledField {
+class BaseMaterial;
+class EntityIterator;
+template <class TYPE> class Matrix;
+}  // namespace CoupledField
 
 namespace CoupledField
 {

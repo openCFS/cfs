@@ -2,28 +2,33 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include <string>
-#include <iostream>
-#include <iomanip>
 #include <fstream>
+#include <iomanip>
+#include <new>
+#include <string>
+#include <utility>
 
-#include <boost/algorithm/string/replace.hpp>
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "DataInOut/programOptions.hh"
+#include "General/Enum.hh"
+#include "MatVec/SingleVector.hh"
+#include "MatVec/basevector.hh"
+#include "MatVec/generatematvec.hh"
 #include "MatVec/sbmmatrix.hh"
-
+#include "MatVec/sbmvector.hh"
+#include "MatVec/stdmatrix.hh"
+#include "OLAS/algsys/baseentrymanipulator.hh"
+#include "OLAS/algsys/baseidbchandler.hh"
+#include "OLAS/algsys/generateidbchandler.hh"
 #include "OLAS/algsys/sbmsystem.hh"
-
+#include "OLAS/graph/basegraph.hh"
+#include "OLAS/graph/basegraphmanager.hh"
 #include "OLAS/graph/graphmanagersbmmat.hh"
-#include "OLAS/precond/generateprecond.hh"
 #include "OLAS/precond/baseprecond.hh"
+#include "OLAS/precond/generateprecond.hh"
 #include "OLAS/solver/basesolver.hh"
 #include "OLAS/solver/generatesolver.hh"
-
-#include "OLAS/algsys/baseentrymanipulator.hh"
-#include "OLAS/algsys/generateidbchandler.hh"
-#include "OLAS/algsys/baseidbchandler.hh"
-
-#include "DataInOut/programOptions.hh"
-#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "boost/algorithm/string/replace.hpp"
 
 
 namespace CoupledField {
@@ -32,6 +37,10 @@ namespace CoupledField {
   // ***********************
   //   Default Constructor
   // ***********************
+template <class TYPE> class Matrix;
+template <class TYPE> class StdVector;
+template <class TYPE> class Vector;
+
   SBM_System::SBM_System(PtrParamNode pn) : BaseSystem(pn) {
 
 

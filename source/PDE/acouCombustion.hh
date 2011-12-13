@@ -5,8 +5,17 @@
 #ifndef FILE_ACOUCOMBUSTION_2006
 #define FILE_ACOUCOMBUSTION_2006
 
-#include "basePDE.hh"
+#include <string>
+
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "General/defs.hh"
+#include "General/environment.hh"
+#include "Utils/StdVector.hh"
 #include "acousticPDE.hh"
+
+namespace CoupledField {
+class Grid;
+}  // namespace CoupledField
 
 namespace CoupledField
 {

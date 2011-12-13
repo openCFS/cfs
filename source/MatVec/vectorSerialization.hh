@@ -3,12 +3,15 @@
 #ifndef FILE_VECTOR_SERIALIZATION_HH
 #define FILE_VECTOR_SERIALIZATION_HH
 
-#include "SingleVector.hh"
-#include "vector.hh"
-#include "Utils/boost-serialization.hh"
+#include "boost/version.hpp"
 
-#include <boost/version.hpp>
-#include <boost/serialization/split_member.hpp>
+#include "General/defs.hh"
+#include "Utils/boost-serialization.hh" // IWYU pragma: keep
+
+namespace CoupledField {
+class SingleVector;
+template <typename T> class Vector;
+}  // namespace CoupledField
 #if BOOST_VERSION < 103600
 # include <boost/serialization/is_abstract.hpp>
 #else
@@ -50,10 +53,10 @@ namespace boost {
     template<class T, class ARCHIVE> 
     void save( ARCHIVE & ar, const CoupledField::Vector<T> &v, 
                const unsigned int version ) {
-      ar & boost::serialization::base_object<SingleVector>(v);
-      UInt size = v.GetSize();
+      ar & boost::serialization::base_object<CoupledField::SingleVector>(v);
+      CoupledField::UInt size = v.GetSize();
       ar << size;
-      for( UInt i = 0; i < size; i++ ) 
+      for( CoupledField::UInt i = 0; i < size; i++ ) 
         ar << v[i];
     }
 
@@ -61,13 +64,13 @@ namespace boost {
     template<class T, class ARCHIVE>
     void load( ARCHIVE & ar, CoupledField::Vector<T>& v, 
                const unsigned int version ) {
-      ar & boost::serialization::base_object<SingleVector>(v);   
+      ar & boost::serialization::base_object<CoupledField::SingleVector>(v);   
 
-      UInt size;
+      CoupledField::UInt size;
       ar >> size;
 
       v.Resize( size );
-      for( UInt i = 0; i < size; i++ ) {
+      for( CoupledField::UInt i = 0; i < size; i++ ) {
         ar >> v[i];
       }
     

@@ -1,13 +1,9 @@
-#include <fstream>
-#include <iostream>
-#include <string>
-
+#include "Driver/stdSolveStep.hh"
 #include "solveStepMech.hh"
-#include "assemble.hh"
-#include "PDE/StdPDE.hh"
-#include "OLAS/algsys/basesystem.hh"
 
 namespace CoupledField {
+
+class StdPDE;
 
   SolveStepMech::SolveStepMech(StdPDE& apde) : StdSolveStep(apde) {
     //as this class was identical to its BaseClass all functions are removed

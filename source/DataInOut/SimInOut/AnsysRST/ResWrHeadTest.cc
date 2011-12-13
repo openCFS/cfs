@@ -3,17 +3,17 @@
 #include <vector>
 #include <algorithm>
 
-#include <boost/filesystem/operations.hpp>
-#include <boost/filesystem/path.hpp>
-#include <boost/filesystem/convenience.hpp>
-#include <boost/filesystem/exception.hpp>
+#include "boost/filesystem/operations.hpp"
+#include "boost/filesystem/path.hpp"
+#include "boost/filesystem/convenience.hpp"
+#include "boost/filesystem/exception.hpp"
 namespace fs = boost::filesystem;
 
-#include <boost/algorithm/string/trim.hpp>
+#include "boost/algorithm/string/trim.hpp"
 
 #include "sysparh.h"
 
-#include <def_use_ansysrst.hh>
+#include "def_use_ansysrst.hh"
 
 #include "General/environment.hh"
 #include "ResWrProtos.hh"

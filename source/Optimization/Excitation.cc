@@ -1,18 +1,34 @@
+#include <assert.h>
+#include <stddef.h>
+#include <algorithm>
 #include <cmath>
 #include <limits>
+#include <map>
+#include <ostream>
 
-#include "Optimization/Excitation.hh"
-#include "Optimization/Optimization.hh"
-#include "Driver/assemble.hh"
-#include "Driver/basedriver.hh"
-#include "Domain/domain.hh"
-#include "Domain/grid.hh"
-#include "PDE/StdPDE.hh"
-#include "PDE/SinglePDE.hh"
-#include "PDE/elecPDE.hh" // for polarization matrix, see class TopGrad
+#include "DataInOut/Logging/cfslog.hh"
+#include "DataInOut/Logging/log.hpp"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/ParamHandling/ParamTools.hh"
-#include "DataInOut/Logging/cfslog.hh"
+#include "Domain/domain.hh"
+#include "Domain/entityList.hh"
+#include "Domain/grid.hh"
+#include "Domain/resultInfo.hh"
+#include "Driver/assemble.hh"
+#include "Driver/basedriver.hh"
+#include "General/defs.hh"
+#include "General/environment.hh"
+#include "General/exception.hh"
+#include "MatVec/matrix.hh"
+#include "Optimization/Excitation.hh"
+#include "Optimization/Function.hh"
+#include "Optimization/Objective.hh"
+#include "Optimization/Optimization.hh"
+#include "PDE/SinglePDE.hh"
+#include "PDE/StdPDE.hh"
+#include "PDE/basePDE.hh"
+#include "PDE/elecPDE.hh" // for polarization matrix, see class TopGrad
+#include "Utils/mathParser/mathParser.hh"
 
 using namespace CoupledField;
 using namespace std;
@@ -159,13 +175,13 @@ void MultipleExcitation::PrepareMultipleExcitations(SinglePDE* pde, PtrParamNode
       ex.index = i;
       if (DoMaxwellHomogenization()) {
         ex.frequency = hd->freqs[0].freq;
-        ex.label == lexical_cast<string>(ex.frequency);
+        ex.label = lexical_cast<string>(ex.frequency);
         //ex.weight    = hd->freqs[0].weight;
         ex.f_link    = &hd->freqs[0];
       }
       else {
         ex.frequency = hd->freqs[i].freq;
-        ex.label == lexical_cast<string>(ex.frequency);
+        ex.label = lexical_cast<string>(ex.frequency);
         ex.weight    = hd->freqs[i].weight;
         ex.f_link    = &hd->freqs[i];
 

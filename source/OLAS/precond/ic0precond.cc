@@ -2,8 +2,12 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include "MatVec/scrs_matrix.hh"
+#include <math.h>
+#include <stddef.h>
 
+#include "General/environment.hh"
+#include "MatVec/scrs_matrix.hh" // IWYU pragma: keep
+#include "MatVec/stdmatrix.hh"
 #include "OLAS/precond/ic0precond.hh"
 
 namespace CoupledField {
@@ -11,6 +15,8 @@ namespace CoupledField {
   // ***************
   //   Constructor
   // ***************
+template <typename T> class Vector;
+
   template <typename T>
   IC0Precond<T>::IC0Precond( const StdMatrix& mat, PtrParamNode solverNode,
                              PtrParamNode olasInfo )

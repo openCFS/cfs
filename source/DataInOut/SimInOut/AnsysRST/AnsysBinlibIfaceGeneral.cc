@@ -3,7 +3,7 @@
 #include <complex>
 #include <algorithm>
 
-#include <Domain/grid.hh>
+#include "Domain/grid.hh"
 #include "DataInOut/WriteInfo.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "General/environment.hh"

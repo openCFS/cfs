@@ -3,8 +3,10 @@
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
 
+#include "boost/serialization/export.hpp"
+
 #include "matrixSerialization.hh"
-#include <boost/serialization/export.hpp>
+#include "matrix.hh" // IWYU pragma: keep
 
 BOOST_CLASS_EXPORT_GUID(CoupledField::Matrix<CoupledField::Double>, "CoupledField_Matrix_Double")
 BOOST_CLASS_EXPORT_GUID(CoupledField::Matrix<CoupledField::Complex>, "CoupledField_Matrix_Complex")

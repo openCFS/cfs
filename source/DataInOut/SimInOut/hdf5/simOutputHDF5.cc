@@ -2,27 +2,37 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include <fstream>
-#include <sstream>
+#include <algorithm>
+#include <complex>
+#include <exception>
+#include <fstream> // iwyu
 #include <iostream>
 #include <string>
-#include <algorithm>
+#include <utility>
 
-#include "boost/date_time/posix_time/posix_time.hpp"
-#include <boost/filesystem/operations.hpp>
-#include <boost/filesystem/path.hpp>
-#include <boost/filesystem/convenience.hpp>
-#include <boost/filesystem/exception.hpp>
-
-#include <def_cfs_stats.hh>
-
-#include "DataInOut/programOptions.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
-#include "General/exception.hh"
-#include "simOutputHDF5.hh"
+#include "DataInOut/programOptions.hh"
+#include "DataInOut/simOutput.hh"
 #include "Domain/elem.hh"
+#include "Domain/entityList.hh"
+#include "Domain/grid.hh"
+#include "Domain/resultInfo.hh"
 #include "Elements/basefe.hh"
+#include "General/Enum.hh"
+#include "General/environment.hh"
+#include "General/exception.hh"
+#include "MatVec/basematrix.hh"
+#include "MatVec/vector.hh"
+#include "Utils/Point.hh"
+#include "Utils/result.hh"
+#include "boost/date_time/posix_time/posix_time.hpp"
+#include "boost/filesystem/convenience.hpp"
+#include "boost/filesystem/exception.hpp"
+#include "boost/filesystem/operations.hpp"
+#include "boost/filesystem/path.hpp"
+#include "def_cfs_stats.hh"
 #include "hdf5io.hh"
+#include "simOutputHDF5.hh"
 
 namespace fs = boost::filesystem;
 

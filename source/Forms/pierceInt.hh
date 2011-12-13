@@ -5,14 +5,22 @@
 #ifndef FILE_PIERCEINT_1
 #define FILE_PIERCEINT_1
 
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "General/defs.hh"
+#include "General/environment.hh"
+#include "MatVec/vector.hh"
 #include "baseForm.hh"
+
+namespace CoupledField {
+class EntityIterator;
+template <class TYPE> class Matrix;
+}  // namespace CoupledField
 
 namespace CoupledField
 {
 
   // forward class declaration
   class SimpleFlow;
-  class ParamNode;
 
   //! Class for calculation  element damping matrix for Pierce formulation
   class PierceDampInt : public BaseForm

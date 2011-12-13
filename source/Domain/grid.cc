@@ -3,23 +3,45 @@
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
 #include <cmath>
+#include <iostream>
 #include <string>
 
-#include "DataInOut/ParamHandling/ParamNode.hh"
-#include "DataInOut/programOptions.hh"
 #include "DataInOut/Logging/cfslog.hh"
+#include "DataInOut/Logging/log.hpp"
+#include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/WriteInfo.hh"
-#include "Elements/elements_header.hh"
-#include "elem.hh"
-#include "domain.hh"
+#include "Domain/grid.hh"
+#include "Domain/ncElem.hh"
+#include "Domain/surfElem.hh"
+#include "Elements/1D/line1fe.hh"
+#include "Elements/1D/line2fe.hh"
+#include "Elements/2D/quad1fe.hh"
+#include "Elements/2D/quad2fe.hh"
+#include "Elements/2D/quad9fe.hh"
+#include "Elements/2D/triangle1fe.hh"
+#include "Elements/2D/triangle2fe.hh"
+#include "Elements/3D/hexa1FE.hh"
+#include "Elements/3D/hexa27FE.hh"
+#include "Elements/3D/hexa2FE.hh"
+#include "Elements/3D/pyra1FE.hh"
+#include "Elements/3D/pyra2FE.hh"
+#include "Elements/3D/tetra1FE.hh"
+#include "Elements/3D/tetra2FE.hh"
+#include "Elements/3D/wedge1FE.hh"
+#include "Elements/3D/wedge2FE.hh"
+#include "Elements/basefe.hh"
 #include "General/exception.hh"
+#include "MatVec/exprt/xpr1.hh"
+#include "MatVec/matrix.hh"
 #include "Utils/mathfunctions.hh"
-#include "Utils/coordSystem.hh"
+#include "elem.hh"
+#include "grid.hh"
 #include "polygonIterator.hh"
 
-#include "grid.hh"
-
-#include <limits>
+#ifdef USE_INTERPOLATION
+#include "Domain/domain.hh"
+#include "Utils/coordSystem.hh"
+#endif
 
 namespace CoupledField
 {

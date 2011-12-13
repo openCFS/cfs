@@ -5,7 +5,6 @@
 #ifndef OLAS_GENERATESOLVER_HH
 #define OLAS_GENERATESOLVER_HH
 
-#include "General/environment.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 
 
@@ -15,8 +14,8 @@
 
 namespace CoupledField {
 
-  class BaseSolver;
   class BaseMatrix;
+  class BaseSolver;
   
   //! Generate a basic solver object
 

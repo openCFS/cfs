@@ -1427,8 +1427,6 @@ source/Optimization/TopGrad.cc -text
 source/Optimization/TopGrad.hh -text
 source/Optimization/TransferFunction.cc -text
 source/Optimization/TransferFunction.hh -text
-source/Optimization/piezoPolarizationMatrixRHSInt.cc -text
-source/Optimization/piezoPolarizationMatrixRHSInt.hh -text
 source/PDE/CMakeLists.txt svneol=native#text/plain
 source/PDE/SinglePDE.cc svneol=native#text/x-c%2B%2Bsrc
 source/PDE/SinglePDE.hh svneol=native#text/x-c%2B%2Bhdr
