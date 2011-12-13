@@ -38,10 +38,13 @@
 #include "grid.hh"
 #include "polygonIterator.hh"
 
+
+#include "def_use_interpolation.hh"
 #ifdef USE_INTERPOLATION
 #include "Domain/domain.hh"
 #include "Utils/coordSystem.hh"
 #endif
+
 
 namespace CoupledField
 {
