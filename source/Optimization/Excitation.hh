@@ -60,10 +60,6 @@ public:
 
   void AddLinFormsFromAssemble();
 
-  /** set correct values of pol_rhs for calculation of polarization matrix */
-  void SetPolarizationMatrixRHS(const Vector<double> &mechp,
-      const Vector<double> &elecp, const int num);
-
   /** return pointer to linForms, used by Shape-Optimization */
   StdVector<LinearFormContext*>& GetLinForms() { return *linForms; }
 
@@ -113,10 +109,6 @@ public:
    * charges defined in ErsatzMaterial::SetMaxwellHomogenizationTestCharges() */
   Vector<double> test_charge;
 
-  /** for the calculation of the polarization matrix for the piezo topology gradient
-   *  contains the rhs-values, length is 5 for 2D, 9 for 3D (mech + elec) */
-  Vector<double> pol_rhs;
-
 };
 
 /** This struct stores the multiple excitation Information. It contains the
@@ -130,7 +122,7 @@ public:
 
   void ToInfo(PtrParamNode in) const;
 
-  typedef enum { NO_TYPE, FIXED_WEIGHT, META_OBJECTIVE, HOMOGENIZATION_TEST_STRAINS, POLARIZATION_MATRIX, MAXWELL_HOMOGENIZATION_TEST_STRAINS} Type;
+  typedef enum { NO_TYPE, FIXED_WEIGHT, META_OBJECTIVE, HOMOGENIZATION_TEST_STRAINS, MAXWELL_HOMOGENIZATION_TEST_STRAINS} Type;
 
   static Enum<Type> type;
   /** Do we do multiple excitation at all? */
@@ -146,8 +138,6 @@ public:
   bool DoHomogenization() const { return type_ == HOMOGENIZATION_TEST_STRAINS; }
 
   bool DoMaxwellHomogenization() const { return type_ == MAXWELL_HOMOGENIZATION_TEST_STRAINS; }
-
-  bool DoPolarizationMatrix() const { return type_ == POLARIZATION_MATRIX; }
 
   /** Search for the excitation label.
    * @param quiet if true NULL is returned when the label is not found instead of an exception */
@@ -178,10 +168,6 @@ private:
 
   /** Helper for PrepareMultipleExcitations(). Excitations are set with hard coded maxwell homogenization test charges */
   int SetMaxwellHomogenizationTestCharges();
-
-  /** Helper for PrepareMultipleExcitations(). Excitations are set with hard coded polarization matrix excitations
-   * @param param where polarizationMatrix can be found */
-  int SetPolarizationMatrixExcitations(PtrParamNode param);
 
   /** do we do multiple excitation at all? */
   bool multiple_excitation_;

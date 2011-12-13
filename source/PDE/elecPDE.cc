@@ -38,7 +38,6 @@
 #include "Forms/massInt.hh"
 #include "Forms/nLinElecHystInt.hh"
 #include "Forms/nonConformingInt.hh"
-#include "Forms/piezoPolarizationMatrixRHSInt.hh"
 #include "Forms/singleEntryInt.hh"
 #include "General/Enum.hh"
 #include "General/defs.hh"
@@ -1228,28 +1227,6 @@ class Hysteresis;
 
   }
   
-  void ElecPDE::DefinePolarizationMatrixIntegrators(const Vector<Double> &vals,
-      StdVector<LinearFormContext*> *linForms, const int num)
-  {
-    LinearForm * polRHSElec = new PiezoPolarizationMatrixElecRHSInt(vals, num);
-    
-    StdVector<std::string> region_names;
-    domain->GetGrid()->GetRegionNames(region_names);
-    LOG_DBG(elecpde) << "region names = " << region_names.ToString();
-    // FIXME: hardcoded region name!!
-    shared_ptr<EntityList> entlist = domain->GetGrid()->GetEntityList(EntityList::SURF_ELEM_LIST, 
-        region_names[1], EntityList::NO_TYPE);
-    
-    LinearFormContext *linRhs = new LinearFormContext(polRHSElec);
-    linRhs->SetPtPde(this);
-    linRhs->SetResult(results_[0], entlist);
-    
-    if(linForms != NULL)
-      linForms->Push_back(linRhs);
-    else
-      assemble_->AddLinearForm(linRhs);
-  }
-
   void ElecPDE::DefineAvailResults() {
     
     // Electric Potential

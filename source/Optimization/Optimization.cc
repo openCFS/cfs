@@ -385,7 +385,6 @@ void Optimization::SetEnums()
   MultipleExcitation::type.Add(MultipleExcitation::META_OBJECTIVE, "meta_objective");
   MultipleExcitation::type.Add(MultipleExcitation::HOMOGENIZATION_TEST_STRAINS, "homogenizationTestStrains");
   MultipleExcitation::type.Add(MultipleExcitation::MAXWELL_HOMOGENIZATION_TEST_STRAINS, "maxwellHomogenizationTestStrains");
-  MultipleExcitation::type.Add(MultipleExcitation::POLARIZATION_MATRIX, "polarizationMatrix");
 }
 
 bool Optimization::IsTransient() const{
