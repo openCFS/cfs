@@ -5,11 +5,12 @@
   xmlns="http://www.cfs++.org">
   <material name="Air">
     <acoustic>
-      <!-- Data obtained from : "http://www.ondacorp.com"
-           Reference(s) : "Handbook of Chemistry and Physics, 45th Edition" -->
-      <!-- Remarks : "dry air @ 20 degree c" -->
-      <density> 1.29 </density>
-      <compressionModulus> 1.527E+05 </compressionModulus>
+      <!-- Data obtained from : www.wikipedia.de -> "Luft" und "Kompressionsmodul" und "Adiabatenexponent"  
+      Reference(s) :  -->
+      <!-- Remarks : Standardbedingungen bei Temp. T=20 degree und Druckp=1013 hPa"
+                     Kompressionsmodul aus Adiabatenexponent gamma = 1,40 berechnet -->
+      <density> 1.204 </density>
+      <compressionModulus> 1.41855E+05 </compressionModulus>
     </acoustic>
     <electric>
       <!-- Data obtained from : "http://hyperphysics.phy-astr.gsu.edu/hbase/hframe.html"
@@ -26,14 +27,14 @@
            Reference(s) : "www.yutopian.com/Yuan/prop/" -->
       <!-- Remarks : "@ 27 degree c" -->
       <density> 1.18 </density>
-      <heatCapacity>       
+      <heatCapacity>
         <linear>
-           <isotropic> 1005 </isotropic>
+          <isotropic> 1005 </isotropic>
         </linear>
-      </heatCapacity> 
-      <heatConductivity> 
+      </heatCapacity>
+      <heatConductivity>
         <linear>
-           <isotropic> 0.03 </isotropic>
+          <isotropic>0.03</isotropic>
         </linear>
       </heatConductivity>
     </heatConduction>
@@ -75,14 +76,14 @@
       <!-- Data obtained from : "http://www.memsnet.org"
            Reference(s) : "CRC Materials Science and Engineering Handbook" -->
       <density> 2700 </density>
-      <heatCapacity>       
+      <heatCapacity>
         <linear>
-           <isotropic>  898.7  </isotropic>
+          <isotropic> 898.7 </isotropic>
         </linear>
-      </heatCapacity> 
-      <heatConductivity> 
+      </heatCapacity>
+      <heatConductivity>
         <linear>
-           <isotropic> 237 </isotropic>
+          <isotropic>237</isotropic>
         </linear>
       </heatConductivity>
     </heatConduction>
@@ -98,6 +99,28 @@
       </magneticPermeability>
     </magnetic>
   </material>
+  
+  
+  
+  
+  <material name="Nickel">
+    <mechanical>
+      <!-- Data obtained from : "http://www.matweb.com"
+        Reference(s) : "www.matweb.com"
+        Remarks : "Alluminium Alloy" -->
+      <density> 8908 </density>
+      <elasticity>
+        <isotropic>
+          <real>
+            <elasticityModulus> 2.00E+11 </elasticityModulus>
+            <poissonNumber> 0.33 </poissonNumber>
+          </real>
+        </isotropic>
+      </elasticity>
+    </mechanical>
+     </material>
+  
+  
 
   <material name="BariumTitanate">
     <mechanical>
@@ -229,14 +252,14 @@
       <!-- Data obtained from : "http://www.memsnet.org"
            Reference(s) : "Mechanics of Materials, 1996" -->
       <density> 8960 </density>
-      <heatCapacity>       
+      <heatCapacity>
         <linear>
-           <isotropic>  384.56  </isotropic>
+          <isotropic> 384.56 </isotropic>
         </linear>
-      </heatCapacity> 
-      <heatConductivity> 
+      </heatCapacity>
+      <heatConductivity>
         <linear>
-           <isotropic> 398 </isotropic>
+          <isotropic> 398 </isotropic>
         </linear>
       </heatConductivity>
     </heatConduction>
@@ -251,7 +274,7 @@
         <isotropic>
           <real>
             <elasticityModulus> 7.0e10 </elasticityModulus>
-            <poissonNumber> 0.22 </poissonNumber>
+            <poissonNumber> 0.2 </poissonNumber>
           </real>
         </isotropic>
       </elasticity>
@@ -307,14 +330,14 @@
       <!-- Data obtained from : "http://www.memsnet.org"
            Reference(s) : "CRC Materials Science and Engineering Handbook" -->
       <density> 19280 </density>
-      <heatCapacity>       
+      <heatCapacity>
         <linear>
-           <isotropic> 128.74  </isotropic>
+          <isotropic> 128.74 </isotropic>
         </linear>
-      </heatCapacity> 
-      <heatConductivity> 
+      </heatCapacity>
+      <heatConductivity>
         <linear>
-           <isotropic>  315  </isotropic>
+          <isotropic> 315 </isotropic>
         </linear>
       </heatConductivity>
     </heatConduction>
@@ -363,15 +386,15 @@
            Reference(s) : "www.goodfellow.com/csp/active/gfMaterials.csp" -->
       <!-- Remarks : "density @ 20 degree c; specific heat capacity @ 25 degree c; thermal conductivity @ 0-100 degree c." -->
       <density> 7870 </density>
-      <heatCapacity>       
+      <heatCapacity>
         <linear>
-           <isotropic> 444  </isotropic>
+          <isotropic> 444 </isotropic>
         </linear>
-      </heatCapacity> 
-      <heatConductivity> 
+      </heatCapacity>
+      <heatConductivity>
         <linear>
-           <isotropic>  80.4  </isotropic>
-        </linear>
+          <isotropic> 80.4 </isotropic>
+        </linear>          
       </heatConductivity>
     </heatConduction>
     <magnetic>
@@ -412,17 +435,17 @@
       <!-- Data obtained from : "http://www.memsnet.org"
            Reference(s) : "CRC Materials Science and Engineering Handbook" -->
       <density> 11340 </density>
-      <heatCapacity>       
+      <heatCapacity>
         <linear>
-           <isotropic>  158.84 </isotropic>
+          <isotropic> 158.84 </isotropic>
         </linear>
-      </heatCapacity> 
-      <heatConductivity> 
+      </heatCapacity>
+      <heatConductivity>
         <linear>
-           <isotropic>  35.2  </isotropic>
-        </linear>
+          <isotropic> 35.2 </isotropic>
+        </linear>          
       </heatConductivity>
-     </heatConduction>
+    </heatConduction>
   </material>
 
   <material name="LithiumNiobate">
@@ -509,14 +532,14 @@
            Reference(s) : "www.goodfellow.com/csp/active/gfMaterials.csp" -->
       <!-- Remarks : "also called polyethylene terephthalate; specific heat capacity value in the range 1200-1350; thermal conductivity @ 23 degree c and value in the range 0.15-0.4." -->
       <density> 1390 </density>
-      <heatCapacity>       
+      <heatCapacity>
         <linear>
-           <isotropic>   1275 </isotropic>
+          <isotropic> 1275 </isotropic>
         </linear>
-      </heatCapacity> 
-      <heatConductivity> 
+       </heatCapacity>
+      <heatConductivity>
         <linear>
-           <isotropic>  0.28  </isotropic>
+          <isotropic> 0.28 </isotropic>
         </linear>
       </heatConductivity>
     </heatConduction>
@@ -565,14 +588,14 @@
            Reference(s) : "www.goodfellow.com/csp/active/gfMaterials.csp" -->
       <!-- Remarks : "specific heat capacity value in the range 1400-1500; thermal conductivity @ 23 degree c and value in the range 0.17-0.19." -->
       <density> 1190 </density>
-      <heatCapacity>       
+      <heatCapacity>
         <linear>
-           <isotropic>   1450 </isotropic>
+          <isotropic> 1450 </isotropic>
         </linear>
-      </heatCapacity> 
-      <heatConductivity> 
+      </heatCapacity>
+      <heatConductivity>
         <linear>
-           <isotropic>  0.18  </isotropic>
+          <isotropic> 0.18 </isotropic>
         </linear>
       </heatConductivity>
     </heatConduction>
@@ -625,14 +648,14 @@
            Reference(s) : "www.matweb.com" -->
       <!-- Remarks : "density in the range 1240-1250; specific heat capacity: 1.2 j/g.c; thermal conductivity value in the range 0.12-0.26" -->
       <density> 1245 </density>
-      <heatCapacity>       
+      <heatCapacity>
         <linear>
-           <isotropic>  1200 </isotropic>
+          <isotropic> 1200 </isotropic>
         </linear>
-      </heatCapacity> 
-      <heatConductivity> 
+      </heatCapacity>
+      <heatConductivity>
         <linear>
-           <isotropic>  0.19  </isotropic>
+          <isotropic> 0.19 </isotropic>
         </linear>
       </heatConductivity>
     </heatConduction>
@@ -658,14 +681,14 @@
            Reference(s) : "www.matweb.com" -->
       <!-- Remarks : "alloy (abs); density in the range 1090-1120; specific heat capacity: 1.5 j/g.c" -->
       <density> 1105 </density>
-      <heatCapacity>       
+      <heatCapacity>
         <linear>
-           <isotropic>  1500 </isotropic>
+          <isotropic> 1500 </isotropic>
         </linear>
-      </heatCapacity> 
-      <heatConductivity> 
+      </heatCapacity>
+      <heatConductivity>
         <linear>
-           <isotropic>  0.19  </isotropic>
+          <isotropic> 0.19 </isotropic>
         </linear>
       </heatConductivity>
     </heatConduction>
@@ -878,15 +901,15 @@
       <!-- Data obtained from : "http://www.memsnet.org"
            Reference(s) : "CRC Materials Science and Engineering Handbook" -->
       <density> 10500 </density>
-      <heatCapacity>       
+      <heatCapacity>
         <linear>
-           <isotropic>  236.59 </isotropic>
+          <isotropic> 236.59 </isotropic>
         </linear>
-      </heatCapacity> 
-      <heatConductivity> 
+      </heatCapacity>
+      <heatConductivity>
         <linear>
-           <isotropic>  427  </isotropic>
-        </linear>
+          <isotropic>427</isotropic>
+        </linear>          
       </heatConductivity>
     </heatConduction>
   </material>
@@ -939,15 +962,15 @@
       <!-- Data obtained from : "http://www.memsnet.org"
            Reference(s) : "CRC Materials Science and Engineering Handbook" -->
       <density> 19250 </density>
-      <heatCapacity>       
+      <heatCapacity>
         <linear>
-           <isotropic> 132.51 </isotropic>
+          <isotropic> 132.51 </isotropic>
         </linear>
-      </heatCapacity> 
-      <heatConductivity> 
+       </heatCapacity>
+      <heatConductivity>
         <linear>
-           <isotropic>  178  </isotropic>
-        </linear>
+          <isotropic> 178 </isotropic>
+        </linear>          
       </heatConductivity>
     </heatConduction>
   </material>
@@ -988,14 +1011,14 @@
            Reference(s) : "www.matweb.com" -->
       <!-- Remarks : "specific heat capacity: 4.182 j/g.c" -->
       <density> 998.23 </density>
-      <heatCapacity>       
+      <heatCapacity>
         <linear>
-           <isotropic> 4182 </isotropic>
+          <isotropic> 4182 </isotropic>
         </linear>
-      </heatCapacity> 
-      <heatConductivity> 
+       </heatCapacity>
+      <heatConductivity>
         <linear>
-           <isotropic>  0.61  </isotropic>
+          <isotropic> 0.61 </isotropic>
         </linear>
       </heatConductivity>
     </heatConduction>
