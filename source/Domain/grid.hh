@@ -19,6 +19,7 @@
 #include "CGAL/Cartesian.h"
 #include "CGAL/Polygon_2_algorithms.h"
 #include "CGAL/box_intersection_d.h"
+#include "MatVec/matrix.hh"
 #endif
 
 #include "DataInOut/ParamHandling/ParamNode.hh"

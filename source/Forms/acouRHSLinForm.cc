@@ -30,6 +30,13 @@
 #include "boost/tokenizer.hpp"
 #include "math.h"
 
+#include "def_use_interpolation.hh"
+#ifdef USE_INTERPOLATION
+#include "DataInOut/programOptions.hh"
+#include "Utils/boost-serialization.hh"
+#endif
+
+
 namespace CoupledField {
 
   // ====================================================================
