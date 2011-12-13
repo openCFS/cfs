@@ -115,13 +115,6 @@ namespace CoupledField
     //! is negative compared to the normal one
     void SetThermoCoupling();
 
-    /** add the integrators for the polarization matrix to the linear forms, similar as in multiple load case;
-     * called from Excitation::SetPolarizationMatrixRHS
-     * @param vals contains the values from the xml test strains
-     * @param linForms set to append linear Forms to, if NULL use assemble_ */
-    void DefinePolarizationMatrixIntegrators(const Vector<Double> &vals,
-        StdVector<LinearFormContext*> *linForms, const int num);
-
     // add the  integrators for maxwell homogenization formula to the linear forms
     void DefineMaxwellHomIntegrators(StdVector<LinearFormContext*>* linForms);
 

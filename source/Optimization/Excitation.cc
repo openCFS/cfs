@@ -27,7 +27,7 @@
 #include "PDE/SinglePDE.hh"
 #include "PDE/StdPDE.hh"
 #include "PDE/basePDE.hh"
-#include "PDE/elecPDE.hh" // for polarization matrix, see class TopGrad
+#include "PDE/elecPDE.hh"
 #include "Utils/mathParser/mathParser.hh"
 
 using namespace CoupledField;
@@ -136,17 +136,6 @@ void MultipleExcitation::PrepareMultipleExcitations(SinglePDE* pde, PtrParamNode
       weight_sum = 1; // all 0 but the first 1
     }
 
-    // sets and resizes excitations with polarization matrix loads
-    if(DoPolarizationMatrix())
-    {
-      // FIXME: maybe more sanity checks needed
-      assert(!DoHomogenization()); // cannot do both
-      assert(!DoMaxwellHomogenization());
-
-      num_loads = SetPolarizationMatrixExcitations(param);
-      weight_sum = 1; // all 0 but the last 1
-    }
-
     // the following is validated by above and 1 frequency and 0 loads is harmless
     if(num_freq > 1)  excitations.Resize(num_freq);
     if(num_loads > 1) excitations.Resize(num_loads); // redundant for homogenization
@@ -213,8 +202,7 @@ void MultipleExcitation::PrepareMultipleExcitations(SinglePDE* pde, PtrParamNode
     }
     if(pnexcitations.GetSize() == 0
         && !DoHomogenization()
-        && !DoMaxwellHomogenization()
-        && !DoPolarizationMatrix())
+        && !DoMaxwellHomogenization())
     {
       LoadList loads = pde->getPDE_assemble()->GetLoads();
 
@@ -357,62 +345,6 @@ int MultipleExcitation::SetMaxwellHomogenizationTestCharges()
   return excitations.GetSize();
 }
 
-int MultipleExcitation::SetPolarizationMatrixExcitations(PtrParamNode param)
-{
-  // collect all necessary data
-  int dim = domain->GetGrid()->GetDim();
-  int dim1 = dim == 3 ? 6 : 3;
-  // int dim2 = dim == 3 ? 3 : 2;
-
-  // read material information from xml-file
-  // check for tensor element
-  PtrParamNode pol = param->Get("polarizationMatrix");
-  Matrix<double> mechmatrix;
-  Matrix<double> elecmatrix;
-  Matrix<double> couplmatrix;
-
-  mechmatrix.Resize(dim1, dim1);
-  elecmatrix.Resize(dim, dim);
-  couplmatrix.Resize(dim1, dim);
-
-  ParamTools::AsTensor<double>(pol->Get("mechTensor/real"), dim1, dim1, mechmatrix);
-  ParamTools::AsTensor<double>(pol->Get("elecTensor/real"), dim, dim, elecmatrix);
-  ParamTools::AsTensor<double>(pol->Get("couplingTensor/real"), dim1, dim, couplmatrix);
-
-  const int cases(dim == 2 ? 5 : 9);
-  assert(excitations.GetSize() == 1);
-  excitations.Resize(cases);
-
-  // decompose the vector with the material parameters into the
-  // part for mech and the one for elec
-  Vector<double> mechpart(dim1, 0.0);
-  Vector<double> elecpart(dim, 0.0);
-
-  for(int i = 0; i < cases; ++i)
-  {
-    // this must be the entry of A^0
-    if(i < cases - dim)
-    {
-      for(int n = 0; n < dim1; ++n)
-        mechpart[n] = mechmatrix[n][i];
-      for(int n = 0; n < dim; ++n)
-        elecpart[n] = couplmatrix[i][n];
-    }
-    else
-    {
-      for(int n = 0; n < dim1; ++n)
-        mechpart[n] = couplmatrix[n][i];
-      for(int n = 0; n < dim; ++n)
-        elecpart[n] = elecmatrix[i][n];
-    }
-
-    excitations[i].SetPolarizationMatrixRHS(mechpart, elecpart, i);
-    // The homogenized tensor can only be evaluated for the last excitation!
-    excitations[i].weight = i < cases-1 ? 0.0 : 1.0;
-  }
-
-  return cases;
-}
 
 
 void MultipleExcitation::NormalizeMultipleExcitations(ObjectiveContainer* objectives)
@@ -583,17 +515,6 @@ void Excitation::ReadTestCharges(const Vector<double>& vec)
   elec->SetRegionCharges(vec);
   elec->DefineMaxwellHomIntegrators(linForms);
  // std::cout << "Number of linForms: " << linForms->GetSize() << std::endl;
-}
-
-void Excitation::SetPolarizationMatrixRHS(const Vector<double>& mechp,
-    const Vector<double>& elecp, const int num)
-{
-  loads.Clear();
-  MechPDE* mech = dynamic_cast<MechPDE*>(domain->GetSinglePDE("mechanic"));
-  mech->DefinePolarizationMatrixIntegrators(mechp, linForms, num);
-
-  ElecPDE* elec = dynamic_cast<ElecPDE*>(domain->GetSinglePDE("electrostatic"));
-  elec->DefinePolarizationMatrixIntegrators(elecp, linForms, num);
 }
 
 
