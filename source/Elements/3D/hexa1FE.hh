@@ -150,7 +150,7 @@ namespace CoupledField
                                             const Matrix<Double> & CornerCoords,
                                             const Elem* elem);
 
-    virtual void Global2LocalCoords(Matrix<Double> & localCoords,
+    void Global2LocalCoords(Matrix<Double> & localCoords,
                             const Matrix<Double> & globalCoords,
                             const Matrix<Double> & coordMat );
   private:

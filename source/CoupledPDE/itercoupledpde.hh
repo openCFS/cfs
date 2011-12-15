@@ -25,7 +25,7 @@ namespace CoupledField
   class SinglePDE;
   class StdPDE;
 
-  //! This class iteratively solve a list of given SinglePDEs 
+  //! This class iteratively solves a list of given SinglePDEs 
   class IterCoupledPDE : public BasePDE
   {
 
@@ -56,14 +56,6 @@ namespace CoupledField
     //! Return pointer to the SolveStep object
     BaseSolveStep * GetSolveStep();
 
-    //! Solve static step
-    //void SolveStepStatic(const UInt kstep, const Double asteptime, 
-    //           const bool updatesysmat);
-  
-    //! solve transient step
-    //void SolveStepTrans(const UInt kstep, const Double asteptime,
-    //                  const bool updatesysmat);
-  
     //! write a restart file "simname_pdename.restart"
     void WriteRestart( );
 

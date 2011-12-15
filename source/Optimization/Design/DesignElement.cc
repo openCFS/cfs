@@ -760,9 +760,9 @@ double SIMPElement::GetDensityFilteredGradient(DesignElement::ValueSpecifier sp,
   // p is rho and P is rho filtered! d f/d p_e = sum_i(in N_e) d f/d P_i * d P_i/d p_e with d P_i/d p_e = w(x_e)/ sum_j(in N_i) w(x_j)
   // note, that the stored value is already v = d f/d P_i
 
-  LOG_DBG3(desel) << "GDFG: el=" << de_->elem->elemNum
-                << " sp=" << DesignElement::valueSpecifier.ToString(sp)
-                << " g=" << (g != NULL ? Condition::type.ToString(g->GetType()) : "null");
+  //LOG_DBG3(desel) << "GDFG: el=" << de_->elem->elemNum
+                //<< " sp=" << DesignElement::valueSpecifier.ToString(sp)
+                //<< " g=" << (g != NULL ? Condition::type.ToString(g->GetType()) : "null");
 
   double sum = 0.0;
 

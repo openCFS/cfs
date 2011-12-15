@@ -191,7 +191,7 @@ namespace CoupledField
   {
 
     Settings& settings = Settings::Instance();
-    std::cout << "Entering FileReader_EnSight::ReadNodalValues..." << std::endl;
+    //std::cout << "Entering FileReader_EnSight::ReadNodalValues..." << std::endl;
 
     SetTimeValue(timeValues_[timeStepIdx]);
     reader_->Modified();
