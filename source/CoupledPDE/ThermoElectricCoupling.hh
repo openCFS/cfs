@@ -1,15 +1,17 @@
 #ifndef FILE_THERMO_ELECTRIC_COUPLING_HH
 #define FILE_THERMO_ELECTRIC_COUPLING_HH
 
+#include <string>
+
 #include "BasePairCoupling.hh"
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "General/defs.hh"
 
 
 namespace CoupledField
 {
 
   // Forward declarations
-  class BaseForm;
-  class BaseMaterial;
   class SinglePDE;
 
   //! Implements the definition of the pairwise thermo-electric coupling

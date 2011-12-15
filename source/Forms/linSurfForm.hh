@@ -5,7 +5,20 @@
 #ifndef FILE_LIN_SURF_FORM
 #define FILE_LIN_SURF_FORM
 
+#include <map>
+
 #include "Forms/linearForm.hh"
+#include "General/defs.hh"
+#include "General/environment.hh"
+#include "MatVec/vector.hh"
+#include "Utils/mathParser/mathParser.hh"
+
+namespace CoupledField {
+class BaseMaterial;
+class EntityIterator;
+struct Elem;
+struct SurfElem;
+}  // namespace CoupledField
 
 namespace CoupledField 
 {

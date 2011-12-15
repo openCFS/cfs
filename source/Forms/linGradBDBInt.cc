@@ -2,13 +2,21 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include <iostream>
+#include <stddef.h>
 #include <fstream>
 
-#include "General/environment.hh"
-#include "Domain/domain.hh"
-#include "linGradBDBInt.hh"
 #include "DataInOut/Logging/cfslog.hh"
+#include "DataInOut/Logging/log.hpp"
+#include "Domain/domain.hh"
+#include "Domain/elem.hh"
+#include "Domain/entityList.hh"
+#include "Elements/basefe.hh"
+#include "General/environment.hh"
+#include "MatVec/exprt/xpr2.hh"
+#include "MatVec/matrix.hh"
+#include "Materials/baseMaterial.hh"
+#include "Utils/mathParser/mathParser.hh"
+#include "linGradBDBInt.hh"
 
 DECLARE_LOG(forms)
 

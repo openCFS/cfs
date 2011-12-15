@@ -2,26 +2,26 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
+#include <stddef.h>
 #include <fstream>
-#include <sstream>
-#include <iostream>
 #include <string>
-#include <algorithm>
 
-#include "boost/date_time/posix_time/posix_time.hpp"
-#include <boost/filesystem/operations.hpp>
-#include <boost/filesystem/path.hpp>
-#include <boost/filesystem/convenience.hpp>
-#include <boost/filesystem/exception.hpp>
-
-#include <def_cfs_stats.hh>
-
-#include "DataInOut/programOptions.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
-#include "General/exception.hh"
-#include "simOutputXDMF.hh"
+#include "DataInOut/simOutput.hh"
 #include "Domain/elem.hh"
-#include "Elements/basefe.hh"
+#include "Domain/grid.hh"
+#include "General/environment.hh"
+#include "boost/date_time/posix_time/posix_time.hpp"
+#include "boost/filesystem/convenience.hpp"
+#include "boost/filesystem/exception.hpp"
+#include "boost/filesystem/operations.hpp"
+#include "boost/filesystem/path.hpp"
+#include "def_cfs_stats.hh"
+#include "simOutputXDMF.hh"
+
+namespace CoupledField {
+class BaseResult;
+}  // namespace CoupledField
 
 namespace fs = boost::filesystem;
 

@@ -1,14 +1,21 @@
-#include "mixedEqnMap.hh"
-#include "Domain/elem.hh"
-#include "Domain/grid.hh"
-#include "Domain/domain.hh" 
-#include "Domain/ansatzFct.hh"
-#include "Utils/coordSystem.hh"
-#include "DataInOut/Logging/cfslog.hh"
-#include "DataInOut/ParamHandling/ParamNode.hh"
-#include "Domain/entityList.hh"
+#include <iostream>
+#include <string>
 
-#include <boost/lexical_cast.hpp> 
+#include "DataInOut/Logging/cfslog.hh"
+#include "DataInOut/Logging/log.hpp"
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "Domain/ansatzFct.hh"
+#include "Domain/resultInfo.hh"
+#include "PDE/disContEqnMap.hh"
+#include "PDE/eqnMap.hh"
+#include "boost/lexical_cast.hpp" 
+#include "mixedEqnMap.hh"
+
+namespace CoupledField {
+class EntityIterator;
+class EntityList;
+class Grid;
+}  // namespace CoupledField
 
 using std::string; 
 using boost::lexical_cast; 

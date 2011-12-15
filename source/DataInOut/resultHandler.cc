@@ -2,15 +2,29 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include "resultHandler.hh"
+#include <assert.h>
+#include <iostream>
+#include <utility>
 
-#include "DataInOut/programOptions.hh"
-#include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/Logging/cfslog.hh"
-#include "Domain/domain.hh"
-#include "DataInOut/postProc.hh"
+#include "DataInOut/Logging/log.hpp"
+#include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/SimInOut/TextOutput/textSimOutput.hh"
+#include "DataInOut/postProc.hh"
+#include "DataInOut/programOptions.hh"
 #include "DataInOut/simInput.hh"
+#include "DataInOut/simOutput.hh"
+#include "Domain/domain.hh"
+#include "Domain/entityList.hh"
+#include "Domain/grid.hh"
+#include "Domain/resultInfo.hh"
+#include "General/Enum.hh"
+#include "General/exception.hh"
+#include "MatVec/vector.hh"
+#include "PDE/eqnMap.hh"
+#include "Utils/nodestoresol.hh"
+#include "Utils/result.hh"
+#include "resultHandler.hh"
 
 namespace CoupledField {
 

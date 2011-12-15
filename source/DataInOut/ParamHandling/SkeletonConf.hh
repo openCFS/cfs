@@ -13,7 +13,7 @@
 /* Writes a skeleton of the config file.                                  */
 /**************************************************************************/
 
-#include <DataInOut/simInput.hh>
+#include "DataInOut/simInput.hh"
 
 namespace CoupledField
 {

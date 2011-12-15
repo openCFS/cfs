@@ -5,38 +5,54 @@
 #ifndef FILE_SINGLEPDE
 #define FILE_SINGLEPDE
 
-#include "PDE/StdPDE.hh"
-
 #include <list>
 #include <map>
+#include <set>
+#include <string>
+#include <utility>
+
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "General/defs.hh"
+#include "General/environment.hh"
+#include "General/exception.hh"
+#include "MatVec/vector.hh"
+#include "PDE/StdPDE.hh"
+#include "PDE/timestepping.hh"
+#include "Utils/StdVector.hh"
 
 //#include <iostream>
 //#include <utility>
 //#include <string>
 //using namespace std;
 
-#include <boost/tokenizer.hpp>
 #include "DataInOut/Scripting/scriptable.hh"
-#include "Utils/mathParser/mathParser.hh"
-#include "Domain/resultInfo.hh"
-#include "Utils/elemstoresol.hh"
 #include "Domain/bcs.hh"
-#include "Utils/result.hh"
-#include "DataInOut/SimInOut/hdf5/simOutputHDF5.hh"
-#include "DataInOut/SimInOut/hdf5/simInputHDF5.hh"
+#include "Utils/mathParser/mathParser.hh"
+#include "boost/tokenizer.hpp"
+
+namespace CoupledField {
+class AnsatzFct;
+class BaseMaterial;
+class BaseNodeStoreSol;
+class BaseResult;
+class EntityList;
+class Grid;
+class PDECoupling;
+class SimOutput;
+struct Elem;
+struct ResultInfo;
+template <class TYPE> class Matrix;
+}  // namespace CoupledField
 
 namespace CoupledField
 {
-  // forward class declaration
-  class VolForceInt;
-  class VolChargeHomInt;
-  class SpaceErrorEstimator;
-  class VolumeSrcInt;
-  class BasePairCoupling;
-  class DirectCoupledPDE;
-  class Assemble;
   class BaseForm;
   class PDEMemento;
+  class SpaceErrorEstimator;
+  class VolChargeHomInt;
+  // forward class declaration
+  class VolForceInt;
+  class VolumeSrcInt;
 
   
   //! Base class for all kinds of single field problems.
@@ -55,8 +71,8 @@ namespace CoupledField
     typedef StdVector<shared_ptr<BaseResult> > ResultList;
     typedef std::map<shared_ptr<ResultInfo> , ResultList > ResultMap;
 
-    class RegionLoad;
     class MaxwellHom;
+    class RegionLoad;
 
     /** Initialize PDEs 
      * @param base pointer to InfoNode of this PDE */

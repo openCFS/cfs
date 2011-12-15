@@ -2,18 +2,32 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include <boost/filesystem/operations.hpp>
-#include <boost/filesystem/exception.hpp>
+#include "boost/filesystem/exception.hpp"
+#include "boost/filesystem/operations.hpp"
+
 namespace fs = boost::filesystem;
 
-#include "textSimOutput.hh"
+#include <stddef.h>
+#include <complex>
+#include <exception>
 #include <fstream>
-
+#include <utility>
 
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "Domain/domain.hh"
-#include "Utils/coordSystem.hh"
+#include "Domain/elem.hh"
+#include "Domain/entityList.hh"
+#include "Domain/grid.hh"
+#include "Domain/resultInfo.hh"
 #include "Elements/basefe.hh"
+#include "General/environment.hh"
+#include "General/exception.hh"
+#include "MatVec/basematrix.hh"
+#include "MatVec/matrix.hh"
+#include "MatVec/vector.hh"
+#include "Utils/coordSystem.hh"
+#include "Utils/result.hh"
+#include "textSimOutput.hh"
 
 
 namespace CoupledField {

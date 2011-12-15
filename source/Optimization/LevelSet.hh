@@ -1,22 +1,26 @@
 #ifndef LEVELSET_HH_
 #define LEVELSET_HH_
-#include "Optimization/Design/DesignElement.hh"
-
-#include <vector>
-#include <string>
-#include <functional> // for function objects
+#include <assert.h>
+#include <stddef.h>
 #include <algorithm> // for for_each
-#include <utility> // for pair
+#include <functional> // for function objects
 #include <map>
+#include <string>
+#include <utility> // for pair
+#include <vector>
+
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "General/Enum.hh"
+#include "MatVec/vector.hh"
+#include "Optimization/Design/DesignElement.hh"
+#include "Utils/StdVector.hh"
 
 namespace CoupledField
 {
+  class LevelSetNode;
   class Optimization;
-  class ParamNode;
-  class DesignSpace;
   class ShapeGrad;
   class linElastInt;
-  class LevelSetNode;
   
   /** typedef for convenience */
   typedef std::pair<const LevelSetNode *, const LevelSetNode *> lsnodepair;

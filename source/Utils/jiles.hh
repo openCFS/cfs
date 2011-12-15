@@ -5,8 +5,8 @@
 #ifndef FILE_JILES_2004
 #define FILE_JILES_2004
 
-#include <list>
 
+#include "General/defs.hh"
 #include "MatVec/vector.hh"
 #include "hysteresis.hh"
 

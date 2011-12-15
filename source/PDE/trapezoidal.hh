@@ -5,8 +5,15 @@
 #ifndef FILE_TRAPEZOIDAL_2004
 #define FILE_TRAPEZOIDAL_2004
 
-#include <General/environment.hh>
+
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "General/defs.hh"
+#include "MatVec/vector.hh"
 #include "timestepping.hh"
+
+namespace CoupledField {
+class BaseSystem;
+}  // namespace CoupledField
 
 
 namespace CoupledField

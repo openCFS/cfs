@@ -6,6 +6,14 @@
 #define FILE_FLATSHELLPIEZOINT
 
 #include "FlatShellInt.hh"
+#include "General/defs.hh"
+#include "MatVec/vector.hh"
+
+namespace CoupledField {
+class EntityIterator;
+struct Composite;
+template <class TYPE> class Matrix;
+}  // namespace CoupledField
 
 namespace CoupledField
 {

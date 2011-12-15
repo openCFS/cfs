@@ -5,14 +5,23 @@
 #ifndef FILE_MAGNETIC_SCALARPDE_HH
 #define FILE_MAGNETIC_SCALARPDE_HH
 
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "General/defs.hh"
+#include "General/environment.hh"
 #include "SinglePDE.hh" 
+#include "Utils/StdVector.hh"
+
+namespace CoupledField {
+class EntityList;
+class Grid;
+class PDECoupling;
+}  // namespace CoupledField
 
 namespace CoupledField
 {
 
   // forward class declaration
   class BaseResult;
-  class ResultHandler;
   
   //! Magnetic Field PDE using the reduced magnetic scalar potential
   

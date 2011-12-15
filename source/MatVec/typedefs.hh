@@ -11,7 +11,7 @@
 #define OLAS_TYPEDEFS_HH
 
 #include <string>
-#include <def_expl_templ_inst.hh>
+#include "def_expl_templ_inst.hh"
 #include "General/defs.hh"
 
 namespace CoupledField {

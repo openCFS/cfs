@@ -3,6 +3,10 @@
 
 #include "stdSolveStep.hh"
 
+namespace CoupledField {
+class StdPDE;
+}  // namespace CoupledField
+
 namespace CoupledField
 {
 

@@ -6,10 +6,17 @@
 #define FILE_PDECONF_2003
 
 #include <map>
-#include "CoupledPDE/pdecoupling.hh"
+#include <string>
 
-#include "PDE/StdPDE.hh"
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "General/defs.hh"
+#include "General/environment.hh"
 #include "Utils/StdVector.hh"
+
+namespace CoupledField {
+class PDECoupling;
+class StdPDE;
+}  // namespace CoupledField
 
 
 
@@ -18,7 +25,6 @@ namespace CoupledField
 
   class Definition;
   class Grid;
-  class ParamNode;
 
 
   //! Class for composing coupled PDEs out of single field PDEs

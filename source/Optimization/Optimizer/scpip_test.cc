@@ -1,5 +1,5 @@
 #include <iostream>
-#include <math.h>
+#include "math.h"
 
 #include "scpip30.hh"
 

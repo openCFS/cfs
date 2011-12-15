@@ -2,17 +2,27 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
+#include <assert.h>
+#include <math.h>
+#include <stddef.h>
+#include <algorithm>
 #include <iostream>
-#include <fstream>
+#include <limits>
 #include <string>
+#include <utility>
+#include <vector>
 
-#include <string.h>
-#include "basefe.hh"
 #include "1D/line1fe.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
-#include <Domain/elem.hh>
-#include <Utils/tools.hh>
-#include <MatVec/matrix.hh>
+#include "Domain/elem.hh"
+#include "Elements/basefe.hh"
+#include "General/Enum.hh"
+#include "MatVec/exprt/xpr1.hh"
+#include "MatVec/exprt/xpr2.hh"
+#include "MatVec/matrix.hh"
+#include "Utils/Point.hh"
+#include "basefe.hh"
+#include "string.h"
 
 namespace CoupledField
 {

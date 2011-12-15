@@ -2,28 +2,35 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include <fstream>
+#include <math.h>
 #include <iostream>
-#include <string>
+#include <map>
+#include <utility>
 
-#include "OLAS/algsys/basesystem.hh"
-#include "solveStepMicroPiezo.hh"
-#include "Utils/preisach.hh"
-#include "Utils/jiles.hh"
-#include "assemble.hh"
-#include "Forms/gradfieldop.hh"
-#include "PDE/SinglePDE.hh"
-#include "Utils/nodestoresol.hh"
-#include "PDE/StdPDE.hh"
-#include "Domain/domain.hh"
-#include "Utils/result.hh"
 #include "CoupledPDE/BasePairCoupling.hh"
 #include "CoupledPDE/DirectCoupledPDE.hh"
-#include "Utils/piezoMicroModel.hh"
-#include "Utils/piezoMicroModelBK.hh"
 #include "DataInOut/ResultCache.hh"
+#include "Domain/domain.hh"
+#include "Driver/stdSolveStep.hh"
+#include "General/environment.hh"
+#include "General/exception.hh"
+#include "MatVec/SingleVector.hh"
+#include "MatVec/exprt/xpr1.hh"
+#include "MatVec/vector.hh"
+#include "Materials/baseMaterial.hh"
+#include "OLAS/algsys/basesystem.hh"
+#include "PDE/SinglePDE.hh"
+#include "PDE/StdPDE.hh"
+#include "PDE/timestepping.hh"
+#include "Utils/basenodestoresol.hh"
+#include "Utils/nodestoresol.hh"
+#include "Utils/piezoMicroModelBK.hh"
+#include "assemble.hh"
+#include "solveStepMicroPiezo.hh"
 
 namespace CoupledField {
+
+class AdjointParameters;
 
   SolveStepMicroPiezo::SolveStepMicroPiezo(StdPDE& apde) : StdSolveStep(apde)
   {

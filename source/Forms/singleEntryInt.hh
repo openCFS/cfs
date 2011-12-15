@@ -5,10 +5,16 @@
 #ifndef CFS_SINGLEENTRY_INT_HH
 #define CFS_SINGLEENTRY_INT_HH
 
-#include "baseForm.hh"
+#include <string>
+
+#include "General/defs.hh"
 #include "Utils/mathParser/mathParser.hh"
+#include "baseForm.hh"
 
 namespace CoupledField {
+
+class EntityIterator;
+template <class TYPE> class Matrix;
 
   class SingleEntryInt : public BaseForm {
 

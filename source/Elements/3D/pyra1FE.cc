@@ -2,11 +2,14 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
+#include <stddef.h>
 #include <iostream>
-#include <fstream>
 
-#include <General/environment.hh>
 #include "Domain/elem.hh"
+#include "Elements/3D/pyraFE.hh"
+#include "General/exception.hh"
+#include "MatVec/matrix.hh"
+#include "Utils/StdVector.hh"
 #include "pyra1FE.hh"
 
 namespace CoupledField

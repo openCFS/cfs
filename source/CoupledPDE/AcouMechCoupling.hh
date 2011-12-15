@@ -6,14 +6,18 @@
 #define FILE_ACOU_MECH_COUPLING_HH
 
 #include "BasePairCoupling.hh"
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "General/defs.hh"
+
+namespace CoupledField {
+class SinglePDE;
+}  // namespace CoupledField
 
 
 namespace CoupledField
 {
 
   // Forward declarations
-  class BaseForm;
-  class MaterialData;
 
   //! Implements the definition of the pairwise acoustic-mechanic
   class AcouMechCoupling : public BasePairCoupling

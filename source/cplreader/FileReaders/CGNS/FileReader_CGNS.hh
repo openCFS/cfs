@@ -20,7 +20,7 @@
 #define FILE_FILEREADER_CGNS
 
 
-#include <def_cplreader.hh>
+#include "def_cplreader.hh"
 #include "cgnslib.h"
 #include "cplreader/FileReader.hh"
 

@@ -4,10 +4,12 @@
 
 // the following headers are required for Export()
 #include <cstdio>
-#include <sstream>
 
-
+#include "General/environment.hh"
+#include "MatVec/coordformat.hh" // IWYU pragma: keep
 #include "MatVec/crs_matrix.hh"
+#include "MatVec/stdmatrix.hh"
+#include "OLAS/graph/basegraph.hh"
 #include "opdefs.hh"
 
 
@@ -16,6 +18,7 @@
 
 namespace CoupledField {
 
+template <typename T> class Vector;
 
   // *********************************
   //   Constructor using CoordFormat

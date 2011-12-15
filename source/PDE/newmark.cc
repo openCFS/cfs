@@ -2,16 +2,18 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include <fstream>
+#include <cmath>
 #include <iostream>
-#include <string>
+#include <map>
+#include <utility>
 
-#include "OLAS/algsys/basesystem.hh"
-
-#include "PDE/StdPDE.hh"
-
-#include "DataInOut/WriteInfo.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
+#include "DataInOut/WriteInfo.hh"
+#include "General/environment.hh"
+#include "MatVec/exprt/xpr1.hh"
+#include "OLAS/algsys/basesystem.hh"
+#include "PDE/timestepping.hh"
+#include "Utils/tools.hh"
 #include "newmark.hh"
 
 namespace CoupledField

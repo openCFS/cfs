@@ -3,7 +3,12 @@
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
 
-#include "PDE/SinglePDE.hh"
+#include <complex>
+#include <iostream>
+#include <string>
+
+#include "General/defs.hh"
+#include "MatVec/vector.hh"
 #include "piezoParamIdent.hh"
 
 namespace CoupledField

@@ -3,13 +3,24 @@
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
 #include <cmath>
+#include <complex>
 #include <sstream>
+#include <vector>
 
 #include "DataInOut/ParamHandling/ParamNode.hh"
+#include "General/environment.hh"
+#include "General/exception.hh"
+#include "MatVec/exprt/xpr1.hh"
+#include "MatVec/exprt/xpr2.hh"
+#include "MatVec/matrix.hh"
+#include "Utils/coordSystem.hh"
+#include "Utils/tools.hh"
 #include "trivialCartesianCoordSys.hh"
 
 
 namespace CoupledField{
+
+class Grid;
 
   TrivialCartesianCoordSystem::TrivialCartesianCoordSystem(const std::string & name,
                                                            Grid * ptGrid,

@@ -2,16 +2,18 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
+#include <algorithm>
 #include <cmath>
 #include <iostream>
 
-#include "mathfunctions.hh"
+#include "General/environment.hh"
+#include "General/exception.hh"
+#include "MatVec/exprt/xpr1.hh"
+#include "MatVec/matrix.hh"
 #include "MatVec/vector.hh"
 #include "Utils/tools.hh"
-#include "General/environment.hh"
-#include "MatVec/matrix.hh"
-
-#include <boost/math/special_functions/bessel.hpp>
+#include "boost/math/special_functions/bessel.hpp"
+#include "mathfunctions.hh"
 
 
 namespace CoupledField {

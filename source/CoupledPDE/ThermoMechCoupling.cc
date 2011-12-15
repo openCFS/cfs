@@ -1,17 +1,24 @@
-#include "ThermoMechCoupling.hh"
+#include <stddef.h>
+#include <map>
+#include <ostream>
+#include <utility>
 
-
+#include "CoupledPDE/BasePairCoupling.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
-
+#include "Domain/entityList.hh"
 #include "Driver/assemble.hh"
-#include "Materials/baseMaterial.hh"
-#include "PDE/SinglePDE.hh"
-
+#include "Driver/formsContext.hh"
+#include "Forms/baseForm.hh"
+#include "Forms/linThermoMechDampInt.hh"
 // integrator (bi-)linear forms
 #include "Forms/linThermoMechInt.hh"
-#include "Forms/linThermoMechDampInt.hh"
-
-#include "PDE/heatCondPDE.hh"
+#include "General/environment.hh"
+#include "General/exception.hh"
+#include "PDE/SinglePDE.hh"
+#include "PDE/basePDE.hh"
+#include "ThermoMechCoupling.hh"
+#include "Utils/basenodestoresol.hh"
+#include "Utils/nodestoresol.hh"
 
 namespace CoupledField {
 
@@ -19,6 +26,8 @@ namespace CoupledField {
   // ***************
   //   Constructor
   // ***************
+class BaseMaterial;
+
   ThermoMechCoupling::ThermoMechCoupling( SinglePDE *pde1, SinglePDE *pde2,
                                       PtrParamNode paramNode  )
     : BasePairCoupling( pde1, pde2, paramNode, "thermoMechDirect") {

@@ -1,20 +1,35 @@
-#include "Optimization/TopGrad.hh"
-#include "Optimization/LevelSet.hh"
-#include "Optimization/Design/DesignSpace.hh"
-#include "Optimization/Design/DesignElement.hh"
-#include "Optimization/Condition.hh"
-#include "DataInOut/ParamHandling/ParamNode.hh"
-#include "DataInOut/Logging/cfslog.hh"
-#include "MatVec/vector.hh"
-#include "Utils/Timer.hh"
-#include "MatVec/matrix.hh"
-#include "Utils/Timer.hh"
-#include "Domain/domain.hh"
-#include "Domain/grid.hh"
-
-#include "boost/date_time/posix_time/posix_time.hpp"
+#include <assert.h>
+#include <algorithm>
+#include <cmath>
+#include <complex>
+#include <cstdlib>
+#include <iostream>
 #include <string>
-#include <functional>
+
+#include "DataInOut/Logging/cfslog.hh"
+#include "DataInOut/Logging/log.hpp"
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "Domain/domain.hh"
+#include "Domain/elem.hh"
+#include "Domain/grid.hh"
+#include "Elements/basefe.hh"
+#include "General/defs.hh"
+#include "General/exception.hh"
+#include "MatVec/exprt/xpr2.hh"
+#include "MatVec/matrix.hh"
+#include "MatVec/vector.hh"
+#include "Optimization/Condition.hh"
+#include "Optimization/Design/DesignElement.hh"
+#include "Optimization/Design/DesignSpace.hh"
+#include "Optimization/Function.hh"
+#include "Optimization/LevelSet.hh"
+#include "Optimization/ShapeGrad.hh"
+#include "Optimization/TopGrad.hh"
+#include "PDE/SinglePDE.hh"
+#include "Utils/StdVector.hh"
+#include "Utils/Timer.hh"
+#include "Utils/tools.hh"
+#include "boost/date_time/posix_time/posix_time.hpp"
 
 namespace CoupledField
 {

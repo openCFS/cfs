@@ -6,13 +6,20 @@
 #define FILE_BASEFE_2003
 
 #include <map>
+#include <string>
 
+#include "Domain/ansatzFct.hh"
+#include "Domain/elem.hh"
+#include "General/defs.hh"
 #include "General/environment.hh"
+#include "General/exception.hh"
 #include "MatVec/matrix.hh"
 #include "MatVec/vector.hh"
 #include "Utils/StdVector.hh"
-#include "Domain/ansatzFct.hh"
-#include "Domain/elem.hh"
+
+namespace CoupledField {
+class Point;
+}  // namespace CoupledField
 
 namespace CoupledField
 {

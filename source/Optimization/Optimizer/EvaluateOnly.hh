@@ -1,12 +1,12 @@
 #ifndef EVALUATEONLY_HH_
 #define EVALUATEONLY_HH_
 
+#include "DataInOut/ParamHandling/ParamNode.hh"
 #include "Optimization/Optimizer/BaseOptimizer.hh"
 
 namespace CoupledField
 {
   class Optimization;
-  class ParamNode;
 
   /** This class only evaluates the initial design. This is mostly for
    * debugging and export purpose. A further feature is, that we can handle multiple frequencies,

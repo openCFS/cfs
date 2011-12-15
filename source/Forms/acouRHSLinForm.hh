@@ -5,16 +5,29 @@
 #ifndef FILE_ACOURHSLINFORM_HH
 #define FILE_ACOURHSLINFORM_HH
 
-#include "Utils/mathParser/mathParser.hh"
+#include <map>
+#include <string>
+#include <vector>
 
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "Domain/grid.hh"
+#include "General/defs.hh"
+#include "PDE/basePDE.hh"
+#include "Utils/StdVector.hh"
+#include "Utils/mathParser/mathParser.hh"
 #include "linearForm.hh"
+
+namespace CoupledField {
+class CoordSystem;
+class EntityIterator;
+template <class TYPE> class Vector;
+}  // namespace CoupledField
 
 namespace CoupledField
 {
 
-  class ParamNode;
-  class NodeList;
   class ElemList;
+  class NodeList;
   
   // =============================================================================
   //  Read / Calculate RHS for acoustic PDE

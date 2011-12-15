@@ -5,10 +5,19 @@
 #ifndef FILE_PIEZOCOUPLING_HH
 #define FILE_PIEZOCOUPLING_HH
 
+#include <string>
+
 #include "BasePairCoupling.hh"
-#include "Utils/elemstoresol.hh"
-#include "Utils/nodestoresol.hh"
-#include "PDE/SinglePDE.hh"
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "General/defs.hh"
+#include "General/environment.hh"
+
+namespace CoupledField {
+class BaseResult;
+class EntityIterator;
+template <class TYPE> class Matrix;
+template <class TYPE> class Vector;
+}  // namespace CoupledField
 
 
 
@@ -16,7 +25,6 @@ namespace CoupledField
 {
 
   // Forward declarations
-  class BaseForm;
   class BaseMaterial;
   class SinglePDE;
 

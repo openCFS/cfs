@@ -1,21 +1,25 @@
+#include <stddef.h>
+#include <algorithm>
 #include <cassert>
 
+#include "DataInOut/Logging/log.hpp"
+
 #ifdef USE_4_CFS
-  #include "Optimization/Optimizer/scpip30.hh"
-  #include "Optimization/Optimizer/SCPIPBase.hh"
-  #include "General/exception.hh"
   #include "DataInOut/Logging/cfslog.hh"
+  #include "General/exception.hh"
+  #include "Optimization/Optimizer/SCPIPBase.hh"
+  #include "Optimization/Optimizer/scpip30.hh"
 
   using namespace CoupledField;
 
   DECLARE_LOG(scpip_base)
   DEFINE_LOG(scpip_base, "scpip_base")
 #else
-  #include "scpip30.hh"
-  #include "SCPIPBase.hh"
-  #include "BasicException.hh"
   #include "BasicEnum.hh"
+  #include "BasicException.hh"
   #include "BasicStdVector.hh"
+  #include "SCPIPBase.hh"
+  #include "scpip30.hh"
 
   // in CFS++ we use a wrapped version of the unofficial
   // Boost Logging Template library by John Torjo.

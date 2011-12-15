@@ -5,7 +5,6 @@
 // the following headers are required for Export()
 #include <cstdio>
 
-
 #include "MatVec/diag_matrix.hh"
 #include "opdefs.hh"
 
@@ -17,6 +16,9 @@ namespace CoupledField {
   // *******************************
   //   Add value to a matrix entry
   // *******************************
+class StdMatrix;
+template <typename T> class Vector;
+
   template<typename T>
   inline void Diag_Matrix<T>::AddToMatrixEntry( UInt i, UInt j, const T& v ) {
 

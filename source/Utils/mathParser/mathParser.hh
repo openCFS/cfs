@@ -5,21 +5,22 @@
 #ifndef MATHPARSER_HH
 #define MATHPARSER_HH
 
-#include <map>
+#include <iosfwd>
 #include <list>
+#include <map>
 #include <set>
-#include <boost/signals.hpp>
-#include "muParser.h"
-#include "Utils/StdVector.hh"
+#include <string>
+
+#include "General/defs.hh"
 #include "MatVec/vector.hh"
-#include "General/environment.hh"
+#include "boost/signals.hpp"
+#include "muParser.h"
 
 namespace CoupledField {
 
-  template <class TYPE> class Vector;
-
   //! Forward class declarations
   class CoordSystem;
+template <class TYPE> class StdVector;
   
   //! Handles mathematical parser for different contexts
   class MathParser{

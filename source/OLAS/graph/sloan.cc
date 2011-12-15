@@ -2,11 +2,14 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include <iostream>
+#include <stddef.h>
+#include <algorithm>
 #include <limits>
+#include <vector>
 
-#include "General/environment.hh"
+#include "General/environment.hh" // IWYU pragma: keep
 #include "OLAS/graph/sloan.hh"
+#include "Utils/StdVector.hh"
 
 namespace CoupledField {
 

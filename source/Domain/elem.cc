@@ -2,11 +2,14 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include "elem.hh"
-#include "Elements/basefe.hh"
 #include "Domain/domain.hh"
+#include "Domain/elem.hh"
 #include "Domain/grid.hh"
+#include "Elements/basefe.hh"
 #include "General/Enum.hh"
+#include "General/exception.hh"
+#include "MatVec/matrix.hh"
+#include "elem.hh"
 
 namespace CoupledField {
 

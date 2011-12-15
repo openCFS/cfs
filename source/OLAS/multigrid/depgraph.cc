@@ -4,7 +4,7 @@
 
 /* $Id$ */
 
-#include <string.h>
+#include "string.h"
 
 #include "multigrid/depgraph.hh"
 #include "DataInOut/coloredConsole.hh"

@@ -2,9 +2,12 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include "piezoMicroModel.hh"
+#include <cmath>
 
-#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "MatVec/exprt/xpr2.hh"
+#include "Materials/baseMaterial.hh"
+#include "Utils/tools.hh"
+#include "piezoMicroModel.hh"
 
 
 namespace CoupledField{

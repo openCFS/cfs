@@ -1,20 +1,34 @@
 #ifndef OPTMATERIAL_HH_
 #define OPTMATERIAL_HH_
 
+#include <stddef.h>
+#include <complex>
+#include <map>
+#include <utility>
+
 #include "General/Enum.hh"
 #include "General/environment.hh"
+#include "General/exception.hh"
+#include "MatVec/matrix.hh"
+#include "MatVec/vector.hh"
 #include "Optimization/Design/DesignElement.hh"
+#include "PDE/mechPDE.hh"
+#include "Utils/StdVector.hh"
+
+namespace CoupledField {
+class BaseMaterial;
+struct Elem;
+}  // namespace CoupledField
 
 namespace CoupledField 
 {
 
-class ErsatzMaterial;
-class DesignSpace;
-class ElecPDE;
-class MechPDE;
-class HeatCondPDE;
 class AcousticPDE;
 class BaseForm;
+class DesignSpace;
+class ElecPDE;
+class ErsatzMaterial;
+class HeatCondPDE;
 class LinearForm;
 
 /** For Optimization problems does this class provide an interface to the actual physics.

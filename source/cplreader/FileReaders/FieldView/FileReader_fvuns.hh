@@ -5,7 +5,7 @@
 #ifndef FILE_FILEREADER_fvuns_2010
 #define FILE_FILEREADER_fvuns_2010
 
-#include <def_cplreader.hh>
+#include "def_cplreader.hh"
 #include "cplreader/FileReader.hh"
 
 namespace CoupledField

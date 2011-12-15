@@ -5,27 +5,36 @@
 #ifndef FILE_BASEPAIRCOUPLING_HH
 #define FILE_BASEPAIRCOUPLING_HH
 
+#include <map>
 #include <set>
+#include <string>
 
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "Domain/Composite.hh"
+#include "General/defs.hh"
 #include "General/environment.hh"
-#include "Utils/StdVector.hh"
 #include "MatVec/vector.hh"
-#include "PDE/eqnMap.hh"
-#include "Utils/result.hh"
 #include "PDE/basePDE.hh"
+#include "Utils/StdVector.hh"
+
+namespace CoupledField {
+class BaseResult;
+class EntityList;
+class EqnMap;
+class SingleVector;
+struct ResultInfo;
+}  // namespace CoupledField
 
 namespace CoupledField
 {
 
-  // forward class declaration
-  class SinglePDE;
   class Assemble;
-  class BaseSystem;
-  class Grid;
   class BaseMaterial;
   class BaseNodeStoreSol;
-  struct Composite;
-  class ParamNode;
+  class BaseSystem;
+  class Grid;
+  // forward class declaration
+  class SinglePDE;
 
   //! Base class for pairwise direct coupling of two pdes
   class BasePairCoupling

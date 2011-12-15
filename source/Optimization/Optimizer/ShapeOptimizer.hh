@@ -1,18 +1,17 @@
 #ifndef SHAPEOPTIMIZER_HH_
 #define SHAPEOPTIMIZER_HH_
 
-#include "Optimization/Optimizer/BaseOptimizer.hh"
-
-#include "boost/date_time/posix_time/posix_time.hpp"
-#include <boost/shared_ptr.hpp>
 #include <string>
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "Optimization/Optimizer/BaseOptimizer.hh"
+#include "boost/date_time/posix_time/posix_time.hpp"
+#include "boost/shared_ptr.hpp"
 
 namespace CoupledField
 {
-class Optimization;
-class ParamNode;
-class TopGrad;
 class LevelSet;
+class Optimization;
+class TopGrad;
 
 /** Optimizer for shape- and topology optimization! */
 class ShapeOptimizer : public BaseOptimizer

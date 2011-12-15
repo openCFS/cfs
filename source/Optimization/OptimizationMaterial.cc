@@ -1,16 +1,34 @@
-#include "Driver/assemble.hh"
-#include "Forms/baseForm.hh"
-#include "Forms/linearForm.hh"
-#include "Forms/linGradBDBInt.hh"
+#include <assert.h>
+#include <ostream>
+#include <string>
+
+#include "DataInOut/Logging/cfslog.hh"
+#include "DataInOut/Logging/log.hpp"
 #include "Domain/domain.hh"
-#include "PDE/mechPDE.hh"
+#include "Domain/elem.hh"
+#include "Domain/entityList.hh"
+#include "Domain/grid.hh"
+#include "Driver/assemble.hh"
+#include "Driver/basedriver.hh"
+#include "Driver/formsContext.hh"
+#include "Forms/baseForm.hh"
+#include "Forms/linGradBDBInt.hh"
+#include "Forms/linearForm.hh"
+#include "General/defs.hh"
+#include "Optimization/Design/DesignSpace.hh"
+#include "Optimization/ErsatzMaterial.hh"
+#include "Optimization/Optimization.hh"
+#include "Optimization/OptimizationMaterial.hh"
+#include "PDE/SinglePDE.hh"
+#include "PDE/acousticPDE.hh"
+#include "PDE/basePDE.hh"
 #include "PDE/elecPDE.hh"
 #include "PDE/heatCondPDE.hh"
-#include "PDE/acousticPDE.hh"
-#include "Optimization/OptimizationMaterial.hh"
-#include "Optimization/ErsatzMaterial.hh"
-#include "Optimization/Design/DesignSpace.hh"
-#include "DataInOut/Logging/cfslog.hh"
+#include "PDE/mechPDE.hh"
+
+namespace CoupledField {
+class BaseMaterial;
+}  // namespace CoupledField
 
 using namespace CoupledField;
 

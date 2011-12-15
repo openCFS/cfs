@@ -27,12 +27,20 @@
     compilation times would be too big.
 */
 
-#include "log_impl.hpp"
-#include <map>
-#include <vector>
-#include <boost/detail/atomic_count.hpp>
+#include <assert.h>
 #include <algorithm>
 #include <iostream>
+#include <map>
+#include <string>
+#include <utility>
+#include <vector>
+
+#include "boost/detail/atomic_count.hpp"
+/* #include "DataInOut/Logging/detail/defs.hpp"
+#include "DataInOut/Logging/detail/log_fwd.hpp"
+#include "DataInOut/Logging/detail/log_manager.hpp"
+#include "DataInOut/Logging/log.hpp" */ // IWYU do not include these
+#include "log_impl.hpp"
 
 // many thanks Paul Bristow!
 #  pragma warning(disable: 4512) // assignment operator could not be generated.

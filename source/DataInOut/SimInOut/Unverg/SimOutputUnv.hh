@@ -5,9 +5,21 @@
 #ifndef FILE_CFS_SIM_OUT_UNV_HH
 #define FILE_CFS_SIM_OUT_UNV_HH
 
-#include "Domain/grid.hh"
+#include <iosfwd>
+#include <string>
+
+#include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/simOutput.hh"
-#include "Domain/resultInfo.hh"
+#include "Domain/elem.hh"
+#include "General/defs.hh"
+#include "General/environment.hh"
+#include "MatVec/vector.hh"
+#include "Utils/StdVector.hh"
+
+namespace CoupledField {
+class BaseResult;
+class Grid;
+}  // namespace CoupledField
 
 namespace CoupledField
 {

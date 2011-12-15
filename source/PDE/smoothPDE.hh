@@ -5,9 +5,21 @@
 #ifndef FILE_SMOOTHPDE
 #define FILE_SMOOTHPDE
 
-#include "SinglePDE.hh"
+#include <string>
 
-#include "CoupledPDE/pdecoupling.hh"
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "General/defs.hh"
+#include "General/environment.hh"
+#include "MatVec/matrix.hh"
+#include "MatVec/vector.hh"
+#include "SinglePDE.hh"
+#include "Utils/nodestoresol.hh"
+
+namespace CoupledField {
+class BaseResult;
+class Grid;
+class PDECoupling;
+}  // namespace CoupledField
  
 namespace CoupledField
 {

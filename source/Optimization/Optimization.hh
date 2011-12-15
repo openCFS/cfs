@@ -1,20 +1,28 @@
 #ifndef OPTIMIZATION_HH_
 #define OPTIMIZATION_HH_
 
+#include <stddef.h>
+#include <iosfwd>
+#include <string>
+
+#include "DataInOut/ParamHandling/ParamNode.hh"
 #include "General/Enum.hh"
-#include "Utils/StdVector.hh"
+#include "General/defs.hh"
 #include "MatVec/vector.hh"
-#include "Optimization/Design/DesignElement.hh"
 #include "Optimization/Condition.hh"
+#include "Optimization/Design/DesignElement.hh"
 #include "Optimization/Objective.hh"
+#include "Utils/StdVector.hh"
+
+namespace CoupledField {
+class Function;
+class Grid;
+}  // namespace CoupledField
 
 namespace CoupledField
 {
-   struct Elem;
-   class DesignSpace;
-   class OptimalityCondition;
    class BaseOptimizer;
-   class SinglePDE;
+   class DesignSpace;
    class Excitation;
    class MultipleExcitation;
 

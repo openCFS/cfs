@@ -2,15 +2,20 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include <iostream>
-#include <fstream>
+#include <string>
 
-#include "General/environment.hh"
-#include "Utils/nodestoresol.hh"
 //#include "Forms/forms_header.hh"
 #include "CoupledPDE/PiezoCoupling.hh"
-#include "Forms/nLinPiezoMicro.hh"
+#include "Domain/resultInfo.hh"
+#include "Elements/basefe.hh"
+#include "Forms/adbInt.hh"
+#include "Forms/bdbInt.hh"
+#include "Forms/gradfieldop.hh"
+#include "Forms/linGradBDBInt.hh"
 #include "Forms/mechStressStrain.hh"
+#include "Forms/nLinPiezoMicro.hh"
+#include "General/environment.hh"
+#include "Utils/nodestoresol.hh"
 
 
 namespace CoupledField {
@@ -19,6 +24,12 @@ namespace CoupledField {
   // ============
   //   Constructor of coupling bilinear form in case of micro-piezo-model
   // ============
+class BaseMaterial;
+class EqnMap;
+class Grid;
+class StdPDE;
+struct Elem;
+
   nLinMicroPiezoCouple::nLinMicroPiezoCouple( BaseMaterial* matDataCouple,
                                               BaseMaterial* matDataMech,
                                               BaseMaterial* matDataElec, 

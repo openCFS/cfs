@@ -5,16 +5,22 @@
 #ifndef FILE_LINELASTINT
 #define FILE_LINELASTINT
 
-#include <Elements/basefe.hh>
-#include <Forms/bdbInt.hh>
-#include <Materials/baseMaterial.hh>
-#include <General/environment.hh>
+#include "Forms/bdbInt.hh"
+#include "General/environment.hh"
+
+#include "General/defs.hh"
 #include "Optimization/Design/DesignElement.hh"
 
 namespace CoupledField {
   
   
   //! base class for calculation of linear elasticity
+class BaseFE;
+class BaseMaterial;
+class EntityIterator;
+struct Elem;
+template <class TYPE> class Matrix;
+
   class linElastInt : public BDBInt {
 
   public:

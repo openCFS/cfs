@@ -5,9 +5,10 @@
 #ifndef FILE_LIN_GRAD_BDB_INT
 #define FILE_LIN_GRAD_BDB_INT
 
-#include "Elements/basefe.hh"
+#include <string>
+
 #include "Forms/bdbInt.hh"
-#include "Materials/baseMaterial.hh"
+#include "General/defs.hh"
 #include "General/environment.hh"
 
 namespace CoupledField {
@@ -19,6 +20,11 @@ namespace CoupledField {
   //! gradient operator and the D-tensor can be set variable.
   //! It is used e.g. for the electrostatic problem, as well as the magnetic
   //! scalar problem for calculating the stiffness matrix.
+class BaseFE;
+class BaseMaterial;
+struct Elem;
+template <class TYPE> class Matrix;
+
   class linGradBDBInt : public BDBInt {
     
   public:

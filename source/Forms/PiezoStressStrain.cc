@@ -2,17 +2,31 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
+#include <assert.h>
+#include <stddef.h>
+#include <string>
+
+#include "CoupledPDE/BasePairCoupling.hh"
+#include "DataInOut/Logging/cfslog.hh"
+#include "Domain/domain.hh"
+#include "Domain/elem.hh"
+#include "Domain/entityList.hh"
+#include "Domain/resultInfo.hh"
+#include "Driver/assemble.hh"
+#include "Driver/formsContext.hh"
 #include "Forms/PiezoStressStrain.hh"
+#include "Forms/baseForm.hh"
+#include "Forms/gradfieldop.hh"
 #include "Forms/linPiezoCoupling.hh"
 #include "Forms/nLinPiezoCoupling.hh"
-#include "Forms/linGradBDBInt.hh"
-#include "DataInOut/Logging/cfslog.hh"
-#include "PDE/mechPDE.hh"
-#include "CoupledPDE/BasePairCoupling.hh"
-#include "MatVec/vector.hh"
-#include "Domain/domain.hh"
-#include "Domain/grid.hh"
-#include "Driver/assemble.hh"
+#include "PDE/SinglePDE.hh"
+#include "PDE/StdPDE.hh"
+#include "Utils/nodestoresol.hh" // IWYU pragma: keep
+
+namespace CoupledField {
+class BaseNodeStoreSol;
+class Grid;
+}  // namespace CoupledField
 
 DECLARE_LOG(ss)
 

@@ -16,17 +16,19 @@
 #define OLAS_GENERATEMATVEC_HH
 
 
+#include "General/defs.hh"
 #include "MatVec/basematrix.hh"
-#include "MatVec/basevector.hh"
-#include "MatVec/stdmatrix.hh"
-#include "MatVec/sbmmatrix.hh"
 
 
 namespace CoupledField {
 
 
+class BaseVector;
+class GraphManagerSBMMat;
   // Forward declarations
   class SBM_Matrix;
+class SingleVector;
+class StdMatrix;
 
   //! Creates the associated vector to a given matrix
 

@@ -2,11 +2,21 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include "elecchargeop.hh"
+#include "Domain/entityList.hh"
 #include "Domain/grid.hh"
+#include "Domain/resultInfo.hh"
+#include "Domain/surfElem.hh"
 #include "Elements/basefe.hh"
-#include "PDE/StdPDE.hh"
-#include "Domain/elem.hh"
+#include "General/environment.hh"
+#include "General/exception.hh"
+#include "MatVec/matrix.hh"
+#include "MatVec/vector.hh"
+#include "elecchargeop.hh"
+
+namespace CoupledField {
+class EqnMap;
+class StdPDE;
+}  // namespace CoupledField
 
 namespace CoupledField
 {

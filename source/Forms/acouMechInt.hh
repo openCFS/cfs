@@ -5,6 +5,8 @@
 #ifndef File_ACOU_MECH_INT
 #define File_ACOU_MECH_INT
 
+#include "General/defs.hh"
+#include "General/environment.hh"
 #include "baseForm.hh"
 
 namespace CoupledField {
@@ -13,6 +15,9 @@ namespace CoupledField {
 
   //! This class implements the acoustic-mechanic coupling via surface 
   //! elements for 2D, 2D-axisymmetric and 3D.
+class EntityIterator;
+template <class TYPE> class Matrix;
+
   class AcouMechInt : public SurfForm {
 
   public:

@@ -5,10 +5,9 @@
 #ifndef FILE_HYSTERESIS
 #define FILE_HYSTERESIS
 
-#include <string>
+
 #include "General/defs.hh"
 #include "General/exception.hh"
-#include "Utils/tools.hh"
 
 namespace CoupledField {
 

@@ -2,20 +2,42 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
+#include <stddef.h>
 #include <fstream>
-#include <iostream>
+#include <map>
 #include <string>
-#include <math.h>
 
+#include "CoupledPDE/pdecoupling.hh"
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "DataInOut/WriteInfo.hh"
+#include "Domain/ansatzFct.hh"
+#include "Domain/elem.hh"
+#include "Domain/entityList.hh"
+#include "Domain/grid.hh"
+#include "Domain/resultInfo.hh"
+#include "Driver/assemble.hh"
+#include "Driver/formsContext.hh"
+#include "Driver/solveStepSmooth.hh"
+#include "Elements/basefe.hh"
+#include "Forms/baseForm.hh"
 #include "Forms/smoothInt.hh"
 #include "Forms/smoothNLInt.hh"
-#include "DataInOut/ParamHandling/ParamNode.hh"
-#include "Driver/assemble.hh"
-#include "Driver/solveStepSmooth.hh"
-#include "smoothPDE.hh" 
+#include "General/exception.hh"
+#include "PDE/SinglePDE.hh"
+#include "PDE/StdPDE.hh"
+#include "PDE/eqnMap.hh"
+#include "PDE/timestepping.hh"
+#include "Utils/StdVector.hh"
+#include "Utils/basenodestoresol.hh"
+#include "Utils/result.hh"
+#include "math.h"
 #include "pseudoTS.hh" 
+#include "smoothPDE.hh" 
 
 namespace CoupledField {
+
+class BaseMaterial;
+class SingleVector;
 
   SmoothPDE::SmoothPDE(Grid * aptgrid, PtrParamNode paramNode )
     :SinglePDE(aptgrid, paramNode ) {

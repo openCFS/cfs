@@ -2,8 +2,9 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include "MatVec/vector.hh"
-
+#include "General/defs.hh"
+#include "General/environment.hh"
+#include "General/exception.hh"
 #include "OLAS/precond/baseprecond.hh"
 #include "OLAS/solver/diagsolver.hh"
 
@@ -13,6 +14,9 @@ namespace CoupledField {
   // **************
   //   Destructor
   // **************
+class BaseMatrix;
+class BaseVector;
+
   template<typename T>
   DiagSolver<T>::~DiagSolver() {
   }

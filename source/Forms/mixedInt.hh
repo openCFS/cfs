@@ -1,9 +1,17 @@
 #ifndef FILE_MIXEDINT_1
 #define FILE_MIXEDINT_1
 
-#include "baseForm.hh"
-#include "massInt.hh"
+#include <string>
+
 #include "Forms/linSurfForm.hh"
+#include "General/defs.hh"
+#include "MatVec/vector.hh"
+#include "baseForm.hh"
+
+namespace CoupledField {
+class EntityIterator;
+template <class TYPE> class Matrix;
+}  // namespace CoupledField
 
 namespace CoupledField
 {

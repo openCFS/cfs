@@ -5,6 +5,7 @@
 #ifndef FILE_SINGLEDRIVER_2004
 #define FILE_SINGLEDRIVER_2004
 
+#include "General/defs.hh"
 #include "basedriver.hh"
 
 namespace CoupledField {

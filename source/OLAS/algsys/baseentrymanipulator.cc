@@ -2,17 +2,22 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
+#include <stdlib.h>
 #include <iostream>
-#include <complex>
-#include <assert.h>
 
-#include "OLAS/algsys/entrymanipulatordouble.hh"
-#include "OLAS/algsys/baseidbchandler.hh"
-#include "OLAS/algsys/standardsys.hh"
-
-#include "MatVec/vector.hh"
+#include "General/defs.hh"
+#include "General/environment.hh"
+#include "General/exception.hh"
+#include "MatVec/SingleVector.hh"
+#include "MatVec/basematrix.hh"
+#include "MatVec/matrix.hh" // IWYU pragma: keep
 #include "MatVec/stdmatrix.hh"
-#include "MatVec/matrix.hh"
+#include "MatVec/vector.hh" // IWYU pragma: keep
+#include "OLAS/algsys/baseentrymanipulator.hh"
+#include "OLAS/algsys/baseidbchandler.hh" // IWYU pragma: keep
+#include "Utils/StdVector.hh"
+#include "Utils/tools.hh"
+#include "assert.h"
 
 
 namespace CoupledField {

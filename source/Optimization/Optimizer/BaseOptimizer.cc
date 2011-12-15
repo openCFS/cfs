@@ -1,19 +1,30 @@
+#include <assert.h>
+#include <algorithm>
+#include <cmath>
+#include <complex>
+#include <cstdlib>
+#include <fstream>
+
+#include "DataInOut/Logging/cfslog.hh"
+#include "DataInOut/Logging/log.hpp"
+#include "DataInOut/resultHandler.hh"
+#include "Domain/domain.hh"
+#include "Driver/assemble.hh"
+#include "General/Enum.hh"
+#include "General/defs.hh"
+#include "General/environment.hh"
+#include "General/exception.hh"
+#include "Optimization/Condition.hh"
+#include "Optimization/Design/DesignElement.hh"
+#include "Optimization/Design/DesignSpace.hh"
+#include "Optimization/Function.hh"
+#include "Optimization/Objective.hh"
 #include "Optimization/Optimization.hh"
 #include "Optimization/Optimizer/BaseOptimizer.hh"
-#include "Optimization/Design/DesignSpace.hh"
-#include "General/exception.hh"
-#include "Utils/StdVector.hh"
-#include "DataInOut/resultHandler.hh"
-#include "DataInOut/Logging/cfslog.hh"
-#include "Utils/Timer.hh"
-#include "Domain/domain.hh"
 #include "PDE/basePDE.hh"
-#include "Driver/assemble.hh"
-
-
-#include <sstream>
-#include <cmath>
-#include <fstream>
+#include "Utils/StdVector.hh"
+#include "Utils/Timer.hh"
+#include "Utils/tools.hh"
 
 using namespace CoupledField;
 using std::abs;

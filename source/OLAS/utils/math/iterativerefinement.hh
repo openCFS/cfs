@@ -6,13 +6,13 @@
 #define ITERATIVE_REFINEMENT_HH
 
 #include "General/defs.hh"
-#include "General/environment.hh"
 
 namespace CoupledField {
 
-  class BasePrecond;
-
   class BaseDirectSolver;
+class BaseMatrix;
+  class BasePrecond;
+class BaseVector;
 
 
   //! This processing class implements iterative refinement

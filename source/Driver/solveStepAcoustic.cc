@@ -2,20 +2,33 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include <fstream>
+#include <math.h>
 #include <iostream>
-#include <string>
+#include <map>
+#include <memory>
 
+#include "Domain/elem.hh"
+#include "Domain/entityList.hh"
+#include "Driver/basedriver.hh"
+#include "Driver/stdSolveStep.hh"
+#include "Forms/linearForm.hh"
+#include "General/defs.hh"
+#include "General/environment.hh"
+#include "MatVec/SingleVector.hh"
+#include "MatVec/vector.hh"
+#include "Materials/baseMaterial.hh"
+#include "OLAS/algsys/basesystem.hh"
+#include "PDE/StdPDE.hh"
+#include "PDE/eqnMap.hh"
+#include "PDE/timestepping.hh"
+#include "Utils/StdVector.hh"
+#include "Utils/tools.hh"
+#include "assemble.hh"
 #include "solveStepAcoustic.hh"
 
-#include "assemble.hh"
-#include "Forms/linearForm.hh"
-#include "Utils/nodestoresol.hh"
-#include "PDE/StdPDE.hh"
-
-#include "OLAS/algsys/basesystem.hh"
-
 namespace CoupledField {
+
+class AdjointParameters;
 
   SolveStepAcoustic::SolveStepAcoustic(StdPDE& apde, bool justInterpolate)
     : StdSolveStep(apde),

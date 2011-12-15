@@ -6,8 +6,20 @@
 #define FILE_MAGNETICEDGEPDE
 
 #include <map>
+
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "General/defs.hh"
+#include "General/environment.hh"
 #include "SinglePDE.hh" 
-#include "Forms/magforceop.hh"
+#include "Utils/StdVector.hh"
+
+namespace CoupledField {
+class BaseResult;
+class EntityIterator;
+class Grid;
+class PDECoupling;
+template <class TYPE> class Vector;
+}  // namespace CoupledField
 
 
 namespace CoupledField

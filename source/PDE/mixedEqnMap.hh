@@ -5,8 +5,15 @@
 #ifndef FILE_CFS_MIXED_EQNMAP_HH
 #define FILE_CFS_MIXED_EQNMAP_HH
 
-#include "eqnMap.hh"
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "Domain/bcs.hh"
+#include "General/defs.hh"
+#include "General/environment.hh"
+#include "General/exception.hh"
+#include "Utils/StdVector.hh"
 #include "disContEqnMap.hh"
+#include "eqnMap.hh"
+
 //#include "Utils/StdVector.hh"
 //#include "Domain/resultInfo.hh"
 //#include "Domain/bcs.hh"
@@ -22,6 +29,11 @@ namespace CoupledField {
   //class ParamNode; 
 
   //! Class for mapping entities and continuous ansatz functions to equation numbers
+class EntityIterator;
+class EntityList;
+class Grid;
+struct ResultInfo;
+
   class MixedEqnMap : public EqnMap {
     
   public:

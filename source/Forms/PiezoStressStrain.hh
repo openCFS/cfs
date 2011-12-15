@@ -1,13 +1,24 @@
 #ifndef PIEZOSTRESSSTRAIN_HH_
 #define PIEZOSTRESSSTRAIN_HH_
 
+#include <complex>
+
 #include "Forms/mechStressStrain.hh"
-#include "Forms/gradfieldop.hh"
+#include "General/defs.hh"
+#include "General/environment.hh"
+#include "MatVec/exprt/xpr2.hh"
+#include "MatVec/matrix.hh"
+#include "MatVec/vector.hh"
+
+namespace CoupledField {
+class EntityIterator;
+template <class TYPE> class GradientFieldOp;
+}  // namespace CoupledField
 
 namespace CoupledField
 {
-class BasePairCoupling;
 class BaseMaterial;
+class BasePairCoupling;
 
 //! class for calculation of mechanical stresses and strains
 template <class TYPE>

@@ -2,29 +2,50 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
+#include <stddef.h>
+#include <complex>
 #include <fstream>
+#include <string>
+#include <utility>
 
-#include "magEdgePDE.hh"
-
-#include "DataInOut/ParamHandling/ParamNode.hh"
-#include "Driver/stdSolveStep.hh"
-#include "Utils/Coil.hh"
-#include "Utils/SmoothSpline.hh"
-#include "Utils/LinInterpolate.hh"
-#include "Forms/curlfieldop.hh"
-#include "Forms/curlCurlEdgeInt.hh"
-#include "Forms/nLincurlCurlEdgeInt.hh"
-#include "Forms/massEdgeInt.hh"
-#include "Forms/linearForm.hh"
-#include "trapezoidal.hh"
 #include "CoupledPDE/pdecoupling.hh"
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "DataInOut/WriteInfo.hh"
 #include "Domain/ansatzFct.hh"
+#include "Domain/domain.hh"
+#include "Domain/elem.hh"
+#include "Domain/entityList.hh"
+#include "Domain/grid.hh"
+#include "Domain/resultInfo.hh"
 #include "Driver/assemble.hh"
-#include "Utils/coordSystem.hh"
-
-#ifdef USE_SCRIPTING
-#include "DataInOut/Scripting/cfsmessenger.hh"
-#endif
+#include "Driver/formsContext.hh"
+#include "Driver/stdSolveStep.hh"
+#include "Elements/basefe.hh"
+#include "Forms/baseForm.hh"
+#include "Forms/curlCurlEdgeInt.hh"
+#include "Forms/linearForm.hh"
+#include "Forms/massEdgeInt.hh"
+#include "Forms/nLincurlCurlEdgeInt.hh"
+#include "General/Enum.hh"
+#include "General/exception.hh"
+#include "MatVec/SingleVector.hh"
+#include "MatVec/exprt/xpr1.hh"
+#include "MatVec/exprt/xpr2.hh"
+#include "MatVec/matrix.hh"
+#include "MatVec/vector.hh"
+#include "Materials/baseMaterial.hh"
+#include "PDE/SinglePDE.hh"
+#include "PDE/StdPDE.hh"
+#include "PDE/basePDE.hh"
+#include "PDE/eqnMap.hh"
+#include "Utils/ApproxData.hh"
+#include "Utils/Coil.hh"
+#include "Utils/basenodestoresol.hh"
+#include "Utils/mathParser/mathParser.hh"
+#include "Utils/nodestoresol.hh"
+#include "Utils/result.hh"
+#include "magEdgePDE.hh"
+#include "trapezoidal.hh"
 
 namespace CoupledField {
 

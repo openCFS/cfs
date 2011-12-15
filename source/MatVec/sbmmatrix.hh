@@ -6,15 +6,12 @@
 #define OLAS_SBM_MATRIX_HH
 
 #include <iostream>
+#include <string>
 
-
-#include "OLAS/graph/graphmanagersbmmat.hh"
-
+#include "General/defs.hh"
+#include "General/exception.hh"
 #include "MatVec/basematrix.hh"
 #include "MatVec/stdmatrix.hh"
-#include "MatVec/vector.hh"
-#include "MatVec/sbmvector.hh"
-#include "MatVec/generatematvec.hh"
 
 namespace CoupledField {
 
@@ -103,6 +100,8 @@ namespace CoupledField {
   //!
   //! - The %SBM_Matrix class does not support sub-matrices with different
   //!   entry types and/or different block sizes on the scalar level.
+class BaseVector;
+
   class SBM_Matrix : public BaseMatrix {
 
   public:

@@ -6,11 +6,11 @@
 #define CFS_MESSENGER_HH
 
 #include <map>
+#include <string>
 
-#include "Domain/domain.hh"
-#include "General/environment.hh"
+#include "General/defs.hh"
 #include "Utils/StdVector.hh"
-#include "scriptable.hh"
+
 namespace CoupledField {
   
   //! Central instance of message dispatcher for CFS++

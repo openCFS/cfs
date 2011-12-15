@@ -1,10 +1,11 @@
 #ifndef FILE_LIN_HEATCOND_INT
 #define FILE_LIN_HEATCOND_INT
 
-#include <Elements/basefe.hh>
-#include <Forms/bdbInt.hh>
-#include <Materials/baseMaterial.hh>
-#include <General/environment.hh>
+#include <string>
+
+#include "Forms/bdbInt.hh"
+#include "General/defs.hh"
+#include "General/environment.hh"
 
 namespace CoupledField {
 
@@ -14,6 +15,9 @@ namespace CoupledField {
   //! The main objective of this class is to implement the pure vitual
   //! methods of the BDBInt parent class for the case of a linear 
   //! heat conduction simulation.
+class BaseMaterial;
+template <class TYPE> class Matrix;
+
   class linHeatCondInt : public BDBInt {
     
   public:

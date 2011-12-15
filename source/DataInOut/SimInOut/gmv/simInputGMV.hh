@@ -9,13 +9,25 @@
 // website at: http://www-xdiv.lanl.gov/XCM/gmv/GMVHome.html
 
 #include <map>
+#include <string>
+#include <vector>
 
-#include <DataInOut/simInput.hh>
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "DataInOut/simInput.hh"
+#include "General/defs.hh"
+#include "General/environment.hh"
+#include "PDE/basePDE.hh"
+#include "Utils/StdVector.hh"
 
 namespace CoupledField {
 
   /**
    **/
+class BaseResult;
+class EntityList;
+class Grid;
+struct ResultInfo;
+
   class SimInputGMV : public SimInput
   {
   private:

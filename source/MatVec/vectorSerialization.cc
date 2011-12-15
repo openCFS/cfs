@@ -2,10 +2,15 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include "vectorSerialization.hh"
+#include "boost/serialization/export.hpp"
+
 #include "vector.cc"
-#include "Utils/boost-serialization.hh"
-#include <boost/serialization/export.hpp>
+#include "vectorSerialization.hh"
+
+namespace CoupledField {
+class SingleVector;
+template <class TYPE> class Vector;
+}  // namespace CoupledField
 
 BOOST_CLASS_EXPORT_GUID(CoupledField::SingleVector, "CoupledField_SingleVector")
 BOOST_CLASS_EXPORT_GUID(CoupledField::Vector<CoupledField::Double>, "CoupledField_Vector_Double")

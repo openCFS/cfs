@@ -1,15 +1,30 @@
-#include "Optimization/LevelSet.hh"
-#include "Optimization/Optimization.hh"
-#include "Optimization/ShapeGrad.hh"
-#include "Optimization/Design/DesignSpace.hh"
+#include <cmath>
+#include <complex>
+#include <cstdlib>
+#include <iostream>
+
+#include "DataInOut/Logging/cfslog.hh"
+#include "DataInOut/Logging/log.hpp"
 #include "Domain/domain.hh"
 #include "Domain/elem.hh"
 #include "Domain/grid.hh"
-#include "DataInOut/Logging/cfslog.hh"
+#include "Elements/basefe.hh"
 #include "Forms/linElastInt.hh"
-
-#include <ostream>
-#include <cmath>
+#include "General/defs.hh"
+#include "General/environment.hh"
+#include "General/exception.hh"
+#include "MatVec/SingleVector.hh"
+#include "MatVec/exprt/xpr1.hh"
+#include "MatVec/exprt/xpr2.hh"
+#include "MatVec/matrix.hh"
+#include "Optimization/Condition.hh"
+#include "Optimization/Design/DesignSpace.hh"
+#include "Optimization/Function.hh"
+#include "Optimization/LevelSet.hh"
+#include "Optimization/Optimization.hh"
+#include "Optimization/ShapeGrad.hh"
+#include "Utils/Point.hh"
+#include "Utils/tools.hh"
 
 namespace CoupledField
 {

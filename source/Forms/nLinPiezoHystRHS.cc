@@ -2,16 +2,23 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include <iostream>
-#include <fstream>
-#include <math.h>
+#include <string>
 
-#include "nLinPiezoHystRHS.hh"
-#include "mechStressStrain.hh"
-#include "Utils/coordSystem.hh"
-#include "Domain/domain.hh"
-#include "Utils/SmoothSpline.hh"
 #include "CoupledPDE/PiezoCoupling.hh"
+#include "Domain/entityList.hh"
+#include "Domain/resultInfo.hh"
+#include "Elements/basefe.hh"
+#include "Forms/gradfieldop.hh"
+#include "Forms/linPiezoCoupling.hh"
+#include "Forms/linearForm.hh"
+#include "MatVec/exprt/xpr1.hh"
+#include "MatVec/exprt/xpr2.hh"
+#include "MatVec/matrix.hh"
+#include "MatVec/vector.hh"
+#include "Utils/nodestoresol.hh"
+#include "math.h"
+#include "mechStressStrain.hh"
+#include "nLinPiezoHystRHS.hh"
 
 namespace CoupledField {
 
@@ -22,6 +29,11 @@ namespace CoupledField {
   // ==================================================================
 
   // base class
+class BaseMaterial;
+class EqnMap;
+class Grid;
+class StdPDE;
+
   PiezoPolarizationRhsInt::PiezoPolarizationRhsInt( BaseMaterial* matDataCouple, 
                                                     BaseMaterial* matDataMech, 
                                                     BaseMaterial* matDataElec, 

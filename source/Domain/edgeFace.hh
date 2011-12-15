@@ -7,7 +7,7 @@
 
 #include <bitset>
 
-#include "General/environment.hh"
+#include "General/defs.hh"
 #include "Utils/StdVector.hh"
 
 namespace CoupledField {

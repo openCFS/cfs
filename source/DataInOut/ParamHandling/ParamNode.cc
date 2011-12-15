@@ -2,24 +2,31 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
+#include <assert.h>
+#include <stddef.h>
+#include <algorithm>
+#include <complex>
+#include <fstream>
+#include <iostream>
+#include <string>
+#include <typeinfo>
+
 #include "DataInOut/ParamHandling/ParamNode.hh"
-#include "DataInOut/programOptions.hh"
 #include "DataInOut/coloredConsole.hh"
+#include "DataInOut/programOptions.hh"
+#include "Domain/domain.hh"
 #include "General/defs.hh"
+#include "General/environment.hh"
+#include "General/exception.hh"
 #include "MatVec/matrix.hh"
 #include "MatVec/vector.hh"
 #include "Utils/Timer.hh"
 #include "Utils/mathParser/mathParser.hh"
-#include "Domain/domain.hh"
-
-#include <boost/tokenizer.hpp>
-#include <boost/algorithm/string.hpp>
-#include <boost/filesystem/operations.hpp>
-#include <boost/filesystem/convenience.hpp>
-#include <boost/filesystem/exception.hpp>
-
-#include <fstream>
-#include <string>
+#include "boost/algorithm/string.hpp"
+#include "boost/filesystem/convenience.hpp"
+#include "boost/filesystem/exception.hpp"
+#include "boost/filesystem/operations.hpp"
+#include "boost/tokenizer.hpp"
 
 using namespace std;
 using namespace boost;

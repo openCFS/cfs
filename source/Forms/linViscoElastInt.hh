@@ -5,7 +5,18 @@
 #ifndef FILE_LINVISCOELASTINT
 #define FILE_LINVISCOELASTINT
 
+#include <string>
+
+#include "General/defs.hh"
+#include "General/environment.hh"
 #include "linElastInt.hh"
+
+namespace CoupledField {
+class BaseFE;
+class BaseMaterial;
+struct Elem;
+template <class TYPE> class Matrix;
+}  // namespace CoupledField
 
 namespace CoupledField
 {

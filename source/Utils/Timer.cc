@@ -1,5 +1,7 @@
-#include "Utils/Timer.hh"
+#include <sys/time.h>
 #include <sstream>
+
+#include "Utils/Timer.hh"
 
 using namespace CoupledField;
 using namespace boost;

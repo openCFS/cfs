@@ -1,27 +1,37 @@
 #ifndef DESIGN_SPACE_HH_
 #define DESIGN_SPACE_HH_
 
+#include <stddef.h>
+#include <complex>
+#include <string>
+#include <utility>
+
 #include "DataInOut/ParamHandling/ParamNode.hh"
-#include "Optimization/TransferFunction.hh"
-#include "Optimization/Design/DesignElement.hh"
-#include "Optimization/ErsatzMaterial.hh"
-#include "Optimization/Design/DesignMaterial.hh"
+// we need it for the template implementation
 #include "Forms/baseForm.hh"
 #include "General/Enum.hh"
+#include "General/environment.hh"
+#include "Optimization/Condition.hh"
+#include "Optimization/Design/DesignElement.hh"
+#include "Optimization/Design/DesignMaterial.hh"
+#include "Optimization/ErsatzMaterial.hh"
+#include "Optimization/Optimization.hh"
+#include "Utils/StdVector.hh"
 
-// we need it for the template implementation
-#include "Domain/resultInfo.hh"
-#include "Utils/result.hh"
+namespace CoupledField {
+class TransferFunction;
+template <class TYPE> class Matrix;
+template <class TYPE> class Result;
+}  // namespace CoupledField
 
 namespace CoupledField
 {
-  template <class TYPE> class StdVector;
+  class BaseMaterial;
+  class BaseOptimizer;
+  class BaseResult;
   class SinglePDE;
   struct Elem;
-  class BaseResult;
-  class BaseMaterial;
   struct ResultInfo;
-  class BaseOptimizer;
 
   /** This is the container of DesingElements which also holds the transferFunctions.
    * It can be initialized by Optimization of can contain the ersatz material stuff. */

@@ -5,23 +5,31 @@
 #ifndef CFS_ASSEMBLE_HH
 #define CFS_ASSEMBLE_HH
 
-#include <set>
+#include <stddef.h>
 #include <map>
+#include <set>
+#include <string>
 
-#include "formsContext.hh"
-#include "Domain/bcs.hh"
-#include "Utils/mathParser/mathParser.hh"
-#include "PDE/basePDE.hh"
+#include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/Scripting/scriptable.hh"
+#include "Domain/bcs.hh"
+#include "General/defs.hh"
+#include "General/environment.hh"
+#include "PDE/basePDE.hh"
+#include "Utils/StdVector.hh"
+#include "Utils/mathParser/mathParser.hh"
 
 namespace CoupledField {
 
 
-  // Forward class declarations
-  class TimeFunc;
-  class Timer;
-  class StdPDE;
   class AdjointParameters;
+  // Forward class declarations
+class BaseSystem;
+class BiLinFormContext;
+class LinearFormContext;
+  class StdPDE;
+  class Timer;
+template <class TYPE> class Matrix;
 
   //! Class for assembling element/entities matrices and RHS vectors
   class Assemble : public Scriptable {

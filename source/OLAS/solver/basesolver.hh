@@ -5,16 +5,18 @@
 #ifndef OLAS_BASESOLVER_HH
 #define OLAS_BASESOLVER_HH
 
-#include "General/environment.hh"
+#include <stddef.h>
+#include <string>
+
 #include "DataInOut/ParamHandling/ParamNode.hh"
+#include "General/Enum.hh"
+#include "General/defs.hh"
 
 namespace CoupledField {
 
-  class BasePrecond;
   class BaseMatrix;
+  class BasePrecond;
   class BaseVector;
-  class OLAS_Report;
-  class ParamNode;
   class Timer;
 
   // =========================================================================

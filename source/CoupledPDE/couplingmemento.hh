@@ -6,8 +6,9 @@
 #define FILE_COUPLINGMEMENTO
 
 #include "General/environment.hh"
+#include "General/exception.hh"
+#include "Utils/StdVector.hh"
 #include "pdecoupling.hh"
-#include "Utils/boost-serialization.hh"
 
 namespace CoupledField
 {

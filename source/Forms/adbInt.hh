@@ -5,6 +5,11 @@
 #ifndef FILE_ADBINT
 #define FILE_ADBINT
 
+#include <string>
+
+#include "General/defs.hh"
+#include "General/environment.hh"
+#include "General/exception.hh"
 #include "baseForm.hh" 
 
 namespace CoupledField {
@@ -36,6 +41,11 @@ namespace CoupledField {
    \note In the special case of \f$ A=B^T \f$ the BDBInt class is the
    appropriate ancestor. */
 
+
+class BaseMaterial;
+class EntityIterator;
+struct Elem;
+template <class TYPE> class Matrix;
 
   class ADBInt : public BaseForm {
 

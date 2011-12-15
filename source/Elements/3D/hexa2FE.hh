@@ -5,7 +5,16 @@
 #ifndef FILE_HEXA2FE_2004
 #define FILE_HEXA2FE_2004
 
+#include "Domain/ansatzFct.hh"
+#include "Domain/elem.hh"
+#include "General/defs.hh"
+#include "General/environment.hh"
+#include "MatVec/vector.hh"
 #include "hexaFE.hh"
+
+namespace CoupledField {
+template <class TYPE> class Matrix;
+}  // namespace CoupledField
 
 namespace CoupledField
 {

@@ -4,7 +4,7 @@
 
 // #undef MpCCI
 #ifdef MpCCI
-#include <mpcci.h>
+#include "mpcci.h"
 #else
  /**
   *   *  Element types:
@@ -38,7 +38,7 @@
 
 // #undef MpCCI
 #ifdef MpCCI
-#include <mpcci.h>
+#include "mpcci.h"
 #else
  /**
   *   *  Element types:

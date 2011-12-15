@@ -5,16 +5,36 @@
 #ifndef FILE_NEWBASEMECHPDE
 #define FILE_NEWBASEMECHPDE
 
+#include <stddef.h>
 #include <map>
+#include <string>
 
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "General/Enum.hh"
+#include "General/defs.hh"
+#include "General/environment.hh"
+#include "MatVec/matrix.hh"
+#include "MatVec/vector.hh"
 #include "SinglePDE.hh"
+#include "Utils/StdVector.hh"
+#include "Utils/nodestoresol.hh"
+
+namespace CoupledField {
+class BaseFE;
+class BaseMaterial;
+class BaseNodeStoreSol;
+class BaseResult;
+class EntityList;
+class Grid;
+class PDECoupling;
+struct Elem;
+}  // namespace CoupledField
 
 namespace CoupledField
 {
 
   class BaseForm;
   class LinearFormContext;
-  class set;
 
   //! Class for mechanic equation (no adaptivity)
   class MechPDE: public SinglePDE
@@ -126,13 +146,6 @@ namespace CoupledField
      * @param pressPhase StdVector containing the information */
     void ReadPressureLoadsFromXML(PtrParamNode bcNode, StdVector<shared_ptr<EntityList> >& pressSurf, StdVector<std::string>& pressVals, StdVector<std::string>& pressPhase);
     
-    /** add the integrators for the polarization matrix to the linear forms, similar as in multiple load case;
-      * called from Excitation::SetPolarizationMatrixRHS
-      * @param vals contains the values from the xml test strains
-      * @param linForms set to append linear Forms to, if NULL use assemble_ */
-    void DefinePolarizationMatrixIntegrators(const Vector<Double> &vals,
-        StdVector<LinearFormContext*> *linForms, const int num);
-
     /** @see virtual SinglePDE::GetNativeSolutionType() */
     SolutionType GetNativeSolutionType() const { return MECH_DISPLACEMENT; }
 

@@ -2,16 +2,19 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include <vector> // no CFS StdVector :(
+#include <complex>
 #include <fstream>
-
-#include "MatVec/crs_matrix.hh"
-#include "MatVec/scrs_matrix.hh"
-#include "MatVec/stdmatrix.hh"
-
-#include "MatVec/vector.hh"
+#include <sstream>
+#include <vector> // no CFS StdVector :(
 
 #include "General/exception.hh"
+#include "crs_matrix.hh" // IWYU pragma: keep
+#include "scrs_matrix.hh" // IWYU pragma: keep
+#include "stdmatrix.hh"
+
+namespace CoupledField {
+template <typename T> class Vector;
+}  // namespace CoupledField
 
 
 using CoupledField::Exception;

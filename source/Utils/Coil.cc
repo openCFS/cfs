@@ -2,13 +2,15 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
+#include <stddef.h>
+#include <fstream>
+
 #include "Coil.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
-#include "DataInOut/WriteInfo.hh"
-#include "Domain/grid.hh"
 #include "Domain/domain.hh"
+#include "General/exception.hh"
+#include "Utils/StdVector.hh"
 #include "Utils/coordSystem.hh"
-#include <fstream>
 
 
 

@@ -5,15 +5,28 @@
 #ifndef FILE_NEWMARKFRACDAMPMECH_2005
 #define FILE_NEWMARKFRACDAMPMECH_2005
 
-#include <General/environment.hh>
-#include <Domain/grid.hh>
-#include "StdPDE.hh"
+#include <map>
+#include <string>
+#include <vector>
 
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "General/defs.hh"
+#include "General/environment.hh"
+#include "MatVec/vector.hh"
+#include "Utils/StdVector.hh"
 #include "timestepping.hh"
 
 namespace CoupledField {
 
   //! class for time stepping of hyperbolic PDE: method is NewmarkFracDampMech
+
+class BaseFE;
+class BaseMaterial;
+class BaseSystem;
+class EqnMap;
+class Grid;
+class StdPDE;
+template <class TYPE> class Matrix;
 
   class NewmarkFracDampMech: public TimeStepping
   {

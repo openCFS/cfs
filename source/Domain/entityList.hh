@@ -5,18 +5,22 @@
 #ifndef FILE_CFS_ENTITYLIST_HH
 #define FILE_CFS_ENTITYLIST_HH
 
+#include <string>
+
+#include "General/Enum.hh"
+#include "General/defs.hh"
 #include "General/environment.hh"
 #include "Utils/StdVector.hh"
 
 
 namespace CoupledField {
 
+  class Coil;
   // Forward class declaration
   class EntityIterator;
   class Grid;
-  struct SurfElem;
   struct Elem;
-  class Coil;
+  struct SurfElem;
 
 
   //! Base class for providing lists of geometric entities

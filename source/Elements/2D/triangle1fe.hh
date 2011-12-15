@@ -5,8 +5,17 @@
 #ifndef FILE_TRIANGLE1FE_2003
 #define FILE_TRIANGLE1FE_2003
 
-#include <Elements/basefe.hh>
-#include <Elements/2D/trianglefe.hh>
+#include "Elements/2D/trianglefe.hh"
+
+#include "Domain/ansatzFct.hh"
+#include "Domain/elem.hh"
+#include "General/defs.hh"
+#include "General/environment.hh"
+#include "MatVec/vector.hh"
+
+namespace CoupledField {
+template <class TYPE> class Matrix;
+}  // namespace CoupledField
 
 namespace CoupledField
 {

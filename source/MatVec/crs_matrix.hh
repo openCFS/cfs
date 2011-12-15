@@ -5,16 +5,23 @@
 #ifndef OLAS_CRS_MATRIX_HH
 #define OLAS_CRS_MATRIX_HH
 
+#include <stddef.h>
+#include <complex>
 #include <iostream>
+#include <string>
 
-#include <def_expl_templ_inst.hh>
-
+#include "General/defs.hh"
+#include "General/exception.hh"
+#include "MatVec/basematrix.hh"
 #include "MatVec/sparseolasmatrix.hh"
-#include "MatVec/vector.hh"
-#include "MatVec/coordformat.hh"
+#include "def_expl_templ_inst.hh"
 
 namespace CoupledField {
 
+class BaseGraph;
+class StdMatrix;
+template <typename T> class CoordFormat;
+template <typename T> class Vector;
 #ifdef USE_MULTIGRID
   //forward declaration
   template <typename T>

@@ -1,30 +1,27 @@
 #ifndef SIMP_HH_
 #define SIMP_HH_
 
-#include "Optimization/ErsatzMaterial.hh"
-#include "Domain/bcs.hh"
-#include "PDE/mechPDE.hh"
-#include "MatVec/SingleVector.hh"
-#include "MatVec/vector.hh"
-#include "MatVec/matrix.hh"
 #include <map>
 #include <set>
+#include <string>
+
+#include "Optimization/ErsatzMaterial.hh"
+#include "Optimization/Optimization.hh"
+#include "PDE/mechPDE.hh"
+
+namespace CoupledField {
+class DenseMatrix;
+class DesignElement;
+class DesignSpace;
+class Excitation;
+class Function;
+class SingleVector;
+}  // namespace CoupledField
 
 namespace CoupledField
 {
-class StdPDE;
-class SinglePDE;
-class ElecPDE;
-class BaseForm;
-class BiLinFormContext;
-class Condition;
-class Assemble;
 class TransferFunction;
 struct SurfElem;
-class MechMat;
-
-template <class TYPE> class StdVector;
-template <class TYPE> class Vector;
 template <class TYPE> class Matrix;
 
 

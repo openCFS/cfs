@@ -1,16 +1,26 @@
 #ifndef SIMOUTSTREAMING_HH_
 #define SIMOUTSTREAMING_HH_
 
+#include <iosfwd>
+#include <string>
+
+#include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/simOutput.hh"
-#include "Domain/entityList.hh"
-#include <boost/asio.hpp>
-#include <boost/bind.hpp>
+#include "General/defs.hh"
+#include "PDE/basePDE.hh"
+#include "Utils/StdVector.hh"
+#include "boost/asio.hpp"
+#include "boost/bind.hpp"
+
+namespace CoupledField {
+class BaseResult;
+class Grid;
+}  // namespace CoupledField
 
 using boost::asio::ip::tcp;
 
 namespace CoupledField
 {
-  class InfoNode;
 
   /** This class collects the information, the basic text writer writes to files
    * in to info.xml output.

@@ -5,19 +5,28 @@
 #ifndef FILE_LINSTRAINOP_2005
 #define FILE_LINSTRAINOP_2005
 
+#include <complex>
+
 #include "Forms/baseoperator.hh"
-#include "Utils/tools.hh"
+#include "General/defs.hh"
+#include "General/environment.hh"
+#include "MatVec/exprt/xpr2.hh"
 #include "Utils/StdVector.hh"
+
+namespace CoupledField {
+class BaseFE;
+class EqnMap;
+class SingleVector;
+}  // namespace CoupledField
 
 namespace CoupledField
 {
 
   class Grid;
-  struct Elem;
   class StdPDE;
-  template<class TYPE> class NodeStoreSol;
-  template<class TYPE> class Vector;
+  struct Elem;
   template<class TYPE> class Matrix;
+  template<class TYPE> class NodeStoreSol;
   
   //! Operator for calculating linear Strain fields
   

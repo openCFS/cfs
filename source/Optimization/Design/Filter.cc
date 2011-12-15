@@ -1,6 +1,15 @@
-#include "Optimization/Design/Filter.hh"
-#include "Optimization/Design/DesignSpace.hh"
+#include <assert.h>
+#include <cmath>
+#include <limits>
+#include <ostream>
+
 #include "DataInOut/Logging/cfslog.hh"
+#include "DataInOut/Logging/log.hpp"
+#include "Optimization/Design/DesignElement.hh"
+#include "Optimization/Design/DesignSpace.hh"
+#include "Optimization/Design/Filter.hh"
+#include "Utils/StdVector.hh"
+#include "Utils/tools.hh"
 
 DECLARE_LOG(ds)
 

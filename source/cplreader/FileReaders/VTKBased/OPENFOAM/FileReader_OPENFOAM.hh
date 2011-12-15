@@ -5,7 +5,7 @@
 #ifndef FILE_FILEREADER_OPENFOAM_2007
 #define FILE_FILEREADER_OPENFOAM_2007
 
-#include <def_cplreader.hh>
+#include "def_cplreader.hh"
 #include "../FileReader_VTKMultiBlock.hh"
 
 namespace CoupledField

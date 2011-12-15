@@ -6,8 +6,10 @@
 #define OLAS_IDBC_GRAPH_HH
 
 #include <iostream>
-#include <vector>
 
+#include "General/defs.hh"
+#include "General/exception.hh"
+#include "OLAS/graph/baseordering.hh"
 #include "basegraph.hh"
 
 namespace CoupledField {
@@ -20,6 +22,8 @@ namespace CoupledField {
   //! conditions. However, there are only few (currently one) methods that
   //! must be re-implemented, since the IDBC case requires special
   //! treatment.
+template <class TYPE> class StdVector;
+
   class IDBC_Graph : public BaseGraph {
 
   public:

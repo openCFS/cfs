@@ -1,13 +1,25 @@
 #ifndef FILE_NEWBASEACOUSTICMIXEDPDE
 #define FILE_NEWBASEACOUSTICMIXEDPDE
 
+#include <string>
+
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "General/defs.hh"
 #include "SinglePDE.hh"
+#include "Utils/StdVector.hh"
+
+namespace CoupledField {
+class BaseResult;
+class EntityList;
+class Grid;
+class PDECoupling;
+template <class TYPE> class Vector;
+}  // namespace CoupledField
  
 namespace CoupledField
 {
 
   //! Forward class declarations
-  class BaseForm;
 
 
   //! Class for acoustic PDE using velocity and pressure

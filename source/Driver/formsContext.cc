@@ -2,18 +2,31 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include "formsContext.hh"
+#include <assert.h>
+#include <stddef.h>
+#include <map>
+#include <ostream>
 
+#include "Domain/domain.hh"
+#include "Domain/elem.hh"
+#include "Domain/entityList.hh"
+#include "Domain/grid.hh"
+#include "Domain/ncElem.hh"
+#include "Domain/resultInfo.hh"
+#include "Domain/surfElem.hh"
 #include "Forms/baseForm.hh"
 #include "Forms/linearForm.hh"
-#include "Domain/entityList.hh"
 #include "PDE/SinglePDE.hh"
 #include "PDE/eqnMap.hh"
-#include "Domain/grid.hh"
-#include "Domain/domain.hh"
+#include "Utils/dampLayer.hh"
+#include "formsContext.hh"
 
 namespace CoupledField {
 
+
+class BaseMaterial;
+template <class TYPE> class StdVector;
+template <class TYPE> class Vector;
 
   BiLinFormContext::BiLinFormContext( BaseForm* biLinForm, 
                                       FEMatrixType destMat) {

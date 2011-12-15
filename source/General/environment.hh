@@ -6,18 +6,16 @@
 #ifndef FILE_SCFE_MYDEFS_2001
 #define FILE_SCFE_MYDEFS_2001
 
-#include <typeinfo>
-#include <iostream>
-#include <vector>
-#include <cmath>
-
-// includes for the C99 standard datatypes (e.g. uint32_t, long double)
-#include <boost/cstdint.hpp>
-#include <boost/shared_ptr.hpp>
 #include <cfloat>
-
+#include <cmath>
+#include <iostream>
+#include <typeinfo>
+#include <vector>
 #include "General/defs.hh"
-#include "Enum.hh"
+#include "General/Enum.hh"
+// includes for the C99 standard datatypes (e.g. uint32_t, long double)
+#include "boost/cstdint.hpp"
+#include "boost/shared_ptr.hpp"
 
 //! \file environment.hh
 //! This file contains some global macro, class and enumeration data type
@@ -52,12 +50,10 @@ namespace CoupledField {
   using namespace boost;
 
 
+  class CFSMessenger;
   // forward class declaration
   class Domain;
-  class CFSMessenger;
   class LogConfigurator;
-  class ParamNode;
-  class InfoNode;
   
 
   // Type definitions for regions
@@ -325,6 +321,7 @@ namespace CoupledField {
   extern WriteInfo *Info;
 
   class BaseFE;
+
   //! Pointers to derived classes of BaseElem. Initialized in grid.hh/grid.cc.
   //! They are used, when we read information about elements from mesh and
   //! create a pointer to the class containing the description of the Finite

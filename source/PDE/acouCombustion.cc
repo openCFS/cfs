@@ -2,19 +2,30 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include <fstream>
+#include <stdio.h>
 #include <iostream>
 #include <string>
-#include <math.h>
-#include <iomanip>
-#include <complex>
 
-#include "OLAS/algsys/basesystem.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
-#include "Driver/stdSolveStep.hh"
+#include "Domain/domain.hh"
+#include "Domain/grid.hh"
 #include "Driver/singleDriver.hh"
-
+#include "Driver/stdSolveStep.hh"
+#include "General/Enum.hh"
+#include "General/exception.hh"
+#include "MatVec/matrix.hh"
+#include "MatVec/vector.hh"
+#include "OLAS/algsys/basesystem.hh"
+#include "PDE/acousticPDE.hh"
+#include "PDE/basePDE.hh"
+#include "PDE/eqnMap.hh"
+#include "Utils/nodestoresol.hh"
 #include "acouCombustion.hh"
+#include "math.h"
+
+namespace CoupledField {
+struct Elem;
+}  // namespace CoupledField
 
 
 extern "C" {

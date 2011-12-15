@@ -2,7 +2,10 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include "MatVec/vectorSerialization.hh"
+#include <utility>
+
+#include "MatVec/SingleVector.hh"
+#include "MatVec/vectorSerialization.hh" // IWYU pragma: keep
 #include "pdememento.hh"
 
 
@@ -34,6 +37,7 @@ namespace CoupledField{
 
 } // namespace
 
-#include <boost/serialization/export.hpp>
+#include "boost/serialization/export.hpp"
+
 BOOST_CLASS_EXPORT_GUID(CoupledField::PDEMemento, "CoupledField_PDEMemento")
 

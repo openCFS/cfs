@@ -5,20 +5,20 @@
 // This code is also based on the gmvread library from the official GMV
 // website at: http://www-xdiv.lanl.gov/XCM/gmv/GMVHome.html
 
-#include <set>
-#include <iostream>
-
 #include <stdlib.h>
 #include <cstdio>
-#include <string.h>
+#include <iostream>
+#include <set>
 
-#include <sys/types.h>
-#include <math.h>
-
-#include <General/exception.hh>
-#include <DataInOut/simInput.hh>
+#include "General/exception.hh"
+#include "math.h"
+#include "stdlib.h"
+#include "string.h"
+#include "sys/types.h"
 
 #undef RDATA_INIT
+#include "DataInOut/Logging/cfslog.hh"
+#include "DataInOut/Logging/log.hpp"
 #include "gmvread.hh"
 
 namespace CoupledField {
