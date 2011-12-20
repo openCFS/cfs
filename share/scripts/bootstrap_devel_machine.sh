@@ -32,27 +32,56 @@ ExitFail() {
 
 SetupDebian() {
     # Setup Debian, Ubuntu, Linux Mint, etc...
-    apt-get install subversion gcc g++ gfortran automake autoconf cmake \
+    PCKGS="subversion gcc g++ gfortran automake autoconf cmake \
         perl-base graphviz texlive-latex-base tex4ht \
         python-pygments doxygen tcl-dev python-dev git-svn \
         cmake-curses-gui cmake-qt-gui gmsh openjdk-6-jdk \
-        patch diffutils zip libxt-dev libxp6 tk-dev \
-        libgl1-mesa-dev libglu1-mesa-dev libxmuu-dev || ExitFail
+        patch diff diffutils zip libxt-dev libxp6 tk-dev \
+        libgl1-mesa-dev libglu1-mesa-dev libxmuu-dev libncurses5-dev"
 
+    for pckg in $PCKGS; do
+        apt-get install -y -f $pckg
+    done
     rm -f /usr/lib/libXext.so /usr/lib/libXmu.so
     ln -s /usr/lib/libXext.so.6.4.0 /usr/lib/libXext.so || ExitFail
     ln -s /usr/lib/libXmu.so.6.2.0 /usr/lib/libXmu.so || ExitFail
 }
 
-SetupOpenSuse() {
+SetupSuse() {
+    MAJOR=$(echo $REV | cut -d'.' -f1)
+    MINOR=$(echo $REV | cut -d'.' -f2)
+    if [ "$ARCH" = "I386" ]; then SUSEARCH=x86; fi
+    if [ "$ARCH" = "X86_64" ]; then SUSEARCH=x64; fi
+    
+    # We need to add the SDK DVDs as repos in case of SLE
+    if [ "$DIST" = "SLE" ]; then 
+        SLETYPE=$(cat /etc/SuSE-release | grep SUSE | cut -d' ' -f4)
+
+        if [ ! "$MAJOR" = "11" ]; then
+            echo "Only SLE 11 is supported at the moment!"
+        fi 
+       
+        unset MINOR
+ 
+        case "$SLETYPE" in
+            Server) SLE="SLES";;
+            Desktop) SLE="SLED";;
+        esac
+        
+        zypper ar http://demeter.uni-regensburg.de/${SLE}11SP1-$SUSEARCH/DVD1 DVD1-Regensburg
+        zypper ar http://demeter.uni-regensburg.de/${SLE}11SP1-$SUSEARCH/DVD2 DVD2-Regensburg
+        zypper ar http://demeter.uni-regensburg.de/SLE11SP1-SDK-$SUSEARCH/DVD1 SDK-DVD1
+        zypper ar http://demeter.uni-regensburg.de/SLE11SP1-SDK-$SUSEARCH/DVD2 SDK-DVD2
+    fi
+
+ 
+
     zypper install subversion gcc gcc-c++ gcc-fortran automake autoconf \
         cmake perl-base perl-Switch graphviz texlive-latex texlive-tex4ht \
         python-pygments doxygen tcl-devel python-devel git-svn \
         java-1_6_0-openjdk-devel cmake-gui xorg-x11-libXt-devel \
-        diffutils patch zip xorg-x11-libXp tk-devel Mesa-devel || ExitFail
+        diffutils patch zip xorg-x11-libXp tk-devel Mesa-devel 
 
-    MAJOR=$(echo $REV | cut -d'.' -f1)
-    MINOR=$(echo $REV | cut -d'.' -f2)
 
     if [ "$MAJOR" = "11" ] && [ $MINOR -ge 3 ]; then
 	REPO="http://download.opensuse.org/repositories/home:/tsokar/openSUSE_$REV \
@@ -283,11 +312,11 @@ SetupCMake() {
 
     MD5SUM_ACTUAL=""
     # Check MD5 sum on CMake >= 2.8
-    MD5SUM_ACTUAL="$MD5SUM_ACTUAL $(cmake -E md5sum cmake-2.8.6.tar.gz | cut -d' ' -f1)"
+    MD5SUM_ACTUAL="$MD5SUM_ACTUAL $(cmake -E md5sum cmake-2.8.6.tar.gz 2> /dev/null | cut -d' ' -f1)"
     # Check MD5 sum on Mac OS X
-    MD5SUM_ACTUAL="$MD5SUM_ACTUAL $(md5 | cut -d'=' -f2 | cut -d' ' -f2)"
+    MD5SUM_ACTUAL="$MD5SUM_ACTUAL $(md5 2> /dev/null | cut -d'=' -f2 | cut -d' ' -f2)"
     # Check MD5 sum on Linux
-    MD5SUM_ACTUAL="$MD5SUM_ACTUAL $(md5sum $PCKG_BASE_NAME.tar.gz | sed -e 's/ .*//')"
+    MD5SUM_ACTUAL="$MD5SUM_ACTUAL $(md5sum $PCKG_BASE_NAME.tar.gz 2> /dev/null | sed -e 's/ .*//')"
 
     isokay=0
     for sum in $MD5SUM_ACTUAL; do
@@ -333,7 +362,8 @@ printf "$HINTSTR" | sed 's/^/# /' >> $ENV_CFS
 
 case "$DIST" in
      MACOSX) SetupMacOS;;
-     OPENSUSE) SetupOpenSuse ;;
+     OPENSUSE) SetupSuse ;;
+     SLE) SetupSuse ;;
      DEBIAN) SetupDebian ;;
      UBUNTU) SetupDebian ;;
      LINUXMINT) SetupDebian ;;
@@ -349,6 +379,7 @@ case "$DIST" in
         echo "for $DIST. When finished please place your modified $0 into"
 	echo "CFS_SOURCE_DIR/share/scripts and commit it to the Subversion repo"
 	echo "or send it to one of the CFS++ developers."
+        exit 1
         ;;
 esac
 

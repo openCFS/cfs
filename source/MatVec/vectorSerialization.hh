@@ -7,12 +7,7 @@
 
 #include <boost/version.hpp>
 #include <boost/serialization/split_member.hpp>
-#if BOOST_VERSION < 103600
-# include <boost/serialization/is_abstract.hpp>
-#else
-# include <boost/serialization/assume_abstract.hpp>
-#endif
-
+#include <boost/serialization/assume_abstract.hpp>
 
 namespace boost {
   namespace serialization {
@@ -32,11 +27,7 @@ namespace boost {
 }
 
 //! Indicate that this is a pure virtual class
-#if BOOST_VERSION < 103600
-  BOOST_IS_ABSTRACT( CoupledField::SingleVector )
-#else
-  BOOST_SERIALIZATION_ASSUME_ABSTRACT( CoupledField::SingleVector )
-#endif
+BOOST_SERIALIZATION_ASSUME_ABSTRACT( CoupledField::SingleVector )
 
 namespace boost {
   namespace serialization {

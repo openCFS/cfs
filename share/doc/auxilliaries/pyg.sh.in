@@ -1,13 +1,14 @@
 #!/bin/sh
 
+CMAKE_CURRENT_BINARY_DIR="@CMAKE_CURRENT_BINARY_DIR@"
 SOURCES_DIR=$1
 DEST_DIR="$2/pygmentized"
 ATTACH_DIR="$2/attachments"
 STYLE=tango
 OPTIONS="-f latex -O linenos=True,linenostep=5,style=$STYLE"
 PYG=pygmentize
-DUMMY=@CFS_BINARY_DIR@/share/doc/auxilliaries/dummy.tex
-CSAMPLE=@CFS_BINARY_DIR@/share/doc/auxilliaries/sample.c
+DUMMY="$CMAKE_CURRENT_BINARY_DIR/dummy.tex"
+CSAMPLE="$CMAKE_CURRENT_BINARY_DIR/sample.c"
 
 mkdir -p $DEST_DIR
 

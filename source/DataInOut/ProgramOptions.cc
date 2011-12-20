@@ -58,6 +58,8 @@
 #include <CGAL/version.h>
 #endif
 
+#include <muParserBase.h>
+
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "General/Environment.hh"
 #include "General/Exception.hh"
@@ -793,7 +795,7 @@ namespace CoupledField {
     out << "CFS_BZIP2_VERSION:     "
         << fg_blue << BZ2_bzlibVersion() << fg_reset << endl;
     out << "CFS_MUPARSER_VERSION:  "
-        << fg_blue << CFS_MUPARSER_VERSION << fg_reset << endl;
+        << fg_blue << MUP_VERSION << " " MUP_VERSION_DATE << fg_reset << endl;
 
    
 #ifdef CPLREADER_CFX

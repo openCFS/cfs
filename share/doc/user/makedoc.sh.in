@@ -1,6 +1,11 @@
 #!/bin/sh
 
 MODE=$1
+CMAKE_CURRENT_BINARY_DIR="@CMAKE_CURRENT_BINARY_DIR@"
+CMAKE_CURRENT_SOURCE_DIR="@CMAKE_CURRENT_SOURCE_DIR@"
+PDFLATEX_COMPILER="@PDFLATEX_COMPILER@"
+BIBTEX_COMPILER="@BIBTEX_COMPILER@"
+CPLREADER="@CPLREADER@"
 
 clean() {
     echo "==================================="
@@ -28,11 +33,11 @@ build() {
     echo " Generating advanced pre/post docu."
     echo "==================================="
 
-    cd @CMAKE_CURRENT_BINARY_DIR@/..
-    rsync -vaz "@CMAKE_CURRENT_SOURCE_DIR@/../auxilliaries" .
+    cd "$CMAKE_CURRENT_BINARY_DIR/.."
+    rsync -vaz "$CMAKE_CURRENT_SOURCE_DIR/../auxilliaries" .
 
-    cd @CMAKE_CURRENT_BINARY_DIR@
-    rsync -vaz "@CMAKE_CURRENT_SOURCE_DIR@/advPrePostManual" .
+    cd "$CMAKE_CURRENT_BINARY_DIR"
+    rsync -vaz "$CMAKE_CURRENT_SOURCE_DIR/advPrePostManual" .
     cd advPrePostManual
 
     DOCUMENT=advPrePostManual
@@ -40,22 +45,26 @@ build() {
     # Apply syntax coloring to files in sources directory
     sources/pygmentize.sh $PWD/sources $PWD
 
-    @PDFLATEX_COMPILER@ $DOCUMENT && \
-    @BIBTEX_COMPILER@   $DOCUMENT && \
-    @PDFLATEX_COMPILER@ $DOCUMENT && \
-    @PDFLATEX_COMPILER@ $DOCUMENT && \
-    @PDFLATEX_COMPILER@ $DOCUMENT && \
+    "$PDFLATEX_COMPILER" $DOCUMENT && \
+    "$BIBTEX_COMPILER"   $DOCUMENT && \
+    "$PDFLATEX_COMPILER" $DOCUMENT && \
+    "$PDFLATEX_COMPILER" $DOCUMENT && \
+    "$PDFLATEX_COMPILER" $DOCUMENT && \
     thumbpdf $DOCUMENT && \
-    @PDFLATEX_COMPILER@ $DOCUMENT
+    "$PDFLATEX_COMPILER" $DOCUMENT
 
-    cd @CMAKE_CURRENT_SOURCE_DIR@
+    if [ ! "$?" = "0" ]; then
+	exit 1;
+    fi
+
+    cd "$CMAKE_CURRENT_SOURCE_DIR"
 
     echo "==================================="
     echo " Generating XML-REFERENCE document"
     echo "==================================="
 
-    cd @CMAKE_CURRENT_BINARY_DIR@
-    rsync -vaz "@CMAKE_CURRENT_SOURCE_DIR@/xmlFile" .
+    cd "$CMAKE_CURRENT_BINARY_DIR"
+    rsync -vaz "$CMAKE_CURRENT_SOURCE_DIR/xmlFile" .
     cd xmlFile
     DOCUMENT=xmlReference
 
@@ -70,13 +79,13 @@ build() {
     # add pygments tex style to own files
     cat style.tex >> mycommands.tex
 
-    @PDFLATEX_COMPILER@ $DOCUMENT && \
-    @BIBTEX_COMPILER@   $DOCUMENT && \
-    @PDFLATEX_COMPILER@ $DOCUMENT && \
-    @PDFLATEX_COMPILER@ $DOCUMENT && \
-    @PDFLATEX_COMPILER@ $DOCUMENT && \
+    "$PDFLATEX_COMPILER" $DOCUMENT && \
+    "$BIBTEX_COMPILER"   $DOCUMENT && \
+    "$PDFLATEX_COMPILER" $DOCUMENT && \
+    "$PDFLATEX_COMPILER" $DOCUMENT && \
+    "$PDFLATEX_COMPILER" $DOCUMENT && \
     thumbpdf $DOCUMENT && \
-    @PDFLATEX_COMPILER@ $DOCUMENT
+    "$PDFLATEX_COMPILER" $DOCUMENT
 
     # move back files
     for f in $texFiles ;
@@ -84,19 +93,19 @@ build() {
       mv ${f%.*}-save.tex $f
     done
 
-    cd @CMAKE_CURRENT_SOURCE_DIR@
+    cd "$CMAKE_CURRENT_SOURCE_DIR"
 
     echo "==================================="
     echo " Generating XML-Material document"
     echo "==================================="
 
-    cd @CMAKE_CURRENT_BINARY_DIR@
-    rsync -vaz "@CMAKE_CURRENT_SOURCE_DIR@/matFile" .
+    cd "$CMAKE_CURRENT_BINARY_DIR"
+    rsync -vaz "$CMAKE_CURRENT_SOURCE_DIR/matFile" .
     cd matFile
     DOCUMENT=matRef
 
-    @PDFLATEX_COMPILER@ $DOCUMENT && \
-    @PDFLATEX_COMPILER@ $DOCUMENT
+    "$PDFLATEX_COMPILER" $DOCUMENT && \
+    "$PDFLATEX_COMPILER" $DOCUMENT && \
 
     cd @CMAKE_CURRENT_SOURCE_DIR@
 
@@ -104,23 +113,23 @@ build() {
     echo " Generating Scripting docu."
     echo "==================================="
 
-    cd @CMAKE_CURRENT_BINARY_DIR@
-    rsync -vaz "@CMAKE_CURRENT_SOURCE_DIR@/scripting" .
+    cd "$CMAKE_CURRENT_BINARY_DIR"
+    rsync -vaz "$CMAKE_CURRENT_SOURCE_DIR/scripting" .
     cd scripting
     DOCUMENT=scripting
 
-    @PDFLATEX_COMPILER@ $DOCUMENT && \
-    @PDFLATEX_COMPILER@ $DOCUMENT
+    "$PDFLATEX_COMPILER" $DOCUMENT && \
+    "$PDFLATEX_COMPILER" $DOCUMENT && \
 
-    cd @CMAKE_CURRENT_SOURCE_DIR@
+    cd "$CMAKE_CURRENT_SOURCE_DIR"
 
-    if [ "@CPLREADER@" = "ON" ]; then
+    if [ "$CPLREADER" = "ON" ]; then
 	echo "==================================="
 	echo " Generating cplreader manual.      "
 	echo "==================================="
 	
-	cd @CMAKE_CURRENT_BINARY_DIR@
-	rsync -vaz "@CMAKE_CURRENT_SOURCE_DIR@/cplreader" .
+	cd "$CMAKE_CURRENT_BINARY_DIR"
+	rsync -vaz "$CMAKE_CURRENT_SOURCE_DIR/cplreader" .
 	cd cplreader
 	
 	DOCUMENT=cplreader_docu
@@ -128,16 +137,16 @@ build() {
         # Apply syntax coloring to files in sources directory
 	sources/pygmentize.sh $PWD/sources $PWD
 	
-	@PDFLATEX_COMPILER@ $DOCUMENT && \
-	@BIBTEX_COMPILER@   $DOCUMENT && \
-	@PDFLATEX_COMPILER@ $DOCUMENT && \
-	@PDFLATEX_COMPILER@ $DOCUMENT && \
-	@PDFLATEX_COMPILER@ $DOCUMENT && \
+	"$PDFLATEX_COMPILER" $DOCUMENT && \
+	"$BIBTEX_COMPILER"   $DOCUMENT && \
+	"$PDFLATEX_COMPILER" $DOCUMENT && \
+	"$PDFLATEX_COMPILER" $DOCUMENT && \
+	"$PDFLATEX_COMPILER" $DOCUMENT && \
 	thumbpdf $DOCUMENT && \
-	@PDFLATEX_COMPILER@ $DOCUMENT
+	"$PDFLATEX_COMPILER" $DOCUMENT
 
         if [ "$?" = 0 ]; then
-	    cp $DOCUMENT.pdf @CMAKE_CURRENT_SOURCE_DIR@/cplreader
+	    cp $DOCUMENT.pdf "$CMAKE_CURRENT_SOURCE_DIR/cplreader"
 	fi
 
     fi
@@ -149,14 +158,14 @@ build() {
     echo ""
     echo " Documentation has been generated in:"
     echo ""
-    echo " @CMAKE_CURRENT_BINARY_DIR@/"
+    echo " $CMAKE_CURRENT_BINARY_DIR/"
     echo " |-- advPrePostManual"
     echo " |   \`-- advPrePostManual.pdf"
     echo " |-- matFile"
     echo " |   \`-- matRef.pdf"
     echo " |-- scripting"
     echo " |   \`-- scripting.pdf"
-    if [ "@CPLREADER@" = "ON" ]; then
+    if [ "$CPLREADER" = "ON" ]; then
     echo " |-- xmlFile"
     echo " |   \`-- xmlReference.pdf"
     echo " \`-- cplreader"
@@ -175,8 +184,8 @@ buildhtml() {
     echo " Generating XML-REFERENCE HTML documentation"
     echo "============================================="
 
-    cd @CMAKE_CURRENT_BINARY_DIR@
-    rsync -vaz "@CMAKE_CURRENT_SOURCE_DIR@/xmlFile" .
+    cd "$CMAKE_CURRENT_BINARY_DIR"
+    rsync -vaz "$CMAKE_CURRENT_SOURCE_DIR/xmlFile" .
     cd xmlFile
     DOCUMENT=xmlReference
 
@@ -206,7 +215,7 @@ buildhtml() {
     # remove obselete files in base-directory
     rm *.html *.css *.idv *.lg
 
-    cd @CMAKE_CURRENT_BINARY_DIR@
+    cd "$CMAKE_CURRENT_BINARY_DIR"
 
     echo ""
     echo "================================"
@@ -215,7 +224,7 @@ buildhtml() {
     echo ""
     echo " Documentation has been generated in:"
     echo ""
-    echo " @CMAKE_CURRENT_BINARY_DIR@/"
+    echo " $CMAKE_CURRENT_BINARY_DIR/"
     echo " |-- xmlFile"
     echo "     \`-- html"
     echo "          \`-- xmlReference.html"

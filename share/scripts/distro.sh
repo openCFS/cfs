@@ -95,7 +95,7 @@ elif [ "${OS}" = "Linux" ] ; then
             FIRSTLINE=`head -1 $SUSEREL | sed 'y/'$LOWER'/'$UPPER'/'`
             ENTERPRISE=`echo $FIRSTLINE | cut -f3 -d' '`
             if [ "$ENTERPRISE" = "ENTERPRISE" ]; then
-                DIST="SLES"
+                DIST="SLE"
                 REV=`echo $FIRSTLINE | cut -f5 -d' '`
                 PSEUDONAME=`head -3 $SUSEREL | tail -1 | sed 's/ = //'`
             else
@@ -152,6 +152,7 @@ elif [ "${OS}" = "Linux" ] ; then
 			DIST=$DISTRIB_ID;
 			REV=$DISTRIB_RELEASE;
 			PSEUDONAME=$DISTRIB_CODENAME;
+                        # https://wiki.ubuntu.com/DevelopmentCodeNames
 			# http://en.wikipedia.org/wiki/History_of_Ubuntu
 			case "$DISTRIB_CODENAME" in
 			    "warty") PSEUDONAME="Warty Warthog";; # 4.10

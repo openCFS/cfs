@@ -23,14 +23,10 @@ IF(WIN32)
     PATHS ${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}
     )
 ELSE(WIN32)
-  FIND_LIBRARY(METIS_LIBRARY_DEBUG
-    NAMES metis
-    PATHS ${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}
-    )
-  FIND_LIBRARY(METIS_LIBRARY_RELEASE
-    NAMES metis
-    PATHS ${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}
-    )
+  SET(METIS_LIBRARY_DEBUG
+    "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}/libmetis.a")
+  SET(METIS_LIBRARY_RELEASE
+    "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}/libmetis.a")
 ENDIF(WIN32)
 
 #-------------------------------------------------------------------------------
