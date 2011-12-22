@@ -23,10 +23,8 @@ namespace CoupledField {
   // ***************
   MagStrictCoupling::MagStrictCoupling( SinglePDE *pde1, SinglePDE *pde2,
                                         PtrParamNode paramNode  )
-    : BasePairCoupling( pde1, pde2, paramNode ) {
+    : BasePairCoupling( pde1, pde2, paramNode, "magnetostriction") {
 
-
-    couplingName_ = "magnetostriction";
     materialClass_ = MAGNETOSTRICTIVE;
 
     // determine subtype from mechanic pde
@@ -92,7 +90,7 @@ namespace CoupledField {
     
     Global::ComplexPart matType = Global::REAL;
     RegionIdType actRegion;
-    BaseMaterial * actSDMat = NULL;
+    // BaseMaterial * actSDMat = NULL; // TODO: Unused variable actSDMat
 
     // get material from magnetostatics
     std::map<RegionIdType, BaseMaterial*> magMat =
@@ -104,7 +102,7 @@ namespace CoupledField {
     for ( it = materials_.begin(); it != materials_.end(); it++ ) {
       // Set current region and material
       actRegion = it->first;
-      actSDMat = it->second;
+      // actSDMat = it->second;
       matType = Global::REAL;
 
       // determine the tenstor type

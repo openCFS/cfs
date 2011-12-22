@@ -14,7 +14,6 @@
 #include "Forms/linGradBDBInt.hh"
 #include "Forms/linNeumannInt.hh"
 #include "Forms/nLinElecHystInt.hh"
-#include "Forms/nLinElecMaterial.hh"
 #include "Forms/elecchargeop.hh"
 #include "Forms/laplaceInt.hh"
 #include "Forms/FlatShellElecInt.hh"
@@ -62,7 +61,6 @@ namespace CoupledField {
     maxTimeDerivOrder_ = 0;
  
     nonLin_    = false;
-    nonLinMaterial_ = false;
     isAlwaysStatic_ = true;
     isPiezoCoupled_ = false;
     isThermoCoupled_= false;
@@ -76,73 +74,15 @@ namespace CoupledField {
 
   void ElecPDE::InitNonLin() {
 
-    // Check, if "nonLinList" is present
-    PtrParamNode nonLinListNode = myParam_->Get("nonLinList", ParamNode::PASS );
-    if( nonLinListNode ) { 
+    SinglePDE::InitNonLin();
 
-      // Get nonlinear types
-      ParamNodeList nonLinNodes = nonLinListNode->GetChildren();
-      for( UInt i = 0; i < nonLinNodes.GetSize(); i++ ) {
-
-        std::string actTypeString = nonLinNodes[i]->GetName();
-        std::string actId = nonLinNodes[i]->Get("id")->As<std::string>();
-
-        NonLinType actType;
-        String2Enum( actTypeString, actType );
-        nonLinIdType_[actId] = actType;
-      }
-    }
-    
-    // Run over all region and set entry in "regionNonLinId"
-    ParamNodeList regionNodes = 
-      myParam_->Get("regionList")->GetChildren();
-
-    RegionIdType actRegionId;
-    std::string actRegionName, actNonLinId;
-
-    if( regionNodes.GetSize() > 0 ) {
-      Info->PrintF( pdename_, "Non-linearity in following region(s)\n" );
-    }
-    for( UInt i = 0; i < regionNodes.GetSize(); i++ ) {
-      
-      regionNodes[i]->GetValue( "name", actRegionName );
-      regionNodes[i]->GetValue( "nonLinId", actNonLinId );
-      
-      if( actNonLinId == "" )
-        continue;
-
-      actRegionId = ptgrid_->GetRegion().Parse(actRegionName);
-
-      // Check nonLinId was already registerd
-      if( nonLinIdType_.find( actNonLinId) == nonLinIdType_.end() ) {
-        EXCEPTION( "NonLinearity with id '" << actNonLinId 
-                   << "' was not defined in 'nonLinList'" );
-      }
-      
-      regionNonLinId_[actRegionId] = actNonLinId;
-
-      // get related type of nonlinearity
-      NonLinType actType = nonLinIdType_[actNonLinId];
-      regionNonLinType_[actRegionId] = actType;
-
-      // check type
-      if( actType == HYSTERESIS ) {
+    //now do PDE specifics
+    std::map<std::string, NonLinType>::iterator it;
+    for ( it=nonLinTypes_.begin() ; it != nonLinTypes_.end(); it++ ) {
+      if ( (*it).second == HYSTERESIS ) {
         isHysteresis_ = true;
       }
-
-      if( actType == MATERIAL ) {
-        nonLin_ = true;
-        nonLinMaterial_ = true;
-      }
-
-      // Log to info file
-      std::string nonLinString;
-      Enum2String( nonLinIdType_[actNonLinId], nonLinString );
-      Info->PrintF( pdename_, " %s: %s\n", actRegionName.c_str(), 
-                    nonLinString.c_str() );
-      
     }
-    Info->PrintF( pdename_, "\n" );
 
   }
 
@@ -193,7 +133,7 @@ namespace CoupledField {
       actSDList->SetRegion( actRegion );
 
       // isPiezoHyst (isMicroPiezo) = true means, that the bilinear-forms 
-      // will be defined in PiezoCupling.cc!!
+      // will be defined in PiezoCoupling.cc!!
       bool isPiezoHyst  = false;
       bool isMicroPiezo = false;
       if ( isPiezoCoupled_ == true ) {
@@ -201,15 +141,18 @@ namespace CoupledField {
         isMicroPiezo = IsRegionMicroPiezo( regionName );
       }
 
+      //get possible nonlinearities defined in this region
+      StdVector<NonLinType> nonLinTypes = regionNonLinTypes_[actRegion]; 
+
       if ( !isPiezoHyst && !isMicroPiezo ) {
         // check for nonlinearity
-        if ( regionNonLinType_[actRegion] == HYSTERESIS) {
+        if ( nonLinTypes.Find(HYSTERESIS) != -1 ) {
           StdVector<Elem*> elemssd;
           ptgrid_->GetElems(elemssd, actRegion);
           UInt numElSD =  elemssd.GetSize();
           
           
-          //allocate for hystersis modeling
+          //allocate for hysteresis modeling
           actSDMat->InitHyst(numElSD, actSDList);
           
           nlinElecHystInt* nlForm;
@@ -228,34 +171,6 @@ namespace CoupledField {
                                      actSDList, actSDList );
           
           assemble_->AddBiLinearForm( stiffIntDescr );
-        }
-        
-        else if (  regionNonLinType_[actRegion] == MATERIAL ) {
-          
-          std::string nlfnc = materials_[actRegion]->GetNonlinFileName(ELEC_PERMITTIVITY);
-          materials_[actRegion]->GetScalar(nlfnc,NONLIN_DATA_NAME);           
-          
-          ApproxData *nlinFnc = new SmoothSpline(nlfnc);
-          //  oder        ApproxData *nlinFnc = new LinInterpolate(nlfnc);
-          nlinFnc->CalcBestParameter();
-          nlinFnc->CalcApproximation();
-          
-          //         if (dim_ == 3)
-          //           {   
-          nLinElec3dInt_Material* nLinMaterial;
-          nLinMaterial = new nLinElec3dInt_Material(nlinFnc, actSDMat, FULL);    
-          //          }
-          
-          nLinMaterial->SetSolution(dynamic_cast<NodeStoreSol<Double>&>(*sol_ ));
-          nLinMaterial->Set4NonLinMaterial(ptgrid_, this, eqnMap_,  results_[0]);
-          
-          BiLinFormContext * stiffNLMaterialDescr = 
-            new BiLinFormContext(nLinMaterial, STIFFNESS );
-          
-          stiffNLMaterialDescr->SetPtPdes(this, this);
-          stiffNLMaterialDescr->SetResults( results_[0], results_[0],
-                                            actSDList, actSDList );
-          assemble_->AddBiLinearForm(stiffNLMaterialDescr);
         }
         
         else {
@@ -406,7 +321,7 @@ namespace CoupledField {
         new NonConformingInt( 1, isaxi_ );
 
       NcBiLinFormContext * stiffIntDescr = 
-     	  new NcBiLinFormContext( ncInt , STIFFNESS );
+          new NcBiLinFormContext( ncInt , STIFFNESS );
 
       // Force assembling of M(Psi, Lambda)^T
       stiffIntDescr->SetCounterPart( true );
@@ -447,6 +362,10 @@ namespace CoupledField {
 
     // define integrators for electric impedances
     DefineImpedanceIntegrators();
+
+
+    // define integrators for maxwell homogenization formula
+    DefineMaxwellHomIntegrators(NULL);
   }
   
   void ElecPDE::DefineImpedanceIntegrators() {
@@ -480,7 +399,7 @@ namespace CoupledField {
         real += lexical_cast<std::string>(impedances_[i].inductance) + " ))";
       }
       
-      // *** Capcitance *** 
+      // *** Capacitance ***
       if ( impedances_[i].capacitance > EPS ) {
         real += "-" + lexical_cast<std::string>( impedances_[i].capacitance );
       } 
@@ -525,6 +444,72 @@ namespace CoupledField {
     }
   }
 
+  void ElecPDE::DefineMaxwellHomIntegrators(StdVector<LinearFormContext*>* linForms){
+
+    VolChargeHomInt * chargeInt;
+    BaseMaterial* actSDMat = NULL;
+    RegionIdType actRegion;
+    std::map<RegionIdType, std::pair<BaseMaterial*, MaxwellHom> >::iterator loadIt = regionCharges_.begin();
+    if (regionCharges_.size() != 0 ) {
+      (*loadIt).second.second.Print(true, pdename_ );
+    }
+    for( loadIt = regionCharges_.begin(); loadIt != regionCharges_.end(); loadIt++ ) {
+
+      //  BaseMaterial* actSDMat;
+      actSDMat = (*loadIt).second.first;
+      actRegion = (*loadIt).first;
+      chargeInt = (*loadIt).second.second.GetIntegrator(actSDMat, Global::REAL);
+
+      // Create new element list
+      shared_ptr<ElemList> actSDList( new ElemList(ptgrid_ ) );
+      actSDList->SetRegion(actRegion);
+      //      chargeInt->SetMatDataType(matType);
+      LinearFormContext * chargeContext =
+          new LinearFormContext( chargeInt );
+      chargeContext->SetPtPde(this);
+      chargeContext->SetResult( results_[0], actSDList );
+      if (linForms != NULL){
+        linForms->Push_back(chargeContext);
+      }
+      else assemble_->AddLinearForm( chargeContext );
+
+      //assemble_->AddRhsSrcIntegrator( forceInt, (*loadIt).first,
+      //                                (*loadIt).second.dynamics, nonLin_ );
+      (*loadIt).second.second.Print(false, pdename_);
+
+      // --- check for complex valued material parameter ---
+      if( complexMatData_[actRegion] == true ) {
+        Global::ComplexPart matType = Global::IMAG;
+
+
+        //          actSDMat = (*loadIt).second.first;
+        //          actRegion = (*loadIt).first;
+        VolChargeHomInt * chargeIntC;
+        chargeIntC = (*loadIt).second.second.GetIntegrator(actSDMat, Global::IMAG);
+
+        // Create new element list
+        shared_ptr<ElemList> actSDList( new ElemList(ptgrid_ ) );
+        actSDList->SetRegion(actRegion);
+        chargeIntC->SetMatDataType(matType);
+        LinearFormContext * chargeContextC =
+            new LinearFormContext( chargeIntC );
+        chargeContextC->SetPtPde(this);
+        chargeContextC->SetResult( results_[0], actSDList );
+        if(linForms != NULL){
+          linForms->Push_back(chargeContextC);
+        }
+        else assemble_->AddLinearForm( chargeContextC );
+
+        //assemble_->AddRhsSrcIntegrator( forceInt, (*loadIt).first,
+        //                                (*loadIt).second.dynamics, nonLin_ );
+        (*loadIt).second.second.Print(false, pdename_);
+
+      }
+
+    }
+
+  }
+
   void ElecPDE::DefineSolveStep() {
     solveStep_ = new SolveStepElec(*this);
   }
@@ -532,6 +517,9 @@ namespace CoupledField {
   void ElecPDE::ReadSpecialBCs( ) 
   {
      ReadImpedances();
+
+     // read maxwell homogenization volume charge definition
+     ReadRegionCharges();
   }
   
   
@@ -668,6 +656,31 @@ namespace CoupledField {
          CalcGradSolution<Double>(res);
        break;
 
+     case HOMOGENIZED_TENSOR:
+       CalcHomogenizedTensor(res);
+       break;
+
+       // the actual case is given in the result info in result
+     case OPT_RESULT_1:
+     case OPT_RESULT_2:
+     case OPT_RESULT_3:
+     case OPT_RESULT_4:
+     case OPT_RESULT_5:
+     case OPT_RESULT_6:
+     case OPT_RESULT_7:
+     case OPT_RESULT_8:
+     case OPT_RESULT_9:
+       // design should work, this is checked in AvailabeResults()
+       domain->GetErsatzMaterial()->ExtractResults(res, isComplex_);
+       break;
+
+     case MECH_PSEUDO_DENSITY:
+       if(domain->GetErsatzMaterial(false) == NULL) // no exception
+         res->Init();
+       else
+         domain->GetErsatzMaterial()->ExtractResults(res, isComplex_);
+       break;
+
      default:
        WARN( "Result type not computable by electric PDE" );
      }
@@ -752,6 +765,26 @@ namespace CoupledField {
   }
   
   
+  void ElecPDE::CalcHomogenizedTensor(shared_ptr<BaseResult> base_result)
+  {
+    // TODO: Either the calculation moves here ore the data interchange
+    // with ErsatzMaterial is done nice. Now steal the data from ParamNode!!! :((
+
+    ErsatzMaterial* em = domain->GetOptimization() != NULL ? dynamic_cast<ErsatzMaterial*>(domain->GetOptimization()) : NULL;
+    if(em == NULL) EXCEPTION("the result 'maxwellHomogenizedTensor' requires an appropriate optimization definition.");
+
+    Matrix<Complex>& tensor = em->maxwellHomogenizedTensor;
+
+    Result<Complex>& res = dynamic_cast<Result<Complex>&>(*base_result);
+    Vector<Complex>& vals = res.GetVector();
+    const unsigned int trows(tensor.GetNumRows());
+    const unsigned int tcols(tensor.GetNumCols());
+    vals.Resize(trows * tcols);
+
+    for(unsigned int r = 0; r < trows; ++r)
+      for(unsigned int c = 0; c < tcols; ++c)
+        vals[r * trows + c] = tensor[r][c];
+  }
 
 
   void ElecPDE::CalcPolarizationField( shared_ptr<BaseResult> res ) {
@@ -762,7 +795,7 @@ namespace CoupledField {
 
     GradientFieldOp<Double> * FieldOp = 
       new GradientFieldOp<Double>(ptgrid_,this, eqnMap_,
- 				  *solhelp, results_[0]->fctType, isaxi_);
+          *solhelp, results_[0]->fctType, isaxi_);
   
     Vector<Double> LCoord, Efield, vecE, vecP;
     Double Ecomp, Pval;
@@ -1253,7 +1286,7 @@ namespace CoupledField {
       res1->fctType = fct;
 
       res1->resultType = ELEC_POTENTIAL;
-    	res1->entryType = ResultInfo::SCALAR;
+      res1->entryType = ResultInfo::SCALAR;
       results_.Push_back( res1 );
       availResults_.insert( res1 );
 
@@ -1358,6 +1391,27 @@ namespace CoupledField {
     grad_sol->definedOn = ResultInfo::NODE;
     grad_sol->fctType = shared_ptr<ConstFct>(new ConstFct() ); // ??? - copy and paste! !?
     availResults_.insert( grad_sol );
+
+    // === HOMOGENIZED_TENSOR ===
+    // calculated as a special optimization result
+    shared_ptr<ResultInfo> homogenTensor(new ResultInfo);
+    homogenTensor->resultType = HOMOGENIZED_TENSOR;
+    homogenTensor->dofNames = "";
+    homogenTensor->unit = "";
+    homogenTensor->entryType = ResultInfo::TENSOR;
+    homogenTensor->definedOn = ResultInfo::REGION;
+    homogenTensor->fctType = shared_ptr<ConstFct>(new ConstFct() );
+    availResults_.insert(homogenTensor);
+
+    // === PSEUDO DENSITY for SIMP ===
+    shared_ptr<ResultInfo> elecPD(new ResultInfo);
+    elecPD->resultType = MECH_PSEUDO_DENSITY;
+    elecPD->dofNames = "";
+    elecPD->unit = "";
+    elecPD->entryType = ResultInfo::SCALAR;
+    elecPD->definedOn = ResultInfo::ELEMENT;
+    elecPD->fctType = shared_ptr<ConstFct>(new ConstFct() );
+    availResults_.insert( elecPD );
 
     // ===================================
     // Check for non-conforming interfaces

@@ -87,10 +87,6 @@ namespace CoupledField
     virtual void StepTransNonLinTotal(PtrParamNode analysis_id);
 
     //! solves for one nonlinear transient step 
-    //! consideres material nonlinearities in direct coupled PDEs
-    void StepTransNonLinMaterial(PtrParamNode analysis_id);
-
-    //! solves for one nonlinear transient step 
     //! consideres hystreresis nonlinearities in direct coupled PDEs
     virtual void StepTransNonLinHysteresis(PtrParamNode analysis_id);
     
@@ -102,10 +98,10 @@ namespace CoupledField
     virtual void PreStepHarmonic();
 
     //!  base method for solving one harmonic step 
-    virtual void SolveStepHarmonic(PtrParamNode analysis_id);
+    virtual void SolveStepHarmonic(PtrParamNode analysis_id, AdjointParameters* adjointParams = NULL);
     
     //! solves for one linear frequency step 
-    virtual void StepHarmonicLin(PtrParamNode analysis_id);
+    virtual void StepHarmonicLin(PtrParamNode analysis_id, AdjointParameters* adjointParams = NULL);
 
     //! solves for one nonlinear frequency step 
     virtual void StepHarmonicNonLin(PtrParamNode analysis_id)
@@ -227,7 +223,7 @@ namespace CoupledField
     std::string nonLinMethod_; //!< method for handling the non-linearity
     bool nonLinLogging_;    //!< log progress of non-linear iterations
     //! map for each region the type of nonlinearity
-    std::map<RegionIdType, NonLinType> regionNonLinType_;
+     std::map<RegionIdType, StdVector<NonLinType> > regionNonLinTypes_;
     
     bool effectiveMatrixIsWrong_; //!< indicate that the effectiveMatrix was replaced by just K (in Optimization, this might be used for starting a simulation in deformed state) and has to be recalculated
 

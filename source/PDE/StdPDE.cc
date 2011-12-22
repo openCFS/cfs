@@ -29,7 +29,6 @@ namespace CoupledField {
     subType_(),
     numCouplingBcs_(0),
     nonLin_(false),
-    nonLinMaterial_(false),
     isHysteresis_(false),
     totalFormulation_(false),
     isIterCoupled_(false),
@@ -154,7 +153,7 @@ namespace CoupledField {
         
     // now reset AlgebraicSystem 
     algsys_->InitRHS();
-  	algsys_->InitSol();
+    algsys_->InitSol();
   }
 
 
@@ -288,6 +287,58 @@ namespace CoupledField {
      }
   }
 
+
+  // complex valued method (for HARMONIC)
+  void StdPDE::GetRHSVecOfElement( Vector<Double>& elemRHS,
+                                   const EntityIterator& it,
+                                   shared_ptr<ResultInfo> res ) {
+
+
+    StdVector<Integer> eqns;
+    eqnMap_->GetEqns( eqns, *res, it );
+
+
+    elemRHS.Resize( eqns.GetSize() );
+    elemRHS.Init( 0.0 );
+    Vector<Double> rhs;
+    algsys_->GetRHSVal(rhs);
+
+
+    for( UInt i = 0; i < eqns.GetSize(); i++ ) {
+      if ( eqns[i] != 0 ) {
+        elemRHS[i] = rhs[abs(eqns[i])-1];
+      } else {
+        elemRHS[i] = 0.0;
+      }
+     }
+  }
+
+
+  // complex valued method (for HARMONIC)
+  void StdPDE::GetRHSVecOfElement( Vector<Complex>& elemRHS,
+                                   const EntityIterator& it,
+                                   shared_ptr<ResultInfo> res ) {
+
+
+    StdVector<Integer> eqns;
+    eqnMap_->GetEqns( eqns, *res, it );
+
+
+    elemRHS.Resize( eqns.GetSize() );
+    elemRHS.Init( Complex(0.0, 0.0) );
+    Vector<Complex> rhs;
+    algsys_->GetRHSVal(rhs);
+
+
+    for( UInt i = 0; i < eqns.GetSize(); i++ ) {
+      if ( eqns[i] != 0 ) {
+        elemRHS[i] = rhs[abs(eqns[i])-1];
+      } else {
+        elemRHS[i] = Complex(0.0, 0.0);
+      }
+     }
+  }
+
   
   // real valued method (for TRANSIENT)
   void StdPDE::GetDerivSolVecOfElement(Vector<Double>& sol,
@@ -332,7 +383,7 @@ namespace CoupledField {
     
     if ( analysistype_ == HARMONIC ) {
       NodeStoreSol<Complex> * solhelp = 
- 	dynamic_cast<NodeStoreSol<Complex>*>(sol_);
+          dynamic_cast<NodeStoreSol<Complex>*>(sol_);
       const Vector<Complex> & solAtNode = solhelp->GetAlgSysVector();
 
       for( UInt i = 0; i < eqns.GetSize(); i++ ) {
@@ -389,7 +440,7 @@ namespace CoupledField {
     
     if ( analysistype_ == HARMONIC ) {
       NodeStoreSol<Complex> * solhelp = 
- 	dynamic_cast<NodeStoreSol<Complex>*>(sol_);
+          dynamic_cast<NodeStoreSol<Complex>*>(sol_);
       Vector<Complex> & solAtNode = solhelp->GetAlgSysVector();
 
       for( UInt i = 0; i < eqns.GetSize(); i++ ) {
@@ -476,23 +527,28 @@ namespace CoupledField {
    /* do not set new grid in the first step */
    if ( step != 0 )
    {
-     for ( UInt nreg = 0; nreg < regions4GridDisplacements_.GetSize(); nreg++ )
+     std::map<RegionIdType, GridDisplData>::iterator gridDisplIter \
+       = gridDisplData_.begin();
+     for (; gridDisplIter != gridDisplData_.end(); ++gridDisplIter)
      {
+       RegionIdType regId = gridDisplIter->first;
+       GridDisplData gridDispData = gridDisplIter->second;
        ResultHandler* resultHandler = domain->GetResultHandler();
-       shared_ptr<BaseResult> gridDisplacement = resultHandler->GetResult( fileName4GridDisplacements_,
+       shared_ptr<BaseResult> gridDisplacement = resultHandler->GetResult( gridDispData.fileName4GridDisplacements_,
            1,
            step,
-           MECH_DISPLACEMENT,        
-           regions4GridDisplacements_[nreg] );
+           gridDispData.solType,        
+           ptgrid_->GetRegion().ToString( regId ));
 
        Result<Double> *result =
          dynamic_cast<Result<Double>*>(&(*gridDisplacement));
        if (result == NULL)
        {
          EXCEPTION("Cannot read result 'Grid-Displacements' from input id '"
-             <<  fileName4GridDisplacements_ << "'");
+             <<  gridDispData.fileName4GridDisplacements_ << "'");
        }
        Vector<Double>& resVec = result->GetVector();
+       
        shared_ptr<EntityList> nodesList = gridDisplacement->GetEntityList();
        StdVector<UInt> nodes;
 

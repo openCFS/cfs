@@ -61,11 +61,10 @@ void endianSwap (long int addr, int num_el, int size_el)
   }
 
   // read header
-	int return_value(0);
-  return_value = fread(&record,sizeof(int),1,in);
-  return_value = fread(&nNodesIn,sizeof(int),1,in);
-  return_value = fread(&nVarsIn,sizeof(int),1,in);
-  return_value = fread(&record,sizeof(int),1,in);
+  if(fread(&record,sizeof(int),1,in) < 1) perror(filename);
+  if(fread(&nNodesIn,sizeof(int),1,in) < 1) perror(filename);
+  if(fread(&nVarsIn,sizeof(int),1,in) < 1) perror(filename);
+  if(fread(&record,sizeof(int),1,in) < 1) perror(filename);
 
   // swap binary data from little endian to bigendian
 #ifdef LE
@@ -91,9 +90,9 @@ void endianSwap (long int addr, int num_el, int size_el)
   ntmp = (int *)malloc(nNodes*sizeof(int));
   
   // read node indec
-  return_value = fread(&record,sizeof(int),1,in);
-  return_value = fread(ntmp,sizeof(int),nNodes,in);
-  return_value = fread(&record,sizeof(int),1,in);
+  if(fread(&record,sizeof(int),1,in) < 1) perror(filename);
+  if(fread(ntmp,sizeof(int),nNodes,in) < (unsigned int)nNodes) perror(filename);
+  if(fread(&record,sizeof(int),1,in) < 1) perror(filename);
 #ifdef LE
   endianSwap((long int)ntmp,nNodes,sizeof(int));
 #endif
@@ -106,12 +105,12 @@ void endianSwap (long int addr, int num_el, int size_el)
 
   // read data
   for(kk=0; kk<nVars; kk++){
-    return_value = fread(&record,sizeof(int),1,in);
-    return_value = fread(ftmp,sizeof(double),nNodes,in);
+    if(fread(&record,sizeof(int),1,in) < 1) perror(filename);
+    if(fread(ftmp,sizeof(double),nNodes,in) < (unsigned int)nNodes) perror(filename);
 #ifdef LE
       endianSwap((long int)ftmp,nNodes,sizeof(double));
 #endif
-    return_value = fread(&record,sizeof(int),1,in);
+    if(fread(&record,sizeof(int),1,in) < 1) perror(filename);
 
     if(kk == 0){
        //speed of sound

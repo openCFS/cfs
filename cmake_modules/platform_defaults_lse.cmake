@@ -2,6 +2,7 @@
 # These defaults are for all machines at LSE.
 #-----------------------------------------------------------------------------
 SET(CFS_BLAS_LAPACK_DEFAULT "MKL")
+SET(USE_PARDISO_DEFAULT "ON")
 SET(CFS_PARDISO_DEFAULT "MKL")
 
 SET(USE_ILUPACK_DEFAULT ON)

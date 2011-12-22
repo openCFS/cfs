@@ -29,7 +29,7 @@
 
 namespace CoupledField
 {
-  // declare logging stream
+// declare logging stream
   DECLARE_LOG(assemble)
   DEFINE_LOG(assemble, "assemble")
 
@@ -78,7 +78,7 @@ namespace CoupledField
     delete linForms_;
   }
   
-  BiLinFormContext* Assemble::GetBiLinForm(RegionIdType regionId, StdPDE* pde1, StdPDE* pde2,  const std::string& integrator, bool silent)
+  BiLinFormContext* Assemble::GetBiLinForm(RegionIdType regionId, StdPDE* pde1, StdPDE* pde2,  const std::string& integrator, bool silent, Global::ComplexPart entryType)
   {
      // the EntityList has the region name as name but not the id
 //     std::string region = domain->GetGrid()->GetRegion().ToString(regionId);
@@ -92,16 +92,16 @@ namespace CoupledField
      {
        counter++;
        // we are wrong if the region does not match
-//       if((*iter)->GetFirstEntities()->GetName() != region) continue;
        if((*iter)->GetFirstEntities()->GetRegion() != regionId) continue;
        // when pde1 is given we compare it by name and continue if the names are different
-//       if(pde1 != NULL && (*iter)->GetFirstPde()->GetName() != pde1->GetName()) continue;
        if((*iter)->GetFirstPde() != pde1) continue;
-//       if(pde2 != NULL && (*iter)->GetSecondPde()->GetName() != pde2->GetName()) continue;
        if((*iter)->GetSecondPde() != pde2) continue;
        //std::cout << counter << ":" << (*iter)->GetIntegrator()->GetName() << " vs " << integrator << std::endl;
        if((*iter)->GetIntegrator()->GetName() != integrator) continue;
-
+       if(entryType != (Global::ComplexPart) 4711){
+         if((*iter)->GetEntryType() != entryType) continue;
+       }
+       if(entryType <= Global::COMPLEX && (*iter)->GetEntryType() != entryType) continue;
        // we come here because we had no contradiction - check for uniqueness
        if(result != NULL) throw Exception("parameters not unique!");
        // absolutley no contradiction, save result and continue to
@@ -117,7 +117,7 @@ namespace CoupledField
      return result;
   }
 
-  LinearFormContext* Assemble::GetLinearForm(RegionIdType regionId, StdPDE* pde,  const std::string& integrator, bool silent)
+  LinearFormContext* Assemble::GetLinearForm(RegionIdType regionId, StdPDE* pde,  const std::string& integrator, bool silent, Global::ComplexPart entryType)
   {
      // the EntityList has the region name as name but not the id
      std::string region = domain->GetGrid()->GetRegion().ToString(regionId);
@@ -133,6 +133,9 @@ namespace CoupledField
        // when pde1 is given we compare it by name and continue if the names are different
        if(lfc->GetPde()->GetName() != pde->GetName()) continue;
        if(lfc->GetIntegrator()->GetName() != integrator) continue;
+       if(entryType != (Global::ComplexPart) 4711){
+         if(lfc->GetIntegrator()->GetMatDataType() != entryType) continue;
+       }
 
        // we come here because we had no contradiction - check for uniqueness
        if(result != NULL) throw Exception("parameters not unique!");
@@ -661,7 +664,6 @@ namespace CoupledField
 #endif
             
             assert(!elemVec.ContainsNaN() && !elemVec.ContainsInf());
-
             // Pass element vector to algebraic system
             algsys_-> SetElementRHS( elemVec,
                                      pdeId, eqnVec );
@@ -846,6 +848,11 @@ namespace CoupledField
       }
       form->Get("region")->SetValue(regionName);
 
+      Global::ComplexPart matType = context.GetIntegrator()->GetMatDataType();
+      if (matType == Global::REAL) form->Get("matDataType")->SetValue("real");
+      else if (matType == Global::IMAG) form->Get("matDataType")->SetValue("imag");
+
+      // matrix type
       // add information about row / column coordinate
       PtrParamNode row = form->Get("row", ParamNode::APPEND);
       PtrParamNode col = form->Get("column", ParamNode::APPEND);
@@ -933,6 +940,10 @@ namespace CoupledField
       }
 
       form->Get("region")->SetValue(regionName);
+
+      Global::ComplexPart matType = context.GetIntegrator()->GetMatDataType();
+      if (matType == Global::REAL) form->Get("matDataType")->SetValue("real");
+      else if (matType == Global::IMAG) form->Get("matDataType")->SetValue("imag");
       
 
       // add information about row / column coordinate
@@ -1222,7 +1233,7 @@ namespace CoupledField
   void Assemble::Wrap_AddPrintElemNum( ) {
     SCRIPT_GET( StdVector<UInt>, elemNums );
     printElemNums_.insert( elemNums.Begin(), elemNums.End() );
-    StdVector<UInt>::iterator it = elemNums.Begin();
+    // StdVector<UInt>::iterator it = elemNums.Begin(); // TODO: Unused variable it
 
   }
 

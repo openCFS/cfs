@@ -176,7 +176,7 @@ namespace CoupledField
       \f [ \left( \begin{array}{ccc} N_{1,dx} & N_{1,dy} & \cdots \\
       N_{2,dx} & N_{2,dy} & \cdots \\
       \cdots     & \cdots      & \cdots \end{array}\right) \f ]
-      \param LCoord (input) Local Coordinates of evalutaion point
+      \param LCoord (input) Local Coordinates of evaluation point
       \param CornerCoords (input) Coordinates of element corners
       \f [ \left( \begin{array}{ccc} x_{1} & x_{2} & \cdots \\ y_{1} & y_{2} & \cdots \\
       \cdots & \cdots & \cdots \end{array} \right) \f ]       
@@ -408,7 +408,9 @@ namespace CoupledField
     //! Return space dimension
     UInt GetDim() const {return Dim_;}
 
-    //! Get integration points
+    //! Get integration points.
+    // This is ugly C-style. StdVector<Point>& would be much more appropriate!
+    // Therefore you need GetNumIntPoints()!
     Vector<Double> * GetIntPoints() {return IntPoints_;}
 
     //! Return number of nodes
@@ -423,7 +425,7 @@ namespace CoupledField
     //! Return number of corners
     UInt GetNumCorners() const {return NumCorners_;}
 
-    //! Returns number of integration points
+    //! Returns number of integration points. Note,
     UInt GetNumIntPoints() const {return NumIntPoints_;}
 
     //!

@@ -139,90 +139,21 @@ DEFINE_LOG(magpde, "magpde")
   // ****************************
   void MagPDE::InitNonLin() {
 
-    nonLin_ = false;
-    isHysteresis_ = false;
-
-    // Check, if "nonLinList" is present
-    PtrParamNode nonLinListNode = myParam_->Get("nonLinList", ParamNode::PASS );
-    if( nonLinListNode ) { 
-
-      // Get nonlinear types
-      ParamNodeList nonLinNodes = nonLinListNode->GetChildren();
-      for( UInt i = 0; i < nonLinNodes.GetSize(); i++ ) {
-
-        std::string actTypeString = nonLinNodes[i]->GetName();
-        std::string actId = nonLinNodes[i]->Get("id")->As<std::string>();
-
-        NonLinType actType;
-        String2Enum( actTypeString, actType );
-
-
-        nonLinIdType_[actId] = actType;
-      }
-    }
-
-    // Run over all region and set entry in "regionNonLinId"
-    ParamNodeList regionNodes = 
-      myParam_->Get("regionList")->GetChildren();
+    SinglePDE::InitNonLin();
     
-    RegionIdType actRegionId;
-    std::string actRegionName, actNonLinId;
-    
-    if( regionNodes.GetSize() > 0 ) {
-      Info->PrintF( pdename_, "Non-linearity in following region(s)\n" );
-    }
-    for( UInt i = 0; i < regionNodes.GetSize(); i++ ) {
-      
-      // get data
-      regionNodes[i]->GetValue( "name", actRegionName );
-      regionNodes[i]->GetValue( "nonLinId", actNonLinId );
-      
-      if( actNonLinId == "" )
-        continue;
-      
-      actRegionId = ptgrid_->GetRegion().Parse( actRegionName );
-      
-      // Check nonLinId was already registerd
-      if( nonLinIdType_.find( actNonLinId) == nonLinIdType_.end() ) {
-        EXCEPTION( "NonLinearity with id '" << actNonLinId 
-                   << "' was not defined in 'nonLinList'" );
-      }
-      NonLinType actType = nonLinIdType_[actNonLinId];
-      regionNonLinId_[actRegionId] = actNonLinId;
-      regionNonLinType_[actRegionId] = actType;
-
-      // check type
-      if( actType == PERMEABILITY ) {
-        nonLin_ = true;
-      }
-      if( actType == HYSTERESIS ) {
+    //now do PDE specifics
+    std::map<std::string, NonLinType>::iterator it;
+    for ( it=nonLinTypes_.begin() ; it != nonLinTypes_.end(); it++ ) {
+      if ( (*it).second == HYSTERESIS ) {
+        nonLin_ = false;
         isHysteresis_ = true;
       }
-
-      // Log to info file
-      std::string nonLinString;
-      Enum2String( nonLinIdType_[actNonLinId], nonLinString );
-      Info->PrintF( pdename_, " %s: %s\n", actRegionName.c_str(), 
-                    nonLinString.c_str() );
-      
-    }
-
-    // set nonlinearity flag only, if any region references
-    // a nonlinearity at all
-    if( regionNonLinId_.size() > 0 ) {
-      nonLin_ = true;
+      else if ( (*it).second == PERMEABILITY ) {
+        nonLin_ = true;
+        isHysteresis_ = false;
+      }
     }
     
-    // Here we need in addition the nonLinMethod_ for the definition
-    // of the integrators
-    nonLinMethod_ = FIXEDPOINT;
-    PtrParamNode nonLinNode = myParam_->Get("nonLinear", ParamNode::PASS );
-    if( nonLinNode ) {
-      std::string methodString;
-      nonLinNode->GetValue(  "method", methodString, ParamNode::PASS );
-      nonLinMethod_ = NonLinMethodTypeEnum.Parse(methodString);
-    }
-
   }
 
 
@@ -253,13 +184,13 @@ DEFINE_LOG(magpde, "magpde")
       shared_ptr<ElemList> actSDList( new ElemList(ptgrid_ ) );
       actSDList->SetRegion( actRegion );
 
-      if ( regionNonLinType_[actRegion] != NO_NONLINEARITY ) {
+      //get possible nonlinearities defined in this region
+      StdVector<NonLinType> nonLinTypes = regionNonLinTypes_[actRegion]; 
+    
+      if ( nonLinTypes.GetSize() > 0 ) {
 
-        if ( regionNonLinType_[actRegion] == HYSTERESIS ) {
-
-          //          if (is3d_ ) {
+        if ( nonLinTypes.Find(HYSTERESIS) != -1 ) {
           EXCEPTION("Magnetics with hysteresis currently not supported");
-            //          }
           
           // hysteresis modeling in this region
           StdVector<Elem*> elemssd;
@@ -285,8 +216,10 @@ DEFINE_LOG(magpde, "magpde")
           //save bilinearForm
           pdeBilinearForms_[actRegion][curlcurlHyst->GetName()] = curlcurlHyst;
         }
-        else if ( regionNonLinType_[actRegion] == PERMEABILITY ) {
-          //nonlinear permeability!!
+        else if (  nonLinTypes.Find(PERMEABILITY) != -1 ) {
+          // informs material that approx./interpol. for permeability is needed
+          actMat->NeedApproxMatCurve( MAG_PERMEABILITY );
+
           BaseForm *curlcurlNL; 
           if( is3d_ ) {
             curlcurlNL = new nLinCurlCurlNode3DInt( actMat, upLagrangeForm );
@@ -921,13 +854,11 @@ DEFINE_LOG(magpde, "magpde")
         ->GetScalar(reluctivity,MAG_RELUCTIVITY,Global::REAL);
       
       // Create stiffness integrator
-      if ( regionNonLinType_[regionIt.GetRegion()] != NO_NONLINEARITY ) {
+      //get possible nonlinearities defined in this region
+      StdVector<NonLinType> nonLinTypes = regionNonLinTypes_[regionIt.GetRegion()]; 
+
+      if ( nonLinTypes.Find(PERMEABILITY) != -1 ) {
         
-        //read in the BH-curve data and compute the approximation
-        std::string nlfnc = materials_[regionIt.GetRegion()]->GetNonlinFileName(MAG_PERMEABILITY);
-        ApproxData *nlinFnc = new SmoothSpline(nlfnc);
-        nlinFnc->CalcBestParameter();
-        nlinFnc->CalcApproximation();
         if( is3d_ ) {
           bilinear_stiff = new nLinCurlCurlNode3DInt( materials_[regionIt.GetRegion()],
                                                       true );
@@ -1115,12 +1046,15 @@ DEFINE_LOG(magpde, "magpde")
      // Determine regionId of element
      const Elem & actEl = *(it.GetElem());
      RegionIdType actRegion = actEl.regionId; 
+
+     //get possible nonlinearities defined in this region
+     StdVector<NonLinType> nonLinTypes = regionNonLinTypes_[actRegion]; 
      
      // Check, if region is nonlinear
-     if ( regionNonLinType_[actRegion] == PERMEABILITY ) {
+      if ( nonLinTypes.Find(PERMEABILITY) != -1 )  {
        
        // Obtain nonlinear approximation functional
-       ApproxData * approx  = materials_[actRegion]->GetNonlinFncBH(MAG_PERMEABILITY);
+       ApproxData * approx  = materials_[actRegion]->GetNonlinFnc(MAG_PERMEABILITY);
        
        // Calculate flux density in element midpoint
        CalcFluxDensityAtIP( it, 0, elemFlux );
@@ -1654,13 +1588,17 @@ DEFINE_LOG(magpde, "magpde")
     // get element solution
     Vector<TYPE> elSol;
     sol_->GetElemSolution(elSol, it);
-    
+
+    RegionIdType actRegionId = it.GetElem()->regionId;
+
+    //get possible nonlinearities defined in this region
+    StdVector<NonLinType> nonLinTypes = regionNonLinTypes_[actRegionId]; 
+     
     if( is3d_ ) {
       field.Resize(3);
-      RegionIdType actRegionId = it.GetElem()->regionId;
-
+    
       CurlCurlNode3DInt* curlOp = NULL;
-      if ( regionNonLinType_[actRegionId] != NO_NONLINEARITY ) {
+      if ( nonLinTypes.Find(PERMEABILITY) != -1 ) {
         std::string bilinearName = "nLinCurlCurlNode3DInt";
         curlOp = dynamic_cast<nLinCurlCurlNode3DInt*>(pdeBilinearForms_[actRegionId][bilinearName]);
       }
@@ -1718,7 +1656,7 @@ DEFINE_LOG(magpde, "magpde")
 //       else {
 
 
-      if ( regionNonLinType_[actRegionId] == HYSTERESIS ) {
+      if ( nonLinTypes.Find(HYSTERESIS) != -1 ) {  
         EXCEPTION("Magnetics with hysteresis currently not supported");
 //         std::string bilinearName = "nLinMagHystInt2D";
 //         nLinMagHystInt2D* curlHystOp;
@@ -1741,7 +1679,7 @@ DEFINE_LOG(magpde, "magpde")
       }
       else {
         CurlCurlNode2DInt* curlOp = NULL;
-        if ( regionNonLinType_[actRegionId] == PERMEABILITY ) {
+        if ( nonLinTypes.Find(PERMEABILITY) != -1 ) {
           std::string bilinearName = "nLinCurlCurlNode2DInt";
           curlOp = dynamic_cast<nLinCurlCurlNode2DInt*>(pdeBilinearForms_[actRegionId][bilinearName]);
         } else {
@@ -1783,17 +1721,17 @@ DEFINE_LOG(magpde, "magpde")
   void MagPDE::CalcHfieldAtIP( EntityIterator it, UInt ip,
                                Vector<Double>& field ) {
 
-
-
-
     RegionIdType actRegion = it.GetElem()->regionId;
   
-    if ( regionNonLinType_[actRegion] == HYSTERESIS ) {
+    //get possible nonlinearities defined in this region
+    StdVector<NonLinType> nonLinTypes = regionNonLinTypes_[actRegion]; 
+
+    if (  nonLinTypes.Find(HYSTERESIS) != -1 ) {
       EXCEPTION("Magnetics with hysteresis currently not supported");
 //       materials_[actRegion]->GetVectorXHystVal( it.GetElem()->elemNum,
 //                                                field ); 
     }
-    else if ( regionNonLinType_[actRegion] == PERMEABILITY ) {
+    else if ( nonLinTypes.Find(PERMEABILITY) != -1 ) {
       EXCEPTION("CalcHfieldAtIP for nonlinear BH curve not implemented");
     }
     else {

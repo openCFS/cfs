@@ -46,6 +46,7 @@ namespace CoupledField
     isAllowed_.insert( C_JILES );
     isAllowed_.insert( P_DIRECTION );
     isAllowed_.insert( HYST_MODEL );
+    isAllowed_.insert( NONLIN_APPROXIMATION_TYPE );
     isAllowed_.insert( DATA_ACCURACY );
     isAllowed_.insert( MAX_APPROX_VAL );
   }
@@ -362,20 +363,12 @@ namespace CoupledField
   void ElectroMagneticMaterial::InitApproxCurves() {
 
     // check, if we need to approx BH curve
-    if (  needApproxMatCurves_.find( magBH ) != needApproxMatCurves_.end() ) {
-      std::string nlfnc = GetNonlinFileName(MAG_PERMEABILITY);
-      nlinFncBH_ = new SmoothSpline(nlfnc, BH);
+    if (  needApproxMatCurves_.find( MAG_PERMEABILITY ) != needApproxMatCurves_.end() ) {
+      std::string nlfnc = nonLinMatInfo_[MAG_PERMEABILITY].fileName;
+      nlinFncBH_ = new SmoothSpline(nlfnc, MAG_PERMEABILITY);
 
-      //get accuracy of approximation
-      Double dataAccuracy;
-      GetScalar( dataAccuracy, DATA_ACCURACY, Global::REAL );
-
-      //get maximal approximation value
-      Double maxApproxVal;
-      GetScalar( maxApproxVal, MAX_APPROX_VAL, Global::REAL );
-
-      nlinFncBH_->SetAccuracy( dataAccuracy );
-      nlinFncBH_->SetMaxY( maxApproxVal );   //maximal value of magnetic induction B
+      nlinFncBH_->SetAccuracy( nonLinMatInfo_[MAG_PERMEABILITY].measAccuracy );
+      nlinFncBH_->SetMaxY( nonLinMatInfo_[MAG_PERMEABILITY].maxVal );   //maximal value of magnetic induction B
       nlinFncBH_->CalcBestParameter();
       nlinFncBH_->CalcApproximation();
       nlinFncBH_->Print(); 

@@ -109,7 +109,7 @@ namespace CoupledField
   template<class TYPE>
   std::string Matrix<TYPE>::ToXMLFormat(const std::string& name, int n_offset) const
   {
-    std::string offset(n_offset, ' ');
+    std::string offset(std::max(n_offset, 0), ' ');
 
     std::ostringstream os;
 
@@ -577,6 +577,22 @@ namespace CoupledField
       result += OpType<TYPE>::dotProduct(data_[0][k], other_mat.data_[0][k]);
 
     return result;
+  }
+
+  template<>
+  Matrix<double> Matrix<double>::EntryMult(const Matrix<double>& other_mat) const
+  {
+#ifdef CHECK_INITIALIZED
+    if(size_row_ == 0 || size_col_ == 0)
+      EXCEPTION("undefined Matrix");
+    if(size_row_ != other_mat.size_row_ || size_col_ != other_mat.size_col_)
+      EXCEPTION("incompatible dimension");
+#endif
+
+    for(UInt k = 0, s = size_row_ * size_col_; k < s; ++k)
+      data_[0][k] *= other_mat.data_[0][k];
+
+    return *this;
   }
 
 

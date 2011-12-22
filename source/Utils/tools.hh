@@ -155,6 +155,17 @@ namespace CoupledField {
        out[r][c] += fac * other[r][c];
   }
 
+  template<class TYPE, class TYPE2>
+  void Add(Vector<TYPE>& out, const TYPE2 fac, const Vector<TYPE>& other)
+  {
+   #ifdef CHECK_INDEX
+      if(out.GetSize() != other.GetSize())
+        EXCEPTION("vectors do not match");
+   #endif
+   for(unsigned int i = 0, rn = out.GetSize(); i < rn; i++)
+       out[i] += fac * other[i];
+  }
+
   /** makes sure the string is a valid xml element and attribute name */
   std::string ToValidXML(const std::string& input);
 

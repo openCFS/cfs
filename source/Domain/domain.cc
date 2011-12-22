@@ -37,7 +37,6 @@
 #include "PDE/magneticPDE.hh"
 #include "PDE/magneticScalarPDE.hh"
 #include "PDE/magEdgePDE.hh"
-#include "PDE/mpcciPDE.hh"
 #include "PDE/heatCondPDE.hh"
 #include "PDE/acouCombustion.hh"
 #include "PDE/acousticMixedPDE.hh"
@@ -405,7 +404,7 @@ void Domain::SolveProblem()
 SinglePDE * Domain::GetSinglePDE(const std::string pdeName,
     bool throw_exception)
 {
-  // check for the pede an return
+  // check for the pde and return
   for (UInt i = 0, s = ptSinglePde_.GetSize(); i < s; ++i)
   {
     if (ptSinglePde_[i]->GetName() == pdeName)
@@ -586,9 +585,6 @@ void Domain::CreateSinglePDEs(UInt sequenceStep)
     
     else if (actPdeName == "magneticScalar")
           ptSinglePde_[i] = new MagScalarPDE(defaultGrid, actPdeNode);
-
-    else if (actPdeName == "mpcci")
-      ptSinglePde_[i] = new MpcciPDE(defaultGrid, actPdeNode);
 
     else if (actPdeName == "heatConduction")
       ptSinglePde_[i] = new HeatCondPDE(defaultGrid, actPdeNode);
@@ -1016,7 +1012,7 @@ void Domain::ResetPDEs()
   numIterCoupledStdPde_ = 0;
 }
 
-bool Domain::GetErsatzMaterial(const Elem* elem, const BaseForm* form, double& result)
+bool Domain::GetErsatzMaterial(const Elem* elem, const BaseForm* form, double& result, bool forBimaterial)
 {
   // is the stuff active at all? and don't we use ParamMat
   if (ersatzMaterial == NULL || HasErsatzMaterialTensor())
@@ -1033,7 +1029,7 @@ bool Domain::GetErsatzMaterial(const Elem* elem, const BaseForm* form, double& r
   // all identified by the form and in piezo coupling case it
   // might even be the product of the transfer functions of
   // density and polarization
-  result = ersatzMaterial->GetErsatzMaterialFactor(idx, form);
+  result = ersatzMaterial->GetErsatzMaterialFactor(idx, form, forBimaterial);
   return true;
 }
 

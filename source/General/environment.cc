@@ -822,6 +822,25 @@ namespace CoupledField {
     }
   }
 
+
+  template<>
+  void String2Enum<ApproxCurveType>( const std::string &in,  ApproxCurveType &out ) {
+
+    if ( in == "linInterpolation" ) {
+      out = LIN_INTERPOLATE;
+    }
+    else if ( in == "cubicSplines" ) {
+      out = CUBIC_SPLINES;
+    }
+    else if ( in == "smoothSplines" ) {
+      out = SMOOTH_SPLINES;
+    }
+    else {
+      EXCEPTION( "'" << in << "' cannot be converted into an '"
+                 << "DataType' item!" );
+    }
+  }
+
   template<>
   void Enum2String<Directions>(const Directions &in,
 			       std::string &out) {
@@ -865,8 +884,6 @@ namespace CoupledField {
       out = VARIABLE_SOS_CN2;
     } else if( in == "variableSOS_CN2Mean") {
       out = VARIABLE_SOS_CN2Mean;
-    } else if( in == "material") {
-      out = MATERIAL;
     } else if( in == "geometric") {
       out = GEOMETRIC;
     } else if( in == "hysteresis") {
@@ -908,9 +925,6 @@ namespace CoupledField {
       break;
     case VARIABLE_SOS_CN2Mean:
       out = "variableSOS_CN2Mean";
-      break;
-    case MATERIAL:
-      out = "material";
       break;
     case GEOMETRIC:
       out = "geometric";
@@ -1132,6 +1146,27 @@ namespace CoupledField {
     default:
       EXCEPTION( "No string value found for the specified value of the "
                << "enumeration datatype IDBCType.\n"
+               << "Seems to indicate a missing case implementation!" );
+    }
+  }
+
+  template<>
+  void Enum2String<ApproxCurveType>(const ApproxCurveType &in,
+                             std::string &out) {
+    switch( in ) {
+
+    case LIN_INTERPOLATE:
+      out = "linInterpolation";
+      break;
+    case CUBIC_SPLINES:
+      out = "cubicSplines";
+      break;
+    case SMOOTH_SPLINES:
+      out = "smoothSplines";
+      break;
+    default:
+      EXCEPTION( "No string value found for the specified value of the "
+               << "enumeration datatype ApproxCurveType.\n"
                << "Seems to indicate a missing case implementation!" );
     }
   }

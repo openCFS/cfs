@@ -12,7 +12,7 @@ using namespace CoupledField;
 DECLARE_LOG(optimizer)
 
 GradientCheck::GradientCheck(Optimization* optimization, PtrParamNode pn) :
-  BaseOptimizer(optimization, pn)
+  BaseOptimizer(optimization, pn, Optimization::GRADIENT_CHECK)
 {
   // reduce to our actual ParamNode
   pn = pn->Get(Optimization::optimizer.ToString(Optimization::GRADIENT_CHECK),

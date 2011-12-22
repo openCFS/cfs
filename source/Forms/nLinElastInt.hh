@@ -100,46 +100,6 @@ protected:
   };
 
 
-  // =============================================================================
-  // 3D nonlinear material mechanics
-  // =============================================================================
-
-
-  /// class for calculation of 3d nonlinear elasticity
-                                // first part: nonlinear B-matrix
-  class nLinMech3dInt_Material : public nLinElastInt
-  {
-  public:
-
-    /// Constructor
-    nLinMech3dInt_Material(ApproxData *nlinFnc, BaseMaterial* matData);
-
-  
-    /// Destructor
-    virtual ~nLinMech3dInt_Material();  
-  
-  protected:  
-    /// returns D - matrix for BDB
-    virtual void calcDMat(Matrix<Double> & dMat, UInt ip, 
-                          Matrix<Double> & ptCoord);
-
-    /** @see BaseForm::CalcBMat() */
-    virtual void CalcBMat(Matrix<Double> & bMat, UInt ip,
-                          const Matrix<Double> & ptCoord );
-
-    /// returns dimension of D matrix
-    virtual UInt getDimD(){return 6;};
-  
-    /// returns nr. of degrees of freedom
-    virtual UInt getNrDofs(){return 3;};
-
-  private:
-    ApproxData *nLinFnc_;
-
-  };
-
-
-
   /// class for calculation of 3d nonlinear elasticity
                                  // second part: regarding internal stresses
   class nLinMechInt_PiolaStress : public nLinElastInt

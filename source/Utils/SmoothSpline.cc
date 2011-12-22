@@ -11,8 +11,8 @@
 
 namespace CoupledField
 { 
-  SmoothSpline::SmoothSpline( std::string nlFileName,  ApproxCurveType curveType )
-    : ApproxData( nlFileName, curveType )
+  SmoothSpline::SmoothSpline( std::string nlFileName,  MaterialType matType )
+    : ApproxData( nlFileName, matType )
   {
 
     delta_ = 0.01;
@@ -34,12 +34,13 @@ namespace CoupledField
     mat_.Init(0);
 
     nuMax_     = 1.0;
-    if ( curveType_ == BH ) {
+    if ( matType_ == MAG_PERMEABILITY ) {
       //define maximal reluctivity
       nuMax_ = 7.9577e5;
     }
-  }
 
+  }
+ 
   SmoothSpline::~SmoothSpline()
   {
   }
@@ -72,7 +73,7 @@ namespace CoupledField
     CalcCoef();
 
     // calculation of start values
-    if ( start  && curveType_ == BH ) {
+    if ( start  && matType_ == MAG_PERMEABILITY ) {
       CalcStart();
     }
 

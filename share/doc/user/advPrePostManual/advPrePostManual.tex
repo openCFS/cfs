@@ -1,0 +1,97 @@
+\documentclass[12pt]{report}
+%
+\usepackage{ifpdf}
+
+%
+%
+\usepackage{../../auxilliaries/LaTeX/lsepaper}
+\usepackage{ifthen}
+\usepackage[utf8]{inputenc}
+\usepackage{subfig}
+\usepackage{amssymb,amsmath}
+\usepackage{array}
+\usepackage{longtable}
+\usepackage{booktabs}
+\newcommand{\otoprule}{\midrule[\heavyrulewidth]}
+
+\usepackage{rotating}
+\usepackage{tikz}
+
+%
+% =============================================================================
+% PDF STUFF
+% =============================================================================
+%
+\ifpdf
+\typeout{--> PDF: Output mode detected}
+\typeout{--> PDF: Setting general document info}
+
+\usepackage{graphicx}
+\graphicspath{{./pics/}{../../auxilliaries/Pics/}}
+\DeclareGraphicsExtensions{.jpg,.pdf,.png}
+\usepackage[pdftex,bookmarks,breaklinks]{hyperref}
+\usepackage{thumbpdf}
+\usepackage{url}
+\hypersetup{pdfpagemode=UseThumbs}
+\hypersetup{colorlinks=true}
+\hypersetup{linkcolor=red}
+\hypersetup{citecolor=blue}
+
+\hypersetup{pdfauthor=cfs-user}
+\hypersetup{pdftitle={CFS++ -- Advanced Pre- and Postprocessing Manual}}
+\hypersetup{pdfsubject={Pre-/Post Guide}}
+\else
+\usepackage{graphicx}
+\DeclareGraphicsExtensions{.jpg,.pdf,.png}
+\graphicspath{{./pics/}{../../auxilliaries/Pics/}}
+\fi
+
+\usepackage[percent]{overpic}
+
+%% Using  pdflatex one may attach  arbitrary files to the  generated PDF.
+\usepackage{attachfile}
+
+%% Package for entering TODO notes
+\usepackage{todonotes}
+
+%
+% =============================================================================
+%
+\include{mycommands}
+\include{pygmentized/pygmentize}
+%
+% =============================================================================
+\begin{document}
+% =============================================================================
+%
+%
+\LSETITLE{CFS++ -- Advanced Pre- and Postprocessing Manual}{cfs-user}{User's Guide}
+%
+%
+\tableofcontents
+%
+%
+\clearpage
+\pagestyle{headings}
+\pagenumbering{arabic}
+%
+%
+
+\listoftodos
+
+\todo[inline]{Move common parts of all manuals  (e.g. common preambles) up the directory hierarchy and unify the build process of as many manuals as possible (cplreader, scripting, xml, devel, etc...)}
+
+\include{intro}
+\include{internalTools}
+\include{preproc}
+\include{postproc}
+\include{special}
+
+\addcontentsline{toc}{chapter}{Bibliography}
+\bibliographystyle{alpha}
+\bibliography{advPrePostManual,../../developer/develManual/develManual}
+%
+%
+% =============================================================================
+\end{document}
+% =============================================================================

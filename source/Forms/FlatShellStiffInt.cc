@@ -236,7 +236,11 @@ namespace CoupledField {
     Matrix<Double> A, B, D, K, Q, Q_, Qs, Qs_, Ck, Qk, Cs, Buffer, Buffer_shear;
     Matrix<Double> matMatrix;
     Matrix<Double> RtMat, RsMat, RkMat, RtMatInv, RkMatInv;
-    Double Ex, Ey, Ez, NUxy, NUyz, NUxz, Gyz, Gzx, Gxy,  NUyx, NUzy, NUzx;
+    Double Ex, Ey, Ez;
+    Double NUxy, NUyz, NUxz;
+    Double Gyz, Gzx, Gxy;
+    Double NUyx;
+    // Double NUzy, NUzx; // TODO: Unused variables NUzy, NUzx
     dMat.Resize(SizeOfD);
     dMat.Init();
 
@@ -295,8 +299,8 @@ namespace CoupledField {
 
         //see Finite Element Analysis of Composite Laminates O.O.Ochoa and J.N.Reddy page 10 and 12
         NUyx=(Ey/Ex)*NUxy;
-        NUzy=(Ez/Ey)*NUyz;
-        NUzx=(Ez/Ex)*NUxz;
+        // NUzy=(Ez/Ey)*NUyz;
+        // NUzx=(Ez/Ex)*NUxz;
         Q_[0][0] = Ex/(1 - NUxy*NUyx);
         Q_[0][1] = NUxy*Ey/(1 - NUxy*NUyx);
         Q_[0][2] = 0.0;

@@ -55,19 +55,19 @@ namespace CoupledField
 
     // Set number of degrees of freedom and
     // ensure that subtype fits to problem geometry
-    UInt dofspernode = 0;
+    // UInt dofspernode = 0; // TODO: Unused variable dofspernode
     if ( subType_ == "3d" && probGeo == "3d" ) {
-      dofspernode = 4;
+      // dofspernode = 4;
       Info->PrintF("", "=== 3D PROBLEM\n");
     }
     else if ( subType_ == "axi" && probGeo == "axi" ) {
       isaxi_ = true;
-      dofspernode = 3;
+      // dofspernode = 3;
       Info->PrintF("", "=== AXISYSMMETRIC PROBLEM\n");
     }
     else if ( subType_ == "plane" && probGeo == "plane" ) {
       isaxi_ = false;
-      dofspernode = 3;
+      // dofspernode = 3;
       Info->PrintF("", "=== PLANE PROBLEM\n");
     }
     else

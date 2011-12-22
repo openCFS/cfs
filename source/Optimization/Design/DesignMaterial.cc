@@ -58,6 +58,7 @@ unsigned int DesignMaterial::RequiredParameters(){
     return r+2;
   case TRANSVERSAL_ISOTROPIC:
   case TRANSVERSAL_ISOTROPIC_BOXED:
+  case DENSITY_TIMES_TRANSVERSAL_ISOTROPIC_2D:
     return r+5;
   case DENSITY_TIMES_2D_TENSOR_CONSTANT_TRACE:
     return r+6;
@@ -89,6 +90,12 @@ bool DesignMaterial::CheckRequiredDesigns(StdVector<DesignElement::Type>& design
         && design.Find(DesignElement::POISSONISO) >= 0 
         && design.Find(DesignElement::EMODUL) >= 0 
         && design.Find(DesignElement::POISSON) >= 0 
+        && design.Find(DesignElement::GMODUL) >= 0);
+  case DENSITY_TIMES_TRANSVERSAL_ISOTROPIC_2D:
+    return(design.Find(DesignElement::DENSITY) >= 0
+        && design.Find(DesignElement::EMODULISO) >= 0
+        && design.Find(DesignElement::EMODUL) >= 0
+        && design.Find(DesignElement::POISSON) >= 0
         && design.Find(DesignElement::GMODUL) >= 0);
   case DENSITY_TIMES_2D_TENSOR:
     return(design.Find(DesignElement::DENSITY) >= 0
@@ -221,8 +228,73 @@ double DesignMaterial::GetLameMaterialMass(DesignElement::Type direction){
 void DesignMaterial::GetTransIsoMaterialTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction){
   double E = params_[DesignElement::EMODULISO];
   double E3 = params_[DesignElement::EMODUL];
-  double nu = params_[DesignElement::POISSONISO];
   double nu13 = params_[DesignElement::POISSON];
+  if(subTensor == PLANE_STRESS){
+    double dens = params_[DesignElement::DENSITY];
+    double EE3 = E*E3;
+    double n = E3-nu13*nu13*E;
+    double ninv2 = 1/(n*n);
+
+    switch(direction){
+    case DesignElement::NO_DERIVATIVE:
+    {
+      double D = EE3/n;
+      double D3 = E3*E3/n;
+      double nD3 = nu13*EE3/n;
+      double G3 = params_[DesignElement::GMODUL];
+      SetTransIsoTensor(t, subTensor, D, 0, 0, D3, nD3, G3);
+      return;
+    }
+    case DesignElement::DENSITY:
+    {
+      if(penalty_ == 1.0){
+        dens = 1.0;
+      }else{
+        dens = penalty_*std::pow(dens, penalty_-1);
+      }
+      double D = EE3/n;
+      double D3 = E3*E3/n;
+      double nD3 = nu13*EE3/n;
+      double G3 = params_[DesignElement::GMODUL];
+      SetTransIsoTensor(t, subTensor, dens*D, 0, 0, dens*D3, dens*nD3, dens*G3);
+      return;
+    }
+    case DesignElement::EMODULISO:
+    {
+      double D = (n*E3+nu13*nu13*EE3)*ninv2;
+      double D3 = nu13*nu13*E3*E3*ninv2;
+      double nD3 = (n*nu13*E3+nu13*nu13*nu13*EE3)*ninv2;
+      SetTransIsoTensor(t, subTensor, dens*D, 0, 0, dens*D3, dens*nD3, 0);
+      return;
+    }
+    case DesignElement::EMODUL:
+    {
+      double D = (n*E-E*E3)*ninv2;
+      double D3 = (2*n*E3-E3*E3)*ninv2;
+      double nD3 = (n*nu13*E-nu13*EE3)*ninv2;
+      SetTransIsoTensor(t, subTensor, dens*D, 0, 0, dens*D3, dens*nD3, 0);
+      return;
+    }
+    case DesignElement::POISSON:
+    {
+      double D = 2*nu13*E*EE3*ninv2;
+      double D3 = 2*nu13*EE3*E3*ninv2;
+      double nD3 = (n*EE3+2*nu13*nu13*E*EE3)*ninv2;
+      SetTransIsoTensor(t, subTensor, dens*D, 0, 0, dens*D3, dens*nD3, 0);
+      return;
+    }
+    case DesignElement::GMODUL:
+    {
+      SetTransIsoTensor(t, subTensor, 0, 0, 0, 0, 0, dens);
+      return;
+    }
+    default:
+      ZeroTensor(t, subTensor);
+      return;
+    } // switch direction
+  } // PLANE_STRESS
+
+  double nu = params_[DesignElement::POISSONISO];
   double nu3;
   double n3;
   double c;
@@ -252,6 +324,10 @@ void DesignMaterial::GetTransIsoMaterialTensor(Matrix<double>& t, SubTensorType 
     double G = 0.5*E/(1.0+nu);
     SetTransIsoTensor(t, subTensor, D, nD, G, D3, nD3, G3);
     return;
+  }
+  case DesignElement::DENSITY:
+  {
+    throw Exception("direction DENSITY not implemented yet");
   }
   case DesignElement::EMODULISO:
     dE = 1.0;
@@ -450,6 +526,7 @@ void DesignMaterial::ZeroTensor(Matrix<double>& t, SubTensorType subTensor){
     t.Resize(6, 6);
     break;
   case PLANE_STRAIN:
+  case PLANE_STRESS:
     t.Resize(3, 3);
     break;
   default:
@@ -499,6 +576,7 @@ void DesignMaterial::SetTransIsoTensor(Matrix<double>& t, SubTensorType subTenso
     }
     break;
   case PLANE_STRAIN:
+  case PLANE_STRESS:
     t.Resize(3, 3);
     t.Init();
     switch(transIsoType_){
@@ -562,6 +640,7 @@ void DesignMaterial::GetMaterialTensor(Matrix<double>& t, SubTensorType subTenso
     break;
   case TRANSVERSAL_ISOTROPIC:
   case TRANSVERSAL_ISOTROPIC_BOXED:
+  case DENSITY_TIMES_TRANSVERSAL_ISOTROPIC_2D:
     GetTransIsoMaterialTensor(t, subTensor, direction);
     break;
   case DENSITY_TIMES_2D_TENSOR:
@@ -630,6 +709,7 @@ void DesignMaterial::SetEnums(){
   type.Add(LAME_ISOTROPIC, "lame-isotropic");
   type.Add(TRANSVERSAL_ISOTROPIC, "transversal-isotropic");
   type.Add(TRANSVERSAL_ISOTROPIC_BOXED, "transversal-isotropic-boxed");
+  type.Add(DENSITY_TIMES_TRANSVERSAL_ISOTROPIC_2D, "density-times-transversal-isotropic-2d");
   type.Add(DENSITY_TIMES_2D_TENSOR, "density-times-2dtensor");
   type.Add(DENSITY_TIMES_2D_TENSOR_CONSTANT_TRACE, "density-times-2dtensor-constant-trace");
   transIsoType.SetName("DesignMaterial::TransIsoType");

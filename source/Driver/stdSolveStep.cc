@@ -54,10 +54,9 @@ namespace CoupledField {
     incStopCrit_ = 1e-2;
     residualStopCrit_ = 1e-3;
     nonLin_           = PDE_.IsNonLin();
-    nonLinMaterial_   = PDE_.IsNonLinMaterial();
     isHyst_           = PDE_.IsHysteresis();
     totalFormulation_ = PDE_.IsTotaFormulation();
-    regionNonLinType_ = PDE_.GetNonLinRegionTypes();
+    regionNonLinTypes_ = PDE_.GetNonLinRegionTypes();
 
     // for direct coupled PDEs
     pdeId1_   = NO_PDE_ID;
@@ -66,7 +65,7 @@ namespace CoupledField {
     startStep_ = 1;
 
     // In the end, read nonlinear data from xml-file
-    if( nonLin_ || nonLinMaterial_ ) {
+    if( nonLin_ ) {
       ReadNonLinData();
     }
 
@@ -401,11 +400,7 @@ namespace CoupledField {
   void StdSolveStep::SolveStepTrans(PtrParamNode analysis_id, AdjointParameters* adjointParams) {
 
 
-    // do a nonlinear material time step
-    if ( nonLin_ && nonLinMaterial_ ) {
-      StepTransNonLinMaterial(analysis_id);
-    }
-    else if ( isHyst_ ) {
+    if ( isHyst_ ) {
       StepTransNonLinHysteresis(analysis_id);
     }
     // do a nonlinear time step
@@ -632,6 +627,12 @@ namespace CoupledField {
 
     } // load step loop
 
+    UInt& iterCoupledCounter = PDE_.GetIterCoupledCounter();
+    if ( PDE_.IsIterCoupled() )
+    {
+      ++iterCoupledCounter;
+    }
+
     //perform corrector step
     TS_alg_->Corrector(actSol);
   }
@@ -649,6 +650,7 @@ namespace CoupledField {
     Vector<Double> newSol( numEqns_ ); 
     Vector<Double> oldSol( numEqns_ );
     Vector<Double> solPrev( numEqns_ );
+    Vector<Double> solMinus( numEqns_ );
 
     oldSol.Init(0);
     newSol.Init(0);
@@ -680,9 +682,7 @@ namespace CoupledField {
       // setup right hand side
       Double RhsLinL2Norm = SetLinRHS(loadFactor);
 
-      // inner forces due to nonlin formulation
-      assemble_->AssembleNonLinRHS();  
-
+ 
       do {
         iterationCounter++;
         
@@ -696,7 +696,11 @@ namespace CoupledField {
         
         //init RHS with linear part!
         algsys_->InitRHS(RhsLinVal_);
-        
+ 
+        // inner forces due to nonlin formulation
+        // currently just fixed point, so AssembleNonLinRHS() is not necessary
+        // assemble_->AssembleNonLinRHS();  
+       
         PtrParamNode child_id = BaseDriver::CreateAnalysisIdChild(base_analysis_id, "load", iload, "nonLin", iterationCounter);
         
         //perform new assembly
@@ -738,6 +742,25 @@ namespace CoupledField {
         etaLineSearch = 1.0;
         residualErr   = incrementalErr;
         
+//         //computation of residuum ====== Start
+//         assemble_->AssembleMatrices();
+//         algsys_->InitRHS(RhsLinVal_);
+
+//         //RHS - timeparam*M ( solpred - actsol )
+//         TS_alg_->UpdateRHS(newSol);
+//         solMinus = -newSol;
+//         algsys_->UpdateRHS(STIFFNESS,solMinus);
+
+//         Vector<Double> actRHS;
+//         algsys_->GetRHSVal( actRHS );
+//         residualErr = actRHS.NormL2();
+//         std::cout << "RhsLinL2Norm: " << RhsLinL2Norm << std::endl;
+
+//         if (  RhsLinL2Norm > 1.0 )
+//           residualErr /= RhsLinL2Norm;
+        
+//         //computation of residuum ====== END
+
         // output of norms and data
         nonLinLogging_ = true;
         if ( nonLinLogging_ == true )
@@ -756,132 +779,6 @@ namespace CoupledField {
   }
 
   
-  void StdSolveStep::StepTransNonLinMaterial(PtrParamNode analysis_id) {
-
-
-    bool performOneMoreStep;
-
-    Vector<Double> solInc( numEqns_ );
-    Vector<Double> actSol( numEqns_ );
-    actSol.Init();
-
-    // set iteration counter
-    UInt iterationCounter=0;
-    Double RhsLinL2Norm;
-    Vector<Double> uOld;
-    Vector<Double> actRHS;
-
-    StepTransLin(analysis_id);
-
-    algsys_->GetSolutionVal( actSol );
-    PDE_.SaveSolution(actSol.GetPointer(), actSol.GetSize() );
-
-    // to incorporate loads
-    Double loadFactor = 1.0;
-    RhsLinL2Norm = SetLinRHS(loadFactor);
-
-
-    do {
-      uOld=actSol;
-      // compute u_{n+1}^k+1
-      iterationCounter++;
-
-      PtrParamNode child_id = BaseDriver::CreateAnalysisIdChild(analysis_id, "nonLin", iterationCounter);
-      
-      // re initialize RHS and system matrix
-      algsys_->InitRHS();
-
-      assemble_->AssembleLinRHS();
-
-      assemble_->AssembleMatrices();
-
-      // account for Dirichlet BCs
-      PDE_.SetBCs();
-
-      algsys_->ConstructEffectiveMatrix(matrix_factor_);
-
-      algsys_->BuildInDirichlet();
-
-      // put mass and damping on RHS
-      TS_alg_->UpdateRHS(actSol);
-
-      algsys_->RemoveIDBCInfoFromMatrix();
-
-      // substract K^* u^k from RHS
-      TS_alg_->SubstractStiffnessFromRHS(actSol);
-
-      algsys_->SetupPrecond();
-      algsys_->SetupSolver(child_id);
-      algsys_->Solve(child_id);
-
-      // new solution is only an increment of the full solution =============
-      algsys_->GetSolutionVal( solInc );
-      Double residualL2Norm;
-      Double etaLineSearch = 1.0;
-
-      residualL2Norm = PDE_.GetRhsL2Norm(solInc);
-
-      if ( lineSearch_ == "none" ) {
-        actSol += solInc;
-      }
-      else {
-        residualL2Norm = LineSearchMaterial(solInc, actSol, etaLineSearch, RhsLinL2Norm);
-      }
-
-      residualL2Norm = PDE_.GetRhsL2Norm(solInc);
-
-      PDE_.SaveSolution(actSol.GetPointer(), actSol.GetSize() );
-
-      Vector<Double> actRHS;
-      algsys_->GetRHSVal( actRHS );
-
-      Vector<Double> u_uOld(uOld.GetSize());
-      u_uOld.Init();
-      for (UInt ii=0;ii<uOld.GetSize();ii++){
-        if(uOld[ii]!=0)
-          u_uOld[ii]=(actSol[ii]-uOld[ii])/uOld[ii];
-
-      }
-      Double incrementL2Norm = u_uOld.NormL2();
-      std::cout<<"-- residual2Norm = " << residualL2Norm
-               <<", incrementL2Norm = "<<incrementL2Norm<< std::endl;
-
-      Double residualErr;
-      if ( RhsLinL2Norm > 1.0 )
-        residualErr    = residualL2Norm /  RhsLinL2Norm;
-      else
-        residualErr    = residualL2Norm;
-
-      // calculate incremental error
-      Double solIncrL2Norm = solInc.NormL2();
-      Double actSolL2Norm = actSol.NormL2();
-      Double incrementalErr;
-
-      if ( actSolL2Norm > 1.0)
-        incrementalErr = solIncrL2Norm / actSolL2Norm;
-      else
-        incrementalErr = solIncrL2Norm;
-
-
-      // --------------------------------------------------------------------
-      // output of norms and data
-      // --------------------------------------------------------------------
-      if ( nonLinLogging_ == true )
-        WriteNonLinIterToInfoXML(pdename_, iterationCounter, residualErr, incrementalErr, etaLineSearch);
-
-      // boolean variable, holds condition if another iteration step
-      // is necessary
-      performOneMoreStep =
-        (incrementL2Norm > incStopCrit_)||(residualErr > residualStopCrit_);
-
-    } while(performOneMoreStep && iterationCounter < nonLinMaxIter_);
-
-    // perform corrector step
-    TS_alg_->Corrector(actSol);
-
-  }
-
-
   void StdSolveStep::StepTransNonLinHysteresis(PtrParamNode analysis_id) {
     bool performOneMoreStep;
 
@@ -1071,21 +968,21 @@ namespace CoupledField {
   }
 
 
-  void StdSolveStep::SolveStepHarmonic(PtrParamNode analysis_id) {
+  void StdSolveStep::SolveStepHarmonic(PtrParamNode analysis_id, AdjointParameters* adjointParams) {
     if ( nonLin_ ) {
       StepHarmonicNonLin(analysis_id);
     }
     else {
-      StepHarmonicLin(analysis_id);
+      StepHarmonicLin(analysis_id, adjointParams);
     }
   }
 
 
-  void StdSolveStep::StepHarmonicLin(PtrParamNode analysis_id) {
+  void StdSolveStep::StepHarmonicLin(PtrParamNode analysis_id, AdjointParameters* adjointParams) {
 
 
     //this has to be done each frequency!
-    assemble_->AssembleLinRHS();
+    assemble_->AssembleLinRHS(adjointParams);
 
     if ( PDE_.IsComputeRHS4HarmSet() ) {
       // Evaluating RHS with nodal srcs for harmonic flownoise problems
@@ -1370,12 +1267,12 @@ namespace CoupledField {
       // calculation of residual error =======================================
       Double residualL2Norm = PDE_.GetRhsL2Norm(actRHS); // L2Norm of  (f-Ku )
 
-      Double residualErr;
+      // Double residualErr; // TODO: Unused variable residualErr
 
-      if ( RhsLinL2Norm > 1.0 )
-        residualErr    = residualL2Norm /  RhsLinL2Norm;
-      else
-        residualErr    = residualL2Norm;
+      // if ( RhsLinL2Norm > 1.0 )
+      //   residualErr    = residualL2Norm /  RhsLinL2Norm;
+      // else
+      //  residualErr    = residualL2Norm;
 
       if (residualL2Norm < residualL2NormOpt) {
         residualL2NormOpt = residualL2Norm;

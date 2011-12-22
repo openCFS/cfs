@@ -22,7 +22,7 @@ SET(PDE_SRCS
   magneticScalarPDE.cc
   mechPDE.cc
   mixedEqnMap.cc
-  mpcciPDE.cc
+  # mpcciPDE.cc
   newmark.cc
   newmarkFracDamp.cc
   newmarkFracDampMech.cc

@@ -364,7 +364,8 @@ DEFINE_LOG(linForm, "linForm")
     Vector<Double> CoordAtIP;
     Matrix<Double> bMatCurl, bMatDiv, bMatCurlTrans; 
     Vector<Double> helpVec;
-    Double jacDet, factor;
+    Double jacDet;
+    // Double factor; // TODO: Unused variable factor
 
     elemVec.Resize( numFncs * nrDofs_ );
     helpVec.Resize( numFncs * nrDofs_ );
@@ -385,7 +386,7 @@ DEFINE_LOG(linForm, "linForm")
                   << "negative Jacobian determinant!");
       }
 
-      factor = intWeights[actIntPt-1] * jacDet * reluctivity_;
+      // factor = intWeights[actIntPt-1] * jacDet * reluctivity_;
       bMatCurl.Transpose(bMatCurlTrans);  
 
       //      std::cout << "bMatT:\n" << bMatCurlTrans << std::endl;
@@ -417,10 +418,6 @@ DEFINE_LOG(linForm, "linForm")
     coordUpdate_ = coordUpdate;
     ptMaterial->GetScalar( startmatVal_, MAG_RELUCTIVITY,Global::REAL);
 
-    // need nonlinear BH curve approximation
-
-    if (  ptMaterial->GetNonlinFileName( MAG_PERMEABILITY ) != "" )  
-      ptMaterial->NeedApproxMatCurve( magBH );
   }
   
   nLinMagNode2D_linFormInt::~nLinMagNode2D_linFormInt()
@@ -438,7 +435,7 @@ DEFINE_LOG(linForm, "linForm")
     ptelem->SetAnsatzFct( ansatzFct1_ );
 
     // get pointer to nonlinear BH curve approximation
-    nlinFnc_ = ptMaterial->GetNonlinFncBH(MAG_PERMEABILITY);
+    nlinFnc_ = ptMaterial->GetNonlinFnc(MAG_PERMEABILITY);
 
     BaseForm * curlcurl2D;
     if (nlinFnc_== NULL) 
@@ -480,10 +477,6 @@ DEFINE_LOG(linForm, "linForm")
     coordUpdate_ = coordUpdate;
     ptMaterial->GetScalar( startmatVal_, MAG_RELUCTIVITY,Global::REAL);
 
-    // need nonlinear BH curve approximation
-    // need nonlinear BH curve approximation
-    if (  ptMaterial->GetNonlinFileName(MAG_PERMEABILITY) != "" )  
-      ptMaterial->NeedApproxMatCurve( magBH );
   }
   
   nLinMagNode3D_linFormInt::~nLinMagNode3D_linFormInt()
@@ -500,7 +493,7 @@ DEFINE_LOG(linForm, "linForm")
     ptelem->SetAnsatzFct( ansatzFct1_ );
 
     // get pointer to nonlinear BH curve approximation
-    nlinFnc_ = ptMaterial->GetNonlinFncBH(MAG_PERMEABILITY);
+    nlinFnc_ = ptMaterial->GetNonlinFnc(MAG_PERMEABILITY);
 
     BaseForm * curlcurl3D;
     if (nlinFnc_== NULL) 
@@ -556,7 +549,7 @@ DEFINE_LOG(linForm, "linForm")
     ptelem->SetAnsatzFct( ansatzFct1_ );
 
     // get pointer to nonlinear BH curve approximation
-    ApproxData* nlinFnc_ = ptMaterial->GetNonlinFncBH(MAG_PERMEABILITY);
+    ApproxData* nlinFnc_ = ptMaterial->GetNonlinFnc(MAG_PERMEABILITY);
 
     BaseForm * curlcurl3D;
     if ( nlinFnc_ == NULL ) 
@@ -964,15 +957,15 @@ DEFINE_LOG(linForm, "linForm")
 
 
   void LinearFlowNoiseInt::CalcElemVec_withVortexVel(const Matrix<Double>& ptCoord,
-                                                     const Matrix<Double> & NodalVel,
-                                                     Vector<Double> & Result)
+      const Matrix<Double> & NodalVel,
+      Vector<Double> & Result)
   {
 
     //std::cout << "NodalVel:\n" << NodalVel << std::endl;
 
     // This functions computes the element RHS vector by integrating 
     // the gradient of the shape function times the divergence of the tensor T.
-  
+
     // Source term =  integral(grad[Sf].div[T])
 
     Integer l = ptelem->GetNumIntPoints(); 
@@ -995,43 +988,43 @@ DEFINE_LOG(linForm, "linForm")
     Vector<Double> partResult;
     partResult.Resize(n);
     partResult.Init();
-    
+
     Vector<Double> helpVec;
     helpVec.Resize(dimelem);
     helpVec.Init();
 
-    
+
     // Loop over all integration points 
     for (actInt=1; actInt<=l; actInt++)
-      {
-	ptelem->GetShFncAtIp(Sf, actInt, NULL  );
-	ptelem->GetGlobDerivShFncAtIp(xiDx, actInt, ptCoord, 
-                                      jacDet, NULL );
+    {
+      ptelem->GetShFncAtIp(Sf, actInt, NULL  );
+      ptelem->GetGlobDerivShFncAtIp(xiDx, actInt, ptCoord,
+          jacDet, NULL );
 
-	// velocity at integration point: (vx  vy)^T  (2x1)
-	VelAtIP = NodalVel * Sf;
+      // velocity at integration point: (vx  vy)^T  (2x1)
+      VelAtIP = NodalVel * Sf;
 
-	//first derivative of velocity at integration point: (2x2)
-	//  vx,x   vx,y
-        //  vy,x   vy,y
-	//
-        VelDerAtIP = NodalVel * xiDx;
+      //first derivative of velocity at integration point: (2x2)
+      //  vx,x   vx,y
+      //  vy,x   vy,y
+      //
+      VelDerAtIP = NodalVel * xiDx;
 
-	helpVec[0] = 2.0 * VelAtIP[0] * VelDerAtIP[0][0] 
-	  + VelAtIP[1] *  VelDerAtIP[0][1] 
-	  + VelAtIP[0] *  VelDerAtIP[1][1]; 
+      helpVec[0] = 2.0 * VelAtIP[0] * VelDerAtIP[0][0]
+                                                    + VelAtIP[1] *  VelDerAtIP[0][1]
+                                                                                  + VelAtIP[0] *  VelDerAtIP[1][1];
 
-	helpVec[1] = 2.0 * VelAtIP[1] * VelDerAtIP[1][1] 
-	  + VelAtIP[0] *  VelDerAtIP[1][0] 
-	  + VelAtIP[1] *  VelDerAtIP[0][0]; 
-	  
-	helpVec *= density;
-        
-        // Multiplication with the derivatives of the shape functions
-	partResult  = xiDx * helpVec;        
-        partResult *= jacDet;
-        Result     += partResult;
-      }
+      helpVec[1] = 2.0 * VelAtIP[1] * VelDerAtIP[1][1]
+                                                    + VelAtIP[0] *  VelDerAtIP[1][0]
+                                                                                  + VelAtIP[1] *  VelDerAtIP[0][0];
+
+      helpVec *= density;
+
+      // Multiplication with the derivatives of the shape functions
+      partResult  = xiDx * helpVec;
+      partResult *= jacDet;
+      Result     += partResult;
+    }
     //    std::cout<<"ElemVect computed with test velocities: "<<std::endl;
     //    std::cout<<Result<<std::endl;
   } // end of method
@@ -2261,14 +2254,14 @@ void LinearFlowNoiseInt::ComputeNormalVec( const Matrix<Double>& ptCoord,
     const UInt nrIntPts = ptelem->GetNumIntPoints();
     UInt numFncs = ptelem->GetNumFncs( ansatzFct1_ );
    
-    const Vector<Double> & intWeights = ptelem->GetIntWeights();  
+    // const Vector<Double> & intWeights = ptelem->GetIntWeights(); // TODO: Unused variable intWeights 
     Vector<Double> ShpFncAtIp, CoordAtIP;
     Matrix<Double> xiDx;
 
     elemVec.Resize(numFncs);
     elemVec.Init(0);
 
-    Double factor;
+    // Double factor; // TODO: Unused variable factor
     for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++) {     
 
       Double jacDet = 0;
@@ -2284,7 +2277,7 @@ void LinearFlowNoiseInt::ComputeNormalVec( const Matrix<Double>& ptCoord,
         jacDet *= 2 * PI * CoordAtIP[0];
       }
 
-      factor = intWeights[actIntPt-1] * jacDet;
+      // factor = intWeights[actIntPt-1] * jacDet;
       for (UInt i=0; i<numFncs; i++) {
         for (UInt j=0; j<D_.GetSize(); j++) {
           elemVec[i] += xiDx[i][j] * D_[j];
@@ -2295,6 +2288,135 @@ void LinearFlowNoiseInt::ComputeNormalVec( const Matrix<Double>& ptCoord,
   }
 
 
+  // =========================================================================
+  // maxwell homogenization rhs volume integrator
+  // =========================================================================
+
+
+  VolChargeHomInt::VolChargeHomInt(BaseMaterial* matData, Global::ComplexPart matDataType, UInt numDof,
+      const std::string& phase,
+      bool isaxi) {
+
+    matData_ = matData;
+    name_ = "VolChargeHomInt";
+    isaxi_ = isaxi;
+    numDofs_ = numDof;
+    phase_ = phase;
+    locMatDataType_ = matDataType;
+
+
+  }
+
+  VolChargeHomInt::~VolChargeHomInt() {
+    delete bilinearStiff_;
+
+  }
+
+  void VolChargeHomInt::SetVolChargeVector(StdVector<std::string> & volChargex,
+      StdVector<std::string> & volChargey,
+      StdVector<std::string> & volChargez,
+      const CoordSystem * coordSys,
+      bool isUnit, Double volume, const int dim ) {
+
+
+    locChargex_ = volChargex;
+    locChargey_ = volChargey;
+    locChargez_ = volChargez;
+    coordSys_ = coordSys;
+    isUnitValue_ = isUnit;
+    volume_ = volume;
+    dim_ = dim;
+
+
+    // flag for updatedLagrange formulation
+    bool upLagrangeForm = true;
+
+    //transform the type
+    SubTensorType tensorType;
+
+    if ( dim_ == 3 ) {
+      tensorType = FULL;
+    }
+    else {
+      if ( isaxi_ == true ) {
+        tensorType = AXI;
+      }
+      else {
+        // 2d: plane case
+        tensorType = PLANE_STRAIN;
+      }
+    }
+
+    bilinearStiff_  = new linGradBDBInt(matData_, ELEC_PERMITTIVITY, tensorType, upLagrangeForm);
+    this->SetMatDataType(locMatDataType_);
+    bilinearStiff_->SetMatDataType(locMatDataType_);
+
+  }
+
+  void VolChargeHomInt::CalcElemVector( Vector<double> & result,
+      EntityIterator& ent )
+  {
+    Vector<Complex> help;
+    VolChargeHomInt::CalcElemVector(help, ent);
+    result = (help.GetPart(Global::REAL));
+  }
+
+
+  void VolChargeHomInt::CalcElemVector(Vector<Complex> &elemVec, EntityIterator &ent)
+  {
+    // get global coordinate system and math parser
+    MathParser * parser = domain->GetMathParser();
+
+    // Now evaluate each entry
+    // Vector<T> locLoadVec( dim_ );
+    Vector<Double> locLoadVec( dim_ );
+    for ( UInt i = 0; i < locChargex_.GetSize(); i++ ) {
+      parser->SetExpr( mHandle_, locChargex_[i] );
+      locLoadVec[0] = parser->Eval( mHandle_ );
+      parser->SetExpr( mHandle_, locChargey_[i] );
+      locLoadVec[1] = parser->Eval( mHandle_ );
+      if (dim_ == 3){
+        parser->SetExpr( mHandle_, locChargez_[i] );
+        locLoadVec[2] = parser->Eval( mHandle_ );
+      }
+    }
+
+    // Extract pointer to reference element and get coordinates
+    ExtractElemInfo(ent);
+    ptelem->SetAnsatzFct(ansatzFct1_);
+    const Vector<double> &intWeights = ptelem->GetIntWeights();
+
+    // extract pointer and get coords again for the integrator
+    bilinearStiff_->SetAnsatzFct( ansatzFct1_ );
+    bilinearStiff_->ExtractElemInfo(ent);
+
+    // calc dMat and immediately calculate the element stress
+    Matrix<double> dMat;
+    bilinearStiff_->calcDMat(dMat, ent.GetElem());
+    Vector<double> stress;
+    stress = dMat * locLoadVec;
+
+    elemVec.Resize(ptelem->GetNumNodes(), 0.0);
+    Matrix<double> linBMat;
+    Vector<double> partElemVec;
+    Vector<Complex> tmp_vec(elemVec.GetSize());
+
+    for(unsigned int aIP = 1, nr = ptelem->GetNumIntPoints(); aIP <= nr; ++aIP)
+    {
+      bilinearStiff_->calcBMatOnly(linBMat, aIP, ptelem, ptCoord_);
+      linBMat.MultT(stress, partElemVec);
+
+      const double jacDet(ptelem->CalcJacobianDetAtIp(aIP, ptCoord_, ent.GetElem()));
+
+      partElemVec *= jacDet * intWeights[aIP-1];
+      tmp_vec.SetPart(matDataType_, partElemVec);
+      elemVec += tmp_vec;
+    }
+
+    LOG_DBG2(linForm) << "VolChargeHomInt:CEV el=" << ent.GetElem()->elemNum << " -> " << elemVec.ToString();
+
+  }
+
 
 
   // =========================================================================
@@ -2302,7 +2424,7 @@ void LinearFlowNoiseInt::ComputeNormalVec( const Matrix<Double>& ptCoord,
   // =========================================================================
   
   
-  VolForceInt::VolForceInt(UInt numDof, 
+  VolForceInt::VolForceInt(UInt numDof,
                            const std::string& phase,
                            bool isaxi) {
 
@@ -2327,9 +2449,9 @@ void LinearFlowNoiseInt::ComputeNormalVec( const Matrix<Double>& ptCoord,
     coordSys_ = coordSys;
     isUnitValue_ = isUnit;
     volume_ = volume;
-    
+
   }
-    
+
   void VolForceInt::CalcElemVector( Vector<Double> & elemVec,
                                     EntityIterator& ent ) {
 
@@ -2426,6 +2548,7 @@ void LinearFlowNoiseInt::ComputeNormalVec( const Matrix<Double>& ptCoord,
                                     EntityIterator& ent ) {
     
 
+
     /// ----- part of interior function ---
     ptelem->SetAnsatzFct( ansatzFct1_ );
     const UInt nrIntPts = ptelem->GetNumIntPoints();
@@ -2465,9 +2588,9 @@ void LinearFlowNoiseInt::ComputeNormalVec( const Matrix<Double>& ptCoord,
   // ==================================================================
 
   AddStressRHSInt::AddStressRHSInt(BaseMaterial* matData,
-				     Vector<Double>& stressVec,
-				     SubTensorType type)
-    : LinearForm(), matData_(matData), subTensorType_(type)
+      Vector<Double>& stressVec,
+      SubTensorType type)
+  : LinearForm(), matData_(matData), subTensorType_(type)
   {
     name_ = "AddStressRHSInt";
 

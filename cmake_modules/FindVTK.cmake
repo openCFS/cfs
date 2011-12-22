@@ -1,6 +1,6 @@
 SET(VTK_FOUND 0)
 
-SET(VTK_VERSION "5.8")
+SET(VTK_VERSION "5.9")
 
 #-------------------------------------------------------------------------------
 # Look for VTK Customization header.

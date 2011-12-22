@@ -1,0 +1,61 @@
+
+\chapter{Debugging using Eclipse, Totalview, gdb}
+
+\section{gdb}
+\url{http://www.unknownroad.com/rtfm/gdbtut/gdbtoc.html}
+
+\url{http://heather.cs.ucdavis.edu/~matloff/UnixAndC/CLanguage/Debug.html}
+
+\url{http://www.cs.umd.edu/~srhuang/teaching/cmsc212/gdb-tutorial-handout.pdf}
+
+\url{http://de.opensuse.org/SDB:Debuggen_mit_der_Glibc}
+
+\section{Eclipse}
+\url{http://download.eclipse.org/tools/cdt/docs/tutorials/debug_tutorial/cdt_w_debug.htm}
+
+\url{http://www.users.fh-sbg.ac.at/~rgraf/downloads/SWE1_LB/Debugging%20in%20C%20und%20C++%20Programmen%20unter%20Eclipse.pdf}
+
+\url{http://informatik.unibas.ch/lehre/ws06/cs106/_Downloads/EclipseDebuggingMM.pdf}
+
+\url{http://www.youtube.com/watch?v=azInZkPP56Q}
+
+\section{TotalView}
+\url{http://www.roguewave.com/documentation/index.php}
+
+\url{https://computing.llnl.gov/tutorials/totalview/}
+
+\url{http://www.lrz.de/services/software/programmierung/totalview/kurs/Totalview_Fortran.pdf}
+
+
+\section{Settings for Emacs}
+
+The following attached shell archive
+\attachfile[icon=PushPin,description={Emacs settings.},mimetype=text/plain]{attachments/emacs_settings.txt}
+implements the CFS++ policies for Emacs. It also contains modes for editing CMake files, gnuplot files and ANSYS APDL input scripts. It also features the CUA mode, which contains keyboard shortcuts which are more consistent with oder editors (e.g. Ctrl+C for copying). Some changes to the Lisp scripts may be necessary to get them working with XEmacs.
+
+\section{Settings for Eclipse}
+
+The necessary settings in Eclipse can be made by accessing Window $\rightarrow$ Preferences $\rightarrow$ General $\rightarrow$ Editors and Workspace (c.f Fig. \ref{fig:eclipse_cfs_settings}).
+\begin{figure}[htb] 
+  \centering 
+  \subfloat[Editor settings.]{
+    \label{fig:eclipse_editor_settings}
+    \begin{overpic}[height=5cm]{pics/eclipse_editor_settings}
+%      \put(10,20){\textcolor{red}{\bf Test}}
+    \end{overpic}
+    }
+  \qquad
+  \subfloat[Workspace settings.]{
+    \label{fig:eclipse_workspace_settings}
+    \begin{overpic}[height=5cm]{pics/eclipse_workspace_settings}
+    \end{overpic}
+  } 
+  \caption{Settings for CFS++ in Eclipse.}
+  \label{fig:eclipse_cfs_settings}
+\end{figure}
+
+For convenience the corresponding settings files are attached here
+\attachfile[icon=PushPin,description={Eclipse editor settings.},mimetype=text/plain]{attachments/org.eclipse.ui.editors.prefs.txt}
+\attachfile[icon=PushPin,description={Eclipse workspace settings.},mimetype=text/plain]{attachments/org.eclipse.core.resources.prefs.txt}. The have to copied to the workspace/.metadata/.plugins/org.eclipse.core.runtime/.settings directory and must be renamed to \*.prefs.
+
+

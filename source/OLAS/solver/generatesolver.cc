@@ -68,7 +68,7 @@ BaseSolver* GenerateSolverObject( const BaseMatrix &mat,
 
   BaseSolver *retSolver = NULL;
   BaseMatrix::EntryType eType = mat.GetEntryType();
-  bool eTypeUnknown = false;
+//  bool eTypeUnknown = false; // TODO: Unused variable eTypeUnknown
   std::string solverStr = "";
 
   PtrParamNode solverXML;
@@ -109,9 +109,9 @@ BaseSolver* GenerateSolverObject( const BaseMatrix &mat,
       (*cla) << " GenerateSolver: Generated complex Richardson solver"
               << std::endl;
     }
-    else {
-      eTypeUnknown = true;
-    }
+//    else {
+//      eTypeUnknown = true;
+//    }
     break;
   case BaseSolver::DIAGSOLVER:
     if ( eType == BaseMatrix::DOUBLE ) {
@@ -126,9 +126,9 @@ BaseSolver* GenerateSolverObject( const BaseMatrix &mat,
       (*cla) << " GenerateSolver: Generated complex Diagonal solver"
       << std::endl;
     }
-    else {
-      eTypeUnknown = true;
-    }
+//    else {
+//      eTypeUnknown = true;
+//    }
     break;
 
   case BaseSolver::CG:
@@ -154,9 +154,9 @@ BaseSolver* GenerateSolverObject( const BaseMatrix &mat,
       (*cla) << " GenerateSolver: Generated complex GMRES solver"
       << std::endl;
     }
-    else {
-      eTypeUnknown = true;
-    }
+//    else {
+//      eTypeUnknown = true;
+//    }
     break;
 
   case BaseSolver::MINRES:
@@ -171,9 +171,9 @@ BaseSolver* GenerateSolverObject( const BaseMatrix &mat,
       (*cla) << " GenerateSolver: Generated complex MINRES solver"
       << std::endl;
     }
-    else {
-      eTypeUnknown = true;
-    }
+//    else {
+//      eTypeUnknown = true;
+//    }
     break;
 
   case BaseSolver::LU_SOLVER:
@@ -189,9 +189,9 @@ BaseSolver* GenerateSolverObject( const BaseMatrix &mat,
       (*cla) << " GenerateSolver: Generated complex "
       << BaseSolver::solverType.ToString(solver) << std::endl;
     }
-    else {
-      eTypeUnknown = true;
-    }
+//    else {
+//      eTypeUnknown = true;
+//    }
     break;
   case BaseSolver::LDL_SOLVER:
     // Get block size of matrix entries (we need an StdMatrix for this,

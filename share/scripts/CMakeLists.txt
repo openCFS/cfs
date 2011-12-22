@@ -97,3 +97,14 @@ ELSE(WIN32)
     COMMENT "Copying \"${CPLREADER_SCRIPT}\" script to ${CFS_BINARY_DIR}/bin folder..."
     )
 ENDIF(WIN32)
+
+#-------------------------------------------------------------------------------
+# Custom target for copying rstinfo to ${CFS_BINARY_DIR}/bin
+#-------------------------------------------------------------------------------
+IF(USE_ANSYSRST)
+ADD_CUSTOM_TARGET(rstinfo_script ALL
+  COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_CURRENT_SOURCE_DIR}/rstinfo ${CFS_BINARY_DIR}/bin
+  DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/rstinfo
+  COMMENT "Copying ANSYS .rst file info script \"rstinfo\" to
+  ${CFS_BINARY_DIR}/bin folder...")
+ENDIF(USE_ANSYSRST)

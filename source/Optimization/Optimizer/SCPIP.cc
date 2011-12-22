@@ -15,7 +15,7 @@ DECLARE_LOG(scpip)
 DEFINE_LOG(scpip, "scpip")
 
 SCPIP::SCPIP(Optimization* optimization, PtrParamNode optimizer_pn) :
- BaseOptimizer(optimization, optimizer_pn)
+ BaseOptimizer(optimization, optimizer_pn, Optimization::SCPIP_SOLVER)
 {
   LOG_TRACE(scpip) << "Initialize SCPIP";
 
@@ -307,6 +307,6 @@ bool SCPIP::intermediate_callback(int iter, bool next_iter)
   LOG_DBG(scpip) << "ic: mactiv=" << mactiv;
   LOG_DBG2(scpip) << "ic: active=" << active.ToString();
   
-  return (restart_requested || optimization->DoStopOptimization()) ? false : true; 
+  return (restart_requested || optimization->DoStopOptimization()) ? false : true;
 }     
 

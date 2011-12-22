@@ -19,12 +19,15 @@
   <xsd:complexType name="DT_MatElectric">
     <xsd:sequence>
       <xsd:element name="permittivity" type="DT_ElecPermittivity"/>
+      <!-- permeability only used for maxwell homogenization -->
+      <xsd:element name="permeability" type="DT_ElecPermittivity" minOccurs="0"/>
       <xsd:element name="permittivityCoefficient"
         type="DT_ElecNonLinPerm" minOccurs="0"/>
       <xsd:element name="hystModel"
         type="DT_ElecHystModel" minOccurs="0"/>
     </xsd:sequence>
   </xsd:complexType>
+
 
   <!-- ******************************************************************* -->
   <!--   Definition of electric permittivity -->

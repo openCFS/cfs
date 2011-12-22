@@ -59,7 +59,7 @@ namespace CoupledField
 
 
     //!  base method for solving one harmonic step 
-    virtual void SolveStepHarmonic(PtrParamNode analysis_id);
+    virtual void SolveStepHarmonic(PtrParamNode analysis_id, AdjointParameters* adjointParams = NULL);
 
 
     //!  routine for actions after the SolveStep-method

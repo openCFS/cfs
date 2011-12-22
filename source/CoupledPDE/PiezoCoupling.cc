@@ -11,6 +11,7 @@
 
 // integrator (bi-)linear forms
 #include "Forms/mechStressStrain.hh"
+#include "Forms/PiezoStressStrain.hh"
 #include "Forms/gradfieldop.hh"
 #include "Forms/elecchargeop.hh"
 #include "Forms/nLinPiezoHyst.hh"
@@ -41,36 +42,23 @@ namespace CoupledField {
   // ***************
   PiezoCoupling::PiezoCoupling( SinglePDE *pde1, SinglePDE *pde2,
                                 PtrParamNode paramNode  )
-    : BasePairCoupling( pde1, pde2, paramNode ) {
-
-
-    couplingName_ = "piezoDirect";
+    : BasePairCoupling( pde1, pde2, paramNode, "piezoDirect")
+  {
     materialClass_ = PIEZO;
 
     // determine subtype from mechanic pde
     pde1_->GetParamNode()->GetValue( "subType", subType_ );
 
+
     // read nonlinearity
     nonLin_ = false;
     nonLinHysteresis_ = false;
     nonLinPiezoMicroHF_ = false;
-    nonLinMaterial_ = false;
-    
     nonLinPiezoCoupling_=false;
-    PtrParamNode nonLinNode = myParam_->Get("nonLinList", ParamNode::PASS );
-    if( nonLinNode ) {
-       ParamNodeList nonLinNodes = nonLinNode->GetChildren();
-       for( UInt i = 0; i < nonLinNodes.GetSize(); i++ ) {
 
-         std::string nonLinearity = nonLinNodes[i]->GetName();
-         if( nonLinearity == "material" || nonLinearity == "hysteresis"
-             || nonLinearity == "geo" || nonLinearity == "piezoMicroHF" ) {
-           nonLinPiezoCoupling_=true;
-           ReadPiezoNonLin();
-           break;
-         }
-       }
-    }
+    // Initialize nonlinearities
+    InitNonLin();
+
 
   }
 
@@ -79,6 +67,53 @@ namespace CoupledField {
   //   Destructor
   // **************
   PiezoCoupling::~PiezoCoupling() {
+  }
+
+
+  // ****************************
+  //  Initialize Nonlinearities
+  // ****************************
+  void PiezoCoupling::InitNonLin() {
+
+    BasePairCoupling::InitNonLin();
+
+    // Check, if nonlinear type is the same for all regions
+    if( regionNonLinTypes_.size() > 1 ) {
+      std::map<std::string, NonLinType>::iterator it;
+      it = nonLinTypes_.begin();
+      NonLinType firstType = it->second;
+      for( ; it != nonLinTypes_.end(); it++ ) {
+        if( it->second != firstType ) {
+          EXCEPTION( "Non-linearity should be the same for all regions!" );
+        }
+      }
+    }
+
+
+    //now do coupling specifics
+    std::map<std::string, NonLinType>::iterator it;
+    for ( it=nonLinTypes_.begin() ; it != nonLinTypes_.end(); it++ ) {
+      if ( (*it).second == HYSTERESIS ) {
+        nonLin_ = true;
+        nonLinHysteresis_ = true;
+      }
+      else if ( (*it).second ==  PIEZO_MICRO_HF ) {
+        nonLin_ = true;
+        nonLinPiezoMicroHF_ = true;
+      }
+      else if ( (*it).second == GEOMETRIC ) {
+        nonLin_ = true;
+      }
+    }
+
+    if(nonLin_) {
+      nonLinPiezoCoupling_=true;
+      if ( !nonLinHysteresis_ ) {
+        pde1_->SetNonLinearity(nonLin_);
+        pde2_->SetNonLinearity(nonLin_);
+      }
+    }
+
   }
 
 
@@ -109,15 +144,10 @@ namespace CoupledField {
       break;
 
     case VON_MISES_STRESS:
-      if(isComplex_) {
+      if(isComplex_)
         CalcStressStrain<Complex>(result);
-        assert(false);
-//        dynamic_cast<MechPDE*>(pde1_)->CalcVonMises<Complex>(result);
-      } else {
+      else
         CalcStressStrain<Double>(result);
-        assert(false);
- //       dynamic_cast<MechPDE*>(pde1_)->CalcVonMises<Double>(result);
-      }
       break;
 
 
@@ -151,185 +181,164 @@ namespace CoupledField {
     }
   }
 
+
   template <class TYPE>
   void PiezoCoupling::CalcStressStrain(shared_ptr<BaseResult> res)
   {
     SolutionType resultType = res->GetResultInfo()->resultType;
-
-    Vector<Double> intPoint;
-    Vector<Double> LCoord;
-    Vector<TYPE> TempE;
-    Vector<TYPE> TempMechStrain;
-    Vector<TYPE> TempDField;
-
-    MechStressStrain<TYPE> * mechStressOp = NULL;
-
-    assert(GetPde1()->GetName() == "mechanic");
-    UInt stressDim = dynamic_cast<MechPDE*>(GetPde1())->GetStressStrainDim();
-    UInt elecDim   = stressDim == 6 ? 3 : 2;
-
-    // Retrieve solution from nodeStoreSolution Class
-    BaseNodeStoreSol * solPDE1 = pde1_->getPDESolution();
-    BaseNodeStoreSol * solPDE2 = pde2_->getPDESolution();
-
-    NodeStoreSol<TYPE> * solhelp1 =
-      dynamic_cast<NodeStoreSol<TYPE>*>(solPDE1);
-    NodeStoreSol<TYPE> * solhelp2 =
-      dynamic_cast<NodeStoreSol<TYPE>*>(solPDE2);
-
-    // Determines gradient of electric potential, i.e. E=\grad \phi
-    GradientFieldOp<TYPE> * FieldOp2
-      = new GradientFieldOp<TYPE>(ptGrid_, pde2_, eqnMap2_,
-                                  *solhelp2, results2_[0]->fctType,
-                                  isaxi_);
-
-    // Determines linear Strain S=Bu, i.e.
-    //  partial derivates of mechanical displacement
-    Vector<TYPE> elemElecStress, elemStressStrain, sortedStress;
-    elemElecStress.Resize(stressDim);
-    elemElecStress.Init(0);
-    elemStressStrain.Resize(stressDim);
-    elemStressStrain.Init(0);
-    TempMechStrain.Resize(stressDim);
-    TempMechStrain.Init();
-    TempDField.Resize(elecDim);
-    TempDField.Init();
-    sortedStress.Resize(6);
-
-    Matrix<TYPE> stiffnessMat, sTensor;
-    Matrix<TYPE> piezoCouplingMat;
-    Matrix<TYPE> piezoCouplingMatT;
-    Matrix<TYPE> permittivityMat;
-    Matrix<TYPE> elemDisp;
-
-    Global::ComplexPart dataType;
-   
-
-    // get material from mechanics
-    std::map<RegionIdType, BaseMaterial*> mechMat =
-      pde1_->getPDEMaterialData();
-
-
-    // get
-    Result<TYPE> &  actRes =
-      dynamic_cast<Result<TYPE>&>(*res);
+    Result<TYPE> &  actRes = dynamic_cast<Result<TYPE>&>(*res);
     EntityIterator it = actRes.GetEntityList()->GetIterator();
 
-    Vector<TYPE> & actVal = actRes.GetVector();
-    actVal.Resize( actRes.GetEntityList()->GetSize() * stressDim );
-
-    // Fetch material: As we assume, that all elements belong to
-    // one and the same region, we simply take the subdomain of the first
-    // element
-    it.Begin();
-
     // get the materials for the subdomain
+    std::map<RegionIdType, BaseMaterial*> mechMat = pde1_->getPDEMaterialData();
     BaseMaterial* matPiezo = materials_[it.GetElem()->regionId];
     BaseMaterial* mechMatSD = mechMat[it.GetElem()->regionId];
 
-    //transform the type
-    SubTensorType type;
-    String2Enum(subType_,type);
+    bool isMicroModel = matPiezo->GetMicroPiezoModel() != NULL;
 
-    // get correct mechanical stress operator and piezoelectric tensor
-    mechStressOp = new MechStressStrain<TYPE>(mechMatSD, type);
+    if(!isMicroModel)
+    {
+      // this is a "shared" mechanic implementation and is more accurate as we do not use the
+      // midpoints but integration points. Essential for vonMises stuff and higher order
+      // TODO: Manfred, it makes sense to add the micro model there - Fabian
+      PiezoStressStrain<TYPE> stress_strain(mechMatSD, pde1_->GetSubTensorType(), this);
+      stress_strain.CalcStressStrainResult(dynamic_cast<MechPDE*>(pde1_), res, resultType);
+    }
+    else
+    {
 
-    bool isMicroModel = false;
-    if ( matPiezo->GetMicroPiezoModel() != NULL ) 
-      isMicroModel = true;
+      Vector<Double> intPoint;
+      Vector<Double> LCoord;
+      Vector<TYPE> TempE;
+      Vector<TYPE> TempMechStrain;
+      Vector<TYPE> TempDField;
 
+      MechStressStrain<TYPE> * mechStressOp = NULL;
 
-    // loop over all elements
-    for ( it.Begin(); !it.IsEnd(); it++ ) {
+      assert(GetPde1()->GetName() == "mechanic");
+      UInt stressDim = dynamic_cast<MechPDE*>(GetPde1())->GetStressStrainDim();
+      UInt elecDim   = stressDim == 6 ? 3 : 2;
 
-      
-      if ( complexMatData_[it.GetElem()->regionId] ) {
-        dataType = Global::COMPLEX;
-      }
-      else {
-        dataType = Global::REAL;
-      }
-      
-      // Calc E - field;
-      it.GetElem()->ptElem->GetCoordMidPoint(LCoord);
+      // Retrieve solution from nodeStoreSolution Class
+      BaseNodeStoreSol * solPDE1 = pde1_->getPDESolution();
+      BaseNodeStoreSol * solPDE2 = pde2_->getPDESolution();
 
-      FieldOp2->CalcElemGradField( TempE, it, LCoord, 1);
+      NodeStoreSol<TYPE> * solhelp1 =
+          dynamic_cast<NodeStoreSol<TYPE>*>(solPDE1);
+      NodeStoreSol<TYPE> * solhelp2 =
+          dynamic_cast<NodeStoreSol<TYPE>*>(solPDE2);
 
-      // Calc linear mechanical stresses
-      //get coordinates of element
+      // Determines gradient of electric potential, i.e. E=\grad \phi
+      GradientFieldOp<TYPE> * FieldOp2
+      = new GradientFieldOp<TYPE>(ptGrid_, pde2_, eqnMap2_,
+          *solhelp2, results2_[0]->fctType,
+          isaxi_);
 
-      // compute strain
-      mechMatSD = mechMat[it.GetElem()->regionId];
-      mechStressOp->SetMaterial( mechMatSD );
-      solhelp1->GetElemSolutionAsMatrix(elemDisp, it);
-      mechStressOp->SetActElemSol(elemDisp);
-      mechStressOp->SetIntPoint(LCoord);
-      mechStressOp->CalcStrainVec(TempMechStrain,1,it);
-      mechStressOp->UnsetIntPoint();
+      // Determines linear Strain S=Bu, i.e.
+      //  partial derivates of mechanical displacement
+      Vector<TYPE> elemElecStress, elemStressStrain, sortedStress;
+      elemElecStress.Resize(stressDim);
+      elemElecStress.Init(0);
+      elemStressStrain.Resize(stressDim);
       elemStressStrain.Init(0);
+      TempMechStrain.Resize(stressDim);
+      TempMechStrain.Init();
+      TempDField.Resize(elecDim);
+      TempDField.Init();
+      sortedStress.Resize(6);
 
-      if ( resultType  == MECH_STRAIN ) {
-        elemStressStrain  = TempMechStrain;
-      }
-      else {
-        if ( isMicroModel ) {
-          //strain has to be reduced by irrebersibel strain
-          UInt nrEl  = it.GetElem()->elemNum;
-          Vector<Double> actPirr, actSirr;
-          actPirr.Resize(elecDim);
-          actSirr.Resize(stressDim);
+      Matrix<TYPE> stiffnessMat, sTensor;
+      Matrix<TYPE> piezoCouplingMat;
+      Matrix<TYPE> piezoCouplingMatT;
+      Matrix<TYPE> permittivityMat;
+      Matrix<TYPE> elemDisp;
 
-          // get effective irreversible strain and polarization
-          matPiezo->GetEffectiveIrreversibleValues( actPirr, actSirr, nrEl,
-                                                    false, false );
+      Global::ComplexPart dataType;
 
-          Matrix<Double> cTensor, sTensor, dTensor, epsTensor, dTensorTrans, eTensor;
-          Vector<Double> actStress(stressDim);
-          Vector<Double> actE(elecDim);
-          //get current tensors
-          matPiezo->GetEffectiveTensors( cTensor, sTensor, epsTensor, dTensor,   
-                                         actStress, actE, nrEl, 
-                                         false, false );
-          //compute actual stress
-          dTensor.Transpose( dTensorTrans );
-          eTensor = cTensor * dTensorTrans;
+      Vector<TYPE> & actVal = actRes.GetVector();
+      actVal.Resize( actRes.GetEntityList()->GetSize() * stressDim );
 
-          //reduce total strain by irreversible strain
-          Vector<TYPE> actStrain;
-          actStrain = TempMechStrain - actSirr;
+      // Fetch material: As we assume, that all elements belong to
+      // one and the same region, we simply take the subdomain of the first
+      // element
+      it.Begin();
 
-          //compute mechanical part of stress
-          elemStressStrain = cTensor * actStrain;
+      //transform the type
+      SubTensorType type;
+      String2Enum(subType_,type);
 
-          //electric part of stress
-          TempDField = eTensor*TempE;
+      // get correct mechanical stress operator and piezoelectric tensor
+      mechStressOp = new MechStressStrain<TYPE>(mechMatSD, type);
 
-          //total stress
-          elemStressStrain -= TempDField;
-        }
-        else {
-          // get correct coupling tensor and transpose it
-          matPiezo = materials_[it.GetElem()->regionId];
-          matPiezo->GetTensor(piezoCouplingMat,PIEZO_TENSOR,dataType,type);
-          piezoCouplingMat.Transpose(piezoCouplingMatT);
+      // loop over all elements
+      for ( it.Begin(); !it.IsEnd(); it++ ) {
 
-          mechMatSD->GetTensor(stiffnessMat,MECH_STIFFNESS_TENSOR,dataType,type);
-          elemStressStrain = stiffnessMat * TempMechStrain;
-                   
-          TempDField = piezoCouplingMatT*TempE;
-          elemStressStrain -= TempDField;
-        }
+        dataType = complexMatData_[it.GetElem()->regionId] ? Global::COMPLEX : Global::REAL;
+
+        // Calc E - field;
+        it.GetElem()->ptElem->GetCoordMidPoint(LCoord);
+
+        FieldOp2->CalcElemGradField( TempE, it, LCoord, 1);
+
+        // Calc linear mechanical stresses
+        //get coordinates of element
+
+        // compute strain
+        mechMatSD = mechMat[it.GetElem()->regionId];
+        mechStressOp->SetMaterial( mechMatSD );
+        solhelp1->GetElemSolutionAsMatrix(elemDisp, it);
+        mechStressOp->SetActElemSol(elemDisp);
+        mechStressOp->SetIntPoint(LCoord);
+        mechStressOp->CalcStrainVec(TempMechStrain,1,it);
+        mechStressOp->UnsetIntPoint();
+        elemStressStrain.Init(0);
+
+        // isMicroModel case!
+        //strain has to be reduced by irrebersibel strain
+        UInt nrEl  = it.GetElem()->elemNum;
+        Vector<Double> actPirr, actSirr;
+        actPirr.Resize(elecDim);
+        actSirr.Resize(stressDim);
+
+        // get effective irreversible strain and polarization
+        matPiezo->GetEffectiveIrreversibleValues( actPirr, actSirr, nrEl,
+            false, false );
+
+        Matrix<Double> cTensor, sTensor, dTensor, epsTensor, dTensorTrans, eTensor;
+        Vector<Double> actStress(stressDim);
+        Vector<Double> actE(elecDim);
+        //get current tensors
+        matPiezo->GetEffectiveTensors( cTensor, sTensor, epsTensor, dTensor,
+            actStress, actE, nrEl,
+            false, false );
+        //compute actual stress
+        dTensor.Transpose( dTensorTrans );
+        eTensor = cTensor * dTensorTrans;
+
+        //reduce total strain by irreversible strain
+        Vector<TYPE> actStrain;
+        actStrain = TempMechStrain - actSirr;
+
+        //compute mechanical part of stress
+        elemStressStrain = cTensor * actStrain;
+
+        //electric part of stress
+        TempDField = eTensor*TempE;
+
+        //total stress
+        elemStressStrain -= TempDField;
       }
 
       for(UInt iDof = 0; iDof < stressDim; iDof++ ) {
         actVal[it.GetPos()*stressDim + iDof] = elemStressStrain[iDof];
       }
 
+      // Delete integrator again (Stressabbau ;-)
+      delete mechStressOp;
+      delete FieldOp2;
     }
-    // Delete integrator again (Stressabbau ;-)
-    delete mechStressOp;
-    delete FieldOp2;
   }
+
 
   template <class TYPE>
   void PiezoCoupling::CalcCharges( shared_ptr<BaseResult> res,
@@ -770,11 +779,12 @@ namespace CoupledField {
     // get correct mechanical strain operator 
     mechStrainOp = new MechStressStrain<Double>(mechMatSD, type);
 
-    bool isMicroModel = false;
-    if ( matPiezo->GetMicroPiezoModel() != NULL ) 
-      isMicroModel = true;
-    else
-     EXCEPTION("CalcFluxDensity currently just implemented for PiezoMicroBK" );
+    // bool isMicroModel = false;  // TODO: Unused variable isMicroModel
+    // if ( matPiezo->GetMicroPiezoModel() != NULL ) 
+    //   isMicroModel = true;
+    //else
+    if ( matPiezo->GetMicroPiezoModel() == NULL )
+      EXCEPTION("CalcFluxDensity currently just implemented for PiezoMicroBK" );
  
 
     bool recompute = false;
@@ -804,13 +814,13 @@ namespace CoupledField {
       // currrent finite element
       nrEl  = it.GetElem()->elemNum;
       
-      Global::ComplexPart dataType;
-      if ( complexMatData_[it.GetElem()->regionId] ) {
-        dataType = Global::COMPLEX;
-      }
-      else {
-        dataType = Global::REAL;
-      }
+      // Global::ComplexPart dataType; // TODO: Unused variable dataType
+      // if ( complexMatData_[it.GetElem()->regionId] ) {
+      //  dataType = Global::COMPLEX;
+      // }
+      // else {
+      //  dataType = Global::REAL;
+      // }
 
       // get effective material tensors (currently just d-Tensor) 
       Matrix<Double> cTensor, sTensor, dTensor, epsTensor, eTensor;
@@ -848,120 +858,6 @@ namespace CoupledField {
   }
 
 
-  void PiezoCoupling::ReadPiezoNonLin(){
-
-
-    // Check, if "nonLinList" is present
-    PtrParamNode nonLinListNode = myParam_->Get("nonLinList", ParamNode::PASS );
-
-
-    // --------------------------------------
-    // @Tom:
-    // Shouldn't it be possible to define various types of non-linearities
-    // for different regions like in the other PDEs (e.g. acoustic PDE)?
-    // Currently the non-linearity type is only determined by the first entry
-    // --------------------------------------
-
-    
-    if( nonLinListNode) {
-      // Get nonlinear types
-      ParamNodeList nonLinNodes = nonLinListNode->GetChildren();
-      for( UInt i = 0; i < nonLinNodes.GetSize(); i++ ) {
-
-        std::string actTypeString = nonLinNodes[i]->GetName();
-        std::string actId = nonLinNodes[i]->Get("id")->As<std::string>();
-
-        NonLinType actType;
-        String2Enum( actTypeString, actType );
-        nonLinIdType_[actId] = actType;
-
-        // check type
-        if( actType == HYSTERESIS ) {
-          nonLin_ = true;
-          nonLinHysteresis_ = true;
-        }
-
-        if( actType == PIEZO_MICRO_HF ) {
-          nonLin_ = true;
-          nonLinPiezoMicroHF_ = true;
-        }
-
-        if( actType == MATERIAL ) {
-          nonLin_ = true;
-          nonLinMaterial_ = true;
-        }
-
-        if( actType == GEOMETRIC ) {
-          nonLin_ = true;
-        }
-      }
-    }
-
-    // Run over all region and set entry in "regionNonLinId"
-    ParamNodeList regionNodes =
-      myParam_->Get("regionList")->GetChildren();
-
-    RegionIdType actRegionId;
-    std::string actRegionName, actNonLinId;
-
-    for( UInt i = 0; i < regionNodes.GetSize(); i++ ) {
-
-      // get data
-      regionNodes[i]->GetValue( "name", actRegionName );
-      regionNodes[i]->GetValue( "nonLinId", actNonLinId );
-
-      if( actNonLinId == "" )
-        continue;
-
-      actRegionId = ptGrid_->GetRegion().Parse( actRegionName );
-
-      // Check nonLinId was already registerd
-      if( nonLinIdType_.find( actNonLinId) == nonLinIdType_.end() ) {
-        EXCEPTION( "NonLinearity with id '" << actNonLinId
-                   << "' was not defined in 'nonLinList'" );
-      }
-
-      regionNonLinId_[actRegionId] = actNonLinId;
-      regionNonLinType_[actRegionId] = nonLinIdType_[actNonLinId];
-
-      // Log to info file
-      std::string nonLinString;
-      Enum2String( nonLinIdType_[actNonLinId], nonLinString );
-      PtrParamNode in = infoNode_->Get("nonlinear")->Get("region", ParamNode::APPEND);
-      in->Get("region")->SetValue(actRegionName);
-      in->Get("nonlin")->SetValue(nonLinString);
-    }
-
-
-    // Check, if nonlinear type is the same for all regions
-    if( regionNonLinType_.size() > 1 ) {
-      std::map<RegionIdType, NonLinType>::iterator it;
-      it = regionNonLinType_.begin();
-      NonLinType firstType = it->second;
-      for( ; it != regionNonLinType_.end(); it++ ) {
-        if( it->second != firstType ) {
-          EXCEPTION( "Non-linearity should be the same for all regions!" );
-        }
-      }
-    }
-
-
-    if(nonLin_) {
-      if ( !nonLinHysteresis_ ) {
-        pde1_->SetNonLinearity(nonLin_);
-        pde2_->SetNonLinearity(nonLin_);
-        //    this->SetNonLinearity(nonLin_);
-
-        if ( nonLinMaterial_ ) {
-          pde1_->SetMaterialNonLinearity(nonLinMaterial_);
-          pde2_->SetMaterialNonLinearity(nonLinMaterial_);
-          //      this->SetMaterialNonLinearity(nonLin_);
-        }
-      }
-    }
-  }
-
-
   // *********************
   //   DefineIntegrators
   // *********************
@@ -969,7 +865,7 @@ namespace CoupledField {
 
     Global::ComplexPart matType = Global::REAL;
     RegionIdType actRegion;
-    BaseMaterial * actSDMat = NULL;
+    // BaseMaterial * actSDMat = NULL; // TODO: Unused variable actSDMat
 
 
     // get material from electrostatics
@@ -982,7 +878,7 @@ namespace CoupledField {
     for ( it = materials_.begin(); it != materials_.end(); it++ ) {
       // Set current region and material
       actRegion = it->first;
-      actSDMat = it->second;
+      // actSDMat = it->second;
       matType = Global::REAL;
 
       //transform the type
@@ -1356,89 +1252,35 @@ namespace CoupledField {
         rhsContextMech->SetResult( results1_[0], actSDList );
         assemble_->AddLinearForm( rhsContextMech );
       }
-
       else {
-        if (  nonLinMaterial_ ) {
-          //material nonlinearity
-
-          ApproxData *nlinFnc;
-          std::string nlfnc = materials_[actRegion]->GetNonlinFileName(ELEC_PERMITTIVITY);
-          materials_[actRegion]->GetScalar(nlfnc,NONLIN_DATA_NAME);
-
-          nlinFnc = new SmoothSpline(nlfnc);
-          // ApproxData *nlinFnc = new SmoothSpline("PZT4_Coupl33NL.dat");
-          // oder        ApproxData *nlinFnc = new LinInterpolate(nlfnc);
-          nlinFnc->CalcBestParameter();
-          nlinFnc->CalcApproximation();
-
-          // get material from mechanics
-          std::map<RegionIdType, BaseMaterial*> mechMat =
-            pde1_->getPDEMaterialData();
-
-          // get material from electrostatics
-          std::map<RegionIdType, BaseMaterial*> elecMat =
-            pde2_->getPDEMaterialData();
-
-          // add nonlinear stiffness
-          nLinPiezoCoupling * bilinearStiffNonLin;
-          bilinearStiffNonLin =  new nLinPiezoCoupling(nlinFnc, materials_[actRegion],
-                                                       mechMat[actRegion],
-                                                       elecMat[actRegion],
-                                                       tensorType);
-
-          BaseNodeStoreSol * solPDE1 = pde1_->getPDESolution();
-          BaseNodeStoreSol * solPDE2 = pde2_->getPDESolution();
-
-          NodeStoreSol<Double> * solhelp1 =
-            dynamic_cast<NodeStoreSol<Double>*>(solPDE1);
-          NodeStoreSol<Double> * solhelp2 =
-            dynamic_cast<NodeStoreSol<Double>*>(solPDE2);
-
-          bilinearStiffNonLin->SetSolution1(*solhelp1);
-          bilinearStiffNonLin->SetSolution2(*solhelp2);
-
-          bilinearStiffNonLin->Set4NonLinMaterial(ptGrid_, pde2_, eqnMap2_,
-                                                  results2_[0]);
-
-          bilinearStiffNonLin->SetMatDataType( matType );
-
-          actContextStiff =
-            new BiLinFormContext( bilinearStiffNonLin, STIFFNESS  );
-
-          // We also need to set the transposed of the coupling
-          // matrix to the lower diagonal side
-          actContextStiff->SetCounterPart( true );
-        }
-        else {
-          // add linear stiffness
-          BaseForm *bilinearStiff =
-            new linPiezoCoupling(materials_[actRegion], tensorType);
-
-          bilinearStiff->SetMatDataType( matType );
-
-          actContextStiff =
-            new BiLinFormContext( bilinearStiff, STIFFNESS  );
-        }
-
+        // add linear stiffness
+        BaseForm *bilinearStiff =
+          new linPiezoCoupling(materials_[actRegion], tensorType);
+        
+        bilinearStiff->SetMatDataType( matType );
+        
+        actContextStiff =
+          new BiLinFormContext( bilinearStiff, STIFFNESS  );
+      
 
         // We also need to set the transposed of the coupling
         // matrix to the lower diagonal side
         actContextStiff->SetCounterPart( true );
-
+        
         actContextStiff->SetEntryType( matType );
         actContextStiff->SetPtPdes( pde1_, pde2_ );
         actContextStiff->SetResults( results1_[0], results2_[0],
                                      actSDList, actSDList );
-
+        
         assemble_->AddBiLinearForm( actContextStiff );
-
+        
         // check for complex valued material parameter
         if( complexMatData_[actRegion] ) {
           matType = Global::IMAG;
-
+          
           BaseForm * bilinearStiffC =
             new linPiezoCoupling( materials_[actRegion], tensorType);
-
+          
           //GetStiffIntegrator(materialData_[actSD]);
           BiLinFormContext *actComplexContextStiff =
             new BiLinFormContext(bilinearStiffC, STIFFNESS );
@@ -1448,7 +1290,7 @@ namespace CoupledField {
           // We also need to set the transposed of the coupling
           // matrix to the lower diagonal side
           actComplexContextStiff->SetCounterPart( true );
-
+          
           actComplexContextStiff->SetEntryType(matType);
           bilinearStiffC->SetMatDataType(matType);
           assemble_->AddBiLinearForm( actComplexContextStiff );

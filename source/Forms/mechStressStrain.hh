@@ -5,15 +5,17 @@
 #ifndef FILE_MECHSTRESSSTRAIN_04
 #define FILE_MECHSTRESSSTRAIN_04
 
-#include <Elements/basefe.hh>
-#include <Materials/baseMaterial.hh>
-
-#include <Forms/linElastInt.hh>
-#include <General/environment.hh>
+#include "Elements/basefe.hh"
+#include "Materials/baseMaterial.hh"
+#include "Forms/linElastInt.hh"
+#include "General/environment.hh"
+#include "Utils/result.hh"
 
 namespace CoupledField
 {
-  
+  class MechPDE;
+  class ElecPDE;
+
   //! class for calculation of mechanical stresses and strains
   template <class TYPE>
   class MechStressStrain : public linElastInt
@@ -26,13 +28,17 @@ namespace CoupledField
     /// Destructor
     virtual ~MechStressStrain();  
 
-    /// calculates Piola-Kirchoff-stresses (vector notation)
-    void CalcStressVec(Vector<TYPE>& stressVec, UInt ip, 
-                       EntityIterator& ent);  
+    /** Calculates the results for stress/strain resulted stuff in MechPDE and PiezoCoupling
+    * @param st either MECH_STRESS or MECH_STRAIN or VON_MISES_STRESS or VON_MISES_STRAIN
+    * @param elec set to NULL when used for mech stress stuff only!
+    * @param density divide by element volume? only for mechPDE */
+    void CalcStressStrainResult(MechPDE* mech, shared_ptr<BaseResult> res, SolutionType st, bool density = false);
+
+    /** calculates linear mech or piezoelectric stress */
+    virtual void CalcStressVec(Vector<TYPE>& stressVec, UInt ip, EntityIterator& ent);
 
     // calculate linear part of Green Lagrangian Strain tensor
-    void CalcStrainVec(Vector<TYPE>& strainVec, UInt ip, 
-                       EntityIterator& ent);  
+    void CalcStrainVec(Vector<TYPE>& strainVec, UInt ip, EntityIterator& ent);
     
     /// in stress calculations, the actual displacement of the element is needed
     /*!
@@ -42,18 +48,12 @@ namespace CoupledField
       d_{y1} &  d_{y2} &  d_{y3} \\
       \end{array}\right) \f]         
     */
-    virtual void SetActElemSol(Matrix<TYPE>& disp) {
-      elemDisp_ = disp;};
+    virtual void SetActElemSol(Matrix<TYPE>& disp) { elemDisp_ = disp; }
 
   protected:  
   
-    /** @see BaseForm::CalcBMat() */
-    virtual void CalcBMat(Matrix<Double> & bMat, UInt ip,
-                          const Matrix<Double> & ptCoord);
-
     /// displacement of all nodes of actual element
     Matrix<TYPE> elemDisp_;
-
   };
   
 

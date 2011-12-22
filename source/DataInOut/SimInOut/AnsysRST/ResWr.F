@@ -23,7 +23,7 @@ c     Fname    (ch*(ncFname),sc,in) - The name (with extension) for the file
 c     ncFname  (int,sc,in)       - Number of characters in Fname
 c     Title    (ch*80,ar(2),in)  - Title and First subtitle
 c     JobName  (ch*8,sc,in)      - Jobname for file
-c     Units    (int,sc,in)       - 0, unknown  1, SI  2, CSG 
+c     Units    (int,sc,in)       - 0, unknown  1, SI  2, CSG
 c                                  3, U.S. Customary - foot
 c                                  4, U.S. Customary - inch
 c                                  6, MPA
@@ -75,12 +75,7 @@ c          ***** initialize binary file I/O system  *****
       call binini (iout)
       intpdp = biniqr8(0,2)
       intplong = biniqr8(0,5)
-#if defined (FUJITSU_SYS)
-c Add 1024 to RECLENG to prevent invalid reads
-      piIobufL = fMallocI(RECLENG*1_8)
-#else
       piIobufL = fMallocI(RECLENG)
-#endif
 
       do  j = 1,RECLENG
          iobuf(j) = 0
@@ -126,11 +121,7 @@ c          *****  write DOF list  *****
       call binwrt8 (NBLK,iLocL,nDOF,DOF(1),nDOF,iobuf(1))
 
 c          *****  write Dummy Node List  *****
-#if defined (FUJITSU_SYS)
-      piEntitiesL = fMallocI(nNode*1_8)
-#else
       piEntitiesL = fMallocI(nNode)
-#endif
       LocNodeListL = iLocL
       Header(15)  = iLocL
       do  i = 1,nNode
@@ -141,11 +132,7 @@ c          *****  write Dummy Node List  *****
 
 
 c          *****  write Dummy Element List  *****
-#if defined (FUJITSU_SYS)
-      piEntitiesL = fMallocI(nElem*1_8)
-#else
       piEntitiesL = fMallocI(nElem)
-#endif
       LocElemListL = iLocL
       Header(14)  = iLocL
       do  i = 1,nElem
@@ -155,15 +142,9 @@ c          *****  write Dummy Element List  *****
       call fFree (piEntitiesL)
 
 c          *****  initialize result indexes  *****
-#if defined (FUJITSU_SYS)
-      piResIndexL = fMallocI(2*MaxResult*1_8)
-      piResLstepL = fMallocI(3*MaxResult*1_8)
-      pdResTimeL  = fMallocD(MaxResult*1_8)
-#else
       piResIndexL = fMallocI(2*MaxResult)
       piResLstepL = fMallocI(3*MaxResult)
       pdResTimeL  = fMallocD(MaxResult)
-#endif
 
       nSets = 0
       LongZeroL = 0
@@ -262,11 +243,7 @@ c object/library: ResWr
 
       if (mxType .le. 0) go to 999
 
-#if defined (FUJITSU_SYS)
-      piIndexToDataL = fMallocI(mxType*1_8)
-#else
       piIndexToDataL = fMallocI(mxType)
-#endif
 
 
       do  i = 1,mxType
@@ -275,7 +252,7 @@ c object/library: ResWr
 
 c          *****  write out dummy index  *****
       LocIndexL = iLocL
-      GeomHeader(7) = iLocL
+c      GeomHeader(7) = iLocL
       call largeIntPut (iLocL,GeomHeader(21),GeomHeader(22))
       call binwrt8 (NBLK,iLocL,mxType,IndexToData(1),mxType,iobuf(1))
 
@@ -352,11 +329,7 @@ c object/library: ResWr
 
       if (mxReal .le. 0) go to 999
 
-#if defined (FUJITSU_SYS)
-      piIndexToDataL = fMallocI(mxReal*1_8)
-#else
       piIndexToDataL = fMallocI(mxReal)
-#endif
 
 
       do  i = 1,mxReal
@@ -443,11 +416,7 @@ c object/library: ResWr
 
       if (mxCsys .le. 0) go to 999
 
-#if defined (FUJITSU_SYS)
-      piIndexToDataL = fMallocI(mxCsys*1_8)
-#else
       piIndexToDataL = fMallocI(mxCsys)
-#endif
 
 
       do  i = 1,mxCsys
@@ -526,14 +495,11 @@ c object/library: ResWr
 
       integer  i
 
-      GeomHeader(9) = iLocL
+c      GeomHeader(9) = iLocL
+c      GeomHeader(27) = iLocL
       call largeIntPut (iLocL,GeomHeader(27),GeomHeader(28))
 
-#if defined (FUJITSU_SYS)
-         piIndexToDataL = fMallocI (nNode*1_8)
-#else
-         piIndexToDataL = fMallocI (nNode)
-#endif
+      piIndexToDataL = fMallocI (nNode)
 
 
       nCount = 0
@@ -548,6 +514,7 @@ c object/library: ResWr
 *deck,ResWrNode
       subroutine ResWrNode (iNode,xyzang)
 c primary function:    Store a node
+c ondary function:  Create the internal-to-external node list
 
 c object/library: ResWr
 
@@ -565,12 +532,14 @@ c  output arguments:  none
 
 
       nCount = nCount + 1
+
       dTemp(1) = iNode
       do  i = 1,6
          dTemp(i+1) = xyzang(i)
       enddo
-      IndexToData(nCount) = iNode
       call binwrt8 (NBLK,iLocL,7*intpdp,dTemp(1),0,iobuf(1))
+
+      IndexToData(nCount) = iNode
 
       return
       end
@@ -591,15 +560,12 @@ c object/library: ResWr
       integer   i, j
 
 
+c        *****  Write the internal-to-external node list  ****
       call binwrt8 (NBLK,LocNodeListL,nNode,IndexToData(1),nNode,
      x iobuf(1))
 
-#if defined (FUJITSU_SYS)
-         piNinternalL = fMallocI(mxNode*1_8)
-#else
-         piNinternalL = fMallocI(mxNode)
-#endif
-
+c        *****  Create the external-to-internal node list  ****
+      piNinternalL = fMallocI(mxNode)
 
       do  i = 1,mxNode
          iNinternal(i) = 0
@@ -619,6 +585,7 @@ c object/library: ResWr
 *deck,ResWrElemBegin
       subroutine ResWrElemBegin
 c primary function:   Start element output
+c ondary function: Create the internal-to-external node list
 
 c object/library: ResWr
 
@@ -632,27 +599,21 @@ c object/library: ResWr
 
 
       maxPerElem = 0
-#if defined (FUJITSU_SYS)
-      plIndexL = fMallocL((nElem+1024)*1_8)
-      piIndexToDataL  = fMallocI((nElem+1024)*1_8)
-#else
-c nElem+2 is to get rid of invalid reads from memory by binwrt8
-      plIndexL = fMallocL(nElem+1024)
-      piIndexToDataL  = fMallocI(nElem+1024)
-#endif
+      plIndexL = fMallocL(nElem)
+      piIndexToDataL  = fMallocI(nElem)
 
       nCount = 0
-      do  i = 1,nElem+1024
+      do  i = 1,nElem
          IndexToData(i)  = 0
          iIndexL(i) = 0
       enddo
 
       LocIndexL = iLocL
-      GeomHeader(11) = iLocL
+c      GeomHeader(11) = iLocL
       call largeIntPut (iLocL,GeomHeader(29),GeomHeader(30))
 
       i = nElem*intplong
-      call binwrt8 (NBLK,iLocL,i,IndexToData(1),i,iobuf(1))
+      call binwrt8 (NBLK,iLocL,i,iIndexL(1),i,iobuf(1))
 
       return
       end
@@ -672,15 +633,15 @@ c     ElemData (int,ar(10),in)   - Element information
 c                                    mat    - material reference number
 c                                    type   - element type number
 c                                    real   - real constant reference number
-c                                    elnum  - element number
+c                                    num - section number
 c                                    esys   - element coordinate system
 c                                    death  - death flag
 c                                             = 0 - alive
 c                                             = 1 - dead
 c                                    solidm - solid model reference
 c                                    shape  - coded shape key
+c                                    elnum  - element number
 c                                    pexcl  - P-Method exclude key
-c                                    0      - Not used
 
 c  output arguments:  none
 
@@ -732,16 +693,14 @@ c object/library: ResWr
       call largeIntPutV (nElem,iIndexL(1))
       i = nElem*intplong
       call binwrt8 (NBLK,LocIndexL,i,iIndexL(1),i,iobuf(1))
+      call fFree (plIndexL)
+
+c        *****  Write the internal-to-external element list  ****
       call binwrt8 (NBLK,LocElemListL,nElem,IndexToData(1),nElem,
      x iobuf(1))
 
-      call fFree (plIndexL)
-
-#if defined (FUJITSU_SYS)
-      piEinternalL = fMallocI (mxElem*1_8)
-#else
+c        *****  Create the external-to-internal element list  ****
       piEinternalL = fMallocI (mxElem)
-#endif
 
       do  i = 1,mxElem
          iEinternal(i) = 0
@@ -789,8 +748,8 @@ c  input arguments:
 c     lstep    (int,sc,in)       - Load step number
 c     substep  (int,sc,in)       - Substep of this load step
 c     ncumit   (int,sc,in)       - Cumulative iteration number
-c     time     (dp,sc,in)       - Current solution time
-c     kcmplx   (int,ec,in)      - is solution complex
+c     time     (int,sc,in)       - Current solution time
+c     kcmplx   (int,ec,in)       - is solution complex
 c     Title    (ch*80,ar(5),in)  - Title and 4 subtitles
 c     DofLab   (ch*4,ar(nDOF),in)- Labels for DOFs
 
@@ -909,11 +868,7 @@ c  output arguments: none
 
       integer  i, j, k
 
-#if defined (FUJITSU_SYS)
-      pdDataL = fMallocD(nNode*nDOF*1_8)
-#else
       pdDataL = fMallocD(nNode*nDOF)
-#endif
 
       k = 0
       do  i = 1,nNode
@@ -1026,13 +981,8 @@ c     nRforce  (int,sc,in)       - Number of reaction forces
 
       integer  nRforce, i
 
-#if defined (FUJITSU_SYS)
-      piIndexToDataL = fMallocI(nRforce*1_8)
-      pdDataL = fMallocD(nRforce*1_8)
-#else
       piIndexToDataL = fMallocI(nRforce)
       pdDataL = fMallocD(nRforce)
-#endif
 
       nCount = 0
       nRF    = nRforce
@@ -1176,13 +1126,8 @@ c  output arguments:  none
       integer   nFixed, i
 
 
-#if defined (FUJITSU_SYS)
-      piIndexToDataL = fMallocI(nFixed*1_8)
-      pdDataL = fMallocD(4*nFixed*1_8)
-#else
       piIndexToDataL = fMallocI(nFixed)
       pdDataL = fMallocD(4*nFixed)
-#endif
 
       nCount = 0
 
@@ -1268,13 +1213,8 @@ c  output arguments:  none
 
       integer   nForce, i
 
-#if defined (FUJITSU_SYS)
-      piIndexToDataL = fMallocI(nForce*1_8)
-      pdDataL = fMallocD(4*nForce*1_8)
-#else
       piIndexToDataL = fMallocI(nForce)
       pdDataL = fMallocD(4*nForce)
-#endif
 
       nCount = 0
 
@@ -1379,11 +1319,7 @@ c object/library: ResWr
 
       integer  i
 
-#if defined (FUJITSU_SYS)
-      plIndexL = fMallocL(nElem*1_8)
-#else
       plIndexL = fMallocL(nElem)
-#endif
 
       do  i = 1,nElem
          iIndexL(i) = 0
@@ -1558,7 +1494,6 @@ c object/library: ResWr
       call binwrt8 (NBLK,LocHeaderL,40,Header(1),40,iobuf(1))
 
       i = NBLK
-
       call binclo (i,'KEEP',iobuf(1))
 
       call fFree (piEinternalL)
@@ -1583,27 +1518,18 @@ c object/library: ResWr
 #endif
       PTRFTN    malloc
 
-#if defined (FUJITSU_SYS)
-      integer*8  iLeng
-#else
       integer  iLeng
-#endif
-
       PTRFTN   fMallocI
+#if defined(FUJITSU_SYS)
+      integer*8  iLeng8
+#endif
 
 #if defined(RS6000_SYS) || defined(RS64K_SYS)
       fMallocI = malloc(%val(iLeng*4))
-#else 
-c      integer X(*),i,j
-c      pointer (ptrX, X)
-      
-c      i = 65536
-c      ptrX = malloc(i*4)
-
-c      do  j = 1,65536
-c         X(j) = 0
-c      enddo
-      
+#elif defined(FUJITSU_SYS)
+      iLeng8 = iLeng*4*1_8
+      fMallocI = malloc(iLeng8)
+#else
       fMallocI = malloc(iLeng*4)
 #endif
 
@@ -1617,17 +1543,19 @@ c      enddo
       external  malloc
 #endif
       PTRFTN    malloc
-#if defined (FUJITSU_SYS)
-      integer*8  dLeng
-#else
-      integer  dLeng
-#endif
 
+      integer  dLeng
       PTRFTN   fMallocD
+#if defined(FUJITSU_SYS)
+      integer*8  dLeng8
+#endif
 
 #if defined(RS6000_SYS) || defined(RS64K_SYS)
       fMallocD = malloc(%val(dLeng*8))
-#else 
+#elif defined(FUJITSU_SYS)
+      dLeng8 = dLeng*8*1_8
+      fMallocD = malloc(dLeng8)
+#else
       fMallocD = malloc(dLeng*8)
 #endif
 
@@ -1642,17 +1570,18 @@ c      enddo
 #endif
       PTRFTN    malloc
 
-#if defined (FUJITSU_SYS)
-      integer*8  lLeng
-#else
       integer  lLeng
-#endif
-
       PTRFTN   fMallocL
+#if defined(FUJITSU_SYS)
+      integer*8  lLeng8
+#endif
 
 #if defined(RS6000_SYS) || defined(RS64K_SYS)
       fMallocL = malloc(%val(lLeng*8))
-#else 
+#elif defined(FUJITSU_SYS)
+      lLeng8 = lLeng*8*1_8
+      fMallocL = malloc(lLeng8)
+#else
       fMallocL = malloc(lLeng*8)
 #endif
 
@@ -1667,7 +1596,7 @@ c      enddo
 #endif
       PTRFTN  piPointerL
 
-      call free (piPointerL)
+      if (piPointerL.ne.PTRFTNNULL) call free (piPointerL)
       piPointerL = PTRFTNNULL
 
       return

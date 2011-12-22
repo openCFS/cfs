@@ -17,22 +17,16 @@ namespace CoupledField {
   // ============
   //   Constructor of nonlinear piezo coupling
   // ============
-  nLinPiezoCoupling::nLinPiezoCoupling(ApproxData *nlinFnc, 
-                                       BaseMaterial* matData,
-                                       BaseMaterial* matDataMech,
-                                       BaseMaterial* matDataElec,                                       
-                                       SubTensorType type) 
+  nLinPiezoCoupling::nLinPiezoCoupling( BaseMaterial* matData,
+                                        BaseMaterial* matDataMech,
+                                        BaseMaterial* matDataElec,                                       
+                                        SubTensorType type) 
     : linPiezoCoupling(matData, type){
     
     name_ = "nLinPiezoCoupling";
     isSolDependent_ = true;
 
-    isHysteresis_ = false;
-    if ( nlinFnc == NULL ) {
-      isHysteresis_ = true;
-    }
-    else
-      nLinFnc_ = nlinFnc;
+    isHysteresis_ = true;
 
     matDataMech_ = matDataMech;
     matDataElec_ = matDataElec;
@@ -225,94 +219,11 @@ namespace CoupledField {
 
     if ( isHysteresis_ ) {
       // coupling tensor depends on electric polarization
-      // std::cout << "\n coupling tensor depends on electric polarization \n" << std::endl;
-      //      std::cout << "Efield:\n " << Efield << std::endl;
       UInt nrEl = ent1_.GetElem()->elemNum;
       Double actP = matDataElec_->ComputeScalarHystVal( nrEl, Efield[dirP_] );
       Double scaleFactor = actP / Psat_;
       dMat *= scaleFactor;
       //     std::cout << " scaleFactor= " <<  scaleFactor << std::endl;
-    }
-    else {
-      // material nonlinearity
-
-      MechStressStrain<Double> * mechStrainOp = 
-	new MechStressStrain<Double>(matDataMech_, subTensorType_);
-      
-      mechStrainOp->SetActElemSol(elemDispl_);
-      mechStrainOp->SetIntPoint(LCoord);
-      
-      mechStrainOp->CalcStrainVec(TempBu,1,ent1_);
-      
-      
-      Vector<Double> stressVec(stiffMat.GetNumRows());
-      stressVec.Init();
-      stressVec = stiffMat * TempBu;	
-      
-      std::string nonLinDepend;
-      ptMaterial->GetScalar(nonLinDepend, NONLIN_DEPENDENCY);
-      
-      Integer nonLinCoeff;
-      ptMaterial->GetScalar(nonLinCoeff, NONLIN_COEFFICIENT);
-      
-      std::string nonLinApproxType;
-      ptMaterial->GetScalar(nonLinApproxType,NONLIN_APPROXIMATION_TYPE);
-      
-      
-      if(nonLinDepend=="mechStress"){
-	
-	Double stressSum=0.0;
-	for(UInt i=0;i<stressVec.GetSize();i++)
-	  stressSum+=std::abs(stressVec[i]);	
-	
-        if (nonLinApproxType=="polynomial"){
-          if(nonLinCoeff==33)
-            dMat[2][2]+=0.01*(stressSum + 0.02*stressSum*stressSum)*dMat[2][2];
-          else
-            EXCEPTION("The nonlinear parameter dependency is not known");
-        }
-        else if (nonLinApproxType=="smoothSplines")
-	  {
-	    Double approxCoeff;
-	    
-	    approxCoeff = nLinFnc_->EvaluateFunc(stressSum);
-	    if(nonLinCoeff==33){
-	      dMat[2][2] = 10.0+approxCoeff;
-	    }
-	  }
-	else
-	  EXCEPTION("The nonlinear approximation type is not known");
-      }
-
-      else if(nonLinDepend=="elecField"){
-	Double eFieldSum=0.0;
-	for(UInt i=0; i<Efield.GetSize();i++)
-	  eFieldSum+=std::abs(Efield[i]);
-	
-	if (nonLinApproxType=="polynomial"){
-	  if(nonLinCoeff==33)
-	    dMat[2][2]+=0.01*(eFieldSum + 0.02*eFieldSum*eFieldSum)*dMat[2][2];
-	  else
-	    EXCEPTION("The nonlinear parameter dependency is not known");
-	}
-	else if (nonLinApproxType=="smoothSplines")
-	  {
-	    Double approxCoeff;
-	    
-	    approxCoeff = nLinFnc_->EvaluateFunc(eFieldSum);
-	    
-	    if(nonLinCoeff==33){
-	      dMat[2][2] = approxCoeff;
-	    }
-	  }
-	else
-	  EXCEPTION("The nonlinear approximation type is not known");
-      }
-      else{
-	std::cout<<"The data dependency you have chosen is " << nonLinDepend <<std::endl;
-	std::cout<<"(If this is true, check if there is a blank in font of choice) " <<std::endl;
-	EXCEPTION("Nonlinear dependency not implemented here");
-      }
     }
 
     //    std::cout << "\n dMat:\n " << dMat << std::endl;
