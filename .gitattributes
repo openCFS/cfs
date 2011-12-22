@@ -222,6 +222,8 @@ share/doc/developer/develManual/introduction.tex -text
 share/doc/developer/develManual/matdata.tex -text
 share/doc/developer/develManual/mounting.tex -text
 share/doc/developer/develManual/mycommands.tex -text
+share/doc/developer/develManual/pics/TimeScheme.pdf -text
+share/doc/developer/develManual/pics/TimeSteppingClass.pdf -text
 share/doc/developer/develManual/pics/ccivis.pdf -text svneol=unset#application/pdf
 share/doc/developer/develManual/pics/ccivis.svg -text
 share/doc/developer/develManual/pics/ccivis1.png -text svneol=unset#image/png
@@ -294,6 +296,7 @@ share/doc/developer/develManual/sources/pygmentize.sh -text
 share/doc/developer/develManual/sources/qs_bootstrap.sh svneol=native#text/plain
 share/doc/developer/develManual/sources/qs_configure_build.sh svneol=native#text/plain
 share/doc/developer/develManual/sources/qs_obtain_sources.sh -text
+share/doc/developer/develManual/timestepping.tex -text
 share/doc/developer/develManual/todonotes.sty svneol=native#text/plain
 share/doc/developer/makedoc.sh.in -text
 share/doc/user/CMakeLists.txt svneol=native#text/plain

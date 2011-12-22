@@ -29,7 +29,9 @@
 \usepackage{graphicx}
 \graphicspath{{./pics/}{../../auxilliaries/Pics/}}
 \DeclareGraphicsExtensions{.jpg,.pdf,.png}
+\usepackage{float}
 \usepackage[pdftex,bookmarks,breaklinks]{hyperref}
+\usepackage[all]{hypcap}
 \usepackage{thumbpdf}
 \usepackage{url}
 \hypersetup{pdfpagemode=UseThumbs}
@@ -54,11 +56,19 @@
 %% Package for entering TODO notes
 \usepackage{todonotes}
 
+%% Algorithmic Package for pseudocode
+\usepackage{algorithmic}
+\usepackage[chapter]{algorithm}
+
+%%multirowpackage
+\usepackage{multirow}
+\usepackage{arydshln}
 %
 % =============================================================================
 %
 \include{mycommands}
 \include{pygmentized/pygmentize}
+
 %
 % =============================================================================
 \begin{document}
