@@ -5,18 +5,21 @@
 #ifndef FILE_ELECCHARGEOP_2004
 #define FILE_ELECCHARGEOP_2004
 
+#include <complex>
+
 #include "Forms/baseoperator.hh"
-#include "Utils/tools.hh"
-#include "Utils/StdVector.hh"
+#include "General/defs.hh"
+#include "MatVec/exprt/xpr2.hh"
 
 namespace CoupledField {
 
+class EntityIterator;
+class EqnMap;
   class Grid;
-  struct Elem;
+class StdPDE;
   class SurfElemList;
-  template<class TYPE> class ElemStoreSol;
+struct ResultInfo;
   template<class TYPE> class Vector;
-  template<class TYPE> class Matrix;
  
   //! Operator for calculating the electric charge on surface elements
   

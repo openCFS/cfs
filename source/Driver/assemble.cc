@@ -2,34 +2,50 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include "assemble.hh"
-
+#include <assert.h>
+#include <cmath>
+#include <complex>
 #include <iostream>
-#include <iomanip>
-#include <boost/lexical_cast.hpp>
+#include <utility>
 
+#include "DataInOut/Logging/cfslog.hh"
+#include "DataInOut/Logging/log.hpp"
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "DataInOut/ResultCache.hh"
+#include "DataInOut/Scripting/cfsmessenger.hh"
+#include "DataInOut/programOptions.hh"
+#include "Domain/domain.hh"
+#include "Domain/elem.hh"
 #include "Domain/entityList.hh"
+#include "Domain/grid.hh"
+#include "Domain/resultInfo.hh"
+#include "Driver/baseSolveStep.hh"
+#include "Driver/formsContext.hh"
 #include "Forms/baseForm.hh"
 #include "Forms/linearForm.hh"
-#include "PDE/SinglePDE.hh"
-#include "Domain/domain.hh"
-#include "Domain/grid.hh"
-#include "Driver/stdSolveStep.hh"
-#include "Driver/harmonicDriver.hh"
-#include "DataInOut/programOptions.hh"
-#include "DataInOut/Logging/cfslog.hh"
-#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "General/Enum.hh"
+#include "General/exception.hh"
+#include "MatVec/exprt/xpr2.hh"
+#include "MatVec/matrix.hh"
+#include "MatVec/vector.hh"
 #include "OLAS/algsys/basesystem.hh"
-#include "Utils/Timer.hh"
-#include "DataInOut/Scripting/cfsmessenger.hh"
-#include "Optimization/Optimization.hh"
 #include "Optimization/Design/DesignSpace.hh"
-#include "Materials/mechanicMaterial.hh"
-#include "DataInOut/ResultCache.hh"
+#include "Optimization/Optimization.hh"
+#include "PDE/SinglePDE.hh"
+#include "PDE/StdPDE.hh"
+#include "PDE/eqnMap.hh"
+#include "Utils/Timer.hh"
+#include "Utils/dampLayer.hh"
+#include "assemble.hh"
+#include "boost/lexical_cast.hpp"
+
+namespace CoupledField {
+class CoordSystem;
+}  // namespace CoupledField
 
 namespace CoupledField
 {
-  // declare logging stream
+// declare logging stream
   DECLARE_LOG(assemble)
   DEFINE_LOG(assemble, "assemble")
 
@@ -98,6 +114,9 @@ namespace CoupledField
        if((*iter)->GetSecondPde() != pde2) continue;
        //std::cout << counter << ":" << (*iter)->GetIntegrator()->GetName() << " vs " << integrator << std::endl;
        if((*iter)->GetIntegrator()->GetName() != integrator) continue;
+       if(entryType != (Global::ComplexPart) 4711){
+         if((*iter)->GetEntryType() != entryType) continue;
+       }
        if(entryType <= Global::COMPLEX && (*iter)->GetEntryType() != entryType) continue;
        // we come here because we had no contradiction - check for uniqueness
        if(result != NULL) throw Exception("parameters not unique!");
@@ -114,7 +133,7 @@ namespace CoupledField
      return result;
   }
 
-  LinearFormContext* Assemble::GetLinearForm(RegionIdType regionId, StdPDE* pde,  const std::string& integrator, bool silent)
+  LinearFormContext* Assemble::GetLinearForm(RegionIdType regionId, StdPDE* pde,  const std::string& integrator, bool silent, Global::ComplexPart entryType)
   {
      // the EntityList has the region name as name but not the id
      std::string region = domain->GetGrid()->GetRegion().ToString(regionId);
@@ -130,6 +149,9 @@ namespace CoupledField
        // when pde1 is given we compare it by name and continue if the names are different
        if(lfc->GetPde()->GetName() != pde->GetName()) continue;
        if(lfc->GetIntegrator()->GetName() != integrator) continue;
+       if(entryType != (Global::ComplexPart) 4711){
+         if(lfc->GetIntegrator()->GetMatDataType() != entryType) continue;
+       }
 
        // we come here because we had no contradiction - check for uniqueness
        if(result != NULL) throw Exception("parameters not unique!");
@@ -658,7 +680,6 @@ namespace CoupledField
 #endif
             
             assert(!elemVec.ContainsNaN() && !elemVec.ContainsInf());
-
             // Pass element vector to algebraic system
             algsys_-> SetElementRHS( elemVec,
                                      pdeId, eqnVec );
@@ -843,6 +864,11 @@ namespace CoupledField
       }
       form->Get("region")->SetValue(regionName);
 
+      Global::ComplexPart matType = context.GetIntegrator()->GetMatDataType();
+      if (matType == Global::REAL) form->Get("matDataType")->SetValue("real");
+      else if (matType == Global::IMAG) form->Get("matDataType")->SetValue("imag");
+
+      // matrix type
       // add information about row / column coordinate
       PtrParamNode row = form->Get("row", ParamNode::APPEND);
       PtrParamNode col = form->Get("column", ParamNode::APPEND);
@@ -930,6 +956,10 @@ namespace CoupledField
       }
 
       form->Get("region")->SetValue(regionName);
+
+      Global::ComplexPart matType = context.GetIntegrator()->GetMatDataType();
+      if (matType == Global::REAL) form->Get("matDataType")->SetValue("real");
+      else if (matType == Global::IMAG) form->Get("matDataType")->SetValue("imag");
       
 
       // add information about row / column coordinate

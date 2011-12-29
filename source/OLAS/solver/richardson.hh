@@ -5,20 +5,20 @@
 #ifndef OLAS_RICHARDSON_HH
 #define OLAS_RICHARDSON_HH
 
-#include <iostream>
+#include <stddef.h>
 #include <fstream>
 
-#include <def_expl_templ_inst.hh>
-
-#include "MatVec/stdmatrix.hh"
-
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "General/defs.hh"
+#include "MatVec/typedefs.hh"
 #include "basesolver.hh"
+#include "def_expl_templ_inst.hh"
 
 namespace CoupledField {
 
+class BaseMatrix;
   class BasePrecond;
-  class ParamNode;
-  class OLAS_Report;
+class BaseVector;
   
   // template<typename> class Matrix;
 

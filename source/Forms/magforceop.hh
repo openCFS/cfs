@@ -5,9 +5,23 @@
 #ifndef FILE_MAGFORCEOP_2003
 #define FILE_MAGFORCEOP_2003
 
-#include "Forms/baseoperator.hh"
-#include "Forms/curlfieldop.hh"
+#include <complex>
+#include <map>
+
 #include "Forms/baseForceOp.hh"
+#include "Forms/baseoperator.hh"
+#include "General/defs.hh"
+#include "General/environment.hh"
+#include "MatVec/exprt/xpr2.hh"
+
+namespace CoupledField {
+class BaseMaterial;
+class EntityIterator;
+class EqnMap;
+class StdPDE;
+template <class TYPE> class CurlNodeOp;
+template <class TYPE> class NodeStoreSol;
+}  // namespace CoupledField
 
 
 namespace CoupledField
@@ -15,9 +29,8 @@ namespace CoupledField
 
   // Forward declaration of classes
   class Grid;
-  struct Elem;
-  template<class TYPE> class Vector;
   template<class TYPE> class Matrix;
+  template<class TYPE> class Vector;
 
   //! Operator for calculating the magnetic Lorentz force 
   //! J x B

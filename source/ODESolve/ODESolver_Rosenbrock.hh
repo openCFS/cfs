@@ -5,15 +5,16 @@
 #ifndef ODE_SOLVER_ROSENBROCK_HH
 #define ODE_SOLVER_ROSENBROCK_HH
 
-#include "General/environment.hh"
-#include "Utils/StdVector.hh"
-#include "Utils/tools.hh"
 #include "BaseODESolver.hh"  
-#include "MatVec/matrix.hh"
+#include "General/defs.hh"
+#include "Utils/StdVector.hh"
 
 namespace CoupledField {
 
   //! Implicit Rosenbrock solver for systems of first order ode's.
+class BaseODEProblem;
+template <class TYPE> class Matrix;
+
   class ODESolver_Rosenbrock : public BaseODESolver {
 
   public:

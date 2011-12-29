@@ -5,33 +5,54 @@
 #ifndef FILE_SINGLEPDE
 #define FILE_SINGLEPDE
 
-#include "PDE/StdPDE.hh"
-
 #include <list>
 #include <map>
+#include <set>
+#include <string>
+#include <utility>
 
-#include <boost/tokenizer.hpp>
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "General/defs.hh"
+#include "General/environment.hh"
+#include "General/exception.hh"
+#include "MatVec/vector.hh"
+#include "PDE/StdPDE.hh"
+#include "PDE/timestepping.hh"
+#include "Utils/StdVector.hh"
+
+//#include <iostream>
+//#include <utility>
+//#include <string>
+//using namespace std;
 
 #include "DataInOut/Scripting/scriptable.hh"
-#include "Utils/mathParser/mathParser.hh"
-#include "Domain/resultInfo.hh"
-#include "Utils/elemstoresol.hh"
 #include "Domain/bcs.hh"
-#include "Utils/result.hh"
-#include "DataInOut/SimInOut/hdf5/simOutputHDF5.hh"
-#include "DataInOut/SimInOut/hdf5/simInputHDF5.hh"
+#include "Utils/mathParser/mathParser.hh"
+#include "boost/tokenizer.hpp"
+
+namespace CoupledField {
+class AnsatzFct;
+class BaseMaterial;
+class BaseNodeStoreSol;
+class BaseResult;
+class EntityList;
+class Grid;
+class PDECoupling;
+class SimOutput;
+struct Elem;
+struct ResultInfo;
+template <class TYPE> class Matrix;
+}  // namespace CoupledField
 
 namespace CoupledField
 {
+  class BaseForm;
+  class PDEMemento;
+  class SpaceErrorEstimator;
+  class VolChargeHomInt;
   // forward class declaration
   class VolForceInt;
   class VolumeSrcInt;
-  class SpaceErrorEstimator;
-  class BasePairCoupling;
-  class DirectCoupledPDE;
-  class Assemble;
-  class BaseForm;
-  class PDEMemento;
 
   
   //! Base class for all kinds of single field problems.
@@ -50,6 +71,7 @@ namespace CoupledField
     typedef StdVector<shared_ptr<BaseResult> > ResultList;
     typedef std::map<shared_ptr<ResultInfo> , ResultList > ResultMap;
 
+    class MaxwellHom;
     class RegionLoad;
 
     /** Initialize PDEs 
@@ -145,7 +167,7 @@ namespace CoupledField
      * @param loadNodes the potential empty array from the xml file
      * @param either the loads_ of StdPDE or for optimization */
     void ReadLoads(ParamNodeList loadNodes, LoadList& out_list);
-    
+
     /** Write general defines (BCs, loads, etc.) to info.xml.
      * Note, that only the current state is (over) written! */
     void WriteGeneralPDEdefines();
@@ -222,6 +244,14 @@ namespace CoupledField
      * @param pressSurf StdVector containing the RegionLoads */
     void ReadRegionLoadsFromXML(PtrParamNode bcNode, std::map<RegionIdType, RegionLoad>& regionLoads_);
     
+    /** do the actual reading of charges
+         * @param bcNode paramnode that has "MaxwellHom" nodes as children
+         * @param pressSurf StdVector containing the MaxwellHoms */
+        void ReadRegionChargesFromXML(PtrParamNode bcNode, std::map<RegionIdType, std::pair<BaseMaterial*, MaxwellHom> >& regionCharges_);
+
+    //! set volume charges for maxwell homogenization
+    void SetRegionCharges(const Vector<double>& vals);
+
     /** reread the results, this is needed in transient optimization, so that the results are re registered for the new multisequencestep 
      */
     void ReReadResults(){
@@ -323,6 +353,9 @@ namespace CoupledField
     //! read in volume sources
     void ReadRegionLoads();
     
+    //! read in volume charges for maxwell homogenization
+    void ReadRegionCharges();
+
     //! write results in file
     void WriteResultsInFile( const UInt kstep, 
                              const Double actTimeFreq );
@@ -388,6 +421,57 @@ namespace CoupledField
 
     };
     
+    //! Class defining data needed for maxwell homogenization volume charges
+    class MaxwellHom {
+
+    public:
+
+      //! Constructor
+
+      MaxwellHom( UInt dim, bool isaxi );
+
+      //! Print region definition to info-file
+      void Print( bool onlyHeader, std::string pdeName );
+
+      //! Returns the RHS-integrator
+      VolChargeHomInt *  GetIntegrator(BaseMaterial* matData, Global::ComplexPart matDataType);
+
+      // ----------------------------
+      //   Data members
+      // ----------------------------
+
+      //@{
+      // \name Data members
+
+      //! Name of region
+      std::string name;
+
+      //! Value of charges
+      StdVector<std::string>  valuex;
+      StdVector<std::string>  valuey;
+      StdVector<std::string>  valuez;
+
+      //! Phase value
+      std::string phase;
+
+      //! Name of reference coordinate system
+      std::string refCoord;
+
+      //! Type of load (total/unit)
+      std::string type;
+
+      //! Volume of region
+      Double volume;
+
+      //! Dimension of Domain
+      UInt dim_;
+
+      //! Flag for axisymmetry
+      bool isAxi_;
+      //@}
+
+    };
+
     //! Class defining data needed for defining Rayleigh damping
     struct RaylDampingData {
       
@@ -410,6 +494,11 @@ namespace CoupledField
     //! List of region loads
      std::map<RegionIdType, RegionLoad> regionLoads_;
      
+    //! List of region charges for maxwell homogenization
+     std::map<RegionIdType, std::pair<BaseMaterial*, MaxwellHom> > regionCharges_;
+//     //! List of imaginary part of region charges for maxwell homogenization
+//      std::map<RegionIdType, std::pair<BaseMaterial*, MaxwellHom> > regionChargesC_;
+
     //@}
 
     // ======================================================

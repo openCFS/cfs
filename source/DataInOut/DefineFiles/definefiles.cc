@@ -2,25 +2,29 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include <fstream>
-#include <iostream>
 #include <cstdio>
-
+#include <iostream>
+#include <set>
 #include <string>
 
+#include "DataInOut/MaterialHandler.hh"
+#include "DataInOut/simInput.hh"
+#include "DataInOut/simOutput.hh"
+#include "General/defs.hh"
+#include "General/exception.hh"
+#include "Utils/StdVector.hh"
+#include "def_use_ansysrst.hh"
+#include "def_use_gidpost.hh"
+#include "def_use_gmsh.hh"
+#include "def_use_gmv.hh"
+#include "def_use_hdf5.hh"
 // Include headers which define what types
 // of in/output files CFS++ should support
-#include <def_use_mesh.hh>
-#include <def_use_gidpost.hh>
-#include <def_use_hdf5.hh>
-#include <def_use_gmv.hh>
-#include <def_use_gmsh.hh>
-#include <def_use_unv.hh>
-#include <def_use_ansysrst.hh>
-#include <def_use_scripting.hh>
-#include <def_use_tcl.hh>
-#include <def_use_python.hh>
-
+#include "def_use_mesh.hh"
+#include "def_use_python.hh"
+#include "def_use_scripting.hh"
+#include "def_use_tcl.hh"
+#include "def_use_unv.hh"
 #include "definefiles.hh"
 
 #ifdef USE_MESH
@@ -44,7 +48,6 @@
 // HDF5 readers and writers
 #include "DataInOut/SimInOut/hdf5/simInputHDF5.hh"
 #include "DataInOut/SimInOut/hdf5/simOutputHDF5.hh"
-
 // XDMF writer
 #include "DataInOut/SimInOut/xdmf/simOutputXDMF.hh"
 #endif
@@ -62,14 +65,12 @@
 #include "DataInOut/SimInOut/AnsysRST/simOutputRST.hh"
 #endif
 
-#include "DataInOut/SimInOut/TextOutput/textSimOutput.hh"
+#include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/SimInOut/InfoResultOutput/SimOutputInfo.hh"
 #include "DataInOut/SimInOut/Streaming/SimOutputStreaming.hh"
-
+#include "DataInOut/SimInOut/TextOutput/textSimOutput.hh"
 #include "DataInOut/XMLMaterialHandler.hh"
-
 #include "DataInOut/programOptions.hh"
-#include "DataInOut/ParamHandling/ParamNode.hh"
 
 #ifdef USE_SCRIPTING
 #include "DataInOut/Scripting/cfsmessenger.hh"

@@ -2,12 +2,21 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include <iostream>
+#include <stddef.h>
 #include <fstream>
 
-#include "General/environment.hh"
-#include "linGradBDBInt.hh"
 #include "DataInOut/Logging/cfslog.hh"
+#include "DataInOut/Logging/log.hpp"
+#include "Domain/domain.hh"
+#include "Domain/elem.hh"
+#include "Domain/entityList.hh"
+#include "Elements/basefe.hh"
+#include "General/environment.hh"
+#include "MatVec/exprt/xpr2.hh"
+#include "MatVec/matrix.hh"
+#include "Materials/baseMaterial.hh"
+#include "Utils/mathParser/mathParser.hh"
+#include "linGradBDBInt.hh"
 
 DECLARE_LOG(forms)
 
@@ -62,9 +71,9 @@ namespace CoupledField {
     }
 
 
-// 	Matrix<Double> auxbMat;
-// 	auxbMat.Init();
-// 	bMat.Transpose (auxbMat);
+// Matrix<Double> auxbMat;
+// auxbMat.Init();
+// bMat.Transpose (auxbMat);
 //     std::cerr << "linGradBDBInt::bMat transpose = \n" << auxbMat << std::endl;
   }
 
@@ -78,7 +87,25 @@ namespace CoupledField {
     dMat *= mParser_->Eval( mHandle_ );
 
     Double density = elem != NULL ? GetErsatzMaterialFactor(elem) : 1.0;
-    if(density != 1.0) dMat *= density;  
+    if(density != 1.0)
+    {
+      dMat *= density;
+
+
+      // BiMaterial case only valid for "simpVar" scheme (rho^param MAT + (1-rho)^param) BIMAT)
+      BaseMaterial* bm = elem != NULL ? domain->GetErsatzBiMaterial(elem,  ELECTROSTATIC) : NULL;
+
+      if(bm != NULL)
+      {
+        Double bidensity = GetErsatzMaterialFactor(elem, true);
+        Matrix<Double> tmp;
+        bm->GetTensor(tmp, matType_, matDataType_, subTensorType_);
+       // tmp *= (1.0 - density);
+        tmp *= bidensity;
+        dMat +=  tmp;
+        LOG_DBG3(forms) << "linGradBDBInt::calcDMat: e=" << elem->elemNum << " bimat=" << tmp.ToString();
+      }
+    }
     LOG_DBG3(forms) << GetName() << "::calcDMat("
                     << (elem != NULL ? Integer(elem->elemNum) : -1)
                     << ") -> density=" << density;
@@ -90,6 +117,15 @@ namespace CoupledField {
     mParser_->SetExpr( mHandle_, factor );
   }
   
+  // returns B - matrix
+  void linGradBDBInt::calcBMatOnly( Matrix<Double> &bMat, UInt ip,
+      BaseFE* elem, Matrix<Double> &ptCoord ) {
+
+    ptelem = elem;
+    CalcBMat(bMat, ip, ptCoord);
+  }
+
+
 
   // ================
   //   Constructors

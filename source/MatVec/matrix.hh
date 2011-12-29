@@ -5,24 +5,35 @@
 #ifndef FILE_MATRIX_2004
 #define FILE_MATRIX_2004
 
-#include <def_use_lapack.hh>
-#include <def_build_type_options.hh>
+#include <complex>
+#include <ostream>
+#include <string>
 
-#include "MatVec/promote.hh"
-#include "MatVec/SingleVector.hh"
-#include "Utils/tools.hh"
+#include "General/defs.hh"
+#include "General/environment.hh"
+#include "MatVec/basematrix.hh"
+#include "OLAS/external/lapack/olasf77mapping.hh"
+#include "def_build_type_options.hh"
+#include "def_use_lapack.hh"
 
 
 #ifdef EXPR_TEMPLATES
-#include "MatVec/exprt/xpr2.hh"
+#include "MatVec/exprt/xpr2.hh" // IWYU pragma: keep
 #endif
 
 #ifdef USE_LAPACK
-#include "matrixLapackSupport.hh"
+#include "matrixLapackSupport.hh" // IWYU pragma: keep
 #endif
 
-#include "denseMatrix.hh"
 #include "General/exception.hh"
+#include "denseMatrix.hh"
+#include "promote.hh" // IWYU pragma: keep
+
+namespace CoupledField {
+class SingleVector;
+template <class TYPE> class StdVector;
+}  // namespace CoupledField
+
 namespace CoupledField
 {      
 
@@ -261,6 +272,9 @@ namespace CoupledField
     /** This implements the Frobenius inner product of two matrices. This is NOT the Frobenius norm!
      * @return the sum of the element wise product: sum this_ij * other_ij */
     TYPE FrobeniusProduct(const Matrix<TYPE>& other_mat) const;
+
+    //! Entry-wise multiplication with another matrix
+    Matrix<double> EntryMult(const Matrix<double>& other_mat) const;
 
     //! Perform a matrix-vector multiplication rvec = transpose(this)*mvec
     void MultT( const SingleVector & mvec, SingleVector & rvec ) const;

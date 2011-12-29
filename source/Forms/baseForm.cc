@@ -2,14 +2,25 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include <iostream>
+#include <assert.h>
 #include <fstream>
 
-#include "baseForm.hh"
-#include "Domain/domain.hh"
-#include "Domain/grid.hh"
-#include "Domain/entityList.hh"
 #include "DataInOut/Logging/cfslog.hh"
+#include "DataInOut/Logging/log.hpp"
+#include "Domain/ansatzFct.hh"
+#include "Domain/domain.hh"
+#include "Domain/elem.hh"
+#include "Domain/entityList.hh"
+#include "Domain/grid.hh"
+#include "Domain/surfElem.hh"
+#include "MatVec/exprt/xpr1.hh"
+#include "Materials/baseMaterial.hh"
+#include "Utils/tools.hh"
+#include "baseForm.hh"
+
+namespace CoupledField {
+class BaseFE;
+}  // namespace CoupledField
 
 DECLARE_LOG(forms)
 DEFINE_LOG(forms, "forms")
@@ -214,10 +225,10 @@ double BaseForm::MaterialDescriptor::GetErsatzMaterial(BaseForm* form, const Ele
   }
 
    /** for ersatz material w and w/o SIMP. */
-  Double BaseForm::GetErsatzMaterialFactor(const Elem* elem)
+  Double BaseForm::GetErsatzMaterialFactor(const Elem* elem, bool forBimaterial)
   {
     Double factor;
-    bool ok = domain->GetErsatzMaterial(elem, this, factor);
+    bool ok = domain->GetErsatzMaterial(elem, this, factor, forBimaterial);
     return ok ? factor : 1.0;
   }
   

@@ -5,23 +5,31 @@
 #ifndef CFS_ASSEMBLE_HH
 #define CFS_ASSEMBLE_HH
 
-#include <set>
+#include <stddef.h>
 #include <map>
+#include <set>
+#include <string>
 
-#include "formsContext.hh"
-#include "Domain/bcs.hh"
-#include "Utils/mathParser/mathParser.hh"
-#include "PDE/basePDE.hh"
+#include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/Scripting/scriptable.hh"
+#include "Domain/bcs.hh"
+#include "General/defs.hh"
+#include "General/environment.hh"
+#include "PDE/basePDE.hh"
+#include "Utils/StdVector.hh"
+#include "Utils/mathParser/mathParser.hh"
 
 namespace CoupledField {
 
 
-  // Forward class declarations
-  class TimeFunc;
-  class Timer;
-  class StdPDE;
   class AdjointParameters;
+  // Forward class declarations
+class BaseSystem;
+class BiLinFormContext;
+class LinearFormContext;
+  class StdPDE;
+  class Timer;
+template <class TYPE> class Matrix;
 
   //! Class for assembling element/entities matrices and RHS vectors
   class Assemble : public Scriptable {
@@ -92,7 +100,7 @@ namespace CoupledField {
      * @param regionId guess what!
      * @param pde1 this is the first pde
      * @param pde2 the second pde, note the order -> see debug file.
-     * @param integrator: linElastInt, MassInt, linElecInt, linPiezoCoupling
+     * @param integrator: linElastInt, MassInt, linGradBDBInt, linPiezoCoupling
      * @param silent exception or NULL if nothing found
      * @param entryType set non-negative compare entry type
      * @return the defined context, never NULL
@@ -101,7 +109,7 @@ namespace CoupledField {
                                    bool silent = false, Global::ComplexPart entryType = (Global::ComplexPart) 4711);
 
     /** @see GetBiLinForm() */
-    LinearFormContext* GetLinearForm(RegionIdType regionId, StdPDE* pde,  const std::string& integrator, bool silent = false);
+    LinearFormContext* GetLinearForm(RegionIdType regionId, StdPDE* pde,  const std::string& integrator, bool silent = false, Global::ComplexPart entryType = (Global::ComplexPart) 4711);
 
     /** Returns the load list for external modification */
     LoadList& GetLoads() { return loads_; }

@@ -2,19 +2,23 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include <fstream>
+#include <math.h>
+#include <stddef.h>
 #include <iostream>
-#include <string>
 
-#include "solveStepMagHyst.hh"
-#include "Utils/preisach.hh"
-#include "assemble.hh"
-#include "Forms/linearForm.hh"
-#include "Forms/gradfieldop.hh"
-#include "Utils/nodestoresol.hh"
-#include "PDE/StdPDE.hh"
-
+#include "Driver/basedriver.hh"
+#include "Driver/stdSolveStep.hh"
+#include "General/environment.hh"
+#include "General/exception.hh"
+#include "MatVec/exprt/xpr1.hh"
 #include "OLAS/algsys/basesystem.hh"
+#include "PDE/StdPDE.hh"
+#include "PDE/timestepping.hh"
+#include "Utils/basenodestoresol.hh"
+#include "Utils/mathParser/mathParser.hh"
+#include "Utils/nodestoresol.hh"
+#include "assemble.hh"
+#include "solveStepMagHyst.hh"
 
 namespace CoupledField {
 

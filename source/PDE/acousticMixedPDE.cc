@@ -1,28 +1,38 @@
-#include "acousticMixedPDE.hh"
-#include <sstream>
-#include <iomanip>
+#include <math.h>
+#include <iostream>
+#include <map>
+#include <utility>
 
-#include "Forms/mixedInt.hh"
-#include "Forms/linElastInt.hh"
-#include "Forms/massInt.hh"
-#include "Forms/linPressureInt.hh"
-#include "Driver/assemble.hh"
-#include "newmark.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
-#include "CoupledPDE/pdecoupling.hh"
-#include "Domain/domain.hh"
-#include "Utils/coordSystem.hh"
+#include "DataInOut/WriteInfo.hh"
+#include "Domain/ansatzFct.hh"
+#include "Domain/bcs.hh"
+#include "Domain/entityList.hh"
+#include "Domain/grid.hh"
+#include "Domain/resultInfo.hh"
 #include "Driver/assemble.hh"
-#include "trapezoidal.hh"
-#include "bdf2.hh"
-#include "StdPDE.hh"
+#include "Driver/formsContext.hh"
 #include "Driver/stdSolveStep.hh"
-#include "PDE/mixedEqnMap.hh"
 #include "Forms/PMLInt.hh"
-
-#ifdef USE_SCRIPTING
-#include "DataInOut/Scripting/cfsmessenger.hh" 
-#endif
+#include "Forms/baseForm.hh"
+#include "Forms/linSurfForm.hh"
+#include "Forms/linearForm.hh"
+#include "Forms/mixedInt.hh"
+#include "General/Enum.hh"
+#include "General/environment.hh"
+#include "General/exception.hh"
+#include "MatVec/matrix.hh"
+#include "MatVec/vector.hh"
+#include "Materials/baseMaterial.hh"
+#include "PDE/SinglePDE.hh"
+#include "PDE/basePDE.hh"
+#include "PDE/eqnMap.hh"
+#include "PDE/mixedEqnMap.hh"
+#include "PDE/timestepping.hh"
+#include "StdPDE.hh"
+#include "Utils/result.hh"
+#include "acousticMixedPDE.hh"
+#include "trapezoidal.hh"
 
 namespace CoupledField
 {

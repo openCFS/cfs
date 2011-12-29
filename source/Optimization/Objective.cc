@@ -1,12 +1,17 @@
-#include "Optimization/Excitation.hh"
-#include "Optimization/Design/DesignStructure.hh"
+#include <stddef.h>
+#include <ostream>
+
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "General/defs.hh"
+#include "General/environment.hh"
+#include "General/exception.hh"
+#include "MatVec/matrix.hh"
 #include "Optimization/Design/DesignSpace.hh"
 #include "Optimization/Objective.hh"
-#include "Optimization/Condition.hh"
-#include "DataInOut/ParamHandling/ParamNode.hh"
-#include "DataInOut/Logging/cfslog.hh"
-#include "General/exception.hh"
-#include "Domain/domain.hh"
+
+namespace CoupledField {
+class DesignStructure;
+}  // namespace CoupledField
 
 using namespace CoupledField;
 
@@ -60,6 +65,8 @@ void Objective::ToInfo(PtrParamNode info)
   Function::ToInfo(info);
   if(tensor_.GetNumRows() > 1)
     info->Get("tensor")->SetValue(tensor_);
+  if(maxwellTensor_.GetNumRows() > 1)
+    info->Get("tensor")->SetValue(new Matrix<Complex>(maxwellTensor_));
 
 }
 

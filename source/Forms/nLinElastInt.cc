@@ -2,10 +2,18 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include <iostream>
-#include <fstream>
+#include <string>
 
+#include "Domain/entityList.hh"
+#include "Elements/basefe.hh"
+#include "Forms/bdbInt.hh"
+#include "Forms/linElastInt.hh"
 #include "Forms/nLinElastInt.hh"
+#include "General/environment.hh"
+#include "MatVec/exprt/xpr1.hh"
+#include "MatVec/exprt/xpr2.hh"
+#include "MatVec/vector.hh"
+#include "Materials/baseMaterial.hh"
 #include "Utils/nodestoresol.hh"
 
 namespace CoupledField

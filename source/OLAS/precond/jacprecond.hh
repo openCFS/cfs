@@ -6,10 +6,14 @@
 #define OLAS_JACPRECOND_HH
 
 #include <string>
-#include <iostream>
-#include <fstream>
 
-
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "General/defs.hh"
+#include "General/exception.hh"
+#include "MatVec/crs_matrix.hh"
+#include "MatVec/diag_matrix.hh"
+#include "MatVec/scrs_matrix.hh"
+#include "MatVec/typedefs.hh"
 #include "baseprecond.hh"
 #include "bnprecond.hh"
 
@@ -23,6 +27,9 @@ namespace CoupledField {
   //! matrix consisting of the diagonal entries of the problem matrix \f$A\f$.
   //! Thus, it is evident, that Jacobi preconditioning requires \f$A\f$ to
   //! not have any zero entries on the diagonal.
+class StdMatrix;
+template <typename T> class Vector;
+
   template <class T_storage,typename T>
   class JacPrecond : public BNPrecond<JacPrecond<T_storage,T>,T_storage,T> {
 

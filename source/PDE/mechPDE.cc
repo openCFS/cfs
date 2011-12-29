@@ -2,45 +2,73 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include "mechPDE.hh"
-
+#include <assert.h>
+#include <cmath>
+#include <complex>
 #include <sstream>
-#include <iomanip>
-#include <set>
+#include <utility>
 
-#include "Forms/mechStressStrain.hh"
-#include "Forms/PMLInt.hh"
-#include "Forms/linViscoElastInt.hh"
-#include "Forms/linElastInt.hh"
-#include "Forms/FlatShellStiffInt.hh"
-#include "Forms/FlatShellMassInt.hh"
-#include "Forms/massInt.hh"
-#include "Forms/nonConformingInt.hh"
-#include "Forms/linPressureInt.hh"
-#include "Forms/singleEntryInt.hh"
-#include "Forms/linSurfStressInt.hh"
-#include "Forms/piezoPolarizationMatrixRHSInt.hh"
+#include "CoupledPDE/pdecoupling.hh"
+#include "DataInOut/Logging/cfslog.hh"
+#include "DataInOut/Logging/log.hpp"
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "DataInOut/ParamHandling/ParamTools.hh"
+#include "DataInOut/Scripting/scriptable.hh"
+#include "DataInOut/SimInOut/hdf5/simInputHDF5.hh"
+#include "DataInOut/SimInOut/hdf5/simOutputHDF5.hh"
+#include "DataInOut/WriteInfo.hh"
+#include "DataInOut/programOptions.hh"
+#include "DataInOut/resultHandler.hh"
+#include "Domain/Composite.hh"
+#include "Domain/ansatzFct.hh"
+#include "Domain/domain.hh"
+#include "Domain/elem.hh"
+#include "Domain/entityList.hh"
+#include "Domain/grid.hh"
+#include "Domain/resultInfo.hh"
+#include "Domain/surfElem.hh"
 #include "Driver/assemble.hh"
+#include "Driver/formsContext.hh"
+#include "Driver/solveStepMech.hh"
+#include "Driver/stdSolveStep.hh"
+#include "Elements/basefe.hh"
+#include "Forms/FlatShellMassInt.hh"
+#include "Forms/FlatShellStiffInt.hh"
+#include "Forms/PMLInt.hh"
+#include "Forms/baseForm.hh"
+#include "Forms/linElastInt.hh"
+#include "Forms/linPressureInt.hh"
+#include "Forms/linSurfForm.hh"
+#include "Forms/linSurfStressInt.hh"
+#include "Forms/linViscoElastInt.hh"
+#include "Forms/linearForm.hh"
+#include "Forms/massInt.hh"
+#include "Forms/mechStressStrain.hh"
+#include "Forms/nLinElastInt.hh"
+#include "Forms/nonConformingInt.hh"
+#include "Forms/singleEntryInt.hh"
+#include "General/exception.hh"
+#include "MatVec/SingleVector.hh"
+#include "MatVec/exprt/xpr1.hh"
+#include "MatVec/exprt/xpr2.hh"
+#include "Materials/baseMaterial.hh"
+#include "Optimization/Design/DesignSpace.hh"
+#include "Optimization/ErsatzMaterial.hh"
+#include "Optimization/Optimization.hh"
+#include "PDE/SinglePDE.hh"
+#include "PDE/StdPDE.hh"
+#include "PDE/basePDE.hh"
+#include "PDE/eqnMap.hh"
+#include "PDE/mechPDE.hh"
+#include "PDE/timestepping.hh"
+#include "Utils/Point.hh"
+#include "Utils/basenodestoresol.hh"
+#include "Utils/mathParser/mathParser.hh"
+#include "Utils/result.hh"
+#include "Utils/tools.hh"
+#include "mechPDE.hh"
 #include "newmark.hh"
 #include "newmarkFracDampMech.hh"
-#include "DataInOut/ParamHandling/ParamTools.hh"
-#include "DataInOut/ParamHandling/ParamNode.hh"
-#include "DataInOut/resultHandler.hh"
-#include "DataInOut/Logging/cfslog.hh"
-#include "DataInOut/programOptions.hh"
-#include "CoupledPDE/pdecoupling.hh"
-#include "Domain/domain.hh"
-#include "Utils/coordSystem.hh"
-#include "Domain/ansatzFct.hh"
-#include "Driver/stdSolveStep.hh"
-#include "Driver/solveStepMech.hh"
-#include "Utils/SmoothSpline.hh"
-#include "Optimization/Design/DesignSpace.hh"
-#include "Optimization/SIMP.hh"
-
-#ifdef USE_SCRIPTING
-#include "DataInOut/Scripting/cfsmessenger.hh"
-#endif
 
 namespace CoupledField {
 
@@ -1165,29 +1193,6 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
   }
 
 
-  void MechPDE::DefinePolarizationMatrixIntegrators(const Vector<Double> &vals,
-      StdVector<LinearFormContext*> *linForms, const int num)
-  {
-    
-    LinearForm * polRHSMech = new PiezoPolarizationMatrixMechRHSInt(vals, num);
-    
-    StdVector<std::string> region_names;
-    domain->GetGrid()->GetRegionNames(region_names);
-    LOG_DBG(mechpde) << "region names = " << region_names.ToString();
-    // FIXME: hardcoded region name!!
-    shared_ptr<EntityList> entlist = domain->GetGrid()->GetEntityList(EntityList::SURF_ELEM_LIST, 
-        region_names[1], EntityList::NO_TYPE);
-
-    LinearFormContext *linRhs = new LinearFormContext(polRHSMech);
-    linRhs->SetPtPde(this);
-    linRhs->SetResult(results_[0], entlist);
-    
-    if(linForms != NULL)
-      linForms->Push_back(linRhs);
-    else
-      assemble_->AddLinearForm(linRhs);
-  }
-  
   void MechPDE::DefineRegionLoadIntegrators(std::map<RegionIdType, RegionLoad>& regionLoads, StdVector<LinearFormContext*>* linForms){
     VolForceInt * forceInt;
     std::map<RegionIdType, RegionLoad>::iterator loadIt = regionLoads.begin();
@@ -2197,7 +2202,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
       }
       break;
 
-    // CalcStressAndStrain checks the type itself!
+      // CalcStressAndStrain checks the type itself!
     case MECH_STRESS:
     case MECH_STRAIN:
     case VON_MISES_STRESS:
@@ -2227,7 +2232,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
     case MECH_PSEUDO_DENSITY:
     case PHYSICAL_PSEUDO_DENSITY:
       if(domain->GetErsatzMaterial(false) == NULL) // no excpetion
-        result->Init();
+      result->Init();
       else
         domain->GetErsatzMaterial()->ExtractResults(result, isComplex_);
       break;
@@ -2240,7 +2245,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
       CalcHomogenizedTensor(result);
       break;
 
-    // the actual case is given in the result info in result
+      // the actual case is given in the result info in result
     case OPT_RESULT_1:
     case OPT_RESULT_2:
     case OPT_RESULT_3:
@@ -2256,17 +2261,17 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
 
     case GRAD_X_DISPLACEMENT:
       if(isComplex_) CalcGradSolution<Complex>(result, 1);
-                else CalcGradSolution<Double>(result, 1);
+      else CalcGradSolution<Double>(result, 1);
       break;
 
     case GRAD_Y_DISPLACEMENT:
       if(isComplex_) CalcGradSolution<Complex>(result, 2);
-                else CalcGradSolution<Double>(result, 2);
+      else CalcGradSolution<Double>(result, 2);
       break;
 
     case GRAD_Z_DISPLACEMENT:
       if(isComplex_) CalcGradSolution<Complex>(result, 3);
-                else CalcGradSolution<Double>(result, 3);
+      else CalcGradSolution<Double>(result, 3);
       break;
 
     default:
@@ -2313,370 +2318,287 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
     }
     return m;
   }
-
-
   template <class TYPE>
-  void MechPDE::CalcStressAndStrain(shared_ptr<BaseResult> res, SolutionType st, bool density)
-  {
-    BaseMaterial* actSDMat = materials_[res->GetEntityList()->GetIterator().GetElem()->regionId];
-
-    MechStressStrain<TYPE> stress_strain(actSDMat,GetSubTensorType());
-    stress_strain.CalcStressStrainResult(this, res, st, density);
-  }
-
- // ======================================================
-  // POSTPROCESSING
-  // ======================================================
-  template<class TYPE>
-  void MechPDE::ComputeVolDefSurf( shared_ptr<BaseResult> vals ) {
-
-
-    // convert result and get region iterator
-    Result<TYPE> &  actSol =
-      dynamic_cast<Result<TYPE>&>(*vals);
-    EntityIterator regionIt = actSol.GetEntityList()->GetIterator();
-
-    // resize vector
-    Vector<TYPE> & actVal = actSol.GetVector();
-    actVal.Resize( actSol.GetEntityList()->GetSize() );
-
-    // get dof for direction
-    std::string dir = volAboveDefSurfDir_[actSol.GetEntityList()];
-    Integer dof = results_[0]->dofNames.Find( dir );
-    if( dof < 0 ) {
-      EXCEPTION( "ComputeVolDefSurf: dof = '" << dir << "' is not "
-                 << "allowed! Must be one of 'x', 'y' or 'z'" );
+    void MechPDE::CalcStressAndStrain(shared_ptr<BaseResult> res, SolutionType st, bool density)
+    {
+      BaseMaterial* actSDMat = materials_[res->GetEntityList()->GetIterator().GetElem()->regionId];
+      MechStressStrain<TYPE> stress_strain(actSDMat,GetSubTensorType());
+      stress_strain.CalcStressStrainResult(this, res, st, density);
     }
-
-    Vector<TYPE> elemDisp, elemDispDof;
-    TYPE actVolume;
-
-    // Loop over regions
-    for( regionIt.Begin(); !regionIt.IsEnd(); regionIt++ ) {
-      SurfElemList actSDList(ptgrid_ );
-      actSDList.SetRegion( regionIt.GetRegion() );
-      EntityIterator elemIt = actSDList.GetIterator();
-
-      actVolume = 0.0;
-      // Loop over elements
-      for( elemIt.Begin(); !elemIt.IsEnd(); elemIt++ ) {
-
-        BaseFE * ptSurfEl = elemIt.GetSurfElem()->ptElem;
-        StdVector<UInt> connecth = elemIt.GetSurfElem()->connect;
-
-        Matrix<Double> ptSurfCoord;
-        ptgrid_->GetElemNodesCoord( ptSurfCoord, connecth, false );
-
-        GetSolVecOfElement( elemDisp, elemIt, results_[0] );
-        elemDispDof.Resize(connecth.GetSize() );
-        UInt actEntry = dof;
-        for( UInt i = 0; i < connecth.GetSize(); i++ ) {
-          elemDispDof[i] = elemDisp[actEntry];
-          actEntry += dim_;
+   // ======================================================
+    // POSTPROCESSING
+    // ======================================================
+    template<class TYPE>
+    void MechPDE::ComputeVolDefSurf( shared_ptr<BaseResult> vals ) {
+      // convert result and get region iterator
+      Result<TYPE> &  actSol =
+        dynamic_cast<Result<TYPE>&>(*vals);
+      EntityIterator regionIt = actSol.GetEntityList()->GetIterator();
+      // resize vector
+      Vector<TYPE> & actVal = actSol.GetVector();
+      actVal.Resize( actSol.GetEntityList()->GetSize() );
+      // get dof for direction
+      std::string dir = volAboveDefSurfDir_[actSol.GetEntityList()];
+      Integer dof = results_[0]->dofNames.Find( dir );
+      if( dof < 0 ) {
+        EXCEPTION( "ComputeVolDefSurf: dof = '" << dir << "' is not "
+                   << "allowed! Must be one of 'x', 'y' or 'z'" );
+      }
+      Vector<TYPE> elemDisp, elemDispDof;
+      TYPE actVolume;
+      // Loop over regions
+      for( regionIt.Begin(); !regionIt.IsEnd(); regionIt++ ) {
+        SurfElemList actSDList(ptgrid_ );
+        actSDList.SetRegion( regionIt.GetRegion() );
+        EntityIterator elemIt = actSDList.GetIterator();
+        actVolume = 0.0;
+        // Loop over elements
+        for( elemIt.Begin(); !elemIt.IsEnd(); elemIt++ ) {
+          BaseFE * ptSurfEl = elemIt.GetSurfElem()->ptElem;
+          StdVector<UInt> connecth = elemIt.GetSurfElem()->connect;
+          Matrix<Double> ptSurfCoord;
+          ptgrid_->GetElemNodesCoord( ptSurfCoord, connecth, false );
+          GetSolVecOfElement( elemDisp, elemIt, results_[0] );
+          elemDispDof.Resize(connecth.GetSize() );
+          UInt actEntry = dof;
+          for( UInt i = 0; i < connecth.GetSize(); i++ ) {
+            elemDispDof[i] = elemDisp[actEntry];
+            actEntry += dim_;
+          }
+          actVolume += ComputeVolElem<TYPE>( ptSurfEl,
+                                             ptSurfCoord, elemDispDof );
         }
-        actVolume += ComputeVolElem<TYPE>( ptSurfEl,
-                                           ptSurfCoord, elemDispDof );
-
-      }
-      actVal[regionIt.GetPos()] = actVolume;
-    }
-
-  }
-
-  template<class TYPE>
-  TYPE MechPDE::ComputeVolElem(BaseFE * surfEl, Matrix<Double>& surfCoord,
-                               Vector<TYPE> disp) {
-
-
-    TYPE elemVol, averageDis;
-    UInt nrSurfNodes = surfEl->GetNumNodes();
-
-
-    //compute average displacement
-    averageDis = 0;
-    for (UInt i=0; i<nrSurfNodes; i++) {
-      averageDis += disp[i];
-    }
-    averageDis /= (Double)nrSurfNodes;
-
-    //compute the deformed volume
-    elemVol = averageDis * surfEl->CalcVolume(surfCoord,isaxi_);
-
-    return elemVol;
-  }
-
-
-
-  // ********************************************************
-  //   Query parameter object for information about prestressing
-  // ********************************************************
-  void MechPDE::ReadPreStressing() {
-    
-    // Check, if any prestressing boundary condition is present
-    PtrParamNode bcsNode = myParam_->Get("bcsAndLoads", ParamNode::PASS );
-    if( !bcsNode) return;
-
-    // Get prestressing parameter nodes
-    ParamNodeList stressNodes = bcsNode->GetList("preStress");
-
-    std::string actRegionName, type;
-    for (UInt k = 0; k < stressNodes.GetSize(); k++) {
-
-      // obtain regions
-      stressNodes[k]->GetValue( "region", actRegionName );
-      RegionIdType actRegion = ptgrid_->GetRegion().Parse( actRegionName );
-
-      // fetch data
-
-      if ( stressNodes[k]->Has( "prescribedLHS" ) ) {
-        preStressList_[actRegion] = "prescribedLHS";
-
-        Matrix<Double> preStressMat;
-        ParamTools::AsTensor<double>(stressNodes[k]->Get("prescribedLHS" )->Get("value"),
-            1,6, preStressMat );
-        // transform to vector
-        Vector<Double> preStressVec;
-        preStressVec.Resize( preStressMat.GetNumCols());
-        for( UInt i=0; i<preStressMat.GetNumCols(); i++)
-          preStressVec[i] = preStressMat[0][i];
-
-        preStressVal_[actRegion] = preStressVec;
-      }
-      else if ( stressNodes[k]->Has( "computeLHS" ) ) {
-        preStressList_[actRegion] = "computeLHS";
+        actVal[regionIt.GetPos()] = actVolume;
       }
     }
-  }
+    template<class TYPE>
+    TYPE MechPDE::ComputeVolElem(BaseFE * surfEl, Matrix<Double>& surfCoord,
+                                 Vector<TYPE> disp) {
+      TYPE elemVol, averageDis;
+      UInt nrSurfNodes = surfEl->GetNumNodes();
+      //compute average displacement
+      averageDis = 0;
+      for (UInt i=0; i<nrSurfNodes; i++) {
+        averageDis += disp[i];
+      }
+      averageDis /= (Double)nrSurfNodes;
+      //compute the deformed volume
+      elemVol = averageDis * surfEl->CalcVolume(surfCoord,isaxi_);
+      return elemVol;
+    }
+    // ********************************************************
+    //   Query parameter object for information about prestressing
+    // ********************************************************
+    void MechPDE::ReadPreStressing() {
 
-  void MechPDE::ReadTestStrains()
-  {
-    // Check, if any prestressing boundary condition is present
-    PtrParamNode bcsNode = myParam_->Get("bcsAndLoads", ParamNode::PASS );
-    if(!bcsNode) return;
-
-    ParamNodeList tsn = bcsNode->GetList("testStrain");
-
-    for (UInt i = 0; i < tsn.GetSize(); i++)
+      // Check, if any prestressing boundary condition is present
+      PtrParamNode bcsNode = myParam_->Get("bcsAndLoads", ParamNode::PASS );
+      if( !bcsNode) return;
+      // Get prestressing parameter nodes
+      ParamNodeList stressNodes = bcsNode->GetList("preStress");
+      std::string actRegionName, type;
+      for (UInt k = 0; k < stressNodes.GetSize(); k++) {
+        // obtain regions
+        stressNodes[k]->GetValue( "region", actRegionName );
+        RegionIdType actRegion = ptgrid_->GetRegion().Parse( actRegionName );
+        // fetch data
+        if ( stressNodes[k]->Has( "prescribedLHS" ) ) {
+          preStressList_[actRegion] = "prescribedLHS";
+          Matrix<Double> preStressMat;
+          ParamTools::AsTensor<double>(stressNodes[k]->Get("prescribedLHS" )->Get("value"),
+              1,6, preStressMat );
+          // transform to vector
+          Vector<Double> preStressVec;
+          preStressVec.Resize( preStressMat.GetNumCols());
+          for( UInt i=0; i<preStressMat.GetNumCols(); i++)
+            preStressVec[i] = preStressMat[0][i];
+          preStressVal_[actRegion] = preStressVec;
+        }
+        else if ( stressNodes[k]->Has( "computeLHS" ) ) {
+          preStressList_[actRegion] = "computeLHS";
+        }
+      }
+    }
+    void MechPDE::ReadTestStrains()
     {
-       TestStrain ts = testStrain.Parse(tsn[i]->Get("strain")->As<std::string>());
-       if(dim_ == 2 && (ts == Z || ts == XZ || ts == YZ))
-          throw Exception("test strain '" + testStrain.ToString(ts) + "' invalid for 2D");
-       DefineTestStrainIntegrator(ts);
-    }
-  }
-
-  void MechPDE::ReadSurfStress() {
-
-    // try to get bcsAndLoads node
-    PtrParamNode bcNode = myParam_->Get("bcsAndLoads", ParamNode::PASS);
-    if( !bcNode )
-      return;
-    ParamNodeList stressNodes = bcNode->GetList("surfStress");
-
-
-    // iterate over all surface stress definitions
-    std::string surf, volume, phase;
-    Matrix<Double> valMat;
-    for( UInt i = 0; i < stressNodes.GetSize(); i++ ) {
-
-      // fetch data
-      stressNodes[i]->GetValue( "name", surf );
-      stressNodes[i]->GetValue( "region", volume );
-      stressNodes[i]->GetValue( "phase", phase );
-      ParamTools::AsTensor<double>(stressNodes[i]->Get("value"),
-                                         stressDim_, 1, valMat );
-
-      // create new surface stress definition
-      SurfStress actStress;
-
-      actStress.surface = ptgrid_->GetRegion().Parse(surf);
-      actStress.region = ptgrid_->GetRegion().Parse(volume);
-      actStress.phase = phase[i];
-      valMat.ConvertToVec_AppendRows( actStress.stress );
-
-      // add surface stress definition
-      RegionIdType regionId =  ptgrid_->GetRegion().Parse( surf );
-      surfStresses_[regionId] = actStress;
-    }
-
-  }
-
-  void MechPDE::ReadPressureLoads()
-  {
-    ReadPressureLoadsFromXML(myParam_->Get("bcsAndLoads", ParamNode::PASS), pressSurf_, pressVals_, pressPhase_);
-  }
-  
-  void MechPDE::ReadPressureLoadsFromXML(PtrParamNode bcNode, StdVector<shared_ptr<EntityList> >& pressSurf, StdVector<std::string>& pressVals, StdVector<std::string>& pressPhase) {
-    if( !bcNode )
-      return;
-    ParamNodeList presNodes = bcNode->GetList("pressure");
-
-    // iterate over all pressure definitions
-    std::string name, value, phase;
-    for( UInt i = 0; i < presNodes.GetSize(); i++ ) {
-
-      presNodes[i]->GetValue("name", name );
-      presNodes[i]->GetValue("value", value );
-      presNodes[i]->GetValue("phase", phase );
-
-      pressSurf.Push_back( 
-        ptgrid_->GetEntityList( EntityList::SURF_ELEM_LIST,
-                                name, EntityList::REGION ) );
-      pressVals.Push_back( value );
-      pressPhase.Push_back( phase );
-
-    }
-  }
-
-
-  void MechPDE::CalcHomogenizedTensor(shared_ptr<BaseResult> base_result)
-  {
-    // TODO: Either the calculation moves here ore the data interchange
-    // with ErsatzMaterial is done nice. Now steal the data from ParamNode!!! :((
-
-    ErsatzMaterial* em = domain->GetOptimization() != NULL ? dynamic_cast<ErsatzMaterial*>(domain->GetOptimization()) : NULL;
-    if(em == NULL) EXCEPTION("the result 'homogenizedTensor' requires an appropriate optimization definition.");
-
-    Matrix<double>& tensor = em->homogenizedTensor;
-
-    Result<double>& res = dynamic_cast<Result<double>&>(*base_result);
-    Vector<double>& vals = res.GetVector();
-    const unsigned int trows(tensor.GetNumRows());
-    const unsigned int tcols(tensor.GetNumCols());
-    vals.Resize(trows * tcols);
-
-    for(unsigned int r = 0; r < trows; ++r)
-      for(unsigned int c = 0; c < tcols; ++c)
-        vals[r * trows + c] = tensor[r][c];
-  }
-
-  template <class TYPE>
-  void MechPDE::CalcEnergy( shared_ptr<BaseResult> vals )
-  {
-
-    Matrix<Double> elemmat;
-    Vector<TYPE> help, eldisp;
-    TYPE energy ;
-
-    Result<TYPE> &  actSol =
-      dynamic_cast<Result<TYPE>&>(*vals);
-
-    // resize vector
-    Vector<TYPE> & actVal = actSol.GetVector();
-    actVal.Resize( actSol.GetEntityList()->GetSize() );
-
-    // loop over regions
-    EntityIterator regionIt = actSol.GetEntityList()->GetIterator();
-    for( regionIt.Begin(); !regionIt.IsEnd(); regionIt++ ) {
-
-      //get material
-      BaseMaterial* actSDMat = materials_[regionIt.GetRegion()];
-
-      // get bilinear stiffness integrator
-      BaseForm * bilinear_stiff = GetStiffIntegrator(actSDMat,
-                                                     regionIt.GetRegion() );
-      ElemList actSDList(ptgrid_ );
-      actSDList.SetRegion( regionIt.GetRegion() );
-      EntityIterator it = actSDList.GetIterator();
-      energy = 0.0;
-
-      // Loop over elements
-      for ( it.Begin(); !it.IsEnd(); it++ ) {
-        bilinear_stiff->SetAnsatzFct( results_[0]->fctType );
-        bilinear_stiff->CalcElementMatrix(elemmat,it,it);
-        sol_->GetElemSolution(eldisp, it);
-        help = elemmat * eldisp;
-        energy += ( help * eldisp) * 0.5;
-      }
-      actVal[regionIt.GetPos()] = energy;
-      delete bilinear_stiff;
-    }
-  }
-
-
-  void MechPDE::RegisterFunctions() {
-
-    typedef FctPointer<MechPDE> FCPT;
-    StdVector<ArgList> a;
-    StdVector<FCPT*> pt;
-    StdVector<std::string> name;
-
-    // --- ReadRegionLoad ---
-    a.Push_back();
-    a.Last().RegisterParam( "name", ArgList::STRING );
-    a.Last().RegisterParam( "value", ArgList::STRING );
-    a.Last().RegisterParam( "dof", ArgList::STRING );
-    a.Last().RegisterParam( "coordSysId", ArgList::STRING );
-    a.Last().RegisterParam( "type", ArgList::STRING );
-    pt.Push_back( new FCPT ( this, &MechPDE::ReadRegionLoads ) );
-    name.Push_back( "setRegionLoad" );
-
-
-    // Now register all functions with scripting
-    for (UInt i = 0; i < pt.GetSize(); i++ ) {
-      Script_RegisterFct(name[i], pt[i], a[i] );
-    }
-
-  }
-
-  void MechPDE::ExtractNodeOffset(shared_ptr<BaseResult> result) {
-    ResultInfo& actRes = *(result->GetResultInfo());
-    UInt numDofs = actRes.dofNames.GetSize();
-    EntityIterator it = result->GetEntityList()->GetIterator();
-    Vector<double>& actSol = dynamic_cast<Result<double>&>(*result).GetVector();
-    actSol.Resize(numDofs * result->GetEntityList()->GetSize());
-    Grid* grd = domain->GetGrid();
-    for(it.Begin(); !it.IsEnd(); it++){
-      Point offset;
-      grd->GetNodeOffset(it.GetNode()-1, offset);
-      for(UInt iDof = 0; iDof < numDofs; iDof++){
-        actSol[it.GetPos()*numDofs+iDof] = offset[iDof];
-      }
-    }
-  }
-
-  void MechPDE::calcAitkenOmega(const Vector<Double>& displTilde, const Vector<Double>& displPrevIter)
-  {
-    Vector<Double> aux1;
-
-    if (iterCoupledCounter_ <= 1)
-    {
-      if (aitkenOmegaPrevIter_ < displFac_)
+      // Check, if any prestressing boundary condition is present
+      PtrParamNode bcsNode = myParam_->Get("bcsAndLoads", ParamNode::PASS );
+      if(!bcsNode) return;
+      ParamNodeList tsn = bcsNode->GetList("testStrain");
+      for (UInt i = 0; i < tsn.GetSize(); i++)
       {
-        aitkenOmegaPrevIter_ = displFac_;
-        aitkenOmega_ = displFac_;
+         TestStrain ts = testStrain.Parse(tsn[i]->Get("strain")->As<std::string>());
+         if(dim_ == 2 && (ts == Z || ts == XZ || ts == YZ))
+            throw Exception("test strain '" + testStrain.ToString(ts) + "' invalid for 2D");
+         DefineTestStrainIntegrator(ts);
       }
+    }
+    void MechPDE::ReadSurfStress() {
+      // try to get bcsAndLoads node
+      PtrParamNode bcNode = myParam_->Get("bcsAndLoads", ParamNode::PASS);
+      if( !bcNode )
+        return;
+      ParamNodeList stressNodes = bcNode->GetList("surfStress");
+      // iterate over all surface stress definitions
+      std::string surf, volume, phase;
+      Matrix<Double> valMat;
+      for( UInt i = 0; i < stressNodes.GetSize(); i++ ) {
+        // fetch data
+        stressNodes[i]->GetValue( "name", surf );
+        stressNodes[i]->GetValue( "region", volume );
+        stressNodes[i]->GetValue( "phase", phase );
+        ParamTools::AsTensor<double>(stressNodes[i]->Get("value"),
+                                           stressDim_, 1, valMat );
+        // create new surface stress definition
+        SurfStress actStress;
+        actStress.surface = ptgrid_->GetRegion().Parse(surf);
+        actStress.region = ptgrid_->GetRegion().Parse(volume);
+        actStress.phase = phase[i];
+        valMat.ConvertToVec_AppendRows( actStress.stress );
+        // add surface stress definition
+        RegionIdType regionId =  ptgrid_->GetRegion().Parse( surf );
+        surfStresses_[regionId] = actStress;
+      }
+    }
+    void MechPDE::ReadPressureLoads()
+    {
+      ReadPressureLoadsFromXML(myParam_->Get("bcsAndLoads", ParamNode::PASS), pressSurf_, pressVals_, pressPhase_);
+    }
 
+    void MechPDE::ReadPressureLoadsFromXML(PtrParamNode bcNode, StdVector<shared_ptr<EntityList> >& pressSurf, StdVector<std::string>& pressVals, StdVector<std::string>& pressPhase) {
+      if( !bcNode )
+        return;
+      ParamNodeList presNodes = bcNode->GetList("pressure");
+      // iterate over all pressure definitions
+      std::string name, value, phase;
+      for( UInt i = 0; i < presNodes.GetSize(); i++ ) {
+        presNodes[i]->GetValue("name", name );
+        presNodes[i]->GetValue("value", value );
+        presNodes[i]->GetValue("phase", phase );
+        pressSurf.Push_back(
+          ptgrid_->GetEntityList( EntityList::SURF_ELEM_LIST,
+                                  name, EntityList::REGION ) );
+        pressVals.Push_back( value );
+        pressPhase.Push_back( phase );
+      }
+    }
+    void MechPDE::CalcHomogenizedTensor(shared_ptr<BaseResult> base_result)
+    {
+      // TODO: Either the calculation moves here ore the data interchange
+      // with ErsatzMaterial is done nice. Now steal the data from ParamNode!!! :((
+      ErsatzMaterial* em = domain->GetOptimization() != NULL ? dynamic_cast<ErsatzMaterial*>(domain->GetOptimization()) : NULL;
+      if(em == NULL) EXCEPTION("the result 'homogenizedTensor' requires an appropriate optimization definition.");
+      Matrix<double>& tensor = em->homogenizedTensor;
+      Result<double>& res = dynamic_cast<Result<double>&>(*base_result);
+      Vector<double>& vals = res.GetVector();
+      const unsigned int trows(tensor.GetNumRows());
+      const unsigned int tcols(tensor.GetNumCols());
+      vals.Resize(trows * tcols);
+      for(unsigned int r = 0; r < trows; ++r)
+        for(unsigned int c = 0; c < tcols; ++c)
+          vals[r * trows + c] = tensor[r][c];
+    }
+    template <class TYPE>
+    void MechPDE::CalcEnergy( shared_ptr<BaseResult> vals )
+    {
+      Matrix<Double> elemmat;
+      Vector<TYPE> help, eldisp;
+      TYPE energy ;
+      Result<TYPE> &  actSol =
+        dynamic_cast<Result<TYPE>&>(*vals);
+      // resize vector
+      Vector<TYPE> & actVal = actSol.GetVector();
+      actVal.Resize( actSol.GetEntityList()->GetSize() );
+      // loop over regions
+      EntityIterator regionIt = actSol.GetEntityList()->GetIterator();
+      for( regionIt.Begin(); !regionIt.IsEnd(); regionIt++ ) {
+        //get material
+        BaseMaterial* actSDMat = materials_[regionIt.GetRegion()];
+        // get bilinear stiffness integrator
+        BaseForm * bilinear_stiff = GetStiffIntegrator(actSDMat,
+                                                       regionIt.GetRegion() );
+        ElemList actSDList(ptgrid_ );
+        actSDList.SetRegion( regionIt.GetRegion() );
+        EntityIterator it = actSDList.GetIterator();
+        energy = 0.0;
+        // Loop over elements
+        for ( it.Begin(); !it.IsEnd(); it++ ) {
+          bilinear_stiff->SetAnsatzFct( results_[0]->fctType );
+          bilinear_stiff->CalcElementMatrix(elemmat,it,it);
+          sol_->GetElemSolution(eldisp, it);
+          help = elemmat * eldisp;
+          energy += ( help * eldisp) * 0.5;
+        }
+        actVal[regionIt.GetPos()] = energy;
+        delete bilinear_stiff;
+      }
+    }
+    void MechPDE::RegisterFunctions() {
+      typedef FctPointer<MechPDE> FCPT;
+      StdVector<ArgList> a;
+      StdVector<FCPT*> pt;
+      StdVector<std::string> name;
+      // --- ReadRegionLoad ---
+      a.Push_back();
+      a.Last().RegisterParam( "name", ArgList::STRING );
+      a.Last().RegisterParam( "value", ArgList::STRING );
+      a.Last().RegisterParam( "dof", ArgList::STRING );
+      a.Last().RegisterParam( "coordSysId", ArgList::STRING );
+      a.Last().RegisterParam( "type", ArgList::STRING );
+      pt.Push_back( new FCPT ( this, &MechPDE::ReadRegionLoads ) );
+      name.Push_back( "setRegionLoad" );
+      // Now register all functions with scripting
+      for (UInt i = 0; i < pt.GetSize(); i++ ) {
+        Script_RegisterFct(name[i], pt[i], a[i] );
+      }
+    }
+    void MechPDE::ExtractNodeOffset(shared_ptr<BaseResult> result) {
+      ResultInfo& actRes = *(result->GetResultInfo());
+      UInt numDofs = actRes.dofNames.GetSize();
+      EntityIterator it = result->GetEntityList()->GetIterator();
+      Vector<double>& actSol = dynamic_cast<Result<double>&>(*result).GetVector();
+      actSol.Resize(numDofs * result->GetEntityList()->GetSize());
+      Grid* grd = domain->GetGrid();
+      for(it.Begin(); !it.IsEnd(); it++){
+        Point offset;
+        grd->GetNodeOffset(it.GetNode()-1, offset);
+        for(UInt iDof = 0; iDof < numDofs; iDof++){
+          actSol[it.GetPos()*numDofs+iDof] = offset[iDof];
+        }
+      }
+    }
+    void MechPDE::calcAitkenOmega(const Vector<Double>& displTilde, const Vector<Double>& displPrevIter)
+    {
+      Vector<Double> aux1;
+      if (iterCoupledCounter_ <= 1)
+      {
+        if (aitkenOmegaPrevIter_ < displFac_)
+        {
+          aitkenOmegaPrevIter_ = displFac_;
+          aitkenOmega_ = displFac_;
+        }
+        deltaTildeDisplPrevIter_  = displTilde;
+        deltaTildeDisplPrevIter_ -= displPrevIter;
+        return;
+      }
+      aux1  = displTilde - displPrevIter;
+      aux1 -= deltaTildeDisplPrevIter_;
+      Double aux2 = aux1 * deltaTildeDisplPrevIter_;
+      Double aux3 = aux1 * aux1;
       deltaTildeDisplPrevIter_  = displTilde;
       deltaTildeDisplPrevIter_ -= displPrevIter;
-      return;
+      deltaTildeDisplPrevIter_ *= aitkenOmega_;
+      if (aux3 == 0)
+      {
+        aitkenOmega_ = aitkenOmegaPrevIter_;
+        EXCEPTION("division by zero: can not find relaxation parameter" << std::endl \
+            << "Cause: previous iteration step and current iteration step do not show any difference" );
+        return;
+      }
+      Double aux4 = aux2 / aux3;
+      aitkenOmega_ = - aitkenOmegaPrevIter_ * aux4;
+      Info->PrintF( pdename_," Relaxation Parameter according \
+          to Aitken= %e\n",aitkenOmega_);
+      aitkenOmegaPrevIter_ = aitkenOmega_;
     }
-
-    aux1  = displTilde - displPrevIter;
-    aux1 -= deltaTildeDisplPrevIter_;
-
-    Double aux2 = aux1 * deltaTildeDisplPrevIter_;
-    Double aux3 = aux1 * aux1;
-    deltaTildeDisplPrevIter_  = displTilde;
-    deltaTildeDisplPrevIter_ -= displPrevIter;
-    deltaTildeDisplPrevIter_ *= aitkenOmega_;
-
-    if (aux3 == 0)
-    {
-      aitkenOmega_ = aitkenOmegaPrevIter_;
-      EXCEPTION("division by zero: can not find relaxation parameter" << std::endl \
-          << "Cause: previous iteration step and current iteration step do not show any difference" );
-      return;
-    }
-    Double aux4 = aux2 / aux3;
-
-    aitkenOmega_ = - aitkenOmegaPrevIter_ * aux4;
-
-    Info->PrintF( pdename_," Relaxation Parameter according \
-        to Aitken= %e\n",aitkenOmega_);
-
-    aitkenOmegaPrevIter_ = aitkenOmega_;
-  }
-
-
-} // end namespace CoupledField
+  } // end namespace CoupledField

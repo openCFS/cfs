@@ -5,6 +5,8 @@
 #ifndef ACOUSTICMATERIAL_DATA
 #define ACOUSTICMATERIAL_DATA
 
+#include "General/defs.hh"
+#include "General/environment.hh"
 #include "baseMaterial.hh"
 
 namespace CoupledField {

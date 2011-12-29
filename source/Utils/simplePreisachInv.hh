@@ -5,10 +5,10 @@
 #ifndef FILE_SIMPLPREISACHINV_HH
 #define FILE_SIMPLPREISACHINV_HH
 
-#include <list>
 
-#include "MatVec/vector.hh"
+#include "General/defs.hh"
 #include "MatVec/matrix.hh"
+#include "MatVec/vector.hh"
 #include "hysteresis.hh"
 
 namespace CoupledField {

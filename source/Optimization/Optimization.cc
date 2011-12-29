@@ -1,40 +1,46 @@
-#include <def_use_ipopt.hh>
-#include <def_use_scpip.hh>
-#include <def_use_snopt.hh>
-#include <def_use_knitro.hh>
-#include <map>
+#include <assert.h>
+#include <algorithm>
+#include <cmath>
+#include <iostream>
 
-#include "Optimization/Optimization.hh"
-#include "Optimization/Excitation.hh"
-#include "Optimization/SIMP.hh"
-#include "Optimization/PiezoSIMP.hh"
+#include "DataInOut/Logging/cfslog.hh"
+#include "DataInOut/Logging/log.hpp"
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "DataInOut/programOptions.hh"
+#include "DataInOut/resultHandler.hh"
+#include "Domain/domain.hh"
+#include "Driver/baseSolveStep.hh"
+#include "Driver/basedriver.hh"
+#include "Driver/harmonicDriver.hh"
+#include "General/environment.hh"
+#include "General/exception.hh"
 #include "Optimization/Design/DesignElement.hh"
 #include "Optimization/Design/DesignSpace.hh"
 #include "Optimization/Design/DesignStructure.hh"
-#include "Optimization/Optimizer/OptimalityCondition.hh"
+#include "Optimization/ErsatzMaterial.hh"
+#include "Optimization/Excitation.hh"
+#include "Optimization/Function.hh"
 #include "Optimization/LevelSet.hh"
-#include "Optimization/Optimizer/EvaluateOnly.hh"
-#include "Optimization/Optimizer/ShapeOptimizer.hh"
-#include "Optimization/ShapeGrad.hh"
-#include "Optimization/Optimizer/GradientCheck.hh"
-#include "Optimization/ParamMat.hh"
+#include "Optimization/Optimization.hh"
 #include "Optimization/OptimizationMaterial.hh"
-#include "Driver/assemble.hh"
-#include "Driver/basedriver.hh"
-#include "Driver/harmonicDriver.hh"
-#include "Driver/singleDriver.hh"
-#include "Driver/stdSolveStep.hh"
-#include "PDE/StdPDE.hh"
-#include "PDE/SinglePDE.hh"
-#include "PDE/mechPDE.hh"
-#include "Domain/domain.hh"
-#include "Domain/grid.hh"
-#include "DataInOut/ParamHandling/ParamNode.hh"
-#include "DataInOut/Logging/cfslog.hh"
-#include "DataInOut/resultHandler.hh"
-#include "DataInOut/programOptions.hh"
-#include <boost/filesystem.hpp>
+#include "Optimization/Optimizer/BaseOptimizer.hh"
+#include "Optimization/Optimizer/EvaluateOnly.hh"
+#include "Optimization/Optimizer/GradientCheck.hh"
+#include "Optimization/Optimizer/OptimalityCondition.hh"
+#include "Optimization/Optimizer/ShapeOptimizer.hh"
+#include "Optimization/ParamMat.hh"
+#include "Optimization/PiezoSIMP.hh"
+#include "Optimization/SIMP.hh"
+#include "Optimization/ShapeGrad.hh"
 #include "Optimization/ShapeOpt.hh"
+#include "PDE/SinglePDE.hh"
+#include "PDE/basePDE.hh"
+#include "Utils/tools.hh"
+#include "boost/filesystem.hpp"
+#include "def_use_ipopt.hh"
+#include "def_use_knitro.hh"
+#include "def_use_scpip.hh"
+#include "def_use_snopt.hh"
 
 // IPOPT, SCPIP and SnOpt are not necessarily linked
 #ifdef USE_IPOPT
@@ -257,8 +263,11 @@ void Optimization::SetEnums()
   Function::type.Add(Function::ELEC_ENERGY, "elecEnergy");
   Function::type.Add(Function::ENERGY_FLUX, "energyFlux");
   Function::type.Add(Function::HOM_TENSOR, "homTensor");
+  Function::type.Add(Function::MAXWELL_HOM_TENSOR, "maxwellHomTensor");
   Function::type.Add(Function::HOM_TRACKING, "homTracking");
   Function::type.Add(Function::HOM_FROBENIUS_PRODUCT, "homFrobeniusProduct");
+  Function::type.Add(Function::MAXWELL_HOMOGENIZATION_TRACKING, "maxwellHomTracking");
+  Function::type.Add(Function::BITENSOR, "bitensor");
   Function::type.Add(Function::POISSONS_RATIO, "poissonsRatio");
   Function::type.Add(Function::YOUNGS_MODULUS, "youngsModulus");
   Function::type.Add(Function::YOUNGS_MODULUS_E1, "youngsModulusE1");
@@ -270,6 +279,8 @@ void Optimization::SetEnums()
   Function::type.Add(Function::STRESS, "stress");
   Function::type.Add(Function::STRESS_DENSITY, "stressDensity");
   Function::type.Add(Function::ISOTROPY, "isotropy");
+  Function::type.Add(Function::MAXWELL_ISOTROPY, "maxwellIsotropy");
+  Function::type.Add(Function::BIISOTROPY, "biIsotropy");
   Function::type.Add(Function::ISO_ORTHOTROPY, "iso-orthotropy");
   Function::type.Add(Function::ORTHOTROPY, "orthotropy");
   Function::type.Add(Function::SLOPE, "slope");
@@ -348,6 +359,7 @@ void Optimization::SetEnums()
   OptimizationMaterial::system.Add(OptimizationMaterial::MECH, "mechanic");
   OptimizationMaterial::system.Add(OptimizationMaterial::HEAT, "heat");
   OptimizationMaterial::system.Add(OptimizationMaterial::ACOUSTIC, "acoustic");
+  OptimizationMaterial::system.Add(OptimizationMaterial::ELEC, "maxwellHom");
 
   application.SetName("Optimization::Application");
   application.Add(NO_APP, "no_app");
@@ -372,7 +384,7 @@ void Optimization::SetEnums()
   MultipleExcitation::type.Add(MultipleExcitation::FIXED_WEIGHT, "fixed_weights");
   MultipleExcitation::type.Add(MultipleExcitation::META_OBJECTIVE, "meta_objective");
   MultipleExcitation::type.Add(MultipleExcitation::HOMOGENIZATION_TEST_STRAINS, "homogenizationTestStrains");
-  MultipleExcitation::type.Add(MultipleExcitation::POLARIZATION_MATRIX, "polarizationMatrix");
+  MultipleExcitation::type.Add(MultipleExcitation::MAXWELL_HOMOGENIZATION_TEST_STRAINS, "maxwellHomogenizationTestStrains");
 }
 
 bool Optimization::IsTransient() const{
@@ -466,6 +478,7 @@ Optimization* Optimization::CreateInstance()
     case OptimizationMaterial::MECH:
     case OptimizationMaterial::ACOUSTIC:
     case OptimizationMaterial::HEAT:
+    case OptimizationMaterial::ELEC:
       opt = new SIMP(); // generally single PDE!
       break;
       
@@ -591,7 +604,7 @@ void Optimization::SolveAdjointProblem(Excitation* excite, Function* f){
   if(!harmonic) 
     driver->SolveProblem(false, CreateAdjointAnalysisIdNode("adjoint", excite), &adjointParams); // static and transient optimization
   else
-      EXCEPTION("Harmonic adjoint not implemented!");
+    EXCEPTION("Harmonic adjoint not implemented!");
 }
 
 void Optimization::SolveAdjointProblems(Excitation* excite)

@@ -2,36 +2,54 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
+#include <stddef.h>
+#include <complex>
 #include <fstream>
-#include <iostream>
-#include <sstream>
-#include <math.h>
+#include <map>
 #include <string>
+#include <utility>
 
-#include "magneticScalarPDE.hh"
-
-#include "Forms/linGradBDBInt.hh"
-#include "Forms/linNeumannInt.hh"
-#include "Forms/linBiotSavartSurfInt.hh"
-#include "Forms/gradfieldop.hh"
-#include "General/defs.hh"
-#include "DataInOut/ParamHandling/ParamNode.hh"
-#include "DataInOut/ParamHandling/ParamTools.hh"
-#include "DataInOut/Logging/cfslog.hh"
-#include "Utils/StdVector.hh"
-#include "Driver/stdSolveStep.hh"
 #include "CoupledPDE/pdecoupling.hh"
+#include "DataInOut/Logging/cfslog.hh"
+#include "DataInOut/Logging/log.hpp"
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "DataInOut/WriteInfo.hh"
 #include "Domain/ansatzFct.hh"
+#include "Domain/elem.hh"
+#include "Domain/entityList.hh"
+#include "Domain/grid.hh"
+#include "Domain/resultInfo.hh"
 #include "Driver/assemble.hh"
-#include "Utils/biotSavart.hh"
-
+#include "Driver/formsContext.hh"
+#include "Driver/stdSolveStep.hh"
+#include "Elements/basefe.hh"
+#include "Forms/gradfieldop.hh"
+#include "Forms/linBiotSavartSurfInt.hh"
+#include "Forms/linGradBDBInt.hh"
 #include "Forms/linearForm.hh"// for RHS
-
-#ifdef USE_SCRIPTING
-#include "DataInOut/Scripting/cfsmessenger.hh" 
-#endif
+#include "General/Enum.hh"
+#include "General/defs.hh"
+#include "General/exception.hh"
+#include "MatVec/exprt/xpr1.hh"
+#include "MatVec/exprt/xpr2.hh"
+#include "MatVec/matrix.hh"
+#include "MatVec/vector.hh"
+#include "Materials/baseMaterial.hh"
+#include "PDE/SinglePDE.hh"
+#include "PDE/StdPDE.hh"
+#include "PDE/basePDE.hh"
+#include "PDE/eqnMap.hh"
+#include "Utils/StdVector.hh"
+#include "Utils/basenodestoresol.hh"
+#include "Utils/biotSavart.hh"
+#include "Utils/nodestoresol.hh" // IWYU pragma: keep
+#include "Utils/result.hh"
+#include "magneticScalarPDE.hh"
+#include "math.h"
 
 namespace CoupledField {
+
+class SingleVector;
 
   DECLARE_LOG(magnetopde)
   DEFINE_LOG(magnetopde, "pde.magneto")

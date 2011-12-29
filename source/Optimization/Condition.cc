@@ -1,17 +1,31 @@
-#include "Optimization/Excitation.hh"
+#include <assert.h>
+#include <stdlib.h>
+#include <algorithm>
+#include <cmath>
+#include <list>
+#include <map>
+#include <sstream>
+
+#include "DataInOut/Logging/cfslog.hh"
+#include "DataInOut/Logging/log.hpp"
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "DataInOut/ParamHandling/Xerces.hh"
+#include "Domain/domain.hh"
+#include "Domain/elem.hh"
+#include "Domain/grid.hh"
+#include "General/environment.hh"
+#include "General/exception.hh"
+#include "MatVec/matrix.hh"
 #include "Optimization/Condition.hh"
 #include "Optimization/Design/DesignSpace.hh"
-#include "Optimization/Design/DesignStructure.hh"
-#include "DataInOut/ParamHandling/ParamNode.hh"
-#include "DataInOut/ParamHandling/ParamTools.hh"
-#include "DataInOut/ParamHandling/Xerces.hh"
-#include "DataInOut/Logging/cfslog.hh"
-#include "General/exception.hh"
-#include "General/environment.hh"
-#include "Domain/domain.hh"
-#include "Domain/grid.hh"
-#include "MatVec/denseMatrix.hh"
-#include <sstream>
+#include "Optimization/ErsatzMaterial.hh"
+#include "Optimization/Excitation.hh"
+#include "Optimization/Optimization.hh"
+#include "Utils/tools.hh"
+
+namespace CoupledField {
+class DesignStructure;
+}  // namespace CoupledField
 
 using namespace CoupledField;
 
@@ -33,7 +47,7 @@ Condition::Condition(PtrParamNode pn) : Function(pn)
   observation_ = pn->Get("mode")->As<std::string>() == "observation";
 
   // the bound value is mandatory when we have a constraint
-  if(!observation_ && !pn->Has("bound") && type_ != ISOTROPY && type_ != ISO_ORTHOTROPY && type_ != ORTHOTROPY)
+  if(!observation_ && !pn->Has("bound") && type_ != ISOTROPY && type_ != ISO_ORTHOTROPY && type_ != ORTHOTROPY && type_ != MAXWELL_ISOTROPY && type_ != BIISOTROPY)
     throw Exception("bound type for constraint '" + type.ToString(type_) + "' mandatory");
   bound_ = pn->Has("bound") ? bound.Parse(pn->Get("bound")->As<std::string>()) : EQUAL;
   // the bound value is called value in the problem file!
@@ -83,6 +97,8 @@ Condition::Condition(PtrParamNode pn) : Function(pn)
 
     case ISOTROPY:
     case ISO_ORTHOTROPY:
+    case MAXWELL_ISOTROPY:
+    case BIISOTROPY:
     case ORTHOTROPY:
       if(pn->Has("value"))
         throw Exception("No value allowed for constraint '" + type.ToString(type_) + "'");
@@ -154,6 +170,21 @@ void Condition::AddCondition(PtrParamNode pn, StdVector<Condition*>& list)
   // isotropy is a special constraint which blows up special tensor entry constraints
   if(g->type_ == ISOTROPY || g->type_ == ISO_ORTHOTROPY || g->type_ == ORTHOTROPY)
     AddXtropyConstraints(pn, list, g);
+
+  if(g->type_ == MAXWELL_ISOTROPY)
+  {
+    // become a MAXWELL_HOM_TENSOR constraint!
+    g->type_ = MAXWELL_HOM_TENSOR;
+    AddMaxwellIsotropyConstraints(pn, list, g);
+  }
+
+  if(g->type_ == BIISOTROPY)
+  {
+    // become a BITENSOR constraint!
+    g->type_ = BITENSOR;
+    AddMaxwellIsotropyConstraints(pn, list, g);
+    AddMaxwellIsotropyConstraints(pn, list, g, true);
+  }
 }
 
 
@@ -331,6 +362,121 @@ void Condition::AddXtropyConstraints(PtrParamNode pn, StdVector<Condition*>& lis
   }
 }
 
+void Condition::AddMaxwellIsotropyConstraints(PtrParamNode pn, StdVector<Condition*>& list, Condition* g, bool biisotropy)
+{
+//  // isotropy is a special constraint which blows up special tensor entry constraints
+//  assert(g->GetType() == MAXWELL_ISOTROPY || g->GetType() == BIISOTROPY);
+
+  if(pn->Has("coord") && !biisotropy)
+    throw Exception("don't use attribute 'coord' for constraint 'maxwell_isotropy' or 'biisotropy'");
+
+  if(g->bound_ != EQUAL)
+    throw Exception("the 'maxwell_isotropy' and the 'biisotropy' constraint require equality constraint type");
+
+//  // become a MAXWELL_HOM_TENSOR or a BITENSOR constraint! (bitensor is set in first call as this is still the same condition)
+//  g->type_ = MAXWELL_HOM_TENSOR; done above now
+
+  // isotropy condition:
+  // 1. epsilon(1,1)=epsilon(2,2)=epsilon(3,3)
+  // 2. all other entries = 0
+
+  if(domain->GetGrid()->GetDim() == 2)
+  {
+    // epsilon11 - epsilon22 = 0
+    if(!biisotropy)
+    {
+      assert(g->coords.GetSize() == 0);
+      g->boundValue_ = 0;
+      g->coords.Push_back(make_tuple(1,1,1.0));
+      g->coords.Push_back(make_tuple(2,2,-1.0));
+    }
+    else
+    {
+      g = g->AppendSubCondition(list, biisotropy);
+      g->coords.Clear();
+      g->coords.Push_back(make_tuple(1,1,1.0));
+      g->coords.Push_back(make_tuple(2,2,-1.0));
+    }
+
+    g = g->AppendSubCondition(list, biisotropy, true);
+    g->coords.Clear();
+    g->coords.Push_back(make_tuple(1,1,1.0));
+    g->coords.Push_back(make_tuple(2,2,-1.0));
+
+    // epsilon12 = 0
+    g = g->AppendSubCondition(list, biisotropy);
+    g->coords.Clear();
+    g->coords.Push_back(make_tuple(1,2,1.0));
+
+    g = g->AppendSubCondition(list, biisotropy, true);
+    g->coords.Clear();
+    g->coords.Push_back(make_tuple(1,2,1.0));
+
+  }
+  else
+  {
+    // diagonal is constant
+    // epsilon11 = epsilon22 = epsilon33 -> epsilon11 - epsilon22 = 0, epsilon22 - epsilon33 = 0
+    if(!biisotropy)
+    {
+      assert(g->coords.GetSize() == 0);
+      g->boundValue_ = 0;
+      g->coords.Push_back(make_tuple(1,1,1.0));
+      g->coords.Push_back(make_tuple(2,2,-1.0));
+    }
+    else
+    {
+      g = g->AppendSubCondition(list, biisotropy);
+      g->coords.Clear();
+      g->coords.Push_back(make_tuple(1,1,1.0));
+      g->coords.Push_back(make_tuple(2,2,-1.0));
+    }
+
+    g = g->AppendSubCondition(list, biisotropy, true);
+    g->coords.Clear();
+    g->coords.Push_back(make_tuple(1,1,1.0));
+    g->coords.Push_back(make_tuple(2,2,-1.0));
+
+    g = g->AppendSubCondition(list, biisotropy);
+    g->coords.Clear();
+    g->coords.Push_back(make_tuple(2,2,1.0));
+    g->coords.Push_back(make_tuple(3,3,-1.0));
+
+    g = g->AppendSubCondition(list, biisotropy, true);
+    g->coords.Clear();
+    g->coords.Push_back(make_tuple(2,2,1.0));
+    g->coords.Push_back(make_tuple(3,3,-1.0));
+
+    // the rest is zero
+    // epsilon12 = epsilon13 = epsilon23 = 0
+    g = g->AppendSubCondition(list, biisotropy);
+    g->coords.Clear();
+    g->coords.Push_back(make_tuple(1,2,1.0));
+
+    g = g->AppendSubCondition(list, biisotropy, true);
+    g->coords.Clear();
+    g->coords.Push_back(make_tuple(1,2,1.0));
+
+    g = g->AppendSubCondition(list, biisotropy);
+    g->coords.Clear();
+    g->coords.Push_back(make_tuple(1,3,1.0));
+
+    g = g->AppendSubCondition(list, biisotropy, true);
+    g->coords.Clear();
+    g->coords.Push_back(make_tuple(1,3,1.0));
+
+    g = g->AppendSubCondition(list, biisotropy);
+    g->coords.Clear();
+    g->coords.Push_back(make_tuple(2,3,1.0));
+
+    g = g->AppendSubCondition(list, biisotropy, true);
+    g->coords.Clear();
+    g->coords.Push_back(make_tuple(2,3,1.0));
+
+  }
+
+}
+
 
 void Condition::AddHomogenizationTensorConstraints(PtrParamNode pn, StdVector<Condition*>& list, Condition* g)
 {
@@ -426,12 +572,14 @@ void Condition::AddExcitationStressConstraints(StdVector<Condition*>& list, Mult
 }
 
 
-Condition* Condition::AppendSubCondition(StdVector<Condition*>& list)
+Condition* Condition::AppendSubCondition(StdVector<Condition*>& list, bool biisotropy, bool imag)
 {
   list.Push_back(new Condition(*this)); // make a copy of this element by the (default) copy constructor
   Condition* sub = list.Last(); // copy this entry as reference
   sub->index_ = list.GetSize() - 1;
   sub->blown_up_ = true;
+  imag_ = imag;
+  biisotropy_ = biisotropy;
   return sub;
 }
 

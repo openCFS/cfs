@@ -5,28 +5,28 @@
 #ifndef OLAS_BASESYSTEM_HH
 #define OLAS_BASESYSTEM_HH
 
+#include <stddef.h>
+#include <iosfwd>
 #include <map>
 #include <set>
+#include <string>
 
+#include "DataInOut/ParamHandling/ParamNode.hh"
 #include "General/defs.hh"
 #include "General/environment.hh"
-#include "MatVec/matrix.hh"
-#include "DataInOut/ParamHandling/ParamNode.hh"
-#include "General/exception.hh"
 
 namespace CoupledField {
 
-  // Forward declarations
-  class BaseSolver;
   class BaseEigenSolver;
-  class BasePrecond;
   class BaseGraphManager;
   class BaseIDBC_Handler;
-  struct BaseEntryManipulator;
-  class BaseMatrix;
-  class StdMatrix;
+  // Forward declarations
+  class BaseSolver;
   class BaseVector;
   class SingleVector;
+  class StdMatrix;
+  struct BaseEntryManipulator;
+template <class TYPE> class Matrix;
   template <class TYPE> class StdVector;
   template <class TYPE> class Vector;
 

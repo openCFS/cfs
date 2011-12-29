@@ -2,10 +2,22 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include <iostream>
-#include <fstream>
+#include <string>
 
+#include "Domain/Composite.hh"
+#include "Elements/basefe.hh"
 #include "FlatShellElecInt.hh"
+#include "Forms/FlatShellInt.hh"
+#include "General/environment.hh"
+#include "MatVec/exprt/xpr2.hh"
+#include "MatVec/matrix.hh"
+#include "Materials/baseMaterial.hh"
+#include "Utils/StdVector.hh"
+
+namespace CoupledField {
+class EntityIterator;
+}  // namespace CoupledField
+
 #define PI 3.141592654
 
 namespace CoupledField {

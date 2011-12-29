@@ -5,11 +5,15 @@
 #ifndef FILE_DAMPLAYER
 #define FILE_DAMPLAYER
 
+#include <string>
+
+#include "General/defs.hh"
 #include "MatVec/matrix.hh"
 #include "MatVec/vector.hh"
-#include "Domain/elem.hh"
-#include "Elements/basefe.hh"
-#include "Domain/entityList.hh"
+
+namespace CoupledField {
+class EntityIterator;
+}  // namespace CoupledField
 
 namespace CoupledField
 {

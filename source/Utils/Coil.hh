@@ -1,3 +1,8 @@
+#include <iosfwd>
+#include <string>
+
+#include "General/defs.hh"
+
 #// -*- mode: c++; coding: utf-8; indent-tabs-mode: nil; -*-
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
@@ -5,16 +10,15 @@
 #ifndef COIL_FILE_HH
 #define COIL_FILE_HH
 
+#include "DataInOut/ParamHandling/ParamNode.hh"
 #include "General/environment.hh"
 #include "MatVec/vector.hh"
-#include "DataInOut/ParamHandling/ParamNode.hh"
 
 namespace CoupledField {
 
+  class CoordSystem;
   // Forward class definition
   class Grid;
-  class ParamNode;
-  class CoordSystem;
 
 
   //! Class for describing coils

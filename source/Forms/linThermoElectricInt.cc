@@ -1,10 +1,14 @@
-#include <iostream>
-#include <fstream>
+#include <string>
 
+#include "Domain/entityList.hh"
+#include "Elements/basefe.hh"
+#include "Forms/adbInt.hh"
+#include "General/environment.hh"
+#include "General/exception.hh"
+#include "MatVec/matrix.hh"
+#include "MatVec/vector.hh"
+#include "Materials/baseMaterial.hh"
 #include "linThermoElectricInt.hh"
-
-#include "Domain/domain.hh"
-#include "Domain/grid.hh"
 
 namespace CoupledField
 {

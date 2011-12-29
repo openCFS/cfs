@@ -5,9 +5,18 @@
 #ifndef FILE_HEXA1FE_2003
 #define FILE_HEXA1FE_2003
 
-#include <bitset>
 
+#include "Domain/ansatzFct.hh"
+#include "Domain/elem.hh"
+#include "General/defs.hh"
+#include "General/environment.hh"
+#include "MatVec/vector.hh"
 #include "hexaFE.hh"
+
+namespace CoupledField {
+template <class TYPE> class Matrix;
+template <class TYPE> class StdVector;
+}  // namespace CoupledField
 
 namespace CoupledField
 {
@@ -141,7 +150,7 @@ namespace CoupledField
                                             const Matrix<Double> & CornerCoords,
                                             const Elem* elem);
 
-    virtual void Global2LocalCoords(Matrix<Double> & localCoords,
+    void Global2LocalCoords(Matrix<Double> & localCoords,
                             const Matrix<Double> & globalCoords,
                             const Matrix<Double> & coordMat );
   private:

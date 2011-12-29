@@ -2,8 +2,14 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include "Utils/tools.hh"
+#include <stddef.h>
+#include <string>
+#include <vector>
+
+#include "General/Enum.hh"
+#include "OLAS/graph/basegraph.hh"
 #include "OLAS/graph/idbcgraph.hh"
+#include "Utils/StdVector.hh"
 
 namespace CoupledField {
 

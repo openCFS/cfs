@@ -2,24 +2,28 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include <fstream>
+#include <assert.h>
 #include <iostream>
 #include <string>
 
-#include "staticdriver.hh"
-#include "stdSolveStep.hh"
-
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/programOptions.hh"
-#include "PDE/StdPDE.hh"
-#include "Domain/domain.hh"
 #include "DataInOut/resultHandler.hh"
+#include "Domain/domain.hh"
+#include "Driver/baseSolveStep.hh"
+#include "Driver/singleDriver.hh"
+#include "General/environment.hh"
+#include "PDE/basePDE.hh"
+#include "Utils/mathParser/mathParser.hh"
+#include "staticdriver.hh"
 
 namespace CoupledField {
 
   // ***************
   //   Constructor
   // ***************
+class AdjointParameters;
+
   StaticDriver::StaticDriver( UInt sequenceStep,
                               bool isPartOfSequence ) 
     : SingleDriver( sequenceStep, isPartOfSequence ) {

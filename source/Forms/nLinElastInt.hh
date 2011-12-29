@@ -5,12 +5,20 @@
 #ifndef FILE_NLINELASTINT_03
 #define FILE_NLINELASTINT_03
 
-#include <Elements/basefe.hh>
-#include <Materials/baseMaterial.hh>
-#include "Domain/entityList.hh"
-#include <Forms/linElastInt.hh>
-#include <General/environment.hh>
-#include "Utils/ApproxData.hh"
+#include "Forms/linElastInt.hh"
+
+#include "General/defs.hh"
+#include "General/exception.hh"
+#include "MatVec/matrix.hh"
+
+namespace CoupledField {
+class BaseFE;
+class BaseMaterial;
+class EntityIterator;
+struct Elem;
+template <class TYPE> class NodeStoreSol;
+template <class TYPE> class Vector;
+}  // namespace CoupledField
 
 namespace CoupledField
 {

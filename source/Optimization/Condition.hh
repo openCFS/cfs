@@ -1,14 +1,25 @@
 #ifndef CONDITION_HH_
 #define CONDITION_HH_
 
+#include <stddef.h>
+#include <string>
+
 #include "DataInOut/ParamHandling/ParamNode.hh"
-#include "Optimization/Function.hh"
+#include "General/Enum.hh"
+#include "General/environment.hh"
 #include "MatVec/vector.hh"
+#include "Optimization/Design/DesignElement.hh"
+#include "Optimization/Function.hh"
+#include "Utils/StdVector.hh"
+
+namespace CoupledField {
+class DesignStructure;
+class ErsatzMaterial;
+}  // namespace CoupledField
 
 namespace CoupledField
 {
    class DesignSpace;
-   class ConditionContainer;
    class MultipleExcitation;
 
    /** our constraint criteria. Can be filled directly from XML */
@@ -85,6 +96,12 @@ namespace CoupledField
        /** Is the gradient dense or sparse. Only local conditions are sparse */
        bool HasDenseJacobian() const { return !IsLocalCondition();  }
        
+       /** Is it a constraint on the imaginary part? */
+       bool IsImag() const { return imag_; }
+
+       /** Is it a constraint on the permeability? */
+       bool IsBiisotropy() const { return biisotropy_; }
+
        /** Gives the sparsity pattern of the jacobian. It gives the sorted, 0-based indices which have
         * values. For the dens case this is 0, 1, ... m.
         * This works only after ConditionContainer::PostProc() is called as otherwise the design is not known yet.
@@ -132,7 +149,7 @@ namespace CoupledField
       bool ReadCoord(PtrParamNode pn);
 
       /** Add a subcondition with only index and value set (to zero) */
-      Condition* AppendSubCondition(StdVector<Condition*>& list);
+      Condition* AppendSubCondition(StdVector<Condition*>& list, bool biisotropy = false, bool imag = false);
 
       /** Create a new homogenization constraint with the given tensor position
        * @param base the base of cloning. Needs to contain a tensor!
@@ -168,6 +185,19 @@ namespace CoupledField
        * Set by AppendSubCondition() */
       bool blown_up_;
 
+
+      /** This is only needed for biisotropy constraints, meaning that both permittitvity and permeability shall be isotropic
+       *  biisotropy == true indicates isotropy constraints on the permeability
+       */
+      bool biisotropy_;
+
+
+      /** Information if the constraint is set for the imaginary part
+       *  default=false
+       */
+
+      bool imag_;
+
       /** Conditions mark themself as (non) linear -> no power in the design variable, ...*/
       bool linear_;
 
@@ -185,6 +215,10 @@ namespace CoupledField
        * Adds the conditions for isotropy or iso-orthotropy which is isotropy without fixing the
        * shear moduli */
       static void AddXtropyConstraints(PtrParamNode pn, StdVector<Condition*>& list, Condition* g);
+
+      /** Helper for Addcondition().
+      Adds the conditions for isotropy y*/
+      static void AddMaxwellIsotropyConstraints(PtrParamNode pn, StdVector<Condition*>& list, Condition* g, bool biisotropy = false);
 
       /** Helper for AddCondition() */
       static void AddHomogenizationTensorConstraints(PtrParamNode pn, StdVector<Condition*>& list, Condition* g);

@@ -5,15 +5,20 @@
 #ifndef ILDL0_FACTORISER_HH
 #define ILDL0_FACTORISER_HH
 
-#include <def_expl_templ_inst.hh>
+#include <complex>
+#include <vector>
 
-
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "General/defs.hh"
 #include "baseildlfactoriser.hh"
+#include "def_expl_templ_inst.hh"
 
 
 namespace CoupledField {
 
   //! This class implements an incomplete LDL factorisation with no fill in
+
+template <typename > class SCRS_Matrix;
 
   template <class T>
   class ILDL0Factoriser : public BaseILDLFactoriser<T> {

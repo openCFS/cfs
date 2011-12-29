@@ -2,15 +2,27 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
+#include <stddef.h>
 #include <algorithm>
-#include <fstream>
-#include <sstream>
+#include <complex>
 #include <iostream>
-#include <vector>
-#include <set>
 #include <map>
+#include <set>
+#include <vector>
 
+#include "DataInOut/Logging/cfslog.hh"
+#include "DataInOut/Logging/log.hpp"
+#include "DataInOut/simInput.hh"
+#include "Domain/entityList.hh"
+#include "Domain/grid.hh"
+#include "Domain/resultInfo.hh"
+#include "General/Enum.hh"
+#include "General/exception.hh"
+#include "MatVec/basematrix.hh"
+#include "MatVec/vector.hh"
 #include "SimInputUnv.hh"
+#include "Utils/Point.hh"
+#include "Utils/result.hh"
 #include "unv_if.hh"
 
 extern const char *nodeDataTypesStr[30];
@@ -129,7 +141,7 @@ namespace CoupledField {
     
     LOG_TRACE(simInputUNV) << "reading base mesh from file " << fileName_ << ":";
     
-    long n;
+    unsigned long n;
     
     if(capaIf_.ReadUniversalfile(fileName_.c_str()) < 0)
     {
@@ -188,7 +200,7 @@ namespace CoupledField {
     LOG_TRACE(simInputUNV) << "reading vertex coordinates";
 
     Point  p, pTemp;
-    long   node;
+    unsigned long   node;
 
     mi_->AddNodes(numNodes_);
 
@@ -635,7 +647,8 @@ namespace CoupledField {
       if (datainfo_.numtype55 == 0) {
         for ( i=0; i<datainfo_.numtype58; ++i ) {
           if (datainfo_.types58[i] == capaDataType) {
-            if (capaIf_.GetHistNumData(i) != numDofs) {
+	    UInt histNumData = capaIf_.GetHistNumData(i);
+            if (histNumData != numDofs) {
               EXCEPTION("Wrong number of DOFs for result '"
                         << resInfo->resultName << "': should be "
                         << capaIf_.GetHistNumData(i));

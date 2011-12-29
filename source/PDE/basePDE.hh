@@ -5,22 +5,20 @@
 #ifndef FILE_BASEPDE
 #define FILE_BASEPDE
 
-#include <list>
+#include <string>
 
-#include "General/environment.hh"
-#include "Utils/StdVector.hh"
-#include "General/exception.hh"
-#include "General/Enum.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
+#include "General/Enum.hh"
+#include "General/defs.hh"
+#include "General/exception.hh"
 
 namespace CoupledField
 {
 
 
+  class Assemble;
   // forward class declarations
   class BaseSolveStep;
-  class Assemble;
-  class ParamNode;
 
   //! Base class for partial differential equations
 

@@ -5,8 +5,23 @@
 #ifndef FILE_ELECFORCEOP_2003
 #define FILE_ELECFORCEOP_2003
 
+#include <map>
+
 #include "Forms/baseForceOp.hh"
-#include "Forms/gradfieldop.hh"
+#include "General/defs.hh"
+#include "General/environment.hh"
+#include "MatVec/vector.hh"
+
+namespace CoupledField {
+class BaseMaterial;
+class EntityIterator;
+class EqnMap;
+class Grid;
+class StdPDE;
+struct ResultInfo;
+template <class TYPE> class GradientFieldOp;
+template <typename T> class NodeStoreSol;
+}  // namespace CoupledField
 
 
 namespace CoupledField

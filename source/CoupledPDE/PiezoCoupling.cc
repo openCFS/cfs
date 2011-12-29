@@ -2,37 +2,56 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include "PiezoCoupling.hh"
+#include <assert.h>
+#include <stddef.h>
+#include <cmath>
+#include <complex>
+#include <iostream>
+#include <map>
+#include <utility>
 
-
-#include "Driver/assemble.hh"
-#include "Materials/baseMaterial.hh"
+#include "CoupledPDE/BasePairCoupling.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
-
+#include "Domain/Composite.hh"
+#include "Domain/ansatzFct.hh"
+#include "Domain/domain.hh" 
+#include "Domain/elem.hh"
+#include "Domain/entityList.hh"
+#include "Domain/grid.hh"
+#include "Domain/resultInfo.hh"
+#include "Domain/surfElem.hh"
+#include "Driver/assemble.hh"
+#include "Driver/formsContext.hh"
+#include "Driver/singleDriver.hh"
+#include "Driver/transientdriver.hh"
+#include "Elements/basefe.hh"
+#include "Forms/FlatShellPiezoInt.hh"
+#include "Forms/PiezoStressStrain.hh"
+#include "Forms/baseForm.hh"
+#include "Forms/elecchargeop.hh"
+#include "Forms/gradfieldop.hh"
+#include "Forms/linPiezoCoupling.hh"
 // integrator (bi-)linear forms
 #include "Forms/mechStressStrain.hh"
-#include "Forms/PiezoStressStrain.hh"
-#include "Forms/gradfieldop.hh"
-#include "Forms/elecchargeop.hh"
-#include "Forms/nLinPiezoHyst.hh"
 #include "Forms/nLinPiezoHyst.hh"
 #include "Forms/nLinPiezoHystRHS.hh"
 #include "Forms/nLinPiezoMicro.hh"
 #include "Forms/nLinPiezoMicroRHS.hh"
-#include "Forms/nLinPiezoCoupling.hh"
-#include "Forms/linGradBDBInt.hh"
-#include "Forms/FlatShellPiezoInt.hh"
-#include "Utils/ApproxData.hh"
-#include "Utils/SmoothSpline.hh"
-
-#include "Utils/elemstoresol.hh"
-#include "Utils/piezoMicroModel.hh"
-
+#include "General/Enum.hh"
+#include "General/exception.hh"
+#include "MatVec/exprt/xpr1.hh"
+#include "MatVec/exprt/xpr2.hh"
+#include "MatVec/matrix.hh"
+#include "MatVec/vector.hh"
+#include "Materials/baseMaterial.hh"
 #include "PDE/SinglePDE.hh"
-#include "PDE/StdPDE.hh"
 #include "PDE/mechPDE.hh"
-#include "Driver/transientdriver.hh"
-#include "Domain/domain.hh" 
+#include "PiezoCoupling.hh"
+#include "Utils/StdVector.hh"
+#include "Utils/basenodestoresol.hh"
+#include "Utils/nodestoresol.hh"
+#include "Utils/result.hh"
+#include "Utils/tools.hh"
 
 namespace CoupledField {
 

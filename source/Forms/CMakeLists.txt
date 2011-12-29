@@ -54,7 +54,6 @@ SET(FORMS_SRCS
   nLinPiezoHystRHS.cc
   nonConformingInt.cc
   pierceInt.cc
-  piezoPolarizationMatrixRHSInt.cc
   pmlBasics.cc
   PMLInt.cc
   singleEntryInt.cc

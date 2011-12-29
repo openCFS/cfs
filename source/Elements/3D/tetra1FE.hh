@@ -5,7 +5,17 @@
 #ifndef FILE_TETRA1FE
 #define FILE_TETRA1FE
 
+#include "Domain/ansatzFct.hh"
+#include "Domain/elem.hh"
+#include "General/defs.hh"
+#include "General/environment.hh"
+#include "MatVec/vector.hh"
 #include "tetraFE.hh"
+
+namespace CoupledField {
+template <class TYPE> class Matrix;
+template <class TYPE> class StdVector;
+}  // namespace CoupledField
 
 namespace CoupledField
 {

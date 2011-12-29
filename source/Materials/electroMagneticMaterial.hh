@@ -5,6 +5,13 @@
 #ifndef ELECTROMAGNETICMATERIAL_DATA
 #define ELECTROMAGNETICMATERIAL_DATA
 
+#include <string>
+
+#include "General/defs.hh"
+#include "General/environment.hh"
+#include "General/exception.hh"
+#include "MatVec/matrix.hh"
+#include "MatVec/vector.hh"
 #include "baseMaterial.hh"
 
 namespace CoupledField {
@@ -13,6 +20,9 @@ namespace CoupledField {
   /*! 
      Class for handling electromagnetic material data
   */
+
+class ApproxData;
+class ElemList;
 
   class ElectroMagneticMaterial : public BaseMaterial {
 

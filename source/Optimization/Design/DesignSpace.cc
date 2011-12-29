@@ -1,24 +1,39 @@
-#include "Optimization/Design/DesignSpace.hh"
-#include "Optimization/Design/DesignElement.hh"
-#include "Optimization/Design/ShapeDesign.hh"
-#include "Optimization/TransferFunction.hh"
-#include "Optimization/Condition.hh"
-#include "Optimization/Optimizer/BaseOptimizer.hh"
-#include "Optimization/Optimizer/ShapeOptimizer.hh"
-#include "Optimization/LevelSet.hh"
-#include "Optimization/OptimizationMaterial.hh"
-#include "General/exception.hh"
-#include "General/Enum.hh"
+#include <assert.h>
+#include <math.h>
+#include <stdlib.h>
+#include <sstream>
+
+#include "DataInOut/Logging/cfslog.hh"
+#include "DataInOut/Logging/log.hpp"
+#include "DataInOut/MaterialHandler.hh"
+#include "Domain/ansatzFct.hh"
 #include "Domain/domain.hh"
+#include "Domain/elem.hh"
+#include "Domain/entityList.hh"
 #include "Domain/grid.hh"
 #include "Domain/resultInfo.hh"
-#include "DataInOut/MaterialHandler.hh"
-#include "Utils/result.hh"
-#include "Utils/StdVector.hh"
+#include "Domain/surfElem.hh"
+#include "General/Enum.hh"
+#include "General/exception.hh"
+#include "MatVec/matrix.hh"
+#include "Optimization/Condition.hh"
+#include "Optimization/Design/DesignElement.hh"
+#include "Optimization/Design/DesignSpace.hh"
+#include "Optimization/Design/ShapeDesign.hh"
+#include "Optimization/Function.hh"
+#include "Optimization/LevelSet.hh"
+#include "Optimization/OptimizationMaterial.hh"
+#include "Optimization/Optimizer/BaseOptimizer.hh"
+#include "Optimization/Optimizer/ShapeOptimizer.hh"
+#include "Optimization/TransferFunction.hh"
 #include "PDE/SinglePDE.hh"
-#include "DataInOut/Logging/cfslog.hh"
+#include "Utils/StdVector.hh"
+#include "Utils/result.hh" // IWYU pragma: keep
+#include "boost/lexical_cast.hpp"
 
-#include <boost/lexical_cast.hpp>
+namespace CoupledField {
+template <class TYPE> class Vector;
+}  // namespace CoupledField
 
 using namespace CoupledField;
 
@@ -307,6 +322,7 @@ double DesignSpace::DetermineLowerBound(PtrParamNode pn, TransferFunction* tf)
   switch(tf->GetType())
   {
   case TransferFunction::SIMP_TYPE:
+  case TransferFunction::SIMP_VAR:
     return std::pow(physical, 1.0/tf->GetParam());
 
   case TransferFunction::RAMP:
@@ -631,7 +647,7 @@ int DesignSpace::FindDesign(DesignElement::Type dt, bool throw_exception)
 }
 
 
-double DesignSpace::GetErsatzMaterialFactor(unsigned int design_index, Optimization::Application applic)
+double DesignSpace::GetErsatzMaterialFactor(unsigned int design_index, Optimization::Application applic, bool forBimaterial)
 {
   // now do the trick, that the piezo coupling factor might be a product of the
   // density transfer function and the polarization transfer function
@@ -653,7 +669,7 @@ double DesignSpace::GetErsatzMaterialFactor(unsigned int design_index, Optimizat
     LOG_DBG3(designSpace) << "GEMF: dt=" << DesignElement::type.ToString(dt) << " app=" << Optimization::application.ToString(applic) << " tf found=" << (tf != NULL);
     // multiply our transfer function
     if(tf != NULL) {
-      double transformed = tf->Transform(de, DesignElement::SMART); // handles design filtering
+      double transformed = tf->Transform(de, DesignElement::SMART, -13.456, forBimaterial); // handles design filtering
       LOG_DBG3(designSpace) << "GEMF: ErsatzMaterial for " << de->elem->elemNum << "/"
                        << Optimization::application.ToString(applic) << " for "
                        << DesignElement::type.ToString(dt) << ": "

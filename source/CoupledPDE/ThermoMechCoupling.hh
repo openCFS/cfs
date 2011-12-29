@@ -2,14 +2,13 @@
 #define FILE_THERMO_MECH_COUPLING_HH
 
 #include "BasePairCoupling.hh"
-#include "PDE/SinglePDE.hh"
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "General/defs.hh"
 
 namespace CoupledField
 {
 
   // Forward declarations
-  class BaseForm;
-  class BaseMaterial;
   class SinglePDE;
 
   //! Implements the definition of the pairwise thermo-mechanic coupling

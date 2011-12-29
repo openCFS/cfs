@@ -6,20 +6,25 @@
 #define FILE_CFS_EQNMAP_HH
 
 
-#include "Utils/StdVector.hh"
-#include "Domain/resultInfo.hh"
+#include <map>
+
+#include "DataInOut/ParamHandling/ParamNode.hh"
 #include "Domain/bcs.hh"
+#include "Domain/resultInfo.hh"
+#include "General/defs.hh"
+#include "General/environment.hh"
+#include "MatVec/matrix.hh"
 #include "MatVec/vector.hh"
+#include "Utils/StdVector.hh"
 
 namespace CoupledField {
 
-  // Forward class declarations
-  class EntityList;
-  class NodeList;
   class ElemList;
   class EntityIterator;
-  struct ResultInfo;
-  class ParamNode; 
+  // Forward class declarations
+  class EntityList;
+class Grid;
+  class NodeList;
   
   //! Class for mapping entities and ansatz functions to equation numbers
   class EqnMap {

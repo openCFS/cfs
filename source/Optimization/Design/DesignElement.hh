@@ -1,30 +1,37 @@
 #ifndef DESIGNELEMENT_HH_
 #define DESIGNELEMENT_HH_
 
+#include <assert.h>
+#include <math.h>
+#include <stddef.h>
+#include <limits>
+#include <string>
+
+#include "DataInOut/ParamHandling/ParamNode.hh"
 #include "General/Enum.hh"
-#include "Domain/elem.hh"
-#include "Utils/tools.hh"
+#include "General/environment.hh"
 #include "MatVec/vector.hh"
 #include "Optimization/Design/Filter.hh"
-#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "Utils/StdVector.hh"
+
+namespace CoupledField {
+class Point;
+}  // namespace CoupledField
 
 namespace CoupledField
 {
-struct Elem;
-class ParamNode;
-class SinglePDE;
 class Condition;
+class DesignElement;
 class DesignSpace;
 class DesignStructure;
-class DesignElement;
+class Function;
+class LevelSetElement;
+class Objective;
 class ResultDescription;
 class SIMPElement;
-class VicinityElement;
-class LevelSetElement;
-class Function;
-class Objective;
-class Condition;
+class SinglePDE;
 class TransferFunction;
+struct Elem;
 
 /** This DesignElement package provides information about the direct neighbours for uniform cartesian
  * quadrilateral or hexahedral meshes. */
@@ -529,6 +536,8 @@ double SIMPElement::CalcHeaviside(double input_value) const
 
     double first    = std::exp(-1.0 * b * (1.0 - input_value));
     double second   = -1.0 * (1.0 - input_value) * std::exp(-1.0 * b);
+
+    assert((ub-lb) > 1e-2); // if not you probably forgot to set force_lower_bound in the filter definition
 
     result = (ub-lb) * (first + second) + lb;
 

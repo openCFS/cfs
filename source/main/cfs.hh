@@ -1,15 +1,21 @@
 #ifndef CFS_HH_
 #define CFS_HH_
 
-#include "Utils/StdVector.hh"
-#include "DataInOut/simInput.hh"
+#include <map>
+#include <string>
+
 #include "DataInOut/DefineFiles/definefiles.hh"
+#include "Utils/StdVector.hh"
+
+namespace CoupledField {
+class SimInput;
+}  // namespace CoupledField
 
 namespace CoupledField
 {
+  class MaterialHandler;
   class ResultHandler;
   class Timer;
-  class MaterialHandler;
 
   /** This is the base class of CFS.
    * It basically gives more structure for the original main() call. */

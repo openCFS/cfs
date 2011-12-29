@@ -2,26 +2,32 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include <def_use_xerces.hh>
-#include "XMLMaterialHandler.hh"
+#include <stddef.h>
+#include <ostream>
 
+#include "DataInOut/MaterialHandler.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/ParamHandling/ParamTools.hh"
 #include "DataInOut/ParamHandling/Xerces.hh"
 #include "DataInOut/programOptions.hh"
-#include "DataInOut/WriteInfo.hh"
-
+#include "General/defs.hh"
+#include "General/exception.hh"
+#include "MatVec/matrix.hh"
+#include "MatVec/vector.hh"
+#include "Materials/acousticMaterial.hh"
+#include "Materials/baseMaterial.hh"
 // header for materials
 #include "Materials/electroMagneticMaterial.hh"
 #include "Materials/electrostaticMaterial.hh"
+#include "Materials/flowMaterial.hh"
 #include "Materials/heatMaterial.hh"
-#include "Materials/acousticMaterial.hh"
+#include "Materials/magStrictMaterial.hh"
 #include "Materials/mechanicMaterial.hh"
 #include "Materials/piezoMaterial.hh"
-#include "Materials/flowMaterial.hh"
-#include "Materials/thermoelasticMaterial.hh"
 #include "Materials/pyroelectricMaterial.hh"
-#include "Materials/magStrictMaterial.hh"
+#include "Materials/thermoelasticMaterial.hh"
+#include "XMLMaterialHandler.hh"
+#include "def_use_xerces.hh"
 
 // Note, that the methods ComputeIso/OrthoMechStiffnesTensor were commented out
 // in revision 7562 and are not in the code -> check the repository!
@@ -623,6 +629,35 @@ namespace CoupledField {
       // KILLME isotropic permittivity is NOT set in r7562!!
     } // end of permittivity
     
+    // check for permeability (only used in maxwell homogenization for phase velocity)
+    if(elec->Has("permeability"))
+    {
+      PtrParamNode p = elec->Get("permeability");
+
+      // check for tensor with dim1 = 3 <tensor dim1="3">
+      if(p->HasByVal("tensor", "dim1", "3"))
+      {
+        Matrix<Double> permeabilityTensor(3,3);
+
+        // read real permittivity tensor
+        if(p->GetByVal("tensor", std::string("dim1"), "3")->Has("real"))
+        {
+          PtrParamNode tensor =  p->GetByVal("tensor","dim1","3")->Get("real");
+          ParamTools::AsTensor<double>(tensor, 3, 3, permeabilityTensor);
+          material->SetTensor(permeabilityTensor, MAG_PERMEABILITY, Global::REAL);
+        }
+
+        // read imaginary permittivity tensor
+        if(p->GetByVal("tensor", "dim1", "3")->Has("imag"))
+        {
+          PtrParamNode tensor =  p->GetByVal("tensor","dim1","3")->Get("imag");
+          ParamTools::AsTensor<double>(tensor, 3, 3, permeabilityTensor);
+          material->SetTensor(permeabilityTensor, MAG_PERMEABILITY, Global::IMAG);
+        }
+      } // end of <tensor dim1="3">
+
+    } // end of permeability
+
     // check for <permittivityCoefficient nonlinear="function">
     if(elec->HasByVal("permittivityCoefficient", "nonlinear", "function"))
     {

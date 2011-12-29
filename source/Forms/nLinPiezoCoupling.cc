@@ -2,13 +2,18 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include <iostream>
 #include <fstream>
+#include <string>
 
+#include "Domain/elem.hh"
+#include "Domain/resultInfo.hh"
+#include "Elements/basefe.hh"
+#include "Forms/gradfieldop.hh"
 #include "General/environment.hh"
+#include "General/exception.hh"
+#include "Materials/baseMaterial.hh"
 #include "Utils/nodestoresol.hh"
 #include "nLinPiezoCoupling.hh"
-#include "mechStressStrain.hh"
 
 
 namespace CoupledField {
@@ -17,6 +22,10 @@ namespace CoupledField {
   // ============
   //   Constructor of nonlinear piezo coupling
   // ============
+class EqnMap;
+class Grid;
+class StdPDE;
+
   nLinPiezoCoupling::nLinPiezoCoupling( BaseMaterial* matData,
                                         BaseMaterial* matDataMech,
                                         BaseMaterial* matDataElec,                                       

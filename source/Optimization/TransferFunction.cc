@@ -1,11 +1,16 @@
-#include "Optimization/Design/DesignSpace.hh"
+#include <assert.h>
+#include <math.h>
+#include <stddef.h>
+#include <ostream>
+
+#include "DataInOut/Logging/cfslog.hh"
+#include "DataInOut/Logging/log.hpp"
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "Domain/elem.hh"
+#include "General/exception.hh"
 #include "Optimization/Design/DesignElement.hh"
 #include "Optimization/TransferFunction.hh"
-#include "DataInOut/ParamHandling/ParamNode.hh"
-#include "DataInOut/Logging/cfslog.hh"
 #include "PDE/SinglePDE.hh"
-#include "General/exception.hh"
-#include "Utils/StdVector.hh"
 
 
 using namespace CoupledField;
@@ -153,6 +158,7 @@ bool TransferFunction::IsPenalized() const
   switch(type_)
   {
   case SIMP_TYPE:
+  case SIMP_VAR:
     return param_ != 1.0;
 
   case RAMP:
@@ -185,7 +191,7 @@ std::string TransferFunction::ToString()
   return os.str();   
 }
 
-double TransferFunction::Transform(const DesignElement* de, DesignElement::Access access, double external_value) const
+double TransferFunction::Transform(const DesignElement* de, DesignElement::Access access, double external_value, bool forBimaterial) const
 {
   assert(!(external_value != -13.456 && access == DesignElement::SMART));
   double value = external_value == -13.456 ? de->GetValue(DesignElement::DESIGN, access) : external_value;
@@ -203,6 +209,14 @@ double TransferFunction::Transform(const DesignElement* de, DesignElement::Acces
   case SIMP_TYPE:
     assert(param_ >= 0);
     result = std::pow(value, param_);
+    break;
+
+  case SIMP_VAR:
+    assert(param_ >= 0);
+    if (!forBimaterial)
+      result = std::pow(value, param_);
+    else
+      result = std::pow(1.0-value, param_);
     break;
 
   case RAMP:
@@ -242,7 +256,7 @@ double TransferFunction::Transform(const DesignElement* de, DesignElement::Acces
   return result;
 }     
 
-double TransferFunction::Derivative(const DesignElement* de, DesignElement::Access access) const
+double TransferFunction::Derivative(const DesignElement* de, DesignElement::Access access, bool forBimaterial) const
 {
   double value = de->GetValue(DesignElement::DESIGN, access);
 
@@ -256,7 +270,13 @@ double TransferFunction::Derivative(const DesignElement* de, DesignElement::Acce
       return 1.0;
 
     case SIMP_TYPE:
-      return param_ * std::pow(value, param_ - 1.0);
+          return param_ * std::pow(value, param_ - 1.0);
+
+    case SIMP_VAR:
+      if (!forBimaterial)
+        return param_ * std::pow(value, param_ - 1.0);
+      else
+        return - param_ * std::pow(1.0-value, param_ - 1.0);
 
     case RAMP: 
     {
@@ -295,6 +315,7 @@ void TransferFunction::SetEnums()
   type.SetName("TransferFunction::Type");
   type.Add(NO_TYPE, "no_type");  
   type.Add(SIMP_TYPE, "simp");
+  type.Add(SIMP_VAR, "simpVar");
   type.Add(IDENTITY, "identity");
   type.Add(RAMP, "ramp");
   type.Add(FIXED, "fixed");

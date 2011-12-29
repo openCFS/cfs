@@ -5,17 +5,22 @@
 #ifndef TOOLS_2001
 #define TOOLS_2001
 
-#include <string>
+#include <cmath>
+#include <complex>
+#include <cstdlib>
 #include <iostream>
+#include <string>
+#include <utility>
 
+#include "General/defs.hh"
 #include "General/environment.hh"
 #include "Utils/Point.hh"
+#include "Utils/StdVector.hh"
 
 namespace CoupledField {
 
   template<class TYPE> class Matrix;
   template<class TYPE> class Vector;
-  template<class TYPE> class StdVector;
   
   // to prevent using the abs from stdlib.h which is only for int!
   using std::abs;
@@ -92,9 +97,10 @@ namespace CoupledField {
 
   Double dist_Mat(const Matrix<Double> &a);
 
+  class Grid;
   // calculation area or volume of element
   struct Elem;
-  class Grid;
+
   Double CalcArea(Elem * ptElem, Grid * ptgrid);
 
   // define number of refinement for the element
@@ -153,6 +159,17 @@ namespace CoupledField {
    for(unsigned int r = 0, rn = out.GetNumRows(); r < rn; r++)
      for(unsigned int c = 0, cn = out.GetNumCols(); c < cn; c++)
        out[r][c] += fac * other[r][c];
+  }
+
+  template<class TYPE, class TYPE2>
+  void Add(Vector<TYPE>& out, const TYPE2 fac, const Vector<TYPE>& other)
+  {
+   #ifdef CHECK_INDEX
+      if(out.GetSize() != other.GetSize())
+        EXCEPTION("vectors do not match");
+   #endif
+   for(unsigned int i = 0, rn = out.GetSize(); i < rn; i++)
+       out[i] += fac * other[i];
   }
 
   /** makes sure the string is a valid xml element and attribute name */

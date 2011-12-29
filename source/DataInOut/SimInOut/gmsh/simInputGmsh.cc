@@ -16,17 +16,18 @@
 
 #include <algorithm>
 #include <fstream>
-#include <iostream>
-#include <sstream>
+#include <utility>
 #include <vector>
-#include <set>
 
-#include <boost/algorithm/string/trim.hpp>
-
-#include "Utils/coordSystem.hh"
+#include "DataInOut/simInput.hh"
 #include "Domain/domain.hh"
-
+#include "Domain/grid.hh"
+#include "General/environment.hh"
+#include "General/exception.hh"
 #include "GmshHelper.hh"
+#include "MatVec/vector.hh"
+#include "Utils/coordSystem.hh"
+#include "boost/algorithm/string/trim.hpp"
 #include "simInputGmsh.hh"
 
 namespace CoupledField {

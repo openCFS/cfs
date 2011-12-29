@@ -3,15 +3,15 @@
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
 #include <iostream>
-#include <fstream>
 #include <string>
-
-#include "General/environment.hh"
-#include "wedgeFE.hh"
 
 // used for CreateHigherOrderElements()
 #include "../1D/line1fe.hh"
 #include "../2D/triangle1fe.hh"
+#include "General/environment.hh"
+#include "General/exception.hh"
+#include "MatVec/matrix.hh"
+#include "wedgeFE.hh"
 
 namespace CoupledField
 {

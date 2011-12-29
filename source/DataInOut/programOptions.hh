@@ -5,18 +5,18 @@
 #ifndef FILE_CFS_PROGRAM_OPTIONS_HH
 #define FILE_CFS_PROGRAM_OPTIONS_HH
 
-#include <boost/program_options.hpp>
-#include <boost/filesystem/path.hpp>
+#include <iosfwd>
+#include <string>
+#include <vector>
 
-
-// Include defs
-#include <def_build_type_options.hh>
-#include <def_use_scripting.hh>
-
-
-// Required for the CFS own data types
-#include "General/environment.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
+#include "General/defs.hh"
+#include "boost/filesystem/path.hpp"
+#include "boost/program_options.hpp"
+// Include defs
+#include "def_build_type_options.hh"
+#include "def_use_scripting.hh"
+// Required for the CFS own data types
 
 namespace po = boost::program_options;
 namespace fs = boost::filesystem;

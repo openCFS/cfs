@@ -5,18 +5,27 @@
 #ifndef FILE_GRADIENTFIELDOP_2004
 #define FILE_GRADIENTFIELDOP_2004
 
+#include <stddef.h>
+
 #include "Forms/baseoperator.hh"
-#include "Utils/tools.hh"
+#include "General/defs.hh"
+#include "General/environment.hh"
 #include "Utils/StdVector.hh"
+
+namespace CoupledField {
+class AnsatzFct;
+class EntityIterator;
+class EqnMap;
+class SingleVector;
+class StdPDE;
+}  // namespace CoupledField
 
 namespace CoupledField
 {
 
   class Grid;
-  struct Elem;
   template<class TYPE> class NodeStoreSol;
   template<class TYPE> class Vector;
-  template<class TYPE> class Matrix;
   
   //! Operator for calculating gradient fields
   

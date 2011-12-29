@@ -5,11 +5,17 @@
 #ifndef FILE_LIN_PRESSURE_INT
 #define FILE_LIN_PRESSURE_INT
 
+#include <string>
+
 #include "Forms/linSurfForm.hh"
+#include "General/defs.hh"
 
 namespace CoupledField {
   
   //! Class for calculating Pressure load vector on surface elements
+class EntityIterator;
+template <class TYPE> class Vector;
+
   class PressureLinForm : public LinearSurfForm {
     
   public:

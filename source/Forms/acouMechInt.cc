@@ -2,6 +2,22 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
+#include <stddef.h>
+#include <map>
+#include <ostream>
+#include <string>
+#include <utility>
+
+#include "Domain/elem.hh"
+#include "Domain/entityList.hh"
+#include "Domain/surfElem.hh"
+#include "Elements/basefe.hh"
+#include "General/exception.hh"
+#include "MatVec/exprt/xpr1.hh"
+#include "MatVec/exprt/xpr2.hh"
+#include "MatVec/matrix.hh"
+#include "MatVec/vector.hh"
+#include "Materials/baseMaterial.hh"
 #include "acouMechInt.hh"
 
 

@@ -1,11 +1,21 @@
-#include "Optimization/Optimizer/ShapeOptimizer.hh"
-#include "Optimization/Optimization.hh"
+#include <assert.h>
+#include <stddef.h>
+#include <algorithm>
+#include <iostream>
+#include <string>
+
 #include "Domain/domain.hh"
-#include "Optimization/TopGrad.hh"
-#include "Optimization/LevelSet.hh"
-#include "Utils/Timer.hh"
-#include "PDE/basePDE.hh"
 #include "Driver/assemble.hh"
+#include "General/Enum.hh"
+#include "General/environment.hh"
+#include "General/exception.hh"
+#include "Optimization/ErsatzMaterial.hh"
+#include "Optimization/LevelSet.hh"
+#include "Optimization/Optimization.hh"
+#include "Optimization/Optimizer/ShapeOptimizer.hh"
+#include "Optimization/TopGrad.hh"
+#include "PDE/basePDE.hh"
+#include "Utils/Timer.hh"
 
 namespace CoupledField
 {

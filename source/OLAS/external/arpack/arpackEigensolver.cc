@@ -2,20 +2,27 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include <limits>
-#include <string.h>
-
-#include "MatVec/stdmatrix.hh"
-#include "MatVec/generatematvec.hh"
+#include <math.h>
+#include <stddef.h>
+#include <iostream>
+#include <string>
 
 #include "DataInOut/ParamHandling/ParamNode.hh"
-
-#include "OLAS/precond/generateprecond.hh"
+#include "General/environment.hh"
+#include "General/exception.hh"
+#include "MatVec/basematrix.hh"
+#include "MatVec/basevector.hh"
+#include "MatVec/generatematvec.hh"
+#include "MatVec/stdmatrix.hh"
+#include "MatVec/vector.hh"
+#include "OLAS/external/arpack/arpackMatInterface.hh"
+#include "OLAS/external/arpack/arpackSolver.hh"
 #include "OLAS/precond/baseprecond.hh"
-#include "OLAS/solver/generatesolver.hh"
+#include "OLAS/precond/generateprecond.hh"
 #include "OLAS/solver/basesolver.hh"
-
+#include "OLAS/solver/generatesolver.hh"
 #include "arpackEigensolver.hh"
+#include "string.h"
 
 namespace CoupledField {
 

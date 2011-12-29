@@ -6,18 +6,21 @@
 #define OLAS_BASEENTRYMANIPULATOR_HH
 
 
-#include "MatVec/vector.hh"
+#include <vector>
 
-#include "General/exception.hh"
+#include "General/defs.hh"
+#include "General/environment.hh"
+#include "Utils/StdVector.hh"
 
 namespace CoupledField {
 
 
-  // Forward declaration of classes
-  class StandardSystem;
-  class StdMatrix;
-  class SingleVector;
   class BaseIDBC_Handler;
+  class SingleVector;
+  class StdMatrix;
+  // Forward declaration of classes
+template <typename T> class Matrix;
+template <typename T> class Vector;
 
 
   //! Auxilliary class for manipulating matrix and vector entries

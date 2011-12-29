@@ -2,24 +2,41 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include "StdPDE.hh"
+#include <math.h>
+#include <stdlib.h>
+#include <complex>
+#include <fstream>
+#include <set>
+#include <utility>
 
-#include "MatVec/vector.hh"
-#include "Driver/stdSolveStep.hh"
-#include "Driver/transientdriver.hh"
-
-#include "Domain/domain.hh"
-#include "Utils/coordSystem.hh"
-
+#include "DataInOut/ParamHandling/CFSOLASParams.hh"
 // headers for Paramhandling
 #include "DataInOut/ParamHandling/ParamNode.hh"
-#include "DataInOut/ParamHandling/CFSOLASParams.hh"
-#include "Driver/assemble.hh"
-
+#include "DataInOut/resultHandler.hh"
+#include "Domain/domain.hh"
+#include "Domain/entityList.hh"
+#include "Domain/grid.hh"
+#include "Domain/resultInfo.hh"
+#include "Driver/singleDriver.hh"
+#include "Driver/stdSolveStep.hh"
+#include "Driver/transientdriver.hh"
+#include "General/Enum.hh"
+#include "MatVec/vector.hh"
+#include "Materials/baseMaterial.hh"
 #include "OLAS/algsys/basesystem.hh"
+#include "PDE/eqnMap.hh"
+#include "StdPDE.hh"
+#include "Utils/basenodestoresol.hh"
+#include "Utils/nodestoresol.hh"
+#include "Utils/result.hh"
+#include "Utils/tools.hh"
 
 namespace CoupledField {
 
+
+class BaseSolveStep;
+class SingleVector;
+struct Elem;
 
   StdPDE::StdPDE(Grid *aptgrid, PtrParamNode paramNode ) :
     BasePDE(paramNode),
@@ -153,7 +170,7 @@ namespace CoupledField {
         
     // now reset AlgebraicSystem 
     algsys_->InitRHS();
-  	algsys_->InitSol();
+    algsys_->InitSol();
   }
 
 
@@ -287,6 +304,58 @@ namespace CoupledField {
      }
   }
 
+
+  // complex valued method (for HARMONIC)
+  void StdPDE::GetRHSVecOfElement( Vector<Double>& elemRHS,
+                                   const EntityIterator& it,
+                                   shared_ptr<ResultInfo> res ) {
+
+
+    StdVector<Integer> eqns;
+    eqnMap_->GetEqns( eqns, *res, it );
+
+
+    elemRHS.Resize( eqns.GetSize() );
+    elemRHS.Init( 0.0 );
+    Vector<Double> rhs;
+    algsys_->GetRHSVal(rhs);
+
+
+    for( UInt i = 0; i < eqns.GetSize(); i++ ) {
+      if ( eqns[i] != 0 ) {
+        elemRHS[i] = rhs[abs(eqns[i])-1];
+      } else {
+        elemRHS[i] = 0.0;
+      }
+     }
+  }
+
+
+  // complex valued method (for HARMONIC)
+  void StdPDE::GetRHSVecOfElement( Vector<Complex>& elemRHS,
+                                   const EntityIterator& it,
+                                   shared_ptr<ResultInfo> res ) {
+
+
+    StdVector<Integer> eqns;
+    eqnMap_->GetEqns( eqns, *res, it );
+
+
+    elemRHS.Resize( eqns.GetSize() );
+    elemRHS.Init( Complex(0.0, 0.0) );
+    Vector<Complex> rhs;
+    algsys_->GetRHSVal(rhs);
+
+
+    for( UInt i = 0; i < eqns.GetSize(); i++ ) {
+      if ( eqns[i] != 0 ) {
+        elemRHS[i] = rhs[abs(eqns[i])-1];
+      } else {
+        elemRHS[i] = Complex(0.0, 0.0);
+      }
+     }
+  }
+
   
   // real valued method (for TRANSIENT)
   void StdPDE::GetDerivSolVecOfElement(Vector<Double>& sol,
@@ -331,7 +400,7 @@ namespace CoupledField {
     
     if ( analysistype_ == HARMONIC ) {
       NodeStoreSol<Complex> * solhelp = 
- 	dynamic_cast<NodeStoreSol<Complex>*>(sol_);
+          dynamic_cast<NodeStoreSol<Complex>*>(sol_);
       const Vector<Complex> & solAtNode = solhelp->GetAlgSysVector();
 
       for( UInt i = 0; i < eqns.GetSize(); i++ ) {
@@ -388,7 +457,7 @@ namespace CoupledField {
     
     if ( analysistype_ == HARMONIC ) {
       NodeStoreSol<Complex> * solhelp = 
- 	dynamic_cast<NodeStoreSol<Complex>*>(sol_);
+          dynamic_cast<NodeStoreSol<Complex>*>(sol_);
       Vector<Complex> & solAtNode = solhelp->GetAlgSysVector();
 
       for( UInt i = 0; i < eqns.GetSize(); i++ ) {

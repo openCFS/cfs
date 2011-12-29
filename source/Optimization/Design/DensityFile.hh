@@ -1,9 +1,14 @@
 #ifndef DENSITYFILE_HH_
 #define DENSITYFILE_HH_
 
-#include "General/Enum.hh"
-#include "Optimization/Design/DesignElement.hh"
-#include "Optimization/Condition.hh"
+#include <stddef.h>
+#include <string>
+
+#include "DataInOut/ParamHandling/ParamNode.hh"
+
+namespace CoupledField {
+class DesignSpace;
+}  // namespace CoupledField
 
 namespace CoupledField
 {

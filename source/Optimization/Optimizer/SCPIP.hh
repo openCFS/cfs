@@ -1,13 +1,15 @@
 #ifndef SCPIP_HH_
 #define SCPIP_HH_
 
-#include "Optimization/Optimizer/SCPIPBase.hh"
+#include <assert.h>
+
+#include "DataInOut/ParamHandling/ParamNode.hh"
 #include "Optimization/Optimizer/BaseOptimizer.hh"
+#include "Optimization/Optimizer/SCPIPBase.hh"
 
 namespace CoupledField
 {
 class Optimization;
-class ParamNode;
 
 
   /** This is an implementation of the C++ wrapper SCPIPBase of the

@@ -5,9 +5,19 @@
 #ifndef FILE_ITERSOLVESTEP
 #define FILE_ITERSOLVESTEP
 
-#include "PDE/basePDE.hh"
+#include <stddef.h>
+
+#include "DataInOut/ParamHandling/ParamNode.hh"
 #include "Driver/baseSolveStep.hh"
-#include "MatVec/SingleVector.hh"
+#include "General/defs.hh"
+#include "General/environment.hh"
+#include "PDE/basePDE.hh"
+
+namespace CoupledField {
+class AdjointParameters;
+class SingleVector;
+template <class TYPE> class StdVector;
+}  // namespace CoupledField
 
 namespace CoupledField
 {
@@ -59,7 +69,7 @@ namespace CoupledField
 
 
     //!  base method for solving one harmonic step 
-    virtual void SolveStepHarmonic(PtrParamNode analysis_id);
+    virtual void SolveStepHarmonic(PtrParamNode analysis_id, AdjointParameters* adjointParams = NULL);
 
 
     //!  routine for actions after the SolveStep-method

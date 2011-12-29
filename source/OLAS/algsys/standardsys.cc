@@ -2,36 +2,43 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include <string>
-#include <iostream>
+#include <assert.h>
+#include <algorithm>
+#include <complex>
 #include <fstream>
-#include <boost/algorithm/string/replace.hpp>
+#include <set>
+#include <string>
 
-#include "MatVec/stdmatrix.hh"
-#include "MatVec/patternpool.hh"
-#include "MatVec/generatematvec.hh"
-
-#include "OLAS/algsys/standardsys.hh"
-
-#include "OLAS/graph/graphmanagersimple.hh"
-#include "OLAS/graph/graphmanagerstdmat.hh"
-#include "OLAS/precond/generateprecond.hh"
-#include "OLAS/precond/baseprecond.hh"
-#include "OLAS/solver/basesolver.hh"
-#include "OLAS/solver/baseEigensolver.hh"
-#include "OLAS/solver/generatesolver.hh"
-#include "OLAS/solver/generateEigensolver.hh"
-
-#include "OLAS/algsys/baseentrymanipulator.hh"
-#include "OLAS/algsys/generateidbchandler.hh"
-#include "OLAS/algsys/baseidbchandler.hh"
-
-#include "General/exception.hh"
-#include "Utils/Timer.hh"
-
+#include "DataInOut/Logging/cfslog.hh"
+#include "DataInOut/Logging/log.hpp"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/programOptions.hh"
-#include "DataInOut/Logging/cfslog.hh"
+#include "General/Enum.hh"
+#include "General/exception.hh"
+#include "MatVec/SingleVector.hh"
+#include "MatVec/basematrix.hh"
+#include "MatVec/basevector.hh"
+#include "MatVec/generatematvec.hh"
+#include "MatVec/patternpool.hh"
+#include "MatVec/stdmatrix.hh"
+#include "OLAS/algsys/baseentrymanipulator.hh"
+#include "OLAS/algsys/baseidbchandler.hh"
+#include "OLAS/algsys/generateidbchandler.hh"
+#include "OLAS/algsys/standardsys.hh"
+#include "OLAS/graph/basegraph.hh"
+#include "OLAS/graph/basegraphmanager.hh"
+#include "OLAS/precond/baseprecond.hh"
+#include "OLAS/precond/generateprecond.hh"
+#include "OLAS/solver/baseEigensolver.hh"
+#include "OLAS/solver/basesolver.hh"
+#include "OLAS/solver/generateEigensolver.hh"
+#include "OLAS/solver/generatesolver.hh"
+#include "Utils/Timer.hh"
+#include "boost/algorithm/string/replace.hpp"
+
+namespace CoupledField {
+template <class TYPE> class Matrix;
+}  // namespace CoupledField
 
 using std::string;
 

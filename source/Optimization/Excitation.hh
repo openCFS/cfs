@@ -1,20 +1,23 @@
 #ifndef EXCITATION_HH_
 #define EXCITATION_HH_
 
-#include "General/Enum.hh"
-#include "Utils/StdVector.hh"
-#include "MatVec/vector.hh"
+#include <string>
+
+#include "DataInOut/ParamHandling/ParamNode.hh"
 #include "Domain/bcs.hh"
 #include "Driver/harmonicDriver.hh"
+#include "General/Enum.hh"
+#include "MatVec/vector.hh"
 #include "PDE/mechPDE.hh"
+#include "Utils/StdVector.hh"
 
 
 namespace CoupledField
 {
 
-class ObjectiveContainer;
 class Function;
 class LinearFormContext;
+class ObjectiveContainer;
 class SinglePDE;
 
 typedef LoadBc TrackingBc;
@@ -53,11 +56,9 @@ public:
 
   void ReadTestStrain(MechPDE::TestStrain ts);
 
-  void AddLinFormsFromAssemble();
+  void ReadTestCharges(const Vector<double>& vec);
 
-  /** set correct values of pol_rhs for calculation of polarization matrix */
-  void SetPolarizationMatrixRHS(const Vector<double> &mechp,
-      const Vector<double> &elecp, const int num);
+  void AddLinFormsFromAssemble();
 
   /** return pointer to linForms, used by Shape-Optimization */
   StdVector<LinearFormContext*>& GetLinForms() { return *linForms; }
@@ -104,9 +105,9 @@ public:
    * strains defined in ErsatzMaterial::SetHomogenizationTestStrains() */
   Vector<double> test_strain;
 
-  /** for the calculation of the polarization matrix for the piezo topology gradient
-   *  contains the rhs-values, length is 5 for 2D, 9 for 3D (mech + elec) */
-  Vector<double> pol_rhs;
+  /** for the calculation of a homogenized material tensor, we use the test
+   * charges defined in ErsatzMaterial::SetMaxwellHomogenizationTestCharges() */
+  Vector<double> test_charge;
 
 };
 
@@ -121,7 +122,7 @@ public:
 
   void ToInfo(PtrParamNode in) const;
 
-  typedef enum { NO_TYPE, FIXED_WEIGHT, META_OBJECTIVE, HOMOGENIZATION_TEST_STRAINS, POLARIZATION_MATRIX } Type;
+  typedef enum { NO_TYPE, FIXED_WEIGHT, META_OBJECTIVE, HOMOGENIZATION_TEST_STRAINS, MAXWELL_HOMOGENIZATION_TEST_STRAINS} Type;
 
   static Enum<Type> type;
   /** Do we do multiple excitation at all? */
@@ -136,7 +137,7 @@ public:
 
   bool DoHomogenization() const { return type_ == HOMOGENIZATION_TEST_STRAINS; }
 
-  bool DoPolarizationMatrix() const { return type_ == POLARIZATION_MATRIX; }
+  bool DoMaxwellHomogenization() const { return type_ == MAXWELL_HOMOGENIZATION_TEST_STRAINS; }
 
   /** Search for the excitation label.
    * @param quiet if true NULL is returned when the label is not found instead of an exception */
@@ -165,9 +166,8 @@ private:
   /** Helper for PrepareMultipleExcitations(). Excitations are set with hard coded test strains */
   int SetHomogenizationTestStrains();
 
-  /** Helper for PrepareMultipleExcitations(). Excitations are set with hard coded polarization matrix excitations
-   * @param param where polarizationMatrix can be found */
-  int SetPolarizationMatrixExcitations(PtrParamNode param);
+  /** Helper for PrepareMultipleExcitations(). Excitations are set with hard coded maxwell homogenization test charges */
+  int SetMaxwellHomogenizationTestCharges();
 
   /** do we do multiple excitation at all? */
   bool multiple_excitation_;

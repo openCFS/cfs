@@ -5,10 +5,18 @@
 #ifndef FILE_DOMAIN_2001
 #define FILE_DOMAIN_2001
 
+#include <stddef.h>
 #include <map>
+#include <string>
 
+#include "General/defs.hh"
+#include "General/environment.hh"
 #include "Utils/StdVector.hh"
-#include "Driver/basedriver.hh"
+
+namespace CoupledField {
+class BaseDriver;
+template <class TYPE> class Matrix;
+}  // namespace CoupledField
 #ifndef INTEGLIB
 #include "Utils/mathParser/mathParser.hh"
 #endif
@@ -16,27 +24,24 @@
 namespace CoupledField
 {
 
-  //! Forward class declarations
-  class BasePDE;
   class BaseForm;
   class BaseMaterial;
-  class StdPDE;
-  class SinglePDE;
-  class IterCoupledPDE;
-  class PDECoupling;
+  //! Forward class declarations
+  class BasePDE;
+  class CoordSystem;
+  class DesignSpace;
   class DirectCoupledPDE;
   class Grid;
-  class FileType;
-  class CoordSystem;
+  class IterCoupledPDE;
   class MaterialHandler;
-  class Optimization;
-  class DesignSpace;
-  class DesignElement;
-  class SingleDriver;
   class MultiSequenceDriver;
-  class SimInput;
+  class Optimization;
+  class PDECoupling;
   class ResultHandler;
-  class ParamNode;
+  class SimInput;
+  class SingleDriver;
+  class SinglePDE;
+  class StdPDE;
   struct Elem;
 
 
@@ -148,6 +153,9 @@ namespace CoupledField
     CoordSystem * GetCoordSystem( const std::string & name 
                                   = std::string("default") );
 
+    //! Return dimension
+    UInt GetDim() { return dim_; }
+
     /** For some optimization (SIMP) or normal simulation with external
      * ersatz material file the forms get the density value by this
      * function. Any transfer function (e.g. x^3 in SIMP) is applied!
@@ -156,7 +164,7 @@ namespace CoupledField
      * @param form the actual bilinearform, this is used to find the power for SIMP
      * @param result we return the result in the parameter, to indicate clearly if it is valid
      * @return true if result was set,.false if there is no ersatz materal for the input params */
-    bool GetErsatzMaterial(const Elem* elem, const BaseForm* form, double& result);
+    bool GetErsatzMaterial(const Elem* elem, const BaseForm* form, double& result, bool forBimaterial = false);
     
     /** Check for the existence of bi-material.
      * Use as (1-result)*BM with result from GetErsatzMaterial() and add it to the original result*OrgMat
@@ -320,7 +328,7 @@ namespace CoupledField
     //! Pointer to material handler
     MaterialHandler * ptMatHandler_;
 
-    //! Mapping between name and coordinate sysem pointer
+    //! Mapping between name and coordinate system pointer
     std::map<std::string, CoordSystem*> coordSys_;
 
     /** an optinal optimizer */

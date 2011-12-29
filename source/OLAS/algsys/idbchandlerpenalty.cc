@@ -2,12 +2,21 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
+#include <stddef.h>
+#include <cmath>
+#include <iomanip>
+#include <ostream>
+#include <string>
+
+#include "General/exception.hh"
+#include "MatVec/SingleVector.hh"
+#include "MatVec/basevector.hh"
+#include "MatVec/generatematvec.hh"
 #include "MatVec/sbmmatrix.hh"
 #include "MatVec/sbmvector.hh"
-
-#include "OLAS/algsys/standardsys.hh"
+#include "MatVec/stdmatrix.hh"
+#include "MatVec/typedefs.hh"
 #include "OLAS/algsys/baseentrymanipulator.hh"
-
 #include "idbchandlerpenalty.hh"
 
 namespace CoupledField {

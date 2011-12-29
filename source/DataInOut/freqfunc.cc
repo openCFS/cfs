@@ -5,7 +5,7 @@
 #include <iostream>
 #include <string>
 #include <fstream>
-#include <math.h>
+#include "math.h"
 
 #include "freqfunc.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"

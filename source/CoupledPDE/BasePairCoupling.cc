@@ -2,16 +2,28 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include "BasePairCoupling.hh"
+#include <assert.h>
+#include <stddef.h>
+#include <algorithm>
+#include <ostream>
+#include <utility>
 
-#include "DataInOut/ParamHandling/ParamNode.hh" 
-#include "PDE/SinglePDE.hh"
-#include "Domain/domain.hh"
+#include "BasePairCoupling.hh"
 #include "DataInOut/MaterialHandler.hh"
+#include "DataInOut/ParamHandling/ParamNode.hh" 
+#include "DataInOut/WriteInfo.hh"
 #include "DataInOut/programOptions.hh"
-#include "Materials/piezoMaterial.hh"
-#include "Driver/assemble.hh"
 #include "DataInOut/resultHandler.hh"
+#include "Domain/domain.hh"
+#include "Domain/entityList.hh"
+#include "Domain/grid.hh"
+#include "Domain/resultInfo.hh"
+#include "General/Enum.hh"
+#include "General/exception.hh"
+#include "Materials/baseMaterial.hh"
+#include "PDE/SinglePDE.hh"
+#include "Utils/result.hh"
+#include "Utils/tools.hh"
 
 namespace CoupledField {
 
@@ -19,6 +31,8 @@ namespace CoupledField {
   // ***************
   //   Constructor
   // ***************
+class CoordSystem;
+
   BasePairCoupling::BasePairCoupling(SinglePDE *pde1, SinglePDE *pde2, PtrParamNode paramNode, const std::string& couplingName)
   {
     // initialize pointers

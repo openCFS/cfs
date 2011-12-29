@@ -5,19 +5,20 @@
 #ifndef FILE_BASEDRIVER_2001
 #define FILE_BASEDRIVER_2001
 
-#include "PDE/basePDE.hh"
-#include "General/environment.hh"
+#include <assert.h>
+#include <stddef.h>
+#include <string>
+
 #include "DataInOut/ParamHandling/ParamNode.hh"
+#include "General/defs.hh"
+#include "PDE/basePDE.hh"
 
 namespace CoupledField
 {
 
-  // forward class declarations
-  class Domain;
-  class WriteResults;
-  class ResultHandler;
-  class InfoNode;
   class AdjointParameters;
+  // forward class declarations
+  class ResultHandler;
 
   //! Base class for driving classes where we implemented time-stepping
   class BaseDriver

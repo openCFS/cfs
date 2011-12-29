@@ -2,12 +2,17 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include <iostream>
 #include <fstream>
 
-#include "line1fe.hh"
-#include "Domain/elem.hh"
 #include "DataInOut/Logging/cfslog.hh"
+#include "DataInOut/Logging/log.hpp"
+#include "Domain/elem.hh"
+#include "Elements/1D/linefe.hh"
+#include "Elements/basefe.hh"
+#include "General/exception.hh"
+#include "MatVec/matrix.hh"
+#include "Utils/StdVector.hh"
+#include "line1fe.hh"
 
 namespace CoupledField
 {

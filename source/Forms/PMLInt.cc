@@ -2,13 +2,29 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include <iostream>
+#include <assert.h>
+#include <stddef.h>
+#include <complex>
 #include <fstream>
+
+#include "Domain/ansatzFct.hh"
 #include "Domain/domain.hh"
+#include "Elements/basefe.hh"
+#include "Forms/baseForm.hh"
+#include "Forms/linElastInt.hh"
 #include "Forms/pmlBasics.hh"
-#include "Utils/coordSystem.hh"
-#include "Domain/domain.hh"
+#include "General/exception.hh"
+#include "MatVec/exprt/xpr2.hh"
+#include "MatVec/matrix.hh"
+#include "MatVec/vector.hh"
 #include "PMLInt.hh"
+#include "Utils/StdVector.hh"
+#include "Utils/coordSystem.hh"
+#include "Utils/mathParser/mathParser.hh"
+
+namespace CoupledField {
+class BaseMaterial;
+}  // namespace CoupledField
 
 namespace CoupledField
 {

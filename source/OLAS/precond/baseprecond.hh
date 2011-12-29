@@ -5,17 +5,17 @@
 #ifndef OLAS_BASEPRECOND_HH
 #define OLAS_BASEPRECOND_HH
 
-#include "General/environment.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
+#include "General/Enum.hh"
 
 namespace CoupledField {
 
   class BaseMatrix;
-  class StdMatrix;
-  class SBM_Matrix;
   class BaseVector;
+  class SBM_Matrix;
   class SBM_Vector;
   class SingleVector;
+  class StdMatrix;
 
   //! Generic preconditioner class
   class BasePrecond {

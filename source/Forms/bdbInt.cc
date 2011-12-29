@@ -2,12 +2,21 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include <iostream>
+#include <stddef.h>
+#include <complex>
 #include <fstream>
+#include <string>
 
-#include "bdbInt.hh"
-#include "DataInOut/Logging/cfslog.hh"
+#include "Domain/elem.hh"
+#include "Domain/entityList.hh"
+#include "Elements/basefe.hh"
+#include "Forms/baseForm.hh"
+#include "MatVec/exprt/xpr2.hh"
+#include "MatVec/matrix.hh"
+#include "MatVec/vector.hh"
+#include "Materials/baseMaterial.hh"
 #include "Optimization/Design/DesignElement.hh"
+#include "bdbInt.hh"
 
 
 namespace CoupledField {

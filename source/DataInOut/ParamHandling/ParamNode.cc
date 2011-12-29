@@ -2,24 +2,31 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
+#include <assert.h>
+#include <stddef.h>
+#include <algorithm>
+#include <complex>
+#include <fstream>
+#include <iostream>
+#include <string>
+#include <typeinfo>
+
 #include "DataInOut/ParamHandling/ParamNode.hh"
-#include "DataInOut/programOptions.hh"
 #include "DataInOut/coloredConsole.hh"
+#include "DataInOut/programOptions.hh"
+#include "Domain/domain.hh"
 #include "General/defs.hh"
+#include "General/environment.hh"
+#include "General/exception.hh"
 #include "MatVec/matrix.hh"
 #include "MatVec/vector.hh"
 #include "Utils/Timer.hh"
 #include "Utils/mathParser/mathParser.hh"
-#include "Domain/domain.hh"
-
-#include <boost/tokenizer.hpp>
-#include <boost/algorithm/string.hpp>
-#include <boost/filesystem/operations.hpp>
-#include <boost/filesystem/convenience.hpp>
-#include <boost/filesystem/exception.hpp>
-
-#include <fstream>
-#include <string>
+#include "boost/algorithm/string.hpp"
+#include "boost/filesystem/convenience.hpp"
+#include "boost/filesystem/exception.hpp"
+#include "boost/filesystem/operations.hpp"
+#include "boost/tokenizer.hpp"
 
 using namespace std;
 using namespace boost;
@@ -961,11 +968,16 @@ void ParamNode::ToFile(const std::string& filename, bool force)
   // in case we writa an info.xml file (and not a density file, ...) we add xslt stuff
   if(myFileName.find("info.xml") != std::string::npos)
   {
-    fs::path fn = fs::system_complete(progOpts->GetSchemaPathStr() + "/../..");
-    fn.normalize();
-    info_file << std::endl << "<?xml-stylesheet href=\"file://"
-              << fn.native_directory_string()
-              << "/share/xsl/cfs_info_output_html.xsl\" type=\"text/xsl\"?>";
+    
+    // attention: in case we call this method from the cfstool, there is
+    // not progOpts object available!
+    if( progOpts ) {
+      fs::path fn = fs::system_complete(progOpts->GetSchemaPathStr() + "/../..");
+      fn.normalize();
+      info_file << std::endl << "<?xml-stylesheet href=\"file://"
+          << fn.native_directory_string()
+          << "/share/xsl/cfs_info_output_html.xsl\" type=\"text/xsl\"?>";
+    }
   }
   // store how often we are written -> if the number is too high one should cancel some ToFile() calls
   //    if(writeCounter_.count(filename_) == 0) writeCounter_[filename_] = 0;

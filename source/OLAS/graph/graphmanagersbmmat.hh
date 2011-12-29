@@ -6,10 +6,13 @@
 #define GRAPH_MANAGER_SBMMAT
 
 #include <string>
+#include <vector>
 
-#include "OLAS/graph/basegraph.hh"
-#include "OLAS/graph/idbcgraph.hh"
+#include "General/defs.hh"
+#include "General/environment.hh"
 #include "OLAS/graph/basegraphmanager.hh"
+#include "OLAS/graph/baseordering.hh"
+#include "Utils/StdVector.hh"
 
 namespace CoupledField {
 
@@ -18,6 +21,9 @@ namespace CoupledField {
   //! This class implements the graph manager concept for the case that
   //! several PDEs are directly coupled and the corresponding matrices are
   //! to be assembled into a super-block matrix (SBM_Matrix) structure.
+class BaseGraph;
+class IDBC_Graph;
+
   class GraphManagerSBMMat : public BaseGraphManager {
 
   public:

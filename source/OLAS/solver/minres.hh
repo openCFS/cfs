@@ -5,12 +5,13 @@
 #ifndef OLAS_MINRES_HH
 #define OLAS_MINRES_HH
 
-#include <def_expl_templ_inst.hh>
+#include <complex>
+#include <ostream>
 
-#include "OLAS/utils/math/givensrotation.hh"
-#include "OLAS/utils/math/lanczosmethod.hh"
-
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "General/defs.hh"
 #include "basesolver.hh"
+#include "def_expl_templ_inst.hh"
 
 namespace CoupledField {
 
@@ -231,6 +232,12 @@ namespace CoupledField {
   //! residual is much worse than this value. For examples of this and more
   //! details on the influence of rounding errors on MINRES see e.g.
   //! reference 2.
+class BaseMatrix;
+class BasePrecond;
+class BaseVector;
+class GivensRotation;
+class LanczosMethod;
+
   template<typename T> class MINRESSolver : public BaseIterativeSolver {
 
   public:

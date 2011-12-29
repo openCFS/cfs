@@ -5,11 +5,16 @@
 #ifndef LAPACK_LL_HH
 #define LAPACK_LL_HH
 
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "General/defs.hh"
 #include "OLAS/solver/basesolver.hh"
 
 namespace CoupledField {
 
   class StdMatrix;
+class BaseMatrix;
+class BasePrecond;
+class BaseVector;
   
 
   //! This class implements the interface to LAPACK's Cholesky decomposition.

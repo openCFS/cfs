@@ -24,10 +24,16 @@
 // ===========================================================================
 
 
+#include <stdlib.h>
+#include <cmath>
 #include <iomanip>
 
-#include "Utils/tools.hh"
+#include "General/Enum.hh"
+#include "General/exception.hh"
+#include "OLAS/graph/basegraph.hh"
 #include "OLAS/graph/graphmanagersimple.hh"
+#include "OLAS/graph/idbcgraph.hh"
+#include "Utils/tools.hh"
 
 namespace CoupledField {
 

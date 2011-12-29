@@ -5,11 +5,18 @@
 #ifndef FILE_STATICDRIVER_2001
 #define FILE_STATICDRIVER_2001
 
+#include <stddef.h>
+#include <string>
+
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "General/defs.hh"
 #include "singleDriver.hh"
 
 namespace CoupledField {
 
   //! driver for static problems. it is derived from BaseDriver
+class AdjointParameters;
+
   class StaticDriver : public SingleDriver {
 
   public:

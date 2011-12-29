@@ -5,16 +5,22 @@
 #ifndef FILE_NLINMAGHYSTINT2D
 #define FILE_NLINMAGHYSTINT2D
 
-#include <Elements/basefe.hh>
-#include <Forms/bdbInt.hh>
-#include <Materials/baseMaterial.hh>
-#include <General/environment.hh>
-#include <Forms/curlCurlNodeInt.hh>
+#include "Forms/bdbInt.hh"
+#include "General/environment.hh"
+
+#include "General/defs.hh"
+#include "General/exception.hh"
+#include "MatVec/vector.hh"
 
 namespace CoupledField {
   
   
   //! base class for calculation of linear elasticity
+class BaseMaterial;
+class CurlCurlNode2DInt;
+class EntityIterator;
+template <class TYPE> class Matrix;
+
   class nLinMagHystInt2D : public BDBInt {
 
   public:

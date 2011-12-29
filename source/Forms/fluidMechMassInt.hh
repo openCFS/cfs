@@ -1,7 +1,15 @@
 #ifndef FILE_FLUIDMECHMASSFULLNEWTONINT
 #define FILE_FLUIDMECHMASSFULLNEWTONINT
 
+#include <string>
+
+#include "General/defs.hh"
 #include "fluidMechInt.hh"
+
+namespace CoupledField {
+class EntityIterator;
+template <class TYPE> class Matrix;
+}  // namespace CoupledField
 
 namespace CoupledField
 {

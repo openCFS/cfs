@@ -2,14 +2,14 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
+#include <stddef.h>
 #include <iostream>
-#include <fstream>
 #include <string>
 
-#include "environment.hh"
-#include "Utils/tools.hh"
-#include "Domain/domain.hh"
 #include "DataInOut/Logging/cfslog.hh"
+#include "General/Enum.hh"
+#include "General/exception.hh"
+#include "environment.hh"
 
 
 // Since OLAS uses a separate namespace for
@@ -406,6 +406,14 @@ namespace CoupledField {
       return "kg m^-2 s^-2";
       break;
       
+    case ACOU_LAMB_RHS:
+      return "kg s^-1";
+      break;
+
+    case ACOU_LAMB_VEC:
+      return "m^3 s^-1";
+      break;
+
     case ACOU_VELOCITY:
       return "m/s";
       break;
@@ -458,6 +466,10 @@ namespace CoupledField {
       return "m/s";
       break;
 
+    case MEAN_FLUIDMECH_VELOCITY:
+      return "m/s";
+      break;
+
     case FLUIDMECH_PRESSURE:
       return "Pa";
       break;
@@ -468,6 +480,10 @@ namespace CoupledField {
 
     case FLUIDMECH_TKE:
       return "J";
+      break;
+
+    case FLUIDMECH_SKINFRICTION:
+      return "N/m^2";
       break;
 
     case HEAT_TEMPERATURE:
@@ -1319,6 +1335,8 @@ namespace CoupledField {
     SolutionTypeEnum.Add(ACOU_RHS_LOAD, "acouRhsLoad");
     SolutionTypeEnum.Add(ACOU_RHS_LOAD_DENSITY, "acouRhsLoadDensity");
     SolutionTypeEnum.Add(ACOU_DIV_LH_TENSOR, "acouDivLighthillTensor");
+    SolutionTypeEnum.Add(ACOU_LAMB_RHS, "acouLambRhs"); 
+    SolutionTypeEnum.Add(ACOU_LAMB_VEC, "acouLambVec"); 
     SolutionTypeEnum.Add(ACOU_RHSVAL, "acouRHSval");
     SolutionTypeEnum.Add(ACOUSURF_RHSVAL, "acouSurfRHSval");
     SolutionTypeEnum.Add(ACOU_BUBBLE_RHS_VAL, "acouBubbleRhsVal");
@@ -1352,8 +1370,10 @@ namespace CoupledField {
     //mpcci
     SolutionTypeEnum.Add(FLUID_FORCE, "fluidForce");
     //fluidMech
+    SolutionTypeEnum.Add(MEAN_FLUIDMECH_VELOCITY, "meanFluidMechVelocity");
     SolutionTypeEnum.Add(FLUIDMECH_VELOCITY, "fluidMechVelocity");
     SolutionTypeEnum.Add(FLUIDMECH_PRESSURE, "fluidMechPressure");
+    SolutionTypeEnum.Add(FLUIDMECH_SKINFRICTION, "fluidMechSkinFriction");
     SolutionTypeEnum.Add(FLUIDMECH_VELOCITY_DERIV_1, "fluidMechVelocity_deriv1");
     SolutionTypeEnum.Add(FLUIDMECH_PRESSURE_DERIV_1, "fluidMechPressure_deriv1");
     SolutionTypeEnum.Add(FLUIDMECH_VELOCITY_DERIV_2, "fluidMechVelocity_deriv2");

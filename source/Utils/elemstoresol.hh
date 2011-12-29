@@ -5,9 +5,13 @@
 #ifndef FILE_ELEMSTORESOL_2004
 #define FILE_ELEMSTORESOL_2004
 
+#include <iosfwd>
+
+#include "General/defs.hh"
+#include "General/environment.hh"
+#include "MatVec/vector.hh"
+#include "Utils/StdVector.hh"
 #include "baseelemstoresol.hh"
-#include <MatVec/matrix.hh>
-#include <MatVec/vector.hh>
 
 namespace CoupledField{
 
@@ -45,6 +49,11 @@ namespace CoupledField{
   //! routine was called, otherwise an error is reported!
   //! \note Although the names of some methods refer to nodes, this class 
   //! also can handle element solutions.
+class EqnMap;
+class Grid;
+class SingleVector;
+struct Elem;
+
   template<class TYPE>
   class ElemStoreSol : public BaseElemStoreSol{
   public:

@@ -6,13 +6,20 @@
 #define FILE_BASEFE_2003
 
 #include <map>
+#include <string>
 
+#include "Domain/ansatzFct.hh"
+#include "Domain/elem.hh"
+#include "General/defs.hh"
 #include "General/environment.hh"
+#include "General/exception.hh"
 #include "MatVec/matrix.hh"
 #include "MatVec/vector.hh"
 #include "Utils/StdVector.hh"
-#include "Domain/ansatzFct.hh"
-#include "Domain/elem.hh"
+
+namespace CoupledField {
+class Point;
+}  // namespace CoupledField
 
 namespace CoupledField
 {
@@ -176,7 +183,7 @@ namespace CoupledField
       \f [ \left( \begin{array}{ccc} N_{1,dx} & N_{1,dy} & \cdots \\
       N_{2,dx} & N_{2,dy} & \cdots \\
       \cdots     & \cdots      & \cdots \end{array}\right) \f ]
-      \param LCoord (input) Local Coordinates of evalutaion point
+      \param LCoord (input) Local Coordinates of evaluation point
       \param CornerCoords (input) Coordinates of element corners
       \f [ \left( \begin{array}{ccc} x_{1} & x_{2} & \cdots \\ y_{1} & y_{2} & \cdots \\
       \cdots & \cdots & \cdots \end{array} \right) \f ]       

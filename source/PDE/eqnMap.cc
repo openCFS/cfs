@@ -2,24 +2,30 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include "eqnMap.hh"
-
+#include <assert.h>
+#include <stdlib.h>
+#include <algorithm>
 #include <iostream>
-#include <iomanip>
+#include <iterator>
 #include <set>
-#include <sstream>
+#include <string>
+#include <utility>
 
-
-#include "Domain/elem.hh"
-#include "Elements/basefe.hh"
-#include "Domain/grid.hh"
-#include "Domain/domain.hh"
-#include "Utils/coordSystem.hh"
 #include "DataInOut/Logging/cfslog.hh"
+#include "DataInOut/Logging/log.hpp"
 #include "DataInOut/ParamHandling/ParamNode.hh"
-
-#include <boost/lexical_cast.hpp>
-#include <boost/shared_ptr.hpp>
+#include "Domain/ansatzFct.hh"
+#include "Domain/edgeFace.hh"
+#include "Domain/elem.hh"
+#include "Domain/entityList.hh"
+#include "Domain/grid.hh"
+#include "Elements/basefe.hh"
+#include "General/Enum.hh"
+#include "General/exception.hh"
+#include "Utils/tools.hh"
+#include "boost/lexical_cast.hpp"
+#include "boost/shared_ptr.hpp"
+#include "eqnMap.hh"
 
 using std::string; 
 using boost::lexical_cast; 

@@ -1,13 +1,21 @@
 #ifndef OBJECTIVE_HH_
 #define OBJECTIVE_HH_
 
+#include <string>
+
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "General/Enum.hh"
+#include "MatVec/vector.hh"
 #include "Optimization/Function.hh"
 #include "Utils/StdVector.hh"
-#include "DataInOut/ParamHandling/ParamNode.hh"
+
+namespace CoupledField {
+class DesignSpace;
+class DesignStructure;
+}  // namespace CoupledField
 
 namespace CoupledField
 {
-class ObjectiveContainer;
 class MultipleExcitation;
 
 /** We combine the cost function in a set to handle multiple of it.

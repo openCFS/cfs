@@ -1,8 +1,8 @@
 #ifndef ANSYS_BINLIB_IFACE_GENERAL_H
 #define ANSYS_BINLIB_IFACE_GENERAL_H
 
-#include <DataInOut/simOutput.hh>
-#include <Domain/resultInfo.hh>
+#include "DataInOut/simOutput.hh"
+#include "Domain/resultInfo.hh"
 
 #include "AnsysBinlibIface.hh"
 

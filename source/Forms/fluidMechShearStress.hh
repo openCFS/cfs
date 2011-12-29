@@ -1,11 +1,17 @@
 #ifndef FILE_FLUIDMECHSHEARSTRESS
 #define FILE_FLUIDMECHSHEARSTRESS
 
-#include <Elements/basefe.hh>
-#include <Materials/baseMaterial.hh>
+#include "Forms/linElastInt.hh"
+#include "General/environment.hh"
 
-#include <Forms/linElastInt.hh>
-#include <General/environment.hh>
+#include "General/defs.hh"
+#include "MatVec/matrix.hh"
+
+namespace CoupledField {
+class BaseMaterial;
+class EntityIterator;
+template <class TYPE> class Vector;
+}  // namespace CoupledField
 
 namespace CoupledField
 {

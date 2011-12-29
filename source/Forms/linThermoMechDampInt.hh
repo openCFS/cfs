@@ -2,11 +2,18 @@
 #define FILE_LINTHERMOMECHDAMPINT
 
 
-#include <Materials/baseMaterial.hh>
-#include <General/environment.hh>
+#include "General/environment.hh"
 
-#include "Elements/basefe.hh"
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "General/defs.hh"
+#include "MatVec/matrix.hh"
+#include "MatVec/vector.hh"
 #include "baseForm.hh"
+
+namespace CoupledField {
+class BaseMaterial;
+class EntityIterator;
+}  // namespace CoupledField
 
 namespace CoupledField
 {

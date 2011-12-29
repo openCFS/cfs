@@ -6,8 +6,12 @@
 #define FILE_SMOOTHSPLINE
 
 #include<string>
-#include "MatVec/vector.hh"
+#include <math.h>
+
 #include "ApproxData.hh"
+#include "General/defs.hh"
+#include "General/environment.hh"
+#include "MatVec/vector.hh"
 
 namespace CoupledField {
 

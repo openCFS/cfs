@@ -2,6 +2,7 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
+#include "CoupledPDE/pdecoupling.hh"
 #include "couplingmemento.hh"
 
 namespace CoupledField{
@@ -30,7 +31,8 @@ namespace CoupledField{
 
 }
 
-#include <boost/serialization/export.hpp>
+#include "boost/serialization/export.hpp"
+
 BOOST_CLASS_EXPORT_GUID(CoupledField::CouplingMemento, 
                         "CoupledField_CouplingMemento")
 

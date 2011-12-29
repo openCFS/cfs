@@ -2,15 +2,15 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include <boost/date_time/posix_time/posix_time.hpp>
-#include <boost/filesystem/operations.hpp>
-#include <boost/filesystem/path.hpp>
-#include <boost/filesystem/convenience.hpp>
-#include <boost/filesystem/exception.hpp>
+#include "boost/date_time/posix_time/posix_time.hpp"
+#include "boost/filesystem/operations.hpp"
+#include "boost/filesystem/path.hpp"
+#include "boost/filesystem/convenience.hpp"
+#include "boost/filesystem/exception.hpp"
 namespace fs=boost::filesystem;
 
-#include <def_cfs_stats.hh>
-#include <def_use_hdf5.hh>
+#include "def_cfs_stats.hh"
+#include "def_use_hdf5.hh"
 
 #include "General/exception.hh"
 #include "Settings.hh"
@@ -372,6 +372,7 @@ namespace CoupledField
         numDOFs = fdps.dofNames.size();
         std::cout << "Writing result: " << fdps.resultName
                   << " on region " << regionNames_[actRegion] << "... ";
+        std::cout.flush();
         
         std::vector<Double> output;
         if ( fdps.definedOn == ResultInfo::NODE )

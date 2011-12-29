@@ -5,7 +5,13 @@
 #ifndef FILE_NLINLAPLACEINT
 #define FILE_NLINLAPLACEINT
 
+#include "General/defs.hh"
 #include "baseForm.hh"
+
+namespace CoupledField {
+class EntityIterator;
+template <class TYPE> class Matrix;
+}  // namespace CoupledField
 
 namespace CoupledField
 {

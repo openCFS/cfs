@@ -1,10 +1,17 @@
 #ifndef OPTIMALITYCONDITION_HH_
 #define OPTIMALITYCONDITION_HH_
 
-#include "Optimization/Optimizer/BaseOptimizer.hh"
+#include <iosfwd>
+#include <string>
+
 #include "DataInOut/ParamHandling/ParamNode.hh"
-#include "MatVec/vector.hh"
 #include "General/Enum.hh"
+#include "MatVec/vector.hh"
+#include "Optimization/Optimizer/BaseOptimizer.hh"
+
+namespace CoupledField {
+class Optimization;
+}  // namespace CoupledField
 
 namespace CoupledField
 {

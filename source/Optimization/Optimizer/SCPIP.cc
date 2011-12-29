@@ -1,12 +1,20 @@
-#include "Optimization/Optimizer/SCPIP.hh"
-#include "Optimization/Design/DesignElement.hh"
+#include <stddef.h>
+#include <algorithm>
+#include <iostream>
+#include <string>
+
+#include "DataInOut/Logging/cfslog.hh"
+#include "DataInOut/Logging/log.hpp"
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "General/Enum.hh"
+#include "General/defs.hh"
+#include "General/exception.hh"
+#include "Optimization/Condition.hh"
 #include "Optimization/Design/DesignSpace.hh"
 #include "Optimization/Optimization.hh"
-#include "Optimization/Condition.hh"
-#include "General/exception.hh"
+#include "Optimization/Optimizer/SCPIP.hh"
 #include "Utils/StdVector.hh"
-#include "DataInOut/Logging/cfslog.hh"
-#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "Utils/tools.hh"
 
 using namespace CoupledField;
 

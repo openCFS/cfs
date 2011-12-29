@@ -5,18 +5,21 @@
 #ifndef IDBC_HANDLER_PENALTY_HH
 #define IDBC_HANDLER_PENALTY_HH
 
+#include <iostream>
 #include <set>
+#include <utility>
 
-#include <def_expl_templ_inst.hh>
-
-
+#include "General/defs.hh"
+#include "General/environment.hh"
+#include "MatVec/basematrix.hh"
 #include "baseidbchandler.hh"
+#include "def_expl_templ_inst.hh"
 
 namespace CoupledField {
 
 
   // forward declarations
-  class BaseGraphManager;
+class BaseVector;
   struct BaseEntryManipulator;
 
 

@@ -5,14 +5,15 @@
 #ifndef ODE_SOLVER_EXPL_EULER_HH
 #define ODE_SOLVER_EXPL_EULER_HH
 
-#include "General/environment.hh"
-#include "Utils/StdVector.hh"
-#include "BaseODEProblem.hh"
 #include "BaseODESolver.hh"
+#include "General/defs.hh"
 
 namespace CoupledField {
 
   //! Explizit Euler method to solve ODEs
+class BaseODEProblem;
+template <class TYPE> class StdVector;
+
   class ODESolver_ExplEuler : public BaseODESolver {
 
   public:

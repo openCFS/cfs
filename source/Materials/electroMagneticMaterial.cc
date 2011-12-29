@@ -2,19 +2,27 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include <stdlib.h>
+#include <stddef.h>
+#include <cmath>
+#include <complex>
 #include <iostream>
-#include <iomanip>
-#include <fstream>
-#include <math.h>
-#include <limits.h>
+#include <map>
+#include <set>
 #include <string>
+#include <utility>
 
-#include "electroMagneticMaterial.hh"
 #include "Domain/elem.hh"
 #include "Domain/entityList.hh"
-#include <Utils/SmoothSpline.hh>
-#include <Utils/preisach.hh>
+#include "Materials/baseMaterial.hh"
+#include "Utils/ApproxData.hh"
+#include "Utils/SmoothSpline.hh"
+#include "Utils/hysteresis.hh"
+#include "Utils/preisach.hh"
+#include "Utils/tools.hh"
+#include "electroMagneticMaterial.hh"
+#include "limits.h"
+#include "math.h"
+#include "stdlib.h"
 
 
 

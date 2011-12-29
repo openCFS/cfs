@@ -20,7 +20,7 @@
 #define FILE_FILEREADER_CGNS
 
 
-#include <def_cplreader.hh>
+#include "def_cplreader.hh"
 #include "cgnslib.h"
 #include "cplreader/FileReader.hh"
 
@@ -96,6 +96,7 @@ namespace CoupledField{
       void ReadGrid();
       void CalcNumNodesPerRegion();
       UInt MapVelocityIndex(char* coordName);
+      UInt MapFrictionIndex(char* coordName);
 
   };
 }

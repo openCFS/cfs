@@ -1,14 +1,23 @@
 #ifndef FILE_NLIN_HEAT_INT
 #define FILE_NLIN_HEAT_INT
 
-#include <Forms/linearForm.hh>
-#include <Forms/linHeatCondInt.hh>
+#include "Forms/linHeatCondInt.hh"
+#include "Forms/linearForm.hh"
+
+#include "General/defs.hh"
+#include "General/environment.hh"
+#include "MatVec/vector.hh"
 
 namespace CoupledField {
 
 
   //! heat conduction: nonlinear stiffness integrator 
   //! (heat conductivity is a function of temperature)
+class ApproxData;
+class BaseMaterial;
+class EntityIterator;
+template <class TYPE> class Matrix;
+
   class nlinHeatStiffInt : public linHeatCondInt {
     
   public:

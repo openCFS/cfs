@@ -2,15 +2,26 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include <def_use_mpcci.hh>
+#include <iostream>
+#include <string>
 
-#include "iterSolveStep.hh"
-
-#include "MatVec/basematrix.hh"
-#include "PDE/StdPDE.hh"
 #include "CoupledPDE/itercoupledpde.hh"
 #include "CoupledPDE/pdecoupling.hh"
 #include "DataInOut/ResultCache.hh"
+#include "DataInOut/WriteInfo.hh"
+#include "General/Enum.hh"
+#include "General/exception.hh"
+#include "MatVec/SingleVector.hh"
+#include "MatVec/basematrix.hh"
+#include "MatVec/vector.hh"
+#include "PDE/StdPDE.hh"
+#include "Utils/StdVector.hh"
+#include "def_use_mpcci.hh"
+#include "iterSolveStep.hh"
+
+namespace CoupledField {
+class AdjointParameters;
+}  // namespace CoupledField
 
 namespace CoupledField
 {
@@ -245,7 +256,7 @@ namespace CoupledField
     ResultCache::SetStepValue( actFreq_ );
   }
   
-  void IterSolveStep::SolveStepHarmonic(PtrParamNode analysis_id)
+  void IterSolveStep::SolveStepHarmonic(PtrParamNode analysis_id, AdjointParameters* adjointParams)
   {
     EXCEPTION("Harmonic iterative coupling is not yet implemented"); 
   }

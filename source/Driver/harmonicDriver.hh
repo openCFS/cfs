@@ -5,13 +5,23 @@
 #ifndef FILE_HARMONICDRIVER_2001
 #define FILE_HARMONICDRIVER_2001
 
-#include <boost/shared_ptr.hpp>
+#include <stddef.h>
+#include <string>
+
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "General/defs.hh"
+#include "General/environment.hh"
+#include "Utils/StdVector.hh"
+#include "boost/shared_ptr.hpp"
 #include "singleDriver.hh"
+
+namespace CoupledField {
+class AdjointParameters;
+}  // namespace CoupledField
 
 namespace CoupledField
 {
 
-class ParamNode;
 class Timer;
 
 //! driver for harmonic problems. it is derived from BaseDriver
@@ -61,7 +71,7 @@ public:
   /** This allows optimization to handle the individual frequency steps, e.g. to compute
    * objective values. Internally this is is a service function for SolveProblem()
    * @param actFreqStep sets the actFreq_ attribute, to start with 1 and not to exceed numFreq_ */
-   Double ComputeFrequencyStep(UInt actFreqStep, PtrParamNode analysis_id);
+   Double ComputeFrequencyStep(UInt actFreqStep, PtrParamNode analysis_id, AdjointParameters* adjointParams = NULL);
 
    /** This StoreResults meant for Optimization only */
   void StoreResults(UInt stepNum,

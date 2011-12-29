@@ -5,29 +5,36 @@
 #ifndef FILE_STDSOLVESTEP
 #define FILE_STDSOLVESTEP
 
+#include <stddef.h>
 #include <map>
+#include <string>
 
-#include "assemble.hh"
-#include "baseSolveStep.hh"
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "General/defs.hh"
+#include "General/environment.hh"
+#include "General/exception.hh"
 #include "MatVec/vector.hh"
-#include "Utils/hysteresis.hh"
-#include "Materials/baseMaterial.hh"
-#include "DataInOut/resultHandler.hh"
+#include "Utils/StdVector.hh"
 #include "Utils/mathParser/mathParser.hh"
-#include "Domain/domain.hh"
+#include "baseSolveStep.hh"
+
+namespace CoupledField {
+class AdjointParameters;
+class Assemble;
+class BaseMaterial;
+class BaseSystem;
+class Grid;
+class Hysteresis;
+}  // namespace CoupledField
 
 namespace CoupledField
 {
+  class BaseNodeStoreSol;
+  class EqnMap;
   // forward class declarations
   class StdPDE;
-  class BaseNodeStoreSol;
   class TimeStepping;
-  class WriteResults;
-  class EqnMap;
   struct ResultInfo;
-  class SingleDriver;
-  class IDBC_Handler;
-  class BaseIDBC_Handler;
 
   //  class Domain;
   
@@ -98,10 +105,10 @@ namespace CoupledField
     virtual void PreStepHarmonic();
 
     //!  base method for solving one harmonic step 
-    virtual void SolveStepHarmonic(PtrParamNode analysis_id);
+    virtual void SolveStepHarmonic(PtrParamNode analysis_id, AdjointParameters* adjointParams = NULL);
     
     //! solves for one linear frequency step 
-    virtual void StepHarmonicLin(PtrParamNode analysis_id);
+    virtual void StepHarmonicLin(PtrParamNode analysis_id, AdjointParameters* adjointParams = NULL);
 
     //! solves for one nonlinear frequency step 
     virtual void StepHarmonicNonLin(PtrParamNode analysis_id)

@@ -5,7 +5,16 @@
 #ifndef FILE_SOLVESTEPFLUIDMECH
 #define FILE_SOLVESTEPFLUIDMECH
 
+#include <math.h>
+
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "General/defs.hh"
+#include "MatVec/vector.hh"
 #include "stdSolveStep.hh"
+
+namespace CoupledField {
+class StdPDE;
+}  // namespace CoupledField
 
 namespace CoupledField
 {
@@ -52,10 +61,10 @@ namespace CoupledField
     inline Double NormL2(const Vector<Double>& vec) const
     {
       Double result(0.0);
-      const UInt endLoop = vec.GetSize();
+      const Integer endLoop = vec.GetSize();
 
 #pragma omp parallel for reduction(+:result)
-      for(UInt k = 0; k < endLoop; ++k)
+      for(Integer k = 0; k < endLoop; ++k)
       {
         result += vec[k] * vec[k];
       }

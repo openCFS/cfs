@@ -5,21 +5,27 @@
 #ifndef FILE_CURLFIELDOP_2004
 #define FILE_CURLFIELDOP_2004
 
-#include "Forms/baseoperator.hh"
-#include "Utils/tools.hh"
-#include "Utils/StdVector.hh"
+#include <complex>
 
-#include "OLAS/algsys/basesystem.hh"
+#include "Forms/baseoperator.hh"
+#include "General/defs.hh"
+#include "General/exception.hh"
+#include "MatVec/exprt/xpr2.hh"
+
+namespace CoupledField {
+class BaseSystem;
+class EntityIterator;
+class EqnMap;
+class StdPDE;
+}  // namespace CoupledField
 
 namespace CoupledField
 {
 
   class Grid;
   struct Elem;
-  template<class TYPE> class ElemStoreSol;
   template<class TYPE> class NodeStoreSol;
   template<class TYPE> class Vector;
-  template<class TYPE> class Matrix;
  
   //! Curl operator for edge elements
   

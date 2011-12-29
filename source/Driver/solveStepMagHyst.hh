@@ -5,8 +5,14 @@
 #ifndef FILE_SOLVESTEPMAGHYST
 #define FILE_SOLVESTEPMAGHYST
 
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "General/defs.hh"
+#include "MatVec/vector.hh"
 #include "stdSolveStep.hh"
-#include "Utils/hysteresis.hh"
+
+namespace CoupledField {
+class StdPDE;
+}  // namespace CoupledField
 
 namespace CoupledField
 {

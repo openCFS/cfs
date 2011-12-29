@@ -2,11 +2,13 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include <limits>
+#include <math.h>
+#include <stddef.h>
+#include <ostream>
 
-#include "General/environment.hh"
 #include "General/exception.hh"
-
+#include "OLAS/external/arpack/arpackFortranInterface.hh"
+#include "OLAS/external/arpack/arpackMatInterface.hh"
 #include "arpackSolver.hh"
 
 namespace CoupledField {

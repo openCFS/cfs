@@ -5,8 +5,16 @@
 #ifndef FILE_GEOMETRY_LINEFE_2003
 #define FILE_GEOMETRY_LINEFE_2003
 
-#include <Elements/basefe.hh>
-#include <Elements/jacobian.hh>
+#include "Elements/basefe.hh"
+
+#include "Domain/elem.hh"
+#include "General/defs.hh"
+#include "MatVec/vector.hh"
+
+namespace CoupledField {
+template <class TYPE> class Matrix;
+template <class TYPE> class StdVector;
+}  // namespace CoupledField
 
 namespace CoupledField
 {

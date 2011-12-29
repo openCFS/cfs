@@ -2,19 +2,25 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
+#include <assert.h>
  #include <stdlib.h>
-#include <iostream>
-#include <iomanip>
+#include <cmath>
+#include <complex>
 #include <fstream>
-#include <math.h>
-#include <limits.h>
+#include <map>
+#include <set>
 #include <string>
-#include <boost/bind.hpp> // TODO what do we need bind here?? - Fabian
-#include <boost/lexical_cast.hpp>
 
-#include "mechanicMaterial.hh"
-#include "Domain/domain.hh"
 #include "DataInOut/Logging/cfslog.hh"
+#include "DataInOut/Logging/log.hpp"
+#include "General/exception.hh"
+#include "Materials/baseMaterial.hh"
+#include "Utils/tools.hh"
+#include "boost/bind.hpp" // TODO what do we need bind here?? - Fabian
+#include "boost/lexical_cast.hpp"
+#include "limits.h"
+#include "math.h"
+#include "mechanicMaterial.hh"
 
 DECLARE_LOG(mat)
 DEFINE_LOG(mat, "mat")

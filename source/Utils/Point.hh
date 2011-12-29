@@ -1,7 +1,11 @@
 #ifndef POINT_HH_
 #define POINT_HH_
 
-#include "General/environment.hh" // for the CFS types Double and UInt
+#include <assert.h>
+#include <math.h>
+#include <string>
+
+#include "General/defs.hh"
 
 namespace CoupledField
 {

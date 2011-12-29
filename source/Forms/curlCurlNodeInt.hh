@@ -5,7 +5,15 @@
 #ifndef FILE_CURLCURLNODEINT
 #define FILE_CURLCURLNODEINT
 
+#include "General/defs.hh"
+#include "MatVec/vector.hh"
 #include "baseForm.hh"
+
+namespace CoupledField {
+class BaseMaterial;
+class EntityIterator;
+template <class TYPE> class Matrix;
+}  // namespace CoupledField
 
 namespace CoupledField
 {

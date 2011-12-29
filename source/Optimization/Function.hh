@@ -1,13 +1,25 @@
 #ifndef FUNCTION_HH_
 #define FUNCTION_HH_
 
-#include <boost/tuple/tuple.hpp>
+#include <assert.h>
+#include <stddef.h>
+#include <string>
+#include <utility>
 
-#include "General/Enum.hh"
-#include "MatVec/matrix.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
+#include "General/Enum.hh"
+#include "General/defs.hh"
+#include "General/environment.hh"
+#include "MatVec/matrix.hh"
+#include "MatVec/vector.hh"
 #include "Optimization/Design/DesignElement.hh"
 #include "Optimization/Design/DesignStructure.hh"
+#include "Utils/StdVector.hh"
+#include "boost/tuple/tuple.hpp"
+
+namespace CoupledField {
+class ErsatzMaterial;
+}  // namespace CoupledField
 
 
 using boost::tuple;
@@ -17,10 +29,10 @@ using std::pair;
 namespace CoupledField
 {
 class Condition;
-class Objective;
 class DesignSpace;
 class Excitation;
 class MultipleExcitation;
+class Objective;
 
 /** A Function is the (abstract) base class of Objective and Condition (which is a constraint but the name was
  * already used)
@@ -65,10 +77,13 @@ class Function
       TRACKING,
       HOM_TENSOR,                /*!< optimize for the given coordinate if coord is set or console print of tensor.
                                       For a constraint it might blow up to several HOM_TENSOR if a tensor is given */
+      MAXWELL_HOM_TENSOR, /*!< console print of tensor */
 
       HOM_TRACKING,              /*!< match a given tensor by L2 norm  */
       HOM_FROBENIUS_PRODUCT,     /*!< The Frobenius inner product for a given tensor sum_ij E^H_ij*D_ij. From Michael. The idea is
                                       maximize the inner mech energy <S, E^H S> for strains from a macro-problem. D = S*S^T */
+      MAXWELL_HOMOGENIZATION_TRACKING,   /*!< match a given tensor by Frobenius norm  */
+      BITENSOR,                  /*!< compute both homogenized permittivity and permeability */
       POISSONS_RATIO,            /*!< Poisson's Ration (\nu) within homogenization */
       YOUNGS_MODULUS,            /*!< Young's Modulus (E) within homogenization */
       YOUNGS_MODULUS_E1,         /*!< Young's Modulus (E1) within orthotrope homogenization */
@@ -92,6 +107,8 @@ class Function
       SLOPE,                     /*!< Implementation of a grad rho constraint */
       MOLE,                      /*!< Feature size control from T. Poulsen */
       OSCILLATION,               /*!< Feature size control by Fabian W. :) */
+      MAXWELL_ISOTROPY,          /*!< blow up to several MAXWELL_HOM_TENSOR constraints with different coords */
+      BIISOTROPY,                 /*!< blow up to several MAXWELL_HOM_TENSOR constraints with different coords for both permeability and permittivity */
       JUMP,                      /*!< Weak greyness control by Fabian W. :) */
       BUMP,                      /*!< Prevent intermediate change of slope ('hobbala') by Fabian W. */
       DESIGN_TRACKING            /*!< Tracking against physical densities in designTarget. Either for region or periodic (constraint nodes) elements */
@@ -160,6 +177,13 @@ class Function
     /** Requires an objective homogenization */
     bool IsHomogenization() const;
 
+    /** Requires a maxwell objective homogenization */
+    bool IsMaxwellHomogenization() const;
+
+    bool IsBitensor() {return type_ == BITENSOR;}
+
+    bool HasSelectionTensor() { return HasSelectionTensor_; }
+
     /** Is this function sensitive for density filtering?
      * This implies the gradient with post differentiation.
      * The function does *NOT* know if design filtering is enabled!
@@ -173,6 +197,12 @@ class Function
     /** the tensor exists only in the homogenization constraint case */
     Matrix<double>& GetTensor() { return tensor_; }
     
+    /** the tensor exists only in the maxwell homogenization tracking case */
+    Matrix<Complex>& GetMaxwellTensor() { return maxwellTensor_; }
+
+    /** the tensor exists only in the maxwell homogenization tracking case with entry selection */
+    Matrix<Complex>& GetSelectionTensor() { return selectionTensor_; }
+
     /** index within all objectives for design element gradient */
     int GetIndex() const { return index_; }
 
@@ -182,13 +212,18 @@ class Function
      * @return true if the tensor was read */
     static bool ReadTensor(PtrParamNode pn, Matrix<double>& matrix);
 
+    /** Read the tensor if it is given, otherwise sets to 1.1
+     * @param pn might contain a "tensor" child
+     * @param matrix where to store the data
+     * @return true if the tensor was read */
+    static bool ReadMaxwellTensor(PtrParamNode pn, Matrix<Complex>& matrix, bool selectionTensor = 0);
+    
     /** @see StressConstraint::GetApplications */
     typedef enum { MECH, PIEZO, ONLY_COUPLING } StressType;
 
     static Enum<StressType> stressType;
 
     StressType GetStressType() { return stressType_; }
-
 
     /** A function can be be a local function when it is calculated by the local neighborhood state.
      * This does NOT mean, that the function may not be a global function, e.g. when a the L2 norm
@@ -473,6 +508,14 @@ class Function
 
     /** for HOM_TRACKING this is the target tensor. For HOM_FROBENIUS_PRODUCT this is the parameter */
     Matrix<double> tensor_;
+
+    /** for MAXWELL_HOMOGENIZATION_TRACKING this is the target tensor. */
+    Matrix<Complex> maxwellTensor_;
+
+    /** entry selection for MAXWELL_HOMOGENIZATION_TRACKING */
+    Matrix<Complex> selectionTensor_;
+
+    bool HasSelectionTensor_;
 
     /** The current function value */
     double value_;

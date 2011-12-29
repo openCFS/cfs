@@ -1,11 +1,11 @@
 #include <iostream>
 #include <fstream>
 #include <string>
-#include <time.h>
+#include "time.h"
 #include <iomanip>
-#include <stdarg.h>
+#include "stdarg.h"
 #include <list>
-#include <math.h>
+#include "math.h"
 #include <vector>
 
 #include "elemIntegr.hh"

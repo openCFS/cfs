@@ -3,16 +3,18 @@
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
 #include "AcouMechCoupling.hh"
-
-
+#include "CoupledPDE/BasePairCoupling.hh"
+#include "Domain/entityList.hh"
+#include "Domain/grid.hh"
 #include "Driver/assemble.hh"
-#include "Materials/baseMaterial.hh"
-#include "PDE/SinglePDE.hh"
-#include "PDE/acousticPDE.hh" 
-
+#include "Driver/formsContext.hh"
 // integrator (bi-)linear forms
 #include "Forms/acouMechInt.hh"
 #include "Forms/acouMechNcInt.hh"
+#include "General/environment.hh"
+#include "PDE/SinglePDE.hh"
+#include "PDE/acousticPDE.hh" 
+#include "Utils/StdVector.hh"
 
 
 namespace CoupledField {

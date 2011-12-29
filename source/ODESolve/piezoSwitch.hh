@@ -5,10 +5,10 @@
 #ifndef FILE_PIEZOSWITCHODE_HH
 #define FILE_PIEZOSWITCHODE_HH
 
-#include "General/environment.hh"
-#include "Utils/StdVector.hh"
-#include "MatVec/matrix.hh"
 #include "BaseODEProblem.hh"
+#include "General/defs.hh"
+#include "MatVec/matrix.hh"
+#include "Utils/StdVector.hh"
 
 namespace CoupledField {
 

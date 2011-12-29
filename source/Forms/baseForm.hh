@@ -5,14 +5,27 @@
 #ifndef FILE_BASEFORM_
 #define FILE_BASEFORM_
 
-#include "Utils/StdVector.hh"
-#include "MatVec/vector.hh"
-#include "Elements/basefe.hh"
-#include "Domain/surfElem.hh"
-#include "Materials/baseMaterial.hh"
+#include <stddef.h>
+#include <map>
+#include <string>
+
 #include "Domain/entityList.hh"
+#include "General/defs.hh"
+#include "General/environment.hh"
+#include "General/exception.hh"
+#include "MatVec/matrix.hh"
+#include "MatVec/vector.hh"
 #include "Optimization/Design/DesignElement.hh"
-#include "PDE/timestepping.hh"
+
+namespace CoupledField {
+class BaseFE;
+class BaseMaterial;
+class DenseMatrix;
+class TimeStepping;
+struct Elem;
+struct SurfElem;
+template <typename T> class NodeStoreSol;
+}  // namespace CoupledField
 
 #ifndef INTEGLIB
 #include "Utils/mathParser/mathParser.hh"
@@ -240,6 +253,10 @@ namespace CoupledField
     void SetMatDataType(Global::ComplexPart & pMatType)
     { matDataType_=pMatType; };
 
+    //!
+    Global::ComplexPart & GetMatDataType()
+    { return matDataType_; };
+
     //! set softening type for forms
     void SetSofteningModel(std::string type) {
       softeningModel_ = type;
@@ -285,7 +302,7 @@ namespace CoupledField
      * Domain::GetErsatzMaterial() identifies the proper penaltization via RTTI (typid)
      * @param elem the element
      * @return 1.0 if nothing is to be done or a factor */ 
-    virtual Double GetErsatzMaterialFactor(const Elem* elem); 
+    virtual Double GetErsatzMaterialFactor(const Elem* elem, bool forBimaterial = false);
 
     /** Some derived classes have a natural tensor e.g. PIEZO_TENSOR, MECH_STIFFNESS_TENSOR. Extend if you need it */
     virtual MaterialType getDMaterialType() { EXCEPTION("not implemented"); }

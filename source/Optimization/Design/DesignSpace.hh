@@ -1,27 +1,37 @@
 #ifndef DESIGN_SPACE_HH_
 #define DESIGN_SPACE_HH_
 
+#include <stddef.h>
+#include <complex>
+#include <string>
+#include <utility>
+
 #include "DataInOut/ParamHandling/ParamNode.hh"
-#include "Optimization/TransferFunction.hh"
-#include "Optimization/Design/DesignElement.hh"
-#include "Optimization/ErsatzMaterial.hh"
-#include "Optimization/Design/DesignMaterial.hh"
+// we need it for the template implementation
 #include "Forms/baseForm.hh"
 #include "General/Enum.hh"
+#include "General/environment.hh"
+#include "Optimization/Condition.hh"
+#include "Optimization/Design/DesignElement.hh"
+#include "Optimization/Design/DesignMaterial.hh"
+#include "Optimization/ErsatzMaterial.hh"
+#include "Optimization/Optimization.hh"
+#include "Utils/StdVector.hh"
 
-// we need it for the template implementation
-#include "Domain/resultInfo.hh"
-#include "Utils/result.hh"
+namespace CoupledField {
+class TransferFunction;
+template <class TYPE> class Matrix;
+template <class TYPE> class Result;
+}  // namespace CoupledField
 
 namespace CoupledField
 {
-  template <class TYPE> class StdVector;
+  class BaseMaterial;
+  class BaseOptimizer;
+  class BaseResult;
   class SinglePDE;
   struct Elem;
-  class BaseResult;
-  class BaseMaterial;
   struct ResultInfo;
-  class BaseOptimizer;
 
   /** This is the container of DesingElements which also holds the transferFunctions.
    * It can be initialized by Optimization of can contain the ersatz material stuff. */
@@ -67,7 +77,7 @@ namespace CoupledField
       * @param design_index use Find(Elem*, bool) to find your index -> is complicated, check it!
       * @param applic finds the real transfer function, see  GetErsatzMaterialFactor(unsigned int, const BaseForm*)
       * @return a good factor or an exception is thrown */
-     double GetErsatzMaterialFactor(unsigned int design_index, Optimization::Application applic);
+     double GetErsatzMaterialFactor(unsigned int design_index, Optimization::Application applic, bool forBimaterial = false);
 
      /** assigns the pamping matrix: pamping_ * rho * (1-rho) * M_0. (Sigmund; Morphology; 2007)
       * The mesh is assumed irregular as we have not the ErsatzMaterial::OptimizatioMaterial.
@@ -76,9 +86,9 @@ namespace CoupledField
 
      /** Convenience version
       * @see  GetErsatzMaterialFactor(unsigned int, Optimization::Application) */
-     double GetErsatzMaterialFactor(unsigned int design_index, const BaseForm* form)
+     double GetErsatzMaterialFactor(unsigned int design_index, const BaseForm* form, bool forBimaterial = false)
      {
-       return GetErsatzMaterialFactor(design_index, (Optimization::Application) applicationForm.Parse(form->GetName()));
+       return GetErsatzMaterialFactor(design_index, (Optimization::Application) applicationForm.Parse(form->GetName()), forBimaterial);
      }
 
      /** Returns true if optimization does provide a complete tensor, not just a density */

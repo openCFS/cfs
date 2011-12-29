@@ -5,18 +5,28 @@
 #ifndef FILE_GMSHWRITER_2009
 #define FILE_GMSHWRITER_2009
 
+#include <iosfwd>
 #include <map>
-
-// #include <boost/bimap/set_of.hpp>
-#include <boost/bimap.hpp>
-
-#include <DataInOut/simOutput.hh>
+#include <string>
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "DataInOut/simOutput.hh"
+#include "Domain/resultInfo.hh"
+#include "General/defs.hh"
+#include "General/environment.hh"
 #include "GmshHelper.hh"
+#include "MatVec/vector.hh"
+#include "PDE/basePDE.hh"
+#include "Utils/StdVector.hh"
+// #include <boost/bimap/set_of.hpp>
+#include "boost/bimap.hpp"
 
 namespace CoupledField {
 
   /**
    **/
+class BaseResult;
+class Grid;
+
   class SimOutputGmsh : public SimOutput
   {
   public:

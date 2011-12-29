@@ -1,19 +1,24 @@
-#include "ThermoElectricCoupling.hh"
+#include <stddef.h>
+#include <map>
+#include <ostream>
+#include <utility>
 
-
+#include "CoupledPDE/BasePairCoupling.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
-
+#include "Domain/entityList.hh"
 #include "Driver/assemble.hh"
-#include "Materials/baseMaterial.hh"
-#include "PDE/SinglePDE.hh"
-
-
+#include "Driver/formsContext.hh"
+#include "Forms/baseForm.hh"
+#include "Forms/linThermoElecDampInt.hh"
 // integrator (bi-)linear forms
 #include "Forms/linThermoElectricInt.hh"
-#include "Forms/linThermoElecDampInt.hh"
-
-
-#include "PDE/heatCondPDE.hh"
+#include "General/environment.hh"
+#include "General/exception.hh"
+#include "PDE/SinglePDE.hh"
+#include "PDE/basePDE.hh"
+#include "ThermoElectricCoupling.hh"
+#include "Utils/basenodestoresol.hh"
+#include "Utils/nodestoresol.hh"
 
 namespace CoupledField {
 
@@ -21,6 +26,8 @@ namespace CoupledField {
   // ***************
   //   Constructor
   // ***************
+class BaseMaterial;
+
   ThermoElectricCoupling::ThermoElectricCoupling( SinglePDE *pde1, SinglePDE *pde2,
                                       PtrParamNode paramNode  )
     : BasePairCoupling( pde1, pde2, paramNode, "thermoElectricDirect" ) {

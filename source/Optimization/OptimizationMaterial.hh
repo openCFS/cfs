@@ -1,20 +1,34 @@
 #ifndef OPTMATERIAL_HH_
 #define OPTMATERIAL_HH_
 
+#include <stddef.h>
+#include <complex>
+#include <map>
+#include <utility>
+
 #include "General/Enum.hh"
 #include "General/environment.hh"
+#include "General/exception.hh"
+#include "MatVec/matrix.hh"
+#include "MatVec/vector.hh"
 #include "Optimization/Design/DesignElement.hh"
+#include "PDE/mechPDE.hh"
+#include "Utils/StdVector.hh"
+
+namespace CoupledField {
+class BaseMaterial;
+struct Elem;
+}  // namespace CoupledField
 
 namespace CoupledField 
 {
 
-class ErsatzMaterial;
-class DesignSpace;
-class ElecPDE;
-class MechPDE;
-class HeatCondPDE;
 class AcousticPDE;
 class BaseForm;
+class DesignSpace;
+class ElecPDE;
+class ErsatzMaterial;
+class HeatCondPDE;
 class LinearForm;
 
 /** For Optimization problems does this class provide an interface to the actual physics.
@@ -32,7 +46,7 @@ public:
   virtual ~OptimizationMaterial();
   
   /** Id of our material class */
-  typedef enum { PIEZOCOUPLING, MECH, HEAT, ACOUSTIC } System;
+  typedef enum { PIEZOCOUPLING, MECH, ELEC, HEAT, ACOUSTIC } System;
 
   /** calls the proper constructor */
   static OptimizationMaterial* CreateInstance(System sys, ErsatzMaterial* em);
@@ -234,6 +248,38 @@ public:
 protected:
   HeatCondPDE* heat;
 };
+
+class ElecMat : public OptimizationMaterial
+{
+public:
+
+  ElecMat(ErsatzMaterial* em);
+
+  /** Initialize elecStiffness_map again (needed for BITENSOR objective) */
+  void ReInit();
+
+  /** Get the ElementStiffness Matrix for this element, this is the region constant version
+   * @param elem the Element for which the Matrix should be returned
+   * @param bimaterial if true gets the material from the design space by the element's region
+   * @param direction if given, calculate derivative of Stiffness Matrix instead
+   * @return a pointer to the Element Stiffness Matrix*/
+  Matrix<std::complex<double> >& ElecStiffness(const Elem* elem, bool bimaterial = false, const DesignElement::Type direction = DesignElement::NO_DERIVATIVE);
+
+  Vector<std::complex<double> > MaxwellHomRHS(const Elem* elem, bool bimaterial);
+
+//  /** overwrites OptimizationMaterial::Stiffness */
+//  const Matrix<std::complex<double> >& Stiffness(const Elem* elem, bool bimaterial = false) {
+//    return ElecStiffness(elem, bimaterial, DesignElement::NO_DERIVATIVE);
+//  }
+
+protected:
+  /** The electrostatic element stiffness matrix is constant.
+   * We store the results for standard (first) and bimaterial (second)  */
+  std::map<RegionIdType, std::pair<Matrix<std::complex <double> >, Matrix<std::complex <double> > > > elecStiffness_map;
+
+  ElecPDE* elec;
+};
+
 
 }
 

@@ -5,15 +5,20 @@
 #ifndef LDLSOLVER_HH
 #define LDLSOLVER_HH
 
-#include <def_expl_templ_inst.hh>
+#include <complex>
 
-#include "OLAS/utils/math/ldlsystemsolve.hh"
-#include "OLAS/utils/math/iterativerefinement.hh"
-
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "General/defs.hh"
 #include "OLAS/solver/basesolver.hh"
+#include "OLAS/utils/math/iterativerefinement.hh"
+#include "OLAS/utils/math/ldlsystemsolve.hh"
+#include "def_expl_templ_inst.hh"
 
 namespace CoupledField {
 
+class BaseMatrix;
+class BasePrecond;
+class BaseVector;
   template<typename> class SCRS_Matrix;
 
   //! This class implements a sparse direct solver

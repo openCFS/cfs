@@ -5,11 +5,10 @@
 #ifndef OLAS_BASEORDERING_HH
 #define OLAS_BASEORDERING_HH
 
-#include <iostream>
 #include <vector>
 
+#include "General/Enum.hh"
 #include "General/defs.hh"
-#include "Utils/StdVector.hh"
 
 namespace CoupledField {
 
@@ -18,6 +17,8 @@ namespace CoupledField {
 
   //! (notation: ordering of nodes although in combination with
   //! CFS++ we order equation numbers).
+template <class TYPE> class StdVector;
+
   class BaseOrdering {
   public:
   //! Type of re-ordering for the graph

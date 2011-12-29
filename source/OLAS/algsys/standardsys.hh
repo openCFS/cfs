@@ -5,19 +5,29 @@
 #ifndef OLAS_STANDARDSYSTEM_HH
 #define OLAS_STANDARDSYSTEM_HH
 
+#include <stddef.h>
 #include <set>
-#include <map>
+#include <utility>
 
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "General/defs.hh"
+#include "General/environment.hh"
+#include "MatVec/vector.hh"
 #include "OLAS/algsys/basesystem.hh"
+#include "Utils/StdVector.hh"
+
+namespace CoupledField {
+class BaseVector;
+template <class TYPE> class Matrix;
+}  // namespace CoupledField
 
 namespace CoupledField 
 {
   // Forward Declarations of classes
   class BaseStdPrecond;
-  class StdMatrix;
-  class SingleVector;
   class PatternPool;
-  class ParamNode;
+  class SingleVector;
+  class StdMatrix;
 
   //! Linear algebraic system for normal scalar- and blocksystems
 

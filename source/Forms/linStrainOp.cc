@@ -2,19 +2,23 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include <string>
+#include <stddef.h>
 
-#include "Elements/basefe.hh"
-#include "Domain/elem.hh"
-#include "Domain/grid.hh"
-#include "General/environment.hh"
-#include "MatVec/vector.hh"
-#include "MatVec/matrix.hh"
-#include "Forms/linStrainOp.hh"
 #include "Domain/domain.hh"
-#include "Domain/grid.hh"
+#include "Domain/elem.hh"
+#include "Domain/entityList.hh"
+#include "Elements/basefe.hh"
+#include "Forms/linStrainOp.hh"
+#include "General/environment.hh"
+#include "General/exception.hh"
+#include "MatVec/matrix.hh"
+#include "MatVec/vector.hh"
+#include "Utils/nodestoresol.hh" // IWYU pragma: keep
 
-#include <PDE/StdPDE.hh>
+namespace CoupledField {
+class EqnMap;
+class SingleVector;
+}  // namespace CoupledField
 
 namespace CoupledField
 {

@@ -5,12 +5,11 @@
 #ifndef CFS_LOG_HH
 #define CFS_LOG_HH
 
-#include "DataInOut/Scripting/scriptable.hh"
+#include "boost/limits.hpp"
 
 // include files of BOOST's (unofficial) log library
 #include "DataInOut/Logging/log.hpp"
-#include "DataInOut/Logging/functions.hpp"
-#include <boost/limits.hpp>
+#include "DataInOut/Scripting/scriptable.hh"
 
 using namespace boost::logging;
 

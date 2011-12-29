@@ -5,17 +5,30 @@
 #ifndef FILE_ELECPDE_NEW
 #define FILE_ELECPDE_NEW
 
+#include <map>
+#include <string>
+
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "General/defs.hh"
+#include "General/environment.hh"
+#include "MatVec/vector.hh"
 #include "SinglePDE.hh" 
-#include "Forms/elecforceop.hh"
+#include "Utils/StdVector.hh"
+
+namespace CoupledField {
+class ElecForceOp;
+class EntityList;
+class Grid;
+class NodeList;
+class PDECoupling;
+}  // namespace CoupledField
 
 namespace CoupledField
 {
 
   // forward class declaration
   class BaseResult;
-  class ResultHandler;
   class LinearFormContext;
-  class set;
   
   //! Class for electrostatic equation (no adaptivity)
   class ElecPDE : public SinglePDE {
@@ -102,12 +115,8 @@ namespace CoupledField
     //! is negative compared to the normal one
     void SetThermoCoupling();
 
-    /** add the integrators for the polarization matrix to the linear forms, similar as in multiple load case;
-     * called from Excitation::SetPolarizationMatrixRHS
-     * @param vals contains the values from the xml test strains
-     * @param linForms set to append linear Forms to, if NULL use assemble_ */
-    void DefinePolarizationMatrixIntegrators(const Vector<Double> &vals,
-        StdVector<LinearFormContext*> *linForms, const int num);
+    // add the  integrators for maxwell homogenization formula to the linear forms
+    void DefineMaxwellHomIntegrators(StdVector<LinearFormContext*>* linForms);
 
     /** @see virtual SinglePDE::GetNativeSolutionType() */
     SolutionType GetNativeSolutionType() const { return ELEC_POTENTIAL; }
@@ -135,6 +144,9 @@ namespace CoupledField
     //! Calculate electrid flux density
     template <class TYPE>
     void CalcElectricFluxDensity( shared_ptr<BaseResult> vals );
+
+    //! Write homogenized tensor
+    void CalcHomogenizedTensor(shared_ptr<BaseResult> base_result);
 
     //! Calculates the polarization vector
     void CalcPolarizationField( shared_ptr<BaseResult> vals );

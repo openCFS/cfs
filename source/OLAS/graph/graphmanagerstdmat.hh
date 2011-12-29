@@ -5,14 +5,14 @@
 #ifndef GRAPH_MANAGER_STDMAT
 #define GRAPH_MANAGER_STDMAT
 
-#include <map>
-#include <string>
-#include <vector>
 #include <iostream>
+#include <vector>
 
-#include "OLAS/graph/basegraph.hh"
-#include "OLAS/graph/idbcgraph.hh"
+#include "General/defs.hh"
+#include "General/environment.hh"
 #include "OLAS/graph/basegraphmanager.hh"
+#include "OLAS/graph/baseordering.hh"
+#include "Utils/StdVector.hh"
 
 namespace CoupledField {
 
@@ -40,6 +40,9 @@ namespace CoupledField {
   //!       CFS++ side, if we would pass back the offset via RegisterPDE() and
   //!       the equation data object just adds the offset, if the permutation
   //!       vector obtained from GetReordering() equals NULL.
+class BaseGraph;
+class IDBC_Graph;
+
   class GraphManagerStdMat : public BaseGraphManager {
 
   public:

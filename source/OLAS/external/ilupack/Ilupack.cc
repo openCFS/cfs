@@ -2,22 +2,28 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
+#include "def_use_metis.hh"
+#include "def_use_pardiso.hh"
+#include <algorithm>
 #include <iostream>
 #include <string>
-#include <algorithm>
 
-#include <def_use_pardiso.hh>
-#include <def_use_metis.hh>
-
-#include "General/exception.hh"
-#include "MatVec/sparseolasmatrix.hh"
-#include "MatVec/scrs_matrix.hh"
-#include "MatVec/crs_matrix.hh"
 #include "DataInOut/Logging/cfslog.hh"
+#include "DataInOut/Logging/log.hpp"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/programOptions.hh"
+#include "General/exception.hh"
+#include "MatVec/crs_matrix.hh" // IWYU pragma: keep
+#include "MatVec/scrs_matrix.hh" // IWYU pragma: keep
+#include "MatVec/stdmatrix.hh"
 #include "Utils/StdVector.hh"
+// this has to be the last include, it includes f2c which break std::complex
 #include "Ilupack.hh"
+
+namespace CoupledField {
+template <typename T> class SparseOLASMatrix;
+template <typename T> class Vector;
+}  // namespace CoupledField
 
 DECLARE_LOG(ilupack)
 DEFINE_LOG(ilupack, "ilupack")

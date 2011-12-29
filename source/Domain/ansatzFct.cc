@@ -2,8 +2,8 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
+#include "General/exception.hh"
 #include "ansatzFct.hh"
-#include "General/environment.hh"
 
 namespace CoupledField {
 

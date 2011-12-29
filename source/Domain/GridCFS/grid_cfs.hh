@@ -5,29 +5,44 @@
 #ifndef FILE_SCFE_GRID_CFS_2001
 #define FILE_SCFE_GRID_CFS_2001
 
-#include "Domain/grid.hh"
-#include "Domain/edgeFace.hh"
+#include <stddef.h>
+#include <map>
+#include <set>
+#include <string>
+
 #include "DataInOut/ParamHandling/ParamNode.hh"
+#include "Domain/edgeFace.hh"
+#include "Domain/elem.hh"
+#include "Domain/grid.hh"
+#include "General/defs.hh"
+#include "General/environment.hh"
+#include "MatVec/vector.hh"
+#include "Utils/Point.hh"
+#include "Utils/StdVector.hh"
+
+namespace CoupledField {
+class CoordSystem;
+class ResultHandler;
+template <class TYPE> class Matrix;
+}  // namespace CoupledField
 
 #ifdef ADAPTGRID
-#include "Vertex.h"
 #include "Edge.h"
 #include "Element.h"
-#include "Tetrahedron.h"
-#include "Octahedron.h"
-#include "MultilevelGrid.h"
 #include "MeshReader.h"
-#include "TetrahedronMeasure.h"
 #include "MeshWriter.h"
+#include "MultilevelGrid.h"
+#include "Octahedron.h"
+#include "Tetrahedron.h"
+#include "TetrahedronMeasure.h"
+#include "Vertex.h"
 #endif
 
 namespace CoupledField
 {
 
   // Forward class declarations
-  struct Elem;
   struct SurfElem;
-  class ParamNode;
 
   //! Implementation of a simple, one level grid.
 

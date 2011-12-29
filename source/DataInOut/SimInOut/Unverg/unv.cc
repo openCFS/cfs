@@ -2,12 +2,17 @@
  * Implementation of the Library unv.a
  *****************************************************************************/
 
-#include <fstream>
-#include <string>
-#include <iostream>
-#include <iomanip>
+#include <string.h>
+#include <algorithm>
 #include <cstdio>
+#include <fstream>
+#include <iomanip>
+#include <iostream>
+#include <sstream>
 
+#include "DataInOut/Logging/cfslog.hh"
+#include "DataInOut/Logging/log.hpp"
+#include "General/exception.hh"
 #include "SimInputUnv.hh"
 #include "unv.hh"
 

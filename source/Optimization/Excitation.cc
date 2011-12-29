@@ -1,18 +1,34 @@
+#include <assert.h>
+#include <stddef.h>
+#include <algorithm>
 #include <cmath>
 #include <limits>
+#include <map>
+#include <ostream>
 
-#include "Optimization/Excitation.hh"
-#include "Optimization/Optimization.hh"
-#include "Driver/assemble.hh"
-#include "Driver/basedriver.hh"
-#include "Domain/domain.hh"
-#include "Domain/grid.hh"
-#include "PDE/StdPDE.hh"
-#include "PDE/SinglePDE.hh"
-#include "PDE/elecPDE.hh" // for polarization matrix, see class TopGrad
+#include "DataInOut/Logging/cfslog.hh"
+#include "DataInOut/Logging/log.hpp"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/ParamHandling/ParamTools.hh"
-#include "DataInOut/Logging/cfslog.hh"
+#include "Domain/domain.hh"
+#include "Domain/entityList.hh"
+#include "Domain/grid.hh"
+#include "Domain/resultInfo.hh"
+#include "Driver/assemble.hh"
+#include "Driver/basedriver.hh"
+#include "General/defs.hh"
+#include "General/environment.hh"
+#include "General/exception.hh"
+#include "MatVec/matrix.hh"
+#include "Optimization/Excitation.hh"
+#include "Optimization/Function.hh"
+#include "Optimization/Objective.hh"
+#include "Optimization/Optimization.hh"
+#include "PDE/SinglePDE.hh"
+#include "PDE/StdPDE.hh"
+#include "PDE/basePDE.hh"
+#include "PDE/elecPDE.hh"
+#include "Utils/mathParser/mathParser.hh"
 
 using namespace CoupledField;
 using namespace std;
@@ -113,14 +129,11 @@ void MultipleExcitation::PrepareMultipleExcitations(SinglePDE* pde, PtrParamNode
       weight_sum = 1; // all 0 but the first 1
     }
 
-    // sets and resizes excitations with polarization matrix loads
-    if(DoPolarizationMatrix())
+    // sets and resizes excitations with test charges
+    if(DoMaxwellHomogenization())
     {
-      // FIXME: maybe more sanity checks needed
-      assert(!DoHomogenization()); // cannot do both
-
-      num_loads = SetPolarizationMatrixExcitations(param);
-      weight_sum = 1; // all 0 but the last 1
+      num_loads = SetMaxwellHomogenizationTestCharges();
+      weight_sum = 1; // all 0 but the first 1
     }
 
     // the following is validated by above and 1 frequency and 0 loads is harmless
@@ -144,16 +157,26 @@ void MultipleExcitation::PrepareMultipleExcitations(SinglePDE* pde, PtrParamNode
   {
     HarmonicDriver* hd = dynamic_cast<HarmonicDriver*>(domain->GetDriver());
 
+
     for(unsigned int i = 0; i < excitations.GetSize(); i++)
     {
       Excitation& ex = excitations[i];
       ex.index = i;
-      ex.frequency = hd->freqs[i].freq;
-      ex.label = lexical_cast<string>(ex.frequency);
-      ex.weight    = hd->freqs[i].weight;
-      ex.f_link    = &hd->freqs[i];
+      if (DoMaxwellHomogenization()) {
+        ex.frequency = hd->freqs[0].freq;
+        ex.label = lexical_cast<string>(ex.frequency);
+        //ex.weight    = hd->freqs[0].weight;
+        ex.f_link    = &hd->freqs[0];
+      }
+      else {
+        ex.frequency = hd->freqs[i].freq;
+        ex.label = lexical_cast<string>(ex.frequency);
+        ex.weight    = hd->freqs[i].weight;
+        ex.f_link    = &hd->freqs[i];
 
-      weight_sum += ex.weight;
+        weight_sum += ex.weight;
+      }
+
     }
   }
   if(!harmonic && IsEnabled()) // multiple loads case
@@ -179,7 +202,7 @@ void MultipleExcitation::PrepareMultipleExcitations(SinglePDE* pde, PtrParamNode
     }
     if(pnexcitations.GetSize() == 0
         && !DoHomogenization()
-        && !DoPolarizationMatrix())
+        && !DoMaxwellHomogenization())
     {
       LoadList loads = pde->getPDE_assemble()->GetLoads();
 
@@ -241,6 +264,8 @@ void MultipleExcitation::PrepareMultipleExcitations(SinglePDE* pde, PtrParamNode
         exin->Get("frequency")->SetValue(ex.frequency);
       if(ex.test_strain.GetSize() > 0)
         exin->Get("testStrain")->SetValue(ex.test_strain.ToString());
+      if(ex.test_charge.GetSize() > 0)
+          exin->Get("testCharge")->SetValue(ex.test_charge.ToString());
     }
   }
 
@@ -284,62 +309,42 @@ int MultipleExcitation::SetHomogenizationTestStrains()
   return excitations.GetSize();
 }
 
-int MultipleExcitation::SetPolarizationMatrixExcitations(PtrParamNode param)
+int MultipleExcitation::SetMaxwellHomogenizationTestCharges()
 {
-  // collect all necessary data
-  int dim = domain->GetGrid()->GetDim();
-  int dim1 = dim == 3 ? 6 : 3;
-  // int dim2 = dim == 3 ? 3 : 2;
+  double ts[3][3] =  { {1.0, 0.0, 0.0 },
+                        {0.0, 1.0, 0.0 },
+                        {0.0, 0.0, 1.0 } };
 
-  // read material information from xml-file
-  // check for tensor element
-  PtrParamNode pol = param->Get("polarizationMatrix");
-  Matrix<double> mechmatrix;
-  Matrix<double> elecmatrix;
-  Matrix<double> couplmatrix;
+  Vector<double> vec;
 
-  mechmatrix.Resize(dim1, dim1);
-  elecmatrix.Resize(dim, dim);
-  couplmatrix.Resize(dim1, dim);
+  unsigned int dim = domain->GetGrid()->GetDim();
 
-  ParamTools::AsTensor<double>(pol->Get("mechTensor/real"), dim1, dim1, mechmatrix);
-  ParamTools::AsTensor<double>(pol->Get("elecTensor/real"), dim, dim, elecmatrix);
-  ParamTools::AsTensor<double>(pol->Get("couplingTensor/real"), dim1, dim, couplmatrix);
-
-  const int cases(dim == 2 ? 5 : 9);
-  assert(excitations.GetSize() == 1);
+  int cases = dim == 2 ? 2 : 3;
   excitations.Resize(cases);
 
-  // decompose the vector with the material parameters into the
-  // part for mech and the one for elec
-  Vector<double> mechpart(dim1, 0.0);
-  Vector<double> elecpart(dim, 0.0);
-
-  for(int i = 0; i < cases; ++i)
+  for(int i = 0, cnt = 0; i < cases; ++i)
   {
-    // this must be the entry of A^0
-    if(i < cases - dim)
-    {
-      for(int n = 0; n < dim1; ++n)
-        mechpart[n] = mechmatrix[n][i];
-      for(int n = 0; n < dim; ++n)
-        elecpart[n] = couplmatrix[i][n];
-    }
-    else
-    {
-      for(int n = 0; n < dim1; ++n)
-        mechpart[n] = couplmatrix[n][i];
-      for(int n = 0; n < dim; ++n)
-        elecpart[n] = elecmatrix[i][n];
-    }
+    Excitation& ex = excitations[cnt];
 
-    excitations[i].SetPolarizationMatrixRHS(mechpart, elecpart, i);
+    // in 2D only 0, and 1
+    if(dim == 2 && (i == 2 )) continue;
+
+    if(i == 0) ex.label = "x";
+    if(i == 1) ex.label = "y";
+    if(i == 2) ex.label = "z";
+
+    vec.Fill(ts[i], dim);
+ //   std::cout << vec.ToString() << std::endl;
+
+    ex.ReadTestCharges(vec);
     // The homogenized tensor can only be evaluated for the last excitation!
-    excitations[i].weight = i < cases-1 ? 0.0 : 1.0;
+    ex.weight = i < cases-1 ? 0.0 : 1.0;
+    ++cnt;
   }
 
-  return cases;
+  return excitations.GetSize();
 }
+
 
 
 void MultipleExcitation::NormalizeMultipleExcitations(ObjectiveContainer* objectives)
@@ -501,15 +506,15 @@ void Excitation::ReadTestStrain(MechPDE::TestStrain ts)
   mech->DefineTestStrainIntegrator(ts, linForms);
 }
 
-void Excitation::SetPolarizationMatrixRHS(const Vector<double>& mechp,
-    const Vector<double>& elecp, const int num)
+void Excitation::ReadTestCharges(const Vector<double>& vec)
 {
-  loads.Clear();
-  MechPDE* mech = dynamic_cast<MechPDE*>(domain->GetSinglePDE("mechanic"));
-  mech->DefinePolarizationMatrixIntegrators(mechp, linForms, num);
+  this->test_charge = vec;
 
+  loads.Clear();
   ElecPDE* elec = dynamic_cast<ElecPDE*>(domain->GetSinglePDE("electrostatic"));
-  elec->DefinePolarizationMatrixIntegrators(elecp, linForms, num);
+  elec->SetRegionCharges(vec);
+  elec->DefineMaxwellHomIntegrators(linForms);
+ // std::cout << "Number of linForms: " << linForms->GetSize() << std::endl;
 }
 
 

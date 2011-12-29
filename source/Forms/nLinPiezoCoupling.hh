@@ -5,20 +5,25 @@
 #ifndef FILE_NONLIN_PIEZO_COUPLING
 #define FILE_NONLIN_PIEZO_COUPLING
 
-#include "Elements/basefe.hh"
-#include "Forms/adbInt.hh"
+
+#include "Domain/entityList.hh"
 #include "Forms/linPiezoCoupling.hh"
-#include "Materials/baseMaterial.hh"
-#include "Utils/nodestoresol.hh"  
-
-
-#include <Utils/ApproxData.hh>
-#include <Forms/bdbInt.hh>
-#include <Forms/gradfieldop.hh>
+#include "General/defs.hh"
+#include "General/environment.hh"
+#include "MatVec/matrix.hh"
+#include "MatVec/vector.hh"
 
 
 
 namespace CoupledField {
+
+class BaseMaterial;
+class EqnMap;
+class Grid;
+class StdPDE;
+struct ResultInfo;
+template <class TYPE> class GradientFieldOp;
+template <typename T> class NodeStoreSol;
 
   class nLinPiezoCoupling : public linPiezoCoupling {
 
