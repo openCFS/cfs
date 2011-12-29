@@ -27,7 +27,7 @@ namespace CoupledField
     (*trace) << " entering ElemIntegr::ElemIntegr " << std::endl;
 #endif
 
-    CreatePt2Elems(elemType);
+    ptElem_ = CreatePt2Elems(elemType);
 
     elemType_ = elemType;
     if(!ptElem_)
@@ -82,85 +82,86 @@ namespace CoupledField
     return elemType_;
   }
 
-  void ElemIntegr::CreatePt2Elems( UInt type )
+  Elem* ElemIntegr::CreatePt2Elems( UInt type)
   {
- #ifdef TRACE
-    (*trace) << " entering ElemIntegr::CreatePt2Elems " << std::endl;
- #endif
-    ptElem_ = new Elem();
+   #ifdef TRACE
+      (*trace) << " entering ElemIntegr::CreatePt2Elems " << std::endl;
+   #endif
+    Elem * elem = new Elem();
 
     switch(type)
     {
     case Elem::LINE2:
-      ptElem_->ptElem = new Line1FE();
-      ptElem_->connect = 1, 2;
-      ptElem_->edges = 1;
-      ptElem_->faces = 1;
+      elem->ptElem = new Line1FE();
+      elem->connect = 1, 2;
+      elem->edges = 1;
+      elem->faces = 1;
       break;
 
     case Elem::TRIA3:
-      ptElem_->ptElem = new Triangle1FE();
-      ptElem_->connect = 1, 2, 3;
-      ptElem_->edges = 1, 2, 3;
-      ptElem_->faces = 1;
+      elem->ptElem = new Triangle1FE();
+      elem->connect = 1, 2, 3;
+      elem->edges = 1, 2, 3;
+      elem->faces = 1;
       break;
 
     case Elem::QUAD4:
-      ptElem_->ptElem = new Quad1FE();
-      ptElem_->connect = 1, 2, 3, 4;
-      ptElem_->edges = 1, 2, 3, 4;
-      ptElem_->faces = 1;
+      elem->ptElem = new Quad1FE();
+      elem->connect = 1, 2, 3, 4;
+      elem->edges = 1, 2, 3, 4;
+      elem->faces = 1;
       break;
 
     case Elem::QUAD8:
-      ptElem_->ptElem = new Quad2FE();
-      ptElem_->connect = 1, 5, 2, 6, 3, 7, 4, 8;
-      ptElem_->edges = 1, 2, 3, 4;
-      ptElem_->faces = 1;
+      elem->ptElem = new Quad2FE();
+      elem->connect = 1, 5, 2, 6, 3, 7, 4, 8;
+      elem->edges = 1, 2, 3, 4;
+      elem->faces = 1;
       break;
 
     case Elem::TET4:
-      ptElem_->ptElem = new Tetra1FE();
-      ptElem_->connect = 1, 2, 3, 4;
-      ptElem_->edges = 1, 2, 3, 4, 5, 6;
-      ptElem_->faces = 1, 2, 3;
+      elem->ptElem = new Tetra1FE();
+      elem->connect = 1, 2, 3, 4;
+      elem->edges = 1, 2, 3, 4, 5, 6;
+      elem->faces = 1, 2, 3;
       break;
 
     case Elem::HEXA8:
-      ptElem_->ptElem = new Hexa1FE();
-      ptElem_->connect = 1, 2, 3, 4, 5, 6, 7, 8;
-      ptElem_->edges = 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12;
-      ptElem_->faces = 1, 2, 3, 4, 5, 6;
+      elem->ptElem = new Hexa1FE();
+      elem->connect = 1, 2, 3, 4, 5, 6, 7, 8;
+      elem->edges = 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12;
+      elem->faces = 1, 2, 3, 4, 5, 6;
 
       break;
 
     case Elem::PYRA5:
-      ptElem_->ptElem = new Pyra1FE();
-      ptElem_->connect = 1, 2, 3, 4, 5;
-      ptElem_->edges = 1, 2, 3, 4, 5, 6, 7, 8;
-      ptElem_->faces = 1, 2, 3, 4, 5;
+      elem->ptElem = new Pyra1FE();
+      elem->connect = 1, 2, 3, 4, 5;
+      elem->edges = 1, 2, 3, 4, 5, 6, 7, 8;
+      elem->faces = 1, 2, 3, 4, 5;
       break;
 
     case Elem::WEDGE6:
-      ptElem_->ptElem = new Wedge1FE();
-      ptElem_->connect = 1, 2, 3, 4, 5, 6;
-      ptElem_->edges = 1, 2, 3, 4, 5, 6, 7, 8, 9, 10;
-      ptElem_->faces = 1, 2, 3, 4, 5;
+      elem->ptElem = new Wedge1FE();
+      elem->connect = 1, 2, 3, 4, 5, 6;
+      elem->edges = 1, 2, 3, 4, 5, 6, 7, 8, 9, 10;
+      elem->faces = 1, 2, 3, 4, 5;
       break;
 
     default:
       std::cerr << "Element-Type not defined!" << std::endl;
-      delete ptElem_;
-      ptElem_ = NULL;
+      delete elem;
+      elem = NULL;
       break;
     }
 
-    if(ptElem_)
+    if(elem)
     {
-      ptElem_->regionId = 1;
-      ptElem_->elemNum = 1;
+      elem->regionId = 1;
+      elem->elemNum = 1;
     }
 
+    return elem;
   }
 
   void ElemIntegr::PerformIntegration(const Matrix<Double> & coordMat,
@@ -169,8 +170,7 @@ namespace CoupledField
                                       Vector<Double>& elemvec,
                                       Vector<Double>& nodalLoadDensity,
                                       Vector<Double>& divLHTensor,
-                                      Double density,
-                                      bool surfInt)
+                                      Double density)
   {
 #ifdef TRACE
     (*trace) << " entering ElemIntegr::PerformIntegration" << std::endl;
@@ -182,7 +182,27 @@ namespace CoupledField
     //perform volume or surface (surfInt = true) integration
       linearLoad_->CalcElemVec4QuadwithVel(coordMat,  NodalVal, elemvec, 
                                            nodalLoadDensity, divLHTensor, 
-                                           ptElem_, density, surfInt);
+                                           ptElem_, density);
+  }
+
+  void ElemIntegr::PerformSurfaceIntegration(const UInt volElemType,
+                          const Matrix<Double>& ptVolCoord,
+                          const Matrix<Double>& ptSurfCoord,
+                          const Matrix<Double> & volumeVel,
+                          Vector<Double> & surfNormal,
+                          Double density,
+                          Vector<Double> & Result){
+#ifdef TRACE
+    (*trace) << " entering ElemIntegr::PerformSurfaceIntegration" << std::endl;
+#endif
+
+    Elem* volElem = CreatePt2Elems( volElemType );
+
+    if(!volElem)
+     Exception("ElemIntegr::PerformSurfaceIntegration error creating volume element pointer.");
+
+    linearLoad_->CalcLighthillSurfaceTermVel(volElem,ptElem_,
+        ptVolCoord,ptSurfCoord,volumeVel,surfNormal,density,Result);
   }
 
   void ElemIntegr::PerformIntegrationCentre(const Matrix<Double> & coordMat,
@@ -190,8 +210,7 @@ namespace CoupledField
                                             Vector<Double>& resVec,
                                             Vector<Double>& nodalLoadDensity,
                                             Vector<Double>& divLHTensor,
-                                            Double density,
-                                            bool surfInt)
+                                            Double density)
   {
 #ifdef TRACE
     (*trace) << " entering ElemIntegr::PerformIntegrationCentre" << std::endl;
@@ -203,7 +222,7 @@ namespace CoupledField
     linearLoad_->CalcElemVec4QuadwithVelCentre(coordMat, 
                                                NodalVel, resVec, 
                                                nodalLoadDensity, divLHTensor, 
-                                               ptElem_, density, surfInt);
+                                               ptElem_, density);
   }
 
 

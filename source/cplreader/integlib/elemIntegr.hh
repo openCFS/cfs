@@ -29,7 +29,7 @@ namespace CoupledField
   
     UInt GetElemType() const;
 
-    void CreatePt2Elems( UInt elemType );
+    Elem* CreatePt2Elems( UInt type);
   
     void PerformIntegration(const Matrix<Double> & coordMat,
                             const Matrix<Double>& NodaldTijdxj,
@@ -37,9 +37,26 @@ namespace CoupledField
                             Vector<Double>& elemvec,
                             Vector<Double>& nodalLoadDensity,
                             Vector<Double>& divLHTensor,
-                            Double density,
-                            bool surfInt);
+                            Double density);
     
+    void PerformSurfaceIntegration(const UInt volElemType,
+                            const Matrix<Double>& ptVolCoord,
+                            const Matrix<Double>& ptSurfCoord,
+                            const Matrix<Double> & volumeVel,
+                            Vector<Double> & surfNormal,
+                            Double density,
+                            Vector<Double> & Result);
+
+    void PerformSurfaceIntegrationCenter(const UInt volElemType,
+                                const Matrix<Double>& ptVolCoord,
+                                const Matrix<Double>& ptSurfCoord,
+                                const Matrix<Double> & volumeVel,
+                                Vector<Double> & surfNormal,
+                                Double density,
+                                Vector<Double> & Result){
+      Exception("PerformSurfaceIntegrationCenter: not implemented!");
+    }
+
     /**
      * same as PerformIntegration except it takes only the velocity at the
      * centre of the element and not at each node. The advantage is, that it may
@@ -58,8 +75,7 @@ namespace CoupledField
                                   Vector<Double>& resVec,
                                   Vector<Double>& nodalLoadDensity,
                                   Vector<Double>& divLHTensor,
-                                  Double density,
-                                  bool surfInt);
+                                  Double density);
 
     void ComputeFromCombustionTij(const Matrix<Double> & coordMat,
                                   const Matrix<Double>& NodalVel, 

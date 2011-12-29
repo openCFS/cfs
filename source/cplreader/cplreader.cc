@@ -225,7 +225,7 @@ namespace CoupledField
       fileReader.reset(new FileReader_CGNS(settings.GetString("name"),
                                            settings.GetInt("dim"),
                                            settings.GetInt("numsteps")));
-      std::cerr << "test";
+
 #else
       EXCEPTION("Reading of CGNS files not supported!");
 #endif

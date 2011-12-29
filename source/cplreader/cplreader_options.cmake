@@ -366,6 +366,15 @@ ADD_OPTION(doCalcMultiNodes
   This flag should be set on otherwise artifacts at the region interface occur."
   )
 
+ADD_OPTION(calcSurfaceTerms
+  string
+  none
+  "This flag anable the calculation of the surface integral within for lighthill source term. Specify 'all' or give a list of surface regions speperated by SPACE or SEMICOLON or |"
+  "This flag indicates if we wish to calculate the surface integral of the 
+  Lighthill right hand side which is up to now a very costly operation and therefore 
+  off by default."
+  )
+
 ADD_OPTION(cfxUseStnFrame
   bool
   false
