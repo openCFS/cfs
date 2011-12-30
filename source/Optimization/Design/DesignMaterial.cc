@@ -229,57 +229,59 @@ void DesignMaterial::GetTransIsoMaterialTensor(Matrix<double>& t, SubTensorType 
   double E = params_[DesignElement::EMODULISO];
   double E3 = params_[DesignElement::EMODUL];
   double nu13 = params_[DesignElement::POISSON];
+
   if(subTensor == PLANE_STRESS){
     double dens = params_[DesignElement::DENSITY];
-    double EE3 = E*E3;
+    dens = std::pow(dens, penalty_);
     double n = E3-nu13*nu13*E;
     double ninv2 = 1/(n*n);
 
     switch(direction){
     case DesignElement::NO_DERIVATIVE:
     {
-      double D = EE3/n;
+      double D = E*E3/n;
       double D3 = E3*E3/n;
-      double nD3 = nu13*EE3/n;
+      double nD3 = nu13*E*E3/n;
       double G3 = params_[DesignElement::GMODUL];
-      SetTransIsoTensor(t, subTensor, D, 0, 0, D3, nD3, G3);
+      SetTransIsoTensor(t, subTensor, dens*D, 0, 0, dens*D3, dens*nD3, dens*G3);
       return;
     }
     case DesignElement::DENSITY:
     {
+      dens = params_[DesignElement::DENSITY];
       if(penalty_ == 1.0){
         dens = 1.0;
       }else{
         dens = penalty_*std::pow(dens, penalty_-1);
       }
-      double D = EE3/n;
+      double D = E*E3/n;
       double D3 = E3*E3/n;
-      double nD3 = nu13*EE3/n;
+      double nD3 = nu13*E*E3/n;
       double G3 = params_[DesignElement::GMODUL];
       SetTransIsoTensor(t, subTensor, dens*D, 0, 0, dens*D3, dens*nD3, dens*G3);
       return;
     }
     case DesignElement::EMODULISO:
     {
-      double D = (n*E3+nu13*nu13*EE3)*ninv2;
+      double D = E3*E3*ninv2;
       double D3 = nu13*nu13*E3*E3*ninv2;
-      double nD3 = (n*nu13*E3+nu13*nu13*nu13*EE3)*ninv2;
+      double nD3 = nu13*E3*E3*ninv2;
       SetTransIsoTensor(t, subTensor, dens*D, 0, 0, dens*D3, dens*nD3, 0);
       return;
     }
     case DesignElement::EMODUL:
     {
-      double D = (n*E-E*E3)*ninv2;
-      double D3 = (2*n*E3-E3*E3)*ninv2;
-      double nD3 = (n*nu13*E-nu13*EE3)*ninv2;
+      double D = -E*E*nu13*nu13*ninv2;
+      double D3 = -E3*(-E3+2*nu13*nu13*E)*ninv2;
+      double nD3 = -nu13*nu13*nu13*E*E*ninv2;
       SetTransIsoTensor(t, subTensor, dens*D, 0, 0, dens*D3, dens*nD3, 0);
       return;
     }
     case DesignElement::POISSON:
     {
-      double D = 2*nu13*E*EE3*ninv2;
-      double D3 = 2*nu13*EE3*E3*ninv2;
-      double nD3 = (n*EE3+2*nu13*nu13*E*EE3)*ninv2;
+      double D = 2*nu13*E*E*E3*ninv2;
+      double D3 = 2*nu13*E*E3*E3*ninv2;
+      double nD3 = E*E3*(nu13*nu13*E+E3)*ninv2;
       SetTransIsoTensor(t, subTensor, dens*D, 0, 0, dens*D3, dens*nD3, 0);
       return;
     }

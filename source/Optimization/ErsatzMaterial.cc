@@ -144,11 +144,8 @@ ErsatzMaterial::ErsatzMaterial() :
 
   harmonic = BasePDE::IsComplex(pde->GetAnalysisType());
 
-  if(homogenization_ && !pde->HasPeriodicBC())
+  if((homogenization_ || maxwellHomogenization) && !pde->HasPeriodicBC())
     throw Exception("homogenization requires periodic boundary conditions");
-
-  if(maxwellHomogenization_ && !pde->HasPeriodicBC())
-    throw Exception("maxwell homogenization requires periodic boundary conditions");
 
   // Get the assemble class
   assemble_ = pde->getPDE_assemble();
