@@ -50,8 +50,8 @@ namespace CoupledField
       this->elemType_ = rhs.GetElemType();
       delete ptElem_;
 
-      CreatePt2Elems(this->elemType_);
-      if(!ptElem_)
+      this->ptElem_ = CreatePt2Elems(this->elemType_);
+      if(!this->ptElem_)
         return *this;
       if(linearLoad_)
         delete linearLoad_;
@@ -67,8 +67,8 @@ namespace CoupledField
       this->elemType_ = rhs.GetElemType();
       delete ptElem_;
 
-      CreatePt2Elems(this->elemType_);
-      if(!ptElem_)
+      this->ptElem_ = CreatePt2Elems(this->elemType_);
+      if(!this->ptElem_)
         return *this;
       if(linearLoad_)
         delete linearLoad_;

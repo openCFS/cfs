@@ -1545,6 +1545,7 @@ DEFINE_LOG(linForm, "linForm")
 #endif
 
     Integer numSurfNodes = ptelem->GetNumNodes();
+    Integer numVolNodes = volElem->ptElem->GetNumNodes();
     Integer numIntPts = ptelem->GetNumIntPoints();
     Vector<double> intWeights = ptelem->GetIntWeights();
     Vector<Double> * intPts = ptelem->GetIntPoints();
@@ -1590,8 +1591,16 @@ DEFINE_LOG(linForm, "linForm")
 
     Result.Resize(numSurfNodes);
     Result.Init(0.0);
+    volSf.Resize(numVolNodes);
+    volSf.Init();
+    xiDx.Resize(numVolNodes,dimelem);
+    xiDx.Init();
     partResult.Resize(numSurfNodes);
     helpVec.Resize(dimelem);
+    VelAtIP.Resize(dimelem);
+    VelAtIP.Init();
+    VelDerAtIP.Resize(dimelem);
+    VelDerAtIP.Init();
 
     // Loop over all integration points
     for(Integer actInt=1; actInt <= numIntPts; actInt++)

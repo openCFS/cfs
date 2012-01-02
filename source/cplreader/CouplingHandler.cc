@@ -1388,6 +1388,7 @@ namespace CoupledField
     Vector<Double> vec1(dim_);
     Vector<Double> vec2(dim_);
     nVec.Resize(dim_);
+    nVec.Init();
     //create matrix of coordinates
     Matrix<Double> ptCoord(dim_,numNodes);
     for(UInt i=0;i<numNodes;i++){
