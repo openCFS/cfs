@@ -265,6 +265,11 @@ namespace CoupledField
     //! set min/max of x,y,z coordinates form where PML starts
     virtual void SetPosPML(Matrix<Double> & inner, Matrix<Double> & outer,
                            const std::string& coordSysId ) {;};
+
+    virtual void InitSpongeLayer(Double start, Double end, Double dampFactor, std::string type)  {
+      EXCEPTION("InitSpongeLayer not implemented!");
+    }
+
       
 #ifndef INTEGLIB
     //! Get reference element and coordinates from element iterator

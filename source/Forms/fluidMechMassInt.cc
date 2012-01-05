@@ -63,6 +63,16 @@ void FluidMechPlaneMassNewtonInt_UV::CalcElementMatrix( Matrix<Double>& elemMat,
   ExtractElemInfo( ent1 );
   UInt elemNumber = ent1.GetElem()->elemNum;
 
+  //adjust viscosity
+  if ( isSpongeLayer_) {
+    //get center coordinate
+    Point center;
+    ptelem->CalcBarycenter(ptCoord_, center);
+    //take here hard coded the x-coordinate
+    Double pos = (double)center[0];
+    AdjustViscosity( pos );
+  }
+
   sol_->GetElemSolutionAsMatrix( elemResult_, ent1 );
 
   Matrix<Double> gridElemResult;
@@ -178,6 +188,16 @@ void FluidMechPlaneMassNewtonInt_UQ::CalcElementMatrix( Matrix<Double>& elemMat,
   // Extract pointer to reference element and get coordinates
   ExtractElemInfo( ent1 );
   UInt elemNumber = ent1.GetElem()->elemNum;
+
+  //adjust viscosity
+  if ( isSpongeLayer_) {
+    //get center coordinate
+    Point center;
+    ptelem->CalcBarycenter(ptCoord_, center);
+    //take here hard coded the x-coordinate
+    Double pos = (double)center[0];
+    AdjustViscosity( pos );
+  }
 
   sol_->GetElemSolutionAsMatrix( elemResult_, ent1 );
 

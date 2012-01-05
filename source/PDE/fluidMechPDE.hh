@@ -55,6 +55,9 @@ namespace CoupledField
     //! Read special results definition
     void ReadSpecialResults();
 
+    //! read in damping information, see SinglePDE.cc  and SinglePDE.hh
+    void ReadDampingInformation();
+
     //! Initialize NonLinearities
     void InitNonLin();
 

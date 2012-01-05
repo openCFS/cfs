@@ -129,6 +129,16 @@ void FluidMechPlaneStiffNewtonInt_UV::CalcElementMatrix( Matrix<Double>& elemMat
 
   sol_->GetElemSolutionAsMatrix( elemResult_, ent1 );
 
+  //adjust viscosity
+  if ( isSpongeLayer_) {
+    //get center coordinate
+    Point center;
+    ptelem->CalcBarycenter(ptCoord_, center);
+    //take here hard coded the x-coordinate
+    Double pos = (double)center[0];
+    AdjustViscosity( pos );
+  }
+
   Matrix<Double> gridElemResult;
   if (movingMesh_) {
     gridSol_->GetElemSolutionAsMatrix( gridElemResult, ent1);
@@ -381,6 +391,16 @@ void FluidMechPlaneStiffNewtonInt_PV::CalcElementMatrix( Matrix<Double>& elemMat
 
   sol_->GetElemSolutionAsMatrix( elemResult_, ent1 );
 
+  //adjust viscosity
+  if ( isSpongeLayer_) {
+    //get center coordinate
+    Point center;
+    ptelem->CalcBarycenter(ptCoord_, center);
+    //take here hard coded the x-coordinate
+    Double pos = (double)center[0];
+    AdjustViscosity( pos );
+  }
+
   if (movingMesh_)
   {
     Matrix<Double> gridElemResult_;
@@ -520,6 +540,16 @@ void FluidMechPlaneStiffNewtonInt_UQ::CalcElementMatrix( Matrix<Double>& elemMat
   UInt elemNumber = ent1.GetElem()->elemNum;
 
   sol_->GetElemSolutionAsMatrix( elemResult_, ent1);
+
+  //adjust viscosity
+  if ( isSpongeLayer_) {
+    //get center coordinate
+    Point center;
+    ptelem->CalcBarycenter(ptCoord_, center);
+    //take here hard coded the x-coordinate
+    Double pos = (double)center[0];
+    AdjustViscosity( pos );
+  }
 
   if (movingMesh_)
   {
@@ -685,6 +715,16 @@ void FluidMechPlaneStiffNewtonInt_PQ::CalcElementMatrix( Matrix<Double>& elemMat
 
   sol_->GetElemSolutionAsMatrix( elemResult_, ent1);
 
+  //adjust viscosity
+  if ( isSpongeLayer_) {
+    //get center coordinate
+    Point center;
+    ptelem->CalcBarycenter(ptCoord_, center);
+    //take here hard coded the x-coordinate
+    Double pos = (double)center[0];
+    AdjustViscosity( pos );
+  }
+
   if (movingMesh_) {
     Matrix<Double> gridElemResult_;
     gridSol_->GetElemSolutionAsMatrix( gridElemResult_, ent1);
@@ -783,6 +823,16 @@ void FluidMechPlaneIntNewton_RhsUV::CalcElementMatrix( Matrix<Double>& elemMat, 
   UInt elemNumber = ent1.GetElem()->elemNum;
 
   sol_->GetElemSolutionAsMatrix( elemResult_, ent1 );
+
+  //adjust viscosity
+  if ( isSpongeLayer_) {
+    //get center coordinate
+    Point center;
+    ptelem->CalcBarycenter(ptCoord_, center);
+    //take here hard coded the x-coordinate
+    Double pos = (double)center[0];
+    AdjustViscosity( pos );
+  }
 
   Matrix<Double> gridElemResult;
   if (movingMesh_) {
@@ -973,6 +1023,16 @@ void FluidMechPlaneIntNewton_RhsUQ::CalcElementMatrix( Matrix<Double>& elemMat, 
   UInt elemNumber = ent1.GetElem()->elemNum;
 
   sol_->GetElemSolutionAsMatrix( elemResult_, ent1);
+
+  //adjust viscosity
+  if ( isSpongeLayer_) {
+    //get center coordinate
+    Point center;
+    ptelem->CalcBarycenter(ptCoord_, center);
+    //take here hard coded the x-coordinate
+    Double pos = (double)center[0];
+    AdjustViscosity( pos );
+  }
 
   if (movingMesh_)
   {
