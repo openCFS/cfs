@@ -208,7 +208,7 @@ namespace CoupledField
     if(!volElem_){
       volElem_ = CreatePt2Elems( volElemType );
     }else{
-      if(volElem_->ptElem->feType()!=volElemType){
+      if(volElem_->ptElem->feType() != (Integer)volElemType){
         delete volElem_->ptElem;
         volElem_->ptElem = 0;
         delete volElem_;
