@@ -15,13 +15,15 @@ namespace CoupledField
   ElemIntegr::ElemIntegr() :
     linearLoad_(NULL),
     ptElem_(NULL),
-    elemType_(0)
+    elemType_(0),
+    volElem_(0)
   { }
 
   ElemIntegr::ElemIntegr(UInt elemType) :
     linearLoad_(NULL),
     ptElem_(NULL),
-    elemType_(0)
+    elemType_(0),
+    volElem_(0)
   {
 #ifdef TRACE
     (*trace) << " entering ElemIntegr::ElemIntegr " << std::endl;
@@ -39,6 +41,12 @@ namespace CoupledField
   ElemIntegr::~ElemIntegr()
   {
     delete linearLoad_;
+
+    if(volElem_){
+      delete volElem_->ptElem;
+      delete volElem_;
+    }
+
     if(ptElem_)
       delete ptElem_->ptElem;
     delete ptElem_;
@@ -191,18 +199,29 @@ namespace CoupledField
                           const Matrix<Double> & volumeVel,
                           Vector<Double> & surfNormal,
                           Double density,
-                          Vector<Double> & Result){
+                          Vector<Double> & Result,
+                          Vector<Double> & ResultLHTens){
 #ifdef TRACE
     (*trace) << " entering ElemIntegr::PerformSurfaceIntegration" << std::endl;
 #endif
 
-    Elem* volElem = CreatePt2Elems( volElemType );
+    if(!volElem_){
+      volElem_ = CreatePt2Elems( volElemType );
+    }else{
+      if(volElem_->ptElem->feType()!=volElemType){
+        delete volElem_->ptElem;
+        volElem_->ptElem = 0;
+        delete volElem_;
+        volElem_=NULL;
+        volElem_ = CreatePt2Elems( volElemType );
+      }
+    }
 
-    if(!volElem)
+    if(!volElem_)
      Exception("ElemIntegr::PerformSurfaceIntegration error creating volume element pointer.");
 
-    linearLoad_->CalcLighthillSurfaceTermVel(volElem,ptElem_,
-        ptVolCoord,ptSurfCoord,volumeVel,surfNormal,density,Result);
+    linearLoad_->CalcLighthillSurfaceTermVel(volElem_,ptElem_,
+        ptVolCoord,ptSurfCoord,volumeVel,surfNormal,density,Result,ResultLHTens);
   }
 
   void ElemIntegr::PerformIntegrationCentre(const Matrix<Double> & coordMat,

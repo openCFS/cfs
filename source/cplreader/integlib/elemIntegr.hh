@@ -45,7 +45,8 @@ namespace CoupledField
                             const Matrix<Double> & volumeVel,
                             Vector<Double> & surfNormal,
                             Double density,
-                            Vector<Double> & Result);
+                            Vector<Double> & Result,
+                            Vector<Double> & ResultLHTens);
 
     void PerformSurfaceIntegrationCenter(const UInt volElemType,
                                 const Matrix<Double>& ptVolCoord,
@@ -53,7 +54,8 @@ namespace CoupledField
                                 const Matrix<Double> & volumeVel,
                                 Vector<Double> & surfNormal,
                                 Double density,
-                                Vector<Double> & Result){
+                                Vector<Double> & Result,
+                                Vector<Double> & ResultLHTens){
       Exception("PerformSurfaceIntegrationCenter: not implemented!");
     }
 
@@ -105,6 +107,7 @@ namespace CoupledField
     LinearFlowNoiseInt * linearLoad_;
     Elem *ptElem_;
     UInt elemType_;
+    Elem * volElem_;
 
   };
 

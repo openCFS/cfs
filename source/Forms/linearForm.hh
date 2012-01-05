@@ -391,7 +391,8 @@ namespace CoupledField
                                  const Matrix<Double> & volumeVel,
                                  Vector<Double> & surfNormal,
                                  Double density,
-                                 Vector<Double> & Result);
+                                 Vector<Double> & Result,
+                                 Vector<Double> & ResultLHTens);
 
     void CalcLighthillSurfaceTermVelCenter(const Elem* VolElem,
                                      const Elem* surfElem,
@@ -400,7 +401,8 @@ namespace CoupledField
                                      const Matrix<Double> & volumeVel,
                                      Vector<Double> & surfNormal,
                                      Double density,
-                                     Vector<Double> & Result){
+                                     Vector<Double> & Result,
+                                     Vector<Double> & ResultLHTens){
       Exception("CalcLighthillSurfaceTermCenter: not implemented!");
     }
 

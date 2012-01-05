@@ -1539,7 +1539,8 @@ DEFINE_LOG(linForm, "linForm")
                                    const Matrix<Double> & volumeVel,
                                    Vector<Double> & surfNormal,
                                    Double density,
-                                   Vector<Double> & Result){
+                                   Vector<Double> & Result,
+                                   Vector<Double> & ResultLHTens){
 #ifdef TRACE
     (*trace) << "entering LinearFlowNoiseInt::CalcLighthillSurfaceTerm" << std::endl;
 #endif
@@ -1587,10 +1588,16 @@ DEFINE_LOG(linForm, "linForm")
     Vector<Double> partResult;
     Vector<Double> helpVec;
 
-    Double jacDet;
+    Double jacDet = 0;
+    Double volume = 0;
+    Double divLHNormal = 0;
+
 
     Result.Resize(numSurfNodes);
     Result.Init(0.0);
+    ResultLHTens.Resize(dimelem);
+    ResultLHTens.Init(0.0);
+
     volSf.Resize(numVolNodes);
     volSf.Init();
     xiDx.Resize(numVolNodes,dimelem);
@@ -1607,6 +1614,7 @@ DEFINE_LOG(linForm, "linForm")
     {
       volElem->ptElem->GetGlobDerivShFnc(xiDx, locIntPtMat[actInt-1], ptVolCoord, volElem);
       volElem->ptElem->GetShFnc(volSf,locIntPtMat[actInt-1],volElem);
+
       ptelem->GetShFncAtIp(surfSh,actInt,surfElem);
       jacDet = ptelem->CalcJacobianDetAtIp(actInt,ptSurfCoord,surfElem);
       // velocity at integration point: (vx  vy)^T  (2x1)
@@ -1639,9 +1647,11 @@ DEFINE_LOG(linForm, "linForm")
       helpVec.Inner(surfNormal, sourceScalar);
       partResult = surfSh * sourceScalar;
       Result += partResult * jacDet * intWeights[actInt -1];
-
+      volume += intWeights[actInt-1];
+      divLHNormal += sourceScalar;
     }
-
+    ResultLHTens = surfNormal;
+    ResultLHTens *= (divLHNormal / (volElem->ptElem->CalcVolume() * volume ));
   } // end of CalcLighthillSurfaceTerm
 
 

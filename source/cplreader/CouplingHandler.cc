@@ -964,6 +964,8 @@ namespace CoupledField
     Settings& settings = Settings::Instance();
 
     std::string regionName = ptFileReader_->GetRegionName(surfRegionIdx);
+    UInt maxNENodes = ptFileReader_->GetMaxNumElemNodes();
+    UInt nElems = ptFileReader_->GetNumElems(surfRegionIdx);
 
     std::cout << "Calculating Lighthill surface sources on " << regionName << " ";
     Double density = settings.GetDouble("density");
@@ -983,8 +985,23 @@ namespace CoupledField
     // Fill acouRhsLoad field with zeros
     std::fill(SurfTermField.begin(), SurfTermField.end(), 0);
 
-    UInt maxNENodes = ptFileReader_->GetMaxNumElemNodes();
-    UInt nElems = ptFileReader_->GetNumElems(surfRegionIdx);
+    FlowDataPartStruct& fdps4 = flowData[surfRegionIdx][ACOU_DIV_LH_TENSOR];
+    fdps4.isActive = true; // all partitions have results
+    fdps4.definedOn = ResultInfo::ELEMENT; // elements
+    if(fdps4.dofNames.empty()) {
+      fdps4.dofNames.push_back("x");
+      fdps4.dofNames.push_back("y");
+      if(dim_ == 3)
+        fdps4.dofNames.push_back("z");
+    }
+    fdps4.unit = MapSolTypeToUnit(ACOU_DIV_LH_TENSOR);
+    fdps4.resultName = "acouDivLighthillTensor";
+    fdps4.data.resize(nElems * dim_);
+    fdps4.entryType = ResultInfo::VECTOR;
+    std::vector<Double>& acouDivLighthillTensor = fdps4.data;
+
+    // Fill acouDivLighthillTensor field with zeros
+    std::fill(acouDivLighthillTensor.begin(), acouDivLighthillTensor.end(), 0);
 
     //Define variables most of which are required for surface as well
     //as for the volume element
@@ -995,6 +1012,7 @@ namespace CoupledField
     Matrix<Double> surfCoordMat,volCoordMat;
     Matrix<Double> volNodalVel;
     Vector<Double> surfElemVec;
+    Vector<Double> DivLHElemVec;
     UInt volRegionIdx,volElemIdxLocal;
 
     UInt velIdx,topoIdx,nodeNum;
@@ -1014,6 +1032,7 @@ namespace CoupledField
       volRegionIdx = surfaceNeighbors_[surfElemIdx].first;
       FlowDataPartStruct& volVelocityReg = flowData[volRegionIdx][FLUIDMECH_VELOCITY];
       FlowDataPartStruct& volRHSReg = flowData[volRegionIdx][ACOU_RHS_LOAD];
+      FlowDataPartStruct& volDivLHReg = flowData[volRegionIdx][ACOU_DIV_LH_TENSOR];
 
       //ignore this element if associated volume has no data
       if(!volVelocityReg.isActive)// || !volRHSReg.isActive)
@@ -1072,10 +1091,10 @@ namespace CoupledField
         if (doIntAverageCentre_)
         {
           ptElemIntegr_[surfElemType]->PerformSurfaceIntegrationCenter( volElemType, volCoordMat,
-              surfCoordMat, volNodalVel, surfaceNormals_[surfElemIdx], density,surfElemVec);
+              surfCoordMat, volNodalVel, surfaceNormals_[surfElemIdx], density,surfElemVec,DivLHElemVec);
         } else {
           ptElemIntegr_[surfElemType]->PerformSurfaceIntegration(volElemType, volCoordMat,
-              surfCoordMat, volNodalVel, surfaceNormals_[surfElemIdx], density,surfElemVec);
+              surfCoordMat, volNodalVel, surfaceNormals_[surfElemIdx], density,surfElemVec,DivLHElemVec);
         }
 
       } catch (CoupledField::Exception &ex)
@@ -1118,7 +1137,16 @@ namespace CoupledField
 
           SurfTermField[surfIdx] += surfElemVec[n];
       }
+      // Add contributions of elements
+      for( UInt n=0; n < dim_; n++)
+      {
+        acouDivLighthillTensor[i*dim_ + n] = DivLHElemVec[n];
+        if(volDivLHReg.isActive){
+          volDivLHReg.data[volElemIdxLocal*dim_ + n] -= DivLHElemVec[n];
+        }
+      }
     }
+
     std::cout << "done." << std::endl;
   }
 
