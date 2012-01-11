@@ -1021,7 +1021,7 @@ namespace CoupledField
         l = 1;
         //perform damping
         while(l<30 && f_test >= f_old){
-           Double dampFac = 1.0/pow(2.0,(Double)(l-1.0));
+           Double dampFac = 1.0/std::pow(2.0,l-1.0);
            xi_start = xi_k + (delta_xi * dampFac);
            Local2GlobalCoord(f, xi_start, coordMat, NULL);
            f = f - globalPoint;

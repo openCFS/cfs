@@ -1222,7 +1222,7 @@ namespace CoupledField
       std::vector<UInt> globElemIdx;
       globElemIdx.clear();
       for(UInt j=0;j<matches.size();j++){
-        UInt eNum = std::floor((Double)matches[j] / (Double)maxNENodes);
+        UInt eNum = (UInt) std::floor((Double)matches[j] / (Double)maxNENodes);
         Elem::FEType elemType = (Elem::FEType) elemTypes_[eNum];
         if(Elem::GetElemDim(elemType) == dim_ && CalcSurfaceNormalOutVolume(eNum,curElemNum))
           globElemIdx.push_back(eNum);
