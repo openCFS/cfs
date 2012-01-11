@@ -225,7 +225,7 @@ struct Elem;
     //! variable speed of sound( combustion noise )
     NodeStoreSol<Double> speedOfSound_; 
 
-    bool isAPML;  //flag for almost PML formulation
+    bool isAPML_;  //flag for almost PML formulation
     bool plotRHS_; // Flag for saving of rhs for output
     bool plotRHSVel_; // Flag for saving of rhs as a vector field
     bool justInterpolate_; // Should only the RHS interpolation be performed?

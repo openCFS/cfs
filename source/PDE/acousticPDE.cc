@@ -77,7 +77,7 @@ namespace CoupledField {
       maxTimeDerivOrder_ = 2;
       fracDamping_ = false;
 
-      isAPML = false;
+      isAPML_ = false;
       isMechCoupled_ = false;
       variableSpeedOfSoundCN_ = false;
 
@@ -422,6 +422,8 @@ namespace CoupledField {
         //damping factor
         Double dampPML;
         
+        bool isCPML = false;
+
         std::string id = actRegionNode->Get("dampingId")->As<std::string>();
         PtrParamNode pmlNode = myParam_->Get("dampingList")->GetByVal("pml", "id", id);
         ReadDataPML(dampingTypePML, inner, dampPML, coordSysId, pmlNode );
@@ -438,16 +440,21 @@ namespace CoupledField {
           if ( dim_ != 3) 
             EXCEPTION( "APML formulation just makes sense in 3D");
           
-          isAPML = true;
+          isAPML_ = true;
           std::cout << "\n DO APML\n" << std::endl;
         }
+
+        //check for full PML without problematic L2-term
+        pmlNode->GetValue("aPML",helpStr);
+        if ( helpStr == "yes" ) 
+          isCPML = true;
 
 
         if ( analysistype_ == HARMONIC ) {     
           //====================================================================
           //	 stiffness integrator for PML
           //====================================================================
-          if ( isAPML )
+          if ( isAPML_ )
             formsType = "laplaceIntAPML";
           else
             formsType = "laplaceInt";
@@ -471,7 +478,7 @@ namespace CoupledField {
           //	 mass integrator for PML
           //====================================================================
           
-          if ( isAPML )
+          if ( isAPML_ )
             formsType = "massIntAPML";
           else
             formsType = "massInt";
@@ -601,27 +608,29 @@ namespace CoupledField {
                                        actSDList, actSDList );
           assemble_->AddBiLinearForm( auxStiffContext);
 
-          if ( dim_ == 3 && isAPML == false ) {
+          if ( dim_ == 3 && isAPML_ == false ) {
             //3D computation: so we need in addition a scalar auxillary variable
                 
             //====================================================================
             //	 scalar axuillary grad integrator for time domain PML
             //====================================================================
-            formsType = "auxGrad";
-            factorPDE = -density;
-            BaseForm * bilinearAuxGrad =
-              new PMLTimeInt(formsType, factorPDE, dampingTypePML, dampPML, isaxi_);
-            
-            bilinearAuxGrad->SetPosPML(inner,outer, coordSysId);
-            
-            BiLinFormContext * auxGradContext =
-              new BiLinFormContext( bilinearAuxGrad, STIFFNESS );
-            
-            auxGradContext->SetPtPdes(this, this);
-            auxGradContext->SetResults( results_[1], results_[2],
-                                        actSDList, actSDList );
-            assemble_->AddBiLinearForm( auxGradContext);
-            
+            if ( !isCPML ) {
+              formsType = "auxGrad";
+              factorPDE = -density;
+              BaseForm * bilinearAuxGrad =
+                new PMLTimeInt(formsType, factorPDE, dampingTypePML, dampPML, isaxi_);
+              
+              bilinearAuxGrad->SetPosPML(inner,outer, coordSysId);
+              
+              BiLinFormContext * auxGradContext =
+                new BiLinFormContext( bilinearAuxGrad, STIFFNESS );
+              
+              auxGradContext->SetPtPdes(this, this);
+              auxGradContext->SetResults( results_[1], results_[2],
+                                          actSDList, actSDList );
+              assemble_->AddBiLinearForm( auxGradContext);
+            }
+
             //====================================================================
             //   	 scalar axuillary stiffness integrator for time domain PML
             //====================================================================
@@ -981,7 +990,7 @@ namespace CoupledField {
       if ( putSecondResult2EQNclass ) {
         eqnMap_->AddResult( *results_[1], actSDList );
         putSecondResult2EQNclass = false;
-        if ( dim_ == 3 && isAPML == false ) 
+        if ( dim_ == 3 && isAPML_ == false ) 
           eqnMap_->AddResult( *results_[2], actSDList );
       }
     }
@@ -2565,7 +2574,7 @@ namespace CoupledField {
         availResults_.insert( res2 );
         results_.Push_back( res2 );
 
-        if( subType_ == "3d" && isAPML == false ) {
+        if( subType_ == "3d" && isAPML_ == false ) {
           // === scalar auxillary variable ===
           shared_ptr<ResultInfo> res3(new ResultInfo); 
           res3->resultType = ACOU_PMLAUXSCALAR;

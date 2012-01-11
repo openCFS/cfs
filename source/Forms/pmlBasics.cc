@@ -284,7 +284,8 @@ namespace CoupledField
       if ( abs (maxPos - locPos[dir]) < 1e-12 ) {
         factor = 0;
       }else{
-        factor = abs ( dampingFactor_ / divisor - dampingFactor_ / layerThick );
+        factor = abs ( dampingFactor_ / divisor ); // - dampingFactor_ / layerThick );
+        //        std::cout << "DampFactor: " << factor << std::endl;
       }
     }
     
