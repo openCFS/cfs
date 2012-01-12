@@ -445,9 +445,11 @@ namespace CoupledField {
         }
 
         //check for full PML without problematic L2-term
-        pmlNode->GetValue("aPML",helpStr);
-        if ( helpStr == "yes" ) 
+        pmlNode->GetValue("cPML",helpStr);
+        if ( helpStr == "yes" ) {
           isCPML = true;
+          std::cout << "\n DO cPML\n" << std::endl;
+        }
 
 
         if ( analysistype_ == HARMONIC ) {     
