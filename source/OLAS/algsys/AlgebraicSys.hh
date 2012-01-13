@@ -293,7 +293,7 @@ namespace CoupledField {
     //! define the entries of one of those blocks.
     //! \param eqns contains the set of equations for one super matrix block
     //! \param isInnerBlock flag, if block contains inner functions which can
-    //!                     get eliminates using static condensation
+    //!                     get eliminated using static condensation
     //! \return index of the matrix within the SuperBlockMatrix
     //! 
     //! \note Even in case of just one SBM matrix block, a call to this method

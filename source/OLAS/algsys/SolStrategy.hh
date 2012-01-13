@@ -58,13 +58,17 @@ public:
   }
   
   // ========================================================================
-  //  SOLUTION STEPS
+  //  SOLUTION STEPS / SPLITTING LEVELS
   // ========================================================================
   //! Get number of solution steps
   virtual UInt GetNumSolSteps() = 0;
   
   //! Set current solution step
-  virtual void SetActSolStep() = 0;
+  //! \param stepNum current solution step number (0-based)
+  virtual void SetActSolStep(UInt stepNum) = 0;
+  
+  //! Get number of SBM-blocks
+  virtual UInt GetNumSBMBlocks() = 0;
   
   // ========================================================================
   //  OLAS-PARAMEER HANDLING
@@ -95,7 +99,7 @@ public:
   virtual std::string GetEigenSolverId() = 0;
   
   //! Return pointer to <precond>
-  virtual std::string GetPrecondId(UInt level) = 0;
+  virtual std::string GetPrecondId() = 0;
   
   //! Return pointer to <exportLinSys> element
   virtual PtrParamNode GetExportLinSysNode() = 0;
@@ -116,6 +120,12 @@ protected:
   
   //! Number of solution steps
   UInt numSolSteps_;
+  
+  //! Current solution step (0-based)
+  UInt curSolStep_;
+  
+  //! Special matrix element for static condensation
+  PtrParamNode statCondMatNode_;
 };
 
 
@@ -144,11 +154,14 @@ public:
   virtual UInt GetNumSolSteps();
 
   //! Set current solution step
-  virtual void SetActSolStep();
+  virtual void SetActSolStep(UInt stepNum);
 
   //! Return use of static condensation
   virtual bool UseStaticCondensation();
 
+  //! Get number of SBM-blocks
+  virtual UInt GetNumSBMBlocks();
+   
   // ========================================================================
   //  OLAS-PARAMETER HANDLING
   // ========================================================================
@@ -175,7 +188,7 @@ public:
   virtual std::string GetSolverId();
 
   //! Return pointer to <precond>
-  virtual std::string GetPrecondId(UInt level);
+  virtual std::string GetPrecondId();
 
   //! Return pointer to <exportLinSys> element
   virtual PtrParamNode GetExportLinSysNode();
@@ -212,19 +225,104 @@ protected:
   //! <timeStepping> element
   PtrParamNode tsNode_;
   
-  //! Special matrix element for static condensation
-  PtrParamNode statCondMatNode_;
-  
 };
 
-////! Solution strategy for two level solver
-//class SolStrategyTwoLevel : public SolStrategy {
-//  
-//public:
-//  
-//protected:
-//  
-//};
+//! Two-Level Solution Strategy
+
+//! This class represents the "stanard" solution strategy, i.e. we have a
+//! SBM-system with only one block and we use a standard solver / 
+//! preconditioner combination with optional static condensation.
+//! The FeSpace does not have to perform a specific numbering strategy 
+//! (exception: static condensation for interior block) and the SolveStep
+//! class just has to trigger once the assembly of the system and 
+//! the solution of the system.
+class SolStrategyTwoLevel : public SolStrategy {
+public:
+
+  //! Constructor
+  SolStrategyTwoLevel( PtrParamNode node );
+
+  //! Destructor
+  ~SolStrategyTwoLevel();
+
+  // ========================================================================
+  //  SOLUTION STEPS
+  // ========================================================================
+  //! Get number of solution steps
+  virtual UInt GetNumSolSteps();
+
+  //! Set current solution step
+  virtual void SetActSolStep(UInt stepNum );
+
+  //! Return use of static condensation
+  virtual bool UseStaticCondensation();
+
+    //! Get number of SBM-blocks
+  virtual UInt GetNumSBMBlocks();
+
+  // ========================================================================
+  //  OLAS-PARAMETER HANDLING
+  // ========================================================================
+
+  //! Return use of penalty approach for Dirichlet handling
+  bool UseDirichletPenalty();
+  
+  //! Return calculation of conditionNumber
+  bool CalcConditionNumber();
+  
+  //! Return pointer to <setup> element
+  virtual PtrParamNode GetSetupNode();
+  
+  //! Return storage type for matrix block
+  virtual BaseMatrix::StorageType GetStorageType(UInt blockNum);
+  
+  //! Return <matrix> node
+  virtual PtrParamNode GetMatrixNode(UInt level);
+
+  //! Return eigenSolverId
+  virtual std::string GetEigenSolverId();
+  
+  //! Return solver id
+  virtual std::string GetSolverId();
+
+  //! Return pointer to <precond>
+  virtual std::string GetPrecondId();
+
+  //! Return pointer to <exportLinSys> element
+  virtual PtrParamNode GetExportLinSysNode();
+
+  //! Return pointer to <nonLinear> element
+  virtual PtrParamNode GetNonLinNode();
+
+  //! Return pointer to <timeStepping> element
+  virtual PtrParamNode GetTimeSteppingNode();
+
+protected:
+  
+  //! <setup> node
+  PtrParamNode setupNode_;
+
+  //! <exportLinSys> node
+  PtrParamNode exportNode_;
+
+  //! Matrix nodes s per level
+  ParamNodeList matrixNodes_;
+  
+  //! EigenSolver nodes per solution step
+  ParamNodeList eigenSolverNodes_;
+    
+  //! Solver nodes per solution step
+  ParamNodeList solverNodes_;
+  
+  //! Preconditioner nodes per solution step
+  ParamNodeList precondNodes_;
+  
+  //! Nonlinear nodes per solution step
+  ParamNodeList nonLinNodes_;
+  
+  //! Timestepping nodes per solution step
+  ParamNodeList timeStepNodes_;
+};
 
 } // end of namespace
 #endif

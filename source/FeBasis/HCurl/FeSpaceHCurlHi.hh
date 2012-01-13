@@ -46,11 +46,11 @@ public:
   virtual void Finalize();
   
   //! Return SBM-block and Matrix-SubBlockdefinition according to strategy
-  void GetOlasMappings( shared_ptr<SolStrategy> solStrat, 
-                        StdVector<std::set<Integer> >& sbmBlocks,
-                        std::map<UInt,StdVector<std::set<Integer> > >&
-                        minorBlocks );
-  
+  virtual void GetOlasMappings( shared_ptr<SolStrategy> solStrat, 
+                                StdVector<std::set<Integer> >& sbmBlocks,
+                                std::map<UInt,StdVector<std::set<Integer> > >&
+                                minorBlocks );
+
 
 protected:
 

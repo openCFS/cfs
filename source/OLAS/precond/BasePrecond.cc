@@ -26,6 +26,7 @@ namespace CoupledField {
     EnumTuple( BasePrecond::ILDLTP, "ILDLTP"),
     EnumTuple( BasePrecond::ILDLCN, "ILDLCN"),
     EnumTuple( BasePrecond::IC0, "IC0" ),
+    EnumTuple( BasePrecond::SBM_DIAG, "SBMDiag" ),
     // Initialization of Solver type preconditioners
     EnumTuple( BasePrecond::RICHARDSON, "richardson" ),
     EnumTuple( BasePrecond::DIAGSOLVER, "diagsolver"),
@@ -74,41 +75,16 @@ namespace CoupledField {
   // ------------------------------------------------------------------------
   
   BaseSBMPrecond::BaseSBMPrecond( UInt numBlocks, PtrParamNode infoNode ) {
-    readyToUse_ = false;
     numBlocks_ = numBlocks;
     infoNode_ = infoNode->Get("SBMPrecond");
-    stdPreconds_.Resize( numBlocks_ );
-    stdPreconds_.Init(NULL);
+  
   }
   
   BaseSBMPrecond::~BaseSBMPrecond() {
     
-    for( UInt i = 0; i < numBlocks_; ++i) {
-      if( stdPreconds_[i] != NULL ) {
-        delete stdPreconds_[i];
-      }
-    }
-    stdPreconds_.Clear();
+   
   }
   
-  void BaseSBMPrecond::SetPrecond(UInt blockNum, BasePrecond* stdPrecond ) {
-    
-    // check block index
-    if( blockNum > numBlocks_ ) {
-      EXCEPTION("Can not assign a standard preconditioner for block #" << blockNum
-               << " as the system has only size of " << numBlocks_ );
-    }
-    
-    // check if preconditioner was already set for given block
-    if( stdPreconds_[blockNum] != NULL ) {
-      EXCEPTION("Can not set preconditioner for SBM block #" << blockNum 
-                << " as there is already a preconditioner of type "
-                << precondType.ToString(stdPreconds_[blockNum]->GetPrecondType())
-                << " assigned." );
-    }
-    stdPreconds_[blockNum] = stdPrecond;
-    
-  }
   
   void BaseSBMPrecond::Apply( const BaseMatrix& sysmat, const BaseVector& r, 
                               BaseVector& z ) {
@@ -118,54 +94,10 @@ namespace CoupledField {
       Apply(sbmsysmat,sbmr,sbmz);
     }
   
-  void BaseSBMPrecond::Apply( const SBM_Matrix &A, const SBM_Vector &r,
-                              SBM_Vector &z ) {
-    
-    // Loop over all rows
-    for( UInt iRow = 0; iRow < numBlocks_; ++iRow ) {
-    
-      // If preconditioner for row is defined, apply it
-      if( stdPreconds_[iRow] != NULL ) {
-        const StdMatrix * stdMat = A.GetPointer(iRow,iRow);
-        const SingleVector * rStd = r.GetPointer(iRow);
-        SingleVector * zStd = z.GetPointer(iRow);
-        stdPreconds_[iRow]->Apply(*stdMat, *rStd, *zStd );
-        
-      }
-    }
-  }
 
   void BaseSBMPrecond::Setup( BaseMatrix &A, PtrParamNode analysis_id ) {
     SBM_Matrix& sbmA = dynamic_cast<SBM_Matrix&>(A);
     Setup(sbmA, analysis_id);
   }
-  
-  void BaseSBMPrecond::Setup( SBM_Matrix &A, PtrParamNode analysis_id ) {
-    for( UInt iRow = 0; iRow < numBlocks_; ++iRow ) {
-      // If preconditioner for row is defined, apply it
-      if( stdPreconds_[iRow] != NULL ) {
-        stdPreconds_[iRow]->Setup(A(iRow,iRow),analysis_id);
-      }
-    }
-  }
-  
-  void BaseSBMPrecond::GetPrecondSysMat( BaseMatrix& sysMat ) {
-
-    SBM_Matrix& sbmA = dynamic_cast<SBM_Matrix&>(sysMat);
-    // loop over all diagonal
-    for( UInt iRow = 0; iRow < numBlocks_; ++iRow ) {
-      for( UInt iCol = iRow; iCol < numBlocks_; ++iCol ) {
-
-        if( iCol == iRow ) {
-          if( stdPreconds_[iRow] != NULL ) {
-            // get preconditioned sysmat from diagonal precond
-            stdPreconds_[iRow]->GetPrecondSysMat( sbmA(iRow,iRow) );
-          }
-        } else { 
-          sbmA(iRow,iCol).Init();
-        }
-      }
-    }
-  }
-
+ 
 }

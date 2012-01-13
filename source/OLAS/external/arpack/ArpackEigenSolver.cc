@@ -5,6 +5,7 @@
 #include "MatVec/generatematvec.hh"
 
 #include "DataInOut/ParamHandling/ParamNode.hh"
+#include "OLAS/algsys/SolStrategy.hh"
 
 #include "OLAS/precond/generateprecond.hh"
 #include "OLAS/precond/BasePrecond.hh"
@@ -129,8 +130,9 @@ namespace CoupledField {
     if ( matrixA_->GetStructureType() == BaseMatrix::SPARSE_MATRIX ) {
       const StdMatrix & mat = dynamic_cast< const StdMatrix &>( *matrixA_ );
 
-      // Create preconditioner 
-      precond_ = GenerateStdPrecondObject( mat, solStrat_, 
+      // Create preconditioner
+      std::string precondId = solStrat_->GetPrecondId();
+      precond_ = GenerateStdPrecondObject( mat, precondId, 
                                            precondList_, eigenInfo_ );
     } else {
       EXCEPTION( "No preconditioner available for SBM-matrices!" );
@@ -230,7 +232,8 @@ namespace CoupledField {
       const StdMatrix & mat = dynamic_cast< const StdMatrix &>( *matrixB_ );
 
       // Create preconditioner
-      precond_ = GenerateStdPrecondObject( mat, solStrat_, 
+      std::string precondId = solStrat_->GetPrecondId();
+      precond_ = GenerateStdPrecondObject( mat, precondId, 
                                            precondList_, eigenInfo_ );
     } else {
       EXCEPTION( "No preconditioner available for SBM-matrices!" );
@@ -426,7 +429,8 @@ namespace CoupledField {
       const StdMatrix & mat = dynamic_cast< const StdMatrix &>( *matrixA_ );
 
       // Create preconditioner
-      precond_ = GenerateStdPrecondObject( mat, solStrat_, 
+      std::string precondId = solStrat_->GetPrecondId();
+      precond_ = GenerateStdPrecondObject( mat, precondId, 
                                            precondList_, eigenInfo_ );
     } else {
       EXCEPTION( "No preconditioner available for SBM-matrices!" );

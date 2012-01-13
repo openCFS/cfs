@@ -6,7 +6,18 @@ namespace CoupledField {
   SolStrategy::SolStrategy( PtrParamNode param ) {
     param_ = param;
     type_ = NO_STRATEGY;
-    numSolSteps_ = 0;
+    numSolSteps_ = 1;
+    curSolStep_ = 1;
+    
+    // matrix node for static condensation
+    {
+      statCondMatNode_.reset(new ParamNode());
+      statCondMatNode_->SetName("matrix");
+      statCondMatNode_->Get("storage",ParamNode::INSERT)
+               ->SetValue("variableBlockRow");
+      statCondMatNode_->Get("reordering",ParamNode::INSERT)
+                   ->SetValue("noReordering");
+    }
   }
 
   SolStrategy::~SolStrategy() {
@@ -34,8 +45,8 @@ namespace CoupledField {
     std::string strat = stratNode->GetName();
     if( strat == "standard" ) {
       ret.reset(new SolStrategyStd(stratNode));
-      //} else if( strat == "twoLevel") {
-      //ret.reset(new SolStrategyStd(stratNode));
+      } else if( strat == "twoLevel") {
+      ret.reset(new SolStrategyTwoLevel(stratNode));
     } else {
       EXCEPTION("Solution strategy '" << strat << "' is not known.");
     }
@@ -44,14 +55,15 @@ namespace CoupledField {
   }
 
   // ==========================================================================
-  //  STANDARD SOLUTION STRATEGY
+  //  S T A N D A R D   S O L U T I O N   S T R A T E G Y
   // ==========================================================================
-  
   
   SolStrategyStd::SolStrategyStd(PtrParamNode node ) 
   : SolStrategy(node) {
     
     type_ = STD_STRATEGY;
+    numSolSteps_ = 1;
+    curSolStep_ = 1;
     
     // check, if subnodes are present. if not, generate them, but
     // without default attributes
@@ -128,16 +140,6 @@ namespace CoupledField {
       tsNode_ = param_->Get("timeStepping");
     }
     
-    // matrix node for static condensation
-    {
-    statCondMatNode_.reset(new ParamNode());
-    statCondMatNode_->SetName("matrix");
-    statCondMatNode_->Get("storage",ParamNode::INSERT)
-        ->SetValue("variableBlockRow");
-    statCondMatNode_->Get("reordering",ParamNode::INSERT)
-            ->SetValue("noReordering");
-    }
-
    }
 
   SolStrategyStd::~SolStrategyStd(){
@@ -148,7 +150,7 @@ namespace CoupledField {
     return 1;
   }
 
-  void SolStrategyStd::SetActSolStep(){
+  void SolStrategyStd::SetActSolStep(UInt stepNum){
     // check, that solstep does not get changed
   }
 
@@ -156,6 +158,15 @@ namespace CoupledField {
     bool useCondens = false;
     setupNode_->GetValue("staticCondensation", useCondens, ParamNode::INSERT);
     return useCondens;
+  }
+  
+
+  UInt SolStrategyStd::GetNumSBMBlocks(){
+    if( UseStaticCondensation() ) {
+      return 2;
+    } else {
+      return 1;
+    }
   }
   
   bool SolStrategyStd::UseDirichletPenalty() {
@@ -216,7 +227,7 @@ namespace CoupledField {
     return id;
   }
 
-  std::string SolStrategyStd::GetPrecondId(UInt level){
+  std::string SolStrategyStd::GetPrecondId(){
     std::string id = "default";
     precondNode_->GetValue("id", id, ParamNode::INSERT);
     return id;
@@ -234,6 +245,213 @@ namespace CoupledField {
     PtrParamNode ret;
     return ret;
   }
+  
+  
+  
+  // ==========================================================================
+  //  T W O - L E V E L   S O L U T I O N   S T R A T E G Y
+  // ==========================================================================
+  SolStrategyTwoLevel::SolStrategyTwoLevel(PtrParamNode node ) 
+  : SolStrategy(node) {
+    type_ = TWO_LEVEL_STRATEGY;
+
+    // <setup> element
+    if( !node->Has("setup")) {
+      setupNode_.reset(new ParamNode());
+      setupNode_->SetName("setup");
+      param_->AddChildNode(setupNode_);
+    } else {
+      setupNode_ = param_->Get("setup");
+    }
+
+    // <exportLinSys> element
+    if( !node->Has("exportLinSys")) {
+      exportNode_.reset(new ParamNode());
+      exportNode_->SetName("exportLinSys");
+      param_->AddChildNode(exportNode_);
+    } else {
+      exportNode_ = param_->Get("exportLinSys");
+    }
+    
+    // read in splitting node
+    PtrParamNode splitNode = node->Get("splitting", ParamNode::PASS);
+    if( !splitNode ) {
+      splitNode.reset(new ParamNode());
+      splitNode->SetName("splitting");
+      node->AddChildNode(splitNode);
+    }
+    
+    // read in <matrix>-subnodes
+    matrixNodes_.Resize(2);
+    // Loop over all level
+    for( UInt iLevel = 0; iLevel < 2; ++iLevel ) {
+      PtrParamNode levelNode = splitNode->GetByVal("level","num",iLevel+1,ParamNode::INSERT);
+      matrixNodes_[iLevel] = levelNode->Get("matrix", ParamNode::INSERT);
+    }
+
+    // Obtain solutionNode
+    PtrParamNode solNode = node->Get("solution");
+    ParamNodeList stepNodes = solNode->GetChildren();
+    numSolSteps_ = stepNodes.GetSize();
+    
+    
+    // Resize vectors
+    eigenSolverNodes_.Resize(numSolSteps_);
+    solverNodes_.Resize(numSolSteps_);
+    precondNodes_.Resize(numSolSteps_);
+    nonLinNodes_.Resize(numSolSteps_);
+    timeStepNodes_.Resize(numSolSteps_);
+    
+    
+    // loop over all solution steps nodes
+    for( UInt i = 0; i < stepNodes.GetSize(); ++i ) {
+
+      PtrParamNode stepNode = stepNodes[i];
+      
+      // <eigenSolver> element
+      eigenSolverNodes_[i] = stepNode->Get("eigenSolver",ParamNode::INSERT);
+
+      // <solver> element
+      solverNodes_[i] = stepNode->Get("solver",ParamNode::INSERT);
+      
+      // <precond> element
+      precondNodes_[i] = stepNode->Get("precond",ParamNode::INSERT);
+      
+      // <nonLinear> element
+      nonLinNodes_[i] = stepNode->Get("nonLinear",ParamNode::INSERT);
+
+      // <timeStepping> element
+      timeStepNodes_[i] = stepNode->Get("timeStepping", ParamNode::INSERT);
+    } // loop over all solution steps
+    
+    // in the end, set active solution step to 1st step
+    curSolStep_ = 0;
+    
+    std::cerr << "=====================\n"
+        << "Param Node at End of SolStrategy Setup:\n"
+        << "=====================\n";
+    param_->Dump();
+        
+  }
+  
+  SolStrategyTwoLevel::~SolStrategyTwoLevel(){
+
+  }
+
+  UInt SolStrategyTwoLevel::GetNumSolSteps(){
+    return numSolSteps_;
+  }
+
+  void SolStrategyTwoLevel::SetActSolStep(UInt stepNum ){
+    
+    if( stepNum > numSolSteps_ ) {
+      EXCEPTION("Can not set active solution step to " << stepNum 
+                << ", as solution strategy has only " << numSolSteps_ 
+                << " solution steps." );
+    }
+    curSolStep_ = stepNum;
+  }
+
+  bool SolStrategyTwoLevel::UseStaticCondensation(){
+    bool useCondens = false;
+    setupNode_->GetValue("staticCondensation", useCondens, ParamNode::INSERT);
+    return useCondens;
+  }
+  
+  UInt SolStrategyTwoLevel::GetNumSBMBlocks(){
+    if( UseStaticCondensation() ) {
+      return 3;
+    } else {
+      return 2;
+    }
+  }
+
+  bool SolStrategyTwoLevel::UseDirichletPenalty() {
+    std::string usageString = "elimination";
+    setupNode_->GetValue("idbcHandling", usageString, ParamNode::INSERT);
+    if( usageString == "elimination")
+      return false;
+    else 
+      return true;
+  }
+
+  bool SolStrategyTwoLevel::CalcConditionNumber() {
+    bool calcCond = false;
+    setupNode_->GetValue("calcConditionNumber", calcCond, ParamNode::INSERT);
+    return calcCond;
+  }
+
+  PtrParamNode SolStrategyTwoLevel::GetSetupNode(){
+    return setupNode_;
+  }
+
+  BaseMatrix::StorageType SolStrategyTwoLevel::GetStorageType(UInt blockNum) {
+
+    std::string formatString;
+
+    // return 
+    if( UseStaticCondensation() && blockNum==2 ) {
+      statCondMatNode_->GetValue("storage",formatString);
+    } else {
+      GetMatrixNode(blockNum)->GetValue("storage",formatString);
+    }
+
+    BaseMatrix::StorageType st = BaseMatrix::storageType.Parse(formatString);
+    return st;
+
+  }
+
+
+  PtrParamNode SolStrategyTwoLevel::GetMatrixNode(UInt blockNum){
+    PtrParamNode ret;
+    
+    if( blockNum >= GetNumSBMBlocks() ) {
+      EXCEPTION("Can not return matrix node for SBM block number " << blockNum+1
+                << " as the system has only " << GetNumSBMBlocks() 
+                << " SBM blocks." );
+    }
+    
+    if( UseStaticCondensation() == true && 
+        blockNum == 2 ) {
+      ret = statCondMatNode_;
+    } else {
+      ret = matrixNodes_[blockNum];
+    }
+    return ret; 
+  }
+
+  std::string SolStrategyTwoLevel::GetSolverId(){
+    std::string id = "default";
+    solverNodes_[curSolStep_]->GetValue("id", id, ParamNode::INSERT);
+    return id;
+  }
+
+  std::string SolStrategyTwoLevel::GetEigenSolverId(){
+    std::string id = "default";
+    eigenSolverNodes_[curSolStep_]->GetValue("id", id, ParamNode::INSERT);
+    return id;
+  }
+
+  std::string SolStrategyTwoLevel::GetPrecondId(){
+    std::string id = "default";
+    precondNodes_[curSolStep_]->GetValue("id", id, ParamNode::INSERT);
+    return id;
+  }
+
+  PtrParamNode SolStrategyTwoLevel::GetExportLinSysNode(){
+    return exportNode_;
+  }
+
+  PtrParamNode SolStrategyTwoLevel::GetNonLinNode(){
+    PtrParamNode ret;
+    return ret;
+  }
+  PtrParamNode SolStrategyTwoLevel::GetTimeSteppingNode(){
+    PtrParamNode ret;
+    return ret;
+  }
+
+  
 
 // ************************************************************************
 // ENUM INITIALIZATION

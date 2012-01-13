@@ -63,7 +63,13 @@
       <xsd:element name="precondList" minOccurs="0" maxOccurs="1">
         <xsd:complexType>
           <xsd:sequence>
-            <xsd:element ref="PrecondBasic" minOccurs="0" maxOccurs="unbounded"/>
+            <xsd:choice minOccurs="0" maxOccurs="unbounded">
+              <!-- Case 1: Real preconditioners -->
+              <xsd:element ref="PrecondBasic"/>
+              
+              <!-- Case 2: Solver-based preconditioners -->
+              <xsd:element ref="SolverBasic"/>
+            </xsd:choice>
           </xsd:sequence>
         </xsd:complexType>
         
@@ -82,7 +88,7 @@
  
   
   <!-- ******************************************************************* -->
-  <!--   Definition of data type for setup if sysmtem -->
+  <!--   Definition of data type for setup of system                       -->
   <!-- ******************************************************************* -->
   <xsd:complexType name="DT_SystemSetup">
   <!-- How should Dirichlet equations be handled -->
@@ -257,12 +263,131 @@
               <xsd:attribute name="id" type="xsd:token" default="default"/>
             </xsd:complexType>
           </xsd:element>
+          
           <!-- nonLinear element -->
-          <!-- timeStepping element -->         
+          
+          <!-- timeStepping element -->   
+          
         </xsd:sequence>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
   
+  <!-- ==================================================================== -->
+  <!-- ==                                                                == -->
+  <!-- ==                     TWO-LEVEL solution Strategy                == -->
+  <!-- ==                                                                == -->
+  <!-- ==================================================================== -->
+  
+  <!-- ******************************************************************* -->
+  <!--   Definition of element for twolevel solution strategy              -->
+  <!-- ******************************************************************* -->
+  <xsd:element name="twoLevel" type="DT_StrategyTwoLevel"
+    substitutionGroup="StrategyBasic"/>
+  
+  <!-- ******************************************************************* -->
+  <!--   Definition of Two-Level Solution Strategy                         -->
+  <!-- ******************************************************************* -->
+  <xsd:complexType name="DT_StrategyTwoLevel">
+    <xsd:complexContent>
+      <xsd:extension base="DT_StrategyBasic">
+        <xsd:sequence>
+          <!-- setup element-->
+          <xsd:element name="setup" type="DT_SystemSetup" 
+            minOccurs="0" maxOccurs="1"/>
+          
+          <!-- exportLinSys element-->
+          <xsd:element name="exportLinSys" type="DT_ExportLinSys"
+            minOccurs="0" maxOccurs="1"/>
+          
+          <!-- splitting element -->
+          <xsd:element name="splitting" maxOccurs="1" minOccurs="1">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="level" minOccurs="0" maxOccurs="2">
+                  <xsd:complexType>
+                    <xsd:sequence>
+                      <xsd:element name="matrix" type="DT_MatrixDescription"
+                        minOccurs="0" maxOccurs="1"/>
+                    </xsd:sequence>
+                    <xsd:attribute name="num" >
+                      <xsd:simpleType>
+                        <xsd:restriction base="xsd:positiveInteger">
+                          <xsd:enumeration value="1"/>
+                          <xsd:enumeration value="2"/>
+                        </xsd:restriction>
+                      </xsd:simpleType>
+                    </xsd:attribute>
+                  </xsd:complexType>
+                </xsd:element>
+              </xsd:sequence>
+            </xsd:complexType>
+          </xsd:element>
+          
+          <!-- solution element -->
+          <xsd:element name="solution" minOccurs="1" maxOccurs="1">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="step" minOccurs="1" maxOccurs="2">
+                  <xsd:complexType>
+                    <xsd:sequence>
+                      
+                      <!-- eigenSolver element -->
+                      <xsd:element name="eigenSolver" minOccurs="0" maxOccurs="1">
+                        <xsd:complexType>
+                          <xsd:attribute name="id" type="xsd:token" default="default"/>
+                        </xsd:complexType>
+                      </xsd:element>
+                      
+                      <!-- solver element -->
+                      <xsd:element name="solver" minOccurs="0" maxOccurs="1">
+                        <xsd:complexType>
+                          <xsd:attribute name="id" type="xsd:token" default="default"/>
+                        </xsd:complexType>
+                      </xsd:element>
+                      
+                      <!-- preconditioner element -->
+                      <xsd:element name="precond" minOccurs="0" maxOccurs="1">
+                        <xsd:complexType>
+                          <xsd:attribute name="id" type="xsd:token" default="default"/>
+                          
+                        </xsd:complexType>
+                      </xsd:element>
+                      
+                      <!-- nonLinear element -->
+                      
+                      <!-- timeStepping element -->  
+                      
+                    </xsd:sequence>
+                    
+                    <!-- solution step number-->
+                    <xsd:attribute name="num" use="required">
+                      <xsd:simpleType>
+                        <xsd:restriction base="xsd:positiveInteger">
+                          <xsd:enumeration value="1"/>
+                          <xsd:enumeration value="2"/>
+                        </xsd:restriction>
+                      </xsd:simpleType>
+                    </xsd:attribute>
+                    
+                    <!-- splitting level number -->
+                    <xsd:attribute name="level" use="required">
+                      <xsd:simpleType>
+                        <xsd:restriction base="xsd:positiveInteger">
+                          <xsd:enumeration value="1"/>
+                          <xsd:enumeration value="2"/>
+                        </xsd:restriction>
+                      </xsd:simpleType>
+                    </xsd:attribute>
+                  </xsd:complexType>
+                </xsd:element>
+              </xsd:sequence>
+            </xsd:complexType>
+          </xsd:element>
+          
+        </xsd:sequence>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
 </xsd:schema>
 

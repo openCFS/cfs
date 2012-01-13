@@ -17,44 +17,38 @@ namespace CoupledField {
   public:
 
     //! Default constructor
+    SBMDiagPrecond( UInt numBlocks, 
+                    PtrParamNode olasInfo );
     
-    //! The default constructor does not do anything, but set the pointer of
-    //! the preconditioner array to NULL.
-    SBMDiagPrecond() : precond_(NULL) {};
+    //! Destructor
+    virtual ~SBMDiagPrecond();
 
-    //! Applies the preconditioner by "solving" Az=r for z
+    //! Set preconditioner for standard matrices for block \blockNum
 
-    //! This method applies the preconditioner. Formally this means that for
-    //! the given vectors r and z the linear system Az=r with the problem
-    //! matrix A is solved for z. In the case of the SBMDiagPrecond
-    //! preconditioner one preconditioning step consists of applying the
-    //! individual preconditioners to the diagonal sub-matrices of A using the
-    //! corresponding sub-vectors of r and z.
-    //! \param A problem matrix
-    //! \param r residual vector for current iteration step
-    //! \param z output vector computed by the preconditioner
+    //! This method allows to compose the SBM-preconditioner by single 
+    //! standard-preconditioners for every row.
+    virtual void SetPrecond(UInt blockNum, BasePrecond* stdPrecond );
+
+    //! \copydoc BaseSBMPrecond(SBM_Matrix, SBM_Vector, SBM_Vector)
     virtual void Apply( const SBM_Matrix &A, const SBM_Vector &r,
-			SBM_Vector &z ) const;
+                        SBM_Vector &z ) ;
 
-    //! A call of this method triggers the construction of the preconditioner.
+    //! \copydoc BaseSBMPrecond::Setup(SBM_Matrix, PtrParamNode)
+    virtual void Setup( SBM_Matrix &A, PtrParamNode analysis_id );
 
-    //! When this method is called the preconditioner will be constructed.
-    //! In order to achieve this the method will trigger the setup phase of
-    //! the different preconditioners for the diagonal sub-matrices of A.
-    //! \param A problem matrix
-    virtual void Setup( SBM_Matrix &A );
+    //! \copydoc BasePrecond::ExportPrecondSysMat
+    virtual void GetPrecondSysMat( BaseMatrix& sysMat );
+
+    //! \copydoc BasePrecond::GetPrecondType
+    virtual PrecondType GetPrecondType() const {
+      return SBM_DIAG;
+    }
 
   private:
-
-    //! Array containing the preconditioners for the diagonal sub-matrices
-    BaseStdPrecond *precond_;
-
-    //! Number of columns in the super-block matrix to which we are applied
-    Integer Ncols_;
-
-    //! Number of rows in the super-block matrix to which we are applied
-    Integer Nrows_;
-
+    //! Vector containing a preconditioner for every diagonal SBM block
+       
+    //! We store for every SBM-row a standard preconditioner
+    StdVector<BasePrecond*> stdPreconds_;
   };
 
 }

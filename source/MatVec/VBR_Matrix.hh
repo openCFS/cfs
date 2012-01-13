@@ -129,8 +129,8 @@ namespace CoupledField {
     void Init();
 
     /** Transpose the matrix, which is transforming from the row to a
-     * column storrage format. So this method converts from the internal row
-     * storage to a column storrage. The space has to be provided!
+     * column storage format. So this method converts from the internal row
+     * storage to a column storage. The space has to be provided!
      * @param col_ptr required space is number of rows/columns +1 for one based +1 for tail
      * @param row_ptr required space is nnz +1 for one based
      * @param data_ptr required space is nnz +1 for one based */

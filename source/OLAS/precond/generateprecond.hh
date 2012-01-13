@@ -32,12 +32,12 @@ namespace CoupledField {
   
   //! This method will generate a standard preconditioner object that fits
   //! to the input matrix and return a pointer to that object.
-  //! \param mat      %Matrix that is preconditioned
-  //! \param strat    Pointer to solution strategy
-  //! \param xml      Pointer to ParamNode of <precondList> section
-  //! \param olasInfo Base below "OLAS" in info.xml
+  //! \param mat       %Matrix that is preconditioned
+  //! \param precondId Identifier token of preconditioner to ge generated
+  //! \param xml       Pointer to ParamNode of <precondList> section
+  //! \param olasInfo  Base below "OLAS" in info.xml
   BasePrecond* GenerateStdPrecondObject( const StdMatrix &mat,
-                                         shared_ptr<SolStrategy> strat,
+                                         const std::string& precondId,
                                          PtrParamNode solverNode,
                                          PtrParamNode olasInfo );
 
@@ -46,12 +46,12 @@ namespace CoupledField {
   
   //! This method will generate a SBM preconditioner object that fits
   //! to the input matrix and return a pointer to that object.
-  //! \param mat      %Matrix that is preconditioned
-  //! \param strat    Pointer to solution strategy
-  //! \param xml      Pointer to ParamNode of <precondList> section
-  //! \param olasInfo Base below "OLAS" in info.xml
+  //! \param mat       %Matrix that is preconditioned
+  //! \param precondId Identifier token of preconditioner to ge generated
+  //! \param xml       Pointer to ParamNode of <precondList> section
+  //! \param olasInfo  Base below "OLAS" in info.xml
   BaseSBMPrecond* GenerateSBMPrecondObject( const SBM_Matrix &mat,
-                                            shared_ptr<SolStrategy> strat,
+                                            const std::string& precondId,
                                             PtrParamNode solverNode,
                                             PtrParamNode olasInfo );
   

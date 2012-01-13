@@ -629,7 +629,11 @@ namespace CoupledField{
       return;
     }
     
-    
+    // check in addition, if we need the two-lvel approach
+    if( solStrat->GetType() != SolStrategy::TWO_LEVEL_STRATEGY ) 
+      EXCEPTION("Solution strategy of type ' " 
+                << SolStrategy::strategyType.ToString(solStrat->GetType()) 
+                << "' not implemented for HCurl of higher order.");
     
     // maintain of already used entities
     std::set<UInt> edges, faces, elems;

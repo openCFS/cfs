@@ -33,17 +33,20 @@ namespace CoupledField {
     //! - ILDLK
     //! - ILDLTP
     //! - ILDLCN
-    typedef enum { NOPRECOND, ID, 
+    typedef enum { 
+      NOPRECOND, ID, 
 
-                  // === Classical Preconditioners ==
-                  MG, JACOBI, BLOCK_JACOBI, SSOR, ILU0,ILUTP, 
-                  ILUK, ILDL0, ILDLK, ILDLTP, ILDLCN, IC0,
-                  
-                  // === Solvers used as Preconditioners ==
-                  DIRECT, RICHARDSON, CG, LANCZOS, QMR, GMRES,
-                  MINRES, SYMMLQ, LAPACK_LU, LAPACK_LL, PARDISO,  
-                  ILUPACK, LU_SOLVER, CHOLMOD, 
-                  LDL_SOLVER, LDL_SOLVER2, DIAGSOLVER} PrecondType;
+      // === Classical Preconditioners ==
+      MG, JACOBI, BLOCK_JACOBI, SSOR, ILU0,ILUTP, 
+      ILUK, ILDL0, ILDLK, ILDLTP, ILDLCN, IC0,
+      SBM_DIAG,
+
+      // === Solvers used as Preconditioners ==
+      DIRECT, RICHARDSON, CG, LANCZOS, QMR, GMRES,
+      MINRES, SYMMLQ, LAPACK_LU, LAPACK_LL, PARDISO,  
+      ILUPACK, LU_SOLVER, CHOLMOD, 
+      LDL_SOLVER, LDL_SOLVER2, DIAGSOLVER} 
+    PrecondType;
     static Enum<PrecondType> precondType;
     
   public:
@@ -120,65 +123,12 @@ namespace CoupledField {
   };
 
 
-//  //! Generic preconditioner class for standard matrices (not SBM matrices)
-//  class BaseStdPrecond : public BasePrecond{
-//
-//  public:
-//
-//    //! Default constructor
-//
-//    //! The constructor has nothing to do but to set the attribute
-//    //! readyToUse_ to false.
-//    BaseStdPrecond() : readyToUse_(false) {
-//    };
-//
-//    //! Default Destructor
-//    virtual ~BaseStdPrecond() {
-//    };
-//
-//    //! @copydoc BasePrecond::Apply(const BaseMatrix, const BaseVector, BaseVector)
-//    virtual void Apply( const BaseMatrix &sysmat, const BaseVector &r, 
-//                        BaseVector &z );
-//    
-//    //! Applies the preconditioner by "solving" Az=r for z
-//
-//    //! This version of the Apply method has an interface fitting to
-//    //! StdMatrices and SingleVectors. It is purely virtual.
-//    virtual void Apply( const StdMatrix &sysmat, const SingleVector &r,
-//                        SingleVector &z) = 0;
-//
-//    //! A call of this method triggers the construction of the preconditioner.
-//
-//    //! This method implements the purely virtual Setup function inherited from
-//    //! the BasePrecond class. It does this by dynamically down-casting the
-//    //! input matrix and vectors from BaseMatrix/BaseVector type to the
-//    //! StdMatrix/SingleVector type and calling the Setup method with the
-//    //! corresponding interface. Thus, using this method with SBM matrices
-//    //! or vectors will lead to a run-time error.
-//    virtual void Setup( BaseMatrix &sysMat, PtrParamNode analysis_id );
-//                        
-//    //! A call of this method triggers the construction of the preconditioner.
-//     
-//    //! This version of the Setup method has an interface fitting to
-//    //! StdMatrices and SingleVectors. It is purely virtual.
-//    virtual void Setup( StdMatrix &sysMat, PtrParamNode anaylsis_id ) = 0;
-//
-//  protected:
-//
-//    //! This attribute keeps track on whether the preconditioner was set up
-//
-//    //! Before the preconditioner can be applied its setup phase must be
-//    //! performed. This is achieved by a call to Setup.
-//    bool readyToUse_;
-//
-//  };
-
 
   //! Generic Preconditioner for SBM Matrices
   
-  //! A preconditioner for SBM-matrices / vectors can be considered as a
-  //! composition of standard preconditioners, i.e. for every SBM-row,
-  //! we can have a different standard preconditioner.
+  //! General class for preconditioners acting on Super-Block matrices (SBM).
+  //! In most cases the SBM-preconditioners are compound preconditioners, 
+  //! which can consist of several instances of StdPreconditioners.
   class BaseSBMPrecond : public BasePrecond {
 
   public:
@@ -188,8 +138,9 @@ namespace CoupledField {
     //! The constructor has nothing to do but to set the attribute
     //! readyToUse_ to false.
     //! \param numBlocks number of SBM-blocks
-    BaseSBMPrecond(UInt numBlocks, 
-                   PtrParamNode olasInfo);
+    //! \param olasInfo info paramNode for preconditioner 
+    BaseSBMPrecond( UInt numBlocks, 
+                    PtrParamNode olasInfo);
 
     //! Default Destructor
     virtual ~BaseSBMPrecond();
@@ -197,18 +148,13 @@ namespace CoupledField {
     //! Return pointer to info object
     PtrParamNode GetInfoNode() { return infoNode_;}
     
-    //! Set preconditioner for standard matrices for block \blockNum
-    
-    //! This method allows to compose the SBM-preconditioner by single 
-    //! standard-preconditioners for every row.
-    virtual void SetPrecond(UInt blockNum, BasePrecond* stdPrecond );
 
     //! Applies the preconditioner by "solving" Az=r for z
 
     //! This version of the Apply method has an interface fitting to
     //! SBM_Matrices and SBM_Vectors. It is purely virtual.
     virtual void Apply( const SBM_Matrix &A, const SBM_Vector &r,
-                        SBM_Vector &z );
+                        SBM_Vector &z ) = 0;
 
     //! Applies the preconditioner by "solving" Az=r for z
 
@@ -225,7 +171,7 @@ namespace CoupledField {
 
     //! This version of the Setup method has an interface fitting to
     //! SBM_Matrices and SBM_Vectors. It is purely virtual.
-    virtual void Setup( SBM_Matrix &A, PtrParamNode analysis_id );
+    virtual void Setup( SBM_Matrix &A, PtrParamNode analysis_id ) = 0;
 
     //! A call of this method triggers the construction of the preconditioner.
 
@@ -237,27 +183,13 @@ namespace CoupledField {
     //! or vectors will lead to a run-time error.
     virtual void Setup( BaseMatrix &A, PtrParamNode analysis_id );
     
-    //! \copydoc BasePrecond::ExportPrecondSysMat
-    virtual void GetPrecondSysMat( BaseMatrix& sysMat );
-    
+    //! \copydoc BasePrecond::GetPrecondType
     virtual PrecondType GetPrecondType() const {return NOPRECOND;}
 
-  private:
-    
-    //! Vector containing a preconditioner for every SBM-row
-    
-    //! We store for every SBM-row a standard preconditioner
-    StdVector<BasePrecond*> stdPreconds_;
-
+  protected:
+   
     //! Number of sbm rows/blocks
     UInt numBlocks_; 
-    
-    //! This attribute keeps track on whether the preconditioner was set up
-
-    //! Before the preconditioner can be applied its setup phase must be
-    //! performed. This is achieved by a call to Setup.
-    bool readyToUse_;
-
   };
 
 } // namespace

@@ -271,11 +271,12 @@ namespace CoupledField {
     
     // if we have just one SBM matrix block, use directly
     // the specialized methods for StdMatrices
+    std::string precondId = solStrat_->GetPrecondId();
     if( effMat_->GetNumRows() == 1 ) {
-      precond_ = GenerateStdPrecondObject((*effMat_)(0,0), solStrat_,
+      precond_ = GenerateStdPrecondObject((*effMat_)(0,0), precondId,
                                           precondListNode, infoNode );
     } else {
-      precond_ = GenerateSBMPrecondObject( *(effMat_), solStrat_,
+      precond_ = GenerateSBMPrecondObject( *(effMat_), precondId,
                                            precondListNode, infoNode );
     }
     
@@ -729,6 +730,10 @@ namespace CoupledField {
       LOG_TRACE(algSys) << "\tBlock is empty, leaving";
       // in addition, if this block is supposed to be the static condensation block,
       // we deactivate it
+      
+      // Notify also solution strategy about empty block ....
+      WARN("Implement dropping of empty block ...");
+      
       if( isInnerBlock && statCond_) {
         statCond_ = false;
         LOG_TRACE(algSys) << "\tDeactivating static condensation";
@@ -1190,7 +1195,6 @@ namespace CoupledField {
     graphManager_->SetupInit( numBlocks_, distinctMatGraphs_ );
 
     // Loop over all blocks and register them with the graph manager
-    // Now register block with graph manager
     for( UInt sbmIndex = 0; sbmIndex < numBlocks_; ++sbmIndex ) {
       graphManager_->RegisterBlock( sbmIndex, blockInfo_[sbmIndex]  );
     }
@@ -2058,6 +2062,8 @@ namespace CoupledField {
   
   SBM_Matrix* AlgebraicSys::GenerateSBM_Matrix( FEMatrixType matType,
                                               BaseMatrix::EntryType entryType ) {
+    
+    LOG_TRACE(algSys) << "Generating SBMMatrix of size " << numBlocks_;
 
     // STEP 1: Generate empty SBM_Matrix
     SBM_Matrix *retMat = NULL;
@@ -2091,7 +2097,11 @@ namespace CoupledField {
           // for diagonal blocks we allow a variable
           // matrix layout which we query at the
           // sol-strategy object
+          
           BaseMatrix::StorageType sT = solStrat_->GetStorageType(sbmRow);
+          LOG_DBG(algSys) << "storage Type of matrix (" << sbmRow +1
+              << ", " << sbmCol+1 << " is " 
+              << BaseMatrix::storageType.ToString(sT);
           
           // If we perform static condensation and this is the 
           // inner-inner block, we use the variable block row
@@ -2111,6 +2121,9 @@ namespace CoupledField {
           retMat->SetSubMatrix ( sbmRow, sbmCol, 
                                  entryType, BaseMatrix::SPARSE_NONSYM,
                                  nrows, ncols, graph->GetNNE() );
+          LOG_DBG(algSys) << "storage Type of matrix (" << sbmRow +1
+                        << ", " << sbmCol+1 << " is " 
+                        << BaseMatrix::SPARSE_NONSYM;
         }
 
         // Set sparsity pattern of sub-matrix
@@ -2259,7 +2272,7 @@ namespace CoupledField {
       // ---------------
       //  Check Precond
       // ---------------
-      std::string precondId = solStrat_->GetPrecondId(0);
+      std::string precondId = solStrat_->GetPrecondId();
       PtrParamNode precondList = myParam_->Get("precondList", 
                                                ParamNode::INSERT);
       ParamNodeList pNodes =  precondList->GetChildren();

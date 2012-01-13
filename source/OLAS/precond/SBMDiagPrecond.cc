@@ -1,52 +1,87 @@
 #include "OLAS/precond/BasePrecond.hh"
 #include "OLAS/precond/SBMDiagPrecond.hh"
+#include "MatVec/SBM_Matrix.hh"
+#include "MatVec/SBM_Vector.hh"
 
 namespace CoupledField {
 
-  void SBMDiagPrecond::Setup( SBM_Matrix &mat ) {
-
-
-    // Obtain size information from matrix
-    Ncols_ = mat.GetNumCols();
-    Nrows_ = mat.GetNumRows();
-
-    // Check that matrix is square
-    if ( Ncols_ != Nrows_ ) {
-      EXCEPTION("Expected a square SBMMatrix");
-    }
-
-    // Construct the individual preconditioners
-    if ( precond_ != NULL ) {
-      delete[] precond_;
-    }
-    precond_ = new BaseStdPrecond[ Ncols_ ];
-    for ( int i = 1; i <= Ncols_; i++ ) {
-      // precond_[i] = Call to Preconditioner creation routine???
-      // Get types of preconditioners from parameter object???
-    }
   
-    // Trigger setup of the individual preconditioners for the diagonal sub-
-    // matrices
-    for ( int i = 1; i <= Ncols_; i++ ) {
-      precond_[i].Setup( mat(i,i) );
-    }
+  SBMDiagPrecond::SBMDiagPrecond( UInt numBlocks, 
+                                  PtrParamNode olasInfo ) 
+  : BaseSBMPrecond(numBlocks, olasInfo) {
+    stdPreconds_.Resize( numBlocks_ );
+      stdPreconds_.Init(NULL);
+  }
+  
 
-    // Now the preconditioner is ready to use
-    readyToUse_ = true;
-
+  SBMDiagPrecond::~SBMDiagPrecond() {
+    for( UInt i = 0; i < numBlocks_; ++i) {
+         if( stdPreconds_[i] != NULL ) {
+           delete stdPreconds_[i];
+         }
+       }
+       stdPreconds_.Clear();
   }
 
+  void  SBMDiagPrecond::SetPrecond(UInt blockNum, BasePrecond* stdPrecond ) {
+    // check block index
+      if( blockNum > numBlocks_ ) {
+        EXCEPTION("Can not assign a standard preconditioner for block #" << blockNum
+                 << " as the system has only size of " << numBlocks_ );
+      }
+      
+      // check if preconditioner was already set for given block
+      if( stdPreconds_[blockNum] != NULL ) {
+        EXCEPTION("Can not set preconditioner for SBM block #" << blockNum 
+                  << " as there is already a preconditioner of type "
+                  << precondType.ToString(stdPreconds_[blockNum]->GetPrecondType())
+                  << " assigned." );
+      }
+      stdPreconds_[blockNum] = stdPrecond;
+  }
 
-  void SBMDiagPrecond::Apply( const SBM_Matrix mat, const SBM_Vector r,
-			      SBM_Vector z ) const {
+  void  SBMDiagPrecond::Apply( const SBM_Matrix &A, const SBM_Vector &r,
+                               SBM_Vector &z ) {
+    // Loop over all rows
+        for( UInt iRow = 0; iRow < numBlocks_; ++iRow ) {
+        
+          // If preconditioner for row is defined, apply it
+          if( stdPreconds_[iRow] != NULL ) {
+            const StdMatrix * stdMat = A.GetPointer(iRow,iRow);
+            const SingleVector * rStd = r.GetPointer(iRow);
+            SingleVector * zStd = z.GetPointer(iRow);
+            stdPreconds_[iRow]->Apply(*stdMat, *rStd, *zStd );
+            
+          }
+        }
+  }
 
+  void  SBMDiagPrecond::Setup( SBM_Matrix &A, PtrParamNode analysis_id ) {
+    for( UInt iRow = 0; iRow < numBlocks_; ++iRow ) {
+         // If preconditioner for row is defined, apply it
+         if( stdPreconds_[iRow] != NULL ) {
+           stdPreconds_[iRow]->Setup(A(iRow,iRow),analysis_id);
+         }
+       }
+  }    
 
-    for ( int i = 1; i <= Ncols_; i++ ) {
-      precond_[i].Setup( mat(i,i) );
-    }
+  void  SBMDiagPrecond::GetPrecondSysMat( BaseMatrix& sysMat ) {
+    SBM_Matrix& sbmA = dynamic_cast<SBM_Matrix&>(sysMat);
+       // loop over all diagonal
+       for( UInt iRow = 0; iRow < numBlocks_; ++iRow ) {
+         for( UInt iCol = iRow; iCol < numBlocks_; ++iCol ) {
 
+           if( iCol == iRow ) {
+             if( stdPreconds_[iRow] != NULL ) {
+               // get preconditioned sysmat from diagonal precond
+               stdPreconds_[iRow]->GetPrecondSysMat( sbmA(iRow,iRow) );
+             }
+           } else { 
+             sbmA(iRow,iCol).Init();
+           }
+         }
+       }
+  }
 
-
-  };
 
 }

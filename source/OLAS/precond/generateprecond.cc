@@ -26,6 +26,7 @@
 //#include "precond/mgmakeprecond.cc"
 #include "OLAS/precond/ILDLPrecond/ildlprecond.hh"
 #include "OLAS/precond/IC0Precond.hh"
+#include "OLAS/precond/SBMDiagPrecond.hh"
 
 #include "MatVec/Diag_Matrix.hh"
 #include "MatVec/VBR_Matrix.hh"
@@ -77,7 +78,7 @@ LOG_DBG(genPrecond) << " GenerateStdPrecondObject: Generated "\
   //   Generation routine
   // **********************
   BasePrecond* GenerateStdPrecondObject( const StdMatrix &mat,
-                                         shared_ptr<SolStrategy> strat,
+                                         const std::string& precondId,
                                          PtrParamNode precondList,
                                          PtrParamNode olasInfo ) {
 
@@ -85,8 +86,7 @@ LOG_DBG(genPrecond) << " GenerateStdPrecondObject: Generated "\
     BasePrecond *retVal = NULL;
     
     
-    // Obtain current precond id from strategy object;
-    std::string precondId = strat->GetPrecondId(1);
+    // Try to get xml node based on precond id
     ParamNodeList pNodes =  precondList->GetChildren();
     PtrParamNode precondNode;
     for( UInt i = 0; i < pNodes.GetSize(); ++i ) {
@@ -424,27 +424,35 @@ LOG_DBG(genPrecond) << " GenerateStdPrecondObject: Generated "\
   }
 
   BaseSBMPrecond* GenerateSBMPrecondObject( const SBM_Matrix &mat,
-                                            shared_ptr<SolStrategy> strat,
-                                            PtrParamNode solverNode,
+                                            const std::string& precondId,
+                                            PtrParamNode precondList,
                                             PtrParamNode olasInfo ) {
 
     BaseSBMPrecond *retVal = NULL;
 
-    WARN("adjust determination of SBM preconditioner");
-    std::string precondStr = "";
-
-    PtrParamNode solverXML;
-    solverXML = solverNode->Get("solver", ParamNode::INSERT );
+    // Try to get xml node based on precond id
+    ParamNodeList pNodes =  precondList->GetChildren();
+    PtrParamNode precondNode;
+    for( UInt i = 0; i < pNodes.GetSize(); ++i ) {
+      if( pNodes[i]->Get("id")->As<std::string>() == precondId ) {
+        precondNode = pNodes[i]; 
+      }
+    }
+    if(!precondNode) {
+      EXCEPTION("Preconditioner with id '" << precondId 
+                << "' was not found!");
+    }
+    
   
     EnumMap::iterator it, end;
     it = BasePrecond::precondType.map.begin();
     end = BasePrecond::precondType.map.end();
-    
+    std::string precondStr = "";
     for( ; it != end; it++ ) {
-      if( solverXML->HasByVal("precond", it->second) ) {
+      if( precondNode->GetName() ==  it->second ) {
         if(precondStr != "")
-          EXCEPTION("Two preconditioners have been specified: " << precondStr << " and " << (it->second))
-        
+          EXCEPTION("Two preconditioners have been specified: " 
+              << precondStr << " and " << (it->second))
         precondStr = it->second;
       }
     }
@@ -459,10 +467,9 @@ LOG_DBG(genPrecond) << " GenerateStdPrecondObject: Generated "\
     ptype = BasePrecond::precondType.Parse(precondStr);
 
     // Branch depending on desired preconditioner
-    BasePrecond * p = NULL;
-    PtrParamNode pardisoNode(new ParamNode(ParamNode::INSERT));
-    PtrParamNode blockJacobiNode(new ParamNode(ParamNode::INSERT));
     PtrParamNode infoNode;
+    SBMDiagPrecond * dp = NULL;
+    
     switch( ptype ) {
 
     // ==============================
@@ -473,47 +480,42 @@ LOG_DBG(genPrecond) << " GenerateStdPrecondObject: Generated "\
     //       generate an identity preconditioner to remain consistent.
     case BasePrecond::NOPRECOND:
     case BasePrecond::ID:
+      WARN("In this case we create a SBM-Diag-Precond which does nothing");
 //      retVal = new IdPrecondSBM;
 //      LOG_DBG(genPrecond) << " GenerateStdPrecondObject: Generated Identity preconditioner";
 //      break;
-    case BasePrecond::JACOBI:
-      retVal = new BaseSBMPrecond(numBlocks, olasInfo);
-       infoNode = retVal->GetInfoNode();
-     
-      // ========================
-      // MAGNETIC CASE
-      // ========================
-      // Block #0: Pardiso solver
       
-      pardisoNode->Get("solver")->Get("precond")->SetValue("pardiso");
-      p = GenerateStdPrecondObject(mat(0,0), strat, pardisoNode, infoNode );
-      retVal->SetPrecond(0, p);
-      
-      // Block #1: Block-Jacobi-preconditioner
-      blockJacobiNode->Get("solver")->Get("precond")->SetValue("BlockJacobi");
-      //p = GenerateStdPrecondObject(mat(1,1), pardisoNode, olasInfo );
-      p = GenerateStdPrecondObject(mat(1,1), strat, blockJacobiNode, infoNode );
-      retVal->SetPrecond(1, p);
-      
-      // if we have static condensation, we have no third row
-      if( mat.GetNumRows() == 3 ) {
-        // Block #1: Block-Jacobi preconditioner
-        //p = GenerateStdPrecondObject(mat(2,2), pardisoNode, olasInfo );
-        p = GenerateStdPrecondObject(mat(2,2), strat, blockJacobiNode, infoNode );
-        retVal->SetPrecond(2, p);
+      // ============================
+      //   Cholmod Preconditioner
+      // ============================ 
+    case BasePrecond::SBM_DIAG:
+      dp = new SBMDiagPrecond(numBlocks, olasInfo);
+      infoNode = dp->GetInfoNode();
+
+      // Loop over all blocks and assign to each diagonal block a StdPrecond object 
+      for( UInt i = 0; i < numBlocks; ++i ) {
+
+        // get hold of preconditioner subnode for given block
+        PtrParamNode actNode = 
+            precondNode->GetByVal( "precond", "block", 
+                                   lexical_cast<std::string>(i+1) );
+        if( !actNode ) {
+          EXCEPTION("No preconditioner was defined for block #" << i+1 );
+        }
+        std::string precondId = actNode->Get("id")->As<std::string>();
+
+        // generate preconditioner object
+        BasePrecond * actPrecond = 
+            GenerateStdPrecondObject( mat(i,i), precondId, precondList,
+                                      infoNode );
+
+        // pass precond object to sbm-preconditioner
+        dp->SetPrecond(i, actPrecond );
+
       }
-      
-      
-      // ========================
-      // Standard Case
-      // ========================
-//      // hard-coded: set for each block the specified standard preconditioner
-//      for(UInt i = 0; i < numBlocks; ++i ) {
-//        BasePrecond * p = GenerateStdPrecondObject(mat(i,i), solverNode, olasInfo );
-//        retVal->SetPrecond(i, p);
-//      }
+      retVal = dp;
       break;
-      
+       
     default:
       EXCEPTION( "GeneratePrecondObject failed: Preconditioner type unknown" );
     }
@@ -568,6 +570,10 @@ LOG_DBG(genPrecond) << " GenerateStdPrecondObject: Generated "\
             
       case BasePrecond::IC0 :
         ret.insert(BaseMatrix::SPARSE_SYM);
+        break;
+        
+      case BasePrecond::SBM_DIAG:
+        // works with all SBM matrices
         break;
             
         // Solver Based preconditioners

@@ -13,6 +13,7 @@ SET(PRECOND_SRCS
     ILUTP_Precond.cc
     JacPrecond.cc
     SSORPrecond.cc
+    SBMDiagPrecond.cc
     ILDLPrecond/ildl0factoriser.cc
     ILDLPrecond/ildlcnfactoriser.cc
     ILDLPrecond/ildlkfactoriser.cc
