@@ -527,7 +527,8 @@ void Optimization::SolveProblem()
   if(!IsTransient()){ // transient optimization saves results in a different way
     rh = domain->GetResultHandler();
     unsigned int mss = domain->GetDriver()->GetActSequenceStep();
-    rh->BeginMultiSequenceStep(mss, BasePDE::TRANSIENT, 999); // max steps is high
+    // max steps is high. The number is only relevant for hdf5, but there a hard limit
+    rh->BeginMultiSequenceStep(mss, BasePDE::TRANSIENT, 9999);
   }
 
   Exception* e = NULL;

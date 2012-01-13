@@ -10,7 +10,7 @@ from optimization_tools import *
 
 # we assume a unit cube (2D/3D) 
 # edge discretization
-divider = 100 
+divider = 80 
 vol_list = ["0.5"]
 dim = 2 
 # what is the maximal order (1 is linar, 2 quadratic, ...)

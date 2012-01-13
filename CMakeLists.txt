@@ -207,20 +207,6 @@ OPTION(CPLREADER "Build cplreader for fluid/acoustic coupling."
   ${CPLREADER_DEFAULT})
 
 #-----------------------------------------------------------------------------
-# Shall we build ParaView?
-#-----------------------------------------------------------------------------
-OPTION(BUILD_PARAVIEW
-  "Build the ParaView postprocessor with HDF5 and OpenFOAM extensions?."
-  ${BUILD_PARAVIEW_DEFAULT})
-
-#-----------------------------------------------------------------------------
-# Shall we build HDFView?
-#-----------------------------------------------------------------------------
-OPTION(BUILD_HDFVIEW
-  "Build the HDF 4/5 file viewer?"
-   ${BUILD_HDFVIEW_DEFAULT})
-
-#-----------------------------------------------------------------------------
 # Do we want to use explicit or implicit template instantiation
 #-----------------------------------------------------------------------------
 OPTION(EXPLICIT_TEMPLATE_INSTANTIATION
@@ -261,9 +247,35 @@ IF(NOT TESTSUITE_DIR STREQUAL "TESTSUITE_DIR_NOT_FOUND")
 ENDIF(NOT TESTSUITE_DIR STREQUAL "TESTSUITE_DIR_NOT_FOUND")
 
 #-----------------------------------------------------------------------------
+# Enables expensive performance tests
+#-----------------------------------------------------------------------------
+OPTION(PERFORMANCE_TESTS
+  "Adds (expensive) performance tests to the test-cases"
+   OFF)
+
+#-----------------------------------------------------------------------------
+# Shall we build ParaView?
+#-----------------------------------------------------------------------------
+OPTION(BUILD_PARAVIEW
+  "Build the ParaView postprocessor with HDF5 and OpenFOAM extensions?."
+  ${BUILD_PARAVIEW_DEFAULT})
+
+#-----------------------------------------------------------------------------
+# Shall we build HDFView?
+#-----------------------------------------------------------------------------
+OPTION(BUILD_HDFVIEW
+  "Build the HDF 4/5 file viewer?"
+   ${BUILD_HDFVIEW_DEFAULT})
+
+
+
+#-----------------------------------------------------------------------------
 # Mark some of the options as advanced to clear up the standard selection
 #-----------------------------------------------------------------------------
+MARK_AS_ADVANCED(CFS_FORCE_DEPS_CACHE_DIR)
 MARK_AS_ADVANCED(USE_ADAPTGRID)
+MARK_AS_ADVANCED(USE_ARPACK)
+MARK_AS_ADVANCED(USE_CHOLMOD)
 MARK_AS_ADVANCED(USE_UNV)
 MARK_AS_ADVANCED(USE_GMV)
 MARK_AS_ADVANCED(USE_MESH)
@@ -275,11 +287,10 @@ MARK_AS_ADVANCED(CMAKE_BUILD_TYPE)
 MARK_AS_ADVANCED(CMAKE_BACKWARDS_COMPATIBILITY)
 MARK_AS_ADVANCED(CMAKE_INSTALL_PREFIX)
 MARK_AS_ADVANCED(EXPLICIT_TEMPLATE_INSTANTIATION)
-MARK_AS_ADVANCED(BUILD_PARAVIEW)
-MARK_AS_ADVANCED(BUILD_HDFVIEW)
 MARK_AS_ADVANCED(COVERAGE)
 MARK_AS_ADVANCED(PROFILING)
 MARK_AS_ADVANCED(XMLSCHEMA)
+MARK_AS_ADVANCED(BUILD_TESTING)
 
 
 #-----------------------------------------------------------------------------
