@@ -1,3 +1,4 @@
+#include <fstream>
 #include "Optimization/Optimizer/KNITRO.hh"
 #include "Optimization/Optimization.hh"
 #include "Optimization/Design/DesignSpace.hh"

@@ -584,6 +584,7 @@ share/scripts/continuation.py -text
 share/scripts/cplreader -text
 share/scripts/create_density.py -text
 share/scripts/cubemesh.pl -text
+share/scripts/density-to-png.py -text
 share/scripts/distro.sh svneol=native#text/plain
 share/scripts/extract_info_xml_results.py -text
 share/scripts/gid_screenshots.py -text
