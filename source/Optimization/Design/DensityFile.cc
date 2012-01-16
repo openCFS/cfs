@@ -85,7 +85,7 @@ DesignSpace* DensityFile::ReadErsatzMaterial(DesignSpace* ersatzMaterial)
   // Initialize our xerces dom parser to handle the external xml file
   Xerces* xerces = new Xerces(file);
   // set the global ParamNode tree pointer
-  PtrParamNode xml = xerces->CreateParamNodeInstance();
+  PtrParamNode xml = xerces->CreateParamNodeInstance(false); // no DOM is faster but not that robust!
   // release the xerces ressources, param is not affected
   delete xerces;
   // check this file

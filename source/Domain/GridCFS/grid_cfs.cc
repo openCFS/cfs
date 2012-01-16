@@ -599,7 +599,7 @@ namespace CoupledField {
 
     // read the pattern file
     Xerces* xerces = new Xerces(file);
-    PtrParamNode xml = xerces->CreateParamNodeInstance();
+    PtrParamNode xml = xerces->CreateParamNodeInstance(true);
     delete xerces;
 
     // check this file

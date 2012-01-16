@@ -16,6 +16,8 @@
 #include "xercesc/parsers/XercesDOMParser.hpp"
 #include "xercesc/sax/ErrorHandler.hpp"
 #include "xercesc/sax/SAXParseException.hpp"
+#include <xercesc/sax2/DefaultHandler.hpp>
+#include "xercesc/sax2/Attributes.hpp"
 #include "xercesc/util/XercesDefs.hpp"
 
 
@@ -40,12 +42,16 @@ namespace CoupledField {
       
       /** creates a param node instance filled with the xml content from the constuctor.
        * Easy to modify for using an arbitrary DOMNode* data source
+       * @pram dom use the slower DOM parser (can do schemaa validation) or the faster sax parser
        * @return the caller has to delete the tree by itself, there is no reference within the Xerces class.  */ 
-      PtrParamNode CreateParamNodeInstance();
+      PtrParamNode CreateParamNodeInstance(bool dom = true);
 
     private:
       /** This actually parses the file and sets root_ and the other variables */
-      void Parse();
+      void DOMParser();
+
+      /** fast, lower memory footprint, no schema validation, less robust */
+      void SAXParser(PtrParamNode root);
 
       /** recursive implementation of Fill */
       void Fill(xercesc::DOMNode* node, PtrParamNode out);
@@ -88,6 +94,25 @@ namespace CoupledField {
           
       }; // end of EventHandler     
       
+      /** this is the SAX handler */
+      class SAXHandler : public xercesc::DefaultHandler
+      {
+      public:
+        SAXHandler(PtrParamNode root);
+
+        void startElement(const XMLCh* const uri, const XMLCh* const localname, const XMLCh* const qname, const xercesc::Attributes& attrs);
+
+        void endElement(const XMLCh *const uri, const XMLCh *const localname, const XMLCh *const qname);
+
+        void fatalError(const xercesc::SAXParseException&);
+
+      private:
+
+        void DumpStack();
+
+        StdVector<PtrParamNode> stack;
+      };
+
   }; // end of Xerces
 
 
