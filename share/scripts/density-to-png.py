@@ -5,6 +5,10 @@ from PIL import Image, ImageDraw, ImageColor
 import sys
 
 
+# you can approximate the stuff iteratively in python by
+# Image.fromarray(255* data.T).transpose(Image.FLIP_TOP_BOTTOM).show()
+# with data being an array
+
 
 ################################################
 # config:
