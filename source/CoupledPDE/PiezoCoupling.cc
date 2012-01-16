@@ -272,8 +272,6 @@ namespace CoupledField {
       Matrix<TYPE> permittivityMat;
       Matrix<TYPE> elemDisp;
 
-      Global::ComplexPart dataType;
-
       Vector<TYPE> & actVal = actRes.GetVector();
       actVal.Resize( actRes.GetEntityList()->GetSize() * stressDim );
 
@@ -291,8 +289,6 @@ namespace CoupledField {
 
       // loop over all elements
       for ( it.Begin(); !it.IsEnd(); it++ ) {
-
-        dataType = complexMatData_[it.GetElem()->regionId] ? Global::COMPLEX : Global::REAL;
 
         // Calc E - field;
         it.GetElem()->ptElem->GetCoordMidPoint(LCoord);

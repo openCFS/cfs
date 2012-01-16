@@ -268,15 +268,15 @@ namespace CoupledField
     } 
     
     else if ( dampingTypePML_ == "inverseDist" ) {
-      Double layerThick;
+      // Double layerThick;
       //get correct maximal PML local coordinate
       if ( locPos[dir] < minLoc_[dir] ) {
         maxPos = minLoc_[dir] - layerThickness_[0][dir];
-        layerThick = layerThickness_[0][dir];
+        // layerThick = layerThickness_[0][dir];
       }
       else {
         maxPos = maxLoc_[dir] + layerThickness_[1][dir];
-        layerThick = layerThickness_[1][dir];
+        // layerThick = layerThickness_[1][dir];
       }
 
       //! This is just for Lobatto integration
