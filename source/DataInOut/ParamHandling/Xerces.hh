@@ -41,10 +41,9 @@ namespace CoupledField {
       ~Xerces();
       
       /** creates a param node instance filled with the xml content from the constuctor.
-       * Easy to modify for using an arbitrary DOMNode* data source
-       * @pram dom use the slower DOM parser (can do schemaa validation) or the faster sax parser
+       * When a schema was given in the constructor the validating xerces DOM parser is used, otherwise the faster SAX parser.
        * @return the caller has to delete the tree by itself, there is no reference within the Xerces class.  */ 
-      PtrParamNode CreateParamNodeInstance(bool dom = true);
+      PtrParamNode CreateParamNodeInstance();
 
     private:
       /** This actually parses the file and sets root_ and the other variables */

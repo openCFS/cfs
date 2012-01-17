@@ -57,8 +57,9 @@ namespace CoupledField
     parser->setContentHandler(defaultHandler);
     parser->setErrorHandler(defaultHandler);
 
-    try {
-      parser->parse(file_.c_str());
+    try
+    {
+      parser->parse(file_.c_str()); // reads the content to root
     }
     catch(const XMLException& toCatch)
     {
@@ -173,7 +174,7 @@ namespace CoupledField
   }
 
 
-  PtrParamNode Xerces::CreateParamNodeInstance(bool dom)
+  PtrParamNode Xerces::CreateParamNodeInstance()
   {
     // read the file, this cannot be done in the constructor as the error handler takes this object
     try
@@ -187,7 +188,7 @@ namespace CoupledField
 
     PtrParamNode out (new ParamNode(ParamNode::EX, ParamNode::ELEMENT ) );
 
-    if(dom)
+    if(schema_ != "")
     {
       DOMParser();
       Fill(root_, out);

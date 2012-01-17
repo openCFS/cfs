@@ -28,8 +28,9 @@
 #include "PDE/basePDE.hh"
 #include "Utils/Timer.hh"
 #include "Utils/tools.hh"
-#include "boost/date_time/posix_time/posix_time.hpp"
-#include "boost/version.hpp"
+#include <boost/date_time/posix_time/posix_time.hpp>
+#include <boost/version.hpp>
+#include <boost/algorithm/string/predicate.hpp>
 #include "def_use_mesh.hh"
 #include "def_use_mpcci.hh"
 #include "def_use_xerces.hh"
@@ -432,12 +433,11 @@ void CFS::ReadXMLFile()
   EXCEPTION( "I am sorry to say, but CFS only can be compiled with XERCES-support");
 #endif
 
-  // this is the new param staff which replaces the old params - delete this comment finally
-  string schema = progOpts->GetSchemaPathStr();
-  schema += "/CFS-Simulation/CFS.xsd";
+  //
+  string schema = progOpts->GetSchemaPathStr() + "/CFS-Simulation/CFS.xsd";
 
-  // Initialize our xerces dom parser to handle the cfs xml file
-  Xerces* xerces = new Xerces(xmlFile, schema);
+  // Initialize our xerces dom parser to handle the cfs xml file if a schema is given
+  Xerces* xerces = new Xerces(xmlFile, boost::starts_with(schema, "none") ? "" : schema);
 
   // set the global ParamNode tree pointer
   param = xerces->CreateParamNodeInstance();
