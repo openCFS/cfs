@@ -54,7 +54,6 @@
 #include "bdf2.hh"
 #include "fluidMechPDE.hh"
 
-
 namespace CoupledField
 {
 
@@ -142,6 +141,26 @@ void FluidMechPDE::ReadSpecialBCs() {
 
   // read pressure information
   ReadPressureLoads();
+
+  // ***************************************************************
+  //   ABC for flow
+  // ***************************************************************
+  PtrParamNode bcNode = myParam_->Get( "bcsAndLoads", ParamNode::PASS );
+  
+  if( bcNode ) {
+    ParamNodeList abcNodes = bcNode->GetList( "absorbingBCs" );
+    
+    for ( UInt i=0, n=abcNodes.GetSize(); i<n; ++i )
+      {
+        std::string regionName = abcNodes[i]->Get("name")->As<std::string>();
+        absBCs_.Push_back( ptgrid_
+                           ->GetEntityList( EntityList::SURF_ELEM_LIST,
+                                            regionName, EntityList::REGION ) );
+        Info->PrintF( pdename_,
+                      "Apply Absorbing Boundary Conditions on surfaceRegion '%s'\n",
+                      regionName.c_str() );
+      }
+  }
 
 }
 
@@ -355,6 +374,29 @@ void FluidMechPDE::DefineIntegrators()
     // and solution class
     eqnMap_->AddResult( *results_[0], pressSurf_[actSF] );
   }
+
+  // **********************************************************************
+  //   surface-integration: Absorbing boundaries
+  // **********************************************************************
+  if ( absBCs_.GetSize() > 0 ) {
+    for (UInt actSD=0, numSD=absBCs_.GetSize(); actSD<numSD; ++actSD) {
+      std::cout << "Do ANC" << std::endl;
+       FluidMechAbsorbingFlow *linearAbsorb =
+        new FluidMechAbsorbingFlow(kinematicViscosity);
+       linearAbsorb->SetVoluInfo( materials_ );
+       linearAbsorb->SetSolution( dynamic_cast<NodeStoreSol<Double>&>(*sol_ ));
+      
+      LinearFormContext * abcContext =
+        new LinearFormContext( linearAbsorb );
+      abcContext->SetPtPde(this);
+      abcContext->SetResult( results_[0], absBCs_[actSD] );
+      assemble_->AddLinearForm( abcContext );
+      
+      // Give result to equation numbering class
+      eqnMap_->AddResult( *results_[0], absBCs_[actSD] );
+    }
+  }
+
 }
 
 
