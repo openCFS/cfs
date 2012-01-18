@@ -231,13 +231,16 @@ void DesignMaterial::GetTransIsoMaterialTensor(Matrix<double>& t, SubTensorType 
   double nu13 = params_[DesignElement::POISSON];
 
   if(subTensor == PLANE_STRESS){
-    double dens; // only used for DENSITY_TIMES_TRANSVERSAL_ISOTROPIC_2D
-    if(type_ == DENSITY_TIMES_TRANSVERSAL_ISOTROPIC_2D)
-    {
+    double dens;
+    if(type_ == DENSITY_TIMES_TRANSVERSAL_ISOTROPIC_2D){
       dens = params_[DesignElement::DENSITY];
       dens = std::pow(dens, penalty_);
-    }else dens = 1.0;
+    }
+    else dens = 1.0;
     double n = E3-nu13*nu13*E;
+    if(n<0.00001){
+      throw Exception("E3-nu13^2*E constraint not fulfilled");
+    }
     double ninv2 = 1/(n*n);
 
     switch(direction){
