@@ -318,22 +318,23 @@ namespace CoupledField
   }
 
 
-  Xerces::SAXHandler::SAXHandler(PtrParamNode root)
+  Xerces::SAXHandler::SAXHandler(PtrParamNode root) : first(true)
   {
     stack.Push_back(root);
   }
 
   void Xerces::SAXHandler::startElement(const XMLCh* const uri, const XMLCh* const localname, const XMLCh* const qname, const xercesc::Attributes& attrs)
   {
-    char* xstring = XMLString::transcode(localname);
 
+    char* xstring = XMLString::transcode(localname);
     // special handling of root element, see if it was defined already
-    if(!stack[0]->HasChildren())
+    if(first){
       stack.Last()->SetName(xstring);
-    else
+      first = false;
+    }else{
       stack.Push_back(stack.Last()->Get(xstring, ParamNode::APPEND));
-    // stack[0]->Dump();
-    // std::cout << std::endl << "I process element: "<< xstring << " attrs: " << attrs.getLength() << " before: ";  DumpStack();
+    }
+//    std::cout << std::endl << "I process element: "<< xstring << " attrs: " << attrs.getLength() << " before: ";  DumpStack();
     XMLString::release(&xstring);
 
     for(unsigned int i = 0; i < attrs.getLength(); i++)
@@ -348,9 +349,9 @@ namespace CoupledField
 
   void Xerces::SAXHandler::endElement(const XMLCh *const uri, const XMLCh *const localname, const XMLCh *const qname)
   {
-    char* message = XMLString::transcode(localname);
-    // std::cout << std::endl << "finish: "<< message << " before: ";  DumpStack();
-    XMLString::release(&message);
+/*    char* message = XMLString::transcode(localname);
+    std::cout << std::endl << "finish: "<< message << " before: ";  DumpStack();
+    XMLString::release(&message);*/
     // on the end of the file we have an end event for the root element
     if(stack.GetSize() > 1)
       stack.Erase(stack.GetSize()-1);

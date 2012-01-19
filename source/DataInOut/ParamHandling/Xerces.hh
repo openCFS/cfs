@@ -110,6 +110,8 @@ namespace CoupledField {
         void DumpStack();
 
         StdVector<PtrParamNode> stack;
+        
+        bool first;
       };
 
   }; // end of Xerces
