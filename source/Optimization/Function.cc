@@ -654,7 +654,7 @@ void Function::SetElements(DesignSpace* space, RegionIdType region)
     space->RegisterPseudoDesignRegion(region, design, &elements);
   }
 
-//  assert(elements.GetSize() == elements.Capacity()); TODO Jannis Greifenstein
+  assert(elements.GetSize() == elements.Capacity());
 }
 
 

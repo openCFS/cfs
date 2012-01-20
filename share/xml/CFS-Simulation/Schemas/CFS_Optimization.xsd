@@ -954,6 +954,7 @@
                             <xsd:enumeration value="density-times-2dtensor"/>
                             <xsd:enumeration value="density-times-2dtensor-constant-trace"/>
                             <xsd:enumeration value="density-times-transversal-isotropic-2d"/>
+                            <xsd:enumeration value="density-times-transversal-isotropic-2d-boxed"/>
                           </xsd:restriction>
                         </xsd:simpleType>
                       </xsd:attribute>
