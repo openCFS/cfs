@@ -34,6 +34,7 @@
 #include "PDE/ElecPDE.hh"
 #include "PDE/MagEdgePDE.hh"
 #include "PDE/HeatPDE.hh"
+#include "PDE/AcousticPDE.hh"
 
 
 // Coupling of single PDEs
@@ -540,16 +541,16 @@ void Domain::CreateSinglePDEs(UInt sequenceStep)
 //    else if (actPdeName == "mechanic")
 //      ptSinglePde_[i] = new MechPDE(defaultGrid, actPdeNode);
 
-//    else if (actPdeName == "acoustic")
-//    {
+    else if (actPdeName == "acoustic")
+    {
 //
 //      std::string acouSubType = actPdeNode->Get("subType")->As<std::string>();
 //
 //      if (acouSubType == "combustionNoise")
 //        ptSinglePde_[i] = new AcouCombustionNoise(defaultGrid, actPdeNode);
 //      else
-//        ptSinglePde_[i] = new AcousticPDE(defaultGrid, actPdeNode);
-//    }
+        ptSinglePde_[i] = new AcousticPDE(defaultGrid, actPdeNode);
+    }
 
 //    else if (actPdeName == "acousticMixed")
 //      ptSinglePde_[i] = new AcousticMixedPDE(defaultGrid, actPdeNode);

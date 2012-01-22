@@ -310,7 +310,7 @@ namespace CoupledField{
     void FeSpaceH1Nodal::SetDefaultIntegration(PtrParamNode infoNode ){
       regionIntegration_[ALL_REGIONS].method = IntScheme::GAUSS;
       regionIntegration_[ALL_REGIONS].order = Matrix<Integer>(1,1);
-      regionIntegration_[ALL_REGIONS].order[0][0] = 0;
+      regionIntegration_[ALL_REGIONS].order[0][0] = 2;
       regionIntegration_[ALL_REGIONS].mode = RELATIVE;
     }
 

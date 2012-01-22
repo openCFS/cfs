@@ -13,6 +13,8 @@
 
 #include "Utils/mathParser/mathParser.hh"
 
+#include "Driver/TimeSchemes/BaseTimeScheme.hh"
+
 namespace CoupledField {
 
 
@@ -22,6 +24,7 @@ namespace CoupledField {
   class MathParser;
   class BaseResult;
   class AlgebraicSys;
+  //class BaseTimeScheme;
 
 //!  Base class for a function approximated by Finite Elements 
 /*!
@@ -100,6 +103,10 @@ public:
 
   //! Get the algebraic System
   AlgebraicSys * GetSystem();
+
+  shared_ptr<BaseTimeScheme> GetTimeScheme();
+
+  void SetTimeScheme(shared_ptr<BaseTimeScheme> scheme);
 
   //@}
   
@@ -205,6 +212,9 @@ protected:
 
   //! pointer to algebraic system
   AlgebraicSys* algsys_;      
+
+  //! pointer to timestepping scheme
+  shared_ptr<BaseTimeScheme> timeScheme_;
 
 };
 

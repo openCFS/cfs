@@ -92,6 +92,31 @@ namespace CoupledField
     /** Sets up the Enums */
     static void SetEnums();
 
+    /** Obtain the matrix derivative map i.e. which fematrix is associated to
+     *  which derivative. in general we would have
+     *  Stiffness -> zero order
+     *  Damping -> First Order
+     *  Mass -> Second Order
+     *  Auxiliary -> PDE dependent but mostly stiffness
+     *  So we hardcode this here but it can be overwritten by the PDE
+     */
+    virtual std::map<FEMatrixType,Integer> GetMatrixDerivativeMap(){
+      std::map<FEMatrixType,Integer> retMap;
+      retMap[MASS] = 2;
+      retMap[DAMPING] = 1;
+      retMap[STIFFNESS] = 0;
+      retMap[AUXILIARY] = 0;
+      retMap[CONVECTION] = 0;
+
+      return retMap;
+    }
+
+
+    //! Initialize all/some the nodes by this value
+    virtual void SetInitialCondition(){;};
+
+    bool IsSetInitialCondition() { return isSetInitialCondition_;};
+
 
   protected:
     
@@ -118,6 +143,12 @@ namespace CoupledField
     //! name of the PDE
     std::string pdename_;
     
+    //! flag to check if there are initial conditions in the set up
+    bool isSetInitialCondition_;
+
+    //! For a constant initial value we store it here
+    Double InitialCondition_;
+
   };
 
 #ifdef DOXYGEN_DETAILED_DOC

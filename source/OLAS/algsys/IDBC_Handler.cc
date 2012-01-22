@@ -181,7 +181,7 @@ namespace CoupledField {
 
       // Check that we have a factor and a FE matrix
       if ( auxMat_[(*it).first] != NULL  && (*it).second != 0.0 ) {
-        sys->Add( (*it).second, *auxMat_[(*it).first] );
+        sys->Add( (*it).second , *auxMat_[(*it).first] );
       }
     }
 
@@ -268,6 +268,30 @@ namespace CoupledField {
     stdMat->AddToMatrixEntry( rowInd, colInd, val );
   }
 
+
+    // ************************
+    //   AddFixedToFreeRHS
+    // ************************
+    template <typename T>
+    void IDBC_Handler<T>::AddFixedToFreeRHS( FEMatrixType matID,
+                                                  UInt colBlock,
+                                                  UInt colInd,
+                                                  SBM_Vector *rhs,
+                                                  const T& val ) {
+
+      LOG_DBG2(idbcElim) << "AddFixedToFreeRHS:";
+      LOG_DBG2(idbcElim) << "\tmatID:    " << matID;
+      LOG_DBG2(idbcElim) << "\tcolBlock: " << colBlock;
+      LOG_DBG2(idbcElim) << "\tcolInd:   " << colInd;
+      LOG_DBG2(idbcElim) << "\value:     " << val;
+
+      SBM_Vector* tmpVec = dynamic_cast<SBM_Vector*>(
+              GenerateVectorObject( *auxMat_[matID] ));
+      tmpVec->Init();
+      SingleVector * curVec = tmpVec->GetPointer(colBlock);
+      curVec->SetEntry(colInd - numFreeDofs_[colBlock] - 1,val);
+      auxMat_[matID]->MultAdd(*tmpVec,*rhs);
+    }
 
   // ************************
   //   SetWeightFixedToFree

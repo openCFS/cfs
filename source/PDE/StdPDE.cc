@@ -33,8 +33,6 @@ namespace CoupledField {
     updateCouplingBCs_(false),
     ptCoupling_(NULL),
     iterCoupledCounter_(0),
-    TS_alg_(NULL),
-    effectiveMass_(false),
     diagMass_(false),
     firstTimeStepStatic_(true),
     isInstationary_(false),
@@ -53,9 +51,7 @@ namespace CoupledField {
     ComputeRHSforHarm_(false),
     assemble_(NULL),
     solveStep_(NULL),
-    algsys_(NULL),
-    isSetInitialCondition_(false),
-    InitialCondition_(0.0)
+    algsys_(NULL)
   {
   }
   
@@ -116,7 +112,8 @@ namespace CoupledField {
   // ======================================================
 
   Double StdPDE::GetFracDampMatrixCoeff(RegionIdType regionId) {
-    
+    REFACTOR;
+    /*
 
     Double coeff;
 
@@ -139,15 +136,15 @@ namespace CoupledField {
     Double beta = TS_alg_->GetNewmarkBeta();
     coeff *= 1.0 / (beta*dt*dt);
 
-    /*
-    (*debug) << std::endl << "Parameters in GetFracDampMatrixCoeff are:"
-             << std::endl << "regionId: " << regionId
-             << std::endl << "y    = " << y
-             << std::endl << "dt   = " << dt
-             << std::endl << "beta = " << beta
-             << std::endl << "coeff= " << coeff << std::endl << std::endl;
-    */ 
-    return coeff;
+    //(*debug) << std::endl << "Parameters in GetFracDampMatrixCoeff are:"
+    //         << std::endl << "regionId: " << regionId
+    //         << std::endl << "y    = " << y
+    //         << std::endl << "dt   = " << dt
+    //         << std::endl << "beta = " << beta
+    //         << std::endl << "coeff= " << coeff << std::endl << std::endl;
+
+    return coeff;*/
+    return 0.0;
   }
 
   DampingType StdPDE::GetDamping(RegionIdType reg_id) const

@@ -106,10 +106,6 @@ namespace CoupledField {
         delete solveStep_;
         solveStep_ = NULL;
       }
-      if (TS_alg_) {
-        delete TS_alg_;
-        TS_alg_ = NULL;
-      }
       if (assemble_) { 
         delete assemble_;
         assemble_ = NULL;
@@ -294,11 +290,6 @@ namespace CoupledField {
     if ( analysistype_ == TRANSIENT &&
          isDirectCoupled_ == false) {
       InitTimeStepping();
-      if ( TS_alg_ != NULL ) {
-        Double dt;
-        dt = dynamic_cast<TransientDriver*>(domain->GetSingleDriver())
-          ->GetDeltaT();
-      }
     }
 
     // =====================================================================
@@ -343,21 +334,27 @@ namespace CoupledField {
     }
     
 
-    if ( analysistype_ == TRANSIENT &&
-         isDirectCoupled_ == false) {
+    if ( analysistype_ == TRANSIENT ) {
       Double dt;
       dt = dynamic_cast<TransientDriver*>(domain->GetSingleDriver())
         ->GetDeltaT();
-      WARN("Note: The initialization of the timestepping class is currently wrong: "
-          "The 2nd argument must be the complete SBM-vector of the algebraic system in "
-          "order to correclty initialize the internal vectors of the timestepping method. "
-          "In the old implementation it was sufficient to know the number of unknowns. "
-          "In the current implementation, the SBM-vectors are just defined within the "
-          "SolveStep classed. Thus maybe the right thing to do is to shift the creation and "
-          "initialization of the timestepping scheme to the solveStep classes.")
+      //WARN("Note: The initialization of the timestepping class is currently wrong: "
+      //    "The 2nd argument must be the complete SBM-vector of the algebraic system in "
+      //    "order to correclty initialize the internal vectors of the timestepping method. "
+      //    "In the old implementation it was sufficient to know the number of unknowns. "
+      //    "In the current implementation, the SBM-vectors are just defined within the "
+      //    "SolveStep classed. Thus maybe the right thing to do is to shift the creation and "
+      //    "initialization of the timestepping scheme to the solveStep classes.")
           
-      // NOTE: the second argument of the following code must be adjusted
-      TS_alg_->Init( dt, 1 );  
+
+      // Call the init function of timescheme of each fefunction
+      fncIt= feFunctions_.begin();
+      while(fncIt != feFunctions_.end()){
+        shared_ptr<BaseFeFunction> actFct = fncIt->second;
+        actFct->GetTimeScheme()->Init(actFct->GetSingleVector(),dt);
+        fncIt++;
+      }
+
     }
 
 //    // =====================================================================
@@ -1206,15 +1203,6 @@ namespace CoupledField {
       fncIt++;
     }
   }
-  //! Transforms a given BoundaryCondition value according to Timestepping (i.e. TransientSim)
-  void SinglePDE::TransformBC(Double& transVal, Double initValue, Integer eqnNumber){
-    ResultCache::SetOutputType(ResultCache::OUT_AMPL);
-    // Transform Dirichlet boundary conditions for effmass-formulation
-    if (effectiveMass_) {
-      transVal = TS_alg_->DirichletBC4EffMassMatrix(initValue,eqnNumber);
-    }
-  }
-
 
   void SinglePDE::ReadBCs() {
 
@@ -2237,7 +2225,7 @@ namespace CoupledField {
       fncIt->second->SetSystem(algsys_);
       
       // Print equation information
-//      fncIt->second->GetFeSpace()->PrintEqnMap();
+      //fncIt->second->GetFeSpace()->PrintEqnMap();
       fncIt++;
     }
     

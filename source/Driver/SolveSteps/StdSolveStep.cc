@@ -11,6 +11,7 @@
 #include "Domain/Results/BaseResults.hh"
 #include "Utils/EvalIntegrals/BiotSavart.hh"
 #include "Driver/SingleDriver.hh"
+#include "Driver/TimeSchemes/BaseTimeScheme.hh"
 
 #include "OLAS/algsys/AlgebraicSys.hh"
 
@@ -30,11 +31,6 @@ namespace CoupledField {
     ptgrid_       = PDE_.getPDE_grid();
     algsys_       = PDE_.getPDE_algsys();
     assemble_     = PDE_.getPDE_assemble();
-    TS_alg_       = PDE_.getTimeStepping();
-
-    if( TS_alg_ != NULL ) {
-      matrix_factor_ = TS_alg_->GetEffSysMatFactors();
-    }
 
     results_      = PDE_.GetResultInfos();
 
@@ -47,6 +43,8 @@ namespace CoupledField {
     solVec_.SetSize( feFunctions_.size() );
     rhsVec_.SetSize( feFunctions_.size() );
     
+
+
     std::map<SolutionType, shared_ptr<BaseFeFunction> >::iterator it;
     it = feFunctions_.begin();
     UInt pos = 0;
@@ -206,6 +204,25 @@ namespace CoupledField {
   // Solve Step Transient SECTION
   // ======================================================
 
+  void StdSolveStep::InitTimeStepping(){
+    //also initialize vectors for the time stepping scheme
+
+    stageRHS_.Resize(feFunctions_.size());
+
+    std::map<SolutionType, shared_ptr<BaseFeFunction> >::iterator fncIt;
+    UInt pos = 0;
+    UInt rhsSize = 0;
+
+    //reserve memory for the rhs
+    for(pos = 0,fncIt = feFunctions_.begin();fncIt != feFunctions_.end();fncIt++,pos++){
+      rhsSize = fncIt->second->GetSingleVector()->GetSize();
+      stageRHS_.SetSubVector(new Vector<Double>(),pos);
+      stageRHS_.GetPointer(pos)->Resize(rhsSize);
+    }
+    stageRHS_.Init();
+
+  }
+
   void StdSolveStep::PreStepTrans() {
     ResultCache::SetStepValue( actTime_ );
 
@@ -216,6 +233,9 @@ namespace CoupledField {
     UInt step = (UInt) mParser_->Eval(mHandle_);
 
     PDE_.ReadDisplacementAndUpdateGrid( step );
+
+
+
   }
 
 
@@ -245,53 +265,78 @@ namespace CoupledField {
 
   void StdSolveStep::StepTransLin(PtrParamNode analysis_id, AdjointParameters* adjointParams) 
   {
-    //account for RHS
-    assemble_->AssembleLinRHS(adjointParams);
-    PDE_.ComputeRHS( actTime_ );
+    //TODO: add consistency check here
+    //basically loop over all functions and check if the solution order is the same...
 
-    // store rhs vector back to PDE
-    algsys_->GetRHSVal(rhsVec_);
+    //obtain the number of stages
+    UInt numStages = feFunctions_.begin()->second->GetTimeScheme()->GetNumStages();
 
-    UInt& iterCoupledCounter = PDE_.GetIterCoupledCounter();
-    bool isIterCoupled    = PDE_.IsIterCoupled();
+    std::map<SolutionType, shared_ptr<BaseFeFunction> >::iterator fncIt;
+    std::map<FEMatrixType,Integer> matrices = PDE_.GetMatrixDerivativeMap();
 
-    // perform predictor step: if we have an iterative coupled
-    // PDE-system, we should perform the predictor state just
-    // in the first iteration
-    if ( isIterCoupled == false || iterCoupledCounter == 0 ) {
-      TS_alg_->Predictor(solVec_);
-    }
+    std::map<FEMatrixType,Integer>::iterator matIt;
 
-    assemble_->AssembleMatrices();
+    UInt pos = 0;
     bool effectiveMatrixUpdated = false;
 
-   if(assemble_->IsMatrixUpdated()){
-      // we have to construct the effective matrix in 2 cases
-      // either, the matrix was updated
-      // or we have the second step after the first step had been static (the time runs forward, not in adjoint case)
-      // but we must not construct it again, if we just did for the static step
-      algsys_->ConstructEffectiveMatrix(matrix_factor_);
-      effectiveMatrixUpdated = true;
+    for(UInt i=0;i<numStages;i++){
+      effectiveMatrixUpdated = false;
+
+      //we obtain a reference to the stage vectors of the scheme
+      SBM_Vector stageSol;
+      stageSol.Resize(feFunctions_.size());
+      for(pos = 0,fncIt = feFunctions_.begin();fncIt != feFunctions_.end();fncIt++,pos++){
+        stageSol.SetSubVector(fncIt->second->GetTimeScheme()->GetStageVector(i),pos);
+      }
+      stageSol.SetOwnership(false);
+      stageRHS_.Init();
+
+      algsys_->InitRHS();
+
+      //account for RHS
+      assemble_->AssembleLinRHS(adjointParams);
+      PDE_.ComputeRHS( actTime_ );
+
+      // store rhs vector back to PDE for e.g. postProc
+      algsys_->GetRHSVal(rhsVec_);
+
+      assemble_->AssembleMatrices();
+      if(assemble_->IsMatrixUpdated()){
+        matrix_factor_.clear();
+        for(fncIt = feFunctions_.begin();fncIt != feFunctions_.end();fncIt++){
+          fncIt->second->GetTimeScheme()->AddMatFactors(i,matrices,matrix_factor_);
+        }
+        algsys_->ConstructEffectiveMatrix(matrix_factor_);
+        effectiveMatrixUpdated = true;
+      }
+
+      //now compute the effective right hand side
+      for(matIt = matrices.begin();matIt != matrices.end();matIt++){
+        if(matIt->second < 0)
+          continue;
+        for(pos = 0,fncIt = feFunctions_.begin();fncIt != feFunctions_.end();fncIt++,pos++){
+          fncIt->second->GetTimeScheme()->ComputeStageRHS(i,matIt->second,stageRHS_.GetPointer(pos));
+        }
+        algsys_->UpdateRHS(matIt->first,stageRHS_);
+      }
+
+      // set boundary conditions
+      PDE_.SetBCs();
+      algsys_->BuildInDirichlet();
+
+      if( effectiveMatrixUpdated ){
+        algsys_->SetupPrecond( analysis_id);
+        algsys_->SetupSolver(analysis_id);
+      }
+
+      algsys_->Solve(analysis_id);
+
+      algsys_->GetSolutionVal(stageSol);
     }
 
-    // update Right Hand Side
-    TS_alg_->UpdateRHS();
-
-    // set boundary conditions
-    PDE_.SetBCs();
-    algsys_->BuildInDirichlet();
-
-    if( effectiveMatrixUpdated ){
-      algsys_->SetupPrecond( analysis_id);
-      algsys_->SetupSolver(analysis_id);
-    }
-
-    algsys_->Solve(analysis_id);
-    algsys_->GetSolutionVal(solVec_);
-    TS_alg_->Corrector(solVec_);
-
-    if ( isIterCoupled ) {
-      iterCoupledCounter++;
+    //update stage
+    for(pos = 0,fncIt = feFunctions_.begin();fncIt != feFunctions_.end();fncIt++){
+      fncIt->second->GetTimeScheme()->FinishStep();
     }
 
   }
@@ -300,7 +345,8 @@ namespace CoupledField {
 
   void StdSolveStep::StepTransNonLin(PtrParamNode base_analysis_id) {
 
-
+    REFACTOR;
+/*
     bool performOneMoreStep;
     SBM_Vector solInc(BaseMatrix::DOUBLE);
 
@@ -422,11 +468,13 @@ namespace CoupledField {
 
     //perform corrector step
     TS_alg_->Corrector(actSol_);
+    */
   }
 
 
   void StdSolveStep::StepTransNonLinTotal(PtrParamNode base_analysis_id) {
-
+    REFACTOR;
+/*
     std::cout << "\n In :StepTransNonLinTotal  \n " << std::endl;
  
     bool performOneMoreStep;
@@ -537,6 +585,7 @@ namespace CoupledField {
 
     //perform corrector step  
     TS_alg_->Corrector(newSol);
+    */
   }
 
   
@@ -826,7 +875,7 @@ namespace CoupledField {
 
   void StdSolveStep::PostStepTrans( ) {
 
-    WARN("Biot-Savart not yet included";)
+//    WARN("Biot-Savart not yet included";)
 //    Vector<Double> & solHelp =
 //      dynamic_cast<Vector<Double>&>(*PDE_.GetSolutionVector());
 //
@@ -1025,7 +1074,8 @@ namespace CoupledField {
   Double StdSolveStep::LineSearch(SBM_Vector& solIncrement, SBM_Vector& actSol,
                                   Double& etaLineSearch, bool trans)
   {
-
+    REFACTOR;
+/*
     SBM_Vector solOld;
     solOld = actSol;
     const UInt nrEtas = 5;
@@ -1076,13 +1126,16 @@ namespace CoupledField {
     actSol.Add( 1.0, solOld, etaOpt, solIncrement );
 
     return residualL2NormOpt;
+    */
+    return 0.0;
   }
 
 
   Double StdSolveStep::LineSearchMaterial(SBM_Vector& solIncrement, SBM_Vector& actSol,
                                           Double& etaLineSearch, Double& RhsLinL2Norm, bool trans)
   {
-
+    REFACTOR;
+/*
     SBM_Vector solOld;
     solOld = actSol;
     const UInt nrEtas = 3;
@@ -1158,6 +1211,8 @@ namespace CoupledField {
     actSol.Add( 1.0, solOld, etaOpt, solIncrement );
 
     return residualL2NormOpt;
+    */
+    return 0.0;
   }
 
 

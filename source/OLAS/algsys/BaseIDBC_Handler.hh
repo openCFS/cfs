@@ -116,6 +116,32 @@ namespace CoupledField {
     //@}
 
     //@{
+    //! Add Dof Values fixed by Dirichlet boundary condition to a right hand side
+
+    //! In case of elemenination IDBC handling in the time domain we need to add the
+    //! DOFs fixed by an IDBC to the RHS by multiplication with the corresponding matrix entries
+    //! We do this for each row block and for each rowblock in each row of the sbm matrix
+    //! \param matID matrix type to be multiplied with the value
+    //! \param colBlock The column block the value is associated with
+    //! \param colInd The index inside the sbm subvector
+    //! \param rhs  the right hand side we are operating on
+    //! \param val  The value we need to multiply
+    virtual void AddFixedToFreeRHS( FEMatrixType matID, UInt colBlock,
+                                        UInt colInd, SBM_Vector *rhs, const Double& val ) {
+      EXCEPTION("BaseIDBC_Handler::AddFixedToFreeRHS: The derived class does " \
+                << "obviously not support the Double version of this " \
+                << "interface! So it is probably a Complex instance!");
+    }
+
+    virtual void AddFixedToFreeRHS( FEMatrixType matID, UInt colBlock,
+                            UInt colInd, SBM_Vector *rhs, const Complex& val )  {
+      EXCEPTION("BaseIDBC_Handler::AddFixedToFreeRHS: The derived class does " \
+                << "obviously not support the Complex version of this " \
+                << "interface! So it is probably a Double instance!");
+    }
+    //@}
+
+    //@{
     //! Add weight of coupling between a fixed and a free dof into matrix
 
     //! This method provides an interface to add the weight of the coupling

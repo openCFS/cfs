@@ -331,6 +331,9 @@ namespace CoupledField {
         const Elem* actEl = entIt.GetElem();
         const StdVector<UInt> & elemNodes = actEl->connect;
         virtualNodes_[actEl->elemNum][BaseFE::VERTEX].vNodes = elemNodes;
+        for ( UInt iVert= 0; iVert< elemNodes.GetSize(); iVert++ ) {
+          virtualNodes_[actEl->elemNum][BaseFE::VERTEX].offset.Push_back(1);
+        }
       }
     }
 

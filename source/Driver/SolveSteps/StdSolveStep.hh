@@ -18,8 +18,8 @@ namespace CoupledField
 {
   // forward class declarations
   class StdPDE;
-  class BaseNodeStoreSol;
-  class TimeStepping;
+  //class BaseNodeStoreSol;
+  //class TimeStepping;
   class WriteResults;
   //class EqnMap;
   struct ResultInfo;
@@ -66,6 +66,10 @@ namespace CoupledField
     virtual void PostStepStatic();
 
     //----------------------- TRANSIENT---------------------------------------
+
+    //! Initialize additional data-structures as needed for the glm
+    virtual void InitTimeStepping();
+
     //! routine for initilizations befor execution the SolveStep-method
     virtual void PreStepTrans();
 
@@ -201,7 +205,6 @@ namespace CoupledField
     //! factors for computingn effective system matrix
     std::map<FEMatrixType,Double> matrix_factor_;   
     
-    TimeStepping * TS_alg_;        //!< pointer to time-stepping object
                                    //!< our solution
     bool recalc_;               //!< flag indicating reassembling of system matrix
 
@@ -227,7 +230,11 @@ namespace CoupledField
     
     //! Vector containing all solution vectors of the FE-functions
     SBM_Vector rhsVec_;
-    
+
+    //! Vector containing the rhs for the current stage based on the scheme
+    //! TODO: This can be obtimized if the time schemes write their rhs parts directly to the Algebraic system
+    SBM_Vector stageRHS_;
+
     //! Map Storing FeSpaces for each solution type of PDE
     std::map<SolutionType, shared_ptr<BaseFeFunction> > feFunctions_;
     

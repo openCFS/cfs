@@ -52,6 +52,8 @@
 #include <sstream>
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/exception.hpp>
+#include <cmath>
+
 namespace fs = boost::filesystem;
 
 namespace CoupledField{
@@ -110,6 +112,19 @@ namespace CoupledField{
                                        BasePDE::AnalysisType type,
                                        UInt numSteps){
     numSteps_ = numSteps;
+    SolutionRegionMap::iterator solIt = mySolutions_.begin();
+    while(solIt!=mySolutions_.end()){
+      RegionInterpMap::iterator regIter = solIt->second.begin();
+      while(regIter!=solIt->second.end()){
+        std::list<ElemInterpolation>::iterator interIter = regIter->second.begin();
+        while(interIter!= regIter->second.end()){
+          interIter->saveEnd_ = (numSteps_<interIter->saveEnd_)?  numSteps_ : interIter->saveEnd_;
+          interIter++;
+        }
+        regIter++;
+      }
+      solIt++;
+    }
   }
 
   //! Register result (within one multisequence step)
@@ -155,7 +170,7 @@ namespace CoupledField{
         }
         curInterp.saveBegin_ = saveBegin;
         curInterp.saveInc_ = saveInc;
-        curInterp.saveEnd_ = (numSteps_<saveEnd)?  numSteps_ : saveEnd;
+        curInterp.saveEnd_ = saveEnd;
         mySolutions_[sol->GetResultInfo()->resultType][actList->GetRegion()].push_back(curInterp);
         eIt++;
       }
@@ -468,12 +483,11 @@ namespace CoupledField{
     //this second test is to determine if the number of bytes inserted
     //exceeds 2times the buffer length. if so, we set the bufS to the next available
     //power of two
-    if(bfrS < varsSize){
+    if(bfrS < (varsSize)){
       //determine next power of two available
       //cut float values
-      bfrS = varsSize/(long)2;
-      //now double it
-      bfrS *= 2;
+      long exp = std::ceil(log2(varsSize));
+      bfrS = std::pow(2,exp);
     }
 
     //number of read operations
@@ -485,10 +499,13 @@ namespace CoupledField{
 
     int remainingBytes = (int)lengthMove % bfrS;
 
-    infile->seekp(readPos,std::ios::beg);
+    infile->seekg(readPos,std::ios::beg);
     outfile->seekp(writePos,std::ios::beg);
     infile->read(buff2,bfrS);
-   // long test = infile->gcount();
+    //long in=0,out=0;
+    //in = infile->tellg();
+    //out = outfile->tellp();
+
 
     //now loop over and move the contents
     for(UInt i = 1; i < numRead; i++){
@@ -498,10 +515,14 @@ namespace CoupledField{
     }
     std::memcpy(buff,buff2,bfrS);
     if(remainingBytes>0){
+      delete buff2;
+      buff2 = NULL;
       buff2 = new char[remainingBytes];
       infile->read(buff2,remainingBytes);
       outfile->write(buff,bfrS);
       bfrS = remainingBytes;
+      delete buff;
+      buff = NULL;
       buff = new char[bfrS];
       std::memcpy(buff,buff2,bfrS);
     }

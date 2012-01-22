@@ -14,7 +14,9 @@ namespace CoupledField {
     converged_(false),
     sequenceStep_(0),
     myParam_(paramNode),
-    pdename_()
+    pdename_(),
+    isSetInitialCondition_(false),
+    InitialCondition_(0.0)
   {
   }
 

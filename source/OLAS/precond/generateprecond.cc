@@ -483,7 +483,7 @@ LOG_DBG(genPrecond) << " GenerateStdPrecondObject: Generated "\
       WARN("In this case we create a SBM-Diag-Precond which does nothing");
 //      retVal = new IdPrecondSBM;
 //      LOG_DBG(genPrecond) << " GenerateStdPrecondObject: Generated Identity preconditioner";
-//      break;
+     break;
       
       // ============================
       //   Cholmod Preconditioner
@@ -518,6 +518,7 @@ LOG_DBG(genPrecond) << " GenerateStdPrecondObject: Generated "\
        
     default:
       EXCEPTION( "GeneratePrecondObject failed: Preconditioner type unknown" );
+      break;
     }
 
     // test, if preconditioner object could be generated

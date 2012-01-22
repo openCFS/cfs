@@ -22,6 +22,7 @@ SET(TARGET_LL
   algsys-olas
   graph-olas
   utils
+  matvec
 )
 
 TARGET_LINK_LIBRARIES(driver ${TARGET_LL})

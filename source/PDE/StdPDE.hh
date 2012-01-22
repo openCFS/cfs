@@ -6,7 +6,6 @@
 
 #include <set>
 
-#include "Driver/TimeSchemes/TimeStepping.hh"
 #include "Materials/Composite.hh"
 #include "FeBasis/FeFunctions.hh"
 #include "FeBasis/FeSpace.hh"
@@ -18,7 +17,6 @@ namespace CoupledField {
   class PDECoupling;
   class BasePairCoupling;
   class WriteResults;
-  class TimeStepping;
   class BaseNodeStoreSol;
   class StdSolveStep;
   class PDECoupling;
@@ -157,9 +155,6 @@ namespace CoupledField {
     //! set boundary condition OBSOLETE in the future
     virtual  void SetBCs() = 0;
 
-    //! Transforms a given BoundaryCondition value according to Timestepping (i.e. TransientSim)
-    virtual void TransformBC(Double& transVal, Double initValue, Integer eqnNumber) = 0;
-
     virtual  void InitStabParams( ) {
       EXCEPTION("Not Implemented, only needed for fluidMech and smooth");
     };
@@ -168,11 +163,7 @@ namespace CoupledField {
       EXCEPTION("Not Implemented, only needed for fluidMech");
     };
 
-    
-    //! Initialize all/some the nodes by this value
-    virtual void SetInitialCondition(){;};
-    bool IsSetInitialCondition() { return isSetInitialCondition_;};
-    double getInitialCondition(){return InitialCondition_;}; 
+
     
     //! Init the time stepping
     virtual void InitTimeStepping()
@@ -215,10 +206,6 @@ namespace CoupledField {
     AlgebraicSys * getPDE_algsys(){return algsys_;}
     
     Grid * getPDE_grid() {return ptgrid_;}
-  
-
-    //! get pointer to time stepping object
-    TimeStepping * getTimeStepping() { return TS_alg_;};
 
     // set if PDE is nonlinear
     virtual void SetNonLinearity(bool nonLin){
@@ -459,8 +446,9 @@ namespace CoupledField {
   
     //@{
     //! \name Attributes connected to time stepping
-    TimeStepping * TS_alg_;       //!< handles the time stepping
-    bool effectiveMass_;       //!< use effective mass formulation for transient analysis
+    //TODO: MOST ARE OBSOLETE!
+//    TimeStepping * TS_alg_;       //!< handles the time stepping
+//    bool effectiveMass_;       //!< use effective mass formulation for transient analysis
     bool diagMass_;           //!< use of diagonal mass matrix in explicit time stepping
     bool firstTimeStepStatic_; //!< needed for coupled, iterative methods
     bool isInstationary_;    //!< flag for stationary/instationary PDEs (like fluidMech)
@@ -530,12 +518,6 @@ namespace CoupledField {
   
     /** This is the node for linear system responsible for this pde. */
     PtrParamNode olasInfo_;
-    
-    //! flag to check if there are initial conditions in the set up
-    bool isSetInitialCondition_;
-    
-    //! initial value.
-    Double InitialCondition_;
     
     //@}
 

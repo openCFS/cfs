@@ -99,9 +99,6 @@ namespace CoupledField
     //! set boundary condition OBSOLETE
     void SetBCs();
 
-    //! Transforms a given BoundaryCondition value according to Timestepping (i.e. TransientSim)
-    virtual void TransformBC(Double& transVal, Double initValue, Integer eqnNumber);
-
     //! set special PDE dependent boundary conditions
     virtual void SetSpecialBCs(){ return; }
 

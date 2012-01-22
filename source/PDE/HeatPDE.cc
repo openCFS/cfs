@@ -4,7 +4,7 @@
 #include <iostream>
 #include <sstream>
 #include <string>
-#include <math.h>
+#include <cmath>
 
 #include "HeatPDE.hh"
 
@@ -25,9 +25,11 @@
 #include "FeBasis/H1/FeSpaceH1Nodal.hh"
 #include "FeBasis/FeFunctions.hh"
 
-#include "Driver/TimeSchemes/Trapezoidal.hh"
+#include "Driver/TimeSchemes/TimeSchemeGLM.hh"
+//#include "Driver/TimeSchemes/Trapezoidal.hh"
 
 #include "Driver/SolveSteps/StdSolveStep.hh"
+
 #include "Driver/Assemble.hh"
 #include "CoupledPDE/PDECoupling.hh"
 
@@ -268,7 +270,7 @@ void HeatPDE::DefineIntegrators() {
     massInt = new BBInt<IdentityOperator, FeH1, Double>(coeff, 1.0);
     massInt->SetFeSpace( feFunctions_[HEAT_TEMPERATURE]->GetFeSpace() );
 
-    BiLinFormContext *massContext =  new BiLinFormContext(massInt, MASS );
+    BiLinFormContext *massContext =  new BiLinFormContext(massInt, DAMPING );
      
     massContext->SetEntities( actSDList, actSDList );
     massContext->SetFeFunctions( feFunctions_[HEAT_TEMPERATURE],feFunctions_[HEAT_TEMPERATURE]);
@@ -495,6 +497,7 @@ void HeatPDE::DefineIntegrators() {
       break;
     default:
       Exception("Right hand side quantity not known for heatPDE");
+      break;
     }
     return mContext;
   }
@@ -515,7 +518,11 @@ void HeatPDE::InitTimeStepping() {
 
   // Until now no effective mass formulation in the trapezoidal
   //  integration scheme is implemented!
-  TS_alg_ = new Trapezoidal( algsys_, olasNode_ );
+  //TS_alg_ = new Trapezoidal( algsys_, olasNode_ );
+  shared_ptr<BaseTimeScheme> myScheme(new TimeSchemeGLM(TimeSchemeGLM::TRAPEZOIDAL, 0) );
+
+  feFunctions_[HEAT_TEMPERATURE]->SetTimeScheme(myScheme);
+
 
 }
 
@@ -536,6 +543,7 @@ void HeatPDE::CalcResults( shared_ptr<BaseResult> res ) {
     
   default:
     WARN( "Resulttype not computable by thermic PDE" );
+    break;
   }
 }
 

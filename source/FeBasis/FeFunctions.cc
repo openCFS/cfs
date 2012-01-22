@@ -35,6 +35,14 @@ DECLARE_LOG(fefunc)
     return feSpace_;
   }
   
+  shared_ptr<BaseTimeScheme> BaseFeFunction::GetTimeScheme(){
+    return timeScheme_;
+  }
+
+  void BaseFeFunction::SetTimeScheme(shared_ptr<BaseTimeScheme> scheme){
+    timeScheme_  = scheme;
+  }
+
   void BaseFeFunction::AddEntityList( shared_ptr<EntityList> list ){
     entities_.Push_back(list);
   }
@@ -107,6 +115,7 @@ DECLARE_LOG(fefunc)
   template<typename T>
   void FeFunction<T>::Finalize(){
     coeffs_.Resize( feSpace_->GetNumEquations());
+    coeffs_.Init();
   }
 
   template<typename T>
@@ -295,7 +304,10 @@ DECLARE_LOG(fefunc)
           //ResultCache::SetOutputType(ResultCache::OUT_AMPL);
           parser->SetExpr( mHandle_, actBc.value );
           val = parser->Eval( mHandle_ );
-          pde_->TransformBC(val, val, eqnNr);
+          this->GetTimeScheme()->AdaptBC(val,val,0,eqnNr);
+            //val = 1;
+
+          //pde_->TransformBC(val, val, eqnNr);
           
           // if we have the higher order H1 space, we just set
           // the dirichelt values for the vertex unknowns.

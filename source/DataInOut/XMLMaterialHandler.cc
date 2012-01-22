@@ -10,7 +10,7 @@
 #include "Materials/ElectroMagneticMaterial.hh"
 #include "Materials/ElectroStaticMaterial.hh"
 #include "Materials/HeatMaterial.hh"
-//#include "Materials/acousticMaterial.hh"
+#include "Materials/AcousticMaterial.hh"
 //#include "Materials/mechanicMaterial.hh"
 //#include "Materials/piezoMaterial.hh"
 //#include "Materials/flowMaterial.hh"
@@ -78,9 +78,8 @@ namespace CoupledField {
       //ReadMechanic( material, pn );
     }    
     else if ( matClass == FLUID ) {\
-      REFACTOR;
-      //material = new AcousticMaterial();
-      //ReadAcoustic( material, pn );
+      material = new AcousticMaterial();
+      ReadAcoustic( material, pn );
     }
     else if ( matClass == ELECTROMAGNETIC ) {
       material = new ElectroMagneticMaterial();

@@ -49,6 +49,9 @@ namespace CoupledField {
       UInt node = ent.GetNode();
       eqns.Resize(dofsPerUnknown);
       eqns.Init();
+      if(gridToVirtualNodes_.find(node) == gridToVirtualNodes_.end())
+    	  return;
+
       for(UInt iDof = 0; iDof < dofsPerUnknown; iDof++){
         eqns[iDof] = nodeMap_[gridToVirtualNodes_[node]][iDof];
       }
@@ -83,7 +86,10 @@ namespace CoupledField {
       UInt node = ent.GetNode();
       eqns.Resize(1);
       eqns.Init();
-      eqns[0] = nodeMap_[gridToVirtualNodes_[node]][dof];
+      //without the if clause we would have a segfault in case of higher order approximaton
+      //for quadratic meshes
+      if(gridToVirtualNodes_.find(node)!= gridToVirtualNodes_.end())
+    	  eqns[0] = nodeMap_[gridToVirtualNodes_[node]][dof];
 
     } else if( ent.GetType() == EntityList::ELEM_LIST ||
                ent.GetType() == EntityList::SURF_ELEM_LIST){

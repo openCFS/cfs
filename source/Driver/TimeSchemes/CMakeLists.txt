@@ -1,8 +1,5 @@
 SET(TIMESCHEME_SRCS
-  TimeStepping.cc
-  Newmark.cc
-  PseudoTS.cc
-  Trapezoidal.cc  
+  TimeSchemeGLM.cc
   )
 
 ADD_LIBRARY(timeschemes STATIC ${TIMESCHEME_SRCS})

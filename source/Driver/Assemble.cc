@@ -404,6 +404,9 @@ namespace CoupledField
     // On first Assembly, assemble all matrices for each BilinearForm
     CheckNonLinearities(isFirstTime_);
 
+    if(!isFirstTime_)
+      return;
+
     // Init all matrices, which have to be reassembled
     std::map<FEMatrixType, bool>::iterator it;
     for( it = matReassemble_.begin(); it != matReassemble_.end(); it++ ) {

@@ -7,7 +7,6 @@
 #include "Utils/SmoothSpline.hh"
 #include "Utils/LinInterpolate.hh"
 
-#include "Driver/TimeSchemes/Trapezoidal.hh"
 #include "CoupledPDE/PDECoupling.hh"
 #include "Driver/Assemble.hh"
 #include "Domain/CoordinateSystems/CoordSystem.hh"
@@ -22,6 +21,9 @@
 #include "Forms/LinForms/BUInt.hh"
 #include "Forms/Operators/CurlOperator.hh"
 #include "Forms/Operators/IdentityOperator.hh"
+
+//time stepping
+#include "Driver/TimeSchemes/TimeSchemeGLM.hh"
 
 // new postprocessing concept
 #include "Domain/Results/ResultFunctor.hh"
@@ -307,7 +309,10 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
   // ======================================================
 
   void MagEdgePDE::InitTimeStepping() {
-    TS_alg_ = new Trapezoidal( algsys_, olasNode_ );
+    shared_ptr<BaseTimeScheme> myScheme(new TimeSchemeGLM(TimeSchemeGLM::TRAPEZOIDAL, 0) );
+
+    feFunctions_[MAG_POTENTIAL]->SetTimeScheme(myScheme);
+
   }
 
   // ***************

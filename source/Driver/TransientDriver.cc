@@ -1,7 +1,3 @@
-// -*- mode: c++; coding: utf-8; indent-tabs-mode: nil; -*-
-// kate: space-indent on; indent-width 2; encoding utf-8;
-// kate: auto-brackets on; mixedindent off; indent-mode cstyle;
-
 #include <fstream>
 #include <iostream>
 #include <string>
@@ -120,25 +116,24 @@ namespace CoupledField {
     ptPDE_->WriteGeneralPDEdefines();
 
     ptPDE_->GetSolveStep()->SetStartStep( startStep );
-    // Solve problem
-    //ptPDE_->GetSolveStep()->SetTimeStep(dt);
-    
     
     ptPDE_->GetSolveStep()->SetNumTimeSteps(restartStep_+numstep_);
-    //---------------------------------------------------------------------------
+    
+    //just initialize some variables
+    ptPDE_->GetSolveStep()->InitTimeStepping();
+
+    //Compute initial solutions
+    ptPDE_->SetInitialCondition();
+
     // to save the initial state
-    // commented out, since all time-dependend examples in testsuite consider the first
-    // not the zeroth time step
-    //     resHandler->BeginStep( 0, 0 );
-    //     ptPDE_->WriteResultsInFile(stepOffset_, timeOffset_);
-    //     resHandler->FinishStep( );
-
-
-    //---------------------------------------------------------------------------
+    resHandler->BeginStep( 0, 0 );
+    ptPDE_->WriteResultsInFile(stepOffset_, timeOffset_);
+    resHandler->FinishStep( );
     
     timer_->Start();
-    
+
     // Outer loop over all timesteps
+    
     UInt count = 0;
     for (actTimeStep_ = adjointParams ? endStep : startStep; 
          actTimeStep_ <= endStep && actTimeStep_ >= startStep; 

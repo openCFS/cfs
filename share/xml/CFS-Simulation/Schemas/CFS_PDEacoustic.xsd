@@ -33,7 +33,7 @@
         <xsd:sequence>
 
           <!-- Regions the PDE lives on (including optional damping model) -->
-          <xsd:element name="regionList" minOccurs="1" maxOccurs="1">
+          <!--xsd:element name="regionList" minOccurs="1" maxOccurs="1">
             <xsd:complexType>
               <xsd:sequence>
                 <xsd:element name="region" minOccurs="1" maxOccurs="unbounded">
@@ -43,6 +43,22 @@
                       use="optional" default=""/>
                     <xsd:attribute name="nonLinId" type="xsd:token" 
                       use="optional" default=""/>
+                  </xsd:complexType>
+                </xsd:element>
+              </xsd:sequence>
+            </xsd:complexType>
+          </xsd:element-->
+
+          <!-- Regions the PDE lives on -->
+          <xsd:element name="regionList" minOccurs="1" maxOccurs="1">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="region" minOccurs="1" maxOccurs="unbounded">
+                  <xsd:complexType>
+                    <xsd:attribute name="name" type="xsd:token" use="required"/>
+                    <xsd:attribute name="polyId" type="xsd:string" use="optional" default="default"> </xsd:attribute>
+                    <xsd:attribute name="integId" type="xsd:string" use="optional" default="default"> </xsd:attribute>
+                    <xsd:attribute name="nonLinId" type="xsd:token" use="optional" default=""/>
                   </xsd:complexType>
                 </xsd:element>
               </xsd:sequence>

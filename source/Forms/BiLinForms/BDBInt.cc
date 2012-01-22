@@ -112,6 +112,7 @@ namespace CoupledField{
 #endif
 
     }
+
   }
   
   //! Multiply element matrix with vector

@@ -1389,9 +1389,17 @@ namespace CoupledField {
     // If matrix specified init this one
     if ( matrixType != NOTYPE )
     {
-      assert(sysMat_[matrixType] != NULL);
-      sysMat_[matrixType]->Init();
-      idbcHandler_->InitMatrix(matrixType);
+      //TODO: ok, that the matrix is zero is not uncommon in case 
+      //      of transient analysis. Two ways to avoid this: 
+      //      first: asselmble calls this function only with 
+      //             needed matrix types.
+      //      second: we check here if matrix type is contained 
+      //              in matrixTypes_ map
+      if(matrixTypes_.find(matrixType) != matrixTypes_.end()){
+      //assert(sysMat_[matrixType] != NULL);
+        sysMat_[matrixType]->Init();
+        idbcHandler_->InitMatrix(matrixType);
+      }
     }
 
     // Otherwise init all matrices
@@ -1840,7 +1848,69 @@ namespace CoupledField {
     
     LOG_TRACE(algSys) << "Updating RHS of matrix " 
                       << feMatrixType.ToString(matrixType);
-    REFACTOR;
+
+    if(matrixTypes_.find(matrixType) == matrixTypes_.end())
+      return;
+
+    /* THIS FUNCTION IS A LOAD OF CRAB
+     * first: the rhs vector is copied which should be avoided
+     * second: the elemination approach towards the system solution does not work
+     *         because the dofs fixed by IDBC ar not added to the free ones according
+     *         to the coupling
+     *
+     */
+    // ensure that the RHS vector to set consists of as many
+    // sub-vectors as the RHS of the system
+    if( fup.GetSize() != numFcts_ ) {
+      EXCEPTION( "New rhs consists of " << fup.GetSize()
+                 << " sub-vectors, the RHS of the algebraic system of "
+                 << rhs_->GetSize() << " entries." )
+    }
+
+    // loop over all feFctIDs and create a converted rhs
+    SBM_Vector * tmpRhs = NULL;
+
+    tmpRhs = dynamic_cast<SBM_Vector*>
+            ( GenerateVectorObject( *(sysMat_[SYSTEM]) ) );
+    tmpRhs->Init();
+
+    for(UInt i = 0; i < numFcts_; ++i ) {
+
+      // get all (blockId,index)-combinations for the current fctId
+      StdVector<UInt> blockNums, indices;
+      MapCompleteFctIdToIndex( i, blockNums, indices);
+      UInt size = blockNums.GetSize();
+
+      // security check: ensure that sub-vector has the same size
+      // as the block indices
+      if( fup(i).GetSize() != indices.GetSize() ) {
+        EXCEPTION( "Number of entries of " << i << "-th sub-vector and number "
+                   "of indices do not match!");
+      }
+
+      if( fup.GetEntryType() == BaseMatrix::DOUBLE ) {
+        Vector<Double> & nRHS =
+            dynamic_cast<Vector<Double>&>( fup(i) );
+
+        for( UInt j = 0; j < size; ++j ) {
+          // omit entries for Dirichlet values
+          if( indices[j] <= blockInfo_[blockNums[j]]->numLastFreeIndex) {
+            tmpRhs->GetPointer(blockNums[j])
+                ->SetEntry(indices[j]-1, nRHS[j] );
+          }else if(!usingPenalty_){
+            idbcHandler_->AddFixedToFreeRHS(matrixType,blockNums[j],
+			    		indices[j],rhs_,nRHS[j]);
+          }
+        }
+
+      } else {
+        EXCEPTION("Implement me. Dont worry: mostly C&P code");
+      }
+
+    }
+    //now just perform multiplication
+    sysMat_[matrixType]->MultAdd(*tmpRhs,*rhs_);
+
   }
   
   template<typename T>
@@ -1930,6 +2000,9 @@ namespace CoupledField {
     LOG_DBG(algSys) << "Setting Dirichlet value " << val << " for eqn " << eqnNr
                     << " of fctId " << fctId;
     
+    if(eqnNr == 0)
+      return;
+
     UInt blockNr, index;
     MapFctIdEqnToIndex( fctId, eqnNr, blockNr, index );
     

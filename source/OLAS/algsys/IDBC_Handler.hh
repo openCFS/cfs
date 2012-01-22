@@ -133,6 +133,10 @@ namespace CoupledField {
                                UInt colInd,
                                T& val );
     
+    //! @copydoc BaseIDBC_Handler::AddFixedToFreeRHS()
+    void AddFixedToFreeRHS( FEMatrixType matID, UInt colBlock,
+                                        UInt colInd, SBM_Vector *rhs, const T& val );
+
     //! @copydoc BaseIDBC_Handler::SetDofsToIDBC()
     void SetDofsToIDBC( SBM_Vector *vec );
 

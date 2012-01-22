@@ -6,7 +6,7 @@
 
 #include "BasePairCoupling.hh"
 
-#include "Driver/TimeSchemes/Newmark.hh"
+
 // include solveStep drivers
 #include "Driver/SolveSteps/StdSolveStep.hh"
 #include "Driver/Assemble.hh"
@@ -50,10 +50,6 @@ namespace CoupledField {
     if( solveStep_ ) {
       delete solveStep_;
       solveStep_ = NULL;
-    }
-    if( TS_alg_ ){
-      delete TS_alg_;
-      TS_alg_ = NULL;
     }
 
     // Delete BasePairCoupling objects
@@ -238,10 +234,11 @@ namespace CoupledField {
     // included boundary conditions
 
     if ( analysistype_ == BasePDE::TRANSIENT ) {
-      Double dt;
-      dt = dynamic_cast<TransientDriver*>(domain->GetSingleDriver())
-        ->GetDeltaT();
-      TS_alg_->Init( dt, 1 );
+      EXCEPTION("Dierct coupling does not work iun the transient case");
+      //Double dt;
+      //dt = dynamic_cast<TransientDriver*>(domain->GetSingleDriver())
+      //  ->GetDeltaT();
+      //TS_alg_->Init( dt, 1 );
     }
 
     //! Augment nonlinearity information
@@ -444,12 +441,9 @@ namespace CoupledField {
   // ********************
   void DirectCoupledPDE::InitTimeStepping() {
 
-    // Hard Coded
-    TS_alg_ = new Newmark( algsys_, olasNode_ );
-
-    // Pass time stepping object to single pdes
+    // Pass time time stepping init to the single pdes
     for (UInt i=0; i<singlePDEs_.GetSize(); i++) {
-      singlePDEs_[i]->TS_alg_ = TS_alg_;
+      singlePDEs_[i]->InitTimeStepping();
     }
   }
 

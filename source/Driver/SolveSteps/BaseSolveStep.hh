@@ -57,6 +57,11 @@ namespace CoupledField
     //! routine for actions after the SolveStep-method
     virtual void PostStepTrans() = 0;
     
+    //! initialize timestepping special variables
+    virtual void InitTimeStepping(){
+      EXCEPTION("InitTimeStepping not implemented!");
+    }
+
     //----------------------- HARMONIC---------------------------------------
     //! routine for initilizations before execution of the SolveStep-method
     virtual void PreStepHarmonic() = 0;
