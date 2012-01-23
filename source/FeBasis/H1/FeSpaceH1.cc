@@ -258,6 +258,7 @@ namespace CoupledField {
 
         //Get result for the feFunction
         feFctResult = feFunction_->GetResultInfo();
+        
         // Get number of dofs
         dofsPerUnknown = feFctResult->dofNames.GetSize();
         
@@ -282,6 +283,13 @@ namespace CoupledField {
             }
           }
         }
+        
+        // Security check at the end of phase 1:
+        for( UInt i = 0; i < nodes_.GetSize(); ++i ) {
+          actNode = nodes_[i];
+        }
+        
+        
         break;
       case 2:
         bcIt = nodeMap_.BcKeys.begin();
@@ -292,9 +300,9 @@ namespace CoupledField {
             if(bcIt->second[iDof]!=NOBC){
                //nodeMap_[bcIt->first] = ++numEqns_;
               if(bcIt->second[iDof] == IDBC){
-                nodeMap_[bcIt->first] = ++numEqns_;
+                nodeMap_[bcIt->first][iDof] = ++numEqns_;
               } else if(bcIt->second[iDof] == HDBC){
-                nodeMap_[bcIt->first] = 0 ;
+                nodeMap_[bcIt->first][iDof] = 0 ;
               } 
               //else if(bcIt->second[iDof] == CONSTRAINT){
               //  Integer masterNode = nodeMap_.slaveMasterNodes[bcIt->first];
@@ -304,6 +312,10 @@ namespace CoupledField {
           }
           bcIt++;
         }
+        // Security check at the end of phase 1:
+             for( UInt i = 0; i < nodes_.GetSize(); ++i ) {
+               actNode = nodes_[i];
+             }
         {
           std::map<std::pair<Integer,Integer>, std::pair<Integer,Integer>  >::iterator  conNodes = nodeMap_.constraintNodes.begin();
           for(; conNodes !=nodeMap_.constraintNodes.end() ; conNodes++){
@@ -327,7 +339,7 @@ namespace CoupledField {
     
     // currently we only support "standard" solution strategy
     if( solStrat->GetType() != SolStrategy::STD_STRATEGY ) {
-      EXCEPTION( "Curently we just support the standard solution strategy for H1.");
+      EXCEPTION( "Currently we just support the standard solution strategy for H1.");
     }
     
     // Check, if static condensation is to be performed
@@ -451,6 +463,7 @@ namespace CoupledField {
      
       // print element information (type, region, connect, edges, faces)
       const Elem * ptElem = ptGrid->GetElem(elemIt->first);
+      
       std::cout << "=============\n"
                 << " Elem #" << elemIt->first << std::endl
                 << "=============\n";
@@ -478,10 +491,10 @@ namespace CoupledField {
 
 
       // print header
-      std::cout << "\t\t#num\tgridNodes\tvNodes\tEqnNrs\tSBM-Block\tindex\n";
+      std::cout << "\t\t#num\tvNodes\tEqnNrs\tSBM\tindex\n";
       std::cout << "\t\t=================================================================\n";
 
-      std::string prefix = "\t\t\t\t\t ";
+      std::string prefix = "\t\t\t";
       
       // print vertex / edge / face / inner information
       StdVector<BaseFE::EntityType> entTypes;
@@ -500,7 +513,10 @@ namespace CoupledField {
         
         // fill vector containing entity types
         if( type == BaseFE::VERTEX ) {
+          // note: we may only take the number of nodes, which are 
+          // also used for the calculation element
           entNumbers = ptElem->connect;
+          entNumbers.Resize(offset.GetSize());
         } else if( type == BaseFE::EDGE ) {
           entNumbers.Resize(ptElem->edges.GetSize());
           for( UInt i=0; i < ptElem->edges.GetSize(); ++i )
@@ -538,7 +554,7 @@ namespace CoupledField {
         // loop over all entities
         UInt pos = 0;
         for( UInt i = 0; i < entNumbers.GetSize(); ++i ) {
-          std::cout << "\t\t#" << std::abs(static_cast<Double>(entNumbers[i])) << "\t\t";
+          std::cout << "\t\t#" << std::abs(static_cast<Double>(entNumbers[i])) << "\t";
 
           // leave, virtual node numbers are assigned
           for( UInt j = 0; j < offset[i]; ++j ) {
@@ -546,13 +562,6 @@ namespace CoupledField {
             // print virtual node only for first entry            
             if( j > 0 ) {
               std::cout << prefix;
-            } else {
-              // physicalnode
-              if( rNodes[pos] > 0 ) {
-              std::cout << rNodes[pos] << "\t";
-              } else {
-                std::cout <<  "-\t ";
-              }
             }
             // print virtual node
             std::cout << vNodes[pos] << "\t";
@@ -563,6 +572,11 @@ namespace CoupledField {
             for( UInt iEqn = 0; iEqn < eqns.GetSize(); ++iEqn ) {
               Integer & eqn = eqns[iEqn];
 
+              // indent succeeding equations correctly
+              if( iEqn > 0 ) {
+                std::cout << prefix << "\t";
+              }
+              
               //equation number
               std::cout << eqn << "\t";
 
@@ -583,65 +597,6 @@ namespace CoupledField {
       } // loop over entity types
       std::cout << "\n\n";
     } // loop over elements
-
-    //      //  VIRTUAL NODES 
-    //      // ---------------
-    //      std::cout << "a) Nodal mapping\n" 
-    //      << "----------------\n";
-    //      StdVector<UInt> & vVertexNodes = elemIt->second[BaseFE::VERTEX].vNodes;
-    //      StdVector<UInt> & vEdgeNodes = elemIt->second[BaseFE::EDGE].vNodes;
-    //      StdVector<UInt> & vFaceNodes = elemIt->second[BaseFE::FACE].vNodes;
-    //      StdVector<UInt> & vInnerNodes = elemIt->second[BaseFE::INTERIOR].vNodes;
-    //      
-    //      StdVector<UInt> rVertexNodes(vVertexNodes.GetSize());
-    //      StdVector<UInt> rEdgeNodes(vEdgeNodes.GetSize());
-    //      StdVector<UInt> rFaceNodes(vFaceNodes.GetSize());
-    //      StdVector<UInt> rInnerNodes(vInnerNodes.GetSize());
-    //      rVertexNodes.Init(0);
-    //      rEdgeNodes.Init(0);
-    //      rFaceNodes.Init(0);
-    //      rInnerNodes.Init(0);
-    //      
-    //
-    //      // loop over nodal connectivity of element and try to find corresponding virtual node
-    //      for( UInt i = 0; i < ptElem->connect.GetSize(); ++i ) {
-    //        UInt actNode = ptElem->connect[i];
-    //        
-    //        // vertex nodes
-    //        Integer index = vVertexNodes.Find(gridToVirtualNodes_[actNode]); 
-    //        if( index > -1 ) {
-    //          rVertexNodes[index] = actNode;
-    //        }
-    //        // edge nodes
-    //        index = vEdgeNodes.Find(gridToVirtualNodes_[actNode]); 
-    //        if( index > -1 ) {
-    //          rEdgeNodes[index] = vEdgeNodes[index];
-    //        }
-    //        // face nodes
-    //        index = vFaceNodes.Find(gridToVirtualNodes_[actNode]); 
-    //        if( index > -1 ) {
-    //          rFaceNodes[index] = vFaceNodes[index];
-    //        }
-    //        // inner nodes
-    //        index = vInnerNodes.Find(gridToVirtualNodes_[actNode]); 
-    //        if( index > -1 ) {
-    //          rInnerNodes[index] = vInnerNodes[index];
-    //        }
-    //      }
-    //      std::cout << "vVertexNodes: " << vVertexNodes.ToString(0) << std::endl;
-    //      std::cout << "real nodes:   " << rVertexNodes.ToString(0) << std::endl << std::endl;
-    //      
-    //      std::cout << "vEdgeNodes:   " << vEdgeNodes.ToString(0) << std::endl;
-    //      std::cout << "real nodes:   " << rEdgeNodes.ToString(0) << std::endl << std::endl;
-    //      
-    //      std::cout << "vFaceNodes:   " << vFaceNodes.ToString(0) << std::endl;
-    //      std::cout << "real nodes:   " << rFaceNodes.ToString(0) << std::endl << std::endl;
-    //      
-    //      std::cout << "vInnerNodes:  " << vInnerNodes.ToString(0) << std::endl;
-    //      std::cout << "real nodes:   " << rInnerNodes.ToString(0) << std::endl << std::endl;
-    //    
-    //    std::cout << std::endl;
-    //    }  
 
 
     // =================================
@@ -665,11 +620,12 @@ namespace CoupledField {
         // virtual node number (only once for all dofs) and type
         if( iDof == 0) { 
           std::cout << nodeIt->first;
-          // type of node
+          
+          // type of node (print first character of entityType )
           std::cout << "\t|  " 
               << BaseFE::entityType.ToString(nodesType_[nodeIt->first])[0];
         } else {
-          std::cout << "       |\t";
+          std::cout << "        |";
         }
 
         // component 

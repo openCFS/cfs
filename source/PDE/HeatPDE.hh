@@ -46,10 +46,9 @@ namespace CoupledField {
     //! define all (bilinearform) integrators needed for this pde
     void DefineIntegrators();
 
-    //! RHS linear forms
-    virtual LinearFormContext* CreateRhsLinearForm(SolutionType rhsType,
-                                                   shared_ptr<CoefFunction > rhsCoef);
-
+    //! Define all RHS linearforms for load / excitation 
+    void DefineRhsLoadIntegrators();
+    
     //! define the SoltionStep-Driver
     void DefineSolveStep();
 

@@ -556,6 +556,7 @@ SUBDIRS(source/Driver/TimeSchemes)
 SUBDIRS(source/FeBasis)
 
 SUBDIRS(source/Forms)
+SUBDIRS(source/Forms/LinForms)
 #here we have to discussed
 #as the forms are almost completely templates
 #we have just headers right now. but perhaps this will change...

@@ -20,12 +20,10 @@
 
 namespace CoupledField{
 
-template<template< class,class > class B_OP,
-            class FE_TYPE,
-            class VEC_DATA_TYPE >
-    BUIntegrator<B_OP,FE_TYPE,VEC_DATA_TYPE>::BUIntegrator(VEC_DATA_TYPE factor,
-                                                               shared_ptr<CoefFunction > rhsCoef)
-                                                   :factor_(factor){
+template< class B_OP, class VEC_DATA_TYPE >
+BUIntegrator<B_OP,VEC_DATA_TYPE>::BUIntegrator(VEC_DATA_TYPE factor,
+                                               shared_ptr<CoefFunction > rhsCoef)
+                                               :factor_(factor){
     this->name_ = "RhsBUIntegrator";
 
          assert(rhsCoef->GetDimType() == CoefFunction::VECTOR);
@@ -39,10 +37,8 @@ template<template< class,class > class B_OP,
 
     }
 
-  template<template<class,class> class B_OP,
-            class FE_TYPE,
-            class VEC_DATA_TYPE >
-  void BUIntegrator<B_OP,FE_TYPE,VEC_DATA_TYPE>::CalcElemVector( Vector<VEC_DATA_TYPE> & elemVec,
+  template<class B_OP, class VEC_DATA_TYPE >
+  void BUIntegrator<B_OP,VEC_DATA_TYPE>::CalcElemVector( Vector<VEC_DATA_TYPE> & elemVec,
                                                                    EntityIterator& ent){
      // Declare necessary variables
      const Elem* ptElem = ent.GetElem();
@@ -51,15 +47,11 @@ template<template< class,class > class B_OP,
      shared_ptr<IntScheme> intScheme;
      StdVector<LocPoint> intPoints;
      StdVector<Double> weights;
-     UInt nrFncs;
+     UInt nrFncs = 0;
      VEC_DATA_TYPE fac;
-     FE_TYPE* ptFe;
-
-     //tell the operator about the dimension of the solution
-     operator_.SetSolDim(Bdim_);
 
      // Obtain FE element from feSpace and integration scheme
-     ptFe = dynamic_cast<FE_TYPE*>(ptFeSpace_->GetFe( ent, intScheme ));
+     BaseFE * ptFe = ptFeSpace_->GetFe( ent, intScheme );
 
      nrFncs = ptFe->GetNumFncs();
 

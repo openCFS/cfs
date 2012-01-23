@@ -131,7 +131,7 @@ void HeatPDE::ReadSpecialBCs() {
 
       EntityList::ListType listType = EntityList::listType.Parse(myType);
       shared_ptr<EntityList> actList =
-        ptgrid_->GetEntityList( listType, myName, EntityList::REGION );
+        ptgrid_->GetEntityList( listType, myName );
 
       actBc->entities = actList;
       actBc->result = results_[0];
@@ -236,8 +236,12 @@ void HeatPDE::DefineIntegrators() {
       actSDMat->GetCoefFunction(HEAT_CONDUCTIVITY, tensorType, Global::REAL);
     
     
-    BDBInt< GradientOperator ,FeH1,Double,Double >* stiffInt;
-    stiffInt = new BDBInt<GradientOperator,FeH1,Double,Double >(curCoef,1.0 );
+    BaseBDBInt* stiffInt = NULL;
+    if( dim_ == 2 ) {
+      stiffInt = new BDBInt<GradientOperator<FeH1,2> >(curCoef,1.0 );
+    } else {
+      stiffInt = new BDBInt<GradientOperator<FeH1,3> >(curCoef,1.0 );
+    }
 
     BiLinFormContext * stiffIntDescr =
       new BiLinFormContext(stiffInt, STIFFNESS );
@@ -266,8 +270,8 @@ void HeatPDE::DefineIntegrators() {
     shared_ptr<CoefFunction> coeff 
     = CoefFunction::Generate(Global::REAL, lexical_cast<std::string>(massFactor));
     
-    BBInt<IdentityOperator,FeH1,Double> *massInt;
-    massInt = new BBInt<IdentityOperator, FeH1, Double>(coeff, 1.0);
+    BiLinearForm *massInt = NULL;
+    massInt = new BBInt<IdentityOperator<FeH1> >(coeff, 1.0);
     massInt->SetFeSpace( feFunctions_[HEAT_TEMPERATURE]->GetFeSpace() );
 
     BiLinFormContext *massContext =  new BiLinFormContext(massInt, DAMPING );
@@ -482,26 +486,111 @@ void HeatPDE::DefineIntegrators() {
 
 }
 
+void HeatPDE::DefineRhsLoadIntegrators() {
+  
+  LOG_TRACE(heatcondpde) << "Defining rhs load integrators for thermal PDE";
 
-  LinearFormContext* HeatPDE::CreateRhsLinearForm(SolutionType rhsType,
-                                                      shared_ptr<CoefFunction > rhsCoef){
-    LinearFormContext * mContext = NULL;
-    switch(rhsType){
-    case HEAT_SOURCE_DENSITY:
-      BUIntegrator<IdentityOperator,FeH1,Double>* curInt;
-      curInt = new BUIntegrator<IdentityOperator,FeH1,Double>(1.0,rhsCoef);
+    // Get FESpace and FeFunction of electric potential
+    shared_ptr<BaseFeFunction> myFct = feFunctions_[HEAT_TEMPERATURE];
+    shared_ptr<FeSpace> mySpace = myFct->GetFeSpace();
 
-      mContext = new LinearFormContext(curInt);
-      mContext->SetFeFunction( feFunctions_[HEAT_TEMPERATURE]);
-      curInt->SetFeSpace( feFunctions_[HEAT_TEMPERATURE]->GetFeSpace());
-      break;
-    default:
-      Exception("Right hand side quantity not known for heatPDE");
-      break;
-    }
-    return mContext;
-  }
+    StdVector<shared_ptr<EntityList> > ent;
+    StdVector<shared_ptr<CoefFunction> > coef;
+    LinearForm * lin = NULL;
+    StdVector<std::string> dofNames;
 
+    
+    // @Manfred: Is there an equivalent to total charge (= nodal values)
+    // for the thtermal PDE? This would go here.
+//    // =========================
+//    //  Charges (volume, nodal)
+//    // =========================
+//    LOG_DBG(elecpde) << "Reading charges";
+//    ReadRhsExcitation( "charge", dofNames, ResultInfo::SCALAR, 
+//                       isComplex_, ent, coef );
+//
+//    for( UInt i = 0; i < ent.GetSize(); ++i ) {
+//      // check type of entitylist
+//      if (ent[i]->GetType() == EntityList::NODE_LIST) {
+//
+//        // ---------------
+//        //  Nodal Charges 
+//        // ---------------
+//        // Nodal charge must be constant
+//        if( coef[i]->GetDependency() == CoefFunction::GENERAL ) {
+//          EXCEPTION("Nodal charges must not be spatial dependent");
+//        }
+//
+//        UInt numNodes = ent[i]->GetSize();
+//        if( numNodes > 1 ) {
+//          // Here we would divide the nodal force by the number of nodes
+//          // in the list, in order to ensure that the whole force corresponds
+//          // to the prescribed value. However, this requires modification of 
+//          // the expressions of the coefficient functions, which depends on real/harm
+//          // and the specific type (const, timefreq, variable).
+//          WARN("The chareg value will not be divided by the number of nodes and thus "
+//              << "depends on the number of nodes" );
+//        }
+//
+//        lin = new SingleEntryInt(coef[i]);
+//        lin->SetName("NodalChargeInt");
+//        LinearFormContext *ctx = new LinearFormContext( lin );
+//        ctx->SetEntities( ent[i] );
+//        ctx->SetFeFunction(myFct);
+//        assemble_->AddLinearForm(ctx);
+//      } else {
+//        // --------------------------
+//        //  Surface / Volume Charges 
+//        // --------------------------
+//        EXCEPTION("Not yet implemented");
+//
+//        // Same issue here as above: We need to "divide" the total force by the
+//        // area / volume to get the force density.
+//      }
+//    } // for
+
+    // =====================
+    //  HEAT SOURCE DENSITY
+    // =====================
+    LOG_DBG(heatcondpde) << "Reading heat source density";
+    ReadRhsExcitation( "heatSourceDensity", dofNames, 
+                       ResultInfo::VECTOR, isComplex_, ent, coef );
+    for( UInt i = 0; i < ent.GetSize(); ++i ) {
+      // check type of entitylist
+      if (ent[i]->GetType() == EntityList::NODE_LIST) {
+        EXCEPTION("Heat source density must be defined on elements")
+      }
+      if(isComplex_) {
+        lin = new BUIntegrator<IdentityOperator<FeH1>, Complex>(Complex(1.0), coef[i]);
+      } else  {
+        lin = new BUIntegrator<IdentityOperator<FeH1>, Double>(1.0, coef[i]);
+      }
+      lin->SetName("HeatSourceDensityInt");
+      LinearFormContext *ctx = new LinearFormContext( lin );
+      ctx->SetEntities( ent[i] );
+      ctx->SetFeFunction(myFct);
+      assemble_->AddLinearForm(ctx);
+    } // for
+
+}
+
+//  LinearFormContext* HeatPDE::CreateRhsLinearForm(SolutionType rhsType,
+//                                                      shared_ptr<CoefFunction > rhsCoef){
+//    LinearFormContext * mContext = NULL;
+//    switch(rhsType){
+//    case HEAT_SOURCE_DENSITY:
+//      BUIntegrator<IdentityOperator<FeH1>,Double>* curInt;
+//      curInt = new BUIntegrator<IdentityOperator<FeH1>,Double>(1.0,rhsCoef);
+//
+//      mContext = new LinearFormContext(curInt);
+//      mContext->SetFeFunction( feFunctions_[HEAT_TEMPERATURE]);
+//      curInt->SetFeSpace( feFunctions_[HEAT_TEMPERATURE]->GetFeSpace());
+//      break;
+//    default:
+//      Exception("Right hand side quantity not known for heatPDE");
+//    }
+//    return mContext;
+//  }
 
 
 void HeatPDE::DefineSolveStep() {
@@ -533,16 +622,12 @@ void HeatPDE::CalcResults( shared_ptr<BaseResult> res ) {
     feFunctions_[HEAT_TEMPERATURE]->ExtractResult( res );
     break;
 
-//   case HEAT_RHS_LOAD:
-//     if( isComplex_ ) {
-//       ExtractRhsResult<Complex>( result, results_[0] );
-//     } else {
-//       ExtractRhsResult<Double>( result, results_[0] );
-//     }
-//     break;
+  case HEAT_RHS_LOAD:
+    rhsFeFunctions_[ELEC_POTENTIAL]->ExtractResult( res );
+    break;
     
   default:
-    WARN( "Resulttype not computable by thermic PDE" );
+    WARN( "Resulttype not computable by thermal PDE" );
     break;
   }
 }

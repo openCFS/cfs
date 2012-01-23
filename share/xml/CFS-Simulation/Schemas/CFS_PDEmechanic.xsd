@@ -40,6 +40,8 @@
               <xsd:sequence>
                 <xsd:element name="region" minOccurs="1" maxOccurs="unbounded">
                   <xsd:complexType>
+                    <xsd:attribute name="polyId" type="xsd:string" use="optional" default="default"/>
+                    <xsd:attribute name="integId" type="xsd:string" use="optional" default="default"/>
                     <xsd:attribute name="name" type="xsd:token" use="required"/>
                     <xsd:attribute name="nonLinId" type="xsd:token"
                     use="optional" default=""/>
@@ -107,19 +109,25 @@
             <xsd:complexType>
 
               <xsd:choice minOccurs="0" maxOccurs="unbounded">
-                <xsd:element name="dirichletHom"   type="DT_MechHD"        />
-                <xsd:element name="dirichletInhom" type="DT_MechID"        />
-                <xsd:element name="dirichletFileInhom" type="DT_MechIdFile"/>
-                <xsd:element name="neumannInhom"   type="DT_MechIN"        />
-                <xsd:element name="load"           type="DT_MechLoad"      />
-                <xsd:element name="pressure"       type="DT_MechPressure"  />
-                <xsd:element name="spring"         type="DT_MechSpring"    />
-                <xsd:element name="regionLoad"     type="DT_MechRegionLoad"/>
-                <xsd:element name="surfStress"     type="DT_MechSurfStress"/>
+                
+                <!-- "standard" boundary conditions -->
+                <xsd:element name="dirichletHom"   type="DT_MechHD" />
+                <xsd:element name="dirichletInhom" type="DT_MechID" />
+                <xsd:element name="constraint"     type="DT_MechCS" />
+                
+                <!-- mechanic specific boundary conditions -->
+                <xsd:element name="stress"        type="DT_RHSTensor"/>
+                <xsd:element name="strain"        type="DT_RHSTensor"/>
+                <xsd:element name="traction"      type="DT_RHSVector"/>
+                <xsd:element name="pressure"      type="DT_RHSScalar"/>
+                <xsd:element name="force"         type="DT_RHSVector"/>
+                <xsd:element name="forceDensity"   type="DT_RHSVector"/>
+                
+                
+            <!--<xsd:element name="spring"         type="DT_MechSpring"    />
                 <xsd:element name="preStress"      type="DT_MechPreStress"/>
                 <xsd:element name="testStrain"     type="DT_MechTestStrain"/>
-                <xsd:element name="constraint"     type="DT_MechCS"   />
-                <xsd:element name="periodic"       type="DT_MechPeriodic"   />
+                <xsd:element name="periodic"       type="DT_MechPeriodic"   />-->
               </xsd:choice>
 
             </xsd:complexType>
@@ -381,37 +389,6 @@
     </xsd:complexContent>
   </xsd:complexType>
 
-  <!-- Element type for specifying inhomogeneous neumann conditions -->
-  <!-- Identical to that of inhomogeneous Dirichlet case -->
-  <xsd:complexType name="DT_MechIN">
-    <xsd:complexContent>
-      <xsd:extension base="DT_MechID"/>
-    </xsd:complexContent>
-  </xsd:complexType>
-
-  <!-- Element type for specifying loads -->
-  <!-- Identical to that of inhomogeneous Dirichlet case -->
-  <xsd:complexType name="DT_MechLoad">
-    <xsd:complexContent>
-      <xsd:extension base="DT_MechID">
-        <xsd:attribute name="weight" type="xsd:double" use="optional" default="1.0"/>  
-      </xsd:extension>
-    </xsd:complexContent>
-  </xsd:complexType>
-
-  <!-- Element type for pressure loads -->
-  <!-- We derive it by extending the base type -->
-  <xsd:complexType name="DT_MechPressure">
-    <xsd:complexContent>
-      <xsd:extension base="DT_BCBasic">
-        <xsd:attribute name="name" type="xsd:token" use="required"/>
-        <xsd:attribute name="value" type="xsd:token" use="required"/>
-        <xsd:attribute name="phase" type="xsd:token" use="optional"
-        default="0.0"/>
-      </xsd:extension>
-    </xsd:complexContent>
-  </xsd:complexType>
-
   <!-- Element type for spring elements -->
   <!-- We derive it by extending the base type -->
   <xsd:complexType name="DT_MechSpring">
@@ -429,38 +406,6 @@
     </xsd:complexContent>
   </xsd:complexType>
   
-  <!-- Element type for region Loads -->
-  <!-- We derive it by extending the base type -->
-  <xsd:complexType name="DT_MechRegionLoad">
-    <xsd:complexContent>
-      <xsd:extension base="DT_MechLoad">
-        <xsd:attribute name="coordSysId" type="xsd:token"
-          use="optional" default="default"/>
-        <xsd:attribute name="type" use="optional" default="total">
-          <xsd:simpleType>
-            <xsd:restriction base="xsd:token">
-              <xsd:enumeration value="total"/>
-              <xsd:enumeration value="unit"/>
-            </xsd:restriction>
-          </xsd:simpleType>
-        </xsd:attribute>
-      </xsd:extension>
-    </xsd:complexContent>
-  </xsd:complexType>
-
- <!-- Element type for surface stresses (traction)  -->
-  <!-- We derive it by extending the base type -->
-  <xsd:complexType name="DT_MechSurfStress">
-    <xsd:attribute name="name" type="xsd:token"/>
-    <xsd:attribute name="region" type="xsd:token"/>
-    <xsd:attribute name="value" type="DT_DoubleList"/>
-    <xsd:attribute name="phase" type="xsd:token" use="optional"
-      default="0.0"/>
-    <xsd:attribute name="quantity" default="mechDisplacement"
-      type="DT_MechUnknownType"/>
-  </xsd:complexType>
-  
-
   <!-- Element type for constraint condition -->
   <!-- We derive it by extending the base type -->
   <xsd:complexType name="DT_MechCS">
@@ -538,6 +483,11 @@
       <xsd:enumeration value="optResult_9"/>
     </xsd:restriction>
   </xsd:simpleType>
+   
+   <!-- Definition of field variables (union of nodal and element results) -->
+   <xsd:simpleType name="DT_MechFieldResult">
+     <xsd:union memberTypes="DT_MechNodeResult DT_MechElemResult"/>
+   </xsd:simpleType>
 
   <!-- Definition of surface region result types of mechanic PDE -->
   <xsd:simpleType name="DT_MechRegionResult">
@@ -610,6 +560,17 @@
                 <xsd:attribute name="dof" type="DT_MechDOF"/>
               </xsd:extension>
             </xsd:complexContent>
+          </xsd:complexType>
+        </xsd:element>
+        
+        <!-- FieldResults -->
+        <xsd:element name="field" minOccurs="0" maxOccurs="unbounded">
+          <xsd:complexType>
+            <xsd:complexContent>
+              <xsd:extension base="DT_FieldResult">
+                <xsd:attribute name="type" type="DT_MechFieldResult"/>
+              </xsd:extension>
+            </xsd:complexContent>           
           </xsd:complexType>
         </xsd:element>
 

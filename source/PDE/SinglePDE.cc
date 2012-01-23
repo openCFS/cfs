@@ -247,12 +247,6 @@ namespace CoupledField {
     LOG_TRACE(pde) << pdename_ << ": Initializing non-linearities";
     InitNonLin();
 
-    
-
-    // we have enough data for output -> move if you want more output    // output to info-file
-    // for(std::map<RegionIdType,DampingType>::const_iterator it = dampingList_.begin(); it != dampingList_.end(); it++)
-    //   std::cout << "pde:" << pdename_ << " key=" << it->first << " load=" << it->second << std::endl;
-
     // Todo: Move this part to the definition of damping
     PtrParamNode in = infoNode_->Get(ParamNode::HEADER);
     for(UInt i = 0; i < subdoms_.GetSize(); i++ )
@@ -263,9 +257,6 @@ namespace CoupledField {
       Enum2String(GetDamping(subdoms_[i]), fuck_e2s);
       in_->Get("damping")->SetValue(fuck_e2s);
     }
-
-
-
 
     // =====================================================================
     // read in boundary conditions
@@ -613,7 +604,6 @@ namespace CoupledField {
     shared_ptr<EntityList> actList;
 
     EntityList::ListType entityType;
-    EntityList::DefineType defineType;
     ResultHandler * resHandler = domain->GetResultHandler();
 
     // initialize map for relating EntityUnknownType and name of xml-element
@@ -683,9 +673,6 @@ namespace CoupledField {
 
         // ========== Look for defineType 'REGION' ==========
         // 1a) Look if result is defined on 'allRegions'
-        defineType = EntityList::REGION;
-
-
 
         // if no node was found, continue with next result
         if( !actResultNode) {
@@ -778,8 +765,7 @@ namespace CoupledField {
           // iterate over all regions
           for( UInt iRegion = 0; iRegion < regionNames.GetSize(); iRegion++ )
           {
-            actList = ptgrid_->GetEntityList( entityType, regionNames[iRegion],
-                                              defineType );
+            actList = ptgrid_->GetEntityList( entityType, regionNames[iRegion] );
             shared_ptr<BaseResult> actSol;
             if( isComplex_ ) {
               actSol = shared_ptr<BaseResult>(new Result<Complex>());
@@ -826,21 +812,18 @@ namespace CoupledField {
         ParamNodeList histEntities;
 
         if(candidate->definedOn == ResultInfo::NODE ) {
-          defineType = EntityList::NAMED_NODES;
           histNode = actResultNode->Get("nodeList",ParamNode::PASS);
           if( histNode )
             histEntities = histNode->GetList("nodes");
           entityTypeName = "nodes";
 
         } else if(candidate->definedOn == ResultInfo::ELEMENT ) {
-          defineType = EntityList::NAMED_ELEMS;
           histNode = actResultNode->Get("elemList",ParamNode::PASS);
           if( histNode )
             histEntities = histNode->GetList("elems");
           entityTypeName = "elements";
 
         } else if(candidate->definedOn == ResultInfo::SURF_ELEM ) {
-          defineType = EntityList::NAMED_ELEMS;
           histNode = actResultNode->Get("surfElemList",ParamNode::PASS);
           if( histNode)
             histEntities = histNode->GetList("surfElems");
@@ -882,8 +865,7 @@ namespace CoupledField {
           // iterate over all entityNames
           for( UInt i = 0; i < histNames.GetSize(); i++ )
           {
-            actList = ptgrid_->GetEntityList( entityType,
-                                              histNames[i], defineType );
+            actList = ptgrid_->GetEntityList( entityType, histNames[i] );
             shared_ptr<BaseResult> actSol;
             if( isComplex_ ) {
               actSol = shared_ptr<BaseResult>(new Result<Complex>());
@@ -1035,10 +1017,6 @@ namespace CoupledField {
           }
         }
       }
-      
-//      CalcField( fap.resultInfo->resultType, fap.elems, 
-//                 fap.locPoints, *fap.field );
-
       
       // print out information
       if( isComplex_ ){
@@ -1214,7 +1192,6 @@ namespace CoupledField {
       return;
 
     std::string name, resultName, dof, entType, inputId, value, phase;
-    EntityList::DefineType defineType;
     shared_ptr<BaseFeFunction> actFeFunction;
 
 
@@ -1236,18 +1213,10 @@ namespace CoupledField {
         hdbcNodes[i]->GetValue( "dof", dof, ParamNode::PASS );
         hdbcNodes[i]->GetValue( "entityType", entType );
 
-        // Create homogeneous boundary condition
-        if( entType == "nodeList" ) {
-          defineType = EntityList::NAMED_NODES;
-        } else {
-          defineType = EntityList::REGION;
-        }
-
         shared_ptr<HomDirichletBc> actBc ( new HomDirichletBc );
         EntityList::ListType listType = EntityList::listType.Parse(entType);
         shared_ptr<EntityList> actList =
-          ptgrid_->GetEntityList( listType,
-                                  name, defineType );
+          ptgrid_->GetEntityList( listType, name);
         
         // fetch related feFunction object
         actFeFunction = GetFeFunction( SolutionTypeEnum.Parse(resultName));
@@ -1291,15 +1260,10 @@ namespace CoupledField {
 
         // Create inhomogeneous boundary condition
         shared_ptr<InhomDirichletBc> actBc ( new InhomDirichletBc );
-        if( entType == "nodeList" ) {
-          defineType = EntityList::NAMED_NODES;
-        } else {
-          defineType = EntityList::REGION;
-        }
 
         shared_ptr<EntityList> actList =
           ptgrid_->GetEntityList( EntityList::listType.Parse(entType),
-                                  name, defineType );
+                                  name );
         
         // fetch related feFunction object
         actFeFunction = GetFeFunction( SolutionTypeEnum.Parse(resultName));
@@ -1395,15 +1359,9 @@ namespace CoupledField {
 
         // Create inhomogeneous Neumann boundary condition
         shared_ptr<InhomNeumannBc> actBc ( new InhomNeumannBc );
-        if( entType == "nodeList" ) {
-          defineType = EntityList::NAMED_NODES;
-        } else {
-          defineType = EntityList::REGION;
-        }
-
         shared_ptr<EntityList> actList =
           ptgrid_->GetEntityList( EntityList::listType.Parse(entType),
-                                  name, defineType );
+                                  name );
         
         // fetch related feFunction object
         actFeFunction = GetFeFunction( SolutionTypeEnum.Parse(resultName));
@@ -1448,15 +1406,9 @@ namespace CoupledField {
 
         // Create constraint condition
         shared_ptr<Constraint> actBc ( new Constraint );
-        if( entType == "nodeList" ) {
-          defineType = EntityList::NAMED_NODES;
-        } else {
-          defineType = EntityList::REGION;
-        }
-
         shared_ptr<EntityList> actList =
           ptgrid_->GetEntityList( EntityList::listType.Parse(entType),
-                                  name, defineType );
+                                  name  );
 
         actBc->masterEntities = actList;
         actBc->slaveEntities = actList;
@@ -1575,313 +1527,283 @@ namespace CoupledField {
     //assemble_->AddLoads( loads_ );
   }
 
-  void SinglePDE::DefineRhsLoadIntegrators(){
-    std::string rhsRegion;
-    PtrParamNode bcsNode;
-    ParamNodeList rhsValueNodes;
-    StdVector<PtrParamNode> regionList;
+//  void SinglePDE::DefineRhsLoadIntegrators(){
+//    std::string rhsRegion;
+//    PtrParamNode bcsNode;
+//    ParamNodeList rhsValueNodes;
+//    StdVector<PtrParamNode> regionList;
+//
+//
+//    bcsNode = myParam_->Get("bcsAndLoads", ParamNode::PASS );
+//    if( bcsNode )
+//      rhsValueNodes = bcsNode->GetList("regionLoad");
+//    if(rhsValueNodes.GetSize()==0)
+//      return;
+//
+//
+//    StdVector<PtrParamNode>::iterator rhsIter =  rhsValueNodes.Begin();
+//    while(rhsIter != rhsValueNodes.End()){
+//      //Now obtian coefficient function for the user specified values
+//      PtrParamNode curNode = *rhsIter;
+//      shared_ptr<CoefFunction> myCoef;
+//      CreateRhsLoadCoefFunction(myCoef,curNode);
+//
+//      //obtain the quantity we want to set
+//      std::string rhsString;
+//      curNode->GetValue("quantity",rhsString);
+//      SolutionType rhsType =  NO_SOLUTION_TYPE;
+//      rhsType = SolutionTypeEnum.Parse(rhsString);
+//
+//      //get the region name (only a single region supported yet)
+//      //ant the element list
+//      std::string regName;
+//      curNode->GetValue("name",regName,ParamNode::PASS);
+//      shared_ptr<EntityList> actList =
+//          ptgrid_->GetEntityList( EntityList::ELEM_LIST,
+//                                  regName, EntityList::REGION );
+//
+//      //add the list to coefficient function
+//      //this is not really necessary right now except for the case of
+//      //grid values...
+//      myCoef->AddEntities(actList);
+//
+//      //get the integratorConstext from the PDE
+//      //set its entitylist and add to assemble
+//      LinearFormContext* curForm = CreateRhsLinearForm(rhsType,myCoef);
+//      curForm->SetEntities(actList);
+//      assemble_->AddLinearForm(curForm);
+//
+//      rhsIter++;
+//    }
+//  }
+//
+//  void SinglePDE::CreateRhsLoadCoefFunction(shared_ptr<CoefFunction>& cFunct,PtrParamNode valNode ){
+//    //NOTE:
+//    //The coeficient Function for the right hand side is expected to represent a vector
+//    //Thereby we proceed as the following:
+//    // - if the user specified the vector we just read it in
+//    // - if the user specified a scalar we create a 1-element vector
+//    // - if the user specified a tensor, we pass it to the PDE to transform it to vector
+//    //   this is the case for tensorial rhs Values as used in mechanical PDE!
+//    PtrParamNode mNode;
+//    MathParser * parser = domain->GetMathParser();
+//    MathParser::HandleType mHandle = parser->GetNewHandle(true);
+//    if(valNode->Has("grid")){
+//       Exception(": Not implemented for grid");
+//       //the grid case is special so we return after creating the stuff...
+//    }else {
+//      StdVector<std::string> valueVec;
+//      StdVector<std::string> phaseVec;
+//      if(valNode->Has("scalar")){
+//        std::string valueStr = "";
+//        mNode = valNode->Get("scalar",ParamNode::PASS);
+//        mNode->GetValue("value",valueStr,ParamNode::PASS);
+//        valueVec.Resize(1);
+//        valueVec[0] = valueStr;
+//      }else if(valNode->Has("vector")){
+//         Exception(": Not implemented for vectors");
+//      }else if(valNode->Has("tensor")){
+//       Exception(": Not implemented for tensors");
+//      }else{
+//        Exception(": unrecognized value label");
+//      }
+//      //now we have a vector of stings representing the load
+//      //so we can create a coefFunction constant or expression
+//      //determine if we are constant or variable
+//      //this will be changed with mathparser 2 in which we direcly evaluate
+//      //a string representing the vector
+//      bool constant = false;
+//      for(UInt i =0;i<valueVec.GetSize();i++){
+//        parser->SetExpr(mHandle,valueVec[i]);
+//        if(parser->IsExprConstant(mHandle)){
+//          constant = true;
+//          break;
+//        }
+//      }
+//      if(constant){
+//        Vector<Double> values(valueVec.GetSize());
+//        values.Init();
+//        for(UInt i =0;i<valueVec.GetSize();i++){
+//          parser->SetExpr(mHandle,valueVec[i]);
+//          values[i] = parser->Eval(mHandle);
+//        }
+//        shared_ptr<CoefFunctionConst<Double> > tmpFnc;
+//        tmpFnc.reset(new CoefFunctionConst<Double>());
+//        tmpFnc->SetVector(values);
+//        cFunct = tmpFnc;
+//      }else{
+//        shared_ptr<CoefFunctionExpression<Double> > tmpFnc;
+//        tmpFnc.reset(new CoefFunctionExpression<Double>());
+//        tmpFnc->SetVector(valueVec);
+//        cFunct = tmpFnc;
+//      }
+//    }
+//    return;
+//  }
 
 
-    bcsNode = myParam_->Get("bcsAndLoads", ParamNode::PASS );
-    if( bcsNode )
-      rhsValueNodes = bcsNode->GetList("regionLoad");
-    if(rhsValueNodes.GetSize()==0)
-      return;
+  void SinglePDE::ReadRhsExcitation( const std::string& elemName, 
+                                     const StdVector<std::string>& compNames,
+                                     ResultInfo::EntryType type,
+                                     bool isComplex,
+                                     StdVector<shared_ptr<EntityList> >& entities, 
+                                     StdVector<shared_ptr<CoefFunction> >& coef ) {
+    
+    // get grip of all elements of that type
+    ParamNodeList elems = myParam_->Get("bcsAndLoads")->GetList(elemName);
+    
+    entities.Resize(elems.GetSize());
+    coef.Resize(elems.GetSize());
+    for( UInt i = 0; i < elems.GetSize(); ++i ) {
 
+      PtrParamNode xml = elems[i];
 
-    StdVector<PtrParamNode>::iterator rhsIter =  rhsValueNodes.Begin();
-    while(rhsIter != rhsValueNodes.End()){
-      //Now obtian coefficient function for the user specified values
-      PtrParamNode curNode = *rhsIter;
-      shared_ptr<CoefFunction> myCoef;
-      CreateRhsLoadCoefFunction(myCoef,curNode);
-
-      //obtain the quantity we want to set
-      std::string rhsString;
-      curNode->GetValue("quantity",rhsString);
-      SolutionType rhsType =  NO_SOLUTION_TYPE;
-      rhsType = SolutionTypeEnum.Parse(rhsString);
-
-      //get the region name (only a single region supported yet)
-      //ant the element list
-      std::string regName;
-      curNode->GetValue("name",regName,ParamNode::PASS);
-      shared_ptr<EntityList> actList =
-          ptgrid_->GetEntityList( EntityList::ELEM_LIST,
-                                  regName, EntityList::REGION );
-
-      //add the list to coefficient function
-      //this is not really necessary right now except for the case of
-      //grid values...
-      myCoef->AddEntities(actList);
-
-      //get the integratorConstext from the PDE
-      //set its entitylist and add to assemble
-      LinearFormContext* curForm = CreateRhsLinearForm(rhsType,myCoef);
-      curForm->SetEntities(actList);
-      assemble_->AddLinearForm(curForm);
-
-      rhsIter++;
-    }
-  }
-
-  void SinglePDE::CreateRhsLoadCoefFunction(shared_ptr<CoefFunction>& cFunct,PtrParamNode valNode ){
-    //NOTE:
-    //The coeficient Function for the right hand side is expected to represent a vector
-    //Thereby we proceed as the following:
-    // - if the user specified the vector we just read it in
-    // - if the user specified a scalar we create a 1-element vector
-    // - if the user specified a tensor, we pass it to the PDE to transform it to vector
-    //   this is the case for tensorial rhs Values as used in mechanical PDE!
-    PtrParamNode mNode;
-    MathParser * parser = domain->GetMathParser();
-    MathParser::HandleType mHandle = parser->GetNewHandle(true);
-    if(valNode->Has("grid")){
-       Exception(": Not implemented for grid");
-       //the grid case is special so we return after creating the stuff...
-    }else {
-      StdVector<std::string> valueVec;
-      StdVector<std::string> phaseVec;
-      if(valNode->Has("scalar")){
-        std::string valueStr = "";
-        mNode = valNode->Get("scalar",ParamNode::PASS);
-        mNode->GetValue("value",valueStr,ParamNode::PASS);
-        valueVec.Resize(1);
-        valueVec[0] = valueStr;
-      }else if(valNode->Has("vector")){
-         Exception(": Not implemented for vectors");
-      }else if(valNode->Has("tensor")){
-       Exception(": Not implemented for tensors");
-      }else{
-        Exception(": unrecognized value label");
-      }
-      //now we have a vector of stings representing the load
-      //so we can create a coefFunction constant or expression
-      //determine if we are constant or variable
-      //this will be changed with mathparser 2 in which we direcly evaluate
-      //a string representing the vector
-      bool constant = false;
-      for(UInt i =0;i<valueVec.GetSize();i++){
-        parser->SetExpr(mHandle,valueVec[i]);
-        if(parser->IsExprConstant(mHandle)){
-          constant = true;
+      // get entity list, depending on type
+      std::string entName = xml->Get("name")->As<std::string>();
+      switch( ptgrid_->GetEntityType(entName) ) {
+        case EntityList::NAMED_NODES:
+          entities[i] = ptgrid_->GetEntityList( EntityList::NODE_LIST, 
+                                                entName );
           break;
+        case EntityList::REGION:
+        case EntityList::NAMED_ELEMS:
+          entities[i] = ptgrid_->GetEntityList( EntityList::ELEM_LIST, 
+                                               entName );
+          break;
+        case EntityList::NO_TYPE:
+          EXCEPTION("No entities with name '" << entName << "' known");
+          break;
+      }
+
+     
+      
+      UInt numComp = compNames.GetSize();
+      StdVector<std::string> vals(numComp), phases(numComp);
+      vals.Init("0.0");
+      phases.Init("0.0");
+
+      // switch type of coef function
+      // Note: In case someone request a "vector" valued result and
+      // provides no dofNames, we use the scalar parameters.
+      if( type == ResultInfo::SCALAR  ||
+          (type == ResultInfo::VECTOR && compNames.GetSize() == 0 )  ) {
+        // --------------
+        //  S C A L A R   
+        // --------------
+
+        std::string val, phase;
+        xml->GetValue("value", val);
+        xml->GetValue("phase", phase);
+        std::string real = AmplPhaseToReal(val, phase );
+
+        if( type == ResultInfo::SCALAR) {
+          // -- SCALAR case --
+          if(!isComplex ) {
+            coef[i] = CoefFunction::Generate(Global::REAL, real);  
+          } else {
+            std::string imag = AmplPhaseToReal(val, phase );
+            coef[i] = CoefFunction::Generate(Global::COMPLEX, real, imag);
+          } 
+        }else {
+          // -- VECTOR case --
+          // generate coefficient function
+          StdVector<std::string> realV, imagV;
+          realV = real;
+          imagV =  AmplPhaseToReal(val, phase );
+          if(!isComplex) {
+            StdVector<std::string> valV;
+            valV = val;
+            coef[i] = CoefFunction::Generate(Global::REAL, valV );
+          } else {
+            coef[i] = CoefFunction::Generate(Global::COMPLEX,
+                                             realV, imagV );
+          }
         }
-      }
-      if(constant){
-        Vector<Double> values(valueVec.GetSize());
-        values.Init();
-        for(UInt i =0;i<valueVec.GetSize();i++){
-          parser->SetExpr(mHandle,valueVec[i]);
-          values[i] = parser->Eval(mHandle);
-        }
-        shared_ptr<CoefFunctionConst<Double> > tmpFnc;
-        tmpFnc.reset(new CoefFunctionConst<Double>());
-        tmpFnc->SetVector(values);
-        cFunct = tmpFnc;
-      }else{
-        shared_ptr<CoefFunctionExpression<Double> > tmpFnc;
-        tmpFnc.reset(new CoefFunctionExpression<Double>());
-        tmpFnc->SetVector(valueVec);
-        cFunct = tmpFnc;
-      }
-    }
-    return;
-  }
-
-  void SinglePDE::ReadLoads(ParamNodeList loadNodes, LoadList& out_list)
-  {
-
-    std::string name, resultName, dof, entType, value, phase, weight;
-    EntityList::DefineType defineType;
-    shared_ptr<ResultInfo> actResultInfo;
-
-
-    // iterate over all parameter nodes
-    for( UInt i = 0; i < loadNodes.GetSize(); i++ ) {
-      try {
-        dof.clear();
-        loadNodes[i]->GetValue( "name", name );
-        loadNodes[i]->GetValue( "quantity", resultName );
-        loadNodes[i]->GetValue( "dof", dof, ParamNode::PASS );
-        loadNodes[i]->GetValue( "value", value );
-        loadNodes[i]->GetValue( "phase", phase );
-        loadNodes[i]->GetValue( "weight", weight, ParamNode::PASS ); // only mechanical for optimization
-        loadNodes[i]->GetValue( "entityType", entType );
-
-
-        // fetch related resultInfo object
-        actResultInfo = GetResultInfo( SolutionTypeEnum.Parse(resultName) );
-
-        // Create load condition
-        shared_ptr<LoadBc> actLoad( new LoadBc );
-        if( entType == "nodeList" ) {
-          defineType = EntityList::NAMED_NODES;
-        } else {
-          defineType = EntityList::REGION;
-        }
-
-        shared_ptr<EntityList> actList =
-          ptgrid_->GetEntityList( EntityList::listType.Parse(entType),
-                                  name, defineType );
-
-        actLoad->entities = actList;
-        actLoad->result = actResultInfo;
-        if ( dof.empty() ) {
-          actLoad->dof = 0;
-        } else {
-          actLoad->dof = actResultInfo->GetDofIndex(dof);
-        }
-        actLoad->value = value;
-        actLoad->phase = phase;
-        actLoad->weight = weight;
-        out_list.Push_back( actLoad);
-      }
-      catch (Exception & ex )
-        RETHROW_EXCEPTION( ex, "Can not create load condition on '"
-                           << name << "'" );
-    }
-  }
-
-  void SinglePDE::ReadRegionLoads(){
-    ReadRegionLoadsFromXML(myParam_->Get("bcsAndLoads", ParamNode::PASS), regionLoads_);
-  }
-  
-  void SinglePDE::ReadRegionLoadsFromXML(PtrParamNode bcNode, std::map<RegionIdType, RegionLoad>& regloads) {
-
-    StdVector<std::string> names, dofs, refCoord, type, phase;
-    StdVector<std::string> tempNames, tempDofs,  tempPhase;
-    StdVector<std::string>  tempRefCoord, tempType;
-    StdVector<RegionIdType> regionIds;
-    StdVector<UInt> vecComp;
-    StdVector<std::string> loadVec, tempLoadVec, tempLoad(dim_);
-    UInt locDof = 0;
-    Integer index = -1;
-
-      // obtain parameters from ParamHandler
-      // Note: Here all region loads are read (in contrast
-      // when called by an external script)
-
-      // try to get bcsAndLoads node
-      if( !bcNode )
-        return;
-      ParamNodeList loadNodes = bcNode->GetList("regionLoad");
-
-
-      for( UInt i = 0; i < loadNodes.GetSize(); i++ ) {
-
-        PtrParamNode actNode = loadNodes[i];
-
-        tempNames.Push_back( actNode->Get("name")->As<std::string>() );
-        tempLoadVec.Push_back( actNode->Get("value")->As<std::string>() );
-        tempPhase.Push_back( actNode->Get("phase")->As<std::string>() );
-        if ( actNode->Has("dof") )
-          tempDofs.Push_back( actNode->Get("dof")->As<std::string>() );
-        else
-          tempDofs.Push_back( "" );
-        if ( actNode->Has("coordSysId") )
-          tempRefCoord.Push_back( actNode->Get("coordSysId")->As<std::string>() );
-        else
-          tempRefCoord.Push_back( "" );
-        if ( actNode->Has("type") )
-          tempType.Push_back( actNode->Get("type")->As<std::string>() );
-        else
-          tempType.Push_back( "");
-      }
-    // --- Common part for scripting and parameter file ---
-
-
-    // Now sort the names and remove double entries
-    for (UInt i = 0; i < tempNames.GetSize(); i++) {
-      index = names.Find(tempNames[i]);
-      if ( index == -1) {
-        names.Push_back(tempNames[i]);
-      }
-    }
-
-    // Convert region names to ID - vector
-    ptgrid_->GetRegion().Parse(names, regionIds );
-
-
-    // loop over all regions
-    for (UInt i = 0; i < names.GetSize(); i++) {
-
-      // get for each name all related entries for value,
-      // dof, refCoordSys and type
-      loadVec.Clear();
-      phase.Clear();
-      dofs.Clear();
-      refCoord.Clear();
-      type.Clear();
-      for (UInt iEntry = 0; iEntry < tempNames.GetSize(); iEntry++ ) {
-        if ( names[i] == tempNames[iEntry] ) {
-          loadVec.Push_back(tempLoadVec[iEntry]);
-          phase.Push_back(tempPhase[iEntry]);
-          dofs.Push_back(tempDofs[iEntry]);
-          refCoord.Push_back(tempRefCoord[iEntry]);
-          type.Push_back(tempType[iEntry]);
-        }
-      }
-
-      // check if all entries for  refCoord and type
-      // are the same
-      for (UInt k=0; k<refCoord.GetSize(); k++) {
-        if ( refCoord[k] != refCoord[0] ||
-             type[k] != type[0] ) {
-          EXCEPTION( "MechPDE::DefineRegionLoads: The region load on region "
-                     << names[i] << " has not for all dofs the same entry for "
-                     << "refCoord or type (total/unit)!" );
-        }
-      }
-
-      // Check if an entry already exists for this region
-      RegionLoad * curLoad;
-
-      std::map<RegionIdType, RegionLoad>::iterator it;
-      it = regloads.find( regionIds[i] );
-
-      if ( it == regloads.end() ) {
-        regloads.insert( std::map<RegionIdType, RegionLoad>::value_type( regionIds[i],
-                                                                             RegionLoad( dim_, isaxi_ ) ) );
-      }
-      it = regloads.find( regionIds[i] );
-      curLoad = & (*it).second;
-
-      // -- Fill in the data we have so far --
-      curLoad->name = ptgrid_->GetRegion().ToString( regionIds[i] );
-      curLoad->phase = phase[0];
-
-      if ( curLoad->refCoord != std::string()
-           && curLoad->refCoord != refCoord[0] ) {
-        EXCEPTION( "Inconsistent definition of time data for regionLoads" );
-      } else {
-        curLoad->refCoord = refCoord[0];
-      }
-
-      if ( curLoad->volume < EPS ) {
-        curLoad->volume = ptgrid_->CalcVolumeOfRegion(regionIds[i], isaxi_);
-      }
-
-      // now create local load vector
-      UInt actDim =  loadVec.GetSize();
-      for (UInt iDim=0; iDim < actDim; iDim++) {
         
-        // check, if the primary result has more than one component,
-        // i.e. if we have vector-valued unknowns (mechanics) or
-        // scalar valued ones
-        if ( results_[0]->dofNames.GetSize() > 1 ) {
-          //vector case
-          locDof = domain->GetCoordSystem(refCoord[iDim])->
-            GetVecComponent(dofs[iDim]);
-          curLoad->type = type[iDim];
-        }
-        else
-          locDof = 1;
-        curLoad->value[locDof-1] = loadVec[iDim];
-      }
-    }
-  }
+      } else if (type == ResultInfo::VECTOR) {
+        
+        // --------------
+        //  V E C T O R  
+        // --------------
+        // a) all values are given as vector
+        if( xml->Has("values") ) {
+          std::string valString = xml->Get("values")->As<std::string>();
+          SplitStringList(valString, vals, ' ');
 
+          // consistency check
+          if( vals.GetSize() != numComp ) {
+            EXCEPTION("Boundary condition needs " << numComp << " values!");
+          }
+          
+          // check for phase vector (optional)
+          if( xml->Has("phase")) {
+            std::string phaseString = xml->Get("phase")->As<std::string>();
+            SplitStringList(phaseString, phases, ' ');
+
+            // consistency check
+            if( phases.GetSize() != numComp ) {
+              EXCEPTION("Boundary condition needs " << numComp 
+                         << " phase values!");
+            }
+          }
+        } 
+        // b) values are given component-wise
+        else if(xml->Has("comp")) {
+          ParamNodeList compList = xml->GetList("comp");
+          Integer index = 0;
+          std::string dof, val, phase;
+          for( UInt j = 0; j < compList.GetSize(); ++j  ) {
+           compList[j]->GetValue("dof", dof);
+           compList[j]->GetValue("value", val);
+           compList[j]->GetValue("phase", phase);
+           
+           // find index
+           if( compNames.GetSize() == 0 ) {
+             index = 0;
+           } else {
+             index = compNames.Find(dof);
+             if( index == -1 ) {
+               EXCEPTION("Could not find component with name '" << dof << "'");
+             }
+           }
+           
+           vals[index] = val;
+           phases[index] = val;
+          } // loop components
+
+        } else {
+          EXCEPTION( "No values given for boundary condition '" 
+              << elemName << "' on '" << entName << "'" );
+        }
+        
+        // generate coefficient function
+        StdVector<std::string> real, imag;
+        AmplPhaseToRealImag(vals, phases, real, imag);
+        if(!isComplex) {
+          coef[i] = CoefFunction::Generate(Global::REAL, vals );
+        } else {
+          coef[i] = CoefFunction::Generate(Global::COMPLEX, real, imag );
+        }
+        
+      } else if (type == ResultInfo::TENSOR ) {
+        // --------------
+        //  T E N S O R  
+        // --------------
+        EXCEPTION("Not yet implemented for tensor-valued boundary conditions");
+        //    - all defined: read in both vectors
+        //    - components: 
+
+      }
+      
+      // obtain coordinate system and set it at coefficient function
+      std::string coordSysId = "default";
+      xml->GetValue("coordSysId", coordSysId, ParamNode::PASS);
+      if( coordSysId != "default" ) {
+        coef[i]->SetCoordinateSystem( domain->GetCoordSystem(coordSysId) );
+      }
+    } // for
+    // return 
+  }
 
   void SinglePDE::ReadMaterialData() {
     UInt i, numRegions;

@@ -3,6 +3,7 @@
 #include "PDE/SinglePDE.hh"
 #include "OLAS/algsys/AlgebraicSys.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
+#include <boost/tr1/type_traits.hpp>
 
 namespace CoupledField {
 DECLARE_LOG(fefunc)
@@ -204,17 +205,7 @@ DECLARE_LOG(fefunc)
  
 
   template<typename T>
-  void   FeFunction<T>::ApplyBC(){
-    EXCEPTION("Not implemented for this type");
-  }
-
-  template<>
-  void FeFunction<Complex>::ApplyBC(){
-    EXCEPTION("Complex Valued BCs are not supported yet");
-  }
-
-  template<>
-  void FeFunction<Double>::ApplyBC(){
+  void FeFunction<T>::ApplyBC(){
     //basic algo idea for nodes;
     //1. Compute Dirichlet Values with the help of math-parser and FeSpace
     //2. Hand the value to the PDE for transformation according to time-Stepping ETC
@@ -304,10 +295,14 @@ DECLARE_LOG(fefunc)
           //ResultCache::SetOutputType(ResultCache::OUT_AMPL);
           parser->SetExpr( mHandle_, actBc.value );
           val = parser->Eval( mHandle_ );
-          this->GetTimeScheme()->AdaptBC(val,val,0,eqnNr);
+
+          if( this->GetTimeScheme() ) {
+            this->GetTimeScheme()->AdaptBC(val,val,0,eqnNr);
+          }
             //val = 1;
 
           //pde_->TransformBC(val, val, eqnNr);
+          
           
           // if we have the higher order H1 space, we just set
           // the dirichelt values for the vertex unknowns.
@@ -316,8 +311,18 @@ DECLARE_LOG(fefunc)
               && iEqn >= vEqns.GetSize() )  {
             algsys_->SetDirichlet(  fctId_, eqnNr, 0.0);
           } else {
-            algsys_->SetDirichlet(  fctId_, eqnNr, val);
-          }
+            if ( std::tr1::is_same<T,Complex>::value ) {
+              // === Harmonic ===
+              parser->SetExpr( mHandle_, actBc.phase );
+              Double phase = parser->Eval( mHandle_ );
+              Complex complexValue( val * std::cos( phase / 180 * PI ),
+                                    val * std::sin( phase / 180 * PI ) );
+              algsys_->SetDirichlet(  fctId_, eqnNr, complexValue);
+            } else {
+              // === Transient ===
+              algsys_->SetDirichlet(  fctId_, eqnNr, val);
+            } // complex / transient
+          } 
         } // for eqns
       }
     }

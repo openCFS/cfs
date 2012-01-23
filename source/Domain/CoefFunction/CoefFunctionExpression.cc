@@ -11,6 +11,9 @@ CoefFunctionExpression<Double>::CoefFunctionExpression() :
         mp_(domain->GetMathParser()),
         mHandle_(mp_->GetNewHandle(true)) {
   
+  // this type of coefficient is always variable
+  dependType_ = GENERAL;
+  
   // always store default coordinate system
   this->coordSys_ = domain->GetCoordSystem();
 }   

@@ -56,7 +56,10 @@ namespace CoupledField
 
     //! Define all (bilinearform) integrators needed for this pde
     void DefineIntegrators( );
-
+    
+    //! Define all RHS linearforms for load / excitation 
+    void DefineRhsLoadIntegrators();
+    
     //! Define the SolveStep-Driver
     void DefineSolveStep();
 
@@ -96,29 +99,11 @@ namespace CoupledField
     //! is negative compared to the normal one
     void SetPiezoCoupling();
 
-    //! Triggers the correct assembly of the electrostatic block in a 
-    //! thermo-coupled simulation, because the coupled electrostatic block
-    //! is negative compared to the normal one
-    void SetThermoCoupling();
-
-    /** add the integrators for the polarization matrix to the linear forms, 
-     * similar as in multiple load case;
-     * called from Excitation::SetPolarizationMatrixRHS
-     * @param vals contains the values from the xml test strains
-     * @param linForms set to append linear Forms to, if NULL use assemble_ */
-    void DefinePolarizationMatrixIntegrators(const Vector<Double> &vals,
-        StdVector<LinearFormContext*> *linForms, const int num);
-
     /** @see virtual SinglePDE::GetNativeSolutionType() */
     SolutionType GetNativeSolutionType() const { return ELEC_POTENTIAL; }
 
     /** @see virtual SinglePDE::GetNativeDOF() */
     virtual UInt GetNativeDOF() const { return 1; }
-    
-    //! Calculate field variables at arbitrary points
-    void CalcField( SolutionType solType, StdVector<const Elem*>& elems,
-                    StdVector<LocPoint>& points, SingleVector& values );
-
 
 
   protected:
@@ -126,6 +111,11 @@ namespace CoupledField
     //! SubType of electrostatic section
     std::string subType_;
 
+    //! Return linear stiffness integrator for a given region
+    BaseBDBInt * GetStiffIntegrator( BaseMaterial* actSDMat,
+                                     SubTensorType tensorType,
+                                     RegionIdType regionId );
+    
     // *****************
     //  POSTPROCESSING
     // *****************
@@ -156,9 +146,6 @@ namespace CoupledField
     CreateFeSpaces( const std::string&  formulation,
                     PtrParamNode infoNode );
 
-    virtual LinearFormContext* CreateRhsLinearForm( SolutionType rhsType,
-                                                    shared_ptr<CoefFunction > rhsCoef );
-
   private:
 
     //! Read definitions for electric impedances
@@ -170,9 +157,6 @@ namespace CoupledField
     //! flag for piezo-coupling
     bool isPiezoCoupled_;
 
-    //! flag for thermoElectric-coupling
-    bool isThermoCoupled_;
-    
     //! force operator (for coupling as well as postprocessing)
     ElecForceOp* ForceOp_;
 

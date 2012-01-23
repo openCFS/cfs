@@ -84,13 +84,19 @@
           <xsd:element name="bcsAndLoads" minOccurs="0" maxOccurs="unbounded">
             <xsd:complexType>
               <xsd:choice minOccurs="0" maxOccurs="unbounded">
+                
+                <!-- "standard" boundary conditions -->
                 <xsd:element name="dirichletHom"   type="DT_HeatHD"   />
                 <xsd:element name="dirichletInhom" type="DT_HeatID"   />
-                <xsd:element name="neumannInhom"   type="DT_HeatIN"   />
-                <xsd:element name="robin"          type="DT_HeatR"    />
+                <!--<xsd:element name="constraint"     type="DT_HeatCS"   />-->
+                
+                <!-- heat specific boundary conditions -->
+                <xsd:element name="heatSourceDensity" type="DT_RHSScalar"/>
+                
+                <!-- "old" style boundary conditions                 -->
+                <!--<xsd:element name="robin"          type="DT_HeatR"    />
                 <xsd:element name="load"           type="DT_HeatLoad" />
-                <xsd:element name="rhsValues"      type="DT_HeatRHS"  />
-                 <xsd:element name="regionLoad"    type="DT_RHSValueBasic"/>
+                <xsd:element name="rhsValues"      type="DT_HeatRHS"  />-->
               </xsd:choice>
             </xsd:complexType>
           </xsd:element>
@@ -178,22 +184,6 @@
     </xsd:complexContent>
   </xsd:complexType>
 
-  <!-- Element type for region Loads -->
-  <!-- We derive it by extending the base type -->
-  <xsd:complexType name="DT_HeatRegionLoad">
-    <xsd:complexContent>
-      <xsd:extension base="DT_HeatLoad">
-      </xsd:extension>
-    </xsd:complexContent>
-  </xsd:complexType>
-
-  <!-- Element type for specifying loads -->
-  <!-- Identical to that of inhomogeneous Dirichlet case -->
-  <xsd:complexType name="DT_HeatLoad">
-    <xsd:complexContent>
-      <xsd:extension base="DT_HeatID"/>
-    </xsd:complexContent>
-  </xsd:complexType>
   
 
   <!-- Element type for specifying rhs source term -->

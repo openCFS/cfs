@@ -3,6 +3,7 @@
 
 #include <string>
 #include <iostream>
+#include <cmath>
 
 #include "General/Environment.hh"
 
@@ -52,6 +53,40 @@ namespace CoupledField {
      return rad / PI * 180.0;
    }
   
+  // =========================================================================
+  //  COMPLEX CONVERSION
+  // =========================================================================
+  
+  //! Convert (real,imag) => amplitude
+  Double RealImagToAmpl( const Complex& in );
+  
+  //! Convert (real,imag) => phase
+  Double RealImagToPhase( const Complex& in );
+  
+  //! Convert (ampl,phase) => (real,imag)
+  Complex AmplPhaseToComplex( Double val, Double phase );
+  
+  //! Convert (ampl,phase) => real
+  Double AmplPhaseToReal( Double val, Double phase );
+  
+  //! Convert (ampl,phase) => imag
+  Double AmplPhaseToImag( Double val, Double phase );
+  
+  //! Convert (ampl,phase) => real (strings)
+  std::string AmplPhaseToReal( const std::string& val, 
+                               const std::string& phase );
+
+  //! Convert (ampl,phase) => imag (strings)
+  std::string AmplPhaseToImag( const std::string& val, 
+                               const std::string& phase );
+  
+  // ------ vector versions -----
+  //! Convert (ampl,phase) => (real,imag) (strings vectors)
+  void AmplPhaseToRealImag( const StdVector<std::string>& val, 
+                            const StdVector<std::string>& phase,
+                            StdVector<std::string>& real,
+                            StdVector<std::string>& imag );
+    
   // =========================================================================
   //     VARIOUS OTHER METHODS AND CLASSES
   // =========================================================================

@@ -70,8 +70,7 @@ namespace CoupledField {
           // case a)
           outType = ResultInfo::REGION;
           outList = ptGrid_->GetEntityList( EntityList::REGION_LIST,
-                                            inList->GetName(),
-                                            EntityList::REGION );
+                                            inList->GetName() );
         } else {
           // case c)
           EXCEPTION( "Not yet implemented" );
@@ -82,8 +81,8 @@ namespace CoupledField {
           // case b)
           outType = ResultInfo::REGION;
           outList = ptGrid_->GetEntityList( EntityList::REGION_LIST,
-                                            inList->GetName(),
-                                            EntityList::REGION );
+                                            inList->GetName() );
+
         } else {
           // case d)
           EXCEPTION( "Not yet implemented" );

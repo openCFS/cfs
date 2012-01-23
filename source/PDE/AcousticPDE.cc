@@ -127,8 +127,14 @@ namespace CoupledField{
       shared_ptr<CoefFunction> coeffK
                 = CoefFunction::Generate(Global::REAL, "1.0");
 
-      BBInt< GradientOperator,FeH1,Double > * stiffInt;
-      stiffInt = new BBInt<GradientOperator,FeH1,Double >(coeffK,1.0 );
+//      BBInt< GradientOperator,FeH1,Double > * stiffInt;
+      BiLinearForm * stiffInt = NULL;
+      if( dim_ == 2 ) {
+            stiffInt = new BDBInt<GradientOperator<FeH1,2> >(coeffK,1.0 );
+          } else {
+            stiffInt = new BDBInt<GradientOperator<FeH1,3> >(coeffK,1.0 );
+          }
+      //stiffInt = new BBInt<GradientOperator,FeH1,Double >(coeffK,1.0 );
 
       BiLinFormContext * stiffIntDescr =
         new BiLinFormContext(stiffInt, STIFFNESS );
@@ -149,8 +155,8 @@ namespace CoupledField{
       shared_ptr<CoefFunction> coeffM
           = CoefFunction::Generate(Global::REAL, lexical_cast<std::string>(1.0/(c0*c0)));
 
-      BBInt<IdentityOperator,FeH1,Double> *massInt;
-      massInt = new BBInt<IdentityOperator, FeH1, Double>(coeffM, 1.0);
+      BiLinearForm *massInt = NULL;
+      massInt = new BBInt<IdentityOperator<FeH1> >(coeffM, 1.0);
       massInt->SetFeSpace( feFunctions_[formulation_]->GetFeSpace() );
 
       BiLinFormContext *massContext =  new BiLinFormContext(massInt, MASS );
@@ -161,26 +167,26 @@ namespace CoupledField{
     }
   }
 
-  LinearFormContext *
-  AcousticPDE::CreateRhsLinearForm(SolutionType rhsType,
-                                                 shared_ptr<CoefFunction > rhsCoef){
-
-    LinearFormContext * mContext = NULL;
-    switch(rhsType){
-    case ACOU_RHSVAL:
-      BUIntegrator<IdentityOperator,FeH1,Double>* curInt;
-      curInt = new BUIntegrator<IdentityOperator,FeH1,Double>(1.0,rhsCoef);
-
-      mContext = new LinearFormContext(curInt);
-      mContext->SetFeFunction( feFunctions_[formulation_]);
-      curInt->SetFeSpace( feFunctions_[formulation_]->GetFeSpace());
-      break;
-    default:
-      Exception("Right hand side quantity not known for acousticPDE");
-      break;
-    }
-    return mContext;
-  }
+//  LinearFormContext *
+//  AcousticPDE::CreateRhsLinearForm(SolutionType rhsType,
+//                                                 shared_ptr<CoefFunction > rhsCoef){
+//
+//    LinearFormContext * mContext = NULL;
+//    switch(rhsType){
+//    case ACOU_RHSVAL:
+//      BUIntegrator<IdentityOperator,FeH1,Double>* curInt;
+//      curInt = new BUIntegrator<IdentityOperator,FeH1,Double>(1.0,rhsCoef);
+//
+//      mContext = new LinearFormContext(curInt);
+//      mContext->SetFeFunction( feFunctions_[formulation_]);
+//      curInt->SetFeSpace( feFunctions_[formulation_]->GetFeSpace());
+//      break;
+//    default:
+//      Exception("Right hand side quantity not known for acousticPDE");
+//      break;
+//    }
+//    return mContext;
+//  }
 
   void AcousticPDE::DefineSolveStep(){
     solveStep_ = new StdSolveStep(*this);

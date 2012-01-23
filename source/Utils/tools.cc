@@ -56,7 +56,70 @@ namespace CoupledField {
     strVec.Push_back( std::string( list, lastDelim, i-lastDelim ));
 
   }
-  
+
+
+  // =========================================================================
+  //  COMPLEX CONVERSION
+  // =========================================================================
+  //! Convert (real,imag) => amplitude
+  Double RealImagToAmpl( const Complex& in ) {
+    return sqrt(in.real() * in.real() + in.imag() * in.imag());
+  }
+
+  //! Convert (real,imag) => phase
+  Double RealImagToPhase( const Complex& in ) {
+    return (std::abs(in.imag()) > 1e-16) ?                   
+        std::atan2(in.imag(),in.real() )*180/PI : 
+        ( in.real() < 0.0 ) ? 180 : 0 ; 
+  }
+
+
+  //! Convert (ampl,phase) => (real,imag)
+  Complex AmplPhaseToComplex( Double val, Double phase ) {
+    return Complex( val * std::cos( phase / 180 * PI ),
+                    val * std::sin( phase / 180 * PI ) ); 
+  }
+
+  //! Convert (ampl,phase) => real
+  Double AmplPhaseToReal( Double val, Double phase ) {
+    return val * std::cos( phase / 180 * PI );
+  }
+
+  //! Convert (ampl,phase) => imag
+  Double AmplPhaseToImag( Double val, Double phase ) {
+    return val * std::sin( phase / 180 * PI );
+  }
+
+
+  //! Convert (ampl,phase) => real (strings)
+  std::string AmplPhaseToReal( const std::string& val, 
+                               const std::string& phase ) {
+    return "(" + val + " * cos( " + phase + " / 180 * pi ) )";
+  }
+
+  //! Convert (ampl,phase) => imag (strings)
+  std::string AmplPhaseToImag( const std::string& val, 
+                               const std::string& phase ) {
+    return "(" + val + " * sin( " + phase + " / 180 * pi ) )";
+  }
+
+  // ------ vector versions -----
+  //! Convert (ampl,phase) => (real,imag) (strings vectors)
+  void AmplPhaseToRealImag( const StdVector<std::string>& val, 
+                            const StdVector<std::string>& phase,
+                            StdVector<std::string>& real,
+                            StdVector<std::string>& imag ) {
+    assert(val.GetSize() == phase.GetSize());
+    real.Resize(val.GetSize());
+    imag.Resize(val.GetSize());
+    for( UInt i = 0; i < val.GetSize(); ++i ) {
+      real[i] = AmplPhaseToReal(val[i], phase[i]);
+      imag[i] = AmplPhaseToImag(val[i], phase[i]);
+    }    
+  }
+
+  // -----------------------------------------------------------------------
+
   Double dist_Mat(const Matrix<Double> &a) {
     Double preSqrt=0;
     UInt i;

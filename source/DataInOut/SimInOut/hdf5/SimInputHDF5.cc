@@ -579,8 +579,7 @@ namespace CoupledField {
     // iterate over all regions
     list.Clear();
     for( UInt i = 0; i < regions.GetSize(); i++ ) {
-      list.Push_back( mi_->GetEntityList( listType, regions[i],
-                                          defineType ) );
+      list.Push_back( mi_->GetEntityList( listType, regions[i] ) );
     }
     resInfoGroup.close();
     actMsGroup.close();

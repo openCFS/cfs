@@ -101,8 +101,7 @@ public:
 
 
   //! general class for calculation of bdb forms
-  template<template<class,class> class B_OP,
-            class FE_TYPE,
+  template< class B_OP,
             class MAT_DATA_TYPE=Double,
             class COEF_DATA_TYPE=Double>
   class BDBInt : public BaseBDBInt {
@@ -148,36 +147,23 @@ public:
 
       void SetFeSpace( shared_ptr<FeSpace> feSpace ) {
         this->ptFeSpace1_ = feSpace;
-        UInt opDim = feSpace->GetFeFunction()->GetResultInfo()->dofNames.GetSize();
-        Bdim_ = opDim;
       }
 
       virtual void SetFeSpace( shared_ptr<FeSpace> feSpace1, shared_ptr<FeSpace> feSpace2) {
         this->ptFeSpace1_ = feSpace1;
         this->ptFeSpace2_ = feSpace2;
-        UInt opADim = feSpace1->GetFeFunction()->GetResultInfo()->dofNames.GetSize();
-        UInt opBDim = feSpace2->GetFeFunction()->GetResultInfo()->dofNames.GetSize();
-        Adim_ = opADim;
-        Bdim_ = opBDim;
       }
 
       
 
     protected:
-      B_OP<FE_TYPE,MAT_DATA_TYPE> operator_;
-
+      B_OP operator_;
 
       //! set a constant factor for multiplication with the element matrix
       MAT_DATA_TYPE factor_;
 
       //! Pointer to coefficient function computing the d-matrix of the BDB Integrator
       shared_ptr<CoefFunction > dData_;
-
-      //! dimension of a-operator (first B-Operator)
-      UInt Adim_;
-
-      //! dimension of b-operator (second B-Operator)
-      UInt Bdim_;
   };
 
 }

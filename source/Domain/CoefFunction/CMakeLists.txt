@@ -1,6 +1,7 @@
 SET(COEFFUNCTION_SRCS
   CoefFunction.cc
   CoefFunctionExpression.cc
+  CoefFunctionTimeFreq.cc
 )
 #
 ADD_LIBRARY(coeffunction STATIC ${COEFFUNCTION_SRCS})

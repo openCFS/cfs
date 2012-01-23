@@ -108,22 +108,6 @@ namespace CoupledField
                   const std::string &value, 
                   const std::string &phase );
 
-    /** Helper method for ReadBCs() which reads the loads. It is also called
-     * by the SIMP mechanism design optimization to read the outputs
-     * @param loadNodes the potential empty array from the xml file
-     * @param either the loads_ of StdPDE or for optimization */
-    void ReadLoads(ParamNodeList loadNodes, LoadList& out_list);
-    
-    /** This method defines right hand side integrators
-     * It reads the rhsValues tag from the xml-file
-     * and asks the PDE to return an appropriate integrator
-     * including possible material coeficients
-     * then we call the setCoefFunction from LinearForm to
-     * set the value and pass everything to the assemble class
-     */
-    void DefineRhsLoadIntegrators();
-
-    virtual LinearFormContext* CreateRhsLinearForm(SolutionType rhsType,shared_ptr<CoefFunction > rhsCoef)=0;
 
     /** Write general defines (BCs, loads, etc.) to info.xml.
      * Note, that only the current state is (over) written! */
@@ -189,14 +173,8 @@ namespace CoupledField
 
     //@}
 
-    /** do the actual reading of loads, this is also called from optimization 
-     * @param bcNode paramnode that has "regionLoad" nodes as children 
-     * @param pressSurf StdVector containing the RegionLoads */
-    void ReadRegionLoadsFromXML(PtrParamNode bcNode, std::map<RegionIdType, RegionLoad>& regionLoads_);
-
   protected:
 
-  
     //! Constructor
     /*!
       \param aptgrid pointer to grid
@@ -206,12 +184,11 @@ namespace CoupledField
     //! private copy constructor
     SinglePDE & operator= (const StdPDE & myPDE) {
       EXCEPTION( "Not implemented" );
-      
+
       // For compiler
       return *this;
-      ;}
+      }
 
-   
     // ======================================================
     // INITIALIZATION METHODS
     // ======================================================
@@ -238,8 +215,26 @@ namespace CoupledField
 
     //! define all (bilinearform) integrators needed for this pde
     virtual void DefineIntegrators( )=0;
+    
+    //! Define all RHS linearforms for load / excitation 
+    virtual void DefineRhsLoadIntegrators( ) {}
 
-    virtual void CreateRhsLoadCoefFunction(shared_ptr<CoefFunction>& cFunct,PtrParamNode valNode );
+
+    //! Read single RHS excitation
+    
+    //! This method reads an xml element for a general RHS excitation and
+    //! returns the entityList and CoefFunction. 
+    //! \param elemName Name of ParamNode within <bcsAndLoads> to be read 
+    //! \param compNames Names of the components (vector, tensor)
+    //! \param type Type of CoefFunction to be read in (scalar, vector, tensor)
+    //! \param entities Vector of entityLists of the boundary condition
+    //! \param coef Vector of coefficients function for the values
+    void ReadRhsExcitation( const std::string& elemName, 
+                            const StdVector<std::string>& compNames,
+                            ResultInfo::EntryType type,
+                            bool isComplex,
+                            StdVector<shared_ptr<EntityList> >& entities, 
+                            StdVector<shared_ptr<CoefFunction> >& coef );
 
     /** Trigger calculation of results. */
     virtual void CalcResults( shared_ptr<BaseResult> result ) { };
@@ -286,9 +281,6 @@ namespace CoupledField
     // overloaded version of ReadBCs for special
     // boundary conditions in derived classes
     virtual void ReadSpecialBCs(){}
-    
-    //! read in volume sources
-    void ReadRegionLoads();
     
     //! write results in file
     void WriteResultsInFile( const UInt kstep, 

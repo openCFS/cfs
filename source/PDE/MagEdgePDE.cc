@@ -168,8 +168,8 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
        //  Standard Stiffness Integrator
        // ===============================
         shared_ptr<CoefFunction> curCoef = actMat->GetCoefFunction(MAG_RELUCTIVITY,FULL,Global::REAL);
-        BDBInt< CurlOperator ,FeHCurl >* curlcurl;
-        curlcurl = new BDBInt< CurlOperator ,FeHCurl >(curCoef,1.0) ;
+        BaseBDBInt* curlcurl;
+        curlcurl = new BDBInt< CurlOperator<FeHCurl,3, Double> >(curCoef,1.0) ;
 
        BiLinFormContext * stiffContext =
            new BiLinFormContext(curlcurl, STIFFNESS );
@@ -214,8 +214,8 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
 
       shared_ptr<CoefFunction> coeff =
           CoefFunction::Generate(Global::REAL, lexical_cast<std::string>(conductivity));
-      BBIntMassEdge<ScaledByEdgeIdentityOperator,FeHCurl,Double> *massInt;
-      massInt = new BBIntMassEdge<ScaledByEdgeIdentityOperator,FeHCurl,Double>(coeff,1.0);
+      BiLinearForm *massInt;
+      massInt = new BBIntMassEdge<ScaledByEdgeIdentityOperator<3,Double> >(coeff,1.0);
 
       BiLinFormContext * massContext;
       if ( analysistype_ == STATIC) {
@@ -237,7 +237,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
       // If this subdomain is a coil we have to do special things
       for ( UInt coil = 0; coil < coilDef_.GetSize(); coil++ ) {
         if ( actRegion == coilRegionId_[coil] ) {
-          BUIntegrator<IdentityOperator,FeHCurl,Double>* curInt;
+          BUIntegrator<IdentityOperator<FeHCurl,3,1> >* curInt;
           
           std::string factor = coilDef_[coil]->value_ + "/" +
             lexical_cast<std::string>(coilDef_[coil]->windingCrossSection_);
@@ -251,7 +251,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
           shared_ptr<CoefFunction> coef(CoefFunction::Generate(Global::REAL, currDensity));
           coef->SetCoordinateSystem(coilDef_[coil]->flowCoordSys_);
           
-          curInt = new BUIntegrator<IdentityOperator,FeHCurl,Double>(1.0, coef);
+          curInt = new BUIntegrator<IdentityOperator<FeHCurl,3,1> >(1.0, coef);
           LinearFormContext * coilContext =
               new LinearFormContext( curInt );
           coilContext->SetEntities( actSDList );
@@ -638,13 +638,11 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
       shared_ptr<BaseFieldFunctor> aFunc;
       if( isComplex_ ) {
         aFunc.reset(
-            new FieldInterpolFunctor<IdentityOperator,
-            FeHCurl,
+            new FieldInterpolFunctor<IdentityOperator<FeHCurl,3,1,Complex>,
             Complex>(feFct, magPot));
       } else {
         aFunc.reset(
-            new FieldInterpolFunctor<IdentityOperator,
-            FeHCurl,
+            new FieldInterpolFunctor<IdentityOperator<FeHCurl,3,1,Double>,
             Double>(feFct, magPot));
       }
       resultFunctors_[MAG_POTENTIAL] = aFunc;
@@ -728,7 +726,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
     shared_ptr<ElemShapeMap> esm = ptgrid_->GetElemShapeMap( el, true );
     shared_ptr<BaseFeFunction> fct = GetFeFunction(MAG_POTENTIAL);
 
-    CurlOperator<FeHCurl,TYPE> li;
+    CurlOperator<FeHCurl,3,TYPE> li;
     //CurlCurlEdgeInt * li = NULL;
 
     BaseFE*  ptFe = fct->GetFeSpace()->GetFe( el->elemNum );

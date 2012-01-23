@@ -1439,7 +1439,6 @@ namespace CoupledField {
     std::string resultName = info->resultName;
     
     EntityList::ListType listType;
-    EntityList::DefineType defineType;
 
     std::map< std::string, GridAttributeInfo >::iterator it;
     it = mGridAttributes.find(resultName);
@@ -1457,14 +1456,12 @@ namespace CoupledField {
     {
       listType = EntityList::NODE_LIST;
     }
-    defineType = EntityList::REGION;
     
     StdVector<std::string> regionNames;
     mi_->GetRegionNames(regionNames);
     
     for( UInt i = 0, n=regionNames.GetSize(); i < n; i++ ) {
-      list.Push_back( mi_->GetEntityList( listType, regionNames[i],
-                                          defineType ) );
+      list.Push_back( mi_->GetEntityList( listType, regionNames[i]) ) ;
     }
   }
   

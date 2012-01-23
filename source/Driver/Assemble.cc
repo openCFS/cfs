@@ -49,9 +49,6 @@ namespace CoupledField
     // specific ones
     CreateMatrixMap();
 
-    // Initialize reassemble-map
-    ResetMatrixReassembly();
-
     // Obtain a new mathParser handler
     mHandle_ = domain->GetMathParser()->GetNewHandle();
     
@@ -274,13 +271,6 @@ namespace CoupledField
 
   }
 
-  void Assemble::AddLoads( LoadList& load ) {
-
-    for( UInt i=0; i<load.GetSize(); i++ ) {
-      loads_.Push_back( load[i] );
-    }
-  }
-
   void Assemble::SetupMatrixGraph(FeFctIdType fctId1, FeFctIdType fctId2 ) {
 
     StdVector<Integer> eqnVec1, eqnVec2;
@@ -404,8 +394,6 @@ namespace CoupledField
     // On first Assembly, assemble all matrices for each BilinearForm
     CheckNonLinearities(isFirstTime_);
 
-    if(!isFirstTime_)
-      return;
 
     // Init all matrices, which have to be reassembled
     std::map<FEMatrixType, bool>::iterator it;

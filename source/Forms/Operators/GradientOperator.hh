@@ -1,63 +1,74 @@
-// =====================================================================================
-//
-//       Filename:  gradientOp.hh
-//
-//    Description:  This class implements the gradient operator
-//                  It returns and applies matrices of the form
-//                     / N_1x N_2x ...\
-//                  b =| N_1y N_2y ...|
-//                     \ N_1z N_2z .../
-//                  Where N_1x denotes the x-derivative of the first
-//                  shape function at a given local point
-//
-//        Version:  1.0
-//        Created:  10/03/2011 11:00:04 AM
-//       Revision:  none
-//       Compiler:  g++
-//
-//         Author:  Andreas Hueppe (AHU), andreas.hueppe@uni-klu.ac.at
-//        Company:  Universitaet Klagenfurt
-//
-// =====================================================================================
-
 #ifndef GRADIENTOP_HH
 #define GRADIENTOP_HH
 
 #include "BaseBOperator.hh"
 
+//! Calculate the gradient of the shape functions
+//!    / N_1z N_2z ...\
+//! b =| N_1y N_2y ...|
+//!    \ N_1z N_2z .../
+//!  here N_1x denotes the x-derivative of the first
+//!  shape function at a given local point
+//! \tparam FE Type of Finite Element used
+//! \tparam D Dimension of the problem space
+//! \tparam TYPE Data type (DOUBLE, COMPLEX)
 namespace CoupledField{
-  template<class FE, class TYPE>
+  template<class FE, UInt D, class TYPE = Double>
   class GradientOperator : public BaseBOperator<FE,TYPE>{
     public:
-      GradientOperator(){
-        this->name_ = "GradientOperator";
-      }
 
-      ~GradientOperator(){
+    // ------------------
+    //  STATIC CONSTANTS 
+    // ------------------
+    //@{ 
+    //! \name Static constants
 
-      }
+    //! Order of differentiation
+    static const UInt ORDER_DIFF = 1;
 
-      virtual void CalcOpMat(Matrix<Double> & bMat,
-                             const LocPointMapped& lp,
-                             BaseFE* ptFe );
+    //! Number of components of the problem (scalar, vector)
+    static const UInt DIM_DOF = 1;
 
-      virtual void CalcOpMatTransposed(Matrix<Double> & bMat,
-                                       const LocPointMapped& lp, 
-                                       BaseFE* ptFe );
+    //! Dimension of the underlying domain / space
+    static const UInt DIM_SPACE = D;
 
-      using BaseBOperator<FE,TYPE>::CalcOpMat;
+    //! Dimension of the finite element
+    static const UInt DIM_ELEM = D;
+    
+    //! Dimension of the related material 
+    static const UInt DIM_D_MAT = D; 
+    //@}
 
-      using BaseBOperator<FE,TYPE>::CalcOpMatTransposed;
+
+    GradientOperator(){
+      this->name_ = "GradientOperator";
+    }
+
+    ~GradientOperator(){
+
+    }
+
+    virtual void CalcOpMat(Matrix<Double> & bMat,
+                           const LocPointMapped& lp,
+                           BaseFE* ptFe );
+
+    virtual void CalcOpMatTransposed(Matrix<Double> & bMat,
+                                     const LocPointMapped& lp, 
+                                     BaseFE* ptFe );
+
+    using BaseBOperator<FE,TYPE>::CalcOpMat;
+
+    using BaseBOperator<FE,TYPE>::CalcOpMatTransposed;
 
 
     protected:
 
   };
 
-  template<class FE, class TYPE>
-  void GradientOperator<FE,TYPE>::CalcOpMat(Matrix<Double> & bMat,
-                                            const LocPointMapped& lp, 
-                                            BaseFE* ptFe ){
+  template<class FE, UInt D, class TYPE>
+  void GradientOperator<FE,D,TYPE>::CalcOpMat(Matrix<Double> & bMat,
+                                                const LocPointMapped& lp, 
+                                                BaseFE* ptFe ){
     UInt numFncs = ptFe->GetNumFncs();
     // Set correct size of matrix B and initialise with zeros
     UInt eDim = ptFe->shape_.dim;
@@ -71,13 +82,13 @@ namespace CoupledField{
     bMat= Transpose(xiDx);
   }
 
-  template<class FE, class TYPE>
-  void GradientOperator<FE,TYPE>::CalcOpMatTransposed(Matrix<Double> & bMat,
-                                                      const LocPointMapped& lp, 
-                                                      BaseFE* ptFe ){
-    UInt numFncs = ptFe->GetNumFncs();
+  template<class FE, UInt D, class TYPE>
+  void GradientOperator<FE,D,TYPE>::CalcOpMatTransposed(Matrix<Double> & bMat,
+                                                          const LocPointMapped& lp, 
+                                                          BaseFE* ptFe ){
+    const UInt numFncs = ptFe->GetNumFncs();
     // Set correct size of matrix B and initialise with zeros
-    UInt eDim = ptFe->shape_.dim;
+    const UInt eDim = ptFe->shape_.dim;
     bMat.Resize(numFncs , eDim );
 
     // Get derivatives of local shape functions with respect to global

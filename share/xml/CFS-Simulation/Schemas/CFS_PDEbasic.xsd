@@ -20,7 +20,9 @@
   <!-- This is an abstract basic type so that it cannot appear in an -->
   <!-- instance document -->
   <xsd:complexType name="DT_PDEBasic" abstract="true">
+    
     <xsd:attribute name="feSpaceFormulation" type="DT_FeFormulationBasic" use="optional" default="default"/>
+    <!-- This attribute is used to refer to the corresponding linearSystem-element -->
     <xsd:attribute name="pdeFormulation" type="DT_FeFormulationBasic" use="optional" default="default"/>
     <xsd:attribute name="systemId" type="xsd:token" use="optional" default="default"/>
   </xsd:complexType>
@@ -55,20 +57,75 @@
   <xsd:complexType name="DT_RHSBasic">    
     <xsd:complexContent>
       <xsd:restriction base="xsd:anyType">
+       <!-- <xsd:attribute name="quantity" type="xsd:token"  use="required"/>-->
+        <xsd:attribute name="name" type="xsd:token"  use="required"/>
+        <xsd:attribute name="coordSysId" type="xsd:token"  default="default"/>
       </xsd:restriction>
     </xsd:complexContent>
   </xsd:complexType>
   
-  <xsd:complexType name="DT_RHSValueBasic">
-    <xsd:complexContent mixed="true">
+  <!-- RHS scalar values -->
+  <xsd:complexType name="DT_RHSScalar">
+    <xsd:complexContent>
       <xsd:extension base="DT_RHSBasic">
-        <xsd:choice minOccurs="1" maxOccurs="1">
-          <xsd:element name="scalar" type="DT_Scalar" maxOccurs="1" minOccurs="0"/>
-          <xsd:element name="vector" type="DT_Vector" maxOccurs="1" minOccurs="0"/>
-          <xsd:element name="tensor" type="DT_Tensor" maxOccurs="1" minOccurs="0"/>
+        <xsd:attribute name="value" type="xsd:token"  use="required"/>
+        <xsd:attribute name="phase" type="xsd:token"  default="0.0"/>
+      </xsd:extension>
+    </xsd:complexContent> 
+  </xsd:complexType>
+  
+  <!-- RHS vector valued entries -->
+  <xsd:complexType name="DT_RHSVector">
+    <xsd:complexContent>
+      <xsd:extension base="DT_RHSBasic">
+        <xsd:choice>
+          
+          <!-- 1) complete vector given -->
+          <xsd:sequence>
+            <xsd:element name="values" type="DT_TokenList" minOccurs="1" maxOccurs="1"/>
+            <xsd:element name="phase" type="DT_TokenList" minOccurs="0" maxOccurs="1"/>
+          </xsd:sequence>
+
+          <!-- 2) single components given -->
+          <xsd:sequence>
+            <xsd:element name="comp" minOccurs="1" maxOccurs="unbounded">
+              <xsd:complexType>
+                <xsd:attribute name="dof" type="xsd:token" use="required"/>
+                <xsd:attribute name="value" type="xsd:token" use="required"/>
+                <xsd:attribute name="phase" type="xsd:token" use="optional" default="0.0"/>
+              </xsd:complexType>  
+            </xsd:element>
+          </xsd:sequence>
+          
         </xsd:choice>
-        <xsd:attribute name="quantity" type="xsd:string"  use="required"/>
-        <xsd:attribute name="name" type="xsd:string"  use="required"/>
+      </xsd:extension>
+    </xsd:complexContent> 
+  </xsd:complexType>
+  
+  <!-- RHS tensor valued entries -->
+  <xsd:complexType name="DT_RHSTensor">
+    <xsd:complexContent>
+      <xsd:extension base="DT_RHSBasic">
+        <xsd:choice>
+          
+          <!-- 1) complete vector given -->
+          <xsd:sequence>
+            <xsd:element name="values" type="DT_TokenList" minOccurs="1" maxOccurs="1"/>
+            <xsd:element name="phase" type="DT_TokenList" minOccurs="0" maxOccurs="1"/>
+          </xsd:sequence>
+          
+          <!-- 2) single components given -->
+          <xsd:sequence>
+            <xsd:element name="comp" minOccurs="1" maxOccurs="unbounded">
+              <xsd:complexType>
+                <xsd:attribute name="dof" type="xsd:token" use="required"/>
+                <xsd:attribute name="value" type="xsd:token" use="required"/>
+                <xsd:attribute name="phase" type="xsd:token" use="optional" default="0.0"/>
+              </xsd:complexType>  
+            </xsd:element>
+          </xsd:sequence>
+          
+        </xsd:choice>
       </xsd:extension>
     </xsd:complexContent> 
   </xsd:complexType>

@@ -28,36 +28,131 @@
 #include "FeBasis/HCurl/HCurlElems.hh"
 
 namespace CoupledField{
-  template<class FE, class TYPE>
+  
+  template<class FE, UInt D = 1, UInt D_DOF = 1, class TYPE = Double>
   class IdentityOperator : public BaseBOperator<FE,TYPE>{
-    public:
-      IdentityOperator(){
-        return;
+
+  public:
+    
+    // ------------------
+    //  STATIC CONSTANTS 
+    // ------------------
+    //@{ 
+    //! \name Static constants
+
+    //! Order of differentiation
+    static const UInt ORDER_DIFF = 0;
+
+    //! Number of components of the problem (scalar, vector)
+    static const UInt DIM_DOF = D_DOF;
+
+    //! Dimension of the underlying domain / space
+    static const UInt DIM_SPACE = D;
+
+    //! Dimension of the finite element
+    static const UInt DIM_ELEM = D;
+
+    //! Dimension of the related material 
+    static const UInt DIM_D_MAT = 1; 
+    //@}
+
+
+    IdentityOperator(){
+      return;
+    }
+
+    ~IdentityOperator(){
+      return;
+    }
+
+    virtual void CalcOpMat(Matrix<Double> & bMat,
+                           const LocPointMapped& lp, BaseFE* ptFe );
+
+    virtual void CalcOpMatTransposed(Matrix<Double> & bMat,
+                                     const LocPointMapped& lp, BaseFE* ptFe );
+
+    //avoid reimplementation of complex operator by making the bas class function
+    //available
+    using BaseBOperator<FE,TYPE>::CalcOpMat;
+
+    using BaseBOperator<FE,TYPE>::CalcOpMatTransposed;
+
+  protected:
+
+};
+  
+  template<class FE,  UInt D, UInt D_DOF, class TYPE>
+  void IdentityOperator<FE,D,D_DOF,TYPE>::
+  CalcOpMat(Matrix<Double> & bMat,
+            const LocPointMapped& lp, BaseFE* ptFe){
+     UInt numFncs = ptFe->GetNumFncs();
+     
+     // Set correct size of matrix B and initialize with zeros
+     bMat.Resize( DIM_DOF, numFncs * DIM_DOF );
+     bMat.Init();
+
+     Vector<Double> s;
+     FE *fe = (static_cast<FE*>(ptFe));
+     for(UInt d = 0; d < DIM_DOF ; d ++){
+       fe->GetShFnc( s, lp.lp, lp.shapeMap->GetElem() , d );
+       for(UInt sh = 0; sh < numFncs; sh ++){
+         bMat[d][sh*DIM_DOF + d] = s[sh];
+       }
+     }
+
+   }
+
+  template<class FE,  UInt D, UInt D_DOF, class TYPE>
+    void IdentityOperator<FE,D,D_DOF,TYPE>::
+  CalcOpMatTransposed(Matrix<Double> & bMat,
+                      const LocPointMapped& lp, BaseFE* ptFe){
+    UInt numFncs = ptFe->GetNumFncs();
+    // Set correct size of matrix B and initialize with zeros
+    bMat.Resize( numFncs * DIM_DOF , DIM_DOF );
+    bMat.Init();
+
+    // Get derivatives of local shape functions with respect to global
+    // coords (format: nrNodes x spaceDim)
+    Vector<Double> s;
+    FE *fe = (static_cast<FE*>(ptFe));
+    for(UInt d = 0; d < DIM_DOF ; d ++){
+      fe->GetShFnc( s, lp.lp, lp.shapeMap->GetElem() , d );
+      for(UInt sh = 0; sh < numFncs; sh ++){
+        bMat[sh*DIM_DOF + d][d] = s[sh];
       }
+    }
 
-      ~IdentityOperator(){
-        return;
-      }
-
-      virtual void CalcOpMat(Matrix<Double> & bMat,
-                             const LocPointMapped& lp, BaseFE* ptFe );
-
-      virtual void CalcOpMatTransposed(Matrix<Double> & bMat,
-                                       const LocPointMapped& lp, BaseFE* ptFe );
-
-      //avoid reimplementation of complex operator by making the bas class function
-      //available
-      using BaseBOperator<FE,TYPE>::CalcOpMat;
-
-      using BaseBOperator<FE,TYPE>::CalcOpMatTransposed;
-
-
-    protected:
-
-  };
-  template< class TYPE>
-  class IdentityOperator<FeHCurl,TYPE> : public BaseBOperator<FeHCurl,TYPE>{
+  }
+  
+   
+   // =======================================================================
+  
+  //! Specialization for edge curl problems
+  template<UInt D, class TYPE >
+  class IdentityOperator<FeHCurl, D,1, TYPE> : public BaseBOperator<FeHCurl,TYPE>{
     public:
+    // =============================================
+    //  STATIC CONSTANTS 
+    // =============================================
+    //@{ 
+    //! \name Static constants
+
+    //! Order of differentiation
+    static const UInt ORDER_DIFF = 0;
+
+    //! Number of components of the problem (scalar, vector)
+    static const UInt DIM_DOF = 1;
+
+    //! Dimension of the underlying domain / space
+    static const UInt DIM_SPACE = D;
+
+    //! Dimension of the finite element
+    static const UInt DIM_ELEM = D;
+
+    //! Dimension of the related material 
+    static const UInt DIM_D_MAT = 1; 
+    //@}
+    
       IdentityOperator(){
         return;
       }
@@ -84,20 +179,24 @@ namespace CoupledField{
 
   };
 
-  template<class FE,class TYPE>
-  class ScaledByEdgeIdentityOperator : public IdentityOperator<FE,TYPE>{
+  //! Identity operator, which gets scaled by the average edge length
+  
+  //! This integrator gets gets used e.g. for the mass integrator within the
+  //! magneticEdge PDE.
+  template<UInt D, class TYPE>
+  class ScaledByEdgeIdentityOperator : public IdentityOperator<FeHCurl,D,1,TYPE>{
     public:
       ScaledByEdgeIdentityOperator(){
         return;
       }
 
-      ~ScaledByEdgeIdentityOperator(){
+      virtual ~ScaledByEdgeIdentityOperator(){
         return;
       }
 
       virtual void CalcOpMat(Matrix<Double> & bMat,
                              const LocPointMapped& lp, BaseFE* ptFe ){
-        IdentityOperator<FeHCurl,TYPE>::CalcOpMat(bMat,lp,ptFe);
+        IdentityOperator<FeHCurl,D,1,TYPE>::CalcOpMat(bMat,lp,ptFe);
         //scale By Edge
         Double minE,maxE;
         lp.shapeMap->GetMaxMinEdgeLength(maxE,minE);
@@ -106,7 +205,7 @@ namespace CoupledField{
 
       virtual void CalcOpMatTransposed(Matrix<Double> & bMat,
                                        const LocPointMapped& lp, BaseFE* ptFe ){
-        IdentityOperator<FeHCurl,TYPE>::CalcOpMatTransposed(bMat,lp,ptFe);
+        IdentityOperator<FeHCurl,D,1,TYPE>::CalcOpMatTransposed(bMat,lp,ptFe);
         //scale By Edge
         Double minE,maxE;
         lp.shapeMap->GetMaxMinEdgeLength(maxE,minE);
@@ -115,47 +214,6 @@ namespace CoupledField{
 
   };
 
-  template<class FE, class TYPE>
-  void IdentityOperator<FE,TYPE>::CalcOpMat(Matrix<Double> & bMat,
-                                            const LocPointMapped& lp, BaseFE* ptFe){
-    UInt numFncs = ptFe->GetNumFncs();
-    // Set correct size of matrix B and initialise with zeros
-    bMat.Resize( this->dim_, numFncs * this->dim_ );
-    bMat.Init();
-
-    // Get derivatives of local shape functions with respect to global
-    // coords (format: nrNodes x spaceDim)
-    Vector<Double> S;
-    FE *fe = (static_cast<FE*>(ptFe));
-    for(UInt d = 0; d < this->dim_ ; d ++){
-      fe->GetShFnc( S, lp.lp, lp.shapeMap->GetElem() , d );
-      for(UInt sh = 0; sh < S.GetSize(); sh ++){
-        bMat[d][sh*(this->dim_) + d] = S[sh];
-      }
-    }
-
-  }
-
-  template<class FE, class TYPE>
-  void IdentityOperator<FE,TYPE>::
-  CalcOpMatTransposed(Matrix<Double> & bMat,
-                      const LocPointMapped& lp, BaseFE* ptFe){
-    UInt numFncs = ptFe->GetNumFncs();
-    // Set correct size of matrix B and initialise with zeros
-    bMat.Resize( numFncs * this->dim_ , this->dim_ );
-    bMat.Init();
-
-    // Get derivatives of local shape functions with respect to global
-    // coords (format: nrNodes x spaceDim)
-    Vector<Double> S;
-    FE *fe = (static_cast<FE*>(ptFe));
-    for(UInt d = 0; d < this->dim_ ; d ++){
-      fe->GetShFnc( S, lp.lp, lp.shapeMap->GetElem() , d );
-      for(UInt sh = 0; sh < S.GetSize(); sh ++){
-        bMat[sh*(this->dim_) + d][d] = S[sh];
-      }
-    }
-
-  }
-}
+ 
+} // end of namespace
 #endif

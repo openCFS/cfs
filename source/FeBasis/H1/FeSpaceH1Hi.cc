@@ -318,6 +318,9 @@ namespace CoupledField{
     for( ; i != refElems_[region].end(); ++i ) {
       i->second->SetIsoOrder(order[0][0]+orderOffset_);
     }
+    
+    // Important: indicate, that we do not re-use the originial grid based
+    // nodes
     mapType_ = POLYNOMIAL;
     
     infoNode->Get("order")->SetValue(order[0][0]);

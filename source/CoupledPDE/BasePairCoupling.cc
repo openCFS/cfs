@@ -108,8 +108,7 @@ namespace CoupledField {
             regionList[i]->GetValue("complexMaterial",  complexMat, ParamNode::PASS );
             complexMatData_[regionId] = complexMat;
             entityLists_.Push_back( ptGrid_->
-                                    GetEntityList( EntityList::ELEM_LIST, 
-                                                   regionName, EntityList::REGION ) );
+                                    GetEntityList( EntityList::ELEM_LIST, regionName ) ); 
           }
                                                           
         }
@@ -132,8 +131,8 @@ namespace CoupledField {
 
           list->Get("surfaceRegion", ParamNode::APPEND)->Get("name")->SetValue(surfRegionName); 
 
-          entityLists_.Push_back( ptGrid_->GetEntityList( EntityList::SURF_ELEM_LIST, 
-                                                          surfRegionName, EntityList::REGION ) );
+          entityLists_.Push_back( ptGrid_->GetEntityList( EntityList::SURF_ELEM_LIST,
+                                                          surfRegionName ) );
         }
       }
     }
@@ -393,7 +392,6 @@ namespace CoupledField {
     ResultSet::iterator it;
     // initializing entityType to NODE_LIST or receive compiler warning 
     EntityList::ListType entityType = EntityList::NODE_LIST;
-        EntityList::DefineType defineType;
     ResultHandler * resHandler = domain->GetResultHandler();
     
     // initialize map for relating EntityUnknownType and name of xml-element
@@ -456,8 +454,6 @@ namespace CoupledField {
 
       // ========== Look for defineType 'REGION' ==========
       // 1a) Look if result is defined on 'allRegions'
-      defineType = EntityList::REGION;
-      
       
 
       // if no node was found, continue with next result
@@ -552,8 +548,7 @@ namespace CoupledField {
         // iterate over all regions
         for( UInt iRegion = 0; iRegion < regionNames.GetSize(); iRegion++ ) 
         {
-          actList = ptGrid_->GetEntityList( entityType, regionNames[iRegion], 
-                                            defineType );
+          actList = ptGrid_->GetEntityList( entityType, regionNames[iRegion] ); 
           shared_ptr<BaseResult> actSol;
           if( isComplex_ ) {
             actSol = shared_ptr<BaseResult>(new Result<Complex>());
@@ -599,21 +594,18 @@ namespace CoupledField {
       ParamNodeList histEntities;
 
       if( (*it)->definedOn == ResultInfo::NODE ) {
-        defineType = EntityList::NAMED_NODES;  
         histNode = actResultNode->Get("nodeList",ParamNode::PASS);
         if( histNode )
           histEntities = histNode->GetList("nodes");
         entityTypeName = "nodes";
 
       } else if( (*it)->definedOn == ResultInfo::ELEMENT ) {
-        defineType = EntityList::NAMED_ELEMS; 
         histNode = actResultNode->Get("elemList",ParamNode::PASS); 
         if( histNode )
           histEntities = histNode->GetList("elems");
         entityTypeName = "elements";
       
       } else if( (*it)->definedOn == ResultInfo::SURF_ELEM ) {
-        defineType = EntityList::NAMED_ELEMS;  
         histNode = actResultNode->Get("surfEelemList",ParamNode::PASS); 
         if( histNode) 
           histEntities = histNode->GetList("surfElems");
@@ -655,7 +647,7 @@ namespace CoupledField {
         // iterate over all entityNames
         for( UInt i = 0; i < histNames.GetSize(); i++ ) 
         {
-          actList = ptGrid_->GetEntityList(entityType, histNames[i], defineType);
+          actList = ptGrid_->GetEntityList(entityType, histNames[i] );
           
           shared_ptr<BaseResult> actSol;
           if( isComplex_ ) {

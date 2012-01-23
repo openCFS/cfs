@@ -485,8 +485,7 @@ namespace CoupledField
     //! \param type Type of EntityList to be created
     //! \param name Name of the elements (region) or nodes
     shared_ptr<EntityList> GetEntityList( EntityList::ListType type,
-                                          const std::string& name ,
-                                          EntityList::DefineType defineType);
+                                          const std::string& name );
 
 
     //@}
@@ -567,6 +566,9 @@ namespace CoupledField
     // MISCELLANEOUS
     // =======================================================================
     //@{ \name Miscellaneous
+    
+    //! Get type of list denoted by string
+    EntityList::DefineType GetEntityType( const std::string& name );
 
     /** Convenience method for developers, dumps summary information to stdout */
     void Dump();

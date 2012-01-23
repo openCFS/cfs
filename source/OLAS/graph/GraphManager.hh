@@ -68,8 +68,8 @@ class IDBC_Graph;
       StdVector<std::map<UInt, UInt> > eqnToIndex;
 
       //! Define mappings for subBlocks
-      //! 1st index: subBllockIndex
-      //! 2nd vector contains indices for each subblock
+      //! 1st index: subBlockIndex
+      //! 2nd vector contains indices for each subBlock
       StdVector<StdVector<UInt> > indexBlocks;
 
       //! Total number of equations in this block

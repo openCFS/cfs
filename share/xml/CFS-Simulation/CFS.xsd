@@ -10,6 +10,8 @@
 		</xsd:documentation>
 	</xsd:annotation>
 
+
+  <xsd:include schemaLocation="Schemas/CFS_Misc.xsd" />
   <!-- ******************************************************************* -->
   <!--   Include definition of PDE types and elements -->
   <!-- ******************************************************************* -->
@@ -41,11 +43,10 @@
 	<xsd:include schemaLocation="Schemas/CFS_Preconds.xsd" />
 	<xsd:include schemaLocation="Schemas/CFS_Analysis.xsd" />
 	<xsd:include schemaLocation="Schemas/CFS_Domain.xsd" />
-        <xsd:include schemaLocation="Schemas/CFS_Documentation.xsd"/>
-	<xsd:include schemaLocation="Schemas/CFS_Misc.xsd" />
+    <xsd:include schemaLocation="Schemas/CFS_Documentation.xsd"/>
 	<xsd:include schemaLocation="Schemas/CFS_FileFormats.xsd" />
 	<xsd:include schemaLocation="Schemas/CFS_ErsatzMaterial.xsd" />
-	<xsd:include schemaLocation="Schemas/CFS_Optimization.xsd" />
+	<!--<xsd:include schemaLocation="Schemas/CFS_Optimization.xsd" />-->
 	<xsd:include schemaLocation="Schemas/CFS_FePolynomial.xsd"/>
 	<xsd:include schemaLocation="Schemas/CFS_IntegrationScheme.xsd"/>
 
@@ -180,10 +181,6 @@
 				<!-- Optional paramteter for ersatz Material -->
 				<xsd:element name="loadErsatzMaterial"
 					type="DT_ErsatzMaterial" minOccurs="0" />
-
-				<!-- Parameters for specifying an optimization (optional) -->
-				<xsd:element name="optimization" type="DT_Optimization"
-					minOccurs="0" />
 
 				<!-- Enforce parameter settings by disabling Expert() (optional) -->
 				<xsd:element name="expert" minOccurs="0"

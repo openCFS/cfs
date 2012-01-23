@@ -5,10 +5,11 @@ ENDIF(USE_IPOPT)
 SET(PDE_SRCS
   BasePDE.cc
   ElecPDE.cc
+  HeatPDE.cc
   MagEdgePDE.cc
+  MechPDE.cc
   SinglePDE.cc
   StdPDE.cc
-  HeatPDE.cc
   AcousticPDE.cc
   )
 
@@ -28,6 +29,7 @@ SET(TARGET_LL
   results
   febasis
   coeffunction
+  linforms
 )
 
 IF(USE_HDF5)

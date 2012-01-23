@@ -1,46 +1,3 @@
-// =====================================================================================
-// 
-//       Filename:  coefFunction.hh
-// 
-//    Description:  This is the base class for every coefficient
-//                  It is used in the Integrator classes to obtain the material tensor
-//                  (D-Matrix) as well as in the B-Operator classes to realize e.g. a
-//                  change in the derivatives. 
-//
-//                  Example1: consider the PML
-//                  Coefficient function provides a material matrix multiplied by the
-//                  complex jacobian. Moreover the same coeffient function is passed to
-//                  the operator to provide the daming parameters for the "streched"
-//                  derivatives.
-//
-//                  Example2: Consider geometric non-linear mechanics
-//                  The CoefFunction can provide the solution at the current integration
-//                  point to enable the b-operator to compute its matrix of derivatives
-//
-//                  This class is just the interface class right now, the following
-//                  structure should be realized:
-//                  - coefFunctionAnalytic
-//                    This class descibes the quantity by an analytic expression this
-//                    includes (non-linear) materials, analytic flow fields, etc.
-//                  - coefFunctionGrid
-//                    This class provides the Information based on information read in
-//                    from a grid. E.g. in the case of (interpolated) aeroacoustic source terms 
-//                  - coefFucnctionSol
-//                    This function provides the information based on the current
-//                    solution of the problem
-//
-//
-// 
-//        Version:  1.0
-//        Created:  10/19/2011 10:16:34 AM
-//       Revision:  none
-//       Compiler:  g++
-// 
-//         Author:  Andreas Hueppe (AHU), andreas.hueppe@uni-klu.ac.at
-//        Company:  Universitaet Klagenfurt
-// 
-// =====================================================================================
-
 #ifndef COEFFUNCTION_HH
 #define COEFFUNCTION_HH
 
@@ -57,6 +14,33 @@ namespace CoupledField{
 // forward class declarations
 class CoordSystem;
 
+//! This is the base class for describing coefficients
+
+//!   It is used in the Integrator classes to obtain the material tensor
+//!   (D-Matrix) as well as in the B-Operator classes to realize e.g. a
+//!   change in the derivatives. 
+//!
+//!   Example1: consider the PML
+//!   Coefficient function provides a material matrix multiplied by the
+//!   complex jacobian. Moreover the same coefficient function is passed to
+//!   the operator to provide the damping parameters for the "strechted"
+//!   derivatives.
+//!
+//!   Example2: Consider geometric non-linear mechanics
+//!   The CoefFunction can provide the solution at the current integration
+//!   point to enable the b-operator to compute its matrix of derivatives
+//!
+//!   This class is just the interface class right now, the following
+//!   structure should be realized:
+//!   - coefFunctionAnalytic
+//!     This class descibes the quantity by an analytic expression this
+//!     includes (non-linear) materials, analytic flow fields, etc.
+//!   - coefFunctionGrid
+//!     This class provides the Information based on information read in
+//!     from a grid. E.g. in the case of (interpolated) aeroacoustic source terms 
+//!   - coefFucnctionSol
+//!     This function provides the information based on the current
+//!     solution of the problem
 class CoefFunction{
 public:
 
@@ -68,18 +52,19 @@ public:
   //! Dimension of coefficient functions
   typedef enum{ 
     NO_DIM,   /*!< Uninitialized */
-    SCALAR,   /*!< 0-dimensional scalar entry */
-    VECTOR,   /*!< 1-dimensional vector entry */
-    TENSOR    /*!< 2-dimensional tensor entry */ 
+    SCALAR,   /*!< Scalar entry (cardinality 0)*/
+    VECTOR,   /*!< Vector entry (cardinality 1)*/
+    TENSOR    /*!< Tensor entry (cardinality 2)*/ 
   } CoefDimType;
+  static Enum<CoefDimType> CoefDimType_;
   
   //! Dependency of coefficient function
   typedef enum{ 
     CONST,         /*!< No dependency on space or time */
     TIMEFREQ,      /*!< Only depending on time / frequency, not space */
-    SPACE,         /*!< Only spatial dependency */
-    SPACE_TIMEFREQ /*!< Spatial and time/frequency dependency */
+    GENERAL        /*!< General dependency (spatial and / or time / freq) */
   } CoefDependType;
+  static Enum<CoefDependType> CoefDependType_;
   
   // ========================
   //  FACTORY METHODS
@@ -94,12 +79,12 @@ public:
   //! the appropriate coefficient function: If the expression evaluates
   //! to a constant, a CoefFunctionConst-object is created, otherwise
   //! the more general (but more expensive) CoefFunctionExpression.
-  //! \param format If COMPLEX, a complex valued CoefFunction is generated;
+  //! \param type If COMPLEX, a complex valued CoefFunction is generated;
   //!               If REAL, a real-valued CoefFunction is generated
   //! \param realVal Real-part of the CoefFunction
   //! \param imagVal Imag-part of the CoefFunction (optional)
   static shared_ptr<CoefFunction> 
-  Generate( Global::ComplexPart format, 
+  Generate( Global::ComplexPart type, 
             const std::string& realVal, 
             const std::string& imagVal = "" );
 
@@ -111,12 +96,12 @@ public:
   //! the appropriate coefficient function: If the expression evaluates
   //! to a constant, a CoefFunctionConst-object is created, otherwise
   //! the more general (but more expensive) CoefFunctionExpression.
-  //! \param format If COMPLEX, a complex valued CoefFunction is generated;
+  //! \param type If COMPLEX, a complex valued CoefFunction is generated;
   //!               If REAL, a real-valued CoefFunction is generated
   //! \param realVal Real-part vector of the CoefFunction
   //! \param imagVal Imag-part vector of the CoefFunction (optional)
   static shared_ptr<CoefFunction> 
-  Generate( Global::ComplexPart format, 
+  Generate( Global::ComplexPart type, 
             const StdVector<std::string>& realVal, 
             const StdVector<std::string>& imagVal = StdVector<std::string>() );
 
@@ -129,14 +114,14 @@ public:
   //! the appropriate coefficient function: If the expression evaluates
   //! to a constant, a CoefFunctionConst-object is created, otherwise
   //! the more general (but more expensive) CoefFunctionExpression.
-  //! \param format If COMPLEX, a complex valued CoefFunction is generated;
-  //!               If REAL, a real-valued CoefFunction is generated
+  //! \param type If COMPLEX, a complex valued CoefFunction is generated;
+  //!             If REAL, a real-valued CoefFunction is generated
   //! \param numRows Number of rows of the tensor function
   //! \param numCols Number of columns of the tensor function
   //! \param realVal Real-part tensor of the CoefFunction
   //! \param imagVal Imag-part tensor of the CoefFunction (optional)
   static shared_ptr<CoefFunction> 
-  Generate( Global::ComplexPart format,
+  Generate( Global::ComplexPart type,
             UInt numRows, UInt numCols,
             const StdVector<std::string>& realVal,
             const StdVector<std::string>& imagVal = StdVector<std::string>() );
@@ -147,6 +132,7 @@ public:
   // ========================
   //@{ \name Constructor / Destructor
 
+  //! Constructor
   CoefFunction(){
     dimType_ = NO_DIM;
     dependType_ = CONST;
@@ -156,6 +142,7 @@ public:
     this->coordSys_ = NULL;
   }
 
+  //! Destructor
   virtual ~CoefFunction(){
     ;
   }
@@ -166,44 +153,63 @@ public:
   // ========================
   //@{ \name Access Methods
 
-  virtual void GetTensor(Matrix<Double>& CoefMat, 
+  //! Return real-valued tensor at integration point
+  virtual void GetTensor(Matrix<Double>& tensor, 
                          const LocPointMapped& lpm ) {
     EXCEPTION("CoefFunction::GetTensor<Double> called: This may not happen");
   }
 
-  virtual void GetVector(Vector<Double>& CoefMat, 
+  //! Return real-valued vector at integration point
+  virtual void GetVector(Vector<Double>& vec, 
                          const LocPointMapped& lpm ) {
     EXCEPTION("CoefFunction::GetVector<Double> called: This may not happen");
   }
 
-  virtual void GetScalar(Double& CoefMat, 
+  //! Return real-valued scalar at integration point
+  virtual void GetScalar(Double& scal, 
                          const LocPointMapped& lpm ) {
     EXCEPTION("CoefFunction::GetScalar<Double> called: This may not happen");
   }
 
-  virtual void GetTensor(Matrix<Complex>& CoefMat, 
+  //! Return complex-valued tensor at integration point
+  virtual void GetTensor(Matrix<Complex>& tensor, 
                          const LocPointMapped& lpm ) {
     EXCEPTION("CoefFunction::GetTensor<Complex> called: This may not happen");
   }
 
-  virtual void GetVector(Vector<Complex>& CoefMat, 
+  //! Return complex-valued vector at integration point
+  virtual void GetVector(Vector<Complex>& vec, 
                          const LocPointMapped& lpm ) {
     EXCEPTION("CoefFunction::GetVector<Complex> called: This may not happen");
   }
 
-  virtual void GetScalar(Complex& CoefMat, 
+  //! Return complex-valued scalar at integration point
+  virtual void GetScalar(Complex& scalar, 
                          const LocPointMapped& lpm ) {
     EXCEPTION("CoefFunction::GetScalar<Complex> called: This may not happen");
   }
   //@}
 
 
+  //! Return associated coordinate system
   void SetCoordinateSystem(CoordSystem* cSys){
     coordSys_ = cSys;
   }
+  
+  //! Return dependency of CoefFunction
+  CoefDependType GetDependency() {
+    return dependType_;
+  }
 
+  //! Return type of entry (scalar, vector, tensor)
   virtual CoefDimType GetDimType(){
     return dimType_;
+  }
+  
+  //! Returm, if coeffunction is complex
+  virtual bool IsComplex() {
+    EXCEPTION("Method not properly overwritten");
+    return false;
   }
 
   virtual void AddEntities(shared_ptr<EntityList> ent){

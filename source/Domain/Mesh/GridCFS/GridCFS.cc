@@ -916,8 +916,7 @@ namespace CoupledField {
         i < numRegions; i++) {
       
       // get elements
-      ent = GetEntityList( EntityList::ELEM_LIST, region_.ToString(volRegionIds_[i]),
-                           EntityList::REGION );
+      ent = GetEntityList( EntityList::ELEM_LIST, region_.ToString(volRegionIds_[i]) );
       
       // create result objects
       sol = shared_ptr<BaseResult> (new Result<Double>());
@@ -979,8 +978,7 @@ namespace CoupledField {
 
       // get elements
       ent = GetEntityList( EntityList::SURF_ELEM_LIST, 
-                           region_.ToString(surfRegionIds_[i]),
-                           EntityList::REGION );
+                           region_.ToString(surfRegionIds_[i]) );
 
       // create result objects
       sol = shared_ptr<BaseResult> (new Result<Double>());

@@ -29,8 +29,7 @@
 namespace CoupledField{
 
 
-  template<template<class,class> class B_OP,
-            class FE_TYPE,
+  template< class B_OP,
             class VEC_DATA_TYPE=Double>
   class BUIntegrator : public LinearForm{
     public:
@@ -52,7 +51,7 @@ namespace CoupledField{
         Bdim_ = opDim;
       }
     protected:
-      B_OP<FE_TYPE,VEC_DATA_TYPE> operator_;
+      B_OP operator_;
 
       VEC_DATA_TYPE factor_;
 

@@ -27,107 +27,99 @@
   <!-- ******************************************************************* -->
   <!--   Definition of data type for electrostatic PDEs -->
   <!-- ******************************************************************* -->
-
+  
   <xsd:complexType name="DT_PDEElectrostatic">
-  	<xsd:complexContent>
-  		<xsd:extension base="DT_PDEBasic">
-  			<xsd:sequence>
+    <xsd:complexContent>
+      <xsd:extension base="DT_PDEBasic">
+        <xsd:sequence>
+          
+          <!-- Regions the PDE lives on -->
+          <xsd:element name="regionList" minOccurs="1"
+            maxOccurs="1">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="region" minOccurs="1"
+                  maxOccurs="unbounded">
+                  <xsd:complexType>
+                    <xsd:attribute name="name"
+                      type="xsd:token" use="required" />
+                    <xsd:attribute name="polyId"
+                      type="xsd:string" use="optional" default="default">
+                    </xsd:attribute>
+                    <xsd:attribute name="integId"
+                      type="xsd:string" use="optional" default="default">
+                    </xsd:attribute>
+                    <xsd:attribute name="nonLinId"
+                      type="xsd:token" use="optional" default="" />
+                    <xsd:attribute name="complexMaterial" 
+                      type="DT_CFSBool" use="optional" default="no"/>
+                  </xsd:complexType>
+                </xsd:element>
+              </xsd:sequence>
+            </xsd:complexType>
+          </xsd:element>
+          
+          <!-- Non-conforming interfaces of the PDE -->
+          <xsd:element name="ncInterfaceList" minOccurs="0"
+            maxOccurs="1">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="ncInterface"
+                  minOccurs="1" maxOccurs="unbounded">
+                  <xsd:complexType>
+                    <xsd:attribute name="name"
+                      type="xsd:token" use="required" />
+                  </xsd:complexType>
+                </xsd:element>
+              </xsd:sequence>
+            </xsd:complexType>
+          </xsd:element>
+          
+          <!-- List defining nonlinear types -->
+          <xsd:element name="nonLinList" minOccurs="0"
+            maxOccurs="1">
+            <xsd:complexType>
+              <xsd:choice maxOccurs="unbounded">
+                <xsd:element name="hysteresis" type="DT_ElecNonLinHyst" />
+                <xsd:element name="material"  type="DT_ElecNonLinMat" />
+              </xsd:choice>
+            </xsd:complexType>
+          </xsd:element>
+          
+          <!-- Boundary Conditions & Loads (optional) -->
+          <xsd:element name="bcsAndLoads" minOccurs="0"
+            maxOccurs="unbounded">
+            <xsd:complexType>
+              <xsd:choice maxOccurs="unbounded" minOccurs="0">
+                <!-- "standard" boundary conditions -->
+                <xsd:element name="dirichletHom"   type="DT_ElecHD" />
+                <xsd:element name="dirichletInhom" type="DT_ElecID" />
+                <xsd:element name="constraint" type="DT_ElecCS" />
 
-  				<!-- Regions the PDE lives on -->
-  				<xsd:element name="regionList" minOccurs="1"
-  					maxOccurs="1">
-  					<xsd:complexType>
-  						<xsd:sequence>
-  							<xsd:element name="region" minOccurs="1"
-  								maxOccurs="unbounded">
-  								<xsd:complexType>
-  									<xsd:attribute name="name"
-  										type="xsd:token" use="required" />
-  									<xsd:attribute name="polyId"
-  										type="xsd:string" use="optional" default="default">
-  									</xsd:attribute>
-  									<xsd:attribute name="integId"
-  										type="xsd:string" use="optional" default="default">
-  									</xsd:attribute>
-  									<xsd:attribute name="nonLinId"
-  										type="xsd:token" use="optional" default="" />
-  								  <xsd:attribute name="complexMaterial" 
-  								    type="DT_CFSBool" use="optional" default="no"/>
-  								</xsd:complexType>
-  							</xsd:element>
-  						</xsd:sequence>
-  					</xsd:complexType>
-  				</xsd:element>
-
-  				<!-- Non-conforming interfaces of the PDE -->
-  				<xsd:element name="ncInterfaceList" minOccurs="0"
-  					maxOccurs="1">
-  					<xsd:complexType>
-  						<xsd:sequence>
-  							<xsd:element name="ncInterface"
-  								minOccurs="1" maxOccurs="unbounded">
-  								<xsd:complexType>
-  									<xsd:attribute name="name"
-  										type="xsd:token" use="required" />
-  								</xsd:complexType>
-  							</xsd:element>
-  						</xsd:sequence>
-  					</xsd:complexType>
-  				</xsd:element>
-
-  				<!-- List defining nonlinear types -->
-  				<xsd:element name="nonLinList" minOccurs="0"
-  					maxOccurs="1">
-  					<xsd:complexType>
-  						<xsd:choice maxOccurs="unbounded">
-  							<xsd:element name="hysteresis"
-  								type="DT_ElecNonLinHyst" />
-  							<xsd:element name="material"
-  								type="DT_ElecNonLinMat" />
-  						</xsd:choice>
-  					</xsd:complexType>
-  				</xsd:element>
-
-  				<!-- Boundary Conditions & Loads (optional) -->
-  				<xsd:element name="bcsAndLoads" minOccurs="0"
-  					maxOccurs="unbounded">
-  					<xsd:complexType>
-  						<xsd:choice maxOccurs="unbounded"
-  							minOccurs="0">
-  							<xsd:element name="dirichletHom"
-  								type="DT_ElecHD" />
-  							<xsd:element name="dirichletInhom"
-  								type="DT_ElecID" />
-  							<xsd:element name="neumannInhom"
-  								type="DT_ElecCD" />
-  							<xsd:element name="chargeDensity"
-  								type="DT_ElecCD" />
-  							<xsd:element name="constraint"
-  								type="DT_ElecCS" />
-  							<xsd:element name="load"
-  								type="DT_ElecLoad" />
-  							<xsd:element name="impedance"
-  								type="DT_ElecImpedance" />
-  						  <xsd:element name="regionLoad" 
-  						    type="DT_RHSValueBasic"/>
-  						</xsd:choice>
-  					</xsd:complexType>
-  				</xsd:element>
-
-  				<!-- Section for specifying non-linear parameters (optional) -->
-  				<xsd:element name="nonLinear" type="DT_NonLinParams"
-  					minOccurs="0" />
-
-  				<!-- Desired solution values (optional) -->
-  				<xsd:element name="storeResults"
-  					type="DT_ElecStoreResults" minOccurs="0" maxOccurs="1" />
-
-  			</xsd:sequence>
-  			<xsd:attribute name="subType" type="xsd:token" use="optional" default="none"/>
-  		</xsd:extension>
-  	</xsd:complexContent>
+                <!-- mechanic specific boundary conditions -->
+                <xsd:element name="charge"        type="DT_RHSScalar"/>
+                <xsd:element name="chargeDensity" type="DT_RHSScalar"/>
+                
+                
+                <!--<xsd:element name="impedance" type="DT_ElecImpedance" />-->
+              </xsd:choice>
+            </xsd:complexType>
+          </xsd:element>
+          
+          <!-- Section for specifying non-linear parameters (optional) -->
+          <xsd:element name="nonLinear" type="DT_NonLinParams"
+            minOccurs="0" />
+          
+          <!-- Desired solution values (optional) -->
+          <xsd:element name="storeResults"
+            type="DT_ElecStoreResults" minOccurs="0" maxOccurs="1" />
+          
+        </xsd:sequence>
+        <xsd:attribute name="subType" type="xsd:token" use="optional" default="none"/>
+      </xsd:extension>
+    </xsd:complexContent>
   </xsd:complexType>
-
+  
 
   <!-- ******************************************************************* -->
   <!--   Definition of hysteresis nonlienarity -->
@@ -220,17 +212,7 @@
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
-
-  
-
-  <!-- Element type for specifying loads -->
-  <!-- Identical to that of inhomogeneous Dirichlet case -->
-  <xsd:complexType name="DT_ElecLoad">
-    <xsd:complexContent>
-      <xsd:extension base="DT_ElecID"/>
-    </xsd:complexContent>
-  </xsd:complexType>
-
+ 
   <!-- Element type for specifying a simple impedance, connected in -->
   <!-- series with a pair of given nodes -->
   <xsd:complexType name="DT_ElecImpedance">

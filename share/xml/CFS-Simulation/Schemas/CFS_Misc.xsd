@@ -76,7 +76,12 @@
   <!-- Data type for setting a array of doubles -->
   <xsd:simpleType name="DT_DoubleList">
     <xsd:list itemType="xsd:double"/>
-  </xsd:simpleType> 
+  </xsd:simpleType>
+  
+  <!-- Data type for setting a array of tokens -->
+  <xsd:simpleType name="DT_TokenList">
+    <xsd:list itemType="xsd:token"/>
+  </xsd:simpleType>  
   
   <!-- Data defining a scalar value -->
   <xsd:complexType name="DT_Scalar" mixed="false">

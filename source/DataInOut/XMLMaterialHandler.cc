@@ -11,7 +11,7 @@
 #include "Materials/ElectroStaticMaterial.hh"
 #include "Materials/HeatMaterial.hh"
 #include "Materials/AcousticMaterial.hh"
-//#include "Materials/mechanicMaterial.hh"
+#include "Materials/MechanicMaterial.hh"
 //#include "Materials/piezoMaterial.hh"
 //#include "Materials/flowMaterial.hh"
 //#include "Materials/thermoelasticMaterial.hh"
@@ -73,9 +73,8 @@ namespace CoupledField {
       //ReadPiezo( material, pn);
     }
     else if ( matClass == MECHANIC ) {
-      REFACTOR;
-      //material = new MechanicMaterial();
-      //ReadMechanic( material, pn );
+      material = new MechanicMaterial();
+      ReadMechanic( material, pn );
     }    
     else if ( matClass == FLUID ) {\
       material = new AcousticMaterial();
@@ -116,12 +115,15 @@ namespace CoupledField {
     else {
       EXCEPTION( "material type:" << matClass << " not defined" );
     }
+    
     // Finalize setup of material
     material->Finalize();
     } catch (Exception& ex ) {
       RETHROW_EXCEPTION(ex, "Could not load material '" << matName  
                         << "' of class '" << matClass << "'" );
     }
+    
+   
 
     return material;
   }

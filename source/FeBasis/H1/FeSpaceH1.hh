@@ -44,6 +44,8 @@ public:
   struct SingleEqnMap{
     std::map<Integer, StdVector<Integer> > eqns;
     std::map< Integer,StdVector<BcType> > BcKeys;
+    
+    //! Offset for every 
     //special treatment of constraints we store for every
     //slave node, DOF pair the master node,Dof pair
     //this is very circuitous we need to find an easier way 

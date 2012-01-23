@@ -200,8 +200,7 @@ namespace CoupledField
   }
 
   shared_ptr<EntityList> Grid::GetEntityList( EntityList::ListType listType,
-                                              const std::string& name,
-                                              EntityList::DefineType defineType ) {
+                                              const std::string& name ) {
 
     // First check, if there any entites with this name at all
     if( nameTypeMap_.find( name) == nameTypeMap_.end() ) {
@@ -267,7 +266,16 @@ namespace CoupledField
     return ret;
 
   }
-
+  
+  EntityList::DefineType Grid::GetEntityType( const std::string& name ) {
+    EntityList::DefineType ret = EntityList::NO_TYPE;
+    if( nameTypeMap_.find(name) != nameTypeMap_.end() ){
+      ret = nameTypeMap_[name];
+    }
+    return ret;  
+  }
+  
+  
    void Grid::Dump()
    {
      StdVector<Elem*>   elems;

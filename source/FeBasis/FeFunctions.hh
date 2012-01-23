@@ -265,6 +265,7 @@ public:
   //! Return complete coefficient vector (const)
   const Vector<T>& GetVector() const {return coeffs_;}
 
+  //! Incorporate boundary conditions
   virtual void ApplyBC();
   
   

@@ -21,21 +21,22 @@
 #include "BaseBOperator.hh"
 
 namespace CoupledField{
-  template<class FE, class TYPE>
+  template<class FE, UInt D, class TYPE>
   class CurlOperator : public BaseBOperator<FE,TYPE>{
     public:
+    
     CurlOperator();
 
       ~CurlOperator();
 
       virtual void CalcOpMat(Matrix<Double> & bMat,
                              const LocPointMapped& lp, BaseFE* ptFe ){
-        EXCEPTION(__FILE__ << __LINE__ << "Curl Operator not implemented for general functions yet")
+        EXCEPTION("Curl Operator not implemented for general functions yet")
       }
 
       virtual void CalcOpMatTransposed(Matrix<Double> & bMat,
                                        const LocPointMapped& lp, BaseFE* ptFe ){
-        EXCEPTION(__FILE__ << __LINE__ << "Curl Operator not implemented for general functions yet")
+        EXCEPTION("Curl Operator not implemented for general functions yet")
       }
 
       //avoid reimplementation of complex operator by making the bas class function
@@ -48,10 +49,33 @@ namespace CoupledField{
 
   };
 
-  //!Specialized class for curl elements
-  template< class TYPE>
-  class CurlOperator<FeHCurl,TYPE> : public BaseBOperator<FeHCurl,TYPE>{
+  //!Specialized class for HCurl elements
+  template<UInt D, class TYPE >
+  class CurlOperator<FeHCurl,D,TYPE> : public BaseBOperator<FeHCurl,TYPE>{
     public:
+    
+    // ------------------
+    //  STATIC CONSTANTS 
+    // ------------------
+    //@{ 
+    //! \name Static constants
+
+    //! Order of differentiation
+    static const UInt ORDER_DIFF = 1;
+
+    //! Number of components of the problem (scalar, vector)
+    static const UInt DIM_DOF = 1;
+
+    //! Dimension of the underlying domain / space
+    static const UInt DIM_SPACE = D;
+
+    //! Dimension of the finite element
+    static const UInt DIM_ELEM = D;
+
+    //! Dimension of the related material 
+    static const UInt DIM_D_MAT = D; 
+    //@}
+    
       CurlOperator(){
 
       }
@@ -85,9 +109,10 @@ namespace CoupledField{
   };
 
   //!Specialized class for curl elements
-  template<class FE, class TYPE>
-  class ScaledByEdgeCurlOperator : public CurlOperator<FeHCurl,TYPE>{
+  template<UInt D, class TYPE>
+  class ScaledByEdgeCurlOperator : public CurlOperator<FeHCurl,D,TYPE>{
     public:
+    
       ScaledByEdgeCurlOperator(){
 
       }
@@ -98,7 +123,7 @@ namespace CoupledField{
 
       virtual void CalcOpMat(Matrix<Double> & bMat,
                              const LocPointMapped& lp, BaseFE* ptFe ){
-        CurlOperator<FeHCurl,TYPE>::CalcOpMat(bMat,lp,ptFe);
+        CurlOperator<FeHCurl,D,TYPE>::CalcOpMat(bMat,lp,ptFe);
         Double minE,maxE;
         lp.shapeMap->GetMaxMinEdgeLength(maxE,minE);
         bMat /= maxE;
@@ -106,7 +131,7 @@ namespace CoupledField{
 
       virtual void CalcOpMatTransposed(Matrix<Double> & bMat,
                                        const LocPointMapped& lp, BaseFE* ptFe ){
-        CurlOperator<FeHCurl,TYPE>::CalcOpMatTransposed(bMat,lp,ptFe);
+        CurlOperator<FeHCurl,D,TYPE>::CalcOpMatTransposed(bMat,lp,ptFe);
         Double minE,maxE;
         lp.shapeMap->GetMaxMinEdgeLength(maxE,minE);
         bMat /= maxE;
@@ -114,9 +139,9 @@ namespace CoupledField{
 
       //avoid reimplementation of complex operator by making the bas class function
       //available, template caused
-      using BaseBOperator<FE,TYPE>::CalcOpMat;
+      using BaseBOperator<FeHCurl,TYPE>::CalcOpMat;
 
-      using BaseBOperator<FE,TYPE>::CalcOpMatTransposed;
+      using BaseBOperator<FeHCurl,TYPE>::CalcOpMatTransposed;
 
     protected:
 

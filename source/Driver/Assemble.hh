@@ -48,9 +48,6 @@ namespace CoupledField {
     //! Add a linearform, wrapped in a LinearFormContext
     void AddLinearForm( LinearFormContext* linContext );
 
-    //! Add right hand side load definitions
-    void AddLoads( LoadList& loads );
-    
     //! Re-Set status of matrix re-assembly
     void ResetMatrixReassembly();
 
@@ -107,13 +104,6 @@ namespace CoupledField {
     /** @see GetBiLinForm() */
     LinearForm* GetLinearForm(RegionIdType regionId, StdPDE* pde,  const std::string& integrator, bool silent = false);
 
-    /** Returns the load list for external modification */
-    LoadList& GetLoads() { return loads_; }
-
-    /** Overwrites the loads to implmented the adjoint solution for SIMP
-     * mechanism optimization */
-    void SetLoads(LoadList& new_loads) { loads_ = new_loads; }
-    
     /** Overwrites the linearForms to implement the multi-load optimization */
     void SetLinForms(StdVector<LinearFormContext*>* linForms) { linForms_ = linForms; }
 
@@ -206,14 +196,6 @@ namespace CoupledField {
 
     //! Map with flags if FE matrix has to be reassembled
     std::map<FEMatrixType, bool> matReassemble_;
-
-
-    // ======================================================
-    //  BOUNDARIES AND LOADS
-    // ======================================================
-
-    //! List of right hand side nodal values
-    LoadList loads_;
 
     // ======================================================
     //  MISCELLANEOUS DATA

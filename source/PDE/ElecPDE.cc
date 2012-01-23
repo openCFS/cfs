@@ -28,6 +28,7 @@
 #include "Forms/BiLinForms/BDBInt.hh"
 #include "Forms/BiLinForms/BBInt.hh"
 #include "Forms/LinForms/BUInt.hh"
+#include "Forms/LinForms/SingleEntryInt.hh"
 #include "Forms/Operators/GradientOperator.hh"
 #include "Forms/Operators/IdentityOperator.hh"
 
@@ -58,7 +59,6 @@ namespace CoupledField {
     nonLinMaterial_ = false;
     isAlwaysStatic_ = true;
     isPiezoCoupled_ = false;
-    isThermoCoupled_= false;
 
     needSolPrev_ = true;
  
@@ -88,6 +88,7 @@ namespace CoupledField {
     // flag for updatedLagrange formulation
     bool upLagrangeForm = true;
     upLagrangeForm = true;
+    
     //transform the type
     SubTensorType tensorType;
 
@@ -107,7 +108,7 @@ namespace CoupledField {
     // if the pde is piezo-coupled, the electrostatic entries
     // have to be multiplied with -1
     std::string factor = "1.0";
-    if ( isPiezoCoupled_ == true || isThermoCoupled_== true )
+    if ( isPiezoCoupled_ == true )
       factor = "-1.0";  
 
     // Define integrators for "standard" materials
@@ -135,18 +136,12 @@ namespace CoupledField {
       std::string integId = curRegNode->Get("integId")->As<std::string>();
       mySpace->SetRegionApproximation(actRegion, polyId,integId);
 
-      // --- standard real-valued stiffness integrator ---
-      shared_ptr<CoefFunction > curCoef = actSDMat->GetCoefFunction(ELEC_PERMITTIVITY,tensorType,Global::REAL);
-
-
-      BDBInt< GradientOperator ,FeH1,Double,Double >* stiffInt;
-      stiffInt = new BDBInt<GradientOperator,FeH1,Double,Double >(curCoef,1.0 );
-      //linElecInt *  linElecForm = new linElecInt( actSDMat, tensorType,
-       //                                           upLagrangeForm );
-      //linElecForm->SetFactor( factor );
+      
+      
+      // ----- standard real-valued stiffness integrator
+      BaseBDBInt * stiffInt = GetStiffIntegrator(actSDMat, tensorType, actRegion);
       BiLinFormContext * stiffIntDescr =
           new BiLinFormContext(stiffInt, STIFFNESS );
-
       feFunctions_[ELEC_POTENTIAL]->AddEntityList( actSDList );
 
       //stiffIntDescr->SetPtPdes(this, this);
@@ -184,6 +179,107 @@ namespace CoupledField {
     ///OUT FOR REFACTOR
     // define integrators for electric impedances
     DefineImpedanceIntegrators();
+  }
+  
+  void ElecPDE::DefineRhsLoadIntegrators() {
+    LOG_TRACE(elecpde) << "Defining rhs load integrators for electrostatic PDE";
+
+    // Get FESpace and FeFunction of electric potential
+    shared_ptr<BaseFeFunction> myFct = feFunctions_[ELEC_POTENTIAL];
+    shared_ptr<FeSpace> mySpace = myFct->GetFeSpace();
+
+    StdVector<shared_ptr<EntityList> > ent;
+    StdVector<shared_ptr<CoefFunction> > coef;
+    LinearForm * lin = NULL;
+    StdVector<std::string> dofNames;
+
+    // =========================
+    //  Charges (volume, nodal)
+    // =========================
+    LOG_DBG(elecpde) << "Reading charges";
+    ReadRhsExcitation( "charge", dofNames, ResultInfo::SCALAR, 
+                       isComplex_, ent, coef );
+
+    for( UInt i = 0; i < ent.GetSize(); ++i ) {
+      // check type of entitylist
+      if (ent[i]->GetType() == EntityList::NODE_LIST) {
+
+        // ---------------
+        //  Nodal Charges 
+        // ---------------
+        // Nodal charge must be constant
+        if( coef[i]->GetDependency() == CoefFunction::GENERAL ) {
+          EXCEPTION("Nodal charges must not be spatial dependent");
+        }
+
+        UInt numNodes = ent[i]->GetSize();
+        if( numNodes > 1 ) {
+          // Here we would divide the nodal force by the number of nodes
+          // in the list, in order to ensure that the whole force corresponds
+          // to the prescribed value. However, this requires modification of 
+          // the expressions of the coefficient functions, which depends on real/harm
+          // and the specific type (const, timefreq, variable).
+          WARN("The chareg value will not be divided by the number of nodes and thus "
+              << "depends on the number of nodes" );
+        }
+
+        lin = new SingleEntryInt(coef[i]);
+        lin->SetName("NodalChargeInt");
+        LinearFormContext *ctx = new LinearFormContext( lin );
+        ctx->SetEntities( ent[i] );
+        ctx->SetFeFunction(myFct);
+        assemble_->AddLinearForm(ctx);
+      } else {
+        // --------------------------
+        //  Surface / Volume Charges 
+        // --------------------------
+        EXCEPTION("Not yet implemented");
+
+        // Same issue here as above: We need to "divide" the total force by the
+        // area / volume to get the force density.
+      }
+    } // for
+
+    // ================
+    //  CHARGE DENSITY 
+    // ================
+    LOG_DBG(elecpde) << "Reading charge densities";
+    ReadRhsExcitation( "chargeDensity", dofNames, 
+                       ResultInfo::VECTOR, isComplex_, ent, coef );
+    for( UInt i = 0; i < ent.GetSize(); ++i ) {
+      // check type of entitylist
+      if (ent[i]->GetType() == EntityList::NODE_LIST) {
+        EXCEPTION("Charge density must be defined on elements")
+      }
+      if(isComplex_) {
+        lin = new BUIntegrator<IdentityOperator<FeH1>, Complex>(Complex(1.0), coef[i]);
+      } else  {
+        lin = new BUIntegrator<IdentityOperator<FeH1>, Double>(1.0, coef[i]);
+      }
+      lin->SetName("ChargeDensityInt");
+      LinearFormContext *ctx = new LinearFormContext( lin );
+      ctx->SetEntities( ent[i] );
+      ctx->SetFeFunction(myFct);
+      assemble_->AddLinearForm(ctx);
+    } // for
+
+  }
+
+  
+  BaseBDBInt * ElecPDE::GetStiffIntegrator( BaseMaterial* actSDMat,
+                                            SubTensorType tensorType,
+                                            RegionIdType regionId ) {
+
+    BaseBDBInt * integ = NULL;
+    shared_ptr<CoefFunction > curCoef = 
+        actSDMat->GetCoefFunction(ELEC_PERMITTIVITY,tensorType,Global::REAL);
+
+    if( dim_ == 2 ) {
+      integ = new BDBInt<GradientOperator<FeH1,2> >(curCoef,1.0 );
+    } else {
+      integ = new BDBInt<GradientOperator<FeH1,3> >(curCoef,1.0 );
+    }
+    return integ;
   }
   
   void ElecPDE::DefineImpedanceIntegrators() {
@@ -325,18 +421,7 @@ namespace CoupledField {
 
   }
   
-  void ElecPDE::SetThermoCoupling()
-  {
   
-    isThermoCoupled_ = true;
-
-  }
-  
-  void ElecPDE::DefinePolarizationMatrixIntegrators(const Vector<Double> &vals,
-      StdVector<LinearFormContext*> *linForms, const int num)
-  {
-    REFACTOR;
-  }
 
   void ElecPDE::DefinePrimaryResults() {
     
@@ -382,13 +467,11 @@ namespace CoupledField {
     shared_ptr<BaseFieldFunctor> vFunc;
     if( isComplex_ ) {
       vFunc.reset(
-          new FieldInterpolFunctor<IdentityOperator,
-          FeH1,
+          new FieldInterpolFunctor<IdentityOperator<FeH1,1,1,Complex>,
           Complex>(feFct, res1));
     } else {
       vFunc.reset(
-          new FieldInterpolFunctor<IdentityOperator,
-          FeH1,
+          new FieldInterpolFunctor<IdentityOperator<FeH1>,
           Double>(feFct, res1));
     }
     resultFunctors_[ELEC_POTENTIAL] = vFunc;
@@ -607,22 +690,5 @@ namespace CoupledField {
       EXCEPTION("The formulation " << formulation << "of electric PDE is not known!");
     }
     return crSpaces;
-  }
-
-  LinearFormContext* ElecPDE::CreateRhsLinearForm(SolutionType rhsType,shared_ptr<CoefFunction > rhsCoef){
-    LinearFormContext * mContext = NULL;
-    switch(rhsType){
-    case ELEC_CHARGE_DENSITY:
-      BUIntegrator<IdentityOperator,FeH1,Double>* curInt;
-      curInt = new BUIntegrator<IdentityOperator,FeH1,Double>(1.0,rhsCoef);
-
-      mContext = new LinearFormContext(curInt);
-      mContext->SetFeFunction( feFunctions_[ELEC_POTENTIAL]);
-      curInt->SetFeSpace( feFunctions_[ELEC_POTENTIAL]->GetFeSpace());
-      break;
-    default:
-      Exception("Right hand side quantity not known for elecPDE");
-    }
-    return mContext;
   }
 }

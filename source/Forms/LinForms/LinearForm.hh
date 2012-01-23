@@ -28,6 +28,11 @@
 #ifndef FILE_LINEARFORM_
 #define FILE_LINEARFORM_
 
+#include "Domain/CoefFunction/CoefFunction.hh"
+#include "FeBasis/FeSpace.hh"
+#include "Domain/Domain.hh"
+
+
 namespace CoupledField{
 
   // forward class declaration
@@ -51,6 +56,10 @@ namespace CoupledField{
         EXCEPTION("RhsIntegrator::CalcElementVector called this may not happen!");
       }
 
+      void SetName(const std::string& name ){
+         name_ = name;
+      }
+      
       std::string GetName(){
         return name_;
       }

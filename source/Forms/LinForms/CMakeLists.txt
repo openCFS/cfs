@@ -1,9 +1,8 @@
 SET(LINFORMS_SRCS
-  #nothing right now, each cc file
-  #is included directly in the header 
-  )
+ SingleEntryInt.cc 
+ )
 
-ADD_LIBRARY(linforms STATIC ${FORMS_SRCS})
+ADD_LIBRARY(linforms STATIC ${LINFORMS_SRCS})
 
 
 TARGET_LINK_LIBRARIES(linforms

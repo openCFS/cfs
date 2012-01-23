@@ -189,18 +189,6 @@
             <xsd:element name="storeResults" type="DT_PiezoDirectStoreResults"
               minOccurs="0" maxOccurs="1"/>          
             <xsd:element name="nonLinear" type="DT_NonLinParams" minOccurs="0"/>
-            
-            
-            <!-- Material data for computation of polarization matrix, see class TopGrad (optional) -->
-            <xsd:element name="polarizationMatrix" minOccurs="0" maxOccurs="1">
-              <xsd:complexType>
-               <xsd:sequence>
-                  <xsd:element name="mechTensor" type="DT_MechElastTensor" minOccurs="1" maxOccurs="1"/>
-                  <xsd:element name="elecTensor" type="DT_ElecPermTensor" minOccurs="1" maxOccurs="1"/>
-                  <xsd:element name="couplingTensor" type="DT_PiezoCouplTensor" minOccurs="1" maxOccurs="1"/>         
-                </xsd:sequence>
-              </xsd:complexType>
-            </xsd:element>
           </xsd:sequence>
         </xsd:extension>
       </xsd:complexContent>

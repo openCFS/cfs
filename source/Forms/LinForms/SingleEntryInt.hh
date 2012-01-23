@@ -1,49 +1,38 @@
 #ifndef CFS_SINGLEENTRY_INT_HH
 #define CFS_SINGLEENTRY_INT_HH
 
-#include "Utils/mathParser/mathParser.hh"
+#include "LinearForm.hh" 
+#include "MatVec/Vector.hh"
 
 namespace CoupledField {
 
-  class SingleEntryInt : public BaseForm {
+  //! (Bi)Linearform, which sets just one single entry 
+  class SingleEntryInt : public LinearForm {
 
   public:
 
-    //! Constructor (real case)
-    SingleEntryInt( const std::string& real,
-                    UInt dof, UInt numDofs );
-
-    //! Constructor (complex case )
-    SingleEntryInt( const std::string& real,
-                    const std::string& imag,
-                    UInt dof, UInt numDofs );
+    //! Constructor
+    //! \param val Coefficient function (vector valued)
+    SingleEntryInt( shared_ptr<CoefFunction>& val );
 
     //! Destructor
     virtual ~SingleEntryInt();
 
-    //! Calculation of element 'matrix' (real case )
-    void CalcElementMatrix( Matrix<Double>& elemMat,
-                            EntityIterator& ent1, 
-                            EntityIterator& ent2 );
+    //! Calculation of element 'vector' (real case )
+    void CalcElemVector(Vector<Double>& elemVec,EntityIterator& ent);
 
-    //! Calculation of element 'matrix' (complex case )
-    void CalcElementMatrix( Matrix<Complex>& elemMat,
-                            EntityIterator& ent1, 
-                            EntityIterator& ent2 );
+    //! Calculation of element 'vector' (complex case )
+    void CalcElemVector(Vector<Complex>& elemVec,EntityIterator& ent);
+    
+    //! \see LinearForm::IsComplex
+    bool IsComplex() {
+      return val_->IsComplex();
+    }
     
   protected:
 
-    //! factors to be set 
-    std::string real, imag;
-
-    //! handles for math parser
-    MathParser::HandleType rHandle_, iHandle_;
-
-    //! dof to be set
-    UInt dof_;
-
-    //! maximum number of dofs
-    UInt numDofs_;
+    //! Coefficient function
+    shared_ptr<CoefFunction> val_;
   };
 }
 

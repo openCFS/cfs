@@ -31,10 +31,13 @@
 
 #include "DataInOut/ResultHandler.hh"
 
+// Single Field PDEs
 #include "PDE/ElecPDE.hh"
-#include "PDE/MagEdgePDE.hh"
 #include "PDE/HeatPDE.hh"
+#include "PDE/MagEdgePDE.hh"
+#include "PDE/MechPDE.hh"
 #include "PDE/AcousticPDE.hh"
+
 
 
 // Coupling of single PDEs
@@ -538,8 +541,8 @@ void Domain::CreateSinglePDEs(UInt sequenceStep)
     if (actPdeName == "electrostatic")
       ptSinglePde_[i] = new ElecPDE(defaultGrid, actPdeNode);
 
-//    else if (actPdeName == "mechanic")
-//      ptSinglePde_[i] = new MechPDE(defaultGrid, actPdeNode);
+    else if (actPdeName == "mechanic")
+      ptSinglePde_[i] = new MechPDE(defaultGrid, actPdeNode);
 
     else if (actPdeName == "acoustic")
     {

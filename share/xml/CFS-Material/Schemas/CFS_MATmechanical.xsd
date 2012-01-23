@@ -28,19 +28,8 @@
         minOccurs="0"/>
     </xsd:sequence>
   </xsd:complexType>
-
-  <!-- ******************************************************************* -->
-  <!--   Definition of mechanical elasticity -->
-  <!-- ******************************************************************* -->
-  <xsd:complexType name="DT_MechElasticity">
-    <xsd:choice>
-      <xsd:element name="tensor" type="DT_MechElastTensor"/>
-      <xsd:element name="isotropic" type="DT_MechElastIsotropic"/>
-      <xsd:element name="transversalIsotropic" type="DT_MechElastTransIsotrop"/>
-      <xsd:element name="orthotropic" type="DT_MechElastOrthotropic"/>
-    </xsd:choice>
-  </xsd:complexType>
-
+  
+  
   <!-- ******************************************************************* -->
   <!--   Definition of mechanical elasticity tensor                        -->
   <!-- ******************************************************************* -->
@@ -64,6 +53,19 @@
     <xsd:attribute name="dim1" type="xsd:nonNegativeInteger" use="required"/>
   </xsd:complexType>
   
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of mechanical elasticity -->
+  <!-- ******************************************************************* -->
+  <xsd:complexType name="DT_MechElasticity">
+    <xsd:choice>
+      <xsd:element name="tensor" type="DT_MechElastTensor"/>
+      <xsd:element name="isotropic" type="DT_MechElastIsotropic"/>
+      <xsd:element name="transversalIsotropic" type="DT_MechElastTransIsotrop"/>
+      <xsd:element name="orthotropic" type="DT_MechElastOrthotropic"/>
+    </xsd:choice>
+  </xsd:complexType>
+
   <!-- ******************************************************************* -->
   <!--   Definition of isotropic mechanical elasticity                     -->
   <!-- ******************************************************************* -->

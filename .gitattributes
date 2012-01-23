@@ -832,6 +832,8 @@ source/Domain/CoefFunction/CoefFunction.hh -text
 source/Domain/CoefFunction/CoefFunctionConst.hh -text
 source/Domain/CoefFunction/CoefFunctionExpression.cc -text
 source/Domain/CoefFunction/CoefFunctionExpression.hh -text
+source/Domain/CoefFunction/CoefFunctionTimeFreq.cc -text
+source/Domain/CoefFunction/CoefFunctionTimeFreq.hh -text
 source/Domain/CoordinateSystems/CMakeLists.txt -text
 source/Domain/CoordinateSystems/CartesianCoordSystem.cc svneol=native#text/plain
 source/Domain/CoordinateSystems/CartesianCoordSystem.hh svneol=native#text/plain
@@ -953,6 +955,7 @@ source/Forms/Operators/CMakeLists.txt -text
 source/Forms/Operators/CurlOperator.hh -text
 source/Forms/Operators/GradientOperator.hh -text
 source/Forms/Operators/IdentityOperator.hh -text
+source/Forms/Operators/StrainOperator.hh -text
 source/General/CMakeLists.txt svneol=native#text/plain
 source/General/Enum.hh -text
 source/General/Environment.cc svneol=native#text/x-c%2B%2Bsrc
@@ -1003,6 +1006,8 @@ source/MatVec/opdefs.hh svneol=native#text/x-c%2B%2Bhdr
 source/MatVec/promote.hh svneol=native#text/x-c%2B%2Bhdr
 source/MatVec/vectorSerialization.cc svneol=native#text/x-c%2B%2Bsrc
 source/MatVec/vectorSerialization.hh svneol=native#text/x-c%2B%2Bhdr
+source/Materials/AcousticMaterial.cc -text
+source/Materials/AcousticMaterial.hh -text
 source/Materials/BaseMaterial.cc -text svneol=unset#text/x-c%2B%2Bsrc
 source/Materials/BaseMaterial.hh -text svneol=unset#text/x-c%2B%2Bhdr
 source/Materials/CMakeLists.txt svneol=native#text/plain
@@ -1013,6 +1018,8 @@ source/Materials/ElectroStaticMaterial.cc -text svneol=unset#text/x-c%2B%2Bsrc
 source/Materials/ElectroStaticMaterial.hh -text svneol=unset#text/x-c%2B%2Bhdr
 source/Materials/HeatMaterial.cc -text
 source/Materials/HeatMaterial.hh -text
+source/Materials/MechanicMaterial.cc -text
+source/Materials/MechanicMaterial.hh -text
 source/Materials/Models/Hysteresis.cc svneol=native#text/x-c%2B%2Bsrc
 source/Materials/Models/Hysteresis.hh svneol=native#text/x-c%2B%2Bhdr
 source/Materials/Models/Jiles.cc svneol=native#text/x-c%2B%2Bsrc
@@ -1193,6 +1200,8 @@ source/PDE/HeatPDE.cc -text
 source/PDE/HeatPDE.hh -text
 source/PDE/MagEdgePDE.cc -text
 source/PDE/MagEdgePDE.hh -text
+source/PDE/MechPDE.cc -text
+source/PDE/MechPDE.hh -text
 source/PDE/SinglePDE.cc svneol=native#text/x-c%2B%2Bsrc
 source/PDE/SinglePDE.hh svneol=native#text/x-c%2B%2Bhdr
 source/PDE/StdPDE.cc svneol=native#text/x-c%2B%2Bsrc

@@ -157,9 +157,7 @@ protected:
 // --------------------------------------------------------------------------
 
 //! Functor for interpolating fields based on primary variable
-template<template<class,class> class B_OP,
-                  class FE_TYPE,
-                  class DATA_TYPE>
+template<class B_OP, class DATA_TYPE>
 class FieldInterpolFunctor : public FieldFunctor<DATA_TYPE> {
 public:
   
@@ -169,7 +167,6 @@ public:
                           FieldFunctor<DATA_TYPE>( feFct, inf) {
     
     feSpace_ = feFct->GetFeSpace();
-    operator_.SetSolDim(inf->dofNames.GetSize());
   }
   
   //! Destructor
@@ -187,7 +184,7 @@ public:
 protected:
 
   //! Id interpolation operator
-  B_OP<FE_TYPE,DATA_TYPE> operator_;
+  B_OP operator_;
 
   //! Store FeSpace
   shared_ptr<FeSpace> feSpace_;
@@ -242,7 +239,7 @@ protected:
 };
 
 // --------------------------------------------------------------------------
-//  FIELDS BASED ON FLUX (dB-Intergator)
+//  FIELDS BASED ON FLUX (dB-Integrator)
 // -------------------------------------------------------------------------
 //! Functor for calculating fields based on the flux
 

@@ -23,7 +23,7 @@ namespace CoupledField {
     if( pos < 0  ) {
       EXCEPTION( "Dof with name '" << dof << "' not found!" );
     }
-    return (UInt) (pos-1);
+    return (UInt) (pos);
     
   }
 
@@ -44,7 +44,7 @@ namespace CoupledField {
                  << dofNames.GetSize()+1 << "]!" );
     }
     
-    return dofNames[dof-1];
+    return dofNames[dof];
   }
 
   std::string ResultInfo::ToString() const 
