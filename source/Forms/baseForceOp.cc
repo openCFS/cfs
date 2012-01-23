@@ -15,12 +15,19 @@
 #include "Utils/elemstoresol.hh"
 #include "baseForceOp.hh"
 
+
+// header for logging
+#include "DataInOut/Logging/cfslog.hh"
 namespace CoupledField {
 class EqnMap;
 class StdPDE;
 template <typename T> class NodeStoreSol;
 }  // namespace CoupledField
 
+
+// declare logging stream
+DECLARE_LOG(forceOp)
+DEFINE_LOG(forceOp, "forceOp")
 namespace CoupledField
 {
 
@@ -33,7 +40,6 @@ namespace CoupledField
                            bool isaxi, bool coordUpdate )
     : BaseOperator(ptGrid, ptPDE, eqnMap, isaxi, coordUpdate )
   {
-    //WARN( "Only working wit Lagrange elements" );
     dim_ = dim;
     materials_ = matData;
 
@@ -58,6 +64,12 @@ namespace CoupledField
     //get the interface elements to the coupling nodes
     ptGrid_->GetElemsNextToNodes(interfaceElems_, couplingnodes,
                                  neighRegions );
+    
+    // print all the elements "next" to the interface
+    LOG_DBG(forceOp) <<  "Elements on the interface:";
+    for( UInt i = 0; i < interfaceElems_.GetSize(); ++i ) {
+     LOG_DBG(forceOp) << "# " << interfaceElems_[i]->elemNum << ", ";
+    }
 
     //get memory
     isBoundaryNode_.Resize(interfaceElems_.GetSize());
@@ -66,6 +78,7 @@ namespace CoupledField
     elemNodeToCouplingNode_.Init();
 
 
+    LOG_DBG(forceOp) << "List of coupling nodes: ";
     for (UInt ielem=0; ielem<interfaceElems_.GetSize(); ielem++)
       {
         isBoundaryNode_[ielem].Resize(interfaceElems_[ielem]->connect.GetSize());
@@ -79,11 +92,13 @@ namespace CoupledField
             if (interfaceElems_[ielem]->connect[ielemnode] == couplingnodes[inodes] ) {
               isBoundaryNode_[ielem][ielemnode] = 1;
               elemNodeToCouplingNode_[ielem][ielemnode] = inodes;
+              LOG_DBG(forceOp) << couplingnodes[inodes] << ", ";
               break;
             } // end if
           }
         }
       }
+    std::cerr << "\n\n";
 
   }
 
@@ -95,8 +110,13 @@ namespace CoupledField
 
     force.Init();
 
+    LOG_DBG(forceOp) << "==========================";
+    LOG_DBG(forceOp) << " Caclulating Nodal Forces";
+    LOG_DBG(forceOp) << "==========================";
+    
     for (UInt ielem=0; ielem<interfaceElems_.GetSize(); ielem++)
       {
+      LOG_DBG(forceOp) << "Force on Elem #" << interfaceElems_[ielem]->elemNum << std::endl;
         // Get Material Parameter
         Double matVal;
 
@@ -109,13 +129,16 @@ namespace CoupledField
 
         CalcElemElecForce( force_temp, interfaceElems_[ielem], matVal, isBoundaryNode_[ielem]);
 
-
         // Add the element force to the according coupling node
-        for (UInt ielemnode=0; ielemnode<interfaceElems_[ielem]->connect.GetSize(); ielemnode++)
+        for (UInt ielemnode=0; ielemnode<interfaceElems_[ielem]->connect.GetSize(); ielemnode++) {
+          LOG_DBG(forceOp) << "\tnode #" <<  interfaceElems_[ielem]->connect[ielemnode] << ": ";
+                                  
           for( UInt idim=0; idim<dim_; idim++) {
             force[elemNodeToCouplingNode_[ielem][ielemnode]*dim_+idim] +=
-              force_temp(ielemnode,idim);
+                force_temp(ielemnode,idim);
+            LOG_DBG(forceOp) << "\t\t" << force_temp(ielemnode,idim) << ", ";
           }
+        }
       }
 
 
