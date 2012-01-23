@@ -162,7 +162,7 @@ namespace CoupledField
                   matData, isaxi, coordUpdate )
   {
 
-    curlFieldOp_ = new CurlNodeOp<Double>(ptGrid, ptPDE, eqnMap, sol);
+    curlFieldOp_ = new CurlNodeOp<Double>(ptGrid, ptPDE, eqnMap, sol, coordUpdate);
     curlFieldOp_->Set2DType(isaxi);
 
     solType_ = MAG_FORCE_VWP;

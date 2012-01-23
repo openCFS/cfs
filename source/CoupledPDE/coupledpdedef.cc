@@ -12,8 +12,16 @@
 #include "PDE/StdPDE.hh"
 #include "coupledpdedef.hh"
 
+// header for logging
+#include "DataInOut/Logging/cfslog.hh"
+
 namespace CoupledField
 {
+
+
+// declare logging stream
+DECLARE_LOG(cpldef)
+DEFINE_LOG(cpldef, "cpldef")
 
 
   CoupledPDEDef::CoupledPDEDef(Grid * aptGrid)
@@ -41,6 +49,14 @@ namespace CoupledField
                                      StdVector<StdPDE*> & UnorderedPDEs,
                                      PtrParamNode iterCoupledNode )
   {
+    
+    if( IS_LOG_ENABLED(cpldef, dbg)) {
+      LOG_DBG(cpldef) << "Creating coupled PDE for the following PDEs:";
+      for( UInt i =0; i < UnorderedPDEs.GetSize(); ++i ) {
+        LOG_DBG(cpldef) << "\t" << UnorderedPDEs[i]->GetName();
+      }
+    }
+
 
 
     bool found = false;
@@ -83,6 +99,7 @@ namespace CoupledField
           }
       
       }
+    
   
     if (found != true)
       EXCEPTION("Coupling for current set of PDEs ist not defined!");
@@ -105,6 +122,18 @@ namespace CoupledField
       MyCoupledPDE->GetCouplingType(OrderedPDEs[i]->GetName(), InputType);
       MyCoupledPDE->GetCouplingQuantity(OrderedPDEs[i]->GetName(), InputQuantity);
       MyCoupledPDE->GetCouplingOptionality(OrderedPDEs[i]->GetName(), inputOptionality);
+      
+      // logging stuff - to see, what's going on
+      LOG_DBG(cpldef) << "Creating new coupling object:";
+      LOG_DBG(cpldef) << "\tPDE: " << OrderedPDEs[i]->GetName();
+      LOG_DBG(cpldef) << "\tInputTypes:";
+      for(UInt k = 0; k < InputType.GetSize(); ++ k ) {
+        LOG_DBG(cpldef) << "\t\t -" << InputType[k];
+      }
+      LOG_DBG(cpldef) << "\tInputSolutionTypes:";
+      for(UInt k = 0; k < InputQuantity.GetSize(); ++ k ) {
+        LOG_DBG(cpldef) << "\t\t -" << SolutionTypeEnum.ToString(InputQuantity[k]);
+      }
       Couplings[i] = new PDECoupling(ptGrid_);
       Couplings[i]->SetPDE(OrderedPDEs[i]);
       std::string pdeName = OrderedPDEs[i]->GetName();
@@ -149,13 +178,18 @@ namespace CoupledField
           {
             if (couplingTermsConv[k] == InputQuantity[j])
             {
+              LOG_DBG(cpldef) << "Registering OPTIONAL input " 
+                              << SolutionTypeEnum.ToString(InputQuantity[j]);
               Couplings[i]->RegisterInput(InputType[j], InputQuantity[j]);
               break;
             }
           }
-        }
-        else
-          Couplings[i]->RegisterInput(InputType[j], InputQuantity[j]);
+        } // if input is optional
+      else {
+        LOG_DBG(cpldef) << "Registering mandatory input " 
+            << SolutionTypeEnum.ToString(InputQuantity[j]);
+        Couplings[i]->RegisterInput(InputType[j], InputQuantity[j]);
+      }
       }
     }
   }

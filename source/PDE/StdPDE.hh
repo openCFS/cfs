@@ -115,10 +115,6 @@ struct ResultInfo;
     virtual shared_ptr<ResultInfo> GetResultInfo( SolutionType solType );
 
 
-    virtual AnalysisType GetAnalysisType() {
-      return analysistype_;
-    }
-
     bool HasComplexMatData(RegionIdType actRegion)
     {return complexMatData_[actRegion];}
   
@@ -585,7 +581,6 @@ struct ResultInfo;
     //! flag indicating if this PDE needs the algebraic system
     bool needsAlgsys_;
 
-    AnalysisType analysistype_; //!< analysis type
     bool isAlwaysStatic_;    //!< flag for static PDEs (like electrostatic)
     UInt dim_;                  //!< space dimension of pde
     bool isaxi_;             //!< true: axisymmetric problem

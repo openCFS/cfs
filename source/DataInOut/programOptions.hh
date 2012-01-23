@@ -92,17 +92,13 @@ namespace CoupledField
      * @return "" if nothing given. */
     std::string GetErsatzMaterialStr() const;
 
-    //! Return path to XML schema file
 
-    //! This method can be used to query the path to the XML schema file
-    //! used by validating XML parsers to verify the formal correctness
-    //! of the XML parameter file.
-    //! \note
-    //! - There is currently no way to specify the name of the schema
-    //!   file itself. This must be called CFS.xsd!
-    //! - This path is also used to locate the default XML-file that is
-    //!   currently still needed by the XMLParamHandler.
-    fs::path GetSchemaPath() const;
+    /** Return path to XML schema file.
+     * This method can be used to query the path to the XML schema file of the XML parameter file.
+     * Used by validating XML parsers to verify the formal correctness. Setting 'none' as option disables
+     * schema parsing.
+     * @note There is currently no way to specify the name of the schema file itself. This must be called CFS.xsd!
+     * @note This path is also used to locate the default XML-file that is currently still needed by the XMLParamHandler */
     std::string GetSchemaPathStr() const;
 
     //! Return name of mesh file (including path)

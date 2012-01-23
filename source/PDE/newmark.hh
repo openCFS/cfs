@@ -82,6 +82,8 @@ namespace CoupledField
     //! predictor for derivative of solution
     Vector<Double> solderiv1pred_, solderiv1predSAVE_;
 
+    //! solution and first derivative of previous time step;
+    Vector<Double> solPrevious_, solderiv1Previous_;
   };
 
 

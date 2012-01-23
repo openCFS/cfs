@@ -29,7 +29,7 @@ namespace CoupledField
 
    
 
-  //! This class holds information about itertive Coupling terms
+  //! This class holds information about iterative Coupling terms
   class PDECoupling
   {
 
@@ -157,6 +157,12 @@ namespace CoupledField
                           NormType normtype,
                           StdVector<PDECoupling*> & couplings);
   
+    //! Finalize object
+    
+    //! This method finalizes the setup of the coupling object, i.e. it 
+    //! deletes all empty / null interfaces. 
+    virtual void Finalize();
+    
     //! set PDE
     virtual void SetPDE(StdPDE * aPDE);
 

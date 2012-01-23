@@ -28,6 +28,7 @@
 #include "Materials/thermoelasticMaterial.hh"
 #include "XMLMaterialHandler.hh"
 #include "def_use_xerces.hh"
+#include <boost/algorithm/string/predicate.hpp>
 
 // Note, that the methods ComputeIso/OrthoMechStiffnesTensor were commented out
 // in revision 7562 and are not in the code -> check the repository!
@@ -38,11 +39,10 @@ namespace CoupledField {
     : MaterialHandler( fileName) {
 
     // Create a ParamNode and parse the material file
-    std::string schema = progOpts->GetSchemaPathStr();
-    schema += "/CFS-Material/CFS_Material.xsd";
-  
+    std::string schema = progOpts->GetSchemaPathStr() + "/CFS-Material/CFS_Material.xsd";
+
     // Initialize our xerces dom parser to handle the  xml file
-    Xerces* xerces = new Xerces(fileName, schema);
+    Xerces* xerces = new Xerces(fileName, boost::starts_with(schema, "none") ? "" : schema);
 
     parser_ = xerces->CreateParamNodeInstance();
 

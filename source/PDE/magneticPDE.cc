@@ -1424,6 +1424,15 @@ DEFINE_LOG(magpde, "magpde")
     forceLorentz->fctType = shared_ptr<ConstFct>(new ConstFct());
     availResults_.insert( forceLorentz );
 
+    // === VWP FORCE ===
+    shared_ptr<ResultInfo> forceVWP(new ResultInfo);
+    forceVWP->resultType = MAG_FORCE_VWP;
+    forceVWP->dofNames = vecComponents;
+    forceVWP->unit = "N";
+    forceVWP->definedOn = ResultInfo::NODE;
+    forceVWP->entryType = ResultInfo::VECTOR;
+    forceVWP->fctType = shared_ptr<ConstFct>(new ConstFct());
+    availResults_.insert( forceVWP );
 
     // ===================================
     // Check for non-conforming interfaces
@@ -1500,7 +1509,8 @@ DEFINE_LOG(magpde, "magpde")
 
   void MagPDE::ReadSpecialResults() {
     
-    // There is a small problem with the magnetic force VWP:
+    // There is a small problem with the magnetic force VWP
+
     // The force itself is primarily calculated on nodes,
     // which makes it dependent on the discretization.
 
@@ -1514,7 +1524,7 @@ DEFINE_LOG(magpde, "magpde")
     
 
 
-  //   StdVector<std::string> vecComponents;
+//     StdVector<std::string> vecComponents;
 //     if( isaxi_ ) {
 //       vecComponents = "r", "z";
 //     } else {
@@ -1530,7 +1540,6 @@ DEFINE_LOG(magpde, "magpde")
 //     std::string quantity;
 //     Enum2String(MAG_FORCE_VWP, quantity);
 
-//     // try to find nodes 
 //     keyVec  = pdename_, "storeResults", "nodeResult", "nodes";
 //     attrVec = "", "", "type";
 //     valVec = "", "",quantity;
@@ -1906,6 +1915,33 @@ DEFINE_LOG(magpde, "magpde")
           cplNodeNumPos_[actCoupling][actNode] = iNode;
         }
       }
+      else if (ptCoupling_->GetOutputQuantity(actCoupling) == MAG_FORCE_VWP ) {
+      
+        // Initialization of coupling helper arrays
+        StdVector<UInt> * couplingnodes = NULL;
+        StdVector<std::string> * nRegions;
+        StdVector<RegionIdType> nRegionIds;
+
+        ptCoupling_->GetOutputNodes(actCoupling, couplingnodes);
+        if (couplingnodes == NULL)
+          std::cerr << "Couplingnodes = 0!!!!" << std::endl;
+      
+        // get volume neighbours lying next to coupling nodes, because 
+        // these volume elements have to be  moved 'virtually'
+        NodeStoreSol<Double> * solhelp = 
+          dynamic_cast<NodeStoreSol<Double> *>(sol_);
+        ForceOpVWP_ = new  MagForceOp(ptgrid_, this,  eqnMap_, 
+                                      *solhelp, dim_, materials_, 
+                                      isaxi_, true );
+        
+        ptCoupling_->GetOutputNeighbourRegion(actCoupling, nRegions);
+        ptgrid_->GetRegion().Parse(*nRegions, nRegionIds);
+        ForceOpVWP_->Setup(nRegionIds, *couplingnodes);
+      
+        // Intialize the memory of the coupling values
+        ptCoupling_->CreateCouplingVector(actCoupling,isComplex_);
+
+      }
     }
   }
 
@@ -1944,7 +1980,24 @@ DEFINE_LOG(magpde, "magpde")
           ptgrid_->GetRegion().Parse( couplRegions, regionIds );
 
           CalcNodeForceLorentz(*temp, regionIds, cplNodeNumPos_[forcesCount]);
+          Vector<Double> sum(dim_);
+          sum.Init();
+          for( UInt i = 0; i < cplNodeNumPos_[forcesCount].size(); i++ ) {
+            for( UInt j = 0; j < dim_; j++ ) {
+              sum[j] += (*temp)[i*dim_+j];
+            }
+          }
+          Info->PrintF(pdename_, "Sum of magnetic force (Lorentz):\n");
+          Info->PrintVec(sum);
+          forcesCount++;
+        }
+        else  if (quantity ==  MAG_FORCE_VWP) {
+          Vector<Double> totalForce;
+          ForceOpVWP_->CalcNodeForce(*temp, totalForce);
           
+          // write information in .info-file
+          Info->PrintF(pdename_, "Sum of magnetic force (VWM):\n");
+          Info->PrintVec(totalForce);
           forcesCount++;
         }
 
@@ -2087,6 +2140,9 @@ DEFINE_LOG(magpde, "magpde")
 
   bool MagPDE::HasOutput( SolutionType output ) {
     if (output == MAG_FORCE_LORENTZ) {
+      return true;
+    }
+    else if (output == MAG_FORCE_VWP) {
       return true;
     }
     return false;

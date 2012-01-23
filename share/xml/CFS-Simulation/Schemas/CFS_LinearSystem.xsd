@@ -71,6 +71,7 @@
       <xsd:element name="timeSteppingParameters" minOccurs="0" maxOccurs="1">
         <xsd:complexType>
           <xsd:sequence>
+            <xsd:element name="alpha"  type="xsd:float" minOccurs="0"/>
             <xsd:element name="beta"  type="xsd:float" minOccurs="0"/>
             <xsd:element name="gamma" type="xsd:float" minOccurs="0" />
             <xsd:element name="nu"    type="xsd:float" minOccurs="0"/>

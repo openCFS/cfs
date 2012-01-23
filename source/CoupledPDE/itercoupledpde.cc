@@ -257,9 +257,20 @@ namespace CoupledField
                                    regionTypeAux, neighbourRegions,
                                    epsilon, normTypeAux, Couplings_);
         norms_.Push_back(1.0);
-      }
-    }
+      } // loop over quantities
+    } // loop over pdes
 
+    
+    // ======================================================================
+    //  DELETE NON-DEFINED COUPLING INTERFACES
+    // ======================================================================
+    // At this point, all couplings are defined. As not all quantities are
+    // mandatory, we could have empty coupling interfaces, which must be deleted.
+    // Thus we loop now over all interfaces and delete non-used interfaces
+    for ( UInt i = 0; i < Couplings_.GetSize(); i++ ) {
+      Couplings_[i]->Finalize();
+    }
+    
     // Initialize each PDEs coupling terms
     for ( UInt i = 0; i < Couplings_.GetSize(); i++ ) {
       Couplings_[i]->GetPDE()->InitCoupling(Couplings_[i]);

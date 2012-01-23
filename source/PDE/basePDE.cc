@@ -21,6 +21,7 @@ namespace CoupledField {
     myParam_(paramNode),
     pdename_()
   {
+    analysistype_ =  (AnalysisType) -1; // undefined!
   }
 
   // **************

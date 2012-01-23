@@ -21,15 +21,16 @@
 #include "couplingmemento.hh"
 #include "pdecoupling.hh"
 
-namespace CoupledField {
-class BaseMaterial;
-}  // namespace CoupledField
+// header for logging
+#include "DataInOut/Logging/cfslog.hh"
 
 
 
 namespace CoupledField
 {
-
+// declare logging stream
+DECLARE_LOG(pdecpl)
+DEFINE_LOG(pdecpl, "pdecpl")
 
   PDECoupling::CouplingInterface::CouplingInterface()
   {
@@ -176,6 +177,15 @@ namespace CoupledField
   {
   
   
+    // Logging output
+    LOG_DBG(pdecpl) << "Adding new input";
+    LOG_DBG(pdecpl) << "\tQuantity: " << SolutionTypeEnum.ToString(quantity);
+    LOG_DBG(pdecpl) << "\tRegions: " << region.Serialize();
+    LOG_DBG(pdecpl) << "\tNeighbor Regions: " << neighRegions.Serialize();
+    LOG_DBG(pdecpl) << "";
+    LOG_DBG(pdecpl) << "";
+    LOG_DBG(pdecpl) << "";
+    
     CouplingInterface *myInterface = 0; 
     Integer myNum = -1;
   
@@ -188,7 +198,8 @@ namespace CoupledField
   
     if (myNum == -1)
       {
-        EXCEPTION( "Quantity '" << SolutionTypeEnum.ToString(quantity) <<  "' not registered for PDE '"
+        EXCEPTION( "Quantity '" << SolutionTypeEnum.ToString(quantity) 
+                   <<  "' not registered for PDE '"
                    << myPDE_->GetName() << "'" );
       }
   
@@ -400,6 +411,42 @@ namespace CoupledField
     inputInterfaces_[myNum] = myInterface;
   
   
+  }
+  
+  void PDECoupling::Finalize() {
+    
+    // Create copy of output interfaces
+    StdVector<CouplingOutputType> tempOutputTypes;     
+    StdVector<SolutionType> tempOutputQuantities;
+    StdVector<CouplingInterface*> tempOutputInterfaces;
+    for( UInt i = 0; i < outputInterfaces_.GetSize(); ++i ) {
+      if( outputInterfaces_[i] != NULL) {
+        tempOutputTypes.Push_back(outputTypes_[i]);
+        tempOutputQuantities.Push_back(outputQuantities_[i]);
+        tempOutputInterfaces.Push_back(outputInterfaces_[i]);
+      }
+    }
+    // store arrays back
+    outputTypes_ = tempOutputTypes;
+    outputQuantities_ = tempOutputQuantities;
+    outputInterfaces_ = tempOutputInterfaces;
+      
+    // Create copy of input interfaces
+    StdVector<CouplingInputType> tempInputTypes;     
+    StdVector<SolutionType> tempInputQuantities;
+    StdVector<CouplingInterface*> tempInputInterfaces;
+    for( UInt i = 0; i < inputInterfaces_.GetSize(); ++i ) {
+      if( inputInterfaces_[i] != NULL) {
+        tempInputTypes.Push_back(inputTypes_[i]);
+        tempInputQuantities.Push_back(inputQuantities_[i]);
+        tempInputInterfaces.Push_back(inputInterfaces_[i]);
+      }
+    }
+    // store array back
+    inputTypes_ = tempInputTypes;
+    inputQuantities_ = tempInputQuantities;
+    inputInterfaces_ = tempInputInterfaces;
+    
   }
 
   PDECoupling::CouplingInterface* PDECoupling::AddOutput(CouplingOutputType outputType, 

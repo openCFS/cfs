@@ -96,6 +96,7 @@ namespace CoupledField{
       void ReadGrid();
       void CalcNumNodesPerRegion();
       UInt MapVelocityIndex(char* coordName);
+      UInt MapFrictionIndex(char* coordName);
 
   };
 }

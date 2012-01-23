@@ -257,21 +257,13 @@ void SIMP::AddMassToStiffness(const TransferFunction* mtf, DesignElement* de, Ma
   
   if(pde->GetDamping(regionId) == RAYLEIGH)
   {
-    // we need a math parser (is an unsigned int)
-    unsigned int handle = domain->GetMathParser()->GetNewHandle();
-
     // the alpha and beta might be calculated and adjusted, get them
     // from the integrators in the form as they are used for the state problem!
-    std::string txt = assemble_->GetBiLinForm(regionId, pde, pde, "linElastInt")->GetSecMatFac();
-    domain->GetMathParser()->SetExpr(handle, txt);
-    alpha_k = domain->GetMathParser()->Eval(handle);
+    alpha_k = assemble_->GetBiLinForm(regionId, pde, pde, "linElastInt")->EvalSecMatFac();
 
     // now alpha_m
-    txt = assemble_->GetBiLinForm(regionId, pde, pde, "MassInt")->GetSecMatFac();
-    domain->GetMathParser()->SetExpr(handle, txt);
-    alpha_m = domain->GetMathParser()->Eval(handle);
+    alpha_m = assemble_->GetBiLinForm(regionId, pde, pde, "MassInt")->EvalSecMatFac();
 
-    domain->GetMathParser()->ReleaseHandle(handle);
     assert(omega > 0);
 
     // pamping stuff without omega

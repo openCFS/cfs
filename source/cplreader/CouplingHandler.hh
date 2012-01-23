@@ -52,7 +52,8 @@ namespace CoupledField
   private:
 
     void CalculateAcouSrcs(const int partitionIdx,
-                           FlowDataType& flowData);
+                           FlowDataType& flowData,
+                           bool surfInt);
 
 
     void CollectElementNodes(const std::vector<UInt>& elems,

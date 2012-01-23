@@ -114,12 +114,23 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
     if(trans_in.GetSize() == 0)
       throw Exception("no transferFunctions given");
 
+
     transfer.Reserve(trans_in.GetSize());
     if(trans_in.GetSize() < nd)
       throw Exception("less transferFunctions than design variable types is infeasible");
 
     for(unsigned int i = 0; i < trans_in.GetSize(); i++)
       transfer.Push_back(TransferFunction(trans_in[i], design.GetSize() == 1 ? design[0] : DesignElement::NO_TYPE));
+
+    // check for mass if we have harmonic and density
+    if(BasePDE::IsComplex(domain->GetBasePDE()->GetAnalysisType()) && design.Contains(DesignElement::DENSITY)) {
+      TransferFunction* tf = GetTransferFunction(DesignElement::DENSITY, Optimization::MASS, false); // silend
+      if(tf == NULL) {
+        PtrParamNode in = info->Get("optimization")->Get(ParamNode::HEADER)->Get("designSpace/transferFunctions")->Get(ParamNode::WARNING);
+        in->SetValue("no transfer function 'mass' given for harmonic model");
+      }
+    }
+
   }
   
   
