@@ -100,16 +100,7 @@ namespace CoupledField
      *  Auxiliary -> PDE dependent but mostly stiffness
      *  So we hardcode this here but it can be overwritten by the PDE
      */
-    virtual std::map<FEMatrixType,Integer> GetMatrixDerivativeMap(){
-      std::map<FEMatrixType,Integer> retMap;
-      retMap[MASS] = 2;
-      retMap[DAMPING] = 1;
-      retMap[STIFFNESS] = 0;
-      retMap[AUXILIARY] = 0;
-      retMap[CONVECTION] = 0;
-
-      return retMap;
-    }
+    virtual std::map<FEMatrixType,Integer> GetMatrixDerivativeMap();
 
 
     //! Initialize all/some the nodes by this value

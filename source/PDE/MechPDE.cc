@@ -29,6 +29,7 @@
 #include "Forms/Operators/IdentityOperator.hh"
 
 #include "Driver/SolveSteps/StdSolveStep.hh"
+#include "Driver/TimeSchemes/TimeSchemeGLM.hh"
 #include "CoupledPDE/PDECoupling.hh"
 
 namespace CoupledField {
@@ -423,11 +424,10 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
   // ======================================================
   // TIME STEPPING SECTION
   // ======================================================
-
-
   void MechPDE::InitTimeStepping()
   {
-    REFACTOR;
+    shared_ptr<BaseTimeScheme> myScheme(new TimeSchemeGLM(TimeSchemeGLM::NEWMARK, 2) );
+    feFunctions_[MECH_DISPLACEMENT]->SetTimeScheme(myScheme);
   }
 
 

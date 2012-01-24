@@ -96,6 +96,7 @@ namespace CoupledField{
     UInt sPred = curScheme_->sizeGLMVec_;
     if(curScheme_->usePredictors_){
       predictors_.Resize(sPred);
+      predictorCalculated_.Resize(sPred,false);
       for(UInt i=0;i<sPred;i++){
         predictors_[i] = new Vector<Double>();
         predictors_[i]->Resize(solVec->GetSize());
@@ -120,18 +121,22 @@ namespace CoupledField{
     //Calculate coefficient matrix row index
     UInt cRow = actStage * (curScheme_->maxDerivOrder_+1) + dId;
 
-    //update for old solutions
-    for(UInt i=0;i<curScheme_->sizeGLMVec_;i++){
-      UInt col = curScheme_->numStages_+i;
-      Double coef = curScheme_->schemeCoefs_[cRow][col];
-      if(coef !=0){
-        SingleVector * curVec = glmVector_[i];
-        rhsVec->Add(coef,(*curVec));
+    if(curScheme_->usePredictors_ && predictorCalculated_[dId]){
+      rhsVec->Add((*predictors_[dId]));
+    }else{
+      //update for old solutions
+      for(UInt i=0;i<curScheme_->sizeGLMVec_;i++){
+        UInt col = curScheme_->numStages_+i;
+        Double coef = curScheme_->schemeCoefs_[cRow][col];
+        if(coef !=0){
+          SingleVector * curVec = glmVector_[i];
+          rhsVec->Add(coef,(*curVec));
+        }
       }
-    }
-
-    if(curScheme_->usePredictors_){
-      predictors_[dId]->Add(*rhsVec);
+      if(curScheme_->usePredictors_){
+        predictors_[dId]->Add(*rhsVec);
+        predictorCalculated_[dId] = true;
+      }
     }
 
     //now loop over each column, scale the GLM vector Entry by the factor and add it to RHS
@@ -165,6 +170,7 @@ namespace CoupledField{
       }
       for(UInt i=0;i<curScheme_->sizeGLMVec_;i++){
         predictors_[i]->Init();
+        predictorCalculated_[i] = false;
       }
     }else{
       Exception("The general case is not implemented yet");

@@ -125,10 +125,10 @@ namespace CoupledField {
     //Compute initial solutions
     ptPDE_->SetInitialCondition();
 
-    // to save the initial state
-    resHandler->BeginStep( 0, 0 );
-    ptPDE_->WriteResultsInFile(stepOffset_, timeOffset_);
-    resHandler->FinishStep( );
+    //// to save the initial state
+    //resHandler->BeginStep( 0, 0 );
+    //ptPDE_->WriteResultsInFile(stepOffset_, timeOffset_);
+    //resHandler->FinishStep( );
     
     timer_->Start();
 

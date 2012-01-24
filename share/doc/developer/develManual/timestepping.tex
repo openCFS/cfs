@@ -67,7 +67,7 @@ Therefore the solution process can be summarized as
 
 \STATE $\mathbf{u}_{\mathrm{n}+1} = \mathbf{u}_{\mathrm{n}} + \Delta t \; \mathbf{\dot{u}}_{n+1}$
 \STATE \COMMENT{Solve System}
-\STATE $\mathbf{M} \mathbf{\dot{u}}_{n+1} = F_{\mathrm{n}+1} + \mathbf{K} \mathrm{u}_{\mathrm{n}+1}$ 
+\STATE $\mathbf{M} \mathbf{\dot{u}}_{n+1} = F_{\mathrm{n}+1} - \mathbf{K} \mathrm{u}_{\mathrm{n}+1}$ 
 
 \end{algorithmic}
 \end{algorithm}
@@ -136,7 +136,7 @@ effective mass formulation.
 
 \STATE \COMMENT{Solve System}
 \STATE $\left( \mathbf{M} + \gamma_{\mathrm{P}}\; \Delta t\; \mathbf{K} \right) \mathbf{\dot{u}}_{n+1} =
-F_{\mathrm{n}+1} + \mathbf{K} \tilde{\mathrm{u}}$ 
+F_{\mathrm{n}+1} - \mathbf{K} \tilde{\mathrm{u}}$ 
 
 \STATE \COMMENT{Update solution,Corrector step}
 \STATE $\mathbf{u}_{\mathrm{n}+1} = \tilde{\mathbf{u}} + \gamma_{\mathrm{P}}\; \Delta t \; \mathbf{\dot{u}}_{n+1}$
@@ -320,7 +320,7 @@ t^2 \mathbf{\ddot{u}}_{n}$
 
 \STATE \COMMENT{Solve System}
 \STATE $\left( \mathbf{M} + \gamma_{\mathrm{H}}\; \Delta t\; \mathbf{C} + \beta_{\mathrm{H}}\; \Delta t^2 \mathbf{K}
-\right) \mathbf{u}_{\mathrm{n}+1} = \beta_{\mathrm{H}}\; \Delta t^2 F_{\mathrm{n}+1} -\gamma_{\mathrm{H}}\; \Delta t\;
+\right) \mathbf{u}_{\mathrm{n}+1} = \beta_{\mathrm{H}}\; \Delta t^2 F_{\mathrm{n}+1} -\beta_{\mathrm{H}}\; \Delta t^2\;
 \mathbf{C} \mathbf{\tilde{\dot{u}}} + \left(\mathbf{M} + \gamma_{\mathrm{H}}\; \Delta t\; \mathbf{C} \right) \tilde{\mathbf{u}} $
 
 \STATE \COMMENT{Update derivative,Corrector step}
@@ -650,9 +650,9 @@ first order derivatives depending on the PDE. This is why we need to map interna
 \begin{table}[H]
 \begin{center}
 \begin{tabular}{llcr}
-Mass Matrix & $\mathbf{M}$ & $\rightarrow$ & $\mathbf{M}_1$ \\
-Stiffness Matrix & $\mathbf{K}$ & $\rightarrow$ & $\mathbf{M}_2$ \\
-Damping Matrix & $\mathbf{C}$ & $\rightarrow$ & $\mathbf{M}_3$ \\
+Stiffness Matrix & $\mathbf{K}$ & $\rightarrow$ & $\mathbf{M}_1$ \\
+Damping Matrix & $\mathbf{C}$ & $\rightarrow$ & $\mathbf{M}_2$ \\
+Mass Matrix & $\mathbf{M}$ & $\rightarrow$ & $\mathbf{M}_3$ \\
 \end{tabular}
 \end{center}
 \end{table}
@@ -735,11 +735,11 @@ depending on the parameter $\gamma_\mathrm{P}$ in Tab.~\ref{tab:trapMass} .
 \begin{center}
 \begin{tabular}{cc|!{\vrule width 1pt}cc}
 \multirow{2}{*}{\bf{Stage 1}} 
+& $\gamma_\mathrm{P} \Delta t$ & -1 & $(\gamma_\mathrm{P}-1) \Delta t$ \\
 & 1 & 0 & 0 \\
-& $\gamma_\mathrm{P} \Delta t$ & 1 & $(1-\gamma_\mathrm{P}) \Delta t$ \\
 \hline
-& 1 & 0 & 0 \\
 & $\gamma_\mathrm{P} \Delta t$ & 1 & $(1-\gamma_\mathrm{P}) \Delta t$ \\
+& 1 & 0 & 0 \\
 \end{tabular}
 \caption{Effective Mass Formulation}\label{tab:trapMass}
 \end{center}
@@ -759,13 +759,13 @@ By following the procedure we get the Trapezoidal tableau for Effective Stiffnes
 \begin{center}
 \begin{tabular}{cc|!{\vrule width 1pt}cc}
 \multirow{2}{*}{\bf{Stage 1}} 
-& $\frac{1}{(\gamma_\mathrm{P} \Delta t)}$ & -$\frac{1}{(\gamma_\mathrm{P} \Delta t)}$  &
-$-\frac{(1-\gamma_\mathrm{P})}{\gamma_\mathrm{P}}$ \\
 & 1 & 0 & 0 \\
+& $\frac{1}{(\gamma_\mathrm{P} \Delta t)}$ & $\frac{1}{(\gamma_\mathrm{P} \Delta t)}$  &
+$-\frac{(1-\gamma_\mathrm{P})}{\gamma_\mathrm{P}}$ \\
 \hline
-& $\frac{1}{(\gamma_\mathrm{P} \Delta t)}$ & -$\frac{1}{(\gamma_\mathrm{P} \Delta t)}$  &
-$-\frac{(1-\gamma_\mathrm{P})}{\gamma_\mathrm{P}}$ \\
 & 1 & 0 & 0 \\
+& $\frac{1}{(\gamma_\mathrm{P} \Delta t)}$ & -$\frac{1}{(\gamma_\mathrm{P} \Delta t)}$  &
+$-\frac{(\gamma_\mathrm{P}-1)}{\gamma_\mathrm{P}}$ \\
 \end{tabular}
 \caption{Effective Stiffness Formulation}
 \end{center}
@@ -815,11 +815,11 @@ stiffness formulation as noted above.
 \begin{center}
 \begin{tabular}{cc|!{\vrule width 1pt}cc}
 \multirow{2}{*}{\bf{Stage 1}} 
+& $2/3 \Delta t$ & -4/3 & 1/3 \\
 & 1 & 0 & 0 \\
-& $2/3 \Delta t$ & 4/3 & -1/3 \\
 \hline
-& 1 & 0 & 0 \\
 & $2/3 \Delta t$ & 4/3 & -1/3 \\
+& 0 & 1 & 0 \\
 \end{tabular}
 \caption{BDF2 effective Mass form}\label{tab:bdfCoef}
 \end{center}
@@ -834,11 +834,12 @@ The BDF schemes show stable results up to order 6 So for completeness we give GL
 \begin{center}
 \begin{tabular}{cc|!{\vrule width 1pt}ccc}
 \multirow{2}{*}{\bf{Stage 1}} 
+& $\Delta t\; 6/11$ & 18/11 & -18/22 & 6/33 \\
 & 1 & 0 & 0  & 0\\
-& $\Delta t\; 6/11$ & 18/11 & 18/22 & -6/33 \\
 \hline
-& 1 & 0 & 0  & 0\\
-& $\Delta t\; 6/11$ & 18/11 & 18/22 & -6/33 \\
+& $\Delta t\; 6/11$ & -18/11 & 18/22 & -6/33 \\
+& 0 & 1 & 0  & 0\\
+& 0 & 0 & 1  & 0\\
 \end{tabular}
 \caption{BDF3 effective Mass form}\label{tab:bdf3Coef}
 \end{center}
@@ -854,13 +855,13 @@ The tableau is given in Tab.~\ref{tab:newmarkCoef}.
 \begin{center}
 \begin{tabular}{cc|!{\vrule width 1pt}ccc}
 \multirow{2}{*}{\bf{Stage 1}} 
-& 1 & 0 & 0  & 0\\
 & $\beta_\mathrm{H} \Delta t^2$ & 1 & $\Delta t$  & $(0.5-\beta) \Delta t^2$\\
 & $\gamma_\mathrm{H} \Delta t$ & 0 & 1 & $(1-\gamma_\mathrm{H}) \Delta t$\\
+& 1 & 0 & 0  & 0\\
 \hline
-& 1 & 0 & 0  & 0\\
 & $\beta_\mathrm{H} \Delta t^2$ & 1 & $\Delta t$  & $(0.5-\beta) \Delta t^2$\\
 & $\gamma_\mathrm{H} \Delta t$ & 0 & 1 & $(1-\gamma_\mathrm{H}) \Delta t$\\
+& 1 & 0 & 0  & 0\\
 \end{tabular}
 \caption{Newmark method effective Mass form}\label{tab:newmarkCoef}
 \end{center}
@@ -876,13 +877,13 @@ $(1+\alpha)$ of some coefficients does the job. The result is given in Tab.~\ref
 \begin{center}
 \begin{tabular}{cc|!{\vrule width 1pt}ccc}
 \multirow{3}{*}{\bf{Stage 1}} 
-& 1 & 0 & 0  & 0\\
 & $(1+\alpha) \beta_\mathrm{H} \Delta t^2$ & 1 & $(1+\alpha) \Delta t$  & $(1+\alpha) (0.5-\beta) \Delta t^2$\\
 & $(1+\alpha) \gamma_\mathrm{H} \Delta t$ & 0 & 1 & $(1+\alpha) (1-\gamma_\mathrm{H}) \Delta t$\\
+& 1 & 0 & 0  & 0\\
 \hline
-& 1 & 0 & 0  & 0\\
 & $(1+\alpha) \beta_\mathrm{H} \Delta t^2$ & 1 & $(1+\alpha) \Delta t$  & $(1+\alpha) (0.5-\beta) \Delta t^2$\\
 & $(1+\alpha) \gamma_\mathrm{H} \Delta t$ & 0 & 1 & $(1+\alpha) (1-\gamma_\mathrm{H}) \Delta t$\\
+& 1 & 0 & 0  & 0\\
 \end{tabular}
 \caption{HHT method effective Mass form}\label{tab:coefHHT}
 \end{center}
@@ -957,6 +958,14 @@ itself
 \STATE $subIdx \gets $Just in case of local Stepping schemes
 
 \FOR{$i = 1 \to s$} 
+\STATE \COMMENT{If we need to assmble the matrices we compute the effective matrix factors}
+\FOR{$k = 1 \to N$}
+  \FORALL{ FeFunctions fe} 
+    \STATE $\text{fe}\rightarrow \text{GetTimeScheme()}\rightarrow \text{AddMatricFactors(i,k,subIdx,matFactors)}$
+  \ENDFOR
+  \STATE $\text{AlgSys}\rightarrow \text{ConstructEffectiveMatrix(matFactors)}$
+\ENDFOR
+
 \STATE \COMMENT{Create right hand side from GLM}
 \FOR{$k = 1 \to N$}
   \FORALL{ FeFunctions fe} 
@@ -965,20 +974,10 @@ itself
   \STATE $\text{AlgSys}\rightarrow \text{UpdateRHS(MatType[k],sbmVec,subIdx)}$
 \ENDFOR
 
-\STATE \COMMENT{Create System Matrix set some kind of other RHS values and BCs}
-\FORALL{ FeFunctions fe} 
-  \STATE $\text{fe}\rightarrow \text{GetTimeScheme()}\rightarrow \text{AddSysMatEntires(i,subIdx)}$
-  \STATE $\text{fe}\rightarrow \text{GetTimeScheme()}\rightarrow \text{GetCurTime(time)}$
-  \STATE $\text{fe}\rightarrow \text{CalcRHSLoads(time,subIdx)}$
-  \STATE $\text{fe}\rightarrow \text{ApplyBCs(time,subIdx)}$
-\ENDFOR
+\STATE $\text{ptPDE}\rightarrow \text{CalcRHSLoads(time)}$
+\STATE $\text{ptPDE}\rightarrow \text{ApplyBCs(time)}$
 
 \STATE $\text{AlgSys}\rightarrow \text{Solve()}$
-
-\FORALL{ FeFunctions fe} 
-  \STATE $\text{fe}\rightarrow \text{GetTimeScheme()}\rightarrow \text{UpdateValues(subIdx)}$
-  \STATE $\text{fe}\rightarrow \text{GetTimeScheme()}\rightarrow \text{FinishStage()}$
-\ENDFOR
 
 \ENDFOR
 \STATE \COMMENT{Combine Solutions if necessary}
@@ -996,8 +995,8 @@ sure how this framework will evolve so lets see. The Basic \verb+TimeScheme+ Cla
 Fig.~\ref{fig:timeScheme}
 \begin{figure}[hbt]
 \begin{center}
-\includegraphics[width=0.7\textwidth]{TimeScheme.pdf}
-\caption{TimeScheme class. Storing Coefficient tableau and GLM vector definition}\label{fig:timeScheme}
+\includegraphics[width=0.9\textwidth]{TimeScheme.pdf}
+\caption{TimeScheme classes. Storing Coefficient tableau and GLM vector definition}\label{fig:timeScheme}
 \end{center}
 \end{figure}
 One can argue about the Name of the Methods but this should be left for discussion...
@@ -1008,6 +1007,11 @@ effective Mass in the first order case. Still not every scheme is capable of hav
 stiffness formulation so this should be kept in mind.
 \paragraph{Time Stepping}
 The basic idea is to provide the time-step loop as given in Alg.~\ref{alg:genLoopCoupledFeFunction}.
+\newline
+{\bf NOTE: Right now we have implemented the loop in the \verb+StdSolveStep+ class how far we need to go 
+in further specialization we will have to see!!}
+\newline
+
 To be able to further specialize this loop we choose a generic \verb+TimeStepping+ class which has
 the pure virtual method \verb+AdvanceTimeStep+. Here we can specialize for the GLM. The class
 structure is pictured in Fig.~\ref{fig:timeStepping}. 

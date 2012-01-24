@@ -832,6 +832,8 @@ source/Domain/CoefFunction/CoefFunction.hh -text
 source/Domain/CoefFunction/CoefFunctionConst.hh -text
 source/Domain/CoefFunction/CoefFunctionExpression.cc -text
 source/Domain/CoefFunction/CoefFunctionExpression.hh -text
+source/Domain/CoefFunction/CoefFunctionGrid.cc -text
+source/Domain/CoefFunction/CoefFunctionGrid.hh -text
 source/Domain/CoefFunction/CoefFunctionTimeFreq.cc -text
 source/Domain/CoefFunction/CoefFunctionTimeFreq.hh -text
 source/Domain/CoordinateSystems/CMakeLists.txt -text
@@ -901,6 +903,7 @@ source/Driver/StaticDriver.cc svneol=native#text/x-c%2B%2Bsrc
 source/Driver/StaticDriver.hh svneol=native#text/x-c%2B%2Bhdr
 source/Driver/TimeSchemes/BaseTimeScheme.hh -text
 source/Driver/TimeSchemes/CMakeLists.txt -text
+source/Driver/TimeSchemes/GLMSchemeLib.cc -text
 source/Driver/TimeSchemes/GLMSchemeLib.hh -text
 source/Driver/TimeSchemes/TimeSchemeGLM.cc -text
 source/Driver/TimeSchemes/TimeSchemeGLM.hh -text

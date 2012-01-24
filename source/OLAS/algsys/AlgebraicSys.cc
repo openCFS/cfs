@@ -1852,13 +1852,6 @@ namespace CoupledField {
     if(matrixTypes_.find(matrixType) == matrixTypes_.end())
       return;
 
-    /* THIS FUNCTION IS A LOAD OF CRAB
-     * first: the rhs vector is copied which should be avoided
-     * second: the elemination approach towards the system solution does not work
-     *         because the dofs fixed by IDBC ar not added to the free ones according
-     *         to the coupling
-     *
-     */
     // ensure that the RHS vector to set consists of as many
     // sub-vectors as the RHS of the system
     if( fup.GetSize() != numFcts_ ) {

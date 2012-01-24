@@ -281,7 +281,7 @@ namespace CoupledField {
 
     for(UInt i=0;i<numStages;i++){
       effectiveMatrixUpdated = false;
-
+      rhsVec_.Init();
       //we obtain a reference to the stage vectors of the scheme
       SBM_Vector stageSol;
       stageSol.Resize(feFunctions_.size());
@@ -289,7 +289,7 @@ namespace CoupledField {
         stageSol.SetSubVector(fncIt->second->GetTimeScheme()->GetStageVector(i),pos);
       }
       stageSol.SetOwnership(false);
-      stageRHS_.Init();
+
 
       algsys_->InitRHS();
 

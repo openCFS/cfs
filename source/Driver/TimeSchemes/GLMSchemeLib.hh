@@ -1,9 +1,16 @@
-/*
- * GLMSchemeLib.hh
+// -*- mode: c++; coding: utf-8; indent-tabs-mode: nil; -*-
+// vim: set ts=2 sw=2 et nu ai ft=cpp cindent !:
+// kate: space-indent on; indent-width 2; encoding utf-8;
+// kate: auto-brackets on; mixedindent off; indent-mode cstyle;
+// ================================================================================================
+/*!
+ *       \file     GLMSchemeLib.hh
+ *       \brief    Class declaration for all GLM schemes available
  *
- *  Created on: Jan 3, 2012
- *      Author: ahueppe
+ *       \date     03/01/2012
+ *       \author   Andreas Hueppe
  */
+//================================================================================================
 
 #ifndef GLMSCHEMELIB_HH_
 #define GLMSCHEMELIB_HH_
@@ -14,40 +21,39 @@ namespace CoupledField{
 
 class GLMScheme{
   public:
-    GLMScheme(){
-      curTStepSize_ = 0;
-    }
+    GLMScheme();
 
-    virtual ~GLMScheme(){
+    virtual ~GLMScheme();
 
-    }
-
+    /*!
+     * This method creates the tableau for the current timescheme based on the
+     * requested solution order, i.e. formerly known as effective mass or stiffness and
+     * a given timestep
+     * @param solDerivOrder Which order of time derivative has the solution
+     * @param deltaT Current timestepsize
+     */
     virtual void ComputeCoefficients(UInt solDerivOrder,Double deltaT)=0;
 
-    virtual Double TransformBC(const StdVector< SingleVector* > & glm, Double value, UInt valDerivOrder, Integer eqnNumber){
-      //this algorithm is correct for trapezoidal, newmark and alpha method
-      if(valDerivOrder == solDerivOrder_){
-        return value;
-      }else{
-        Double retVal = 0.0;
-        //temporarily transform the coefMatrix to valDerivOrder
-        UInt tmpSolDeriv = solDerivOrder_;
-        ComputeCoefficients(valDerivOrder,curTStepSize_);
-        //we just take the corresponding line of the V-Matrix and multiply the glm entiries
-        UInt row = numStages_ * (maxDerivOrder_+1) + tmpSolDeriv;
-        UInt col = numStages_;
-        for(UInt i=0;i<sizeGLMVec_;i++){
-          Double tmpVal = 0.0;
-          glm[i]->GetEntry(eqnNumber-1,tmpVal);
-          retVal += tmpVal * schemeCoefs_[row][col+i];
-        }
-        //now we divide value by the special entry and we are good to go
-        retVal += value * schemeCoefs_[row][col-1];
-        //restore the coefficient matrix
-        ComputeCoefficients(tmpSolDeriv,curTStepSize_);
-        return retVal;
-      }
-    }
+    /*!
+     * Transforms a given BC value according to the current scheme formulation.
+     * E.g. if the user specifies a dirichlet condition on the unknown but we solve for
+     * the first time derivative we need to trans form the BC value. For Trapezoidal,
+     * Newmark and HHT method we give here a general algorithm which goes like
+     *
+     * \ol Transform the coefficient matrix to valDerivOrder
+     * \ol Multiply GLM Vector with the transformed tableau coefficients on the correct row
+     * \ol update the value
+     *
+     * For other schemes we need to overwrite this method
+     *
+     * @param glm Reference to the current glm vector
+     * @param value The initial BC value
+     * @param valDerivOrder The requested time derivative of the BC value
+     * @param eqnNumber The equation number of the BC value for accessing the GLM
+     * @return The transformed BC value
+     */
+    virtual Double TransformBC(const StdVector< SingleVector* > & glm, Double value,
+                                  UInt valDerivOrder, Integer eqnNumber);
 
     //++++++++++++++++++++++++++++++++++++++++++++++++++
     //Define Scheme Formulation
@@ -104,221 +110,135 @@ class GLMScheme{
 
 class Trapezoidal : public GLMScheme{
   public:
-    Trapezoidal(Double gamma):
-      GLMScheme()
-    {
-      gamma_ = gamma;
 
-      maxDerivOrder_ = 1;
-      numStages_ = 1;
-      numOldSols_ = 1;
-      numSol1stDerivs_ = 1;
-      numSol2ndDerivs_ = 0;
-      sizeGLMVec_ = numOldSols_ + numSol1stDerivs_;
+    Trapezoidal(Double gamma);
 
-      lastStageIsSolution_ = true;
-      usePredictors_ = true;
+    //! \copydoc GLMScheme::ComputeCoefficients(UInt,Double)
+    virtual void ComputeCoefficients(UInt solDerivOrder,Double deltaT);
 
-      //prepare coefficient matrix
-      UInt numCols = numStages_ + ((maxDerivOrder_+1) * numOldSols_);
-      UInt numRows = (maxDerivOrder_+1)*(numStages_) + sizeGLMVec_;
-      //THis is the effective mass tableau
-      schemeCoefs_.Resize(numRows,numCols);
-      schemeCoefs_.Init();
-    }
-
-    virtual void ComputeCoefficients(UInt solDerivOrder,Double deltaT){
-      curTStepSize_ = deltaT;
-      solDerivOrder_ = solDerivOrder;
-
-      switch(solDerivOrder){
-      case 1:
-        solDerivOrder_ = 1;
-        schemeCoefs_[0][0] = gamma_ * curTStepSize_;        //a_11
-        schemeCoefs_[0][1] = -1;                            //U_11
-        schemeCoefs_[0][2] = (- 1.0 + gamma_) * curTStepSize_;  //U_12
-
-        schemeCoefs_[1][0] = 1;                             //a_21
-        schemeCoefs_[1][1] = 0;                             //U_21
-        schemeCoefs_[1][2] = 0;                             //U_22
-
-        schemeCoefs_[2][0] = gamma_ * curTStepSize_;        //b_11
-        schemeCoefs_[2][1] = 1;                             //V_11
-        schemeCoefs_[2][2] = (1.0-gamma_) * curTStepSize_;  //V_12
-
-        schemeCoefs_[3][0] = 1.0;                           //b_21
-        schemeCoefs_[3][1] = 0;                             //V_21
-        schemeCoefs_[3][2] = 0;                             //V_22
-        break;
-      case 0:
-        solDerivOrder_ = 0;
-        schemeCoefs_[0][0] = 1;
-        schemeCoefs_[0][1] = 0;
-        schemeCoefs_[0][2] = 0;
-        schemeCoefs_[1][0] =    1.0 / (gamma_ * curTStepSize_);
-        schemeCoefs_[1][1] =   1.0 / (gamma_ * curTStepSize_);
-        schemeCoefs_[1][2] =  (1.0-gamma_) / gamma_;
-        schemeCoefs_[2][0] = 1;
-        schemeCoefs_[2][1] = 0;
-        schemeCoefs_[2][2] = 0;
-        schemeCoefs_[3][0] =    1.0 / (gamma_ * curTStepSize_);
-        schemeCoefs_[3][1] =  - 1.0 / (gamma_ * curTStepSize_);
-        schemeCoefs_[3][2] =  - (1.0-gamma_) / gamma_;
-        break;
-      }
-    }
   private:
-    ///parameter for switching between implicit and explicit scheme
-    /// for gamma = 0.5 the scheme is second order accurate
+    /*!
+     * parameter for switching between implicit and explicit scheme
+     *  for gamma = 0.5 the scheme is second order accurate
+     */
     Double gamma_;
 
 };
 
 class Newmark : public GLMScheme{
   public:
-  Newmark(Double gamma,Double beta):
-      GLMScheme()
-    {
-      gamma_ = gamma;
-      beta_ = beta;
 
-      maxDerivOrder_ = 2;
-      numStages_ = 1;
-      numOldSols_ = 1;
-      numSol1stDerivs_ = 1;
-      numSol2ndDerivs_ = 1;
-      sizeGLMVec_ = numOldSols_ + numSol1stDerivs_ + numSol2ndDerivs_;
+    Newmark(Double gamma,Double beta);
 
-      lastStageIsSolution_ = true;
-      usePredictors_ = true;
+    //! \copydoc GLMScheme::ComputeCoefficients(UInt,Double)
+    virtual void ComputeCoefficients(UInt solDerivOrder,Double deltaT);
 
-      //prepare coefficient matrix
-      UInt numCols = numStages_ + ((maxDerivOrder_+1) * numOldSols_);
-      UInt numRows = (maxDerivOrder_+1)*(numStages_) + sizeGLMVec_;
-      //THis is the effective mass tableau
-      schemeCoefs_.Resize(numRows,numCols);
-      schemeCoefs_.Init();
-    }
-
-    virtual void ComputeCoefficients(UInt solDerivOrder,Double deltaT){
-      curTStepSize_ = deltaT;
-      solDerivOrder_ = solDerivOrder;
-
-      switch(solDerivOrder){
-      case 0:
-        solDerivOrder_ = 0;
-        //zero order part
-        schemeCoefs_[0][0] = 1.0;
-        schemeCoefs_[0][1] = 0.0;
-        schemeCoefs_[0][2] = 0.0;
-        schemeCoefs_[0][3] = 0.0;
-        //fist order part
-        schemeCoefs_[1][0] = gamma_ / (beta_ * curTStepSize_);
-        schemeCoefs_[1][1] = gamma_ / (beta_ * curTStepSize_);
-        schemeCoefs_[1][2] = (gamma_ / beta_) - 1.0;
-        schemeCoefs_[1][3] = curTStepSize_ * ((gamma_/beta_) - 2.0) * 0.5;
-        //second order part
-        schemeCoefs_[2][0] = 1.0 / (beta_ * curTStepSize_ * curTStepSize_);
-        schemeCoefs_[2][1] = 1.0 / (beta_ * curTStepSize_ * curTStepSize_);
-        schemeCoefs_[2][2] = 1.0 / (beta_ * curTStepSize_);
-        schemeCoefs_[2][3] = (0.5 - beta_) / beta_;
-
-        //UPDATE PART zero order
-        schemeCoefs_[3][0] = 1.0;
-        schemeCoefs_[3][1] = 0.0;
-        schemeCoefs_[3][2] = 0.0;
-        schemeCoefs_[3][3] = 0.0;
-        //UPDATE PART first order
-        schemeCoefs_[4][0] = 1.0 * gamma_ / (beta_ * curTStepSize_);
-        schemeCoefs_[4][1] = -1.0 * gamma_ / (beta_ * curTStepSize_);
-        schemeCoefs_[4][2] = (-1.0 * gamma_ / beta_) + 1.0;
-        schemeCoefs_[4][3] = curTStepSize_ * ((gamma_ / beta_) - 2.0) * -0.5;
-        //UPDATE PART second order
-        schemeCoefs_[5][0] = 1.0 / (beta_ * curTStepSize_ * curTStepSize_);
-        schemeCoefs_[5][1] = -1.0 / (beta_ * curTStepSize_ * curTStepSize_);
-        schemeCoefs_[5][2] = -1.0 / (beta_ * curTStepSize_);
-        schemeCoefs_[5][3] = (beta_ - 0.5) / beta_;
-        break;
-      case 1 :
-        solDerivOrder_ = 1;
-        //zero order part
-        schemeCoefs_[0][0] = curTStepSize_ * beta_ / gamma_;
-        schemeCoefs_[0][1] = -1.0;
-        schemeCoefs_[0][2] = curTStepSize_ * ( (beta_ / gamma_) - 1.0);
-        schemeCoefs_[0][3] = ((beta_ / gamma_) - 0.5) * curTStepSize_ * curTStepSize_;
-        //fist order part
-        schemeCoefs_[1][0] = 1.0;
-        schemeCoefs_[1][1] = 0.0;
-        schemeCoefs_[1][2] = 0.0;
-        schemeCoefs_[1][3] = 0.0;
-        //second order part
-        schemeCoefs_[2][0] = 1.0 / (gamma_ * curTStepSize_);
-        schemeCoefs_[2][1] = 0.0;
-        schemeCoefs_[2][2] = 1.0 / (gamma_ * curTStepSize_);
-        schemeCoefs_[2][3] = (1.0 / gamma_) - 1.0;
-
-        //UPDATE PART zero order
-        schemeCoefs_[3][0] = curTStepSize_ * beta_ / gamma_;
-        schemeCoefs_[3][1] = 1.0;
-        schemeCoefs_[3][2] = curTStepSize_ * (1.0 - (beta_ / gamma_));
-        schemeCoefs_[3][3] = (0.5 - (beta_ / gamma_)) * curTStepSize_ * curTStepSize_;
-        //UPDATE PART first order
-        schemeCoefs_[4][0] = 1.0;
-        schemeCoefs_[4][1] = 0.0;
-        schemeCoefs_[4][2] = 0.0;
-        schemeCoefs_[4][3] = 0.0;
-        //UPDATE PART second order
-        schemeCoefs_[5][0] = 1.0 / (gamma_ * curTStepSize_);
-        schemeCoefs_[5][1] = 0.0;
-        schemeCoefs_[5][2] = -1.0 / (gamma_ * curTStepSize_);
-        schemeCoefs_[5][3] = 1.0 - (1.0 / gamma_);
-        break;
-      case 2 :
-        solDerivOrder_ = 2;
-        //zero order part
-        schemeCoefs_[0][0] = beta_ * curTStepSize_ * curTStepSize_;
-        schemeCoefs_[0][1] = -1.0;
-        schemeCoefs_[0][2] = -1.0 * curTStepSize_;
-        schemeCoefs_[0][3] = (beta_ - 0.5) * curTStepSize_ * curTStepSize_;
-        //fist order part
-        schemeCoefs_[1][0] = gamma_ * curTStepSize_;
-        schemeCoefs_[1][1] = 0.0;
-        schemeCoefs_[1][2] = -1.0;
-        schemeCoefs_[1][3] = (gamma_-1.0) * curTStepSize_;
-        //second order part
-        schemeCoefs_[2][0] = 1.0;
-        schemeCoefs_[2][1] = 0.0;
-        schemeCoefs_[2][2] = 0.0;
-        schemeCoefs_[2][3] = 0.0;
-
-        //zero order part
-        schemeCoefs_[3][0] = beta_ * curTStepSize_ * curTStepSize_;
-        schemeCoefs_[3][1] = 1.0;
-        schemeCoefs_[3][2] = 1.0 * curTStepSize_;
-        schemeCoefs_[3][3] = (0.5 - beta_) * curTStepSize_ * curTStepSize_;
-        //fist order part
-        schemeCoefs_[4][0] = gamma_ * curTStepSize_;
-        schemeCoefs_[4][1] = 0.0;
-        schemeCoefs_[4][2] = 1.0;
-        schemeCoefs_[4][3] = (1.0 - gamma_) * curTStepSize_;
-        //second order part
-        schemeCoefs_[5][0] = 1.0;
-        schemeCoefs_[5][1] = 0.0;
-        schemeCoefs_[5][2] = 0.0;
-        schemeCoefs_[5][3] = 0.0;
-        break;
-
-      }
-    }
   private:
-    ///parameter for switching between implicit and explicit scheme
-    /// for gamma = 0.5 the scheme is second order accurate
+    /*!parameter for switching between implicit and explicit scheme
+     * for gamma = 0.5 the scheme is second order accurate */
     Double gamma_;
 
+    /*!parameter for switching between implicit and explicit scheme
+     * for beta_ = 0.25 the scheme is second order accurate in the
+     * absence of damping matrix*/
     Double beta_;
 
 };
 
+
+/*! \class GLMScheme
+ *    \brief The base class defining all variable necessary to define a GLM
+ *    @author A.Hueppe
+ *    @date 01/2012
+ *
+ *  Every attribute is public and can be directly altered. For adding a scheme one has to
+ *  fill the parameters according to the schemes definition and has to implement the
+ *  ComputeCoefficients method in which the tableau for the scheme is given for each solution
+ *  derivative order. If some orders cannot be given e.g. solderivorder 0 with an explicit RK4 it is the
+ *  programmers duty to give an error.
+ *  A detailed information about the ideas behind a GLM can be found in the developer manual.
+ */
+
+
+/*! \class Trapezoidal
+ *    \brief Defines coefficients for Trapezoidal timestepping
+ *    @author A.Hueppe
+ *    @date 01/2012
+ *
+ *  The tableau for trapezoidal time stepping in effective mass formulation reads as
+ *  <table border=0  cellpadding="5"  cellspacing="0" >
+ *  <tr>
+ *     <td  style="border-right: 1px solid black; padding: 5px;">\f$ \gamma_\mathrm{P} \Delta t\f$ </td>
+ *     <td> -1 </td>
+ *     <td> \f$ (\gamma_\mathrm{P}-1) \Delta t\f$</td>
+ *  </tr><tr>
+ *     <td style="border-right: 1px solid black; padding: 5px;">1</td>
+ *     <td> 0 </td>
+ *     <td> 0</td>
+ *  </tr>
+ *  <tr><td colspan="3"><hr></td></tr>
+ *  <tr>
+ *     <td style="border-right: 1px solid black; padding: 5px;">\f$ \gamma_\mathrm{P} \Delta t\f$ </td>
+ *     <td> 1 </td>
+ *     <td> \f$ (1 - \gamma_\mathrm{P}) \Delta t\f$</td>
+ *  </tr><tr>
+ *     <td style="border-right: 1px solid black; padding: 5px;"> 1 </td>
+ *     <td> 0 </td>
+ *     <td> 0 </td>
+ *  </tr>
+ *  </table>
+ *
+ *  for gamma_ = 0.5 the scheme is second order accurate
+ *
+ */
+
+/*! \class Newmark
+ *    \brief Defines coefficients for Newmark timestepping
+ *    @author A.Hueppe
+ *    @date 01/2012
+ *
+ *  The tableau for Newmark time stepping in effective mass form reads as
+ *  <table border=0  cellpadding="5"  cellspacing="0" >
+ *  <tr>
+ *     <td  style="border-right: 1px solid black; padding: 5px;">\f$ \beta \Delta t^2\f$ </td>
+ *     <td> -1 </td>
+ *     <td> \f$ - \Delta t\f$</td>
+ *     <td> \f$ (\beta - 0.5) \Delta t^2\f$</td>
+ *  </tr><tr>
+ *     <td  style="border-right: 1px solid black; padding: 5px;">\f$ \gamma \Delta t\f$ </td>
+ *     <td> 0.0 </td>
+ *     <td> \f$ -1.0\f$</td>
+ *     <td> \f$ (\gamma - 1.0) \Delta t\f$</td>
+ *  </tr>
+ *  <tr>
+ *     <td  style="border-right: 1px solid black; padding: 5px;">1 </td>
+ *     <td> 0.0 </td>
+ *     <td> 0.0 </td>
+ *     <td> 0.0 </td>
+ *  </tr>
+ *  <tr><td colspan="4"><hr></td></tr>
+ *  <tr>
+ *     <td  style="border-right: 1px solid black; padding: 5px;">\f$ \beta \Delta t^2\f$ </td>
+ *     <td> 1 </td>
+ *     <td> \f$ \Delta t\f$</td>
+ *     <td> \f$ (0.5 - \beta) \Delta t^2\f$</td>
+ *  </tr><tr>
+ *     <td  style="border-right: 1px solid black; padding: 5px;">\f$ \gamma \Delta t\f$ </td>
+ *     <td> 0.0 </td>
+ *     <td> \f$ 1.0\f$</td>
+ *     <td> \f$ (1.0 - \gamma) \Delta t\f$</td>
+ *  </tr>
+ *  <tr>
+ *     <td  style="border-right: 1px solid black; padding: 5px;">1 </td>
+ *     <td> 0.0 </td>
+ *     <td> 0.0 </td>
+ *     <td> 0.0 </td>
+ *  </tr>
+ *  </table>
+ *
+ *  For gamma = 0.5 and beta = 0.25, the scheme is second order accurate if we have no damping i.e. no dependence on first order
+ *  time derivative.
+ */
 }
 
 #endif /* GLMSCHEMELIB_HH_ */

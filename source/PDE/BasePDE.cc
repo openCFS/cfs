@@ -59,4 +59,15 @@ namespace CoupledField {
     analysisType.Add(MULTI_SEQUENCE, "multiSequence");
   }
   
+  std::map<FEMatrixType,Integer>  BasePDE::GetMatrixDerivativeMap(){
+    std::map<FEMatrixType,Integer> retMap;
+    retMap[MASS] = 2;
+    retMap[DAMPING] = 1;
+    retMap[STIFFNESS] = 0;
+    retMap[AUXILIARY] = 0;
+    retMap[CONVECTION] = 0;
+
+    return retMap;
+  }
+
 }

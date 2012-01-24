@@ -39,17 +39,6 @@ namespace CoupledField{
     //! Initialize all the nodes by this value
     void SetInitialCondition();
 
-    virtual std::map<FEMatrixType,Integer> GetMatrixDerivativeMap(){
-      std::map<FEMatrixType,Integer> retMap;
-      retMap[MASS] = 2;
-      retMap[DAMPING] = 1;
-      retMap[STIFFNESS] = 0;
-      //retMap[AUXILIARY] = -1;
-      //retMap[CONVECTION] = -1;
-
-      return retMap;
-    }
-
     // ======================================================
     // COUPLING SECTION
     // ======================================================

@@ -28,7 +28,8 @@
 #include "Driver/TimeSchemes/TimeSchemeGLM.hh"
 //#include "Driver/TimeSchemes/Trapezoidal.hh"
 
-#include "Driver/SolveSteps/StdSolveStep.hh"
+//#include "Driver/SolveSteps/StdSolveStep.hh"
+#include "Driver/SolveSteps/SolveStepTransGLM.hh"
 
 #include "Driver/Assemble.hh"
 #include "CoupledPDE/PDECoupling.hh"
@@ -595,7 +596,7 @@ void HeatPDE::DefineRhsLoadIntegrators() {
 
 void HeatPDE::DefineSolveStep() {
 
-  solveStep_ = new StdSolveStep(*this);
+  solveStep_ = new SolveStepTransGLM(*this);
 
 }
 

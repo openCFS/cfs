@@ -145,8 +145,7 @@ namespace CoupledField{
         return;
       }
       shared_ptr<EntityList> actList = myGrid_->GetEntityList( EntityList::ELEM_LIST,
-                                                             curList->GetName(),
-                                                             EntityList::REGION );
+                                                             curList->GetName() );
       EntityIterator entIt = actList->GetIterator();
       for(;!entIt.IsEnd();entIt++){
         Elem::ShapeType curType = entIt.GetElem()->GetShapeType(entIt.GetElem()->type);

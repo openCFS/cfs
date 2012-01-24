@@ -1,3 +1,17 @@
+// -*- mode: c++; coding: utf-8; indent-tabs-mode: nil; -*-
+// vim: set ts=2 sw=2 et nu ai ft=cpp cindent !:
+// kate: space-indent on; indent-width 2; encoding utf-8;
+// kate: auto-brackets on; mixedindent off; indent-mode cstyle;
+// ================================================================================================
+/*!
+ *       \file     CoefFunction.hh
+ *       \brief    Base class for describing coefficients
+ *
+ *       \date     30/10/2011
+ *       \author   Andreas Hueppe
+ */
+//================================================================================================
+
 #ifndef COEFFUNCTION_HH
 #define COEFFUNCTION_HH
 
@@ -32,13 +46,13 @@ class CoordSystem;
 //!
 //!   This class is just the interface class right now, the following
 //!   structure should be realized:
-//!   - coefFunctionAnalytic
+//!   \li \c coefFunctionAnalytic
 //!     This class descibes the quantity by an analytic expression this
 //!     includes (non-linear) materials, analytic flow fields, etc.
-//!   - coefFunctionGrid
+//!   \li \c coefFunctionGrid
 //!     This class provides the Information based on information read in
 //!     from a grid. E.g. in the case of (interpolated) aeroacoustic source terms 
-//!   - coefFucnctionSol
+//!   \li \c coefFucnctionSol
 //!     This function provides the information based on the current
 //!     solution of the problem
 class CoefFunction{
