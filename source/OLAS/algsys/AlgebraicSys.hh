@@ -923,6 +923,13 @@ namespace CoupledField {
     //! Effective solution vector
     SBM_Vector *effSol_;
 
+    //! Buffer for storing the eigenvalues of the system
+    SingleVector *eigenValues_;
+
+    //! Buffer for storing the error bounds of the eigenvalues
+    SingleVector *eigenValError_;
+
+    
     //! Store for each diagonal SBM-Block if it is symmetric.
     StdVector<bool> isDiagBlockSymm_;
     

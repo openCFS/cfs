@@ -587,9 +587,9 @@ namespace CoupledField {
     postProcResults_[ELEC_FLUX_DENSITY] = ELEC_POTENTIAL;
     shared_ptr<BaseFieldFunctor> fluxFunc;
     if( isComplex_ ) {
-      fluxFunc.reset(new FluxFieldFunctor<Complex>(feFct, ef));
+      fluxFunc.reset(new FluxFieldFunctor<Complex>(feFct, ef,-1.0));
     } else {
-      fluxFunc.reset(new FluxFieldFunctor<Double>(feFct, ef));
+      fluxFunc.reset(new FluxFieldFunctor<Double>(feFct, ef,-1.0));
     }
     resultFunctors_[ELEC_FLUX_DENSITY] = fluxFunc;
     fieldFunctors_[ELEC_FLUX_DENSITY] = fluxFunc;

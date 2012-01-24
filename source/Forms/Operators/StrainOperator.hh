@@ -76,7 +76,13 @@ namespace CoupledField{
     UInt pos = 0;
     for( ; iFunc < numFncs; iFunc++, pos+=DIM_SPACE ) {
       bMat[0][pos+0] = xiDx[iFunc][0];
+    }
+
+    for( iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_SPACE ) {
       bMat[1][pos+1] = xiDx[iFunc][1];
+    }
+    
+    for( iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_SPACE ) {
       bMat[2][pos+0] = xiDx[iFunc][1];
       bMat[2][pos+1] = xiDx[iFunc][0];
     }
@@ -98,9 +104,12 @@ namespace CoupledField{
     fe->GetGlobDerivShFnc( xiDx, lp, lp.shapeMap->GetElem() , 1 );
     UInt iFunc = 0;
     UInt pos = 0;
-    for( ; iFunc < numFncs; iFunc++, pos+=DIM_SPACE ) {
+    for( iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_SPACE ) {
       bMat[pos+0][0] = xiDx[iFunc][0];
       bMat[pos+0][2] = xiDx[iFunc][1];
+    }
+    
+    for( iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_SPACE ) {
       bMat[pos+1][1] = xiDx[iFunc][1];
       bMat[pos+1][2] = xiDx[iFunc][0];
     }
@@ -184,20 +193,25 @@ namespace CoupledField{
     
     UInt iFunc = 0;
     UInt pos = 0;
-    for( ; iFunc < numFncs; iFunc++, pos+=DIM_SPACE ) {
+    for( iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_SPACE ) { 
       bMat[0][pos+0] = xiDx[iFunc][0];
+    }
+    
+    for( iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_SPACE ) {
       bMat[1][pos+1] = xiDx[iFunc][1];
+    }
+    
+    for( iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_SPACE ) {
       bMat[2][pos+0] = xiDx[iFunc][1];
       bMat[2][pos+1] = xiDx[iFunc][0];
+    }
       
+    for( iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_SPACE ) {
       // phi-phi component: N_i / r
-      // The formula is takebn from:
+      // The formula is taken from:
       // Zienkiewicz, The FEM - Vol.1 - The Basis, 5th ed., p. 114
       bMat[3][pos+0] = shape[iFunc] / globPoint[0];
     }
-    
-     
-    
   }
 
   template<class FE, class TYPE>
@@ -223,16 +237,19 @@ namespace CoupledField{
 
     UInt iFunc = 0;
     UInt pos = 0;
-    for( ; iFunc < numFncs; iFunc++, pos+=DIM_SPACE ) {
+    for( iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_SPACE ) {
       bMat[pos+0][0] = xiDx[iFunc][0];
       bMat[pos+0][2] = xiDx[iFunc][1];
-      bMat[pos+1][1] = xiDx[iFunc][1];
-      bMat[pos+1][2] = xiDx[iFunc][0];
       
       // phi-phi component: N_i / r
-      // The formula is takebn from:
+      // The formula is taken from:
       // Zienkiewicz, The FEM - Vol.1 - The Basis, 5th ed., p. 114
       bMat[pos+0][3] = shape[iFunc] / globPoint[0];
+    }
+    
+    for( iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_SPACE ) {
+      bMat[pos+1][1] = xiDx[iFunc][1];
+      bMat[pos+1][2] = xiDx[iFunc][0];
     }
   }
   
@@ -261,7 +278,7 @@ namespace CoupledField{
      static const UInt DIM_SPACE = 3;
 
      //! Dimension of the finite element
-     static const UInt DIM_ELEM = 2;
+     static const UInt DIM_ELEM = 3;
 
      //! Dimension of the related material 
      static const UInt DIM_D_MAT = 6; 
@@ -306,376 +323,31 @@ namespace CoupledField{
      fe->GetGlobDerivShFnc( xiDx, lp, lp.shapeMap->GetElem() , 1 );
      UInt iFunc = 0;
      UInt pos = 0;
-     for( ; iFunc < numFncs; iFunc++, pos+=DIM_SPACE ) {
+     for( iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_SPACE ) {
        bMat[0][pos+0] = xiDx[iFunc][0];
-       bMat[0][pos+4] = xiDx[iFunc][2];
-       bMat[0][pos+5] = xiDx[iFunc][1];
-       
+     }
+
+     for( iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_SPACE ) { 
        bMat[1][pos+1] = xiDx[iFunc][1];
-       bMat[1][pos+3] = xiDx[iFunc][2];
-       bMat[1][pos+5] = xiDx[iFunc][0];
-       
-       bMat[2][pos+2] = xiDx[iFunc][2];
-       bMat[2][pos+3] = xiDx[iFunc][1];
-       bMat[2][pos+4] = xiDx[iFunc][0];
      }
-   }
-
-   template<class FE, class TYPE>
-   void StrainOperator3D<FE,TYPE>::CalcOpMatTransposed(Matrix<Double> & bMat,
-                                                       const LocPointMapped& lp, 
-                                                       BaseFE* ptFe ){
-     UInt numFncs = ptFe->GetNumFncs();
-     // Set correct size of matrix B and initialize with zeros
-     bMat.Resize(numFncs * DIM_SPACE , DIM_D_MAT );
-     bMat.Init();
-
-     // Get derivatives of local shape functions with respect to global
-     // coords (format: spaceDim x nrNodes )
-     Matrix<Double> xiDx;
-     FE *fe = (static_cast<FE*>(ptFe));
-     fe->GetGlobDerivShFnc( xiDx, lp, lp.shapeMap->GetElem() , 1 );
-     UInt iFunc = 0;
-     UInt pos = 0;
-     for( ; iFunc < numFncs; iFunc++, pos+=DIM_SPACE ) {
-       bMat[pos+0][0] = xiDx[iFunc][0];
-       bMat[pos+4][0] = xiDx[iFunc][2];
-       bMat[pos+5][0] = xiDx[iFunc][1];
-
-       bMat[pos+1][1] = xiDx[iFunc][1];
-       bMat[pos+3][1] = xiDx[iFunc][2];
-       bMat[pos+5][1] = xiDx[iFunc][0];
-
-       bMat[pos+2][2] = xiDx[iFunc][2];
-       bMat[pos+3][2] = xiDx[iFunc][1];
-       bMat[pos+4][2] = xiDx[iFunc][0];
-     }
-   }
-
-
-
-}
-#endif
-#ifndef FILE_STRAINOP_HH
-#define FILE_STRAINOP_HH
-
-#include "BaseBOperator.hh"
-
-namespace CoupledField{
-  // ============================
-  //  2D STRAIN OPERATOR (PLANE) 
-  // ============================
-  //! Strain-like differential operator in 2D
-  template<class FE, class TYPE = Double >
-  class StrainOperator2D : public BaseBOperator<FE,TYPE>{
-
-  public:
-
-    // ------------------
-    //  STATIC CONSTANTS 
-    // ------------------
-    //@{ 
-    //! \name Static constants
-
-    //! Order of differentiation
-    static const UInt ORDER_DIFF = 1;
-
-    //! Number of components of the problem (scalar, vector)
-    static const UInt DIM_DOF = 2;
-
-    //! Dimension of the underlying domain / space
-    static const UInt DIM_SPACE = 2;
-
-    //! Dimension of the finite element
-    static const UInt DIM_ELEM = 2;
-
-    //! Dimension of the related material 
-    static const UInt DIM_D_MAT = 3; 
-    //@}
-
-    //! Constructor
-    StrainOperator2D(){
-      this->name_ = "StrainOperator2D";
-    }
-
-    //! Destructor
-    ~StrainOperator2D(){
-
-    }
-
-    //! Calculate operator matrix
-    virtual void CalcOpMat(Matrix<Double> & bMat,
-                           const LocPointMapped& lp,
-                           BaseFE* ptFe );
-
-    //! Calculate transposed operator matrix
-    virtual void CalcOpMatTransposed(Matrix<Double> & bMat,
-                                     const LocPointMapped& lp, 
-                                     BaseFE* ptFe );
-  protected:
-
-  };
-
-  template<class FE, class TYPE>
-  void StrainOperator2D<FE,TYPE>::CalcOpMat(Matrix<Double> & bMat,
-                                            const LocPointMapped& lp, 
-                                            BaseFE* ptFe ){
-    UInt numFncs = ptFe->GetNumFncs();
-    // Set correct size of matrix B and initialize with zeros
-    bMat.Resize( DIM_D_MAT, numFncs * DIM_SPACE );
-    bMat.Init();
-
-    // Get derivatives of local shape functions with respect to global
-    // coords (format: nrNodes x spaceDim)
-    Matrix<Double> xiDx;
-    FE *fe = (static_cast<FE*>(ptFe));
-    fe->GetGlobDerivShFnc( xiDx, lp, lp.shapeMap->GetElem() , 1 );
-    UInt iFunc = 0;
-    UInt pos = 0;
-    for( ; iFunc < numFncs; iFunc++, pos+=DIM_SPACE ) {
-      bMat[0][pos+0] = xiDx[iFunc][0];
-      bMat[1][pos+1] = xiDx[iFunc][1];
-      bMat[2][pos+0] = xiDx[iFunc][1];
-      bMat[2][pos+1] = xiDx[iFunc][0];
-    }
-  }
-
-  template<class FE, class TYPE>
-  void StrainOperator2D<FE,TYPE>::CalcOpMatTransposed(Matrix<Double> & bMat,
-                                                      const LocPointMapped& lp, 
-                                                      BaseFE* ptFe ){
-    UInt numFncs = ptFe->GetNumFncs();
-    // Set correct size of matrix B and initialise with zeros
-    bMat.Resize(numFncs * DIM_SPACE , DIM_D_MAT );
-    bMat.Init();
-
-    // Get derivatives of local shape functions with respect to global
-    // coords (format: spaceDim x nrNodes )
-    Matrix<Double> xiDx;
-    FE *fe = (static_cast<FE*>(ptFe));
-    fe->GetGlobDerivShFnc( xiDx, lp, lp.shapeMap->GetElem() , 1 );
-    UInt iFunc = 0;
-    UInt pos = 0;
-    for( ; iFunc < numFncs; iFunc++, pos+=DIM_SPACE ) {
-      bMat[pos+0][0] = xiDx[iFunc][0];
-      bMat[pos+0][2] = xiDx[iFunc][1];
-      bMat[pos+1][1] = xiDx[iFunc][1];
-      bMat[pos+1][2] = xiDx[iFunc][0];
-    }
-  }
-
-  // =====================================
-  //  2D-AXIAL-SYMMETFRIC STRAIN OPERATOR  
-  // =====================================
-  //! Strain-like differential operator for axial symmetry 
-  template<class FE, class TYPE = Double >
-  class StrainOperatorAxi : public BaseBOperator<FE,TYPE>{
-
-  public:
-
-    // ------------------
-    //  STATIC CONSTANTS 
-    // ------------------
-    //@{ 
-    //! \name Static constants
-
-    //! Order of differentiation
-    static const UInt ORDER_DIFF = 1;
-
-    //! Number of components of the problem (scalar, vector)
-    static const UInt DIM_DOF = 2;
-
-    //! Dimension of the underlying domain / space
-    static const UInt DIM_SPACE = 2;
-
-    //! Dimension of the finite element
-    static const UInt DIM_ELEM = 2;
-
-    //! Dimension of the related material 
-    static const UInt DIM_D_MAT = 4; 
-    //@}
-
-    //! Constructor
-    StrainOperatorAxi(){
-      this->name_ = "StrainOperatorAxi";
-    }
-
-    //! Destructor
-    ~StrainOperatorAxi(){
-
-    }
-
-    //! Calculate operator matrix
-    virtual void CalcOpMat(Matrix<Double> & bMat,
-                           const LocPointMapped& lp,
-                           BaseFE* ptFe );
-
-    //! Calculate transposed operator matrix
-    virtual void CalcOpMatTransposed(Matrix<Double> & bMat,
-                                     const LocPointMapped& lp, 
-                                     BaseFE* ptFe );
-  protected:
-
-  };
-
-  template<class FE, class TYPE>
-  void StrainOperatorAxi<FE,TYPE>::CalcOpMat(Matrix<Double> & bMat,
-                                            const LocPointMapped& lpm, 
-                                            BaseFE* ptFe ){
-    UInt numFncs = ptFe->GetNumFncs();
-    
-    // Set correct size of matrix B and initialize with zeros
-    bMat.Resize( DIM_D_MAT, numFncs * DIM_SPACE );
-    bMat.Init();
-
-    // Get derivatives of local shape functions with respect to global
-    // coords (format: nrNodes x spaceDim)
-    Matrix<Double> xiDx;
-    FE *fe = (static_cast<FE*>(ptFe));
-    fe->GetGlobDerivShFnc( xiDx, lpm, lpm.shapeMap->GetElem() , 1 );
-    
-    // Calculate phi-phi component
-    Vector<Double> shape;
-    fe->GetShFnc( shape, lpm.lp, lpm.shapeMap->GetElem() );
-    Vector<Double> globPoint;
-    lpm.shapeMap->Local2Global(globPoint, lpm.lp);
-    
-    UInt iFunc = 0;
-    UInt pos = 0;
-    for( ; iFunc < numFncs; iFunc++, pos+=DIM_SPACE ) {
-      bMat[0][pos+0] = xiDx[iFunc][0];
-      bMat[1][pos+1] = xiDx[iFunc][1];
-      bMat[2][pos+0] = xiDx[iFunc][1];
-      bMat[2][pos+1] = xiDx[iFunc][0];
-      
-      // phi-phi component: N_i / r
-      // The formula is takebn from:
-      // Zienkiewicz, The FEM - Vol.1 - The Basis, 5th ed., p. 114
-      bMat[3][pos+0] = shape[iFunc] / globPoint[0];
-    }
-    
      
-    
-  }
-
-  template<class FE, class TYPE>
-  void StrainOperatorAxi<FE,TYPE>::CalcOpMatTransposed(Matrix<Double> & bMat,
-                                                      const LocPointMapped& lpm, 
-                                                      BaseFE* ptFe ){
-    UInt numFncs = ptFe->GetNumFncs();
-    // Set correct size of matrix B and initialize with zeros
-    bMat.Resize(numFncs * DIM_SPACE , DIM_D_MAT );
-    bMat.Init();
-
-    // Get derivatives of local shape functions with respect to global
-    // coords (format: spaceDim x nrNodes )
-    Matrix<Double> xiDx;
-    FE *fe = (static_cast<FE*>(ptFe));
-    fe->GetGlobDerivShFnc( xiDx, lpm, lpm.shapeMap->GetElem() , 1 );
-
-    // Calculate phi-phi component
-    Vector<Double> shape;
-    fe->GetShFnc( shape, lpm.lp, lpm.shapeMap->GetElem() );
-    Vector<Double> globPoint;
-    lpm.shapeMap->Local2Global(globPoint, lpm.lp);
-
-    UInt iFunc = 0;
-    UInt pos = 0;
-    for( ; iFunc < numFncs; iFunc++, pos+=DIM_SPACE ) {
-      bMat[pos+0][0] = xiDx[iFunc][0];
-      bMat[pos+0][2] = xiDx[iFunc][1];
-      bMat[pos+1][1] = xiDx[iFunc][1];
-      bMat[pos+1][2] = xiDx[iFunc][0];
-      
-      // phi-phi component: N_i / r
-      // The formula is takebn from:
-      // Zienkiewicz, The FEM - Vol.1 - The Basis, 5th ed., p. 114
-      bMat[pos+0][3] = shape[iFunc] / globPoint[0];
-    }
-  }
-  
-  // ============================
-   //  3D STRAIN OPERATOR 
-   // ============================
-   //! Strain-like differential operator in 3D
-   template<class FE, class TYPE = Double >
-   class StrainOperator3D : public BaseBOperator<FE,TYPE>{
-
-   public:
-
-     // ------------------
-     //  STATIC CONSTANTS 
-     // ------------------
-     //@{ 
-     //! \name Static constants
-
-     //! Order of differentiation
-     static const UInt ORDER_DIFF = 1;
-
-     //! Number of components of the problem (scalar, vector)
-     static const UInt DIM_DOF = 3;
-
-     //! Dimension of the underlying domain / space
-     static const UInt DIM_SPACE = 3;
-
-     //! Dimension of the finite element
-     static const UInt DIM_ELEM = 2;
-
-     //! Dimension of the related material 
-     static const UInt DIM_D_MAT = 6; 
-     //@}
-
-     //! Constructor
-     StrainOperator3D(){
-       this->name_ = "StrainOperator3D";
-     }
-
-     //! Destructor
-     ~StrainOperator3D(){
-
-     }
-
-     //! Calculate operator matrix
-     virtual void CalcOpMat(Matrix<Double> & bMat,
-                            const LocPointMapped& lp,
-                            BaseFE* ptFe );
-
-     //! Calculate transposed operator matrix
-     virtual void CalcOpMatTransposed(Matrix<Double> & bMat,
-                                      const LocPointMapped& lp, 
-                                      BaseFE* ptFe );
-   protected:
-
-   };
-
-   template<class FE, class TYPE>
-   void StrainOperator3D<FE,TYPE>::CalcOpMat(Matrix<Double> & bMat,
-                                             const LocPointMapped& lp, 
-                                             BaseFE* ptFe ){
-     UInt numFncs = ptFe->GetNumFncs();
-     // Set correct size of matrix B and initialize with zeros
-     bMat.Resize( DIM_D_MAT, numFncs * DIM_SPACE );
-     bMat.Init();
-
-     // Get derivatives of local shape functions with respect to global
-     // coords (format: nrNodes x spaceDim)
-     Matrix<Double> xiDx;
-     FE *fe = (static_cast<FE*>(ptFe));
-     fe->GetGlobDerivShFnc( xiDx, lp, lp.shapeMap->GetElem() , 1 );
-     UInt iFunc = 0;
-     UInt pos = 0;
-     for( ; iFunc < numFncs; iFunc++, pos+=DIM_SPACE ) {
-       bMat[0][pos+0] = xiDx[iFunc][0];
-       bMat[0][pos+4] = xiDx[iFunc][2];
-       bMat[0][pos+5] = xiDx[iFunc][1];
-       
-       bMat[1][pos+1] = xiDx[iFunc][1];
-       bMat[1][pos+3] = xiDx[iFunc][2];
-       bMat[1][pos+5] = xiDx[iFunc][0];
-       
+     for( iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_SPACE ) { 
        bMat[2][pos+2] = xiDx[iFunc][2];
-       bMat[2][pos+3] = xiDx[iFunc][1];
-       bMat[2][pos+4] = xiDx[iFunc][0];
+     }
+     
+     for( iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_SPACE ) { 
+       bMat[3][pos+1] = xiDx[iFunc][2];
+       bMat[3][pos+2] = xiDx[iFunc][1];
+     }
+     
+     for( iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_SPACE ) { 
+       bMat[4][pos+0] = xiDx[iFunc][2];
+       bMat[4][pos+2] = xiDx[iFunc][0];
+     }
+     
+     for( iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_SPACE ) { 
+       bMat[5][pos+0] = xiDx[iFunc][1];
+       bMat[5][pos+1] = xiDx[iFunc][0];
      }
    }
 
@@ -695,22 +367,23 @@ namespace CoupledField{
      fe->GetGlobDerivShFnc( xiDx, lp, lp.shapeMap->GetElem() , 1 );
      UInt iFunc = 0;
      UInt pos = 0;
-     for( ; iFunc < numFncs; iFunc++, pos+=DIM_SPACE ) {
+     for( iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_SPACE ) {
        bMat[pos+0][0] = xiDx[iFunc][0];
-       bMat[pos+4][0] = xiDx[iFunc][2];
-       bMat[pos+5][0] = xiDx[iFunc][1];
+       bMat[pos+0][4] = xiDx[iFunc][2];
+       bMat[pos+0][5] = xiDx[iFunc][1];
+     }
 
+     for( iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_SPACE ) { 
        bMat[pos+1][1] = xiDx[iFunc][1];
-       bMat[pos+3][1] = xiDx[iFunc][2];
-       bMat[pos+5][1] = xiDx[iFunc][0];
+       bMat[pos+1][3] = xiDx[iFunc][2];
+       bMat[pos+1][5] = xiDx[iFunc][0];
+     }
 
+     for( iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_SPACE ) { 
        bMat[pos+2][2] = xiDx[iFunc][2];
-       bMat[pos+3][2] = xiDx[iFunc][1];
-       bMat[pos+4][2] = xiDx[iFunc][0];
+       bMat[pos+2][3] = xiDx[iFunc][1];
+       bMat[pos+2][4] = xiDx[iFunc][0];
      }
    }
-
-
-
 }
 #endif

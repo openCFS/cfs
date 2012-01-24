@@ -403,15 +403,23 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
 
 
   void MechPDE::CalcResults( shared_ptr<BaseResult> res ) {
-   
+
     switch (res->GetResultInfo()->resultType ) {
-    
+
       case MECH_DISPLACEMENT:
         feFunctions_[MECH_DISPLACEMENT]->ExtractResult( res );
         break;
-        
+
       case MECH_RHS_LOAD:
         rhsFeFunctions_[MECH_DISPLACEMENT]->ExtractResult( res );
+        break;
+
+      case MECH_STRESS:
+        resultFunctors_[MECH_STRESS]->EvalResult( res );
+        break;
+
+      case MECH_STRAIN:
+        resultFunctors_[MECH_STRAIN]->EvalResult( res );
         break;
 
       default:
@@ -534,16 +542,60 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
     
     StdVector<std::string > dispDofNames;
     dispDofNames = feFunctions_[MECH_DISPLACEMENT]->GetResultInfo()->dofNames;
-//
-//    // === MECHANIC STRESS ===
-//    shared_ptr<ResultInfo> stress(new ResultInfo);
-//    stress->resultType = MECH_STRESS;
-//    stress->dofNames = stressDofNames;
-//    stress->unit =  "N/m^2";
-//    stress->entryType = ResultInfo::TENSOR;
-//    stress->definedOn = ResultInfo::ELEMENT;
-//    stress->fctType = shared_ptr<ConstFct>(new ConstFct() );
-//    availResults_.insert( stress );
+    shared_ptr<BaseFeFunction> feFct = feFunctions_[MECH_DISPLACEMENT];
+    
+    // === MECHANIC STRESS ===
+    shared_ptr<ResultInfo> stress(new ResultInfo);
+    stress->resultType = MECH_STRESS;
+    stress->dofNames = stressComponents;
+    stress->unit =  "N/m^2";
+    stress->entryType = ResultInfo::TENSOR;
+    stress->definedOn = ResultInfo::ELEMENT;
+    availResults_.insert( stress );
+    postProcResults_[MECH_STRESS] = MECH_DISPLACEMENT;
+    shared_ptr<BaseFieldFunctor> sigmaFunc;
+    if( isComplex_ ) {
+      sigmaFunc.reset(new FluxFieldFunctor<Complex>(feFct, stress));
+    } else {
+      sigmaFunc.reset(new FluxFieldFunctor<Double>(feFct, stress));
+    }
+    resultFunctors_[MECH_STRESS] = sigmaFunc;
+    fieldFunctors_[MECH_STRESS] = sigmaFunc;
+       
+    
+    
+    // === MECHANIC STRAIN ===
+    shared_ptr<ResultInfo> strain(new ResultInfo);
+    strain->resultType = MECH_STRAIN;
+    strain->dofNames = stressComponents;
+    strain->unit =  "";
+    strain->entryType = ResultInfo::TENSOR;
+    strain->definedOn = ResultInfo::ELEMENT;
+    availResults_.insert( strain );
+    postProcResults_[MECH_STRAIN] = MECH_DISPLACEMENT;
+    shared_ptr<BaseFieldFunctor> strainFunc;
+    if( isComplex_ ) {
+      strainFunc.reset(new DiffFieldFunctor<Complex>(feFct, strain));
+    } else {
+      strainFunc.reset(new DiffFieldFunctor<Double>(feFct, strain));
+    }
+    resultFunctors_[MECH_STRAIN] = strainFunc;
+    fieldFunctors_[MECH_STRAIN] = strainFunc;
+
+    // ============================
+    // Initialize result functors:
+    // ============================
+    // 1) Loop over all BDB-integrators
+    std::map<RegionIdType, BaseBDBInt*>::iterator it = bdbInts_.begin();
+    for( ; it != bdbInts_.end(); ++it ) {
+      RegionIdType region = it->first;
+      BaseBDBInt* bdb = it->second;
+
+      // 2) pass integrators to functors
+      sigmaFunc->AddIntegrator(bdb, region);
+      strainFunc->AddIntegrator(bdb, region);
+    }
+    
 //
 //    // === MECHANIC PRESSURE ===
 //    shared_ptr<ResultInfo> pressure(new ResultInfo);
@@ -578,15 +630,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
 //
 //
 //
-//    // === MECHANIC STRAIN ===
-//    shared_ptr<ResultInfo> strain(new ResultInfo);
-//    strain->resultType = MECH_STRAIN;
-//    strain->dofNames = stressDofNames;
-//    strain->unit =  "";
-//    strain->entryType = ResultInfo::TENSOR;
-//    strain->definedOn = ResultInfo::ELEMENT;
-//    strain->fctType = shared_ptr<ConstFct>(new ConstFct() );
-//    availResults_.insert( strain );
+
 //
 //    // === MECHANIC ENERGY ===
 //    shared_ptr<ResultInfo> energy(new ResultInfo);

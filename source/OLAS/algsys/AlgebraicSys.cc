@@ -315,7 +315,22 @@ namespace CoupledField {
       EXCEPTION( "Matrices were not created yet. Please call "
           "AlgebraicSys::CreateLinSys() first!" );
     }
-    REFACTOR;
+    
+    PtrParamNode esNode = myParam_->Get("eigenSolverList");
+    PtrParamNode sNode = myParam_->Get("solverList");
+    PtrParamNode pNode = myParam_->Get("precondList");
+
+    // if we have just one SBM matrix block, use directly
+    // the specialized methods for StdMatrices
+    if( effMat_->GetNumRows() == 1 ) {
+      eigenSolver_ =  
+          GenerateEigenSolverObject( (*sysMat_[SYSTEM])(0,0), solStrat_, 
+                                     esNode, sNode, pNode,
+                                     myInfo_->Get("solve_eigen") ); 
+    } else {
+      EXCEPTION("Eigenvalue solver can currently only handle SBM "
+          << "matrices with 1 block!");
+    }
   }
 
   void AlgebraicSys::SetupPrecond(PtrParamNode analysis_id)  {
@@ -367,7 +382,7 @@ namespace CoupledField {
   }
 
   void AlgebraicSys::SetupEigenSolver( UInt numFreq, Double shift,
-                                       bool quadratic ) {
+                                       bool isQuadratic ) {
     
     LOG_TRACE(algSys) << "Setup of eigenvalue solver";
     // check, if system was already created
@@ -375,7 +390,64 @@ namespace CoupledField {
       EXCEPTION( "Matrices were not created yet. Please call "
           "AlgebraicSys::CreateLinSys() first!" );
     }
-    REFACTOR;
+    
+    // Currently we just can solve problems with one SBM block
+    if( effMat_->GetNumRows() != 1 ) {
+      EXCEPTION("Eigenvalue solver can currently only handle SBM "
+                << "matrices with 1 block!");
+    }
+    
+    // Determine if a generalized or a quadratic eigenvalue
+    // problem has to be solved
+    // In the latter case, a damping matrix has to be present,
+    // otherwise we issue a warning
+    bool dampPresent = (matrixTypes_.find( DAMPING) != matrixTypes_.end());
+    bool massPresent = (matrixTypes_.find( MASS) != matrixTypes_.end());
+
+    if( isQuadratic == true ) {
+      if( dampPresent == false ) {
+        EXCEPTION("To solve a quadratic eigenvalue problem, a damping " \
+                  << "matrix has to be present!");
+      }
+
+      // Setup the quadratic eigenvalue solver
+      eigenSolver_->Setup( (*sysMat_[STIFFNESS])(0,0), 
+                           (*sysMat_[MASS])(0,0),
+                           (*sysMat_[DAMPING])(0,0), numFreq, shift );
+    } else {
+      if( dampPresent == true ) {
+        WARN("Although a damping matrix is present, only a generalized "
+            << "eigenvalue will be solved (as you have specified)!");
+      }
+
+      if( massPresent == true ) {
+        // Setup the eigenvalue solver for generalized EV problem
+        eigenSolver_->Setup( (*sysMat_[STIFFNESS])(0,0), 
+                             (*sysMat_[MASS])(0,0),
+                             numFreq, shift );
+      } else {
+        // Setup the eigenvalue solver for standard EV problem
+        eigenSolver_->Setup( (*sysMat_[STIFFNESS])(0,0), 
+                             numFreq, shift );
+      }
+    }
+
+    // Determine some basic properties and create vectors
+    // for eigenvalues and related error bounds
+    BaseMatrix::EntryType eType;
+    if( isQuadratic == true ) {
+      eType = BaseMatrix::COMPLEX;
+    } else {
+      eType = BaseMatrix::DOUBLE;
+    }
+
+    UInt totalSize = (*sysMat_[SYSTEM])(0,0).GetNumRows();
+
+    BaseVector *bVec = GenerateSingleVectorObject(  eType, totalSize );
+    BaseVector *errVec = GenerateSingleVectorObject(  eType, totalSize );
+    eigenValues_ = dynamic_cast<SingleVector*>( bVec );
+    eigenValError_ = dynamic_cast<SingleVector*>( errVec );
+
   }
 
   void AlgebraicSys::Solve(PtrParamNode analysis_id) {

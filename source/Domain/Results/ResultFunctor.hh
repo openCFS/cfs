@@ -90,6 +90,12 @@ public:
   : ResultFunctor(feFct, info) {
     
     derivType_ = VOL_FIELD;
+    
+    // for the CoefFunction interface we have to
+    // provide the cardinality of the result and the
+    // spatial dependency
+    dimType_ = CoefFunction::VECTOR;
+    dependType_ = CoefFunction::GENERAL;
   }
   //! Destructor
   virtual ~BaseFieldFunctor() {}
@@ -213,8 +219,11 @@ public:
   
   //! Constructor
   DiffFieldFunctor( shared_ptr<BaseFeFunction> feFct,
-                    shared_ptr<ResultInfo> inf ) :
+                    shared_ptr<ResultInfo> inf,
+                    Double factor = 1.0) :
                      FieldFunctor<TYPE>( feFct, inf) {
+    
+    factor_ = factor;
   }
 
   //! Destructor
@@ -222,13 +231,13 @@ public:
 
   //! Evaluate field at local point
   virtual void GetVector(Vector<TYPE>& vec, 
-                           const LocPointMapped& lpm) {
+                         const LocPointMapped& lpm) {
     vec.Resize(this->ptGrid_->GetDim());
     this->feFct_->GetElemSolution( elemSol, lpm.ptEl);
     this->forms_[lpm.ptEl->regionId]->ApplyBMat(vec, elemSol, lpm );
-    vec *= -1;
+    vec *= factor_;
   }
-  
+
 protected:
   
   //! Solution of element
@@ -236,6 +245,9 @@ protected:
   
   //! Mapped local points
   LocPointMapped lpm;
+  
+  //! Additional factor
+  Double factor_;
 };
 
 // --------------------------------------------------------------------------
@@ -253,8 +265,10 @@ public:
   
   //! Constructor
   FluxFieldFunctor(shared_ptr<BaseFeFunction> feFct,
-                   shared_ptr<ResultInfo> inf ) :
+                   shared_ptr<ResultInfo> inf,
+                   Double factor = 1.0) :
                      FieldFunctor<TYPE>( feFct, inf) {
+    factor_ = factor;
   }
   
   //! Destructor
@@ -267,7 +281,7 @@ public:
     this->feFct_->GetElemSolution( elemSol, lpm.ptEl);
     BaseBDBInt* bdb = this->forms_[lpm.ptEl->regionId]; 
     bdb->ApplydBMat(vec, elemSol, lpm );
-    vec *= -1;
+    vec *= factor_;
   }
   
 protected:
@@ -277,6 +291,9 @@ protected:
 
   //! Mapped local points
   LocPointMapped lpm;
+  
+  //! Additional factor
+  Double factor_;
 
 };
 
