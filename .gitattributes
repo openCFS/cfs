@@ -204,6 +204,7 @@ share/doc/developer/Protokolle/Treffen_16_11_2005.pdf -text svneol=unset#applica
 share/doc/developer/Protokolle/Treffen_25_09_2007.pdf -text svneol=unset#application/pdf
 share/doc/developer/Protokolle/Treffen_27_07_2005.pdf -text svneol=unset#application/pdf
 share/doc/developer/develManual/Int.bib -text
+share/doc/developer/develManual/TimeScheme.pdf -text
 share/doc/developer/develManual/attachfile.sty svneol=native#text/plain
 share/doc/developer/develManual/concepts.tex -text
 share/doc/developer/develManual/debugging.tex -text
