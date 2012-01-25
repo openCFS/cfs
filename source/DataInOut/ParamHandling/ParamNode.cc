@@ -1003,6 +1003,12 @@ void ParamNode::ToFile(const std::string& filename, bool force)
 
   // Then we print the tree
   ToXML(info_file);
+  
+  //BUGFIX: the destructor in boost might be buggy as the file is sometimes missing its end
+  //this fixes
+  while(!info_file.empty()){
+    info_file.pop();
+  }
 }
 
 void ParamNode::Dump(int level)
