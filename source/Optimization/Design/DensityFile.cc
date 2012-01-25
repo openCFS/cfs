@@ -56,7 +56,7 @@ DensityFile::~DensityFile()
 {
   // in CommitIteration or here?
   if(finally_only_)
-    data->ToFile(name_);
+    data->ToFile(name_, true);
 
   data.reset();
 }
