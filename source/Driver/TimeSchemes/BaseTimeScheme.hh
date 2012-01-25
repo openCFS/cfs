@@ -81,10 +81,17 @@ class BaseTimeScheme{
     */
     virtual void AdaptBC(Double& transVal, Double initValue,UInt initDerivOrder, Integer eqnNumber) = 0;
 
+    /*! Obtain the time derivative of the solution
+     *   \param[in] order requested order of time derivative
+     */
+    virtual SingleVector* GetTimeDerivative(UInt order)=0;
+
     /// Obtain the time derivative order of the systems solution
     UInt GetSolutionTimeDerivOrder(){
       return solOrder_;
     }
+
+;
 
   protected:
 

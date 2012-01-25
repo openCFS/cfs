@@ -26,7 +26,6 @@
 #include "FeBasis/FeFunctions.hh"
 
 #include "Driver/TimeSchemes/TimeSchemeGLM.hh"
-//#include "Driver/TimeSchemes/Trapezoidal.hh"
 
 #include "Driver/SolveSteps/StdSolveStep.hh"
 

@@ -19,6 +19,18 @@
 
 namespace CoupledField{
 
+/*! \class GLMScheme
+ *    \brief The base class defining all variable necessary to define a GLM
+ *    @author A.Hueppe
+ *    @date 01/2012
+ *
+ *  Every attribute is public and can be directly altered. For adding a scheme one has to
+ *  fill the parameters according to the schemes definition and has to implement the
+ *  ComputeCoefficients method in which the tableau for the scheme is given for each solution
+ *  derivative order. If some orders cannot be given e.g. solderivorder 0 with an explicit RK4 it is the
+ *  programmers duty to give an error.
+ *  A detailed information about the ideas behind a GLM can be found in the developer manual.
+ */
 class GLMScheme{
   public:
     GLMScheme();
@@ -108,57 +120,6 @@ class GLMScheme{
 
 };
 
-class Trapezoidal : public GLMScheme{
-  public:
-
-    Trapezoidal(Double gamma);
-
-    //! \copydoc GLMScheme::ComputeCoefficients(UInt,Double)
-    virtual void ComputeCoefficients(UInt solDerivOrder,Double deltaT);
-
-  private:
-    /*!
-     * parameter for switching between implicit and explicit scheme
-     *  for gamma = 0.5 the scheme is second order accurate
-     */
-    Double gamma_;
-
-};
-
-class Newmark : public GLMScheme{
-  public:
-
-    Newmark(Double gamma,Double beta);
-
-    //! \copydoc GLMScheme::ComputeCoefficients(UInt,Double)
-    virtual void ComputeCoefficients(UInt solDerivOrder,Double deltaT);
-
-  private:
-    /*!parameter for switching between implicit and explicit scheme
-     * for gamma = 0.5 the scheme is second order accurate */
-    Double gamma_;
-
-    /*!parameter for switching between implicit and explicit scheme
-     * for beta_ = 0.25 the scheme is second order accurate in the
-     * absence of damping matrix*/
-    Double beta_;
-
-};
-
-
-/*! \class GLMScheme
- *    \brief The base class defining all variable necessary to define a GLM
- *    @author A.Hueppe
- *    @date 01/2012
- *
- *  Every attribute is public and can be directly altered. For adding a scheme one has to
- *  fill the parameters according to the schemes definition and has to implement the
- *  ComputeCoefficients method in which the tableau for the scheme is given for each solution
- *  derivative order. If some orders cannot be given e.g. solderivorder 0 with an explicit RK4 it is the
- *  programmers duty to give an error.
- *  A detailed information about the ideas behind a GLM can be found in the developer manual.
- */
-
 
 /*! \class Trapezoidal
  *    \brief Defines coefficients for Trapezoidal timestepping
@@ -191,6 +152,23 @@ class Newmark : public GLMScheme{
  *  for gamma_ = 0.5 the scheme is second order accurate
  *
  */
+
+class Trapezoidal : public GLMScheme{
+  public:
+
+    Trapezoidal(Double gamma);
+
+    //! \copydoc GLMScheme::ComputeCoefficients(UInt,Double)
+    virtual void ComputeCoefficients(UInt solDerivOrder,Double deltaT);
+
+  private:
+    /*!
+     * parameter for switching between implicit and explicit scheme
+     *  for gamma = 0.5 the scheme is second order accurate
+     */
+    Double gamma_;
+
+};
 
 /*! \class Newmark
  *    \brief Defines coefficients for Newmark timestepping
@@ -239,6 +217,30 @@ class Newmark : public GLMScheme{
  *  For gamma = 0.5 and beta = 0.25, the scheme is second order accurate if we have no damping i.e. no dependence on first order
  *  time derivative.
  */
+class Newmark : public GLMScheme{
+  public:
+
+    Newmark(Double gamma,Double beta);
+
+    //! \copydoc GLMScheme::ComputeCoefficients(UInt,Double)
+    virtual void ComputeCoefficients(UInt solDerivOrder,Double deltaT);
+
+  private:
+    /*!parameter for switching between implicit and explicit scheme
+     * for gamma = 0.5 the scheme is second order accurate */
+    Double gamma_;
+
+    /*!parameter for switching between implicit and explicit scheme
+     * for beta_ = 0.25 the scheme is second order accurate in the
+     * absence of damping matrix*/
+    Double beta_;
+
+};
+
+
+
+
+
 }
 
 #endif /* GLMSCHEMELIB_HH_ */

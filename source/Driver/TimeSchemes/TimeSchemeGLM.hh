@@ -81,6 +81,8 @@ class TimeSchemeGLM : public BaseTimeScheme{
       transVal = curScheme_->TransformBC(glmVector_,initValue,initDerivOrder, eqnNumber);
     }
 
+    virtual SingleVector* GetTimeDerivative(UInt order);
+
   protected:
 
     void InitGLMs();

@@ -19,11 +19,18 @@
 
 namespace CoupledField{
 
+/*! \class CoefFunctionGrid
+ *     \brief Coefficient function which obtains and interpolates values from another Grid
+ *     \tparam DATA_TYPE Can be Complex or Double
+ *     @author A. Hueppe
+ *     @date 01/2012
+ *
+ */
 template<class DATA_TYPE>
 class CoefFunctionGrid : public CoefFunction{
   public:
 
-    CoefFunctionGrid();
+    CoefFunctionGrid(std::string gId,SolutionType type,bool isStatic);
 
     ~CoefFunctionGrid();
 
@@ -47,16 +54,10 @@ class CoefFunctionGrid : public CoefFunction{
 
   protected:
   private:
+    bool isStatic_;
 
 };
 
-/*! \class CoefFunctionGrid
- *     \brief Coefficient function which obtains and interpolates values from another Grid
- *     \tparam DATA_TYPE Can be Complex or Double
- *     @author A. Hueppe
- *     @date 01/2012
- *
- */
 
 }
 #endif

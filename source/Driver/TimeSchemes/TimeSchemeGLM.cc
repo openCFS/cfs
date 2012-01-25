@@ -197,6 +197,34 @@ namespace CoupledField{
 #endif
   }
 
+  SingleVector* TimeSchemeGLM::GetTimeDerivative(UInt order){
+    SingleVector* derivVec = NULL;
+    if(order > curScheme_->maxDerivOrder_){
+      Exception("Request for invalid time derivative order.");
+    }else{
+      switch(order){
+      case 0:
+        derivVec = glmVector_[0];
+        break;
+      case 1:
+        if(curScheme_->numSol1stDerivs_ > 0){
+          derivVec = glmVector_[curScheme_->numOldSols_];
+        }else{
+          //TODO: Calculate it, TO BE DONE
+        }
+        break;
+      case 2:
+        if(curScheme_->numSol2ndDerivs_ > 0){
+          derivVec = glmVector_[curScheme_->numOldSols_+curScheme_->numSol1stDerivs_];
+        }else{
+          //TODO: Calculate it, TO BE DONE
+        }
+        break;
+      }
+    }
+    return derivVec;
+  }
+
   void TimeSchemeGLM::InitGLMs(){
     //initialize GLMs
     availSchemes[TRAPEZOIDAL] = new Trapezoidal(0.51);
