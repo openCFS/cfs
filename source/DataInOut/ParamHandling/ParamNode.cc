@@ -23,6 +23,8 @@
 #include "Utils/Timer.hh"
 #include "Utils/mathParser/mathParser.hh"
 #include "boost/algorithm/string.hpp"
+#include <boost/iostreams/filter/bzip2.hpp>
+#include <boost/iostreams/filtering_stream.hpp>
 #include "boost/filesystem/convenience.hpp"
 #include "boost/filesystem/exception.hpp"
 #include "boost/filesystem/operations.hpp"
@@ -960,9 +962,19 @@ void ParamNode::ToFile(const std::string& filename, bool force)
     
     myFileName = progOpts->GetSimName() + ".info.xml";
   }
-  // write preamble
 
-  std::ofstream info_file(myFileName.c_str());
+  // use filtered stream
+  iostreams::filtering_stream<iostreams::output> info_file;
+  
+  // enable compression, if filename ends with .bz2
+  if(boost::algorithm::ends_with(myFileName, ".bz2")){
+    info_file.push(iostreams::bzip2_compressor());
+  }
+  
+  std::ofstream info_file_file(myFileName.c_str());
+  info_file.push(info_file_file);
+  
+  // write preamble
   info_file << "<?xml version=\"1.0\"?>";
   
   // in case we writa an info.xml file (and not a density file, ...) we add xslt stuff
@@ -991,7 +1003,6 @@ void ParamNode::ToFile(const std::string& filename, bool force)
 
   // Then we print the tree
   ToXML(info_file);
-  info_file.close();
 }
 
 void ParamNode::Dump(int level)
