@@ -1,3 +1,4 @@
+#include <boost/algorithm/string.hpp>
 #include <iostream>
 
 #include "DataInOut/Logging/cfslog.hh"
@@ -44,6 +45,10 @@ DensityFile::DensityFile(DesignSpace* designSpace,
   data = Create(des, tfs, regulize_pn, designSpace->DoNonDesignVicinity());
   all_iterations_ = export_pn->Get("save")->As<string>() == "all";
   finally_only_   = export_pn->Get("write")->As<string>() == "finally";
+  // append .bz2 if compress=true and not already file ends with it
+  if(export_pn->Get("compress")->As<bool>() && !boost::algorithm::ends_with(name_, ".bz2")){
+    name_ = name_ + ".bz2";
+  }
 }
 
 

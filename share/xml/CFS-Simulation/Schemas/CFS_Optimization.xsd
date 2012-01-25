@@ -927,6 +927,7 @@
                     </xsd:restriction>
                   </xsd:simpleType>
                 </xsd:attribute>
+                <xsd:attribute name="compress" default="false" type="xsd:boolean"/>
               </xsd:complexType>
             </xsd:element>                       
             

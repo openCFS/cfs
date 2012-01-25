@@ -2,26 +2,31 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include <stddef.h>
-#include <iostream>
-
 #include "def_use_xerces.hh"
 
 #ifdef USE_XERCES
 
+#include <iostream>
+#include <fstream>
+#include <stddef.h>
 #include <string>
 
 #include "DataInOut/ParamHandling/Xerces.hh"
 #include "General/exception.hh"
 #include <boost/algorithm/string.hpp>
 #include <boost/filesystem/operations.hpp>
+#include <boost/iostreams/filter/bzip2.hpp>
+#include <boost/iostreams/filtering_streambuf.hpp>
+#include <boost/iostreams/copy.hpp>
 #include <xercesc/util/PlatformUtils.hpp>
 #include <xercesc/sax2/SAX2XMLReader.hpp>
 #include <xercesc/sax2/XMLReaderFactory.hpp>
+#include <xercesc/sax/InputSource.hpp>
 
 
 // we want to use the Xerces-C++ namespace
 using namespace xercesc;
+using namespace std;
 namespace fs = boost::filesystem;
 
 namespace CoupledField
@@ -59,7 +64,11 @@ namespace CoupledField
 
     try
     {
-      parser->parse(file_.c_str()); // reads the content to root
+      if(boost::algorithm::ends_with(file_, ".bz2")){
+        parser->parse(Bzip2InputSource(file_));
+      }else{
+        parser->parse(file_.c_str()); // reads the content to root
+      }
     }
     catch(const XMLException& toCatch)
     {
@@ -367,6 +376,40 @@ namespace CoupledField
     for(unsigned int i = 0; i < stack.GetSize(); i++)
      std::cout << i << ": " << stack[i]->GetName() << " ";
   }
+  
+  Xerces::Bzip2InputStream::Bzip2InputStream(string fileName, xercesc::MemoryManager* const manager) :
+      compin_(fileName.c_str(), ios_base::in | ios_base::binary), fMemoryManager(manager), curPos_(0)
+  {
+    bzipin_.push(boost::iostreams::bzip2_decompressor());
+    bzipin_.push(compin_);
+  }
+  
+  Xerces::Bzip2InputStream::~Bzip2InputStream(){
+  }
+  
+  unsigned int Xerces::Bzip2InputStream::curPos() const{
+    return(curPos_);
+  }
+  
+  unsigned int Xerces::Bzip2InputStream::readBytes(XMLByte* const toFill, const unsigned int maxToRead) {
+    unsigned int r = bzipin_.sgetn((char*) toFill, maxToRead);
+    curPos_ += r;
+    return(r);
+  }
+  
+  Xerces::Bzip2InputSource::Bzip2InputSource(string fileName) : InputSource() {
+    fileName_ = fileName;
+  }
+  
+  Xerces::Bzip2InputSource::~Bzip2InputSource(){
+    
+  }
+  
+  Xerces::Bzip2InputStream* Xerces::Bzip2InputSource::makeStream() const {
+    Bzip2InputStream* retStream = new (getMemoryManager()) Bzip2InputStream(fileName_, getMemoryManager());    
+    return(retStream);
+  }
+  
 
 } // end of namespace
 
