@@ -420,6 +420,7 @@ namespace CoupledField {
             << "eigenvalue will be solved (as you have specified)!");
       }
 
+      
       if( massPresent == true ) {
         // Setup the eigenvalue solver for generalized EV problem
         eigenSolver_->Setup( (*sysMat_[STIFFNESS])(0,0), 
@@ -669,20 +670,49 @@ namespace CoupledField {
                                            Vector<Double>& err ) {
     
     LOG_TRACE(algSys) << "Calculating real-valued eigenfrequencies";
-    REFACTOR;
+
+    // Trigger calculation of eigenvalues
+    eigenSolver_->CalcEigenFrequencies( *eigenValues_, *eigenValError_ );
+
+    // Hard coded cast for double values
+    Vector<Double>& valVec = dynamic_cast<Vector<Double>&>(*eigenValues_);
+    frequencies = valVec;
+
+    Vector<Double>& errVec = dynamic_cast<Vector<Double>&>(*eigenValError_);
+    err = errVec;
   }
 
   void AlgebraicSys::CalcEigenFrequencies( Vector<Complex>& frequencies,
                                            Vector<Double>& err ) {
     
     LOG_TRACE(algSys) << "Calculating complex-valued eigenfrequencies";
-    REFACTOR;
+
+    // Check, if eigenvalue solver is quadratic, as only in this case
+    // this method is well-defined
+
+    if( eigenSolver_->IsQuadratic() == false ) {
+      EXCEPTION("When solving a generalized eigenvalue problem, only " \
+               << "real-valued results are obtained! Use the second " \
+               << "CalcEigenFrequencies()-method!");
+    }
+
+    // Trigger calculation of eigenvalues
+    eigenSolver_->CalcEigenFrequencies( *eigenValues_, *eigenValError_ );
+
+    // Hard coded cast for double values
+    Vector<Complex>& valVec = dynamic_cast<Vector<Complex>&>(*eigenValues_);
+    frequencies = valVec;
+
+    Vector<Double>& errVec = dynamic_cast<Vector<Double>&>(*eigenValError_);
+    err = errVec;
   }
 
   void AlgebraicSys::CalcEigenMode( UInt numMode )  {
     
     LOG_TRACE(algSys) << "Calculating eigenmode #" << numMode;
-    REFACTOR;
+    Vector<Double> & solHelp =
+         dynamic_cast<Vector<Double> &> ((*sol_)(0));
+    eigenSolver_->CalcEigenMode( numMode, solHelp );
 
   }
 

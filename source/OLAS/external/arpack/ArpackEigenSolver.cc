@@ -80,9 +80,7 @@ namespace CoupledField {
 
     // Check 'which'-settings regarding the type of eigenvalues searched for
     std::string whichString = "LM";
-    PtrParamNode sNode;
-    sNode = xml_->Get("eigenSolver")->Get("arpack", ParamNode::INSERT);
-    sNode->GetValue("which", whichString, ParamNode::INSERT);
+    xml_->GetValue("which", whichString, ParamNode::INSERT);
     
     which_ = new char[whichString.size()+1];
     strncpy(which_, whichString.c_str(), whichString.size()+1 );
@@ -94,13 +92,13 @@ namespace CoupledField {
     // Set additional parameters for tolerance, number of Arnoldi vectors and
     // number of iterations
     Double tol = -1.0;
-      sNode->GetValue("tolerance", tol, ParamNode::INSERT );
+    xml_->GetValue("tolerance", tol, ParamNode::INSERT );
     Integer maxIt = -1;
     
-    sNode->GetValue("maxIt", maxIt, ParamNode::INSERT );
+    xml_->GetValue("maxIt", maxIt, ParamNode::INSERT );
     Integer numVec = -1;
     
-    sNode->GetValue("numVec", numVec, ParamNode::INSERT );
+    xml_->GetValue("numVec", numVec, ParamNode::INSERT );
 
     if (tol > 0.0)
       arpackSolver_->SetTolerance(tol);
@@ -111,8 +109,8 @@ namespace CoupledField {
 
     // Check trace settings
     arpackSolver_->DebugOff();
-    if( sNode->Has("logging") ) {
-      sNode->GetValue("logging", logging_);
+    if( xml_->Has("logging") ) {
+      xml_->GetValue("logging", logging_);
       if (logging_) {
         arpackSolver_->DebugOn();
         logging_ = true;
@@ -179,10 +177,8 @@ namespace CoupledField {
     arpackSolver_ = new ArpackSolver();
 
     // Check 'which'-settings regarding the type of eigenvalues searched for
-    PtrParamNode sNode;
-    sNode = xml_->Get("eigenSolver")->Get("arpack", ParamNode::INSERT );
     std::string whichString = "LM";
-    sNode->GetValue("which", whichString, ParamNode::INSERT );
+    xml_->GetValue("which", whichString, ParamNode::INSERT );
     
     which_ = new char[whichString.size()+1];
     strncpy(which_, whichString.c_str(), whichString.size()+1 );
@@ -194,13 +190,13 @@ namespace CoupledField {
     // Set additional parameters for tolerance, number of Arnoldi vectors and
     // number of iterations
     Double tol = -1.0;
-    sNode->GetValue("tolerance", tol, ParamNode::INSERT);
+    xml_->GetValue("tolerance", tol, ParamNode::INSERT);
     
     Integer maxIt = -1;
-    sNode->GetValue("maxIt", maxIt, ParamNode::INSERT);
+    xml_->GetValue("maxIt", maxIt, ParamNode::INSERT);
     
     Integer numVec = -1;
-    sNode->GetValue("numVec", numVec, ParamNode::INSERT);
+    xml_->GetValue("numVec", numVec, ParamNode::INSERT);
 
     if (tol > 0.0)
         arpackSolver_->SetTolerance(tol);
@@ -211,8 +207,8 @@ namespace CoupledField {
 
     // Check trace settings
     arpackSolver_->DebugOff();
-    if( sNode->Has("logging") ) {
-      sNode->GetValue("logging", logging_);
+    if( xml_->Has("logging") ) {
+      xml_->GetValue("logging", logging_);
       if (logging_) {
         arpackSolver_->DebugOn();
         logging_ = true;
@@ -365,24 +361,16 @@ namespace CoupledField {
     // Create solver class
     arpackSolver_ = new ArpackSolver();
 
-    PtrParamNode sNode;
-    std::cerr << "parameter node of Arpack is\n";
-    std::string out;
-    xml_->ToString(out, 0);
-    sNode = xml_->Get("arpack", ParamNode::INSERT);
-
     // Set additional parameters for tolerance, number of Arnoldi vectors and
     // number of iterations
     Double tol = -1.0;
-    sNode->GetValue("tolerance", tol, ParamNode::INSERT);
+    xml_->GetValue("tolerance", tol, ParamNode::INSERT);
 
     Integer maxIt = -1;
-    sNode->GetValue("maxIt", maxIt, ParamNode::INSERT);
+    xml_->GetValue("maxIt", maxIt, ParamNode::INSERT);
 
     Integer numVec = -1;
-    sNode->GetValue("numVec", numVec, ParamNode::INSERT);
-
-    
+    xml_->GetValue("numVec", numVec, ParamNode::INSERT);
     
     // set mode: we look at both ends of the spectrum for eigenvalues
     std::string whichString = "BE";
@@ -408,8 +396,8 @@ namespace CoupledField {
 
     // Check trace settings
     arpackSolver_->DebugOff();
-    if( sNode->Has("logging") ) {
-      sNode->GetValue("logging", logging_);
+    if( xml_->Has("logging") ) {
+      xml_->GetValue("logging", logging_);
       if (logging_) {
         arpackSolver_->DebugOn();
         logging_ = true;
@@ -418,8 +406,7 @@ namespace CoupledField {
     
     // Print log-info about EigenSolver
     PrintInfo();
-    std::cerr << "solverList in Arpack is \n";
-    solverList_->Dump();
+    
     // Create standard solver
     solver_ = GenerateSolverObject( *matrixA_, solStrat_, 
                                     solverList_, eigenInfo_ );
