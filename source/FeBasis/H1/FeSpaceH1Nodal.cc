@@ -173,11 +173,16 @@ namespace CoupledField{
         std::map<Elem::FEType, FeH1* >::iterator elemIt = regIt->second.begin();
         while(elemIt != regIt->second.end()){
           shape = Elem::GetShapeType(elemIt->first);
-          Matrix<Integer> curOrder;
-          IntScheme::IntegMethod curMethod;
-          GetIntegration(elemIt->second,regIt->first,curMethod,curOrder);
-          integScheme->GetIntegrationPoints(integPoints,shape,curOrder[0][0],curMethod);
-          dynamic_cast<FeH1*>(elemIt->second)->SetFunctionsAtIp(integPoints);
+          //now obtain iterator to the integ Regions associated with this polyRegion
+          std::set<RegionIdType>::iterator integIter = polyToIntegMap[regIt->first].begin();
+          while(integIter != polyToIntegMap[regIt->first].end()){
+            Matrix<Integer> curOrder;
+            IntScheme::IntegMethod curMethod;
+            GetIntegration(elemIt->second,*integIter,curMethod,curOrder);
+            integScheme->GetIntegrationPoints(integPoints,shape,curOrder[0][0],curMethod);
+            dynamic_cast<FeH1*>(elemIt->second)->SetFunctionsAtIp(integPoints);
+            integIter++;
+          }
           elemIt++;
         }
         regIt++;

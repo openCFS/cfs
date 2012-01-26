@@ -340,6 +340,10 @@ protected:
   //! to distinguish cleanly one could define an isIsoOrderInt flag....
   std::map<RegionIdType, IntegDefinition > regionIntegration_;
 
+  //! Maps polyregionIDs to integIds
+  //! needed only for precalulation of shape function in FeSpaceH1Nodal right now.
+  std::map<RegionIdType, std::set<RegionIdType> > polyToIntegMap;
+
   //! Set the order and mapping type of a specific region
   virtual void SetRegionElements( RegionIdType region, MappingType mType,
                                   const Matrix<Integer>& order,

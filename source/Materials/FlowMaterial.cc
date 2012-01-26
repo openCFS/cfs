@@ -7,8 +7,8 @@
 #include <string>
 #include <utility>
 
-#include "General/exception.hh"
-#include "Materials/baseMaterial.hh"
+#include "General/Exception.hh"
+#include "Materials/BaseMaterial.hh"
 #include "FlowMaterial.hh"
 #include "limits.h"
 #include "math.h"

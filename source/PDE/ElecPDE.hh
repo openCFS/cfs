@@ -161,6 +161,9 @@ namespace CoupledField
 
     //! vector containing regionIds of non-conforming interfaces
     StdVector<RegionIdType> ncIFaces_;
+
+    //! Read in external fields JUST FOR TESTING DELETE AS SOON AS POSSIBLE!
+    void ReadGridData();
   };
 
 #ifdef DOXYGEN_DETAILED_DOC

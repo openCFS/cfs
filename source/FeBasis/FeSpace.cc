@@ -553,6 +553,8 @@ namespace CoupledField {
     std::string regionName = domain->GetGrid()->GetRegion().ToString(region);
     PtrParamNode regionNode = infoNode_->Get("regionList")->Get(regionName);
     
+    RegionIdType pReg,iReg;
+
     //SECTION1: Polynomials
     if(polyNodes_.find(polyId)!=polyNodes_.end()){
       //the user specified a valid polyId so we read its data and call create ref elems
@@ -563,9 +565,11 @@ namespace CoupledField {
       MappingType curMap;
       ReadPolyNode(pNode,curMap,order);
       SetRegionElements(region,curMap,order,regionNode);
+      pReg = region;
     }else if(polyId=="default"){
       //the user requested the default but did not specify it so we set it here
       SetDefaultElements(infoNode_->Get("regionList")->Get("default"));
+      pReg = ALL_REGIONS;
     }else{
       EXCEPTION("The polynomial id does not match any in the fePolynomialList: " << polyId);
     }
@@ -578,12 +582,15 @@ namespace CoupledField {
       IntScheme::IntegMethod iMeth;
       ReadIntegNode(iNode,iMeth,order,curMode);
       SetRegionIntegration(region,iMeth,order,curMode, regionNode);
+      iReg = region;
     }else if(integId=="default"){
       //the user requested the default but did not specify it so we set it here
       SetDefaultIntegration(infoNode_->Get("regionList")->Get("default"));
+      iReg = ALL_REGIONS;
     }else{
       EXCEPTION("The integration id does not match any in the IntegratoinSchemeList: " << integId);
     }
+    polyToIntegMap[pReg].insert(iReg);
   }
 
   void FeSpace::SetRegionIntegration(RegionIdType region, IntScheme::IntegMethod method ,Matrix<Integer> order,
