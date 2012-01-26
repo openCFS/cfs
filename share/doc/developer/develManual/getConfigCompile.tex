@@ -99,9 +99,9 @@ dpkg -S /usr/bin/g++
 Ubuntu is a little  special among other Linux distros since it  uses Dash as a
 shell instead of  Bash. Therefore some shell scripts written  for Bash may not
 work on  Ubuntu. Go  to \url{https://wiki.ubuntu.com/DashAsBinSh} for  tips on
-how to make your scripts POSIX compliant. We also provide the script
-\tt{share/scripts/checkbashisms} which gives warnings about bash-specific
-syntax. On Ubuntu, there exists also the \tt{devscripts} package, which
+how  to  make  your  scripts  POSIX  compliant. We  also  provide  the  script
+\texttt{share/scripts/checkbashisms} which  gives warnings about bash-specific
+syntax. On  Ubuntu, there exists  also the \texttt{devscripts}  package, which
 contains a lot of other tools for script development.
 
 \item[Fedora] Fedora support has been tested on release 13.
@@ -197,27 +197,73 @@ a single  source tree multiple  build trees may  generated (e.g. for  debug or
 release  executables). By doing  dependency analysis  CMake can  also generate
 Makefiles suitable for parallel builds.
 
+CMake supports out-of-source builds. This means, that one can have two or more
+different build directories with different  settings applying to each one (cf.
+Fig.  \ref{fig:understand_src_bin_dir}).  This  way, CMake keeps the different
+builds separate and avoids cluttering  the source directory with a huge number
+of generated files. The latter behavior  can make the output of the Subversion
+status commands almost useless.
+
+\begin{figure}[htb] 
+  \centering
+  \begin{overpic}[width=0.8\textwidth]{pics/understand_src_bin_dir}
+  \end{overpic}
+  \caption{Two  build directories  with  different settings  generated from  a
+single source directory.}
+  \label{fig:understand_src_bin_dir}
+\end{figure}%
+
 In the following script we create  two empty build directories. In one of them
 we will  build a debug executable,  whereas in the  other one we will  build a
 release  executable.   Before configuring  we  set  our  desired compilers  by
-creating  new  environment  variables.  After  that we  change  to  the  build
+creating  new  environment variables.   After  that  we  change to  the  build
 directories and configure  them.  This step may take  a considerable amount of
-time for  the first time since  a number libraries, upon  which CFS++ depends,
+time for the  first time, since a number libraries,  upon which CFS++ depends,
 have to built first. For this purpose  we also have to specify the location of
 CFSDEPS to CMake  and where the dowloaded sources  and prebuilt libraries will
-be  stored  (CFS\_DEPS\_CACHE\_DIR,   cf.  Sec.  \ref{sec:cfsdeps}).  We  also
-specify,  that we  want to  use  standard Unix  make files  for building.  The
+be  stored  (CFS\_DEPS\_CACHE\_DIR, cf.   Sec.   \ref{sec:cfsdeps}).  We  also
+specify,  that we  want to  use standard  Unix make  files for  building.  The
 configure step  for the debug  build will be  much faster, since  the prebuilt
 libraries  from  the first  step  just  need to  be  unpacked  into the  debug
-directory.
+directory.  If   your  home  directory   is  a  network  share,   please  take
+Sec.  \ref{sec:being_careful_with_shares} into  account  before executing  the
+following commands.
 
 \input{pygmentized/qs_configure_build}
 
+\subsection{Being Careful with Network Shares}
+\label{sec:being_careful_with_shares}
+\textcolor{red}{IMPORTANT  NOTE:  Avoid  putting  your  build  directories  on
+network shares! User home directories tend  to be such shares.  CMake and make
+require certain  file access mechanisms, that  may not be  available on shared
+folders. Moreover,  the build will take much  longer and it may  not even make
+sense to share executables  among different machine architectures or operating
+system versions!}
+
+You can check  whether your home directory is mounted from  a network share by
+typing
+\begin{verbatim}
+mount | grep $HOME
+\end{verbatim}
+into a shell prompt. If you get a response like this
+\begin{verbatim}
+//server/user_homes/georg/ on /home/users/georg type cifs (rw)
+\end{verbatim}
+you should not put your build directory inside your home directory.
+
+It is however perfectly sane to  put your source directory on a network share.
+Such practice is even advisable, since changes need to be made only once for a
+set   of   sources   shared   by   multiple   computers.    Refer   to   Chap.
+\ref{chap:mounting_sshfs}.  for sharing  the source directories with computers
+which only have SSH access to the machine containing the sources.
+
 \section{Generating a Project for Eclipse}
+\label{sec:eclipse_setup_project}
 
 The only  difference from the  procedure for generating Makfiles  described in
 the section  above, is  that we  need to specify  a different  generator while
 configuring the build tree with CMake. We do this by saying:
+
 \begin{verbatim}
 cmake -DDEBUG:BOOL=ON \ 
       -DCFS_DEPS_ROOT:PATH=$DEVDIR/CFSDEPS \ 
@@ -227,11 +273,75 @@ cmake -DDEBUG:BOOL=ON \
 \end{verbatim}
 
 Now we have generated the two  files {\tt .cproject} and {\tt .project} in the
-directory {\tt \$DEVDIR/build/debug}  in addition to the Unix  make files.  In
-Eclipse (with  the CDT extension) we have  to import our new  project by doing
+directory {\tt  \$DEVDIR\-/build\-/debug} in addition to the  Unix make files.
+In Eclipse (with the CDT extension) we have to import our new project by doing
 the   following  steps:  File   $\rightarrow$  Import   $\rightarrow$  General
 $\rightarrow$  Existing  Project  into  Workspace  $\rightarrow$  Select  Root
-Directory {\tt \$DEVDIR/build/debug}.
+Directory {\tt \$DEVDIR\-/build\-/debug}.
+
+In order for the Eclipse code indexer  to find all headers it may be necessary
+to add some  system and MKL include paths and  preprocessor defines.  This can
+be  done under  Project $\rightarrow$  Properties $\rightarrow$  C/C++ Include
+Paths and Symbols (cf.  Fig. \ref{fig:eclipse_cpp_inc_paths} for an example on
+Mac OS X).
+
+\begin{figure}[htb] 
+  \centering 
+  \subfloat[Additional include paths.]{
+    \label{fig:eclipse_cpp_inc_paths}
+    \begin{overpic}[height=5cm]{pics/eclipse_cpp_inc_paths}
+    \end{overpic}
+    }
+  \qquad
+  \subfloat[Importing a coding style.]{
+    \label{fig:eclipse_import_bsd_style}
+    \begin{overpic}[height=5cm]{pics/eclipse_bsd_style}
+    \end{overpic}
+  } 
+  \caption{Specifying additional include directories and coding style settings.}
+  \label{fig:eclipse_code_style_inc}
+\end{figure}
+
+In order to  maintain a common coding style  among Eclipse developers everyone
+should     import    the     style    informations     attached     to    this
+PDF.\attachfile[icon=PushPin,description={Eclipse                        coding
+style.},mimetype=text/plain]{attachments/eclipse-code-style.txt}. The settings
+can be  imported into  Eclipse by going  to Project  $\rightarrow$ Preferences
+$\rightarrow$ C/C++  General $\rightarrow$ Code  Style $\rightarrow$ Configure
+Workspace             Settings...              $\rightarrow$            Import
+(cf. Fig. \ref{fig:eclipse_import_bsd_style}).
+
+Also the  settings for  character encoding and  further editor  setting should
+remain consistent among the developers.  The necessary settings in Eclipse can
+be made  by accessing  Window $\rightarrow$ Preferences  $\rightarrow$ General
+$\rightarrow$ Editors and Workspace (c.f Fig. \ref{fig:eclipse_cfs_settings}).
+\begin{figure}[htb] 
+  \centering 
+  \subfloat[Editor settings.]{
+    \label{fig:eclipse_editor_settings}
+    \begin{overpic}[height=5cm]{pics/eclipse_editor_settings}
+%      \put(10,20){\textcolor{red}{\bf Test}}
+    \end{overpic}
+    }
+  \qquad
+  \subfloat[Workspace settings.]{
+    \label{fig:eclipse_workspace_settings}
+    \begin{overpic}[height=5cm]{pics/eclipse_workspace_settings}
+    \end{overpic}
+  } 
+  \caption{Settings for CFS++ in Eclipse.}
+  \label{fig:eclipse_cfs_settings}
+\end{figure}
+
+For   convenience  the   corresponding  settings   files  are   attached  here
+\attachfile[icon=PushPin,description={Eclipse                            editor
+settings.},mimetype=text/plain]{attachments/org.eclipse.ui.editors.prefs.txt}
+\attachfile[icon=PushPin,description={Eclipse                         workspace
+settings.},mimetype=text/plain]{attachments/org.eclipse.core.resources.prefs.txt}. The
+have               to                copied               to               the
+workspace/.metadata/.plugins/org.eclipse.core.runtime/.settings  directory and
+must be renamed to \*.prefs.
+
 
 \section{Pre-/Postprocessors}
 \label{sec:obtaining_prepostprocs}

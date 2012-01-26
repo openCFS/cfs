@@ -16,3 +16,4 @@ Pygmentize org.eclipse.ui.editors.prefs org.eclipse.ui.editors.prefs.tex
 Pygmentize org.eclipse.core.resources.prefs org.eclipse.core.resources.prefs.tex
 Pygmentize emacs_settings.sh emacs_settings.tex
 Pygmentize qs_bootstrap.sh qs_bootstrap.tex
+Pygmentize eclipse-code-style.xml eclipse-code-style.tex

@@ -13,6 +13,7 @@
 \usepackage{longtable}
 \usepackage{booktabs}
 \newcommand{\otoprule}{\midrule[\heavyrulewidth]}
+\newcolumntype{x}[1]{>{\centering\arraybackslash\hspace{0pt}}m{#1}}
 
 \usepackage{rotating}
 \usepackage{tikz}
@@ -51,10 +52,10 @@
 \usepackage[percent]{overpic}
 
 %% Using  pdflatex one may attach  arbitrary files to the  generated PDF.
-\usepackage{attachfile}
+\usepackage{../../auxilliaries/attachfile}
 
 %% Package for entering TODO notes
-\usepackage{todonotes}
+\usepackage{../../auxilliaries/todonotes}
 
 %% Algorithmic Package for pseudocode
 \usepackage{algorithmic}
@@ -75,7 +76,7 @@
 % =============================================================================
 %
 %
-\LSETITLE{CFS++ -- Developer's Manual}{\hspace{1em}}{\hspace{1em}}
+\LSETITLE{CFS++ -- Developer's Manual}{Simon Triebenbacher and Manfred Kaltenbacher\vspace{2mm}}{Developer's Guide}
 %
 %
 \tableofcontents
@@ -90,6 +91,8 @@
 
 \todo[inline]{Move common parts of all manuals (e.g. common preambles) up the directory hierarchy and unify the build process of as many manuals as possible (cplreader, scripting, xml, devel, etc...)}
 
+\todo[inline]{Include development roadmaps of SLES \url{http://www.slideshare.net/NOVL/suse-linux-enterprise-technology-roadmap}, Ubuntu \url{http://en.wikipedia.org/wiki/Ubuntu_(operating_system)} \url{https://wiki.ubuntu.com/LTS}, Red Hat \url{http://www.redhat.com/f/pdf/summit/tburke_1050_rhel_roadmap.pdf}, \url{http://www.redhat.com/promo/summit/2010/presentations/summit/whats-next/wed/tburke-1020-rhel6-roadmap/tburke_rhel6_summit.pdf}}
+
 \include{introduction}
 \include{getConfigCompile}
 \include{firstTimeImplementing}
@@ -100,6 +103,7 @@
 \include{mounting}
 \include{debugging}
 \include{infrastructure}
+\include{contributors}
 
 \addcontentsline{toc}{chapter}{Bibliography}
 \bibliographystyle{alpha}
