@@ -1,6 +1,5 @@
 // include general defines
 #include <def_cfs_stats.hh>
-#include <def_cplreader.hh>
 #include <def_use_blas.hh>
 #include <def_use_hdf5.hh>
 #include <def_use_ansysrst.hh>
@@ -798,11 +797,6 @@ namespace CoupledField {
         << fg_blue << MUP_VERSION << " " MUP_VERSION_DATE << fg_reset << endl;
 
    
-#ifdef CPLREADER_CFX
-    out << "CFX_IO_VERSION:        "
-        << fg_blue << io_get_version() << fg_reset << endl;
-#endif
-
     out << endl;
     out << "sizeof(int)            "  << fg_blue << sizeof(int) << fg_reset << endl;
     out << "sizeof(Integer)        "  << fg_blue << sizeof(Integer) << fg_reset << endl;

@@ -261,27 +261,6 @@ IF(USE_ANSYSRST)
 ENDIF(USE_ANSYSRST)
 
 #-----------------------------------------------------------------------------
-# Find CFX Customizations
-#-----------------------------------------------------------------------------
-IF(CPLREADER_CFX)
-  INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindCFXCust.cmake")
-ENDIF(CPLREADER_CFX)
-
-#-----------------------------------------------------------------------------
-# Find VTK for OpenFOAM, EnSight and FLUENT readers
-#-----------------------------------------------------------------------------
-IF(CPLREADER_OPENFOAM OR CPLREADER_ENSIGHT OR CPLREADER_FLUENT)
-  INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindVTK.cmake")
-ENDIF(CPLREADER_OPENFOAM OR CPLREADER_ENSIGHT OR CPLREADER_FLUENT)
-
-#-----------------------------------------------------------------------------
-# Find CGNS for cgns reader
-#-----------------------------------------------------------------------------
-IF(CPLREADER_CGNS)
-  INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindCGNS.cmake")
-ENDIF(CPLREADER_CGNS)
-
-#-----------------------------------------------------------------------------
 # Find ParaView postprocessor
 #-----------------------------------------------------------------------------
 IF(BUILD_PARAVIEW)

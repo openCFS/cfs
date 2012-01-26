@@ -1,5 +1,0 @@
-<cplreaderOptions>
-  <type name="GENGRIDS" subType="ReferenceElementGenerator">
-    <elementType name="WEDGE15"/>
-  </type>
-</cplreaderOptions>

@@ -284,8 +284,6 @@ cd $TESTDIR
 tar xzf cfs_build_rom_gcc_nightly.tgz
 CFSBIN="$TESTDIR/CFS_BUILD_NIGHTLY/bin/$DISTRO/cfsbin"
 CFSTOOLBIN="$TESTDIR/CFS_BUILD_NIGHTLY/bin/$DISTRO/cfstoolbin"
-CPLREADER="$TESTDIR/CFS_BUILD_NIGHTLY/bin/$DISTRO/cplreader"
-if [ -f $CFSBIN ] && [ -f $CFSTOOLBIN ] && [ -f $CPLREADER ]; then
     echo "Copying GCC binaries to /opt/pckg/cfs_nightly..."
     rm -rf $DESTDIR/trunk_gcc
     mkdir $DESTDIR/trunk_gcc
@@ -302,7 +300,7 @@ rm -rf CFS_BUILD_NIGHTLY
 # Copy current version of CFS++ documentation from lse17 to rom for local Wiki
 cd /srv/www/htdocs/cfsDocu
 rm -rf *
-FILES="docu/tutorial/cfsManual.pdf docu/cfs-doc/user/xmlFile/xmlReference.pdf docu/cfs-doc/developer/develManual/develManual.pdf svn/CFS++/trunk/source/cplreader/Documentation/latex/cplreader_docu.pdf"
+FILES="docu/tutorial/cfsManual.pdf docu/cfs-doc/user/xmlFile/xmlReference.pdf docu/cfs-doc/developer/develManual/develManual.pdf"
 for FILE in $FILES; do
   wget --http-user=testuser-klu --http-password=$CFS_TESTUSER_PW \
        --no-check-certificate \
@@ -319,7 +317,6 @@ PerformTest "rom_icc_nightly"
 
 cd $TESTDIR
 tar xzf cfs_build_rom_icc_nightly.tgz
-if [ -f $CFSBIN ] && [ -f $CFSTOOLBIN ] && [ -f $CPLREADER ]; then
     echo "Copying Intel binaries to /opt/pckg/cfs_nightly..."
     ICC_ROM_DIR=$DESTDIR/trunk_icc_rom
     rm -rf $ICC_ROM_DIR

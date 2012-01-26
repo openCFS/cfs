@@ -79,21 +79,3 @@ ADD_CUSTOM_TARGET(distro_script ALL
   COMMENT "Copying \"${DISTRO_SCRIPT}\" script to ${CFS_BINARY_DIR}/share/scripts folder..."
   )
 
-#-------------------------------------------------------------------------------
-# Custom target for configuring cplreader to ${CFS_BINARY_DIR}/bin
-#-------------------------------------------------------------------------------
-IF(WIN32)
-  SET(CPLREADER_SCRIPT "cplreader.bat")
-  ADD_CUSTOM_TARGET(cplreader_script ALL
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_CURRENT_SOURCE_DIR}/${CPLREADER_SCRIPT} ${CFS_BINARY_DIR}/bin
-    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/${CPLREADER_SCRIPT}
-    COMMENT "Copying \"${CPLREADER_SCRIPT}\" script to ${CFS_BINARY_DIR}/bin folder..."
-    )
-ELSE(WIN32)
-  SET(CPLREADER_SCRIPT "cplreader")
-  ADD_CUSTOM_TARGET(cplreader_script ALL
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_CURRENT_SOURCE_DIR}/${CPLREADER_SCRIPT} ${CFS_BINARY_DIR}/bin
-    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/${CPLREADER_SCRIPT}
-    COMMENT "Copying \"${CPLREADER_SCRIPT}\" script to ${CFS_BINARY_DIR}/bin folder..."
-    )
-ENDIF(WIN32)

@@ -79,7 +79,6 @@ ctest_scripts/nightly_test_sedici.sh -text
 ctest_scripts/nightly_test_ubuntu804.sh -text
 include/def_build_type_options.hh.in -text
 include/def_cfs_stats.hh.in -text
-include/def_cplreader.hh.in -text
 include/def_expl_templ_inst.hh.in -text
 include/def_use_ansysrst.hh.in -text
 include/def_use_arpack.hh.in -text
@@ -430,65 +429,6 @@ share/doc/user/advPrePostManual/sources/unv_dataset_numbers.txt -text
 share/doc/user/advPrePostManual/special.tex -text
 share/doc/user/advPrePostManual/todonotes.sty svneol=native#text/plain
 share/doc/user/advPrePostManual/videos.tex -text
-share/doc/user/cplreader/CMakeLists.txt svneol=native#text/plain
-share/doc/user/cplreader/FigElementTypes.tex svneol=native#text/plain
-share/doc/user/cplreader/Manual_TechnicalReference.pdf -text svneol=unset#application/pdf
-share/doc/user/cplreader/Title.tex svneol=native#text/plain
-share/doc/user/cplreader/UseLATEX.cmake -text
-share/doc/user/cplreader/cplreader_defs.tex svneol=native#text/plain
-share/doc/user/cplreader/cplreader_docu.bib svneol=native#text/plain
-share/doc/user/cplreader/cplreader_docu.pdf -text svneol=unset#application/pdf
-share/doc/user/cplreader/cplreader_docu.tex svneol=native#text/plain
-share/doc/user/cplreader/cplreader_options.tex.in -text
-share/doc/user/cplreader/mycommands.tex svneol=native#text/plain
-share/doc/user/cplreader/pics/FASTESTexample.eps -text svneol=unset#application/postscript
-share/doc/user/cplreader/pics/FASTESTexample.pdf -text svneol=unset#application/pdf
-share/doc/user/cplreader/pics/FASTESTexample.svg -text
-share/doc/user/cplreader/pics/acousticfluidregions.eps -text svneol=unset#application/postscript
-share/doc/user/cplreader/pics/acousticfluidregions.pdf -text svneol=unset#application/pdf
-share/doc/user/cplreader/pics/acousticfluidregions.svg -text
-share/doc/user/cplreader/pics/colorbar.png -text svneol=unset#image/png
-share/doc/user/cplreader/pics/cons_interpolation.eps -text svneol=unset#application/postscript
-share/doc/user/cplreader/pics/cons_interpolation.pdf -text svneol=unset#application/pdf
-share/doc/user/cplreader/pics/cons_interpolation.svg -text
-share/doc/user/cplreader/pics/couplingscheme.eps -text svneol=unset#application/postscript
-share/doc/user/cplreader/pics/couplingscheme.pdf -text svneol=unset#application/pdf
-share/doc/user/cplreader/pics/couplingscheme.svg -text
-share/doc/user/cplreader/pics/fastest.png -text svneol=unset#image/png
-share/doc/user/cplreader/pics/fields_gengrids.png -text svneol=unset#image/png
-share/doc/user/cplreader/pics/gengrids_rectlin_grid.png -text svneol=unset#image/png
-share/doc/user/cplreader/pics/gengrids_rectlin_surf.eps -text svneol=unset#application/postscript
-share/doc/user/cplreader/pics/gengrids_rectlin_surf.pdf -text svneol=unset#application/pdf
-share/doc/user/cplreader/pics/gengrids_rectlin_surf.svg -text
-share/doc/user/cplreader/pics/gengrids_rectlin_volumes.eps -text svneol=unset#application/postscript
-share/doc/user/cplreader/pics/gengrids_rectlin_volumes.pdf -text svneol=unset#application/pdf
-share/doc/user/cplreader/pics/gengrids_rectlin_volumes.svg -text
-share/doc/user/cplreader/pics/interpolation_tolerances.eps -text svneol=unset#application/postscript
-share/doc/user/cplreader/pics/interpolation_tolerances.pdf -text svneol=unset#application/pdf
-share/doc/user/cplreader/pics/interpolation_tolerances.svg -text
-share/doc/user/cplreader/pics/klu.eps -text svneol=unset#application/postscript
-share/doc/user/cplreader/pics/klu.pdf -text svneol=unset#application/pdf
-share/doc/user/cplreader/pics/klu.svg -text
-share/doc/user/cplreader/pics/lse.eps -text svneol=unset#application/postscript
-share/doc/user/cplreader/pics/lse.pdf -text svneol=unset#application/pdf
-share/doc/user/cplreader/pics/lse.svg -text
-share/doc/user/cplreader/pics/refelems.eps -text svneol=unset#application/postscript
-share/doc/user/cplreader/pics/refelems.pdf -text svneol=unset#application/pdf
-share/doc/user/cplreader/pics/refelems.svg -text
-share/doc/user/cplreader/pics/refelems_legend.png -text svneol=unset#image/png
-share/doc/user/cplreader/pics/refelems_pic.png -text svneol=unset#image/png
-share/doc/user/cplreader/pics/spherical_shell_normal.png -text svneol=unset#image/png
-share/doc/user/cplreader/pics/spherical_shell_octant.png -text svneol=unset#image/png
-share/doc/user/cplreader/sources/cfs_interpolation.xml svneol=native#text/xml
-share/doc/user/cplreader/sources/check_cons_interp.m -text
-share/doc/user/cplreader/sources/gengrids_fields.xml svneol=native#text/xml
-share/doc/user/cplreader/sources/gengrids_rectlin.xml svneol=native#text/xml
-share/doc/user/cplreader/sources/gengrids_refelems.xml svneol=native#text/xml
-share/doc/user/cplreader/sources/gengrids_spherical_shells.xml svneol=native#text/xml
-share/doc/user/cplreader/sources/gridgen_rectlin.xml svneol=native#text/xml
-share/doc/user/cplreader/sources/gridgen_spherical_shells.xml svneol=native#text/xml
-share/doc/user/cplreader/sources/pygmentize.sh svneol=native#text/plain
-share/doc/user/cplreader/sources/sumup.m -text
 share/doc/user/makedoc.sh.in -text
 share/doc/user/matFile/coupledPDEs.tex svneol=native#text/plain
 share/doc/user/matFile/matRef.tex svneol=native#text/plain
@@ -602,7 +542,6 @@ share/scripts/checkbashisms -text
 share/scripts/common.sh svneol=native#text/plain
 share/scripts/compile_mkl_test.sh.in -text
 share/scripts/continuation.py -text
-share/scripts/cplreader -text
 share/scripts/create_density.py -text
 share/scripts/distro.sh svneol=native#text/plain
 share/scripts/extract_info_xml_results.py -text
@@ -1249,91 +1188,6 @@ source/cfstool/CMakeLists.txt svneol=native#text/plain
 source/cfstool/ParamsInit.cc -text
 source/cfstool/ParamsInit.hh -text
 source/cfstool/cfstool.cc svneol=native#text/plain
-source/cplreader/CMakeLists.txt svneol=native#text/plain
-source/cplreader/CouplingHandler.cc svneol=native#text/plain
-source/cplreader/CouplingHandler.hh svneol=native#text/plain
-source/cplreader/Documentation/CMakeLists.txt svneol=native#text/plain
-source/cplreader/Documentation/GetPDFDocumentation.hh svneol=native#text/plain
-source/cplreader/Documentation/WriteDocumentation.cc svneol=native#text/plain
-source/cplreader/Documentation/WriteDocumentation.hh svneol=native#text/plain
-source/cplreader/Documentation/docfilestocpp.pl svneol=native#text/plain
-source/cplreader/FileReader.cc svneol=native#text/plain
-source/cplreader/FileReader.hh svneol=native#text/plain
-source/cplreader/FileReaders/ANSYS/CMakeLists.txt svneol=native#text/plain
-source/cplreader/FileReaders/ANSYS/FileReader_ANSYS.cc svneol=native#text/plain
-source/cplreader/FileReaders/ANSYS/FileReader_ANSYS.hh svneol=native#text/plain
-source/cplreader/FileReaders/ANSYS/FileReader_MKHDF5.cc svneol=native#text/plain
-source/cplreader/FileReaders/ANSYS/FileReader_MKHDF5.hh svneol=native#text/plain
-source/cplreader/FileReaders/ANSYS/FileReader_NACS.cc svneol=native#text/plain
-source/cplreader/FileReaders/ANSYS/FileReader_NACS.hh svneol=native#text/plain
-source/cplreader/FileReaders/CFS++/CMakeLists.txt -text
-source/cplreader/FileReaders/CFS++/FileReader_CfsHdf5.cc -text
-source/cplreader/FileReaders/CFS++/FileReader_CfsHdf5.hh -text
-source/cplreader/FileReaders/CFX/CMakeLists.txt svneol=native#text/plain
-source/cplreader/FileReaders/CFX/CloseFile.F -text
-source/cplreader/FileReaders/CFX/FileReader_CFX.cc svneol=native#text/plain
-source/cplreader/FileReaders/CFX/FileReader_CFX.hh svneol=native#text/plain
-source/cplreader/FileReaders/CFX/OpenFile.F -text
-source/cplreader/FileReaders/CFX/ReadLong.F -text
-source/cplreader/FileReaders/CFX/RedHdr.F -text
-source/cplreader/FileReaders/CFX/RedSht.F -text
-source/cplreader/FileReaders/CFX/cfx_fortran_defs.h svneol=native#text/plain
-source/cplreader/FileReaders/CFX/glibchack.cc svneol=native#text/plain
-source/cplreader/FileReaders/CFX/iocntf_wrap.F -text
-source/cplreader/FileReaders/CFX/minmax.F -text
-source/cplreader/FileReaders/CFX/tools.F -text
-source/cplreader/FileReaders/CFXexport/CMakeLists.txt svneol=native#text/plain
-source/cplreader/FileReaders/CFXexport/FileReader_CFXexport.cc -text
-source/cplreader/FileReaders/CFXexport/FileReader_CFXexport.hh -text
-source/cplreader/FileReaders/CGNS/CMakeLists.txt -text
-source/cplreader/FileReaders/CGNS/FileReader_CGNS.cc -text
-source/cplreader/FileReaders/CGNS/FileReader_CGNS.hh -text
-source/cplreader/FileReaders/FASTEST/CMakeLists.txt svneol=native#text/plain
-source/cplreader/FileReaders/FASTEST/FASTEST-FileRenamer.pl.in -text
-source/cplreader/FileReaders/FASTEST/FileReader_FASTEST.cc svneol=native#text/plain
-source/cplreader/FileReaders/FASTEST/FileReader_FASTEST.hh svneol=native#text/plain
-source/cplreader/FileReaders/FieldView/CMakeLists.txt -text
-source/cplreader/FileReaders/FieldView/FileReader_fvuns.cc -text
-source/cplreader/FileReaders/FieldView/FileReader_fvuns.hh -text
-source/cplreader/FileReaders/FieldView/fv_reader_tags.h -text
-source/cplreader/FileReaders/FieldView/readfvuns.cpp -text
-source/cplreader/FileReaders/FieldView/readfvuns.h -text
-source/cplreader/FileReaders/GENGRIDS/CMakeLists.txt svneol=native#text/plain
-source/cplreader/FileReaders/GENGRIDS/FileReader_GENGRIDS.cc svneol=native#text/plain
-source/cplreader/FileReaders/GENGRIDS/FileReader_GENGRIDS.hh svneol=native#text/plain
-source/cplreader/FileReaders/GENGRIDS/RectilinearUniformGridGenerator.cc svneol=native#text/plain
-source/cplreader/FileReaders/GENGRIDS/RectilinearUniformGridGenerator.hh svneol=native#text/plain
-source/cplreader/FileReaders/GENGRIDS/ReferenceElementGenerator.cc svneol=native#text/plain
-source/cplreader/FileReaders/GENGRIDS/ReferenceElementGenerator.hh svneol=native#text/plain
-source/cplreader/FileReaders/GENGRIDS/SphericalShellGenerator.cc svneol=native#text/plain
-source/cplreader/FileReaders/GENGRIDS/SphericalShellGenerator.hh svneol=native#text/plain
-source/cplreader/FileReaders/VTKBased/CMakeLists.txt -text
-source/cplreader/FileReaders/VTKBased/EnSight/CMakeLists.txt -text
-source/cplreader/FileReaders/VTKBased/EnSight/FileReader_EnSight.cc -text
-source/cplreader/FileReaders/VTKBased/EnSight/FileReader_EnSight.hh -text
-source/cplreader/FileReaders/VTKBased/EnSight/MergePointExample.cc -text
-source/cplreader/FileReaders/VTKBased/FLUENT/CMakeLists.txt -text
-source/cplreader/FileReaders/VTKBased/FLUENT/FileReader_FLUENT.cc -text
-source/cplreader/FileReaders/VTKBased/FLUENT/FileReader_FLUENT.hh -text
-source/cplreader/FileReaders/VTKBased/FileReader_VTKMultiBlock.cc -text
-source/cplreader/FileReaders/VTKBased/FileReader_VTKMultiBlock.hh -text
-source/cplreader/FileReaders/VTKBased/OPENFOAM/CMakeLists.txt svneol=native#text/plain
-source/cplreader/FileReaders/VTKBased/OPENFOAM/FileReader_OPENFOAM.cc svneol=native#text/plain
-source/cplreader/FileReaders/VTKBased/OPENFOAM/FileReader_OPENFOAM.hh svneol=native#text/plain
-source/cplreader/FlowDataTypes.hh svneol=native#text/plain
-source/cplreader/OutputWriter.cc svneol=native#text/plain
-source/cplreader/OutputWriter.hh svneol=native#text/plain
-source/cplreader/OutputWriters/hdf5/CMakeLists.txt svneol=native#text/plain
-source/cplreader/OutputWriters/hdf5/OutputWriter_HDF5.cc svneol=native#text/plain
-source/cplreader/OutputWriters/hdf5/OutputWriter_HDF5.hh svneol=native#text/plain
-source/cplreader/ParamsInit.cc.in svneol=native#text/plain
-source/cplreader/ParamsInit.hh svneol=native#text/plain
-source/cplreader/Settings.hh svneol=native#text/plain
-source/cplreader/cplreader.cc svneol=native#text/plain
-source/cplreader/cplreader_options.cmake -text
-source/cplreader/integlib/elemIntegr.cc svneol=native#text/plain
-source/cplreader/integlib/elemIntegr.hh svneol=native#text/plain
-source/cplreader/integlib/integr.cc svneol=native#text/plain
 source/main/CFS.cc svneol=native#text/x-c%2B%2Bsrc
 source/main/CFS.hh -text
 source/main/CMakeLists.txt svneol=native#text/plain

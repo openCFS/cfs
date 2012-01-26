@@ -89,8 +89,6 @@ SET(CTEST_INITIAL_CACHE
    USE_PYTHON:BOOL=ON
    USE_TCL:BOOL=ON
    USE_INTERPOLATION:BOOL=ON
-   CPLREADER:BOOL=ON
-   CPLREADER_OPENFOAM:BOOL=ON
    USE_SCPIP:BOOL=ON")
 
 #-----------------------------------------------------------------------------
@@ -106,6 +104,5 @@ SET(CTEST_ENVIRONMENT
   "LC_ALL=C"
   "LANG=C"
   "LANGUAGE=C"
-  "CPLREADER_PERF_SUITE=/media/CFD_Data/cplreader_performance_suite"
   )
 

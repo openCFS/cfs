@@ -1,7 +1,0 @@
-SET(CPLREADER_FASTEST_SRCS
-  FileReader_FASTEST.cc
-)
-    
-CONFIGURE_FILE(FASTEST-FileRenamer.pl.in ${CFS_BINARY_DIR}/bin/FASTEST-FileRenamer.pl @ONLY)
-
-ADD_LIBRARY(cplreader_fastest STATIC ${CPLREADER_FASTEST_SRCS})

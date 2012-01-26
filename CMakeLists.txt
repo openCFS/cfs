@@ -180,8 +180,6 @@ OPTION(PROFILING "Turn on compiler profiling (DEBUG/RELEASE)." ${PROFILING_DEFAU
 OPTION(COVERAGE "Turn on code coverage output." ${COVERAGE_DEFAULT})
 
 OPTION(CFSTOOL "Build CFS++ converter tool (cfstool)." ${CFSTOOL_DEFAULT})
-OPTION(CPLREADER "Build cplreader for fluid/acoustic coupling."
-  ${CPLREADER_DEFAULT})
 
 #-----------------------------------------------------------------------------
 # Shall we build ParaView?
@@ -562,10 +560,6 @@ ADD_SUBDIRECTORY(source/main)
 IF(CFSTOOL)
   ADD_SUBDIRECTORY(source/cfstool)
 ENDIF(CFSTOOL)
-
-IF(CPLREADER)
-  ADD_SUBDIRECTORY(source/cplreader)
-ENDIF(CPLREADER)
 
 #-----------------------------------------------------------------------------
 # Build the actual headers with defines from templates.

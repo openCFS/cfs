@@ -52,7 +52,6 @@ function PerformTest {
 
     # Let's build ParaView every Wednesday
     if [ "$DAYOFWEEK" = "3" -a "$TESTNAME" = "sedici_gcc_schenk_nightly" ]; then
-        ADDITIONAL_SED_ARG="s/CPLREADER:BOOL\=ON/CPLREADER:BOOL\=ON\n   BUILD_PARAVIEW:BOOL=ON/g"
         cat ctest_scripts/ctest_$TESTNAME.cmake | sed $ADDITIONAL_SED_ARG > ctest_scripts/ctest_script.cmake
     else
         cat ctest_scripts/ctest_$TESTNAME.cmake > ctest_scripts/ctest_script.cmake
@@ -295,8 +294,6 @@ tar xzf cfs_build_sedici_icc_nightly.tgz
 # Copy the nightly Intel binaries for sedici to /opt/pckg
 CFSBIN="$TESTDIR/CFS_BUILD_NIGHTLY/bin/$DISTRO/cfsbin"
 CFSTOOLBIN="$TESTDIR/CFS_BUILD_NIGHTLY/bin/$DISTRO/cfstoolbin"
-CPLREADER="$TESTDIR/CFS_BUILD_NIGHTLY/bin/$DISTRO/cplreader"
-if [ -f $CFSBIN ] && [ -f $CFSTOOLBIN ] && [ -f $CPLREADER ]; then
     echo "Copying Intel binaries to /opt/pckg/cfs_nightly..."
     ICC_SEDICI_DIR=$DESTDIR/trunk_icc_sedici
     rm -rf $ICC_SEDICI_DIR 
