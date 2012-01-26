@@ -573,9 +573,9 @@ namespace CoupledField {
     postProcResults_[ELEC_FIELD_INTENSITY] = ELEC_POTENTIAL;
     shared_ptr<BaseFieldFunctor> eFunc;
     if( isComplex_ ) {
-      eFunc.reset(new DiffFieldFunctor<Complex>(feFct, ef));
+      eFunc.reset(new DiffFieldFunctor<Complex>(feFct, ef, -1.0));
     } else {
-      eFunc.reset(new DiffFieldFunctor<Double>(feFct, ef));
+      eFunc.reset(new DiffFieldFunctor<Double>(feFct, ef, -1.0));
     }
     resultFunctors_[ELEC_FIELD_INTENSITY] = eFunc;
     fieldFunctors_[ELEC_FIELD_INTENSITY] = eFunc;
