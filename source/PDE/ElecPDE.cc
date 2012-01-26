@@ -44,8 +44,8 @@ namespace CoupledField {
   // ***************
   //   Constructor
   // ***************
-  ElecPDE::ElecPDE( Grid* aptgrid, PtrParamNode paramNode )
-    :SinglePDE( aptgrid, paramNode ) {
+  ElecPDE::ElecPDE( Grid* grid, PtrParamNode paramNode )
+    :SinglePDE( grid, paramNode ) {
 
 
     // =====================================================================
@@ -112,7 +112,7 @@ namespace CoupledField {
       factor = "-1.0";  
 
     // Define integrators for "standard" materials
-    std::map<RegionIdType, BaseMaterial*>::iterator it;
+    std::map< RegionIdType, BaseMaterial* >::iterator it;
     shared_ptr<FeSpace> mySpace = feFunctions_[ELEC_POTENTIAL]->GetFeSpace();
     for ( it = materials_.begin(); it != materials_.end(); it++ ) {
       
@@ -353,6 +353,7 @@ namespace CoupledField {
         WARN( "Result '" << 
               SolutionTypeEnum.ToString(res->GetResultInfo()->resultType)
               << "' type not computable by electric PDE" );
+        break;
     }
 
   }
@@ -691,4 +692,5 @@ namespace CoupledField {
     }
     return crSpaces;
   }
+
 }

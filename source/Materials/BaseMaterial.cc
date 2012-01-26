@@ -196,7 +196,7 @@ namespace CoupledField
     string help1, help2;
     help1 = MaterialTypeEnum.ToString( matType );
     Enum2String(subTensor, help2);
-    EXCEPTION("Subtensor " << help2 <<" not available for material type " << help1);
+    EXCEPTION("Sub-tensor " << help2 <<" not available for material type " << help1);
   }
 
 

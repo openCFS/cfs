@@ -1,64 +1,36 @@
-#ifndef FILE_ELECPDE_NEW
-#define FILE_ELECPDE_NEW
+#ifndef FILE_FLUIDMECHPERTURBEDPDE
+#define FILE_FLUIDMECHPERTURBEDPDE
 
 #include "SinglePDE.hh" 
-
 
 namespace CoupledField
 {
 
   // forward class declaration
   class BaseResult;
-  class ResultHandler;
-  class linElecInt;
   class LinearFormContext;
-  class ElecForceOp;
-  class BaseBDBInt;
-  class ResultFunctor;
   
-  //! Class for electrostatic equation (no adaptivity)
-  class ElecPDE : public SinglePDE {
+  //! Class for linearized perturbed formulation of Navier-Stoke's equations.
+  class FluidMechPerturbedPDE : public SinglePDE {
 
   public:
-
-    //! Helper struct for defining a general impedance
-    struct Impedance {
-
-      //! Constructor
-      Impedance() : 
-        resistance(0.0),
-        inductance(0.0), capacitance(0.0) {};
-      
-      //@{
-      //! Node numbers the impedance is connected with
-      shared_ptr<NodeList> node1, node2;
-      //@}
-
-      //@{
-      //! Defining quantities of the impedance
-      Double resistance, inductance, capacitance;
-      //@}
-    };
 
     //! Constructor
     /*!
       \param grid pointer to grid
       \param paramNode pointer to the corresponding parameter node
     */
-    ElecPDE( Grid* grid, PtrParamNode paramNode );
+    FluidMechPerturbedPDE( Grid* grid, PtrParamNode paramNode );
 
     //! Destructor
-    virtual ~ElecPDE(){};
+    virtual ~FluidMechPerturbedPDE(){};
 
     //! Initialize NonLinearities
     void InitNonLin();
 
-    //! Define all (bilinearform) integrators needed for this pde
+    //! Define all (bilinearform) integrators needed for this PDE
     void DefineIntegrators( );
-    
-    //! Define all RHS linearforms for load / excitation 
-    void DefineRhsLoadIntegrators();
-    
+
     //! Define the SolveStep-Driver
     void DefineSolveStep();
 
@@ -91,18 +63,16 @@ namespace CoupledField
     //! Returns if PDE can compute the quantity
     bool HasOutput(SolutionType output);
   
-    //! Turn the piezo coupling on
-
-    //! Triggers the correct assembly of the electrostatic block in a 
-    //! piezo-coupled simulation, because the coupled electrostatic block
-    //! is negative compared to the normal one
-    void SetPiezoCoupling();
-
     /** @see virtual SinglePDE::GetNativeSolutionType() */
     SolutionType GetNativeSolutionType() const { return ELEC_POTENTIAL; }
 
     /** @see virtual SinglePDE::GetNativeDOF() */
     virtual UInt GetNativeDOF() const { return 1; }
+    
+    //! Calculate field variables at arbitrary points
+    void CalcField( SolutionType solType, StdVector<const Elem*>& elems,
+                    StdVector<LocPoint>& points, SingleVector& values );
+
 
 
   protected:
@@ -110,11 +80,6 @@ namespace CoupledField
     //! SubType of electrostatic section
     std::string subType_;
 
-    //! Return linear stiffness integrator for a given region
-    BaseBDBInt * GetStiffIntegrator( BaseMaterial* actSDMat,
-                                     SubTensorType tensorType,
-                                     RegionIdType regionId );
-    
     // *****************
     //  POSTPROCESSING
     // *****************
@@ -125,42 +90,15 @@ namespace CoupledField
     //! Define available postprocessing results
     void DefinePostProcResults();
 
-    
-    //! Calculates the polarization vector
-    void CalcPolarizationField( shared_ptr<BaseResult> vals );
-
-    //! Calculate electric charges
-    template <class TYPE>
-    void CalcCharges( shared_ptr<BaseResult> vals );
-
-    //! Contains the (Volume) subdomains next to the surface
-    //! elements where the charges are computed
-    std::map<shared_ptr<EntityList>,RegionIdType> chargeNeighborRegion_;
-
-    //! Electric impedances
-    StdVector<Impedance> impedances_;
-
     //! \copydoc SinglePDE::CreateFeSpaces
     virtual std::map<SolutionType, shared_ptr<FeSpace> > 
     CreateFeSpaces( const std::string&  formulation,
                     PtrParamNode infoNode );
 
+    virtual LinearFormContext* CreateRhsLinearForm( SolutionType rhsType,
+                                                    shared_ptr<CoefFunction > rhsCoef );
+
   private:
-
-    //! Read definitions for electric impedances
-    void ReadImpedances();
-
-    //! Define integrators for electric impedances
-    void DefineImpedanceIntegrators();
-
-    //! flag for piezo-coupling
-    bool isPiezoCoupled_;
-
-    //! force operator (for coupling as well as postprocessing)
-    ElecForceOp* ForceOp_;
-
-    //! vector containing regionIds of non-conforming interfaces
-    StdVector<RegionIdType> ncIFaces_;
   };
 
 #ifdef DOXYGEN_DETAILED_DOC
@@ -169,11 +107,11 @@ namespace CoupledField
   //     Detailed description of the class 
   // =========================================================================
 
-  //! \class ElecPDE
+  //! \class FluidMechPerturbedPDE
   //! 
   //! \purpose   
   //! This class is derived from class SinglePDE. It is used for solving
-  //! electrostatic equation in 3D. 
+  //! a linearized perturbed formulation of Navier-Stoke's equations in 3D.
   //! 
   //! \collab 
   //! 
@@ -188,6 +126,6 @@ namespace CoupledField
 
 #endif
 
-} // end of namespace
+} // end of namespace CoupledField
 
-#endif
+#endif // FILE_FLUIDMECHPERTURBEDPDE

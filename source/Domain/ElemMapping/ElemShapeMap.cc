@@ -119,27 +119,23 @@ LagrangeElemShapeMap::LagrangeElemShapeMap( Grid* ptGrid  )
 : ElemShapeMap(ptGrid ) {
   type_ = LAGRANGE; 
   
-  
   // Fill map with reference elements
   feMap_[Elem::ET_LINE2] = new FeH1LagrangeLine1(); 
   feMap_[Elem::ET_LINE3] = new FeH1LagrangeLine2();
-//  feMap_[ET_TRIA3] = new FeH1Lagrange();
-//  feMap_[ET_TRIA6] = new FeH1LagrangeLine1();
   feMap_[Elem::ET_TRIA3] = new FeH1LagrangeTria1();
+  feMap_[Elem::ET_TRIA6] = new FeH1LagrangeTria2();
   feMap_[Elem::ET_QUAD4] = new FeH1LagrangeQuad1();
   feMap_[Elem::ET_QUAD8] = new FeH1LagrangeQuad2();
-//  feMap_[ET_QUAD9] = new FeH1LagrangeQuad1();
-//  feMap_[ET_TET4] = new FeH1LagrangeLine1();
-//  feMap_[ET_TET10] = new FeH1LagrangeLine1();
+  feMap_[Elem::ET_QUAD9] = new FeH1LagrangeQuad9();
+  feMap_[Elem::ET_TET4]  = new FeH1LagrangeTet1();
+  feMap_[Elem::ET_TET10] = new FeH1LagrangeTet2();
   feMap_[Elem::ET_HEXA8] = new FeH1LagrangeHex1();
-  feMap_[Elem::ET_WEDGE6] = new FeH1LagrangeWedge1();
   feMap_[Elem::ET_HEXA20] = new FeH1LagrangeHex2();
+  //  feMap_[ET_HEXA27] = new FeH1LagrangeLine1();
+  feMap_[Elem::ET_WEDGE6] = new FeH1LagrangeWedge1();
   feMap_[Elem::ET_WEDGE15] = new FeH1LagrangeWedge2();
-//  feMap_[ET_HEXA27] = new FeH1LagrangeLine1();
-//  feMap_[ET_PYRA5] = new FeH1LagrangeLine1();
-//  feMap_[ ET_PYRA13] = new FeH1LagrangeLine1();
-//  feMap_[ET_WEDGE6] = new FeH1LagrangeLine1();
-//  feMap_[ET_WEDGE15] = new FeH1LagrangeLine1();
+  feMap_[Elem::ET_PYRA5] = new FeH1LagrangePyra1();
+  feMap_[Elem::ET_PYRA13] = new FeH1LagrangePyra2();
 }
 
 LagrangeElemShapeMap::~LagrangeElemShapeMap() {

@@ -231,10 +231,14 @@ namespace CoupledField{
         refElems_[region][Elem::ET_QUAD4]  = new FeH1LagrangeQuad1();
         refElems_[region][Elem::ET_HEXA8]  = new FeH1LagrangeHex1();
         refElems_[region][Elem::ET_WEDGE6] = new FeH1LagrangeWedge1();
+        refElems_[region][Elem::ET_PYRA5]  = new FeH1LagrangePyra1();
+        refElems_[region][Elem::ET_TET4]  = new FeH1LagrangeTet1();
         refElems_[region][Elem::ET_LINE3]  = new FeH1LagrangeLine2();
         refElems_[region][Elem::ET_QUAD8]  = new FeH1LagrangeQuad2();
         refElems_[region][Elem::ET_HEXA20] = new FeH1LagrangeHex2();
         refElems_[region][Elem::ET_WEDGE15] = new FeH1LagrangeWedge2();
+        refElems_[region][Elem::ET_PYRA13] = new FeH1LagrangePyra2();
+        refElems_[region][Elem::ET_TET10]  = new FeH1LagrangeTet2();
         
         UInt gridOrder = domain->GetGrid()->IsQuadratic() ? 2 : 1;
         infoNode->Get("order")->SetValue(gridOrder);
@@ -310,7 +314,7 @@ namespace CoupledField{
     void FeSpaceH1Nodal::SetDefaultIntegration(PtrParamNode infoNode ){
       regionIntegration_[ALL_REGIONS].method = IntScheme::GAUSS;
       regionIntegration_[ALL_REGIONS].order = Matrix<Integer>(1,1);
-      regionIntegration_[ALL_REGIONS].order[0][0] = 2;
+      regionIntegration_[ALL_REGIONS].order[0][0] = 0;
       regionIntegration_[ALL_REGIONS].mode = RELATIVE;
     }
 

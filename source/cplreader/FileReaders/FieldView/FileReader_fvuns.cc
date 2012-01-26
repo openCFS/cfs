@@ -11,20 +11,17 @@
 
 //Filling Start
 
-#include <stdlib.h> // For exit()
+#include <cstdlib> // For exit()
+#include <cstdio>
+
 #include <vector>
 #include <map>
 #include <iostream>
 #include <iomanip>
 #include <string>
 
-
-
-
-
 //Manipulation Start
 #include <fstream>
-#include <stdio.h>
 #include <iomanip>
 #include <sstream>
 #include <sys/stat.h>

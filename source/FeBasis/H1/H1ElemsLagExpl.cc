@@ -114,19 +114,19 @@ namespace CoupledField {
   }
   
   
-  bool FeH1LagrangeLine1::CoordIsInsideElem( const Vector<Double>& point,
-                                             Double tolerance )  {
+  bool FeH1LagrangeLine::CoordIsInsideElem( const Vector<Double>& point,
+                                            Double tolerance )  {
    const Double & xi = point[0];
    return (xi >= (-1.0 - tolerance) &&
            xi <= (1.0 + tolerance));
   }
   
-  void FeH1LagrangeLine1::
+  void FeH1LagrangeLine::
   GetLocalIntPoints4Surface(const StdVector<UInt> & surfConnect,
-                                                    const StdVector<UInt> & volConnect,
-                                                    const LocPoint & surfIntPoint,
-                                                    LocPoint & volIntPoint,
-                                                    Vector<Double>& locNormal ) {
+                            const StdVector<UInt> & volConnect,
+                            const LocPoint & surfIntPoint,
+                            LocPoint & volIntPoint,
+                            Vector<Double>& locNormal ) {
     EXCEPTION("Not implemented");
   }
   
@@ -170,8 +170,8 @@ namespace CoupledField {
   }
 
 
-  bool FeH1LagrangeTria1::CoordIsInsideElem( const Vector<Double>& point,
-                                             Double tolerance )  {
+  bool FeH1LagrangeTria::CoordIsInsideElem( const Vector<Double>& point,
+                                            Double tolerance )  {
     const Double & xi = point[0];
     const Double & eta = point[1];
     return ( xi >= (0 - tolerance)) &&
@@ -179,7 +179,7 @@ namespace CoupledField {
            ((xi + eta) <= (1 + tolerance));
   }
 
-  void FeH1LagrangeTria1::
+  void FeH1LagrangeTria::
   GetLocalIntPoints4Surface(const StdVector<UInt> & surfConnect,
                             const StdVector<UInt> & volConnect,
                             const LocPoint & surfIntPoint,
@@ -293,8 +293,8 @@ namespace CoupledField {
   }
   
   
-  bool FeH1LagrangeQuad1::CoordIsInsideElem( const Vector<Double>& point,
-                                             Double tolerance )  {
+  bool FeH1LagrangeQuad::CoordIsInsideElem( const Vector<Double>& point,
+                                            Double tolerance )  {
     const Double & xi = point[0];
     const Double & eta = point[1];
     return  ( xi >= (-1.0 - tolerance)) &&
@@ -303,7 +303,7 @@ namespace CoupledField {
             (eta <= (1.0 + tolerance));  
   }
   
-  void FeH1LagrangeQuad1::
+  void FeH1LagrangeQuad::
   GetLocalIntPoints4Surface(const StdVector<UInt> & surfConnect,
                             const StdVector<UInt> & volConnect,
                             const LocPoint & surfIntPoint,
@@ -431,8 +431,8 @@ namespace CoupledField {
     
   }
   
-  bool FeH1LagrangeHex1::CoordIsInsideElem( const Vector<Double>& point,
-                                            Double tolerance )  {
+  bool FeH1LagrangeHex::CoordIsInsideElem( const Vector<Double>& point,
+                                           Double tolerance )  {
     const Double & xi = point[0];
     const Double & eta = point[1];
     const Double & zeta = point[2];
@@ -444,7 +444,7 @@ namespace CoupledField {
            (zeta <= (1.0 + tolerance));  
   }
   
-  void FeH1LagrangeHex1::
+  void FeH1LagrangeHex::
   GetLocalIntPoints4Surface(const StdVector<UInt> & surfConnect,
                             const StdVector<UInt> & volConnect,
                             const LocPoint & surfIntPoint,
@@ -619,8 +619,8 @@ namespace CoupledField {
     deriv[5][2] =  0.5 * point[1];
   }
 
-  bool FeH1LagrangeWedge1::CoordIsInsideElem( const Vector<Double>& point,
-                                              Double tolerance )  {
+  bool FeH1LagrangeWedge::CoordIsInsideElem( const Vector<Double>& point,
+                                             Double tolerance )  {
     const Double & xi = point[0];
     const Double & eta = point[1];
     const Double & zeta = point[2];
@@ -633,7 +633,7 @@ namespace CoupledField {
     return isInside;
   }
   
-  void FeH1LagrangeWedge1::
+  void FeH1LagrangeWedge::
   GetLocalIntPoints4Surface(const StdVector<UInt> & surfConnect,
                             const StdVector<UInt> & volConnect,
                             const LocPoint & surfIntPoint,
@@ -808,24 +808,65 @@ namespace CoupledField {
   //    deriv[1][0] = 0.5 *  1.0;
   }
   
-  bool FeH1LagrangeLine2::CoordIsInsideElem( const Vector<Double>& point,
-                                             Double tolerance )  {
-    const Double & xi = point[0];
-    return (xi >= (-1.0 - tolerance) &&
-            xi <= (1.0 + tolerance));
+  // --- Tria 2nd order ---
+
+  FeH1LagrangeTria2::FeH1LagrangeTria2() {
+    feType_ = Elem::ET_TRIA6;
+    shape_ = Elem::shapes[feType_];
+    actNumFncs_ = 6;
+    order_ = 2;
   }
-  
-  void FeH1LagrangeLine2::
-   GetLocalIntPoints4Surface(const StdVector<UInt> & surfConnect,
-                                                     const StdVector<UInt> & volConnect,
-                                                     const LocPoint & surfIntPoint,
-                                                     LocPoint & volIntPoint,
-                                                     Vector<Double>& locNormal ) {
-     EXCEPTION("Not implemented");
-   }
-  
+
+  FeH1LagrangeTria2::~FeH1LagrangeTria2() {
+
+  }
+
+  void FeH1LagrangeTria2::CalcShFnc( Vector<Double>& shape,
+                                     const Vector<Double>& point,
+                                     const Elem* ptElem,
+                                     UInt comp ) {
+    // From Zienkiewicz, The Finite Element Method. Vol 1, page 128.
+    // corner nodes
+    shape.Resize(6);
+
+    // Define the third component of the triangular coord.
+    Double t = 1.0 - point[0] - point[1];
+
+    shape[0] = t * (2*t - 1);
+    shape[1] = point[0]*(2*point[0] - 1);
+    shape[2] = point[1]*(2*point[1] - 1);
+    shape[3] = 4 * point[0] * t;
+    shape[4] = 4 * point[0] * point[1];
+    shape[5] = 4 * point[1] * t;
+  }
+
+  void FeH1LagrangeTria2::CalcLocDerivShFnc( Matrix<Double> & deriv,
+                                             const Vector<Double>& point,
+                                             const Elem* ptElem,
+                                             UInt comp ) {
+
+    deriv.Resize( 6, 2 );
+
+    deriv[0][0] =  4*point[0] + 4*point[1] - 3.0;
+    deriv[0][1] =  4*point[0] + 4*point[1] - 3.0;
+
+    deriv[1][0] =  4*point[0]-1;
+    deriv[1][1] =  0;
+
+    deriv[2][0] =  0;
+    deriv[2][1] =  4*point[1]-1;
+
+    deriv[3][0] =  4*(1 - 2*point[0] - point[1]);
+    deriv[3][1] = -4*point[0];
+
+    deriv[4][0] =  4* point[1];
+    deriv[4][1] =  4* point[0];
+
+    deriv[5][0] = -4*point[1];
+    deriv[5][1] =  4*(1 - 2*point[1] - point[0]);
+  }
+
   // --- Quad 2nd order ---
-   
   FeH1LagrangeQuad2::FeH1LagrangeQuad2() {
     feType_ = Elem::ET_QUAD8;
     shape_ = Elem::shapes[feType_];
@@ -890,24 +931,99 @@ namespace CoupledField {
     }
   }
   
-  bool FeH1LagrangeQuad2::CoordIsInsideElem( const Vector<Double>& point,
-                                             Double tolerance )  {
-    const Double & xi = point[0];
-    const Double & eta = point[0];
-    return  ( xi >= (-1.0 - tolerance)) &&
-            (eta >= (-1.0 - tolerance)) &&
-            ( xi <= (1.0 + tolerance)) &&
-            (eta <= (1.0 + tolerance));  
-    }
-  
-  void FeH1LagrangeQuad2::
-   GetLocalIntPoints4Surface(const StdVector<UInt> & surfConnect,
-                                                     const StdVector<UInt> & volConnect,
-                                                     const LocPoint & surfIntPoint,
-                                                     LocPoint & volIntPoint,
-                                                     Vector<Double>& locNormal ) {
-     EXCEPTION("Not implemented");
-   }
+  // --- Quad 2nd order tensor product ---
+  FeH1LagrangeQuad9::FeH1LagrangeQuad9() {
+    feType_ = Elem::ET_QUAD9;
+    shape_ = Elem::shapes[feType_];
+    actNumFncs_ = 9;
+    order_ = 2;
+  }
+
+  FeH1LagrangeQuad9::~FeH1LagrangeQuad9() {
+
+  }
+
+  void FeH1LagrangeQuad9::CalcShFnc( Vector<Double>& shape,
+                                     const Vector<Double>& point,
+                                     const Elem* ptElem,
+                                     UInt comp ) {
+    static Double shapeXi[3], shapeEta[3];
+    shape.Resize(9);
+
+    shapeXi[0] = 0.5*point[0]*(point[0]-1);
+    shapeXi[2] = 1.0 - point[0]*point[0];
+    shapeXi[1] = 0.5*point[0]*(point[0]+1);
+
+    shapeEta[0] = 0.5*point[1]*(point[1]-1);
+    shapeEta[2] = 1.0 - point[1]*point[1];
+    shapeEta[1] = 0.5*point[1]*(point[1]+1);
+
+    shape[0]= shapeXi[0]     * shapeEta[0];
+    shape[1]= shapeXi[1]     * shapeEta[0];
+    shape[2]= shapeXi[1]     * shapeEta[1];
+    shape[3]= shapeXi[0]     * shapeEta[1];
+
+    shape[4]= shapeXi[2]     * shapeEta[0];
+    shape[5]= shapeXi[1]     * shapeEta[2];
+    shape[6]= shapeXi[2]     * shapeEta[1];
+    shape[7]= shapeXi[0]     * shapeEta[2];
+
+    shape[8]= shapeXi[2]     * shapeEta[2];
+  }
+
+  void FeH1LagrangeQuad9::CalcLocDerivShFnc( Matrix<Double> & deriv,
+                                             const Vector<Double>& point,
+                                             const Elem* ptElem,
+                                             UInt comp ) {
+	    static double shapeXi[3], shapeEta[3];
+	    static double shapeDerivXi[3], shapeDerivEta[3];
+	    deriv.Resize(9,2);
+
+	    shapeXi[0] = 0.5*point[0]*(point[0]-1);
+	    shapeXi[2] = 1.0 - point[0]*point[0];
+	    shapeXi[1] = 0.5*point[0]*(point[0]+1);
+
+	    shapeEta[0] = 0.5*point[1]*(point[1]-1);
+	    shapeEta[2] = 1.0 - point[1]*point[1];
+	    shapeEta[1] = 0.5*point[1]*(point[1]+1);
+
+	    shapeDerivXi[0] = 0.5*(2*point[0] - 1);
+	    shapeDerivXi[2] = -2.0*point[0];
+	    shapeDerivXi[1] = 0.5*(2*point[0] + 1);
+
+	    shapeDerivEta[0] = 0.5*(2*point[1] - 1);
+	    shapeDerivEta[2] = -2.0*point[1];
+	    shapeDerivEta[1] = 0.5*(2*point[1] + 1);
+
+	    deriv[0][0]= shapeDerivXi[0]     * shapeEta[0];
+	    deriv[0][1]= shapeXi[0]     * shapeDerivEta[0];
+
+	    deriv[1][0]= shapeDerivXi[1]     * shapeEta[0];
+	    deriv[1][1]= shapeXi[1]     * shapeDerivEta[0];
+
+	    deriv[2][0]= shapeDerivXi[1]     * shapeEta[1];
+	    deriv[2][1]= shapeXi[1]     * shapeDerivEta[1];
+
+	    deriv[3][0]= shapeDerivXi[0]     * shapeEta[1];
+	    deriv[3][1]= shapeXi[0]     * shapeDerivEta[1];
+
+
+	    deriv[4][0]= shapeDerivXi[2]     * shapeEta[0];
+	    deriv[4][1]= shapeXi[2]     * shapeDerivEta[0];
+
+	    deriv[5][0]= shapeDerivXi[1]     * shapeEta[2];
+	    deriv[5][1]= shapeXi[1]     * shapeDerivEta[2];
+
+	    deriv[6][0]= shapeDerivXi[2]     * shapeEta[1];
+	    deriv[6][1]= shapeXi[2]     * shapeDerivEta[1];
+
+	    deriv[7][0]= shapeDerivXi[0]     * shapeEta[2];
+	    deriv[7][1]= shapeXi[0]     * shapeDerivEta[2];
+
+
+	    deriv[8][0]= shapeDerivXi[2]     * shapeEta[2];
+	    deriv[8][1]= shapeXi[2]     * shapeDerivEta[2];  }
+
   // --- Hex 2nd order ---
   FeH1LagrangeHex2::FeH1LagrangeHex2() {
     feType_ = Elem::ET_HEXA20;
@@ -917,8 +1033,6 @@ namespace CoupledField {
   }
     
   FeH1LagrangeHex2::~FeH1LagrangeHex2() {
-    
-
   }
   
   void FeH1LagrangeHex2::CalcShFnc( Vector<Double>& shape,
@@ -973,7 +1087,9 @@ namespace CoupledField {
   void FeH1LagrangeHex2::CalcLocDerivShFnc( Matrix<Double> & deriv, 
                                             const Vector<Double>& point,
                                             const Elem* ptElem,
-                                            UInt comp ) {  //shape function according to Zienkiewicz 2000 (Volume 1 - The Basis) "The Finite Element Method" S. 185 Kap. 8.11
+                                            UInt comp ) {
+	// shape function according to Zienkiewicz 2000 (Volume 1 - The Basis)
+	// "The Finite Element Method" S. 185 Kap. 8.11
     Double  xi, eta, zeta;
     UInt i;
     deriv.Resize(20, 3);
@@ -1046,133 +1162,6 @@ namespace CoupledField {
       //Midside nodes zeta_i=0:  Ni,z
       deriv[i][2] = -0.5 * (1.0+xi * coords[i][0]) * (1.0+eta * coords[i][1]) * zeta;
     }
-  }
-
-  bool FeH1LagrangeHex2::CoordIsInsideElem( const Vector<Double>& point,
-                                            Double tolerance )  {
-    const Double & xi = point[0];
-    const Double & eta = point[1];
-    const Double & zeta = point[2];
-    return (  xi >= (-1.0 - tolerance)) &&
-        ( eta >= (-1.0 - tolerance)) &&
-        (zeta >= (-1.0 - tolerance)) &&
-        (  xi <= (1.0 + tolerance)) &&
-        ( eta <= (1.0 + tolerance)) &&
-        (zeta <= (1.0 + tolerance));  
-  }
-
-  void FeH1LagrangeHex2::
-  GetLocalIntPoints4Surface(const StdVector<UInt> & surfConnect,
-                            const StdVector<UInt> & volConnect,
-                            const LocPoint & surfIntPoint,
-                            LocPoint & volIntPoint,
-                            Vector<Double>& locNormal ) {
-    // Try to find out, which vertices are in common with
-      // the surface element. Then calculate the product of all four
-      // and compare them
-      //
-      //                    zeta 
-      //                     ^ eta 
-      //    8 +-------+ 7    |/
-      //     /|      /|      0--> xi 
-     //    / |     / |
-      // 5 +--+----+6 |   
-      //   |  +-- -|- + 3    
-      //   | / 4   | /    REFERENCE VOLUME ELEMENT
-      //   |/      |/
-      // 1 +-------+ 2
-
-
-
-      StdVector<UInt> commonIndex(4);
-      UInt found = 0;
-      UInt indexProduct = 0;
-      std::string errMsg;
-    
-      volIntPoint.coord.Resize(3);
-      locNormal.Resize(3);
-    
-      // loop over surface connect
-      for (UInt iSurf=0; iSurf<4; iSurf++)
-        // loop over volume connect
-        for (UInt iVol=0; iVol<8; iVol++)
-          if (surfConnect[iSurf] == volConnect[iVol])
-            {
-              commonIndex[found++] = iVol+1;
-            }
-
-      // std::cerr << std::endl << std::endl;
-      //std::cerr << "commonIndex = " << std::endl << commonIndex << std::endl << std::endl;
-      indexProduct =  commonIndex[0] * commonIndex[1];
-      indexProduct *= commonIndex[2] * commonIndex[3];
-
-      //std::cerr << "indexProduct = " << indexProduct << std::endl;
-      switch(indexProduct)
-        {
-        case 24:
-          // Surface[1,2,3,4] is common
-          volIntPoint[0] = surfIntPoint[0];
-          volIntPoint[1] = surfIntPoint[1];
-          volIntPoint[2] = -1.0;
-          locNormal[0] =  0.0;
-          locNormal[1] =  0.0;
-          locNormal[2] = -1.0;
-          break;
-
-        case 1680:
-          // Surface[5,6,7,8] is common
-          volIntPoint[0] = surfIntPoint[0];
-          volIntPoint[1] = surfIntPoint[1];
-          volIntPoint[2] = 1.0;
-          locNormal[0] =  0.0;
-          locNormal[1] =  0.0;
-          locNormal[2] =  1.0;
-          break;
-
-        case 252:
-          // Surface[2,3,7,6] is common
-          volIntPoint[0] = 1.0;
-          volIntPoint[1] = surfIntPoint[0];
-          volIntPoint[2] = surfIntPoint[1];
-          locNormal[0] =  1.0;
-          locNormal[1] =  0.0;
-          locNormal[2] =  0.0;
-          break;
-        
-        case 160:
-          // Surface[1,5,8,4] is common
-          volIntPoint[0] = -1.0;
-          volIntPoint[1] = surfIntPoint[0];
-          volIntPoint[2] = surfIntPoint[1];
-          locNormal[0] = -1.0;
-          locNormal[1] =  0.0;
-          locNormal[2] =  0.0;
-          break;
-        
-        case 672:
-          // Surface[4,3,7,8] is common
-          volIntPoint[0] = surfIntPoint[0];
-          volIntPoint[1] = 1.0;
-          volIntPoint[2] = surfIntPoint[1];
-          locNormal[0] =  0.0;
-          locNormal[1] =  1.0;
-          locNormal[2] =  0.0;
-          break;
-        
-        case 60:
-          // Surface[1,2,6,5] is common
-          volIntPoint[0] = surfIntPoint[0];
-          volIntPoint[1] = -1.0;
-          volIntPoint[2] = surfIntPoint[1];
-          locNormal[0] =  0.0;
-          locNormal[1] = -1.0;
-          locNormal[2] =  0.0;
-          break;
-        
-        default:
-          EXCEPTION("HexaFE::GetLocalIntPoints4Surface: surface and volume element "
-                    << "have not four nodes in common. Check your .mesh-file.");
-        }
   }
 
   // --- Wedge 2nd order ---
@@ -1288,157 +1277,756 @@ namespace CoupledField {
 
    }
 
-   bool FeH1LagrangeWedge2::CoordIsInsideElem( const Vector<Double>& point,
+   // --- Tetra 1st order ---
+    FeH1LagrangeTet1::FeH1LagrangeTet1() {
+      feType_ = Elem::ET_TET4;
+      shape_ = Elem::shapes[feType_];
+      actNumFncs_ = 4;
+      order_ = 1;
+    }
+
+    FeH1LagrangeTet1::~FeH1LagrangeTet1() {
+
+    }
+
+    void FeH1LagrangeTet1::CalcShFnc( Vector<Double>& shape,
+                                      const Vector<Double>& point,
+                                      const Elem* ptElem,
+                                      UInt comp ) {
+
+    	shape.Resize(4);
+
+        // see Hughes p. 170
+
+        shape[0] = 1.0 - point[0] - point[1] - point[2];
+
+        for( UInt i=1; i<4; i++ )
+          shape[i] = point[i-1];
+    }
+
+    void FeH1LagrangeTet1::CalcLocDerivShFnc( Matrix<Double> & deriv,
+                                              const Vector<Double>& point,
+                                              const Elem* ptElem,
+                                              UInt comp ) {
+      deriv.Resize(4,3);
+      deriv.Init();
+
+      for( UInt i=0; i<3; i++)
+        deriv[0][i] = -1.0;
+
+      for( UInt i=1; i < 4; i++)
+        deriv[i][i-1] = 1.0;
+    }
+
+   // --- Tetra 2nd order ---
+    FeH1LagrangeTet2::FeH1LagrangeTet2() {
+      feType_ = Elem::ET_TET10;
+      shape_ = Elem::shapes[feType_];
+      actNumFncs_ = 10;
+      order_ = 2;
+    }
+
+    FeH1LagrangeTet2::~FeH1LagrangeTet2() {
+
+    }
+
+    void FeH1LagrangeTet2::CalcShFnc( Vector<Double>& shape,
+                                      const Vector<Double>& point,
+                                      const Elem* ptElem,
+                                      UInt comp ) {
+
+    	shape.Resize(10);
+
+    	//See Finite Element Procedures :Klaus Juergen Bathe, Prentice Hall,
+    	//page 375 Sec. 5.3.
+    	//Definition of the shape functions from 5 to 10
+
+    	shape[4]=4*point[0]*(1 - point[0] - point[1] - point[2]);
+    	shape[5]=4*point[0]*point[1];
+    	shape[6]=4*point[1]*(1 - point[0] - point[1] - point[2]);
+    	shape[7]=4*point[2]*(1 - point[0] - point[1] - point[2]);
+    	shape[8]=4*point[0]*point[2];
+    	shape[9]=4*point[1]*point[2];
+
+
+    	//definition of the shape functions from 1 to 4
+
+    	shape[0]= 1. - point[0] - point[1] - point[2] - 0.5*shape[4] -
+    			0.5*shape[6] - 0.5*shape[7];
+    	shape[1]= point[0] - 0.5*shape[4] - 0.5*shape[5] - 0.5*shape[8];
+    	shape[2]= point[1] - 0.5*shape[5] - 0.5*shape[6] - 0.5*shape[9];
+    	shape[3]= point[2] - 0.5*shape[8] - 0.5*shape[7] - 0.5*shape[9];
+    }
+
+    void FeH1LagrangeTet2::CalcLocDerivShFnc( Matrix<Double> & deriv,
+                                              const Vector<Double>& point,
+                                              const Elem* ptElem,
+                                              UInt comp ) {
+      deriv.Resize(10,3);
+      deriv.Init();
+
+      //Calculation of the local derivatives from 5 to 10
+
+      deriv[4][0]=4. - 8*point[0] - 4.*point[1] - 4.*point[2];
+      deriv[4][1]=-4.*point[0];
+      deriv[4][2]=-4.*point[0];
+
+      deriv[5][0]=4.*point[1];
+      deriv[5][1]=4.*point[0];
+      deriv[5][2]=0.0;
+
+      deriv[6][0]=-4.*point[1];
+      deriv[6][1]=4. - 8*point[1] - 4.*point[0] - 4.*point[2];
+      deriv[6][2]=-4.*point[1];
+
+      deriv[8][0]=4.*point[2];
+      deriv[8][1]=0.0;
+      deriv[8][2]=4.*point[0];
+
+      deriv[9][0]=0.0;
+      deriv[9][1]=4.*point[2];
+      deriv[9][2]=4.*point[1];
+
+      deriv[7][0]=-4.*point[2];
+      deriv[7][1]=-4.*point[2];
+      deriv[7][2]=4. - 8.*point[2] - 4.*point[0] - 4.*point[1];
+
+      //Calculation of the local derivatives from 1 to 4
+
+      deriv[0][0]= -1.-0.5*deriv[4][0]-0.5*deriv[6][0]-0.5*deriv[7][0];
+      deriv[0][1]= -1.-0.5*deriv[4][1]-0.5*deriv[6][1]-0.5*deriv[7][1];
+      deriv[0][2]= -1.-0.5*deriv[4][2]-0.5*deriv[6][2]-0.5*deriv[7][2];
+
+      deriv[1][0]= 1.-0.5*deriv[4][0]-0.5*deriv[5][0]-0.5*deriv[8][0];
+      deriv[1][1]= -0.5*deriv[4][1]-0.5*deriv[5][1]-0.5*deriv[8][1];
+      deriv[1][2]= -0.5*deriv[4][2]-0.5*deriv[5][2]-0.5*deriv[8][2];
+
+      deriv[2][0]= -0.5*deriv[5][0]-0.5*deriv[6][0]-0.5*deriv[9][0];
+      deriv[2][1]= 1.-0.5*deriv[5][1]-0.5*deriv[6][1]-0.5*deriv[9][1];
+      deriv[2][2]= -0.5*deriv[5][2]-0.5*deriv[6][2]-0.5*deriv[9][2];
+
+      deriv[3][0]= -0.5*deriv[9][0]-0.5*deriv[7][0]-0.5*deriv[8][0];
+      deriv[3][1]= -0.5*deriv[9][1]-0.5*deriv[7][1]-0.5*deriv[8][1];
+      deriv[3][2]= 1.-0.5*deriv[9][2]-0.5*deriv[7][2]-0.5*deriv[8][2];
+    }
+
+    bool FeH1LagrangeTet::CoordIsInsideElem( const Vector<Double>& point,
+                                             Double tolerance )  {
+      const Double & xi = point[0];
+      const Double & eta = point[1];
+      const Double & zeta = point[2];
+      bool isInside =
+    		  (               xi >= (0 - tolerance)) &&
+    		  (              eta >= (0 - tolerance)) &&
+    		  (             zeta >= (0 - tolerance)) &&
+    		  ((xi + eta + zeta) <= (1 + tolerance));
+      return isInside;
+    }
+
+    void FeH1LagrangeTet::
+    GetLocalIntPoints4Surface(const StdVector<UInt> & surfConnect,
+    		const StdVector<UInt> & volConnect,
+    		const LocPoint & surfIntPoint,
+    		LocPoint & volIntPoint,
+    		Vector<Double>& locNormal ) {
+
+    	// Try to find out, which vertices are in common with
+    	// the surface element. Then calculate the product of all four
+    	// and compare them
+    	//
+    	//
+    	// 4+\
+    	//  |\ \           zeta
+    	//  | \  \ 	      ^ eta
+    	//  |  \  +3	      |/
+    	//  |   \ |	      0--> xi
+    	//  |    \ \
+    	//  |     \|     REFERENCE TETRAHEDRAL ELEMENT
+    	//  +------+
+    	//  1      2
+
+    	volIntPoint.coord.Resize(3);
+    	locNormal.Resize(3);
+
+    	StdVector<UInt> commonIndex(3);
+    	UInt found = 0;
+    	UInt indexProduct = 0;
+    	std::string errMsg;
+
+    	// loop over surface connect
+    	for (UInt iSurf=0; iSurf<3; iSurf++)
+    		// loop over volume connect
+    		for (UInt iVol=0; iVol<4; iVol++)
+    			if (surfConnect[iSurf] == volConnect[iVol])
+    			{
+    				commonIndex[found++] = iVol+1;
+    			}
+
+    	indexProduct =  commonIndex[0] * commonIndex[1] * commonIndex[2];
+
+    	//std::cerr << "indexProduct = " << indexProduct << std::endl;
+    	switch(indexProduct)
+    	{
+    	case 8:
+    		// Surface[1,2,4] is common
+    		volIntPoint[0] = surfIntPoint[0];
+    		volIntPoint[1] = 0.0;
+    		volIntPoint[2] = surfIntPoint[1];
+
+    		locNormal[0] =  0.0;
+    		locNormal[1] = -1.0;
+    		locNormal[2] =  0.0;
+    		break;
+
+    	case 24:
+    		// Surface[2,3,4] is common
+    		volIntPoint[0] = surfIntPoint[0];
+    		volIntPoint[1] = surfIntPoint[1];
+    		volIntPoint[2] = 1.0 - surfIntPoint[0] - surfIntPoint[1];
+
+    		locNormal[0] =  1.0;
+    		locNormal[1] =  1.0;
+    		locNormal[2] =  1.0;
+    		break;
+
+    	case 12:
+    		// Surface[1,3,4] is common
+    		volIntPoint[0] = 0.0;
+    		volIntPoint[1] = surfIntPoint[0];
+    		volIntPoint[2] = surfIntPoint[1];
+
+    		locNormal[0] = -1.0;
+    		locNormal[1] =  0.0;
+    		locNormal[2] =  0.0;
+    		break;
+
+    	case 6:
+    		// Surface[1,2,3] is common
+    		volIntPoint[0] = surfIntPoint[0];
+    		volIntPoint[1] = surfIntPoint[1];
+    		volIntPoint[2] = 0.0;
+
+    		locNormal[0] =  0.0;
+    		locNormal[1] =  0.0;
+    		locNormal[2] = -1.0;
+    		break;
+    	default:
+    		EXCEPTION("FeH1LagrangeTet::GetLocalIntPoints4Surface: surface "
+    				<< "and volume element have not three nodes in common. "
+    				<< "Check your .mesh-file.");
+    		break;
+    	}
+    }
+
+    // --- Pyramid 1st order ---
+     FeH1LagrangePyra1::FeH1LagrangePyra1() {
+       feType_ = Elem::ET_PYRA5;
+       shape_ = Elem::shapes[feType_];
+       actNumFncs_ = 5;
+       order_ = 1;
+     }
+
+     FeH1LagrangePyra1::~FeH1LagrangePyra1() {
+
+     }
+
+     void FeH1LagrangePyra1::CalcShFnc( Vector<Double>& shape,
+                                       const Vector<Double>& point,
+                                       const Elem* ptElem,
+                                       UInt comp ) {
+
+    	 shape.Resize(5);
+
+    	 // "A New Family of Finite Elements: The Pyramidal Elements"
+    	 // F. Zgainski, J.L. Coulomb, Y. Marechal.
+    	 // IEEE Transactions on Magnetics, Vol. 32, No. 3, May 1996, p. 1394
+
+    	 shape[4] = point[2];
+
+    	 shape[0] = 0.25*((1+point[0])*(1+point[1])-point[2]);
+    	 shape[1] = 0.25*((1-point[0])*(1+point[1])-point[2]);
+    	 shape[2] = 0.25*((1-point[0])*(1-point[1])-point[2]);
+    	 shape[3] = 0.25*((1+point[0])*(1-point[1])-point[2]);
+
+    	 if (point[2] != 1.0) {
+    		 shape[0] += 0.25*(+(point[0]*point[1]*point[2])/(1-point[2]));
+    		 shape[1] += 0.25*(-(point[0]*point[1]*point[2])/(1-point[2]));
+    		 shape[2] += 0.25*(+(point[0]*point[1]*point[2])/(1-point[2]));
+    		 shape[3] += 0.25*(-(point[0]*point[1]*point[2])/(1-point[2]));
+    	 }
+     }
+
+     void FeH1LagrangePyra1::CalcLocDerivShFnc( Matrix<Double> & deriv,
+                                               const Vector<Double>& point,
+                                               const Elem* ptElem,
+                                               UInt comp ) {
+    	 deriv.Resize(5,3);
+
+    	 deriv.Init();
+
+    	 deriv[4][0] = 0;
+    	 deriv[4][1] = 0;
+    	 deriv[4][2] = 1;
+
+    	 deriv[0][0] =  0.25 * ( 1 + point[1]);
+    	 deriv[0][1] =  0.25 * ( 1 + point[0]);
+    	 deriv[0][2] = -0.25;
+
+    	 deriv[1][0] =  0.25 * (-1 - point[1]);
+    	 deriv[1][1] =  0.25 * ( 1 - point[0]);
+    	 deriv[1][2] = -0.25;
+
+    	 deriv[2][0] =  0.25 * (-1 + point[1]);
+    	 deriv[2][1] =  0.25 * (-1 + point[0]);
+    	 deriv[2][2] = -0.25;
+
+    	 deriv[3][0] =  0.25 * ( 1 - point[1]);
+    	 deriv[3][1] =  0.25 * (-1 - point[0]);
+    	 deriv[3][2] = -0.25;
+
+    	 if (point[2] != 1.0)
+    	 {
+    		 deriv[0][0] += 0.25 * (+(point[1]*point[2])/(1-point[2]));
+    		 deriv[0][1] += 0.25 * (+(point[0]*point[2])/(1-point[2]));
+    		 deriv[0][2] += 0.25 * (+(point[0]*point[1])/((1-point[2])*(1-point[2])));
+
+    		 deriv[1][0] += 0.25 * (-(point[1]*point[2])/(1-point[2]));
+    		 deriv[1][1] += 0.25 * (-(point[0]*point[2])/(1-point[2]));
+    		 deriv[1][2] += 0.25 * (-(point[0]*point[1])/((1-point[2])*(1-point[2])));
+
+    		 deriv[2][0] += 0.25 * (+(point[1]*point[2])/(1-point[2]));
+    		 deriv[2][1] += 0.25 * (+(point[0]*point[2])/(1-point[2]));
+    		 deriv[2][2] += 0.25 * (+(point[0]*point[1])/((1-point[2])*(1-point[2])));
+
+    		 deriv[3][0] += 0.25 * (-(point[1]*point[2])/(1-point[2]));
+    		 deriv[3][1] += 0.25 * (-(point[0]*point[2])/(1-point[2]));
+    		 deriv[3][2] += 0.25 * (-(point[0]*point[1])/((1-point[2])*(1-point[2])));
+    	 }
+     }
+
+    // --- Pyra 2nd order ---
+     FeH1LagrangePyra2::FeH1LagrangePyra2() {
+       feType_ = Elem::ET_PYRA13;
+       shape_ = Elem::shapes[feType_];
+       actNumFncs_ = 13;
+       order_ = 2;
+     }
+
+     FeH1LagrangePyra2::~FeH1LagrangePyra2() {
+
+     }
+
+     void FeH1LagrangePyra2::CalcShFnc( Vector<Double>& shape,
+                                       const Vector<Double>& point,
+                                       const Elem* ptElem,
+                                       UInt comp ) {
+
+    	 shape.Resize(13);
+
+    	 // Order is the same as in source paper, just index ist changed to follow
+    	 // our elements standard numbering
+    	 shape[1]  = 0.25 * ( point[0]+point[1]-1) *
+    			 ( (1+point[0]) * (1+point[1]) - point[2] );
+    	 shape[0]  = 0.25 * ( point[0]-point[1]-1) *
+    			 ( (1+point[0]) * (1-point[1]) - point[2] );
+    	 shape[3]  = 0.25 * (-point[0]-point[1]-1) *
+    			 ( (1-point[0]) * (1-point[1]) - point[2] );
+    	 shape[2]  = 0.25 * (-point[0]+point[1]-1) *
+    			 ( (1-point[0]) * (1+point[1]) - point[2] );
+    	 shape[4]  = point[2] * ( 2 * point[2] - 1);
+    	 shape[5]  = 0.0;
+    	 shape[8]  = 0.0;
+    	 shape[7]  = 0.0;
+    	 shape[6]  = 0.0;
+    	 shape[10] = 0.0;
+    	 shape[9]  = 0.0;
+    	 shape[12] = 0.0;
+    	 shape[11] = 0.0;
+
+    	 if (point[2] != 1.0)
+    	 {
+    		 Double fac = (point[0] * point[1] * point[2]) / (1-point[2]);
+    		 shape[1]  += 0.25 * ( point[0]+point[1]-1) * (+fac);
+    		 shape[0]  += 0.25 * ( point[0]-point[1]-1) * (-fac);
+    		 shape[3]  += 0.25 * (-point[0]-point[1]-1) * (+fac);
+    		 shape[2]  += 0.25 * (-point[0]+point[1]-1) * (-fac);
+    		 shape[4]  += 0.0;
+    		 shape[5]  += (1+point[0]-point[2]) * (1-point[1]-point[2])*
+    				 (1+point[1]-point[2])/(2*(1-point[2]));
+    		 shape[8]  += (1+point[0]-point[2])*(1-point[0]-point[2])*
+    				 (1-point[1]-point[2])/(2*(1-point[2]));
+    		 shape[7]  += (1-point[0]-point[2])*(1-point[1]-point[2])*
+    				 (1+point[1]-point[2])/(2*(1-point[2]));
+    		 shape[6]  += (1+point[0]-point[2])*(1-point[0]-point[2])*
+    				 (1+point[1]-point[2])/(2*(1-point[2]));
+    		 shape[10] += point[2]*(1+point[0]-point[2])*
+    				 (1+point[1]-point[2])/(1-point[2]);
+    		 shape[9]  += point[2]*(1+point[0]-point[2])*
+    				 (1-point[1]-point[2])/(1-point[2]);
+    		 shape[12] += point[2]*(1-point[0]-point[2])*
+    				 (1-point[1]-point[2])/(1-point[2]);
+    		 shape[11] += point[2]*(1-point[0]-point[2])*
+    				 (1+point[1]-point[2])/(1-point[2]);
+    	 }
+     }
+
+     void FeH1LagrangePyra2::CalcLocDerivShFnc( Matrix<Double> & deriv,
+                                               const Vector<Double>& point,
+                                               const Elem* ptElem,
+                                               UInt comp ) {
+    	 deriv.Resize(13,3);
+
+    	 deriv.Init();
+
+    	 // Derivatives for the quadratic case.
+    	 // Calculated symbolically with Maple.
+
+    	 deriv[4][0] = 0;
+    	 deriv[4][1] = 0;
+    	 deriv[4][2] = 4*point[2]-1;
+
+    	 if (point[2]==1)
+    	 {
+    		 deriv[1][0] = 0.25*( (1+point[0])*(1+point[1])-point[2]+
+    				 (point[0]+point[1]-1)*(1+point[1]));
+    		 deriv[1][1] = 0.25*( (1+point[0])*(1+point[1])-point[2]+
+    				 (point[0]+point[1]-1)*(1+point[0]));
+    		 deriv[1][2] = 0.25*( -point[0]-point[1]+1);
+    		 deriv[0][0] = 0.25*( (1+point[0])*(1-point[1])-point[2]+
+    				 (point[0]-point[1]-1)*(1-point[1]));
+    		 deriv[0][1] = 0.25*( -(1+point[0])*(1-point[1])+point[2]+
+    				 (point[0]-point[1]-1)*(-1-point[0]));
+    		 deriv[0][2] = 0.25*( -point[0]+point[1]+1);
+    		 deriv[3][0] = 0.25*( -(1-point[0])*(1-point[1])+point[2]+
+    				 (-point[0]-point[1]-1)*(-1+point[1]));
+    		 deriv[3][1] = 0.25*( -(1-point[0])*(1-point[1])+point[2]+
+    				 (-point[0]-point[1]-1)*(-1+point[0]));
+    		 deriv[3][2] = 0.25*( point[0]+point[1]+1);
+    		 deriv[2][0] = 0.25*( -(1-point[0])*(1+point[1])+point[2]+
+    				 (-point[0]+point[1]-1)*(-1-point[1]));
+    		 deriv[2][1] = 0.25*( (1-point[0])*(1+point[1])-point[2]+
+    				 (-point[0]+point[1]-1)*(1-point[0]));
+    		 deriv[2][2] = 0.25*( point[0]-point[1]+1);
+
+    		 deriv[6][0] = 0.0;
+    		 deriv[6][1] = 0.0;
+    		 deriv[6][2] = 0.0;
+
+    		 deriv[7][0] = 0.0;
+    		 deriv[7][1] = 0.0;
+    		 deriv[7][2] = 0.0;
+
+    		 deriv[8][0] = 0.0;
+    		 deriv[8][1] = 0.0;
+    		 deriv[8][2] = 0.0;
+
+    		 deriv[5][0] = 0.0;
+    		 deriv[5][1] = 0.0;
+    		 deriv[5][2] = 0.0;
+
+    		 deriv[10][0] = 0.0;
+    		 deriv[10][1] = 0.0;
+    		 deriv[10][2] = 0.0;
+
+    		 deriv[11][0] = 0.0;
+    		 deriv[11][1] = 0.0;
+    		 deriv[11][2] = 0.0;
+
+    		 deriv[12][0] = 0.0;
+    		 deriv[12][1] = 0.0;
+    		 deriv[12][2] = 0.0;
+
+    		 deriv[9][0] = 0.0;
+    		 deriv[9][1] = 0.0;
+    		 deriv[9][2] = 0.0;
+    	 }
+    	 else
+    	 {
+    		 deriv[1][0] = 0.25*((1+point[0])*(1+point[1])-point[2]+
+    				 point[0]*point[1]*point[2]/(1-point[2])+
+    				 (point[0]+point[1]-1)*(1+point[1]+
+    						 point[1]*point[2]/(1-point[2])));
+    		 deriv[1][1] = 0.25*((1+point[0])*(1+point[1])-point[2]+
+    				 point[0]*point[1]*point[2]/(1-point[2])+
+    				 (point[0]+point[1]-1)*(1+point[0]+point[0]*
+    						 point[2]/(1-point[2])));
+    		 deriv[1][2] = 0.25*((point[0]+point[1]-1)*(-1+point[0]*point[1]/
+    				 (1-point[2])+point[0]*point[1]*point[2]/
+    				 ((1-point[2])*(1-point[2]))));
+
+    		 deriv[0][0] = 0.25*((1+point[0])*(1-point[1])-point[2]-point[0]*
+    				 point[1]*point[2]/(1-point[2])+
+    				 (point[0]-point[1]-1)*(1-point[1]-
+    						 point[1]*point[2]/(1-point[2])));
+    		 deriv[0][1] = 0.25*(-(1+point[0])*(1-point[1])+point[2]+point[0]*
+    				 point[1]*point[2]/(1-point[2])+
+    				 (point[0]-point[1]-1)*(-1-point[0]-
+    						 point[0]*point[2]/(1-point[2])));
+    		 deriv[0][2] = 0.25*((point[0]-point[1]-1)*(-1-point[0]*point[1]/
+    				 (1-point[2])-point[0]*point[1]*point[2]/
+    				 ((1-point[2])*(1-point[2]))));
+
+    		 deriv[3][0] = 0.25*(-(1-point[0])*(1-point[1])+point[2]-point[0]*
+    				 point[1]*point[2]/(1-point[2])+(-point[0]-
+    						 point[1]-1)*(-1+point[1]+point[1]*point[2]/
+    								 (1-point[2])));
+    		 deriv[3][1] = 0.25*(-(1-point[0])*(1-point[1])+point[2]-point[0]*
+    				 point[1]*point[2]/(1-point[2])+
+    				 (-point[0]-point[1]-1)*(-1+point[0]+point[0]*
+    						 point[2]/(1-point[2])));
+    		 deriv[3][2] = 0.25*((-point[0]-point[1]-1)*(-1+point[0]*point[1]/
+    				 (1-point[2])+point[0]*point[1]*point[2]/
+    				 ((1-point[2])*(1-point[2]))));
+
+    		 deriv[2][0] = 0.25*(-(1-point[0])*(1+point[1])+point[2]+point[0]*
+    				 point[1]*point[2]/(1-point[2])+(-point[0]+
+    						 point[1]-1)*(-1-point[1]-point[1]*
+    								 point[2]/(1-point[2])));
+    		 deriv[2][1] = 0.25*((1-point[0])*(1+point[1])-point[2]-point[0]*
+    				 point[1]*point[2]/(1-point[2])+
+    				 (-point[0]+point[1]-1)*(1-point[0]-point[0]*
+    						 point[2]/(1-point[2])));
+    		 deriv[2][2] = 0.25*((-point[0]+point[1]-1)*(-1-point[0]*point[1]/
+    				 (1-point[2])-point[0]*point[1]*point[2]/
+    				 ((1-point[2])*(1-point[2]))));
+
+    		 deriv[5][0] = .5*(1-point[1]-point[2])*(1+point[1]-point[2])/
+    				 (1-point[2]);
+    		 deriv[5][1] = -.5*(1+point[0]-point[2])*(1+point[1]-point[2])/
+    				 (1-point[2])+.5*(1+point[0]-point[2])*
+    				 (1-point[1]-point[2])/(1-point[2]);
+    		 deriv[5][2] = -.5*(1-point[1]-point[2])*(1+point[1]-point[2])/
+    				 (1-point[2])-.5*(1+point[0]-point[2])*
+    				 (1+point[1]-point[2])/(1-point[2])-.5*
+    				 (1+point[0]-point[2])*(1-point[1]-point[2])/
+    				 (1-point[2])+.5*(1+point[0]-point[2])*
+    				 (1-point[1]-point[2])*(1+point[1]-point[2])/
+    				 ((1-point[2])*(1-point[2]));
+
+    		 deriv[8][0] = .5*(1-point[0]-point[2])*(1-point[1]-point[2])/
+    				 (1-point[2])-.5*(1+point[0]-point[2])*
+    				 (1-point[1]-point[2])/(1-point[2]);
+    		 deriv[8][1] = -.5*(1+point[0]-point[2])*(1-point[0]-point[2])/
+    				 (1-point[2]);
+    		 deriv[8][2] = -.5*(1-point[0]-point[2])*(1-point[1]-point[2])/
+    				 (1-point[2])-.5*(1+point[0]-point[2])*
+    				 (1-point[1]-point[2])/(1-point[2])-.5*
+    				 (1+point[0]-point[2])*(1-point[0]-point[2])/
+    				 (1-point[2])+.5*(1+point[0]-point[2])*
+    				 (1-point[0]-point[2])*(1-point[1]-point[2])/
+    				 ((1-point[2])*(1-point[2]));
+
+    		 deriv[7][0] = -.5*(1-point[1]-point[2])*(1+point[1]-point[2])/
+    				 (1-point[2]);
+    		 deriv[7][1] = -.5*(1-point[0]-point[2])*(1+point[1]-point[2])/
+    				 (1-point[2])+.5*(1-point[0]-point[2])*
+    				 (1-point[1]-point[2])/(1-point[2]);
+    		 deriv[7][2] = -.5*(1-point[1]-point[2])*(1+point[1]-point[2])/
+    				 (1-point[2])-.5*(1-point[0]-point[2])*
+    				 (1+point[1]-point[2])/(1-point[2])-.5*(1-point[0]-
+    						 point[2])*(1-point[1]-point[2])/(1-point[2])+
+    						 .5*(1-point[0]-point[2])*(1-point[1]-point[2])*
+    						 (1+point[1]-point[2])/((1-point[2])*(1-point[2]));
+
+    		 deriv[6][0] = .5*(1-point[0]-point[2])*(1+point[1]-point[2])/
+    				 (1-point[2])-.5*(1+point[0]-point[2])*
+    				 (1+point[1]-point[2])/(1-point[2]);
+    		 deriv[6][1] = .5*(1+point[0]-point[2])*(1-point[0]-point[2])/
+    				 (1-point[2]);
+    		 deriv[6][2] = -.5*(1-point[0]-point[2])*(1+point[1]-point[2])/
+    				 (1-point[2])-.5*(1+point[0]-point[2])*
+    				 (1+point[1]-point[2])/(1-point[2])-.5*(1+point[0]-
+    						 point[2])*(1-point[0]-point[2])/
+    						 (1-point[2])+.5*(1+point[0]-point[2])*
+    						 (1-point[0]-point[2])*(1+point[1]-point[2])/
+    						 ((1-point[2])*(1-point[2]));
+
+    		 deriv[10][0] = point[2]*(1+point[1]-point[2])/(1-point[2]);
+    		 deriv[10][1] = point[2]*(1+point[0]-point[2])/(1-point[2]);
+    		 deriv[10][2] = (1+point[0]-point[2])*(1+point[1]-point[2])/
+    				 (1-point[2])-point[2]*(1+point[1]-point[2])/
+    				 (1-point[2])-point[2]*(1+point[0]-point[2])/
+    				 (1-point[2])+point[2]*(1+point[0]-point[2])*
+    				 (1+point[1]-point[2])/((1-point[2])*(1-point[2]));
+
+    		 deriv[9][0] = point[2]*(1-point[1]-point[2])/(1-point[2]);
+    		 deriv[9][1] = -point[2]*(1+point[0]-point[2])/(1-point[2]);
+    		 deriv[9][2] = (1+point[0]-point[2])*(1-point[1]-point[2])/
+    				 (1-point[2])-point[2]*(1-point[1]-point[2])/
+    				 (1-point[2])-point[2]*(1+point[0]-point[2])/
+    				 (1-point[2])+point[2]*(1+point[0]-point[2])*
+    				 (1-point[1]-point[2])/((1-point[2])*(1-point[2]));
+
+    		 deriv[12][0] = -point[2]*(1-point[1]-point[2])/(1-point[2]);
+    		 deriv[12][1] = -point[2]*(1-point[0]-point[2])/(1-point[2]);
+    		 deriv[12][2] = (1-point[0]-point[2])*(1-point[1]-point[2])/
+    				 (1-point[2])-point[2]*(1-point[1]-point[2])/
+    				 (1-point[2])-point[2]*(1-point[0]-point[2])/
+    				 (1-point[2])+point[2]*(1-point[0]-point[2])*
+    				 (1-point[1]-point[2])/((1-point[2])*(1-point[2]));
+
+    		 deriv[11][0] = -point[2]*(1+point[1]-point[2])/(1-point[2]);
+    		 deriv[11][1] = point[2]*(1-point[0]-point[2])/(1-point[2]);
+    		 deriv[11][2] = (1-point[0]-point[2])*(1+point[1]-point[2])/
+    				 (1-point[2])-point[2]*(1+point[1]-point[2])/
+    				 (1-point[2])-point[2]*(1-point[0]-point[2])/
+    				 (1-point[2])+point[2]*(1-point[0]-point[2])*
+    				 (1+point[1]-point[2])/((1-point[2])*(1-point[2]));
+    	 }
+     }
+
+     bool FeH1LagrangePyra::CoordIsInsideElem( const Vector<Double>& point,
                                                Double tolerance )  {
-     const Double & xi = point[0];
-     const Double & eta = point[1];
-     const Double & zeta = point[2];
-     bool isInside = 
-         (        xi >= ( 0 - tolerance)) &&
-         (       eta >= ( 0 - tolerance)) &&
-         ((xi + eta) <= ( 1 + tolerance)) &&
-         (      zeta >= (-1 - tolerance)) &&
-         (      zeta <= ( 1 + tolerance));
-     return isInside;
-   }
-   
-   void FeH1LagrangeWedge2::
-   GetLocalIntPoints4Surface(const StdVector<UInt> & surfConnect,
-                             const StdVector<UInt> & volConnect,
-                             const LocPoint & surfIntPoint,
-                             LocPoint & volIntPoint,
-                             Vector<Double>& locNormal ) {
+         const Double & xi = point[0];
+         const Double & eta = point[1];
+         const Double & zeta = point[2];
+         double threshold = 1 - zeta;
 
-     // Try to find out, which vertices are in common with
-     // the surface element. Then calculate the product of all four
-     // and compare them
-     //      + 6    
-     //     /|\   
-     //    / |  \           zeta
-     // 4 +----- + 5         ^  eta
-     //   |  + 3 |           |/ 
-     //   | / \  |           0--> xi
-     //   |/    \|   
-     // 1 +------+ 2
+         bool isInside =
+      		   (zeta >= (0 - tolerance)) &&
+      		   (zeta <= (1.0 + tolerance)) &&
+      		   (  xi >= (-threshold - tolerance)) &&
+      		   ( eta >= (-threshold - tolerance)) &&
+      		   (  xi <= (threshold + tolerance)) &&
+      		   ( eta <= (threshold + tolerance));
+         return isInside;
+     }
 
-     // Check if surface element is triangle 
-     // or quadrilateral
-     if (surfConnect.GetSize() == 3 ||
-         surfConnect.GetSize() == 6) 
-     {
-       // ---- Triangle Surface ---
-       StdVector<Integer> commonIndex(3);
-       Integer found = 0;
-       Integer indexSum = 0;
-       std::string errMsg;
+     void FeH1LagrangePyra::
+     GetLocalIntPoints4Surface(const StdVector<UInt> & surfConnect,
+     		const StdVector<UInt> & volConnect,
+     		const LocPoint & surfIntPoint,
+     		LocPoint & volIntPoint,
+     		Vector<Double>& locNormal ) {
+    	 // Try to find out, which vertices are in common with
+    	 // the surface element. Then calculate the product of all four
+    	 // and compare them
+    	 //                                   zeta
+    	 //             5                     ^  eta
+    	 //             +                     |/
+    	 //           // \                    0--> xi
+    	 //          // \ \
+    	 //         / / \  \
+    	 //        / /   \  \
+    	 //     2 +-/----\ ---+ 1
+    	 //      / /     \   /
+    	 //     / /      \  /     REFERENCE VOLUME ELEMENT
+    	 //    //        \ /
+    	 //  3+-----------+ 4
+    	 //
 
-       volIntPoint.coord.Resize(3);
-       locNormal.Resize(3);
+         volIntPoint.coord.Resize(3);
+	     locNormal.Resize(3);
 
-       // loop over surface connect
-       for (Integer iSurf=0; iSurf<3; iSurf++)
-         // loop over volume connect
-         for (Integer iVol=0; iVol<6; iVol++)
-           if (surfConnect[iSurf] == volConnect[iVol])
-           {
-             commonIndex[found++] = iVol+1;
-           }
+    	 // Check if surface element is triangle
+    	 // or quadrilateral
+    	 if (surfConnect.GetSize() == 3 ||
+    			 surfConnect.GetSize() == 6)
+    	 {
+    		 // ---- Triangle Surface ---
+    		 StdVector<Integer> commonIndex(3);
+    		 Integer found = 0;
+    		 Integer indexProduct = 0;
+    		 std::string errMsg;
 
+    		 // loop over surface connect
+    		 for (Integer iSurf=0; iSurf<3; iSurf++)
+    			 // loop over volume connect
+    			 for (Integer iVol=0; iVol<5; iVol++)
+    				 if (surfConnect[iSurf] == volConnect[iVol]) {
+    					 commonIndex[found++] = iVol+1;
+    				 }
+    		 indexProduct =  commonIndex[0] * commonIndex[1] * commonIndex[2];
 
-       indexSum =  commonIndex[0] + commonIndex[1] + commonIndex[2];
+    		 // Now we have to consider the following:
+    		 // - The extension of the triangular element is from [0..1] in both
+    		 //   local directions xi and eta
+    		 // - The side length of the base-rectangular side is in each direction
+    		 //   [-1..+1], so we need a mapping in
+    		 // - The
 
-       switch(indexSum)
-       {
-         case 6:
-           // Surface[1,2,3] is common
-           volIntPoint[0] = surfIntPoint[0];
-           volIntPoint[1] = surfIntPoint[1];
-           volIntPoint[2] = -1.0;
-           locNormal[0] =  0.0;
-           locNormal[1] =  0.0;
-           locNormal[2] = -1.0;
-           break;
-
-         case 15:
-           // Surface[4,5,6] is common
-           volIntPoint[0] = surfIntPoint[0];
-           volIntPoint[1] = surfIntPoint[1];
-           volIntPoint[2] = 1.0;
-           locNormal[0] =  0.0;
-           locNormal[1] =  0.0;
-           locNormal[2] =  1.0;
-           break;
-
-         default:
-           EXCEPTION( "WedgeFE::GetLocalIntPoints4Surface: surface and volume element "
-               << "have not three nodes in common. Check your .mesh-file.");
-       }
-
-     } else {
-       // ---- Quadrilateral Surface ---
-       StdVector<Integer> commonIndex(4);
-       Integer found = 0;
-       Integer indexSum = 0;
-       std::string errMsg;
-
-       volIntPoint.coord.Resize(3);
-       locNormal.Resize(3);
-
-       // loop over surface connect
-       for (Integer iSurf=0; iSurf<4; iSurf++)
-         // loop over volume connect
-         for (Integer iVol=0; iVol<6; iVol++)
-           if (surfConnect[iSurf] == volConnect[iVol])
-           {
-             commonIndex[found++] = iVol+1;
-           }
+    		 // General rule:
 
 
-       indexSum = 
-           commonIndex[0] + commonIndex[1] 
-           + commonIndex[2] + commonIndex[3];
+    		 switch( indexProduct ) {
+    		 case 10:
+    			 // Surface[1,2,5] is common
+    			 volIntPoint[0] = - 2.0 * (surfIntPoint[0] - 0.5);
+    			 volIntPoint[1] =   1.0 - surfIntPoint[1];
+    			 volIntPoint[2] =   surfIntPoint[1];
 
-       // NOTE: Since the line quad-element is defined in the range [-1;+1]
-       // we have to calculate (1+surfCoord)/2 in order to get the right
-       // position on the wedge element
+			 locNormal[0] =  0;
+                         locNormal[1] = -1;
+                         locNormal[2] =  1;
+    			 break;
+    		 case 30:
+    			 // Surface[2,3,5] is common
+    			 volIntPoint[0] =   surfIntPoint[1] - 1.0;
+    			 volIntPoint[1] = - 2.0 * (surfIntPoint[0] - 0.5);
+    			 volIntPoint[2] =   surfIntPoint[1];
+			 
+			 locNormal[0] =  1;
+                         locNormal[1] =  0;
+                         locNormal[2] =  1;
+			 break;
+    		 case 60:
+    			 // Surface[3,4,5] is common
+    			 volIntPoint[0] =   2.0 * (surfIntPoint[0] - 0.5);
+    			 volIntPoint[1] =   surfIntPoint[1] - 1.0;
+    			 volIntPoint[2] =   surfIntPoint[1];
+			 
+			 locNormal[0] =  0;
+                         locNormal[1] =  1;
+                         locNormal[2] =  1;
 
-       switch(indexSum)
-       {
-         case 16:
-           // Surface[2,3,5,6] is common
-           volIntPoint[0] = 0.5 - (surfIntPoint[0] / 2.0);
-           volIntPoint[1] = 0.5 + (surfIntPoint[0] / 2.0);
-           volIntPoint[2] = surfIntPoint[1];
-           locNormal[0] = sqrt(.5);
-           locNormal[1] = sqrt(.5);
-           locNormal[2] = 0.0;
-           break;
+    			 break;
+    		 case 20:
+    			 // Surface[4,1,5] is common
+    			 volIntPoint[0] =  1.0 - surfIntPoint[1];
+    			 volIntPoint[1] =  2.0 * (surfIntPoint[0] - 0.5);
+    			 volIntPoint[2] =  surfIntPoint[1];
+			 
+			 locNormal[0] = -1;
+                         locNormal[1] =  0;
+                         locNormal[2] =  1;
+    			 break;
+    		 default:
+    			 EXCEPTION("FeH1LagrangePyra::GetLocalIntPoints4Surface: surface and volume element "
+    					 << "have not three nodes in common. Check your mesh.");
+    			 break;
+    		 }
+    	 } else {
+    		 // ---- Quadrilateral Surface ---
+    		 StdVector<Integer> commonIndex(4);
+    		 Integer found = 0;
+    		 Integer indexSum = 0;
+    		 std::string errMsg;
 
-         case 14:
-           // Surface[1,3,4,6] is common
-           volIntPoint[0] = 0.0;
-           volIntPoint[1] = 0.5 * (1 + surfIntPoint[0]);
-           volIntPoint[2] = 0.5 * (1 + surfIntPoint[1]);
-           locNormal[0] = -1.0;
-           locNormal[1] =  0.0;
-           locNormal[2] =  0.0;
-           break;
+    		 // loop over surface connect
+    		 for (Integer iSurf=0; iSurf<4; iSurf++)
+    			 // loop over volume connect
+    			 for (Integer iVol=0; iVol<5; iVol++)
+    				 if (surfConnect[iSurf] == volConnect[iVol])
+    				 {
+    					 commonIndex[found++] = iVol+1;
+    				 }
+    		 indexSum =  commonIndex[0] + commonIndex[1]
+    		                                          + commonIndex[2] + commonIndex[3];
 
-         case 12:
-           // Surface[1,2,4,5] is common
-           volIntPoint[0] = 0.5 * (1 + surfIntPoint[1]);
-           volIntPoint[1] = 0.0;
-           volIntPoint[2] = 0.5 * (1 + surfIntPoint[0]);
-           locNormal[0] =  0.0;
-           locNormal[1] = -1.0;
-           locNormal[2] =  0.0;
-           break;
+    		 // Safety check: Check, that the surface element is
+    		 // really located on the bottom of the pyramid.
+    		 if( indexSum != 10 ) {
+    			 EXCEPTION("FeH1LagrangePyra::GetLocalIntPoints4Surface: surface and volume element "
+    					 << "have not four nodes in common. Check your mesh.");
+    		 }
 
-         default:
-           EXCEPTION("WedgeFE::GetLocalIntPoints4Surface: surface and volume element "
-               << "have not four nodes in common. Check your .mesh-file.");
-       } // switch
-     } // if
-   }
-  
+    		 volIntPoint[0] = surfIntPoint[0];
+    		 volIntPoint[1] = surfIntPoint[1];
+    		 volIntPoint[2] = 0.0; // always on bottom
+
+                 locNormal[0] =  0;
+                 locNormal[1] =  0;
+                 locNormal[2] = -1;
+    	 }
+     }
 } // namespace CoupledField

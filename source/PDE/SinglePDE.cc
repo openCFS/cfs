@@ -1174,7 +1174,7 @@ namespace CoupledField {
   // **********
   void SinglePDE::SetBCs() {
     
-    // Todo: Is this method reallly necessary here or can we move it to the SolveStep-class?
+    // TODO: Is this method really necessary here or can we move it to the SolveStep-class?
     std::map<SolutionType, shared_ptr<BaseFeFunction> >::iterator fncIt= feFunctions_.begin();
     while(fncIt != feFunctions_.end()){
       fncIt->second->ApplyBC();
@@ -1279,7 +1279,6 @@ namespace CoupledField {
         actBc->value = value;
         actBc->phase = phase;
 
-        actFeFunction = GetFeFunction( SolutionTypeEnum.Parse(resultName));
         actFeFunction->AddInhomDirichletBc(actBc);
       } catch (Exception & ex ) {
         RETHROW_EXCEPTION( ex, "Can not create inhomogeneous boundary conditions on '"
@@ -1507,7 +1506,7 @@ namespace CoupledField {
           // add definition
           actFeFunction->AddConstraint(actBc);
         }
-      } catch (Exception & ex ) {
+      } catch (CoupledField::Exception & ex ) {
         RETHROW_EXCEPTION( ex, "Can not create periodic boundary on '"
                            << name << "'" );
       }

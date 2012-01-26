@@ -40,6 +40,12 @@
                 <xsd:element name="region" minOccurs="1" maxOccurs="unbounded">
                   <xsd:complexType>
                     <xsd:attribute name="name" type="xsd:token" use="required"/>
+  									<xsd:attribute name="polyId"
+  										type="xsd:string" use="optional" default="default">
+  									</xsd:attribute>
+  									<xsd:attribute name="integId"
+  										type="xsd:string" use="optional" default="default">
+  									</xsd:attribute>                    
                     <xsd:attribute name="nonLinIds" type="xsd:token" use="optional" default=""/>
                   </xsd:complexType>
                 </xsd:element>
@@ -113,6 +119,14 @@
             </xsd:restriction>
           </xsd:simpleType>
         </xsd:attribute>
+        <xsd:attribute name="formulation" use="optional" default="standard">
+          <xsd:simpleType>
+            <xsd:restriction base="xsd:token">
+              <xsd:enumeration value="standard"/>
+              <xsd:enumeration value="perturbed"/>
+            </xsd:restriction>
+          </xsd:simpleType>
+        </xsd:attribute>        
         <xsd:attribute name="movingMesh" type="DT_CFSBool" default="no"/>
         <xsd:attribute name="aeroAcoustics" type="DT_CFSBool" default="no"/>
       </xsd:extension>

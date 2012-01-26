@@ -1,28 +1,7 @@
 #-----------------------------------------------------------------------------
 # Don't build anything unless the version of CMake is high enough.
 #-----------------------------------------------------------------------------
-CMAKE_MINIMUM_REQUIRED(VERSION 2.4.7 FATAL_ERROR)
-
-#-----------------------------------------------------------------------------
-# Set CMake policies for newer versions of CMake.
-# Enter 'cmake --help-policy CMP000X' to get information about the meaning
-# of a certain policy.
-#-----------------------------------------------------------------------------
-IF(COMMAND CMAKE_POLICY)
-  # This policy affects how libraries whose full paths are NOT known are
-  # found at link time, but was created due to a change in how CMake
-  # deals with libraries whose full paths are known.
-  IF(POLICY CMP0003)
-    CMAKE_POLICY(SET CMP0003 NEW)
-  ENDIF(POLICY CMP0003)
-  
-
-  # Issue an error if no CMakeLists.txt exists in a subdir referenced
-  # by SUBDIRS or ADD_SUBDIRECTORY 
-  IF(POLICY CMP0014)
-    CMAKE_POLICY(SET CMP0014 NEW)
-  ENDIF(POLICY CMP0014)
-ENDIF(COMMAND CMAKE_POLICY)
+CMAKE_MINIMUM_REQUIRED(VERSION 2.8 FATAL_ERROR)
 
 #-----------------------------------------------------------------------------
 # The name of our project is "CFS".  CMakeLists files in this
@@ -31,6 +10,11 @@ ENDIF(COMMAND CMAKE_POLICY)
 # as ${CFS_BINARY_DIR}. We use C, C++ and Fortran as languages.
 #-----------------------------------------------------------------------------
 PROJECT(CFS C CXX Fortran)
+
+#-----------------------------------------------------------------------------
+# Include some utility macros (for building ext. libs, etc...) 
+#-----------------------------------------------------------------------------
+INCLUDE("cmake_modules/CFS_macros.cmake")
 
 #-----------------------------------------------------------------------------
 # CFS version number.  Simply the last modification date
@@ -43,7 +27,11 @@ SET(CFS_VERSION
 #-----------------------------------------------------------------------------
 # Version Name. Every major release gets a label/name
 #-----------------------------------------------------------------------------
-SET(CFS_NAME "Scintillant Scapolite")
+SET(CFS_NAME "Branchy Burbank")
+# c.f. http://web.mit.edu/invent/iow/burbank.html,
+# http://en.wikipedia.org/wiki/Russet_Burbank_potato
+
+colormsg(HIBLUE "Configuration for CFS++ ${CFS_VERSION}: ${CFS_NAME} starting")
 
 #-----------------------------------------------------------------------------
 # Set hostname of build host
@@ -134,11 +122,14 @@ ENDIF(USE_PARDISO OR
       USE_ILUPACK OR
       USE_CHOLMOD)
 
-IF(CFS_PARDISO STREQUAL "MKL")
+#-----------------------------------------------------------------------------
+# Since MKL Pardiso only works with MKL BLAS/LAPACK, we force that here.
+#-----------------------------------------------------------------------------
+IF(USE_PARDISO AND CFS_PARDISO STREQUAL "MKL")
   SET(CFS_BLAS_LAPACK "MKL" CACHE STRING
     "BLAS/LAPACK implementation for CFS. May be one of ACML, GOTO, MKL, NETLIB"
     FORCE)
-ENDIF(CFS_PARDISO STREQUAL "MKL")
+ENDIF(USE_PARDISO AND CFS_PARDISO STREQUAL "MKL")
 
 #-----------------------------------------------------------------------------
 # Options which have become so important that they are not optional anymore
@@ -232,14 +223,14 @@ SET(TESTSUITE_DIR "${TESTSUITE_DIR_DEFAULT}" CACHE STRING
 
 IF(NOT TESTSUITE_DIR STREQUAL "TESTSUITE_DIR_NOT_FOUND")
   IF(EXISTS ${TESTSUITE_DIR}/TESTSUIT)
-    # In order to perform tests we need the CONVERTER and HDF5!
+    # In order to perform tests we need the CFSTOOL and HDF5!
     SET(CFSTOOL ON CACHE BOOL
       "Build CFS++ converter tool (cfstool)." FORCE)
     
     SET(USE_HDF5 ON CACHE INTERNAL
       "Use HDF5 for simulation in/output." FORCE)
     
-    SUBDIRS(${TESTSUITE_DIR})
+    ADD_SUBDIRECTORY(${TESTSUITE_DIR})
   ELSE(EXISTS ${TESTSUITE_DIR}/TESTSUIT)
     MESSAGE("Testsuite directory '${TESTSUITE_DIR}' does not contain TESTSUIT. "
       "Please specify a proper location!")
@@ -308,11 +299,6 @@ INCLUDE("cmake_modules/FindFortranLibs.cmake")
 # Determine on what UNIX/Linux/Windows distribution we are building on
 #-----------------------------------------------------------------------------
 INCLUDE("cmake_modules/distro.cmake")
-
-#-----------------------------------------------------------------------------
-# Include some utility macros (for building ext. libs, etc...) 
-#-----------------------------------------------------------------------------
-INCLUDE("cmake_modules/CFS_macros.cmake")
 
 #-----------------------------------------------------------------------------
 # Configure Dart testing support.  This should be done before any
@@ -386,10 +372,7 @@ ENDIF(NOT ${MYXMLSCHEMA} STREQUAL "")
 #-----------------------------------------------------------------------------
 # Set date of configure run. TODO: make platform independent!!!
 #-----------------------------------------------------------------------------
-EXEC_PROGRAM("date"
-  ARGS +%D
-  OUTPUT_VARIABLE CFS_CONF_DATE
-  RETURN_VALUE RETVAL)
+TODAY(CFS_CONF_DATE)
 
 #-----------------------------------------------------------------------------
 # Determine URL of subversion repository
@@ -471,41 +454,41 @@ LINK_DIRECTORIES(${CFSDEPS_LIBRARY_DIR} ${LIBRARY_OUTPUT_PATH})
 # cause another cmake executable to run.  The same process will
 # walk through the project's entire directory structure.
 #-----------------------------------------------------------------------------
-SUBDIRS(source/OLAS/algsys)
-SUBDIRS(source/OLAS/graph)
-SUBDIRS(source/OLAS/precond)
-SUBDIRS(source/OLAS/solver)
-SUBDIRS(source/OLAS/utils)
+ADD_SUBDIRECTORY(source/OLAS/algsys)
+ADD_SUBDIRECTORY(source/OLAS/graph)
+ADD_SUBDIRECTORY(source/OLAS/precond)
+ADD_SUBDIRECTORY(source/OLAS/solver)
+ADD_SUBDIRECTORY(source/OLAS/utils)
 
 IF(USE_ARPACK)
-  SUBDIRS(source/OLAS/external/arpack)
+  ADD_SUBDIRECTORY(source/OLAS/external/arpack)
 ENDIF(USE_ARPACK)
 
 IF(USE_ILUPACK)
-  SUBDIRS(source/OLAS/external/ilupack)
+  ADD_SUBDIRECTORY(source/OLAS/external/ilupack)
 ENDIF(USE_ILUPACK)
 
 IF(USE_LAPACK)
-  SUBDIRS(source/OLAS/external/lapack)
+  ADD_SUBDIRECTORY(source/OLAS/external/lapack)
 ENDIF(USE_LAPACK)
 
 IF(USE_PARDISO)
-  SUBDIRS(source/OLAS/external/pardiso)
+  ADD_SUBDIRECTORY(source/OLAS/external/pardiso)
 ENDIF(USE_PARDISO)
 
 IF(USE_CHOLMOD)
-  SUBDIRS(source/OLAS/external/cholmod)
+  ADD_SUBDIRECTORY(source/OLAS/external/cholmod)
 ENDIF(USE_CHOLMOD)
 
-SUBDIRS(source/CoupledPDE)
-SUBDIRS(source/DataInOut)
-SUBDIRS(source/DataInOut/DefineFiles)
-SUBDIRS(source/DataInOut/Logging)
-SUBDIRS(source/DataInOut/ParamHandling)
+ADD_SUBDIRECTORY(source/CoupledPDE)
+ADD_SUBDIRECTORY(source/DataInOut)
+ADD_SUBDIRECTORY(source/DataInOut/DefineFiles)
+ADD_SUBDIRECTORY(source/DataInOut/Logging)
+ADD_SUBDIRECTORY(source/DataInOut/ParamHandling)
 
 IF(USE_MESH)
-  SUBDIRS(source/DataInOut/SimInOut/AnsysFile)
-  SUBDIRS(source/DataInOut/SimInOut/internalMesh)
+  ADD_SUBDIRECTORY(source/DataInOut/SimInOut/AnsysFile)
+  ADD_SUBDIRECTORY(source/DataInOut/SimInOut/internalMesh)
 ENDIF(USE_MESH)
 
 IF(USE_GMV)
@@ -515,74 +498,73 @@ IF(USE_GMV)
   SET(USE_GMV_OUTPUT ON 
     CACHE INTERNAL "Use GMV files as output for simulation.")
 
-  SUBDIRS(source/DataInOut/SimInOut/gmv)
+  ADD_SUBDIRECTORY(source/DataInOut/SimInOut/gmv)
 ENDIF(USE_GMV)
 
 IF(USE_GMSH)
-  SUBDIRS(source/DataInOut/SimInOut/gmsh)
+  ADD_SUBDIRECTORY(source/DataInOut/SimInOut/gmsh)
 ENDIF(USE_GMSH)
 
 IF(USE_HDF5)
-  SUBDIRS(source/DataInOut/SimInOut/hdf5)
-  SUBDIRS(source/DataInOut/SimInOut/xdmf)
+  ADD_SUBDIRECTORY(source/DataInOut/SimInOut/hdf5)
+  ADD_SUBDIRECTORY(source/DataInOut/SimInOut/xdmf)
 ENDIF(USE_HDF5)
 
 IF(USE_GIDPOST)
-  SUBDIRS(source/DataInOut/SimInOut/GiD)
+  ADD_SUBDIRECTORY(source/DataInOut/SimInOut/GiD)
 ENDIF(USE_GIDPOST)
 
 IF(USE_UNV)
-  SUBDIRS(source/DataInOut/SimInOut/Unverg)
+  ADD_SUBDIRECTORY(source/DataInOut/SimInOut/Unverg)
 ENDIF(USE_UNV)
 
 IF(USE_ANSYSRST)
-  SUBDIRS(source/DataInOut/SimInOut/AnsysRST)
+  ADD_SUBDIRECTORY(source/DataInOut/SimInOut/AnsysRST)
 ENDIF(USE_ANSYSRST)
 
-SUBDIRS(source/DataInOut/SimInOut/TextOutput)
-SUBDIRS(source/DataInOut/SimInOut/InfoResultOutput)
-SUBDIRS(source/DataInOut/SimInOut/Streaming)
+ADD_SUBDIRECTORY(source/DataInOut/SimInOut/TextOutput)
+ADD_SUBDIRECTORY(source/DataInOut/SimInOut/InfoResultOutput)
+ADD_SUBDIRECTORY(source/DataInOut/SimInOut/Streaming)
 
-SUBDIRS(source/Domain)
-SUBDIRS(source/Domain/CoefFunction)
-SUBDIRS(source/Domain/CoordinateSystems)
-SUBDIRS(source/Domain/ElemMapping)
-SUBDIRS(source/Domain/Mesh)
-SUBDIRS(source/Domain/Results)
+ADD_SUBDIRECTORY(source/Domain)
+ADD_SUBDIRECTORY(source/Domain/CoefFunction)
+ADD_SUBDIRECTORY(source/Domain/CoordinateSystems)
+ADD_SUBDIRECTORY(source/Domain/ElemMapping)
+ADD_SUBDIRECTORY(source/Domain/Mesh)
+ADD_SUBDIRECTORY(source/Domain/Results)
 
-SUBDIRS(source/Driver)
-SUBDIRS(source/Driver/TimeSchemes)
+ADD_SUBDIRECTORY(source/Driver)
+ADD_SUBDIRECTORY(source/Driver/TimeSchemes)
 
-SUBDIRS(source/FeBasis)
+ADD_SUBDIRECTORY(source/FeBasis)
 
-SUBDIRS(source/Forms)
-SUBDIRS(source/Forms/LinForms)
+ADD_SUBDIRECTORY(source/Forms)
 #here we have to discussed
 #as the forms are almost completely templates
 #we have just headers right now. but perhaps this will change...
-#SUBDIRS(source/Forms/Operators)
-#SUBDIRS(source/Forms/LinForms)
-#SUBDIRS(source/Forms/BiLinForms)
+#ADD_SUBDIRECTORY(source/Forms/Operators)
+ADD_SUBDIRECTORY(source/Forms/LinForms)
+# ADD_SUBDIRECTORY(source/Forms/BiLinForms)
 
-SUBDIRS(source/General)
-SUBDIRS(source/Materials)
-SUBDIRS(source/MatVec)
-SUBDIRS(source/ODESolve)
-SUBDIRS(source/PDE)
-SUBDIRS(source/Utils)
-SUBDIRS(source/Utils/mathParser)
-SUBDIRS(source/Utils/EvalIntegrals)
-#SUBDIRS(source/Optimization/Optimizer)
-#SUBDIRS(source/Optimization/Design)
-#SUBDIRS(source/Optimization)
-SUBDIRS(source/main)
+ADD_SUBDIRECTORY(source/General)
+ADD_SUBDIRECTORY(source/Materials)
+ADD_SUBDIRECTORY(source/MatVec)
+ADD_SUBDIRECTORY(source/ODESolve)
+ADD_SUBDIRECTORY(source/PDE)
+ADD_SUBDIRECTORY(source/Utils)
+ADD_SUBDIRECTORY(source/Utils/mathParser)
+ADD_SUBDIRECTORY(source/Utils/EvalIntegrals)
+#ADD_SUBDIRECTORY(source/Optimization/Optimizer)
+#ADD_SUBDIRECTORY(source/Optimization/Design)
+#ADD_SUBDIRECTORY(source/Optimization)
+ADD_SUBDIRECTORY(source/main)
 
 IF(CFSTOOL)
-  SUBDIRS(source/cfstool)
+  ADD_SUBDIRECTORY(source/cfstool)
 ENDIF(CFSTOOL)
 
 IF(CPLREADER)
-  SUBDIRS(source/cplreader)
+  ADD_SUBDIRECTORY(source/cplreader)
 ENDIF(CPLREADER)
 
 #-----------------------------------------------------------------------------
@@ -593,16 +575,16 @@ INCLUDE("cmake_modules/configure_def_headers.cmake")
 #-----------------------------------------------------------------------------
 # Add targets for building documentation (see 'make help')
 #-----------------------------------------------------------------------------
-SUBDIRS(share/doc/developer)
-SUBDIRS(share/doc/user)
+ADD_SUBDIRECTORY(share/doc/developer)
+ADD_SUBDIRECTORY(share/doc/user)
 
 #-----------------------------------------------------------------------------
 # Add targets for scripts
 #-----------------------------------------------------------------------------
-SUBDIRS(share/scripts)
+ADD_SUBDIRECTORY(share/scripts)
 
 #-----------------------------------------------------------------------------
 # Add targets for XML schemata and XSL style sheets
 #-----------------------------------------------------------------------------
-SUBDIRS(share/xml)
-SUBDIRS(share/xsl)
+ADD_SUBDIRECTORY(share/xml)
+ADD_SUBDIRECTORY(share/xsl)

@@ -96,7 +96,7 @@ private:
                             UInt order, UInt numPoints, Double* data );
     
     //! Define integrations points / weights for triangular elements
-    void DefineTriagPoints();
+    void DefineTriaPoints();
     
     //! Calculate integration points for triangles with Duffy transformation
     void CalcIntTria( IntegMethod, UInt order,StdVector<LocPoint>& points,
@@ -104,8 +104,13 @@ private:
     
    //! Define integration points for wedge
    void DefineWedgePoints();
-    
-    
+
+   //! Define integration points for tetrahedron
+   void DefineTetPoints();
+
+   //! Define integration points for pyramid
+   void DefinePyraPoints();
+
     //! Map with integration points for each element type According to the Template Paramter Integration Scheme
     std::map<IntegMethod, std::map< UInt, IntegrationPoints > > intPoints_;
     

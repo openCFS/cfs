@@ -205,6 +205,7 @@ share/doc/developer/Protokolle/Treffen_25_09_2007.pdf -text svneol=unset#applica
 share/doc/developer/Protokolle/Treffen_27_07_2005.pdf -text svneol=unset#application/pdf
 share/doc/developer/develManual/Int.bib -text
 share/doc/developer/develManual/TimeScheme.pdf -text
+share/doc/developer/develManual/arydshln.sty -text
 share/doc/developer/develManual/attachfile.sty svneol=native#text/plain
 share/doc/developer/develManual/concepts.tex -text
 share/doc/developer/develManual/debugging.tex -text
@@ -812,7 +813,6 @@ source/DataInOut/SimInOut/hdf5/SimOutputHDF5.hh svneol=native#text/x-c%2B%2Bhdr
 source/DataInOut/SimInOut/hdf5/h5tool.cc svneol=native#text/plain
 source/DataInOut/SimInOut/hdf5/hdf5io.cc svneol=native#text/plain
 source/DataInOut/SimInOut/hdf5/hdf5io.hh svneol=native#text/plain
-source/DataInOut/SimInOut/hdf5/serializeTest.cc svneol=native#text/plain
 source/DataInOut/SimInOut/internalMesh/CMakeLists.txt -text
 source/DataInOut/SimInOut/internalMesh/InternalMesh.cc -text
 source/DataInOut/SimInOut/internalMesh/InternalMesh.hh -text
@@ -1020,6 +1020,8 @@ source/Materials/ElectroMagneticMaterial.cc -text svneol=unset#text/x-c%2B%2Bsrc
 source/Materials/ElectroMagneticMaterial.hh -text svneol=unset#text/x-c%2B%2Bhdr
 source/Materials/ElectroStaticMaterial.cc -text svneol=unset#text/x-c%2B%2Bsrc
 source/Materials/ElectroStaticMaterial.hh -text svneol=unset#text/x-c%2B%2Bhdr
+source/Materials/FlowMaterial.cc -text
+source/Materials/FlowMaterial.hh -text
 source/Materials/HeatMaterial.cc -text
 source/Materials/HeatMaterial.hh -text
 source/Materials/MechanicMaterial.cc -text
@@ -1200,6 +1202,8 @@ source/PDE/BasePDE.hh svneol=native#text/x-c%2B%2Bhdr
 source/PDE/CMakeLists.txt svneol=native#text/plain
 source/PDE/ElecPDE.cc svneol=native#text/x-c%2B%2Bsrc
 source/PDE/ElecPDE.hh svneol=native#text/x-c%2B%2Bhdr
+source/PDE/FluidMechPerturbedPDE.cc -text
+source/PDE/FluidMechPerturbedPDE.hh -text
 source/PDE/HeatPDE.cc -text
 source/PDE/HeatPDE.hh -text
 source/PDE/MagEdgePDE.cc -text

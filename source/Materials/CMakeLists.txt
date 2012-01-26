@@ -5,6 +5,7 @@ SET(MATERIALS_SRCS
   ElectroStaticMaterial.cc 
   HeatMaterial.cc
   MechanicMaterial.cc
+  FlowMaterial.cc 
   Models/Hysteresis.cc
   Models/Jiles.cc
   Models/PiezoMicroModelBK.cc

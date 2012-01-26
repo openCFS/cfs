@@ -120,11 +120,276 @@ protected:
 
 
 // ========================================================================
+// Common base classes for elements of 1st and 2nd order
+// ========================================================================
+
+//! Lagrangian line element
+class FeH1LagrangeLine : public FeH1LagrangeExpl {
+
+public:
+
+  //! Constructor 
+  FeH1LagrangeLine() {};
+
+  //! Destructor
+  virtual ~FeH1LagrangeLine() {};
+
+protected:
+
+  //! @copydoc FeH1::CalcShFnc
+  void CalcShFnc( Vector<Double>& shape,
+                  const Vector<Double>& point,
+                  const Elem* ptElem,
+                  UInt comp = 1 ) = 0;
+
+  //! @copydoc FeH1::CalcLocDerivShFnc
+  void CalcLocDerivShFnc( Matrix<Double> & deriv, 
+                          const Vector<Double>& point,
+                          const Elem* ptElem,
+                          UInt comp = 1 ) = 0;
+  
+  //! @copydoc FeH1LagrangeExpl::CoordIsInsideElem
+  bool CoordIsInsideElem( const Vector<Double>& point,
+                          Double tolerance );
+  
+  //! @copydoc FeH1LagrangeExpl::GetLocalIntPoints4Surface
+  void GetLocalIntPoints4Surface(const StdVector<UInt> & surfConnect,
+                                 const StdVector<UInt> & volConnect,
+                                 const LocPoint & surfIntPoint,
+                                 LocPoint & volIntPoint,
+                                 Vector<Double>& locNormal );
+};
+
+//! Lagrangian triangular element
+class FeH1LagrangeTria : public FeH1LagrangeExpl {
+
+public:
+
+  //! Constructor
+  FeH1LagrangeTria() {};
+
+  //! Destructor
+  virtual ~FeH1LagrangeTria() {};
+
+protected:
+
+  //! @copydoc FeH1::CalcShFnc
+  void CalcShFnc( Vector<Double>& shape,
+                  const Vector<Double>& point,
+                  const Elem* ptElem,
+                  UInt comp = 1 ) = 0;
+
+  //! @copydoc FeH1::CalcLocDerivShFnc
+  void CalcLocDerivShFnc( Matrix<Double> & deriv, 
+                          const Vector<Double>& point,
+                          const Elem* ptElem,
+                          UInt comp = 1 ) = 0;
+  
+  //! @copydoc FeH1LagrangeExpl::CoordIsInsideElem
+  bool CoordIsInsideElem( const Vector<Double>& point,
+                          Double tolerance );
+  
+  //! @copydoc FeH1LagrangeExpl::GetLocalIntPoints4Surface
+  void GetLocalIntPoints4Surface(const StdVector<UInt> & surfConnect,
+                                 const StdVector<UInt> & volConnect,
+                                 const LocPoint & surfIntPoint,
+                                 LocPoint & volIntPoint,
+                                 Vector<Double>& locNormal );
+};
+
+//! Lagrangian quadrilateral element
+class FeH1LagrangeQuad : public FeH1LagrangeExpl {
+
+public:
+
+  //! Constructor
+  FeH1LagrangeQuad() {};
+
+  //! Destructor
+  virtual ~FeH1LagrangeQuad() {};
+
+protected:
+
+  //! @copydoc FeH1::CalcShFnc
+  void CalcShFnc( Vector<Double>& shape,
+                  const Vector<Double>& point,
+                  const Elem* ptElem,
+                  UInt comp = 1 ) = 0;
+
+  //! @copydoc FeH1::CalcLocDerivShFnc
+  void CalcLocDerivShFnc( Matrix<Double> & deriv, 
+                          const Vector<Double>& point,
+                          const Elem* ptElem,
+                          UInt comp = 1 ) = 0;
+  
+  //! @copydoc FeH1LagrangeExpl::CoordIsInsideElem
+  bool CoordIsInsideElem( const Vector<Double>& point,
+                          Double tolerance );
+  
+  //! @copydoc FeH1LagrangeExpl::GetLocalIntPoints4Surface
+  void GetLocalIntPoints4Surface(const StdVector<UInt> & surfConnect,
+                                 const StdVector<UInt> & volConnect,
+                                 const LocPoint & surfIntPoint,
+                                 LocPoint & volIntPoint,
+                                 Vector<Double>& locNormal );
+};
+
+//! Lagrangian hexahedral element
+class FeH1LagrangeHex : public FeH1LagrangeExpl {
+
+public:
+
+  //! Constructor  
+  FeH1LagrangeHex() {};
+
+  //! Destructor
+  virtual  ~FeH1LagrangeHex() {};
+
+protected:
+
+  //! @copydoc FeH1::CalcShFnc
+  void CalcShFnc( Vector<Double>& shape,
+                  const Vector<Double>& point,
+                  const Elem* ptElem,
+                  UInt comp = 1 ) = 0;
+
+  //! @copydoc FeH1::CalcLocDerivShFnc
+  void CalcLocDerivShFnc( Matrix<Double> & deriv, 
+                          const Vector<Double>& point,
+                          const Elem* ptElem,
+                          UInt comp = 1 ) = 0;
+  
+  //! @copydoc FeH1LagrangeExpl::CoordIsInsideElem
+  bool CoordIsInsideElem( const Vector<Double>& point,
+                          Double tolerance );
+  
+  //! @copydoc FeH1LagrangeExpl::GetLocalIntPoints4Surface
+  void GetLocalIntPoints4Surface(const StdVector<UInt> & surfConnect,
+                                 const StdVector<UInt> & volConnect,
+                                 const LocPoint & surfIntPoint,
+                                 LocPoint & volIntPoint,
+                                 Vector<Double>& locNormal );
+
+};
+
+
+//! Lagrangian wedge element
+class FeH1LagrangeWedge : public FeH1LagrangeExpl {
+
+public:
+
+  //! Constructor  
+  FeH1LagrangeWedge() {};
+
+  //! Destructor
+  virtual  ~FeH1LagrangeWedge() {};
+
+protected:
+
+  //! @copydoc FeH1::CalcShFnc
+  void CalcShFnc( Vector<Double>& shape,
+                  const Vector<Double>& point,
+                  const Elem* ptElem,
+                  UInt comp = 1 ) = 0;
+
+  //! @copydoc FeH1::CalcLocDerivShFnc
+  void CalcLocDerivShFnc( Matrix<Double> & deriv, 
+                          const Vector<Double>& point,
+                          const Elem* ptElem,
+                          UInt comp = 1 ) = 0;
+
+  //! @copydoc FeH1LagrangeExpl::CoordIsInsideElem
+  bool CoordIsInsideElem( const Vector<Double>& point,
+                          Double tolerance );
+
+  //! @copydoc FeH1LagrangeExpl::GetLocalIntPoints4Surface
+  void GetLocalIntPoints4Surface(const StdVector<UInt> & surfConnect,
+                                 const StdVector<UInt> & volConnect,
+                                 const LocPoint & surfIntPoint,
+                                 LocPoint & volIntPoint,
+                                 Vector<Double>& locNormal );
+};
+
+//! Lagrangian tetrahedron element
+class FeH1LagrangeTet : public FeH1LagrangeExpl {
+
+public:
+
+  //! Constructor
+  FeH1LagrangeTet() {};
+
+  //! Destructor
+  virtual  ~FeH1LagrangeTet() {};
+
+protected:
+
+  //! @copydoc FeH1::CalcShFnc
+  void CalcShFnc( Vector<Double>& shape,
+                  const Vector<Double>& point,
+                  const Elem* ptElem,
+                  UInt comp = 1 ) = 0;
+
+  //! @copydoc FeH1::CalcLocDerivShFnc
+  void CalcLocDerivShFnc( Matrix<Double> & deriv,
+                          const Vector<Double>& point,
+                          const Elem* ptElem,
+                          UInt comp = 1 ) = 0;
+
+  //! @copydoc FeH1LagrangeExpl::CoordIsInsideElem
+  bool CoordIsInsideElem( const Vector<Double>& point,
+                          Double tolerance );
+
+  //! @copydoc FeH1LagrangeExpl::GetLocalIntPoints4Surface
+  void GetLocalIntPoints4Surface(const StdVector<UInt> & surfConnect,
+                                 const StdVector<UInt> & volConnect,
+                                 const LocPoint & surfIntPoint,
+                                 LocPoint & volIntPoint,
+                                 Vector<Double>& locNormal );
+};
+
+//! Lagrangian pyramid element
+class FeH1LagrangePyra : public FeH1LagrangeExpl {
+
+public:
+
+  //! Constructor
+  FeH1LagrangePyra() {};
+
+  //! Destructor
+  virtual  ~FeH1LagrangePyra() {};
+
+protected:
+
+  //! @copydoc FeH1::CalcShFnc
+  void CalcShFnc( Vector<Double>& shape,
+                  const Vector<Double>& point,
+                  const Elem* ptElem,
+                  UInt comp = 1 ) = 0;
+
+  //! @copydoc FeH1::CalcLocDerivShFnc
+  void CalcLocDerivShFnc( Matrix<Double> & deriv,
+                          const Vector<Double>& point,
+                          const Elem* ptElem,
+                          UInt comp = 1 ) = 0;
+
+  //! @copydoc FeH1LagrangeExpl::CoordIsInsideElem
+  bool CoordIsInsideElem( const Vector<Double>& point,
+                          Double tolerance );
+
+  //! @copydoc FeH1LagrangeExpl::GetLocalIntPoints4Surface
+  void GetLocalIntPoints4Surface(const StdVector<UInt> & surfConnect,
+                                 const StdVector<UInt> & volConnect,
+                                 const LocPoint & surfIntPoint,
+                                 LocPoint & volIntPoint,
+                                 Vector<Double>& locNormal );
+};
+
+// ========================================================================
 // Lagrange H1 elements of 1st order
 // ========================================================================
 
 //! Lagrangian line element of 1st order (ET_LINE2)
-class FeH1LagrangeLine1 : public FeH1LagrangeExpl {
+class FeH1LagrangeLine1 : public FeH1LagrangeLine {
 
 public:
 
@@ -147,21 +412,10 @@ protected:
                           const Vector<Double>& point,
                           const Elem* ptElem,
                           UInt comp = 1 );
-  
-  //! @copydoc FeH1LagrangeExpl::CoordIsInsideElem
-  bool CoordIsInsideElem( const Vector<Double>& point,
-                          Double tolerance );
-  
-  //! @copydoc FeH1LagrangeExpl::GetLocalIntPoints4Surface
-  void GetLocalIntPoints4Surface(const StdVector<UInt> & surfConnect,
-                                 const StdVector<UInt> & volConnect,
-                                 const LocPoint & surfIntPoint,
-                                 LocPoint & volIntPoint,
-                                 Vector<Double>& locNormal );
 };
 
 //! Lagrangian triangular element of 1st order (ET_TRIA3)
-class FeH1LagrangeTria1 : public FeH1LagrangeExpl {
+class FeH1LagrangeTria1 : public FeH1LagrangeTria {
 
 public:
 
@@ -184,21 +438,10 @@ protected:
                           const Vector<Double>& point,
                           const Elem* ptElem,
                           UInt comp = 1 );
-  
-  //! @copydoc FeH1LagrangeExpl::CoordIsInsideElem
-  bool CoordIsInsideElem( const Vector<Double>& point,
-                          Double tolerance );
-  
-  //! @copydoc FeH1LagrangeExpl::GetLocalIntPoints4Surface
-  void GetLocalIntPoints4Surface(const StdVector<UInt> & surfConnect,
-                                 const StdVector<UInt> & volConnect,
-                                 const LocPoint & surfIntPoint,
-                                 LocPoint & volIntPoint,
-                                 Vector<Double>& locNormal );
 };
 
 //! Lagrangian quadrilateral element of 1st order (ET_QUAD4)
-class FeH1LagrangeQuad1 : public FeH1LagrangeExpl {
+class FeH1LagrangeQuad1 : public FeH1LagrangeQuad {
 
 public:
 
@@ -221,21 +464,10 @@ protected:
                           const Vector<Double>& point,
                           const Elem* ptElem,
                           UInt comp = 1 );
-  
-  //! @copydoc FeH1LagrangeExpl::CoordIsInsideElem
-  bool CoordIsInsideElem( const Vector<Double>& point,
-                          Double tolerance );
-  
-  //! @copydoc FeH1LagrangeExpl::GetLocalIntPoints4Surface
-  void GetLocalIntPoints4Surface(const StdVector<UInt> & surfConnect,
-                                 const StdVector<UInt> & volConnect,
-                                 const LocPoint & surfIntPoint,
-                                 LocPoint & volIntPoint,
-                                 Vector<Double>& locNormal );
 };
 
-//! Lagrangian hexahedral element of 1st order (ET_HEX8)
-class FeH1LagrangeHex1 : public FeH1LagrangeExpl {
+//! Lagrangian hexahedral element of 1st order (ET_HEXA8)
+class FeH1LagrangeHex1 : public FeH1LagrangeHex {
 
 public:
 
@@ -258,23 +490,11 @@ protected:
                           const Vector<Double>& point,
                           const Elem* ptElem,
                           UInt comp = 1 );
-  
-  //! @copydoc FeH1LagrangeExpl::CoordIsInsideElem
-  bool CoordIsInsideElem( const Vector<Double>& point,
-                          Double tolerance );
-  
-  //! @copydoc FeH1LagrangeExpl::GetLocalIntPoints4Surface
-  void GetLocalIntPoints4Surface(const StdVector<UInt> & surfConnect,
-                                 const StdVector<UInt> & volConnect,
-                                 const LocPoint & surfIntPoint,
-                                 LocPoint & volIntPoint,
-                                 Vector<Double>& locNormal );
-
 };
 
 
 //! Lagrangian wedge element of 1st order (ET_WEDGE6)
-class FeH1LagrangeWedge1 : public FeH1LagrangeExpl {
+class FeH1LagrangeWedge1 : public FeH1LagrangeWedge {
 
 public:
 
@@ -297,24 +517,65 @@ protected:
                           const Vector<Double>& point,
                           const Elem* ptElem,
                           UInt comp = 1 );
+};
 
-  //! @copydoc FeH1LagrangeExpl::CoordIsInsideElem
-  bool CoordIsInsideElem( const Vector<Double>& point,
-                          Double tolerance );
+//! Lagrangian tetrahedron element of 1st order (ET_TET4)
+class FeH1LagrangeTet1 : public FeH1LagrangeTet {
 
-  //! @copydoc FeH1LagrangeExpl::GetLocalIntPoints4Surface
-  void GetLocalIntPoints4Surface(const StdVector<UInt> & surfConnect,
-                                 const StdVector<UInt> & volConnect,
-                                 const LocPoint & surfIntPoint,
-                                 LocPoint & volIntPoint,
-                                 Vector<Double>& locNormal );
+public:
+
+  //! Constructor
+  FeH1LagrangeTet1();
+
+  //! Destructor
+  virtual  ~FeH1LagrangeTet1();
+
+protected:
+
+  //! @copydoc FeH1::CalcShFnc
+  void CalcShFnc( Vector<Double>& shape,
+                  const Vector<Double>& point,
+                  const Elem* ptElem,
+                  UInt comp = 1 );
+
+  //! @copydoc FeH1::CalcLocDerivShFnc
+  void CalcLocDerivShFnc( Matrix<Double> & deriv,
+                          const Vector<Double>& point,
+                          const Elem* ptElem,
+                          UInt comp = 1 );
+};
+
+//! Lagrangian pyramid element of 1st order (ET_PYRA5)
+class FeH1LagrangePyra1 : public FeH1LagrangePyra {
+
+public:
+
+  //! Constructor
+  FeH1LagrangePyra1();
+
+  //! Destructor
+  virtual  ~FeH1LagrangePyra1();
+
+protected:
+
+  //! @copydoc FeH1::CalcShFnc
+  void CalcShFnc( Vector<Double>& shape,
+                  const Vector<Double>& point,
+                  const Elem* ptElem,
+                  UInt comp = 1 );
+
+  //! @copydoc FeH1::CalcLocDerivShFnc
+  void CalcLocDerivShFnc( Matrix<Double> & deriv,
+                          const Vector<Double>& point,
+                          const Elem* ptElem,
+                          UInt comp = 1 );
 };
 
 // ========================================================================
 // Lagrange H1 elements of 2nd order
 // ========================================================================
 //! Lagrangian line element of 2nd order (ET_LINE3)
-class FeH1LagrangeLine2 : public FeH1LagrangeExpl {
+class FeH1LagrangeLine2 : public FeH1LagrangeLine {
 
 public:
 
@@ -337,21 +598,36 @@ protected:
                           const Vector<Double>& point,
                           const Elem* ptElem,
                           UInt comp = 1 );
-  
-  //! @copydoc FeH1LagrangeExpl::CoordIsInsideElem
-  bool CoordIsInsideElem( const Vector<Double>& point,
-                          Double tolerance );
+};
 
-  //! @copydoc FeH1LagrangeExpl::GetLocalIntPoints4Surface
-  void GetLocalIntPoints4Surface(const StdVector<UInt> & surfConnect,
-                                 const StdVector<UInt> & volConnect,
-                                 const LocPoint & surfIntPoint,
-                                 LocPoint & volIntPoint,
-                                 Vector<Double>& locNormal );
+//! Lagrangian triangle element of 2nd order (ET_TRIA6)
+class FeH1LagrangeTria2 : public FeH1LagrangeTria {
+
+public:
+
+  //! Constructor
+  FeH1LagrangeTria2();
+
+  //! Destructor
+  virtual ~FeH1LagrangeTria2();
+
+protected:
+
+  //! @copydoc FeH1::CalcShFnc
+  void CalcShFnc( Vector<Double>& shape,
+                  const Vector<Double>& point,
+                  const Elem* ptElem,
+                  UInt comp = 1 );
+
+  //! @copydoc FeH1::CalcLocDerivShFnc
+  void CalcLocDerivShFnc( Matrix<Double> & deriv,
+                          const Vector<Double>& point,
+                          const Elem* ptElem,
+                          UInt comp = 1 );
 };
 
 //! Lagrangian quadrilateral element of 1st order (ET_QUAD8)
-class FeH1LagrangeQuad2 : public FeH1LagrangeExpl {
+class FeH1LagrangeQuad2 : public FeH1LagrangeQuad {
 
 public:
 
@@ -374,22 +650,36 @@ protected:
                           const Vector<Double>& point,
                           const Elem* ptElem,
                           UInt comp = 1 );
-  
-  //! @copydoc FeH1LagrangeExpl::CoordIsInsideElem
-  bool CoordIsInsideElem( const Vector<Double>& point,
-                          Double tolerance );
-  
-  //! @copydoc FeH1LagrangeExpl::GetLocalIntPoints4Surface
-  void GetLocalIntPoints4Surface(const StdVector<UInt> & surfConnect,
-                                 const StdVector<UInt> & volConnect,
-                                 const LocPoint & surfIntPoint,
-                                 LocPoint & volIntPoint,
-                                 Vector<Double>& locNormal );
+};
 
+//! Lagrangian quadrilateral tensor product element of 2nd order (ET_QUAD9)
+class FeH1LagrangeQuad9 : public FeH1LagrangeQuad {
+
+public:
+
+  //! Constructor
+  FeH1LagrangeQuad9();
+
+  //! Destructor
+  virtual ~FeH1LagrangeQuad9();
+
+protected:
+
+  //! @copydoc FeH1::CalcShFnc
+  void CalcShFnc( Vector<Double>& shape,
+                  const Vector<Double>& point,
+                  const Elem* ptElem,
+                  UInt comp = 1 );
+
+  //! @copydoc FeH1::CalcLocDerivShFnc
+  void CalcLocDerivShFnc( Matrix<Double> & deriv,
+                          const Vector<Double>& point,
+                          const Elem* ptElem,
+                          UInt comp = 1 );
 };
 
 //! Lagrangian hexahedral element of 2nd order (ET_HEX20)
-class FeH1LagrangeHex2 : public FeH1LagrangeExpl {
+class FeH1LagrangeHex2 : public FeH1LagrangeHex {
 
 public:
 
@@ -412,22 +702,10 @@ protected:
                           const Vector<Double>& point,
                           const Elem* ptElem,
                           UInt comp = 1 );
-
-  //! @copydoc FeH1LagrangeExpl::CoordIsInsideElem
-  bool CoordIsInsideElem( const Vector<Double>& point,
-                          Double tolerance );
-
-  //! @copydoc FeH1LagrangeExpl::GetLocalIntPoints4Surface
-  void GetLocalIntPoints4Surface(const StdVector<UInt> & surfConnect,
-                                 const StdVector<UInt> & volConnect,
-                                 const LocPoint & surfIntPoint,
-                                 LocPoint & volIntPoint,
-                                 Vector<Double>& locNormal );
-
 };
 
-//! Lagrangian wedge element of 1st order (ET_WEDGE15)
-class FeH1LagrangeWedge2 : public FeH1LagrangeExpl {
+//! Lagrangian wedge element of 2nd order (ET_WEDGE15)
+class FeH1LagrangeWedge2 : public FeH1LagrangeWedge {
 
 public:
 
@@ -450,19 +728,59 @@ protected:
                           const Vector<Double>& point,
                           const Elem* ptElem,
                           UInt comp = 1 );
-
-  //! @copydoc FeH1LagrangeExpl::CoordIsInsideElem
-  bool CoordIsInsideElem( const Vector<Double>& point,
-                          Double tolerance );
-
-  //! @copydoc FeH1LagrangeExpl::GetLocalIntPoints4Surface
-  void GetLocalIntPoints4Surface(const StdVector<UInt> & surfConnect,
-                                 const StdVector<UInt> & volConnect,
-                                 const LocPoint & surfIntPoint,
-                                 LocPoint & volIntPoint,
-                                 Vector<Double>& locNormal );
 };
 
+//! Lagrangian tetrahedron element of 2nd order (ET_TET10)
+class FeH1LagrangeTet2 : public FeH1LagrangeTet {
+
+public:
+
+  //! Constructor
+  FeH1LagrangeTet2();
+
+  //! Destructor
+  virtual  ~FeH1LagrangeTet2();
+
+protected:
+
+  //! @copydoc FeH1::CalcShFnc
+  void CalcShFnc( Vector<Double>& shape,
+                  const Vector<Double>& point,
+                  const Elem* ptElem,
+                  UInt comp = 1 );
+
+  //! @copydoc FeH1::CalcLocDerivShFnc
+  void CalcLocDerivShFnc( Matrix<Double> & deriv,
+                          const Vector<Double>& point,
+                          const Elem* ptElem,
+                          UInt comp = 1 );
+};
+
+//! Lagrangian pyramid element of 2nd order (ET_PYRA13)
+class FeH1LagrangePyra2 : public FeH1LagrangePyra {
+
+public:
+
+  //! Constructor
+  FeH1LagrangePyra2();
+
+  //! Destructor
+  virtual  ~FeH1LagrangePyra2();
+
+protected:
+
+  //! @copydoc FeH1::CalcShFnc
+  void CalcShFnc( Vector<Double>& shape,
+                  const Vector<Double>& point,
+                  const Elem* ptElem,
+                  UInt comp = 1 );
+
+  //! @copydoc FeH1::CalcLocDerivShFnc
+  void CalcLocDerivShFnc( Matrix<Double> & deriv,
+                          const Vector<Double>& point,
+                          const Elem* ptElem,
+                          UInt comp = 1 );
+};
 
 
 } // namespace CoupledField

@@ -32,17 +32,3 @@ ENDIF(CFS_CXX_COMPILER_NAME STREQUAL "ICC" AND
 
 TARGET_LINK_LIBRARIES(h5tool ${TARGET_LL})
 
-# Only build the Boost HDF5 serialization test executable with GCC compiler
-# since it is not absolutely necessary anyway and some Intel compilers complain
-# about it.
-IF(FALSE AND CFS_CXX_COMPILER_NAME STREQUAL "GCC")
-  ADD_EXECUTABLE(h5SerializeTest serializeTest.cc)
-
-  TARGET_LINK_LIBRARIES(h5SerializeTest
-    ${BOOST_SERIALIZATION_HDF5_LIB}
-    ${BOOST_SERIALIZATION_LIB}
-    ${HDF5_CPP_LIBRARY}
-    ${HDF5_LIBRARY}
-  )
-ENDIF(FALSE AND CFS_CXX_COMPILER_NAME STREQUAL "GCC")
-

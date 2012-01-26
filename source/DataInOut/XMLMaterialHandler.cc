@@ -13,7 +13,7 @@
 #include "Materials/AcousticMaterial.hh"
 #include "Materials/MechanicMaterial.hh"
 //#include "Materials/piezoMaterial.hh"
-//#include "Materials/flowMaterial.hh"
+#include "Materials/FlowMaterial.hh"
 //#include "Materials/thermoelasticMaterial.hh"
 //#include "Materials/pyroelectricMaterial.hh"
 //#include "Materials/magStrictMaterial.hh"
@@ -93,9 +93,8 @@ namespace CoupledField {
       ReadThermic( material, pn );
     }
     else if ( matClass == FLOW ) {
-      REFACTOR;
-      //material = new FlowMaterial();
-      //ReadFlow( material, pn );
+      material = new FlowMaterial();
+      ReadFlow( material, pn );
     }
     else if ( matClass == PYROELECTRIC ) {
       REFACTOR;

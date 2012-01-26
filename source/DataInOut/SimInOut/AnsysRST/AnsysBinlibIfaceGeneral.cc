@@ -3,7 +3,7 @@
 #include <complex>
 #include <algorithm>
 
-#include <Domain/grid.hh>
+#include "Domain/grid.hh"
 #include "DataInOut/WriteInfo.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "General/environment.hh"
@@ -129,7 +129,7 @@ namespace CoupledField
     // Map internal element types to ANSYS element types.
     elemType2AnsysType_[Elem::LINE2]   = LINE002;
     elemType2AnsysType_[Elem::LINE3]   = LINE003;
-    elemType2AnsysType_[Elem::TRIA3]   = PLANE42;
+    elemType2AnsysType_[Elem::ET_TRIA3]   = PLANE42;
     elemType2AnsysType_[Elem::TRIA6]   = PLANE82;
     elemType2AnsysType_[Elem::QUAD4]   = PLANE42;
     elemType2AnsysType_[Elem::QUAD8]   = PLANE82;
@@ -916,7 +916,7 @@ namespace CoupledField
     
     switch(eType)
     {
-    case Elem::TRIA3:
+    case Elem::ET_TRIA3:
       std::copy(&connect[0], &connect[0]+numElemNodes, &connectANSYS[0]);
       connectANSYS[3] = connect[2];
       break;

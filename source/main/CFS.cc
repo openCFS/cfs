@@ -116,7 +116,7 @@ CFS::CFS(int argc, const char **argv) :
   env->Get("started")->SetValue(start_time_);
 
   char host[256];
-  hostname_ = gethostname( host, 256 ) > 0 ? host : "";
+  hostname_ = gethostname( host, sizeof(host) ) > 0 ? host : "";
 
   if(!hostname_.empty())
     env->Get("host")->SetValue(hostname_);

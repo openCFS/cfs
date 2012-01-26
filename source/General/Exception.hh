@@ -18,7 +18,7 @@ namespace CoupledField {
  #define RETHROW_EXCEPTION(REASON, STR){                               \
     std::ostringstream ostr;                                           \
     ostr << STR;                                                       \
-    Exception ex__( & REASON, __FILE__, __LINE__, ostr.str().c_str()); \
+    Exception ex__( &REASON, __FILE__, __LINE__, ostr.str().c_str()); \
     throw ex__;                                                        \
   }
 

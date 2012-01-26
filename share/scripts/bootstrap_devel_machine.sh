@@ -80,7 +80,8 @@ SetupSuse() {
         cmake perl-base perl-Switch graphviz texlive-latex texlive-tex4ht \
         python-pygments doxygen tcl-devel python-devel git-svn \
         java-1_6_0-openjdk-devel cmake-gui xorg-x11-libXt-devel \
-        diffutils patch zip xorg-x11-libXp tk-devel Mesa-devel 
+        diffutils patch zip xorg-x11-libXp tk-devel Mesa-devel \
+        ncurses-devel
 
 
     if [ "$MAJOR" = "11" ] && [ $MINOR -ge 3 ]; then
@@ -105,7 +106,7 @@ SetupFedora() {
         perl graphviz texlive-latex tetex-tex4ht \
         python-pygments doxygen tcl-devel python-devel git-svn \
         cmake-gui java-1.6.0-openjdk-devel tk-devel \
-        patch diffutils zip libXt-devel libXp || ExitFail
+        patch diffutils zip libXt-devel libXp ncurses-devel || ExitFail
 }
 
 SetupRHEL() {
@@ -161,10 +162,11 @@ SetupRHEL() {
     unzip org.tmatesoft.svn_1.3.5.standalone.zip || ExitFail
 
     yum --enablerepo=centosplus install fuse-sshfs subversion gcc gcc-c++ \
-                perl graphviz tetex-latex tetex-tex4ht automake autoconf \
-                cmake gcc-gfortran java-1.6.0-openjdk-devel tk-devel \
-                python-pygments doxygen tcl-devel python-devel git-svn \
-                patch diffutils zip libXt-devel libXp mesa-libGLU-devel libXmu-devel || ExitFail
+                perl graphviz.$(uname -m) tetex-latex tetex-tex4ht \
+                automake autoconf cmake gcc-gfortran ncurses-devel \
+                java-1.6.0-openjdk-devel tk-devel python-pygments doxygen \
+                tcl-devel python-devel git-svn patch diffutils zip \
+                libXt-devel libXp mesa-libGLU-devel libXmu-devel || ExitFail
            
     if [ "$ARCH" = "X86_64" ]; then
 	LIB="lib64"

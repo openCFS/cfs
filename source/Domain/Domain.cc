@@ -37,8 +37,7 @@
 #include "PDE/MagEdgePDE.hh"
 #include "PDE/MechPDE.hh"
 #include "PDE/AcousticPDE.hh"
-
-
+#include "PDE/FluidMechPerturbedPDE.hh"
 
 // Coupling of single PDEs
 #include "CoupledPDE/DirectCoupledPDE.hh"
@@ -573,10 +572,14 @@ void Domain::CreateSinglePDEs(UInt sequenceStep)
 //
     else if (actPdeName == "heatConduction")
       ptSinglePde_[i] = new HeatPDE(defaultGrid, actPdeNode);
-//
-//    else if (actPdeName == "fluidMech")
-//      ptSinglePde_[i] = new FluidMechPDE(defaultGrid, actPdeNode);
-//
+
+    else if (actPdeName == "fluidMech") {
+      std::string formulation = actPdeNode->Get("formulation")->As<std::string>();
+
+      if (formulation == "perturbed") {
+        ptSinglePde_[i] = new FluidMechPerturbedPDE(defaultGrid, actPdeNode);
+      }
+    }
     else
     {
       EXCEPTION( actPdeName << " - this type of pdes is unknown" );

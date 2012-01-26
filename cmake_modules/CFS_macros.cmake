@@ -1,3 +1,72 @@
+#
+# A big shout out to the cmake gurus @ compiz
+#
+function (colormsg)
+  string (ASCII 27 _escape)
+  set(WHITE "29")
+  set(GRAY "30")
+  set(RED "31")
+  set(GREEN "32")
+  set(YELLOW "33")
+  set(BLUE "34")
+  set(MAG "35")
+  set(CYAN "36")
+
+  foreach (color WHITE GRAY RED GREEN YELLOW BLUE MAG CYAN)
+    set(HI${color} "1\;${${color}}")
+    set(LO${color} "2\;${${color}}")
+    set(_${color}_ "4\;${${color}}")
+    set(_HI${color}_ "1\;4\;${${color}}")
+    set(_LO${color}_ "2\;4\;${${color}}")
+  endforeach()
+
+  execute_process(COMMAND echo "echo $PPID"
+                  COMMAND sh
+                  COMMAND xargs ps -p RESULT_VARIABLE RES OUTPUT_VARIABLE OUT ERROR_VARIABLE ERR)
+#  MESSAGE("RES ${RES}")
+#  MESSAGE("OUT ${OUT}")
+#  MESSAGE("ERR ${ERR}")
+
+  SET(DISABLE_COLOR 0)
+  # Do not display color in ccmake or cmake-gui
+  if(OUT MATCHES "ccmake")
+    SET(DISABLE_COLOR 1)
+  endif()
+  if(OUT MATCHES "cmake-gui")
+    SET(DISABLE_COLOR 1)
+  endif()
+
+  set(str "")
+  set(coloron FALSE)
+  foreach(arg ${ARGV})
+    if (NOT ${${arg}} STREQUAL "")
+      if (CMAKE_COLOR_MAKEFILE AND NOT DISABLE_COLOR)
+        set(str "${str}${_escape}[${${arg}}m")
+        set(coloron TRUE)
+      endif()
+    else()
+      set(str "${str}${arg}")
+      if (coloron AND NOT DISABLE_COLOR)
+        set(str "${str}${_escape}[0m")
+        set(coloron FALSE)
+      endif()
+      set(str "${str} ")
+    endif()
+  endforeach()
+  message(STATUS ${str})
+endfunction()
+
+# colormsg("Colors:"  
+#   WHITE "white" GRAY "gray" GREEN "green" 
+#   RED "red" YELLOW "yellow" BLUE "blue" MAG "mag" CYAN "cyan" 
+#   _WHITE_ "white" _GRAY_ "gray" _GREEN_ "green" 
+#   _RED_ "red" _YELLOW_ "yellow" _BLUE_ "blue" _MAG_ "mag" _CYAN_ "cyan" 
+#   _HIWHITE_ "white" _HIGRAY_ "gray" _HIGREEN_ "green" 
+#   _HIRED_ "red" _HIYELLOW_ "yellow" _HIBLUE_ "blue" _HIMAG_ "mag" _HICYAN_ "cyan" 
+#   HIWHITE "white" HIGRAY "gray" HIGREEN "green" 
+#   HIRED "red" HIYELLOW "yellow" HIBLUE "blue" HIMAG "mag" HICYAN "cyan" 
+#   "right?")
+
 #-------------------------------------------------------------------------------
 # Build external CFSDEPS library
 #-------------------------------------------------------------------------------
@@ -7,8 +76,8 @@ MACRO(BUILD_EXTLIB EXTLIB_NAME SEARCH_FOR_FILE BUILD_PERL_SCRIPT BUILD_LOG_FILE)
   ENDIF(NOT CFS_DEPS_ROOT)
 
   IF(NOT EXISTS ${SEARCH_FOR_FILE})
-    MESSAGE(STATUS "Building ${EXTLIB_NAME}...")
-
+    colormsg(HIBLUE "Building ${EXTLIB_NAME}...")
+    
     EXECUTE_PROCESS(
       COMMAND ${PERL_EXECUTABLE} "${CFS_SOURCE_DIR}/share/scripts/build_tee.pl" ${PERL_EXECUTABLE} ${BUILD_PERL_SCRIPT} "${CFS_TEMP_DIR}/build_vars.pl" "${CFS_TEMP_DIR}/build.log"
       OUTPUT_VARIABLE BUILD_OUT
@@ -110,3 +179,22 @@ MACRO(CFS_CHECK_CXX_SOURCE_RUNS SOURCE VAR LINK_DIRS)
     ENDIF("${${VAR}_EXITCODE}" EQUAL 0)
   ENDIF("${VAR}" MATCHES "")
 ENDMACRO(CFS_CHECK_CXX_SOURCE_RUNS)
+
+#-------------------------------------------------------------------------------
+# Get the current date
+#-------------------------------------------------------------------------------
+MACRO (TODAY RESULT)
+    IF (WIN32)
+        EXECUTE_PROCESS(COMMAND "date" "/T" OUTPUT_VARIABLE ${RESULT})
+        string(REGEX REPLACE "(..)/(..)/..(..).*" "\\3\\2\\1"
+${RESULT} ${${RESULT}})
+    ELSEIF(UNIX)
+        EXECUTE_PROCESS(COMMAND "date" "+%d/%m/%Y" OUTPUT_VARIABLE ${RESULT})
+        string(REGEX REPLACE "(..)/(..)/..(..).*" "\\3\\2\\1"
+${RESULT} ${${RESULT}})
+    ELSE (WIN32)
+        MESSAGE(SEND_ERROR "date not implemented")
+        SET(${RESULT} 000000)
+    ENDIF (WIN32)
+ENDMACRO (TODAY)
+

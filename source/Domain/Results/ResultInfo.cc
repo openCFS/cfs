@@ -24,7 +24,6 @@ namespace CoupledField {
       EXCEPTION( "Dof with name '" << dof << "' not found!" );
     }
     return (UInt) (pos);
-    
   }
 
 

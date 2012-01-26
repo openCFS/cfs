@@ -260,7 +260,7 @@ void HeatPDE::DefineIntegrators() {
     // mass integrator
     // ====================================================================
     
-    // Todo: The following code is not implemented in a clean way:
+    // TODO: The following code is not implemented in a clean way:
     // We should query ALL parameters via the BaseMaterial::GetCoefFunction
     // interface.
     Double density, heatCapacity, massFactor;
@@ -571,7 +571,6 @@ void HeatPDE::DefineRhsLoadIntegrators() {
       ctx->SetFeFunction(myFct);
       assemble_->AddLinearForm(ctx);
     } // for
-
 }
 
 //  LinearFormContext* HeatPDE::CreateRhsLinearForm(SolutionType rhsType,

@@ -83,10 +83,13 @@ elif [ "${OS}" = "Linux" ] ; then
                 # On Mandrake/Mandriva/Fedora there exist also
                 # /etc/redhat-release, /etc/mandrake-release,
                 # /etc/mandriva-release, /etc/fedora-release files.
-                # They all contain the same infos. I.e.
+                # They all con tain the same infos. I.e.
                 # Mandriva Linux release 2007.0 (Official) for i586
                 # Fedora Core release 6 (Zod)
 		# DIST='RedHat'
+                #
+                # http://fedoraproject.org/wiki/History_of_Red_Hat_Linux
+                # http://fedoraproject.org/wiki/Releases/HistoricalSchedules
 	        DIST=`cat /etc/redhat-release | cut -d' ' -f1`
 		PSEUDONAME=`cat /etc/redhat-release | sed s/.*\(// | sed s/\)//`
 		REV=`cat /etc/redhat-release | sed s/.*release\ // | sed s/\ .*//`

@@ -6,7 +6,7 @@
 #include <string>
 #include <iostream>
 #include <fstream>
-#include <stdio.h>
+#include <cstdio>
 #include <iomanip>
 #include <sstream>
 

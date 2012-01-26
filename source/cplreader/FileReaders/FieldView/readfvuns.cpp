@@ -1,9 +1,9 @@
 #include <iostream>
-#include <stdlib.h>
-#include <string.h>
+#include <cstdlib>
+#include <cstring>
 #include <vector>
-#include <assert.h>
-#include <stdio.h>
+#include <cassert>
+#include <cstdio>
 
 #include "fv_reader_tags.h"
 #include "readfvuns.h"
