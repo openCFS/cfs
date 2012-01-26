@@ -245,7 +245,7 @@ void IntScheme::GetIntPoints( Elem::ShapeType elemType,
   if( intPoints_[integMethod_][order_].find(elemType) == intPoints_[integMethod_][order_].end() ) {
     EXCEPTION( "No integration points defined for element of type '"
         << Elem::shapeType.ToString( elemType ) 
-        << "'!");
+        << "' and order " << order_ << "!");
   }
   intPts = intPoints_[integMethod_][order_][elemType]; 
   weights = intWeights_[integMethod_][order_][elemType];
@@ -1070,7 +1070,7 @@ void IntScheme::GetIntegrationPoints(std::map<Integer, LocPoint >& points,
   if( intPoints_[method][order].find(type) == intPoints_[method][order].end() ) {
     EXCEPTION( "No integration points defined for element of type '"
         << Elem::shapeType.ToString( type )
-        << "'!");
+        << "' and order " << order << "!");
   }
   points.clear();
   const StdVector<LocPoint>& curPoints = intPoints_[method][order][type];

@@ -27,8 +27,7 @@
     <xsd:simpleType name="DT_IntegOrderMode">
     	<xsd:restriction base="xsd:string">
     		<xsd:enumeration value="absolute" />
-        <!-- not consdered right now because not really implemented-->
-    		<!--xsd:enumeration value="relative" /-->
+    		<xsd:enumeration value="relative" />
     	</xsd:restriction>
     </xsd:simpleType>
 </xsd:schema>

@@ -228,7 +228,7 @@ IF(NOT TESTSUITE_DIR STREQUAL "TESTSUITE_DIR_NOT_FOUND")
     SET(USE_HDF5 ON CACHE INTERNAL
       "Use HDF5 for simulation in/output." FORCE)
     
-    ADD_SUBDIRECTORY(${TESTSUITE_DIR})
+    ADD_SUBDIRECTORY(${TESTSUITE_DIR} "${CMAKE_CURRENT_BINARY_DIR}/testsuite")
   ELSE(EXISTS ${TESTSUITE_DIR}/TESTSUIT)
     MESSAGE("Testsuite directory '${TESTSUITE_DIR}' does not contain TESTSUIT. "
       "Please specify a proper location!")
