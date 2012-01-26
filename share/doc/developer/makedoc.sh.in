@@ -1,6 +1,14 @@
 #!/bin/sh
 
 MODE=$1
+CMAKE_CURRENT_BINARY_DIR="@CMAKE_CURRENT_BINARY_DIR@"
+CMAKE_CURRENT_SOURCE_DIR="@CMAKE_CURRENT_SOURCE_DIR@"
+PDFLATEX_COMPILER="@PDFLATEX_COMPILER@"
+BIBTEX_COMPILER="@BIBTEX_COMPILER@"
+
+cd "$CMAKE_CURRENT_BINARY_DIR/../auxilliaries/LaTeX"
+TEXINPUTS="$(pwd):"
+export TEXINPUTS
 
 clean() {
     echo "========================================"
@@ -9,10 +17,10 @@ clean() {
 
     echo "============================================="
     echo " Deleting Doxygen Documentation for CFS++ in "
-    echo " @CMAKE_CURRENT_BINARY_DIR@/html"
+    echo " $CMAKE_CURRENT_BINARY_DIR/html"
     echo "============================================="
 
-    rm -rfv @CMAKE_CURRENT_BINARY_DIR@/html
+    rm -rfv $CMAKE_CURRENT_BINARY_DIR/html
     RETCODE=$?
 
     if [ "$RETCODE" != "0" ]; then
@@ -20,14 +28,14 @@ clean() {
 	exit 1;
     fi
 
-    rm -fv @CMAKE_CURRENT_BINARY_DIR@/develManual/*.bbl
-    rm -fv @CMAKE_CURRENT_BINARY_DIR@/develManual/*.aux
-    rm -fv @CMAKE_CURRENT_BINARY_DIR@/develManual/*.toc
-    rm -fv @CMAKE_CURRENT_BINARY_DIR@/develManual/*.pdf
-    rm -fv @CMAKE_CURRENT_BINARY_DIR@/develManual/*.log
-    rm -fv @CMAKE_CURRENT_BINARY_DIR@/develManual/*.blg
-    rm -fv @CMAKE_CURRENT_BINARY_DIR@/develManual/*.out
-    rm -fv @CMAKE_CURRENT_BINARY_DIR@/develManual/*.tpt
+    rm -fv $CMAKE_CURRENT_BINARY_DIR/develManual/*.bbl
+    rm -fv $CMAKE_CURRENT_BINARY_DIR/develManual/*.aux
+    rm -fv $CMAKE_CURRENT_BINARY_DIR/develManual/*.toc
+    rm -fv $CMAKE_CURRENT_BINARY_DIR/develManual/*.pdf
+    rm -fv $CMAKE_CURRENT_BINARY_DIR/develManual/*.log
+    rm -fv $CMAKE_CURRENT_BINARY_DIR/develManual/*.blg
+    rm -fv $CMAKE_CURRENT_BINARY_DIR/develManual/*.out
+    rm -fv $CMAKE_CURRENT_BINARY_DIR/develManual/*.tpt
 
     echo "==================================="
     echo " Done cleaning up!"
@@ -40,38 +48,38 @@ build() {
     echo " Generating CFS++ developer's manual "
     echo "====================================="
 
-    cd @CMAKE_CURRENT_BINARY_DIR@/..
-    rsync -vaz "@CMAKE_CURRENT_SOURCE_DIR@/../auxilliaries" .
+    cd $CMAKE_CURRENT_BINARY_DIR/..
+    rsync -vaz "$CMAKE_CURRENT_SOURCE_DIR/../auxilliaries" .
 
     # Auto    generate   bootstrap_devel_machine.txt   from    distro.sh   and
     # bootstrap_devel_machine.sh
-    ATTACHMENT_DIR="@CMAKE_CURRENT_BINARY_DIR@/develManual/attachments"
+    ATTACHMENT_DIR="$CMAKE_CURRENT_BINARY_DIR/develManual/attachments"
     BOOTSTRAP_SCRIPT="$ATTACHMENT_DIR/bootstrap_devel_machine.txt"
     mkdir -p "$ATTACHMENT_DIR"
-    cat @CMAKE_CURRENT_SOURCE_DIR@/../../scripts/distro.sh | \
+    cat $CMAKE_CURRENT_SOURCE_DIR/../../scripts/distro.sh | \
 	sed 's/^Help\(\)/MODE="-h"\nHelp\(\)/' | \
 	sed '/^Help\(\)/, /^fi/d' | \
 	sed '/^      while \:$/, /^      done$/d' \
 	> "$BOOTSTRAP_SCRIPT"
-    cat @CMAKE_CURRENT_SOURCE_DIR@/../../scripts/bootstrap_devel_machine.sh | \
+    cat $CMAKE_CURRENT_SOURCE_DIR/../../scripts/bootstrap_devel_machine.sh | \
 	sed '/^\#\!\/bin\/sh/, /^\. /d' \
 	>> "$BOOTSTRAP_SCRIPT"
 
-    cd @CMAKE_CURRENT_BINARY_DIR@
-    rsync -vaz "@CMAKE_CURRENT_SOURCE_DIR@/develManual" .
+    cd $CMAKE_CURRENT_BINARY_DIR
+    rsync -vaz "$CMAKE_CURRENT_SOURCE_DIR/develManual" .
     cd develManual
     DOCUMENT=develManual
 
     # Apply syntax coloring to files in sources directory
     sources/pygmentize.sh $PWD/sources $PWD
 
-    @PDFLATEX_COMPILER@ $DOCUMENT && \
-    @BIBTEX_COMPILER@ $DOCUMENT && \
-    @PDFLATEX_COMPILER@ $DOCUMENT && \
-    @PDFLATEX_COMPILER@ $DOCUMENT && \
-    @PDFLATEX_COMPILER@ $DOCUMENT && \
+    $PDFLATEX_COMPILER $DOCUMENT && \
+    $BIBTEX_COMPILER $DOCUMENT && \
+    $PDFLATEX_COMPILER $DOCUMENT && \
+    $PDFLATEX_COMPILER $DOCUMENT && \
+    $PDFLATEX_COMPILER $DOCUMENT && \
     thumbpdf $DOCUMENT && \
-    @PDFLATEX_COMPILER@ $DOCUMENT
+    $PDFLATEX_COMPILER $DOCUMENT
     RETCODE_DEVMAN=$?
 
     #
@@ -81,9 +89,9 @@ build() {
     echo " Generating Doxygen Documentation for CFS++ "
     echo " ==========================================="
     
-    @CMAKE_CURRENT_SOURCE_DIR@/DoxygenConfig/changeDate.sh \
-	@CMAKE_CURRENT_SOURCE_DIR@/DoxygenConfig/footerTemplate.html \
-	@CMAKE_CURRENT_BINARY_DIR@/DoxygenConfig/footer.html
+    $CMAKE_CURRENT_SOURCE_DIR/DoxygenConfig/changeDate.sh \
+	$CMAKE_CURRENT_SOURCE_DIR/DoxygenConfig/footerTemplate.html \
+	$CMAKE_CURRENT_BINARY_DIR/DoxygenConfig/footer.html
     @DOXYGEN_EXECUTABLE@ @DOXY_CONFIG@
     RETCODE_DOXY=$?
 
@@ -92,7 +100,7 @@ build() {
 	exit 1;
     else
 	echo " "
-	echo " See @CMAKE_CURRENT_BINARY_DIR@/html/index.html for doc."
+	echo " See $CMAKE_CURRENT_BINARY_DIR/html/index.html for doc."
 	echo " "
     fi
 
@@ -100,7 +108,7 @@ build() {
 	echo " Could not make developer's manual!"
 	exit 1;
     else
-	echo " See @CMAKE_CURRENT_BINARY_DIR@/devManual/devManual.pdf developer's manual."
+	echo " See $CMAKE_CURRENT_BINARY_DIR/devManual/devManual.pdf developer's manual."
 	echo " "
     fi
 

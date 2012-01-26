@@ -6,6 +6,10 @@ CMAKE_CURRENT_SOURCE_DIR="@CMAKE_CURRENT_SOURCE_DIR@"
 PDFLATEX_COMPILER="@PDFLATEX_COMPILER@"
 BIBTEX_COMPILER="@BIBTEX_COMPILER@"
 
+cd "$CMAKE_CURRENT_BINARY_DIR/../auxilliaries/LaTeX"
+TEXINPUTS="$(pwd):"
+export TEXINPUTS
+
 clean() {
     echo "==================================="
     echo " Cleaning up user doc directory..."
@@ -44,13 +48,13 @@ build() {
     # Apply syntax coloring to files in sources directory
     sources/pygmentize.sh $PWD/sources $PWD
 
-    "$PDFLATEX_COMPILER" $DOCUMENT && \
+    "$PDFLATEX_COMPILER" -shell-escape $DOCUMENT && \
     "$BIBTEX_COMPILER"   $DOCUMENT && \
-    "$PDFLATEX_COMPILER" $DOCUMENT && \
-    "$PDFLATEX_COMPILER" $DOCUMENT && \
-    "$PDFLATEX_COMPILER" $DOCUMENT && \
+    "$PDFLATEX_COMPILER" -shell-escape $DOCUMENT && \
+    "$PDFLATEX_COMPILER" -shell-escape $DOCUMENT && \
+    "$PDFLATEX_COMPILER" -shell-escape $DOCUMENT && \
     thumbpdf $DOCUMENT && \
-    "$PDFLATEX_COMPILER" $DOCUMENT
+    "$PDFLATEX_COMPILER" -shell-escape $DOCUMENT
 
     if [ ! "$?" = "0" ]; then
 	exit 1;

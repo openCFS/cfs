@@ -103,7 +103,20 @@ include/def_use_xerces.hh.in -text
 include/def_user_scpip.hh.in -text
 include/def_xmlschema.hh.in -text
 share/MaterialFile/mat.xml svneol=native#text/xml
+share/doc/auxilliaries/LaTeX/attachfile.sty -text
+share/doc/auxilliaries/LaTeX/atveryend.sty -text
+share/doc/auxilliaries/LaTeX/catchfile.sty -text
+share/doc/auxilliaries/LaTeX/etexcmds.sty -text
+share/doc/auxilliaries/LaTeX/holtxdoc.sty -text
+share/doc/auxilliaries/LaTeX/hypdoc.sty -text
+share/doc/auxilliaries/LaTeX/ifluatex.sty -text
+share/doc/auxilliaries/LaTeX/ifplatform.sty -text
+share/doc/auxilliaries/LaTeX/infwarerr.sty -text
 share/doc/auxilliaries/LaTeX/lsepaper.sty svneol=native#text/plain
+share/doc/auxilliaries/LaTeX/ltxcmds.sty -text
+share/doc/auxilliaries/LaTeX/minted.sty -text
+share/doc/auxilliaries/LaTeX/pdftexcmds.sty -text
+share/doc/auxilliaries/LaTeX/todonotes.sty svneol=native#text/plain
 share/doc/auxilliaries/Pics/am2_logo.pdf -text
 share/doc/auxilliaries/Pics/am2_logo.png -text
 share/doc/auxilliaries/Pics/cfs-logo.eps -text svneol=unset#application/postscript
@@ -329,7 +342,6 @@ share/doc/developer/develManual/sources/qs_bootstrap.sh svneol=native#text/plain
 share/doc/developer/develManual/sources/qs_configure_build.sh svneol=native#text/plain
 share/doc/developer/develManual/sources/qs_obtain_sources.sh -text
 share/doc/developer/develManual/timestepping.tex -text
-share/doc/developer/develManual/todonotes.sty svneol=native#text/plain
 share/doc/developer/makedoc.sh.in -text
 share/doc/user/CMakeLists.txt svneol=native#text/plain
 share/doc/user/advPrePostManual/advPrePostManual.bib -text
@@ -458,7 +470,6 @@ share/doc/user/advPrePostManual/sources/pv_xi_eta.py -text
 share/doc/user/advPrePostManual/sources/pygmentize.sh -text
 share/doc/user/advPrePostManual/sources/unv_dataset_numbers.txt -text
 share/doc/user/advPrePostManual/special.tex -text
-share/doc/user/advPrePostManual/todonotes.sty svneol=native#text/plain
 share/doc/user/advPrePostManual/videos.tex -text
 share/doc/user/makedoc.sh.in -text
 share/doc/user/matFile/coupledPDEs.tex svneol=native#text/plain
