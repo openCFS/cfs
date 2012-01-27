@@ -242,6 +242,7 @@ void HeatPDE::DefineIntegrators() {
     } else {
       stiffInt = new BDBInt<GradientOperator<FeH1,3> >(curCoef,1.0 );
     }
+    stiffInt->SetName("StiffnessIntegrator");
 
     BiLinFormContext * stiffIntDescr =
       new BiLinFormContext(stiffInt, STIFFNESS );
@@ -272,6 +273,7 @@ void HeatPDE::DefineIntegrators() {
     
     BiLinearForm *massInt = NULL;
     massInt = new BBInt<IdentityOperator<FeH1> >(coeff, 1.0);
+    massInt->SetName("MassIntegrator");
     massInt->SetFeSpace( feFunctions_[HEAT_TEMPERATURE]->GetFeSpace() );
 
     BiLinFormContext *massContext =  new BiLinFormContext(massInt, DAMPING );

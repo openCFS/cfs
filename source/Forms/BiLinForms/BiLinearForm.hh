@@ -58,8 +58,14 @@ namespace CoupledField
       //! Set Finite Element Space
       virtual void SetFeSpace( shared_ptr<FeSpace> feSpace )=0;
 
+      //! Return name of bilinear form
       std::string GetName(){
         return name_;
+      }
+
+      //! Set name of bilinear form
+      void SetName(const std::string& name ){
+        name_ = name;
       }
 
       virtual bool IsComplex()=0;

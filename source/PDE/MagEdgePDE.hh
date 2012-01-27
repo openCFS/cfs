@@ -187,31 +187,9 @@ namespace CoupledField
     //@}
 
     // =======================================================================
-    //   COILS
+    //   Nonlinear method
     // =======================================================================
     NonLinMethodType nonLinMethod_;
-    
-    // =======================================================================
-    //   INTERPOLATION OF FLUX DENSITY
-    // =======================================================================
-    
-    //! Helper struct for interpolating flux density at some given points
-    struct FluxAtPoints {
-      
-      //! Filename where points get written to
-      std::string fileName;
-      
-      
-      //! single coordinates 
-      //! Vector with points
-      StdVector<LocPoint> points;
-      
-      //! Flux values for each point
-      StdVector<Vector<Double> > flux;
-    };
-    
-    //! List of points, where fluxdensity gets calculated
-    StdVector<FluxAtPoints> calcFlux_;
     
     //! \copydoc SinglePDE::CreateFeSpace
     std::map<SolutionType, shared_ptr<FeSpace> > 

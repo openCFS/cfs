@@ -1,21 +1,23 @@
-#ifndef GRADIENTOP_HH
-#define GRADIENTOP_HH
+#ifndef DIV_OPERATOR_HH
+#define DIV_OPERATOR_HH
 
 #include "BaseBOperator.hh"
 
-//! Calculate the gradient of the shape functions
-//!    / N_1z N_2z ...\
-//! b =| N_1y N_2y ...|
-//!    \ N_1z N_2z .../
+
+namespace CoupledField{
+
+//! Calculate the divergence of the vector shape functions
+//!    / N_1z  0        ...\
+//! b =| 0    N_2y      ...|
+//!    \ 0     0   N_2z .../
 //!  here N_1x denotes the x-derivative of the first
 //!  shape function at a given local point
 //! \tparam FE Type of Finite Element used
 //! \tparam D Dimension of the problem space
 //! \tparam TYPE Data type (DOUBLE, COMPLEX)
-namespace CoupledField{
-  template<class FE, UInt D, class TYPE = Double>
-  class GradientOperator : public BaseBOperator<FE,TYPE>{
-    public:
+template<class FE, UInt D, class TYPE = Double>
+class DivOperator : public BaseBOperator<FE,TYPE>{
+public:
 
     // ------------------
     //  STATIC CONSTANTS 
@@ -27,7 +29,7 @@ namespace CoupledField{
     static const UInt ORDER_DIFF = 1;
 
     //! Number of components of the problem (scalar, vector)
-    static const UInt DIM_DOF = 1;
+    static const UInt DIM_DOF = D;
 
     //! Dimension of the underlying domain / space
     static const UInt DIM_SPACE = D;
@@ -40,11 +42,11 @@ namespace CoupledField{
     //@}
 
 
-    GradientOperator(){
-      this->name_ = "GradientOperator";
+    DivOperator(){
+      this->name_ = "DivOperator";
     }
 
-    ~GradientOperator(){
+    ~DivOperator(){
 
     }
 
@@ -66,35 +68,46 @@ namespace CoupledField{
   };
 
   template<class FE, UInt D, class TYPE>
-  void GradientOperator<FE,D,TYPE>::CalcOpMat(Matrix<Double> & bMat,
-                                                const LocPointMapped& lp, 
-                                                BaseFE* ptFe ){
+  void DivOperator<FE,D,TYPE>::CalcOpMat(Matrix<Double> & bMat,
+                                         const LocPointMapped& lp, 
+                                         BaseFE* ptFe ){
     UInt numFncs = ptFe->GetNumFncs();
-    // Set correct size of matrix B and initialise with zeros
-    bMat.Resize( DIM_SPACE, numFncs );
-
+    // Set correct size of matrix B and initialize with zeros
+    bMat.Resize( DIM_D_MAT, numFncs * DIM_SPACE );
+    bMat.Init();
+    
     // Get derivatives of local shape functions with respect to global
     // coords (format: nrNodes x spaceDim)
     Matrix<Double> xiDx;
     FE *fe = (static_cast<FE*>(ptFe));
     fe->GetGlobDerivShFnc( xiDx, lp, lp.shapeMap->GetElem() , 1 );
-    bMat= Transpose(xiDx);
+    for(UInt iDim = 0; iDim < DIM_SPACE; ++iDim) {
+      for( UInt i = 0; i < numFncs; ++i ) {
+        bMat[iDim][i*DIM_SPACE + iDim] = xiDx[i][iDim];
+      }
+    }
   }
 
   template<class FE, UInt D, class TYPE>
-  void GradientOperator<FE,D,TYPE>::CalcOpMatTransposed(Matrix<Double> & bMat,
-                                                          const LocPointMapped& lp, 
-                                                          BaseFE* ptFe ){
-    const UInt numFncs = ptFe->GetNumFncs();
-    // Set correct size of matrix B and initialise with zeros
-    bMat.Resize(numFncs , DIM_SPACE );
-
+  void DivOperator<FE,D,TYPE>::CalcOpMatTransposed(Matrix<Double> & bMat,
+                                                   const LocPointMapped& lp, 
+                                                   BaseFE* ptFe ){
+    UInt numFncs = ptFe->GetNumFncs();
+    // Set correct size of matrix B and initialize with zeros
+    bMat.Resize( numFncs * DIM_SPACE, DIM_D_MAT );
+    bMat.Init();
+    
     // Get derivatives of local shape functions with respect to global
-    // coords (format: spaceDim x nrNodes )
+    // coords (format: nrNodes x spaceDim)
+    Matrix<Double> xiDx;
     FE *fe = (static_cast<FE*>(ptFe));
-    fe->GetGlobDerivShFnc( bMat, lp, lp.shapeMap->GetElem() , 1 );
-
-
+    fe->GetGlobDerivShFnc( xiDx, lp, lp.shapeMap->GetElem() , 1 );
+    for( UInt i = 0; i < numFncs; ++i ) {
+      for(UInt iDim = 0; iDim < DIM_SPACE; ++iDim ) {
+        bMat[i+iDim][iDim] = xiDx[i][iDim];
+      }
+    }
   }
-}
+
+} // namespace
 #endif

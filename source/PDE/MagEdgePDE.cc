@@ -170,6 +170,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
         shared_ptr<CoefFunction> curCoef = actMat->GetCoefFunction(MAG_RELUCTIVITY,FULL,Global::REAL);
         BaseBDBInt* curlcurl;
         curlcurl = new BDBInt< CurlOperator<FeHCurl,3, Double> >(curCoef,1.0) ;
+        curlcurl->SetName("CurlCurlIntegrator");
 
        BiLinFormContext * stiffContext =
            new BiLinFormContext(curlcurl, STIFFNESS );
@@ -216,7 +217,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
           CoefFunction::Generate(Global::REAL, lexical_cast<std::string>(conductivity));
       BiLinearForm *massInt;
       massInt = new BBIntMassEdge<ScaledByEdgeIdentityOperator<3,Double> >(coeff,1.0);
-
+      massInt->SetName("MassIntegrator");
       BiLinFormContext * massContext;
       if ( analysistype_ == STATIC) {
         // we have to guarantee, that we add some mass to
@@ -252,6 +253,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
           coef->SetCoordinateSystem(coilDef_[coil]->flowCoordSys_);
           
           curInt = new BUIntegrator<IdentityOperator<FeHCurl,3,1> >(1.0, coef);
+          curInt->SetName("CoilIntegrator");
           LinearFormContext * coilContext =
               new LinearFormContext( curInt );
           coilContext->SetEntities( actSDList );
@@ -372,53 +374,6 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
     }
 
   }
-  
-//  void MagEdgePDE::CalcSpecialResults() {
-//    
-//
-//    // fetch fluxlist
-//    for( UInt iList = 0; iList < calcFlux_.GetSize(); ++iList ) {
-//#ifndef USE_INTERPOLATION
-//    EXCEPTION("Special Results can just be calculated with INTERPOLATION active");
-//#else
-//      FluxAtPoints & actList = calcFlux_[iList];
-//
-//      // open file
-//      std::ofstream  out(actList.fileName.c_str(),std::ios::out );
-//
-//      out << "# Flux density\n";
-//      out << "# #elem \t x\t y \t z \t x(Vs/Am) \ty(Vs/Am( \t z(Vs/Am)\txi \teta \tzeta\n";
-//
-//      // Loop over all points 
-//      Vector<Double> locCoord, flux;
-//      for( UInt iPoint = 0; iPoint < actList.points.GetSize(); iPoint++) { 
-//        const Elem * ptElem = NULL;
-//        const Vector<Double> & globCoord =actList.points[iPoint].coord;
-//        if( globCoord.GetSize() == 0) continue;
-//        ptElem = ptgrid_->GetElemAtGlobalCoord( globCoord, locCoord );
-//        if( !ptElem ) {
-//          std::string warnStr = "Cold not find element at position " 
-//              + actList.points[iPoint].coord.ToString(); 
-//          WARN( warnStr.c_str());
-//        } else {
-//          LocPoint lp(locCoord);
-//          CalcFluxDensityAtIP(ptElem, lp, flux);
-//
-//          // write to file
-//          out << ptElem->elemNum << "\t";
-//          out << globCoord[0] << "\t" << globCoord[1] << "\t" << globCoord[2] << "\t";
-//          out << flux[0] << "\t" << flux[1] << "\t" << flux[2] << "\t"
-//              << locCoord[0] << "\t" << locCoord[1] << "\t" << locCoord[2] << std::endl;
-//        }
-//
-//      }
-//      // close file
-//      out.close();
-//#endif
-//    }
-//
-//  }
-
 
 
   template<class TYPE>

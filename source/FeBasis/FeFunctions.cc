@@ -45,7 +45,24 @@ DECLARE_LOG(fefunc)
   }
 
   void BaseFeFunction::AddEntityList( shared_ptr<EntityList> list ){
-    entities_.Push_back(list);
+    // Security check: If entity list was already added, leave
+    
+    // Note: As the shared_ptr to an Entitylist is not a unique
+    // unique within CFS, we have to ensure, that the names of 
+    // the entity lists rather than the pointers match!
+    
+    std::string entName = list->GetName();
+    bool found = false;
+    for( UInt i = 0; i < entities_.GetSize(); ++i ) {
+      if( entities_[i]->GetName() == entName )
+        found = true;
+    }
+    if( found ) {
+      WARN("Entitylist with name '" << entName 
+           << "' was already added" );
+    } else {
+      entities_.Push_back(list);
+    }
   }
   
   StdVector< shared_ptr<EntityList> > BaseFeFunction::GetEntityList(){

@@ -167,6 +167,11 @@ namespace CoupledField {
   //! Map Nodal BC Equation NUmbers
   void FeSpaceH1::MapNodalBCs(){
     StdVector<UInt> actNodes;
+
+    // check if feFunction was defined
+    if( !feFunction_ ) {
+      EXCEPTION("No FeFunction set at FeSpace");
+    }
     
     //Get Grip of HdBC List for the fefunction
     const HdBcList hdbcs = feFunction_->GetHomDirichletBCs();

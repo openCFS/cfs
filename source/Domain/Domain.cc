@@ -32,12 +32,13 @@
 #include "DataInOut/ResultHandler.hh"
 
 // Single Field PDEs
+#include "PDE/AcousticPDE.hh"
 #include "PDE/ElecPDE.hh"
+#include "PDE/FluidMechPerturbedPDE.hh"
 #include "PDE/HeatPDE.hh"
+#include "PDE/MagneticPDE.hh"
 #include "PDE/MagEdgePDE.hh"
 #include "PDE/MechPDE.hh"
-#include "PDE/AcousticPDE.hh"
-#include "PDE/FluidMechPerturbedPDE.hh"
 
 // Coupling of single PDEs
 #include "CoupledPDE/DirectCoupledPDE.hh"
@@ -543,25 +544,17 @@ void Domain::CreateSinglePDEs(UInt sequenceStep)
     else if (actPdeName == "mechanic")
       ptSinglePde_[i] = new MechPDE(defaultGrid, actPdeNode);
 
-    else if (actPdeName == "acoustic")
-    {
-//
-//      std::string acouSubType = actPdeNode->Get("subType")->As<std::string>();
-//
-//      if (acouSubType == "combustionNoise")
-//        ptSinglePde_[i] = new AcouCombustionNoise(defaultGrid, actPdeNode);
-//      else
+    else if (actPdeName == "acoustic") {
         ptSinglePde_[i] = new AcousticPDE(defaultGrid, actPdeNode);
     }
-
 //    else if (actPdeName == "acousticMixed")
 //      ptSinglePde_[i] = new AcousticMixedPDE(defaultGrid, actPdeNode);
 //
 //    else if (actPdeName == "smooth")
 //      ptSinglePde_[i] = new SmoothPDE(defaultGrid, actPdeNode);
 //
-//    else if (actPdeName == "magnetic")
-//      ptSinglePde_[i] = new MagPDE(defaultGrid, actPdeNode);
+   else if (actPdeName == "magnetic")
+      ptSinglePde_[i] = new MagneticPDE(defaultGrid, actPdeNode);
 
     else if (actPdeName == "magneticEdge")
       ptSinglePde_[i] = new MagEdgePDE(defaultGrid, actPdeNode);

@@ -370,6 +370,11 @@ namespace CoupledField {
     if ( isDirectCoupled_ == false ) {
       LOG_TRACE(pde) << pdename_ << ": Defining solveStep class";
       DefineSolveStep();
+      
+      // check if solve step was defined
+      if(! solveStep_) {
+        EXCEPTION("No solveStep object defined for PDE '" << pdename_ << "'");
+      }
     }
 
     // Finally set the initialization flag to true

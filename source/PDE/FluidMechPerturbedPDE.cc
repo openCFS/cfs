@@ -133,6 +133,7 @@ namespace CoupledField {
 
       BDBInt< FeH1, Double, Double >* stiffInt;
       stiffInt = new BDBInt< FeH1, Double, Double >(curCoef,1.0 );
+      //stiffInt->SetName("StiffnessInt");
       //linElecInt *  linElecForm = new linElecInt( actSDMat, tensorType,
        //                                           upLagrangeForm );
       //linElecForm->SetFactor( factor );

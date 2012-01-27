@@ -134,6 +134,7 @@ namespace CoupledField{
           } else {
             stiffInt = new BDBInt<GradientOperator<FeH1,3> >(coeffK,1.0 );
           }
+      stiffInt->SetName("LaplaceIntegrator");
       //stiffInt = new BBInt<GradientOperator,FeH1,Double >(coeffK,1.0 );
 
       BiLinFormContext * stiffIntDescr =
@@ -157,6 +158,7 @@ namespace CoupledField{
 
       BiLinearForm *massInt = NULL;
       massInt = new BBInt<IdentityOperator<FeH1> >(coeffM, 1.0);
+      massInt->SetName("MassIntegrator");
       massInt->SetFeSpace( feFunctions_[formulation_]->GetFeSpace() );
 
       BiLinFormContext *massContext =  new BiLinFormContext(massInt, MASS );

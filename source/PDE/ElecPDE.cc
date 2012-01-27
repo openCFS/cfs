@@ -144,6 +144,7 @@ namespace CoupledField {
       
       // ----- standard real-valued stiffness integrator
       BaseBDBInt * stiffInt = GetStiffIntegrator(actSDMat, tensorType, actRegion);
+      stiffInt->SetName("LinElecIntegrator");
       BiLinFormContext * stiffIntDescr =
           new BiLinFormContext(stiffInt, STIFFNESS );
       feFunctions_[ELEC_POTENTIAL]->AddEntityList( actSDList );
@@ -223,7 +224,7 @@ namespace CoupledField {
           // to the prescribed value. However, this requires modification of 
           // the expressions of the coefficient functions, which depends on real/harm
           // and the specific type (const, timefreq, variable).
-          WARN("The chareg value will not be divided by the number of nodes and thus "
+          WARN("The charge value will not be divided by the number of nodes and thus "
               << "depends on the number of nodes" );
         }
 

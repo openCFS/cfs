@@ -160,7 +160,8 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
       // ====================================================================
       if( !nonLin_ ) {
         BaseBDBInt * stiffInt = 
-            GetStiffIntegrator( actSDMat, actRegion, complexMatData_[actRegion] ); 
+            GetStiffIntegrator( actSDMat, actRegion, complexMatData_[actRegion] );
+        stiffInt->SetName("LinElastInt");
         stiffInt->SetFeSpace( mySpace);
         
         BiLinFormContext * stiffIntDescr =
@@ -190,6 +191,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
       } else {
         massInt = new BBInt<IdentityOperator<FeH1,3,3> >(densCoeff, 1.0);
       }
+      massInt->SetName("MassInt");
       massInt->SetFeSpace( mySpace );
 
       BiLinFormContext *massContext =  new BiLinFormContext( massInt, MASS );
