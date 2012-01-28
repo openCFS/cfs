@@ -1967,8 +1967,6 @@ DEFINE_LOG(magpde, "magpde")
         if (couplingnodes == NULL)
           std::cerr << "Couplingnodes = 0!!!!" << std::endl;
 
-        std::cout << "couplingnodes:\n" << *couplingnodes << std::endl;
-      
         // get volume neighbours lying next to coupling nodes, because 
         // these volume elements have to be  moved 'virtually'
         NodeStoreSol<Double> * solhelp = 
@@ -1978,12 +1976,10 @@ DEFINE_LOG(magpde, "magpde")
                                       isaxi_, true );
         
         ptCoupling_->GetOutputNeighbourRegion(actCoupling, nRegions);
-        std::cout << "regions: \n " << *nRegions << std::endl;
         ptgrid_->GetRegion().Parse(*nRegions, nRegionIds);
         ForceOpVWP_->Setup(nRegionIds, *couplingnodes);
 
         ptCoupling_->GetOutputRegions(actCoupling, coupRegions);
-        std::cout << "OutPutregions:\n " <<  coupRegions << std::endl;
       
         // Intialize the memory of the coupling values
         ptCoupling_->CreateCouplingVector(actCoupling,isComplex_);
