@@ -177,7 +177,7 @@ namespace CoupledField {
     T l2, l1, l0;
     T alpha;
     double cOld, cNew;
-    T sOld, sNew;
+    T sNew;
     T aux, tmp;
     double rho;
     BaseVector *tmpVec = NULL;
@@ -222,7 +222,6 @@ namespace CoupledField {
     beta2 = 0;
     beta1 = 0;
     cOld  = 0;
-    sOld  = 0;
     cNew  = 1;
     sNew  = 0;
 
@@ -290,7 +289,6 @@ namespace CoupledField {
 
       // Shift Givens coefficients
       cOld = cNew;
-      sOld = sNew;
 
       // Compute Givens rotation for step k
       // This yields the new coefficients and

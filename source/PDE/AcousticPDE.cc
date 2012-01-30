@@ -77,18 +77,18 @@ namespace CoupledField{
   void AcousticPDE::DefineIntegrators(){
 
     RegionIdType actRegion;
-    BaseMaterial * actSDMat = NULL;
+    // BaseMaterial * actSDMat = NULL;
 
     //type of geometry
     std::string geometryType;
     param->Get("domain")->GetValue("geometryType", geometryType );
 
     // convert to tensor type
-    SubTensorType tensorType = FULL;
+    // SubTensorType tensorType = FULL;
     if (geometryType == "plane") {
-      tensorType = PLANE_STRAIN;
+      // tensorType = PLANE_STRAIN;
     } else if (geometryType == "axi") {
-      tensorType = AXI;
+      // tensorType = AXI;
       isaxi_ = true;
     }
 
@@ -99,7 +99,7 @@ namespace CoupledField{
     for ( it = materials_.begin(); it != materials_.end(); it++ ) {
       // Set current region and material
       actRegion = it->first;
-      actSDMat = it->second;
+      // actSDMat = it->second;
 
       // Get current region name
       std::string regionName = ptgrid_->GetRegion().ToString(actRegion);

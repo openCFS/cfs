@@ -384,7 +384,8 @@ int ReadUniversalFile(Widget w) {
   dataset set;
   char    buffer[255];
   int     setid, maxNodeLabel = 0,maxElemLabel;
-  int     *nodeReverseLabels,*elemReverseLabels;
+  int     *nodeReverseLabels = 0;
+  int     *elemReverseLabels = 0;
   int     n_blocks=10, e_blocks=10, stopReading=0, i55,i56;
 
   free(SETS55);

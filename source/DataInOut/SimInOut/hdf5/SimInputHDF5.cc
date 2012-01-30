@@ -545,31 +545,31 @@ namespace CoupledField {
 
     // determine type of list for this result
     EntityList::ListType listType;
-    EntityList::DefineType defineType;
+    // EntityList::DefineType defineType;
     switch( info->definedOn ) {
     case ResultInfo::NODE:
     //case ResultInfo::PFEM:
       listType = EntityList::NODE_LIST;
-      if( isHistory )
-        defineType = EntityList::NAMED_NODES;
-      else
-        defineType = EntityList::REGION;
-      break;
+      //if( isHistory )
+        //defineType = EntityList::NAMED_NODES;
+      //else
+        // defineType = EntityList::REGION;
+      //break;
     case ResultInfo::ELEMENT:
       listType = EntityList::ELEM_LIST;
-      if( isHistory )
-        defineType = EntityList::NAMED_ELEMS;
-      else
-        defineType = EntityList::REGION;
-      break;
+      // if( isHistory )
+        // defineType = EntityList::NAMED_ELEMS;
+      // else
+        // defineType = EntityList::REGION;
+      // break;
     case ResultInfo::SURF_ELEM:
       listType = EntityList::SURF_ELEM_LIST;
-      defineType = EntityList::REGION;
+      // defineType = EntityList::REGION;
       break;
     case ResultInfo::REGION:
     case ResultInfo::SURF_REGION:
       listType = EntityList::REGION_LIST;
-      defineType = EntityList::REGION;
+      // defineType = EntityList::REGION;
       break;
     default:
       EXCEPTION( "Only results defined on nodes and elements "

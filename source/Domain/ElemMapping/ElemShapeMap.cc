@@ -182,7 +182,7 @@ void LagrangeElemShapeMap::Global2Local( Vector<Double>& locPoint,
   Double TOL = 1e-5;
   Double jacDet; // denominator for Cramer's rule.
   Double distNormalizer; // denominator for Cramer's rule.
-  bool divergence; // does the Newton-Raphson algorithm diverge?
+  // bool divergence; // does the Newton-Raphson algorithm diverge?
   bool converged; // have we found the local point?
   UInt iter = 0;
   const Double golden_ratio = (3 - sqrt(5)) / 2;
@@ -217,7 +217,7 @@ void LagrangeElemShapeMap::Global2Local( Vector<Double>& locPoint,
   xi_k = xi_start;
   f = f_start;
   distance = f_min;
-  divergence = false;
+  // divergence = false;
   converged = false;
 
   do {

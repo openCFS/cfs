@@ -113,7 +113,11 @@ namespace CoupledField {
     UInt fileType = 0;
 
     std::ifstream in(fileName_.c_str(), std::ios::binary);
-    while(in.good() ) {
+    if(!in.good()) {
+      EXCEPTION("Could not open '" << fileName_ << "'!");
+    }
+
+    while( in.good() ) {
       in.getline(line,sizeof(line));
       std::string sline(line);
 

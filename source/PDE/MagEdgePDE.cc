@@ -201,14 +201,14 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
       // Standard Mass Matrix
       // ============================
       Double conductivity = 0.0; // , maxPerm = 0.0; // TODO: Check if this is still needed
-      bool scaleByEdgeSize = false;
+      // bool scaleByEdgeSize = false;
       materials_[actRegion]->GetScalar(conductivity,MAG_CONDUCTIVITY,Global::REAL);
 
       if ( conductivity < 1e-10 || analysistype_ == STATIC ) {
         Matrix<Double> reluc; 
         // get tensor of permeability and determine max. value
         materials_[actRegion]->GetTensor( reluc, MAG_RELUCTIVITY, Global::REAL );
-        scaleByEdgeSize = true;
+        // scaleByEdgeSize = true;
         //regularizationFactor = 1e-6;
         conductivity =  regularizationFactor * reluc[0][0];
       }

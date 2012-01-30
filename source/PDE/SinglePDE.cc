@@ -2171,7 +2171,7 @@ namespace CoupledField {
     StdVector<UInt> * nodes;
     SingleVector * val;
 //    Integer eqnNr;
-    UInt couplingDof;
+    // UInt couplingDof;
 
     // Determine maximal allowed equation number for algebraic system
 //    Integer maxAllowedEqn = (Integer)algsys_->GetDimension();
@@ -2185,7 +2185,7 @@ namespace CoupledField {
 
       //    ptCoupling_ = &ptCoupling_[i];
       ptCoupling_->GetInputValues(i, val);
-      couplingDof = ptCoupling_->GetInputDof(i);
+      // couplingDof = ptCoupling_->GetInputDof(i);
 
       // Up to now, Coupling is only possible with
       // Real valued solutions

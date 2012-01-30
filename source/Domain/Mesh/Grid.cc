@@ -2000,12 +2000,12 @@ namespace CoupledField
 
     UInt nElemsRegion1 = region1Elems.GetSize();
     UInt numCorners;
-    UInt lastCornerInRegion2;
+    // UInt lastCornerInRegion2;
 
     for(UInt i=0; i<nElemsRegion1; i++) {
       el = region1Elems[i];
       numCorners = Elem::shapes[el->type].numVertices;
-      lastCornerInRegion2 = 0;
+      // lastCornerInRegion2 = 0;
       for(UInt n=0; n<numCorners; ) {
         if(region2Nodes.Find(el->connect[n]) < 0) {
           n++;

@@ -86,8 +86,7 @@ namespace CoupledField {
     BaseMaterial * actSDMat = NULL;
     
     // flag for updatedLagrange formulation
-    bool upLagrangeForm = true;
-    upLagrangeForm = true;
+    // bool upLagrangeForm = true;
     
     //transform the type
     SubTensorType tensorType;
@@ -700,7 +699,7 @@ namespace CoupledField {
   //TO BE DELETED!!!!!
   void ElecPDE::ReadGridData(){
     //first try to obtain the grid
-    Grid* nGrid = domain->GetGrid("externalField");
-    nGrid = NULL;
+    // Grid* nGrid = domain->GetGrid("externalField");
+    // nGrid = NULL;
   }
 }

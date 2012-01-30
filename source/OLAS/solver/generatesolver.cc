@@ -71,7 +71,6 @@ BaseSolver* GenerateSolverObject( const BaseMatrix &mat,
 
   BaseSolver *retSolver = NULL;
   BaseMatrix::EntryType eType = mat.GetEntryType();
-  bool eTypeUnknown = false;
   std::string solverStr = "";
 
   
@@ -123,9 +122,6 @@ BaseSolver* GenerateSolverObject( const BaseMatrix &mat,
       ASSERTMEM( retSolver, sizeof(RichardsonSolver<Complex>) );
       LOG_DBG(genSolver) << " GenerateSolver: Generated complex Richardson solver";
     }
-    else {
-      eTypeUnknown = true;
-    }
     break;
   case BaseSolver::DIAGSOLVER:
     if ( eType == BaseMatrix::DOUBLE ) {
@@ -137,9 +133,6 @@ BaseSolver* GenerateSolverObject( const BaseMatrix &mat,
       retSolver = new DiagSolver<Complex>(solverNode, olasInfo );
       ASSERTMEM( retSolver, sizeof(DiagSolver<Complex>) );
       LOG_DBG(genSolver) << " GenerateSolver: Generated complex Diagonal solver";
-    }
-    else {
-      eTypeUnknown = true;
     }
     break;
 
@@ -165,9 +158,6 @@ BaseSolver* GenerateSolverObject( const BaseMatrix &mat,
       ASSERTMEM( retSolver, sizeof(GMRESSolver<Complex>) );
       LOG_DBG(genSolver) << " GenerateSolver: Generated complex GMRES solver";
     }
-    else {
-      eTypeUnknown = true;
-    }
     break;
 
   case BaseSolver::MINRES:
@@ -180,9 +170,6 @@ BaseSolver* GenerateSolverObject( const BaseMatrix &mat,
       retSolver = new MINRESSolver<Complex>( solverNode, olasInfo );
       ASSERTMEM( retSolver, sizeof(MINRESSolver<Complex>) );
       LOG_DBG(genSolver) << " GenerateSolver: Generated complex MINRES solver";
-    }
-    else {
-      eTypeUnknown = true;
     }
     break;
 
@@ -198,9 +185,6 @@ BaseSolver* GenerateSolverObject( const BaseMatrix &mat,
       ASSERTMEM( retSolver, sizeof(LUSolver<Complex>) );
       LOG_DBG(genSolver) << " GenerateSolver: Generated complex "
                          << BaseSolver::solverType.ToString(solver);
-    }
-    else {
-      eTypeUnknown = true;
     }
     break;
   case BaseSolver::LDL_SOLVER:

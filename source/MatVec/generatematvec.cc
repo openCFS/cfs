@@ -51,7 +51,6 @@ if ( ( eType == MATRIX_ENTRY )  ) {\
     BaseVector *retVector = NULL;
     BaseMatrix::StructureType m_structuretype;
     BaseMatrix::EntryType m_entrytype;
-    BaseMatrix::StorageType m_storagetype;
     Integer m_Ncols;
     const StdMatrix  *m_StdMatrix;
     const SBM_Matrix  *sbmmat;
@@ -91,7 +90,6 @@ if ( ( eType == MATRIX_ENTRY )  ) {\
 
       m_StdMatrix = dynamic_cast<const StdMatrix*>(&m);
       m_entrytype = m_StdMatrix->GetEntryType();
-      m_storagetype = m_StdMatrix->GetStorageType();
 
       // Delegate work to factory for sequential SingleVectors
       retVector = GenerateSingleVectorObject(  m_entrytype,

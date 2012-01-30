@@ -148,7 +148,7 @@ namespace CoupledField {
       EntityList::ListType defType = ent->GetType();
       EntityIterator entIt = ent->GetIterator();
       nodes.Resize(0);
-      UInt nCount = 0;
+      // UInt nCount = 0;
       switch (defType){
         case EntityList::REGION_LIST:
           for(entIt.Begin(); !entIt.IsEnd(); entIt++){
@@ -183,7 +183,7 @@ namespace CoupledField {
           }
         break;
         case EntityList::NODE_LIST:
-          nCount = 0;
+          // nCount = 0;
           for(entIt.Begin(); !entIt.IsEnd(); entIt++){
             if(gridToVirtualNodes_.find(entIt.GetNode()) != gridToVirtualNodes_.end()){
               nodes.Push_back( gridToVirtualNodes_[entIt.GetNode()]);
@@ -372,7 +372,8 @@ namespace CoupledField {
     UInt offset =0;
 
     //Stores the current order
-    MappingType curMap = GRID;
+    // MappingType curMap = GRID;
+    
     // loop over all entitylists (i.e. regions)
     for(UInt actList = 0;actList <  fctEntList.GetSize(); actList++){
 
@@ -395,7 +396,7 @@ namespace CoupledField {
       EntityList* actElemList = fctEntList[actList].get();
 //      RegionIdType curReg = actElemList->GetRegion();
 
-      curMap = POLYNOMIAL;
+      // curMap = POLYNOMIAL;
 
       // Get iterator of current element list
       EntityIterator entIt = actElemList->GetIterator();

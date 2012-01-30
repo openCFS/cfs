@@ -55,8 +55,6 @@ namespace CoupledField {
     // Variables for loop control and related stuff
     bool loop = true;
     Integer niter = 0;
-    Double norm_new = 0;
-    Double norm_old = 0;
     Double resNorm  = 0;
     Double tol      = 0;
 
@@ -122,7 +120,6 @@ namespace CoupledField {
     r_->Inner( *d_, delta_new );
 
     // Compute Euclidean norm of preconditioned initial residual
-    norm_new = sqrt(Abs(delta_new));
 
 #ifdef DEBUG_CGSOLVER
     (*debug) << " Initial residual:" << std::endl;
@@ -191,8 +188,6 @@ namespace CoupledField {
       d_->Axpy( beta, *s_ );
 
       // Log progress
-      norm_old = norm_new;
-      norm_new = sqrt(Abs(delta_new));
 
       // Check stopping criterion
       if ( resNorm < tol ) {

@@ -2361,12 +2361,12 @@ namespace CoupledField {
         }
       }
 
-      BaseEigenSolver::EigenSolverType est;
+      // BaseEigenSolver::EigenSolverType est;
       if( !eSolverNode ) {
         // -------------------------------------
         //  no eigensolver set -> use default direct 
         // -------------------------------------
-        est = BaseEigenSolver::ARPACK;
+        // est = BaseEigenSolver::ARPACK;
         eSolverList->Get("arpack",ParamNode::INSERT)->
             Get("id",ParamNode::INSERT)->SetValue(eSolverId);
       } else {

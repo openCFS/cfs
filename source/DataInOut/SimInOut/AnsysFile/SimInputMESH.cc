@@ -738,10 +738,10 @@ namespace CoupledField {
     pos=std::string::npos;
     bool found = false;
     
-    std::string::size_type hpos;
+    // std::string::size_type hpos;
     
     while (found == false && !inFile_.eof()) {
-      hpos=inFile_.tellg();
+      // hpos=inFile_.tellg();
       std::getline(inFile_, buf, '\n');
       pos=buf.find(seekexp);
 

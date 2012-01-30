@@ -345,12 +345,12 @@ namespace CoupledField {
   void SimOutputGiD::
   WriteElement( Elem * ptEl, UInt numNodes) {
 
-     uint32_t elemNum;
+    uint32_t elemNum;
     Elem::FEType eType;
-    Integer region;
+    // Integer region;
 
     eType = ptEl->type;
-    region = ptEl->regionId+1;
+    // region = ptEl->regionId+1;
     elemNum = ptEl->elemNum;
     StdVector<UInt> const & connectDummy = ptEl->connect;
     StdVector<UInt> connect;
