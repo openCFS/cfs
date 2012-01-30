@@ -891,78 +891,78 @@ namespace CoupledField {
         
         // also remember the block, in which this functionId occurs
         fctIdsInBlocks_[fctId].insert(sbmIndex);
-      }
+      } // eqns
+    } // fctIds
       
-      // now we know the number of unknown and fixed entries in this block
-      // and we can renumber the fixed equations to start with numLastFreeEqn+1 
-      numLastFreeIndex = index;
-      
-      std::map<FeFctIdType,std::set<UInt> >::const_iterator fixedFctIt = 
-          fixedEqnsToIndex.begin();
-      
-      // loop over all fctIds
-      for( ; fixedFctIt != fixedEqnsToIndex.end(); ++fixedFctIt ) {
-        FeFctIdType fctId = fixedFctIt->first;
-        const std::set<UInt> & fixedEqns = fixedFctIt->second;
-      
-        // loop over all fixed equations of this fctId
-        std::set<UInt>::const_iterator fixedEqnIt = fixedEqns.begin();
-        for( ; fixedEqnIt != fixedEqns.end(); ++fixedEqnIt ) {
-          bi.eqnToIndex[fctId][*fixedEqnIt] = ++index; 
+    // now we know the number of unknown and fixed entries in this block
+    // and we can renumber the fixed equations to start with numLastFreeEqn+1 
+    numLastFreeIndex = index;
+
+    std::map<FeFctIdType,std::set<UInt> >::const_iterator fixedFctIt = 
+        fixedEqnsToIndex.begin();
+
+    // loop over all fctIds
+    for( ; fixedFctIt != fixedEqnsToIndex.end(); ++fixedFctIt ) {
+      FeFctIdType fctId = fixedFctIt->first;
+      const std::set<UInt> & fixedEqns = fixedFctIt->second;
+
+      // loop over all fixed equations of this fctId
+      std::set<UInt>::const_iterator fixedEqnIt = fixedEqns.begin();
+      for( ; fixedEqnIt != fixedEqns.end(); ++fixedEqnIt ) {
+        bi.eqnToIndex[fctId][*fixedEqnIt] = ++index; 
+      } // fixed eqns
+    } // fctIds
+
+    // Store number of Dirichlet values per SBM block
+    // Note: if we perform static condensation, we have one block
+    // less for the IDBC-handler
+    if( sbmIndex < numDirichletValuesPerBlock_.GetSize() ) {
+      numDirichletValuesPerBlock_[sbmIndex] = index - numLastFreeIndex;
+    }
+
+    // set total number of unknowns for this matrix block
+    if (usingPenalty_ ) {
+      // Case a): If we use penalty approach, we do not create an IDBC-graph
+      //          and thus we do not have to split equation numbers
+      bi.size = index;
+      bi.numLastFreeIndex = index;
+    } else {
+      // Case b): If we use elimination approach, we 
+      //          create an additional IDBC-graph and sort the indices /
+      //          equations according to the numLastFreeIndex value
+      bi.size = index;
+      bi.numLastFreeIndex = numLastFreeIndex;
+    }
+
+    // Initially we assume, there are no sub-blocks defined on the sparse matrix
+    bi.hasSubBlocks = false;
+
+    // Print final definition of SBM-block i.e. print
+    // (index) -> (fctId,eqnNr) mapping
+    if (IS_LOG_ENABLED(algSys, dbg3)) {
+      StdVector<std::pair<UInt,UInt> > indexToIdEqn(bi.size+1);
+
+      // loop over all functions Ids
+      for( UInt iFct = 0; iFct < bi.eqnToIndex.GetSize(); ++iFct ) {
+        FeFctIdType fctId = iFct;
+        std::map<UInt, UInt> & eqnToIndex = bi.eqnToIndex[iFct];
+        std::map<UInt, UInt>::iterator eqnToIndexIt = eqnToIndex.begin(); 
+        for( ; eqnToIndexIt != eqnToIndex.end(); ++eqnToIndexIt ) {
+          UInt eqnNr = eqnToIndexIt->first;
+          UInt index = eqnToIndexIt->second;
+          indexToIdEqn[index] = std::pair<UInt,UInt>(fctId,eqnNr);
         }
       }
-      
-      // Store number of Dirichlet values per SBM block
-      // Note: if we perform static condensation, we have one block
-      // less for the IDBC-handler
-      if( sbmIndex < numDirichletValuesPerBlock_.GetSize() ) {
-        numDirichletValuesPerBlock_[sbmIndex] = index - numLastFreeIndex;
+
+      LOG_DBG3(algSys) << "Final block SBM #" << sbmIndex << " has "
+          << bi.size << " rows/cols and " << bi.numLastFreeIndex 
+          << " as highest free entry.";
+      LOG_DBG3(algSys) << "\tindex\t(fctId,eqnNr)";
+      for( UInt i = 1; i <= bi.size; ++i ) {
+        LOG_DBG3(algSys) << "\t" << i << "\t(" << indexToIdEqn[i].first
+            << ", " << indexToIdEqn[i].second << ")";
       }
-      
-      // set total number of unknowns for this matrix block
-      if (usingPenalty_ ) {
-        // Case a): If we use penalty approach, we do not create an IDBC-graph
-        //          and thus we do not have to split equation numbers
-        bi.size = index;
-        bi.numLastFreeIndex = index;
-      } else {
-        // Case b): If we use elimination approach, we 
-        //          create an additional IDBC-graph and sort the indices /
-        //          equations according to the numLastFreeIndex value
-        bi.size = index;
-        bi.numLastFreeIndex = numLastFreeIndex;
-      }
-      
-      // Initially we assume, there are no sub-blocks defined on the sparse matrix
-      bi.hasSubBlocks = false;
-      
-      // Print final definition of SBM-block i.e. print
-      // (index) -> (fctId,eqnNr) mapping
-      if (IS_LOG_ENABLED(algSys, dbg3)) {
-        StdVector<std::pair<UInt,UInt> > indexToIdEqn(bi.size+1);
-        
-        // loop over all functions Ids
-        for( UInt iFct = 0; iFct < bi.eqnToIndex.GetSize(); ++iFct ) {
-          FeFctIdType fctId = iFct;
-          std::map<UInt, UInt> & eqnToIndex = bi.eqnToIndex[iFct];
-          std::map<UInt, UInt>::iterator eqnToIndexIt = eqnToIndex.begin(); 
-          for( ; eqnToIndexIt != eqnToIndex.end(); ++eqnToIndexIt ) {
-            UInt eqnNr = eqnToIndexIt->first;
-            UInt index = eqnToIndexIt->second;
-            indexToIdEqn[index] = std::pair<UInt,UInt>(fctId,eqnNr);
-          }
-        }
-        
-        LOG_DBG3(algSys) << "Final block SBM #" << sbmIndex << " has "
-            << bi.size << " rows/cols and " << bi.numLastFreeIndex 
-            << " as highest free entry.";
-        LOG_DBG3(algSys) << "\tindex\t(fctId,eqnNr)";
-        for( UInt i = 1; i <= bi.size; ++i ) {
-          LOG_DBG3(algSys) << "\t" << i << "\t(" << indexToIdEqn[i].first
-              << ", " << indexToIdEqn[i].second << ")";
-        }
-      } // if logging enabled
-    } // loop over fctIds
+    } // if logging enabled
     
     // return newly created block
     return sbmIndex;
@@ -1321,7 +1321,7 @@ namespace CoupledField {
     LOG_DBG2(algSys) << "matrixType: " << feMatrixType.ToString(matrixType);
     LOG_DBG2(algSys) << "counterPart: " << (setCounterPart ? "yes" : "no");
     LOG_DBG2(algSys) << "EqnVec1: " << eqnNrs1.ToString();
-    LOG_DBG2(algSys) << "EqnVec2: " << eqnNrs1.ToString();
+    LOG_DBG2(algSys) << "EqnVec2: " << eqnNrs2.ToString();
 
     // check, if registration was already finished
 #ifndef NDEBUG
@@ -1363,7 +1363,7 @@ namespace CoupledField {
     
     UInt numEqns = eqns.GetSize();
     for( UInt iEqn = 0; iEqn < numEqns; ++iEqn ) {
-      const UInt & eqnNr = eqns[iEqn];
+      const UInt & eqnNr = std::abs(eqns[iEqn]);
       
       // take care of homogeneous BCs
       if( eqnNr == 0) {
@@ -1396,7 +1396,7 @@ namespace CoupledField {
 
     UInt numEqns = eqns.GetSize();
     for( UInt iEqn = 0; iEqn < numEqns; ++iEqn ) {
-      const UInt & eqnNr = eqns[iEqn];
+      const UInt & eqnNr = std::abs(eqns[iEqn]);
       const FeFctIdType & fctId = fctIds[iEqn];
       
       // get hold of fct-specific map
@@ -1474,8 +1474,8 @@ namespace CoupledField {
       index = 0;
     } else {
       std::map<Integer,UInt>& eqnToBlock = eqnToSBMBlock_[fctId];
-      blockNum = eqnToBlock[eqnNr];
-      index = blockInfo_[blockNum]->eqnToIndex[fctId][eqnNr];
+      blockNum = eqnToBlock[std::abs(eqnNr)];
+      index = blockInfo_[blockNum]->eqnToIndex[fctId][std::abs(eqnNr)];
     }
   }
 
@@ -1621,7 +1621,7 @@ namespace CoupledField {
                      << fctId1 << ", " << fctId2 << ")";
     LOG_DBG2(algSys) << "Matrix: " << feMatrixType.ToString(matrixType);
     LOG_DBG2(algSys) << "EqnVec1: " << eqnNrs1.ToString();
-    LOG_DBG2(algSys) << "EqnVec2: " << eqnNrs1.ToString();
+    LOG_DBG2(algSys) << "EqnVec2: " << eqnNrs2.ToString();
     LOG_DBG3(algSys) << "matrix is:\n " << elemMat;
     
     // Re-map entries from (fctId,eqnNr) -> (blockNum,index)
@@ -1790,12 +1790,12 @@ namespace CoupledField {
           temp.Resize(invMat.GetNumRows(),k_ic.GetNumCols());
           
           // Fast method: use BLAS 
-          invMat.Mult_Blas(k_ic, temp,false,false,1.0,0.0);
-          k_ri.Mult_Blas(temp,k_rc,false,false,-1.0,1.0);
+          invMat.Mult_Blas(k_ic, temp, false, false, 1.0, 0.0);
+          k_ri.Mult_Blas(temp, k_rc, false, false, -1.0, 1.0);
           // Alternative solution without BLAS
 //            temp = invMat * k_ic;
 //            k_rc -= k_ri*temp;
-          elemMat.SetSubMatrixByInd( k_rc,rowIndList1[iRow],
+          elemMat.SetSubMatrixByInd( k_rc, rowIndList1[iRow],
                                      colIndList1[iCol]);
         } // col blocks
       } // row blocks
@@ -1856,7 +1856,7 @@ namespace CoupledField {
 
         // Attention: This check is not really implemented in a clean way!
         if( stdMat != NULL ) {
-          // 1) Assemble all free <-> free entries
+          // 2) Assemble all free <-> free entries
           // loop over all rows/col
           for ( UInt i = 0; i < rList1.size(); i++ ) {
             rowInd = rIndList1[i];
@@ -1866,9 +1866,24 @@ namespace CoupledField {
                                         elemMat[rowInd][colInd] );
             } //j
           } //i
-        }
 
-        // 2) Assemble all free <-> fixed entries
+
+          // 2) if sbmRow == sbmCol and transposed should be set,
+          // we have to assemble the transposed by hand
+          // loop over all rows/col
+          if( sbmRow == sbmCol && setCounterPart ) {
+            for ( UInt i = 0; i < rList1.size(); i++ ) {
+              rowInd = rIndList1[i];
+              for ( UInt j = 0; j < cList1.size(); j++ ) {
+                colInd = cIndList1[j];
+                stdMat->AddToMatrixEntry( cList1[j], rList1[i],
+                                          elemMat[rowInd][colInd] );
+              } //j
+            } //i
+          } // sbmRow == sbmCol
+        } // stdMat != NULL
+
+        // 3) Assemble all free <-> fixed entries
         for ( UInt i = 0; i < rList1.size(); i++ ) {
           rowInd = rIndList1[i];
           for ( UInt j = 0; j < cList2.size(); j++ ) {
@@ -1879,8 +1894,9 @@ namespace CoupledField {
           } // j
         } // i
 
-        // 3) Assemble all free <-> fixed entries ( TRANSPOSED )
-        if( sbmRow != sbmCol && setCounterPart == true) {
+        // 4) Assemble all free <-> fixed entries ( TRANSPOSED )
+        //if( sbmRow != sbmCol && setCounterPart == true) {
+          if( sbmRow != sbmCol && setCounterPart == true) {
           WARN("This block is not tested yet");
           for ( UInt i = 0; i < rList2.size(); i++ ) {
             rowInd = rIndList2[i];

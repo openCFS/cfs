@@ -51,10 +51,24 @@ public:
                              EntityIterator& ent2 ) {
     EXCEPTION("BaseBDBInt: ApplyBMat not implemented");
   }
-  virtual void ApplyElemMat( Vector<Complex>&ret, const Vector<Double>& sol,
+  virtual void ApplyElemMat( Vector<Complex>&ret, const Vector<Complex>& sol,
                              EntityIterator& ent1,
                              EntityIterator& ent2 ) {
-    EXCEPTION("BaseBDBInt: ApplyBMat not implemented");
+    
+    // provide default implementation in base class
+    Vector<Double>  rRet(sol.GetSize() ), rSol( sol.GetSize() );
+    
+    // 1) real part
+    rSol.Resize( sol.GetSize() );
+    rSol = sol.GetPart( Global::REAL );
+    this->ApplyElemMat( rRet, rSol, ent1, ent2 );
+    ret.Resize(rRet.GetSize());
+    ret.SetPart(Global::REAL, rRet);
+    
+    // 2) imag part
+    rSol = sol.GetPart( Global::IMAG );
+    this->ApplyElemMat( rRet, rSol, ent1, ent2 );
+    ret.SetPart(Global::IMAG, rRet);
   }  
   //@}
 
@@ -66,7 +80,20 @@ public:
   }
   virtual void ApplyBMat( Vector<Complex>&ret, const Vector<Complex>& sol,
                           const LocPointMapped& lpm ) {
-    EXCEPTION("BaseBDBInt: ApplyBMat not implemented");
+    // provide default implementation in base class
+    Vector<Double>  rRet(sol.GetSize() ), rSol( sol.GetSize() );
+
+    // 1) real part
+    rSol.Resize( sol.GetSize() );
+    rSol = sol.GetPart( Global::REAL );
+    this->ApplyBMat( rRet, rSol, lpm );
+    ret.Resize(rRet.GetSize());
+    ret.SetPart(Global::REAL, rRet);
+
+    // 2) imag part
+    rSol = sol.GetPart( Global::IMAG );
+    this->ApplyBMat( rRet, rSol, lpm );
+    ret.SetPart(Global::IMAG, rRet);
   }
   //@}
 
@@ -80,7 +107,20 @@ public:
 
   virtual void ApplydBMat( Vector<Complex>&ret, const Vector<Complex>& sol,
                            const LocPointMapped& lpm ) {
-    EXCEPTION("BaseBDBInt: ApplydBMat not implemented");
+    // provide default implementation in base class
+    Vector<Double>  rRet(sol.GetSize() ), rSol( sol.GetSize() );
+
+    // 1) real part
+    rSol.Resize( sol.GetSize() );
+    rSol = sol.GetPart( Global::REAL );
+    this->ApplydBMat( rRet, rSol, lpm );
+    ret.Resize(rRet.GetSize());
+    ret.SetPart(Global::REAL, rRet);
+
+    // 2) imag part
+    rSol = sol.GetPart( Global::IMAG );
+    this->ApplydBMat( rRet, rSol, lpm );
+    ret.SetPart(Global::IMAG, rRet);
   }
   //@}
 
@@ -129,14 +169,12 @@ public:
       void CalcKernel( Matrix<MAT_DATA_TYPE>& kernel, 
                        const LocPointMapped& lpm );
       
-      //! Apply B-Operator on vector
-      //template<class VEC_DATA_TYPE>
+      //! Apply B-Operator on vector 
       void ApplyBMat( Vector<MAT_DATA_TYPE>&ret, 
                       const Vector<MAT_DATA_TYPE>& sol,
                       const LocPointMapped& lpm );
 
       //! Apply dB-Operator on vector
-      //template<class VEC_DATA_TYPE>
       void ApplydBMat( Vector<MAT_DATA_TYPE>&ret, 
                        const Vector<MAT_DATA_TYPE>& sol,
                        const LocPointMapped& lpm );
@@ -147,6 +185,7 @@ public:
 
       void SetFeSpace( shared_ptr<FeSpace> feSpace ) {
         this->ptFeSpace1_ = feSpace;
+        this->ptFeSpace2_ = feSpace;
       }
 
       virtual void SetFeSpace( shared_ptr<FeSpace> feSpace1, shared_ptr<FeSpace> feSpace2) {
@@ -155,9 +194,11 @@ public:
       }
 
       
+      void __Instantiate();
+       
 
     protected:
-      B_OP operator_;
+      B_OP bOperator_;
 
       //! set a constant factor for multiplication with the element matrix
       MAT_DATA_TYPE factor_;

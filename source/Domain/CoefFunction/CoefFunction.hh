@@ -52,7 +52,7 @@ class CoordSystem;
 //!   \li \c coefFunctionGrid
 //!     This class provides the Information based on information read in
 //!     from a grid. E.g. in the case of (interpolated) aeroacoustic source terms 
-//!   \li \c coefFucnctionSol
+//!   \li \c coefFunctionSol
 //!     This function provides the information based on the current
 //!     solution of the problem
 class CoefFunction{
@@ -152,7 +152,7 @@ public:
     dependType_ = CONST;
     
     // by default, the coefficients do not
-    // depend on any coordiante system
+    // depend on any coordinate system
     this->coordSys_ = NULL;
   }
 
@@ -170,37 +170,49 @@ public:
   //! Return real-valued tensor at integration point
   virtual void GetTensor(Matrix<Double>& tensor, 
                          const LocPointMapped& lpm ) {
-    EXCEPTION("CoefFunction::GetTensor<Double> called: This may not happen");
+    EXCEPTION( "CoefFunction::GetTensor<Double> called: This may not happen. "
+        << "Most likely this method is called with a complex-valued "
+        << "CoefFunction object." );
   }
 
   //! Return real-valued vector at integration point
   virtual void GetVector(Vector<Double>& vec, 
                          const LocPointMapped& lpm ) {
-    EXCEPTION("CoefFunction::GetVector<Double> called: This may not happen");
+    EXCEPTION( "CoefFunction::GetVector<Double> called: This may not happen " 
+        << "Most likely this method is called with a complex-valued "
+        << "CoefFunction object." );
   }
 
   //! Return real-valued scalar at integration point
   virtual void GetScalar(Double& scal, 
                          const LocPointMapped& lpm ) {
-    EXCEPTION("CoefFunction::GetScalar<Double> called: This may not happen");
+    EXCEPTION( "CoefFunction::GetScalar<Double> called: This may not happen. " 
+        << "Most likely this method is called with a complex-valued "
+        << "CoefFunction object." );
   }
 
   //! Return complex-valued tensor at integration point
   virtual void GetTensor(Matrix<Complex>& tensor, 
                          const LocPointMapped& lpm ) {
-    EXCEPTION("CoefFunction::GetTensor<Complex> called: This may not happen");
+    EXCEPTION( "CoefFunction::GetTensor<Double> called: This may not happen. "
+        << "Most likely this method is called with a real-valued "
+        << "CoefFunction object." );
   }
 
   //! Return complex-valued vector at integration point
   virtual void GetVector(Vector<Complex>& vec, 
                          const LocPointMapped& lpm ) {
-    EXCEPTION("CoefFunction::GetVector<Complex> called: This may not happen");
+    EXCEPTION( "CoefFunction::GetVector<Complex> called: This may not happen. " 
+        << "Most likely this method is called with a real-valued "
+        << "CoefFunction object." );
   }
 
   //! Return complex-valued scalar at integration point
   virtual void GetScalar(Complex& scalar, 
                          const LocPointMapped& lpm ) {
-    EXCEPTION("CoefFunction::GetScalar<Complex> called: This may not happen");
+    EXCEPTION( "CoefFunction::GetScalar<Complex> called: This may not happen. "
+        << "Most likely this method is called with a real-valued "
+        << "CoefFunction object." );
   }
   //@}
 
@@ -220,7 +232,13 @@ public:
     return dimType_;
   }
   
-  //! Returm, if coeffunction is complex
+  //! Return if coeffunction is zero
+  virtual bool IsZero() {
+    EXCEPTION("Method not properly overwritten");
+    return false;
+  }
+  
+  //! Return if coeffunction is complex
   virtual bool IsComplex() {
     EXCEPTION("Method not properly overwritten");
     return false;

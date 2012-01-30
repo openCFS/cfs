@@ -84,6 +84,9 @@ namespace CoupledField {
       Integer rowInd;
       Integer colInd;
     } SubMatrixID;
+    
+    //! Definition of SBM matrix blocks by combination of (FeFctId,eqnNr)
+    typedef std::map<FeFctIdType, std::set<Integer> > SBMBlockDef;
 
     //! For convenience and to help g++ parsing we define this shortcut
     typedef std::map<FEMatrixType,Double> factorMap;
@@ -321,6 +324,11 @@ namespace CoupledField {
     void DefineSubMatrixBlocks( UInt sbmIndex, UInt blockIndex,
                                 const StdVector<FeFctIdType>& fctIds,
                                 const StdVector<Integer>& eqns );
+    
+    // Alternative new interface, which is easier
+    //void DefineSubMatrixBlocks( UInt sbmIndex, UInt blockIndex,
+    //                            const StdVector<std::pair<FeFctIdType,Integer> >& fctIds );
+    
     
     //! Finalize registration and definition of SBMMatrix / Submatrix blocks
     void FinishRegistration( );

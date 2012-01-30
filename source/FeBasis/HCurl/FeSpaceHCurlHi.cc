@@ -616,7 +616,7 @@ namespace CoupledField{
 
   
   void FeSpaceHCurlHi::GetOlasMappings( shared_ptr<SolStrategy> solStrat,
-                                        StdVector<std::set<Integer> >& sbmBlocks,
+                                        StdVector<AlgebraicSys::SBMBlockDef>& sbmBlocks,
                                         std::map<UInt,StdVector<std::set<Integer> > >&
                                         minorBlocks ) {
     
@@ -629,11 +629,13 @@ namespace CoupledField{
       return;
     }
     
-    // check in addition, if we need the two-lvel approach
+    // check in addition, if we need the two-level approach
     if( solStrat->GetType() != SolStrategy::TWO_LEVEL_STRATEGY ) 
       EXCEPTION("Solution strategy of type ' " 
                 << SolStrategy::strategyType.ToString(solStrat->GetType()) 
                 << "' not implemented for HCurl of higher order.");
+    
+    FeFctIdType fctId = feFunction_->GetFctId();
     
     // maintain of already used entities
     std::set<UInt> edges, faces, elems;
@@ -663,8 +665,8 @@ namespace CoupledField{
       // loop over all edges -> block #0 (if gradients are disabled)
       const StdVector<UInt> & edgeNodes = vn[BaseFE::EDGE].vNodes;
       for(UInt i = 0; i < edgeNodes.GetSize(); ++i ) {
-        sbmBlocks[0].insert(nodeMap_[edgeNodes[i]].Begin(),
-                            nodeMap_[edgeNodes[i]].End());
+        sbmBlocks[0][fctId].insert(nodeMap_[edgeNodes[i]].Begin(),
+                                   nodeMap_[edgeNodes[i]].End());
       } 
 
       // loop over all faces -> block #1
@@ -672,8 +674,8 @@ namespace CoupledField{
       LOG_DBG(feSpaceHCurlHi) << "\n\nfaceNodes has size "
                               << faceNodes.GetSize() << std::endl;
       for(UInt i = 0; i < faceNodes.GetSize(); ++i ) {
-        sbmBlocks[1].insert(nodeMap_[faceNodes[i]].Begin(),
-                            nodeMap_[faceNodes[i]].End());
+        sbmBlocks[1][fctId].insert(nodeMap_[faceNodes[i]].Begin(),
+                                   nodeMap_[faceNodes[i]].End());
       }
 
       // collect all inner nodes -> block #2
@@ -681,8 +683,8 @@ namespace CoupledField{
       LOG_DBG(feSpaceHCurlHi) << "innerNode has size " << innerNodes.GetSize() 
                               << std::endl;
       for(UInt i = 0; i < innerNodes.GetSize(); ++i ) {
-        sbmBlocks[2].insert(nodeMap_[innerNodes[i]].Begin(),
-                            nodeMap_[innerNodes[i]].End());
+        sbmBlocks[2][fctId].insert(nodeMap_[innerNodes[i]].Begin(),
+                                   nodeMap_[innerNodes[i]].End());
       }
 
       // ======================

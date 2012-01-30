@@ -12,10 +12,13 @@
 #include "FeBasis/H1/H1Elems.hh"
 
 // new integrator concept
+#include "Forms/BiLinForms/ADBInt.hh"
 #include "Forms/BiLinForms/BDBInt.hh"
 #include "Forms/BiLinForms/BBInt.hh"
+#include "Forms/BiLinForms/ABInt.hh"
 #include "Forms/LinForms/BUInt.hh"
 #include "Forms/Operators/CurlOperator.hh"
+#include "Forms/Operators/GradientOperator.hh"
 #include "Forms/Operators/IdentityOperator.hh"
 #include "Forms/Operators/DivOperator.hh"
 
@@ -102,10 +105,12 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode )
       //  Set region approximation
       // --------------------------
       // --- Set the approximation for the current region ---
-      PtrParamNode curRegNode = myParam_->Get("regionList")->GetByVal("region","name",regionName.c_str());
+      PtrParamNode curRegNode = myParam_->Get("regionList")
+          ->GetByVal("region","name",regionName.c_str());
       std::string polyId = curRegNode->Get("polyId")->As<std::string>();
       std::string integId = curRegNode->Get("integId")->As<std::string>();
       mySpace->SetRegionApproximation(actRegion, polyId,integId);
+      
       
       
       // ====================================================================
@@ -158,37 +163,76 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode )
         
         
         // ====================================================================
-        //  3D MIXED CASE (coupling between vector and scalar potential)
+        //  MASS - MATRIX (all dimensions)
         // ====================================================================
-        if( isMixed_ ) {
-          WARN("Mixed integrators have to be defined ....");
+        // Note: here we have currently the problem, that we can only treat
+        // constant / double valued conductivity values, as we must check for 
+        // non-zero. However, how do we do this in case of non-constant parameters?
+        Double conductivity;
+        materials_[actRegion]->GetScalar(conductivity,MAG_CONDUCTIVITY,Global::REAL);
+        shared_ptr<CoefFunction> conducCoef =
+                  CoefFunction::Generate(Global::REAL, 
+                                         lexical_cast<std::string>(conductivity));
+        {
+          BiLinearForm *massInt = NULL;
+          if( dim_ == 2 ) {
+            massInt = new BBInt<IdentityOperator<FeH1,2,1> >(conducCoef,1.0);
+          } else {
+            massInt = new BBInt<IdentityOperator<FeH1,3,3> >(conducCoef,1.0);
+          }
+          massInt->SetName("MassIntegrator");
+          BiLinFormContext * massContext = new BiLinFormContext(massInt, MASS );
+          massContext->SetEntities( actSDList, actSDList );
+          massContext->SetFeFunctions( myFct, myFct );
+          assemble_->AddBiLinearForm( massContext );
         }
         
-      }
-      
-//      // ====================================================================
-//      //  Standard Mass Integrator
-//      // ====================================================================
-//      Double density = 0.0;
-//      actSDMat->GetScalar(density,DENSITY,Global::REAL);
-//      shared_ptr<CoefFunction> densCoeff 
-//          = CoefFunction::Generate(Global::REAL, lexical_cast<std::string>(density));
-//      
-//      BiLinearForm *massInt = NULL;
-//      if( dim_ == 2 ) {
-//        massInt = new BBInt<IdentityOperator<FeH1,2,2> >(densCoeff, 1.0);
-//      } else {
-//        massInt = new BBInt<IdentityOperator<FeH1,3,3> >(densCoeff, 1.0);
-//      }
-//      massInt->SetFeSpace( mySpace );
-//
-//      BiLinFormContext *massContext =  new BiLinFormContext( massInt, MASS );
-//      massContext->SetEntities( actSDList, actSDList );
-//      massContext->SetFeFunctions( myFct, myFct );
-//      assemble_->AddBiLinearForm( massContext );
-
-      
-    }
+        // ====================================================================
+        //  3D MIXED CASE (coupling between vector and scalar potential)
+        // ====================================================================
+        if( isMixed_ && conductivity > EPS ) {
+          shared_ptr<BaseFeFunction> potFct = feFunctions_[ELEC_POTENTIAL];
+          shared_ptr<FeSpace> potSpace = potFct->GetFeSpace();
+          // Important: set region approximation also at space for scalar 
+          // potential
+          potSpace->SetRegionApproximation(actRegion, polyId,integId);
+          
+          // add region to feFunction for scalar potential
+          potFct->AddEntityList( actSDList );
+          
+          // ------------------------------
+          // diagonal mass matrix M_phiphi
+          // ------------------------------
+          {
+            BiLinearForm * phiDivInt = 
+                new BBInt<GradientOperator<FeH1,3,Double> > (conducCoef, 1.0);
+            phiDivInt->SetName("MassIntegrator_PhiPhi");
+            BiLinFormContext * massContext = 
+                new BiLinFormContext(phiDivInt, MASS );
+            massContext->SetEntities( actSDList, actSDList );
+            massContext->SetFeFunctions( potFct, potFct );
+            assemble_->AddBiLinearForm( massContext );
+          }
+          
+          // ------------------------------
+          // off-diagonal mass matrix M_A_phi
+          // ------------------------------
+          {
+            BiLinearForm * cplInt = 
+                new ABInt< IdentityOperator<FeH1,3,3,Double>,
+                           GradientOperator<FeH1,3,Double> > (conducCoef, 1.0);
+            cplInt->SetName("MassIntegrator_Coupling_Phi_A");
+            BiLinFormContext * cplContext = 
+                new BiLinFormContext(cplInt, MASS );
+            cplContext->SetCounterPart(true);
+            cplContext->SetEntities( actSDList, actSDList );
+            cplContext->SetFeFunctions( myFct, potFct );
+            assemble_->AddBiLinearForm( cplContext );
+          }
+        } // mixed
+        
+      } // linear part
+    } // regions
   }
   
   
@@ -214,21 +258,45 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode )
          std::string factor = coilDef_[coil]->value_ + "/" +
              lexical_cast<std::string>(coilDef_[coil]->windingCrossSection_);
          shared_ptr<CoefFunction> coef;
+         // ===========
+         //  3D CASE
+         // ===========
          if( dim_ == 3 ) {
            StdVector<std::string> currDensity(3);
            currDensity[0] = factor + "*" + lexical_cast<std::string>(coilDef_[coil]->locFlowDir_[0]);
            currDensity[1] = factor + "*" + lexical_cast<std::string>(coilDef_[coil]->locFlowDir_[1]);
            currDensity[2] = factor + "*" + lexical_cast<std::string>(coilDef_[coil]->locFlowDir_[2]);
-           coef = CoefFunction::Generate(Global::REAL, currDensity);
-           coef->SetCoordinateSystem(coilDef_[coil]->flowCoordSys_);
-           curInt = new BUIntegrator<IdentityOperator<FeH1,3,3> >(1.0, coef);
+
+           if( isComplex_ ) {
+             StdVector<std::string> phaseVec(3);
+             phaseVec.Init(coilDef_[coil]->phase_);
+             coef = CoefFunction::Generate(Global::COMPLEX, currDensity, phaseVec );
+             coef->SetCoordinateSystem(coilDef_[coil]->flowCoordSys_);
+             curInt = new BUIntegrator<IdentityOperator<FeH1,3,3>, Complex >(1.0, coef);
+           } else {
+             coef = CoefFunction::Generate(Global::REAL, currDensity);
+             coef->SetCoordinateSystem(coilDef_[coil]->flowCoordSys_);
+             curInt = new BUIntegrator<IdentityOperator<FeH1,3,3>, Double >(1.0, coef);
+           } // complex
          } else {
+           // ===============
+           //  2D / AXI CASE
+           // ===============
            StdVector<std::string> currDensity(1);
            currDensity[0] = factor;
-           coef = CoefFunction::Generate(Global::REAL, currDensity);
-           coef->SetCoordinateSystem(coilDef_[coil]->flowCoordSys_);
-           curInt = new BUIntegrator<IdentityOperator<FeH1,2,1> >(1.0, coef);
-         }
+           
+           if( isComplex_ ) {
+             StdVector<std::string> phaseVec(1);
+             phaseVec.Init(coilDef_[coil]->phase_);
+             curInt = new BUIntegrator<IdentityOperator<FeH1,2,1>, Complex >(1.0, coef);
+             coef = CoefFunction::Generate(Global::REAL, currDensity);
+             coef->SetCoordinateSystem(coilDef_[coil]->flowCoordSys_);
+           } else {
+             curInt = new BUIntegrator<IdentityOperator<FeH1,2,1>, Double >(1.0, coef);
+             coef = CoefFunction::Generate(Global::REAL, currDensity);
+             coef->SetCoordinateSystem(coilDef_[coil]->flowCoordSys_);
+           } // complex
+         } // dimension
          
         
          LinearFormContext * coilContext =
@@ -252,7 +320,6 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode )
     // Check for permanent magnets
     // -----------------------------
     ReadMagnets();
-
   }
 
 
@@ -324,6 +391,10 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode )
 
       case MAG_POTENTIAL:
         feFunctions_[MAG_POTENTIAL]->ExtractResult( res );
+        break;
+        
+      case ELEC_POTENTIAL:
+        feFunctions_[ELEC_POTENTIAL]->ExtractResult( res );
         break;
 
       case MAG_RHS_LOAD:
@@ -444,7 +515,7 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode )
       vecComponents = "z";
     }
     
-    shared_ptr<BaseFeFunction> feFct = feFunctions_[MAG_POTENTIAL];
+    shared_ptr<BaseFeFunction> vecFct = feFunctions_[MAG_POTENTIAL];
     
     // === MAGNETIC VECTOR POTENTIAL ===
     shared_ptr<ResultInfo> res1(new ResultInfo);
@@ -453,7 +524,7 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode )
     res1->definedOn = ResultInfo::NODE;
     res1->entryType = ResultInfo::VECTOR;
     res1->unit = "Vs/m";
-    res1->SetFeFunction(feFct);
+    res1->SetFeFunction(vecFct);
     results_.Push_back( res1 );
     availResults_.insert( res1 );
     // define related interpolatory method
@@ -462,104 +533,55 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode )
       if( dim_ == 2 ) {
       vFunc.reset(
           new FieldInterpolFunctor<IdentityOperator<FeH1,2,2,Complex>,
-          Complex>(feFct, res1));
+          Complex>(vecFct, res1));
       } else {
         vFunc.reset(
             new FieldInterpolFunctor<IdentityOperator<FeH1,3,3,Complex>,
-            Complex>(feFct, res1));
+            Complex>(vecFct, res1));
       }
     } else {
       if( dim_ == 2 ) {
       vFunc.reset(
           new FieldInterpolFunctor<IdentityOperator<FeH1,2,2>,
-          Double>(feFct, res1));
+          Double>(vecFct, res1));
       } else {
         vFunc.reset(
             new FieldInterpolFunctor<IdentityOperator<FeH1,3,3>,
-            Double>(feFct, res1));
+            Double>(vecFct, res1));
       }
     }
     resultFunctors_[MAG_POTENTIAL] = vFunc;
     fieldFunctors_[MAG_POTENTIAL] = vFunc;
-    feFct->SetResultInfo(res1);
-    //
-//    if( subType_ == "3d" ) {
-//      dispDofNames = "x", "y", "z";
-//      stressDofNames = "xx", "yy", "zz", "yz", "xz", "xy";
-//
-//    } else if( subType_ == "planeStrain" ) {
-//      dispDofNames = "x", "y";
-//      stressDofNames = "xx", "yy", "xy";
-//
-//    } else if( subType_ == "planeStress" ) {
-//      dispDofNames = "x", "y";
-//      stressDofNames = "xx", "yy", "xy";
-//
-//    } else if( subType_ == "axi" ) {
-//      dispDofNames = "r", "z";
-//      stressDofNames = "rr", "zz", "rz", "phiphi";
-//    }
-//
-//    // === MECHANIC DISPLACEMENT ===
-//    shared_ptr<ResultInfo> disp(new ResultInfo);
-//    disp->resultType = MECH_DISPLACEMENT;
-//    disp->dofNames = dispDofNames;
-//    disp->unit = "m";
-//    disp->entryType = ResultInfo::VECTOR;
-//    disp->SetFeFunction(feFunctions_[MECH_DISPLACEMENT]);
-//    disp->definedOn = ResultInfo::NODE;
-//    feFunctions_[MECH_DISPLACEMENT]->SetResultInfo(disp);
-//    
-//    // this defines the primary unknown
-//    results_.Push_back( disp );
-//    availResults_.insert( disp);
-//    
-//    // define functor for interpolation of the field
-//    shared_ptr<BaseFeFunction> feFct = feFunctions_[MECH_DISPLACEMENT];
-//    shared_ptr<BaseFieldFunctor> dFunc;
-//       if( isComplex_ ) {
-//         dFunc.reset(
-//             new FieldInterpolFunctor<IdentityOperator<FeH1,2,2,Complex>,
-//             Complex>(feFct, disp));
-//       } else {
-//         dFunc.reset(
-//             new FieldInterpolFunctor<IdentityOperator<FeH1,2,2,Double>,
-//             Double>(feFct, disp));
-//       }
-//       resultFunctors_[MECH_DISPLACEMENT] = dFunc;
-//       fieldFunctors_[MECH_DISPLACEMENT] = dFunc;
-//
-//    if ( (analysistype_ == TRANSIENT) || (analysistype_ == HARMONIC))
-//    {
-//      // === MECHANIC VELOCITY ===
-//      shared_ptr<ResultInfo> vel(new ResultInfo);
-//      vel->resultType = MECH_VELOCITY;
-//      vel->dofNames = dispDofNames;
-//      vel->unit = "m/s";
-//      vel->entryType = disp->entryType;
-//      vel->definedOn = disp->definedOn;
-//      availResults_.insert( vel );
-//
-//      // === MECHANIC ACCELERATION ===
-//      shared_ptr<ResultInfo> acc(new ResultInfo);
-//      acc->resultType = MECH_ACCELERATION;
-//      acc->dofNames = dispDofNames;
-//      acc->unit = "m/s^2";
-//      acc->entryType = disp->entryType;
-//      acc->definedOn = disp->definedOn;
-//      availResults_.insert( acc );
-//    }
-//
-//    // === MECHANIC RHS ===
-//    shared_ptr<ResultInfo> rhs(new ResultInfo);
-//    rhs->resultType = MECH_RHS_LOAD;
-//    rhs->dofNames = dispDofNames;
-//    rhs->unit = "N";
-//    rhs->entryType = disp->entryType;
-//    rhs->definedOn = disp->definedOn;
-//    availResults_.insert( rhs );
-//    postProcResults_[MECH_RHS_LOAD] = MECH_DISPLACEMENT;
-//    //
+    vecFct->SetResultInfo(res1);
+    
+    // === MAGNETIC SCALAR POTENTIAL ===
+    if (isMixed_) {
+      
+      shared_ptr<BaseFeFunction> scalFct = feFunctions_[ELEC_POTENTIAL];
+      shared_ptr<ResultInfo> res2(new ResultInfo);
+      res2->resultType = ELEC_POTENTIAL;
+      res2->dofNames = "";
+      res2->unit = "V";
+      res2->definedOn = ResultInfo::NODE;
+      res2->entryType = ResultInfo::SCALAR;
+      results_.Push_back( res2 );
+      availResults_.insert( res2 );
+
+      // define related interpolatory method
+      shared_ptr<BaseFieldFunctor> sFunc;
+      if( isComplex_ ) {
+        sFunc.reset(new FieldInterpolFunctor<IdentityOperator<FeH1,3,1,Complex>,
+        Complex>(scalFct, res2));
+      } else {
+        sFunc.reset(
+            new FieldInterpolFunctor<IdentityOperator<FeH1,3,1,Double>,
+            Double>(scalFct, res2));
+      }
+      resultFunctors_[ELEC_POTENTIAL] = sFunc;
+      fieldFunctors_[ELEC_POTENTIAL] = sFunc;
+      scalFct->SetResultInfo(res2);
+    }
+    
     
   }
     

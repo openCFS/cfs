@@ -401,7 +401,8 @@ namespace CoupledField {
 //        }
 
         // Check for assembly of counter part
-        if ( (row != col) && setCounterPart == true ) {
+       // if ( (row != col) && setCounterPart == true ) {
+        if ( setCounterPart == true ) {
 
           idx = ComputeIndex( col, row );
           LOG_DBG3(graphMan) << "IDBC: Inserting into (" << col << ", " << row << ")" << std::endl;

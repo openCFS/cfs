@@ -173,6 +173,11 @@ namespace CoupledField {
       EXCEPTION("No FeFunction set at FeSpace");
     }
     
+    // check if feFunction has a result assigned
+    if( !feFunction_->GetResultInfo()) {
+      EXCEPTION("No resultinfo associated with feFunction");
+    }
+    
     //Get Grip of HdBC List for the fefunction
     const HdBcList hdbcs = feFunction_->GetHomDirichletBCs();
     HdBcList::const_iterator actHBC;
@@ -230,7 +235,8 @@ namespace CoupledField {
           nodeMap_.BcKeys[slaveNodes[iNode]].Init(NOBC);
         }
         nodeMap_.BcKeys[slaveNodes[iNode]][slaveDof] = CS;
-        nodeMap_.constraintNodes[std::pair<Integer,Integer>(slaveNodes[iNode],slaveDof)] = std::pair<Integer,Integer>(mNode,masterDof);
+        nodeMap_.constraintNodes[std::pair<Integer,Integer>(slaveNodes[iNode],slaveDof)] = 
+            std::pair<Integer,Integer>(mNode,masterDof);
         bcCounter_[CS]++;
       }
     }
@@ -324,8 +330,20 @@ namespace CoupledField {
         {
           std::map<std::pair<Integer,Integer>, std::pair<Integer,Integer>  >::iterator  conNodes = nodeMap_.constraintNodes.begin();
           for(; conNodes !=nodeMap_.constraintNodes.end() ; conNodes++){
+
             std::pair<Integer,Integer> slaveP = conNodes->first;
             std::pair<Integer,Integer> masterP = conNodes->second;
+            
+            // attention: we can not rely on the fact, that the nodes mentioned in the
+            // constraint nodes list are really contained in our region list
+            if( nodeMap_.eqns.find(masterP.first) == nodeMap_.eqns.end() )  {
+              EXCEPTION("Master node of constraints could not be found");
+            }
+            
+            if( nodeMap_.eqns.find(slaveP.first) == nodeMap_.eqns.end() )  {
+              EXCEPTION("Slave node of constraints could not be found");
+            }
+
             nodeMap_[slaveP.first][slaveP.second] = -1*nodeMap_[masterP.first][masterP.second];
           }
         }
@@ -338,7 +356,7 @@ namespace CoupledField {
 
   
   void FeSpaceH1::GetOlasMappings( shared_ptr<SolStrategy> solStrat, 
-                                   StdVector<std::set<Integer> >& sbmBlocks,
+                                   StdVector<AlgebraicSys::SBMBlockDef>& sbmBlocks,
                                    std::map<UInt,StdVector<std::set<Integer> > >&
                                    minorBlocks ) {
     
@@ -346,6 +364,8 @@ namespace CoupledField {
     if( solStrat->GetType() != SolStrategy::STD_STRATEGY ) {
       EXCEPTION( "Currently we just support the standard solution strategy for H1.");
     }
+    
+    FeFctIdType fctId = feFunction_->GetFctId();
     
     // Check, if static condensation is to be performed
     bool statCond = solStrat->UseStaticCondensation();
@@ -355,7 +375,7 @@ namespace CoupledField {
       // -------------------------
       // we have just one big matrix block, where all equations are put in
       sbmBlocks.Resize(1);
-      std::set<Integer> & allEqns = sbmBlocks[0];
+      std::set<Integer> & allEqns = sbmBlocks[0][fctId];
       for( UInt i = 0; i < numEqns_; ++i ) {
         allEqns.insert(i+1);
       }
@@ -434,8 +454,8 @@ namespace CoupledField {
                            intBlock.begin(), intBlock.end(),
                            insert_it );
       sbmBlocks.Resize(2);
-      sbmBlocks[0] = diff;
-      sbmBlocks[1] = intBlock;
+      sbmBlocks[0][fctId] = diff;
+      sbmBlocks[1][fctId] = intBlock;
 //      }
       
       

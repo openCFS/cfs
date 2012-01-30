@@ -201,14 +201,11 @@ namespace CoupledField
 
     // Check if integrator can be assembled in this type of simulation
     if( mappedFEType != NOTYPE ) {
-
-      
-      
       
       // Store bilinear form
       allBiLinForms_.insert(biLinContext);
       
-      // Note: As the shared_ptr to an Entitylist is not a unique
+      // Note: As the shared_ptr to an Entitylist is not 
       // unique within CFS, we have to ensure, that the names of 
       // the entity lists rather than the pointers match!
       
@@ -305,7 +302,7 @@ namespace CoupledField
         bool doTranspose = true;
         bool setCounterPart = false;
 
-        if( fctId1 == fctId2 ) {
+        if( fctId1 != fctId2 ) {
           setCounterPart = actContext.IsSetCounterPart();
         }
 
@@ -433,7 +430,7 @@ namespace CoupledField
 
           LOG_DBG(assemble) << "AssembleMatrices for bilinform " << actContext.GetIntegrator()->GetName();
           LOG_DBG2(assemble) << "bilinform=" << actContext.ToString();
-
+          
           // get matrix destinations
           FEMatrixType destMat = actContext.GetDestMat();
           FEMatrixType secDestMat = actContext.GetSecDestMat();

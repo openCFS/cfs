@@ -200,7 +200,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
       // ============================
       // Standard Mass Matrix
       // ============================
-      Double conductivity = 0.0; // , maxPerm = 0.0; // TODO: Check if this is still needed
+      Double conductivity = 0.0; // 
       // bool scaleByEdgeSize = false;
       materials_[actRegion]->GetScalar(conductivity,MAG_CONDUCTIVITY,Global::REAL);
 

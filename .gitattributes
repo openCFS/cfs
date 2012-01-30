@@ -920,6 +920,10 @@ source/FeBasis/HCurl/HCurlElems.hh svneol=native#text/x-c%2B%2Bhdr
 source/FeBasis/HCurl/HCurlElemsHi.cc svneol=native#text/x-c%2B%2Bsrc
 source/FeBasis/HCurl/HCurlElemsHi.hh svneol=native#text/x-c%2B%2Bhdr
 source/FeBasis/Polynomials.hh svneol=native#text/x-c%2B%2Bhdr
+source/Forms/BiLinForms/ABInt.cc -text
+source/Forms/BiLinForms/ABInt.hh -text
+source/Forms/BiLinForms/ADBInt.cc -text
+source/Forms/BiLinForms/ADBInt.hh -text
 source/Forms/BiLinForms/BBInt.cc -text
 source/Forms/BiLinForms/BBInt.hh -text
 source/Forms/BiLinForms/BDBInt.cc -text

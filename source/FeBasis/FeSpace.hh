@@ -11,10 +11,9 @@
 #include "Domain/Results/ResultInfo.hh"
 
 #include "General/Exception.hh"
-
 #include "MatVec/Matrix.hh"
-
 #include "Forms/IntScheme.hh"
+#include "OLAS/algsys/AlgebraicSys.hh"
 
 namespace CoupledField {
 
@@ -195,11 +194,11 @@ public:
   //! definitions, according to the solution strategy provided.
   //! \param solStrat    Solution strategy object, which defines splitting
   //! \param sbmBlocks   Vector (length: numBlocks) with all equations in 
-  //!                    this block
+  //!                    this block(see AlgebraicSys)
   //! \param minorBlocks Map (key: sbmBlockIndex) with Vector (index:
   //!                    subBlockIndex) of set of equations for each minorBlock
   virtual void GetOlasMappings( shared_ptr<SolStrategy> solStrat, 
-                                StdVector<std::set<Integer> >& sbmBlocks,
+                                StdVector<AlgebraicSys::SBMBlockDef>& sbmBlocks,
                                 std::map<UInt,StdVector<std::set<Integer> > >&
                                 minorBlocks ) = 0;
   

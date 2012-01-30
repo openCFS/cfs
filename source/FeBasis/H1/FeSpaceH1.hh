@@ -115,9 +115,9 @@ public:
   
   //! \copydoc FeSpace::GetOlasMappings
   virtual void GetOlasMappings( shared_ptr<SolStrategy> solStrat, 
-                                  StdVector<std::set<Integer> >& sbmBlocks,
-                                  std::map<UInt,StdVector<std::set<Integer> > >&
-                                  minorBlocks );
+                                StdVector<AlgebraicSys::SBMBlockDef>& sbmBlocks,
+                                std::map<UInt,StdVector<std::set<Integer> > >&
+                                minorBlocks );
   
   //! Add result
   virtual void AddFeFunction( shared_ptr<BaseFeFunction> fct );

@@ -47,7 +47,7 @@ public:
   
   //! Return SBM-block and Matrix-SubBlockdefinition according to strategy
   virtual void GetOlasMappings( shared_ptr<SolStrategy> solStrat, 
-                                StdVector<std::set<Integer> >& sbmBlocks,
+                                StdVector<AlgebraicSys::SBMBlockDef>& sbmBlocks,
                                 std::map<UInt,StdVector<std::set<Integer> > >&
                                 minorBlocks );
 

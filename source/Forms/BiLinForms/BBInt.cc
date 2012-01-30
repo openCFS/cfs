@@ -35,7 +35,7 @@ namespace CoupledField{
      // Extract physical element
      const Elem* ptElem = ent1.GetElem();
 
-     Matrix<MAT_DATA_TYPE> bMat,bbMat;
+     Matrix<MAT_DATA_TYPE> bMat;
      MAT_DATA_TYPE fac = 0.0;
 
      // Obtain FE element from feSpace and integration scheme
@@ -63,18 +63,18 @@ namespace CoupledField{
        lp.Set( intPoints[i], esm );
 
        // Call the CalcBMat()-method
-       operator_.CalcOpMat( bMat, lp, ptFe);
+       bOperator_.CalcOpMat( bMat, lp, ptFe);
 
        // Calculate scalar factor
        scalCoef_->GetScalar(fac, lp);
        fac *= MAT_DATA_TYPE(lp.jacDet * weights[i]); 
 
-       operator_.TransformJacDet(fac,lp,ptFe);
+       bOperator_.TransformJacDet(fac,lp,ptFe);
 
 #ifdef USE_BLAS_VERSION
-       bMat.Mult_Blas(bMat,elemMat,true,false,this->factor_*fac,1.0);
+       bMat.Mult_Blas(bMat, elemMat, true, false, this->factor_ * fac, 1.0);
 #else
-       elemMat += Transpose(bMat) * bMat * factor_;
+       elemMat += Transpose(bMat) * bMat * this->factor_ * fac;
 #endif
 
      }
@@ -121,17 +121,17 @@ namespace CoupledField{
        lp.Set( intPoints[i], esm );
 
        // Call the CalcBMat()-method
-       this->operator_.CalcOpMat( bMat, lp, ptFe);
+       this->bOperator_.CalcOpMat( bMat, lp, ptFe);
 
        // Calculate scalar factor
        this->scalCoef_->GetScalar(fac, lp);
        fac *= MAT_DATA_TYPE(lp.jacDet * weights[i]); 
-       this->operator_.TransformJacDet(fac,lp,ptFe);
+       this->bOperator_.TransformJacDet(fac,lp,ptFe);
 
 #ifdef USE_BLAS_VERSION
-       bMat.Mult_Blas(bMat,elemMat,true,false,this->factor_*fac,1.0);
+       bMat.Mult_Blas(bMat, elemMat, true, false, this->factor_*fac, 1.0);
 #else
-       elemMat += Transpose(bMat) * bMat * factor_;
+       elemMat += Transpose(bMat) * bMat * this->factor_ * fac;
 #endif
 
      }

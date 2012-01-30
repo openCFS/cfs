@@ -88,13 +88,13 @@ namespace CoupledField{
       lp.Set( intPoints[i], esm );
 
       // Call the CalcBMat()-method
-      operator_.CalcOpMat( bMat, lp, ptFe);
+      bOperator_.CalcOpMat( bMat, lp, ptFe);
 
       // Calculate D-Mat
       dData_->GetTensor(dMat,lp);
 
       fac = MAT_DATA_TYPE(lp.jacDet * weights[i]);
-      operator_.TransformJacDet(fac,lp,ptFe);
+      bOperator_.TransformJacDet(fac,lp,ptFe);
 
       dbMat.Resize(dMat.GetNumRows(),nrFncs * B_OP::DIM_DOF);
 
@@ -125,20 +125,20 @@ namespace CoupledField{
   }
 
   
-  //! Apply B-operator on vector
-  //template<class VEC_DATA_TYPE>
-  template< class B_OP,
-            class MAT_DATA_TYPE,
-            class COEF_DATA_TYPE>
-  void BDBInt<B_OP,MAT_DATA_TYPE,COEF_DATA_TYPE>::
-  ApplyBMat( Vector<MAT_DATA_TYPE>&ret, 
-             const Vector<MAT_DATA_TYPE>& sol,
-             const LocPointMapped& lpm ) {
-    Matrix<MAT_DATA_TYPE> bOp;
-    BaseFE* ptFe = ptFeSpace1_->GetFe( lpm.ptEl->elemNum );
-    operator_.CalcOpMatTransposed(bOp, lpm, ptFe);
-    ret = Transpose(bOp) * sol;
-  }
+  
+  //! Apply B-operator on vector (complex-valued version)
+    template< class B_OP,
+              class MAT_DATA_TYPE,
+              class COEF_DATA_TYPE>
+    void BDBInt<B_OP,MAT_DATA_TYPE,COEF_DATA_TYPE>::
+    ApplyBMat( Vector<MAT_DATA_TYPE>&ret, 
+               const Vector<MAT_DATA_TYPE>& sol,
+               const LocPointMapped& lpm ) {
+      Matrix<MAT_DATA_TYPE> bOp;
+      BaseFE* ptFe = ptFeSpace1_->GetFe( lpm.ptEl->elemNum );
+      bOperator_.CalcOpMat(bOp, lpm, ptFe);
+      ret = bOp * sol;
+    }
 
   //! Apply dB-operator on vector
   //template<class VEC_DATA_TYPE> 
@@ -151,7 +151,7 @@ namespace CoupledField{
                const LocPointMapped& lpm ) {
      Matrix<MAT_DATA_TYPE> bOp, dMat, dbMat;
      BaseFE* ptFe = ptFeSpace1_->GetFe( lpm.ptEl->elemNum );
-     operator_.CalcOpMat(bOp, lpm, ptFe);
+     bOperator_.CalcOpMat(bOp, lpm, ptFe);
      dData_->GetTensor(dMat,lpm);
      dbMat.Resize(dMat.GetNumRows(), bOp.GetNumCols());
      dMat.Mult_Blas(bOp,dbMat,false,false,1.0,0);
@@ -181,11 +181,11 @@ namespace CoupledField{
 #define USE_BLAS_VERSION
 
     // Call the CalcBMat()-method
-    operator_.CalcOpMat( bMat, lpm, ptFe);
+    bOperator_.CalcOpMat( bMat, lpm, ptFe);
 
     // Calculate D-Mat
     dData_->GetTensor(dMat,lpm);
-    operator_.TransformJacDet(fac,lpm,ptFe);
+    bOperator_.TransformJacDet(fac,lpm,ptFe);
     dbMat.Resize(dMat.GetNumRows(),nrFncs* B_OP::DIM_DOF);
 
 #ifdef USE_BLAS_VERSION
@@ -198,5 +198,17 @@ namespace CoupledField{
 
   }
   
+  template< class B_OP,
+             class MAT_DATA_TYPE,
+             class COEF_DATA_TYPE>
+   void BDBInt<B_OP,MAT_DATA_TYPE,COEF_DATA_TYPE>::__Instantiate() {
+    EXCEPTION("This method may never be called.");
+    
+    Vector<Double> rVec;
+    Vector<Complex> cVec;
+    LocPointMapped lpm;
+    ApplyBMat(rVec, rVec, lpm);
+    ApplyBMat(cVec, cVec, lpm);
+  }
   
-}
+} // namespace

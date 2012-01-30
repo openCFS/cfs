@@ -2015,6 +2015,11 @@ namespace CoupledField {
   // ======================================================
   void SinglePDE::DefineAlgSys() 
   {
+    LOG_TRACE(pde) << pdename_ << ": Defining Algsys";
+   
+    // Trigger writing of info file
+    info->ToFile("", true );
+    
     // First check if the PDE needs an algebraic system at all
     if( needsAlgsys_ == false ) {
       return;
@@ -2029,56 +2034,82 @@ namespace CoupledField {
       // ==============================================
       //   DEFINE GRAPH AND SBM BLOCKS
       // ==============================================
-      // Note: This is currently hard-coded for one feFunction.
-      // If several functions are present, we have to accumulate
-      // and merge all SBM-block definitions, as well as all minor-
-      // block definitions.
+      // vector containing SBM-block definitions (length: numSbmBlocks)
+      StdVector<AlgebraicSys::SBMBlockDef > sbmBlocks;
       
-      if( feFunctions_.size() > 1) {
-        EXCEPTION( "Not yet adapted for more then 1 FeFunction. "
-                   "Please read comment in source code! " );
-      }
-      StdVector<std::set<Integer> > sbmBlocks;
+      // Introduce new mapping:
+      //typedef StdVector<std::pair<FeFctIdType, Integer> > MinorBlockDef;
+      //std::map<UInt,StdVector <MinorBlockDef > > minorBlocks;
+      //          ^        ^
+      //          |        |
+      //        sbm   min blockNum
+
+      // Structure for mapping of minor blocks 
       std::map<UInt,StdVector<std::set<Integer> > > minorBlocks;
-      FeSpace & feSpace =   *(feFunctions_.begin()->second->GetFeSpace());
-      FeFctIdType fctId =  feFunctions_.begin()->second->GetFctId();
       shared_ptr<SolStrategy> solStrat = algsys_->GetSolStrategy();
 
-      // ---------------------------------------
-      //  1) Define SBM-Blocks and minor blocks
-      // ---------------------------------------
-      feSpace.GetOlasMappings( solStrat, sbmBlocks, minorBlocks);
-      UInt numBlocks = sbmBlocks.GetSize();
+      // -----------------------------------------------------------
+      //  1) Register FeFunctions with Algebraic System
+      // -----------------------------------------------------------
       
+      // Note: currently we use the same graph for all matrix
+      // types (STIFFNESS, MASS, SYSTEM...)
+      UInt numFcts = feFunctions_.size();
+      bool useDistinctGraphs = false;
+      algsys_->GraphSetupInit( numFcts,  useDistinctGraphs );
+      
+      LOG_DBG(pde) << pdename_ << ": Registering functions";
+      std::map<SolutionType, shared_ptr<BaseFeFunction> >::iterator fctIt;
+      for( fctIt = feFunctions_.begin(); 
+          fctIt != feFunctions_.end(); 
+          fctIt++ ) {
+        FeSpace & feSpace = *(fctIt->second->GetFeSpace());
+        FeFctIdType fctId = fctIt->second->GetFctId();
+        shared_ptr<ResultInfo> res = fctIt->second->GetResultInfo();
+        std::string resultName = SolutionTypeEnum.ToString(res->resultType);
+        
+        feSpace.GetOlasMappings( solStrat, sbmBlocks, minorBlocks);
+        LOG_DBG(pde) << pdename_ << ":\tfctId #" << fctId
+            << ", Type: " << resultName << ", #Equations: " 
+            << feSpace.GetNumEquations();
+        algsys_->RegisterFct( fctId, feSpace.GetNumEquations(),
+                              feSpace.GetNumFreeEquations() );
+      }
+      
+      // ---------------------------------------
+      //  2) Define SBM-Blocks and minor blocks
+      // ---------------------------------------
+
+      LOG_DBG(pde) << pdename_ << ": Defining SBM-blocks";
+      
+      UInt numBlocks = sbmBlocks.GetSize();
       // security check: ensure that at least one block is defined
       if (numBlocks == 0 ) {
         EXCEPTION( "There are no SBM blocks defined!" );
       }
       
-      // Note: currently we use the same graph for all matrix
-      // types (STIFFNESS, MASS, SYSTEM...)
-      bool useDistinctGraphs = false;
-      algsys_->GraphSetupInit( 1,  useDistinctGraphs );
-      algsys_->RegisterFct( fctId, feSpace.GetNumEquations(),
-                            feSpace.GetNumFreeEquations() );
-      
       // Loop over blocks and register them at OLAS
       Integer sbmIndex = -1;
       for( UInt i = 0; i < numBlocks; ++i ) {
-        std::map<FeFctIdType, std::set<Integer> > block;
-        block[fctId] = sbmBlocks[i];
-        
+
         // register block. In addition we check, if this is the inner block
         // and static condensation is activated
         bool isInnerBlock = solStrat->UseStaticCondensation() &&
             (i == numBlocks-1);
-        sbmIndex = algsys_->DefineSBMMatrixBlock( block, isInnerBlock );
+        sbmIndex = algsys_->DefineSBMMatrixBlock( sbmBlocks[i], isInnerBlock );
         if( minorBlocks.size() != 0 && sbmIndex != -1) {
           StdVector<std::set<Integer> >& sbmSubBlocks = minorBlocks[i];
 
           // check if minor blocks are defined at all
           if(sbmSubBlocks.GetSize() == 0 ) continue;
-
+          
+          // Warning: Sub-matrix block is currently restricted to 
+          // just one FeFunction
+          if( feFunctions_.size() > 1){
+            EXCEPTION( "Sub-matrix block is currently just working for "
+                       << "1 FeFunction!" );
+          }
+          FeFctIdType fctId = feFunctions_.begin()->second->GetFctId();
       
           algsys_->RegisterSubMatrixBlocks(i, sbmSubBlocks.GetSize());
           // loop over all minor blocks
@@ -2096,15 +2127,20 @@ namespace CoupledField {
             }
             algsys_->DefineSubMatrixBlocks(i,j, fctIds, eqns);
           }
-        } // if block is deined at all
+        } // if block is defined at all
       } // loop over blocks
       
       // Finalize registration of blocks
       algsys_->FinishRegistration();
         
+      
+      // Trigger writing of info file
+      info->ToFile("", true );
+        
       // -----------------------------------
-      //  2) Setup Sparsity Patterns
+      //  3) Setup Sparsity Patterns
       // -----------------------------------
+      LOG_DBG(pde) << pdename_ << ": Setting sparsity pattern";
       std::map<SolutionType, shared_ptr<BaseFeFunction> >::iterator it1;
       std::map<SolutionType, shared_ptr<BaseFeFunction> >::iterator it2;
       for( it1 = feFunctions_.begin(); it1 != feFunctions_.end(); ++it1 ) {
@@ -2113,12 +2149,9 @@ namespace CoupledField {
           FeFctIdType fctId2 = it2->second->GetFctId();
 
           // assemble upper diagonal blocks including diagonal
+          LOG_DBG(pde) << pdename_ << ":\tset graph for fctIds #"
+              << fctId1 << " and # " << fctId2 << std::endl;
           assemble_->SetupMatrixGraph(fctId1, fctId2);
-
-          // assemble strictly lower diagonal blocks
-          if(fctId1 != fctId2) {
-            assemble_->SetupMatrixGraph(fctId2, fctId1);
-          } // lower diagonal
         } // it2
       } // it1
 

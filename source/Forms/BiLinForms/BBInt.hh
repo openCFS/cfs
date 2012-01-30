@@ -61,7 +61,7 @@ namespace CoupledField {
       }
 
     protected:
-      B_OP operator_;
+      B_OP bOperator_;
       
       //! Pointer to scalar (!!) coefficient for BB-integrator 
       shared_ptr<CoefFunction > scalCoef_;
