@@ -38,10 +38,10 @@ SET(BUILDNAME "Update CFSDEPS")
 #-----------------------------------------------------------------------------
 # Set source and binary directories on rom/sedici
 #-----------------------------------------------------------------------------
-SET(CTEST_SOURCE_DIRECTORY "$ENV{HOME}/Documents/dev/NIGHTLY/CFSDEPS_NIGHTLY")
-SET(CTEST_BINARY_DIRECTORY "$ENV{HOME}/Documents/dev/NIGHTLY/CFSDEPS_NIGHTLY")
+SET(CTEST_SOURCE_DIRECTORY "$ENV{HOME}/Documents/dev/NIGHTLY/CFSDEPS_FESPACE")
+SET(CTEST_BINARY_DIRECTORY "$ENV{HOME}/Documents/dev/NIGHTLY/CFSDEPS_FESPACE")
 
-SET(REPO "https://lse17.e-technik.uni-erlangen.de:2001/svn/cfsdeps/trunk")
+SET(REPO "https://lse17.e-technik.uni-erlangen.de:2001/svn/cfsdeps/branches/2011-11-fespace")
 SET(USER "testuser-klu")
 
 INCLUDE(ctest_update.cmake)
