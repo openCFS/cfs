@@ -1,7 +1,7 @@
 #ifndef ANSYS_BINLIB_IFACE_H
 #define ANSYS_BINLIB_IFACE_H
 
-#include <DataInOut/simOutput.hh>
+#include "DataInOut/SimOutput.hh"
 
 #include "Utils/DynamicObject.hh"
 

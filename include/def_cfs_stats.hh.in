@@ -1,5 +1,7 @@
 // Define version of CFS++ (year and month)
 #define CFS_VERSION "@CFS_VERSION@"
+#define CFS_VERSION_YEAR "@CFS_VERSION_YEAR@"
+#define CFS_VERSION_MONTH "@CFS_VERSION_MONTH@"
 
 // Define verion name of CFS++
 #define CFS_NAME "@CFS_NAME@"

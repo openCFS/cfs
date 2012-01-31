@@ -736,6 +736,8 @@ source/DataInOut/SimInOut/AnsysRST/AnsysBinlibIfaceRev110/CMakeLists.txt svneol=
 source/DataInOut/SimInOut/AnsysRST/AnsysBinlibIfaceRev120/CMakeLists.txt svneol=native#text/plain
 source/DataInOut/SimInOut/AnsysRST/AnsysBinlibIfaceRev130/CMakeLists.txt -text
 source/DataInOut/SimInOut/AnsysRST/CMakeLists.txt svneol=native#text/plain
+source/DataInOut/SimInOut/AnsysRST/ResRd.F -text
+source/DataInOut/SimInOut/AnsysRST/ResRdDemo.F -text
 source/DataInOut/SimInOut/AnsysRST/ResWr.F -text svneol=unset#text/x-fortran
 source/DataInOut/SimInOut/AnsysRST/ResWrDemo.F -text svneol=unset#text/x-fortran
 source/DataInOut/SimInOut/AnsysRST/ResWrHeadTest.cc svneol=native#text/plain

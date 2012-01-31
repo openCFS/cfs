@@ -1,8 +1,8 @@
 #ifndef ANSYS_BINLIB_IFACE_GENERAL_H
 #define ANSYS_BINLIB_IFACE_GENERAL_H
 
-#include <DataInOut/simOutput.hh>
-#include <Domain/resultInfo.hh>
+#include "DataInOut/SimOutput.hh"
+#include "Domain/Results/ResultInfo.hh"
 
 #include "AnsysBinlibIface.hh"
 
@@ -21,8 +21,8 @@ namespace CoupledField
     // We use 2D/3D ANSYS mechanic elements.
     enum UsedAnsysElementTypes
     {
-      LINE002 =  0,
-      LINE003 =  0,
+      BEAM188 = 188,
+      BEAM189 = 189,
       PLANE42 = 42,
       SOLID45 = 45,
       PLANE82 = 82,
@@ -285,9 +285,13 @@ namespace CoupledField
     //! This map stores the mapping from CFS/NACS element DOFs to ANSYS DOFs.
     std::map <SolutionType, AnsysElemDof> internal2AnsysElemDofMap_;
 
-    //! Initialize element header for dummy element.
-    void SetElementType00(AnsysElementType& eltype,
-                          Integer TypeNumber);
+    //! Initialize element header for BEAM188 element.
+    void SetElementType188(AnsysElementType& eltype,
+                           Integer TypeNumber);
+
+    //! Initialize element header for BEAM189 element.
+    void SetElementType189(AnsysElementType& eltype,
+                           Integer TypeNumber);
 
     //! Initialize element header for PLANE42 element.
     void SetElementType42(AnsysElementType& eltype,

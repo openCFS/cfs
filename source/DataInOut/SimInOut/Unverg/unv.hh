@@ -7,9 +7,11 @@
 #ifndef UNV_LIB_H
 #define UNV_LIB_H
 
+#include <cstddef>
 #include <fstream>
+#include <iostream>
 
-#include <def_use_unv.hh>
+#include "def_use_unv.hh"
 
 class unv {
   friend class dataset;
@@ -109,7 +111,7 @@ struct header_55 {
   int    n_int_data_val;
   int    n_real_data_val;
   int    type_spec_int_par[10];
-  double  type_spec_double_par[12];
+  double type_spec_double_par[12];
 };
 
 struct data_55 {
@@ -143,7 +145,7 @@ struct header_56 {
   int    n_int_data_val;
   int    n_real_data_val;
   int    type_spec_int_par[10];
-  double  type_spec_double_par[12];
+  double type_spec_double_par[12];
 };
 
 struct data_56 {
@@ -219,7 +221,7 @@ class dataset_780 : public dataset {
 public:
   data_780 data;
     
-  dataset_780() { set_num=780, data.node_labels=NULL; } 
+  dataset_780(int setnum) { set_num=setnum; data.node_labels=NULL; } 
   virtual ~dataset_780() { delete[] data.node_labels; } 
   int read_data(int* status);
   //  int write_data(void);
@@ -265,6 +267,61 @@ public:
   }
   //  int write_data(void);
 };
+
+//****** the following datasets were added by Jens Grabinger ******
+
+/*
+ * Dataset 58
+ * Function at Nodal DOF 
+ */
+struct header_58 {
+  char    id[5][81];    // function description
+  int     fnc_type;     // function type
+  int     fnc_id;       // function identification number
+  int     seq_no;       // sequence number
+  int     load_id;      // load case identification number
+  char    res_name[12]; // response entity name
+  int     res_node;     // response node
+  int     res_dir;      // response direction
+  char    ref_name[12]; // reference entity name
+  int     ref_node;     // reference node
+  int     ref_dir;      // reference direction
+  int     data_type;    // ordinate data type
+  int     num_values;   // number of data values
+  int     abs_space;    // abscissa spacing
+  double  abs_min;      // abscissa minimum
+  double  abs_inc;      // abscissa increment
+  double  z_value;      // z-axis value
+  struct axis_58 {
+    int   data_type;    // specific data type
+    int   len_exp;      // length units exponent
+    int   force_exp;    // force units exponent
+    int   temp_exp;     // temperature units exponent
+    char  label[22];    // axis label
+    char  unit[22];     // axis units label
+  };
+  axis_58 axis_data[4]; // axis characteristics
+};
+
+struct data_58 {
+  double  step_val;
+  double  real;
+  double  imag;
+};
+
+class dataset_58 : public dataset {
+  private:
+    int step_idx;
+    
+  public:
+    header_58 header;
+    data_58   data;
+    
+    dataset_58();
+    int read_header(void);
+    int read_data(int *status);
+};
+
 
 #endif /* !UNV_LIB_H */
 

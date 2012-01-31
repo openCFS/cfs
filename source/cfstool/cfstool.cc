@@ -216,6 +216,13 @@ namespace CFSTool {
 #ifdef USE_UNV
       baseName = std::string(fileName, 0, fileName.find(".unv"));
       PtrParamNode unvNode (new ParamNode(ParamNode::EX, ParamNode::ELEMENT));
+      if(fileName.find( ".unverg") != std::string::npos) 
+      {
+        PtrParamNode flavor (new ParamNode(ParamNode::EX, ParamNode::ATTRIBUTE));
+        flavor->SetName("flavor");
+        flavor->SetValue( "CAPA" );
+        unvNode->AddChildNode(flavor);
+      }
       writer =  shared_ptr<SimOutput>( new SimOutputUnv( baseName, unvNode ) );
 #else
       EXCEPTION( "No support for IDEAS universal output file format." );
@@ -1149,17 +1156,15 @@ int main(int argc, char** argv)
       {
         EXCEPTION( "Please provide <inFile1>, <inFile2> and <outFile>" );
       }
-      Double maxDiff = 0.0;
-      maxDiff = CFSTool::Diff( inputFile, compareFile, outputFile, \
-                                false, false, maxDiffResultName);
+      CFSTool::Diff( inputFile, compareFile, outputFile, \
+                     false, false, maxDiffResultName);
     } else if (param_mode == "meshdiffnormed") {
       if (num_files != 3)
       {
         EXCEPTION( "Please provide <inFile1>, <inFile2> and <outFile>" );
       }
-      Double maxDiff = 0.0;
-      maxDiff = CFSTool::Diff( inputFile, compareFile, outputFile, \
-                                true, false, maxDiffResultName);
+      CFSTool::Diff( inputFile, compareFile, outputFile, \
+                     true, false, maxDiffResultName);
     } else {
       EXCEPTION( "No such mode: " << param_mode <<". See help for available modes" );
       return EXIT_FAILURE;

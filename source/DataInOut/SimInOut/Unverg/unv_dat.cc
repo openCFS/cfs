@@ -1,8 +1,10 @@
-#include <cstdlib>
 #include <cstdio>
+#include <iostream>
 
 #include "SimInputUnv.hh"
 #include "unv_dat.hh"
+
+using namespace CoupledField;
 
 char *UNV_FILE=NULL;
 
@@ -18,6 +20,7 @@ int DIM=0;
 
 set_55* SETS55=NULL;
 set_56* SETS56=NULL;
+history_node *NODES58=NULL;
 int N_SETS55=0;
 int N_SETS56=0;
 set_55* CURRENT=NULL;

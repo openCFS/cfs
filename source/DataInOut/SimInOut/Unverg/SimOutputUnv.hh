@@ -1,5 +1,12 @@
+// -*- mode: c++; coding: utf-8; indent-tabs-mode: nil; -*-
+// kate: space-indent on; indent-width 2; encoding utf-8;
+// kate: auto-brackets on; mixedindent off; indent-mode cstyle;
+
 #ifndef FILE_CFS_SIM_OUT_UNV_HH
 #define FILE_CFS_SIM_OUT_UNV_HH
+
+#include <iosfwd>
+#include <string>
 
 #include "Domain/Mesh/Grid.hh"
 #include "DataInOut/SimOutput.hh"
@@ -58,14 +65,34 @@ namespace CoupledField
     //! Offset for step value in case of multisequence analysis
     Double stepValOffset_;
 
-    //! dataset 666. 
+    //! Output for CAPA .unverg if true, otherwise output standard I-DEAS .unv files.
+    bool capaOut_;
+
+    //! Dataset 151 - Header containing information about simulation run.
+    void Dataset151();
+
+    //! Dataset 164 - Header containing information about units.
+    void Dataset164();
+
+    //! Dataset 666. - CAPA specific information
     void Dataset666();
 
-    //! dataset 781
+    //! Dataset 781 - Nodes in old CAPA format
     void Dataset781();   
 
-    //! dataset 780
+    //! dataset 780 - Elements in old CAPA format
     void Dataset780();
+
+    //! Dataset 2411 - Nodes in new I-DEAS format
+    void Dataset2411();   
+
+    //! Dataset 2412 - Elements in new I-DEAS format
+    void Dataset2412();
+
+    //! Dataset 2467 - Regions and Named Elements
+    void Dataset2467();   
+
+    void ElemType2UnvElemId(Elem::FEType et, UInt & id);
 
     //! for printing nodal results of simulation (static/transient)
     /*!
@@ -101,7 +128,10 @@ namespace CoupledField
                               const UInt nrDofs=1);
   
     //! Convertes enum SolutionType to string
-    std::string SolutionTypeToString(const SolutionType type) const;
+    void SolutionTypeToString(const SolutionType type,
+                              std::string& capaSolType,
+                              std::string& ideas5xSolType,
+                              UInt& ideas2414SolType) const;
   
     //! Re-sort stresses according to vector with dofnames
     template<class TYPE>

@@ -1,14 +1,24 @@
+// -*- mode: c++; coding: utf-8; indent-tabs-mode: nil; -*-
+// kate: space-indent on; indent-width 2; encoding utf-8;
+// kate: auto-brackets on; mixedindent off; indent-mode cstyle;
+
 #ifndef FILE_SIMINPUTUNV_2006
 #define FILE_SIMINPUTUNV_2006
+
+#include <map>
+#include <string>
 
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "DataInOut/SimInput.hh"
 
+#include "unv_if.hh"
+
+// forward declaration of GDataInfo
+struct GDataInfo;
 
 namespace CoupledField
 {
 
-  class MeshInterface;
 
   // declare logging stream
   DECLARE_LOG(simInputUNV)
@@ -36,8 +46,6 @@ namespace CoupledField
       
     virtual void ReadMesh(Grid *mi);
 
-    virtual bool ReadData();
-
     // ========================================================================
     // GENERAL MESH INFORMATION
     // ========================================================================
@@ -62,9 +70,6 @@ namespace CoupledField
     virtual UInt GetNumNamedElems();
     //@}
   
-    virtual void GetNumMultiSequenceSteps( std::map<UInt, BasePDE::AnalysisType>& analysis,
-                                           std::map<UInt, UInt>& numSteps,
-                                           bool isHistory );
 
     // =========================================================================
     // ENTITY NAME ACCESS
@@ -105,8 +110,70 @@ namespace CoupledField
 
     //@}
 
+    // =========================================================================
+    // GENERAL SOLUTION INFORMATION
+    // =========================================================================
+    //@{ \name General Solution Information
+
+    //! Return multisequence steps and their analysis types
+    virtual void GetNumMultiSequenceSteps( std::map<UInt, BasePDE::AnalysisType>& analysis,
+                                           std::map<UInt, UInt>& numSteps,
+                                           bool isHistory = false );
+
+    //! Obtain list with result types in each sequence step
+    virtual void GetResultTypes( UInt sequenceStep, 
+                                 StdVector<shared_ptr<ResultInfo> >& infos,
+                                 bool isHistory = false );
+
+    //! Return list with time / frequency values and step for a given result
+    virtual void GetStepValues( UInt sequenceStep,
+                                shared_ptr<ResultInfo> info,
+                                std::map<UInt, Double>& steps,
+                                bool isHistory = false );
+
+    //! Return entitylist the result is defined on
+    virtual void GetResultEntities( UInt sequenceStep,
+                                    shared_ptr<ResultInfo> info,
+                                    StdVector<shared_ptr<EntityList> >& list,
+                                    bool isHistory = false);
+
+    //! Fill pre-initialized results object with values of specified step
+    virtual void GetResult( UInt sequenceStep,
+                            UInt stepNum,
+                            shared_ptr<BaseResult> result,
+                            bool isHistory = false );
+
+    //@}
+
   private:
+    
+    // =========================================================================
+    // GENERAL HELPER FUNCTIONS
+    // =========================================================================
+    //@{ \name General Helper Functions
+
     Elem::FEType UnvType2ElemType( const uint32_t elemType );
+    
+    BasePDE::AnalysisType AnalysisCAPA2CFS(int capaType);
+    
+    SolutionType NodeResultCAPA2CFS(int capaType);
+    int NodeResultCFS2CAPA(SolutionType cfsType);
+    SolutionType ElemResultCAPA2CFS(int capaType);
+    int ElemResultCFS2CAPA(SolutionType cfsType);
+    
+    //@}
+    
+    UInt numNodes_;
+    UInt numElems_;
+    StdVector<std::string> regionNames_;
+    
+    CapaInterfaceC capaIf_;
+
+    // CAPA's info struct on available data
+    GDataInfo datainfo_;
+
+    //! Analysis Type of current UNV file
+    int analysis_;
 
     //! Map for assigning unv file coord axes to grid coord axes.
     StdVector< UInt > axisMap_;
