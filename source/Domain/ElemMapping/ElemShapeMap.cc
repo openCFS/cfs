@@ -162,6 +162,80 @@ void LagrangeElemShapeMap::Local2Global( Vector<Double>& globPoint,
    
 void LagrangeElemShapeMap::Global2Local( Vector<Double>& locPoint, 
                                          const Vector<Double>& globalPoint ) {
+
+
+    Elem::FEType curType = ptFe_->FeType();
+    switch(curType){
+    case Elem::ET_QUAD4:
+      Global2LocalQuad4(locPoint,globalPoint);
+      break;
+    default:
+      Global2LocalGeneral(locPoint,globalPoint);
+      break;
+    }
+  }
+
+void LagrangeElemShapeMap::Global2LocalQuad4( Vector<Double>& locPoint,
+                                         const Vector<Double>& globalPoint ){
+  //based on FEM skript found by simon at
+  //http://www.colorado.edu/engineering/cas/courses.d/IFEM.d/IFEM.Ch23.d/IFEM.Ch23.pdf
+
+  //corner coords
+  Double x1=0.0,x2=0.0,x3=0.0,x4=0.0;
+  Double y1=0.0,y2=0.0,y3=0.0,y4=0.0;
+  //global point
+  Double x_p,y_p;
+  Double x_b,y_b;
+  Double x_cx,y_cx,x_ce,y_ce,A,J_1,J_2,x_0,y_0,x_p0,y_p0;
+  Double b_xi,b_eta,c_xi,c_eta;
+
+  locPoint.Resize(2);
+  locPoint.Init();
+
+  x1 = coords_[0][0];
+  x2 = coords_[0][1];
+  x3 = coords_[0][2];
+  x4 = coords_[0][3];
+
+  y1 = coords_[1][0];
+  y2 = coords_[1][1];
+  y3 = coords_[1][2];
+  y4 = coords_[1][3];
+
+  x_p = globalPoint[0];
+  y_p = globalPoint[1];
+
+  //begin algorithm
+  x_b = x1-x2+x3-x4;
+  y_b = y1-y2+y3-y4;
+
+  x_cx = x1+x2-x3-x4;
+  y_cx = y1+y2-y3-y4;
+  x_ce = x1-x2-x3+x4;
+  y_ce = y1-y2-y3+y4;
+
+  A = 0.5 * ( (x3-x1)*(y4-y2) - (x4-x2)*(y3-y1) );
+  J_1 = (x3-x4)*(y1-y2) - (x1-x2)*(y3-y4);
+  J_2 = (x2-x3)*(y1-y4) - (x1-x4)*(y2-y3);
+
+  x_0 = 0.25 * (x1+x2+x3+x4);
+  y_0 = 0.25 * (y1+y2+y3+y4);
+
+  x_p0 = x_p - x_0;
+  y_p0 = y_p - y_0;
+
+  b_xi =  A - (x_p0*y_b) + (y_p0*x_b); b_eta = -A - (x_p0*y_b) + (y_p0*x_b);
+
+  c_xi = (x_p0*y_cx) - (y_p0*x_cx); c_eta = (x_p0*y_ce) - (y_p0*x_ce);
+
+  locPoint[0] = 2.0*c_xi / ((-1.0 * std::sqrt(b_xi*b_xi - 2.0 * J_1 * c_xi))  - b_xi);
+  locPoint[1] = 2.0*c_eta / ( std::sqrt(b_eta*b_eta + (2.0 * J_2 * c_eta)) - b_eta);
+}
+
+
+void LagrangeElemShapeMap::Global2LocalGeneral( Vector<Double>& locPoint,
+                                         const Vector<Double>& globalPoint ){
+
   // increate counter
   UInt globDim = globalPoint.GetSize(); // determine global dimension
   UInt locDim = shape_.dim; // dimension of current element

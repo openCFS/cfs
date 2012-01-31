@@ -317,6 +317,14 @@ namespace CoupledField {
     void Global2Local( Vector<Double>& locPoint, 
                        const Vector<Double>& glob );
     
+    //! Specialized version for quad4
+    void Global2LocalQuad4( Vector<Double>& locPoint,
+                               const Vector<Double>& glob );
+
+    //! General version
+    void Global2LocalGeneral( Vector<Double>& locPoint,
+                               const Vector<Double>& glob );
+
     //! @copydoc ElemShapeMap::GetGlobMidPoint
     void GetGlobMidPoint( Vector<Double>& midPoint );
 
