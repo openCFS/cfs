@@ -507,7 +507,7 @@ namespace CoupledField{
 
 
     //now loop over and move the contents
-    for(UInt i = 1; i < numRead; i++){
+    for(long i = 1; i < numRead; i++){
       std::memcpy(buff,buff2,bfrS);
       infile->read(buff2,bfrS);
       outfile->write(buff,bfrS);
