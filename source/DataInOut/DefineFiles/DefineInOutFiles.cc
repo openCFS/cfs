@@ -58,7 +58,7 @@
 #endif
 
 #ifdef USE_ANSYSRST
-#include "DataInOut/SimInOut/AnsysRST/simOutputRST.hh"
+#include "DataInOut/SimInOut/AnsysRST/SimOutputRST.hh"
 #endif
 
 #include "DataInOut/SimInOut/TextOutput/TextSimOutput.hh"

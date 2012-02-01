@@ -15,7 +15,7 @@ namespace fs = boost::filesystem;
 
 #include "def_use_ansysrst.hh"
 
-#include "General/environment.hh"
+#include "General/Environment.hh"
 #include "ResWrProtos.hh"
 
 namespace CoupledField

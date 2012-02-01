@@ -425,6 +425,24 @@ namespace CoupledField {
           (*output) << std::setw(10) << connect[2];
           break;
           
+        case Elem::ET_TET10:
+          (*output) << std::setw(10) << 10 << std::endl;
+          (*output) << std::setw(10) << connect[0];
+          (*output) << std::setw(10) << connect[4];
+
+          (*output) << std::setw(10) << connect[1];
+          (*output) << std::setw(10) << connect[5];
+
+          (*output) << std::setw(10) << connect[2];
+          (*output) << std::setw(10) << connect[6];
+
+          (*output) << std::setw(10) << connect[7];
+          (*output) << std::setw(10) << connect[8] << std::endl;
+          (*output) << std::setw(10) << connect[9];
+
+          (*output) << std::setw(10) << connect[3];
+          break;
+
         case Elem::ET_PYRA5:
           (*output) << std::setw(10) << 8 << std::endl;
           (*output) << std::setw(10) << connect[0];
@@ -440,26 +458,96 @@ namespace CoupledField {
     case Elem::ET_PYRA13:
           (*output) << std::setw(10) << 20 << std::endl;
           (*output) << std::setw(10) << connect[0];
-          (*output) << std::setw(10) << connect[1];
-          (*output) << std::setw(10) << connect[2];
-          (*output) << std::setw(10) << connect[3];
-          (*output) << std::setw(10) << connect[4];
-          (*output) << std::setw(10) << connect[4];
-          (*output) << std::setw(10) << connect[4];
-          (*output) << std::setw(10) << connect[4];
           (*output) << std::setw(10) << connect[5];
+
+          (*output) << std::setw(10) << connect[1];
           (*output) << std::setw(10) << connect[6];
+
+          (*output) << std::setw(10) << connect[2];
           (*output) << std::setw(10) << connect[7];
-          (*output) << std::setw(10) << connect[8];
+
+          (*output) << std::setw(10) << connect[3];
+          (*output) << std::setw(10) << connect[8] << std::endl;
+
           (*output) << std::setw(10) << connect[9];
           (*output) << std::setw(10) << connect[10];
           (*output) << std::setw(10) << connect[11];
           (*output) << std::setw(10) << connect[12];
+
           (*output) << std::setw(10) << connect[4];
           (*output) << std::setw(10) << connect[4];
+
+          (*output) << std::setw(10) << connect[4];
+          (*output) << std::setw(10) << connect[4] << std::endl;
+
+          (*output) << std::setw(10) << connect[4];
+          (*output) << std::setw(10) << connect[4];
+
           (*output) << std::setw(10) << connect[4];
           (*output) << std::setw(10) << connect[4];
           break;
+
+    case Elem::ET_WEDGE15:
+          (*output) << std::setw(10) << 15 << std::endl;
+          (*output) << std::setw(10) << connect[0];
+          (*output) << std::setw(10) << connect[6];
+
+          (*output) << std::setw(10) << connect[1];
+          (*output) << std::setw(10) << connect[7];
+
+          (*output) << std::setw(10) << connect[2];
+          (*output) << std::setw(10) << connect[8];
+
+          (*output) << std::setw(10) << connect[12];
+          (*output) << std::setw(10) << connect[13] << std::endl;
+          (*output) << std::setw(10) << connect[14];
+
+          (*output) << std::setw(10) << connect[3];
+          (*output) << std::setw(10) << connect[9];
+
+          (*output) << std::setw(10) << connect[4];
+          (*output) << std::setw(10) << connect[10];
+
+          (*output) << std::setw(10) << connect[5];
+          (*output) << std::setw(10) << connect[11];
+          break;
+
+    case Elem::ET_HEXA20:
+//          1         9         2        10         3        11         4        12
+//         17        18        19        20         5        13         6        14
+//          7        15         8        16
+
+          (*output) << std::setw(10) << 20 << std::endl;
+          (*output) << std::setw(10) << connect[0];
+          (*output) << std::setw(10) << connect[8];
+
+          (*output) << std::setw(10) << connect[1];
+          (*output) << std::setw(10) << connect[9];
+
+          (*output) << std::setw(10) << connect[2];
+          (*output) << std::setw(10) << connect[10];
+
+          (*output) << std::setw(10) << connect[3];
+          (*output) << std::setw(10) << connect[11] << std::endl;
+
+          (*output) << std::setw(10) << connect[16];
+          (*output) << std::setw(10) << connect[17];
+          (*output) << std::setw(10) << connect[18];
+          (*output) << std::setw(10) << connect[19];
+
+          (*output) << std::setw(10) << connect[4];
+          (*output) << std::setw(10) << connect[12];
+
+          (*output) << std::setw(10) << connect[5];
+          (*output) << std::setw(10) << connect[13] << std::endl;
+
+          (*output) << std::setw(10) << connect[6];
+          (*output) << std::setw(10) << connect[14];
+
+          (*output) << std::setw(10) << connect[7];
+          (*output) << std::setw(10) << connect[15];
+          break;
+
         default:
           (*output) << connect.GetSize() << std::endl;
 

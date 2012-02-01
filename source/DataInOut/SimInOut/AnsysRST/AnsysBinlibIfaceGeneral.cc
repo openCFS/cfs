@@ -915,19 +915,17 @@ namespace CoupledField
                                              const StdVector<UInt>& connect,
                                              Integer* connectANSYS)
   {
-    UInt numElemNodes = 0;
+    UInt numElemNodes = Elem::shapes[eType].numNodes;
     Integer ansysElemType = elemType2AnsysType_[eType];
     
     switch(eType)
     {
     case Elem::ET_TRIA3:
-      numElemNodes = 3;
       std::copy(&connect[0], &connect[0]+numElemNodes, &connectANSYS[0]);
       connectANSYS[3] = connect[2];
       break;
 
     case Elem::ET_TRIA6:
-      numElemNodes = 6;
       connectANSYS[0] = connect[0];
       connectANSYS[1] = connect[1];
       connectANSYS[2] = connect[2];
@@ -939,22 +937,18 @@ namespace CoupledField
       break;
 
     case Elem::ET_QUAD4:
-      numElemNodes = 4;
       std::copy(&connect[0], &connect[0]+numElemNodes, &connectANSYS[0]);
       break;
 
     case Elem::ET_QUAD8:
-      numElemNodes = 8;
       std::copy(&connect[0], &connect[0]+numElemNodes, &connectANSYS[0]);
       break;
 
     case Elem::ET_QUAD9:
-      numElemNodes = 9;
       std::copy(&connect[0], &connect[0]+numElemNodes, &connectANSYS[0]);
       break;
 
     case Elem::ET_TET4:
-      numElemNodes = 4;
       connectANSYS[0] = connect[0]; // I
       connectANSYS[1] = connect[1]; // J
       connectANSYS[2] = connect[2]; // K
@@ -966,7 +960,6 @@ namespace CoupledField
       break;                        
                                     
     case Elem::ET_TET10:
-      numElemNodes = 10;                  
       connectANSYS[0] = connect[0];  // I
       connectANSYS[1] = connect[1];  // J
       connectANSYS[2] = connect[2];  // K
@@ -990,7 +983,6 @@ namespace CoupledField
       break;
 
     case Elem::ET_WEDGE6:
-      numElemNodes = 6;
       connectANSYS[0] = connect[0];  // I
       connectANSYS[1] = connect[1];  // J
       connectANSYS[2] = connect[2];  // K
@@ -1002,7 +994,6 @@ namespace CoupledField
       break;
 
     case Elem::ET_WEDGE15:
-      numElemNodes = 15;
       connectANSYS[0] = connect[0];    // I
       connectANSYS[1] = connect[1];    // J
       connectANSYS[2] = connect[2];    // K
@@ -1026,7 +1017,6 @@ namespace CoupledField
       break;
 
     case Elem::ET_PYRA5:
-      numElemNodes = 5;
       connectANSYS[0] = connect[0];  // I
       connectANSYS[1] = connect[1];  // J
       connectANSYS[2] = connect[2];  // K
@@ -1038,7 +1028,6 @@ namespace CoupledField
       break;
 
     case Elem::ET_PYRA13:
-      numElemNodes = 13;
       connectANSYS[0] = connect[0];    // I 
       connectANSYS[1] = connect[1];    // J 
       connectANSYS[2] = connect[2];    // K 
@@ -1066,27 +1055,22 @@ namespace CoupledField
       break;
 
     case Elem::ET_HEXA8:
-      numElemNodes = 8;
       std::copy(&connect[0], &connect[0]+numElemNodes, &connectANSYS[0]);
       break;
 
     case Elem::ET_HEXA20:
-      numElemNodes = 20;
       std::copy(&connect[0], &connect[0]+numElemNodes, &connectANSYS[0]);
       break;
 
     case Elem::ET_HEXA27:
-      numElemNodes = 27;
       std::copy(&connect[0], &connect[0]+numElemNodes, &connectANSYS[0]);
       break;
 
     case Elem::ET_LINE2:
-      numElemNodes = 2;
       std::copy(&connect[0], &connect[0]+numElemNodes, &connectANSYS[0]);
       break;
 
     case Elem::ET_LINE3:
-      numElemNodes = 3;
       std::copy(&connect[0], &connect[0]+numElemNodes, &connectANSYS[0]);
       break;
 

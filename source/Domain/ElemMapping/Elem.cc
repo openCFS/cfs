@@ -178,6 +178,41 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
     // ************************************************************************
     //  POINT
     // ************************************************************************
+    {
+      ElemShape s;
+      s.dim = 0;
+      s.order = 0;
+      s.numVertices = 1;
+      s.numNodes = 1;
+      s.numEdges = 0;
+      s.numFaces = 0;
+
+      Double midPoint[1] = {0.0};
+      Double nodeCoords[] =
+      {
+       0.0, // #1
+      };
+      UInt edgeVertices[] =
+      {
+       1 // #1
+      };
+      UInt numEdgeNodes[] =
+      {
+       1 // #1
+      };
+      UInt numEdgesPerDir[] =
+      {
+       1 // #edges in xi-dir
+      };
+      UInt locDirEdges[] =
+      {
+       1 // xi
+      };
+      SetElemInfo( s, midPoint, nodeCoords, edgeVertices, numEdgeNodes,
+                   edgeVertices, numEdgesPerDir, locDirEdges,
+                   NULL, NULL, NULL, NULL );
+      Elem::shapes[Elem::ET_POINT] = s;
+    }
     
     // ************************************************************************
     // LINE2

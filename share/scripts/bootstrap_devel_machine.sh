@@ -33,7 +33,7 @@ ExitFail() {
 SetupDebian() {
     # Setup Debian, Ubuntu, Linux Mint, etc...
     PCKGS="subversion gcc g++ gfortran automake autoconf cmake \
-        perl-base graphviz texlive-latex-base tex4ht \
+        perl-base graphviz texlive-latex-base tex4ht xsltproc \
         python-pygments doxygen tcl-dev python-dev git-svn \
         cmake-curses-gui cmake-qt-gui gmsh openjdk-6-jdk \
         patch diff diffutils zip libxt-dev libxp6 tk-dev \

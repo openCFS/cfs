@@ -320,7 +320,7 @@ namespace CoupledField {
     std::stringstream sstr;
     StdVector<Elem*> elems;
     StdVector<RegionIdType> volRegions, surfRegions;
-    UInt numRegions;
+    // UInt numRegions;
     StdVector< std::string > regionNames;
     std::string rstFileName;
     std::string compFileName;
@@ -354,7 +354,7 @@ namespace CoupledField {
     compFile_ << "! The component/region information should also be available in ANSYS CFD-Post" << std::endl;
     compFile_ << "! when loading the .rst file." << std::endl;
 
-    numRegions = ptGrid_->GetNumRegions();
+    // numRegions = ptGrid_->GetNumRegions();
     ptGrid_->GetVolRegionIds( volRegions );
     ptGrid_->GetSurfRegionIds( surfRegions );
 
