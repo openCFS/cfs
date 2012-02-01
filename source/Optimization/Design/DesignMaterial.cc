@@ -256,7 +256,7 @@ void DesignMaterial::GetTransIsoMaterialTensor(Matrix<double>& t, SubTensorType 
       {
         D = E/(1-nu13);
         D3 = E3/(1-nu13);
-        nD3 = E*sqrt(E3*nu13*E)/(1-nu13);
+        nD3 = sqrt(E*E3*nu13)/(1-nu13);
       }
       double G3 = params_[DesignElement::GMODUL];
       SetTransIsoTensor(t, subTensor, dens*D, 0, 0, dens*D3, dens*nD3, dens*G3);
@@ -277,7 +277,7 @@ void DesignMaterial::GetTransIsoMaterialTensor(Matrix<double>& t, SubTensorType 
       {
         D = E/(1-nu13);
         D3 = E3/(1-nu13);
-        nD3 = E*sqrt(E3*nu13*E)/(1-nu13);
+        nD3 = sqrt(E*E3*nu13)/(1-nu13);
       }
       double G3 = params_[DesignElement::GMODUL];
       SetTransIsoTensor(t, subTensor, dens*D, 0, 0, dens*D3, dens*nD3, dens*G3);
@@ -293,7 +293,7 @@ void DesignMaterial::GetTransIsoMaterialTensor(Matrix<double>& t, SubTensorType 
       } else
       {
         D = 1/(1-nu13);
-        nD3 = 3*sqrt(E3*nu13/E)/(2-2*nu13);
+        nD3 = sqrt(E3*nu13/E)/(2-2*nu13);
       }
       SetTransIsoTensor(t, subTensor, dens*D, 0, 0, dens*D3, dens*nD3, 0);
       return;
@@ -308,7 +308,7 @@ void DesignMaterial::GetTransIsoMaterialTensor(Matrix<double>& t, SubTensorType 
       }else
       {
         D3 = 1/(1-nu13);
-        nD3 = nu13/(2*(1-nu13)*sqrt(E3*nu13/E));
+        nD3 = sqrt(E*nu13/E3)/(2-2*nu13);
       }
       SetTransIsoTensor(t, subTensor, dens*D, 0, 0, dens*D3, dens*nD3, 0);
       return;
@@ -324,7 +324,7 @@ void DesignMaterial::GetTransIsoMaterialTensor(Matrix<double>& t, SubTensorType 
       {
         D = 1/((1-nu13)*(1-nu13));
         D3 = E3*D;
-        nD3 = E*(nu13+1)*sqrt(E3*nu13/E)/(2*nu13)*D;
+        nD3 = sqrt(E*E3/nu13)*(nu13+1)*D*0.5;
         D = E*D;
       }
       SetTransIsoTensor(t, subTensor, dens*D, 0, 0, dens*D3, dens*nD3, 0);
