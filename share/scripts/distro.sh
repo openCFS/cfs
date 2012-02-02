@@ -117,11 +117,10 @@ elif [ "${OS}" = "Linux" ] ; then
                 	BASE_VERSION=`apt-cache show base-files 2> /dev/null | grep Version`
 		fi
                 # echo $BASE_VERSION
-		BASE_VERSION=`echo $BASE_VERSION.0. | cut -d' ' -f2`
-		MAJOR_VERSION=`echo $BASE_VERSION.0. | cut -d'.' -f1 | sed 's/^\([0-9]\)\(.*\)/\1/'`
-		MINOR_VERSION=`echo $BASE_VERSION.0. | cut -d'.' -f2 | sed 's/^\([0-9]\)\(.*\)/\1/'`
-		REV_VERSION=`echo $BASE_VERSION | cut -d'.' -f3 | sed 's/^\([0-9]\)\(.*\)/\1/'`
-		REV=`echo "$MAJOR_VERSION.$MINOR_VERSION.$REV_VERSION" | sed 's/\.\./\.0/' | sed 's/\.$//'`
+		REV=$(echo $BASE_VERSION | cut -d' ' -f2 | grep -o '[0-9]*\.[0-9]*' )
+		REV_VERSION=$(echo $BASE_VERSION | cut -d' ' -f2 | grep -o '[0-9]*$')
+                if [ "$REV_VERSION" = "" ]; then REV_VERSION=0; fi
+                # echo $REV_VERSION
 		# echo $REV
 		# See http://www.us.debian.org/doc/FAQ/ch-ftparchives.de.html
 		case "$REV" in
@@ -137,6 +136,7 @@ elif [ "${OS}" = "Linux" ] ; then
                     "5.0") PSEUDONAME="lenny";;
                     "6.0") PSEUDONAME="squeeze";;
                     "7.0") PSEUDONAME="wheezy";;
+                    "8.0") PSEUDONAME="sid";;
                 esac
 #                PSEUDONAME="$PSEUDONAME `cat /etc/debian_version`"
 

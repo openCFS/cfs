@@ -282,8 +282,9 @@ SetupCMake() {
     CMAKE_VERSION=$(cmake --version | cut -d' ' -f3 | cut -d'-' -f1)
     CMAKE_MAJOR_VERSION=$(echo $CMAKE_VERSION | cut -d'.' -f1)
     CMAKE_MINOR_VERSION=$(echo $CMAKE_VERSION | cut -d'.' -f2)
+    CMAKE_PATCH_LEVEL=$(echo $CMAKE_VERSION | cut -d'.' -f3)
 
-    if [ $CMAKE_MAJOR_VERSION -ge 2 ] && [ $CMAKE_MINOR_VERSION -ge 8 ]; then
+    if [ $CMAKE_MAJOR_VERSION -ge 2 ] && [ $CMAKE_MINOR_VERSION -ge 8 ] && [ $CMAKE_PATCH_LEVEL -ge 4 ]; then
         return 1
     fi
 
