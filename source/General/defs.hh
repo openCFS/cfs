@@ -71,7 +71,7 @@ if (!name) EXCEPTION("memory allocation for array failed");\
 #define NEWARRAY(name,type,size) { \
 try{\
 name = new type [(size)];\
-}catch (std::bad_alloc exception){\
+}catch (std::bad_alloc& exception){\
 EXCEPTION("memory allocation for array failed"); }\
 (*memtrace) << "allocated " << (size)*(sizeof(type))*1.0e-6 \
 << " MB in " << __FILE__ << ", line " << __LINE__ << std::endl; }
@@ -96,7 +96,7 @@ if (!name) EXCEPTION("memory allocation failed"); \
 #define NEWARRAY(name,type,size) {\
 try{\
 name = new type[(size)];\
-}catch (std::bad_alloc exception){\
+}catch (std::bad_alloc& exception){\
 EXCEPTION("Memory allocation for array failed\n size = " << (size));\
 }\
 }
