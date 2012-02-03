@@ -197,6 +197,11 @@ namespace CoupledField {
     LinearForm * lin = NULL;
     StdVector<std::string> dofNames;
 
+    // Note; in the piezoelectric case we have to multiply by -1
+    Double factor = 1.0;
+    if ( isPiezoCoupled_ )
+      factor = -1.0;
+    
     // =========================
     //  Charges (volume, nodal)
     // =========================
@@ -276,12 +281,18 @@ namespace CoupledField {
 
     BaseBDBInt * integ = NULL;
     shared_ptr<CoefFunction > curCoef = 
-        actSDMat->GetCoefFunction(ELEC_PERMITTIVITY,tensorType,Global::REAL);
+        actSDMat->GetCoefFunction( ELEC_PERMITTIVITY,tensorType,
+                                   Global::REAL, false);
 
+    // Note; in the piezoelectric case we have to multiply by -1
+    Double factor = 1.0;
+    if ( isPiezoCoupled_ )
+      factor = -1.0;
+    
     if( dim_ == 2 ) {
-      integ = new BDBInt<GradientOperator<FeH1,2> >(curCoef,1.0 );
+      integ = new BDBInt<GradientOperator<FeH1,2> >(curCoef, factor );
     } else {
-      integ = new BDBInt<GradientOperator<FeH1,3> >(curCoef,1.0 );
+      integ = new BDBInt<GradientOperator<FeH1,3> >(curCoef, factor );
     }
     return integ;
   }
@@ -293,7 +304,7 @@ namespace CoupledField {
     // Jian S. Wang and Dale F. Ostergaard:
     // A Finite Element-Electric Circuit Coupled Simulation Method for
     // Piezoelectric Transducer
-    // IEEE Ultrasoncics Symposium, 1999
+    // IEEE Ultrasonics Symposium, 1999
 
     // =======================================================================
     // Integrators for electric impedances

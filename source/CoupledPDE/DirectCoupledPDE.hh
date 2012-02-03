@@ -56,9 +56,6 @@ namespace CoupledField {
     //! set boundary condition
     void SetBCs();
 
-    //! define algebraic system 
-    void DefineAlgSys();
-
     //!
     virtual void InitTimeStepping();
 
@@ -105,7 +102,6 @@ namespace CoupledField {
     
     //! Set initial conditions
     void SetInitialCondition();
-
     
 
   private:

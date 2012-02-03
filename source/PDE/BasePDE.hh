@@ -28,8 +28,6 @@ namespace CoupledField
 
   public:
     
-    bool converged_; //!< needed for coupling with MpCCI
-
     //! Constructor
     BasePDE( PtrParamNode paramNode );
     
@@ -103,12 +101,6 @@ namespace CoupledField
     virtual std::map<FEMatrixType,Integer> GetMatrixDerivativeMap();
 
 
-    //! Initialize all/some the nodes by this value
-    virtual void SetInitialCondition(){;};
-
-    bool IsSetInitialCondition() { return isSetInitialCondition_;};
-
-
   protected:
     
     //! define the SolutionStep-Driver
@@ -116,7 +108,6 @@ namespace CoupledField
       EXCEPTION("DefineSolveStep not implemented");
     }
 
-    
     // ======================================================
     // DATA SECTION
     // ======================================================

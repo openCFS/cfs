@@ -16,9 +16,17 @@
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "Driver/Assemble.hh"
 
+// header for logging
+#include "DataInOut/Logging/LogConfigurator.hh"
+
 #include "OLAS/algsys/AlgebraicSys.hh"
+#include "OLAS/algsys/SolStrategy.hh"
 
 namespace CoupledField {
+
+// declare logging stream
+  DECLARE_LOG(stdPde)
+  DEFINE_LOG(stdPde, "stdPde")
 
   StdPDE::StdPDE(Grid *aptgrid, PtrParamNode paramNode ) :
     BasePDE(paramNode),
@@ -35,7 +43,6 @@ namespace CoupledField {
     iterCoupledCounter_(0),
     diagMass_(false),
     firstTimeStepStatic_(true),
-    isInstationary_(false),
     needsAlgsys_(true),
     isAlwaysStatic_(false),
     dim_(ptgrid_->GetDim()), 
@@ -58,14 +65,6 @@ namespace CoupledField {
   StdPDE::~StdPDE() 
   {
     
-  }
-
-  bool StdPDE::HasPeriodicBC()
-  {
-    for(UInt i = 0; i < constraints_.GetSize(); i++)
-      if(constraints_[i]->periodic) return true;
-
-    return false;
   }
 
   // ======================================================
@@ -99,7 +98,168 @@ namespace CoupledField {
     algsys_->InitRHS();
   	algsys_->InitSol();
   }
+  
+  // ======================================================
+  // ALGSYS SECTION (SOLVER, ...)
+  // ======================================================
+  void StdPDE::DefineAlgSys() 
+  {
+    LOG_TRACE(stdPde) << pdename_ << ": Defining Algsys";
+   
+    // Trigger writing of info file
+    info->ToFile("", true );
+    
+    // First check if the PDE needs an algebraic system at all
+    if( needsAlgsys_ == false ) {
+      return;
+    }
 
+
+    // ==============================================
+    //   DEFINE GRAPH AND SBM BLOCKS
+    // ==============================================
+    // vector containing SBM-block definitions (length: numSbmBlocks)
+    StdVector<AlgebraicSys::SBMBlockDef > sbmBlocks;
+
+    // Introduce new mapping:
+    //typedef StdVector<std::pair<FeFctIdType, Integer> > MinorBlockDef;
+    //std::map<UInt,StdVector <MinorBlockDef > > minorBlocks;
+    //          ^        ^
+    //          |        |
+    //        sbm   min blockNum
+
+    // Structure for mapping of minor blocks 
+    std::map<UInt,StdVector<std::set<Integer> > > minorBlocks;
+    shared_ptr<SolStrategy> solStrat = algsys_->GetSolStrategy();
+
+    // -----------------------------------------------------------
+    //  1) Register FeFunctions with Algebraic System
+    // -----------------------------------------------------------
+
+    // Note: currently we use the same graph for all matrix
+    // types (STIFFNESS, MASS, SYSTEM...)
+    UInt numFcts = feFunctions_.size();
+    bool useDistinctGraphs = false;
+    algsys_->GraphSetupInit( numFcts,  useDistinctGraphs );
+
+    LOG_DBG(stdPde) << pdename_ << ": Registering functions";
+    std::map<SolutionType, shared_ptr<BaseFeFunction> >::iterator fctIt;
+    for( fctIt = feFunctions_.begin(); 
+        fctIt != feFunctions_.end(); 
+        fctIt++ ) {
+      FeSpace & feSpace = *(fctIt->second->GetFeSpace());
+      FeFctIdType fctId = fctIt->second->GetFctId();
+      shared_ptr<ResultInfo> res = fctIt->second->GetResultInfo();
+      std::string resultName = SolutionTypeEnum.ToString(res->resultType);
+
+      feSpace.GetOlasMappings( solStrat, sbmBlocks, minorBlocks);
+      LOG_DBG(stdPde) << pdename_ << ":\tfctId #" << fctId
+          << ", Type: " << resultName << ", #Equations: " 
+          << feSpace.GetNumEquations();
+      algsys_->RegisterFct( fctId, feSpace.GetNumEquations(),
+                            feSpace.GetNumFreeEquations() );
+    }
+
+    // ---------------------------------------
+    //  2) Define SBM-Blocks and minor blocks
+    // ---------------------------------------
+
+    LOG_DBG(stdPde) << pdename_ << ": Defining SBM-blocks";
+
+    UInt numBlocks = sbmBlocks.GetSize();
+    // security check: ensure that at least one block is defined
+    if (numBlocks == 0 ) {
+      EXCEPTION( "There are no SBM blocks defined!" );
+    }
+
+    // Loop over blocks and register them at OLAS
+    Integer sbmIndex = -1;
+    for( UInt i = 0; i < numBlocks; ++i ) {
+
+      // register block. In addition we check, if this is the inner block
+      // and static condensation is activated
+      bool isInnerBlock = solStrat->UseStaticCondensation() &&
+          (i == numBlocks-1);
+      sbmIndex = algsys_->DefineSBMMatrixBlock( sbmBlocks[i], isInnerBlock );
+      if( minorBlocks.size() != 0 && sbmIndex != -1) {
+        StdVector<std::set<Integer> >& sbmSubBlocks = minorBlocks[i];
+
+        // check if minor blocks are defined at all
+        if(sbmSubBlocks.GetSize() == 0 ) continue;
+
+        // Warning: Sub-matrix block is currently restricted to 
+        // just one FeFunction
+        if( feFunctions_.size() > 1){
+          EXCEPTION( "Sub-matrix block is currently just working for "
+              << "1 FeFunction!" );
+        }
+        FeFctIdType fctId = feFunctions_.begin()->second->GetFctId();
+
+        algsys_->RegisterSubMatrixBlocks(i, sbmSubBlocks.GetSize());
+        // loop over all minor blocks
+        for(UInt j = 0; j < sbmSubBlocks.GetSize(); ++j ) {
+          UInt blockSize = sbmSubBlocks[j].size();
+          StdVector<FeFctIdType> fctIds(blockSize);
+          fctIds.Init(fctId);
+          StdVector<Integer> eqns(blockSize);
+          std::set<Integer>::iterator it = sbmSubBlocks[j].begin();
+          UInt pos = 0;
+
+          // loop over all eqns
+          for( UInt k = 0; k < blockSize; ++k ) {
+            eqns[pos++] = *it++;
+          }
+          algsys_->DefineSubMatrixBlocks(i,j, fctIds, eqns);
+        }
+      } // if block is defined at all
+    } // loop over blocks
+
+    // Finalize registration of blocks
+    algsys_->FinishRegistration();
+
+
+    // Trigger writing of info file
+    info->ToFile("", true );
+
+    // -----------------------------------
+    //  3) Setup Sparsity Patterns
+    // -----------------------------------
+    LOG_DBG(stdPde) << pdename_ << ": Setting sparsity pattern";
+    std::map<SolutionType, shared_ptr<BaseFeFunction> >::iterator it1;
+    std::map<SolutionType, shared_ptr<BaseFeFunction> >::iterator it2;
+    for( it1 = feFunctions_.begin(); it1 != feFunctions_.end(); ++it1 ) {
+      for( it2 = feFunctions_.begin(); it2 != feFunctions_.end(); ++it2 ) {
+        FeFctIdType fctId1 = it1->second->GetFctId();
+        FeFctIdType fctId2 = it2->second->GetFctId();
+
+        // assemble upper diagonal blocks including diagonal
+        LOG_DBG(stdPde) << pdename_ << ":\tset graph for fctIds #"
+            << fctId1 << " and # " << fctId2 << std::endl;
+        assemble_->SetupMatrixGraph(fctId1, fctId2);
+      } // it2
+    } // it1
+
+    // finish the assembly of the matrix graph
+    algsys_->GraphSetupDone();
+
+    // create matrices and solver object, if PDE is not direct coupled
+    CreateMatrices_Solver();
+
+    //Pass the system to every feFunction
+    std::map<SolutionType, shared_ptr<BaseFeFunction> >::iterator fncIt= feFunctions_.begin();
+    fncIt= feFunctions_.begin();
+    while(fncIt != feFunctions_.end()){
+      fncIt->second->SetSystem(algsys_);
+
+      // Print equation information
+      //fncIt->second->GetFeSpace()->PrintEqnMap();
+      fncIt++;
+    }
+    
+    // Trigger writing of info file
+    info->ToFile("", true );
+
+  }
 
   BaseSolveStep * StdPDE::GetSolveStep() {
     
@@ -147,13 +307,6 @@ namespace CoupledField {
     return 0.0;
   }
 
-  DampingType StdPDE::GetDamping(RegionIdType reg_id) const
-  {
-    std::map<RegionIdType,DampingType>::const_iterator it = dampingList_.find(reg_id);
-
-    return it != dampingList_.end() ? it->second : NONE;
-  }
-
 
   shared_ptr<ResultInfo> StdPDE::GetResultInfo( SolutionType solType ) {
     
@@ -175,53 +328,6 @@ namespace CoupledField {
     return res;
   }
 
- void StdPDE::ReadDisplacementAndUpdateGrid( UInt step)
- {
-   /* only update grid if langrange type has been set */
-   if ( !updatedLagrangeForm_ )
-   {
-     return;
-   }
-   /* do not set new grid in the first step */
-   if ( step != 0 )
-   {
-     std::map<RegionIdType, GridDisplData>::iterator gridDisplIter \
-       = gridDisplData_.begin();
-     for (; gridDisplIter != gridDisplData_.end(); ++gridDisplIter)
-     {
-       RegionIdType regId = gridDisplIter->first;
-       GridDisplData gridDispData = gridDisplIter->second;
-       ResultHandler* resultHandler = domain->GetResultHandler();
-       shared_ptr<BaseResult> gridDisplacement = resultHandler->GetResult( gridDispData.fileName4GridDisplacements_,
-           1,
-           step,
-           gridDispData.solType,        
-           ptgrid_->GetRegion().ToString( regId ));
-
-       Result<Double> *result =
-         dynamic_cast<Result<Double>*>(&(*gridDisplacement));
-       if (result == NULL)
-       {
-         EXCEPTION("Cannot read result 'Grid-Displacements' from input id '"
-             <<  gridDispData.fileName4GridDisplacements_ << "'");
-       }
-       Vector<Double>& resVec = result->GetVector();
-       
-       shared_ptr<EntityList> nodesList = gridDisplacement->GetEntityList();
-       StdVector<UInt> nodes;
-
-       EntityIterator it;
-
-       it = nodesList->GetIterator();
-       for( it.Begin(); !it.IsEnd(); it++ )
-       {
-         nodes.Push_back(it.GetNode());
-       }
-
-       ptgrid_->SetNodeOffset(nodes, resVec);
-     }
-   }
- }
 
   //============================================================================================
   //FeFunction Methods

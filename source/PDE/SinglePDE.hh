@@ -46,8 +46,6 @@ namespace CoupledField
     typedef StdVector<shared_ptr<BaseResult> > ResultList;
     typedef std::map<shared_ptr<ResultInfo> , ResultList > ResultMap;
 
-    class RegionLoad;
-
     /** Initialize PDEs 
      * @param base pointer to InfoNode of this PDE */
     virtual void Init( UInt sequenceStep, PtrParamNode base = PtrParamNode() ); 
@@ -60,13 +58,6 @@ namespace CoupledField
     //! MpCCI gets the geometry
     virtual void PreparePDE4Computation() {;};
   
-    // ======================================================
-    // ALGSYS SECTION (SOLVER, ...)
-    // ======================================================
-  
-    //! define algebraic system 
-    virtual void DefineAlgSys();
- 
     // ======================================================
     // COUPLING SECTION
     // ======================================================
@@ -305,53 +296,6 @@ namespace CoupledField
     
   public:
 
-    //    //! Class defining data needed for region loads
-    class RegionLoad {
-
-    public:
-
-      //! Constructor
-      RegionLoad( UInt dim, bool isaxi );
-
-      void ToInfo(PtrParamNode in) const;
-      
-      //! Returns the RHS-integrator
-      void GetIntegrator();
-
-      //! Returns the RHS-integrator for scalar source
-      void GetSrcScalarIntegrator();
-      
-      // ----------------------------
-      //   Data members
-      // ----------------------------
-
-      //@{
-      // \name Data members
-      
-      //! Name of region
-      std::string name;
-
-      //! Value of load
-      StdVector<std::string>  value;
-
-      //! Phase value
-      std::string phase;
-
-      //! Name of reference coordinate system
-      std::string refCoord;
-
-      //! Type of load (total/unit)
-      std::string type;
-
-      //! Volume of region
-      Double volume;
-
-      //! Flag for axisymmetry
-      bool isAxi_;
-      //@}
-
-    };
-    
     //! Class defining data needed for defining Rayleigh damping
     struct RaylDampingData {
       
@@ -371,23 +315,9 @@ namespace CoupledField
     
   protected:
     
-    //! List of region loads
-    std::map<RegionIdType, RegionLoad> regionLoads_;
      
     //@}
 
-    //! check if subdomain is a coupled piezo subdomain with hystersis
-    bool IsRegionPiezoHyst( std::string regionName );
-    
-    //! check if PDE is a coupled piezo subdomain with hystersis
-    bool BelongsPDE2PiezoHyst();    
-
-    //! check if subdomain is a coupled piezo subdomain with micro-piezo-model
-    bool IsRegionMicroPiezo( std::string regionName );
-    
-    //! check if PDE is a coupled piezo subdomain with  micro-piezo-model
-    bool BelongsPDE2MicroPiezo();    
-    
     // ======================================================
     // DATA SECTION
     // ======================================================
@@ -421,7 +351,7 @@ namespace CoupledField
     //@}
     
     // -----------------------------------------------------------------------
-    // Miscellaneous paramters
+    // Miscellaneous parameters
     // -----------------------------------------------------------------------
 
     //@{

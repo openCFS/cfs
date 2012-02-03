@@ -319,10 +319,10 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
     shared_ptr<CoefFunction > curCoef;
     if( isComplex ) {
       curCoef = actSDMat->GetCoefFunction(MECH_STIFFNESS_TENSOR,
-                                          tensorType_, Global::COMPLEX);
+                                          tensorType_, Global::COMPLEX, false);
     } else {
       curCoef = actSDMat->GetCoefFunction(MECH_STIFFNESS_TENSOR,
-                                          tensorType_, Global::REAL);
+                                          tensorType_, Global::REAL, false);
     }
     
     // ----------------------------------------

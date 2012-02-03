@@ -20,26 +20,22 @@ namespace CoupledField {
 
     
     // initialize pointers
-    solVec_         = NULL;
     pde1_           = NULL;
     pde2_           = NULL;
     ptGrid_         = NULL;
     algsys_         = NULL;
     nonLin_         = false;
-    nonLinMaterial_ = false;
-    isHysteresis_   = false;
-    nonLinHysteresis_ = false;
 
     pde1_   = pde1;
     pde2_   = pde2;
     myParam_ = paramNode;
     ptGrid_ = domain->GetGrid();
+    dim_    = ptGrid_->GetDim(); 
 
     isaxi_ = false;
     isComplex_ = false;
     
-    dim_ = domain->GetGrid()->GetDim();
-    infoNode_ = info->Get("PDE")->Get(couplingName_, ParamNode::APPEND);
+    
   }
 
 
@@ -64,7 +60,9 @@ namespace CoupledField {
   // ********
   //   Init
   // ********
-  void BasePairCoupling::Init( UInt sequenceStep ) {
+  void BasePairCoupling::Init( UInt sequenceStep, PtrParamNode info ) {
+    
+    infoNode_ = info->Get(couplingName_, ParamNode::APPEND);
     
     
     results1_ = pde1_->GetResultInfos();

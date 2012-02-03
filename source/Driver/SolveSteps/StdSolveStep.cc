@@ -50,13 +50,15 @@ namespace CoupledField {
     UInt pos = 0;
     for( ; it != feFunctions_.end(); ++it ){
       shared_ptr<BaseFeFunction> & ptFct = it->second;
-      solVec_.SetSubVector(ptFct->GetSingleVector(), pos++);
+      FeFctIdType id = ptFct->GetFctId();
+      solVec_.SetSubVector(ptFct->GetSingleVector(), id);
     }
     pos = 0;
     it = rhsFeFunctions_.begin();
     for( ; it != rhsFeFunctions_.end(); ++it ){
       shared_ptr<BaseFeFunction> & ptFct = it->second;
-      rhsVec_.SetSubVector(ptFct->GetSingleVector(), pos++);
+      FeFctIdType id = ptFct->GetFctId();
+      rhsVec_.SetSubVector(ptFct->GetSingleVector(), id);
     }
     // Make sure to have both vectors as "weak" vectors,
     // as the feFunctions themselves are responsible for
@@ -229,11 +231,6 @@ namespace CoupledField {
     // due to coupling-pdes, the RHS has to be initialized BEFORE
     // the coupling forces are assembled to the RHS
     algsys_->InitRHS();
-
-    UInt step = (UInt) mParser_->Eval(mHandle_);
-
-    PDE_.ReadDisplacementAndUpdateGrid( step );
-
 
 
   }
@@ -919,11 +916,6 @@ namespace CoupledField {
 
     //this has to be done each frequency!
     assemble_->AssembleLinRHS();
-
-    if ( PDE_.IsComputeRHS4HarmSet() ) {
-      // Evaluating RHS with nodal srcs for harmonic flownoise problems
-      PDE_.ComputeRHS(actFreq_);
-    }
 
     assemble_->AssembleMatrices( );
     PDE_.SetBCs();

@@ -12,7 +12,7 @@
 #include "Materials/HeatMaterial.hh"
 #include "Materials/AcousticMaterial.hh"
 #include "Materials/MechanicMaterial.hh"
-//#include "Materials/piezoMaterial.hh"
+#include "Materials/PiezoMaterial.hh"
 #include "Materials/FlowMaterial.hh"
 //#include "Materials/thermoelasticMaterial.hh"
 //#include "Materials/pyroelectricMaterial.hh"
@@ -68,9 +68,8 @@ namespace CoupledField {
    
     try {
     if ( matClass == PIEZO ) {
-      REFACTOR;
-      //material = new PiezoMaterial();
-      //ReadPiezo( material, pn);
+      material = new PiezoMaterial();
+      ReadPiezo( material, pn);
     }
     else if ( matClass == MECHANIC ) {
       material = new MechanicMaterial();

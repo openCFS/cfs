@@ -358,8 +358,9 @@ namespace CoupledField {
 
     //========================== Create Coeficient Function for use in integrators====
     virtual shared_ptr<CoefFunction > GetCoefFunction(MaterialType matType,
-                                                                  SubTensorType type,
-                                                                  Global::ComplexPart matDataType);
+                                                      SubTensorType type,
+                                                      Global::ComplexPart matDataType,
+                                                      bool transpose );
 
   protected:
 

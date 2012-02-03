@@ -119,7 +119,8 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode )
       if( !nonLin_ ) {
         BaseBDBInt * stiffInt = NULL;
         shared_ptr<CoefFunction> curCoef = 
-            actMat->GetCoefFunction(MAG_RELUCTIVITY,tensorType,Global::REAL);
+            actMat->GetCoefFunction( MAG_RELUCTIVITY, tensorType,
+                                     Global::REAL, false);
         if( dim_ == 2) {
           if( isaxi_ ) {
             // axisymmetric case

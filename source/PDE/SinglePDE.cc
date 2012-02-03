@@ -67,8 +67,8 @@ using std::string;
 namespace CoupledField {
 
   // declare logging stream
-  DECLARE_LOG(pde)
-  DEFINE_LOG(pde, "pde")
+  DECLARE_LOG(singlepde)
+  DEFINE_LOG(singlepde, "singlePde")
 
   SinglePDE::SinglePDE( Grid *aptgrid, PtrParamNode paramNode ) :
     StdPDE( aptgrid, paramNode ),
@@ -132,13 +132,13 @@ namespace CoupledField {
     infoNode_ = base == NULL ? info->Get("PDE")->Get(pdename_) : base->Get(pdename_);
     infoNode_->Get(ParamNode::HEADER)->Get("sequenceStep")->SetValue(sequenceStep);
 
-    LOG_TRACE(pde) << pdename_ << ": Starting Initialization";
+    LOG_TRACE(singlepde) << pdename_ << ": Starting Initialization";
 
 
     // =====================================================================
     // Get type of analysis
     // =====================================================================
-    LOG_TRACE(pde) << pdename_ << ": Obtaining analysis type";
+    LOG_TRACE(singlepde) << pdename_ << ": Obtaining analysis type";
     analysistype_ = domain->GetSingleDriver()->GetAnalysisType();
 
     // NOTE: The concept of isAlwaysStatic bites with Direct Coupling
@@ -155,7 +155,7 @@ namespace CoupledField {
     // get regions/subdomains for PDE
     // =====================================================================
 
-    LOG_TRACE(pde) << pdename_ << ": Obtaining regions";
+    LOG_TRACE(singlepde) << pdename_ << ": Obtaining regions";
 
 
     // Obtain regions the pde is defined on
@@ -210,7 +210,7 @@ namespace CoupledField {
     //======================================================================
     // trigger the creation of functionDescriptors
     //======================================================================
-    LOG_TRACE(pde) << pdename_ << ": Define FE-Functions";
+    LOG_TRACE(singlepde) << pdename_ << ": Define FE-Functions";
     DefineFeFunctions();
     
     // Register all fe functions with the algebraic system
@@ -232,19 +232,19 @@ namespace CoupledField {
     // =====================================================================
     // read in material data
     // =====================================================================
-    LOG_TRACE(pde) << pdename_ << ": Reading material information";
+    LOG_TRACE(singlepde) << pdename_ << ": Reading material information";
     ReadMaterialData();
 
     // =====================================================================
     // read in damping information
     // =====================================================================
-    LOG_TRACE(pde) << pdename_ << ": Reading damping information";
+    LOG_TRACE(singlepde) << pdename_ << ": Reading damping information";
     ReadDampingInformation( );
 
     // =====================================================================
     // read in NonLinearities
     // =====================================================================
-    LOG_TRACE(pde) << pdename_ << ": Initializing non-linearities";
+    LOG_TRACE(singlepde) << pdename_ << ": Initializing non-linearities";
     InitNonLin();
 
     // Todo: Move this part to the definition of damping
@@ -253,8 +253,13 @@ namespace CoupledField {
     {
       PtrParamNode in_ = in->GetByVal("region", "name", domain->GetGrid()->GetRegion().ToString(subdoms_[i]));
 
+      std::map<RegionIdType,DampingType>::const_iterator it = dampingList_.find(subdoms_[i]);
+      DampingType dampType = NONE;
+      if( it != dampingList_.end() ) {
+        dampType = it->second;
+      }
       std::string fuck_e2s;
-      Enum2String(GetDamping(subdoms_[i]), fuck_e2s);
+      Enum2String(dampingList_[subdoms_[i]], fuck_e2s);
       in_->Get("damping")->SetValue(fuck_e2s);
     }
 
@@ -270,7 +275,7 @@ namespace CoupledField {
       IncorporateMemento();
     }
 
-    LOG_TRACE(pde) << pdename_ << ": Reading boundary conditions";
+    LOG_TRACE(singlepde) << pdename_ << ": Reading boundary conditions";
     ReadBCs();
     ReadSpecialBCs();
     //
@@ -288,12 +293,12 @@ namespace CoupledField {
     // =====================================================================
 
     // Call initialization of (bi)linear integrators
-    LOG_TRACE(pde) << pdename_ << ": Defining integrators";
+    LOG_TRACE(singlepde) << pdename_ << ": Defining integrators";
     DefineIntegrators();
     DefineRhsLoadIntegrators();
 
     // Print information about defined integrators
-    if( !isDirectCoupled_ && needsAlgsys_ == true)
+    if( needsAlgsys_ == true)
       assemble_->ToInfo(infoNode_->Get(ParamNode::HEADER)->Get("integrators"));
 
     // now we know about nonlinearities and we can trigger the
@@ -307,7 +312,7 @@ namespace CoupledField {
     // =====================================================================
     //  map equations (FeSpaces) and finalize FeFunction (vector creation)
     // =====================================================================
-    LOG_TRACE(pde) << pdename_ << ": Mapping Equations";
+    LOG_TRACE(singlepde) << pdename_ << ": Mapping Equations";
     
     // Finalize spaces and fefunctions
     fncIt= feFunctions_.begin();
@@ -320,6 +325,9 @@ namespace CoupledField {
       
       // finalize feFunctions
       actFct->Finalize();
+      
+      // Pass feFctId of primary result also to RHS result
+      rhsFeFunctions_[fncIt->first]->SetFctId(actFct->GetFctId());
       rhsFeFunctions_[fncIt->first]->Finalize();
       fncIt++;
     }
@@ -358,7 +366,7 @@ namespace CoupledField {
     // =====================================================================
     // define which solution types have to be saved
     // =====================================================================
-    LOG_TRACE(pde) << pdename_ << ": Reading store results";
+    LOG_TRACE(singlepde) << pdename_ << ": Reading store results";
 
     DefinePostProcResults();
     ReadStoreResults();
@@ -368,7 +376,7 @@ namespace CoupledField {
 
     //! Define step solution driver
     if ( isDirectCoupled_ == false ) {
-      LOG_TRACE(pde) << pdename_ << ": Defining solveStep class";
+      LOG_TRACE(singlepde) << pdename_ << ": Defining solveStep class";
       DefineSolveStep();
       
       // check if solve step was defined
@@ -379,7 +387,7 @@ namespace CoupledField {
 
     // Finally set the initialization flag to true
     isInitialized_ = true;
-    LOG_TRACE(pde) << pdename_ << ": Finished initializaton";
+    LOG_TRACE(singlepde) << pdename_ << ": Finished initializaton";
   }
 
 
@@ -635,7 +643,7 @@ namespace CoupledField {
 
       // Convert enum
       quantity = SolutionTypeEnum.ToString(candidate->resultType);
-      LOG_DBG(pde) << "Searching for storeResults of quantity '"
+      LOG_DBG(singlepde) << "Searching for storeResults of quantity '"
                    << quantity << "'";
 
       // try to catch possible errors
@@ -912,7 +920,7 @@ namespace CoupledField {
 
   void SinglePDE::WriteResultsInFile( const UInt kstep,
                                       const Double actTimeFreq ) {
-    LOG_DBG(pde) << "WriteResultsInFile() kstep: " <<  kstep
+    LOG_DBG(singlepde) << "WriteResultsInFile() kstep: " <<  kstep
                  << " actTimeFreq: " << actTimeFreq;
     ResultMap::iterator it = resultLists_.begin();
     ResultHandler * resHandler = domain->GetResultHandler();
@@ -1516,134 +1524,8 @@ namespace CoupledField {
                            << name << "'" );
       }
     }
-
-    // =====================================================================
-    // Load definitions
-    // =====================================================================
-
-    // fetch paramnodes for loads
-    // loads are deaktivated for now first we try to accomplish the
-    // functionality by a rhsValues tag in the xml which gets evaluated
-    // during the define integrators step
-    // please add pros and cons about this concept::
-    // ....
-    //ReadLoads(bcsNode->GetList("load"), loads_);
-    //assemble_->AddLoads( loads_ );
   }
 
-//  void SinglePDE::DefineRhsLoadIntegrators(){
-//    std::string rhsRegion;
-//    PtrParamNode bcsNode;
-//    ParamNodeList rhsValueNodes;
-//    StdVector<PtrParamNode> regionList;
-//
-//
-//    bcsNode = myParam_->Get("bcsAndLoads", ParamNode::PASS );
-//    if( bcsNode )
-//      rhsValueNodes = bcsNode->GetList("regionLoad");
-//    if(rhsValueNodes.GetSize()==0)
-//      return;
-//
-//
-//    StdVector<PtrParamNode>::iterator rhsIter =  rhsValueNodes.Begin();
-//    while(rhsIter != rhsValueNodes.End()){
-//      //Now obtian coefficient function for the user specified values
-//      PtrParamNode curNode = *rhsIter;
-//      shared_ptr<CoefFunction> myCoef;
-//      CreateRhsLoadCoefFunction(myCoef,curNode);
-//
-//      //obtain the quantity we want to set
-//      std::string rhsString;
-//      curNode->GetValue("quantity",rhsString);
-//      SolutionType rhsType =  NO_SOLUTION_TYPE;
-//      rhsType = SolutionTypeEnum.Parse(rhsString);
-//
-//      //get the region name (only a single region supported yet)
-//      //ant the element list
-//      std::string regName;
-//      curNode->GetValue("name",regName,ParamNode::PASS);
-//      shared_ptr<EntityList> actList =
-//          ptgrid_->GetEntityList( EntityList::ELEM_LIST,
-//                                  regName, EntityList::REGION );
-//
-//      //add the list to coefficient function
-//      //this is not really necessary right now except for the case of
-//      //grid values...
-//      myCoef->AddEntities(actList);
-//
-//      //get the integratorConstext from the PDE
-//      //set its entitylist and add to assemble
-//      LinearFormContext* curForm = CreateRhsLinearForm(rhsType,myCoef);
-//      curForm->SetEntities(actList);
-//      assemble_->AddLinearForm(curForm);
-//
-//      rhsIter++;
-//    }
-//  }
-//
-//  void SinglePDE::CreateRhsLoadCoefFunction(shared_ptr<CoefFunction>& cFunct,PtrParamNode valNode ){
-//    //NOTE:
-//    //The coeficient Function for the right hand side is expected to represent a vector
-//    //Thereby we proceed as the following:
-//    // - if the user specified the vector we just read it in
-//    // - if the user specified a scalar we create a 1-element vector
-//    // - if the user specified a tensor, we pass it to the PDE to transform it to vector
-//    //   this is the case for tensorial rhs Values as used in mechanical PDE!
-//    PtrParamNode mNode;
-//    MathParser * parser = domain->GetMathParser();
-//    MathParser::HandleType mHandle = parser->GetNewHandle(true);
-//    if(valNode->Has("grid")){
-//       Exception(": Not implemented for grid");
-//       //the grid case is special so we return after creating the stuff...
-//    }else {
-//      StdVector<std::string> valueVec;
-//      StdVector<std::string> phaseVec;
-//      if(valNode->Has("scalar")){
-//        std::string valueStr = "";
-//        mNode = valNode->Get("scalar",ParamNode::PASS);
-//        mNode->GetValue("value",valueStr,ParamNode::PASS);
-//        valueVec.Resize(1);
-//        valueVec[0] = valueStr;
-//      }else if(valNode->Has("vector")){
-//         Exception(": Not implemented for vectors");
-//      }else if(valNode->Has("tensor")){
-//       Exception(": Not implemented for tensors");
-//      }else{
-//        Exception(": unrecognized value label");
-//      }
-//      //now we have a vector of stings representing the load
-//      //so we can create a coefFunction constant or expression
-//      //determine if we are constant or variable
-//      //this will be changed with mathparser 2 in which we direcly evaluate
-//      //a string representing the vector
-//      bool constant = false;
-//      for(UInt i =0;i<valueVec.GetSize();i++){
-//        parser->SetExpr(mHandle,valueVec[i]);
-//        if(parser->IsExprConstant(mHandle)){
-//          constant = true;
-//          break;
-//        }
-//      }
-//      if(constant){
-//        Vector<Double> values(valueVec.GetSize());
-//        values.Init();
-//        for(UInt i =0;i<valueVec.GetSize();i++){
-//          parser->SetExpr(mHandle,valueVec[i]);
-//          values[i] = parser->Eval(mHandle);
-//        }
-//        shared_ptr<CoefFunctionConst<Double> > tmpFnc;
-//        tmpFnc.reset(new CoefFunctionConst<Double>());
-//        tmpFnc->SetVector(values);
-//        cFunct = tmpFnc;
-//      }else{
-//        shared_ptr<CoefFunctionExpression<Double> > tmpFnc;
-//        tmpFnc.reset(new CoefFunctionExpression<Double>());
-//        tmpFnc->SetVector(valueVec);
-//        cFunct = tmpFnc;
-//      }
-//    }
-//    return;
-//  }
 
 
   void SinglePDE::ReadRhsExcitation( const std::string& elemName, 
@@ -2010,188 +1892,7 @@ namespace CoupledField {
 
 
 
-  // ======================================================
-  // ALGSYS SECTION (SOLVER, ...)
-  // ======================================================
-  void SinglePDE::DefineAlgSys() 
-  {
-    LOG_TRACE(pde) << pdename_ << ": Defining Algsys";
-   
-    // Trigger writing of info file
-    info->ToFile("", true );
-    
-    // First check if the PDE needs an algebraic system at all
-    if( needsAlgsys_ == false ) {
-      return;
-    }
 
-    // If PDE is not direct coupled then the PDE has to register
-    // at the algebraic system and obtain an Id.
-    // Afterwards the matrix-graph has to be set up
-    if ( isDirectCoupled_ == false ) {
-
-
-      // ==============================================
-      //   DEFINE GRAPH AND SBM BLOCKS
-      // ==============================================
-      // vector containing SBM-block definitions (length: numSbmBlocks)
-      StdVector<AlgebraicSys::SBMBlockDef > sbmBlocks;
-      
-      // Introduce new mapping:
-      //typedef StdVector<std::pair<FeFctIdType, Integer> > MinorBlockDef;
-      //std::map<UInt,StdVector <MinorBlockDef > > minorBlocks;
-      //          ^        ^
-      //          |        |
-      //        sbm   min blockNum
-
-      // Structure for mapping of minor blocks 
-      std::map<UInt,StdVector<std::set<Integer> > > minorBlocks;
-      shared_ptr<SolStrategy> solStrat = algsys_->GetSolStrategy();
-
-      // -----------------------------------------------------------
-      //  1) Register FeFunctions with Algebraic System
-      // -----------------------------------------------------------
-      
-      // Note: currently we use the same graph for all matrix
-      // types (STIFFNESS, MASS, SYSTEM...)
-      UInt numFcts = feFunctions_.size();
-      bool useDistinctGraphs = false;
-      algsys_->GraphSetupInit( numFcts,  useDistinctGraphs );
-      
-      LOG_DBG(pde) << pdename_ << ": Registering functions";
-      std::map<SolutionType, shared_ptr<BaseFeFunction> >::iterator fctIt;
-      for( fctIt = feFunctions_.begin(); 
-          fctIt != feFunctions_.end(); 
-          fctIt++ ) {
-        FeSpace & feSpace = *(fctIt->second->GetFeSpace());
-        FeFctIdType fctId = fctIt->second->GetFctId();
-        shared_ptr<ResultInfo> res = fctIt->second->GetResultInfo();
-        std::string resultName = SolutionTypeEnum.ToString(res->resultType);
-        
-        feSpace.GetOlasMappings( solStrat, sbmBlocks, minorBlocks);
-        LOG_DBG(pde) << pdename_ << ":\tfctId #" << fctId
-            << ", Type: " << resultName << ", #Equations: " 
-            << feSpace.GetNumEquations();
-        algsys_->RegisterFct( fctId, feSpace.GetNumEquations(),
-                              feSpace.GetNumFreeEquations() );
-      }
-      
-      // ---------------------------------------
-      //  2) Define SBM-Blocks and minor blocks
-      // ---------------------------------------
-
-      LOG_DBG(pde) << pdename_ << ": Defining SBM-blocks";
-      
-      UInt numBlocks = sbmBlocks.GetSize();
-      // security check: ensure that at least one block is defined
-      if (numBlocks == 0 ) {
-        EXCEPTION( "There are no SBM blocks defined!" );
-      }
-      
-      // Loop over blocks and register them at OLAS
-      Integer sbmIndex = -1;
-      for( UInt i = 0; i < numBlocks; ++i ) {
-
-        // register block. In addition we check, if this is the inner block
-        // and static condensation is activated
-        bool isInnerBlock = solStrat->UseStaticCondensation() &&
-            (i == numBlocks-1);
-        sbmIndex = algsys_->DefineSBMMatrixBlock( sbmBlocks[i], isInnerBlock );
-        if( minorBlocks.size() != 0 && sbmIndex != -1) {
-          StdVector<std::set<Integer> >& sbmSubBlocks = minorBlocks[i];
-
-          // check if minor blocks are defined at all
-          if(sbmSubBlocks.GetSize() == 0 ) continue;
-          
-          // Warning: Sub-matrix block is currently restricted to 
-          // just one FeFunction
-          if( feFunctions_.size() > 1){
-            EXCEPTION( "Sub-matrix block is currently just working for "
-                       << "1 FeFunction!" );
-          }
-          FeFctIdType fctId = feFunctions_.begin()->second->GetFctId();
-      
-          algsys_->RegisterSubMatrixBlocks(i, sbmSubBlocks.GetSize());
-          // loop over all minor blocks
-          for(UInt j = 0; j < sbmSubBlocks.GetSize(); ++j ) {
-            UInt blockSize = sbmSubBlocks[j].size();
-            StdVector<FeFctIdType> fctIds(blockSize);
-            fctIds.Init(fctId);
-            StdVector<Integer> eqns(blockSize);
-            std::set<Integer>::iterator it = sbmSubBlocks[j].begin();
-            UInt pos = 0;
-
-            // loop over all eqns
-            for( UInt k = 0; k < blockSize; ++k ) {
-              eqns[pos++] = *it++;
-            }
-            algsys_->DefineSubMatrixBlocks(i,j, fctIds, eqns);
-          }
-        } // if block is defined at all
-      } // loop over blocks
-      
-      // Finalize registration of blocks
-      algsys_->FinishRegistration();
-        
-      
-      // Trigger writing of info file
-      info->ToFile("", true );
-        
-      // -----------------------------------
-      //  3) Setup Sparsity Patterns
-      // -----------------------------------
-      LOG_DBG(pde) << pdename_ << ": Setting sparsity pattern";
-      std::map<SolutionType, shared_ptr<BaseFeFunction> >::iterator it1;
-      std::map<SolutionType, shared_ptr<BaseFeFunction> >::iterator it2;
-      for( it1 = feFunctions_.begin(); it1 != feFunctions_.end(); ++it1 ) {
-        for( it2 = feFunctions_.begin(); it2 != feFunctions_.end(); ++it2 ) {
-          FeFctIdType fctId1 = it1->second->GetFctId();
-          FeFctIdType fctId2 = it2->second->GetFctId();
-
-          // assemble upper diagonal blocks including diagonal
-          LOG_DBG(pde) << pdename_ << ":\tset graph for fctIds #"
-              << fctId1 << " and # " << fctId2 << std::endl;
-          assemble_->SetupMatrixGraph(fctId1, fctId2);
-        } // it2
-      } // it1
-
-      // finish the assembly of the matrix graph
-      algsys_->GraphSetupDone();
-
-      // create matrices and solver object, if PDE is not direct coupled
-      CreateMatrices_Solver();
-
-      // =====================================================================
-      // Set the initial conditions
-      // =====================================================================
-      if ( analysistype_ == TRANSIENT){
-        SetInitialCondition();
-      }
-
-      // Incorporate values of memento here, if the values are used
-      // as "start"-values from a previous simulation run
-      // (e.g. obtained from a previous static run)
-      if( memento_ != NULL
-          && mementoAsDirichlet_ ==  false) {
-        IncorporateMemento();
-      }
-    }
-
-    //Pass the system to every feFunction
-    std::map<SolutionType, shared_ptr<BaseFeFunction> >::iterator fncIt= feFunctions_.begin();
-    fncIt= feFunctions_.begin();
-    while(fncIt != feFunctions_.end()){
-      fncIt->second->SetSystem(algsys_);
-      
-      // Print equation information
-      //fncIt->second->GetFeSpace()->PrintEqnMap();
-      fncIt++;
-    }
-    
-    // Trigger writing of info file
-    info->ToFile("", true );
-
-  }
 
   // ======================================================
   // COUPLING SECTION
@@ -3189,79 +2890,6 @@ namespace CoupledField {
   }
 
 
-
-  bool SinglePDE::IsRegionPiezoHyst( std::string regionName ) {
-
-    bool isPiezo = false;
-    bool isHyst = false;
-
-    // get direct coupled PDE
-    DirectCoupledPDE* ptCoupledPDE = domain->GetDirectCoupledPDE();
-
-    //! Get couplings object
-    StdVector<BasePairCoupling*>* couplings = ptCoupledPDE->GetCouplingsObject();
-
-    UInt idx = 0;
-    for ( UInt i=0; i<couplings->GetSize(); i++ ) {
-      if ( (*couplings)[i]->GetName() == "piezoDirect" ) {
-        isPiezo = true;
-        idx = i;
-      }
-    }
-
-    if ( isPiezo ) {
-
-      //      found = true;
-      PtrParamNode nonLinNode;
-      nonLinNode = (*couplings)[idx]->GetParamNode()->Get("nonLinList", ParamNode::PASS);
-      if ( !nonLinNode )
-        return false;
-
-      PtrParamNode regionNode;
-      if (  (*couplings)[idx]->GetParamNode()->
-            Get("regionList")->HasByVal("region", "name", regionName) ) {
-        regionNode = (*couplings)[idx]->GetParamNode()->
-          Get("regionList")->GetByVal("region", "name", regionName);
-      }
-      if( !regionNode)
-        return false;
-
-      // check for nonLin Id
-      std::string nonLinId;
-      regionNode->GetValue("nonLinId", nonLinId, ParamNode::PASS);
-
-      if (nonLinId == "" )
-        return false;
-
-      // check for hystersis nonlinearity
-      isHyst = nonLinNode->HasByVal("hysteresis", "id", nonLinId);
-      return isHyst;
-    }
-
-    return false;
-
-  }
-
-  bool SinglePDE::BelongsPDE2PiezoHyst( ) {
-
-  	bool isHyst = false;
-  	RegionIdType actRegion;
-
-    std::map<RegionIdType, BaseMaterial*>::iterator it;
-    for ( it = materials_.begin(); it != materials_.end(); it++ ) {
-
-      // Set current region and material
-      actRegion = it->first;
-
-      // Get current region node
-      std::string regionName = ptgrid_->GetRegion().ToString( actRegion );
-
-      if ( IsRegionPiezoHyst( regionName ) )
-      	isHyst = true;
-    }
-
-    return isHyst;
-  }
   void SinglePDE::DefineFeFunctions(){
       //This is the default creation of spaces
       //idee: die PDE gibt zum attribute formulation die passenden space zurück
@@ -3305,142 +2933,11 @@ namespace CoupledField {
       }
     }
 
-  bool SinglePDE::IsRegionMicroPiezo( std::string regionName ) {
 
-    bool isPiezo = false;
-    bool isMicroPiezo = false;
-
-    // get direct coupled PDE
-    DirectCoupledPDE* ptCoupledPDE = NULL;
-    
-    ptCoupledPDE = domain->GetDirectCoupledPDE();
-
-    if( !ptCoupledPDE )
-      return false;
-
-    //! Get couplings object
-    StdVector<BasePairCoupling*>* couplings = ptCoupledPDE->GetCouplingsObject();
-
-    UInt idx = 0;
-    for ( UInt i=0; i < couplings->GetSize(); i++ ) {
-      if ( (*couplings)[i]->GetName() == "piezoDirect" ) {
-        isPiezo = true;
-        idx = i;
-      }
-    }
-
-    if ( isPiezo ) {
-
-      PtrParamNode cplNode = (*couplings)[idx]->GetParamNode();
-      if(! cplNode->HasChildren() )
-        return false;
-      
-      // found = true;
-      PtrParamNode nonLinNode;
-      if(cplNode->Has("nonLinList") )
-        nonLinNode = cplNode->Get("nonLinList", ParamNode::PASS);
-      if ( !nonLinNode )
-        return false;
-
-      PtrParamNode regionNode;
-      if (  (*couplings)[idx]->GetParamNode()->
-            Get("regionList")->HasByVal("region", "name", regionName) ) {
-        regionNode = (*couplings)[idx]->GetParamNode()->
-          Get("regionList")->GetByVal("region", "name", regionName);
-      }
-      if( !regionNode)
-        return false;
-
-      // check for nonLin Id
-      std::string nonLinId;
-      regionNode->GetValue("nonLinId", nonLinId, ParamNode::PASS);
-
-      if (nonLinId == "" )
-        return false;
-
-      // check for micro-piezo
-      isMicroPiezo = nonLinNode->HasByVal("piezoMicroHF", "id", nonLinId);
-      return isMicroPiezo;
-    }
-
-    return false;
-
-  }
-
-  bool SinglePDE::BelongsPDE2MicroPiezo( ) {
-  	
-    bool isMicroPiezo = false;
-    RegionIdType actRegion;
-  	
-    std::map<RegionIdType, BaseMaterial*>::iterator it;
-    for ( it = materials_.begin(); it != materials_.end(); it++ ) {
-      
-      // Set current region and material
-      actRegion = it->first;
-      
-      // Get current region node
-      std::string regionName = ptgrid_->GetRegion().ToString(actRegion);
-
-      if ( IsRegionMicroPiezo( regionName ) ) 
-      	isMicroPiezo = true;	
-    }
-    return isMicroPiezo;
-  }
-  
+ 
 
 
-  // ========================== RegionLoads ==========================
-   SinglePDE::RegionLoad::RegionLoad( UInt dim, bool isAxi ) {
-
-     value.Resize( dim );
-     value.Init( "0.0");
-
-     isAxi_ = isAxi;
-     volume = 0.0;
-
-   }
-
-
-   void SinglePDE::RegionLoad::GetIntegrator() {
-     REFACTOR;
-     //BBInt * forceInt = new VolForceInt( value.GetSize(), phase, isAxi_);
-     //
-     //// Check, if type is "unit"
-     //bool isUnit;
-     //if ( type == "total" ) {
-     //  isUnit = false;
-     //} else {
-     //  isUnit = true;
-     //}
-     //forceInt->SetVolForceVector( value,
-     //                             domain->GetCoordSystem( refCoord),
-     //                             isUnit, volume );
-     //
-     //return NULL;
-   }
-
-   void SinglePDE::RegionLoad::GetSrcScalarIntegrator() {
-     REFACTOR;
-     //simple volume source integrator
-
-     //VolumeSrcInt *srcInt = new VolumeSrcInt( value[0], isAxi_ );
-
-    /// return NULL;
-   }
-
-   void SinglePDE::RegionLoad::ToInfo(PtrParamNode in) const
-   {
-     for (UInt k = 0; k < value.GetSize(); k++ )
-     {
-       PtrParamNode in_ = in->GetByVal("region", "name", name);
-       in_->Get("coordSysId")->SetValue(refCoord);
-       in_->Get("volume")->SetValue(volume);
-       in_->Get("type")->SetValue(type);
-     }
-   }
-
-
-  inline void SinglePDE::writeOutTimeStep(shared_ptr<SimOutput>& outFile, \
+  void SinglePDE::writeOutTimeStep(shared_ptr<SimOutput>& outFile, \
       StdVector<shared_ptr<BaseResult> >& outResults)
   {
     for( UInt iRes = 0; iRes < outResults.GetSize(); iRes++)

@@ -233,7 +233,8 @@ void HeatPDE::DefineIntegrators() {
 
     // --- standard real-valued stiffness integrator ---
     shared_ptr<CoefFunction > curCoef = 
-      actSDMat->GetCoefFunction(HEAT_CONDUCTIVITY, tensorType, Global::REAL);
+      actSDMat->GetCoefFunction( HEAT_CONDUCTIVITY, tensorType, 
+                                 Global::REAL, false );
     
     
     BaseBDBInt* stiffInt = NULL;

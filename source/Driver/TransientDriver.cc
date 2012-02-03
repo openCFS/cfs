@@ -122,9 +122,6 @@ namespace CoupledField {
     //just initialize some variables
     ptPDE_->GetSolveStep()->InitTimeStepping();
 
-    //Compute initial solutions
-    ptPDE_->SetInitialCondition();
-
     //// to save the initial state
     //resHandler->BeginStep( 0, 0 );
     //ptPDE_->WriteResultsInFile(stepOffset_, timeOffset_);

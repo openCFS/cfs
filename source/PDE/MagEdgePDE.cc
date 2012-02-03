@@ -167,7 +167,8 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
        // ===============================
        //  Standard Stiffness Integrator
        // ===============================
-        shared_ptr<CoefFunction> curCoef = actMat->GetCoefFunction(MAG_RELUCTIVITY,FULL,Global::REAL);
+        shared_ptr<CoefFunction> curCoef = 
+            actMat->GetCoefFunction(MAG_RELUCTIVITY,FULL,Global::REAL, false);
         BaseBDBInt* curlcurl;
         curlcurl = new BDBInt< CurlOperator<FeHCurl,3, Double> >(curCoef,1.0) ;
         curlcurl->SetName("CurlCurlIntegrator");

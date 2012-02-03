@@ -674,17 +674,31 @@ namespace CoupledField
    }
 
 
-   shared_ptr<CoefFunction>  BaseMaterial::GetCoefFunction(MaterialType matType,SubTensorType type,Global::ComplexPart matDataType){
+   shared_ptr<CoefFunction>  BaseMaterial::GetCoefFunction(MaterialType matType,SubTensorType type,Global::ComplexPart matDataType,
+                                                           bool transpose){
      shared_ptr<CoefFunction> mFunct;
      if(matDataType == Global::REAL){
        CoefFunctionConst<Double>* tmpFnc = new CoefFunctionConst<Double>();
        Matrix<Double> coefMat;
        GetTensor(coefMat,matType,matDataType,type);
+       
+       // transpose if flag is true
+       if( transpose ) {
+         Matrix<Double> temp;
+         coefMat.Transpose(temp);
+         coefMat = temp;
+       }
        tmpFnc->SetTensor(coefMat);
        mFunct.reset(tmpFnc);
      }else if(matDataType == Global::COMPLEX){
        CoefFunctionConst<Complex>* tmpFnc = new CoefFunctionConst<Complex>();
        Matrix<Complex> coefMat;
+       // transpose if flag is true
+       if( transpose ) {
+         Matrix<Complex> temp;
+         coefMat.Transpose(temp);
+         coefMat = temp;
+       }
        GetTensor(coefMat,matType,matDataType,type);
        tmpFnc->SetTensor(coefMat);
        mFunct.reset(tmpFnc);

@@ -1,10 +1,11 @@
 SET(COUPLED_PDE_SRCS
-  IterCoupledPDE.cc
+  BasePairCoupling.cc
   CoupledPDEDef.cc
-  PDECoupling.cc
   CouplingMemento.cc
   DirectCoupledPDE.cc
-  BasePairCoupling.cc
+  IterCoupledPDE.cc
+  PDECoupling.cc
+  PiezoCoupling.cc
   )
 
 ADD_LIBRARY(coupledpde STATIC ${COUPLED_PDE_SRCS})

@@ -28,6 +28,17 @@ namespace CoupledField
   class FunctionDescription;
 
   //! Base class for pairwise direct coupling of two pdes
+  
+  //! This class serves as base class for all pair-wise coupling
+  //! objects, like piezo- or mech-acoustic coupling. This class and its
+  //! derived classes have to perform similar tasks like a SinglePDE, e.g.
+  //! - getting the region for the object
+  //! - defining couple integrators
+  //! - creating an assemble object
+  //!
+  //! Objects of this class are instantiated by the class Domain.
+  //! Afterwards they are passed to an instance of DirectCoupldPDE, which
+  //! can have arbitrarely many of them.
   class BasePairCoupling
   {
   public:
@@ -43,7 +54,7 @@ namespace CoupledField
     virtual ~BasePairCoupling();
 
     //! Initialization method
-    virtual void Init( UInt sequenceStep );
+    virtual void Init( UInt sequenceStep, PtrParamNode info );
 
     //! Trigger calculation of postprocessing results
     virtual void CalcResults( shared_ptr<BaseResult> result ) {};
@@ -97,16 +108,9 @@ namespace CoupledField
     PtrParamNode GetParamNode() { return myParam_; }
 
     bool nonLin_;             //!< flag for nonlinear calculations
-    bool nonLinMaterial_;     //!< flag for nonlinear material calculations
-    bool nonLinHysteresis_;   //!< flag for hysteresis calculations
-    bool nonLinPiezoMicroHF_; //!< flag for micro-piezoelectric Huber Fleck model
 
     void SetNonLinearity(bool nonLin){
       nonLin_=nonLin;};
-
-    void SetMaterialNonLinearity(bool nonLin){
-      nonLinMaterial_=nonLin;};
-
 
   protected:
 
@@ -136,39 +140,16 @@ namespace CoupledField
     // Miscellaneous
     // =====================================================
 
+    
     PtrParamNode infoNode_; // from constructor()
 
     bool isaxi_;             //!< true: axisymmetric problem
 
     bool geoUpdate_;        //!< flag for geometric update
 
-
-    // -----------------------------------------------------------------------
-    // NON_LINEARITY
-    // -----------------------------------------------------------------------
-
-    //@{
-    //! \name Attributes connected to nonlinearity
-    //    bool nonLin_;           //!< flag for nonlinear calculations
-    Double incStopCrit_;       //!< stopping criterion for incremental error
-    Double residualStopCrit_;  //!< stopping criterion for residual error
-    UInt nonLinMaxIter_;    //!< maximal number of NL-iterations
-    std::string nonLinMethod_; //!< method for handling the non-linearity
-    bool nonLinLogging_;    //!< log progress of non-linear iterations
-    bool isHysteresis_;     //!< flag for hysteresis
-
-    std::string lineSearch_;   //!< switch for lineSearch
-
-    //! map for each region the type of nonlinearity
-    std::map<RegionIdType, NonLinType> regionNonLinType_;
-
-    //! map for each region the id of the nonlinearity
-    std::map<RegionIdType, std::string> regionNonLinId_;
-
-    //! map for each id the nonlinearity
-    std::map<std::string, NonLinType> nonLinIdType_;
-    //@}
-
+    //! Dimension of problem
+    UInt dim_;
+    
     // ======================================================
     // DATA SECTION
     // ======================================================
@@ -201,15 +182,7 @@ namespace CoupledField
 
     //! Flag indicating use of complex values
     bool isComplex_;
-
-    //! contains element results of complex valued charge
-    Vector<Complex> complexValuedCharge_;
-
-    //! contains element results of complex valued Efield
-    Vector<Complex> complexValuedEfield_;
-
-    SingleVector * solVec_;        //! needed in iterative coupled computation
-
+    
     //! Parameter node of direct coupling section
     PtrParamNode myParam_;
 
@@ -275,56 +248,10 @@ namespace CoupledField
 
     //! ResultInfos of second PDE
     ResultInfoList results2_;
-
-    // -----------------------------------------------------------------------
-    // Geometry & node numbering
-    // -----------------------------------------------------------------------
-
-    //@{
-    //! \name Attributes related to geometry and node numbering
-    UInt dofspernode_;  //!< number of unknowns per node
-    UInt numPDENodes_;  //!< number of nodes in subdomains
-    UInt numElems_;     //!< number of elements in subdomains
-    UInt dim_;                  //!< space dimension of pde
-
-    //! defines subtype of mechanic PDE: plainStrain, 3d, ...
-    std::string subType_;
     //@}
-
 
   };
 
-#ifdef DOXYGEN_DETAILED_DOC
-
-  // =========================================================================
-  //     Detailed description of the class
-  // =========================================================================
-
-  //! \class BasePairCoupling
-  //!
-  //! \purpose This class serves as base class for all pair-wise coupling
-  //! objects, like piezo- or mech-acoustic coupling. This class and its
-  //! derived classes have to perform similar tasks like a SinglePDE, e.g.
-  //! - getting the region for the object
-  //! - defining couple integrators
-  //! - creating an assemble object
-  //!
-  //! \collab Objects of this class are instantiated by the class Domain.
-  //! Afterwards they are passed to an instance of DirectCoupldPDE, which
-  //! can have arbitrarely many of them.
-  //!
-  //! \implement
-  //!
-  //! \status In use
-  //!
-  //! \unused
-  //!
-  //! \improve
-  //! - There should be only one assemble object for all direct-coupled
-  //!   SinglePDEs, so that this class won't have to create an own
-  //!
-
-#endif
 
 } // end of namespace
 

@@ -132,6 +132,13 @@ DECLARE_LOG(fefunc)
   
   template<typename T>
   void FeFunction<T>::Finalize(){
+    
+    // assert that functionId was set
+    WARN("Add some more consistency checks here");
+    if (fctId_ == NO_FCT_ID ) {
+      EXCEPTION("No fctId was set!");
+    }
+        
     coeffs_.Resize( feSpace_->GetNumEquations());
     coeffs_.Init();
   }

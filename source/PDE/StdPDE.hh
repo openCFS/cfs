@@ -48,7 +48,7 @@ namespace CoupledField {
     // ======================================================
   
     //! Define the algebraic system 
-    virtual void DefineAlgSys() = 0;
+    virtual void DefineAlgSys();
 
     //! Create the matrices and Solver as well as Preconditioner
     virtual void CreateMatrices_Solver();
@@ -182,19 +182,7 @@ namespace CoupledField {
     // ======================================================
 
     //@{
-    //!  The following methods are used only durig parameter
-    //!  identification process! Maybe one day a more to CFS++ consistent 
-    //!  nomenclature would be nice ...
-    
 
-    /** Do we have at least some periodic boundary conditions?
-     * Attention! searches constraints list for an answer */
-    bool HasPeriodicBC();
-
-    /** The constraints are of interest for identifying periodic boundary conditions
-     * for optimization regularization (filtering)
-     * @see DesignElement::InitFilter */
-    ConstraintList& GetConstraints() { return constraints_; }
 
     std::map<RegionIdType, BaseMaterial*>  getPDEMaterialData()
     {return materials_;};
@@ -214,10 +202,6 @@ namespace CoupledField {
     // set if PDE is nonlinear (material dependency)
     virtual void SetMaterialNonLinearity(bool nonLin){
       nonLinMaterial_=nonLin;};
-
-    //! reads in the displacement at time step "step" and fills deltCoord-array of
-    //! grid
-    virtual void ReadDisplacementAndUpdateGrid( UInt step);
 
     //@}
 
@@ -242,12 +226,6 @@ namespace CoupledField {
     bool& IsFirstTimeStepStatic()
     { return firstTimeStepStatic_;};
 
-    bool IsComputeRHS4HarmSet()
-    { return ComputeRHSforHarm_;};
-
-    bool IsInstationary()  
-    { return isInstationary_;};
-
     std::map<RegionIdType, StdVector<NonLinType> >& GetNonLinRegionTypes() 
     { return regionNonLinTypes_;};
 
@@ -268,10 +246,7 @@ namespace CoupledField {
     //! List of inhomogeneous Neumann boundary conditions
     const InBcList& GetINBCList() { return inBcs_; }
 
-    /** Give the damping type by region.
-     * @return NONE if no damping in map! */
-    DampingType GetDamping(RegionIdType reg_id) const;
-
+    //! Return material class
     MaterialClass GetMaterialClass() const { return pdematerialclass_; }
     //@}
       
@@ -385,17 +360,6 @@ namespace CoupledField {
     // type of nonlinear algorithm (e.g., Newton)
     NonLinMethodType nonLinMethod_;
 
-    struct GridDisplData {
-      //! name for input file, which contains grid deformations
-      std::string fileName4GridDisplacements_ ;
-      //! type from which to use the deformation
-      //! (SMOOTH_DISPLACEMENT or MECH_DISPLACEMENT)
-      SolutionType solType;
-    };
-    //! regions for grid displacements
-    // TODO: change StdVector<std::string> regions4GridDisplacements_;
-    std::map<RegionIdType, GridDisplData> gridDisplData_;
-
     //@}
 
 
@@ -446,13 +410,8 @@ namespace CoupledField {
   
     //@{
     //! \name Attributes connected to time stepping
-    //TODO: MOST ARE OBSOLETE!
-//    TimeStepping * TS_alg_;       //!< handles the time stepping
-//    bool effectiveMass_;       //!< use effective mass formulation for transient analysis
     bool diagMass_;           //!< use of diagonal mass matrix in explicit time stepping
     bool firstTimeStepStatic_; //!< needed for coupled, iterative methods
-    bool isInstationary_;    //!< flag for stationary/instationary PDEs (like fluidMech)
-
     //@}
 
 

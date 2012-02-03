@@ -40,11 +40,12 @@
 #include "PDE/MagEdgePDE.hh"
 #include "PDE/MechPDE.hh"
 
-// Coupling of single PDEs
+// Coupling of Single PDEs
 #include "CoupledPDE/DirectCoupledPDE.hh"
 #include "CoupledPDE/IterCoupledPDE.hh"
 #include "CoupledPDE/PDECoupling.hh"
 #include "CoupledPDE/CoupledPDEDef.hh"
+#include "CoupledPDE/PiezoCoupling.hh"
 
 // Include driver
 #include "Driver/BaseDriver.hh"
@@ -711,42 +712,41 @@ void Domain::CreateDirectCoupledPDEs(UInt sequenceStep)
   if (!directNode)
     return;
 
-  WARN( "Domain::CreateDirectCoupledPDEs: commented out temporar");
   
-//  // get nodes of pairwise direct couplings
-//  ParamNodeList pairNodes = directNode->GetChildren();
-//
-//  SinglePDE *pde1 = NULL;
-//  SinglePDE *pde2 = NULL;
-//  BasePairCoupling *coupling = NULL;
-//
-//  // HARD CODED: At the moment we allow only one direct coupled pde
-//  // with only on pairwise coupling
-//  StdVector<SinglePDE*> singlePdes;
-//  StdVector<BasePairCoupling*> DirectCouplingPairs;
-//  std::set<std::string> setSinglePDEs;
-//  std::string couplingName;
-//
-//  for (UInt i = 0; i < pairNodes.GetSize(); i++)
-//  {
-//
-//    // get couplingName
-//    couplingName = pairNodes[i]->GetName();
-//
-//    // *** PIEZO Coupling ***
-//    if (couplingName == "piezoDirect")
-//    {
-//
-//      pde1 = GetSinglePDE("mechanic");
-//      pde2 = GetSinglePDE("electrostatic");
-//
-//      // in the case of piezo coupling, the electrotstatic
-//      // entries have to be multiplied by -1
-//      dynamic_cast<ElecPDE*> (pde2)->SetPiezoCoupling();
-//
-//      coupling = new PiezoCoupling(pde1, pde2, pairNodes[i]);
-//
-//    }
+  // get nodes of pairwise direct couplings
+  ParamNodeList pairNodes = directNode->GetChildren();
+
+  SinglePDE *pde1 = NULL;
+  SinglePDE *pde2 = NULL;
+  BasePairCoupling *coupling = NULL;
+
+  // HARD CODED: At the moment we allow only one direct coupled pde
+  // with only on pairwise coupling
+  StdVector<SinglePDE*> singlePdes;
+  StdVector<BasePairCoupling*> DirectCouplingPairs;
+  std::set<std::string> setSinglePDEs;
+  std::string couplingName;
+
+  for (UInt i = 0; i < pairNodes.GetSize(); i++)
+  {
+
+    // get couplingName
+    couplingName = pairNodes[i]->GetName();
+
+    // *** PIEZO Coupling ***
+    if (couplingName == "piezoDirect")
+    {
+
+      pde1 = GetSinglePDE("mechanic");
+      pde2 = GetSinglePDE("electrostatic");
+
+      // in the case of piezo coupling, the electrotstatic
+      // entries have to be multiplied by -1
+      dynamic_cast<ElecPDE*> (pde2)->SetPiezoCoupling();
+
+      coupling = new PiezoCoupling(pde1, pde2, pairNodes[i]);
+
+    }
 //    // *** magnetostriction Coupling *** 
 //    else if ( couplingName == "magnetoStrictionDirect" ) {
 //
@@ -807,53 +807,53 @@ void Domain::CreateDirectCoupledPDEs(UInt sequenceStep)
 //    }
 //    //------------------------------------------------------------------------
 //
-//    else
-//    {
-//      EXCEPTION( "The direct coupling '" << couplingName
-//          << "' is not implemented!" << std::endl );
-//    }
-//
-//    // set flag for direct coupling
-//    isDirectCoupled_[pde1] = true;
-//    isDirectCoupled_[pde2] = true;
-//
-//    // add single PDEs and couplings into collections
-//    setSinglePDEs.insert(pde1->GetName());
-//    setSinglePDEs.insert(pde2->GetName());
-//    DirectCouplingPairs.Push_back(coupling);
-//  }
-//
-//  // check if any pair coupling was found
-//  if (coupling == NULL)
-//    return;
-//
-//  // Transform set of PDEs into a vector
-//  std::set<std::string>::iterator itSet;
-//
-//  for (itSet = setSinglePDEs.begin(); itSet != setSinglePDEs.end(); itSet++)
-//  {
-//    singlePdes.Push_back(GetSinglePDE(*itSet));
-//  }
-//
-//  ptDirectCoupledPde_.Push_back(new DirectCoupledPDE(gridMap_["default"], PtrParamNode()));
-//  ptDirectCoupledPde_[0]->SetSinglePDEs(singlePdes);
-//  ptDirectCoupledPde_[0]->SetCouplings(DirectCouplingPairs);
-//
-//  // At the moment we allow only one direct coupled pde, so we set the
-//  // number of direct coupledPDEs to one;
-//  numDirectCoupledPde_ = 1;
-//
-//  // now determine, how many SinglePDEs are coupling directly
-//  std::map<SinglePDE*, bool>::iterator it = isDirectCoupled_.begin();
-//
-//  numIterCoupledStdPde_ = numDirectCoupledPde_;
-//
-//  while (it != isDirectCoupled_.end())
-//  {
-//    if ((*it).second == false)
-//      numIterCoupledStdPde_++;
-//    it++;
-//  }
+    else
+    {
+      EXCEPTION( "The direct coupling '" << couplingName
+          << "' is not implemented!" << std::endl );
+    }
+
+    // set flag for direct coupling
+    isDirectCoupled_[pde1] = true;
+    isDirectCoupled_[pde2] = true;
+
+    // add single PDEs and couplings into collections
+    setSinglePDEs.insert(pde1->GetName());
+    setSinglePDEs.insert(pde2->GetName());
+    DirectCouplingPairs.Push_back(coupling);
+  }
+
+  // check if any pair coupling was found
+  if (coupling == NULL)
+    return;
+
+  // Transform set of PDEs into a vector
+  std::set<std::string>::iterator itSet;
+
+  for (itSet = setSinglePDEs.begin(); itSet != setSinglePDEs.end(); itSet++)
+  {
+    singlePdes.Push_back(GetSinglePDE(*itSet));
+  }
+
+  ptDirectCoupledPde_.Push_back(new DirectCoupledPDE(gridMap_["default"], PtrParamNode()));
+  ptDirectCoupledPde_[0]->SetSinglePDEs(singlePdes);
+  ptDirectCoupledPde_[0]->SetCouplings(DirectCouplingPairs);
+
+  // At the moment we allow only one direct coupled pde, so we set the
+  // number of direct coupledPDEs to one;
+  numDirectCoupledPde_ = 1;
+
+  // now determine, how many SinglePDEs are coupling directly
+  std::map<SinglePDE*, bool>::iterator it = isDirectCoupled_.begin();
+
+  numIterCoupledStdPde_ = numDirectCoupledPde_;
+
+  while (it != isDirectCoupled_.end())
+  {
+    if ((*it).second == false)
+      numIterCoupledStdPde_++;
+    it++;
+  }
 
 }
 

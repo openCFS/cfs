@@ -2,8 +2,9 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include "DirectCoupledPDE.hh"
+#include <algorithm>
 
+#include "DirectCoupledPDE.hh"
 #include "BasePairCoupling.hh"
 
 
@@ -72,21 +73,34 @@ namespace CoupledField {
 
     singlePDEs_ = pdes;
 
-    // create pdename
+    // create composed name of PDE
     for ( UInt i = 0; i < singlePDEs_.GetSize()-1; i++ ) {
       pdename_ += singlePDEs_[i]->GetName();
       pdename_ += "-";
     }
-
     pdename_ += singlePDEs_[singlePDEs_.GetSize()-1]->GetName();
+    
+    // determine unique OLAS id 
+    // we collect all ids of the single PDEs and check if they are unique
+    std::set<std::string> olasIds;    
+    for ( UInt i = 0; i < singlePDEs_.GetSize(); i++ ) {
+      olasIds.insert( singlePDEs_[i]->olasNode_->Get("id")->As<std::string>() );
+    }
+    
+    if( olasIds.size() > 1 ) {
+      EXCEPTION( "Single field PDEs have different algebraic systems assigned." );
+    }
+    
+    olasNode_ = singlePDEs_[0]->olasNode_;
+    olasInfo_ = info->Get("OLAS")->Get(pdename_);
+    
   }
 
 
   // ****************
   //   SetCouplings
   // ****************
-  void DirectCoupledPDE::SetCouplings( const StdVector<BasePairCoupling*>
-  &couplings ) {
+  void DirectCoupledPDE::SetCouplings( const StdVector<BasePairCoupling*> &couplings ) {
     couplings_ = couplings;
   }
 
@@ -181,9 +195,6 @@ namespace CoupledField {
 
     
     // Create algebraic system and pass it to SinglePDEs
-    olasInfo_ = info->Get("OLAS")->Get("direct");
-    WARN("At this point make sure, that all of the SinglePDEs have the same "
-        "OLAS -ParamNode and store their node to this->olasNode_");
     algsys_ = new AlgebraicSys(olasNode_, olasInfo_);
     
     // ----------------------------
@@ -201,6 +212,7 @@ namespace CoupledField {
     // this problem (e.g. register each pde with FeFctIdType and
     // maximum time derivative order), we should change this here!
     assemble_ = new Assemble( algsys_, analysistype_, 2 );
+    
 
     // Initialize timestepping
     if ( analysistype_ == BasePDE::TRANSIENT ) {
@@ -217,16 +229,20 @@ namespace CoupledField {
     for (UInt i=0; i<singlePDEs_.GetSize(); i++) {
       singlePDEs_[i]->algsys_ = algsys_;
       singlePDEs_[i]->assemble_ = assemble_;
+      
       // Initialize all SinglePDEs
       singlePDEs_[i]->Init( sequenceStep, infoNode_);
-
-      // check if single PDE really needs previous solution
-      if ( singlePDEs_[i]->BelongsPDE2PiezoHyst() 
-           || singlePDEs_[i]->BelongsPDE2MicroPiezo() ) {
-        needSolPrev_ = true;
-      }
     }
 
+    // Collect all feFunctions
+    for( UInt i = 0; i < singlePDEs_.GetSize(); ++i ) {
+      
+     feFunctions_.insert( singlePDEs_[i]->feFunctions_.begin(),
+                          singlePDEs_[i]->feFunctions_.end() );
+     rhsFeFunctions_.insert(singlePDEs_[i]->rhsFeFunctions_.begin(),
+                            singlePDEs_[i]->rhsFeFunctions_.end() );
+    }
+    
     // Get information about number of dirichlet values,
     // dofs, constraints and needed matrices
 
@@ -241,50 +257,6 @@ namespace CoupledField {
       //TS_alg_->Init( dt, 1 );
     }
 
-    //! Augment nonlinearity information
-    //! from PiezoCoupling, mechPDE and elecPDE
-
-    bool globalNonLin = false;
-    bool globalNonLinMaterial = false;
-    bool globalNonLinHysteresis = false;
-
-    for (UInt i=0; i<singlePDEs_.GetSize(); i++) {
-      if(singlePDEs_[i]->IsNonLin())
-        globalNonLin=true;
-      if(singlePDEs_[i]->IsNonLinMaterial())
-        globalNonLinMaterial=true;
-    }
-
-    for (UInt i=0; i<couplings_.GetSize(); i++) {
-      //      Is NonLin()
-      if(couplings_[i]->nonLin_==true)
-        globalNonLin=true;
-      if(couplings_[i]->nonLinMaterial_==true)
-        globalNonLinMaterial=true;
-
-      if(couplings_[i]->nonLinHysteresis_==true) {
-        globalNonLinHysteresis = true;
-        isHysteresis_ = true;
-      }
-    }
-
-    nonLin_=globalNonLin;
-    nonLinMaterial_=globalNonLinMaterial;
-
-    if ( !globalNonLinHysteresis ) {
-      // copy nonlinearity information to singlePDEs
-      for (UInt i=0; i<singlePDEs_.GetSize(); i++){
-        singlePDEs_[i]->SetNonLinearity(globalNonLin);
-        singlePDEs_[i]->SetMaterialNonLinearity(globalNonLin);
-      }
-
-      // copy nonlinearity information to couplings
-      for (UInt i=0; i<couplings_.GetSize(); i++) {
-        couplings_[i]->SetNonLinearity(globalNonLin);
-        couplings_[i]->SetMaterialNonLinearity(globalNonLin);
-      }
-    }
-
     // define solveStep-driver
     DefineSolveStep();
 
@@ -296,7 +268,7 @@ namespace CoupledField {
     for (UInt i=0; i<couplings_.GetSize(); i++) {
       couplings_[i]->SetAlgSys( algsys_ );
       couplings_[i]->SetAssemble( assemble_ );
-      couplings_[i]->Init( sequenceStep_ );
+      couplings_[i]->Init( sequenceStep_, infoNode_ );
     }
 
   }
@@ -325,116 +297,6 @@ namespace CoupledField {
   }
 
 
-  // ****************
-  //   DefineAlgSys
-  // ****************
-  void DirectCoupledPDE::DefineAlgSys() {
-
-
-
-    std::string pdeName;
-    shared_ptr<FeSpace> feSpace;
-
-    // Set linear system parameters for OLAS
-    //
-    // NOTE: Using current naming conventions in the XML Schema definitions
-    //       the linear system for a direct coupled PDE problem is always
-    //       called "direct", thus there can currently only be one of them.
-
-    REFACTOR;
-//    // Begin setup of the matrix graph
-//    algsys_->GraphSetupInit( singlePDEs_.GetSize() );
-//
-//    // iterate over all singlePDE and register them
-//    for ( UInt i = 0; i < singlePDEs_.GetSize(); i++ ) {
-//
-//      // obtain PDE identification tag from algebraic system
-//      // and set number of dirichlet and constraint equations
-//      pdeName= singlePDEs_[i]->GetName();
-//      pdeId = singlePDEs_[i]->GetPDEId();
-//      algsys_->RegisterPDE( pdeId, singlePDEs_[i]->GetNumPdeEquations(),
-//                            singlePDEs_[i]->GetNumPdeUnknowns() );
-//
-//      // Let the PDE set its Dirichlet information and related stuff
-//      singlePDEs_[i]->DefineAlgSys();
-//    }
-
-    // CURRENTLY NOT REQUIRED
-    //
-    // // iterate over all coupling objects and register them
-    // for ( UInt i = 0; i < couplings_.GetSize(); i++ ) {
-    //
-    //   // register forward coupling
-    //   algsys_->RegisterCoupling( couplings_[i]->GetPdeId1(),
-    //                              couplings_[i]->GetPdeId2() );
-    //
-    //   // register backward coupling
-    //   algsys_->RegisterCoupling( couplings_[i]->GetPdeId2(),
-    //                              couplings_[i]->GetPdeId1() );
-    // }
-
-    // iterate over all singlePDE and setup matrix graph
-//    // trigger the creation and assembly of the matrix graph
-//    for ( UInt i = 0; i < singlePDEs_.GetSize(); i++ ) {
-//      FeFctIdType id = singlePDEs_[i]->GetPDEId();
-//      algsys_->AssembleInit( id, id, false );
-//      assemble_->SetupMatrixGraph( id, id );
-//      algsys_->AssembleDone( id, id, false );
-//    }
-//
-//    // For SBM_Systems we must obtain the re-orderings now
-//    // and pass it to the EQN-objects
-//    if ( dynamic_cast<SBM_System*>(algsys_) != NULL ) {
-//      IncorporateReordering();
-//    }
-//
-//    // Setup matrix graph of coupling objects
-//    for (UInt i=0; i<couplings_.GetSize(); i++) {
-//      FeFctIdType id1 = couplings_[i]->GetPdeId1();
-//      FeFctIdType id2 = couplings_[i]->GetPdeId2();
-//
-//      // setup matrix graph for upper diagonal(s)
-//      algsys_->AssembleInit( id1, id2, false );
-//      assemble_->SetupMatrixGraph( id1, id2 );
-//      algsys_->AssembleDone( id1, id2, false );
-//
-//      // setup matrix graph for lower diagonal(s)
-//      algsys_->AssembleInit( id2, id1, false );
-//      assemble_->SetupMatrixGraph( id2, id1 );
-//      algsys_->AssembleDone( id2, id1, false );
-//    }
-//
-//    // Finish assembly of the matrix graph
-//    algsys_->GraphSetupDone();
-//
-//    // For StandardSystems we must obtain the re-orderings at this point
-//    // and pass it to the EQN-objects
-//    if ( dynamic_cast<StandardSystem*>(algsys_) != NULL ) {
-//      IncorporateReordering();
-//    }
-//
-//    // Print information from assemble class
-//    assemble_->ToInfo(infoNode_->Get(ParamNode::HEADER)->Get("integrators"));
-//
-//    // Allocate the necessary matrices as well as solver and preconditioner
-//    CreateMatrices_Solver();
-//
-//    // =====================================================================
-//    // Set the initial conditions
-//    // =====================================================================
-//    if ( analysistype_ == TRANSIENT ){
-//      SetInitialCondition();
-//    }
-//
-//
-//    for( UInt i = 0; i < singlePDEs_.GetSize(); i++ ) {
-//      if (singlePDEs_[i]->memento_ != NULL &&
-//          singlePDEs_[i]->mementoAsDirichlet_ == false ) {
-//        singlePDEs_[i]->IncorporateMemento();
-//      }
-//    }
-
-  }
 
   // ********************
   //   InitTimeStepping
@@ -537,45 +399,7 @@ namespace CoupledField {
 
 
   void DirectCoupledPDE::DefineSolveStep() {
-    REFACTOR;
-
-//    bool isPiezoHyst  = false;
-//    bool isMicroPiezo = false;
-//
-//    // activate direct coupling information
-//    // and initialize all single pdes
-//    for (UInt i=0; i<singlePDEs_.GetSize(); i++) {
-//      // check if single PDE really needs previous solution
-//      if ( singlePDEs_[i]->BelongsPDE2PiezoHyst() )
-//        isPiezoHyst = true;
-//
-//      //check for micro-piezo-model
-//     if ( singlePDEs_[i]->BelongsPDE2MicroPiezo() ) 
-//        isMicroPiezo = true;
-//    }
-//
-//    // check, if we have a mechacou-coupling and have
-//    // a nonlinear acoustic computation;
-//    bool acouPDEisNonlinAndCoupled2Mech = false;
-//    if ( couplings_.GetSize() == 1  &&
-//         couplings_[0]->GetName() == "acouMechDirect" ) {
-//         //check if single PDE is acoustic and is nonlinear
-//         for ( UInt i = 0; i < singlePDEs_.GetSize(); i++ ) {
-//             if ( singlePDEs_[i]->GetName() == "acoustic" &&
-//                  singlePDEs_[i]->IsNonLin() ) {
-//                  acouPDEisNonlinAndCoupled2Mech = true;
-//             }
-//         }
-//    }
-//    if ( acouPDEisNonlinAndCoupled2Mech ) {
-//      solveStep_ = new SolveStepAcoustic(*this);
-//    }
-//    else if ( isPiezoHyst )
-//      solveStep_ = new SolveStepPiezo(*this);
-//    else if ( isMicroPiezo )
-//      solveStep_ = new SolveStepMicroPiezo(*this);
-//    else
-//      solveStep_ = new StdSolveStep(*this);
+    solveStep_ = new StdSolveStep(*this);
   }
 
 
