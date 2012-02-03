@@ -7,44 +7,52 @@ IF(USE_IPOPT)
 ENDIF(USE_IPOPT)
 
 SET(PDE_SRCS
-  acouCombustion.cc
-  acousticMixedPDE.cc
+  mechPDE.cc
   acousticPDE.cc
+  magneticPDE.cc
+  elecPDE.cc
+  fluidMechPDE.cc
+  eqnMap.cc
+  magEdgePDE.cc
+  acousticMixedPDE.cc
+  disContEqnMap.cc
+  heatCondPDE.cc
+  StdPDE.cc
+  pdememento.cc
+  magneticScalarPDE.cc
+  newmarkFracDampMech.cc
+  newmarkFracDamp.cc
+  acouCombustion.cc
+  smoothPDE.cc
+  SinglePDE.cc
+  newmark.cc
   basePDE.cc
   bdf2.cc
-  disContEqnMap.cc
-  elecPDE.cc
-  eqnMap.cc
-  fluidMechPDE.cc
-  heatCondPDE.cc
-  magEdgePDE.cc
-  magneticPDE.cc
-  magneticScalarPDE.cc
-  mechPDE.cc
-  mixedEqnMap.cc
-  # mpcciPDE.cc
-  newmark.cc
-  newmarkFracDamp.cc
-  newmarkFracDampMech.cc
-  pdememento.cc
-  pseudoTS.cc
-  SinglePDE.cc
-  smoothPDE.cc
-  StdPDE.cc
-  timestepping.cc
   trapezoidal.cc
+  pseudoTS.cc
+  timestepping.cc
+  mixedEqnMap.cc
   )
+# mpcciPDE.cc
 
 ADD_LIBRARY(pde STATIC ${PDE_SRCS})
 
 SET(TARGET_LL
-  datainout
-  domain
   algsys-olas
-  forms
+  cfsgeneral
+  coupledpde
+  datainout
+  design
+  domain
   driver
-  paramh
+  elements
+  forms
+  logging
+  materials
   matvec
+  optimization
+  paramh
+  scripting
   utils
 )
 

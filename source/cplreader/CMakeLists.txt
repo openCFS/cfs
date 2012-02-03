@@ -74,14 +74,14 @@ ENDIF(CPLREADER_MPCCI AND USE_MPCCI)
 
 SUBDIRS(Documentation)
 
-SET(CPLREADER_SRCS 
+SET(CPLREADER_SRCS
   CouplingHandler.cc
   cplreader.cc
   FileReader.cc
   OutputWriter.cc
   ${CMAKE_CURRENT_BINARY_DIR}/ParamsInit.cc
   integlib/elemIntegr.cc
-#  integlib/integr.cc
+# integlib/integr.cc
 )
 
 ADD_EXECUTABLE(cplreader ${CPLREADER_SRCS})
@@ -94,6 +94,11 @@ SET(TARGET_LL ${TARGET_LL}
   utils
   cfsgeneral
   cplreader_cfs
+  cplreader_gengrids
+  cplreader_docu
+  cplreader_hdf5
+  ${BOOST_FILESYSTEM_LIB}
+  ${CFS_FORTRAN_DYNRT_LIBS}
 )
 
 IF(CPLREADER_ANSYS)
@@ -134,29 +139,9 @@ IF(CPLREADER_CGNS)
   SET(TARGET_LL ${TARGET_LL} cplreader_cgns)
 ENDIF(CPLREADER_CGNS)
 
-SET(TARGET_LL ${TARGET_LL}
-  cplreader_gengrids
-  cplreader_docu
-  cplreader_hdf5
-)
-
 IF(CPLREADER_MPCCI AND USE_MPCCI)
-  SET(TARGET_LL ${TARGET_LL}
-    cplreader_mpcci
-    )
+  SET(TARGET_LL ${TARGET_LL} cplreader_mpcci)
 ENDIF(CPLREADER_MPCCI AND USE_MPCCI)
-
-SET(TARGET_LL ${TARGET_LL}
-  ${BOOST_PROGRAM_OPTIONS_LIB}
-  # DIRTY, DIRTYYYY HACK!
-  datainout
-  simouttext
-  datainout
-  )
-
-SET(TARGET_LL ${TARGET_LL}
-  ${CFS_FORTRAN_DYNRT_LIBS}
-  )
 
 TARGET_LINK_LIBRARIES(cplreader ${TARGET_LL})
 

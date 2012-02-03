@@ -15,24 +15,30 @@ IF(CFS_BLAS_LAPACK STREQUAL "MKL")
     PROPERTIES COMPILE_FLAGS "-I${MKL_INCLUDE_DIR} -fno-strict-aliasing")
 ENDIF(CFS_BLAS_LAPACK STREQUAL "MKL")
 
-SET(DATAINOUT_SRCS 
-  coloredConsole.cc
-  postProc.cc
-  programOptions.cc
-  ResultCache.cc
+SET(DATAINOUT_SRCS
+  XMLMaterialHandler.cc
   resultHandler.cc
+  programOptions.cc
+  postProc.cc
+  ResultCache.cc
   simOutput.cc
   WriteInfo.cc
-  XMLMaterialHandler.cc
+  coloredConsole.cc
 )
 
 ADD_LIBRARY(datainout STATIC ${DATAINOUT_SRCS})
 
 SET(TARGET_LL
+  cfsgeneral
+  domain
+  elements
+  logging
   materials
+  matvec
+  paramh
+  pde
   simouttext
-  simoutinfo
-  simoutstreaming
+  utils
   ${BOOST_PROGRAM_OPTIONS_LIB}
   ${BOOST_FILESYSTEM_LIB}
   ${BOOST_SYSTEM_LIB}

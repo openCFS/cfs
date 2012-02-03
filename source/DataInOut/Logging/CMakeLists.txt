@@ -1,4 +1,9 @@
-SET(LOGGING_SRCS functions.cc log.cc log_manager.cc cfslog.cc)
+SET(LOGGING_SRCS
+  cfslog.cc
+  log_manager.cc
+  log.cc
+  functions.cc
+)
 
 IF(CFS_CXX_COMPILER_NAME STREQUAL "GCC" AND
    CFS_CXX_COMPILER_VER MATCHES "4.4")
@@ -7,3 +12,8 @@ ENDIF(CFS_CXX_COMPILER_NAME STREQUAL "GCC" AND
       CFS_CXX_COMPILER_VER MATCHES "4.4")
 
 ADD_LIBRARY(logging STATIC ${LOGGING_SRCS})
+
+TARGET_LINK_LIBRARIES(logging
+  matvec
+  scripting
+)

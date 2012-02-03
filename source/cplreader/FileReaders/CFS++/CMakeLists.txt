@@ -12,7 +12,11 @@ ADD_LIBRARY(cplreader_cfs STATIC ${CPLREADER_CFS_SRCS} )
 
 # add sources of hdf5 reader
 TARGET_LINK_LIBRARIES(cplreader_cfs
+  cfsgeneral
+  siminouthdf5
   ${CFS_HDF5_LIB}
   ${HDF5_CPP_LIBRARY}
-  ${HDF5_LIBRARY})
+  ${HDF5_LIBRARY}
+  ${BOOST_FILESYSTEM_LIB}
+)
 

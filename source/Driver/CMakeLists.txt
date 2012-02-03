@@ -1,36 +1,46 @@
 SET(DRIVER_SRCS
   assemble.cc
-  basedriver.cc
-  baseSolveStep.cc
-  eigenFrequencyDriver.cc
-  formsContext.cc
-  harmonicDriver.cc
-  iterSolveStep.cc
-  multiSequenceDriver.cc
-  singleDriver.cc
-  solveStepAcoustic.cc
-  solveStepElec.cc
-  solveStepFluidMech.cc
-  solveStepMagHyst.cc
-  solveStepMech.cc
-#  solveStepMpCCI.cc
-  solveStepODE.cc
-  solveStepMicroPiezo.cc
-  solveStepPiezo.cc
-  solveStepSmooth.cc
-  staticdriver.cc
   stdSolveStep.cc
   transientdriver.cc
+  harmonicDriver.cc
+  solveStepMicroPiezo.cc
+  multiSequenceDriver.cc
+  solveStepPiezo.cc
+  basedriver.cc
+  solveStepAcoustic.cc
+  solveStepElec.cc
+  formsContext.cc
+  solveStepMagHyst.cc
+  solveStepFluidMech.cc
+  solveStepSmooth.cc
+  eigenFrequencyDriver.cc
+  iterSolveStep.cc
+  solveStepODE.cc
+  staticdriver.cc
+  solveStepMech.cc
+  singleDriver.cc
+  baseSolveStep.cc
   )
+# solveStepMpCCI.cc
 
 ADD_LIBRARY(driver STATIC ${DRIVER_SRCS})
 
-SET(TARGET_LL
-  paramident
-  utils-olas
+TARGET_LINK_LIBRARIES(driver
   algsys-olas
-  graph-olas
-  utils
+  cfsgeneral
+  coupledpde
+  datainout
+  design
+  domain
+  elements
+  forms
+  logging
+  materials
+  matvec
+  optimization
+  paramh
+  paramident
+  pde
+  scripting
+  utils  
 )
-
-TARGET_LINK_LIBRARIES(driver ${TARGET_LL})

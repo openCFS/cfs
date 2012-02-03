@@ -14,16 +14,20 @@ ADD_LIBRARY(cholmod-olas STATIC ${CHOLMOD_SRCS})
 # CFS_FORTRAN_LIBS has been set in cmake_modules/distro.cmake
 # LAPACK_LIBRARY and BLAS_LIBRARY are defined in
 # cmake_modules/FindFortranLibs.cmake
-SET(TARGET_LL
-  ${CHOLMOD_LIBRARY}
-  )
+TARGET_LINK_LIBRARIES(cholmod-olas
+  cfsgeneral
+  datainout
+  logging
+  matvec
+  paramh
+  solver-olas
+  cholmod-lib1
+)
 
-SET(TARGET_LL
-  ${TARGET_LL}
-  ${LAPACK_LIBRARY}
-  ${BLAS_LIBRARY}
-  ${METIS_LIBRARY}
-  )
+SET(DEPENDS
+  "${LAPACK_LIBRARY}"
+  "${BLAS_LIBRARY}"
+  "${METIS_LIBRARY}"
+)
 
-TARGET_LINK_LIBRARIES(cholmod-olas ${TARGET_LL} )
-
+ADD_DEPENDENT_LIBRARY(cholmod-lib "${CHOLMOD_LIBRARY}" "${DEPENDS}")

@@ -1,9 +1,9 @@
 SET(PRECOND_SRCS
-    baseprecond.cc
-    idprecond.cc
-    generateprecond.cc
-    #mgprecond.cc
-    #sbmdiagprecond.cc
+  generateprecond.cc
+  baseprecond.cc
+  idprecond.cc
+  #mgprecond.cc
+  #sbmdiagprecond.cc
     )
 
 IF(EXPLICIT_TEMPLATE_INSTANTIATION)
@@ -25,9 +25,10 @@ ENDIF(EXPLICIT_TEMPLATE_INSTANTIATION)
 
 ADD_LIBRARY(precond-olas STATIC ${PRECOND_SRCS})
 
-SET(TARGET_LL
-    matvec
-    utils-olas
-    )
-    
-TARGET_LINK_LIBRARIES(precond-olas ${TARGET_LL})
+TARGET_LINK_LIBRARIES(precond-olas
+  cfsgeneral
+  matvec
+  paramh
+  utils
+  utils-olas
+)

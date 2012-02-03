@@ -1,8 +1,9 @@
 SET(LAPACK_SRCS
-  olasf77mapping.cc
-  lapackbasematrix.cc
   lapacklu.cc
-  lapackll.cc)
+  lapackll.cc
+  lapackbasematrix.cc
+  olasf77mapping.cc
+)
 
 IF(EXPLICIT_TEMPLATE_INSTANTIATION)
 SET(LAPACK_SRCS
@@ -17,10 +18,25 @@ ADD_LIBRARY(lapack-olas STATIC ${LAPACK_SRCS})
 # LAPACK_LIBRARY and BLAS_LIBRARY are defined in
 # cmake_modules/FindFortranLibs.cmake
 SET(TARGET_LL
+  cfsgeneral
+  graph-olas
   matvec
-  ${LAPACK_LIBRARY}
-  ${BLAS_LIBRARY}
-  ${CFS_FORTRAN_LIBS})
+  paramh
+  solver-olas
+  utils
+)
 
-TARGET_LINK_LIBRARIES(lapack-olas ${TARGET_LL})
+IF("${LAPACK_LIBRARY}" STREQUAL "")
+ELSE("${LAPACK_LIBRARY}" STREQUAL "")
+
+SET(DEPENDS
+  "${BLAS_LIBRARY}"
+  "${CFS_FORTRAN_LIBS}"
+)
+
+ADD_DEPENDENT_LIBRARY(lapack-lib "${LAPACK_LIBRARY}" "${DEPENDS}")
+
+TARGET_LINK_LIBRARIES(lapack-olas ${TARGET_LL} lapack-lib1)
+
+ENDIF("${LAPACK_LIBRARY}" STREQUAL "")
 

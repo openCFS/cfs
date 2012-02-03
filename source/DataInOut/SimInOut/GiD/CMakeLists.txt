@@ -10,4 +10,13 @@ ADD_LIBRARY(simoutgid STATIC ${SIMOUTGID_SRCS})
 TARGET_LINK_LIBRARIES(simoutgid
   ${GIDPOST_LIBRARY}
   ${ZLIB_LIBRARY}
-  )
+  cfsgeneral
+  datainout
+  domain
+  elements
+  logging
+  matvec
+  paramh
+  pde
+  utils
+)

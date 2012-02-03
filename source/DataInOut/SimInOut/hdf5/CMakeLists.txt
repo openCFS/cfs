@@ -6,7 +6,6 @@ SET(SIMINOUTHDF5_SRCS
   simOutputHDF5.cc
 )
 
-
 ADD_LIBRARY(siminouthdf5 STATIC ${SIMINOUTHDF5_SRCS})
 
 TARGET_LINK_LIBRARIES(siminouthdf5
@@ -14,11 +13,20 @@ TARGET_LINK_LIBRARIES(siminouthdf5
   ${HDF5_LIBRARY}
   ${ZLIB_LIBRARY}
   ${BOOST_DATE_TIME_LIB}
-  )
+  cfsgeneral
+  datainout
+  domain
+  elements
+  logging
+  matvec
+  paramh
+  pde
+  utils  
+)
 
 ADD_EXECUTABLE(h5tool h5tool.cc)
 
-SET(TARGET_LL siminouthdf5 cfsgeneral)
+SET(TARGET_LL siminouthdf5 cfsgeneral utils)
 
 # Fix link problems with Intel 9 compiler
 IF(CFS_CXX_COMPILER_NAME STREQUAL "ICC" AND

@@ -57,7 +57,7 @@ public:
   /** shall we write the density file each iteration or only in the destructor.
    * The difference is superfluous file writing .*/
   bool finally_only_;
-
+  
   /** we don't own this data, therefore we also don't delete it! */
   DesignSpace* ersatzMaterial_;
 
