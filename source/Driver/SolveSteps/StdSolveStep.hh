@@ -18,10 +18,7 @@ namespace CoupledField
 {
   // forward class declarations
   class StdPDE;
-  //class BaseNodeStoreSol;
-  //class TimeStepping;
   class WriteResults;
-  //class EqnMap;
   struct ResultInfo;
   class SingleDriver;
   class IDBC_Handler;
@@ -202,8 +199,9 @@ namespace CoupledField
     AlgebraicSys* algsys_;             //!< pointer to algsys object
     ResultList results_;
     Assemble * assemble_;            //!< pointer to assemble object  
-    //! factors for computingn effective system matrix
-    std::map<FEMatrixType,Double> matrix_factor_;   
+    
+    //! factors for computingn effective system matrix for each feFunction
+    std::map<FeFctIdType, std::map<FEMatrixType,Double> > matrix_factor_;   
     
                                    //!< our solution
     bool recalc_;               //!< flag indicating reassembling of system matrix

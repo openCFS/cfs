@@ -480,7 +480,6 @@ namespace CoupledField {
   inline void SCRS_Matrix<T>::MultAdd( const Vector<T> & mvec,
                                        Vector<T> & rvec ) const {
 
-
     register UInt k,rs;
     register UInt c;
     UInt i, j;
@@ -887,6 +886,16 @@ namespace CoupledField {
       data_[i] *= factor;
     }
   }
+  
+  // ************************
+  //   Scale on index subset
+  // ************************
+  template<typename T>
+  void SCRS_Matrix<T>::Scale( Double factor,
+                              const std::set<UInt>& rowIndices,
+                              const std::set<UInt>& colIndices ) {
+    EXCEPTION("Implement me");
+  }
 
 
   // **************
@@ -967,6 +976,68 @@ namespace CoupledField {
       for ( UInt i = 0; i < numEntries_; i++ ) {
         data_[i] += alpha * data[i];
       }
+    }
+  }
+  
+  // ******************************************
+  //   Add (another matrix, only index subset)
+  // ******************************************
+  template<typename T>
+  void SCRS_Matrix<T>::Add( const Double alpha, const StdMatrix& mat,
+                            const std::set<UInt>& rowIndices,
+                            const std::set<UInt>& colIndices) {
+    // Down-cast input matrix
+    const SCRS_Matrix<T>& scrsMat = dynamic_cast<const SCRS_Matrix<T>&>(mat);
+
+    // Obtain pointer to data array of other matrix
+    const T *data = scrsMat.GetDataPointer();
+    
+    // Distinguish 4 cases:
+    // 1) Neither row- nor col-indices are set (i.e. take all indices)
+    //    -> use standard Add methods
+    // 2) Row and col-indices are set and contain all rows / cols
+    //    -> use standard Add methods
+    if( (rowIndices.size() == 0 && colIndices.size() == 0) ||
+        (rowIndices.size() == this->nrows_ &&
+         colIndices.size() == this->ncols_ ) ) {
+      // use standard method
+      this->Add(alpha, mat);
+      return;
+    }
+    
+    // 3) Both sets are non-empty sub-sets of all indices
+    //    --> loop over row / column indices to be set
+    std::set<UInt>::const_iterator rowIt, colIt;
+    if( rowIndices.size() > 0 && colIndices.size() > 0 ) {
+      register UInt k, rs;
+      UInt j;
+      rowIt = rowIndices.begin();
+
+      // loop over all rows in the rowIndex set
+      for( ; rowIt != rowIndices.end(); ++rowIt ) {
+        k = rowPtr_[*rowIt];
+        rs = rowPtr_[*rowIt+1] - k;
+        // loop over all columns of the current row
+        colIt = colIndices.begin();
+        for ( j = 0; j < rs; j++ ) {
+          // iterate over desired column indices until the
+          // current column index is smaller
+          while( *colIt < colInd_[k] && colIt != colIndices.end() ) 
+            colIt++;
+          // only perform operation, if column indices match
+          if( *colIt == colInd_[k] )
+            data_[k] += alpha * data[k];
+          k++;
+        }
+      }
+    } else {
+      // 4) Only one set is empty: rowIndices or colIndices
+      //    -> either loop over all rows and take into account only
+      //       selected column
+      //    -> or loop over selected rows and take into account
+      //      
+      EXCEPTION( "This method is only implemented for the case of "
+          << "non-empty row and column index sets!" );
     }
   }
 

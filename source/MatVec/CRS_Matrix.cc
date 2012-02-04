@@ -834,6 +834,16 @@ namespace CoupledField {
       data_[i] *= factor;
     }
   }
+  
+  // ************************
+  //   Scale on index subset
+  // ************************
+  template<typename T>
+  void CRS_Matrix<T>::Scale( Double factor,
+                             const std::set<UInt>& rowIndices,
+                             const std::set<UInt>& colIndices ) {
+    EXCEPTION("Implement me");
+  }
 
 
   // **************
@@ -874,7 +884,7 @@ namespace CoupledField {
         data_[i] += alpha * data[i];
       }
   }
-
+  
   template<>
   void CRS_Matrix<Complex>::Add( const Double alpha, const StdMatrix& mat ) {
 
@@ -901,7 +911,109 @@ namespace CoupledField {
 	  }
 	}
   }
+  
+  // ******************************************
+  //   Add (another matrix, only index subset)
+  // ******************************************
+  template<typename T>
+  void CRS_Matrix<T>::Add( const Double alpha, const StdMatrix& mat,
+                           const std::set<UInt>& rowIndices,
+                           const std::set<UInt>& colIndices ) {
+    // Down-cast input matrix
+    const CRS_Matrix<T>& crsMat = dynamic_cast<const CRS_Matrix<T>&>(mat);
 
+    // Obtain pointer to data array of other matrix
+    const T *data = crsMat.GetDataPointer();
+
+    // Distinguish 4 cases:
+    // 1) Neither row- nor col-indices are set (i.e. take all incides)
+    //    -> use standard Add methods
+    // 2) Row and col-indices are set and contain all rows / cols
+    //    -> use standard Add methods
+    if( (rowIndices.size() == 0 && colIndices.size() == 0) ||
+        (rowIndices.size() == this->nrows_ &&
+         colIndices.size() == this->ncols_ ) ) {
+      this->Add(alpha, mat);
+      return;
+    }
+
+    // 3) Both sets are non-empty sub-sets of all indices
+    //    --> loop over row / column indices to be set
+    if( rowIndices.size() > 0 && colIndices.size() > 0 ) {
+      std::set<UInt>::const_iterator rowIt, colIt;
+      register UInt k, rs;
+      UInt j;
+      rowIt = rowIndices.begin();
+
+      // loop over all rows in the rowIndex set
+      for( ; rowIt != rowIndices.end(); ++rowIt ) {
+        k = rowPtr_[*rowIt];
+        rs = rowPtr_[*rowIt+1] - k;
+
+        // loop over all columns of the current row
+        colIt = colIndices.begin();
+        for ( j = 0; j < rs; j++ ) {
+
+          // iterate over desired column indices until the
+          // current column index is smaller
+          while( *colIt < colInd_[k] && colIt != colIndices.end() ) 
+            colIt++;
+          // only perform operation, if column indices match
+          if( *colIt == colInd_[k] )
+            data_[k] += alpha * data[k];
+          k++;
+        }
+      }
+    } else {
+      // 4) Only one set is empty: rowIndices or colIndices
+      if ( rowIndices.size() > 0 ) {
+        //    -> either loop over selected rows and take into account
+        //       all columns
+        std::set<UInt>::const_iterator rowIt;
+        register UInt k, rs;
+        UInt j;
+        rowIt = rowIndices.begin();
+
+        // loop over all rows in the rowIndex set
+        for( ; rowIt != rowIndices.end(); ++rowIt ) {
+          k = rowPtr_[*rowIt];
+          rs = rowPtr_[*rowIt+1] - k;
+
+          // loop over all columns of the current row
+          for ( j = 0; j < rs; j++ ) {
+            data_[k] += alpha * data[k];
+            k++;
+          }
+        }
+      } else {
+        //  -> or loop over all rows and take into account only
+        //     selected columns
+        std::set<UInt>::const_iterator colIt;
+        register UInt k, rs;
+        UInt i, j;
+
+        // loop over all rows
+        for ( i = 0; i < this->nrows_; i++ ) {
+          k = rowPtr_[i];
+          rs = rowPtr_[i+1] - k;
+
+          // loop over all columns of the current row
+          colIt = colIndices.begin();
+          for ( j = 0; j < rs; j++ ) {
+
+            // iterate over desired column indices until the
+            // current column index is smaller
+            while( *colIt < colInd_[k] && colIt != colIndices.end() ) 
+              colIt++;
+            // only perform operation, if column indices match
+            if( *colIt == colInd_[k] )
+              data_[k] += alpha * data[k];
+            k++;
+          } // cols
+        } // rows
+      } // if column set is nonzero
+    } // if one set is nonzero
+  }
 
   // *************
   //   QuickSort

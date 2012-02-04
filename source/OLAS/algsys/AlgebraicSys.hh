@@ -403,6 +403,36 @@ namespace CoupledField {
                                   StdVector<UInt>& blockNums,
                                   StdVector<UInt>& indices );
     
+    //! @see MapFctIdEqnToIndex()
+    //! Return all for each SBM block all indices for a given fctId.
+    //! In case of the elimination approach to handle IDBCs, the second
+    //! set contains all indices corresponding to the auxiliary matrices
+    //! stored in the IDBC handler. 
+    //! This method is used to assemble e.g. the effective matrix, where
+    //! just a sub-set of the indices of a sparse matrix is addressed.
+    //! \param fctId identifier of the feFunction to be mapped
+    //! \param freeIndPerBlock contains for each SBM-block (key to first map)
+    //!                        a set of indices (1-based) of rows / cols 
+    //!                        corresponding to the non-fixed equations of a
+    //!                        feFunction.
+    //! \param fixedIndPerBlock in case of the IDBC elimination approach, it 
+    //!                         contains for each SBM-block (key to first map)
+    //!                         of the IDBC auxiliary matrix a set of indices 
+    //!                         (0-based) of rows corresponding to 
+    //!                         the fixed equations of a feFunction.
+    //! \param indexZeroBased flag indicating if the indices should be numbered
+    //!                       0-based (= are dircetly used as indices in a 
+    //!                       matrix) or if they are used in conjunction with 
+    //!                       the graph manager / SetElementMatrix method 
+    //!                       (1-based indices) 
+    void MapCompleteFctIdToIndex( const FeFctIdType fctId,
+                                  std::map<UInt, 
+                                  std::set<UInt> >& freeIndPerBlock,
+                                  std::map<UInt, 
+                                  std::set<UInt> >& fixedIndPerBlock,
+                                  bool indexZeroBased );
+
+    
     // ***********************************************************************
     //   Methods for assembling the matrices, rhs and bc
     // ***********************************************************************
@@ -618,15 +648,17 @@ namespace CoupledField {
                          T val,
                          bool setCounterPart );
 
-    //! Constructs the effective system matrix
+    //! Constructs the effective system matrix related to a given fctId
 
-    //! Constructs the effective system matrix by multiplying the individual
-    //! matrices (expect AUXILIARY!) with factors and adding them to one system 
-    //! matrix
+    //! Constructs the effective system matrix for a given functionId by 
+    //! multiplying the individual matrices (except AUXILIARY!) with 
+    //! factors and adding them to one system matrix
+    //! \param fctId identifier for function related to sub-graph
     //! \param matFactors a map which contains for each matrixtype (DAMPING,
     //!                   STIFFNESS,...) the according factor
-    void ConstructEffectiveMatrix( const std::map<FEMatrixType,
-                                   Double>&matFactors );
+    void ConstructEffectiveMatrix( 
+        const FeFctIdType fctId,
+        const std::map<FEMatrixType, Double>& matFactors );
 
     //! Pass a Dirichlet value to %OLAS
 

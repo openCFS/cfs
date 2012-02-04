@@ -420,6 +420,17 @@ namespace CoupledField {
     //!   dimension and sparsity pattern.
     void Add( const Double fac, const BaseMatrix& mat );
 
+    
+    //! Add a scalar multiple of entries of another matrix
+    
+    //! This method is similar to the Add(Double, mat) method, but only some
+    //! entries are considered, specified by SBM-matrix block and an index set.
+    //! If an entry can not be found or the matrix is
+    //! not quadratic, an exception is thrown.
+    //! If the row / col index set is empty, all rows / cols are considered.
+    void Add( const Double fac, const BaseMatrix& mat,
+              std::map<UInt, std::set<UInt> >& rowIndPerBlock,
+              std::map<UInt, std::set<UInt> >& colIndPerBlock );
     //@}
 
 

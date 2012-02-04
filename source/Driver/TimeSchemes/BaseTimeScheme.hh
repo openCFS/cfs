@@ -35,7 +35,7 @@ class BaseTimeScheme{
     }
 
     /*! Initializes all required vectors and variables
-     *  \param[in] solVec pointer to the feFunction ceofficient vector
+     *  \param[in] solVec pointer to the feFunction coefficient vector
      *  \param[in] dt current timestep size
      */
     virtual void Init(SingleVector* fncCoef,Double dt)=0;

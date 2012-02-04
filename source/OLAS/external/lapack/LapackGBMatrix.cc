@@ -452,6 +452,28 @@ namespace CoupledField {
       }
 
   }
+  
+  // ******************************************
+  //   Add (another matrix, only index subset)
+  // ******************************************
+  template <class entryF, class entryC>
+  void LapackGBMatrix<entryF,entryC>::
+  Add( const Double alpha, const StdMatrix& mat,
+       const std::set<UInt>& rowIndices,
+       const std::set<UInt>& colIndices) {
+    EXCEPTION("Not implemented");
+  }
+
+  // ************************
+   //   Scale on index subset
+   // ************************
+  template <class entryF, class entryC>
+    void LapackGBMatrix<entryF,entryC>::
+    Scale( Double factor,
+           const std::set<UInt>& rowIndices,
+           const std::set<UInt>& colIndices ) {
+    EXCEPTION("Implement me");
+  }
 
 
   // ***************************************************

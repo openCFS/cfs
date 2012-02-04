@@ -171,9 +171,10 @@ namespace CoupledField {
   //   BuiltSystemMatrix
   // *********************
   template <typename T> void IDBC_Handler<T>::
-  BuiltSystemMatrix( const std::map<FEMatrixType, Double> &factors ) {
+  BuildSystemMatrix( const std::map<FEMatrixType, Double> &factors,
+                     std::map<UInt, std::set<UInt> >& rowInd ) {
 
-    BaseMatrix *sys = auxMat_[SYSTEM];
+    SBM_Matrix *sys = auxMat_[SYSTEM];
 
     std::map<FEMatrixType,Double>::const_iterator it;
 
@@ -181,7 +182,10 @@ namespace CoupledField {
 
       // Check that we have a factor and a FE matrix
       if ( auxMat_[(*it).first] != NULL  && (*it).second != 0.0 ) {
-        sys->Add( (*it).second , *auxMat_[(*it).first] );
+        // generate empty set of indices (= all columns)
+        std::map<UInt, std::set<UInt> > colInd;
+        sys->Add( (*it).second , *auxMat_[(*it).first], 
+                  rowInd, colInd );
       }
     }
 
@@ -198,7 +202,7 @@ namespace CoupledField {
     if ( addIDBCPossible_ == false ) {
       EXCEPTION( "IDBCHandler::AddIDBCToRHS: Internal error! Refusing to "
           << "add Dirichlet BCs, since addIDBCPossible_ = false! "
-          << "Did you call BuiltSystemMatrix()?");
+          << "Did you call BuildSystemMatrix()?");
     }
     
     auxMat_[SYSTEM]->MultSub( *vecIDBC_, *rhs );

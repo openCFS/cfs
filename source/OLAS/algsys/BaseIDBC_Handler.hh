@@ -35,8 +35,12 @@ namespace CoupledField {
     //! matrices into a single system matrix. The system matrix is constructed
     //! by computing a weighted sum of the internal FE matrices using the
     //! weights supplied in the factors map input parameter.
+    //! The operation only works on a subset of the free equations, denoted
+    //! by the indicesPerBlock (i.e. for each SBM matrix (first map) there
+    //! is a set of row-indices (second index ) ).
     virtual void
-    BuiltSystemMatrix( const std::map<FEMatrixType, Double> &factors ) = 0;
+    BuildSystemMatrix( const std::map<FEMatrixType, Double> &factors,
+                       std::map<UInt, std::set<UInt> >& indicesPerBlock ) = 0;
 
     //! Adapt system matrix
 
@@ -61,7 +65,7 @@ namespace CoupledField {
 
     //! Remove inhomogeneous Dirichlet BCs from right hand side
 
-    //! Call this method in order to update an exisiting right hand side
+    //! Call this method in order to update an existing right hand side
     //! such that it incorporates the modification resulting from eliminating
     //! the dofs for inhomogeneous Dirichlet boundary conditions from the
     //! linear system.
@@ -116,18 +120,21 @@ namespace CoupledField {
     //@}
 
     //@{
-    //! Add Dof Values fixed by Dirichlet boundary condition to a right hand side
+    //! Add Dof Values fixed by Dirichlet boundary condition to a RHS
 
-    //! In case of elemenination IDBC handling in the time domain we need to add the
-    //! DOFs fixed by an IDBC to the RHS by multiplication with the corresponding matrix entries
-    //! We do this for each row block and for each rowblock in each row of the sbm matrix
+    //! In case of elemenination IDBC handling in the time domain we need to 
+    //! add the DOFs fixed by an IDBC to the RHS by multiplication with the 
+    //! corresponding matrix entries.
+    //! We do this for each row block and for each rowblock in each row of 
+    //! the SBM matrix.
     //! \param matID matrix type to be multiplied with the value
     //! \param colBlock The column block the value is associated with
     //! \param colInd The index inside the sbm subvector
     //! \param rhs  the right hand side we are operating on
     //! \param val  The value we need to multiply
     virtual void AddFixedToFreeRHS( FEMatrixType matID, UInt colBlock,
-                                        UInt colInd, SBM_Vector *rhs, const Double& val ) {
+                                        UInt colInd, SBM_Vector *rhs, 
+                                        const Double& val ) {
       EXCEPTION("BaseIDBC_Handler::AddFixedToFreeRHS: The derived class does " \
                 << "obviously not support the Double version of this " \
                 << "interface! So it is probably a Complex instance!");

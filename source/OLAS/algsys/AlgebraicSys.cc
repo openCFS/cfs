@@ -1296,7 +1296,7 @@ namespace CoupledField {
     graphManager_ = new GraphManager();
     graphManager_->SetupInit( numBlocks_, distinctMatGraphs_ );
 
-    // Loop over all blocks and register them with the graph manager
+    // loop over all blocks and register them with the graph manager
     for( UInt sbmIndex = 0; sbmIndex < numBlocks_; ++sbmIndex ) {
       graphManager_->RegisterBlock( sbmIndex, blockInfo_[sbmIndex]  );
     }
@@ -1337,7 +1337,7 @@ namespace CoupledField {
     MapFctIdEqnToIndex(fctId2, eqnNrs2, blockNums2, indices2);
 
     // Quirk: If fctId1 == fctId2, we normally
-    // need not set the counterPart. If however, the are now in
+    // need not set the counterPart. If however, they are now in
     // off diagonal matrices, we have to ensure, that originally
     // symmetric matrix structures remain symmetric also in the 
     // blockSystem
@@ -1479,6 +1479,60 @@ namespace CoupledField {
     }
   }
 
+
+  void AlgebraicSys::
+  MapCompleteFctIdToIndex(const FeFctIdType fctId,
+                          std::map<UInt, std::set<UInt> >& freeIndPerBlock,
+                          std::map<UInt, std::set<UInt> >& fixedIndPerBlock,
+                          bool indexZeroBased ) {
+    std::set<FeFctIdType> fctIds;
+    UInt size = 0;
+    if ( fctId == NO_FCT_ID ) {
+      std::map<FeFctIdType, std::set<UInt> >::iterator it;
+      it = fctIdsInBlocks_.begin();
+      for( ; it != fctIdsInBlocks_.end(); ++it ){
+        fctIds.insert(it->first);
+        size += numEqnsPerFct_[it->first];
+      }
+    } else {
+      fctIds.insert(fctId);
+      size = numEqnsPerFct_[fctId];
+    }
+
+    //blockNums.Resize(size);
+    //indices.Resize(size);
+
+    Integer offset = 0;
+    if( indexZeroBased )
+      offset = -1;
+    
+    
+    // loop over all functionIds
+    std::set<FeFctIdType>::const_iterator fctIt = fctIds.begin();
+    for( ; fctIt != fctIds.end(); ++fctIt ) {
+
+      const FeFctIdType actFctId = *fctIt;
+
+      // loop over all blocks
+      for( UInt iBlock = 0; iBlock < numBlocks_; ++iBlock ) {
+        const std::map<UInt, UInt> & eqnToIndexSet = 
+            blockInfo_[iBlock]->eqnToIndex[actFctId];
+        std::map<UInt, UInt>::const_iterator eqnIt = eqnToIndexSet.begin();
+        // loop over equations
+        for( ; eqnIt != eqnToIndexSet.end(); ++eqnIt ) {
+          const UInt index = eqnIt->second;
+          if( index > blockInfo_[iBlock]->numLastFreeIndex ) {
+            // fixed index
+            fixedIndPerBlock[iBlock].insert( 
+                index - blockInfo_[iBlock]->numLastFreeIndex -1 + offset );
+          } else {
+            // free index
+            freeIndPerBlock[iBlock].insert( index + offset );
+          }
+        } // loop over equations
+      } // loop over blocks
+    } // loop over functions
+  }
 
 
   // all methods regarding assembly 
@@ -2061,9 +2115,12 @@ namespace CoupledField {
     REFACTOR;
   }
 
-  void AlgebraicSys::ConstructEffectiveMatrix( const std::map<FEMatrixType,Double> &matFactors ) {
+  void AlgebraicSys::
+  ConstructEffectiveMatrix( const FeFctIdType fctId, 
+                            const std::map<FEMatrixType,Double> &matFactors ) {
 
-    LOG_TRACE(algSys) << "Constructing efffective system matrix";
+    LOG_TRACE(algSys) << "Constructing effective system matrix for feFunction "
+        << "with id " << fctId;
     if (IS_LOG_ENABLED(algSys, dbg)) {
       LOG_DBG(algSys) << "Factors are:";
       std::map<FEMatrixType,Double>::const_iterator it = matFactors.begin();
@@ -2074,6 +2131,12 @@ namespace CoupledField {
 
     factorMap::const_iterator it;
     SBM_Matrix *sys = sysMat_[SYSTEM];
+    
+    // As one functionId can be spread over many SBM blocks, we
+    // have to map the fctId to (sbmBlocks,indices)
+    std::map<UInt, std::set<UInt> > freeIndPerBlock, fixedIndPerBlock;
+    MapCompleteFctIdToIndex(fctId, freeIndPerBlock, fixedIndPerBlock, true);
+    
 
     // It's okay, if there are no factors, if there is only a system
     // matrix and no other ones
@@ -2081,7 +2144,7 @@ namespace CoupledField {
       if ( matrixTypes_.size() == 1 && sys != NULL ) {
         // Also assemble the effective auxilliary system matrix for moving
         // IDBCs to the right-hand side
-        idbcHandler_->BuiltSystemMatrix( matFactors );
+        idbcHandler_->BuildSystemMatrix( matFactors, freeIndPerBlock );
 
         // Now we are done
         return;
@@ -2094,13 +2157,14 @@ namespace CoupledField {
     }
     for ( it = matFactors.begin(); it != matFactors.end(); it++ ) {
       if ( sysMat_[(*it).first] != NULL  && (*it).second != 0.0 ) {
-        sys->Add( (*it).second, *sysMat_[(*it).first] );
+        sys->Add( (*it).second, *sysMat_[(*it).first], 
+                  freeIndPerBlock, freeIndPerBlock );
       }
     }
 
     // Also assemble the effective auxilliary system matrix for moving
     // IDBCs to the right-hand side
-    idbcHandler_->BuiltSystemMatrix( matFactors );
+    idbcHandler_->BuildSystemMatrix( matFactors, freeIndPerBlock );
 
   }
 

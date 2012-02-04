@@ -338,6 +338,11 @@ namespace CoupledField {
 
     //! Method to scale all matrix entries by a fixed factor
     void Scale( Double factor );
+    
+    //! \copydoc StdMatrix::Scale(Double, std::set<UInt>)
+    void Scale( Double factor, 
+                const std::set<UInt>& rowIndices,
+                const std::set<UInt>& colIndices ); 
 
     //! Add the multiple of a matrix to this matrix.
 
@@ -346,6 +351,10 @@ namespace CoupledField {
     //! matrix mat is assumed to be identical to this matrix' structure.
     void Add( const Double alpha, const StdMatrix& mat );
     
+    //! \copydoc StdMatrix::Add(Double,StdMatrix,std::set<UInt>,std::set<UInt>)
+    void Add( const Double a, const StdMatrix& mat,
+              const std::set<UInt>& rowIndices,
+              const std::set<UInt>& colIndices );
     //@}
 
 

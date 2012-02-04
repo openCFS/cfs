@@ -183,6 +183,16 @@ namespace CoupledField {
     //! bandwidth of this matrix.
     void Add( const Double a, const StdMatrix& mat);
 
+    //! \copydoc StdMatrix::Add(Double,StdMatrix,std::set<UInt>,std::set<UInt>)
+    void Add( const Double a, const StdMatrix& mat,
+              const std::set<UInt>& rowIndices,
+              const std::set<UInt>& colIndices );
+
+    //! \copydoc StdMatrix::Scale(Double, std::set<UInt>, std::set<UInt>)
+    void Scale( Double factor, 
+                const std::set<UInt>& rowIndices,
+                const std::set<UInt>& colIndices ); 
+
     //! Returns the largest modulus of a diagonal entry
 
     //! The method determines the entry on the main diagonal of the matrix

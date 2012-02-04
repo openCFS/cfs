@@ -882,6 +882,13 @@ namespace CoupledField {
   void VBR_Matrix<T>::Scale( Double factor ) {
     EXCEPTION("Not implemented");
   }
+  
+  template<typename T>
+  void VBR_Matrix<T>::Scale( Double factor,
+                             const std::set<UInt>& rowIndices,
+                             const std::set<UInt>& colIndices ) {
+    EXCEPTION("Implement me");
+  }
 
   template<typename T>
   Double VBR_Matrix<T>::GetMaxDiag() const {
@@ -907,6 +914,13 @@ namespace CoupledField {
   void VBR_Matrix<Complex>::Add( const Double alpha, const StdMatrix& mat ) {
 
     EXCEPTION("Implement me");
+  }
+
+  template<typename T>
+  void VBR_Matrix<T>::Add( const Double alpha, const StdMatrix& mat,
+                           const std::set<UInt>& rowIndices,
+                           const std::set<UInt>& colIndices ) {
+    EXCEPTION("Not implemented");
   }
 
   template <typename T>

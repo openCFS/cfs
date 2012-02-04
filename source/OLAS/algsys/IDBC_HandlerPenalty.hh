@@ -116,7 +116,8 @@ namespace CoupledField {
     //@{
 
     ///! @copydoc BaseIDBC_Handler::BuiltSystemMatrix()
-    void BuiltSystemMatrix( const std::map<FEMatrixType, Double> &factors ) {
+    void BuildSystemMatrix( const std::map<FEMatrixType, Double> &factors,
+                            std::map<UInt, std::set<UInt> >& indicesPerBlock ) {
     }
 
     //! @copydoc BaseIDBC_Handler::RemoveIDBCFromRHS()

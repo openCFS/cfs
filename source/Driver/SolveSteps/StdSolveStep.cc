@@ -167,7 +167,8 @@ namespace CoupledField {
     // Only if the matrices have changed (e.g. due to updated lagrangian
     // formulation) the system matrix has to be rebuild
     if( assemble_->IsMatrixUpdated() ) {
-      algsys_->ConstructEffectiveMatrix( matrix_factor_ );
+      algsys_->ConstructEffectiveMatrix( NO_FCT_ID, 
+                                         matrix_factor_[NO_FCT_ID] );
     }
 
     // Incorporate Boundary conitions and
@@ -301,9 +302,11 @@ namespace CoupledField {
       if(assemble_->IsMatrixUpdated()){
         matrix_factor_.clear();
         for(fncIt = feFunctions_.begin();fncIt != feFunctions_.end();fncIt++){
-          fncIt->second->GetTimeScheme()->AddMatFactors(i,matrices,matrix_factor_);
+          FeFctIdType fctId = fncIt->second->GetFctId();
+          fncIt->second->GetTimeScheme()
+              ->AddMatFactors(i,matrices,matrix_factor_[fctId]);
+          algsys_->ConstructEffectiveMatrix(fctId, matrix_factor_[fctId]);
         }
-        algsys_->ConstructEffectiveMatrix(matrix_factor_);
         effectiveMatrixUpdated = true;
       }
 
@@ -923,9 +926,11 @@ namespace CoupledField {
     // store rhs vector back to PDE
     algsys_->GetRHSVal( rhsVec_ );
 
-    if( assemble_->IsMatrixUpdated() ) {
-      algsys_->ConstructEffectiveMatrix( matrix_factor_ );
-    }
+    // Where should we get the matrix factors from in a harmonic case?
+    // In my opinion this method 
+//    if( assemble_->IsMatrixUpdated() ) {
+//      algsys_->ConstructEffectiveMatrix(NO_FCT_ID,  matrix_factor_ );
+//    }
 
     algsys_->BuildInDirichlet();
 

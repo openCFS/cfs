@@ -2,6 +2,7 @@
 #define OLAS_SPARSE_MATRIX_HH
 
 #include <iostream>
+#include <set>
 
 #include "TypeDefs.hh"
 #include "BaseMatrix.hh"
@@ -187,6 +188,25 @@ namespace CoupledField {
     //! this matrix' structure. It offers an appropriate interface for
     //! StdMatrices.
     virtual void Add( const Double a, const StdMatrix& mat) = 0;
+    
+    //! Add the multiple of a matrix to this matrix (entries given by index)
+
+    //! The method adds the multiple of a subset of the of a matrix to 
+    //! this matrix. The entries are specified in a row and column index set.
+    //! If a set is empty, all rows / cols are considered. 
+    //! If an entry can not be found in the matrix, an exception is thrown.
+    //! The sparsity structure of the matrix mat is assumed to be identical to
+    //! this matrix' structure. It offers an appropriate interface for
+    //! StdMatrices.
+    //! \param a scalar factor the matrix #mat gets weighted with upon addition 
+    //! \param mat matrix which gets added
+    //! \param rowIndices set of row indices to be considered. If the set is
+    //!                   empty, all rows will be taken.
+    //! \param colIndices set of row indices to be considered. If the set is
+    //!                   empty, all rows will be taken.
+    virtual void Add( const Double a, const StdMatrix& mat,
+                      const std::set<UInt>& rowIndices,
+                      const std::set<UInt>& colIndices ) = 0;
 
     //! Perform a matrix-vector multiplication rvec = this*mvec
 
@@ -196,7 +216,8 @@ namespace CoupledField {
     //! implements the method defined in the BaseMatrix class.
     void Mult(const BaseVector& mvec, BaseVector& rvec) const
     {
-      Mult(dynamic_cast<const SingleVector&>(mvec), dynamic_cast<SingleVector&>(rvec));
+      Mult(dynamic_cast<const SingleVector&>(mvec), 
+           dynamic_cast<SingleVector&>(rvec));
     }
 
     //! Perform a matrix-vector multiplication rvec = this*mvec
@@ -294,6 +315,35 @@ namespace CoupledField {
     virtual void MultTSub(const SingleVector& mvec, SingleVector& rvec) const {
       EXCEPTION( "Function MultTSub not re-implemented in derived class!" );
        }
+    
+    //! \copydoc BaseMatrix::Scale(Double)
+    virtual void Scale( Double factor ) {
+      EXCEPTION("BaseMatrix::Scale: Method must be implemented by derived " \
+                "class, but is not!");
+    };
+    
+    //! Scale matrix entries - given by an index set - by a constant factor
+
+    //! This method allows to scale all non-zero matrix entries, which are
+    //! contained in an index set, by a constant real valued factor. 
+    //! The operation assumes to work
+    //! on a quadratic matrix, i.e. the indices denote the  and column
+    //! entries of the matrix. If an entry can not be found or the matrix is
+    //! not quadratic, an exception is 
+    //! thrown. It is currently pseudo-implemented in this class,
+    //! since not all derived classes implement it, yet. The pseudo
+    //! implementation will issue an error, if not over-written.
+    //! \param factor scalar the matrix gets multiplied with
+    //! \param rowIndices set of row indices to be considered. If the set is
+    //!                   empty, all rows will be taken.
+    //! \param colIndices set of row indices to be considered. If the set is
+    //!                   empty, all rows will be taken.
+    virtual void Scale( Double factor, 
+                        const std::set<UInt>& rowIndices,
+                        const std::set<UInt>& colIndices) {
+      EXCEPTION("StdMatrix::Scale: Method must be implemented by derived " \
+                "class, but is not!");
+    };
     //@}
 
     // *****************************************************

@@ -41,6 +41,16 @@ namespace CoupledField {
       data_[i] += alpha * data[i];
     }
   }
+  
+  // ******************************************
+  //   Add (another matrix, only index subset)
+  // ******************************************
+  template<typename T>
+  void Diag_Matrix<T>::Add( const Double alpha, const StdMatrix& mat,
+                            const std::set<UInt>& rowIndices,
+                            const std::set<UInt>& colIndices ) {
+    EXCEPTION("Not implemented");
+  }
 
 
   // ********************************
@@ -186,6 +196,16 @@ namespace CoupledField {
     for ( UInt i = 0; i < this->nnz_; i++ ) {
       data_[i] *= factor;
     }
+  }
+  
+  // ************************
+  //   Scale on index subset
+  // ************************
+  template<typename T>
+  void Diag_Matrix<T>::Scale( Double factor,
+                              const std::set<UInt>& rowIndices,
+                              const std::set<UInt>& colIndices ) {
+    EXCEPTION("Implement me");
   }
 
 
