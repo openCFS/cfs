@@ -3,3 +3,7 @@ SET(CPLREADER_CFXEXPORT_SRCS
 )
 
 ADD_LIBRARY(cplreader_cfxexport STATIC ${CPLREADER_CFXEXPORT_SRCS})
+
+TARGET_LINK_LIBRARIES(cplreader_cfxexport
+  cfsgeneral
+)

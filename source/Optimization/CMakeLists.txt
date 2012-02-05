@@ -1,31 +1,48 @@
-SET(OPTIMIZATION_SRCS Function.cc Optimization.cc PiezoSIMP.cc ErsatzMaterial.cc SIMP.cc 
-                      TransferFunction.cc Condition.cc Objective.cc Excitation.cc
-                      ShapeGrad.cc LevelSet.cc ParamMat.cc StressConstraint.cc 
-                      TopGrad.cc OptimizationMaterial.cc ShapeOpt.cc )
+SET(OPTIMIZATION_SRCS
+  ErsatzMaterial.cc
+  Optimization.cc
+  Function.cc
+  LevelSet.cc
+  Condition.cc
+  ShapeOpt.cc
+  TopGrad.cc
+  OptimizationMaterial.cc
+  Excitation.cc
+  StressConstraint.cc
+  SIMP.cc
+  PiezoSIMP.cc
+  ShapeGrad.cc
+  TransferFunction.cc
+  Objective.cc
+  ParamMat.cc
+ )
 
 ADD_DEFINITIONS(-DUSE_4_CFS)
 
 ADD_LIBRARY(optimization STATIC ${OPTIMIZATION_SRCS})
 
 SET(TARGET_LL
-  optimizer
+  algsys-olas
+  cfsgeneral
+  datainout
   design
-  ${TARGET_LL}
-  paramh
   domain
+  driver
+  elements
   forms
+  logging
+  materials
   matvec
+  optimizer
+  paramh
   pde
+  utils
 )
 
 IF(USE_XERCES)
   INCLUDE_DIRECTORIES(${XERCES_INCLUDE_DIR})
-  SET(TARGET_LL
-    ${TARGET_LL}
-    ${XERCES_LIBRARY}
-  )
+  SET(TARGET_LL ${TARGET_LL} ${XERCES_LIBRARY})
 ENDIF(USE_XERCES)
-
 
 TARGET_LINK_LIBRARIES(optimization ${TARGET_LL})
 

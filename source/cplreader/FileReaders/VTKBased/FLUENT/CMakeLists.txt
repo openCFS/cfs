@@ -1,4 +1,3 @@
-
 SET(CPLREADER_FLUENT_SRCS
   FileReader_FLUENT.cc
   )
@@ -6,9 +5,13 @@ SET(CPLREADER_FLUENT_SRCS
 ADD_LIBRARY(cplreader_fluent STATIC ${CPLREADER_FLUENT_SRCS})
 
 TARGET_LINK_LIBRARIES(cplreader_fluent 
-  cplreader_vtkmb 
+  cplreader_vtkmb
+  domain
+  ${VTK_LIB}
+  ${BOOST_FILESYSTEM_LIB}
   ${BOOST_IOSTREAMS_LIB}
-  ${ZLIB_LIBRARY})
+  ${ZLIB_LIBRARY}
+)
 
 SET_SOURCE_FILES_PROPERTIES(${CPLREADER_FLUENT_SRCS} MergePointExample.cc
   PROPERTIES COMPILE_FLAGS "-Wno-deprecated")

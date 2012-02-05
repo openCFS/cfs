@@ -1,9 +1,9 @@
 SET(ALGSYS_SRCS
-    basesystem.cc
-    baseentrymanipulator.cc
-    generateidbchandler.cc
-    sbmsystem.cc
-    standardsys.cc
+  standardsys.cc
+  sbmsystem.cc
+  basesystem.cc
+  baseentrymanipulator.cc
+  generateidbchandler.cc
     )
 
 IF(EXPLICIT_TEMPLATE_INSTANTIATION)
@@ -16,11 +16,15 @@ ENDIF(EXPLICIT_TEMPLATE_INSTANTIATION)
 
 ADD_LIBRARY(algsys-olas STATIC ${ALGSYS_SRCS})
 
-SET(TARGET_LL
-  matvec
-  solver-olas
-  precond-olas
+TARGET_LINK_LIBRARIES(algsys-olas
+  cfsgeneral
+  datainout
   graph-olas
+  logging
+  matvec
+  paramh
+  precond-olas
+  solver-olas
+  utils
 )
 
-TARGET_LINK_LIBRARIES(algsys-olas ${TARGET_LL})
