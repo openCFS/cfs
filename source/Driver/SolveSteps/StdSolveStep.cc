@@ -916,6 +916,10 @@ namespace CoupledField {
 
   void StdSolveStep::StepHarmonicLin(PtrParamNode analysis_id) {
 
+    //JUST A HACK!!!!
+    matrix_factor_Complex_[NO_FCT_ID][STIFFNESS] = Complex(1.0,0);
+    matrix_factor_Complex_[NO_FCT_ID][DAMPING] = Complex(0.0,actFreq_*2*M_PI);
+    matrix_factor_Complex_[NO_FCT_ID][MASS] = Complex(-1.0 * actFreq_*actFreq_*4*M_PI*M_PI,0);
 
     //this has to be done each frequency!
     assemble_->AssembleLinRHS();
@@ -927,10 +931,10 @@ namespace CoupledField {
     algsys_->GetRHSVal( rhsVec_ );
 
     // Where should we get the matrix factors from in a harmonic case?
-    // In my opinion this method 
-//    if( assemble_->IsMatrixUpdated() ) {
-//      algsys_->ConstructEffectiveMatrix(NO_FCT_ID,  matrix_factor_ );
-//    }
+    // In my opinion this method
+    //if( assemble_->IsMatrixUpdated() ) {
+      algsys_->ConstructEffectiveMatrix(NO_FCT_ID,  matrix_factor_[NO_FCT_ID] );
+    //}
 
     algsys_->BuildInDirichlet();
 

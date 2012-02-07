@@ -203,6 +203,9 @@ namespace CoupledField
     //! factors for computingn effective system matrix for each feFunction
     std::map<FeFctIdType, std::map<FEMatrixType,Double> > matrix_factor_;   
     
+    //! factors for computingn effective system matrix for each feFunction
+    std::map<FeFctIdType, std::map<FEMatrixType,Complex> > matrix_factor_Complex_;
+
                                    //!< our solution
     bool recalc_;               //!< flag indicating reassembling of system matrix
 

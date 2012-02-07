@@ -130,10 +130,26 @@ namespace CoupledField{
 //      BBInt< GradientOperator,FeH1,Double > * stiffInt;
       BiLinearForm * stiffInt = NULL;
       if( dim_ == 2 ) {
-            stiffInt = new BBInt<GradientOperator<FeH1,2> >(coeffK,1.0 );
-          } else {
-            stiffInt = new BBInt<GradientOperator<FeH1,3> >(coeffK,1.0 );
-          }
+         // if( isComplex_ ){
+         //   shared_ptr<CoefFunction> coeffK
+         //             = CoefFunction::Generate(Global::COMPLEX, "1.0","0.0");
+         //   stiffInt = new BBInt<GradientOperator<FeH1,2,Complex>, Complex >(coeffK,1.0 );
+         // }else{
+            shared_ptr<CoefFunction> coeffK
+                      = CoefFunction::Generate(Global::REAL, "1.0");
+            stiffInt = new BBInt<GradientOperator<FeH1,2>, Double >(coeffK,1.0 );
+          //}
+      }else{
+        //if( isComplex_ ){
+        //  shared_ptr<CoefFunction> coeffK
+        //            = CoefFunction::Generate(Global::COMPLEX, "1.0","0.0");
+        //  stiffInt = new BBInt<GradientOperator<FeH1,3,Complex>, Complex >(coeffK,1.0 );
+        //}else{
+          shared_ptr<CoefFunction> coeffK
+                    = CoefFunction::Generate(Global::REAL, "1.0");
+          stiffInt = new BBInt<GradientOperator<FeH1,3>, Double >(coeffK,1.0 );
+        //}
+      }
       stiffInt->SetName("LaplaceIntegrator");
       //stiffInt = new BBInt<GradientOperator,FeH1,Double >(coeffK,1.0 );
 
@@ -153,11 +169,28 @@ namespace CoupledField{
       // mass integrator
       // ====================================================================
 
-      shared_ptr<CoefFunction> coeffM
-          = CoefFunction::Generate(Global::REAL, lexical_cast<std::string>(1.0/(c0*c0)));
+      //shared_ptr<CoefFunction> coeffM
+      //    = CoefFunction::Generate(Global::REAL, lexical_cast<std::string>(1.0/(c0*c0)));
 
       BiLinearForm *massInt = NULL;
-      massInt = new BBInt<IdentityOperator<FeH1> >(coeffM, 1.0);
+
+      //if( isComplex_ ){
+      //  shared_ptr<CoefFunction> coeffM
+      //      = CoefFunction::Generate(Global::COMPLEX, lexical_cast<std::string>(1.0/(c0*c0)),"0.0");
+      //  if(dim_==2)
+      //    massInt = new BBInt<IdentityOperator<FeH1,2,1,Complex>, Complex >(coeffK,1.0 );
+      //  else
+      //    massInt = new BBInt<IdentityOperator<FeH1,3,1,Complex>, Complex >(coeffK,1.0 );
+      //}else{
+        shared_ptr<CoefFunction> coeffM
+                  = CoefFunction::Generate(Global::REAL, lexical_cast<std::string>(1.0/(c0*c0)));
+        if(dim_==2)
+          massInt = new BBInt<IdentityOperator<FeH1,2,1,Double>, Double  >(coeffK,1.0 );
+        else
+          massInt = new BBInt<IdentityOperator<FeH1,3,1,Double>, Double  >(coeffK,1.0 );
+      //}
+
+
       massInt->SetName("MassIntegrator");
       massInt->SetFeSpace( feFunctions_[formulation_]->GetFeSpace() );
 
@@ -168,27 +201,6 @@ namespace CoupledField{
       assemble_->AddBiLinearForm( massContext );
     }
   }
-
-//  LinearFormContext *
-//  AcousticPDE::CreateRhsLinearForm(SolutionType rhsType,
-//                                                 shared_ptr<CoefFunction > rhsCoef){
-//
-//    LinearFormContext * mContext = NULL;
-//    switch(rhsType){
-//    case ACOU_RHSVAL:
-//      BUIntegrator<IdentityOperator,FeH1,Double>* curInt;
-//      curInt = new BUIntegrator<IdentityOperator,FeH1,Double>(1.0,rhsCoef);
-//
-//      mContext = new LinearFormContext(curInt);
-//      mContext->SetFeFunction( feFunctions_[formulation_]);
-//      curInt->SetFeSpace( feFunctions_[formulation_]->GetFeSpace());
-//      break;
-//    default:
-//      Exception("Right hand side quantity not known for acousticPDE");
-//      break;
-//    }
-//    return mContext;
-//  }
 
   void AcousticPDE::DefineSolveStep(){
     solveStep_ = new StdSolveStep(*this);

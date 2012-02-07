@@ -792,20 +792,22 @@ namespace CoupledField {
                                      const Vector<Double>& point,
                                      const Elem* ptElem,
                                      UInt comp ) {
-    //WARN("FeH1LagrangeLine2::CalcShFnc: Implement me");
-  //  shape.Resize( 2 );
-  //   shape[0] = 0.5 * ( 1.0 - point[0] );
-  //   shape[1] = 0.5 * ( 1.0 + point[0] );
+    shape.Resize(actNumFncs_);
+    shape[0] = 0.5*point[0]*(point[0]-1);
+    shape[2] = 1.0 - point[0]*point[0];
+    shape[1] = 0.5*point[0]*(point[0]+1);
   }
   
   void FeH1LagrangeLine2::CalcLocDerivShFnc( Matrix<Double> & deriv, 
                                              const Vector<Double>& point,
                                              const Elem* ptElem,
                                              UInt comp ) {
-    //WARN("FeH1LagrangeLine2::CalcLocDerivShFnc: Implement me");
-  //    deriv.Resize(2, 1);
-  //    deriv[0][0] = 0.5 * -1.0;
-  //    deriv[1][0] = 0.5 *  1.0;
+    deriv.Resize(actNumFncs_,1);
+
+    deriv[0][0] = 0.5*(2*point[0] - 1);
+    deriv[2][0] = -2.0*point[0];
+    deriv[1][0] = 0.5*(2*point[0] + 1);
+
   }
   
   // --- Tria 2nd order ---
