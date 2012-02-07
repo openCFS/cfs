@@ -924,6 +924,10 @@ source/FeBasis/HCurl/HCurlElems.cc svneol=native#text/x-c%2B%2Bsrc
 source/FeBasis/HCurl/HCurlElems.hh svneol=native#text/x-c%2B%2Bhdr
 source/FeBasis/HCurl/HCurlElemsHi.cc svneol=native#text/x-c%2B%2Bsrc
 source/FeBasis/HCurl/HCurlElemsHi.hh svneol=native#text/x-c%2B%2Bhdr
+source/FeBasis/L2/FeSpaceL2.cc -text
+source/FeBasis/L2/FeSpaceL2.hh -text
+source/FeBasis/L2/FeSpaceL2Nodal.cc -text
+source/FeBasis/L2/FeSpaceL2Nodal.hh -text
 source/FeBasis/Polynomials.hh svneol=native#text/x-c%2B%2Bhdr
 source/Forms/BiLinForms/ABInt.cc -text
 source/Forms/BiLinForms/ABInt.hh -text
@@ -1188,6 +1192,8 @@ source/OLAS/utils/math/IterativeRefinement.cc svneol=native#text/x-c%2B%2Bsrc
 source/OLAS/utils/math/IterativeRefinement.hh svneol=native#text/x-c%2B%2Bhdr
 source/OLAS/utils/math/LDLSystemSolve.hh svneol=native#text/x-c%2B%2Bhdr
 source/OLAS/utils/math/LanczosMethod.hh svneol=native#text/x-c%2B%2Bhdr
+source/PDE/AcousticMixedPDE.cc -text
+source/PDE/AcousticMixedPDE.hh -text
 source/PDE/AcousticPDE.cc -text
 source/PDE/AcousticPDE.hh -text
 source/PDE/BasePDE.cc svneol=native#text/x-c%2B%2Bsrc

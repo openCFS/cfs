@@ -1,9 +1,9 @@
-#include <stdlib.h>
+#include <cstdlib>
 #include <iostream>
 #include <sstream>
 #include <iomanip>
 #include <fstream>
-#include <stdio.h>
+#include <cstdio>
 
 #include <def_use_xerces.hh>
 

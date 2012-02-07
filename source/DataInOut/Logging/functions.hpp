@@ -34,7 +34,7 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/function.hpp>
 #include "DataInOut/Logging/log_impl.hpp"
-#include <time.h>
+#include <ctime>
 
 // many thanks Pavel Vozenilek!
 #include <boost/detail/workaround.hpp>

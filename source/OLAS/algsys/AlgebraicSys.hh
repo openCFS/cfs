@@ -573,7 +573,8 @@ namespace CoupledField {
     //! \param matrixType type of finite element matrix (STIFFNESS, MASS, ...)
     //!                 which gets multiplied
     //! \param fup array with vector entries, which get multiplied
-    void UpdateRHS(FEMatrixType matrixType, const SBM_Vector& fup);
+    //! \param SysMatUpdated indicates if we need to allocate new memory for the tmpRHS_ vector
+    void UpdateRHS(FEMatrixType matrixType, const SBM_Vector& fup,bool SysMatUpdated);
 
     //! Add a value to a diagonal matrix entry
 
@@ -957,6 +958,9 @@ namespace CoupledField {
     //! Effective rhs vector
     SBM_Vector *effRhs_;
     
+    //! Temporary Vector for Update RHS calculation
+    SBM_Vector *tmpRHS_;
+
     //! Vector containing (approximate) solution of the linear system
     SBM_Vector *sol_;
     

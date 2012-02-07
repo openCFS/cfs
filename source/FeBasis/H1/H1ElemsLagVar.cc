@@ -137,8 +137,8 @@ namespace CoupledField {
                                 << ptElem->elemNum << " Has Bitset " << ptElem->faceFlags[entNumber] << " and the permutation \n"
                                 << fncPermutation << std::endl;
 
-        //the following check for interior nodes is also limited to hexas where there are 4 faces
-      }else if( fctEntityType == INTERIOR && ptElem->faces.GetSize() == 4) {
+        //the following check for interior nodes is also limited to hexas where there are 6 faces
+      }else if( fctEntityType == INTERIOR && ptElem->faces.GetSize() == 6) {
         
         //no need to check for an orientation
         UInt numIFncs = (order_-1)*(order_-1)*(order_-1);
@@ -820,7 +820,7 @@ namespace CoupledField {
         coordMat[7][1] = supPoints1D[order_];
         coordMat[7][2] = supPoints1D[order_];
 
-        UInt c = 4;
+        UInt c = 8;
         //edge1
         for(UInt i=1;i<order_;i++){
           coordMat[c][0] = supPoints1D[i];

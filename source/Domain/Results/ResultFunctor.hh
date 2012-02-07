@@ -176,7 +176,7 @@ public:
   }
   
   //! Destructor
-  ~FieldInterpolFunctor() {}
+  virtual ~FieldInterpolFunctor() {}
   
   //! Evaluate field at local point
   virtual void GetVector(Vector<DATA_TYPE>& vec, 
@@ -413,6 +413,7 @@ protected:
   LocPointMapped lpm;
 
 };
+
 // --------------------------------------------------------------------------
 //  FIELDS BASED ON NORMAL FLUX (SURFACE)
 // --------------------------------------------------------------------------

@@ -1035,9 +1035,55 @@ namespace CoupledField {
       //    -> either loop over all rows and take into account only
       //       selected column
       //    -> or loop over selected rows and take into account
-      //      
-      EXCEPTION( "This method is only implemented for the case of "
-          << "non-empty row and column index sets!" );
+
+      if ( rowIndices.size() > 0 ) {
+        //    -> either loop over selected rows and take into account
+        //       all columns
+        std::set<UInt>::const_iterator rowIt;
+        register UInt k, rs;
+        UInt j;
+        rowIt = rowIndices.begin();
+
+        // loop over all rows in the rowIndex set
+        for( ; rowIt != rowIndices.end(); ++rowIt ) {
+          k = rowPtr_[*rowIt];
+          rs = rowPtr_[*rowIt+1] - k;
+
+          // loop over all columns of the current row
+          for ( j = 0; j < rs; j++ ) {
+            data_[k] += alpha * data[k];
+            k++;
+          }
+        }
+      } else {
+        //  -> or loop over all rows and take into account only
+        //     selected columns
+        //this is simpler right now we can assume that all matrices have the same graph
+       // Obtain pointer to data array of other matrix
+        const T *data = dynamic_cast<const SCRS_Matrix<T>&>(mat).GetDataPointer();
+        //another optimization check if data in set is continuous
+        std::set<UInt>::iterator starting  = colIndices.begin();
+        std::set<UInt>::iterator ending = colIndices.end();
+        if( (*ending - *starting) == colIndices.size()){
+          //data is continuous
+          UInt min = *starting;
+          UInt max = *ending;
+#pragma omp parallel for
+          for ( UInt i = 0; i < numEntries_; i++ ) {
+            if (colInd_[i] >= min && colInd_[i] <= max)
+              data_[i] += alpha * data[i];
+          }
+        }else{
+          // we have to searach the set for every entry (nnz_ * O(log sizeof(colIndices)))
+#pragma omp parallel for
+          for ( UInt i = 0; i < numEntries_; i++ ) {
+            if (colIndices.find(colInd_[i]) != ending)
+              data_[i] += alpha * data[i];
+          }
+        }
+      } // if column set is nonzero
+      //EXCEPTION( "This method is only implemented for the case of "
+      //    << "non-empty row and column index sets!" );
     }
   }
 

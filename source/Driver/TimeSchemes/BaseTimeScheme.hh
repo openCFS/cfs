@@ -86,6 +86,12 @@ class BaseTimeScheme{
      */
     virtual SingleVector* GetTimeDerivative(UInt order)=0;
 
+    /*! Set time derivative vector for a certain order
+     *   \param[in] order of time derivative
+     *   \param[in] coefVector coefficient vector
+     */
+    virtual void SetTimeDerivVector(UInt order,SingleVector * coefVector)=0;
+
     /// Obtain the time derivative order of the systems solution
     UInt GetSolutionTimeDerivOrder(){
       return solOrder_;

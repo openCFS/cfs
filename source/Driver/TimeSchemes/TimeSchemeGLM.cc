@@ -34,7 +34,8 @@ namespace CoupledField{
 
   TimeSchemeGLM::~TimeSchemeGLM(){
     for(UInt i=1;i<curScheme_->sizeGLMVec_;i++){
-       delete glmVector_[i];
+       if(avoidFreeingIdx_.find(i)==avoidFreeingIdx_.end())
+         delete glmVector_[i];
     }
 
     for(UInt i=1;i<curScheme_->numStages_;i++){
@@ -182,12 +183,12 @@ namespace CoupledField{
 
     //The correct matrix factors are always at the same position
     std::map<FEMatrixType,Integer>::const_iterator mIt = matMap.begin();
-
+    matFactors.clear();
     for(mIt = matMap.begin(); mIt != matMap.end() ; mIt++){
       if(mIt->second >= 0)
-        matFactors[mIt->first] += curScheme_->schemeCoefs_[stage*curScheme_->maxDerivOrder_+ mIt->second][stage];
+        matFactors[mIt->first] = curScheme_->schemeCoefs_[stage*curScheme_->maxDerivOrder_+ mIt->second][stage];
       else
-        matFactors[mIt->first] += 0;
+        matFactors[mIt->first] = 0;
     }
     //
 #ifndef NDEBUG
@@ -223,6 +224,46 @@ namespace CoupledField{
       }
     }
     return derivVec;
+  }
+
+  void TimeSchemeGLM::SetTimeDerivVector(UInt order,SingleVector * coefVector){
+    if(order > curScheme_->maxDerivOrder_){
+          Exception("Cannot Set Vector for order higher than scheme deriv order");
+    }else{
+      switch(order){
+        case 1:
+          if(curScheme_->numSol1stDerivs_ > 0){
+            //delete the current vector and associate the new one
+            //we take care if we solve for this solution order...
+            delete glmVector_[curScheme_->numOldSols_];
+            glmVector_[curScheme_->numOldSols_] = coefVector;
+            avoidFreeingIdx_.insert(curScheme_->numOldSols_);
+            if(solOrder_ == 1 && avoidUpdateIdx_ == (Integer)curScheme_->numOldSols_){
+              stageVector_[curScheme_->numStages_-1] = coefVector;
+            }
+          }else{
+            EXCEPTION("The coefVector cannot be set for the chosen time scheme");
+          }
+          break;
+        case 2:
+          if(curScheme_->numSol2ndDerivs_ > 0){
+            //delete the current vector and associate the new one
+            //we take care if we solve for this solution order...
+            delete glmVector_[curScheme_->numOldSols_+curScheme_->numSol1stDerivs_];
+            glmVector_[curScheme_->numOldSols_+curScheme_->numSol1stDerivs_] = coefVector;
+            avoidFreeingIdx_.insert(curScheme_->numOldSols_+curScheme_->numSol1stDerivs_);
+            if(solOrder_ == 1 && avoidUpdateIdx_ == (Integer)(curScheme_->numOldSols_+curScheme_->numSol1stDerivs_)){
+              stageVector_[curScheme_->numStages_-1] = coefVector;
+            }
+          }else{
+            EXCEPTION("The coefVector cannot be set for the chosen time scheme");
+          }
+          break;
+        default:
+          EXCEPTION("The specified time derivative order invalid and the vector cannot be set!");
+          break;
+      }
+    }
   }
 
   void TimeSchemeGLM::InitGLMs(){

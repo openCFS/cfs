@@ -33,6 +33,7 @@
 
 // Single Field PDEs
 #include "PDE/AcousticPDE.hh"
+#include "PDE/AcousticMixedPDE.hh"
 #include "PDE/ElecPDE.hh"
 #include "PDE/FluidMechPerturbedPDE.hh"
 #include "PDE/HeatPDE.hh"
@@ -548,8 +549,8 @@ void Domain::CreateSinglePDEs(UInt sequenceStep)
     else if (actPdeName == "acoustic") {
         ptSinglePde_[i] = new AcousticPDE(defaultGrid, actPdeNode);
     }
-//    else if (actPdeName == "acousticMixed")
-//      ptSinglePde_[i] = new AcousticMixedPDE(defaultGrid, actPdeNode);
+    else if (actPdeName == "acousticMixed")
+        ptSinglePde_[i] = new AcousticMixedPDE(defaultGrid, actPdeNode);
 //
 //    else if (actPdeName == "smooth")
 //      ptSinglePde_[i] = new SmoothPDE(defaultGrid, actPdeNode);

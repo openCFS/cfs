@@ -403,7 +403,7 @@ protected:
   //! Associates GridNodeNumbers to virtual node numbers
   //! Needed e.g. for quadratic Grids in combination with NodalBCs and linear,
   //! Polynomial approximation
-  std::map<UInt,UInt> gridToVirtualNodes_;
+  std::map<UInt,StdVector<UInt> > gridToVirtualNodes_;
 
   //! Stores every assigned virtual node
   StdVector<UInt> nodes_;

@@ -299,7 +299,7 @@ void IntScheme::CalcGaussLobattoPointsWeights(UInt order,StdVector<Double>& poin
   points = x;
   Double divisor;
   for(i = 0 ; i<N1; i++){
-    divisor = ((N1-1)*N1*P[i][N1-1]) * ((N1-1)*N1*P[i][N1-1]);
+    divisor = (N1-1)*N1*P[i][N1-1]*P[i][N1-1];
     weights[i] = 2 / divisor;
   }
   //now sort the arrays
@@ -308,7 +308,8 @@ void IntScheme::CalcGaussLobattoPointsWeights(UInt order,StdVector<Double>& poin
   //hier uu noch einen algorithmus einbauen um nachkommstellen abzuschneiden
   points[0] = tmpPoints[N1-1];
   points[1] = tmpPoints[0];
-  weights[1] = tmpWeights[N1-1];
+  weights[1] = tmpWeights[0];
+  weights[0] = tmpWeights[N1-1];
   for(i = 2; i < N1 ; i++){
     points[i] = tmpPoints[N1-i];
     weights[i] = tmpWeights[N1-i];

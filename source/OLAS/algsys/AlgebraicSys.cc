@@ -69,6 +69,7 @@ namespace CoupledField {
     effMat_             = NULL;
     effRhs_             = NULL;
     effSol_             = NULL;
+    tmpRHS_             = NULL;
     
     idbcHandler_    = NULL;
     assembleDirichletToSysMat_ = false;
@@ -2016,7 +2017,7 @@ namespace CoupledField {
 
 
   void AlgebraicSys::UpdateRHS(FEMatrixType matrixType, 
-                               const SBM_Vector& fup) {
+                               const SBM_Vector& fup,bool SysMatUpdated) {
     
     LOG_TRACE(algSys) << "Updating RHS of matrix " 
                       << feMatrixType.ToString(matrixType);
@@ -2033,11 +2034,16 @@ namespace CoupledField {
     }
 
     // loop over all feFctIDs and create a converted rhs
-    SBM_Vector * tmpRhs = NULL;
+    if(SysMatUpdated){
+      if(tmpRHS_ != NULL){
+        delete tmpRHS_;
+        tmpRHS_ = NULL;
+      }
+      tmpRHS_ = dynamic_cast<SBM_Vector*>
+              ( GenerateVectorObject( *(sysMat_[SYSTEM]) ) );
 
-    tmpRhs = dynamic_cast<SBM_Vector*>
-            ( GenerateVectorObject( *(sysMat_[SYSTEM]) ) );
-    tmpRhs->Init();
+    }
+    tmpRHS_->Init();
 
     for(UInt i = 0; i < numFcts_; ++i ) {
 
@@ -2060,7 +2066,7 @@ namespace CoupledField {
         for( UInt j = 0; j < size; ++j ) {
           // omit entries for Dirichlet values
           if( indices[j] <= blockInfo_[blockNums[j]]->numLastFreeIndex) {
-            tmpRhs->GetPointer(blockNums[j])
+            tmpRHS_->GetPointer(blockNums[j])
                 ->SetEntry(indices[j]-1, nRHS[j] );
           }else if(!usingPenalty_){
             idbcHandler_->AddFixedToFreeRHS(matrixType,blockNums[j],
@@ -2074,7 +2080,7 @@ namespace CoupledField {
 
     }
     //now just perform multiplication
-    sysMat_[matrixType]->MultAdd(*tmpRhs,*rhs_);
+    sysMat_[matrixType]->MultAdd(*tmpRHS_,*rhs_);
 
   }
   
@@ -2135,8 +2141,8 @@ namespace CoupledField {
     // As one functionId can be spread over many SBM blocks, we
     // have to map the fctId to (sbmBlocks,indices)
     std::map<UInt, std::set<UInt> > freeIndPerBlock, fixedIndPerBlock;
+    std::map<UInt, std::set<UInt> > dummyFreeSet;
     MapCompleteFctIdToIndex(fctId, freeIndPerBlock, fixedIndPerBlock, true);
-    
 
     // It's okay, if there are no factors, if there is only a system
     // matrix and no other ones
@@ -2158,7 +2164,7 @@ namespace CoupledField {
     for ( it = matFactors.begin(); it != matFactors.end(); it++ ) {
       if ( sysMat_[(*it).first] != NULL  && (*it).second != 0.0 ) {
         sys->Add( (*it).second, *sysMat_[(*it).first], 
-                  freeIndPerBlock, freeIndPerBlock );
+                  dummyFreeSet, freeIndPerBlock );
       }
     }
 

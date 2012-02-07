@@ -217,7 +217,7 @@ namespace CoupledField {
     UInt rhsSize = 0;
 
     //reserve memory for the rhs
-    for(pos = 0,fncIt = feFunctions_.begin();fncIt != feFunctions_.end();fncIt++,pos++){
+    for(pos = 0,fncIt = feFunctions_.begin();fncIt != feFunctions_.end();++fncIt,++pos){
       rhsSize = fncIt->second->GetSingleVector()->GetSize();
       stageRHS_.SetSubVector(new Vector<Double>(),pos);
       stageRHS_.GetPointer(pos)->Resize(rhsSize);
@@ -283,7 +283,7 @@ namespace CoupledField {
       //we obtain a reference to the stage vectors of the scheme
       SBM_Vector stageSol;
       stageSol.Resize(feFunctions_.size());
-      for(pos = 0,fncIt = feFunctions_.begin();fncIt != feFunctions_.end();fncIt++,pos++){
+      for(pos = 0,fncIt = feFunctions_.begin();fncIt != feFunctions_.end();++fncIt,++pos){
         stageSol.SetSubVector(fncIt->second->GetTimeScheme()->GetStageVector(i),pos);
       }
       stageSol.SetOwnership(false);
@@ -314,10 +314,10 @@ namespace CoupledField {
       for(matIt = matrices.begin();matIt != matrices.end();matIt++){
         if(matIt->second < 0)
           continue;
-        for(pos = 0,fncIt = feFunctions_.begin();fncIt != feFunctions_.end();fncIt++,pos++){
+        for(pos = 0,fncIt = feFunctions_.begin();fncIt != feFunctions_.end();++fncIt,++pos){
           fncIt->second->GetTimeScheme()->ComputeStageRHS(i,matIt->second,stageRHS_.GetPointer(pos));
         }
-        algsys_->UpdateRHS(matIt->first,stageRHS_);
+        algsys_->UpdateRHS(matIt->first,stageRHS_,effectiveMatrixUpdated);
       }
 
       // set boundary conditions
@@ -335,7 +335,7 @@ namespace CoupledField {
     }
 
     //update stage
-    for(pos = 0,fncIt = feFunctions_.begin();fncIt != feFunctions_.end();fncIt++){
+    for(pos = 0,fncIt = feFunctions_.begin();fncIt != feFunctions_.end();++fncIt){
       fncIt->second->GetTimeScheme()->FinishStep();
     }
 

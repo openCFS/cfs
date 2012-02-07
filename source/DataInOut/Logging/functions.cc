@@ -29,10 +29,10 @@
 
 
 #include "DataInOut/Logging/functions.hpp"
-#include <assert.h>
+#include <cassert>
 #include <vector>
 #include <algorithm>
-#include <time.h>
+#include <ctime>
 #include <fstream>
 #include <iostream>
 #include <boost/bind.hpp>

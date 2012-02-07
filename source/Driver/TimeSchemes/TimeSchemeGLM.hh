@@ -16,6 +16,7 @@
 #define TIMESCHEMEGLM_HH_
 
 #include <fstream>
+#include <set>
 
 #include "BaseTimeScheme.hh"
 #include "GLMSchemeLib.hh"
@@ -83,6 +84,8 @@ class TimeSchemeGLM : public BaseTimeScheme{
 
     virtual SingleVector* GetTimeDerivative(UInt order);
 
+    virtual void SetTimeDerivVector(UInt order,SingleVector * coefVector);
+
   protected:
 
     void InitGLMs();
@@ -112,6 +115,8 @@ class TimeSchemeGLM : public BaseTimeScheme{
 
     ///Stores for each step if the predictors are calculated
     StdVector<bool> predictorCalculated_;
+
+    std::set<UInt> avoidFreeingIdx_;
 
   private:
 

@@ -69,7 +69,7 @@ namespace CoupledField{
         FeSpace::CreateInstance(myParam_,potSpaceNode,FeSpace::H1);
       crSpaces[formulation_]->Init();
     }else{
-      EXCEPTION("The formulation " << formulation << "of heat PDE is not known!");
+      EXCEPTION("The formulation " << formulation << "of acoustic PDE is not known!");
     }
     return crSpaces;
   }
@@ -130,9 +130,9 @@ namespace CoupledField{
 //      BBInt< GradientOperator,FeH1,Double > * stiffInt;
       BiLinearForm * stiffInt = NULL;
       if( dim_ == 2 ) {
-            stiffInt = new BDBInt<GradientOperator<FeH1,2> >(coeffK,1.0 );
+            stiffInt = new BBInt<GradientOperator<FeH1,2> >(coeffK,1.0 );
           } else {
-            stiffInt = new BDBInt<GradientOperator<FeH1,3> >(coeffK,1.0 );
+            stiffInt = new BBInt<GradientOperator<FeH1,3> >(coeffK,1.0 );
           }
       stiffInt->SetName("LaplaceIntegrator");
       //stiffInt = new BBInt<GradientOperator,FeH1,Double >(coeffK,1.0 );

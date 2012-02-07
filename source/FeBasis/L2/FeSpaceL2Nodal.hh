@@ -1,79 +1,64 @@
-// =====================================================================================
-// 
-//       Filename:  FeSpaceH1Nodal.hh
-// 
-//    Description:  This implements the finite element space for nodal finite elements
-//                  In our understanding this includes every element which features local
-//                  or "nodal" support. i.e. the basis functions become one only at a single dof!
-//
-//                  This space is capabale to treat the mapping of equation numbers for 
-//                  elements of first and second order as well as arbitrary order tesnsor 
-//                  product elements.
-//                  Virtual Node Array: Simplify the implementation in the referenece 
-//                                      by taking element edge and face orientations
-//                                      into account
-//                  
-// 
-//        Version:  0.1
-//        Created:  01/21/2010 10:31:09 AM
-//       Revision:  none
-// 
-//         Author:  Andreas Hueppe (AHU), andreas.hueppe@uni-klu.ac.at
-//        Company:  Universitaet Klagenfurt
-// 
-// =====================================================================================
+// -*- mode: c++; coding: utf-8; indent-tabs-mode: nil; -*-
+// vim: set ts=2 sw=2 et nu ai ft=cpp cindent !:
+// kate: space-indent on; indent-width 2; encoding utf-8;
+// kate: auto-brackets on; mixedindent off; indent-mode cstyle;
+// ================================================================================================
+/*!
+ *       \file     FeSpaceL2Nodal.hh
+ *       \brief    <Description>
+ *
+ *       \date     Feb 2, 2012
+ *       \author   ahueppe
+ */
+//================================================================================================
 
-#ifndef FILE_CFS_FESPACE_H1_NODAL_HH
-#define FILE_CFS_FESPACE_H1_NODAL_HH
+#ifndef FESPACEL2NODAL_HH_
+#define FESPACEL2NODAL_HH_
 
-#include "FeSpaceH1.hh"
-#include "H1ElemsLagExpl.hh"
-#include "H1ElemsLagVar.hh"
-
+#include "FeSpaceL2.hh"
+#include "FeBasis/H1/H1ElemsLagExpl.hh"
+#include "FeBasis/H1/H1ElemsLagVar.hh"
 
 namespace CoupledField {
 
-class FeSpaceH1Nodal : public FeSpaceH1 {
+class FeSpaceL2Nodal : public FeSpaceL2 {
+public:
+     //! Constructor
+     FeSpaceL2Nodal(PtrParamNode aNode, PtrParamNode infoNode );
 
-  public:
+     //! Destructor
+     virtual ~FeSpaceL2Nodal();
 
-    //! Constructor
-    FeSpaceH1Nodal(PtrParamNode aNode, PtrParamNode infoNode );
-
-    //! Destructor
-    virtual ~FeSpaceH1Nodal();
-    
-    //! Initialize class (read order etc.)
-    void Init();
-
-    //! \copydoc FeSpace::GetFe(EntityIterator,shared_ptr<IntScheme>&)
+     //! Initialize class (read order etc.)
+     void Init();
+     //! \copydoc FeSpace::GetFe(EntityIterator,shared_ptr<IntScheme>&)
     virtual BaseFE* GetFe( const EntityIterator ent ,
                            shared_ptr<IntScheme>& intScheme );
-    
+
     //! \copydoc FeSpace::GetFe(EntityIterator)
     virtual BaseFE* GetFe( const EntityIterator ent );
-    
+
     //! \copydoc FeSpace::GetFe(UInt)
     virtual BaseFE* GetFe( UInt elemNum );
-    
+
     ////! Return equation numbers
-    //virtual void GetEqns( StdVector<Integer>& eqns, const EntityIterator ent ); 
+    //virtual void GetEqns( StdVector<Integer>& eqns, const EntityIterator ent );
 
     ////! Return equation numbers for a specific dof
     //virtual void GetEqns( StdVector<Integer>& eqns, const EntityIterator ent
     //                      , UInt dof );
-    
+
     //! \copydoc FeSpace::GetEntityOrder
-    UInt GetEntityOrder( UInt elemNum, BaseFE::EntityType type, 
+    UInt GetEntityOrder( UInt elemNum, BaseFE::EntityType type,
                            UInt entityNum, UInt comp = 1 );
-    
+
     //! \copydoc FeSpace:: GetMaxEntityOrder
-    UInt GetMaxEntityOrder( UInt elemNum, BaseFE::EntityType type, 
+    UInt GetMaxEntityOrder( UInt elemNum, BaseFE::EntityType type,
                             UInt entityNum );
 
     //! Precalculate integration points
     virtual void PreCalcShapeFncs();
-      
+
     //! Map equations i.e. initialize object
     virtual void Finalize();
 
@@ -83,7 +68,7 @@ class FeSpaceH1Nodal : public FeSpaceH1 {
     // ====================================================================
 
     //! Set the order and mapping type of a specific region
-    virtual void SetRegionElements( RegionIdType region, 
+    virtual void SetRegionElements( RegionIdType region,
                                     MappingType mType,
                                     const Matrix<Integer>& order,
                                     PtrParamNode infoNode );
@@ -111,9 +96,11 @@ class FeSpaceH1Nodal : public FeSpaceH1 {
 
     //! Set with all regions being treated as spectral
     std::set<RegionIdType> spectralRegions_;
-    
+
     //! Map for reference elements by region
     std::map< RegionIdType, std::map<Elem::FEType, FeH1* > > refElems_;
 };
+
 }
-#endif //
+
+#endif /* FESPACEL2NODAL_HH_ */

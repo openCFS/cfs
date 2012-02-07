@@ -408,11 +408,34 @@ namespace CoupledField{
      StdVector<Integer> eqns;
      feFnc->GetFeSpace()->GetElemEqns(eqns,elem);
      std::stringstream oStream;
-     for(UInt step=eInterpol.saveBegin_;step<eInterpol.saveEnd_;step+=eInterpol.saveInc_){
-       for(UInt i =0;i<eqns.GetSize();i++){
-         oStream << "x_" << eqns[i] << "_" << step+1 << ",";
+
+     if(feFnc->GetResultInfo()->entryType == ResultInfo::SCALAR || feFnc->GetResultInfo()->dofNames.GetSize() == 3){
+       for(UInt step=eInterpol.saveBegin_;step<eInterpol.saveEnd_;step+=eInterpol.saveInc_){
+         for(UInt i =0;i<eqns.GetSize();i++){
+           oStream << "x_" << eqns[i] << "_" << step+1 << ",";
+         }
        }
+     }else if (feFnc->GetResultInfo()->entryType == ResultInfo::VECTOR && feFnc->GetResultInfo()->dofNames.GetSize() == 2){
+       UInt d = 0;
+       for(UInt step=eInterpol.saveBegin_;step<eInterpol.saveEnd_;step+=eInterpol.saveInc_){
+         for(UInt i =0;i<eqns.GetSize();i++){
+           if(d == 2){
+             oStream << "0" << ",";
+             i--;
+             d=0;
+           }else{
+             oStream << "x_" << eqns[i] << "_" << step+1 << ",";
+             d++;
+           }
+         }
+         //put final zero
+         oStream << "0" << ",";
+         d=0;
+       }
+     }else{
+       EXCEPTION("TENSOR RESULTS NOT CLEANLY SUPPORTED in 2D RIGHT NOW");
      }
+
      std::string oSTR = oStream.str();
      oSTR.erase(--oSTR.end());
      (*out) << oSTR << std::endl;

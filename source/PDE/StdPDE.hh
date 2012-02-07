@@ -488,6 +488,9 @@ namespace CoupledField {
     
     //! Map storing the feFunctions of the previous step
     std::map<SolutionType, shared_ptr<BaseFeFunction> > prevFeFunctions_;
+
+    //! Map storing time derivatives of FeFunctions
+    std::map<SolutionType, shared_ptr<BaseFeFunction> > timeDerivFeFunctions_;
     
     //! Map storing the feFunctions of the RHS
     std::map<SolutionType, shared_ptr<BaseFeFunction> > rhsFeFunctions_;

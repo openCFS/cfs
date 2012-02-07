@@ -7,6 +7,7 @@
 
 // include headers of sub-classes for factory method
 #include "H1/FeSpaceH1Nodal.hh"
+#include "L2/FeSpaceL2Nodal.hh"
 #include "H1/FeSpaceH1Hi.hh"
 #include "HCurl/FeSpaceHCurlHi.hh"
 
@@ -120,7 +121,13 @@ namespace CoupledField {
       case CONST:
       case HDIV:
       case L2:
-        EXCEPTION("Function space of type 'L2' not yet implemented!");
+        LOG_DBG(feSpace) << "Creating L2 space";
+        if( polyType == LAGRANGE )  {
+          ret.reset(new FeSpaceL2Nodal(aNode, infoNode));
+        } else {
+          EXCEPTION("Higher order L2 space not definied yet");
+        }
+        break;
         break;
       case UNDEF_SPACE:
         EXCEPTION("Can not create unknown function space");
@@ -186,7 +193,9 @@ namespace CoupledField {
           // nCount = 0;
           for(entIt.Begin(); !entIt.IsEnd(); entIt++){
             if(gridToVirtualNodes_.find(entIt.GetNode()) != gridToVirtualNodes_.end()){
-              nodes.Push_back( gridToVirtualNodes_[entIt.GetNode()]);
+              for(UInt i = 0;i < gridToVirtualNodes_[entIt.GetNode()].GetSize();i++){
+                nodes.Push_back( gridToVirtualNodes_[entIt.GetNode()][i]);
+              }
             }
           }
         break;
@@ -289,7 +298,7 @@ namespace CoupledField {
     //in the region map and if this mapping is of type GRID
     //if so, we call a specialized but efficient function
     // if not, we get to the general case
-    if(mapType_ == GRID){
+    if(mapType_ == GRID && isContinuous_){
       CreateGridNodes();
     }else{
       CreatePolynomialNodes();
@@ -299,7 +308,7 @@ namespace CoupledField {
 
   void FeSpace::CreateGridNodes(){
 
-    LOG_TRACE(feSpace) << "starting to create virtual nodes";
+    LOG_TRACE(feSpace) << "starting to create virtual nodes based on GRID";
 
     StdVector< shared_ptr<EntityList> > fctEntList;
     StdVector<UInt> curNodes;
@@ -317,7 +326,7 @@ namespace CoupledField {
       GetNodesOfEntities( curNodes, actElemList );
       for ( UInt aNode= 0; aNode < curNodes.GetSize(); aNode++ ) {
         if(gridToVirtualNodes_.find(curNodes[aNode]) == gridToVirtualNodes_.end()){
-          gridToVirtualNodes_[curNodes[aNode]] =  curNodes[aNode];
+          gridToVirtualNodes_[curNodes[aNode]].Push_back(curNodes[aNode]);
         }
       }
 
@@ -338,8 +347,9 @@ namespace CoupledField {
 
     nodes_.Resize(gridToVirtualNodes_.size());
     UInt counter = 0;
-    for(std::map<UInt,UInt>::const_iterator it = gridToVirtualNodes_.begin(); it != gridToVirtualNodes_.end(); ++it) {
-      nodes_[counter++] = it->second;
+    for(std::map<UInt,StdVector<UInt> >::const_iterator it = gridToVirtualNodes_.begin(); it != gridToVirtualNodes_.end(); ++it) {
+      //here we can hardcode to zero as we assume continuous approximation
+      nodes_[counter++] = it->second[0];
     }
   }
 
@@ -363,7 +373,7 @@ namespace CoupledField {
     //Different lists have to be treated differently
     EntityList::ListType actListType = EntityList::NO_LIST;
 
-    LOG_TRACE(feSpace) << "starting to create virtual nodes";
+    LOG_TRACE(feSpace) << "starting to create virtual nodes based on POLYNOMIAL";
     
     fctEntList = feFunction_->GetEntityList();
 
@@ -424,15 +434,17 @@ namespace CoupledField {
           numVertexNodes = permutations.GetSize();
 
           // Check if the vertex is already numbered.
-          if( vertexNodes[vertexNum].GetSize() == 0 && isContinuous_ ) {
+          if( vertexNodes[vertexNum].GetSize() == 0 ||
+              ( !isContinuous_  && actListType != EntityList::SURF_ELEM_LIST) ) {
             vertexNodes[vertexNum].Resize(numVertexNodes);
+            vertexNodes[vertexNum].Init();
               for( UInt vertNode = 0; vertNode < numVertexNodes; ++vertNode ) {
                 vertexNodes[vertexNum][vertNode] = ++offset;
                 LOG_DBG3(feSpace) << "adding " << offset << " to node_";
                 nodes_.Push_back(offset);
                 nodesType_[offset] = BaseFE::VERTEX;
             }
-          } // is continuous
+          }
           EntityTypeNodes & etn =  virtualNodes_[actEl->elemNum][BaseFE::VERTEX];
           for( UInt i = 0; i < numVertexNodes; ++i ) {
             etn.vNodes.Push_back(vertexNodes[vertexNum][permutations[i] ]);
@@ -441,9 +453,14 @@ namespace CoupledField {
           }
           etn.offset.Push_back( permutations.GetSize() );
           
-          if(gridToVirtualNodes_.find(vertexNum) == gridToVirtualNodes_.end()){
+          if(isContinuous_){
+            if(gridToVirtualNodes_.find(vertexNum) == gridToVirtualNodes_.end()){
+              LOG_DBG3(feSpace) << "gridToVirtualNodes[" << vertexNum << "] = " << offset;
+              gridToVirtualNodes_[vertexNum].Push_back(offset);
+            }
+          }else{
             LOG_DBG3(feSpace) << "gridToVirtualNodes[" << vertexNum << "] = " << offset;
-            gridToVirtualNodes_[vertexNum] =  offset;
+            gridToVirtualNodes_[vertexNum].Push_back(offset);
           }
         } // loop over vertices
         //Create the permutation array
@@ -466,10 +483,12 @@ namespace CoupledField {
           // Check if the edge is already numbered.
           // Additionally, if we have the case of discontinuous approximation,
           // we number the nodes separately for every element anyway.
-          if(edgenodes[edgeNum].GetSize() == 0 &&  isContinuous_) {
+          if(edgenodes[edgeNum].GetSize() == 0  ||
+              ( !isContinuous_  && actListType != EntityList::SURF_ELEM_LIST)) {
             //here we assume spectral element approximation and we have
             //order-1 nodes on the edge
             edgenodes[edgeNum].Resize(numEdgeNodes);
+            edgenodes[edgeNum].Init();
             for ( UInt edgeNode = 0;edgeNode < numEdgeNodes ;edgeNode++ ) {
               edgenodes[edgeNum][edgeNode] = ++offset;
               nodes_.Push_back(offset);
@@ -498,9 +517,8 @@ namespace CoupledField {
           // Check if the face is already numbered.
           // Additionally, if we have the case of discontinuous approximation,
           // we number the nodes separately for every element separately anyway.
-          if(facenodes[faceNum].GetSize() == 0 && isContinuous_ ){
-            //here we assume spectral element approximation and we have 
-            //order-1 nodes on the edge
+          if(facenodes[faceNum].GetSize() == 0 ||
+              ( !isContinuous_  && actListType != EntityList::SURF_ELEM_LIST)){
             facenodes[faceNum].Resize(numFaceNodes);
             for ( UInt faceNode = 0;faceNode < numFaceNodes ;faceNode++ ) {
               facenodes[faceNum][faceNode] = ++offset;
@@ -525,8 +543,6 @@ namespace CoupledField {
 
         //Check if the current element got already numbered
         if(interiornodes[actEl->elemNum].GetSize() == 0){
-          //here we assume spectral element approximation and we have
-          //order-1 nodes on the edge
           interiornodes[actEl->elemNum].Resize(numIntNodes);
           for ( UInt intNode = 0;intNode < numIntNodes ;intNode++ ) {
             interiornodes[actEl->elemNum][intNode] = ++offset;

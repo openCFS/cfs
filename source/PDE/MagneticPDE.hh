@@ -40,6 +40,9 @@ namespace CoupledField
     //! define all (bilinearform) integrators needed for this pde
     void DefineIntegrators();
 
+    //! define surface integrators needed for this pde
+    void DefineSurfaceIntegrators( ){};
+
     //! Define all RHS linearforms for load / excitation 
     void DefineRhsLoadIntegrators();
     

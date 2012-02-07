@@ -281,13 +281,15 @@ namespace CoupledField{
     while(spIt != spectralRegions_.end()){
 
       // get region node
-      std::string regionName = domain->GetGrid()->GetRegion().ToString(*spIt);
+      std::string regionName = domain->GetGrid()->regionData[*spIt].name;
       PtrParamNode regionNode = infoNode_->Get("regionList")->Get(regionName);
       Matrix<Integer> order(1,1);
+      UInt test = *spIt;
       //every reference element has the same order
       order[0][0] = refElems_[*spIt][Elem::ET_LINE2]->GetIsoOrder();
       SetRegionIntegration( *spIt,IntScheme::LOBATTO, order, ABSOLUTE,
                             regionNode );
+      test = 0;
       spIt++;
     }
 
@@ -300,7 +302,7 @@ namespace CoupledField{
     bool spectral = node->Get("spectral",ParamNode::EX)->As<bool>();
 
     if(spectral)
-      spectralRegions_.insert(spectral);
+      spectralRegions_.insert(region);
   }
 
   void FeSpaceH1Nodal::SetDefaultElements(PtrParamNode infoNode ){

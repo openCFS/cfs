@@ -7,7 +7,7 @@
 #include <iostream>
 #include <string>
 #include <algorithm>
-#include <stdarg.h>
+#include <cstdarg>
 
 #include "SimInputMESH.hh"
 

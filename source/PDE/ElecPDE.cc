@@ -114,9 +114,6 @@ namespace CoupledField {
     std::map<RegionIdType, BaseMaterial*>::iterator it;
     shared_ptr<FeSpace> mySpace = feFunctions_[ELEC_POTENTIAL]->GetFeSpace();
 
-    //Read external data
-    //TODO: DELETE THIS AFTER successful testing!
-    //ReadGridData();
     for ( it = materials_.begin(); it != materials_.end(); it++ ) {
       
       // Set current region and material
@@ -705,12 +702,5 @@ namespace CoupledField {
       EXCEPTION("The formulation " << formulation << "of electric PDE is not known!");
     }
     return crSpaces;
-  }
-
-  //TO BE DELETED!!!!!
-  void ElecPDE::ReadGridData(){
-    //first try to obtain the grid
-    // Grid* nGrid = domain->GetGrid("externalField");
-    // nGrid = NULL;
   }
 }

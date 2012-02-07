@@ -61,7 +61,7 @@ namespace CoupledField{
       return;
     }
 
-    ~IdentityOperator(){
+    virtual ~IdentityOperator(){
       return;
     }
 
@@ -210,6 +210,41 @@ namespace CoupledField{
         Double minE,maxE;
         lp.shapeMap->GetMaxMinEdgeLength(maxE,minE);
         bMat /= maxE;
+      }
+
+  };
+
+  //! Identity operator, which takes account piola trasformation
+
+  //! This integrator gets gets used e.g. for the mass integrator within the
+  //! magneticEdge PDE.
+  template< class FE, UInt D = 1, UInt D_DOF = 1, class TYPE = Double >
+  class IdentityOperatorPiola : public IdentityOperator<FE,D,D_DOF,TYPE>{
+    public:
+      IdentityOperatorPiola(){
+        return;
+      }
+
+      virtual ~IdentityOperatorPiola(){
+        return;
+      }
+
+      virtual void CalcOpMat(Matrix<Double> & bMat,
+                             const LocPointMapped& lp, BaseFE* ptFe ){
+        Matrix<Double> bMatInitial;
+        IdentityOperator<FE,D,D_DOF,TYPE>::CalcOpMat(bMatInitial,lp,ptFe);
+        //now apply piola transform
+        bMat = lp.jac * bMatInitial;
+        bMat /= lp.jacDet;
+      }
+
+      virtual void CalcOpMatTransposed(Matrix<Double> & bMat,
+                                       const LocPointMapped& lp, BaseFE* ptFe ){
+        Matrix<Double> bMatInitial;
+        IdentityOperator<FE,D,D_DOF,TYPE>::CalcOpMatTransposed(bMatInitial,lp,ptFe);
+        //now apply piola transform
+        bMat = bMatInitial * lp.jac;
+        bMat /= lp.jacDet;
       }
 
   };

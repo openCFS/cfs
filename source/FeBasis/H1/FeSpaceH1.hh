@@ -22,7 +22,6 @@ namespace CoupledField {
   have to be specified on (Surface) Elements
 
   TODO: 
-    - Support for Spectral Elements
     - Adding the additional unknown location to the 
       element shapes to enable correct applicaiton of boundary conditions
       and better postprocessing

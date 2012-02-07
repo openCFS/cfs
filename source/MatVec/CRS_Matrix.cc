@@ -988,29 +988,29 @@ namespace CoupledField {
       } else {
         //  -> or loop over all rows and take into account only
         //     selected columns
-        std::set<UInt>::const_iterator colIt;
-        register UInt k, rs;
-        UInt i, j;
-
-        // loop over all rows
-        for ( i = 0; i < this->nrows_; i++ ) {
-          k = rowPtr_[i];
-          rs = rowPtr_[i+1] - k;
-
-          // loop over all columns of the current row
-          colIt = colIndices.begin();
-          for ( j = 0; j < rs; j++ ) {
-
-            // iterate over desired column indices until the
-            // current column index is smaller
-            while( *colIt < colInd_[k] && colIt != colIndices.end() ) 
-              colIt++;
-            // only perform operation, if column indices match
-            if( *colIt == colInd_[k] )
-              data_[k] += alpha * data[k];
-            k++;
-          } // cols
-        } // rows
+        //this is simpler right now we can assume that all matrices have the same graph
+        // Obtain pointer to data array of other matrix
+        const T *data = dynamic_cast<const CRS_Matrix<T>&>(mat).GetDataPointer();
+        //another optimization check if data in set is continuous
+        std::set<UInt>::iterator starting  = colIndices.begin();
+        std::set<UInt>::iterator ending = colIndices.end();
+        if( (*ending - *starting) == colIndices.size()){
+          //data is continuous
+          UInt min = *starting;
+          UInt max = *ending;
+#pragma omp parallel for
+          for ( UInt i = 0; i < this->nnz_; i++ ) {
+            if (colInd_[i] >= min && colInd_[i] <= max)
+              data_[i] += alpha * data[i];
+          }
+        }else{
+          // we have to searach the set for every entry (nnz_ * O(log sizeof(colIndices)))
+#pragma omp parallel for
+          for ( UInt i = 0; i < this->nnz_; i++ ) {
+            if (colIndices.find(colInd_[i]) != ending)
+              data_[i] += alpha * data[i];
+          }
+        }
       } // if column set is nonzero
     } // if one set is nonzero
   }

@@ -207,6 +207,9 @@ namespace CoupledField
     //! define all (bilinearform) integrators needed for this pde
     virtual void DefineIntegrators( )=0;
     
+    //! define surface integrators needed for this pde
+    virtual void DefineSurfaceIntegrators( )=0;
+
     //! Define all RHS linearforms for load / excitation 
     virtual void DefineRhsLoadIntegrators( ) {}
 
@@ -284,6 +287,10 @@ namespace CoupledField
     virtual void InitNonLin();
 
     //! Define FeFunctions for this PDE according to the
+    //! definition in the XML file
+    virtual void DefineTimeDerivFeFunctions(){;}
+
+    //! Define the time FeFunctions for this PDE according to the
     //! definition in the XML file
     virtual void DefineFeFunctions();
 

@@ -1,28 +1,34 @@
-#ifndef ACOUSTICPDE_HH
-#define ACOUSTICPDE_HH
+// -*- mode: c++; coding: utf-8; indent-tabs-mode: nil; -*-
+// vim: set ts=2 sw=2 et nu ai ft=cpp cindent !:
+// kate: space-indent on; indent-width 2; encoding utf-8;
+// kate: auto-brackets on; mixedindent off; indent-mode cstyle;
+// ================================================================================================
+/*!
+ *       \file     AcousticMixedPDE.hh
+ *       \brief    <Description>
+ *
+ *       \date     Feb 2, 2012
+ *       \author   ahueppe
+ */
+//================================================================================================
+
+#ifndef ACOUSTICMIXEDPDE_HH_
+#define ACOUSTICMIXEDPDE_HH_
 
 #include "SinglePDE.hh"
 
 namespace CoupledField{
 
-  // forward class declaration
-  class BaseResult;
-  class ResultHandler;
-  class LinearFormContext;
-  class ElecForceOp;
-  class BaseBDBInt;
-  class ResultFunctor;
-
-  class AcousticPDE : public SinglePDE{
+class AcousticMixedPDE : public SinglePDE{
 
   public:
     //!  Constructor.
     /*!
       \param aGrid pointer to grid
     */
-    AcousticPDE( Grid* aGrid, PtrParamNode paramNode );
+    AcousticMixedPDE( Grid* aGrid, PtrParamNode paramNode );
 
-    virtual ~AcousticPDE(){};
+    virtual ~AcousticMixedPDE(){};
 
     //! \copydoc SinglePDE::CreateFeSpaces
     virtual std::map<SolutionType, shared_ptr<FeSpace> >
@@ -33,7 +39,7 @@ namespace CoupledField{
     void DefineIntegrators();
 
     //! define surface integrators needed for this pde
-    void DefineSurfaceIntegrators( ){};
+    void DefineSurfaceIntegrators( );
 
     //! define the SoltionStep-Driver
     void DefineSolveStep();
@@ -72,15 +78,12 @@ namespace CoupledField{
 
     //! Init the time stepping
     void InitTimeStepping();
-
   private:
 
-    //! stores if the Acoustic PDE is in potential or pressure form
-    SolutionType formulation_;
-
-
-  };
+    bool usePiola_;
+};
 
 }
 
-#endif
+
+#endif /* ACOUSTICMIXEDPDE_HH_ */

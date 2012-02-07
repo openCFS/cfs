@@ -53,7 +53,7 @@ namespace CoupledField {
     	  return;
 
       for(UInt iDof = 0; iDof < dofsPerUnknown; iDof++){
-        eqns[iDof] = nodeMap_[gridToVirtualNodes_[node]][iDof];
+        eqns[iDof] = nodeMap_[gridToVirtualNodes_[node][0]][iDof];
       }
     } else if( ent.GetType() == EntityList::ELEM_LIST ||
         ent.GetType() == EntityList::SURF_ELEM_LIST){
@@ -89,7 +89,7 @@ namespace CoupledField {
       //without the if clause we would have a segfault in case of higher order approximaton
       //for quadratic meshes
       if(gridToVirtualNodes_.find(node)!= gridToVirtualNodes_.end())
-    	  eqns[0] = nodeMap_[gridToVirtualNodes_[node]][dof];
+    	  eqns[0] = nodeMap_[gridToVirtualNodes_[node][0]][dof];
 
     } else if( ent.GetType() == EntityList::ELEM_LIST ||
                ent.GetType() == EntityList::SURF_ELEM_LIST){
@@ -118,7 +118,7 @@ namespace CoupledField {
         UInt node = ent.GetNode();
         eqns.Resize(1);
         eqns.Init();
-        eqns[0] = nodeMap_[gridToVirtualNodes_[node]][dof];
+        eqns[0] = nodeMap_[gridToVirtualNodes_[node][0]][dof];
 
       } else if( ent.GetType() == EntityList::ELEM_LIST ||
                  ent.GetType() == EntityList::SURF_ELEM_LIST){
@@ -466,7 +466,6 @@ namespace CoupledField {
   }
 
   void FeSpaceH1::PrintEqnMap(){
-    
 
     // obtain (fctId,eqnNr) -> (sbm,index) mapping from OLAS
     StdVector<UInt> blockNums, indices;
@@ -563,7 +562,7 @@ namespace CoupledField {
         if( type == BaseFE::VERTEX ) {
           for( UInt i = 0; i < vNodes.GetSize(); ++i ) {
             UInt actNode = ptElem->connect[i];
-            Integer index = vNodes.Find(gridToVirtualNodes_[actNode]); 
+            Integer index = vNodes.Find(gridToVirtualNodes_[actNode][0]);
             if( index > -1 ) {
               rNodes[index] = actNode;
             }

@@ -223,7 +223,8 @@ namespace CoupledField {
       actFct->SetFctId(fctId);
       fncIt++;
     }
-    
+
+
     // =====================================================================
     // trigger definition of available results
     // =====================================================================
@@ -295,6 +296,7 @@ namespace CoupledField {
     // Call initialization of (bi)linear integrators
     LOG_TRACE(singlepde) << pdename_ << ": Defining integrators";
     DefineIntegrators();
+    DefineSurfaceIntegrators();
     DefineRhsLoadIntegrators();
 
     // Print information about defined integrators
@@ -355,6 +357,12 @@ namespace CoupledField {
       }
 
     }
+
+    // =======================================================================
+    // Trigger creation of timeDerivative FeFunctions
+    // NOTE: Has to be done here after initializaiton of timestepping scheme!
+    // =======================================================================
+    DefineTimeDerivFeFunctions();
 
 //    // =====================================================================
 //    // Set the initial conditions
@@ -677,6 +685,7 @@ namespace CoupledField {
           break;
         default:
           EXCEPTION("Type of 'definedOn' was not found");
+          break;
         }
 
         // intialize variables

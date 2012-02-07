@@ -31,6 +31,8 @@ namespace CoupledField
     //! Define all (bilinearform) integrators needed for this PDE
     void DefineIntegrators( );
 
+    void DefineSurfaceIntegrators(){};
+
     //! Define the SolveStep-Driver
     void DefineSolveStep();
 

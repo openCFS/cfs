@@ -372,6 +372,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
 
       default:
         WARN( "Resulttype not computable by magnetic PDE" );
+        break;
     }
 
   }
@@ -930,6 +931,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
 
       case ELEM:
         EXCEPTION( "No Element coupling output" );
+        break;
       }
     }
   }

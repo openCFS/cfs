@@ -409,8 +409,8 @@ namespace CoupledField
       EntityList& secondEntities = *(listIt->first.second);
       UInt size = firstEntities.GetSize();
 
-      std::cout << "  - Calculating BiLinearForms on '" 
-          << firstEntities.GetName() 
+      std::cout << "  - Calculating BiLinearForms on '"
+          << firstEntities.GetName()
           << " (" << size << " elements)'\n";
       // Total work: numElement x numForms
       boost::progress_display progress( size*forms.GetSize() );
@@ -594,12 +594,12 @@ namespace CoupledField
       EntityList& secondEntities = *(listIt->first.second);
       UInt size = firstEntities.GetSize();
 
-      std::cout << "  - Calculating BiLinearForms on '" 
-                    << firstEntities.GetName() 
+      std::cout << "  - Calculating BiLinearForms on '"
+                    << firstEntities.GetName()
                     << " (" << size << " elements)'\n";
       // Total work: numElement x numForms
       boost::progress_display progress( size*forms.GetSize() );
-      
+
       
       // Loop over all entities
       EntityIterator it1 = firstEntities.GetIterator();

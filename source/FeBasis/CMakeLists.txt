@@ -12,6 +12,8 @@ SET(FEBASIS_SRC
   H1/H1ElemsHi.cc
   HCurl/HCurlElemsHi.cc
   HCurl/HCurlElems.cc
+  L2/FeSpaceL2.cc
+  L2/FeSpaceL2Nodal.cc
 )
 
 ADD_LIBRARY(febasis STATIC ${FEBASIS_SRC})

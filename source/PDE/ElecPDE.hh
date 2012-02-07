@@ -56,6 +56,8 @@ namespace CoupledField
     //! Define all (bilinearform) integrators needed for this pde
     void DefineIntegrators( );
     
+    void DefineSurfaceIntegrators(){};
+
     //! Define all RHS linearforms for load / excitation 
     void DefineRhsLoadIntegrators();
     
@@ -162,8 +164,6 @@ namespace CoupledField
     //! vector containing regionIds of non-conforming interfaces
     StdVector<RegionIdType> ncIFaces_;
 
-    //! Read in external fields JUST FOR TESTING DELETE AS SOON AS POSSIBLE!
-    void ReadGridData();
   };
 
 #ifdef DOXYGEN_DETAILED_DOC

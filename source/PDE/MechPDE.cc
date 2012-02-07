@@ -412,6 +412,18 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
         feFunctions_[MECH_DISPLACEMENT]->ExtractResult( res );
         break;
 
+      case MECH_VELOCITY:
+        if ( (analysistype_ == TRANSIENT) || (analysistype_ == HARMONIC)){
+          this->timeDerivFeFunctions_[MECH_VELOCITY]->ExtractResult( res );
+        }
+        break;
+
+      case MECH_ACCELERATION:
+        if ( (analysistype_ == TRANSIENT) || (analysistype_ == HARMONIC)){
+          this->timeDerivFeFunctions_[MECH_ACCELERATION]->ExtractResult( res );
+        }
+        break;
+
       case MECH_RHS_LOAD:
         rhsFeFunctions_[MECH_DISPLACEMENT]->ExtractResult( res );
         break;
@@ -428,6 +440,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
         WARN( "Result '" << 
               SolutionTypeEnum.ToString(res->GetResultInfo()->resultType)
               << "' type not computable by mechanic PDE" );
+        break;
     }
   }
 
@@ -436,8 +449,103 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
   // ======================================================
   void MechPDE::InitTimeStepping()
   {
-    shared_ptr<BaseTimeScheme> myScheme(new TimeSchemeGLM(TimeSchemeGLM::NEWMARK, 2) );
+    shared_ptr<BaseTimeScheme> myScheme(new TimeSchemeGLM(TimeSchemeGLM::NEWMARK, 0) );
     feFunctions_[MECH_DISPLACEMENT]->SetTimeScheme(myScheme);
+  }
+
+  //Define time derivative feFunctions
+  //the idea is the folowing:
+  // in the case of a transient analysis, we can directly relate
+  // the coefficient vector of the feFunction to the one of the
+  // time stepping scheme.
+  // in case of harmonics we create a new coefVector for the functions
+  // which has to be updated within the harmonic driver
+  void MechPDE::DefineTimeDerivFeFunctions(){
+
+    if ( (analysistype_ != TRANSIENT) && (analysistype_ != HARMONIC)){
+      //ok for the static case we do not need to bother
+      return;
+    }
+    //first we find the result infos
+    shared_ptr<ResultInfo> velInfo;
+    shared_ptr<ResultInfo> accelInfo;
+    ResultSet::const_iterator it = availResults_.begin();
+    for( ; it != availResults_.end(); ++it ) {
+      if( (*it)->resultType == MECH_VELOCITY ) {
+        velInfo = *it;
+      }else if( (*it)->resultType == MECH_ACCELERATION ){
+        accelInfo = *it;
+      }
+    }
+    if(!velInfo || !accelInfo){
+      EXCEPTION("Could not determine the result info for time derivative FeFunctions.")
+    }
+    //TODO: This is not very nice so we need to implement a copy method to fefunction.
+
+    if (!isComplex_)
+    {
+      this->timeDerivFeFunctions_[MECH_VELOCITY].reset(new FeFunction<Double>());
+      this->timeDerivFeFunctions_[MECH_ACCELERATION].reset(new FeFunction<Double>());
+
+    }else
+    {
+      this->timeDerivFeFunctions_[MECH_VELOCITY].reset(new FeFunction<Complex>());
+      this->timeDerivFeFunctions_[MECH_ACCELERATION].reset(new FeFunction<Complex>());
+    }
+    shared_ptr<BaseFeFunction> dispFe = feFunctions_[MECH_DISPLACEMENT];
+    shared_ptr<BaseFeFunction> vFct = timeDerivFeFunctions_[MECH_VELOCITY];
+    shared_ptr<BaseFeFunction> aFct = timeDerivFeFunctions_[MECH_ACCELERATION];
+
+    //lets create now a copy and add entity lists and stuff
+    //TODO: Make there a copy function to do such work....
+    StdVector< shared_ptr<EntityList> > entList = dispFe->GetEntityList();
+    for(UInt i =0;i<entList.GetSize();i++){
+      vFct->AddEntityList(entList[i]);
+      aFct->AddEntityList(entList[i]);
+    }
+
+    //Copy info for velocity
+    vFct->SetResultInfo(velInfo);
+    vFct->SetFeSpace(dispFe->GetFeSpace());
+    vFct->SetFctId(dispFe->GetFctId());
+    vFct->Finalize();
+
+    aFct->SetResultInfo(accelInfo);
+    aFct->SetFeSpace(dispFe->GetFeSpace());
+    aFct->SetFctId(dispFe->GetFctId());
+    aFct->Finalize();
+
+    //the only thing left to do is the association of corresponding coefVectors in the transient case
+    if ( analysistype_ == TRANSIENT)
+    {
+      dispFe->GetTimeScheme()->SetTimeDerivVector(1,vFct->GetSingleVector());
+      dispFe->GetTimeScheme()->SetTimeDerivVector(2,aFct->GetSingleVector());
+    }
+
+    //in any case we create a Field Functor for our functions
+
+    shared_ptr<BaseFieldFunctor> vFunc;
+    shared_ptr<BaseFieldFunctor> aFunc;
+    if( isComplex_ ) {
+        vFunc.reset(
+            new FieldInterpolFunctor<IdentityOperator<FeH1,2,2,Complex>,
+            Complex>(vFct, velInfo));
+        aFunc.reset(
+            new FieldInterpolFunctor<IdentityOperator<FeH1,2,2,Complex>,
+           Complex>(aFct, accelInfo));
+
+    } else {
+        vFunc.reset(
+            new FieldInterpolFunctor<IdentityOperator<FeH1,2,2,Double>,
+            Double>(vFct, velInfo));
+        aFunc.reset(
+            new FieldInterpolFunctor<IdentityOperator<FeH1,2,2,Double>,
+            Double>(aFct, accelInfo));
+    }
+    resultFunctors_[MECH_VELOCITY] = vFunc;
+    fieldFunctors_[MECH_VELOCITY] = vFunc;
+    resultFunctors_[MECH_ACCELERATION] = aFunc;
+    fieldFunctors_[MECH_ACCELERATION] = aFunc;
   }
 
 
