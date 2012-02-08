@@ -137,22 +137,22 @@ namespace CoupledField{
       // ====================================================================
       // stiffness integrators
       // ====================================================================
-      //shared_ptr<CoefFunction> coeffKPV
-      //          = CoefFunction::Generate(Global::REAL, "1.0");
-      //BiLinearForm * stiffIntPV = NULL;
-      //if( dim_ == 2 ) {
-      //  stiffIntPV = new ABInt<GradientOperator<FeH1,2> , IdentityOperatorPiola<FeH1,2,2> >(coeffKPV,-1.0 );
-      //} else {
-      //  stiffIntPV = new ABInt<GradientOperator<FeH1,2> , IdentityOperatorPiola<FeH1,3,3> >(coeffKPV,-1.0 );
-      //}
-      //stiffIntPV->SetName("MixedStiffIntPV");
+      shared_ptr<CoefFunction> coeffKPV
+                = CoefFunction::Generate(Global::REAL, "1.0");
+      BiLinearForm * stiffIntPV = NULL;
+      if( dim_ == 2 ) {
+        stiffIntPV = new ABInt<GradientOperator<FeH1,2> , IdentityOperatorPiola<FeH1,2,2> >(coeffKPV,-1.0 );
+      } else {
+        stiffIntPV = new ABInt<GradientOperator<FeH1,2> , IdentityOperatorPiola<FeH1,3,3> >(coeffKPV,-1.0 );
+      }
+      stiffIntPV->SetName("MixedStiffIntPV");
       //stiffIntPV->SetFeSpace( feFunctions_[ACOU_PRESSURE]->GetFeSpace(), feFunctions_[ACOU_VELOCITY]->GetFeSpace() );
-      //BiLinFormContext *stiffContPV = new BiLinFormContext(stiffIntPV, STIFFNESS );
-      //
-      //stiffContPV->SetEntities( actSDList, actSDList );
-      //stiffContPV->SetFeFunctions( feFunctions_[ACOU_PRESSURE],feFunctions_[ACOU_VELOCITY]);
-      //
-      //assemble_->AddBiLinearForm( stiffContPV );
+      BiLinFormContext *stiffContPV = new BiLinFormContext(stiffIntPV, STIFFNESS );
+
+      stiffContPV->SetEntities( actSDList, actSDList );
+      stiffContPV->SetFeFunctions( feFunctions_[ACOU_PRESSURE],feFunctions_[ACOU_VELOCITY]);
+      //stiffContPV->SetCounterPart(true);
+      assemble_->AddBiLinearForm( stiffContPV );
 
       shared_ptr<CoefFunction> coeffKVP
                 = CoefFunction::Generate(Global::REAL, "1.0");
@@ -163,12 +163,12 @@ namespace CoupledField{
         stiffIntVP = new ABInt< IdentityOperatorPiola<FeH1,3,3> , GradientOperator<FeH1,3> >(coeffKVP,1.0 );
       }
       stiffIntVP->SetName("MixedStiffIntVP");
-      stiffIntVP->SetFeSpace( feFunctions_[ACOU_PRESSURE]->GetFeSpace(), feFunctions_[ACOU_VELOCITY]->GetFeSpace() );
+      //stiffIntVP->SetFeSpace( feFunctions_[ACOU_PRESSURE]->GetFeSpace(), feFunctions_[ACOU_VELOCITY]->GetFeSpace() );
       BiLinFormContext *stiffContVP = new BiLinFormContext(stiffIntVP, STIFFNESS );
 
       stiffContVP->SetEntities( actSDList, actSDList );
       stiffContVP->SetFeFunctions( feFunctions_[ACOU_VELOCITY],feFunctions_[ACOU_PRESSURE]);
-      stiffContVP->SetCounterPart(true);
+      //stiffContVP->SetCounterPart(true);
       assemble_->AddBiLinearForm( stiffContVP );
 
       // ====================================================================
@@ -179,12 +179,12 @@ namespace CoupledField{
 
       BiLinearForm *massIntPP = NULL;
       if( dim_ == 2 ) {
-        massIntPP = new BBInt<IdentityOperator<FeH1,2,1> >(coeffMPP, -1.0 / (density * c0*c0) );
+        massIntPP = new BBInt<IdentityOperator<FeH1,2,1> >(coeffMPP, 1.0 / (density * c0*c0) );
       } else {
-        massIntPP = new BBInt<IdentityOperator<FeH1,3,1> >(coeffMPP, -1.0 / (density * c0*c0) );
+        massIntPP = new BBInt<IdentityOperator<FeH1,3,1> >(coeffMPP, 1.0 / (density * c0*c0) );
       }
       massIntPP->SetName("PressureTimeInt");
-      massIntPP->SetFeSpace( feFunctions_[ACOU_PRESSURE]->GetFeSpace() );
+      //massIntPP->SetFeSpace( feFunctions_[ACOU_PRESSURE]->GetFeSpace() );
 
       BiLinFormContext *massContextPP =  new BiLinFormContext(massIntPP, DAMPING );
 
@@ -202,7 +202,7 @@ namespace CoupledField{
         massIntVV = new BBInt<IdentityOperatorPiola<FeH1,3,3> >(coeffMVV, density);
       }
       massIntVV->SetName("VelocityTimeInt");
-      massIntVV->SetFeSpace( feFunctions_[ACOU_VELOCITY]->GetFeSpace() );
+      //massIntVV->SetFeSpace( feFunctions_[ACOU_VELOCITY]->GetFeSpace() );
 
       BiLinFormContext *massContextVV =  new BiLinFormContext(massIntVV, DAMPING );
 
@@ -247,9 +247,9 @@ namespace CoupledField{
         BiLinearForm * abcInt = NULL;
 
         if( dim_ == 2 ) {
-          abcInt = new BBInt<IdentityOperator<FeH1,2,1> >(coeffKPV,-1.0/(density*c0) );
+          abcInt = new BBInt<IdentityOperator<FeH1,2,1> >(coeffKPV,1.0/(density*c0) );
         } else {
-          abcInt = new BBInt<IdentityOperator<FeH1,3,1> >(coeffKPV,-1.0/(density*c0) );
+          abcInt = new BBInt<IdentityOperator<FeH1,3,1> >(coeffKPV,1.0/(density*c0) );
         }
 
         abcInt->SetName("abcIntegrator");

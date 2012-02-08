@@ -160,6 +160,8 @@ DECLARE_LOG(fefunc)
 
       // get equation numbers
       feSpace_->GetEqns( eqnNums, it );
+      //ok if eqnNums.GetSize is zero
+      // we obtain the target Element from the Grid
       for ( UInt iDof = 0; iDof < eqnNums.GetSize(); iDof++ ){
    
         // check for homogeneous Dirichlet boundary condition

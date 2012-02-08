@@ -2163,6 +2163,7 @@ namespace CoupledField {
     }
     for ( it = matFactors.begin(); it != matFactors.end(); it++ ) {
       if ( sysMat_[(*it).first] != NULL  && (*it).second != 0.0 ) {
+        std::map<UInt, std::set<UInt> > dummyFreeSet;
         sys->Add( (*it).second, *sysMat_[(*it).first], 
                   dummyFreeSet, freeIndPerBlock );
       }
