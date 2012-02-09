@@ -1518,7 +1518,12 @@ namespace CoupledField {
                                          const Vector<Double>& point,
                                          const Elem* ptElem,
                                          UInt comp ) {
-      WARN("CalcShFnc for ET_WEDGE18 implemented but not tested!");
+      static bool issueWarning = true;
+      if(issueWarning) {
+        WARN("CalcShFnc for ET_WEDGE18 implemented but not tested!");
+        issueWarning = false;
+      }
+
       shape.Resize( actNumFncs_ );
       Double x = point[0];
       Double y = point[1];
@@ -1555,7 +1560,11 @@ namespace CoupledField {
                                                  const Vector<Double>& point,
                                                  const Elem* ptElem,
                                                  UInt comp ) {
-      WARN("CalcLocDerivShFnc for ET_WEDGE18 implemented but not tested!");
+      static bool issueWarning = true;
+      if(issueWarning) {
+        WARN("CalcLocDerivShFnc for ET_WEDGE18 implemented but not tested!");
+        issueWarning = false;
+      }
       deriv.Resize(actNumFncs_,3);
       deriv.Init();
       Double x = point[0];
@@ -2248,7 +2257,11 @@ namespace CoupledField {
                                           const Vector<Double>& point,
                                           const Elem* ptElem,
                                           UInt comp ) {
-        WARN("CalcShFnc for ET_PYRA14 implemented but not tested!");
+        static bool issueWarning = true;
+        if(issueWarning) {
+          WARN("CalcShFnc for ET_PYRA14 implemented but not tested!");
+          issueWarning = false;
+        }
 
         // Shape functions for 14 node pyramid taken from
         // http://www.colorado.edu/engineering/CAS/courses.d/AFEM.d/AFEM.Ch19.d/AFEM.Ch19.pdf
@@ -2360,7 +2373,11 @@ namespace CoupledField {
                                                   const Vector<Double>& point,
                                                   const Elem* ptElem,
                                                   UInt comp ) {
-        WARN("CalcLocDerivShFnc for ET_PYRA14 implemented but not tested!");
+        static bool issueWarning = true;
+        if(issueWarning) {
+          WARN("CalcLocDerivShFnc for ET_PYRA14 implemented but not tested!");
+          issueWarning = false;
+        }
         deriv.Resize(actNumFncs_, 3);
         Double x = point[0] + (point[0] > 0.0 ? 1.0 : -1.0)*point[2];
         Double y = point[1] + (point[1] > 0.0 ? 1.0 : -1.0)*point[2];
