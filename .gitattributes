@@ -1241,10 +1241,12 @@ source/OLAS/external/lapack/olasf77mapping.cc svneol=native#text/x-c%2B%2Bsrc
 source/OLAS/external/lapack/olasf77mapping.hh svneol=native#text/x-c%2B%2Bhdr
 source/OLAS/external/pardiso/CMakeLists.txt svneol=native#text/plain
 source/OLAS/external/pardiso/PardisoDummy.cc svneol=native#text/x-c%2B%2Bsrc
-source/OLAS/external/pardiso/pardiso64solver.cc -text
-source/OLAS/external/pardiso/pardiso64solver.hh -text
 source/OLAS/external/pardiso/pardisosolver.cc svneol=native#text/x-c%2B%2Bsrc
 source/OLAS/external/pardiso/pardisosolver.hh svneol=native#text/x-c%2B%2Bhdr
+source/OLAS/external/pardiso64/CMakeLists.txt svneol=native#text/plain
+source/OLAS/external/pardiso64/Pardiso64Dummy.cc svneol=native#text/x-c%2B%2Bsrc
+source/OLAS/external/pardiso64/pardiso64solver.cc -text
+source/OLAS/external/pardiso64/pardiso64solver.hh -text
 source/OLAS/graph/CMakeLists.txt svneol=native#text/plain
 source/OLAS/graph/basegraph.cc svneol=native#text/x-c%2B%2Bsrc
 source/OLAS/graph/basegraph.hh svneol=native#text/x-c%2B%2Bhdr

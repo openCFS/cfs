@@ -2,8 +2,8 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#ifndef PARDISO_SOLVER_HH
-#define PARDISO_SOLVER_HH
+#ifndef PARDISO64_SOLVER_HH
+#define PARDISO64_SOLVER_HH
 
 #include <string>
 
@@ -199,10 +199,6 @@ class BaseVector;
 
     //! The type of the matrix in a special encoding used by Pardiso
     long long int mType_;
-
-    //! The type of the solver used by Pardiso. Possible values are zero for 
-    //! sparse direct solver (0) or one for multi-recursive iterative solver (1).
-    long long int mSolver_;
 
     //! This double array is used to communicate parameters to and from
     //! Pardiso. It has been introduced in Pardiso 4.0. Instead of 

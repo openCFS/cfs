@@ -22,7 +22,7 @@ namespace fs = boost::filesystem;
 #include "MatVec/stdmatrix.hh"
 #include "OLAS/graph/baseordering.hh"
 #include "def_use_pardiso.hh"
-#include "pardisosolver.hh"
+#include "pardiso64solver.hh"
 
 namespace CoupledField {
 class BasePrecond;
@@ -123,25 +123,28 @@ Pardiso64Solver<T>::Pardiso64Solver( PtrParamNode solverNode, PtrParamNode olasI
   msgLvl_ = 0;
 
   // Resize data arrays for Pardiso
-  pt_.Resize(64); pt_.Init(NULL);
-  iparm_.Resize(64); iparm_.Init(0);
-  dparm_.Resize(64); dparm_.Init(0.0);
+  pt_.Resize(64); 
+  pt_.Init(NULL);
+  iparm_.Resize(64); 
+  iparm_.Init(0);
+  dparm_.Resize(64); 
+  dparm_.Init(0.0);
 
   // Set default solver type to direct sparse solver
   PtrParamNode sNode = xml_->Get("pardiso", ParamNode::INSERT);
   std::string solverType = "direct";
   sNode->GetValue("type", solverType, ParamNode::INSERT);
 
-  (solverType == "direct") ?  mSolver_ = 0 : mSolver_ = 1;
+  if(solverType != "direct")
+  {
+    EXCEPTION("This CFS++ executable has been linked to a PARDISO 3.x library.\n"
+        << "PARDISO implements iterative solvers since version 4.0.\n"
+        << "To get iterative solvers you should switch CFS_PARDISO to SCHENK.");
+  }
 
   sNode = xml_->Get("stoppingRule", ParamNode::INSERT);
   std::string sRule = "relNormRes0";
   sNode->GetValue("type", sRule, ParamNode::INSERT);
-
-  if(mSolver_ && sRule != "relNormRes0") {
-    WARN("The iterative solver in PARDISO only supports relative " \
-        "residual minimization as stopping rule");
-  }
 
   // Our private Fortran zeros
   zeroINT_ = 0;
@@ -185,26 +188,6 @@ Pardiso64Solver<T>::~Pardiso64Solver()
     if ( errorFlag != NO_ERROR)
       EXCEPTION( "Error occured during cleanup:\n"
           << GetErrorString(errorFlag) )
-
-    // Read iterative solver statistics
-    if(mSolver_ && msgLvl_ && fs::exists("pardiso-ml.out")) 
-    {
-      std::ifstream pardisoMLOut("pardiso-ml.out", std::ifstream::binary);
-
-      LOG_TRACE(pardiso64Solver) << "Contents of pardiso-ml.out:"
-          << std::endl
-          << pardisoMLOut.rdbuf() << std::endl;
-      LOG_TRACE(pardiso64Solver) << " -------------------------------------------------------"
-          << "-----------------------";
-      pardisoMLOut.close();
-
-      try {
-        fs::remove("pardiso-ml.out");
-      } catch (std::exception &ex) {
-        EXCEPTION("Error while trying to remove pardiso-ml.out: " << ex.what());
-      }      
-    }
-
   }
 
   // Delete identity re-ordering (if exists)
@@ -366,21 +349,9 @@ void Pardiso64Solver<T>::Setup( BaseMatrix &sysMat, PtrParamNode analysis_step )
     LOG_TRACE(pardiso64Solver) << " Classified matrix as mType = " << mType_;
   }
 
-  if(mSolver_ == 1) 
-  {
-    LOG_TRACE(pardiso64Solver) << " Using iterative solver";
-    switch(mType_) 
-    {
-    case 11:
-    case 13:
-      EXCEPTION( "Pardiso64Solver: The iterative solver just supports symmetric matrices!" );
-      break;
-    }
-  } 
-  else 
-  {
-    LOG_TRACE(pardiso64Solver) << " Using direct solver";
-  }
+
+  LOG_TRACE(pardiso64Solver) << " Using direct solver";
+
 
   // Set default input values for dparm_;
   dparm_[0] = 300;   // Maximum number of Krylov-subspace iterations
@@ -409,16 +380,6 @@ void Pardiso64Solver<T>::Setup( BaseMatrix &sysMat, PtrParamNode analysis_step )
 
   dparm_[8] = 25;    // Maximum number of non-improvement steps in Krylov-Subspace method
   sNode->GetValue("maxNumStagnationSteps", dparm_[0], ParamNode::INSERT);
-
-  // Remove output file for iterative solver
-  if(mSolver_ && fs::exists("pardiso-ml.out")) 
-  {
-    try {
-      fs::remove("pardiso-ml.out");
-    } catch (std::exception &ex) {
-      EXCEPTION("Error while trying to remove pardiso-ml.out: " << ex.what());
-    }      
-  }
 
   // We do not need to call pardisoinit, if the matrix pattern
   // has not changed
@@ -472,14 +433,14 @@ void Pardiso64Solver<T>::Setup( BaseMatrix &sysMat, PtrParamNode analysis_step )
     // symbolic factorisation
     iparm_[1] = 0;
     iparm_[4] = 1;
-    if ( idPermSize_ < probDim_ ) {
+    if ( idPermSize_ < probDim_ ) 
+    {
       delete [] idPerm_;
       idPerm_  = NULL;
       NEWARRAY( idPerm_, long long int, probDim_ );
-      for ( long long int i = 0; i < probDim_; i++ ) {
-        // (i+1), since fortran needs indices starting with 1!!
+      // (i+1), since fortran needs indices starting with 1!!
+      for ( long long int i = 0; i < probDim_; i++ )
         idPerm_[i] = i+1;
-      }
     }
     break;
 
@@ -491,23 +452,22 @@ void Pardiso64Solver<T>::Setup( BaseMatrix &sysMat, PtrParamNode analysis_step )
     break;
   }
 
-  if(!mSolver_) 
-  {
-    if ( facSymbolic == true ) 
-    {
-      if ( ordering != BaseOrdering::NOREORDERING ) 
-      {
-        std::string tmp;
-        tmp = BaseOrdering::reorderingType.ToString( ordering );
 
-        LOG_TRACE(pardiso64Solver) << " Analyse phase will determine a '"
-            << tmp << "' re-ordering";
-      }
-      else {
-        LOG_TRACE(pardiso64Solver) << " Factorisation uses original matrix ordering";
-      }
+  if ( facSymbolic == true ) 
+  {
+    if ( ordering != BaseOrdering::NOREORDERING ) 
+    {
+      std::string tmp;
+      tmp = BaseOrdering::reorderingType.ToString( ordering );
+
+      LOG_TRACE(pardiso64Solver) << " Analyse phase will determine a '"
+          << tmp << "' re-ordering";
+    }
+    else {
+      LOG_TRACE(pardiso64Solver) << " Factorisation uses original matrix ordering";
     }
   }
+  
 
   // Do we need to determine MFLOPs for the LU factorisation
   bool stats = false;
@@ -543,26 +503,9 @@ void Pardiso64Solver<T>::Setup( BaseMatrix &sysMat, PtrParamNode analysis_step )
 
   // Switch on out-of-core
   if (sNode->Has("outOfCore"))
-  {
-    if(std::string(CFS_PARDISO) != "MKL") 
-    {
-      WARN( "The value of outOfCore has no effect for " << CFS_PARDISO << ".\n"
-          << "Switch to MKL if want to use out-of-core memory." );
-    }
     sNode->GetValue("outOfCore", iparm_[59], ParamNode::INSERT);
-  }
 
-  // Switch to iterative solver
-  if(mSolver_) 
-  {
-    EXCEPTION("This CFS++ executable has been linked to a PARDISO 3.x library.\n"
-        << "PARDISO implements iterative solvers since version 4.0.\n"
-        << "To get iterative solvers you should switch CFS_PARDISO to SCHENK.");
-
-    iparm_[31] = 1;
-  }
-
-  /* The facotrisation algorithm in pardiso rows/columns which have the about
+  /* The factorization algorithm in pardiso rows/columns which have the about
    * the same magnitude and structure into one supernode. This may cause
    * numerical errors due to pivotisation, the iterative refine step remedies
    * this. (see O.Schenk et al "Solving unsymmetric sparse systems of linear
@@ -711,20 +654,11 @@ void Pardiso64Solver<T>::Solve( const BaseMatrix &sysmat,
   }
 
   // Finish log report
-  if(!mSolver_) 
-  {
-    LOG_TRACE(pardiso64Solver) << " number of iterative refinement steps: " << iparm_[6];
-    LOG_TRACE(pardiso64Solver) << " number of perturbed pivots: " << iparm_[13];
-    LOG_TRACE(pardiso64Solver) << " number of positive eigenvalues: " << iparm_[21];
-    LOG_TRACE(pardiso64Solver) << " number of negative eigenvalues: " << iparm_[22];
-  } 
-  else 
-  {
-    LOG_TRACE(pardiso64Solver) << " Maximum number of iterations: " << dparm_[0];
-    LOG_TRACE(pardiso64Solver) << " Number of iterations after solve step: " << dparm_[34];
-    LOG_TRACE(pardiso64Solver) << " Relative Residual Reduction: " << dparm_[1];
-    LOG_TRACE(pardiso64Solver) << " Relative residual after Krylov-Subspace convergence: " << dparm_[33];
-  }
+  LOG_TRACE(pardiso64Solver) << " number of iterative refinement steps: " << iparm_[6];
+  LOG_TRACE(pardiso64Solver) << " number of perturbed pivots: " << iparm_[13];
+  LOG_TRACE(pardiso64Solver) << " number of positive eigenvalues: " << iparm_[21];
+  LOG_TRACE(pardiso64Solver) << " number of negative eigenvalues: " << iparm_[22];
+
   LOG_TRACE(pardiso64Solver) << " -------------------------------------------------------"
       << "-----------------------";
 
