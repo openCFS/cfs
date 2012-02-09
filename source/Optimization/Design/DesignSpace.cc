@@ -620,6 +620,9 @@ int DesignSpace::FindDesign(DesignElement::Type dt, bool throw_exception)
   if(dt == DesignElement::TENSOR_TRACE && HasErsatzMaterialTensor()) // this is not a real type of design, but volume constraint can operate on it, if optimization returns a complete tensor
     return 0;
 
+  if(dt == DesignElement::ALL_DESIGNS)
+    return 0;
+
   // search where in data we are
   int base = -1;
   for(unsigned int i = 0; i < design.GetSize(); i++)
@@ -945,7 +948,7 @@ void DesignSpace::WriteSparseGradientToExtern(StdVector<double>& out, DesignElem
 
   // only one region with one design
   // had to weaken this condition for DESIGN_TRACKING in debug mode
-  assert((regions.GetSize() == 1 && regions[0].GetSize() == 1) || (g->GetType() != Function::DESIGN_TRACKING)); 
+  assert((regions.GetSize() == 1 && regions[0].GetSize() == 1) || (g->GetType() != Function::DESIGN_TRACKING));
   assert(g != NULL); // only constraints can have sparse Jacobians 
 
   const double scaling = use_scaling ? regions[0][0].scale_design : 1.0;
@@ -1016,8 +1019,8 @@ void DesignSpace::WriteDenseGradientToExtern(StdVector<double>& out, DesignEleme
 
 void DesignSpace::Reset(DesignElement::ValueSpecifier vs, DesignElement::Type design)
 {
-  unsigned int start = design == DesignElement::DEFAULT || DesignElement::TENSOR_TRACE ? 0 : FindDesign(design) * elements;
-  unsigned int end   = design == DesignElement::DEFAULT || DesignElement::TENSOR_TRACE ? data.GetSize() : start + elements;
+  unsigned int start = design == DesignElement::DEFAULT || DesignElement::TENSOR_TRACE || DesignElement::ALL_DESIGNS ? 0 : FindDesign(design) * elements;
+  unsigned int end   = design == DesignElement::DEFAULT || DesignElement::TENSOR_TRACE || DesignElement::ALL_DESIGNS ? data.GetSize() : start + elements;
 
   LOG_DBG3(designSpace) << "Reset: vs=" << DesignElement::valueSpecifier.ToString(vs) << " design="
                         << DesignElement::type.ToString(design) << " from " << start << " to " << end;

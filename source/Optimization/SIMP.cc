@@ -292,6 +292,7 @@ double SIMP::CalcFunction(Excitation& excite, Function* f, bool derivative)
   Application app = ToApp(pde);
 
   // this implements only the gradients of some functions
+
   //TODO Jannis Greifenstein: other way than explicit check?
   if(!derivative || maxwellHomogenization_)
     return ErsatzMaterial::CalcFunction(excite, f, derivative);

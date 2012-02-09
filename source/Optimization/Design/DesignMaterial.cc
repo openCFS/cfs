@@ -123,6 +123,10 @@ void DesignMaterial::SetParameter(const DesignElement::Type p, const double valu
   params_[p] = value;
 }
 
+double DesignMaterial::GetParameter(const DesignElement::Type p){
+  return params_[p];
+}
+
 void DesignMaterial::GetIsoMaterialTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction){
   double E = params_[DesignElement::EMODUL];
   double nu = params_[DesignElement::POISSON];

@@ -162,7 +162,7 @@ namespace CoupledField
      virtual bool CompareDesign(const double* space_in);
            
      /** gives the initial guess (for the design space) 
-      * @param space_out to this array of GetDesignSpaceSize() the initial guess is wrtitten to.
+      * @param space_out to this array of GetDesignSpaceSize() the initial guess is written to.
       * @param scaling false to return the unscaled design variables (for logging), 
       * true to return the variables as scaled for the optimizer 
       * @return the internal design_id as calculated by ReadDesignFromExtern()

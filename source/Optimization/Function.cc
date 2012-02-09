@@ -392,6 +392,7 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
     case BUMP:
     case DESIGN_TRACKING:
     case PROJECTION:
+    case SUM_MODULI:
       assert(excite_index < 0);
       excite_ = me->excitations.GetSize() - 1; // once only at the last excitation
       break;
@@ -592,6 +593,7 @@ bool Function::ForSensitivityFiltering() const
   case BUMP:
   case DESIGN_TRACKING:
   case PROJECTION:
+  case SUM_MODULI:
     return false;
 
   case ISOTROPY:
@@ -626,8 +628,10 @@ void Function::SetElements(DesignSpace* space, RegionIdType region)
   int nd = 1;
   if(design == DesignElement::TENSOR_TRACE || design == DesignElement::DEFAULT) {
     nd = space->design.GetSize();
+    if(design == DesignElement::ALL_DESIGNS)
+      nd++;
   }
-  elements.Reserve(region == ALL_REGIONS ? space->data.GetSize() : nd * grid->GetNumElems(region));
+  elements.Reserve(nd * (region == ALL_REGIONS ? space->GetNumberOfElements() : grid->GetNumElems(region)));
 
   if(region == ALL_REGIONS || space->Contains(region))
   {
@@ -637,6 +641,14 @@ void Function::SetElements(DesignSpace* space, RegionIdType region)
       if((design == DesignElement::DEFAULT || design == DesignElement::TENSOR_TRACE || design == de->GetType())
           && (region == ALL_REGIONS || de->elem->regionId == region))
         elements.Push_back(de);
+    }
+    if(design == DesignElement::ALL_DESIGNS)
+    {
+      for(unsigned int i = 0; i < space->GetNumberOfElements(); i++)
+          {
+            DesignElement* de = &(space->data[i]);
+            elements.Push_back(de);
+          }
     }
   }
   else
@@ -654,7 +666,7 @@ void Function::SetElements(DesignSpace* space, RegionIdType region)
     space->RegisterPseudoDesignRegion(region, design, &elements);
   }
 
-  assert(elements.GetSize() == elements.Capacity());
+//  assert(elements.GetSize() == elements.Capacity());
 }
 
 
@@ -674,6 +686,7 @@ void Function::PostProc(DesignSpace* space, DesignStructure* structure, ErsatzMa
   case BUMP:
   case STRESS:
   case STRESS_DENSITY:
+  case SUM_MODULI:
     // assert(space->IsRegular()); // VicinityElements work only on a regular grid
     // the design elements require the vicinity element to be set which holds the direct
     // neighbors. Is save to call several times
@@ -832,6 +845,12 @@ Function::Local::Local(Function* func, DesignSpace* space)
     locality_ = ELEMENT;
     break;
 
+  case SUM_MODULI:
+    if(locality_ != MULT_DESIGNS_ELEMENT && locality_ != DEFAULT)
+      throw Exception("Invalid locality '" + locality.ToString(locality_) + "' within '" + fname + "'");
+    locality_ = MULT_DESIGNS_ELEMENT;
+    break;
+
   case BUMP:
     if(locality_ != PREV_NEXT && locality_ != DEFAULT)
       throw Exception("Invalid locality '" + locality.ToString(locality_) + "' within '" + fname + "'");
@@ -862,8 +881,13 @@ Function::Local::Local(Function* func, DesignSpace* space)
     SetupSingularElementMap();
     break;
 
+  case MULT_DESIGNS_ELEMENT:
+    SetupMultDesignsElementMap();
+    break;
+
   default:
     SetupVirtualElementMap(phase_);
+    break;
   }
 
   if(virtual_elem_map.GetSize() == 0) throw Exception("mesh too small for locality of function '" + fname + "'");
@@ -1148,6 +1172,26 @@ void Function::Local::SetupSingularElementMap()
 }
 
 
+void Function::Local::SetupMultDesignsElementMap()
+{
+  // only this element!
+  element_dimension_ = 1; // two boundary "stones" per dimension
+  UInt numFElements = space->GetNumberOfElements();
+  virtual_elem_map.Reserve(element_dimension_ * numFElements);
+
+  for(int e = 0, en = numFElements; e < en; e++)
+  {
+    DesignElement* de = func_->elements[e];
+    int base = space->Find(de->elem, true);
+    StdVector<DesignElement*> neighbours;
+    for(unsigned int index = base + numFElements; index < space->data.GetSize(); index += numFElements){
+      neighbours.Push_back(&(space->data[index]));
+    }
+    virtual_elem_map.Push_back(Identifier(de, neighbours));
+  }
+}
+
+
 void Function::Local::ToInfo(PtrParamNode in)
 {
   Function::Type ft = func_->type_;
@@ -1304,6 +1348,11 @@ double Function::Local::Identifier::EvalFunction(const Local* local, bool grad_g
 
   case BUMP:
     fv = CalcBump();
+    break;
+
+  case SUM_MODULI:
+    fv = CalcSumModuli(local);
+    break;
 
   default:
     assert(false);
@@ -1404,6 +1453,10 @@ void Function::Local::Identifier::EvalGradient(const Local* local)
     case STRESS_DENSITY:
       assert(false); // in SIMP::CalcVonMisesStressGradient() only!
       break;
+
+    case SUM_MODULI:
+      CalcSumModuliGradient(f, g, local);
+      return;
 
     default:
       assert(false);
@@ -1740,6 +1793,67 @@ double Function::Local::Identifier::CalcBumpGradient(int neigh_idx) const
   }
 
   return res;
+}
+
+
+double Function::Local::Identifier::CalcSumModuli(const Local* local) const
+{
+  double E(0.0), E3(0.0), G(0.0);
+  StdVector<DesignElement*> designs = neighbor;
+  designs.Push_back(element);
+  for(UInt i=0; i<designs.GetSize(); ++i)
+  {
+    switch(designs[i]->GetType())
+    {
+    case DesignElement::EMODULISO:
+      E = designs[i]->GetDesign(DesignElement::PLAIN);
+      break;
+    case DesignElement::EMODUL:
+      E3 = designs[i]->GetDesign(DesignElement::PLAIN);
+      break;
+    case DesignElement::GMODUL:
+      G = designs[i]->GetDesign(DesignElement::PLAIN);
+      break;
+    default:
+      break;
+    }
+  }
+//  UInt elemNum = element->elem->elemNum;
+////  double E = local->space->designMaterial->params_[DesignElement::EMODULISO];
+////  double E3 = local->space->designMaterial->params_[DesignElement::EMODUL];
+////  double G = local->space->designMaterial->params_[DesignElement::GMODUL];
+//  double E = local->space->Find(elemNum, DesignElement::EMODULISO)->GetDesign(DesignElement::PLAIN);
+//  double E3 = local->space->Find(elemNum, DesignElement::EMODUL)->GetDesign(DesignElement::PLAIN);
+//  double G = local->space->Find(elemNum, DesignElement::GMODUL)->GetDesign(DesignElement::PLAIN);
+//  local->space->CollectMaterialParametersForElement(element->elem);
+//  double E = local->space->designMaterial->GetParameter(DesignElement::EMODULISO);
+//  double E3 = local->space->designMaterial->GetParameter(DesignElement::EMODUL);
+//  double G = local->space->designMaterial->GetParameter(DesignElement::GMODUL);
+  return E+E3+G;
+}
+
+void Function::Local::Identifier::CalcSumModuliGradient(Objective* f, Condition* g, const Local* local) const
+{
+  StdVector<DesignElement*> designs = neighbor;
+  designs.Push_back(element);
+  for(UInt i=0; i<designs.GetSize(); ++i)
+  {
+    if(!local->IsGlobalized())
+      designs[i]->Reset(DesignElement::CONSTRAINT_GRADIENT, g);
+    if(designs[i]->GetType() == DesignElement::EMODULISO || designs[i]->GetType() == DesignElement::EMODUL || designs[i]->GetType() == DesignElement::GMODUL)
+      designs[i]->AddGradient(f, g, 1.0);
+  }
+//  UInt elemNum = element->elem->elemNum;
+//  if(!local->IsGlobalized())
+//  {
+//    // reset the constraint data. Note, as we are local, there are no side effects by elements
+//    local->space->Find(elemNum, DesignElement::EMODULISO)->Reset(DesignElement::CONSTRAINT_GRADIENT, g);
+//    local->space->Find(elemNum, DesignElement::EMODUL)->Reset(DesignElement::CONSTRAINT_GRADIENT, g);
+//    local->space->Find(elemNum, DesignElement::GMODUL)->Reset(DesignElement::CONSTRAINT_GRADIENT, g);
+//  }
+//  local->space->Find(elemNum, DesignElement::EMODULISO)->AddGradient(f, g, 1.0);
+//  local->space->Find(elemNum, DesignElement::EMODUL)->AddGradient(f, g, 1.0);
+//  local->space->Find(elemNum, DesignElement::GMODUL)->AddGradient(f, g, 1.0);
 }
 
 

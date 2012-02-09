@@ -310,6 +310,8 @@
                 <xsd:enumeration value="designTracking"/>
                 <!-- requires the sub-element filter -->
                 <xsd:enumeration value="projection"/>
+                <!--  requires parametrized material tensor (for now only PLANE_STRESS implemented) -->
+                <xsd:enumeration value="sumModuli"/>
               </xsd:restriction>
             </xsd:simpleType>
           </xsd:attribute>
@@ -1156,6 +1158,8 @@
       <xsd:enumeration value="acouDensity"/>
       <xsd:enumeration value="polarization"/>
       <xsd:enumeration value="tensor_trace"/>
+      <!-- Constraint is defined per element and uses all designs on that element -->
+      <xsd:enumeration value="allDesigns"/> 
       <xsd:enumeration value="emodul"/>
       <xsd:enumeration value="poisson"/>
       <xsd:enumeration value="lamelambda"/>

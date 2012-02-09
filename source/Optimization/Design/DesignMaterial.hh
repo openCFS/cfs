@@ -29,6 +29,9 @@ namespace CoupledField {
     
     /** Set a parameter for the parametric material optimization */
     void SetParameter(const DesignElement::Type p, const double value);
+
+    /** Get a parameter of the parametric material optimization */
+    double GetParameter(const DesignElement::Type p);
     
     /** Calculate the derivative tensor from the given material parameters */
     void GetMaterialTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction = DesignElement::NO_DERIVATIVE);

@@ -89,7 +89,7 @@ class Function
       // This is constraint only!
       GREYNESS,                  /*!< inaccurate - best for observation only */
       REALVOLUME,
-      ISOTROPY,                  /*!< blow up to several HOMOGENITATION_TENSOR constraints with different coords */
+      ISOTROPY,                  /*!< blow up to several HOM_TENSOR constraints with different coords */
       ISO_ORTHOTROPY,            /*!< relaxed form of isotropy without fixing shear moduli */
       ORTHOTROPY,                /*!< just some 0 constraints */
       SLOPE,                     /*!< Implementation of a grad rho constraint */
@@ -99,7 +99,8 @@ class Function
       BIISOTROPY,                 /*!< blow up to several MAXWELL_HOM_TENSOR constraints with different coords for both permeability and permittivity */
       JUMP,                      /*!< Weak greyness control by Fabian W. :) */
       BUMP,                      /*!< Prevent intermediate change of slope ('hobbala') by Fabian W. */
-      DESIGN_TRACKING            /*!< Tracking against physical densities in designTarget. Either for region or periodic (constraint nodes) elements */
+      DESIGN_TRACKING,            /*!< Tracking against physical densities in designTarget. Either for region or periodic (constraint nodes) elements */
+      SUM_MODULI                  /*!< the sum of the elasticity and shear moduli in parametrized elasticity tensor formulations */
     } Type;
 
     /** to convert string/enum for this type */
@@ -242,7 +243,8 @@ class Function
         DEG_45_STAR,             /*!< Different notation. prev_next but also diagonals */
         DEG_45_STAR_AND_REVERSE, /*!< The doubled variant of DEG_45_STAR for oscillation */
         BOUNDARY,                /*!< For a neighbor definition the first and last element (JUMP) */
-        ELEMENT                  /*!< For stress there is no neighborhood, only the element itself */
+        ELEMENT,                  /*!< For stress there is no neighborhood, only the element itself */
+        MULT_DESIGNS_ELEMENT     /*!< ELEMENT for multiple different designs - only parametrized PLANE_STRESS for now */
       } Locality;
 
       static Enum<Locality> locality;
@@ -350,6 +352,10 @@ class Function
         double CalcBump() const;
         double CalcBumpGradient(int neigh_idx) const;
 
+        /** sum of elasticity and shear moduli in parametrized elasticity tensor formulations */
+        double CalcSumModuli(const Local* local) const;
+        void CalcSumModuliGradient(Objective* f, Condition* g, const Local* local) const; // 1 = EMODULISO, 2 = EMODUL, 3 = GMODUL
+
         /** CalcStress() and the gradient are actually done in EM/SIMP */
 
         DesignElement* element; // this represents DesignSpace::data[element_idx]
@@ -396,6 +402,9 @@ class Function
 
       /** trival case form ELEMENT (stress) -> on the element itself */
       void SetupSingularElementMap();
+
+      /** multiple designs on one element (parametrized PLANE_STRESS) */
+      void SetupMultDesignsElementMap();
 
       /** small helper to determine the number of neighbors in each (diagonal)
        * direction if we use a neighborhood. Parses the whole stuff */

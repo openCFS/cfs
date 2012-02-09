@@ -474,6 +474,7 @@ void DesignElement::SetEnums()
   type.SetName("DesignElement::Type");
   type.Add(TENSOR_TRACE, "tensor_trace");
   type.Add(DEFAULT, "default");
+  type.Add(ALL_DESIGNS, "allDesigns");
   type.Add(DENSITY, "density");
   type.Add(ACOU_DENSITY, "acouDensity");
   type.Add(POLARIZATION, "polarization");

@@ -287,6 +287,7 @@ void Optimization::SetEnums()
   Function::type.Add(Function::GLOBAL_JUMP, "globalJump");
   Function::type.Add(Function::BUMP, "bump");
   Function::type.Add(Function::DESIGN_TRACKING, "designTracking");
+  Function::type.Add(Function::SUM_MODULI, "sumModuli");
 
   Function::Local::locality.SetName("Function::Local::Locality");
   Function::Local::locality.Add(Function::Local::DEFAULT, "default");
@@ -298,6 +299,7 @@ void Optimization::SetEnums()
   Function::Local::locality.Add(Function::Local::DEG_45_STAR_AND_REVERSE, "45_deg_star_and_reverse");
   Function::Local::locality.Add(Function::Local::BOUNDARY, "boundary");
   Function::Local::locality.Add(Function::Local::ELEMENT, "element");
+  Function::Local::locality.Add(Function::Local::MULT_DESIGNS_ELEMENT, "multiple_designs_element");
 
   Function::Local::phase.SetName("Function::Local::Phase");
   Function::Local::phase.Add(Function::Local::BOTH, "both");
