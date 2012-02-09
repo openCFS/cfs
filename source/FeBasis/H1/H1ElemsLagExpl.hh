@@ -704,6 +704,32 @@ protected:
                           UInt comp = 1 );
 };
 
+//! Lagrangian hexahedral element of 2nd order (ET_HEX27)
+class FeH1LagrangeHex27 : public FeH1LagrangeHex {
+
+public:
+
+  //! Constructor
+  FeH1LagrangeHex27();
+
+  //! Destructor
+  virtual  ~FeH1LagrangeHex27();
+
+protected:
+
+  //! @copydoc FeH1::CalcShFnc
+  void CalcShFnc( Vector<Double>& shape,
+                  const Vector<Double>& point,
+                  const Elem* ptElem,
+                  UInt comp = 1 );
+
+  //! @copydoc FeH1::CalcLocDerivShFnc
+  void CalcLocDerivShFnc( Matrix<Double> & deriv,
+                          const Vector<Double>& point,
+                          const Elem* ptElem,
+                          UInt comp = 1 );
+};
+
 //! Lagrangian wedge element of 2nd order (ET_WEDGE15)
 class FeH1LagrangeWedge2 : public FeH1LagrangeWedge {
 
@@ -730,6 +756,31 @@ protected:
                           UInt comp = 1 );
 };
 
+//! Lagrangian wedge element of 2nd order (ET_WEDGE18)
+class FeH1LagrangeWedge18 : public FeH1LagrangeWedge {
+
+public:
+
+  //! Constructor
+  FeH1LagrangeWedge18();
+
+  //! Destructor
+  virtual  ~FeH1LagrangeWedge18();
+
+protected:
+
+  //! @copydoc FeH1::CalcShFnc
+  void CalcShFnc( Vector<Double>& shape,
+                  const Vector<Double>& point,
+                  const Elem* ptElem,
+                  UInt comp = 1 );
+
+  //! @copydoc FeH1::CalcLocDerivShFnc
+  void CalcLocDerivShFnc( Matrix<Double> & deriv,
+                          const Vector<Double>& point,
+                          const Elem* ptElem,
+                          UInt comp = 1 );
+};
 //! Lagrangian tetrahedron element of 2nd order (ET_TET10)
 class FeH1LagrangeTet2 : public FeH1LagrangeTet {
 
@@ -782,6 +833,31 @@ protected:
                           UInt comp = 1 );
 };
 
+//! Lagrangian pyramid element of 2nd order (ET_PYRA14)
+class FeH1LagrangePyra14 : public FeH1LagrangePyra {
+
+public:
+
+  //! Constructor
+  FeH1LagrangePyra14();
+
+  //! Destructor
+  virtual  ~FeH1LagrangePyra14();
+
+protected:
+
+  //! @copydoc FeH1::CalcShFnc
+  void CalcShFnc( Vector<Double>& shape,
+                  const Vector<Double>& point,
+                  const Elem* ptElem,
+                  UInt comp = 1 );
+
+  //! @copydoc FeH1::CalcLocDerivShFnc
+  void CalcLocDerivShFnc( Matrix<Double> & deriv,
+                          const Vector<Double>& point,
+                          const Elem* ptElem,
+                          UInt comp = 1 );
+};
 
 } // namespace CoupledField
 

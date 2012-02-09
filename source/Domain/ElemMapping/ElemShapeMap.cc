@@ -131,11 +131,13 @@ LagrangeElemShapeMap::LagrangeElemShapeMap( Grid* ptGrid  )
   feMap_[Elem::ET_TET10] = new FeH1LagrangeTet2();
   feMap_[Elem::ET_HEXA8] = new FeH1LagrangeHex1();
   feMap_[Elem::ET_HEXA20] = new FeH1LagrangeHex2();
-  //  feMap_[ET_HEXA27] = new FeH1LagrangeLine1();
+  feMap_[Elem::ET_HEXA27] = new FeH1LagrangeHex27();
   feMap_[Elem::ET_WEDGE6] = new FeH1LagrangeWedge1();
   feMap_[Elem::ET_WEDGE15] = new FeH1LagrangeWedge2();
+  feMap_[Elem::ET_WEDGE18] = new FeH1LagrangeWedge18();
   feMap_[Elem::ET_PYRA5] = new FeH1LagrangePyra1();
   feMap_[Elem::ET_PYRA13] = new FeH1LagrangePyra2();
+  feMap_[Elem::ET_PYRA14] = new FeH1LagrangePyra14();
 }
 
 LagrangeElemShapeMap::~LagrangeElemShapeMap() {

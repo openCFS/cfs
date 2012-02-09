@@ -1166,6 +1166,229 @@ namespace CoupledField {
     }
   }
 
+  // --- Hex 2nd order ---
+  FeH1LagrangeHex27::FeH1LagrangeHex27() {
+    feType_ = Elem::ET_HEXA27;
+    shape_ = Elem::shapes[feType_];
+    actNumFncs_ = 27;
+    order_ = 2;
+  }
+
+  FeH1LagrangeHex27::~FeH1LagrangeHex27() {
+  }
+
+  void FeH1LagrangeHex27::CalcShFnc( Vector<Double>& shape,
+                                     const Vector<Double>& point,
+                                     const Elem* ptElem,
+                                     UInt comp ) {
+    static double shapeXi[3], shapeEta[3], shapeZeta[3];
+    shape.Resize(actNumFncs_);
+
+    shapeXi[0] = 0.5*point[0]*(point[0]-1);
+    shapeXi[2] = 1.0 - point[0]*point[0];
+    shapeXi[1] = 0.5*point[0]*(point[0]+1);
+
+    shapeEta[0] = 0.5*point[1]*(point[1]-1);
+    shapeEta[2] = 1.0 - point[1]*point[1];
+    shapeEta[1] = 0.5*point[1]*(point[1]+1);
+
+    shapeZeta[0] = 0.5*point[2]*(point[2]-1);
+    shapeZeta[2] = 1.0 - point[2]*point[2];
+    shapeZeta[1] = 0.5*point[2]*(point[2]+1);
+
+    // Corners
+    shape[0]= shapeXi[0]     * shapeEta[0]      * shapeZeta[0];
+    shape[1]= shapeXi[1]     * shapeEta[0]      * shapeZeta[0];
+    shape[2]= shapeXi[1]     * shapeEta[1]      * shapeZeta[0];
+    shape[3]= shapeXi[0]     * shapeEta[1]      * shapeZeta[0];
+
+    shape[4]= shapeXi[0]     * shapeEta[0]      * shapeZeta[1];
+    shape[5]= shapeXi[1]     * shapeEta[0]      * shapeZeta[1];
+    shape[6]= shapeXi[1]     * shapeEta[1]      * shapeZeta[1];
+    shape[7]= shapeXi[0]     * shapeEta[1]      * shapeZeta[1];
+
+    // Edges
+    shape[8]= shapeXi[2]     * shapeEta[0]      * shapeZeta[0];
+    shape[9]= shapeXi[1]     * shapeEta[2]      * shapeZeta[0];
+    shape[10]= shapeXi[2]     * shapeEta[1]      * shapeZeta[0];
+    shape[11]= shapeXi[0]     * shapeEta[2]      * shapeZeta[0];
+
+    shape[12]= shapeXi[2]     * shapeEta[0]      * shapeZeta[1];
+    shape[13]= shapeXi[1]     * shapeEta[2]      * shapeZeta[1];
+    shape[14]= shapeXi[2]     * shapeEta[1]      * shapeZeta[1];
+    shape[15]= shapeXi[0]     * shapeEta[2]      * shapeZeta[1];
+
+    shape[16]= shapeXi[0]     * shapeEta[0]      * shapeZeta[2];
+    shape[17]= shapeXi[1]     * shapeEta[0]      * shapeZeta[2];
+    shape[18]= shapeXi[1]     * shapeEta[1]      * shapeZeta[2];
+    shape[19]= shapeXi[0]     * shapeEta[1]      * shapeZeta[2];
+
+    // Faces
+    shape[20]= shapeXi[2]     * shapeEta[0]      * shapeZeta[2];
+    shape[21]= shapeXi[1]     * shapeEta[2]      * shapeZeta[2];
+    shape[22]= shapeXi[2]     * shapeEta[1]      * shapeZeta[2];
+    shape[23]= shapeXi[0]     * shapeEta[2]      * shapeZeta[2];
+
+    // Bottom
+    shape[24]= shapeXi[2]     * shapeEta[2]      * shapeZeta[0];
+
+    // Top
+    shape[25]= shapeXi[2]     * shapeEta[2]      * shapeZeta[1];
+
+    // Center
+    shape[26]= shapeXi[2]     * shapeEta[2]      * shapeZeta[2];
+  }
+
+  void FeH1LagrangeHex27::CalcLocDerivShFnc( Matrix<Double> & deriv,
+                                             const Vector<Double>& point,
+                                             const Elem* ptElem,
+                                             UInt comp ) {
+    static double shapeXi[3], shapeEta[3], shapeZeta[3];
+    static double shapeDerivXi[3], shapeDerivEta[3], shapeDerivZeta[3];
+    deriv.Resize(actNumFncs_,3);
+
+    shapeXi[0] = 0.5*point[0]*(point[0]-1);
+    shapeXi[2] = 1.0 - point[0]*point[0];
+    shapeXi[1] = 0.5*point[0]*(point[0]+1);
+
+    shapeEta[0] = 0.5*point[1]*(point[1]-1);
+    shapeEta[2] = 1.0 - point[1]*point[1];
+    shapeEta[1] = 0.5*point[1]*(point[1]+1);
+
+    shapeZeta[0] = 0.5*point[2]*(point[2]-1);
+    shapeZeta[2] = 1.0 - point[2]*point[2];
+    shapeZeta[1] = 0.5*point[2]*(point[2]+1);
+
+    shapeDerivXi[0] = 0.5*(2*point[0] - 1);
+    shapeDerivXi[2] = -2.0*point[0];
+    shapeDerivXi[1] = 0.5*(2*point[0] + 1);
+
+    shapeDerivEta[0] = 0.5*(2*point[1] - 1);
+    shapeDerivEta[2] = -2.0*point[1];
+    shapeDerivEta[1] = 0.5*(2*point[1] + 1);
+
+    shapeDerivZeta[0] = 0.5*(2*point[2] - 1);
+    shapeDerivZeta[2] = -2.0*point[2];
+    shapeDerivZeta[1] = 0.5*(2*point[2] + 1);
+
+    // Corners bottom
+    deriv[0][0]= shapeDerivXi[0]     * shapeEta[0]      * shapeZeta[0];
+    deriv[0][1]= shapeXi[0]     * shapeDerivEta[0]      * shapeZeta[0];
+    deriv[0][2]= shapeXi[0]     * shapeEta[0]      * shapeDerivZeta[0];
+
+    deriv[1][0]= shapeDerivXi[1]     * shapeEta[0]      * shapeZeta[0];
+    deriv[1][1]= shapeXi[1]     * shapeDerivEta[0]      * shapeZeta[0];
+    deriv[1][2]= shapeXi[1]     * shapeEta[0]      * shapeDerivZeta[0];
+
+    deriv[2][0]= shapeDerivXi[1]     * shapeEta[1]      * shapeZeta[0];
+    deriv[2][1]= shapeXi[1]     * shapeDerivEta[1]      * shapeZeta[0];
+    deriv[2][2]= shapeXi[1]     * shapeEta[1]      * shapeDerivZeta[0];
+
+    deriv[3][0]= shapeDerivXi[0]     * shapeEta[1]      * shapeZeta[0];
+    deriv[3][1]= shapeXi[0]     * shapeDerivEta[1]      * shapeZeta[0];
+    deriv[3][2]= shapeXi[0]     * shapeEta[1]      * shapeDerivZeta[0];
+
+    //Corners top
+    deriv[4][0]= shapeDerivXi[0]     * shapeEta[0]      * shapeZeta[1];
+    deriv[4][1]= shapeXi[0]     * shapeDerivEta[0]      * shapeZeta[1];
+    deriv[4][2]= shapeXi[0]     * shapeEta[0]      * shapeDerivZeta[1];
+
+    deriv[5][0]= shapeDerivXi[1]     * shapeEta[0]      * shapeZeta[1];
+    deriv[5][1]= shapeXi[1]     * shapeDerivEta[0]      * shapeZeta[1];
+    deriv[5][2]= shapeXi[1]     * shapeEta[0]      * shapeDerivZeta[1];
+
+    deriv[6][0]= shapeDerivXi[1]     * shapeEta[1]      * shapeZeta[1];
+    deriv[6][1]= shapeXi[1]     * shapeDerivEta[1]      * shapeZeta[1];
+    deriv[6][2]= shapeXi[1]     * shapeEta[1]      * shapeDerivZeta[1];
+
+    deriv[7][0]= shapeDerivXi[0]     * shapeEta[1]      * shapeZeta[1];
+    deriv[7][1]= shapeXi[0]     * shapeDerivEta[1]      * shapeZeta[1];
+    deriv[7][2]= shapeXi[0]     * shapeEta[1]      * shapeDerivZeta[1];
+
+    // Edges
+    deriv[8][0]= shapeDerivXi[2]     * shapeEta[0]      * shapeZeta[0];
+    deriv[8][1]= shapeXi[2]     * shapeDerivEta[0]      * shapeZeta[0];
+    deriv[8][2]= shapeXi[2]     * shapeEta[0]      * shapeDerivZeta[0];
+
+    deriv[9][0]= shapeDerivXi[1]     * shapeEta[2]      * shapeZeta[0];
+    deriv[9][1]= shapeXi[1]     * shapeDerivEta[2]      * shapeZeta[0];
+    deriv[9][2]= shapeXi[1]     * shapeEta[2]      * shapeDerivZeta[0];
+
+    deriv[10][0]= shapeDerivXi[2]     * shapeEta[1]      * shapeZeta[0];
+    deriv[10][1]= shapeXi[2]     * shapeDerivEta[1]      * shapeZeta[0];
+    deriv[10][2]= shapeXi[2]     * shapeEta[1]      * shapeDerivZeta[0];
+
+    deriv[11][0]= shapeDerivXi[0]     * shapeEta[2]      * shapeZeta[0];
+    deriv[11][1]= shapeXi[0]     * shapeDerivEta[2]      * shapeZeta[0];
+    deriv[11][2]= shapeXi[0]     * shapeEta[2]      * shapeDerivZeta[0];
+
+
+    deriv[12][0]= shapeDerivXi[2]     * shapeEta[0]      * shapeZeta[1];
+    deriv[12][1]= shapeXi[2]     * shapeDerivEta[0]      * shapeZeta[1];
+    deriv[12][2]= shapeXi[2]     * shapeEta[0]      * shapeDerivZeta[1];
+
+    deriv[13][0]= shapeDerivXi[1]     * shapeEta[2]      * shapeZeta[1];
+    deriv[13][1]= shapeXi[1]     * shapeDerivEta[2]      * shapeZeta[1];
+    deriv[13][2]= shapeXi[1]     * shapeEta[2]      * shapeDerivZeta[1];
+
+    deriv[14][0]= shapeDerivXi[2]     * shapeEta[1]      * shapeZeta[1];
+    deriv[14][1]= shapeXi[2]     * shapeDerivEta[1]      * shapeZeta[1];
+    deriv[14][2]= shapeXi[2]     * shapeEta[1]      * shapeDerivZeta[1];
+
+    deriv[15][0]= shapeDerivXi[0]     * shapeEta[2]      * shapeZeta[1];
+    deriv[15][1]= shapeXi[0]     * shapeDerivEta[2]      * shapeZeta[1];
+    deriv[15][2]= shapeXi[0]     * shapeEta[2]      * shapeDerivZeta[1];
+
+
+    deriv[16][0]= shapeDerivXi[0]     * shapeEta[0]      * shapeZeta[2];
+    deriv[16][1]= shapeXi[0]     * shapeDerivEta[0]      * shapeZeta[2];
+    deriv[16][2]= shapeXi[0]     * shapeEta[0]      * shapeDerivZeta[2];
+
+    deriv[17][0]= shapeDerivXi[1]     * shapeEta[0]      * shapeZeta[2];
+    deriv[17][1]= shapeXi[1]     * shapeDerivEta[0]      * shapeZeta[2];
+    deriv[17][2]= shapeXi[1]     * shapeEta[0]      * shapeDerivZeta[2];
+
+    deriv[18][0]= shapeDerivXi[1]     * shapeEta[1]      * shapeZeta[2];
+    deriv[18][1]= shapeXi[1]     * shapeDerivEta[1]      * shapeZeta[2];
+    deriv[18][2]= shapeXi[1]     * shapeEta[1]      * shapeDerivZeta[2];
+
+    deriv[19][0]= shapeDerivXi[0]     * shapeEta[1]      * shapeZeta[2];
+    deriv[19][1]= shapeXi[0]     * shapeDerivEta[1]      * shapeZeta[2];
+    deriv[19][2]= shapeXi[0]     * shapeEta[1]      * shapeDerivZeta[2];
+
+    // Faces
+    deriv[20][0]= shapeDerivXi[2]     * shapeEta[0]      * shapeZeta[2];
+    deriv[20][1]= shapeXi[2]     * shapeDerivEta[0]      * shapeZeta[2];
+    deriv[20][2]= shapeXi[2]     * shapeEta[0]      * shapeDerivZeta[2];
+
+    deriv[21][0]= shapeDerivXi[1]     * shapeEta[2]      * shapeZeta[2];
+    deriv[21][1]= shapeXi[1]     * shapeDerivEta[2]      * shapeZeta[2];
+    deriv[21][2]= shapeXi[1]     * shapeEta[2]      * shapeDerivZeta[2];
+
+    deriv[22][0]= shapeDerivXi[2]     * shapeEta[1]      * shapeZeta[2];
+    deriv[22][1]= shapeXi[2]     * shapeDerivEta[1]      * shapeZeta[2];
+    deriv[22][2]= shapeXi[2]     * shapeEta[1]      * shapeDerivZeta[2];
+
+    deriv[23][0]= shapeDerivXi[0]     * shapeEta[2]      * shapeZeta[2];
+    deriv[23][1]= shapeXi[0]     * shapeDerivEta[2]      * shapeZeta[2];
+    deriv[23][2]= shapeXi[0]     * shapeEta[2]      * shapeDerivZeta[2];
+
+    // Bottom
+    deriv[24][0]= shapeDerivXi[2]     * shapeEta[2]      * shapeZeta[0];
+    deriv[24][1]= shapeXi[2]     * shapeDerivEta[2]      * shapeZeta[0];
+    deriv[24][2]= shapeXi[2]     * shapeEta[2]      * shapeDerivZeta[0];
+
+    // Top
+    deriv[25][0]= shapeDerivXi[2]     * shapeEta[2]      * shapeZeta[1];
+    deriv[25][1]= shapeXi[2]     * shapeDerivEta[2]      * shapeZeta[1];
+    deriv[25][2]= shapeXi[2]     * shapeEta[2]      * shapeDerivZeta[1];
+
+    // Center
+    deriv[26][0]= shapeDerivXi[2]     * shapeEta[2]      * shapeZeta[2];
+    deriv[26][1]= shapeXi[2]     * shapeDerivEta[2]      * shapeZeta[2];
+    deriv[26][2]= shapeXi[2]     * shapeEta[2]      * shapeDerivZeta[2];
+  }
+
   // --- Wedge 2nd order ---
    FeH1LagrangeWedge2::FeH1LagrangeWedge2() {
      feType_ = Elem::ET_WEDGE15;
@@ -1278,6 +1501,139 @@ namespace CoupledField {
      deriv[14][2] = -2*point[2] * point[1];
 
    }
+
+   // --- Wedge 2nd order ---
+    FeH1LagrangeWedge18::FeH1LagrangeWedge18() {
+      feType_ = Elem::ET_WEDGE18;
+      shape_ = Elem::shapes[feType_];
+      actNumFncs_ = 18;
+      order_ = 2;
+    }
+
+    FeH1LagrangeWedge18::~FeH1LagrangeWedge18() {
+
+    }
+
+    void FeH1LagrangeWedge18::CalcShFnc( Vector<Double>& shape,
+                                         const Vector<Double>& point,
+                                         const Elem* ptElem,
+                                         UInt comp ) {
+      WARN("CalcShFnc for ET_WEDGE18 implemented but not tested!");
+      shape.Resize( actNumFncs_ );
+      Double x = point[0];
+      Double y = point[1];
+      Double z = point[2];
+
+      // corners
+      shape[0] =-0.25 * (x + y) * (x + y + 1) * z * (1 - z);
+      shape[1] =-0.25 *  x      * (x + 1)     * z * (1 - z);
+      shape[2] =-0.25 *      y  * (1 + y)     * z * (1 - z);
+      shape[3] = 0.25 * (x + y) * (x + y + 1) * z * (1 + z);
+      shape[4] = 0.25 *  x      * (x + 1)     * z * (1 + z);
+      shape[5] = 0.25 *      y  * (1 + y)     * z * (1 + z);
+
+      // midsides of quadratic triangles
+      shape[6] =  (x + 1)*(x + y) *  0.5 * z * (1 - z);
+      shape[7] = -(x + 1)*(y + 1) *  0.5 * z * (1 - z);
+      shape[8] =  (y + 1)*(x + y) *  0.5 * z * (1 - z);
+      shape[9] = -(x + 1)*(x + y) *  0.5 * z * (1 + z);
+      shape[10]=  (x + 1)*(y + 1) *  0.5 * z * (1 + z);
+      shape[11]= -(y + 1)*(x + y) *  0.5 * z * (1 + z);
+
+      // midsides of edges between the two triangles
+      shape[12] = 0.5 * (x + y) * (x + y + 1) * (1 + z)*(1 - z);
+      shape[13] = 0.5 *  x      * (x + 1)     * (1 + z)*(1 - z);
+      shape[14] = 0.5 *      y  * (1 + y)     * (1 + z)*(1 - z);
+
+      //Centerpoints of the biquadratic quads
+      shape[15] = -(x + 1)*(x + y) * (1 + z)*(1 - z);
+      shape[16] =  (x + 1)*(y + 1) * (1 + z)*(1 - z);
+      shape[17] = -(y + 1)*(x + y) * (1 + z)*(1 - z);
+    }
+
+    void FeH1LagrangeWedge18::CalcLocDerivShFnc( Matrix<Double> & deriv,
+                                                 const Vector<Double>& point,
+                                                 const Elem* ptElem,
+                                                 UInt comp ) {
+      WARN("CalcLocDerivShFnc for ET_WEDGE18 implemented but not tested!");
+      deriv.Resize(actNumFncs_,3);
+      deriv.Init();
+      Double x = point[0];
+      Double y = point[1];
+      Double z = point[2];
+
+      //Derivatives in x-direction
+      // corners
+      deriv[0][0] = -0.25 * (2 * x + 2 * y + 1) * z * (1 - z);
+      deriv[1][0] = -0.25 * (2 * x + 1)         * z * (1 - z);
+      deriv[2][0] =  0;
+      deriv[3][0] =  0.25 * (2 * x + 2 * y + 1) * z * (1 + z);
+      deriv[4][0] =  0.25 * (2 * x + 1)         * z * (1 + z);
+      deriv[5][0] =  0;
+      // midsides of quadratic triangles
+      deriv[6][0] =  (2 * x + y + 1) *  0.5 * z * (1 - z);
+      deriv[7][0] = -(y + 1)         *  0.5 * z * (1 - z);
+      deriv[8][0] =  (y + 1)         *  0.5 * z * (1 - z);
+      deriv[9][0] = -(2 * x + y + 1) *  0.5 * z * (1 + z);
+      deriv[10][0] = (y + 1)         *  0.5 * z * (1 + z) ;
+      deriv[11][0] =-(y + 1)         *  0.5 * z * (1 + z) ;
+      // midsides of edges between the two triangles
+      deriv[12][0] = 0.5 * (2 * x + 2 * y + 1) * (1 + z)*(1 - z);
+      deriv[13][0] = 0.5 * (2 * x + 1)         * (1 + z)*(1 - z);
+      deriv[14][0] = 0;
+      //Centerpoints of the biquadratic quads
+      deriv[15][0] = -(2 * x + y + 1) * (1 + z)*(1 - z);
+      deriv[16][0] =  (y + 1)         * (1 + z)*(1 - z);
+      deriv[17][0] = -(y + 1)         * (1 + z)*(1 - z);
+
+      //Derivatives in y-direction
+      // corners
+      deriv[0][1] = -0.25 * (2 * y + 2 * x + 1)   * z * (1 - z);
+      deriv[1][1] =  0;
+      deriv[2][1] = -0.25 * (2 * y + 1)           * z * (1 - z);
+      deriv[3][1] =  0.25 * (2 * y + 2 * x + 1)   * z * (1 + z);
+      deriv[4][1] =  0;
+      deriv[5][1] =  0.25 * (2 * y + 1)           * z * (1 + z);
+      // midsides of quadratic triangles
+      deriv[6][1] =  (x + 1)         *  0.5 * z * (1 - z);
+      deriv[7][1] = -(x + 1)         *  0.5 * z * (1 - z);
+      deriv[8][1] =  (2 * y + x + 1) *  0.5 * z * (1 - z);
+      deriv[9][1] = -(x + 1)         *  0.5 * z * (1 + z);
+      deriv[10][1] =  (x + 1)         *  0.5 * z * (1 + z);
+      deriv[11][1] = -(2 * y + x + 1) *  0.5 * z * (1 + z);
+      // midsides of edges between the two triangles
+      deriv[12][1] = 0.5 * (2 * y + 2 * x + 1) * (1 + z)*(1 - z);
+      deriv[13][1] = 0;
+      deriv[14][1] = 0.5 * (2 * y + 1)         * (1 + z)*(1 - z);
+      //Centerpoints of the biquadratic quads
+      deriv[15][1] = -(x + 1)         * (1 + z)*(1 - z);
+      deriv[16][1] =  (x + 1)         * (1 + z)*(1 - z);
+      deriv[17][1] = -(2 * y + x + 1) * (1 + z)*(1 - z);
+
+      //Derivatives in z-direction
+      // corners
+      deriv[0][2] = -0.25 * (x + y) * (x + y + 1) * (1 - 2 * z);
+      deriv[1][2] = -0.25 *  x      * (x + 1)     * (1 - 2 * z);
+      deriv[2][2] = -0.25 *      y  * (1 + y)     * (1 - 2 * z);
+      deriv[3][2] =  0.25 * (x + y) * (x + y + 1) * (1 + 2 * z);
+      deriv[4][2] =  0.25 *  x      * (x + 1)     * (1 + 2 * z);
+      deriv[5][2] =  0.25 *      y  * (1 + y)     * (1 + 2 * z);
+      // midsides of quadratic triangles
+      deriv[6][2] =  (x + 1)*(x + y) *  0.5 * (1 - 2 * z);
+      deriv[7][2] = -(x + 1)*(y + 1) *  0.5 * (1 - 2 * z);
+      deriv[8][2] =  (y + 1)*(x + y) *  0.5 * (1 - 2 * z);
+      deriv[9][2] = -(x + 1)*(x + y) *  0.5 * (1 + 2 * z);
+      deriv[10][2] =  (x + 1)*(y + 1) *  0.5 * (1 + 2 * z);
+      deriv[11][2] = -(y + 1)*(x + y) *  0.5 * (1 + 2 * z);
+      // midsides of edges between the two triangles
+      deriv[12][2] = 0.5 * (x + y) * (x + y + 1) * (-2 * z);
+      deriv[13][2] = 0.5 *  x      * (x + 1)     * (-2 * z);
+      deriv[14][2] = 0.5 *      y  * (1 + y)     * (-2 * z);
+      //Centerpoints of the biquadratic quads
+      deriv[15][2] = -(x + 1)*(x + y) * (-2 * z);
+      deriv[16][2] =  (x + 1)*(y + 1) * (-2 * z);
+      deriv[17][2] = -(y + 1)*(x + y) * (-2 * z);
+    }
 
    // --- Tetra 1st order ---
     FeH1LagrangeTet1::FeH1LagrangeTet1() {
@@ -1875,6 +2231,416 @@ namespace CoupledField {
     				 (1-point[2])+point[2]*(1-point[0]-point[2])*
     				 (1+point[1]-point[2])/((1-point[2])*(1-point[2]));
     	 }
+     }
+
+     // --- Pyra 2nd order ---
+      FeH1LagrangePyra14::FeH1LagrangePyra14() {
+        feType_ = Elem::ET_PYRA14;
+        shape_ = Elem::shapes[feType_];
+        actNumFncs_ = 14;
+        order_ = 2;
+      }
+
+      FeH1LagrangePyra14::~FeH1LagrangePyra14() {
+      }
+
+      void FeH1LagrangePyra14::CalcShFnc( Vector<Double>& shape,
+                                          const Vector<Double>& point,
+                                          const Elem* ptElem,
+                                          UInt comp ) {
+        WARN("CalcShFnc for ET_PYRA14 implemented but not tested!");
+
+        // Shape functions for 14 node pyramid taken from
+        // http://www.colorado.edu/engineering/CAS/courses.d/AFEM.d/AFEM.Ch19.d/AFEM.Ch19.pdf
+        shape.Resize(actNumFncs_);
+
+        // Transform coordinates to unit cube [-1,-1]^3.
+        Double x = point[0] + (point[0] > 0.0 ? 1.0 : -1.0)*point[2];
+        Double y = point[1] + (point[1] > 0.0 ? 1.0 : -1.0)*point[2];
+        Double z = 2*point[2]-1;
+
+        Double t1 = 3*x;
+        Double t2 = 3*y;
+        Double t3 = 2*x*y;
+        Double t4 = 2*z;
+        Double t5 = x*z;
+        Double t6 = y*z;
+        Double t7 = 2*x*y*z;
+
+        shape[13] = 1/2.0 * (1 - x*x) * (1 - y*y) * (1 - z);
+
+        shape[1] = -1/16.0 * (1-x) * (1-y) * (1-z) *
+                  (4 + t1 + t2 + t3 + t4 + t5 + t6 + t7) + 1/4.0 * shape[13];
+        shape[0] = -1/16.0 * (1+x) * (1-y) * (1-z) *
+                  (4 - t1 + t2 - t3 + t4 - t5 + t6 - t7) + 1/4.0 * shape[13];
+        shape[3] = -1/16.0 * (1+x) * (1+y) * (1-z) *
+                  (4 - t1 - t2 + t3 + t4 - t5 - t6 + t7) + 1/4.0 * shape[13];
+        shape[2] = -1/16.0 * (1-x) * (1+y) * (1-z) *
+                  (4 + t1 - t2 - t3 + t4 + t5 - t6 - t7) + 1/4.0 * shape[13];
+
+        shape[4] =   1/2.0 * z * (1+z);
+
+        shape[5] =   1/8.0 * (1 - x*x) * (1 - y) * (1 - z) *
+                  (2 + y + y*z) - 1/2.0 * shape[13];
+        shape[8] =   1/8.0 * (1 + x ) * (1 - y*y) * (1 - z) *
+                  (2 - x - x * z) - 1/2.0 * shape[13];
+        shape[7] =   1/8.0 * (1 - x*x) * (1 + y) * (1 - z) *
+                  (2 - y - y*z) - 1/2.0 * shape[13];
+        shape[6] =   1/8.0 * (1 - x ) * (1 - y*y) * (1 - z) *
+                  (2 + x + x*z) - 1/2.0 * shape[13];
+
+        shape[10] =  1/4.0 * (1 - x ) * (1 - y) * (1 - z*z);
+        shape[9] =  1/4.0 * (1 + x ) * (1 - y) * (1 - z*z);
+        shape[12] =  1/4.0 * (1 + x ) * (1 + y) * (1 - z*z);
+        shape[11] =  1/4.0 * (1 - x ) * (1 + y) * (1 - z*z);
+
+#if 0
+        // An alternative approach is described in:
+        // On Higher Order Pyramidal Finite Elements
+        // Liping Liu, Kevin B. Davies, Michal Krizek and Li Guan
+        // DOI: 10.4208/aamm.09-m0989
+        // cf. http://www.dune-project.org/flyspray/index.php?getfile=369
+
+        Double x = 2*point[0] + point[2]-1.0;
+        Double y = 2*point[1] + point[2]-1.0;
+        Double z = zeta;
+
+        if (x > y)
+        {
+          // vertices
+          shape[0] = 0.25*(x + z)*(x + z - 1)*(y - z - 1)*(y - z);
+          shape[1] = -0.25*(x + z)*(y - z)*((x + z + 1)*(-y + z + 1) - 4*z) - z*(x - y);
+          shape[2] = 0.25*(x + z)*(y - z)*(y - z + 1)*(x + z - 1);
+          shape[3] = 0.25*(y - z)*(x + z)*(y - z + 1)*(x + z + 1);
+          shape[4] = z*(2*z - 1);
+
+          // lower edges
+          shape[5] = -0.5*(y - z + 1)*(x + z - 1)*((y - 1)*(x + 1) + z*(x - y + z + 1));
+          shape[6] = -0.5*(y - z + 1)*(((x + z + 1)*(y - 1)*x - z) + z*(2*y + 1));
+          shape[7] = -0.5*(x + z - 1)*(((y - z - 1)*(x + 1)*y - z) + z*(2*x + 1));
+          shape[8] = -0.5*(y - z + 1)*(x + z - 1)*(x + 1)*y;
+
+          // upper edges
+          shape[9] = z*(x + z - 1)*(y - z - 1);
+          shape[10] = -z*((x + z + 1)*(y - z - 1) + 4*z);
+          shape[11] = -z*(y - z + 1)*(x + z - 1);
+          shape[12] = z*(y - z + 1)*(x + z + 1);
+
+          // base face
+          shape[13] = (y - z + 1)*(x + z - 1)*((y - 1)*(x + 1) + z*(x - y + z + 1));
+        }
+        else
+        {
+          // vertices
+          shape[0] = 0.25*(y + z)*(y + z - 1)*(x - z - 1)*(x - z);
+          shape[1] = -0.25*(x - z)*(y + z)*(x - z + 1)*(-y - z + 1);
+          shape[2] = 0.25*(x - z)*(y + z)*((x - z - 1)*(y + z + 1) + 4*z) + z*(x - y);
+          shape[3] = 0.25*(y + z)*(x - z)*(x - z + 1)*(y + z + 1);
+          shape[4] = z*(2*z - 1);
+
+          // lower edges
+          shape[5] = -0.5*(y + z - 1)*(((x - z - 1)*(y + 1)*x - z) + z*(2*y + 1));
+          shape[6] = -0.5*(x - z + 1)*(y + z - 1)*(y + 1)*x;
+          shape[7] = -0.5*(x - z + 1)*(y + z - 1)*(x - 1)*y;
+          shape[8] = -0.5*(x - z + 1)*(((y + z + 1)*(x - 1)*y - z) + z*(2*x + 1));
+
+          // upper edges
+          shape[9] = z*(y + z - 1)*(x - z - 1);
+          shape[10] = -z*(x - z + 1)*(y + z - 1);
+          shape[11] = -z*((y + z + 1)*(x - z - 1) + 4*z);
+          shape[12] = z*(x - z + 1)*(y + z + 1);
+
+          // base face
+          shape[13] = (x - z + 1)*(y + z - 1)*((y + 1)*(x - 1) - z*(x - y - z - 1));
+        }
+#endif
+      }
+
+      void FeH1LagrangePyra14::CalcLocDerivShFnc( Matrix<Double> & deriv,
+                                                  const Vector<Double>& point,
+                                                  const Elem* ptElem,
+                                                  UInt comp ) {
+        WARN("CalcLocDerivShFnc for ET_PYRA14 implemented but not tested!");
+        deriv.Resize(actNumFncs_, 3);
+        Double x = point[0] + (point[0] > 0.0 ? 1.0 : -1.0)*point[2];
+        Double y = point[1] + (point[1] > 0.0 ? 1.0 : -1.0)*point[2];
+        Double z = 2*point[2]-1;
+
+        deriv.Init();
+
+        // http://www.colorado.edu/engineering/CAS/courses.d/AFEM.d/AFEM.Ch19.d/AFEM.Ch19.pdf
+        // func 1
+        deriv[1][0] =         -0.25*x*(-y*y + 1)*(-z + 1) + (0.0625*x - 0.0625)*(-y + 1)*(-z + 1)*(2*y*z + 2*y + z + 3) + 0.0625*(-y + 1)*(-z + 1)*(2*x*y*z + 2*x*y + x*z + 3*x + y*z + 3*y + 2*z + 4);
+        deriv[1][1] =-0.5*y*(-0.5*x*x + 0.5)*(-z + 1) + (0.0625*x - 0.0625)*(-y + 1)*(-z + 1)*(2*x*z + 2*x + z + 3) - (0.0625*x - 0.0625)*(-z + 1)*(2*x*y*z + 2*x*y + x*z + 3*x + y*z + 3*y + 2*z + 4);
+        deriv[1][2] = (0.0625*x - 0.0625)*(-y + 1)*(-z + 1)*(2*x*y + x + y + 2) - (0.0625*x - 0.0625)*(-y + 1)*(2*x*y*z + 2*x*y + x*z + 3*x + y*z + 3*y + 2*z + 4) - 0.25*(-0.5*x*x + 0.5)*(-y*y + 1);
+
+        // func 2
+        deriv[0][0] =          -0.25*x*(-y*y + 1)*(-z + 1) + (-0.0625*x - 0.0625)*(-y + 1)*(-z + 1)*(-2*y*z - 2*y - z - 3) - 0.0625*(-y + 1)*(-z + 1)*(-2*x*y*z - 2*x*y - x*z - 3*x + y*z + 3*y + 2*z + 4);
+        deriv[0][1] =-0.5*y*(-0.5*x*x + 0.5)*(-z + 1) + (-0.0625*x - 0.0625)*(-y + 1)*(-z + 1)*(-2*x*z - 2*x + z + 3) - (-0.0625*x - 0.0625)*(-z + 1)*(-2*x*y*z - 2*x*y - x*z - 3*x + y*z + 3*y + 2*z + 4);
+        deriv[0][2] = (-0.0625*x - 0.0625)*(-y + 1)*(-z + 1)*(-2*x*y - x + y + 2) - (-0.0625*x - 0.0625)*(-y + 1)*(-2*x*y*z - 2*x*y - x*z - 3*x + y*z + 3*y + 2*z + 4) - 0.25*(-0.5*x*x + 0.5)*(-y*y + 1);
+
+        // func 3
+        deriv[3][0] =           -0.25*x*(-y*y + 1)*(-z + 1) + (-0.0625*x - 0.0625)*(y + 1)*(-z + 1)*(2*y*z + 2*y - z - 3) - 0.0625*(y + 1)*(-z + 1)*(2*x*y*z + 2*x*y - x*z - 3*x - y*z - 3*y + 2*z + 4);
+        deriv[3][1] =-0.5*y*(-0.5*x*x + 0.5)*(-z + 1) + (-0.0625*x - 0.0625)*(y + 1)*(-z + 1)*(2*x*z + 2*x - z - 3) + (-0.0625*x - 0.0625)*(-z + 1)*(2*x*y*z + 2*x*y - x*z - 3*x - y*z - 3*y + 2*z + 4);
+        deriv[3][2] =  (-0.0625*x - 0.0625)*(y + 1)*(-z + 1)*(2*x*y - x - y + 2) - (-0.0625*x - 0.0625)*(y + 1)*(2*x*y*z + 2*x*y - x*z - 3*x - y*z - 3*y + 2*z + 4) - 0.25*(-0.5*x*x + 0.5)*(-y*y + 1);
+
+        // func 4
+        deriv[2][0] =          -0.25*x*(-y*y + 1)*(-z + 1) + (0.0625*x - 0.0625)*(y + 1)*(-z + 1)*(-2*y*z - 2*y + z + 3) + 0.0625*(y + 1)*(-z + 1)*(-2*x*y*z - 2*x*y + x*z + 3*x - y*z - 3*y + 2*z + 4);
+        deriv[2][1] =-0.5*y*(-0.5*x*x + 0.5)*(-z + 1) + (0.0625*x - 0.0625)*(y + 1)*(-z + 1)*(-2*x*z - 2*x - z - 3) + (0.0625*x - 0.0625)*(-z + 1)*(-2*x*y*z - 2*x*y + x*z + 3*x - y*z - 3*y + 2*z + 4);
+        deriv[2][2] =  (0.0625*x - 0.0625)*(y + 1)*(-z + 1)*(-2*x*y + x - y + 2) - (0.0625*x - 0.0625)*(y + 1)*(-2*x*y*z - 2*x*y + x*z + 3*x - y*z - 3*y + 2*z + 4) - 0.25*(-0.5*x*x + 0.5)*(-y*y + 1);
+
+
+
+        // func 5
+        deriv[4][0] =          0;
+        deriv[4][1] =          0;
+        deriv[4][2] = 1.0*z + 0.5;
+
+
+
+        // func 6
+        deriv[5][0] =                                                             -0.25*x*(-y + 1)*(-z + 1)*(y*z + y + 2) + 0.5*x*(-y*y + 1)*(-z + 1);
+        deriv[5][1] =1.0*y*(-0.5*x*x + 0.5)*(-z + 1) + (-0.125*x*x + 0.125)*(-y + 1)*(-z + 1)*(z + 1) - (-0.125*x*x + 0.125)*(-z + 1)*(y*z + y + 2);
+        deriv[5][2] =     y*(-0.125*x*x + 0.125)*(-y + 1)*(-z + 1) + 0.5*(-0.5*x*x + 0.5)*(-y*y + 1) - (-0.125*x*x + 0.125)*(-y + 1)*(y*z + y + 2);
+
+        // func 7
+        deriv[8][0] =    0.5*x*(-y*y + 1)*(-z + 1) + (0.125*x + 0.125)*(-y*y + 1)*(-z - 1)*(-z + 1) + 0.125*(-y*y + 1)*(-z + 1)*(-x*z - x + 2);
+        deriv[8][1] =                                           -2*y*(0.125*x + 0.125)*(-z + 1)*(-x*z - x + 2) + 1.0*y*(-0.5*x*x + 0.5)*(-z + 1);
+        deriv[8][2] = -x*(0.125*x + 0.125)*(-y*y + 1)*(-z + 1) - (0.125*x + 0.125)*(-y*y + 1)*(-x*z - x + 2) + 0.5*(-0.5*x*x + 0.5)*(-y*y + 1);
+
+        // func 8
+        deriv[7][0] =                                                              -0.25*x*(y + 1)*(-z + 1)*(-y*z - y + 2) + 0.5*x*(-y*y + 1)*(-z + 1);
+        deriv[7][1] =1.0*y*(-0.5*x*x + 0.5)*(-z + 1) + (-0.125*x*x + 0.125)*(y + 1)*(-z - 1)*(-z + 1) + (-0.125*x*x + 0.125)*(-z + 1)*(-y*z - y + 2);
+        deriv[7][2] =      -y*(-0.125*x*x + 0.125)*(y + 1)*(-z + 1) + 0.5*(-0.5*x*x + 0.5)*(-y*y + 1) - (-0.125*x*x + 0.125)*(y + 1)*(-y*z - y + 2);
+
+        // func 9
+        deriv[6][0] =     0.5*x*(-y*y + 1)*(-z + 1) + (-0.125*x + 0.125)*(-y*y + 1)*(-z + 1)*(z + 1) - 0.125*(-y*y + 1)*(-z + 1)*(x*z + x + 2);
+        deriv[6][1] =                                           -2*y*(-0.125*x + 0.125)*(-z + 1)*(x*z + x + 2) + 1.0*y*(-0.5*x*x + 0.5)*(-z + 1);
+        deriv[6][2] =x*(-0.125*x + 0.125)*(-y*y + 1)*(-z + 1) - (-0.125*x + 0.125)*(-y*y + 1)*(x*z + x + 2) + 0.5*(-0.5*x*x + 0.5)*(-y*y + 1);
+
+
+
+        // func 10
+        deriv[10][0] =    -0.25*(-y + 1)*(-z*z + 1);
+        deriv[10][1] = -(-0.25*x + 0.25)*(-z*z + 1);
+        deriv[10][2] =-2*z*(-0.25*x + 0.25)*(-y + 1);
+
+        // func 11
+        deriv[9][0] =    0.25*(-y + 1)*(-z*z + 1);
+        deriv[9][1] = -(0.25*x + 0.25)*(-z*z + 1);
+        deriv[9][2] =-2*z*(0.25*x + 0.25)*(-y + 1);
+
+        // func 12
+        deriv[12][0] =    0.25*(y + 1)*(-z*z + 1);
+        deriv[12][1] = (0.25*x + 0.25)*(-z*z + 1);
+        deriv[12][2] =-2*z*(0.25*x + 0.25)*(y + 1);
+
+        // func 13
+        deriv[11][0] =    -0.25*(y + 1)*(-z*z + 1);
+        deriv[11][1] = (-0.25*x + 0.25)*(-z*z + 1);
+        deriv[11][2] =-2*z*(-0.25*x + 0.25)*(y + 1);
+
+
+
+        // func 14
+        deriv[13][0] =    -1.0*x*(-y*y + 1)*(-z + 1);
+        deriv[13][1] =-2*y*(-0.5*x*x + 0.5)*(-z + 1);
+        deriv[13][2] = -(-0.5*x*x + 0.5)*(-y*y + 1);
+
+#if 0
+        // An alternative approach is described in:
+        // On Higher Order Pyramidal Finite Elements
+        // Liping Liu, Kevin B. Davies, Michal Krizek and Li Guan
+        // DOI: 10.4208/aamm.09-m0989
+        // cf. http://www.dune-project.org/flyspray/index.php?getfile=369
+
+        Double x = 2*point[0] + point[2]-1.0;
+        Double y = 2*point[1] + point[2]-1.0;
+        Double z = zeta;
+
+            if (x > y)
+              {
+                // vertices
+                deriv[0][0] = 0.5*(y - z - 1)*(y - z)*(2*x + 2*z - 1);
+                deriv[0][1] = 0.5*(x + z)*(x + z - 1)*(2*y - 2*z - 1);
+                deriv[0][2] = 0.5*(deriv[0][0] + deriv[0][1])
+                  + 0.25*((2*x + 2*z - 1)*(y - z - 1)*(y - z)
+                          + (x + z)*(x + z - 1)*(-2*y + 2*z + 1));
+
+                deriv[1][0] = 2*(-0.25*((y - z)*((x + z + 1)*(-y + z + 1) - 4*z)
+                                      + (x + z)*(y - z)*(-y + z + 1)) - z);
+                deriv[1][1] = 2*(-0.25*((x + z)*((x + z + 1)*(-y + z + 1) - 4*z)
+                                      + (x + z)*(y - z)*(-(x + z + 1))) + z);
+                deriv[1][2] = 0.5*(deriv[1][0] + deriv[1][1])
+                  - 0.25*((y - z)*((x + z + 1)*(-y + z + 1) - 4*z)
+                          - (x + z)*((x + z + 1)*(-y + z + 1) - 4*z)
+                          + (x + z)*(y - z)*(x - y + 2*z - 2))
+                  - (x - y);
+
+                deriv[2][0] = 0.5*(y - z)*(y - z + 1)*(2*x + 2*z - 1);
+                deriv[2][1] = 0.5*(x + z)*(2*y - 2*z + 1)*(x + z - 1);
+                deriv[2][2] = 0.5*(deriv[2][0] + deriv[2][1])
+                  + 0.25*((y - x - 2*z)*(y - z + 1)*(x + z - 1)
+                          + (x + z)*(y - z)*(y - x - 2*z + 2));
+
+                deriv[3][0] = 0.5*(y - z)*(2*x + 2*z + 1)*(y - z + 1);
+                deriv[3][1] = 0.5*(2*y - 2*z + 1)*(x + z)*(x + z + 1);
+                deriv[3][2] = 0.5*(deriv[3][0] + deriv[3][1])
+                  + 0.25*((y - x - 2*z)*(y - z + 1)*(x + z + 1)
+                          + (y - z)*(x + z)*(y - x - 2*z));
+
+                deriv[4][0] = 0;
+                deriv[4][1] = 0;
+                deriv[4][2] = 4*z - 1;
+
+                // lower edges
+                deriv[5][0] = -((y - z + 1)*((y - 1)*(x + 1) + z*(x - y + z + 1))
+                              + (y - z + 1)*(x + z - 1)*((y - 1) + z));
+                deriv[5][1] = -((x + z - 1)*((y - 1)*(x + 1) + z*(x - y + z + 1))
+                              + (y - z + 1)*(x + z - 1)*((x + 1) - z));
+                deriv[5][2] = 0.5*(deriv[5][0] + deriv[5][1])
+                  - 0.5*((-x + y - 2*z + 2)*((y - 1)*(x + 1) + z*(x - y + z + 1))
+                         + (y - z + 1)*(x + z - 1)*(x - y + 2*z + 1));
+
+                deriv[6][0] = -(y - z + 1)*(2*x + z + 1)*(y - 1);
+                deriv[6][1] = -(((x + z + 1)*(y - 1)*x - z) + z*(2*y + 1)
+                              + (y - z + 1)*((x + z + 1)*x + 2*z));
+                deriv[6][2] = 0.5*(deriv[6][0] + deriv[6][1])
+                  - 0.5*(-(((x + z + 1)*(y - 1)*x - z) + z*(2*y + 1))
+                         + (y - z + 1)*(((y - 1)*x - 1) + 2*y + 1));
+
+                deriv[7][0] = -(((y - z - 1)*(x + 1)*y - z) + z*(2*x + 1)
+                              + (x + z - 1)*((y - z - 1)*y + 2*z));
+                deriv[7][1] = -(x + z - 1)*(2*y - z - 1)*(x + 1);
+                deriv[7][2] = 0.5*(deriv[7][0] + deriv[7][1])
+                  - 0.5*(((y - z - 1)*(x + 1)*y - z) + z*(2*x + 1)
+                         + (x + z - 1)*((-(x + 1)*y - 1) + 2*x + 1));
+
+                deriv[8][0] = -(y - z + 1)*(2*x + z)*y;
+                deriv[8][1] = -(2*y - z + 1)*(x + z - 1)*(x + 1);
+                deriv[8][2] = 0.5*(deriv[8][0] + deriv[8][1])
+                  - 0.5*(-x + y - 2*z + 2)*(x + 1)*y;
+
+                // upper edges
+                deriv[9][0] = 2*z*(y - z - 1);
+                deriv[9][1] = 2*z*(x + z - 1);
+                deriv[9][2] = 0.5*(deriv[9][0] + deriv[9][1])
+                  + (x + z - 1)*(y - z - 1) + z*(-x + y - 2*z);
+
+                deriv[10][0] = -2*z*(y - z - 1);
+                deriv[10][1] = -2*z*(x + z + 1);
+                deriv[10][2] = 0.5*(deriv[10][0] + deriv[10][1])
+                  - ((x + z + 1)*(y - z - 1) + 4*z)
+                  - z*(-x + y - 2*z + 2);
+
+                deriv[11][0] = -2*z*(y - z + 1);
+                deriv[11][1] = -2*z*(x + z - 1);
+                deriv[11][2] = 0.5*(deriv[11][0] + deriv[11][1])
+                  - (y - z + 1)*(x + z - 1) - z*(-x + y - 2*z + 2);
+
+                deriv[12][0] = 2*z*(y - z + 1);
+                deriv[12][1] = 2*z*(x + z + 1);
+                deriv[12][2] = 0.5*(deriv[12][0] + deriv[12][1])
+                  + (y - z + 1)*(x + z + 1) + z*(-x + y - 2*z);
+
+                // base face
+                deriv[13][0] = 2*((y - z + 1)*((y - 1)*(x + 1) + z*(x - y + z + 1))
+                                + (y - z + 1)*(x + z - 1)*(y - 1 + z));
+                deriv[13][1] = 2*((x + z - 1)*((y - 1)*(x + 1) + z*(x - y + z + 1))
+                                + (y - z + 1)*(x + z - 1)*(x + 1 - z));
+                deriv[13][2] = 0.5*(deriv[13][0] + deriv[13][1])
+                  + ((-x + y - 2*z + 2)*((y - 1)*(x + 1) + z*(x - y + z + 1))
+                     + (y - z + 1)*(x + z - 1)*(x - y + 2*z + 1));
+              }
+            else
+              {
+                // vertices
+                deriv[0][0] = 0.5*(y + z)*(y + z - 1)*(2*x - 2*z - 1);
+                deriv[0][1] = 0.5*(2*y + 2*z - 1)*(x - z - 1)*(x - z);
+                deriv[0][2] = 0.5*(deriv[0][0] + deriv[0][1])
+                  + 0.25*((2*y + 2*z - 1)*(x - z - 1)*(x - z)
+                          + (y + z)*(y + z - 1)*(-2*x + 2*z + 1));
+
+                deriv[1][0] = -0.5*(y + z)*(2*x - 2*z + 1)*(-y - z + 1);
+                deriv[1][1] = -0.5*(x - z)*(x - z + 1)*(-2*y - 2*z + 1);
+                deriv[1][2] = 0.5*(deriv[1][0] + deriv[1][1])
+                  - 0.25*((x - y - 2*z)*(x - z + 1)*(-y - z + 1)
+                          + (x - z)*(y + z)*(-x + y + 2*z - 2));
+
+                deriv[2][0] = 0.5*((y + z)*((x - z - 1)*(y + z + 1) + 4*z)
+                                 + (x - z)*(y + z)*(y + z + 1) + 4*z);
+                deriv[2][1] = 0.5*((x - z)*((x - z - 1)*(y + z + 1) + 4*z)
+                                 + (x - z)*(y + z)*(x - z - 1) - 4*z);
+                deriv[2][2] = 0.5*(deriv[2][0] + deriv[2][1])
+                  + 0.25*((x - y - 2*z)*((x - z - 1)*(y + z + 1) + 4*z)
+                          + (x - z)*(y + z)*(x - y - 2*z + 2) + 4*(x - y));
+
+                deriv[3][0] = 0.5*(y + z)*(2*x - 2*z + 1)*(y + z + 1);
+                deriv[3][1] = 0.5*(x - z)*(x - z + 1)*(2*y + 2*z + 1);
+                deriv[3][2] = 0.5*(deriv[3][0] + deriv[3][1])
+                  + 0.25*((x - y - 2*z)*(x - z + 1)*(y + z + 1)
+                          + (y + z)*(x - z)*(x - y - 2*z));
+
+                deriv[4][0] = 0;
+                deriv[4][1] = 0;
+                deriv[4][2] = 4*z - 1;
+
+                // lower edges
+                deriv[5][0] = -(y + z - 1)*(2*x - z - 1)*(y + 1);
+                deriv[5][1] = -(((x - z - 1)*(y + 1)*x - z) + z*(2*y + 1)
+                              + (y + z - 1)*((x - z - 1)*x + 2*z));
+                deriv[5][2] = 0.5*(deriv[5][0] + deriv[5][1])
+                  - 0.5*((((x - z - 1)*(y + 1)*x - z) + z*(2*y + 1))
+                         + (y + z - 1)*((-(y + 1)*x - 1) + 2*y + 1));
+
+                deriv[6][0] = -(2*x - z + 1)*(y + z - 1)*(y + 1);
+                deriv[6][1] = -(x - z + 1)*(2*y + z)*x;
+                deriv[6][2] = 0.5*(deriv[6][0] + deriv[6][1])
+                  - 0.5*(x - y - 2*z + 2)*(y + 1)*x;
+
+                deriv[7][0] = -(2*x - z)*(y + z - 1)*y;
+                deriv[7][1] = -(x - z + 1)*(2*y + z - 1)*(x - 1);
+                deriv[7][2] = 0.5*(deriv[7][0] + deriv[7][1])
+                  - 0.5*(x - y - 2*z + 2)*(x - 1)*y;
+
+                deriv[8][0] = -(((y + z + 1)*(x - 1)*y - z) + z*(2*x + 1)
+                              + (x - z + 1)*((y + z + 1)*y + 2*z));
+                deriv[8][1] = -(x - z + 1)*(2*y + z + 1)*(x - 1);
+                deriv[8][2] = 0.5*(deriv[8][0] + deriv[8][1])
+                  - 0.5*(-(((y + z + 1)*(x - 1)*y - z) + z*(2*x + 1))
+                         + (x - z + 1)*(((x - 1)*y - 1) + 2*x + 1));
+
+                // upper edges
+                deriv[9][0] = 2*z*(y + z - 1);
+                deriv[9][1] = 2*z*(x - z - 1);
+                deriv[9][2] = 0.5*(deriv[9][0] + deriv[9][1])
+                    + (y + z - 1)*(x - z - 1) + z*(x - y - 2*z);
+
+                deriv[10][0] = -2*z*(y + z - 1);
+                deriv[10][1] = -2*z*(x - z + 1);
+                deriv[10][2] = 0.5*(deriv[10][0] + deriv[10][1])
+                  - (x - z + 1)*(y + z - 1) - z*(x - y - 2*z + 2);
+
+                deriv[11][0] = -2*z*(y + z + 1);
+                deriv[11][1] = -2*z*(x - z - 1);
+                deriv[11][2] = 0.5*(deriv[11][0] + deriv[11][1])
+                  - ((y + z + 1)*(x - z - 1) + 4*z) - z*(x - y - 2*z + 2);
+
+                deriv[12][0] = 2*z*(y + z + 1);
+                deriv[12][1] = 2*z*(x - z + 1);
+                deriv[12][2] = 0.5*(deriv[12][0] + deriv[12][1])
+                  + (x - z + 1)*(y + z + 1) + z*(x - y - 2*z);
+
+                // base face
+                deriv[13][0] = 2*((y + z - 1)*((y + 1)*(x - 1) - z*(x - y - z - 1))
+                                + (x - z + 1)*(y + z - 1)*(y + 1 - z));
+                deriv[13][1] = 2*((x - z + 1)*((y + 1)*(x - 1) - z*(x - y - z - 1))
+                                + (x - z + 1)*(y + z - 1)*(x - 1 + z));
+                deriv[13][2] = 0.5*(deriv[13][0] + deriv[13][1])
+                  + (x - y - 2*z + 2)*((y + 1)*(x - 1) - z*(x - y - z - 1))
+                  + (x - z + 1)*(y + z - 1)*(-(x - y - 2*z - 1));
+              }
+#endif
      }
 
      bool FeH1LagrangePyra::CoordIsInsideElem( const Vector<Double>& point,

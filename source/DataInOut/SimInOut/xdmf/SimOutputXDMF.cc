@@ -1324,6 +1324,10 @@ namespace CoupledField {
       et = XDMF_PYRAMID_13;
       numNodes = 13;
       break;
+    case Elem::ET_PYRA14:
+      et = XDMF_PYRAMID_13;
+      numNodes = 13;
+      break;
     case Elem::ET_WEDGE6:
       et = XDMF_WEDGE;
       numNodes = 6;
@@ -1331,6 +1335,10 @@ namespace CoupledField {
     case Elem::ET_WEDGE15:
       et = XDMF_WEDGE_15;
       numNodes = 15;
+      break;
+    case Elem::ET_WEDGE18:
+      et = XDMF_WEDGE_18;
+      numNodes = 18;
       break;
     }
     

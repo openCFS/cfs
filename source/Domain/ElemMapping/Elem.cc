@@ -54,6 +54,7 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
       connect[0] = connect[1];
       connect[1] = dummy;
       break;
+    case ET_QUAD9:
     case ET_QUAD8:
       dummy = connect[4];
       connect[4] = connect[7];
@@ -1248,8 +1249,156 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
     // ************************************************************************
     // HEXA27
     // ************************************************************************
-    // .. not really used in CFS++
-       
+        {
+          ElemShape s;
+          s.dim = 3;
+          s.order = 2;
+          s.numVertices = 8;
+          s.numNodes = 27;
+          s.numEdges = 12;
+          s.numFaces = 6;
+
+          Double midPoint[3] = {0.0, 0.0, 0.0};
+          Double nodeCoords[] =
+          { -1.0, -1.0, -1.0, //  #1
+             1.0, -1.0, -1.0, //  #2
+             1.0,  1.0, -1.0, //  #3
+            -1.0,  1.0, -1.0, //  #4
+            -1.0, -1.0,  1.0, //  #5
+             1.0, -1.0,  1.0, //  #6
+             1.0,  1.0,  1.0, //  #7
+            -1.0,  1.0,  1.0, //  #8
+             0.0, -1.0, -1.0, //  #9
+             1.0,  0.0, -1.0, // #10
+             0.0,  1.0, -1.0, // #11
+            -1.0,  0.0, -1.0, // #12
+             0.0, -1.0,  1.0, // #13
+             1.0,  0.0,  1.0, // #14
+             0.0,  1.0,  1.0, // #15
+            -1.0,  0.0,  1.0, // #16
+            -1.0, -1.0,  0.0, // #17
+             1.0, -1.0,  0.0, // #18
+             1.0,  1.0,  0.0, // #19
+            -1.0,  1.0,  0.0, // #20
+
+             0.0, -1.0,  0.0, // #21
+             1.0,  0.0,  0.0, // #22
+             0.0,  1.0,  0.0, // #23
+            -1.0,  0.0,  0.0, // #24
+
+             0.0,  0.0, -1.0, // #25
+             0.0,  0.0,  0.0, // #26
+             0.0,  0.0,  1.0, // #27
+          };
+          UInt edgeVertices[] =
+          { 1, 2, // #1
+            2, 3, // #2
+            4, 3, // #3
+            1, 4, // #4
+            1, 5, // #5
+            2, 6, // #6
+            3, 7, // #7
+            4, 8, // #8
+            5, 6, // #9
+            6, 7, // #10
+            8, 7, // #11
+            5, 8  // #12
+          };
+          UInt numEdgeNodes[] =
+          {
+           3, // #1
+           3, // #2
+           3, // #3
+           3, // #4
+           3, // #5
+           3, // #6
+           3, // #7
+           3, // #8
+           3, // #9
+           3, // #10
+           3, // #11
+           3  // #12
+          };
+          UInt edgeNodes[] =
+          {
+            1, 2,  9, // #1
+            2, 3, 10, // #2
+            4, 3, 11, // #3
+            1, 4, 12, // #4
+            1, 5, 17, // #5
+            2, 6, 18, // #6
+            3, 7, 19, // #7
+            4, 8, 20, // #8
+            5, 6, 13, // #9
+            6, 7, 14, // #10
+            8, 7, 15, // #11
+            5, 8, 16  // #12
+          };
+          UInt numEdgesPerDir[] =
+          {
+           4, // #edges in xi-dir
+           4, // #edges in eta-dir
+           4, // #edges in zeta-dir
+          };
+          UInt locDirEdges[] =
+          {
+           1,3,9,11,  // xi
+           2,4,10,12  // eta
+          };
+          UInt numFaceVertices[] =
+          {
+           4, // #1
+           4, // #2
+           4, // #3
+           4, // #4
+           4, // #5
+           4  // #6
+          };
+          UInt faceVertices[] =
+          {
+           1, 2, 3, 4, // #1
+           1, 2, 6, 5, // #2
+           2, 3, 7, 6, // #3
+           4, 3, 7, 8, // #4
+           1, 4, 8, 5, // #5
+           5, 6, 7, 8  // #6
+          };
+          UInt numFaceNodes[] =
+          {
+           9, // #1
+           9, // #2
+           9, // #3
+           9, // #4
+           9, // #5
+           9  // #6
+          };
+          UInt faceNodes[] =
+          {
+           1, 2, 3, 4,  9, 10, 11, 12, 25, // #1
+           1, 2, 6, 5,  9, 18, 13, 17, 21, // #2
+           2, 3, 7, 6, 10, 19, 14, 18, 22, // #3
+           4, 3, 7, 8, 11, 19, 15, 20, 23, // #4
+           1, 4, 8, 5, 12, 20, 16, 17, 24, // #5
+           5, 6, 7, 8, 13, 14, 15, 16, 26  // #6
+          };
+          UInt numFacesPerDir[] =
+          {
+           4, // #faces in xi-dir
+           4, // #faces in eta-dir
+           4  // #faces in zeta-dir
+          };
+          UInt locDirFaces[][2] =
+          {
+           {1,0},{2,0},{4,0},{6,0}, // faces in xi-dir & component
+           {1,1},{3,0},{5,0},{6,1}, // faces in eta-dir & component
+           {2,1},{3,1},{4,1},{5,1}  // faces in zeta-dir & component
+          };
+          SetElemInfo( s, midPoint, nodeCoords, edgeVertices, numEdgeNodes,
+                        edgeNodes, numEdgesPerDir, locDirEdges,
+                        numFaceVertices, faceVertices, numFaceNodes, faceNodes,
+                        numFacesPerDir, locDirFaces );
+          Elem::shapes[Elem::ET_HEXA27] = s;
+        }
     // ************************************************************************
     // PYRA5
     // ************************************************************************
@@ -1500,6 +1649,147 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
     }
 
     // ************************************************************************
+    // PYRA14
+    // ************************************************************************
+    {
+      //
+      //                 5
+      //               ,/|\
+      //             ,/ .'|\
+      //           ,/   | | \
+      //        [10]    .' | `.
+      //       ,/      | [13] \
+      //     ,/      [11]  | [12]            zeta
+      //   ,/         |    |    \            ^
+      //  1-------[9]-.'---4    `.           |
+      //   `\        |      `\    \          |
+      //     [6]    .'[14]    [8]  \         +------> eta
+      //       `\   |           `\  \        `\
+      //         `\.'             `\`          `\
+      //            2-------[7]------3           xi
+      //
+      //
+      //
+      ElemShape s;
+      s.dim = 3;
+      s.order = 2;
+      s.numVertices = 5;
+      s.numNodes = 14;
+      s.numEdges = 8;
+      s.numFaces = 5;
+
+      Double midPoint[3] = {0.0, 0.0, 1./4};
+      Double nodeCoords[] =
+      {  1.0,  1.0,  0.0, // #1
+        -1.0,  1.0,  0.0, // #2
+        -1.0, -1.0,  0.0, // #3
+         1.0, -1.0,  0.0, // #4
+         0.0,  0.0,  1.0, // #5
+         0.0,  1.0,  0.0, // #6
+        -1.0,  0.0,  0.0, // #7
+         0.0, -1.0,  0.0, // #8
+         1.0,  0.0,  0.0, // #9
+         0.5,  0.5,  0.5, // #10
+        -0.5,  0.5,  0.5, // #11
+        -0.5, -0.5,  0.5, // #12
+         0.5, -0.5,  0.5, // #13
+         0.0,  0.0,  0.0, // #14
+      };
+      UInt edgeVertices[] =
+      { 1, 2, // #1
+        2, 3, // #2
+        4, 3, // #3
+        1, 4, // #4
+        1, 5, // #5
+        2, 5, // #6
+        3, 5, // #7
+        4, 5, // #8
+      };
+      UInt numEdgeNodes[] =
+      {
+       3, // #1
+       3, // #2
+       3, // #3
+       3, // #4
+       3, // #5
+       3, // #6
+       3, // #7
+       3, // #8
+      };
+      UInt edgeNodes[] =
+      { 1, 2, 6, // #1
+        2, 3, 7, // #2
+        4, 3, 8, // #3
+        1, 4, 9, // #4
+        1, 5, 10, // #5
+        2, 5, 11, // #6
+        3, 5, 12, // #7
+        4, 5, 13, // #8
+      };
+      UInt numEdgesPerDir[] =
+      {
+       6, // #edges in xi-dir
+       6, // #edges in eta-dir
+       4, // #edges in zeta-dir
+      };
+      UInt locDirEdges[] =
+      {
+       1,3,5,6,7,8,  // xi
+       2,4,5,6,7,8,  // eta
+       5,6,7,8       // zeta
+      };
+      UInt numFaceVertices[] =
+      {
+       4, // #1
+       3, // #2
+       3, // #3
+       3, // #4
+       3, // #5
+      };
+      UInt faceVertices[] =
+      {
+       1, 2, 3, 4, // #1
+       1, 2, 5,    // #2
+       2, 3, 5,    // #3
+       3, 4, 5,    // #4
+       4, 1, 5,    // #5
+      };
+      UInt numFaceNodes[] =
+      {
+       9, // #1
+       6, // #2
+       6, // #3
+       6, // #4
+       6, // #5
+      };
+      UInt faceNodes[] =
+      {
+       1, 2, 3, 4, 6, 7, 8, 9, 14, // #1
+       1, 2, 5, 6, 11, 10,     // #2
+       2, 3, 5, 7, 12, 11,     // #3
+       3, 4, 5, 8, 13, 12,     // #4
+       4, 1, 5, 9, 10, 13      // #5
+      };
+      UInt numFacesPerDir[] =
+      {
+       5, // #faces in xi-dir
+       5, // #faces in eta-dir
+       4  // #faces in zeta-dir
+      };
+      UInt locDirFaces[][2] =
+      {
+       {1,0},{2,0},{3,2},{4,0},{5,2}, // faces in xi-dir & component
+       {1,1},{2,2},{3,0},{4,2},{5,0}, // faces eta xi-dir & component
+       {2,1},{3,1},{4,1},{5,1}        // faces in zeta-dir & component
+      };
+      SetElemInfo( s, midPoint, nodeCoords, edgeVertices, numEdgeNodes,
+                    edgeNodes, numEdgesPerDir, locDirEdges,
+                    numFaceVertices, faceVertices, numFaceNodes, faceNodes,
+                    numFacesPerDir, locDirFaces );
+      Elem::shapes[Elem::ET_PYRA14] = s;
+    }
+
+    // ************************************************************************
     // WEDGE6
     // ************************************************************************
     {
@@ -1743,6 +2033,151 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
                    numFacesPerDir, locDirFaces );
       Elem::shapes[Elem::ET_WEDGE15] = s;
     }
+
+    // ************************************************************************
+    // WEDGE18
+    // ************************************************************************
+    {
+      //        + 6
+      //       /|\
+      //      / | \
+      //  12 *  |  * 11
+      //    /   *15 \        zeta
+      // 4 +----*----+ 5      ^  eta
+      //   |  10| 17 |        |/
+      //   |18  + 3  |        0--> xi
+      //   |   / \   |
+      // 13*  /16 \  * 14
+      //   | *9   8* |
+      //   |/       \|
+      // 1 +----*----+ 2
+      //        7
+      ElemShape s;
+      s.dim = 3;
+      s.order = 1;
+      s.numVertices = 6;
+      s.numNodes = 18;
+      s.numEdges = 9;
+      s.numFaces = 5;
+
+      Double midPoint[3] = {1.0/3.0, 1.0/3.0, 0.0};
+      Double nodeCoords[] =
+      { 0.0,  0.0, -1.0, //  #1
+        1.0,  0.0, -1.0, //  #2
+        0.0,  1.0, -1.0, //  #3
+        0.0,  0.0,  1.0, //  #4
+        1.0,  0.0,  1.0, //  #5
+        0.0,  1.0,  1.0, //  #6
+        0.5,  0.0, -1.0, //  #7
+        0.5,  0.5, -1.0, //  #8
+        0.0,  0.5, -1.0, //  #9
+        0.5,  0.0,  1.0, // #10
+        0.5,  0.5,  1.0, // #11
+        0.0,  0.5,  1.0, // #12
+        0.0,  0.0,  0.0, // #13
+        1.0,  0.0,  0.0, // #14
+        0.0,  1.0,  0.0, // #15
+        0.5,  0.0,  0.0, // #16
+        0.5,  0.5,  0.0, // #17
+        0.0,  0.5,  0.0, // #18
+      };
+      UInt edgeVertices[] =
+      { 1, 2, // #1
+        2, 3, // #2
+        3, 1, // #3
+        4, 5, // #4
+        5, 6, // #5
+        6, 4, // #6
+        1, 4, // #7
+        2, 5, // #8
+        3, 6  // #9
+      };
+      UInt numEdgeNodes[] =
+      {
+       3, // #1
+       3, // #2
+       3, // #3
+       3, // #4
+       3, // #5
+       3, // #6
+       3, // #7
+       3, // #8
+       3  // #9
+      };
+      UInt edgeNodes[] =
+      { 1, 2,  7, // #1
+        2, 3,  8, // #2
+        3, 1,  9, // #3
+        4, 5, 10, // #4
+        5, 6, 11, // #5
+        6, 4, 12, // #6
+        1, 4, 13, // #7
+        2, 5, 14, // #8
+        3, 6, 15  // #9
+      };
+      UInt numEdgesPerDir[] =
+      {
+       4, // #edges in xi-dir
+       4, // #edges in eta-dir
+       3, // #edges in zeta-dir
+      };
+      UInt locDirEdges[] =
+      {
+       1,2,4,5,  // xi
+       2,3,5,6,  // eta
+       7,8,9     // zeta
+      };
+      UInt numFaceVertices[] =
+      {
+       3, // #1
+       3, // #2
+       4, // #3
+       4, // #4
+       4, // #5
+      };
+      UInt faceVertices[] =
+      {
+       1, 2, 3,    // #1
+       4, 5, 6,    // #2
+       1, 2, 5, 4, // #3
+       2, 3, 6, 5, // #4
+       3, 1, 4, 6, // #5
+      };
+      UInt numFaceNodes[] =
+      {
+       6, // #1
+       6, // #2
+       9, // #3
+       9, // #4
+       9, // #5
+      };
+      UInt faceNodes[] =
+      {
+       1, 2, 3,     7,  8,  9,     // #1
+       4, 5, 6,    10, 11, 12,     // #2
+       1, 2, 5, 4,  7, 14, 10, 13, 16, // #3
+       2, 3, 6, 5,  8, 15, 11, 14, 17, // #4
+       3, 1, 4, 6,  9, 13, 12, 15, 18  // #5
+      };
+      UInt numFacesPerDir[] =
+      {
+       4, // #faces in xi-dir
+       4, // #faces in eta-dir
+       3  // #faces in zeta-dir
+      };
+      UInt locDirFaces[][2] =
+      {
+       {1,0},{2,0},{3,0},{4,0}, // faces in xi-dir & component
+       {1,1},{2,1},{4,0},{5,0}, // faces in eta-dir & component
+       {3,1},{4,1},{5,1}        // faces in zeta-dir & component
+      };
+      SetElemInfo( s, midPoint, nodeCoords, edgeVertices, numEdgeNodes,
+                   edgeNodes, numEdgesPerDir, locDirEdges,
+                   numFaceVertices, faceVertices, numFaceNodes, faceNodes,
+                   numFacesPerDir, locDirFaces );
+      Elem::shapes[Elem::ET_WEDGE18] = s;
+    }
+
     } 
     
       
@@ -1779,10 +2214,12 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
           break;
         case ET_PYRA5:
         case ET_PYRA13:
+        case ET_PYRA14:
           ret = ST_PYRA;
           break;
         case ET_WEDGE6:
         case ET_WEDGE15:
+        case ET_WEDGE18:
           ret = ST_WEDGE;
           break;
       }
@@ -1830,7 +2267,7 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
     // Definition of finite element type mappings
     static EnumTuple elemShapeTuples[] = {
        EnumTuple(Elem::ST_UNDEF,  "UNDEF"), 
-       EnumTuple(Elem::ST_POINT,   "POINT"),
+       EnumTuple(Elem::ST_POINT,  "POINT"),
        EnumTuple(Elem::ST_LINE,   "LINE"),
        EnumTuple(Elem::ST_TRIA,   "TRIA"),
        EnumTuple(Elem::ST_QUAD,   "QUAD"),
@@ -1862,8 +2299,10 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
        EnumTuple(Elem::ET_HEXA27,  "HEXA27"),
        EnumTuple(Elem::ET_PYRA5,   "PYRA5"),
        EnumTuple(Elem::ET_PYRA13,  "PYRA13"),
+       EnumTuple(Elem::ET_PYRA14,  "PYRA14"),
        EnumTuple(Elem::ET_WEDGE6,  "WEDGE6"),
-       EnumTuple(Elem::ET_WEDGE15, "WEDGE15")      
+       EnumTuple(Elem::ET_WEDGE15, "WEDGE15"),
+       EnumTuple(Elem::ET_WEDGE18, "WEDGE18")
      };
 
      Enum<Elem::FEType> Elem::feType = \

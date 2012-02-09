@@ -228,6 +228,7 @@ fi
               -a) echo "${DIST} ${REV} ${ARCH} ${SUBARCH}" | sed 'y/'$LOWER'/'$UPPER'/';;
               -u) echo "${DIST}_${REV}_${ARCH}" | sed 'y/'$LOWER'/'$UPPER'/' ;;
               -c) echo "${DIST};${REV};${ARCH};${SUBARCH}" | sed 'y/'$LOWER'/'$UPPER'/' ;;
+              -p) echo "DIST='${DIST}'; REV='${REV}'; ARCH='${ARCH}'" | sed 'y/'$LOWER'/'$UPPER'/' ;;
               *) break ;;
           esac
           shift

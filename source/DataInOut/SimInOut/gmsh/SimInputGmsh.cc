@@ -571,8 +571,10 @@ namespace CoupledField {
       elemTypeMap[Elem::ET_HEXA27]  = Elem::ET_HEXA8;
       elemTypeMap[Elem::ET_PYRA5]   = Elem::ET_PYRA5;
       elemTypeMap[Elem::ET_PYRA13]  = Elem::ET_PYRA5;
+      elemTypeMap[Elem::ET_PYRA14]  = Elem::ET_PYRA5;
       elemTypeMap[Elem::ET_WEDGE6]  = Elem::ET_WEDGE6;
       elemTypeMap[Elem::ET_WEDGE15] = Elem::ET_WEDGE6;
+      elemTypeMap[Elem::ET_WEDGE18] = Elem::ET_WEDGE6;
     }
 
     *elemType = elemTypeMap[*elemType];
@@ -682,15 +684,11 @@ namespace CoupledField {
         conn[j] = nodeNumMap2[conn[j]];
       }
 
-      if(feType != Elem::ET_POINT) {
-        mi->SetElemData( numElemsInGrid, feType,
-                         regionIdMap[elementPhysicsTypes_[readElemIndices[i]]],
-                         conn );
-      
-        numElemsInGrid++;
-      } else {
-        namedNodes[readElemIndices[i]].Push_back(conn[0]);
-      }
+      mi->SetElemData( numElemsInGrid, feType,
+                       regionIdMap[elementPhysicsTypes_[readElemIndices[i]]],
+                       conn );
+
+      numElemsInGrid++;
     }
 
     std::map<UInt, StdVector<UInt> >::iterator nnIt, nnEnd;

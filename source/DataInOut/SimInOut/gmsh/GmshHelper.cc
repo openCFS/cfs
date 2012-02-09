@@ -60,11 +60,11 @@ namespace CoupledField {
       feType = Elem::ET_HEXA27;
       break;
     case 13:
-      feType = Elem::ET_UNDEF;
+      feType = Elem::ET_WEDGE18;
       numNodes = 18;
       break;
     case 14:
-      feType = Elem::ET_UNDEF;
+      feType = Elem::ET_PYRA14;
       numNodes = 14;
       break;
     case 15:
@@ -82,50 +82,6 @@ namespace CoupledField {
       break;
     case 19:
       feType = Elem::ET_PYRA13;
-      break;
-    case 20:
-      feType = Elem::ET_UNDEF;
-      numNodes = 9;
-      break;
-    case 21:
-      feType = Elem::ET_UNDEF;
-      numNodes = 10;
-      break;
-    case 22:
-      feType = Elem::ET_UNDEF;
-      numNodes = 12;
-      break;
-    case 23:
-    case 24:
-      feType = Elem::ET_UNDEF;
-      numNodes = 15;
-      break;
-    case 25:
-      feType = Elem::ET_UNDEF;
-      numNodes = 21;
-      break;
-    case 26:
-      feType = Elem::ET_UNDEF;
-      numNodes = 4;
-    case 27:
-      feType = Elem::ET_UNDEF;
-      numNodes = 5;
-      break;
-    case 28:
-      feType = Elem::ET_UNDEF;
-      numNodes = 6;
-      break;
-    case 29:
-      feType = Elem::ET_UNDEF;
-      numNodes = 20;
-      break;
-    case 30:
-      feType = Elem::ET_UNDEF;
-      numNodes = 35;
-      break;
-    case 31:
-      feType = Elem::ET_UNDEF;
-      numNodes = 56;
       break;
     default:
       EXCEPTION("Gmsh element type " << eType << " not supported!\n"
@@ -198,6 +154,12 @@ namespace CoupledField {
       break;
     case Elem::ET_PYRA13:
       eType = 19;
+      break;
+    case Elem::ET_WEDGE18:
+      eType = 13;
+      break;
+    case Elem::ET_PYRA14:
+      eType = 14;
       break;
     default:
       EXCEPTION("Wrong FEType for Gmsh.");
@@ -353,19 +315,20 @@ namespace CoupledField {
     elemNodeMap_[Elem::ET_PYRA13].insert( emvt(11, 11) );
     elemNodeMap_[Elem::ET_PYRA13].insert( emvt(12, 12) );
 
-//     elemNodeMap_[Elem::PYRA13].insert( emvt(0, 0) );
-//     elemNodeMap_[Elem::PYRA13].insert( emvt(1, 1) );
-//     elemNodeMap_[Elem::PYRA13].insert( emvt(2, 2) );
-//     elemNodeMap_[Elem::PYRA13].insert( emvt(3, 3) );
-//     elemNodeMap_[Elem::PYRA13].insert( emvt(4, 4) );
-//     elemNodeMap_[Elem::PYRA13].insert( emvt(5, 5) );
-//     elemNodeMap_[Elem::PYRA13].insert( emvt(6, 6) );
-//     elemNodeMap_[Elem::PYRA13].insert( emvt(7, 9) );
-//     elemNodeMap_[Elem::PYRA13].insert( emvt(8, 8) );
-//     elemNodeMap_[Elem::PYRA13].insert( emvt(9, 10) );
-//     elemNodeMap_[Elem::PYRA13].insert( emvt(10, 7) );
-//     elemNodeMap_[Elem::PYRA13].insert( emvt(11, 11) );
-//     elemNodeMap_[Elem::PYRA13].insert( emvt(12, 12) );
+    elemNodeMap_[Elem::ET_PYRA14].insert( emvt(0, 0) );
+    elemNodeMap_[Elem::ET_PYRA14].insert( emvt(1, 1) );
+    elemNodeMap_[Elem::ET_PYRA14].insert( emvt(2, 2) );
+    elemNodeMap_[Elem::ET_PYRA14].insert( emvt(3, 3) );
+    elemNodeMap_[Elem::ET_PYRA14].insert( emvt(4, 4) );
+    elemNodeMap_[Elem::ET_PYRA14].insert( emvt(5, 5) );
+    elemNodeMap_[Elem::ET_PYRA14].insert( emvt(6, 8) );
+    elemNodeMap_[Elem::ET_PYRA14].insert( emvt(7, 9) );
+    elemNodeMap_[Elem::ET_PYRA14].insert( emvt(8, 6) );
+    elemNodeMap_[Elem::ET_PYRA14].insert( emvt(9, 10) );
+    elemNodeMap_[Elem::ET_PYRA14].insert( emvt(10, 7) );
+    elemNodeMap_[Elem::ET_PYRA14].insert( emvt(11, 11) );
+    elemNodeMap_[Elem::ET_PYRA14].insert( emvt(12, 12) );
+    elemNodeMap_[Elem::ET_PYRA14].insert( emvt(13, 13) );
 
     elemNodeMap_[Elem::ET_WEDGE6].insert( emvt(0, 0) );
     elemNodeMap_[Elem::ET_WEDGE6].insert( emvt(1, 1) );
@@ -389,6 +352,26 @@ namespace CoupledField {
     elemNodeMap_[Elem::ET_WEDGE15].insert( emvt(12, 9) );
     elemNodeMap_[Elem::ET_WEDGE15].insert( emvt(13, 11) );
     elemNodeMap_[Elem::ET_WEDGE15].insert( emvt(14, 10) );
-  }  
+
+    elemNodeMap_[Elem::ET_WEDGE18].insert( emvt(0, 0) );
+    elemNodeMap_[Elem::ET_WEDGE18].insert( emvt(1, 1) );
+    elemNodeMap_[Elem::ET_WEDGE18].insert( emvt(2, 2) );
+    elemNodeMap_[Elem::ET_WEDGE18].insert( emvt(3, 3) );
+    elemNodeMap_[Elem::ET_WEDGE18].insert( emvt(4, 4) );
+    elemNodeMap_[Elem::ET_WEDGE18].insert( emvt(5, 5) );
+    elemNodeMap_[Elem::ET_WEDGE18].insert( emvt(6, 6) );
+    elemNodeMap_[Elem::ET_WEDGE18].insert( emvt(7, 8) );
+    elemNodeMap_[Elem::ET_WEDGE18].insert( emvt(8, 12) );
+    elemNodeMap_[Elem::ET_WEDGE18].insert( emvt(9, 7) );
+    elemNodeMap_[Elem::ET_WEDGE18].insert( emvt(10, 13) );
+    elemNodeMap_[Elem::ET_WEDGE18].insert( emvt(11, 14) );
+    elemNodeMap_[Elem::ET_WEDGE18].insert( emvt(12, 9) );
+    elemNodeMap_[Elem::ET_WEDGE18].insert( emvt(13, 11) );
+    elemNodeMap_[Elem::ET_WEDGE18].insert( emvt(14, 10) );
+
+    elemNodeMap_[Elem::ET_WEDGE18].insert( emvt(15, 15) );
+    elemNodeMap_[Elem::ET_WEDGE18].insert( emvt(16, 16) );
+    elemNodeMap_[Elem::ET_WEDGE18].insert( emvt(17, 17) );
+}
 
 }

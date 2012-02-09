@@ -562,7 +562,7 @@ namespace CoupledField {
     std::string file = "";
 
     // be sensitive to the cfstool case
-    if(!param->Has("domain/regionList")) return NO_REGION_ID;
+    if(!param || !param->Has("domain/regionList")) return NO_REGION_ID;
 
     ParamNodeList list = param->Get("domain/regionList")->GetList("region");
     for(UInt i = 0; i < list.GetSize(); i++)
@@ -793,8 +793,7 @@ namespace CoupledField {
     CreateUserDefinedNodesElems();
 
     // print information to file - checks for exportGrid
-    ToInfo(info->Get(ParamNode::HEADER)->Get("domain"));
-
+    if(info) { ToInfo(info->Get(ParamNode::HEADER)->Get("domain")); }
   }
   
   void GridCFS::
@@ -2644,7 +2643,7 @@ namespace CoupledField {
 
   void GridCFS::makeNameNodesFromLines()
   {
-    if(!param->Has("domain/surfRegionList")) return;
+    if(!param || !param->Has("domain/surfRegionList")) return;
 
     ParamNodeList list = param->Get("domain/surfRegionList")->GetList("surfRegion");
     std::map<std::string, std::string> excludeSurf;
