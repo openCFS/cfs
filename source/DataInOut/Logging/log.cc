@@ -27,10 +27,12 @@
 */
 
 
+#include <algorithm>
+#include <vector>
+
+#include "DataInOut/Logging/detail/defs.hpp"
 #include "log.hpp"
 #include "log_impl.hpp"
-#include <sstream>
-#include <algorithm>
 
 namespace boost { namespace logging {
 

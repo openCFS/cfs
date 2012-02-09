@@ -9,7 +9,7 @@
 #include "CoupledPDE/pdecoupling.hh"
 
 #ifdef MpCCI
-#include <MpCCIcpl/MpCCIexch.hh>
+#include "MpCCIcpl/MpCCIexch.hh"
 #endif
 
 //#include "nodeEQN.hh"

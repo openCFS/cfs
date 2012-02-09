@@ -5,10 +5,15 @@
 #ifndef FILE_NODESTORESOL_2004
 #define FILE_NODESTORESOL_2004
 
-#include "basenodestoresol.hh"
-#include "MatVec/matrix.hh"
+#include <stdlib.h>
+#include <iosfwd>
+
+#include "General/defs.hh"
+#include "General/environment.hh"
 #include "MatVec/vector.hh"
-#include "Domain/grid.hh"
+#include "Utils/StdVector.hh"
+#include "Utils/tools.hh"
+#include "basenodestoresol.hh"
 
 namespace CoupledField{
 
@@ -46,6 +51,12 @@ namespace CoupledField{
   //! routine was called, otherwise an error is reported!
   //! \note Although the names of some methods refer to nodes, this class 
   //! also can handle element solutions.
+class DenseMatrix;
+class EntityIterator;
+class EqnMap;
+class Grid;
+class SingleVector;
+
   template<class TYPE>
   class NodeStoreSol : public BaseNodeStoreSol{
   public:

@@ -33,8 +33,12 @@ SET(TARGET_LL
   cfsgeneral
   utils
   definefiles
+  logging
   paramh
   domain
+  pde
+  datainout
+  elements
   ${CFS_FORTRAN_DYNRT_LIBS}
   )
 

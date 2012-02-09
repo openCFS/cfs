@@ -584,6 +584,7 @@ share/scripts/continuation.py -text
 share/scripts/cplreader -text
 share/scripts/create_density.py -text
 share/scripts/cubemesh.pl -text
+share/scripts/density-to-png.py -text
 share/scripts/distro.sh svneol=native#text/plain
 share/scripts/extract_info_xml_results.py -text
 share/scripts/gid_screenshots.py -text
@@ -847,7 +848,6 @@ source/DataInOut/simOutput.cc svneol=native#text/x-c%2B%2Bsrc
 source/DataInOut/simOutput.hh svneol=native#text/x-c%2B%2Bhdr
 source/Domain/CMakeLists.txt svneol=native#text/plain
 source/Domain/Composite.hh svneol=native#text/x-c%2B%2Bhdr
-source/Domain/GridCFS/CMakeLists.txt svneol=native#text/plain
 source/Domain/GridCFS/grid_cfs.cc svneol=native#text/x-c%2B%2Bsrc
 source/Domain/GridCFS/grid_cfs.hh svneol=native#text/x-c%2B%2Bhdr
 source/Domain/GridCFS/interface_gridcfs.hh svneol=native#text/x-c%2B%2Bhdr
@@ -1101,8 +1101,6 @@ source/Forms/nonConformingInt.cc svneol=native#text/x-c%2B%2Bsrc
 source/Forms/nonConformingInt.hh svneol=native#text/x-c%2B%2Bhdr
 source/Forms/pierceInt.cc svneol=native#text/x-c%2B%2Bsrc
 source/Forms/pierceInt.hh svneol=native#text/x-c%2B%2Bhdr
-source/Forms/piezoPolarizationMatrixRHSInt.cc -text
-source/Forms/piezoPolarizationMatrixRHSInt.hh -text
 source/Forms/pmlBasics.cc -text
 source/Forms/pmlBasics.hh -text
 source/Forms/singleEntryInt.cc svneol=native#text/x-c%2B%2Bsrc
@@ -1427,8 +1425,6 @@ source/Optimization/TopGrad.cc -text
 source/Optimization/TopGrad.hh -text
 source/Optimization/TransferFunction.cc -text
 source/Optimization/TransferFunction.hh -text
-source/Optimization/piezoPolarizationMatrixRHSInt.cc -text
-source/Optimization/piezoPolarizationMatrixRHSInt.hh -text
 source/PDE/CMakeLists.txt svneol=native#text/plain
 source/PDE/SinglePDE.cc svneol=native#text/x-c%2B%2Bsrc
 source/PDE/SinglePDE.hh svneol=native#text/x-c%2B%2Bhdr
@@ -1532,7 +1528,6 @@ source/Utils/interpolate.cc svneol=native#text/x-c%2B%2Bsrc
 source/Utils/interpolate.hh svneol=native#text/x-c%2B%2Bhdr
 source/Utils/jiles.cc svneol=native#text/x-c%2B%2Bsrc
 source/Utils/jiles.hh svneol=native#text/x-c%2B%2Bhdr
-source/Utils/mathParser/CMakeLists.txt svneol=native#text/plain
 source/Utils/mathParser/mathParser.cc svneol=native#text/x-c%2B%2Bsrc
 source/Utils/mathParser/mathParser.hh svneol=native#text/x-c%2B%2Bhdr
 source/Utils/mathfunctions.cc svneol=native#text/x-c%2B%2Bsrc

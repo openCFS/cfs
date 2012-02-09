@@ -5,10 +5,12 @@
 #ifndef FILE_CFS_EXCEPTION_HH
 #define FILE_CFS_EXCEPTION_HH
 
-#include <boost/function.hpp>
-#include <string>
-#include <sstream>
+#include <stddef.h>
 #include <exception>
+#include <string>
+#include <sstream> // iwyu
+
+#include "boost/function.hpp"
 
 namespace CoupledField {
 

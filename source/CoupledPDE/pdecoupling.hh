@@ -5,26 +5,31 @@
 #ifndef FILE_PDECOUPLING_2003
 #define FILE_PDECOUPLING_2003
 
+#include <string>
+
+#include "General/defs.hh"
 #include "General/environment.hh"
-#include "MatVec/vector.hh"
 #include "Utils/StdVector.hh"
-#include "Materials/baseMaterial.hh"
-#include "Utils/boost-serialization.hh"
+
+namespace boost { namespace serialization { class access; } }
+
+namespace CoupledField {
+class BaseMaterial;
+class SingleVector;
+}  // namespace CoupledField
 
 namespace CoupledField
 {
 
+  class CouplingMemento;
+  class Grid;
   // Forward declarations of classes
   class StdPDE;
-  class Grid;
   struct Elem;
-  class CouplingMemento;
-  template<class TYPE> class Vector;
-  template<class TYPE> class Matrix;
 
    
 
-  //! This class holds information about itertive Coupling terms
+  //! This class holds information about iterative Coupling terms
   class PDECoupling
   {
 
@@ -152,6 +157,12 @@ namespace CoupledField
                           NormType normtype,
                           StdVector<PDECoupling*> & couplings);
   
+    //! Finalize object
+    
+    //! This method finalizes the setup of the coupling object, i.e. it 
+    //! deletes all empty / null interfaces. 
+    virtual void Finalize();
+    
     //! set PDE
     virtual void SetPDE(StdPDE * aPDE);
 

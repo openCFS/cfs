@@ -5,16 +5,27 @@
 #ifndef FILE_CFS_RESULTHANDLER_HH
 #define FILE_CFS_RESULTHANDLER_HH
 
-#include "Utils/result.hh"
-#include "Utils/nodestoresol.hh"
+#include <map>
+#include <set>
+#include <string>
+
+#include "General/defs.hh"
+#include "General/environment.hh"
 #include "PDE/basePDE.hh"
+#include "Utils/StdVector.hh"
+#include "boost/shared_ptr.hpp"
 
 namespace CoupledField {
 
+class BaseResult;
+class EntityList;
+class Grid;
+  class PostProc;
+  class SimInput;
   //! Forward class declarations
   class SimOutput;
-  class SimInput;
-  class PostProc;
+struct ResultInfo;
+template <class TYPE> class NodeStoreSol;
 
   //! Class for managing several result objects and output classes
   class ResultHandler {

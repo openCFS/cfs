@@ -12,13 +12,13 @@
 #include <complex>
 #include <limits>
 
-#include <boost/cstdint.hpp>
+#include "boost/cstdint.hpp"
 
 // Include build type options header containing the #defines
-#include <def_build_type_options.hh>
-#include <def_xmlschema.hh>
+#include "def_build_type_options.hh"
+#include "def_xmlschema.hh"
 // Include headers which define if CFS++ should support scripting
-#include <def_use_scripting.hh>
+#include "def_use_scripting.hh"
 
 namespace CoupledField{
 

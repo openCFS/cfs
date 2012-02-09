@@ -5,16 +5,21 @@
 #ifndef OLAS_ARPACK_EIGENSOLVER_HH
 #define OLAS_ARPACK_EIGENSOLVER_HH
 
-#include "OLAS/solver/baseEigensolver.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
-#include "arpackSolver.hh"
-#include "arpackMatInterface.hh"
+#include "General/defs.hh"
+#include "OLAS/external/arpack/arpackFortranInterface.hh"
+#include "OLAS/solver/baseEigensolver.hh"
 
 namespace CoupledField {
   
+class ArpackMatInterface;
+class ArpackSolver;
+class BaseMatrix;
+class BasePrecond;
+class BaseSolver;
+class BaseVector;
   class StdMatrix;
-  class ParamNode;
-  class ParamNode;
+template <class TYPE> class Vector;
   
   // =========================================================================
   //   ARPACK SOLVER

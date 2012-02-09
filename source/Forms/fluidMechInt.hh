@@ -1,11 +1,18 @@
 #ifndef FILE_FLUIDMECHINT
 #define FILE_FLUIDMECHINT
 
-#include "Forms/baseForm.hh"
-#include <cstdlib>
-#include <iostream>
-#include <cmath>
+#include <string>
 #include <vector>
+
+#include "Forms/baseForm.hh"
+#include "General/defs.hh"
+#include "General/exception.hh"
+#include "MatVec/matrix.hh"
+#include "MatVec/vector.hh"
+
+namespace CoupledField {
+class EntityIterator;
+}  // namespace CoupledField
 
 namespace CoupledField
 {

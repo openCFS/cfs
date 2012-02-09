@@ -7,11 +7,13 @@
 
 
 #include <iostream>
+#include <string>
 
 //#include "MatVec/basevector.hh"
 
 #include "General/Enum.hh"
 #include "General/defs.hh"
+#include "General/exception.hh"
 
 namespace CoupledField {
 

@@ -34,7 +34,7 @@
 
 #include <iostream>
 #include <iomanip>
-#include <math.h>
+#include "math.h"
 #include <stdexcept>
 
 #include "MatVec/promote.hh"

@@ -1,5 +1,14 @@
+#include <math.h>
+#include <string>
+
 #include "DesignMaterial.hh"
 #include "Domain/domain.hh"
+#include "Domain/grid.hh"
+#include "General/defs.hh"
+#include "General/exception.hh"
+#include "MatVec/matrix.hh"
+#include "Optimization/Design/DesignElement.hh"
+#include "Utils/StdVector.hh"
 
 using namespace CoupledField;
 

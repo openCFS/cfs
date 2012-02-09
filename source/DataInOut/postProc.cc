@@ -2,13 +2,25 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include "postProc.hh"
+#include <assert.h>
+#include <algorithm>
+#include <complex>
+#include <ostream>
 
-#include "Utils/result.hh"
-#include "Domain/domain.hh"
-#include "Domain/resultInfo.hh"
-#include "Domain/grid.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
+#include "Domain/domain.hh"
+#include "Domain/elem.hh"
+#include "Domain/entityList.hh"
+#include "Domain/grid.hh"
+#include "Domain/resultInfo.hh"
+#include "Elements/basefe.hh"
+#include "General/environment.hh"
+#include "General/exception.hh"
+#include "MatVec/basematrix.hh"
+#include "MatVec/matrix.hh"
+#include "Utils/result.hh"
+#include "Utils/tools.hh"
+#include "postProc.hh"
 
 namespace CoupledField {
 

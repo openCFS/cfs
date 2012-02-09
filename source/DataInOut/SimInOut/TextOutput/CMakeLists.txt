@@ -2,8 +2,13 @@ SET(SIMOUTTEXT_SRCS textSimOutput.cc)
 
 ADD_LIBRARY(simouttext STATIC ${SIMOUTTEXT_SRCS})
 
-SET(TARGET_LL
+TARGET_LINK_LIBRARIES(simouttext
+  cfsgeneral
   datainout
+  domain
+  elements
+  matvec
+  paramh
+  pde
+  utils
 )
-
-TARGET_LINK_LIBRARIES(simouttext ${TARGET_LL})

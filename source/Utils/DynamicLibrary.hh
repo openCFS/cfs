@@ -1,7 +1,7 @@
 #ifndef DYNAMICLIBRARY_H
 #define DYNAMICLIBRARY_H
 
-#include <dlfcn.h>
+#include "dlfcn.h"
 
 namespace CoupledField
 {

@@ -11,17 +11,15 @@
 #ifndef OLAS_GENERATEPRECOND_HH
 #define OLAS_GENERATEPRECOND_HH
 
-#include "General/environment.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 
 //!
 namespace CoupledField {
 
-  class BaseStdPrecond;
   class BaseSBMPrecond;
-  class StdMatrix;
+  class BaseStdPrecond;
   class SBM_Matrix;
-  class ParamNode;
+  class StdMatrix;
   
   //! Generate a standard preconditioner object
   

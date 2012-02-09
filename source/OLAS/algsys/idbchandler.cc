@@ -3,13 +3,21 @@
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
 
-#include "MatVec/stdmatrix.hh"
+#include <stddef.h>
+#include <string>
+#include <utility>
+
+#include "MatVec/SingleVector.hh"
+#include "MatVec/basematrix.hh"
+#include "MatVec/generatematvec.hh"
 #include "MatVec/sbmmatrix.hh"
 #include "MatVec/sbmvector.hh"
-
-#include "OLAS/graph/graphmanagersbmmat.hh"
-
+#include "MatVec/stdmatrix.hh"
+#include "MatVec/typedefs.hh"
 #include "OLAS/algsys/idbchandler.hh"
+#include "OLAS/graph/basegraph.hh"
+#include "OLAS/graph/basegraphmanager.hh"
+#include "OLAS/graph/graphmanagersbmmat.hh"
 
 namespace CoupledField {
 

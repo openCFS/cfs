@@ -2,23 +2,31 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include <def_use_xerces.hh>
+#include "def_use_xerces.hh"
 
 #ifdef USE_XERCES
 
-#include <string>
+#include <iostream>
 #include <fstream>
+#include <stddef.h>
+#include <string>
 
-#include <xercesc/util/PlatformUtils.hpp>
-#include <boost/filesystem/operations.hpp>
-#include <boost/algorithm/string.hpp>
-
-#include "General/exception.hh"
 #include "DataInOut/ParamHandling/Xerces.hh"
+#include "General/exception.hh"
+#include <boost/algorithm/string.hpp>
+#include <boost/filesystem/operations.hpp>
+#include <boost/iostreams/filter/bzip2.hpp>
+#include <boost/iostreams/filtering_streambuf.hpp>
+#include <boost/iostreams/copy.hpp>
+#include <xercesc/util/PlatformUtils.hpp>
+#include <xercesc/sax2/SAX2XMLReader.hpp>
+#include <xercesc/sax2/XMLReaderFactory.hpp>
+#include <xercesc/sax/InputSource.hpp>
 
 
 // we want to use the Xerces-C++ namespace
 using namespace xercesc;
+using namespace std;
 namespace fs = boost::filesystem;
 
 namespace CoupledField
@@ -44,20 +52,44 @@ namespace CoupledField
     this->schema_ = schema;
   }
 
-  /** this cannot be done in the constructor as the error handler takes "this" */
-  void Xerces::Parse()
+  void Xerces::SAXParser(PtrParamNode root)
   {
-    // Initialise the XML4C2 system
+    SAX2XMLReader* parser = XMLReaderFactory::createXMLReader();
+    parser->setFeature(XMLUni::fgSAX2CoreValidation, true);
+    //parser->setFeature(XMLUni::fgSAX2CoreNameSpaces, true);   // optional
+
+    DefaultHandler* defaultHandler = new SAXHandler(root);
+    parser->setContentHandler(defaultHandler);
+    parser->setErrorHandler(defaultHandler);
+
     try
     {
-       XMLPlatformUtils::Initialize();
+      if(boost::algorithm::ends_with(file_, ".bz2")){
+        parser->parse(Bzip2InputSource(file_));
+      }else{
+        parser->parse(file_.c_str()); // reads the content to root
+      }
     }
-    catch(const XMLException &event )
+    catch(const XMLException& toCatch)
     {
-        EXCEPTION("Error initializing xerces-c"
-                  << XMLString::transcode(event.getMessage()));
+      EXCEPTION("Xerces-XML error on SAX parsing: " << XMLString::transcode(toCatch.getMessage()));
+    }
+    catch (const SAXParseException& toCatch)
+    {
+      EXCEPTION("Xerces-SAX error: " << XMLString::transcode(toCatch.getMessage()));
+    }
+    catch (...)
+    {
+      EXCEPTION("unexpected error on SAX parsing");
     }
 
+    delete parser;
+    delete defaultHandler;
+  }
+
+  /** this cannot be done in the constructor as the error handler takes "this" */
+  void Xerces::DOMParser()
+  {
     parser_ = new XercesDOMParser();
     // skip whitespaces
     parser_->setIncludeIgnorableWhitespace(false);
@@ -130,6 +162,8 @@ namespace CoupledField
 
   }
 
+
+
   Xerces::~Xerces()
   {
 
@@ -144,22 +178,37 @@ namespace CoupledField
         parser_ = NULL;
      }
 
-
-
     // Shutdown platform dependend utilities
     XMLPlatformUtils::Terminate();
-
   }
 
 
   PtrParamNode Xerces::CreateParamNodeInstance()
   {
-     // read the file, this cannot be done in the constructor as the error handler takes this object
-     Parse();
+    // read the file, this cannot be done in the constructor as the error handler takes this object
+    try
+    {
+      XMLPlatformUtils::Initialize();
+    }
+    catch(const XMLException& toCatch)
+    {
+      EXCEPTION("Error initializing xerces-c" << XMLString::transcode(toCatch.getMessage()));
+    }
 
-     PtrParamNode out (new ParamNode(ParamNode::EX, ParamNode::ELEMENT ) );
-     Fill(root_, out);
-     return out;
+    PtrParamNode out (new ParamNode(ParamNode::EX, ParamNode::ELEMENT ) );
+
+    if(schema_ != "")
+    {
+      DOMParser();
+      Fill(root_, out);
+    }
+    else
+    {
+      SAXParser(out);
+      // out->Dump();
+    }
+
+    return out;
   }
 
   void Xerces::Fill(DOMNode* node, PtrParamNode parent)
@@ -278,6 +327,89 @@ namespace CoupledField
   }
 
 
+  Xerces::SAXHandler::SAXHandler(PtrParamNode root) : first(true)
+  {
+    stack.Push_back(root);
+  }
+
+  void Xerces::SAXHandler::startElement(const XMLCh* const uri, const XMLCh* const localname, const XMLCh* const qname, const xercesc::Attributes& attrs)
+  {
+
+    char* xstring = XMLString::transcode(localname);
+    // special handling of root element, see if it was defined already
+    if(first){
+      stack.Last()->SetName(xstring);
+      first = false;
+    }else{
+      stack.Push_back(stack.Last()->Get(xstring, ParamNode::APPEND));
+    }
+//    std::cout << std::endl << "I process element: "<< xstring << " attrs: " << attrs.getLength() << " before: ";  DumpStack();
+    XMLString::release(&xstring);
+
+    for(unsigned int i = 0; i < attrs.getLength(); i++)
+    {
+      char* xname = XMLString::transcode(attrs.getLocalName(i));
+      char* xval = XMLString::transcode(attrs.getValue(i));
+      stack.Last()->Get(xname, ParamNode::APPEND)->SetValue(xval);
+      XMLString::release(&xname);
+      XMLString::release(&xval);
+    }
+  }
+
+  void Xerces::SAXHandler::endElement(const XMLCh *const uri, const XMLCh *const localname, const XMLCh *const qname)
+  {
+/*    char* message = XMLString::transcode(localname);
+    std::cout << std::endl << "finish: "<< message << " before: ";  DumpStack();
+    XMLString::release(&message);*/
+    // on the end of the file we have an end event for the root element
+    if(stack.GetSize() > 1)
+      stack.Erase(stack.GetSize()-1);
+  }
+
+  void Xerces::SAXHandler::fatalError(const xercesc::SAXParseException& exception)
+  {
+    EXCEPTION("Fatal error performing SAX XML parsing in line " << exception.getLineNumber() << ": " << XMLString::transcode(exception.getMessage()));
+  }
+
+  void Xerces::SAXHandler::DumpStack()
+  {
+    for(unsigned int i = 0; i < stack.GetSize(); i++)
+     std::cout << i << ": " << stack[i]->GetName() << " ";
+  }
+  
+  Xerces::Bzip2InputStream::Bzip2InputStream(string fileName, xercesc::MemoryManager* const manager) :
+      compin_(fileName.c_str(), ios_base::in | ios_base::binary), fMemoryManager(manager), curPos_(0)
+  {
+    bzipin_.push(boost::iostreams::bzip2_decompressor());
+    bzipin_.push(compin_);
+  }
+  
+  Xerces::Bzip2InputStream::~Bzip2InputStream(){
+  }
+  
+  unsigned int Xerces::Bzip2InputStream::curPos() const{
+    return(curPos_);
+  }
+  
+  unsigned int Xerces::Bzip2InputStream::readBytes(XMLByte* const toFill, const unsigned int maxToRead) {
+    unsigned int r = bzipin_.sgetn((char*) toFill, maxToRead);
+    curPos_ += r;
+    return(r);
+  }
+  
+  Xerces::Bzip2InputSource::Bzip2InputSource(string fileName) : InputSource() {
+    fileName_ = fileName;
+  }
+  
+  Xerces::Bzip2InputSource::~Bzip2InputSource(){
+    
+  }
+  
+  Xerces::Bzip2InputStream* Xerces::Bzip2InputSource::makeStream() const {
+    Bzip2InputStream* retStream = new (getMemoryManager()) Bzip2InputStream(fileName_, getMemoryManager());    
+    return(retStream);
+  }
+  
 
 } // end of namespace
 

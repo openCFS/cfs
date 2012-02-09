@@ -2,10 +2,15 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
+#include <stddef.h>
+#include <ostream>
+
+#include "General/environment.hh"
 #include "MatVec/basematrix.hh"
-#include "MatVec/stdmatrix.hh"
 #include "MatVec/basevector.hh"
 #include "MatVec/generatematvec.hh"
+#include "MatVec/stdmatrix.hh"
+#include "OLAS/precond/baseprecond.hh"
 #include "OLAS/precond/idprecond.hh"
 #include "OLAS/solver/basesolver.hh"
 #include "iterativerefinement.hh"

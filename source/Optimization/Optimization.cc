@@ -1,40 +1,46 @@
-#include <def_use_ipopt.hh>
-#include <def_use_scpip.hh>
-#include <def_use_snopt.hh>
-#include <def_use_knitro.hh>
-#include <map>
+#include <assert.h>
+#include <algorithm>
+#include <cmath>
+#include <iostream>
 
-#include "Optimization/Optimization.hh"
-#include "Optimization/Excitation.hh"
-#include "Optimization/SIMP.hh"
-#include "Optimization/PiezoSIMP.hh"
+#include "DataInOut/Logging/cfslog.hh"
+#include "DataInOut/Logging/log.hpp"
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "DataInOut/programOptions.hh"
+#include "DataInOut/resultHandler.hh"
+#include "Domain/domain.hh"
+#include "Driver/baseSolveStep.hh"
+#include "Driver/basedriver.hh"
+#include "Driver/harmonicDriver.hh"
+#include "General/environment.hh"
+#include "General/exception.hh"
 #include "Optimization/Design/DesignElement.hh"
 #include "Optimization/Design/DesignSpace.hh"
 #include "Optimization/Design/DesignStructure.hh"
-#include "Optimization/Optimizer/OptimalityCondition.hh"
+#include "Optimization/ErsatzMaterial.hh"
+#include "Optimization/Excitation.hh"
+#include "Optimization/Function.hh"
 #include "Optimization/LevelSet.hh"
-#include "Optimization/Optimizer/EvaluateOnly.hh"
-#include "Optimization/Optimizer/ShapeOptimizer.hh"
-#include "Optimization/ShapeGrad.hh"
-#include "Optimization/Optimizer/GradientCheck.hh"
-#include "Optimization/ParamMat.hh"
+#include "Optimization/Optimization.hh"
 #include "Optimization/OptimizationMaterial.hh"
-#include "Driver/assemble.hh"
-#include "Driver/basedriver.hh"
-#include "Driver/harmonicDriver.hh"
-#include "Driver/singleDriver.hh"
-#include "Driver/stdSolveStep.hh"
-#include "PDE/StdPDE.hh"
-#include "PDE/SinglePDE.hh"
-#include "PDE/mechPDE.hh"
-#include "Domain/domain.hh"
-#include "Domain/grid.hh"
-#include "DataInOut/ParamHandling/ParamNode.hh"
-#include "DataInOut/Logging/cfslog.hh"
-#include "DataInOut/resultHandler.hh"
-#include "DataInOut/programOptions.hh"
-#include <boost/filesystem.hpp>
+#include "Optimization/Optimizer/BaseOptimizer.hh"
+#include "Optimization/Optimizer/EvaluateOnly.hh"
+#include "Optimization/Optimizer/GradientCheck.hh"
+#include "Optimization/Optimizer/OptimalityCondition.hh"
+#include "Optimization/Optimizer/ShapeOptimizer.hh"
+#include "Optimization/ParamMat.hh"
+#include "Optimization/PiezoSIMP.hh"
+#include "Optimization/SIMP.hh"
+#include "Optimization/ShapeGrad.hh"
 #include "Optimization/ShapeOpt.hh"
+#include "PDE/SinglePDE.hh"
+#include "PDE/basePDE.hh"
+#include "Utils/tools.hh"
+#include "boost/filesystem.hpp"
+#include "def_use_ipopt.hh"
+#include "def_use_knitro.hh"
+#include "def_use_scpip.hh"
+#include "def_use_snopt.hh"
 
 // IPOPT, SCPIP and SnOpt are not necessarily linked
 #ifdef USE_IPOPT
@@ -381,7 +387,6 @@ void Optimization::SetEnums()
   MultipleExcitation::type.Add(MultipleExcitation::META_OBJECTIVE, "meta_objective");
   MultipleExcitation::type.Add(MultipleExcitation::HOMOGENIZATION_TEST_STRAINS, "homogenizationTestStrains");
   MultipleExcitation::type.Add(MultipleExcitation::MAXWELL_HOMOGENIZATION_TEST_STRAINS, "maxwellHomogenizationTestStrains");
-  MultipleExcitation::type.Add(MultipleExcitation::POLARIZATION_MATRIX, "polarizationMatrix");
 }
 
 bool Optimization::IsTransient() const{
@@ -524,7 +529,8 @@ void Optimization::SolveProblem()
   if(!IsTransient()){ // transient optimization saves results in a different way
     rh = domain->GetResultHandler();
     unsigned int mss = domain->GetDriver()->GetActSequenceStep();
-    rh->BeginMultiSequenceStep(mss, BasePDE::TRANSIENT, 999); // max steps is high
+    // max steps is high. The number is only relevant for hdf5, but there a hard limit
+    rh->BeginMultiSequenceStep(mss, BasePDE::TRANSIENT, 9999);
   }
 
   Exception* e = NULL;

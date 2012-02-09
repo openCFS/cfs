@@ -2,38 +2,46 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include <complex>
+#include <stddef.h>
+#include <ostream>
+#include <string>
 
-#include <def_use_lapack.hh>
+#include "def_use_lapack.hh"
 
 
 // Include LAPACK stuff
 #ifdef USE_LAPACK
-#include "OLAS/external/lapack/lapack.hh"
 #include "OLAS/external/lapack/lapackgbmatrix.hh"
 #endif
 
-
+#include "General/Enum.hh"
+#include "General/defs.hh"
+#include "General/environment.hh"
+#include "General/exception.hh"
+#include "MatVec/SingleVector.hh"
+#include "MatVec/basematrix.hh"
+#include "MatVec/basevector.hh"
+#include "MatVec/stdmatrix.hh"
+#include "OLAS/external/lapack/olasf77mapping.hh"
+#include "OLAS/graph/basegraph.hh"
+#include "OLAS/graph/graphmanagersbmmat.hh"
+// include source code for templated matrices
+#include "crs_matrix.hh"
+#include "diag_matrix.hh"
+#include "generatematvec.hh"
+#include "sbmmatrix.hh"
+#include "sbmvector.hh"
+#include "scrs_matrix.hh"
 // include source code for templated vectors
 //#include "MatVec/vector.cc"
 //#include "matvec/vector_specialised.cc"
 #include "vector.hh"
 
-// include source code for templated matrices
-#include "crs_matrix.hh"
-#include "scrs_matrix.hh"
-#include "diag_matrix.hh"
-#include "sbmmatrix.hh"
-
-#include "sbmvector.hh"
-
 // Include that prematrix stuff
 // #include "multigrid/prematrix.cc"
 
 
-
 namespace CoupledField {
-
 
 
   // >>>>>>>>>>>>>>>>>>>>>>>>>>>> VECTOR PART <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<

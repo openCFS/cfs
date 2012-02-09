@@ -1,84 +1,90 @@
 SET(FORMS_SRCS
-  abcInt.cc
-  acouMechInt.cc
-  acouMechNcInt.cc
-  acouPowerDensityOp.cc
-  acouRHSLinForm.cc
-  adbInt.cc
-  baseForceOp.cc
-  baseForm.cc
-  baseoperator.cc
-  bdbInt.cc
-  bdInt.cc
-  curlCurlEdgeInt.cc
-  curlCurlNodeInt.cc
-  curlfieldop.cc
-  elecchargeop.cc
-  elecforceop.cc
-  FlatShellElecInt.cc
-  FlatShellInt.cc
-  FlatShellMassInt.cc
-  FlatShellPiezoInt.cc
-  FlatShellStiffInt.cc
-  gradfieldop.cc
-  laplaceInt.cc
   linearForm.cc
-  linBiotSavartSurfInt.cc
+  PMLInt.cc
+  fluidMechStiffInt.cc
+  acouRHSLinForm.cc
+  FlatShellStiffInt.cc
+  mixedInt.cc
   linElastInt.cc
-  linGradBDBInt.cc
-  linNeumannInt.cc
-  linPiezoCoupling.cc
-  linPressureInt.cc
-  linStrainOp.cc
-  linSurfForm.cc
-  linSurfStressInt.cc
-  linThermoElectricInt.cc 
-  linThermoMechInt.cc
-  linThermoElecDampInt.cc 
-  linThermoMechDampInt.cc 
-  linHeatCondInt.cc
-  linViscoElastInt.cc
-  magforceop.cc
-  massEdgeInt.cc
-  massInt.cc
+  nLinElastInt.cc
   mechStressStrain.cc
   PiezoStressStrain.cc
-  nLincurlCurlEdgeInt.cc
-  nLincurlCurlNodeInt.cc
-  nLinElastInt.cc
-  nLinElecHystInt.cc
-  nlinLaplaceInt.cc
-  nLinMassInt.cc
-  nLinPiezoCoupling.cc
-  nLinPiezoHyst.cc
-  nLinPiezoHystRHS.cc
-  nonConformingInt.cc
-  pierceInt.cc
-  piezoPolarizationMatrixRHSInt.cc
-  pmlBasics.cc
-  PMLInt.cc
-  singleEntryInt.cc
-  smoothInt.cc
-  smoothNLInt.cc
-  nLinMagHystInt2D.cc
-  mixedInt.cc
   fluidMechInt.cc
-  fluidMechShearStress.cc
-  fluidMechMassInt.cc
-  fluidMechStiffInt.cc
+  magforceop.cc
+  acouMechNcInt.cc
+  baseForm.cc
   nLinPiezoMicro.cc
+  linNeumannInt.cc
+  massInt.cc
+  linSurfStressInt.cc
+  linThermoMechDampInt.cc
+  nLincurlCurlNodeInt.cc
+  FlatShellInt.cc
   nLinPiezoMicroRHS.cc
-  linMagStrictInt.cc
+  nLinPiezoHystRHS.cc
   nLinHeatInt.cc
+  smoothNLInt.cc
+  baseForceOp.cc
+  fluidMechMassInt.cc
+  nonConformingInt.cc
+  linMagStrictInt.cc
+  nLincurlCurlEdgeInt.cc
+  linThermoElecDampInt.cc
+  linPiezoCoupling.cc
+  linSurfForm.cc
+  bdbInt.cc
+  linStrainOp.cc
+  nLinPiezoCoupling.cc
+  acouPowerDensityOp.cc
+  curlCurlNodeInt.cc
+  nLinElecHystInt.cc
+  nLinMagHystInt2D.cc
+  linBiotSavartSurfInt.cc
+  nLinPiezoHyst.cc
+  laplaceInt.cc
+  linPressureInt.cc
+  abcInt.cc
+  linThermoMechInt.cc
+  FlatShellPiezoInt.cc
+  FlatShellMassInt.cc
+  gradfieldop.cc
+  pierceInt.cc
+  acouMechInt.cc
+  curlCurlEdgeInt.cc
+  nlinLaplaceInt.cc
+  adbInt.cc
+  nLinMassInt.cc
+  FlatShellElecInt.cc
+  linGradBDBInt.cc
+  fluidMechShearStress.cc
+  bdInt.cc
+  linThermoElectricInt.cc
+  curlfieldop.cc
+  linViscoElastInt.cc
+  smoothInt.cc
+  pmlBasics.cc
+  linHeatCondInt.cc
+  elecchargeop.cc
+  massEdgeInt.cc
+  singleEntryInt.cc
+  elecforceop.cc
+  baseoperator.cc
   )
 
 ADD_LIBRARY(forms STATIC ${FORMS_SRCS})
 
-
 TARGET_LINK_LIBRARIES(forms
+  cfsgeneral
+  coupledpde
+  datainout
+  design
   domain
+  driver
+  elements
+  logging
   materials
-  mathparser
   matvec
+  paramh
+  pde
   utils
 )

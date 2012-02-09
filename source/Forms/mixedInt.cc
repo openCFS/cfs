@@ -1,9 +1,18 @@
-#include <iostream>
-#include <fstream>
+#include <assert.h>
+#include <math.h>
+#include <stddef.h>
+#include <complex>
 
+#include "Domain/ansatzFct.hh"
+#include "Domain/entityList.hh"
+#include "Elements/basefe.hh"
+#include "Forms/baseForm.hh"
+#include "General/environment.hh"
+#include "MatVec/exprt/xpr1.hh"
+#include "MatVec/exprt/xpr2.hh"
+#include "MatVec/matrix.hh"
+#include "Utils/mathParser/mathParser.hh"
 #include "mixedInt.hh"
-#include "Domain/domain.hh"
-#include "Domain/grid.hh"
 
 
 namespace CoupledField {

@@ -2,18 +2,24 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include "baseForceOp.hh"
-
 #include <string>
 
 #include "Domain/elem.hh"
-#include "Elements/basefe.hh"
+#include "Domain/entityList.hh"
 #include "Domain/grid.hh"
-#include "MatVec/vector.hh"
+#include "Elements/basefe.hh"
+#include "General/Enum.hh"
+#include "MatVec/exprt/xpr2.hh"
 #include "MatVec/matrix.hh"
-#include "PDE/StdPDE.hh"
+#include "MatVec/vector.hh"
 #include "Utils/elemstoresol.hh"
-#include "Materials/baseMaterial.hh"
+#include "baseForceOp.hh"
+
+namespace CoupledField {
+class EqnMap;
+class StdPDE;
+template <typename T> class NodeStoreSol;
+}  // namespace CoupledField
 
 namespace CoupledField
 {

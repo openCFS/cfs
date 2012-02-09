@@ -2,27 +2,35 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include "multiSequenceDriver.hh"
-
+#include <assert.h>
+#include <iostream>
 #include <set>
 
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "DataInOut/WriteInfo.hh"
+#include "DataInOut/resultHandler.hh"
+#include "Domain/domain.hh"
+#include "Driver/basedriver.hh"
+#include "Driver/singleDriver.hh"
+#include "General/Enum.hh"
+#include "General/environment.hh"
+#include "General/exception.hh"
+#include "PDE/SinglePDE.hh"
+#include "PDE/pdememento.hh"
+#include "eigenFrequencyDriver.hh"
+#include "harmonicDriver.hh"
+#include "multiSequenceDriver.hh"
 // include all kinds of single drivers
 #include "staticdriver.hh"
 #include "transientdriver.hh"
-#include "harmonicDriver.hh"
-#include "eigenFrequencyDriver.hh"
-
-#include "DataInOut/ParamHandling/ParamNode.hh"
-#include "PDE/SinglePDE.hh"
-#include "PDE/pdememento.hh"
-#include "Domain/domain.hh"
-#include "DataInOut/resultHandler.hh"
 
 namespace CoupledField {
 
   // ***************
   //   Constructor
   // ***************
+class AdjointParameters;
+
   MultiSequenceDriver::MultiSequenceDriver( ) 
     : BaseDriver() {
 

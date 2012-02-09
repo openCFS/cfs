@@ -30,14 +30,18 @@
 # pragma once
 #endif
 
-#include <sstream>
-#include <boost/shared_ptr.hpp>
-#include <boost/function.hpp>
-#include "DataInOut/Logging/log_impl.hpp"
-#include <time.h>
-
 // many thanks Pavel Vozenilek!
 #include <boost/detail/workaround.hpp>
+#include <boost/function.hpp>
+#include <boost/shared_ptr.hpp>
+#include <time.h>
+#include <sstream>
+#include <string>
+#include <vector>
+
+#include "DataInOut/Logging/detail/defs.hpp"
+#include "DataInOut/Logging/log.hpp"
+#include "DataInOut/Logging/log_impl.hpp"
 #if BOOST_WORKAROUND(__BORLANDC__, BOOST_TESTED_AT(0x564))
 #  pragma warn -8026 // some functions are not expanded inline
 #endif

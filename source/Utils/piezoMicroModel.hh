@@ -5,18 +5,16 @@
 #ifndef PIEZO_MICRO_MODELL_HF_HH
 #define PIEZO_MICRO_MODELL_HF_HH
 
-#include <string>
 
-#include "Domain/grid.hh"
-#include "Utils/tools.hh"
-#include "MatVec/vector.hh"
+#include "General/defs.hh"
 #include "General/environment.hh"
-#include "Materials/baseMaterial.hh"
+#include "MatVec/matrix.hh"
+#include "MatVec/vector.hh"
 
 namespace CoupledField {
 
   // forward class declarations
-  class ParamNode;
+class BaseMaterial;
 
   //! class for Huber-Fleck micro-piezoelectric model
   class PiezoMicroModelHF {

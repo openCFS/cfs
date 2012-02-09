@@ -5,7 +5,7 @@
 #include <fstream>
 #include <iostream>
 #include <string>
-#include <math.h>
+#include "math.h"
 
 #include "MpCCIexch.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
@@ -18,9 +18,9 @@
 #ifdef MpCCI
 
 #if (MpCCI_RELEASE == 305)
-#include <mpcci.h>
+#include "mpcci.h"
 #else
-#include <cci.h>
+#include "cci.h"
 #endif
 
 #endif

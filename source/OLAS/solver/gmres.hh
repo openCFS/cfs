@@ -5,18 +5,25 @@
 #ifndef OLAS_GMRES_HH
 #define OLAS_GMRES_HH
 
+#include <cmath>
+#include <complex>
+#include <ostream>
 #include <vector>
 
-#include <def_expl_templ_inst.hh>
-
-#include "OLAS/utils/math/givensrotation.hh"
-
-
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "General/defs.hh"
+#include "General/exception.hh"
+#include "MatVec/vector.hh"
+#include "Utils/tools.hh"
 #include "basesolver.hh"
+#include "def_expl_templ_inst.hh"
 
 namespace CoupledField {
 
+class BaseMatrix;
   class BasePrecond;
+class BaseVector;
+class GivensRotation;
 
   // Forward declaration of classes
   // class GivenRotation;

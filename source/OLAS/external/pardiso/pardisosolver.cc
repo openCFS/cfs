@@ -2,22 +2,33 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
+#include <stddef.h>
+#include <exception>
 #include <fstream>
 
-#include <boost/filesystem/operations.hpp>
-#include <boost/filesystem/exception.hpp>
+#include "boost/filesystem/exception.hpp"
+#include "boost/filesystem/operations.hpp"
+
 namespace fs = boost::filesystem;
 
-#include "MatVec/basematrix.hh"
-#include "MatVec/stdmatrix.hh"
-#include "MatVec/crs_matrix.hh"
-#include "MatVec/scrs_matrix.hh"
-
 #include "DataInOut/Logging/cfslog.hh"
+#include "DataInOut/Logging/log.hpp"
 #include "DataInOut/programOptions.hh"
-
+#include "General/Enum.hh"
+#include "General/exception.hh"
+#include "MatVec/basematrix.hh"
+#include "MatVec/crs_matrix.hh" // IWYU pragma: keep
+#include "MatVec/scrs_matrix.hh" // IWYU pragma: keep
+#include "MatVec/stdmatrix.hh"
+#include "OLAS/graph/baseordering.hh"
 #include "def_use_pardiso.hh"
 #include "pardisosolver.hh"
+
+namespace CoupledField {
+class BasePrecond;
+class BaseVector;
+template <typename T> class Vector;
+}  // namespace CoupledField
 
 namespace CoupledField {
 

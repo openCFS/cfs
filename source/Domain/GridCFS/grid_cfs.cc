@@ -2,27 +2,42 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include <iostream>
-#include <fstream>
-#include <vector>
-#include <string>
-#include <math.h>
+#include <assert.h>
+#include <string.h>
 #include <algorithm>
+#include <bitset>
+#include <cmath>
+#include <iterator>
+#include <limits>
 #include <set>
+#include <sstream>
+#include <string>
+#include <utility>
+#include <vector>
 
-#include "grid_cfs.hh"
-
-#include "Elements/elements_header.hh"
-#include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/Logging/cfslog.hh"
-#include "DataInOut/WriteInfo.hh"
+#include "DataInOut/Logging/log.hpp"
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "DataInOut/ParamHandling/Xerces.hh"
 #include "DataInOut/programOptions.hh"
+#include "DataInOut/resultHandler.hh"
+#include "Domain/domain.hh"
+#include "Domain/entityList.hh"
+#include "Domain/resultInfo.hh"
+#include "Domain/surfElem.hh"
+#include "Elements/basefe.hh"
+#include "General/Enum.hh"
 #include "General/exception.hh"
+#include "MatVec/exprt/xpr1.hh"
+#include "MatVec/exprt/xpr2.hh"
+#include "MatVec/matrix.hh"
+#include "PDE/basePDE.hh"
 #include "Utils/coordSystem.hh"
 #include "Utils/mathParser/mathParser.hh"
-#include "Domain/domain.hh"
-#include "DataInOut/resultHandler.hh"
-#include "DataInOut/ParamHandling/Xerces.hh"
+#include "Utils/result.hh"
+#include "Utils/tools.hh"
+#include "grid_cfs.hh"
+#include "math.h"
 
 namespace CoupledField {
 
@@ -1232,12 +1247,12 @@ namespace CoupledField {
                  << "node number " << inode );
     }
 
-    if ( (dim_ == 2) && (rfPoint[2] >= EPS) ) {
-      EXCEPTION( "GridCFS: Dimension of grid is 2D. "
-                  << "But you wanted to set the 3D coordinate " << "("
-                  << rfPoint[0] << ", " << rfPoint[1] << ", " << rfPoint[2]
-                  << ") for node number " << inode);
-    }
+    //if ( (dim_ == 2) && (rfPoint[2] != 0) ) {
+    //  EXCEPTION( "GridCFS: Dimension of grid is 2D. "
+    //              << "But you wanted to set the 3D coordinate " << "("
+    //              << rfPoint[0] << ", " << rfPoint[1] << ", " << rfPoint[2]
+    //              << ") for node number " << inode);
+    //}
 
     UInt idx = inode-1;
     coords_[idx][0] = rfPoint[0];

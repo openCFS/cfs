@@ -6,18 +6,16 @@
 #ifndef FILE_SCFE_MYDEFS_2001
 #define FILE_SCFE_MYDEFS_2001
 
-#include <typeinfo>
-#include <iostream>
-#include <vector>
-#include <cmath>
-
-// includes for the C99 standard datatypes (e.g. uint32_t, long double)
-#include <boost/cstdint.hpp>
-#include <boost/shared_ptr.hpp>
 #include <cfloat>
-
+#include <cmath>
+#include <iostream>
+#include <typeinfo>
+#include <vector>
 #include "General/defs.hh"
-#include "Enum.hh"
+#include "General/Enum.hh"
+// includes for the C99 standard datatypes (e.g. uint32_t, long double)
+#include "boost/cstdint.hpp"
+#include "boost/shared_ptr.hpp"
 
 //! \file environment.hh
 //! This file contains some global macro, class and enumeration data type
@@ -52,12 +50,10 @@ namespace CoupledField {
   using namespace boost;
 
 
+  class CFSMessenger;
   // forward class declaration
   class Domain;
-  class CFSMessenger;
   class LogConfigurator;
-  class ParamNode;
-  class InfoNode;
   
 
   // Type definitions for regions
@@ -150,6 +146,7 @@ namespace CoupledField {
     ACOU_BUBBLE_RHS_VAL, ACOU_SURFINTENSITY, ACOU_DIV_LH_TENSOR,
     ACOU_PMLAUXVEC, ACOU_PMLAUXSCALAR,
     ACOU_ELEM_SPEED_OF_SOUND,
+    ACOU_LAMB_RHS, ACOU_LAMB_VEC,
     
     // === Magnetic results ===
     MAG_POTENTIAL, MAG_SCALAR_POTENTIAL, MAG_FLUX_DENSITY, MAG_HFIELD, MAG_EDDY_CURRENT,
@@ -161,11 +158,12 @@ namespace CoupledField {
     HEAT_TEMPERATURE, HEAT_RHS_LOAD,
     MPCCI, FLUID_FORCE,
     ACOU_PRESSUREXYZ,
-    LAMBDA_K, FLUIDMECH_VELOCITY, FLUIDMECH_PRESSURE,
+    LAMBDA_K, MEAN_FLUIDMECH_VELOCITY, FLUIDMECH_VELOCITY, FLUIDMECH_PRESSURE,
     FLUIDMECH_VELOCITY_DERIV_1, FLUIDMECH_PRESSURE_DERIV_1,
     FLUIDMECH_VELOCITY_DERIV_2, FLUIDMECH_PRESSURE_DERIV_2,
     FLUIDMECH_DENSITY, FLUIDMECH_FORCE, FLUIDMECH_TKE, 
     FLUIDMECH_STRESS, FLUIDMECH_STRAINRATE, FLUIDMECH_ENERGY, FLUIDMECH_STABILPARAM,
+    FLUIDMECH_SKINFRICTION,
     HOMOGENIZED_TENSOR = 200,
     BUBBLE_RADIUS, BUBBLE_RADIUS_DERIV_1, BUBBLE_VOLUME_FRAC,
     OPT_RESULT_1, OPT_RESULT_2, OPT_RESULT_3,
@@ -323,6 +321,7 @@ namespace CoupledField {
   extern WriteInfo *Info;
 
   class BaseFE;
+
   //! Pointers to derived classes of BaseElem. Initialized in grid.hh/grid.cc.
   //! They are used, when we read information about elements from mesh and
   //! create a pointer to the class containing the description of the Finite

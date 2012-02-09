@@ -7,18 +7,15 @@
 
 #include <string>
 
-#include "Domain/grid.hh"
-#include "Utils/tools.hh"
-#include "MatVec/vector.hh"
-#include "MatVec/matrix.hh"
-#include "General/environment.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
+#include "General/defs.hh"
+#include "MatVec/matrix.hh"
+#include "MatVec/vector.hh"
 
 namespace CoupledField {
 
   // forward class declarations
-  class ParamNode;
-  class ParamNode;
+class Grid;
 
   //! Base class for describing a local coordinate system
   class CoordSystem {

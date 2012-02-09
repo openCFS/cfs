@@ -5,12 +5,20 @@
 #ifndef TRIVIAL_CARTESIAN_COORD_SYSTEM_HH
 #define TRIVIAL_CARTESIAN_COORD_SYSTEM_HH
 
+#include <string>
+
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "General/defs.hh"
+#include "MatVec/vector.hh"
 #include "coordSystem.hh"
 
 namespace CoupledField {
 
 
   //! Describes a simplistic Cartesian coordinate system.
+class Grid;
+template <class TYPE> class Matrix;
+
   class TrivialCartesianCoordSystem : public CoordSystem{
 
   public:

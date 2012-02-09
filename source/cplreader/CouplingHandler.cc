@@ -10,12 +10,12 @@
 #include <algorithm>
 #include <cmath>
 
-#include <boost/tokenizer.hpp>
-#include <boost/filesystem/operations.hpp>
-#include <boost/filesystem/path.hpp>
-#include <boost/filesystem/convenience.hpp>
-#include <boost/filesystem/exception.hpp>
-#include <boost/algorithm/string/trim.hpp>
+#include "boost/tokenizer.hpp"
+#include "boost/filesystem/operations.hpp"
+#include "boost/filesystem/path.hpp"
+#include "boost/filesystem/convenience.hpp"
+#include "boost/filesystem/exception.hpp"
+#include "boost/algorithm/string/trim.hpp"
 namespace fs=boost::filesystem;
 
 #include "General/exception.hh"
@@ -28,7 +28,7 @@ namespace fs=boost::filesystem;
 #include "CouplingHandler.hh"
 
 #ifdef _OPENMP
-#include <omp.h>
+#include "omp.h"
 #endif
 
 namespace CoupledField
@@ -510,7 +510,13 @@ namespace CoupledField
           
           // If the user requests the calculation of the Lighthill
           // source term, follow his order!
-          if(calcSrc && regionDims_[actRegion] == dim_)
+          //we now alos allow for surface integral!!
+          bool surfInt = false;
+          if ( regionDims_[actRegion] != dim_ ) 
+            surfInt = true;
+          
+
+          if(calcSrc ) //&& regionDims_[actRegion] == dim_)
           {
             // We need fluidMechVelocity for Lighthill source term.
             // This must be adapted for other source term formulations!!
@@ -519,8 +525,7 @@ namespace CoupledField
             {
               flowData[actRegion][FLUIDMECH_VELOCITY].isActive = true;
             }
-            
-            CalculateAcouSrcs(actRegion, flowData[actRegion]);
+            CalculateAcouSrcs(actRegion, flowData[actRegion], surfInt);
           }
           
         }//end of for
@@ -708,7 +713,8 @@ namespace CoupledField
   }
 
   void CouplingHandler::CalculateAcouSrcs(const int regionIdx,
-                                            FlowDataType& flowData)
+                                          FlowDataType& flowData,
+                                          bool surfInt)
   {
     Settings& settings = Settings::Instance();
 
@@ -818,11 +824,11 @@ namespace CoupledField
       elemIdx = regionElems_[regionIdx][i] - 1;
       elemType = (Elem::FEType) elemTypes_[elemIdx];
       numElemNodes = Elem::GetNumElemNodes(elemType);
-      elemDim = Elem::GetElemDim(elemType);
+      elemDim = dim_ ; //Elem::GetElemDim(elemType);
 
       // Just calculate sources for volume elements!
-      if(elemDim < dim_)
-        continue;
+      //      if(elemDim < dim_)
+      //       continue;
 
       coordMat.Resize(elemDim, numElemNodes);
       nodaldTijdxj.Resize(elemDim, numElemNodes);
@@ -861,19 +867,28 @@ namespace CoupledField
         if (doIntAverageCentre_)
         {
           ptElemI[elemType].PerformIntegrationCentre( coordMat, nodalVel,
-                               elemVec, nodalLoadDensity, divLHTensor, density);
+                                                      elemVec, 
+                                                      nodalLoadDensity, 
+                                                      divLHTensor, 
+                                                      density,
+                                                      surfInt);
         } else {
-          ptElemI[elemType].PerformIntegration( coordMat, nodaldTijdxj, nodalVel,
-                               elemVec, nodalLoadDensity, divLHTensor, density);
+          ptElemI[elemType].PerformIntegration( coordMat, nodaldTijdxj, 
+                                                nodalVel, elemVec, 
+                                                nodalLoadDensity, 
+                                                divLHTensor, density,
+                                                surfInt);
         }
 #else
         if (doIntAverageCentre_)
         {
           ptElemIntegr_[elemType]->PerformIntegrationCentre( coordMat, nodalVel,
-                               elemVec, nodalLoadDensity, divLHTensor, density);
+                                                             elemVec, nodalLoadDensity, 
+                                                             divLHTensor, density, surfInt);
         } else {
           ptElemIntegr_[elemType]->PerformIntegration( coordMat, nodaldTijdxj, nodalVel,
-                               elemVec, nodalLoadDensity, divLHTensor, density);
+                                                       elemVec, nodalLoadDensity, 
+                                                       divLHTensor, density, surfInt);
         }
 #endif
 

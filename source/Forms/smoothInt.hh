@@ -5,9 +5,15 @@
 #ifndef FILE_SMOOTHINT
 #define FILE_SMOOTHINT
 
-#include <Elements/basefe.hh>
-#include <Forms/bdbInt.hh>
-#include <Materials/baseMaterial.hh>
+#include "Forms/bdbInt.hh"
+
+#include "General/defs.hh"
+#include "General/environment.hh"
+
+namespace CoupledField {
+class BaseMaterial;
+template <class TYPE> class Matrix;
+}  // namespace CoupledField
 
 namespace CoupledField
 {

@@ -5,18 +5,18 @@
 #ifndef FILE_CFS_PROGRAM_OPTIONS_HH
 #define FILE_CFS_PROGRAM_OPTIONS_HH
 
-#include <boost/program_options.hpp>
-#include <boost/filesystem/path.hpp>
+#include <iosfwd>
+#include <string>
+#include <vector>
 
-
-// Include defs
-#include <def_build_type_options.hh>
-#include <def_use_scripting.hh>
-
-
-// Required for the CFS own data types
-#include "General/environment.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
+#include "General/defs.hh"
+#include "boost/filesystem/path.hpp"
+#include "boost/program_options.hpp"
+// Include defs
+#include "def_build_type_options.hh"
+#include "def_use_scripting.hh"
+// Required for the CFS own data types
 
 namespace po = boost::program_options;
 namespace fs = boost::filesystem;
@@ -92,17 +92,13 @@ namespace CoupledField
      * @return "" if nothing given. */
     std::string GetErsatzMaterialStr() const;
 
-    //! Return path to XML schema file
 
-    //! This method can be used to query the path to the XML schema file
-    //! used by validating XML parsers to verify the formal correctness
-    //! of the XML parameter file.
-    //! \note
-    //! - There is currently no way to specify the name of the schema
-    //!   file itself. This must be called CFS.xsd!
-    //! - This path is also used to locate the default XML-file that is
-    //!   currently still needed by the XMLParamHandler.
-    fs::path GetSchemaPath() const;
+    /** Return path to XML schema file.
+     * This method can be used to query the path to the XML schema file of the XML parameter file.
+     * Used by validating XML parsers to verify the formal correctness. Setting 'none' as option disables
+     * schema parsing.
+     * @note There is currently no way to specify the name of the schema file itself. This must be called CFS.xsd!
+     * @note This path is also used to locate the default XML-file that is currently still needed by the XMLParamHandler */
     std::string GetSchemaPathStr() const;
 
     //! Return name of mesh file (including path)

@@ -5,22 +5,20 @@
 #ifndef FILE_BASEPDE
 #define FILE_BASEPDE
 
-#include <list>
+#include <string>
 
-#include "General/environment.hh"
-#include "Utils/StdVector.hh"
-#include "General/exception.hh"
-#include "General/Enum.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
+#include "General/Enum.hh"
+#include "General/defs.hh"
+#include "General/exception.hh"
 
 namespace CoupledField
 {
 
 
+  class Assemble;
   // forward class declarations
   class BaseSolveStep;
-  class Assemble;
-  class ParamNode;
 
   //! Base class for partial differential equations
 
@@ -82,6 +80,10 @@ namespace CoupledField
     typedef enum {STATIC, TRANSIENT, HARMONIC, EIGENFREQUENCY, 
                   MULTI_SEQUENCE } AnalysisType;
     
+    virtual AnalysisType GetAnalysisType() const { return analysistype_; }
+
+    bool IsComplex() const { return IsComplex(GetAnalysisType()); }
+
     /** Helper method which determines if an AnalyisType is complex. */
     static bool IsComplex(AnalysisType type);
                   
@@ -101,19 +103,14 @@ namespace CoupledField
     }
 
     
-    // ======================================================
-    // DATA SECTION
-    // ======================================================
+    AnalysisType analysistype_;
     
-    //@{
-
     //! index of current set of boundary conditions. For a multiSequence-simulation
     //! this index determines, which set of boundary conditions is applied.
     UInt sequenceStep_;
 
     //! ParamNode of current pde
     PtrParamNode myParam_;
-    //@}
 
     //! name of the PDE
     std::string pdename_;

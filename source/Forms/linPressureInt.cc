@@ -2,11 +2,26 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
+#include <math.h>
+#include <complex>
+#include <ostream>
+
+#include "DataInOut/Logging/cfslog.hh"
+#include "DataInOut/Logging/log.hpp"
+#include "DataInOut/ResultCache.hh"
+#include "Domain/entityList.hh"
+#include "Domain/surfElem.hh"
+#include "Elements/basefe.hh"
+#include "General/environment.hh"
+#include "MatVec/exprt/xpr1.hh"
+#include "MatVec/matrix.hh"
+#include "MatVec/vector.hh"
+#include "Utils/mathParser/mathParser.hh"
 #include "linPressureInt.hh"
 
-
-#include "DataInOut/ResultCache.hh"
-#include "DataInOut/Logging/cfslog.hh"
+namespace CoupledField {
+struct Elem;
+}  // namespace CoupledField
 
 DECLARE_LOG(forms)
 

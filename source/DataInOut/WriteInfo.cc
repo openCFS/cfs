@@ -2,31 +2,23 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include <stdlib.h>
-#include <iostream>
-#include <sstream>
-#include <iomanip>
-#include <fstream>
-#include <cstdio>
 #include <cstdarg>
+#include <cstdio>
+#include <fstream>
+#include <iostream>
+#include <ostream>
 
-#include <def_cfs_stats.hh>
-
-#include "WriteInfo.hh"
-#include "Utils/tools.hh"
+#include "General/Enum.hh"
+#include "General/environment.hh"
 #include "Utils/Coil.hh"
 #include "Utils/coordSystem.hh"
-#include "Materials/baseMaterial.hh"
-#include "coloredConsole.hh"
+#include "WriteInfo.hh"
+#include "def_cfs_stats.hh"
+#include "stdlib.h"
 #ifndef INTEGLIB
-#include "Domain/resultInfo.hh"
 #include "DataInOut/programOptions.hh"
 #endif
 #include "MatVec/vector.hh"
-
-#ifdef USE_SCRIPTING 
-#include "DataInOut/Scripting/cfsmessenger.hh"
-#endif
 
 using std::cout;
 using std::endl;

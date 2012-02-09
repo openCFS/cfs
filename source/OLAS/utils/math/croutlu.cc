@@ -5,14 +5,14 @@
 #ifndef CROUT_LU_CC
 #define CROUT_LU_CC
 
-#include <algorithm>
-#include <iterator>
+#include <stdio.h>
+#include <ostream>
 
 #include "General/environment.hh"
-#include "Utils/tools.hh"
-#include "MatVec/opdefs.hh"
+#include "General/exception.hh"
 #include "MatVec/basematrix.hh"
 #include "MatVec/crs_matrix.hh"
+#include "MatVec/opdefs.hh"
 #include "OLAS/utils/math/croutlu.hh"
 
 // Be commenting in or out the macros below debugging of the CroutLU class

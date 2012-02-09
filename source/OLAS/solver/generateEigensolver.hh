@@ -5,8 +5,6 @@
 #ifndef OLAS_GENERATE_EIGEN_SOLVER_HH
 #define OLAS_GENERATE_EIGEN_SOLVER_HH
 
-#include "General/environment.hh"
-#include "General/defs.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 
 //! \file generateEigenSolver.hh
@@ -18,7 +16,6 @@ namespace CoupledField {
   // forward class declarations
   class BaseEigenSolver;
   class BaseMatrix;
-  class ParamNode;
 
   //! Generate a basic solver object
 

@@ -27,6 +27,12 @@ SET_TARGET_PROPERTIES(cplreader_cfx
 )
 
 TARGET_LINK_LIBRARIES(cplreader_cfx
+  cfsgeneral
+  domain
+  elements
+  logging
+  matvec
+  utils
   ${CFX_LIBIO} # CFX I/O library
   ${BOOST_REGEX_LIB}
 )

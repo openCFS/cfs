@@ -5,9 +5,17 @@
 #ifndef FILE_NLINCURLCURLNODEINT
 #define FILE_NLINCURLCURLNODEINT
 
-#include "Utils/ApproxData.hh"
-#include "baseForm.hh"
+#include "General/defs.hh"
+#include "General/environment.hh"
+#include "MatVec/vector.hh"
 #include "curlCurlNodeInt.hh"
+
+namespace CoupledField {
+class ApproxData;
+class BaseMaterial;
+class EntityIterator;
+template <class TYPE> class Matrix;
+}  // namespace CoupledField
 
 namespace CoupledField
 {

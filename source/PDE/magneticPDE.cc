@@ -2,37 +2,63 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include <fstream>
+#include <stddef.h>
+#include <cmath>
+#include <complex>
+#include <iostream>
+#include <string>
+#include <utility>
 
-#include "magneticPDE.hh"
-
-#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "CoupledPDE/pdecoupling.hh"
 #include "DataInOut/Logging/cfslog.hh"
-#include "Driver/stdSolveStep.hh"
+#include "DataInOut/Logging/log.hpp"
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "DataInOut/WriteInfo.hh"
+#include "Domain/ansatzFct.hh"
+#include "Domain/domain.hh"
+#include "Domain/elem.hh"
+#include "Domain/entityList.hh"
+#include "Domain/grid.hh"
+#include "Domain/resultInfo.hh"
+#include "Driver/assemble.hh"
+#include "Driver/formsContext.hh"
 #include "Driver/solveStepMagHyst.hh"
-#include "Utils/Coil.hh"
-#include "Utils/SmoothSpline.hh"
-#include "Utils/LinInterpolate.hh"
-#include "Forms/curlfieldop.hh"
+#include "Driver/stdSolveStep.hh"
+#include "Elements/basefe.hh"
+#include "Forms/baseForm.hh"
+#include "Forms/bdbInt.hh"
 #include "Forms/curlCurlNodeInt.hh"
-#include "Forms/nonConformingInt.hh"
-#include "Forms/nLincurlCurlNodeInt.hh"
-#include "Forms/nLinMagHystInt2D.hh"
 #include "Forms/laplaceInt.hh"
 #include "Forms/linGradBDBInt.hh"
 #include "Forms/linearForm.hh"
+#include "Forms/magforceop.hh"
 #include "Forms/massInt.hh"
-#include "trapezoidal.hh"
-#include "CoupledPDE/pdecoupling.hh"
-#include "Domain/ansatzFct.hh"
-#include "Driver/assemble.hh"
-#include "Utils/coordSystem.hh"
+#include "Forms/nLinMagHystInt2D.hh"
+#include "Forms/nLincurlCurlNodeInt.hh"
+#include "Forms/nonConformingInt.hh"
+#include "General/Enum.hh"
+#include "General/exception.hh"
+#include "MatVec/SingleVector.hh"
+#include "MatVec/exprt/xpr1.hh"
+#include "MatVec/exprt/xpr2.hh"
+#include "MatVec/matrix.hh"
+#include "MatVec/vector.hh"
+#include "Materials/baseMaterial.hh"
+#include "PDE/SinglePDE.hh"
+#include "PDE/StdPDE.hh"
+#include "PDE/basePDE.hh"
+#include "PDE/eqnMap.hh"
+#include "Utils/ApproxData.hh"
+#include "Utils/Coil.hh"
+#include "Utils/basenodestoresol.hh"
 #include "Utils/biotSavart.hh"
+#include "Utils/coordSystem.hh"
 #include "Utils/mathParser/mathParser.hh"
-
-#ifdef USE_SCRIPTING
-#include "DataInOut/Scripting/cfsmessenger.hh" 
-#endif
+#include "Utils/nodestoresol.hh"
+#include "Utils/result.hh"
+#include "Utils/tools.hh"
+#include "magneticPDE.hh"
+#include "trapezoidal.hh"
 
 namespace CoupledField {
 
@@ -1398,6 +1424,15 @@ DEFINE_LOG(magpde, "magpde")
     forceLorentz->fctType = shared_ptr<ConstFct>(new ConstFct());
     availResults_.insert( forceLorentz );
 
+    // === VWP FORCE ===
+    shared_ptr<ResultInfo> forceVWP(new ResultInfo);
+    forceVWP->resultType = MAG_FORCE_VWP;
+    forceVWP->dofNames = vecComponents;
+    forceVWP->unit = "N";
+    forceVWP->definedOn = ResultInfo::NODE;
+    forceVWP->entryType = ResultInfo::VECTOR;
+    forceVWP->fctType = shared_ptr<ConstFct>(new ConstFct());
+    availResults_.insert( forceVWP );
 
     // ===================================
     // Check for non-conforming interfaces
@@ -1474,7 +1509,8 @@ DEFINE_LOG(magpde, "magpde")
 
   void MagPDE::ReadSpecialResults() {
     
-    // There is a small problem with the magnetic force VWP:
+    // There is a small problem with the magnetic force VWP
+
     // The force itself is primarily calculated on nodes,
     // which makes it dependent on the discretization.
 
@@ -1488,7 +1524,7 @@ DEFINE_LOG(magpde, "magpde")
     
 
 
-  //   StdVector<std::string> vecComponents;
+//     StdVector<std::string> vecComponents;
 //     if( isaxi_ ) {
 //       vecComponents = "r", "z";
 //     } else {
@@ -1504,7 +1540,6 @@ DEFINE_LOG(magpde, "magpde")
 //     std::string quantity;
 //     Enum2String(MAG_FORCE_VWP, quantity);
 
-//     // try to find nodes 
 //     keyVec  = pdename_, "storeResults", "nodeResult", "nodes";
 //     attrVec = "", "", "type";
 //     valVec = "", "",quantity;
@@ -1880,6 +1915,33 @@ DEFINE_LOG(magpde, "magpde")
           cplNodeNumPos_[actCoupling][actNode] = iNode;
         }
       }
+      else if (ptCoupling_->GetOutputQuantity(actCoupling) == MAG_FORCE_VWP ) {
+      
+        // Initialization of coupling helper arrays
+        StdVector<UInt> * couplingnodes = NULL;
+        StdVector<std::string> * nRegions;
+        StdVector<RegionIdType> nRegionIds;
+
+        ptCoupling_->GetOutputNodes(actCoupling, couplingnodes);
+        if (couplingnodes == NULL)
+          std::cerr << "Couplingnodes = 0!!!!" << std::endl;
+      
+        // get volume neighbours lying next to coupling nodes, because 
+        // these volume elements have to be  moved 'virtually'
+        NodeStoreSol<Double> * solhelp = 
+          dynamic_cast<NodeStoreSol<Double> *>(sol_);
+        ForceOpVWP_ = new  MagForceOp(ptgrid_, this,  eqnMap_, 
+                                      *solhelp, dim_, materials_, 
+                                      isaxi_, true );
+        
+        ptCoupling_->GetOutputNeighbourRegion(actCoupling, nRegions);
+        ptgrid_->GetRegion().Parse(*nRegions, nRegionIds);
+        ForceOpVWP_->Setup(nRegionIds, *couplingnodes);
+      
+        // Intialize the memory of the coupling values
+        ptCoupling_->CreateCouplingVector(actCoupling,isComplex_);
+
+      }
     }
   }
 
@@ -1918,7 +1980,24 @@ DEFINE_LOG(magpde, "magpde")
           ptgrid_->GetRegion().Parse( couplRegions, regionIds );
 
           CalcNodeForceLorentz(*temp, regionIds, cplNodeNumPos_[forcesCount]);
+          Vector<Double> sum(dim_);
+          sum.Init();
+          for( UInt i = 0; i < cplNodeNumPos_[forcesCount].size(); i++ ) {
+            for( UInt j = 0; j < dim_; j++ ) {
+              sum[j] += (*temp)[i*dim_+j];
+            }
+          }
+          Info->PrintF(pdename_, "Sum of magnetic force (Lorentz):\n");
+          Info->PrintVec(sum);
+          forcesCount++;
+        }
+        else  if (quantity ==  MAG_FORCE_VWP) {
+          Vector<Double> totalForce;
+          ForceOpVWP_->CalcNodeForce(*temp, totalForce);
           
+          // write information in .info-file
+          Info->PrintF(pdename_, "Sum of magnetic force (VWM):\n");
+          Info->PrintVec(totalForce);
           forcesCount++;
         }
 
@@ -2061,6 +2140,9 @@ DEFINE_LOG(magpde, "magpde")
 
   bool MagPDE::HasOutput( SolutionType output ) {
     if (output == MAG_FORCE_LORENTZ) {
+      return true;
+    }
+    else if (output == MAG_FORCE_VWP) {
       return true;
     }
     return false;

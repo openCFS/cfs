@@ -5,9 +5,20 @@
 #ifndef FILE_PMLINT
 #define FILE_PMLINT
 
+#include <string>
+
+#include "Domain/entityList.hh"
+#include "General/defs.hh"
+#include "General/environment.hh"
 #include "baseForm.hh"
-#include "pmlBasics.hh"
 #include "linElastInt.hh"
+
+namespace CoupledField {
+class BaseMaterial;
+class PMLBasics;
+template <class TYPE> class Matrix;
+template <class TYPE> class Vector;
+}  // namespace CoupledField
 
 namespace CoupledField
 {

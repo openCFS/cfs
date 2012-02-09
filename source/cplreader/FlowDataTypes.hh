@@ -5,8 +5,8 @@
 #ifndef CPLREADER_FLOWDATATYPES
 #define CPLREADER_FLOWDATATYPES
 
-#include <General/environment.hh>
-#include <Domain/resultInfo.hh>
+#include "General/environment.hh"
+#include "Domain/resultInfo.hh"
 
 namespace CoupledField
 {

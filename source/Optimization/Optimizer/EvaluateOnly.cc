@@ -1,9 +1,16 @@
-#include "Optimization/Optimizer/EvaluateOnly.hh"
-#include "Optimization/Design/DesignSpace.hh"
-#include "Optimization/ErsatzMaterial.hh"
-#include "Optimization/Optimization.hh"
-#include "Driver/harmonicDriver.hh"
+#include <iostream>
+
 #include "Domain/domain.hh"
+#include "Driver/basedriver.hh"
+#include "Driver/harmonicDriver.hh"
+#include "General/Enum.hh"
+#include "General/environment.hh"
+#include "Optimization/Condition.hh"
+#include "Optimization/Design/DesignSpace.hh"
+#include "Optimization/Excitation.hh"
+#include "Optimization/Optimization.hh"
+#include "Optimization/Optimizer/EvaluateOnly.hh"
+#include "Utils/StdVector.hh"
 #include "Utils/Timer.hh"
 
 using namespace CoupledField;

@@ -2,23 +2,31 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include "eigenFrequencyDriver.hh"
-#include "stdSolveStep.hh"
-
-#include <iostream>
+#include <assert.h>
+#include <cmath>
 #include <iomanip>
-
-#include "PDE/StdPDE.hh"
-#include "Domain/domain.hh"
+#include <iostream>
 
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/resultHandler.hh"
+#include "Domain/domain.hh"
+#include "Driver/baseSolveStep.hh"
+#include "Driver/singleDriver.hh"
+#include "General/environment.hh"
+#include "General/exception.hh"
+#include "MatVec/SingleVector.hh"
+#include "MatVec/vector.hh"
+#include "PDE/basePDE.hh"
+#include "Utils/tools.hh"
+#include "eigenFrequencyDriver.hh"
 
 namespace CoupledField {
 
   // ***************
   //   Constructor
   // ***************
+class AdjointParameters;
+
   EigenFrequencyDriver::EigenFrequencyDriver(UInt sequenceStep,
                                              bool isPartOfSequence) 
     : SingleDriver( sequenceStep, isPartOfSequence ) {

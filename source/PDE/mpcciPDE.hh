@@ -7,10 +7,10 @@
 
 #include "SinglePDE.hh" 
 
-#include <def_use_mpcci.hh>
+#include "def_use_mpcci.hh"
 
 #ifdef MpCCI
-#include <MpCCIcpl/MpCCIexch.hh>
+#include "MpCCIcpl/MpCCIexch.hh"
 #endif
 
 namespace CoupledField

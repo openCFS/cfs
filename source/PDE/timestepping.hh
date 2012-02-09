@@ -6,15 +6,20 @@
 #define FILE_TIMESTEPPING_2001
 
 #include <map>
+#include <ostream>
+#include <utility>
 
+#include "General/defs.hh"
 #include "General/environment.hh"
-#include "Utils/nodestoresol.hh"
+#include "General/exception.hh"
+#include "MatVec/vector.hh"
 
 namespace CoupledField {
 
 
   // forward class declaration
   class BaseSystem;
+
   // typedef of timesteps: the higher the number, the older the time step
   // these are also used for the coefficient vectors. 
   // @warning: sol_timeStepVec_ may have different number of entries as

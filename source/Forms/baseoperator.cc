@@ -3,12 +3,16 @@
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
 #include "baseoperator.hh"
-#include "Domain/grid.hh"
+
+namespace CoupledField {
+class EqnMap;
+}  // namespace CoupledField
+
 namespace CoupledField
 {
 
   BaseOperator::BaseOperator(Grid * ptGrid, StdPDE * ptPDE, 
-                             shared_ptr<EqnMap> eqnMap,
+                             boost::shared_ptr<EqnMap> eqnMap,
                              bool isaxi, bool coordUpdate )
     : isaxi_(isaxi)
   {

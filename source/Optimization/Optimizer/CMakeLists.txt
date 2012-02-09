@@ -1,7 +1,27 @@
-SET(OPTIMIZER_SRCS ShapeOptimizer.cc BaseOptimizer.cc GradientCheck.cc 
-                   OptimalityCondition.cc EvaluateOnly.cc)
+SET(OPTIMIZER_SRCS
+  BaseOptimizer.cc
+  ShapeOptimizer.cc
+  OptimalityCondition.cc
+  EvaluateOnly.cc
+  GradientCheck.cc
+)
+
+SET(TARGET_LL
+  cfsgeneral
+  datainout
+  design
+  domain
+  driver
+  logging
+  matvec
+  optimization
+  paramh
+  pde
+  utils
+)
+
 IF(USE_IPOPT)
-   SET(TARGET_LL ipopt gfortranbegin gcc_s)
+   SET(TARGET_LL ${TARGET_LL} ipopt gfortranbegin gcc_s)
 
    INCLUDE_DIRECTORIES(${IPOPT_INCLUDE_DIR})
    
@@ -10,8 +30,8 @@ ENDIF(USE_IPOPT)
 
 IF(USE_KNITRO)
 
-   #SET(TARGET_LL ${KNITRO_LIBRARY})
-   SET(TARGET_LL knitro700)
+   #SET(TARGET_LL ${TARGET_LL} ${KNITRO_LIBRARY})
+   SET(TARGET_LL ${TARGET_LL} knitro700)
    
    INCLUDE_DIRECTORIES(${KNITRO_INCLUDE_DIR})
    
@@ -33,7 +53,6 @@ IF(USE_SNOPT)
    
    SET(OPTIMIZER_SRCS ${OPTIMIZER_SRCS} SnOptInterface.cc SnOpt.cc)
 ENDIF(USE_SNOPT)
-
 
 ADD_DEFINITIONS(-DUSE_4_CFS)
 

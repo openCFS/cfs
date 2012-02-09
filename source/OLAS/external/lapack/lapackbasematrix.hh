@@ -5,6 +5,11 @@
 #ifndef OLAS_LAPACKBASEMATRIX_HH
 #define OLAS_LAPACKBASEMATRIX_HH
 
+#include <string>
+
+#include "General/defs.hh"
+#include "General/exception.hh"
+#include "MatVec/basematrix.hh"
 #include "MatVec/stdmatrix.hh"
 
 namespace CoupledField {
@@ -22,6 +27,8 @@ namespace CoupledField {
   //! \endhtmlonly
   //! For further information see the
   //! <a href="http://www.netlib.org/lapack">LAPACK</a> pages at Netlib.
+class SingleVector;
+
   class LapackBaseMatrix : public StdMatrix {
 
   public:

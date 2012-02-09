@@ -6,13 +6,14 @@
 #define FILE_CFS_BCS_HH
 
 #include <ostream>
-#include "General/environment.hh"
+
 #include "DataInOut/ParamHandling/ParamNode.hh"
+#include "Domain/entityList.hh" // IWYU pragma: keep
+#include "General/defs.hh"
+#include "boost/shared_ptr.hpp"
 
 namespace CoupledField {
 
-  // forward class declaration
-  class EntityList;
   class EqnMap;
   struct ResultInfo;
   template <class TYPE> class StdVector;

@@ -5,8 +5,19 @@
 #ifndef FILE_SOLVESTEPELEC
 #define FILE_SOLVESTEPELEC
 
+#include <stddef.h>
+
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "General/defs.hh"
+#include "MatVec/matrix.hh"
+#include "MatVec/vector.hh"
 #include "stdSolveStep.hh"
-#include "Utils/hysteresis.hh"
+
+namespace CoupledField {
+class AdjointParameters;
+class Hysteresis;
+class StdPDE;
+}  // namespace CoupledField
 
 namespace CoupledField
 {

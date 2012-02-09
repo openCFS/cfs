@@ -2,23 +2,31 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include <stdlib.h>
-#include <iostream>
-#include <iomanip>
+#include <cmath>
+#include <complex>
 #include <fstream>
-#include <math.h>
-#include <limits.h>
 #include <string>
-#include "Utils/StdVector.hh"
+#include <utility>
+
+#include "Domain/domain.hh"
+#include "Domain/elem.hh"
+#include "Domain/entityList.hh"
+#include "General/Enum.hh"
+#include "General/environment.hh"
+#include "MatVec/exprt/xpr2.hh"
 #include "MatVec/matrix.hh"
+#include "MatVec/vector.hh"
+#include "Materials/baseMaterial.hh"
 #include "Utils/coordSystem.hh"
+#include "Utils/hysteresis.hh"
+#include "Utils/piezoMicroModelBK.hh"
 #include "Utils/preisach.hh"
 #include "Utils/simplePreisachInv.hh"
-#include "Domain/entityList.hh"
-#include "Utils/piezoMicroModel.hh"
-#include "Utils/piezoMicroModelBK.hh"
-#include "Domain/domain.hh"
+#include "Utils/tools.hh"
 #include "baseMaterial.hh"
+#include "limits.h"
+#include "math.h"
+#include "stdlib.h"
 
 using std::string;
 using std::map;

@@ -1,26 +1,42 @@
+#include <assert.h>
+#include <stddef.h>
+#include <cmath>
+#include <map>
+#include <ostream>
+#include <string>
+
+#include "DataInOut/Logging/cfslog.hh"
+#include "DataInOut/Logging/log.hpp"
+#include "Domain/domain.hh"
+#include "Domain/elem.hh"
+#include "Domain/entityList.hh"
+#include "Driver/assemble.hh"
+#include "Forms/baseForm.hh"
+#include "General/Enum.hh"
+#include "General/defs.hh"
+#include "General/environment.hh"
+#include "General/exception.hh"
+#include "MatVec/SingleVector.hh"
+#include "MatVec/exprt/xpr2.hh"
+#include "MatVec/matrix.hh"
+#include "MatVec/vector.hh"
+#include "OLAS/algsys/basesystem.hh" // IWYU pragma: keep
+#include "Optimization/Design/DesignElement.hh"
+#include "Optimization/Design/DesignSpace.hh"
+#include "Optimization/Excitation.hh"
+#include "Optimization/OptimizationMaterial.hh"
 #include "Optimization/PiezoSIMP.hh"
 #include "Optimization/SIMP.hh"
-#include "Optimization/Design/DesignSpace.hh"
-#include "Optimization/Design/DesignElement.hh"
-#include "Optimization/OptimizationMaterial.hh"
-#include "Driver/basedriver.hh"
-#include "Driver/singleDriver.hh"
-#include "Forms/baseForm.hh"
-#include "Forms/linearForm.hh"
-#include "Forms/linNeumannInt.hh"
-#include "Forms/linPressureInt.hh"
-#include "Domain/domain.hh"
-#include "PDE/mechPDE.hh"
+#include "Optimization/TransferFunction.hh"
+#include "PDE/SinglePDE.hh"
 #include "PDE/elecPDE.hh"
-#include "Driver/stdSolveStep.hh"
-#include "General/exception.hh"
-#include "DataInOut/ParamHandling/ParamNode.hh"
-#include "DataInOut/Logging/cfslog.hh"
-#include "MatVec/basematrix.hh"
-#include "MatVec/stdmatrix.hh"
-#include "Utils/nodestoresol.hh"
-#include "OLAS/algsys/basesystem.hh"
+#include "PDE/eqnMap.hh"
+#include "Utils/StdVector.hh"
 #include "boost/lexical_cast.hpp"
+
+namespace CoupledField {
+class DenseMatrix;
+}  // namespace CoupledField
 
 using namespace CoupledField;
 

@@ -5,6 +5,8 @@
 #ifndef HEATMATERIAL_DATA
 #define HEATMATERIAL_DATA
 
+#include "General/defs.hh"
+#include "General/environment.hh"
 #include "baseMaterial.hh"
 
 namespace CoupledField {
@@ -13,6 +15,9 @@ namespace CoupledField {
   /*! 
      Class for handling heat material data
   */
+
+class ApproxData;
+template <class TYPE> class Matrix;
 
   class HeatMaterial : public BaseMaterial {
 

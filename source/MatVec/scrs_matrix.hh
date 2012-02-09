@@ -5,17 +5,23 @@
 #ifndef OLAS_SCRS_MATRIX_HH
 #define OLAS_SCRS_MATRIX_HH
 
+#include <stddef.h>
 #include <iostream>
+#include <string>
 
-#include <def_expl_templ_inst.hh>
-
-#include "sparseolasmatrix.hh"
-#include "vector.hh"
+#include "General/defs.hh"
+#include "General/environment.hh"
+#include "MatVec/basematrix.hh"
+#include "def_expl_templ_inst.hh"
 #include "patternpool.hh"
+#include "sparseolasmatrix.hh"
 
 namespace CoupledField {
 
+class BaseGraph;
+class StdMatrix;
   template <typename T> class CoordFormat;
+template <typename T> class Vector;
   
   //! Class for representing matrices in the Symmetric Compressed Row Format
 

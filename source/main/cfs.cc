@@ -4,38 +4,49 @@
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
 
-#include <iomanip>
+#include <stddef.h>
+#include <exception>
+#include <iostream>
+#include <utility>
 
-#include <def_use_xerces.hh>
-#include <def_use_mpcci.hh>
-#include <boost/version.hpp>
-
-#include "main/cfs.hh"
-#include "Utils/Timer.hh"
 #include "DataInOut/DefineFiles/definefiles.hh"
+#include "DataInOut/Logging/cfslog.hh"
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "DataInOut/ParamHandling/SkeletonConf.hh"
+#include "DataInOut/ParamHandling/Xerces.hh"
 #include "DataInOut/WriteInfo.hh"
-#include "DataInOut/MaterialHandler.hh"
+#include "DataInOut/coloredConsole.hh"
 #include "DataInOut/programOptions.hh"
+#include "DataInOut/resultHandler.hh"
+#include "DataInOut/simInput.hh"
 #include "Domain/domain.hh"
 #include "Domain/entityList.hh"
+#include "Elements/basefe.hh"
+#include "General/defs.hh"
 #include "General/environment.hh"
-#include "DataInOut/ParamHandling/SkeletonConf.hh"
-#include "DataInOut/ParamHandling/ParamNode.hh"
-#include "DataInOut/ParamHandling/Xerces.hh"
-#include "DataInOut/resultHandler.hh"
-#include "DataInOut/coloredConsole.hh"
-#include <unistd.h>
+#include "General/exception.hh"
+#include "PDE/basePDE.hh"
+#include "Utils/Timer.hh"
+#include "Utils/tools.hh"
 #include <boost/date_time/posix_time/posix_time.hpp>
-#include "DataInOut/Logging/cfslog.hh"
+#include <boost/version.hpp>
+#include <boost/algorithm/string/predicate.hpp>
+#include "def_use_mesh.hh"
+#include "def_use_mpcci.hh"
+#include "def_use_xerces.hh"
+#include "main/cfs.hh"
+#include "unistd.h"
 
-#include <def_use_mesh.hh>
+namespace CoupledField {
+class SimOutput;
+}  // namespace CoupledField
 
 #ifdef MpCCI
 
 #if (MpCCI_RELEASE == 305)
-#include <mpcci.h>
+#include "mpcci.h"
 #else
-#include <cci.h>
+#include "cci.h"
 #endif
 
 #endif
@@ -422,12 +433,11 @@ void CFS::ReadXMLFile()
   EXCEPTION( "I am sorry to say, but CFS only can be compiled with XERCES-support");
 #endif
 
-  // this is the new param staff which replaces the old params - delete this comment finally
-  string schema = progOpts->GetSchemaPathStr();
-  schema += "/CFS-Simulation/CFS.xsd";
+  //
+  string schema = progOpts->GetSchemaPathStr() + "/CFS-Simulation/CFS.xsd";
 
-  // Initialize our xerces dom parser to handle the cfs xml file
-  Xerces* xerces = new Xerces(xmlFile, schema);
+  // Initialize our xerces dom parser to handle the cfs xml file if a schema is given
+  Xerces* xerces = new Xerces(xmlFile, boost::starts_with(schema, "none") ? "" : schema);
 
   // set the global ParamNode tree pointer
   param = xerces->CreateParamNodeInstance();

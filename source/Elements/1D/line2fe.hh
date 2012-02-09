@@ -5,8 +5,17 @@
 #ifndef FILE_LINE2FE_2004
 #define FILE_LINE2FE_2004
 
-#include <Elements/basefe.hh>
-#include <Elements/1D/linefe.hh>
+#include "Elements/1D/linefe.hh"
+
+#include "Domain/ansatzFct.hh"
+#include "Domain/elem.hh"
+#include "General/defs.hh"
+#include "General/environment.hh"
+#include "MatVec/vector.hh"
+
+namespace CoupledField {
+template <class TYPE> class Matrix;
+}  // namespace CoupledField
 
 namespace CoupledField
 {

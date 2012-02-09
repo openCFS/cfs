@@ -6,6 +6,7 @@
 #define SingleVector_HH
 
 #include "General/defs.hh"
+#include "General/exception.hh"
 #include "MatVec/basevector.hh"
 
 namespace CoupledField {

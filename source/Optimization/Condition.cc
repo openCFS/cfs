@@ -1,17 +1,31 @@
-#include "Optimization/Excitation.hh"
+#include <assert.h>
+#include <stdlib.h>
+#include <algorithm>
+#include <cmath>
+#include <list>
+#include <map>
+#include <sstream>
+
+#include "DataInOut/Logging/cfslog.hh"
+#include "DataInOut/Logging/log.hpp"
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "DataInOut/ParamHandling/Xerces.hh"
+#include "Domain/domain.hh"
+#include "Domain/elem.hh"
+#include "Domain/grid.hh"
+#include "General/environment.hh"
+#include "General/exception.hh"
+#include "MatVec/matrix.hh"
 #include "Optimization/Condition.hh"
 #include "Optimization/Design/DesignSpace.hh"
-#include "Optimization/Design/DesignStructure.hh"
-#include "DataInOut/ParamHandling/ParamNode.hh"
-#include "DataInOut/ParamHandling/ParamTools.hh"
-#include "DataInOut/ParamHandling/Xerces.hh"
-#include "DataInOut/Logging/cfslog.hh"
-#include "General/exception.hh"
-#include "General/environment.hh"
-#include "Domain/domain.hh"
-#include "Domain/grid.hh"
-#include "MatVec/denseMatrix.hh"
-#include <sstream>
+#include "Optimization/ErsatzMaterial.hh"
+#include "Optimization/Excitation.hh"
+#include "Optimization/Optimization.hh"
+#include "Utils/tools.hh"
+
+namespace CoupledField {
+class DesignStructure;
+}  // namespace CoupledField
 
 using namespace CoupledField;
 

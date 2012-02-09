@@ -7,14 +7,14 @@
 
 #include <string>
 
-#include "Utils/StdVector.hh"
+#include "General/defs.hh"
 #include "General/environment.hh"
+#include "Utils/StdVector.hh"
 
 namespace CoupledField {
 
   //! Forward class declaration
   class AnsatzFct;
-  class EntityList;
 
   //! This class describes the resultType
   struct ResultInfo {

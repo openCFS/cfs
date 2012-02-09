@@ -237,6 +237,10 @@ namespace CoupledField
           solType = FLUIDMECH_VELOCITY;
         } else if(exprIt->first == "acouRhsLoad") {
           solType = ACOU_RHS_LOAD;
+        } else if(exprIt->first == "acouLambRhs") {
+          solType = ACOU_LAMB_RHS;
+        } else if(exprIt->first == "acouLambVec") {
+          solType = FLUIDMECH_VELOCITY;
         } else {
           EXCEPTION("Solution type '" << exprIt->first << "' not supported!");
         }
@@ -257,16 +261,10 @@ namespace CoupledField
         nodalFlowData[regionIdx][solType].data.resize(numRegionNodes * numComps);
         
         
-        for(UInt comp=0; comp<numComps; comp++) 
-        {  
-          mathParser_.SetExpr(handle, exprIt->second[comp]);
-          mathParser_.SetValue(handle, "t", timeStep);
-          mathParser_.SetValue(handle, "t_idx", timeStepIdx);
-
+        if(exprIt->second[0] == "vortexPair"){
           std::set<UInt>::iterator nsIt, nsEnd;
           nsIt= regionNodeSet.begin();
           nsEnd= regionNodeSet.end();
-
           for(UInt nodeIdx = 0; nsIt != nsEnd; nsIt++, nodeIdx++) 
           {
             if(!*nsIt) 
@@ -274,22 +272,165 @@ namespace CoupledField
               nodeIdx--;
               continue;
             }
-            
-            //            std::cout << "nodeIdx " << nodeIdx << " *nsIt " << *nsIt << std::endl;
             globCoord[0] = nodalCoords_[(*nsIt-1)*3+0];
             globCoord[1] = nodalCoords_[(*nsIt-1)*3+1];
             globCoord[2] = nodalCoords_[(*nsIt-1)*3+2];
-            
-            mathParser_.SetCoordinates(handle, coordSys, globCoord);
-            nodalFlowData[regionIdx][solType].data[nodeIdx*numComps+comp] =  mathParser_.Eval(handle);
-            //            std::cout << "data " << nodalFlowData[regionIdx][solType].data[nodeIdx*numComps+comp] << std::endl;
+            std::vector<Double> nodeVel;
+            //commented out clean implementation
+            //if( solType == ACOU_LAMB_VEC){
+            //  ComputeVortexPairSource(globCoord, timeStep,nodeVel);
+            //}else if(solType == FLUIDMECH_VELOCITY){
+             ComputeVortexPairVelocity(globCoord, timeStep,nodeVel);
+            //}else{
+            //  EXCEPTION("Solution type '" << solType << "' not supported for analytical caluculation!");
+            //}
+            nodalFlowData[regionIdx][solType].data[nodeIdx*numComps+0] =  nodeVel[0];
+            nodalFlowData[regionIdx][solType].data[nodeIdx*numComps+1] =  nodeVel[1];
+            nodalFlowData[regionIdx][solType].data[nodeIdx*numComps+2] =  nodeVel[2];
           }
-          
+        }else{
+          for(UInt comp=0; comp<numComps; comp++) 
+          { 
+    
+            mathParser_.SetExpr(handle, exprIt->second[comp]);
+            mathParser_.SetValue(handle, "t", timeStep);
+            mathParser_.SetValue(handle, "t_idx", timeStepIdx);
+
+            std::set<UInt>::iterator nsIt, nsEnd;
+            nsIt= regionNodeSet.begin();
+            nsEnd= regionNodeSet.end();
+
+            for(UInt nodeIdx = 0; nsIt != nsEnd; nsIt++, nodeIdx++) 
+            {
+              if(!*nsIt) 
+              {
+                nodeIdx--;
+                continue;
+              }
+              
+              //            std::cout << "nodeIdx " << nodeIdx << " *nsIt " << *nsIt << std::endl;
+              globCoord[0] = nodalCoords_[(*nsIt-1)*3+0];
+              globCoord[1] = nodalCoords_[(*nsIt-1)*3+1];
+              globCoord[2] = nodalCoords_[(*nsIt-1)*3+2];
+              
+              mathParser_.SetCoordinates(handle, coordSys, globCoord);
+              nodalFlowData[regionIdx][solType].data[nodeIdx*numComps+comp] =  mathParser_.Eval(handle);
+              //            std::cout << "data " << nodalFlowData[regionIdx][solType].data[nodeIdx*numComps+comp] << std::endl;
+            }
+          }
         }
       }
-      
     }
   }
+  inline void FileReader_GENGRIDS::ComputeVortexPairSource(Vector<Double> coord, Double t, std::vector<Double> & velos){
+    //global coordinates
+    Double x,y,gamma,omega,eFac;
+
+    x = coord[0];
+    y = coord[1];
+    gamma = 1.00531;
+    omega = 0.08;
+    eFac = 0.5;
+
+
+    velos.resize(3);
+
+    Double exp1 = exp(-eFac*(pow((x+cos(omega*t)),2) + pow((y+sin(omega*t)),2)));
+    Double exp2 = exp(-eFac*(pow((x-cos(omega*t)),2) + pow((y-sin(omega*t)),2)));
+
+    Double constant = pow(gamma,2)/(8*pow(PI,2))*(exp1-exp2);
+
+    velos[0] = constant * cos(omega*t);
+    velos[1] = constant * sin(omega*t);
+    velos[2] = 0;
+  }
+  
+  inline void FileReader_GENGRIDS::ComputeVortexPairVelocity(Vector<Double> coord, Double t, std::vector<Double> & velos){
+    //global coordinates
+    Double x,y;
+
+    //user parameters
+    // Double bulkModulus, rho0; // unused variables!
+    Double r0,gamma,rc,modelRad;
+    
+    x = coord[0];
+    y = coord[1];
+    //we know that this is a 2D probolem so we ignore the 3rd coord!
+    
+    //bulkModulus = 1.0;
+    //rho0        = 1.0;
+    r0          = 1.0;
+    gamma       = 1.00531;
+    rc          = 0.1;
+    modelRad    = 0.15;
+
+    //Compute remaining quantities
+    //Double c0 = sqrt(bulkModulus/rho0);
+    Double omega = gamma/(4.0*PI*r0*r0);
+    std::complex<Double> Im(0.0,1.0);
+
+    //compute radius from center
+    //Double r = sqrt(x*x+y*y);
+    Double arg = omega*t;
+
+    std::complex<Double> z( x, y);
+    std::complex<Double> b( r0 * cos(arg), r0*sin(arg));
+    std::complex<Double> distance(pow(z,2) - pow(b,2));
+
+    //compute complex value of velocity components
+    std::complex<double> w_z(gamma*z/(PI*Im*distance));
+    //compute complex derivative of velocity components
+    std::complex<double> w_zz(-gamma*(pow(z,2) + pow(b,2)) / (PI*Im*pow(distance,2)));
+
+    Double x_vort = 0;
+    Double y_vort = 0;
+    velos.resize(3);
+    if( (abs(z-b) <= modelRad) || (abs(z+b) <= modelRad) ){
+      if(abs(z-b) <= modelRad){
+        y_vort = y - imag(b);
+        x_vort = x - real(b);
+      }
+      if(abs(z+b) <= modelRad){
+        y_vort = y + imag(b);
+        x_vort = x + real(b);
+      }
+      velos[0] = -1.35 * gamma/(2*PI) * y_vort/(rc*rc + x_vort*x_vort + y_vort*y_vort);
+      velos[1] =  1.35 * gamma/(2*PI) * x_vort/(rc*rc + x_vort*x_vort + y_vort*y_vort);
+      velos[2] =  0;
+    }else{
+      velos[0] = real(w_z);
+      velos[1] = -imag(w_z);
+      velos[2] =  0;
+    }
+
+    //Double sigma = r0;
+    //Double constant = gamma/(8*PI*r0*sigma*sigma);
+    //constant *= (exp(-1.0/(2.0*pow(sigma,2)) * (pow(x+r0*cos(omega*t),2) + pow(y+r0*sin(omega*t),2)) ) -
+    //             exp(-1.0/(2.0*pow(sigma,2)) * (pow(x-r0*cos(omega*t),2) + pow(y-r0*sin(omega*t),2)) ) );
+    //velos[0] = constant * cos(omega*t); 
+    //velos[1] = constant * sin(omega*t);
+    //now compute the lambvector
+    //std::vector<Double> velTmp = velos;
+    //Matrix<Double> veloDeriv(3,3);
+    //veloDeriv.Init();
+    //veloDeriv[0][0] = real(w_zz);
+    //veloDeriv[1][0] = -imag(w_zz);
+    //veloDeriv[0][1] = veloDeriv[1][0];
+    //veloDeriv[1][1] = -veloDeriv[0][0];
+
+    //if( (abs(z-b) <= modelRad) || (abs(z+b) <= modelRad) ){
+    //  velos[0] = 0.0;
+    //  velos[1] = 0.0;
+    //  velos[2] = 0.0;
+    //}else{
+    //  velos[0] = (veloDeriv[1][0] - veloDeriv[0][1]) * velTmp[1];
+    //  velos[1] = (veloDeriv[0][1] - veloDeriv[1][0]) * velTmp[0];
+    //  velos[2] = 0.0;
+    //}
+    //std::cout << veloDeriv << std::endl;
+    return;
+  }
+  
 
 }
 

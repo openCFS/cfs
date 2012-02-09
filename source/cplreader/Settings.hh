@@ -10,9 +10,9 @@
 #include <sstream>
 #include <memory>
 
-#include <boost/cstdint.hpp>
+#include "boost/cstdint.hpp"
 
-#include <def_cplreader.hh>
+#include "def_cplreader.hh"
 
 #include "DataInOut/ParamHandling/Xerces.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"

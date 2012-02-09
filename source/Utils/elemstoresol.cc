@@ -2,13 +2,22 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include "elemstoresol.hh"
-#include "Domain/elem.hh"
+#include <map>
+#include <utility>
+
 #include "Domain/grid.hh"
+#include "General/exception.hh"
+#include "PDE/eqnMap.hh"
+#include "elemstoresol.hh"
 
 namespace CoupledField{
 
 
+
+class BaseElemStoreSol;
+class SingleVector;
+struct Elem;
+template <class TYPE> class Vector;
 
   template<class TYPE>
   ElemStoreSol<TYPE>::ElemStoreSol()

@@ -1,11 +1,16 @@
-#include "Optimization/Design/DesignSpace.hh"
+#include <assert.h>
+#include <math.h>
+#include <stddef.h>
+#include <ostream>
+
+#include "DataInOut/Logging/cfslog.hh"
+#include "DataInOut/Logging/log.hpp"
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "Domain/elem.hh"
+#include "General/exception.hh"
 #include "Optimization/Design/DesignElement.hh"
 #include "Optimization/TransferFunction.hh"
-#include "DataInOut/ParamHandling/ParamNode.hh"
-#include "DataInOut/Logging/cfslog.hh"
 #include "PDE/SinglePDE.hh"
-#include "General/exception.hh"
-#include "Utils/StdVector.hh"
 
 
 using namespace CoupledField;

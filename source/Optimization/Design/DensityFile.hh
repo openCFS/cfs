@@ -1,9 +1,14 @@
 #ifndef DENSITYFILE_HH_
 #define DENSITYFILE_HH_
 
-#include "General/Enum.hh"
-#include "Optimization/Design/DesignElement.hh"
-#include "Optimization/Condition.hh"
+#include <stddef.h>
+#include <string>
+
+#include "DataInOut/ParamHandling/ParamNode.hh"
+
+namespace CoupledField {
+class DesignSpace;
+}  // namespace CoupledField
 
 namespace CoupledField
 {
@@ -52,7 +57,7 @@ public:
   /** shall we write the density file each iteration or only in the destructor.
    * The difference is superfluous file writing .*/
   bool finally_only_;
-
+  
   /** we don't own this data, therefore we also don't delete it! */
   DesignSpace* ersatzMaterial_;
 

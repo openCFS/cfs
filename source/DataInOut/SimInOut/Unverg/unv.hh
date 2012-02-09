@@ -7,9 +7,11 @@
 #ifndef UNV_LIB_H
 #define UNV_LIB_H
 
+#include <stddef.h>
 #include <fstream>
+#include <iostream>
 
-#include <def_use_unv.hh>
+#include "def_use_unv.hh"
 
 class unv {
   friend class dataset;

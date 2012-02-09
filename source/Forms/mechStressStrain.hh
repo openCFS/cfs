@@ -5,16 +5,24 @@
 #ifndef FILE_MECHSTRESSSTRAIN_04
 #define FILE_MECHSTRESSSTRAIN_04
 
-#include "Elements/basefe.hh"
-#include "Materials/baseMaterial.hh"
+#include <complex>
+
 #include "Forms/linElastInt.hh"
+#include "General/defs.hh"
 #include "General/environment.hh"
-#include "Utils/result.hh"
+#include "MatVec/exprt/xpr2.hh"
+#include "MatVec/matrix.hh"
+
+namespace CoupledField {
+class BaseMaterial;
+class BaseResult;
+class EntityIterator;
+template <class TYPE> class Vector;
+}  // namespace CoupledField
 
 namespace CoupledField
 {
   class MechPDE;
-  class ElecPDE;
 
   //! class for calculation of mechanical stresses and strains
   template <class TYPE>

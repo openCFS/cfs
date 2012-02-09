@@ -2,16 +2,22 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include "MatVec/crs_matrix.hh"
-
-#include "OLAS/precond/ilu0precond.hh"
+#include "General/environment.hh"
+#include "General/exception.hh"
+#include "MatVec/basematrix.hh"
 #include "MatVec/opdefs.hh"
+#include "MatVec/crs_matrix.hh" // IWYU pragma: keep
+#include "MatVec/stdmatrix.hh"
+#include "OLAS/precond/ilu0precond.hh"
+
 namespace CoupledField {
 
 
 // =====================================================
 //   Constructor (for use in GenerateStdPrecondObject)
 // =====================================================
+template <typename T> class Vector;
+
 template <typename T>
 ILU0Precond<T>::ILU0Precond( const StdMatrix& mat, PtrParamNode solverNode,
                              PtrParamNode olasInfo ) {

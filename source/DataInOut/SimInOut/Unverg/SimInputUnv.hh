@@ -5,10 +5,26 @@
 #ifndef FILE_SIMINPUTUNV_2006
 #define FILE_SIMINPUTUNV_2006
 
-#include <DataInOut/Logging/cfslog.hh>
-#include <DataInOut/simInput.hh>
+#include <stdint.h>
+#include <map>
+#include <string>
 
+#include "DataInOut/Logging/cfslog.hh"
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "DataInOut/simInput.hh"
+#include "Domain/elem.hh"
+#include "General/defs.hh"
+#include "General/environment.hh"
+#include "PDE/basePDE.hh"
+#include "Utils/StdVector.hh"
 #include "unv_if.hh"
+
+namespace CoupledField {
+class BaseResult;
+class EntityList;
+class Grid;
+struct ResultInfo;
+}  // namespace CoupledField
 
 // forward declaration of GDataInfo
 struct GDataInfo;
@@ -16,7 +32,6 @@ struct GDataInfo;
 namespace CoupledField
 {
 
-  class MeshInterface;
 
   // declare logging stream
   DECLARE_LOG(simInputUNV)

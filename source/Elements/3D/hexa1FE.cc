@@ -2,13 +2,24 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
+#include <stdlib.h>
+#include <algorithm>
+#include <bitset>
 #include <iostream>
-#include <fstream>
 
+#include "DataInOut/Logging/cfslog.hh"
+#include "DataInOut/Logging/log.hpp"
+#include "Domain/elem.hh"
+#include "Elements/3D/hexaFE.hh"
+#include "Elements/basefe.hh"
+#include "General/exception.hh"
+#include "MatVec/exprt/xpr1.hh"
+#include "MatVec/exprt/xpr2.hh"
+#include "MatVec/matrix.hh"
+#include "Utils/StdVector.hh"
+#include "Utils/tools.hh"
 //#include <General/environment.hh>
 #include "hexa1FE.hh"
-#include "Domain/elem.hh"
-#include "DataInOut/Logging/cfslog.hh"
 
 namespace CoupledField
 {
@@ -1579,7 +1590,6 @@ namespace CoupledField
          LDeriv[i+NumNodes_][2] = 0.5 * LCornerCoords_[2][i];
        }   
    }
-  
    void Hexa1FE::Global2LocalCoords(Matrix<Double> & localCoords,
                                     const Matrix<Double> & globalCoords,
                                     const Matrix<Double> & coordMat ){
@@ -1716,7 +1726,6 @@ namespace CoupledField
       }
     }
   }
-  
   
 
 } // end of namespace

@@ -3,7 +3,6 @@
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
 #include "edgeFace.hh"
-#include "MatVec/vector.hh"
 
 namespace CoupledField {
 

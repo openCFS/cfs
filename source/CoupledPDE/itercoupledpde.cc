@@ -2,13 +2,23 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include "itercoupledpde.hh"
+#include <stddef.h>
+#include <ostream>
+#include <string>
 
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "Driver/iterSolveStep.hh"
+#include "General/Enum.hh"
+#include "General/environment.hh"
+#include "MatVec/SingleVector.hh"
+#include "PDE/SinglePDE.hh"
+#include "PDE/StdPDE.hh"
+#include "itercoupledpde.hh"
 #include "pdecoupling.hh"
 
-#include "PDE/SinglePDE.hh"
-#include "Driver/iterSolveStep.hh"
-#include "DataInOut/ParamHandling/ParamNode.hh"
+namespace CoupledField {
+class BaseSolveStep;
+}  // namespace CoupledField
 
 namespace CoupledField
 {
@@ -247,9 +257,20 @@ namespace CoupledField
                                    regionTypeAux, neighbourRegions,
                                    epsilon, normTypeAux, Couplings_);
         norms_.Push_back(1.0);
-      }
-    }
+      } // loop over quantities
+    } // loop over pdes
 
+    
+    // ======================================================================
+    //  DELETE NON-DEFINED COUPLING INTERFACES
+    // ======================================================================
+    // At this point, all couplings are defined. As not all quantities are
+    // mandatory, we could have empty coupling interfaces, which must be deleted.
+    // Thus we loop now over all interfaces and delete non-used interfaces
+    for ( UInt i = 0; i < Couplings_.GetSize(); i++ ) {
+      Couplings_[i]->Finalize();
+    }
+    
     // Initialize each PDEs coupling terms
     for ( UInt i = 0; i < Couplings_.GetSize(); i++ ) {
       Couplings_[i]->GetPDE()->InitCoupling(Couplings_[i]);

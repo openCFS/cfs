@@ -5,11 +5,17 @@
 #ifndef FILE_NEWMARK_2001
 #define FILE_NEWMARK_2001
 
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "General/defs.hh"
+#include "MatVec/vector.hh"
 #include "timestepping.hh"
+
+namespace CoupledField {
+class BaseSystem;
+}  // namespace CoupledField
 
 namespace CoupledField
 {
-  class ParamNode;
 
   //! class for time stepping of hyperbolic PDE: method is Newmark
   class Newmark: public TimeStepping
@@ -76,6 +82,8 @@ namespace CoupledField
     //! predictor for derivative of solution
     Vector<Double> solderiv1pred_, solderiv1predSAVE_;
 
+    //! solution and first derivative of previous time step;
+    Vector<Double> solPrevious_, solderiv1Previous_;
   };
 
 

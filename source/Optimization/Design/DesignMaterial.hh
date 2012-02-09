@@ -1,15 +1,20 @@
 #ifndef DESIGNMATERIAL_HH_
 #define DESIGNMATERIAL_HH_
 
-#include "General/Enum.hh"
-#include "DesignElement.hh"
-#include "Forms/baseForm.hh"
 #include <map>
+
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "DesignElement.hh"
+#include "General/Enum.hh"
+#include "General/environment.hh"
 
 namespace CoupledField {
 
   /** This implements a function from $R^n$ to $R^{d \times d}$ for transforming a vector of Parameters
    * to a material tensor.  */
+template <class TYPE> class Matrix;
+template <class TYPE> class StdVector;
+
   class DesignMaterial {
     
   public:

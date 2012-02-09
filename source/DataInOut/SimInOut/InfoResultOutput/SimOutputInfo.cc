@@ -1,7 +1,22 @@
-#include "SimOutputInfo.hh"
+#include <stddef.h>
+#include <complex>
+#include <set>
+#include <string>
 
 #include "DataInOut/ParamHandling/ParamNode.hh"
-#include "Domain/domain.hh"
+#include "Domain/entityList.hh"
+#include "Domain/resultInfo.hh"
+#include "MatVec/SingleVector.hh"
+#include "MatVec/basematrix.hh"
+#include "MatVec/vector.hh"
+#include "SimOutputInfo.hh"
+#include "Utils/StdVector.hh"
+#include "Utils/result.hh"
+#include "Utils/tools.hh"
+
+namespace CoupledField {
+class Grid;
+}  // namespace CoupledField
 
 using namespace CoupledField;
 using std::string;

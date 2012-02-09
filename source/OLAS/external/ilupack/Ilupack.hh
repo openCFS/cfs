@@ -5,27 +5,26 @@
 #ifndef ILUPACK_HH
 #define ILUPACK_HH
 
-#include <def_expl_templ_inst.hh>
-
-#include "General/environment.hh"
-#include "OLAS/solver/basesolver.hh"
-
+#include "DataInOut/ParamHandling/ParamNode.hh"
 #include "General/Enum.hh"
+#include "General/defs.hh"
+#include "MatVec/basematrix.hh"
+#include "OLAS/solver/basesolver.hh"
+#include "def_expl_templ_inst.hh"
 
 // include the original ilupack header
 extern "C"
 {
    #include <ilupack.h> 
+#include <stddef.h>
 }
 
 
 
 namespace CoupledField 
 {
-  class BaseMatrix;  
-  class BaseVector;
   class BasePrecond;
-  class Flags;
+  class BaseVector;
 
   
   /** Ilupack has variants DILUPACKparam/ZILUPACKParam, Dmat/ZMat and DAMGlevelmat/ZAMGlevelmat.

@@ -5,22 +5,21 @@
 #ifndef CHOLMOD_HH
 #define CHOLMOD_HH
 
-#include <def_expl_templ_inst.hh>
+#include <string>
 
-#include "General/environment.hh"
-#include "OLAS/solver/basesolver.hh"
-
+#include "DataInOut/ParamHandling/ParamNode.hh"
 #include "General/Enum.hh"
-
+#include "General/defs.hh"
+#include "MatVec/basematrix.hh"
+#include "OLAS/solver/basesolver.hh"
 // include the original cholmod header
 #include "cholmod.h" 
+#include "def_expl_templ_inst.hh"
 
 namespace CoupledField 
 {
-  class BaseMatrix;  
-  class BaseVector;
   class BasePrecond;
-  class Flags;
+  class BaseVector;
   
   template<typename T>
   class CholMod : public BaseIterativeSolver 

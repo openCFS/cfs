@@ -5,13 +5,17 @@
 #ifndef ILDL_PRECOND_HH
 #define ILDL_PRECOND_HH
 
-#include <def_expl_templ_inst.hh>
+#include <stdio.h>
+#include <complex>
+#include <ostream>
+#include <vector>
 
-#include "OLAS/utils/math/ldlsystemsolve.hh"
-
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "General/defs.hh"
+#include "OLAS/precond/baseprecond.hh"
 #include "OLAS/precond/bnprecond.hh"
-#include "baseildlfactoriser.hh"
-#include "ildlkfactoriser.hh"
+#include "OLAS/utils/math/ldlsystemsolve.hh"
+#include "def_expl_templ_inst.hh"
 
 
 namespace CoupledField {
@@ -101,6 +105,11 @@ namespace CoupledField {
   //!   will not affect the Apply method unless Setup is called again.
   //! - Pivoting is currently not supported during the factorisation.
   //! - The class only works together with SCRS_Matrices with scalar entries.
+class SingleVector;
+class StdMatrix;
+template <class T> class BaseILDLFactoriser;
+template <typename > class SCRS_Matrix;
+
   template<class T>
   class ILDLPrecond : public BNPrecond<ILDLPrecond<T>, SCRS_Matrix<T>, T >,
                       public LDLSystemSolve<T> {

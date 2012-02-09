@@ -2,24 +2,34 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include <fstream>
+#include <assert.h>
+#include <cmath>
 #include <iostream>
 #include <string>
-#include <cmath>
+#include <utility>
 
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "Domain/domain.hh"
+#include "Domain/elem.hh"
+#include "Domain/entityList.hh"
+#include "Domain/grid.hh"
+#include "Driver/singleDriver.hh"
+#include "Elements/basefe.hh"
 #include "Forms/bdInt.hh"
 #include "Forms/bdbInt.hh"
+#include "Forms/linElastInt.hh"
 #include "Forms/linViscoElastInt.hh"
-#include "newmarkFracDampMech.hh"
-#include "DataInOut/WriteInfo.hh"
-#include "DataInOut/ParamHandling/ParamNode.hh"
-#include "basePDE.hh"
-#include "Materials/baseMaterial.hh"
-#include "Utils/mathfunctions.hh"
-#include "Domain/domain.hh"
-#include "Driver/singleDriver.hh"
+#include "General/environment.hh"
 #include "General/exception.hh"
+#include "MatVec/exprt/xpr1.hh"
+#include "MatVec/exprt/xpr2.hh"
+#include "MatVec/matrix.hh"
+#include "Materials/baseMaterial.hh"
 #include "OLAS/algsys/basesystem.hh"
+#include "PDE/StdPDE.hh"
+#include "PDE/eqnMap.hh"
+#include "PDE/timestepping.hh"
+#include "newmarkFracDampMech.hh"
 
 namespace CoupledField {
 

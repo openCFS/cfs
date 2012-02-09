@@ -3,16 +3,21 @@
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
 
-#include <string>
-
-#include "Forms/curlfieldop.hh"
-#include "Elements/basefe.hh"
 #include "Domain/elem.hh"
+#include "Domain/entityList.hh"
 #include "Domain/grid.hh"
-#include "General/environment.hh"
-#include "MatVec/vector.hh"
+#include "Elements/basefe.hh"
+#include "Forms/curlfieldop.hh"
 #include "MatVec/matrix.hh"
-#include "PDE/StdPDE.hh"
+#include "MatVec/vector.hh"
+#include "Utils/StdVector.hh"
+#include "Utils/nodestoresol.hh" // IWYU pragma: keep
+
+namespace CoupledField {
+class BaseSystem;
+class EqnMap;
+class StdPDE;
+}  // namespace CoupledField
 
 namespace CoupledField
 {

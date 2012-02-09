@@ -1,13 +1,25 @@
 #ifndef FUNCTION_HH_
 #define FUNCTION_HH_
 
-#include <boost/tuple/tuple.hpp>
+#include <assert.h>
+#include <stddef.h>
+#include <string>
+#include <utility>
 
-#include "General/Enum.hh"
-#include "MatVec/matrix.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
+#include "General/Enum.hh"
+#include "General/defs.hh"
+#include "General/environment.hh"
+#include "MatVec/matrix.hh"
+#include "MatVec/vector.hh"
 #include "Optimization/Design/DesignElement.hh"
 #include "Optimization/Design/DesignStructure.hh"
+#include "Utils/StdVector.hh"
+#include "boost/tuple/tuple.hpp"
+
+namespace CoupledField {
+class ErsatzMaterial;
+}  // namespace CoupledField
 
 
 using boost::tuple;
@@ -17,10 +29,10 @@ using std::pair;
 namespace CoupledField
 {
 class Condition;
-class Objective;
 class DesignSpace;
 class Excitation;
 class MultipleExcitation;
+class Objective;
 
 /** A Function is the (abstract) base class of Objective and Condition (which is a constraint but the name was
  * already used)

@@ -2,13 +2,16 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include "idbchandler.hh"
-#include "idbchandlervoid.hh"
-#include "idbchandlerpenalty.hh"
-#include "generateidbchandler.hh"
+#include <stddef.h>
+#include <ostream>
+#include <string>
 
-// Required for using AssocType
-#include "MatVec/typedefs.hh"
+#include "General/Enum.hh"
+#include "General/exception.hh"
+#include "generateidbchandler.hh"
+#include "idbchandler.hh"
+#include "idbchandlerpenalty.hh"
+#include "idbchandlervoid.hh"
 
 
 namespace CoupledField {

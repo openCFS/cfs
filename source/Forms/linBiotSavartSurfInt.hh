@@ -5,13 +5,18 @@
 #ifndef FILE_LIN_BIOT_SAVART_SURF_INT
 #define FILE_LIN_BIOT_SAVART_SURF_INT
 
+#include <string>
+
 #include "Forms/linSurfForm.hh"
+#include "General/defs.hh"
 
 namespace CoupledField {
   
 
   //! Forward class declarations
   class BiotSavart;
+class EntityIterator;
+template <class TYPE> class Vector;
   
   //! Calculates the Neumann-like RHS part of the Biot-Savart exciation
   

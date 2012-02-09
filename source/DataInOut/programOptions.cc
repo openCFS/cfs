@@ -1,56 +1,57 @@
 // include general defines
-#include <def_cfs_stats.hh>
-#include <def_cplreader.hh>
-#include <def_use_blas.hh>
-#include <def_use_hdf5.hh>
-#include <def_use_ansysrst.hh>
-#include <def_use_mesh.hh>
-#include <def_use_pardiso.hh>
-#include <def_use_unv.hh>
-#include <def_use_gidpost.hh>
-#include <def_use_ilupack.hh>
-#include <def_use_cholmod.hh>
-#include <def_use_metis.hh>
-#include <def_use_python.hh>
-#include <def_use_xerces.hh>
-#include <def_use_arpack.hh>
-#include <def_use_gmv.hh>
-#include <def_use_gmsh.hh>
-#include <def_use_lapack.hh>
-#include <def_use_mpcci.hh>
-#include <def_use_interpolation.hh>
-#include <def_use_tcl.hh>
-#include <def_xmlschema.hh>
-
-#include "DataInOut/programOptions.hh"
-#include "DataInOut/coloredConsole.hh"
-
-#include <sstream>
+#include <stddef.h>
+#include <sys/time.h>
 #include <cstdlib>
+#include <exception>
+#include <iostream>
 
-#include <boost/bind.hpp>
-#include <boost/filesystem/operations.hpp>
-#include <boost/filesystem/convenience.hpp>
-#include <boost/filesystem/exception.hpp>
-#include <boost/algorithm/string/trim.hpp>
+#include "DataInOut/coloredConsole.hh"
+#include "DataInOut/programOptions.hh"
+#include "boost/algorithm/string/trim.hpp"
+#include "boost/bind.hpp"
+#include "boost/filesystem/convenience.hpp"
+#include "boost/filesystem/exception.hpp"
+#include "boost/filesystem/operations.hpp"
+#include "def_cfs_stats.hh"
+#include "def_cplreader.hh"
+#include "def_use_ansysrst.hh"
+#include "def_use_arpack.hh"
+#include "def_use_blas.hh"
+#include "def_use_cholmod.hh"
+#include "def_use_gidpost.hh"
+#include "def_use_gmsh.hh"
+#include "def_use_gmv.hh"
+#include "def_use_hdf5.hh"
+#include "def_use_ilupack.hh"
+#include "def_use_interpolation.hh"
+#include "def_use_lapack.hh"
+#include "def_use_mesh.hh"
+#include "def_use_metis.hh"
+#include "def_use_mpcci.hh"
+#include "def_use_pardiso.hh"
+#include "def_use_python.hh"
+#include "def_use_tcl.hh"
+#include "def_use_unv.hh"
+#include "def_use_xerces.hh"
+#include "def_xmlschema.hh"
 
 #ifdef USE_MKL
-#include <mkl_service.h>
+#include "mkl_service.h"
 #endif
 
 #ifdef USE_ACML
-#include <acml.h>
+#include "acml.h"
 #endif
 
-#include <bzlib.h>
-#include <zlib.h>
+#include "bzlib.h"
+#include "zlib.h"
 
 #ifdef USE_ILUPACK
-#include <amd.h>
+#include "amd.h"
 #endif
 
 #ifdef USE_CHOLMOD
-#include <cholmod.h> 
+#include "cholmod.h" 
 #endif
 
 #ifdef USE_SCRIPTING_PYTHON
@@ -60,25 +61,23 @@
 #ifdef _XOPEN_SOURCE
 #undef _XOPEN_SOURCE
 #endif
-#include <Python.h>
+#include "Python.h"
 #endif
 
 #ifdef USE_SCRIPTING_TCL
-#include <tcl.h>
+#include "tcl.h"
 #endif
 
 #ifdef USE_ARPACK
-#include <arpack_version.h>
+#include "arpack_version.h"
 #endif
 
 #ifdef USE_INTERPOLATION
-#include <CGAL/version.h>
+#include "CGAL/version.h"
 #endif
 
 #include "DataInOut/ParamHandling/ParamNode.hh"
-#include "General/environment.hh"
 #include "General/exception.hh"
-#include "Utils/tools.hh"
 
 #define _QUOTEME(x) #x
 #define QUOTEME(x) _QUOTEME(x)
@@ -149,7 +148,7 @@ namespace CoupledField {
         "name of XML parameter file for the simulation" )
 
       ( "schemaRoot,s", po::value<string>(),
-        "path to XML schema definitions (env CFS_SCHEMA_ROOT)")
+        "path to XML schema definitions, 'none' to disable schema validation and defaults (env CFS_SCHEMA_ROOT)")
 
       ( "ersatz,x", po::value<string>(),
         "name of ersatz material density file")
@@ -383,41 +382,30 @@ namespace CoupledField {
       return "";
   }
 
-  fs::path ProgramOptions::GetSchemaPath() const
+  std::string ProgramOptions::GetSchemaPathStr() const
   {
     string schema;
     fs::path schemaPath;
 
     // If the user specified a path on the command line use it instead.
-    if( varMap_.count( "schemaRoot" ) ) {
+    if(varMap_.count("schemaRoot")) {
       schema = varMap_[ "schemaRoot" ].as<string>();
-    } else {
-      schema = XMLSCHEMA;
+      if(schema == "none") return schema; // option to disable schema parsing
     }
+    else
+      schema = XMLSCHEMA;
 
-    //      fs::path fn = fs::system_complete(progOpts->exe_);
-    //      fn.normalize();
-
-    try
-    {
+    try {
       schemaPath = fs::system_complete(schema);
       schemaPath.normalize();
-    } catch (fs::filesystem_error& ex)
-    {
+    }
+    catch (fs::filesystem_error& ex) {
       EXCEPTION(ex.what());
     }
 
     // If none of the above paths exists, raise exception
-    if(!fs::exists(schemaPath)) {
-      EXCEPTION( "Schema path '" << schemaPath << "' does not exist!" );
-    }
-
-    return schemaPath;
-  }
-
-  string ProgramOptions::GetSchemaPathStr() const
-  {
-    fs::path schemaPath = GetSchemaPath();
+    if(!fs::exists(schemaPath))
+      EXCEPTION("Schema path '" << schemaPath << "' does not exist!");
 
     return schemaPath.native_directory_string();
   }
@@ -827,7 +815,7 @@ namespace CoupledField {
         << fg_blue << CFS_XERCES_VERSION << fg_reset << endl;
     out << "XMLSCHEMA:             ";
     if(progOpts)
-      out << fg_blue << progOpts->GetSchemaPath() << fg_reset << endl;
+      out << fg_blue << progOpts->GetSchemaPathStr() << fg_reset << endl;
     else
       out << fg_blue << XMLSCHEMA << fg_reset << endl;
     

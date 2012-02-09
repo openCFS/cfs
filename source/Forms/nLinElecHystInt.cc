@@ -2,10 +2,17 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include <iostream>
-#include <fstream>
-
+#include "Domain/elem.hh"
+#include "Domain/entityList.hh"
+#include "Domain/resultInfo.hh"
+#include "Elements/basefe.hh"
+#include "Forms/bdbInt.hh"
+#include "Forms/gradfieldop.hh"
 #include "General/environment.hh"
+#include "General/exception.hh"
+#include "MatVec/matrix.hh"
+#include "Materials/baseMaterial.hh"
+#include "Utils/mathParser/mathParser.hh"
 #include "Utils/nodestoresol.hh"
 #include "nLinElecHystInt.hh"
 
@@ -15,6 +22,10 @@ namespace CoupledField {
   // ============
   //   calcBMat
   // ============
+class EqnMap;
+class Grid;
+class StdPDE;
+
   void nlinElecHystInt::CalcBMat( Matrix<Double> &bMat, UInt ip,
                                   const Matrix<Double> &ptCoord ) {
 

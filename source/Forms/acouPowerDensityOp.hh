@@ -5,17 +5,22 @@
 #ifndef FILE_ACOUPOWERDENSITYOP
 #define FILE_ACOUPOWERDENSITYOP
 
+#include <complex>
+
 #include "Forms/baseoperator.hh"
+#include "General/defs.hh"
+#include "MatVec/exprt/xpr2.hh"
 
 
 
 namespace CoupledField {
 
+class EntityIterator;
+class EqnMap;
   // Forward declaration of classes
   class Grid;
-  struct Elem;
+class StdPDE;
   template<class TYPE> class Vector;
-  template<class TYPE> class Matrix;
   
   
   //! This operator class calculates the acoustic power density per

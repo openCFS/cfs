@@ -5,11 +5,20 @@
 #ifndef FILE_LIN_SURF_STRESS_INT
 #define FILE_LIN_SURF_STRESS_INT
 
-#include "Forms/linSurfForm.hh"
+#include <map>
+
+#include "Forms/linearForm.hh"
+#include "General/defs.hh"
+#include "MatVec/vector.hh"
 
 namespace CoupledField {
   
   //! Class for calculating surface stress (traction) load vectors in 3D
+class EntityIterator;
+class SurfElemList;
+struct Elem;
+struct SurfElem;
+
   class SurfStress3DLinForm : public LinearForm {
     
   public:

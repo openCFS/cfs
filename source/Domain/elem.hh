@@ -5,17 +5,22 @@
 #ifndef FILE_CFS_ELEM_2002
 #define FILE_CFS_ELEM_2002
 
+#include <stddef.h>
 #include <bitset>
 #include <map>
+#include <ostream>
+#include <string>
+#include <utility>
 
 #include "General/Enum.hh"
+#include "General/defs.hh"
+#include "General/environment.hh"
+#include "Utils/Point.hh"
 #include "Utils/StdVector.hh"
-#include "Utils/tools.hh"
 
 namespace CoupledField
 {
   class BaseFE;
-  struct Elem;
 
   //! Class for description of a volume finite element
 

@@ -2,11 +2,17 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include "cfsmessenger.hh"
+#include <ostream>
 
-#include "PDE/SinglePDE.hh"
 #include "DataInOut/Logging/cfslog.hh"
+#include "DataInOut/Scripting/scriptable.hh"
+#include "Domain/domain.hh"
+#include "Domain/grid.hh"
 #include "Driver/assemble.hh"
+#include "General/environment.hh"
+#include "PDE/SinglePDE.hh"
+#include "PDE/basePDE.hh"
+#include "cfsmessenger.hh"
 
 namespace CoupledField {
 

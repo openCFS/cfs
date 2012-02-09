@@ -6,7 +6,15 @@
 #define FILE_FLATSHELLMASSINT_1
 
 #include "FlatShellInt.hh"
-#include "Domain/Composite.hh"
+#include "General/defs.hh"
+#include "MatVec/vector.hh"
+
+namespace CoupledField {
+class BaseMaterial;
+class EntityIterator;
+struct Composite;
+template <class TYPE> class Matrix;
+}  // namespace CoupledField
 
 namespace CoupledField
 {

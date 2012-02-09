@@ -31,6 +31,9 @@
 #endif
 
 #include <sstream>
+#include <string>
+
+#include "DataInOut/Logging/detail/ts_posix.hpp"
 #include "detail/defs.hpp"
 #include "detail/log_fwd.hpp"
 

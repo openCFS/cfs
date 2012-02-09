@@ -1,13 +1,30 @@
+#include <boost/algorithm/string.hpp>
+#include <iostream>
+
+#include "DataInOut/Logging/cfslog.hh"
+#include "DataInOut/Logging/log.hpp"
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "DataInOut/ParamHandling/Xerces.hh"
+#include "DataInOut/programOptions.hh"
+#include "Domain/domain.hh"
+#include "Domain/elem.hh"
+#include "Domain/grid.hh"
+#include "Elements/basefe.hh"
+#include "General/Enum.hh"
+#include "General/defs.hh"
+#include "General/environment.hh"
+#include "General/exception.hh"
+#include "MatVec/matrix.hh"
 #include "Optimization/Design/DensityFile.hh"
-#include "Optimization/Optimization.hh"
+#include "Optimization/Design/DesignElement.hh"
 #include "Optimization/Design/DesignSpace.hh"
 #include "Optimization/Design/DesignStructure.hh"
-#include "Optimization/Design/DesignElement.hh"
-#include "DataInOut/ParamHandling/Xerces.hh"
-#include "DataInOut/ParamHandling/ParamNode.hh"
-#include "DataInOut/programOptions.hh"
-#include "DataInOut/Logging/cfslog.hh"
-#include "Domain/domain.hh"
+#include "Optimization/ErsatzMaterial.hh"
+#include "Optimization/Function.hh"
+#include "Optimization/Objective.hh"
+#include "Optimization/Optimization.hh"
+#include "Utils/Point.hh"
+#include "Utils/StdVector.hh"
 
 using namespace CoupledField;
 using std::string;
@@ -28,6 +45,10 @@ DensityFile::DensityFile(DesignSpace* designSpace,
   data = Create(des, tfs, regulize_pn, designSpace->DoNonDesignVicinity());
   all_iterations_ = export_pn->Get("save")->As<string>() == "all";
   finally_only_   = export_pn->Get("write")->As<string>() == "finally";
+  // append .bz2 if compress=true and not already file ends with it
+  if(export_pn->Get("compress")->As<bool>() && !boost::algorithm::ends_with(name_, ".bz2")){
+    name_ = name_ + ".bz2";
+  }
 }
 
 
@@ -35,7 +56,7 @@ DensityFile::~DensityFile()
 {
   // in CommitIteration or here?
   if(finally_only_)
-    data->ToFile(name_);
+    data->ToFile(name_, true);
 
   data.reset();
 }

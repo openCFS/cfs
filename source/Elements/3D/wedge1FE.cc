@@ -3,10 +3,13 @@
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
 
-#include <iostream>
-#include <fstream>
+#include <stddef.h>
+
 #include "Domain/elem.hh"
-#include <General/environment.hh>
+#include "Elements/3D/wedgeFE.hh"
+#include "MatVec/exprt/xpr2.hh"
+#include "MatVec/matrix.hh"
+#include "Utils/StdVector.hh"
 #include "wedge1FE.hh"
 
 namespace CoupledField

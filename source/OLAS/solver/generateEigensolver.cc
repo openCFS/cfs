@@ -2,12 +2,18 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include <def_use_arpack.hh>
+#include <stddef.h>
+#include <map>
+#include <ostream>
+#include <string>
+#include <utility>
 
-#include "MatVec/basematrix.hh"
-
-#include "generateEigensolver.hh"
+#include "General/Enum.hh"
+#include "General/environment.hh"
+#include "General/exception.hh"
 #include "baseEigensolver.hh"
+#include "def_use_arpack.hh"
+#include "generateEigensolver.hh"
 
 #ifdef USE_ARPACK
 #include "OLAS/external/arpack/arpackEigensolver.hh"

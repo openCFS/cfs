@@ -5,7 +5,17 @@
 #ifndef FILE_ACOU_NEUMANN_INT
 #define FILE_ACOU_NEUMANN_INT
 
+#include <string>
+
 #include "Forms/linSurfForm.hh"
+#include "General/defs.hh"
+#include "General/environment.hh"
+
+namespace CoupledField {
+class EntityIterator;
+struct Elem;
+template <class TYPE> class Vector;
+}  // namespace CoupledField
 
 namespace CoupledField 
 {

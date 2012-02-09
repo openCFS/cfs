@@ -2,24 +2,29 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include <fstream>
+#include <assert.h>
+#include <math.h>
+#include <algorithm>
 #include <iostream>
 #include <string>
 
-#include <boost/lexical_cast.hpp>
-#include <boost/date_time/posix_time/posix_time.hpp>
-
-#include "Driver/harmonicDriver.hh"
-#include "Driver/stdSolveStep.hh"
-#include "Driver/assemble.hh"
-#include "Utils/Timer.hh"
-
 #include "DataInOut/ParamHandling/ParamNode.hh"
-#include "DataInOut/resultHandler.hh"
 #include "DataInOut/programOptions.hh"
-
-#include "PDE/StdPDE.hh"
+#include "DataInOut/resultHandler.hh"
 #include "Domain/domain.hh"
+#include "Driver/baseSolveStep.hh"
+#include "Driver/harmonicDriver.hh"
+#include "Driver/singleDriver.hh"
+#include "General/exception.hh"
+#include "PDE/basePDE.hh"
+#include "Utils/Timer.hh"
+#include "Utils/mathParser/mathParser.hh"
+#include "boost/date_time/posix_time/posix_time.hpp"
+#include "boost/lexical_cast.hpp"
+
+namespace CoupledField {
+class AdjointParameters;
+}  // namespace CoupledField
 
 
 using std::cout;

@@ -5,11 +5,18 @@
 #ifndef FILE_NLINCURLCURLEDGE
 #define FILE_NLINCURLCURLEDGE
 
+#include "General/defs.hh"
+#include "General/environment.hh"
+#include "MatVec/vector.hh"
 #include "curlCurlEdgeInt.hh"
 
 namespace CoupledField {
 
   /// Class for calculation of nonlinear curl curl of edge elements
+class BaseMaterial;
+class EntityIterator;
+template <class TYPE> class Matrix;
+
 class nLinCurlCurlEdgeInt : public CurlCurlEdgeInt
 {
 public:

@@ -3,10 +3,11 @@
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
 #include <iostream>
-#include <fstream>
 #include <string>
 
 #include "General/environment.hh"
+#include "General/exception.hh"
+#include "MatVec/matrix.hh"
 #include "tetraFE.hh"
 
 namespace CoupledField

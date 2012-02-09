@@ -5,16 +5,20 @@
 #ifndef FILE_DIRECT_COUPLED_PDE
 #define FILE_DIRECT_COUPLED_PDE
 
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "General/defs.hh"
 #include "PDE/StdPDE.hh"
+#include "Utils/StdVector.hh"
 
 namespace CoupledField {
 
+  class BasePairCoupling;
+class Grid;
+class PDECoupling;
   // forward class declaration
   class SinglePDE;
-  class BasePairCoupling;
-  class Assemble;
-  class BaseSystem;
-  class StdPDE;
+class SingleVector;
+template <class TYPE> class Vector;
   
   //! This class implements the direct coupling of StdPDEs.
   class DirectCoupledPDE : public StdPDE

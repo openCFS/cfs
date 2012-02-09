@@ -5,8 +5,9 @@
 #ifndef LAPACK_LU_HH
 #define LAPACK_LU_HH
 
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "OLAS/external/lapack/olasf77mapping.hh"
 #include "OLAS/solver/basesolver.hh"
-#include "lapackgbmatrix.hh"
 
 namespace CoupledField {
 
@@ -98,6 +99,12 @@ namespace CoupledField {
   //! \endhtmlonly
   //! For further information see the
   //! <a href="http://www.netlib.org/lapack">LAPACK</a> pages at Netlib.
+class BaseMatrix;
+class BasePrecond;
+class BaseVector;
+class LapackBaseMatrix;
+class StdMatrix;
+
   class Lapack_LU : public BaseDirectSolver {
 
   public:

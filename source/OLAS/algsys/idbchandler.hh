@@ -5,11 +5,16 @@
 #ifndef IDBC_HANDLER_HH
 #define IDBC_HANDLER_HH
 
+#include <map>
+#include <ostream>
 #include <set>
 
-#include <def_expl_templ_inst.hh>
-
+#include "General/defs.hh"
+#include "General/environment.hh"
+#include "General/exception.hh"
+#include "MatVec/basevector.hh"
 #include "OLAS/algsys/baseidbchandler.hh"
+#include "def_expl_templ_inst.hh"
 
 
 namespace CoupledField {
@@ -17,6 +22,7 @@ namespace CoupledField {
 
   // forward declarations
   class BaseGraphManager;
+class BaseMatrix;
 
 
   // ========================================================================

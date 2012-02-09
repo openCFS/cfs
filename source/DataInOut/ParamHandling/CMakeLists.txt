@@ -1,7 +1,25 @@
 SET(PARAMH_SRCS
+  ParamNode.cc
   XMLSkeletonConf.cc
   CFSOLASParams.cc
-  ParamNode.cc)
+)
+
+SET(TARGET_LL
+  ${BOOST_IOSTREAMS_LIB}
+  ${BOOST_FILESYSTEM_LIB}
+  ${BOOST_SYSTEM_LIB}
+  cfsgeneral
+  datainout
+  domain
+  driver
+  elements
+  graph-olas
+  matvec
+  pde
+  precond-olas
+  solver-olas
+  utils
+)
 
 IF(USE_XERCES)
 
@@ -11,18 +29,10 @@ IF(USE_XERCES)
     ${PARAMH_SRCS}
     Xerces.cc)
 
+  SET(TARGET_LL ${TARGET_LL} ${XERCES_LIBRARY})
+
 ENDIF(USE_XERCES)
 
 ADD_LIBRARY(paramh STATIC ${PARAMH_SRCS})
-
-IF(USE_XERCES)
-  SET(TARGET_LL ${XERCES_LIBRARY})
-ENDIF(USE_XERCES)
-
-SET(TARGET_LL
-  ${TARGET_LL}
-  ${BOOST_FILESYSTEM_LIB}
-  ${BOOST_SYSTEM_LIB}
-  )
 
 TARGET_LINK_LIBRARIES(paramh utils ${TARGET_LL})

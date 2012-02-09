@@ -2,31 +2,38 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include "DirectCoupledPDE.hh"
+#include <stddef.h>
+#include <sstream>
+#include <string>
 
 #include "BasePairCoupling.hh"
-#include "PDE/newmark.hh"
-
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "DirectCoupledPDE.hh"
+#include "Domain/bcs.hh"
+#include "Domain/domain.hh"
+#include "Domain/entityList.hh"
+#include "Driver/assemble.hh"
+#include "Driver/singleDriver.hh"
+#include "Driver/solveStepAcoustic.hh"
+#include "Driver/solveStepMicroPiezo.hh"
+#include "Driver/solveStepPiezo.hh"
 // include solveStep drivers
 #include "Driver/stdSolveStep.hh"
-#include "Driver/solveStepAcoustic.hh"
-#include "Driver/solveStepPiezo.hh"
-#include "Driver/solveStepMicroPiezo.hh"
-#include "Driver/assemble.hh"
-
-// include PDE classes
-#include "PDE/SinglePDE.hh"
-
-
-#include "Domain/domain.hh"
-#include "Driver/singleDriver.hh"
 #include "Driver/transientdriver.hh"
-
-#include "DataInOut/ParamHandling/ParamNode.hh"
-#include "DataInOut/resultHandler.hh"
-
+#include "General/environment.hh"
+#include "General/exception.hh"
+#include "MatVec/SingleVector.hh"
+#include "MatVec/vector.hh"
+#include "OLAS/algsys/basesystem.hh"
 #include "OLAS/algsys/sbmsystem.hh"
 #include "OLAS/algsys/standardsys.hh"
+// include PDE classes
+#include "PDE/SinglePDE.hh"
+#include "PDE/basePDE.hh"
+#include "PDE/eqnMap.hh"
+#include "PDE/newmark.hh"
+#include "PDE/timestepping.hh"
+#include "Utils/basenodestoresol.hh"
 
 namespace CoupledField {
 
@@ -34,6 +41,9 @@ namespace CoupledField {
   // ***************
   //   Constructor
   // ***************
+class Grid;
+class PDECoupling;
+
   DirectCoupledPDE::DirectCoupledPDE( Grid *aptgrid, PtrParamNode paramNode )
 
     : StdPDE( aptgrid, paramNode ) {

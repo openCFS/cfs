@@ -5,12 +5,19 @@
 #ifndef OLAS_ILUTP_PRECOND_HH
 #define OLAS_ILUTP_PRECOND_HH
 
-#include <def_expl_templ_inst.hh>
+#include <stdlib.h>
+#include <iostream>
+#include <vector>
 
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "General/defs.hh"
+#include "General/exception.hh"
+#include "MatVec/typedefs.hh"
 #include "OLAS/utils/math/croutlu.hh"
-
+#include "Utils/tools.hh"
 #include "baseprecond.hh"
 #include "bnprecond.hh"
+#include "def_expl_templ_inst.hh"
 
 namespace CoupledField {
 
@@ -110,6 +117,10 @@ namespace CoupledField {
   //! \note
   //! - Pivoting is currently not supported during the factorisation.
   //! - The class only works together with CRS_Matrices with scalar entries.
+class StdMatrix;
+template <typename > class CRS_Matrix;
+template <typename > class Vector;
+
   template <typename T>
   class ILUTP_Precond : public BNPrecond<ILUTP_Precond<T>, CRS_Matrix<T>, T >,
 			public CroutLU<T> {

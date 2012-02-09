@@ -5,8 +5,8 @@
 #ifndef FUNCTIONS_2001
 #define FUNCTIONS_2001
 
-#include "General/environment.hh"
-#include "MatVec/matrix.hh"
+#include "General/defs.hh"
+#include "MatVec/vector.hh"
 
 namespace CoupledField {
 
@@ -15,6 +15,8 @@ namespace CoupledField {
 //! to generate signals
 //! =======================================================================
   //! Generate a sinus burst signal
+template <class TYPE> class Matrix;
+
   Double SinBurst( Double freq, Double numPeriods,
                 Double nPerFadeIn, Double nPerFadeOut,
                 Double t);

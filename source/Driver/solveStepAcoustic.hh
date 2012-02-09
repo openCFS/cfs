@@ -5,7 +5,15 @@
 #ifndef FILE_SOLVESTEPACOUSTIC
 #define FILE_SOLVESTEPACOUSTIC
 
+#include <stddef.h>
+
+#include "DataInOut/ParamHandling/ParamNode.hh"
 #include "stdSolveStep.hh"
+
+namespace CoupledField {
+class AdjointParameters;
+class StdPDE;
+}  // namespace CoupledField
 
 namespace CoupledField
 {

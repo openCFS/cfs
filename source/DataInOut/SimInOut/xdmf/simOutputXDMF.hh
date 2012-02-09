@@ -5,18 +5,26 @@
 #ifndef FILE_CFS_SIMOUTPUTXDMF_HH
 #define FILE_CFS_SIMOUTPUTXDMF_HH
 
-#include <set>
+#include <iosfwd>
 #include <map>
+#include <set>
+#include <string>
+#include <vector>
 
-#include <Domain/grid.hh>
-#include <Domain/resultInfo.hh>
-#include <DataInOut/simOutput.hh>
-
-#include "DataInOut/SimInOut/hdf5/simOutputHDF5.hh"
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "DataInOut/simOutput.hh"
+#include "Domain/elem.hh"
+#include "General/defs.hh"
+#include "PDE/basePDE.hh"
+#include "Utils/StdVector.hh"
 
 namespace CoupledField {
 
   //! XDMF output writer class
+class BaseResult;
+class Grid;
+class SimOutputHDF5;
+
   class SimOutputXDMF: virtual public SimOutput {
 
   public:

@@ -110,3 +110,31 @@ MACRO(CFS_CHECK_CXX_SOURCE_RUNS SOURCE VAR LINK_DIRS)
     ENDIF("${${VAR}_EXITCODE}" EQUAL 0)
   ENDIF("${VAR}" MATCHES "")
 ENDMACRO(CFS_CHECK_CXX_SOURCE_RUNS)
+
+
+#-------------------------------------------------------------------------------
+# Import a library that does itself depend on other libraries
+#-------------------------------------------------------------------------------
+# ADD_DEPENDENT_LIBRARY(NAME LIB DEPENDS)
+#
+#  NAME    - target name for the added library (targets are added name-1 to name-n) 
+#  LIB     - PATH to the library file (.a), may be a list, in that case several targets are added, every target depending on all later targets
+#  DEPENDS - general DEPENDENCIES, are added to IMPORTED_LINK_INTERFACE_LIBRARIES
+#
+FUNCTION(ADD_DEPENDENT_LIBRARY NAME LIB DEPENDS)
+  SET(I 0)
+  FOREACH(L IN ITEMS ${LIB})
+    MATH(EXPR I "${I}+1")
+    ADD_LIBRARY(${NAME}${I} STATIC IMPORTED)
+    SET_PROPERTY(TARGET "${NAME}${I}" PROPERTY IMPORTED_LOCATION "${L}")
+  ENDFOREACH(L)
+
+  FOREACH(J RANGE 1 ${I})
+    SET(TARGET_LL_DEPENDS "${DEPENDS}")
+    FOREACH(K RANGE ${J} ${I})
+      SET(TARGET_LL_DEPENDS "${TARGET_LL_DEPENDS}" "${NAME}${K}")
+    ENDFOREACH(K)
+    SET_PROPERTY(TARGET "${NAME}${J}" PROPERTY IMPORTED_LINK_INTERFACE_LIBRARIES "${TARGET_LL_DEPENDS}")
+  ENDFOREACH(J)
+ENDFUNCTION(ADD_DEPENDENT_LIBRARY)
+

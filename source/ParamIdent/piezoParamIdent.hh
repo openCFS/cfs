@@ -5,33 +5,48 @@
 #ifndef FILE_PIEZO_PARAM_IDENT
 #define FILE_PIEZO_PARAM_IDENT
 
-#include <def_use_lapack.hh>
+#include <complex>
+#include <fstream>
+#include <map>
+#include <string>
 
+#include "DataInOut/ParamHandling/ParamNode.hh"
 #include "Driver/singleDriver.hh"
-#include "Driver/assemble.hh"
+#include "General/defs.hh"
+#include "General/environment.hh"
+#include "General/exception.hh"
+#include "MatVec/matrix.hh"
+#include "MatVec/vector.hh"
+#include "OLAS/external/lapack/olasf77mapping.hh"
+#include "Utils/StdVector.hh"
+#include "Utils/result.hh"
+#include "def_use_lapack.hh"
+
+namespace CoupledField {
+class AdjointParameters;
+class Assemble;
+class BaseMaterial;
+class BaseSystem;
+}  // namespace CoupledField
 
 
 #ifdef __sgi
-#include <stdarg.h>
-#include <stdio.h>
-#include <math.h>
-#define POW pow
+#include "math.h"
+#include "stdarg.h"
+#include "stdio.h"
 #else
+#include <cmath>
 #include <cstdarg>
 #include <cstdio>
-#include <cmath>
+
 #define POW std::pow
 #endif
 
 namespace CoupledField
 {
+class PiezoCoupling;
 // forward class declaration
 class SinglePDE;
-class StdPDE;
-class SingleDriver;
-class PiezoPDE;
-class PiezoCoupling;
-class DirectCoupledPDE;
 
   //! Driver class for an inverse problem:
   //! The identification of material parameters in a piezoelectric body.

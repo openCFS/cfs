@@ -18,12 +18,12 @@
 // ===========================================================================
 
 
-#include <iostream>
-#include <cmath>
-#include <vector>
+#include <stddef.h>
 #include <algorithm>
+#include <iostream>
+#include <vector>
 
-#include <def_use_metis.hh>
+#include "def_use_metis.hh"
 
 #ifdef USE_METIS
 
@@ -36,8 +36,12 @@ extern "C"{
 
 
 
+#include "General/Enum.hh"
+#include "General/exception.hh"
 #include "OLAS/graph/basegraph.hh"
+#include "OLAS/graph/baseordering.hh"
 #include "OLAS/graph/sloan.hh"
+#include "Utils/StdVector.hh"
 
 namespace CoupledField {
 
@@ -575,15 +579,6 @@ namespace CoupledField {
   //   Compute bandwidth (upper and lower) used e.g. for LAPACK Matrices
   // *********************************************************************
   void BaseGraph::GetBandwidth( UInt& bwlower, UInt& bwupper ) {
-
-                
-#ifdef DEBUG_BASEGRAPH
-//     if ( amAssembled_ == false ) {
-//       EXCEPTION("Attempt to obtain information from graph object, "
-//                << "before assembly was completed by calling "
-//                << "FinaliseAssembly()");
-//     }
-#endif
                 
     // If both values are still 0, they have not been computed yet,
     // so we do it now (or we have a diagonal matrix, which is unlikely)

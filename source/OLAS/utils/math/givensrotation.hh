@@ -6,7 +6,6 @@
 #define GIVENS_ROTATION_HH
 
 #include "General/defs.hh"
-#include "General/environment.hh"
 
 namespace CoupledField {
 

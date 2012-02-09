@@ -5,7 +5,19 @@
 #ifndef FILE_MASSINT_1
 #define FILE_MASSINT_1
 
+#include <string>
+
+#include "General/defs.hh"
+#include "Optimization/Design/DesignElement.hh"
+#include "Utils/mathParser/mathParser.hh"
 #include "baseForm.hh"
+
+namespace CoupledField {
+class BaseMaterial;
+class EntityIterator;
+struct Elem;
+template <class TYPE> class Matrix;
+}  // namespace CoupledField
 
 namespace CoupledField
 {

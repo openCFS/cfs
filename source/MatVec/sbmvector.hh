@@ -5,9 +5,15 @@
 #ifndef OLAS_SBM_VECTOR_HH
 #define OLAS_SBM_VECTOR_HH
 
+#include <stddef.h>
 #include <iostream>
-#include "MatVec/basevector.hh"
+#include <string>
+
+#include "General/defs.hh"
+#include "General/exception.hh"
 #include "MatVec/SingleVector.hh"
+#include "MatVec/basematrix.hh"
+#include "MatVec/basevector.hh"
 
 namespace CoupledField {
 

@@ -8,8 +8,10 @@
 #include <string>
 
 #include "DataInOut/ParamHandling/ParamNode.hh"
-#include "Utils/StdVector.hh"
+#include "General/defs.hh"
+#include "MatVec/basematrix.hh"
 #include "OLAS/solver/basesolver.hh"
+#include "Utils/StdVector.hh"
 
 namespace CoupledField {
 
@@ -90,6 +92,9 @@ namespace CoupledField {
   //!   PARDISO_stats = true, is also contained in the output parts of iparm_.
   //!   Thus, we could also write our own method that re-directs the statistics
   //!   to the standard logfile.
+class BasePrecond;
+class BaseVector;
+
   template<typename T>
   class PardisoSolver : public BaseDirectSolver {
 

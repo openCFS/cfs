@@ -5,6 +5,7 @@
 #ifndef OLAS_IDSTDPRECOND_HH
 #define OLAS_IDSTDPRECOND_HH
 
+#include "MatVec/sbmvector.hh"
 #include "baseprecond.hh"
 
 namespace CoupledField {
@@ -17,6 +18,10 @@ namespace CoupledField {
   //! does not really do anything and the Apply routine simply returns the rhs
   //! vector unchanged as sol vector. The class is provided in order to render
   //! constant case distinctions unneccessary.
+class SBM_Matrix;
+class SingleVector;
+class StdMatrix;
+
   class IdPrecondStd : public BaseStdPrecond {
 
   public:

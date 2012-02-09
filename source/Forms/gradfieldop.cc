@@ -2,18 +2,27 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include "Forms/gradfieldop.hh"
+#include <assert.h>
 
-#include <string>
-
-#include "Elements/basefe.hh"
-#include "Domain/elem.hh"
-#include "Domain/grid.hh"
-#include "General/environment.hh"
-#include "MatVec/vector.hh"
-#include "MatVec/matrix.hh"
 #include "DataInOut/Logging/cfslog.hh"
+#include "DataInOut/Logging/log.hpp"
+#include "Domain/elem.hh"
+#include "Domain/entityList.hh"
+#include "Domain/grid.hh"
+#include "Elements/basefe.hh"
+#include "Forms/gradfieldop.hh"
+#include "General/environment.hh"
+#include "General/exception.hh"
+#include "MatVec/matrix.hh"
+#include "MatVec/vector.hh"
 #include "PDE/StdPDE.hh"
+#include "Utils/nodestoresol.hh" // IWYU pragma: keep
+
+namespace CoupledField {
+class AnsatzFct;
+class EqnMap;
+class SingleVector;
+}  // namespace CoupledField
 
 namespace CoupledField
 {

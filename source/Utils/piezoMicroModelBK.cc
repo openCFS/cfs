@@ -2,10 +2,17 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include "piezoMicroModelBK.hh"
-#include "ODESolve/piezoSwitch.hh"
+#include <cmath>
+
+#include "MatVec/exprt/xpr1.hh"
+#include "MatVec/exprt/xpr2.hh"
+#include "Materials/baseMaterial.hh"
+#include "ODESolve/BaseODEProblem.hh"
+#include "ODESolve/BaseODESolver.hh"
 #include "ODESolve/ODESolver_Rosenbrock.hh"
-#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "ODESolve/piezoSwitch.hh"
+#include "Utils/tools.hh"
+#include "piezoMicroModelBK.hh"
 
 
 namespace CoupledField{

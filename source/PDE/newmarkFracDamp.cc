@@ -2,25 +2,33 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include <fstream>
-#include <iostream>
-#include <string>
 #include <cmath>
+#include <string>
+#include <utility>
 
-#include "Forms/massInt.hh"
 #include "DataInOut/WriteInfo.hh"
-#include "basePDE.hh"
-#include "Materials/baseMaterial.hh"
-#include "Utils/mathfunctions.hh"
 #include "Domain/domain.hh"
+#include "Domain/entityList.hh"
+#include "Domain/resultInfo.hh"
 #include "Driver/singleDriver.hh"
+#include "Forms/baseForm.hh"
+#include "Forms/massInt.hh"
+#include "General/environment.hh"
 #include "General/exception.hh"
-
+#include "MatVec/exprt/xpr1.hh"
+#include "MatVec/exprt/xpr2.hh"
+#include "MatVec/matrix.hh"
+#include "Materials/baseMaterial.hh"
 #include "OLAS/algsys/basesystem.hh"
-
+#include "PDE/StdPDE.hh"
+#include "PDE/eqnMap.hh"
+#include "PDE/timestepping.hh"
+#include "Utils/mathfunctions.hh"
 #include "newmarkFracDamp.hh"
 
 namespace CoupledField {
+
+class Grid;
 
   NewmarkFracDamp::NewmarkFracDamp( BaseSystem * algebraicsystem,
                                     const PdeIdType apdeId,

@@ -5,12 +5,19 @@
 #ifndef DEFAULT_COORD_SYSTEM_HH
 #define DEFAULT_COORD_SYSTEM_HH
 
+#include <string>
+
+#include "General/defs.hh"
+#include "MatVec/vector.hh"
 #include "coordSystem.hh"
 
 namespace CoupledField {
 
 
   //! Describes the global cartesian coordinate system
+class Grid;
+template <class TYPE> class Matrix;
+
   class DefaultCoordSystem : public CoordSystem{
 
   public:

@@ -1,27 +1,37 @@
 #ifndef DESIGN_SPACE_HH_
 #define DESIGN_SPACE_HH_
 
+#include <stddef.h>
+#include <complex>
+#include <string>
+#include <utility>
+
 #include "DataInOut/ParamHandling/ParamNode.hh"
-#include "Optimization/TransferFunction.hh"
-#include "Optimization/Design/DesignElement.hh"
-#include "Optimization/ErsatzMaterial.hh"
-#include "Optimization/Design/DesignMaterial.hh"
+// we need it for the template implementation
 #include "Forms/baseForm.hh"
 #include "General/Enum.hh"
+#include "General/environment.hh"
+#include "Optimization/Condition.hh"
+#include "Optimization/Design/DesignElement.hh"
+#include "Optimization/Design/DesignMaterial.hh"
+#include "Optimization/ErsatzMaterial.hh"
+#include "Optimization/Optimization.hh"
+#include "Utils/StdVector.hh"
 
-// we need it for the template implementation
-#include "Domain/resultInfo.hh"
-#include "Utils/result.hh"
+namespace CoupledField {
+class TransferFunction;
+template <class TYPE> class Matrix;
+template <class TYPE> class Result;
+}  // namespace CoupledField
 
 namespace CoupledField
 {
-  template <class TYPE> class StdVector;
+  class BaseMaterial;
+  class BaseOptimizer;
+  class BaseResult;
   class SinglePDE;
   struct Elem;
-  class BaseResult;
-  class BaseMaterial;
   struct ResultInfo;
-  class BaseOptimizer;
 
   /** This is the container of DesingElements which also holds the transferFunctions.
    * It can be initialized by Optimization of can contain the ersatz material stuff. */
@@ -203,7 +213,7 @@ namespace CoupledField
 
      /** Service method to find our index in the design vector
       * @return -1 if not throw_exception and not found */
-     int FindDesign(DesignElement::Type dt, bool throw_exception = true);
+     int FindDesign(DesignElement::Type dt, bool throw_exception = true) const;
 
      /** Service method to find a specific design element by element number and design type */
      DesignElement* Find(unsigned int elemNum, DesignElement::Type dt, bool throw_exception = true, bool include_pseudo_designs = false);

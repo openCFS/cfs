@@ -5,7 +5,12 @@
 #ifndef FILE_SOLVESTEP_ODE_HH
 #define FILE_SOLVESTEP_ODE_HH
 
+#include "General/exception.hh"
 #include "stdSolveStep.hh"
+
+namespace CoupledField {
+class StdPDE;
+}  // namespace CoupledField
 
 namespace CoupledField
 {

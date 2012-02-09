@@ -174,7 +174,6 @@
                       <xsd:enumeration value="meta_objective"/>
                       <xsd:enumeration value="homogenizationTestStrains"/>
                       <xsd:enumeration value="maxwellHomogenizationTestStrains"/>
-                      <xsd:enumeration value="polarizationMatrix"/>
                     </xsd:restriction>
                   </xsd:simpleType>
                 </xsd:attribute>  
@@ -930,6 +929,7 @@
                     </xsd:restriction>
                   </xsd:simpleType>
                 </xsd:attribute>
+                <xsd:attribute name="compress" default="false" type="xsd:boolean"/>
               </xsd:complexType>
             </xsd:element>                       
             

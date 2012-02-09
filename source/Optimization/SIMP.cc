@@ -1,32 +1,48 @@
-#include "Optimization/SIMP.hh"
-#include "Optimization/Design/DesignSpace.hh"
-#include "Optimization/Design/DesignElement.hh"
-#include "Optimization/Design/DesignStructure.hh"
-#include "Optimization/OptimizationMaterial.hh"
-#include "Optimization/StressConstraint.hh"
+#include <assert.h>
+#include <math.h>
+#include <stddef.h>
+#include <map>
+#include <ostream>
+#include <string>
+
+#include "DataInOut/Logging/cfslog.hh"
+#include "DataInOut/Logging/log.hpp"
+#include "DataInOut/ParamHandling/ParamNode.hh"
 #include "Domain/domain.hh"
+#include "Domain/elem.hh"
+#include "Domain/entityList.hh"
 #include "Domain/surfElem.hh"
-#include "General/exception.hh"
-#include "Utils/basenodestoresol.hh"
-#include "PDE/SinglePDE.hh"
-#include "PDE/mechPDE.hh"
-#include "Forms/baseForm.hh"
-#include "Forms/linSurfForm.hh"
-#include "CoupledPDE/DirectCoupledPDE.hh"
-#include "Utils/StdVector.hh"
-#include "MatVec/vector.hh"
-#include "Utils/result.hh"
-#include "Utils/mathParser/mathParser.hh"
 #include "Driver/assemble.hh"
 #include "Driver/baseSolveStep.hh"
-#include "DataInOut/ParamHandling/ParamNode.hh"
-#include "DataInOut/Logging/cfslog.hh"
-#include "OLAS/algsys/baseentrymanipulator.hh"
-#include "OLAS/algsys/basesystem.hh"
-#include "MatVec/basematrix.hh"
-#include "MatVec/stdmatrix.hh"
+#include "Driver/formsContext.hh"
+#include "Forms/linSurfForm.hh"
+#include "Forms/linearForm.hh"
+#include "General/Enum.hh"
+#include "General/defs.hh"
+#include "General/environment.hh"
+#include "General/exception.hh"
+#include "MatVec/SingleVector.hh"
+#include "MatVec/exprt/xpr1.hh"
+#include "MatVec/matrix.hh"
+#include "MatVec/vector.hh"
+#include "Optimization/Design/DesignElement.hh"
+#include "Optimization/Design/DesignSpace.hh"
+#include "Optimization/Design/DesignStructure.hh"
+#include "Optimization/Excitation.hh"
+#include "Optimization/Function.hh"
+#include "Optimization/OptimizationMaterial.hh"
+#include "Optimization/SIMP.hh"
+#include "Optimization/StressConstraint.hh"
+#include "Optimization/TransferFunction.hh"
+#include "PDE/SinglePDE.hh"
+#include "PDE/mechPDE.hh"
+#include "Utils/StdVector.hh"
+#include "Utils/mathParser/mathParser.hh"
+#include "Utils/tools.hh"
 
-#include <string>
+namespace CoupledField {
+class DenseMatrix;
+}  // namespace CoupledField
 
 using namespace CoupledField;
 
@@ -241,21 +257,13 @@ void SIMP::AddMassToStiffness(const TransferFunction* mtf, DesignElement* de, Ma
   
   if(pde->GetDamping(regionId) == RAYLEIGH)
   {
-    // we need a math parser (is an unsigned int)
-    unsigned int handle = domain->GetMathParser()->GetNewHandle();
-
     // the alpha and beta might be calculated and adjusted, get them
     // from the integrators in the form as they are used for the state problem!
-    std::string txt = assemble_->GetBiLinForm(regionId, pde, pde, "linElastInt")->GetSecMatFac();
-    domain->GetMathParser()->SetExpr(handle, txt);
-    alpha_k = domain->GetMathParser()->Eval(handle);
+    alpha_k = assemble_->GetBiLinForm(regionId, pde, pde, "linElastInt")->EvalSecMatFac();
 
     // now alpha_m
-    txt = assemble_->GetBiLinForm(regionId, pde, pde, "MassInt")->GetSecMatFac();
-    domain->GetMathParser()->SetExpr(handle, txt);
-    alpha_m = domain->GetMathParser()->Eval(handle);
+    alpha_m = assemble_->GetBiLinForm(regionId, pde, pde, "MassInt")->EvalSecMatFac();
 
-    domain->GetMathParser()->ReleaseHandle(handle);
     assert(omega > 0);
 
     // pamping stuff without omega

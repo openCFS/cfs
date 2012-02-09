@@ -9,9 +9,11 @@
 // This code is also based on the gmvread library from the official GMV
 // website at: http://www-xdiv.lanl.gov/XCM/gmv/GMVHome.html
 
+#include <stdio.h>
+#include <string>
 #include <vector>
 
-#include <DataInOut/Logging/cfslog.hh>
+#include "DataInOut/Logging/cfslog.hh"
 
 namespace CoupledField {
 

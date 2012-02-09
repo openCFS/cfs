@@ -1,10 +1,19 @@
 #include <fstream>
-#include <iostream>
 #include <string>
 
-#include "solveStepSmooth.hh"
-#include "assemble.hh"
+#include "DataInOut/WriteInfo.hh"
+#include "Driver/basedriver.hh"
+#include "Driver/stdSolveStep.hh"
+#include "General/defs.hh"
+#include "General/environment.hh"
+#include "MatVec/SingleVector.hh"
+#include "MatVec/vector.hh"
+#include "OLAS/algsys/basesystem.hh"
 #include "PDE/StdPDE.hh"
+#include "PDE/timestepping.hh"
+#include "Utils/basenodestoresol.hh"
+#include "assemble.hh"
+#include "solveStepSmooth.hh"
 
 namespace CoupledField {
 
