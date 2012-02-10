@@ -15,89 +15,40 @@
 
 namespace CoupledField {
 
-  //! This class implements the interface to PARDISO's LU decomposition
-  //! and solving of a sparse system of linear equations.
-  //! There is no need to initialize it, the Setup-Method does in fact
-  //! nothing at all.
-  //! After Solve is called the BaseMatrix (expected to be either a CRS
-  //! or SCRS-matrix) will be reordered using the Nested Dissection or
-  //! the Minimum Degree Algorithm, then it will be LU-factorized and
-  //! finally solved by backward-forward substitution.
-  //!
-  //! The following parameters are read from the myParams-object:
-  //! \n\n
-  //! <center>
-  //!   <table border="1" width="80%" cellpadding="10">
-  //!     <tr>
-  //!       <td colspan="4" align="center">
-  //!         <b>Parameters for PARDISO solver</b>
-  //!       </td>
-  //!     </tr>
-  //!     <tr>
-  //!       <td align="center"><b>ID string in OLAS_Params</b></td>
-  //!       <td align="center"><b>range</b></td>
-  //!       <td align="center"><b>default value</b></td>
-  //!       <td align="center"><b>description</b></td>
-  //!     </tr>
-  //!     <tr>
-  //!       <td>PARDISO_definite</td>
-  //!       <td align="center">true or false</td>
-  //!       <td align="center">false</td>
-  //!       <td>If this is set to 'true' the matrix is expected to be
-  //!         positive definite.</td>
-  //!     </tr>
-  //!     <tr>
-  //!       <td>PARDISO_hermitian</td>
-  //!       <td align="center">true or false</td>
-  //!       <td align="center">false</td>
-  //!       <td>If this is set to 'true' the matrix is expected to be
-  //!         complex and hermitian.</td>
-  //!     </tr>
-  //!     <tr>
-  //!       <td>PARDISO_symstructure</td>
-  //!       <td align="center">true or false</td>
-  //!       <td align="center">false</td>
-  //!       <td>If this is set to 'true' the matrix is expected to be
-  //!         symmetric in structure.</td>
-  //!     </tr>
-  //!     <tr>
-  //!       <td>PARDISO_ordering</td>
-  //!       <td align="center">NESTED_DISSECTION, MINUMUM_DEGREE or
-  //!         NOREORDERING</td>
-  //!       <td align="center">NESTED_DISSECTION</td>
-  //!       <td>This parameter determines the strategy for computing the
-  //!           re-ordering of unknowns in the symbolic factorization.</td>
-  //!     </tr>
-  //!     <tr>
-  //!       <td>PARDISO_logging</td>
-  //!       <td align="center">true or false</td>
-  //!       <td align="center">false</td>
-  //!       <td>If 'true' the %PardisoSolver object will log some minimal
-  //!           status reports to the standard %OLAS logfile.</td>
-  //!     </tr>
-  //!     <tr>
-  //!       <td>PARDISO_stats</td>
-  //!       <td align="center">true or false</td>
-  //!       <td align="center">false</td>
-  //!       <td>Setting this parameter to 'true' will triggers the pardiso
-  //!           library to print statistical information on the solution
-  //!           process to the screen (msgLvl_ = 1).
-  //!       </td>
-  //!     </tr>
-  //!   </table>
-  //! </center>
-  //!
-  //! \note
-  //! - The statistical information that Pardiso prints to the screen for
-  //!   PARDISO_stats = true, is also contained in the output parts of iparm_.
-  //!   Thus, we could also write our own method that re-directs the statistics
-  //!   to the standard logfile.
+  //! This class implements the interface to the Intel MKL PARDISO64 
+  //! solver.
+  //! It is mainly a copy of the pardiso interface, but uses larger
+  //! variables (long long int) to allow for the solution of very
+  //! large linear systems.
+
+  //! The pardiso64 interface is available starting from MKL version 
+  //! 10.2.6. There are no checks whatsoever at the moment to ensure
+  //! that the interface is available. If it is not available, cfs
+  //! simply will not link. Likewise, there aren't any other checks.
+  //! If you want to use this, you basically are on your own.
+
+  //! Intel mentions that the pardiso64 interface might be slower
+  //! for certain problems, so that is why it is probably not a good
+  //! idea to use it as standard pardiso interface.
+
+  //! It is also worth mentioning that for this interface we make 
+  //! a copy of the row and column pointers from the sparse matrices.
+  //! The memory of those is released in the dtor. This is different 
+  //! in the original interface, where the data is changed directly 
+  //! in the sparse matrices by incrementing and decrementing afterwards.
+
+  //! For further pieces of documentation please see the standard 
+  //! pardiso interface. The configuration and error codes are 
+  //! completely identical. Note that the iterative option does 
+  //! not make any sense here and there is simply an exception
+  //! if this is configured.
+  
 class BasePrecond;
 class BaseVector;
 
   template<typename T>
-  class Pardiso64Solver : public BaseDirectSolver {
-
+  class Pardiso64Solver : public BaseDirectSolver 
+  {
   public:
 
     //! Constructor
@@ -131,9 +82,7 @@ class BaseVector;
     //! This method can be used to query the type of this solver. The answer
     //! is encoded as a value of the enumeration data type SolverType.
     //! \return PARDISO
-    SolverType GetSolverType() {
-      return PARDISO64;
-    }
+    SolverType GetSolverType() { return PARDISO64; }
 
   private:
 

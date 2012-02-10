@@ -102,6 +102,7 @@ include/def_use_mesh.hh.in -text
 include/def_use_metis.hh.in -text
 include/def_use_mpcci.hh.in -text
 include/def_use_pardiso.hh.in -text
+include/def_use_pardiso64.hh.in -text
 include/def_use_python.hh.in -text
 include/def_use_scpip.hh.in -text
 include/def_use_scripting.hh.in -text
