@@ -311,6 +311,7 @@
                 <xsd:enumeration value="projection"/>
                 <!--  requires parametrized material tensor (for now only PLANE_STRESS implemented) -->
                 <xsd:enumeration value="sumModuli"/>
+                <xsd:enumeration value="globalSumModuli"/>
               </xsd:restriction>
             </xsd:simpleType>
           </xsd:attribute>

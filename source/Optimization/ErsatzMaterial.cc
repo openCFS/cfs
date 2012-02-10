@@ -1034,6 +1034,7 @@ double ErsatzMaterial::CalcFunction(Excitation& excite, Function* f, bool deriva
   case Function::GLOBAL_MOLE:
   case Function::GLOBAL_OSCILLATION:
   case Function::GLOBAL_JUMP:
+  case Function::GLOBAL_SUM_MODULI:
     result = CalcGlobalFunction(f, derivative);
     break;
 

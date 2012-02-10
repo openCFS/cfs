@@ -414,6 +414,7 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
     case DESIGN_TRACKING:
     case PROJECTION:
     case SUM_MODULI:
+    case GLOBAL_SUM_MODULI:
       assert(excite_index < 0);
       excite_ = me->excitations.GetSize() - 1; // once only at the last excitation
       break;
@@ -615,6 +616,7 @@ bool Function::ForSensitivityFiltering() const
   case DESIGN_TRACKING:
   case PROJECTION:
   case SUM_MODULI:
+  case GLOBAL_SUM_MODULI:
     return false;
 
   case ISOTROPY:
@@ -708,6 +710,7 @@ void Function::PostProc(DesignSpace* space, DesignStructure* structure, ErsatzMa
   case STRESS:
   case STRESS_DENSITY:
   case SUM_MODULI:
+  case GLOBAL_SUM_MODULI:
     // assert(space->IsRegular()); // VicinityElements work only on a regular grid
     // the design elements require the vicinity element to be set which holds the direct
     // neighbors. Is save to call several times
@@ -789,6 +792,7 @@ Function::Local::Local(Function* func, DesignSpace* space)
   case GLOBAL_SLOPE:
   case STRESS:
   case STRESS_DENSITY:
+  case GLOBAL_SUM_MODULI:
     this->globalized_ = true;
     break;
 
@@ -867,6 +871,7 @@ Function::Local::Local(Function* func, DesignSpace* space)
     break;
 
   case SUM_MODULI:
+  case GLOBAL_SUM_MODULI:
     if(locality_ != MULT_DESIGNS_ELEMENT && locality_ != DEFAULT)
       throw Exception("Invalid locality '" + locality.ToString(locality_) + "' within '" + fname + "'");
     locality_ = MULT_DESIGNS_ELEMENT;
@@ -1372,7 +1377,8 @@ double Function::Local::Identifier::EvalFunction(const Local* local, bool grad_g
     break;
 
   case SUM_MODULI:
-    fv = CalcSumModuli(local);
+  case GLOBAL_SUM_MODULI:
+    fv = CalcSumModuli();
     break;
 
   default:
@@ -1409,6 +1415,11 @@ double Function::Local::Identifier::EvalFunction(const Local* local, bool grad_g
                    << " grad_glob=" << grad_glob << " power=" << std::pow(v, local->GetPower()) << " -> " << res;
 
     return res;
+  }
+  case GLOBAL_SUM_MODULI:
+  {
+    double factor = local->DoNormalizeGlobal() ? 1.0/local->virtual_elem_map.GetSize() : 1.0;
+    return fv*factor;
   }
   default:
     return fv; // check is done before
@@ -1476,8 +1487,12 @@ void Function::Local::Identifier::EvalGradient(const Local* local)
       break;
 
     case SUM_MODULI:
-      CalcSumModuliGradient(f, g, local);
-      return;
+      CalcSumModuliGradient(n, f, g, 1.0);
+      continue;
+
+    case GLOBAL_SUM_MODULI:
+      CalcSumModuliGradient(n, f, g, local->DoNormalizeGlobal() ? 1.0/local->virtual_elem_map.GetSize() : 1.0);
+      continue;
 
     default:
       assert(false);
@@ -1817,23 +1832,21 @@ double Function::Local::Identifier::CalcBumpGradient(int neigh_idx) const
 }
 
 
-double Function::Local::Identifier::CalcSumModuli(const Local* local) const
+double Function::Local::Identifier::CalcSumModuli() const
 {
   double E(0.0), E3(0.0), G(0.0);
-  StdVector<DesignElement*> designs = neighbor;
-  designs.Push_back(element);
-  for(UInt i=0; i<designs.GetSize(); ++i)
+  for(int i=-1; i < (int) neighbor.GetSize(); ++i)
   {
-    switch(designs[i]->GetType())
+    switch(GetElement(i)->GetType())
     {
     case DesignElement::EMODULISO:
-      E = designs[i]->GetDesign(DesignElement::PLAIN);
+      E = GetElement(i)->GetDesign(DesignElement::PLAIN);
       break;
     case DesignElement::EMODUL:
-      E3 = designs[i]->GetDesign(DesignElement::PLAIN);
+      E3 = GetElement(i)->GetDesign(DesignElement::PLAIN);
       break;
     case DesignElement::GMODUL:
-      G = designs[i]->GetDesign(DesignElement::PLAIN);
+      G = GetElement(i)->GetDesign(DesignElement::PLAIN);
       break;
     default:
       break;
@@ -1853,17 +1866,20 @@ double Function::Local::Identifier::CalcSumModuli(const Local* local) const
   return E+E3+G;
 }
 
-void Function::Local::Identifier::CalcSumModuliGradient(Objective* f, Condition* g, const Local* local) const
+void Function::Local::Identifier::CalcSumModuliGradient(int neigh_idx, const Objective* f, const Condition* g, double value)
 {
-  StdVector<DesignElement*> designs = neighbor;
-  designs.Push_back(element);
-  for(UInt i=0; i<designs.GetSize(); ++i)
-  {
-    if(!local->IsGlobalized())
-      designs[i]->Reset(DesignElement::CONSTRAINT_GRADIENT, g);
-    if(designs[i]->GetType() == DesignElement::EMODULISO || designs[i]->GetType() == DesignElement::EMODUL || designs[i]->GetType() == DesignElement::GMODUL)
-      designs[i]->AddGradient(f, g, 1.0);
-  }
+  DesignElement::Type type = GetElement(neigh_idx)->GetType();
+  if (type == DesignElement::EMODULISO || type == DesignElement::EMODUL || type == DesignElement::GMODUL)
+    GetElement(neigh_idx)->AddGradient(f, g, value);
+//  StdVector<DesignElement*> designs = neighbor;
+//  designs.Push_back(element);
+//  for(UInt i=0; i<designs.GetSize(); ++i)
+//  {
+//    if(!local->IsGlobalized())
+//      designs[i]->Reset(DesignElement::CONSTRAINT_GRADIENT, g);
+//    if(designs[i]->GetType() == DesignElement::EMODULISO || designs[i]->GetType() == DesignElement::EMODUL || designs[i]->GetType() == DesignElement::GMODUL)
+//      designs[i]->AddGradient(f, g, 1.0);
+//  }
 //  UInt elemNum = element->elem->elemNum;
 //  if(!local->IsGlobalized())
 //  {

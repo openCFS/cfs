@@ -112,7 +112,7 @@ Condition::Condition(PtrParamNode pn) : Function(pn)
   }
   
   // generally we are not linear, the volume is not linear on heaviside densities.
-  linear_ = type_ == VOLUME || type_ == SLOPE || type_ == SUM_MODULI ? true : false;
+  linear_ = type_ == VOLUME || type_ == SLOPE /*|| type_ == SUM_MODULI */? true : false;
   //  snopt only makes a difference between linear and nonlinear constraints!
   if(pn->Has("linear"))
     linear_ = pn->Get("linear")->As<bool>();

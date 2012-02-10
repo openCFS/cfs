@@ -112,7 +112,8 @@ class Function
       JUMP,                      /*!< Weak greyness control by Fabian W. :) */
       BUMP,                      /*!< Prevent intermediate change of slope ('hobbala') by Fabian W. */
       DESIGN_TRACKING,            /*!< Tracking against physical densities in designTarget. Either for region or periodic (constraint nodes) elements */
-      SUM_MODULI                  /*!< the sum of the elasticity and shear moduli in parametrized elasticity tensor formulations */
+      SUM_MODULI,                 /*!< the sum of the elasticity and shear moduli in parametrized elasticity tensor formulations */
+      GLOBAL_SUM_MODULI           /*!< global resource constraint, see sum_moduli */
     } Type;
 
     /** to convert string/enum for this type */
@@ -365,8 +366,8 @@ class Function
         double CalcBumpGradient(int neigh_idx) const;
 
         /** sum of elasticity and shear moduli in parametrized elasticity tensor formulations */
-        double CalcSumModuli(const Local* local) const;
-        void CalcSumModuliGradient(Objective* f, Condition* g, const Local* local) const; // 1 = EMODULISO, 2 = EMODUL, 3 = GMODUL
+        double CalcSumModuli() const;
+        void CalcSumModuliGradient(int neigh_idx, const Objective* f, const Condition* g, double value);
 
         /** CalcStress() and the gradient are actually done in EM/SIMP */
 
