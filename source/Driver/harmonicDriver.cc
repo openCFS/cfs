@@ -73,7 +73,7 @@ namespace CoupledField
       EXCEPTION("'analysis/harmonic' contains 'numFreq/startFreq/stopFreq' and 'frequencyList' concurrently");
 
     if(!params && !list)
-      EXCEPTION("'analysis/harmonic' contains neither 'numFreq/startFreq/stopFreq' nor 'frequencyList' concurrently");
+      EXCEPTION("'analysis/harmonic' contains neither 'numFreq/startFreq/stopFreq' nor 'frequencyList'");
 
     PtrParamNode in = driverNode->Get(ParamNode::HEADER);
     in->Get("start")->SetValue(startFreq_);
@@ -98,7 +98,7 @@ namespace CoupledField
     freqs.Resize(list.GetSize());
     numFreq_ = freqs.GetSize();
     if(freqs.GetSize() == 0)
-      EXCEPTION("cannot have empty frequeny list");
+      EXCEPTION("cannot have empty frequency list");
 
     driverNode->Get(ParamNode::HEADER)->Get("sampling")->SetValue("frequency list given");
 
