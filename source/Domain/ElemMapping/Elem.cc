@@ -1678,7 +1678,7 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
       s.numEdges = 8;
       s.numFaces = 5;
 
-      Double midPoint[3] = {0.0, 0.0, 1./4};
+      Double midPoint[3] = {0.0, 0.0, 1.0/4.0};
       Double nodeCoords[] =
       {  1.0,  1.0,  0.0, // #1
         -1.0,  1.0,  0.0, // #2

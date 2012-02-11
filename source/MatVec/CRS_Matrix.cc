@@ -291,7 +291,6 @@ namespace CoupledField {
     UInt i, j, rs, k;
     T sum;
 
-
 #pragma omp parallel for private(sum,k,rs,j)
     for ( i = 0; i < this->nrows_; i++ ) {
       sum = 0;
@@ -994,10 +993,11 @@ namespace CoupledField {
         //another optimization check if data in set is continuous
         std::set<UInt>::iterator starting  = colIndices.begin();
         std::set<UInt>::iterator ending = colIndices.end();
-        if( (*ending - *starting) == colIndices.size()){
+        UInt min = *starting;
+        UInt max = *colIndices.rbegin();
+        UInt size = colIndices.size();
+        if( (max - min) == (size-1)){
           //data is continuous
-          UInt min = *starting;
-          UInt max = *ending;
 #pragma omp parallel for
           for ( UInt i = 0; i < this->nnz_; i++ ) {
             if (colInd_[i] >= min && colInd_[i] <= max)

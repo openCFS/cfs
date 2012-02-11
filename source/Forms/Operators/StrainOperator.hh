@@ -9,7 +9,7 @@ namespace CoupledField{
   // ============================
   //! Strain-like differential operator in 2D
   template<class FE, class TYPE = Double >
-  class StrainOperator2D : public BaseBOperator<FE,TYPE>{
+  class StrainOperator2D : public BaseBOperator<TYPE>{
 
   public:
 
@@ -120,7 +120,7 @@ namespace CoupledField{
   // =====================================
   //! Strain-like differential operator for axial symmetry 
   template<class FE, class TYPE = Double >
-  class StrainOperatorAxi : public BaseBOperator<FE,TYPE>{
+  class StrainOperatorAxi : public BaseBOperator<TYPE>{
 
   public:
 
@@ -258,7 +258,7 @@ namespace CoupledField{
    // ============================
    //! Strain-like differential operator in 3D
    template<class FE, class TYPE = Double >
-   class StrainOperator3D : public BaseBOperator<FE,TYPE>{
+   class StrainOperator3D : public BaseBOperator<TYPE>{
 
    public:
 

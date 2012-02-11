@@ -172,7 +172,7 @@ namespace CoupledField {
   // *********************
   template <typename T> void IDBC_Handler<T>::
   BuildSystemMatrix( const std::map<FEMatrixType, Double> &factors,
-                     std::map<UInt, std::set<UInt> >& rowInd ) {
+                     std::map<UInt, std::set<UInt> >& colInd ) {
 
     SBM_Matrix *sys = auxMat_[SYSTEM];
 
@@ -182,8 +182,9 @@ namespace CoupledField {
 
       // Check that we have a factor and a FE matrix
       if ( auxMat_[(*it).first] != NULL  && (*it).second != 0.0 ) {
-        // generate empty set of indices (= all columns)
-        std::map<UInt, std::set<UInt> > colInd;
+        // generate empty set of indices (= all rows)
+        std::map<UInt, std::set<UInt> > rowInd;
+
         sys->Add( (*it).second , *auxMat_[(*it).first], 
                   rowInd, colInd );
       }
@@ -294,6 +295,7 @@ namespace CoupledField {
       tmpVec->Init();
       SingleVector * curVec = tmpVec->GetPointer(colBlock);
       curVec->SetEntry(colInd - numFreeDofs_[colBlock] - 1,val);
+
       auxMat_[matID]->MultAdd(*tmpVec,*rhs);
     }
 

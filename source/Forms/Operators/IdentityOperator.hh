@@ -30,7 +30,7 @@
 namespace CoupledField{
   
   template<class FE, UInt D = 1, UInt D_DOF = 1, class TYPE = Double>
-  class IdentityOperator : public BaseBOperator<FE,TYPE>{
+  class IdentityOperator : public BaseBOperator<TYPE>{
 
   public:
     
@@ -73,9 +73,9 @@ namespace CoupledField{
 
     //avoid reimplementation of complex operator by making the bas class function
     //available
-    using BaseBOperator<FE,TYPE>::CalcOpMat;
+    using BaseBOperator<TYPE>::CalcOpMat;
 
-    using BaseBOperator<FE,TYPE>::CalcOpMatTransposed;
+    using BaseBOperator<TYPE>::CalcOpMatTransposed;
 
   protected:
 
@@ -129,7 +129,7 @@ namespace CoupledField{
   
   //! Specialization for edge curl problems
   template<UInt D, class TYPE >
-  class IdentityOperator<FeHCurl, D,1, TYPE> : public BaseBOperator<FeHCurl,TYPE>{
+  class IdentityOperator<FeHCurl, D,1, TYPE> : public BaseBOperator<TYPE>{
     public:
     // =============================================
     //  STATIC CONSTANTS 

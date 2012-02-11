@@ -16,7 +16,7 @@ namespace CoupledField{
 //! \tparam D Dimension of the problem space
 //! \tparam TYPE Data type (DOUBLE, COMPLEX)
 template<class FE, UInt D, class TYPE = Double>
-class DivOperator : public BaseBOperator<FE,TYPE>{
+class DivOperator : public BaseBOperator<TYPE>{
 public:
 
     // ------------------
@@ -58,9 +58,9 @@ public:
                                      const LocPointMapped& lp, 
                                      BaseFE* ptFe );
 
-    using BaseBOperator<FE,TYPE>::CalcOpMat;
+    using BaseBOperator<TYPE>::CalcOpMat;
 
-    using BaseBOperator<FE,TYPE>::CalcOpMatTransposed;
+    using BaseBOperator<TYPE>::CalcOpMatTransposed;
 
 
     protected:

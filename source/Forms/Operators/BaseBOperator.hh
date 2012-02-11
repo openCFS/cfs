@@ -6,11 +6,10 @@
 
 namespace CoupledField{
 
-
 //! Basic Class for differential operators. These classes are passed as a 
 //! template parameter to the forms object. Thereby a PDE rather specifies
 //! an operator than a specific form.
-template<class FE, class DATA_TYPE>
+template<class DATA_TYPE>
 class BaseBOperator{
 public:
   

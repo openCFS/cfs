@@ -23,7 +23,7 @@
 
 namespace CoupledField{
   template<class FE, UInt D, class TYPE>
-  class CurlOperator : public BaseBOperator<FE,TYPE>{
+  class CurlOperator : public BaseBOperator<TYPE>{
     public:
     
     CurlOperator();
@@ -42,9 +42,9 @@ namespace CoupledField{
 
       //avoid reimplementation of complex operator by making the bas class function
       //available, template caused
-      using BaseBOperator<FE,TYPE>::CalcOpMat;
+      using BaseBOperator<TYPE>::CalcOpMat;
 
-      using BaseBOperator<FE,TYPE>::CalcOpMatTransposed;
+      using BaseBOperator<TYPE>::CalcOpMatTransposed;
 
     protected:
 
@@ -56,7 +56,7 @@ namespace CoupledField{
   // ===================================
   //!Specialized class for HCurl elements
   template<UInt D, class TYPE >
-  class CurlOperator<FeHCurl,D,TYPE> : public BaseBOperator<FeHCurl,TYPE>{
+  class CurlOperator<FeHCurl,D,TYPE> : public BaseBOperator<TYPE>{
     public:
     
     // ------------------
@@ -106,9 +106,9 @@ namespace CoupledField{
 
     //avoid reimplementation of complex operator by making the bas class function
     //available, template caused
-    using BaseBOperator<FeHCurl,TYPE>::CalcOpMat;
+    using BaseBOperator<TYPE>::CalcOpMat;
 
-    using BaseBOperator<FeHCurl,TYPE>::CalcOpMatTransposed;
+    using BaseBOperator<TYPE>::CalcOpMatTransposed;
 
     protected:
 
@@ -149,9 +149,9 @@ namespace CoupledField{
 
     //avoid reimplementation of complex operator by making the bas class function
     //available, template caused
-    using BaseBOperator<FeHCurl,TYPE>::CalcOpMat;
+    using BaseBOperator<TYPE>::CalcOpMat;
 
-    using BaseBOperator<FeHCurl,TYPE>::CalcOpMatTransposed;
+    using BaseBOperator<TYPE>::CalcOpMatTransposed;
 
   protected:
 
@@ -162,7 +162,7 @@ namespace CoupledField{
   // =====================================
   
   template<class TYPE>
-  class CurlOperator<FeH1, 3, TYPE> : public BaseBOperator<FeH1,TYPE>{
+  class CurlOperator<FeH1, 3, TYPE> : public BaseBOperator<TYPE>{
   public:
 
     // ------------------
@@ -263,9 +263,9 @@ namespace CoupledField{
 
     //avoid reimplementation of complex operator by making the bas class function
     //available, template caused
-    using BaseBOperator<FeH1,TYPE>::CalcOpMat;
+    using BaseBOperator<TYPE>::CalcOpMat;
 
-    using BaseBOperator<FeH1,TYPE>::CalcOpMatTransposed;
+    using BaseBOperator<TYPE>::CalcOpMatTransposed;
 
   protected:
 
@@ -280,7 +280,7 @@ namespace CoupledField{
   //! Note: We assume, that the field itself is a vector with only 
   //! a z-component. 
   template<class TYPE>
-  class CurlOperator<FeH1, 2, TYPE> : public BaseBOperator<FeH1,TYPE>{
+  class CurlOperator<FeH1, 2, TYPE> : public BaseBOperator<TYPE>{
   public:
 
     // ------------------
@@ -358,9 +358,9 @@ namespace CoupledField{
 
     //avoid reimplementation of complex operator by making the base class function
     //available, template caused
-    using BaseBOperator<FeH1,TYPE>::CalcOpMat;
+    using BaseBOperator<TYPE>::CalcOpMat;
 
-    using BaseBOperator<FeH1,TYPE>::CalcOpMatTransposed;
+    using BaseBOperator<TYPE>::CalcOpMatTransposed;
 
   protected:
   };
@@ -370,7 +370,7 @@ namespace CoupledField{
   //  2D - AXISYMMETRIC - CURL-OPERATOR FOR H-1 ELEMENTS
   // ====================================================
    template<class TYPE>
-   class CurlOperatorAxi : public BaseBOperator<FeH1,TYPE>{
+   class CurlOperatorAxi : public BaseBOperator<TYPE>{
    public:
     // ------------------
     //  STATIC CONSTANTS 
@@ -447,9 +447,9 @@ namespace CoupledField{
 
     //avoid reimplementation of complex operator by making the base class function
     //available, template caused
-    using BaseBOperator<FeH1,TYPE>::CalcOpMat;
+    using BaseBOperator<TYPE>::CalcOpMat;
 
-    using BaseBOperator<FeH1,TYPE>::CalcOpMatTransposed;
+    using BaseBOperator<TYPE>::CalcOpMatTransposed;
 
   protected:  
    };

@@ -3,7 +3,12 @@
 #include "PDE/SinglePDE.hh"
 #include "OLAS/algsys/AlgebraicSys.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
+#include "Forms/Operators/IdentityOperator.hh"
 #include <boost/tr1/type_traits.hpp>
+
+#include "BaseFE.hh"
+#include "H1/H1Elems.hh"
+#include "HCurl/HCurlElems.hh"
 
 namespace CoupledField {
 DECLARE_LOG(fefunc)
@@ -144,13 +149,15 @@ DECLARE_LOG(fefunc)
   }
 
   template<typename T>
-  void FeFunction<T>::ExtractResult( shared_ptr<BaseResult> baseRes ) {
+  void FeFunction<T>::ExtractResult( shared_ptr<BaseResult> res ) {
 
-    ResultInfo& resInfo = *(baseRes->GetResultInfo() );
-    //UInt numDofs = resInfo.dofNames.GetSize();
-    shared_ptr<EntityList> list = baseRes->GetEntityList();
-    Vector<T> & actSol = dynamic_cast<Result<T>&>(*baseRes).GetVector();
-    actSol.Resize( list->GetSize() * resInfo.dofNames.GetSize() );
+    ResultInfo& resInfo = *(res->GetResultInfo() );
+    UInt numDofs = resInfo.dofNames.GetSize();
+
+    shared_ptr<EntityList> list = res->GetEntityList();
+    Vector<T> & actSol = dynamic_cast<Result<T>&>(*res).GetVector();
+    actSol.Resize( list->GetSize() * numDofs );
+
     EntityIterator it = list->GetIterator();
     actSol.Init();
 
@@ -160,20 +167,97 @@ DECLARE_LOG(fefunc)
 
       // get equation numbers
       feSpace_->GetEqns( eqnNums, it );
-      //ok if eqnNums.GetSize is zero
-      // we obtain the target Element from the Grid
-      for ( UInt iDof = 0; iDof < eqnNums.GetSize(); iDof++ ){
-   
-        // check for homogeneous Dirichlet boundary condition
-        if ( eqnNums[iDof] != 0 ) {
-          actSol[pos++] = coeffs_[abs(eqnNums[iDof])-1];
-        } else {
-          actSol[pos++] = 0.0;
+      //TODO: Reconsider this check
+      if(eqnNums[0] == -1){
+        //ok so the space does not know about this particular entity
+        //we try to determine its value via interpolation
+#ifdef USE_INTERPOLATION
+        Vector<Double> globCoord;
+        Vector<Double> locCoord;
+        Vector<T> elemSolution;
+        Vector<T> dofSol;
+        if(it.GetType()== EntityList::NODE_LIST){
+          //now we obtain the global coords of the
+          //node assuming that everything is the same grid. if not, we are in trouble anyway
+          UInt curNodeNum = it.GetNode();
+          grid_->GetNodeCoordinate(globCoord,curNodeNum,true);
+        }else if(it.GetType() == EntityList::ELEM_LIST ||
+                 it.GetType() == EntityList::SURF_ELEM_LIST){
+          //determine global coord of element midpoint
+          EXCEPTION("Interpoation for extract result not implemented for the Element case");
+        }
+        //Obtain intersecting element
+        const Elem* myElem  = grid_->GetElemAtGlobalCoord(globCoord,locCoord);
+        shared_ptr<ElemShapeMap> esm = grid_->GetElemShapeMap( myElem, true );
+        LocPoint myLp = locCoord;
+        LocPointMapped lpm;
+        lpm.Set(myLp,esm);
+        UInt dim = grid_->GetDim();
+        BaseBOperator<T>* interOp = GenerateInterpolationOperator(dim,numDofs);
+
+        this->GetElemSolution(elemSolution,myElem);
+        BaseFE * ptFe = feSpace_->GetFe(lpm.ptEl->elemNum);
+        interOp->ApplyOp(dofSol, lpm, ptFe, elemSolution );
+        for(UInt iDim = 0; iDim < numDofs; iDim++ ) {
+          actSol[pos++] = dofSol[iDim];
+
+        }
+#else
+        EXCEPTION("Interpolation not enabled but needed to extract this result. enable it plz!");
+#endif
+      }else{
+        for ( UInt iDof = 0; iDof < eqnNums.GetSize(); iDof++ ){
+
+          // check for homogeneous Dirichlet boundary condition
+          if ( eqnNums[iDof] != 0 ) {
+            actSol[pos++] = coeffs_[abs(eqnNums[iDof])-1];
+          } else {
+            actSol[pos++] = 0.0;
+          }
         }
       }
     }
   }
   
+  template<typename T>
+  BaseBOperator<T>* FeFunction<T>::GenerateInterpolationOperator(UInt dim, UInt dofDim){
+    BaseBOperator<T>* myOP = NULL;
+    FeSpace::SpaceType curType = feSpace_->GetSpaceType();
+    switch(curType){
+      case FeSpace::H1:
+      case FeSpace::L2:
+        if(dim==2){
+          if(dofDim==1)
+            myOP = new IdentityOperator<FeH1,2,1,T>();
+          else if(dofDim==2)
+            myOP = new IdentityOperator<FeH1,2,2,T>();
+          else if(dofDim==3)
+            myOP = new IdentityOperator<FeH1,2,3,T>();
+        }else{
+          if(dofDim==1)
+            myOP = new IdentityOperator<FeH1,3,1,T>();
+          else if(dofDim==2)
+            myOP = new IdentityOperator<FeH1,3,2,T>();
+          else if(dofDim==3)
+            myOP = new IdentityOperator<FeH1,3,3,T>();
+        }
+        break;
+      case FeSpace::HCURL:
+        if(dim==2){
+          if(dofDim==1)
+            myOP = new IdentityOperator<FeHCurl,2,1,T>();
+        }else{
+          if(dofDim==1)
+            myOP = new IdentityOperator<FeHCurl,3,1,T>();
+        }
+        break;
+      default:
+        EXCEPTION("FeSpace type not suited for interpolation");
+        break;
+    }
+    return myOP;
+  }
+
   template<typename T>
   void FeFunction<T>::GetEntitySolution( SingleVector& elemSol, 
                                          const EntityIterator& it ){

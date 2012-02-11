@@ -2407,7 +2407,10 @@ namespace CoupledField
 
         xmin = xmax = p[0];
         ymin = ymax = p[1];
-        zmin = zmax = p[2];
+        if(p.GetSize() == 2)
+          zmin = zmax = 0;
+        else
+          zmin = zmax = p[2];
 
         for(UInt j = 1, n=elems[i]->connect.GetSize(); j < n; j++)
         {
@@ -2416,8 +2419,13 @@ namespace CoupledField
           xmax = p[0] > xmax ? p[0] : xmax;
           ymin = p[1] < ymin ? p[1] : ymin;
           ymax = p[1] > ymax ? p[1] : ymax;
-          zmin = p[2] < zmin ? p[2] : zmin;
-          zmax = p[2] > zmax ? p[2] : zmax;
+          if(p.GetSize()==2){
+            zmin = 0;
+            zmax = 0;
+          }else{
+            zmin = p[2] < zmin ? p[2] : zmin;
+            zmax = p[2] > zmax ? p[2] : zmax;
+          }
         }
 
         elemBoxes_.push_back( HandleBox(BBox3D(xmin, ymin, zmin, xmax, ymax, zmax),
@@ -2429,10 +2437,15 @@ namespace CoupledField
     }
 
     UInt test = 0xFFFFFFFF;
-    elemBoxes2.push_back(HandleBox(BBox3D(globCoord[0], globCoord[1], globCoord[2],
-                                          globCoord[0], globCoord[1], globCoord[2]),
-                                   &test));
-
+    if(globCoord.GetSize()==2){
+      elemBoxes2.push_back(HandleBox(BBox3D(globCoord[0], globCoord[1], 0.0,
+                                            globCoord[0], globCoord[1], 0.0),
+                                     &test));
+    }else{
+      elemBoxes2.push_back(HandleBox(BBox3D(globCoord[0], globCoord[1], globCoord[2],
+                                            globCoord[0], globCoord[1], globCoord[2]),
+                                     &test));
+    }
     // run the intersection algorithm and store results in a vector
     std::vector< std::pair<const Elem*, Vector<double> > > result;
 

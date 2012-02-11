@@ -957,9 +957,6 @@ namespace CoupledField {
     
     //! Effective rhs vector
     SBM_Vector *effRhs_;
-    
-    //! Temporary Vector for Update RHS calculation
-    SBM_Vector *tmpRHS_;
 
     //! Vector containing (approximate) solution of the linear system
     SBM_Vector *sol_;

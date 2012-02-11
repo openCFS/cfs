@@ -253,9 +253,10 @@ namespace CoupledField {
 
       // Print equation information
       //fncIt->second->GetFeSpace()->PrintEqnMap();
+
       fncIt++;
     }
-    
+    //exit(0);
     // Trigger writing of info file
     info->ToFile("", true );
 

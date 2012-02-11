@@ -24,6 +24,7 @@ namespace CoupledField {
   class MathParser;
   class BaseResult;
   class AlgebraicSys;
+  template<typename type> class BaseBOperator;
   //class BaseTimeScheme;
 
 //!  Base class for a function approximated by Finite Elements 
@@ -164,7 +165,7 @@ public:
                                   const EntityIterator& it ) = 0;
   
   //! Copy values into result object
-  virtual void ExtractResult( shared_ptr<BaseResult> res ) = 0;
+  virtual void ExtractResult( shared_ptr<BaseResult> res )=0;
   
   //! Return vector containing the function coefficients
   virtual SingleVector* GetSingleVector() = 0;
@@ -270,6 +271,9 @@ public:
   
   
 protected:
+
+  //! generates an interpolation operator by determining the space used
+  BaseBOperator<T>* GenerateInterpolationOperator(UInt dim, UInt dofDim);
 
   //! Coefficient vector
   Vector<T> coeffs_;

@@ -14,7 +14,7 @@
 //! \tparam TYPE Data type (DOUBLE, COMPLEX)
 namespace CoupledField{
   template<class FE, UInt D, class TYPE = Double>
-  class GradientOperator : public BaseBOperator<FE,TYPE>{
+  class GradientOperator : public BaseBOperator<TYPE>{
     public:
 
     // ------------------
@@ -44,7 +44,7 @@ namespace CoupledField{
       this->name_ = "GradientOperator";
     }
 
-    ~GradientOperator(){
+    virtual ~GradientOperator(){
 
     }
 
@@ -56,9 +56,9 @@ namespace CoupledField{
                                      const LocPointMapped& lp, 
                                      BaseFE* ptFe );
 
-    using BaseBOperator<FE,TYPE>::CalcOpMat;
+    using BaseBOperator<TYPE>::CalcOpMat;
 
-    using BaseBOperator<FE,TYPE>::CalcOpMatTransposed;
+    using BaseBOperator<TYPE>::CalcOpMatTransposed;
 
 
     protected:

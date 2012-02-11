@@ -49,12 +49,13 @@ namespace CoupledField {
       UInt node = ent.GetNode();
       eqns.Resize(dofsPerUnknown);
       eqns.Init();
-      if(gridToVirtualNodes_.find(node) == gridToVirtualNodes_.end())
-    	  return;
+      if(gridToVirtualNodes_.find(node) != gridToVirtualNodes_.end()){
+        for(UInt iDof = 0; iDof < dofsPerUnknown; iDof++){
+          eqns[iDof] = nodeMap_[gridToVirtualNodes_[node][0]][iDof];
+        }
+      }else
+        eqns.Init(-1);
 
-      for(UInt iDof = 0; iDof < dofsPerUnknown; iDof++){
-        eqns[iDof] = nodeMap_[gridToVirtualNodes_[node][0]][iDof];
-      }
     } else if( ent.GetType() == EntityList::ELEM_LIST ||
         ent.GetType() == EntityList::SURF_ELEM_LIST){
       StdVector<UInt> nodes;
@@ -90,6 +91,8 @@ namespace CoupledField {
       //for quadratic meshes
       if(gridToVirtualNodes_.find(node)!= gridToVirtualNodes_.end())
     	  eqns[0] = nodeMap_[gridToVirtualNodes_[node][0]][dof];
+      else
+        eqns[0] = -1;
 
     } else if( ent.GetType() == EntityList::ELEM_LIST ||
                ent.GetType() == EntityList::SURF_ELEM_LIST){
