@@ -195,9 +195,9 @@ namespace CoupledField {
     StdVector<std::string> dofNames;
 
     // Note; in the piezoelectric case we have to multiply by -1
-    Double factor = 1.0;
+    // Double factor = 1.0;
     if ( isPiezoCoupled_ )
-      factor = -1.0;
+      // factor = -1.0;
     
     // =========================
     //  Charges (volume, nodal)

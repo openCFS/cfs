@@ -287,12 +287,12 @@ namespace CoupledField{
       std::string regionName = domain->GetGrid()->regionData[*spIt].name;
       PtrParamNode regionNode = infoNode_->Get("regionList")->Get(regionName);
       Matrix<Integer> order(1,1);
-      UInt test = *spIt;
+      // UInt test = *spIt;
       //every reference element has the same order
       order[0][0] = refElems_[*spIt][Elem::ET_LINE2]->GetIsoOrder();
       SetRegionIntegration( *spIt,IntScheme::LOBATTO, order, ABSOLUTE,
                             regionNode );
-      test = 0;
+      // test = 0;
       spIt++;
     }
 

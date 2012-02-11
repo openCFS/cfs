@@ -254,11 +254,11 @@ namespace CoupledField {
     {
       PtrParamNode in_ = in->GetByVal("region", "name", domain->GetGrid()->GetRegion().ToString(subdoms_[i]));
 
-      std::map<RegionIdType,DampingType>::const_iterator it = dampingList_.find(subdoms_[i]);
-      DampingType dampType = NONE;
-      if( it != dampingList_.end() ) {
-        dampType = it->second;
-      }
+      //std::map<RegionIdType,DampingType>::const_iterator it = dampingList_.find(subdoms_[i]);
+      // DampingType dampType = NONE;
+      //if( it != dampingList_.end() ) {
+      //  dampType = it->second;
+      //}
       std::string fuck_e2s;
       Enum2String(dampingList_[subdoms_[i]], fuck_e2s);
       in_->Get("damping")->SetValue(fuck_e2s);

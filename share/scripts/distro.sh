@@ -77,9 +77,24 @@ elif [ "${OS}" = "Linux" ] ; then
 	         SUBARCH="SGI"
 	    fi
         fi
-	
 
-	if [ -f /etc/redhat-release ] ; then
+	LSB_REL=$(which lsb_release 2> /dev/null)
+        if [ "$?" = "0" -a ! "$LSB_REL" = "" -a "-f $LSB_REL" ]; then	
+            DESC=$($LSB_REL -d -s)
+            DIST=$(echo $DESC | sed 's/"//g' | cut -d' ' -f1)
+            REV=$($LSB_REL -r -s)
+            PSEUDONAME=$($LSB_REL -c -s)
+
+            case "$DIST" in
+                "SUSE") DIST="SLE" ;;
+                "Debian") REV=$(echo $REV | sed 's/\.[0-9]*$//') ;;
+            esac
+        elif [ -f /etc/lsb-release ]; then
+            . /etc/lsb-release;
+            DIST=$DISTRIB_ID;
+            REV=$DISTRIB_RELEASE;
+            PSEUDONAME=$DISTRIB_CODENAME;
+	elif [ -f /etc/redhat-release ] ; then
                 # On Mandrake/Mandriva/Fedora there exist also
                 # /etc/redhat-release, /etc/mandrake-release,
                 # /etc/mandriva-release, /etc/fedora-release files.
@@ -110,6 +125,9 @@ elif [ "${OS}" = "Linux" ] ; then
 		DIST='Mandrake'
 		PSEUDONAME=`cat /etc/mandrake-release | sed s/.*\(// | sed s/\)//`
 		REV=`cat /etc/mandrake-release | sed s/.*release\ // | sed s/\ .*//`
+        elif [ -f /etc/arch-release ] ; then
+                DIST='Arch'
+                REV='rolling'
 	elif [ -f /etc/debian_version -o -f /etc/debian-version ]; then
 		DIST="Debian"
                 BASE_VERSION=`dpkg -p base-files 2> /dev/null | grep Version`
@@ -180,12 +198,6 @@ elif [ "${OS}" = "Linux" ] ; then
 			REV=`cat /etc/knoppix-version | cut -d' ' -f1`
 		 	PSEUDONAME="Knoppix";;
                 esac
-
-        elif [ -f /etc/lsb-release ]; then
-            . /etc/lsb-release;
-            DIST=$DISTRIB_ID;
-            REV=$DISTRIB_RELEASE;
-            PSEUDONAME=$DISTRIB_CODENAME;
         fi
 	if [ -f /etc/UnitedLinux-release ] ; then
 		DIST="${DIST}[`cat /etc/UnitedLinux-release | tr "\n" ' ' | sed s/VERSION.*//`]"

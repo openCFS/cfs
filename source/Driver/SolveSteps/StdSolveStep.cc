@@ -47,13 +47,13 @@ namespace CoupledField {
 
     std::map<SolutionType, shared_ptr<BaseFeFunction> >::iterator it;
     it = feFunctions_.begin();
-    UInt pos = 0;
+    // UInt pos = 0;
     for( ; it != feFunctions_.end(); ++it ){
       shared_ptr<BaseFeFunction> & ptFct = it->second;
       FeFctIdType id = ptFct->GetFctId();
       solVec_.SetSubVector(ptFct->GetSingleVector(), id);
     }
-    pos = 0;
+    //pos = 0;
     it = rhsFeFunctions_.begin();
     for( ; it != rhsFeFunctions_.end(); ++it ){
       shared_ptr<BaseFeFunction> & ptFct = it->second;

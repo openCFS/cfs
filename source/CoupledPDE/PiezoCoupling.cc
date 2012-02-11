@@ -136,7 +136,7 @@ namespace CoupledField {
     shared_ptr<FeSpace> elecSpace = elecFct->GetFeSpace();
     
     
-    Global::ComplexPart matType = Global::REAL;
+    // Global::ComplexPart matType = Global::REAL;
     RegionIdType actRegion;
     BaseMaterial * actSDMat = NULL;
     
@@ -147,7 +147,7 @@ namespace CoupledField {
       // Set current region and material
       actRegion = it->first;
       actSDMat = it->second;
-      matType = Global::REAL;
+      // matType = Global::REAL;
 
       //transform the type
       SubTensorType tensorType;
