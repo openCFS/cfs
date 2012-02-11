@@ -137,39 +137,47 @@ namespace CoupledField{
       // ====================================================================
       // stiffness integrators
       // ====================================================================
-      //shared_ptr<CoefFunction> coeffKPV
-      //          = CoefFunction::Generate(Global::REAL, "1.0");
-      //BiLinearForm * stiffIntPV = NULL;
-      //if( dim_ == 2 ) {
-      //  stiffIntPV = new ABInt<GradientOperator<FeH1,2> , IdentityOperator<FeH1,2,2> >(coeffKPV,1.0 );
-      //} else {
-      //  stiffIntPV = new ABInt<GradientOperator<FeH1,3> , IdentityOperator<FeH1,3,3> >(coeffKPV,1.0 );
-      //}
-      //stiffIntPV->SetName("MixedStiffIntPV");
-      ////stiffIntPV->SetFeSpace( feFunctions_[ACOU_PRESSURE]->GetFeSpace(), feFunctions_[ACOU_VELOCITY]->GetFeSpace() );
-      //BiLinFormContext *stiffContPV = new BiLinFormContext(stiffIntPV, STIFFNESS );
-      //
-      //stiffContPV->SetEntities( actSDList, actSDList );
-      //stiffContPV->SetFeFunctions( feFunctions_[ACOU_PRESSURE],feFunctions_[ACOU_VELOCITY]);
-      //stiffContPV->SetCounterPart(true);
-      //assemble_->AddBiLinearForm( stiffContPV );
+      // --------------------------------------------------------------------
+      //  VERSION 1: K_PV Integrator (upper off-diagonal integrator)
+      // --------------------------------------------------------------------
 
-      shared_ptr<CoefFunction> coeffKVP
+      shared_ptr<CoefFunction> coeffKPV
                 = CoefFunction::Generate(Global::REAL, "1.0");
-      BiLinearForm * stiffIntVP = NULL;
+      BiLinearForm * stiffIntPV = NULL;
       if( dim_ == 2 ) {
-        stiffIntVP = new ABInt< IdentityOperatorPiola<FeH1,2,2> , GradientOperator<FeH1,2> >(coeffKVP,1.0 );
+        stiffIntPV = new ABInt<GradientOperator<FeH1,2> , IdentityOperatorPiola<FeH1,2,2> >(coeffKPV,1.0 );
       } else {
-        stiffIntVP = new ABInt< IdentityOperatorPiola<FeH1,3,3> , GradientOperator<FeH1,3> >(coeffKVP,1.0 );
+        stiffIntPV = new ABInt<GradientOperator<FeH1,3> , IdentityOperatorPiola<FeH1,3,3> >(coeffKPV,1.0 );
       }
-      stiffIntVP->SetName("MixedStiffIntVP");
-      //stiffIntVP->SetFeSpace( feFunctions_[ACOU_PRESSURE]->GetFeSpace(), feFunctions_[ACOU_VELOCITY]->GetFeSpace() );
-      BiLinFormContext *stiffContVP = new BiLinFormContext(stiffIntVP, STIFFNESS );
+      stiffIntPV->SetName("MixedStiffIntPV");
+      //stiffIntPV->SetFeSpace( feFunctions_[ACOU_PRESSURE]->GetFeSpace(), feFunctions_[ACOU_VELOCITY]->GetFeSpace() );
+      BiLinFormContext *stiffContPV = new BiLinFormContext(stiffIntPV, STIFFNESS );
+      
+      stiffContPV->SetEntities( actSDList, actSDList );
+      stiffContPV->SetFeFunctions( feFunctions_[ACOU_PRESSURE],feFunctions_[ACOU_VELOCITY]);
+      stiffContPV->SetCounterPart(true);
+      assemble_->AddBiLinearForm( stiffContPV );
 
-      stiffContVP->SetEntities( actSDList, actSDList );
-      stiffContVP->SetFeFunctions( feFunctions_[ACOU_VELOCITY],feFunctions_[ACOU_PRESSURE]);
-      stiffContVP->SetCounterPart(true);
-      assemble_->AddBiLinearForm( stiffContVP );
+      
+      // --------------------------------------------------------------------
+      //  VERSION 2: K_VP = K_PV^T Integrator (lower off-diagonal integrator)
+      // --------------------------------------------------------------------
+//      shared_ptr<CoefFunction> coeffKVP
+//                = CoefFunction::Generate(Global::REAL, "1.0");
+//      BiLinearForm * stiffIntVP = NULL;
+//      if( dim_ == 2 ) {
+//        stiffIntVP = new ABInt< IdentityOperatorPiola<FeH1,2,2> , GradientOperator<FeH1,2> >(coeffKVP,1.0 );
+//      } else {
+//        stiffIntVP = new ABInt< IdentityOperatorPiola<FeH1,3,3> , GradientOperator<FeH1,3> >(coeffKVP,1.0 );
+//      }
+//      stiffIntVP->SetName("MixedStiffIntVP");
+//      //stiffIntVP->SetFeSpace( feFunctions_[ACOU_PRESSURE]->GetFeSpace(), feFunctions_[ACOU_VELOCITY]->GetFeSpace() );
+//      BiLinFormContext *stiffContVP = new BiLinFormContext(stiffIntVP, STIFFNESS );
+//
+//      stiffContVP->SetEntities( actSDList, actSDList );
+//      stiffContVP->SetFeFunctions( feFunctions_[ACOU_VELOCITY],feFunctions_[ACOU_PRESSURE]);
+//      stiffContVP->SetCounterPart(true);
+//      assemble_->AddBiLinearForm( stiffContVP );
 
       // ====================================================================
       // mass integrators

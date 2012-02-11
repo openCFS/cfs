@@ -1685,14 +1685,14 @@ namespace CoupledField {
     
     
     // Now, dismantle equations
-    std::vector<std::vector<UInt> > rowList1(numBlocks_);
-    std::vector<std::vector<UInt> > rowIndList1(numBlocks_);
-    std::vector<std::vector<UInt> > rowList2(numBlocks_);
-    std::vector<std::vector<UInt> > rowIndList2(numBlocks_);
-    std::vector<std::vector<UInt> > colList1(numBlocks_);
-    std::vector<std::vector<UInt> > colIndList1(numBlocks_);
-    std::vector<std::vector<UInt> > colList2(numBlocks_);
-    std::vector<std::vector<UInt> > colIndList2(numBlocks_);
+    StdVector<StdVector<UInt> > rowList1(numBlocks_);
+    StdVector<StdVector<UInt> > rowIndList1(numBlocks_);
+    StdVector<StdVector<UInt> > rowList2(numBlocks_);
+    StdVector<StdVector<UInt> > rowIndList2(numBlocks_);
+    StdVector<StdVector<UInt> > colList1(numBlocks_);
+    StdVector<StdVector<UInt> > colIndList1(numBlocks_);
+    StdVector<StdVector<UInt> > colList2(numBlocks_);
+    StdVector<StdVector<UInt> > colIndList2(numBlocks_);
     UInt numRows = rowBlocks.GetSize();
     UInt numCols = colBlocks.GetSize();
     
@@ -1704,10 +1704,10 @@ namespace CoupledField {
 
       // Compute index of graph in graph pointer matrix
       // get hold of vertex and edgelists
-      std::vector<UInt> & rList1 = rowList1[rowBlock];
-      std::vector<UInt> & rIndList1 = rowIndList1[rowBlock];
-      std::vector<UInt> & rList2 = rowList2[rowBlock];
-      std::vector<UInt> & rIndList2 = rowIndList2[rowBlock];
+      StdVector<UInt> & rList1 = rowList1[rowBlock];
+      StdVector<UInt> & rIndList1 = rowIndList1[rowBlock];
+      StdVector<UInt> & rList2 = rowList2[rowBlock];
+      StdVector<UInt> & rIndList2 = rowIndList2[rowBlock];
       // get limits of free indices
       const UInt & lastFreeRowIndex = blockInfo_[rowBlock]->numLastFreeIndex;
 
@@ -1717,11 +1717,11 @@ namespace CoupledField {
       //         constraints.
       if ( rowNum > 0 ) {
         if ( rowNum > lastFreeRowIndex ) {
-          rList2.push_back( rowNum - lastFreeRowIndex - 1 );
-          rIndList2.push_back( iRow );
+          rList2.Push_back( rowNum - lastFreeRowIndex - 1 );
+          rIndList2.Push_back( iRow );
         } else {
-          rList1.push_back( rowNum - 1);
-          rIndList1.push_back( iRow );
+          rList1.Push_back( rowNum - 1);
+          rIndList1.Push_back( iRow );
         }
       }
     }
@@ -1734,10 +1734,10 @@ namespace CoupledField {
       const UInt & colNum = colNums[iCol];
 
       // get hold of vertex and edgelists
-      std::vector<UInt> & cList1 = colList1[colBlock];
-      std::vector<UInt> & cIndList1 = colIndList1[colBlock];
-      std::vector<UInt> & cList2 = colList2[colBlock];
-      std::vector<UInt> & cIndList2 = colIndList2[colBlock];
+      StdVector<UInt> & cList1 = colList1[colBlock];
+      StdVector<UInt> & cIndList1 = colIndList1[colBlock];
+      StdVector<UInt> & cList2 = colList2[colBlock];
+      StdVector<UInt> & cIndList2 = colIndList2[colBlock];
 
       // get limits of free indices
       const UInt & lastFreeColIndex = blockInfo_[colBlock]->numLastFreeIndex;
@@ -1747,12 +1747,12 @@ namespace CoupledField {
       //         fixed by inhomogeneous Dirichlet boundary conditions)
       if( colNum > 0 ) {
         if ( colNum > lastFreeColIndex ) {
-          cList2.push_back( colNum - lastFreeColIndex - 1);
-          cIndList2.push_back( iCol );
+          cList2.Push_back( colNum - lastFreeColIndex - 1);
+          cIndList2.Push_back( iCol );
         }
         else {
-          cList1.push_back( colNum - 1);
-          cIndList1.push_back( iCol );
+          cList1.Push_back( colNum - 1);
+          cIndList1.Push_back( iCol );
         }
       }
     } // loop over cols
@@ -1773,7 +1773,7 @@ namespace CoupledField {
     // 4) store back the matrices
     
     // check for static condensation and if inner block has non-zero size
-    if( statCond_ && rowIndList1[numBlocks_-1].size() ) {
+    if( statCond_ && rowIndList1[numBlocks_-1].GetSize() ) {
       
       LOG_DBG(algSys) << "Performing static condensation";
 
@@ -1893,28 +1893,34 @@ namespace CoupledField {
     
     // loop over all blocks and pass for every block the information to
     // the corresponding graph / IDBC graph
+    LOG_DBG3(algSys) << "setting matrix entries";
     for( UInt sbmRow = 0; sbmRow < numBlocks_; ++sbmRow ) {
       
       // Maybe we have to switch here depending on transpose
       for( UInt sbmCol = 0; sbmCol < numBlocks_; ++sbmCol ) {
+        LOG_DBG3(algSys) << "\tsetting SBM block (" << sbmRow 
+                          << "," << sbmCol << ")";
         
         StdMatrix * stdMat = actMat->GetPointer(sbmRow, sbmCol);
-        std::vector<UInt> & rList1 = rowList1[sbmRow];
-        std::vector<UInt> & rList2 = rowList2[sbmRow];
-        std::vector<UInt> & cList1 = colList1[sbmCol];
-        std::vector<UInt> & cList2 = colList2[sbmCol];
-        std::vector<UInt> & rIndList1 = rowIndList1[sbmRow];
-        std::vector<UInt> & rIndList2 = rowIndList2[sbmRow];
-        std::vector<UInt> & cIndList1 = colIndList1[sbmCol];
-        std::vector<UInt> & cIndList2 = colIndList2[sbmCol];
+        StdVector<UInt> & rList1 = rowList1[sbmRow];
+        StdVector<UInt> & rList2 = rowList2[sbmRow];
+        StdVector<UInt> & cList1 = colList1[sbmCol];
+        StdVector<UInt> & cList2 = colList2[sbmCol];
+        StdVector<UInt> & rIndList1 = rowIndList1[sbmRow];
+        StdVector<UInt> & rIndList2 = rowIndList2[sbmRow];
+        StdVector<UInt> & cIndList1 = colIndList1[sbmCol];
+        StdVector<UInt> & cIndList2 = colIndList2[sbmCol];
 
         // Attention: This check is not really implemented in a clean way!
         if( stdMat != NULL ) {
+          LOG_DBG3(algSys) << "\t1) free-free entries:";
+          LOG_DBG3(algSys) << "\t\trowIndices: " << rList1.ToString();
+          LOG_DBG3(algSys) << "\t\tcolIndices: " << cList1.ToString();
           // 2) Assemble all free <-> free entries
           // loop over all rows/col
-          for ( UInt i = 0; i < rList1.size(); i++ ) {
+          for ( UInt i = 0; i < rList1.GetSize(); i++ ) {
             rowInd = rIndList1[i];
-            for ( UInt j = 0; j < cList1.size(); j++ ) {
+            for ( UInt j = 0; j < cList1.GetSize(); j++ ) {
               colInd = cIndList1[j];
               stdMat->AddToMatrixEntry( rList1[i], cList1[j],
                                         elemMat[rowInd][colInd] );
@@ -1926,9 +1932,12 @@ namespace CoupledField {
           // we have to assemble the transposed by hand
           // loop over all rows/col
           if( sbmRow == sbmCol && setCounterPart ) {
-            for ( UInt i = 0; i < rList1.size(); i++ ) {
+            LOG_DBG3(algSys) << "\t2) free-free entries (transposed):";
+            LOG_DBG3(algSys) << "\t\trowIndices: " << cList1.ToString();
+            LOG_DBG3(algSys) << "\t\tcolIndices: " << rList1.ToString();
+            for ( UInt i = 0; i < rList1.GetSize(); i++ ) {
               rowInd = rIndList1[i];
-              for ( UInt j = 0; j < cList1.size(); j++ ) {
+              for ( UInt j = 0; j < cList1.GetSize(); j++ ) {
                 colInd = cIndList1[j];
                 stdMat->AddToMatrixEntry( cList1[j], rList1[i],
                                           elemMat[rowInd][colInd] );
@@ -1938,30 +1947,38 @@ namespace CoupledField {
         } // stdMat != NULL
 
         // 3) Assemble all free <-> fixed entries
-        for ( UInt i = 0; i < rList1.size(); i++ ) {
-          rowInd = rIndList1[i];
-          for ( UInt j = 0; j < cList2.size(); j++ ) {
-            colInd = cIndList2[j];
-            idbcHandler_->AddWeightFixedToFree( matrixType, sbmRow, sbmCol,
-                                                rList1[i], cList2[j],
-                                                elemMat[rowInd][colInd]);
-          } // j
-        } // i
-
-        // 4) Assemble all free <-> fixed entries ( TRANSPOSED )
-        //if( sbmRow != sbmCol && setCounterPart == true) {
-          if( sbmRow != sbmCol && setCounterPart == true) {
-          WARN("This block is not tested yet");
-          for ( UInt i = 0; i < rList2.size(); i++ ) {
-            rowInd = rIndList2[i];
-            for ( UInt j = 0; j < cList1.size(); j++ ) {
-              colInd = cIndList1[j];
-              idbcHandler_->AddWeightFixedToFree( matrixType, sbmCol, sbmRow,
-                                                  rList1[sbmCol], cList2[sbmRow],
+        if( cList2.GetSize() ) {
+          LOG_DBG3(algSys) << "\t3) free-fixed entries:";
+          LOG_DBG3(algSys) << "\t\trowIndices: " << rList1.ToString();
+          LOG_DBG3(algSys) << "\t\tcolIndices: " << cList2.ToString();
+          for ( UInt i = 0; i < rList1.GetSize(); i++ ) {
+            rowInd = rIndList1[i];
+            for ( UInt j = 0; j < cList2.GetSize(); j++ ) {
+              colInd = cIndList2[j];
+              idbcHandler_->AddWeightFixedToFree( matrixType, sbmRow, sbmCol,
+                                                  rList1[i], cList2[j],
                                                   elemMat[rowInd][colInd]);
             } // j
           } // i
-        }
+        } // if cList2.GetSize()
+
+        // 4) Assemble all free <-> fixed entries ( TRANSPOSED )
+        if( rList2.GetSize() ) {
+          if( sbmRow == sbmCol && setCounterPart == true) {
+            LOG_DBG3(algSys) << "\t4) free-fixed entries (transposed):";
+            LOG_DBG3(algSys) << "\t\trowIndices: " << cList1.ToString();
+            LOG_DBG3(algSys) << "\t\tcolIndices: " << rList2.ToString();
+            for ( UInt i = 0; i < rList2.GetSize(); i++ ) {
+              rowInd = rIndList2[i];
+              for ( UInt j = 0; j < cList1.GetSize(); j++ ) {
+                colInd = cIndList1[j];
+                idbcHandler_->AddWeightFixedToFree( matrixType, sbmCol, sbmRow,
+                                                    cList1[j], rList2[i], 
+                                                    elemMat[rowInd][colInd]);
+              } // j
+            } // i
+          } // sbmCol == sbmRow
+        } // rList2.GetSize()
 
       } //smbCol
     }// sbmRow

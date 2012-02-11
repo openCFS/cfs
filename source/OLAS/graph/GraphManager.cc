@@ -413,7 +413,7 @@ namespace CoupledField {
 
           // Insert information into graph for fixed dofs
 
-          graphIDBC_[idx]->AddVertexNeighbours( vertexList1_[col], edgeList2_[row] );
+          graphIDBC_[idx]->AddVertexNeighbours( edgeList1_[col], vertexList2_[row]  );
 //          std::cerr << "IDBC (" << col << ", " << row << "): Inserting ";
 //          for( UInt i = 0; i < vertexList1_[col].size(); ++i ) 
 //            std::cerr << vertexList1_[col][i] << ", ";
