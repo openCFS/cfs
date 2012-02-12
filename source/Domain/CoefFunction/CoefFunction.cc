@@ -307,7 +307,8 @@ static EnumTuple coefDependTuples[] =
 {
  EnumTuple(CoefFunction::CONST,    "CONST"), 
  EnumTuple(CoefFunction::TIMEFREQ, "TIMEFREQ"),
- EnumTuple(CoefFunction::GENERAL,  "GENERAL")
+ EnumTuple(CoefFunction::GENERAL,  "GENERAL"),
+ EnumTuple(CoefFunction::SOLUTION, "SOLUTION")
 };
 
 Enum<CoefFunction::CoefDependType>CoefFunction::CoefDependType_ = \

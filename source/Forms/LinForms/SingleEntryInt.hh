@@ -23,6 +23,11 @@ namespace CoupledField {
 
     //! Calculation of element 'vector' (complex case )
     void CalcElemVector(Vector<Complex>& elemVec,EntityIterator& ent);
+
+    //! \copydoc LinearForm::IsSolDependent
+    bool IsSolDependent() {
+      return val_->GetDependency() == CoefFunction::SOLUTION;
+    }
     
     //! \see LinearForm::IsComplex
     bool IsComplex() {

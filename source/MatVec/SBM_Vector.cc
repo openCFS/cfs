@@ -164,24 +164,57 @@ namespace CoupledField {
   // **********************
   SBM_Vector& SBM_Vector::operator= ( const SBM_Vector &bVec ) {
 
-    // Only set subvectors, if this is not a cheap copy
-    if( !ownSubVectors_ ) {
-      EXCEPTION( "As this is a weak copy of a SBM-vector, I refuse to "
-                 "get overwritten" );
+    // check, if vectors have the same length
+    // 1) same length: loop over sub-vectors and copy entries
+    if( size_ == bVec.size_ ){
+
+      // loop over all sub-vectors
+      for( UInt i = 0; i < size_; ++i ) {
+        
+        // switch depending on entry type
+        if( myEntryType_ == BaseMatrix::DOUBLE ) {
+          Vector<Double> & myVec = 
+              dynamic_cast<Vector<Double>& >(*subVec_[i]);
+          Vector<Double> & rVec = 
+              dynamic_cast<Vector<Double>& >(*bVec.subVec_[i]);
+          myVec = rVec;
+        } else if( myEntryType_ == BaseMatrix::COMPLEX ) {
+          Vector<Complex> & myVec = 
+              dynamic_cast<Vector<Complex>& >(*subVec_[i]);
+          Vector<Complex> & rVec = 
+              dynamic_cast<Vector<Complex>& >(*bVec.subVec_[i]);
+          myVec = rVec;
+        } else {
+          EXCEPTION( "Can only copy double- and complex "
+              << "valued sub-vectors");
+        }
+      }
     }
     
-    // first, delete sub-vectors
-    for ( UInt i = 0; i < size_; i++ ) {
-      delete subVec_[i];
-    }
+    // 2) different length: delete sub-vectors and copy all
+    //    vectors from bVec
+    else {
 
-    size_ = 0;
-    // then, copy sub-vectors from original vector class
-    size_ = bVec.size_;
-    subVec_.Resize( size_ );
-    myEntryType_ = bVec.myEntryType_;
-    for ( UInt i =  0; i < size_; i++ ) {
-      subVec_[i] = CopySingleVectorObject( *bVec.subVec_[i]);
+      // Only set subvectors, if this is not a cheap copy
+      if( !ownSubVectors_ ) {
+        EXCEPTION( "As this is a weak copy of a SBM-vector, I refuse to "
+            "get overwritten" );
+      }
+
+
+      // first, delete sub-vectors
+      for ( UInt i = 0; i < size_; i++ ) {
+        delete subVec_[i];
+      }
+
+      size_ = 0;
+      // then, copy sub-vectors from original vector class
+      size_ = bVec.size_;
+      subVec_.Resize( size_ );
+      myEntryType_ = bVec.myEntryType_;
+      for ( UInt i =  0; i < size_; i++ ) {
+        subVec_[i] = CopySingleVectorObject( *bVec.subVec_[i]);
+      }
     }
 
     return *this;

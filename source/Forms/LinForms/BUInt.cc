@@ -21,10 +21,13 @@
 namespace CoupledField{
 
 template< class B_OP, class VEC_DATA_TYPE >
-BUIntegrator<B_OP,VEC_DATA_TYPE>::BUIntegrator(VEC_DATA_TYPE factor,
-                                               shared_ptr<CoefFunction > rhsCoef)
-                                               :factor_(factor){
-    this->name_ = "RhsBUIntegrator";
+BUIntegrator<B_OP,VEC_DATA_TYPE>::
+BUIntegrator(VEC_DATA_TYPE factor,
+             shared_ptr<CoefFunction > rhsCoef, 
+             bool coordUpdate )
+             :LinearForm( coordUpdate ){
+  factor_ = factor;
+  this->name_ = "RhsBUIntegrator";
 
          assert(rhsCoef->GetDimType() == CoefFunction::VECTOR);
  #ifndef NDEBUG
@@ -56,7 +59,8 @@ BUIntegrator<B_OP,VEC_DATA_TYPE>::BUIntegrator(VEC_DATA_TYPE factor,
      nrFncs = ptFe->GetNumFncs();
 
      // Get shape map from grid
-     shared_ptr<ElemShapeMap> esm = domain->GetGrid()->GetElemShapeMap( ptElem );
+     shared_ptr<ElemShapeMap> esm = 
+         domain->GetGrid()->GetElemShapeMap( ptElem, this->coordUpdate_ );
 
      // Get integration points
      intScheme->GetIntPoints( Elem::GetShapeType(ptElem->type), intPoints, weights );
@@ -76,7 +80,7 @@ BUIntegrator<B_OP,VEC_DATA_TYPE>::BUIntegrator(VEC_DATA_TYPE factor,
        fac *= factor_;
        // Call the CalcBMat()-method
        operator_.CalcOpMatTransposed( bMat, lp, ptFe);
-
+       
        rhsCoefs_->GetVector(cVec,lp);
        cVec *= fac;
        elemVec += bMat * cVec;

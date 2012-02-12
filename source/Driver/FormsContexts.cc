@@ -97,15 +97,14 @@ namespace CoupledField {
     // - bilinearform is solution dependent (true non-linearity)
     // - bilinearform has updated Lagrangian formulation and 
     //   there are coordinate updated present in the grid class
-/*    Grid * grid = domain->GetGrid();
+    Grid * grid = domain->GetGrid();
     if( integrator_->IsSolDependent() 
         || (integrator_->IsCoordUpdate()  
             && grid->HasNodalOffset() ) ) {
       return true;
     } else {
       return false;
-    }*/
-    return false;
+    }
   }
 
   void BiLinFormContext::SetSecDestMat( FEMatrixType aSecMat,
@@ -190,13 +189,11 @@ namespace CoupledField {
 
   bool LinearFormContext::IsNonLin() {
    // Return true if linearform is solution-dependent
-    REFACTOR;
-    return false;
-    //if( integrator_->IsSolDependent() ) {
-    //  return true;
-    //} else {
-    //  return false;
-    //}
+    if( integrator_->IsSolDependent() ) {
+      return true;
+    } else {
+      return false;
+    }
   }
 
 

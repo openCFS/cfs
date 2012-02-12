@@ -13,7 +13,8 @@ namespace CoupledField {
     public:
 
       //! Constructor with pointer to BaseElem
-      ABInt( shared_ptr<CoefFunction> scalCoef, MAT_DATA_TYPE factor);
+      ABInt( shared_ptr<CoefFunction> scalCoef, MAT_DATA_TYPE factor,
+             bool coordUpdate = false );
 
       //! Destructor
       ~ABInt(){

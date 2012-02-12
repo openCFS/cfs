@@ -303,16 +303,18 @@ namespace CoupledField{
     refElems_[region][Elem::ET_HEXA8]  = new FeH1HiHex();
     refElems_[region][Elem::ET_WEDGE6] = new FeH1HiWedge();
     
-    // Generate reference elements for second order geoemtric element types
+    // Generate reference elements for second order geometric element types
     refElems_[region][Elem::ET_LINE3]  = new FeH1HiLine();
     refElems_[region][Elem::ET_QUAD8]  = new FeH1HiQuad();
     refElems_[region][Elem::ET_TRIA6]  = new FeH1HiTria();
     refElems_[region][Elem::ET_HEXA20]  = new FeH1HiHex();
     refElems_[region][Elem::ET_WEDGE15] = new FeH1HiWedge();
 
+    std::cerr << "SetRegionElements: order is " << order << std::endl;
+    
     //now set the order
     if(order.GetNumCols() != 1 || order.GetNumRows() != 1){
-      Exception("FeSpaceHCurlHi::SetRegionElements : Only Iso-Order is supported right now");
+    EXCEPTION("FeSpaceHCurlHi::SetRegionElements : Only Iso-Order is supported right now");
     }
     std::map<Elem::FEType, FeH1Hi* >::iterator i = refElems_[region].begin();
     for( ; i != refElems_[region].end(); ++i ) {

@@ -15,35 +15,23 @@
   <!-- ******************************************************************** -->
 
   <xsd:complexType name="DT_AnIsoType">
-  	<xsd:sequence>
-  		<xsd:element name="dof1" minOccurs="1" maxOccurs="1">
-  			<xsd:simpleType>
-  				<xsd:restriction base="xsd:string">
-  					<xsd:pattern
-  						value="\s*[0-9]+\s+[0-9]+\s+[0-9]+\s*">
-  					</xsd:pattern>
-  				</xsd:restriction>
-  			</xsd:simpleType>
-  		</xsd:element>
-  		<xsd:element name="dof2" minOccurs="1" maxOccurs="1">
-  			<xsd:simpleType>
-  				<xsd:restriction base="xsd:string">
-  					<xsd:pattern
-  						value="\s*[0-9]+\s+[0-9]+\s+[0-9]+\s*">
-  					</xsd:pattern>
-  				</xsd:restriction>
-  			</xsd:simpleType>
-  		</xsd:element>
-  		<xsd:element name="dof3" minOccurs="0" maxOccurs="1">
-  			<xsd:simpleType>
-  				<xsd:restriction base="xsd:string">
-  					<xsd:pattern
-  						value="\s*[0-9]+\s+[0-9]+\s+[0-9]+\s*">
-  					</xsd:pattern>
-  				</xsd:restriction>
-  			</xsd:simpleType>
-  		</xsd:element>
-  	</xsd:sequence>
+    <xsd:sequence>
+      <xsd:element name="dof1" minOccurs="1" maxOccurs="1">
+        <xsd:simpleType>
+          <xsd:list itemType="xsd:positiveInteger"/>
+        </xsd:simpleType>
+      </xsd:element>
+      <xsd:element name="dof2" minOccurs="0" maxOccurs="1">
+        <xsd:simpleType>
+          <xsd:list itemType="xsd:positiveInteger"/>
+        </xsd:simpleType>
+      </xsd:element>
+      <xsd:element name="dof3" minOccurs="0" maxOccurs="1">
+        <xsd:simpleType>
+          <xsd:list itemType="xsd:positiveInteger"/>
+        </xsd:simpleType>
+      </xsd:element>
+    </xsd:sequence>
   </xsd:complexType>
 
   <xsd:complexType name="DT_FePolynomialBasic" abstract="true">

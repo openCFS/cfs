@@ -647,24 +647,31 @@ namespace CoupledField {
       order.Resize(1,1);
       order[0][0] = isoOrder;
     }
+
+    
     PtrParamNode anIsoOrderNode = node->Get("anIsoOrder", ParamNode::PASS );
     if(anIsoOrderNode){
+      UInt dim = domain->GetGrid()->GetDim();
+      order.Resize(3,dim);
       StdVector<std::string> dofs(3);
-      dofs[0] = anIsoOrderNode->Get("dof1")->As<std::string>();
-      dofs[1] = anIsoOrderNode->Get("dof2")->As<std::string>();
-      dofs[2] = anIsoOrderNode->Get("dof3")->As<std::string>();
-      if(dofs[2] == ""){
-        order.Resize(2,2);
-      }else{
-        order.Resize(3,3);
-      }
+       anIsoOrderNode->GetValue("dof1",dofs[0],ParamNode::PASS);
+       anIsoOrderNode->GetValue("dof2",dofs[1],ParamNode::PASS);
+       anIsoOrderNode->GetValue("dof3",dofs[2],ParamNode::PASS);
+       if( dofs[2] == "" ) {
+         order.Resize(2,dim); 
+       }
+       if( dofs[1] == "" ) {
+         order.Resize(1,dim);
+       }
       char_separator<char> sep(" ");
 
       for(UInt i = 0;i < order.GetNumRows();i++){
+        std::cerr << "tokenizing " << dofs[i] << std::endl;
         boost::tokenizer<char_separator<char> > tokens(dofs[i],sep);
         boost::tokenizer<char_separator<char> >::iterator tokIt=tokens.begin();
         for(UInt j = 0;j < order.GetNumCols();j++){
-          order[i][j] = lexical_cast<Integer>(*tokIt);
+          std::cerr << "token is " << *tokIt << std::endl;
+          order[i][j] = lexical_cast<UInt>(*tokIt);
           tokIt++;
         }
       }

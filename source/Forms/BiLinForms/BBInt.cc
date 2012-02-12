@@ -19,19 +19,28 @@
 namespace CoupledField{
 
 
-   template< class B_OP, class MAT_DATA_TYPE> 
-   BBInt<B_OP,MAT_DATA_TYPE>::
-   BBInt(shared_ptr<CoefFunction> scalCoef, MAT_DATA_TYPE factor) {
+   template< class B_OP, class MAT_DATA_TYPE, class COEF_DATA_TYPE> 
+   BBInt<B_OP,MAT_DATA_TYPE,COEF_DATA_TYPE>::
+   BBInt(shared_ptr<CoefFunction> scalCoef, MAT_DATA_TYPE factor, 
+         bool coordUpdate) :
+   BaseBDBInt(coordUpdate) {
      this->name_ = "BBInt";
-     isSymmetric_ = true;
-     this->scalCoef_ = scalCoef;
-     factor_ = factor;
+     this->isSymmetric_ = true;
+     this->coefScalar_ = scalCoef;
+     this->factor_ = factor;
+     
+     // Ensure, that the coefficient set is a scalar valued one
+     if( this->coefScalar_->GetDimType() != CoefFunction::SCALAR ) {
+       EXCEPTION( "The BBInt-class only works with scalar-valued "
+           << "coefficient functions!");
+     }
    }
 
-   template<class B_OP, class MAT_DATA_TYPE>
-   void BBInt<B_OP,MAT_DATA_TYPE>::CalcElementMatrix( Matrix<MAT_DATA_TYPE>& elemMat,
-                                                      EntityIterator& ent1,
-                                                      EntityIterator& ent2) {
+   template< class B_OP, class MAT_DATA_TYPE, class COEF_DATA_TYPE> 
+   void BBInt<B_OP,MAT_DATA_TYPE,COEF_DATA_TYPE>::
+   CalcElementMatrix( Matrix<MAT_DATA_TYPE>& elemMat,
+                      EntityIterator& ent1,
+                      EntityIterator& ent2) {
      // Extract physical element
      const Elem* ptElem = ent1.GetElem();
 
@@ -40,11 +49,12 @@ namespace CoupledField{
 
      // Obtain FE element from feSpace and integration scheme
      shared_ptr<IntScheme> intScheme;
-     BaseFE* ptFe = ptFeSpace1_->GetFe( ent1, intScheme );
+     BaseFE* ptFe = this->ptFeSpace1_->GetFe( ent1, intScheme );
      UInt nrFncs = ptFe->GetNumFncs();
 
      // Get shape map from grid
-     shared_ptr<ElemShapeMap> esm = domain->GetGrid()->GetElemShapeMap( ptElem );
+     shared_ptr<ElemShapeMap> esm = 
+         domain->GetGrid()->GetElemShapeMap( ptElem, this->coordUpdate_ );
 
      // Get integration points
      StdVector<LocPoint> intPoints;
@@ -63,13 +73,13 @@ namespace CoupledField{
        lp.Set( intPoints[i], esm );
 
        // Call the CalcBMat()-method
-       bOperator_.CalcOpMat( bMat, lp, ptFe);
+       this->bOperator_.CalcOpMat( bMat, lp, ptFe);
 
        // Calculate scalar factor
-       scalCoef_->GetScalar(fac, lp);
+       this->coefScalar_->GetScalar(fac, lp);
        fac *= MAT_DATA_TYPE(lp.jacDet * weights[i]); 
 
-       bOperator_.TransformJacDet(fac,lp,ptFe);
+       this->bOperator_.TransformJacDet(fac,lp,ptFe);
 
 #ifdef USE_BLAS_VERSION
        bMat.Mult_Blas(bMat, elemMat, true, false, this->factor_ * fac, 1.0);
@@ -78,11 +88,84 @@ namespace CoupledField{
 #endif
 
      }
-
+   }
+   
+   //! Multiply element matrix with vector
+   template< class B_OP, class MAT_DATA_TYPE, class COEF_DATA_TYPE> 
+   void BBInt<B_OP,MAT_DATA_TYPE,COEF_DATA_TYPE>::
+   ApplyElemMat( Vector<MAT_DATA_TYPE>&ret, const Vector<Double>& sol,
+                 EntityIterator& ent1,
+                 EntityIterator& ent2 ) {
+     Matrix<MAT_DATA_TYPE> elemMat;
+     CalcElementMatrix(elemMat, ent1, ent2);
+     ret = elemMat * sol;
    }
 
-   template< class B_OP, class MAT_DATA_TYPE>
-   void BBIntMassEdge<B_OP,MAT_DATA_TYPE>::
+   //! Apply B-operator on vector
+   template< class B_OP, class MAT_DATA_TYPE, class COEF_DATA_TYPE> 
+   void BBInt<B_OP,MAT_DATA_TYPE,COEF_DATA_TYPE>::
+   ApplyBMat( Vector<MAT_DATA_TYPE>&ret, 
+              const Vector<MAT_DATA_TYPE>& sol,
+              const LocPointMapped& lpm ) {
+     Matrix<MAT_DATA_TYPE> bOp;
+     BaseFE* ptFe = ptFeSpace1_->GetFe( lpm.ptEl->elemNum );
+     bOperator_.CalcOpMat(bOp, lpm, ptFe);
+     ret = bOp * sol;
+   }
+
+   //! Apply dB-operator on vector
+   template< class B_OP, class MAT_DATA_TYPE, class COEF_DATA_TYPE> 
+   void BBInt<B_OP,MAT_DATA_TYPE,COEF_DATA_TYPE>::
+   ApplydBMat( Vector<MAT_DATA_TYPE>&ret, 
+               const Vector<MAT_DATA_TYPE>& sol,
+               const LocPointMapped& lpm ) {
+     Matrix<MAT_DATA_TYPE> bMat;
+     COEF_DATA_TYPE fac;
+     BaseFE* ptFe = ptFeSpace1_->GetFe( lpm.ptEl->elemNum );
+     bOperator_.CalcOpMat(bMat, lpm, ptFe);
+     this->coefScalar_->GetScalar(fac, lpm);
+
+     ret = bMat* sol * fac;
+   }
+
+   template< class B_OP, class MAT_DATA_TYPE, class COEF_DATA_TYPE> 
+   void BBInt<B_OP,MAT_DATA_TYPE,COEF_DATA_TYPE>::
+   CalcKernel( Matrix<MAT_DATA_TYPE>& kernel, 
+               const LocPointMapped& lpm ) {
+
+     Matrix<MAT_DATA_TYPE> bMat;
+     MAT_DATA_TYPE fac = 0.0;
+
+     // Obtain FE element from feSpace and integration scheme
+     BaseFE* ptFe = this->ptFeSpace1_->GetFe( lpm.ptEl->elemNum );
+     UInt nrFncs = ptFe->GetNumFncs();
+
+     kernel.Resize( nrFncs * B_OP::DIM_DOF );
+     kernel.Init();
+
+#define USE_BLAS_VERSION
+
+     // Call the CalcBMat()-method
+     this->bOperator_.CalcOpMat( bMat, lpm, ptFe);
+
+     // Calculate scalar factor
+     this->coefScalar_->GetScalar(fac, lpm);
+     fac *= MAT_DATA_TYPE(lpm.jacDet); 
+     this->bOperator_.TransformJacDet(fac, lpm, ptFe);
+
+#ifdef USE_BLAS_VERSION
+     bMat.Mult_Blas(bMat, kernel, true, false, this->factor_ * fac, 1.0);
+#else
+     elemMat += Transpose(bMat) * bMat * this->factor_ * fac;
+#endif
+   }
+   
+   
+   // =======================================================================
+   
+   
+   template<class B_OP, class MAT_DATA_TYPE>
+     void BBIntMassEdge<B_OP,MAT_DATA_TYPE>::
    CalcElementMatrix( Matrix<MAT_DATA_TYPE>& elemMat,
                       EntityIterator& ent1,
                       EntityIterator& ent2 ) {
@@ -103,7 +186,8 @@ namespace CoupledField{
      UInt nrFncs = ptFe->BaseFE::GetNumFncs();
 
      // Get shape map from grid
-     shared_ptr<ElemShapeMap> esm = domain->GetGrid()->GetElemShapeMap( ptElem );
+     shared_ptr<ElemShapeMap> esm = 
+         domain->GetGrid()->GetElemShapeMap( ptElem, this->coordUpdate_ );
 
      // Get integration points
      StdVector<LocPoint> intPoints;
@@ -124,7 +208,7 @@ namespace CoupledField{
        this->bOperator_.CalcOpMat( bMat, lp, ptFe);
 
        // Calculate scalar factor
-       this->scalCoef_->GetScalar(fac, lp);
+       this->coefScalar_->GetScalar(fac, lp);
        fac *= MAT_DATA_TYPE(lp.jacDet * weights[i]); 
        this->bOperator_.TransformJacDet(fac,lp,ptFe);
 

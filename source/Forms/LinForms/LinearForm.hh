@@ -40,8 +40,8 @@ namespace CoupledField{
 
   class LinearForm{
     public:
-      LinearForm(){
-
+      LinearForm(bool coordUpdate = false ){
+        coordUpdate_ = coordUpdate;
       }
 
       ~LinearForm(){
@@ -69,10 +69,21 @@ namespace CoupledField{
       virtual void SetFeSpace(shared_ptr<FeSpace> feSpace ){
         ptFeSpace_ = feSpace;
       }
+      
+      //! Return if element matrix is solution dependend
+      virtual bool IsSolDependent() = 0;
+      
+      //! Return if inearform uses updated Lagrangian formulation
+      bool IsCoordUpdate() { 
+        return coordUpdate_;
+      }
 
     protected:
       //! name of linearform
       std::string name_;
+
+      //! flag for use of updated Lagrangian formulation
+      bool coordUpdate_; 
 
       //! pointer to finite element space 1
       shared_ptr<FeSpace> ptFeSpace_;

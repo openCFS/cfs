@@ -76,7 +76,8 @@ public:
   typedef enum{ 
     CONST,         /*!< No dependency on space or time */
     TIMEFREQ,      /*!< Only depending on time / frequency, not space */
-    GENERAL        /*!< General dependency (spatial and / or time / freq) */
+    GENERAL,       /*!< General dependency (spatial and / or time / freq) */
+    SOLUTION       /*!< Dependency on another FeFunction */
   } CoefDependType;
   static Enum<CoefDependType> CoefDependType_;
   

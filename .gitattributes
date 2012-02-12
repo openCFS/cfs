@@ -816,6 +816,7 @@ source/Domain/CMakeLists.txt svneol=native#text/plain
 source/Domain/CoefFunction/CMakeLists.txt -text
 source/Domain/CoefFunction/CoefFunction.cc -text
 source/Domain/CoefFunction/CoefFunction.hh -text
+source/Domain/CoefFunction/CoefFunctionApprox.hh -text
 source/Domain/CoefFunction/CoefFunctionConst.hh -text
 source/Domain/CoefFunction/CoefFunctionExpression.cc -text
 source/Domain/CoefFunction/CoefFunctionExpression.hh -text
@@ -945,6 +946,8 @@ source/Forms/IntScheme.hh svneol=native#text/x-c%2B%2Bhdr
 source/Forms/LinForms/BUInt.cc -text
 source/Forms/LinForms/BUInt.hh -text
 source/Forms/LinForms/CMakeLists.txt -text
+source/Forms/LinForms/KXInt.cc -text
+source/Forms/LinForms/KXInt.hh -text
 source/Forms/LinForms/LinearForm.hh -text
 source/Forms/LinForms/SingleEntryInt.cc svneol=native#text/x-c%2B%2Bsrc
 source/Forms/LinForms/SingleEntryInt.hh svneol=native#text/x-c%2B%2Bhdr

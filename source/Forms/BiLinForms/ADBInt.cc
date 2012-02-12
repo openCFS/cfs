@@ -5,8 +5,10 @@ namespace CoupledField{
            class MAT_DATA_TYPE,
            class COEF_DATA_TYPE >
   ADBInt<A_OP, B_OP, MAT_DATA_TYPE, COEF_DATA_TYPE>::
-  ADBInt(shared_ptr<CoefFunction> dData, MAT_DATA_TYPE factor)
-  : BDBInt<B_OP, MAT_DATA_TYPE, COEF_DATA_TYPE>( dData, factor ) 
+  ADBInt(shared_ptr<CoefFunction> dData, 
+         MAT_DATA_TYPE factor,
+         bool coordUpdate )
+  : BDBInt<B_OP, MAT_DATA_TYPE, COEF_DATA_TYPE>( dData, factor, coordUpdate  ) 
   {
       this->name_ = "ADBInt";
       this->isSymmetric_ = false; // in general the ADB
@@ -58,7 +60,8 @@ namespace CoupledField{
     UInt nrFncsB = ptFeB->GetNumFncs();
 
     // Get shape map from grid
-    shared_ptr<ElemShapeMap> esm = domain->GetGrid()->GetElemShapeMap( ptElem );
+    shared_ptr<ElemShapeMap> esm = 
+        domain->GetGrid()->GetElemShapeMap( ptElem, this->coordUpdate_ );
 
     // Get integration points
     StdVector<LocPoint> intPoints;

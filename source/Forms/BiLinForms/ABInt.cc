@@ -21,8 +21,10 @@ namespace CoupledField{
 
    template< class A_OP, class B_OP, class MAT_DATA_TYPE > 
    ABInt<A_OP, B_OP,MAT_DATA_TYPE>::
-   ABInt( shared_ptr<CoefFunction> scalCoef, MAT_DATA_TYPE factor )
-     : BBInt<B_OP, MAT_DATA_TYPE>(scalCoef, factor) {
+   ABInt( shared_ptr<CoefFunction> scalCoef, 
+          MAT_DATA_TYPE factor,
+          bool coordUpdate )
+     : BBInt<B_OP, MAT_DATA_TYPE>(scalCoef, factor, coordUpdate ) {
      this->name_ = "ABInt";
      
      // Note: In general the AB-Integrator is not symmetric, as is should 
@@ -50,7 +52,8 @@ namespace CoupledField{
      UInt nrFncsB = ptFeB->GetNumFncs();
 
      // Get shape map from grid
-     shared_ptr<ElemShapeMap> esm = domain->GetGrid()->GetElemShapeMap( ptElem );
+     shared_ptr<ElemShapeMap> esm = 
+         domain->GetGrid()->GetElemShapeMap( ptElem, this->coordUpdate_ );
 
      // Get integration points
      StdVector<LocPoint> intPoints;
@@ -76,7 +79,7 @@ namespace CoupledField{
        this->bOperator_.CalcOpMat( bMat, lp, ptFeB );
 
        // Calculate scalar factor
-       this->scalCoef_->GetScalar(fac, lp);
+       this->coefScalar_->GetScalar(fac, lp);
        fac *= MAT_DATA_TYPE(lp.jacDet * weights[i]); 
 
        this->aOperator_.TransformJacDet(fac,lp,ptFeA);

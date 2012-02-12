@@ -22,7 +22,8 @@ namespace CoupledField {
     public:
 
       //! Constructor 
-      ADBInt(shared_ptr<CoefFunction> dData, MAT_DATA_TYPE factor);
+      ADBInt(shared_ptr<CoefFunction> dData, MAT_DATA_TYPE factor,
+             bool coordUpdate = false );
 
       //! Destructor
       virtual ~ADBInt();

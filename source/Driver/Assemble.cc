@@ -428,8 +428,7 @@ namespace CoupledField
 
           BiLinFormContext & actContext = *forms[iForm];
 
-          LOG_DBG(assemble) << "AssembleMatrices for bilinform " << actContext.GetIntegrator()->GetName();
-          LOG_DBG2(assemble) << "bilinform=" << actContext.ToString();
+          
           
           // get matrix destinations
           FEMatrixType destMat = actContext.GetDestMat();
@@ -443,6 +442,8 @@ namespace CoupledField
           if( matReassemble_[destMat] == false ) {
             continue;
           }
+          LOG_DBG(assemble) << "AssembleMatrices for bilinform " << actContext.GetIntegrator()->GetName();
+                    LOG_DBG2(assemble) << "bilinform=" << actContext.ToString();
 
           // Update flag
           matrixUpdated_ = true;
@@ -455,8 +456,10 @@ namespace CoupledField
             // Calc element matrix
             if ( form->IsComplex() ){
               form->CalcElementMatrix( elemMatrixC, it1, it2 );
+              
             } else {
               form->CalcElementMatrix( elemMatrix, it1, it2 );
+              LOG_DBG3(assemble) << "elementMatrix is \n" << elemMatrix << std::endl; 
               if(actContext.IsSetNegate()== true){
                 assert(!form->IsComplex());
                 elemMatrix*= (-1.0);
@@ -835,7 +838,6 @@ namespace CoupledField
             actContext.MapEqns( entIt, eqnVec, fctId );
             
             assert(!elemVec.ContainsNaN() && !elemVec.ContainsInf());
-
             // Pass element vector to algebraic system
             algsys_-> SetElementRHS( elemVec,
                                      fctId, eqnVec );

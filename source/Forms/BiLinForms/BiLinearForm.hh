@@ -31,8 +31,8 @@ namespace CoupledField
 
   class BiLinearForm{
     public:
-      BiLinearForm(){
-
+      BiLinearForm( bool coordUpdate = false ){
+        coordUpdate_ = coordUpdate;
       }
 
       ~BiLinearForm(){
@@ -72,7 +72,15 @@ namespace CoupledField
       
       //! Return, if bilinear form produces symmetric matrices
       bool IsSymmetric() {return isSymmetric_;}
-
+      
+      //! Return if element matrix is solution dependend
+      virtual bool IsSolDependent() = 0;
+      
+      //! Return if bilinearform uses updated Lagrangian formulation
+      bool IsCoordUpdate() { 
+        return coordUpdate_;
+      }
+      
     protected:
 
       //! name of (bi)linearform
@@ -80,6 +88,9 @@ namespace CoupledField
 
       //! is the (bi) linear form symmetric
       bool isSymmetric_;
+      
+      //! flag for use of updated Lagrangian formulation
+      bool coordUpdate_; 
 
       //! pointer to finite element space 1
       shared_ptr<FeSpace> ptFeSpace1_;

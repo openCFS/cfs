@@ -303,13 +303,16 @@ namespace CoupledField {
     if( needsAlgsys_ == true)
       assemble_->ToInfo(infoNode_->Get(ParamNode::HEADER)->Get("integrators"));
 
+    // The following peace of code is measningless, as we encapsulate the
+    // nonlinearity on the coeffunctions, which get generated in the 
+    // DefineIntegrators method
     // now we know about nonlinearities and we can trigger the
     // material objects to perform the approximations of the nonlinear
     // sampled data
-    std::map<RegionIdType, BaseMaterial*>::iterator itMat;
-    for ( itMat = materials_.begin(); itMat != materials_.end(); itMat++ ) {
-      itMat->second->InitApproxCurves();
-    }
+//    std::map<RegionIdType, BaseMaterial*>::iterator itMat;
+//    for ( itMat = materials_.begin(); itMat != materials_.end(); itMat++ ) {
+//      itMat->second->InitApproxCurves();
+//    }
     
     // =====================================================================
     //  map equations (FeSpaces) and finalize FeFunction (vector creation)

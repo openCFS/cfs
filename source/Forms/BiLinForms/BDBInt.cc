@@ -22,8 +22,9 @@ namespace CoupledField{
   template< class B_OP,
             class MAT_DATA_TYPE,
             class COEF_DATA_TYPE>
-  BDBInt<B_OP,MAT_DATA_TYPE,COEF_DATA_TYPE>::BDBInt(shared_ptr<CoefFunction> dData, MAT_DATA_TYPE factor)
-  : BaseBDBInt() 
+  BDBInt<B_OP,MAT_DATA_TYPE,COEF_DATA_TYPE>::
+  BDBInt(shared_ptr<CoefFunction> dData, MAT_DATA_TYPE factor, bool coordUpdate )
+  : BaseBDBInt(coordUpdate) 
   {
       name_ = "BDBInt";
       isSymmetric_ = true;
@@ -68,7 +69,8 @@ namespace CoupledField{
     UInt nrFncs = ptFe->GetNumFncs();
 
     // Get shape map from grid
-    shared_ptr<ElemShapeMap> esm = domain->GetGrid()->GetElemShapeMap( ptElem );
+    shared_ptr<ElemShapeMap> esm = 
+        domain->GetGrid()->GetElemShapeMap( ptElem, this->coordUpdate_ );
 
     // Get integration points
     StdVector<LocPoint> intPoints;
@@ -109,14 +111,14 @@ namespace CoupledField{
     }
 
   }
-  
+
   //! Multiply element matrix with vector
   template< class B_OP,
-            class MAT_DATA_TYPE,
-            class COEF_DATA_TYPE>
-  template<class VEC_DATA_TYPE> 
+  class MAT_DATA_TYPE,
+  class COEF_DATA_TYPE>
   void BDBInt<B_OP,MAT_DATA_TYPE,COEF_DATA_TYPE>::
-  ApplyElemMat( Vector<VEC_DATA_TYPE>&ret, const Vector<Double>& sol,
+  ApplyElemMat( Vector<MAT_DATA_TYPE>&ret, 
+                const Vector<Double>& sol,
                 EntityIterator& ent1,
                 EntityIterator& ent2 ) {
     Matrix<MAT_DATA_TYPE> elemMat;
@@ -124,39 +126,37 @@ namespace CoupledField{
     ret = elemMat * sol;
   }
 
-  
-  
-  //! Apply B-operator on vector (complex-valued version)
-    template< class B_OP,
-              class MAT_DATA_TYPE,
-              class COEF_DATA_TYPE>
-    void BDBInt<B_OP,MAT_DATA_TYPE,COEF_DATA_TYPE>::
-    ApplyBMat( Vector<MAT_DATA_TYPE>&ret, 
-               const Vector<MAT_DATA_TYPE>& sol,
-               const LocPointMapped& lpm ) {
-      Matrix<MAT_DATA_TYPE> bOp;
-      BaseFE* ptFe = ptFeSpace1_->GetFe( lpm.ptEl->elemNum );
-      bOperator_.CalcOpMat(bOp, lpm, ptFe);
-      ret = bOp * sol;
-    }
+  //! Apply B-operator on vector
+  template< class B_OP,
+  class MAT_DATA_TYPE,
+  class COEF_DATA_TYPE>
+  void BDBInt<B_OP,MAT_DATA_TYPE,COEF_DATA_TYPE>::
+  ApplyBMat( Vector<MAT_DATA_TYPE>&ret, 
+             const Vector<MAT_DATA_TYPE>& sol,
+             const LocPointMapped& lpm ) {
+    Matrix<MAT_DATA_TYPE> bOp;
+    BaseFE* ptFe = ptFeSpace1_->GetFe( lpm.ptEl->elemNum );
+    bOperator_.CalcOpMat(bOp, lpm, ptFe);
+    ret = bOp * sol;
+  }
 
   //! Apply dB-operator on vector
   //template<class VEC_DATA_TYPE> 
   template< class B_OP,
-            class MAT_DATA_TYPE,
-            class COEF_DATA_TYPE>
-   void BDBInt<B_OP,MAT_DATA_TYPE,COEF_DATA_TYPE>::
-   ApplydBMat( Vector<MAT_DATA_TYPE>&ret, 
-               const Vector<MAT_DATA_TYPE>& sol,
-               const LocPointMapped& lpm ) {
-     Matrix<MAT_DATA_TYPE> bOp, dMat, dbMat;
-     BaseFE* ptFe = ptFeSpace1_->GetFe( lpm.ptEl->elemNum );
-     bOperator_.CalcOpMat(bOp, lpm, ptFe);
-     dData_->GetTensor(dMat,lpm);
-     dbMat.Resize(dMat.GetNumRows(), bOp.GetNumCols());
-     dMat.Mult_Blas(bOp,dbMat,false,false,1.0,0);
-     ret = dbMat* sol;
-   }
+  class MAT_DATA_TYPE,
+  class COEF_DATA_TYPE>
+  void BDBInt<B_OP,MAT_DATA_TYPE,COEF_DATA_TYPE>::
+  ApplydBMat( Vector<MAT_DATA_TYPE>&ret, 
+              const Vector<MAT_DATA_TYPE>& sol,
+              const LocPointMapped& lpm ) {
+    Matrix<MAT_DATA_TYPE> bOp, dMat, dbMat;
+    BaseFE* ptFe = ptFeSpace1_->GetFe( lpm.ptEl->elemNum );
+    bOperator_.CalcOpMat(bOp, lpm, ptFe);
+    dData_->GetTensor(dMat,lpm);
+    dbMat.Resize(dMat.GetNumRows(), bOp.GetNumCols());
+    dMat.Mult_Blas(bOp,dbMat,false,false,1.0,0);
+    ret = dbMat* sol;
+  }
 
   //! Calculate the integration kernel
   template< class B_OP,

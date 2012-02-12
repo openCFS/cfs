@@ -41,6 +41,17 @@ namespace CoupledField {
 class BaseBDBInt : public BiLinearForm {
 public:
 
+    //! Constructor
+    BaseBDBInt( bool coordUpate = false) :
+      BiLinearForm(coordUpate) {
+      
+    }
+    
+  //! Destructor
+  virtual ~BaseBDBInt() {
+    
+  }
+  
   //@{
   //! Apply / multiply element matrix to vector
 
@@ -148,7 +159,8 @@ public:
     public:
 
       //! Constructor with pointer to BaseElem
-      BDBInt(shared_ptr<CoefFunction> dData, MAT_DATA_TYPE factor);
+      BDBInt(shared_ptr<CoefFunction> dData, MAT_DATA_TYPE factor,
+             bool coordUpdate = false );
 
       //! Destructor
       virtual ~BDBInt();
@@ -159,8 +171,8 @@ public:
                               EntityIterator& ent2 );
 
       //! Multiply element matrix with vector
-      template<class VEC_DATA_TYPE> 
-      void ApplyElemMat( Vector<VEC_DATA_TYPE>&ret, const Vector<Double>& sol,
+      void ApplyElemMat( Vector<MAT_DATA_TYPE>&ret, 
+                         const Vector<Double>& sol,
                          EntityIterator& ent1,
                          EntityIterator& ent2 );
 
@@ -181,6 +193,11 @@ public:
 
       bool IsComplex(){
         return std::tr1::is_same<MAT_DATA_TYPE,Complex>::value;
+      }
+      
+      //! \copydoc BiLinearForm::IsSolDependent
+      bool IsSolDependent() {
+        return dData_->GetDependency() == CoefFunction::SOLUTION;
       }
 
       void SetFeSpace( shared_ptr<FeSpace> feSpace ) {

@@ -33,7 +33,8 @@ namespace CoupledField{
             class VEC_DATA_TYPE=Double>
   class BUIntegrator : public LinearForm{
     public:
-      BUIntegrator(VEC_DATA_TYPE factor,shared_ptr<CoefFunction > rhsCoef);
+      BUIntegrator(VEC_DATA_TYPE factor,shared_ptr<CoefFunction > rhsCoef,
+                   bool coordUpdate = false );
 
       ~BUIntegrator(){
 
@@ -50,6 +51,12 @@ namespace CoupledField{
         UInt opDim = feSpace->GetFeFunction()->GetResultInfo()->dofNames.GetSize();
         Bdim_ = opDim;
       }
+      
+      //! \copydoc LinearForm::IsSolDependent
+      bool IsSolDependent() {
+        return rhsCoefs_->GetDependency() == CoefFunction::SOLUTION;
+      }
+      
     protected:
       B_OP operator_;
 

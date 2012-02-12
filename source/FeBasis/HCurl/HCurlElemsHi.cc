@@ -349,6 +349,7 @@ void FeHCurlHiHex::CalcLocShFnc( Matrix<Double>& shape, const LocPointMapped& lp
 
     UInt order = orderEdge_[i];
     Double fac = elem->edges[i] < 0 ? -1.0 : 1.0;
+    //fac *= 0.5;
     UInt index1 = shape_.edgeVertices[i][0]-1;
     UInt index2 = shape_.edgeVertices[i][1]-1;
 
@@ -589,6 +590,7 @@ void FeHCurlHiHex::CalcLocCurlShFnc( Matrix<Double>& curl, const LocPointMapped&
   for( UInt i = 0; i < 12; ++i) {
     UInt order = orderEdge_[i];
     Double fac = elem->edges[i] < 0 ? -1.0 : 1.0;
+    //fac *= 0.5;
     UInt index1 = shape_.edgeVertices[i][0]-1;
     UInt index2 = shape_.edgeVertices[i][1]-1;
 

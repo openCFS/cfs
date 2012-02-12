@@ -15,10 +15,13 @@
 #include "DataInOut/Logging/LogConfigurator.hh"
 
 #include "Domain/CoefFunction/CoefFunctionExpression.hh"
+#include "Domain/CoefFunction/CoefFunctionApprox.hh"
 
+// forms
 #include "Forms/BiLinForms/BDBInt.hh"
 #include "Forms/BiLinForms/BBInt.hh"
 #include "Forms/LinForms/BUInt.hh"
+#include "Forms/LinForms/KXInt.hh"
 #include "Forms/Operators/CurlOperator.hh"
 #include "Forms/Operators/IdentityOperator.hh"
 
@@ -126,38 +129,80 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
       // create new entity list
       shared_ptr<ElemList> actSDList( new ElemList(ptgrid_ ) );
       actSDList->SetRegion( actRegion );
+      
+      // pass entitylist ot fespace / fefunction
+      feFunc->AddEntityList( actSDList );
+      
       // Switch, if region is linear / nonlinear
       if ( nonLinTypes.GetSize() > 0 ) {
-        REFACTOR;
-       // =================================
-       //  Nonlinear Stiffness Integrator
-       //// =================================
-       //nLinCurlCurlEdgeInt* curlcurlNL =
-       //    new nLinCurlCurlEdgeInt( actMat, upLagrangeForm );
-       //curlcurlNL->SetNonLinMethod( nonLinMethod_ );
-       //curlcurlNL->SetSolution( dynamic_cast<NodeStoreSol<Double>&>(*sol_ ));
-       //curlcurlNL->SetFeSpace( feSpace );
-       ////BiLinFormContext * stiffContext = new BiLinFormContext( curlcurlNL, STIFFNESS );
-       ////stiffContext->SetEntities( actSDList, actSDList );
-       ////stiffContext->SetFeFunctions( feFunc, feFunc );
-       ////assemble_->AddBiLinearForm( stiffContext );
-       //
-       //// we have to save the bilinear form for later usage
-      //// nlinBilinForms_[actRegion] = curlcurlNL;
-       //
-       //// =================================
-       ////  Nonlinear RHS-integrator
-       //// =================================
-       //nLinMagEdge_linFormInt* rhsSource
-       //= new nLinMagEdge_linFormInt( actMat, upLagrangeForm);
-       //rhsSource->SetSolution( dynamic_cast<NodeStoreSol<Double>&>(*sol_ ));
-       //rhsSource->SetFeSpace( feSpace );
-       //LinearFormContext * rhsContext =
-       //    new LinearFormContext( rhsSource );
-       //rhsContext->SetEntities( actSDList );
-       //rhsContext->SetFeFunction( feFunc );
-       //assemble_->AddLinearForm( rhsContext );
+        
+        
+        // obtain BH-curve from nonlinear material and initialize it
+        actMat->NeedApproxMatCurve( magBH );
+        actMat->InitApproxCurves();
+        ApproxData * nLinFnc = actMat->GetNonlinFncBH(MAG_PERMEABILITY);
+        assert(nLinFnc);
+        Double nuLin;
+        actMat->GetScalar(nuLin , MAG_RELUCTIVITY, Global::REAL );
+        // obtain initial value for material (cast to double)
+        
+        // ================================
+        //  Nonlinear Stiffness Integrator 
+        // =================================
+        
+        // create CoefFunctionApprox with nlinFnc, initial value and feFunction
+        shared_ptr<CoefFunctionApprox<CurlOperator<FeHCurl,3, Double> > > nuNl (
+            new CoefFunctionApprox<CurlOperator<FeHCurl,3, Double> >() );
+        nuNl->Init( nuLin, nLinFnc, 
+                    dynamic_pointer_cast<FeFunction<Double > > (feFunc) );
+        // create stiffness integrator
+        BaseBDBInt* stiff1 = NULL;
+        stiff1 = new BBInt< CurlOperator<FeHCurl,3, Double> >(nuNl, 1.0) ;
+        stiff1->SetName("CurlCurlIntegrator-NL");
 
+       BiLinFormContext * stiffContext =
+           new BiLinFormContext(stiff1, STIFFNESS );
+       stiffContext->SetEntities( actSDList, actSDList );
+       stiffContext->SetFeFunctions( feFunc, feFunc );
+       assemble_->AddBiLinearForm( stiffContext );
+       // Important: Add bdb-integrator to global list, as we need them later
+       // for calculation of postprocessing results
+       bdbInts_[actRegion] = stiff1;
+
+       // ================================================
+       //  Nonlinear Stiffness Integrator (only Newton )
+       // ================================================
+       // Note: currently we set the nonlinear method hard-coded to NEWTON for
+       // testing purpose
+       nonLinMethod_ = NEWTON;
+       if( nonLinMethod_ == NEWTON ) {
+         //create CoefFunctionApproxDeriv with nlinFnc and feFunction
+         shared_ptr<CoefFunctionApproxDeriv<CurlOperator<FeHCurl,3, Double> > > nuDeriv (
+             new CoefFunctionApproxDeriv<CurlOperator<FeHCurl,3, Double> >() );
+         nuDeriv->Init( nLinFnc, dynamic_pointer_cast<FeFunction<Double > > (feFunc) );
+
+         //create stiffness integrator
+         BiLinearForm* stiff2 = NULL;
+         stiff2 = new BDBInt< CurlOperator<FeHCurl,3, Double> >(nuDeriv, 1.0) ;
+         stiff2->SetName("CurlCurlIntegrator-NL-Newton");
+
+         BiLinFormContext * stiffContext2 =
+             new BiLinFormContext(stiff2, STIFFNESS );
+         stiffContext2->SetEntities( actSDList, actSDList );
+         stiffContext2->SetFeFunctions( feFunc, feFunc );
+         assemble_->AddBiLinearForm( stiffContext2 );
+       }
+        
+       // =================================
+       //  Nonlinear RHS-integrator
+       // =================================
+        LinearForm * rhsNlinForm = new KXIntegrator<Double>(stiff1, -1.0, feFunc );
+        rhsNlinForm->SetName("RHSNonLinForm");
+        LinearFormContext * rhsNlinContext =
+            new LinearFormContext( rhsNlinForm );
+        rhsNlinContext->SetEntities( actSDList );
+        rhsNlinContext->SetFeFunction( feFunc );
+        assemble_->AddLinearForm( rhsNlinContext );
       } else {
 
        // ***************************************
@@ -185,16 +230,17 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
        // === Additional RHS integrator in case of Non-linearity ===
        if ( nonLin_ == true ) {
          REFACTOR;
-         //nLinMagEdge_linFormInt* rhsSource =
-         //    new nLinMagEdge_linFormInt( actMat, upLagrangeForm );
-         //rhsSource->SetFeSpace( feSpace );
-         //rhsSource->SetSolution( dynamic_cast<NodeStoreSol<Double>&>(*sol_ ));
-         //
-         //LinearFormContext * rhsContext =
-         //    new LinearFormContext( rhsSource );
-         //rhsContext->SetEntities( actSDList );
-         //rhsContext->SetFeFunction( feFunc );
-         //assemble_->AddLinearForm( rhsContext );
+         // =================================
+         //  Nonlinear RHS-integrator
+         // =================================
+         LinearForm * rhsNlinForm = 
+             new KXIntegrator<Double>(curlcurl, -1.0, feFunc );
+         rhsNlinForm->SetName("RHSNonLinForm-Lin");
+         LinearFormContext * rhsNlinContext =
+             new LinearFormContext( rhsNlinForm );
+         rhsNlinContext->SetEntities( actSDList );
+         rhsNlinContext->SetFeFunction( feFunc );
+         assemble_->AddLinearForm( rhsNlinContext );
        }
      } // END OF NOLIN / LIN PART
 
@@ -232,7 +278,6 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
       massContext->SetFeFunctions( feFunc, feFunc );
       assemble_->AddBiLinearForm( massContext );
 
-      feFunc->AddEntityList( actSDList );
       // ============================
       // COIL INTEGRATORS
       // ============================
@@ -943,7 +988,8 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
     EXCEPTION("Not adjusted to new implementation");
     
 //    //get the coupling regions
-//    StdVector<std::string> couplRegions;
+//    StdVector<std::string> couplRegions;        // ================================
+
 //    StdVector<RegionIdType> regionIds;
 //    ptCoupling_->GetOutputRegions(actCoupling, couplRegions);
 //    ptgrid_->GetRegion().Parse(couplRegions, regionIds);

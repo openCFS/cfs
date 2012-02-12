@@ -21,7 +21,7 @@
 #ifndef FILE_BBINT
 #define FILE_BBINT
 
-#include "BiLinearForm.hh"
+#include "BDBInt.hh"
 #include "FeBasis/BaseFE.hh"
 #include <boost/tr1/type_traits.hpp>
 #include "FeBasis/HCurl/HCurlElemsHi.hh"
@@ -30,27 +30,56 @@
 namespace CoupledField {
 
   //! general class for calculation of bb forms
-  template<class B_OP, class MAT_DATA_TYPE=Double>
-  class BBInt : public BiLinearForm {
+  template<class B_OP, 
+           class MAT_DATA_TYPE=Double,
+           class COEF_DATA_TYPE=Double>
+  class BBInt : public BaseBDBInt {
     public:
 
       //! Constructor with pointer to BaseElem
-      BBInt( shared_ptr<CoefFunction> scalCoef, MAT_DATA_TYPE factor);
+      BBInt( shared_ptr<CoefFunction> scalCoef, MAT_DATA_TYPE factor,
+             bool coordUpdate = false);
 
       //! Destructor
       ~BBInt(){
 
       }
+      
       //! Compute element matrix associated to BDB form
       void CalcElementMatrix( Matrix<MAT_DATA_TYPE>& elemMat,
                                  EntityIterator& ent1,
                                  EntityIterator& ent2 );
 
+      //! Multiply element matrix with vector
+      void ApplyElemMat( Vector<MAT_DATA_TYPE>&ret, 
+                         const Vector<Double>& sol,
+                         EntityIterator& ent1,
+                         EntityIterator& ent2 );
+
+
+      //! Calculate integration kernel, i.e. B*d*B without integration
+      void CalcKernel( Matrix<MAT_DATA_TYPE>& kernel, 
+                       const LocPointMapped& lpm );
+
+      //! Apply B-Operator on vector 
+      void ApplyBMat( Vector<MAT_DATA_TYPE>&ret, 
+                      const Vector<MAT_DATA_TYPE>& sol,
+                      const LocPointMapped& lpm );
+
+      //! Apply dB-Operator on vector
+      void ApplydBMat( Vector<MAT_DATA_TYPE>&ret, 
+                       const Vector<MAT_DATA_TYPE>& sol,
+                       const LocPointMapped& lpm );
 
       bool IsComplex(){
         return std::tr1::is_same<MAT_DATA_TYPE,Complex>::value;
       }
-
+      
+      //! \copydoc BiLinearForm::IsSolDependent
+      bool IsSolDependent() {
+        return coefScalar_->GetDependency() == CoefFunction::SOLUTION;
+      }
+            
       void SetFeSpace( shared_ptr<FeSpace> feSpace ) {
         this->ptFeSpace1_ = feSpace;
       }
@@ -59,15 +88,18 @@ namespace CoupledField {
         this->ptFeSpace1_ = feSpace1;
         this->ptFeSpace2_ = feSpace2;
       }
-
-    protected:
-      B_OP bOperator_;
       
-      //! Pointer to scalar (!!) coefficient for BB-integrator 
-      shared_ptr<CoefFunction > scalCoef_;
+    protected:
+      
+      //! Differential operator
+      B_OP bOperator_;
 
-      //! set a constant factor for multiplication with the element matrix
+      //! A constant factor for multiplication with the element matrix
       MAT_DATA_TYPE factor_;
+
+      
+      //! Pointer to coefficient function for scalar values
+      shared_ptr<CoefFunction > coefScalar_;
   };
 
   //! general class for calculation of bb forms
@@ -76,8 +108,9 @@ namespace CoupledField {
     public:
 
       //! Constructor with pointer to BaseElem
-      BBIntMassEdge(shared_ptr<CoefFunction> scalCoef, MAT_DATA_TYPE factor):
-        BBInt<B_OP,MAT_DATA_TYPE>(scalCoef, factor){
+      BBIntMassEdge(shared_ptr<CoefFunction> scalCoef, MAT_DATA_TYPE factor,
+                    bool coordUpdate = false):
+        BBInt<B_OP,MAT_DATA_TYPE>(scalCoef, factor, coordUpdate ){
         this->name_ = "BBIntMassEdge";
       }
 
