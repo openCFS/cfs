@@ -48,8 +48,7 @@ namespace CoupledField{
     InitialCondition_  = 0.0;
 
     //check for pressure or potential formulation
-    std::string pdeFormulation;
-    paramNode->GetValue("pdeFormulation",pdeFormulation,ParamNode::EX);
+    std::string pdeFormulation = myParam_->Get("formulation")->As<std::string>();
     if(pdeFormulation == "default"){
       formulation_ = ACOU_PRESSURE;
     }else{
@@ -185,9 +184,9 @@ namespace CoupledField{
         shared_ptr<CoefFunction> coeffM
                   = CoefFunction::Generate(Global::REAL, lexical_cast<std::string>(1.0/(c0*c0)));
         if(dim_==2)
-          massInt = new BBInt<IdentityOperator<FeH1,2,1,Double>, Double  >(coeffK,1.0 );
+          massInt = new BBInt<IdentityOperator<FeH1,2,1,Double>, Double  >(coeffM,1.0 );
         else
-          massInt = new BBInt<IdentityOperator<FeH1,3,1,Double>, Double  >(coeffK,1.0 );
+          massInt = new BBInt<IdentityOperator<FeH1,3,1,Double>, Double  >(coeffM,1.0 );
       //}
 
 
@@ -201,6 +200,60 @@ namespace CoupledField{
       assemble_->AddBiLinearForm( massContext );
     }
   }
+
+  void AcousticPDE::DefineSurfaceIntegrators( ){
+    //========================================================================================
+    // ABC boundaries
+    //========================================================================================
+    PtrParamNode bcNode = myParam_->Get( "bcsAndLoads", ParamNode::PASS );
+    if( bcNode ) {
+      ParamNodeList abcNodes = bcNode->GetList( "absorbingBCs" );
+
+      for( UInt i = 0; i < abcNodes.GetSize(); i++ ) {
+        std::string regionName = abcNodes[i]->Get("name")->As<std::string>();
+        shared_ptr<EntityList> actSDList =  ptgrid_->GetEntityList( EntityList::SURF_ELEM_LIST,regionName );
+        std::string volRegName = abcNodes[i]->Get("volumeRegion")->As<std::string>();
+        RegionIdType sRegId = ptgrid_->GetRegion().Parse(regionName);
+
+        // --- Set the FE ansatz for the current region ---
+        PtrParamNode curRegNode = myParam_->Get("regionList")->GetByVal("region","name",volRegName.c_str());
+        std::string polyId = curRegNode->Get("polyId")->As<std::string>();
+        std::string integId = curRegNode->Get("integId")->As<std::string>();
+        feFunctions_[formulation_]->GetFeSpace()->SetRegionApproximation(sRegId, polyId,integId);
+
+        RegionIdType aRegion = ptgrid_->GetRegion().Parse(volRegName);
+        //
+        Double density=0.0,compressibility=0.0,c0;
+
+        //
+        materials_[aRegion]->GetScalar(density,DENSITY,Global::REAL);
+        materials_[aRegion]->GetScalar(compressibility,ACOU_BULK_MODULUS,Global::REAL);
+        c0 = std::sqrt(compressibility/density);
+
+        shared_ptr<CoefFunction> coeffDamp
+                  = CoefFunction::Generate(Global::REAL, "1.0");
+
+        BiLinearForm * abcInt = NULL;
+
+        if( dim_ == 2 ) {
+          abcInt = new BBInt<IdentityOperator<FeH1,2,1> >(coeffDamp,1.0/c0 );
+        } else {
+          abcInt = new BBInt<IdentityOperator<FeH1,3,1> >(coeffDamp,1.0/c0 );
+        }
+
+        abcInt->SetName("abcIntegrator");
+        BiLinFormContext *abcContext = new BiLinFormContext(abcInt, DAMPING );
+
+        abcContext->SetEntities( actSDList, actSDList );
+        abcContext->SetFeFunctions( feFunctions_[formulation_] , feFunctions_[formulation_]);
+        feFunctions_[formulation_]->AddEntityList( actSDList );
+        assemble_->AddBiLinearForm( abcContext );
+      }
+    }
+
+
+  }
+
 
   void AcousticPDE::DefineSolveStep(){
     solveStep_ = new StdSolveStep(*this);

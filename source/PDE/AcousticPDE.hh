@@ -33,7 +33,7 @@ namespace CoupledField{
     void DefineIntegrators();
 
     //! define surface integrators needed for this pde
-    void DefineSurfaceIntegrators( ){};
+    void DefineSurfaceIntegrators( );
 
     //! define the SoltionStep-Driver
     void DefineSolveStep();

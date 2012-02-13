@@ -199,8 +199,7 @@
         </xsd:sequence>
 
         <!-- Type of acoustic formulation (optional) -->
-        <xsd:attribute name="formulation" use="optional"
-          default="acouPressure">
+        <xsd:attribute name="formulation" use="optional" default="acouPressure">
           <xsd:simpleType>
             <xsd:restriction base="xsd:token">
               <xsd:enumeration value="acouPressure"/>
@@ -500,7 +499,9 @@
   <!-- Identical to that of homogeneous Dirichlet case -->
   <xsd:complexType name="DT_AbsorbingBC">
     <xsd:complexContent>
-      <xsd:extension base="DT_AcousticHD"/>
+      <xsd:extension base="DT_AcousticHD">
+       <xsd:attribute name="volumeRegion" type="xsd:token" use="required"/>     
+      </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
 
