@@ -76,7 +76,7 @@ namespace CoupledField {
     Vector<Double>* strings_;
     Vector<Double>* helpStrings_;
 
-    Vector<UInt> StringLenght_;
+    StdVector<UInt> StringLenght_;
     UInt maxStringLength_;
 
     Matrix<Double> preisachWeights_;

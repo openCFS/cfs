@@ -1904,7 +1904,7 @@ void ErsatzMaterial::SetEnergyFluxVector(Function* f, const Vector<complex<doubl
   // reset output
   q_u_glob.Init(complex<double>(0.0, 0.0));
   // here we count the entries to q_u_glob to normalize in the end
-  Vector<int> count(u_glob.GetSize());
+  StdVector<int> count(u_glob.GetSize());
   count.Init(0);
 
   // an element solution vector -> we need a 1 dof solution up to now!

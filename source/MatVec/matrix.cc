@@ -674,6 +674,17 @@ namespace CoupledField
         rvec1[kk] += data_[k][kk]*mvec1[k];
   }
   
+  template<>
+  void Matrix<int>::MultT(const SingleVector &mvec, SingleVector &rvec) const
+  {
+    EXCEPTION("undefined")
+  }
+  template<>
+  void Matrix<unsigned int>::MultT(const SingleVector &mvec, SingleVector &rvec) const
+  {
+    EXCEPTION("undefined")
+  }
+  
   // **************
   //   operator<<
   // **************
@@ -778,6 +789,17 @@ namespace CoupledField
         x[i] -= data_[i][j] * x[j];
       x[i] /= data_[i][i];
     }
+  }
+  
+  template<>
+  void Matrix<int>::DirectSolve( SingleVector & x1, const SingleVector & b1 ) const
+  {
+    EXCEPTION("undefined");
+  }
+  template<>
+  void Matrix<unsigned int>::DirectSolve( SingleVector & x1, const SingleVector & b1 ) const
+  {
+    EXCEPTION("undefined");
   }
 
 
@@ -1121,8 +1143,8 @@ namespace CoupledField
      
     assert(size_row_ == 3);
   
-    Vector<Integer> iVec(2);
-    Vector<Integer> jVec(2);
+    StdVector<Integer> iVec(2);
+    StdVector<Integer> jVec(2);
     UInt runningIndexI = 0;
     UInt runningIndexJ = 0;
   

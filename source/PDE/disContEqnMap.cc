@@ -19,7 +19,6 @@
 #include "General/Enum.hh"
 #include "General/exception.hh"
 #include "MatVec/matrix.hh"
-#include "MatVec/vector.hh"
 #include "PDE/eqnMap.hh"
 #include "Utils/tools.hh"
 #include "boost/lexical_cast.hpp" 
@@ -106,7 +105,7 @@ namespace CoupledField {
 
     // iterate over all face
     for ( it2=faceEqns_.begin(); it2!=faceEqns_.end(); it2++ ) {
-      StdVector<Vector <Integer> >& actMap = it2->second;
+      StdVector<StdVector <Integer> >& actMap = it2->second;
       
       // iterate over all entries in the current map and renumber them
       for ( UInt i = 0; i < actMap.GetSize(); i++ ) {
@@ -125,7 +124,7 @@ namespace CoupledField {
 
     // iterate over all edge resuls
     for ( it2=edgeEqns_.begin(); it2!=edgeEqns_.end(); it2++ ) {
-      StdVector<Vector <Integer> >& actMap = it2->second;
+      StdVector<StdVector <Integer> >& actMap = it2->second;
       
       // iterate over all entries in the current map and renumber them
       for ( UInt i = 0; i < actMap.GetSize(); i++ ) {
@@ -145,7 +144,7 @@ namespace CoupledField {
     
     // Iterate over all element maps and map the new ordering
     for ( it2=elemEqns_.begin(); it2!=elemEqns_.end(); it2++ ) {
-      StdVector<Vector < Integer> > & actMap = it2->second;
+      StdVector<StdVector < Integer> > & actMap = it2->second;
       
       // iterate over all entries in the current map and renumber them
       for ( UInt i = 0; i < actMap.GetSize(); i++ ) {
@@ -247,7 +246,7 @@ namespace CoupledField {
       }
       
       // get edge map of current result
-      StdVector<Vector<Integer> > const & map = 
+      StdVector<StdVector<Integer> > const & map = 
             (edgeEqns_.find( result ) )->second;
       
         // get edges
@@ -298,7 +297,7 @@ namespace CoupledField {
       }
       
       // get face map of current result
-      StdVector<Vector<Integer> > const & map = (faceEqns_.find( result ) )->second;
+      StdVector<StdVector<Integer> > const & map = (faceEqns_.find( result ) )->second;
       
       // get faces
       StdVector<Integer> const & faces = it.GetElem()->faces;
@@ -326,7 +325,7 @@ namespace CoupledField {
     if( result.definedOn == ResultInfo::ELEMENT  ||
         result.definedOn == ResultInfo::PFEM ) 
     {
-      StdVector< Vector<Integer> >const & elemMap = (elemEqns_.find( result ) )->second;
+      StdVector< StdVector<Integer> >const & elemMap = (elemEqns_.find( result ) )->second;
 
       Integer localElem = mesh2PdeElem_[(it.GetElem()->elemNum)-1];
       if (localElem < 1 ) {
@@ -428,7 +427,7 @@ namespace CoupledField {
         return;
       }
       // get edge map of current result
-      StdVector<Vector<Integer> > const & map = (edgeEqns_.find( result ) )->second;
+      StdVector<StdVector<Integer> > const & map = (edgeEqns_.find( result ) )->second;
       
       // get edges
       StdVector<Integer> const & edges = it.GetElem()->edges;
@@ -466,7 +465,7 @@ namespace CoupledField {
       }
       
       // get face map of current result
-      StdVector<Vector<Integer> > const & map = (faceEqns_.find( result ) )->second;
+      StdVector<StdVector<Integer> > const & map = (faceEqns_.find( result ) )->second;
       
       // get faces
       StdVector<Integer> const & faces = it.GetElem()->faces;
@@ -495,7 +494,7 @@ namespace CoupledField {
     if( result.definedOn == ResultInfo::ELEMENT  ||
         result.definedOn == ResultInfo::PFEM ) 
     {
-      StdVector< Vector<Integer> >const & elemMap = (elemEqns_.find( result ) )->second;
+      StdVector< StdVector<Integer> >const & elemMap = (elemEqns_.find( result ) )->second;
       
       Integer localElem = mesh2PdeElem_[(it.GetElem()->elemNum)-1];
       for (UInt iDof = 0; iDof < elemMap[localElem-1].GetSize(); iDof++ ) {
@@ -739,7 +738,7 @@ namespace CoupledField {
     ResultEntityMap::const_iterator edgeListIt;
     for(edgeListIt = edgeMappedList_.begin(); edgeListIt != edgeMappedList_.end(); edgeListIt++ )
     {
-      StdVector<Vector<Integer> >  const & eqnMap =
+      StdVector<StdVector<Integer> >  const & eqnMap =
         (edgeEqns_.find(edgeListIt->first))->second;
 
       // Print head for which result this is shown
@@ -775,7 +774,7 @@ namespace CoupledField {
     ResultEntityMap::const_iterator faceListIt;
     for(faceListIt = faceMappedList_.begin(); faceListIt != faceMappedList_.end(); faceListIt++)
     {
-      StdVector<Vector<Integer> >  const & eqnMap =
+      StdVector<StdVector<Integer> >  const & eqnMap =
         (faceEqns_.find(faceListIt->first))->second;
 
       // Print head for which result this is shown
@@ -812,7 +811,7 @@ namespace CoupledField {
     ResultEntityMap::const_iterator it;
     for(it = elemIntMappedList_.begin(); it != elemIntMappedList_.end(); ++it)
     {
-      StdVector<Vector<Integer> >  const & eqnMap =
+      StdVector<StdVector<Integer> >  const & eqnMap =
         (elemEqns_.find(it->first))->second;
 
       // Print head for which result this is shown
@@ -1365,7 +1364,7 @@ namespace CoupledField {
       // Remeber current result and list of elementLists
       const ResultInfo & actRes = listIt->first;
       StdVector<shared_ptr<EntityList> > & actLists = listIt->second;
-      StdVector<Vector<Integer> > & actMap = elemEqns_[actRes];
+      StdVector<StdVector<Integer> > & actMap = elemEqns_[actRes];
       
       UInt dofsPerElem = actRes.dofNames.GetSize();
       actMap.Resize( numLocElems_  );
@@ -1478,7 +1477,7 @@ namespace CoupledField {
       ResultIdFileBcMap::iterator idFiBcIt = idFiBcs_.find( actRes );
       // ResultConstraintMap::iterator csIt = constraints_.find( actRes );  // TODO: Unused variable csIt
       
-      StdVector<Vector<Integer> > & actMap = elemEqns_[actRes];
+      StdVector<StdVector<Integer> > & actMap = elemEqns_[actRes];
 
       // Get number of dofs
       UInt dofsPerElem = actRes.dofNames.GetSize();
@@ -1698,7 +1697,7 @@ namespace CoupledField {
       // Remeber current result and list of elementLists
       const ResultInfo & actRes = listIt->first;
       StdVector<shared_ptr<EntityList> > & actLists = listIt->second;
-      StdVector<Vector<Integer> > & actMap = edgeEqns_[actRes];
+      StdVector<StdVector<Integer> > & actMap = edgeEqns_[actRes];
       
       // Get grip of homogeneous and in-homogeneous boundary conditions
       // for this tpye of result
@@ -1912,7 +1911,7 @@ namespace CoupledField {
       // Remeber current result and list of elementLists
       const ResultInfo & actRes = listIt->first;
       StdVector<shared_ptr<EntityList> > & actLists = listIt->second;
-      StdVector<Vector<Integer> > & actMap = faceEqns_[actRes];
+      StdVector<StdVector<Integer> > & actMap = faceEqns_[actRes];
       
       UInt dofsPerFace = actRes.dofNames.GetSize();
       actMap.Resize( numLocFaces_  );

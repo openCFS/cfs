@@ -132,7 +132,7 @@ template <class TYPE> class Matrix;
     Vector<Double> axisFactors_;
 
     //! global vector pointing in local y-direction
-    Vector<UInt> axisMap_;
+    StdVector<UInt> axisMap_;
 
   };
 
