@@ -109,9 +109,9 @@ namespace CoupledField {
     }
 
     //! set, which nonlinear curves are needed by forms
-    void NeedApproxMatCurve( ApproxMaterialCurves type );
+    void NeedApproxMatCurve( MaterialType matType );
 
-    virtual ApproxData* GetNonlinFncBH( MaterialType matType ) {
+    virtual ApproxData* GetNonlinFnc( MaterialType matType ) {
       EXCEPTION("BaseMaterial: GetNlinFncBH() not implemented");
       return NULL;
     };
@@ -396,7 +396,7 @@ namespace CoupledField {
     stringMap nonlinFileName_;
 
     //! set, which knows, which material parameters have been set
-    std::set<ApproxMaterialCurves> needApproxMatCurves_;
+    std::set<MaterialType> needApproxMatCurves_;
 
     //! set, which knows about the allowed material parameters for a material class
     std::set<MaterialType> isAllowed_;

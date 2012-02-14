@@ -47,20 +47,25 @@ public:
                  const LocPointMapped& lpm ) {
     
     // extract element solution from feFunction
-    Vector<Double> elemSol, elemB;
+    Vector<Double> elemSol, elemOpSol;
     feFct_->GetElemSolution(elemSol, lpm.ptEl);
     
     // apply b-operator matrix to element solution to obtain field value
     BaseFE * ptFe = feFct_->GetFeSpace()->GetFe(lpm.ptEl->elemNum);
-    bOperator_.ApplyOp( elemB, lpm, ptFe, elemSol );
+    bOperator_.ApplyOp( elemOpSol, lpm, ptFe, elemSol );
     
-    Double fieldAbs = elemB.NormL2();
-    
-     if( fieldAbs == 0 ) { 
+    if ( nLinFnc_->GetMatType() == MAG_PERMEABILITY ) {
+      Double fieldAbs = elemOpSol.NormL2();
+      
+      if( fieldAbs == 0 ) { 
         coefScalar = coefScalar_;
-     } else {
+      } else {
         coefScalar = nLinFnc_->EvaluateFuncNu(fieldAbs);
-     }
+      }
+    }
+    else {
+      coefScalar = nLinFnc_->EvaluateFunc(elemOpSol[0]);
+    }
   }
 
   //! \see CoefFunction::IsComplex

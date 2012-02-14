@@ -59,7 +59,7 @@ namespace CoupledField {
     //Initialize approximations of nonlinear curves
     void InitApproxCurves();
 
-    ApproxData* GetNonlinFncBH( MaterialType matType ) {
+    ApproxData* GetNonlinFnc( MaterialType matType ) {
       return nlinFncBH_;
     }
 

@@ -12,7 +12,6 @@
 #include "Utils/EvalIntegrals/BiotSavart.hh"
 #include "Driver/SingleDriver.hh"
 #include "Driver/TimeSchemes/BaseTimeScheme.hh"
-
 #include "OLAS/algsys/AlgebraicSys.hh"
 
 namespace CoupledField {
@@ -202,7 +201,7 @@ namespace CoupledField {
     // set the boundary conditions
     PDE_.SetBCs();
 
-    //perform the load-steps
+     //perform the load-steps
     Double loadFactor = 0.0;
 
     // currently just for testing!!
@@ -214,7 +213,7 @@ namespace CoupledField {
       // setup right hand side
       Double RhsLinL2Norm = SetLinRHS(loadFactor);
 
-      // assemble nonlinear pars to RHS
+      // assemble nonlinear parts to RHS
       assemble_->AssembleNonLinRHS();
 
       // set iteration counter
@@ -229,24 +228,27 @@ namespace CoupledField {
         PtrParamNode child_id = BaseDriver::CreateAnalysisIdChild(analysis_id, "nonLin", iterationCounter);
 
         // setup and solve new system (rhs is already set) =====================
-        //assemble_.InitNonLinMatrices();
         assemble_->AssembleMatrices();
+        algsys_->ConstructEffectiveMatrix( NO_FCT_ID,
+                                           matrix_factor_[NO_FCT_ID] );
 
-        //algsys_->ConstructEffectiveMatrix(matrix_factor_);
         algsys_->BuildInDirichlet();
         algsys_->SetupPrecond(analysis_id);
         algsys_->SetupSolver(analysis_id);
         algsys_->Solve(analysis_id);
 
-        // new solution is only an increment of the full solution =============
-        algsys_->GetSolutionVal( solInc );
+           // new solution is only an increment of the full solution =============
+        bool setIDBC = false;
+        if ( iterationCounter == 1 )
+          setIDBC = true;
+
+        algsys_->GetSolutionVal( solInc, setIDBC );
         
 
         Double residualL2Norm = 0.0;
         Double etaLineSearch  = 1.0;
         if ( lineSearch_ == "none" ) {
           actSol.Add(1.0, solInc);
-          //            actSol += solInc;
         }
         else {
           // true is for transient simulation
@@ -255,16 +257,15 @@ namespace CoupledField {
 
         // store the new solution
         solVec_ = actSol;
-        //PDE_.SaveSolution( actSol);
 
         if ( lineSearch_ == "none" ) {
           // recalculate RHS with new values to get new residual (f^(k+1))========
           algsys_->InitRHS(RhsLinVal_);
           assemble_->AssembleNonLinRHS();  
 
-          // compute the norm of the residual
+          //get RHS vector
           SBM_Vector actRHS(BaseMatrix::DOUBLE);
-          algsys_->GetRHSVal(actRHS);
+          algsys_->GetRHSVal( actRHS );
 
           // calculation of residual error =======================================
           residualL2Norm = actRHS.NormL2(); // L2Norm of  ( f_i^(k+1) - f_a )

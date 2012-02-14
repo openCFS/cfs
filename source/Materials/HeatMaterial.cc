@@ -11,7 +11,7 @@
 #include <string>
 
 #include "HeatMaterial.hh"
-//#include <Utils/LinInterpolate.hh>
+#include <Utils/LinInterpolate.hh>
 
 
 namespace CoupledField
@@ -251,20 +251,16 @@ namespace CoupledField
 
   void HeatMaterial::InitApproxCurves() {
 
-//     // check, if we need to approx curve
-//     if ( needApproxMatCurves_.find( HEAT_CONDUCTIVITY ) != needApproxMatCurves_.end() ) {
-//       std::string nlfncName = nonLinMatInfo_[HEAT_CONDUCTIVITY].fileName;
-//       if ( nlfncName != "" ) 
-//         std::cout << "Cond: FileName: " << nlfncName << std::endl;
-//         nlinFncConductivity_ = new LinInterpolate( nlfncName, HEAT_CONDUCTIVITY );
-//     }
+    // check, if we need to approx curve
+    if ( needApproxMatCurves_.find( HEAT_CONDUCTIVITY ) != needApproxMatCurves_.end() ) {
+      std::string nlfncName = GetNonlinFileName(HEAT_CONDUCTIVITY);
+      nlinFncConductivity_ = new LinInterpolate( nlfncName, HEAT_CONDUCTIVITY );
+    }
 
-//     if ( needApproxMatCurves_.find( HEAT_CAPACITY ) != needApproxMatCurves_.end() ) {
-//       std::string nlfncName = nonLinMatInfo_[HEAT_CAPACITY].fileName;
-//       if ( nlfncName != "" ) 
-//         std::cout << "Capacity: FileName: " << nlfncName << std::endl;
-//         nlinFncCapacity_ = new LinInterpolate( nlfncName, HEAT_CAPACITY );
-//     }
+    if ( needApproxMatCurves_.find( HEAT_CAPACITY ) != needApproxMatCurves_.end() ) {
+      std::string nlfncName = GetNonlinFileName(HEAT_CAPACITY);
+      nlinFncCapacity_ = new LinInterpolate( nlfncName, HEAT_CAPACITY );
+    }
 
   }   
 }

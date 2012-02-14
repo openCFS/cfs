@@ -367,9 +367,9 @@ namespace CoupledField
   void ElectroMagneticMaterial::InitApproxCurves() {
 
     // check, if we need to approx BH curve
-    if (  needApproxMatCurves_.find( magBH ) != needApproxMatCurves_.end() ) {
+    if (  needApproxMatCurves_.find( MAG_PERMEABILITY ) != needApproxMatCurves_.end() ) {
       std::string nlfnc = GetNonlinFileName(MAG_PERMEABILITY);
-      nlinFncBH_ = new SmoothSpline(nlfnc, BH);
+      nlinFncBH_ = new SmoothSpline(nlfnc, MAG_PERMEABILITY);
 
       //get accuracy of approximation
       Double dataAccuracy;

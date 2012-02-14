@@ -58,8 +58,7 @@ namespace CoupledField
   }
 
 
-  void BaseMaterial::NeedApproxMatCurve( ApproxMaterialCurves type ) {
-
+  void BaseMaterial::NeedApproxMatCurve( MaterialType type ) {
 
     needApproxMatCurves_.insert( type );
   }

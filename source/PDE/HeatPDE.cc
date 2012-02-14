@@ -13,6 +13,7 @@
 #include "DataInOut/ParamHandling/ParamTools.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "Domain/CoefFunction/CoefFunction.hh"
+#include "Domain/CoefFunction/CoefFunctionApprox.hh"
 #include "Utils/StdVector.hh"
 
 #include "CoupledPDE/PDECoupling.hh"
@@ -37,6 +38,7 @@
 #include "Forms/BiLinForms/BDBInt.hh"
 #include "Forms/BiLinForms/BBInt.hh"
 #include "Forms/LinForms/BUInt.hh"
+#include "Forms/LinForms/KXInt.hh"
 #include "Forms/Operators/GradientOperator.hh"
 #include "Forms/Operators/IdentityOperator.hh"
 
@@ -177,11 +179,11 @@ void HeatPDE::ReadSpecialBCs() {
 
     SinglePDE::InitNonLin();
 
-    //now do PDE specifics
-    if ( nonLin_ ) {
-      //we perform a total formulation (no incremental one)
-      totalFormulation_ = true;
-    }
+//     //now do PDE specifics
+//     if ( nonLin_ ) {
+//       //we perform a total formulation (no incremental one)
+//       totalFormulation_ = true;
+//     }
 
   }
 
@@ -227,37 +229,89 @@ void HeatPDE::DefineIntegrators() {
     std::string integId = curRegNode->Get("integId")->As<std::string>();
     mySpace->SetRegionApproximation(actRegion, polyId,integId);
     
+    // pass entitylist of fespace / fefunction
+    shared_ptr<BaseFeFunction> feFunc = feFunctions_[HEAT_TEMPERATURE];
+    feFunc->AddEntityList( actSDList );
+
     // ====================================================================
     // stiffness integrator
     // ====================================================================
+  
+    //get possible nonlinearities defined in this region
+    StdVector<NonLinType> nonLinTypes = regionNonLinTypes_[actRegion]; 
+    if ( nonLinTypes.Find(NLHEAT_CONDUCTIVITY) != -1 ) {
+      // informs material that approx./interpol. for heat conductivity is needed
+      std::cout << "Do NL Cond" << std::endl;
 
-    // --- standard real-valued stiffness integrator ---
-    shared_ptr<CoefFunction > curCoef = 
-      actSDMat->GetCoefFunction( HEAT_CONDUCTIVITY, tensorType, 
-                                 Global::REAL, false );
-    
-    
-    BaseBDBInt* stiffInt = NULL;
-    if( dim_ == 2 ) {
-      stiffInt = new BDBInt<GradientOperator<FeH1,2> >(curCoef,1.0 );
-    } else {
-      stiffInt = new BDBInt<GradientOperator<FeH1,3> >(curCoef,1.0 );
+      actSDMat->NeedApproxMatCurve( HEAT_CONDUCTIVITY );
+      actSDMat->InitApproxCurves();
+      ApproxData * nLinFnc = actSDMat->GetNonlinFnc( HEAT_CONDUCTIVITY );
+      assert(nLinFnc);
+
+      Double heatCondLin;
+      actSDMat->GetScalar(heatCondLin,HEAT_CONDUCTIVITY,Global::REAL);
+
+      // create CoefFunctionApprox with nlinFnc, initial value and feFunction
+      shared_ptr<CoefFunctionApprox<IdentityOperator<FeH1> > > 
+        condNL ( new CoefFunctionApprox<IdentityOperator<FeH1> >() );
+
+      condNL->Init( heatCondLin, nLinFnc, 
+                    dynamic_pointer_cast<FeFunction<Double > > (feFunc) );
+
+      // create stiffness integrator
+      BaseBDBInt* stiffInt = NULL;
+      if( dim_ == 2 ) {
+        stiffInt = new BBInt<GradientOperator<FeH1,2> >(condNL,1.0 );
+      } else {
+        stiffInt = new BBInt<GradientOperator<FeH1,3> >(condNL,1.0 );
+      }
+      stiffInt->SetName("StiffnessIntegrator-NL");
+
+      BiLinFormContext * stiffContext =
+        new BiLinFormContext(stiffInt, STIFFNESS );
+      stiffContext->SetEntities( actSDList, actSDList );
+      stiffContext->SetFeFunctions( feFunc, feFunc );
+
+      assemble_->AddBiLinearForm( stiffContext );
+      bdbInts_[actRegion] = stiffInt;
+
+      // =================================
+      //  Nonlinear RHS-integrator
+      // =================================
+      LinearForm * rhsNlinForm = new KXIntegrator<Double>(stiffInt, -1.0, feFunc );
+        rhsNlinForm->SetName("RHSNonLinFormHeat");
+        LinearFormContext * rhsNlinContext =
+            new LinearFormContext( rhsNlinForm );
+        rhsNlinContext->SetEntities( actSDList );
+        rhsNlinContext->SetFeFunction( feFunc );
+        assemble_->AddLinearForm( rhsNlinContext );
     }
-    stiffInt->SetName("StiffnessIntegrator");
+    else {
+      // --- linear real-valued stiffness integrator ---
+      shared_ptr<CoefFunction > curCoef = 
+        actSDMat->GetCoefFunction( HEAT_CONDUCTIVITY, tensorType, 
+                                 Global::REAL, false );
 
-    BiLinFormContext * stiffIntDescr =
-      new BiLinFormContext(stiffInt, STIFFNESS );
-    
-    feFunctions_[HEAT_TEMPERATURE]->AddEntityList( actSDList );
-
-    //stiffIntDescr->SetPtPdes(this, this);
-    stiffIntDescr->SetEntities( actSDList, actSDList );
-    stiffIntDescr->SetFeFunctions(feFunctions_[HEAT_TEMPERATURE],feFunctions_[HEAT_TEMPERATURE]);
-    stiffInt->SetFeSpace( feFunctions_[HEAT_TEMPERATURE]->GetFeSpace());
-    
-    assemble_->AddBiLinearForm( stiffIntDescr );
-    bdbInts_[actRegion] = stiffInt;
+      BaseBDBInt* stiffInt = NULL;
+      if( dim_ == 2 ) {
+        stiffInt = new BDBInt<GradientOperator<FeH1,2> >(curCoef,1.0 );
+      } else {
+        stiffInt = new BDBInt<GradientOperator<FeH1,3> >(curCoef,1.0 );
+      }
+      stiffInt->SetName("StiffnessIntegrator");
       
+      BiLinFormContext * stiffIntDescr =
+        new BiLinFormContext(stiffInt, STIFFNESS );
+          
+      //stiffIntDescr->SetPtPdes(this, this);
+      stiffIntDescr->SetEntities( actSDList, actSDList );
+      stiffIntDescr->SetFeFunctions(feFunctions_[HEAT_TEMPERATURE],feFunctions_[HEAT_TEMPERATURE]);
+      stiffInt->SetFeSpace( feFunctions_[HEAT_TEMPERATURE]->GetFeSpace());
+      
+      assemble_->AddBiLinearForm( stiffIntDescr );
+      bdbInts_[actRegion] = stiffInt;
+    }
+
     // ====================================================================
     // mass integrator
     // ====================================================================

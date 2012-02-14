@@ -2221,7 +2221,8 @@ namespace CoupledField {
   }
 
   void AlgebraicSys::GetSolutionVal( SingleVector& ptSol,
-                                     const FeFctIdType fctId) {
+                                     const FeFctIdType fctId,
+                                     bool setIDBC) {
     
     LOG_TRACE(algSys) << "Getting solution values of fct " << fctId;
 
@@ -2237,8 +2238,12 @@ namespace CoupledField {
       for( UInt i = 0; i < size; ++i ) {
 
         // if index number is larger the lastFree dof, insert Dirichlet value
-        if( indices[i] > blockInfo_[blockNums[i]]->numLastFreeIndex) {
-          idbcHandler_->GetIDBC(blockNums[i],  indices[i], entry);
+        // (just if setIDBC is true!)
+        if( indices[i] > blockInfo_[blockNums[i]]->numLastFreeIndex ) {
+          if ( setIDBC ) 
+            idbcHandler_->GetIDBC(blockNums[i],  indices[i], entry);
+          else 
+            entry = 0.0;
         } else {
           sol_->GetPointer(blockNums[i])->GetEntry(indices[i]-1,entry);
         }
@@ -2251,11 +2256,14 @@ namespace CoupledField {
       for( UInt i = 0; i < size; ++i ) {
 
         // if index number is larger the lastFree dof, insert Dirichlet value
-        if( indices[i] > blockInfo_[blockNums[i]]->numLastFreeIndex) {
-          idbcHandler_->GetIDBC(blockNums[i],  indices[i], entry);
+        // (just if setIDBC is true!)
+        if( indices[i] > blockInfo_[blockNums[i]]->numLastFreeIndex ) {
+          if ( setIDBC) 
+            idbcHandler_->GetIDBC(blockNums[i],  indices[i], entry);
+          else 
+            entry = 0.0;
         } else {
           sol_->GetPointer(blockNums[i])->GetEntry(indices[i]-1,entry);
-
         }
         retVec[i] = entry;
       }
@@ -2263,7 +2271,7 @@ namespace CoupledField {
   }
 
   
-  void AlgebraicSys::GetSolutionVal( SBM_Vector& solVec ) {
+  void AlgebraicSys::GetSolutionVal( SBM_Vector& solVec, bool setIDBC ) {
     
     // resize solVec to match number of functions
     solVec.Resize( numFcts_);
@@ -2272,7 +2280,7 @@ namespace CoupledField {
     for(UInt i = 0; i < numFcts_; ++i ) {
     
       // call specialized GetSolutionVal method
-      GetSolutionVal(solVec(i), i);
+      GetSolutionVal(solVec(i), i, setIDBC);
     }
   }
   

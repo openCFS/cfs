@@ -14,7 +14,7 @@ namespace CoupledField {
 
   public:
     //! constructor getting x, y(x)
-    SmoothSpline( std::string nlFncName, ApproxCurveType curveType = GENERAL );
+    SmoothSpline( std::string nlFncName, MaterialType matType );
 
     //! destructor
     virtual ~SmoothSpline();

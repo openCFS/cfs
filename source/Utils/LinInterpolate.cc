@@ -7,8 +7,8 @@
 
 namespace CoupledField
 { 
-  LinInterpolate::LinInterpolate(std::string nlFileName, ApproxCurveType curveType )
-    : ApproxData(nlFileName,curveType)
+  LinInterpolate::LinInterpolate(std::string nlFileName, MaterialType matType )
+    : ApproxData(nlFileName,matType)
   {
 
 

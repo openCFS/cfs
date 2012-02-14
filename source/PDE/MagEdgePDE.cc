@@ -138,9 +138,9 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
         
         
         // obtain BH-curve from nonlinear material and initialize it
-        actMat->NeedApproxMatCurve( magBH );
+        actMat->NeedApproxMatCurve( MAG_PERMEABILITY );
         actMat->InitApproxCurves();
-        ApproxData * nLinFnc = actMat->GetNonlinFncBH(MAG_PERMEABILITY);
+        ApproxData * nLinFnc = actMat->GetNonlinFnc(MAG_PERMEABILITY);
         assert(nLinFnc);
         Double nuLin;
         actMat->GetScalar(nuLin , MAG_RELUCTIVITY, Global::REAL );
@@ -830,7 +830,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
       if ( nonLinTypes[actRegion] == PERMEABILITY ) {
 
         // Obtain nonlinear approximation functional
-        ApproxData * approx  = materials_[actRegion]->GetNonlinFncBH(MAG_PERMEABILITY);
+        ApproxData * approx  = materials_[actRegion]->GetNonlinFnc(MAG_PERMEABILITY);
 
         // Calculate flux density in element midpoint
         LocPoint lp;

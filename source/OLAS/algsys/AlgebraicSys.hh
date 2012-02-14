@@ -694,7 +694,7 @@ namespace CoupledField {
     //! i.e. every FeFunction solution resides in its own SBM-block.
     //! \param sbmSolVec solution vector for all fctIds (FeFctId can be used
     //!                  as SBM-index)
-    void GetSolutionVal( SBM_Vector& sbmSolVec );
+    void GetSolutionVal( SBM_Vector& sbmSolVec, bool setIDBC=true );
     
     //! Return solution vector for one single FeFct
 
@@ -704,7 +704,8 @@ namespace CoupledField {
     //! \param solVec solution vector for specified FeFcunction
     //! \param fctId identifier for function related to sub-graph
     void GetSolutionVal( SingleVector& solVec,
-                         const FeFctIdType fctId  );
+                         const FeFctIdType fctId,
+                         bool setIDBC  );
 
     //! Return complete right-hand-side (RHS) vector
 
