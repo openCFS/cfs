@@ -38,7 +38,11 @@ public:
 //   void SetGridSolution( NodeStoreSol<Double>& gridSol ) {
 //     gridSol_ = &gridSol; }
 
+  virtual void InitSpongeLayer(Double start, Double end, Double dampFactor, std::string type);
+
 protected:
+
+  void AdjustViscosity(Double pos);
 
   void ResortElementMatrix(Matrix<Double> & sortedElemMat,
                            const Matrix<Double> & elemMat,
@@ -123,6 +127,16 @@ protected:
   bool movingMesh_;
   bool multAddOpt_;
   Double dt_;
+
+
+  //! for sponge layer 
+  Double spongeLayerStart_;
+  Double spongeLayerEnd_;
+  Double spongeLayerThickness_;
+  Double spongeLayerDampFactor_;
+  Double kinematicViscosityInital_;
+  std::string spongeLayerType_;
+  bool isSpongeLayer_;
 
   //! grid solution vector
   //NodeStoreSol<Double>* gridSol_;

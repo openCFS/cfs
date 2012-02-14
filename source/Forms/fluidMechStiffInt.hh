@@ -4,6 +4,7 @@
 #include <string>
 
 #include "General/defs.hh"
+#include "linSurfForm.hh"
 #include "fluidMechInt.hh"
 
 namespace CoupledField {
@@ -95,6 +96,24 @@ class FluidMechPlaneIntNewton_RhsUQ : public FluidMechInt
   protected:
     Matrix<Double>& stabilParams_;
 };
+
+class FluidMechAbsorbingFlow : public LinearSurfForm 
+{
+public:
+  FluidMechAbsorbingFlow(Double kinematicViscosity ); 
+
+  virtual ~FluidMechAbsorbingFlow();
+
+    /// Calculation of RHS vector for double entries, i.e. transient and static 
+    virtual void CalcElemVector( Vector<Double> & result,
+                                 EntityIterator& ent );
+
+protected:
+  Double kinematicViscosity_;
+  Matrix<Double> elemResult_;
+};
+
+
 
 } // namespace
 #endif //FILE_FLUIDMECHSTIFFINT

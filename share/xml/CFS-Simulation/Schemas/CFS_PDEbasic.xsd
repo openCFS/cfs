@@ -66,6 +66,7 @@
       <xsd:restriction base="xsd:anyType">
         <xsd:attribute name="id" type="xsd:token" use="required"/>
         <xsd:attribute name="aPML" type="DT_CFSBool" use="optional" default="no"/>
+        <xsd:attribute name="cPML" type="DT_CFSBool" use="optional" default="no"/>
       </xsd:restriction>
     </xsd:complexContent>
   </xsd:complexType>

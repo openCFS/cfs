@@ -1100,6 +1100,10 @@ int main(int argc, char** argv)
     std::string compareFile = param->Get("compareFile")->As<std::string>();
     std::string outputFile = param->Get("outputFile")->As<std::string>();
 
+    std::cout << "inputFile " << inputFile << std::endl;
+    std::cout << "compareFile " << compareFile << std::endl;
+    std::cout << "outputFile " << outputFile << std::endl;
+
     // Initialize vector with output fields
     UInt num_files = 0;
     if (inputFile != "")
@@ -1165,9 +1169,9 @@ int main(int argc, char** argv)
         std::cout << "'" << inputFile << "' and '" << compareFile
           << "' have maximum difference " << maxDiff
           << " at '" << maxDiffResultName << "'\n";
-        exit(EXIT_FAILURE);
+         exit(EXIT_FAILURE);
       } else {
-        std::cout << "  No differences larger than tolerance found.\n";
+         std::cout << "  No differences larger than tolerance found.\n";
         exit(EXIT_SUCCESS);
       }
     } else if (param_mode == "meshdiff") {
@@ -1176,7 +1180,8 @@ int main(int argc, char** argv)
         EXCEPTION( "Please provide <inFile1>, <inFile2> and <outFile>" );
       }
       // Double maxDiff = 0.0; // TODO: Unused variable maxDiff
-      // maxDiff = CFSTool::Diff( inputFile, compareFile, outputFile, \
+      // maxDiff = CFSTool::Diff( inputFile, compareFile, outputFile, 
+
       CFSTool::Diff( inputFile, compareFile, outputFile, \
                      false, false, maxDiffResultName);
     } else if (param_mode == "meshdiffnormed") {
@@ -1185,8 +1190,9 @@ int main(int argc, char** argv)
         EXCEPTION( "Please provide <inFile1>, <inFile2> and <outFile>" );
       }
       // Double maxDiff = 0.0; // TODO: Unused variable maxDiff
-      // maxDiff = CFSTool::Diff( inputFile, compareFile, outputFile, \
-      CFSTool::Diff( inputFile, compareFile, outputFile, \
+      // maxDiff = CFSTool::Diff( inputFile, compareFile, outputFile, 
+
+      CFSTool::Diff( inputFile, compareFile, outputFile, 
                      true, false, maxDiffResultName);
     } else {
       EXCEPTION( "No such mode: " << param_mode <<". See help for available modes" );

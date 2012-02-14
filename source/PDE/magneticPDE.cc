@@ -701,17 +701,59 @@ DEFINE_LOG(magpde, "magpde")
 
   void MagPDE::CalcForceVWP( shared_ptr<BaseResult> result ) {
 
-    // fetch result object and convert data
-    Result<Double> &  actSol = 
+    // get postprocessing result
+     Result<Double> &  actRes = 
       dynamic_cast<Result<Double>&>(*result);
-    EntityIterator it = actSol.GetEntityList()->GetIterator();
-    
-    Vector<Double> & actVal = actSol.GetVector();
-    actVal.Resize( actSol.GetEntityList()->GetSize() * dim_ );
 
-    Vector<Double> totalForce;
-    ForceOpVWP_->CalcNodeForce(actVal, totalForce);
-    std::cerr << "totalForce (VWP) is:" << totalForce.ToString() << std::endl;
+     EntityIterator regionIt = actRes.GetEntityList()->GetIterator();
+
+    // resize vector
+    Vector<Double> & actVal = actRes.GetVector();
+    actVal.Resize( actRes.GetEntityList()->GetSize() * dim_ );
+    
+    std::map<RegionIdType, MagForceOp*>::iterator itForce;
+    itForce =  ForcePostVWP_.find(regionIt.GetRegion());
+
+    if ( itForce == ForcePostVWP_.end() ) {
+      //initialize the forve operator for the corresponding region
+
+      //get all regions, the PDE is defined on
+      StdVector<RegionIdType> allRegionIds(materials_.size());
+      std::map<RegionIdType, BaseMaterial*>::iterator itMat;
+      UInt i=0;
+      for ( itMat = materials_.begin(); itMat != materials_.end(); itMat++ ) {
+        allRegionIds[i] = itMat->first;
+        i++;
+      }
+
+      UInt numNodes = ptgrid_->GetNumNodes(  regionIt.GetRegion() );
+      StdVector<UInt> nodes;
+      nodes.Reserve(numNodes);    
+      ptgrid_->GetNodesByRegion(nodes, regionIt.GetRegion());
+      
+      NodeStoreSol<Double> * solhelp = 
+        dynamic_cast<NodeStoreSol<Double> *>(sol_);
+      MagForceOp* forceOp = new  MagForceOp(ptgrid_, this,  eqnMap_, 
+                                            *solhelp, dim_, materials_, 
+                                            isaxi_, true );
+      
+      //as neighbours we define all region Ids of the PDE
+      forceOp->Setup(allRegionIds, nodes);
+      ForcePostVWP_[regionIt.GetRegion()] = forceOp ;  
+    }
+
+    //get correct force operator         
+    itForce =  ForcePostVWP_.find(regionIt.GetRegion());
+    MagForceOp* forceOp = itForce->second;
+
+    //compute force
+    Vector<Double> totalForce, nodesForces;
+    nodesForces.Resize(forceOp->GetNumCouplingNodes()*dim_);
+
+    forceOp->CalcNodeForce(nodesForces, totalForce);
+    for( UInt iDof = 0; iDof < dim_; iDof++ ) {
+      actVal[ regionIt.GetPos()*dim_ + iDof] = totalForce[iDof];
+    }
 
   }
 
@@ -845,7 +887,6 @@ DEFINE_LOG(magpde, "magpde")
     }
 
   }
-  
   
 
   // **************
@@ -1429,7 +1470,7 @@ DEFINE_LOG(magpde, "magpde")
     forceVWP->resultType = MAG_FORCE_VWP;
     forceVWP->dofNames = vecComponents;
     forceVWP->unit = "N";
-    forceVWP->definedOn = ResultInfo::NODE;
+    forceVWP->definedOn = ResultInfo::REGION; //    forceVWP->definedOn = ResultInfo::NODE;
     forceVWP->entryType = ResultInfo::VECTOR;
     forceVWP->fctType = shared_ptr<ConstFct>(new ConstFct());
     availResults_.insert( forceVWP );
@@ -1919,13 +1960,13 @@ DEFINE_LOG(magpde, "magpde")
       
         // Initialization of coupling helper arrays
         StdVector<UInt> * couplingnodes = NULL;
-        StdVector<std::string> * nRegions;
+        StdVector<std::string> * nRegions, coupRegions;
         StdVector<RegionIdType> nRegionIds;
 
         ptCoupling_->GetOutputNodes(actCoupling, couplingnodes);
         if (couplingnodes == NULL)
           std::cerr << "Couplingnodes = 0!!!!" << std::endl;
-      
+
         // get volume neighbours lying next to coupling nodes, because 
         // these volume elements have to be  moved 'virtually'
         NodeStoreSol<Double> * solhelp = 
@@ -1937,6 +1978,8 @@ DEFINE_LOG(magpde, "magpde")
         ptCoupling_->GetOutputNeighbourRegion(actCoupling, nRegions);
         ptgrid_->GetRegion().Parse(*nRegions, nRegionIds);
         ForceOpVWP_->Setup(nRegionIds, *couplingnodes);
+
+        ptCoupling_->GetOutputRegions(actCoupling, coupRegions);
       
         // Intialize the memory of the coupling values
         ptCoupling_->CreateCouplingVector(actCoupling,isComplex_);

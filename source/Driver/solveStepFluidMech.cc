@@ -82,6 +82,8 @@ namespace CoupledField
     PDE_.InitStabParams();
     PDE_.SetBCs();
     algsys_->InitRHS();
+    assemble_->AssembleNonLinRHS(); 
+
     //Update RHS (mass matrix on right hand side)
     if ( isInstationary_ )
     {
@@ -98,6 +100,7 @@ namespace CoupledField
       if ( !isInstationary_ || iterationCounter != 1)
       {
         algsys_->InitRHS();
+        assemble_->AssembleNonLinRHS(); 
         assemble_->AssembleMatrices();
         TS_alg_->UpdateRHS();
       }

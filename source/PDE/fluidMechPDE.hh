@@ -14,6 +14,7 @@
 #include "MatVec/matrix.hh"
 #include "MatVec/vector.hh"
 #include "SinglePDE.hh"
+#include "Domain/bcs.hh"
 #include "Utils/StdVector.hh"
 #include "Utils/nodestoresol.hh"
 
@@ -54,6 +55,9 @@ namespace CoupledField
 
     //! Read special results definition
     void ReadSpecialResults();
+
+    //! read in damping information, see SinglePDE.cc  and SinglePDE.hh
+    void ReadDampingInformation();
 
     //! Initialize NonLinearities
     void InitNonLin();
@@ -279,6 +283,9 @@ namespace CoupledField
 
     //! Contains mechanic acceleration
     NodeStoreSol<Double> solDeriv2_;
+
+    //! surface elements with absorbing boundary conditions
+    StdVector<shared_ptr<EntityList> > absBCs_; 
 
     //! Contains the directions for which the deformed volume is computed
     std::map<shared_ptr<EntityList>,std::string> volAboveDefSurfDir_;

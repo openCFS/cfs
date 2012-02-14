@@ -373,8 +373,7 @@ namespace CoupledField
                                        Vector<Double> & Result, 
                                        Vector<Double> & nodalLoadDensity,
                                        Vector<Double>& divLHTensor, 
-                                       const Elem* elem, Double density,
-                                       bool surfInt);
+                                       const Elem* elem, Double density);
 
 
     /// Calculation of vector of right hand side using nodal velocity values
@@ -383,8 +382,29 @@ namespace CoupledField
                                  Vector<Double> & Result, 
                                  Vector<Double> & nodalLoadDensity,
                                  Vector<Double>& divLHTensor, 
-                                 const Elem* elem, Double density,
-                                 bool surfInt);
+                                 const Elem* elem, Double density);
+
+    void CalcLighthillSurfaceTermVel(const Elem* volElem,
+                                 const Elem* surfElem,
+                                 const Matrix<Double>& ptVolCoord,
+                                 const Matrix<Double>& ptSurfCoord,
+                                 const Matrix<Double> & volumeVel,
+                                 Vector<Double> & surfNormal,
+                                 Double density,
+                                 Vector<Double> & Result,
+                                 Vector<Double> & ResultLHTens);
+
+    void CalcLighthillSurfaceTermVelCenter(const Elem* VolElem,
+                                     const Elem* surfElem,
+                                     const Matrix<Double>& ptVolCoord,
+                                     const Matrix<Double>& ptSurfCoord,
+                                     const Matrix<Double> & volumeVel,
+                                     Vector<Double> & surfNormal,
+                                     Double density,
+                                     Vector<Double> & Result,
+                                     Vector<Double> & ResultLHTens){
+      Exception("CalcLighthillSurfaceTermCenter: not implemented!");
+    }
 
     
     /// Extraction of element velocity values from total flowdata matrix to a matrix (connecth, dim)

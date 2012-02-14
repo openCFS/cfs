@@ -52,13 +52,58 @@ namespace CoupledField
   private:
 
     void CalculateAcouSrcs(const int partitionIdx,
-                           FlowDataType& flowData,
-                           bool surfInt);
+                           FlowDataType& flowData);
 
 
     void CollectElementNodes(const std::vector<UInt>& elems,
                              std::vector<UInt>& nodes,
                              UInt& dim);
+
+    //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    //surface element section START
+    //    only used if wanted by the user
+    //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    //! Method for calculating flux terms, basically we give the surface region
+    //! along with the fow data struct. this should already do the job
+    void CalculateSurfaceIntegral(const int surfRegionIdx,
+                                      std::vector<FlowDataType> & flowData);
+
+    //!Method for the determination of element neighbours for a given surface region
+    //! the resulting datastructure stores for each element of the surface region the
+    //! regionidx and the local elemIdx for the volume element
+    void GetNeighborElements(std::map<UInt,std::pair<UInt,UInt> >& volNeighbors,UInt surfRegionIdx);
+
+    //!This function calculates the normal of the given surface element number
+    //! returns true on success or false if the surface element is not included in the
+    //! volume element
+    bool CalcSurfaceNormalOutVolume(UInt globalVolElemNum, UInt globalSurfaceElemNum);
+
+    //!Helper method to calculate the surface normal
+    void CalcSurfaceNormal( const std::vector<UInt>& nodeNums,
+                               Vector<Double>& nVec);
+
+    ///fills the surface region related datastructures if requested
+    void PrepareSurfaceRegions();
+
+
+    ///excplicit storage of volume regions
+    std::vector<UInt> volumeRegionIndices_;
+    ///explicit storage of surface regions and their active state
+    std::map<UInt,bool> surfaceRegionIndices_;
+
+    ///this is the map which stores for each global surface element number
+    ///the corresponding volume region index along with the local volume
+    ///element number
+    ///we can do this, because of there would be more than one volume neighbor
+    ///to a global surface neighbor we would have an internal surface which do not need to be considered
+    std::map<UInt,std::pair<UInt,UInt> > surfaceNeighbors_;
+
+    ///map storing for each global surface element number the
+    ///normal vector out of volume
+    std::map<UInt,Vector<Double> > surfaceNormals_;
+    //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    //surface element section END 
+    //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
     shared_ptr<FileReader>  ptFileReader_;
     std::vector<Double> nodalCoords_;

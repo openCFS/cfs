@@ -248,6 +248,7 @@ void ResultCache::LoadStepValues(const std::string& readerId,
       EXCEPTION("Result '" << SolutionTypeEnum.ToString(solType_)
                 << "' is defined on " << defName
                 << "s, which cannot be handled by the input function");
+      break;
   }
   
   nodeNum2Index_.clear();

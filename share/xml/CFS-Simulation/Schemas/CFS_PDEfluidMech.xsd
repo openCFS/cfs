@@ -40,6 +40,7 @@
                 <xsd:element name="region" minOccurs="1" maxOccurs="unbounded">
                   <xsd:complexType>
                     <xsd:attribute name="name" type="xsd:token" use="required"/>
+                    <xsd:attribute name="dampingId" type="xsd:token" use="optional" default=""/>
                     <xsd:attribute name="nonLinIds" type="xsd:token" use="optional" default=""/>
                   </xsd:complexType>
                 </xsd:element>
@@ -56,6 +57,15 @@
             </xsd:complexType>
           </xsd:element>
           
+          <!-- List defining damping types -->
+          <xsd:element name="dampingList" minOccurs="0" maxOccurs="1">
+            <xsd:complexType>
+              <xsd:choice maxOccurs="unbounded">
+                <xsd:element name="pml" type="DT_DampingPML"/>
+              </xsd:choice>
+            </xsd:complexType>
+          </xsd:element>
+
           <!-- Boundary Conditions & Loads (optional) -->
           <xsd:element name="bcsAndLoads" minOccurs="0" maxOccurs="unbounded">
             <xsd:complexType>
@@ -64,7 +74,9 @@
                 <xsd:element name="dirichletHom"   type="DT_FluidMechHD"        />
                 <xsd:element name="dirichletInhom" type="DT_FluidMechID"        />
                 <xsd:element name="dirichletFileInhom" type="DT_FluidMechIdFile"        />
-                <xsd:element name="pressure"       type="DT_FluidMechPressure"  />
+                <xsd:element name="pressure"  type="DT_FluidMechPressure"  />
+                <xsd:element name="absorbingBCs"   type="DT_AbsorbingFlow" />
+
              <!--   <xsd:element name="regionLoad"     type="DT_FluidMechRegionLoad"/>
                 <xsd:element name="surfStress"     type="DT_FluidMechSurfStress"/>
                 <xsd:element name="constraint"     type="DT_FluidMechCS"   />
@@ -222,6 +234,13 @@
     </xsd:complexContent>
   </xsd:complexType>
 
+  <!-- Element type for specifying absorbing boundary conditions -->
+  <!-- Identical to that of homogeneous Dirichlet case -->
+  <xsd:complexType name="DT_AbsorbingFlow">
+    <xsd:complexContent>
+      <xsd:extension base="DT_FluidMechHD"/>
+    </xsd:complexContent>
+  </xsd:complexType>
 
   
   <!-- ******************************************************************* -->
