@@ -8,6 +8,7 @@
 #include "General/exception.hh"
 #include "MatVec/matrix.hh"
 #include "Optimization/Design/DesignElement.hh"
+#include "PDE/SinglePDE.hh"
 #include "Utils/StdVector.hh"
 
 using namespace CoupledField;
@@ -67,8 +68,9 @@ unsigned int DesignMaterial::RequiredParameters(){
     return r+2;
   case TRANSVERSAL_ISOTROPIC:
   case TRANSVERSAL_ISOTROPIC_BOXED:
-  case DENSITY_TIMES_TRANSVERSAL_ISOTROPIC_2D:
-  case DENSITY_TIMES_TRANSVERSAL_ISOTROPIC_2D_BOXED:
+    return domain->GetSinglePDE("mechanic")->GetSubTensorType() == PLANE_STRESS ? r+4 : r+5;
+  case DENSITY_TIMES_TRANSVERSAL_ISOTROPIC:
+  case DENSITY_TIMES_TRANSVERSAL_ISOTROPIC_BOXED:
     return r+5;
   case DENSITY_TIMES_2D_TENSOR_CONSTANT_TRACE:
     return r+6;
@@ -96,13 +98,13 @@ bool DesignMaterial::CheckRequiredDesigns(StdVector<DesignElement::Type>& design
         && design.Find(DesignElement::LAMEMU) >= 0);
   case TRANSVERSAL_ISOTROPIC:
   case TRANSVERSAL_ISOTROPIC_BOXED:
-    return(design.Find(DesignElement::EMODULISO) >= 0 
-        && design.Find(DesignElement::POISSONISO) >= 0 
+    return(design.Find(DesignElement::EMODULISO) >= 0
         && design.Find(DesignElement::EMODUL) >= 0 
         && design.Find(DesignElement::POISSON) >= 0 
-        && design.Find(DesignElement::GMODUL) >= 0);
-  case DENSITY_TIMES_TRANSVERSAL_ISOTROPIC_2D:
-  case DENSITY_TIMES_TRANSVERSAL_ISOTROPIC_2D_BOXED:
+        && design.Find(DesignElement::GMODUL) >= 0
+        && domain->GetSinglePDE("mechanic")->GetSubTensorType() == PLANE_STRESS ? true : design.Find(DesignElement::POISSONISO) >= 0);
+  case DENSITY_TIMES_TRANSVERSAL_ISOTROPIC:
+  case DENSITY_TIMES_TRANSVERSAL_ISOTROPIC_BOXED:
     return(design.Find(DesignElement::DENSITY) >= 0
         && design.Find(DesignElement::EMODULISO) >= 0
         && design.Find(DesignElement::EMODUL) >= 0
@@ -246,21 +248,22 @@ void DesignMaterial::GetTransIsoMaterialTensor(Matrix<double>& t, SubTensorType 
   double nu13 = params_[DesignElement::POISSON]; //used as theta in the boxed formulations
 
   if(subTensor == PLANE_STRESS){ //This is only implemented for density times tensor formulations yet
-    double dens, ninv2(0.0), D(0.0), D3(0.0), nD3(0.0);
-    dens = params_[DesignElement::DENSITY];
-    dens = std::pow(dens, penalty_);
-    if(type_ == DENSITY_TIMES_TRANSVERSAL_ISOTROPIC_2D)
+    double dens(1.0), ninv2(0.0), D(0.0), D3(0.0), nD3(0.0);
+    if(type_ == DENSITY_TIMES_TRANSVERSAL_ISOTROPIC || type_ == DENSITY_TIMES_TRANSVERSAL_ISOTROPIC_BOXED)
+    {
+      dens = params_[DesignElement::DENSITY];
+      dens = std::pow(dens, penalty_);
+    }
+    if(type_ == TRANSVERSAL_ISOTROPIC || type_ == DENSITY_TIMES_TRANSVERSAL_ISOTROPIC)
     {
       ninv2 = E3-nu13*nu13*E;
-      if(ninv2<0.00001){
-        throw Exception("E3-nu13^2*E too small, results may be wrong");
-      }
+      //assert(ninv2>0.0); //positivity of the elasticity tensor is violated. Use constraint "parametrized-plane-stress-pos-def" > 0
       ninv2 = 1/(ninv2*ninv2);
     }
     switch(direction){
     case DesignElement::NO_DERIVATIVE:
     {
-      if(type_ == DENSITY_TIMES_TRANSVERSAL_ISOTROPIC_2D)
+      if(type_ == TRANSVERSAL_ISOTROPIC || type_ == DENSITY_TIMES_TRANSVERSAL_ISOTROPIC)
       {
         D = E*E3/(E3-nu13*nu13*E);
         D3 = E3*E3/(E3-nu13*nu13*E);
@@ -277,11 +280,14 @@ void DesignMaterial::GetTransIsoMaterialTensor(Matrix<double>& t, SubTensorType 
     }
     case DesignElement::DENSITY:
     {
-      dens = params_[DesignElement::DENSITY];
-      if(penalty_ == 1.0){
-        dens = 1.0;
-      }else dens = penalty_*std::pow(dens, penalty_-1);
-      if(type_ == DENSITY_TIMES_TRANSVERSAL_ISOTROPIC_2D)
+      if(type_ == DENSITY_TIMES_TRANSVERSAL_ISOTROPIC || type_ == DENSITY_TIMES_TRANSVERSAL_ISOTROPIC_BOXED)
+      {
+        dens = params_[DesignElement::DENSITY];
+        if(penalty_ == 1.0){
+          dens = 1.0;
+        }else dens = penalty_*std::pow(dens, penalty_-1);
+      }
+      if(type_ == TRANSVERSAL_ISOTROPIC || type_ == DENSITY_TIMES_TRANSVERSAL_ISOTROPIC)
       {
         D = E*E3/(E3-nu13*nu13*E);
         D3 = E3*E3/(E3-nu13*nu13*E);
@@ -298,7 +304,7 @@ void DesignMaterial::GetTransIsoMaterialTensor(Matrix<double>& t, SubTensorType 
     }
     case DesignElement::EMODULISO:
     {
-      if(type_ == DENSITY_TIMES_TRANSVERSAL_ISOTROPIC_2D)
+      if(type_ == TRANSVERSAL_ISOTROPIC || type_ == DENSITY_TIMES_TRANSVERSAL_ISOTROPIC)
       {
         D = E3*E3*ninv2;
         D3 = nu13*nu13*E3*E3*ninv2;
@@ -313,7 +319,7 @@ void DesignMaterial::GetTransIsoMaterialTensor(Matrix<double>& t, SubTensorType 
     }
     case DesignElement::EMODUL:
     {
-      if(type_ == DENSITY_TIMES_TRANSVERSAL_ISOTROPIC_2D)
+      if(type_ == TRANSVERSAL_ISOTROPIC || type_ == DENSITY_TIMES_TRANSVERSAL_ISOTROPIC)
       {
         D = -E*E*nu13*nu13*ninv2;
         D3 = -E3*(-E3+2*nu13*nu13*E)*ninv2;
@@ -328,7 +334,7 @@ void DesignMaterial::GetTransIsoMaterialTensor(Matrix<double>& t, SubTensorType 
     }
     case DesignElement::POISSON:
     {
-      if(type_ == DENSITY_TIMES_TRANSVERSAL_ISOTROPIC_2D)
+      if(type_ == TRANSVERSAL_ISOTROPIC || type_ == DENSITY_TIMES_TRANSVERSAL_ISOTROPIC)
       {
         D = 2*nu13*E*E*E3*ninv2;
         D3 = 2*nu13*E*E3*E3*ninv2;
@@ -700,8 +706,8 @@ void DesignMaterial::GetMaterialTensor(Matrix<double>& t, SubTensorType subTenso
     break;
   case TRANSVERSAL_ISOTROPIC:
   case TRANSVERSAL_ISOTROPIC_BOXED:
-  case DENSITY_TIMES_TRANSVERSAL_ISOTROPIC_2D:
-  case DENSITY_TIMES_TRANSVERSAL_ISOTROPIC_2D_BOXED:
+  case DENSITY_TIMES_TRANSVERSAL_ISOTROPIC:
+  case DENSITY_TIMES_TRANSVERSAL_ISOTROPIC_BOXED:
     GetTransIsoMaterialTensor(t, subTensor, direction);
     break;
   case DENSITY_TIMES_2D_TENSOR:
@@ -770,8 +776,8 @@ void DesignMaterial::SetEnums(){
   type.Add(LAME_ISOTROPIC, "lame-isotropic");
   type.Add(TRANSVERSAL_ISOTROPIC, "transversal-isotropic");
   type.Add(TRANSVERSAL_ISOTROPIC_BOXED, "transversal-isotropic-boxed");
-  type.Add(DENSITY_TIMES_TRANSVERSAL_ISOTROPIC_2D, "density-times-transversal-isotropic-2d");
-  type.Add(DENSITY_TIMES_TRANSVERSAL_ISOTROPIC_2D_BOXED, "density-times-transversal-isotropic-2d-boxed");
+  type.Add(DENSITY_TIMES_TRANSVERSAL_ISOTROPIC, "density-times-transversal-isotropic-2d");
+  type.Add(DENSITY_TIMES_TRANSVERSAL_ISOTROPIC_BOXED, "density-times-transversal-isotropic-2d-boxed");
   type.Add(DENSITY_TIMES_2D_TENSOR, "density-times-2dtensor");
   type.Add(DENSITY_TIMES_2D_TENSOR_CONSTANT_TRACE, "density-times-2dtensor-constant-trace");
   transIsoType.SetName("DesignMaterial::TransIsoType");

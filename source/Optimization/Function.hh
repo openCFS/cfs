@@ -108,12 +108,13 @@ class Function
       MOLE,                      /*!< Feature size control from T. Poulsen */
       OSCILLATION,               /*!< Feature size control by Fabian W. :) */
       MAXWELL_ISOTROPY,          /*!< blow up to several MAXWELL_HOM_TENSOR constraints with different coords */
-      BIISOTROPY,                 /*!< blow up to several MAXWELL_HOM_TENSOR constraints with different coords for both permeability and permittivity */
+      BIISOTROPY,                /*!< blow up to several MAXWELL_HOM_TENSOR constraints with different coords for both permeability and permittivity */
       JUMP,                      /*!< Weak greyness control by Fabian W. :) */
       BUMP,                      /*!< Prevent intermediate change of slope ('hobbala') by Fabian W. */
-      DESIGN_TRACKING,            /*!< Tracking against physical densities in designTarget. Either for region or periodic (constraint nodes) elements */
-      SUM_MODULI,                 /*!< the sum of the elasticity and shear moduli in parametrized elasticity tensor formulations */
-      GLOBAL_SUM_MODULI           /*!< global resource constraint, see sum_moduli */
+      DESIGN_TRACKING,           /*!< Tracking against physical densities in designTarget. Either for region or periodic (constraint nodes) elements */
+      SUM_MODULI,                /*!< the sum of the elasticity and shear moduli in parametrized elasticity tensor formulations */
+      GLOBAL_SUM_MODULI,         /*!< global resource constraint, see sum_moduli */
+      PARAM_PS_POS_DEF           /*!< constraint to ensure positive definiteness in parametrized elasticity tensor formulation (plane stress). Choose > 0*/
     } Type;
 
     /** to convert string/enum for this type */
@@ -243,7 +244,7 @@ class Function
       ~Local();
 
       /** Number of identifiers per design element. Usually dim or dim *2, ... */
-      int GetElememtDimension() const { return element_dimension_; }
+      int GetElementDimension() const { return element_dimension_; }
 
       /** The local type, essentially important for slopes. There should be no need to set
        * it as user. */
@@ -368,6 +369,9 @@ class Function
         /** sum of elasticity and shear moduli in parametrized elasticity tensor formulations */
         double CalcSumModuli() const;
         void CalcSumModuliGradient(int neigh_idx, const Objective* f, const Condition* g, double value);
+
+        /** to ensure positive definiteness of the material tensor E3-E1*nu31^2 > 0 has to holf */
+        double CalcParamPSPosDef(int neigh_idx, bool derivative) const;
 
         /** CalcStress() and the gradient are actually done in EM/SIMP */
 

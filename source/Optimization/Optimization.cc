@@ -295,6 +295,7 @@ void Optimization::SetEnums()
   Function::type.Add(Function::DESIGN_TRACKING, "designTracking");
   Function::type.Add(Function::SUM_MODULI, "sumModuli");
   Function::type.Add(Function::GLOBAL_SUM_MODULI, "globalSumModuli");
+  Function::type.Add(Function::PARAM_PS_POS_DEF, "parametrized-plane-stress-pos-def");
 
 
   Function::Local::locality.SetName("Function::Local::Locality");

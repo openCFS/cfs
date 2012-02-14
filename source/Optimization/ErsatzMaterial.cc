@@ -1044,6 +1044,7 @@ double ErsatzMaterial::CalcFunction(Excitation& excite, Function* f, bool deriva
   case Function::JUMP:
   case Function::BUMP:
   case Function::SUM_MODULI:
+  case Function::PARAM_PS_POS_DEF:
     assert(c == NULL);
     result = CalcLocalConstraint(g, derivative);
     break;

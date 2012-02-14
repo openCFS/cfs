@@ -785,6 +785,10 @@ void SnOpt::SetNumericValue(const std::string& key, double value)
   {
     option = "Difference interval";
   }
+  else if(key == "violation_limit")
+  {
+    option = "Violation Limit";
+  }
      
   if(!option.empty())
   {

@@ -255,15 +255,11 @@ bool Function::ReadMaxwellTensor(PtrParamNode pn, Matrix<Complex>& matrix, bool 
 //      UInt dim = domain->GetDim();
 //      double real = tens->Get("permReal")->As<double>();
 //      double imag = tens->Get("permImag")->As<double>();
-//
 //      matrix.Resize(dim, dim);
 //      matrix.Init();
-//
 //      for (UInt i=0; i<dim; ++i){
 //        matrix(i, i) = Complex(real, imag);
 //      }
-//
-//
 //      tensor_read = true;
 //    }
 
@@ -415,6 +411,7 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
     case PROJECTION:
     case SUM_MODULI:
     case GLOBAL_SUM_MODULI:
+    case PARAM_PS_POS_DEF:
       assert(excite_index < 0);
       excite_ = me->excitations.GetSize() - 1; // once only at the last excitation
       break;
@@ -617,6 +614,7 @@ bool Function::ForSensitivityFiltering() const
   case PROJECTION:
   case SUM_MODULI:
   case GLOBAL_SUM_MODULI:
+  case PARAM_PS_POS_DEF:
     return false;
 
   case ISOTROPY:
@@ -711,6 +709,7 @@ void Function::PostProc(DesignSpace* space, DesignStructure* structure, ErsatzMa
   case STRESS_DENSITY:
   case SUM_MODULI:
   case GLOBAL_SUM_MODULI:
+  case PARAM_PS_POS_DEF:
     // assert(space->IsRegular()); // VicinityElements work only on a regular grid
     // the design elements require the vicinity element to be set which holds the direct
     // neighbors. Is save to call several times
@@ -872,6 +871,7 @@ Function::Local::Local(Function* func, DesignSpace* space)
 
   case SUM_MODULI:
   case GLOBAL_SUM_MODULI:
+  case PARAM_PS_POS_DEF:
     if(locality_ != MULT_DESIGNS_ELEMENT && locality_ != DEFAULT)
       throw Exception("Invalid locality '" + locality.ToString(locality_) + "' within '" + fname + "'");
     locality_ = MULT_DESIGNS_ELEMENT;
@@ -1381,6 +1381,10 @@ double Function::Local::Identifier::EvalFunction(const Local* local, bool grad_g
     fv = CalcSumModuli();
     break;
 
+  case PARAM_PS_POS_DEF:
+    fv = CalcParamPSPosDef(-1, false);
+    break;
+
   default:
     assert(false);
     break;
@@ -1493,6 +1497,10 @@ void Function::Local::Identifier::EvalGradient(const Local* local)
     case GLOBAL_SUM_MODULI:
       CalcSumModuliGradient(n, f, g, local->DoNormalizeGlobal() ? 1.0/local->virtual_elem_map.GetSize() : 1.0);
       continue;
+
+    case PARAM_PS_POS_DEF:
+      gv = CalcParamPSPosDef(n, true);
+      break;
 
     default:
       assert(false);
@@ -1834,13 +1842,13 @@ double Function::Local::Identifier::CalcBumpGradient(int neigh_idx) const
 
 double Function::Local::Identifier::CalcSumModuli() const
 {
-  double E(0.0), E3(0.0), G(0.0);
+  double E1(0.0), E3(0.0), G(0.0);
   for(int i=-1; i < (int) neighbor.GetSize(); ++i)
   {
     switch(GetElement(i)->GetType())
     {
     case DesignElement::EMODULISO:
-      E = GetElement(i)->GetDesign(DesignElement::PLAIN);
+      E1 = GetElement(i)->GetDesign(DesignElement::PLAIN);
       break;
     case DesignElement::EMODUL:
       E3 = GetElement(i)->GetDesign(DesignElement::PLAIN);
@@ -1852,18 +1860,7 @@ double Function::Local::Identifier::CalcSumModuli() const
       break;
     }
   }
-//  UInt elemNum = element->elem->elemNum;
-////  double E = local->space->designMaterial->params_[DesignElement::EMODULISO];
-////  double E3 = local->space->designMaterial->params_[DesignElement::EMODUL];
-////  double G = local->space->designMaterial->params_[DesignElement::GMODUL];
-//  double E = local->space->Find(elemNum, DesignElement::EMODULISO)->GetDesign(DesignElement::PLAIN);
-//  double E3 = local->space->Find(elemNum, DesignElement::EMODUL)->GetDesign(DesignElement::PLAIN);
-//  double G = local->space->Find(elemNum, DesignElement::GMODUL)->GetDesign(DesignElement::PLAIN);
-//  local->space->CollectMaterialParametersForElement(element->elem);
-//  double E = local->space->designMaterial->GetParameter(DesignElement::EMODULISO);
-//  double E3 = local->space->designMaterial->GetParameter(DesignElement::EMODUL);
-//  double G = local->space->designMaterial->GetParameter(DesignElement::GMODUL);
-  return E+E3+G;
+  return E1+E3+G;
 }
 
 void Function::Local::Identifier::CalcSumModuliGradient(int neigh_idx, const Objective* f, const Condition* g, double value)
@@ -1871,26 +1868,45 @@ void Function::Local::Identifier::CalcSumModuliGradient(int neigh_idx, const Obj
   DesignElement::Type type = GetElement(neigh_idx)->GetType();
   if (type == DesignElement::EMODULISO || type == DesignElement::EMODUL || type == DesignElement::GMODUL)
     GetElement(neigh_idx)->AddGradient(f, g, value);
-//  StdVector<DesignElement*> designs = neighbor;
-//  designs.Push_back(element);
-//  for(UInt i=0; i<designs.GetSize(); ++i)
-//  {
-//    if(!local->IsGlobalized())
-//      designs[i]->Reset(DesignElement::CONSTRAINT_GRADIENT, g);
-//    if(designs[i]->GetType() == DesignElement::EMODULISO || designs[i]->GetType() == DesignElement::EMODUL || designs[i]->GetType() == DesignElement::GMODUL)
-//      designs[i]->AddGradient(f, g, 1.0);
-//  }
-//  UInt elemNum = element->elem->elemNum;
-//  if(!local->IsGlobalized())
-//  {
-//    // reset the constraint data. Note, as we are local, there are no side effects by elements
-//    local->space->Find(elemNum, DesignElement::EMODULISO)->Reset(DesignElement::CONSTRAINT_GRADIENT, g);
-//    local->space->Find(elemNum, DesignElement::EMODUL)->Reset(DesignElement::CONSTRAINT_GRADIENT, g);
-//    local->space->Find(elemNum, DesignElement::GMODUL)->Reset(DesignElement::CONSTRAINT_GRADIENT, g);
-//  }
-//  local->space->Find(elemNum, DesignElement::EMODULISO)->AddGradient(f, g, 1.0);
-//  local->space->Find(elemNum, DesignElement::EMODUL)->AddGradient(f, g, 1.0);
-//  local->space->Find(elemNum, DesignElement::GMODUL)->AddGradient(f, g, 1.0);
+}
+
+double Function::Local::Identifier::CalcParamPSPosDef(int neigh_idx, bool derivative) const
+{
+  double E1(0.0), E3(0.0), nu31(0.0);
+  for(int i=-1; i < (int) neighbor.GetSize(); ++i)
+  {
+    switch(GetElement(i)->GetType())
+    {
+    case DesignElement::EMODULISO:
+      E1 = GetElement(i)->GetDesign(DesignElement::PLAIN);
+      break;
+    case DesignElement::EMODUL:
+      E3 = GetElement(i)->GetDesign(DesignElement::PLAIN);
+      break;
+    case DesignElement::POISSON:
+      nu31 = GetElement(i)->GetDesign(DesignElement::PLAIN);
+      break;
+    default:
+      break;
+    }
+  }
+  if(derivative)
+    switch(GetElement(neigh_idx)->GetType())
+    {
+    case DesignElement::EMODULISO:
+      return -1000*nu31*nu31;
+    case DesignElement::EMODUL:
+      return 1000.0;
+    case DesignElement::POISSON:
+      return -2000.0*nu31*E1;
+    default:
+      return 0.0;
+    }
+  else
+  {
+    LOG_TRACE2(func) << "Local::Local e_num=" << element->elem->elemNum << ", E3-E1*nu31^2=" << E3-E1*nu31*nu31;
+    return 1000*(E3-E1*nu31*nu31);
+  }
 }
 
 

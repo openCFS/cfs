@@ -112,7 +112,7 @@ Condition::Condition(PtrParamNode pn) : Function(pn)
   }
   
   // generally we are not linear, the volume is not linear on heaviside densities.
-  linear_ = type_ == VOLUME || type_ == SLOPE /*|| type_ == SUM_MODULI */? true : false;
+  linear_ = type_ == VOLUME || type_ == SLOPE || type_ == SUM_MODULI || type_ == GLOBAL_SUM_MODULI ? true : false;
   //  snopt only makes a difference between linear and nonlinear constraints!
   if(pn->Has("linear"))
     linear_ = pn->Get("linear")->As<bool>();
@@ -158,7 +158,8 @@ void Condition::AddCondition(PtrParamNode pn, StdVector<Condition*>& list)
 {
   Type t = type.Parse(pn->Get("type")->As<std::string>());
 
-  list.Push_back(t == SLOPE || t == MOLE || t == OSCILLATION || t == JUMP || t == BUMP || t == SUM_MODULI ? new LocalCondition(pn) : new Condition(pn));
+  list.Push_back(t == SLOPE || t == MOLE || t == OSCILLATION || t == JUMP || t == BUMP
+      || t == SUM_MODULI || t == PARAM_PS_POS_DEF ? new LocalCondition(pn) : new Condition(pn));
 
   // note that the pointer becomes invalid by AddSubCondition()
   Condition* g = list.Last();
@@ -1072,6 +1073,8 @@ void ConditionContainer::VirtualView::Refresh()
   c = container_->Get(Condition::BUMP, DesignElement::NO_TYPE, false, false);
   if(c != NULL) tmp.push_back(c->GetIndex());
   c = container_->Get(Condition::SUM_MODULI, DesignElement::NO_TYPE, false, false);
+  if(c != NULL) tmp.push_back(c->GetIndex());
+  c = container_->Get(Condition::PARAM_PS_POS_DEF, DesignElement::NO_TYPE, false, false);
   if(c != NULL) tmp.push_back(c->GetIndex());
 
 
