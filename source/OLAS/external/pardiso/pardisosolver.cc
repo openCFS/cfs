@@ -28,9 +28,6 @@ namespace CoupledField {
 class BasePrecond;
 class BaseVector;
 template <typename T> class Vector;
-}  // namespace CoupledField
-
-namespace CoupledField {
 
   // Declare logging stream and make sure that it is also available in
   // release mode by using BOOST_DECLARE_LOG() instead of DECLARE_LOG()
@@ -136,9 +133,12 @@ extern "C" {
     msgLvl_ = 0;
 
     // Resize data arrays for Pardiso
-    pt_.Resize(64); pt_.Init(NULL);
-    iparm_.Resize(64); iparm_.Init(0);
-    dparm_.Resize(64); dparm_.Init(0.0);
+    pt_.Resize(64);
+    pt_.Init(NULL);
+    iparm_.Resize(64);
+    iparm_.Init(0);
+    dparm_.Resize(64);
+    dparm_.Init(0.0);
 
     // Set default solver type to direct sparse solver
     PtrParamNode sNode = xml_->Get("pardiso", ParamNode::INSERT);
@@ -229,7 +229,8 @@ extern "C" {
     }
 
     // Delete identity re-ordering (if exists)
-    delete [] ( idPerm_ );  idPerm_  = NULL;
+    delete [] ( idPerm_ );
+    idPerm_  = NULL;
     idPermSize_ = 0;
 
   }
@@ -255,37 +256,16 @@ extern "C" {
     //  Determine which of the two steps: symbolical and numerical
     //  factorisation must be performed
     // ============================================================
+    // If only the values of the matrix entries changed, we
+    // can keep the re-ordering and only perform a numerical
+    // factorisation
     bool facSymbolic = false;
-    bool facNumeric = false;
+    bool facNumeric = true;
 
     // No factorisation available, so perform both steps
     if ( firstCall_ == true ) {
       facSymbolic = true;
       facNumeric  = true;
-    }
-
-    else {
-
-      // TODO: THIS CHECK DOES NOT MAKE SENSE IN MY OPINION SINCE
-      //       'newMatrixPattern' is set to false in olasparams.cc
-      //       and gets never changed elsewhere. A more intelligent
-      //       test would ask the matrix if its pattern did change.
-
-      bool newMatrixPattern = false;
-      // When the matrix pattern has changed, we need to re-do
-      // both steps, also the symbolical one
-      if( newMatrixPattern ) {
-        facSymbolic = true;
-        facNumeric  = true;
-      }
-
-      // If only the values of the matrix entries changed, we
-      // can keep the re-ordering and only perform a numerical
-      // factorisation
-      else {
-        facSymbolic = false;
-        facNumeric  = true;
-      }
     }
 
     // =====================================
@@ -338,26 +318,21 @@ extern "C" {
     // ====================================
 
     // Some flags for determining the type of the matrix
-    bool symPard, defPard, herPard, strPard;
-
+    bool symPard = false;
     if ( stype == BaseMatrix::SPARSE_SYM ) {
       symPard = true;
     }
-    else {
-      symPard = false;
-    }
 
-    mType_ = 0;
-
-    defPard = false;
+    bool defPard = false;
     sNode->GetValue("posDef", defPard, ParamNode::INSERT);
 
-    herPard = false;
+    bool herPard = false;
     sNode->GetValue("hermitean", herPard, ParamNode::INSERT);
 
-    strPard = false;
+    bool strPard = false;
     sNode->GetValue("symStruct", strPard, ParamNode::INSERT);
 
+    mType_ = 0;
     if ( (etype == BaseMatrix::DOUBLE ) && (!symPard) && ( strPard) ) mType_ =  1;
     if ( (etype == BaseMatrix::DOUBLE ) && ( symPard) && ( defPard) ) mType_ =  2;
     if ( (etype == BaseMatrix::DOUBLE ) && ( symPard) && (!defPard) ) mType_ = -2;
@@ -512,10 +487,10 @@ extern "C" {
       if ( facSymbolic == true ) {
         if ( ordering != BaseOrdering::NOREORDERING ) {
           std::string tmp;
-      tmp = BaseOrdering::reorderingType.ToString( ordering );
+          tmp = BaseOrdering::reorderingType.ToString( ordering );
 
           LOG_TRACE(pardisoSolver) << " Analyse phase will determine a '"
-                                   << tmp << "' re-ordering";
+              << tmp << "' re-ordering";
         }
         else {
           LOG_TRACE(pardisoSolver) << " Factorisation uses original matrix ordering";
@@ -601,7 +576,7 @@ extern "C" {
     // by one, so that the first col and first row start with index 1 (and
     // not with zero) to be consistent with fortran
     // at the end of the method we will undo it!!
-    for (UInt i=0; i < static_cast<UInt>(probDim_+1); i++ )
+    for (int i = 0; i <= probDim_; ++i )
       rowPtr_[i] += 1;
 
     for (UInt i=0; i< nnz_; i++ )
@@ -687,7 +662,7 @@ extern "C" {
 
     // now we undo our increment, since on our side the frist col and row
     // has an value of zero!!
-    for (UInt i=0; i <  static_cast<UInt>(probDim_+1); i++ )
+    for (int i = 0; i <= probDim_; ++i )
       rowPtr_[i] -= 1;
 
     for (UInt i=0; i< nnz_; i++ )
@@ -745,7 +720,7 @@ extern "C" {
     // by one, so that the first col and first row start with index 1 (and
     // not with zero) to be consistent with fortran
     // at the end of the method we will undo it!!
-    for (UInt i=0; i<static_cast<UInt>(probDim_+1); i++ )
+    for (int i = 0; i <= probDim_; ++i )
       rowPtr_[i] += 1;
     for (UInt i=0; i< nnz_; i++ )
        colPtr_[i] += 1;
@@ -766,7 +741,7 @@ extern "C" {
 
     // now we undo our increment, since on our side the first col and row
     // has an value of zero!!
-    for (UInt i=0; i <  static_cast<UInt>(probDim_+1); i++ )
+    for (int i = 0; i <= probDim_; ++i )
       rowPtr_[i] -= 1;
     for (UInt i=0; i< nnz_; i++ )
       colPtr_[i] -= 1;

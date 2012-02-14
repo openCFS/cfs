@@ -1358,7 +1358,7 @@ void piezoParamIdent::updateComplexMaterialData(Vector<Double> & parameterC_) {
 
 void piezoParamIdent::setNewParameterSet(Vector<Double> & par,
     Vector<Double> & par_new, Vector<Double> & scaling_, Double & theta,
-    Vector<Double> & uStep, Vector<UInt> & whichParameterToUpdate_) {
+    Vector<Double> & uStep, StdVector<UInt> & whichParameterToUpdate_) {
   UInt helpInd=0;
   for (UInt i=0; i<nrParameter_; i++) {
     if (whichParameterToUpdate_[i]==1) {

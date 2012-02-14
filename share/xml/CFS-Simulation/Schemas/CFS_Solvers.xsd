@@ -182,6 +182,9 @@
   <xsd:element name="pardiso" type="DT_SolverPARDISO"
     substitutionGroup="SolverBasic"/>
   
+  <xsd:element name="pardiso64" type="DT_SolverPARDISO"
+    substitutionGroup="SolverBasic"/>
+  
   
   <!-- ******************************************************************* -->
   <!--   Definition of data type for PARDISO Solver -->

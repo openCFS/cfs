@@ -427,6 +427,10 @@ TYPE ParamNode::As() const
           unsigned int val = boost::any_cast<unsigned int>(value_);\
           return boost::lexical_cast<TYPE>(val);\
         }\
+        if( value_.type() == typeid(long long int) ) {\
+          unsigned int val = boost::any_cast<long long int>(value_);\
+          return boost::lexical_cast<TYPE>(val);\
+        }\
         if( value_.type() == typeid(double) ) {\
           double val = boost::any_cast<double>(value_);\
           return boost::lexical_cast<TYPE>(val);\
@@ -447,8 +451,10 @@ TYPE ParamNode::As() const
      return dummy;\
   }
 
+typedef long long int LLI;
 AS_INTEGRAL(Integer)
 AS_INTEGRAL(UInt)
+AS_INTEGRAL(LLI)
 AS_INTEGRAL(Double)
 AS_INTEGRAL(std::string)
 
@@ -742,6 +748,12 @@ void ParamNode::ToString(std::string& ret, int depth) const
   if (value_.type() == typeid(Integer))
   {
     Integer val = boost::any_cast<Integer>(value_);
+    ret = boost::lexical_cast<std::string>(val);
+    return;
+  }
+  if (value_.type() == typeid(long long int))
+  {
+    long long int val = boost::any_cast<long long int>(value_);
     ret = boost::lexical_cast<std::string>(val);
     return;
   }
@@ -1189,6 +1201,7 @@ INSTANTIATE_METHOD_MATH_PARSE(Integer)
 INSTANTIATE_METHOD_GETVALUE(Integer)
 INSTANTIATE_METHOD_GETVALUE(Double)
 INSTANTIATE_METHOD_GETVALUE(UInt)
+INSTANTIATE_METHOD_GETVALUE(LLI)
 INSTANTIATE_METHOD_GETVALUE(bool)
 INSTANTIATE_METHOD_GETVALUE(std::string)
 INSTANTIATE_METHOD_GETVALUE(Vector<Double>)
@@ -1221,6 +1234,7 @@ INSTANTIATE_METHOD_GETVALUE(boost::shared_ptr<Timer>)
 INSTANTIATE_METHODS_INT(Integer)
 INSTANTIATE_METHODS_INT(Double)
 INSTANTIATE_METHODS_INT(UInt)
+INSTANTIATE_METHODS_INT(LLI)
 INSTANTIATE_METHODS_INT(bool)
 INSTANTIATE_METHODS_INT(std::string)
 

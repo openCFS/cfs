@@ -773,7 +773,7 @@ namespace CoupledField{
       ten_to_mat[2][0]=4;
       ten_to_mat[1][0]=5;
       
-      Vector<UInt> mat_to_ten_first(6); 
+      StdVector<UInt> mat_to_ten_first(6); 
       mat_to_ten_first[0]=0;
       mat_to_ten_first[1]=1;
       mat_to_ten_first[2]=2;
@@ -781,7 +781,7 @@ namespace CoupledField{
       mat_to_ten_first[4]=0;
       mat_to_ten_first[5]=0;
       
-      Vector<UInt> mat_to_ten_sec(6);
+      StdVector<UInt> mat_to_ten_sec(6);
       mat_to_ten_sec[0]=0;
       mat_to_ten_sec[1]=1;
       mat_to_ten_sec[2]=2;

@@ -154,6 +154,7 @@
           <xsd:enumeration value="directLU"/>
           <xsd:enumeration value="directLDL"/>
           <xsd:enumeration value="pardiso"/>
+          <xsd:enumeration value="pardiso64"/>
           <xsd:enumeration value="ilupack"/>
           <xsd:enumeration value="cholmod"/>
         </xsd:restriction>

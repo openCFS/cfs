@@ -242,7 +242,7 @@ namespace CoupledField {
         Vector<Complex> nodeResult(6);
 
         UInt node0, node1, node2, node3, node4, node5;
-        Vector<UInt> dof(6);
+        StdVector<UInt> dof(6);
         dof.Init();
 
         if (myParam_->Has("mechDisplAtNode0")) {
@@ -400,7 +400,7 @@ namespace CoupledField {
         nodeResult.Init();
 
         UInt node0, node1, node2, node3, node4, node5;
-        Vector<UInt> dof(6);
+        StdVector<UInt> dof(6);
         dof.Init();
 
         if (myParam_->Has("mechDisplAtNode0")) {
@@ -826,11 +826,11 @@ namespace CoupledField {
     Vector<Double> parameterAddMaterialReal2(2);
     Vector<Double> parameterAddMaterialImag2(2);
 
-    Vector<UInt> whichParameterToUpdateAdd1(2);
-    Vector<UInt> whichParameterToUpdateAddC1(2);
+    StdVector<UInt> whichParameterToUpdateAdd1(2);
+    StdVector<UInt> whichParameterToUpdateAddC1(2);
 
-    Vector<UInt> whichParameterToUpdateAdd2(2);
-    Vector<UInt> whichParameterToUpdateAddC2(2);
+    StdVector<UInt> whichParameterToUpdateAdd2(2);
+    StdVector<UInt> whichParameterToUpdateAddC2(2);
 
     while (allMeasuredData_->getline(mDataRow, 1024)) {
       if (mDataRow[0]=='f') {
@@ -1091,8 +1091,8 @@ namespace CoupledField {
 
       Vector <Double> parTemp = parameter_;
       Vector <Double> parTempC = parameterC_;
-      Vector <UInt> whichParTemp = whichParameterToUpdate_;
-      Vector <UInt> whichParTempC = whichParameterToUpdateC_;
+      StdVector <UInt> whichParTemp = whichParameterToUpdate_;
+      StdVector <UInt> whichParTempC = whichParameterToUpdateC_;
 
       parameter_.Resize(10+additionalParameters1 + additionalParameters2);
       parameterC_.Resize(10+additionalParametersC1 + additionalParametersC2);
