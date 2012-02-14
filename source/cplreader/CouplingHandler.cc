@@ -1007,7 +1007,8 @@ namespace CoupledField
     //as for the volume element
     Elem::FEType surfElemType,volElemType;
     UInt numSurfElemNodes,numVolElemNodes;
-    UInt surfElemDim,volElemDim;
+    // UInt surfElemDim;
+    UInt volElemDim;
     UInt surfElemIdx,volElemIdx;
     Matrix<Double> surfCoordMat,volCoordMat;
     Matrix<Double> volNodalVel;
@@ -1049,7 +1050,7 @@ namespace CoupledField
 
       surfElemType = (Elem::FEType) elemTypes_[surfElemIdx];
       numSurfElemNodes = Elem::GetNumElemNodes(surfElemType);
-      surfElemDim =  Elem::GetElemDim(surfElemType);
+      // surfElemDim =  Elem::GetElemDim(surfElemType);
 
       //resize structures
       volCoordMat.Resize(volElemDim, numVolElemNodes);

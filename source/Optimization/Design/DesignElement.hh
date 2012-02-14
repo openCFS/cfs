@@ -537,6 +537,8 @@ double SIMPElement::CalcHeaviside(double input_value) const
     double first    = std::exp(-1.0 * b * (1.0 - input_value));
     double second   = -1.0 * (1.0 - input_value) * std::exp(-1.0 * b);
 
+    assert((ub-lb) > 1e-2); // if not you probably forgot to set force_lower_bound in the filter definition
+
     result = (ub-lb) * (first + second) + lb;
 
     // std::cout << "CH: el=" << de_->elem->elemNum << " iv=" << input_value << " b=" << b << " lb=" << lb << " (ub-lb)=" << (ub-lb)

@@ -248,7 +248,7 @@ void Tetra2FE::CalcEdgeShapeFnc(Matrix<Double> & edgeShape,
 
 
 // calculated the Nedelec shape function in an arbitrary point
-void Tetra2FE::GetEdgeGlobalDerivShapeFnc(Vector<Matrix<Double>*> &shapeDeriv,
+void Tetra2FE::GetEdgeGlobalDerivShapeFnc(StdVector<Matrix<Double>*> &shapeDeriv,
 					   const Vector<Double> & lCoord,
 					   const Matrix<Double> &cornerCoords)
 {

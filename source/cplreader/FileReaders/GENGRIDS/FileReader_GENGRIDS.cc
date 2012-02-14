@@ -350,14 +350,15 @@ namespace CoupledField
     Double x,y;
 
     //user parameters
-    Double bulkModulus,rho0,r0,gamma,rc,modelRad;
+    // Double bulkModulus, rho0; // unused variables!
+    Double r0,gamma,rc,modelRad;
     
     x = coord[0];
     y = coord[1];
     //we know that this is a 2D probolem so we ignore the 3rd coord!
     
-    bulkModulus = 1.0;
-    rho0        = 1.0;
+    //bulkModulus = 1.0;
+    //rho0        = 1.0;
     r0          = 1.0;
     gamma       = 1.00531;
     rc          = 0.1;

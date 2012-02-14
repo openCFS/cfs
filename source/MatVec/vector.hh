@@ -689,8 +689,4 @@ template<typename T> class NodeStoreSol;
 }
 
 
-#ifndef EXPLICIT_TEMPLATE_INSTANTIATION
-//#include "vector.cc"
-#endif
-
 #endif // OLAS_VECTOR_HH

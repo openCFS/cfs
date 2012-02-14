@@ -17,6 +17,20 @@ SET(CFSTOOL_SRCS
 # Main CFS++ Tool executable target.
 ADD_EXECUTABLE(cfstoolbin ${CFSTOOL_SRCS})
 
+SET(TARGET_LL
+  cfsgeneral
+  datainout  
+  domain
+  elements
+  matvec
+  paramh
+  pde
+  utils
+  
+  ${BOOST_SERIALIZATION_LIB}
+  ${BOOST_FILESYSTEM_LIB}
+  ${BOOST_SYSTEM_LIB}
+)
 
 IF(USE_GMV)
   IF(USE_GMV_INPUT)
@@ -42,7 +56,7 @@ ENDIF(USE_UNV)
 
 IF(USE_HDF5)
   INCLUDE_DIRECTORIES(${GIDPOST_INCLUDE_DIR})
-  SET(TARGET_LL ${TARGET_LL} siminouthdf5)
+  SET(TARGET_LL ${TARGET_LL} siminouthdf5 simoutxdmf)
 ENDIF(USE_HDF5)
 
 IF(USE_ANSYSRST)
@@ -60,45 +74,6 @@ ENDIF(USE_TCL)
 IF(USE_PYTHON)
   SET(TARGET_LL ${TARGET_LL} pythonmess scripting)
 ENDIF(USE_PYTHON)
-
-# Target link libraries for cfstool target.
-SET(TARGET_LL ${TARGET_LL}  
-  domain
-  elements
-  domain
-  datainout
-  materials
-  paramh
-  driver
-  utils
-  matvec
-  cfsgeneral
-  paramident
-  logging
-  scripting
-  simouttext
-  simoutxdmf
-  ${BOOST_SERIALIZATION_LIB}
-  ${BOOST_FILESYSTEM_LIB}
-  ${BOOST_SYSTEM_LIB}
-  algsys-olas
-  graph-olas
-  precond-olas
-  solver-olas
-  utils-olas
-  )
-  
-IF(USE_ARPACK)
-  SET(TARGET_LL ${TARGET_LL} arpack-olas)
-ENDIF(USE_ARPACK)
-
-IF(USE_LAPACK)
-  SET(TARGET_LL ${TARGET_LL} lapack-olas)
-ENDIF(USE_LAPACK)
-
-IF(USE_PARDISO)
-  SET(TARGET_LL ${TARGET_LL} pardiso-olas)
-ENDIF(USE_PARDISO)
 
 SET(TARGET_LL ${TARGET_LL} 
   ${CFS_FORTRAN_DYNRT_LIBS}

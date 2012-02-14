@@ -2,8 +2,12 @@ SET(SIMOUTSTREAMING_SRCS SimOutputStreaming.cc)
 
 ADD_LIBRARY(simoutstreaming STATIC ${SIMOUTSTREAMING_SRCS})
 
-SET(TARGET_LL
+TARGET_LINK_LIBRARIES(simoutstreaming
+  cfsgeneral
   datainout
+  domain
+  matvec
+  paramh
+  pde
+  utils
 )
-
-TARGET_LINK_LIBRARIES(simoutstreaming ${TARGET_LL})

@@ -23,6 +23,8 @@
 #include "Utils/Timer.hh"
 #include "Utils/mathParser/mathParser.hh"
 #include "boost/algorithm/string.hpp"
+#include <boost/iostreams/filter/bzip2.hpp>
+#include <boost/iostreams/filtering_stream.hpp>
 #include "boost/filesystem/convenience.hpp"
 #include "boost/filesystem/exception.hpp"
 #include "boost/filesystem/operations.hpp"
@@ -425,6 +427,10 @@ TYPE ParamNode::As() const
           unsigned int val = boost::any_cast<unsigned int>(value_);\
           return boost::lexical_cast<TYPE>(val);\
         }\
+        if( value_.type() == typeid(long long int) ) {\
+          unsigned int val = boost::any_cast<long long int>(value_);\
+          return boost::lexical_cast<TYPE>(val);\
+        }\
         if( value_.type() == typeid(double) ) {\
           double val = boost::any_cast<double>(value_);\
           return boost::lexical_cast<TYPE>(val);\
@@ -445,8 +451,10 @@ TYPE ParamNode::As() const
      return dummy;\
   }
 
+typedef long long int LLI;
 AS_INTEGRAL(Integer)
 AS_INTEGRAL(UInt)
+AS_INTEGRAL(LLI)
 AS_INTEGRAL(Double)
 AS_INTEGRAL(std::string)
 
@@ -743,6 +751,12 @@ void ParamNode::ToString(std::string& ret, int depth) const
     ret = boost::lexical_cast<std::string>(val);
     return;
   }
+  if (value_.type() == typeid(long long int))
+  {
+    long long int val = boost::any_cast<long long int>(value_);
+    ret = boost::lexical_cast<std::string>(val);
+    return;
+  }
   if (value_.type() == typeid(bool))
   {
     bool val = boost::any_cast<bool>(value_);
@@ -960,9 +974,19 @@ void ParamNode::ToFile(const std::string& filename, bool force)
     
     myFileName = progOpts->GetSimName() + ".info.xml";
   }
-  // write preamble
 
-  std::ofstream info_file(myFileName.c_str());
+  // use filtered stream
+  iostreams::filtering_stream<iostreams::output> info_file;
+  
+  // enable compression, if filename ends with .bz2
+  if(boost::algorithm::ends_with(myFileName, ".bz2")){
+    info_file.push(iostreams::bzip2_compressor());
+  }
+  
+  std::ofstream info_file_file(myFileName.c_str());
+  info_file.push(info_file_file);
+  
+  // write preamble
   info_file << "<?xml version=\"1.0\"?>";
   
   // in case we writa an info.xml file (and not a density file, ...) we add xslt stuff
@@ -991,7 +1015,12 @@ void ParamNode::ToFile(const std::string& filename, bool force)
 
   // Then we print the tree
   ToXML(info_file);
-  info_file.close();
+  
+  //BUGFIX: the destructor in boost might be buggy as the file is sometimes missing its end
+  //this fixes
+  while(!info_file.empty()){
+    info_file.pop();
+  }
 }
 
 void ParamNode::Dump(int level)
@@ -1172,6 +1201,7 @@ INSTANTIATE_METHOD_MATH_PARSE(Integer)
 INSTANTIATE_METHOD_GETVALUE(Integer)
 INSTANTIATE_METHOD_GETVALUE(Double)
 INSTANTIATE_METHOD_GETVALUE(UInt)
+INSTANTIATE_METHOD_GETVALUE(LLI)
 INSTANTIATE_METHOD_GETVALUE(bool)
 INSTANTIATE_METHOD_GETVALUE(std::string)
 INSTANTIATE_METHOD_GETVALUE(Vector<Double>)
@@ -1204,6 +1234,7 @@ INSTANTIATE_METHOD_GETVALUE(boost::shared_ptr<Timer>)
 INSTANTIATE_METHODS_INT(Integer)
 INSTANTIATE_METHODS_INT(Double)
 INSTANTIATE_METHODS_INT(UInt)
+INSTANTIATE_METHODS_INT(LLI)
 INSTANTIATE_METHODS_INT(bool)
 INSTANTIATE_METHODS_INT(std::string)
 

@@ -828,12 +828,8 @@ namespace CoupledField {
 #ifdef EXPLICIT_TEMPLATE_INSTANTIATION
   template class Vector<Double>;
   template class Vector<Complex>;
-  template class Vector<Integer>;
-  template class Vector<unsigned int>;
   template std::ostream & operator<<<Double> (std::ostream & , const Vector<Double> &);
   template std::ostream & operator<<<Complex> (std::ostream & , const Vector<Complex> & );
-  template std::ostream & operator<<<unsigned int> (std::ostream & , const Vector<unsigned int> &);
-  template std::ostream & operator<<<Integer> (std::ostream & , const Vector<Integer> &);
 #endif
 
 

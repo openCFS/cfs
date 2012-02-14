@@ -149,7 +149,7 @@ class SinglePDE;
 
     //! overwrites values in paramter_new with paramter+step if whichParamterToUpdate ==1
     void setNewParameterSet(Vector<Double> & parameter,Vector<Double> &  parameter_new,Vector<Double> & scaling,Double & theta,
-                            Vector<Double> & step, Vector<UInt> & whichParameterToUpdate);
+                            Vector<Double> & step, StdVector<UInt> & whichParameterToUpdate);
 
     //! Calculates and writes out impedance curve into file imped.dat
     //! Start - and stopfrequency will be specified in xml - file
@@ -276,10 +276,10 @@ class SinglePDE;
         // stores initial guess
         Vector<Double> parameterInitial_;
 
-        Vector<UInt> whichParameterToUpdate_;
-        Vector<UInt> whichParameterToUpdateC_;
-        Vector<UInt> whichParToUpInd_;
-        Vector<UInt> whichParToUpIndC_;
+        StdVector<UInt> whichParameterToUpdate_;
+        StdVector<UInt> whichParameterToUpdateC_;
+        StdVector<UInt> whichParToUpInd_;
+        StdVector<UInt> whichParToUpIndC_;
 
         UInt nrParameter_;
         UInt actNrParameter_;

@@ -1,16 +1,16 @@
 
 IF(EXPLICIT_TEMPLATE_INSTANTIATION)
-    SET(PARDISO_SRCS pardisosolver.cc)
+    SET(PARDISO64_SRCS pardiso64solver.cc)
 ELSE(EXPLICIT_TEMPLATE_INSTANTIATION)
-    SET(PARDISO_SRCS PardisoDummy.cc)
+    SET(PARDISO64_SRCS Pardiso64Dummy.cc)
 ENDIF(EXPLICIT_TEMPLATE_INSTANTIATION)
 
-ADD_LIBRARY(pardiso-olas STATIC ${PARDISO_SRCS})
+ADD_LIBRARY(pardiso64-olas STATIC ${PARDISO64_SRCS})
 
 # CFS_FORTRAN_LIBS has been set in cmake_modules/distro.cmake
 # LAPACK_LIBRARY and BLAS_LIBRARY are defined in
 # cmake_modules/FindFortranLibs.cmake
-TARGET_LINK_LIBRARIES(pardiso-olas
+TARGET_LINK_LIBRARIES(pardiso64-olas
   cfsgeneral
   datainout
   graph-olas
@@ -18,10 +18,8 @@ TARGET_LINK_LIBRARIES(pardiso-olas
   matvec
   paramh
   solver-olas
-  pardiso-lib1
+  pardiso64-lib1
 )
-# needed as solver-olas is cyclic dependent on us 
-SET_PROPERTY(TARGET pardiso-olas PROPERTY LINK_INTERFACE_MULTIPLICITY 3)
 
 SET(DEPENDS
   "${LAPACK_LIBRARY}"
@@ -29,4 +27,4 @@ SET(DEPENDS
   "${CFS_FORTRAN_LIBS}"
 )
 
-ADD_DEPENDENT_LIBRARY(pardiso-lib "${PARDISO_LIBRARY}" "${DEPENDS}")
+ADD_DEPENDENT_LIBRARY(pardiso64-lib "${PARDISO_LIBRARY}" "${DEPENDS}")

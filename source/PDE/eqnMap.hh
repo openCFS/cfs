@@ -14,7 +14,6 @@
 #include "General/defs.hh"
 #include "General/environment.hh"
 #include "MatVec/matrix.hh"
-#include "MatVec/vector.hh"
 #include "Utils/StdVector.hh"
 
 namespace CoupledField {
@@ -36,7 +35,7 @@ class Grid;
     typedef std::map<ResultInfo, StdVector<shared_ptr<ElemList> > > ResultElemListMap;
     typedef std::map<ResultInfo, StdVector<shared_ptr<NodeList> > > ResultNodeListMap;
     typedef std::map<ResultInfo, Matrix<Integer> > EqnMapType;
-    typedef std::map<ResultInfo, StdVector<Vector<Integer> > > VecEqnMapType;
+    typedef std::map<ResultInfo, StdVector<StdVector<Integer> > > VecEqnMapType;
     typedef std::map<ResultInfo, HdBcList> ResultHdBcMap;
     typedef std::map<ResultInfo, IdBcList> ResultIdBcMap;
     typedef std::map<ResultInfo, IdFileBcList> ResultIdFileBcMap;
