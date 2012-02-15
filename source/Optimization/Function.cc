@@ -946,10 +946,10 @@ void Function::Local::SetupVirtualElementMap(Phase ph)
 
 
   // traverse all elements and check for full neighborhood
-  for(int e = 0, ss = space->GetNumberOfElements(); e < ss; ++e)
+  for(int e = 0, ss = space->data.GetSize(); e < ss; ++e)
   {
     DesignElement* de = &(space->data[e]);
-    if(de->GetType() == DesignElement::DENSITY){
+    if(de->GetType() == ( (func_->design == DesignElement::DEFAULT) ? DesignElement::DENSITY : func_->design)){
       VicinityElement* ve = de->vicinity;
 
       // do we have a full neighborhood? All or none as in the original slope paper
@@ -1894,18 +1894,18 @@ double Function::Local::Identifier::CalcParamPSPosDef(int neigh_idx, bool deriva
     switch(GetElement(neigh_idx)->GetType())
     {
     case DesignElement::EMODULISO:
-      return -1000*nu31*nu31;
+      return -nu31*nu31;
     case DesignElement::EMODUL:
-      return 1000.0;
+      return 1.0;
     case DesignElement::POISSON:
-      return -2000.0*nu31*E1;
+      return -2.0*nu31*E1;
     default:
       return 0.0;
     }
   else
   {
     LOG_TRACE2(func) << "Local::Local e_num=" << element->elem->elemNum << ", E3-E1*nu31^2=" << E3-E1*nu31*nu31;
-    return 1000*(E3-E1*nu31*nu31);
+    return E3-E1*nu31*nu31;
   }
 }
 

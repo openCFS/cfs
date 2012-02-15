@@ -1064,18 +1064,24 @@ void ConditionContainer::VirtualView::Refresh()
   std::list<unsigned int> tmp;
 
   // search also for observe conditions!
-  Condition* c = container_->Get(Condition::SLOPE, DesignElement::NO_TYPE, false, false);
-  if(c != NULL) tmp.push_back(c->GetIndex());
-  c = container_->Get(Condition::MOLE, DesignElement::NO_TYPE, false, false);
-  if(c != NULL) tmp.push_back(c->GetIndex());
-  c = container_->Get(Condition::JUMP, DesignElement::NO_TYPE, false, false);
-  if(c != NULL) tmp.push_back(c->GetIndex());
-  c = container_->Get(Condition::BUMP, DesignElement::NO_TYPE, false, false);
-  if(c != NULL) tmp.push_back(c->GetIndex());
-  c = container_->Get(Condition::SUM_MODULI, DesignElement::NO_TYPE, false, false);
-  if(c != NULL) tmp.push_back(c->GetIndex());
-  c = container_->Get(Condition::PARAM_PS_POS_DEF, DesignElement::NO_TYPE, false, false);
-  if(c != NULL) tmp.push_back(c->GetIndex());
+  StdVector<Condition*> c = container_->GetList(Condition::SLOPE, DesignElement::NO_TYPE, false);
+  for(UInt i=0; i<c.GetSize(); ++i)
+    tmp.push_back(c[i]->GetIndex());
+  c = container_->GetList(Condition::MOLE, DesignElement::NO_TYPE, false);
+  for(UInt i=0; i<c.GetSize(); ++i)
+    tmp.push_back(c[i]->GetIndex());
+  c = container_->GetList(Condition::JUMP, DesignElement::NO_TYPE, false);
+  for(UInt i=0; i<c.GetSize(); ++i)
+    tmp.push_back(c[i]->GetIndex());
+  c = container_->GetList(Condition::BUMP, DesignElement::NO_TYPE, false);
+  for(UInt i=0; i<c.GetSize(); ++i)
+    tmp.push_back(c[i]->GetIndex());
+  c = container_->GetList(Condition::SUM_MODULI, DesignElement::NO_TYPE, false);
+  for(UInt i=0; i<c.GetSize(); ++i)
+    tmp.push_back(c[i]->GetIndex());
+  c = container_->GetList(Condition::PARAM_PS_POS_DEF, DesignElement::NO_TYPE, false);
+  for(UInt i=0; i<c.GetSize(); ++i)
+    tmp.push_back(c[i]->GetIndex());
 
 
   // we might combine oscillation for void and material with different sizes
