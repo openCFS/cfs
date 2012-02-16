@@ -152,10 +152,6 @@ namespace CoupledField
       numTimeStep_ = numTimeStep;
     };
     
-    virtual void ReInit(){
-      EXCEPTION("NOT IMPLEMENTED HERE");
-    };
-    
   protected:
 
     //! Constructor

@@ -174,7 +174,6 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
        // ================================================
        // Note: currently we set the nonlinear method hard-coded to NEWTON for
        // testing purpose
-       nonLinMethod_ = NEWTON;
        if( nonLinMethod_ == NEWTON ) {
          //create CoefFunctionApproxDeriv with nlinFnc and feFunction
          shared_ptr<CoefFunctionApproxDeriv<CurlOperator<FeHCurl,3, Double> > > nuDeriv (

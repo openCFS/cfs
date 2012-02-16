@@ -141,9 +141,6 @@
             </xsd:unique>
           </xsd:element>
 
-          <!-- Section for specifying non-linear parameters (optional) -->
-          <xsd:element name="nonLinear" type="DT_NonLinParams" minOccurs="0"/>
-
           <!-- Desired solution values (optional) -->
           <xsd:element name="storeResults" type="DT_MechStoreResults"
             minOccurs="0" maxOccurs="1"/>

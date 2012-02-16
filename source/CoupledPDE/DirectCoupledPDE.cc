@@ -196,6 +196,7 @@ namespace CoupledField {
     
     // Create algebraic system and pass it to SinglePDEs
     algsys_ = new AlgebraicSys(olasNode_, olasInfo_);
+    solStrat_ = algsys_->GetSolStrategy();
     
     // ----------------------------
     //  Detection of analysis type

@@ -13,6 +13,7 @@
 #include "Driver/SingleDriver.hh"
 #include "Driver/TimeSchemes/BaseTimeScheme.hh"
 #include "OLAS/algsys/AlgebraicSys.hh"
+#include "OLAS/algsys/SolStrategy.hh"
 
 namespace CoupledField {
 
@@ -30,6 +31,7 @@ namespace CoupledField {
     ptgrid_       = PDE_.getPDE_grid();
     algsys_       = PDE_.getPDE_algsys();
     assemble_     = PDE_.getPDE_assemble();
+    solStrat_     = algsys_->GetSolStrategy();
 
     results_      = PDE_.GetResultInfos();
 
@@ -68,6 +70,7 @@ namespace CoupledField {
     // nonlinear parameters
     incStopCrit_ = 1e-2;
     residualStopCrit_ = 1e-3;
+    nonLinMaxIter_ = 10;
 
     nonLin_            = PDE_.IsNonLin();
     nonLinMaterial_    = PDE_.IsNonLinMaterial();
@@ -1198,7 +1201,7 @@ namespace CoupledField {
                                   Double& etaLineSearch, bool trans)
   {
 
-    SBM_Vector solOld;
+    SBM_Vector solOld(BaseMatrix::DOUBLE);
     solOld = actSol;
     const UInt nrEtas = 5;
     const Double eta[nrEtas] = {1, 0.5, 0.25, 0.125, 0.1};
@@ -1249,8 +1252,6 @@ namespace CoupledField {
     actSol.Add( 1.0, solOld, etaOpt, solIncrement );
 
     return residualL2NormOpt;
-    
-    return 0.0;
   }
 
 
@@ -1343,55 +1344,8 @@ namespace CoupledField {
   // read nonlinear parameters from xml file
   void StdSolveStep::ReadNonLinData() {
 
-    WARN("The method dSolveStep::ReadNonLinData' is not yet adapted to "
-        << "the new structure " );
-    
     // Get ParamNode of pde
-    PtrParamNode nonLinNode;
-    std::string pdeName = PDE_.GetName();
-
-    // SPECIAL: If PDE-name contains the "-" sign,
-    // we assume that we have a coupledPDE
-    if(boost::find_first(pdeName, "-")) {
-      // go to direct-coupling List
-      // iterate over all nodes and pick the one
-      // which has a "nonLinear" element
-      // get current multiSequenceStep
-      UInt actMsStep =
-        domain->GetSingleDriver()->GetActSequenceStep();
-      StdVector<PtrParamNode> pairCouplings;
-      PtrParamNode cplList =
-        param->GetByVal("sequenceStep",std::string("index"), actMsStep)
-        ->Get("couplingList", ParamNode::PASS);
-      if( cplList ) {
-        StdVector<PtrParamNode> pairCouplings =
-          cplList->Get("direct")->GetChildren();
-        // look for each direct coupling, if it has a "nonLin"-node
-        for( UInt iCpl = 0; iCpl < pairCouplings.GetSize(); iCpl++ ) {
-          nonLinNode = pairCouplings[iCpl]->Get("nonLinear", ParamNode::PASS );
-          if( nonLinNode ) {
-            break;
-          }
-        }
-      }
-      if( !nonLinNode ) {
-        // in this case we iterate over all single PDEs and try to
-        // find the related entry
-        ParamNodeList pdes =
-          param->GetByVal("sequenceStep",std::string("index"), actMsStep)
-          ->Get("pdeList")->GetChildren();
-        for (UInt iPde = 0; iPde < pdes.GetSize(); iPde++ ) {
-          if( boost::find_first(pdeName, pdes[iPde]->GetName() ) ) {
-            nonLinNode = pdes[iPde]->Get("nonLinear", ParamNode::PASS );
-            if( nonLinNode ) {
-              break;
-            }
-          }
-        }
-      }
-    } else {
-      nonLinNode = PDE_.GetParamNode()->Get("nonLinear", ParamNode::PASS );
-    }
+    PtrParamNode nonLinNode = solStrat_->GetNonLinNode();
 
     // Check, if any nonlinear node was found
     if( !nonLinNode ) {
@@ -1408,26 +1362,23 @@ namespace CoupledField {
       nonLinNode->GetValue( "logging", nonLinLogging_, ParamNode::PASS );
 
       // type of line search
-      nonLinNode->Get( "lineSearch")->GetValue( "type", lineSearch_ );
+      if( nonLinNode->Has("lineSearch") ) {
+        nonLinNode->Get( "lineSearch")
+            ->GetValue( "type", lineSearch_,ParamNode::PASS );
+      }
 
       // incremental stopping criterion
-      nonLinNode->GetValue( "incStopCrit", incStopCrit_ );
+      nonLinNode->GetValue( "incStopCrit", incStopCrit_, ParamNode::PASS );
 
       // residual stopping criterion
-      nonLinNode->GetValue( "resStopCrit", residualStopCrit_ );
+      nonLinNode->GetValue( "resStopCrit", residualStopCrit_, 
+                            ParamNode::PASS );
 
       // maximal number of NL-iterations
-      nonLinNode->GetValue( "maxNumIters", nonLinMaxIter_ );
+      nonLinNode->GetValue( "maxNumIters", nonLinMaxIter_, ParamNode::PASS );
     }
-
   }
 
-  void StdSolveStep::ReInit(){
-    EXCEPTION("Adjust to new implementation" );
-//    dynamic_cast<Vector<Double>&>(*PDE_.GetSolutionVector()).Init();
-//    PDE_.getTimeStepping()->ReInit();
-  }
-  
   void StdSolveStep::WriteNonLinIterToInfoXML(const std::string& pdeName, const UInt iterationCounter,
           const Double residualErr, const Double incrementalErr, double etaLineSearch)
   {

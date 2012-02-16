@@ -238,8 +238,7 @@ namespace CoupledField {
   }
 
   PtrParamNode SolStrategyStd::GetNonLinNode(){
-    PtrParamNode ret;
-    return ret;
+    return nonlinNode_;
   }
   PtrParamNode SolStrategyStd::GetTimeSteppingNode(){
     PtrParamNode ret;

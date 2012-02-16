@@ -130,7 +130,6 @@ namespace CoupledField {
 
     // Structure for mapping of minor blocks 
     std::map<UInt,StdVector<std::set<Integer> > > minorBlocks;
-    shared_ptr<SolStrategy> solStrat = algsys_->GetSolStrategy();
 
     // -----------------------------------------------------------
     //  1) Register FeFunctions with Algebraic System
@@ -152,7 +151,7 @@ namespace CoupledField {
       shared_ptr<ResultInfo> res = fctIt->second->GetResultInfo();
       std::string resultName = SolutionTypeEnum.ToString(res->resultType);
 
-      feSpace.GetOlasMappings( solStrat, sbmBlocks, minorBlocks);
+      feSpace.GetOlasMappings( solStrat_, sbmBlocks, minorBlocks);
       LOG_DBG(stdPde) << pdename_ << ":\tfctId #" << fctId
           << ", Type: " << resultName << ", #Equations: " 
           << feSpace.GetNumEquations();
@@ -178,7 +177,7 @@ namespace CoupledField {
 
       // register block. In addition we check, if this is the inner block
       // and static condensation is activated
-      bool isInnerBlock = solStrat->UseStaticCondensation() &&
+      bool isInnerBlock = solStrat_->UseStaticCondensation() &&
           (i == numBlocks-1);
       sbmIndex = algsys_->DefineSBMMatrixBlock( sbmBlocks[i], isInnerBlock );
       if( minorBlocks.size() != 0 && sbmIndex != -1) {

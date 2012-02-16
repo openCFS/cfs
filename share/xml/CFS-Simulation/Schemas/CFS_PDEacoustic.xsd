@@ -184,11 +184,6 @@
             </xsd:complexType>
           </xsd:element>
 
-          <!-- Data type to define parameters of vortex source -->
-
-          <!-- Section for specifying non-linear parameters (optional) -->
-          <xsd:element name="nonLinear" type="DT_NonLinParams" minOccurs="0"/>
-
           <!-- Desired solution values (optional) -->
           <!-- Currently this is not supported, since it is difficult
           to define in the acoustics case since it depends on the

@@ -24,6 +24,7 @@ namespace CoupledField
   class IDBC_Handler;
   class BaseIDBC_Handler;
   class FeSpace;
+  class SolStrategy;
 
   //  class Domain;
   
@@ -162,7 +163,6 @@ namespace CoupledField
       return hyst_[iSD];
     };
     
-    void ReInit();
 
   protected:
     
@@ -198,7 +198,10 @@ namespace CoupledField
     Grid * ptgrid_;                  //!< pointer to grid object
     AlgebraicSys* algsys_;             //!< pointer to algsys object
     ResultList results_;
-    Assemble * assemble_;            //!< pointer to assemble object  
+    Assemble * assemble_;            //!< pointer to assemble object
+    
+    //! Pointer to solution strategy object
+    shared_ptr<SolStrategy> solStrat_;
     
     //! factors for computingn effective system matrix for each feFunction
     std::map<FeFctIdType, std::map<FEMatrixType,Double> > matrix_factor_;   

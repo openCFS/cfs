@@ -196,6 +196,7 @@ namespace CoupledField {
       if ( isDirectCoupled_ == false) {
         olasInfo_ = info->Get("OLAS")->Get(pdename_);
         algsys_ = new AlgebraicSys(olasNode_, olasInfo_);
+        solStrat_ = algsys_->GetSolStrategy();
       }
     }
 
@@ -497,7 +498,7 @@ namespace CoupledField {
       // Here we need in addition the nonLinMethod_ for the definition
       // of the integrators
       nonLinMethod_ = FIXEDPOINT;
-      PtrParamNode nonLinNode = myParam_->Get("nonLinear", ParamNode::PASS );
+      PtrParamNode nonLinNode = solStrat_->GetNonLinNode();
       if( nonLinNode ) {
         std::string methodString;
         nonLinNode->GetValue(  "method", methodString, ParamNode::PASS );

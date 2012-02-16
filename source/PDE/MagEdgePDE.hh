@@ -192,8 +192,6 @@ namespace CoupledField
     // =======================================================================
     //   Nonlinear method
     // =======================================================================
-    NonLinMethodType nonLinMethod_;
-    
     //! \copydoc SinglePDE::CreateFeSpace
     std::map<SolutionType, shared_ptr<FeSpace> > 
     CreateFeSpaces( const std::string& formulation, 

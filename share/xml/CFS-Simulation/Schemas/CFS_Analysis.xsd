@@ -164,39 +164,4 @@
     </xsd:complexContent>
   </xsd:complexType> 
 
-
-  <!-- ******************************************************************* -->
-  <!--   Definition of data type for global non-linear parameters -->
-  <!-- ******************************************************************* -->
-  <xsd:simpleType name="DT_NonLinSolver">
-    <xsd:restriction base="xsd:token">
-      <xsd:enumeration value="newton"/>
-      <xsd:enumeration value="fixPoint"/>
-    </xsd:restriction>
-  </xsd:simpleType>
-
-  <xsd:complexType name="DT_LineSearch">
-    <xsd:attribute name="type" use="optional" default="none">
-      <xsd:simpleType>
-        <xsd:restriction base="xsd:token">
-          <xsd:enumeration value="none"/>
-          <xsd:enumeration value="minEnergy"/>
-        </xsd:restriction>
-      </xsd:simpleType>
-    </xsd:attribute>
-  </xsd:complexType>
-
-  <xsd:complexType name="DT_NonLinParams">
-    <xsd:sequence>
-      <xsd:element name="lineSearch"  type="DT_LineSearch"/>
-      <xsd:element name="incStopCrit" type="DT_PosFloat"/>
-      <xsd:element name="resStopCrit" type="DT_PosFloat"/>
-      <xsd:element name="maxNumIters" type="xsd:positiveInteger"/>
-    </xsd:sequence>
-    <xsd:attribute name="method" type="DT_NonLinSolver" use="optional"
-      default="fixPoint"/>
-    <xsd:attribute name="logging" type="DT_CFSBool" use="optional"
-      default="no"/>
-  </xsd:complexType>
-
 </xsd:schema>

@@ -474,6 +474,9 @@ namespace CoupledField {
     StdSolveStep * solveStep_;
     
     AlgebraicSys * algsys_;      //!< pointer to algebraic system
+    
+    //! Pointer to solution strategy object
+    shared_ptr<SolStrategy> solStrat_;
   
     /** This is the node for linear system responsible for this pde. */
     PtrParamNode olasInfo_;

@@ -107,9 +107,6 @@
 		  <!-- Section for specifying reference conditions (optional) -->
           <xsd:element name="referenceTemperature" type="xsd:double" minOccurs="0"/>
           
-          <!-- Section for specifying non-linear parameters (optional) -->
-          <xsd:element name="nonLinear" type="DT_NonLinParams" minOccurs="0"/>
-
           <!-- Desired solution values (optional) -->
           <xsd:element name="storeResults" type="DT_HeatStoreResults"
             minOccurs="0" maxOccurs="1"/>
