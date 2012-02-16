@@ -88,7 +88,11 @@ namespace CoupledField {
         this->ptFeSpace1_ = feSpace1;
         this->ptFeSpace2_ = feSpace2;
       }
-      
+      //! Set Coefficient Function of B operator
+      virtual void SetBCoefFunctionOpB(shared_ptr<CoefFunction> coef){
+        this->bOperator_.SetCoefFunction(coef);
+      }
+
     protected:
       
       //! Differential operator

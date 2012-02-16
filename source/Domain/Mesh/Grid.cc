@@ -2205,7 +2205,9 @@ namespace CoupledField
       }
       shared_ptr<ElemShapeMap> esm = grid.GetElemShapeMap(grid.GetElem(elemNum));
       esm->Global2Local(localCoord, globCoord);
-      bool isInside = esm->CoordIsInsideElem(localCoord);
+      Vector<Double> dia;
+      esm->CalcDiameter(dia);
+      bool isInside = esm->CoordIsInsideElem(localCoord,2.0/dia.NormL2());
       if(isInside) {
         std::pair<const Elem*, Vector<Double> > pair;
         pair.first = grid.GetElem(elemNum);
@@ -2221,170 +2223,20 @@ namespace CoupledField
   { return Report2<Iter, Grid>(it, g ); }
 
 
-  // ==========================================================================
-  //  THE FOLLOWING SECTION IS NOT YET ADAPTED TO THE NEW STRUCTURE
-  // ==========================================================================
-
-//   // callback function object writing results to an output iterator
-//   struct ConsInterpReportFunctor {
-//     //    const ElemList& destElemList_;
-//     //    const NodeList& sourceNodeList_;
-//     Grid* sourceGrid_;
-//     Grid* destGrid_;
-//     const std::vector< Vector<Double> >& nodeCoords_;
-//     Double localEpsilon_;
-//     std::vector< std::map<UInt, Double> >& consInterpWeights_;
-//     std::vector<UInt> connect_;
-//     UInt nodeCounter_;
-//     UInt numSourceNodes_;
-//     UInt percentage_;
-//     UInt oldPercentage_;
-//     std::map<UInt, UInt> destNodeNumToPosMap_;
-//
-//     ConsInterpReportFunctor(const ElemList& destElemList,
-//                             const NodeList& sourceNodeList,
-//                             const std::vector< Vector<Double> >& nodeCoords,
-//                             Double localEpsilon,
-//                             std::vector< std::map<UInt, Double> >& consInterpWeights);
-//
-//     // We write the id-number of box a to the output iterator assuming
-//     // that box b (the query box) is not interesting in the result.
-//     void operator()( const HandleBox& a, const HandleBox& b);
-//   };
-//     
-//     
-//
-//
-//     // helper function to create the function object
-//     ConsInterpReportFunctor
-//     GenConsInterpReportFunctor(const ElemList& destElemList,
-//                                const NodeList& sourceNodeList,
-//                                const std::vector< Vector<Double> >& nodeCoords,
-//                                Double localEpsilon,
-//                                std::vector< std::map<UInt, Double> >& consInterpWeights)
-//     {
-//       return ConsInterpReportFunctor(destElemList,
-//                                      sourceNodeList,
-//                                      nodeCoords,
-//                                      localEpsilon,
-//                                      consInterpWeights);
-//     }
-//  /*
-//  // coordinates for 9 boxes of a grid
-//  int p[9*4]   = { 0,0,1,1,  1,0,2,1,  2,0,3,1, // lower
-//                   0,1,1,2,  1,1,2,2,  2,1,3,2, // middle
-//                   0,2,1,3,  1,2,2,3,  2,2,3,3};// upper
-//  // 9 boxes
-//  Grid::Box boxes[9] = { Box( p,    p+ 2),  Box( p+ 4, p+ 6),  Box( p+ 8, p+10),
-//                   Box( p+12, p+14),  Box( p+16, p+18),  Box( p+20, p+22),
-//                   Box( p+24, p+26),  Box( p+28, p+30),  Box( p+32, p+34)};
-//  // 2 selected boxes as query; center and upper right
-//  Grid::Box query[2] = { Box( p+16, p+18),  Box( p+32, p+34)};
-//
-//  // callback function object writing results to an output iterator
-//  template <class OutputIterator>
-//  struct Report {
-//    OutputIterator it;
-//    Report( OutputIterator i) : it(i) {} // store iterator in object
-//    // We write the id-number of box a to the output iterator assuming
-//    // that box b (the query box) is not interesting in the result.
-//    void operator()( const Grid::Box& a, const Grid::Box&) { *it++ = a.id(); }
-//  };
-//  template <class Iter> // helper function to create the function object
-//  Report<Iter> report( Iter it) { return Report<Iter>(it); }
-//
-//
-//
-//
-//  // callback function that reports all truly intersecting triangles
-//  void report_inters( const HandleBox& a, const HandleBox& b) {
-//    std::cout << "Box " << *a.handle() << " and "
-//              << *b.handle() << " intersect";
-//    std::cout << '.' << std::endl;
-//  }
-//
-//  // callback function that reports all truly intersecting triangles
-//  void report_inters2( const Box& a, const Box& b) {
-//    std::cout << "Box " << a.id() << " and "
-//              << b.id() << " intersect";
-//    std::cout << '.' << std::endl;
-//  }
-//
-//  void Grid::intersection() {
-//    double xmin, ymin, xmax, ymax, zmin, zmax;
-//    StdVector<Elem*> elems;
-//    Point p;
-//    UInt dim = GetDim();
-//    std::vector<HandleBox> elemBoxes;
-//    std::vector<HandleBox> elemBoxes2;
-//
-//    std::cout << std::endl;
-//    std::cout << std::endl;
-//
-//    GetVolElems(elems, ALL_REGIONS);
-//    elemBoxes.resize(elems.GetSize());
-//
-//    for(UInt i = 0, m=elems.GetSize(); i < m; i++)
-//    {
-//      GetNodeCoordinate(p, elems[i]->connect[0]);
-//
-//      xmin = xmax = p[0];
-//      ymin = ymax = p[1];
-//      zmin = zmax = p[2];
-//
-//      for(UInt j = 1, n=elems[i]->connect.GetSize(); j < n; j++)
-//      {
-//        GetNodeCoordinate(p, elems[i]->connect[j]);
-//        xmin = p[0] < xmin ? p[0] : xmin;
-//        xmax = p[0] > xmax ? p[0] : xmax;
-//        ymin = p[1] < ymin ? p[1] : ymin;
-//        ymax = p[1] > ymax ? p[1] : ymax;
-//        zmin = p[2] < zmin ? p[2] : zmin;
-//        zmax = p[2] > zmax ? p[2] : zmax;
-//      }
-//
-//      elemBoxes[i] = HandleBox(BBox3D(xmin, ymin, zmin, xmax, ymax, zmax),
-//                               &elems[i]->elemNum);
-//
-//      std::cout << "element " << elems[i]->elemNum << " BBox3D (" << xmin << ", " << ymin << ", " << zmin << ") (" << xmax <<  ", " << ymax << ", " << zmax << ")" << std::endl;
-//
-//    }
-//
-//    UInt test = 2333;
-//    elemBoxes2.push_back(HandleBox(BBox3D(0.001, 0.0, 0.001, 0.001, 0.0, 0.001),
-//                                   &test));
-//
-//    // run the intersection algorithm and store results in a vector
-//    std::vector<std::size_t> result;
-//    //    CGAL::box_self_intersection_d( boxes, boxes+9, report_inters2 );
-//    //    CGAL::box_self_intersection_d( boxes, boxes+9, report( std::back_inserter( result)) );
-//
-//    //    CGAL::box_intersection_d( boxes, boxes+9,
-//    //                              query, query+2,
-//    //                              report( std::back_inserter( result)));
-//
-//    //    CGAL::box_intersection_d( elemBoxes.begin(), elemBoxes.end(),
-//    //                              elemBoxes2.begin(), elemBoxes2.end(),
-//    //                              report_inters);
-//
-//    CGAL::box_intersection_d( elemBoxes.begin(), elemBoxes.end(),
-//                              elemBoxes2.begin(), elemBoxes2.end(),
-//                              report2( std::back_inserter( result), *this));
-//
-//    // sort, check, and show result
-//    std::sort( result.begin(), result.end());
-//    //    std::size_t check1[13] = {0,1,2,3,4,4,5,5,6,7,7,8,8};
-//    //    assert(result.size() == 13 && std::equal(check1,check1+13,result.begin()));
-//
-//    std::copy( result.begin(), result.end(),
-//               std::ostream_iterator<std::size_t>( std::cout, " "));
-//    std::cout << std::endl;
-//    std::cout << std::endl;
-//  }
-//  */
-
   const Elem* Grid::GetElemAtGlobalCoord(const Vector<double>& globCoord,
-                                         Vector<double>& localCoords)
+                                           Vector<double>& localCoords){
+    StdVector< Vector<double> > coordMat;
+    StdVector<const Elem*> res = GetElemsAtGlobalCoord(globCoord,coordMat);
+    if(res.GetSize() > 0){
+      localCoords = coordMat[0];
+      return res[0];
+    }else
+      return NULL;
+  }
+
+
+  StdVector<const Elem*> Grid::GetElemsAtGlobalCoord(const Vector<double>& globCoord,
+                                                     StdVector< Vector<double> >& localCoords)
   {
     double xmin, ymin, xmax, ymax, zmin, zmax;
     //UInt dim = GetDim();
@@ -2427,7 +2279,17 @@ namespace CoupledField
             zmax = p[2] > zmax ? p[2] : zmax;
           }
         }
-
+        shared_ptr<ElemShapeMap> esm = this->GetElemShapeMap(elems[i]);
+        Vector<Double> dia;
+        esm->CalcDiameter(dia);
+        xmin -= dia[0] * 1e-4;
+        xmax += dia[0] * 1e-4;;
+        ymin -= dia[1] * 1e-4;;
+        ymax += dia[1] * 1e-4;;
+        if(p.GetSize()>2){
+          zmin -= dia[2] * 1e-4;;
+          zmax += dia[2] * 1e-4;;
+        }
         elemBoxes_.push_back( HandleBox(BBox3D(xmin, ymin, zmin, xmax, ymax, zmax),
                                   &elems[i]->elemNum) );
 
@@ -2453,13 +2315,13 @@ namespace CoupledField
                               elemBoxes2.begin(), elemBoxes2.end(),
                               report2( std::back_inserter( result ), *this));
 
-    if(!result.empty())
-    {
-      localCoords = result.begin()->second;
-      return result.begin()->first;
+    StdVector<const Elem*> cadidates;
+    std::vector< std::pair<const Elem*, Vector<double> > >::iterator iter = result.begin();
+    for(UInt i=0;i<result.size();++i,++iter){
+      cadidates.Push_back(iter->first);
+      localCoords.Push_back(iter->second);
     }
-    else
-      return NULL;
+    return cadidates;
 
   }
 

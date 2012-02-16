@@ -888,6 +888,9 @@ namespace CoupledField
     const Elem* GetElemAtGlobalCoord(const Vector<double>& globCoord,
                                      Vector<double>& localCoords);
 
+    StdVector<const Elem*> GetElemsAtGlobalCoord(const Vector<double>& globCoord,
+                                                 StdVector< Vector<double> >& localCoords);
+
     void ComputeConservativeInterpolationWeights(const ElemList& destElemList,
             const NodeList& sourceNodeList,
             const std::string& coordSysId,
@@ -897,6 +900,7 @@ namespace CoupledField
             Double zEpsilon,
             std::vector< std::map<UInt, Double> >& consInterpWeights,
             StdVector<UInt> &unmapped_nodes);
+
 
 #endif // USE_INTERPOLATION
 

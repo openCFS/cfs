@@ -169,6 +169,7 @@ void LagrangeElemShapeMap::Global2Local( Vector<Double>& locPoint,
     Elem::FEType curType = ptFe_->FeType();
     switch(curType){
     case Elem::ET_QUAD4:
+      //Global2LocalGeneral(locPoint,globalPoint);
       Global2LocalQuad4(locPoint,globalPoint);
       break;
     default:
@@ -226,13 +227,130 @@ void LagrangeElemShapeMap::Global2LocalQuad4( Vector<Double>& locPoint,
   x_p0 = x_p - x_0;
   y_p0 = y_p - y_0;
 
-  b_xi =  A - (x_p0*y_b) + (y_p0*x_b); b_eta = -A - (x_p0*y_b) + (y_p0*x_b);
+  b_xi =  A - (x_p0*y_b) + (y_p0*x_b); b_eta = (-1.0 * A) - (x_p0*y_b) + (y_p0*x_b);
 
   c_xi = (x_p0*y_cx) - (y_p0*x_cx); c_eta = (x_p0*y_ce) - (y_p0*x_ce);
 
   locPoint[0] = 2.0*c_xi / ((-1.0 * std::sqrt(b_xi*b_xi - 2.0 * J_1 * c_xi))  - b_xi);
   locPoint[1] = 2.0*c_eta / ( std::sqrt(b_eta*b_eta + (2.0 * J_2 * c_eta)) - b_eta);
-}
+/*
+  //BaseFE::Global2LocalCoords(localCoords,globalCoords,coordMat);
+      //return;
+      //Version 0 algorithm from duester script
+      Vector<Double> delta_xi; // update for Newton-Raphson method
+      Vector<Double> xi_start; // local start point for Newton-Raphson method
+      Vector<Double> xi_k; // local point at iteration k
+      Vector<Double> f; //current right hand side
+      Vector<Double> f_start; //current right hand side
+      Double f_old; //storing the absolute value of search direction
+      Double f_test; //storing the absolute value of search direction
+      UInt k = 0; //iteration counter
+      Integer l = 0; //stepping value
+      Double jacDet = 0;
+      Matrix<Double> J; // Jacobian at local point xi_k
+      locPoint.Resize(2);
+      locPoint.Init();
+
+      Double tolerance = 1e-10;
+
+      //initialize everything
+      xi_start.Resize(2);
+      delta_xi.Resize(2);
+      xi_k.Resize(2);
+      J.Resize(2, 2);
+
+      //first initial guess is zero
+      f.Resize(2);
+
+     // Perform Newton-Raphson method on the list of global points
+     // to find local coordinates within this element.
+
+     f.Init();
+     J.Init();
+     xi_start.Init();
+     xi_k.Init();
+     k = 0;
+     f_old = 222e20;
+     f_test = 0;
+
+     Local2Global(f, xi_k);
+
+     f = f - globalPoint;
+     f_old = f.NormL2();
+     f_start = f;
+     for(Double w=0.5; w <= 1.0; w+=0.5){
+       for(UInt j=1;j<3;j++){
+         for(UInt m=1;m<3;m++){
+           xi_k[0] = pow(-1,j)*w;
+           xi_k[1] = pow(-1,m)*w;
+           Local2Global(f, xi_k);
+           f = f - globalPoint;
+           f_test = f.NormL2();
+           if(f_old > f_test){
+             xi_start  = xi_k;
+             f_start = f;
+             f_old = f_test;
+           }
+         }
+       }
+     }
+     xi_k = xi_start;
+     f = f_start;
+     while(f_test > tolerance && k < 20){
+        delta_xi.Init();
+        xi_start.Init();
+        // Calculate Jacobian at iteration point xi_k
+        this->CalcJ(J,xi_k);
+        jacDet = + J[0][0]*J[1][1] - J[1][0]*J[0][1];
+        //  ( f_0  J_01 )
+        //  ( f_1  J_11 )
+        delta_xi[0] =  (-J[1][1]*f[0] + J[0][1]*f[1])/jacDet;
+
+        //  ( J_00  f_0 )
+        //  ( J_10  f_1 )
+        delta_xi[1] =  (-J[0][0]*f[1] + J[1][0]*f[0])/jacDet;
+        //xi_start = xi_k + (delta_xi * 2.0);
+        //Local2GlobalCoord(f, xi_start, coordMat, NULL);
+        //f = f - globalPoint;
+        //f_test = f.NormL2();
+        l = 1;
+        //perform damping
+        while(l<30 && f_test >= f_old){
+           Double dampFac = 1.0/std::pow(2.0,l-1.0);
+           xi_start = xi_k + (delta_xi * dampFac);
+           Local2Global(f, xi_start);
+           f = f - globalPoint;
+           f_test = f.NormL2();
+           l++;
+        }
+        f_old = f_test;
+        //if(l >= 30){
+        //  std::cout << "Daming iteration was not convergend" << std::endl;
+        //}
+        xi_k = xi_start;
+        k++;
+     }
+     //if( f_test > tolerance){
+     //  std::cout << "performed " << k << " iterations to reach the point" << std::endl<< xi_k << std::endl;
+     //  //ONLY for DEBUGGING
+     //  Local2Global(f, xi_k);
+     //  std::cout << "Calculated global point :" << std::endl << f << std::endl;
+     //  std::cout << "Original global coord " << std::endl << globalPoint << std::endl;
+     //  std::cout << "The error was: " << f_test << std::endl<< std::endl;
+     //  //std::cout << std::endl;
+     //}
+
+     // Put local coordinate of point into matrix.
+     for(UInt j = 0; j < 2; j++) {
+       if(xi_k.GetSize() == 0){
+         std::cerr << "local2global messed up setting everything to zero" << std::endl;
+         std::cerr << globalPoint << std::endl;
+         xi_k.Resize(2);
+         xi_k.Init();
+       }
+       locPoint[j] = xi_k[j];
+     }*/
+   }
 
 
 void LagrangeElemShapeMap::Global2LocalGeneral( Vector<Double>& locPoint,
@@ -794,15 +912,15 @@ CalcNormalOutOfVol( Vector<Double> & normal,
 }
 
 bool LagrangeElemShapeMap::
- CoordIsInsideElem( const Vector<Double>& point ) {
+ CoordIsInsideElem( const Vector<Double>& point, Double tolerance ) {
   
-  return ptFe_->CoordIsInsideElem(point, 0.0);
+  return ptFe_->CoordIsInsideElem(point, tolerance);
 }
 
 void LagrangeElemShapeMap::CalcDiameter( Vector<Double>& diameter ) {
   Vector<Double> mins(shape_.dim), maxs(shape_.dim);
   mins.Init(std::numeric_limits<double>::max());
-  maxs.Init(std::numeric_limits<double>::max());
+  maxs.Init();
   diameter.Resize(shape_.dim);
   diameter.Init();
   for (UInt dim = 0; dim < shape_.dim; dim++)

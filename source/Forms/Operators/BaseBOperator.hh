@@ -93,6 +93,11 @@ public:
     return name_;
   }
 
+  //! Set the coefficient function of the operator
+  virtual void SetCoefFunction(shared_ptr<CoefFunction> coef){
+    coef_ = coef;
+  }
+
   //! Additional transformation of the Jacobian determinant (e.g. for PML)
   virtual void TransformJacDet(DATA_TYPE & jacLoc,
                                const LocPointMapped & lp, BaseFE* ptFe){
@@ -102,6 +107,9 @@ protected:
 
   //! Name of the integrator
   std::string name_;
+
+  //!pointer to coefficient function as used e.g. in Convective operators
+  shared_ptr<CoefFunction> coef_;
 };
 }
 #endif

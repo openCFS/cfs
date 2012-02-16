@@ -38,6 +38,9 @@ class AcousticMixedPDE : public SinglePDE{
     //! define all (bilinearform) integrators needed for this pde
     void DefineIntegrators();
 
+    //! define all (bilinearform) integrators needed for this pde
+    void DefineRhsLoadIntegrators();
+
     //! define surface integrators needed for this pde
     void DefineSurfaceIntegrators( );
 
@@ -78,9 +81,15 @@ class AcousticMixedPDE : public SinglePDE{
 
     //! Init the time stepping
     void InitTimeStepping();
+
+    //! create feFunction for meanFluidMech velocity
+    void CreateMeanFlowFunction(StdVector<std::string> dofNames);
+
   private:
 
     bool usePiola_;
+
+    shared_ptr<BaseFieldFunctor> meanFlowFunctor_;
 };
 
 }

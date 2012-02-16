@@ -207,7 +207,6 @@ DECLARE_LOG(fefunc)
 #endif
       }else{
         for ( UInt iDof = 0; iDof < eqnNums.GetSize(); iDof++ ){
-
           // check for homogeneous Dirichlet boundary condition
           if ( eqnNums[iDof] != 0 ) {
             actSol[pos++] = coeffs_[abs(eqnNums[iDof])-1];

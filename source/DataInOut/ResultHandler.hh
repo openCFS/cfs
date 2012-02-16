@@ -7,6 +7,10 @@
 
 #include "Domain/Results/BaseResults.hh"
 #include "PDE/BasePDE.hh"
+#include "FeBasis/FeFunctions.hh"
+#include <set>
+#include <string>
+#include <map>
 
 namespace CoupledField {
 
@@ -147,11 +151,11 @@ namespace CoupledField {
     //! Commoditiy method for aquiring a result from an input reader class
     //! as NodeStoreSol object
     template<typename TYPE>
-    shared_ptr<NodeStoreSol<TYPE> > GetStoreSol( const std::string& readerId,
+    shared_ptr<FeFunction<TYPE> > GetFeFunction( const std::string& readerId,
                                                  UInt sequenceStep,
                                                  UInt stepValue,  
                                                  SolutionType solType,
-                                                 StdVector<std::string>& regionNames );
+                                                 std::set<std::string> & regionNames );
     
     /** This dumps the content of the result handler for debugging */
     void Dump(); 

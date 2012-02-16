@@ -247,6 +247,12 @@ namespace CoupledField{
         bMat /= lp.jacDet;
       }
 
+      //avoid reimplementation of complex operator by making the bas class function
+      //available
+      using IdentityOperator<FE,D,D_DOF,TYPE>::CalcOpMat;
+
+      using IdentityOperator<FE,D,D_DOF,TYPE>::CalcOpMatTransposed;
+
   };
 
  

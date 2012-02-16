@@ -858,6 +858,7 @@ source/Domain/Mesh/PolygonIterators.hh svneol=native#text/x-c%2B%2Bhdr
 source/Domain/Results/BaseResults.cc svneol=native#text/x-c%2B%2Bsrc
 source/Domain/Results/BaseResults.hh svneol=native#text/x-c%2B%2Bhdr
 source/Domain/Results/CMakeLists.txt -text
+source/Domain/Results/ExternalFieldFunctors.hh -text
 source/Domain/Results/ResultFunctor.cc svneol=native#text/x-c%2B%2Bsrc
 source/Domain/Results/ResultFunctor.hh svneol=native#text/x-c%2B%2Bhdr
 source/Domain/Results/ResultInfo.cc svneol=native#text/x-c%2B%2Bsrc
@@ -953,6 +954,7 @@ source/Forms/LinForms/SingleEntryInt.cc svneol=native#text/x-c%2B%2Bsrc
 source/Forms/LinForms/SingleEntryInt.hh svneol=native#text/x-c%2B%2Bhdr
 source/Forms/Operators/BaseBOperator.hh -text
 source/Forms/Operators/CMakeLists.txt -text
+source/Forms/Operators/ConvectiveOperator.hh -text
 source/Forms/Operators/CurlOperator.hh -text
 source/Forms/Operators/DivOperator.hh -text
 source/Forms/Operators/GradientOperator.hh -text

@@ -37,6 +37,11 @@ namespace CoupledField {
       void CalcKernel( Matrix<MAT_DATA_TYPE>& kernel, 
                        const LocPointMapped& lpm );
       
+      //! Set Coefficient Function of B operator
+      virtual void SetBCoefFunctionOpA(shared_ptr<CoefFunction> coef){
+        this->aOperator_.SetCoefFunction(coef);
+      }
+
     protected:
       
       //! First differential operator

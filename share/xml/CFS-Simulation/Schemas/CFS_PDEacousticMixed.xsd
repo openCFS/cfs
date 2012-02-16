@@ -42,6 +42,7 @@
                     <xsd:attribute name="polyId" type="xsd:string" use="optional" default="default"> </xsd:attribute>
                     <xsd:attribute name="integId" type="xsd:string" use="optional" default="default"> </xsd:attribute>
                     <xsd:attribute name="nonLinId" type="xsd:token" use="optional" default=""/>
+                    <xsd:attribute name="flowId" type="xsd:token" use="optional" default=""></xsd:attribute>
                   </xsd:complexType>
                 </xsd:element>
               </xsd:sequence>
@@ -63,7 +64,7 @@
           <xsd:element name="flowList" minOccurs="0" maxOccurs="1">
             <xsd:complexType>
               <xsd:choice maxOccurs="unbounded">
-                <xsd:element name="flow" type="DT_AcousticMixedFlow"/>
+                <xsd:element name="flow" type="DT_RHSVector"/>
               </xsd:choice>
             </xsd:complexType>
           </xsd:element>
@@ -74,10 +75,9 @@
               <xsd:choice maxOccurs="unbounded">
                 <xsd:element name="dirichletHom"   type="DT_AcousticMixedHD"  />
                 <xsd:element name="dirichletInhom" type="DT_AcousticMixedID"  />
-                <xsd:element name="neumannInhom"   type="DT_AcousticMixedIN"  />
-                <xsd:element name="regionLoad"     type="DT_AcouMixedRegionLoad"/>
                 <xsd:element name="absorbingBCs"   type="DT_AbsorbingBCMixed" />
-                <xsd:element name="surfVelLHS"     type="DT_SurfVelLHS" />
+                <xsd:element name="massEquationLoad"  type="DT_RHSScalar"/>
+                <xsd:element name="momentumEquationLoad" type="DT_RHSVector"/>
               </xsd:choice>
             </xsd:complexType>
           </xsd:element>
@@ -255,6 +255,7 @@
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="acouVelocity"/>
       <xsd:enumeration value="acouPressure"/>
+      <xsd:enumeration value="meanFluidMechVelocity"/>
     </xsd:restriction>
   </xsd:simpleType>
 

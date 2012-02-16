@@ -209,8 +209,11 @@ public:
         this->ptFeSpace1_ = feSpace1;
         this->ptFeSpace2_ = feSpace2;
       }
-
       
+      //! Set Coefficient Function of B operator
+      virtual void SetBCoefFunctionOpA(shared_ptr<CoefFunction> coef){
+        this->bOperator_.SetCoefFunction(coef);
+      }
       void __Instantiate();
        
 

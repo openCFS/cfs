@@ -164,6 +164,22 @@ namespace CoupledField
 
     //@}
 
+    //! Read general external field information from given xml node
+    //! The node has to contian either a values tag, a number of comp tags or
+    //! a grid node
+    //! \param[in] name The name of the entityList the Field should be applied to
+    //! \param[in] valueNode The xml node of the user parameters
+    //! \param[in] compNames Names of the components (vector, tensor)
+    //! \param[in] type Type of CoefFunction to be read in (scalar, vector, tensor)
+    //! \param[in] isComplex Indicates if we need to account for Complex results
+    //! \param[out] coef The generated coefficient function
+    void ReadUserFieldValues( const std::string name,
+                              PtrParamNode valueNode,
+                              const StdVector<std::string>& compNames,
+                              ResultInfo::EntryType type,
+                              bool isComplex,
+                              shared_ptr<CoefFunction> & coef);
+
   protected:
 
     //! Constructor
@@ -229,6 +245,8 @@ namespace CoupledField
                             bool isComplex,
                             StdVector<shared_ptr<EntityList> >& entities, 
                             StdVector<shared_ptr<CoefFunction> >& coef );
+
+
 
     /** Trigger calculation of results. */
     virtual void CalcResults( shared_ptr<BaseResult> result ) { };

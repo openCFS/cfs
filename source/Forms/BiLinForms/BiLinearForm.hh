@@ -35,7 +35,7 @@ namespace CoupledField
         coordUpdate_ = coordUpdate;
       }
 
-      ~BiLinearForm(){
+      virtual ~BiLinearForm(){
 
       }
 
@@ -81,6 +81,16 @@ namespace CoupledField
         return coordUpdate_;
       }
       
+      //! Set Coefficient Function of B operator
+      virtual void SetBCoefFunctionOpB(shared_ptr<CoefFunction> coef){
+        EXCEPTION("Integrator::SetBCoefFunctionOpB not available in base class!");
+      }
+
+      //! Set Coefficient Function of A operator
+      virtual void SetBCoefFunctionOpA(shared_ptr<CoefFunction> coef){
+        EXCEPTION("Integrator::SetCoefFunctionOpA not available in base class!");
+      }
+
     protected:
 
       //! name of (bi)linearform

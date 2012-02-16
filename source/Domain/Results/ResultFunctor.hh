@@ -151,6 +151,10 @@ public:
   //! Evaluate field at one local point within a given element
   virtual void GetVector(Vector<TYPE>& vec, const LocPointMapped& lpm ) = 0; 
 
+  virtual void AddRegion(RegionIdType region, PtrParamNode config){
+    EXCEPTION("Add Region not available for this functor");
+  }
+
 protected:
   
   //! FeFunction containing the coefficients, on which the functor computes

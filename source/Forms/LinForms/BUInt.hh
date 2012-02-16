@@ -36,7 +36,7 @@ namespace CoupledField{
       BUIntegrator(VEC_DATA_TYPE factor,shared_ptr<CoefFunction > rhsCoef,
                    bool coordUpdate = false );
 
-      ~BUIntegrator(){
+      virtual ~BUIntegrator(){
 
       }
 

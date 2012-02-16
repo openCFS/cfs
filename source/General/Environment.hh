@@ -130,7 +130,7 @@ namespace CoupledField {
       HEAT_TEMPERATURE, HEAT_RHS_LOAD, HEAT_SOURCE_DENSITY,
       FLUID_FORCE,
       ACOU_PRESSUREXYZ,
-      LAMBDA_K, FLUIDMECH_VELOCITY, FLUIDMECH_PRESSURE,
+      LAMBDA_K, MEAN_FLUIDMECH_VELOCITY, FLUIDMECH_VELOCITY, FLUIDMECH_PRESSURE,
       FLUIDMECH_VELOCITY_DERIV_1, FLUIDMECH_PRESSURE_DERIV_1,
       FLUIDMECH_VELOCITY_DERIV_2, FLUIDMECH_PRESSURE_DERIV_2,
       FLUIDMECH_DENSITY, FLUIDMECH_FORCE, FLUIDMECH_TKE, 
@@ -299,6 +299,9 @@ namespace CoupledField {
   
   //! Standard default identifier
   static const FeFctIdType NO_FCT_ID = -1;
+
+  //! Standard default identifier
+  static const FeFctIdType PSEUDO_FCT_ID = -999;
 
   //! Standard type for identifiying a sparsity pattern of a matrix object
   //! in combination with the PatternPool class.

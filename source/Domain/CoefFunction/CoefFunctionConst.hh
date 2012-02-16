@@ -113,6 +113,7 @@ public:
         break;
       default:
         EXCEPTION("Missing case");
+        break;
     }
   }
 

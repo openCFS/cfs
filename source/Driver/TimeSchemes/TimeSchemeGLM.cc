@@ -268,7 +268,7 @@ namespace CoupledField{
 
   void TimeSchemeGLM::InitGLMs(){
     //initialize GLMs
-    availSchemes[TRAPEZOIDAL] = new Trapezoidal(0.51);
+    availSchemes[TRAPEZOIDAL] = new Trapezoidal(0.513);
 
     availSchemes[NEWMARK] = new Newmark(0.5,0.25);
   }

@@ -610,6 +610,13 @@ namespace CoupledField {
     polyToIntegMap[pReg].insert(iReg);
   }
 
+  void FeSpace::SetDefaultRegionApproximation(){
+    RegionIdType pReg=ALL_REGIONS,iReg=ALL_REGIONS;
+    SetDefaultIntegration(infoNode_->Get("regionList")->Get("default"));
+    SetDefaultElements(infoNode_->Get("regionList")->Get("default"));
+    polyToIntegMap[pReg].insert(iReg);
+  }
+
   void FeSpace::SetRegionIntegration(RegionIdType region, IntScheme::IntegMethod method ,Matrix<Integer> order,
                                      IntegOrderMode mode, PtrParamNode infoNode ){
     regionIntegration_[region].method = method;

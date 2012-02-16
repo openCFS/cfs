@@ -50,6 +50,37 @@
   </xsd:complexType>
   
   <!-- ******************************************************************** -->
+  <!--   Definition of data from external fields                                         -->
+  <!-- ******************************************************************** -->
+  <xsd:complexType name="DT_BaseGridData">
+    <xsd:complexContent>
+      <xsd:restriction base="xsd:anyType">        
+        <xsd:sequence>
+          <xsd:element name="input">
+            <xsd:complexType>
+              <xsd:attribute name="gridId" type="xsd:token" use="required"/>
+              <xsd:attribute name="inputId" type="xsd:token" use="required"/>
+              <xsd:attribute name="quantity" use="required"/>
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="regionList">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="region" minOccurs="1" maxOccurs="unbounded">
+                  <xsd:complexType>
+                    <xsd:attribute name="srcRegionName" type="xsd:token" use="required"/>
+                    <xsd:attribute name="factor" type="xsd:token" default="1.0" use="optional"/>
+                  </xsd:complexType>
+                </xsd:element>
+              </xsd:sequence>
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:sequence>
+      </xsd:restriction>
+    </xsd:complexContent>
+  </xsd:complexType>
+  
+  <!-- ******************************************************************** -->
   <!--   Definition of standard type for right hand side values -->
   <!-- ******************************************************************** -->
   
@@ -97,6 +128,9 @@
             </xsd:element>
           </xsd:sequence>
           
+          <!-- Read Data from external Grids -->
+          <xsd:element name="grid" maxOccurs="1" type="DT_BaseGridData"/>
+            
         </xsd:choice>
       </xsd:extension>
     </xsd:complexContent> 

@@ -48,10 +48,14 @@ namespace CoupledField{
       if(gridToVirtualNodes_.find(node) == gridToVirtualNodes_.end())
         return;
 
-      UInt nDisNodes = gridToVirtualNodes_[node].GetSize();
-      eqns.Resize(dofsPerUnknown*nDisNodes);
+      //UInt nDisNodes = gridToVirtualNodes_[node].GetSize();
+      //eqns.Resize(dofsPerUnknown*nDisNodes);
+      //eqns.Init();
+      //TODO: Major Hack!!!!!!! this is just to enable compatibility
+      // with the extract result scheme
+      eqns.Resize(dofsPerUnknown);
       eqns.Init();
-      for (UInt iNode = 0; iNode < nDisNodes; iNode++ ) {
+      for (UInt iNode = 0; iNode < 1; iNode++ ) {
         for(UInt iDof = 0; iDof < dofsPerUnknown; iDof++){
           eqns[(iNode*dofsPerUnknown) + iDof] =
               nodeMap_[gridToVirtualNodes_[node][iNode]][iDof];
@@ -85,10 +89,14 @@ namespace CoupledField{
       if(gridToVirtualNodes_.find(node) == gridToVirtualNodes_.end())
         return;
 
-      UInt nDisNodes = gridToVirtualNodes_[node].GetSize();
-      eqns.Resize(nDisNodes);
+      //UInt nDisNodes = gridToVirtualNodes_[node].GetSize();
+      //eqns.Resize(dofsPerUnknown*nDisNodes);
+      //eqns.Init();
+      //TODO: Major Hack!!!!!!! this is just to enable compatibility
+      // with the extract result scheme
+      eqns.Resize(1);
       eqns.Init();
-      for (UInt iNode = 0; iNode < nDisNodes; iNode++ ) {
+      for (UInt iNode = 0; iNode < 1; iNode++ ) {
         eqns[iNode] = nodeMap_[gridToVirtualNodes_[node][iNode]][dof];
       }
     }else if( ent.GetType() == EntityList::ELEM_LIST ||
@@ -116,10 +124,14 @@ namespace CoupledField{
       if(gridToVirtualNodes_.find(node) == gridToVirtualNodes_.end())
         return;
 
-      UInt nDisNodes = gridToVirtualNodes_[node].GetSize();
-      eqns.Resize(nDisNodes);
+      //UInt nDisNodes = gridToVirtualNodes_[node].GetSize();
+      //eqns.Resize(dofsPerUnknown*nDisNodes);
+      //eqns.Init();
+      //TODO: Major Hack!!!!!!! this is just to enable compatibility
+      // with the extract result scheme
+      eqns.Resize(1);
       eqns.Init();
-      for (UInt iNode = 0; iNode < nDisNodes; iNode++ ) {
+      for (UInt iNode = 0; iNode < 1; iNode++ ) {
         eqns[iNode] = nodeMap_[gridToVirtualNodes_[node][iNode]][dof];
       }
     }else if( ent.GetType() == EntityList::ELEM_LIST ||
@@ -158,18 +170,15 @@ namespace CoupledField{
                                    StdVector<AlgebraicSys::SBMBlockDef>& sbmBlocks,
                                    std::map<UInt,StdVector<std::set<Integer> > >&
                                    minorBlocks ) {
-    WARN("GetOlasMappings never testet with L2 space!!!!!!");
     FeSpaceH1::GetOlasMappings(solStrat,sbmBlocks,minorBlocks);
   }
   //! Map Nodal BC Equation NUmbers
   void FeSpaceL2::MapNodalBCs(){
-    WARN("MapNodalBCs never testet with L2 space!!!!!!");
     FeSpaceH1::MapNodalBCs();
   }
 
   //! Map Nodal Equation Numbers
   void FeSpaceL2::MapNodalEqns(UInt phase){
-    WARN("MapNodalEqns never testet with L2 space!!!!!!");
     FeSpaceH1::MapNodalEqns(phase);
   }
 

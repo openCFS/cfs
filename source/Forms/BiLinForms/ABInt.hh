@@ -24,6 +24,12 @@ namespace CoupledField {
       void CalcElementMatrix( Matrix<MAT_DATA_TYPE>& elemMat,
                                  EntityIterator& ent1,
                                  EntityIterator& ent2 );
+
+      //! Set Coefficient Function of B operator
+      virtual void SetBCoefFunctionOpA(shared_ptr<CoefFunction> coef){
+        this->aOperator_.SetCoefFunction(coef);
+      }
+
     protected:
       
       //! First differential operator

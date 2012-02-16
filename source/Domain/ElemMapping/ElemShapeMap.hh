@@ -217,7 +217,7 @@ namespace CoupledField {
     //! \param point input Local point
     //! \param tolerance input Additioanl (relative) tolerance
     //! \return flag if point is inside the element
-    virtual bool CoordIsInsideElem( const Vector<Double>& point ) = 0;
+    virtual bool CoordIsInsideElem( const Vector<Double>& point,Double tolerance = 0.0 ) = 0;
 
     //! Calculate the diameter vector of the element.
     //! Handles the element by itself and no axis-symmetric case.
@@ -341,7 +341,7 @@ namespace CoupledField {
                              const Elem & volElem );
 
     //! @copydoc ElemShapeMap::CoordIsInsideElem
-    bool CoordIsInsideElem( const Vector<Double>& point );
+    bool CoordIsInsideElem( const Vector<Double>& point,Double tolerance = 0.0 );
 
     //! @copydoc ElemShapeMap::CalcDiameter
     void CalcDiameter( Vector<Double>& diameter );

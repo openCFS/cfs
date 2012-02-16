@@ -137,6 +137,9 @@ public:
   //! ToDO if integration and polynomial nodes are merged, of course only an orderId has to be passed
   void SetRegionApproximation(RegionIdType region, std::string polyId, std::string integId);
 
+  //! Sets a default approximation for all regions
+  void SetDefaultRegionApproximation();
+
   //@}
   // ========================================================================
   //  ELEMENT HANDLING

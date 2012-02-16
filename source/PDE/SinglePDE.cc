@@ -55,6 +55,7 @@ using std::string;
 //coefFunctions
 #include "Domain/CoefFunction/CoefFunctionConst.hh"
 #include "Domain/CoefFunction/CoefFunctionExpression.hh"
+#include "Domain/CoefFunction/CoefFunctionGrid.hh"
 
 // new postprocessing concept
 #include "Domain/Results/ResultFunctor.hh"
@@ -254,14 +255,19 @@ namespace CoupledField {
     {
       PtrParamNode in_ = in->GetByVal("region", "name", domain->GetGrid()->GetRegion().ToString(subdoms_[i]));
 
-      //std::map<RegionIdType,DampingType>::const_iterator it = dampingList_.find(subdoms_[i]);
-      // DampingType dampType = NONE;
-      //if( it != dampingList_.end() ) {
-      //  dampType = it->second;
-      //}
+      std::map<RegionIdType,DampingType>::const_iterator it = dampingList_.find(subdoms_[i]);
+      DampingType dampType;
+      if( it != dampingList_.end() ) {
+        dampType = it->second;
+      }else{
+        dampType = NONE;
+      }
       std::string fuck_e2s;
       Enum2String(dampingList_[subdoms_[i]], fuck_e2s);
       in_->Get("damping")->SetValue(fuck_e2s);
+      //TODO:: this just a workaround to get the code compiled
+      // with fucking warnigs as errors
+      dampType = NONE;
     }
 
     // =====================================================================
@@ -1553,7 +1559,6 @@ namespace CoupledField {
     entities.Resize(elems.GetSize());
     coef.Resize(elems.GetSize());
     for( UInt i = 0; i < elems.GetSize(); ++i ) {
-
       PtrParamNode xml = elems[i];
 
       // get entity list, depending on type
@@ -1573,35 +1578,52 @@ namespace CoupledField {
           break;
       }
 
-     
-      
-      UInt numComp = compNames.GetSize();
-      StdVector<std::string> vals(numComp), phases(numComp);
-      vals.Init("0.0");
-      phases.Init("0.0");
+      ReadUserFieldValues(entName,xml,compNames,type,isComplex,coef[i]);
 
-      // switch type of coef function
+    }
+  }
+
+  void SinglePDE::ReadUserFieldValues( const std::string name,
+                                       PtrParamNode valueNode,
+                                       const StdVector<std::string>& compNames,
+                                       ResultInfo::EntryType type,
+                                       bool isComplex,
+                                       shared_ptr<CoefFunction> & coef){
+
+    UInt numComp = compNames.GetSize();
+    StdVector<std::string> vals(numComp), phases(numComp);
+    vals.Init("0.0");
+    phases.Init("0.0");
+
+    // switch type of coef function
+    if( valueNode->Has("grid") ) {
+      if(!isComplex) {
+        coef.reset(new CoefFunctionGridBase<Double>(valueNode->Get("grid")));
+      } else {
+        coef.reset(new CoefFunctionGridBase<Complex>(valueNode->Get("grid")));
+      }
+    }else{
       // Note: In case someone request a "vector" valued result and
       // provides no dofNames, we use the scalar parameters.
       if( type == ResultInfo::SCALAR  ||
           (type == ResultInfo::VECTOR && compNames.GetSize() == 0 )  ) {
         // --------------
-        //  S C A L A R   
+        //  S C A L A R
         // --------------
 
         std::string val, phase;
-        xml->GetValue("value", val);
-        xml->GetValue("phase", phase);
+        valueNode->GetValue("value", val);
+        valueNode->GetValue("phase", phase);
         std::string real = AmplPhaseToReal(val, phase );
-
+      
         if( type == ResultInfo::SCALAR) {
           // -- SCALAR case --
           if(!isComplex ) {
-            coef[i] = CoefFunction::Generate(Global::REAL, real);  
+            coef = CoefFunction::Generate(Global::REAL, real);
           } else {
             std::string imag = AmplPhaseToReal(val, phase );
-            coef[i] = CoefFunction::Generate(Global::COMPLEX, real, imag);
-          } 
+            coef = CoefFunction::Generate(Global::COMPLEX, real, imag);
+          }
         }else {
           // -- VECTOR case --
           // generate coefficient function
@@ -1611,50 +1633,50 @@ namespace CoupledField {
           if(!isComplex) {
             StdVector<std::string> valV;
             valV = val;
-            coef[i] = CoefFunction::Generate(Global::REAL, valV );
+            coef = CoefFunction::Generate(Global::REAL, valV );
           } else {
-            coef[i] = CoefFunction::Generate(Global::COMPLEX,
+            coef = CoefFunction::Generate(Global::COMPLEX,
                                              realV, imagV );
           }
         }
-        
+
       } else if (type == ResultInfo::VECTOR) {
         
         // --------------
-        //  V E C T O R  
+        //  V E C T O R
         // --------------
         // a) all values are given as vector
-        if( xml->Has("values") ) {
-          std::string valString = xml->Get("values")->As<std::string>();
+        if( valueNode->Has("values") ) {
+          std::string valString = valueNode->Get("values")->As<std::string>();
           SplitStringList(valString, vals, ' ');
 
           // consistency check
           if( vals.GetSize() != numComp ) {
             EXCEPTION("Boundary condition needs " << numComp << " values!");
           }
-          
+
           // check for phase vector (optional)
-          if( xml->Has("phase")) {
-            std::string phaseString = xml->Get("phase")->As<std::string>();
+          if( valueNode->Has("phase")) {
+            std::string phaseString = valueNode->Get("phase")->As<std::string>();
             SplitStringList(phaseString, phases, ' ');
 
             // consistency check
             if( phases.GetSize() != numComp ) {
-              EXCEPTION("Boundary condition needs " << numComp 
+              EXCEPTION("Boundary condition needs " << numComp
                          << " phase values!");
             }
           }
-        } 
+        }
         // b) values are given component-wise
-        else if(xml->Has("comp")) {
-          ParamNodeList compList = xml->GetList("comp");
+        else if(valueNode->Has("comp")) {
+          ParamNodeList compList = valueNode->GetList("comp");
           Integer index = 0;
           std::string dof, val, phase;
           for( UInt j = 0; j < compList.GetSize(); ++j  ) {
            compList[j]->GetValue("dof", dof);
            compList[j]->GetValue("value", val);
            compList[j]->GetValue("phase", phase);
-           
+
            // find index
            if( compNames.GetSize() == 0 ) {
              index = 0;
@@ -1664,42 +1686,42 @@ namespace CoupledField {
                EXCEPTION("Could not find component with name '" << dof << "'");
              }
            }
-           
+
            vals[index] = val;
            phases[index] = val;
           } // loop components
 
         } else {
-          EXCEPTION( "No values given for boundary condition '" 
-              << elemName << "' on '" << entName << "'" );
+          EXCEPTION( "No values given for boundary condition '"
+              << valueNode->GetParent()->GetName() << "' on '" << name << "'" );
         }
-        
+
         // generate coefficient function
         StdVector<std::string> real, imag;
         AmplPhaseToRealImag(vals, phases, real, imag);
         if(!isComplex) {
-          coef[i] = CoefFunction::Generate(Global::REAL, vals );
+          coef = CoefFunction::Generate(Global::REAL, vals );
         } else {
-          coef[i] = CoefFunction::Generate(Global::COMPLEX, real, imag );
+          coef = CoefFunction::Generate(Global::COMPLEX, real, imag );
         }
-        
+
       } else if (type == ResultInfo::TENSOR ) {
         // --------------
-        //  T E N S O R  
+        //  T E N S O R
         // --------------
         EXCEPTION("Not yet implemented for tensor-valued boundary conditions");
         //    - all defined: read in both vectors
-        //    - components: 
+        //    - components:
 
       }
-      
-      // obtain coordinate system and set it at coefficient function
-      std::string coordSysId = "default";
-      xml->GetValue("coordSysId", coordSysId, ParamNode::PASS);
-      if( coordSysId != "default" ) {
-        coef[i]->SetCoordinateSystem( domain->GetCoordSystem(coordSysId) );
-      }
-    } // for
+    }
+
+    // obtain coordinate system and set it at coefficient function
+    std::string coordSysId = "default";
+    valueNode->GetValue("coordSysId", coordSysId, ParamNode::PASS);
+    if( coordSysId != "default" ) {
+      coef->SetCoordinateSystem( domain->GetCoordSystem(coordSysId) );
+    }
     // return 
   }
 
