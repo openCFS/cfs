@@ -764,7 +764,8 @@ namespace CoupledField {
     fctNames_[id] = fctString;
 
     LOG_DBG(algSys) << "FctId of '" << fctString << "' is " << id;
-
+    matIsSymm_[id] = true;
+    
     return id;
   }
 
@@ -791,7 +792,6 @@ namespace CoupledField {
     // Remember number of equation numbers for each function
     numEqnsPerFct_[fctId] = numEqns;
     lastFreeEqnPerFct_[fctId] = numLastFreeEqn;
-    matIsSymm_[fctId] = true;
   }
   
   
