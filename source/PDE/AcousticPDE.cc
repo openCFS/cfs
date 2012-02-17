@@ -11,10 +11,12 @@
 //new integrator concept
 #include "Forms/BiLinForms/BDBInt.hh"
 #include "Forms/BiLinForms/BBInt.hh"
+#include "Forms/BiLinForms/ABInt.hh"
 #include "Forms/LinForms/BUInt.hh"
 #include "Forms/Operators/GradientOperator.hh"
 #include "Forms/Operators/IdentityOperator.hh"
-
+#include "Forms/Operators/ConvectiveOperator.hh"
+#include "Forms/Operators/ConvectivePierceOperator.hh"
 
 #include "FeBasis/FeFunctions.hh"
 #include "Utils/StdVector.hh"
@@ -22,6 +24,7 @@
 #include "FeBasis/H1/FeSpaceH1Nodal.hh"
 
 #include "Domain/Results/ResultFunctor.hh"
+#include "Domain/Results/ExternalFieldFunctors.hh"
 
 #include "Driver/Assemble.hh"
 
@@ -120,44 +123,29 @@ namespace CoupledField{
       c0 = std::sqrt(compressibility/density);
 
       // ====================================================================
-      // stiffness integrator
+      // standard stiffness integrator
       // ====================================================================
-
       shared_ptr<CoefFunction> coeffK
                 = CoefFunction::Generate(Global::REAL, "1.0");
 
-//      BBInt< GradientOperator,FeH1,Double > * stiffInt;
       BiLinearForm * stiffInt = NULL;
       if( dim_ == 2 ) {
-         // if( isComplex_ ){
-         //   shared_ptr<CoefFunction> coeffK
-         //             = CoefFunction::Generate(Global::COMPLEX, "1.0","0.0");
-         //   stiffInt = new BBInt<GradientOperator<FeH1,2,Complex>, Complex >(coeffK,1.0 );
-         // }else{
-            shared_ptr<CoefFunction> coeffK
-                      = CoefFunction::Generate(Global::REAL, "1.0");
-            stiffInt = new BBInt<GradientOperator<FeH1,2>, Double >(coeffK,1.0 );
-          //}
-      }else{
-        //if( isComplex_ ){
-        //  shared_ptr<CoefFunction> coeffK
-        //            = CoefFunction::Generate(Global::COMPLEX, "1.0","0.0");
-        //  stiffInt = new BBInt<GradientOperator<FeH1,3,Complex>, Complex >(coeffK,1.0 );
-        //}else{
-          shared_ptr<CoefFunction> coeffK
-                    = CoefFunction::Generate(Global::REAL, "1.0");
-          stiffInt = new BBInt<GradientOperator<FeH1,3>, Double >(coeffK,1.0 );
-        //}
+        shared_ptr<CoefFunction> coeffK
+          = CoefFunction::Generate(Global::REAL, "1.0");
+        stiffInt = new BBInt<GradientOperator<FeH1,2>, Double >(coeffK,1.0 );
+      }
+      else{
+        shared_ptr<CoefFunction> coeffK
+          = CoefFunction::Generate(Global::REAL, "1.0");
+        stiffInt = new BBInt<GradientOperator<FeH1,3>, Double >(coeffK,1.0 );
       }
       stiffInt->SetName("LaplaceIntegrator");
-      //stiffInt = new BBInt<GradientOperator,FeH1,Double >(coeffK,1.0 );
 
       BiLinFormContext * stiffIntDescr =
         new BiLinFormContext(stiffInt, STIFFNESS );
 
       feFunctions_[formulation_]->AddEntityList( actSDList );
 
-      //stiffIntDescr->SetPtPdes(this, this);
       stiffIntDescr->SetEntities( actSDList, actSDList );
       stiffIntDescr->SetFeFunctions(feFunctions_[formulation_],feFunctions_[formulation_]);
       stiffInt->SetFeSpace( feFunctions_[formulation_]->GetFeSpace());
@@ -165,30 +153,17 @@ namespace CoupledField{
       assemble_->AddBiLinearForm( stiffIntDescr );
 
       // ====================================================================
-      // mass integrator
+      // standard mass integrator
       // ====================================================================
-
-      //shared_ptr<CoefFunction> coeffM
-      //    = CoefFunction::Generate(Global::REAL, lexical_cast<std::string>(1.0/(c0*c0)));
 
       BiLinearForm *massInt = NULL;
 
-      //if( isComplex_ ){
-      //  shared_ptr<CoefFunction> coeffM
-      //      = CoefFunction::Generate(Global::COMPLEX, lexical_cast<std::string>(1.0/(c0*c0)),"0.0");
-      //  if(dim_==2)
-      //    massInt = new BBInt<IdentityOperator<FeH1,2,1,Complex>, Complex >(coeffK,1.0 );
-      //  else
-      //    massInt = new BBInt<IdentityOperator<FeH1,3,1,Complex>, Complex >(coeffK,1.0 );
-      //}else{
-        shared_ptr<CoefFunction> coeffM
-                  = CoefFunction::Generate(Global::REAL, lexical_cast<std::string>(1.0/(c0*c0)));
-        if(dim_==2)
-          massInt = new BBInt<IdentityOperator<FeH1,2,1,Double>, Double  >(coeffM,1.0 );
-        else
-          massInt = new BBInt<IdentityOperator<FeH1,3,1,Double>, Double  >(coeffM,1.0 );
-      //}
-
+      shared_ptr<CoefFunction> coeffM
+        = CoefFunction::Generate(Global::REAL, lexical_cast<std::string>(1.0/(c0*c0)));
+      if(dim_==2)
+        massInt = new BBInt<IdentityOperator<FeH1,2,1,Double>, Double  >(coeffM,1.0 );
+      else
+        massInt = new BBInt<IdentityOperator<FeH1,3,1,Double>, Double  >(coeffM,1.0 );
 
       massInt->SetName("MassIntegrator");
       massInt->SetFeSpace( feFunctions_[formulation_]->GetFeSpace() );
@@ -198,6 +173,52 @@ namespace CoupledField{
       massContext->SetEntities( actSDList, actSDList );
       massContext->SetFeFunctions( feFunctions_[formulation_],feFunctions_[formulation_]);
       assemble_->AddBiLinearForm( massContext );
+
+      // ====================================================================
+      // check for flow (Pierce equation)
+      // ====================================================================
+      std::string flowId = curRegNode->Get("flowId")->As<std::string>();
+      if(flowId != "") {
+        if ( formulation_ != ACOU_POTENTIAL )
+          EXCEPTION("Pierce-Equation just possible in velocity potential formulation" );
+
+        //Add the region information
+        PtrParamNode flowNode = myParam_->Get("flowList")->GetByVal("flow","name",flowId.c_str());
+        if(isComplex_){
+          shared_ptr<FieldFunctor<Complex> > fct = dynamic_pointer_cast<FieldFunctor<Complex> >(meanFlowFunctor_);
+          fct->AddRegion(actRegion,flowNode);
+        }else{
+          shared_ptr<FieldFunctor<Double> > fct = dynamic_pointer_cast<FieldFunctor<Double> >(meanFlowFunctor_);
+          fct->AddRegion(actRegion,flowNode);
+        }
+        std::cout << "Do Flow" << std::endl;
+
+        //now create the integrators
+        BiLinearForm *convectiveStiff = NULL;
+        BiLinearForm *convectiveDamp = NULL;
+        if( dim_ == 2 ) {
+          convectiveDamp  = new ABInt<IdentityOperator<FeH1,2,1>,ConvectiveOperator<FeH1,2,1> >(coeffM, 2.0);
+          convectiveStiff = new ABInt<ConvectivePierceOperator<FeH1,2,1>,ConvectiveOperator<FeH1,2,1> >(coeffM, -1.0);
+        } else {
+          convectiveDamp  = new ABInt<IdentityOperator<FeH1,3,1>,ConvectiveOperator<FeH1,3,1> >(coeffM, 2.0);
+          convectiveStiff = new ABInt<ConvectivePierceOperator<FeH1,3,1>,ConvectiveOperator<FeH1,3,1> >(coeffM, -1.0);
+        }
+        convectiveDamp->SetBCoefFunctionOpB(meanFlowFunctor_);
+        convectiveDamp->SetName("convectiveDampPierce");
+        convectiveStiff->SetBCoefFunctionOpB(meanFlowFunctor_);
+        convectiveStiff->SetName("convectiveStiffPierce");
+
+        BiLinFormContext *convectiveContextDamp  =  new BiLinFormContext(convectiveDamp, DAMPING );
+        BiLinFormContext *convectiveContextStiff =  new BiLinFormContext(convectiveDamp, STIFFNESS );
+
+        convectiveContextDamp->SetEntities( actSDList, actSDList );
+        convectiveContextDamp->SetFeFunctions( feFunctions_[formulation_],feFunctions_[formulation_]);
+        convectiveContextStiff->SetEntities( actSDList, actSDList );
+        convectiveContextStiff->SetFeFunctions( feFunctions_[formulation_],feFunctions_[formulation_]);
+
+        assemble_->AddBiLinearForm( convectiveContextDamp );
+        assemble_->AddBiLinearForm( convectiveContextStiff );
+      }
     }
   }
 
@@ -309,7 +330,68 @@ namespace CoupledField{
     availResults_.insert( rhs );
     postProcResults_[ACOU_RHS_LOAD] = ACOU_RHS_LOAD;
 
- }
+    //creates the mean flow
+    StdVector<std::string> velDofNames;
+    std::string geometryType;
+    param->Get("domain")->GetValue("geometryType", geometryType );
+
+    if( geometryType == "3d" ) {
+      velDofNames = "x", "y", "z";
+    } else if( geometryType == "plane" ) {
+      velDofNames = "x", "y";
+    } else if( geometryType == "axi" ) {
+      velDofNames = "r", "z";
+    }
+
+    CreateMeanFlowFunction(velDofNames);
+  }
+
+   void AcousticPDE::CreateMeanFlowFunction(StdVector<std::string> dofNames){
+     //// === MEAN FLUIDMECH VELOCITY ===
+     shared_ptr<ResultInfo> flowvelocity( new ResultInfo);
+     flowvelocity->resultType = MEAN_FLUIDMECH_VELOCITY;
+     flowvelocity->dofNames = dofNames;
+     flowvelocity->unit = "m/s";
+
+     flowvelocity->definedOn = ResultInfo::NODE;
+     flowvelocity->entryType = ResultInfo::VECTOR;
+
+
+
+     shared_ptr<BaseFeFunction> meanFunction;
+     std::string form = SolutionTypeEnum.ToString(MEAN_FLUIDMECH_VELOCITY);
+     PtrParamNode feSpaceNode = infoNode_->Get("feSpaces");
+     PtrParamNode potSpaceNode = feSpaceNode->Get(form);
+     shared_ptr<FeSpace> tmpSpace = FeSpace::CreateInstance(myParam_,potSpaceNode,FeSpace::H1);
+
+     if(isComplex_){
+       meanFunction.reset(new FeFunction<Complex>());
+       meanFunction->SetFeSpace(tmpSpace);
+       meanFunction->SetResultInfo(flowvelocity);
+       meanFunction->SetGrid(ptgrid_);
+       meanFunction->SetPDE(this);
+       flowvelocity->SetFeFunction(meanFunction);
+       if(dim_==2)
+         meanFlowFunctor_.reset(new ExternalFieldFunctor<IdentityOperator<FeH1,2,2,Complex>,Complex >(meanFunction,flowvelocity));
+       else
+         meanFlowFunctor_.reset(new ExternalFieldFunctor<IdentityOperator<FeH1,3,3,Complex>,Complex >(meanFunction,flowvelocity));
+     }else{
+       meanFunction.reset(new FeFunction<Double>());
+       meanFunction->SetFeSpace(tmpSpace);
+       meanFunction->SetResultInfo(flowvelocity);
+       meanFunction->SetGrid(ptgrid_);
+       meanFunction->SetPDE(this);
+       flowvelocity->SetFeFunction(meanFunction);
+       if(dim_==2)
+         meanFlowFunctor_.reset(new ExternalFieldFunctor<IdentityOperator<FeH1,2,2,Double>,Double >(meanFunction,flowvelocity));
+       else
+         meanFlowFunctor_.reset(new ExternalFieldFunctor<IdentityOperator<FeH1,3,3,Double>,Double >(meanFunction,flowvelocity));
+     }
+
+     results_.Push_back( flowvelocity );
+     availResults_.insert( flowvelocity );
+
+   }
 
   //! Init the time stepping
   void AcousticPDE::InitTimeStepping(){

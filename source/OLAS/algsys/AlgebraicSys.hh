@@ -185,10 +185,12 @@ namespace CoupledField {
     //! case of the penalty formulation.
     //! \param analysis_id identifies the analysis step.
     //!        When the linear system is exported via file, the comment is used. 
+    //! \param setIDBC true: considers inhomog. Dirichlet b.c. (standard)
+    //!                false: is needed in case of nonlinear PDE, incremental formulation!
     //! \note This method must not be called if an eigenfrequency analysis
     //! is performed, since this method is only used to solve a system of the
     //! form Ax=b.*/
-    void Solve( PtrParamNode analysis_id );
+    void Solve( PtrParamNode analysis_id, bool setIDBC = true );
 
     //! Calculate eigenfrequencies of a generalized eigenvalue problem
 
@@ -694,6 +696,8 @@ namespace CoupledField {
     //! i.e. every FeFunction solution resides in its own SBM-block.
     //! \param sbmSolVec solution vector for all fctIds (FeFctId can be used
     //!                  as SBM-index)
+    //! \param setIDBC true: considers inhomog. Dirichlet b.c. (standard)
+    //!                false: is needed in case of nonlinear PDE, incremental formulation!
     void GetSolutionVal( SBM_Vector& sbmSolVec, bool setIDBC=true );
     
     //! Return solution vector for one single FeFct

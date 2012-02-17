@@ -299,7 +299,7 @@
           </xsd:element>
           
           <!-- nonLinear element -->
-          <xsd:element name="nonLinear" type="DT_NonLinParams"/>
+          <xsd:element name="nonLinear" type="DT_NonLinParams" minOccurs="0" maxOccurs="1"/>
           
           <!-- timeStepping element -->
           <!-- .... @ahueppe: to be implemented -->
@@ -391,7 +391,7 @@
                       </xsd:element>
                       
                       <!-- nonLinear element -->
-                      <xsd:element name="nonLinear" type="DT_NonLinParams"/>
+                      <xsd:element name="nonLinear" type="DT_NonLinParams" minOccurs="0" maxOccurs="1"/>
                       
                       <!-- timeStepping element -->  
                       

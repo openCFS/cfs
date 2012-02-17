@@ -73,12 +73,16 @@ namespace CoupledField{
     //! Init the time stepping
     void InitTimeStepping();
 
+    //! create feFunction for meanFluidMech velocity
+    void CreateMeanFlowFunction(StdVector<std::string> dofNames);
+
   private:
 
     //! stores if the Acoustic PDE is in potential or pressure form
     SolutionType formulation_;
 
-
+    //!
+    shared_ptr<BaseFieldFunctor> meanFlowFunctor_;
   };
 
 }

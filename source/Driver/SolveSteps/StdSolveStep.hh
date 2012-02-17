@@ -57,9 +57,6 @@ namespace CoupledField
     //! solves for one nonlinear static step: incremental formulation 
     virtual void StepStaticNonLin(PtrParamNode analysis_id);
 
-    //! solves for one nonlinear static step: total formulation
-    virtual void StepStaticNonLinTotal(PtrParamNode analysis_id);
-    
     //! routine for actions after the SolveStep-method
     virtual void PostStepStatic();
 
@@ -216,7 +213,6 @@ namespace CoupledField
     bool nonLin_;           //!< flag for nonlinear calculations
     bool nonLinMaterial_;           //!< flag for nonlinear material calculations
     bool isHyst_;           //!< flag for hystersis modeling
-    bool totalFormulation_; //!< yes, then total formulation, else incremental one
     Double incStopCrit_;       //!< stopping criterion for incremental error
     Double residualStopCrit_;  //!< stopping criterion for residual error
     UInt nonLinMaxIter_;    //!< maximal number of NL-iterations

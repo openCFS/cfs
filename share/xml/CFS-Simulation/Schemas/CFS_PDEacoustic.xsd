@@ -59,6 +59,7 @@
                     <xsd:attribute name="polyId" type="xsd:string" use="optional" default="default"> </xsd:attribute>
                     <xsd:attribute name="integId" type="xsd:string" use="optional" default="default"> </xsd:attribute>
                     <xsd:attribute name="nonLinId" type="xsd:token" use="optional" default=""/>
+                    <xsd:attribute name="flowId" type="xsd:token" use="optional" default=""></xsd:attribute>
                   </xsd:complexType>
                 </xsd:element>
               </xsd:sequence>
@@ -118,6 +119,15 @@
 
 
           <!-- Type of FlowData (optional) -->
+          <!-- List defining flows -->
+          <xsd:element name="flowList" minOccurs="0" maxOccurs="1">
+            <xsd:complexType>
+              <xsd:choice maxOccurs="unbounded">
+                <xsd:element name="flow" type="DT_RHSVector"/>
+              </xsd:choice>
+            </xsd:complexType>
+          </xsd:element>
+
 
           <!-- Type of Combustion Data (optional) -->
           <xsd:element name="combustionData" minOccurs="0">

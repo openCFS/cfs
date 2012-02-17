@@ -451,7 +451,7 @@ namespace CoupledField {
 
   }
 
-  void AlgebraicSys::Solve(PtrParamNode analysis_id) {
+  void AlgebraicSys::Solve(PtrParamNode analysis_id, bool setIDBC) {
     
     LOG_TRACE(algSys) << "Solving problem";
 
@@ -528,7 +528,8 @@ namespace CoupledField {
     // Now modifiy the right-hand side vector.
     // Note: It is mandatory to incorporate the IDBC values to the
     // complete RHS.
-    idbcHandler_->AddIDBCToRHS( rhs_ );
+    if ( setIDBC ) 
+      idbcHandler_->AddIDBCToRHS( rhs_ );
 
     // Remove the export linear system stuff, it has changed in standardsys.cc an as below
     // the solve part is commentet out, I see no reason to export linsys also here, it would
@@ -654,7 +655,8 @@ namespace CoupledField {
       sol_->Export((base+".sol.vec").c_str());
 
     // Now de-modifiy the right-hand side vector
-    idbcHandler_->RemoveIDBCFromRHS( rhs_ );
+    if ( setIDBC ) 
+      idbcHandler_->RemoveIDBCFromRHS( rhs_ );
 
     // Check that solution went fine, if not issue a warning
     if ( out->Get("solutionIsOkay")->As<bool>() == false ) {

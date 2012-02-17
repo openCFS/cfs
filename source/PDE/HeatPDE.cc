@@ -179,12 +179,6 @@ void HeatPDE::ReadSpecialBCs() {
 
     SinglePDE::InitNonLin();
 
-//     //now do PDE specifics
-//     if ( nonLin_ ) {
-//       //we perform a total formulation (no incremental one)
-//       totalFormulation_ = true;
-//     }
-
   }
 
 
@@ -279,7 +273,7 @@ void HeatPDE::DefineIntegrators() {
       //  Nonlinear RHS-integrator
       // =================================
       LinearForm * rhsNlinForm = new KXIntegrator<Double>(stiffInt, -1.0, feFunc );
-        rhsNlinForm->SetName("RHSNonLinFormHeat");
+        rhsNlinForm->SetName("RHSNonLinFormHeatStiff");
         LinearFormContext * rhsNlinContext =
             new LinearFormContext( rhsNlinForm );
         rhsNlinContext->SetEntities( actSDList );
@@ -323,19 +317,70 @@ void HeatPDE::DefineIntegrators() {
     actSDMat->GetScalar(density,DENSITY,Global::REAL);
     actSDMat->GetScalar(heatCapacity,HEAT_CAPACITY,Global::REAL);
     massFactor = density * heatCapacity;
-    shared_ptr<CoefFunction> coeff 
-    = CoefFunction::Generate(Global::REAL, lexical_cast<std::string>(massFactor));
-    
-    BiLinearForm *massInt = NULL;
-    massInt = new BBInt<IdentityOperator<FeH1> >(coeff, 1.0);
-    massInt->SetName("MassIntegrator");
-    massInt->SetFeSpace( feFunctions_[HEAT_TEMPERATURE]->GetFeSpace() );
 
-    BiLinFormContext *massContext =  new BiLinFormContext(massInt, DAMPING );
-     
-    massContext->SetEntities( actSDList, actSDList );
-    massContext->SetFeFunctions( feFunctions_[HEAT_TEMPERATURE],feFunctions_[HEAT_TEMPERATURE]);
-    assemble_->AddBiLinearForm( massContext );
+    if ( nonLinTypes.Find(NLHEAT_CAPACITY) != -1 ) {
+      // informs material that approx./interpol. for heat conductivity is needed
+      std::cout << "Do NL Capacity" << std::endl;
+
+      actSDMat->NeedApproxMatCurve( HEAT_CAPACITY );
+      actSDMat->InitApproxCurves();
+      ApproxData * nLinFnc = actSDMat->GetNonlinFnc( HEAT_CAPACITY );
+      assert(nLinFnc);
+
+      // create CoefFunctionApprox with nlinFnc, initial value and feFunction
+      shared_ptr<CoefFunctionApprox<IdentityOperator<FeH1> > > 
+        capNL ( new CoefFunctionApprox<IdentityOperator<FeH1> >() );
+
+      capNL->Init( heatCapacity, nLinFnc, 
+                    dynamic_pointer_cast<FeFunction<Double > > (feFunc) );
+
+      // create stiffness integrator
+      BaseBDBInt* massIntNL = NULL;
+      if( dim_ == 2 ) {
+        massIntNL = new BBInt<IdentityOperator<FeH1,2> >(capNL,density );
+      } else {
+        massIntNL = new BBInt<IdentityOperator<FeH1,3> >(capNL,density );
+      }
+      massIntNL->SetName("MassIntegrator-NL");
+
+      BiLinFormContext * massNLContext =
+        new BiLinFormContext(massIntNL, DAMPING );
+      massNLContext->SetEntities( actSDList, actSDList );
+      massNLContext->SetFeFunctions( feFunc, feFunc );
+
+      assemble_->AddBiLinearForm( massNLContext );
+      bdbInts_[actRegion] = massIntNL;
+
+      // =================================
+      //  Nonlinear RHS-integrator
+      // =================================
+      LinearForm * rhsNlinForm = new KXIntegrator<Double>(massIntNL, -1.0, feFunc );
+      rhsNlinForm->SetName("RHSNonLinFormHeatMass");
+      LinearFormContext * rhsNlinContext =
+        new LinearFormContext( rhsNlinForm );
+      rhsNlinContext->SetEntities( actSDList );
+      rhsNlinContext->SetFeFunction( feFunc );
+      assemble_->AddLinearForm( rhsNlinContext );
+    }
+    else {
+      shared_ptr<CoefFunction> coeff 
+        = CoefFunction::Generate(Global::REAL, lexical_cast<std::string>(massFactor));
+      
+      BiLinearForm *massInt = NULL;
+      if(dim_==2)
+        massInt = new BBInt<IdentityOperator<FeH1,2,1,Double>, Double  >(coeff,1.0 );
+      else
+        massInt = new BBInt<IdentityOperator<FeH1,3,1,Double>, Double  >(coeff,1.0 );
+
+      massInt->SetName("MassIntegrator");
+      massInt->SetFeSpace( feFunctions_[HEAT_TEMPERATURE]->GetFeSpace() );
+      
+      BiLinFormContext *massContext =  new BiLinFormContext(massInt, DAMPING );
+      
+      massContext->SetEntities( actSDList, actSDList );
+      massContext->SetFeFunctions( feFunctions_[HEAT_TEMPERATURE],feFunctions_[HEAT_TEMPERATURE]);
+      assemble_->AddBiLinearForm( massContext );
+    }
   }
 
   // ======================================================================
