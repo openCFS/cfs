@@ -140,6 +140,9 @@ namespace CoupledField {
       class Bzip2InputSource: public xercesc::InputSource {
       public:
         Bzip2InputSource(std::string fileName);
+        Bzip2InputSource(const Bzip2InputSource& src) {
+          fileName_ = src.fileName_;
+        };
         virtual ~Bzip2InputSource();
         virtual Bzip2InputStream* makeStream() const;
       private:
