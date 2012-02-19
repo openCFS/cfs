@@ -736,6 +736,13 @@ namespace CoupledField {
     // store flag for applying static condensation
     statCond_ = solStrat_->UseStaticCondensation();
     myInfo_->Get("setup")->Get("staticCondensation")->SetValue(statCond_);
+    
+    // Note: currently static condensation does not work in conjunction
+    // with direct coupled / mixed problems.
+    if( numFcts > 1 && statCond_ ) {
+      EXCEPTION("Static condensation is currently just implemented for "
+                 << "systems with one FeFunction only.");
+    }
   }
 
   
@@ -1680,6 +1687,11 @@ namespace CoupledField {
     LOG_DBG2(algSys) << "EqnVec2: " << eqnNrs2.ToString();
     LOG_DBG3(algSys) << "matrix is:\n " << elemMat;
     
+    // Security check: check if we have as many equations as numRows/Cols
+    // of the matrix
+    assert( eqnNrs1.GetSize() == elemMat.GetNumRows());
+    assert( eqnNrs2.GetSize() == elemMat.GetNumCols());
+    
     // Re-map entries from (fctId,eqnNr) -> (blockNum,index)
     StdVector<UInt> rowBlocks, colBlocks, rowNums, colNums;
     MapFctIdEqnToIndex(fctId1, eqnNrs1, rowBlocks, rowNums);
@@ -1994,6 +2006,9 @@ namespace CoupledField {
     LOG_DBG(algSys) << "Setting element RHS for fctId ("<< fctId << ")";
     LOG_DBG2(algSys) << "EqnVec: " << eqnNrs.ToString();
     LOG_DBG3(algSys) << "vector is:\n " << elemRHS.ToString();
+    
+    // Ensure that there are as many equations as vector entries
+    assert( eqnNrs.GetSize() == elemRHS.GetSize());
     
     // Re-map entries from (fctId,eqnNr) -> (blockNum,index)
     StdVector<UInt> rowBlocks, rowNums;
