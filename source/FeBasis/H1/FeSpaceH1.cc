@@ -476,6 +476,15 @@ namespace CoupledField {
     FeFctIdType fctId = feFunction_->GetFctId();
     algSys->MapCompleteFctIdToIndex(fctId, blockNums, indices);
     
+    std::string resultName = 
+        SolutionTypeEnum.ToString(feFunction_->GetResultInfo()->resultType);
+    
+    std::cout << " *****************************************\n";
+    std::cout << "  F E - S P A C E - I N F O R M A T I O N \n";
+    std::cout << " *****************************************\n";
+    std::cout << " Physical Quantity: " << resultName << std::endl;
+    std::cout << " FeFunction Id: " << fctId << std::endl << std::endl;
+    
     
     // =================================
     // 1) ELEMENT INFORMATION
