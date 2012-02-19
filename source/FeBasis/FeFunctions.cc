@@ -139,7 +139,13 @@ DECLARE_LOG(fefunc)
   void FeFunction<T>::Finalize(){
     
     // assert that functionId was set
-    WARN("Add some more consistency checks here");
+    static bool warn = true;
+    if(warn) 
+    {
+      WARN("Add some more consistency checks here");
+      warn = false;
+    }
+    
     if (fctId_ == NO_FCT_ID ) {
       EXCEPTION("No fctId was set!");
     }
@@ -397,7 +403,12 @@ DECLARE_LOG(fefunc)
             //ResultCache::SetIndex(it.GetPos());
           }
           else {
-            // this case needs to be implemented ...
+            // register element midpoint
+            const Elem* ptElem = it.GetElem();
+            shared_ptr<ElemShapeMap> esm = 
+                ptGrid->GetElemShapeMap(ptElem, false );
+            esm->GetGlobMidPoint(globCoord);
+            parser->SetCoordinates( mHandle_, *coosy, globCoord );
           }
 
           // Now evaluate value of IDBC
