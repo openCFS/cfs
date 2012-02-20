@@ -7,10 +7,7 @@ ENDIF(EXPLICIT_TEMPLATE_INSTANTIATION)
 
 ADD_LIBRARY(pardiso-olas STATIC ${PARDISO_SRCS})
 
-# CFS_FORTRAN_LIBS has been set in cmake_modules/distro.cmake
-# LAPACK_LIBRARY and BLAS_LIBRARY are defined in
-# cmake_modules/FindFortranLibs.cmake
-TARGET_LINK_LIBRARIES(pardiso-olas
+SET(TARGET_LL
   cfsgeneral
   datainout
   graph-olas
@@ -18,7 +15,6 @@ TARGET_LINK_LIBRARIES(pardiso-olas
   matvec
   paramh
   solver-olas
-  pardiso-lib1
 )
 # needed as solver-olas is cyclic dependent on us 
 SET_PROPERTY(TARGET pardiso-olas PROPERTY LINK_INTERFACE_MULTIPLICITY 3)
@@ -29,4 +25,12 @@ SET(DEPENDS
   "${CFS_FORTRAN_LIBS}"
 )
 
-ADD_DEPENDENT_LIBRARY(pardiso-lib "${PARDISO_LIBRARY}" "${DEPENDS}")
+# the pardiso library can be empty, as mkl 12 does not need a solver library
+IF(PARDISO_LIBRARY)
+  ADD_DEPENDENT_LIBRARY(pardiso-lib "${PARDISO_LIBRARY}" "${DEPENDS}")
+  SET(TARGET_LL
+    ${TARGET_LL}
+    pardiso-lib1)
+ENDIF(PARDISO_LIBRARY)
+
+TARGET_LINK_LIBRARIES(pardiso-olas ${TARGET_LL})
