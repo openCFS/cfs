@@ -121,7 +121,7 @@
                 <xsd:element name="traction"      type="DT_RHSVector"/>
                 <xsd:element name="pressure"      type="DT_RHSScalar"/>
                 <xsd:element name="force"         type="DT_RHSVector"/>
-                <xsd:element name="forceDensity"   type="DT_RHSVector"/>
+                <xsd:element name="forceDensity"  type="DT_RHSVector"/>
                 
                 
             <!--<xsd:element name="spring"         type="DT_MechSpring"    />

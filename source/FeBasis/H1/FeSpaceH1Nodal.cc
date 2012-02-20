@@ -61,7 +61,7 @@ namespace CoupledField{
     // Set correct integration order
     RegionIdType eRegion;// =  ent.GetElem()->regionId;
     if( ent.GetType() == EntityList::SURF_ELEM_LIST) {
-      eRegion = ent.GetSurfElem()->ptVolElem1->regionId;
+      eRegion = ent.GetSurfElem()->ptVolElems[0]->regionId;
     } else {
       eRegion = ent.GetElem()->regionId;
     }
@@ -90,7 +90,7 @@ namespace CoupledField{
     // discussion already ....
     RegionIdType eRegion = NO_REGION_ID;
     if( ent.GetType() == EntityList::SURF_ELEM_LIST) {
-      eRegion = ent.GetSurfElem()->ptVolElem1->regionId;
+      eRegion = ent.GetSurfElem()->ptVolElems[0]->regionId;
     } else {
       eRegion = ent.GetElem()->regionId;
     }

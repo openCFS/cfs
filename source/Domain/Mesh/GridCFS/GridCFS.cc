@@ -309,15 +309,16 @@ namespace CoupledField {
 
       Vector<Double> locMidPoint;
       Matrix<Double> connectCoord;
-
+      
+      
       // iterate over all elements
       for( UInt iElem = 0; iElem < numElems_; iElem++ ) {
 
         // Check, if element has same dimension as grid
         // -> We want to find only volume elements
         if( Elem::shapes[orderedElems_[iElem]->type].dim == dim_ ) {
-          shapeMap_->SetElem(orderedElems_[iElem]);
-          shapeMap_->GetGlobMidPoint(actEntCoord);
+          shared_ptr<ElemShapeMap> esm = GetElemShapeMap(orderedElems_[iElem]);
+          esm->GetGlobMidPoint(actEntCoord);
           temp = (actEntCoord-coord );
           entityDist[iElem] = temp.NormL2();
         } else {
@@ -1024,10 +1025,10 @@ namespace CoupledField {
         // loop over elements
         for ( it.Begin(); !it.IsEnd(); it++ ) {
           const Elem * ptElem = it.GetElem();
-          ElemShapeMap & esm = *GetElemShapeMap(ptElem);
+          shared_ptr<ElemShapeMap>  esm = GetElemShapeMap(ptElem);
           Vector<Double> midPoint = 
               Elem::shapes[ptElem->type].midPointCoord;
-          esm.CalcJ( jac, midPoint );
+          esm->CalcJ( jac, midPoint );
 
           // calculate for every element jacobian and map "local" direction vector
           jac.Invert( jacInv );
@@ -1042,9 +1043,9 @@ namespace CoupledField {
         for ( it.Begin(); !it.IsEnd(); it++ ) {
 
           const Elem * ptElem = it.GetElem();
-          ElemShapeMap & esm = *GetElemShapeMap(ptElem);
+          shared_ptr<ElemShapeMap>  esm = GetElemShapeMap(ptElem);
           Double minEdge, maxEdge;
-          esm.GetMaxMinEdgeLength(maxEdge,minEdge);
+          esm->GetMaxMinEdgeLength(maxEdge,minEdge);
           actVal[it.GetPos()] = maxEdge / minEdge;
         } // loop over elements
       } else {
@@ -1052,10 +1053,10 @@ namespace CoupledField {
         for ( it.Begin(); !it.IsEnd(); it++ ) {
 
           const Elem * ptElem = it.GetElem();
-          ElemShapeMap & esm = *GetElemShapeMap(ptElem);
+          shared_ptr<ElemShapeMap>  esm = GetElemShapeMap(ptElem);
           Vector<Double> midPoint = 
               Elem::shapes[ptElem->type].midPointCoord;
-          esm.CalcJ( jac, midPoint );
+          esm->CalcJ( jac, midPoint );
 
           jac.Determinant(jacDet);
           actVal[it.GetPos()] = jacDet;
@@ -1093,8 +1094,8 @@ namespace CoupledField {
         locDir[actComp] = 1.0;
         for ( it.Begin(); !it.IsEnd(); it++ ) {
           Vector<Double> midPoint;
-          ElemShapeMap & esm = *GetElemShapeMap(it.GetElem());
-          esm.GetGlobMidPoint(midPoint);
+          shared_ptr<ElemShapeMap> esm = GetElemShapeMap(it.GetElem());
+          esm->GetGlobMidPoint(midPoint);
           actCosy->Local2GlobalVector(coordDir, locDir, midPoint);
           for( UInt i = 0; i < dim_; ++i ) {
             actVal[it.GetPos()*dim_ + i] = coordDir[i];
@@ -1117,10 +1118,10 @@ namespace CoupledField {
       // loop over surface elements
       for ( it.Begin(); !it.IsEnd(); it++ ) {
         const SurfElem * ptElem = it.GetSurfElem();
-        ElemShapeMap & esm = *GetElemShapeMap(ptElem);
+        shared_ptr<ElemShapeMap> esm = GetElemShapeMap(ptElem);
         Vector<Double> midPoint = 
             Elem::shapes[it.GetElem()->type].midPointCoord;
-        esm.CalcNormal( normal, midPoint );
+        esm->CalcNormal( normal, midPoint );
         normal *= (Double) ptElem->normalSign;
         
         for(UInt iDim = 0; iDim < dim_; iDim++ ) {
@@ -1156,7 +1157,7 @@ namespace CoupledField {
     // we do not know of the order of the nodes within the element,
     // hence we have to find the diameter vector and compare it.
 
-    ElemShapeMap& esm = *(this->GetElemShapeMap(elems[0]));
+    shared_ptr<ElemShapeMap> esm = (this->GetElemShapeMap(elems[0]));
     Elem::ShapeType refShape = Elem::GetShapeType(elems[0]->type);
 
     // only line, quad and hexa can be regular. If you have a
@@ -1176,7 +1177,7 @@ namespace CoupledField {
     Matrix<Double>  coords;
     Vector<Double> diameter; // diameter of reference (first) element
 
-    esm.CalcDiameter(diameter);
+    esm->CalcDiameter(diameter);
     Double dist_tol = diameter.NormL2() * 1e-6;
     LOG_DBG2(gridcfs) << "CFRR diameter=" << diameter.ToString() << " tol=" << dist_tol;
 
@@ -1184,11 +1185,11 @@ namespace CoupledField {
     Vector<Double> diff; // difference vector
     for(unsigned int i = 1, in = elems.GetSize(); i < in; i++)
     {
-      ElemShapeMap& testEsm = *(this->GetElemShapeMap(elems[i]));
+      shared_ptr<ElemShapeMap> testEsm = (this->GetElemShapeMap(elems[i]));
       Elem::ShapeType testShape = Elem::GetShapeType(elems[i]->type);
       if(testShape != refShape) return false;
 
-      testEsm.CalcDiameter(test_diameter);
+      testEsm->CalcDiameter(test_diameter);
 
        diff= diameter-test_diameter; 
       LOG_DBG3(gridcfs) << "CFRR test=" << elems[i]->elemNum
@@ -2228,10 +2229,10 @@ namespace CoupledField {
           ptVolElem = orderedElems_[elemNrPerNode[surfNodeNr-1][iVolElem]-1];
 
           if ( elemsAssigned == 0 ) {
-            myElem->ptVolElem1 = ptVolElem;
+            myElem->ptVolElems[0] = ptVolElem;
           }
           else {
-            myElem->ptVolElem2 = ptVolElem;
+            myElem->ptVolElems[1] = ptVolElem;
           }
 
           elemsAssigned++;
@@ -2261,7 +2262,7 @@ namespace CoupledField {
       myElem = surfElIt->second;
 
       // check, if each surface element has at least one volume neighbour
-      if ( myElem->ptVolElem1 == NULL ) {
+      if ( myElem->ptVolElems[0] == NULL ) {
         //  EXCEPTION( "Pointer to first volume element is NULL for surface"
         //                    << " element no. "
         //                    << surfElems_[iRegion][iSurfElem]->elemNum << ".\n"
@@ -2270,10 +2271,11 @@ namespace CoupledField {
         myElem->normalSign = 0;
       } else {
         
-        shared_ptr<ElemShapeMap> es = GetElemShapeMap(myElem, false);
+        shared_ptr<ElemShapeMap> esm(new LagrangeElemShapeMap(this));
+        esm->SetElem(myElem );
         LocPoint lp = Elem::shapes[myElem->type].midPointCoord;
-        es->CalcNormal( normalUndefSign, lp );
-        es->CalcNormalOutOfVol( normalDefSign, lp, *myElem->ptVolElem1 );
+        esm->CalcNormal( normalUndefSign, lp );
+        esm->CalcNormalOutOfVol( normalDefSign, lp, *myElem->ptVolElems[0] );
 
         // Check if all entries have the same sign by calculating
         // a scalar product between both vectors.

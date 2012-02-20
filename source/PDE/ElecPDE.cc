@@ -31,6 +31,7 @@
 #include "Forms/LinForms/SingleEntryInt.hh"
 #include "Forms/Operators/GradientOperator.hh"
 #include "Forms/Operators/IdentityOperator.hh"
+#include "Forms/Operators/IdentityOperatorNormal.hh"
 
 // new postprocessing concept
 #include "Domain/Results/ResultFunctor.hh"
@@ -268,7 +269,62 @@ namespace CoupledField {
       ctx->SetFeFunction(myFct);
       assemble_->AddLinearForm(ctx);
     } // for
+    
+    // =================================
+    //  FLUX DENSITY (VOLUME / SURFACE) 
+    // =================================
+    LOG_DBG(elecpde) << "Reading prescribed flux density";
+    StdVector<std::string> vecDofNames;
+    if(dim_ == 3)
+      vecDofNames = "x", "y", "z";
+    if(dim_ == 2 && !isaxi_)
+      vecDofNames = "x", "y";
+    if(dim_ == 2 && isaxi_)
+      vecDofNames = "r", "z";
+    ReadRhsExcitation( "fluxDensity", vecDofNames, 
+                       ResultInfo::VECTOR, isComplex_, ent, coef );
+    std::set<RegionIdType> volRegions (subdoms_.Begin(), subdoms_.End() );
+    for( UInt i = 0; i < ent.GetSize(); ++i ) {
+      // check type of entitylist
+      if (ent[i]->GetType() == EntityList::NODE_LIST) {
+        EXCEPTION("Charge density must be defined on elements")
+      }
 
+      // determine dimension
+      EntityIterator it = ent[i]->GetIterator();
+      UInt elemDim = Elem::shapes[it.GetElem()->type].dim;
+      if( elemDim == (dim_-1) ) {
+        // === SURFACE ===
+        if( dim_ == 2) {
+          if(isComplex_) {
+            lin = new BUIntegrator<IdentityOperatorNormal<FeH1,2>, 
+                Complex, true>(Complex(1.0), coef[i], volRegions);
+          } else  {
+            lin = new BUIntegrator<IdentityOperatorNormal<FeH1,2>, 
+                Double, true>(1.0, coef[i], volRegions);
+          } 
+        }else {
+          if(isComplex_) {
+            lin = new BUIntegrator<IdentityOperatorNormal<FeH1,3>, 
+                Complex, true>(Complex(1.0), coef[i], volRegions);
+          } else  {
+            lin = new BUIntegrator<IdentityOperatorNormal<FeH1,3>, 
+                Double, true>(1.0, coef[i], volRegions);
+          } 
+        }
+        lin->SetName("SurfaceFluxDensityInt");
+      } else {
+        // === VOLUME ===
+        EXCEPTION("Elec Flux density in the volume not yet implemented");
+      }
+
+      
+      LinearFormContext *ctx = new LinearFormContext( lin );
+      ctx->SetEntities( ent[i] );
+      ctx->SetFeFunction(myFct);
+      assemble_->AddLinearForm(ctx);
+      myFct->AddEntityList(ent[i]);
+    } // for
   }
 
   

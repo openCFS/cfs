@@ -20,8 +20,8 @@
 
 namespace CoupledField{
 
-template< class B_OP, class VEC_DATA_TYPE >
-BUIntegrator<B_OP,VEC_DATA_TYPE>::
+template< class B_OP, class VEC_DATA_TYPE, bool SURFACE >
+BUIntegrator<B_OP,VEC_DATA_TYPE,SURFACE>::
 BUIntegrator(VEC_DATA_TYPE factor,
              shared_ptr<CoefFunction > rhsCoef, 
              bool coordUpdate )
@@ -29,21 +29,43 @@ BUIntegrator(VEC_DATA_TYPE factor,
   factor_ = factor;
   this->name_ = "RhsBUIntegrator";
 
-         assert(rhsCoef->GetDimType() == CoefFunction::VECTOR);
- #ifndef NDEBUG
-       if(rhsCoef->GetDimType() != CoefFunction::VECTOR){
-         Exception("BDB integrator expects the coefficient function to be vectorial!\n \
+  assert(rhsCoef->GetDimType() == CoefFunction::VECTOR);
+#ifndef NDEBUG
+  if(rhsCoef->GetDimType() != CoefFunction::VECTOR){
+    Exception("BDB integrator expects the coefficient function to be vectorial!\n \
                      For scalar valued Things, create a vectorial function with one component");
-       }
- #endif
-         this->rhsCoefs_ = rhsCoef;
+  }
+#endif
+  this->rhsCoefs_ = rhsCoef;
 
-    }
+}
 
-  template<class B_OP, class VEC_DATA_TYPE >
-  void BUIntegrator<B_OP,VEC_DATA_TYPE>::CalcElemVector( Vector<VEC_DATA_TYPE> & elemVec,
-                                                                   EntityIterator& ent){
-     // Declare necessary variables
+template< class B_OP, class VEC_DATA_TYPE, bool SURFACE >
+BUIntegrator<B_OP,VEC_DATA_TYPE,SURFACE>::
+BUIntegrator(VEC_DATA_TYPE factor,
+             shared_ptr<CoefFunction > rhsCoef,
+             const std::set<RegionIdType>& volRegions,
+             bool coordUpdate )
+             :LinearForm( coordUpdate ){
+  factor_ = factor;
+  this->name_ = "RhsBUIntegrator";
+
+  assert(rhsCoef->GetDimType() == CoefFunction::VECTOR);
+#ifndef NDEBUG
+  if(rhsCoef->GetDimType() != CoefFunction::VECTOR){
+    Exception("BDB integrator expects the coefficient function to be vectorial!\n \
+                     For scalar valued Things, create a vectorial function with one component");
+  }
+#endif
+  this->rhsCoefs_ = rhsCoef;
+  volRegions_ = volRegions;
+}
+
+  template<class B_OP, class VEC_DATA_TYPE, bool SURFACE >
+  void BUIntegrator<B_OP,VEC_DATA_TYPE,SURFACE>::
+  CalcElemVector( Vector<VEC_DATA_TYPE> & elemVec,
+                  EntityIterator& ent){
+    // Declare necessary variables
      const Elem* ptElem = ent.GetElem();
      Matrix<VEC_DATA_TYPE> bMat;
      Vector<VEC_DATA_TYPE> cVec;
@@ -73,17 +95,20 @@ BUIntegrator(VEC_DATA_TYPE factor,
      for( UInt i = 0; i < intPoints.GetSize(); i++  ) {
 
        // Calculate for each integration point the LocPointMapped
-       lp.Set( intPoints[i], esm );
+       if (SURFACE) {
+         lp.Set( intPoints[i], esm, volRegions_ );
+       } else {
+         lp.Set( intPoints[i], esm );
+       }
 
        //calc factor
        fac = VEC_DATA_TYPE(lp.jacDet * weights[i]);
        fac *= factor_;
        // Call the CalcBMat()-method
        operator_.CalcOpMatTransposed( bMat, lp, ptFe);
-       
-       rhsCoefs_->GetVector(cVec,lp);
-       cVec *= fac;
-       elemVec += bMat * cVec;
+
+       rhsCoefs_->GetVector(cVec,lp);  
+       elemVec += bMat * cVec * fac;
      }
 
   }

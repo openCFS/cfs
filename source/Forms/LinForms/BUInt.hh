@@ -29,46 +29,59 @@
 namespace CoupledField{
 
 
-  template< class B_OP,
-            class VEC_DATA_TYPE=Double>
-  class BUIntegrator : public LinearForm{
-    public:
-      BUIntegrator(VEC_DATA_TYPE factor,shared_ptr<CoefFunction > rhsCoef,
-                   bool coordUpdate = false );
+template< class B_OP,
+class VEC_DATA_TYPE=Double,
+bool SURFACE = false>
+class BUIntegrator : public LinearForm{
+public:
 
-      virtual ~BUIntegrator(){
+  //! Constructor for volume integration
+  BUIntegrator(VEC_DATA_TYPE factor,
+               shared_ptr<CoefFunction > rhsCoef,
+               bool coordUpdate = false );
 
-      }
+  //! Constructor for surface integration
+  BUIntegrator(VEC_DATA_TYPE factor,
+               shared_ptr<CoefFunction > rhsCoef,
+               const std::set<RegionIdType>& volRegions,
+               bool coordUpdate = false );
 
-      void CalcElemVector(Vector<VEC_DATA_TYPE> & elemVec,EntityIterator& ent);
+  virtual ~BUIntegrator(){
 
-      bool IsComplex(){
-        return std::tr1::is_same<VEC_DATA_TYPE,Complex>::value;
-      }
+  }
 
-      virtual void SetFeSpace(shared_ptr<FeSpace> feSpace ){
-        this->ptFeSpace_ = feSpace;
-        UInt opDim = feSpace->GetFeFunction()->GetResultInfo()->dofNames.GetSize();
-        Bdim_ = opDim;
-      }
-      
-      //! \copydoc LinearForm::IsSolDependent
-      bool IsSolDependent() {
-        return rhsCoefs_->GetDependency() == CoefFunction::SOLUTION;
-      }
-      
-    protected:
-      B_OP operator_;
+  void CalcElemVector(Vector<VEC_DATA_TYPE> & elemVec,EntityIterator& ent);
 
-      VEC_DATA_TYPE factor_;
+  bool IsComplex(){
+    return std::tr1::is_same<VEC_DATA_TYPE,Complex>::value;
+  }
 
-      shared_ptr<CoefFunction> rhsCoefs_;
+  virtual void SetFeSpace(shared_ptr<FeSpace> feSpace ){
+    this->ptFeSpace_ = feSpace;
+    UInt opDim = feSpace->GetFeFunction()->GetResultInfo()->dofNames.GetSize();
+    Bdim_ = opDim;
+  }
 
-      //! dimension of b-operator
-      UInt Bdim_;
+  //! \copydoc LinearForm::IsSolDependent
+  bool IsSolDependent() {
+    return rhsCoefs_->GetDependency() == CoefFunction::SOLUTION;
+  }
+
+protected:
+  B_OP operator_;
+
+  VEC_DATA_TYPE factor_;
+
+  shared_ptr<CoefFunction> rhsCoefs_;
+
+  //! set containing all volume regions for surface integrators
+  std::set<RegionIdType> volRegions_;
+
+  //! dimension of b-operator
+  UInt Bdim_;
 
 
-  };
+};
 }
 //Include template definition file
 #include "BUInt.cc"

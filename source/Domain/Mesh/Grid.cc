@@ -31,11 +31,9 @@ namespace CoupledField
     
     integScheme_.reset( new IntScheme() );
 
-    // create template instance for Lagrangian mapped elements
-    // Note: In the future we might allow for different element shape types,
-    // so we would have to store for every element, if it has a special 
-    // shape mapping type
-    shapeMap_.reset( new LagrangeElemShapeMap( this ));
+    
+    // initialize static members of Lagrangian shape map
+    LagrangeElemShapeMap::InitStaticMembers();
   }
 
 
@@ -59,8 +57,12 @@ namespace CoupledField
                                                   bool isUpdated ) {
 
     // Currently we support just Lagrangian-mapped elements
-    shapeMap_->SetElem( ptElem, isUpdated );
-    return shapeMap_;
+    //shapeMap_->SetElem( ptElem, isUpdated );
+    //return shapeMap;
+    
+    shared_ptr<ElemShapeMap> ret(new LagrangeElemShapeMap(this));
+    ret->SetElem(ptElem, isUpdated );
+    return ret;
   }
   
   RegionIdType Grid::AddRegion(const std::string& name, bool reg)

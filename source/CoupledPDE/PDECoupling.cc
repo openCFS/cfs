@@ -361,19 +361,19 @@ namespace CoupledField
           SurfElem const & myElem = 
             dynamic_cast<SurfElem &>(*interfaceElems[iElem]);
 
-          index = myPDE_->subdoms_.Find(myElem.ptVolElem1->regionId);
+          index = myPDE_->subdoms_.Find(myElem.ptVolElems[0]->regionId);
 
-          if ( index == -1 && (myElem.ptVolElem2!=NULL)) {
-            index = myPDE_->subdoms_.Find(myElem.ptVolElem2->regionId);
+          if ( index == -1 && (myElem.ptVolElems[1]!=NULL)) {
+            index = myPDE_->subdoms_.Find(myElem.ptVolElems[2]->regionId);
           }
         
-          if ( index == -1 && (myElem.ptVolElem2!=NULL)) {
+          if ( index == -1 && (myElem.ptVolElems[1]!=NULL)) {
             EXCEPTION( "PDECoupling::AddOutput: For Surface element Nr. " 
                        << " I found no according region in PDE '"
                        << myPDE_->GetName() << "'!" );
           }
           //In case we have only one volume elem neighbor we assume same mat index
-          if ( index == -1 && (myElem.ptVolElem2==NULL)) {
+          if ( index == -1 && (myElem.ptVolElems[1]==NULL)) {
           myInterface->oppositePdeMaterials[iElem] = 
             (myPDE_->materials_.begin()->second);
           }

@@ -112,6 +112,9 @@ namespace CoupledField
     //! Stores Rayleigh damping definition for each region
     std::map<RegionIdType, RaylDampingData > regionRaylDamping_;
     
+    //! Stores the linear stiffness for each region
+    std::map<RegionIdType, shared_ptr<CoefFunction> > regionStiffness_;
+    
     //! Dimension of stresses
     UInt stressDim_;
     

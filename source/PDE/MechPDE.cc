@@ -23,6 +23,7 @@
 #include "Forms/LinForms/SingleEntryInt.hh"
 #include "Forms/LinForms/BUInt.hh"
 #include "Forms/Operators/StrainOperator.hh"
+#include "Forms/Operators/IdentityOperatorNormalTrans.hh"
 
 // new postprocessing concept
 #include "Domain/Results/ResultFunctor.hh"
@@ -175,6 +176,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
         // Important: Add bdb-integrator to global list, as we need them later
         // for calculation of postprocessing results
         bdbInts_[actRegion] = stiffInt;
+        
       }
       
       // ====================================================================
@@ -278,6 +280,14 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
       if (ent[i]->GetType() == EntityList::NODE_LIST) {
         EXCEPTION("Force density must be defined on elements")
       }
+      
+      // determine dimension
+      EntityIterator it = ent[i]->GetIterator();
+      UInt elemDim = Elem::shapes[it.GetElem()->type].dim;
+      if( elemDim != dim_ ) {
+        EXCEPTION("Foce density can only be defined on surface elements");
+      }
+      
       if( dim_ == 2) {
         if(isComplex_) {
           lin = new BUIntegrator<IdentityOperator<FeH1,2,2>, Complex>(Complex(1.0), coef[i]);
@@ -296,12 +306,90 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
       ctx->SetEntities( ent[i] );
       ctx->SetFeFunction(myFct);
       assemble_->AddLinearForm(ctx);
+      myFct->AddEntityList(ent[i]);
     } // for
     
+    
     // ===============
-    //  STRESS 
+    //  PRESSURE 
     // ===============
-    // .. to be implemented
+    LOG_DBG(mechpde) << "Reading mechanical pressure";
+    StdVector<std::string> empty;
+    ReadRhsExcitation( "pressure", empty, ResultInfo::VECTOR, isComplex_, ent, coef );
+    std::set<RegionIdType> volRegions (subdoms_.Begin(), subdoms_.End() );
+    
+    for( UInt i = 0; i < ent.GetSize(); ++i ) {
+      // check type of entitylist
+      if (ent[i]->GetType() == EntityList::NODE_LIST) {
+        EXCEPTION("Mechanical pressure must be defined on elements")
+      }
+            
+      if( dim_ == 2) {
+        if(isComplex_) {
+          lin = new BUIntegrator<IdentityOperatorNormalTrans<FeH1,2>, 
+                                 Complex,true>(Complex(1.0), coef[i], volRegions);
+        } else {
+          lin = new BUIntegrator<IdentityOperatorNormalTrans<FeH1,2>, 
+                                 Double,true>(1.0, coef[i], volRegions);
+        }
+      } else  {
+        if(isComplex_) {
+          lin = new BUIntegrator<IdentityOperatorNormalTrans<FeH1,3>, 
+                                 Complex, true>(Complex(1.0), coef[i], volRegions);
+        } else {
+          lin = new BUIntegrator<IdentityOperatorNormalTrans<FeH1,3>, 
+                                 Double, true>(1.0, coef[i], volRegions);
+        }
+      }
+      lin->SetName("PressureInt");
+      LinearFormContext *ctx = new LinearFormContext( lin );
+      ctx->SetEntities( ent[i] );
+      ctx->SetFeFunction(myFct);
+      assemble_->AddLinearForm(ctx);
+      myFct->AddEntityList(ent[i]);
+    } // for
+
+    
+    // ==================
+    //  SURFACE TRACTION  
+    // ==================
+    LOG_DBG(mechpde) << "Reading surface tractions";
+      
+      ReadRhsExcitation( "traction", dispDofNames, ResultInfo::VECTOR, isComplex_, ent, coef );
+      for( UInt i = 0; i < ent.GetSize(); ++i ) {
+        // check type of entitylist
+        if (ent[i]->GetType() == EntityList::NODE_LIST) {
+          EXCEPTION("Surface traction must be defined on elements")
+        }
+        // ensure that list contains only surface elements
+        EntityIterator it = ent[i]->GetIterator();
+        UInt elemDim = Elem::shapes[it.GetElem()->type].dim;
+        if( elemDim != (dim_-1) ) {
+          EXCEPTION("Surface traction can only be defined on surface elements");
+        }
+        
+        if( dim_ == 2) {
+          if(isComplex_) {
+            lin = new BUIntegrator<IdentityOperator<FeH1,2,2>, Complex>(Complex(1.0), coef[i]);
+          } else {
+            lin = new BUIntegrator<IdentityOperator<FeH1,2,2>, Double>(1.0, coef[i]);
+          }
+        } else  {
+          if(isComplex_) {
+            lin = new BUIntegrator<IdentityOperator<FeH1,3,3>, Complex>(Complex(1.0), coef[i]);
+          } else {
+            lin = new BUIntegrator<IdentityOperator<FeH1,3,3>, Double>(1.0, coef[i]);
+          }
+        }
+        lin->SetName("TractionIntegrator");
+        LinearFormContext *ctx = new LinearFormContext( lin );
+        ctx->SetEntities( ent[i] );
+        ctx->SetFeFunction(myFct);
+        assemble_->AddLinearForm(ctx);
+        myFct->AddEntityList(ent[i]);
+      } // for
+    
+    
   }
 
   BaseBDBInt *
@@ -324,6 +412,9 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
       curCoef = actSDMat->GetCoefFunction(MECH_STIFFNESS_TENSOR,
                                           tensorType_, Global::REAL, false);
     }
+    
+    // store coefficient function for later use (e.g. in boundary integrators)
+    regionStiffness_[regionId] = curCoef;
     
     // ----------------------------------------
     //  Determine correct stiffness integrator 

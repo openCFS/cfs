@@ -1,3 +1,5 @@
+#include <boost/assign/list_of.hpp>
+
 #include "ElemShapeMap.hh"
 #include "Domain/Mesh/Grid.hh"
 #include "FeBasis/H1/H1ElemsLagExpl.hh"
@@ -29,16 +31,18 @@ namespace CoupledField {
 // ===========================================================================
   LocPointMapped::LocPointMapped()
   : ptEl( NULL ),
-    jacDet( 0.0 )
+    jacDet( 0.0 ),
+    isSurface( false )
   {
 
   }
   
   void LocPointMapped::Set( const LocPoint& lp, shared_ptr<ElemShapeMap> esm ) {
 
-    shapeMap = esm;
+    this->shapeMap = esm;
     this->lp = lp;
-    ptEl = shapeMap->GetElem();
+    this->ptEl = shapeMap->GetElem();
+    this->isSurface = false;
 
     // Calculate Jacobian, its inverse as well as determinant for local point
     esm->CalcJ( jac, lp);
@@ -71,9 +75,79 @@ namespace CoupledField {
       jacDet *= 2 * PI * globPoint[0];
     }
   }
+  
+  void LocPointMapped::Set( const LocPoint& lp, shared_ptr<ElemShapeMap> esm,
+                            const std::set<RegionIdType>& myRegions) {
 
 
+    // check, if previously set element is the same as this one
+    bool isSameElem = (esm->GetElem() == this->ptEl); 
 
+    // ------------------------------------------------------
+    //  1) Set "normal" element information (Jacobian, etc.)
+    // ------------------------------------------------------
+
+    // first, call "normal" set method, also valid for volume elements
+    this->Set(lp, esm);
+
+    // ------------------------------------------------------
+    //  2) Perform surface-element specific tasks
+    // ------------------------------------------------------
+
+    // set flag for surface mapped element
+    this->isSurface = true;
+    
+    // get surface element
+    const SurfElem& surfElem = *(esm->GetSurfElem()); 
+
+    // if we have not previously selected the correct volume neighbor, we
+    // have to do it now 
+    shared_ptr<ElemShapeMap> esmVol;
+    if( !isSameElem) {
+      const Elem * ptVolElem = NULL;
+
+      // loop over volume element neighbors of the surface element and check,
+      // if the regionId of the element is in the map "myRegions"
+      boost::array<Elem*,2>::const_iterator it = surfElem.ptVolElems.begin();
+      for( ; it != surfElem.ptVolElems.end(); it++ ) {
+        // check, if element is set at all
+        if( *it) {
+          if(myRegions.find( (*it)->regionId) != myRegions.end()) {
+            ptVolElem = *it; 
+            break;
+          }
+        }
+      } // loop over volume element neighbors
+
+      // check, if element could be found
+      if( !ptVolElem ) {
+        EXCEPTION("Could not find a suitable volume neighbor for surface element #"
+            << surfElem.elemNum << ". " );
+      }
+      // create new local point for volume element 
+      lpmVol.reset(new LocPointMapped());
+      esmVol = 
+          esm->GetGrid()->GetElemShapeMap( ptVolElem, esm->IsUpadet() );
+    } else {
+      esmVol = lpmVol->shapeMap;
+    } // elemIsSame
+
+    // calculate local point in volume element, corresponding to
+    // the surface element point
+    LocPoint lpVol;
+    Vector<Double> locNormal;
+    esmVol->GetLocalIntPoints4Surface(  ptEl->connect, lp, 
+                                        lpVol,locNormal);
+    lpmVol->Set( lpVol, esmVol);
+
+    // calculate global normal pointing into current volume element
+    normal = Transpose(lpmVol->jacInv) * locNormal;
+    normal /= normal.NormL2();
+
+    // multiply normal by normal sign, so it points out of the first
+    // volume element
+    normal *= Double(surfElem.normalSign);
+  }
 
 // ========================================================================
 //  ElemShapeMap
@@ -98,6 +172,8 @@ ElemShapeMap::ElemShapeMap( Grid* ptGrid ) {
   ptGrid_ = ptGrid;
   depth_ = 1.0;
   isAxi_ = false;
+  ptElem_ = NULL;
+  ptSurfElem_ = NULL;
 }
 
 ElemShapeMap::~ElemShapeMap() {
@@ -108,6 +184,18 @@ void ElemShapeMap::SetElem( const Elem* ptElem, bool isUpdated ) {
   ptElem_ = ptElem;
   isUpdated_ = isUpdated;
   isAxi_ = ptGrid_->IsAxi();
+  
+  // Check, if the element is a surface element
+  if( Elem::shapes[ptElem->type].dim == ptGrid_->GetDim()-1 ) {
+    try {
+      ptSurfElem_ = dynamic_cast<const SurfElem*>(ptElem);
+    } catch(...) {
+      EXCEPTION( "Could not convert element #" << ptElem->elemNum
+                 << " to a surface element" );
+    }
+  } else {
+    ptSurfElem_ = NULL;
+  }
 }
 
 
@@ -115,39 +203,68 @@ void ElemShapeMap::SetElem( const Elem* ptElem, bool isUpdated ) {
 //  Lagrangian Element Shape Map
 // ========================================================================
 
+// declaration of static member data for geometric reference elements
+std::map<Elem::FEType, FeH1LagrangeExpl* > LagrangeElemShapeMap::feMap_;
+
+void LagrangeElemShapeMap::InitStaticMembers() {
+   
+  feMap_ = 
+      boost::assign::list_of< std::pair<Elem::FEType, FeH1LagrangeExpl* > > 
+  (Elem::ET_LINE2, new FeH1LagrangeLine1()) 
+  (Elem::ET_LINE3, new FeH1LagrangeLine2()) 
+  (Elem::ET_TRIA3, new FeH1LagrangeTria1()) 
+  (Elem::ET_TRIA6, new FeH1LagrangeTria2()) 
+  (Elem::ET_QUAD4, new FeH1LagrangeQuad1()) 
+  (Elem::ET_QUAD8, new FeH1LagrangeQuad2()) 
+  (Elem::ET_QUAD9, new FeH1LagrangeQuad9())
+  (Elem::ET_TET4,  new FeH1LagrangeTet1()) 
+  (Elem::ET_TET10, new FeH1LagrangeTet2()) 
+  (Elem::ET_HEXA8, new FeH1LagrangeHex1()) 
+  (Elem::ET_HEXA20, new FeH1LagrangeHex2()) 
+  (Elem::ET_HEXA27, new FeH1LagrangeHex27()) 
+  (Elem::ET_WEDGE6, new FeH1LagrangeWedge1()) 
+  (Elem::ET_WEDGE15, new FeH1LagrangeWedge2())
+  (Elem::ET_WEDGE18, new FeH1LagrangeWedge18()) 
+  (Elem::ET_PYRA5, new FeH1LagrangePyra1()) 
+  (Elem::ET_PYRA13, new FeH1LagrangePyra2())
+  (Elem::ET_PYRA14, new FeH1LagrangePyra14());
+}
+
+
+
 LagrangeElemShapeMap::LagrangeElemShapeMap( Grid* ptGrid  ) 
 : ElemShapeMap(ptGrid ) {
   type_ = LAGRANGE; 
   
-  // Fill map with reference elements
-  feMap_[Elem::ET_LINE2] = new FeH1LagrangeLine1(); 
-  feMap_[Elem::ET_LINE3] = new FeH1LagrangeLine2();
-  feMap_[Elem::ET_TRIA3] = new FeH1LagrangeTria1();
-  feMap_[Elem::ET_TRIA6] = new FeH1LagrangeTria2();
-  feMap_[Elem::ET_QUAD4] = new FeH1LagrangeQuad1();
-  feMap_[Elem::ET_QUAD8] = new FeH1LagrangeQuad2();
-  feMap_[Elem::ET_QUAD9] = new FeH1LagrangeQuad9();
-  feMap_[Elem::ET_TET4]  = new FeH1LagrangeTet1();
-  feMap_[Elem::ET_TET10] = new FeH1LagrangeTet2();
-  feMap_[Elem::ET_HEXA8] = new FeH1LagrangeHex1();
-  feMap_[Elem::ET_HEXA20] = new FeH1LagrangeHex2();
-  feMap_[Elem::ET_HEXA27] = new FeH1LagrangeHex27();
-  feMap_[Elem::ET_WEDGE6] = new FeH1LagrangeWedge1();
-  feMap_[Elem::ET_WEDGE15] = new FeH1LagrangeWedge2();
-  feMap_[Elem::ET_WEDGE18] = new FeH1LagrangeWedge18();
-  feMap_[Elem::ET_PYRA5] = new FeH1LagrangePyra1();
-  feMap_[Elem::ET_PYRA13] = new FeH1LagrangePyra2();
-  feMap_[Elem::ET_PYRA14] = new FeH1LagrangePyra14();
+//  // Fill map with reference elements
+//  feMap_[Elem::ET_LINE2] = new FeH1LagrangeLine1(); 
+//  feMap_[Elem::ET_LINE3] = new FeH1LagrangeLine2();
+//  feMap_[Elem::ET_TRIA3] = new FeH1LagrangeTria1();
+//  feMap_[Elem::ET_TRIA6] = new FeH1LagrangeTria2();
+//  feMap_[Elem::ET_QUAD4] = new FeH1LagrangeQuad1();
+//  feMap_[Elem::ET_QUAD8] = new FeH1LagrangeQuad2();
+//  feMap_[Elem::ET_QUAD9] = new FeH1LagrangeQuad9();
+//  feMap_[Elem::ET_TET4]  = new FeH1LagrangeTet1();
+//  feMap_[Elem::ET_TET10] = new FeH1LagrangeTet2();
+//  feMap_[Elem::ET_HEXA8] = new FeH1LagrangeHex1();
+//  feMap_[Elem::ET_HEXA20] = new FeH1LagrangeHex2();
+//  feMap_[Elem::ET_HEXA27] = new FeH1LagrangeHex27();
+//  feMap_[Elem::ET_WEDGE6] = new FeH1LagrangeWedge1();
+//  feMap_[Elem::ET_WEDGE15] = new FeH1LagrangeWedge2();
+//  feMap_[Elem::ET_WEDGE18] = new FeH1LagrangeWedge18();
+//  feMap_[Elem::ET_PYRA5] = new FeH1LagrangePyra1();
+//  feMap_[Elem::ET_PYRA13] = new FeH1LagrangePyra2();
+//  feMap_[Elem::ET_PYRA14] = new FeH1LagrangePyra14();
 }
 
 LagrangeElemShapeMap::~LagrangeElemShapeMap() {
   
-  // Remove pointers to all reference elements
-  std::map<Elem::FEType, FeH1LagrangeExpl *>::iterator it = feMap_.begin();
-  for( ; it != feMap_.end(); it++ ) {
-    delete  it->second;
-  }
-  feMap_.clear();
+//  // Remove pointers to all reference elements
+//  std::map<Elem::FEType, FeH1LagrangeExpl *>::iterator it = feMap_.begin();
+//  for( ; it != feMap_.end(); it++ ) {
+//    delete  it->second;
+//  }
+//  feMap_.clear();
 }
 
 void LagrangeElemShapeMap::Local2Global( Vector<Double>& globPoint, 
@@ -785,6 +902,7 @@ Double LagrangeElemShapeMap::CalcVolume( ) {
   //    return elemVol;
 }
 
+
 void LagrangeElemShapeMap::CalcNormal( Vector<Double>& normal, 
                                        const LocPoint& lp ) {
   
@@ -798,8 +916,8 @@ void LagrangeElemShapeMap::CalcNormal( Vector<Double>& normal,
   }
   
   // get neighboring volume element
-  const SurfElem & surfEl = dynamic_cast<const SurfElem&>(*ptElem_);
-  Elem * ptVolEl = surfEl.ptVolElem1;
+  const SurfElem & surfEl = *ptSurfElem_;
+  Elem * ptVolEl = surfEl.ptVolElems[0];
   
   
   // Obtain shape map of neighboring volume element
@@ -909,6 +1027,15 @@ CalcNormalOutOfVol( Vector<Double> & normal,
       break;
     }
   }
+}
+
+void LagrangeElemShapeMap::
+GetLocalIntPoints4Surface( const StdVector<UInt> & surfConnect,
+                           const LocPoint & surfIntPoint,
+                           LocPoint & volIntPoint,
+                           Vector<Double>& locNormal ) {
+  ptFe_->GetLocalIntPoints4Surface(  surfConnect, ptElem_->connect,
+                                    surfIntPoint, volIntPoint, locNormal );
 }
 
 bool LagrangeElemShapeMap::
@@ -1025,9 +1152,13 @@ Double LagrangeElemShapeMap::CalcJDet( Matrix<Double>& jac,
    
 void LagrangeElemShapeMap::SetElem( const Elem* ptElem, bool isUpdated ) {
   
-  ptElem_ = ptElem;
-  isUpdated_ = isUpdated;
-  isAxi_ = ptGrid_->IsAxi();
+  ElemShapeMap::SetElem( ptElem, isUpdated);
+//  ptElem_ = ptElem;
+//  isUpdated_ = isUpdated;
+//  isAxi_ = ptGrid_->IsAxi();
+//  
+  // call setElem at base class
+  
   
   // get coordinates from grid
   ptGrid_->GetElemNodesCoord( coords_,ptElem->connect, isUpdated_ );

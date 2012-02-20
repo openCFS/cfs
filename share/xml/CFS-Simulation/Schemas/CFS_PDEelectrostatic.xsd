@@ -96,9 +96,10 @@
                 <xsd:element name="dirichletInhom" type="DT_ElecID" />
                 <xsd:element name="constraint" type="DT_ElecCS" />
 
-                <!-- mechanic specific boundary conditions -->
+                <!-- electrostatic specific boundary conditions -->
                 <xsd:element name="charge"        type="DT_RHSScalar"/>
                 <xsd:element name="chargeDensity" type="DT_RHSScalar"/>
+                <xsd:element name="fluxDensity"   type="DT_RHSVector"/>
                 
                 
                 <!--<xsd:element name="impedance" type="DT_ElecImpedance" />-->

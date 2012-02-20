@@ -29,8 +29,6 @@ namespace CoupledField
 {
 
   //! Forward class declaration
-  class ElemShapeMap;
-  //! forward class declaration
   class ResultHandler;
   class CoordSystem;
 
@@ -733,9 +731,6 @@ namespace CoupledField
     //! Map from name to type of entity
     std::map<std::string, EntityList::DefineType> nameTypeMap_;
 
-    //! Shape mapping object
-    shared_ptr<ElemShapeMap> shapeMap_;
-    
     // =======================================================================
     // Interation Scheme
     // =======================================================================

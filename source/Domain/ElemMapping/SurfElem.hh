@@ -1,6 +1,7 @@
 #ifndef FILE_CFS_SURF_ELEM_HH
 #define FILE_CFS_SURF_ELEM_HH
 
+#include <boost/array.hpp>
 #include "Elem.hh"
 
 namespace CoupledField
@@ -46,7 +47,7 @@ namespace CoupledField
   //! normalDefSign = normalUndefSign * surfElem.normalSign;
   //! \endverbatim
   //! Now \c normalDefSign points in the direction OUT of 
-  //! \c surfElem.ptVolElem1 !
+  //! \c surfElem.ptVolElem[0] !
 
   struct SurfElem : public Elem
   {
@@ -54,8 +55,8 @@ namespace CoupledField
     
     //! Default Constructor
     SurfElem() {
-      ptVolElem1 = NULL;
-      ptVolElem2 = NULL;
+      ptVolElems[0] = NULL;
+      ptVolElems[0] = NULL;
       normalSign = 0;
     }
     
@@ -64,17 +65,14 @@ namespace CoupledField
     // ======================================================
     //@{ \name Geometry Information
     
-    //! Pointer to first volume element
-    Elem * ptVolElem1;
-    
-    //! Pointer to second volume element
-    Elem * ptVolElem2;
+    //! Array with pointer to neighbouring volume elements
+    boost::array<Elem*,2> ptVolElems;
     
     //! Flag for indicating direction of surface normal
     
     //! If this flag (interpreted as a double) gets multiplied with the
     //! undefined normal direction, obtained by Grid::CalcSurfNormal(), the
-    //! resulting normal will be oriented OUT of ptVolElem1, i.e. for
+    //! resulting normal will be oriented OUT of ptVolElem[0], i.e. for
     //! surface element on the boundary (which have just one volume neighbor)
     //! the resulting normal will point out of the domain. 
     char normalSign;

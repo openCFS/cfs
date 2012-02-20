@@ -9,6 +9,7 @@
 // includes for the C99 standard datatypes (e.g. uint32_t, long double)
 #include <boost/cstdint.hpp>
 #include <boost/shared_ptr.hpp>
+#include <boost/scoped_ptr.hpp>
 #include <cfloat>
 
 #include "General/defs.hh"
@@ -35,6 +36,7 @@ namespace CoupledField {
   // Import Boost's namespace
   //using namespace boost;
   using boost::shared_ptr;
+  using boost::scoped_ptr;
   using boost::any_cast;
   using boost::lexical_cast;
   using boost::char_separator;

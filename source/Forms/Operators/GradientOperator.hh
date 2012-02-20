@@ -3,16 +3,16 @@
 
 #include "BaseBOperator.hh"
 
-//! Calculate the gradient of the shape functions
-//!    / N_1z N_2z ...\
-//! b =| N_1y N_2y ...|
-//!    \ N_1z N_2z .../
-//!  here N_1x denotes the x-derivative of the first
-//!  shape function at a given local point
-//! \tparam FE Type of Finite Element used
-//! \tparam D Dimension of the problem space
-//! \tparam TYPE Data type (DOUBLE, COMPLEX)
 namespace CoupledField{
+  //! Calculate the gradient of the shape functions
+  //!    / N_1z N_2z ...\
+  //! b =| N_1y N_2y ...|
+  //!    \ N_1z N_2z .../
+  //!  here N_1x denotes the x-derivative of the first
+  //!  shape function at a given local point
+  //! \tparam FE Type of Finite Element used
+  //! \tparam D Dimension of the problem space
+  //! \tparam TYPE Data type (DOUBLE, COMPLEX)
   template<class FE, UInt D, class TYPE = Double>
   class GradientOperator : public BaseBOperator<TYPE>{
     public:
