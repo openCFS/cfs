@@ -99,7 +99,7 @@ namespace CoupledField {
       CalcLocDerivShFnc( locDeriv, lpm.lp.coord, elem, comp);
       
       //add them to the map only, if we are allowed to!
-      if( preComputShFnc_) {
+      if( preComputShFnc_ && lpm.lp.number != LocPoint::NOT_SET ) {
         shapeFncDerivsAtIp_[lpm.lp.number] = locDeriv;
       }
     }else{
@@ -113,7 +113,7 @@ namespace CoupledField {
     if(shapeFncDerivsAtIp_.find(lp.number) == shapeFncDerivsAtIp_.end()){
       CalcLocDerivShFnc( deriv, lp.coord, elem, comp);
       //add them to the map only, if we are allowed to!
-      if( preComputShFnc_) {
+      if( preComputShFnc_ && lp.number != LocPoint::NOT_SET) {
         shapeFncDerivsAtIp_[lp.number] = deriv;
       }
     }else{

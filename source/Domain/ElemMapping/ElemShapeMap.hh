@@ -49,7 +49,7 @@ namespace CoupledField {
 
     //! Alias for point, which is not explicitly represented by 
     //! a integration point
-    enum {NOT_SET = INT_MAX};
+    enum {NOT_SET = -1};
 
     //! Number of corresponding integration point 
     Integer number;

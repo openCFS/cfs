@@ -56,7 +56,7 @@ namespace CoupledField
     //! Default Constructor
     SurfElem() {
       ptVolElems[0] = NULL;
-      ptVolElems[0] = NULL;
+      ptVolElems[1] = NULL;
       normalSign = 0;
     }
     
