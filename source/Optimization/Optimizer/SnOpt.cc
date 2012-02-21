@@ -6,6 +6,7 @@
 #include "DataInOut/Logging/cfslog.hh"
 #include "DataInOut/Logging/log.hpp"
 #include "DataInOut/ParamHandling/ParamNode.hh"
+#include "DataInOut/programOptions.hh"
 #include "General/Enum.hh"
 #include "General/exception.hh"
 #include "Optimization/Condition.hh"
@@ -48,8 +49,8 @@ SnOpt::SnOpt(Optimization* opt, PtrParamNode pn) :
   nxname(1),
   nFname(1),
   iSumm(6),         // variable for file output, 6 == stdout
-  iPrint(1),       // variable for file output, 6 == stdout
-  iSpecs(1),        // variable for file output
+  iPrint(0),        // variable for file output, 6 == stdout
+  iSpecs(0),        // variable for file input
   DerOpt(1),
   minrw(500),
   miniw(500),
@@ -76,6 +77,7 @@ SnOpt::SnOpt(Optimization* opt, PtrParamNode pn) :
   lin_constraints(0),
   nonlin_constraints(0),
   perform_commit_iteration_(false), // we want to perform commit iteration only after the first function eval.
+  outfilename(""),
   timer_(new Timer()),
   timer_callback_(new Timer())
 {
@@ -93,14 +95,18 @@ SnOpt::SnOpt(Optimization* opt, PtrParamNode pn) :
 
 SnOpt::~SnOpt()
 {
-  snclose_(&iPrint);
-  snclose_(&iSumm);
+  if (iPrint != 0 && iPrint != 6)
+    snclose_(&iPrint);
+
+  if (iSpecs != 0)
+    snclose_(&iSpecs);
 }
 
 void SnOpt::Init()
 {
   LOG_TRACE(snopt) << "Init";
   
+
   // ================================================================== 
   // First,  sninit_ MUST be called to initialize optional parameters   
   // to their default values.                                           
@@ -110,14 +116,15 @@ void SnOpt::Init()
   iw.resize(miniw);
   sninit_(&iPrint, &iSumm, &cw[0], &mincw, &iw[0], &miniw, &rw[0], &minrw, 8*mincw);
   
+  // set the file for snopt, formerly fort.1
+  setSnoptOutputFiles();
+
   // initialize problem
   get_nlp_info();
   
   // set the optimization options
   // call after get_nlp_info!! 
-  SetSnOptOptions();
-  
-  setSnoptOutputFiles();
+  SetSnOptOptions();  
   
   x.resize(n, 1.0); // start value
   xlow.resize(n, -GetInfBound());
@@ -147,16 +154,26 @@ void SnOpt::Init()
 
 void SnOpt::setSnoptOutputFiles()
 {
-  //assert(iPrint == 9 || iPrint == 6);
-  //char printname[] = "out.printfile";
-  //snopenappend_(&iPrint, printname, &INFO, strlen(printname));
-  //std::cout << "snopenappend_ for printfile = " << INFO << endl;
-  SetIntegerValue("print_file", iPrint);
+  if(optimizer_pn_ != NULL)
+  {
+    if(optimizer_pn_->Has("output"))
+      outfilename = optimizer_pn_->Get("output")->As<std::string>();
+    else
+      outfilename = progOpts->GetSimName() + ".snopt";
+  }
   
-  //assert(iSumm == 4 || iSumm == 6);
-  //char summname[] = "out.summfile";
-  //snopenappend_(&iSumm, summname, &INFO , strlen(summname));
-  //std::cout << "snopenappend_ for summfile = " << INFO << endl;
+  // we enable command line output
+  if(outfilename == "commandline")
+  {
+    iPrint = 6;
+  }
+  else
+  { 
+    iPrint = 15;
+    snopenappend_(&iPrint, (char*) outfilename.c_str(), &INFO, outfilename.size());
+  }
+
+  SetIntegerValue("print_file", iPrint);
   INFO = 0;
 }
 
@@ -179,7 +196,7 @@ void SnOpt::SolveProblem()
   
   // here we could put a more suitable problem name...
   char Prob[9] = "FIXME   ";
-
+  
   // if we have linear constraints we have to setup the gradient
   if(lin_constraints > 0)
   {
@@ -223,6 +240,7 @@ void SnOpt::InfoXMLOutput()
   info_->Get(ParamNode::SUMMARY)->Get("snopt_exit/info")->SetValue(INFO);
   info_->Get(ParamNode::SUMMARY)->Get("evaluations/f_evals")->SetValue(f_evals);
   info_->Get(ParamNode::SUMMARY)->Get("evaluations/g_evals")->SetValue(g_evals);
+  info_->Get(ParamNode::SUMMARY)->Get("snopt_outputfile")->SetValue(outfilename);
 
   
   std::string exitstring;
@@ -497,12 +515,14 @@ void SnOpt::AdjustWorkArrayMemory()
   // might not be enough
   const double factor(1.0);
   
+  int iPrt = 0;
+  int iSum = 0;
   // update lengths according to values obtained from snmema_
   if(lencw < mincw)
   {
     lencw = static_cast<int>(factor * static_cast<double>(mincw));
     cw.resize(8*lencw);
-    snseti_("Total character workspace", &lencw, &iPrint, &iSumm, &INFO,
+    snseti_("Total character workspace", &lencw, &iPrt, &iSum, &INFO,
             &cw[0], &tmpcw, &iw[0], &tmpiw, &rw[0], &tmprw, 25, 8*lencw);
     LOG_TRACE(snopt) << "new value: lencw = " << lencw << ", INFO = " << INFO;
   }
@@ -511,7 +531,7 @@ void SnOpt::AdjustWorkArrayMemory()
   {
     leniw = static_cast<int>(factor * static_cast<double>(miniw));
     iw.resize(leniw);
-    snseti_("Total integer workspace", &leniw, &iPrint, &iSumm, &INFO,
+    snseti_("Total integer workspace", &leniw, &iPrt, &iSum, &INFO,
             &cw[0], &tmpcw, &iw[0], &tmpiw, &rw[0], &tmprw, 23, 8*lencw);
     LOG_TRACE(snopt) << "new value: leniw = " << leniw << ", INFO = " << INFO;
   }
@@ -520,7 +540,7 @@ void SnOpt::AdjustWorkArrayMemory()
   {
     lenrw = static_cast<int>(factor * static_cast<double>(minrw));
     rw.resize(lenrw);
-    snseti_("Total real workspace", &lenrw, &iPrint, &iSumm, &INFO,
+    snseti_("Total real workspace", &lenrw, &iPrt, &iSum, &INFO,
             &cw[0], &tmpcw, &iw[0], &tmpiw, &rw[0], &tmprw, 20, 8*lencw);
     LOG_TRACE(snopt) << "new value: lenrw = " << lenrw << ", INFO = " << INFO;
   }
@@ -699,6 +719,10 @@ void SnOpt::SetIntegerValue(const std::string& key, int value)
   {
     option = "Major iterations limit";
   }
+  else if(key == "print_file")
+  {
+    option = "Print file";
+  }
   else if(key == "minor_iterations_limit")
   {
     option = "Minor iterations limit";
@@ -734,13 +758,6 @@ void SnOpt::SetIntegerValue(const std::string& key, int value)
   else if(key == "factorization_frequency")
   {
     option = "Factorization frequency";
-  }
-  else if(key == "print_file")
-  {
-    //option = "Print file";
-    //snseti_(option.c_str(), &value, 0, 0, &INFO,
-            //&cw[0], &lencw, &iw[0], &leniw, &rw[0], &lenrw, option.size(), 8*lencw);
-    return;
   }
   
   if(!option.empty())

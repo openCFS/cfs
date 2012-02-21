@@ -3,23 +3,35 @@
 extern "C"
 {
 
+#if defined(__x86_64__) || defined(__ia64__) || defined(__sparc64__) || defined(__alpha)
+  typedef int flag;
+  typedef int ftnlen;
+  typedef int ftnint; 
+#else
+  typedef short flag;
+  typedef short ftnlen;
+  typedef short ftnint;
+#endif
+
 /*open*/
 typedef struct
-{ short oerr;
-  short ounit;
+{ 
+  flag oerr;
+  ftnint ounit;
   char *ofnm;
-  int ofnmlen;
+  ftnlen ofnmlen;
   char *osta;
   char *oacc;
   char *ofm;
-  short orl;
+  ftnint orl;
   char *oblnk;
 } olist;
 
 /*close*/
 typedef struct
-{ short cerr;
-  short cunit;
+{ 
+  flag cerr;
+  ftnint cunit;
   char *csta;
 } cllist;
 

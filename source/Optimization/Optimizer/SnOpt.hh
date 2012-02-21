@@ -216,7 +216,9 @@ private:
    * before a new gradient step is evaluated. Such we can do the CommitIteration() only "post mortem" :(
    * This is therefore the "static" helper to be used in Callback(). */
   bool perform_commit_iteration_;
-
+  
+  /** filename of snopt output file */
+  std::string outfilename;
 
   /** Timer for SnOpt */ 
   boost::shared_ptr<Timer> timer_;
