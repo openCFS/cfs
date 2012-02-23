@@ -50,7 +50,7 @@ template <class TYPE> class Vector;
      * @param read_rhs is only interesting for the forward problem
      * @param save_sol set this in the adjoint problem -> see Solution::Read()
      * @param comment is just to LOG_DBG */
-    virtual void StorePDESolution(Solutions& solutions, Excitation &excite, Function* f, UInt timestep, bool read_sol, bool read_rhs, bool save_sol, const std::string& comment);
+    virtual void StorePDESolution(Solutions& solutions, Excitation &excite, Function* f, UInt timestep, bool read_sol, bool read_rhs, bool save_sol, DERIVType derivative, const std::string& comment);
 
     /** Subtract the current Testdisplacement from a given vector */
     inline void SubtractTestDisplacement(unsigned int idx, Matrix<double>& CornerCoords, Vector<double>& result, Matrix<double>& tmp_strain, Matrix<double>& tmp_displacement);

@@ -469,6 +469,22 @@ struct Elem;
       }
     }
   }
+  
+  void StdPDE::GetAnyDerivSolVecOfElement(Vector<Double>& sol, const EntityIterator& it, shared_ptr<ResultInfo> res, DERIVType derivative){
+    switch(derivative){
+    case NO_DERIVTYPE: GetSolVecOfElement(sol, it, res); break;
+    case FIRST_DERIV: GetDerivSolVecOfElement(sol, it, res); break;
+    case SECOND_DERIV: GetDeriv2SolVecOfElement(sol, it, res); break;
+    }
+  }
+
+  void StdPDE::GetAnyDerivSolVecOfElement(Vector<Complex>& sol, const EntityIterator& it, shared_ptr<ResultInfo> res, DERIVType derivative){
+    switch(derivative){
+    case NO_DERIVTYPE: GetSolVecOfElement(sol, it, res); break;
+    case FIRST_DERIV: GetDerivSolVecOfElement(sol, it, res); break;
+    case SECOND_DERIV: GetDeriv2SolVecOfElement(sol, it, res); break;
+    }
+  }
 
   // real valued method (for TRANSIENT ): returns previous solution
   //                                      for element
