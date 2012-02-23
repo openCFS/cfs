@@ -2269,22 +2269,14 @@ namespace CoupledField {
 
         // Transform coordinates to unit cube [-1,1]^3.
         Double x,y;
-        if(point[0]==0)
-          x = 0;
-        else{
-          x = 1.0 / (1.0-point[2]) * point[0];
-          //x = point[0] + (point[0] > 0.0 ? 1.0 : -1.0)*point[2];
-          x *= 1.0;
-        }
+        x = 1.0 / (1.0-(point[2]-1e-10)) * point[0];
+        //x = point[0] + (point[0] > 0.0 ? 1.0 : -1.0)*point[2];
+        x *= -1.0;
 
 
-        if(point[1] == 0)
-          y = 0;
-        else{
-          y = 1.0 / (1.0-point[2]) * point[1];
-          //y = point[1] + (point[1] > 0.0 ? 1.0 : -1.0)*point[2];
-          y *= 1.0;
-        }
+        y = 1.0 / (1.0-(point[2]-1e-10)) * point[1];
+        //y = point[1] + (point[1] > 0.0 ? 1.0 : -1.0)*point[2];
+        y *= -1.0;
 
         Double z = 2*point[2]-1;
 
@@ -2402,11 +2394,11 @@ namespace CoupledField {
         // Transform coordinates to unit cube [-1,1]^3.
         Double x,y;
 
-        x = (1.0 / (1.0-point[2])) * point[0];
+        x = 1.0 / (1.0-(point[2]-1e-10)) * point[0];
         //x = point[0] + (point[0] > 0.0 ? 1.0 : -1.0)*point[2];
         x *= -1.0;
 
-        y = (1.0 / (1.0-point[2])) * point[1];
+        y = 1.0 / (1.0-(point[2]-1e-10)) * point[1];
         //y = point[1] + (point[1] > 0.0 ? 1.0 : -1.0)*point[2];
         y *= -1.0;
 

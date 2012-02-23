@@ -96,7 +96,7 @@ public:
   FeSpace(PtrParamNode paramNode, PtrParamNode infoNode);
 
   //! Destructor
-  ~FeSpace();
+  virtual ~FeSpace();
   
   //! Read parameters from ParamNode and initialize
   virtual void Init() {};

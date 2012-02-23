@@ -47,6 +47,7 @@
   										type="xsd:string" use="optional" default="default">
   									</xsd:attribute>                    
                     <xsd:attribute name="nonLinIds" type="xsd:token" use="optional" default=""/>
+                    <xsd:attribute name="flowId" type="xsd:token" use="optional" default=""></xsd:attribute>                    
                   </xsd:complexType>
                 </xsd:element>
               </xsd:sequence>
@@ -59,6 +60,15 @@
               <xsd:choice maxOccurs="unbounded">
                 <xsd:element name="convective" type="DT_FluidMechNonLinConv"/>
                 </xsd:choice>
+            </xsd:complexType>
+          </xsd:element>
+
+          <!-- List defining flows -->
+          <xsd:element name="flowList" minOccurs="0" maxOccurs="1">
+            <xsd:complexType>
+              <xsd:choice maxOccurs="unbounded">
+                <xsd:element name="flow" type="DT_RHSVector"/>
+              </xsd:choice>
             </xsd:complexType>
           </xsd:element>
           
@@ -149,6 +159,7 @@
   <xsd:simpleType name="DT_FluidMechUnknownType">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="fluidMechVelocity"/>
+      <xsd:enumeration value="meanFluidMechVelocity"/>
       <xsd:enumeration value="fluidMechPressure"/>
     </xsd:restriction>
   </xsd:simpleType>
@@ -243,6 +254,7 @@
   <xsd:simpleType name="DT_FluidMechNodeResult">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="fluidMechVelocity"/>
+      <xsd:enumeration value="meanFluidMechVelocity"/>
       <xsd:enumeration value="fluidMechPressure"/>
       <xsd:enumeration value="acouRhsLoad"/>
     </xsd:restriction>

@@ -4,6 +4,8 @@
 #include "Vector.hh"
 #include "opdefs.hh"
 
+using namespace std;
+
 namespace CoupledField {
 
   // **********************************************

@@ -316,9 +316,11 @@ int main (int argc, char* argv[])
 # CMAKE_REQUIRED_LIBRARIES = list of libraries to link
 # CFS_REQUIRED_LINK_DIRECTORIES = list of LINK_DIRECTORIES
 
-string(REPLACE ":"
-       ";" CFS_FORTRAN_LIBS
-       ${CFS_FORTRAN_LIBS})
+IF(CFS_FORTRAN_LIBS)
+  string(REPLACE ":"
+         ";" CFS_FORTRAN_LIBS
+         ${CFS_FORTRAN_LIBS})
+ENDIF(CFS_FORTRAN_LIBS)
 
 SET(CMAKE_REQUIRED_LIBRARIES 
   ${PARDISO_LIBRARY}

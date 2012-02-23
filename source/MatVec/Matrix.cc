@@ -24,6 +24,8 @@
 #include "matrixBLASSupport.hh"
 #endif
 
+using namespace std;
+
 using boost::tokenizer;
 namespace CoupledField
 {      

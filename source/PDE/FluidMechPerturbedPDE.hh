@@ -101,6 +101,12 @@ namespace CoupledField
                                                     shared_ptr<CoefFunction > rhsCoef );
 
   private:
+
+    //! create feFunction for meanFluidMech velocity
+    void CreateMeanFlowFunction(StdVector<std::string> dofNames);
+
+    shared_ptr<BaseFieldFunctor> meanFlowFunctor_;
+
   };
 
 #ifdef DOXYGEN_DETAILED_DOC

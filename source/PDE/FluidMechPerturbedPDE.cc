@@ -25,15 +25,19 @@
 #include "FeBasis/FeFunctions.hh"
 
 // new integrator concept
+#include "Forms/BiLinForms/ABInt.hh"
 #include "Forms/BiLinForms/BDBInt.hh"
 #include "Forms/BiLinForms/BBInt.hh"
 #include "Forms/LinForms/BUInt.hh"
+
 #include "Forms/Operators/GradientOperator.hh"
+#include "Forms/Operators/DivOperator.hh"
 #include "Forms/Operators/IdentityOperator.hh"
+#include "Forms/Operators/ConvectiveOperator.hh"
 
 // new postprocessing concept
 #include "Domain/Results/ResultFunctor.hh"
-
+#include "Domain/Results/ExternalFieldFunctors.hh"
 
 namespace CoupledField {
 
@@ -65,27 +69,10 @@ namespace CoupledField {
   }
   
   void FluidMechPerturbedPDE::InitNonLin() {
-
     SinglePDE::InitNonLin();
-
-    //now do PDE specifics
-    std::map<std::string, NonLinType>::iterator it;
-    for ( it=nonLinTypes_.begin() ; it != nonLinTypes_.end(); it++ ) {
-      if ( (*it).second == HYSTERESIS ) {
-        isHysteresis_ = true;
-      }
-    }
-
   }
 
   void FluidMechPerturbedPDE::DefineIntegrators() {
-#if 0
-    RegionIdType actRegion;
-    BaseMaterial * actSDMat = NULL;
-    
-    // flag for updatedLagrange formulation
-    bool upLagrangeForm = true;
-    upLagrangeForm = true;
     //transform the type
     SubTensorType tensorType;
 
@@ -102,58 +89,189 @@ namespace CoupledField {
       }
     }
 
-    // Define integrators for "standard" materials
+    RegionIdType actRegion;
+    BaseMaterial * actMat = NULL;
+
+    // Get FESpace and FeFunction of fluid velocity
+    shared_ptr<BaseFeFunction> velFct = feFunctions_[FLUIDMECH_VELOCITY];
+    shared_ptr<FeSpace> velSpace = velFct->GetFeSpace();
+
+    // Get FESpace and FeFunction of fluid pressure
+    shared_ptr<BaseFeFunction> presFct = feFunctions_[FLUIDMECH_PRESSURE];
+    shared_ptr<FeSpace> presSpace = presFct->GetFeSpace();
+
+    //  Loop over all regions
     std::map<RegionIdType, BaseMaterial*>::iterator it;
-    shared_ptr<FeSpace> mySpace = feFunctions_[FLUIDMECH_VELOCITY]->GetFeSpace();
     for ( it = materials_.begin(); it != materials_.end(); it++ ) {
-      
+
       // Set current region and material
       actRegion = it->first;
-      actSDMat = it->second;
+      actMat = it->second;
 
       // Get current region name
       std::string regionName = ptgrid_->GetRegion().ToString(actRegion);
 
-      // create new entity list
+      // Get ParamNode for current region
+      PtrParamNode curRegNode = myParam_->Get("regionList")
+          ->GetByVal("region","name",regionName.c_str());
+
+      // create new entity list and add it fefunction
       shared_ptr<ElemList> actSDList( new ElemList(ptgrid_ ) );
       actSDList->SetRegion( actRegion );
-      
-      // ====================================================================
-      // New implementation
-      // ====================================================================
+
+      velFct->AddEntityList( actSDList );
+      presFct->AddEntityList( actSDList );
+
+      // --------------------------
+      //  Set region approximation
+      // --------------------------
+#if 0
       // --- Set the approximation for the current region ---
-      PtrParamNode curRegNode = myParam_->Get("regionList")->GetByVal("region","name",regionName.c_str());
       std::string polyId = curRegNode->Get("polyId")->As<std::string>();
       std::string integId = curRegNode->Get("integId")->As<std::string>();
-      mySpace->SetRegionApproximation(actRegion, polyId, integId);
+#endif
+      // We hardcode the Taylor-Hood spaces for the moment
+      velSpace->SetRegionApproximation(actRegion, "velPolyId", "velIntegId");
+      presSpace->SetRegionApproximation(actRegion, "presPolyId", "presIntegId");
 
-      // --- standard real-valued stiffness integrator ---
-      shared_ptr<CoefFunction> curCoef = actSDMat->GetCoefFunction(DENSITY,tensorType,Global::REAL);
+#if 0
+//      BaseBDBInt * stiffInt = NULL;
+      shared_ptr<CoefFunction> density =
+          actMat->GetCoefFunction( DENSITY, tensorType,
+                                   Global::REAL, false);
+      shared_ptr<CoefFunction> viscosity =
+          actMat->GetCoefFunction( DYNAMIC_VISCOSITY, tensorType,
+                                   Global::REAL, false);
+#endif
+
+      Double density;
+      Double viscosity;
+      materials_[actRegion]->GetScalar(density,DENSITY,Global::REAL);
+      materials_[actRegion]->GetScalar(viscosity,DYNAMIC_VISCOSITY,Global::REAL);
+
+      // ====================================================================
+      // stiffness integrators
+      // ====================================================================
+      // --------------------------------------------------------------------
+      //  VERSION 1: K_PV Integrator (upper off-diagonal integrator)
+      // --------------------------------------------------------------------
+
+      shared_ptr<CoefFunction> coeffKPV
+                = CoefFunction::Generate(Global::REAL, "1.0");
+      BiLinearForm * stiffIntPV = NULL;
+      if( dim_ == 2 ) {
+        stiffIntPV = new ABInt< GradientOperator<FeH1,2> , IdentityOperator<FeH1,2,2> >(coeffKPV,-density );
+      } else {
+        stiffIntPV = new ABInt< GradientOperator<FeH1,3> , IdentityOperator<FeH1,3,3> >(coeffKPV,-density );
+      }
+      stiffIntPV->SetName("PerturbedStiffIntPV");
+      //stiffIntPV->SetFeSpace( feFunctions_[ACOU_PRESSURE]->GetFeSpace(), feFunctions_[ACOU_VELOCITY]->GetFeSpace() );
+      BiLinFormContext *stiffContPV = new BiLinFormContext(stiffIntPV, STIFFNESS );
+
+      stiffContPV->SetEntities( actSDList, actSDList );
+      stiffContPV->SetFeFunctions( presFct, velFct);
+//      stiffContPV->SetCounterPart(true);
+      assemble_->AddBiLinearForm( stiffContPV );
+
+      // --------------------------------------------------------------------
+      //  VERSION 2: K_VP = K_PV^T Integrator (lower off-diagonal integrator)
+      // --------------------------------------------------------------------
+      shared_ptr<CoefFunction> coeffKVP
+                = CoefFunction::Generate(Global::REAL, "1.0");
+      BiLinearForm * stiffIntVP = NULL;
+      if( dim_ == 2 ) {
+        stiffIntVP = new ABInt< IdentityOperator<FeH1,2,2> , GradientOperator<FeH1,2> >(coeffKVP,1.0 );
+      } else {
+        stiffIntVP = new ABInt< IdentityOperator<FeH1,3,3> , GradientOperator<FeH1,3> >(coeffKVP,1.0 );
+      }
+      stiffIntVP->SetName("PerturbedStiffIntVP");
+      //stiffIntVP->SetFeSpace( feFunctions_[ACOU_PRESSURE]->GetFeSpace(), feFunctions_[ACOU_VELOCITY]->GetFeSpace() );
+      BiLinFormContext *stiffContVP = new BiLinFormContext(stiffIntVP, STIFFNESS );
+
+      stiffContVP->SetEntities( actSDList, actSDList );
+      stiffContVP->SetFeFunctions( velFct, presFct);
+      //stiffContVP->SetCounterPart(true);
+      assemble_->AddBiLinearForm( stiffContVP );
+
+      // --------------------------------------------------------------------
+      //  VERSION 2: K_Laplace Integrator
+      // --------------------------------------------------------------------
+      shared_ptr<CoefFunction> coeffKvv
+                = CoefFunction::Generate(Global::REAL, "1.0");
+      BiLinearForm * stiffIntLaplace = NULL;
+      if( dim_ == 2 ) {
+        stiffIntLaplace = new BBInt< DivOperator<FeH1,2> >(coeffKvv, viscosity);
+      } else {
+        stiffIntLaplace = new BBInt< DivOperator<FeH1,3> >(coeffKvv, viscosity);
+      }
+      stiffIntLaplace->SetName("PerturbedStiffIntViscous");
+      BiLinFormContext *stiffContLaplace = new BiLinFormContext(stiffIntLaplace, STIFFNESS );
+
+      stiffContLaplace->SetEntities( actSDList, actSDList );
+      stiffContLaplace->SetFeFunctions( feFunctions_[FLUIDMECH_VELOCITY],feFunctions_[FLUIDMECH_VELOCITY]);
+      assemble_->AddBiLinearForm( stiffContLaplace );
 
 
-      BDBInt< FeH1, Double, Double >* stiffInt;
-      stiffInt = new BDBInt< FeH1, Double, Double >(curCoef,1.0 );
-      //stiffInt->SetName("StiffnessInt");
-      //linElecInt *  linElecForm = new linElecInt( actSDMat, tensorType,
-       //                                           upLagrangeForm );
-      //linElecForm->SetFactor( factor );
-      BiLinFormContext * stiffIntDescr =
-          new BiLinFormContext(stiffInt, STIFFNESS );
+      shared_ptr<CoefFunction> coeffMVV
+                = CoefFunction::Generate(Global::REAL, lexical_cast<std::string>(1.0));
 
-      feFunctions_[FLUIDMECH_VELOCITY]->AddEntityList( actSDList );
+      //======================================================================
+      // CHECK FOR FLOW
+      //=====================================================================
+      std::string flowId = curRegNode->Get("flowId")->As<std::string>();
+      if(flowId != ""){
+        //Add the region information
+        PtrParamNode flowNode = myParam_->Get("flowList")->GetByVal("flow","name",flowId.c_str());
+        if(isComplex_){
+          shared_ptr<FieldFunctor<Complex> > fct = dynamic_pointer_cast<FieldFunctor<Complex> >(meanFlowFunctor_);
+          fct->AddRegion(actRegion,flowNode);
+        }else{
+          shared_ptr<FieldFunctor<Double> > fct = dynamic_pointer_cast<FieldFunctor<Double> >(meanFlowFunctor_);
+          fct->AddRegion(actRegion,flowNode);
+        }
 
-      //stiffIntDescr->SetPtPdes(this, this);
-      stiffIntDescr->SetEntities( actSDList, actSDList );
-      stiffIntDescr->SetFeFunctions( feFunctions_[FLUIDMECH_VELOCITY],feFunctions_[FLUIDMECH_VELOCITY]);
-      stiffInt->SetFeSpace( feFunctions_[FLUIDMECH_VELOCITY]->GetFeSpace());
+        //now create the integrators
+        BiLinearForm *convectiveVv = NULL;
+        if( dim_ == 2 ) {
+          convectiveVv = new ABInt<IdentityOperator<FeH1,2,2>,ConvectiveOperator<FeH1,2,2> >(coeffMVV, 1.0);
+        } else {
+          convectiveVv = new ABInt<IdentityOperator<FeH1,3,3>,ConvectiveOperator<FeH1,3,3>  >(coeffMVV, 1.0);
+        }
 
-      assemble_->AddBiLinearForm( stiffIntDescr );
-      // Important: Add bdb-integrator to global list, as we need them later
-      // for calculation of postprocessing results
-      bdbInts_[actRegion] = stiffInt;
+        convectiveVv->SetBCoefFunctionOpB(meanFlowFunctor_);
+
+        convectiveVv->SetName("PerturbedStiffIntConvective");
+
+        BiLinFormContext *convectiveContextVv =  new BiLinFormContext(convectiveVv, STIFFNESS );
+
+        convectiveContextVv->SetEntities( actSDList, actSDList );
+        convectiveContextVv->SetFeFunctions( feFunctions_[FLUIDMECH_VELOCITY],feFunctions_[FLUIDMECH_VELOCITY]);
+        assemble_->AddBiLinearForm( convectiveContextVv );
+      }
+
+      // ====================================================================
+      // damping integrators
+      // ====================================================================
+      shared_ptr<CoefFunction> coeffDvv
+                = CoefFunction::Generate(Global::REAL, lexical_cast<std::string>(1.0));
+
+      BiLinearForm *dampIntvv = NULL;
+      if( dim_ == 2 ) {
+        dampIntvv = new BBInt<IdentityOperator<FeH1,2,2> >(coeffDvv, 1.0 / density );
+      } else {
+        dampIntvv = new BBInt<IdentityOperator<FeH1,3,3> >(coeffDvv, 1.0 / density );
+      }
+      dampIntvv->SetName("PerturbedDampInt");
+      //massIntPP->SetFeSpace( feFunctions_[ACOU_PRESSURE]->GetFeSpace() );
+
+      BiLinFormContext *dampContextvv =  new BiLinFormContext(dampIntvv, DAMPING );
+
+      dampContextvv->SetEntities( actSDList, actSDList );
+      dampContextvv->SetFeFunctions( feFunctions_[FLUIDMECH_VELOCITY],feFunctions_[FLUIDMECH_VELOCITY]);
+      assemble_->AddBiLinearForm( dampContextvv );
+
       
     }
-#endif
   }
   
   void FluidMechPerturbedPDE::DefineSolveStep() {
@@ -179,24 +297,12 @@ namespace CoupledField {
         feFunctions_[FLUIDMECH_VELOCITY]->ExtractResult( res );
         break;
 
-      case ELEC_RHS_LOAD:
-        rhsFeFunctions_[FLUIDMECH_VELOCITY]->ExtractResult( res );
+      case FLUIDMECH_PRESSURE:
+        feFunctions_[FLUIDMECH_PRESSURE]->ExtractResult( res );
         break;
 
-      case ELEC_FIELD_INTENSITY:
-        resultFunctors_[ELEC_FIELD_INTENSITY]->EvalResult(res);
-        break;
-        
-      case ELEC_FLUX_DENSITY:
-        resultFunctors_[ELEC_FLUX_DENSITY]->EvalResult(res);
-        break;
-
-      case ELEC_ENERGY_DENSITY:
-        resultFunctors_[ELEC_ENERGY_DENSITY]->EvalResult(res);
-        break;
-        
-      case ELEC_ENERGY:
-        resultFunctors_[ELEC_ENERGY]->EvalResult(res);
+      case MEAN_FLUIDMECH_VELOCITY:
+        meanFlowFunctor_->EvalResult( res );
         break;
 
       default:
@@ -227,19 +333,12 @@ namespace CoupledField {
 
   bool FluidMechPerturbedPDE::HasOutput(SolutionType output)
   {
-  
     switch (output)
       {
-      case ELEC_FORCE_VWP:
-        return true;
-        break;
       case FLUIDMECH_VELOCITY:
         return true;
         break;
-      case ELEC_FIELD_INTENSITY:
-        return true;
-        break;
-      case ELEC_INTERFACE_FORCE:
+      case FLUIDMECH_PRESSURE:
         return true;
         break;
       default:
@@ -250,191 +349,58 @@ namespace CoupledField {
   }
 
   void FluidMechPerturbedPDE::DefinePrimaryResults() {
-#if 0
     shared_ptr<BaseFeFunction> feFct = feFunctions_[FLUIDMECH_VELOCITY];
-    
-    // Velocity field
-    shared_ptr<ResultInfo> res1( new ResultInfo);
-    res1->resultType = FLUIDMECH_VELOCITY;
-    res1->dofNames = "x", "y";
-    res1->unit = MapSolTypeToUnit(FLUIDMECH_VELOCITY);
-    res1->definedOn = ResultInfo::NODE;
-    res1->entryType = ResultInfo::VECTOR;
-    feFunctions_[FLUIDMECH_VELOCITY]->SetResultInfo(res1);
 
-    res1->SetFeFunction(feFunctions_[FLUIDMECH_VELOCITY]);
-    results_.Push_back( res1 );
-    availResults_.insert( res1 );
-    shared_ptr<BaseFieldFunctor> vFunc;
-    if( isComplex_ ) {
-      vFunc.reset(
-          new FieldInterpolFunctor<IdentityOperator,
-          FeH1,
-          Complex>(feFct, res1));
-    } else {
-      vFunc.reset(
-          new FieldInterpolFunctor<IdentityOperator,
-          FeH1,
-          Double>(feFct, res1));
+    // Check for subType
+    StdVector<std::string> velDofNames;
+
+    std::string geometryType;
+    param->Get("domain")->GetValue("geometryType", geometryType );
+
+    if( geometryType == "3d" ) {
+      velDofNames = "x", "y", "z";
+    } else if( geometryType == "plane" ) {
+      velDofNames = "x", "y";
+    } else if( geometryType == "axi" ) {
+      velDofNames = "r", "z";
     }
-    resultFunctors_[FLUIDMECH_VELOCITY] = vFunc;
-    fieldFunctors_[FLUIDMECH_VELOCITY] = vFunc;
-    
-    
 
-    // Pressure field
-    shared_ptr<ResultInfo> res2 ( new ResultInfo );
-    res2->resultType = FLUIDMECH_PRESSURE;
-    res2->dofNames = "";
-    res2->unit = MapSolTypeToUnit(FLUIDMECH_PRESSURE);
-    res2->definedOn = results_[0]->definedOn;
-    res2->entryType = ResultInfo::SCALAR;
-    feFunctions_[FLUIDMECH_PRESSURE]->SetResultInfo(res1);
-    feFct = feFunctions_[FLUIDMECH_PRESSURE];
+    // === Primary result according to definition ===
+    // PRESSURE
+    shared_ptr<ResultInfo> pressure( new ResultInfo);
+    pressure->resultType = FLUIDMECH_PRESSURE;
+    pressure->dofNames = "";
+    pressure->unit = "Pa";
 
-    res2->SetFeFunction(feFunctions_[FLUIDMECH_PRESSURE]);
-    results_.Push_back( res2 );
-    availResults_.insert( res2 );
-    if( isComplex_ ) {
-      vFunc.reset(
-          new FieldInterpolFunctor<IdentityOperator,
-          FeH1,
-          Complex>(feFct, res2));
-    } else {
-      vFunc.reset(
-          new FieldInterpolFunctor<IdentityOperator,
-          FeH1,
-          Double>(feFct, res2));
-    }
-    resultFunctors_[FLUIDMECH_PRESSURE] = vFunc;
-    fieldFunctors_[FLUIDMECH_PRESSURE] = vFunc;
-#endif
+    pressure->definedOn = ResultInfo::NODE;
+    pressure->entryType = ResultInfo::SCALAR;
+    feFunctions_[FLUIDMECH_PRESSURE]->SetResultInfo(pressure);
+    results_.Push_back( pressure );
+    availResults_.insert( pressure );
+
+    pressure->SetFeFunction(feFunctions_[FLUIDMECH_PRESSURE]);
+
+    // VELOCITY
+    shared_ptr<ResultInfo> velocity( new ResultInfo);
+    velocity->resultType = FLUIDMECH_VELOCITY;
+    velocity->dofNames = velDofNames;
+    velocity->unit = "m/s";
+
+    velocity->definedOn = ResultInfo::NODE;
+    velocity->entryType = ResultInfo::VECTOR;
+    feFunctions_[FLUIDMECH_VELOCITY]->SetResultInfo(velocity);
+    results_.Push_back( velocity );
+    availResults_.insert( velocity );
+
+    velocity->SetFeFunction(feFunctions_[FLUIDMECH_VELOCITY]);
+
+    // MEAN VELOCITY
+    CreateMeanFlowFunction(velDofNames);
   }
   
   
   void FluidMechPerturbedPDE::DefinePostProcResults() {
-#if 0
-    shared_ptr<BaseFeFunction> feFct = feFunctions_[FLUIDMECH_VELOCITY];
-    
-    // Electric Field Intensity
-    // create new resultDof object
-    shared_ptr<ResultInfo> ef ( new ResultInfo );
-    ef->resultType = ELEC_FIELD_INTENSITY;
-    ef->SetVectorDOFs(dim_, isaxi_);
-    ef->unit = "V/m";
-    ef->definedOn = ResultInfo::ELEMENT;
-    ef->entryType = ResultInfo::VECTOR;
-    availResults_.insert( ef );
-    postProcResults_[ELEC_FIELD_INTENSITY] = FLUIDMECH_VELOCITY;
-    shared_ptr<BaseFieldFunctor> eFunc;
-    if( isComplex_ ) {
-      eFunc.reset(new DiffFieldFunctor<Complex>(feFct, ef));
-    } else {
-      eFunc.reset(new DiffFieldFunctor<Double>(feFct, ef));
-    }
-    resultFunctors_[ELEC_FIELD_INTENSITY] = eFunc;
-    fieldFunctors_[ELEC_FIELD_INTENSITY] = eFunc;
-    
-    // Electric Flux Density
-    shared_ptr<ResultInfo> flux ( new ResultInfo );
-    flux->resultType = ELEC_FLUX_DENSITY;
-    flux->SetVectorDOFs(dim_, isaxi_);
-    flux->unit = "C/m^2";
-    flux->definedOn = ResultInfo::ELEMENT;
-    flux->entryType = ResultInfo::VECTOR;
-    availResults_.insert( flux );
-    postProcResults_[ELEC_FLUX_DENSITY] = FLUIDMECH_VELOCITY;
-    shared_ptr<BaseFieldFunctor> fluxFunc;
-    if( isComplex_ ) {
-      fluxFunc.reset(new FluxFieldFunctor<Complex>(feFct, ef));
-    } else {
-      fluxFunc.reset(new FluxFieldFunctor<Double>(feFct, ef));
-    }
-    resultFunctors_[ELEC_FLUX_DENSITY] = fluxFunc;
-    fieldFunctors_[ELEC_FLUX_DENSITY] = fluxFunc;
 
-    // Electric charge
-    shared_ptr<ResultInfo> charge( new ResultInfo );
-    charge->resultType = ELEC_CHARGE;
-    charge->definedOn = ResultInfo::SURF_ELEM;
-    charge->entryType = ResultInfo::SCALAR;
-    charge->dofNames = "";
-    charge->unit = "C";
-    availResults_.insert( charge );
-    postProcResults_[ELEC_CHARGE] = FLUIDMECH_VELOCITY;
-
-    // Electric Energy Density
-    shared_ptr<ResultInfo> ed ( new ResultInfo );
-    ed->resultType = ELEC_ENERGY_DENSITY;
-    ed->dofNames = "";
-    ed->unit = "Ws/m^3";
-    ed->definedOn = ResultInfo::ELEMENT;
-    ed->entryType = ResultInfo::SCALAR;
-    availResults_.insert( ed );
-    postProcResults_[ELEC_ENERGY_DENSITY] = FLUIDMECH_VELOCITY;
-    shared_ptr<BaseFieldFunctor> edFunc;
-    if( isComplex_ ) {
-      edFunc.reset(new EnergyDensFieldFunctor<Complex>(feFct, ed));
-    } else {
-      edFunc.reset(new EnergyDensFieldFunctor<Double>(feFct, ed));
-    }
-    resultFunctors_[ELEC_ENERGY_DENSITY] = edFunc;
-    fieldFunctors_[ELEC_ENERGY_DENSITY] = edFunc;
-    
-    // Electric energy
-    shared_ptr<ResultInfo> energy( new ResultInfo );
-    energy->resultType = ELEC_ENERGY;
-    energy->definedOn = ResultInfo::REGION;
-    energy->entryType = ResultInfo::SCALAR;
-    energy->dofNames = "";
-    energy->unit = "Ws";
-    availResults_.insert ( energy );
-    postProcResults_[ELEC_ENERGY] = FLUIDMECH_VELOCITY;
-    shared_ptr<ResultFunctor> energyFunc;
-    if( isComplex_ ) {
-      energyFunc.reset(new EnergyResultFunctor<Complex>(feFct, energy));
-    } else {
-      energyFunc.reset(new EnergyResultFunctor<Double>(feFct, energy));
-    }
-    resultFunctors_[ELEC_ENERGY] = energyFunc;
-    
-
-    // Electric polarization
-    shared_ptr<ResultInfo> pol( new ResultInfo );
-    pol->resultType = ELEC_POLARIZATION;
-    pol->definedOn = ResultInfo::ELEMENT;
-    pol->entryType = ResultInfo::VECTOR;
-    pol->SetVectorDOFs(dim_, isaxi_);
-    pol->unit = "C/m^2";
-    availResults_.insert( pol );
-    postProcResults_[ELEC_POLARIZATION] = FLUIDMECH_VELOCITY;
-
-    // pesudo electric polarization for piezo simp
-    shared_ptr<ResultInfo> pseudoPol( new ResultInfo );
-    pseudoPol->resultType = ELEC_PSEUDO_POLARIZATION;
-    pseudoPol->definedOn = ResultInfo::ELEMENT;
-    pseudoPol->entryType = ResultInfo::SCALAR;
-    pseudoPol->dofNames = "";
-    pseudoPol->unit = "";
-    availResults_.insert( pseudoPol );
-    postProcResults_[ELEC_PSEUDO_POLARIZATION] = FLUIDMECH_VELOCITY;
-
-    // ============================
-    // Initialize result functors:
-    // ============================
-    // 1) Loop over all BDB-integrators
-    std::map<RegionIdType, BaseBDBInt*>::iterator it = bdbInts_.begin();
-    for( ; it != bdbInts_.end(); ++it ) {
-      RegionIdType region = it->first;
-      BaseBDBInt* bdb = it->second;
-
-      // 2) pass integrators to functors
-      eFunc->AddIntegrator(bdb, region);
-      fluxFunc->AddIntegrator(bdb, region);
-      energyFunc->AddIntegrator(bdb, region);
-      edFunc->AddIntegrator(bdb, region);
-    }
-#endif
   }
 
   
@@ -486,4 +452,52 @@ namespace CoupledField {
 #endif
     return NULL;
   }
+
+  void FluidMechPerturbedPDE::CreateMeanFlowFunction(StdVector<std::string> dofNames){
+    //// === MEAN FLUIDMECH VELOCITY ===
+    shared_ptr<ResultInfo> flowvelocity( new ResultInfo);
+    flowvelocity->resultType = MEAN_FLUIDMECH_VELOCITY;
+    flowvelocity->dofNames = dofNames;
+    flowvelocity->unit = "m/s";
+
+    flowvelocity->definedOn = ResultInfo::NODE;
+    flowvelocity->entryType = ResultInfo::VECTOR;
+
+
+
+    shared_ptr<BaseFeFunction> meanFunction;
+    std::string form = SolutionTypeEnum.ToString(MEAN_FLUIDMECH_VELOCITY);
+    PtrParamNode feSpaceNode = infoNode_->Get("feSpaces");
+    PtrParamNode potSpaceNode = feSpaceNode->Get(form);
+    shared_ptr<FeSpace> tmpSpace = FeSpace::CreateInstance(myParam_,potSpaceNode,FeSpace::H1);
+
+    if(isComplex_){
+      meanFunction.reset(new FeFunction<Complex>());
+      meanFunction->SetFeSpace(tmpSpace);
+      meanFunction->SetResultInfo(flowvelocity);
+      meanFunction->SetGrid(ptgrid_);
+      meanFunction->SetPDE(this);
+      flowvelocity->SetFeFunction(meanFunction);
+      if(dim_==2)
+        meanFlowFunctor_.reset(new ExternalFieldFunctor<IdentityOperator<FeH1,2,2,Complex>,Complex >(meanFunction,flowvelocity));
+      else
+        meanFlowFunctor_.reset(new ExternalFieldFunctor<IdentityOperator<FeH1,3,3,Complex>,Complex >(meanFunction,flowvelocity));
+    }else{
+      meanFunction.reset(new FeFunction<Double>());
+      meanFunction->SetFeSpace(tmpSpace);
+      meanFunction->SetResultInfo(flowvelocity);
+      meanFunction->SetGrid(ptgrid_);
+      meanFunction->SetPDE(this);
+      flowvelocity->SetFeFunction(meanFunction);
+      if(dim_==2)
+        meanFlowFunctor_.reset(new ExternalFieldFunctor<IdentityOperator<FeH1,2,2,Double>,Double >(meanFunction,flowvelocity));
+      else
+        meanFlowFunctor_.reset(new ExternalFieldFunctor<IdentityOperator<FeH1,3,3,Double>,Double >(meanFunction,flowvelocity));
+    }
+
+    results_.Push_back( flowvelocity );
+    availResults_.insert( flowvelocity );
+
+  }
+
 }

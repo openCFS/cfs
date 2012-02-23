@@ -44,7 +44,7 @@ namespace CoupledField{
         coordUpdate_ = coordUpdate;
       }
 
-      ~LinearForm(){
+      virtual ~LinearForm(){
 
       }
 

@@ -4150,7 +4150,7 @@ int ignore_me;
     /*                               */
     int i, nelem_line, nlines, nvarin;
     double *varin;
-    float *tmpfloat;
+    float *tmpfloat = NULL;
     char varname[33];
 
     /*  Read a variable name, no. of elements per line, and no. of lines. */
