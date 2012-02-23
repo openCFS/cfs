@@ -29,7 +29,7 @@ CONFIGURE_FILE("${CFS_DEPS_ROOT}/snopt/build_snopt_vars.pl.in"
 
 
 BUILD_EXTLIB("SnOpt"
-  "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}/libsnopt_c.a"
+  "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}/libsnopt.a"
   "${CFS_DEPS_ROOT}/snopt/build_snopt.pl"
   "build_snopt.log")
 
@@ -37,7 +37,7 @@ BUILD_EXTLIB("SnOpt"
 # Determine paths of SNOPT libraries.
 #-------------------------------------------------------------------------------
 SET(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}")
-SET(SNOPT_LIBRARY "${LD}/libsnopt_c.a;${LD}/libsnopt-blas_c.a;${LD}/libsnprint_c.a;libf2c.a;-lm" 
+SET(SNOPT_LIBRARY "${LD}/libsnopt.a;${LD}/libsnopt-blas.a;${LD}/libsnprint.a;-lm" 
     CACHE FILEPATH "SnOpt library.")
 
 MARK_AS_ADVANCED(SNOPT_LIBRARY)

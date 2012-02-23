@@ -34,10 +34,10 @@ SnOpt* static_snopt = NULL;
 
 /** this is a global function that can be called in the snopt-interface
  *  it simply forwards the call to the SnOpt->Callback function which has access to the class members */
-int SnOpt_C_Callback(int* Status, int *n,
-    double* x, int* needF, int* nF, double* F,
-    int* needG, int* nG, double* G,
-    char* cu, int* lencu, int* iu, int* leniu, double* ru, int* lenru)
+int SnOpt_C_Callback(integer* Status, integer* n,
+    doublereal* x, integer* needF, integer* nF, doublereal* F,
+    integer* needG, integer* nG, doublereal* G,
+    char* cu, integer* lencu, integer* iu, integer* leniu, doublereal* ru, integer* lenru)
 {
   return static_snopt->Callback(Status, *n, x, needF, nF, F, needG, nG, G, cu, lencu, iu, leniu, ru, lenru);
 }
@@ -115,10 +115,10 @@ void SnOpt::Init()
   rw.resize(minrw);
   iw.resize(miniw);
   sninit_(&iPrint, &iSumm, &cw[0], &mincw, &iw[0], &miniw, &rw[0], &minrw, 8*mincw);
-  
+
   // set the file for snopt, formerly fort.1
   setSnoptOutputFiles();
-
+  
   // initialize problem
   get_nlp_info();
   
@@ -190,7 +190,7 @@ void SnOpt::SolveProblem()
   AdjustWorkArrayMemory();
 
   // this is needed for the call to snopt, but has no effect in our case
-  int npname(5);
+  integer npname(5);
   char xnames[8] = "unused ";
   char Fnames[8] = "unused ";
   
@@ -213,7 +213,7 @@ void SnOpt::SolveProblem()
   
   timer_->Start();
   
-  EXIT = snopta_(
+  snopta_(
       &Start, &nF, &n, &nxname, &nFname,
       &ObjAdd, &ObjRow, Prob, SnOpt_C_Callback,
       &iAfun[0], &jAvar[0], &lenA, &nA, &A[0],
@@ -305,10 +305,10 @@ void SnOpt::InfoXMLOutput()
   //info_->Get(ParamNode::SUMMARY)->Get("snopt_exit/string")->SetValue(exitstring);
 }
 
-int SnOpt::Callback(int* Status, const int n,
-    double* x, int* needF, int* nF, double* F,
-    int* needG, int* nG, double* G,
-    char* cu, int* lencu, int* iu, int* leniu, double* ru, int* lenru)
+int SnOpt::Callback(integer* Status, const integer n,
+    doublereal* x, integer* needF, integer* nF, doublereal* F,
+    integer* needG, integer* nG, doublereal* G,
+    char* cu, integer* lencu, integer* iu, integer* leniu, doublereal* ru, integer* lenru)
 {
   timer_->Stop();
   timer_callback_->Start();
@@ -498,9 +498,9 @@ void SnOpt::AdjustWorkArrayMemory()
   LOG_TRACE(snopt) << "old values: lencw = " << lencw << ", leniw = " << leniw << ", lenrw = " << lenrw;
   
   // remember old values
-  int tmpcw(lencw);
-  int tmpiw(leniw);
-  int tmprw(lenrw);
+  integer tmpcw(lencw);
+  integer tmpiw(leniw);
+  integer tmprw(lenrw);
   
   // try to determine minimal amount of memory needed for this problem
   snmema_(&INFO, &nF, &n, &nxname, &nFname, &nA, &nG, &mincw, &miniw, &minrw,
@@ -515,8 +515,8 @@ void SnOpt::AdjustWorkArrayMemory()
   // might not be enough
   const double factor(1.0);
   
-  int iPrt = 0;
-  int iSum = 0;
+  integer iPrt = 0;
+  integer iSum = 0;
   // update lengths according to values obtained from snmema_
   if(lencw < mincw)
   {
@@ -711,7 +711,7 @@ void SnOpt::setupLinearConstraints()
   //assert(count == lin_constraints);
 }
 
-void SnOpt::SetIntegerValue(const std::string& key, int value)
+void SnOpt::SetIntegerValue(const std::string& key, integer value)
 {
   string option;
   

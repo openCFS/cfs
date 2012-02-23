@@ -1412,6 +1412,7 @@ source/Optimization/Optimizer/ShapeOptimizer.hh -text
 source/Optimization/Optimizer/SnOpt.cc -text
 source/Optimization/Optimizer/SnOpt.hh -text
 source/Optimization/Optimizer/SnOptInterface.cc -text
+source/Optimization/Optimizer/SnOptInterface.f -text
 source/Optimization/Optimizer/SnOptInterface.hh -text
 source/Optimization/Optimizer/scpip30.hh svneol=native#text/x-c%2B%2Bhdr
 source/Optimization/Optimizer/scpip_test.cc svneol=native#text/x-c%2B%2Bsrc
