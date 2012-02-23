@@ -59,7 +59,7 @@
 *
 *     09 Jan 2000: First version of snoptopenappend
 *     ==================================================================
-      open( iunit, iostat=inform, file=name, access='append' )
+      open( iunit, iostat=inform, file=name )
 
       end ! subroutine snoptopenappend
 

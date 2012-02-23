@@ -154,13 +154,10 @@ void SnOpt::Init()
 
 void SnOpt::setSnoptOutputFiles()
 {
-  if(optimizer_pn_ != NULL)
-  {
-    if(optimizer_pn_->Has("output"))
-      outfilename = optimizer_pn_->Get("output")->As<std::string>();
-    else
-      outfilename = progOpts->GetSimName() + ".snopt";
-  }
+  outfilename = progOpts->GetSimName() + ".snopt";
+
+  if(optimizer_pn_ != NULL && optimizer_pn_->Has("output"))
+    outfilename = optimizer_pn_->Get("output")->As<std::string>();
   
   // we enable command line output
   if(outfilename == "commandline")
@@ -168,9 +165,16 @@ void SnOpt::setSnoptOutputFiles()
     iPrint = 6;
   }
   else
-  { 
-    iPrint = 15;
-    snopenappend_(&iPrint, (char*) outfilename.c_str(), &INFO, outfilename.size());
+  {
+    if(outfilename == "silent")
+    {
+      iPrint = 0;
+    }
+    else
+    { 
+      iPrint = 15;
+      snopenappend_(&iPrint, (char*) outfilename.c_str(), &INFO, outfilename.size());
+    }
   }
 
   INFO = 0;
