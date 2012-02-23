@@ -173,8 +173,8 @@ void SnOpt::setSnoptOutputFiles()
     snopenappend_(&iPrint, (char*) outfilename.c_str(), &INFO, outfilename.size());
   }
 
-  SetIntegerValue("print_file", iPrint);
   INFO = 0;
+  SetIntegerValue("print_file", iPrint);
 }
 
 void SnOpt::SolveProblem()
