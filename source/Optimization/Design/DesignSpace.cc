@@ -104,7 +104,8 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
     // check for mass if we have harmonic and density
     if(BasePDE::IsComplex(domain->GetBasePDE()->GetAnalysisType()) && design.Contains(DesignElement::DENSITY)) {
       TransferFunction* tf = GetTransferFunction(DesignElement::DENSITY, Optimization::MASS, false); // silend
-      if(tf == NULL) {
+      if(tf == NULL && domain->GetBasePDE()->GetName() != "electrostatic") {
+        std::cout << domain->GetBasePDE()->GetName() << std::endl;
         PtrParamNode in = info->Get("optimization")->Get(ParamNode::HEADER)->Get("designSpace/transferFunctions")->Get(ParamNode::WARNING);
         in->SetValue("no transfer function 'mass' given for harmonic model");
       }
@@ -1086,6 +1087,7 @@ void DesignSpace::ExtractResults(shared_ptr<BaseResult> base_result)
   {
   case MECH_PSEUDO_DENSITY:
   case PHYSICAL_PSEUDO_DENSITY:
+  case ELEC_PHYSICAL_PSEUDO_DENSITY:
     def.design = DesignElement::DENSITY;
     break;
   case ELEC_PSEUDO_POLARIZATION:
@@ -1097,9 +1099,11 @@ void DesignSpace::ExtractResults(shared_ptr<BaseResult> base_result)
   default:
     // to be overwritten by the ResultDescription
     def.design = DesignElement::DENSITY;
+    break;
   }
   // somehow critical! but only for density filtering, if at all.
-  def.access = ri->resultType == PHYSICAL_PSEUDO_DENSITY ? DesignElement::SMART : DesignElement::PLAIN;
+  def.access = (ri->resultType == PHYSICAL_PSEUDO_DENSITY || ri->resultType == ELEC_PHYSICAL_PSEUDO_DENSITY) ?
+      DesignElement::SMART : DesignElement::PLAIN;
   def.value  = DesignElement::DESIGN;
   ResultDescription& descr = def;
   // ignore defaults if there is a result description for the OPT_RESULT_* case
@@ -1141,7 +1145,8 @@ void DesignSpace::FillElementResults(Result<T>& result, ResultDescription& descr
   result_data.Resize(result.GetEntityList()->GetSize() * dofs);
   // the default value is 0.0 but 1 for densities
   SolutionType st = result.GetResultInfo()->resultType;
-  double none = st == MECH_PSEUDO_DENSITY || st == PHYSICAL_PSEUDO_DENSITY || st == ELEC_PSEUDO_POLARIZATION ? 1.0 : 0.0; 
+  double none = st == MECH_PSEUDO_DENSITY || st == PHYSICAL_PSEUDO_DENSITY || st == ELEC_PSEUDO_POLARIZATION
+      || st == ELEC_PHYSICAL_PSEUDO_DENSITY ? 1.0 : 0.0;
 
   for ( it.Begin(); !it.IsEnd(); it++ )
   {
