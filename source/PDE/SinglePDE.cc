@@ -1066,8 +1066,9 @@ namespace CoupledField {
         Vector<Double> globPoint;
         for( UInt iPoint = 0; iPoint < fap.locPoints.GetSize(); iPoint++) { 
           
-          ElemShapeMap& esm = *(ptgrid_->GetElemShapeMap(fap.elems[iPoint], true));
-          esm.Local2Global(globPoint, fap.locPoints[iPoint]);
+          shared_ptr<ElemShapeMap> esm = 
+              ptgrid_->GetElemShapeMap(fap.elems[iPoint], true);
+          esm->Local2Global(globPoint, fap.locPoints[iPoint]);
           // write to file
           out << fap.elems[iPoint]->elemNum << "\t";
           out << globPoint.ToString(0, '\t') << "\t";
