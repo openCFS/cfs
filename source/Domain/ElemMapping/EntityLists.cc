@@ -294,6 +294,41 @@ namespace CoupledField {
     return it;
   }
 
+  // --- NC Element List ---
+  //! Constructor
+  NcElemList::NcElemList( Grid * grid, std::string name)
+    : EntityList(grid){
+    this->type_ = NC_ELEM_LIST;
+    name_ = name;
+  }
+
+  //! returns the name of the list
+  std::string NcElemList::GetName() const{
+    return name_;
+  }
+
+  //! returns const reference to NcElem
+  const NcSurfElem * NcElemList::GetNcSurfElem( UInt nr ) const{
+    return ncElems_[nr].get();
+  }
+
+  //! Adds an element using a shared pointer which is better suited here
+  void NcElemList::SetElement( const shared_ptr<NcSurfElem> elem ){
+    ncElems_.Push_back(elem);
+    size_++;
+  }
+
+  //! Get iterator
+  EntityIterator NcElemList::GetIterator() const{
+    EntityIterator it;
+    it.type_ = NC_ELEM_LIST;
+    it.ncElemList_ = this;
+    it.pos_ = 0;
+    it.size_ = ncElems_.GetSize();
+    it.name_ = name_;
+    return it;
+  }
+
   // =================================================
   // E N T I T Y   I T E R A T O R
   // =================================================
@@ -325,13 +360,30 @@ namespace CoupledField {
     case EntityList::SURF_ELEM_LIST:
       return surfElemList_->GetSurfElem( pos_ );
       
-    default: EXCEPTION("type " << type_ << " not implemented");
+    case EntityList::NC_ELEM_LIST:
+       return ncElemList_->GetNcSurfElem( pos_ );
+
+    default:
+      EXCEPTION("type " << type_ << " not implemented");
+      break;
     }
     return NULL;
   }
   
   const SurfElem* EntityIterator::GetSurfElem() const {
-    return surfElemList_->list_[ pos_ ];
+    switch(type_)
+    {
+    case EntityList::SURF_ELEM_LIST:
+      return surfElemList_->list_[ pos_ ];
+      break;
+    case EntityList::NC_ELEM_LIST:
+      return ncElemList_->GetNcSurfElem( pos_ );
+      break;
+    default:
+      EXCEPTION("type " << type_ << " not implemented for GetSurfElem");
+      break;
+    }
+
   }
   
   RegionIdType EntityIterator::GetRegion() const {

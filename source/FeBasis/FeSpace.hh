@@ -170,6 +170,35 @@ public:
 
   //! Return number of functions for given entity
   virtual UInt GetNumFunctions( const EntityIterator ent ) = 0;
+
+  //! Obtain a pointer with interior surface elements for a given volume region
+  //! \param (in) region The volume region Id
+  //! \param (out) surfElems entity list with surface elements
+  //! \param (out) opposingElems entitylist ordered such that the elements are
+  //!                  direct neighbors of the first entity list
+  virtual void GetInteriorSurfaceElems(RegionIdType region,
+                               shared_ptr<EntityList> & surfElems,
+                               shared_ptr<EntityList> & opposingElems){
+    EXCEPTION("This FeSpace does not feature the dynamic generation of surface elements");
+  }
+
+  //! Obtain a pointer with interior surface elements for a given volume region
+  //! \param (in) region The volume region Id
+  //! \param (out) surfElems entity list with surface elements
+  virtual void GetInteriorSurfaceElems(RegionIdType region,
+                               shared_ptr<EntityList> & surfElems){
+    EXCEPTION("This FeSpace does not feature the dynamic generation of surface elements");
+  }
+
+  //! Obtain a pointer with exterior surface elements for a given volume region
+  //! NOTE: Be very careful, this entity list will contain the exterior surfaces
+  //!       of all regions the space has created interoir surfaces for
+  //! TODO: THINK OF ANOTHER NAME WHIHC REFLECTS THIS FACT
+  //! \param (in) region The volume region Id
+  //! \param (out) surfElems entity list with surface elements
+  virtual void GetExteriorSurfaceElems(RegionIdType region, shared_ptr<EntityList> & surfElems){
+    EXCEPTION("This FeSpace does not feature the dynamic generation of surface elements");
+  }
   //@}
   
   // ========================================================================

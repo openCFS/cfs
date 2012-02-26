@@ -123,7 +123,6 @@ class CoefFunctionGridBase : public CoefFunction{
     //! stores the current stepnumber of external result
     UInt curStep_;
 
-
   private:
     bool isStatic_;
 

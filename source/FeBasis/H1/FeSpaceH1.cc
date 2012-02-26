@@ -57,7 +57,8 @@ namespace CoupledField {
         eqns.Init(-1);
 
     } else if( ent.GetType() == EntityList::ELEM_LIST ||
-        ent.GetType() == EntityList::SURF_ELEM_LIST){
+        ent.GetType() == EntityList::SURF_ELEM_LIST||
+             ent.GetType() == EntityList::NC_ELEM_LIST){
       StdVector<UInt> nodes;
       GetNodesOfElement(nodes,ent.GetElem());
       eqns.Resize( nodes.GetSize() * dofsPerUnknown );
@@ -95,7 +96,8 @@ namespace CoupledField {
         eqns[0] = -1;
 
     } else if( ent.GetType() == EntityList::ELEM_LIST ||
-               ent.GetType() == EntityList::SURF_ELEM_LIST){
+               ent.GetType() == EntityList::SURF_ELEM_LIST||
+             ent.GetType() == EntityList::NC_ELEM_LIST){
       StdVector<UInt> nodes;
       GetNodesOfElement(nodes,ent.GetElem());
       eqns.Resize( nodes.GetSize() );
@@ -124,7 +126,8 @@ namespace CoupledField {
         eqns[0] = nodeMap_[gridToVirtualNodes_[node][0]][dof];
 
       } else if( ent.GetType() == EntityList::ELEM_LIST ||
-                 ent.GetType() == EntityList::SURF_ELEM_LIST){
+                 ent.GetType() == EntityList::SURF_ELEM_LIST||
+                 ent.GetType() == EntityList::NC_ELEM_LIST){
         StdVector<UInt> nodes;
         GetNodesOfElement(nodes,ent.GetElem(), entityType);
         eqns.Resize( nodes.GetSize() );

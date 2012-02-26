@@ -70,6 +70,7 @@ namespace CoupledField {
     effMat_             = NULL;
     effRhs_             = NULL;
     effSol_             = NULL;
+    tmpRHS_             = NULL;
     
     idbcHandler_    = NULL;
     assembleDirichletToSysMat_ = false;
@@ -141,6 +142,10 @@ namespace CoupledField {
     
     delete effMat_;
     effMat_ = NULL;
+
+    if(tmpRHS_)
+      delete tmpRHS_;
+    tmpRHS_ = NULL;
   }
   
   void AlgebraicSys::UpdateToSolStrategy() {
@@ -2129,16 +2134,9 @@ namespace CoupledField {
     }
 
     // loop over all feFctIDs and create a converted rhs
-    SBM_Vector* tmpRHS_ = dynamic_cast<SBM_Vector*> ( GenerateVectorObject( *(sysMat_[SYSTEM]) ) );
-    //if(SysMatUpdated){
-    //  if(tmpRHS_ != NULL){
-    //    delete tmpRHS_;
-    //    tmpRHS_ = NULL;
-    //  }
-    //  tmpRHS_ = dynamic_cast<SBM_Vector*>
-    //          ( GenerateVectorObject( *(sysMat_[SYSTEM]) ) );
-    //
-    //}
+    if(tmpRHS_==NULL)
+      tmpRHS_ = dynamic_cast<SBM_Vector*> ( GenerateVectorObject( *(sysMat_[SYSTEM]) ) );
+
     tmpRHS_->Init();
 
     for(UInt i = 0; i < numFcts_; ++i ) {

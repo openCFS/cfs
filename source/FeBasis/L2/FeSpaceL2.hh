@@ -66,6 +66,18 @@ public:
                                 std::map<UInt,StdVector<std::set<Integer> > >&
                                 minorBlocks );
 
+  //! \copydoc FeSpace::GetInteriorSurfaceElems
+  virtual void GetInteriorSurfaceElems(RegionIdType region,
+                                    shared_ptr<EntityList> & surfElems,
+                                    shared_ptr<EntityList> & opposingElems);
+
+  //! \copydoc FeSpace::GetInteriorSurfaceElems
+  virtual void GetInteriorSurfaceElems(RegionIdType region,
+                                       shared_ptr<EntityList> & surfElems);
+
+  //! \copydoc FeSpace::GetExteriorSurfaceElemsOfFeSpace
+  virtual void GetExteriorSurfaceElems(RegionIdType region, shared_ptr<EntityList>   & surfElems );
+
   //! Add result
   virtual void AddFeFunction( shared_ptr<BaseFeFunction> fct );
 
@@ -82,12 +94,29 @@ public:
   //! Map Nodal Equation Numbers
   virtual void MapNodalEqns(UInt phase);
 
+  //! fill the requested EntityLists and push them to fefunction
+  virtual void CreateSurfaceElems();
+
   // ====================================================================
   // PROCESS USER INPUT
   // ====================================================================
 
   //! Nodal Equation Map
   //SingleEqnMap nodeMap_;
+
+  // ====================================================================
+  // Store surface elements
+  // ====================================================================
+
+  //!map that stores interor surface elements
+  std::map< RegionIdType, shared_ptr<NcElemList> > interiorElemMap_;
+
+  //!map that stores interor surface elements opposing elements
+  std::map< RegionIdType, shared_ptr<NcElemList> > interiorElemMapOpposite_;
+
+  //! map storing exterior elements of regions excluding those who have a
+  //! neighbor in another region!
+  std::map< RegionIdType, shared_ptr<NcElemList> > exteriorElements_;
 };
 }
 

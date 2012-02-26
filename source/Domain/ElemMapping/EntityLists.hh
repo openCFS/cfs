@@ -15,6 +15,7 @@ namespace CoupledField {
   class EntityIterator;
   class Grid;
   struct SurfElem;
+  struct NcSurfElem;
   struct Elem;
   class Coil;
 
@@ -290,6 +291,37 @@ namespace CoupledField {
 
   };
 
+  //! Class for storing NC elems
+  //! IMPORTANT: in difference to the other entitylists,
+  //!   this list stroes directly the pointers to the elements
+  class NcElemList : public EntityList{
+  public:
+
+    //! Constructor
+    NcElemList( Grid * grid,std::string name);
+
+    virtual ~NcElemList(){
+
+    }
+
+    //! returns the name of the list
+    std::string GetName() const;
+
+    //! returns const reference to NcElem
+    const NcSurfElem * GetNcSurfElem( UInt nr ) const;
+
+    //! Adds an element using a shared pointer which is better suited here
+    void SetElement( const shared_ptr<NcSurfElem> elem );
+
+    //! Get iterator
+    EntityIterator GetIterator() const;
+
+  private:
+    StdVector< shared_ptr<NcSurfElem> > ncElems_;
+
+    std::string name_;
+  };
+
   //! Iterator class for all kinds of iterable entities
   class EntityIterator {
     
@@ -301,6 +333,7 @@ namespace CoupledField {
     friend class RegionList;
     friend class CoilList;
     friend class NumberList;
+    friend class NcElemList;
 
     //! Constructor
     EntityIterator();
@@ -322,6 +355,9 @@ namespace CoupledField {
     
     //! Return current surface element
     const SurfElem* GetSurfElem() const;
+
+    //! Return current surface element
+    const NcSurfElem* GetNcSurfElem() const;
 
     //! Return current region id
     RegionIdType GetRegion() const;
@@ -364,6 +400,7 @@ namespace CoupledField {
     const RegionList* regionList_;
     const CoilList * coilList_;
     const NumberList* numberList_;
+    const NcElemList* ncElemList_;
     UInt pos_;
     UInt size_;
     std::string name_;

@@ -180,6 +180,7 @@ namespace CoupledField {
             }
           }
         break;
+        case EntityList::NC_ELEM_LIST:
         case EntityList::SURF_ELEM_LIST:
           for(entIt.Begin(); !entIt.IsEnd(); entIt++){
             StdVector<UInt> eNodes;
@@ -318,7 +319,8 @@ namespace CoupledField {
     for(UInt actList = 0;actList <  fctEntList.GetSize(); actList++){
       EntityList::ListType actListType = fctEntList[actList]->GetType();
       if ( ! (actListType == EntityList::ELEM_LIST ||
-              actListType == EntityList::SURF_ELEM_LIST) )  {
+              actListType == EntityList::SURF_ELEM_LIST ||
+              actListType == EntityList::NC_ELEM_LIST) )  {
         continue;
       }
       shared_ptr<EntityList> actElemList =  fctEntList[actList];
@@ -366,9 +368,12 @@ namespace CoupledField {
     // - finally delete all intermediate arrays
     
     StdVector< shared_ptr<EntityList> > fctEntList;
-    std::map<UInt, StdVector<Integer> > vertexNodes;
-    std::map<UInt, StdVector<Integer> > edgenodes;
-    std::map<UInt, StdVector<Integer> > facenodes;
+
+    //ok these data structures are a bit messy but this is the most obvious typ
+    // and they are temporary anyway. furthermore we run here once in a lifetime
+    std::map< UInt, std::map<UInt, StdVector<Integer> > > vertexNodes;
+    std::map< UInt, std::map<UInt, StdVector<Integer> > > edgenodes;
+    std::map< UInt, std::map<UInt, StdVector<Integer> > > facenodes;
     std::map<UInt, StdVector<Integer> > interiornodes;
     //Different lists have to be treated differently
     EntityList::ListType actListType = EntityList::NO_LIST;
@@ -384,10 +389,13 @@ namespace CoupledField {
     //Stores the current order
     // MappingType curMap = GRID;
     
+    //changed algorithm first we add the volume elements and later on the surfaces
+    // so we loop twice over the entities
+
     // loop over all entitylists (i.e. regions)
     for(UInt actList = 0;actList <  fctEntList.GetSize(); actList++){
 
-      LOG_DBG(feSpace) << "treating entityList '" << fctEntList[actList]->GetName() << "'";
+
       actListType = fctEntList[actList]->GetType();
       //determine mapping type and order of current entity list
       //if we do not find the name of the reigon in our map, we fall back to the default
@@ -396,12 +404,13 @@ namespace CoupledField {
 
       //check if we got what we expected
 
-      if ( ! (actListType == EntityList::ELEM_LIST ||
-              actListType == EntityList::SURF_ELEM_LIST) )  {
+      if ( ! (actListType == EntityList::ELEM_LIST) &&
+           ! (actListType == EntityList::SURF_ELEM_LIST) &&
+           ! (actListType == EntityList::NC_ELEM_LIST))  {
         LOG_DBG(feSpace) << "\tLEAVING";
         continue;
-        
       }
+      LOG_DBG(feSpace) << "treating entityList '" << fctEntList[actList]->GetName() << "'";
       //cast down to element list
       EntityList* actElemList = fctEntList[actList].get();
 //      RegionIdType curReg = actElemList->GetRegion();
@@ -427,19 +436,37 @@ namespace CoupledField {
         UInt numVertexNodes = 0;
 
         UInt numVert = Elem::shapes[actEl->type].numVertices;
+        UInt volElemNum = 0;
+        //in case of surface elements we obtain the number of the first associated volume element
+        if((actListType == EntityList::SURF_ELEM_LIST) ||
+            (actListType == EntityList::NC_ELEM_LIST)){
+          const SurfElem* sE = entIt.GetSurfElem();
+          volElemNum = sE->ptVolElems[0]->elemNum;
+        }else{
+          volElemNum = actEl->elemNum;
+        }
         StdVector<UInt> elemNodes = actEl->connect;
         for ( UInt iVert= 0; iVert< numVert; iVert++ ) {
           UInt vertexNum = elemNodes[iVert];
           ptFe->GetNodalPermutation(permutations,actEl,BaseFE::VERTEX,iVert);
           numVertexNodes = permutations.GetSize();
 
+          if(isContinuous_){
+            //in the continuous case we need to check if we already have an entry for
+            //this vertex
+            if(vertexNodes[vertexNum].size()>0){
+              //so we need to redefine the volElemNumber
+              volElemNum = vertexNodes[vertexNum].begin()->first;
+            }
+          }
+
           // Check if the vertex is already numbered.
-          if( vertexNodes[vertexNum].GetSize() == 0 ||
-              ( !isContinuous_  && actListType != EntityList::SURF_ELEM_LIST) ) {
-            vertexNodes[vertexNum].Resize(numVertexNodes);
-            vertexNodes[vertexNum].Init();
+          if( vertexNodes[vertexNum][volElemNum].GetSize() == 0 ) {
+
+            vertexNodes[vertexNum][volElemNum].Resize(numVertexNodes);
+            vertexNodes[vertexNum][volElemNum].Init();
               for( UInt vertNode = 0; vertNode < numVertexNodes; ++vertNode ) {
-                vertexNodes[vertexNum][vertNode] = ++offset;
+                vertexNodes[vertexNum][volElemNum][vertNode] = ++offset;
                 LOG_DBG3(feSpace) << "adding " << offset << " to node_";
                 nodes_.Push_back(offset);
                 nodesType_[offset] = BaseFE::VERTEX;
@@ -447,8 +474,8 @@ namespace CoupledField {
           }
           EntityTypeNodes & etn =  virtualNodes_[actEl->elemNum][BaseFE::VERTEX];
           for( UInt i = 0; i < numVertexNodes; ++i ) {
-            etn.vNodes.Push_back(vertexNodes[vertexNum][permutations[i] ]);
-            LOG_DBG3(feSpace) << "adding " << vertexNodes[vertexNum][permutations[i] ]
+            etn.vNodes.Push_back(vertexNodes[vertexNum][volElemNum][permutations[i] ]);
+            LOG_DBG3(feSpace) << "adding " << vertexNodes[vertexNum][volElemNum][permutations[i] ]
                               << " as virtual vertex node to element " << actEl->elemNum;
           }
           etn.offset.Push_back( permutations.GetSize() );
@@ -463,7 +490,6 @@ namespace CoupledField {
             gridToVirtualNodes_[vertexNum].Push_back(offset);
           }
         } // loop over vertices
-        //Create the permutation array
 
         //if(isoOrder_ > 1){
         feFunction_->GetGrid()->MapEdges();
@@ -479,18 +505,24 @@ namespace CoupledField {
           //get the permutation Vector
           ptFe->GetNodalPermutation(permutations,actEl,BaseFE::EDGE,iEdge);
           numEdgeNodes = permutations.GetSize();
-
+          if(isContinuous_){
+           //in the continuous case we need to check if we already have an entry for
+           //this vertex
+           if(edgenodes[edgeNum].size()>0){
+             //so we need to redefine the volElemNumber
+             volElemNum = edgenodes[edgeNum].begin()->first;
+            }
+          }
           // Check if the edge is already numbered.
           // Additionally, if we have the case of discontinuous approximation,
           // we number the nodes separately for every element anyway.
-          if(edgenodes[edgeNum].GetSize() == 0  ||
-              ( !isContinuous_  && actListType != EntityList::SURF_ELEM_LIST)) {
+          if(edgenodes[edgeNum][volElemNum].GetSize() == 0 ) {
             //here we assume spectral element approximation and we have
             //order-1 nodes on the edge
-            edgenodes[edgeNum].Resize(numEdgeNodes);
-            edgenodes[edgeNum].Init();
+            edgenodes[edgeNum][volElemNum].Resize(numEdgeNodes);
+            edgenodes[edgeNum][volElemNum].Init();
             for ( UInt edgeNode = 0;edgeNode < numEdgeNodes ;edgeNode++ ) {
-              edgenodes[edgeNum][edgeNode] = ++offset;
+              edgenodes[edgeNum][volElemNum][edgeNode] = ++offset;
               nodes_.Push_back(offset);
               nodesType_[offset] = BaseFE::EDGE;
             }
@@ -499,7 +531,7 @@ namespace CoupledField {
           //fill the virtual Nodes in the correct ordering
           EntityTypeNodes & etn =  virtualNodes_[actEl->elemNum][BaseFE::EDGE];
           for ( UInt i = 0; i < numEdgeNodes ; i++ ) {
-            etn.vNodes.Push_back(edgenodes[edgeNum][ permutations[i] ]);
+            etn.vNodes.Push_back(edgenodes[edgeNum][volElemNum][ permutations[i] ]);
           }
           etn.offset.Push_back( permutations.GetSize() );
         }
@@ -513,15 +545,22 @@ namespace CoupledField {
           //get the permutation Vector
           ptFe->GetNodalPermutation(permutations,actEl,BaseFE::FACE,iFace);
           numFaceNodes = permutations.GetSize();
+          if(isContinuous_){
+           //in the continuous case we need to check if we already have an entry for
+           //this vertex
+           if(facenodes[faceNum].size()>0){
+             //so we need to redefine the volElemNumber
+             volElemNum = facenodes[faceNum].begin()->first;
+            }
+          }
 
           // Check if the face is already numbered.
           // Additionally, if we have the case of discontinuous approximation,
           // we number the nodes separately for every element separately anyway.
-          if(facenodes[faceNum].GetSize() == 0 ||
-              ( !isContinuous_  && actListType != EntityList::SURF_ELEM_LIST)){
-            facenodes[faceNum].Resize(numFaceNodes);
+          if(facenodes[faceNum][volElemNum].GetSize() == 0 ){
+            facenodes[faceNum][volElemNum].Resize(numFaceNodes);
             for ( UInt faceNode = 0;faceNode < numFaceNodes ;faceNode++ ) {
-              facenodes[faceNum][faceNode] = ++offset;
+              facenodes[faceNum][volElemNum][faceNode] = ++offset;
               nodes_.Push_back(offset);
               nodesType_[offset] = BaseFE::FACE;
             }
@@ -529,7 +568,7 @@ namespace CoupledField {
           //fill the virtual Nodes in the correct ordering
           EntityTypeNodes & etn =  virtualNodes_[actEl->elemNum][BaseFE::FACE];
           for ( UInt i = 0; i < numFaceNodes ; i++ ) {
-            etn.vNodes.Push_back(facenodes[faceNum][ permutations[i] ]);
+            etn.vNodes.Push_back(facenodes[faceNum][volElemNum][ permutations[i] ]);
           }
           etn.offset.Push_back( permutations.GetSize() );
         }

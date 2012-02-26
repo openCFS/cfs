@@ -28,8 +28,9 @@
   <!--   Definition of data type for stokesFluid PDEs -->
   <!-- ******************************************************************* -->
   <xsd:complexType name="DT_PDEAcousticMixed">
-    <xsd:complexContent>
+    <xsd:complexContent>   
       <xsd:extension base="DT_PDEBasic">
+
         <xsd:sequence>
 
                   <!-- Regions the PDE lives on -->
@@ -42,7 +43,8 @@
                     <xsd:attribute name="polyId" type="xsd:string" use="optional" default="default"> </xsd:attribute>
                     <xsd:attribute name="integId" type="xsd:string" use="optional" default="default"> </xsd:attribute>
                     <xsd:attribute name="nonLinId" type="xsd:token" use="optional" default=""/>
-                    <xsd:attribute name="flowId" type="xsd:token" use="optional" default=""></xsd:attribute>
+                    <xsd:attribute name="flowId" type="xsd:token" use="optional" default=""/>
+                    <xsd:attribute name="penalizationFactor" type="xsd:double" use="optional" default="0.5"/>
                   </xsd:complexType>
                 </xsd:element>
               </xsd:sequence>
@@ -87,7 +89,9 @@
             minOccurs="0" maxOccurs="1"/>
 
         </xsd:sequence>
-
+        <xsd:attribute name="penalized" type="xsd:boolean" default="true"/>
+        <xsd:attribute name="usePiolaTransform" type="xsd:boolean" default="true"/>
+        <xsd:attribute name="fluxTerm" type="xsd:boolean" default="true"/>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>

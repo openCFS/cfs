@@ -76,13 +76,22 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
     }
   }
   
-  void SetElemInfo( ElemShape& shape, Double midPoint[], 
+  void SetElemInfo( ElemShape& shape,
+                      Double midPoint[],
                       Double nodeCoords[], UInt edgeVertices[],
                       UInt numEdgeNodes[], UInt edgeNodes[],
                       UInt numEdgesPerDir[],  UInt locDirEdges[],
+                      Elem::FEType surfaceETypes[] = NULL,
                       UInt numFaceVertices[] = NULL, UInt faceVertices[] = NULL,
                       UInt numFaceNodes[] = NULL, UInt faceNodes[] = NULL,
                       UInt numFacesPerDir[] = NULL, UInt locDirFaces[][2] = NULL) {
+
+      //subelement information
+      UInt surfEl = shape.numSurfElems;
+      shape.surfElemTypes.Resize(surfEl);
+      for(UInt eType = 0; eType < surfEl; ++eType){
+        shape.surfElemTypes[eType] = surfaceETypes[eType];
+      }
 
       // midPoint
       UInt dim = shape.dim;
@@ -187,6 +196,7 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
       s.numNodes = 1;
       s.numEdges = 0;
       s.numFaces = 0;
+      s.numSurfElems = 0;
 
       Double midPoint[1] = {0.0};
       Double nodeCoords[] =
@@ -210,7 +220,7 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
        1 // xi
       };
       SetElemInfo( s, midPoint, nodeCoords, edgeVertices, numEdgeNodes,
-                   edgeVertices, numEdgesPerDir, locDirEdges,
+                   edgeVertices, numEdgesPerDir, locDirEdges, NULL,
                    NULL, NULL, NULL, NULL );
       Elem::shapes[Elem::ET_POINT] = s;
     }
@@ -227,6 +237,7 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
       s.numNodes = 2;
       s.numEdges = 1;
       s.numFaces = 0;
+      s.numSurfElems = 2;
       
       Double midPoint[1] = {0.0};
       Double nodeCoords[] = 
@@ -250,8 +261,12 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
       {
        1 // xi
       };
+      Elem::FEType surfElems[] =
+      {
+       Elem::ET_POINT,Elem::ET_POINT
+      };
       SetElemInfo( s, midPoint, nodeCoords, edgeVertices, numEdgeNodes,
-                   edgeVertices, numEdgesPerDir, locDirEdges, 
+                   edgeVertices, numEdgesPerDir, locDirEdges, surfElems,
                    NULL, NULL, NULL, NULL );
       Elem::shapes[Elem::ET_LINE2] = s;
     }
@@ -272,6 +287,7 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
       s.numNodes = 3;
       s.numEdges = 1;
       s.numFaces = 0;
+      s.numSurfElems = 2;
 
       Double midPoint[1] = {0.0};
       Double nodeCoords[] =
@@ -296,8 +312,12 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
       {
        1 // xi
       };
+      Elem::FEType surfElems[] =
+      {
+       Elem::ET_POINT,Elem::ET_POINT
+      };
       SetElemInfo( s, midPoint, nodeCoords, edgeVertices, numEdgeNodes,
-                   edgeVertices, numEdgesPerDir, locDirEdges,
+                   edgeVertices, numEdgesPerDir, locDirEdges, surfElems,
                    NULL, NULL, NULL, NULL );
       Elem::shapes[Elem::ET_LINE3] = s;
     }
@@ -320,6 +340,8 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
     s.numNodes = 3;
     s.numEdges = 3;
     s.numFaces = 1;
+    s.numSurfElems = 3;
+
     Double midPoint[2] = {1.0/3.0, 1.0/3.0};
     Double nodeCoords[] = 
     { 
@@ -371,8 +393,12 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
      {1,1}, // #faces in eta-dir & component
     };
 
+    Elem::FEType surfElems[] =
+    {
+     Elem::ET_LINE2,Elem::ET_LINE2,Elem::ET_LINE2
+    };
     SetElemInfo( s, midPoint, nodeCoords, edgeVertices, numEdgeNodes,
-                 edgeNodes, numEdgesPerDir, locDirEdges,
+                 edgeNodes, numEdgesPerDir, locDirEdges, surfElems,
                  numFaceVertices, faceVertices, numFaceNodes, faceNodes,
                  numFacesPerDir, locDirFaces );
     Elem::shapes[Elem::ET_TRIA3] = s;
@@ -397,6 +423,7 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
       s.numNodes = 6;
       s.numEdges = 3;
       s.numFaces = 1;
+      s.numSurfElems = 3;
 
       Double midPoint[2] = {1.0/3.0, 1.0/3.0};
       Double nodeCoords[] =
@@ -459,9 +486,12 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
        {1,0}, // #faces in xi-dir & component
        {1,1}, // #faces in eta-dir & component
       };
-
+      Elem::FEType surfElems[] =
+      {
+       Elem::ET_LINE3,Elem::ET_LINE3,Elem::ET_LINE3
+      };
       SetElemInfo( s, midPoint, nodeCoords, edgeVertices, numEdgeNodes,
-                   edgeNodes, numEdgesPerDir, locDirEdges,
+                   edgeNodes, numEdgesPerDir, locDirEdges, surfElems,
                    numFaceVertices, faceVertices, numFaceNodes, faceNodes,
                    numFacesPerDir, locDirFaces );
       Elem::shapes[Elem::ET_TRIA6] = s;
@@ -486,6 +516,7 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
       s.numNodes = 4;
       s.numEdges = 4;
       s.numFaces = 1;
+      s.numSurfElems = 4;
       Double midPoint[2] = {0.0, 0.0};
       Double nodeCoords[] = 
       { 
@@ -539,9 +570,12 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
        {1,0}, // #faces in xi-dir & component
        {1,1}, // #faces in eta-dir & component
       };
-
+      Elem::FEType surfElems[] =
+      {
+       Elem::ET_LINE2,Elem::ET_LINE2,Elem::ET_LINE2,Elem::ET_LINE2
+      };
       SetElemInfo( s, midPoint, nodeCoords, edgeVertices, numEdgeNodes,
-                   edgeNodes, numEdgesPerDir, locDirEdges,
+                   edgeNodes, numEdgesPerDir, locDirEdges, surfElems,
                    numFaceVertices, faceVertices, numFaceNodes, faceNodes,
                    numFacesPerDir, locDirFaces );
       Elem::shapes[Elem::ET_QUAD4] = s;
@@ -567,6 +601,7 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
        s.numNodes = 8;
        s.numEdges = 4;
        s.numFaces = 1;
+       s.numSurfElems = 4;
        Double midPoint[2] = {0.0, 0.0};
        Double nodeCoords[] = 
        { 
@@ -636,9 +671,12 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
         {1,0}, // #faces in xi-dir & component
         {1,1}, // #faces in eta-dir & component
        };
-
+       Elem::FEType surfElems[] =
+       {
+        Elem::ET_LINE3,Elem::ET_LINE3,Elem::ET_LINE3,Elem::ET_LINE3
+       };
        SetElemInfo( s, midPoint, nodeCoords, edgeVertices, numEdgeNodes,
-                    edgeNodes, numEdgesPerDir, locDirEdges,
+                    edgeNodes, numEdgesPerDir, locDirEdges, surfElems,
                     numFaceVertices, faceVertices, numFaceNodes, faceNodes,
                     numFacesPerDir, locDirFaces );
        Elem::shapes[Elem::ET_QUAD8] = s;
@@ -663,6 +701,7 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
        s.numNodes = 9;
        s.numEdges = 4;
        s.numFaces = 1;
+       s.numSurfElems = 4;
        Double midPoint[2] = {0.0, 0.0};
        Double nodeCoords[] =
        {
@@ -733,9 +772,12 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
         {1,0}, // #faces in xi-dir & component
         {1,1}, // #faces in eta-dir & component
        };
-
+       Elem::FEType surfElems[] =
+       {
+        Elem::ET_LINE3,Elem::ET_LINE3,Elem::ET_LINE3,Elem::ET_LINE3
+       };
        SetElemInfo( s, midPoint, nodeCoords, edgeVertices, numEdgeNodes,
-                    edgeNodes, numEdgesPerDir, locDirEdges,
+                    edgeNodes, numEdgesPerDir, locDirEdges, surfElems,
                     numFaceVertices, faceVertices, numFaceNodes, faceNodes,
                     numFacesPerDir, locDirFaces );
        Elem::shapes[Elem::ET_QUAD9] = s;
@@ -772,7 +814,7 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
       s.numNodes = 4;
       s.numEdges = 6;
       s.numFaces = 4;
-
+      s.numSurfElems = 4;
       Double midPoint[3] = {1.0/4.0, 1.0/4.0, 1.0/4.0};
       Double nodeCoords[] =
       { 0.0,  0.0,  0.0, // #1
@@ -838,8 +880,12 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
        {1,1},{3,0},{4,0}, // faces in eta-dir & component
        {2,1},{3,1},{4,1}  // faces in zeta-dir & component
       };
+      Elem::FEType surfElems[] =
+      {
+       Elem::ET_TRIA3,Elem::ET_TRIA3,Elem::ET_TRIA3,Elem::ET_TRIA3
+      };
       SetElemInfo( s, midPoint, nodeCoords, edgeVertices, numEdgeNodes,
-                   edgeNodes, numEdgesPerDir, locDirEdges,
+                   edgeNodes, numEdgesPerDir, locDirEdges, surfElems,
                    numFaceVertices, faceVertices, numFaceNodes, faceNodes,
                    numFacesPerDir, locDirFaces );
       Elem::shapes[Elem::ET_TET4] = s;
@@ -876,6 +922,7 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
       s.numNodes = 10;
       s.numEdges = 6;
       s.numFaces = 4;
+      s.numSurfElems = 4;
 
       Double midPoint[3] = {1.0/4.0, 1.0/4.0, 1.0/4.0};
       Double nodeCoords[] =
@@ -967,8 +1014,12 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
        {1,1},{3,0},{4,0}, // faces in eta-dir & component
        {2,1},{3,1},{4,1}  // faces in zeta-dir & component
       };
+      Elem::FEType surfElems[] =
+      {
+       Elem::ET_TRIA6,Elem::ET_TRIA6,Elem::ET_TRIA6,Elem::ET_TRIA6
+      };
       SetElemInfo( s, midPoint, nodeCoords, edgeVertices, numEdgeNodes,
-                   edgeNodes, numEdgesPerDir, locDirEdges,
+                   edgeNodes, numEdgesPerDir, locDirEdges, surfElems,
                    numFaceVertices, faceVertices, numFaceNodes, faceNodes,
                    numFacesPerDir, locDirFaces );
       Elem::shapes[Elem::ET_TET10] = s;
@@ -996,6 +1047,7 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
       s.numNodes = 8;
       s.numEdges = 12;
       s.numFaces = 6;
+      s.numSurfElems = 6;
       
       Double midPoint[3] = {0.0, 0.0, 0.0};
       Double nodeCoords[] = 
@@ -1081,8 +1133,12 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
        {1,1},{3,0},{5,0},{6,1}, // faces in eta-dir & component
        {2,1},{3,1},{4,1},{5,1}  // faces in zeta-dir & component
       };
+      Elem::FEType surfElems[] =
+      {
+       Elem::ET_QUAD4,Elem::ET_QUAD4,Elem::ET_QUAD4,Elem::ET_QUAD4,Elem::ET_QUAD4,Elem::ET_QUAD4
+      };
       SetElemInfo( s, midPoint, nodeCoords, edgeVertices, numEdgeNodes,
-                    edgeNodes, numEdgesPerDir, locDirEdges,
+                    edgeNodes, numEdgesPerDir, locDirEdges, surfElems,
                     numFaceVertices, faceVertices, numFaceNodes, faceNodes,
                     numFacesPerDir, locDirFaces );
       Elem::shapes[Elem::ET_HEXA8] = s;
@@ -1112,6 +1168,7 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
           s.numNodes = 20;
           s.numEdges = 12;
           s.numFaces = 6;
+          s.numSurfElems = 6;
           
           Double midPoint[3] = {0.0, 0.0, 0.0};
           Double nodeCoords[] = 
@@ -1240,8 +1297,12 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
            {1,1},{3,0},{5,0},{6,1}, // faces in eta-dir & component
            {2,1},{3,1},{4,1},{5,1}  // faces in zeta-dir & component
           };
+          Elem::FEType surfElems[] =
+          {
+           Elem::ET_QUAD8,Elem::ET_QUAD8,Elem::ET_QUAD8,Elem::ET_QUAD8,Elem::ET_QUAD8,Elem::ET_QUAD8
+          };
           SetElemInfo( s, midPoint, nodeCoords, edgeVertices, numEdgeNodes,
-                        edgeNodes, numEdgesPerDir, locDirEdges,
+                        edgeNodes, numEdgesPerDir, locDirEdges, surfElems,
                         numFaceVertices, faceVertices, numFaceNodes, faceNodes,
                         numFacesPerDir, locDirFaces );
           Elem::shapes[Elem::ET_HEXA20] = s;
@@ -1257,7 +1318,7 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
           s.numNodes = 27;
           s.numEdges = 12;
           s.numFaces = 6;
-
+          s.numSurfElems = 6;
           Double midPoint[3] = {0.0, 0.0, 0.0};
           Double nodeCoords[] =
           { -1.0, -1.0, -1.0, //  #1
@@ -1393,8 +1454,12 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
            {1,1},{3,0},{5,0},{6,1}, // faces in eta-dir & component
            {2,1},{3,1},{4,1},{5,1}  // faces in zeta-dir & component
           };
+          Elem::FEType surfElems[] =
+          {
+           Elem::ET_QUAD9,Elem::ET_QUAD9,Elem::ET_QUAD9,Elem::ET_QUAD9,Elem::ET_QUAD9,Elem::ET_QUAD9
+          };
           SetElemInfo( s, midPoint, nodeCoords, edgeVertices, numEdgeNodes,
-                        edgeNodes, numEdgesPerDir, locDirEdges,
+                        edgeNodes, numEdgesPerDir, locDirEdges, surfElems,
                         numFaceVertices, faceVertices, numFaceNodes, faceNodes,
                         numFacesPerDir, locDirFaces );
           Elem::shapes[Elem::ET_HEXA27] = s;
@@ -1428,6 +1493,7 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
       s.numNodes = 5;
       s.numEdges = 8;
       s.numFaces = 5;
+      s.numSurfElems = 5;
 
       Double midPoint[3] = {0.0, 0.0, 1./4};
       Double nodeCoords[] =
@@ -1501,8 +1567,12 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
        {1,1},{2,2},{3,0},{4,2},{5,0}, // faces eta xi-dir & component
        {2,1},{3,1},{4,1},{5,1}        // faces in zeta-dir & component
       };
+      Elem::FEType surfElems[] =
+      {
+       Elem::ET_QUAD4,Elem::ET_TRIA3,Elem::ET_TRIA3,Elem::ET_TRIA3,Elem::ET_TRIA3
+      };
       SetElemInfo( s, midPoint, nodeCoords, edgeVertices, numEdgeNodes,
-                    edgeNodes, numEdgesPerDir, locDirEdges,
+                    edgeNodes, numEdgesPerDir, locDirEdges, surfElems,
                     numFaceVertices, faceVertices, numFaceNodes, faceNodes,
                     numFacesPerDir, locDirFaces );
       Elem::shapes[Elem::ET_PYRA5] = s;
@@ -1537,7 +1607,7 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
       s.numNodes = 13;
       s.numEdges = 8;
       s.numFaces = 5;
-
+      s.numSurfElems = 5;
       Double midPoint[3] = {0.0, 0.0, 1./4};
       Double nodeCoords[] =
       {  1.0,  1.0,  0.0, // #1
@@ -1641,8 +1711,12 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
        {1,1},{2,2},{3,0},{4,2},{5,0}, // faces eta xi-dir & component
        {2,1},{3,1},{4,1},{5,1}        // faces in zeta-dir & component
       };
+      Elem::FEType surfElems[] =
+      {
+       Elem::ET_QUAD8,Elem::ET_TRIA6,Elem::ET_TRIA6,Elem::ET_TRIA6,Elem::ET_TRIA6
+      };
       SetElemInfo( s, midPoint, nodeCoords, edgeVertices, numEdgeNodes,
-                    edgeNodes, numEdgesPerDir, locDirEdges,
+                    edgeNodes, numEdgesPerDir, locDirEdges, surfElems,
                     numFaceVertices, faceVertices, numFaceNodes, faceNodes,
                     numFacesPerDir, locDirFaces );
       Elem::shapes[Elem::ET_PYRA13] = s;
@@ -1677,7 +1751,7 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
       s.numNodes = 14;
       s.numEdges = 8;
       s.numFaces = 5;
-
+      s.numSurfElems = 5;
       Double midPoint[3] = {0.0, 0.0, 1.0/4.0};
       Double nodeCoords[] =
       {  1.0,  1.0,  0.0, // #1
@@ -1782,8 +1856,12 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
        {1,1},{2,2},{3,0},{4,2},{5,0}, // faces eta xi-dir & component
        {2,1},{3,1},{4,1},{5,1}        // faces in zeta-dir & component
       };
+      Elem::FEType surfElems[] =
+      {
+       Elem::ET_QUAD9,Elem::ET_TRIA6,Elem::ET_TRIA6,Elem::ET_TRIA6,Elem::ET_TRIA6
+      };
       SetElemInfo( s, midPoint, nodeCoords, edgeVertices, numEdgeNodes,
-                    edgeNodes, numEdgesPerDir, locDirEdges,
+                    edgeNodes, numEdgesPerDir, locDirEdges, surfElems,
                     numFaceVertices, faceVertices, numFaceNodes, faceNodes,
                     numFacesPerDir, locDirFaces );
       Elem::shapes[Elem::ET_PYRA14] = s;
@@ -1809,7 +1887,7 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
       s.numNodes = 6;
       s.numEdges = 9;
       s.numFaces = 5;
-
+      s.numSurfElems = 5;
       Double midPoint[3] = {1.0/3.0, 1.0/3.0, 0.0};
       Double nodeCoords[] = 
       { 0.0,  0.0, -1.0, // #1
@@ -1885,8 +1963,12 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
        {1,1},{2,1},{4,0},{5,0}, // faces in eta-dir & component
        {3,1},{4,1},{5,1}        // faces in zeta-dir & component
       };
+      Elem::FEType surfElems[] =
+      {
+       Elem::ET_TRIA3,Elem::ET_TRIA3,Elem::ET_QUAD4,Elem::ET_QUAD4,Elem::ET_QUAD4
+      };
       SetElemInfo( s, midPoint, nodeCoords, edgeVertices, numEdgeNodes,
-                   edgeNodes, numEdgesPerDir, locDirEdges,
+                   edgeNodes, numEdgesPerDir, locDirEdges, surfElems,
                    numFaceVertices, faceVertices, numFaceNodes, faceNodes,
                    numFacesPerDir, locDirFaces );
       Elem::shapes[Elem::ET_WEDGE6] = s;
@@ -1917,6 +1999,7 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
       s.numNodes = 15;
       s.numEdges = 9;
       s.numFaces = 5;
+      s.numSurfElems = 5;
 
       Double midPoint[3] = {1.0/3.0, 1.0/3.0, 0.0};
       Double nodeCoords[] = 
@@ -2027,8 +2110,12 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
        {1,1},{2,1},{4,0},{5,0}, // faces in eta-dir & component
        {3,1},{4,1},{5,1}        // faces in zeta-dir & component
       };
+      Elem::FEType surfElems[] =
+      {
+       Elem::ET_TRIA6,Elem::ET_TRIA6,Elem::ET_QUAD8,Elem::ET_QUAD8,Elem::ET_QUAD8
+      };
       SetElemInfo( s, midPoint, nodeCoords, edgeVertices, numEdgeNodes,
-                   edgeNodes, numEdgesPerDir, locDirEdges,
+                   edgeNodes, numEdgesPerDir, locDirEdges, surfElems,
                    numFaceVertices, faceVertices, numFaceNodes, faceNodes,
                    numFacesPerDir, locDirFaces );
       Elem::shapes[Elem::ET_WEDGE15] = s;
@@ -2059,7 +2146,7 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
       s.numNodes = 18;
       s.numEdges = 9;
       s.numFaces = 5;
-
+      s.numSurfElems = 5;
       Double midPoint[3] = {1.0/3.0, 1.0/3.0, 0.0};
       Double nodeCoords[] =
       { 0.0,  0.0, -1.0, //  #1
@@ -2171,8 +2258,12 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
        {1,1},{2,1},{4,0},{5,0}, // faces in eta-dir & component
        {3,1},{4,1},{5,1}        // faces in zeta-dir & component
       };
+      Elem::FEType surfElems[] =
+      {
+       Elem::ET_TRIA6,Elem::ET_TRIA6,Elem::ET_QUAD9,Elem::ET_QUAD9,Elem::ET_QUAD9
+      };
       SetElemInfo( s, midPoint, nodeCoords, edgeVertices, numEdgeNodes,
-                   edgeNodes, numEdgesPerDir, locDirEdges,
+                   edgeNodes, numEdgesPerDir, locDirEdges, surfElems,
                    numFaceVertices, faceVertices, numFaceNodes, faceNodes,
                    numFacesPerDir, locDirFaces );
       Elem::shapes[Elem::ET_WEDGE18] = s;

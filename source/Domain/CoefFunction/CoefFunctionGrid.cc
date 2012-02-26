@@ -260,6 +260,7 @@ void CoefFunctionGridBase<DATA_TYPE>::ReadXmlNode(PtrParamNode configNode){
   feFunct_ = domain->GetResultHandler()->GetFeFunction<DATA_TYPE>(inputId_,aSeqStep,stepValueMap_.begin()->first,solType_,srcRegions_);
 }
 
+
 // Explicit template instantiation
 #ifdef EXPLICIT_TEMPLATE_INSTANTIATION
   template class CoefFunctionGridBase<Double>;

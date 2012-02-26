@@ -68,7 +68,8 @@ BaseFE* FeSpaceL2Nodal::GetFe( const EntityIterator ent,
 BaseFE* FeSpaceL2Nodal::GetFe( const EntityIterator ent ){
 
   if(ent.GetType() != EntityList::ELEM_LIST &&
-      ent.GetType() != EntityList::SURF_ELEM_LIST){
+      ent.GetType() != EntityList::SURF_ELEM_LIST &&
+      ent.GetType() != EntityList::NC_ELEM_LIST){
     EXCEPTION("This version of GetFe expects a element iterator")
   }
 
@@ -77,7 +78,7 @@ BaseFE* FeSpaceL2Nodal::GetFe( const EntityIterator ent ){
   // and look for the neigbor. Which one to take? Well, we had the
   // discussion already ....
   RegionIdType eRegion = NO_REGION_ID;
-  if( ent.GetType() == EntityList::SURF_ELEM_LIST) {
+  if( ent.GetType() == EntityList::SURF_ELEM_LIST ) {
     eRegion = ent.GetSurfElem()->ptVolElems[0]->regionId;
   } else {
     eRegion = ent.GetElem()->regionId;
@@ -190,14 +191,21 @@ void FeSpaceL2Nodal::Finalize(){
 
   //      UInt numEqns_ = 0;
   //      UInt numFreeEquations_ = 0;
+  //the damn thing is that we need to map the edges right here if we have internal surfaces
+  //ok, should not hurt anyway
+  if(interiorElemMap_.size() > 0){
+    this->feFunction_->GetGrid()->MapEdges();
+    this->feFunction_->GetGrid()->MapFaces();
+    CreateSurfaceElems();
+  }
+
   CreateVirtualNodes();
   //Determine boundary Unknowns
   MapNodalBCs();
   MapNodalEqns(1);
   MapNodalEqns(2);
 
-  // TEMPORARY: print information
-  //PrintEqnMap();
+
   CheckConsistency();
   isFinalized_ = true;
 }

@@ -9,7 +9,7 @@ namespace CoupledField {
 
   //! general class for calculation of AB-Forms
   template<class A_OP, class B_OP, class MAT_DATA_TYPE=Double>
-  class ABInt : public BBInt<B_OP, MAT_DATA_TYPE> {
+  class ABInt : public BBInt<B_OP, MAT_DATA_TYPE,MAT_DATA_TYPE> {
     public:
 
       //! Constructor with pointer to BaseElem
@@ -17,7 +17,7 @@ namespace CoupledField {
              bool coordUpdate = false );
 
       //! Destructor
-      ~ABInt(){
+      virtual ~ABInt(){
 
       }
       //! Compute element matrix associated to AB form
@@ -34,6 +34,28 @@ namespace CoupledField {
       
       //! First differential operator
       A_OP aOperator_;
+  };
+
+  //! general class for calculation of AB-Forms
+  template<class A_OP, class B_OP, class MAT_DATA_TYPE=Double>
+  class SurfaceABInt : public ABInt<A_OP,B_OP, MAT_DATA_TYPE>{
+  public:
+        //! Constructor with pointer to BaseElem
+      SurfaceABInt(shared_ptr<CoefFunction> scalCoef, MAT_DATA_TYPE factor,
+                   const std::set<RegionIdType>& volRegions, bool coordUpdate = false);
+
+      //! Destructor
+      ~SurfaceABInt(){
+
+      }
+
+      //! Compute element matrix associated to BDB form
+      void CalcElementMatrix( Matrix<MAT_DATA_TYPE>& elemMat,
+                                 EntityIterator& ent1,
+                                 EntityIterator& ent2 );
+    protected:
+      //! set containing all volume regions for surface integrators
+      std::set<RegionIdType> volRegions_;
   };
 }
 

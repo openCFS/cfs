@@ -80,5 +80,29 @@ namespace CoupledField
     //@}
   };
   
+  /*! \class NcSurfElem
+   *   \brief Structure specially suited for non-conforming grids and DG-methods
+   *   \date 02/2012
+   *   \author ahueppe
+   *
+   *   This struct is desigend for the need of DG and mortar Element methods.
+   *   One destinct feature of these schemes is that the surface elements are
+   *   closely related to their volume elements thereby it is possible during creation
+   *   to store driectly local coordinates associated to volume elements.
+   *   Furthermore we store a vector of neighbor elements which can be surfelems or
+   *   NcSurfElems again.
+   */
+  struct NcSurfElem : public SurfElem{
+    NcSurfElem(): SurfElem(){
+      //in most cases we have at least one neighbor so we reserve memory for it
+      neighbors.Reserve(1);
+    }
+
+    StdVector< StdVector<Double> > localCoords;
+
+    //waring this may not be freed!!!! just for comptability with other element types...
+    StdVector< shared_ptr<NcSurfElem> > neighbors;
+  };
+
 } // end of namespace
 #endif

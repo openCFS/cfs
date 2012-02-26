@@ -74,6 +74,14 @@ class AcousticMixedPDE : public SinglePDE{
     //! perform postprocessing on data
     void CalcResults( shared_ptr<BaseResult> result );
 
+    //! define all (bilinearform) integrators needed for this pdewith template
+    //! for the space dimension
+    template<class DATA_TYPE, UInt DIM>
+    void DefineIntegratorsTempl();
+
+    template<class DATA_TYPE, UInt DIM>
+    void DefineRhsLoadIntegratorsTempl();
+
   protected:
 
     //!  Define available postprocessing results
@@ -90,6 +98,10 @@ class AcousticMixedPDE : public SinglePDE{
     bool usePiola_;
 
     shared_ptr<BaseFieldFunctor> meanFlowFunctor_;
+
+    bool penalized_;
+
+    bool doFluxTerm_;
 };
 
 }

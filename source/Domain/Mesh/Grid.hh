@@ -557,6 +557,18 @@ namespace CoupledField
     virtual void GetNeighboursOfNode(const UInt noOfNode,
                                      StdVector<Elem*> * neighbours)
     { EXCEPTION( "Not implemented" ); }
+
+    //! Generate Surface elements used for DG calculation schemes.
+    //! \param (in) regionList List of volume regions we want to create surfElems for
+    //! \param (out) interiorSurfElems Set of surface elements which are inside of the
+    //!              volume defined by the regionList. i.e. they have at least one neighbor
+    //! \param (out) exteriorSurfElems Surface elements on the exterior boundary
+    //!                                no neighbor element
+    virtual void GenerateDGSurfaceElemes(std::set<RegionIdType> regionList,
+                                         StdVector<shared_ptr<NcSurfElem> > & interiorSurfElems,
+                                         StdVector<shared_ptr<NcSurfElem> > & exteriorSurfElems){
+      EXCEPTION( "GenerateDGSurfaceElemes: Not implemented here!");
+    }
     //@}
 
 

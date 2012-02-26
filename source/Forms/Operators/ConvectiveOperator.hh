@@ -85,7 +85,7 @@ namespace CoupledField{
                                          BaseFE* ptFe ){
 
     //obtain external field
-    Vector<TYPE> myVec;
+    Vector<Double> myVec;
     this->coef_->GetVector(myVec,lp);
 
     UInt numFncs = ptFe->GetNumFncs();
@@ -112,7 +112,7 @@ namespace CoupledField{
                                                    const LocPointMapped& lp,
                                                    BaseFE* ptFe ){
     //obtain external field
-    Vector<TYPE> myVec;
+    Vector<Double> myVec;
     this->coef_->GetVector(myVec,lp);
 
     UInt numFncs = ptFe->GetNumFncs();
@@ -177,14 +177,32 @@ namespace CoupledField{
                                           const LocPointMapped& lp,
                                           BaseFE* ptFe ){
 
-     Matrix<Double> bMatTmp;
-     ConvectiveOperator<FE,D,D_DOF,TYPE>::CalcOpMat(bMatTmp,lp,ptFe);
+     Matrix<Double> bMatInitial;
+     ConvectiveOperator<FE,D,D_DOF,TYPE>::CalcOpMat(bMatInitial,lp,ptFe);
 
+     bMat.Resize(bMatInitial.GetNumRows(),bMatInitial.GetNumCols());
+     bMat.Init();
      //now apply piola transform
-     bMat = lp.jac * bMatTmp;
-     bMat /= lp.jacDet;
-     //std::cout << lp.jac << std::endl;
-     //std::cout << bMatTmp << std::endl;
+     //in case of NC_SURF_ELEMs we evaluate the piola matrix on the volume element
+
+     if(lp.isSurface){
+#ifdef USE_BLAS_VERSION
+       Double jacDetInv = (1.0/lp.lpmVol->jacDet);
+       lp.lpmVol->jac.Mult_Blas(bMatInitial,bMat,false,false,jacDetInv,0.0);
+#else
+       bMat = lp.lpmVol->jac * bMatInitial;
+       bMat *= (1.0/lp.lpmVol->jacDet);
+#endif
+     }else{
+#ifdef USE_BLAS_VERSION
+       Double jacDetInv = (1.0/lp.jacDet);
+       lp.jac.Mult_Blas(bMatInitial,bMat,false,false,jacDetInv,0.0);
+#else
+       bMat = lp.jac * bMatInitial;
+       bMat *= (1.0/lp.jacDet);
+#endif
+     }
+
 
    }
 
@@ -193,11 +211,34 @@ namespace CoupledField{
                                                     const LocPointMapped& lp,
                                                     BaseFE* ptFe ){
 
-     Matrix<Double> bMatTmp;
-     ConvectiveOperator<FE,D,D_DOF,TYPE>::CalcOpMatTransposed(bMatTmp,lp,ptFe);
+     Matrix<Double> bMatInitial;
+     ConvectiveOperator<FE,D,D_DOF,TYPE>::CalcOpMatTransposed(bMatInitial,lp,ptFe);
+     bMat.Resize(bMatInitial.GetNumRows(),bMatInitial.GetNumCols());
+     bMat.Init();
      //now apply piola transform
-     bMat =  bMatTmp * lp.jac;
-     bMat /= lp.jacDet;
+     //in case of NC_SURF_ELEMs we evaluate the piola matrix on the volume element
+
+     if(lp.isSurface){
+#ifdef USE_BLAS_VERSION
+       Double jacDetInv = (1.0/lp.lpmVol->jacDet);
+       bMatInitial.Mult_Blas(lp.lpmVol->jac,bMat,false,true,jacDetInv,0.0);
+#else
+       Matrix<Double> jacTmp;
+       lp.lpmVol->jac.Transpose(jacTmp);
+       bMat = bMatInitial * jacTmp;
+       bMat *= (1.0/lp.lpmVol->jacDet);
+#endif
+     }else{
+#ifdef USE_BLAS_VERSION
+       Double jacDetInv = (1.0/lp.jacDet);
+       bMatInitial.Mult_Blas(lp.jac,bMat,false,true,jacDetInv,0.0);
+#else
+       Matrix<Double> jacTmp;
+       lp.jac.Transpose(jacTmp);
+       bMat = bMatInitial * jacTmp;
+       bMat *= (1.0/lp.jacDet);
+#endif
+     }
    }
 
 }

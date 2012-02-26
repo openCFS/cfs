@@ -343,6 +343,7 @@ namespace CoupledField
                                bool isaxi = false,
                                bool updated = false);
 
+
     //@}
 
 
@@ -444,6 +445,33 @@ namespace CoupledField
     void CreateSurfaceElements( std::set<Elem*> & elems,
                                 std::map<UInt, SurfElem*> & mappedElems );
 
+    //! This method creates surface elements for each "volume" element contained
+    //! in the given regions. We assume, that a surface element is always one
+    //! of lower space dimension than its vloume element. the new elements get a
+    //! virtual element number and are not! contained in the grid
+    //! \param (in) regionList the volume regions we want to create surfaces for
+    //! \param (out) interiorSurfElems list of surface elements which have at least one neighbor
+    //! \param (out) exteriorSurfElems list of elements on the boundary of the volume given
+    //!              by the regionList. i.e. they have no surfelem neighbors
+    virtual void GenerateDGSurfaceElemes(std::set<RegionIdType> regionList,
+                                         StdVector<shared_ptr<NcSurfElem> > & interiorSurfElems,
+                                         StdVector<shared_ptr<NcSurfElem> > & exteriorSurfElems);
+
+    //! Helper method for GenerateDGSurfaceElemes. We assume here that the NcSurfElem
+    //! list hold only valid surface elements. i.e. the normal and everything is already computed
+    //! there are two modes. The first one for the conforming case checks neighbor information
+    //! according to egde or face numbers, the second one tries to gues the correct neighbors by
+    //! performing tests related to the surface normal and intersection areas
+    //! \param (in) surfElemList list of elements to be tested
+    //! \param (out) interiorSurfElems list of surface elements which have at least one neighbor
+    //! \param (out) exteriorSurfElems list of elements on the boundary of the volume given
+    //!              by the regionList. i.e. they have no surfelem neighbors
+    virtual void ComputeSurfElemNeighbors(StdVector<shared_ptr<NcSurfElem> > surfElemList,
+                                          StdVector<shared_ptr<NcSurfElem> > & interiorSurfElems,
+                                          StdVector<shared_ptr<NcSurfElem> > & exteriorSurfElems,
+                                          bool conforming);
+
+
     //! Prints information about the grid into the .info.xml file
     void ToInfo(PtrParamNode in);
     
@@ -485,6 +513,9 @@ namespace CoupledField
 
     //! Total number of elements
     UInt numElems_;
+
+    //! Number of dynamically generated surfelems
+    UInt numNcSurfElems_;
 
     //! Total number of faces
     UInt numFaces_;

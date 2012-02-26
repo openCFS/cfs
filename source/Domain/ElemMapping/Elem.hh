@@ -287,6 +287,9 @@ class ElemShape;
     //! Number of faces
     UInt numFaces;
 
+    //! Number of surface elements
+    UInt numSurfElems;
+
     //! Coordinate of element midpoint
     Vector<Double> midPointCoord;
 
@@ -308,6 +311,9 @@ class ElemShape;
     //! Contains for each face all node numbers
     StdVector<StdVector<UInt> > faceNodes;
     
+    //! Store surface element types
+    StdVector<Elem::FEType> surfElemTypes;
+
     //! Contains for each local direction faces pointing in this direction
 
     //! This array contains for every local direction (fist index) all

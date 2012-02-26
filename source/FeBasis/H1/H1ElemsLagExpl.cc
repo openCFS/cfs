@@ -345,34 +345,59 @@ namespace CoupledField {
         {
         case 2:
           // Edge[1,2] is common
-          volIntPoint[0] = surfIntPoint[0];
+          if(commonIndex[0] == 2){
+            volIntPoint[0] = surfIntPoint[0]*-1.0;
+            locNormal[0] =  0.0;
+            locNormal[1] = 1.0;
+          }else{
+            volIntPoint[0] = surfIntPoint[0];
+            locNormal[0] =  0.0;
+            locNormal[1] = -1.0;
+          }
           volIntPoint[1] = -1.0;
-          locNormal[0] =  0.0;
-          locNormal[1] = -1.0;
+
           break;
 
         case 12:
           // Edge[4,3] is common
-          volIntPoint[0] = surfIntPoint[0];
+          if(commonIndex[0] == 3){
+            volIntPoint[0] = surfIntPoint[0]*-1.0;
+            locNormal[0] =  0.0;
+            locNormal[1] = -1.0;
+          }else{
+            volIntPoint[0] = surfIntPoint[0];
+            locNormal[0] =  0.0;
+            locNormal[1] =  1.0;
+          }
           volIntPoint[1] = 1.0;
-          locNormal[0] =  0.0;
-          locNormal[1] =  1.0;
           break;
 
         case 4:
           // Edge[1,4] is common
+          if(commonIndex[0] == 4){
+            volIntPoint[1] = surfIntPoint[0]*-1.0;
+            locNormal[0] =  1.0;
+            locNormal[1] =  0.0;
+          }else{
+            volIntPoint[1] = surfIntPoint[0];
+            locNormal[0] = -1.0;
+            locNormal[1] =  0.0;
+          }
           volIntPoint[0] = -1.0;
-          volIntPoint[1] = surfIntPoint[0];
-          locNormal[0] = -1.0;
-          locNormal[1] =  0.0;
           break;
 
         case 6:
           // Edge[2,3] is common
+          if(commonIndex[0] == 3){
+            volIntPoint[1] = surfIntPoint[0]*-1.0;
+            locNormal[0] = -1.0;
+            locNormal[1] =  0.0;
+          }else{
+            volIntPoint[1] = surfIntPoint[0];
+            locNormal[0] =  1.0;
+            locNormal[1] =  0.0;
+          }
           volIntPoint[0] = 1.0;
-          volIntPoint[1] = surfIntPoint[0];
-          locNormal[0] =  1.0;
-          locNormal[1] =  0.0;
           break;
 
         default:

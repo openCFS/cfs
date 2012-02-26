@@ -63,7 +63,8 @@ namespace CoupledField{
 
     // Set correct integration order
     RegionIdType eRegion;// =  ent.GetElem()->regionId;
-    if( ent.GetType() == EntityList::SURF_ELEM_LIST) {
+    if( ent.GetType() == EntityList::SURF_ELEM_LIST||
+        ent.GetType() == EntityList::NC_ELEM_LIST) {
       eRegion = ent.GetSurfElem()->ptVolElems[0]->regionId;
     } else {
       eRegion = ent.GetElem()->regionId;
@@ -83,7 +84,8 @@ namespace CoupledField{
   BaseFE* FeSpaceH1Nodal::GetFe( const EntityIterator ent ){
 
     if(ent.GetType() != EntityList::ELEM_LIST &&
-        ent.GetType() != EntityList::SURF_ELEM_LIST){
+        ent.GetType() != EntityList::SURF_ELEM_LIST &&
+        ent.GetType() != EntityList::NC_ELEM_LIST){
       EXCEPTION("This version of GetFe expects a element iterator")
     }
 
@@ -92,7 +94,8 @@ namespace CoupledField{
     // and look for the neigbor. Which one to take? Well, we had the
     // discussion already ....
     RegionIdType eRegion = NO_REGION_ID;
-    if( ent.GetType() == EntityList::SURF_ELEM_LIST) {
+    if( ent.GetType() == EntityList::SURF_ELEM_LIST ||
+        ent.GetType() == EntityList::NC_ELEM_LIST) {
       eRegion = ent.GetSurfElem()->ptVolElems[0]->regionId;
     } else {
       eRegion = ent.GetElem()->regionId;

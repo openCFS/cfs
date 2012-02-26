@@ -27,6 +27,9 @@
 #include "BaseBOperator.hh"
 #include "FeBasis/HCurl/HCurlElems.hh"
 
+
+#define USE_BLAS_VERSION
+
 namespace CoupledField{
   
   template<class FE, UInt D = 1, UInt D_DOF = 1, class TYPE = Double>
@@ -233,9 +236,29 @@ namespace CoupledField{
                              const LocPointMapped& lp, BaseFE* ptFe ){
         Matrix<Double> bMatInitial;
         IdentityOperator<FE,D,D_DOF,TYPE>::CalcOpMat(bMatInitial,lp,ptFe);
+        bMat.Resize(bMatInitial.GetNumRows(),bMatInitial.GetNumCols());
+        bMat.Init();
         //now apply piola transform
-        bMat = lp.jac * bMatInitial;
-        bMat /= lp.jacDet;
+        //in case of NC_SURF_ELEMs we evaluate the piola matrix on the volume element
+
+        if(lp.isSurface){
+#ifdef USE_BLAS_VERSION
+          Double jacDetInv = (1.0/lp.lpmVol->jacDet);
+          lp.lpmVol->jac.Mult_Blas(bMatInitial,bMat,false,false,jacDetInv,0.0);
+#else
+          bMat = lp.lpmVol->jac * bMatInitial;
+          bMat *= (1.0/lp.lpmVol->jacDet);
+#endif
+        }else{
+#ifdef USE_BLAS_VERSION
+          Double jacDetInv = (1.0/lp.jacDet);
+          lp.jac.Mult_Blas(bMatInitial,bMat,false,false,jacDetInv,0.0);
+#else
+          bMat = lp.jac * bMatInitial;
+          bMat *= (1.0/lp.jacDet);
+#endif
+        }
+
       }
 
       virtual void CalcOpMatTransposed(Matrix<Double> & bMat,
@@ -243,8 +266,29 @@ namespace CoupledField{
         Matrix<Double> bMatInitial;
         IdentityOperator<FE,D,D_DOF,TYPE>::CalcOpMatTransposed(bMatInitial,lp,ptFe);
         //now apply piola transform
-        bMat = bMatInitial * lp.jac;
-        bMat /= lp.jacDet;
+        bMat.Resize(bMatInitial.GetNumRows(),bMatInitial.GetNumCols());
+        bMat.Init();
+        if(lp.isSurface){
+#ifdef USE_BLAS_VERSION
+          Double jacDetInv = (1.0/lp.lpmVol->jacDet);
+          bMatInitial.Mult_Blas(lp.lpmVol->jac,bMat,false,true,jacDetInv,0.0);
+#else
+          Matrix<Double> jacTmp;
+          lp.lpmVol->jac.Transpose(jacTmp);
+          bMat = bMatInitial * jacTmp;
+          bMat *= (1.0/lp.lpmVol->jacDet);
+#endif
+        }else{
+#ifdef USE_BLAS_VERSION
+          Double jacDetInv = (1.0/lp.jacDet);
+          bMatInitial.Mult_Blas(lp.jac,bMat,false,true,jacDetInv,0.0);
+#else
+          Matrix<Double> jacTmp;
+          lp.jac.Transpose(jacTmp);
+          bMat = bMatInitial * jacTmp;
+          bMat *= (1.0/lp.jacDet);
+#endif
+        }
       }
 
       //avoid reimplementation of complex operator by making the bas class function

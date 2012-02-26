@@ -19,12 +19,12 @@
 namespace CoupledField{
 
 
-   template< class A_OP, class B_OP, class MAT_DATA_TYPE > 
+   template< class A_OP, class B_OP, class MAT_DATA_TYPE >
    ABInt<A_OP, B_OP,MAT_DATA_TYPE>::
    ABInt( shared_ptr<CoefFunction> scalCoef, 
           MAT_DATA_TYPE factor,
           bool coordUpdate )
-     : BBInt<B_OP, MAT_DATA_TYPE>(scalCoef, factor, coordUpdate ) {
+     : BBInt<B_OP, MAT_DATA_TYPE,MAT_DATA_TYPE>(scalCoef, factor, coordUpdate ) {
      this->name_ = "ABInt";
      
      // Note: In general the AB-Integrator is not symmetric, as is should 
@@ -32,7 +32,7 @@ namespace CoupledField{
      this->isSymmetric_ = false;
    }
 
-   template< class A_OP, class B_OP, class MAT_DATA_TYPE > 
+   template< class A_OP, class B_OP, class MAT_DATA_TYPE >
    void ABInt<A_OP, B_OP,MAT_DATA_TYPE>::
    CalcElementMatrix( Matrix<MAT_DATA_TYPE>& elemMat,
                       EntityIterator& ent1,
@@ -84,6 +84,86 @@ namespace CoupledField{
 
        this->aOperator_.TransformJacDet(fac,lp,ptFeA);
        this->bOperator_.TransformJacDet(fac,lp,ptFeB);
+
+#ifdef USE_BLAS_VERSION
+       aMat.Mult_Blas(bMat,elemMat,true,false,this->factor_*fac,1.0);
+#else
+       elemMat += Transpose(aMat) * bMat * this->factor_;
+#endif
+
+     }
+
+   }
+
+   template< class A_OP, class B_OP, class MAT_DATA_TYPE >
+   SurfaceABInt<A_OP, B_OP,MAT_DATA_TYPE>::
+   SurfaceABInt(shared_ptr<CoefFunction> scalCoef,
+                MAT_DATA_TYPE factor,
+                const std::set<RegionIdType>& volRegions,
+                bool coordUpdate)
+            : ABInt<A_OP,B_OP,MAT_DATA_TYPE>(scalCoef, factor, coordUpdate ){
+     this->name_ = "SurfaceABInt";
+     volRegions_ = volRegions;
+     this->isSymmetric_ = false;
+   }
+
+   template< class A_OP, class B_OP, class MAT_DATA_TYPE >
+   void SurfaceABInt<A_OP, B_OP,MAT_DATA_TYPE>::
+   CalcElementMatrix( Matrix<MAT_DATA_TYPE>& elemMat,
+                      EntityIterator& ent1,
+                      EntityIterator& ent2 ) {
+     // Extract physical element
+     const Elem* ptElem1 = ent1.GetElem();
+     const Elem* ptElem2 = ent2.GetElem();
+
+     Matrix<MAT_DATA_TYPE> aMat, bMat;
+     MAT_DATA_TYPE fac = 0.0;
+
+     // Obtain FE element from feSpace and integration scheme
+     shared_ptr<IntScheme> intScheme;
+     BaseFE* ptFeA = this->ptFeSpace1_->GetFe( ent1, intScheme );
+     BaseFE* ptFeB = this->ptFeSpace2_->GetFe( ent2, intScheme );
+
+     UInt nrFncsA = ptFeA->GetNumFncs();
+     UInt nrFncsB = ptFeB->GetNumFncs();
+
+     // Get shape map from grid
+     shared_ptr<ElemShapeMap> esm1 =
+         domain->GetGrid()->GetElemShapeMap( ptElem1, this->coordUpdate_ );
+     shared_ptr<ElemShapeMap> esm2 =
+         domain->GetGrid()->GetElemShapeMap( ptElem2, this->coordUpdate_ );
+
+
+     // Get integration points
+     StdVector<LocPoint> intPoints;
+     StdVector<Double> weights;
+     intScheme->GetIntPoints( Elem::GetShapeType(ptElem1->type), intPoints, weights );
+
+     elemMat.Resize( nrFncsA * A_OP::DIM_DOF,
+                     nrFncsB * B_OP::DIM_DOF );
+     elemMat.Init();
+
+#define USE_BLAS_VERSION
+     // Loop over all integration points
+     LocPointMapped lp1,lp2;
+     for( UInt i = 0; i < intPoints.GetSize(); i++  ) {
+
+       // Calculate for each integration point the LocPointMapped
+       lp1.Set( intPoints[i], esm1, volRegions_ );
+       lp2.Set( intPoints[i], esm2, volRegions_ );
+
+       // Calculate A-matrix (first differential operator)
+       this->aOperator_.CalcOpMat( aMat, lp1, ptFeA );
+
+       // Calculate B-matrix (second differential operator)
+       this->bOperator_.CalcOpMat( bMat, lp2, ptFeB );
+
+       // Calculate scalar factor
+       this->coefScalar_->GetScalar(fac, lp1);
+       fac *= MAT_DATA_TYPE(lp1.jacDet * weights[i]);
+
+       this->aOperator_.TransformJacDet(fac,lp1,ptFeA);
+       this->bOperator_.TransformJacDet(fac,lp2,ptFeB);
 
 #ifdef USE_BLAS_VERSION
        aMat.Mult_Blas(bMat,elemMat,true,false,this->factor_*fac,1.0);

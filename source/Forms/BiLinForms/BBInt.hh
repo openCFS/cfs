@@ -128,6 +128,35 @@ namespace CoupledField {
                                  EntityIterator& ent1,
                                  EntityIterator& ent2 );
   };
+
+  //! general class for calculation of bb forms on surfaces
+  template<class B_OP, class MAT_DATA_TYPE=Double,
+      class COEF_DATA_TYPE=Double>
+  class SurfaceBBInt : public BBInt<B_OP, MAT_DATA_TYPE,COEF_DATA_TYPE> {
+    public:
+
+      //! Constructor with pointer to BaseElem
+    SurfaceBBInt(shared_ptr<CoefFunction> scalCoef, MAT_DATA_TYPE factor,
+                 const std::set<RegionIdType>& volRegions, bool coordUpdate = false):
+        BBInt<B_OP,MAT_DATA_TYPE,COEF_DATA_TYPE>(scalCoef, factor, coordUpdate ){
+        this->name_ = "SurfaceBBInt";
+        volRegions_ = volRegions;
+        this->isSymmetric_ = false;
+      }
+
+      //! Destructor
+      ~SurfaceBBInt(){
+
+      }
+
+      //! Compute element matrix associated to BDB form
+      void CalcElementMatrix( Matrix<MAT_DATA_TYPE>& elemMat,
+                                 EntityIterator& ent1,
+                                 EntityIterator& ent2 );
+    protected:
+      //! set containing all volume regions for surface integrators
+      std::set<RegionIdType> volRegions_;
+  };
 }
 
 //Include template definition file

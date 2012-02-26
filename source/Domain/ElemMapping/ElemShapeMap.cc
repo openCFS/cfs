@@ -134,6 +134,9 @@ namespace CoupledField {
 
     // calculate local point in volume element, corresponding to
     // the surface element point
+    //perhaps here we can distinguish between the NC_SURF_ELEM case
+    //in which the local coordinates are already available
+
     LocPoint lpVol;
     Vector<Double> locNormal;
     esmVol->GetLocalIntPoints4Surface(  ptEl->connect, lp, 

@@ -29,13 +29,13 @@ BUIntegrator(VEC_DATA_TYPE factor,
   factor_ = factor;
   this->name_ = "RhsBUIntegrator";
 
-  assert(rhsCoef->GetDimType() == CoefFunction::VECTOR);
-#ifndef NDEBUG
-  if(rhsCoef->GetDimType() != CoefFunction::VECTOR){
-    Exception("BDB integrator expects the coefficient function to be vectorial!\n \
-                     For scalar valued Things, create a vectorial function with one component");
-  }
-#endif
+//  assert(rhsCoef->GetDimType() == CoefFunction::VECTOR);
+//#ifndef NDEBUG
+//  if(rhsCoef->GetDimType() != CoefFunction::VECTOR){
+//    Exception("BDB integrator expects the coefficient function to be vectorial!\n \
+//                     For scalar valued Things, create a vectorial function with one component");
+//  }
+//#endif
   this->rhsCoefs_ = rhsCoef;
 
 }

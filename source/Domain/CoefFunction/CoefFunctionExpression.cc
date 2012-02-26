@@ -56,7 +56,7 @@ void CoefFunctionExpression<Double>::GetTensor( Matrix<Double>& coefMat,
 
 void CoefFunctionExpression<Double>::GetVector( Vector<Double>& coefVec, 
                                                 const LocPointMapped& lpm ){
-  assert(this->dimType_ == CoefFunction::VECTOR);
+  //assert(this->dimType_ == CoefFunction::VECTOR);
   Vector<Double> pointCoord, locVector;
 
   // First, obtain global coordinates of current point, register it at the mathParser

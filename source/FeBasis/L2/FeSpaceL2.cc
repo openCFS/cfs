@@ -36,14 +36,14 @@ namespace CoupledField{
     return fe->GetNumFncs();
   }
 
-  void FeSpaceL2::GetEqns( StdVector<Integer>& eqns,
-                           const EntityIterator ent ){
+  void FeSpaceL2::GetEqns( StdVector<Integer>& eqns, const EntityIterator ent ){
     ///Get result for the feFunction
     shared_ptr<ResultInfo> feFctResult = feFunction_->GetResultInfo();
 
     //Get "dimension" of one Unknown
     UInt dofsPerUnknown = feFctResult->dofNames.GetSize();
-    if ( ent.GetType() == EntityList::NODE_LIST ) {
+    if ( ent.GetType() == EntityList::NODE_LIST )
+    {
       UInt node = ent.GetNode();
       if(gridToVirtualNodes_.find(node) == gridToVirtualNodes_.end())
         return;
@@ -55,14 +55,15 @@ namespace CoupledField{
       // with the extract result scheme
       eqns.Resize(dofsPerUnknown);
       eqns.Init();
-      for (UInt iNode = 0; iNode < 1; iNode++ ) {
+      //for (UInt iNode = 0; iNode < 1; iNode++ ) {
         for(UInt iDof = 0; iDof < dofsPerUnknown; iDof++){
-          eqns[(iNode*dofsPerUnknown) + iDof] =
-              nodeMap_[gridToVirtualNodes_[node][iNode]][iDof];
+          eqns[iDof] =
+              nodeMap_[gridToVirtualNodes_[node][0]][iDof];
         }
-      }
+      //}
     }else if( ent.GetType() == EntityList::ELEM_LIST ||
-             ent.GetType() == EntityList::SURF_ELEM_LIST){
+             ent.GetType() == EntityList::SURF_ELEM_LIST ||
+             ent.GetType() == EntityList::NC_ELEM_LIST){
       StdVector<UInt> nodes;
       GetNodesOfElement(nodes,ent.GetElem());
       eqns.Resize( nodes.GetSize() * dofsPerUnknown );
@@ -100,7 +101,8 @@ namespace CoupledField{
         eqns[iNode] = nodeMap_[gridToVirtualNodes_[node][iNode]][dof];
       }
     }else if( ent.GetType() == EntityList::ELEM_LIST ||
-             ent.GetType() == EntityList::SURF_ELEM_LIST){
+             ent.GetType() == EntityList::SURF_ELEM_LIST||
+             ent.GetType() == EntityList::NC_ELEM_LIST){
       StdVector<UInt> nodes;
       GetNodesOfElement(nodes,ent.GetElem());
       eqns.Resize( nodes.GetSize() );
@@ -113,13 +115,11 @@ namespace CoupledField{
     }
   }
 
-  void FeSpaceL2::GetEqns( StdVector<Integer>& eqns,
-                           const EntityIterator ent,
-                           UInt dof,
-                           BaseFE::EntityType entityType){
+  void FeSpaceL2::GetEqns( StdVector<Integer>& eqns, const EntityIterator ent, UInt dof, BaseFE::EntityType entityType){
     //Get result for the feFunction
     shared_ptr<ResultInfo> feFctResult = feFunction_->GetResultInfo();
-    if ( ent.GetType() == EntityList::NODE_LIST ) {
+    if ( ent.GetType() == EntityList::NODE_LIST )
+    {
       UInt node = ent.GetNode();
       if(gridToVirtualNodes_.find(node) == gridToVirtualNodes_.end())
         return;
@@ -135,7 +135,8 @@ namespace CoupledField{
         eqns[iNode] = nodeMap_[gridToVirtualNodes_[node][iNode]][dof];
       }
     }else if( ent.GetType() == EntityList::ELEM_LIST ||
-              ent.GetType() == EntityList::SURF_ELEM_LIST){
+              ent.GetType() == EntityList::SURF_ELEM_LIST ||
+              ent.GetType() == EntityList::NC_ELEM_LIST){
       StdVector<UInt> nodes;
       GetNodesOfElement(nodes,ent.GetElem(), entityType);
       eqns.Resize( nodes.GetSize() );
@@ -400,4 +401,95 @@ namespace CoupledField{
         }
   }
 
+  void FeSpaceL2::GetInteriorSurfaceElems(RegionIdType region,
+                                    shared_ptr<EntityList> & surfElems,
+                                    shared_ptr<EntityList> & opposingElems)
+  {
+    // what we do right now is just to create empty shared pointers
+    // and fill them later in finalize
+    if(interiorElemMap_.find(region) == interiorElemMap_.end()){
+      //create a name for this list...
+      std::string name1 = this->feFunction_->GetGrid()->GetRegion().ToString(region);
+      std::string name2 = name1;
+      name1 += "_dgInterior";
+      name2 += "_dgInteriorOpposite";
+      interiorElemMap_[region] = shared_ptr<NcElemList>(new NcElemList(this->feFunction_->GetGrid(),name1));
+      interiorElemMapOpposite_[region] = shared_ptr<NcElemList>(new NcElemList(this->feFunction_->GetGrid(),name2));
+    }
+    surfElems = interiorElemMap_[region];
+    opposingElems = interiorElemMapOpposite_[region];
+  }
+
+  void FeSpaceL2::GetInteriorSurfaceElems(RegionIdType region,
+                                       shared_ptr<EntityList> & surfElems){
+    // what we do right now is just to create empty shared pointers
+    // and fill them later in finalize
+    //create a name for this list...
+    std::string name = this->feFunction_->GetGrid()->GetRegion().ToString(region);
+    name += "_dgInterior";
+    interiorElemMap_[region] = shared_ptr<NcElemList>(new NcElemList(this->feFunction_->GetGrid(),name));
+    surfElems = interiorElemMap_[region];
+  }
+
+  //! \copydoc FeSpace::GetExteriorSurfaceElemsOfFeSpace
+  void FeSpaceL2::GetExteriorSurfaceElems(RegionIdType region, shared_ptr<EntityList> & surfElems){
+
+    if(exteriorElements_.find(region) == exteriorElements_.end()){
+      std::string name = this->feFunction_->GetGrid()->GetRegion().ToString(region);
+      name += "_dgExterior";
+      exteriorElements_[region] = shared_ptr<NcElemList>(new NcElemList(this->feFunction_->GetGrid(),name));
+    }
+    surfElems = exteriorElements_[region];
+  }
+
+  void FeSpaceL2::CreateSurfaceElems(){
+    //TODO: ADD DEBUGGING OUTPUT!!!!!
+    //ok lets go. we collect the information from our maps and pass them to the grid
+    std::set<RegionIdType> regions;
+    std::map<RegionIdType,shared_ptr<NcElemList> >::iterator regIter;
+    //its enough to go through the interiorElemMap_
+    regIter = interiorElemMap_.begin();
+    for(;regIter != interiorElemMap_.end();++regIter){
+      regions.insert(regIter->first);
+    }
+    //create vectors
+    StdVector<shared_ptr<NcSurfElem> > interiorElemList;
+    StdVector<shared_ptr<NcSurfElem> > exteriorElemList;
+    this->feFunction_->GetGrid()->GenerateDGSurfaceElemes(regions,interiorElemList,exteriorElemList);
+    //ok first we fill the standard map and, if requested, the opposing map
+    for(UInt aElem =0;aElem < interiorElemList.GetSize();++aElem){
+      RegionIdType curReg = interiorElemList[aElem]->regionId;
+      shared_ptr<NcElemList> curIntList = interiorElemMap_[curReg];
+      curIntList->SetElement(interiorElemList[aElem]);
+      //check if we need to fill in the opposite list
+      if(interiorElemMapOpposite_.find(curReg) != interiorElemMapOpposite_.end()){
+        shared_ptr<NcElemList> curOppList = interiorElemMapOpposite_[curReg];
+        //we have at least one neighbor...
+        curOppList->SetElement(interiorElemList[aElem]->neighbors[0]);
+        UInt numNeighbors = interiorElemList[aElem]->neighbors.GetSize();
+        for(UInt i = 1; i<numNeighbors;++i){
+          //we need to push back in both lists....
+          curOppList->SetElement(interiorElemList[aElem]->neighbors[i]);
+          curIntList->SetElement(interiorElemList[aElem]);
+        }
+      }
+    }
+    //ok now we should have valid interior element lists lets fill the exterior
+    for(UInt aElem =0;aElem < exteriorElemList.GetSize();++aElem){
+      //obtain region id
+      RegionIdType curReg = exteriorElemList[aElem]->regionId;
+      shared_ptr<NcElemList> & curIntList = exteriorElements_[curReg];
+      curIntList->SetElement(exteriorElemList[aElem]);
+    }
+    regIter = exteriorElements_.begin();
+    for(;regIter != exteriorElements_.end();++regIter){
+      this->feFunction_->AddEntityList(regIter->second);
+    }
+
+    regIter = interiorElemMap_.begin();
+    for(;regIter != interiorElemMap_.end();++regIter){
+      this->feFunction_->AddEntityList(regIter->second);
+    }
+
+  }
 }

@@ -33,6 +33,7 @@ namespace CoupledField {
     numElems_ = 0;
     numFaces_ = 0;
     numEdges_ = 0;
+    numNcSurfElems_ = 0;
     edgesMapped_ = false;
     facesMapped_ = false;
 
@@ -797,6 +798,220 @@ namespace CoupledField {
     if(info) { ToInfo(info->Get(ParamNode::HEADER)->Get("domain")); }
   }
   
+  void GridCFS::GenerateDGSurfaceElemes(std::set<RegionIdType> regionList,
+                                        StdVector<shared_ptr<NcSurfElem> > & interiorSurfElems,
+                                        StdVector<shared_ptr<NcSurfElem> > & exteriorSurfElems){
+
+    assert(edgesMapped_ == true);
+    assert(facesMapped_ == true);
+    std::cout << "   ++ Generating Surface Elements for DG-Methods ...";
+    std::cout.flush();
+    //ok now we generate an entitylist conaining all volume elements
+    //ElemList volElemList;
+    std::set<RegionIdType>::iterator regIt = regionList.begin();
+    std::vector<Elem*> elemList;
+    for(;regIt != regionList.end();++regIt){
+      //volElemList.
+      StdVector<Elem*> tmpEl;
+      GetElems(tmpEl,*regIt);
+      elemList.insert(elemList.end(),tmpEl.Begin(),tmpEl.End());
+    }
+    //reserve some memory such that pushbacks are less expensive
+    //so we assume four subelements per element in 2d and 6 in 3d
+    UInt memReserve = 0;
+    if(dim_==2){
+      memReserve = elemList.size() * 4;
+    }else{
+      memReserve = elemList.size() * 6;
+    }
+    StdVector<shared_ptr<NcSurfElem> > allelems;
+    allelems.Reserve(memReserve);
+    //UInt curNumelems = numElems_;
+    Vector<Double> normalUndefSign, normalDefSign;
+    Double sign;
+    for(UInt i =0;i<elemList.size();++i){
+      Elem* curE = elemList[i];
+      ElemShape curShape = Elem::shapes[curE->type];
+      StdVector<Elem::FEType> subelems = curShape.surfElemTypes;
+      UInt numSubElems = curShape.numSurfElems;
+      for(UInt aSub =0; aSub<numSubElems ; ++aSub,++numNcSurfElems_){
+        //create the subelement
+        shared_ptr<NcSurfElem> curSurf;
+        curSurf.reset(new NcSurfElem());
+        //give it a number
+        curSurf->elemNum = numElems_+numNcSurfElems_+1;
+        curSurf->type = subelems[aSub];
+        curSurf->regionId = curE->regionId;
+        if(curShape.dim == 3){
+          WARN("3D never testet with surface elements!!!!")
+          Face curFace = faces_[curE->faces[aSub]-1];
+          //first we copy the edge nodes
+          curSurf->connect = curFace.nodes;
+          curSurf->faces.Push_back(curE->faces[aSub]);
+          curSurf->faceFlags.Push_back(curE->faceFlags[aSub]);
+          StdVector<UInt> subElemLocalNode;
+          for(UInt i=0;i<curShape.faceVertices[aSub].GetSize();++i){
+            subElemLocalNode.Push_back(curShape.faceVertices[aSub][i]);
+          }
+          for(UInt i=0;i<curShape.edgeVertices.GetSize();++i){
+            //each edge has 2 edge vertices so we check
+            if(subElemLocalNode.Contains(curShape.edgeVertices[i][0]) &&
+                subElemLocalNode.Contains(curShape.edgeVertices[i][1]) ){
+              curSurf->edges.Push_back(curE->edges[i]);
+            }
+          }
+        }else if(curShape.dim==2){
+          Edge curEdge = edges_[abs(curE->edges[aSub])-1];
+          curSurf->edges.Push_back(abs(curE->edges[aSub]));
+          for( UInt i = 0; i < 2; i++ ) {
+            curSurf->connect.Push_back(curEdge.nodes[i]);
+            curSurf->localCoords.Push_back(curShape.nodeCoords[curShape.edgeVertices[aSub][i]-1]);
+          }
+        }else{
+          EXCEPTION("surfelem creation for one dimensional shapes not implemented");
+        }
+
+        curSurf->ptVolElems[0] = curE;
+
+        shared_ptr<ElemShapeMap> es = GetElemShapeMap(curSurf.get(), false);
+        LocPoint lp = Elem::shapes[curSurf->type].midPointCoord;
+        es->CalcNormal( normalUndefSign, lp );
+        es->CalcNormalOutOfVol( normalDefSign, lp, *curSurf->ptVolElems[0] );
+
+        sign = normalUndefSign * normalDefSign;
+
+        if ( sign > 0.0 ) {
+          curSurf->normalSign = 1;
+        } else {
+          curSurf->normalSign = -1;
+        }
+
+        allelems.Push_back(curSurf);
+
+      }//foreach surface
+    }//foreach volumen element
+    //now we have created the vector with surface elements so we gonna find the neighbors
+    //TODO: perhaps we have checked before if the regions are conforming.....
+    ComputeSurfElemNeighbors(allelems,interiorSurfElems,exteriorSurfElems,true);
+
+    LOG_DBG3(gridcfs) << std::endl << "==================================================" << std::endl;
+    LOG_DBG3(gridcfs) << "Interior surface elements for DG-Methods" << std::endl;
+    LOG_DBG3(gridcfs) << "==================================================" << std::endl;
+    for(UInt iElem = 0; iElem < interiorSurfElems.GetSize();++iElem){
+      LOG_DBG3(gridcfs) << "Added surfElem # " << interiorSurfElems[iElem]->elemNum;
+      LOG_DBG3(gridcfs) << " with Edge # " << interiorSurfElems[iElem]->edges[0];
+      LOG_DBG3(gridcfs) << " and volElem # " << interiorSurfElems[iElem]->ptVolElems[0]->elemNum;
+      LOG_DBG3(gridcfs) << " connect ";
+      for(UInt i =0;i<interiorSurfElems[iElem]->connect.GetSize();++i){
+        LOG_DBG3(gridcfs) << interiorSurfElems[iElem]->connect[i] << " ";
+      }
+      LOG_DBG3(gridcfs) << std::endl << "\t Neighors:" << std::endl;
+      StdVector<shared_ptr<NcSurfElem> > neigh = interiorSurfElems[iElem]->neighbors;
+      for(UInt i=0;i < neigh.GetSize();++i){
+        LOG_DBG3(gridcfs) << "\t " << neigh[i]->elemNum << " ";
+      }
+      LOG_DBG3(gridcfs) << std::endl;
+      LOG_DBG3(gridcfs) << "--------------------------------------------------" << std::endl;
+    }
+
+    LOG_DBG3(gridcfs) << "==================================================" << std::endl;
+    LOG_DBG3(gridcfs) << "exterior surface elements for DG-Methods" << std::endl;
+    LOG_DBG3(gridcfs) << "==================================================" << std::endl;
+    for(UInt iElem = 0; iElem < exteriorSurfElems.GetSize();++iElem){
+      LOG_DBG3(gridcfs) << "Added surfElem # " << exteriorSurfElems[iElem]->elemNum;
+      LOG_DBG3(gridcfs) << " with Edge # " << exteriorSurfElems[iElem]->edges[0];
+      LOG_DBG3(gridcfs) << " and volElem # " << exteriorSurfElems[iElem]->ptVolElems[0]->elemNum;
+      LOG_DBG3(gridcfs) << " connect ";
+      for(UInt i =0;i<exteriorSurfElems[iElem]->connect.GetSize();++i){
+        LOG_DBG3(gridcfs) << exteriorSurfElems[iElem]->connect[i] << " ";
+      }
+      LOG_DBG3(gridcfs) << std::endl << "\t Neighors:" << std::endl;
+      StdVector<shared_ptr<NcSurfElem> > neigh = exteriorSurfElems[iElem]->neighbors;
+      for(UInt i=0;i < neigh.GetSize();++i){
+        LOG_DBG3(gridcfs) << "\t " << neigh[i]->elemNum << " ";
+      }
+      LOG_DBG3(gridcfs) << std::endl;
+      LOG_DBG3(gridcfs) << "--------------------------------------------------" << std::endl;
+    }
+
+
+    std::cout << "done" << std::endl;
+    std::cout.flush();
+  }
+
+  void GridCFS::ComputeSurfElemNeighbors(StdVector<shared_ptr<NcSurfElem> > surfElemList,
+                                         StdVector<shared_ptr<NcSurfElem> > & interiorSurfElems,
+                                         StdVector<shared_ptr<NcSurfElem> > & exteriorSurfElems,
+                                         bool conforming){
+
+    // TODO: perhaps we can do some resize commands to avoid the tynamic memory allocation...
+
+    if(conforming){
+      std::map<Integer,StdVector<UInt> > EdgeToSurfElemMap;
+      std::map<Integer,StdVector<UInt> > FaceToSurfElemMap;
+      //first we loop over each element and associate the elementindex to an edge/face number
+      for(UInt surfIdx =0;surfIdx < surfElemList.GetSize(); ++surfIdx){
+        shared_ptr<NcSurfElem> curSurf = surfElemList[surfIdx];
+        ElemShape curShape = Elem::shapes[curSurf->type];
+        if(curShape.dim == 2){
+          //so we check for faces
+          FaceToSurfElemMap[abs(curSurf->faces[0])].Push_back(surfIdx);
+        }else if(curShape.dim == 1){
+          EdgeToSurfElemMap[abs(curSurf->edges[0])].Push_back(surfIdx);
+        }else{
+          EXCEPTION("Unsupported dimension");
+        }
+      }
+      //now lets check if we have consitent information
+      // only one of the two maps may have elements
+      if(EdgeToSurfElemMap.size()>0 && FaceToSurfElemMap.size() > 0)
+        EXCEPTION("Supplied an invlid SufelemList: Edge and facemaps have entries. This is not allowed rigth now");
+
+      shared_ptr<NcSurfElem> cS = surfElemList[0];
+      ElemShape curShape = Elem::shapes[cS->type];
+      //now loop ofer the correct map and assign neighbors to elements
+      std::map<Integer,StdVector<UInt> >::iterator fiter;
+      std::map<Integer,StdVector<UInt> >::iterator end;
+      if(curShape.dim == 2){
+        fiter = FaceToSurfElemMap.begin();
+        end = FaceToSurfElemMap.end();
+      }else if(curShape.dim == 1){
+        fiter = EdgeToSurfElemMap.begin();
+        end = EdgeToSurfElemMap.end();
+      }
+
+      //well we assume, that about 5% of the surfaces are external so reserve them
+      interiorSurfElems.Reserve(std::ceil(surfElemList.GetSize() * 0.95));
+      exteriorSurfElems.Reserve(std::ceil(surfElemList.GetSize() * 0.05));
+
+      for(;fiter != end;++fiter){
+        //get the index vector
+        if(fiter->second.GetSize() > 1){
+          // so we have an interior element so we let the guys know about each other
+          StdVector<UInt> fIdx = fiter->second;
+          for(UInt curE = 0; curE < fIdx.GetSize(); ++curE){
+            //and loop again but only assign if cuE != j
+            for(UInt j = 0; j < fIdx.GetSize(); ++j){
+              if(curE != j){
+                surfElemList[fIdx[curE]]->neighbors.Push_back(surfElemList[fIdx[j]]);
+              }
+            }
+            interiorSurfElems.Push_back(surfElemList[fIdx[curE]]);
+          }
+        }else if (fiter->second.GetSize() == 1){
+          // so we have an exterior element we just push it to the vector
+          exteriorSurfElems.Push_back(surfElemList[fiter->second[0]]);
+        }else if(fiter->second.GetSize() == 0 ){
+          EXCEPTION("No association for face to elements. Can this be true????");
+        }
+      }
+
+    }else{
+      EXCEPTION("The nonconforming case is not implemented for the calculation of surf elem neighbors");
+    }
+
+  }
+
   void GridCFS::
   CreateGridInformation( ResultHandler* ptRes,
                          std::map<std::string, CoordSystem*>& coordSysMap ) {
@@ -1319,9 +1534,6 @@ namespace CoupledField {
 
     return numNodes;
   }
-
-
-
 
   UInt GridCFS::GetNumSurfElems(RegionIdType reg_id) const
   {

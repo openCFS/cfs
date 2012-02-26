@@ -332,7 +332,8 @@ namespace CoupledField{
 
     // Set correct integration order
     RegionIdType eRegion;// =  ent.GetElem()->regionId;
-    if( ent.GetType() == EntityList::SURF_ELEM_LIST) {
+    if( ent.GetType() == EntityList::SURF_ELEM_LIST||
+        ent.GetType() == EntityList::NC_ELEM_LIST) {
       eRegion = ent.GetSurfElem()->ptVolElems[0]->regionId;
     } else {
       eRegion = ent.GetElem()->regionId;
@@ -357,7 +358,8 @@ namespace CoupledField{
   
   BaseFE* FeSpaceHCurlHi::GetFe( const EntityIterator ent ){
     RegionIdType eRegion;// =  ent.GetElem()->regionId;
-    if( ent.GetType() == EntityList::SURF_ELEM_LIST) {
+    if( ent.GetType() == EntityList::SURF_ELEM_LIST||
+             ent.GetType() == EntityList::NC_ELEM_LIST) {
         eRegion = ent.GetSurfElem()->ptVolElems[0]->regionId;
       } else {
         eRegion = ent.GetElem()->regionId;

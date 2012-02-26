@@ -30,6 +30,8 @@
 #include "Forms/Operators/GradientOperator.hh"
 #include "Forms/Operators/IdentityOperator.hh"
 #include "Forms/Operators/ConvectiveOperator.hh"
+#include "Forms/Operators/NormalFluxOperators.hh"
+#include "Forms/Operators/IdentityOperatorNormal.hh"
 
 #include "FeBasis/FeFunctions.hh"
 
@@ -62,6 +64,8 @@ namespace CoupledField{
      nonLin_            = false;
      InitialCondition_  = 0.0;
      usePiola_          = false;
+     penalized_         = true;
+     doFluxTerm_        = true;
 
    }
 
@@ -70,8 +74,7 @@ namespace CoupledField{
                     PtrParamNode infoNode ){
 
     std::map<SolutionType, shared_ptr<FeSpace> > crSpaces;
-    if(formulation == "default" || formulation == "MixedPiola"){
-      usePiola_ = true;
+    if(formulation == "default" || formulation == "MixedPiola" || formulation == "Mixed"){
       std::string form = SolutionTypeEnum.ToString(ACOU_PRESSURE);
       PtrParamNode potSpaceNode = infoNode->Get(form);
       crSpaces[ACOU_PRESSURE] =
@@ -84,10 +87,28 @@ namespace CoupledField{
     }else{
       EXCEPTION("The formulation " << formulation << "of acousticMixed PDE is not known!");
     }
+    usePiola_ = myParam_->Get("usePiolaTransform")->As<bool>();
+    penalized_ = myParam_->Get("penalized")->As<bool>();
+    doFluxTerm_ = myParam_->Get("fluxTerm")->As<bool>();
     return crSpaces;
   }
 
   void AcousticMixedPDE::DefineIntegrators(){
+    if(dim_==2){
+      if(isComplex_)
+        DefineIntegratorsTempl<Complex,2>();
+      else
+        DefineIntegratorsTempl<Double,2>();
+    }else if(dim_==3){
+      if(isComplex_)
+        DefineIntegratorsTempl<Complex,2>();
+      else
+        DefineIntegratorsTempl<Double,3>();
+    }
+  }
+
+  template<class DATA_TYPE, UInt DIM>
+  void AcousticMixedPDE::DefineIntegratorsTempl(){
 
     RegionIdType actRegion;
     // BaseMaterial * actSDMat = NULL;
@@ -147,17 +168,19 @@ namespace CoupledField{
       shared_ptr<CoefFunction> coeffKPV
                 = CoefFunction::Generate(Global::REAL, "1.0");
       BiLinearForm * stiffIntPV = NULL;
-      if( dim_ == 2 ) {
-        stiffIntPV = new ABInt<GradientOperator<FeH1,2> , IdentityOperatorPiola<FeH1,2,2> >(coeffKPV,-1.0 );
-      } else {
-        stiffIntPV = new ABInt<GradientOperator<FeH1,3> , IdentityOperatorPiola<FeH1,3,3> >(coeffKPV,-1.0 );
-      }
+
+      if(usePiola_)
+        stiffIntPV = new ABInt<GradientOperator<FeH1,DIM,DATA_TYPE>,IdentityOperatorPiola<FeH1,DIM,DIM,DATA_TYPE> , DATA_TYPE >(coeffKPV,1.0 );
+      else
+        stiffIntPV = new ABInt< GradientOperator<FeH1,DIM,DATA_TYPE> , IdentityOperator<FeH1,DIM,DIM,DATA_TYPE>,  DATA_TYPE >(coeffKPV,1.0 );
+
       stiffIntPV->SetName("MixedStiffIntPV");
-      //stiffIntPV->SetFeSpace( feFunctions_[ACOU_PRESSURE]->GetFeSpace(), feFunctions_[ACOU_VELOCITY]->GetFeSpace() );
+      //
       BiLinFormContext *stiffContPV = new BiLinFormContext(stiffIntPV, STIFFNESS );
       
       stiffContPV->SetEntities( actSDList, actSDList );
       stiffContPV->SetFeFunctions( feFunctions_[ACOU_PRESSURE],feFunctions_[ACOU_VELOCITY]);
+
       //stiffContPV->SetCounterPart(true);
       assemble_->AddBiLinearForm( stiffContPV );
 
@@ -168,18 +191,21 @@ namespace CoupledField{
       shared_ptr<CoefFunction> coeffKVP
                 = CoefFunction::Generate(Global::REAL, "1.0");
       BiLinearForm * stiffIntVP = NULL;
-      if( dim_ == 2 ) {
-        stiffIntVP = new ABInt< IdentityOperatorPiola<FeH1,2,2> , GradientOperator<FeH1,2> >(coeffKVP,1.0 );
-      } else {
-        stiffIntVP = new ABInt< IdentityOperatorPiola<FeH1,3,3> , GradientOperator<FeH1,3> >(coeffKVP,1.0 );
-      }
+
+      if(usePiola_)
+        stiffIntVP = new ABInt< IdentityOperatorPiola<FeH1,DIM,DIM,DATA_TYPE> , //
+                                GradientOperator<FeH1,DIM,DATA_TYPE>, //
+                                DATA_TYPE >(coeffKVP,-1.0 );
+      else
+        stiffIntVP = new ABInt< IdentityOperator<FeH1,DIM,DIM,DATA_TYPE> , //
+                                GradientOperator<FeH1,DIM,DATA_TYPE>,  //
+                                DATA_TYPE  >(coeffKVP,-1.0 );
+
       stiffIntVP->SetName("MixedStiffIntVP");
-      //stiffIntVP->SetFeSpace( feFunctions_[ACOU_PRESSURE]->GetFeSpace(), feFunctions_[ACOU_VELOCITY]->GetFeSpace() );
       BiLinFormContext *stiffContVP = new BiLinFormContext(stiffIntVP, STIFFNESS );
 
       stiffContVP->SetEntities( actSDList, actSDList );
       stiffContVP->SetFeFunctions( feFunctions_[ACOU_VELOCITY],feFunctions_[ACOU_PRESSURE]);
-      //stiffContVP->SetCounterPart(true);
       assemble_->AddBiLinearForm( stiffContVP );
 
       // ====================================================================
@@ -189,11 +215,9 @@ namespace CoupledField{
                 = CoefFunction::Generate(Global::REAL, lexical_cast<std::string>(1.0));
 
       BiLinearForm *massIntPP = NULL;
-      if( dim_ == 2 ) {
-        massIntPP = new BBInt<IdentityOperator<FeH1,2,1> >(coeffMPP, 1.0 / (compressibility) );
-      } else {
-        massIntPP = new BBInt<IdentityOperator<FeH1,3,1> >(coeffMPP, 1.0 / (compressibility) );
-      }
+
+      massIntPP = new BBInt<IdentityOperator<FeH1,DIM,1,DATA_TYPE> , DATA_TYPE, DATA_TYPE>(coeffMPP, 1.0 / (compressibility) );
+
       massIntPP->SetName("PressureTimeInt");
       //massIntPP->SetFeSpace( feFunctions_[ACOU_PRESSURE]->GetFeSpace() );
 
@@ -207,11 +231,11 @@ namespace CoupledField{
                 = CoefFunction::Generate(Global::REAL, lexical_cast<std::string>(1.0));
 
       BiLinearForm *massIntVV = NULL;
-      if( dim_ == 2 ) {
-        massIntVV = new BBInt<IdentityOperatorPiola<FeH1,2,2> >(coeffMVV, density);
-      } else {
-        massIntVV = new BBInt<IdentityOperatorPiola<FeH1,3,3> >(coeffMVV, density);
-      }
+      if( usePiola_)
+        massIntVV = new BBInt<IdentityOperatorPiola<FeH1,DIM,DIM,DATA_TYPE>, DATA_TYPE, DATA_TYPE >(coeffMVV, density);
+      else
+        massIntVV = new BBInt<IdentityOperator<FeH1,DIM,DIM,DATA_TYPE>, DATA_TYPE, DATA_TYPE >(coeffMVV, density);
+
       massIntVV->SetName("VelocityTimeInt");
       //massIntVV->SetFeSpace( feFunctions_[ACOU_VELOCITY]->GetFeSpace() );
 
@@ -239,13 +263,16 @@ namespace CoupledField{
         //now create the integrators
         BiLinearForm *convectiveVV = NULL;
         BiLinearForm *convectivePP = NULL;
-        if( dim_ == 2 ) {
-          convectiveVV = new ABInt<IdentityOperatorPiola<FeH1,2,2>,ConvectiveOperatorPiola<FeH1,2,2> >(coeffMVV, density);
-          convectivePP = new ABInt<IdentityOperator<FeH1,2,1>,ConvectiveOperator<FeH1,2,1> >(coeffMPP, 1.0 / (compressibility));
+        Double convFactor = density;
+        if(doFluxTerm_)
+          convFactor *= 0.5;
+
+        if(usePiola_){
+          convectiveVV = new ABInt<IdentityOperatorPiola<FeH1,DIM,DIM,DATA_TYPE>, ConvectiveOperatorPiola<FeH1,DIM,DIM,DATA_TYPE>, DATA_TYPE >(coeffMVV, convFactor);
         } else {
-          convectiveVV = new ABInt<IdentityOperatorPiola<FeH1,3,3>,ConvectiveOperatorPiola<FeH1,3,3>  >(coeffMVV, density);
-          convectivePP = new ABInt<IdentityOperator<FeH1,3,1>,ConvectiveOperator<FeH1,3,1>  >(coeffMPP, 1.0 / (compressibility));
+          convectiveVV = new ABInt<IdentityOperator<FeH1,DIM,DIM,DATA_TYPE>, ConvectiveOperator<FeH1,DIM,DIM,DATA_TYPE>, DATA_TYPE >(coeffMVV, convFactor);
         }
+        convectivePP = new ABInt<IdentityOperator<FeH1,DIM,1,DATA_TYPE>, ConvectiveOperator<FeH1,DIM,1,DATA_TYPE>, DATA_TYPE >(coeffMPP, 1.0 / (compressibility));
 
         convectiveVV->SetBCoefFunctionOpB(meanFlowFunctor_);
         convectivePP->SetBCoefFunctionOpB(meanFlowFunctor_);
@@ -263,11 +290,118 @@ namespace CoupledField{
         assemble_->AddBiLinearForm( convectiveContextVV );
         assemble_->AddBiLinearForm( convectiveContextPP );
 
+        //============================================================================================
+        // ADD THE PENALIZATION TERM
+        //============================================================================================
+        if(penalized_){
+          //two forms one with opposing elements the other just like mass...
+          Double formFactor = density * curRegNode->Get("penalizationFactor")->As<Double>();
+          BiLinearForm *convectiveVOpp = NULL;
+          BiLinearForm *convectiveV = NULL;
+          BiLinearForm *exteriorVV = NULL;
+          std::set<RegionIdType> volRegion;
+          volRegion.insert(actRegion);
+          if( usePiola_ ) {
+            convectiveVOpp = new SurfaceBBInt<IdentityOperatorPiola<FeH1,DIM,DIM,DATA_TYPE>,DATA_TYPE, DATA_TYPE >(coeffMVV, -0.5*formFactor,volRegion);
+            convectiveV    = new SurfaceBBInt<IdentityOperatorPiola<FeH1,DIM,DIM,DATA_TYPE>,DATA_TYPE, DATA_TYPE >(coeffMVV, 0.5*formFactor,volRegion);
+            exteriorVV    = new SurfaceBBInt<IdentityOperatorPiola<FeH1,DIM,DIM,DATA_TYPE>,DATA_TYPE, DATA_TYPE >(coeffMVV, -0.5*formFactor,volRegion);
+          } else {
+            convectiveVOpp = new BBInt<IdentityOperator<FeH1,DIM,DIM,DATA_TYPE>,DATA_TYPE, DATA_TYPE >(coeffMVV, -0.5 * formFactor);
+            convectiveV    = new BBInt<IdentityOperator<FeH1,DIM,DIM,DATA_TYPE>,DATA_TYPE, DATA_TYPE >(coeffMVV, 0.5*formFactor);
+            exteriorVV    = new BBInt<IdentityOperator<FeH1,DIM,DIM,DATA_TYPE>,DATA_TYPE, DATA_TYPE >(coeffMVV, -0.5*formFactor);
+          }
+          convectiveV->SetName("penaltyMass");
+          convectiveVOpp->SetName("penalityOpposite");
+          exteriorVV->SetName("exteriorRegion");
+          //now we obtain the entity lists
+          shared_ptr<EntityList> list,oppositList,extList;
+          feFunctions_[ACOU_VELOCITY]->GetFeSpace()->GetInteriorSurfaceElems(actRegion,list,oppositList);
+          feFunctions_[ACOU_VELOCITY]->GetFeSpace()->GetExteriorSurfaceElems(actRegion,extList);
+
+          BiLinFormContext * penaltyContextVOpp =  new BiLinFormContext(convectiveVOpp, STIFFNESS );
+          BiLinFormContext * penaltyContextV =  new BiLinFormContext(convectiveV, STIFFNESS );
+          BiLinFormContext * penaltyContextExt =  new BiLinFormContext(exteriorVV, STIFFNESS );
+
+          penaltyContextVOpp->SetEntities( list, oppositList );
+          penaltyContextV->SetEntities( list, list );
+          penaltyContextExt->SetEntities(extList,extList);
+
+          penaltyContextVOpp->SetFeFunctions( feFunctions_[ACOU_VELOCITY],feFunctions_[ACOU_VELOCITY]);
+          penaltyContextV->SetFeFunctions( feFunctions_[ACOU_VELOCITY],feFunctions_[ACOU_VELOCITY]);
+          penaltyContextExt->SetFeFunctions( feFunctions_[ACOU_VELOCITY],feFunctions_[ACOU_VELOCITY]);
+          assemble_->AddBiLinearForm( penaltyContextVOpp );
+          assemble_->AddBiLinearForm( penaltyContextV );
+          assemble_->AddBiLinearForm( penaltyContextExt );
+
+        }
+
+        if(doFluxTerm_){
+          BiLinearForm *fluxTerm = NULL;
+          BiLinearForm *convectiveVVTrans = NULL;
+          std::set<RegionIdType> volRegion;
+          volRegion.insert(actRegion);
+
+          if( usePiola_ ) {
+            fluxTerm = new SurfaceABInt< IdentityOperatorPiola<FeH1,DIM,DIM,DATA_TYPE>,//
+                                         NormalFluxOperatorPiola<FeH1,DIM,DIM,DATA_TYPE>,//
+                                         DATA_TYPE >(coeffMVV, -0.5 * density,volRegion);
+
+            convectiveVVTrans = new ABInt< ConvectiveOperatorPiola<FeH1,DIM,DIM,DATA_TYPE>,//
+                                           IdentityOperatorPiola<FeH1,DIM,DIM,DATA_TYPE>,//
+                                           DATA_TYPE >(coeffMVV, -0.5 * density);
+          } else {
+            fluxTerm = new SurfaceABInt<IdentityOperator<FeH1,DIM,DIM,DATA_TYPE>,//
+                                        NormalFluxOperator<FeH1,DIM,DIM,DATA_TYPE>,//
+                                        DATA_TYPE >(coeffMVV, -0.5 * density,volRegion);
+
+            convectiveVVTrans = new ABInt< ConvectiveOperator<FeH1,DIM,DIM,DATA_TYPE>, //
+                                           IdentityOperator<FeH1,DIM,DIM,DATA_TYPE>, //
+                                           DATA_TYPE >(coeffMVV, -0.5 * density);
+          }
+
+          convectiveVVTrans->SetBCoefFunctionOpA(meanFlowFunctor_);
+          fluxTerm->SetBCoefFunctionOpB(meanFlowFunctor_);
+
+          fluxTerm->SetName("fluxTerm");
+          convectiveVVTrans->SetName("convectiveVVtrans");
+
+          //now we obtain the entity lists
+          shared_ptr<EntityList> list,oppositList,extList;
+          feFunctions_[ACOU_VELOCITY]->GetFeSpace()->GetInteriorSurfaceElems(actRegion,list,oppositList);
+          feFunctions_[ACOU_VELOCITY]->GetFeSpace()->GetExteriorSurfaceElems(actRegion,extList);
+
+          BiLinFormContext * fluxContext =  new BiLinFormContext(fluxTerm, STIFFNESS );
+          BiLinFormContext * convectiveTransContext =  new BiLinFormContext(convectiveVVTrans, STIFFNESS );
+
+          fluxContext->SetEntities( list, oppositList );
+          convectiveTransContext->SetEntities( actSDList, actSDList );
+
+          fluxContext->SetFeFunctions( feFunctions_[ACOU_VELOCITY],feFunctions_[ACOU_VELOCITY]);
+          convectiveTransContext->SetFeFunctions( feFunctions_[ACOU_VELOCITY],feFunctions_[ACOU_VELOCITY]);
+          assemble_->AddBiLinearForm( fluxContext );
+          assemble_->AddBiLinearForm( convectiveTransContext );
+
+        }
       }
     }
   }
 
-  void AcousticMixedPDE::DefineRhsLoadIntegrators() {
+   void AcousticMixedPDE::DefineRhsLoadIntegrators(){
+     if(dim_==2){
+       if(isComplex_)
+         DefineRhsLoadIntegratorsTempl<Complex,2>();
+       else
+         DefineRhsLoadIntegratorsTempl<Double,2>();
+     }else if(dim_==3){
+       if(isComplex_)
+         DefineRhsLoadIntegratorsTempl<Complex,3>();
+       else
+         DefineRhsLoadIntegratorsTempl<Double,3>();
+     }
+   }
+
+  template<class DATA_TYPE,UInt DIM>
+  void AcousticMixedPDE::DefineRhsLoadIntegratorsTempl() {
     LOG_TRACE(acousticmixedpde) << "Defining rhs load integrators for acoustic mixed PDE";
 
     // Get FESpace and FeFunctions
@@ -285,19 +419,8 @@ namespace CoupledField{
     LOG_DBG(acousticmixedpde) << "Reading loads for mass conservation equation";
     ReadRhsExcitation( "massEquationLoad", pressureFct->GetResultInfo()->dofNames, ResultInfo::SCALAR, isComplex_, ent, coef );
     for( UInt i = 0; i < ent.GetSize(); ++i ) {
-      if(dim_==2){
-        if(isComplex_) {
-          lin = new BUIntegrator<IdentityOperator<FeH1,2,1>, Complex >(1.0,coef[i]);
-        }else{
-          lin = new BUIntegrator<IdentityOperator<FeH1,3,1>, Double >(1.0,coef[i]);
-        }
-      }else{
-        if(isComplex_) {
-          lin = new BUIntegrator<IdentityOperator<FeH1,2,1>, Complex >(1.0,coef[i]);
-        }else{
-          lin = new BUIntegrator<IdentityOperator<FeH1,3,1>, Double >(1.0,coef[i]);
-        }
-      }
+
+      lin = new BUIntegrator<IdentityOperator<FeH1,DIM,1,DATA_TYPE>, DATA_TYPE >(1.0,coef[i]);
 
       lin->SetName("massEquationInt");
       LinearFormContext *ctx = new LinearFormContext( lin );
@@ -309,18 +432,10 @@ namespace CoupledField{
     LOG_DBG(acousticmixedpde) << "Reading loads for momentum conservation equation";
     ReadRhsExcitation( "momentumEquationLoad", vDofNames, ResultInfo::VECTOR, isComplex_, ent, coef );
     for( UInt i = 0; i < ent.GetSize(); ++i ) {
-      if(dim_==2){
-        if(isComplex_) {
-          lin = new BUIntegrator<IdentityOperatorPiola<FeH1,2,2>, Complex >(1.0,coef[i]);
-        }else{
-          lin = new BUIntegrator<IdentityOperatorPiola<FeH1,2,2>, Double >(1.0,coef[i]);
-        }
+      if(usePiola_){
+        lin = new BUIntegrator<IdentityOperatorPiola<FeH1,DIM,DIM,DATA_TYPE>, DATA_TYPE >(1.0,coef[i]);
       }else{
-        if(isComplex_) {
-          lin = new BUIntegrator<IdentityOperatorPiola<FeH1,3,3>, Complex >(1.0,coef[i]);
-        }else{
-          lin = new BUIntegrator<IdentityOperatorPiola<FeH1,3,3>, Double >(1.0,coef[i]);
-        }
+        lin = new BUIntegrator<IdentityOperator<FeH1,DIM,DIM,DATA_TYPE>, DATA_TYPE >(1.0,coef[i]);
       }
 
       lin->SetName("momentumEquationInt");
@@ -365,9 +480,15 @@ namespace CoupledField{
         BiLinearForm * abcInt = NULL;
 
         if( dim_ == 2 ) {
-          abcInt = new BBInt<IdentityOperator<FeH1,2,1> >(coeffKPV,1.0/(density*c0) );
+          if(isComplex_)
+            abcInt = new BBInt<IdentityOperator<FeH1,2,1,Complex>, Complex,Complex >(coeffKPV,1.0/(density*c0) );
+          else
+            abcInt = new BBInt<IdentityOperator<FeH1,2,1,Double>, Double,Double >(coeffKPV,1.0/(density*c0) );
         } else {
-          abcInt = new BBInt<IdentityOperator<FeH1,3,1> >(coeffKPV,1.0/(density*c0) );
+          if(isComplex_)
+            abcInt = new BBInt<IdentityOperator<FeH1,3,1,Complex>, Complex,Complex >(coeffKPV,1.0/(density*c0) );
+          else
+            abcInt = new BBInt<IdentityOperator<FeH1,3,1,Double>, Double,Double >(coeffKPV,1.0/(density*c0) );
         }
 
         abcInt->SetName("abcIntegrator");
@@ -379,8 +500,6 @@ namespace CoupledField{
         assemble_->AddBiLinearForm( abcContext );
       }
     }
-
-
   }
 
   void AcousticMixedPDE::DefineSolveStep(){
@@ -524,3 +643,15 @@ namespace CoupledField{
 
    }
 }
+
+#ifdef EXPLICIT_TEMPLATE_INSTANTIATION
+  template void AcousticMixedPDE::DefineRhsLoadIntegratorsTempl<Double,2>();
+  template void AcousticMixedPDE::DefineRhsLoadIntegratorsTempl<Complex,2>();
+  template void AcousticMixedPDE::DefineRhsLoadIntegratorsTempl<Double,3>();
+  template void AcousticMixedPDE::DefineRhsLoadIntegratorsTempl<Complex,3>();
+
+  template void AcousticMixedPDE::DefineIntegratorsTempl<Complex,2>();
+  template void AcousticMixedPDE::DefineIntegratorsTempl<Double,2>();
+  template void AcousticMixedPDE::DefineIntegratorsTempl<Complex,3>();
+  template void AcousticMixedPDE::DefineIntegratorsTempl<Double,3>();
+#endif
