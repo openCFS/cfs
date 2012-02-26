@@ -358,20 +358,19 @@ namespace CoupledField {
   }
 
   
-  void FeSpaceH1::GetOlasMappings( shared_ptr<SolStrategy> solStrat, 
-                                   StdVector<AlgebraicSys::SBMBlockDef>& sbmBlocks,
+  void FeSpaceH1::GetOlasMappings( StdVector<AlgebraicSys::SBMBlockDef>& sbmBlocks,
                                    std::map<UInt,StdVector<std::set<Integer> > >&
                                    minorBlocks ) {
     
     // currently we only support "standard" solution strategy
-    if( solStrat->GetType() != SolStrategy::STD_STRATEGY ) {
+    if( solStrat_->GetType() != SolStrategy::STD_STRATEGY ) {
       EXCEPTION( "Currently we just support the standard solution strategy for H1.");
     }
     
     FeFctIdType fctId = feFunction_->GetFctId();
     
     // Check, if static condensation is to be performed
-    bool statCond = solStrat->UseStaticCondensation();
+    bool statCond = solStrat_->UseStaticCondensation();
     if( !statCond ) {
       // -------------------------
       //  No Static Condensation

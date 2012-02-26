@@ -153,6 +153,10 @@ namespace CoupledField {
   void SolStrategyStd::SetActSolStep(UInt stepNum){
     // check, that solstep does not get changed
   }
+  
+  UInt SolStrategyStd::GetActSolStep() {
+    return 1;
+  }
 
   bool SolStrategyStd::UseStaticCondensation(){
     bool useCondens = false;
@@ -348,9 +352,13 @@ namespace CoupledField {
                 << ", as solution strategy has only " << numSolSteps_ 
                 << " solution steps." );
     }
-    curSolStep_ = stepNum;
+    curSolStep_ = stepNum-1;
   }
 
+  UInt SolStrategyTwoLevel::GetActSolStep() {
+    return curSolStep_+1;
+  }
+  
   bool SolStrategyTwoLevel::UseStaticCondensation(){
     bool useCondens = false;
     setupNode_->GetValue("staticCondensation", useCondens, ParamNode::INSERT);

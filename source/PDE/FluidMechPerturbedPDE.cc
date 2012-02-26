@@ -417,13 +417,13 @@ namespace CoupledField {
 
       crSpaces[FLUIDMECH_VELOCITY] =
         FeSpace::CreateInstance(myParam_,spaceNode,FeSpace::H1);
-      crSpaces[FLUIDMECH_VELOCITY]->Init();
+      crSpaces[FLUIDMECH_VELOCITY]->Init(solStrat_);
 
       spaceNode = infoNode->Get(SolutionTypeEnum.ToString(FLUIDMECH_PRESSURE));
 
       crSpaces[FLUIDMECH_PRESSURE] =
         FeSpace::CreateInstance(myParam_,spaceNode,FeSpace::H1);
-      crSpaces[FLUIDMECH_PRESSURE]->Init();
+      crSpaces[FLUIDMECH_PRESSURE]->Init(solStrat_);
 
     }else{
       EXCEPTION("The formulation " << formulation << "of fluid perturbed PDE is not known!");

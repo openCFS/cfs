@@ -25,7 +25,7 @@ namespace CoupledField{
 
   FeSpaceL2::~FeSpaceL2(){
   }
-
+  
   void FeSpaceL2::AddFeFunction( shared_ptr<BaseFeFunction> fct ){
     feFunction_ = fct;
     return;
@@ -166,11 +166,10 @@ namespace CoupledField{
     FeSpaceH1::GetElemEqns(eqns,elem,dof);
   }
 
-  void FeSpaceL2::GetOlasMappings( shared_ptr<SolStrategy> solStrat,
-                                   StdVector<AlgebraicSys::SBMBlockDef>& sbmBlocks,
+  void FeSpaceL2::GetOlasMappings( StdVector<AlgebraicSys::SBMBlockDef>& sbmBlocks,
                                    std::map<UInt,StdVector<std::set<Integer> > >&
                                    minorBlocks ) {
-    FeSpaceH1::GetOlasMappings(solStrat,sbmBlocks,minorBlocks);
+    FeSpaceH1::GetOlasMappings(sbmBlocks,minorBlocks);
   }
   //! Map Nodal BC Equation NUmbers
   void FeSpaceL2::MapNodalBCs(){

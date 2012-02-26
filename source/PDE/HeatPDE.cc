@@ -164,7 +164,7 @@ void HeatPDE::ReadSpecialBCs() {
       PtrParamNode potSpaceNode = infoNode->Get("heatTemperature");
       crSpaces[HEAT_TEMPERATURE] =
         FeSpace::CreateInstance(myParam_,potSpaceNode,FeSpace::H1);
-      crSpaces[HEAT_TEMPERATURE]->Init();
+      crSpaces[HEAT_TEMPERATURE]->Init(solStrat_);
     }else{
       EXCEPTION("The formulation " << formulation << "of heat PDE is not known!");
     }

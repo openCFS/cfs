@@ -101,6 +101,9 @@ namespace CoupledField {
     //! Return struct with solution strategy
     shared_ptr<SolStrategy> GetSolStrategy() {return solStrat_;}
     
+    //! Update algebraic system in multistep solution strategy
+    void UpdateToSolStrategy();
+    
     // ***********************************************************************
     //   Methods for creating and initializing the algebraic system
     // ***********************************************************************
@@ -981,6 +984,13 @@ namespace CoupledField {
     
     //! Flag signaling symmetry of system matrix
     bool sbmSymm_;
+    
+    //! Flag signaling use of only one matrix block
+    
+    //! This flag denotes, if the complete system matrix just consists of one 
+    //! single matrix block. In this case we can simply access the (1,1) entry
+    //! as StdMatrix and have the complete system. 
+    bool onlyOneMatrixBlock_;
     
     //! Flag if we have distinct matrix graphs for different matric types
     bool distinctMatGraphs_;

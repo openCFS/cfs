@@ -113,8 +113,7 @@ public:
 
   
   //! \copydoc FeSpace::GetOlasMappings
-  virtual void GetOlasMappings( shared_ptr<SolStrategy> solStrat, 
-                                StdVector<AlgebraicSys::SBMBlockDef>& sbmBlocks,
+  virtual void GetOlasMappings( StdVector<AlgebraicSys::SBMBlockDef>& sbmBlocks,
                                 std::map<UInt,StdVector<std::set<Integer> > >&
                                 minorBlocks );
   

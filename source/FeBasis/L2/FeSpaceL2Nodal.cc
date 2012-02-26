@@ -36,7 +36,8 @@ FeSpaceL2Nodal::~FeSpaceL2Nodal(){
 
 }
 
-void FeSpaceL2Nodal::Init(){
+void FeSpaceL2Nodal::Init( shared_ptr<SolStrategy> solStrat ) {
+  solStrat_ = solStrat;
   ReadIntegList();
   ReadPolyList();
 }

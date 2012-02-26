@@ -43,6 +43,8 @@ namespace CoupledField
     //! Return pointer to the SolveStep object
     virtual BaseSolveStep * GetSolveStep() = 0;
 
+    //! Update PDE due to updated step in multistep solution strategy
+    virtual void UpdateToSolStrategy() = 0;
 
     //! write the PDE state (pdememento) to a restart file "simname_pdename.restart"
     virtual void WriteRestart( ) = 0;

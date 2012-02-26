@@ -95,7 +95,7 @@ namespace CoupledField {
       }else if(legList.GetSize() > 0 ){
         polyType = LEGENDRE;
       }else{
-        EXCEPTION("An error occured while reading the XML file.Specify at least one fePolynomial");
+        EXCEPTION("An error occurred while reading the XML file.Specify at least one fePolynomial");
       }
     }
     // switch depending on space type
@@ -125,7 +125,7 @@ namespace CoupledField {
         if( polyType == LAGRANGE )  {
           ret.reset(new FeSpaceL2Nodal(aNode, infoNode));
         } else {
-          EXCEPTION("Higher order L2 space not definied yet");
+          EXCEPTION("Higher order L2 space not defined yet");
         }
         break;
         break;

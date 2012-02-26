@@ -286,8 +286,8 @@ PtrParamNode ParamNode::GetByVal(const string& parent_raw, const string& child_r
   if (insertNew || action == APPEND)
   {
 
-    PtrParamNode ret = this->Get(parent, action);
-    ret->Get(child, action)->SetValue(value);
+    PtrParamNode ret = this->Get(parent, ParamNode::APPEND);
+    ret->Get(child, ParamNode::APPEND)->SetValue(value);
     return ret;
   }
 

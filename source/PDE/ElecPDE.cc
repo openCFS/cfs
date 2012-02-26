@@ -753,7 +753,7 @@ namespace CoupledField {
       PtrParamNode potSpaceNode = infoNode->Get("elecPotential");
       crSpaces[ELEC_POTENTIAL] =
         FeSpace::CreateInstance(myParam_,potSpaceNode,FeSpace::H1);
-      crSpaces[ELEC_POTENTIAL]->Init();
+      crSpaces[ELEC_POTENTIAL]->Init(solStrat_);
     }else{
       EXCEPTION("The formulation " << formulation << "of electric PDE is not known!");
     }

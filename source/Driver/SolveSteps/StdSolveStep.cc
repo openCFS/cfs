@@ -196,15 +196,32 @@ namespace CoupledField {
     SBM_Vector  actSol(BaseMatrix::DOUBLE);
     actSol = solVec_;
 
-    // set the boundary conditions
-    PDE_.SetBCs();
+    // =================================
+    //  Outer loop: Multilevel strategy 
+    // =================================
+    UInt numLevels = solStrat_->GetNumSolSteps();
+//    for( UInt iLevel = 0; iLevel < 1; ++iLevel ) {
+    for( UInt iLevel = 0; iLevel < numLevels; ++iLevel ) {
 
-     //perform the load-steps
-    Double loadFactor = 0.0;
+      std::cerr << "=========================================================\n";
+      std::cerr << " Multistep Level:    " << iLevel+1 << std::endl;
+      std::cerr << "=========================================================\n";
+      
+      // update the current solution step in a multilevel approach and
+      // inform PDEs (containing the FeSpaces), as well as the AlgebraicSystem
+      solStrat_->SetActSolStep(iLevel + 1);
+      ReadNonLinData();
+      PDE_.UpdateToSolStrategy();
+      algsys_->UpdateToSolStrategy();
 
-    // currently just for testing!!
-    // loop over load factor
-    for ( UInt iload=0; iload<1; iload++ ) {
+      // set the boundary conditions
+      PDE_.SetBCs();
+
+      //perform the load-steps
+      Double loadFactor = 0.0;
+
+      // currently just for testing!!
+      // loop over load factor
       loadFactor += 1.0;
       info->Get("PDE")->Get(pdename_)->Get("load_factor")->SetValue(loadFactor);
 
@@ -217,13 +234,15 @@ namespace CoupledField {
       // set iteration counter
       UInt iterationCounter=0;
 
-      do
-      {
+      // =================================
+      //  Inner nonlinear loop 
+      // =================================
+      do {
         iterationCounter++;
-        
         // RHS is already set up!!
 
-        PtrParamNode child_id = BaseDriver::CreateAnalysisIdChild(analysis_id, "nonLin", iterationCounter);
+//        PtrParamNode child_id = 
+//            BaseDriver::CreateAnalysisIdChild(analysis_id, "nonLin", iterationCounter);
 
         // setup and solve new system (rhs is already set) =====================
         assemble_->AssembleMatrices();
@@ -242,7 +261,7 @@ namespace CoupledField {
 
         // new solution is only an increment of the full solution =============
         algsys_->GetSolutionVal( solInc, setIDBC );
-        
+
 
         Double residualL2Norm = 0.0;
         Double etaLineSearch  = 1.0;
@@ -294,7 +313,8 @@ namespace CoupledField {
 
         // output of norms and data
         if ( nonLinLogging_ == true ) {
-          WriteNonLinIterToInfoXML(pdename_, iterationCounter, residualErr, incrementalErr, etaLineSearch);
+          WriteNonLinIterToInfoXML(pdename_, iLevel+1,iterationCounter, residualErr, 
+                                   incrementalErr, etaLineSearch);
           // write norm to file
           logFile_ <<  iterationCounter << "\t"
               << residualErr << "\t"
@@ -308,8 +328,7 @@ namespace CoupledField {
 
       } while(performOneMoreStep && iterationCounter < nonLinMaxIter_);
 
-    } // load step loop
-
+    } // loop over levels
   }
 
 
@@ -594,7 +613,7 @@ namespace CoupledField {
 
         // output of norms and data
         if ( nonLinLogging_ == true ) {
-          WriteNonLinIterToInfoXML(pdename_, iterationCounter, residualErr, incrementalErr, etaLineSearch);
+          WriteNonLinIterToInfoXML(pdename_, 1,iterationCounter, residualErr, incrementalErr, etaLineSearch);
           // write norm to file
           logFile_ <<  iterationCounter << "\t"
               << residualErr << "\t"
@@ -1404,10 +1423,15 @@ namespace CoupledField {
     }
   }
 
-  void StdSolveStep::WriteNonLinIterToInfoXML(const std::string& pdeName, const UInt iterationCounter,
-          const Double residualErr, const Double incrementalErr, double etaLineSearch)
+  void StdSolveStep::WriteNonLinIterToInfoXML(const std::string& pdeName,
+                                              const UInt solStep,
+                                              const UInt iterationCounter,
+                                              const Double residualErr, 
+                                              const Double incrementalErr, double etaLineSearch)
   {
-    PtrParamNode iter = info->Get("PDE")->Get(pdeName)->Get("nonlinear_iteration", ParamNode::APPEND); 
+    PtrParamNode iter = info->Get("PDE")->Get(pdeName)->Get("nonlinearConvergence");
+    iter = iter->GetByVal("solStep","value",solStep,ParamNode::INSERT)
+        ->Get("iteration",ParamNode::APPEND);
     iter->Get("nr")->SetValue(iterationCounter);
     iter->Get("residualErr")->SetValue(residualErr);
     iter->Get("incrementalErr")->SetValue(incrementalErr);

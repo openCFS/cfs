@@ -63,9 +63,12 @@ public:
   //! Get number of solution steps
   virtual UInt GetNumSolSteps() = 0;
   
-  //! Set current solution step
-  //! \param stepNum current solution step number (0-based)
+  //! Set current solution step (1-based)
+  //! \param stepNum current solution step number (1-based)
   virtual void SetActSolStep(UInt stepNum) = 0;
+  
+  //! Get current solution step (1-based)
+  virtual UInt GetActSolStep() = 0;
   
   //! Get number of SBM-blocks
   virtual UInt GetNumSBMBlocks() = 0;
@@ -155,6 +158,9 @@ public:
 
   //! Set current solution step
   virtual void SetActSolStep(UInt stepNum);
+  
+  //! Get current solution step
+  virtual UInt GetActSolStep();
 
   //! Return use of static condensation
   virtual bool UseStaticCondensation();
@@ -253,6 +259,9 @@ public:
 
   //! Set current solution step
   virtual void SetActSolStep(UInt stepNum );
+  
+  //! Get current solution step
+  virtual UInt GetActSolStep();
 
   //! Return use of static condensation
   virtual bool UseStaticCondensation();

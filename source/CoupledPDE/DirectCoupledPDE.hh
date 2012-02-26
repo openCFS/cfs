@@ -58,6 +58,10 @@ namespace CoupledField {
 
     //!
     virtual void InitTimeStepping();
+    
+
+    //! Update PDE due to updated step in multistep solution strategy
+    virtual void UpdateToSolStrategy();
 
  
     // ======================================================

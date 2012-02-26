@@ -42,22 +42,25 @@ namespace CoupledField {
 
   void  SBMDiagPrecond::Apply( const SBM_Matrix &A, const SBM_Vector &r,
                                SBM_Vector &z ) {
+    
+    assert( A.GetNumRows() <= numBlocks_ );
     // Loop over all rows
-        for( UInt iRow = 0; iRow < numBlocks_; ++iRow ) {
-        
-          // If preconditioner for row is defined, apply it
-          if( stdPreconds_[iRow] != NULL ) {
-            const StdMatrix * stdMat = A.GetPointer(iRow,iRow);
-            const SingleVector * rStd = r.GetPointer(iRow);
-            SingleVector * zStd = z.GetPointer(iRow);
-            stdPreconds_[iRow]->Apply(*stdMat, *rStd, *zStd );
-            
-          }
-        }
+    for( UInt iRow = 0; iRow < A.GetNumRows(); ++iRow ) {
+
+      // If preconditioner for row is defined, apply it
+      if( stdPreconds_[iRow] != NULL ) {
+        const StdMatrix * stdMat = A.GetPointer(iRow,iRow);
+        const SingleVector * rStd = r.GetPointer(iRow);
+        SingleVector * zStd = z.GetPointer(iRow);
+        stdPreconds_[iRow]->Apply(*stdMat, *rStd, *zStd );
+
+      }
+    }
   }
 
   void  SBMDiagPrecond::Setup( SBM_Matrix &A, PtrParamNode analysis_id ) {
-    for( UInt iRow = 0; iRow < numBlocks_; ++iRow ) {
+    assert( A.GetNumRows() <= numBlocks_ );
+    for( UInt iRow = 0; iRow < A.GetNumRows(); ++iRow ) {
          // If preconditioner for row is defined, apply it
          if( stdPreconds_[iRow] != NULL ) {
            stdPreconds_[iRow]->Setup(A(iRow,iRow),analysis_id);

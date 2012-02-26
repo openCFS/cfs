@@ -69,7 +69,7 @@ namespace CoupledField{
       PtrParamNode potSpaceNode = infoNode->Get(form);
       crSpaces[formulation_] =
         FeSpace::CreateInstance(myParam_,potSpaceNode,FeSpace::H1);
-      crSpaces[formulation_]->Init();
+      crSpaces[formulation_]->Init(solStrat_);
     }else{
       EXCEPTION("The formulation " << formulation << "of acoustic PDE is not known!");
     }

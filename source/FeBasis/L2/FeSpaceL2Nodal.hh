@@ -29,8 +29,9 @@ public:
      //! Destructor
      virtual ~FeSpaceL2Nodal();
 
-     //! Initialize class (read order etc.)
-     void Init();
+     //! \copydoc FeSpace::Init()
+     void Init( shared_ptr<SolStrategy> solStrat );
+     
      //! \copydoc FeSpace::GetFe(EntityIterator,shared_ptr<IntScheme>&)
     virtual BaseFE* GetFe( const EntityIterator ent ,
                            shared_ptr<IntScheme>& intScheme );

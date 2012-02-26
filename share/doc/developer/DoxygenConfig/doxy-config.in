@@ -658,8 +658,9 @@ INPUT                  = @CMAKE_SOURCE_DIR@/source \
                          @CMAKE_SOURCE_DIR@/source/PDE \
                          @CMAKE_SOURCE_DIR@/source/FeBasis \
                          @CMAKE_SOURCE_DIR@/source/FeBasis/HCurl \
-                         @CMAKE_SOURCE_DIR@/source/FeBasis/H1v \
+                         @CMAKE_SOURCE_DIR@/source/FeBasis/H1 \
                          @CMAKE_SOURCE_DIR@/source/FeBasis/HDiv \
+                         @CMAKE_SOURCE_DIR@/source/FeBasis/L2 \
                          @CMAKE_SOURCE_DIR@/source/cplreader \
                          @CMAKE_SOURCE_DIR@/source/cplreader/FileReaders \
                          @CMAKE_SOURCE_DIR@/source/cplreader/FileReaders/CFS++ \

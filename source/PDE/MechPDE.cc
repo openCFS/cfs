@@ -939,7 +939,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
       PtrParamNode potSpaceNode = infoNode->Get("mechDisplacement");
       crSpaces[MECH_DISPLACEMENT] =
           FeSpace::CreateInstance(myParam_,potSpaceNode,FeSpace::H1);
-      crSpaces[MECH_DISPLACEMENT]->Init();
+      crSpaces[MECH_DISPLACEMENT]->Init(solStrat_);
 
     }else{
        EXCEPTION( "The formulation " << formulation 

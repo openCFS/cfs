@@ -99,7 +99,13 @@ public:
   virtual ~FeSpace();
   
   //! Read parameters from ParamNode and initialize
-  virtual void Init() {};
+  
+  //! Reads the parameters from a ParamNode and initializes itself,
+  //! incorporating the information from a SolStrategy object.
+  //! \param solStrategy Solution strategy object, which encapsulates
+  //!                    additional information (splitting, number of
+  //!                    solution steps  etc.)
+  virtual void Init( shared_ptr<SolStrategy> solStrat ) {};
 
   //! Return type of FeSpace
   SpaceType GetSpaceType() { return type_;}
@@ -195,13 +201,11 @@ public:
   
   //! This methods returns a list of SBMBlock definitions and minorBlock
   //! definitions, according to the solution strategy provided.
-  //! \param solStrat    Solution strategy object, which defines splitting
   //! \param sbmBlocks   Vector (length: numBlocks) with all equations in 
   //!                    this block(see AlgebraicSys)
   //! \param minorBlocks Map (key: sbmBlockIndex) with Vector (index:
   //!                    subBlockIndex) of set of equations for each minorBlock
-  virtual void GetOlasMappings( shared_ptr<SolStrategy> solStrat, 
-                                StdVector<AlgebraicSys::SBMBlockDef>& sbmBlocks,
+  virtual void GetOlasMappings( StdVector<AlgebraicSys::SBMBlockDef>& sbmBlocks,
                                 std::map<UInt,StdVector<std::set<Integer> > >&
                                 minorBlocks ) = 0;
   
@@ -268,7 +272,14 @@ public:
   //! Dump information of the equation map to the console
   virtual void PrintEqnMap() = 0;
   
-  //@}
+  //! Update the FeSpace in case of a multistep solution strategy
+  
+  //! This method updates the internal data structure to reflect the a new step
+  //! in a multistep simulation. E.g. for a twoLevel solution strategy, the
+  //! active set of equations is switched between lowest order equations only 
+  //! and the full set.
+  virtual void UpdateToSolStrategy() {;}
+ //@}
   
 protected:
 
@@ -303,6 +314,9 @@ protected:
 
   //! Storing the FeFunctions associated with this space
   shared_ptr<BaseFeFunction> feFunction_;
+  
+  //! Pointer to solution strategy object
+  shared_ptr<SolStrategy> solStrat_;
 
   //! Solution step (in case of multistep solution)
   UInt solStep_;

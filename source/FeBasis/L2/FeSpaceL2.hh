@@ -36,7 +36,7 @@ public:
 
   //! Destructor
   virtual ~FeSpaceL2();
-
+  
   //! Returns the number of (vectorial) unknowns on the element
   virtual UInt GetNumFunctions( const EntityIterator ent );
 
@@ -62,8 +62,7 @@ public:
 
 
   //! \copydoc FeSpace::GetOlasMappings
-  virtual void GetOlasMappings( shared_ptr<SolStrategy> solStrat,
-                                StdVector<AlgebraicSys::SBMBlockDef>& sbmBlocks,
+  virtual void GetOlasMappings(  StdVector<AlgebraicSys::SBMBlockDef>& sbmBlocks,
                                 std::map<UInt,StdVector<std::set<Integer> > >&
                                 minorBlocks );
 

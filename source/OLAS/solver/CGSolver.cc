@@ -23,6 +23,33 @@ namespace CoupledField {
   }
 
   // ****************
+  //   Setup method
+  // ****************
+  template<typename T>
+    void CGSolver<T>::Setup( BaseMatrix &sysmat, PtrParamNode analysis_step ) {
+    
+    if( r_ != NULL ) {
+      delete r_;
+      r_ = NULL;
+      delete d_;
+      d_ = NULL;
+      delete s_;
+      s_ = NULL;
+      delete q_;
+      q_ = NULL;
+    }
+    
+    // If not yet done, create auxilliary vectors
+    if ( r_ == NULL ) {
+      r_ = GenerateVectorObject(sysmat);
+      d_ = GenerateVectorObject(sysmat);
+      s_ = GenerateVectorObject(sysmat);
+      q_ = GenerateVectorObject(sysmat);
+    }    
+    
+  }
+  
+  // ****************
   //   Solve method
   // ****************
   template<typename T>
@@ -30,14 +57,6 @@ namespace CoupledField {
                            const BaseVector &rhs, BaseVector &sol, PtrParamNode analysis_step ) {
 
     // Tracing information
-
-    // If not yet done, create auxilliary vectors
-    if ( r_ == NULL ) {
-      r_ = GenerateVectorObject(sysmat);
-      d_ = GenerateVectorObject(sysmat);
-      s_ = GenerateVectorObject(sysmat);
-      q_ = GenerateVectorObject(sysmat);
-    }
 
     // Set auxilliary vectors to zero
     r_->Init();

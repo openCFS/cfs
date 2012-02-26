@@ -85,6 +85,7 @@ namespace CoupledField{
     type_ = HCURL;
     isHierarchical_ = true;
     polyType_ = LEGENDRE;
+    onlyLowestOrder_ = false;
     
     infoNode_ = infoNode->Get("hCurlHierarchical");
   }
@@ -93,7 +94,9 @@ namespace CoupledField{
   FeSpaceHCurlHi::~FeSpaceHCurlHi(){
   }
 
-  void FeSpaceHCurlHi::Init() {
+  void FeSpaceHCurlHi::Init( shared_ptr<SolStrategy> solStrat ) {
+    
+    solStrat_ = solStrat;
     // read order of function space
     // read, if map type should be isotropic
 
@@ -167,6 +170,13 @@ namespace CoupledField{
     refElems_[region][Elem::ET_QUAD8]  = new FeHCurlHiQuad();
     refElems_[region][Elem::ET_HEXA20]  = new FeHCurlHiHex();
 
+
+    refElems1St_[region][Elem::ET_QUAD4]  = new FeHCurlHiQuad();
+    refElems1St_[region][Elem::ET_HEXA8]  = new FeHCurlHiHex();
+
+    refElems1St_[region][Elem::ET_QUAD8]  = new FeHCurlHiQuad();
+    refElems1St_[region][Elem::ET_HEXA20]  = new FeHCurlHiHex();
+
     //now set the order
     if(order.GetNumCols() != 1 || order.GetNumRows() != 1){
       Exception("FeSpaceHCurlHi::SetRegionElements : Only Iso-Order is supported right now");
@@ -174,6 +184,12 @@ namespace CoupledField{
     std::map<Elem::FEType, FeHCurlHi* >::iterator i = refElems_[region].begin();
     for( ; i != refElems_[region].end(); ++i ) {
       i->second->SetIsoOrder(order[0][0]+orderOffset_);
+    }
+    
+    // 1st order elements
+     i = refElems1St_[region].begin();
+    for( ; i != refElems1St_[region].end(); ++i ) {
+      i->second->SetIsoOrder(0);
     }
     
     infoNode->Get("order")->SetValue(order[0][0]);
@@ -255,6 +271,61 @@ namespace CoupledField{
     
     isFinalized_ = true;
   }
+  
+  void FeSpaceHCurlHi::UpdateToSolStrategy() {
+
+    if( solStrat_->GetType() == SolStrategy::TWO_LEVEL_STRATEGY &&
+        solStrat_->GetActSolStep() == 1 ) {
+      onlyLowestOrder_ = true;
+    } else {
+      onlyLowestOrder_ = false;
+    }
+         
+  }
+  
+  void FeSpaceHCurlHi::GetNodesOfElement( StdVector<UInt>& nodes,
+                           const Elem* ptElem,
+                           BaseFE::EntityType entType){
+     UInt elemNum = ptElem->elemNum;
+     if(virtualNodes_.find(elemNum) ==virtualNodes_.end()){
+
+       EXCEPTION("FeSpace::GetNodesOfElement: Could not find requested element #"
+           << ptElem->elemNum << " of region " 
+           <<      domain->GetGrid()->GetRegion().ToString(ptElem->regionId));
+     }
+     if(entType == BaseFE::ALL){
+       
+       if( onlyLowestOrder_) {
+         nodes.Resize(virtualNodes_[elemNum][BaseFE::EDGE].vNodes.GetSize());
+         const StdVector<UInt>& entNodes =  virtualNodes_[elemNum][BaseFE::EDGE].vNodes;
+         for (UInt i = 0; i < entNodes.GetSize(); i++ ){
+           nodes[i] =  entNodes[i];
+         }
+       } else {
+         nodes.Resize(virtualNodes_[elemNum][BaseFE::VERTEX].vNodes.GetSize()+
+                      virtualNodes_[elemNum][BaseFE::EDGE].vNodes.GetSize()+
+                      virtualNodes_[elemNum][BaseFE::FACE].vNodes.GetSize()+
+                      virtualNodes_[elemNum][BaseFE::INTERIOR].vNodes.GetSize());
+         ElemVirtualNodes::iterator nodeIt = virtualNodes_[elemNum].begin();
+         UInt c = 0;
+         while(nodeIt !=virtualNodes_[elemNum].end()){
+
+           StdVector<UInt> & entNodes =  nodeIt->second.vNodes;
+           for (UInt i = 0; i < entNodes.GetSize(); i++ ){
+             nodes[c++] =  entNodes[i];
+           }
+           nodeIt++;
+         }
+       } // lowest order
+     }else{
+       nodes.Resize(virtualNodes_[elemNum][entType].vNodes.GetSize());
+       const StdVector<UInt>& entNodes =  virtualNodes_[elemNum][entType].vNodes;
+       for (UInt i = 0; i < entNodes.GetSize(); i++ ){
+         nodes[i] =  entNodes[i];
+       }
+     }
+   }
+  
   BaseFE* FeSpaceHCurlHi::GetFe( const EntityIterator ent, 
                                  shared_ptr<IntScheme>& intScheme ) {
     BaseFE * ret = GetFe(ent);
@@ -272,7 +343,13 @@ namespace CoupledField{
     Matrix<Integer> order;
     this->GetIntegration(ret, eRegion, method, order);
     // Note: The order is currently more or less hard-coded for isotropic order
-    intScheme->SetOrder( method, order[0][0] );
+    
+    if( onlyLowestOrder_) {
+      intScheme->SetOrder( method, 2 );  
+    } else {
+      intScheme->SetOrder( method, order[0][0] );
+    }
+    
 
     return ret;
 
@@ -295,7 +372,12 @@ namespace CoupledField{
       EXCEPTION("FeSpaceHCurlHi: requested fetype which is not supported by space");
     }
 
-    BaseFE * myFe = refElems_[eRegion][ent.GetElem()->type];
+    BaseFE * myFe = NULL;
+    if( onlyLowestOrder_) {
+     myFe = refElems1St_[eRegion][ent.GetElem()->type];
+    } else {
+      myFe = refElems_[eRegion][ent.GetElem()->type];
+    }
 
     // ToDo: Currently hard coded to isotropic order. Here we should generalize the 
     // setting of entity orders.
@@ -316,7 +398,12 @@ namespace CoupledField{
     if(refElems_[eRegion].find(ptElem->type) == refElems_[eRegion].end()){
       EXCEPTION("FeSpaceHCurlHi::getfe( const entityiterator): requested fetype which is noch supported by space");
     }
-    BaseFE * myFe = refElems_[eRegion][ptElem->type];
+    BaseFE * myFe = NULL;
+    if( onlyLowestOrder_) {
+      myFe = refElems1St_[eRegion][ptElem->type];
+    } else {
+      myFe = refElems_[eRegion][ptElem->type];
+       }
 
     //NOTE: THE ORDER IS ALREADY SET IN THIS CASE
     //      BUT for more felexibility we should set it here
@@ -615,8 +702,7 @@ namespace CoupledField{
 
 
   
-  void FeSpaceHCurlHi::GetOlasMappings( shared_ptr<SolStrategy> solStrat,
-                                        StdVector<AlgebraicSys::SBMBlockDef>& sbmBlocks,
+  void FeSpaceHCurlHi::GetOlasMappings( StdVector<AlgebraicSys::SBMBlockDef>& sbmBlocks,
                                         std::map<UInt,StdVector<std::set<Integer> > >&
                                         minorBlocks ) {
     
@@ -624,15 +710,15 @@ namespace CoupledField{
     
     // Check: If we have a "standard" solution strategy, just call the 
     // method of the base class
-    if( solStrat->GetType() == SolStrategy::STD_STRATEGY ) {
-      FeSpaceH1::GetOlasMappings(solStrat, sbmBlocks, minorBlocks );
+    if( solStrat_->GetType() == SolStrategy::STD_STRATEGY ) {
+      FeSpaceH1::GetOlasMappings(sbmBlocks, minorBlocks );
       return;
     }
     
     // check in addition, if we need the two-level approach
-    if( solStrat->GetType() != SolStrategy::TWO_LEVEL_STRATEGY ) 
+    if( solStrat_->GetType() != SolStrategy::TWO_LEVEL_STRATEGY ) 
       EXCEPTION("Solution strategy of type ' " 
-                << SolStrategy::strategyType.ToString(solStrat->GetType()) 
+                << SolStrategy::strategyType.ToString(solStrat_->GetType()) 
                 << "' not implemented for HCurl of higher order.");
     
     FeFctIdType fctId = feFunction_->GetFctId();

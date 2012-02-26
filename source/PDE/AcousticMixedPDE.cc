@@ -79,8 +79,8 @@ namespace CoupledField{
       crSpaces[ACOU_VELOCITY] =
           FeSpace::CreateInstance(myParam_,potSpaceNode,FeSpace::L2);
 
-      crSpaces[ACOU_PRESSURE]->Init();
-      crSpaces[ACOU_VELOCITY]->Init();
+      crSpaces[ACOU_PRESSURE]->Init(solStrat_);
+      crSpaces[ACOU_VELOCITY]->Init(solStrat_);
     }else{
       EXCEPTION("The formulation " << formulation << "of acousticMixed PDE is not known!");
     }

@@ -100,6 +100,9 @@ namespace CoupledField
                   const std::string &phase );
 
 
+    //! Update PDE due to updated step in multistep solution strategy
+    virtual void UpdateToSolStrategy();
+    
     /** Write general defines (BCs, loads, etc.) to info.xml.
      * Note, that only the current state is (over) written! */
     void WriteGeneralPDEdefines();

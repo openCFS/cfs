@@ -89,7 +89,9 @@ namespace CoupledField{
   }
   
   //! Initialize class
-  void FeSpaceH1Hi::Init() {
+  void FeSpaceH1Hi::Init( shared_ptr<SolStrategy> solStrat ) {
+    
+    solStrat_ = solStrat;
     // read order of function space
     // read, if map type should be isotropic
 

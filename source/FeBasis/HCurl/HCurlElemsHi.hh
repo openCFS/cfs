@@ -65,12 +65,6 @@ protected:
   //! Calculate number of unknowns
   virtual void CalcNumUnknowns() = 0;
 
-  //! Flag if re-calculation of number of unknowns is needed
-
-  //! After changing the order of the element, a re-calculation of 
-  //! the unumber of unknowns (actNumFncs_) is necessary.
-  bool updateUnknowns_;
-
   //! Isotropic order. 0 if anisotropic
   UInt isoOrder_;
     

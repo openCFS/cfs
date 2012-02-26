@@ -40,7 +40,10 @@ namespace CoupledField{
   FeSpaceH1Nodal::~FeSpaceH1Nodal(){
   }
 
-  void FeSpaceH1Nodal::Init() {
+  void FeSpaceH1Nodal::Init( shared_ptr<SolStrategy> solStrat ) {
+    
+    solStrat_ = solStrat;
+    
     // read order of function space
     // read, if map type should be isotropic
     //TODO: Specify default integration method

@@ -20,8 +20,8 @@ public:
   //! Destructor
   ~FeSpaceHCurlHi();
   
-  //! Initialize class (read order etc.)
-  void Init();
+  //! \copydoc FeSpace::Init()
+  void Init( shared_ptr<SolStrategy> solStrat );
 
   //! \copydoc FeSpace::GetFe(EntityIterator,shared_ptr<IntScheme>&)
   virtual BaseFE* GetFe( const EntityIterator ent ,
@@ -45,9 +45,11 @@ public:
   //! Map equations i.e. initialize object
   virtual void Finalize();
   
+  //! \copydoc FeSpace::UpdateToSolStrategy()
+  virtual void UpdateToSolStrategy();
+  
   //! Return SBM-block and Matrix-SubBlockdefinition according to strategy
-  virtual void GetOlasMappings( shared_ptr<SolStrategy> solStrat, 
-                                StdVector<AlgebraicSys::SBMBlockDef>& sbmBlocks,
+  virtual void GetOlasMappings( StdVector<AlgebraicSys::SBMBlockDef>& sbmBlocks,
                                 std::map<UInt,StdVector<std::set<Integer> > >&
                                 minorBlocks );
 
@@ -64,6 +66,11 @@ protected:
                                   const Matrix<Integer>& order,
                                   PtrParamNode infoNode );
 
+  //! \copydoc FeSpace::GetNodesOfElement
+  virtual void GetNodesOfElement( StdVector<UInt>& nodes,
+                                  const Elem* ptElem,
+                                  BaseFE::EntityType entType = BaseFE::ALL);
+  
   //! Here the spaces have the possibility to check if user definitions makes sense
   //! e.g. if the chosen integration is correct or the element order is nice
   //! here one could e.g. adjust the integration oder according to the element order
@@ -99,7 +106,13 @@ protected:
   
   //! Map for reference elements by region
   std::map< RegionIdType, std::map<Elem::FEType, FeHCurlHi* > > refElems_;
-
+  
+  //! Map for reference elements by region (1st order)
+  std::map< RegionIdType, std::map<Elem::FEType, FeHCurlHi* > > refElems1St_;
+  
+  //! Flag, if only lowest order should be used
+  bool onlyLowestOrder_;
+  
   // ====================================================================
   // PROCESS USER INPUT
   // ====================================================================

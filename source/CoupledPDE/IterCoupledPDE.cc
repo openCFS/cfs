@@ -378,6 +378,12 @@ namespace CoupledField
   {
     return solveStep_;
   }
+  
+  void IterCoupledPDE::UpdateToSolStrategy() {
+
+    for (UInt i=0; i<PDEs_.GetSize(); i++)
+      PDEs_[i]->UpdateToSolStrategy();
+  }
 
 
 } // end of namespace

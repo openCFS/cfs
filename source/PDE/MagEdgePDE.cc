@@ -1103,7 +1103,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
       PtrParamNode potSpaceNode = infoNode->Get("magPotential");
       crSpaces[MAG_POTENTIAL] = 
           FeSpace::CreateInstance(myParam_, potSpaceNode, FeSpace::HCURL );
-      crSpaces[MAG_POTENTIAL]->Init();
+      crSpaces[MAG_POTENTIAL]->Init(solStrat_);
     }else{
       EXCEPTION("The formulation " << formulation 
                 << "of magnetic edge PDE is not known!");

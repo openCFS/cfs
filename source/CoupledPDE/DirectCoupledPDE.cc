@@ -251,7 +251,8 @@ namespace CoupledField {
     // included boundary conditions
 
     if ( analysistype_ == BasePDE::TRANSIENT ) {
-      EXCEPTION("Dierct coupling does not work iun the transient case");
+      EXCEPTION("Direct coupling does not work in the transient case.\n"
+             << "=> Andi Hueppe will solve the issue!");
       //Double dt;
       //dt = dynamic_cast<TransientDriver*>(domain->GetSingleDriver())
       //  ->GetDeltaT();
@@ -310,6 +311,13 @@ namespace CoupledField {
     }
   }
 
+  
+  void DirectCoupledPDE::UpdateToSolStrategy() {
+    for (UInt i=0; i<singlePDEs_.GetSize(); i++) {
+      singlePDEs_[i]->InitTimeStepping();
+    }
+  }
+  
 
   // ======================================================
   // POSTPROC SECTION

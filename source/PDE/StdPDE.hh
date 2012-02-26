@@ -92,7 +92,7 @@ namespace CoupledField {
     
     //! Return pointer to the SolveStep object
     BaseSolveStep * GetSolveStep();
-
+    
     //! Return vector with resultInfo types
     ResultInfoList& GetResultInfos() { return results_;}
 

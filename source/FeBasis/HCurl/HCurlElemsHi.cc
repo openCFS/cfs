@@ -14,6 +14,7 @@ DEFINE_LOG(feHCurlHi, "feHCurlHi")
 
 
 //! This method makes use of the following vector identity
+//! (assuming b is a scalar and F a vector function):
 //!
 //!     curl(b*F) = b x curl(F) + grad(b) x F
 //!
@@ -40,7 +41,6 @@ inline AutoDiff<Double,3> Cross (const AutoDiff<Double,3> & u,
 
 
 FeHCurlHi::FeHCurlHi() {
-  updateUnknowns_ = true;
   onlyLowestOrder_ = false;
   isoOrder_ = 0;
   
@@ -56,13 +56,12 @@ FeHCurlHi::~FeHCurlHi() {
 void FeHCurlHi::GetNumFncs( StdVector<UInt>& numFcns,
                               EntityType entityType,
                               UInt dof) {
-  if(updateUnknowns_) CalcNumUnknowns();
   numFcns = entityFncs_[entityType]; 
 }
   
 void FeHCurlHi::UseGradient(EntityType entity, bool usage) {
   useGrad_[entity] = usage;
-  updateUnknowns_ = true;
+  CalcNumUnknowns();
 }
 
 void FeHCurlHi::SetIsoOrder(UInt order) {
@@ -80,7 +79,7 @@ void FeHCurlHi::SetIsoOrder(UInt order) {
   boost::array<UInt, 3> innerOrder = {{order, order, order}}; 
   orderInner_ = innerOrder;
 
-  updateUnknowns_ = true;
+  CalcNumUnknowns();
   isIsotropic_ = true;
   isoOrder_ = order;
 }
@@ -89,7 +88,6 @@ void FeHCurlHi::GetNodalPermutation( StdVector<UInt>& fncPermutation,
                                   const Elem* ptElem,
                                   EntityType fctEntityType,
                                   UInt entNumber){
-  if (updateUnknowns_) CalcNumUnknowns();
  
   if( fctEntityType == VERTEX ) {
     UInt numFncs = entityFncs_[VERTEX][entNumber];
@@ -209,20 +207,17 @@ void FeHCurlHiQuad::CalcNumUnknowns() {
   innerFncs.Resize(1);
   innerFncs.Init(0);
   LOG_DBG(feHCurlHi) <<  "totalUnknowns: " << actNumFncs_  << std::endl;
-  updateUnknowns_ = false;
 
 }
   
 void FeHCurlHiQuad::CalcLocShFnc( Matrix<Double>& shape, const LocPointMapped& lp,
                               const Elem* elem, UInt comp  ) {
-  if (updateUnknowns_) CalcNumUnknowns();
   EXCEPTION("Implement me");
   
 }
 
 void FeHCurlHiQuad::CalcLocCurlShFnc( Matrix<Double>& curl, const LocPointMapped& lp,
                                      const Elem* elem, UInt comp ) {
-  if (updateUnknowns_) CalcNumUnknowns();
   EXCEPTION("Implement me");
 }
 
@@ -307,13 +302,11 @@ void FeHCurlHiHex::CalcNumUnknowns() {
 #endif
 
   LOG_DBG(feHCurlHi) <<  "totalUnknowns: " << actNumFncs_  << std::endl;
-  updateUnknowns_ = false;
 }
 
 
 void FeHCurlHiHex::CalcLocShFnc( Matrix<Double>& shape, const LocPointMapped& lpm,
                              const Elem* elem, UInt comp  ) {
-  if (updateUnknowns_) CalcNumUnknowns();
   
   AutoDiff<Double, 3> x (lpm.lp.coord[0],0);
   AutoDiff<Double, 3> y (lpm.lp.coord[1],1);
@@ -554,7 +547,6 @@ void FeHCurlHiHex::CalcLocShFnc( Matrix<Double>& shape, const LocPointMapped& lp
 
 void FeHCurlHiHex::CalcLocCurlShFnc( Matrix<Double>& curl, const LocPointMapped& lpm,
                                      const Elem* elem, UInt comp ) {
-  if (updateUnknowns_) CalcNumUnknowns();
 
   AutoDiff<Double, 3> x (lpm.lp.coord[0],0);
   AutoDiff<Double, 3> y (lpm.lp.coord[1],1);

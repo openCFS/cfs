@@ -19,8 +19,8 @@ class FeSpaceH1Hi : public FeSpaceH1 {
     //! Destructor
     ~FeSpaceH1Hi();
 
-    //! Initialize class (read order etc.)
-    void Init();
+    //! \copydoc FeSpace::Init()
+    void Init( shared_ptr<SolStrategy> solStrat );
         
     //! \copydoc FeSpace::GetFe(EntityIterator,shared_ptr<IntScheme>&)
     virtual BaseFE* GetFe( const EntityIterator ent ,

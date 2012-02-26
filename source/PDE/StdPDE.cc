@@ -150,7 +150,7 @@ namespace CoupledField {
       shared_ptr<ResultInfo> res = fctIt->second->GetResultInfo();
       std::string resultName = SolutionTypeEnum.ToString(res->resultType);
 
-      feSpace.GetOlasMappings( solStrat_, sbmBlocks, minorBlocks);
+      feSpace.GetOlasMappings( sbmBlocks, minorBlocks);
       LOG_DBG(stdPde) << pdename_ << ":\tfctId #" << fctId
           << ", Type: " << resultName << ", #Equations: " 
           << feSpace.GetNumEquations();

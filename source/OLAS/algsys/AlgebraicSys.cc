@@ -64,6 +64,7 @@ namespace CoupledField {
     rhs_                = NULL;
     sol_                = NULL;
     sbmSymm_            = true;
+    onlyOneMatrixBlock_ = false;
     statCond_           = false;
     isComplex_          = false;
     effMat_             = NULL;
@@ -140,6 +141,60 @@ namespace CoupledField {
     
     delete effMat_;
     effMat_ = NULL;
+  }
+  
+  void AlgebraicSys::UpdateToSolStrategy() {
+    LOG_TRACE(algSys) << "Updating parameters due to solution strategy";
+    
+    // switch according to type of solution strategy
+    if( solStrat_->GetType() == SolStrategy::TWO_LEVEL_STRATEGY ) {
+      
+      // In case of a two-level strategy, we have to adjust the 
+      // "effective" matrix / vector size, depending on the step.
+      
+      if( solStrat_->GetActSolStep() == 1 ) {
+        // --------------------------
+        //  Step 1: Only (1,1) block
+        // --------------------------
+        LOG_TRACE(algSys) << "\t=> Switching to reduced (1,1)-system";
+        
+        delete effMat_;
+        delete effSol_;
+        delete effRhs_;
+        effMat_ = new SBM_Matrix( *sysMat_[SYSTEM], 1,1 ); 
+        effRhs_ = new SBM_Vector( *rhs_, 1 );
+        effSol_ = new SBM_Vector( *sol_, 1 );
+        
+        // important: also de-activate static condensation
+        statCond_ = false;
+      } else if( solStrat_->GetActSolStep() == 2 ) {
+        // --------------------------
+        //  Step 2: Complete system
+        // --------------------------
+        LOG_TRACE(algSys) << "\t=> Switching to full system again";
+        delete effMat_;
+        delete effSol_;
+        delete effRhs_;
+        
+        // re-status of static condensation
+        statCond_ = solStrat_->UseStaticCondensation();
+        
+        if (statCond_) {
+          effMat_ = new SBM_Matrix( *sysMat_[SYSTEM], numBlocks_-1, 
+                                    numBlocks_-1 );
+          effRhs_ = new SBM_Vector( *rhs_, numBlocks_-1 );
+          effSol_ = new SBM_Vector( *sol_, numBlocks_-1 );
+        } else {
+          effMat_ = new SBM_Matrix( *sysMat_[SYSTEM], numBlocks_, 
+                                    numBlocks_ ); 
+          effRhs_ = new SBM_Vector( *rhs_, numBlocks_ );
+          effSol_ = new SBM_Vector( *sol_, numBlocks_ );
+        }
+      } else {
+        EXCEPTION("The two level solution strategy has only two steps");
+      }
+    } // if TWO_LEVEL strategy
+    
   }
 
 
@@ -272,7 +327,7 @@ namespace CoupledField {
     // if we have just one SBM matrix block, use directly
     // the specialized methods for StdMatrices
     std::string precondId = solStrat_->GetPrecondId();
-    if( effMat_->GetNumRows() == 1 ) {
+    if( onlyOneMatrixBlock_ ) {
       precond_ = GenerateStdPrecondObject((*effMat_)(0,0), precondId,
                                           precondListNode, infoNode );
     } else {
@@ -297,7 +352,7 @@ namespace CoupledField {
     
     // if we have just one SBM matrix block, use directly
     // the specialized methods for StdMatrices
-    if( effMat_->GetNumRows() == 1) {
+    if( onlyOneMatrixBlock_ ) {
       solver_ = GenerateSolverObject( (*effMat_)(0,0), solStrat_, 
                                       solverListNode, infoNode);
     } else {
@@ -322,7 +377,7 @@ namespace CoupledField {
 
     // if we have just one SBM matrix block, use directly
     // the specialized methods for StdMatrices
-    if( effMat_->GetNumRows() == 1 ) {
+    if( onlyOneMatrixBlock_ ) {
       eigenSolver_ =  
           GenerateEigenSolverObject( (*sysMat_[SYSTEM])(0,0), solStrat_, 
                                      esNode, sNode, pNode,
@@ -344,7 +399,7 @@ namespace CoupledField {
     
     // if we have just one SBM matrix block, use directly
     // the specialized methods for StdMatrices
-    if( effMat_->GetNumRows() == 1 ) {
+    if( onlyOneMatrixBlock_ ) {
       precond_->Setup( (*effMat_)(0,0), analysis_id);
     } else {
       precond_->Setup( *(effMat_), analysis_id);
@@ -366,7 +421,7 @@ namespace CoupledField {
     
     // if we have just one SBM matrix block, use directly
     // the specialized methods for StdMatrices
-    if( effMat_->GetNumRows() == 1 ) {
+    if( onlyOneMatrixBlock_ ) {
       solver_->Setup( (*effMat_)(0,0), analysis_id );
     } else {
       solver_->Setup( *effMat_, analysis_id);
@@ -392,7 +447,7 @@ namespace CoupledField {
     }
     
     // Currently we just can solve problems with one SBM block
-    if( effMat_->GetNumRows() != 1 ) {
+    if( !onlyOneMatrixBlock_ ) {
       EXCEPTION("Eigenvalue solver can currently only handle SBM "
                 << "matrices with 1 block!");
     }
@@ -564,7 +619,7 @@ namespace CoupledField {
 
         // HARD-CODED: Export also preconditioner
         SBM_Matrix * copy = new SBM_Matrix(*(sysMat_[SYSTEM]));
-        if( effMat_->GetNumRows() == 1 ) {
+        if( onlyOneMatrixBlock_ ) {
           precond_->GetPrecondSysMat((*copy)(0,0));
         } else {
           precond_->GetPrecondSysMat(*copy);
@@ -612,7 +667,7 @@ namespace CoupledField {
     }
     
     // Trigger solution
-    if( effMat_->GetNumRows() == 1 ) { 
+    if( onlyOneMatrixBlock_ ) { 
       solver_->Solve( (*effMat_)(0,0), 
                       (*effRhs_)(0), (*effSol_)(0),
                       analysis_id);
@@ -654,7 +709,7 @@ namespace CoupledField {
     if(els->Has("solution") && els->Get("solution")->As<std::string>() != "no")
       sol_->Export((base+".sol.vec").c_str());
 
-    // Now de-modifiy the right-hand side vector
+    // Now de-modify the right-hand side vector
     if ( setIDBC ) 
       idbcHandler_->RemoveIDBCFromRHS( rhs_ );
 
@@ -1310,6 +1365,13 @@ namespace CoupledField {
       graphManager_->RegisterBlock( sbmIndex, blockInfo_[sbmIndex]  );
     }
 
+    // determine, if we have a "real" SBM-system with more than 1
+    // block in the sbm-matrix
+    if( numBlocks_ == 1  || 
+        ( numBlocks_ == 2 && solStrat_->UseStaticCondensation() ) ) {
+      onlyOneMatrixBlock_ = true;
+    }
+    
     // set flag for registration
     registrationFinished_ = true;
   }
@@ -2248,6 +2310,7 @@ namespace CoupledField {
     MapCompleteFctIdToIndex( fctId, blockNums, indices);
     UInt size = blockNums.GetSize();
     ptSol.Resize(size);
+    ptSol.Init();
 
     if( ptSol.GetEntryType() == BaseMatrix::DOUBLE ) {
       Vector<Double> & retVec = dynamic_cast<Vector<Double>&>( ptSol );
@@ -2311,6 +2374,7 @@ namespace CoupledField {
     MapCompleteFctIdToIndex( fctId, blockNums, indices);
     UInt size = blockNums.GetSize();
     ptRhs.Resize(size);
+    ptRhs.Init();
 
     if( ptRhs.GetEntryType() == BaseMatrix::DOUBLE ) {
       Vector<Double> & retVec = dynamic_cast<Vector<Double>&>( ptRhs );

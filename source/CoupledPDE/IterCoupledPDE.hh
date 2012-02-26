@@ -50,14 +50,9 @@ namespace CoupledField
     //! Return pointer to the SolveStep object
     BaseSolveStep * GetSolveStep();
 
-    //! Solve static step
-    //void SolveStepStatic(const UInt kstep, const Double asteptime, 
-    //           const bool updatesysmat);
-  
-    //! solve transient step
-    //void SolveStepTrans(const UInt kstep, const Double asteptime,
-    //                  const bool updatesysmat);
-  
+    //! Update PDE due to updated step in multistep solution strategy
+    virtual void UpdateToSolStrategy();
+    
     //! write a restart file "simname_pdename.restart"
     void WriteRestart( );
 

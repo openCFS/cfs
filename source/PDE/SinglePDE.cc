@@ -2098,6 +2098,21 @@ namespace CoupledField {
       idBcs_[index]->phase = phase;
     }
   }
+  
+  void SinglePDE::UpdateToSolStrategy() {
+    
+    // this is hopefully a general way to update all information related
+    // to a step update in a multistep solution process
+    
+    // update all feFunctions 
+    std::map<SolutionType, shared_ptr<BaseFeFunction> >::iterator fncIt = 
+        feFunctions_.begin();
+    while(fncIt != feFunctions_.end()){
+      shared_ptr<FeSpace> actSpace = fncIt->second->GetFeSpace();
+      actSpace->UpdateToSolStrategy();
+      fncIt++;
+    }
+  }
 
 
   void SinglePDE::WriteRestart()

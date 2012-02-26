@@ -708,13 +708,13 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode )
       PtrParamNode potSpaceNode = infoNode->Get("magPotential");
       crSpaces[MAG_POTENTIAL] =
           FeSpace::CreateInstance(myParam_,potSpaceNode,FeSpace::H1);
-      crSpaces[MAG_POTENTIAL]->Init();
+      crSpaces[MAG_POTENTIAL]->Init(solStrat_);
       
       // 1) create space for electric scalar potential
       if( isMixed_ ) {
         crSpaces[ELEC_POTENTIAL] =
             FeSpace::CreateInstance(myParam_,potSpaceNode,FeSpace::H1);
-        crSpaces[ELEC_POTENTIAL]->Init();
+        crSpaces[ELEC_POTENTIAL]->Init(solStrat_);
       }
 
     }else{
