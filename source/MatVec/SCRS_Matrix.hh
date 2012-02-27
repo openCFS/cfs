@@ -310,6 +310,9 @@ namespace CoupledField {
     inline PatternIdType GetPatternId() const {
       return patternID_;
     }
+    
+    //! \copydoc BaseMatrix::GetMemoryUsage()
+    Double GetMemoryUsage() const;
 
     //@}
 

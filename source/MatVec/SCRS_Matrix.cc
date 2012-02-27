@@ -823,6 +823,24 @@ namespace CoupledField {
 
   }
 
+  // ******************
+   //   GetMemoryUsage
+   // ******************
+   template <typename T>
+   Double SCRS_Matrix<T>::GetMemoryUsage() const {
+     Double sum = 0.0;
+     
+     // check if pattern is shared
+     if( !patternPool_ ) {
+       sum += ( (this->nrows_ + 1)   // rowPtr
+           + this->numEntries_ )     // colInd
+           * sizeof(UInt);
+     }
+     sum += this->nnz_ * sizeof(T);  // data
+     
+     return sum;
+   }
+  
   // *****************************
   //   Set specific matrix entry
   // *****************************

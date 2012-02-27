@@ -622,6 +622,37 @@ namespace CoupledField {
     }
   }
 
+  // ******************
+  //   GetMemoryUsage
+  // ******************
+  Double SBM_Matrix::GetMemoryUsage() const {
+
+    StdMatrix *stdMat = NULL;
+    Double sum = 0.0;
+    
+    // distinguish symmetry case
+    if( amSymm_ ) {
+      for ( UInt i = 0; i < nrows_; i++ ) {
+        for ( UInt j = 0; i < ncols_; j++ ) {
+          stdMat = subMat_[ComputeIndex(i,j)];
+          if ( stdMat != NULL ) {
+            sum += stdMat->GetMemoryUsage();
+          }
+        }
+      }
+    } else {
+      // only upper-diagonal and diagonal
+      for ( UInt i = 0; i < nrows_; i++ ) {
+        for ( UInt j = i; i < ncols_; j++ ) {
+          stdMat = subMat_[ComputeIndex(i,j)];
+          if ( stdMat != NULL ) {
+            sum += stdMat->GetMemoryUsage();
+          }
+        }
+      }
+    }
+    return sum;
+  }
 
   // **************
   //   GetMaxDiag

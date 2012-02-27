@@ -869,6 +869,28 @@ namespace CoupledField {
     numBlocks = nBlocks_;
   }
   
+  template <typename T>
+  Double VBR_Matrix<T>::GetMemoryUsage() const {
+    
+    // sum up contributions
+    Double sum = 0;
+    
+    // indices
+    sum += ( (nbRows_ + 1) * 3 // bRow_, rowPtr_, diagBlockPtr
+           + (nbCols_ + 1)     // bCol_
+           + (nBlocks_ + 1)    // valPtr
+           + (nBlocks_) )       // colInd_
+           * sizeof(UInt);
+    if( this->ncols_ == this->nrows_ ) { 
+      sum += this->nrows_ * sizeof(UInt);
+    }
+    
+    // data array
+    sum += this->nNzEff_ * sizeof(T);
+    
+    return sum;
+  }
+  
   template<typename T>
    T* VBR_Matrix<T>::GetDiagBlock( UInt blockRow, UInt& size, UInt& rowStart ) {
    

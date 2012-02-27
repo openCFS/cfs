@@ -60,6 +60,8 @@ namespace CoupledField {
     virtual ~BasePrecond() {
     };
 
+    //! Does constructor stuff only possible after child constructors are called 
+    virtual void PostInit();
     
     //! A call of this method triggers the construction of the preconditioner.
 
@@ -100,6 +102,12 @@ namespace CoupledField {
     virtual PrecondType GetPrecondType() const {
       return NOPRECOND;
     }
+    
+    //! Return timer object for setup of preconditioner
+    shared_ptr<Timer> GetSetupTimer() { return setupTimer_; }
+    
+    //! Return timer object for application of preconditioner
+    shared_ptr<Timer> GetPrecondTimer() { return precondTimer_; }
 
   protected:
 
@@ -120,6 +128,11 @@ namespace CoupledField {
     //! to store general information about its performance or setup phase.
     PtrParamNode infoNode_;
 
+    //! Pointer to timer object for setup of preconditioner
+    shared_ptr<Timer> setupTimer_;
+    
+    //! Pointer to timer object for application of preconditioner
+    shared_ptr<Timer> precondTimer_;
   };
 
 

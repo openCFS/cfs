@@ -171,6 +171,10 @@ namespace CoupledField {
     inline BaseMatrix::StorageType GetStorageType() const {
       return BaseMatrix::DIAG;
     }
+    
+    //! \copydoc BaseMatrix::GetMemoryUsage()
+    Double GetMemoryUsage() const;
+    //@}
 
 
     // =======================================================================

@@ -318,6 +318,9 @@ namespace CoupledField {
     void SortConformingToLayout( const bool forced = true ) {
       ChangeLayout( LEX_DIAG_FIRST );
     }
+
+    //! \copydoc BaseMatrix::GetMemoryUsage()
+    Double GetMemoryUsage() const;
     //@}
 
 

@@ -138,6 +138,9 @@ namespace CoupledField {
       return LAPACK_GBMATRIX;
     }
 
+    //! \copydoc BaseMatrix::GetMemoryUsage()
+    Double GetMemoryUsage() const;
+
     //! Return the Entry type of the matrix
   
     //! The method returns the entry type of the matrix (i.e. Double, Complex,

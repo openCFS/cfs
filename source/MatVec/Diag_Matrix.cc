@@ -3,6 +3,7 @@
 
 
 #include "Diag_Matrix.hh"
+#include "Utils/Timer.hh"
 
 #include "opdefs.hh"
 
@@ -259,6 +260,14 @@ namespace CoupledField {
       delete [] ( data_ );  data_  = NULL;
       NEWARRAY( data_, T, this->nnz_ );
     }
+  }
+  
+  // ******************
+  //   GetMemoryUsage
+  // ******************
+  template <typename T>
+  Double Diag_Matrix<T>::GetMemoryUsage() const {
+    return this->nnz_ * sizeof(T);
   }
 
 // Explicit template instantiation

@@ -3,7 +3,7 @@
 #include "MatVec/opdefs.hh"
 #include "MatVec/generatematvec.hh"
 #include "OLAS/precond/BasePrecond.hh"
-
+#include "Utils/Timer.hh"
 #include "Utils/tools.hh"
 #include "General/Exception.hh"
 
@@ -340,7 +340,9 @@ namespace CoupledField {
       // ------------------------------------
 
       // Apply preconditioner to previous basis vector
+      ptPrecond_->GetPrecondTimer()->Start();
       ptPrecond_->Apply( sysMat, *(vMat_[i]), *pVec_ );
+      ptPrecond_->GetPrecondTimer()->Stop();
 
       // Candidate for next basis vector
       sysMat.Mult( *pVec_, *(vMat_[i+1]) );
@@ -425,7 +427,9 @@ namespace CoupledField {
     }
 
     // Apply preconditioner to update vector
+    ptPrecond_->GetPrecondTimer()->Start();
     ptPrecond_->Apply( sysMat, *(vMat_[1]), *pVec_ );
+    ptPrecond_->GetPrecondTimer()->Stop();
 
     // Update approximate solution (initial guess)
     sol.Add( *pVec_ );

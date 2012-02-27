@@ -178,6 +178,9 @@ namespace CoupledField {
     UInt GetNumOffDiagonalEntries() const {
       return numNonDiagBlockEntires_;
     }
+    
+    //! \copydoc BaseMatrix::GetMemoryUsage()
+    Double GetMemoryUsage() const;
     //@}
 
 

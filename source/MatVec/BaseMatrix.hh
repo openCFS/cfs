@@ -183,6 +183,10 @@ namespace CoupledField {
     //! MatrixEntryType.
     virtual BaseMatrix::EntryType GetEntryType() const = 0;
 
+    //! Return memory requirement in Bytes
+    
+    //! This method returns the memory size of the matrix in Bytes
+    virtual Double GetMemoryUsage() const = 0;
   };
 
   // Function for determining matrix/vector entry type (i.e. Integer, Double,

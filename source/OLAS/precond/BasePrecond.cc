@@ -4,6 +4,7 @@
 #include "MatVec/BaseVector.hh"
 #include "MatVec/SBM_Vector.hh"
 
+#include "Utils/Timer.hh"
 #include "BasePrecond.hh"
 
 namespace CoupledField {
@@ -50,19 +51,16 @@ namespace CoupledField {
       precondTypeTuples); 
 
 
-//  void BaseStdPrecond::Apply( const BaseMatrix &sysmat, const BaseVector &r, 
-//                           BaseVector &z ){
-//    const StdMatrix& stdsysmat = dynamic_cast<const StdMatrix&>(sysmat);
-//    const SingleVector& stdr = dynamic_cast<const SingleVector&>(r);
-//    SingleVector& stdz = dynamic_cast<SingleVector&>(z);
-//
-//    Apply(stdsysmat,stdr,stdz);
-//  }
-//  
-//  void BaseStdPrecond::Setup( BaseMatrix &sysMat, PtrParamNode analysis_id ) {
-//    Setup( dynamic_cast<StdMatrix&>(sysMat), analysis_id );
-//  }
 
+  
+  void BasePrecond::PostInit() {
+    PtrParamNode base = 
+        infoNode_ != NULL ? infoNode_ : info->Get("OLAS/legacyPrecond", ParamNode::APPEND);
+    setupTimer_ = boost::shared_ptr<Timer>(new Timer());
+    base->Get(ParamNode::SUMMARY)->Get("setup/timer")->SetValue( setupTimer_ );
+    precondTimer_ = boost::shared_ptr<Timer>(new Timer());
+    base->Get(ParamNode::SUMMARY)->Get("precond/timer")->SetValue( precondTimer_ );
+  }
   
   void BasePrecond::GetPrecondSysMat( BaseMatrix& sysMat ) {
     WARN("Using fall-back default export for preconditioner matrix");

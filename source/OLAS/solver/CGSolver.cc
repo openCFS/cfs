@@ -8,6 +8,7 @@
 #include "OLAS/precond/BasePrecond.hh"
 #include "OLAS/solver/CGSolver.hh"
 
+#include "Utils/Timer.hh"
 namespace CoupledField {
 
 
@@ -196,7 +197,9 @@ namespace CoupledField {
       }
 
       // Compute s = M^-1*r by applying preconditioner
+      ptPrecond_->GetPrecondTimer()->Start();
       ptPrecond_->Apply( sysmat, *r_, *s_ );
+      ptPrecond_->GetPrecondTimer()->Stop();
 
       // Save old delta and compute new one
       delta_old = delta_new;

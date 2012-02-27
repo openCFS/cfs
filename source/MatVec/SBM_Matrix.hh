@@ -233,6 +233,9 @@ namespace CoupledField {
     BaseMatrix::EntryType GetEntryType() const {
       return myEntryType_;
     }
+    
+    //! \copydoc BaseMatrix::GetMemoryUsage()
+    Double GetMemoryUsage() const;
 
     //! Return symmetry flag of matrix object
 

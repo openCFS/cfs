@@ -208,6 +208,7 @@ namespace CoupledField {
   
    void BaseSolver::Apply(const BaseMatrix& sysmat, const BaseVector& r, 
                           BaseVector& z) {
+     
      this->Solve(sysmat, r, z, infoNode_);
    }
    

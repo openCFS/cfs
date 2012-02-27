@@ -4,6 +4,14 @@
 #include <set>
 #include <algorithm>
 
+// use boost accumulators to gather usage statistics of the graph
+#include <boost/accumulators/accumulators.hpp>
+#include <boost/accumulators/statistics/stats.hpp>
+#include <boost/accumulators/statistics/mean.hpp>
+#include <boost/accumulators/statistics/sum.hpp>
+#include <boost/accumulators/statistics/moment.hpp>
+using namespace boost::accumulators;
+
 #include <def_use_metis.hh>
 
 #ifdef USE_METIS
@@ -92,6 +100,7 @@ namespace CoupledField {
   BaseGraph::~BaseGraph() {
 
 
+    std::cerr << "Deleting BaseGraph .....\n";
     delete [] ( csNodes_ );  csNodes_  = NULL;
     delete [] ( csEdges_ );  csEdges_  = NULL;
 
@@ -395,17 +404,49 @@ namespace CoupledField {
   // **************
   void BaseGraph::SortLists() {
 
-
+#ifndef NDEBUG
+    UInt totalSize = 0;     // number of entries, including doubles
+    UInt totalCapacity = 0; // total capacity 
+    accumulator_set<Double, stats<tag::mean, tag::moment<2>, tag::sum > > size;
+    accumulator_set<Double, stats<tag::mean, tag::moment<2>, tag::sum > > finalSize;
+    accumulator_set<Double, stats<tag::mean, tag::moment<2> ,tag::sum> > doublets;
+#endif
     // Sort lists and remove duplicate entries 
     for ( UInt i = 0; i < numNodes_; i++ ) {
-      std::sort( element_[i].begin(), element_[i].end() );
+      // collect information
 
+#ifndef NDEBUG
+      totalSize += element_[i].size();
+      totalCapacity += element_[i].capacity();
+      size(element_[i].size());
+#endif
+      std::sort( element_[i].begin(), element_[i].end() );
+      
       NodeList::iterator new_end = std::unique( element_[i].begin(), 
 						element_[i].end() );
       NodeList temp( element_[i].begin(), new_end );
+#ifndef NDEBUG      
+      doublets(element_[i].size() - temp.size());
+      finalSize(temp.size());
+#endif      
       element_[i] = temp;
     }
 
+    
+    // print out usage information
+//    std::cerr << "BaseGraph statistics:\n"
+//               << "====================\n";
+//    std::cerr << "\ttotal number of entries (unsorted): " << totalSize << std::endl;
+//    std::cerr << "\ttotal capacity: " << totalCapacity << std::endl;
+//    std::cerr << "\ttotal number of entries (sorted): "
+//              << sum(finalSize) << " (= " << 
+//              double(sum(finalSize) / totalSize*100) << "% )\n";
+//    std::cerr << "\tnumber of doublets: " << sum(doublets) << " (avg: " 
+//              <<  boost::accumulators::mean(doublets) << ")\n";
+//    std::cerr << "\taverage row size: " << mean(size) << "\n";
+//    std::cerr << "\tmemory over-estimation: " 
+//        << double(totalCapacity/sum(finalSize)*100) << " %\n";
+    
   }
 
 

@@ -252,6 +252,14 @@ namespace CoupledField {
     CC2F77( v, val );
     data_[Index(i,j)] += val;
   }
+  
+  // ******************
+  //   GetMemoryUsage
+  // ******************
+  template <class entryF, class entryC>
+  Double LapackGBMatrix<entryF,entryC>::GetMemoryUsage() const {
+    return length_ * sizeof(entryF);
+  }
 
 
   // *************************

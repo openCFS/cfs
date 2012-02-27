@@ -1202,6 +1202,21 @@ namespace CoupledField {
 
 
   // ******************
+  //   GetMemoryUsage
+  // ******************
+  template <typename T>
+  Double CRS_Matrix<T>::GetMemoryUsage() const {
+    
+    Double sum = 0.0;
+    sum += ( (this->nrows_ + 1) // rowPtr
+           + this->nrows_       // diagPtr
+           + this->nnz_ )       // colInd
+           * sizeof(UInt);
+    sum += this->nnz_ * sizeof(T); // data
+    return sum;
+  }
+  
+  // ******************
   //   Re-size matrix
   // ******************
   template<typename T>

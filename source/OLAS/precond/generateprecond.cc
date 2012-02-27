@@ -419,6 +419,10 @@ LOG_DBG(genPrecond) << " GenerateStdPrecondObject: Generated "\
       EXCEPTION( "Something's broke. No preconditioner was generated!" );
     }
 
+
+    // Call post-initialization method
+    retVal->BasePrecond::PostInit();
+    
     // Finished
     return retVal;
   }
@@ -467,7 +471,7 @@ LOG_DBG(genPrecond) << " GenerateStdPrecondObject: Generated "\
     ptype = BasePrecond::precondType.Parse(precondStr);
 
     // Branch depending on desired preconditioner
-    PtrParamNode infoNode;
+    PtrParamNode infoNode, blockInfoNode;
     SBMDiagPrecond * dp = NULL;
     
     switch( ptype ) {
@@ -486,7 +490,7 @@ LOG_DBG(genPrecond) << " GenerateStdPrecondObject: Generated "\
      break;
       
       // ============================
-      //   Cholmod Preconditioner
+      //   SBM-Diag Preconditioner
       // ============================ 
     case BasePrecond::SBM_DIAG:
       dp = new SBMDiagPrecond(numBlocks, olasInfo);
@@ -495,6 +499,9 @@ LOG_DBG(genPrecond) << " GenerateStdPrecondObject: Generated "\
       // Loop over all blocks and assign to each diagonal block a StdPrecond object 
       for( UInt i = 0; i < numBlocks; ++i ) {
 
+        blockInfoNode = infoNode->Get("block",ParamNode::APPEND);
+        blockInfoNode->Get("num")->SetValue(i+1);
+        
         // get hold of preconditioner subnode for given block
         PtrParamNode actNode = 
             precondNode->GetByVal( "precond", "block", 
@@ -507,7 +514,7 @@ LOG_DBG(genPrecond) << " GenerateStdPrecondObject: Generated "\
         // generate preconditioner object
         BasePrecond * actPrecond = 
             GenerateStdPrecondObject( mat(i,i), precondId, precondList,
-                                      infoNode );
+                                      blockInfoNode );
 
         // pass precond object to sbm-preconditioner
         dp->SetPrecond(i, actPrecond );
@@ -526,6 +533,9 @@ LOG_DBG(genPrecond) << " GenerateStdPrecondObject: Generated "\
       EXCEPTION( "Something's broke. No preconditioner was generated!" );
     }
 
+    // Call post-initialization method
+    retVal->PostInit();
+    
     // Finished
     return retVal;
 

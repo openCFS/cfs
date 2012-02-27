@@ -402,6 +402,9 @@ namespace CoupledField {
           "AlgebraicSys::CreateLinSys() first!" );
     }
     
+    // start setup timer of preconditioner
+    precond_->GetSetupTimer()->Start();
+    
     // if we have just one SBM matrix block, use directly
     // the specialized methods for StdMatrices
     if( onlyOneMatrixBlock_ ) {
@@ -409,6 +412,9 @@ namespace CoupledField {
     } else {
       precond_->Setup( *(effMat_), analysis_id);
     }
+    
+    // stop setup timer of preconditioner
+    precond_->GetSetupTimer()->Stop();
 
   }
 
@@ -2781,6 +2787,7 @@ namespace CoupledField {
     // Print overview of defined matrices
     setupNode->SetComment("List of defined matrices");
     PtrParamNode matrixListNode = setupNode->Get("matrices");
+    matrixListNode->SetComment("Memory is in MByte");
     
     // Loop over all FeMatrixTypes
     std::map<FEMatrixType, SubMatrixSet>::iterator feMatIt
@@ -2790,11 +2797,13 @@ namespace CoupledField {
       // generate <STIFFNES> .. node
       PtrParamNode matTypeNode = 
           matrixListNode->Get(feMatrixType.ToString(feMatIt->first));
+      
       SubMatrixSet & smSet = feMatIt->second;
       
       UInt totalNumRows, totalNumCols, totalNumNonZeros;
       totalNumRows = totalNumCols = totalNumNonZeros = 0;
       Double totalFillLevelPerCent = 0.0;
+      Double totalMemory = 0.0;
       // Loop overall matrix blocks
       SubMatrixSet::iterator smIt = smSet.begin();
       for( ; smIt != smSet.end(); ++smIt ) {
@@ -2810,6 +2819,7 @@ namespace CoupledField {
           continue;
 
         PtrParamNode mNode = matTypeNode->Get("matrix",ParamNode::APPEND);
+        
 
         mNode->Get("blockRow")->SetValue(smId.rowInd);
         mNode->Get("blockCol")->SetValue(smId.colInd);
@@ -2824,7 +2834,9 @@ namespace CoupledField {
             (Double(stdMat->GetNumRows()) * Double(stdMat->GetNumCols()) ); 
         mNode->Get("fillLevelPerCent")->SetValue(fillLevel);
         
-        
+        Double actMemory = stdMat->GetMemoryUsage();
+        mNode->Get("memory")->SetValue( actMemory/1024./1024. );
+        totalMemory += actMemory;
         // get reordering strategy from solution strategy object
         
         
@@ -2886,6 +2898,7 @@ namespace CoupledField {
       matTypeNode->Get("totalNumCols")->SetValue(totalNumCols);
       matTypeNode->Get("totalNumNonZeros")->SetValue(totalNumNonZeros);
       matTypeNode->Get("totalFillLevelPerCent")->SetValue(totalFillLevelPerCent);
+      matTypeNode->Get("totalMemory")->SetValue(totalMemory/1024./1024.);
     } // feMatrixType
   }
 
