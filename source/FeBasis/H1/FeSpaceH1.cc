@@ -265,7 +265,7 @@ namespace CoupledField {
     shared_ptr<ResultInfo> feFctResult;
     StdVector< shared_ptr<EntityList> > fctEntList;
     StdVector< shared_ptr<EntityList> >::iterator entIt;
-    std::map< Integer , StdVector<BcType> >::iterator bcIt;
+    boost::unordered_map< Integer , StdVector<BcType> >::iterator bcIt;
     UInt actNode = 0;
 
     switch(phase){
@@ -418,7 +418,7 @@ namespace CoupledField {
 
       // Loop over all elements
       Grid * grid = domain->GetGrid();
-      std::map< UInt, ElemVirtualNodes >::iterator elemIt = virtualNodes_.begin();
+      boost::unordered_map< UInt, ElemVirtualNodes >::iterator elemIt = virtualNodes_.begin();
       for( ; elemIt != virtualNodes_.end(); ++elemIt ) {
 
         const UInt elemNum = elemIt->first;
@@ -494,7 +494,7 @@ namespace CoupledField {
     
     // iterate over all elements
     Grid* ptGrid = feFunction_->GetGrid();
-    std::map< UInt, ElemVirtualNodes >::iterator elemIt;
+    boost::unordered_map< UInt, ElemVirtualNodes >::iterator elemIt;
     
     for( elemIt = virtualNodes_.begin(); 
         elemIt != virtualNodes_.end(); elemIt++ ) {
@@ -644,8 +644,8 @@ namespace CoupledField {
     // ---------------
     //  NODES
     // ---------------
-    std::map< Integer , StdVector<Integer> >::iterator nodeIt = nodeMap_.eqns.begin();
-    std::map< Integer , StdVector<BcType> >::iterator nodeBcIt;
+    boost::unordered_map< Integer , StdVector<Integer> >::const_iterator nodeIt = nodeMap_.eqns.begin();
+    boost::unordered_map< Integer , StdVector<BcType> >::iterator nodeBcIt;
 
     std::cout << "EQUATION MAPPING" << std::endl << std::endl;
     std::cout << "nodeNr \t|"  << " type  | " <<  std::setw (7)
@@ -669,7 +669,7 @@ namespace CoupledField {
         // component 
         std::cout << "\t|" << std::setw (8) << feFctResult->dofNames[iDof];
         // eqn number
-        Integer & eqn = nodeIt->second[iDof];
+        const Integer & eqn = nodeIt->second[iDof];
         std::cout << "|\t" << eqn;
 
 

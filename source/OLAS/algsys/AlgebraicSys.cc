@@ -94,6 +94,9 @@ namespace CoupledField {
     else {
       assembleDirichletToSysMat_ = false;
     }
+    
+    // create timer object
+    graphTimer_ = boost::shared_ptr<Timer>(new Timer());
   }
 
 
@@ -791,6 +794,9 @@ namespace CoupledField {
     LOG_DBG(algSys) << "Use distinct graphs:" << useDistinctGraphs << std::endl;
     
     
+    // start timer for graph setup
+    graphTimer_->Start();
+    
     distinctMatGraphs_ = useDistinctGraphs;
     
     // feFunction specific data
@@ -1020,8 +1026,8 @@ namespace CoupledField {
       // loop over all functions Ids
       for( UInt iFct = 0; iFct < bi.eqnToIndex.GetSize(); ++iFct ) {
         FeFctIdType fctId = iFct;
-        std::map<UInt, UInt> & eqnToIndex = bi.eqnToIndex[iFct];
-        std::map<UInt, UInt>::iterator eqnToIndexIt = eqnToIndex.begin(); 
+        boost::unordered_map<UInt, UInt> & eqnToIndex = bi.eqnToIndex[iFct];
+        boost::unordered_map<UInt, UInt>::iterator eqnToIndexIt = eqnToIndex.begin(); 
         for( ; eqnToIndexIt != eqnToIndex.end(); ++eqnToIndexIt ) {
           UInt eqnNr = eqnToIndexIt->first;
           UInt index = eqnToIndexIt->second;
@@ -1333,8 +1339,8 @@ namespace CoupledField {
 
       // Loop over all functions
       for( UInt iFct = 0; iFct < numFcts; ++iFct ) {
-        std::map<UInt, UInt> & eqnToIndex = bi.eqnToIndex[iFct];
-        std::map<UInt, UInt>::iterator it = eqnToIndex.begin();
+        boost::unordered_map<UInt, UInt> & eqnToIndex = bi.eqnToIndex[iFct];
+        boost::unordered_map<UInt, UInt>::iterator it = eqnToIndex.begin();
 
         // Here we have to distinguish two cases:
         // a) PENALTY: We have to reorder all equations, as also the IDBC
@@ -1357,6 +1363,9 @@ namespace CoupledField {
         } // if clause
       } // loop functions
     } // loop blocks
+    
+    // stop timer for graph setup
+    graphTimer_->Stop();
   }
 
 
@@ -1534,9 +1543,9 @@ namespace CoupledField {
       
       // loop over all blocks
       for( UInt iBlock = 0; iBlock < numBlocks_; ++iBlock ) {
-        const std::map<UInt, UInt> & eqnToIndexSet = 
+        const boost::unordered_map<UInt, UInt> & eqnToIndexSet = 
             blockInfo_[iBlock]->eqnToIndex[actFctId];
-        std::map<UInt, UInt>::const_iterator eqnIt = eqnToIndexSet.begin();
+        boost::unordered_map<UInt, UInt>::const_iterator eqnIt = eqnToIndexSet.begin();
         // loop over equations
         for( ; eqnIt != eqnToIndexSet.end(); ++eqnIt ) {
           indices[eqnIt->first-1] = eqnIt->second;
@@ -1597,9 +1606,9 @@ namespace CoupledField {
 
       // loop over all blocks
       for( UInt iBlock = 0; iBlock < numBlocks_; ++iBlock ) {
-        const std::map<UInt, UInt> & eqnToIndexSet = 
+        const boost::unordered_map<UInt, UInt> & eqnToIndexSet = 
             blockInfo_[iBlock]->eqnToIndex[actFctId];
-        std::map<UInt, UInt>::const_iterator eqnIt = eqnToIndexSet.begin();
+        boost::unordered_map<UInt, UInt>::const_iterator eqnIt = eqnToIndexSet.begin();
         // loop over equations
         for( ; eqnIt != eqnToIndexSet.end(); ++eqnIt ) {
           const UInt index = eqnIt->second;
@@ -2783,7 +2792,10 @@ namespace CoupledField {
     LOG_TRACE(algSys) << "Print matrix information";
     
     PtrParamNode setupNode = myInfo_->Get("setup");
-
+    
+    // add timer
+    setupNode->Get("setupTime")->SetValue(graphTimer_);
+    
     // Print overview of defined matrices
     setupNode->SetComment("List of defined matrices");
     PtrParamNode matrixListNode = setupNode->Get("matrices");

@@ -2,6 +2,7 @@
 #define FILE_CFS_FESPACEH1_HH
 
 #include "FeBasis/FeSpace.hh"
+#include <boost/unordered_map.hpp>
 
 ///////////////////////////////////////////////////////////////////
 // H1 - Space 
@@ -41,40 +42,23 @@ public:
   //!   <li>Constraint</li>
   //! </ul>
   struct SingleEqnMap{
-    std::map<Integer, StdVector<Integer> > eqns;
-    std::map< Integer,StdVector<BcType> > BcKeys;
-    
-    //! Offset for every 
-    //special treatment of constraints we store for every
-    //slave node, DOF pair the master node,Dof pair
-    //this is very circuitous we need to find an easier way 
-    std::map<std::pair<Integer,Integer>, std::pair<Integer,Integer>  > constraintNodes;
-    
-    StdVector<Integer>& operator[](Integer key){
-      return eqns[key];
-    }
-  };
 
-  //! struct for the single equationMap i.e. Edge,Face etc Eqns
-  //! for the BC map we code the following
-  //! <ul> 
-  //!   <li>No BC</li>
-  //!   <li>HomDirichlet</li>
-  //!   <li>InHomDirichlet</li>
-  //!   <li>Contrain</li>
-  //! </ul>
-  struct MultiEqnMap{
+    //! Map for every node (key to map) its equations (values)
+    boost::unordered_map<Integer, StdVector<Integer> > eqns;
     
-    //! The matrix is arranged as (components/dofs x numFncs)
-    std::map< Integer, Matrix<Integer> > eqns;
+    //! Map for every node (key to map) its boundary conditions types
+    boost::unordered_map< Integer,StdVector<BcType> > BcKeys;
     
-    //! The first vector adresses the components, the inner one the number of functions
-    std::map< Integer, StdVector< StdVector<BcType> > > BcKeys;
-    //special treatment of constraints we store for every
-    //slave DOF the master Dof
-    std::map< Integer,  Integer> slaveMasterEqns;
     
-    Matrix<Integer>& operator[](Integer key){
+    //! Map for storing constraint information
+    
+    //! Special treatment of constraints:  we store for every slave 
+    //! (node, dof)-pair the master (node, dof)-pair
+    std::map< std::pair<Integer,Integer>, 
+              std::pair<Integer,Integer>  > constraintNodes;
+    
+    //! Convenience operator for accessing the equations of a (virtual) node
+    StdVector<Integer>& operator[](Integer key){
       return eqns[key];
     }
   };

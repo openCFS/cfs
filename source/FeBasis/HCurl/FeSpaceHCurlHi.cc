@@ -262,12 +262,13 @@ namespace CoupledField{
     MapNodalBCs();
     MapNodalEqns(1);
     MapNodalEqns(2);
-
-//    // Just for debugging purpose
-//    PrintEqnMap();
-
     
-    // Print information to .info.xml
+    // print additional information about "loading" of hash table
+//    std::cerr << "Load of hash table is " << nodeMap_.eqns.load_factor() << std::endl;
+//    std::cerr << "Maximum load factor is " << nodeMap_.eqns.max_load_factor() << std::endl;
+//    std::cerr << "Maximum size is  " << nodeMap_.eqns.max_size() << std::endl;
+//    std::cerr << "Actual size is  " << nodeMap_.eqns.size() << std::endl;
+//    exit(1);
     
     isFinalized_ = true;
   }
@@ -733,7 +734,7 @@ namespace CoupledField{
     
     // Loop over all elements
     Grid * grid = domain->GetGrid();
-    std::map< UInt, ElemVirtualNodes >::iterator elemIt = virtualNodes_.begin();
+    boost::unordered_map< UInt, ElemVirtualNodes >::iterator elemIt = virtualNodes_.begin();
     for( ; elemIt != virtualNodes_.end(); ++elemIt ) {
       const UInt elemNum = elemIt->first;
       const Elem * elem = grid->GetElem(elemNum);

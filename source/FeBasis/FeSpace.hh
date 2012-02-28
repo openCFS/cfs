@@ -14,6 +14,7 @@
 #include "MatVec/Matrix.hh"
 #include "Forms/IntScheme.hh"
 #include "OLAS/algsys/AlgebraicSys.hh"
+#include <boost/unordered_map.hpp>
 
 namespace CoupledField {
 
@@ -455,14 +456,14 @@ protected:
   StdVector<UInt> nodes_;
   
   //! Map for every node the type geometric entitytype it belongs to (V/E/F/I)
-  std::map<UInt, BaseFE::EntityType> nodesType_;
+  boost::unordered_map<UInt, BaseFE::EntityType> nodesType_;
 
   //! This is the virtual node Map for standard element it just contains
   //! the connectivity of the element, for higher order elements it contains also 
   //! the virtual node numbers in the correct ordering
   //! This Variable could be extended to store also the coordinates of all nodes
   //! created
-  std::map< UInt, ElemVirtualNodes > virtualNodes_;
+  boost::unordered_map< UInt, ElemVirtualNodes > virtualNodes_;
 
   // =========================================================
   // READ USER INPUT

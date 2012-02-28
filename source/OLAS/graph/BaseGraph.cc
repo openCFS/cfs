@@ -122,10 +122,15 @@ namespace CoupledField {
     UInt i, j;
     for ( i = 0; i < vertexList.size(); i++ ) {
       for ( j = 0; j < neighbourList.size(); j++ ) {
-        // Insert edge in any case
+        
+        // Insert edge only if not inserted yet
+        if( std::find(element_[ vertexList[i] ].begin(),
+                      element_[ vertexList[i] ].end(), neighbourList[j] ) 
+        == element_[ vertexList[i] ].end() ) {
         element_[ vertexList[i] ].push_back( neighbourList[j] );
       }
     }
+  }
   }
 
   // ****************
@@ -408,28 +413,17 @@ namespace CoupledField {
     UInt totalSize = 0;     // number of entries, including doubles
     UInt totalCapacity = 0; // total capacity 
     accumulator_set<Double, stats<tag::mean, tag::moment<2>, tag::sum > > size;
-    accumulator_set<Double, stats<tag::mean, tag::moment<2>, tag::sum > > finalSize;
-    accumulator_set<Double, stats<tag::mean, tag::moment<2> ,tag::sum> > doublets;
 #endif
     // Sort lists and remove duplicate entries 
     for ( UInt i = 0; i < numNodes_; i++ ) {
-      // collect information
 
+      // collect information
 #ifndef NDEBUG
       totalSize += element_[i].size();
       totalCapacity += element_[i].capacity();
       size(element_[i].size());
 #endif
       std::sort( element_[i].begin(), element_[i].end() );
-      
-      NodeList::iterator new_end = std::unique( element_[i].begin(), 
-						element_[i].end() );
-      NodeList temp( element_[i].begin(), new_end );
-#ifndef NDEBUG      
-      doublets(element_[i].size() - temp.size());
-      finalSize(temp.size());
-#endif      
-      element_[i] = temp;
     }
 
     
@@ -438,14 +432,10 @@ namespace CoupledField {
 //               << "====================\n";
 //    std::cerr << "\ttotal number of entries (unsorted): " << totalSize << std::endl;
 //    std::cerr << "\ttotal capacity: " << totalCapacity << std::endl;
-//    std::cerr << "\ttotal number of entries (sorted): "
-//              << sum(finalSize) << " (= " << 
-//              double(sum(finalSize) / totalSize*100) << "% )\n";
-//    std::cerr << "\tnumber of doublets: " << sum(doublets) << " (avg: " 
-//              <<  boost::accumulators::mean(doublets) << ")\n";
-//    std::cerr << "\taverage row size: " << mean(size) << "\n";
 //    std::cerr << "\tmemory over-estimation: " 
-//        << double(totalCapacity/sum(finalSize)*100) << " %\n";
+//            << double(totalCapacity/totalSize*100) << " %\n";
+//    std::cerr << "\taverage row size: " << mean(size) << "\n";
+    
     
   }
 

@@ -196,7 +196,7 @@ namespace CoupledField{
 
         // iterate over all elements
         Grid* ptGrid = feFunction_->GetGrid();
-        std::map< UInt, ElemVirtualNodes >::iterator elemIt;
+        boost::unordered_map< UInt, ElemVirtualNodes >::iterator elemIt;
 
         for( elemIt = virtualNodes_.begin();
             elemIt != virtualNodes_.end(); elemIt++ ) {
@@ -346,8 +346,8 @@ namespace CoupledField{
         // ---------------
         //  NODES
         // ---------------
-        std::map< Integer , StdVector<Integer> >::iterator nodeIt = nodeMap_.eqns.begin();
-        std::map< Integer , StdVector<BcType> >::iterator nodeBcIt;
+        boost::unordered_map< Integer , StdVector<Integer> >::iterator nodeIt = nodeMap_.eqns.begin();
+        boost::unordered_map< Integer , StdVector<BcType> >::iterator nodeBcIt;
 
         std::cout << "EQUATION MAPPING" << std::endl << std::endl;
         std::cout << "nodeNr \t|"  << " type  | " <<  std::setw (7)
