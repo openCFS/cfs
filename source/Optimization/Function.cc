@@ -93,16 +93,16 @@ Function::Function(PtrParamNode pn)
     maxwellTensor_.SetPart(Global::IMAG, maxwellTensor_.GetPart(Global::IMAG).EntryMult(GetSelectionTensor().GetPart(Global::IMAG)));
   }
 
-  if(type_ == MAXWELL_HOMOGENIZATION_TRACKING && !maxwell_tensor_ok)
+  if(type_ == MAXWELL_HOM_TRACKING && !maxwell_tensor_ok)
     EXCEPTION("A 'maxwellTensor' element is mandatory  for 'maxwellHomTracking'");
 
-  if(type_ == MAXWELL_HOM_TENSOR || type_ == MAXWELL_HOMOGENIZATION_TRACKING)
+  if(type_ == MAXWELL_HOM_TENSOR || type_ == MAXWELL_HOM_TRACKING)
   {
     // we must not give a value when there is a tensor
 //    if(type_ == MAXWELL_HOM_TENSOR && pn->Has("maxwellTensor") && pn->Has("value"))
 //      throw Exception("a value must not be given when a tensor is used in a homogenization constraint");
 
-    if(type_ == MAXWELL_HOMOGENIZATION_TRACKING && (!pn->Has("maxwellTensor") && !pn->Has("isotropic")))
+    if(type_ == MAXWELL_HOM_TRACKING && (!pn->Has("maxwellTensor") && !pn->Has("isotropic")))
       throw Exception("a 'maxwellTensor' is mandatory for homogenization tracking");
   }
 
@@ -386,7 +386,7 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
     case HOM_TENSOR:
     case MAXWELL_HOM_TENSOR:
     case HOM_TRACKING:
-    case MAXWELL_HOMOGENIZATION_TRACKING:
+    case MAXWELL_HOM_TRACKING:
     case HOM_FROBENIUS_PRODUCT:
     case BITENSOR:
     case POISSONS_RATIO:
@@ -536,7 +536,7 @@ bool Function::IsMaxwellHomogenization() const
   switch(type_)
   {
     case MAXWELL_HOM_TENSOR:
-    case MAXWELL_HOMOGENIZATION_TRACKING:
+    case MAXWELL_HOM_TRACKING:
     case BITENSOR:
     case MAXWELL_ISOTROPY:
     case BIISOTROPY:
@@ -582,7 +582,7 @@ bool Function::ForSensitivityFiltering() const
   case HOM_TENSOR:
   case MAXWELL_HOM_TENSOR:
   case HOM_TRACKING:
-  case MAXWELL_HOMOGENIZATION_TRACKING:
+  case MAXWELL_HOM_TRACKING:
   case HOM_FROBENIUS_PRODUCT:
   case BITENSOR:
   case POISSONS_RATIO:

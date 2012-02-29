@@ -266,7 +266,7 @@ void Optimization::SetEnums()
   Function::type.Add(Function::MAXWELL_HOM_TENSOR, "maxwellHomTensor");
   Function::type.Add(Function::HOM_TRACKING, "homTracking");
   Function::type.Add(Function::HOM_FROBENIUS_PRODUCT, "homFrobeniusProduct");
-  Function::type.Add(Function::MAXWELL_HOMOGENIZATION_TRACKING, "maxwellHomTracking");
+  Function::type.Add(Function::MAXWELL_HOM_TRACKING, "maxwellHomTracking");
   Function::type.Add(Function::BITENSOR, "bitensor");
   Function::type.Add(Function::POISSONS_RATIO, "poissonsRatio");
   Function::type.Add(Function::YOUNGS_MODULUS, "youngsModulus");

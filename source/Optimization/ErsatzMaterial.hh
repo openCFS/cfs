@@ -170,7 +170,7 @@ public:
   Matrix<double> homogenizedTensor;
 
   /** This is the current homogenized tensor.
-   * Evaluated by MAXWELL_HOMOGENIZATION_TRACKING and MAXWELL_HOMOGENIZED_TENSOR (as objective only).
+   * Evaluated by MAXWELL_HOM_TRACKING and MAXWELL_HOM_TENSOR (as objective only).
    * ElecPDE reads it when "maxwellHomogenizedTensor" is a region result! */
   Matrix<Complex> maxwellHomogenizedTensor;
   
@@ -629,10 +629,7 @@ protected:
   /** Convenience class for writing the pseudo density file*/
   DensityFile* densityFile;
 
-  /** do we perform maxwell homogenization induced by any of the objective or constraints? */
-  bool maxwellHomogenization_;
-
-  /** do we perform phase velocity optimization? */
+  /** do we perform homogenization for both permittivity and permeability? */
   bool bitensor_;
 
 private:

@@ -82,7 +82,7 @@ class Function
       HOM_TRACKING,              /*!< match a given tensor by L2 norm  */
       HOM_FROBENIUS_PRODUCT,     /*!< The Frobenius inner product for a given tensor sum_ij E^H_ij*D_ij. From Michael. The idea is
                                       maximize the inner mech energy <S, E^H S> for strains from a macro-problem. D = S*S^T */
-      MAXWELL_HOMOGENIZATION_TRACKING,   /*!< match a given tensor by Frobenius norm  */
+      MAXWELL_HOM_TRACKING,      /*!< match a given tensor by Frobenius norm. If a selectionTensor is given too this is |selecTens.*(E^*-E^H)|_(Frob) */
       BITENSOR,                  /*!< compute both homogenized permittivity and permeability */
       POISSONS_RATIO,            /*!< Poisson's Ration (\nu) within homogenization */
       YOUNGS_MODULUS,            /*!< Young's Modulus (E) within homogenization */
@@ -523,10 +523,10 @@ class Function
     /** for HOM_TRACKING this is the target tensor. For HOM_FROBENIUS_PRODUCT this is the parameter */
     Matrix<double> tensor_;
 
-    /** for MAXWELL_HOMOGENIZATION_TRACKING this is the target tensor. */
+    /** for MAXWELL_HOM_TRACKING this is the target tensor. */
     Matrix<Complex> maxwellTensor_;
 
-    /** entry selection for MAXWELL_HOMOGENIZATION_TRACKING */
+    /** entry selection for MAXWELL_HOM_TRACKING */
     Matrix<Complex> selectionTensor_;
 
     bool HasSelectionTensor_;

@@ -1156,7 +1156,7 @@ double ErsatzMaterial::CalcFunction(Excitation& excite, Function* f, bool deriva
       return f->GetTensor().FrobeniusProduct(CalcHomogenizedTensor());
     break;
 
-  case Function::MAXWELL_HOMOGENIZATION_TRACKING: {
+  case Function::MAXWELL_HOM_TRACKING: {
 
     Matrix<Complex> maxwellHomogenizedTensor_tmp;
     if (IsHarmonic())
