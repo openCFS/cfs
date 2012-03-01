@@ -93,7 +93,7 @@ namespace CoupledField {
         StdVector<UInt> & myEqns = dirichletEqns_[i];
         UInt numIDBC = myEqns.GetSize();
         for( UInt j = 0; j < numIDBC; ++j ) {
-          stdMat->SetDiagEntry( myEqns[j]-1, penaltyTerm_ );  
+          stdMat->SetDiagEntry( myEqns[j]-1, T(penaltyTerm_) );  
         }
       }
     }

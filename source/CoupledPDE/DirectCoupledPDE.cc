@@ -230,6 +230,7 @@ namespace CoupledField {
     for (UInt i=0; i<singlePDEs_.GetSize(); i++) {
       singlePDEs_[i]->algsys_ = algsys_;
       singlePDEs_[i]->assemble_ = assemble_;
+      singlePDEs_[i]->solStrat_ = solStrat_;
       
       // Initialize all SinglePDEs
       singlePDEs_[i]->Init( sequenceStep, infoNode_);

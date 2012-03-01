@@ -1102,8 +1102,8 @@ namespace CoupledField {
     // Where should we get the matrix factors from in a harmonic case?
     // In my opinion this method
     //if( assemble_->IsMatrixUpdated() ) {
-    //  algsys_->ConstructEffectiveMatrix(NO_FCT_ID,  matrix_factor_[NO_FCT_ID] );
-    //}
+    std::map<FEMatrixType,Double> empty;
+    algsys_->ConstructEffectiveMatrix(NO_FCT_ID,  empty );
 
     algsys_->BuildInDirichlet();
 
