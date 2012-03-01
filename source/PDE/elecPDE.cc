@@ -539,9 +539,6 @@ class Hysteresis;
   void ElecPDE::ReadSpecialBCs( ) 
   {
      ReadImpedances();
-
-     // read maxwell homogenization volume charge definition
-     ReadRegionCharges();
   }
   
   

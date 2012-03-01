@@ -80,7 +80,6 @@
                 <xsd:element name="load" type="DT_ElecLoad"/>
                 <xsd:element name="impedance" type="DT_ElecImpedance"/>
                 <xsd:element name="periodic"       type="DT_ElecPeriodic"   />
-                <xsd:element name="maxwellHomCharges" type="DT_MaxwellHomCharges"/>
               </xsd:choice>
             </xsd:complexType>
           </xsd:element>
@@ -222,34 +221,6 @@
         <xsd:attribute name="resistance" type="xsd:double" use="optional" default="0.0"/>
         <xsd:attribute name="inductance" type="xsd:double" use="optional" default="0.0"/>
         <xsd:attribute name="capacitance" type="xsd:double" use="optional" default="0.0"/>
-      </xsd:extension>
-    </xsd:complexContent>
-  </xsd:complexType>
-  
-  
-  <!-- Element type for maxwell homogenization -->
-  <!-- We derive it by extending the base type -->
-  <xsd:complexType name="DT_MaxwellHomCharges">
-    <xsd:complexContent>
-      <xsd:extension base="DT_BCBasic">
-        <xsd:attribute name="valuex" type="xsd:token" use="required"/>
-        <xsd:attribute name="valuey" type="xsd:token" use="required"/>
-        <xsd:attribute name="valuez" type="xsd:token" use="required"/>
-        <xsd:attribute name="phase" type="xsd:token" use="optional" default="0.0"/>
-        <xsd:attribute name="name" type="xsd:token" use="required" form="unqualified"/>
-        <xsd:attribute name="entityType" type="DT_EntityType" use="optional" default="nodeList"/>
-        <xsd:attribute name="dof" type="xsd:token" use="optional" default=""/>
-        <xsd:attribute name="quantity" default="elecPotential" type="DT_ElecUnknownType"/>
-        <xsd:attribute name="coordSysId" type="xsd:token"
-          use="optional" default="default"/>
-        <xsd:attribute name="type" use="optional" default="total">
-          <xsd:simpleType>
-            <xsd:restriction base="xsd:token">
-              <xsd:enumeration value="total"/>
-              <xsd:enumeration value="unit"/>
-            </xsd:restriction>
-          </xsd:simpleType>
-        </xsd:attribute>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
