@@ -892,7 +892,7 @@ namespace CoupledField {
                  << readerId << "'" );
     }
     
-    // get all regions for given resulinfo object
+    // get all regions for given ResultInfo object
     StdVector<shared_ptr<EntityList> > entList;
     GetResultEntities( readerId, sequenceStep, actInfo, entList);
     

@@ -106,7 +106,7 @@ template <typename T> class Vector;
     //!              the matrix is symmetric and only (nnz + nrows) / 2 will
     //!              actually be stored. Therefore here the number of non-zero
     //!              must be passed, as if the matrix was not symmetric.
-    SCRS_Matrix( Integer nrows, UInt ncols, UInt nnz ) {
+    SCRS_Matrix( UInt nrows, UInt ncols, UInt nnz ) {
 
 
       // assign storage type for dynamic type information

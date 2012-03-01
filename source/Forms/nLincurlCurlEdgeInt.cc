@@ -171,9 +171,10 @@ namespace CoupledField
           }
 
           Vector<Double> eB(3); eB = elemFlux /Babs;
-          for ( UInt k = 0; k < curl.GetNumCols(); k++ ) 
-            for ( UInt i = 0; i < curl.GetNumRows(); i++ ) 
-              help[k] =  curl[i][k] * eB[i];
+          curl.MultT(eB, help);
+//          for ( UInt k = 0; k < curl.GetNumCols(); k++ ) 
+//            for ( UInt i = 0; i < curl.GetNumRows(); i++ ) 
+//              help[k] =  curl[i][k] * eB[i];
           
           if ( isOrthotropic_ ) {
             for ( UInt k = 0; k < curl.GetNumCols(); k++ ) 

@@ -385,6 +385,7 @@ namespace CoupledField
     bool readOK = true;
     // variable to gather nodes on multiple regions
     bool doCalcMultiNodes = settings.GetInt("doCalcMultiNodes");
+
     std::map<UInt, std::map<std::string, UInt> > multiNodes;
 
     std::cout << "========================================"
@@ -414,6 +415,9 @@ namespace CoupledField
       for (actRegion = 0; actRegion<numRegions; actRegion++)
         regionNames.push_back(ptFileReader_->GetRegionName(actRegion));
       
+      //at this point we can already calculate the surface region neighbours
+      PrepareSurfaceRegions();
+
       while ( ( counter < numFiles*stepInc ) && readOK)
       {
         stepVal = ptFileReader_->GetTimeStep(counter);
@@ -507,16 +511,9 @@ namespace CoupledField
             
             continue;
           }
-          
-          // If the user requests the calculation of the Lighthill
-          // source term, follow his order!
-          //we now alos allow for surface integral!!
-          bool surfInt = false;
-          if ( regionDims_[actRegion] != dim_ ) 
-            surfInt = true;
-          
 
-          if(calcSrc ) //&& regionDims_[actRegion] == dim_)
+
+          if(calcSrc && regionDims_[actRegion] == dim_)
           {
             // We need fluidMechVelocity for Lighthill source term.
             // This must be adapted for other source term formulations!!
@@ -525,10 +522,17 @@ namespace CoupledField
             {
               flowData[actRegion][FLUIDMECH_VELOCITY].isActive = true;
             }
-            CalculateAcouSrcs(actRegion, flowData[actRegion], surfInt);
+            CalculateAcouSrcs(actRegion, flowData[actRegion]);
           }
           
-        }//end of for
+        }//end of for volume regions
+
+        //loop over all requested surface regions
+        std::map<UInt,bool>::iterator sIt = surfaceRegionIndices_.begin();
+        for(;sIt!=surfaceRegionIndices_.end();sIt++){
+          if(sIt->second)
+            CalculateSurfaceIntegral(sIt->first,flowData);
+        }
 
         /* node which live on multiple region need to accumulate the
          * ACOU_RHS_LOAD
@@ -713,8 +717,7 @@ namespace CoupledField
   }
 
   void CouplingHandler::CalculateAcouSrcs(const int regionIdx,
-                                          FlowDataType& flowData,
-                                          bool surfInt)
+                                          FlowDataType& flowData)
   {
     Settings& settings = Settings::Instance();
 
@@ -826,9 +829,9 @@ namespace CoupledField
       numElemNodes = Elem::GetNumElemNodes(elemType);
       elemDim = dim_ ; //Elem::GetElemDim(elemType);
 
-      // Just calculate sources for volume elements!
-      //      if(elemDim < dim_)
-      //       continue;
+      //Just calculate sources for volume elements!
+      if(elemDim < dim_)
+         continue;
 
       coordMat.Resize(elemDim, numElemNodes);
       nodaldTijdxj.Resize(elemDim, numElemNodes);
@@ -870,25 +873,23 @@ namespace CoupledField
                                                       elemVec, 
                                                       nodalLoadDensity, 
                                                       divLHTensor, 
-                                                      density,
-                                                      surfInt);
+                                                      density);
         } else {
           ptElemI[elemType].PerformIntegration( coordMat, nodaldTijdxj, 
                                                 nodalVel, elemVec, 
                                                 nodalLoadDensity, 
-                                                divLHTensor, density,
-                                                surfInt);
+                                                divLHTensor, density);
         }
 #else
         if (doIntAverageCentre_)
         {
           ptElemIntegr_[elemType]->PerformIntegrationCentre( coordMat, nodalVel,
                                                              elemVec, nodalLoadDensity, 
-                                                             divLHTensor, density, surfInt);
+                                                             divLHTensor, density);
         } else {
           ptElemIntegr_[elemType]->PerformIntegration( coordMat, nodaldTijdxj, nodalVel,
                                                        elemVec, nodalLoadDensity, 
-                                                       divLHTensor, density, surfInt);
+                                                       divLHTensor, density);
         }
 #endif
 
@@ -951,6 +952,205 @@ namespace CoupledField
     std::cout << "done." << std::endl;
   }
 
+  void CouplingHandler::CalculateSurfaceIntegral(const int surfRegionIdx,
+                                            std::vector<FlowDataType> & flowData){
+    //1. Do standard stuff, meaning we initialize the results which make sense for surfaces
+    //   Right now, this is only acouRHSLoad
+    //2. loop over all elements in this region
+    // 2a. obtain velocity field and coordinates for associated volume element
+    // 2b. call surface integrator
+    // 2c. write result to surfaceRegion and subtract it from volume region
+
+    Settings& settings = Settings::Instance();
+
+    std::string regionName = ptFileReader_->GetRegionName(surfRegionIdx);
+    UInt maxNENodes = ptFileReader_->GetMaxNumElemNodes();
+    UInt nElems = ptFileReader_->GetNumElems(surfRegionIdx);
+
+    std::cout << "Calculating Lighthill surface sources on " << regionName << " ";
+    Double density = settings.GetDouble("density");
+
+    // Init Lighthill structures
+    FlowDataPartStruct& fdps2 = flowData[surfRegionIdx][ACOU_RHS_LOAD];
+    fdps2.isActive = true; // all partitions have results
+    fdps2.definedOn = ResultInfo::NODE; // nodes
+    if(fdps2.dofNames.empty())
+      fdps2.dofNames.push_back("-");
+    fdps2.unit = MapSolTypeToUnit(ACOU_RHS_LOAD);
+    fdps2.resultName = "acouRhsLoad";
+    fdps2.data.resize(numRegionNodes_[surfRegionIdx]);
+    fdps2.entryType = ResultInfo::SCALAR;
+    std::vector<Double>& SurfTermField = fdps2.data;
+
+    // Fill acouRhsLoad field with zeros
+    std::fill(SurfTermField.begin(), SurfTermField.end(), 0);
+
+    FlowDataPartStruct& fdps4 = flowData[surfRegionIdx][ACOU_DIV_LH_TENSOR];
+    fdps4.isActive = true; // all partitions have results
+    fdps4.definedOn = ResultInfo::ELEMENT; // elements
+    if(fdps4.dofNames.empty()) {
+      fdps4.dofNames.push_back("x");
+      fdps4.dofNames.push_back("y");
+      if(dim_ == 3)
+        fdps4.dofNames.push_back("z");
+    }
+    fdps4.unit = MapSolTypeToUnit(ACOU_DIV_LH_TENSOR);
+    fdps4.resultName = "acouDivLighthillTensor";
+    fdps4.data.resize(nElems * dim_);
+    fdps4.entryType = ResultInfo::VECTOR;
+    std::vector<Double>& acouDivLighthillTensor = fdps4.data;
+
+    // Fill acouDivLighthillTensor field with zeros
+    std::fill(acouDivLighthillTensor.begin(), acouDivLighthillTensor.end(), 0);
+
+    //Define variables most of which are required for surface as well
+    //as for the volume element
+    Elem::FEType surfElemType,volElemType;
+    UInt numSurfElemNodes,numVolElemNodes;
+    // UInt surfElemDim;
+    UInt volElemDim;
+    UInt surfElemIdx,volElemIdx;
+    Matrix<Double> surfCoordMat,volCoordMat;
+    Matrix<Double> volNodalVel;
+    Vector<Double> surfElemVec;
+    Vector<Double> DivLHElemVec;
+    UInt volRegionIdx,volElemIdxLocal;
+
+    UInt velIdx,topoIdx,nodeNum;
+
+    std::cout << "...serial loop over " << nElems << " elements..." ;
+    std::cout.flush();
+    for( UInt i=0; i<nElems; i++)
+    {
+      surfElemIdx = regionElems_[surfRegionIdx][i] - 1;
+
+      if(surfaceNeighbors_.find(surfElemIdx)==surfaceNeighbors_.end()){
+        WARN("COuld not find neighbors for a element! ignoring it...");
+        continue;
+      }
+
+      //first check if we have a velocity for the current volume element
+      volRegionIdx = surfaceNeighbors_[surfElemIdx].first;
+      FlowDataPartStruct& volVelocityReg = flowData[volRegionIdx][FLUIDMECH_VELOCITY];
+      FlowDataPartStruct& volRHSReg = flowData[volRegionIdx][ACOU_RHS_LOAD];
+      FlowDataPartStruct& volDivLHReg = flowData[volRegionIdx][ACOU_DIV_LH_TENSOR];
+
+      //ignore this element if associated volume has no data
+      if(!volVelocityReg.isActive)// || !volRHSReg.isActive)
+        continue;
+
+      const std::vector<Double>& volVelField = volVelocityReg.data;
+
+      //obtain information about volume and surface
+      volElemIdxLocal = surfaceNeighbors_[surfElemIdx].second;
+      volElemIdx = regionElems_[volRegionIdx][volElemIdxLocal]-1;
+      volElemType = (Elem::FEType) elemTypes_[volElemIdx];
+      numVolElemNodes = Elem::GetNumElemNodes(volElemType);
+      volElemDim = Elem::GetElemDim(volElemType);
+
+      surfElemType = (Elem::FEType) elemTypes_[surfElemIdx];
+      numSurfElemNodes = Elem::GetNumElemNodes(surfElemType);
+      // surfElemDim =  Elem::GetElemDim(surfElemType);
+
+      //resize structures
+      volCoordMat.Resize(volElemDim, numVolElemNodes);
+      volNodalVel.Resize(volElemDim, numVolElemNodes);
+      surfCoordMat.Resize(volElemDim,numSurfElemNodes);
+
+      //obtain information from volume element
+      for( UInt n=0; n<numVolElemNodes; n++)
+      {
+        nodeNum = topology_[volElemIdx * maxNENodes + n];
+        topoIdx = (nodeNum - 1) * 3;
+        velIdx = regionNodeIndices_[volRegionIdx][nodeNum] * dim_;
+        for( UInt d=0; d<volElemDim; d++)
+        {
+          volCoordMat[d][n] = nodalCoords_[topoIdx+d];
+          volNodalVel[d][n] = volVelField[velIdx+d];
+          if(volNodalVel[d][n] > 9999){
+            std::cout << volVelField.size() << std::endl;
+            std::cout << "problem HERE" << std::endl;
+          }
+        }
+      }
+      //obtain information for surface element i.e. coordinates
+      for( UInt n=0; n<numSurfElemNodes; n++)
+      {
+        nodeNum = topology_[surfElemIdx * maxNENodes + n];
+        topoIdx = (nodeNum - 1) * 3;
+        for( UInt d=0; d<volElemDim; d++)
+          surfCoordMat[d][n] = nodalCoords_[topoIdx+d];
+      }
+
+      if(flowData[volRegionIdx].find(SMOOTH_DISPLACEMENT) != flowData[volRegionIdx].end())
+      {
+        WARN("Smooth displacements are not supported right now for surface Elements!");
+      }
+
+      //PERFORM INTEGRATION
+      try {
+        if (doIntAverageCentre_)
+        {
+          ptElemIntegr_[surfElemType]->PerformSurfaceIntegrationCenter( volElemType, volCoordMat,
+              surfCoordMat, volNodalVel, surfaceNormals_[surfElemIdx], density,surfElemVec,DivLHElemVec);
+        } else {
+          ptElemIntegr_[surfElemType]->PerformSurfaceIntegration(volElemType, volCoordMat,
+              surfCoordMat, volNodalVel, surfaceNormals_[surfElemIdx], density,surfElemVec,DivLHElemVec);
+        }
+
+      } catch (CoupledField::Exception &ex)
+      {
+        std::cerr << "WARN: An Exception occurred during surface source term "
+                  << "computation:\nElement " << surfElemIdx+1 << std::endl;
+
+        std::cerr << ex.what()<< std::endl;
+
+        if(settings.GetInt("verbose")) {
+          UInt oldPrec = std::cerr.precision(8);
+
+          std::cerr << "Corner coords:\n";
+          for (UInt iCol = 0, numCols = surfCoordMat.GetNumCols();
+               iCol < numCols; ++iCol) {
+            for (UInt iRow = 0, numRows = surfCoordMat.GetNumRows();
+                 iRow < numRows; ++iRow) {
+              std::cerr << "\t" << surfCoordMat[iRow][iCol];
+            }
+            std::cerr << std::endl;
+          }
+
+          std::cerr.precision(oldPrec);
+          std::cerr << ex.what();
+        }
+        std::cerr << "Setting contribution to acousrc to zero!\n\n";
+        surfElemVec.Resize(numSurfElemNodes);
+        surfElemVec.Init();
+      }
+
+      // Add contributions of all element nodes
+      for( UInt n=0; n<numSurfElemNodes; n++)
+      {
+          nodeNum = topology_[surfElemIdx * maxNENodes + n];
+          UInt volIdx = regionNodeIndices_[volRegionIdx][nodeNum];
+          UInt surfIdx = regionNodeIndices_[surfRegionIdx][nodeNum];
+
+          if(volRHSReg.isActive)
+            volRHSReg.data[volIdx] += surfElemVec[n];
+
+          SurfTermField[surfIdx] += surfElemVec[n];
+      }
+      // Add contributions of elements
+      for( UInt n=0; n < dim_; n++)
+      {
+        acouDivLighthillTensor[i*dim_ + n] = DivLHElemVec[n];
+        if(volDivLHReg.isActive){
+          volDivLHReg.data[volElemIdxLocal*dim_ + n] -= DivLHElemVec[n];
+        }
+      }
+    }
+
+    std::cout << "done." << std::endl;
+  }
+
   void CouplingHandler::ShrinkNodalVector(const UInt partitionIdx,
                                           const UInt numDOFs,
                                           const std::vector<Double>& input,
@@ -990,4 +1190,273 @@ namespace CoupledField
     }
   }
 
+  void CouplingHandler::GetNeighborElements(std::map<UInt,std::pair<UInt,UInt> >& volNeighbors,UInt surfRegionIdx){
+    std::string regionName = ptFileReader_->GetRegionName(surfRegionIdx);
+    std::cout << "Calculating Neighbor element information for region " << regionName << " ....";
+    std::cout.flush();
+    UInt numElems = regionElems_[surfRegionIdx].size();
+    UInt maxNENodes = ptFileReader_->GetMaxNumElemNodes();
+    std::vector<UInt> matches;
+    matches.clear();
+    UInt curNodeNum = 0;
+    UInt curElemNum = 0;
+
+    for(UInt i = 0; i< numElems; i++){
+      matches.clear();
+      //get number of element
+      curElemNum = regionElems_[surfRegionIdx][i] - 1;
+      //get number of first node
+      curNodeNum = topology_[curElemNum * maxNENodes];
+      //now we search through the topology vector and determine
+      //all occurences of the nodeNumber and store their position
+      std::vector<UInt>::iterator i = topology_.begin(), end = topology_.end();
+      while(true) {
+        i = std::find(i, topology_.end(), curNodeNum );
+        if (i == end)
+            break;
+        matches.push_back(i - topology_.begin());
+        i++;
+      }
+      //now we have a vector containing all positions of the first node of the
+      //element of interest now we need to determine the element indices
+      //and store only those connected to volume elements, i.e. dim_ == elemDim
+      std::vector<UInt> globElemIdx;
+      globElemIdx.clear();
+      for(UInt j=0;j<matches.size();j++){
+        UInt eNum = (UInt) std::floor((Double)matches[j] / (Double)maxNENodes);
+        Elem::FEType elemType = (Elem::FEType) elemTypes_[eNum];
+        if(Elem::GetElemDim(elemType) == dim_ && CalcSurfaceNormalOutVolume(eNum,curElemNum))
+          globElemIdx.push_back(eNum);
+      }
+      //if we have more than one element in globalElemIdx we assume an internal surface
+      //so we set the surface region to false and return without doing anything
+      if(globElemIdx.size() != 1){
+        surfaceRegionIndices_[surfRegionIdx] = false;
+        WARN("Found more than one neighbor for surface element in surface region we set it to false");
+        return;
+      }
+
+      //now we have the candidates now we determine the real element
+      //to do this unfortunately we have to search through every regionelem again
+      //to obtain the region local element number
+      for(UInt curReg=0;curReg<volumeRegionIndices_.size();curReg++){
+        //ok now we search for the stuff
+        std::vector<UInt>::iterator g = regionElems_[curReg].begin(), end = regionElems_[curReg].end();
+        g = std::find(g, regionElems_[curReg].end(), globElemIdx[0]+1 );
+        if (g == end)
+           continue;
+        else{
+          UInt localVolEIdx = g-regionElems_[curReg].begin();
+          volNeighbors[curElemNum] = std::pair<UInt,UInt>(curReg,localVolEIdx);
+          break;
+        }
+      }
+    }
+    std::cout << "done" << std::endl;
+  }
+
+  void CouplingHandler::PrepareSurfaceRegions(){
+    UInt numRegions = ptFileReader_->GetNumRegions();
+
+    //obtain the list of surface regions or the all word
+    std::vector<std::string> surfaceRegions;
+
+    typedef boost::tokenizer< boost::char_separator<char> > Tok;
+    boost::char_separator<char> sep(";| ");
+
+    // Initialize vector with output fields
+    Settings& settings = Settings::Instance();
+    Tok tokenizer(settings.GetString("calcSurfaceTerms"), sep);
+    std::copy(tokenizer.begin(), tokenizer.end(),
+              std::back_inserter(surfaceRegions));
+
+    //check for all and none keyword
+    bool checkNONE = (std::find(surfaceRegions.begin(),surfaceRegions.end(),"none") != surfaceRegions.end());
+    bool checkALL = (std::find(surfaceRegions.begin(),surfaceRegions.end(),"all") != surfaceRegions.end());
+    bool doIt = false;
+    if(checkNONE && checkALL){
+      Exception("You supplied the all and the none keyword for surface term. confused and aborting....");
+    }else if(checkNONE){
+      doIt = false;
+    }else{
+      doIt = true;
+    }
+
+    for (UInt actRegion = 0; actRegion<numRegions; actRegion++){
+      //first we determine if this region is volume or surface by
+      //checking the dimension of its first element
+      //WARNING this may not be true but right now we have no other choice
+      Elem::FEType elemType = (Elem::FEType) elemTypes_[regionElems_[actRegion][0]];
+      if(Elem::GetElemDim(elemType) == dim_-1){
+        //get region name and check if its contained in user list
+        surfaceRegionIndices_[actRegion] = false;
+      }else{
+        volumeRegionIndices_.push_back(actRegion);
+      }
+    }
+    if(!doIt)
+      return;
+
+
+    std::cout << "========================================"
+              << "========================================"
+              << std::endl;
+    std::cout << "                        "
+              << "Calculating Surface Neighbor information" << std::endl;
+    std::cout << "========================================"
+              << "========================================"
+              << std::endl;
+    std::cout.flush();
+
+    //now we have the information so we iteratre over the surface regions
+    //and fill the structures
+    std::map<UInt,bool>::iterator it =  surfaceRegionIndices_.begin();
+    while(it != surfaceRegionIndices_.end()){
+      std::string regionName = ptFileReader_->GetRegionName(it->first);
+      bool curregion = (std::find(surfaceRegions.begin(),surfaceRegions.end(),regionName) != surfaceRegions.end());
+      if(curregion || checkALL){
+        it->second = true;
+        GetNeighborElements(surfaceNeighbors_,it->first);
+      }
+      it++;
+    }
+    std::cout << "========================================"
+              << "========================================"
+              << std::endl;
+    std::cout << "                        "
+              << "Leaving Surface Neighbor calculation" << std::endl;
+    std::cout << "========================================"
+              << "========================================"
+              << std::endl;
+    std::cout.flush();
+  }
+
+
+  bool CouplingHandler::CalcSurfaceNormalOutVolume(UInt globalVolElemNum, UInt globalSurfaceElemNum){
+    std::vector<UInt> surfaceNodes,volumeNodes;
+    std::set<UInt> surfaceSet,volumeSet;
+    std::set<UInt> intersectSet;
+    std::set<UInt> diffSet;
+
+    UInt maxNENodes = ptFileReader_->GetMaxNumElemNodes();
+    Elem::FEType surfaceElemType = (Elem::FEType) elemTypes_[globalSurfaceElemNum];
+    Elem::FEType volumeElemType = (Elem::FEType) elemTypes_[globalVolElemNum];
+
+    UInt numVolElemNodes = Elem::GetNumElemNodes(volumeElemType);
+    UInt numSurfElemNodes = Elem::GetNumElemNodes(surfaceElemType);
+    surfaceNodes.resize(numSurfElemNodes);
+    volumeNodes.resize(numVolElemNodes);
+
+
+    for(UInt n=0; n<numSurfElemNodes; n++){
+      surfaceNodes[n] = topology_[globalSurfaceElemNum * maxNENodes + n];
+    }
+    for(UInt n=0; n<numVolElemNodes; n++){
+      volumeNodes[n] = topology_[globalVolElemNum * maxNENodes + n];
+    }
+    surfaceSet = std::set<UInt>(surfaceNodes.begin(), surfaceNodes.end());
+    volumeSet = std::set<UInt>(volumeNodes.begin(), volumeNodes.end());
+
+    std::set_intersection(surfaceSet.begin(), surfaceSet.end(),
+                          volumeSet.begin(), volumeSet.end(),
+                          std::inserter(intersectSet,intersectSet.begin()));
+
+    if(intersectSet.size() == surfaceNodes.size()){
+       //ok, now we determine the normal along with its sign and we store it
+      Vector<Double> & curNormal = surfaceNormals_[globalSurfaceElemNum];
+      CalcSurfaceNormal(surfaceNodes,curNormal);
+      std::set_difference( volumeSet.begin(), volumeSet.end(),
+                           surfaceSet.begin(), surfaceSet.end(),
+                           std::inserter(diffSet,diffSet.begin()) );
+
+      Vector<Double> diffVec( dim_ );
+      Double scalarProd = 0.0;
+      std::set<UInt>::const_iterator it = diffSet.begin();
+      UInt coordIdxCommon = ((*intersectSet.begin()) -1)*3;
+      const Double EPS = 1e-30;
+      for( ; it != diffSet.end(); it++ ) {
+
+        UInt node = *it;
+
+        // calculate difference vector (pointing out of the volume)
+        for( UInt iDim = 0; iDim < dim_; ++iDim ) {
+          UInt coordIdxVol = (node -1)*3;
+
+          Double curCoordVol = nodalCoords_[coordIdxVol+iDim];
+          Double curCoordSurf = nodalCoords_[coordIdxCommon+iDim];
+
+          diffVec[iDim] =  curCoordSurf - curCoordVol;
+        }
+        // normalize difference vector to 1.0
+        diffVec /= diffVec.NormL2();
+
+        //scalar product
+        scalarProd = diffVec * curNormal;
+
+        if( std::abs(scalarProd) < EPS ) {
+          // we have to find another node
+          continue;
+        } else {
+          if( scalarProd < 0.0 ) {
+            curNormal *= -1.0;
+          }
+          break;
+        }
+      }
+
+      return true;
+    }else{
+      return false;
+    }
+  }
+
+  void CouplingHandler::CalcSurfaceNormal( const std::vector<UInt>& nodeNums,
+                                 Vector<Double>& nVec){
+    UInt numNodes = nodeNums.size();
+    UInt coordIdx;
+    Vector<Double> vec1(dim_);
+    Vector<Double> vec2(dim_);
+    nVec.Resize(dim_);
+    nVec.Init();
+    //create matrix of coordinates
+    Matrix<Double> ptCoord(dim_,numNodes);
+    for(UInt i=0;i<numNodes;i++){
+      coordIdx = (nodeNums[i] -1)*3;
+      for(UInt d=0;d<dim_;d++){
+        ptCoord[d][i] = nodalCoords_[coordIdx+d];
+      }
+    }
+
+    if ( dim_ == 3) {
+      UInt idx=0;
+      if ( ptCoord.GetNumCols() == 4) {
+        idx = 3;
+      }
+      else if ( ptCoord.GetNumCols() == 3) {
+        idx = 2;
+      }
+      else {
+        EXCEPTION("Surface Element is no quadrilateral or triangle even though we have 3D");
+      }
+
+      for ( UInt i=0; i<dim_; i++ ) {
+        vec1[i] = ptCoord[i][1]   - ptCoord[i][0];
+        vec2[i] = ptCoord[i][idx] - ptCoord[i][0];
+      }
+
+      // cross product: vec1 x vec 2
+      nVec[0] = vec1[1]*vec2[2] - vec1[2]*vec2[1];
+      nVec[1] = vec1[2]*vec2[0] - vec1[0]*vec2[2];
+      nVec[2] = vec1[0]*vec2[1] - vec1[1]*vec2[0];
+    }
+    else {
+      nVec[0] =  ptCoord[1][1] - ptCoord[1][0];
+      nVec[1] = -ptCoord[0][1] + ptCoord[0][0];
+    }
+
+
+    Double invLength = 1.0/nVec.NormL2();
+    nVec *= invLength;
+
+  }
 } // end of namespace

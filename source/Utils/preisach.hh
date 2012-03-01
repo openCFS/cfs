@@ -70,7 +70,7 @@ namespace CoupledField {
     Vector<Double>* strings_; //! irreduceable minima and maxima
     Vector<Double>* helpStrings_; //! help array for string_
 
-    Vector<UInt> StringLenght_; //! number of irreduceable minima and maxima
+    StdVector<UInt> StringLenght_; //! number of irreduceable minima and maxima
     UInt maxStringLength_; //! maximum allowd length for 
 
     Matrix<Double> preisachWeights_; //! presach weight function

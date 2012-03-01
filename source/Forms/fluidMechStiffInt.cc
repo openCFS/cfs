@@ -14,6 +14,9 @@
 #include "PDE/timestepping.hh"
 #include "Utils/nodestoresol.hh"
 #include "Utils/tools.hh"
+#include "Domain/domain.hh"
+#include "Domain/grid.hh"
+#include "Domain/surfElem.hh"
 #include "fluidMechStiffInt.hh"
 
 
@@ -128,6 +131,16 @@ void FluidMechPlaneStiffNewtonInt_UV::CalcElementMatrix( Matrix<Double>& elemMat
   UInt elemNumber = ent1.GetElem()->elemNum;
 
   sol_->GetElemSolutionAsMatrix( elemResult_, ent1 );
+
+  //adjust viscosity
+  if ( isSpongeLayer_) {
+    //get center coordinate
+    Point center;
+    ptelem->CalcBarycenter(ptCoord_, center);
+    //take here hard coded the x-coordinate
+    Double pos = (double)center[0];
+    AdjustViscosity( pos );
+  }
 
   Matrix<Double> gridElemResult;
   if (movingMesh_) {
@@ -381,6 +394,16 @@ void FluidMechPlaneStiffNewtonInt_PV::CalcElementMatrix( Matrix<Double>& elemMat
 
   sol_->GetElemSolutionAsMatrix( elemResult_, ent1 );
 
+  //adjust viscosity
+  if ( isSpongeLayer_) {
+    //get center coordinate
+    Point center;
+    ptelem->CalcBarycenter(ptCoord_, center);
+    //take here hard coded the x-coordinate
+    Double pos = (double)center[0];
+    AdjustViscosity( pos );
+  }
+
   if (movingMesh_)
   {
     Matrix<Double> gridElemResult_;
@@ -520,6 +543,16 @@ void FluidMechPlaneStiffNewtonInt_UQ::CalcElementMatrix( Matrix<Double>& elemMat
   UInt elemNumber = ent1.GetElem()->elemNum;
 
   sol_->GetElemSolutionAsMatrix( elemResult_, ent1);
+
+  //adjust viscosity
+  if ( isSpongeLayer_) {
+    //get center coordinate
+    Point center;
+    ptelem->CalcBarycenter(ptCoord_, center);
+    //take here hard coded the x-coordinate
+    Double pos = (double)center[0];
+    AdjustViscosity( pos );
+  }
 
   if (movingMesh_)
   {
@@ -685,6 +718,16 @@ void FluidMechPlaneStiffNewtonInt_PQ::CalcElementMatrix( Matrix<Double>& elemMat
 
   sol_->GetElemSolutionAsMatrix( elemResult_, ent1);
 
+  //adjust viscosity
+  if ( isSpongeLayer_) {
+    //get center coordinate
+    Point center;
+    ptelem->CalcBarycenter(ptCoord_, center);
+    //take here hard coded the x-coordinate
+    Double pos = (double)center[0];
+    AdjustViscosity( pos );
+  }
+
   if (movingMesh_) {
     Matrix<Double> gridElemResult_;
     gridSol_->GetElemSolutionAsMatrix( gridElemResult_, ent1);
@@ -783,6 +826,16 @@ void FluidMechPlaneIntNewton_RhsUV::CalcElementMatrix( Matrix<Double>& elemMat, 
   UInt elemNumber = ent1.GetElem()->elemNum;
 
   sol_->GetElemSolutionAsMatrix( elemResult_, ent1 );
+
+  //adjust viscosity
+  if ( isSpongeLayer_) {
+    //get center coordinate
+    Point center;
+    ptelem->CalcBarycenter(ptCoord_, center);
+    //take here hard coded the x-coordinate
+    Double pos = (double)center[0];
+    AdjustViscosity( pos );
+  }
 
   Matrix<Double> gridElemResult;
   if (movingMesh_) {
@@ -974,6 +1027,16 @@ void FluidMechPlaneIntNewton_RhsUQ::CalcElementMatrix( Matrix<Double>& elemMat, 
 
   sol_->GetElemSolutionAsMatrix( elemResult_, ent1);
 
+  //adjust viscosity
+  if ( isSpongeLayer_) {
+    //get center coordinate
+    Point center;
+    ptelem->CalcBarycenter(ptCoord_, center);
+    //take here hard coded the x-coordinate
+    Double pos = (double)center[0];
+    AdjustViscosity( pos );
+  }
+
   if (movingMesh_)
   {
     Matrix<Double> gridElemResult_;
@@ -1098,6 +1161,109 @@ void FluidMechPlaneIntNewton_RhsUQ::CalcElementMatrix( Matrix<Double>& elemMat, 
     }
   } // loop integration points
   ColResortElementMatrix(elemMat, locElemMat_UQ_, nrFncs, nrFncs, 1, N);
+}
+
+
+//-------------------------Surface integrators---------------------------------------
+
+FluidMechAbsorbingFlow::FluidMechAbsorbingFlow(Double kinematicViscosity ) {
+
+  kinematicViscosity_ = kinematicViscosity;
+  isSolDependent_ = true;
+  isaxi_ = false;
+  name_ = "FluidMechAbsorbingFlow";
+}
+
+FluidMechAbsorbingFlow::~FluidMechAbsorbingFlow()
+{
+}
+
+
+void FluidMechAbsorbingFlow:: CalcElemVector( Vector<Double> & elemVec,
+                                              EntityIterator& ent ) {
+
+
+  // Extract pointer to reference element and get coordinates
+  // for the surface element
+  ExtractElemInfo( ent );
+  
+  Double jacDet; 
+  Vector<Double> shapeFncAtIp, partVec;
+  Matrix<Double> partMat;
+  Double coordAtIp;
+  
+  ptelem->SetAnsatzFct( ansatzFct1_ );
+  UInt numFncs = ptelem->GetNumFncs( ansatzFct1_ );
+  const UInt nrIntPts = ptelem->GetNumIntPoints();
+  const Vector<Double> & intWeights = ptelem->GetIntWeights();
+  
+  Elem * ptVolElem = ent.GetSurfElem()->ptVolElem1;
+  BaseFE * ptVolElemFE = ptVolElem->ptElem;
+  
+  const StdVector<UInt> & volConnect = ptVolElem->connect;
+  const StdVector<UInt> & surfConnect = ent.GetSurfElem()->connect;
+  
+  Vector<Double> lCoordVol, normal;
+  Vector<Double>* surfIntPoints = ptelem->GetIntPoints();
+ 
+  Matrix<Double> GlobalGradient;
+  Matrix<Double> VolCornerCoords; 
+  domain->GetGrid()->GetElemNodesCoord( VolCornerCoords, volConnect, coordUpdate_ );
+
+  //get current element solution
+  ElemList tempList(domain->GetGrid());
+  tempList.SetElement( ptVolElem );
+  EntityIterator volIt = tempList.GetIterator();
+  sol_->GetElemSolutionAsMatrix( elemResult_, volIt );
+ 
+  // Calculate element matrix
+  UInt dim = ptVolElemFE->GetDim();
+  elemVec.Resize(numFncs*dim);
+  elemVec.Init();
+
+  for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++) {
+    
+    ptVolElemFE->GetLocalIntPoints4Surface(surfConnect, volConnect,
+                                           surfIntPoints[actIntPt-1], lCoordVol);
+    
+    ptVolElemFE->GetGlobDerivShFnc(GlobalGradient, lCoordVol, 
+                                   VolCornerCoords, ptVolElem );
+    
+    jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord_,
+                                         ent.GetElem() );
+    
+    ptelem->GetShFncAtIp(shapeFncAtIp, actIntPt, ent.GetElem() );
+
+    //global derivatives of the velocity
+    //(dvx/dx dvx/dy; dvy/dx dvy/dy)
+    partMat = elemResult_ * GlobalGradient;    
+
+    //Product with normal vector
+    //(nx dvx/dx + ny dvx/dy; nx dvy/dx + ny dvy/dy)
+    partVec = partMat * normal_;
+
+    if (isaxi_) {
+      coordAtIp = 0.0;
+      for( UInt j = 0; j < numFncs; j++ ) {
+        coordAtIp += ptCoord_[0][j] * shapeFncAtIp[j];
+      }
+      jacDet *= 2 * PI * intWeights[actIntPt-1]
+        * kinematicViscosity_ * coordAtIp;
+    }
+    else
+      jacDet *= intWeights[actIntPt-1] * kinematicViscosity_;
+
+    UInt k= 0;
+    for (UInt i=0; i<numFncs; i++) {
+      for (UInt j=0; j<dim; j++) {
+        elemVec[k] += shapeFncAtIp[i] * partVec[j] * jacDet;
+        k++;
+      }
+    }    
+
+  }
+  //  std::cout << "elemVec:\n" << elemVec << std::endl;
+
 }
 
 } // end namespace CoupledField

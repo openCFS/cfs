@@ -54,7 +54,6 @@
 #include "bdf2.hh"
 #include "fluidMechPDE.hh"
 
-
 namespace CoupledField
 {
 
@@ -143,6 +142,26 @@ void FluidMechPDE::ReadSpecialBCs() {
   // read pressure information
   ReadPressureLoads();
 
+  // ***************************************************************
+  //   ABC for flow
+  // ***************************************************************
+  PtrParamNode bcNode = myParam_->Get( "bcsAndLoads", ParamNode::PASS );
+  
+  if( bcNode ) {
+    ParamNodeList abcNodes = bcNode->GetList( "absorbingBCs" );
+    
+    for ( UInt i=0, n=abcNodes.GetSize(); i<n; ++i )
+      {
+        std::string regionName = abcNodes[i]->Get("name")->As<std::string>();
+        absBCs_.Push_back( ptgrid_
+                           ->GetEntityList( EntityList::SURF_ELEM_LIST,
+                                            regionName, EntityList::REGION ) );
+        Info->PrintF( pdename_,
+                      "Apply Absorbing Boundary Conditions on surfaceRegion '%s'\n",
+                      regionName.c_str() );
+      }
+  }
+
 }
 
 void FluidMechPDE::InitNonLin()
@@ -160,6 +179,10 @@ void FluidMechPDE::InitNonLin()
 void FluidMechPDE::DefineIntegrators()
 {
   Double density, dynamicViscosity, kinematicViscosity;
+
+  //for viscous damping
+  Double startPos, endPos, dampFactor;   //for viscous damping
+  std::string dampingType;
 
   // help variables for parameter checking
   RegionIdType actRegion;
@@ -191,12 +214,40 @@ void FluidMechPDE::DefineIntegrators()
       EXCEPTION("Wrong space dim!");
     }
 
+    // Check for viscous damping; currently defined by PML structure
+    bool isViscousDamp = false;
+    startPos = 0.0;
+    endPos   = 0.0;
+    if ( dampingList_[actRegion] == PML ) {
+      isViscousDamp = true;
+      PtrParamNode actRegionNode =
+        myParam_->Get("regionList")->GetByVal( "region", "name", actRegionName );
+
+      //read data for PML layer
+      Matrix<Double> inner;
+      Matrix<Double> outer;
+      std::string coordSysId;
+      
+      std::string id = actRegionNode->Get("dampingId")->As<std::string>();
+      PtrParamNode pmlNode = myParam_->Get("dampingList")->GetByVal("pml", "id", id);
+      ReadDataPML(dampingType, inner, dampFactor, coordSysId, pmlNode );
+
+      //extract data, we need for viscous damping
+      startPos = inner[0][0];
+      endPos   = inner[1][0];
+      //std::cout << "start: " << startPos << "  end: " << endPos << std::endl;
+    }
+
+
     // ==============  add stiffness matrix ===============
 
     //****************************************************************
     //******** stabilized ********************************************
     //****************************************************************
     BaseForm * bilinearStiff_UV = GetStiffIntegrator_UV(density,kinematicViscosity);
+    if ( isViscousDamp )
+      bilinearStiff_UV->InitSpongeLayer(startPos, endPos, dampFactor, dampingType);
+
     BiLinFormContext * actStiffContext_UV = new BiLinFormContext(bilinearStiff_UV, STIFFNESS );
     actStiffContext_UV->SetCounterPart( false );
     actStiffContext_UV->SetPtPdes(this, this);
@@ -206,6 +257,9 @@ void FluidMechPDE::DefineIntegrators()
     //******************************************************************************************************************
     if( stabilizationType_ != "none"){	
       BaseForm * bilinearStiff_PQ = GetStiffIntegrator_PQ(density,kinematicViscosity);
+      if ( isViscousDamp )
+        bilinearStiff_PQ->InitSpongeLayer(startPos, endPos, dampFactor, dampingType);
+
       BiLinFormContext * actStiffContext_PQ = new BiLinFormContext(bilinearStiff_PQ, STIFFNESS );
       actStiffContext_PQ->SetCounterPart( false );
       actStiffContext_PQ->SetPtPdes(this, this);
@@ -216,6 +270,9 @@ void FluidMechPDE::DefineIntegrators()
     //******************************************************************************************************************
     if (approxType_!= "taylorHood"){
       BaseForm * bilinearStiff_UQ = GetStiffIntegrator_UQ(density,kinematicViscosity);
+      if ( isViscousDamp )
+        bilinearStiff_UQ->InitSpongeLayer(startPos, endPos, dampFactor, dampingType);
+
       BiLinFormContext * actStiffContext_UQ = new BiLinFormContext(bilinearStiff_UQ, STIFFNESS );
       actStiffContext_UQ->SetCounterPart( false );
       actStiffContext_UQ->SetPtPdes(this, this);
@@ -224,6 +281,9 @@ void FluidMechPDE::DefineIntegrators()
     }
     //******************************************************************************************************************
     BaseForm * bilinearStiff_PV = GetStiffIntegrator_PV(density,kinematicViscosity);
+    if ( isViscousDamp )
+      bilinearStiff_PV->InitSpongeLayer(startPos, endPos, dampFactor, dampingType);
+
     BiLinFormContext * actStiffContext_PV = new BiLinFormContext(bilinearStiff_PV, STIFFNESS );
     // We also need to set the transposed of the coupling
     // matrix to the lower diagonal side
@@ -243,6 +303,9 @@ void FluidMechPDE::DefineIntegrators()
       //****************************************************************
       //****************************************************************
       BaseForm * bilinearMass_UV = GetMassIntegrator_UV(density,kinematicViscosity);
+      if ( isViscousDamp )
+        bilinearMass_UV->InitSpongeLayer(startPos, endPos, dampFactor, dampingType);
+
       BiLinFormContext * actMassContext_UV = new BiLinFormContext(bilinearMass_UV, MASS );
       actMassContext_UV->SetCounterPart( false );
       actMassContext_UV->SetPtPdes(this, this);
@@ -253,6 +316,9 @@ void FluidMechPDE::DefineIntegrators()
       {	
         //****************************************************************
         BaseForm * bilinearMass_UQ = GetMassIntegrator_UQ(density,kinematicViscosity);
+        if ( isViscousDamp )
+          bilinearMass_UQ->InitSpongeLayer(startPos, endPos, dampFactor, dampingType);
+
         BiLinFormContext * actMassContext_UQ = new BiLinFormContext(bilinearMass_UQ, MASS );
         actMassContext_UQ->SetCounterPart( false );
         actMassContext_UQ->SetPtPdes(this, this);
@@ -263,6 +329,9 @@ void FluidMechPDE::DefineIntegrators()
       //****************************************************************
       // This is for updating the Newton RHS
       BaseForm * bilinearAux_UV = GetAuxIntegrator_UV(density, kinematicViscosity);
+      if ( isViscousDamp )
+        bilinearAux_UV->InitSpongeLayer(startPos, endPos, dampFactor, dampingType);
+
       BiLinFormContext * actAuxContext_UV = new BiLinFormContext(bilinearAux_UV, AUXILIARY );
       actAuxContext_UV->SetCounterPart( false );
       actAuxContext_UV->SetPtPdes(this, this);
@@ -272,6 +341,9 @@ void FluidMechPDE::DefineIntegrators()
       //****************************************************************
       // This is for updating the Newton RHS
       BaseForm * bilinearAux_UQ = GetAuxIntegrator_UQ(density, kinematicViscosity);
+      if ( isViscousDamp )
+        bilinearAux_UQ->InitSpongeLayer(startPos, endPos, dampFactor, dampingType);
+
       BiLinFormContext * actAuxContext_UQ = new BiLinFormContext(bilinearAux_UQ, AUXILIARY );
       actAuxContext_UQ->SetCounterPart( false );
       actAuxContext_UQ->SetPtPdes(this, this);
@@ -302,6 +374,29 @@ void FluidMechPDE::DefineIntegrators()
     // and solution class
     eqnMap_->AddResult( *results_[0], pressSurf_[actSF] );
   }
+
+  // **********************************************************************
+  //   surface-integration: Absorbing boundaries
+  // **********************************************************************
+  if ( absBCs_.GetSize() > 0 ) {
+    for (UInt actSD=0, numSD=absBCs_.GetSize(); actSD<numSD; ++actSD) {
+      std::cout << "Do ANC" << std::endl;
+       FluidMechAbsorbingFlow *linearAbsorb =
+        new FluidMechAbsorbingFlow(kinematicViscosity);
+       linearAbsorb->SetVoluInfo( materials_ );
+       linearAbsorb->SetSolution( dynamic_cast<NodeStoreSol<Double>&>(*sol_ ));
+      
+      LinearFormContext * abcContext =
+        new LinearFormContext( linearAbsorb );
+      abcContext->SetPtPde(this);
+      abcContext->SetResult( results_[0], absBCs_[actSD] );
+      assemble_->AddLinearForm( abcContext );
+      
+      // Give result to equation numbering class
+      eqnMap_->AddResult( *results_[0], absBCs_[actSD] );
+    }
+  }
+
 }
 
 
@@ -1312,6 +1407,73 @@ void FluidMechPDE::ReadSpecialResults() {
   }
 
 }
+
+
+// *********************************************
+//   Check what type of damping should be used
+// *********************************************
+void FluidMechPDE::ReadDampingInformation( ) {
+
+    std::map<std::string, DampingType> idDampType;
+    
+    // try to get dampingList
+    PtrParamNode dampListNode = myParam_->Get( "dampingList", ParamNode::PASS );
+    if( dampListNode ) {
+
+      // get specific damping nodes
+      ParamNodeList dampNodes = dampListNode->GetChildren();
+
+      for( UInt i = 0; i < dampNodes.GetSize(); i++ ) {
+
+        std::string dampString = dampNodes[i]->GetName();
+        std::string actId = dampNodes[i]->Get("id")->As<std::string>();
+
+        // determine type of damping
+        DampingType actType;
+        String2Enum( dampString, actType );
+
+        // store damping type string
+        idDampType[actId] = actType;
+
+      }
+    }
+
+    // Run over all region and set entry in "regionNonLinId"
+    ParamNodeList regionNodes =
+      myParam_->Get("regionList")->GetChildren();
+
+    RegionIdType actRegionId;
+    std::string actRegionName, actDampingId;
+
+    if( regionNodes.GetSize() > 0 ) {
+      Info->PrintF( pdename_, "Damping in following region(s)\n" );
+    }
+
+    for (UInt k = 0; k < regionNodes.GetSize(); k++) {
+      regionNodes[k]->GetValue( "name", actRegionName );
+      regionNodes[k]->GetValue( "dampingId", actDampingId );
+      if( actDampingId == "" )
+        continue;
+
+      actRegionId = ptgrid_->GetRegion().Parse(actRegionName);
+
+      // Check actDampingId was already registerd
+      if( idDampType.count( actDampingId ) == 0 ) {
+        EXCEPTION( "Damping with id '" << actDampingId
+                   << "' was not defined in 'dampingList'" );
+      }
+
+      dampingList_[actRegionId] = idDampType[actDampingId];
+
+      // Log to info file
+      std::string dampString;
+      Enum2String( dampingList_[actRegionId], dampString );
+      Info->PrintF( pdename_, " %s: %s\n", actRegionName.c_str(),
+                    dampString.c_str() );
+    }
+    Info->PrintF( pdename_, "\n" );
+  }
+
 
 void FluidMechPDE::DefineAvailResults() {
 

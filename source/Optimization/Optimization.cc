@@ -9,9 +9,12 @@
 #include "DataInOut/programOptions.hh"
 #include "DataInOut/resultHandler.hh"
 #include "Domain/domain.hh"
+#include "Driver/assemble.hh"
 #include "Driver/baseSolveStep.hh"
 #include "Driver/basedriver.hh"
+#include "Driver/formsContext.hh"
 #include "Driver/harmonicDriver.hh"
+#include "Forms/linearForm.hh"
 #include "General/environment.hh"
 #include "General/exception.hh"
 #include "Optimization/Design/DesignElement.hh"
@@ -92,6 +95,10 @@ Optimization::Optimization()
   optInfoNode = info->Get("optimization");   // store our info results here
   PtrParamNode pn = param->Get("optimization"); // read our parameters from the xml file
   
+  SetPDEs(OptimizationMaterial::system.Parse(pn->Get("ersatzMaterial")->Get("material")->As<std::string>()));
+
+  this->assemble_ = pde->getPDE_assemble();
+
   // in transient optimization one can specify the initial value as a solution to a static problem and a weight for it (just in tracking)
   firstStepStatic = pn->Has("firstStepStatic");
   if(firstStepStatic){
@@ -690,6 +697,127 @@ double Optimization::CalcSymmetry(DesignElement::Type de, DesignElement::ValueSp
   return sum / (double) max;
 }
 
+double Optimization::CalcObjective()
+{
+  // in objective.value_ we store the sum over all excitations w/o penalty but with normalization
+  // in excitation.cost we store the sum over all objectives with penalty but w/o normalization
+
+  // reset the objective values such that we can sum up normalized but unpenalized values
+  for(unsigned int o = 0; o < objectives.data.GetSize(); o++)
+    objectives.data[o]->ResetValue();
+
+  double result = 0.0;
+
+  // the multiple excitation case is a special case - for all other cases this is executed once
+  for(unsigned int e = 0; e < me->excitations.GetSize(); e++)
+  {
+    Excitation& excite = me->excitations[e];
+    excite.cost = 0.0;
+
+    for(unsigned int o = 0; o < objectives.data.GetSize(); o++)
+    {
+      Objective* f = objectives.data[o];
+
+      // some objectives are only to be evaluated for the last excitation
+      if(!f->DoEvaluate(&excite)) continue;
+
+      //double ov = CalcObjective(excite, f); // this is virtual!
+      double ov = CalcFunction(excite, f, false); // this is virtual!
+      excite.cost += ov * f->GetPenalty();
+
+      // we ignore the weight if the evaluation happens only once! TODO why not omega*omega? - Fabian
+      double weight = !f->DoEvaluateAlways() ? 1.0 : excite.normalized_weight;
+
+      f->AddValue(ov * weight);
+
+      result += ov * f->GetPenalty() * weight;
+      LOG_DBG(opt) << "CalcObjective: ex=" << e << " obj=" << f->type.ToString(f->GetType()) << " ov=" << ov
+          << " penalty" << f->GetPenalty() << " ex.cost=" << excite.cost << " nw=" << excite.normalized_weight
+          << " wei=" << weight << " f->val=" << f->GetValue() << " result=" << result;
+    }
+  }
+
+  return result;
+}
+
+void Optimization::CalcObjectiveGradient(StdVector<double>* grad_out)
+{
+  // reset the cost gradients in the design elements and sum them up in a weighted way
+  // to perform multiple loads
+  design->Reset(DesignElement::COST_GRADIENT);
+
+  for(unsigned int obj = 0; obj < objectives.data.GetSize(); obj++)
+  {
+    Objective* cost = objectives.data[obj];
+    // the multiple excitation case is a special case - for all other cases this is executed once
+    for(unsigned int idx = 0; idx < me->excitations.GetSize(); idx++)
+    {
+      Excitation& excite = me->excitations[idx];
+      // some objectives are only to be evaluated for the last excitation
+      if(!cost->DoEvaluate(&excite)) continue;
+
+      CalcFunction(excite, cost, true);
+    }
+  }
+
+  if(grad_out != NULL)
+    design->WriteGradientToExtern(*grad_out, DesignElement::COST_GRADIENT, DesignElement::SMART);
+}
+
+
+
+double Optimization::CalcConstraint(Condition* g)
+{
+  // assume when we have only one constraint which is not explicitly given, this is not the stress constraint!
+  assert((g == NULL && constraints.active.GetSize() == 1 && constraints.active[0]->DoEvaluateAlways()) || g != NULL);
+
+  if(g == NULL)
+    g = constraints.active[0];
+
+  double result = 0.0;
+
+  for(unsigned int e = 0; e < me->excitations.GetSize(); e++)
+  {
+    Excitation& excite = me->excitations[e];
+    // in the evaluate once case only the last excitation
+    double v = g->DoEvaluate(&excite) ? CalcFunction(excite, g, false) : 0.0;
+    double w = g->DoEvaluateAlways() ? excite.GetFactor(g) : 1.0;
+    result += v * w;
+    LOG_DBG(opt) << "CC ex=" << e << " eval=" << g->DoEvaluate(&excite) << " v=" << v << " w=" << w << " -> " << result;
+  }
+
+  g->SetValue(result);
+  return result;
+}
+
+void Optimization::CalcConstraintGradient(Condition* g, StdVector<double>* grad_out)
+{
+  // assume when we have only one constraint which is not explicitly given, this is not the stress constraint!
+  assert((g == NULL && constraints.active.GetSize() == 1 && !constraints.active[0]->DoEvaluateAlways()) || g != NULL);
+
+  if(g == NULL)
+    g = constraints.active[0];
+
+  for(unsigned int i = 0; i < me->excitations.GetSize(); i++)
+  {
+    if(g->DoEvaluate(&me->excitations[i]))
+      CalcFunction(me->excitations[i], g, true);
+  }
+
+  // copies from the design element gradient data to a memory array for external optimizers
+  if(grad_out != NULL)
+    design->WriteGradientToExtern(*grad_out, DesignElement::CONSTRAINT_GRADIENT, DesignElement::SMART, g);
+
+  // if there is a <result ... value="constraintGradient" detail="penalizedVolume/*"
+  if(g->special_result_idx != -1)
+  {
+    int base = design->FindDesign(g->design);
+    int n    = design->GetNumberOfElements();
+    for(int i = n * base; i < n * (base + 1); i++) // TODO add access!
+      design->data[i].specialResult[g->special_result_idx] = design->data[i].GetPlainGradient(NULL, g);
+  }
+}
+
 void Optimization::EvaluateSpecialResults()
 {
   for(unsigned int i = 0; i < design->resultDescriptions.GetSize(); i++)
@@ -870,6 +998,160 @@ void Optimization::LogFileLine(ofstream* out, PtrParamNode iteration)
   }
 
   if(out) out->flush();
+}
+
+LinearFormContext* Optimization::GetLinearFormContext(const RegionIdType regionId, StdPDE* pde, const std::string& integrator, Global::ComplexPart entryType)
+{
+  Assemble* ass = domain->GetBasePDE()->getPDE_assemble();
+  return(ass->GetLinearForm(regionId, pde, integrator, false, entryType));
+}
+
+
+BiLinFormContext* Optimization::GetFormContext(const RegionIdType regionId, StdPDE* pde1, StdPDE* pde2, const std::string& integrator, bool throw_exception, Global::ComplexPart entryType)
+{
+  Assemble* ass = domain->GetBasePDE()->getPDE_assemble();
+  return(ass->GetBiLinForm(regionId, pde1, pde2, integrator, !throw_exception, entryType));
+}
+
+BaseForm* Optimization::GetForm(const RegionIdType regionId, StdPDE* pde1, StdPDE* pde2, const std::string& integrator, bool throw_exception, Global::ComplexPart entryType)
+{
+  if (pde2 != NULL){
+    BiLinFormContext* bc = GetFormContext(regionId, pde1, pde2, integrator, throw_exception, entryType);
+    return bc != NULL ? bc->GetIntegrator() : NULL;
+  }
+  else {
+    LinearFormContext* bc = GetLinearFormContext(regionId, pde1, integrator, entryType);
+    return bc != NULL ? bc->GetIntegrator() : NULL;
+  }
+}
+
+BaseForm* Optimization::GetForm(const RegionIdType reg, Application app1, Application app2, bool throw_exception)
+{
+  Application a1, a2;
+  std::string integrator = "";
+
+  if(app1 == MECH && (app2 == MECH || app2 == NO_APP))
+  {
+    a1 = a2 = MECH;
+    integrator = "linElastInt";
+  }
+  if(app1 == ELEC && (app2 == ELEC || app2 == NO_APP))
+  {
+    a1 = a2 = ELEC;
+    integrator = "linGradBDBInt";
+  }
+  if((app1 == MECH && app2 == ELEC) || (app1 == ELEC && app2 == MECH) || (app1 == PIEZO_COUPLING && app2 == NO_APP))
+  {
+    a1 = MECH;
+    a2 = ELEC;
+    integrator = "linPiezoCoupling";
+  }
+  if(app1 == MASS && (app2 == MASS || app2 == NO_APP))
+  {
+    a1 = a2 = MASS;
+    integrator = "MassInt";
+  }
+
+  assert(integrator != "");
+
+  SinglePDE* pde1 = ToPDE(a1, throw_exception);
+  SinglePDE* pde2 = ToPDE(a2, throw_exception);
+
+  if(pde1 == NULL || pde2 == NULL)
+  {
+    if(!throw_exception)
+      return NULL;
+    else
+      EXCEPTION("No PDE for application " << a1 << " resp. " << a2);
+  }
+
+  return GetForm(reg, pde1, pde2, integrator, throw_exception);
+}
+
+
+void Optimization::SetPDEs(OptimizationMaterial::System sys)
+{
+  switch(sys)
+  {
+  case OptimizationMaterial::MECH:
+  case OptimizationMaterial::PIEZOCOUPLING:
+    pde = domain->GetSinglePDE("mechanic");
+    pdes[MECH] = pde;
+    break;
+
+  case OptimizationMaterial::HEAT:
+    pde = domain->GetSinglePDE("heatConduction");
+    pdes[HEAT] = pde;
+    break;
+
+  case OptimizationMaterial::ACOUSTIC:
+    pde = domain->GetSinglePDE("acoustic", true);
+    pdes[ACOUSTIC] = pde;
+    break;
+
+  case OptimizationMaterial::ELEC:
+    pde = domain->GetSinglePDE("electrostatic", true);
+    pdes[ELEC] = pde;
+    break;
+
+  default:
+    assert(false);
+  }
+
+  // make it more smart when using energy flux for other pdes
+  if(objectives.Has(Function::ENERGY_FLUX))
+    pdes[ACOUSTIC] = domain->GetSinglePDE("acoustic", true);
+
+  // ELEC is set in PiezoSIMP()
+}
+
+
+SinglePDE* Optimization::ToPDE(Application app, bool throw_exception) const
+{
+  map<Application, SinglePDE*>::const_iterator it = pdes.find(app);
+  if(it != pdes.end())
+    return it->second;
+
+  // nothing found
+  if(throw_exception)
+    EXCEPTION("No PDE '" << app << "' stored");
+
+  return NULL;
+}
+
+
+Optimization::Application Optimization::ToApp(DesignElement::Type dt)
+{
+  switch(dt)
+  {
+  case DesignElement::DENSITY:
+    return MECH;
+  case DesignElement::ACOU_DENSITY:
+    return ACOUSTIC;
+  case DesignElement::POLARIZATION:
+    return ELEC;
+  default:
+    EXCEPTION("DesignType " << DesignElement::type.ToString(dt) << " doesn't map to Application");
+  }
+}
+
+DesignElement::Type Optimization::ToDesign(const SinglePDE* pde) const
+{
+  if(pde->GetName() == "electrostatic") return DesignElement::POLARIZATION;
+  if(pde->GetName() == "mechanic") return DesignElement::DENSITY;
+  if(pde->GetName() == "acoustic") return DesignElement::ACOU_DENSITY;
+
+  throw Exception("invalid");
+}
+
+Optimization::Application Optimization::ToApp(const SinglePDE* pde) const
+{
+  if(pde->GetName() == "electrostatic") return ELEC;
+  if(pde->GetName() == "mechanic") return MECH;
+  if(pde->GetName() == "heatConduction") return HEAT;
+  if(pde->GetName() == "acoustic") return ACOUSTIC;
+
+  throw Exception("invalid");
 }
 
 

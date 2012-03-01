@@ -88,7 +88,6 @@ ErsatzMaterial::ErsatzMaterial() :
   /** We store here the solution */
   volume_fraction_ = 0.0;
   structure_ = NULL;
-  pde = NULL;
   densityFile = NULL;
 
   pn = param->Get("optimization")->Get("ersatzMaterial");
@@ -162,9 +161,6 @@ ErsatzMaterial::ErsatzMaterial() :
 
     densityFile = new DensityFile(design, pn->Get("export"), design_list, transfer_list, pn->Get("SIMP/regularization", ParamNode::PASS));
   }
-
-  // we assume always to have either a mechanic or heatcond pde.
-  SetPDEs();
 
   harmonic = BasePDE::IsComplex(pde->GetAnalysisType());
 
@@ -317,8 +313,6 @@ void ErsatzMaterial::PostInit()
 }
 
 
-
-
 void ErsatzMaterial::StoreResults(double step_val)
 {
   CommitMode cm = commitMode_;
@@ -467,74 +461,6 @@ string ErsatzMaterial::GetIterationFrequency()
   return ss.str();
 }
 
-LinearFormContext* ErsatzMaterial::GetLinearFormContext(const RegionIdType regionId, StdPDE* pde, const std::string& integrator, Global::ComplexPart entryType)
-{
-  Assemble* ass = domain->GetBasePDE()->getPDE_assemble();
-  return(ass->GetLinearForm(regionId, pde, integrator, false, entryType));
-}
-
-
-BiLinFormContext* ErsatzMaterial::GetFormContext(const RegionIdType regionId, StdPDE* pde1, StdPDE* pde2, const std::string& integrator, bool throw_exception, Global::ComplexPart entryType)
-{
-  Assemble* ass = domain->GetBasePDE()->getPDE_assemble();
-  return(ass->GetBiLinForm(regionId, pde1, pde2, integrator, !throw_exception, entryType));
-}
-
-BaseForm* ErsatzMaterial::GetForm(const RegionIdType regionId, StdPDE* pde1, StdPDE* pde2, const std::string& integrator, bool throw_exception, Global::ComplexPart entryType)
-{
-  if (pde2 != NULL){
-    BiLinFormContext* bc = GetFormContext(regionId, pde1, pde2, integrator, throw_exception, entryType);
-    return bc != NULL ? bc->GetIntegrator() : NULL;
-  }
-  else {
-    LinearFormContext* bc = GetLinearFormContext(regionId, pde1, integrator, entryType);
-    return bc != NULL ? bc->GetIntegrator() : NULL;
-  }
-}
-
-BaseForm* ErsatzMaterial::GetForm(const RegionIdType reg, Application app1, Application app2, bool throw_exception)
-{
-  Application a1, a2;
-  std::string integrator = "";
-
-  if(app1 == MECH && (app2 == MECH || app2 == NO_APP))
-  {
-    a1 = a2 = MECH;
-    integrator = "linElastInt";
-  }
-  if(app1 == ELEC && (app2 == ELEC || app2 == NO_APP))
-  {
-    a1 = a2 = ELEC;
-    integrator = "linGradBDBInt";
-  }
-  if((app1 == MECH && app2 == ELEC) || (app1 == ELEC && app2 == MECH) || (app1 == PIEZO_COUPLING && app2 == NO_APP))
-  {
-    a1 = MECH;
-    a2 = ELEC;
-    integrator = "linPiezoCoupling";
-  }
-  if(app1 == MASS && (app2 == MASS || app2 == NO_APP))
-  {
-    a1 = a2 = MASS;
-    integrator = "MassInt";
-  }
-
-  assert(integrator != "");
-
-  SinglePDE* pde1 = ToPDE(a1, throw_exception);
-  SinglePDE* pde2 = ToPDE(a2, throw_exception);
-
-  if(pde1 == NULL || pde2 == NULL)
-  {
-    if(!throw_exception)
-      return NULL;
-    else
-      EXCEPTION("No PDE for application " << a1 << " resp. " << a2);
-  }
-
-  return GetForm(reg, pde1, pde2, integrator, throw_exception);
-}
-
 int ErsatzMaterial::GetSpecialResultIndex(Application app1, Application app2, CalcMode calcMode, Condition* constraint)
 {
   stringstream label;
@@ -562,9 +488,6 @@ void ErsatzMaterial::CalcNewmarkDerivative(Excitation& excite, Solutions& forwar
   Function* f = Function::Cast(c, g);
 
   UInt timesteps = domain->GetDriver()->GetNumSteps();
-  double dt = dynamic_cast<TransientDriver*>(domain->GetDriver())->GetDeltaT();
-  double gamma = pde->getTimeStepping()->GetNewmarkGamma();
-  double beta = pde->getTimeStepping()->GetNewmarkBeta();
 
   MathParser * parser = domain->GetMathParser();
   unsigned int mathParserHandle = parser->GetNewHandle();
@@ -572,16 +495,22 @@ void ErsatzMaterial::CalcNewmarkDerivative(Excitation& excite, Solutions& forwar
   assert(domain->HasErsatzMaterialTensor()); // this is not implemented for SIMP
 
   Matrix<double> dK(1, 1), dM(1, 1);
-  Vector<double> dKu(0), dMu(0);
+  Vector<double> dKp(0), dMp(0), dDp(0);
 
   // this is only caching, access using the double maps for every get slows down this procedure by about 50% for 200 timesteps
   StdVector<StdVector<SingleVector*>*> forwards;
+  StdVector<StdVector<SingleVector*>*> forwarddt;
+  StdVector<StdVector<SingleVector*>*> forwarddtt;
   StdVector<StdVector<SingleVector*>*> adjoints;
   forwards.Resize(timesteps);
+  forwarddt.Resize(timesteps);
+  forwarddtt.Resize(timesteps);
   adjoints.Resize(timesteps);
   for(unsigned int t = 0; t < timesteps; ++t){
-    forwards[t] = &forward.Get(excite, NULL, t)->elem[MECH];
-    adjoints[t] = &adjoint.Get(excite, f, t)->elem[MECH];
+    forwards[t] = (&forward.Get(excite, NULL, t)->elem[MECH]);
+    forwarddt[t] = (&forward.Get(excite, NULL, t, FIRST_DERIV)->elem[MECH]);
+    forwarddtt[t] = (&forward.Get(excite, NULL, t, SECOND_DERIV)->elem[MECH]);
+    adjoints[t] = (&adjoint.Get(excite, f, t)->elem[MECH]);
   }
 
   const TransferFunction* ktf = design->GetTransferFunction(DesignElement::DENSITY, MECH);
@@ -614,49 +543,30 @@ void ErsatzMaterial::CalcNewmarkDerivative(Excitation& excite, Solutions& forwar
           dampingAlpha = parser->Eval(mathParserHandle);
         }
       }
+      
+      const bool damping = dampingAlpha > 0.0 || dampingBeta > 0.0;
 
-      double vK = 0.0;
-      double vM = 0.0;
-      double vC = 0.0;
-      for(unsigned int t = 0; t < timesteps; ++t){ // loop over all time steps in u
-        Vector<double>& u_vec = dynamic_cast<Vector<double>& >(*(*forwards[t])[e]);
-        dKu = dK * u_vec;
-        dMu = dM * u_vec;
-        // the dA part
-        Vector<double>& p_vecd = dynamic_cast<Vector<double>& >(*(*adjoints[t])[e]);
-        double dvK = p_vecd * dKu;
-        vK -= dvK;
-        double dvM = p_vecd * dMu;
-        vM -= dvM;
-        double dvC = (gamma / (beta * dt) ) * ( dampingAlpha * dvM + dampingBeta * dvK);
-        vC -= dvC;
-        double u = 1.0; double upp = 1.0 / (beta*dt*dt); double up = upp * gamma * dt;
-        if(t == 0 && IsFirstTransientStepStatic()){ // reset up and upp as in simulation (StdSolveStep)
-          upp = 0.0;
-          up = 0.0;
-          vM = 0.0; // reset the mass part for the first step
-          vC = 0.0;
+      double v = 0.0;
+      for(unsigned int t = 0; t < timesteps; ++t){ // loop over all time steps
+        Vector<double>& p_vec = dynamic_cast<Vector<double>&>(*(*adjoints[t])[e]);
+        dKp = dK * p_vec;
+        if(notDampingElement){ // K/dDamp = M/dDamp = 0
+          Vector<double>& u_vec = dynamic_cast<Vector<double>&>(*(*forwards[t])[e]);
+          v -= u_vec * dKp;
         }
-        for(unsigned int tp = t+1; tp < timesteps; ++tp){ // loop over all time steps in p
-          Vector<double>& p_vec = dynamic_cast<Vector<double>& >(*(*adjoints[tp])[e]);
-          // these are the scalar factors for the parts of the derivative of F
-          double ut = u + (up + upp*(0.5-beta)*dt ) *dt;
-          double upt = up + (1.0 - gamma) * dt * upp;
-          double pdMu = p_vec * dMu;
-          double tvM = ut * pdMu;
-          vM += tvM;
-          double pdKu = p_vec * dKu;
-          double tvC = ( gamma * ut / (beta * dt) - upt ) * (dampingAlpha * pdMu + dampingBeta * pdKu);
-          vC += tvC;
-          u = 0.0;
-          upp = (u - ut) / (beta * dt * dt);
-          up = (upt + upp * gamma * dt);
+        if(t > 0 || !IsFirstTransientStepStatic()){
+          dMp = dM * p_vec;
+          if(notDampingElement){
+            Vector<double>& utt_vec = dynamic_cast<Vector<double>&>(*(*forwarddtt[t])[e]);
+            v -= utt_vec * dMp;
+          }
+          if(damping){ // just performance; if alpha = beta = 0, we can omit one vector product
+            Vector<double>& ut_vec = dynamic_cast<Vector<double>&>(*(*forwarddt[t])[e]);
+            dDp = dampingAlpha * dMp + dampingBeta * dKp;
+            v -= ut_vec * dDp;
+          }
         }
-      }
-      double v = vC;
-      if(notDampingElement){ // dA/dDamp = K/dDamp + M/dDamp + C/dDamp = 0 + 0 + C/dDamp 
-        v += vK + vM / (beta * dt * dt);
-      }      
+      } // loop over timesteps
       de->AddGradient(c, g, factor * v );
     }
   }
@@ -848,129 +758,6 @@ void ErsatzMaterial::SubtractGradSurfaceRHS(DesignElement* de, TransferFunction*
     }
   }
 }
-
-
-double ErsatzMaterial::CalcObjective()
-{
-  // in objective.value_ we store the sum over all excitations w/o penalty but with normalization
-  // in excitation.cost we store the sum over all objectives with penalty but w/o normalization
-
-  // reset the objective values such that we can sum up normalized but unpenalized values
-  for(unsigned int o = 0; o < objectives.data.GetSize(); o++)
-    objectives.data[o]->ResetValue();
-
-  double result = 0.0;
-
-  // the multiple excitation case is a special case - for all other cases this is executed once
-  for(unsigned int e = 0; e < me->excitations.GetSize(); e++)
-  {
-    Excitation& excite = me->excitations[e];
-    excite.cost = 0.0;
-
-    for(unsigned int o = 0; o < objectives.data.GetSize(); o++)
-    {
-      Objective* f = objectives.data[o];
-
-      // some objectives are only to be evaluated for the last excitation
-      if(!f->DoEvaluate(&excite)) continue;
-
-      //double ov = CalcObjective(excite, f); // this is virtual!
-      double ov = CalcFunction(excite, f, false); // this is virtual!
-      excite.cost += ov * f->GetPenalty();
-
-      // we ignore the weight if the evaluation happens only once! TODO why not omega*omega? - Fabian
-      double weight = !f->DoEvaluateAlways() ? 1.0 : excite.normalized_weight;
-
-      f->AddValue(ov * weight);
-
-      result += ov * f->GetPenalty() * weight;
-      LOG_DBG(em) << "CalcObjective: ex=" << e << " obj=" << f->type.ToString(f->GetType()) << " ov=" << ov
-          << " penalty" << f->GetPenalty() << " ex.cost=" << excite.cost << " nw=" << excite.normalized_weight
-          << " wei=" << weight << " f->val=" << f->GetValue() << " result=" << result;
-    }
-  }
-
-  return result;
-}
-
-void ErsatzMaterial::CalcObjectiveGradient(StdVector<double>* grad_out)
-{
-  // reset the cost gradients in the design elements and sum them up in a weighted way
-  // to perform multiple loads
-  design->Reset(DesignElement::COST_GRADIENT);
-
-  for(unsigned int obj = 0; obj < objectives.data.GetSize(); obj++)
-  {
-    Objective* cost = objectives.data[obj];
-    // the multiple excitation case is a special case - for all other cases this is executed once
-    for(unsigned int idx = 0; idx < me->excitations.GetSize(); idx++)
-    {
-      Excitation& excite = me->excitations[idx];
-      // some objectives are only to be evaluated for the last excitation
-      if(!cost->DoEvaluate(&excite)) continue;
-
-      CalcFunction(excite, cost, true);
-    }
-  }
-
-  if(grad_out != NULL)
-    design->WriteGradientToExtern(*grad_out, DesignElement::COST_GRADIENT, DesignElement::SMART);
-}
-
-
-
-double ErsatzMaterial::CalcConstraint(Condition* g)
-{
-  // assume when we have only one constraint which is not explicitly given, this is not the stress constraint!
-  assert((g == NULL && constraints.active.GetSize() == 1 && constraints.active[0]->DoEvaluateAlways()) || g != NULL);
-
-  if(g == NULL)
-    g = constraints.active[0];
-
-  double result = 0.0;
-
-  for(unsigned int e = 0; e < me->excitations.GetSize(); e++)
-  {
-    Excitation& excite = me->excitations[e];
-    // in the evaluate once case only the last excitation
-    double v = g->DoEvaluate(&excite) ? CalcFunction(excite, g, false) : 0.0;
-    double w = g->DoEvaluateAlways() ? excite.GetFactor(g) : 1.0;
-    result += v * w;
-    LOG_DBG(em) << "CC ex=" << e << " eval=" << g->DoEvaluate(&excite) << " v=" << v << " w=" << w << " -> " << result;
-  }
-
-  g->SetValue(result);
-  return result;
-}
-
-void ErsatzMaterial::CalcConstraintGradient(Condition* g, StdVector<double>* grad_out)
-{
-  // assume when we have only one constraint which is not explicitly given, this is not the stress constraint!
-  assert((g == NULL && constraints.active.GetSize() == 1 && !constraints.active[0]->DoEvaluateAlways()) || g != NULL);
-
-  if(g == NULL)
-    g = constraints.active[0];
-
-  for(unsigned int i = 0; i < me->excitations.GetSize(); i++)
-  {
-    if(g->DoEvaluate(&me->excitations[i]))
-      CalcFunction(me->excitations[i], g, true);
-  }
-
-  // copies from the design element gradient data to a memory array for external optimizers
-  if(grad_out != NULL)
-    design->WriteGradientToExtern(*grad_out, DesignElement::CONSTRAINT_GRADIENT, DesignElement::SMART, g);
-
-  // if there is a <result ... value="constraintGradient" detail="penalizedVolume/*"
-  if(g->special_result_idx != -1)
-  {
-    int base = design->FindDesign(g->design);
-    int n    = design->GetNumberOfElements();
-    for(int i = n * base; i < n * (base + 1); i++) // TODO add access!
-      design->data[i].specialResult[g->special_result_idx] = design->data[i].GetPlainGradient(NULL, g);
-  }
-}
-
 
 
 double ErsatzMaterial::CalcFunction(Excitation& excite, Function* f, bool derivative)
@@ -1867,7 +1654,7 @@ void ErsatzMaterial::SetEnergyFluxVector(Function* f, const Vector<complex<doubl
   // reset output
   q_u_glob.Init(complex<double>(0.0, 0.0));
   // here we count the entries to q_u_glob to normalize in the end
-  Vector<int> count(u_glob.GetSize());
+  StdVector<int> count(u_glob.GetSize());
   count.Init(0);
 
   // an element solution vector -> we need a 1 dof solution up to now!
@@ -3082,7 +2869,7 @@ void ErsatzMaterial::SolveStateProblem(Excitation* ev_only_exite)
     // this is true for all problem types
     Optimization::SolveStateProblem(&excite);
     if(!IsTransient()){ // transient solutions are read per timestep
-      StorePDESolution(forward, excite, NULL, 0, true, true, false, "forward");
+      StorePDESolution(forward, excite, NULL, 0, true, true, false, NO_DERIVTYPE, "forward");
     }
 
 
@@ -3094,7 +2881,7 @@ void ErsatzMaterial::SolveStateProblem(Excitation* ev_only_exite)
 
       // this is true for all problem types
       Optimization::SolveStateProblem(&excite);
-      StorePDESolution(adjoint, excite, NULL, 0, true, true, false, "permeability");
+      StorePDESolution(adjoint, excite, NULL, 0, true, true, false, NO_DERIVTYPE, "permeability");
 
       SetMaxwellHomMatType(ELEC_PERMITTIVITY);
     }
@@ -3154,9 +2941,9 @@ void ErsatzMaterial::SolveAdjointProblems(Excitation* ev_only_exite)
 }
 
 void ErsatzMaterial::StorePDESolution(Solutions& solutions, Excitation &excite, Function* f, unsigned int timestep,
-    bool read_sol, bool read_rhs, bool save_sol, const std::string& comment)
+    bool read_sol, bool read_rhs, bool save_sol, DERIVType derivative, const std::string& comment)
 {
-  Solution& sol = *(solutions.Get(excite, f, timestep));
+  Solution& sol = *(solutions.Get(excite, f, timestep, derivative));
 
   SingleVector* raw = NULL; // last result = every result for multiple solutions
 
@@ -3169,8 +2956,8 @@ void ErsatzMaterial::StorePDESolution(Solutions& solutions, Excitation &excite, 
         << " timestep=" << timestep;
 
     if(read_sol){
-      sol.Read(Solution::ELEMENT_VECTORS, it->second, it->first, save_sol);
-      raw = sol.Read(Solution::RAW_VECTOR, it->second, it->first, save_sol);
+      sol.Read(Solution::ELEMENT_VECTORS, it->second, it->first, save_sol, derivative);
+      raw = sol.Read(Solution::RAW_VECTOR, it->second, it->first, save_sol, derivative);
 
       LOG_DBG2(em) << ss.str() << " sol: " << raw->ToString();
     }
@@ -3178,7 +2965,7 @@ void ErsatzMaterial::StorePDESolution(Solutions& solutions, Excitation &excite, 
 
     if(read_rhs)
     {
-      sol.Read(Solution::RHS_VECTOR, it->second, it->first, save_sol);
+      sol.Read(Solution::RHS_VECTOR, it->second, it->first, save_sol, derivative);
       LOG_DBG2(em) << ss.str() << " rhs: " << sol.GetVector(Solution::RHS_VECTOR)->ToString();
     }
   }
@@ -3190,9 +2977,11 @@ void ErsatzMaterial::TimeStepCalculated(UInt timeStep, AdjointParameters* adjPar
 
   // drivers start counting steps with 1
   if(adjParams == NULL){
-    StorePDESolution(forward, *applied_excitation, NULL, timeStep-1, true, false, false, "forward");
+    StorePDESolution(forward, *applied_excitation, NULL, timeStep-1, true, false, false, NO_DERIVTYPE, "forward");
+    StorePDESolution(forward, *applied_excitation, NULL, timeStep-1, true, false, false, FIRST_DERIV, "forward-derivative");
+    StorePDESolution(forward, *applied_excitation, NULL, timeStep-1, true, false, false, SECOND_DERIV, "forward-second-derivative");
   }else{
-    StorePDESolution(adjoint, *applied_excitation, adjParams->GetFunction(), timeStep-1, true, false, false, "adjoint");
+    StorePDESolution(adjoint, *applied_excitation, adjParams->GetFunction(), timeStep-1, true, false, false, NO_DERIVTYPE, "adjoint");
   }
 
 }
@@ -3200,9 +2989,9 @@ void ErsatzMaterial::TimeStepCalculated(UInt timeStep, AdjointParameters* adjPar
 void ErsatzMaterial::RhsCalculated(AdjointParameters* adjParams){
   if(IsTransient()){ // only in transient case this is needed
     if(adjParams == NULL){
-      StorePDESolution(forward, *applied_excitation, NULL, domain->GetDriver()->GetActStep("mech")-1, false, true, false, "forward");
+      StorePDESolution(forward, *applied_excitation, NULL, domain->GetDriver()->GetActStep("mech")-1, false, true, false, NO_DERIVTYPE, "forward");
     }else{
-      StorePDESolution(adjoint, *applied_excitation, adjParams->GetFunction(), domain->GetDriver()->GetActStep("mech")-1, false, true, false, "adjoint");
+      StorePDESolution(adjoint, *applied_excitation, adjParams->GetFunction(), domain->GetDriver()->GetActStep("mech")-1, false, true, false, NO_DERIVTYPE, "adjoint");
     }
   }
 }
@@ -3284,7 +3073,7 @@ void ErsatzMaterial::SolveAdjointProblem(Excitation* excite, Function* f)
       Optimization::SolveAdjointProblem(excite, f);
 
       if(!IsTransient()){ // transient solutions are read every timestep
-        StorePDESolution(adjoint, *excite, f, 0, true, false, false, "adjoint");
+        StorePDESolution(adjoint, *excite, f, 0, true, false, false, NO_DERIVTYPE, "adjoint");
       }
 
       // write back the solution s.th. CommitIteration() makes StoreResults() properly.
@@ -3312,7 +3101,7 @@ void ErsatzMaterial::SolveAdjointProblem(Excitation* excite, Function* f)
       SetAndSolveAdjointRHS<T>(*excite, f);
 
       // store the stuff -> no rhs but special handling of element results
-      StorePDESolution(adjoint, *excite, f, 0, true, false, true, "adjoint");
+      StorePDESolution(adjoint, *excite, f, 0, true, false, true, NO_DERIVTYPE, "adjoint");
 
       // write back the solution s.th. CommitIteraion() makes StoreResults() properly.
       forward.Get(*excite)->Write(pde);
@@ -3501,502 +3290,9 @@ void ErsatzMaterial::ConstructAdjointRHS(Excitation& excite, Function* f)
   else ConstructRealAdjointRHS(excite, f);
 }
 
-void ErsatzMaterial::SetPDEs()
-{
-  switch(OptimizationMaterial::system.Parse(pn->Get("material")->As<std::string>()))
-  {
-  case OptimizationMaterial::MECH:
-  case OptimizationMaterial::PIEZOCOUPLING:
-    pde = domain->GetSinglePDE("mechanic");
-    pdes[MECH] = pde;
-    break;
-
-  case OptimizationMaterial::HEAT:
-    pde = domain->GetSinglePDE("heatConduction");
-    pdes[HEAT] = pde;
-    break;
-
-  case OptimizationMaterial::ACOUSTIC:
-    pde = domain->GetSinglePDE("acoustic", true);
-    pdes[ACOUSTIC] = pde;
-    break;
-
-  case OptimizationMaterial::ELEC:
-    pde = domain->GetSinglePDE("electrostatic", true);
-    pdes[ELEC] = pde;
-    break;
-
-  default:
-    assert(false);
-  }
-
-  // make it more smart when using energy flux for other pdes
-  if(objectives.Has(Function::ENERGY_FLUX))
-    pdes[ACOUSTIC] = domain->GetSinglePDE("acoustic", true);
-
-  // ELEC is set in PiezoSIMP()
-}
-
-
-
-SinglePDE* ErsatzMaterial::ToPDE(Application app, bool throw_exception) const
-{
-  map<Application, SinglePDE*>::const_iterator it = pdes.find(app);
-  if(it != pdes.end())
-    return it->second;
-
-  // nothing found
-  if(throw_exception)
-    EXCEPTION("No PDE '" << app << "' stored");
-
-  return NULL;
-}
-
-
-Optimization::Application ErsatzMaterial::ToApp(DesignElement::Type dt)
-{
-  switch(dt)
-  {
-  case DesignElement::DENSITY:
-    return MECH;
-  case DesignElement::ACOU_DENSITY:
-    return ACOUSTIC;
-  case DesignElement::POLARIZATION:
-    return ELEC;
-  default:
-    EXCEPTION("DesignType " << DesignElement::type.ToString(dt) << " doesn't map to Application");
-  }
-}
-
-DesignElement::Type ErsatzMaterial::ToDesign(const SinglePDE* pde) const
-{
-  if(pde->GetName() == "electrostatic") return DesignElement::POLARIZATION;
-  if(pde->GetName() == "mechanic") return DesignElement::DENSITY;
-  if(pde->GetName() == "acoustic") return DesignElement::ACOU_DENSITY;
-
-  throw Exception("invalid");
-}
-
-
-Optimization::Application ErsatzMaterial::ToApp(const SinglePDE* pde) const
-{
-  if(pde->GetName() == "electrostatic") return ELEC;
-  if(pde->GetName() == "mechanic") return MECH;
-  if(pde->GetName() == "heatConduction") return HEAT;
-  if(pde->GetName() == "acoustic") return ACOUSTIC;
-
-  throw Exception("invalid");
-}
-
-
-
-
 void ErsatzMaterial::GetErsatzMaterialTensor(Matrix<double>& mat, Elem* elem, DesignElement::Type direction){
   linElastInt* form = (linElastInt*)GetForm(elem->regionId, pde, pde, "linElastInt");
   form->calcDMat(mat, elem, direction);
-}
-
-ErsatzMaterial::Solutions::Solutions()
-{
-  this->em_ = NULL;
-  forward_data_ = NULL;
-  isForward = false;
-}
-
-ErsatzMaterial::Solutions::~Solutions()
-{
-  StdVector<Function*> funcs = GetFunctions();
-  for(unsigned int fi = 0; fi < funcs.GetSize(); fi++)
-  {
-    StdVector<Unit*>& list = data_[funcs[fi]];
-    for(unsigned int ts = 0; ts < list.GetSize(); ++ts)
-      delete list[ts];
-  }
-}
-
-void ErsatzMaterial::Solutions::Init(ErsatzMaterial* em)
-{
-  this->em_ = em;
-}
-
-void ErsatzMaterial::Solutions::Init(Function* f)
-{
-  assert(em_ != NULL);
-
-  StdVector<Unit*>& list = data_[f];
-  
-  // we have to delete the old data before overwriting with new stuff!
-  for(unsigned int ts = 0, s = list.GetSize(); ts < s; ++ts)
-    delete list[ts];
-  
-  list.Clear();
-  list.Resize(domain->GetDriver()->GetNumSteps());
-
-  for(unsigned int ts = 0; ts < domain->GetDriver()->GetNumSteps(); ++ts)
-    list[ts] = new Unit(em_);
-}
-
-
-ErsatzMaterial::Solutions::Unit::Unit(ErsatzMaterial* em)
-{
-  // we have to delete the old data before overwriting with new stuff!
-  for(unsigned int i = 0, s = data.GetSize(); i < s; ++i)
-      delete data[i];
-  
-  data.Clear();
-  data.Resize(em->me->excitations.GetSize());
-  
-  for(unsigned int i = 0, s = data.GetSize(); i < s; ++i)
-    data[i] = new Solution(em);
-}
-
-ErsatzMaterial::Solutions::Unit::~Unit()
-{
-  for(unsigned int i = 0, s = data.GetSize(); i < s; ++i)
-  {
-    delete data[i];
-    data[i] = NULL;
-  }
-}
-
-ErsatzMaterial::Solution* ErsatzMaterial::Solutions::Get(Excitation& excitation, Function* f, unsigned int timestep)
-{
-  return Get(excitation.index, f, timestep);
-}
-
-ErsatzMaterial::Solution* ErsatzMaterial::Solutions::Get(int excitation_index, Function* f, unsigned int timestep)
-{
-  if(isForward){ // if this is true, f is ignored and forward_data_ is used to avoid one map access
-    if(forward_data_ == NULL){
-      if(data_.find(NULL) == data_.end()){
-        Init((Function*)NULL);
-      }
-      forward_data_ = &data_[NULL];
-    }
-    return((*forward_data_)[timestep]->data[excitation_index]);
-  }else{
-    // do we have to init first?
-    if(data_.find(f) == data_.end())
-      Init(f);
-    assert(data_.find(f) != data_.end());
-    return data_[f][timestep]->data[excitation_index];
-  }
-}
-
-StdVector<Function*> ErsatzMaterial::Solutions::GetFunctions() const
-{
-  StdVector<Function*> result;
-
-  for(map<Function*, StdVector<Unit*> >::const_iterator it = data_.begin(); it != data_.end(); ++it)
-  {
-    // LOG_DBG2(em) << "GetFunctions(): f=" << (it->first == NULL ? "NULL" : it->first->ToString());
-    if(it->first != NULL)
-      result.Push_back(it->first);
-  }
-
-  return result;
-}
-
-ErsatzMaterial::Solution::Solution(ErsatzMaterial* em)
-{
-  this->em_ = em;
-  this->raw = NULL;
-  this->rhs = NULL;
-  this->select = NULL;
-}
-
-ErsatzMaterial::Solution::~Solution()
-{
-  delete raw;
-  delete rhs;
-  delete select;
-
-  std::map<Application, StdVector<SingleVector* > >::iterator elem_iter;
-  for(elem_iter = elem.begin(); elem_iter != elem.end(); elem_iter++)
-  {
-    StdVector<SingleVector* >& data = elem_iter->second;
-    for(unsigned int i = 0; i < data.GetSize(); i++)
-    {
-      delete data[i];
-    }
-  }
-}
-
-SingleVector* ErsatzMaterial::Solution::Read(StorageType st, StdPDE* pde, Application app, bool save_sol)
-{
-  if (em_->harmonic)
-    return Read<std::complex<double> > (st, pde, app, save_sol);
-  else
-    return Read<double> (st, pde, app, save_sol);
-}
-
-/** Writes the solution (raw vector) back to the pde */
-void ErsatzMaterial::Solution::Write(StdPDE* pde)
-{
-  if (em_->harmonic)
-    Write<std::complex<double> >(pde);
-  else
-    Write<double>(pde);
-}
-
-template <class T>
-void ErsatzMaterial::Solution::Write(StdPDE* pde)
-{
-  T* ptr = NULL;
-  Vector<T>* v = static_cast<Vector<T>*>(raw);
-  ptr = v->GetPointer();
-  assert(ptr != NULL);
-  assert(raw->GetSize() != 0);
-  pde->SaveSolution(ptr, raw->GetSize());
-}
-
-
-void ErsatzMaterial::Solution::Write(StdPDE* pde, Solutions& sol, Function* f, int time_step, StdVector<Excitation>& excitations)
-{
-  if(BasePDE::IsComplex(domain->GetDriver()->GetAnalysisType()))
-    Write<complex<double> >(pde, sol, f, time_step, excitations);
-  else
-    Write<double>(pde, sol, f, time_step, excitations);
-}
-
-template <class T>
-void ErsatzMaterial::Solution::Write(StdPDE* pde, Solutions& sol, Function* f, int time_step, StdVector<Excitation>& excitations)
-{
-  if(excitations.GetSize() == 1)
-  {
-    sol.Get(0, f)->Write(pde);
-  }
-  else
-  {
-    assert(f == NULL || sol.data_.find(f) != sol.data_.end()); // if f != NULL it has to be in the map
-    Solutions::Unit* unit = sol.data_[f][time_step];
-    assert(unit->data.GetSize() == excitations.GetSize());
-
-    Vector<T> sum(unit->data[0]->raw->GetSize());
-    sum.Init();
-
-    for(unsigned int ex = 0; ex < excitations.GetSize(); ex ++)
-    {
-      Solution* s =unit->data[ex];
-      sum.Add((T) excitations[ex].normalized_weight, *(s->raw));
-    }
-    Write(pde, &sum);
-  }
-}
-
-
-void ErsatzMaterial::Solution::Write(StdPDE* pde, SingleVector* vec)
-{
-  // we are static
-  bool harmonic = BasePDE::IsComplex(domain->GetDriver()->GetAnalysisType());
-  LOG_DBG2(em) << "S:W pde=" << pde->GetName() << " h=" << harmonic << " vec=" << vec->ToString();
-  if(harmonic)
-  {
-    Vector<complex<double> >& sol = dynamic_cast<Vector<complex<double> >& >(*vec);
-    pde->SaveSolution(sol.GetPointer(), sol.GetSize());
-  }
-  else
-  {
-    Vector<double>& sol = dynamic_cast<Vector<double>& >(*vec);
-    pde->SaveSolution(sol.GetPointer(), sol.GetSize());
-  }
-}
-
-template <class T>
-SingleVector* ErsatzMaterial::Solution::GetVector(StorageType st, bool create)
-{
-  switch(st)
-  {
-  case RAW_VECTOR:
-    assert(raw != NULL || create);
-    if(raw == NULL && create) // this will crash for !create in release
-      raw = new Vector<T>();
-    return raw;
-
-  case RHS_VECTOR:
-    assert(rhs != NULL || create);
-    if(rhs == NULL && create)
-      rhs = new Vector<T>();
-    return rhs;
-
-  case SEL_VECTOR:
-    assert(select != NULL || create);
-    if(select == NULL && create)
-      select = new Vector<T>();
-    return select;
-
-  default:
-    assert(false);
-  }
-
-  EXCEPTION("false");
-}
-
-SingleVector* ErsatzMaterial::Solution::GetVector(StorageType st)
-{
-  // as create is false, it makes no difference of we use the double or complex variant
-  return GetVector<double>(st, false);
-}
-
-Vector<double>& ErsatzMaterial::Solution::GetRealVector(StorageType st)
-{
-  // we know what we want - hence we can create the result on the fly
-  return dynamic_cast<Vector<double>& >(*GetVector<double>(st, true));
-}
-
-Vector<complex<double> >& ErsatzMaterial::Solution::GetComplexVector(StorageType st)
-{
-  return dynamic_cast<Vector<complex<double> >& >(*GetVector<complex<double> >(st, true));
-}
-
-template <class T>
-SingleVector* ErsatzMaterial::Solution::Read(StorageType st, StdPDE* pde, Application app, bool save_sol)
-{
-  SolutionType solt;
-  switch(app)
-  {
-  case NO_APP: // up to now
-    solt = dynamic_cast<SinglePDE*>(pde)->GetNativeSolutionType();
-    break;
-  case MECH:
-    solt = MECH_DISPLACEMENT;
-    break;
-  case ELEC:
-    solt = ELEC_POTENTIAL;
-    break;
-  case HEAT:
-    solt = HEAT_TEMPERATURE;
-    break;
-  case ACOUSTIC:
-    solt = ACOU_POTENTIAL;
-    break;
-  default:
-    EXCEPTION("Solution type not implemented");
-  }
-
-  shared_ptr<ResultInfo> resinfo = pde->GetResultInfo(solt);
-  Grid* grid = domain->GetGrid();
-
-  switch(st)
-    {
-    case GRIDELEM_VECTORS:
-    {
-      StdVector<SingleVector*>& elem_vec = gridelem[app];
-      int n = grid->GetNumElems();
-      if(elem_vec.GetSize() == 0){
-        elem_vec.Resize(n);
-        for(int ve = 0; ve < n; ve++){
-          elem_vec[ve] = new Vector<T>;
-        }
-      }
-      ElemList elemList(grid);
-      for(int e = 0; e < n; e++){
-        elemList.SetElement(grid->GetElem(e+1)); // GetElem is 1-based
-        const EntityIterator& it = elemList.GetIterator();
-        pde->GetSolVecOfElement((Vector<T>&) *elem_vec[e], it, resinfo);
-      }
-      return NULL;
-    }
-    case ELEMENT_VECTORS:
-    {
-      if(save_sol)
-      {
-        // store the solution in the PDE! This is necessary to read the element vector
-        // in the adjoint case!
-        Vector<T> tmpSol;
-        em_->assemble_->GetAlgSys()->GetSolutionVal(tmpSol);
-        pde->SaveSolution(tmpSol.GetPointer(), tmpSol.GetSize() );
-      }
-
-      // we save the element vectors in elem_vec. Might be empty the first call
-      StdVector<SingleVector*>& elem_vec = elem[app];
-
-      int n = em_->design->GetNumberOfElements(); // the standard design elements
-      int pn = em_->design->CalcPseudoDesignElements(); // optional (multiple) pseudo design elements
-
-      // check for first call
-      if(elem_vec.GetSize() == 0)
-      {
-        elem_vec.Resize(n + pn);
-        for(int ve = 0; ve < (n + pn); ve++)
-          elem_vec[ve] = new Vector<T>;
-      }
-
-      // create an element list to gain the iterator in the loop
-      ElemList elemList(grid);
-
-      // store the results of the standard design elements in our own structure
-      for(int e = 0; e < n; e++)
-      {
-        DesignElement* de = &em_->design->data[e];
-
-        elemList.SetElement(de->elem);
-        const EntityIterator& it = elemList.GetIterator();
-
-        assert((int) de->GetElementSolutionIndex() == e);
-        pde->GetSolVecOfElement((Vector<T>&) *elem_vec[e], it, resinfo);
-      }
-      // the pseudo design if we have some
-      for(unsigned int r = 0; r < em_->design->GetPseudoDesignRegions().GetSize(); r++)
-      {
-        StdVector<DesignElement>& data = em_->design->GetPseudoDesignRegions()[r];
-
-        for(unsigned int e = 0; e < data.GetSize(); e++)
-        {
-          DesignElement* de = &data[e];
-
-          elemList.SetElement(de->elem);
-          const EntityIterator& it = elemList.GetIterator();
-
-          assert(de->GetElementSolutionIndex() >= em_->design->GetNumberOfElements());
-          pde->GetSolVecOfElement((Vector<T>&) *elem_vec[de->GetElementSolutionIndex()], it, resinfo);
-        }
-      }
-
-      return NULL;
-    }
-    case SEL_VECTOR: // interpreted as RHS_VECTOR
-    case RAW_VECTOR:
-    case RHS_VECTOR:
-    {
-      // It is best to get the RHS from the algebraic system (OLAS), the PDE
-      // might not check about a further adjont calculation
-
-      // get access to solution
-      BaseSystem* bs = em_->assemble_->GetAlgSys();
-      Vector<T> tmp;
-
-      if(st == RAW_VECTOR)
-        bs->GetSolutionVal(tmp);
-      else
-        bs->GetRHSVal(tmp); // RHS_VECTOR and SEL_VECTOR
-
-      SingleVector* ptr = NULL;
-      switch(st)
-      {
-      case RAW_VECTOR:
-        if(raw == NULL) raw = new Vector<T>(tmp.GetSize());
-        ptr = raw;
-        break;
-      case RHS_VECTOR:
-        if(rhs == NULL) rhs = new Vector<T>(tmp.GetSize());
-        ptr = rhs;
-        break;
-      case SEL_VECTOR:
-        if(select == NULL) select = new Vector<T>(tmp.GetSize());
-        ptr = select;
-        break;
-      default:
-        assert(false);
-      }
-
-      *ptr = tmp; // copy constructor
-
-      return ptr;
-    }
-  }
-
-  throw Exception("false");
 }
 
 // template instantiation stuff
@@ -4007,4 +3303,5 @@ template double ErsatzMaterial::CalcU1KU2<double>(TransferFunction* tf, StdVecto
 template double ErsatzMaterial::CalcU1KU2<complex<double> >(TransferFunction* tf, StdVector<SingleVector*>& u1,
     Application app, StdVector<SingleVector*>& u2,
     DesignDependentRHS* rhs, double factor, CalcMode calcMode, Function* f,  int res_idx);
+
 } // end of namespace

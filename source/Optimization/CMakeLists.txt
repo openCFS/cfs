@@ -9,6 +9,7 @@ SET(OPTIMIZATION_SRCS
   OptimizationMaterial.cc
   Excitation.cc
   StressConstraint.cc
+  ErsatzMaterial_Solution.cc
   SIMP.cc
   PiezoSIMP.cc
   ShapeGrad.cc

@@ -527,6 +527,8 @@
                   </xsd:element>
                 </xsd:sequence>
                 <xsd:attribute name="fromWarmstart" type="xsd:boolean" default="true"/>
+                <!-- output can be missing, a file name, 'commandline' or 'silent' for no fileoutput at all -->
+                <xsd:attribute name="output" use="optional" type="xsd:string"/>
               </xsd:complexType>
             </xsd:element>
 

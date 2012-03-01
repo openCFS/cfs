@@ -3105,7 +3105,46 @@ namespace CoupledField {
     myMemento->gridFileName_ = progOpts->GetMeshFileStr();
     myMemento->stepNum_ = domain->GetSingleDriver()->GetActStep(pdename_);
 
-    if ( analysistype_ == STATIC || analysistype_ == TRANSIENT ) {
+    if ( analysistype_ == HARMONIC ) {
+
+      // --- Complex values --
+
+      // store current frequency
+      myMemento->freq_ = dynamic_cast<HarmonicDriver*>(domain->GetSingleDriver())
+        ->GetActFreq();
+
+      Vector<Complex> & solComp =
+        dynamic_cast<NodeStoreSol<Complex>&>(*(sol_)).GetAlgSysVector();
+      UInt numDofs = results_[0]->dofNames.GetSize();
+      StdVector<Integer> eqns;
+      for( UInt iRegion = 0; iRegion < subdoms_.GetSize(); iRegion++ ){
+
+        // create new entity list
+        shared_ptr<NodeList> actSDList( new NodeList(ptgrid_ ) );
+        actSDList->SetNodesOfRegion( subdoms_[iRegion] );
+
+        // create new vector
+        Vector<Complex> * values = new Vector<Complex>;
+        values->Resize( actSDList->GetSize() * numDofs );
+        values->Init();
+        EntityIterator it = actSDList->GetIterator();
+        UInt pos = 0;
+        for( it.Begin(); !it.IsEnd(); it++, pos++ ) {
+          eqnMap_->GetEqns( eqns, *results_[0], it );
+          for( UInt iDof = 0; iDof < numDofs; iDof++ ) {
+            if ( eqns[iDof] != 0 ) {
+              (*values)[numDofs*pos+iDof] = solComp[abs(eqns[iDof])-1];
+            } else {
+              (*values)[numDofs*pos+iDof] = 0.0;
+            }
+          }
+        }
+
+        // pass vector to memento object
+        std::string regionName = ptgrid_->GetRegion().ToString( subdoms_[iRegion] );
+        myMemento->solution_[regionName] = values;
+      }
+    } else {
 
       // --- Real values --
       Vector<Double> & solReal =
@@ -3165,47 +3204,8 @@ namespace CoupledField {
           myMemento->sol_tn_1_[regionName] = tn_1;
         }
       }
-    } else {
-
-      // --- Complex values --
-
-      // store current frequency
-      myMemento->freq_ = dynamic_cast<HarmonicDriver*>(domain->GetSingleDriver())
-        ->GetActFreq();
-
-      Vector<Complex> & solComp =
-        dynamic_cast<NodeStoreSol<Complex>&>(*(sol_)).GetAlgSysVector();
-      UInt numDofs = results_[0]->dofNames.GetSize();
-      StdVector<Integer> eqns;
-      for( UInt iRegion = 0; iRegion < subdoms_.GetSize(); iRegion++ ){
-
-        // create new entity list
-        shared_ptr<NodeList> actSDList( new NodeList(ptgrid_ ) );
-        actSDList->SetNodesOfRegion( subdoms_[iRegion] );
-
-        // create new vector
-        Vector<Complex> * values = new Vector<Complex>;
-        values->Resize( actSDList->GetSize() * numDofs );
-        values->Init();
-        EntityIterator it = actSDList->GetIterator();
-        UInt pos = 0;
-        for( it.Begin(); !it.IsEnd(); it++, pos++ ) {
-          eqnMap_->GetEqns( eqns, *results_[0], it );
-          for( UInt iDof = 0; iDof < numDofs; iDof++ ) {
-            if ( eqns[iDof] != 0 ) {
-              (*values)[numDofs*pos+iDof] = solComp[abs(eqns[iDof])-1];
-            } else {
-              (*values)[numDofs*pos+iDof] = 0.0;
-            }
-          }
-        }
-
-        // pass vector to memento object
-        std::string regionName = ptgrid_->GetRegion().ToString( subdoms_[iRegion] );
-        myMemento->solution_[regionName] = values;
-      }
     }
-
+    
     // now memento is initialized
     myMemento->isSet_ = true;
 

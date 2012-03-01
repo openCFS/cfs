@@ -19,7 +19,11 @@ namespace CoupledField
       movingMesh_(movingMesh),
       allocMem(false)
   {
+
     name_ = "fluidMechInt";
+
+    kinematicViscosityInital_ = bVal;
+    isSpongeLayer_ = false;
 
     Grid* const ptGrid = domain->GetGrid();
     spaceDim_ = ptGrid->GetDim();
@@ -454,5 +458,57 @@ namespace CoupledField
     // if this is still needed, convert to output to info.xml!
     //Info->PrintF( stabParamEsti_, "tau_mp = %e   tau_c = %e   h_k = %e   VelNorm = %e   \n", tau_mp, tau_c, h_k, VelNorm);
   }
+
+
+
+  //-----------------------------Sponge Layer Damping Methods ---------------------------------//
+
+  void FluidMechInt::InitSpongeLayer(Double start, Double end, Double dampFactor, std::string type) {
+
+    spongeLayerStart_      = start;
+    spongeLayerEnd_        = end;
+    spongeLayerDampFactor_ =  dampFactor;
+    spongeLayerType_       = type;
+    spongeLayerThickness_  = end - start;
+    isSpongeLayer_ = true;
+  }
+
+  void FluidMechInt::AdjustViscosity(Double pos) {
+
+    Double factor = 0.0;
+    if ( pos > spongeLayerStart_ ) {
+
+      if ( spongeLayerType_ == "constant" ) {
+        factor = spongeLayerDampFactor_;
+      }
+
+      else if ( spongeLayerType_  == "quadDist" ) {
+	      
+        Double diffCoord;
+        diffCoord = pos - spongeLayerStart_;
+        factor    = spongeLayerDampFactor_ * ( diffCoord*diffCoord ) / 
+          ( spongeLayerThickness_ * spongeLayerThickness_ );
+      } 
+    
+      else if ( spongeLayerType_ == "inverseDist" ) {
+        
+        Double diffCoord;
+        diffCoord = pos - spongeLayerEnd_;
+        factor = spongeLayerDampFactor_ / diffCoord;
+      }
+      
+      else if ( spongeLayerType_ == "smoothDamp" ) {
+
+        Double diffCoord = pos - spongeLayerStart_;
+        factor = spongeLayerDampFactor_ * 
+          ( diffCoord/spongeLayerThickness_ - 
+            std::sin(2*PI*diffCoord/spongeLayerThickness_) / ( 2*PI ) );
+      }
+    
+      kinematicViscosity_ = kinematicViscosityInital_ * (1.0 + factor);
+      //std::cout << "pos: " << pos << "   viscosity: " << kinematicViscosity_ << std::endl;
+    }
+  }
+
 
 } // end namespace CoupledField

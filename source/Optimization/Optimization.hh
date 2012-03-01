@@ -6,25 +6,28 @@
 #include <string>
 
 #include "DataInOut/ParamHandling/ParamNode.hh"
+#include "Forms/baseForm.hh"
 #include "General/Enum.hh"
 #include "General/defs.hh"
 #include "MatVec/vector.hh"
 #include "Optimization/Condition.hh"
 #include "Optimization/Design/DesignElement.hh"
 #include "Optimization/Objective.hh"
+#include "Optimization/OptimizationMaterial.hh"
 #include "Utils/StdVector.hh"
-
-namespace CoupledField {
-class Function;
-class Grid;
-}  // namespace CoupledField
 
 namespace CoupledField
 {
+   class Assemble;
    class BaseOptimizer;
+   class BiLinFormContext;
    class DesignSpace;
    class Excitation;
+   class Function;
+   class Grid;
+   class LinearFormContext;
    class MultipleExcitation;
+   class StdPDE;
 
    /** This is a simple class used as a parameter to SetAdjointRhs called by assemble */
    class AdjointParameters {
@@ -93,24 +96,24 @@ namespace CoupledField
 
         /** A cost function is (here) always a scalar type. The value is recalculated when needed!
          * This also stores the value in history of the CostFunction */
-        virtual double CalcObjective() = 0;
+        virtual double CalcObjective();
 
         /** Evaluates the cost-function gradient w.r.t. the design space. Apply SetDesignSpace() first!
          * Writes to DesingElement.objective_gradient.
          * Does a multiplication with Excitation::GetWeightedFactor(). Note, that 
          * the Calc* methods for the objective do only Excitation::GetFactor().
          * @param grad_out size is GetDesignSpaceSize(). If null only DesingElement.objective_gradient */
-        virtual void CalcObjectiveGradient(StdVector<double>* grad_out) = 0;
+        virtual void CalcObjectiveGradient(StdVector<double>* grad_out);
 
         /** Determines the constraint.
          * The function value is stored in value_
          * @param which constraint to calc? Default is the only one! */
-        virtual double CalcConstraint(Condition* constraint) = 0;
+        virtual double CalcConstraint(Condition* constraint);
 
         /** evaluates the gradient of the cost function by the desing element
          * Writes to DesignElement.contraint_gradient
          * @see CalcObjectiveGradient() for parameter description */
-        virtual void CalcConstraintGradient(Condition* constraint = NULL, StdVector<double>* grad_out = NULL) = 0;
+        virtual void CalcConstraintGradient(Condition* constraint = NULL, StdVector<double>* grad_out = NULL);
 
         /** This is brute force debug method which calculates the symmetry of a sqared
          * model with horizontal symmetry axis with lexicographic order (at least works for gid).
@@ -212,11 +215,67 @@ namespace CoupledField
         
         /** is called from assemble, after the calculation of the right-hand side, to get the rhs without Update from Newmark */
         virtual void RhsCalculated(AdjointParameters* adjParams) = 0;
+        
+        Assemble* GetAssemble() { return assemble_; }
+
+        /** Helper to convert from natural solution/design to application
+         * @param DesignElement::DENSITY -> MECH, DesignElement::POLARIZATION -> ELEC */
+        static Application ToApp(DesignElement::Type dt);
+
+        /** Default standard design type (not mass) by PDE */
+        DesignElement::Type ToDesign(const SinglePDE* pde) const;
+
+        /** Helper that converts from mechPDE to MECH and elecPDE to ELEC, ...
+         * @param from heat and acoustic the application for the transfer function is laplace, this is indicated by the flag if
+         *        we do not want a marker for the pde but the transfer function. Sorry, very messy !! :((
+         * @throws if neither mechPDE nor elecPDE
+         * @see ToPDE()
+         * @see SetPDEs() */
+        Application ToApp(const SinglePDE* pde) const;
+
+        /** Find our PDE in SIMP by application from the pdes map
+         * @see ToApp()*/
+        SinglePDE* ToPDE(Application app, bool throw_exception = true) const;
+
+
+        static LinearFormContext* GetLinearFormContext(const RegionIdType regionId, StdPDE* pde,
+            const std::string& integrator, Global::ComplexPart entryType = (Global::ComplexPart) 4711);
+
+        /** Helper which extracts the FormContext from assemble using the optimization region
+         * @param regionId the corresponding region
+         * @param pde1 the first pde (e.g. mech)
+         * @param pde2 this is either the same as pde1 or the coupling partner
+         * @param integrator there is no nice enum yet :( e.g. linElastInt, MechInt, ... */
+        static BiLinFormContext* GetFormContext(RegionIdType regionId, StdPDE* pde1, StdPDE* pde2, const std::string& integrator, bool throw_exception = true, Global::ComplexPart entryType = (Global::ComplexPart) 4711);
+
+        /** Get the standard integrators */
+        BaseForm* GetForm(const RegionIdType reg, Application app1, Application app2 = NO_APP, bool throw_exception = true);
+
+        /** Helper which extracts the Form from assemble using the optimization region
+         * @param regionId the corresponding region
+         * @param pde1 the first pde (e.g. mech)
+         * @param pde2 this is either the same as pde1 or the coupling partner
+         * @param integrator there is no nice enum yet :( e.g. linElastInt, MechInt, ... */
+        static BaseForm* GetForm(RegionIdType regionId, StdPDE* pde1, StdPDE* pde2, const std::string& integrator, bool throw_exception = true, Global::ComplexPart entryType = (Global::ComplexPart) 4711);
+
+        /** The order of the pdes is not defined, Therefore we use the map
+         * @see ToApp()
+         * @see ToPDE() */
+        std::map<Application, SinglePDE*> pdes;
+
+        /** This is simple one SinglePDE from pdes. */
+        SinglePDE* pde;
 
       protected:
         /** Set up the optimization system e.g. prepare the domain for optimization. called
          * exclusively by CreateInstance() -> don't forget to call PostInit() afterwards! */
         Optimization();
+
+        /** Evaluates objective and constraint function and gradient.
+         * Implemented in ErsatzMaterial
+         * @param grad_out only used in derivative case
+         * @return zero for derivative */
+        virtual double CalcFunction(Excitation& excite, Function* f, bool derivative) = 0;
 
         /** Appends to the current analysis_id of the driver a child and
          * sets analysis_id and excite accordingly */
@@ -240,11 +299,17 @@ namespace CoupledField
         /** This is the second phase of post initialization. It creates the Optimizer tools */
         virtual void PostInitSecond();
         
-        
+        /** This is to be overwritten for any case there are other PDEs in ErsatzMaterial::pdes to be set.
+         * PiezoSIMP does it simply in the constructor */
+        virtual void SetPDEs(OptimizationMaterial::System sys);
+
         /** Gives back the current frequency for printing. This is not the current frequency
          * in multifrequency case. Not a fast method!
          * @return an empty string in the non-harmonic case */
         virtual std::string GetIterationFrequency() { return "not implemented"; }
+
+        /** The assemble class for our PDE */
+        Assemble* assemble_;
 
         /** The way the date is stored. Forward/ adjoint/ both and stride. 
          * Set in the <commit> element */

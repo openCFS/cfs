@@ -30,6 +30,7 @@
 #include "General/defs.hh"
 #include "General/environment.hh"
 #include "General/exception.hh"
+#include "MatVec/matrix.hh"
 #include "MatVec/vector.hh"
 #include "Utils/Point.hh"
 #include "Utils/StdVector.hh"

@@ -12,7 +12,6 @@
 
 #include "General/exception.hh"
 #include "Utils/StdVector.hh"
-// #include "MatVec/vector.hh"
 
 namespace CoupledField
 {
@@ -205,10 +204,6 @@ namespace CoupledField
     DEFINE_PARAM(STDVEC_DOUBLE,StdVector<double>);
     DEFINE_PARAM(STDVEC_UINT,StdVector<unsigned int>);
     DEFINE_PARAM(STDVEC_INT,StdVector<int>);
-    // killme - TODO Fabian
-    //DEFINE_PARAM(VEC_UINT,Vector<unsigned int>);
-    //DEFINE_PARAM(VEC_INT,Vector<int>);
-    // DEFINE_PARAM(VEC_DOUBLE,Vector<double>);
     
 #undef DEFINE_PARAM
 

@@ -162,9 +162,12 @@ namespace CoupledField
     
     StdVector<StdVector<StdVector<UInt> > > elemNodeToCouplingNode_; 
 
-    //! force operator (for coupling as well as postprocessing)
+    //! force operator for coupling
     MagForceOp* ForceOpVWP_;
-    
+
+    //! force operator for postprocessing
+    std::map<RegionIdType, MagForceOp*>  ForcePostVWP_;
+
     //! regions on which the Lorentz force should be calculated
     std::set<RegionIdType> regionsForceL_;
     
