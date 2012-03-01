@@ -2031,175 +2031,6 @@ namespace CoupledField {
     }
   }
 
-
-  void SinglePDE::ReadRegionCharges(){
-    ReadRegionChargesFromXML(myParam_->Get("bcsAndLoads", ParamNode::PASS), regionCharges_);
-  }
-
-  void SinglePDE::ReadRegionChargesFromXML(PtrParamNode bcNode, std::map<RegionIdType, std::pair<BaseMaterial*, MaxwellHom> >& regcharges) {
-
-    StdVector<std::string> names, dofs, refCoord, type, phase;
-    StdVector<std::string> tempNames, tempDofs,  tempPhase;
-    StdVector<std::string>  tempRefCoord, tempType;
-    StdVector<RegionIdType> regionIds;
-    StdVector<UInt> vecComp;
-    StdVector<std::string> loadVecx, loadVecy, loadVecz, tempLoadVecx, tempLoadVecy, tempLoadVecz, tempLoad(dim_);
-    UInt locDof = 0;
-    Integer index = -1;
-
-    // Check, if function was called by a scripting command
-#ifdef USE_SCRIPTING
-    if ( messenger->IsEvaluating() == true ) {
-
-      // obtain parameters from messenger object
-      // Note: If scripting is used, only one region load
-      // can be specified per call
-      SCRIPT_GET( std::string,name);
-      SCRIPT_GET( std::string, valuex );
-      SCRIPT_GET( std::string, valuey );
-      SCRIPT_GET( std::string, valuez );
-      SCRIPT_GET( std::string, dof );
-      SCRIPT_GET( std::string, refCoordSys );
-      SCRIPT_GET( std::string, type );
-
-      // Copy single entries into vectors
-      tempNames.Push_back( name );
-      tempLoadVecx.Push_back( valuex );
-      tempLoadVecy.Push_back( valuey );
-      tempLoadVecz.Push_back( valuez );
-      tempDofs.Push_back( dof );
-      tempRefCoord.Push_back( refCoordSys );
-      tempType.Push_back( type );
-
-    } else {
-#endif
-      // obtain parameters from ParamHandler
-      // Note: Here all region loads are read (in contrast
-      // when called by an external script)
-
-      // try to get bcsAndLoads node
-      if( !bcNode )
-        return;
-      ParamNodeList loadNodes = bcNode->GetList("maxwellHomCharges");
-
-
-      for( UInt i = 0; i < loadNodes.GetSize(); i++ ) {
-
-        PtrParamNode actNode = loadNodes[i];
-
-        tempNames.Push_back( actNode->Get("name")->As<std::string>() );
-        tempLoadVecx.Push_back( actNode->Get("valuex")->As<std::string>() );
-        tempLoadVecy.Push_back( actNode->Get("valuey")->As<std::string>() );
-        tempLoadVecz.Push_back( actNode->Get("valuez")->As<std::string>() );
-        tempPhase.Push_back( actNode->Get("phase")->As<std::string>() );
-        tempDofs.Push_back( actNode->Get("dof")->As<std::string>() );
-        tempRefCoord.Push_back( actNode->Get("coordSysId")->As<std::string>() );
-        tempType.Push_back( actNode->Get("type")->As<std::string>() );
-      }
-
-#ifdef USE_SCRIPTING
-    }
-#endif
-
-    // --- Common part for scripting and parameter file ---
-
-
-    // Now sort the names and remove double entries
-    for (UInt i = 0; i < tempNames.GetSize(); i++) {
-      index = names.Find(tempNames[i]);
-      if ( index == -1) {
-        names.Push_back(tempNames[i]);
-      }
-    }
-
-    // Convert region names to ID - vector
-    ptgrid_->GetRegion().Parse(names, regionIds );
-
-
-    // loop over all regions
-    for (UInt i = 0; i < names.GetSize(); i++) {
-
-      // get for each name all related entries for value,
-      // dof, refCoordSys and type
-      loadVecx.Clear();
-      loadVecy.Clear();
-      loadVecz.Clear();
-      phase.Clear();
-      dofs.Clear();
-      refCoord.Clear();
-      type.Clear();
-      for (UInt iEntry = 0; iEntry < tempNames.GetSize(); iEntry++ ) {
-        if ( names[i] == tempNames[iEntry] ) {
-          loadVecx.Push_back(tempLoadVecx[iEntry]);
-          loadVecy.Push_back(tempLoadVecy[iEntry]);
-          loadVecz.Push_back(tempLoadVecz[iEntry]);
-          phase.Push_back(tempPhase[iEntry]);
-          dofs.Push_back(tempDofs[iEntry]);
-          refCoord.Push_back(tempRefCoord[iEntry]);
-          type.Push_back(tempType[iEntry]);
-        }
-      }
-
-      // check if all entries for  refCoord and type
-      // are the same
-      for (UInt k=0; k<refCoord.GetSize(); k++) {
-        if ( refCoord[k] != refCoord[0] ||
-            type[k] != type[0] ) {
-          EXCEPTION( "ElecPDE::DefineMaxwellHoms: The region charge on region "
-              << names[i] << " has not for all dofs the same entry for "
-              << "refCoord or type (total/unit)!" );
-        }
-      }
-
-      // Check if an entry already exists for this region
-      MaxwellHom * curLoad;
-
-      std::map<RegionIdType, std::pair<BaseMaterial*, MaxwellHom> >::iterator it;
-      it = regcharges.find( regionIds[i] );
-
-
-
-
-      if ( it == regcharges.end() ) {
-        // TODO Dimension wirklich nur im mechanischen Fall nötig?
-        /*        regcharges.insert( std::map<RegionIdType, MaxwellHom>::value_type( regionIds[i],
-                                                                               MaxwellHom( dim_, isaxi_ ) ) ); */
-
-        std::map<RegionIdType, BaseMaterial*>::iterator MatIt;
-        MatIt = materials_.find(regionIds[i]);
-        regcharges.insert(std::map<RegionIdType, std::pair<BaseMaterial*, MaxwellHom> >::value_type( regionIds[i],
-            std::make_pair((*MatIt).second, MaxwellHom( dim_, isaxi_ ) ) ) );
-      }
-      it = regcharges.find( regionIds[i] );
-      curLoad = & (*it).second.second;
-
-      // -- Fill in the data we have so far --
-      curLoad->name = ptgrid_->GetRegion().ToString( regionIds[i] );
-      curLoad->phase = phase[0];
-
-      if ( curLoad->refCoord != std::string()
-      && curLoad->refCoord != refCoord[0] ) {
-        EXCEPTION( "Inconsistent definition of time data for MaxwellHoms" );
-      } else {
-        curLoad->refCoord = refCoord[0];
-      }
-
-      if ( curLoad->volume < EPS ) {
-        curLoad->volume = ptgrid_->CalcVolumeOfRegion(regionIds[i], isaxi_);
-      }
-
-      // now create local charge vector
-      for (UInt iDim=0; iDim < loadVecx.GetSize(); iDim++) {
-        locDof = domain->GetCoordSystem(refCoord[iDim])->
-            GetVecComponent("x");
-        curLoad->valuex[locDof-1] = loadVecx[iDim];
-        curLoad->valuey[locDof-1] = loadVecy[iDim];
-        curLoad->valuez[locDof-1] = loadVecz[iDim];
-        curLoad->type = type[iDim];
-      }
-    }
-  }
-
   void SinglePDE::SetRegionCharges(const Vector<double>& vals){
     // Check if an entry already exists for this region
     MaxwellHom * curLoad;
@@ -2207,23 +2038,14 @@ namespace CoupledField {
     std::map<RegionIdType, std::pair<BaseMaterial*, MaxwellHom> >::iterator it;
     it = regionCharges_.find(0);
 
-
-
-
     if ( it == regionCharges_.end() ) {
-      // TODO Dimension wirklich nur im mechanischen Fall nötig?
-      //        regcharges.insert( std::map<RegionIdType, MaxwellHom>::value_type( regionIds[i],
-      //                                                                             MaxwellHom( dim_, isaxi_ ) ) );
-
       std::map<RegionIdType, BaseMaterial*>::iterator MatIt;
       MatIt = materials_.find(0);
 
-
       regionCharges_.insert(std::map<RegionIdType, std::pair<BaseMaterial*, MaxwellHom> >::value_type
           ( 0, std::make_pair((*MatIt).second, MaxwellHom( dim_, isaxi_ ) ) ) );
-
-
     }
+
     it = regionCharges_.find(0);
     curLoad = & (*it).second.second;
 
@@ -2240,15 +2062,7 @@ namespace CoupledField {
     }
 
     // now create local charge vector
-    char buffer[1];
-    sprintf(buffer, "%f", vals[0]);
-    curLoad->valuex[0] = buffer;
-    sprintf(buffer, "%f", vals[1]);
-    curLoad->valuey[0] = buffer;
-    if (vals.GetSize() == 3) {
-      sprintf(buffer, "%f", vals[2]);
-      curLoad->valuez[0] = buffer;
-    }
+    curLoad->values = vals;
 
     curLoad->type = "total";
 
@@ -4177,12 +3991,8 @@ namespace CoupledField {
   // ================= maxwell homogenization volume charges ======================
   SinglePDE::MaxwellHom::MaxwellHom( UInt dim, bool isAxi ) {
 
-    valuex.Resize( 1 );
-    valuex.Init( "0.0");
-    valuey.Resize( 1 );
-    valuey.Init( "0.0");
-    valuez.Resize( 1 );
-    valuez.Init( "0.0");
+    values.Resize(dim);
+    values.Init();
 
     isAxi_ = isAxi;
     volume = 0.0;
@@ -4193,9 +4003,7 @@ namespace CoupledField {
 
   VolChargeHomInt * SinglePDE::MaxwellHom::GetIntegrator(BaseMaterial* matData, Global::ComplexPart matDataType) {
 
-    VolChargeHomInt * chargeInt = new VolChargeHomInt(matData, matDataType, valuex.GetSize(),
-        phase,
-        isAxi_);
+    VolChargeHomInt * chargeInt = new VolChargeHomInt(matData, matDataType, phase, isAxi_);
     // Check, if type is "unit"
     bool isUnit;
     if ( type == "total" ) {
@@ -4203,9 +4011,7 @@ namespace CoupledField {
     } else {
       isUnit = true;
     }
-    chargeInt->SetVolChargeVector( valuex, valuey, valuez,
-        domain->GetCoordSystem( refCoord),
-        isUnit, volume, dim_);
+    chargeInt->SetVolChargeVector(values, domain->GetCoordSystem( refCoord), isUnit, volume, dim_);
 
     return chargeInt;
 
@@ -4230,32 +4036,17 @@ namespace CoupledField {
       Info->PrintF(pdeName, out.str().c_str());
       out.str("");
     } else {
-
-
       // write logging information into info file
-      for (UInt k = 0; k < valuex.GetSize(); k++ ) {
-        out.str("");
-        if ( k == 0) {
-          out << std::setw(15) << name << " | "
-              << std::setw(15) << refCoord << " | "
-              << std::setw(11) << volume << " | "
-              << std::setw(6) << type << "|";
-        } else {
-          out << std::setw(15) << "" << " | "
-              << std::setw(15) << "" << " | "
-              << std::setw(15) << "" << " | "
-              << std::setw(11) << "" << " | "
-              << std::setw(6) << "" << " | ";
+      out << std::setw(15) << name << " | "
+          << std::setw(15) << refCoord << " | "
+          << std::setw(11) << volume << " | "
+          << std::setw(6) << type << "|";
 
-        }
+      out << std::setw(11) << values.ToString() << std::endl;
 
-        out << std::setw(11) << valuex[k] << ", " << valuey[k]
-                                                            << ", " << valuez[k] << std::endl;
-
-        Info->PrintF(pdeName,out.str().c_str());
-      }
-
+      Info->PrintF(pdeName,out.str().c_str());
     }
+
   }
 
 

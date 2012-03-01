@@ -514,7 +514,6 @@ void Excitation::ReadTestCharges(const Vector<double>& vec)
   ElecPDE* elec = dynamic_cast<ElecPDE*>(domain->GetSinglePDE("electrostatic"));
   elec->SetRegionCharges(vec);
   elec->DefineMaxwellHomIntegrators(linForms);
- // std::cout << "Number of linForms: " << linForms->GetSize() << std::endl;
 }
 
 

@@ -243,11 +243,7 @@ namespace CoupledField
      * @param bcNode paramnode that has "regionLoad" nodes as children 
      * @param pressSurf StdVector containing the RegionLoads */
     void ReadRegionLoadsFromXML(PtrParamNode bcNode, std::map<RegionIdType, RegionLoad>& regionLoads_);
-    
-    /** do the actual reading of charges
-         * @param bcNode paramnode that has "MaxwellHom" nodes as children
-         * @param pressSurf StdVector containing the MaxwellHoms */
-        void ReadRegionChargesFromXML(PtrParamNode bcNode, std::map<RegionIdType, std::pair<BaseMaterial*, MaxwellHom> >& regionCharges_);
+
 
     //! set volume charges for maxwell homogenization
     void SetRegionCharges(const Vector<double>& vals);
@@ -352,9 +348,6 @@ namespace CoupledField
     
     //! read in volume sources
     void ReadRegionLoads();
-    
-    //! read in volume charges for maxwell homogenization
-    void ReadRegionCharges();
 
     //! write results in file
     void WriteResultsInFile( const UInt kstep, 
@@ -447,9 +440,7 @@ namespace CoupledField
       std::string name;
 
       //! Value of charges
-      StdVector<std::string>  valuex;
-      StdVector<std::string>  valuey;
-      StdVector<std::string>  valuez;
+      Vector<double> values;
 
       //! Phase value
       std::string phase;
