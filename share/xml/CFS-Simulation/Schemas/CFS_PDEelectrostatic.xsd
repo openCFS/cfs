@@ -299,6 +299,7 @@
       <xsd:enumeration value="elecPolarization"/>
       <xsd:enumeration value="elecPseudoPolarization"/>
       <xsd:enumeration value="mechPseudoDensity"/>
+      <xsd:enumeration value="elecPhysicalPseudoDensity"/>
       <xsd:enumeration value="optResult_1"/>      
       <xsd:enumeration value="optResult_2"/>      
       <xsd:enumeration value="optResult_3"/>                  

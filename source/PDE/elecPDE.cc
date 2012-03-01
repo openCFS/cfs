@@ -697,6 +697,7 @@ class Hysteresis;
        break;
 
      case MECH_PSEUDO_DENSITY:
+     case ELEC_PHYSICAL_PSEUDO_DENSITY:
        if(domain->GetErsatzMaterial(false) == NULL) // no exception
          res->Init();
        else
@@ -1412,6 +1413,15 @@ class Hysteresis;
     elecPD->definedOn = ResultInfo::ELEMENT;
     elecPD->fctType = shared_ptr<ConstFct>(new ConstFct() );
     availResults_.insert( elecPD );
+
+    shared_ptr<ResultInfo> pysicalPD(new ResultInfo);
+    pysicalPD->resultType = ELEC_PHYSICAL_PSEUDO_DENSITY;
+    pysicalPD->dofNames = "";
+    pysicalPD->unit = "";
+    pysicalPD->entryType = ResultInfo::SCALAR;
+    pysicalPD->definedOn = ResultInfo::ELEMENT;
+    pysicalPD->fctType = shared_ptr<ConstFct>(new ConstFct() );
+    availResults_.insert( pysicalPD );
 
     // ===================================
     // Check for non-conforming interfaces

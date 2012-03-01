@@ -164,11 +164,8 @@ ErsatzMaterial::ErsatzMaterial() :
 
   harmonic = BasePDE::IsComplex(pde->GetAnalysisType());
 
-  if(homogenization_ && !pde->HasPeriodicBC())
+  if((homogenization_ || maxwellHomogenization_) && !pde->HasPeriodicBC())
     throw Exception("homogenization requires periodic boundary conditions");
-
-  if(maxwellHomogenization_ && !pde->HasPeriodicBC())
-    throw Exception("maxwell homogenization requires periodic boundary conditions");
 
   // Get the assemble class
   assemble_ = pde->getPDE_assemble();
@@ -180,7 +177,7 @@ ErsatzMaterial::ErsatzMaterial() :
     if(g->design == DesignElement::UNITY && (method_ == SHAPE_OPT || method_ == SHAPE_PARAM_MAT))
       continue;
 
-    if(g->design == DesignElement::TENSOR_TRACE && (method_ == PARAM_MAT || method_ == SHAPE_PARAM_MAT))
+    if((g->design == DesignElement::TENSOR_TRACE || g->design == DesignElement::ALL_DESIGNS) && (method_ == PARAM_MAT || method_ == SHAPE_PARAM_MAT))
       continue;
 
     if(design->FindDesign(g->design, false) == -1)
@@ -824,6 +821,7 @@ double ErsatzMaterial::CalcFunction(Excitation& excite, Function* f, bool deriva
   case Function::GLOBAL_MOLE:
   case Function::GLOBAL_OSCILLATION:
   case Function::GLOBAL_JUMP:
+  case Function::GLOBAL_SUM_MODULI:
     result = CalcGlobalFunction(f, derivative);
     break;
 
@@ -832,6 +830,8 @@ double ErsatzMaterial::CalcFunction(Excitation& excite, Function* f, bool deriva
   case Function::OSCILLATION:
   case Function::JUMP:
   case Function::BUMP:
+  case Function::SUM_MODULI:
+  case Function::PARAM_PS_POS_DEF:
     assert(c == NULL);
     result = CalcLocalConstraint(g, derivative);
     break;
@@ -908,25 +908,12 @@ double ErsatzMaterial::CalcFunction(Excitation& excite, Function* f, bool deriva
       else
       {
         std::cout << "Homogenized Tensor: " << std::endl << hom_tensor.ToString(0, true);
-
-        /*std::cout << "Orthotrope properties: ";
-                  StdVector<std::pair<string, double> > ortho = MechanicMaterial::CalcOrthotropeProperties(hom_tensor);
-                  for(unsigned int i = 0; i < ortho.GetSize(); i++)
-                    std::cout << " " << ortho[i].first << "=" << ortho[i].second;*/
         {
         Complex det;
         hom_tensor.Determinant(det);
         std::cout << "Determinant of homogenized tensor: " << det << std::endl;
         }
-//        {
-//          Vector<Double> eig;
-//          hom_tensor.GetPart(Global::REAL).eigenvaluesWithLapack(eig);
-//          std::cout << "Eigenvalues of homogenized Tensor: " << eig.ToString() << std::endl;
-//        }
-
         std::cout << "\n";
-
-
 
         result = hom_tensor.GetPart(Global::REAL).Trace();
       }
@@ -956,7 +943,7 @@ double ErsatzMaterial::CalcFunction(Excitation& excite, Function* f, bool deriva
       return f->GetTensor().FrobeniusProduct(CalcHomogenizedTensor());
     break;
 
-  case Function::MAXWELL_HOMOGENIZATION_TRACKING: {
+  case Function::MAXWELL_HOM_TRACKING: {
 
     Matrix<Complex> maxwellHomogenizedTensor_tmp;
     if (IsHarmonic())
@@ -1033,22 +1020,11 @@ double ErsatzMaterial::CalcFunction(Excitation& excite, Function* f, bool deriva
         else
         {
           std::cout << "Homogenized Permeability: " << std::endl << hom_tensor.ToString(0, true);
-
-          /*std::cout << "Orthotrope properties: ";
-                             StdVector<std::pair<string, double> > ortho = MechanicMaterial::CalcOrthotropeProperties(hom_tensor);
-                             for(unsigned int i = 0; i < ortho.GetSize(); i++)
-                               std::cout << " " << ortho[i].first << "=" << ortho[i].second;*/
           {
             Complex det;
             hom_tensor.Determinant(det);
             std::cout << "Determinant of homogenized tensor: " << det << std::endl;
           }
-          //        {
-          //          Vector<Double> eig;
-          //          hom_tensor.GetPart(Global::REAL).eigenvaluesWithLapack(eig);
-          //          std::cout << "Eigenvalues of homogenized Tensor: " << eig.ToString() << std::endl;
-          //        }
-
           std::cout << "\n";
         }
 
@@ -1060,25 +1036,12 @@ double ErsatzMaterial::CalcFunction(Excitation& excite, Function* f, bool deriva
         else
         {
           std::cout << "Homogenized Permittivity: " << std::endl << hom_tensor.ToString(0, true);
-
-          /*std::cout << "Orthotrope properties: ";
-                              StdVector<std::pair<string, double> > ortho = MechanicMaterial::CalcOrthotropeProperties(hom_tensor);
-                              for(unsigned int i = 0; i < ortho.GetSize(); i++)
-                                std::cout << " " << ortho[i].first << "=" << ortho[i].second;*/
           {
             Complex det;
             hom_tensor.Determinant(det);
             std::cout << "Determinant of homogenized tensor: " << det << std::endl;
           }
-          //        {
-          //          Vector<Double> eig;
-          //          hom_tensor.GetPart(Global::REAL).eigenvaluesWithLapack(eig);
-          //          std::cout << "Eigenvalues of homogenized Tensor: " << eig.ToString() << std::endl;
-          //        }
-
           std::cout << "\n";
-
-
 
           result = hom_tensor.GetPart(Global::REAL).Trace();
         }
