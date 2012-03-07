@@ -18,13 +18,13 @@
 #include "Optimization/Design/DesignElement.hh"
 #include "Optimization/Function.hh"
 #include "Optimization/Optimization.hh"
+#include "PDE/timestepping.hh"
 #include "Utils/StdVector.hh"
 #include "boost/tuple/tuple.hpp"
 
 namespace CoupledField {
 class DenseMatrix;
 class Excitation;
-class LinearFormContext;
 class Objective;
 class SingleVector;
 struct Elem;
@@ -38,7 +38,6 @@ namespace CoupledField
 {
 class Assemble;
 class BaseForm;
-class BiLinFormContext;
 class Condition;
 class DensityFile;
 class DesignDependentRHS;
@@ -67,25 +66,6 @@ public:
   /** e.g. closing the exportDesign */
   virtual ~ErsatzMaterial();
 
-  /** Compute the value of the cost functions.
-   *  Do Overwrite the excitation version, not this one!
-   * To perform multiple excitation it calls CalcObjective(Objective*, Excitation&) and
-   * performs the averaging. Handles objectives with single evaluation */
-  double CalcObjective();
-
-  /** Evaluates the gradient of the cost function. Saves the result to data.objective_gradient.
-   * The real work is done by CalcObjectiveGradient(Excitation&) which is overloaded.
-   * @param grad_out if not NULL copy write the (design space size) results.
-   * @see CalcObjectiveGradient(Excitation&)
-   * If filtering is enabled, this is automatically filtered. */
-  void CalcObjectiveGradient(StdVector<double>* grad_out);
-
-  /** Calculates the constraint(s) for all excitations */
-  double CalcConstraint(Condition* constraint = NULL);
-
-  /** The jacobian of the gradient here as a vector with only one constraint! */
-  void CalcConstraintGradient(Condition* constraint = NULL, StdVector<double>* grad_out = NULL);
-
   /** This solves and stores the forward problem. Eventually the adjoint problem is called
    * implicitly.
    * Processes multiple excitations.
@@ -109,45 +89,6 @@ public:
     return assume_constant_element_matrices_;
   }
 
-  /** Helper to convert from natural solution/design to application
-   * @param DesignElement::DENSITY -> MECH, DesignElement::POLARIZATION -> ELEC */
-  static Application ToApp(DesignElement::Type dt);
-
-  /** Default standard design type (not mass) by PDE */
-  DesignElement::Type ToDesign(const SinglePDE* pde) const;
-
-  /** Helper that converts from mechPDE to MECH and elecPDE to ELEC, ...
-   * @param from heat and acoustic the application for the transfer function is laplace, this is indicated by the flag if
-   *        we do not want a marker for the pde but the transfer function. Sorry, very messy !! :((
-   * @throws if neither mechPDE nor elecPDE
-   * @see ToPDE()
-   * @see SetPDEs() */
-  Application ToApp(const SinglePDE* pde) const;
-
-  /** Find our PDE in SIMP by application from the pdes map
-   * @see ToApp()*/
-  SinglePDE* ToPDE(Application app, bool throw_exception = true) const;
-
-  static LinearFormContext* GetLinearFormContext(const RegionIdType regionId, StdPDE* pde,
-      const std::string& integrator, Global::ComplexPart entryType = (Global::ComplexPart) 4711);
-
-  /** Helper which extracts the FormContext from assemble using the optimization region
-   * @param regionId the corresponding region
-   * @param pde1 the first pde (e.g. mech)
-   * @param pde2 this is either the same as pde1 or the coupling partner
-   * @param integrator there is no nice enum yet :( e.g. linElastInt, MechInt, ... */
-  static BiLinFormContext* GetFormContext(RegionIdType regionId, StdPDE* pde1, StdPDE* pde2, const std::string& integrator, bool throw_exception = true, Global::ComplexPart entryType = (Global::ComplexPart) 4711);
-
-  /** Get the standard integrators */
-  BaseForm* GetForm(const RegionIdType reg, Application app1, Application app2 = NO_APP, bool throw_exception = true);
-
-  /** Helper which extracts the Form from assemble using the optimization region
-   * @param regionId the corresponding region
-   * @param pde1 the first pde (e.g. mech)
-   * @param pde2 this is either the same as pde1 or the coupling partner
-   * @param integrator there is no nice enum yet :( e.g. linElastInt, MechInt, ... */
-  static BaseForm* GetForm(RegionIdType regionId, StdPDE* pde1, StdPDE* pde2, const std::string& integrator, bool throw_exception = true, Global::ComplexPart entryType = (Global::ComplexPart) 4711);
-
   /** Types of ersatz material optimization methods, the strings are read from the xml file */
   typedef enum
   {
@@ -156,26 +97,16 @@ public:
 
   static Enum<Method> method;
 
-  /** The order of the pdes is not defined, Therefore we use the map
-   * @see ToApp()
-   * @see ToPDE() */
-  std::map<Application, SinglePDE*> pdes;
-
-  /** This is simple one SinglePDE from pdes. */
-  SinglePDE* pde;
-
   /** This is the current homogenized tensor.
    * Evaluated by HOM_TRACKING, HOM_TENSOR, HOM_FROBENIUS_PRODUCT (as objective only).
    * MechPDE reads it when "homogenizedTensor" is a region result! */
   Matrix<double> homogenizedTensor;
 
   /** This is the current homogenized tensor.
-   * Evaluated by MAXWELL_HOMOGENIZATION_TRACKING and MAXWELL_HOMOGENIZED_TENSOR (as objective only).
+   * Evaluated by MAXWELL_HOM_TRACKING and MAXWELL_HOM_TENSOR (as objective only).
    * ElecPDE reads it when "maxwellHomogenizedTensor" is a region result! */
   Matrix<Complex> maxwellHomogenizedTensor;
   
-  Assemble* GetAssemble() { return assemble_; }
-
   //this is only used for BITENSOR objective
   Matrix<Complex> maxwellHomogenizedTensorPermeability;
 
@@ -208,8 +139,8 @@ public:
      *        "SaveSolution()" in the pde such that we can extract it element wise.
      *        Only relevant for st = ELEMENT_VECTORS
      * @return NULL if st = ELEMENT_VECTOR, otherwise it is the vector */
-    SingleVector* Read(StorageType st, StdPDE* pde, Application app = NO_APP, bool save_sol = false);
-
+    SingleVector* Read(StorageType st, StdPDE* pde, Application app = NO_APP, bool save_sol = false, DERIVType derivative = NO_DERIVTYPE);
+    
     /** Writes the solution (raw vector) back to the pde */
     void Write(StdPDE* pde);
 
@@ -246,7 +177,7 @@ public:
   private:
     template<class T>
     SingleVector* Read(StorageType st, StdPDE* pde, Application app,
-        bool save_sol = false);
+        bool save_sol = false, DERIVType derivative = NO_DERIVTYPE);
 
     template<class T>
     void Write(StdPDE* pde);
@@ -296,9 +227,9 @@ public:
 
     /** The solution is identified by Function, excitation index (0-based) and time step.
      * @param f the function is NULL for the forward problems, for the adjoints it needs to be given! */
-    Solution* Get(Excitation& excitation, Function* f = NULL, unsigned int timestep = 0);
+    Solution* Get(Excitation& excitation, Function* f = NULL, unsigned int timestep = 0, const DERIVType derivative = NO_DERIVTYPE);
 
-    Solution* Get(int excitation_index,  Function* f = NULL, unsigned int timestep = 0);
+    Solution* Get(int excitation_index,  Function* f = NULL, unsigned int timestep = 0, const DERIVType derivative = NO_DERIVTYPE);
 
     /** Returns the currently stored functions. Empty for forward */
     StdVector<Function*> GetFunctions() const;
@@ -328,16 +259,17 @@ public:
       StdVector<Solution*> data;
     };
 
-    /** Stores the excitation by function and by time stamp.
+    /** Stores the excitation by function and by derivative and time step.
+     * data_[function][derivative][timestep]
      * Stored are units which contains eventually multiple excitations.
      * @see Unit() */
-    std::map<Function*, StdVector<Unit*> > data_;
+    std::map<Function*, StdVector<StdVector<Unit*> > > data_;
 
     // if this Solutions is forward, it does not use the value in function in Get
     bool isForward;
 
     // Pointer to data[NULL] to speed up things
-    StdVector<Unit*>* forward_data_;
+    StdVector<StdVector<Unit*> >* forward_data_;
 
     ErsatzMaterial* em_;
   };
@@ -559,10 +491,6 @@ public:
 
   Complex CalcMaxwellHomogenizedTensorEntry(const tuple<int, int, double> entry, bool derivative, StdVector<Complex>& grad_out, Solutions sol);
 
-  /** This is to be overwritten for any case there are other PDEs in ErsatzMaterial::pdes to be set.
-   * PiezoSIMP does it simply in the constructor */
-  virtual void SetPDEs();
-
   /** Calculates globalized local functions. globalSlope and globalCheckerboard.
    * When g_i is the slope function x_i - x_i+1 -c and g_i+1 = x_1+1 - x_i - c
    * the global slope is sum max(0, g_i)^2, hence we need NEXT_AND_REVERSE locality
@@ -574,15 +502,12 @@ public:
 
   /** Here we store the solution of the adjoint problem. */
   Solutions adjoint;
-
+  
   /** do we do SIMP or FreeMat or ... */
   Method method_;
 
   /** this is the optimization->ersatzMaterial XML element */
   PtrParamNode pn;
-
-  /** The assemble class for our PDE */
-  Assemble* assemble_;
 
   /** true, if assuming regular grid, and only optimizing density, not DesignMaterial */
   bool assume_constant_element_matrices_;
@@ -606,7 +531,7 @@ protected:
    * @param save_sol set this in the adjoint problem -> see Solution::Read()
    * @param comment is just to LOG_DBG */
   virtual void StorePDESolution(Solutions& solutions, Excitation &excite, Function* f,
-      unsigned int timestep, bool read_sol, bool read_rhs, bool save_sol, const std::string& comment);
+      unsigned int timestep, bool read_sol, bool read_rhs, bool save_sol, DERIVType derivative, const std::string& comment);
 
   virtual void TimeStepCalculated(UInt timeStep, AdjointParameters* adjParams);
 
@@ -629,10 +554,7 @@ protected:
   /** Convenience class for writing the pseudo density file*/
   DensityFile* densityFile;
 
-  /** do we perform maxwell homogenization induced by any of the objective or constraints? */
-  bool maxwellHomogenization_;
-
-  /** do we perform phase velocity optimization? */
+  /** do we perform homogenization for both permittivity and permeability? */
   bool bitensor_;
 
 private:

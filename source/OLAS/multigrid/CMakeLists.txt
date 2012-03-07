@@ -1,5 +1,10 @@
-SET(MATVEC_SRCS stdmatrix.cc stdvector.cc sbmvector.cc sbmmatrix.cc
-	        generatematvec.cc)
+SET(MATVEC_SRCS
+  generatematvec.cc
+  stdmatrix.cc
+  sbmmatrix.cc
+  sbmvector.cc
+  stdvector.cc
+)
 
 ADD_DEFINITIONS()
 

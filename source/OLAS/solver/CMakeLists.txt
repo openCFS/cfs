@@ -2,10 +2,10 @@
 INCLUDE_DIRECTORIES(${CFSDEPS_INCLUDE_DIR})
 
 SET(SOLVER_SRCS
-    basesolver.cc
-    baseEigensolver.cc
-    generateEigensolver.cc    
-    generatesolver.cc
+  basesolver.cc
+  generatesolver.cc
+  baseEigensolver.cc
+  generateEigensolver.cc
     )
 
 IF(EXPLICIT_TEMPLATE_INSTANTIATION)
@@ -23,14 +23,23 @@ ENDIF(EXPLICIT_TEMPLATE_INSTANTIATION)
 
 ADD_LIBRARY(solver-olas STATIC ${SOLVER_SRCS})
 
-
 SET(TARGET_LL
+  cfsgeneral
+  lapack-olas
+  matvec
+  paramh
+  precond-olas
+  utils
   utils-olas
 )
 
 IF(USE_PARDISO)
   SET(TARGET_LL ${TARGET_LL} pardiso-olas)
 ENDIF(USE_PARDISO)
+
+IF(USE_PARDISO64)
+  SET(TARGET_LL ${TARGET_LL} pardiso64-olas)
+ENDIF(USE_PARDISO64)
 
 IF(USE_ILUPACK)
   SET(TARGET_LL ${TARGET_LL} ilupack-olas)

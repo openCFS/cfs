@@ -77,7 +77,7 @@ namespace CoupledField {
       maxTimeDerivOrder_ = 2;
       fracDamping_ = false;
 
-      isAPML = false;
+      isAPML_ = false;
       isMechCoupled_ = false;
       variableSpeedOfSoundCN_ = false;
 
@@ -97,7 +97,7 @@ namespace CoupledField {
       str = myParam_->Get("updatedLagrange")->As<std::string>();
       if ( str == "yes" )
       {
-        str = "Compute acoustic field on defomred geometry\n";
+        str = "Compute acoustic field on deformed geometry\n";
         Info->PrintF( pdename_, str.c_str() );
         updatedLagrangeForm_ = true;
       }
@@ -422,6 +422,8 @@ namespace CoupledField {
         //damping factor
         Double dampPML;
         
+        bool isCPML = false;
+
         std::string id = actRegionNode->Get("dampingId")->As<std::string>();
         PtrParamNode pmlNode = myParam_->Get("dampingList")->GetByVal("pml", "id", id);
         ReadDataPML(dampingTypePML, inner, dampPML, coordSysId, pmlNode );
@@ -438,8 +440,15 @@ namespace CoupledField {
           if ( dim_ != 3) 
             EXCEPTION( "APML formulation just makes sense in 3D");
           
-          isAPML = true;
+          isAPML_ = true;
           std::cout << "\n DO APML\n" << std::endl;
+        }
+
+        //check for full PML without problematic L2-term
+        pmlNode->GetValue("cPML",helpStr);
+        if ( helpStr == "yes" ) {
+          isCPML = true;
+          std::cout << "\n DO cPML\n" << std::endl;
         }
 
 
@@ -447,7 +456,7 @@ namespace CoupledField {
           //====================================================================
           //	 stiffness integrator for PML
           //====================================================================
-          if ( isAPML )
+          if ( isAPML_ )
             formsType = "laplaceIntAPML";
           else
             formsType = "laplaceInt";
@@ -471,7 +480,7 @@ namespace CoupledField {
           //	 mass integrator for PML
           //====================================================================
           
-          if ( isAPML )
+          if ( isAPML_ )
             formsType = "massIntAPML";
           else
             formsType = "massInt";
@@ -601,27 +610,29 @@ namespace CoupledField {
                                        actSDList, actSDList );
           assemble_->AddBiLinearForm( auxStiffContext);
 
-          if ( dim_ == 3 && isAPML == false ) {
+          if ( dim_ == 3 && isAPML_ == false ) {
             //3D computation: so we need in addition a scalar auxillary variable
                 
             //====================================================================
             //	 scalar axuillary grad integrator for time domain PML
             //====================================================================
-            formsType = "auxGrad";
-            factorPDE = -density;
-            BaseForm * bilinearAuxGrad =
-              new PMLTimeInt(formsType, factorPDE, dampingTypePML, dampPML, isaxi_);
-            
-            bilinearAuxGrad->SetPosPML(inner,outer, coordSysId);
-            
-            BiLinFormContext * auxGradContext =
-              new BiLinFormContext( bilinearAuxGrad, STIFFNESS );
-            
-            auxGradContext->SetPtPdes(this, this);
-            auxGradContext->SetResults( results_[1], results_[2],
-                                        actSDList, actSDList );
-            assemble_->AddBiLinearForm( auxGradContext);
-            
+            if ( !isCPML ) {
+              formsType = "auxGrad";
+              factorPDE = -density;
+              BaseForm * bilinearAuxGrad =
+                new PMLTimeInt(formsType, factorPDE, dampingTypePML, dampPML, isaxi_);
+              
+              bilinearAuxGrad->SetPosPML(inner,outer, coordSysId);
+              
+              BiLinFormContext * auxGradContext =
+                new BiLinFormContext( bilinearAuxGrad, STIFFNESS );
+              
+              auxGradContext->SetPtPdes(this, this);
+              auxGradContext->SetResults( results_[1], results_[2],
+                                          actSDList, actSDList );
+              assemble_->AddBiLinearForm( auxGradContext);
+            }
+
             //====================================================================
             //   	 scalar axuillary stiffness integrator for time domain PML
             //====================================================================
@@ -981,7 +992,7 @@ namespace CoupledField {
       if ( putSecondResult2EQNclass ) {
         eqnMap_->AddResult( *results_[1], actSDList );
         putSecondResult2EQNclass = false;
-        if ( dim_ == 3 && isAPML == false ) 
+        if ( dim_ == 3 && isAPML_ == false ) 
           eqnMap_->AddResult( *results_[2], actSDList );
       }
     }
@@ -2143,7 +2154,6 @@ namespace CoupledField {
     Double actFreq = parser->Eval( mHandle_ );
 
     //check solution type and compute factor
-    // SolutionType solType; // TODO: Unused variable solType
     Complex multVal = 0;
 
     // factor 0.5 is due to the fact, that the values are peak values
@@ -2199,7 +2209,15 @@ namespace CoupledField {
       SurfElemList actSDList(ptgrid_ );
       actSDList.SetRegion( regionIt.GetRegion() );
       EntityIterator it = actSDList.GetIterator();
-
+      RegionIdType neighborRegionId = NO_REGION_ID;
+      bool warned_before = false;
+      
+      // Try to determine neighbor region
+      if ( surfNeighborRegions_.find(vals) != surfNeighborRegions_.end() )
+      {
+        neighborRegionId = surfNeighborRegions_[vals];
+      }
+      
       // Loop over all surface elements
       UInt counterElems = 0;
       for ( it.Begin(); !it.IsEnd(); it++, counterElems++ ) {
@@ -2209,14 +2227,70 @@ namespace CoupledField {
         // Determine, which volume element is the right neighbor for the
         // calculation;
         // our normal should point out of the correct neighbor volume element!
-        if (   surfNeighborRegions_[vals] ==
-               actSurfElem->ptVolElem1->regionId ) {
-          ptVolElem = actSurfElem->ptVolElem1;
-          normSign = 1.0;
+        if ( (actSurfElem->ptVolElem1->regionId
+              == actSurfElem->ptVolElem2->regionId)
+              && (actSurfElem->ptVolElem1->regionId != NO_REGION_ID) )
+        {
+          /* That means the surfRegion lies inside of a volume region. Why
+           * would anyone do that? This is a problem, because we cannot
+           * guarantee that the surface normals always point in the same
+           * direction. But we don't want to abort the simulation, so we
+           * just print a warning.
+           */
+          if ( !warned_before ) { // don't warn for every single element
+            WARN("Calculation of result 'acouPower' on surface region '"
+                << ptgrid_->GetRegion().ToString(regionIt.GetRegion())
+                << "' might be wrong, because the surface is embedded in region '"
+                << ptgrid_->GetRegion().ToString(actSurfElem->ptVolElem1->regionId)
+                << "'. Therefore the surface normal vector could not be determined.");
+            warned_before = true;
+          }
+        }
+        if ( neighborRegionId != NO_REGION_ID ) {
+          if ( neighborRegionId == actSurfElem->ptVolElem1->regionId ) {
+            ptVolElem = actSurfElem->ptVolElem1;
+            normSign = 1.0;
+          }
+          else if ( neighborRegionId == actSurfElem->ptVolElem2->regionId ) {
+            ptVolElem = actSurfElem->ptVolElem2;
+            normSign = -1.0;
+          }
+          else {
+            WARN("Cannot calculate result 'acouPower', because region '"
+                << ptgrid_->GetRegion().ToString(neighborRegionId)
+                << "' is not a neighbor of surface region '"
+                << ptgrid_->GetRegion().ToString(regionIt.GetRegion())
+                << "'");
+            break;
+          }
         }
         else {
-          ptVolElem = actSurfElem->ptVolElem2;
-          normSign = -1.0;
+          if ( actSurfElem->ptVolElem1 != NULL
+              && actSurfElem->ptVolElem2 == NULL )
+          {
+            ptVolElem = actSurfElem->ptVolElem1;
+            normSign = 1.0;            
+          }
+          else if ( actSurfElem->ptVolElem1 == NULL // should never happen!?
+                    && actSurfElem->ptVolElem2 != NULL )
+          {
+            ptVolElem = actSurfElem->ptVolElem2;
+            normSign = -1.0;
+          }
+          else if ( actSurfElem->ptVolElem1 == NULL
+                    && actSurfElem->ptVolElem2 == NULL ) {
+            WARN("Cannot calculate result 'acouPower', because surface region '"
+                << ptgrid_->GetRegion().ToString(regionIt.GetRegion())
+                << "' has no neighboring volume region. Please check your mesh.")
+            break;
+          }
+          else {
+            WARN("Cannot calculate result 'acouPower', because surface region '"
+                << ptgrid_->GetRegion().ToString(regionIt.GetRegion())
+                << "' has two neighboring volume regions. Please provide the "
+                << "desired volume region through the attribute 'neighborRegion'.")
+            break;            
+          }
         }
 
         normSign *= (Double) actSurfElem->normalSign;
@@ -2294,6 +2368,10 @@ namespace CoupledField {
         }
 
         actVal[regionIt.GetPos()] += elemPower;
+      }
+      if ( !it.IsEnd() ) { // calculation was aborted
+        actVal[regionIt.GetPos()] = 0.0;
+        break;
       }
     }
     delete gradOp;
@@ -2565,7 +2643,7 @@ namespace CoupledField {
         availResults_.insert( res2 );
         results_.Push_back( res2 );
 
-        if( subType_ == "3d" && isAPML == false ) {
+        if( subType_ == "3d" && isAPML_ == false ) {
           // === scalar auxillary variable ===
           shared_ptr<ResultInfo> res3(new ResultInfo); 
           res3->resultType = ACOU_PMLAUXSCALAR;

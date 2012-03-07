@@ -210,6 +210,8 @@ namespace CoupledField{
           solution[spaceIdx].resize(numVertices_,0);
           solution[spaceIdx].assign(curSol,curSol +numVertices_);
           velocityFound = true;
+          delete curSol;
+          curSol = NULL;
         }
         spaceIdx = MapFrictionIndex(fieldName);
         if(spaceIdx != 9999){
@@ -220,6 +222,8 @@ namespace CoupledField{
           solutionSkinFriction[spaceIdx].resize(numVertices_,0);
           solutionSkinFriction[spaceIdx].assign(curSol,curSol +numVertices_);
           frictionFound = true;
+          delete curSol;
+          curSol = NULL;
         }
 
         if(strcmp(fieldName,"Pressure") == 0){
@@ -230,6 +234,8 @@ namespace CoupledField{
           solutionPressure.resize(numVertices_,0);
           solutionPressure.assign(curSol,curSol +numVertices_);
           pressureFound = true;
+          delete curSol;
+          curSol = NULL;
         }
      }
      if(!velocityFound){
@@ -252,7 +258,7 @@ namespace CoupledField{
      for(UInt curReg = 0;curReg < nodalFlowData.size(); curReg++ ){
        FlowDataType& curType = nodalFlowData[curReg];
 
-       FlowDataPartStruct * tmpSolStruct = new FlowDataPartStruct();
+
 
        cg_section_read(fn,1,1,curReg+1,sectionName,&eType,&start,&end,&nboundary,&parentFlag);
        //do the following only for volume regions i.e. nboundary == 0
@@ -260,30 +266,30 @@ namespace CoupledField{
         if ( (requiredResults_[FLUIDMECH_VELOCITY] ||
              requiredResults_[NO_SOLUTION_TYPE]) && velocityFound ){
             /* copy the fluid velocity values */
-          tmpSolStruct = &curType[FLUIDMECH_VELOCITY];
+          FlowDataPartStruct & tmpSolStruct = curType[FLUIDMECH_VELOCITY];
           
           //          if(nboundary == 0){
-            tmpSolStruct->isActive = true;
-            if (tmpSolStruct->dofNames.empty()) {
-              tmpSolStruct->unit = MapSolTypeToUnit(FLUIDMECH_VELOCITY);
-              tmpSolStruct->dofNames.push_back("x");
-              tmpSolStruct->dofNames.push_back("y");
+            tmpSolStruct.isActive = true;
+            if (tmpSolStruct.dofNames.empty()) {
+              tmpSolStruct.unit = MapSolTypeToUnit(FLUIDMECH_VELOCITY);
+              tmpSolStruct.dofNames.push_back("x");
+              tmpSolStruct.dofNames.push_back("y");
               if(dim_ == 3){
-                tmpSolStruct->dofNames.push_back("z");
+                tmpSolStruct.dofNames.push_back("z");
               }
             
-              tmpSolStruct->resultName = SolutionTypeEnum.ToString(FLUIDMECH_VELOCITY);
-              tmpSolStruct->definedOn = ResultInfo::NODE;
-              tmpSolStruct->entryType = ResultInfo::VECTOR;
+              tmpSolStruct.resultName = SolutionTypeEnum.ToString(FLUIDMECH_VELOCITY);
+              tmpSolStruct.definedOn = ResultInfo::NODE;
+              tmpSolStruct.entryType = ResultInfo::VECTOR;
             }
             std::set<UInt> curNodes = nodeIt->second;
             std::set<UInt>::iterator curNodeIt = curNodes.begin();
-            UInt numDOFs = tmpSolStruct->dofNames.size();
-            tmpSolStruct->data.resize(numDOFs * curNodes.size());
+            UInt numDOFs = tmpSolStruct.dofNames.size();
+            tmpSolStruct.data.resize(numDOFs * curNodes.size());
             for(UInt n = 0; n < curNodes.size() ;n++){
               UInt idx = *curNodeIt;
               for(UInt i = 0; i < dim_; i++){
-                tmpSolStruct->data[n*numDOFs+i] = solution[i][idx-1];
+                tmpSolStruct.data[n*numDOFs+i] = solution[i][idx-1];
               }
               curNodeIt++;
             }
@@ -295,55 +301,55 @@ namespace CoupledField{
 
         if (  pressureFound ){
             /* copy the fluid velocity values */
-          tmpSolStruct = &curType[FLUIDMECH_PRESSURE];
+          FlowDataPartStruct & tmpSolStruct = curType[FLUIDMECH_PRESSURE];
           
           //          if(nboundary == 0){
-            tmpSolStruct->isActive = true;
-            if (tmpSolStruct->dofNames.empty()) {
-              tmpSolStruct->unit = MapSolTypeToUnit(FLUIDMECH_PRESSURE);
-              tmpSolStruct->dofNames.resize(1);
+            tmpSolStruct.isActive = true;
+            if (tmpSolStruct.dofNames.empty()) {
+              tmpSolStruct.unit = MapSolTypeToUnit(FLUIDMECH_PRESSURE);
+              tmpSolStruct.dofNames.resize(1);
             
-              tmpSolStruct->resultName = SolutionTypeEnum.ToString(FLUIDMECH_PRESSURE);
-              tmpSolStruct->definedOn = ResultInfo::NODE;
-              tmpSolStruct->entryType = ResultInfo::SCALAR;
+              tmpSolStruct.resultName = SolutionTypeEnum.ToString(FLUIDMECH_PRESSURE);
+              tmpSolStruct.definedOn = ResultInfo::NODE;
+              tmpSolStruct.entryType = ResultInfo::SCALAR;
             }
             std::set<UInt> curNodes = nodeIt->second;
             std::set<UInt>::iterator curNodeIt = curNodes.begin();
-            UInt numDOFs = tmpSolStruct->dofNames.size();
-            tmpSolStruct->data.resize(numDOFs * curNodes.size());
+            UInt numDOFs = tmpSolStruct.dofNames.size();
+            tmpSolStruct.data.resize(numDOFs * curNodes.size());
             for(UInt n = 0; n < curNodes.size() ;n++){
               UInt idx = *curNodeIt;
-              tmpSolStruct->data[n] = solutionPressure[idx-1];
+              tmpSolStruct.data[n] = solutionPressure[idx-1];
               curNodeIt++;
             }
         }
 
         if ( frictionFound){
             /* copy the fluid velocity values */
-          tmpSolStruct = &curType[FLUIDMECH_SKINFRICTION];
+          FlowDataPartStruct & tmpSolStruct = curType[FLUIDMECH_SKINFRICTION];
           
           //          if(nboundary == 0){
-            tmpSolStruct->isActive = true;
-            if (tmpSolStruct->dofNames.empty()) {
-              tmpSolStruct->unit = MapSolTypeToUnit(FLUIDMECH_SKINFRICTION);
-              tmpSolStruct->dofNames.push_back("x");
-              tmpSolStruct->dofNames.push_back("y");
+            tmpSolStruct.isActive = true;
+            if (tmpSolStruct.dofNames.empty()) {
+              tmpSolStruct.unit = MapSolTypeToUnit(FLUIDMECH_SKINFRICTION);
+              tmpSolStruct.dofNames.push_back("x");
+              tmpSolStruct.dofNames.push_back("y");
               if(dim_ == 3){
-                tmpSolStruct->dofNames.push_back("z");
+                tmpSolStruct.dofNames.push_back("z");
               }
             
-              tmpSolStruct->resultName = SolutionTypeEnum.ToString(FLUIDMECH_SKINFRICTION);
-              tmpSolStruct->definedOn = ResultInfo::NODE;
-              tmpSolStruct->entryType = ResultInfo::VECTOR;
+              tmpSolStruct.resultName = SolutionTypeEnum.ToString(FLUIDMECH_SKINFRICTION);
+              tmpSolStruct.definedOn = ResultInfo::NODE;
+              tmpSolStruct.entryType = ResultInfo::VECTOR;
             }
             std::set<UInt> curNodes = nodeIt->second;
             std::set<UInt>::iterator curNodeIt = curNodes.begin();
-            UInt numDOFs = tmpSolStruct->dofNames.size();
-            tmpSolStruct->data.resize(numDOFs * curNodes.size());
+            UInt numDOFs = tmpSolStruct.dofNames.size();
+            tmpSolStruct.data.resize(numDOFs * curNodes.size());
             for(UInt n = 0; n < curNodes.size() ;n++){
               UInt idx = *curNodeIt;
               for(UInt i = 0; i < dim_; i++){
-                tmpSolStruct->data[n*numDOFs+i] = solutionSkinFriction[i][idx-1];
+                tmpSolStruct.data[n*numDOFs+i] = solutionSkinFriction[i][idx-1];
               }
               curNodeIt++;
             }

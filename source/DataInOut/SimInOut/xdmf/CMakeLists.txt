@@ -3,3 +3,12 @@ SET(SIMOUTXDMF_SRCS
 )
 
 ADD_LIBRARY(simoutxdmf STATIC ${SIMOUTXDMF_SRCS})
+
+TARGET_LINK_LIBRARIES(simoutxdmf
+  cfsgeneral
+  datainout
+  domain
+  matvec
+  paramh
+  pde
+)

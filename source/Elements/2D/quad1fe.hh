@@ -140,6 +140,10 @@ namespace CoupledField
 
     UInt GetNumFncs( const shared_ptr<AnsatzFct>& fncType );
 
+    void Global2LocalCoords(Matrix<Double> & localCoords,
+                               const Matrix<Double> & globalCoords,
+                               const Matrix<Double> & coordMat );
+
   private:
     virtual void CalcSpectralShFct( Vector<Double> & Shape,
                                     const Vector<Double> & LCoord,

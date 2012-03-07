@@ -2,6 +2,7 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
+#include <fstream>
 #include <string>
 
 #include "def_use_xerces.hh"
@@ -15,10 +16,13 @@
 #include "xercesc/dom/DOM.hpp"
 #include "xercesc/parsers/XercesDOMParser.hpp"
 #include "xercesc/sax/ErrorHandler.hpp"
+#include "xercesc/sax/InputSource.hpp"
 #include "xercesc/sax/SAXParseException.hpp"
 #include <xercesc/sax2/DefaultHandler.hpp>
 #include "xercesc/sax2/Attributes.hpp"
 #include "xercesc/util/XercesDefs.hpp"
+#include "xercesc/util/BinInputStream.hpp"
+#include "boost/iostreams/filtering_streambuf.hpp"
 
 
 namespace CoupledField {
@@ -110,8 +114,41 @@ namespace CoupledField {
         void DumpStack();
 
         StdVector<PtrParamNode> stack;
+        
+        bool first;
+      };
+      
+      /** Helper class for Xerces to transparently handle bzip2 compressed files,
+       *  see BinFileInputstream implementation in Xerces sources, which was used as a template.
+       */
+      class Bzip2InputStream: public xercesc::BinInputStream {
+      public:
+        Bzip2InputStream(std::string fileName, xercesc::MemoryManager* const manager);
+        virtual ~Bzip2InputStream();
+        virtual unsigned int curPos() const;
+        virtual unsigned int readBytes(XMLByte* const toFill, const unsigned int maxToRead);
+      private:
+        boost::iostreams::filtering_streambuf<boost::iostreams::input> bzipin_;
+        std::ifstream compin_;
+        xercesc::MemoryManager* const fMemoryManager;
+        unsigned int curPos_;
       };
 
+      /** Helper class for Xerces to transparently handle bzip2 compressed files,
+       *  see StdInInputSource implementation in Xerces sources which was used as a template.
+       */
+      class Bzip2InputSource: public xercesc::InputSource {
+      public:
+        Bzip2InputSource(std::string fileName);
+        Bzip2InputSource(const Bzip2InputSource& src) {
+          fileName_ = src.fileName_;
+        };
+        virtual ~Bzip2InputSource();
+        virtual Bzip2InputStream* makeStream() const;
+      private:
+        std::string fileName_;
+      };
+      
   }; // end of Xerces
 
 

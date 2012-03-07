@@ -1,3 +1,4 @@
+#include <boost/algorithm/string.hpp>
 #include <iostream>
 
 #include "DataInOut/Logging/cfslog.hh"
@@ -22,6 +23,7 @@
 #include "Optimization/Function.hh"
 #include "Optimization/Objective.hh"
 #include "Optimization/Optimization.hh"
+#include "PDE/basePDE.hh"
 #include "Utils/Point.hh"
 #include "Utils/StdVector.hh"
 
@@ -44,6 +46,10 @@ DensityFile::DensityFile(DesignSpace* designSpace,
   data = Create(des, tfs, regulize_pn, designSpace->DoNonDesignVicinity());
   all_iterations_ = export_pn->Get("save")->As<string>() == "all";
   finally_only_   = export_pn->Get("write")->As<string>() == "finally";
+  // append .bz2 if compress=true and not already file ends with it
+  if(export_pn->Get("compress")->As<bool>() && !boost::algorithm::ends_with(name_, ".bz2")){
+    name_ = name_ + ".bz2";
+  }
 }
 
 
@@ -51,7 +57,7 @@ DensityFile::~DensityFile()
 {
   // in CommitIteration or here?
   if(finally_only_)
-    data->ToFile(name_);
+    data->ToFile(name_, true);
 
   data.reset();
 }
@@ -230,6 +236,7 @@ void DensityFile::SetCurrent(int current_iteration)
   StdVector<std::string>& block = in->GetFastBulkBlock();
   block.Resize(ersatzMaterial_->data.GetSize());
 
+  bool densForElec = domain->GetOptimization()->maxwellHomogenization_;
   for(unsigned int i = 0, n = ersatzMaterial_->data.GetSize(); i < n; ++i)
   {
     DesignElement* de = &ersatzMaterial_->data[i];
@@ -240,7 +247,7 @@ void DensityFile::SetCurrent(int current_iteration)
     ss.precision(11);
     ss << de->GetDesign(DesignElement::PLAIN) << "\"";
     if(de->HasPhysicalDesign())
-      ss << " physical=\"" << de->GetPhysicalDesign() << "\"";
+      ss << " physical=\"" << de->GetPhysicalDesign(densForElec) << "\"";
     ss << "/>";
     block[i] = ss.str();
   }

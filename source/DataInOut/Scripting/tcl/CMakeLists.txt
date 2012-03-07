@@ -5,4 +5,8 @@ SET(TCLMESS_SRCS tcl-messenger.cc)
 
 ADD_LIBRARY(tclmess STATIC ${TCLMESS_SRCS})
 
-TARGET_LINK_LIBRARIES(tclmess ${TCL_LIBRARY})
+TARGET_LINK_LIBRARIES(tclmess
+  ${TCL_LIBRARY}
+  cfsgeneral
+  scripting
+)

@@ -12,3 +12,10 @@ SET(CPLREADER_GENGRIDS_SRCS
 )
 
 ADD_LIBRARY(cplreader_gengrids STATIC ${CPLREADER_GENGRIDS_SRCS})
+
+TARGET_LINK_LIBRARIES(cplreader_gengrids
+  cfsgeneral
+  domain
+  matvec
+  utils
+)

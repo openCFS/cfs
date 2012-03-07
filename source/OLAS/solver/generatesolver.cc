@@ -19,6 +19,7 @@
 #include "def_use_ilupack.hh"
 #include "def_use_lapack.hh"
 #include "def_use_pardiso.hh"
+#include "def_use_pardiso64.hh"
 #include "generatesolver.hh"
 
 #ifdef USE_LAPACK
@@ -28,6 +29,10 @@
 
 #ifdef USE_PARDISO
 #include "OLAS/external/pardiso/pardisosolver.hh"
+#endif
+
+#ifdef USE_PARDISO64
+#include "OLAS/external/pardiso64/pardiso64solver.hh"
 #endif
 
 #ifdef USE_ILUPACK
@@ -288,6 +293,40 @@ BaseSolver* GenerateSolverObject( const BaseMatrix &mat,
 
     EXCEPTION( "Compile with USE_PARDISO to enable interface to Pardiso "
     "library" );
+#endif
+    break;
+
+  case BaseSolver::PARDISO64:
+
+#ifdef USE_PARDISO64
+
+    // Check suitability of matrix
+    if ( mat.GetStructureType() != BaseMatrix::SPARSE_MATRIX ) {
+      EXCEPTION( "Pardiso64Solver only works with (S)CRS_Matrix class!" );
+    }
+    else {
+      const StdMatrix &stdmat = dynamic_cast<const StdMatrix &>(mat);
+      if ( stdmat.GetStorageType() != BaseMatrix::SPARSE_NONSYM &&
+          stdmat.GetStorageType() != BaseMatrix::SPARSE_SYM  ) {
+        EXCEPTION( "Pardiso64Solver only works with (S)CRS_Matrix class!" );
+      }
+    }
+
+    if ( eType == BaseMatrix::DOUBLE ) {
+      retSolver = new Pardiso64Solver<Double>( solverXML, olasInfo );
+      ASSERTMEM( retSolver, sizeof(Pardiso64Solver<Double>) );
+      olasInfo->Get("pardiso64")->Get("generateSolver")->SetValue("generated "
+      "real pardiso 64 solver");
+    }
+    if ( eType == BaseMatrix::COMPLEX ) {
+      retSolver = new Pardiso64Solver<Complex>( solverXML, olasInfo );
+      ASSERTMEM( retSolver, sizeof(Pardiso64Solver<Complex>) );
+      olasInfo->Get("pardiso64")->Get("generateSolver")->SetValue("generated "
+      "real pardiso 64 solver");
+    }
+#else
+
+    EXCEPTION( "Compile with USE_PARDISO64 to enable interface to Pardiso64" );
 #endif
     break;
 

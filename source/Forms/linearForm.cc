@@ -1339,8 +1339,7 @@ DEFINE_LOG(linForm, "linForm")
                                                          Vector<Double> & nodalLoadDensity,
                                                          Vector<Double>& divLHTensor,
                                                          const Elem* elem,
-                                                         Double density,
-                                                         bool surfInt)
+                                                         Double density)
   {
 #ifdef TRACE
     (*trace) << "entering LinearFlowNoiseInt::CalcElemVec4QuadwithVelCentre" << std::endl;
@@ -1376,7 +1375,6 @@ DEFINE_LOG(linForm, "linForm")
     helpVec.Resize(dimelem);
 
     Double volume = 0.0;
-    Double sourceScalar=0.0;
 
     divLHTensor.Resize(dimelem);
     divLHTensorTmp.Resize(dimelem);
@@ -1403,10 +1401,7 @@ DEFINE_LOG(linForm, "linForm")
 
     //compute a simple normal vector (should be improved!!)
     Vector<Double> nVec(dimelem);
-    if ( surfInt ) {
-      ComputeNormalVec(ptCoord, nVec);
-      helpVec.Inner(nVec, sourceScalar);
-    }
+
 
     // Loop over all integration points 
     for(Integer actInt=1; actInt <= numIntPoints; actInt++)
@@ -1415,26 +1410,14 @@ DEFINE_LOG(linForm, "linForm")
       
       volume += jacDet * intWeights[actInt -1];
 
-      if ( surfInt ) {
-        ptelem->GetShFncAtIp(Sf, actInt, elem);
-        partResult = Sf * sourceScalar;
-        //need the minus, since this value is multiplied by -1 befor assembly
-        Result     -= partResult * jacDet * intWeights[actInt -1];
-      }
-      else {
-        divLHTensorTmp = (helpVec * jacDet * intWeights[actInt -1]);
-        partResult  = xiDx * divLHTensorTmp;
-        Result     += partResult;
 
-        divLHTensor += divLHTensorTmp;
-      }
+      divLHTensorTmp = (helpVec * jacDet * intWeights[actInt -1]);
+      partResult  = xiDx * divLHTensorTmp;
+      Result     += partResult;
+
+      divLHTensor += divLHTensorTmp;
 
     } // end integration loop
-
-    if ( !surfInt ) {
-      nodalLoadDensity = Result / volume;
-      divLHTensor /= volume;
-    }
 
   } // end of method
 
@@ -1444,8 +1427,7 @@ DEFINE_LOG(linForm, "linForm")
                                                    Vector<Double> & nodalLoadDensity,
                                                    Vector<Double>& divLHTensor,
                                                    const Elem* elem,
-                                                   Double density,
-                                                   bool surfInt)
+                                                   Double density)
   {
 #ifdef TRACE
     (*trace) << "entering LinearFlowNoiseInt::CalcElemVector4Quad" << std::endl;
@@ -1485,18 +1467,12 @@ DEFINE_LOG(linForm, "linForm")
     divLHTensorTmp.Init(0.0);
     divLHTensor.Resize(dimelem);
     divLHTensor.Init(0.0);
-    //as the suface stuff is not working yet, we return at this point
-    if(surfInt){
-      return;
-    }
+
     
     Vector<double> intWeights = ptelem->GetIntWeights();
 
     //compute a simple normal vector (should be improved!!)
     Vector<Double> nVec(dimelem);
-    if ( surfInt ) {
-      ComputeNormalVec(ptCoord, nVec);
-    }
 
 
     // Loop over all integration points 
@@ -1540,31 +1516,143 @@ DEFINE_LOG(linForm, "linForm")
       helpVec *= density;
       divLHTensorTmp = (helpVec * jacDet * intWeights[actInt -1]);
 
-      if ( surfInt ) {
-        Double sourceScalar;
-        divLHTensorTmp.Inner(nVec, sourceScalar); 
-        partResult = Sf * sourceScalar;
-        //need the minus, since this value is multiplied by -1 befor assembly
-        Result     -= partResult * jacDet * intWeights[actInt -1];
-      }
-      else {    
-        // Multiplication with the derivatives of the shape functions
-        partResult  = xiDx * divLHTensorTmp;
-        Result     += partResult;
+      // Multiplication with the derivatives of the shape functions
+      partResult  = xiDx * divLHTensorTmp;
+      Result     += partResult;
+
+      divLHTensor += divLHTensorTmp;
+      volume += jacDet * intWeights[actInt-1];
       
-        divLHTensor += divLHTensorTmp;
-        volume += jacDet * intWeights[actInt-1];
-      }
     }
 
-    Result.Init(10.0);
-    if ( !surfInt ) {
-      Result.Init(1.0);
-      nodalLoadDensity = Result / volume;
-      divLHTensor /= volume;
-    }
+
+    nodalLoadDensity = Result / volume;
+    divLHTensor /= volume;
+
 
   } // end of method
+
+  void LinearFlowNoiseInt::CalcLighthillSurfaceTermVel(const Elem* volElem,
+                                   const Elem* surfElem,
+                                   const Matrix<Double>& ptVolCoord,
+                                   const Matrix<Double>& ptSurfCoord,
+                                   const Matrix<Double> & volumeVel,
+                                   Vector<Double> & surfNormal,
+                                   Double density,
+                                   Vector<Double> & Result,
+                                   Vector<Double> & ResultLHTens){
+#ifdef TRACE
+    (*trace) << "entering LinearFlowNoiseInt::CalcLighthillSurfaceTerm" << std::endl;
+#endif
+
+    Integer numSurfNodes = ptelem->GetNumNodes();
+    Integer numVolNodes = volElem->ptElem->GetNumNodes();
+    Integer numIntPts = ptelem->GetNumIntPoints();
+    Vector<double> intWeights = ptelem->GetIntWeights();
+    Vector<Double> * intPts = ptelem->GetIntPoints();
+    UInt dimelem = ptVolCoord.GetNumRows();
+
+    if(dimelem != ptSurfCoord.GetNumRows())
+      Exception("Incompatibe coordinate matrix dimensions!");
+
+    //determine matrix of integration points mapped to volume element
+    StdVector< Vector<Double> > locIntPtMat;
+    Matrix<Double> globIntPtMat(dimelem,numIntPts);
+
+    for(Integer i = 0; i<numIntPts;i++){
+      Vector<Double> globalCoord;
+      ptelem->Local2GlobalCoord(globalCoord,intPts[i],ptSurfCoord,surfElem);
+      for(UInt d = 0; d < dimelem ; d++){
+        globIntPtMat[d][i] = globalCoord[d];
+      }
+    }
+    //now map back according to volume element
+    Matrix<Double> localTmp(dimelem,numIntPts);
+    localTmp.Init();
+    volElem->ptElem->Global2LocalCoords(localTmp,globIntPtMat,ptVolCoord);
+    locIntPtMat.Resize(numIntPts,Vector<Double>(dimelem));
+    for(Integer i=0;i<numIntPts;i++){
+      for(UInt d = 0; d < dimelem ; d++){
+        locIntPtMat[i][d] = localTmp[d][i];
+      }
+    }
+
+    //now more or less standard stuff
+    Double sourceScalar;
+    Matrix<Double> xiDx;
+    Vector<Double> volSf;
+    Vector<Double> surfSh;
+
+    Vector<Double> VelAtIP;
+    Matrix<Double> VelDerAtIP;
+    Vector<Double> partResult;
+    Vector<Double> helpVec;
+
+    Double jacDet = 0;
+    Double volume = 0;
+    Double divLHNormal = 0;
+
+
+    Result.Resize(numSurfNodes);
+    Result.Init(0.0);
+    ResultLHTens.Resize(dimelem);
+    ResultLHTens.Init(0.0);
+
+    volSf.Resize(numVolNodes);
+    volSf.Init();
+    xiDx.Resize(numVolNodes,dimelem);
+    xiDx.Init();
+    partResult.Resize(numSurfNodes);
+    helpVec.Resize(dimelem);
+    VelAtIP.Resize(dimelem);
+    VelAtIP.Init();
+    VelDerAtIP.Resize(dimelem);
+    VelDerAtIP.Init();
+
+    // Loop over all integration points
+    for(Integer actInt=1; actInt <= numIntPts; actInt++)
+    {
+      volElem->ptElem->GetGlobDerivShFnc(xiDx, locIntPtMat[actInt-1], ptVolCoord, volElem);
+      volElem->ptElem->GetShFnc(volSf,locIntPtMat[actInt-1],volElem);
+
+      ptelem->GetShFncAtIp(surfSh,actInt,surfElem);
+      jacDet = ptelem->CalcJacobianDetAtIp(actInt,ptSurfCoord,surfElem);
+      // velocity at integration point: (vx  vy)^T  (2x1)
+      VelAtIP = volumeVel * volSf;
+      //first derivative of velocity at integration point: (2x2)
+      //  vx,x   vx,y
+      //  vy,x   vy,y
+      //
+      VelDerAtIP = volumeVel * xiDx;
+
+      helpVec[0] = 2.0 * VelAtIP[0] * VelDerAtIP[0][0]
+                       + VelAtIP[1] * VelDerAtIP[0][1]
+                       + VelAtIP[0] * VelDerAtIP[1][1];
+      helpVec[1] = 2.0 * VelAtIP[1] * VelDerAtIP[1][1]
+                       + VelAtIP[0] * VelDerAtIP[1][0]
+                       + VelAtIP[1] * VelDerAtIP[0][0];
+      if (dimelem == 3) {
+        helpVec[0] +=      VelAtIP[2] * VelDerAtIP[0][2]
+                         + VelAtIP[0] * VelDerAtIP[2][2];
+        helpVec[1] +=      VelAtIP[1] * VelDerAtIP[2][2]
+                         + VelAtIP[2] * VelDerAtIP[1][2];
+        helpVec[2] = 2.0 * VelAtIP[2] * VelDerAtIP[2][2]
+                         + VelAtIP[0] * VelDerAtIP[2][0]
+                         + VelAtIP[2] * VelDerAtIP[0][0]
+                         + VelAtIP[1] * VelDerAtIP[2][1]
+                         + VelAtIP[2] * VelDerAtIP[1][1];
+      }
+
+      helpVec *= density;
+      helpVec.Inner(surfNormal, sourceScalar);
+      partResult = surfSh * sourceScalar;
+      Result += partResult * jacDet * intWeights[actInt -1];
+      volume += intWeights[actInt-1];
+      divLHNormal += sourceScalar;
+    }
+    ResultLHTens = surfNormal;
+    ResultLHTens *= (divLHNormal / (volElem->ptElem->CalcVolume() * volume ));
+  } // end of CalcLighthillSurfaceTerm
 
 
 //===================================================================================
@@ -2360,40 +2448,27 @@ void LinearFlowNoiseInt::ComputeNormalVec( const Matrix<Double>& ptCoord,
   // =========================================================================
 
 
-  VolChargeHomInt::VolChargeHomInt(BaseMaterial* matData, Global::ComplexPart matDataType, UInt numDof,
-      const std::string& phase,
-      bool isaxi) {
+  VolChargeHomInt::VolChargeHomInt(BaseMaterial* matData, Global::ComplexPart matDataType, const std::string& phase, bool isaxi)
+  {
 
     matData_ = matData;
     name_ = "VolChargeHomInt";
     isaxi_ = isaxi;
-    numDofs_ = numDof;
+    numDofs_ = 1;
     phase_ = phase;
     locMatDataType_ = matDataType;
 
-
   }
 
-  VolChargeHomInt::~VolChargeHomInt() {
-    delete bilinearStiff_;
+  VolChargeHomInt::~VolChargeHomInt() { delete bilinearStiff_; }
 
-  }
-
-  void VolChargeHomInt::SetVolChargeVector(StdVector<std::string> & volChargex,
-      StdVector<std::string> & volChargey,
-      StdVector<std::string> & volChargez,
-      const CoordSystem * coordSys,
-      bool isUnit, Double volume, const int dim ) {
-
-
-    locChargex_ = volChargex;
-    locChargey_ = volChargey;
-    locChargez_ = volChargez;
+  void VolChargeHomInt::SetVolChargeVector(Vector<double> & charges, const CoordSystem * coordSys, bool isUnit, Double volume, const int dim)
+  {
+    locCharges = charges;
     coordSys_ = coordSys;
     isUnitValue_ = isUnit;
     volume_ = volume;
     dim_ = dim;
-
 
     // flag for updatedLagrange formulation
     bool upLagrangeForm = true;
@@ -2431,22 +2506,11 @@ void LinearFlowNoiseInt::ComputeNormalVec( const Matrix<Double>& ptCoord,
 
   void VolChargeHomInt::CalcElemVector(Vector<Complex> &elemVec, EntityIterator &ent)
   {
-    // get global coordinate system and math parser
-    MathParser * parser = domain->GetMathParser();
 
     // Now evaluate each entry
     // Vector<T> locLoadVec( dim_ );
     Vector<Double> locLoadVec( dim_ );
-    for ( UInt i = 0; i < locChargex_.GetSize(); i++ ) {
-      parser->SetExpr( mHandle_, locChargex_[i] );
-      locLoadVec[0] = parser->Eval( mHandle_ );
-      parser->SetExpr( mHandle_, locChargey_[i] );
-      locLoadVec[1] = parser->Eval( mHandle_ );
-      if (dim_ == 3){
-        parser->SetExpr( mHandle_, locChargez_[i] );
-        locLoadVec[2] = parser->Eval( mHandle_ );
-      }
-    }
+    locLoadVec = locCharges;
 
     // Extract pointer to reference element and get coordinates
     ExtractElemInfo(ent);

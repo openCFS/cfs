@@ -241,6 +241,11 @@ struct ResultInfo;
                                    shared_ptr<ResultInfo> res );
     void GetDeriv2SolVecOfElement( Vector<Complex>& sol, const EntityIterator& it, 
                                    shared_ptr<ResultInfo> res);
+    
+    /// return the vector of solution, or time derivative of the solution belonging to all nodes of the actual element
+    void GetAnyDerivSolVecOfElement(Vector<Double>& sol, const EntityIterator& it, shared_ptr<ResultInfo> res, DERIVType derivative);
+    void GetAnyDerivSolVecOfElement(Vector<Complex>& sol, const EntityIterator& it, shared_ptr<ResultInfo> res, DERIVType derivative);
+    
 
     /// returns the vector of the previous solution belonging to all nodes of the actual element
     void GetPrevSolVecOfElement( Vector<Double>& sol, const EntityIterator& it, 

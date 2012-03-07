@@ -1960,6 +1960,18 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
     elem_disp->fctType = shared_ptr<ConstFct>(new ConstFct() );
     availResults_.insert(elem_disp);
 
+    // === RELATIVE DILATATION (dV/V) ===
+    if ( (analysistype_ == STATIC) || (analysistype_ == TRANSIENT) ) {
+      shared_ptr<ResultInfo> relDilat(new ResultInfo);
+      relDilat->resultType = MECH_REL_DILATATION;
+      relDilat->dofNames = "";
+      relDilat->unit = "";
+      relDilat->entryType = ResultInfo::SCALAR;
+      relDilat->definedOn = ResultInfo::ELEMENT;
+      relDilat->fctType = shared_ptr<ConstFct>( new ConstFct() );
+      availResults_.insert(relDilat);
+    }
+    
     // === PSEUDO DENSITY for SIMP ===
     shared_ptr<ResultInfo> mechPD(new ResultInfo);
     mechPD->resultType = MECH_PSEUDO_DENSITY;
@@ -2229,9 +2241,13 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
       }
       break;
 
+    case MECH_REL_DILATATION:
+      ComputeRelDilatation( result );
+      break;
+      
     case MECH_PSEUDO_DENSITY:
     case PHYSICAL_PSEUDO_DENSITY:
-      if(domain->GetErsatzMaterial(false) == NULL) // no excpetion
+      if(domain->GetErsatzMaterial(false) == NULL) // no exception
       result->Init();
       else
         domain->GetErsatzMaterial()->ExtractResults(result, isComplex_);
@@ -2385,6 +2401,37 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
       //compute the deformed volume
       elemVol = averageDis * surfEl->CalcVolume(surfCoord,isaxi_);
       return elemVol;
+    }
+    void MechPDE::ComputeRelDilatation( shared_ptr<BaseResult> vals ) {
+      Double elemOrigVol, elemDefVol; 
+      Result<Double>& res = dynamic_cast< Result<Double>& >(*vals);
+      EntityIterator elemIt = res.GetEntityList()->GetIterator();
+      UInt numNodes;
+      Matrix<Double> coord;
+      Vector<Double> elemDisp;
+      Vector<Double>& resVec = res.GetVector();
+      resVec.Resize( res.GetEntityList()->GetSize() );
+
+      for ( elemIt.Begin(); !elemIt.IsEnd(); elemIt++ ) {
+        BaseFE *ptElem = elemIt.GetElem()->ptElem;
+        StdVector<UInt> connect = elemIt.GetElem()->connect;
+
+        ptgrid_->GetElemNodesCoord(coord, connect, false);        
+        elemOrigVol = ptElem->CalcVolume(coord, isaxi_);
+        
+        GetSolVecOfElement(elemDisp, elemIt, results_[0]);
+        numNodes = coord.GetNumCols();
+        for ( UInt i=0; i < numNodes; ++i ) {
+          coord[0][i] += elemDisp[i*dim_];
+          coord[1][i] += elemDisp[i*dim_+1];
+          if ( dim_ == 3 ) {
+            coord[2][i] += elemDisp[i*dim_+2];
+          }
+        }
+        elemDefVol = ptElem->CalcVolume(coord, isaxi_);
+        
+        resVec[elemIt.GetPos()] = elemDefVol / elemOrigVol;
+      }
     }
     // ********************************************************
     //   Query parameter object for information about prestressing

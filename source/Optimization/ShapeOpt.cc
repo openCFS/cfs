@@ -209,12 +209,13 @@ void ShapeOpt::CalcMinusU1dKU2(Solutions& forward, Solutions& adjoint, Objective
   const bool homogenization = tensor_diff != NULL;
   const unsigned int ex_size(me->excitations.GetSize());
   double rcubevol(1.0);
+  const bool transient = IsTransient();
   if(homogenization){
     rcubevol = 1.0 / grid->CalcVolumeSpannedByNamedNodes();    
   }
   UInt timesteps(domain->GetDriver()->GetNumSteps());
   double dt = 1.0, gamma = 1.0, beta = 1.0;
-  if(IsTransient()){
+  if(transient){
     dt = dynamic_cast<TransientDriver*>(domain->GetDriver())->GetDeltaT();
     gamma = pde->getTimeStepping()->GetNewmarkGamma();
     beta = pde->getTimeStepping()->GetNewmarkBeta();
@@ -241,8 +242,9 @@ void ShapeOpt::CalcMinusU1dKU2(Solutions& forward, Solutions& adjoint, Objective
   Matrix<double> A4;
   Matrix<double> dK;
   Matrix<double> M;
-  Vector<double> dKu;
-  Vector<double> dMu;
+  Vector<double> dKp;
+  Vector<double> dMp;
+  Vector<double> dDp;
   Vector<double> shapeFncAtIp;
   Matrix<double> partM;
   
@@ -256,6 +258,8 @@ void ShapeOpt::CalcMinusU1dKU2(Solutions& forward, Solutions& adjoint, Objective
   
   //caching (see CalcNewmarkDerivative for why)
   StdVector<StdVector<StdVector<SingleVector*>* > > forwards;
+  StdVector<StdVector<StdVector<SingleVector*>* > > forwarddt;
+  StdVector<StdVector<StdVector<SingleVector*>* > > forwarddtt;
   StdVector<StdVector<StdVector<SingleVector*>* > > adjoints;
   forwards.Resize(ex_size);
   adjoints.Resize(ex_size);
@@ -265,6 +269,18 @@ void ShapeOpt::CalcMinusU1dKU2(Solutions& forward, Solutions& adjoint, Objective
     for(unsigned int t = 0; t < timesteps; ++t){
       forwards[e][t] = &forward.Get(e, NULL, t)->gridelem[MECH];
       adjoints[e][t] = &adjoint.Get(e, f, t)->gridelem[MECH];
+    }
+  }
+  if(transient){
+    forwarddt.Resize(ex_size);
+    forwarddtt.Resize(ex_size);
+    for(unsigned int e = 0; e < ex_size; ++e){
+      forwarddt[e].Resize(timesteps);
+      forwarddtt[e].Resize(timesteps);
+      for(unsigned int t = 0; t < timesteps; ++t){
+        forwarddt[e][t] = &forward.Get(e, NULL, t, FIRST_DERIV)->gridelem[MECH];
+        forwarddtt[e][t] = &forward.Get(e, NULL, t, SECOND_DERIV)->gridelem[MECH];
+      }
     }
   }
   
@@ -289,11 +305,9 @@ void ShapeOpt::CalcMinusU1dKU2(Solutions& forward, Solutions& adjoint, Objective
         form->calcDMat(D, elem, DesignElement::NO_DERIVATIVE);
         LOG_DBG2(ShOpt) << "calcDMat returned D=" << D;
         double dampingAlpha = 0.0; double dampingBeta = 0.0;
-        if(IsTransient()){
+        if(transient){
           BiLinFormContext* massIntCtxt = GetFormContext(elem->regionId, pde, pde, "MassInt");
           massInt = (MassInt*)massIntCtxt->GetIntegrator();
-//          M = &mech_mat_->MechMass(elem, false, DesignElement::NO_DERIVATIVE);
-//          LOG_DBG(ShOpt) << "mass: M=" << M;
           if(!design->GetErsatzMaterialDamping(dampingAlpha, dampingBeta, elem)){ // check whether damping is also design and if get it from there
             if(biLinForm->GetSecDestMat() != NOTYPE){
               parser->SetExpr(mathParserHandle, biLinForm->GetSecMatFac());
@@ -306,6 +320,7 @@ void ShapeOpt::CalcMinusU1dKU2(Solutions& forward, Solutions& adjoint, Objective
           }
         }
         LOG_DBG2(ShOpt) << "damping: alpha=" << dampingAlpha << ", beta= " << dampingBeta;
+        const bool damping = dampingAlpha > 0.0 || dampingBeta > 0.0;
         
         const unsigned int dimD(D.GetNumRows());
 
@@ -322,7 +337,7 @@ void ShapeOpt::CalcMinusU1dKU2(Solutions& forward, Solutions& adjoint, Objective
           ptelem->GetGlobDerivShFncAtIp(dPhi, ip, CornerCoords, jacdet, elem); // really is already dPhi * J~
           const unsigned int rowPhi(dPhi.GetNumRows());
           
-          if(IsTransient()){
+          if(transient){
             ptelem->GetShFncAtIp(shapeFncAtIp, ip, elem );
             partM.DyadicMult(shapeFncAtIp);
             partM *= massInt->GetErsatzMaterialMass(elem, DesignElement::NO_DERIVATIVE);
@@ -371,52 +386,32 @@ void ShapeOpt::CalcMinusU1dKU2(Solutions& forward, Solutions& adjoint, Objective
                 for(unsigned int ex = 0; ex < ex_size; ++ex){
                   StdVector<StdVector<SingleVector*>* >& forward_ex = forwards[ex];
                   StdVector<StdVector<SingleVector*>* >& adjoint_ex = adjoints[ex];
-                  double vK = 0.0;
-                  double vM = 0.0;
-                  double vC = 0.0;
-                  for(unsigned int t = 0; t < timesteps; ++t){ // loop over all timesteps in u1
+                  StdVector<StdVector<SingleVector*>* >* forwarddt_ex = NULL;
+                  StdVector<StdVector<SingleVector*>* >* forwarddtt_ex = NULL;
+                  if(transient){
+                    forwarddt_ex = &forwarddt[ex];
+                    forwarddtt_ex = &forwarddtt[ex];
+                  }
+                  double v = 0.0;
+                  for(unsigned int t = 0; t < timesteps; ++t){ // loop over all timesteps, static analysis has 1 timestep
                     // Get() requires f exclusively for adjoint solutions.
-                    Vector<double>& u_vec = dynamic_cast<Vector<double>& >(*(*forward_ex[t])[e]);
-                    Vector<double>& p_vecd = dynamic_cast<Vector<double>& >(*(*adjoint_ex[t])[e]);
-                    dKu = dK * u_vec;
-                    double dvK = p_vecd * dKu;
-                    vK -= dvK;
-                    LOG_DBG2(ShOpt) << "timestep=" << t << " vK -= " << dvK << " -> " << vK;
-                    if(IsTransient()){
-                      dMu = M * u_vec; // note that dM = rho * trA1 * jacdet * NN', M here is rho * NN' (no jacdet), and no trA1
-                      double dvM = (p_vecd * dMu) * trA1;
-                      vM -= dvM; // keep in mind, we calculate - u1 dA u2
-                      LOG_DBG2(ShOpt) << "timestep=" << t << " vM -= " << dvM << " -> " << vM;
-                      double dvC = (gamma / (beta * dt) ) * (dampingAlpha * dvM + dampingBeta * dvK);
-                      vC -= dvC;
-                      LOG_DBG2(ShOpt) << "timestep=" << t << " vC -= " << dvC << " -> " << vC;
-                      double u = 1.0; double upp = 1.0 / (beta*dt*dt); double up = upp * gamma * dt;
-                      if(t == 0 && IsFirstTransientStepStatic()){
-                        upp = 0.0; up = 0.0; vM = 0.0; vC = 0.0;
+                    Vector<double>& u_vec = dynamic_cast<Vector<double>&>(*(*forward_ex[t])[e]);
+                    Vector<double>& p_vec = dynamic_cast<Vector<double>&>(*(*adjoint_ex[t])[e]);
+                    dKp = dK * p_vec;
+                    v -= u_vec * dKp;
+                    if(transient && (t > 0 || !IsFirstTransientStepStatic())){
+                      Vector<double>& utt_vec = dynamic_cast<Vector<double>&>(*(*(*forwarddtt_ex)[t])[e]);
+                      dMp = M * p_vec; // note that dM = rho * trA1 * jacdet * NN', M here is rho * NN' (no jacdet), and no trA1
+                      v -= utt_vec * dMp * trA1; // keep in mind, we calculate - u1 dA u2
+                      if(damping){
+                        Vector<double>& ut_vec = dynamic_cast<Vector<double>&>(*(*(*forwarddt_ex)[t])[e]);
+                        dDp = dampingAlpha * dMp + dampingBeta * dKp;
+                        v -= ut_vec * dDp;
                       }
-                      LOG_DBG3(ShOpt) << "timestep=" << t << ", upp=" << upp << ", up=" << up << ", u=" << u << ", vM=" << vM << ", vC=" << vC;
-                      for(unsigned int tp = t+1; tp < timesteps; ++tp){
-                        Vector<double>& p_vec = dynamic_cast<Vector<double>& >(*(*adjoint_ex[tp])[e]);
-                        double ut = u + (up + upp*(0.5-beta)*dt ) *dt;
-                        double upt = up + (1.0 - gamma) * dt * upp;
-                        double pdMu = p_vec * dMu;
-                        double tvM = ut * pdMu * trA1;
-                        vM += tvM; // keep in mind, we calculate - u1 dA u2
-                        LOG_DBG3(ShOpt) << "timestep1=" << t << ", timestep2=" << tp << ", vM += " << tvM << " -> " << vM;
-                        double pdKu = p_vec * dKu;
-                        double tvC = (gamma * ut / (beta * dt) - upt ) * (dampingAlpha * pdMu * trA1 + dampingBeta * pdKu);
-                        vC += tvC;
-                        LOG_DBG3(ShOpt) << "timestep1=" << t << ", timestep2=" << tp << ", vC += " << tvC << " -> " << vC;
-                        u = 0.0;
-                        upp = (u - ut) / (beta * dt * dt);
-                        up = (upt + upp * gamma * dt);
-                        LOG_DBG3(ShOpt) << "timestep1=" << t << ", timestep2=" << tp << ", upp=" << upp << ", up=" << up << ", u=" << u << ", vM=" << vM << ", vC=" << vC;
-                      } // loop over timesteps
                     } // if transient
                   } // loop over timesteps
-                  vM /= beta * dt * dt;
-                  der[p] += intWeight * jacdet * me->excitations[ex].weight * (vK + vM + vC );
-                  LOG_DBG2(ShOpt) << "der[" << p << "] += " << intWeight << " * " << jacdet << " * " << me->excitations[ex].weight << " * " << "( " << vK << " + " << vM << " + " << vC << " ) = " << intWeight * jacdet * me->excitations[ex].weight * (vK + vM + vC) << " -> " << der[p];
+                  der[p] += intWeight * jacdet * me->excitations[ex].weight * v;
+                  LOG_DBG2(ShOpt) << "der[" << p << "] += " << intWeight << " * " << jacdet << " * " << me->excitations[ex].weight << " * " << v << " = " << intWeight * jacdet * me->excitations[ex].weight * v << " -> " << der[p];
                 } // loop over excitations
               }else{ // we calculate homogenization 
                 for(unsigned int ij = 0; ij < ex_size; ++ij){
@@ -693,10 +688,10 @@ Matrix<double> ShapeOpt::CalcHomogenizedTensor(){
   return result;
 }
 
-void ShapeOpt::StorePDESolution(Solutions& solutions, Excitation &excite, Function* f, UInt timestep, bool read_sol, bool read_rhs, bool save_sol, const std::string& comment){
-  ParamMat::StorePDESolution(solutions, excite, f, timestep, read_sol, read_rhs, save_sol, comment);
+void ShapeOpt::StorePDESolution(Solutions& solutions, Excitation &excite, Function* f, UInt timestep, bool read_sol, bool read_rhs, bool save_sol, DERIVType derivative, const std::string& comment){
+  ParamMat::StorePDESolution(solutions, excite, f, timestep, read_sol, read_rhs, save_sol, derivative, comment);
   if(read_sol){
-    solutions.Get(excite, f, timestep)->Read(Solution::GRIDELEM_VECTORS, pde, MECH);
+    solutions.Get(excite, f, timestep)->Read(Solution::GRIDELEM_VECTORS, pde, MECH, false, derivative);
   }
 }
 

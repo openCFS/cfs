@@ -30,7 +30,7 @@ namespace CoupledField {
     CORRECTOR_1, CORRECTOR_2, \
     COEFFRHS}
   TIMEStepType;
-  typedef enum {NO_DERIVTYPE = -1, FIRST_DERIV = 1, SECOND_DERIV = 2}
+  typedef enum {NO_DERIVTYPE = 0, FIRST_DERIV = 1, SECOND_DERIV = 2}
   DERIVType;
 
 

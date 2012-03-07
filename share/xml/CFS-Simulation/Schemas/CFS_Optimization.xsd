@@ -309,10 +309,15 @@
                 <xsd:enumeration value="designTracking"/>
                 <!-- requires the sub-element filter -->
                 <xsd:enumeration value="projection"/>
+                <!--  requires parametrized material tensor (for now only PLANE_STRESS implemented) -->
+                <xsd:enumeration value="sumModuli"/>
+                <xsd:enumeration value="globalSumModuli"/>
+                <!--  requires parametrized material tensor (PLANE_STRESS), > 0 ensures positivity of the material tensor -->
+                <xsd:enumeration value="parametrized-plane-stress-pos-def"/>
               </xsd:restriction>
             </xsd:simpleType>
           </xsd:attribute>
-          <!-- The desing is optional. If not given it is for all  -->
+          <!-- The design is optional. If not given it is for all  -->
           <xsd:attribute name="design" use="optional" type="DT_Design"/>
           <!-- A constraint value is always scalar. Allowed only when constraint and no tensor homogenization tensor is given -->
           <xsd:attribute name="value" use="optional" type="xsd:float"/>
@@ -510,6 +515,7 @@
                             <xsd:enumeration value="minor_feasibility_tolerance"/>
                             <xsd:enumeration value="linesearch_tolerance"/>
                             <xsd:enumeration value="difference_interval"/>
+                            <xsd:enumeration value="violation_limit"/>
                             <!-- string options -->
                             <xsd:enumeration value="qpsolver"/>
                           </xsd:restriction>
@@ -521,6 +527,8 @@
                   </xsd:element>
                 </xsd:sequence>
                 <xsd:attribute name="fromWarmstart" type="xsd:boolean" default="true"/>
+                <!-- output can be missing, a file name, 'commandline' or 'silent' for no fileoutput at all -->
+                <xsd:attribute name="output" use="optional" type="xsd:string"/>
               </xsd:complexType>
             </xsd:element>
 
@@ -927,6 +935,7 @@
                     </xsd:restriction>
                   </xsd:simpleType>
                 </xsd:attribute>
+                <xsd:attribute name="compress" default="false" type="xsd:boolean"/>
               </xsd:complexType>
             </xsd:element>                       
             
@@ -952,6 +961,8 @@
                             <xsd:enumeration value="transversal-isotropic-boxed"/>
                             <xsd:enumeration value="density-times-2dtensor"/>
                             <xsd:enumeration value="density-times-2dtensor-constant-trace"/>
+                            <xsd:enumeration value="density-times-transversal-isotropic-2d"/>
+                            <xsd:enumeration value="density-times-transversal-isotropic-2d-boxed"/>
                           </xsd:restriction>
                         </xsd:simpleType>
                       </xsd:attribute>
@@ -1153,6 +1164,8 @@
       <xsd:enumeration value="acouDensity"/>
       <xsd:enumeration value="polarization"/>
       <xsd:enumeration value="tensor_trace"/>
+      <!-- Constraint is defined per element and uses all designs on that element -->
+      <xsd:enumeration value="allDesigns"/> 
       <xsd:enumeration value="emodul"/>
       <xsd:enumeration value="poisson"/>
       <xsd:enumeration value="lamelambda"/>

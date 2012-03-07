@@ -1195,7 +1195,7 @@ namespace CoupledField
 
   void BaseFE::CalcBarycenter(const Matrix<Double>& coords, Point& barycenter)
   {
-    // init barycenter for safty reason (higher coordinates)
+    // init barycenter for safety reason (higher coordinates)
     barycenter.SetZero();
 
     UInt n_elems = coords.GetNumCols();

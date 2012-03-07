@@ -71,6 +71,8 @@ for MKLROOT in $MKL_ROOT_DIRS; do
     BASEDIRS="$BASEDIRS $(echo $MKLROOT | sed 's|Frameworks/mkl.*|lib|')"
     BASEDIRS="$BASEDIRS/$COMPILER_SUBDIR "    
     BASEDIRS="$BASEDIRS $MKLROOT/lib/$MKL_SUBDIR "    
+#   for intel composer_xe_2011_sp1.8.273: iomp5 lib is in subdir compiler/lib/intel64
+    BASEDIRS="$BASEDIRS $(echo $MKLROOT | sed 's|mkl.*|compiler|')/lib/$COMPILER_SUBDIR "
 #    echo $BASEDIRS
 
     for BASEDIR in $BASEDIRS; do

@@ -262,6 +262,7 @@
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="magEnergy"/>
       <xsd:enumeration value="magEddyPower"/>
+      <xsd:enumeration value="magForceVWP"/>
     </xsd:restriction>
   </xsd:simpleType>
 

@@ -50,7 +50,7 @@ namespace CoupledField {
     //! - LDL_SOLVER2
     typedef enum {NOSOLVER, DIRECT, RICHARDSON, CG, LANCZOS, QMR, GMRES,
                   MINRES, SYMMLQ, LAPACK_LU, LAPACK_LL, PARDISO,  ILUPACK, LU_SOLVER, CHOLMOD, 
-                  LDL_SOLVER, LDL_SOLVER2, DIAGSOLVER } SolverType;    
+                  LDL_SOLVER, LDL_SOLVER2, DIAGSOLVER, PARDISO64 } SolverType;    
     static Enum<SolverType> solverType;
 
   public:

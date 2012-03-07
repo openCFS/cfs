@@ -19,6 +19,7 @@
 #include "def_use_lapack.hh"
 #include "def_use_metis.hh"
 #include "def_use_pardiso.hh"
+#include "def_use_pardiso64.hh"
 
 namespace CoupledField {
 
@@ -547,6 +548,12 @@ namespace CoupledField {
 #ifndef USE_PARDISO
       EXCEPTION("This executable has not been built with support for PARDISO!\n"
                 "Please switch on USE_PARDISO and set CFS_PARDISO.");
+#endif
+      break;
+    case BaseSolver::PARDISO64:
+#ifndef USE_PARDISO64
+      EXCEPTION("This executable has not been built with support for PARDISO64!\n"
+                "Please switch on USE_PARDISO64 and set CFS_PARDISO.");
 #endif
       break;
     case BaseSolver::ILUPACK:

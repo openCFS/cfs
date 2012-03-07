@@ -5,15 +5,28 @@ set_source_files_properties(mechanicMaterial.cc
                             -fno-strict-aliasing)
 ENDIF(CFS_CXX_COMPILER_NAME STREQUAL "GCC")
 
-SET(MATERIALS_SRCS acousticMaterial.cc baseMaterial.cc
-  electroMagneticMaterial.cc electrostaticMaterial.cc flowMaterial.cc
-  heatMaterial.cc mechanicMaterial.cc piezoMaterial.cc
-  thermoelasticMaterial.cc pyroelectricMaterial.cc magStrictMaterial.cc)
-# MaterialData.cc is removed (?)
+SET(MATERIALS_SRCS
+  baseMaterial.cc
+  mechanicMaterial.cc
+  electroMagneticMaterial.cc
+  electrostaticMaterial.cc
+  magStrictMaterial.cc
+  heatMaterial.cc
+  piezoMaterial.cc
+  pyroelectricMaterial.cc
+  thermoelasticMaterial.cc
+  acousticMaterial.cc
+  flowMaterial.cc
+) # MaterialData.cc is removed (? )
 
 ADD_LIBRARY(materials STATIC ${MATERIALS_SRCS})
 
 TARGET_LINK_LIBRARIES(materials
-  utils
+  cfsgeneral
   domain
+  logging
+  materials
+  matvec
+  paramh
+  utils
 )

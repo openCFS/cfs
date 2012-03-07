@@ -373,8 +373,7 @@ namespace CoupledField
                                        Vector<Double> & Result, 
                                        Vector<Double> & nodalLoadDensity,
                                        Vector<Double>& divLHTensor, 
-                                       const Elem* elem, Double density,
-                                       bool surfInt);
+                                       const Elem* elem, Double density);
 
 
     /// Calculation of vector of right hand side using nodal velocity values
@@ -383,8 +382,29 @@ namespace CoupledField
                                  Vector<Double> & Result, 
                                  Vector<Double> & nodalLoadDensity,
                                  Vector<Double>& divLHTensor, 
-                                 const Elem* elem, Double density,
-                                 bool surfInt);
+                                 const Elem* elem, Double density);
+
+    void CalcLighthillSurfaceTermVel(const Elem* volElem,
+                                 const Elem* surfElem,
+                                 const Matrix<Double>& ptVolCoord,
+                                 const Matrix<Double>& ptSurfCoord,
+                                 const Matrix<Double> & volumeVel,
+                                 Vector<Double> & surfNormal,
+                                 Double density,
+                                 Vector<Double> & Result,
+                                 Vector<Double> & ResultLHTens);
+
+    void CalcLighthillSurfaceTermVelCenter(const Elem* VolElem,
+                                     const Elem* surfElem,
+                                     const Matrix<Double>& ptVolCoord,
+                                     const Matrix<Double>& ptSurfCoord,
+                                     const Matrix<Double> & volumeVel,
+                                     Vector<Double> & surfNormal,
+                                     Double density,
+                                     Vector<Double> & Result,
+                                     Vector<Double> & ResultLHTens){
+      Exception("CalcLighthillSurfaceTermCenter: not implemented!");
+    }
 
     
     /// Extraction of element velocity values from total flowdata matrix to a matrix (connecth, dim)
@@ -650,7 +670,7 @@ namespace CoupledField
   public:
 
     //! Constructor
-    VolChargeHomInt(BaseMaterial* matData, Global::ComplexPart matDataType, UInt numDof, const std::string& phase, bool isaxi);
+    VolChargeHomInt(BaseMaterial* matData, Global::ComplexPart matDataType, const std::string& phase, bool isaxi);
 
     //! Destructor
     virtual ~VolChargeHomInt();
@@ -658,11 +678,7 @@ namespace CoupledField
     //! Set the volume force vector
     //! \param volForce vector with volume force w.r.t. coordSys
     //! \param coordSys pointer to reference coordinate system
-    void SetVolChargeVector(StdVector<std::string> & volChargex,
-        StdVector<std::string> & volChargey,
-        StdVector<std::string> & volChargez,
-        const CoordSystem * coordSys,
-        bool isUnit, Double volume, const int dim);
+    void SetVolChargeVector(Vector<double> & volCharges, const CoordSystem * coordSys, bool isUnit, Double volume, const int dim);
 
     //! Calculation of vector of right hand side
     //   template <typename T>
@@ -687,9 +703,7 @@ namespace CoupledField
     UInt numDofs_;
 
     //! Vector with volume charge (local coordinate system)
-    StdVector<std::string> locChargex_;
-    StdVector<std::string> locChargey_;
-    StdVector<std::string> locChargez_;
+    Vector<double> locCharges;
 
     //! Phase of force
     std::string phase_;

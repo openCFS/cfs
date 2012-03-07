@@ -9,13 +9,21 @@ ADD_LIBRARY(arpack-olas STATIC ${ARPACK_SRCS})
 # CFS_FORTRAN_LIBS has been set in cmake_modules/distro.cmake
 # LAPACK_LIBRARY and BLAS_LIBRARY are defined in
 # cmake_modules/FindFortranLibs.cmake
-SET(TARGET_LL
-  ${ARPACK_LIBRARY}
-  ${LAPACK_LIBRARY}
-  ${BLAS_LIBRARY}
-  ${CFS_FORTRAN_LIBS}
+TARGET_LINK_LIBRARIES(arpack-olas
+  cfsgeneral
   matvec
-  )
+  paramh
+  precond-olas
+  solver-olas
+  utils
+  arpack-lib1
+)
 
-TARGET_LINK_LIBRARIES(arpack-olas ${TARGET_LL})
+SET(DEPENDS
+  "${LAPACK_LIBRARY}"
+  "${BLAS_LIBRARY}"
+  "${CFS_FORTRAN_LIBS}"
+)
+
+ADD_DEPENDENT_LIBRARY(arpack-lib "${ARPACK_LIBRARY}" "${DEPENDS}")
 

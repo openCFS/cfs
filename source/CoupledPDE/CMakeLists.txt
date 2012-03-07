@@ -1,22 +1,31 @@
 SET(COUPLED_PDE_SRCS
-  itercoupledpde.cc
+  PiezoCoupling.cc
+  BasePairCoupling.cc
+  DirectCoupledPDE.cc
   coupledpdedef.cc
   pdecoupling.cc
-  couplingmemento.cc
-  DirectCoupledPDE.cc
-  BasePairCoupling.cc
-  PiezoCoupling.cc
+  itercoupledpde.cc
+  magStrictCoupling.cc
   AcouMechCoupling.cc
   ThermoMechCoupling.cc
   ThermoElectricCoupling.cc
-  magStrictCoupling.cc
+  couplingmemento.cc
   )
 
 ADD_LIBRARY(coupledpde STATIC ${COUPLED_PDE_SRCS})
 
-SET(TARGET_LL
+TARGET_LINK_LIBRARIES(coupledpde
+  algsys-olas
+  cfsgeneral
+  datainout
+  domain
   driver
+  elements
   forms
+  logging
+  materials
+  matvec
+  paramh
+  pde
+  utils  
 )
-
-TARGET_LINK_LIBRARIES(coupledpde ${TARGET_LL})

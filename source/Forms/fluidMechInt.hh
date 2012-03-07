@@ -38,7 +38,11 @@ public:
 //   void SetGridSolution( NodeStoreSol<Double>& gridSol ) {
 //     gridSol_ = &gridSol; }
 
+  virtual void InitSpongeLayer(Double start, Double end, Double dampFactor, std::string type);
+
 protected:
+
+  void AdjustViscosity(Double pos);
 
   void ResortElementMatrix(Matrix<Double> & sortedElemMat,
                            const Matrix<Double> & elemMat,
@@ -124,36 +128,20 @@ protected:
   bool multAddOpt_;
   Double dt_;
 
+
+  //! for sponge layer 
+  Double spongeLayerStart_;
+  Double spongeLayerEnd_;
+  Double spongeLayerThickness_;
+  Double spongeLayerDampFactor_;
+  Double kinematicViscosityInital_;
+  std::string spongeLayerType_;
+  bool isSpongeLayer_;
+
   //! grid solution vector
   //NodeStoreSol<Double>* gridSol_;
 
   std::vector<std::vector <Integer> > lookuptable;
-  //Vector<Vector <Integer> > lookuptable;
-
-//   UInt elemNumber_;
-//   Matrix<Double> elemResult_, gridElemResult_;
-//   Vector<Double>  Vx_, Vy_, Vz_;
-//   Double  VxAtIP_, VyAtIP_, VzAtIP_, VL2_, VL2AtIP_, VMax_;
-//   Double tau_m_, tau_mu_, tau_c_;
-//   Double lambda_k_, A_elem_, h_k_;
-
-//   bool computeTaus_;
-
-//   Double jacDet_, multAux_;
-//   UInt N_; // DOFs per Node z.B.:(Ux,Uy)
-
-//   Matrix<Double> locElemMat_;
-
-//   Matrix<Double> A1_;
-//   Matrix<Double> A_a_;
-
-//   Matrix<Double> xiDxDy_;
-//   Matrix<Double> xiDxxDyyDxy_;
-
-//   Vector<Double>  xiDxx_, xiDyy_;//, xiDxy;
-//   Vector<Double>  xiDx_, xiDy_;
-//   Vector<Double>  xi_;
-//   Vector<Double>  auxI_, auxJ_;
 
 protected:
   UInt spaceDim_;

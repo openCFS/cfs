@@ -101,7 +101,7 @@ protected:
 					     \end{array}\right) \f]
     \param lCoord (input) Local coordinates of evalutation point 
   */
-  virtual void GetEdgeGlobalDerivShapeFnc(Vector<Matrix<Double>* > & deriv, 
+  virtual void GetEdgeGlobalDerivShapeFnc(StdVector<Matrix<Double>* > & deriv, 
 					  const Vector<Double> & lCoord,
 					  const Matrix<Double> & CornerCoords);
 

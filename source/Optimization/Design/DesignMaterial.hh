@@ -19,7 +19,8 @@ template <class TYPE> class StdVector;
     
   public:
     
-    typedef enum { ISOTROPIC, LAME_ISOTROPIC, TRANSVERSAL_ISOTROPIC, TRANSVERSAL_ISOTROPIC_BOXED, DENSITY_TIMES_2D_TENSOR, DENSITY_TIMES_2D_TENSOR_CONSTANT_TRACE } Type;
+    typedef enum { ISOTROPIC, LAME_ISOTROPIC, TRANSVERSAL_ISOTROPIC, TRANSVERSAL_ISOTROPIC_BOXED, DENSITY_TIMES_TRANSVERSAL_ISOTROPIC,
+      DENSITY_TIMES_TRANSVERSAL_ISOTROPIC_BOXED, DENSITY_TIMES_2D_TENSOR, DENSITY_TIMES_2D_TENSOR_CONSTANT_TRACE } Type;
     
     /* posibilities for the isotropic plane in transversal isotropy
      * note that parameters EMODULISO, POISSONISO are used for that plane
@@ -33,6 +34,9 @@ template <class TYPE> class StdVector;
     
     /** Set a parameter for the parametric material optimization */
     void SetParameter(const DesignElement::Type p, const double value);
+
+    /** Get a parameter of the parametric material optimization */
+    double GetParameter(const DesignElement::Type p);
     
     /** Calculate the derivative tensor from the given material parameters */
     void GetMaterialTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction = DesignElement::NO_DERIVATIVE);

@@ -11,34 +11,36 @@ IF(USE_XERCES)
 ENDIF(USE_XERCES)
 
 
-SET(DOMAIN_SRCS 
-  ansatzFct.cc
-  bcs.cc
+SET(DOMAIN_SRCS
+  GridCFS/grid_cfs.cc
+  grid.cc
   domain.cc
-  edgeFace.cc
   elem.cc
   entityList.cc
-  grid.cc
+  ansatzFct.cc
+  bcs.cc
   resultInfo.cc
+  edgeFace.cc
   )
 
 ADD_LIBRARY(domain STATIC ${DOMAIN_SRCS})
 
 SET(TARGET_LL
-  elements
-  optimization
   cfsgeneral
-  driver
-  utils
-  pde
   coupledpde
-  gridcfs
-  scripting
+  datainout
+  design
+  domain
+  driver
+  elements
+  forms
+  logging
   matvec
-# DIRTY, DIRTYYYY HACK!
-  datainout
-  simouttext
-  datainout
+  optimization
+  paramh
+  pde
+  scripting
+  utils
 )
 
 IF(USE_INTERPOLATION)

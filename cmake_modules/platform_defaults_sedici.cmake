@@ -8,7 +8,7 @@ SET(CFS_PARDISO_DEFAULT "MKL")
 SET(USE_TCL_DEFAULT OFF)
 SET(USE_PYTHON_DEFAULT ON)
 
-SET(MKL_ROOT_DIR_DEFAULT "/opt/pckg/intel/composer_xe_2011_sp1.6.233/mkl")
+SET(MKL_ROOT_DIR_DEFAULT "/opt/pckg/intel/parallel_studio_xe_2011_sp1_update1/mkl")
 
 #SET(CFS_GCC43_OPT_SWITCHES "${CFS_GCC43_OPT_SWITCHES} -mtune=native")
 #SET(CFS_GCC43_OPT_SWITCHES "${CFS_GCC43_OPT_SWITCHES} -march=native")

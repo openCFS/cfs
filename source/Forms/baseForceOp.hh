@@ -55,6 +55,10 @@ namespace CoupledField
     //!
     void Setup(StdVector<RegionIdType> & neighRegions, 
                StdVector<UInt>& couplingnodes);
+    //! returns the number of coupling nodes
+    UInt GetNumCouplingNodes() {
+      return couplingNodes_.GetSize();
+    }
 
     //!  
     void CalcNodeForce(Vector<Double> & force, Vector<Double> & totalForce );

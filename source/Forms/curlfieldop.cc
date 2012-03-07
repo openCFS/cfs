@@ -137,7 +137,7 @@ namespace CoupledField
     //   // global edge index
     //   StdVector<UInt> epos(nrEdges);
     //   StdVector<UInt> esign(nrEdges);
-    //   Vector<UInt> pos(nrNodes);
+    //   StdVector<UInt> pos(nrNodes);
 
 
 
