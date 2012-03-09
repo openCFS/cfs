@@ -158,6 +158,13 @@
       <xsd:enumeration value="mechanic"/>
       <xsd:enumeration value="prestress"/>
       <xsd:enumeration value="shell elements"/>
+
+      <!-- Flow -->
+      <xsd:enumeration value="flow"/>
+      <xsd:enumeration value="CFD"/>
+      <xsd:enumeration value="FluidMechPerturbedPDE"/>
+      <xsd:enumeration value="Endress+Hauser"/>
+      
       
       <!-- ========================================================== -->
       <!--  Coupling Related Keywords                                 -->
