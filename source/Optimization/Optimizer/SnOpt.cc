@@ -656,7 +656,7 @@ void SnOpt::initJacobians()
         iAfun.push_back(cstr);
         jAvar.push_back(pattern[e] + 1);
 
-        LOG_DBG3(snopt) << "g = " << g->ToString() 
+        LOG_DBG3(snopt) << "IJ:lin g = " << g->ToString()
                           << "; iAfun[" << indexlin << "] = " << iAfun[indexlin]
                           << ", jAvar[" << indexlin << "] = " << jAvar[indexlin];
 
@@ -671,7 +671,7 @@ void SnOpt::initJacobians()
         iGfun.push_back(cstr);
         jGvar.push_back(pattern[e] + 1);
         
-        LOG_DBG3(snopt) << "g = " << g->ToString()
+        LOG_DBG3(snopt) << "IJ:nonlin g = " << g->ToString()
                         << "; iGfun[" << index << "] = " << iGfun[index]
                         << ", jGvar[" << index << "] = " << jGvar[index];
         ++index;

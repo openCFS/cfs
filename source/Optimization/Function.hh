@@ -114,8 +114,12 @@ class Function
       DESIGN_TRACKING,           /*!< Tracking against physical densities in designTarget. Either for region or periodic (constraint nodes) elements */
       SUM_MODULI,                /*!< the sum of the elasticity and shear moduli in parametrized elasticity tensor formulations */
       GLOBAL_SUM_MODULI,         /*!< global resource constraint, see sum_moduli */
-      PARAM_PS_POS_DEF           /*!< constraint to ensure positive definiteness in parametrized elasticity tensor formulation (plane stress). Choose > 0*/
-    } Type;
+      PARAM_PS_POS_DEF,          /*!< constraint to ensure positive definiteness in parametrized elasticity tensor formulation (plane stress). Choose > 0*/
+      //FMO_POS_DEF,               /*!< local for anisotropic fmo to ensure positive def for (E - value*I) < param where param shall be very small */
+      FMO_POS_DEF_MINOR_1,       /*!< 1st minor constraint for FMO_POS_DEF */
+      FMO_POS_DEF_MINOR_2,       /*!< 2nd minor constraint for FMO_POS_DEF */
+      FMO_POS_DEF_MINOR_3        /*!< 3rd minor constraint for FMO_POS_DEF */
+    } Type; // in ConditionContainer::VirtualView::Refresh() we assume a maximal value for the type. Check!!
 
     /** to convert string/enum for this type */
     static Enum<Type> type;
@@ -184,6 +188,9 @@ class Function
     bool IsMaxwellHomogenization() const;
 
     bool IsBitensor() {return type_ == BITENSOR;}
+
+    /** Is this a local function type */
+    static bool IsLocal(Type t);
 
     bool HasSelectionTensor() { return HasSelectionTensor_; }
 
@@ -370,8 +377,11 @@ class Function
         double CalcSumModuli() const;
         void CalcSumModuliGradient(int neigh_idx, const Objective* f, const Condition* g, double value);
 
-        /** to ensure positive definiteness of the material tensor E3-E1*nu31^2 > 0 has to holf */
+        /** to ensure positive definiteness of the material tensor E3-E1*nu31^2 > 0 has to hold */
         double CalcParamPSPosDef(int neigh_idx, bool derivative) const;
+
+        /** local FMP positive definiteness of (E-val*I) >= param */
+        double CalcFMOPosDef(int neigh_idx, const Local* local, bool derivative) const;
 
         /** CalcStress() and the gradient are actually done in EM/SIMP */
 
@@ -420,8 +430,9 @@ class Function
       /** trival case form ELEMENT (stress) -> on the element itself */
       void SetupSingularElementMap();
 
-      /** multiple designs on one element (parametrized PLANE_STRESS) */
-      void SetupMultDesignsElementMap();
+      /** multiple designs on one element for paramMat
+       * @param for FMO_POS_DEF we need to know which minor */
+      void SetupMultDesignsElementMap(const Function* f = NULL);
 
       /** small helper to determine the number of neighbors in each (diagonal)
        * direction if we use a neighborhood. Parses the whole stuff */
@@ -478,6 +489,9 @@ class Function
     /** Give the local information. Check for NULL */
     Local* GetLocal() { return local; }
 
+    /** The design type is by default DEFAULT :) */
+    DesignElement::Type GetDesignType() const {return design_; }
+
     /** Give the projection data */
     StdVector<DesignElement>& GetProjectionDesignClone();
 
@@ -491,9 +505,6 @@ class Function
 
     /** Here we store our ParamNode such we can more easily access it in ErsatzMaterial */
     PtrParamNode pn;
-
-    /** This is DEFAULT (= applies always) if not defined */
-    DesignElement::Type design;
 
     /** If condition supports constriction to one region. Currently ALL_REGIONS for objectives */
     RegionIdType region;
@@ -516,6 +527,9 @@ class Function
     
     /** extract the "coord" element and parse it to coord */
     static void ParseCoord(PtrParamNode pn, tuple<int, int, double>& coord);
+
+    /** This is DEFAULT (= applies always) if not defined */
+    DesignElement::Type design_;
 
     /** The actual kind of cost function. */
     Type type_;

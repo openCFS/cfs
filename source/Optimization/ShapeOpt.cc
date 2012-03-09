@@ -86,7 +86,7 @@ double ShapeOpt::CalcVolume(Objective* f, Condition* constraint, bool derivative
       // this needs to be done before, we do use fraction
       ErsatzMaterial::CalcVolume(f, constraint, derivative, normalized);
     }
-    if(!alsomatopt_ || (constraint && constraint->design == DesignElement::UNITY)){
+    if(!alsomatopt_ || (constraint && constraint->GetDesignType() == DesignElement::UNITY)){
       if(!normalized){
         // this is independent of material optimization, simply the derivative of the real volume
         Grid* grd = domain->GetGrid();
@@ -136,13 +136,13 @@ double ShapeOpt::CalcVolume(Objective* f, Condition* constraint, bool derivative
       if(!normalized){  // needed for derivative in normalized versions
         volume = CalcVolume(f, constraint, derivative, normalized);
       }
-      bool allDesignsRelevant = constraint == NULL || constraint->design == DesignElement::TENSOR_TRACE || constraint->design == DesignElement::DEFAULT;
+      bool allDesignsRelevant = constraint == NULL || constraint->GetDesignType() == DesignElement::TENSOR_TRACE || constraint->GetDesignType() == DesignElement::DEFAULT;
       bool ersatzMaterialTensor = domain->HasErsatzMaterialTensor() && allDesignsRelevant;
       unsigned int upper = ersatzMaterialTensor ? design->GetNumberOfElements() : design->data.GetSize();
       Matrix<double> material;
       for(unsigned int i = 0; i < upper; i++) {
         DesignElement* de = &design->data[i];
-        bool relevant = (allDesignsRelevant || constraint->design == de->GetType()) && (isObjective || constraint->IsForRegion(de->elem->regionId));
+        bool relevant = (allDesignsRelevant || constraint->GetDesignType() == de->GetType()) && (isObjective || constraint->IsForRegion(de->elem->regionId));
         const Elem* elem = de->elem;
         if(relevant && shapedesign->IsElemDependentAtAll(elem->connect)){
           double des;
@@ -181,7 +181,7 @@ double ShapeOpt::CalcVolume(Objective* f, Condition* constraint, bool derivative
     // these derivatives are independent of our parameters and can be calculated as before
     shapedesign->AddShapeDerivatives(f, constraint, der, 1.0);
   }else{ // derivative
-    if(!alsomatopt_ || (constraint && constraint->design == DesignElement::UNITY)){ // this is the real volume, not multiplied by design, we also use this if no design available
+    if(!alsomatopt_ || (constraint && constraint->GetDesignType() == DesignElement::UNITY)){ // this is the real volume, not multiplied by design, we also use this if no design available
       // if design is unity, we use the grid instead of designspace
       if(normalized) return(1.0);
       Grid* grd = domain->GetGrid();

@@ -1309,6 +1309,8 @@ namespace CoupledField {
     SolutionTypeEnum.Add(ELEC_PHYSICAL_PSEUDO_DENSITY, "elecPhysicalPseudoDensity");
     SolutionTypeEnum.Add(MECH_SHAPE, "mechShape");
     SolutionTypeEnum.Add(MECH_REL_DILATATION, "mechRelativeDilatation");
+    SolutionTypeEnum.Add(MECH_TENSOR_TRACE, "mechTensorTrace");
+    SolutionTypeEnum.Add(MECH_TENSOR, "mechTensor");
     //electrostatics
     SolutionTypeEnum.Add(ELEC_POTENTIAL, "elecPotential");
     SolutionTypeEnum.Add(ELEC_FIELD_INTENSITY, "elecFieldIntensity");

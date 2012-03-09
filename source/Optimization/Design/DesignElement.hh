@@ -240,7 +240,7 @@ public:
    * @param index location within the design space */
   DesignElement(Type dt, double lower, double upper, Elem* elem, unsigned int index);
 
-  /** Dummy elements for Funtion */
+  /** Dummy elements for Function */
   DesignElement(Elem* elem, Type type, unsigned int index, int pseudoElementIndex);
 
 

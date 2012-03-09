@@ -18,6 +18,7 @@ class TransferFunction;
 
 using namespace CoupledField;
 
+
 ParamMat::ParamMat() : ErsatzMaterial()
 {
   // Note: this constructor is also called from constructor of ShapeOpt even when no ParamMat is used, in this case, nothing may be done
@@ -54,5 +55,6 @@ void ParamMat::SetElementK(DesignElement* de, const TransferFunction* tf, Applic
     break;
   default:
     Exception("Only mech and mass matrix are available for paramMat");
+    break;
   }
 }

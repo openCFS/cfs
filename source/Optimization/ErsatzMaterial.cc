@@ -174,13 +174,13 @@ ErsatzMaterial::ErsatzMaterial() :
   for(unsigned int i = 0; i < constraints.all.GetSize();  i++)
   {
     Condition* g = constraints.all[i];
-    if(g->design == DesignElement::UNITY && (method_ == SHAPE_OPT || method_ == SHAPE_PARAM_MAT))
+    if(g->GetDesignType() == DesignElement::UNITY && (method_ == SHAPE_OPT || method_ == SHAPE_PARAM_MAT))
       continue;
 
-    if((g->design == DesignElement::TENSOR_TRACE || g->design == DesignElement::ALL_DESIGNS) && (method_ == PARAM_MAT || method_ == SHAPE_PARAM_MAT))
+    if((g->GetDesignType() == DesignElement::TENSOR_TRACE || g->GetDesignType() == DesignElement::ALL_DESIGNS) && (method_ == PARAM_MAT || method_ == SHAPE_PARAM_MAT))
       continue;
 
-    if(design->FindDesign(g->design, false) == -1)
+    if(g->GetDesignType() != DesignElement::DEFAULT && design->FindDesign(g->GetDesignType(), false) == -1)
       throw Exception("constraint " + g->ToString() + " operates on invalid design variable");
 
   }
@@ -832,6 +832,9 @@ double ErsatzMaterial::CalcFunction(Excitation& excite, Function* f, bool deriva
   case Function::BUMP:
   case Function::SUM_MODULI:
   case Function::PARAM_PS_POS_DEF:
+  case Function::FMO_POS_DEF_MINOR_1:
+  case Function::FMO_POS_DEF_MINOR_2:
+  case Function::FMO_POS_DEF_MINOR_3:
     assert(c == NULL);
     result = CalcLocalConstraint(g, derivative);
     break;
@@ -1142,7 +1145,7 @@ double ErsatzMaterial::IntegrateDesignVariable(Objective* f, Condition* g, bool 
   }
   // check whether we have to calculate the full volume
   if(normalized){
-    if(g != NULL && g->design == DesignElement::UNITY){ // this will always return 1, does only make sense for unnormalized (real) volume
+    if(g != NULL && g->GetDesignType() == DesignElement::UNITY){ // this will always return 1, does only make sense for unnormalized (real) volume
       // the gradient is not set, it is really 0 on every element but should not be used
       //TODO: Do We need a warning here? 
       return(derivative ? 0.0 : 1.0);
@@ -1274,7 +1277,7 @@ double ErsatzMaterial::IntegrateDesignVariable(Objective* f, Condition* g, bool 
 double ErsatzMaterial::CalcVolume(Objective* f, Condition* g, bool derivative, bool normalized)
 {
   // only a constraint has a design type set (if it has)
-  DesignElement::Type des  = g == NULL ? DesignElement::DEFAULT : g->design;
+  DesignElement::Type des  = g == NULL ? DesignElement::DEFAULT : g->GetDesignType();
 
   // parameter is form the base function
   Function* func = Function::GetFunction(f, g);
@@ -1324,7 +1327,7 @@ double ErsatzMaterial::CalcTrivialVolume(Function* f, bool derivative, bool norm
 
   // only for physical
   // TODO: assumes a single transfer function for all regions!
-  TransferFunction* tf = f->IsPhysical() ? design->GetTransferFunction(f->design, Optimization::MECH) : NULL;
+  TransferFunction* tf = f->IsPhysical() ? design->GetTransferFunction(f->GetDesignType(), Optimization::MECH) : NULL;
 
   bool regular = design->IsRegular();
 
@@ -2702,17 +2705,17 @@ double ErsatzMaterial::CalcGreyness(Condition* g, bool derivative)
   lb = ub = value = grad = eval = span = 0.0;
 
   // we have to divide the gradients by their relative volume = fraction
-  double fraction = g->design == DesignElement::DEFAULT ?
+  double fraction = g->GetDesignType() == DesignElement::DEFAULT ?
       design->data.GetSize() : design->GetNumberOfElements();
 
   // do we want the physical value?
-  TransferFunction* tf = g->IsPhysical() ? design->GetTransferFunction(g->design, MECH) : NULL;
+  TransferFunction* tf = g->IsPhysical() ? design->GetTransferFunction(g->GetDesignType(), MECH) : NULL;
 
   // go over the complete design space to set gradients of other types to 0
   for(unsigned int i = 0; i < g->elements.GetSize(); i++)
   {
     DesignElement* de = g->elements[i];
-    bool relevant = g->design == DesignElement::DEFAULT || g->design == de->GetType();
+    bool relevant = g->GetDesignType() == DesignElement::DEFAULT || g->GetDesignType() == de->GetType();
     if(relevant)
     {
       if(g->IsPhysical())

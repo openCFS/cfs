@@ -226,6 +226,8 @@
 
           <!-- mandatory to give the type. The type is one of a list of types -->
           <xsd:attribute name="type" use="required" type="DT_Objective"/>
+
+          <xsd:attribute name="design" use="optional" type="DT_Design"/>
           
           <!-- an optional attribute for the costfunction is the task: minimize or maximize -->
           <xsd:attribute name="task" use="optional" default="minimize">
@@ -237,13 +239,14 @@
             </xsd:simpleType>
           </xsd:attribute>
 
-
           <xsd:attribute name="coord" use="optional" type="DT_HomTensorEntries"/>
           
           <!-- Define if we we shall calculate with multiple excitations. Defined for
             mechanical/static loads and multiple harmonic frequencies. 
             The corresponding element is optional -->
           <xsd:attribute name="multiple_excitation" type="xsd:boolean" use="optional" default="false" />
+
+
 
         </xsd:complexType>
       </xsd:element>
@@ -314,6 +317,11 @@
                 <xsd:enumeration value="globalSumModuli"/>
                 <!--  requires parametrized material tensor (PLANE_STRESS), > 0 ensures positivity of the material tensor -->
                 <xsd:enumeration value="parametrized-plane-stress-pos-def"/>
+                <!--  from anisotropic param-mat (= FMO) ensure positive definiteness including bound on diagonal elements (E-value*I) larger param -->
+                <!-- <xsd:enumeration value="fmoPosDef"/>-->
+                <xsd:enumeration value="fmoPosDefMinor1"/>
+                <xsd:enumeration value="fmoPosDefMinor2"/>
+                <xsd:enumeration value="fmoPosDefMinor3"/>
               </xsd:restriction>
             </xsd:simpleType>
           </xsd:attribute>
@@ -955,6 +963,7 @@
                       <xsd:attribute name="type" use="required">
                         <xsd:simpleType>
                           <xsd:restriction base="xsd:token">
+                            <xsd:enumeration value="fmo"/>
                             <xsd:enumeration value="isotropic"/>
                             <xsd:enumeration value="lame-isotropic"/>
                             <xsd:enumeration value="transversal-isotropic"/>

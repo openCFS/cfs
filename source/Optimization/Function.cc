@@ -64,6 +64,9 @@ Function::Function(PtrParamNode pn)
 
   this->physical_ = pn->Has("physical") ? pn->Get("physical")->As<bool>() : false;
 
+  if(pn->Has("design")) // will sometime be in Function, now the default is set to DEFAULT
+    this->design_ = DesignElement::type.Parse(pn->Get("design")->As<std::string>());
+
   this->parameter_ = pn->Has("parameter") ? pn->Get("parameter")->As<double>() : 0.0;
 
   this->omega_omega_ = pn->Has("factor") ? pn->Get("factor/omega_omega")->As<bool>() : false;
@@ -146,7 +149,7 @@ Function::~Function()
 void Function::Init()
 {
   this->harmonic_    = BasePDE::IsComplex(domain->GetDriver()->GetAnalysisType());
-  this->design = DesignElement::DEFAULT; // overwritten eventually in Condition
+  this->design_ = DesignElement::DEFAULT; // overwritten eventually from xml
   this->region = ALL_REGIONS;  // overwritten eventually in Condition
 
   this->local = NULL;
@@ -412,6 +415,10 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
     case SUM_MODULI:
     case GLOBAL_SUM_MODULI:
     case PARAM_PS_POS_DEF:
+    // case FMO_POS_DEF:
+    case FMO_POS_DEF_MINOR_1:
+    case FMO_POS_DEF_MINOR_2:
+    case FMO_POS_DEF_MINOR_3:
       assert(excite_index < 0);
       excite_ = me->excitations.GetSize() - 1; // once only at the last excitation
       break;
@@ -530,6 +537,25 @@ bool Function::IsHomogenization() const
   }
 }
 
+bool Function::IsLocal(Type t)
+{
+  switch(t)
+  {
+  case SLOPE:
+  case MOLE:
+  case OSCILLATION:
+  case JUMP:
+  case BUMP:
+  case SUM_MODULI:
+  case PARAM_PS_POS_DEF:
+  case FMO_POS_DEF_MINOR_1:
+  case FMO_POS_DEF_MINOR_2:
+  case FMO_POS_DEF_MINOR_3:
+    return true;
+  default:
+    return false;
+  }
+}
 
 bool Function::IsMaxwellHomogenization() const
 {
@@ -615,6 +641,10 @@ bool Function::ForSensitivityFiltering() const
   case SUM_MODULI:
   case GLOBAL_SUM_MODULI:
   case PARAM_PS_POS_DEF:
+  // case FMO_POS_DEF:
+  case FMO_POS_DEF_MINOR_1:
+  case FMO_POS_DEF_MINOR_2:
+  case FMO_POS_DEF_MINOR_3:
     return false;
 
   case ISOTROPY:
@@ -647,9 +677,9 @@ void Function::SetElements(DesignSpace* space, RegionIdType region)
   // if ALL_REGIONS for condition use what we define as design space which
   // this is still not good enough
   int nd = 1;
-  if(design == DesignElement::TENSOR_TRACE || design == DesignElement::DEFAULT) {
+  if(design_ == DesignElement::TENSOR_TRACE || design_ == DesignElement::DEFAULT) {
     nd = space->design.GetSize();
-    if(design == DesignElement::ALL_DESIGNS)
+    if(design_ == DesignElement::ALL_DESIGNS)
       nd++;
   }
   elements.Reserve(nd * (region == ALL_REGIONS ? space->GetNumberOfElements() : grid->GetNumElems(region)));
@@ -659,11 +689,11 @@ void Function::SetElements(DesignSpace* space, RegionIdType region)
     for(unsigned int i = 0; i < space->data.GetSize(); i++)
     {
       DesignElement* de = &(space->data[i]);
-      if((design == DesignElement::DEFAULT || design == DesignElement::TENSOR_TRACE || design == de->GetType())
+      if((design_ == DesignElement::DEFAULT || design_ == DesignElement::TENSOR_TRACE || design_ == de->GetType())
           && (region == ALL_REGIONS || de->elem->regionId == region))
         elements.Push_back(de);
     }
-    if(design == DesignElement::ALL_DESIGNS)
+    if(design_ == DesignElement::ALL_DESIGNS)
     {
       for(unsigned int i = 0; i < space->GetNumberOfElements(); i++)
           {
@@ -684,7 +714,7 @@ void Function::SetElements(DesignSpace* space, RegionIdType region)
     assert(elements.GetSize() == 0);
 
     // this creates the pseudo design elements and both indices are hopefully properly set!
-    space->RegisterPseudoDesignRegion(region, design, &elements);
+    space->RegisterPseudoDesignRegion(region, design_, &elements);
   }
 
 //  assert(elements.GetSize() == elements.Capacity());
@@ -710,6 +740,10 @@ void Function::PostProc(DesignSpace* space, DesignStructure* structure, ErsatzMa
   case SUM_MODULI:
   case GLOBAL_SUM_MODULI:
   case PARAM_PS_POS_DEF:
+  // case FMO_POS_DEF:
+  case FMO_POS_DEF_MINOR_1:
+  case FMO_POS_DEF_MINOR_2:
+  case FMO_POS_DEF_MINOR_3:
     // assert(space->IsRegular()); // VicinityElements work only on a regular grid
     // the design elements require the vicinity element to be set which holds the direct
     // neighbors. Is save to call several times
@@ -872,6 +906,10 @@ Function::Local::Local(Function* func, DesignSpace* space)
   case SUM_MODULI:
   case GLOBAL_SUM_MODULI:
   case PARAM_PS_POS_DEF:
+  // case FMO_POS_DEF:
+  case FMO_POS_DEF_MINOR_1:
+  case FMO_POS_DEF_MINOR_2:
+  case FMO_POS_DEF_MINOR_3:
     if(locality_ != MULT_DESIGNS_ELEMENT && locality_ != DEFAULT)
       throw Exception("Invalid locality '" + locality.ToString(locality_) + "' within '" + fname + "'");
     locality_ = MULT_DESIGNS_ELEMENT;
@@ -908,7 +946,7 @@ Function::Local::Local(Function* func, DesignSpace* space)
     break;
 
   case MULT_DESIGNS_ELEMENT:
-    SetupMultDesignsElementMap();
+    SetupMultDesignsElementMap(func);
     break;
 
   default:
@@ -949,7 +987,7 @@ void Function::Local::SetupVirtualElementMap(Phase ph)
   for(int e = 0, ss = space->data.GetSize(); e < ss; ++e)
   {
     DesignElement* de = &(space->data[e]);
-    if(de->GetType() == ( (func_->design == DesignElement::DEFAULT) ? DesignElement::DENSITY : func_->design)){
+    if(de->GetType() == ( (func_->design_ == DesignElement::DEFAULT) ? DesignElement::DENSITY : func_->design_)){
       VicinityElement* ve = de->vicinity;
 
       // do we have a full neighborhood? All or none as in the original slope paper
@@ -1198,21 +1236,49 @@ void Function::Local::SetupSingularElementMap()
 }
 
 
-void Function::Local::SetupMultDesignsElementMap()
+void Function::Local::SetupMultDesignsElementMap(const Function* f)
 {
   // only this element!
   element_dimension_ = 1; // two boundary "stones" per dimension
-  UInt numFElements = space->GetNumberOfElements();
-  virtual_elem_map.Reserve(element_dimension_ * numFElements);
+  UInt elems = space->GetNumberOfElements();
+  virtual_elem_map.Reserve(element_dimension_ * elems);
 
-  for(int e = 0, en = numFElements; e < en; e++)
+  // the neighbors are the design elements with for the same FE-element but with other designs
+  StdVector<DesignElement*> neighbours;
+
+  StdVector<unsigned int> des_idx; // the design indices we consider here
+  // for FMO_POS_DEF we have to consider the minor. See CalcFMOPosDef()
+  switch(f->GetType())
+  {
+  case FMO_POS_DEF_MINOR_1:
+    assert(space->design.GetSize() == 6);
+    // only design TENSOR11 is not neighbor
+    break;
+  case FMO_POS_DEF_MINOR_2:
+    assert(space->design.GetSize() == 6);
+    des_idx.Push_back(1); // TENSOR22
+    des_idx.Push_back(5); // TENSOR12
+    break;
+  case FMO_POS_DEF_MINOR_3:
+    assert(space->design.GetSize() == 6);
+    // conditionally no break!
+  default:
+    // all designs
+    des_idx.Resize(space->design.GetSize());
+    for(unsigned int i = 0; i < space->design.GetSize(); i++) des_idx[i] = i;
+    break;
+  }
+
+  for(unsigned int e = 0; e < elems; e++)
   {
     DesignElement* de = func_->elements[e];
-    int base = space->Find(de->elem, true);
-    StdVector<DesignElement*> neighbours;
-    for(unsigned int index = base + numFElements; index < space->data.GetSize(); index += numFElements){
-      neighbours.Push_back(&(space->data[index]));
-    }
+    assert((int) e == space->Find(de->elem, true)); // what wanted Jannis to do here?
+
+    neighbours.Resize(0);
+
+    for(unsigned int d = 1; d < des_idx.GetSize(); d++) // the first design = 0 is no neighbor!
+      neighbours.Push_back(&(space->data[elems * d + e]));
+
     virtual_elem_map.Push_back(Identifier(de, neighbours));
   }
 }
@@ -1385,6 +1451,13 @@ double Function::Local::Identifier::EvalFunction(const Local* local, bool grad_g
     fv = CalcParamPSPosDef(-1, false);
     break;
 
+  // case FMO_POS_DEF:
+  case FMO_POS_DEF_MINOR_1:
+  case FMO_POS_DEF_MINOR_2:
+  case FMO_POS_DEF_MINOR_3:
+    fv = CalcFMOPosDef(-1, local, false);
+    break;
+
   default:
     assert(false);
     break;
@@ -1500,6 +1573,12 @@ void Function::Local::Identifier::EvalGradient(const Local* local)
 
     case PARAM_PS_POS_DEF:
       gv = CalcParamPSPosDef(n, true);
+      break;
+
+    case FMO_POS_DEF_MINOR_1:
+    case FMO_POS_DEF_MINOR_2:
+    case FMO_POS_DEF_MINOR_3:
+      gv = CalcFMOPosDef(n, local, true);
       break;
 
     default:
@@ -1908,5 +1987,98 @@ double Function::Local::Identifier::CalcParamPSPosDef(int neigh_idx, bool deriva
     return E3-E1*nu31*nu31;
   }
 }
+
+  double Function::Local::Identifier::CalcFMOPosDef(int neigh_idx, const Local* local, bool derivative) const
+  {
+    const Function* f = local->func_;
+    Matrix<double> E;
+    // (E - v*I) >= gamma
+    double v = f->GetParameter();
+
+
+    local->space->GetErsatzMaterialTensor(E, PLANE_STRAIN, element->elem, DesignElement::NO_DERIVATIVE); // the sub-tensor-type does'nt matter
+
+    LOG_DBG3(func) << "L::I::CFMOPD e_num=" << element->elem->elemNum << " v=" << v << " E=" << E.ToString(0, false);
+
+    // see e.g. the phd thesis of Sonja Lehmann chap. 6.4 for implementation
+    // for (E - v*I) >= 0 we have the determinants
+    // d_1 can also be implemented by box constraints!
+    // d_1 := e_11 - v >= 0
+    // d_2 := (e_11-v)*(e_22-v) - e_12^2 >= 0
+    // d_3 is done by Sonja using the Laplace formula, we use Sarrus
+    // d_3 := ...
+
+    // neigh_idx identifies the design variable! -1 = TENSOR11, 0 = TENSOR22, 1 = TENSOR33, 2 = TENSOR23, 3 = TENSOR13, 4 = TENSOR12
+
+    double ret = -12345678.0;
+
+    double e11, e22, e33, e23, e13, e12;
+
+    switch(f->GetType())
+    {
+    case FMO_POS_DEF_MINOR_1:
+         e11 = E[0][0];
+         if(!derivative)
+           ret = e11-v;
+         else
+           ret = neigh_idx == -1 ? 1.0 : 0.0;
+         break;
+
+    case FMO_POS_DEF_MINOR_2:
+         e11 = E[0][0];
+         e22 = E[1][1];
+         e12 = E[0][1];
+         if(!derivative)
+           ret = (e11-v)*(e22-v) - (e12*e12);
+         else
+         {
+           switch(neigh_idx)
+           {
+             case -1: ret = e22-v; break;// e11
+             case  0: ret = e11-v; break;// e22
+             case  1:
+             case  2:
+             case  3: ret = 0.0; break;
+             case  4: ret = 2.0 * e12; break;// e12
+             default: assert(false);
+           }
+         }
+         break;
+
+    case FMO_POS_DEF_MINOR_3:
+         e11 = E[0][0];
+         e22 = E[1][1];
+         e33 = E[2][2];
+         e23 = E[1][2];
+         e13 = E[0][2];
+         e12 = E[0][1];
+
+         //return // e11*e22*e33+e12*e23*e13+e13*e12*e23-e13*e22*e13-e12*e21*e33-e11*e23*e23;
+         if(!derivative)
+         {
+           ret = (e11-v)*(e22-v)*(e33-v) + 2.0*e12*e23*e13 - e13*(e22-v)*e13 - e12*e12*(e33-v) - (e11-v)*e23*e23;
+         }
+         else
+         {
+           switch(neigh_idx)
+           {
+             case -1: ret = (e22-v)*(e33-v) - e23*e23; break;       // e11
+             case  0: ret = (e11-v)*(e33-v) - e13*e13; break;       // e22
+             case  1: ret = (e11-v)*(e22-v) - e12*e12; break;       // e33
+             case  2: ret = 2.0*e12*e13     - 2.0*e23*(e11-v); break;// e23
+             case  3: ret = 2.0*e12*e23     - 2.0*e13*(e22-v); break;// e13
+             case  4: ret = 2.0*e23*e13     - 2.0*e12*(e33-v); break;// e12
+             default: assert(false);
+           }
+         }
+         break;
+
+    default: assert(false);
+             break;
+    } // end switch f->GetType()
+    assert(ret != 12345678.0);
+    LOG_DBG3(func) << "L::I::CFMOPD e_num=" << element->elem->elemNum << " ni=" << neigh_idx << " d=" << derivative << " -> " << ret;
+    return ret;
+  }
 
 

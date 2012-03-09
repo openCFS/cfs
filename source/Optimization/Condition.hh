@@ -102,6 +102,8 @@ namespace CoupledField
        /** Is it a constraint on the permeability? */
        bool IsBiisotropy() const { return biisotropy_; }
 
+       // int GetFMOPosDefMinor() const { return fmo_pos_def_minor_; }
+
        /** Gives the sparsity pattern of the jacobian. It gives the sorted, 0-based indices which have
         * values. For the dens case this is 0, 1, ... m.
         * This works only after ConditionContainer::PostProc() is called as otherwise the design is not known yet.
@@ -195,7 +197,6 @@ namespace CoupledField
       /** Information if the constraint is set for the imaginary part
        *  default=false
        */
-
       bool imag_;
 
       /** Conditions mark themself as (non) linear -> no power in the design variable, ...*/
@@ -204,6 +205,9 @@ namespace CoupledField
       /** this is the virtual base index of this condition w.r.t. all conditions.
        * For normal condition this is simple the virtual index, for local conditions this is the base*/
       int virtual_base_index_;
+
+      /** for FMO_POS_DEF the actual minor. Set when expanded. Minors are 1, 2, 3. 0 means other function */
+      //      int fmo_pos_def_minor_;
 
     private:
 
@@ -215,6 +219,9 @@ namespace CoupledField
        * Adds the conditions for isotropy or iso-orthotropy which is isotropy without fixing the
        * shear moduli */
       static void AddXtropyConstraints(PtrParamNode pn, StdVector<Condition*>& list, Condition* g);
+
+      /** blows up FMO_POS_DEF for the minors */
+      // static void AddFMOPosDefConstraints(PtrParamNode pn, StdVector<Condition*>& list, Condition* g);
 
       /** Helper for Addcondition().
       Adds the conditions for isotropy y*/

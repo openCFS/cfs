@@ -42,7 +42,7 @@ Condition::Condition(PtrParamNode pn) : Function(pn)
   blown_up_ = false;
   index_ = -1; // to be set by ConditionContainer::Read()
   virtual_base_index_ = -1;
-
+  // fmo_pos_def_minor_ = 0;
 
   observation_ = pn->Get("mode")->As<std::string>() == "observation";
 
@@ -53,9 +53,6 @@ Condition::Condition(PtrParamNode pn) : Function(pn)
   // the bound value is called value in the problem file!
   // there must not  be a value when a homogenization tensor is given
   this->boundValue_ = pn->Has("value") ? pn->Get("value")->As<double>() : -1.0;
-
-  if(pn->Has("design")) // will sometime be in Function, now the default is set to DEFAULT
-    design = DesignElement::type.Parse(pn->Get("design")->As<std::string>());
 
   // special handling of scaling
   objective_scaling_ = pn->Get("scaling")->As<std::string>() == "objective";
@@ -94,7 +91,13 @@ Condition::Condition(PtrParamNode pn) : Function(pn)
       if(!pn->Has("tensor"))
         throw Exception("Tensor is mandatory for '" + type.ToString(type_) + "'");
       break;
-
+    // case FMO_POS_DEF:
+    case FMO_POS_DEF_MINOR_1:
+    case FMO_POS_DEF_MINOR_2:
+    case FMO_POS_DEF_MINOR_3:
+      if(!pn->Has("parameter"))
+        throw Exception("parameter (very small value) mandatory for '" + type.ToString(type_) + "'");
+      break;
     case ISOTROPY:
     case ISO_ORTHOTROPY:
     case MAXWELL_ISOTROPY:
@@ -157,9 +160,7 @@ bool Condition::ReadCoord(PtrParamNode pn)
 void Condition::AddCondition(PtrParamNode pn, StdVector<Condition*>& list)
 {
   Type t = type.Parse(pn->Get("type")->As<std::string>());
-
-  list.Push_back(t == SLOPE || t == MOLE || t == OSCILLATION || t == JUMP || t == BUMP
-      || t == SUM_MODULI || t == PARAM_PS_POS_DEF ? new LocalCondition(pn) : new Condition(pn));
+  list.Push_back(IsLocal(t) ? new LocalCondition(pn) : new Condition(pn));
 
   // note that the pointer becomes invalid by AddSubCondition()
   Condition* g = list.Last();
@@ -172,6 +173,9 @@ void Condition::AddCondition(PtrParamNode pn, StdVector<Condition*>& list)
   // isotropy is a special constraint which blows up special tensor entry constraints
   if(g->type_ == ISOTROPY || g->type_ == ISO_ORTHOTROPY || g->type_ == ORTHOTROPY)
     AddXtropyConstraints(pn, list, g);
+
+  //if(g->type_ == FMO_POS_DEF_MINOR_1 || FMO_POS_DEF_MINOR_2 || FMO_POS_DEF_MINOR_3)
+  //  AddFMOPosDefConstraints(pn, list, g);
 
   if(g->type_ == MAXWELL_ISOTROPY)
   {
@@ -252,8 +256,6 @@ void Condition::AddXtropyConstraints(PtrParamNode pn, StdVector<Condition*>& lis
       g->coords.Push_back(make_tuple(1,2,-1.0));
       g->coords.Push_back(make_tuple(3,3,-2.0));
     } // else case is common for 2D and 3D
-
-
   }
   else
   {
@@ -478,7 +480,21 @@ void Condition::AddMaxwellIsotropyConstraints(PtrParamNode pn, StdVector<Conditi
   }
 
 }
+/*
+void Condition::AddFMOPosDefConstraints(PtrParamNode pn, StdVector<Condition*>& list, Condition* g)
+{
+  assert(g->type_ == FMO_POS_DEF);
+  if(domain->GetGrid()->GetDim() != 2) throw Exception("FMO only implemented for 2D");
 
+  g->fmo_pos_def_minor_ = 1; // the original constraint
+
+  g = AppendSubCondition(list);
+  g->fmo_pos_def_minor_ = 2;
+
+  g = AppendSubCondition(list);
+  g->fmo_pos_def_minor_ = 3;
+}
+*/
 
 void Condition::AddHomogenizationTensorConstraints(PtrParamNode pn, StdVector<Condition*>& list, Condition* g)
 {
@@ -576,7 +592,11 @@ void Condition::AddExcitationStressConstraints(StdVector<Condition*>& list, Mult
 
 Condition* Condition::AppendSubCondition(StdVector<Condition*>& list, bool biisotropy, bool imag)
 {
-  list.Push_back(new Condition(*this)); // make a copy of this element by the (default) copy constructor
+  if(this->IsLocalCondition())
+    list.Push_back(new LocalCondition(*dynamic_cast<LocalCondition*>(this)));
+  else
+    list.Push_back(new Condition(*this)); // make a copy of this element by the (default) copy constructor
+
   Condition* sub = list.Last(); // copy this entry as reference
   sub->index_ = list.GetSize() - 1;
   sub->blown_up_ = true;
@@ -703,8 +723,8 @@ std::string Condition::ToString(MultipleExcitation* me) const
   if(region != ALL_REGIONS)
     os << "_" << domain->GetGrid()->GetRegion().ToString(region);
 
-  if(design != DesignElement::DEFAULT)
-    os << "_(" << DesignElement::type.ToString(design) << ")";
+  if(design_ != DesignElement::DEFAULT)
+    os << "_(" << DesignElement::type.ToString(design_) << ")";
 
   if(type_ == HOM_TENSOR)
     os << ToString(coords);
@@ -712,6 +732,9 @@ std::string Condition::ToString(MultipleExcitation* me) const
   // e.g. stresses are extended for every excitation
   if((type_ == STRESS || type_ == STRESS_DENSITY) && me != NULL && me->IsEnabled())
     os << "_" << me->excitations[excite_].label; // change to excite label
+
+  // if(type_ == FMO_POS_DEF)
+  //  os << "_minor" << fmo_pos_def_minor_;
 
   return os.str();  
 }
@@ -752,7 +775,7 @@ void Condition::ToInfo(PtrParamNode in, MultipleExcitation* me)
   Function::ToInfo(in);
 
   in->Get("mode")->SetValue(observation_ ? "observation" : "constraint");
-  in->Get("design")->SetValue(DesignElement::type.ToString(design));
+  in->Get("design")->SetValue(DesignElement::type.ToString(design_));
   if(IsActive())
   {
     in->Get("bound")->SetValue(bound.ToString(bound_));
@@ -985,7 +1008,7 @@ void ConditionContainer::PostProc(DesignSpace* space, DesignStructure* structure
     if(DesignElement::detail.IsValid(constr_str)) // is it defined for output?
     {
       DesignElement::Detail detail = DesignElement::detail.Parse(constr_str);
-      g->special_result_idx = space->GetSpecialResultIndex(g->design, DesignElement::CONSTRAINT_GRADIENT, detail);
+      g->special_result_idx = space->GetSpecialResultIndex(g->design_, DesignElement::CONSTRAINT_GRADIENT, detail);
     } // -1 for else by default in constructor
   }
 
@@ -1015,11 +1038,11 @@ StdVector<Condition*> ConditionContainer::GetList(Condition::Type type, DesignEl
   StdVector<Condition*> result;
 
   for(unsigned int i = 0; i < active.GetSize(); i++)
-    if(active[i]->GetType() == type && (design != DesignElement::NO_TYPE ? active[i]->design == design : true))
+    if(active[i]->GetType() == type && (design != DesignElement::NO_TYPE ? active[i]->design_ == design : true))
       result.Push_back(active[i]);
 
   for(unsigned int i = 0; !only_active && i < observe.GetSize(); i++)
-    if(observe[i]->GetType() == type && (design != DesignElement::NO_TYPE ? observe[i]->design == design : true))
+    if(observe[i]->GetType() == type && (design != DesignElement::NO_TYPE ? observe[i]->design_ == design : true))
       result.Push_back(observe[i]);
 
   return result;
@@ -1064,25 +1087,17 @@ void ConditionContainer::VirtualView::Refresh()
   std::list<unsigned int> tmp;
 
   // search also for observe conditions!
-  StdVector<Condition*> c = container_->GetList(Condition::SLOPE, DesignElement::NO_TYPE, false);
-  for(UInt i=0; i<c.GetSize(); ++i)
-    tmp.push_back(c[i]->GetIndex());
-  c = container_->GetList(Condition::MOLE, DesignElement::NO_TYPE, false);
-  for(UInt i=0; i<c.GetSize(); ++i)
-    tmp.push_back(c[i]->GetIndex());
-  c = container_->GetList(Condition::JUMP, DesignElement::NO_TYPE, false);
-  for(UInt i=0; i<c.GetSize(); ++i)
-    tmp.push_back(c[i]->GetIndex());
-  c = container_->GetList(Condition::BUMP, DesignElement::NO_TYPE, false);
-  for(UInt i=0; i<c.GetSize(); ++i)
-    tmp.push_back(c[i]->GetIndex());
-  c = container_->GetList(Condition::SUM_MODULI, DesignElement::NO_TYPE, false);
-  for(UInt i=0; i<c.GetSize(); ++i)
-    tmp.push_back(c[i]->GetIndex());
-  c = container_->GetList(Condition::PARAM_PS_POS_DEF, DesignElement::NO_TYPE, false);
-  for(UInt i=0; i<c.GetSize(); ++i)
-    tmp.push_back(c[i]->GetIndex());
-
+  for(int i = 0; i < 100; i++) // assume to get all valid function types
+  {
+    Function::Type cand = (Function::Type) i;
+    if(Function::IsLocal(cand))
+    {
+      const StdVector<Condition*>& c = container_->GetList(cand, DesignElement::NO_TYPE, false);
+      for(UInt i=0; i<c.GetSize(); ++i)
+        tmp.push_back(c[i]->GetIndex());
+      LOG_DBG2(conditions) << "CC:VV:R: add " << Function::type.ToString(cand) << " c=" << c.GetSize();
+    }
+  }
 
   // we might combine oscillation for void and material with different sizes
   StdVector<Condition*> list = container_->GetList(Condition::OSCILLATION, DesignElement::NO_TYPE, false);

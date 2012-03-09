@@ -303,7 +303,10 @@ void Optimization::SetEnums()
   Function::type.Add(Function::SUM_MODULI, "sumModuli");
   Function::type.Add(Function::GLOBAL_SUM_MODULI, "globalSumModuli");
   Function::type.Add(Function::PARAM_PS_POS_DEF, "parametrized-plane-stress-pos-def");
-
+  // Function::type.Add(Function::FMO_POS_DEF, "fmoPosDef");
+  Function::type.Add(Function::FMO_POS_DEF_MINOR_1, "fmoPosDefMinor1");
+  Function::type.Add(Function::FMO_POS_DEF_MINOR_2, "fmoPosDefMinor2");
+  Function::type.Add(Function::FMO_POS_DEF_MINOR_3, "fmoPosDefMinor3");
 
   Function::Local::locality.SetName("Function::Local::Locality");
   Function::Local::locality.Add(Function::Local::DEFAULT, "default");
@@ -811,7 +814,7 @@ void Optimization::CalcConstraintGradient(Condition* g, StdVector<double>* grad_
   // if there is a <result ... value="constraintGradient" detail="penalizedVolume/*"
   if(g->special_result_idx != -1)
   {
-    int base = design->FindDesign(g->design);
+    int base = design->FindDesign(g->GetDesignType());
     int n    = design->GetNumberOfElements();
     for(int i = n * base; i < n * (base + 1); i++) // TODO add access!
       design->data[i].specialResult[g->special_result_idx] = design->data[i].GetPlainGradient(NULL, g);
