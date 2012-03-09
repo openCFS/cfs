@@ -1266,6 +1266,7 @@ namespace CoupledField {
     ideas2414SolType = 0;
     switch (type)
       {
+        // MECHANICS
       case MECH_DISPLACEMENT:
         capaSolType = "displacement";
         ideas5xSolType = "U";
@@ -1304,6 +1305,8 @@ namespace CoupledField {
         ideas5xSolType = "MECHRHS";
         ideas2414SolType = 4;
         break;
+
+        // ELECTRIC
       case ELEC_POTENTIAL:
         capaSolType = "electric potential";
         ideas5xSolType = "VOLT";
@@ -1338,6 +1341,8 @@ namespace CoupledField {
         capaSolType = "displacement";
         ideas5xSolType = "USMOOTH";
         break;
+
+        // ACOUSTIC
       case ACOU_POTENTIAL:
         capaSolType = "fluid potential";
         ideas5xSolType = "APOT";
@@ -1368,6 +1373,8 @@ namespace CoupledField {
         capaSolType = "fluid potential, 2nd deriv.";
         ideas5xSolType = "APOTD2";
         break;
+
+        // MAGNETIC
       case MAG_POTENTIAL:
         capaSolType = "mag. vector potential";
         ideas5xSolType = "MAGPOT";
@@ -1394,6 +1401,7 @@ namespace CoupledField {
         ideas5xSolType = "MAGRHS";
         break;
 
+        // HEAT
       case HEAT_TEMPERATURE:
         capaSolType = "temperature";
         ideas5xSolType = "TEMP";
@@ -1402,6 +1410,23 @@ namespace CoupledField {
       case HEAT_RHS_LOAD:
         capaSolType = "temperatureRhsLoad";
         ideas5xSolType = "TEMPRHS";
+        break;
+
+        // FLUID
+      case FLUIDMECH_VELOCITY:
+        capaSolType = "velocity";
+        ideas5xSolType = "VEL";
+        ideas2414SolType = 11;
+        break;
+      case FLUIDMECH_PRESSURE:
+        capaSolType = "pressure";
+        ideas5xSolType = "PRES";
+        ideas2414SolType = 117;
+        break;
+      case MEAN_FLUIDMECH_VELOCITY:
+        capaSolType = "mean_veclocity";
+        ideas5xSolType = "MEANVEL";
+        ideas2414SolType = 53;
         break;
 
       default:

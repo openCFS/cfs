@@ -1,5 +1,5 @@
-#ifndef GRADIENTOP_HH
-#define GRADIENTOP_HH
+#ifndef LAPLOP_HH
+#define LAPLOP_HH
 
 #include "BaseBOperator.hh"
 
@@ -14,7 +14,7 @@ namespace CoupledField{
   //! \tparam D Dimension of the problem space
   //! \tparam TYPE Data type (DOUBLE, COMPLEX)
   template<class FE, UInt D, class TYPE = Double>
-  class GradientOperator : public BaseBOperator<TYPE>{
+  class LaplOperator : public BaseBOperator<TYPE>{
     public:
 
     // ------------------
@@ -27,7 +27,7 @@ namespace CoupledField{
     static const UInt ORDER_DIFF = 1;
 
     //! Number of components of the problem (scalar, vector)
-    static const UInt DIM_DOF = 1;
+    static const UInt DIM_DOF = D;
 
     //! Dimension of the underlying domain / space
     static const UInt DIM_SPACE = D;
@@ -40,14 +40,29 @@ namespace CoupledField{
     //@}
 
 
-    GradientOperator(){
-      this->name_ = "GradientOperator";
+    LaplOperator(){
+      this->name_ = "LaplOperator";
     }
 
-    virtual ~GradientOperator(){
+    virtual ~LaplOperator(){
 
     }
 
+    //!
+    //! Provide detailed desciption of this function
+    //! @param parmeter1 Describe this parameter
+    //!
+    //! Here is an example of inserting a mathematical formula into the text:
+    //! The distance is computed as /f$\sqrt{ (x_2-x_1)^2 + (y_2 - y_1)^2 }/f$
+    //! If we wanted to insert the formula centered on a separate line:
+    //! /f[
+    //! \sqrt{ (x_2-x_1)^2 + (y_2 - y_1)^2 }
+    //! /f]
+    //! Please note that all formulas must be valid LaTeX math-mode commands. 
+    //! Additionally, to be processed by Doxygen, the machine used must have 
+    //! LaTeX installed. Please see the Doxygen manual for more information 
+    //! about installing LaTeX locally.
+    //!
     virtual void CalcOpMat(Matrix<Double> & bMat,
                            const LocPointMapped& lp,
                            BaseFE* ptFe );
@@ -66,35 +81,59 @@ namespace CoupledField{
   };
 
   template<class FE, UInt D, class TYPE>
-  void GradientOperator<FE,D,TYPE>::CalcOpMat(Matrix<Double> & bMat,
+  void LaplOperator<FE,D,TYPE>::CalcOpMat(Matrix<Double> & bMat,
                                                 const LocPointMapped& lp, 
                                                 BaseFE* ptFe ){
     UInt numFncs = ptFe->GetNumFncs();
     // Set correct size of matrix B and initialise with zeros
-    bMat.Resize( DIM_SPACE, numFncs );
+    bMat.Resize( DIM_SPACE * DIM_SPACE, numFncs * DIM_SPACE );
+    bMat.Init();
+    
 
     // Get derivatives of local shape functions with respect to global
     // coords (format: nrNodes x spaceDim)
     Matrix<Double> xiDx;
     FE *fe = (static_cast<FE*>(ptFe));
     fe->GetGlobDerivShFnc( xiDx, lp, lp.shapeMap->GetElem() , 1 );
-    bMat= Transpose(xiDx);
+
+    for(UInt k=0; k<numFncs; k++) 
+    {
+      for(UInt i=0, n=DIM_SPACE; i<n; i++) 
+      {
+        for(UInt j=0, m=DIM_SPACE; j<m; j++) 
+        {
+          bMat[i*DIM_SPACE+j][k*DIM_SPACE+j] = xiDx[k][i];
+        }        
+      }      
+    }
   }
 
   template<class FE, UInt D, class TYPE>
-  void GradientOperator<FE,D,TYPE>::CalcOpMatTransposed(Matrix<Double> & bMat,
+  void LaplOperator<FE,D,TYPE>::CalcOpMatTransposed(Matrix<Double> & bMat,
                                                           const LocPointMapped& lp, 
                                                           BaseFE* ptFe ){
     const UInt numFncs = ptFe->GetNumFncs();
     // Set correct size of matrix B and initialise with zeros
-    bMat.Resize(numFncs , DIM_SPACE );
+    bMat.Resize( numFncs * DIM_SPACE, DIM_SPACE * DIM_SPACE );
+    bMat.Init();
+    
 
     // Get derivatives of local shape functions with respect to global
-    // coords (format: spaceDim x nrNodes )
+    // coords (format: nrNodes x spaceDim)
+    Matrix<Double> xiDx;
     FE *fe = (static_cast<FE*>(ptFe));
-    fe->GetGlobDerivShFnc( bMat, lp, lp.shapeMap->GetElem() , 1 );
+    fe->GetGlobDerivShFnc( xiDx, lp, lp.shapeMap->GetElem() , 1 );
 
-
+    for(UInt k=0; k<numFncs; k++) 
+    {
+      for(UInt i=0, n=DIM_SPACE; i<n; i++) 
+      {
+        for(UInt j=0, m=DIM_SPACE; j<m; j++) 
+        {
+          bMat[k*DIM_SPACE+j][i*DIM_SPACE+j] = xiDx[k][i];
+        }        
+      }      
+    }
   }
 }
 #endif

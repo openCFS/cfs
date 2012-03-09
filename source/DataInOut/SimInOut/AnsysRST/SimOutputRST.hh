@@ -85,31 +85,30 @@ namespace CoupledField
   //     Detailed description of the class 
   // =========================================================================
 
-  //! \class SimOutputRST
-  //! 
-  //! \purpose 
-  //! This class provides the interface for writing meshes and elements to
-  //! ANSYS postprocessing files .rst. All element types are mapped to four
-  //! different ANSYS structural analysis element types PLANE42, SOLID45,
-  //! PLANE82 and SOLID95. These are linear/quadratic quads/hexas.
-  //! All other element types become degenerated versions of the above types.
-  //! At the moment this format is capable of visualizing volume elements, and
-  //! surface elements. 
-  //! The node solutions get mapped to ANSYS Dofs. There are 32 such Dofs
-  //! available (see AnsysNodalDof) and each of them gets written for every
-  //! node in the grid in each time step.
-  //! This is a tremendous waste of memory and should be redone.
-  //! Element results get mapped to one of the 25 ANSYS element result types
-  //! (see. AnsysElemDof)
-  //! /Note In the moment only transient results will be written. Trying
-  //! to write harmonic results will cause an EXCEPTION!
-  //! For details about ANSYS binary files see Chapter 1: Format of Binary data
-  //! files in the Guide to Interfacing with ANSYS (Programmer's Manual for ANSYS)
-  //! The routines used to actually write the files are described in Chapter 2:
-  //! Accessing Binary data files. The contents of the files can either be dumped
-  //! with the bintst utility compiled with CFS/NACS or in ANSYS with
-  //! File->List->Binary Files...
-  //! The source code of the unv2rst utility was a good source of info, too.
+  //! \class  SimOutputRST  
+  //!
+  //! \purpose This  class  provides  the interface  for
+  //! writing meshes  and elements to ANSYS .rst  postprocessing files.  These
+  //! files   can   be   read   using   Ansys  Classic   and   Workbench,   <a
+  //! href="http://www.ensight.com">EnSight</a>             and             <a
+  //! href="http://www.tecplot.com">Tecplot</a>  All element types  are mapped
+  //! to  six  different  ANSYS  structural analysis  element  types  BEAM188,
+  //! BEAM189,   PLANE42,   SOLID45,    PLANE82   and   SOLID95.   These   are
+  //! linear/quadratic  element types respectively.   All other  element types
+  //! become  degenerated versions  of the  above types.   At the  moment this
+  //! format is capable of  visualizing volume elements, and surface elements.
+  //! The node  solutions get  mapped to  ANSYS Dofs. There  are 32  such Dofs
+  //! available (see  AnsysNodalDof) and each  of them gets written  for every
+  //! node  in the grid  in each  time step.   This is  a tremendous  waste of
+  //! memory and should  be redone.  Element results get mapped  to one of the
+  //! 25  ANSYS element  result types  (see. AnsysElemDof)  For  details about
+  //! ANSYS binary  files see Chapter  1: Format of  Binary data files  in the
+  //! Guide  to Interfacing  with ANSYS  (Programmer's Manual  for  ANSYS) The
+  //! routines used  to actually write the  files are described  in Chapter 2:
+  //! Accessing Binary  data files.  The contents of  the files can  either be
+  //! dumped with the  bintst utility compiled with CFS/NACS  or in ANSYS with
+  //! File->List->Binary Files...  The source  code of the unv2rst utility was
+  //! a good source  of info, too.  
   //! 
   //! \collab 
   //! 

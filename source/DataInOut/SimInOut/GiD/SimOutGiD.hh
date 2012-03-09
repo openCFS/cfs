@@ -142,10 +142,10 @@ namespace CoupledField
   //! 
   //! \purpose 
   //! This class provides the interface for writing meshes and elements to the
-  //! GiD own postprocessing files .post.msh and .post.res.
+  //! <a href="http://gid.cimne.upc.es/">GiD</a> own postprocessing files .post.msh and .post.res.
   //! This format is capable of visualizing volume elements, surface elements
   //! and named nodes. 
-  //! /Note GiD has some restrictions regarding the visualization of element
+  //! \Note GiD has some restrictions regarding the visualization of element
   //! resuls on different element types. Therefore, if different types of 
   //! elements are contained in the grid (e.g. Quad/Tria, Tet/Hex/Pyra), all
   //! elements are treated as degenerated quadrilaterals or hexahedras. 

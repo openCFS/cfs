@@ -7,9 +7,9 @@
 namespace CoupledField{
 
 //! Calculate the divergence of the vector shape functions
-//!    / N_1z  0        ...\
-//! b =| 0    N_2y      ...|
-//!    \ 0     0   N_2z .../
+//!    / N_1x  0        ...\
+//! b =| 0    N_1y      ...|
+//!    \ 0     0   N_1z .../
 //!  here N_1x denotes the x-derivative of the first
 //!  shape function at a given local point
 //! \tparam FE Type of Finite Element used

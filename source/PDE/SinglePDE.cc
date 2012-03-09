@@ -256,6 +256,8 @@ namespace CoupledField {
     {
       PtrParamNode in_ = in->GetByVal("region", "name", domain->GetGrid()->GetRegion().ToString(subdoms_[i]));
 
+    // Not needed at the moment. Commented out due to gcc 4.6.
+#if 0
       std::map<RegionIdType,DampingType>::const_iterator it = dampingList_.find(subdoms_[i]);
       DampingType dampType;
       if( it != dampingList_.end() ) {
@@ -263,12 +265,15 @@ namespace CoupledField {
       }else{
         dampType = NONE;
       }
-      std::string fuck_e2s;
-      Enum2String(dampingList_[subdoms_[i]], fuck_e2s);
-      in_->Get("damping")->SetValue(fuck_e2s);
+
       //TODO:: this just a workaround to get the code compiled
       // with fucking warnigs as errors
       dampType = NONE;
+#endif
+
+      std::string fuck_e2s;
+      Enum2String(dampingList_[subdoms_[i]], fuck_e2s);
+      in_->Get("damping")->SetValue(fuck_e2s);
     }
 
     // =====================================================================
@@ -1049,21 +1054,50 @@ namespace CoupledField {
           }
         }
       }
+
+
+      std::ofstream  out(fap.fileName.c_str(),std::ios::out );
+
+      Vector<Double> globPoint;
       
       // print out information
       if( isComplex_ ){
-        EXCEPTION("not yet implemented");
-      } else {
         // cast solution vector
-        Vector<Double>& vec = dynamic_cast<Vector<Double> &>(*(fap.field));
-        std::ofstream  out(fap.fileName.c_str(),std::ios::out );
+        Vector<Complex>& vec = dynamic_cast<Vector<Complex> &>(*(fap.field));
 
         // obtain result info and print header
         UInt numDofs = fap.resultInfo->dofNames.GetSize();
-        
-        
+
         // Loop over all points
-        Vector<Double> globPoint;
+        for( UInt iPoint = 0; iPoint < fap.locPoints.GetSize(); iPoint++) { 
+          
+          shared_ptr<ElemShapeMap> esm = 
+              ptgrid_->GetElemShapeMap(fap.elems[iPoint], true);
+          esm->Local2Global(globPoint, fap.locPoints[iPoint]);
+          // write to file
+          out << fap.elems[iPoint]->elemNum << "\t";
+          out << globPoint.ToString(0, '\t') << "\t";
+          for(UInt j = 0; j < numDofs; ++j ) {
+            out << vec[iPoint*numDofs + j].real() << "\t";
+          }
+          for(UInt j = 0; j < numDofs; ++j ) {
+            out << vec[iPoint*numDofs + j].imag() << "\t";
+          }
+          for(UInt j = 0; j < dim_; ++j ) {
+            out << fap.locPoints[iPoint][j] << "\t";
+          }
+          out << fap.elems[iPoint]->elemNum << "\t";
+          out << std::endl;
+        }
+
+      } else {
+        // cast solution vector
+        Vector<Double>& vec = dynamic_cast<Vector<Double> &>(*(fap.field));
+
+        // obtain result info and print header
+        UInt numDofs = fap.resultInfo->dofNames.GetSize();
+
+        // Loop over all points
         for( UInt iPoint = 0; iPoint < fap.locPoints.GetSize(); iPoint++) { 
           
           shared_ptr<ElemShapeMap> esm = 
@@ -1081,9 +1115,9 @@ namespace CoupledField {
           out << fap.elems[iPoint]->elemNum << "\t";
           out << std::endl;
         }
-        out.close();
-      
       }
+
+      out.close();
       
     }
   }

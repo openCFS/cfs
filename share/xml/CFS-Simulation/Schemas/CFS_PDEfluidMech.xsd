@@ -275,7 +275,12 @@
       <xsd:enumeration value="fluidMechEnergy"/>
     </xsd:restriction>
   </xsd:simpleType>
-  
+
+   <!-- Definition of field variables -->
+   <xsd:simpleType name="DT_FluidMechFieldResult">
+     <xsd:union memberTypes="DT_FluidMechNodeResult DT_FluidMechElemResult"/>
+   </xsd:simpleType>
+   
  <!-- Global type for specifying desired electrostatic output quantities -->
   <xsd:complexType name="DT_FluidMechStoreResults">
     <xsd:sequence>
@@ -315,6 +320,17 @@
                 <xsd:attribute name="type" type="DT_FluidMechRegionResult"/>
               </xsd:extension>
             </xsd:complexContent>
+          </xsd:complexType>
+        </xsd:element>
+
+        <!-- FieldResults -->
+        <xsd:element name="field" minOccurs="0" maxOccurs="unbounded">
+          <xsd:complexType>
+            <xsd:complexContent>
+              <xsd:extension base="DT_FieldResult">
+                <xsd:attribute name="type" type="DT_FluidMechFieldResult"/>
+              </xsd:extension>
+            </xsd:complexContent>           
           </xsd:complexType>
         </xsd:element>
         

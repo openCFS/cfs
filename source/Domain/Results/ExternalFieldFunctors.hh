@@ -5,7 +5,7 @@
 // ================================================================================================
 /*!
  *       \file     ExternalFieldFunctors.hh
- *       \brief    <ENTER BRIEF DESCRIPTION HERE>
+ *       \brief    ENTER BRIEF DESCRIPTION HERE
  *
  *       \date     Feb 11, 2012
  *       \author   ahueppe
@@ -28,7 +28,7 @@
  *    This class can handle multiple coefficient functions and can be passed to integrators
  *    to evaluate the field at a given point. It still needs an FeFunction representing the
  *    given Field. This can be seen as an interface because this way an FeFunction can be
- *    defines by a mixture of given coefficient functions disregarding if they are given by
+ *    defined by a mixture of given coefficient functions disregarding if they are given by
  *    an analytic expression or defined on an external grid.
  *    It provides also an EvalResult function to compute the field values for postprocessing
  */

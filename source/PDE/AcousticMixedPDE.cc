@@ -148,11 +148,17 @@ namespace CoupledField{
       spaceP->SetRegionApproximation(actRegion, polyId,integId);
       spaceV->SetRegionApproximation(actRegion, polyId,integId);
 
-      Double density=0.0,compressibility=0.0,c0=0.0;
+      Double density=0.0;
+      Double compressibility=0.0;
 
       materials_[actRegion]->GetScalar(density,DENSITY,Global::REAL);
       materials_[actRegion]->GetScalar(compressibility,ACOU_BULK_MODULUS,Global::REAL);
+
+    // Not needed at the moment. Commented out due to gcc 4.6.
+#if 0
+      Double c0=0.0;
       c0 = std::sqrt(compressibility/density);
+#endif
 
       feFunctions_[ACOU_PRESSURE]->AddEntityList( actSDList );
       feFunctions_[ACOU_VELOCITY]->AddEntityList( actSDList );
