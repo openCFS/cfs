@@ -1607,6 +1607,7 @@ namespace CoupledField {
     namedNodeNames_.Push_back(name);
     namedNodes_.Push_back(nodeNums);
     nameTypeMap_[name] = EntityList::NAMED_NODES;
+    entityDim_[name] = 0;
   }
 
   void GridCFS::AddNamedElems( std::string name, StdVector<UInt> & elemNums)
@@ -1617,8 +1618,20 @@ namespace CoupledField {
                  << " are already defined" );
     }
     namedElemNames_.Push_back(name);
+    
+    // Perform check, that all elements in this list have the same dimension
+    UInt elemDim = Elem::shapes[orderedElems_[elemNums[0]-1]->type].dim;
+    UInt numElems = elemNums.GetSize();
+    for( UInt iElem = 1; iElem < numElems; ++iElem ) {
+      if( Elem::shapes[orderedElems_[elemNums[iElem]]->type].dim != elemDim ) {
+        EXCEPTION( "Element list '" << name << 
+                   "' contains elements of different dimensions!")
+      }
+    }
+    
     namedElems_.Push_back(elemNums);
     nameTypeMap_[name] = EntityList::NAMED_ELEMS;
+    entityDim_[name] = elemDim;
 
     // get unique node number of elements
     UInt size = elemNums.GetSize();
@@ -1830,6 +1843,18 @@ namespace CoupledField {
       EXCEPTION( "Element #" << el->elemNum << " with connectivity ("
                  << el->connect.Serialize() << ") has node number(s) larger "
                  << "than number of nodes in grid (" << numNodes_ << ")" );
+    }
+    
+    // add correct dimension of element to entityDim_
+    std::string regionName = region_.ToString(region);
+    std::map<std::string, UInt>::iterator it = entityDim_.find(regionName);
+    if( it != entityDim_.end() ) {
+      if( it->second != Elem::shapes[type].dim ) {
+        EXCEPTION( "Region '" << regionName 
+                   << "' contains elements of different dimensions!");
+      }
+    } else {
+      entityDim_[regionName] = Elem::shapes[type].dim;
     }
   }
 

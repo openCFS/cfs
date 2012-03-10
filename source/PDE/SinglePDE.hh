@@ -240,6 +240,8 @@ namespace CoupledField
     //! \param elemName Name of ParamNode within <bcsAndLoads> to be read 
     //! \param compNames Names of the components (vector, tensor)
     //! \param type Type of CoefFunction to be read in (scalar, vector, tensor)
+    //! \param isComplex Denotes  if a complex valued coef-function is to be 
+    //!                  generated
     //! \param entities Vector of entityLists of the boundary condition
     //! \param coef Vector of coefficients function for the values
     void ReadRhsExcitation( const std::string& elemName, 

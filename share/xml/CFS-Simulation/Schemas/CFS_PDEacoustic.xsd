@@ -442,8 +442,6 @@
     <xsd:complexContent>
       <xsd:extension base="DT_BCBasic">
         <xsd:attribute name="name" type="xsd:token" use="required"/>
-        <xsd:attribute name="entityType" type="DT_EntityType"
-          use="optional" default="nodeList"/>
         <xsd:attribute name="quantity" default="acouPressure"
           type="DT_AcousticUnknownType"/>
         <xsd:attribute name="dof">
@@ -484,8 +482,6 @@
   <xsd:complexType name="DT_AcousticIN">
     <xsd:complexContent>
       <xsd:restriction base="DT_AcousticID">
-        <xsd:attribute name="entityType" type="DT_EntityType"
-          use="optional" default="surfElemList"/>
         <xsd:attribute name="quantity" type="DT_AcousticUnknownType"
                        default="acouPotential"/>
         </xsd:restriction>

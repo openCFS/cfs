@@ -223,7 +223,8 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
     //  FORCES (volume, nodal)
     // ========================
     LOG_DBG(mechpde) << "Reading forces";
-    ReadRhsExcitation( "force", dispDofNames, ResultInfo::VECTOR, isComplex_, ent, coef );
+    ReadRhsExcitation( "force", dispDofNames, ResultInfo::VECTOR, isComplex_,
+                       ent, coef );
     
     for( UInt i = 0; i < ent.GetSize(); ++i ) {
       // check type of entitylist
@@ -274,7 +275,8 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
     // ===============
     LOG_DBG(mechpde) << "Reading force densities";
     
-    ReadRhsExcitation( "forceDensity", dispDofNames, ResultInfo::VECTOR, isComplex_, ent, coef );
+    ReadRhsExcitation( "forceDensity", dispDofNames, ResultInfo::VECTOR, isComplex_, 
+                        ent, coef );
     for( UInt i = 0; i < ent.GetSize(); ++i ) {
       // check type of entitylist
       if (ent[i]->GetType() == EntityList::NODE_LIST) {
@@ -285,7 +287,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
       EntityIterator it = ent[i]->GetIterator();
       UInt elemDim = Elem::shapes[it.GetElem()->type].dim;
       if( elemDim != dim_ ) {
-        EXCEPTION("Foce density can only be defined on surface elements");
+        EXCEPTION("Force density can only be defined on surface elements");
       }
       
       if( dim_ == 2) {
@@ -315,7 +317,8 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
     // ===============
     LOG_DBG(mechpde) << "Reading mechanical pressure";
     StdVector<std::string> empty;
-    ReadRhsExcitation( "pressure", empty, ResultInfo::VECTOR, isComplex_, ent, coef );
+    ReadRhsExcitation( "pressure", empty, ResultInfo::VECTOR, isComplex_, 
+                        ent, coef );
     std::set<RegionIdType> volRegions (subdoms_.Begin(), subdoms_.End() );
     
     for( UInt i = 0; i < ent.GetSize(); ++i ) {
@@ -355,7 +358,8 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
     // ==================
     LOG_DBG(mechpde) << "Reading surface tractions";
       
-      ReadRhsExcitation( "traction", dispDofNames, ResultInfo::VECTOR, isComplex_, ent, coef );
+      ReadRhsExcitation( "traction", dispDofNames, ResultInfo::VECTOR, isComplex_, 
+                          ent, coef );
       for( UInt i = 0; i < ent.GetSize(); ++i ) {
         // check type of entitylist
         if (ent[i]->GetType() == EntityList::NODE_LIST) {
@@ -525,6 +529,10 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
 
       case MECH_STRAIN:
         resultFunctors_[MECH_STRAIN]->EvalResult( res );
+        break;
+        
+      case MECH_ENERGY:
+        resultFunctors_[MECH_ENERGY]->EvalResult( res );
         break;
 
       default:
@@ -783,6 +791,23 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
     resultFunctors_[MECH_STRAIN] = strainFunc;
     fieldFunctors_[MECH_STRAIN] = strainFunc;
 
+    // === MECHANIC ENERGY ===
+    shared_ptr<ResultInfo> energy(new ResultInfo);
+    energy->resultType = MECH_ENERGY;
+    energy->dofNames = "";
+    energy->unit = "Ws";
+    energy->entryType = ResultInfo::SCALAR;
+    energy->definedOn = ResultInfo::REGION;
+    availResults_.insert( energy );
+    postProcResults_[MECH_ENERGY] = MECH_DISPLACEMENT;
+    shared_ptr<ResultFunctor> energyFunc;
+    if( isComplex_ ) {
+      energyFunc.reset(new EnergyResultFunctor<Complex>(feFct, energy));
+    } else {
+      energyFunc.reset(new EnergyResultFunctor<Double>(feFct, energy));
+    }
+    resultFunctors_[MECH_ENERGY] = energyFunc;
+
     // ============================
     // Initialize result functors:
     // ============================
@@ -795,9 +820,11 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
       // 2) pass integrators to functors
       sigmaFunc->AddIntegrator(bdb, region);
       strainFunc->AddIntegrator(bdb, region);
+      energyFunc->AddIntegrator(bdb, region);
     }
     
-//
+   
+    //
 //    // === MECHANIC PRESSURE ===
 //    shared_ptr<ResultInfo> pressure(new ResultInfo);
 //    pressure->resultType = MECH_PRESSURE;
@@ -833,15 +860,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
 //
 
 //
-//    // === MECHANIC ENERGY ===
-//    shared_ptr<ResultInfo> energy(new ResultInfo);
-//    energy->resultType = MECH_ENERGY;
-//    energy->dofNames = "";
-//    energy->unit = "Ws";
-//    energy->entryType = ResultInfo::SCALAR;
-//    energy->definedOn = ResultInfo::REGION;
-//    energy->fctType = shared_ptr<ConstFct>(new ConstFct() );
-//    availResults_.insert( energy );
+
 //
 //    // === LUMPED_MECHANIC DISPLACEMENT ===
 //    shared_ptr<ResultInfo> elem_disp(new ResultInfo);

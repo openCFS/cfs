@@ -32,12 +32,6 @@ namespace CoupledField {
   InhomDirichletBc::InhomDirichletBc() {
   }
 
-  InhomDirichFileBc::InhomDirichFileBc() {
-  }
-
-  InhomNeumannBc::InhomNeumannBc() {
-  }
-
   void InhomDirichletBc::ToInfo(PtrParamNode in) const
   {
     HomDirichletBc::ToInfo(in);
@@ -50,40 +44,6 @@ namespace CoupledField {
   {
     std::stringstream ss;
     ss << HomDirichletBc::ToString() << ", value=" << value << ", phase=" << phase;
-    return ss.str();
-  }
-
-  void InhomDirichFileBc::ToInfo(PtrParamNode in) const
-  {
-    HomDirichletBc::ToInfo(in);
-    in->Get("inputId")->SetValue(inputId);
-  }
-
-
-  std::string InhomDirichFileBc::ToString()
-  {
-    std::stringstream ss;
-    ss << HomDirichletBc::ToString() << ", inputId=" << inputId;
-    return ss.str();
-  }
-
-  LoadBc::LoadBc() {
-  }
-
-  void LoadBc::ToInfo(PtrParamNode in) const
-  {
-    HomDirichletBc::ToInfo(in);
-    in->Get("value")->SetValue(value);
-    in->Get("phase")->SetValue(phase);
-    in->Get("weight")->SetValue(weight);
-  }
-
-
-  std::string LoadBc::ToString()
-  {
-    std::stringstream ss;
-    ss << HomDirichletBc::ToString() << ", value=" << value << ", phase=" << phase
-       << ", weight=" << weight;
     return ss.str();
   }
 

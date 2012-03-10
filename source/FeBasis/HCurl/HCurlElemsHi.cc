@@ -2,6 +2,7 @@
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "Utils/AutoDiff.hh"
 #include "FeBasis/Polynomials.hh"
+#include "Domain/ElemMapping/EdgeFace.hh"
 
 namespace CoupledField {
 
@@ -13,6 +14,9 @@ DECLARE_LOG(feHCurlHi)
 DEFINE_LOG(feHCurlHi, "feHCurlHi")
 
 
+// ===============================================================
+//  VECTOR IDENTITIES NEEDED FOR THE CALCULATION OF CURL MATRICES
+// ===============================================================
 //! This method makes use of the following vector identity
 //! (assuming b is a scalar and F a vector function):
 //!
@@ -27,7 +31,6 @@ DEFINE_LOG(feHCurlHi, "feHCurlHi")
 //!     curl(b*(grad(a)) = grad(b) x grad(a) = Cross(b,a)
 //!
 //! This second term is calculated within this method.
-
 inline AutoDiff<Double,3> Cross (const AutoDiff<Double,3> & u,
                                  const AutoDiff<Double,3> & v)
   {
@@ -38,6 +41,162 @@ inline AutoDiff<Double,3> Cross (const AutoDiff<Double,3> & u,
     hv.DVal(2) = u.DVal(0)*v.DVal(1)-u.DVal(1)*v.DVal(0);
     return hv;
   }
+
+
+// -------------------
+//  Expr = grad(U)
+// -------------------
+template<int D, FeHCurlHi::DiffType DIFF>
+class Xpr_GradU {
+};
+
+template<int D>
+class Xpr_GradU<D, FeHCurlHi::ID> {
+  public:
+    Xpr_GradU(const AutoDiff<Double,D>& u) {
+      for( UInt i = 0; i < D; ++i ) {
+        val[i] = u.DVal(i);
+      }
+    }
+    Double operator[] (UInt i ) {return val[i];}
+  private:
+    Double val[D];
+};
+
+template<int D>
+class Xpr_GradU<D, FeHCurlHi::CURL> {
+  public:
+    Xpr_GradU(const AutoDiff<Double,D>& u) {
+      for( UInt i = 0; i < D; ++i ) {
+        curl[i] = 0.0;
+      }
+    }
+    Double operator[] (UInt i ) {return curl[i];}
+  private:
+    Double curl[D];
+};
+
+// -------------------
+//  Expr = s*grad(U)
+// -------------------
+
+//! Auxiliary class for evaluating expressions and curls of the type
+//!    s * grad(U)
+template<int D, FeHCurlHi::DiffType DIFF>
+class Xpr_SGradU {
+};
+
+template<int D>
+class Xpr_SGradU<D, FeHCurlHi::ID> {
+  public:
+    Xpr_SGradU(const AutoDiff<Double,D>& s, 
+                 const AutoDiff<Double,D>& u ) {
+      for( UInt i = 0; i < D; ++i ) {
+        val[i] = s.Val() * u.DVal(i);
+      }
+    }
+    Double operator[] (UInt i ) {return val[i];}
+  private:
+    Double val[D];
+};
+
+template<int D>
+class Xpr_SGradU<D, FeHCurlHi::CURL> {
+  public:
+  Xpr_SGradU(const AutoDiff<Double,D>& s, 
+               const AutoDiff<Double,D>& u ) {
+    AutoDiff<Double,D> c = Cross(s,u);
+      for( UInt i = 0; i < D; ++i ) {
+        curl[i] = c.DVal(i);
+      }
+    }
+    Double operator[] (UInt i ) {return curl[i];}
+  private:
+    Double curl[D];
+};
+
+
+// -------------------------------------
+//  Expr = grad(U)*V - U*grad(V)
+// -------------------------------------
+
+template<int D, FeHCurlHi::DiffType DIFF>
+class Xpr_Diff_VGradU {
+};
+
+template<int D>
+class Xpr_Diff_VGradU<D, FeHCurlHi::ID> {
+  public:
+  Xpr_Diff_VGradU(const AutoDiff<Double,D>& u, 
+                  const AutoDiff<Double,D>& v ) {
+      for( UInt i = 0; i < D; ++i ) {
+        val[i] = u.Val() * v.DVal(i) - v.Val() * u.DVal(i);
+      }
+    }
+    Double operator[] (UInt i ) {return val[i];}
+  private:
+    Double val[D];
+};
+
+template<int D>
+class Xpr_Diff_VGradU<D, FeHCurlHi::CURL> {
+  public:
+  Xpr_Diff_VGradU(const AutoDiff<Double,D>& u, 
+                  const AutoDiff<Double,D>& v ) {
+    AutoDiff<Double,D> c = Cross(u,v);
+      for( UInt i = 0; i < D; ++i ) {
+        curl[i] = 2 * c.DVal(i);
+      }
+    }
+    Double operator[] (UInt i ) {return curl[i];}
+  private:
+    Double curl[D];
+};
+
+
+// -------------------------------------
+//  Expr = s( grad(U)*V - U*grad(V))
+// -------------------------------------
+
+template<int D, FeHCurlHi::DiffType DIFF>
+class Xpr_Diff_SVGradU {
+};
+
+template<int D>
+class Xpr_Diff_SVGradU<D, FeHCurlHi::ID> {
+  public:
+  Xpr_Diff_SVGradU(const AutoDiff<Double,D>& u, 
+                   const AutoDiff<Double,D>& v,
+                   const AutoDiff<Double,D>& s) {
+      for( UInt i = 0; i < D; ++i ) {
+        val[i] = s.Val() * (u.Val() * v.DVal(i) - v.Val() * u.DVal(i) );
+      }
+    }
+    Double operator[] (UInt i ) {return val[i];}
+  private:
+    Double val[D];
+};
+
+template<int D>
+class Xpr_Diff_SVGradU<D, FeHCurlHi::CURL> {
+  public:
+  Xpr_Diff_SVGradU(const AutoDiff<Double,D>& u, 
+                   const AutoDiff<Double,D>& v,
+                   const AutoDiff<Double,D>& s) {
+    AutoDiff<Double,D> c = Cross(u*s, v) + Cross(u, s*v);
+      for( UInt i = 0; i < D; ++i ) {
+        curl[i] = c.DVal(i);
+      }
+    }
+    Double operator[] (UInt i ) {return curl[i];}
+  private:
+    Double curl[D];
+};
+
+// ===============================================================
+// ELEMENTS SECTION
+// ===============================================================
+
 
 
 FeHCurlHi::FeHCurlHi() {
@@ -306,7 +465,7 @@ void FeHCurlHiHex::CalcNumUnknowns() {
 
 
 void FeHCurlHiHex::CalcLocShFnc( Matrix<Double>& shape, const LocPointMapped& lpm,
-                             const Elem* elem, UInt comp  ) {
+                                 const Elem* elem, UInt comp  ) {
   
   AutoDiff<Double, 3> x (lpm.lp.coord[0],0);
   AutoDiff<Double, 3> y (lpm.lp.coord[1],1);
@@ -545,6 +704,202 @@ void FeHCurlHiHex::CalcLocShFnc( Matrix<Double>& shape, const LocPointMapped& lp
 #endif
 }
 
+
+// define small macro to ease assignment of xpression to shape functon
+#define COPYSHFNC                \
+for( UInt n = 0; n < 3; ++n ) {  \
+  shape[n][pos] = xpr[n];        \
+  }                              \
+pos++;
+
+template<FeHCurlHiHex::DiffType DIFF_TYPE>
+void FeHCurlHiHex::CalcLocShFnc2( Matrix<Double>& shape, const LocPointMapped& lpm,
+                                  const Elem* elem, UInt comp  ) {
+    
+    AutoDiff<Double, 3> x (lpm.lp.coord[0],0);
+    AutoDiff<Double, 3> y (lpm.lp.coord[1],1);
+    AutoDiff<Double, 3> z (lpm.lp.coord[2],2);
+    
+    AutoDiff<Double, 3> lambda[8] = {0.125*(1.0-x)*(1.0-y)*(1.0-z),
+                                     0.125*(1.0+x)*(1.0-y)*(1.0-z),
+                                     0.125*(1.0+x)*(1.0+y)*(1.0-z),
+                                     0.125*(1.0-x)*(1.0+y)*(1.0-z),
+                                     0.125*(1.0-x)*(1.0-y)*(1.0+z),
+                                     0.125*(1.0+x)*(1.0-y)*(1.0+z),
+                                     0.125*(1.0+x)*(1.0+y)*(1.0+z),
+                                     0.125*(1.0-x)*(1.0+y)*(1.0+z)};
+
+    AutoDiff<Double, 3> sigma[8]  = {0.5*((1.0-x)+(1.0-y)+(1.0-z)),
+                                     0.5*((1.0+x)+(1.0-y)+(1.0-z)),
+                                     0.5*((1.0+x)+(1.0+y)+(1.0-z)),
+                                     0.5*((1.0-x)+(1.0+y)+(1.0-z)),
+                                     0.5*((1.0-x)+(1.0-y)+(1.0+z)),
+                                     0.5*((1.0+x)+(1.0-y)+(1.0+z)),
+                                     0.5*((1.0+x)+(1.0+y)+(1.0+z)),
+                                     0.5*((1.0-x)+(1.0+y)+(1.0+z))};
+    UInt pos = 12;
+    shape.Resize(3,actNumFncs_);
+    shape.Init();
+    
+    StdVector<AutoDiff<Double, 3> > xiVals, etaVals, zetaVals;
+    // ------------------------
+    // 1) Edge shape functions
+    // ------------------------
+    for( UInt i = 0; i < 12; ++i ) {
+
+      UInt order = orderEdge_[i];
+      Double fac = elem->edges[i] < 0 ? -1.0 : 1.0;
+      UInt index1 = shape_.edgeVertices[i][0]-1;
+      UInt index2 = shape_.edgeVertices[i][1]-1;
+
+      // xi: parameterization of edge [-1;+1]
+      // eta: parameterization of extension into element [-1;+1]
+      AutoDiff<Double, 3> xi  =  sigma[index2] -  sigma[index1]; 
+      AutoDiff<Double, 3> eta = lambda[index1] + lambda[index2];
+
+      // === a) standard Nedelec shape functions ===
+      Xpr_SGradU<3,DIFF_TYPE> xpr(eta,xi*fac);
+      for( UInt k = 0; k < 3; ++k ) {
+        shape[k][i] = xpr[k];
+      }
+      
+      // ===  b) gradient functions ===
+      if( useGrad_[EDGE] && !onlyLowestOrder_ ) {
+        IntLegendreP2(xiVals, order+1, fac*xi );
+
+        for( UInt j = 0; j < order; ++j ) {
+          Xpr_GradU<3,DIFF_TYPE> xpr(xiVals[j]*eta);
+          COPYSHFNC
+        }
+      }
+    }
+    if(onlyLowestOrder_) return;
+    
+    // -------------------------
+    // 2) Face shape functions
+    // -------------------------
+#ifdef USE_FACES
+    for( UInt iFace = 0; iFace < 6; ++iFace ) {
+      UInt order1 = orderFace_[iFace][0];
+      UInt order2 = orderFace_[iFace][1];
+      if (order1 >0 && order2 >0 ) {
+
+        // get unique sorting of the face
+        const StdVector<UInt>& unsorted = shape_.faceNodes[iFace];
+        StdVector<UInt> ind;
+        Face::GetSortedIndices( ind, unsorted, 4, elem->faceFlags[iFace]);
+
+        // calculate face extension parameter which is the sum
+        // of all lambdas of one face
+        AutoDiff<Double,3> sum_lambda = 0.0;
+        for( UInt i = 0; i < 4; ++i)
+          sum_lambda += lambda[ind[i]];
+
+        // Parameterization of first edge, connecting the
+        // local nodes of the face 1->2
+        AutoDiff<Double,3> xi  =  sigma[ind[1]] - sigma[ind[0]];
+        // Parameterization of second edge, connecting the
+        // local nodes of the face 1->4
+        AutoDiff<Double,3> eta  =  sigma[ind[3]]- sigma[ind[0]];
+
+        IntLegendreP2(xiVals,  order1+1, xi );
+        IntLegendreP2(etaVals, order2+1,eta );
+        
+        // === a) type 1: gradient fields ===
+        if( useGrad_[FACE]) {
+          for( UInt i = 0; i < order1; ++i ) {
+            for( UInt j = 0; j < order2; ++j ) {
+              Xpr_GradU<3,DIFF_TYPE> xpr( xiVals[i] * etaVals[j] * sum_lambda);
+              COPYSHFNC
+            }
+          }
+        }
+        
+        // === b) type 2: face functions ===
+        for( UInt i = 0; i < order1; ++i ) {
+          for( UInt j = 0; j < order2; ++j ) {
+            Xpr_Diff_VGradU<3,DIFF_TYPE> xpr(etaVals[j], xiVals[i] * sum_lambda);
+            COPYSHFNC
+          }
+        }
+        
+        // === c) type 3 face functions ===
+        for( UInt i = 0; i < order1; ++i ) {
+          Xpr_Diff_SVGradU<3,DIFF_TYPE> xpr(1.0, eta, xiVals[i] * sum_lambda );
+          COPYSHFNC
+        }
+        
+        for( UInt j = 0; j < order2; ++j ) {
+          Xpr_Diff_SVGradU<3,DIFF_TYPE> xpr(1.0, xi, etaVals[j] * sum_lambda );
+          COPYSHFNC
+        }
+      } // if order
+    }  // loop faces
+#endif
+    
+    // -------------------------
+    // 3) Interior shape functions
+    // -------------------------
+#ifdef USE_INNER
+    IntLegendreP2(xiVals,   orderInner_[0]+1, x );
+    IntLegendreP2(etaVals,  orderInner_[1]+1, y );
+    IntLegendreP2(zetaVals, orderInner_[2]+1, z );
+
+    // === a) type 1: gradient fields ===
+    if( useGrad_[INTERIOR] ) {
+      for( UInt i = 0; i < orderInner_[0]; ++i ) {
+        for( UInt j = 0; j < orderInner_[1]; ++j ) {
+          for( UInt k = 0; k < orderInner_[2]; ++k ) {
+            Xpr_GradU<3, DIFF_TYPE> xpr( xiVals[i] * etaVals[j] * zetaVals[k] );
+            COPYSHFNC
+          }
+        }
+      }
+    }
+    
+    // === b) type 2 volume functions ===
+    for( UInt i = 0; i < orderInner_[0]; ++i ) {
+      for( UInt j = 0; j < orderInner_[1]; ++j ) {
+        for( UInt k = 0; k < orderInner_[2]; ++k ) {
+          Xpr_Diff_VGradU<3, DIFF_TYPE> xpr1( xiVals[i] * etaVals[j], zetaVals[k] );
+          Xpr_Diff_VGradU<3, DIFF_TYPE> xpr2( xiVals[i],  etaVals[j]* zetaVals[k] );
+          for( UInt n = 0; n < 3; ++n ) {
+            shape[n][pos]   = xpr1[n];
+            shape[n][pos+1] = xpr2[n];
+          }
+          pos+=2;
+        }
+      }
+    }
+
+    // === c) type 3 volume functions ===
+    for( UInt i = 0; i < orderInner_[0]; ++i ) {
+      for( UInt j = 0; j < orderInner_[1]; ++j ) {
+        Xpr_Diff_SVGradU<3, DIFF_TYPE> xpr(z, AutoDiff<Double,3>(1)-z, 
+                                           xiVals[i] * etaVals[j] );
+        COPYSHFNC
+      }
+    }
+    for( UInt i = 0; i < orderInner_[0]; ++i ) {
+      for( UInt k = 0; k < orderInner_[2]; ++k ) {
+        Xpr_Diff_SVGradU<3, DIFF_TYPE> xpr(y, AutoDiff<Double,3>(1)-y, 
+                                           xiVals[i] * zetaVals[k] );
+        COPYSHFNC
+      }
+    }
+    for( UInt j = 0; j < orderInner_[1]; ++j ) {
+      for( UInt k = 0; k < orderInner_[2]; ++k ) {
+        Xpr_Diff_SVGradU<3, DIFF_TYPE> xpr(x, AutoDiff<Double,3>(1)-x, 
+                                           etaVals[j] * zetaVals[k] );
+        COPYSHFNC
+      }
+    }
+
+#endif
+
+
+}
+
 void FeHCurlHiHex::CalcLocCurlShFnc( Matrix<Double>& curl, const LocPointMapped& lpm,
                                      const Elem* elem, UInt comp ) {
 
@@ -607,17 +962,9 @@ void FeHCurlHiHex::CalcLocCurlShFnc( Matrix<Double>& curl, const LocPointMapped&
   // 2) Face shape functions
   // -------------------------
 
-  bool print = false;
- //if ( elem->elemNum == 20 ) print = true;
-
   #ifdef USE_FACES
   for( UInt f = 0; f < 6; ++f ) {
     
-    if(print) {
-      std::cerr << "\n===========================\n"
-                 <<" Face #" << f << " of elem# " << elem->elemNum << std::endl
-                 << "===========================\n";
-    }
     UInt order1 = orderFace_[f][0];
     UInt order2 = orderFace_[f][1];
     if (order1 > 0 && order2 > 0 ) {
@@ -707,10 +1054,6 @@ void FeHCurlHiHex::CalcLocCurlShFnc( Matrix<Double>& curl, const LocPointMapped&
       //AutoDiff<Double,3> eta = sigma[fmax]-sigma[f2];
       AutoDiff<Double,3> xi = sigma[fmax]-sigma[f1];
       AutoDiff<Double,3> eta = sigma[fmax]-sigma[f2];
-      if(print )  {
-        std::cerr << "xi_ng is " << xi << std::endl;
-        std::cerr << "eta_ng is " << eta << std::endl;
-      }
 #endif
 
       
@@ -865,6 +1208,35 @@ void FeHCurlHiHex::CalcLocCurlShFnc( Matrix<Double>& curl, const LocPointMapped&
 //std::cerr << "local curl of matrix is\n" << curl << std::endl;
 //std::cerr << "size of matrix is 3 x " << curl.GetNumCols() << std::endl;
 //std::cerr << "\t-> last entry was " << pos-1 << std::endl;
+}
+
+
+//! Return HCurl shape functions 
+void FeHCurlHiHex::GetShFnc( Matrix<Double>& shape, const LocPointMapped& lpm,
+                             const Elem* elem, UInt comp ) {
+  // Perform local->global gradient transformation
+  Matrix<Double> locShape;
+  //this->CalcLocShFnc( locShape, lpm, elem, comp );
+  //std::cerr << "Old local shape\n" << locShape << std::endl;
+  CalcLocShFnc2<ID>(locShape, lpm, elem, comp);
+  //std::cerr << "New local shape\n" << locShape << std::endl;
+  shape =  Transpose(lpm.jacInv) * locShape;
+}
+
+//! Return global curl of shape functions
+void FeHCurlHiHex::GetCurlShFnc( Matrix<Double>& curl, const LocPointMapped& lpm,
+                                 const Elem* elem, UInt comp ) {
+  // Perform local->global curl transformation
+  Matrix<Double> locCurl;    
+  
+  //this->CalcLocCurlShFnc( locCurl, lpm, elem, comp );
+  //std::cerr << "Old local curl\n" << locCurl << std::endl;
+  CalcLocShFnc2<CURL>( locCurl, lpm, elem, comp );
+  //std::cerr << "New local curl\n" << locCurl << std::endl;
+  
+  curl = lpm.jac * locCurl;
+  curl *= ( 1.0 / std::abs(lpm.jacDet) );
+  
 }
 
 }// end of namespace

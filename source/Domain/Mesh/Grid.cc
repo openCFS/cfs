@@ -214,8 +214,19 @@ namespace CoupledField
 
     shared_ptr<EntityList> ret;
 
+    // check, if name denotes a list of surface elements
+    bool isSurface = false;
+    if( GetEntityDim(name) == GetDim()-1 ) {
+      isSurface = true;
+    }
+    
     if( listType == EntityList::ELEM_LIST ) {
-      shared_ptr<ElemList> eList ( new ElemList(this) );
+      shared_ptr<ElemList> eList;
+      if( isSurface ) {
+        eList.reset(new SurfElemList(this) );
+      } else {
+        eList.reset( new ElemList(this) );
+      }
       if( entityType == EntityList::REGION ) {
         RegionIdType regionId = GetRegion().Parse( name );
         eList->SetRegion( regionId);
@@ -269,12 +280,25 @@ namespace CoupledField
 
   }
   
-  EntityList::DefineType Grid::GetEntityType( const std::string& name ) {
+  EntityList::DefineType Grid::GetEntityType( const std::string& name ) const {
     EntityList::DefineType ret = EntityList::NO_TYPE;
-    if( nameTypeMap_.find(name) != nameTypeMap_.end() ){
-      ret = nameTypeMap_[name];
+    std::map<std::string, EntityList::DefineType>::const_iterator it;
+    it = nameTypeMap_.find(name);
+    if( it != nameTypeMap_.end() ){
+      ret = it->second;
     }
     return ret;  
+  }
+  
+  UInt Grid::GetEntityDim( const std::string& name ) const {
+    UInt dim = 0;
+    std::map<std::string, UInt>::const_iterator it = entityDim_.find(name);
+    if( it != entityDim_.end() ){
+      dim = it->second;
+    } else {
+      EXCEPTION( "No entities with name '" << name << "' are defined in the grid")
+    }
+    return dim;  
   }
   
   

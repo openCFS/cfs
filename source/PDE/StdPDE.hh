@@ -236,13 +236,6 @@ namespace CoupledField {
     IdBcList GetIDBCList(){
       return idBcs_;};
 
-    //! List of inhomogeneous Dirichlet boundary conditions read from file
-    IdFileBcList GetIdFiBCList(){
-      return idFiBcs_;};
-    
-    //! List of inhomogeneous Neumann boundary conditions
-    const InBcList& GetINBCList() { return inBcs_; }
-
     //! Return material class
     MaterialClass GetMaterialClass() const { return pdematerialclass_; }
     //@}
@@ -320,17 +313,8 @@ namespace CoupledField {
     //! Inhomogeneous Dirichlet boundary conditions
     IdBcList idBcs_;
     
-    //! Inhomogeneous Dirichlet boundary conditions
-    IdFileBcList idFiBcs_;
-    
-    //! List of inhomogeneous Neumann boundary conditions
-    InBcList inBcs_;
-
     //! List of constraints
     ConstraintList constraints_;
-
-    //! Right hand side load definitions
-    LoadList loads_;
 
     //! Number of additional in. dirichlet boundary equations due to coupling
     UInt numCouplingBcs_;

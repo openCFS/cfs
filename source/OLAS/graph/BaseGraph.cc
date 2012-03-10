@@ -100,7 +100,6 @@ namespace CoupledField {
   BaseGraph::~BaseGraph() {
 
 
-    std::cerr << "Deleting BaseGraph .....\n";
     delete [] ( csNodes_ );  csNodes_  = NULL;
     delete [] ( csEdges_ );  csEdges_  = NULL;
 

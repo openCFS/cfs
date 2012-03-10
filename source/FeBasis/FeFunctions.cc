@@ -114,11 +114,6 @@ DECLARE_LOG(fefunc)
     entities_.Push_back(bc->entities);
   }
 
-  void BaseFeFunction::AddInhomNeumannBC( shared_ptr<InhomNeumannBc> bc ){
-    inBcs_.Push_back(bc);
-    entities_.Push_back(bc->entities);
-  }
-
   void BaseFeFunction::AddConstraint( shared_ptr<Constraint> bc ){
     constraints_.Push_back(bc);
   }

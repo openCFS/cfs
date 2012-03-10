@@ -518,16 +518,6 @@ namespace CoupledField {
     // loads
     PtrParamNode base = infoNode_->Get(ParamNode::HEADER)->Get("loads");
 
-    for(unsigned int i = 0, nn = loads_.GetSize(); i < nn; i++)
-    {
-      LoadBc const & actBc = *loads_[i];
-      EntityList const & actList = *actBc.entities;
-
-      PtrParamNode in = base->GetByVal(actList.listType.ToString(actList.GetType()), "name", actList.GetName());
-      in->Get("dof")->SetValue(actBc.result->GetDofName(actBc.dof));
-      in->Get("value")->SetValue(actBc.value);
-      in->Get("phase")->SetValue(actBc.phase);
-    }
 
     // Homogeneous Dirichlet BC
     base = infoNode_->Get(ParamNode::HEADER)->Get("homDirichletBC");
@@ -555,32 +545,6 @@ namespace CoupledField {
       in->Get("phase")->SetValue(actBc.phase);
     }
 
-    // Inhomogeneous Dirichlet BC read from file
-    base = infoNode_->Get(ParamNode::HEADER)->Get("inhomDirichFileBC");
-
-    for(unsigned int i = 0, nn = idFiBcs_.GetSize(); i < nn; i++)
-    {
-      InhomDirichFileBc const & actBc = *idFiBcs_[i];
-      EntityList const & actList = *actBc.entities;
-
-      PtrParamNode in = base->GetByVal(actList.listType.ToString(actList.GetType()), "name", actList.GetName());
-      in->Get("dof")->SetValue(actBc.result->GetDofName(actBc.dof));
-      in->Get("inputId")->SetValue(actBc.inputId);
-    }
-
-    // Inhomogeneous Neumann BC
-    base = infoNode_->Get(ParamNode::HEADER)->Get("inhomNeumannBC");
-
-    for(unsigned int i = 0, nn = inBcs_.GetSize(); i < nn; i++)
-    {
-      InhomNeumannBc const & actBc = *inBcs_[i];
-      EntityList const & actList = *actBc.entities;
-
-      PtrParamNode in = base->GetByVal(actList.listType.ToString(actList.GetType()), "name", actList.GetName());
-      in->Get("dof")->SetValue(actBc.result->GetDofName(actBc.dof));
-      in->Get("value")->SetValue(actBc.value);
-      in->Get("phase")->SetValue(actBc.phase);
-    }
 
     // constraints
     base = infoNode_->Get(ParamNode::HEADER)->Get("constraints");
@@ -1278,12 +1242,21 @@ namespace CoupledField {
         hdbcNodes[i]->GetValue( "name", name );
         hdbcNodes[i]->GetValue( "quantity", resultName );
         hdbcNodes[i]->GetValue( "dof", dof, ParamNode::PASS );
-        hdbcNodes[i]->GetValue( "entityType", entType );
 
         shared_ptr<HomDirichletBc> actBc ( new HomDirichletBc );
-        EntityList::ListType listType = EntityList::listType.Parse(entType);
-        shared_ptr<EntityList> actList =
-          ptgrid_->GetEntityList( listType, name);
+        shared_ptr<EntityList> actList;
+        switch( ptgrid_->GetEntityType(name) ) {
+          case EntityList::NAMED_NODES:
+            actList = ptgrid_->GetEntityList( EntityList::NODE_LIST, name); 
+            break;
+          case EntityList::REGION:
+          case EntityList::NAMED_ELEMS:
+            actList = ptgrid_->GetEntityList( EntityList::ELEM_LIST, name );
+            break;
+          case EntityList::NO_TYPE:
+            EXCEPTION("No entities with name '" << name << "' known");
+            break;
+        }
         
         // fetch related feFunction object
         actFeFunction = GetFeFunction( SolutionTypeEnum.Parse(resultName));
@@ -1323,14 +1296,23 @@ namespace CoupledField {
         idbcNodes[i]->GetValue( "dof", dof, ParamNode::PASS );
         idbcNodes[i]->GetValue( "value", value );
         idbcNodes[i]->GetValue( "phase", phase );
-        idbcNodes[i]->GetValue( "entityType", entType );
 
         // Create inhomogeneous boundary condition
         shared_ptr<InhomDirichletBc> actBc ( new InhomDirichletBc );
 
-        shared_ptr<EntityList> actList =
-          ptgrid_->GetEntityList( EntityList::listType.Parse(entType),
-                                  name );
+        shared_ptr<EntityList> actList;
+        switch( ptgrid_->GetEntityType(name) ) {
+          case EntityList::NAMED_NODES:
+            actList = ptgrid_->GetEntityList( EntityList::NODE_LIST, name); 
+            break;
+          case EntityList::REGION:
+          case EntityList::NAMED_ELEMS:
+            actList = ptgrid_->GetEntityList( EntityList::ELEM_LIST, name );
+            break;
+          case EntityList::NO_TYPE:
+            EXCEPTION("No entities with name '" << name << "' known");
+            break;
+        }
         
         // fetch related feFunction object
         actFeFunction = GetFeFunction( SolutionTypeEnum.Parse(resultName));
@@ -1353,103 +1335,6 @@ namespace CoupledField {
       }
      }
 
-    //=====================================================================
-    // inhomogeneous Dirichlet BC from File
-    // =====================================================================
-
-    // fetch paramnodes for idbc
-    ParamNodeList idbcFiNodes = bcsNode->GetList("dirichletFileInhom");
-
-    // iterate over all parameter nodes
-    for( UInt i = 0; i < idbcFiNodes.GetSize(); i++ ) {
-      EXCEPTION("Dirichlet BC from files not yet adapted");
-//
-//      try {
-//        // read parameters
-//        dof.clear();
-//        idbcFiNodes[i]->GetValue( "name", name );
-//        idbcFiNodes[i]->GetValue( "quantity", resultName );
-//        idbcFiNodes[i]->GetValue( "dof", dof, ParamNode::PASS );
-//        idbcFiNodes[i]->GetValue( "entityType", entType );
-//        idbcFiNodes[i]->GetValue( "inputId", inputId );
-//
-//        // fetch related resultInfo object
-//        actResultInfo = GetResultInfo( SolutionTypeEnum.Parse(resultName) );
-//
-//        // Create inhomogeneous boundary condition
-//        shared_ptr<InhomDirichFileBc> actBc ( new InhomDirichFileBc );
-//        if( entType == "nodeList" ) {
-//          defineType = EntityList::NAMED_NODES;
-//        } else {
-//          defineType = EntityList::REGION;
-//        }
-//
-//        shared_ptr<EntityList> actList =
-//          ptgrid_->GetEntityList( EntityList::listType.Parse(entType),
-//                                  name, defineType );
-//        actBc->entities = actList;
-//        actBc->result = actResultInfo;
-//        actBc->eqnMap = eqnMap_;
-//        if( dof.empty() ) {
-//          actBc->dof = 1;
-//        } else {
-//          actBc->dof = actResultInfo->GetDofIndex( dof );
-//        }
-//        actBc->inputId = inputId;
-//
-//        // add definition
-//        idFiBcs_.Push_back( actBc );
-//      } catch (Exception & ex ) {
-//        RETHROW_EXCEPTION( ex, "Can not create inhomogeneous boundary conditions on '"
-//                           << name << "'" );
-//      }
-     }
-
-    // =====================================================================
-    // inhomogeneous Neumann BC
-    // =====================================================================
-
-    // fetch paramnodes for inbc
-    ParamNodeList inbcNodes = bcsNode->GetList("neumannInhom");
-
-    // iterate over all parameter nodes
-    for( UInt i = 0; i < inbcNodes.GetSize(); i++ ) {
-      try {
-        dof.clear();
-        inbcNodes[i]->GetValue( "name", name );
-        inbcNodes[i]->GetValue( "quantity", resultName );
-        inbcNodes[i]->GetValue( "dof", dof, ParamNode::PASS );
-        inbcNodes[i]->GetValue( "value", value );
-        inbcNodes[i]->GetValue( "phase", phase );
-        inbcNodes[i]->GetValue( "entityType", entType );
-
-        // Create inhomogeneous Neumann boundary condition
-        shared_ptr<InhomNeumannBc> actBc ( new InhomNeumannBc );
-        shared_ptr<EntityList> actList =
-          ptgrid_->GetEntityList( EntityList::listType.Parse(entType),
-                                  name );
-        
-        // fetch related feFunction object
-        actFeFunction = GetFeFunction( SolutionTypeEnum.Parse(resultName));
-        
-        actBc->entities = actList;
-        actBc->result =  actFeFunction->GetResultInfo();
-        if( dof.empty() ) {
-          actBc->dof = 0;
-        } else {
-          actBc->dof = actFeFunction->GetResultInfo()->GetDofIndex( dof );
-        }
-        actBc->value = value;
-        actBc->phase = phase;
-
-        // add definition
-        inBcs_.Push_back( actBc );
-      } catch (Exception & ex ) {
-        RETHROW_EXCEPTION( ex, "Can not create inhomogeneous Neumann conditions on '"
-                           << name << "'" );
-      }
-    }
-
     // =====================================================================
     // Constraint Conditions
     // =====================================================================
@@ -1463,7 +1348,6 @@ namespace CoupledField {
       try {
         csNodes[i]->GetValue( "name", name );
         csNodes[i]->GetValue( "quantity", resultName );
-        csNodes[i]->GetValue( "entityType", entType );
         csNodes[i]->GetValue( "masterDof", masterDof );
         csNodes[i]->GetValue( "slaveDof", slaveDof );
 
@@ -1472,9 +1356,19 @@ namespace CoupledField {
 
         // Create constraint condition
         shared_ptr<Constraint> actBc ( new Constraint );
-        shared_ptr<EntityList> actList =
-          ptgrid_->GetEntityList( EntityList::listType.Parse(entType),
-                                  name  );
+        shared_ptr<EntityList> actList;
+        switch( ptgrid_->GetEntityType(name) ) {
+          case EntityList::NAMED_NODES:
+            actList = ptgrid_->GetEntityList( EntityList::NODE_LIST, name); 
+            break;
+          case EntityList::REGION:
+          case EntityList::NAMED_ELEMS:
+            actList = ptgrid_->GetEntityList( EntityList::ELEM_LIST, name );
+            break;
+          case EntityList::NO_TYPE:
+            EXCEPTION("No entities with name '" << name << "' known");
+            break;
+        }
 
         actBc->masterEntities = actList;
         actBc->slaveEntities = actList;
@@ -1599,6 +1493,14 @@ namespace CoupledField {
 
       // get entity list, depending on type
       std::string entName = xml->Get("name")->As<std::string>();
+    
+      // determine list type: In case we have have surface elements, generate explicitly
+      // a surface element list
+      EntityList::ListType listType = EntityList::ELEM_LIST; 
+      if( ptgrid_->GetEntityDim( entName ) == ptgrid_->GetDim() - 1) {
+        listType = EntityList::SURF_ELEM_LIST;
+      }
+      
       switch( ptgrid_->GetEntityType(entName) ) {
         case EntityList::NAMED_NODES:
           entities[i] = ptgrid_->GetEntityList( EntityList::NODE_LIST, 
@@ -1606,8 +1508,7 @@ namespace CoupledField {
           break;
         case EntityList::REGION:
         case EntityList::NAMED_ELEMS:
-          entities[i] = ptgrid_->GetEntityList( EntityList::ELEM_LIST, 
-                                               entName );
+          entities[i] = ptgrid_->GetEntityList( listType, entName );
           break;
         case EntityList::NO_TYPE:
           EXCEPTION("No entities with name '" << entName << "' known");

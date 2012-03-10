@@ -330,10 +330,10 @@ namespace CoupledField {
     // in the end, set active solution step to 1st step
     curSolStep_ = 0;
     
-    std::cerr << "=====================\n"
-        << "Param Node at End of SolStrategy Setup:\n"
-        << "=====================\n";
-    param_->Dump();
+//    std::cerr << "=====================\n"
+//        << "Param Node at End of SolStrategy Setup:\n"
+//        << "=====================\n";
+//    param_->Dump();
         
   }
   

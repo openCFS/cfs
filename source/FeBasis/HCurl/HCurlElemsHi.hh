@@ -13,6 +13,10 @@ namespace CoupledField {
 //! Gegenbauer, etc.) 
 class FeHCurlHi : public FeHCurl {
 public:
+
+  //! Denotes the derivative type of the shape function to be calculated
+  typedef enum { ID = 0, CURL =1} DiffType;
+  
   //! Constructor
   FeHCurlHi();
 
@@ -125,6 +129,32 @@ protected:
 };
 
 
+//! HCurl conforming hierarchical higher order wedge element
+class  FeHCurlHiWedge : public FeHCurlHi {
+
+public:
+
+  //! Constructor
+  FeHCurlHiWedge();
+
+  //! Destructor
+  virtual ~FeHCurlHiWedge();
+
+  //! @copydoc FeHCurl::CalcLocShFnc
+  void CalcLocShFnc( Matrix<Double>& shape, const LocPointMapped& lp,
+                     const Elem* elem, UInt comp = 1 );
+
+  //! @copydoc FeHCurl::CalcLocCurlShFnc
+  void CalcLocCurlShFnc( Matrix<Double>& curl, const LocPointMapped& lp,
+                         const Elem* elem, UInt comp = 1 );
+
+protected:
+
+  //! Calculate number of unknowns
+  void CalcNumUnknowns();
+};
+
+
 
 //! HCurl conforming hierarchical higher order hexahedral element
 class  FeHCurlHiHex : public FeHCurlHi {
@@ -145,6 +175,22 @@ public:
   void CalcLocCurlShFnc( Matrix<Double>& curl, const LocPointMapped& lp,
                          const Elem* elem, UInt comp = 1 );
 
+  //! Return HCurl shape functions 
+  virtual void GetShFnc( Matrix<Double>& shape, 
+                         const LocPointMapped& lp,
+                         const Elem* elem, UInt comp = 1 );
+
+  //! Return global curl of shape functions
+  virtual void GetCurlShFnc( Matrix<Double>& curl, 
+                             const LocPointMapped& lp,
+                             const Elem* elem, UInt comp = 1 );
+  
+  //! Second version using the generalized curl-mechanism
+  template<DiffType DIFF_TYPE>
+  void CalcLocShFnc2( Matrix<Double>& curl, 
+                      const LocPointMapped& lp,
+                      const Elem* elem, UInt comp = 1 );
+  
 protected:
 
   //! Calculate number of unknowns

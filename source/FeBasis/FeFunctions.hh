@@ -124,9 +124,6 @@ public:
   void AddInhomDirichletBc( shared_ptr<InhomDirichletBc> bc );
   
   //! Add constraint boundary condition
-  void AddInhomNeumannBC( shared_ptr<InhomNeumannBc> bc );
-
-  //! Add constraint boundary condition
   void AddConstraint( shared_ptr<Constraint> bc );
 
   //! Get Homogenious Boundary Conditions
@@ -139,10 +136,6 @@ public:
     return idBcs_;
   }
 
-  //! Get Inhomogenious Neumann Boundary Conditions
-  const InBcList AddInhomNeumannBC(){
-    return inBcs_;
-  }
   
   //! Get Constraint Boundary Conditions
   const ConstraintList GetConstraints(){
@@ -192,9 +185,6 @@ protected:
   //! Inhomogeneous Dirichlet BCs
   IdBcList idBcs_;
   
-  //! Inhomogeneous Neumann BCs
-  InBcList inBcs_;
-
   //! Constraints
   ConstraintList constraints_;
   

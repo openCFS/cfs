@@ -120,14 +120,10 @@ namespace CoupledField {
 
   // --- SurfElem List ---
   SurfElemList::SurfElemList( Grid* grid )
-    : EntityList( grid ) {
+    : ElemList( grid ) {
 
     type_ = SURF_ELEM_LIST;
     region_ = NO_REGION_ID;
-  }
-
-  std::string SurfElemList::GetName() const {
-    return name_;
   }
 
   void SurfElemList::SetNamedElems( const std::string& name ) {
@@ -143,7 +139,8 @@ namespace CoupledField {
                    << " in element list '" << name 
                    << "' is no surface element!" );
       }
-      list_.Push_back( actElem );
+      surfElemList_.Push_back( actElem );
+      list_.Push_back( actElem->elemNum);
     }
     size_ = list_.GetSize();
     name_ = name;
@@ -156,19 +153,16 @@ namespace CoupledField {
     StdVector<SurfElem*> elems;
     grid_->GetSurfElems( elems, region );
     for ( UInt i = 0; i<elems.GetSize(); i++ ) {
-      list_.Push_back( elems[i]);
+      surfElemList_.Push_back( elems[i]);
+      list_.Push_back(elems[i]->elemNum);
     }
     size_ = list_.GetSize();
     name_ = grid_->GetRegion().ToString( region );
   }
 
-    //! Get RegionId
-  RegionIdType SurfElemList::GetRegion() const {
-    return region_;
-  }
 
   const SurfElem* SurfElemList::GetSurfElem( UInt nr ) const{
-    return list_[nr];
+    return surfElemList_[nr];
   }
 
   EntityIterator SurfElemList::GetIterator() const {
@@ -374,7 +368,7 @@ namespace CoupledField {
     switch(type_)
     {
     case EntityList::SURF_ELEM_LIST:
-      return surfElemList_->list_[ pos_ ];
+      return surfElemList_->surfElemList_[ pos_ ];
       break;
     case EntityList::NC_ELEM_LIST:
       return ncElemList_->GetNcSurfElem( pos_ );

@@ -135,7 +135,6 @@
     <xsd:complexContent>
       <xsd:extension base="DT_BCBasic">
         <xsd:attribute name="name" type="xsd:token" use="required"/>
-        <xsd:attribute name="entityType" type="DT_EntityType" use="optional" default="nodeList"/>
 	<xsd:attribute name="quantity" default="magScalarPotential" type="DT_MagneticScalarUnknownType"/>
       </xsd:extension>
     </xsd:complexContent>
@@ -167,7 +166,6 @@
     <xsd:complexContent>
       <xsd:extension base="DT_BCBasic">
         <xsd:attribute name="name" type="xsd:token" use="required"/>
-        <xsd:attribute name="entityType" type="DT_EntityType" use="optional" default="nodeList"/>
 	<xsd:attribute name="quantity" default="magScalarPotential" type="DT_MagneticScalarUnknownType"/>
         <xsd:attribute name="masterDof" type="xsd:token" use="optional" default=""/>
         <xsd:attribute name="slaveDof" type="xsd:token" use="optional" default=""/>

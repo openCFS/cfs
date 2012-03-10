@@ -11,7 +11,7 @@ IntScheme::IntScheme() {
   order_ = 2;
 
   // Fill integration points up to order 30
-  FillIntegPoints(10);
+  FillIntegPoints(20);
 }
 
 

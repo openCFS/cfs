@@ -118,13 +118,13 @@ namespace CoupledField {
     std::string GetName() const;
 
     //! Set name of named element list
-    void SetNamedElems( const std::string& name);
+    virtual void SetNamedElems( const std::string& name);
 
     //! Set RegionId
-    void SetRegion( RegionIdType  region );
+    virtual void SetRegion( RegionIdType  region );
 
     //! Set single element
-    void SetElement( const Elem* elem );
+    virtual void SetElement( const Elem* elem );
 
     //! Get RegionId
     RegionIdType GetRegion() const;
@@ -135,7 +135,7 @@ namespace CoupledField {
     //! Get iterator
     EntityIterator GetIterator() const;
 
-  private:
+  protected:
     StdVector<UInt> list_;
 
     RegionIdType region_;
@@ -145,7 +145,7 @@ namespace CoupledField {
   
   
   //! List for surface elements
-  class SurfElemList : public EntityList {
+  class SurfElemList : public ElemList {
  
   public:
     
@@ -155,18 +155,12 @@ namespace CoupledField {
     SurfElemList( Grid * grid);
     virtual ~SurfElemList() {}
 
-    //! Returns the name of the region contained in the entitylist
-    std::string GetName() const;
-
     //! Set name of named element list
     void SetNamedElems( const std::string& name);
 
     //! Set RegionId
     void SetRegion( RegionIdType  region );
 
-    //! Get RegionId
-    RegionIdType GetRegion() const;
-    
     //! Get one surface element of the list
     const SurfElem * GetSurfElem( UInt nr ) const;
 
@@ -174,11 +168,7 @@ namespace CoupledField {
     EntityIterator GetIterator() const;
     
   private:
-    StdVector<SurfElem*> list_;
-
-    RegionIdType region_;
-
-    std::string name_;
+    StdVector<SurfElem*> surfElemList_;
   };
 
   //! List for nodes

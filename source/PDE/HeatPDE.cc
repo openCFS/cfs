@@ -131,9 +131,9 @@ void HeatPDE::ReadSpecialBCs() {
       // Create robin boundary condition
       shared_ptr<RobinBc> actBc ( new RobinBc );
 
-      EntityList::ListType listType = EntityList::listType.Parse(myType);
+      
       shared_ptr<EntityList> actList =
-        ptgrid_->GetEntityList( listType, myName );
+          ptgrid_->GetEntityList( EntityList::SURF_ELEM_LIST, myName); 
 
       actBc->entities = actList;
       actBc->result = results_[0];

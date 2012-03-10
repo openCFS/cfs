@@ -8,13 +8,15 @@
 namespace CoupledField {
 
 
+// the following macros are just used for debugging purposes to
+// switch off / on certain degrees of freedoms
 #define USE_EDGES 1
 #define USE_FACES 1
 #define USE_INNER 1
 
 // declare class specific logging stream
-  DECLARE_LOG(feH1Hi)
-  DEFINE_LOG(feH1Hi, "feH1Hi")
+DECLARE_LOG(feH1Hi)
+DEFINE_LOG(feH1Hi, "feH1Hi")
 
 
   // ========================================================================
@@ -852,8 +854,7 @@ namespace CoupledField {
 
       T_VEC horiz, vert;
       // we have to determine 2 things
-      // 1) Determine, if first edge in sorted array is horizontal or
-      //    vertical one (how to do this ....?)
+      // 1) Determine, if first edge in sorted array is horizontal or vertical one
       if( shape_.nodeCoords[ind[0]][2] == shape_.nodeCoords[ind[1]][2] ) {
         // edge [0] -> [1] is the horizontal one with order p[0] by definition
         // edge [0] -> [3] is the vertical one 
@@ -905,13 +906,7 @@ namespace CoupledField {
           }
         }
       }
-      
-      // take edge shape function of triangular element and extend
-      // it via mu-lifting function in 3rd direction
-      //T_SCAL lamb
-      
-      
-     
+
       
     }
 //    std::cerr << "ret is " << ret.ToString() << std::endl;

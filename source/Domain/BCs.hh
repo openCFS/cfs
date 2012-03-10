@@ -64,63 +64,6 @@ namespace CoupledField {
   };
 
   // -------------------------------------------------------------------------
-
-  // Inhomogeneous Dirichlet boundary condition read from file
-  struct InhomDirichFileBc : public HomDirichletBc {
-
-    //! Constructor
-    InhomDirichFileBc();
-
-    //! name of file id in which data is stored
-    std::string inputId;
-
-    /** Ouptut our content to info.xml */
-    virtual void ToInfo(PtrParamNode in) const;
-
-    virtual std::string ToString();
-  };
-
-  // -------------------------------------------------------------------------
-
-  // Inhomgogeneous Neumann boundary condition
-  struct InhomNeumannBc : public HomDirichletBc {
-
-    //! Constructor
-    InhomNeumannBc();
-
-    //! Value of entities
-    std::string value;
-
-    //! Phase value of entities
-    std::string phase;
-
-  };
-
-
-  // -------------------------------------------------------------------------
-
-  // Load definition
-  struct LoadBc : public HomDirichletBc {
-
-    //! Constructor
-    LoadBc();
-
-    //! Value of entities
-    std::string value;
-
-    //! Phase value of entities
-    std::string phase;
-
-    /** For multiple excitation optimization */
-    std::string weight;
-
-    /** Ouptut our content to info.xml */
-    virtual void ToInfo(PtrParamNode in) const;
-
-    virtual std::string ToString();
-  };
-
-
   // -------------------------------------------------------------------------
   struct Constraint {
 
@@ -154,9 +97,6 @@ namespace CoupledField {
   // Public typedefs
   typedef StdVector<shared_ptr<HomDirichletBc> > HdBcList;
   typedef StdVector<shared_ptr<InhomDirichletBc> > IdBcList;
-  typedef StdVector<shared_ptr<InhomDirichFileBc> > IdFileBcList;
-  typedef StdVector<shared_ptr<InhomNeumannBc> > InBcList;
-  typedef StdVector<shared_ptr<LoadBc> > LoadList;
   typedef StdVector<shared_ptr<Constraint> > ConstraintList;
 
 

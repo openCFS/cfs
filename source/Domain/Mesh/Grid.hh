@@ -578,7 +578,10 @@ namespace CoupledField
     //@{ \name Miscellaneous
     
     //! Get type of list denoted by string
-    EntityList::DefineType GetEntityType( const std::string& name );
+    EntityList::DefineType GetEntityType( const std::string& name ) const;
+    
+    //! Get dimension of region / named elemenets / nodes with given name
+    UInt GetEntityDim( const std::string& name ) const;
 
     /** Convenience method for developers, dumps summary information to stdout */
     void Dump();
@@ -742,6 +745,12 @@ namespace CoupledField
 
     //! Map from name to type of entity
     std::map<std::string, EntityList::DefineType> nameTypeMap_;
+    
+    //! Store dimension for each region / element / node group (name).
+    
+    //! This map stores for each region / element / node group the dimension.
+    //! Node groups have dimension 0 by definition.
+    std::map<std::string, UInt> entityDim_;
 
     // =======================================================================
     // Interation Scheme

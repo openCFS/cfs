@@ -27,9 +27,9 @@ namespace CoupledField {
                            const Elem* elem, UInt comp = 1 );
 
     //! Return global curl of shape functions
-    void GetCurlShFnc( Matrix<Double>& curl, 
-                       const LocPointMapped& lp,
-                       const Elem* elem, UInt comp = 1 );
+    virtual void GetCurlShFnc( Matrix<Double>& curl, 
+                               const LocPointMapped& lp,
+                               const Elem* elem, UInt comp = 1 );
 
     //! Set the isotropic order of the Element. This methods gets overwritten 
     //! by the child classes to calculate the number of functions according to
