@@ -67,6 +67,8 @@ DECLARE_LOG(fefunc)
            << "' was already added" );
     } else {
       entities_.Push_back(list);
+      regions_.insert( list->GetRegion() );
+      
     }
   }
   
@@ -74,6 +76,10 @@ DECLARE_LOG(fefunc)
     return entities_;
   }
   
+  const std::set<RegionIdType>& BaseFeFunction::GetRegions() const {
+    return regions_;
+  }
+   
   void BaseFeFunction::SetFctId(FeFctIdType id ) {
     fctId_ = id;
   }

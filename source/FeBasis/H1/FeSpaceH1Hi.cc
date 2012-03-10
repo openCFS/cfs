@@ -174,7 +174,7 @@ namespace CoupledField{
     // Set correct integration order
     RegionIdType eRegion;// =  ent.GetElem()->regionId;
     if( ent.GetType() == EntityList::SURF_ELEM_LIST) {
-      eRegion = ent.GetSurfElem()->ptVolElems[0]->regionId;
+      eRegion = GetVolElem(ent.GetSurfElem()) ->regionId;
     } else {
       eRegion = ent.GetElem()->regionId;
     }
@@ -196,7 +196,7 @@ namespace CoupledField{
     // discussion already ....
     RegionIdType eRegion = NO_REGION_ID;
     if( ent.GetType() == EntityList::SURF_ELEM_LIST) {
-      eRegion = ent.GetSurfElem()->ptVolElems[0]->regionId;
+      eRegion = GetVolElem(ent.GetSurfElem()) ->regionId;
     } else {
       eRegion = ent.GetElem()->regionId;
     }
@@ -312,8 +312,6 @@ namespace CoupledField{
     refElems_[region][Elem::ET_HEXA20]  = new FeH1HiHex();
     refElems_[region][Elem::ET_WEDGE15] = new FeH1HiWedge();
 
-    std::cerr << "SetRegionElements: order is " << order << std::endl;
-    
     //now set the order
     if(order.GetNumCols() != 1 || order.GetNumRows() != 1){
     EXCEPTION("FeSpaceHCurlHi::SetRegionElements : Only Iso-Order is supported right now");

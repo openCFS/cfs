@@ -184,7 +184,7 @@ namespace CoupledField {
         case EntityList::SURF_ELEM_LIST:
           for(entIt.Begin(); !entIt.IsEnd(); entIt++){
             StdVector<UInt> eNodes;
-            GetNodesOfElement(eNodes,entIt.GetElem(),entType);
+            GetNodesOfElement(eNodes,  entIt.GetSurfElem() ,entType);
             for (UInt aNode = 0; aNode < eNodes.GetSize(); aNode += 1 ){
               nodes.Push_back(eNodes[aNode]);
             }
@@ -295,6 +295,11 @@ namespace CoupledField {
   }
 
   void FeSpace::CreateVirtualNodes(){
+    
+    
+    // store all regions the space is defined on
+    regions_ = feFunction_->GetRegions();
+    
     //the function checks for the special case if we got only one element
     //in the region map and if this mapping is of type GRID
     //if so, we call a specialized but efficient function
@@ -425,8 +430,8 @@ namespace CoupledField {
 
         // Fetch current finite element. This is performed by the specialized 
         // version, so this element "knows" already about its order, unknowns etc.
-        const Elem* actEl = entIt.GetElem();
-        BaseFE* ptFe = GetFe( entIt ); 
+        BaseFE* ptFe = GetFe( entIt );
+        const Elem* actEl = entIt.GetElem();  
 
         //===========================================================
         //Assign the BaseFE::VERTEX node numbers
@@ -654,6 +659,29 @@ namespace CoupledField {
     SetDefaultIntegration(infoNode_->Get("regionList")->Get("default"));
     SetDefaultElements(infoNode_->Get("regionList")->Get("default"));
     polyToIntegMap[pReg].insert(iReg);
+  }
+  
+  const Elem* FeSpace::GetVolElem( const SurfElem* surfElem ) const {
+
+    Elem * ret = NULL;
+    boost::array<Elem*,2>::const_iterator it = surfElem->ptVolElems.begin();
+    for( ; it != surfElem->ptVolElems.end(); it++ ) {
+      // check, if element is set at all
+      if( *it) {
+        if(regions_.find( (*it)->regionId) != regions_.end()) {
+          ret = *it; 
+          break;
+        }
+      }
+    } // loop over volume element neighbors
+
+    // check, if element could be found
+    if( !ret) {
+      EXCEPTION("Could not find a suitable volume neighbor for surface element #"
+          << surfElem->elemNum << ". " );
+    }
+
+    return ret;
   }
 
   void FeSpace::SetRegionIntegration(RegionIdType region, IntScheme::IntegMethod method ,Matrix<Integer> order,

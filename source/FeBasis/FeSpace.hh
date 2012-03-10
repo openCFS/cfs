@@ -200,6 +200,19 @@ public:
   virtual void GetExteriorSurfaceElems(RegionIdType region, shared_ptr<EntityList> & surfElems){
     EXCEPTION("This FeSpace does not feature the dynamic generation of surface elements");
   }
+
+  //! Return for a given surface element a valid volume element
+
+  //! This method takes a surface element as argument and returns a valid
+  //! volume neighbor. A valid neighbor is considered to be a volume element
+  //! which belongs to one of the regions the space / function is defined on.
+  //! If more than one elements match, simply the first one is returned (which
+  //! should be okay for continuous spaces), if none matches, an exception is
+  //! thrown.
+  //! \param[in] surfElem Pointer to surface element, which neighbor is seeked
+  //! \return Pointer to neighboring volume element
+  virtual const Elem* GetVolElem( const SurfElem* surfElem ) const;
+
   //@}
   
   // ========================================================================
@@ -345,6 +358,9 @@ protected:
   //! Storing the FeFunctions associated with this space
   shared_ptr<BaseFeFunction> feFunction_;
   
+  //! Set with all regions the space is defined on
+  std::set<RegionIdType> regions_;
+  
   //! Pointer to solution strategy object
   shared_ptr<SolStrategy> solStrat_;
 
@@ -487,6 +503,13 @@ protected:
   //! This makes it easier later on to assign the correct elements
   virtual void ReadPolyList();
 
+  // =========================================================
+  // MISCELLANEOUS
+  // =========================================================
+  
+  
+  
+  
 };
 
 

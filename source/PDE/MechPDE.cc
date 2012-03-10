@@ -429,7 +429,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
     } else if( subType_ == "planeStrain" ) {
       integ = new BDBInt<StrainOperator2D<FeH1> >(curCoef, 1.0);
     } else if( subType_ == "planeStress" ) {
-      EXCEPTION("Not implemented");
+      integ = new BDBInt<StrainOperator2D<FeH1> >(curCoef, 1.0);
     } else if( subType_ == "3d") {
       integ = new BDBInt<StrainOperator3D<FeH1> >(curCoef, 1.0);
     } else {

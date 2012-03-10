@@ -335,7 +335,7 @@ namespace CoupledField{
     RegionIdType eRegion;// =  ent.GetElem()->regionId;
     if( ent.GetType() == EntityList::SURF_ELEM_LIST||
         ent.GetType() == EntityList::NC_ELEM_LIST) {
-      eRegion = ent.GetSurfElem()->ptVolElems[0]->regionId;
+      eRegion =GetVolElem(ent.GetSurfElem()) ->regionId;
     } else {
       eRegion = ent.GetElem()->regionId;
     }
@@ -361,7 +361,7 @@ namespace CoupledField{
     RegionIdType eRegion;// =  ent.GetElem()->regionId;
     if( ent.GetType() == EntityList::SURF_ELEM_LIST||
              ent.GetType() == EntityList::NC_ELEM_LIST) {
-        eRegion = ent.GetSurfElem()->ptVolElems[0]->regionId;
+        eRegion = GetVolElem(ent.GetSurfElem()) ->regionId;
       } else {
         eRegion = ent.GetElem()->regionId;
       }
@@ -478,6 +478,8 @@ namespace CoupledField{
     std::map<UInt, StdVector<Integer> > facenodes;
     std::map<UInt, StdVector<Integer> > interiornodes;
 
+    // store all regions the space is defined on
+    regions_ = feFunction_->GetRegions();
     
     fctEntList = feFunction_->GetEntityList();
     StdVector<UInt> permutations; 

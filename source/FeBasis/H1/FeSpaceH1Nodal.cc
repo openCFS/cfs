@@ -65,7 +65,7 @@ namespace CoupledField{
     RegionIdType eRegion;// =  ent.GetElem()->regionId;
     if( ent.GetType() == EntityList::SURF_ELEM_LIST||
         ent.GetType() == EntityList::NC_ELEM_LIST) {
-      eRegion = ent.GetSurfElem()->ptVolElems[0]->regionId;
+      eRegion = GetVolElem(ent.GetSurfElem()) ->regionId;
     } else {
       eRegion = ent.GetElem()->regionId;
     }
@@ -96,7 +96,7 @@ namespace CoupledField{
     RegionIdType eRegion = NO_REGION_ID;
     if( ent.GetType() == EntityList::SURF_ELEM_LIST ||
         ent.GetType() == EntityList::NC_ELEM_LIST) {
-      eRegion = ent.GetSurfElem()->ptVolElems[0]->regionId;
+      eRegion = GetVolElem(ent.GetSurfElem()) ->regionId;
     } else {
       eRegion = ent.GetElem()->regionId;
     }

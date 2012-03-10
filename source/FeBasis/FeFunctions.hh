@@ -80,6 +80,9 @@ public:
   
   //! Get EntityList
   StdVector< shared_ptr<EntityList> > GetEntityList();
+  
+  //! Get regions the FeFunction is defined on
+  const std::set<RegionIdType>& GetRegions() const;
 
   //! Set the function Id, as assigned by OLAS
   void SetFctId(const FeFctIdType id );
@@ -178,6 +181,9 @@ protected:
   
   //! Entitylists (elements, nodes, etc.) the function is defined on
   StdVector<shared_ptr<EntityList> > entities_;
+  
+  //! Set with all regions the function is defined on
+  std::set<RegionIdType> regions_;
   
   //! Homogeneous Dirichlet BCs
   HdBcList hdBcs_;

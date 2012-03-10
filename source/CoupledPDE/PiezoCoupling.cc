@@ -794,15 +794,16 @@ namespace CoupledField {
     BiLinearForm * integ = NULL;
     if( subType_ == "axi" ) {
       integ = new ADBInt<StrainOperatorAxi<FeH1>,
-                         GradientOperator<FeH1,2> >(curCoef, 1.0);
+          GradientOperator<FeH1,2> >(curCoef, 1.0);
     } else if( subType_ == "planeStrain" ) {
       integ = new ADBInt<StrainOperator2D<FeH1>,
-                         GradientOperator<FeH1,2> >(curCoef, 1.0);
+          GradientOperator<FeH1,2> >(curCoef, 1.0);
     } else if( subType_ == "planeStress" ) {
-      EXCEPTION("Not implemented");
+      integ = new ADBInt<StrainOperator2D<FeH1>,
+          GradientOperator<FeH1,2> >(curCoef, 1.0);
     } else if( subType_ == "3d") {
       integ = new ADBInt<StrainOperator3D<FeH1>,
-                         GradientOperator<FeH1,3> >(curCoef, 1.0);
+          GradientOperator<FeH1,3> >(curCoef, 1.0);
     } else {
       EXCEPTION( "Subtype '" << subType_ << "' unknown for mechanic physic" );
     }
