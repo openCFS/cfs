@@ -49,12 +49,16 @@ namespace CoupledField {
       UInt node = ent.GetNode();
       eqns.Resize(dofsPerUnknown);
       eqns.Init();
-      if(gridToVirtualNodes_.find(node) != gridToVirtualNodes_.end()){
+      if (gridToVirtualNodes_.find(node) != gridToVirtualNodes_.end()){
         for(UInt iDof = 0; iDof < dofsPerUnknown; iDof++){
           eqns[iDof] = nodeMap_[gridToVirtualNodes_[node][0]][iDof];
         }
-      }else
-        eqns.Init(-1);
+      } else {
+        // In case a node was not found, we reset the eqnarray to
+        // size 0
+        eqns.Resize(0);
+      }
+        
 
     } else if( ent.GetType() == EntityList::ELEM_LIST ||
         ent.GetType() == EntityList::SURF_ELEM_LIST||
@@ -90,11 +94,13 @@ namespace CoupledField {
       eqns.Init();
       //without the if clause we would have a segfault in case of higher order approximaton
       //for quadratic meshes
-      if(gridToVirtualNodes_.find(node)!= gridToVirtualNodes_.end())
+      if (gridToVirtualNodes_.find(node)!= gridToVirtualNodes_.end()) {
     	  eqns[0] = nodeMap_[gridToVirtualNodes_[node][0]][dof];
-      else
-        eqns[0] = -1;
-
+      } else {
+        // In case a node was not found, we reset the eqnarray to
+        // size 0
+        eqns.Resize(0);
+      }
     } else if( ent.GetType() == EntityList::ELEM_LIST ||
                ent.GetType() == EntityList::SURF_ELEM_LIST||
              ent.GetType() == EntityList::NC_ELEM_LIST){
@@ -123,8 +129,13 @@ namespace CoupledField {
         UInt node = ent.GetNode();
         eqns.Resize(1);
         eqns.Init();
-        eqns[0] = nodeMap_[gridToVirtualNodes_[node][0]][dof];
-
+        if(gridToVirtualNodes_.find(node)!= gridToVirtualNodes_.end()) {
+          eqns[0] = nodeMap_[gridToVirtualNodes_[node][0]][dof];
+        } else {
+          // In case a node was not found, we reset the eqnarray to
+          // size 0
+          eqns.Resize(0);
+        }
       } else if( ent.GetType() == EntityList::ELEM_LIST ||
                  ent.GetType() == EntityList::SURF_ELEM_LIST||
                  ent.GetType() == EntityList::NC_ELEM_LIST){
@@ -170,7 +181,7 @@ namespace CoupledField {
   void FeSpaceH1::GetElemEqns(StdVector<Integer>& eqns,const Elem* elem, UInt dof){
   }
 
-  //! Map Nodal BC Equation NUmbers
+  //! Map Nodal BC Equation Numbers
   void FeSpaceH1::MapNodalBCs(){
     StdVector<UInt> actNodes;
 
@@ -203,48 +214,130 @@ namespace CoupledField {
       }
     }
 
-    //Get Grip of IdBC List for the fefunction
-    const IdBcList idbcs = feFunction_->GetInHomDirichletBCs();
-    IdBcList::const_iterator actIBC;
+    
+    // ===================================================================
+    // DISTINCTION REGARDING HIERARCHICAL SPACE
+    // ===================================================================
+    
+    if( !isHierarchical_ ) {
 
-    for(actIBC = idbcs.Begin(); actIBC != idbcs.End(); actIBC++) {
-      // Get all (Virtual) Nodes of the list
-      GetNodesOfEntities(actNodes,(*actIBC)->entities);
-      for(UInt iNode = 0 ; iNode < actNodes.GetSize();iNode++){
-         //TODO find the source
-         //make it zero based
-         if( nodeMap_.BcKeys.find(actNodes[iNode]) == nodeMap_.BcKeys.end()){
-           nodeMap_.BcKeys[actNodes[iNode]] = StdVector<BcType>(dofsPerUnknown);
-           nodeMap_.BcKeys[actNodes[iNode]].Init(NOBC);
-         }
-         // check first, if this node was already processed
-         if( nodeMap_.BcKeys[actNodes[iNode]][(*actIBC)->dof] != IDBC) {
-           nodeMap_.BcKeys[actNodes[iNode]][(*actIBC)->dof] = IDBC;
-           bcCounter_[IDBC]++;
-         }
-      }
-    }
+      //Get Grip of IdBC List for the fefunction
+      const IdBcList idbcs = feFunction_->GetInHomDirichletBCs();
+      IdBcList::const_iterator actIBC;
 
-    //Get Grip of constraint List for the fefunction
-    const ConstraintList constraints = feFunction_->GetConstraints();
-    ConstraintList::const_iterator actConstr;
-    for(actConstr = constraints.Begin(); actConstr != constraints.End(); actConstr++) {
-      StdVector<UInt> slaveNodes;
-      GetNodesOfEntities(slaveNodes,(*actConstr)->slaveEntities);
-      UInt masterDof = (*actConstr)->masterDof;
-      UInt slaveDof = (*actConstr)->slaveDof;
-      UInt mNode = slaveNodes[0];
-
-      for ( UInt iNode = 1; iNode < slaveNodes.GetSize(); iNode++ ) {
-        if( nodeMap_.BcKeys.find(slaveNodes[iNode]) == nodeMap_.BcKeys.end()){
-          nodeMap_.BcKeys[slaveNodes[iNode]] = StdVector<BcType>(dofsPerUnknown);
-          nodeMap_.BcKeys[slaveNodes[iNode]].Init(NOBC);
+      for(actIBC = idbcs.Begin(); actIBC != idbcs.End(); actIBC++) {
+        // Get all (Virtual) Nodes of the list
+        GetNodesOfEntities(actNodes,(*actIBC)->entities);
+        for(UInt iNode = 0 ; iNode < actNodes.GetSize();iNode++){
+          //TODO find the source
+          //make it zero based
+          if( nodeMap_.BcKeys.find(actNodes[iNode]) == nodeMap_.BcKeys.end()){
+            nodeMap_.BcKeys[actNodes[iNode]] = StdVector<BcType>(dofsPerUnknown);
+            nodeMap_.BcKeys[actNodes[iNode]].Init(NOBC);
+          }
+          // check first, if this node was already processed
+          if( nodeMap_.BcKeys[actNodes[iNode]][(*actIBC)->dof] != IDBC) {
+            nodeMap_.BcKeys[actNodes[iNode]][(*actIBC)->dof] = IDBC;
+            bcCounter_[IDBC]++;
+          }
         }
-        nodeMap_.BcKeys[slaveNodes[iNode]][slaveDof] = CS;
-        nodeMap_.constraintNodes[std::pair<Integer,Integer>(slaveNodes[iNode],slaveDof)] = 
-            std::pair<Integer,Integer>(mNode,masterDof);
-        bcCounter_[CS]++;
       }
+
+      //Get Grip of constraint List for the fefunction
+      const ConstraintList constraints = feFunction_->GetConstraints();
+      ConstraintList::const_iterator actConstr;
+      for(actConstr = constraints.Begin(); actConstr != constraints.End(); actConstr++) {
+        StdVector<UInt> slaveNodes;
+        GetNodesOfEntities(slaveNodes,(*actConstr)->slaveEntities);
+        UInt masterDof = (*actConstr)->masterDof;
+        UInt slaveDof = (*actConstr)->slaveDof;
+        UInt mNode = slaveNodes[0];
+
+        for ( UInt iNode = 1; iNode < slaveNodes.GetSize(); iNode++ ) {
+          if( nodeMap_.BcKeys.find(slaveNodes[iNode]) == nodeMap_.BcKeys.end()){
+            nodeMap_.BcKeys[slaveNodes[iNode]] = StdVector<BcType>(dofsPerUnknown);
+            nodeMap_.BcKeys[slaveNodes[iNode]].Init(NOBC);
+          }
+          nodeMap_.BcKeys[slaveNodes[iNode]][slaveDof] = CS;
+          nodeMap_.constraintNodes[std::pair<Integer,Integer>(slaveNodes[iNode],slaveDof)] = 
+              std::pair<Integer,Integer>(mNode,masterDof);
+          bcCounter_[CS]++;
+        }
+      }
+    } // is !hierarchical 
+    
+    if( isHierarchical_) {
+      
+      /* 
+       * In a hierarchical space, only the equations corresponding to a vertex
+       * get fixed. The edge / face / inner equations are set to zero.
+       */
+      const IdBcList idbcs = feFunction_->GetInHomDirichletBCs();
+      IdBcList::const_iterator actIBC;
+      StdVector<UInt> vertexNodes;
+      for(actIBC = idbcs.Begin(); actIBC != idbcs.End(); actIBC++) {
+        // Get all (Virtual) Nodes of the list
+        GetNodesOfEntities(actNodes,(*actIBC)->entities);
+        GetNodesOfEntities(vertexNodes,(*actIBC)->entities, BaseFE::VERTEX);
+        for(UInt iNode = 0 ; iNode < actNodes.GetSize();iNode++){
+
+          UInt actNode = actNodes[iNode];
+          //TODO find the source
+          //make it zero based
+          if( nodeMap_.BcKeys.find(actNode) == nodeMap_.BcKeys.end()){
+            nodeMap_.BcKeys[actNode] = StdVector<BcType>(dofsPerUnknown);
+            nodeMap_.BcKeys[actNode].Init(NOBC);
+          }
+
+          // check, if this node belongs to a vertex
+          // yes set "true" IDBC
+          //  no: set HDBC
+          if( vertexNodes.Find( actNode ) != -1 ) {
+
+            // check first, if this node was already processed
+            if( nodeMap_.BcKeys[actNode][(*actIBC)->dof] != IDBC) {
+              nodeMap_.BcKeys[actNode][(*actIBC)->dof] = IDBC;
+              bcCounter_[IDBC]++;
+            }
+          } else {
+            nodeMap_.BcKeys[actNode][(*actIBC)->dof] = HDBC ;
+          }
+        } // loop over virtual nodes
+      } // loop over idbcs
+
+      //Get Grip of constraint List for the fefunction
+      const ConstraintList constraints = feFunction_->GetConstraints();
+      ConstraintList::const_iterator actConstr;
+      for(actConstr = constraints.Begin(); actConstr != constraints.End(); actConstr++) {
+        StdVector<UInt> slaveNodes;
+        StdVector<UInt> slaveVertexNodes;
+        GetNodesOfEntities(slaveNodes,(*actConstr)->slaveEntities);
+        GetNodesOfEntities(slaveVertexNodes,(*actConstr)->slaveEntities, 
+                           BaseFE::VERTEX);
+        UInt masterDof = (*actConstr)->masterDof;
+        UInt slaveDof = (*actConstr)->slaveDof;
+        UInt mNode = slaveNodes[0];
+
+        for ( UInt iNode = 1; iNode < slaveNodes.GetSize(); iNode++ ) {
+          UInt slaveNode = slaveNodes[iNode];
+          if( nodeMap_.BcKeys.find(slaveNode) == nodeMap_.BcKeys.end()){
+            nodeMap_.BcKeys[slaveNode] = StdVector<BcType>(dofsPerUnknown);
+            nodeMap_.BcKeys[slaveNode].Init(NOBC);
+          }
+
+          // check, if this node belongs to a vertex
+          // yes set "true" CS
+          //  no: set HDBC
+          if( slaveVertexNodes.Find( slaveNode ) != -1 ) {
+            nodeMap_.BcKeys[slaveNode][slaveDof] = CS;
+            nodeMap_.constraintNodes[std::pair<Integer,Integer>(slaveNode,slaveDof)] = 
+                std::pair<Integer,Integer>(mNode,masterDof);
+            bcCounter_[CS]++; 
+          } else {
+            nodeMap_.BcKeys[slaveNode][slaveDof] = HDBC;
+          }
+        } // loop over nodes
+      } // loop over constraints
     }
 
     //DEBUG output reaenable along with logging
@@ -680,10 +773,10 @@ namespace CoupledField {
           std::cout << "\t|" << std::setw(8) << "-";
         } else {
           // sbm-block  
-          std::cout << "\t|" << std::setw(1) << blockNums[eqn-1]; 
+          std::cout << "\t|" << std::setw(1) << blockNums[std::abs(eqn)-1]; 
 
           // index
-          std::cout << "\t|" << std::setw(8) << indices[eqn-1];
+          std::cout << "\t|" << std::setw(8) << indices[std::abs(eqn)-1];
         }
 
         // bc type

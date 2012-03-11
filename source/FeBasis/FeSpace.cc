@@ -208,8 +208,8 @@ namespace CoupledField {
   }
 
   void FeSpace::GetNodesOfElement( StdVector<UInt>& nodes,
-                          const Elem* ptElem,
-                          BaseFE::EntityType entType){
+                                   const Elem* ptElem,
+                                   BaseFE::EntityType entType){
     UInt elemNum = ptElem->elemNum;
     if(virtualNodes_.find(elemNum) ==virtualNodes_.end()){
 
@@ -433,158 +433,169 @@ namespace CoupledField {
         BaseFE* ptFe = GetFe( entIt );
         const Elem* actEl = entIt.GetElem();  
 
+
+
+
+        StdVector<UInt> permutations; // initially size 0
+        UInt elemNum = actEl->elemNum;
+        
         //===========================================================
         //Assign the BaseFE::VERTEX node numbers
         //===========================================================
         LOG_DBG2(feSpace) << "mapping vertex nodes";
-        StdVector<UInt> permutations; // initially size 0
         UInt numVertexNodes = 0;
-
         UInt numVert = Elem::shapes[actEl->type].numVertices;
-        UInt volElemNum = 0;
-        //in case of surface elements we obtain the number of the first associated volume element
-        if((actListType == EntityList::SURF_ELEM_LIST) ||
-            (actListType == EntityList::NC_ELEM_LIST)){
-          const SurfElem* sE = entIt.GetSurfElem();
-          volElemNum = sE->ptVolElems[0]->elemNum;
-        }else{
-          volElemNum = actEl->elemNum;
-        }
         StdVector<UInt> elemNodes = actEl->connect;
-        for ( UInt iVert= 0; iVert< numVert; iVert++ ) {
-          UInt vertexNum = elemNodes[iVert];
-          ptFe->GetNodalPermutation(permutations,actEl,BaseFE::VERTEX,iVert);
-          numVertexNodes = permutations.GetSize();
 
-          if(isContinuous_){
-            //in the continuous case we need to check if we already have an entry for
-            //this vertex
-            if(vertexNodes[vertexNum].size()>0){
-              //so we need to redefine the volElemNumber
-              volElemNum = vertexNodes[vertexNum].begin()->first;
+        EntityTypeNodes & vtn =  virtualNodes_[actEl->elemNum][BaseFE::VERTEX];
+
+        // check, if the vertices of this element were already numbered
+        if( vtn.vNodes.GetSize() == 0 ) {
+          for ( UInt iVert= 0; iVert< numVert; iVert++ ) {
+            UInt vertexNum = elemNodes[iVert];
+            ptFe->GetNodalPermutation(permutations,actEl,BaseFE::VERTEX,iVert);
+            numVertexNodes = permutations.GetSize();
+
+            if(isContinuous_){
+              //in the continuous case we need to check if we already have an entry for
+              //this vertex
+              if(vertexNodes[vertexNum].size()>0){
+                //so we need to redefine the volElemNumber
+                elemNum = vertexNodes[vertexNum].begin()->first;
+              }
             }
-          }
 
-          // Check if the vertex is already numbered.
-          if( vertexNodes[vertexNum][volElemNum].GetSize() == 0 ) {
+            // Check if the vertex is already numbered.
+            if( vertexNodes[vertexNum][elemNum].GetSize() == 0 ) {
 
-            vertexNodes[vertexNum][volElemNum].Resize(numVertexNodes);
-            vertexNodes[vertexNum][volElemNum].Init();
+              vertexNodes[vertexNum][elemNum].Resize(numVertexNodes);
+              vertexNodes[vertexNum][elemNum].Init();
               for( UInt vertNode = 0; vertNode < numVertexNodes; ++vertNode ) {
-                vertexNodes[vertexNum][volElemNum][vertNode] = ++offset;
+                vertexNodes[vertexNum][elemNum][vertNode] = ++offset;
                 LOG_DBG3(feSpace) << "adding " << offset << " to node_";
                 nodes_.Push_back(offset);
                 nodesType_[offset] = BaseFE::VERTEX;
+              }
             }
-          }
-          EntityTypeNodes & etn =  virtualNodes_[actEl->elemNum][BaseFE::VERTEX];
-          for( UInt i = 0; i < numVertexNodes; ++i ) {
-            etn.vNodes.Push_back(vertexNodes[vertexNum][volElemNum][permutations[i] ]);
-            LOG_DBG3(feSpace) << "adding " << vertexNodes[vertexNum][volElemNum][permutations[i] ]
-                              << " as virtual vertex node to element " << actEl->elemNum;
-          }
-          etn.offset.Push_back( permutations.GetSize() );
-          
-          if(isContinuous_){
-            if(gridToVirtualNodes_.find(vertexNum) == gridToVirtualNodes_.end()){
+
+
+            for( UInt i = 0; i < numVertexNodes; ++i ) {
+              vtn.vNodes.Push_back(vertexNodes[vertexNum][elemNum][permutations[i] ]);
+              LOG_DBG3(feSpace) << "adding " << vertexNodes[vertexNum][elemNum][permutations[i] ]
+                                                                                   << " as virtual vertex node to element " << actEl->elemNum;
+            }
+            vtn.offset.Push_back( permutations.GetSize() );
+
+            if(isContinuous_){
+              if(gridToVirtualNodes_.find(vertexNum) == gridToVirtualNodes_.end()){
+                LOG_DBG3(feSpace) << "gridToVirtualNodes[" << vertexNum << "] = " << offset;
+                gridToVirtualNodes_[vertexNum].Push_back(offset);
+              }
+            }else{
               LOG_DBG3(feSpace) << "gridToVirtualNodes[" << vertexNum << "] = " << offset;
               gridToVirtualNodes_[vertexNum].Push_back(offset);
             }
-          }else{
-            LOG_DBG3(feSpace) << "gridToVirtualNodes[" << vertexNum << "] = " << offset;
-            gridToVirtualNodes_[vertexNum].Push_back(offset);
-          }
-        } // loop over vertices
-
-        //if(isoOrder_ > 1){
+          } // loop over vertices
+        }
+        
         feFunction_->GetGrid()->MapEdges();
         feFunction_->GetGrid()->MapFaces();
-        //}
+        
         //===========================================================
         //Assign the Edge node numbers
         //===========================================================
         UInt numEdgeNodes = 0;
         ElemShape actShape = Elem::shapes[actEl->type];
-        for ( UInt iEdge=0; iEdge < actShape.numEdges; iEdge++) {
-          UInt edgeNum = std::abs(actEl->edges[iEdge]);
-          //get the permutation Vector
-          ptFe->GetNodalPermutation(permutations,actEl,BaseFE::EDGE,iEdge);
-          numEdgeNodes = permutations.GetSize();
-          if(isContinuous_){
-           //in the continuous case we need to check if we already have an entry for
-           //this vertex
-           if(edgenodes[edgeNum].size()>0){
-             //so we need to redefine the volElemNumber
-             volElemNum = edgenodes[edgeNum].begin()->first;
+        EntityTypeNodes & etn =  virtualNodes_[actEl->elemNum][BaseFE::EDGE];
+        
+        // check if edges of this element were already numbered
+        if( etn.vNodes.GetSize() == 0 ) {
+          for ( UInt iEdge=0; iEdge < actShape.numEdges; iEdge++) {
+            UInt edgeNum = std::abs(actEl->edges[iEdge]);
+            //get the permutation Vector
+            ptFe->GetNodalPermutation(permutations,actEl,BaseFE::EDGE,iEdge);
+            numEdgeNodes = permutations.GetSize();
+            if(isContinuous_){
+              //in the continuous case we need to check if we already have an entry for
+              //this vertex
+              if(edgenodes[edgeNum].size()>0){
+                //so we need to redefine the volElemNumber
+                elemNum = edgenodes[edgeNum].begin()->first;
+              }
             }
-          }
-          // Check if the edge is already numbered.
-          // Additionally, if we have the case of discontinuous approximation,
-          // we number the nodes separately for every element anyway.
-          if(edgenodes[edgeNum][volElemNum].GetSize() == 0 ) {
-            //here we assume spectral element approximation and we have
-            //order-1 nodes on the edge
-            edgenodes[edgeNum][volElemNum].Resize(numEdgeNodes);
-            edgenodes[edgeNum][volElemNum].Init();
-            for ( UInt edgeNode = 0;edgeNode < numEdgeNodes ;edgeNode++ ) {
-              edgenodes[edgeNum][volElemNum][edgeNode] = ++offset;
-              nodes_.Push_back(offset);
-              nodesType_[offset] = BaseFE::EDGE;
+            // Check if the edge is already numbered.
+            // Additionally, if we have the case of discontinuous approximation,
+            // we number the nodes separately for every element anyway.
+            if(edgenodes[edgeNum][elemNum].GetSize() == 0 ) {
+              //here we assume spectral element approximation and we have
+              //order-1 nodes on the edge
+              edgenodes[edgeNum][elemNum].Resize(numEdgeNodes);
+              edgenodes[edgeNum][elemNum].Init();
+              for ( UInt edgeNode = 0;edgeNode < numEdgeNodes ;edgeNode++ ) {
+                edgenodes[edgeNum][elemNum][edgeNode] = ++offset;
+                nodes_.Push_back(offset);
+                nodesType_[offset] = BaseFE::EDGE;
+              }
             }
-          }
 
-          //fill the virtual Nodes in the correct ordering
-          EntityTypeNodes & etn =  virtualNodes_[actEl->elemNum][BaseFE::EDGE];
-          for ( UInt i = 0; i < numEdgeNodes ; i++ ) {
-            etn.vNodes.Push_back(edgenodes[edgeNum][volElemNum][ permutations[i] ]);
-          }
-          etn.offset.Push_back( permutations.GetSize() );
+            //fill the virtual Nodes in the correct ordering
+
+            for ( UInt i = 0; i < numEdgeNodes ; i++ ) {
+              etn.vNodes.Push_back(edgenodes[edgeNum][elemNum][ permutations[i] ]);
+            }
+            etn.offset.Push_back( permutations.GetSize() );
+          } // loop over edges
         }
 
         //===========================================================
         //Assign the Face node numbers
         //===========================================================
         UInt numFaceNodes = 0;
-        for ( UInt iFace=0; iFace < actShape.numFaces; iFace++) {
-          UInt faceNum = actEl->faces[iFace];
-          //get the permutation Vector
-          ptFe->GetNodalPermutation(permutations,actEl,BaseFE::FACE,iFace);
-          numFaceNodes = permutations.GetSize();
-          if(isContinuous_){
-           //in the continuous case we need to check if we already have an entry for
-           //this vertex
-           if(facenodes[faceNum].size()>0){
-             //so we need to redefine the volElemNumber
-             volElemNum = facenodes[faceNum].begin()->first;
+        EntityTypeNodes & ftn =  virtualNodes_[actEl->elemNum][BaseFE::FACE];
+        
+        // check if faces of this element ware already numbered
+        if( ftn.vNodes.GetSize() == 0 ) {
+          for ( UInt iFace=0; iFace < actShape.numFaces; iFace++) {
+            UInt faceNum = actEl->faces[iFace];
+            //get the permutation Vector
+            ptFe->GetNodalPermutation(permutations,actEl,BaseFE::FACE,iFace);
+            numFaceNodes = permutations.GetSize();
+            if(isContinuous_){
+              //in the continuous case we need to check if we already have an entry for
+              //this vertex
+              if(facenodes[faceNum].size()>0){
+                //so we need to redefine the volElemNumber
+                elemNum = facenodes[faceNum].begin()->first;
+              }
             }
-          }
 
-          // Check if the face is already numbered.
-          // Additionally, if we have the case of discontinuous approximation,
-          // we number the nodes separately for every element separately anyway.
-          if(facenodes[faceNum][volElemNum].GetSize() == 0 ){
-            facenodes[faceNum][volElemNum].Resize(numFaceNodes);
-            for ( UInt faceNode = 0;faceNode < numFaceNodes ;faceNode++ ) {
-              facenodes[faceNum][volElemNum][faceNode] = ++offset;
-              nodes_.Push_back(offset);
-              nodesType_[offset] = BaseFE::FACE;
+            // Check if the face is already numbered.
+            // Additionally, if we have the case of discontinuous approximation,
+            // we number the nodes separately for every element separately anyway.
+            if(facenodes[faceNum][elemNum].GetSize() == 0 ){
+              facenodes[faceNum][elemNum].Resize(numFaceNodes);
+              for ( UInt faceNode = 0;faceNode < numFaceNodes ;faceNode++ ) {
+                facenodes[faceNum][elemNum][faceNode] = ++offset;
+                nodes_.Push_back(offset);
+                nodesType_[offset] = BaseFE::FACE;
+              }
             }
+            //fill the virtual Nodes in the correct ordering
+
+            for ( UInt i = 0; i < numFaceNodes ; i++ ) {
+              ftn.vNodes.Push_back(facenodes[faceNum][elemNum][ permutations[i] ]);
+            }
+            ftn.offset.Push_back( permutations.GetSize() );
           }
-          //fill the virtual Nodes in the correct ordering
-          EntityTypeNodes & etn =  virtualNodes_[actEl->elemNum][BaseFE::FACE];
-          for ( UInt i = 0; i < numFaceNodes ; i++ ) {
-            etn.vNodes.Push_back(facenodes[faceNum][volElemNum][ permutations[i] ]);
-          }
-          etn.offset.Push_back( permutations.GetSize() );
         }
-
         //===========================================================
         //Assign the Interior node numbers
         //===========================================================
         //get the permutation Vector just for the number of nodes
         ptFe->GetNodalPermutation(permutations,actEl,BaseFE::INTERIOR,0);
         UInt numIntNodes = permutations.GetSize();
-
+        EntityTypeNodes & itn =  virtualNodes_[actEl->elemNum][BaseFE::INTERIOR];
+        
         //Check if the current element got already numbered
         if(interiornodes[actEl->elemNum].GetSize() == 0){
           interiornodes[actEl->elemNum].Resize(numIntNodes);
@@ -595,11 +606,11 @@ namespace CoupledField {
           }
         }
         //fill the virtual Nodes in the correct ordering
-        EntityTypeNodes & etn =  virtualNodes_[actEl->elemNum][BaseFE::INTERIOR];
+        
         for ( UInt i = 0; i  < numIntNodes ; i++ ) {
-          etn.vNodes.Push_back(interiornodes[actEl->elemNum][ permutations[i] ]);
+          itn.vNodes.Push_back(interiornodes[actEl->elemNum][ permutations[i] ]);
         }
-        etn.offset.Push_back( permutations.GetSize());
+        itn.offset.Push_back( permutations.GetSize());
       } // loop elements 
     } // loop entity lists
 

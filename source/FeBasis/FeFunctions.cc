@@ -122,6 +122,8 @@ DECLARE_LOG(fefunc)
 
   void BaseFeFunction::AddConstraint( shared_ptr<Constraint> bc ){
     constraints_.Push_back(bc);
+    entities_.Push_back(bc->masterEntities);
+    entities_.Push_back(bc->slaveEntities);
   }
   
   // ========================================================================
@@ -174,8 +176,12 @@ DECLARE_LOG(fefunc)
 
       // get equation numbers
       feSpace_->GetEqns( eqnNums, it );
-      //TODO: Reconsider this check
-      if(eqnNums[0] == -1){
+
+      // In case no equation was found, this indicates that the nodes, for which
+      // the results should be calculated could not be found. Thus we have
+      // to use interpolation to interpolate the continuous result to the
+      // nodal locations in the entity list
+      if( eqnNums.GetSize() == 0){
         //ok so the space does not know about this particular entity
         //we try to determine its value via interpolation
 #ifdef USE_INTERPOLATION
@@ -210,7 +216,7 @@ DECLARE_LOG(fefunc)
 
         }
 #else
-        EXCEPTION("Interpolation not enabled but needed to extract this result. enable it plz!");
+        WARN("Interpolation not enabled but needed to extract this result. enable it plz!");
 #endif
       }else{
         for ( UInt iDof = 0; iDof < eqnNums.GetSize(); iDof++ ){
