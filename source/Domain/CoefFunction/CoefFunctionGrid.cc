@@ -221,9 +221,10 @@ UInt CoefFunctionGridBase<DATA_TYPE>::GetStepNum(){
 template<class DATA_TYPE>
 void CoefFunctionGridBase<DATA_TYPE>::ReadXmlNode(PtrParamNode configNode){
 
-  inputId_ = configNode->Get("input")->Get("inputId")->As<std::string>();
-  gridId_ = configNode->Get("input")->Get("gridId")->As<std::string>();
-  std::string solString = configNode->Get("input")->Get("quantity")->As<std::string>();
+  std::string solString;
+  configNode->Get("input")->GetValue("inputId", inputId_);
+  configNode->Get("input")->GetValue("gridId", gridId_);
+  configNode->Get("input")->GetValue("quantity", solString);
   solType_ = SolutionTypeEnum.Parse(solString );
 
   PtrParamNode regionListNode = configNode->Get("regionList", ParamNode::PASS );
@@ -256,8 +257,9 @@ void CoefFunctionGridBase<DATA_TYPE>::ReadXmlNode(PtrParamNode configNode){
   if(!resultInfo_.get())
 	  EXCEPTION("Could not find result " << solString);
 
-  domain->GetResultHandler()->GetStepValues(inputId_,aSeqStep,resultInfo_,stepValueMap_,false);
-  feFunct_ = domain->GetResultHandler()->GetFeFunction<DATA_TYPE>(inputId_,aSeqStep,stepValueMap_.begin()->first,solType_,srcRegions_);
+  ResultHandler* resHandler = domain->GetResultHandler();
+  resHandler->GetStepValues(inputId_,aSeqStep,resultInfo_,stepValueMap_,false);
+  feFunct_ = resHandler->GetFeFunction<DATA_TYPE>(inputId_,aSeqStep,stepValueMap_.begin()->first,solType_,srcRegions_);
 }
 
 

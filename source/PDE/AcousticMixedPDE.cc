@@ -143,8 +143,10 @@ namespace CoupledField{
 
       // --- Set the FE ansatz for the current region ---
       PtrParamNode curRegNode = myParam_->Get("regionList")->GetByVal("region","name",regionName.c_str());
-      std::string polyId = curRegNode->Get("polyId")->As<std::string>();
-      std::string integId = curRegNode->Get("integId")->As<std::string>();
+      std::string polyId;
+      curRegNode->GetValue("polyId", polyId);
+      std::string integId;
+      curRegNode->GetValue("integId", integId);
       spaceP->SetRegionApproximation(actRegion, polyId,integId);
       spaceV->SetRegionApproximation(actRegion, polyId,integId);
 
@@ -254,7 +256,8 @@ namespace CoupledField{
       //======================================================================
       // CHECK FOR FLOW
       //=====================================================================
-      std::string flowId = curRegNode->Get("flowId")->As<std::string>();
+      std::string flowId;
+      curRegNode->GetValue("flowId", flowId);
       if(flowId != ""){
         //Add the region information
         PtrParamNode flowNode = myParam_->Get("flowList")->GetByVal("flow","name",flowId.c_str());
@@ -301,7 +304,10 @@ namespace CoupledField{
         //============================================================================================
         if(penalized_){
           //two forms one with opposing elements the other just like mass...
-          Double formFactor = density * curRegNode->Get("penalizationFactor")->As<Double>();
+          Double formFactor = 0.0;
+          curRegNode->GetValue("penalizationFactor", formFactor);
+          formFactor *= density;
+
           BiLinearForm *convectiveVOpp = NULL;
           BiLinearForm *convectiveV = NULL;
           BiLinearForm *exteriorVV = NULL;
