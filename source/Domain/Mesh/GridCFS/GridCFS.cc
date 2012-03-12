@@ -383,10 +383,11 @@ namespace CoupledField {
 
         // create new Face object
         Face actFace;
-        actFace.nodes.Resize( faceIndices.GetSize() );
+        UInt numFaceIndices = faceIndices.GetSize();
+        actFace.nodes.Resize( numFaceIndices );
 
         // insert node numbers into current face definition
-        for( UInt iNode = 0; iNode < faceIndices.GetSize(); iNode++ ) {
+        for( UInt iNode = 0; iNode < numFaceIndices; iNode++ ) {
           actFace.nodes[iNode] = actElem.connect[faceIndices[iNode]-1];
         }
 

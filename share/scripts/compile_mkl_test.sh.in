@@ -67,6 +67,7 @@ for MKLROOT in $MKL_ROOT_DIRS; do
     # searching for libguide.a and libiomp5.a.
     BASEDIR=$(echo $MKLROOT | sed 's|mkl.*|lib|')
     BASEDIRS=$BASEDIR
+    BASEDIRS="$BASEDIRS $(echo $MKLROOT | sed 's|mkl.*|compiler/lib|')"
     BASEDIRS="$BASEDIRS $BASEDIR/$COMPILER_SUBDIR "
     BASEDIRS="$BASEDIRS $(echo $MKLROOT | sed 's|Frameworks/mkl.*|lib|') "
     BASEDIRS="$BASEDIRS $(echo $MKLROOT | sed 's|Frameworks/mkl.*|lib|')"

@@ -101,7 +101,9 @@ namespace CoupledField{
       eRegion = ALL_REGIONS;
     }
 
-    if(refElems_[eRegion].find(ent.GetElem()->type) == refElems_[eRegion].end()){
+    Elem::FEType eType = ent.GetElem()->type;
+
+    if(refElems_[eRegion].find(eType) == refElems_[eRegion].end()){
       EXCEPTION("fespaceh1::getfe( const entityiterator): requested fetype which is noch supported by space");
     }
     BaseFE * myFe = refElems_[eRegion][ent.GetElem()->type];
@@ -234,6 +236,7 @@ namespace CoupledField{
     if(mType == GRID){
       refElems_[region][Elem::ET_LINE2]  = new FeH1LagrangeLine1();
       refElems_[region][Elem::ET_TRIA3]  = new FeH1LagrangeTria1();
+      refElems_[region][Elem::ET_TRIA6]  = new FeH1LagrangeTria2();
       refElems_[region][Elem::ET_QUAD4]  = new FeH1LagrangeQuad1();
       refElems_[region][Elem::ET_HEXA8]  = new FeH1LagrangeHex1();
       refElems_[region][Elem::ET_WEDGE6] = new FeH1LagrangeWedge1();
@@ -241,6 +244,7 @@ namespace CoupledField{
       refElems_[region][Elem::ET_TET4]  = new FeH1LagrangeTet1();
       refElems_[region][Elem::ET_LINE3]  = new FeH1LagrangeLine2();
       refElems_[region][Elem::ET_QUAD8]  = new FeH1LagrangeQuad2();
+      refElems_[region][Elem::ET_QUAD9]  = new FeH1LagrangeQuad9();
       refElems_[region][Elem::ET_HEXA20] = new FeH1LagrangeHex2();
       refElems_[region][Elem::ET_HEXA27] = new FeH1LagrangeHex27();
       refElems_[region][Elem::ET_WEDGE15] = new FeH1LagrangeWedge2();
@@ -258,11 +262,13 @@ namespace CoupledField{
       refElems_[region][Elem::ET_HEXA8]  = new FeH1LagrangeHexVar();
       refElems_[region][Elem::ET_LINE3]  = new FeH1LagrangeLineVar();
       refElems_[region][Elem::ET_QUAD8]  = new FeH1LagrangeQuadVar();
+      refElems_[region][Elem::ET_QUAD9]  = new FeH1LagrangeQuadVar();
       refElems_[region][Elem::ET_HEXA20] = new FeH1LagrangeHexVar();
+      refElems_[region][Elem::ET_HEXA27] = new FeH1LagrangeHexVar();
 
       //now set the order
       if(order.GetNumCols() != 1 || order.GetNumRows() != 1){
-        Exception("FeSpaceH1Nodal::SetRegionMapping : The order matrix may have only one entry for lagrange elements");
+        Exception("FeSpaceH1Nodal::SetRegionMapping : The order matrix may have only one entry for Lagrange elements");
       }
       std::map<Elem::FEType, FeH1* >::iterator i = refElems_[region].begin();
       for( ; i != refElems_[region].end(); ++i ) {
@@ -271,11 +277,44 @@ namespace CoupledField{
       }
       mapType_ = POLYNOMIAL;
       infoNode->Get("order")->SetValue(order[0][0]);
+
+      switch(order[0][0]) 
+      {
+      case 1:
+        refElems_[region][Elem::ET_TRIA3]  = new FeH1LagrangeTria1();
+        refElems_[region][Elem::ET_TRIA6]  = new FeH1LagrangeTria1();
+
+        refElems_[region][Elem::ET_TET4]  = new FeH1LagrangeTet1();
+        refElems_[region][Elem::ET_TET10]  = new FeH1LagrangeTet1();
+
+        refElems_[region][Elem::ET_WEDGE6] = new FeH1LagrangeWedge1();
+        refElems_[region][Elem::ET_WEDGE15] = new FeH1LagrangeWedge1();
+        refElems_[region][Elem::ET_WEDGE18] = new FeH1LagrangeWedge1();
+
+        refElems_[region][Elem::ET_PYRA5]  = new FeH1LagrangePyra1();
+        refElems_[region][Elem::ET_PYRA13] = new FeH1LagrangePyra1();
+        refElems_[region][Elem::ET_PYRA14] = new FeH1LagrangePyra1();
+        break;
+      case 2:
+        refElems_[region][Elem::ET_TRIA6]  = new FeH1LagrangeTria2();
+
+        refElems_[region][Elem::ET_TET10]  = new FeH1LagrangeTet2();
+
+        // ET_WEDGE15 elements are not compatible with tensor product hexas.
+        // refElems_[region][Elem::ET_WEDGE15] = new FeH1LagrangeWedge2();
+        refElems_[region][Elem::ET_WEDGE18] = new FeH1LagrangeWedge18();
+
+        // ET_PYRA13 elements are not compatible with tensor product hexas.
+        // refElems_[region][Elem::ET_PYRA13] = new FeH1LagrangePyra2();
+        refElems_[region][Elem::ET_PYRA14] = new FeH1LagrangePyra14();
+        break;
+      default:
+        break;
+      }
+
     }
 
     // print information to info.xml
-
-
   }
 
   void FeSpaceH1Nodal::CheckConsistency(){

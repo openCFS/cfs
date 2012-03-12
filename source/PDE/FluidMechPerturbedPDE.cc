@@ -213,7 +213,7 @@ namespace CoupledField {
       if( dim_ == 2 ) {
         stiffIntLaplace = new BBInt< LaplOperator<FeH1,2> >(coeffKvv, viscosity / density);
       } else {
-        stiffIntLaplace = new BBInt< DivOperator<FeH1,3> >(coeffKvv, viscosity / density);
+        stiffIntLaplace = new BBInt< LaplOperator<FeH1,3> >(coeffKvv, viscosity / density);
       }
       stiffIntLaplace->SetName("PerturbedStiffIntViscous");
       BiLinFormContext *stiffContLaplace = new BiLinFormContext(stiffIntLaplace, STIFFNESS );
