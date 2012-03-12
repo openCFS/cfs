@@ -24,7 +24,8 @@ class FeSpaceH1Hi : public FeSpaceH1 {
         
     //! \copydoc FeSpace::GetFe(EntityIterator,shared_ptr<IntScheme>&)
     virtual BaseFE* GetFe( const EntityIterator ent ,
-                           shared_ptr<IntScheme>& intScheme );
+                           IntScheme::IntegMethod& method,
+                           IntegOrder & order  );
 
     //! \copydoc FeSpace::GetFe(EntityIterator)
     virtual BaseFE* GetFe( const EntityIterator ent );

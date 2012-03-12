@@ -82,11 +82,13 @@ namespace CoupledField {
             
       void SetFeSpace( shared_ptr<FeSpace> feSpace ) {
         this->ptFeSpace1_ = feSpace;
+        this->intScheme_ = ptFeSpace1_->GetIntScheme();
       }
 
       virtual void SetFeSpace( shared_ptr<FeSpace> feSpace1, shared_ptr<FeSpace> feSpace2) {
         this->ptFeSpace1_ = feSpace1;
         this->ptFeSpace2_ = feSpace2;
+        this->intScheme_ = ptFeSpace1_->GetIntScheme();
       }
       //! Set Coefficient Function of B operator
       virtual void SetBCoefFunctionOpB(shared_ptr<CoefFunction> coef){

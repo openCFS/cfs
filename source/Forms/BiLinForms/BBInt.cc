@@ -48,8 +48,9 @@ namespace CoupledField{
      MAT_DATA_TYPE fac = 0.0;
 
      // Obtain FE element from feSpace and integration scheme
-     shared_ptr<IntScheme> intScheme;
-     BaseFE* ptFe = this->ptFeSpace1_->GetFe( ent1, intScheme );
+     IntegOrder order;
+      IntScheme::IntegMethod method;
+      BaseFE* ptFe = ptFeSpace1_->GetFe( ent1, method, order );
      UInt nrFncs = ptFe->GetNumFncs();
 
      // Get shape map from grid
@@ -59,7 +60,8 @@ namespace CoupledField{
      // Get integration points
      StdVector<LocPoint> intPoints;
      StdVector<Double> weights;
-     intScheme->GetIntPoints( Elem::GetShapeType(ptElem->type), intPoints, weights );
+     intScheme_->GetIntPoints( Elem::GetShapeType(ptElem->type), method, order,
+                               intPoints, weights );
 
      elemMat.Resize( nrFncs * B_OP::DIM_DOF );
      elemMat.Init();
@@ -176,10 +178,12 @@ namespace CoupledField{
      MAT_DATA_TYPE fac = 0.0;
 
      // Obtain FE element from feSpace and integration scheme
-     shared_ptr<IntScheme> intScheme;
+     IntegOrder order;
+     IntScheme::IntegMethod method;
      //TODO: we have to find another solution for this. The only reason for this class is within
      //these two lines. This functionaliy has to be moved to a pre-Integration function
-     FeHCurlHi* ptFe = static_cast<FeHCurlHi*>(this->ptFeSpace1_->GetFe( ent1, intScheme ));
+     FeHCurlHi* ptFe = 
+         static_cast<FeHCurlHi*>(this->ptFeSpace1_->GetFe( ent1, method, order ));
      // Special: Only use lower order functions
      ptFe->SetOnlyLowestOrder(true);
 
@@ -192,7 +196,8 @@ namespace CoupledField{
      // Get integration points
      StdVector<LocPoint> intPoints;
      StdVector<Double> weights;
-     intScheme->GetIntPoints( Elem::GetShapeType(ptElem->type), intPoints, weights );
+     this->intScheme_->GetIntPoints( Elem::GetShapeType(ptElem->type), method, order,
+                                     intPoints, weights );
 
      elemMat.Resize( nrFncs * B_OP::DIM_DOF );
      elemMat.Init();
@@ -235,9 +240,10 @@ namespace CoupledField{
      MAT_DATA_TYPE fac = 0.0;
 
      // Obtain FE element from feSpace and integration scheme
-     shared_ptr<IntScheme> intScheme;
-     BaseFE* ptFe1 = this->ptFeSpace1_->GetFe( ent1, intScheme );
-     BaseFE* ptFe2 = this->ptFeSpace1_->GetFe( ent2, intScheme );
+     IntegOrder order1, order2;
+     IntScheme::IntegMethod method1, method2;
+     BaseFE* ptFe1 = this->ptFeSpace1_->GetFe( ent1, method1, order1 );
+     BaseFE* ptFe2 = this->ptFeSpace1_->GetFe( ent2, method2, order2 );
      UInt nrFncs1 = ptFe1->GetNumFncs();
 
 
@@ -250,7 +256,9 @@ namespace CoupledField{
      // Get integration points
      StdVector<LocPoint> intPoints;
      StdVector<Double> weights;
-     intScheme->GetIntPoints( Elem::GetShapeType(ptElem1->type), intPoints, weights );
+     this->intScheme_->GetIntPoints( Elem::GetShapeType(ptElem1->type), 
+                                     method1, order1, method2, order2,
+                                     intPoints, weights );
 
      elemMat.Resize( nrFncs1 * B_OP::DIM_DOF );
      elemMat.Init();

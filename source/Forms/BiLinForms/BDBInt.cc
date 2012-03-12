@@ -63,8 +63,9 @@ namespace CoupledField{
     MAT_DATA_TYPE fac = 0.0;
 
     // Obtain FE element from feSpace and integration scheme
-    shared_ptr<IntScheme> intScheme;
-    BaseFE* ptFe = ptFeSpace1_->GetFe( ent1, intScheme );
+    IntegOrder order;
+    IntScheme::IntegMethod method;
+    BaseFE* ptFe = ptFeSpace1_->GetFe( ent1, method, order );
 
     UInt nrFncs = ptFe->GetNumFncs();
 
@@ -75,7 +76,8 @@ namespace CoupledField{
     // Get integration points
     StdVector<LocPoint> intPoints;
     StdVector<Double> weights;
-    intScheme->GetIntPoints( Elem::GetShapeType(ptElem->type), intPoints, weights );
+    intScheme_->GetIntPoints( Elem::GetShapeType(ptElem->type), method, order, 
+                              intPoints, weights );
 
     elemMat.Resize( nrFncs * B_OP::DIM_DOF);
     elemMat.Init();

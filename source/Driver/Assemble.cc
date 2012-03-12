@@ -444,7 +444,7 @@ namespace CoupledField
           }
           LOG_DBG(assemble) << "AssembleMatrices for bilinform " << actContext.GetIntegrator()->GetName();
                     LOG_DBG2(assemble) << "bilinform=" << actContext.ToString();
-
+                    
           // Update flag
           matrixUpdated_ = true;
 

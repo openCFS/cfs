@@ -143,7 +143,6 @@ namespace CoupledField{
     return 0;
   }
 
-  //! Map equations i.e. intialize object
   void FeSpaceH1Hi::Finalize(){
     /* Basic idea:
      * 1. Create the VirtualNode Array
@@ -167,8 +166,9 @@ namespace CoupledField{
     isFinalized_ = true;
   }
   
-  BaseFE* FeSpaceH1Hi::GetFe( const EntityIterator ent, 
-                              shared_ptr<IntScheme>& intScheme ) {
+  BaseFE* FeSpaceH1Hi::GetFe( const EntityIterator ent ,
+                              IntScheme::IntegMethod& method,
+                              IntegOrder & order  ) {
     BaseFE * ret = GetFe(ent);
 
     // Set correct integration order
@@ -179,12 +179,7 @@ namespace CoupledField{
       eRegion = ent.GetElem()->regionId;
     }
 
-    intScheme = intScheme_;
-    IntScheme::IntegMethod  method;
-    Matrix<Integer>  order;
     this->GetIntegration(ret, eRegion, method, order);
-    // Note: The order is currently more or less hard-coded for isotropic order
-    intScheme->SetOrder( method, order[0][0] );
 
     return ret;
   }
@@ -346,8 +341,7 @@ namespace CoupledField{
   //! sets the default integration scheme and order
   void FeSpaceH1Hi::SetDefaultIntegration( PtrParamNode infoNode ){
     regionIntegration_[ALL_REGIONS].method = IntScheme::GAUSS;
-    regionIntegration_[ALL_REGIONS].order = Matrix<Integer>(1,1);
-    regionIntegration_[ALL_REGIONS].order[0][0] = 0;
+    regionIntegration_[ALL_REGIONS].order.SetIsoOrder( 0 );
     regionIntegration_[ALL_REGIONS].mode = RELATIVE;
   }
   

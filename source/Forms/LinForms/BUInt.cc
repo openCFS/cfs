@@ -69,14 +69,15 @@ BUIntegrator(VEC_DATA_TYPE factor,
      const Elem* ptElem = ent.GetElem();
      Matrix<VEC_DATA_TYPE> bMat;
      Vector<VEC_DATA_TYPE> cVec;
-     shared_ptr<IntScheme> intScheme;
      StdVector<LocPoint> intPoints;
      StdVector<Double> weights;
      UInt nrFncs = 0;
      VEC_DATA_TYPE fac;
 
      // Obtain FE element from feSpace and integration scheme
-     BaseFE * ptFe = ptFeSpace_->GetFe( ent, intScheme );
+     IntegOrder order;
+     IntScheme::IntegMethod method;
+     BaseFE* ptFe = ptFeSpace_->GetFe( ent, method, order );
 
      nrFncs = ptFe->GetNumFncs();
 
@@ -85,7 +86,8 @@ BUIntegrator(VEC_DATA_TYPE factor,
          domain->GetGrid()->GetElemShapeMap( ptElem, this->coordUpdate_ );
 
      // Get integration points
-     intScheme->GetIntPoints( Elem::GetShapeType(ptElem->type), intPoints, weights );
+     intScheme_->GetIntPoints( Elem::GetShapeType(ptElem->type), method, order, 
+                               intPoints, weights );
 
      elemVec.Resize( nrFncs * Bdim_);
      elemVec.Init();

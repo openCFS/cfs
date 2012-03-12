@@ -5,10 +5,128 @@
 namespace CoupledField {
 
 
-IntScheme::IntScheme() {
 
-  integMethod_ = GAUSS;
-  order_ = 2;
+   IntegOrder::IntegOrder() {
+     order_.fill(0);
+     isIsotropic_ = true;
+     isSet_ = false;
+   }
+   
+   IntegOrder::IntegOrder( UInt order) {
+     order_.fill(order);
+     isIsotropic_ = true;
+     isSet_ = true;
+   }
+   
+   IntegOrder::IntegOrder( const StdVector<UInt>& order ) {
+     assert( order.GetSize() <= 3 );
+     for( UInt i = 0; i < order.GetSize(); ++i ) {
+       order_[i] = order[i];
+     }
+     isIsotropic_ = false;
+     isSet_ = true;
+   }
+   
+   void IntegOrder::SetIsoOrder( UInt order ) {
+     order_.fill( order );
+     isIsotropic_ = true;
+     isSet_ = true;
+   }
+
+   void IntegOrder::SetAnisoOrder( const StdVector<UInt>& order ) {
+     assert( order.GetSize() <= 3 );
+     for( UInt i = 0; i < order.GetSize(); ++i ) {
+       order_[i] = order[i];
+     }
+     isSet_ = true;
+   }
+
+   IntegOrder& IntegOrder::operator+=( const UInt add ) {
+     for( UInt i = 0; i < 3; ++i ) {
+       order_[i] += add;
+     }
+     return *this;
+   }
+   
+   IntegOrder& IntegOrder::operator+=( const IntegOrder& other ) {
+     for( UInt i = 0; i < 3; ++i ) {
+       order_[i] += other.order_[i];
+     }
+     return *this;
+   }
+   
+   bool IntegOrder::IsSet() const {
+     return isSet_;
+   }
+   
+   bool IntegOrder::IsIsotropic() const {
+     return isIsotropic_;
+   }
+   
+   UInt IntegOrder::GetIsoOrder() const {
+     if( isIsotropic_) 
+       return order_[0];
+     else
+       return 0;
+   }
+   
+   void IntegOrder::GetAnisoOrder( StdVector<UInt>& order ) const {
+     if( !isIsotropic_) {
+       order.Resize(3);
+       order[0] = order_[0];
+       order[1] = order_[1];
+       order[2] = order_[2];
+     } else {
+       order.Clear();
+     }
+     
+   }
+   
+   std::string IntegOrder::ToString() const {
+     std::string ret;
+     if( isIsotropic_ ) {
+       ret += lexical_cast<std::string>(order_[0]);
+       ret += " (isotropic)";
+     } else {
+       ret += lexical_cast<std::string>(order_[0]);
+       ret += lexical_cast<std::string>(order_[1]);
+       ret += lexical_cast<std::string>(order_[2]);
+       ret += " (anisotropic)";
+     }
+     return ret;
+   }
+   
+   IntegOrder IntegOrder::GetMax( const IntegOrder& order1, 
+                                  const IntegOrder& order2 ) {
+     IntegOrder ret;
+     if( order1.isIsotropic_ && order2.isIsotropic_ ) {
+       ret.SetIsoOrder( std::max( order1.order_[0], order2.order_[0 ]));
+     } else {
+       StdVector<UInt> max(3);
+       
+       
+
+     }
+     
+     return ret;
+   }
+   
+   bool IntegOrder::operator==( const IntegOrder& a) const {
+     bool isSame = this->isIsotropic_ == a.isIsotropic_;
+     isSame &= this->isSet_ == a.isSet_;
+     isSame &= this->order_[0] == a.order_[0];
+     isSame &= this->order_[1] == a.order_[1];
+     isSame &= this->order_[2] == a.order_[2];
+     return isSame;
+   }
+
+
+
+
+
+
+
+IntScheme::IntScheme() {
 
   // Fill integration points up to order 30
   FillIntegPoints(20);
@@ -210,45 +328,45 @@ void IntScheme::AddIntegrationSet( IntegMethod method, Elem::ShapeType shape,
 
 
 
-void IntScheme::SetOrder(std::string method, Integer order) {
-  integMethod_ = IntegMethodEnum.Parse(method); 
-  if(order == -1){
-    order_ = 2;
-  }else{
-    order_ = order;
-  }
-}
-
-void IntScheme::SetOrder(IntegMethod method, Integer order) {
-  integMethod_ = method;
-  if(order == -1){
-    order_ = 2;
-  }else{
-    order_ = order;
-  }
-}
-
-
 void IntScheme::GetIntPoints( Elem::ShapeType elemType,
+                              IntegMethod method,
+                              const IntegOrder& order,
                               StdVector<LocPoint>& intPts, 
-                              StdVector<Double>& weights ) {
-  if( intPoints_.find(integMethod_) == intPoints_.end() ) {
+                              StdVector<Double>& weights) {
+  if( intPoints_.find(method) == intPoints_.end() ) {
     EXCEPTION( "No integration points defined for  '"
-        << IntegMethodEnum.ToString(integMethod_) 
+        << IntegMethodEnum.ToString(method) 
         << "' integration!");
   }
-  if( intPoints_[integMethod_].find(order_) == intPoints_[integMethod_].end() ) {
+  if( intPoints_[method].find(order) == intPoints_[method].end() ) {
     EXCEPTION( "No integration points defined for  order '"
-        << order_ 
+        << order.ToString() 
         << "' !");
   }
-  if( intPoints_[integMethod_][order_].find(elemType) == intPoints_[integMethod_][order_].end() ) {
+  if( intPoints_[method][order].find(elemType) == 
+      intPoints_[method][order].end() ) {
     EXCEPTION( "No integration points defined for element of type '"
         << Elem::shapeType.ToString( elemType ) 
-        << "' and order " << order_ << "!");
+        << "' and order " << order.ToString() << "!");
   }
-  intPts = intPoints_[integMethod_][order_][elemType]; 
-  weights = intWeights_[integMethod_][order_][elemType];
+  intPts = intPoints_[method][order][elemType]; 
+  weights = intWeights_[method][order][elemType];
+}
+
+void IntScheme::GetIntPoints( Elem::ShapeType elemType,
+                              IntegMethod method1,
+                              const IntegOrder& order1,
+                              IntegMethod method2,
+                              const IntegOrder& order2,
+                              StdVector<LocPoint>& intPts, 
+                              StdVector<Double>& weights ) {
+
+  // Check if both methods are the same
+  if( method1 != method2) {
+    EXCEPTION( "Implementation can not yet handle mixed integration methods");
+  }
+  IntegOrder max = IntegOrder::GetMax( order1, order2 );
+  GetIntPoints( elemType, method1, max, intPts, weights );
 }
 
 
@@ -1033,11 +1151,11 @@ void IntScheme::GetAllIntegrationPoints(StdVector< LocPoint >& points,
   points.Init();
 
   //loop over all defined methods
-  std::map<IntegMethod, std::map< UInt, IntegrationPoints > >::iterator methods;
+  std::map<IntegMethod, IntPointMap >::iterator methods;
   for(methods = intPoints_.begin();methods != intPoints_.end() ; methods++){
 
     //loop over every order available
-    std::map< UInt, IntegrationPoints >::iterator orders;
+    IntPointMap::iterator orders;
     for(orders = methods->second.begin();orders != methods->second.end(); orders++){
 
       IntegrationPoints& ips = orders->second;
@@ -1056,22 +1174,22 @@ void IntScheme::GetAllIntegrationPoints(StdVector< LocPoint >& points,
 
 void IntScheme::GetIntegrationPoints(std::map<Integer, LocPoint >& points,
                                      Elem::ShapeType type,
-                                     UInt order,
-                                     IntegMethod method){
+                                     IntegMethod method,
+                                     const IntegOrder& order){
   if( intPoints_.find(method) == intPoints_.end() ) {
     EXCEPTION( "No integration points defined for  '"
-        << IntegMethodEnum.ToString(integMethod_)
+        << IntegMethodEnum.ToString(method)
         << "' integration!");
   }
   if( intPoints_[method].find(order) == intPoints_[method].end() ) {
     EXCEPTION( "No integration points defined for  order '"
-        << order_
+        << order.ToString()
         << "' !");
   }
   if( intPoints_[method][order].find(type) == intPoints_[method][order].end() ) {
     EXCEPTION( "No integration points defined for element of type '"
         << Elem::shapeType.ToString( type )
-        << "' and order " << order << "!");
+        << "' and order " << order.ToString() << "!");
   }
   points.clear();
   const StdVector<LocPoint>& curPoints = intPoints_[method][order][type];

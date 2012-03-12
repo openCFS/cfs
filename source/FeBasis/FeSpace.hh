@@ -89,7 +89,7 @@ public:
 
   struct IntegDefinition{
       IntScheme::IntegMethod method;
-      Matrix<Integer> order;
+      IntegOrder order;
       IntegOrderMode mode;
   };
 
@@ -138,8 +138,12 @@ public:
 
   //! Get the Integration method and its order for the current region
   void GetIntegration(BaseFE * fe, RegionIdType region, 
-                      IntScheme::IntegMethod & method,Matrix<Integer> & order);
+                      IntScheme::IntegMethod & method,
+                      IntegOrder & order);
 
+  //! Return integration scheme
+  shared_ptr<IntScheme> GetIntScheme() { return intScheme_;}
+  
   //! Set the approximation for the given region according to the passed poly and integ Ids
   //! ToDO if integration and polynomial nodes are merged, of course only an orderId has to be passed
   void SetRegionApproximation(RegionIdType region, std::string polyId, std::string integId);
@@ -164,7 +168,8 @@ public:
   //! of the region of the element and the order of the element (if a 
   //! relative integration order was specified). 
   virtual BaseFE* GetFe( const EntityIterator ent ,
-                         shared_ptr<IntScheme>& intScheme ) = 0;
+                         IntScheme::IntegMethod& method,
+                         IntegOrder & order ) = 0;
   
   //! Return pointer to reference element (by element number)
   virtual BaseFE* GetFe( UInt elemNum ) = 0;
@@ -414,7 +419,7 @@ protected:
   //! read in integration data and set defaults
   virtual void SetRegionIntegration(RegionIdType region, 
                                     IntScheme::IntegMethod method,
-                                    Matrix<Integer> order,
+                                    const IntegOrder& order,
                                     IntegOrderMode mode,
                                     PtrParamNode infoNode );
 
@@ -487,7 +492,7 @@ protected:
 
   //! Read the contents of the given parameter node and call the SetRegionIntegration Function
   virtual void ReadIntegNode(PtrParamNode node,  IntScheme::IntegMethod & iMeth,
-                             Matrix<Integer> &orderMat, IntegOrderMode & mode);
+                             IntegOrder& order, IntegOrderMode & mode);
 
   //! Here we pass a fePolynomial node such that the feSpace can extract the information
   //! which is important for the specific space

@@ -28,7 +28,7 @@ namespace CoupledField{
      this->name_ = "ABInt";
      
      // Note: In general the AB-Integrator is not symmetric, as is should 
-     // geto only used, if the A- and B differential operators are distinct.
+     // get only used, if the A- and B differential operators are distinct.
      this->isSymmetric_ = false;
    }
 
@@ -44,9 +44,10 @@ namespace CoupledField{
      MAT_DATA_TYPE fac = 0.0;
 
      // Obtain FE element from feSpace and integration scheme
-     shared_ptr<IntScheme> intScheme;
-     BaseFE* ptFeA = this->ptFeSpace1_->GetFe( ent1, intScheme );
-     BaseFE* ptFeB = this->ptFeSpace2_->GetFe( ent1, intScheme );
+     IntegOrder order1, order2;
+     IntScheme::IntegMethod method1, method2;
+     BaseFE* ptFeA = this->ptFeSpace1_->GetFe( ent1, method1, order1 );
+     BaseFE* ptFeB = this->ptFeSpace2_->GetFe( ent1, method2, order2 );
 
      UInt nrFncsA = ptFeA->GetNumFncs();
      UInt nrFncsB = ptFeB->GetNumFncs();
@@ -58,7 +59,9 @@ namespace CoupledField{
      // Get integration points
      StdVector<LocPoint> intPoints;
      StdVector<Double> weights;
-     intScheme->GetIntPoints( Elem::GetShapeType(ptElem->type), intPoints, weights );
+     this->intScheme_->GetIntPoints( Elem::GetShapeType(ptElem->type), 
+                                     method1, order1, method2, order2,
+                                     intPoints, weights );
 
      elemMat.Resize( nrFncsA * A_OP::DIM_DOF, 
                      nrFncsB * B_OP::DIM_DOF );
@@ -120,9 +123,11 @@ namespace CoupledField{
      MAT_DATA_TYPE fac = 0.0;
 
      // Obtain FE element from feSpace and integration scheme
-     shared_ptr<IntScheme> intScheme;
-     BaseFE* ptFeA = this->ptFeSpace1_->GetFe( ent1, intScheme );
-     BaseFE* ptFeB = this->ptFeSpace2_->GetFe( ent2, intScheme );
+     IntegOrder order1, order2;
+     IntScheme::IntegMethod method1, method2;
+     BaseFE* ptFeA = this->ptFeSpace1_->GetFe( ent1, method1, order1 );
+     BaseFE* ptFeB = this->ptFeSpace2_->GetFe( ent2, method2, order2 );
+
 
      UInt nrFncsA = ptFeA->GetNumFncs();
      UInt nrFncsB = ptFeB->GetNumFncs();
@@ -137,7 +142,9 @@ namespace CoupledField{
      // Get integration points
      StdVector<LocPoint> intPoints;
      StdVector<Double> weights;
-     intScheme->GetIntPoints( Elem::GetShapeType(ptElem1->type), intPoints, weights );
+     this->intScheme_->GetIntPoints( Elem::GetShapeType(ptElem1->type), 
+                                     method1, order1, method2, order2,
+                                     intPoints, weights );
 
      elemMat.Resize( nrFncsA * A_OP::DIM_DOF,
                      nrFncsB * B_OP::DIM_DOF );

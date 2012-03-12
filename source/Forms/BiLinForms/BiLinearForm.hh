@@ -108,6 +108,8 @@ namespace CoupledField
       //! pointer to finite element space 2
       shared_ptr<FeSpace> ptFeSpace2_;
 
+      //! point to integration scheme
+      shared_ptr<IntScheme> intScheme_;
   };
 }
 

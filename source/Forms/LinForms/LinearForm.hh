@@ -68,6 +68,7 @@ namespace CoupledField{
 
       virtual void SetFeSpace(shared_ptr<FeSpace> feSpace ){
         ptFeSpace_ = feSpace;
+        intScheme_ = ptFeSpace_->GetIntScheme();
       }
       
       //! Return if element matrix is solution dependend
@@ -87,6 +88,9 @@ namespace CoupledField{
 
       //! pointer to finite element space 1
       shared_ptr<FeSpace> ptFeSpace_;
+      
+      //! point to integration scheme
+      shared_ptr<IntScheme> intScheme_;
   };
 }
 

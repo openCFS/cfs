@@ -57,8 +57,9 @@ namespace CoupledField{
     ReadPolyList();
   }
 
-  BaseFE* FeSpaceH1Nodal::GetFe( const EntityIterator ent,
-                                 shared_ptr<IntScheme>& intScheme ) {
+  BaseFE* FeSpaceH1Nodal::GetFe( const EntityIterator ent ,
+                                 IntScheme::IntegMethod& method,
+                                 IntegOrder & order  ) {
     BaseFE * ret = GetFe(ent);
 
     // Set correct integration order
@@ -70,13 +71,7 @@ namespace CoupledField{
       eRegion = ent.GetElem()->regionId;
     }
 
-    intScheme = intScheme_;
-    IntScheme::IntegMethod  method;
-    Matrix<Integer>  order;
     this->GetIntegration(ret, eRegion, method, order);
-    // Note: The order is currently more or less hard-coded for isotropic order
-    intScheme->SetOrder( method, order[0][0] );
-
     return ret;
 
   }
@@ -170,10 +165,10 @@ namespace CoupledField{
         //now obtain iterator to the integ Regions associated with this polyRegion
         std::set<RegionIdType>::iterator integIter = polyToIntegMap[regIt->first].begin();
         while(integIter != polyToIntegMap[regIt->first].end()){
-          Matrix<Integer> curOrder;
+          IntegOrder curOrder;
           IntScheme::IntegMethod curMethod;
           GetIntegration(elemIt->second,*integIter,curMethod,curOrder);
-          integScheme->GetIntegrationPoints(integPoints,shape,curOrder[0][0],curMethod);
+          integScheme->GetIntegrationPoints(integPoints,shape,curMethod,curOrder);
           dynamic_cast<FeH1*>(elemIt->second)->SetFunctionsAtIp(integPoints);
           integIter++;
         }
@@ -292,10 +287,10 @@ namespace CoupledField{
       // get region node
       std::string regionName = domain->GetGrid()->regionData[*spIt].name;
       PtrParamNode regionNode = infoNode_->Get("regionList")->Get(regionName);
-      Matrix<Integer> order(1,1);
+      IntegOrder order;
       // UInt test = *spIt;
       //every reference element has the same order
-      order[0][0] = refElems_[*spIt][Elem::ET_LINE2]->GetIsoOrder();
+      order.SetIsoOrder( refElems_[*spIt][Elem::ET_LINE2]->GetIsoOrder() );
       SetRegionIntegration( *spIt,IntScheme::LOBATTO, order, ABSOLUTE,
                             regionNode );
       // test = 0;
@@ -329,8 +324,7 @@ namespace CoupledField{
   //! sets the default integration scheme and order
   void FeSpaceH1Nodal::SetDefaultIntegration(PtrParamNode infoNode ){
     regionIntegration_[ALL_REGIONS].method = IntScheme::GAUSS;
-    regionIntegration_[ALL_REGIONS].order = Matrix<Integer>(1,1);
-    regionIntegration_[ALL_REGIONS].order[0][0] = 0;
+    regionIntegration_[ALL_REGIONS].order.SetIsoOrder(0);
     regionIntegration_[ALL_REGIONS].mode = RELATIVE;
   }
 

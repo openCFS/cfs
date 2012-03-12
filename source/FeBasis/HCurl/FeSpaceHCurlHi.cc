@@ -204,8 +204,7 @@ namespace CoupledField{
   //! sets the default integration scheme and order
   void FeSpaceHCurlHi::SetDefaultIntegration(PtrParamNode infoNode ){
     regionIntegration_[ALL_REGIONS].method = IntScheme::GAUSS;
-    regionIntegration_[ALL_REGIONS].order = Matrix<Integer>(1,1);
-    regionIntegration_[ALL_REGIONS].order[0][0] = 0;
+    regionIntegration_[ALL_REGIONS].order.SetIsoOrder( 0 );
     regionIntegration_[ALL_REGIONS].mode = RELATIVE;
   }
 
@@ -327,8 +326,9 @@ namespace CoupledField{
      }
    }
   
-  BaseFE* FeSpaceHCurlHi::GetFe( const EntityIterator ent, 
-                                 shared_ptr<IntScheme>& intScheme ) {
+  BaseFE* FeSpaceHCurlHi::GetFe( const EntityIterator ent ,
+                                 IntScheme::IntegMethod& method,
+                                 IntegOrder & order  ) {
     BaseFE * ret = GetFe(ent);
 
     // Set correct integration order
@@ -340,18 +340,13 @@ namespace CoupledField{
       eRegion = ent.GetElem()->regionId;
     }
        
-    intScheme = intScheme_;
-    IntScheme::IntegMethod  method;
-    Matrix<Integer> order;
     this->GetIntegration(ret, eRegion, method, order);
     // Note: The order is currently more or less hard-coded for isotropic order
     
     if( onlyLowestOrder_) {
-      intScheme->SetOrder( method, 2 );  
-    } else {
-      intScheme->SetOrder( method, order[0][0] );
+      order = IntegOrder();
+      order.SetIsoOrder( 2 );
     }
-    
 
     return ret;
 

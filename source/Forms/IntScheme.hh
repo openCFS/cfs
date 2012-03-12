@@ -8,10 +8,111 @@
 #ifndef FILE_INTEGRATION_SCHEME_HH_
 #define FILE_INTEGRATION_SCHEME_HH_
 
+#include <boost/functional/hash.hpp>
+#include <boost/array.hpp>
+#include <boost/unordered_map.hpp>
+// needed for defining a hash function for integration orders
+
+
 #include "Domain/ElemMapping/Elem.hh"
 #include "Domain/ElemMapping/ElemShapeMap.hh"
 
+
+
 namespace CoupledField {
+
+
+  //! Lightweight struct for defining the integration order
+  
+  //! This struct encapsulates the integration order of an element.
+  //! The integration order can be defined either isotropic by just
+  //! an integer value or anisotropic, allowing a different order
+  //! in each element-local direction (xi, eta, zeta).
+  class IntegOrder {
+    
+  public:
+    
+    
+    // ----------------------------------------------------------------------
+    //  Initialization 
+    // ----------------------------------------------------------------------
+    //! Default constructor
+    IntegOrder();
+    
+    //! Constructor for isotropic order
+    IntegOrder( UInt order);
+    
+    //! Constructor for anisotropic order
+    IntegOrder( const StdVector<UInt>& order );
+    
+    // ----------------------------------------------------------------------
+    //  Set Methods
+    // ----------------------------------------------------------------------
+
+    //! Set isotropic order
+    void SetIsoOrder( UInt order );
+
+    //! Set anisotropic order
+    void SetAnisoOrder( const StdVector<UInt>& order );
+
+    //! Adds an isotropic offset to the integration order
+    IntegOrder& operator+=( const UInt add );
+    
+    //! Adds a second IntegOrder struct to itself
+    IntegOrder& operator+=( const IntegOrder& other );
+    
+    // ----------------------------------------------------------------------
+    //  Query Methods
+    // ----------------------------------------------------------------------
+    
+    //! Query if integration is set at all
+    bool IsSet() const;
+    
+    //! Query if integration order is isotropic
+    bool IsIsotropic() const;
+    
+    //! Return isotropic order. Returns 0 if not set
+    UInt GetIsoOrder() const;
+    
+    //! Return anisotropic order. Returns empty vector if not set.
+    void GetAnisoOrder( StdVector<UInt>& order ) const;
+    
+    //! Convert to string representation
+    std::string ToString() const;
+    
+    //! Returns the maximum of two integration order structs
+    static IntegOrder GetMax( const IntegOrder& order1, 
+                              const IntegOrder& order2 );
+    
+    // ----------------------------------------------------------------------
+    //  Hash method
+    // ----------------------------------------------------------------------
+    
+    //! Test for equality
+    bool operator== (const IntegOrder &) const;
+    
+    //! Helper struct for hash function
+    struct Hash
+    : std::unary_function<IntegOrder, std::size_t> {
+      std::size_t operator()(IntegOrder const& p) const {
+        return boost::hash_range(&(p.order_[0]), &(p.order_[2]));
+      }
+    };
+
+    
+  private:
+
+    //! Vector containing the integration order
+    boost::array<UInt,3> order_;
+    
+    //! Flag if integration order is isotropic
+    bool isIsotropic_;
+    
+    //! Flag if order is set
+    bool isSet_;
+    
+  };
+
 
   //! Class defining Numerical Integration
 
@@ -50,17 +151,19 @@ namespace CoupledField {
     //! \param order Integration order (-1 defaults to 2) 
     void SetOrder( std::string method, Integer order);
 
-    //! Set method and order
-    void SetOrder( IntegMethod method, Integer order);
-    
-    //! Obtain method
-    IntegMethod GetMethod() { return integMethod_; }
-    
-    //! obtain order
-    UInt GetOrder() { return order_;}
-
     //! Get integration points / weights
     void GetIntPoints( Elem::ShapeType elemType,
+                       IntegMethod method,
+                       const IntegOrder& order,
+                       StdVector<LocPoint>& intPts, 
+                       StdVector<Double>& weights );
+    
+    //! Get integration points / weights
+    void GetIntPoints( Elem::ShapeType elemType,
+                       IntegMethod method1,
+                       const IntegOrder& order1,
+                       IntegMethod method2,
+                       const IntegOrder& order2,
                        StdVector<LocPoint>& intPts, 
                        StdVector<Double>& weights );  
 
@@ -68,7 +171,8 @@ namespace CoupledField {
     void GetAllIntegrationPoints(StdVector< LocPoint >& points, Elem::ShapeType type); 
 
     //! Returns definied integration points in a single vector for a given order
-    void GetIntegrationPoints(std::map<Integer, LocPoint >& points, Elem::ShapeType type,UInt order,IntegMethod method);
+    void GetIntegrationPoints(std::map<Integer, LocPoint >& points, Elem::ShapeType type,
+                              IntegMethod method, const IntegOrder& order );
 
 private:
     //! Adds the Gauss Lobatto/Legendre  Points up to the given order to the Integration maps
@@ -82,6 +186,8 @@ private:
     void CalcGaussLegendrePointsWeights( UInt order, StdVector<Double>& points, 
                                          StdVector<Double>& weights );
 
+    //! Generate set of integration points / weight for gien element, method and order 
+    
     //! Add single integration point set
     
     //! This method allows to define by hand integrations points for a 
@@ -111,16 +217,17 @@ private:
    //! Define integration points for pyramid
    void DefinePyraPoints();
 
-    //! Map with integration points for each element type According to the Template Paramter Integration Scheme
-    std::map<IntegMethod, std::map< UInt, IntegrationPoints > > intPoints_;
+    //! typdef for map of integration points
+    typedef boost::unordered_map< IntegOrder, IntegrationPoints, IntegOrder::Hash > IntPointMap;
+    
+   //! typedef for map of integration weights
+    typedef boost::unordered_map< IntegOrder, IntegrationWeights, IntegOrder::Hash > IntWeightMap;
+    
+    //! Map with integration points for each element type According to the Template Parameter Integration Scheme
+    std::map<IntegMethod, IntPointMap > intPoints_;
     
     //! Map with integration weights for each element type
-    std::map<IntegMethod, std::map< UInt, IntegrationWeights > > intWeights_;
-
-    //! the current method of integration
-    IntegMethod integMethod_;
-
-    UInt order_;
+    std::map<IntegMethod, IntWeightMap > intWeights_;
 
     //! stores the overall number of integration points definied in this class
     //! for each element type, zero based

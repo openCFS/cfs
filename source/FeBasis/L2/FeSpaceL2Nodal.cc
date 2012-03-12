@@ -42,8 +42,9 @@ void FeSpaceL2Nodal::Init( shared_ptr<SolStrategy> solStrat ) {
   ReadPolyList();
 }
 
-BaseFE* FeSpaceL2Nodal::GetFe( const EntityIterator ent,
-                               shared_ptr<IntScheme>& intScheme ) {
+BaseFE* FeSpaceL2Nodal::GetFe( const EntityIterator ent ,
+                               IntScheme::IntegMethod& method,
+                               IntegOrder & order  ) {
   BaseFE * ret = GetFe(ent);
 
   // Set correct integration order
@@ -54,12 +55,9 @@ BaseFE* FeSpaceL2Nodal::GetFe( const EntityIterator ent,
     eRegion = ent.GetElem()->regionId;
   }
 
-  intScheme = intScheme_;
-  IntScheme::IntegMethod  method;
-  Matrix<Integer>  order;
   this->GetIntegration(ret, eRegion, method, order);
   // Note: The order is currently more or less hard-coded for isotropic order
-  intScheme->SetOrder( method, order[0][0] );
+  //intScheme->SetOrder( method, order[0][0] );
 
   return ret;
 
@@ -153,10 +151,10 @@ void FeSpaceL2Nodal::PreCalcShapeFncs(){
       //now obtain iterator to the integ Regions associated with this polyRegion
       std::set<RegionIdType>::iterator integIter = polyToIntegMap[regIt->first].begin();
       while(integIter != polyToIntegMap[regIt->first].end()){
-        Matrix<Integer> curOrder;
+        IntegOrder curOrder;
         IntScheme::IntegMethod curMethod;
         GetIntegration(elemIt->second,*integIter,curMethod,curOrder);
-        integScheme->GetIntegrationPoints(integPoints,shape,curOrder[0][0],curMethod);
+        integScheme->GetIntegrationPoints(integPoints,shape,curMethod,curOrder);
         dynamic_cast<FeH1*>(elemIt->second)->SetFunctionsAtIp(integPoints);
         integIter++;
       }
@@ -279,9 +277,9 @@ void FeSpaceL2Nodal::CheckConsistency(){
     // get region node
     std::string regionName = domain->GetGrid()->regionData[*spIt].name;
     PtrParamNode regionNode = infoNode_->Get("regionList")->Get(regionName);
-    Matrix<Integer> order(1,1);
+    IntegOrder order;
     //every reference element has the same order
-    order[0][0] = refElems_[*spIt][Elem::ET_LINE2]->GetIsoOrder();
+    order.SetIsoOrder( refElems_[*spIt][Elem::ET_LINE2]->GetIsoOrder() );
     SetRegionIntegration( *spIt,IntScheme::LOBATTO, order, ABSOLUTE,
                           regionNode );
     spIt++;
@@ -314,8 +312,7 @@ void FeSpaceL2Nodal::SetDefaultElements(PtrParamNode infoNode ){
 //! sets the default integration scheme and order
 void FeSpaceL2Nodal::SetDefaultIntegration(PtrParamNode infoNode ){
   regionIntegration_[ALL_REGIONS].method = IntScheme::GAUSS;
-  regionIntegration_[ALL_REGIONS].order = Matrix<Integer>(1,1);
-  regionIntegration_[ALL_REGIONS].order[0][0] = 0;
+  regionIntegration_[ALL_REGIONS].order.SetIsoOrder( 0 );
   regionIntegration_[ALL_REGIONS].mode = RELATIVE;
 }
 

@@ -247,7 +247,7 @@ namespace CoupledField {
   void FeSpace::GetIntegration( BaseFE * fe, 
                                 RegionIdType region,
                                 IntScheme::IntegMethod & method,
-                                Matrix<Integer> & order){
+                                IntegOrder & order ){
     
     
     // find integration definition for this region 
@@ -275,22 +275,14 @@ namespace CoupledField {
     if( id.mode == ABSOLUTE ) {
       // ABSOLUTE order given
       order = id.order;
-      LOG_DBG2(feSpace) << "\torder (absolute):" << order[0][0];
+      LOG_DBG2(feSpace) << "\torder (absolute):" << order.ToString();
     } else {
       // RELATIVE order given
-      if( fe->IsIsotropic() ){
-        LOG_DBG2(feSpace) << "\torder (relative): " << id.order[0][0];
-        // a) isotropic
-        UInt p = fe->GetMaxOrder();
-        order = id.order;
-        // dirty hack: we still assume, that we only take [0][0]
-        // for isotropic integration order
-        order[0][0] += 2*(p+1);
-        LOG_DBG2(feSpace) << "\torder (final): " << order[0][0];
-      } else {
-        // b) anisotropic
-        EXCEPTION("Anisotropic case not yet implemented");
-      }
+      LOG_DBG2(feSpace) << "\torder (relative): " << id.order.ToString();
+      UInt p = fe->GetMaxOrder();
+      order = id.order;
+      order += 2*(p+1);
+      LOG_DBG2(feSpace) << "\torder (final): " << order.ToString();
     }
   }
 
@@ -649,7 +641,7 @@ namespace CoupledField {
     if(integNodes_.find(integId)!=integNodes_.end()){
       //the user specified a valid polyId so we read its data and set the region integration
       PtrParamNode iNode = integNodes_[integId];
-      Matrix<Integer> order;
+      IntegOrder order;
       IntegOrderMode curMode;
       IntScheme::IntegMethod iMeth;
       ReadIntegNode(iNode,iMeth,order,curMode);
@@ -695,7 +687,8 @@ namespace CoupledField {
     return ret;
   }
 
-  void FeSpace::SetRegionIntegration(RegionIdType region, IntScheme::IntegMethod method ,Matrix<Integer> order,
+  void FeSpace::SetRegionIntegration(RegionIdType region, IntScheme::IntegMethod method ,
+                                     const IntegOrder& order,
                                      IntegOrderMode mode, PtrParamNode infoNode ){
     regionIntegration_[region].method = method;
     regionIntegration_[region].order = order;
@@ -703,7 +696,7 @@ namespace CoupledField {
   }
 
   void FeSpace::ReadIntegNode(PtrParamNode node,  IntScheme::IntegMethod & iMeth,
-                                 Matrix<Integer> &orderMat, IntegOrderMode & mode){
+                              IntegOrder& order, IntegOrderMode & mode){
     std::string methodStr = node->Get("method")->As<std::string>();
     iMeth = IntScheme::IntegMethodEnum.Parse(methodStr,IntScheme::UNDEFINED);
     if(iMeth == IntScheme::UNDEFINED){
@@ -713,10 +706,9 @@ namespace CoupledField {
     mode = IntegOrderModeEnum.Parse(modeStr,ABSOLUTE);
 
     //only isotropic order supported right now
-    UInt order = node->Get("order")->As<UInt>();
+    UInt isoOrder = node->Get("order")->As<UInt>();
     //create order Matrix, we only support isotropic interation right now
-    orderMat.Resize(1,1);
-    orderMat[0][0] = order;
+    order.SetIsoOrder( isoOrder );
   }
 
   void FeSpace::ReadPolyNode(PtrParamNode node, MappingType & mapType, Matrix<Integer> & order){
