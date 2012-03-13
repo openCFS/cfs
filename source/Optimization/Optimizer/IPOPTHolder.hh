@@ -1,8 +1,8 @@
 #ifndef IPOPTHOLDER_HH_
 #define IPOPTHOLDER_HH_
 
-#include "Optimization/BaseOptimizer.hh"
-#include "Optimization/IPOPT.hh"
+#include "Optimization/Optimizer/BaseOptimizer.hh"
+#include "Optimization/Optimizer/IPOPT.hh"
 
 namespace CoupledField
 {
