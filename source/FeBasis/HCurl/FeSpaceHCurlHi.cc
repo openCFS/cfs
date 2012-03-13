@@ -79,8 +79,9 @@ namespace CoupledField{
 
   //! Constructor
   FeSpaceHCurlHi::FeSpaceHCurlHi( PtrParamNode aNode, 
-                                  PtrParamNode infoNode)
-  : FeSpaceH1(aNode, infoNode) {
+                                  PtrParamNode infoNode,
+                                  Grid* ptGrid )
+  : FeSpaceH1(aNode, infoNode, ptGrid ) {
     mapType_ = POLYNOMIAL;
     type_ = HCURL;
     isHierarchical_ = true;
@@ -208,37 +209,6 @@ namespace CoupledField{
     regionIntegration_[ALL_REGIONS].mode = RELATIVE;
   }
 
-  UInt FeSpaceHCurlHi::GetEntityOrder( UInt elemNum, BaseFE::EntityType type, 
-                                      UInt entityNum, UInt comp ) {
-    if( type == BaseFE::NODE) {
-      return 1;
-    } else if( type == BaseFE::EDGE ) {
-      // Currently we support just isotropic order
-      //StdVector<UInt> & orders = edgeOrder_[elemNum];
-      EXCEPTION("THis needs to be implemented");
-      return 0;
-    } else if( type == BaseFE::FACE ) {
-      // IMPLEMENT ME
-    }
-    return 0;
-  }
-
-  UInt FeSpaceHCurlHi::GetMaxEntityOrder( UInt elemNum, BaseFE::EntityType type, 
-                                         UInt entityNum ) {
-    if( type == BaseFE::NODE) {
-      return 1;
-    } else if( type == BaseFE::EDGE ) {
-      // Currently we support just isotropic order
-      //StdVector<UInt> & orders = edgeOrder_[elemNum];
-      //return *(std::max_element( orders.Begin(), orders.End() ));
-      EXCEPTION("THis needs to be implemented");
-      return 0;
-    } else if( type == BaseFE::FACE ) {
-      // IMPLEMENT ME
-    }
-    return 0;
-  }
-
   //! Map equations i.e. intialize object
   void FeSpaceHCurlHi::Finalize(){
     /* Basic idea:
@@ -291,7 +261,7 @@ namespace CoupledField{
 
        EXCEPTION("FeSpace::GetNodesOfElement: Could not find requested element #"
            << ptElem->elemNum << " of region " 
-           <<      domain->GetGrid()->GetRegion().ToString(ptElem->regionId));
+           << ptGrid_->GetRegion().ToString(ptElem->regionId));
      }
      if(entType == BaseFE::ALL){
        
@@ -730,11 +700,10 @@ namespace CoupledField{
     sbmBlocks.Resize(3);
     
     // Loop over all elements
-    Grid * grid = domain->GetGrid();
     boost::unordered_map< UInt, ElemVirtualNodes >::iterator elemIt = virtualNodes_.begin();
     for( ; elemIt != virtualNodes_.end(); ++elemIt ) {
       const UInt elemNum = elemIt->first;
-      const Elem * elem = grid->GetElem(elemNum);
+      const Elem * elem = ptGrid_->GetElem(elemNum);
       UInt dim = Elem::shapes[elem->type].dim;;
       LOG_DBG(feSpaceHCurlHi) << "\nDim of elem #" 
           << elemNum << ": " << dim << std::endl;

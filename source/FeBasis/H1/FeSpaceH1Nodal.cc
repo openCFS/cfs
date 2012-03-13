@@ -26,8 +26,9 @@ namespace CoupledField{
 
   //! Constructor
   FeSpaceH1Nodal::FeSpaceH1Nodal(PtrParamNode aNode,
-                                 PtrParamNode infoNode)
-  : FeSpaceH1(aNode, infoNode) {
+                                 PtrParamNode infoNode,
+                                 Grid* ptGrid )
+  : FeSpaceH1(aNode, infoNode, ptGrid ) {
     type_ = H1;
     isHierarchical_ = false;
     mapType_ = GRID;
@@ -135,18 +136,6 @@ namespace CoupledField{
 
 
 
-  UInt FeSpaceH1Nodal::GetEntityOrder( UInt elemNum, BaseFE::EntityType type,
-                                       UInt entityNum, UInt comp  ) {
-
-    // For the Lagrangian space this is a trivial implementation, as we only have nodal unknowns
-    // which have just 1 unkown per node.
-    if( type == BaseFE::NODE ) {
-      return 1;
-    } else {
-      return 0;
-    }
-  }
-
   void FeSpaceH1Nodal::PreCalcShapeFncs(){
     //now pre-calculate shape functions for the
     // desired element orders
@@ -181,19 +170,6 @@ namespace CoupledField{
   }
 
 
-  UInt FeSpaceH1Nodal::GetMaxEntityOrder( UInt elemNum, BaseFE::EntityType type,
-                                          UInt entityNum  ) {
-
-    // For the Lagrangian space this is a trivial implementation, as we only have nodal unknowns
-    // which have just 1 unkown per node.
-    if( type == BaseFE::NODE ) {
-      return 1;
-    } else {
-      return 0;
-    }
-  }
-
-
   //! Map equations i.e. intialize object
   void FeSpaceH1Nodal::Finalize(){
     /* Basic idea:
@@ -224,7 +200,7 @@ namespace CoupledField{
 
     LOG_DBG(feSpaceH1Nodal) << "Setting region elements";
     LOG_DBG2(feSpaceH1Nodal) << "\tegion: "
-        << domain->GetGrid()->GetRegion().ToString(region);
+        << ptGrid_->GetRegion().ToString(region);
     LOG_DBG2(feSpaceH1Nodal) << "\tmappingType: " << mType;
     LOG_DBG2(feSpaceH1Nodal) << "\torder: " << order[0][0];
 
@@ -253,7 +229,7 @@ namespace CoupledField{
       refElems_[region][Elem::ET_PYRA14] = new FeH1LagrangePyra14();
       refElems_[region][Elem::ET_TET10]  = new FeH1LagrangeTet2();
 
-      UInt gridOrder = domain->GetGrid()->IsQuadratic() ? 2 : 1;
+      UInt gridOrder = ptGrid_->IsQuadratic() ? 2 : 1;
       infoNode->Get("order")->SetValue(gridOrder);
 
     } else if (mType == POLYNOMIAL) {
@@ -324,7 +300,7 @@ namespace CoupledField{
     while(spIt != spectralRegions_.end()){
 
       // get region node
-      std::string regionName = domain->GetGrid()->regionData[*spIt].name;
+      std::string regionName = ptGrid_->regionData[*spIt].name;
       PtrParamNode regionNode = infoNode_->Get("regionList")->Get(regionName);
       IntegOrder order;
       // UInt test = *spIt;

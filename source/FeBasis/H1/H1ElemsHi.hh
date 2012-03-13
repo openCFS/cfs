@@ -22,9 +22,36 @@ namespace CoupledField {
     //! Destructor
     virtual ~FeH1Hi();
 
-
+    // ----------------------------------------------------------------------
+    //  Polynomial Order
+    // ----------------------------------------------------------------------
+    
     //! Set isotropic polynomial order
-    void SetIsoOrder(UInt order);
+    void SetIsoOrder( UInt order );
+
+    //! Set polynomial order for an edge
+    void SetEdgeOrder( UInt edgeNum, UInt order  );
+    
+    //! Set polynomial order for a face
+    void SetFaceOrder( UInt faceNum, const boost::array<UInt,2>& order );
+    
+    //! Set polynomial order for element interior
+    void SetInteriorOrder( const boost::array<UInt,3>& order ); 
+    
+    //! Return edge order
+    const StdVector<UInt>& GetEdgeOrder( ) const {
+      return orderEdge_; 
+    }
+    
+    //! Return face order 
+    const StdVector<boost::array<UInt,2> >& GetFaceOrder( ) const {
+      return orderFace_;
+    }
+    
+    //! Return interior order
+    const boost::array<UInt,3>& GetInnerOrder( ) const {
+      return orderInner_;
+    }
     
     //! Calculate the shape functions / local derivatives for all integration points
     
@@ -33,6 +60,8 @@ namespace CoupledField {
     //! Therewith we can not pre-calculate the shape functions.
     void SetFunctionsAtIp(const StdVector<LocPoint>& iPoints) {};
     
+    //! Get total number of functions
+    UInt GetNumFncs();
     
     //! Get number of shape functions for a given type (NODE/EDGE/FACE/ELEM)
     void GetNumFncs( StdVector<UInt>& numFcns,
@@ -46,7 +75,7 @@ namespace CoupledField {
     //! of this face and return a vector of size NumberOfFncs on the Face
     //! holding the correct ordering 
     /*!
-         \param fncPermutation (output) The Permuation Vector 
+         \param fncPermutation (output) The Permutation Vector 
          \param ptElem (input) pointer to Grid Element to get grip of flags 
          \param fctEntityType (input) The Entity type, Node/Edge/Face where the 
                                       nodes are located at
@@ -62,9 +91,6 @@ namespace CoupledField {
     
     //! \copydoc BaseFE::GetMaxOrder
     virtual UInt GetMaxOrder() const;
-
-    //! \copydoc BaseFE::GetMaxOrderLocDir
-    virtual void GetMaxOrderLocDir(StdVector<UInt>& order );
 
   protected:
     
@@ -86,6 +112,9 @@ namespace CoupledField {
     
     //! Isotropic order. 0 if anisotropic
     UInt isoOrder_;
+    
+    //! Maximum polynomial degree of element
+    UInt maxOrder_;
     
     // ========================================================================
     // DEFINITION OF (ANISOTROPIC) ORDER

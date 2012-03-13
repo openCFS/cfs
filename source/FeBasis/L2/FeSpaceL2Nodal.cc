@@ -21,8 +21,9 @@ DEFINE_LOG(feSpaceL2Nodal, "feSpaceL2Nodal")
 
 namespace CoupledField{
 
-FeSpaceL2Nodal::FeSpaceL2Nodal(PtrParamNode aNode, PtrParamNode infoNode )
-    : FeSpaceL2(aNode, infoNode){
+FeSpaceL2Nodal::FeSpaceL2Nodal(PtrParamNode aNode, PtrParamNode infoNode,
+                               Grid* ptGrid)
+    : FeSpaceL2(aNode, infoNode, ptGrid ){
   type_ = L2;
   isHierarchical_ = false;
   mapType_ = POLYNOMIAL;
@@ -117,20 +118,6 @@ BaseFE* FeSpaceL2Nodal::GetFe( UInt elemNum ){
 
 }
 
-
-
-UInt FeSpaceL2Nodal::GetEntityOrder( UInt elemNum, BaseFE::EntityType type,
-                                     UInt entityNum, UInt comp  ) {
-
-  // For the Lagrangian space this is a trivial implementation, as we only have nodal unknowns
-  // which have just 1 unkown per node.
-  if( type == BaseFE::NODE ) {
-    return 1;
-  } else {
-    return 0;
-  }
-}
-
 void FeSpaceL2Nodal::PreCalcShapeFncs(){
   //now pre-calculate shape functions for the
   // desired element orders
@@ -161,19 +148,6 @@ void FeSpaceL2Nodal::PreCalcShapeFncs(){
       elemIt++;
     }
     regIt++;
-  }
-}
-
-
-UInt FeSpaceL2Nodal::GetMaxEntityOrder( UInt elemNum, BaseFE::EntityType type,
-                                        UInt entityNum  ) {
-
-  // For the Lagrangian space this is a trivial implementation, as we only have nodal unknowns
-  // which have just 1 unkown per node.
-  if( type == BaseFE::NODE ) {
-    return 1;
-  } else {
-    return 0;
   }
 }
 
@@ -215,7 +189,7 @@ void FeSpaceL2Nodal::SetRegionElements(RegionIdType region,
 
   LOG_DBG(feSpaceL2Nodal) << "Setting region elements";
   LOG_DBG2(feSpaceL2Nodal) << "\tegion: "
-      << domain->GetGrid()->GetRegion().ToString(region);
+      << ptGrid_->GetRegion().ToString(region);
   LOG_DBG2(feSpaceL2Nodal) << "\tmappingType: " << mType;
   LOG_DBG2(feSpaceL2Nodal) << "\torder: " << order[0][0];
 
@@ -239,7 +213,7 @@ void FeSpaceL2Nodal::SetRegionElements(RegionIdType region,
     refElems_[region][Elem::ET_PYRA13] = new FeH1LagrangePyra2();
     refElems_[region][Elem::ET_TET10]  = new FeH1LagrangeTet2();
 
-    UInt gridOrder = domain->GetGrid()->IsQuadratic() ? 2 : 1;
+    UInt gridOrder = ptGrid_->IsQuadratic() ? 2 : 1;
     infoNode->Get("order")->SetValue(gridOrder);
 
   } else if (mType == POLYNOMIAL) {
@@ -275,7 +249,7 @@ void FeSpaceL2Nodal::CheckConsistency(){
   while(spIt != spectralRegions_.end()){
 
     // get region node
-    std::string regionName = domain->GetGrid()->regionData[*spIt].name;
+    std::string regionName = ptGrid_->regionData[*spIt].name;
     PtrParamNode regionNode = infoNode_->Get("regionList")->Get(regionName);
     IntegOrder order;
     //every reference element has the same order

@@ -1102,7 +1102,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
     if(formulation == "default" || formulation == "H_CURL"){
       PtrParamNode potSpaceNode = infoNode->Get("magPotential");
       crSpaces[MAG_POTENTIAL] = 
-          FeSpace::CreateInstance(myParam_, potSpaceNode, FeSpace::HCURL );
+          FeSpace::CreateInstance(myParam_, potSpaceNode, FeSpace::HCURL, ptgrid_ );
       crSpaces[MAG_POTENTIAL]->Init(solStrat_);
     }else{
       EXCEPTION("The formulation " << formulation 

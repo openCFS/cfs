@@ -957,7 +957,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
     if( formulation == "default" || formulation == "H1" ){
       PtrParamNode potSpaceNode = infoNode->Get("mechDisplacement");
       crSpaces[MECH_DISPLACEMENT] =
-          FeSpace::CreateInstance(myParam_,potSpaceNode,FeSpace::H1);
+          FeSpace::CreateInstance(myParam_,potSpaceNode,FeSpace::H1, ptgrid_);
       crSpaces[MECH_DISPLACEMENT]->Init(solStrat_);
 
     }else{

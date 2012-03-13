@@ -67,6 +67,7 @@ namespace CoupledField{
     IntScheme::IntegMethod method;
     BaseFE* ptFe = ptFeSpace1_->GetFe( ent1, method, order );
 
+    
     UInt nrFncs = ptFe->GetNumFncs();
 
     // Get shape map from grid

@@ -293,14 +293,6 @@ UInt FeHCurlHi::GetMaxOrder() const {
   }
 }
 
-void FeHCurlHi::GetMaxOrderLocDir(StdVector<UInt>& order ) {
-  if( isIsotropic_ ) {
-    order.Resize( Elem::shapes[feType_].dim);
-    order.Init(isoOrder_);
-  } else {
-    EXCEPTION("Implement me");
-  }
-}
 
 // ========================================================================
 //  FeHCurlHi explicit element definition 

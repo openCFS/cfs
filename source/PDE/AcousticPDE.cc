@@ -68,7 +68,7 @@ namespace CoupledField{
       std::string form = SolutionTypeEnum.ToString(formulation_);
       PtrParamNode potSpaceNode = infoNode->Get(form);
       crSpaces[formulation_] =
-        FeSpace::CreateInstance(myParam_,potSpaceNode,FeSpace::H1);
+        FeSpace::CreateInstance(myParam_,potSpaceNode,FeSpace::H1, ptgrid_);
       crSpaces[formulation_]->Init(solStrat_);
     }else{
       EXCEPTION("The formulation " << formulation << "of acoustic PDE is not known!");
@@ -362,7 +362,8 @@ namespace CoupledField{
      std::string form = SolutionTypeEnum.ToString(MEAN_FLUIDMECH_VELOCITY);
      PtrParamNode feSpaceNode = infoNode_->Get("feSpaces");
      PtrParamNode potSpaceNode = feSpaceNode->Get(form);
-     shared_ptr<FeSpace> tmpSpace = FeSpace::CreateInstance(myParam_,potSpaceNode,FeSpace::H1);
+     shared_ptr<FeSpace> tmpSpace = FeSpace::CreateInstance(myParam_,potSpaceNode,
+                                                            FeSpace::H1, ptgrid_);
 
      if(isComplex_){
        meanFunction.reset(new FeFunction<Complex>());

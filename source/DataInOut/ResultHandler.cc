@@ -919,7 +919,8 @@ namespace CoupledField {
     // Create FeSpace (Only Nodal Right now)
     //For higher order results and such we need some additional functionality in
     // the fe space here....
-    shared_ptr<FeSpace> nodalSpace = FeSpace::CreateInstance(param,info->Get("ResultHandler"),FeSpace::H1);
+    shared_ptr<FeSpace> nodalSpace = 
+        FeSpace::CreateInstance(param,info->Get("ResultHandler"),FeSpace::H1, ptGrid);
     nodalSpace->SetDefaultRegionApproximation();
 
     //create FeFunction

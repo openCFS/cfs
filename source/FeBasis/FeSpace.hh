@@ -94,7 +94,7 @@ public:
   };
 
   //! Constructor
-  FeSpace(PtrParamNode paramNode, PtrParamNode infoNode);
+  FeSpace(PtrParamNode paramNode, PtrParamNode infoNode, Grid* ptGrid );
 
   //! Destructor
   virtual ~FeSpace();
@@ -114,7 +114,8 @@ public:
   //! Generate instance of specific element space type
   static shared_ptr<FeSpace> CreateInstance(PtrParamNode aNode, 
                                             PtrParamNode infoNode,
-                                            SpaceType reqType  );
+                                            SpaceType reqType,
+                                            Grid* ptGrid );
   
   // ========================================================================
   //  INITIALIZATION 
@@ -300,19 +301,6 @@ public:
   shared_ptr<BaseFeFunction> GetFeFunction(){
     return feFunction_;
   }
-
-  //! Get polynomial order per entity per dof
-  
-  //! This method returns the number of unknowns per entitytype (NODE / EDGE / FACE / INTERIOR)
-  //! per component of the unknown if its a vectorial unkown. If the order is isotropic
-  //! (e.g. Lagrangian space), this method returns always the same number. 
-  //! In the case of anisotropic polynomial orders (e.g. hierarchical FE) this is more involved
-  virtual UInt GetEntityOrder( UInt elemNum, BaseFE::EntityType type, 
-                               UInt entityNum, UInt comp = 1 ) = 0;
-  
-  //! Get maximum polynomial orde per entity (maximum over all components) 
-  virtual UInt GetMaxEntityOrder( UInt elemNum, BaseFE::EntityType type, 
-                                  UInt entityNum ) = 0;
     
   //! Map equations i.e. intialize object
   virtual void Finalize() = 0;
@@ -334,8 +322,11 @@ protected:
   //! Parameter node
   PtrParamNode myParam_;
   
-  //! Infor node
+  //! Info node
   PtrParamNode infoNode_;
+ 
+  //! Pointer to grid
+  Grid* ptGrid_;
   
   //! Type of element space
   SpaceType type_;

@@ -15,7 +15,7 @@ class FeSpaceHCurlHi : public FeSpaceH1 {
 public:
 
   //! Constructor
-  FeSpaceHCurlHi(PtrParamNode aNode, PtrParamNode infoNode);
+  FeSpaceHCurlHi(PtrParamNode aNode, PtrParamNode infoNode, Grid* ptGrid);
 
   //! Destructor
   ~FeSpaceHCurlHi();
@@ -33,15 +33,6 @@ public:
 
   //! \copydoc FeSpace::GetFe(UInt)
   virtual BaseFE* GetFe( UInt elemNum );
-
-
-  //! \copydoc FeSpace::GetNumEntityOrder
-  UInt GetEntityOrder( UInt elemNum, BaseFE::EntityType type, 
-                       UInt entityNum, UInt comp = 1 );
-
-  //! \copydoc FeSpace::GetMaxEntityOrder
-  UInt GetMaxEntityOrder( UInt elemNum, BaseFE::EntityType type, 
-                          UInt entityNum );
 
   //! Map equations i.e. initialize object
   virtual void Finalize();

@@ -112,19 +112,6 @@ namespace CoupledField
       return 0;
     }
 
-    //! Return maximum polynomial order for local directions
-    
-    //! This methods returns the maximum polynomial order of the element
-    //! in all local directions (xi, eta, zeta). This is especially
-    //! useful for determining the optimal integration method:
-    //! In case of Gaussian integration, we can define the integration
-    //! rule by means of a tensor product of 1D Gaussian points,
-    //! \param order Maximum polynomial order in all local directions
-    //!              \f[xi, eta, zeta \f]
-    virtual void GetMaxOrderLocDir(StdVector<UInt>& order ) const {
-      EXCEPTION( "Not implemented in base class");
-    }
-
     //! Compute the coefficient and exponent matrix for an alternate desciption 
     //! of higher order results. I.e. monomial representation.
     //! We assume a test function \f$ \phi_j(\xi,\eta,\zeta)\f$ whihc can be 

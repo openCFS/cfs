@@ -12,8 +12,9 @@ namespace CoupledField {
  DEFINE_LOG(feSpaceH1, "feSpaceH1")
 
   //! Constructor
-  FeSpaceH1::FeSpaceH1(PtrParamNode aNode, PtrParamNode infoNode) 
-  : FeSpace(aNode, infoNode ) {
+  FeSpaceH1::FeSpaceH1(PtrParamNode aNode, PtrParamNode infoNode,
+                       Grid* ptGrid) 
+  : FeSpace(aNode, infoNode, ptGrid  ) {
     type_ = H1;
   }
   
@@ -500,7 +501,7 @@ namespace CoupledField {
       // Determine type of entity type to condensate
       // 2D: faces, 3D: interior
       BaseFE::EntityType intType;
-      if( domain->GetGrid()->GetDim() == 3) {
+      if( ptGrid_->GetDim() == 3) {
         intType = BaseFE::INTERIOR;
       } else {
         intType = BaseFE::FACE;
@@ -510,12 +511,11 @@ namespace CoupledField {
       std::set<Integer> intBlock;
 
       // Loop over all elements
-      Grid * grid = domain->GetGrid();
       boost::unordered_map< UInt, ElemVirtualNodes >::iterator elemIt = virtualNodes_.begin();
       for( ; elemIt != virtualNodes_.end(); ++elemIt ) {
 
         const UInt elemNum = elemIt->first;
-        const Elem * elem = grid->GetElem(elemNum);
+        const Elem * elem = ptGrid_->GetElem(elemNum);
         UInt dim = Elem::shapes[elem->type].dim;;
         LOG_DBG(feSpaceH1) << "\nDim of elem #" 
             << elemNum << ": " << dim << std::endl;

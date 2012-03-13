@@ -78,9 +78,9 @@ namespace CoupledField{
       std::string form = SolutionTypeEnum.ToString(ACOU_PRESSURE);
       PtrParamNode potSpaceNode = infoNode->Get(form);
       crSpaces[ACOU_PRESSURE] =
-              FeSpace::CreateInstance(myParam_,potSpaceNode,FeSpace::H1);
+              FeSpace::CreateInstance(myParam_,potSpaceNode,FeSpace::H1, ptgrid_);
       crSpaces[ACOU_VELOCITY] =
-          FeSpace::CreateInstance(myParam_,potSpaceNode,FeSpace::L2);
+          FeSpace::CreateInstance(myParam_,potSpaceNode,FeSpace::L2, ptgrid_);
 
       crSpaces[ACOU_PRESSURE]->Init(solStrat_);
       crSpaces[ACOU_VELOCITY]->Init(solStrat_);
@@ -615,7 +615,8 @@ namespace CoupledField{
      std::string form = SolutionTypeEnum.ToString(MEAN_FLUIDMECH_VELOCITY);
      PtrParamNode feSpaceNode = infoNode_->Get("feSpaces");
      PtrParamNode potSpaceNode = feSpaceNode->Get(form);
-     shared_ptr<FeSpace> tmpSpace = FeSpace::CreateInstance(myParam_,potSpaceNode,FeSpace::H1);
+     shared_ptr<FeSpace> tmpSpace = 
+         FeSpace::CreateInstance(myParam_,potSpaceNode,FeSpace::H1, ptgrid_);
 
      if(isComplex_){
        meanFunction.reset(new FeFunction<Complex>());

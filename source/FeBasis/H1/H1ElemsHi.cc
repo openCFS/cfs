@@ -1,5 +1,7 @@
 #include "H1ElemsHi.hh"
 
+#include <algorithm>
+
 #include "Utils/AutoDiff.hh"
 #include "FeBasis/Polynomials.hh"
 #include "Domain/ElemMapping/EdgeFace.hh"
@@ -26,7 +28,8 @@ DEFINE_LOG(feH1Hi, "feH1Hi")
   FeH1Hi::FeH1Hi() {
     updateUnknowns_ = true;
     isIsotropic_ = false;
-    isoOrder_ = 0; 
+    isoOrder_ = 0;
+    maxOrder_ = 0;
     
     // important: all higher order functions can not
     // pre-compute the shape functions, as the functions depend on the global
@@ -35,6 +38,11 @@ DEFINE_LOG(feH1Hi, "feH1Hi")
   }
   
   FeH1Hi::~FeH1Hi() {
+  }
+  
+  UInt FeH1Hi::GetNumFncs( ) {
+    if(updateUnknowns_) this->CalcNumUnknowns();
+    return actNumFncs_;
   }
   
   void FeH1Hi::GetNumFncs( StdVector<UInt>& numFcns,
@@ -124,8 +132,13 @@ DEFINE_LOG(feH1Hi, "feH1Hi")
         << " for H1Hi elem of type " 
         << Elem::feType.ToString(feType_);
     
+    // just change, if order is different from previously set one
+    if( order == this->isoOrder_ &&
+        isIsotropic_ ) return;
+    
     orderEdge_.Resize(shape_.numEdges);
     orderFace_.Resize(shape_.numFaces);
+    maxOrder_ = 0;
     
     // set order for edges
     orderEdge_.Init(order);
@@ -138,12 +151,47 @@ DEFINE_LOG(feH1Hi, "feH1Hi")
     boost::array<UInt, 3> innerOrder = {{order, order, order}}; 
     orderInner_ = innerOrder;
     
+    maxOrder_ = std::max( maxOrder_, order);
     updateUnknowns_ = true;
     isIsotropic_ = true;
     isoOrder_ = order;
-   
   }
   
+  void FeH1Hi::SetEdgeOrder( UInt edgeNum, UInt order ) {
+    assert( edgeNum <= shape_.numEdges);
+
+    if( orderEdge_[edgeNum] == order) return;
+    
+    orderEdge_[edgeNum] = order;
+    maxOrder_ = std::max( maxOrder_, order);
+    isIsotropic_ = false;
+    updateUnknowns_ = true;
+  }
+  
+  void FeH1Hi::SetFaceOrder( UInt faceNum,
+                             const boost::array<UInt,2>& order ) {
+    assert( faceNum <= shape_.numFaces);
+
+    if( orderFace_[faceNum] == order ) return;
+    
+    orderFace_[faceNum] = order;
+    maxOrder_ = std::max( maxOrder_, 
+                          std::max( order[0], order[1]) );
+    isIsotropic_ = false;
+    updateUnknowns_ = true;
+  }
+
+  void FeH1Hi::SetInteriorOrder( const boost::array<UInt,3>& order ) {
+
+    if( orderInner_ == order ) return;
+    
+    orderInner_ = order;
+    maxOrder_ = std::max( maxOrder_, 
+                          *(std::max( order.begin(), order.end() ) ) );
+    isIsotropic_ = false;
+    updateUnknowns_ = true;
+  }
+    
   void FeH1Hi::GetNodalPermutation( StdVector<UInt>& fncPermutation,
                                     const Elem* ptElem,
                                     EntityType fctEntityType,
@@ -179,33 +227,16 @@ DEFINE_LOG(feH1Hi, "feH1Hi")
   }
 
   UInt FeH1Hi::GetIsoOrder() const {
-      if( isIsotropic_) {
-        return isoOrder_;
-      } else {
-        EXCEPTION("Implement me");
-        return 0;
-      }
-    return 0;
-  }
-  
-  UInt FeH1Hi::GetMaxOrder() const {
     if( isIsotropic_) {
       return isoOrder_;
     } else {
-      EXCEPTION("Implement me");
-      return 0;
+      return 0;  
     }
   }
 
-  void FeH1Hi::GetMaxOrderLocDir(StdVector<UInt>& order ) {
-    if( isIsotropic_ ) {
-      order.Resize( Elem::shapes[feType_].dim);
-      order.Init(isoOrder_);
-    } else {
-      EXCEPTION("Implement me");
-    }
+  UInt FeH1Hi::GetMaxOrder() const {
+    return maxOrder_;
   }
-  
   
   void FeH1Hi::EvalPolynom( Double& value, Double& deriv,
                             const UInt order, const Double* coeff,

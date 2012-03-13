@@ -1,7 +1,13 @@
 #ifndef FILE_CFS_FESPACE_H1_HI_HH
 #define FILE_CFS_FESPACE_H1_HI_HH
 
+#include<boost/unordered_set.hpp>
+#include<boost/unordered_map.hpp>
+
+
 #include "FeSpaceH1.hh"
+
+
 
 namespace CoupledField {
 
@@ -14,7 +20,7 @@ class FeSpaceH1Hi : public FeSpaceH1 {
   public:
 
     //! Constructor
-    FeSpaceH1Hi(PtrParamNode aNode, PtrParamNode infoNode);
+    FeSpaceH1Hi(PtrParamNode aNode, PtrParamNode infoNode, Grid* ptGrid);
 
     //! Destructor
     ~FeSpaceH1Hi();
@@ -33,14 +39,6 @@ class FeSpaceH1Hi : public FeSpaceH1 {
     //! \copydoc FeSpace::GetFe(UInt)
     virtual BaseFE* GetFe( UInt elemNum );
 
-    //! @copydoc FeSpace::GetNumEntityOrder
-    UInt GetEntityOrder( UInt elemNum, BaseFE::EntityType type, 
-                         UInt entityNum, UInt comp = 1 );
-    
-    //! @copydoc FeSpace::GetMaxEntityOrder
-    UInt GetMaxEntityOrder( UInt elemNum, BaseFE::EntityType type, 
-                            UInt entityNum );
-    
     //! Map equations i.e. initialize object
     virtual void Finalize();
 
@@ -67,25 +65,35 @@ class FeSpaceH1Hi : public FeSpaceH1 {
     //! Create default finite elements to be used if nothing else is requested
     virtual void SetDefaultElements( PtrParamNode infoNode );
 
-    //! Adjust orders of edges / faces according to min/max rule
-    void AdjustEntityOrder();
-    
     //! Map for reference elements by region
     std::map< RegionIdType, std::map<Elem::FEType, FeH1Hi* > > refElems_;
     
-    //! Map containing the polynomial order for every edge
-    std::map<UInt, StdVector<UInt> > edgeOrder_;
+    //! Map for each region the element order
+    std::map< RegionIdType, Matrix<Integer> > regionOrder_;
     
-    // For the polynomial degrees of faces / interior we have to think
-    //! Map containing the polynomial order for every face
-//    std::map<UInt, UInt> faceOrder_;
+    // ====================================================================
+    // VARIABLE ENTITY ORDER
+    // ====================================================================
     
-    //! Map containing the polynomial order for every element interior
-//    std::map<UInt, UInt> faceOrder_;
+    //! Initialize a finite element with the correct order
+    void SetElemOrder( const Elem* ptEl, FeH1Hi* ptFe, 
+                       const Matrix<Integer>& order,
+                       bool applyMinMaxRule );
     
-    //! Test continuity of shape functions
-    void TestContinuity();
+    //! Adjust order of edges / faces which have mixed order neighbours
+    void AdjustEntityOrder();
 
+    //! Set containing all edges, where the min/max rule gets applied
+    boost::unordered_set<UInt> adjustedEdges_;
+    
+    //! Set containing all faces, where the min/max rule gets applied
+    boost::unordered_set<UInt> adjustedFaces_;
+    
+    //! Map containing the order of adjusted edges
+    boost::unordered_map<UInt, UInt> orderEdges_;
+    
+    //! Map containing the order of adjusted faces
+    boost::unordered_map<UInt, boost::array<UInt,2> > orderFaces_;
 
   private:
 };

@@ -86,9 +86,6 @@ namespace CoupledField {
       return order_;
     }
 
-    //! \copydoc BaseFE::GetMaxOrderLocDir
-    virtual void GetMaxOrderLocDir(StdVector<UInt>& order );
-    
     //! @copydoc BaseFE::ComputeMonomialCoefficients
     //! Overloaded method for lagrange Elements
     virtual void ComputeMonomialCoefficients(Matrix<Integer>& P, Matrix<Double>& C);

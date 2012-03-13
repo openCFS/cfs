@@ -32,7 +32,7 @@ class FeSpaceL2 : public FeSpaceH1 {
 public:
 
   //! Constructor
-  FeSpaceL2(PtrParamNode aNode, PtrParamNode infoNode);
+  FeSpaceL2(PtrParamNode aNode, PtrParamNode infoNode, Grid* ptGrid );
 
   //! Destructor
   virtual ~FeSpaceL2();

@@ -61,9 +61,6 @@ public:
   //! \copydoc BaseFE::GetMaxOrder
   virtual UInt GetMaxOrder() const;
 
-  //! \copydoc BaseFE::GetMaxOrderLocDir
-  virtual void GetMaxOrderLocDir(StdVector<UInt>& order );
-       
 protected:
   
   //! Calculate number of unknowns

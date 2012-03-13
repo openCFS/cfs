@@ -74,14 +74,20 @@ DEFINE_LOG(feSpaceH1Hi, "feSpaceH1Hi")
 namespace CoupledField{
 
   //! Constructor
-  FeSpaceH1Hi::FeSpaceH1Hi(PtrParamNode aNode, PtrParamNode infoNode )
-  : FeSpaceH1(aNode, infoNode ) {
+  FeSpaceH1Hi::FeSpaceH1Hi(PtrParamNode aNode, PtrParamNode infoNode,
+                           Grid* ptGrid )
+  : FeSpaceH1(aNode, infoNode, ptGrid ) {
 
     type_ = H1;
     isHierarchical_ = true;
     polyType_ = LEGENDRE;
+    mapType_ = POLYNOMIAL; 
     
     infoNode_ = infoNode->Get("h1Hierarchical");
+    
+    // important: trigger mapping of edges / faces
+    ptGrid_->MapEdges();
+    ptGrid_->MapFaces();
   }
 
   //! Destructor
@@ -112,52 +118,17 @@ namespace CoupledField{
     ReadPolyList();
   }
 
-  UInt FeSpaceH1Hi::GetEntityOrder( UInt elemNum, BaseFE::EntityType type, 
-                                      UInt entityNum, UInt comp ) {
-    if( type == BaseFE::NODE) {
-      return 1;
-    } else if( type == BaseFE::EDGE ) {
-      // Currently we support just isotropic order
-      //StdVector<UInt> & orders = edgeOrder_[elemNum];
-      EXCEPTION("THis needs to be implemented");
-      return 0;
-    } else if( type == BaseFE::FACE ) {
-      // IMPLEMENT ME
-    }
-    return 0;
-  }
-
-  UInt FeSpaceH1Hi::GetMaxEntityOrder( UInt elemNum, BaseFE::EntityType type, 
-                                         UInt entityNum ) {
-    if( type == BaseFE::NODE) {
-      return 1;
-    } else if( type == BaseFE::EDGE ) {
-      // Currently we support just isotropic order
-      //StdVector<UInt> & orders = edgeOrder_[elemNum];
-      //return *(std::max_element( orders.Begin(), orders.End() ));
-      EXCEPTION("THis needs to be implemented");
-      return 0;
-    } else if( type == BaseFE::FACE ) {
-      // IMPLEMENT ME
-    } 
-    return 0;
-  }
-
   void FeSpaceH1Hi::Finalize(){
     /* Basic idea:
-     * 1. Create the VirtualNode Array
-     * 2. Make the polynomial order of edges / faces consistent
-     * 3. Map boundary conditions
-     * 4. Map equations only based on the virtualNodeArray
+     * 1. Adjust entity order of all faces / edges
+     * 2. Create the VirtualNode Array
+     * 3. Make the polynomial order of edges / faces consistent
+     * 4. Map boundary conditions
+     * 5. Map equations only based on the virtualNodeArray
      */
-
-//    UInt numEqns_ = 0;
-//    UInt numFreeEquations_ = 0;
+    AdjustEntityOrder();
     CreateVirtualNodes();
 
-    // Apply minimum rule to edges / faces to adjust polynomial order
-    AdjustEntityOrder();
-        
     //Determine boundary Unknowns
     MapNodalBCs();
     MapNodalEqns(1);
@@ -196,8 +167,7 @@ namespace CoupledField{
       eRegion = ent.GetElem()->regionId;
     }
     LOG_DBG3(feSpaceH1Hi) << "Returning FE #" << ent.GetElem()->elemNum
-        << " of region " 
-        << domain->GetGrid()->GetRegion().ToString(eRegion);
+        << " of region "  << ptGrid_->GetRegion().ToString(eRegion);
     
     //Check if the region is there, otherwise fall back to default
     if(refElems_.find(eRegion) == refElems_.end()){
@@ -209,12 +179,13 @@ namespace CoupledField{
       EXCEPTION("fespaceh1::getfe( const entityiterator): requested fetype which is noch supported by space");
     }
 
-    BaseFE * myFe = refElems_[eRegion][ent.GetElem()->type];
+    // Fetch reference element and set correct order
+    FeH1Hi * myFe = refElems_[eRegion][ent.GetElem()->type];
+    SetElemOrder( ent.GetElem(), myFe, regionOrder_[eRegion], true );
 
-    // ToDo: Currently hard coded to isotropic order. Here we should generalize the 
-    // setting of entitiy orders.
-//    myFe->SetIsoOrder( isoOrder_);
-
+    LOG_DBG(feSpaceH1Hi) << "Returning FE #" << ent.GetElem()->elemNum
+        << " with " << myFe->BaseFE::GetNumFncs() << " functions";
+    
     return myFe;
   }
   
@@ -230,53 +201,13 @@ namespace CoupledField{
     if(refElems_[eRegion].find(ptElem->type) == refElems_[eRegion].end()){
       EXCEPTION("fespaceh1::getfe( const entityiterator): requested fetype which is noch supported by space");
     }
-    BaseFE * myFe = refElems_[eRegion][ptElem->type];
-
-    // ToDo: Currently hard coded to isotropic order. Here we should generalize the 
-    // setting of entitiy orders.
-//    std::cerr << "isoOrder is " << isoOrder_ << std::endl;
-////    myFe->SetIsoOrder( isoOrder_);
-
+    // Fetch reference element and set correct order
+    FeH1Hi * myFe = refElems_[eRegion][ptElem->type];
+    SetElemOrder( ptElem, myFe, regionOrder_[eRegion], true );
+    
     return myFe;
   }
 
-  void FeSpaceH1Hi::AdjustEntityOrder() {
-
-    
-    // Has to be reimplemented
-//    UInt numComp = feFunction_->GetResultInfo()->dofNames.GetSize();
-//
-//    // loop over all elements
-//    std::map< UInt, StdVector<UInt> >::iterator it = virtualEdges_.begin();
-//    for( ; it != virtualEdges_.end(); it++ ) {
-//
-//      UInt elemNum = it->first;
-//
-//      // loop over all edges
-//      StdVector<UInt > & edges = it->second;
-//      UInt numEdges = it->second.GetSize();
-//      for( UInt iEdge = 0; iEdge < numEdges; ++iEdge ) {
-//        UInt actEdge = edges[iEdge];
-//
-//        // check, if edge got already mapped
-//        if( edgeOrder_.find(actEdge) == edgeOrder_.end() ) {
-//          edgeOrder_[actEdge].Resize(numComp);
-//          edgeOrder_[actEdge].Init(0);          
-//        }
-//
-//        // Loop over all components
-//        for( UInt iComp = 0; iComp < numComp; ++iComp ) {
-//
-//          // Check if the local order for the edge is larger than the 
-//          // one already assigned
-//          UInt locOrder = GetEntityOrder(elemNum, BaseFE::EDGE, iEdge, iComp+1 );
-//          if(  locOrder > edgeOrder_[actEdge][iComp] ) {
-//            edgeOrder_[actEdge][iComp] = locOrder;
-//          } // if
-//        } // loop over components
-//      } // loop over edges
-//    } // loop over elements
-  }
 
   void FeSpaceH1Hi::SetRegionElements(RegionIdType region, 
                                       MappingType mType,
@@ -284,7 +215,7 @@ namespace CoupledField{
                                       PtrParamNode infoNode ){
     
     LOG_DBG3(feSpaceH1Hi) << "FeSpaceH1HI: SetRegionElements for Region " <<
-        domain->GetGrid()->GetRegion().ToString(region) << std::endl;
+        ptGrid_->GetRegion().ToString(region) << std::endl;
     
     //This method may not be called after the space is finalized!
     if(isFinalized_){
@@ -307,23 +238,96 @@ namespace CoupledField{
     refElems_[region][Elem::ET_HEXA20]  = new FeH1HiHex();
     refElems_[region][Elem::ET_WEDGE15] = new FeH1HiWedge();
 
-    //now set the order
-    if(order.GetNumCols() != 1 || order.GetNumRows() != 1){
-    EXCEPTION("FeSpaceHCurlHi::SetRegionElements : Only Iso-Order is supported right now");
-    }
-    std::map<Elem::FEType, FeH1Hi* >::iterator i = refElems_[region].begin();
-    for( ; i != refElems_[region].end(); ++i ) {
-      i->second->SetIsoOrder(order[0][0]+orderOffset_);
-    }
+
+    // store order for this region
+    regionOrder_[region] = order;
     
-    // Important: indicate, that we do not re-use the originial grid based
-    // nodes
-    mapType_ = POLYNOMIAL;
     
+    // loop over all elements of this region
+    LOG_DBG(feSpaceH1Hi) << "Assigning edge / face order";
+    StdVector<Elem*> elems;
+    ptGrid_->GetElems( elems, region );
+    UInt numElems = elems.GetSize();
+    for( UInt i = 0; i < numElems; ++i ) {
+      
+      const Elem& el = *(elems[i]);
+      LOG_DBG3(feSpaceH1Hi) << "Treating element #" << el.elemNum;
+      
+      // Fetch reference element and set correct order
+      FeH1Hi * myFe = refElems_[region][el.type];
+      
+      // important: do not adjust the entity order here, as the
+      // edge / face order is not yet initialized
+      SetElemOrder( elems[i], myFe, regionOrder_[region], false );
+      
+      // a) loop over all edges
+      // -----------------------
+      UInt numEdges = el.edges.GetSize();
+      LOG_DBG3(feSpaceH1Hi) << "Checking " << numEdges << " edges ";
+      const StdVector<UInt>& edgeOrders = myFe->GetEdgeOrder();
+      for( UInt iEdge = 0; iEdge < numEdges; ++iEdge ){
+        UInt edgeNum = std::abs(el.edges[iEdge]);
+        UInt edgeOrder = edgeOrders[iEdge];
+        
+        // check if edge got already mapped
+        if( orderEdges_.find(edgeNum) == orderEdges_.end() ) {
+          orderEdges_[edgeNum] = edgeOrder;
+          LOG_DBG3(feSpaceH1Hi) << "\tedge #" << edgeNum << ", order: " 
+                                << edgeOrder;
+        } else {
+          UInt oldOrder = orderEdges_[edgeNum];
+          LOG_DBG3(feSpaceH1Hi) << "\tedge #" << edgeNum 
+                                << " -> Already set to " << oldOrder; 
+          // check if previous set order is different from current
+          if( edgeOrder != oldOrder) {
+            orderEdges_[edgeNum] = std::max( edgeOrder, oldOrder );
+            LOG_DBG3(feSpaceH1Hi) << "\t\t=> Re-Set to " << orderEdges_[edgeNum];
+            adjustedEdges_.insert( edgeNum );
+          }
+        }
+      } // loop over edges
+      
+      
+      // b) loop over all faces (only in 3D case )
+      // -----------------------------------------
+      if( ptGrid_->GetDim() == 3 ) {
+        UInt numFaces = el.faces.GetSize();
+        LOG_DBG3(feSpaceH1Hi) << "Checking " << numFaces << " faces ";
+        const StdVector<boost::array<UInt,2> >& faceOrders = 
+            myFe->GetFaceOrder();
+        for( UInt iFace = 0; iFace < numFaces; ++iFace ){
+          UInt faceNum = el.faces[iFace];
+          boost::array<UInt,2> faceOrder = faceOrders[iFace];
+
+          // check if face got already mapped
+          if( orderFaces_.find(faceNum) == orderFaces_.end() ) {
+            orderFaces_[faceNum] = faceOrder;
+            LOG_DBG3(feSpaceH1Hi) << "\tface #" << faceNum << ", order: " 
+                                  << faceOrder[0] << ", " << faceOrder[1];
+          } else {
+            boost::array<UInt,2> oldOrder = orderFaces_[faceNum];
+            LOG_DBG3(feSpaceH1Hi) << "\tface #" << faceNum 
+                << " -> Already set to " << oldOrder[0] << ", " 
+                << oldOrder[1];
+            // check if previous set order is different from current
+            if( faceOrder != oldOrder) {
+              orderFaces_[faceNum][0] = std::max( faceOrder[0], oldOrder[0] );
+              orderFaces_[faceNum][1] = std::max( faceOrder[1], oldOrder[1] );
+              LOG_DBG3(feSpaceH1Hi) << "\t\t=> Re-Set to " 
+                                    << orderFaces_[faceNum][0] << ", "
+                                    << orderFaces_[faceNum][1];
+              adjustedFaces_.insert( faceNum );
+            }
+          }
+        }  // loop over faces
+      } 
+
+    } // loop over elements
     infoNode->Get("order")->SetValue(order[0][0]);
   }
 
   void FeSpaceH1Hi::CheckConsistency(){
+    // nothing to do here
 
   }
 
@@ -345,52 +349,102 @@ namespace CoupledField{
     regionIntegration_[ALL_REGIONS].mode = RELATIVE;
   }
   
-  // Conduct test for continuuity of basis functions
-  void FeSpaceH1Hi::TestContinuity(){
+  
+  void FeSpaceH1Hi::
+  SetElemOrder( const Elem* ptEl, FeH1Hi* ptFe, 
+                const Matrix<Integer>& order,
+                bool applyMaxRule ) {
+    LOG_DBG(feSpaceH1Hi) << "In SetElemOrder for elem " << ptEl->elemNum;
+    // Stage 1: Set order as given from the region template.
+    // This order template specified either an isotropic polynomial degree
+    // or a direction dependent order (for each unknown).
     
-    // Specify entity type (V/E/F)
-    BaseFE::EntityType et = BaseFE::VERTEX;
-    
-    // Loop over all entities of that type
-    UInt numEntities = 0;
-    Grid * grid = domain->GetGrid();
-    switch(et) {
-      case BaseFE::VERTEX:
-        numEntities = grid->GetNumNodes();
-        break;
-      case BaseFE::EDGE:
-        numEntities = grid->GetNumEdges();
-        break;
-      case BaseFE::FACE:
-        numEntities = grid->GetNumFaces();
-        break;
-      default:
-        EXCEPTION("Not implemented");
+    // check for isotropy -> This has to be changed to a more
+    // general representation soon
+    if( order.GetNumRows() == 1 ) {
+      ptFe->SetIsoOrder( order[0][0] );
+    } else {
+      EXCEPTION( "Anisotropic order not implemented yet");
     }
     
-    UInt numElems = grid->GetNumElems();
-    // Loop over all entities
-    for( UInt iEnt = 0; iEnt < numEntities; ++iEnt ) {
+    // Stage 2: Adjust edge / face order according to minimum /
+    // maximum rule, in case the element has neighboring elements with
+    // different order. We wil use the maximum rule
+    if( applyMaxRule && orderEdges_.size() ) {
+      // loop over all edges
+      UInt numEdges = ptEl->edges.GetSize();
+      for( UInt iEdge = 0; iEdge < numEdges; ++iEdge ) {
+        UInt edgeNum = std::abs( ptEl->edges[iEdge] );
+          // check if edge got adjusted
+        if( orderEdges_.find(edgeNum) != orderEdges_.end() ) {
+          LOG_DBG3(feSpaceH1Hi) << "Setting edge " << edgeNum
+              << " to order " << orderEdges_[edgeNum];
+          ptFe->SetEdgeOrder( iEdge, orderEdges_[edgeNum] );
+        }
+      }
+      
+    }
+    
+    if( applyMaxRule && orderFaces_.size() 
+        && ptGrid_->GetDim() == 3  ) {
+      // loop over all faces
+      UInt numFaces = ptEl->faces.GetSize();
+      for( UInt iFace = 0; iFace < numFaces; ++iFace ) {
+        UInt faceNum = ptEl->faces[iFace];
+        // check if face got adjusted
+        if( orderFaces_.find(faceNum) != orderFaces_.end() ) {
+          LOG_DBG3(feSpaceH1Hi) << "Setting face " << faceNum
+              << " to order " << orderFaces_[faceNum][0]
+              << ", " << orderFaces_[faceNum][1];
+          ptFe->SetFaceOrder( iFace, orderFaces_[faceNum] );
+        }
+      }
 
-      // Loop over all elements
+    }
+  }
+  
+  void FeSpaceH1Hi::AdjustEntityOrder() {
+    LOG_TRACE(feSpaceH1Hi) << "Adjusting entity order";
+    
+    
+    // Create temporary map for edges
+    boost::unordered_map<UInt, UInt> edgeOrders;
+    
+    // Loop over all adjusted edges
+    LOG_DBG(feSpaceH1Hi) << "Adjusting edge order";
+    boost::unordered_set<UInt>::const_iterator edgeIt = adjustedEdges_.begin();
+    for( ; edgeIt != adjustedEdges_.end(); ++edgeIt ) {
+      LOG_DBG3(feSpaceH1Hi) << "\tOrder of edge #" << *edgeIt 
+                            << " is " <<  orderEdges_[*edgeIt];
+      edgeOrders[*edgeIt] = orderEdges_[*edgeIt];
+    } // loop over edges
 
-      for(UInt iElem = 0; iElem < numElems; ++iElem ) {
+    // store only adjusted edges back
+    orderEdges_ = edgeOrders;
+    
+    
+    if( ptGrid_->GetDim() < 3) return;
+    
+    // Create temporary map for faces
+    boost::unordered_map<UInt, boost::array<UInt,2> > faceOrders;
+    
+    // Loop over all adjusted faces
+    LOG_DBG(feSpaceH1Hi) << "Adjusting face order";
+    boost::unordered_set<UInt>::const_iterator faceIt = adjustedFaces_.begin();
+    for( ; edgeIt != adjustedFaces_.end(); ++faceIt ) {
+      LOG_DBG3(feSpaceH1Hi) << "\tOrder of face #" << *faceIt 
+                            << " is " <<  orderFaces_[*faceIt][0]
+                            << ", " << orderFaces_[*faceIt][1];
+      faceOrders[*faceIt] = orderFaces_[*faceIt];
+    } // loop over faces
 
-        // if element contains that entity:
-//        switch(et) {
-//          
-//        }
-
-        //    -> Loop over all points of that element (distinguish shape type)
-
-        //    -> Calculate basis functions
-
-        //    -> extract the one of the given entity
-
-        //    -> print result into file
-      } // loop over elements
-      // 
-    } // loop over entities
+    // store only adjusted faces back
+    orderFaces_ = faceOrders;
+    
+    
+    
     
   }
+  
+
 } // end of namespace

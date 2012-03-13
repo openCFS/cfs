@@ -251,7 +251,6 @@ namespace CoupledField {
 
       // Print equation information
       //fncIt->second->GetFeSpace()->PrintEqnMap();
-
       fncIt++;
     }
     //exit(0);

@@ -24,7 +24,7 @@ namespace CoupledField {
 class FeSpaceL2Nodal : public FeSpaceL2 {
 public:
      //! Constructor
-     FeSpaceL2Nodal(PtrParamNode aNode, PtrParamNode infoNode );
+     FeSpaceL2Nodal(PtrParamNode aNode, PtrParamNode infoNode, Grid* ptGrid );
 
      //! Destructor
      virtual ~FeSpaceL2Nodal();
@@ -49,14 +49,6 @@ public:
     ////! Return equation numbers for a specific dof
     //virtual void GetEqns( StdVector<Integer>& eqns, const EntityIterator ent
     //                      , UInt dof );
-
-    //! \copydoc FeSpace::GetEntityOrder
-    UInt GetEntityOrder( UInt elemNum, BaseFE::EntityType type,
-                           UInt entityNum, UInt comp = 1 );
-
-    //! \copydoc FeSpace:: GetMaxEntityOrder
-    UInt GetMaxEntityOrder( UInt elemNum, BaseFE::EntityType type,
-                            UInt entityNum );
 
     //! Precalculate integration points
     virtual void PreCalcShapeFncs();

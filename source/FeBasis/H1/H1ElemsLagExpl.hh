@@ -59,9 +59,6 @@ public:
     return order_;
   }
   
-  //! \copydoc BaseFE::GetMaxOrderLocDir
-  virtual void GetMaxOrderLocDir(StdVector<UInt>& order );
-  
   //! =======================================================================
   //! G E O M E T R I C   I N F O R M A T I O N
   //! =======================================================================

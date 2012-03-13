@@ -64,7 +64,7 @@ public:
   };
 
   //! Constructor
-  FeSpaceH1(PtrParamNode aNode, PtrParamNode infoNode);
+  FeSpaceH1(PtrParamNode aNode, PtrParamNode infoNode, Grid* ptGrid);
 
   //! Destructor
   ~FeSpaceH1();

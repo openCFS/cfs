@@ -21,10 +21,12 @@ namespace CoupledField {
   
   
   //! Constructor
-  FeSpace::FeSpace(PtrParamNode paramNode, PtrParamNode infoNode ){
+  FeSpace::FeSpace( PtrParamNode paramNode, PtrParamNode infoNode, 
+                    Grid* ptGrid ){
     
     myParam_ = paramNode;
     infoNode_ = infoNode;
+    ptGrid_ = ptGrid;
     isFinalized_ = false;
     isContinuous_ = true;
     numEqns_ = 0;
@@ -41,7 +43,7 @@ namespace CoupledField {
     // In the future we could also create our own instance,
     // where only the maximum integration order defined by 
     // the user gets initialized
-    intScheme_ = domain->GetGrid()->GetIntegrationScheme();
+    intScheme_ = ptGrid_->GetIntegrationScheme();
 
 
   }
@@ -49,10 +51,11 @@ namespace CoupledField {
   FeSpace::~FeSpace(){
   }
 
-  shared_ptr<FeSpace> FeSpace::CreateInstance(PtrParamNode aNode, 
-                                              PtrParamNode infoNode,
-                                              SpaceType reqType ) {
-    
+  shared_ptr<FeSpace> FeSpace::CreateInstance( PtrParamNode aNode, 
+                                               PtrParamNode infoNode,
+                                               SpaceType reqType,
+                                               Grid* ptGrid ) {
+     
 
     /* One big Problem> Due to the splitting of spaces in Hi and Lo/Lagrange, it is not
      * possible to deal with Diffent Polynomial types in different regions
@@ -104,9 +107,9 @@ namespace CoupledField {
       case H1:
         LOG_DBG(feSpace) << "Creating H1 space";
         if( polyType == LAGRANGE )  {
-          ret.reset(new FeSpaceH1Nodal(aNode, infoNode));
+          ret.reset(new FeSpaceH1Nodal(aNode, infoNode, ptGrid));
         } else {  
-          ret.reset(new FeSpaceH1Hi(aNode, infoNode));
+          ret.reset(new FeSpaceH1Hi(aNode, infoNode, ptGrid));
         }
         break;
       case HCURL:
@@ -115,7 +118,7 @@ namespace CoupledField {
           // create explicit lower order HCurl space
           EXCEPTION("Explicit lower order space H-Curl not defined yet");
         } else {
-          ret.reset(new FeSpaceHCurlHi(aNode, infoNode));
+          ret.reset(new FeSpaceHCurlHi(aNode, infoNode, ptGrid));
         }
         break;
       case CONST:
@@ -123,7 +126,7 @@ namespace CoupledField {
       case L2:
         LOG_DBG(feSpace) << "Creating L2 space";
         if( polyType == LAGRANGE )  {
-          ret.reset(new FeSpaceL2Nodal(aNode, infoNode));
+          ret.reset(new FeSpaceL2Nodal(aNode, infoNode, ptGrid));
         } else {
           EXCEPTION("Higher order L2 space not defined yet");
         }
@@ -215,7 +218,7 @@ namespace CoupledField {
 
       EXCEPTION("FeSpace::GetNodesOfElement: Could not find requested element #"
           << ptElem->elemNum << " of region " 
-          <<      domain->GetGrid()->GetRegion().ToString(ptElem->regionId));
+          <<  ptGrid_->GetRegion().ToString(ptElem->regionId));
     }
     if(entType == BaseFE::ALL){
       nodes.Resize(virtualNodes_[elemNum][BaseFE::VERTEX].vNodes.GetSize()+
@@ -614,7 +617,7 @@ namespace CoupledField {
   // ************************************************************************
   void FeSpace::SetRegionApproximation(RegionIdType region, std::string polyId, std::string integId){
     
-    std::string regionName = domain->GetGrid()->GetRegion().ToString(region);
+    std::string regionName = ptGrid_->GetRegion().ToString(region);
     PtrParamNode regionNode = infoNode_->Get("regionList")->Get(regionName);
     
     RegionIdType pReg,iReg;
@@ -728,7 +731,7 @@ namespace CoupledField {
     
     PtrParamNode anIsoOrderNode = node->Get("anIsoOrder", ParamNode::PASS );
     if(anIsoOrderNode){
-      UInt dim = domain->GetGrid()->GetDim();
+      UInt dim = ptGrid_->GetDim();
       order.Resize(3,dim);
       StdVector<std::string> dofs(3);
        anIsoOrderNode->GetValue("dof1",dofs[0],ParamNode::PASS);
