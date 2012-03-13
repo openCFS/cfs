@@ -75,6 +75,7 @@ unsigned int DesignMaterial::RequiredParameters(){
   case DENSITY_TIMES_2D_TENSOR_CONSTANT_TRACE:
     return r+6;
   case DENSITY_TIMES_2D_TENSOR:
+  case DENSITY_TIMES_ROTATED_2D_TENSOR:
     return r+7;
   default:
     throw Exception("DesignMaterial Type not implemented yet (RequiredParameters)");
@@ -125,6 +126,14 @@ bool DesignMaterial::CheckRequiredDesigns(StdVector<DesignElement::Type>& design
         && design.Find(DesignElement::TENSOR23) >= 0
         && design.Find(DesignElement::TENSOR13) >= 0
         && design.Find(DesignElement::TENSOR12) >= 0);
+  case DENSITY_TIMES_ROTATED_2D_TENSOR:
+    return(design.Find(DesignElement::DENSITY) >= 0
+        && design.Find(DesignElement::TENSOR11) >= 0
+        && design.Find(DesignElement::TENSOR33) >= 0
+        && design.Find(DesignElement::TENSOR23) >= 0
+        && design.Find(DesignElement::TENSOR13) >= 0
+        && design.Find(DesignElement::TENSOR12) >= 0
+        && design.Find(DesignElement::ROTANGLE) >= 0);
   default:
     throw Exception("DesignMaterial Type not implemented yet (CheckRequiredDesigns)");
   }
@@ -530,12 +539,19 @@ void DesignMaterial::GetDensityTimes2dTensorTensor(Matrix<double>& t, SubTensorT
   double e23 = 0;
   double e13 = 0;
   double e12 = 0;
-  if(direction == DesignElement::NO_DERIVATIVE || direction == DesignElement::DENSITY){
+  double a = 0;
+  Matrix<double> theta(3,3);
+  Matrix<double> help(3,3);
+  if(direction == DesignElement::NO_DERIVATIVE || direction == DesignElement::DENSITY || direction == DesignElement::ROTANGLE){
    e11 = params_[DesignElement::TENSOR11];
-   e22 = params_[DesignElement::TENSOR22];
    if(type_ == DENSITY_TIMES_2D_TENSOR_CONSTANT_TRACE){
+     e22 = params_[DesignElement::TENSOR22];
      e33 = 0.5 * (trace_ - e11 - e22); 
+   }else if(type_ == DENSITY_TIMES_ROTATED_2D_TENSOR){
+     e22 = 16 - e11;
+     e33 = params_[DesignElement::TENSOR33];
    }else{
+     e22 = params_[DesignElement::TENSOR22];
      e33 = params_[DesignElement::TENSOR33];
    }
    e23 = params_[DesignElement::TENSOR23];
@@ -545,43 +561,77 @@ void DesignMaterial::GetDensityTimes2dTensorTensor(Matrix<double>& t, SubTensorT
   double d = params_[DesignElement::DENSITY];
   switch(direction){
   case DesignElement::NO_DERIVATIVE:
-    d = exp(log(d)*penalty_);
-    Set2dVoigtTensor(t, subTensor, d*e11, d*e22, d*e33, d*e23, d*e13, d*e12);
+  case DesignElement::ROTANGLE:
+    d = pow(d, penalty_);
+    Set2dVoigtTensor(t, d*e11, d*e22, d*e33, d*e23, d*e13, d*e12);
     break;
   case DesignElement::DENSITY:
     if(penalty_ == 1.0){
       d = 1.0;
     }else{
-      d = penalty_*exp(log(d)*(penalty_-1));
+      d = penalty_*pow(d, penalty_-1);
     }
-    Set2dVoigtTensor(t, subTensor, d*e11, d*e22, d*e33, d*e23, d*e13, d*e12);
+    Set2dVoigtTensor(t, d*e11, d*e22, d*e33, d*e23, d*e13, d*e12);
     break;
   case DesignElement::TENSOR11:
-    d = exp(log(d)*penalty_);
-    Set2dVoigtTensor(t, subTensor, d, 0.0, type_ == DENSITY_TIMES_2D_TENSOR_CONSTANT_TRACE ? -0.5*d : 0.0, 0.0, 0.0, 0.0);
+    d = pow(d, penalty_);
+    Set2dVoigtTensor(t, d, type_ == DENSITY_TIMES_ROTATED_2D_TENSOR ? -d : 0.0, type_ == DENSITY_TIMES_2D_TENSOR_CONSTANT_TRACE ? -0.5*d : 0.0, 0.0, 0.0, 0.0);
     break;
   case DesignElement::TENSOR22:
-    d = exp(log(d)*penalty_);
-    Set2dVoigtTensor(t, subTensor, 0.0, d, type_ == DENSITY_TIMES_2D_TENSOR_CONSTANT_TRACE ? -0.5*d : 0.0, 0.0, 0.0, 0.0);
+    d = pow(d, penalty_);
+    Set2dVoigtTensor(t, 0.0, d, type_ == DENSITY_TIMES_2D_TENSOR_CONSTANT_TRACE ? -0.5*d : 0.0, 0.0, 0.0, 0.0);
     break;
   case DesignElement::TENSOR33:
-    d = exp(log(d)*penalty_);
-    Set2dVoigtTensor(t, subTensor, 0.0, 0.0, d, 0.0, 0.0, 0.0);
+    d = pow(d, penalty_);
+    Set2dVoigtTensor(t, 0.0, 0.0, d, 0.0, 0.0, 0.0);
     break;
   case DesignElement::TENSOR23:
-    d = exp(log(d)*penalty_);
-    Set2dVoigtTensor(t, subTensor, 0.0, 0.0, 0.0, d, 0.0, 0.0);
+    d = pow(d, penalty_);
+    Set2dVoigtTensor(t, 0.0, 0.0, 0.0, d, 0.0, 0.0);
     break;
   case DesignElement::TENSOR13:
-    d = exp(log(d)*penalty_);
-    Set2dVoigtTensor(t, subTensor, 0.0, 0.0, 0.0, 0.0, d, 0.0);
+    d = pow(d, penalty_);
+    Set2dVoigtTensor(t, 0.0, 0.0, 0.0, 0.0, d, 0.0);
     break;
   case DesignElement::TENSOR12:
-    d = exp(log(d)*penalty_);
-    Set2dVoigtTensor(t, subTensor, 0.0, 0.0, 0.0, 0.0, 0.0, d);
+    d = pow(d, penalty_);
+    Set2dVoigtTensor(t, 0.0, 0.0, 0.0, 0.0, 0.0, d);
     break;
   default:
     ZeroTensor(t, subTensor);
+    break;
+  }
+  if(type_ == DENSITY_TIMES_ROTATED_2D_TENSOR){
+    a = params_[DesignElement::ROTANGLE];
+    theta.SetEntry(0,0, pow(cos(a),2));
+    theta.SetEntry(0,1, pow(sin(a),2));
+    theta.SetEntry(0,2, -sqrt(2)/2*sin(2*a));
+    theta.SetEntry(1,0, theta(0,1));
+    theta.SetEntry(1,1, theta(0,0));
+    theta.SetEntry(1,2, -theta(0,2));
+    theta.SetEntry(2,0, theta(1,2));
+    theta.SetEntry(2,1, theta(0,2));
+    theta.SetEntry(2,2, cos(2*a));
+    t.Mult(theta, help);
+    if(direction == DesignElement::ROTANGLE){
+      Matrix<double> dtheta(3,3);
+      dtheta.SetEntry(0,0, -sin(2*a));
+      dtheta.SetEntry(0,1, -dtheta(0,0));
+      dtheta.SetEntry(0,2, -sqrt(2)*cos(2*a));
+      dtheta.SetEntry(1,0, dtheta(0,1));
+      dtheta.SetEntry(1,1, dtheta(0,0));
+      dtheta.SetEntry(1,2, -dtheta(0,2));
+      dtheta.SetEntry(2,0, dtheta(1,2));
+      dtheta.SetEntry(2,1, dtheta(0,2));
+      dtheta.SetEntry(2,2, -2*sin(2*a));
+      Matrix<double> dthetaTttheta(3,3);
+      dtheta.MultT(help, dthetaTttheta);
+      t.Mult(dtheta, help);
+      theta.MultT(help, dtheta);
+      t = dthetaTttheta + dtheta;
+      return;
+    }
+    theta.MultT(help, t);
     return;
   }
 }
@@ -601,18 +651,12 @@ void DesignMaterial::ZeroTensor(Matrix<double>& t, SubTensorType subTensor){
   t.Init();
 }
 
-void DesignMaterial::Set2dVoigtTensor(Matrix<double>& t, SubTensorType subTensor, double t11, double t22, double t33, double t23, double t13, double t12){
-  switch(subTensor){
-  case PLANE_STRAIN:
+void DesignMaterial::Set2dVoigtTensor(Matrix<double>& t, double t11, double t22, double t33, double t23, double t13, double t12){
     t.Resize(3,3);
     t.Init();
     t[0][0] = t11; t[0][1] = t12; t[0][2] = t13;
     t[1][0] = t12; t[1][1] = t22; t[1][2] = t23;
     t[2][0] = t13; t[2][1] = t23; t[2][2] = t33;
-    break;
-  default:
-    throw Exception("subTensor not implemented yet");
-  }
 }
 
 void DesignMaterial::SetTransIsoTensor(Matrix<double>& t, SubTensorType subTensor, double iD, double inD, double iG, double oD, double onD, double oG){
@@ -712,6 +756,7 @@ void DesignMaterial::GetMaterialTensor(Matrix<double>& t, SubTensorType subTenso
     break;
   case DENSITY_TIMES_2D_TENSOR:
   case DENSITY_TIMES_2D_TENSOR_CONSTANT_TRACE:
+  case DENSITY_TIMES_ROTATED_2D_TENSOR:
     GetDensityTimes2dTensorTensor(t, subTensor, direction);
     break;
   default: // case default
@@ -776,10 +821,11 @@ void DesignMaterial::SetEnums(){
   type.Add(LAME_ISOTROPIC, "lame-isotropic");
   type.Add(TRANSVERSAL_ISOTROPIC, "transversal-isotropic");
   type.Add(TRANSVERSAL_ISOTROPIC_BOXED, "transversal-isotropic-boxed");
-  type.Add(DENSITY_TIMES_TRANSVERSAL_ISOTROPIC, "density-times-transversal-isotropic-2d");
-  type.Add(DENSITY_TIMES_TRANSVERSAL_ISOTROPIC_BOXED, "density-times-transversal-isotropic-2d-boxed");
+  type.Add(DENSITY_TIMES_TRANSVERSAL_ISOTROPIC, "density-times-transversal-isotropic");
+  type.Add(DENSITY_TIMES_TRANSVERSAL_ISOTROPIC_BOXED, "density-times-transversal-isotropic-boxed");
   type.Add(DENSITY_TIMES_2D_TENSOR, "density-times-2dtensor");
   type.Add(DENSITY_TIMES_2D_TENSOR_CONSTANT_TRACE, "density-times-2dtensor-constant-trace");
+  type.Add(DENSITY_TIMES_ROTATED_2D_TENSOR, "density-times-rotated-2dtensor");
   transIsoType.SetName("DesignMaterial::TransIsoType");
   transIsoType.Add(TRANSISO_XY, "xy");
   transIsoType.Add(TRANSISO_YZ, "yz");
