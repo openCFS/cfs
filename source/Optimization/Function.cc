@@ -1243,7 +1243,8 @@ void Function::Local::SetupMultDesignsElementMap(const Function* f)
   UInt elems = space->GetNumberOfElements();
   virtual_elem_map.Reserve(element_dimension_ * elems);
 
-  // the neighbors are the design elements with for the same FE-element but with other designs
+  // the neighbors are the design elements for the same FE-element but with other designs
+  // one is not a neighbor of oneself
   StdVector<DesignElement*> neighbours;
 
   StdVector<unsigned int> des_idx; // the design indices we consider here
@@ -1263,11 +1264,13 @@ void Function::Local::SetupMultDesignsElementMap(const Function* f)
     assert(space->design.GetSize() == 6);
     // conditionally no break!
   default:
-    // all designs
-    des_idx.Resize(space->design.GetSize());
-    for(unsigned int i = 0; i < space->design.GetSize(); i++) des_idx[i] = i;
+    // all designs but the first one
+    des_idx.Reserve(space->design.GetSize()-1);
+    for(unsigned int i = 1; i < space->design.GetSize(); i++) des_idx.Push_back(i);
     break;
   }
+
+  LOG_DBG(func) << "F:L:SMDEM des_idx=" << des_idx.ToString() << " total=" << space->design.ToString();
 
   for(unsigned int e = 0; e < elems; e++)
   {
@@ -1276,8 +1279,15 @@ void Function::Local::SetupMultDesignsElementMap(const Function* f)
 
     neighbours.Resize(0);
 
-    for(unsigned int d = 1; d < des_idx.GetSize(); d++) // the first design = 0 is no neighbor!
-      neighbours.Push_back(&(space->data[elems * d + e]));
+    for(unsigned int d = 0; d < des_idx.GetSize(); d++)
+    {
+      // the first design = 0 is no neighbor!
+      unsigned des = des_idx[d];
+      DesignElement* other = &(space->data[elems * des + e]);
+      neighbours.Push_back(other);
+      LOG_DBG3(func) << "F:L:SMDEM e=" << e << " el=" << de->elem->elemNum << " d = " << d << " des=" << des << " design="
+                     << DesignElement::type.ToString(space->design[des]) << " idx=" << other->GetIndex() << " ed=" << de->GetType();
+    }
 
     virtual_elem_map.Push_back(Identifier(de, neighbours));
   }
@@ -2036,10 +2046,7 @@ double Function::Local::Identifier::CalcParamPSPosDef(int neigh_idx, bool deriva
            {
              case -1: ret = e22-v; break;// e11
              case  0: ret = e11-v; break;// e22
-             case  1:
-             case  2:
-             case  3: ret = 0.0; break;
-             case  4: ret = 2.0 * e12; break;// e12
+             case  1: ret = -2.0 * e12; break;// e12
              default: assert(false);
            }
          }
