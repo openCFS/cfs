@@ -14,6 +14,9 @@ ENDIF(EXPLICIT_TEMPLATE_INSTANTIATION)
 
 ADD_LIBRARY(lapack-olas STATIC ${LAPACK_SRCS})
 
+# needed as solver-olas is cyclic dependent on us 
+SET_PROPERTY(TARGET lapack-olas PROPERTY LINK_INTERFACE_MULTIPLICITY 3)
+
 # CFS_FORTRAN_LIBS has been set in cmake_modules/distro.cmake
 # LAPACK_LIBRARY and BLAS_LIBRARY are defined in
 # cmake_modules/FindFortranLibs.cmake
