@@ -1253,15 +1253,18 @@ void Function::Local::SetupMultDesignsElementMap(const Function* f)
   {
   case FMO_POS_DEF_MINOR_1:
     assert(space->design.GetSize() == 6);
+    if(space->design[0] != DesignElement::TENSOR11)
+      throw Exception("'Expect first design to be 'tensor11'");
     // only design TENSOR11 is not neighbor
     break;
   case FMO_POS_DEF_MINOR_2:
     assert(space->design.GetSize() == 6);
-    des_idx.Push_back(1); // TENSOR22
-    des_idx.Push_back(5); // TENSOR12
+    des_idx.Push_back(space->FindDesign(DesignElement::TENSOR22));
+    des_idx.Push_back(space->FindDesign(DesignElement::TENSOR12));
     break;
   case FMO_POS_DEF_MINOR_3:
     assert(space->design.GetSize() == 6);
+    // note, that the indices are sorted in sparse pattern
     // conditionally no break!
   default:
     // all designs but the first one
@@ -2042,11 +2045,11 @@ double Function::Local::Identifier::CalcParamPSPosDef(int neigh_idx, bool deriva
            ret = (e11-v)*(e22-v) - (e12*e12);
          else
          {
-           switch(neigh_idx)
+           switch(GetElement(neigh_idx)->GetType())
            {
-             case -1: ret = e22-v; break;// e11
-             case  0: ret = e11-v; break;// e22
-             case  1: ret = -2.0 * e12; break;// e12
+             case DesignElement::TENSOR11: ret = e22-v; break;
+             case DesignElement::TENSOR22: ret = e11-v; break;
+             case DesignElement::TENSOR12: ret = -2.0 * e12; break;
              default: assert(false);
            }
          }
@@ -2069,12 +2072,12 @@ double Function::Local::Identifier::CalcParamPSPosDef(int neigh_idx, bool deriva
          {
            switch(neigh_idx)
            {
-             case -1: ret = (e22-v)*(e33-v) - e23*e23; break;       // e11
-             case  0: ret = (e11-v)*(e33-v) - e13*e13; break;       // e22
-             case  1: ret = (e11-v)*(e22-v) - e12*e12; break;       // e33
-             case  2: ret = 2.0*e12*e13     - 2.0*e23*(e11-v); break;// e23
-             case  3: ret = 2.0*e12*e23     - 2.0*e13*(e22-v); break;// e13
-             case  4: ret = 2.0*e23*e13     - 2.0*e12*(e33-v); break;// e12
+             case DesignElement::TENSOR11: ret = (e22-v)*(e33-v) - e23*e23; break;
+             case DesignElement::TENSOR22: ret = (e11-v)*(e33-v) - e13*e13; break;
+             case DesignElement::TENSOR33: ret = (e11-v)*(e22-v) - e12*e12; break;
+             case DesignElement::TENSOR23: ret = 2.0*e12*e13     - 2.0*e23*(e11-v); break;
+             case DesignElement::TENSOR13: ret = 2.0*e12*e23     - 2.0*e13*(e22-v); break;
+             case DesignElement::TENSOR12: ret = 2.0*e23*e13     - 2.0*e12*(e33-v); break;
              default: assert(false);
            }
          }

@@ -30,8 +30,7 @@ SET(DEPENDS
 IF(USE_IPOPT)
   # gfortranbegin gcc_s
    #SET(TARGET_LL ${TARGET_LL} -Wl,-Bstatic ipopt coinhsl )
-   SET(COMBINED ${IPOPT_LIBRARY} ${IPOPT_HSL_LIBRARY})
-   
+   SET(COMBINED ${IPOPT_LIBRARY} ${IPOPT_HSL_LIBRARY} )
    ADD_DEPENDENT_LIBRARY(ipopt-lib "${COMBINED}" "${DEPENDS}")
    
    SET(TARGET_LL  ${TARGET_LL} ipopt-lib1)

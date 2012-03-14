@@ -1036,7 +1036,7 @@ void DesignSpace::EnableTransferFunctions()
 unsigned int DesignSpace::GetNumberOfVariables() const 
 {
   const unsigned int nd = design.GetSize();
-  const unsigned int nr = regions[0].GetSize();
+  const unsigned int nr = regions.GetSize() > 0 ? regions[0].GetSize() : 0; // e.g. for pure shape optimization
   unsigned int n = 0;
   for(unsigned int des = 0; des < nd; des++){
     for(unsigned int r = 0; r < nr; r++){

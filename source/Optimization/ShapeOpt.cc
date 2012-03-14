@@ -80,7 +80,7 @@ double ShapeOpt::CalcVolume(Objective* f, Condition* constraint, bool derivative
     Matrix<double> dJ;
     Matrix<double> diJ;
 
-    int np = shapedesign->GetNumberOfShapeParameters();
+    int np = shapedesign->GetNumberOfAuxParameters();
     der.Resize(np, 0);
     if(alsomatopt_){
       // this needs to be done before, we do use fraction
@@ -179,7 +179,7 @@ double ShapeOpt::CalcVolume(Objective* f, Condition* constraint, bool derivative
     // derivative in direction of our parameters is always needed and calculated here
     // derivative in direction of design-element parameters only if on that regions
     // these derivatives are independent of our parameters and can be calculated as before
-    shapedesign->AddShapeDerivatives(f, constraint, der, 1.0);
+    shapedesign->AddAuxDerivatives(f, constraint, der, 1.0);
   }else{ // derivative
     if(!alsomatopt_ || (constraint && constraint->GetDesignType() == DesignElement::UNITY)){ // this is the real volume, not multiplied by design, we also use this if no design available
       // if design is unity, we use the grid instead of designspace
@@ -204,7 +204,7 @@ double ShapeOpt::CalcVolume(Objective* f, Condition* constraint, bool derivative
 
 void ShapeOpt::CalcMinusU1dKU2(Solutions& forward, Solutions& adjoint, Objective* f, Condition* constraint, const Matrix<double>* tensor_diff){
   StdVector<double> der; // solution
-  int np = shapedesign->GetNumberOfShapeParameters();
+  int np = shapedesign->GetNumberOfAuxParameters();
   der.Resize(np, 0.0);
   const bool homogenization = tensor_diff != NULL;
   const unsigned int ex_size(me->excitations.GetSize());
@@ -442,13 +442,13 @@ void ShapeOpt::CalcMinusU1dKU2(Solutions& forward, Solutions& adjoint, Objective
     } // element loop
   } // biLinForm loop
   
-  shapedesign->AddShapeDerivatives(f, constraint, der, 1.0);
+  shapedesign->AddAuxDerivatives(f, constraint, der, 1.0);
   
   parser->ReleaseHandle(mathParserHandle);
 }
 
 void ShapeOpt::CalcUdF(Solutions& adjoint, Objective* f, Condition* constraint, double w){
-  int np(shapedesign->GetNumberOfShapeParameters());
+  int np(shapedesign->GetNumberOfAuxParameters());
   const unsigned int ex_size(me->excitations.GetSize());
   UInt timesteps(domain->GetDriver()->GetNumSteps());
 
@@ -587,7 +587,7 @@ void ShapeOpt::CalcUdF(Solutions& adjoint, Objective* f, Condition* constraint, 
     } // timesteps
   } // excitations  
 
-  shapedesign->AddShapeDerivatives(f, constraint, der, w);
+  shapedesign->AddAuxDerivatives(f, constraint, der, w);
 }
 
 double ShapeOpt::CalcCompliance(Excitation& excite, Objective* f, Condition* constraint, bool derivative){

@@ -1357,6 +1357,8 @@ source/OLAS/utils/math/ldlsystemsolve.hh svneol=native#text/x-c%2B%2Bhdr
 source/Optimization/CMakeLists.txt -text
 source/Optimization/Condition.cc svneol=native#text/x-c%2B%2Bsrc
 source/Optimization/Condition.hh svneol=native#text/x-c%2B%2Bhdr
+source/Optimization/Design/AuxDesign.cc -text
+source/Optimization/Design/AuxDesign.hh -text
 source/Optimization/Design/CMakeLists.txt -text
 source/Optimization/Design/DensityFile.cc -text
 source/Optimization/Design/DensityFile.hh -text
