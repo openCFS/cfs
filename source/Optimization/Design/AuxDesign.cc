@@ -13,13 +13,55 @@ class Condition;
 class Objective;
 
 DECLARE_LOG(aux_des)
-DEFINE_LOG(aux_des, "aux_design")
+DEFINE_LOG(aux_des, "auxDesign")
 
-AuxDesign::AuxDesign(StdVector<RegionIdType>& regions,  PtrParamNode pn, ErsatzMaterial::Method method)
+AuxDesign::AuxDesign(StdVector<RegionIdType>& regions,  PtrParamNode pn, ErsatzMaterial::Method method, unsigned int naux)
   : DesignSpace(regions, pn, method)
 {
   alsomatopt_ = true; // can be different in ShapeDesign
   scaling_ = 1.0;
+
+  assert(naux == 0 || naux == 1);
+  if(naux == 1)
+  {
+    slack_  = pn->GetByVal("design", "name", "slack");
+    aux_design_.Reserve(1);
+    BaseDesignElement de;
+    de.SetLowerBound(slack_->Get("lower")->As<double>());
+    de.SetUpperBound(slack_->Get("upper")->As<double>());
+    de.SetDesign(slack_->Get("initial")->As<double>());
+    // we need to PostInit!
+    aux_design_.Push_back(de);
+  }
+}
+
+void AuxDesign::PostInit(int objectives, int constraints)
+{
+  DesignSpace::PostInit(objectives, constraints);
+
+  assert((slack_ != NULL && aux_design_.GetSize() == 1) || slack_ == NULL);
+
+  if(slack_ != NULL)
+  {
+    LOG_DBG(aux_des) << "PI: #objectives = " << objectives << ", #constraints = " << constraints;
+    DesignElement::SetDesignSpace(this);
+    assert(aux_design_.GetSize() == 1);
+    assert(objectives == 1);
+    aux_design_[0].PostInit(objectives, constraints);
+  }
+}
+
+void AuxDesign::ToInfo(PtrParamNode in)
+{
+  DesignSpace::ToInfo(in);
+
+  if(slack_ != NULL)
+  {
+    PtrParamNode in_ = in->Get("designVariables")->Get("design", ParamNode::APPEND);
+    in_->Get("type")->SetValue("slack");
+    in_->Get("upperBound")->SetValue(aux_design_[0].GetUpperBound());
+    in_->Get("lowerBound")->SetValue(aux_design_[0].GetLowerBound());
+  }
 }
 
 int AuxDesign::ReadDesignFromExtern(const double* space_in)
@@ -82,9 +124,9 @@ int AuxDesign::WriteDesignToExtern(double* space_out, bool scale) const
   return design_id;
 }
 
-void AuxDesign::WriteDenseGradientToExtern(StdVector<double>& out, DesignElement::ValueSpecifier vs, DesignElement::Access access, Condition* g, bool scaling) const
+void AuxDesign::WriteGradientToExtern(StdVector<double>& out, DesignElement::ValueSpecifier vs, DesignElement::Access access, Condition* g, bool scaling) const
 {
-  assert(aux_design_.GetSize() + DesignSpace::GetNumberOfVariables() == out.window.GetSize());
+  assert(aux_design_.GetSize() + DesignSpace::GetNumberOfVariables() <= out.window.GetSize()); // out window can be ĺarger for snopt!
 
   if(alsomatopt_)
   {
@@ -97,7 +139,11 @@ void AuxDesign::WriteDenseGradientToExtern(StdVector<double>& out, DesignElement
     // shift the window to do the rest
     // replace the original window by a subwindow excluding the shape stuff
     out.window.Set(out.window.GetStart(), out.window.GetSize() - aux_design_.GetSize());
-    DesignSpace::WriteDenseGradientToExtern(out, vs, access, g, scaling);
+
+    if(g != NULL && g->HasDenseJacobian())
+      DesignSpace::WriteDenseGradientToExtern(out, vs, access, g, scaling);
+    if(g == NULL && !HasSlackVariable()) // the slack has no simp gradients!
+      DesignSpace::WriteSparseGradientToExtern(out, vs, access, g, scaling);
 
     // restore original window
     out.window = org_window;
@@ -110,13 +156,20 @@ void AuxDesign::WriteDenseGradientToExtern(StdVector<double>& out, DesignElement
 
 void AuxDesign::WriteAuxGradientToExtern(StdVector<double>& out, Condition* g, bool scale) const
 {
-  unsigned int base = out.window.GetStart() + DesignSpace::GetNumberOfVariables();
+  unsigned int base = out.window.GetStart();
+  if(g != NULL) base += DesignSpace::GetNumberOfVariables();
+  else base += (HasSlackVariable() ? 0 : DesignSpace::GetNumberOfVariables());
+
   assert(aux_design_.GetSize() <= out.window.GetSize());
   double s = scale ? scaling_ : 1.0;
   for(unsigned int i=0; i < aux_design_.GetSize(); i++)
   {
-    out[base + i] = aux_design_[i].GetPlainGradient(NULL, g) * s;
-    LOG_DBG3(aux_des) << "WAGTE: out[" << base+i << "]=" << out[base+i];
+    if(HasSlackVariable() && g != NULL && g->HasSlackBound())
+      out[base + i] = -1.0;
+    else
+      out[base + i] = aux_design_[i].GetPlainGradient(NULL, g) * s;
+    LOG_DBG3(aux_des) << "WAGTE: g=" << (g == NULL ? "null" : g->ToString()) << " out[" << base+i << "]=" << out[base+i]
+                      << " slack case=" << (HasSlackVariable() && g != NULL && g->HasSlackBound());
   }
 }
 
@@ -151,6 +204,11 @@ unsigned int AuxDesign::GetNumberOfVariables() const
   }else{
     return(aux_design_.GetSize());
   }
+}
+
+void AuxDesign::AddAuxDerivative(Function* f, unsigned int index, double value)
+{
+  aux_design_[index].AddGradient(f, value);
 }
 
 void AuxDesign::AddAuxDerivatives(Objective* f, Condition* g, StdVector<double>& d, double weight)

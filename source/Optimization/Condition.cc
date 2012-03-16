@@ -34,6 +34,7 @@ DECLARE_LOG(conditions)
 
 // instantiation of the static elements
 Enum<Condition::Bound> Condition::bound;
+double Condition::SLACK_VALUE_ = -45217861;
 
 Condition::Condition(PtrParamNode pn) : Function(pn)
 {
@@ -52,7 +53,9 @@ Condition::Condition(PtrParamNode pn) : Function(pn)
   bound_ = pn->Has("bound") ? bound.Parse(pn->Get("bound")->As<std::string>()) : EQUAL;
   // the bound value is called value in the problem file!
   // there must not  be a value when a homogenization tensor is given
-  this->boundValue_ = pn->Has("value") ? pn->Get("value")->As<double>() : -1.0;
+  this->boundValue_ = -1.0;
+  if(pn->Has("value"))
+    this->boundValue_ = pn->Get("value")->As<std::string>() == "slack" ? SLACK_VALUE_ : pn->Get("value")->As<double>();
 
   // special handling of scaling
   objective_scaling_ = pn->Get("scaling")->As<std::string>() == "objective";
@@ -676,20 +679,20 @@ void Condition::ReadDesignTrackingPattern(DesignSpace* space, DesignStructure* s
     pattern[i] = tmp[elements[i]->elem->elemNum];
 }
 
-void Condition::SetDenseSparsityPattern(DesignSpace* space)
+double Condition::GetBoundValue() const
 {
-  unsigned int size = space->GetNumberOfVariables();
-  sparsity_.Resize(size);
-  
-  for(unsigned int i = 0; i < size; i++)
-    sparsity_[i] = i;
+  // see GetSlackBoundValue()
+  return HasSlackBound() ? 0.0 : boundValue_; // all slack constraints g <= slack need to be g - slack <= 0
+
+  assert(!HasSlackBound());
+  return boundValue_;
 }
 
-StdVector<unsigned int>& Condition::GetSparsityPattern()
+
+double Condition::GetSlackBoundValue(const DesignSpace* space) const
 {
-  assert(!sparsity_.IsEmpty()); // SetSparsityPattern() needs to be called before
-  
-  return sparsity_;
+  assert(HasSlackBound());
+  return space->GetSlackVariable();
 }
 
 bool Condition::IsFeasible() const
@@ -780,7 +783,7 @@ void Condition::ToInfo(PtrParamNode in, MultipleExcitation* me)
   {
     in->Get("bound")->SetValue(bound.ToString(bound_));
     if(type_ != HOM_TRACKING)
-      in->Get("bound_value")->SetValue(boundValue_);
+      HasSlackBound() ? in->Get("bound_value")->SetValue("slack") : in->Get("bound_value")->SetValue(boundValue_);
   }
   if(type_ == HOM_TENSOR)
   {
@@ -840,11 +843,6 @@ StdVector<unsigned int>& LocalCondition::GetSparsityPattern()
 {
   /* for debug purposes you can enable the dense pattern by commenting out
    * the two lines */
-  /*
-  SetDenseSparsityPattern(space_);
-  return sparsity_;
-  */
-  
   assert(IsLocal());
 
   Function::Local::Identifier& id = GetCurrentVirtualContext();
@@ -993,11 +991,11 @@ void ConditionContainer::PostProc(DesignSpace* space, DesignStructure* structure
 {
   this->space_ = space;
 
-  // the conditions have no space 
+  // the conditions have no space
   for(unsigned int i = 0; i < all.GetSize(); i++)
     if(all[i]->HasDenseJacobian())
       all[i]->SetDenseSparsityPattern(space);
-  
+
   // check for special result index if there was a <result> for value=constraintGradient
   for(unsigned int i = 0; i < all.GetSize(); i++)
   {

@@ -118,7 +118,10 @@ class Function
       //FMO_POS_DEF,               /*!< local for anisotropic fmo to ensure positive def for (E - value*I) < param where param shall be very small */
       FMO_POS_DEF_MINOR_1,       /*!< 1st minor constraint for FMO_POS_DEF */
       FMO_POS_DEF_MINOR_2,       /*!< 2nd minor constraint for FMO_POS_DEF */
-      FMO_POS_DEF_MINOR_3        /*!< 3rd minor constraint for FMO_POS_DEF */
+      FMO_POS_DEF_MINOR_3,       /*!< 3rd minor constraint for FMO_POS_DEF */
+
+      SLACK                      /*!< for min max problems like min alpha s.th. compliance smaller alpha. Not really a function
+                                      but triggers AuxDesign instead of DesignSpace. */
     } Type; // in ConditionContainer::VirtualView::Refresh() we assume a maximal value for the type. Check!!
 
     /** to convert string/enum for this type */
@@ -173,6 +176,15 @@ class Function
 
     /** Are we generally excitation sensitive? E.g. stress */
     bool IsExcitationSensitive() const;
+
+    /** to be overwritten in Condition */
+    virtual bool HasDenseJacobian() const { return type_ != SLACK;  }
+
+    /** Gives the sparsity pattern of the jacobian. It gives the sorted, 0-based indices which have
+     * values. For the dens case this is 0, 1, ... m.
+     * This works only after ConditionContainer::PostProc() is called as otherwise the design is not known yet.
+     * Is overwritten for the slope constraint which actually has spare patterns. */
+    virtual StdVector<unsigned int>& GetSparsityPattern();
 
     /** Requires this function an adjoint solution for the gradient? */
     bool IsAdjointBased() const;
@@ -528,6 +540,13 @@ class Function
     /** extract the "coord" element and parse it to coord */
     static void ParseCoord(PtrParamNode pn, tuple<int, int, double>& coord);
 
+    /** By the size of DesignSpace::GetNumberOfVariables() which might include slack - to be handled in AuxDesign */
+    void SetDenseSparsityPattern(DesignSpace* space);
+
+    /** only slack has defined sparsity pattern, the local condition pattern is
+     * calculated on the fly by LocalCondition::GetSparsityPattern() */
+    void SetSparseSparsityPattern(DesignSpace* space);
+
     /** This is DEFAULT (= applies always) if not defined */
     DesignElement::Type design_;
 
@@ -582,6 +601,10 @@ class Function
     PtrParamNode preInfo_;
 
     StressType stressType_;
+
+    /** the sparsity pattern to be set by ConditionContainer::PostProc() via SetSparsity() */
+    StdVector<unsigned int> sparsity_;
+
 };
 
 

@@ -23,9 +23,13 @@ class AuxDesign : public DesignSpace
 {
   public:
 
-    AuxDesign(StdVector<RegionIdType>& regionIds, PtrParamNode pn, ErsatzMaterial::Method method = ErsatzMaterial::NO_METHOD);
+    AuxDesign(StdVector<RegionIdType>& regionIds, PtrParamNode pn, ErsatzMaterial::Method method = ErsatzMaterial::NO_METHOD, unsigned int naux = 0);
 
     virtual ~AuxDesign() { } ;
+
+    /** only for slack variable
+     * @see DesignSpace::PostInit() */
+    void PostInit(int objectives, int constraints);
 
     /** @see DesignSpace::ReadDesignFromExtern() */
     virtual int ReadDesignFromExtern(const double* space_in);
@@ -36,9 +40,11 @@ class AuxDesign : public DesignSpace
     /** writes design to the vector, prepending with shape variables */
     virtual int WriteDesignToExtern(double* space_out, bool scaling = true) const;
 
-    /** write gradient out to the vector, prepending with shape gradient */
-    virtual void WriteDenseGradientToExtern(StdVector<double>& out, DesignElement::ValueSpecifier vs,
+    /** write gradient out to the vector, appending with shape gradient
+     * Sparse and dense! */
+    virtual void WriteGradientToExtern(StdVector<double>& out, DesignElement::ValueSpecifier vs,
                                DesignElement::Access access, Condition* constraint = NULL, bool scaling = true) const;
+
 
     /** write the aux gradient part */
     void WriteAuxGradientToExtern(StdVector<double>& out, Condition* constraint, bool scale = true) const;
@@ -52,9 +58,18 @@ class AuxDesign : public DesignSpace
 
     int GetNumberOfAuxParameters() const { return aux_design_.GetSize(); }
 
+    void AddAuxDerivative(Function* f, unsigned int index, double value);
+
     void AddAuxDerivatives(Objective* objective, Condition* constraint, StdVector<double>& d, double weight);
 
+    /** @see DesignSpace::HasSlackVariable() */
+    bool HasSlackVariable() const { return slack_ != NULL; }
 
+    /** @see DesignSpace::GetSlackVariable() */
+    double GetSlackVariable() const { assert(slack_ != NULL); return aux_design_[0].GetDesign(); }
+
+    /** see DesignSpace::ToInfo() */
+    void ToInfo(PtrParamNode in);
 
   protected:
 
@@ -65,6 +80,8 @@ class AuxDesign : public DesignSpace
     /** factor for scaling the aux_parameters, this scales the gradient compared to material parameters gradient */
     double scaling_;
 
+    /** contains the slack design if slack design */
+    PtrParamNode slack_;
   };
 
 }

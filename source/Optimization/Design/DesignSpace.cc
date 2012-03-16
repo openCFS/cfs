@@ -85,9 +85,15 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
     DesignElement::Type dt = DesignElement::type.Parse(pn_design[d]->Get("name")->As<std::string>());
     if(design.Find(dt) < 0)
     {
-      design.Push_back(dt);
-      nd++;
+      if(dt != DesignElement::SLACK)
+      {
+        // slack is not really a design but triggers AuxDesign
+        design.Push_back(dt);
+        nd++;
+      }
     }
+    else
+      assert(false); // no unique design
   }
 
   // now read the transfer functions
@@ -316,19 +322,25 @@ double DesignSpace::DetermineLowerBound(PtrParamNode pn, TransferFunction* tf)
   assert(false);
   return -1;
 }
-DesignSpace* DesignSpace::CreateInstance(StdVector<RegionIdType> reg_data, PtrParamNode pn, ErsatzMaterial::Method method){
-  switch(method){
+DesignSpace* DesignSpace::CreateInstance(StdVector<RegionIdType> reg_data, PtrParamNode pn, ErsatzMaterial::Method method)
+{
+  switch(method)
+  {
   case ErsatzMaterial::SHAPE_OPT:
   case ErsatzMaterial::SHAPE_PARAM_MAT:
     return new ShapeDesign(reg_data, pn, method);
   default:
-    return new DesignSpace(reg_data, pn, method);
+    if(pn->HasByVal("design", "name", "slack"))
+      return new AuxDesign(reg_data, pn, method, 1); // slack variable
+    else
+      return new DesignSpace(reg_data, pn, method);
   }
 }
 DesignSpace* DesignSpace::Clone()
 {
   return new DesignSpace(regionIds_, pn_, ErsatzMaterial::SIMP_METHOD);
 }
+
 void DesignSpace::PostInit(int objectives, int constraints)
 {
   LOG_DBG(designSpace) << "# objectives = " << objectives << ", # constraints = " << constraints;
@@ -336,6 +348,7 @@ void DesignSpace::PostInit(int objectives, int constraints)
   for(unsigned int i = 0, n = totalElements_.GetSize(); i < n; i++)
     totalElements_[i]->PostInit(objectives, constraints);
 }
+
 bool DesignSpace::Contains(const RegionIdType reg, bool include_pseduo) const
 {
   for(unsigned int i = 0, n = regions[0].GetSize(); i < n; i++)
@@ -1033,6 +1046,7 @@ void DesignSpace::EnableTransferFunctions()
 {
   for(unsigned int i = 0; i < transfer.GetSize(); i++) transfer[i].Enable(true);
 }
+
 unsigned int DesignSpace::GetNumberOfVariables() const 
 {
   const unsigned int nd = design.GetSize();

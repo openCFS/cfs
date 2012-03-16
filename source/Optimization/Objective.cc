@@ -140,6 +140,11 @@ void ObjectiveContainer::PostProc(DesignSpace* space, DesignStructure* structure
 {
   for(unsigned int i = 0; i < data.GetSize(); i++)
   {
+    if(data[i]->HasDenseJacobian())
+      data[i]->SetDenseSparsityPattern(space);
+    else
+      data[i]->SetSparseSparsityPattern(space);
+
     data[i]->SetElements(space, ALL_REGIONS); // before Function::PostProc() !
     data[i]->PostProc(space, structure);
     data[i]->SetExcitation(me);

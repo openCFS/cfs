@@ -76,6 +76,7 @@ SnOpt::SnOpt(Optimization* opt, PtrParamNode pn) :
   optimizer_pn_(pn->Get(Optimization::optimizer.ToString(Optimization::SNOPT_SOLVER), ParamNode::PASS)),
   lin_constraints(0),
   nonlin_constraints(0),
+  n_obj_grad(0),
   perform_commit_iteration_(false), // we want to perform commit iteration only after the first function eval.
   outfilename(""),
   timer_(new Timer()),
@@ -374,7 +375,7 @@ int SnOpt::Callback(integer* Status, const integer n,
     
     //assert(*nG-n == nonlin_constraints*n); // this is only valid if nonlin constr are DENSE!!!!
     
-    eval_jac_g(n, x, nonlin_constraints, *nG - n, G + n);
+    eval_jac_g(n, x, nonlin_constraints, *nG - n_obj_grad, G + n_obj_grad);
     
     // when the linear constraints are not fulfilled there will immediately be gradient evaluation as the
     // first snopt action and we do not want to loose the initial design in the output.
@@ -423,7 +424,8 @@ bool SnOpt::get_nlp_info()
   }
   
   // number for nonlin gradient must be higher for objective function 
-  nG += n;
+  n_obj_grad = optimization->objectives.data[0]->GetSparsityPattern().GetSize();
+  nG += n_obj_grad;
   
   optimization->constraints.view->Done();
 
@@ -626,16 +628,20 @@ void SnOpt::initJacobians()
   int index = 0; // counter
   int indexlin = 0; // counter
 
-  // for objective function(s) which in cfs is only one
-  for(int e = 1; e <= n; ++e) // fortran
+  // for objective function(s) which in cfs is only one. But it might be sparse (slack!)
+  assert(optimization->objectives.data.GetSize() >= 1);
+  Objective* c = optimization->objectives.data[0]; // only slack is sparse!
+  assert(c->GetType() != Function::SLACK || optimization->objectives.data.GetSize() == 1);
+  StdVector<unsigned int>& pattern = c->GetSparsityPattern();
+  assert((int) pattern.GetSize() == n || (pattern.GetSize() == 1 && c->GetType() == Function::SLACK));
+  assert(pattern.GetSize() == n_obj_grad);
+
+  for(unsigned int e = 0; e < pattern.GetSize(); e++)
   {
     iGfun.push_back(cstr);
-    jGvar.push_back(e);
+    jGvar.push_back(pattern[e] + 1);
     
-    LOG_DBG3(snopt) << "cost function"
-                    << "; iGfun[" << index << "] = " << iGfun[index]
-                    << ", jGvar[" << index << "] = " << jGvar[index];
-    
+    LOG_DBG3(snopt) << "cost function" << "; iGfun[" << index << "] = " << iGfun[index] << ", jGvar[" << index << "] = " << jGvar[index];
     ++index;
   }
   ++cstr;
@@ -645,7 +651,7 @@ void SnOpt::initJacobians()
   for(int c = 0, nc = optimization->constraints.view->GetNumberOfActiveConstraints(); c < nc; c++)
   {
     Condition* g = optimization->constraints.view->Get(c);
-    const StdVector<unsigned int>& pattern = g->GetSparsityPattern();
+    pattern = g->GetSparsityPattern();
     const unsigned int patternsize(pattern.GetSize());
     assert(patternsize > 0);
 

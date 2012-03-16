@@ -307,6 +307,7 @@ void Optimization::SetEnums()
   Function::type.Add(Function::FMO_POS_DEF_MINOR_1, "fmoPosDefMinor1");
   Function::type.Add(Function::FMO_POS_DEF_MINOR_2, "fmoPosDefMinor2");
   Function::type.Add(Function::FMO_POS_DEF_MINOR_3, "fmoPosDefMinor3");
+  Function::type.Add(Function::SLACK, "slack");
 
   Function::Local::locality.SetName("Function::Local::Locality");
   Function::Local::locality.Add(Function::Local::DEFAULT, "default");

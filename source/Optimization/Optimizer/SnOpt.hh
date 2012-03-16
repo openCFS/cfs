@@ -217,6 +217,9 @@ private:
   /** interface for eval_grad_f and eval_jac_g requires a StdVector */
   StdVector<doublereal> gradhelper;
   
+  /** this is the size of the objective gradients */
+  unsigned int n_obj_grad;
+
   /** We do not know when the major iterations and define it as the last function evaluation
    * before a new gradient step is evaluated. Such we can do the CommitIteration() only "post mortem" :(
    * This is therefore the "static" helper to be used in Callback(). */

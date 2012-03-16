@@ -54,7 +54,7 @@ namespace CoupledField
      /** PostInit as usual when not all can be stuffed into the constructor
       * @param objectives the number of objectives
       * @param constraints the number of constraints to initialize constraintGradients */
-     void PostInit(int objectives, int constraints);
+     virtual void PostInit(int objectives, int constraints);
 
      /** Consist all regions of the design of a regular grid?.
       * In the derived design space we assume a non-regular grid for SHAPE_OPT and SHAPE_PARAM_MAT */
@@ -90,6 +90,12 @@ namespace CoupledField
      {
        return GetErsatzMaterialFactor(design_index, (Optimization::Application) applicationForm.Parse(form->GetName()), forBimaterial);
      }
+
+     /** do we have a slack variable and such an AuxDesign? */
+     virtual bool HasSlackVariable() const { return false; }
+
+     /** returns the slack variable if present or throws an exception */
+     virtual double GetSlackVariable() const { assert(false); return -1; }
 
      /** Returns true if optimization does provide a complete tensor, not just a density */
      bool HasErsatzMaterialTensor() const
@@ -182,7 +188,7 @@ namespace CoupledField
 
      /** Similar but more general as WriteDesignToExtern().
       * @param out if it has a window writes to the window of the vector! */
-     void WriteGradientToExtern(StdVector<double>& out, DesignElement::ValueSpecifier vs,
+     virtual void WriteGradientToExtern(StdVector<double>& out, DesignElement::ValueSpecifier vs,
                                 DesignElement::Access access, Condition* g = NULL, bool scaling = true) const
      {
        if(g == NULL || g->HasDenseJacobian())
@@ -236,6 +242,10 @@ namespace CoupledField
       * Takes constant regions into account - hence can be smaller than the number of elements even for
       * multiple regions. */
      virtual unsigned int GetNumberOfVariables() const;
+
+     /** this is the number of ersatz material variables. Only below GetNumberOfVariables()
+      * if AuxDesign or ShapeDesign is used*/
+     unsigned int GetNumberOfErsatzMaterialVariables() const { return DesignSpace::GetNumberOfVariables(); }
      
      /** Find the element with the largest Filter neighborhood, if no filter is used or if the
       * value is not unique (what should be the case) any suitable is returned.
@@ -295,7 +305,7 @@ namespace CoupledField
      std::string ToString();
 
      /** Writes summary information about design variables and transfer functions into the node */
-     void ToInfo(PtrParamNode in);
+     virtual void ToInfo(PtrParamNode in);
      
      typedef enum { VARIABLE, CONSTANT_PER_REGION, CONSTANT_ON_ALL_REGIONS, FIXED } DesignConstant;
      
@@ -376,8 +386,13 @@ namespace CoupledField
 
 
      /** handles design and region reordering */
-     virtual void WriteDenseGradientToExtern(StdVector<double>& out, DesignElement::ValueSpecifier vs,
+     void WriteDenseGradientToExtern(StdVector<double>& out, DesignElement::ValueSpecifier vs,
                                 DesignElement::Access access, Condition* g = NULL, bool scaling = true) const;
+
+     /** can handle the sparse slope constraint but no reordering as the dense version */
+     void WriteSparseGradientToExtern(StdVector<double>& out, DesignElement::ValueSpecifier vs,
+                                DesignElement::Access access, Condition* g = NULL, bool scaling = true) const;
+
 
      /** This number identifies the design space. It is always incremented if ReadDesignFromExtern() reads
       * a different design */
@@ -419,10 +434,6 @@ namespace CoupledField
      /** as regionIds_ does not exist as StdVector anymore, a simple replacement for regionIds_.Find() */
      int FindRegion(RegionIdType regionId);
 
-
-     /** can handle the sparse slope constraint but no reordering as the dense version */
-     void WriteSparseGradientToExtern(StdVector<double>& out, DesignElement::ValueSpecifier vs,
-                                DesignElement::Access access, Condition* g = NULL, bool scaling = true) const;
      
      /** We afford a large element number to design index mapping.
       * sorted by the elemNum the design index is stored.

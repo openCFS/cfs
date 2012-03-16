@@ -39,7 +39,7 @@ namespace CoupledField
        /** overwrites Function::IsObjective() */
        bool IsObjective() const { return false; }
 
-       /** to be overwritten in LocalCondition */
+       /** to be overwritten in LocalCondition. */
        virtual bool IsLocalCondition() const { return false; }
 
        /** Overwrites and calls Function::PostProc() */
@@ -62,8 +62,17 @@ namespace CoupledField
        /** Be sure not to mix up with Name! */             
        Bound GetBound() const { return bound_; }
 
-       /** The bound value for inhomogeneous constraints. */
-       double GetBoundValue() const { return boundValue_; }
+       /** The bound value for inhomogeneous constraints.
+        * @param design optionl if given the slack design value (not constant!) can be returned in case
+        * In slack bound case it returns 0 as the constraints g <= slack is transformed to g - slack <= 0
+        * @see GetSlackBoundValue() */
+       double GetBoundValue() const;
+
+       /** This is the real slack bound, not transformed as in GetBoundValue() */
+       double GetSlackBoundValue(const DesignSpace* space) const;
+
+       /** is the bound value the special slack case */
+       bool HasSlackBound() const { return boundValue_ == SLACK_VALUE_; }
 
        /** Little helper to check if the bounds are violated (up to an eps) */
        bool IsFeasible() const;
@@ -93,7 +102,8 @@ namespace CoupledField
        /** Shall the scaling be linked to the objective scaling */
        bool DoObjectiveScaling() const { return objective_scaling_; }
 
-       /** Is the gradient dense or sparse. Only local conditions are sparse */
+       /** Is the gradient dense or sparse. Only local conditions and slack obj are sparse
+        * @see Function::HasDenseJacobian() */
        bool HasDenseJacobian() const { return !IsLocalCondition();  }
        
        /** Is it a constraint on the imaginary part? */
@@ -103,12 +113,6 @@ namespace CoupledField
        bool IsBiisotropy() const { return biisotropy_; }
 
        // int GetFMOPosDefMinor() const { return fmo_pos_def_minor_; }
-
-       /** Gives the sparsity pattern of the jacobian. It gives the sorted, 0-based indices which have
-        * values. For the dens case this is 0, 1, ... m.
-        * This works only after ConditionContainer::PostProc() is called as otherwise the design is not known yet.
-        * Is overwritten for the slope constraint which actually has spare patterns. */
-       virtual StdVector<unsigned int>& GetSparsityPattern();
 
        /** creates an xml attribute name compatible string representation for coords */
        static std::string ToString(const StdVector<tuple<int, int, double> >&);
@@ -162,10 +166,6 @@ namespace CoupledField
       /** @see other AppendSubCondition() */
       Condition* AppendSubCondition(StdVector<Condition*>& list, int pos_x, int pos_y);
 
-      /** To be called by ConditionContainer::PostProc() which is a friend */
-      void SetDenseSparsityPattern(DesignSpace* space);
-      
-
       /** Bound stuff for condition and globalSlope also for objective */
       Bound bound_;
 
@@ -179,9 +179,6 @@ namespace CoupledField
       /** Is this an observation constraint only. */
       bool observation_;
 
-      /** the sparsity pattern to be set by ConditionContainer::PostProc() via SetSparsity() */
-      StdVector<unsigned int> sparsity_;
-      
       /** Some special constraints are automatically blown up - like isotropy. But
        * even then the first of the entries is NOT blown up!
        * Set by AppendSubCondition() */
@@ -234,6 +231,8 @@ namespace CoupledField
        * to an own excitation */
       static void AddExcitationStressConstraints(StdVector<Condition*>& list, MultipleExcitation* me);
 
+      /** this encodes the special slack bound value */
+      static double SLACK_VALUE_;
    };
 
    /** This handles local constraints which exist only virtually - hence the optimizer sees them but

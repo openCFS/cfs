@@ -419,6 +419,7 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
     case FMO_POS_DEF_MINOR_1:
     case FMO_POS_DEF_MINOR_2:
     case FMO_POS_DEF_MINOR_3:
+    case SLACK:
       assert(excite_index < 0);
       excite_ = me->excitations.GetSize() - 1; // once only at the last excitation
       break;
@@ -579,6 +580,7 @@ bool Function::ForDensityFiltering() const
   switch(type_)
   {
   case PROJECTION:
+  case SLACK:
     // for the projection case we have a density filter manually on Function::projectionDesign only
     return false;
 
@@ -645,6 +647,7 @@ bool Function::ForSensitivityFiltering() const
   case FMO_POS_DEF_MINOR_1:
   case FMO_POS_DEF_MINOR_2:
   case FMO_POS_DEF_MINOR_3:
+  case SLACK:
     return false;
 
   case ISOTROPY:
@@ -718,6 +721,31 @@ void Function::SetElements(DesignSpace* space, RegionIdType region)
   }
 
 //  assert(elements.GetSize() == elements.Capacity());
+}
+
+void Function::SetDenseSparsityPattern(DesignSpace* space)
+{
+  sparsity_.Resize(space->GetNumberOfVariables()); // this might include aux variables
+
+  for(unsigned int i = 0; i < sparsity_.GetSize(); i++)
+    sparsity_[i] = i;
+}
+
+void Function::SetSparseSparsityPattern(DesignSpace* space)
+{
+  assert(type_ == SLACK);
+  assert(space->GetNumberOfVariables() == space->GetNumberOfErsatzMaterialVariables() + 1);
+
+  sparsity_.Resize(1);
+  sparsity_[0] = space->GetNumberOfVariables() - 1; // zero based
+}
+
+
+StdVector<unsigned int>& Function::GetSparsityPattern()
+{
+  assert(!sparsity_.IsEmpty()); // SetSparsityPattern() needs to be called before
+
+  return sparsity_;
 }
 
 

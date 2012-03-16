@@ -408,7 +408,6 @@ void BaseOptimizer::EvalConstraints(int n, const double* x, int m, bool cfs_scal
   for(int i = 0; i < m; i++)
   {
     Condition* g = optimization->constraints.view->Get(i);
-    double org = optimization->CalcConstraint(g);
 
     // do a complicated detection of local conditions handle the Local::active counter for logging
     if(g->IsLocalCondition())
@@ -433,11 +432,13 @@ void BaseOptimizer::EvalConstraints(int n, const double* x, int m, bool cfs_scal
       else
         manual_scaling = g->manual_scaling_value;
     }
-    double val = org * manual_scaling * objective_scaling;
+    double org = optimization->CalcConstraint(g);
+    double base = org - (g->HasSlackBound() ? optimization->GetDesign()->GetSlackVariable() : 0.0);
+    double val = base * manual_scaling * objective_scaling;
 
     LOG_DBG2(optimizer) << "EvalConstraints: g=" << g->type.ToString(g->GetType()) << " org=" << org
-                        << " manual_scale=" << manual_scaling << " objective_scale=" << objective_scaling
-                        << " ->" << val;
+                        << " slack_corrected=" << base << " manual_scale=" << manual_scaling
+                        << " objective_scale=" << objective_scaling << " ->" << val;
     g_val[i] = val;
   }
   optimization->constraints.view->Done(); // reset local constraint to global mode
