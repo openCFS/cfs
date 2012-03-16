@@ -548,7 +548,8 @@ void DesignMaterial::GetDensityTimes2dTensorTensor(Matrix<double>& t, SubTensorT
      e22 = params_[DesignElement::TENSOR22];
      e33 = 0.5 * (trace_ - e11 - e22); 
    }else if(type_ == DENSITY_TIMES_ROTATED_2D_TENSOR){
-     e22 = 16 - e11;
+     e22 = 15 - e11;
+     e11 += 1.0;
      e33 = params_[DesignElement::TENSOR33];
    }else{
      e22 = params_[DesignElement::TENSOR22];
@@ -603,6 +604,7 @@ void DesignMaterial::GetDensityTimes2dTensorTensor(Matrix<double>& t, SubTensorT
   }
   if(type_ == DENSITY_TIMES_ROTATED_2D_TENSOR){
     a = params_[DesignElement::ROTANGLE];
+    const double sq2inv = 1/sqrt(2);
     theta.SetEntry(0,0, pow(cos(a),2));
     theta.SetEntry(0,1, pow(sin(a),2));
     theta.SetEntry(0,2, -sqrt(2)/2*sin(2*a));
@@ -629,9 +631,25 @@ void DesignMaterial::GetDensityTimes2dTensorTensor(Matrix<double>& t, SubTensorT
       t.Mult(dtheta, help);
       theta.MultT(help, dtheta);
       t = dthetaTttheta + dtheta;
+      t(0,2)*= sq2inv;
+      t(1,2)*=sq2inv;
+      t(2,2)/=2;
+      t(2,0)*=sq2inv;
+      t(2,1)*=sq2inv;
       return;
     }
     theta.MultT(help, t);
+    t(0,2)*= sq2inv;
+    t(1,2)*=sq2inv;
+    t(2,2)/=2;
+    t(2,0)*=sq2inv;
+    t(2,1)*=sq2inv;
+//    static int count(0);
+//    if (count % 10 == 0 && count/100 % 10 == 0){
+////      std::cout << "(" << (count/100 % 10)*(count % 10)+1 << ")" << t.ToString() << std::endl;
+//      std::cout << t(0,0) << " " << t(0,1) << " " << t(1,1) << " " << t(0,2) << " " << t(1,2) << " " << t(2,2) << std::endl;
+//    }
+//    count++;
     return;
   }
 }
