@@ -69,8 +69,9 @@
 
     /** Solves the optimization problem. Can take a while!
      * @param fromWarmstart starts scpip wie ierr=-4, see SCPIP docu
-     * Returns the last ierr value which can be decoded via ToString() */
-    int SolveProblem(bool fromWarmstart = false); 
+     * Returns the last ierr value which can be decoded via ToString()
+     * To be overwritten in FeasSCP! */
+    virtual int SolveProblem(bool fromWarmstart = false);
 
     /** Determines information about the problem dimensions. Taken from IPOPT.
      * @param n return here the total number of design variables

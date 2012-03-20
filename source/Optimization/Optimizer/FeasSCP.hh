@@ -1,51 +1,26 @@
-/*****************************************************************************/
-// File: ScpSolver.h, interface for the fortran solver SCPIP.
-// Sonja Ertel, Michael Stingl 2008/06
-/*****************************************************************************/
+#ifndef _FEAS_SCP_HH_
+#define _FEAS_SCP_HH_
 
-#ifndef _SCPSOLVER_
-#define _SCPSOLVER_
+#include "Optimization/Optimizer/scpip40i.hh"
+#include "Optimization/Optimizer/BaseOptimizer.hh"
 
+namespace CoupledField
+{
 
-#include "scpip30.h"
-class ASCPSolver
+/** This is based on ScpSolver.h (Sonja Ertel, MichaelStingel) and called ASCPSolver there */
+class FeasSCP : public BaseOptimizer, public SCPIPBase
 {
 public:
 
-	ASCPSolver(void * UsrObj = 0, char* szConfig = 0); //constuctor
-	~ASCPSolver();//deconstructor
+  FeasSCP(Optimization* optimization, PtrParamNode pn);
 
-	/** Set methods (for options, problem definiton, etc.) */
-	inline void SetNumVars(int nVariables) {m_nvars = nVariables;};
-	inline void SetNumObjs(int nObjectives) {m_nobj = nObjectives;};
-	inline void SetNumIneqConstr(int nConstr) {m_nie = nConstr;};
-	inline void SetNumEqConstr(int nConstr) {m_neq = nConstr;};
-	inline void SetNumSDPBlocks(int nSDPBlocks) {m_nsdp = nSDPBlocks;};
+	virtual ~FeasSCP();
+
   void SetInitialSolution(double* xinit); /* requires call to SetNumVars first! */
-	void SetLowerBoundsMVars(const double* rUBMVars); /* requires call to SetNumSDPBlocks first! */
-	void SetUpperBoundsMVars(const double* rLBMVars); /* requires call to SetNumSDPBlocks first! */
-	void SetLowerBoundMVars(double rUBMVars); /* requires call to SetNumSDPBlocks first! */
-	void SetUpperBoundMVars(double rLBMVars); /* requires call to SetNumSDPBlocks first! */
-	void SetLowerBoundMVar(double rUBMVar, int idx); /* requires call to SetNumSDPBlocks first! */
-	void SetUpperBoundMVar(double rLBMVar, int idx); /* requires call to SetNumSDPBlocks first! */
-	void SetLowerBoundsVars(const double* rUBVars); /* requires call to SetNumSDPBlocks first! */
-	void SetUpperBoundsVars(const double* rLBVars); /* requires call to SetNumSDPBlocks first! */
-	void SetLowerBoundVars(double rUBVars); /* requires call to SetNumSDPBlocks first! */
-	void SetUpperBoundVars(double rLBVars); /* requires call to SetNumSDPBlocks first! */
-	void SetLowerBoundVar(double rUBVar, int idx); /* requires call to SetNumSDPBlocks first! */
-	void SetUpperBoundVar(double rLBVar, int idx); /* requires call to SetNumSDPBlocks first! */
-	void SetSizesOfMVariables(const int* nMSizes); /* requires call to SetNumSDPBlocks first! */
-	void SetSizeOfMVariables(int nMSizes); /* Sets ALL objects to same value */
-	void SetSizeOfMVariable(int nMSize, int idx);  /* sets one specific matrix size */
 	void SetIntegerOption(int idx, int nVal); 
 	void SetRealOption(int idx, double rVal); 
 	void SetIntegerOptions(int* nVal); 
 	void SetRealOptions(double* rVal); 
-
-	/**  Access methods (for options, problem definiton, etc.) */
-	/* NOT IMPLEMENTED YET! */
-	double GetLowerBoundsMVars(int i) const {return m_lbmv[i];}; 
-	int GetNumSDPBlocks() const {return m_nsdp;}; 
 
 	/**  Access methods (for results) */
 	inline int GetStatus() {return m_status;};
@@ -53,8 +28,6 @@ public:
 
 	/** Problem solve */
 	bool SCPSolve();
-
-	static void* UsrObj () {return m_pUsrObj; };
 
 	/**  Mutator methods */
   static bool IsMajor() { return (m_nFEvals % m_nMajor == 0) ;};
@@ -94,23 +67,11 @@ private:
 	/* on exit : unchanged                                                         */
 	int m_mf;
 	
-	/* nsdp (int)                                                                  */
-	/* on entry: number of sdp blocks                                              */
-	/* on exit : unchanged                                                         */
-	int m_nsdp;
-
 	/* xinit (double array of size nvars)                                          */
 	/* on entry: primal initial iterate                                            */
 	/* on exit : approximate primal solution vector                                */
 	/* comments: set flag ioptions[4] = 1 to ignore initial iterates               */
 	double *m_xinit;
-
-	/* blks (int array of size nsdp)                                               */
-	/* on entry: sizes of matrix variables                                         */
-	/* on exit : unchanged                                                         */
-	/* comments: if constraint should not be bounded above,                        */
-	/*           set corresponding value to HUGE_VAL                               */
-	int *m_blks;
 
 	/* lbv (double array of size nconstr)                                          */
 	/* on entry: loweer bounds on scalar variables                                 */
@@ -126,19 +87,15 @@ private:
 	/*           set corresponding value to HUGE_VAL                               */
 	double *m_ubv;
 
-  /* lbmv (double array of size nsdp)                                            */
-	/* on entry: loweer bounds on matrix variables                                 */
-	/* on exit : unchanged                                                         */
-	/* comments: if constraint should not be bounded above,                        */
-	/*           set corresponding value to HUGE_VAL                               */
-	double *m_lbmv;
+  /** The design space */
+  StdVector<double> x;
 
-	/* ubmv (double array of size nsdp)                                            */
-	/* on entry: upper bounds on matrix variables                                  */
-	/* on exit : unchanged                                                         */
-	/* comments: if constraint should not be bounded above,                        */
-	/*           set corresponding value to HUGE_VAL                               */
-	double *m_ubmv;
+  /** lower bound of design space */
+  StdVector<double> x_l;
+
+  /** upper bound of design space */
+  StdVector<double> x_u;
+
 
        
   /* temporary objective function value */
@@ -264,14 +221,11 @@ private:
   bool m_bAutoScale;
 
 
-  static void* m_pUsrObj;
-
   static int m_nFEvals;
   static int m_nMajor;
 
-
-
-
+  const StdVector<int> matrix_sizes;
 };
 
-#endif
+} // end of namespace
+#endif // _FEAS_SCP_HH_
