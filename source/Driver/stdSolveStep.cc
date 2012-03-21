@@ -1400,6 +1400,8 @@ class Hysteresis;
     iter->Get("incrementalErr")->SetValue(incrementalErr);
     if(etaLineSearch)
       iter->Get("eta_linesearch")->SetValue(etaLineSearch);
+    // update convergen process
+    info->ToFile();
   }
 
 } // end of namespace
