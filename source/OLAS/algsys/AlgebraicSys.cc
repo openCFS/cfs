@@ -2176,7 +2176,7 @@ namespace CoupledField {
           // omit entries for Dirichlet values
           if( indices[j] <= blockInfo_[blockNums[j]]->numLastFreeIndex) {
             tmpRHS_->GetPointer(blockNums[j])
-                ->SetEntry(indices[j]-1, nRHS[j] );
+                ->AddToEntry(indices[j]-1, nRHS[j] );
           }else if(!usingPenalty_){
             idbcHandler_->AddFixedToFreeRHS(matrixType,blockNums[j],
 			    		indices[j],rhs_,nRHS[j]);

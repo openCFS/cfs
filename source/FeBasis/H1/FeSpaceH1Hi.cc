@@ -406,6 +406,8 @@ namespace CoupledField{
   void FeSpaceH1Hi::AdjustEntityOrder() {
     LOG_TRACE(feSpaceH1Hi) << "Adjusting entity order";
     
+    // This method is called in the ned
+    
     
     // Create temporary map for edges
     boost::unordered_map<UInt, UInt> edgeOrders;

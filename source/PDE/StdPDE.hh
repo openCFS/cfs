@@ -139,19 +139,6 @@ namespace CoupledField {
     //! Return pointer to paramNode of current pde
     PtrParamNode GetParamNode() { return myParam_; }
 
-    //!
-    //! \for computing and adding RHS to PDE in case of special sources 
-    virtual void ComputeRHS(const Double atime) {;};
-
-    //!
-    //! \for computing vortex source both analytically and with complex 
-    //! \potential function 
-    virtual  void VortexAnalytical(Double & press, Vector<Double>& dTij_di,
-                                   const Double x,
-                                   const Double y, const Double t, 
-                                   const UInt outType){
-      EXCEPTION("VortexAnalytical is only implemented in acouFlowNoisePDE");};
-  
     //! set boundary condition OBSOLETE in the future
     virtual  void SetBCs() = 0;
 

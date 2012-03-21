@@ -420,11 +420,10 @@ namespace CoupledField {
 
       //account for RHS
       assemble_->AssembleLinRHS(adjointParams);
-      PDE_.ComputeRHS( actTime_ );
 
       // store rhs vector back to PDE 
       algsys_->GetRHSVal(rhsVec_);
-
+      
       assemble_->AssembleMatrices();
       if(assemble_->IsMatrixUpdated()){
         matrix_factor_.clear();

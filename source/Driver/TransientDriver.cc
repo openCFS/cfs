@@ -74,6 +74,14 @@ namespace CoupledField {
     // remove HALTCFS File at the beginning
     if(fs::exists("./HALTCFS")) 
       fs::remove("./HALTCFS");
+    
+    // in the end, directly register the global transient variables
+    domain->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
+                                       "t", 0 );
+    domain->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
+                                       "dt", 0.0 );    
+    domain->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
+                                       "step", 1 );
   }
 
   // ==============

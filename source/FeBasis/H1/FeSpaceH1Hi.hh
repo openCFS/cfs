@@ -89,10 +89,10 @@ class FeSpaceH1Hi : public FeSpaceH1 {
     //! Set containing all faces, where the min/max rule gets applied
     boost::unordered_set<UInt> adjustedFaces_;
     
-    //! Map containing the order of adjusted edges
+    //! Map containing the order of adjusted edges (key: edge number)
     boost::unordered_map<UInt, UInt> orderEdges_;
     
-    //! Map containing the order of adjusted faces
+    //! Map containing the order of adjusted faces (key: face number)
     boost::unordered_map<UInt, boost::array<UInt,2> > orderFaces_;
 
   private:

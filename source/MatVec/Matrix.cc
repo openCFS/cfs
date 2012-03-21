@@ -599,21 +599,24 @@ namespace CoupledField
       int lda, ldb, ldc;
       int m,n,k;
 
-      double* A = data_[0];
-      double* B = mMat1.data_[0];
-      double* C = rMat1.data_[0];
-
-  /*
-   *  m would normally be the number of rows of C but Fortran accesses it as C^T so m is the number of columns
-   *  in the same way n is now the number of rows
-   *  k is the number of rows of op(B) and in our case op(B) = A or A^T so k would be rows of A in the first case and cols of A in the second one
-   *  but here you also have to remember the column wise access so cols and rows are swapped like for c
-   */
+      /*
+       *  m would normally be the number of rows of C but Fortran accesses it as C^T so m is the number of columns
+       *  in the same way n is now the number of rows
+       *  k is the number of rows of op(B) and in our case op(B) = A or A^T so k would be rows of A in the first case and cols of A in the second one
+       *  but here you also have to remember the column wise access so cols and rows are swapped like for c
+       */
 
       n = rMat1.GetNumRows();
       m = rMat1.GetNumCols();
       k = trans_a ? size_row_ : size_col_;
 
+      // ensure that return matrix has correct size
+      rMat1.Resize( n, m);
+      
+      double* A = data_[0];
+      double* B = mMat1.data_[0];
+      double* C = rMat1.data_[0];
+      
   /*
    * here you use the same properties as in the documentation of dgemm with the difference, 
    * that our lda is LDB and ldb is LDA because we swapped A and B
@@ -623,9 +626,94 @@ namespace CoupledField
       ldb = trans_b ? k : m;
       ldc = m;
       
-
-
     DGEMM(&transb,&transa,&m,&n,&k,&alpha,B,&ldb,A,&lda,&beta,C,&ldc);
+#else
+    EXCEPTION("Compile with USE_BLAS = yes ");
+#endif
+   }
+  
+  template<>
+  void Matrix<Complex>::Mult_Blas(const Matrix<Complex>&  mMat1, Matrix<Complex>& rMat1, 
+                                 bool trans_a, bool trans_b, 
+                                 Complex alpha, Complex beta ) const{
+
+#ifdef USE_BLAS
+#ifdef CHECK_INDEX
+      if((trans_a == true) && (trans_b == true)){
+        if (size_row_ != mMat1.GetNumCols())
+          EXCEPTION("incompatible dimension");
+      } else if((trans_a == false) && (trans_b == true)){
+        if (size_col_ != mMat1.GetNumCols())
+          EXCEPTION("incompatible dimension");
+      } else if((trans_a == true) && (trans_b == false)){
+        if (size_row_ != mMat1.GetNumRows())
+          EXCEPTION("incompatible dimension");
+      } else {
+        if (size_col_ != mMat1.GetNumRows())
+          EXCEPTION("incompatible dimension");
+      }
+  #endif
+
+    #ifdef CHECK_INITIALIZED
+      UInt size_mMatRow = mMat1.GetNumRows();
+      UInt size_mMatCol = mMat1.GetNumCols();
+      UInt size_rMatRow = rMat1.GetNumRows();
+      UInt size_rMatCol = rMat1.GetNumCols();
+
+      if (size_row_ == 0 || size_col_ == 0)
+        EXCEPTION("undefined Matrix");
+      if (size_mMatRow == 0 || size_mMatCol==0)
+          EXCEPTION("undefined Matrix");
+      if (size_rMatRow == 0||size_rMatCol==0)
+        EXCEPTION("undefined Matrix");
+    #endif
+
+      /*
+       * because of the column-wise access of fortran the routine would calc
+       * C^T = A^T * B^T if you give it C, A and B
+       * but because A^T * B^T = (B * A)^T you can just calculate:
+       * C = B * A
+       *
+       * --> swap A and B
+       *
+       */
+
+      char transa = trans_a ? 't' : 'n';
+      char transb = trans_b ? 't' : 'n';
+
+      int lda, ldb, ldc;
+      int m,n,k;
+
+
+
+      /*
+       *  m would normally be the number of rows of C but Fortran accesses it as C^T so m is the number of columns
+       *  in the same way n is now the number of rows
+       *  k is the number of rows of op(B) and in our case op(B) = A or A^T so k would be rows of A in the first case and cols of A in the second one
+       *  but here you also have to remember the column wise access so cols and rows are swapped like for c
+       */
+
+      n = rMat1.GetNumRows();
+      m = rMat1.GetNumCols();
+      k = trans_a ? size_row_ : size_col_;
+
+      // ensure that return matrix has correct size
+      rMat1.Resize( n, m);
+
+      Complex* A = data_[0];
+      Complex* B = mMat1.data_[0];
+      Complex* C = rMat1.data_[0];
+
+      /*
+       * here you use the same properties as in the documentation of dgemm with the difference, 
+       * that our lda is LDB and ldb is LDA because we swapped A and B
+       */
+
+      lda = trans_a ? n : k;
+      ldb = trans_b ? k : m;
+      ldc = m;
+
+      ZGEMM(&transb,&transa,&m,&n,&k,&alpha,B,&ldb,A,&lda,&beta,C,&ldc);
 #else
     EXCEPTION("Compile with USE_BLAS = yes ");
 #endif
