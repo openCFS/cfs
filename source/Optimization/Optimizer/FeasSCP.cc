@@ -1,7 +1,16 @@
 #include "Optimization/Optimizer/FeasSCP.hh"
+#include "Optimization/Optimizer/SCPIPBase.hh"
+#include "Optimization/Optimizer/scpip30.hh"
+
 #include <time.h>
 
+
+DECLARE_LOG(feas_scp)
+DEFINE_LOG(feas_scp, "feas_scp")
+
 using namespace CoupledField;
+
+
 
 //=============================================================
 //      AScpSolver implementation
@@ -377,291 +386,197 @@ FeasSCP::~FeasSCP() {
 }
 
 /** Problem solve */
-bool
-FeasSCP::SCPSolve() {
+int FeasSCP::SCPSolve(bool fromWarmstart)
+{
+  // set start parameters here to allow restarted SolveProblem()
+  get_starting_point(n, x.GetPointer());
 
-  double eps = GetLowerBoundsMVars(0);
-  double scale;
+  // do we start from a warmstart file?
+  ierr = fromWarmstart ? -4 : 0;
 
-  if(!m_nvars || !m_nobj) 
-    return false;
+  // scpip counts its iteration in info[20-1].
+  int last_iter = -1;
 
-  m_status = 0;
+  // the dimensions are kept in the StdVector size, we don't make them class attributes.
+  // here we allocate variables to give their pointers to fortran
+  int ielpar = iern.GetSize();
+  assert(ielpar == (int) iecn.GetSize());
+  assert(ielpar == (int) iederv.GetSize());
+  assert(ieleng == ielpar || ieleng == ielpar-1); // the array has always min 1 entry to hace a pointer
 
+  int eqlpar = eqrn.GetSize();
+  assert(eqlpar == (int) eqcn.GetSize());
+  assert(eqlpar == (int) eqcoef.GetSize());
+  assert(eqleng == eqlpar || eqleng == eqlpar-1);
 
-  int j = m_nvars/6;	
+  int rdim = r_scp.GetSize();
+  int rsubdim = r_sub.GetSize();
+  int idim = i_scp.GetSize();
+  int isubdim = i_sub.GetSize();
 
-  for (int i=0; i<j; i++){
-    m_xinit[(i+1)*6-6] *= m_rScaleE;
-    m_xinit[(i+1)*6-4] *= m_rScaleE;
-    m_xinit[(i+1)*6-1] *= m_rScaleE;
-  }
-  if (m_nobj == 1) {	
-    m_f_org = ((AFMOProblem*) UsrObj())->Objective().Eval(m_xinit, true, 0);
-    if (m_rScaleF < 0){
-      scale = 1/m_f_org;
-      scale = scale;
-      cout << scale<< endl;
-    }else{
-      scale = m_rScaleF;
-      cout << scale<< endl;
+  // is 'nlp_scaling_method' set to 'user-scaling' ? -> all but m are out parameters
+  if(call_scale_parameters_)
+  {
+    double old_scaling = obj_scaling;
+    get_scaling_parameters(obj_scaling, use_g_scaling, m, g_scaling.GetPointer());
+    // check if there was already 'obj_scaling_factor' and assert it has not changed
+    if(use_obj_scaling && obj_scaling != old_scaling)
+      throw "There was another objective scaling in 'obj_scaling_factor' than in get_scaling_parameters()";
+    use_obj_scaling = true;
+
+    // scale the shifts
+    for(int i = 0; i < m; i++)
+    {
+      LOG_DBG(feas_scp) << " shift[" << i << "].shift -> " << shift[i].shift << " * "
+                          << g_scaling[i] << " = " << shift[i].shift * g_scaling[i];
+      shift[i].shift *= g_scaling[i];
     }
-
-
-    //SONJA
-    m_nie = m_nie+1;
-    m_xinit[m_nvars-1]=1.10;
-    m_lbv[m_nvars-1]= 0.0;   
-    m_ubv[m_nvars-1]=1.e30;
   }
 
-  do {
-    int nEqMax = 1;
+  // double eps = GetLowerBoundsMVars(0);
+  // double scale;
+  for(;;) // we break out in success and error
+  {
+    // this might be dynamic!
+    int spiwdim = spiw.GetSize();
+    int spdwdim = spdw.GetSize();
 
-    scpip40i_(&m_nvars,         // 1
-        &m_nie,                 // 2
-        &m_neq,                 // 3
-        &m_iemax,               // 4
-        &nEqMax,                // 5
-        x.GetPointer(),         // 6
-        x_l.GetPointer(),       // 7
-        x_u.GetPointer(),       // 8
-        &m_f_org,               // 9
-        m_h_org,                // 10
-        m_g_org,                // 11
-        m_df,                   // 12
-        m_y_ie,                 // 13
-        m_y_eq,                 // 14
-        m_y_l,                  // 15
-        m_y_u,                  // 16
-        m_ioptions,             // 17
-        m_doptions,             // 18
-        m_ninfo,                // 19
-        m_rinfo,                // 20
-        &m_nout,                // 21
-        m_r_scp,                // 22
-        &m_rdim,                // 23
-        m_r_sub,                // 24
-        &m_rsubdim,             // 25
-        m_i_scp,                // 26
-        &m_idim,                // 27
-        m_i_sub,                // 28
-        &m_isubdim,             // 29
-        m_active,               // 30
-        &m_mode,                // 31
-        &m_status,              // 32
-        m_iern,                 // 33
-        m_iecn,                 // 34
-        m_iederv,               // 35
-        &m_ielpar,              // 36
-        &m_ieleng,              // 37
-        m_eqrn,                 // 38
-        m_eqcn,                 // 39
-        m_eqcoef,               // 40
-        &m_eqlpar,              // 41
-        &m_eqleng,              // 42
-        &m_mactiv,              // 43
-        m_spiw,                 // 44
-        &m_spiwdim,             // 45
-        m_spdw,                 // 46
-        &m_spdwdim,             // 47
-        &m_spstrat,             // 48
-        &m_linsys,              // 49
-        m_linear,               // 50
-        &m_mf);                 // 51
+    LOG_DBG3(feas_scp) << "before call to scpip: n = " << n << ", mie = " << mie << ", meq = " << meq
+        << ", iemax = " << iemax << ", eqmax = " << eqmax << ", initial guess = " << x.ToString()
+        << ", lower bounds = " << x_l.ToString() << ", upper bounds = " << x_u.ToString()
+        << ", function value = " << f_org << ", inequality constraints = " << h_org.ToString() << ", equality constraints = " << g_org.ToString()
+        << ", gradient = " << df.ToString() << ", lagrange multipliers (ineq.) = " << y_ie.ToString() << ", lagrange multipliers (eq.) = " << y_eq.ToString()
+        << ", lagrange multipliers (l.b.) = " << y_l.ToString() << ", lagrange multipliers (u.b.) = " << y_u.ToString()
+        << ", icntl = " << icntl.ToString() << ", rcntl = " << rcntl.ToString()
+        << ", info = " << info.ToString() << ", rinfo = " << rinfo.ToString()
+        << ", nout = " << nout << ", r_scp = " << r_scp.ToString() << ", r_dim = " << rdim
+        << ", r_sub = " << r_sub.ToString() << ", r_subdim = " << rsubdim
+        << ", i_scp = " << i_scp.ToString() << ", i_dim = " << idim
+        << ", i_sub = " << i_sub.ToString() << ", i_subdim = " << isubdim
+        << ", active = " << active.ToString()
+        << ", mode = " << mode << ", ierr = " << ierr
+        << ", iern = " << iern.ToString() << ", iecn = " << iecn.ToString() << ", iederv = " << iederv.ToString()
+        << ", ielpar = " << ielpar << ", ieleng = " << ieleng
+        << ", eqrn = " << eqrn.ToString() << ", eqcn = " << eqcn.ToString() << ", eqcoef = " << eqcoef.ToString()
+        << ", eqlpar = " << eqlpar << ", eqleng = " << eqleng
+        << ", mactiv = " << mactiv
+        << ", spiw = " << spiw.ToString() << ", spiwdim = " << spiwdim
+        << ", spdw = " << spdw.ToString() << ", spdwdim = " << spdwdim
+        << ", spstrat = " << spstrat << ", linsys = " << linsys;
 
-    if (m_status == -1) {					// Function evaluation
-      if (m_nobj > 1) {						//Multiple load cases
-        m_f_org = m_xinit[m_nvars-1];
+    // int nEqMax = 1;
 
-        for (int i=0; i<((AFMOProblem*) UsrObj())->NumConstr(); i++){ // Constraints
-          m_h_org[i] = ((AFMOProblem*) UsrObj())->Constraint(i).Eval(m_xinit, true);
-        }
-        int idx = ((AFMOProblem*) UsrObj())->NumConstr();
-        for (int i=0; i<((AFMOProblem*) UsrObj())->Objective().NumObj(); i++){ // Objective(s)
-          m_h_org[idx+i] = ((AFMOProblem*) UsrObj())->Objective().Eval(m_xinit, true, i);
-          m_h_org[idx+i] = m_h_org[idx+i]*scale;
-        }
-        int flag = 1;
-        int m_elements = GetNumSDPBlocks();
-        int nTmp = m_nie;
-        int nMSize = m_blks[2];				//at the moment all blocks have the same size
-        double eps = 0.01;
-        if (nMSize == 2){
-          concavity_d_2x2_(m_xinit,&m_elements,m_h_org,&eps,&nTmp,&flag);
-        } else if (nMSize == 3){
-          concavity_d_3x3_(m_xinit,&m_elements,m_h_org,&eps,&nTmp,&flag);
-        } else if (nMSize == 6){
-          concavity_d_6x6_(m_xinit,&m_elements,m_h_org,&eps,&nTmp,&flag);
-        }
-        double vol;
-        vol = 100*m_elements/3-1/3*m_elements;
-        m_h_org[0] = m_h_org[0] - vol;
+    scpip40i_(&n,                      // 1
+              &mie,                    // 2
+              &meq,                    // 3
+              &iemax,                  // 4
+              &eqmax,                  // 5
+              x.GetPointer(),          // 6
+              x_l.GetPointer(),        // 7
+              x_u.GetPointer(),        // 8
+              &f_org,                  // 9
+              h_org.GetPointer(),      // 10
+              g_org.GetPointer(),      // 11
+              df.GetPointer(),         // 12
+              y_ie.GetPointer(),       // 13
+              y_eq.GetPointer(),       // 14
+              y_l.GetPointer(),        // 15
+              y_u.GetPointer(),        // 16
+              icntl.GetPointer(),      // 17
+              rcntl.GetPointer(),      // 18
+              info.GetPointer(),       // 19
+              rinfo.GetPointer(),      // 20
+              &nout,                   // 21
+              r_scp.GetPointer(),      // 22
+              &rdim,                   // 23
+              r_sub.GetPointer(),      // 24
+              &rsubdim,                // 25
+              i_scp.GetPointer(),      // 26
+              &idim,                   // 27
+              i_sub.GetPointer(),      // 28
+              &isubdim,                // 29
+              active.GetPointer(),     // 30
+              &mode,                   // 31
+              &ierr,                   // 32
+              iern.GetPointer(),       // 33
+              iecn.GetPointer(),       // 34
+              iederv.GetPointer(),     // 35
+              &ielpar,                 // 36
+              &ieleng,                 // 37
+              eqrn.GetPointer(),       // 38
+              eqcn.GetPointer(),       // 39
+              eqcoef.GetPointer(),     // 40
+              &eqlpar,                 // 41
+              &eqleng,                 // 42
+              &mactiv,                 // 43
+              spiw.GetPointer(),       // 44
+              &spiwdim,                // 45
+              spdw.GetPointer(),       // 46
+              &spdwdim,                // 47
+              &spstrat,                // 48
+              &linsys,                 // 49
+              m_linear,                // 50
+              &m_mf);                  // 51
 
+    LOG_TRACE(feas_scp) << "scpip30 returns: ierr=" << ierr << " info[20-1]=" << info[20-1];
 
-      } else {								//Single load case         
-        m_f_org = ((AFMOProblem*) UsrObj())->Objective().Eval(m_xinit, true, 0);
-        m_f_org = m_f_org*scale;
-        for (int i=0; i<((AFMOProblem*) UsrObj())->NumConstr(); i++){// Constraints
-          m_h_org[i] = ((AFMOProblem*) UsrObj())->Constraint(i).Eval(m_xinit, true);  
-        }
+    // call callback for iteration. This might cause an user break!
+    if(!intermediate_callback(info[20-1], info[20-1] != last_iter))
+      ierr = User_Requested_Stop;
+    last_iter = info[20-1];
 
-        //sonja
-        m_h_org[m_nie-1] = m_f_org-m_xinit[m_nvars-1];
-        m_f_org = m_xinit[m_nvars-1];
-
-
-        int flag = 1;
-        int m_elements = GetNumSDPBlocks();
-        int nTmp = m_nie;
-        int nMSize = m_blks[2];
-        double eps = 0.01;
-        if (nMSize == 2){
-          concavity_d_2x2_(m_xinit,&m_elements,m_h_org,&eps,&nTmp,&flag);
-        } else if (nMSize == 3){
-          concavity_d_3x3_(m_xinit,&m_elements,m_h_org,&eps,&nTmp,&flag);
-        } else if (nMSize == 6){
-          concavity_d_6x6_(m_xinit,&m_elements,m_h_org,&eps,&nTmp,&flag);
-        }
-        //sonja
-        double vol;
-        vol = 100*m_elements/3-1/3*m_elements;
-        m_h_org[0] = m_h_org[0] - vol;
+    if(ierr == 0)
+    {
+      CallFinalizeSolution();
+      break;
+    }
+    if(ierr == -1)
+    {
+      LOG_DBG2(feas_scp) << "x: " << x.ToString();
+      EvaluateFunctionValues();
+    }
+    if(ierr == -2)
+    {
+      LOG_DBG2(feas_scp) << "x: " << x.ToString();
+      // TODO active constraints!
+      if(!EvaluateGradients())
+      {
+        ierr = Gradients_Return_False;
+        CallFinalizeSolution(); // allow comit of the last iteration to reuse it
+        break; // no output for resart!
       }
-
-
-    } else if (m_status == -2) {             // Gradient evaluation
-      if (m_nobj > 1) {						 //Multiple load cases
-        m_ieleng = 0;     
-        m_mactiv = 0;    
-
-        for (int i=0; i<((AFMOProblem*) UsrObj())->NumConstr(); i++) { // Constraints
-          if (m_active[i] == 1){									   			
-            AFMOKSparseGradient *pGrad = ((AFMOProblem*) UsrObj())->Constraint(i).Grad(m_xinit, false, 0);
-            m_mactiv++;
-            for(int j=0; j<pGrad->NNZ(); j++) {
-              double val = pGrad->Val(j);
-              int ind = pGrad->Ind(j)+1;		// C++ starts with 0, FORTRAN with 1
-              m_iederv[m_ieleng] = val;
-              m_iern[m_ieleng] = ind;
-              m_iecn[m_ieleng] = m_mactiv;
-              m_ieleng = m_ieleng + 1;
-            }
-          }
-        }
-        for (int i=0; i<((AFMOProblem*) UsrObj())->Objective().NumObj(); i++) { // Objective(s)
-          if (m_active[i] == 1){	
-            m_mactiv++;
-            AFMOKSparseGradient *pGrad = ((AFMOProblem*) UsrObj())->Objective().Grad(m_xinit, false, 0, i);
-            for(int j=0; j<pGrad->NNZ(); j++) {
-              double val = pGrad->Val(j);
-              int ind = pGrad->Ind(j)+1;		
-              m_iederv[m_ieleng] = val*scale;
-              m_iern[m_ieleng] = ind;
-              m_iecn[m_ieleng] = m_mactiv;
-              m_ieleng = m_ieleng + 1;
-            }
-          }
-        }
-
-        int m_elements = GetNumSDPBlocks();
-        int nTmp = m_nie;
-        int nMSize = m_blks[2];
-        double eps = 0.01;
-        if (nMSize == 2){
-          concavity_grad_2x2_(m_iederv,m_iern,m_iecn,&m_ieleng,m_active,&nTmp,&m_mactiv,m_xinit,&m_elements,&eps);
-        } else if (nMSize == 3){
-          concavity_grad_3x3_(m_iederv,m_iern,m_iecn,&m_ieleng,m_active,&nTmp,&m_mactiv,m_xinit,&m_elements,&eps);
-        } else if (nMSize == 6){
-          concavity_grad_6x6_(m_iederv,m_iern,m_iecn,&m_ieleng,m_active,&nTmp,&m_mactiv,m_xinit,&m_elements,&eps);
-        }
-        for (int i=0; i < (m_nvars-1); i++){
-          m_df[i] = 0.0;
-        }
-        m_df[m_nvars-1] = 1.0;
-
-      } else {									//Single load case
-        m_ieleng = 0;     
-        m_mactiv = 0;   
-        for (int i=0; i<((AFMOProblem*) UsrObj())->NumConstr(); i++) { 
-          if (m_active[i] == 1){									  
-            AFMOKSparseGradient *pGrad = ((AFMOProblem*) UsrObj())->Constraint(i).Grad(m_xinit, false, 0);
-            m_mactiv++;
-            for(int j=0; j<pGrad->NNZ(); j++) {
-              double val = pGrad->Val(j);
-              int ind = pGrad->Ind(j)+1;
-              m_iederv[m_ieleng] = val;
-              m_iern[m_ieleng] = ind;
-              m_iecn[m_ieleng] = m_mactiv;
-              m_ieleng++;
-            }
-          }
-        }
-        AFMOKSparseGradient *pGrad = ((AFMOProblem*) UsrObj())->Objective().Grad(m_xinit, false, 0, 1);
-        //sonja
-        m_mactiv++;
-        for(int j=0; j<pGrad->NNZ(); j++) {
-          double val = pGrad->Val(j);
-          int ind = pGrad->Ind(j)+1;  
-          m_df[ind] = val*scale;
-          //Sonja
-          m_iederv[m_ieleng] = val*scale;
-          m_iern[m_ieleng] = ind;
-          m_iecn[m_ieleng] = m_mactiv;
-          m_ieleng++;
-        }
-        m_iederv[m_ieleng] = -1.0;
-        m_iern[m_ieleng] = m_nvars;
-        m_iecn[m_ieleng] = m_mactiv;
-        m_ieleng++;
-
-
-
-        for (int i=0; i < (m_nvars-1); i++){
-          m_df[i] = 0.0;
-        }
-        m_df[m_nvars-1] = 1.0;
-
-
-        int m_elements = GetNumSDPBlocks();
-        int nTmp = m_nie - 1;
-        int nMSize = m_blks[2];
-        double eps = 0.01;
-        if (nMSize == 2){
-          concavity_grad_2x2_(m_iederv,m_iern,m_iecn,&m_ieleng,m_active,&nTmp,&m_mactiv,m_xinit,&m_elements,&eps);
-        } else if (nMSize == 3){
-          concavity_grad_3x3_(m_iederv,m_iern,m_iecn,&m_ieleng,m_active,&nTmp,&m_mactiv,m_xinit,&m_elements,&eps);
-        } else if (nMSize == 6){
-          concavity_grad_6x6_(m_iederv,m_iern,m_iecn,&m_ieleng,m_active,&nTmp,&m_mactiv,m_xinit,&m_elements,&eps);
-        }
-
-
-      }
-    } else if (m_status == -17) {
+      LOG_DBG2(feas_scp) << "df: " << df.ToString();
+    }
+    if(ierr == -17)
+    {
+      /*
       int flag = 0;
       int m_elements = GetNumSDPBlocks();
       int nTmp = m_nie - m_mf;
       int nMSize = m_blks[2];
-      if (nMSize == 2){
-        concavity_d_2x2_(m_xinit,&m_elements,m_h_org,&eps,&nTmp,&flag);
-      } else if (nMSize == 3){
-        concavity_d_3x3_(m_xinit,&m_elements,m_h_org,&eps,&nTmp,&flag);
-      } else if (nMSize == 6){
-        concavity_d_6x6_(m_xinit,&m_elements,m_h_org,&eps,&nTmp,&flag);
-      }
+      concavity_d_3x3_(m_xinit,&m_elements,m_h_org,&eps,&nTmp,&flag);
 
-    } else if (m_status > 1) {					 // error case!!!!     
-      cout<<"****   ERROR   **** IERR = "<< m_status;
-      return 1;  // TO BE REDIFINED!
-    } else if (m_status == 1) {					 // error case!!!!     
-      m_status = 0;
+       */
+      LOG_DBG2(feas_scp) << "! COMPUTATION OF CONSTRAINTS MIE-MF,... MIE Missing!!";
     }
+    if(ierr == -3)
+    {
+      AllocateDynamic();
+    }
+    if(ierr == -4)
+    {
+      // we came from a warmstart file run an continue with -5
+      ierr = -5;
+    }
+    if((ierr < -5 && ierr != -17) || ierr > 0)
+    {
+      std::cerr << ToString(ierr) << std::endl;
+      CallFinalizeSolution();
+      break;
+    }
+  }
 
-
-  } while (m_status < 0);
-
-  return (m_status == 0);
-
+  return ierr;
 }
 
 

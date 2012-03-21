@@ -107,7 +107,7 @@
     /** overload this method to return the starting point. The bools
      *  init_x and init_lambda are both inputs and outputs. As inputs,
      *  they indicate whether or not the algorithm wants you to
-     *  initialize x and lambda respectively. If, for some reason, the
+     *  initialize x and lambda respepctively. If, for some reason, the
      *  algorithm wants you to initialize these and you cannot, set
      *  the respective bool to false.
      */
@@ -428,8 +428,6 @@
     /** linear solver to be used. here dense cholesky solver as we are dense! */
     int linsys;
 
-
-  private:
 
     /** for some strange reason there is a problem with std::abs(). */
     double abs(double val)

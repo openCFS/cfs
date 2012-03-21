@@ -189,15 +189,55 @@ int SCPIPBase::SolveProblem(bool fromWarmstart)
         << ", spdw = " << spdw.ToString() << ", spdwdim = " << spdwdim
         << ", spstrat = " << spstrat << ", linsys = " << linsys;
     
-    scpip30_(&n, &mie, &meq, &iemax, &eqmax, x.GetPointer(), x_l.GetPointer(), x_u.GetPointer(),
-             &f_org, h_org.GetPointer(), g_org.GetPointer(), df.GetPointer(),
-             y_ie.GetPointer(), y_eq.GetPointer(), y_l.GetPointer(), y_u.GetPointer(),
-             icntl.GetPointer(), rcntl.GetPointer(),info.GetPointer(), rinfo.GetPointer(),
-             &nout, r_scp.GetPointer(), &rdim, r_sub.GetPointer(),
-             &rsubdim, i_scp.GetPointer(), &idim, i_sub.GetPointer(), &isubdim, active.GetPointer(),
-             &mode, &ierr, iern.GetPointer(), iecn.GetPointer(), iederv.GetPointer(), &ielpar, &ieleng,
-             eqrn.GetPointer(), eqcn.GetPointer(), eqcoef.GetPointer(), &eqlpar, &eqleng,
-             &mactiv, spiw.GetPointer(), &spiwdim, spdw.GetPointer(), &spdwdim, &spstrat, &linsys);
+    scpip30_(&n,                      // 1
+             &mie,                    // 2
+             &meq,                    // 3
+             &iemax,                  // 4
+             &eqmax,                  // 5
+             x.GetPointer(),          // 6
+             x_l.GetPointer(),        // 7
+             x_u.GetPointer(),        // 8
+             &f_org,                  // 9
+             h_org.GetPointer(),      // 10
+             g_org.GetPointer(),      // 11
+             df.GetPointer(),         // 12
+             y_ie.GetPointer(),       // 13
+             y_eq.GetPointer(),       // 14
+             y_l.GetPointer(),        // 15
+             y_u.GetPointer(),        // 16
+             icntl.GetPointer(),      // 17
+             rcntl.GetPointer(),      // 18
+             info.GetPointer(),       // 19
+             rinfo.GetPointer(),      // 20
+             &nout,                   // 21
+             r_scp.GetPointer(),      // 22
+             &rdim,                   // 23
+             r_sub.GetPointer(),      // 24
+             &rsubdim,                // 25
+             i_scp.GetPointer(),      // 26
+             &idim,                   // 27
+             i_sub.GetPointer(),      // 28
+             &isubdim,                // 29
+             active.GetPointer(),     // 30
+             &mode,                   // 31
+             &ierr,                   // 32
+             iern.GetPointer(),       // 33
+             iecn.GetPointer(),       // 34
+             iederv.GetPointer(),     // 35
+             &ielpar,                 // 36
+             &ieleng,                 // 37
+             eqrn.GetPointer(),       // 38
+             eqcn.GetPointer(),       // 39
+             eqcoef.GetPointer(),     // 40
+             &eqlpar,                 // 41
+             &eqleng,                 // 42
+             &mactiv,                 // 43
+             spiw.GetPointer(),       // 44
+             &spiwdim,                // 45
+             spdw.GetPointer(),       // 46
+             &spdwdim,                // 47
+             &spstrat,                // 48
+             &linsys);                // 49
     
     LOG_DBG3(scpip_base) << "after call to scpip: n = " << n << ", mie = " << mie << ", meq = " << meq
         << ", iemax = " << iemax << ", eqmax = " << eqmax << ", initial guess = " << x.ToString()

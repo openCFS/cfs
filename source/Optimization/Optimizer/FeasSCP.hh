@@ -8,7 +8,7 @@ namespace CoupledField
 {
 
 /** This is based on ScpSolver.h (Sonja Ertel, MichaelStingel) and called ASCPSolver there */
-class FeasSCP : public BaseOptimizer, public SCPIPBase
+class FeasSCP : public BaseOptimizer, public SCPIP
 {
 public:
 
@@ -26,8 +26,9 @@ public:
 	inline int GetStatus() {return m_status;};
 	double* GetSolution() ;
 
-	/** Problem solve */
-	bool SCPSolve();
+	/** implements the communication with the feasible scp from Sonja Lehmann, called here scpip40i
+	 *  @see SCPIPBase::SolveProblem() */
+	int SolveProblem(bool fromWarmstart);
 
 	/**  Mutator methods */
   static bool IsMajor() { return (m_nFEvals % m_nMajor == 0) ;};
