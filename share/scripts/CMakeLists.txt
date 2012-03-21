@@ -33,6 +33,19 @@ ADD_CUSTOM_TARGET(cfs_script ALL
   ${CFS_BINARY_DIR}/bin folder...")
 
 #-------------------------------------------------------------------------------
+# Custom target for copying cfs-debug to ${CFS_BINARY_DIR}/bin (only LINUX)
+#-------------------------------------------------------------------------------
+IF(WIN32)
+  #nothing to be done here
+ELSE(WIN32)
+  ADD_CUSTOM_TARGET(cfs_debug_script ALL
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_CURRENT_SOURCE_DIR}/cfs-debug ${CFS_BINARY_DIR}/bin
+    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/cfs-debug
+    COMMENT "Copying CFS-debug start script \"${CFS_SCRIPT}\" to
+    ${CFS_BINARY_DIR}/bin folder...")
+ENDIF(WIN32)
+
+#-------------------------------------------------------------------------------
 # Custom target for copying cfstool to ${CFS_BINARY_DIR}/bin
 #-------------------------------------------------------------------------------
 IF(CFSTOOL)

@@ -1625,7 +1625,7 @@ namespace CoupledField {
            }
 
            vals[index] = val;
-           phases[index] = val;
+           phases[index] = phase;
           } // loop components
 
         } else {
