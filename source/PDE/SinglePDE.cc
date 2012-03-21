@@ -296,8 +296,7 @@ namespace CoupledField {
     // =====================================================================
     // Create time stepping algorithm
     // =====================================================================
-    if ( analysistype_ == TRANSIENT &&
-         isDirectCoupled_ == false) {
+    if ( analysistype_ == TRANSIENT ) {
       InitTimeStepping();
     }
 
@@ -330,8 +329,16 @@ namespace CoupledField {
     //  map equations (FeSpaces) and finalize FeFunction (vector creation)
     // =====================================================================
     LOG_TRACE(singlepde) << pdename_ << ": Mapping Equations";
-    
+
+    if ( isDirectCoupled_ == false ) {
+      FinalizeInit();
+    }
+  }
+
+  void SinglePDE::FinalizeInit() {
+
     // Finalize spaces and fefunctions
+    std::map<SolutionType, shared_ptr<BaseFeFunction> >::iterator fncIt= feFunctions_.begin();
     fncIt= feFunctions_.begin();
     while(fncIt != feFunctions_.end()){
       shared_ptr<BaseFeFunction> actFct = fncIt->second;
@@ -339,21 +346,21 @@ namespace CoupledField {
       //actFct->SetGrid(shared_ptr<Grid>(ptgrid_));
       actSpace->Finalize();
       actSpace->PreCalcShapeFncs();
-      
+
       // finalize feFunctions
       actFct->Finalize();
-      
+
       // Pass feFctId of primary result also to RHS result
       rhsFeFunctions_[fncIt->first]->SetFctId(actFct->GetFctId());
       rhsFeFunctions_[fncIt->first]->Finalize();
       fncIt++;
     }
-    
+
 
     if ( analysistype_ == TRANSIENT ) {
       Double dt;
       dt = dynamic_cast<TransientDriver*>(domain->GetSingleDriver())
-        ->GetDeltaT();
+                ->GetDeltaT();
       //WARN("Note: The initialization of the timestepping class is currently wrong: "
       //    "The 2nd argument must be the complete SBM-vector of the algebraic system in "
       //    "order to correclty initialize the internal vectors of the timestepping method. "
@@ -361,7 +368,7 @@ namespace CoupledField {
       //    "In the current implementation, the SBM-vectors are just defined within the "
       //    "SolveStep classed. Thus maybe the right thing to do is to shift the creation and "
       //    "initialization of the timestepping scheme to the solveStep classes.")
-          
+
 
       // Call the init function of timescheme of each fefunction
       fncIt= feFunctions_.begin();
@@ -379,12 +386,12 @@ namespace CoupledField {
     // =======================================================================
     DefineTimeDerivFeFunctions();
 
-//    // =====================================================================
-//    // Set the initial conditions
-//    // =====================================================================
-//    if ( analysistype_ == TRANSIENT){
-//    	SetInitialCondition();
-//    }
+    //    // =====================================================================
+    //    // Set the initial conditions
+    //    // =====================================================================
+    //    if ( analysistype_ == TRANSIENT){
+    //    	SetInitialCondition();
+    //    }
 
     // =====================================================================
     // define which solution types have to be saved
@@ -401,7 +408,7 @@ namespace CoupledField {
     if ( isDirectCoupled_ == false ) {
       LOG_TRACE(singlepde) << pdename_ << ": Defining solveStep class";
       DefineSolveStep();
-      
+
       // check if solve step was defined
       if(! solveStep_) {
         EXCEPTION("No solveStep object defined for PDE '" << pdename_ << "'");
@@ -1543,7 +1550,7 @@ namespace CoupledField {
       // Note: In case someone request a "vector" valued result and
       // provides no dofNames, we use the scalar parameters.
       if( type == ResultInfo::SCALAR  ||
-          (type == ResultInfo::VECTOR && compNames.GetSize() == 0 )  ) {
+          (type == ResultInfo::VECTOR && compNames.GetSize() <= 1 )  ) {
         // --------------
         //  S C A L A R
         // --------------

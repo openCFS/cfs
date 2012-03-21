@@ -40,22 +40,29 @@ namespace CoupledField {
   template<class A_OP, class B_OP, class MAT_DATA_TYPE=Double>
   class SurfaceABInt : public ABInt<A_OP,B_OP, MAT_DATA_TYPE>{
   public:
-        //! Constructor with pointer to BaseElem
+      //! Constructor with pointer to BaseElem
       SurfaceABInt(shared_ptr<CoefFunction> scalCoef, MAT_DATA_TYPE factor,
                    const std::set<RegionIdType>& volRegions, bool coordUpdate = false);
 
-      //! Destructor
-      ~SurfaceABInt(){
+      //! Constructor with CoefFunctions for a number of volume regions
+      SurfaceABInt(const std::map< RegionIdType, shared_ptr<CoefFunction> >& regionCoefs,
+                   MAT_DATA_TYPE factor,
+                   const std::set<RegionIdType>& volRegions,
+                   bool coordUpdate = false);
 
-      }
+      //! Destructor
+      ~SurfaceABInt() {}
 
       //! Compute element matrix associated to BDB form
       void CalcElementMatrix( Matrix<MAT_DATA_TYPE>& elemMat,
                                  EntityIterator& ent1,
                                  EntityIterator& ent2 );
     protected:
-      //! set containing all volume regions for surface integrators
+      //! Set containing all volume regions for surface integrators
       std::set<RegionIdType> volRegions_;
+
+      //! Map containing all coefficient functions for volume regions for operator A
+      std::map< RegionIdType, shared_ptr<CoefFunction> > regionCoefs_;    
   };
 }
 

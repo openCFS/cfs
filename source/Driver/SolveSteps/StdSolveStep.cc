@@ -343,14 +343,14 @@ namespace CoupledField {
     stageRHS_.Resize(feFunctions_.size());
 
     std::map<SolutionType, shared_ptr<BaseFeFunction> >::iterator fncIt;
-    UInt pos = 0;
     UInt rhsSize = 0;
 
     //reserve memory for the rhs
-    for(pos = 0,fncIt = feFunctions_.begin();fncIt != feFunctions_.end();++fncIt,++pos){
+    for(fncIt = feFunctions_.begin(); fncIt != feFunctions_.end();++fncIt ){
       rhsSize = fncIt->second->GetSingleVector()->GetSize();
-      stageRHS_.SetSubVector(new Vector<Double>(),pos);
-      stageRHS_.GetPointer(pos)->Resize(rhsSize);
+      FeFctIdType id = fncIt->second->GetFctId();
+      stageRHS_.SetSubVector(new Vector<Double>(),id);
+      stageRHS_.GetPointer(id)->Resize(rhsSize);
     }
     stageRHS_.Init();
 
@@ -401,7 +401,6 @@ namespace CoupledField {
 
     std::map<FEMatrixType,Integer>::iterator matIt;
 
-    UInt pos = 0;
     bool effectiveMatrixUpdated = false;
 
     for(UInt i=0;i<numStages;i++){
@@ -410,8 +409,9 @@ namespace CoupledField {
       //we obtain a reference to the stage vectors of the scheme
       SBM_Vector stageSol;
       stageSol.Resize(feFunctions_.size());
-      for(pos = 0,fncIt = feFunctions_.begin();fncIt != feFunctions_.end();++fncIt,++pos){
-        stageSol.SetSubVector(fncIt->second->GetTimeScheme()->GetStageVector(i),pos);
+      for(fncIt = feFunctions_.begin();fncIt != feFunctions_.end();++fncIt){
+        FeFctIdType fctId = fncIt->second->GetFctId();
+        stageSol.SetSubVector(fncIt->second->GetTimeScheme()->GetStageVector(i),fctId);
       }
       stageSol.SetOwnership(false);
 
@@ -440,8 +440,9 @@ namespace CoupledField {
       for(matIt = matrices.begin();matIt != matrices.end();matIt++){
         if(matIt->second < 0)
           continue;
-        for(pos = 0,fncIt = feFunctions_.begin();fncIt != feFunctions_.end();++fncIt,++pos){
-          fncIt->second->GetTimeScheme()->ComputeStageRHS(i,matIt->second,stageRHS_.GetPointer(pos));
+        for(fncIt = feFunctions_.begin();fncIt != feFunctions_.end();++fncIt ){
+          FeFctIdType fctId = fncIt->second->GetFctId();
+          fncIt->second->GetTimeScheme()->ComputeStageRHS(i,matIt->second,stageRHS_.GetPointer(fctId));
         }
         algsys_->UpdateRHS(matIt->first,stageRHS_,effectiveMatrixUpdated);
       }
@@ -461,7 +462,7 @@ namespace CoupledField {
     }
 
     //update stage
-    for(pos = 0,fncIt = feFunctions_.begin();fncIt != feFunctions_.end();++fncIt){
+    for(fncIt = feFunctions_.begin();fncIt != feFunctions_.end(); ++fncIt){
       fncIt->second->GetTimeScheme()->FinishStep();
     }
 

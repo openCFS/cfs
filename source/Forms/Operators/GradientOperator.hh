@@ -27,13 +27,16 @@ namespace CoupledField{
     static const UInt ORDER_DIFF = 1;
 
     //! Number of components of the problem (scalar, vector)
-    static const UInt DIM_DOF = 1;
+    static const UInt DIM_DOF = 1; // m=1 (Skalar), m=2,3 Vektor
 
     //! Dimension of the underlying domain / space
-    static const UInt DIM_SPACE = D;
+    static const UInt DIM_SPACE = D; // n=2,3
+
+    // Gradient normal: n x m, DIM_SPACE x DIM_DOF
+    // Gradient transposed: m x n, DIM_DOF x DIM_SPACE <- Normale Schreibweise für Gradient
 
     //! Dimension of the finite element
-    static const UInt DIM_ELEM = D;
+    static const UInt DIM_ELEM = D; // Dimension von Referenzelement
     
     //! Dimension of the related material 
     static const UInt DIM_D_MAT = D; 

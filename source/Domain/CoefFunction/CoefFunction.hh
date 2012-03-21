@@ -101,7 +101,7 @@ public:
   static shared_ptr<CoefFunction> 
   Generate( Global::ComplexPart type, 
             const std::string& realVal, 
-            const std::string& imagVal = "" );
+            const std::string& imagVal = "0" );
 
   //! Generate vector-valued coefficient function
     

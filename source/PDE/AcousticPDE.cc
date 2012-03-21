@@ -50,6 +50,8 @@ namespace CoupledField{
     nonLin_            = false;
     InitialCondition_  = 0.0;
 
+    isMechCoupled_ = false;
+
     //check for pressure or potential formulation
     std::string pdeFormulation = myParam_->Get("formulation")->As<std::string>();
     if(pdeFormulation == "default"){
@@ -122,6 +124,12 @@ namespace CoupledField{
       materials_[actRegion]->GetScalar(compressibility,ACOU_BULK_MODULUS,Global::REAL);
       c0 = std::sqrt(compressibility/density);
 
+      // if pde couples with mechanic, we have to multiply the density by -1
+      Double factor = 1.0;
+      if ( isMechCoupled_ == true && formulation_ != ACOU_PRESSURE) {
+        factor = -density;
+      }
+
       // ====================================================================
       // standard stiffness integrator
       // ====================================================================
@@ -132,12 +140,12 @@ namespace CoupledField{
       if( dim_ == 2 ) {
         shared_ptr<CoefFunction> coeffK
           = CoefFunction::Generate(Global::REAL, "1.0");
-        stiffInt = new BBInt<GradientOperator<FeH1,2>, Double >(coeffK,1.0 );
+        stiffInt = new BBInt<GradientOperator<FeH1,2>, Double >(coeffK, factor );
       }
       else{
         shared_ptr<CoefFunction> coeffK
           = CoefFunction::Generate(Global::REAL, "1.0");
-        stiffInt = new BBInt<GradientOperator<FeH1,3>, Double >(coeffK,1.0 );
+        stiffInt = new BBInt<GradientOperator<FeH1,3>, Double >(coeffK, factor );
       }
       stiffInt->SetName("LaplaceIntegrator");
 
@@ -161,9 +169,9 @@ namespace CoupledField{
       shared_ptr<CoefFunction> coeffM
         = CoefFunction::Generate(Global::REAL, lexical_cast<std::string>(1.0/(c0*c0)));
       if(dim_==2)
-        massInt = new BBInt<IdentityOperator<FeH1,2,1,Double>, Double  >(coeffM,1.0 );
+        massInt = new BBInt<IdentityOperator<FeH1,2,1,Double>, Double  >(coeffM, factor );
       else
-        massInt = new BBInt<IdentityOperator<FeH1,3,1,Double>, Double  >(coeffM,1.0 );
+        massInt = new BBInt<IdentityOperator<FeH1,3,1,Double>, Double  >(coeffM, factor );
 
       massInt->SetName("MassIntegrator");
       massInt->SetFeSpace( feFunctions_[formulation_]->GetFeSpace() );
@@ -251,15 +259,22 @@ namespace CoupledField{
         materials_[aRegion]->GetScalar(compressibility,ACOU_BULK_MODULUS,Global::REAL);
         c0 = std::sqrt(compressibility/density);
 
+        // In the case of acou-mech coupling we have to multiply the
+        // abc-Integrator matrix with -1
+        Double factor = 1.0;
+        if ( isMechCoupled_ == true && formulation_ !=  ACOU_PRESSURE ) {
+          factor = -1.0;
+        }
+
         shared_ptr<CoefFunction> coeffDamp
                   = CoefFunction::Generate(Global::REAL, "1.0");
 
         BiLinearForm * abcInt = NULL;
 
         if( dim_ == 2 ) {
-          abcInt = new BBInt<IdentityOperator<FeH1,2,1> >(coeffDamp,1.0/c0 );
+          abcInt = new BBInt<IdentityOperator<FeH1,2,1> >(coeffDamp, factor/c0 );
         } else {
-          abcInt = new BBInt<IdentityOperator<FeH1,3,1> >(coeffDamp,1.0/c0 );
+          abcInt = new BBInt<IdentityOperator<FeH1,3,1> >(coeffDamp, factor/c0 );
         }
 
         abcInt->SetName("abcIntegrator");

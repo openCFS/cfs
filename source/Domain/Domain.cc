@@ -35,7 +35,7 @@
 #include "PDE/AcousticPDE.hh"
 #include "PDE/AcousticMixedPDE.hh"
 #include "PDE/ElecPDE.hh"
-#include "PDE/FluidMechPerturbedPDE.hh"
+#include "PDE/PerturbedFlowPDE.hh"
 #include "PDE/HeatPDE.hh"
 #include "PDE/MagneticPDE.hh"
 #include "PDE/MagEdgePDE.hh"
@@ -47,6 +47,7 @@
 #include "CoupledPDE/PDECoupling.hh"
 #include "CoupledPDE/CoupledPDEDef.hh"
 #include "CoupledPDE/PiezoCoupling.hh"
+#include "CoupledPDE/AcouMechCoupling.hh"
 
 // Include driver
 #include "Driver/BaseDriver.hh"
@@ -572,7 +573,7 @@ void Domain::CreateSinglePDEs(UInt sequenceStep)
       std::string formulation = actPdeNode->Get("formulation")->As<std::string>();
 
       if (formulation == "perturbed") {
-        ptSinglePde_[i] = new FluidMechPerturbedPDE(defaultGrid, actPdeNode);
+        ptSinglePde_[i] = new PerturbedFlowPDE(defaultGrid, actPdeNode);
       }
     }
     else
@@ -761,19 +762,19 @@ void Domain::CreateDirectCoupledPDEs(UInt sequenceStep)
 //
 //    }
 //    
-//    // *** ACOU-MECH Coupling ***
-//    else if (couplingName == "acouMechDirect")
-//    {
-//
-//      pde1 = GetSinglePDE("mechanic");
-//      pde2 = GetSinglePDE("acoustic");
-//
-//      // in the case of acou-Mech coupling, the acoustic
-//      // entries have to be multiplied by -1
-//      dynamic_cast<AcousticPDE*> (pde2)->SetMechanicCoupling();
-//
-//      coupling = new AcouMechCoupling(pde1, pde2, pairNodes[i]);
-//    }
+    // *** ACOU-MECH Coupling ***
+    else if (couplingName == "acouMechDirect")
+    {
+
+      pde1 = GetSinglePDE("mechanic");
+      pde2 = GetSinglePDE("acoustic");
+
+      // in the case of acou-Mech coupling, the acoustic
+      // entries have to be multiplied by -1
+      dynamic_cast<AcousticPDE*> (pde2)->SetMechanicCoupling();
+
+      coupling = new AcouMechCoupling(pde1, pde2, pairNodes[i]);
+    }
 //
 //    // ------------------------------------------------------------------------
 //    // *** THERMO-MECH Coupling ***

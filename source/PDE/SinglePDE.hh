@@ -50,6 +50,10 @@ namespace CoupledField
      * @param base pointer to InfoNode of this PDE */
     virtual void Init( UInt sequenceStep, PtrParamNode base = PtrParamNode() ); 
 
+    /** Finalize initialization of PDEs. Either called in SinglePDE::Init() if
+     * directCoupled_ == false, otherwise called from DirectCoupledPDE::Init() */
+    void FinalizeInit( );
+
     // ---------------------- ***** --------------------------------
 
     //! destructor

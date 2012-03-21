@@ -11,7 +11,7 @@
 #include "Utils/StdVector.hh"
 #include "MatVec/Vector.hh"
 #include "Domain/Results/BaseResults.hh"
-#include "PDE/BasePDE.hh"
+#include "PDE/StdPDE.hh"
 #include "FeBasis/FeFunctions.hh"
 
 namespace CoupledField
@@ -55,6 +55,9 @@ namespace CoupledField
 
     //! Initialization method
     virtual void Init( UInt sequenceStep, PtrParamNode info );
+
+    //! specify the time stepping
+    virtual void InitTimeStepping() {;};
 
     //! Trigger calculation of postprocessing results
     virtual void CalcResults( shared_ptr<BaseResult> result ) {};
@@ -112,6 +115,15 @@ namespace CoupledField
     void SetNonLinearity(bool nonLin){
       nonLin_=nonLin;};
 
+    //! Pointer to solution strategy object
+    shared_ptr<SolStrategy> solStrat_;
+
+    //! Map Storing FeSpaces for each unknown of PDE
+    std::map<SolutionType, shared_ptr<BaseFeFunction> > feFunctions_;
+    
+    //! Map storing the feFunctions of the RHS
+    std::map<SolutionType, shared_ptr<BaseFeFunction> > rhsFeFunctions_;
+
   protected:
 
     //! Constructor
@@ -120,6 +132,18 @@ namespace CoupledField
 
     //! Definition of the (bi)linear forms
     virtual void DefineIntegrators() = 0;
+
+    //! define the FE-spaces and functions
+    void DefineFeFunctions();
+
+    //! Create FeSpaces according to formulation
+    virtual void CreateFeSpaces( const std::string&  formulation,
+                                 PtrParamNode infoNode,
+                                 std::map<SolutionType, shared_ptr<FeSpace> >& crSpace ) {};
+
+    //! define primary results (new unknowns, just living
+    //! on the coupling!)
+    virtual void DefinePrimaryResults() {};
 
     //! define all computable results
     virtual void DefineAvailResults() {};

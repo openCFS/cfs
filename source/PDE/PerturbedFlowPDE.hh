@@ -11,7 +11,7 @@ namespace CoupledField
   class LinearFormContext;
   
   //! Class for linearized perturbed formulation of Navier-Stoke's equations.
-  class FluidMechPerturbedPDE : public SinglePDE {
+  class PerturbedFlowPDE : public SinglePDE {
 
   public:
 
@@ -20,10 +20,10 @@ namespace CoupledField
       \param grid pointer to grid
       \param paramNode pointer to the corresponding parameter node
     */
-    FluidMechPerturbedPDE( Grid* grid, PtrParamNode paramNode );
+    PerturbedFlowPDE( Grid* grid, PtrParamNode paramNode );
 
     //! Destructor
-    virtual ~FluidMechPerturbedPDE(){};
+    virtual ~PerturbedFlowPDE(){};
 
     //! Initialize NonLinearities
     void InitNonLin();
@@ -115,7 +115,7 @@ namespace CoupledField
   //     Detailed description of the class 
   // =========================================================================
 
-  //! \class FluidMechPerturbedPDE
+  //! \class PerturbedFlowPDE
   //! 
   //! \purpose   
   //! This class is derived from class SinglePDE. It is used for solving

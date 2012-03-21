@@ -5,7 +5,7 @@ ENDIF(USE_IPOPT)
 SET(PDE_SRCS
   BasePDE.cc
   ElecPDE.cc
-  FluidMechPerturbedPDE.cc
+  PerturbedFlowPDE.cc
   HeatPDE.cc
   MagEdgePDE.cc
   MagneticPDE.cc

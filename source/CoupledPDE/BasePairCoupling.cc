@@ -8,6 +8,9 @@
 #include "Driver/Assemble.hh"
 #include "DataInOut/ResultHandler.hh"
 
+// header for Drivers
+#include "Driver/TransientDriver.hh"
+
 namespace CoupledField {
 
 
@@ -189,7 +192,25 @@ namespace CoupledField {
     //assert( feFct1_ != NULL);
     //assert( feFct2_ != NULL);
 
+    // Define the FE spaces and their functions
+    DefineFeFunctions();
 
+    // Register all fe functions with the algebraic system
+    std::map<SolutionType, shared_ptr<BaseFeFunction> >::iterator fncIt= feFunctions_.begin();
+    while(fncIt != feFunctions_.end()){
+      shared_ptr<BaseFeFunction> actFct = fncIt->second;
+      shared_ptr<FeSpace> actSpace = fncIt->second->GetFeSpace();
+      std::string fctName = SolutionTypeEnum.ToString(fncIt->first);
+      FeFctIdType fctId = algsys_->ObtainFctId( fctName );
+      actFct->SetFctId(fctId);
+      fncIt++;
+    }
+    
+ 
+
+    //define primary results (possible new unknowns!)
+    DefinePrimaryResults();
+   
     // Define available results
     DefineAvailResults();
 
@@ -199,15 +220,107 @@ namespace CoupledField {
     // Read in material data
     ReadMaterialData();
  
+
     // Define the integrators
     DefineIntegrators();
 
     
+    // Finalize spaces and fefunctions
+    fncIt= feFunctions_.begin();
+    while(fncIt != feFunctions_.end()){
+      shared_ptr<BaseFeFunction> actFct = fncIt->second;
+      shared_ptr<FeSpace> actSpace = fncIt->second->GetFeSpace();
+      actSpace->Finalize();
+      actSpace->PreCalcShapeFncs();
+      
+      // finalize feFunctions
+      actFct->Finalize();
+      
+      // Pass feFctId of primary result also to RHS result
+      rhsFeFunctions_[fncIt->first]->SetFctId(actFct->GetFctId());
+      rhsFeFunctions_[fncIt->first]->Finalize();
+      fncIt++;
+    }
+
+   // Init Time Stepping
+    if ( analysisType_ == BasePDE::TRANSIENT ) {
+      InitTimeStepping();
+    }
+
+    if ( analysisType_ == BasePDE::TRANSIENT ) {
+      Double dt;
+      dt = dynamic_cast<TransientDriver*>(domain->GetSingleDriver())
+        ->GetDeltaT();
+      //WARN("Note: The initialization of the timestepping class is currently wrong: "
+      //    "The 2nd argument must be the complete SBM-vector of the algebraic system in "
+      //    "order to correclty initialize the internal vectors of the timestepping method. "
+      //    "In the old implementation it was sufficient to know the number of unknowns. "
+      //    "In the current implementation, the SBM-vectors are just defined within the "
+      //    "SolveStep classed. Thus maybe the right thing to do is to shift the creation and "
+      //    "initialization of the timestepping scheme to the solveStep classes.")
+          
+
+      // Call the init function of timescheme of each fefunction
+      fncIt= feFunctions_.begin();
+      while(fncIt != feFunctions_.end()){
+        shared_ptr<BaseFeFunction> actFct = fncIt->second;
+        actFct->GetTimeScheme()->Init(actFct->GetSingleVector(),dt);
+        fncIt++;
+      }
+    }
+
     // define which solution types have to be saved
     ReadStoreResults();
     ReadSpecialResults();
 
   }
+
+  void BasePairCoupling::DefineFeFunctions(){
+    //This is the default creation of spaces
+    //idee: die PDE gibt zum attribute formulation die passenden space zurück
+    //DOGMA: PRO UNBEKANNTE EINE FUNCTION UND EIN SPACE
+    std::string formulation;
+    myParam_->GetValue("feSpaceFormulation",formulation,ParamNode::PASS);
+    infoNode_->SetComment("List of defined Spaces");
+    PtrParamNode feSpaceNode = infoNode_->Get("feSpaces");
+    std::map<SolutionType, shared_ptr<FeSpace> > spaces;
+    CreateFeSpaces(formulation, feSpaceNode, spaces);
+    
+    //loop over all spaces and set an FeFunction
+    std::map<SolutionType, shared_ptr<FeSpace> >::iterator spIt = spaces.begin();
+    while(spIt != spaces.end()){
+      
+      if(feFunctions_.find(spIt->first) != feFunctions_.end()){
+        EXCEPTION("It seems that the PDE has created multiple spaces for one result: " << \
+                  spIt->first << " This is not how its ought to be!");
+      }
+      
+      if(analysisType_ == BasePDE::HARMONIC){
+        feFunctions_[spIt->first] = shared_ptr<BaseFeFunction >(new FeFunction<Complex>());
+        rhsFeFunctions_[spIt->first] = shared_ptr<BaseFeFunction >(new FeFunction<Complex>());
+      }
+      else{
+        feFunctions_[spIt->first] = shared_ptr<BaseFeFunction >(new FeFunction<Double>());
+        rhsFeFunctions_[spIt->first] = shared_ptr<BaseFeFunction >(new FeFunction<Double>());
+        
+        // Note: in the transient case, we also need fefunctions for the time derivatives
+        // ... todo: add initialization
+      }
+      //let the objects know about each other
+      spIt->second->AddFeFunction(feFunctions_[spIt->first]);
+      feFunctions_[spIt->first]->SetFeSpace(spIt->second);
+      //set just PDE1: WORKING?????
+      feFunctions_[spIt->first]->SetPDE(pde1_);
+      feFunctions_[spIt->first]->SetGrid(ptGrid_);
+      
+      rhsFeFunctions_[spIt->first]->SetFeSpace(spIt->second);
+      //set just PDE1: WORKING?????
+      rhsFeFunctions_[spIt->first]->SetPDE(pde1_);
+      rhsFeFunctions_[spIt->first]->SetGrid(ptGrid_);
+      spIt++;
+    }
+  }
+
 
   void BasePairCoupling::ReadMaterialData() {
 

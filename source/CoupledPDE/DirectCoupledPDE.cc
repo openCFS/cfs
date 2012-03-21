@@ -215,10 +215,10 @@ namespace CoupledField {
     assemble_ = new Assemble( algsys_, analysistype_, 2 );
     
 
-    // Initialize timestepping
-    if ( analysistype_ == BasePDE::TRANSIENT ) {
-      InitTimeStepping();
-    }
+//     // Initialize timestepping
+//     if ( analysistype_ == BasePDE::TRANSIENT ) {
+//       InitTimeStepping();
+//     }
 
     // activate direct coupling information
     for (UInt i=0; i<singlePDEs_.GetSize(); i++) {
@@ -236,7 +236,7 @@ namespace CoupledField {
       singlePDEs_[i]->Init( sequenceStep, infoNode_);
     }
 
-    // Collect all feFunctions
+    // Collect all feFunctions defined in single PDEs
     for( UInt i = 0; i < singlePDEs_.GetSize(); ++i ) {
       
      feFunctions_.insert( singlePDEs_[i]->feFunctions_.begin(),
@@ -244,34 +244,34 @@ namespace CoupledField {
      rhsFeFunctions_.insert(singlePDEs_[i]->rhsFeFunctions_.begin(),
                             singlePDEs_[i]->rhsFeFunctions_.end() );
     }
-    
-    // Get information about number of dirichlet values,
-    // dofs, constraints and needed matrices
 
-    // Iterate over all single PDEs and collect data about
-    // included boundary conditions
-
-    if ( analysistype_ == BasePDE::TRANSIENT ) {
-      EXCEPTION("Direct coupling does not work in the transient case.\n"
-             << "=> Andi Hueppe will solve the issue!");
-      //Double dt;
-      //dt = dynamic_cast<TransientDriver*>(domain->GetSingleDriver())
-      //  ->GetDeltaT();
-      //TS_alg_->Init( dt, 1 );
+    // Initialize all Coupling Objects
+    for (UInt i=0; i<couplings_.GetSize(); i++) {
+      couplings_[i]->SetAlgSys( algsys_ );
+      couplings_[i]->solStrat_ = solStrat_;
+      couplings_[i]->SetAssemble( assemble_ );
+      couplings_[i]->Init( sequenceStep_, infoNode_ );
     }
 
+    // Finalize initialization of SinglePDEs (i.e. FeSpaces, FeFunctions, Time stepping etc.)
+    for( UInt i = 0; i < singlePDEs_.GetSize(); ++i ) {
+     singlePDEs_[i]->FinalizeInit();
+    }
+    
+    // Collect all feFunctions defined in BasePairCouplings
+    for (UInt i=0; i<couplings_.GetSize(); i++) {
+      feFunctions_.insert( couplings_[i]->feFunctions_.begin(),
+                           couplings_[i]->feFunctions_.end() );
+      rhsFeFunctions_.insert(couplings_[i]->rhsFeFunctions_.begin(),
+                             couplings_[i]->rhsFeFunctions_.end() );
+    }
+    
     // define solveStep-driver
     DefineSolveStep();
 
     // Pass SolveStep object to all single pdes
     for ( UInt i = 0; i < singlePDEs_.GetSize(); i++ ) {
       singlePDEs_[i]->solveStep_ = solveStep_;
-    }
-    // Initialize all Coupling Objects
-    for (UInt i=0; i<couplings_.GetSize(); i++) {
-      couplings_[i]->SetAlgSys( algsys_ );
-      couplings_[i]->SetAssemble( assemble_ );
-      couplings_[i]->Init( sequenceStep_, infoNode_ );
     }
 
   }
@@ -307,7 +307,7 @@ namespace CoupledField {
   void DirectCoupledPDE::InitTimeStepping() {
 
     // Pass time time stepping init to the single pdes
-    for (UInt i=0; i<singlePDEs_.GetSize(); i++) {
+    for (UInt i=0, n=singlePDEs_.GetSize(); i<n; i++) {
       singlePDEs_[i]->InitTimeStepping();
     }
   }

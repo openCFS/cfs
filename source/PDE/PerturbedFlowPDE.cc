@@ -5,7 +5,7 @@
 #include <string>
 #include <set>
 
-#include "FluidMechPerturbedPDE.hh"
+#include "PerturbedFlowPDE.hh"
 
 #include "General/defs.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
@@ -49,7 +49,7 @@ namespace CoupledField {
   // ***************
   //   Constructor
   // ***************
-  FluidMechPerturbedPDE::FluidMechPerturbedPDE( Grid* grid, PtrParamNode paramNode )
+  PerturbedFlowPDE::PerturbedFlowPDE( Grid* grid, PtrParamNode paramNode )
     :SinglePDE( grid, paramNode ) {
 
 
@@ -70,11 +70,11 @@ namespace CoupledField {
     paramNode->GetValue("subType", subType_);
   }
   
-  void FluidMechPerturbedPDE::InitNonLin() {
+  void PerturbedFlowPDE::InitNonLin() {
     SinglePDE::InitNonLin();
   }
 
-  void FluidMechPerturbedPDE::DefineIntegrators() {
+  void PerturbedFlowPDE::DefineIntegrators() {
     // Not needed at the moment. Commented out due to gcc 4.6.
 #if 0
     //transform the type
@@ -155,8 +155,8 @@ namespace CoupledField {
                                    Global::REAL, false);
 #endif
 
-      Double density;
-      Double viscosity;
+      Double density = 1000;
+      Double viscosity = 1;
       materials_[actRegion]->GetScalar(density,DENSITY,Global::REAL);
       materials_[actRegion]->GetScalar(viscosity,DYNAMIC_VISCOSITY,Global::REAL);
 
@@ -285,11 +285,11 @@ namespace CoupledField {
     }
   }
   
-  void FluidMechPerturbedPDE::DefineSolveStep() {
+  void PerturbedFlowPDE::DefineSolveStep() {
     solveStep_ = new SolveStepElec(*this);
   }
 
-  void FluidMechPerturbedPDE::ReadSpecialBCs( ) 
+  void PerturbedFlowPDE::ReadSpecialBCs( ) 
   {
   }
   
@@ -300,7 +300,7 @@ namespace CoupledField {
   // ************************************************************************
   //   CalcResults
   // ************************************************************************
-  void FluidMechPerturbedPDE::CalcResults( shared_ptr<BaseResult> res ) {
+  void PerturbedFlowPDE::CalcResults( shared_ptr<BaseResult> res ) {
 
     switch (res->GetResultInfo()->resultType ) {
       case FLUIDMECH_VELOCITY:
@@ -328,20 +328,20 @@ namespace CoupledField {
   // COUPLING SECTION
   // ========================================================================
 
-  void FluidMechPerturbedPDE::InitCoupling(PDECoupling * Coupling)
+  void PerturbedFlowPDE::InitCoupling(PDECoupling * Coupling)
   {
     REFACTOR;
   }
   
 
 
-  void FluidMechPerturbedPDE::CalcOutputCoupling()
+  void PerturbedFlowPDE::CalcOutputCoupling()
   {
     REFACTOR;
   }
 
 
-  bool FluidMechPerturbedPDE::HasOutput(SolutionType output)
+  bool PerturbedFlowPDE::HasOutput(SolutionType output)
   {
     switch (output)
       {
@@ -361,7 +361,7 @@ namespace CoupledField {
     return false;
   }
 
-  void FluidMechPerturbedPDE::DefinePrimaryResults() {
+  void PerturbedFlowPDE::DefinePrimaryResults() {
     shared_ptr<BaseFeFunction> feFct = feFunctions_[FLUIDMECH_VELOCITY];
 
     // Check for subType
@@ -393,6 +393,31 @@ namespace CoupledField {
 
     pressure->SetFeFunction(feFunctions_[FLUIDMECH_PRESSURE]);
 
+    shared_ptr<BaseFieldFunctor> vFunc;
+    if( isComplex_ ) {
+      if( dim_ == 2 ) {
+        vFunc.reset(
+          new FieldInterpolFunctor<IdentityOperator<FeH1,2,1,Complex>,
+          Complex>(feFunctions_[FLUIDMECH_PRESSURE], pressure));
+      } else {
+        vFunc.reset(
+          new FieldInterpolFunctor<IdentityOperator<FeH1,3,1,Complex>,
+          Complex>(feFunctions_[FLUIDMECH_PRESSURE], pressure));
+      }        
+    } else {
+      if( dim_ == 2 ) {
+        vFunc.reset(
+          new FieldInterpolFunctor<IdentityOperator<FeH1,2,1>,
+          Double>(feFunctions_[FLUIDMECH_PRESSURE], pressure));
+      } else {
+        vFunc.reset(
+          new FieldInterpolFunctor<IdentityOperator<FeH1,3,1>,
+          Double>(feFunctions_[FLUIDMECH_PRESSURE], pressure));
+      }      
+    }
+    resultFunctors_[FLUIDMECH_PRESSURE] = vFunc;
+    fieldFunctors_[FLUIDMECH_PRESSURE] = vFunc;
+
     // VELOCITY
     shared_ptr<ResultInfo> velocity( new ResultInfo);
     velocity->resultType = FLUIDMECH_VELOCITY;
@@ -407,7 +432,6 @@ namespace CoupledField {
 
     velocity->SetFeFunction(feFunctions_[FLUIDMECH_VELOCITY]);
 
-    shared_ptr<BaseFieldFunctor> vFunc;
     if( isComplex_ ) {
       if( dim_ == 2 ) {
         vFunc.reset(
@@ -438,13 +462,13 @@ namespace CoupledField {
   }
   
   
-  void FluidMechPerturbedPDE::DefinePostProcResults() {
+  void PerturbedFlowPDE::DefinePostProcResults() {
 
   }
 
   
   std::map<SolutionType, shared_ptr<FeSpace> >
-  FluidMechPerturbedPDE::CreateFeSpaces(const std::string& formulation,
+  PerturbedFlowPDE::CreateFeSpaces(const std::string& formulation,
 		  PtrParamNode infoNode) {
     std::map<SolutionType, shared_ptr<FeSpace> > crSpaces;
 
@@ -470,7 +494,7 @@ namespace CoupledField {
     return crSpaces;
   }
 
-  LinearFormContext* FluidMechPerturbedPDE::CreateRhsLinearForm(SolutionType rhsType,
+  LinearFormContext* PerturbedFlowPDE::CreateRhsLinearForm(SolutionType rhsType,
 	  shared_ptr<CoefFunction > rhsCoef){
 #if 0
     LinearFormContext * mContext = NULL;
@@ -492,7 +516,7 @@ namespace CoupledField {
     return NULL;
   }
 
-  void FluidMechPerturbedPDE::CreateMeanFlowFunction(StdVector<std::string> dofNames){
+  void PerturbedFlowPDE::CreateMeanFlowFunction(StdVector<std::string> dofNames){
     //// === MEAN FLUIDMECH VELOCITY ===
     shared_ptr<ResultInfo> flowvelocity( new ResultInfo);
     flowvelocity->resultType = MEAN_FLUIDMECH_VELOCITY;

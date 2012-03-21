@@ -663,6 +663,8 @@ share/xsl/extract_last_results_harmonic.xsl -text
 share/xsl/extract_results.xsl -text
 share/xsl/meta_optimization_subiterations.xsl -text
 share/xsl/optimization_iterations.xsl -text
+source/CoupledPDE/AcouMechCoupling.cc -text
+source/CoupledPDE/AcouMechCoupling.hh -text
 source/CoupledPDE/BasePairCoupling.cc svneol=native#text/x-c%2B%2Bsrc
 source/CoupledPDE/BasePairCoupling.hh svneol=native#text/x-c%2B%2Bhdr
 source/CoupledPDE/CMakeLists.txt svneol=native#text/plain
@@ -1215,8 +1217,6 @@ source/PDE/BasePDE.hh svneol=native#text/x-c%2B%2Bhdr
 source/PDE/CMakeLists.txt svneol=native#text/plain
 source/PDE/ElecPDE.cc svneol=native#text/x-c%2B%2Bsrc
 source/PDE/ElecPDE.hh svneol=native#text/x-c%2B%2Bhdr
-source/PDE/FluidMechPerturbedPDE.cc -text
-source/PDE/FluidMechPerturbedPDE.hh -text
 source/PDE/HeatPDE.cc -text
 source/PDE/HeatPDE.hh -text
 source/PDE/MagEdgePDE.cc -text
@@ -1225,6 +1225,8 @@ source/PDE/MagneticPDE.cc -text
 source/PDE/MagneticPDE.hh -text
 source/PDE/MechPDE.cc -text
 source/PDE/MechPDE.hh -text
+source/PDE/PerturbedFlowPDE.cc -text
+source/PDE/PerturbedFlowPDE.hh -text
 source/PDE/SinglePDE.cc svneol=native#text/x-c%2B%2Bsrc
 source/PDE/SinglePDE.hh svneol=native#text/x-c%2B%2Bhdr
 source/PDE/StdPDE.cc svneol=native#text/x-c%2B%2Bsrc

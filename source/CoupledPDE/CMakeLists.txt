@@ -6,6 +6,7 @@ SET(COUPLED_PDE_SRCS
   IterCoupledPDE.cc
   PDECoupling.cc
   PiezoCoupling.cc
+  AcouMechCoupling.cc
   )
 
 ADD_LIBRARY(coupledpde STATIC ${COUPLED_PDE_SRCS})

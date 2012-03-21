@@ -111,6 +111,20 @@ namespace CoupledField{
    }
 
    template< class A_OP, class B_OP, class MAT_DATA_TYPE >
+   SurfaceABInt<A_OP, B_OP,MAT_DATA_TYPE>::
+   SurfaceABInt(const std::map< RegionIdType, shared_ptr<CoefFunction> >& regionCoefs,
+                MAT_DATA_TYPE factor,
+                const std::set<RegionIdType>& volRegions,
+                bool coordUpdate)
+     : ABInt<A_OP,B_OP,MAT_DATA_TYPE>(regionCoefs.begin()->second, factor, coordUpdate )
+   {
+     this->name_ = "SurfaceABInt";
+     volRegions_ = volRegions;
+     this->isSymmetric_ = false;
+     regionCoefs_ = regionCoefs;
+   }
+
+   template< class A_OP, class B_OP, class MAT_DATA_TYPE >
    void SurfaceABInt<A_OP, B_OP,MAT_DATA_TYPE>::
    CalcElementMatrix( Matrix<MAT_DATA_TYPE>& elemMat,
                       EntityIterator& ent1,
@@ -166,7 +180,15 @@ namespace CoupledField{
        this->bOperator_.CalcOpMat( bMat, lp2, ptFeB );
 
        // Calculate scalar factor
-       this->coefScalar_->GetScalar(fac, lp1);
+       if(!regionCoefs_.empty()) 
+       {
+         regionCoefs_[lp1.lpmVol->ptEl->regionId]->GetScalar(fac, lp1);
+       }
+       else
+       {
+         this->coefScalar_->GetScalar(fac, lp1);
+       }
+       
        fac *= MAT_DATA_TYPE(lp1.jacDet * weights[i]);
 
        this->aOperator_.TransformJacDet(fac,lp1,ptFeA);

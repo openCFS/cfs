@@ -58,6 +58,14 @@ namespace CoupledField{
     //! Returns if PDE can compute the quantity
     bool HasOutput(SolutionType output) { return false;};
 
+    //! Return acoustic formulation. Can either be pressure or potential.
+    SolutionType GetFormulation() const { return formulation_; }
+
+    //! Indicate that acoustic PDE takes part in coupling to mechanics.
+    void SetMechanicCoupling() {
+      isMechCoupled_ = true;
+    }
+
     // ======================================================
     // POSTPROCESSING SECTION
     // ======================================================
@@ -83,6 +91,9 @@ namespace CoupledField{
 
     //!
     shared_ptr<BaseFieldFunctor> meanFlowFunctor_;
+    
+    //! stores if the Acoustic PDE is coupled to mechanics
+    bool isMechCoupled_;
   };
 
 }
