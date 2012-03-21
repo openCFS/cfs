@@ -44,6 +44,7 @@ ELSE(WIN32)
     COMMENT "Copying CFS-debug start script \"${CFS_SCRIPT}\" to
     ${CFS_BINARY_DIR}/bin folder...")
 ENDIF(WIN32)
+
 #-------------------------------------------------------------------------------
 # Custom target for copying cfstool to ${CFS_BINARY_DIR}/bin
 #-------------------------------------------------------------------------------
