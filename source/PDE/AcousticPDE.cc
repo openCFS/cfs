@@ -138,14 +138,10 @@ namespace CoupledField{
 
       BiLinearForm * stiffInt = NULL;
       if( dim_ == 2 ) {
-        shared_ptr<CoefFunction> coeffK
-          = CoefFunction::Generate(Global::REAL, "1.0");
-        stiffInt = new BBInt<GradientOperator<FeH1,2>, Double >(coeffK, factor );
+        stiffInt = new BBInt<GradientOperator<FeH1,2>, Double >( coeffK, factor );
       }
       else{
-        shared_ptr<CoefFunction> coeffK
-          = CoefFunction::Generate(Global::REAL, "1.0");
-        stiffInt = new BBInt<GradientOperator<FeH1,3>, Double >(coeffK, factor );
+        stiffInt = new BBInt<GradientOperator<FeH1,3>, Double >( coeffK, factor );
       }
       stiffInt->SetName("LaplaceIntegrator");
 

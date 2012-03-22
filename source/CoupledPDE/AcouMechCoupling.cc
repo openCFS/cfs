@@ -85,6 +85,7 @@ namespace CoupledField {
 
     // Create coefficient functions for all acoustic densities
     std::map< RegionIdType, shared_ptr<CoefFunction> > coefFuncs;
+    std::map< RegionIdType, shared_ptr<CoefFunction> > oneCoefFuncs;
     std::set< RegionIdType > acouRegions;
     std::map<RegionIdType, BaseMaterial*>::iterator it, end;
     it = acouMaterials.begin();
@@ -101,6 +102,8 @@ namespace CoupledField {
 
       coefFuncs[volRegId] = CoefFunction::Generate(Global::REAL,
                                                    lexical_cast<std::string>(density));
+      oneCoefFuncs[volRegId] = CoefFunction::Generate(Global::REAL,
+                                                   lexical_cast<std::string>(1.0));
     }
 
     shared_ptr<FeSpace> dispSpace = dispFct->GetFeSpace();
@@ -126,11 +129,33 @@ namespace CoupledField {
       switch(acouFormulation) {
         case ACOU_POTENTIAL:
         {
-          DefineDampingIntegratorsTempl<Double>(dispFct, acouFct, actSDList, coefFuncs, acouRegions);
+          DefinePresOrPotIntegrators("AcouMechPotCouplingInt",
+                                     DAMPING,
+                                     dispFct,
+                                     acouFct,
+                                     actSDList,
+                                     coefFuncs,
+                                     acouRegions);
         }
         break;
 
         case ACOU_PRESSURE:
+          // This integrator gets assembled into the mass matrix of the acoustic PDE
+          DefinePresOrPotIntegrators("AcouMechPresMassCouplingInt",
+                                     MASS,
+                                     dispFct,
+                                     acouFct,
+                                     actSDList,
+                                     coefFuncs,
+                                     acouRegions);
+          // This integrator gets assembled into the stiffness matrix of the mechanic PDE
+          DefinePresOrPotIntegrators("AcouMechPresStiffCouplingInt",
+                                     STIFFNESS,
+                                     dispFct,
+                                     acouFct,
+                                     actSDList,
+                                     oneCoefFuncs,
+                                     acouRegions);
           break;
 
         default:
@@ -140,8 +165,9 @@ namespace CoupledField {
     }
   }
 
-  template<class DATA_TYPE>
-  void AcouMechCoupling::DefineDampingIntegratorsTempl(shared_ptr<BaseFeFunction>& dispFct,
+  void AcouMechCoupling::DefinePresOrPotIntegrators(const std::string& name,
+                                                    FEMatrixType matType,
+                                                    shared_ptr<BaseFeFunction>& dispFct,
                                                        shared_ptr<BaseFeFunction>& acouFct,
                                                        shared_ptr<SurfElemList>& actSDList,
                                                        const std::map< RegionIdType, shared_ptr<CoefFunction> >& coefFuncs,
@@ -150,34 +176,74 @@ namespace CoupledField {
     BiLinearForm * dampInt = NULL;
 
     if( subType_ == "axi" ) {
-      dampInt = new SurfaceABInt< IdentityOperator<FeH1,2,2, DATA_TYPE>,
-                                  IdentityOperatorNormal<FeH1,2, DATA_TYPE>,
-                                  DATA_TYPE >(coefFuncs, DATA_TYPE(-1.0), acouRegions);
+      if(matType == MASS) {
+        dampInt = new SurfaceABInt< IdentityOperatorNormal<FeH1,2>,
+                                    IdentityOperator<FeH1,2,2> >
+          (coefFuncs, 1.0, acouRegions);
+      } else {
+      dampInt = new SurfaceABInt< IdentityOperator<FeH1,2,2>,
+                                  IdentityOperatorNormal<FeH1,2> >
+        (coefFuncs, -1.0, acouRegions);
+      }
     } else if( subType_ == "planeStrain" ) {
-      dampInt = new SurfaceABInt< IdentityOperator<FeH1,2,2, DATA_TYPE>,
-                                 IdentityOperatorNormal<FeH1,2, DATA_TYPE>,
-                                 DATA_TYPE >(coefFuncs, DATA_TYPE(-1.0), acouRegions);
+      if(matType == MASS) {
+        dampInt = new SurfaceABInt< IdentityOperatorNormal<FeH1,2>,
+                                    IdentityOperator<FeH1,2,2> >
+          (coefFuncs, 1.0, acouRegions);
+      } else {
+      dampInt = new SurfaceABInt< IdentityOperator<FeH1,2,2>,
+                                 IdentityOperatorNormal<FeH1,2> >
+        (coefFuncs, -1.0, acouRegions);
+      }
     } else if( subType_ == "planeStress" ) {
-      dampInt = new SurfaceABInt< IdentityOperator<FeH1,2,2, DATA_TYPE>,
-                                 IdentityOperatorNormal<FeH1,2, DATA_TYPE>,
-                                 DATA_TYPE >(coefFuncs, DATA_TYPE(-1.0), acouRegions);
+      if(matType == MASS) {
+        dampInt = new SurfaceABInt< IdentityOperatorNormal<FeH1,2>,
+                                    IdentityOperator<FeH1,2,2> >
+          (coefFuncs, 1.0, acouRegions);
+      } else {
+      dampInt = new SurfaceABInt< IdentityOperator<FeH1,2,2>,
+                                 IdentityOperatorNormal<FeH1,2> >
+        (coefFuncs, -1.0, acouRegions);
+      }
     } else if( subType_ == "3d") {
-      dampInt = new SurfaceABInt< IdentityOperator<FeH1,3,3, DATA_TYPE>,
-                                 IdentityOperatorNormal<FeH1,3, DATA_TYPE>,
-                                 DATA_TYPE >(coefFuncs, DATA_TYPE(-1.0), acouRegions);
+      if(matType == MASS) {
+        dampInt = new SurfaceABInt< IdentityOperatorNormal<FeH1,3>,
+                                    IdentityOperator<FeH1,3,3> >
+          (coefFuncs, 1.0, acouRegions);
+      } else {
+      dampInt = new SurfaceABInt< IdentityOperator<FeH1,3,3>,
+                                 IdentityOperatorNormal<FeH1,3> >
+        (coefFuncs, -1.0, acouRegions);
+      }
     } else {
       EXCEPTION( "Subtype '" << subType_ << "' unknown for mechanic physic" );
     }
 
-    dampInt->SetName("AcouMechPotCouplingInt");
-    BiLinFormContext * dampContext =
-        new BiLinFormContext(dampInt, DAMPING );
+    dampInt->SetName(name);
+    BiLinFormContext * context =
+        new BiLinFormContext(dampInt, matType );
 
-    dampContext->SetEntities( actSDList, actSDList );
-    dampContext->SetFeFunctions( dispFct, acouFct );
-    dampContext->SetCounterPart(true);
+    context->SetEntities( actSDList, actSDList );
 
-    assemble_->AddBiLinearForm( dampContext );
+    switch(matType) {
+      case DAMPING:
+      case STIFFNESS:
+        context->SetFeFunctions( dispFct, acouFct );
+        break;
+
+      case MASS:
+        context->SetFeFunctions( acouFct, dispFct );
+        break;
+
+      default:
+        break;
+    }
+
+    // In the case of acoustic potential formulation we set the counterpart.
+    bool counterPart = matType == DAMPING ? true : false;
+    context->SetCounterPart(counterPart);
+
+    assemble_->AddBiLinearForm( context );
   }
 
   void AcouMechCoupling::DefineAvailResults() {

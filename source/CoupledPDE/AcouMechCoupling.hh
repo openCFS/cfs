@@ -52,12 +52,13 @@ class BiLinearForm;
 
     //! define all (bilinearform) integrators needed for this pdewith template
     //! for the space dimension
-    template<class DATA_TYPE>
-    void DefineDampingIntegratorsTempl(shared_ptr<BaseFeFunction>& dispFct,
-                                       shared_ptr<BaseFeFunction>& acouFct,
-                                       shared_ptr<SurfElemList>& actSDList,
-                                       const std::map< RegionIdType, shared_ptr<CoefFunction> >& coefFuncs,
-                                       const std::set< RegionIdType >& acouRegions);
+    void DefinePresOrPotIntegrators(const std::string& name,
+                                    FEMatrixType matType,
+                                    shared_ptr<BaseFeFunction>& dispFct,
+                                    shared_ptr<BaseFeFunction>& acouFct,
+                                    shared_ptr<SurfElemList>& actSDList,
+                                    const std::map< RegionIdType, shared_ptr<CoefFunction> >& coefFuncs,
+                                    const std::set< RegionIdType >& acouRegions);
     
     //! Returns a stiffness integrator appropriate to the actual problem (e.g. 3D)
     BiLinearForm * GetStiffIntegrator( BaseMaterial* actSDMat,
