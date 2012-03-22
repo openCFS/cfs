@@ -7,6 +7,7 @@ SET(COUPLED_PDE_SRCS
   PDECoupling.cc
   PiezoCoupling.cc
   AcouMechCoupling.cc
+  FluidMechCoupling.cc
   )
 
 ADD_LIBRARY(coupledpde STATIC ${COUPLED_PDE_SRCS})

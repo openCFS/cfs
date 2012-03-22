@@ -48,6 +48,7 @@
 #include "CoupledPDE/CoupledPDEDef.hh"
 #include "CoupledPDE/PiezoCoupling.hh"
 #include "CoupledPDE/AcouMechCoupling.hh"
+#include "CoupledPDE/FluidMechCoupling.hh"
 
 // Include driver
 #include "Driver/BaseDriver.hh"
@@ -773,7 +774,20 @@ void Domain::CreateDirectCoupledPDEs(UInt sequenceStep)
       // entries have to be multiplied by -1
       dynamic_cast<AcousticPDE*> (pde2)->SetMechanicCoupling();
 
-      coupling = new AcouMechCoupling(pde1, pde2, pairNodes[i]);
+      coupling = new FluidMechCoupling(pde1, pde2, pairNodes[i]);
+    }
+    // *** FLUID-MECH Coupling ***
+    else if (couplingName == "fluidMechDirect")
+    {
+
+      pde1 = GetSinglePDE("mechanic");
+      pde2 = GetSinglePDE("fluidMechPerturbed");
+
+      // in the case of acou-Mech coupling, the acoustic
+      // entries have to be multiplied by -1
+//      dynamic_cast<PerturbedFlowPDE*> (pde2)->SetMechanicCoupling();
+
+      coupling = new FluidMechCoupling(pde1, pde2, pairNodes[i]);
     }
 //
 //    // ------------------------------------------------------------------------

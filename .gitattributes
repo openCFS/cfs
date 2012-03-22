@@ -674,6 +674,8 @@ source/CoupledPDE/CouplingMemento.cc svneol=native#text/x-c%2B%2Bsrc
 source/CoupledPDE/CouplingMemento.hh svneol=native#text/x-c%2B%2Bhdr
 source/CoupledPDE/DirectCoupledPDE.cc svneol=native#text/x-c%2B%2Bsrc
 source/CoupledPDE/DirectCoupledPDE.hh svneol=native#text/x-c%2B%2Bhdr
+source/CoupledPDE/FluidMechCoupling.cc -text
+source/CoupledPDE/FluidMechCoupling.hh -text
 source/CoupledPDE/IterCoupledPDE.cc svneol=native#text/x-c%2B%2Bsrc
 source/CoupledPDE/IterCoupledPDE.hh svneol=native#text/x-c%2B%2Bhdr
 source/CoupledPDE/PDECoupling.cc svneol=native#text/x-c%2B%2Bsrc
