@@ -32,6 +32,13 @@ void FeasSCP::AllocateProblem()
 {
   SCPIPBase::AllocateProblem();
 
+  hmax = n + mie; // why?
+  hrns.Resize(hmax);
+  hcns.Resize(hmax);
+  hval.Resize(hmax);
+
+  lengmie = ieleng; // ???
+
   linear.Resize(iemax);
   linear.Init(1);
 
@@ -135,7 +142,7 @@ int FeasSCP::SolveProblem(bool fromWarmstart)
         << ", spstrat = " << spstrat << ", linsys = " << linsys;
 
     // int nEqMax = 1;
-
+/*
     scpip40i_(&n,                      // 1
               &mie,                    // 2
               &meq,                    // 3
@@ -189,6 +196,65 @@ int FeasSCP::SolveProblem(bool fromWarmstart)
               &mf,                     // 51
               &lact,                   // 52
               setact.GetPointer());    // 53
+*/
+
+    scpip40nlph_(&n,                   // 1
+              &mie,                    // 2
+              &meq,                    // 3
+              &mf,                     // 4
+              &iemax,                  // 5
+              &eqmax,                  // 6
+              x.GetPointer(),          // 7
+              x_l.GetPointer(),        // 8
+              x_u.GetPointer(),        // 9
+              &f_org,                  // 10
+              h_org.GetPointer(),      // 11
+              g_org.GetPointer(),      // 12
+              df.GetPointer(),         // 13
+              y_ie.GetPointer(),       // 14
+              y_eq.GetPointer(),       // 15
+              y_l.GetPointer(),        // 16
+              y_u.GetPointer(),        // 17
+              icntl.GetPointer(),      // 18
+              rcntl.GetPointer(),      // 19
+              info.GetPointer(),       // 20
+              rinfo.GetPointer(),      // 21
+              &nout,                   // 22
+              r_scp.GetPointer(),      // 23
+              &rdim,                   // 24
+              r_sub.GetPointer(),      // 25
+              &rsubdim,                // 26
+              i_scp.GetPointer(),      // 27
+              &idim,                   // 28
+              i_sub.GetPointer(),      // 29
+              &isubdim,                // 30
+              active.GetPointer(),     // 31
+              &ierr,                   // 32
+              iern.GetPointer(),       // 33
+              iecn.GetPointer(),       // 34
+              iederv.GetPointer(),     // 35
+              &ielpar,                 // 36
+              &lengmie,                // 37
+              &ieleng,                 // 38
+              eqrn.GetPointer(),       // 39
+              eqcn.GetPointer(),       // 40
+              eqcoef.GetPointer(),     // 41
+              &eqlpar,                 // 42
+              &eqleng,                 // 43
+              hrns.GetPointer(),       // 44
+              hcns.GetPointer(),       // 45
+              hval.GetPointer(),       // 46
+              &hleng,                  // 47
+              &hmax,                   // 48
+              &mactiv,                 // 49
+              spiw.GetPointer(),       // 50
+              &spiwdim,                // 51
+              spdw.GetPointer(),       // 52
+              &spdwdim,                // 53
+              linear.GetPointer(),     // 54
+              &lact,                   // 55
+              setact.GetPointer());    // 56
+*/
 
     LOG_TRACE(feas_scp) << "scpip30 returns: ierr=" << ierr << " info[20-1]=" << info[20-1];
 
