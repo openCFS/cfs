@@ -18,8 +18,9 @@ class Optimization;
   {
     public:
       /** @param optimization the problem we optimize
-       * @param pn here we can have options - might be NULL! */
-      SCPIP(Optimization* optimization, PtrParamNode pn);
+       * @param pn here we can have options - might be NULL!
+       * @param type given here to have it transparent with FeasSCP */
+      SCPIP(Optimization* optimization, PtrParamNode pn, Optimization::Optimizer type = Optimization::SCPIP_SOLVER);
       
       virtual ~SCPIP();
     
@@ -36,8 +37,6 @@ class Optimization;
         assert(mactiv >= 0);
         return mactiv;
       }
-
-    private:
 
       /** Overloads the default implementation to allow sparse jacobians */
       void SetConstraintSparsityPattern();

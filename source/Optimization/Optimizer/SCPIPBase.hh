@@ -394,19 +394,19 @@
     /** this return value controls the reverse communication */
     int ierr;
 
-    /** inequality constraints row numbers. We are dense! */
+    /** inequality constraints row numbers.*/
     StdVector<int> iern;
 
-    /** inequality constraints column numbers. We are dense! */
+    /** inequality constraints column numbers. */
     StdVector<int> iecn;
 
     /** inequality constraint derivative values */
     StdVector<double> iederv;
 
-    /** equality constraints row numbers. We are dense! */
+    /** equality constraints row numbers. */
     StdVector<int> eqrn;
 
-    /** equality constraints column numbers. We are dense! */
+    /** equality constraints column numbers. */
     StdVector<int> eqcn;
 
     /** The derivative values of the equality constraints.
@@ -442,8 +442,9 @@
     void AllocateFixed();
 
     /** reserve the space with is dynamic and where we have to call abstract methods.
-     * This is executed in Initialize() */
-    void AllocateProblem();
+     * This is executed in Initialize().
+     * To be overwritten in FeasSCP */
+    virtual void AllocateProblem();
 
     /** allocates dynamically based on the info values. Does nothing when there is 
      * no change! */

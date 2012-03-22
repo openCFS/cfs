@@ -60,11 +60,16 @@ IF(USE_SCPIP)
    SET(OPTIMIZER_SRCS ${OPTIMIZER_SRCS} SCPIP.cc SCPIPBase.cc)
 ENDIF(USE_SCPIP)
 
-IF(USE_FEAS_SCPIP)
-   SET(TARGET_LL ${TARGET_LL} libdmumps.a  libmpiseq.a  libmumps_common.a  libpord.a  libscp40.a ${CFS_FORTRAN_LIBS})
+IF(USE_FEAS_SCP)
+
+   SET(COMBINED /home/fwein/code/cfs/debug/lib64/OPENSUSE_11.4_X86_64/libscp40.a)
+   ADD_DEPENDENT_LIBRARY(feas_scp-lib "${COMBINED}" "${DEPENDS}")
+   SET(TARGET_LL ${TARGET_LL} feas_scp-lib1)
    
-   SET(OPTIMIZER_SRCS ${OPTIMIZER_SRCS} FeasSCPIP.cc)
-ENDIF(USE_FEAS_SCPIP)
+   # SET(TARGET_LL ${TARGET_LL} libdmumps.a  libmpiseq.a  libmumps_common.a  libpord.a  libscp40.a ${CFS_FORTRAN_LIBS})
+   
+   SET(OPTIMIZER_SRCS ${OPTIMIZER_SRCS} FeasSCP.cc)
+ENDIF(USE_FEAS_SCP)
 
 
 IF(USE_SNOPT)
