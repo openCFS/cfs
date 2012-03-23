@@ -50,26 +50,44 @@ class BiLinearForm;
     //! Define available results
     void DefineAvailResults();
 
+    //! Define available results
+    void DefinePrimaryResults();
+
+    //! Create FeSpaces according to formulation
+     virtual void CreateFeSpaces( const std::string&  type,
+                                  PtrParamNode infoNode,
+                                  std::map<SolutionType, shared_ptr<FeSpace> >& crSpaces);
+
     //! define all (bilinearform) integrators needed for this pdewith template
     //! for the space dimension
-    void DefinePresOrPotIntegrators(const std::string& name,
-                                    FEMatrixType matType,
+    void DefineDampingIntegrators(const std::string& name,
+                               shared_ptr<BaseFeFunction>& dispFct,
+                               shared_ptr<BaseFeFunction>& acouFct,
+                               shared_ptr<SurfElemList>& actSDList,
+                               const std::map< RegionIdType, shared_ptr<CoefFunction> >& muOverDensityFuncs,
+                               const std::set< RegionIdType >& acouRegions);
+    //! define all (bilinearform) integrators needed for this pdewith template
+    //! for the space dimension
+    void DefineStiffnessIntegrators(const std::string& name,
                                     shared_ptr<BaseFeFunction>& dispFct,
                                     shared_ptr<BaseFeFunction>& acouFct,
                                     shared_ptr<SurfElemList>& actSDList,
-                                    const std::map< RegionIdType, shared_ptr<CoefFunction> >& coefFuncs,
+                                    const std::map< RegionIdType, shared_ptr<CoefFunction> >& densityFuncs,
+                                    const std::map< RegionIdType, shared_ptr<CoefFunction> >& muFuncs,
                                     const std::set< RegionIdType >& acouRegions);
     
-    //! Returns a stiffness integrator appropriate to the actual problem (e.g. 3D)
-    BiLinearForm * GetStiffIntegrator( BaseMaterial* actSDMat,
-                                       RegionIdType regionId,
-                                       bool isComplex );
-
-
-    //! Subtype of related mechanical PDE
+   //! Subtype of related mechanical PDE
     std::string subType_;
     
   private:
+    //! solution type
+    SolutionType formulation_;
+
+    //! results
+    ResultInfoList results_;
+
+    //! Set containing the types of possible results
+    ResultSet availResults_;
 
   };
 

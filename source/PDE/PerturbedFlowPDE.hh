@@ -107,6 +107,9 @@ namespace CoupledField
 
     shared_ptr<BaseFieldFunctor> meanFlowFunctor_;
 
+    //! Surface regions on which pressure surface integral has to be defined
+    StdVector<RegionIdType> presSurfaces_;
+
   };
 
 #ifdef DOXYGEN_DETAILED_DOC

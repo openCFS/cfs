@@ -36,6 +36,7 @@
 #include "Forms/Operators/MultiIdOp.hh"
 #include "Forms/Operators/LaplOp.hh"
 #include "Forms/Operators/ConvectiveOperator.hh"
+#include "Forms/Operators/IdentityOperatorNormal.hh"
 
 // new postprocessing concept
 #include "Domain/Results/ResultFunctor.hh"
@@ -68,6 +69,30 @@ namespace CoupledField {
  
     // Check the subtype of the problem
     paramNode->GetValue("subType", subType_);
+
+    // Obtain regions the pde is defined on
+    PtrParamNode presSurfaceNode = myParam_->Get("presSurfaceList", ParamNode::PASS);
+    ParamNodeList regionNodes;
+    if(presSurfaceNode) {
+      regionNodes = presSurfaceNode->GetList("presSurf");
+    }
+
+    // output and set subdoms_
+    for( UInt i = 0; i < regionNodes.GetSize(); i++ )
+    {
+      RegionIdType actRegionId = ptgrid_->GetRegion().Parse(regionNodes[i]->Get("name")->As<std::string>());
+
+      // Check, if region was already defined an issue a warning otherwise
+      if( std::find(presSurfaces_.Begin(), presSurfaces_.End(), actRegionId )
+          != presSurfaces_.End() )  {
+        WARN( "The pressure surface '" << regionNodes[i]->Get("name")->As<std::string>()
+              << "' was already defined for PDE '" << pdename_
+              << "'. Please remove duplicate entries." );
+      }
+
+      presSurfaces_.Push_back( actRegionId );
+    }
+
   }
   
   void PerturbedFlowPDE::InitNonLin() {
@@ -105,6 +130,10 @@ namespace CoupledField {
     // Get FESpace and FeFunction of fluid pressure
     shared_ptr<BaseFeFunction> presFct = feFunctions_[FLUIDMECH_PRESSURE];
     shared_ptr<FeSpace> presSpace = presFct->GetFeSpace();
+
+    // Create coefficient functions for all fluid densities
+    std::map< RegionIdType, shared_ptr<CoefFunction> > oneOverDensityFuncs;
+    std::set< RegionIdType > flowRegions;
 
     //  Loop over all regions
     std::map<RegionIdType, BaseMaterial*>::iterator it;
@@ -160,6 +189,11 @@ namespace CoupledField {
       materials_[actRegion]->GetScalar(density,DENSITY,Global::REAL);
       materials_[actRegion]->GetScalar(viscosity,DYNAMIC_VISCOSITY,Global::REAL);
 
+      // Create set of flow regions and map of density functions for surface integrators.
+      flowRegions.insert(actRegion);
+      oneOverDensityFuncs[actRegion] = CoefFunction::Generate(Global::REAL,
+                                                       lexical_cast<std::string>(1.0/density));
+
       // ====================================================================
       // stiffness integrators
       // ====================================================================
@@ -184,6 +218,7 @@ namespace CoupledField {
 //      stiffContPV->SetCounterPart(true);
       assemble_->AddBiLinearForm( stiffContPV );
 
+#ifdef NOT_PARTIALLY_INTEGRATED
       // --------------------------------------------------------------------
       //  VERSION 2: K_VP Integrator (upper off-diagonal integrator)
       // --------------------------------------------------------------------
@@ -194,6 +229,28 @@ namespace CoupledField {
         stiffIntVP = new ABInt< IdentityOperator<FeH1,2,2> , GradientOperator<FeH1,2> >(coeffKVP, 1.0 / density );
       } else {
         stiffIntVP = new ABInt< IdentityOperator<FeH1,3,3> , GradientOperator<FeH1,3> >(coeffKVP, 1.0 / density );
+      }
+      stiffIntVP->SetName("PerturbedStiffIntVP");
+      //stiffIntVP->SetFeSpace( feFunctions_[ACOU_PRESSURE]->GetFeSpace(), feFunctions_[ACOU_VELOCITY]->GetFeSpace() );
+      BiLinFormContext *stiffContVP = new BiLinFormContext(stiffIntVP, STIFFNESS );
+
+      stiffContVP->SetEntities( actSDList, actSDList );
+      stiffContVP->SetFeFunctions( velFct, presFct );
+      //stiffContVP->SetCounterPart(true);
+      assemble_->AddBiLinearForm( stiffContVP );
+#endif
+
+      // --------------------------------------------------------------------
+      //  VERSION 2: K_VP Integrator
+      //  (upper off-diagonal integrators - partially integrated, volume)
+      // --------------------------------------------------------------------
+      shared_ptr<CoefFunction> coeffKVP
+                = CoefFunction::Generate(Global::REAL, "1.0");
+      BiLinearForm * stiffIntVP = NULL;
+      if( dim_ == 2 ) {
+        stiffIntVP = new ABInt< DivOperator<FeH1,2> , MultiIdOp<FeH1,2> >(coeffKVP, -1.0 / density );
+      } else {
+        stiffIntVP = new ABInt< DivOperator<FeH1,3> , MultiIdOp<FeH1,3> >(coeffKVP, -1.0 / density );
       }
       stiffIntVP->SetName("PerturbedStiffIntVP");
       //stiffIntVP->SetFeSpace( feFunctions_[ACOU_PRESSURE]->GetFeSpace(), feFunctions_[ACOU_VELOCITY]->GetFeSpace() );
@@ -280,8 +337,43 @@ namespace CoupledField {
       dampContextvv->SetEntities( actSDList, actSDList );
       dampContextvv->SetFeFunctions( feFunctions_[FLUIDMECH_VELOCITY],feFunctions_[FLUIDMECH_VELOCITY]);
       assemble_->AddBiLinearForm( dampContextvv );
+    }
 
-      
+    StdVector<RegionIdType>::iterator surfIt, surfEnd;
+    surfIt = presSurfaces_.Begin();
+    surfEnd = presSurfaces_.End();
+
+    for( ; surfIt != surfEnd; surfIt++ ) {
+      shared_ptr<ElemList> actSDList( new ElemList(ptgrid_ ) );
+      actSDList->SetRegion( *surfIt );
+
+      velFct->AddEntityList( actSDList );
+      velSpace->SetRegionApproximation(*surfIt, "velPolyId", "velIntegId");
+      presFct->AddEntityList( actSDList );
+      presSpace->SetRegionApproximation(*surfIt, "presPolyId", "presIntegId");
+
+      // --------------------------------------------------------------------
+      //  VERSION 2: K_VP Integrator
+      //  (upper off-diagonal integrators - partially integrated, surface)
+      // --------------------------------------------------------------------
+      BiLinearForm * stiffIntVPSurf = NULL;
+      if( dim_ == 2 ) {
+        stiffIntVPSurf = new SurfaceABInt< IdentityOperator<FeH1,2,2>,
+                                           IdentityOperatorNormal<FeH1,2> >
+            (oneOverDensityFuncs, 1.0, flowRegions);
+      } else {
+        stiffIntVPSurf = new SurfaceABInt< IdentityOperator<FeH1,3,3>,
+                                           IdentityOperatorNormal<FeH1,3> >
+            (oneOverDensityFuncs, 1.0, flowRegions);
+      }
+      stiffIntVPSurf->SetName("PerturbedStiffIntVPSurf");
+      //stiffIntVP->SetFeSpace( feFunctions_[ACOU_PRESSURE]->GetFeSpace(), feFunctions_[ACOU_VELOCITY]->GetFeSpace() );
+      BiLinFormContext *stiffContVP = new BiLinFormContext(stiffIntVPSurf, STIFFNESS );
+
+      stiffContVP->SetEntities( actSDList, actSDList );
+      stiffContVP->SetFeFunctions( velFct, presFct );
+      //stiffContVP->SetCounterPart(true);
+      assemble_->AddBiLinearForm( stiffContVP );
     }
   }
   

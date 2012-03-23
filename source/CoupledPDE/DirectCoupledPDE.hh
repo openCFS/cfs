@@ -106,7 +106,6 @@ namespace CoupledField {
     
     //! Set initial conditions
     void SetInitialCondition();
-    
 
   private:
 

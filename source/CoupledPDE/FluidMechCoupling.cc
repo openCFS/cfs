@@ -5,7 +5,7 @@
 #include "FluidMechCoupling.hh"
 
 #include "PDE/SinglePDE.hh"
-#include "PDE/AcousticPDE.hh"
+#include "PDE/PerturbedFlowPDE.hh"
 #include "PDE/MechPDE.hh"
 #include "CoupledPDE/BasePairCoupling.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
@@ -37,7 +37,7 @@ namespace CoupledField {
     : BasePairCoupling( pde1, pde2, paramNode )
   {
     couplingName_ = "FluidMechDirect";
-    materialClass_ = FLUID;
+    materialClass_ = FLOW;
 
     // determine subtype from mechanic pde
     pde1_->GetParamNode()->GetValue( "subType", subType_ );
@@ -77,171 +77,155 @@ namespace CoupledField {
 //    std::map<RegionIdType, BaseMaterial*> mechMaterials;
 //    mechMaterials = mechPDE->getPDEMaterialData();
 
-    AcousticPDE* acouPDE = dynamic_cast<AcousticPDE*>(pde2_);
-    SolutionType acouFormulation = acouPDE->GetFormulation();
-    shared_ptr<BaseFeFunction> acouFct = acouPDE->GetFeFunction(acouFormulation);
-    std::map<RegionIdType, BaseMaterial*> acouMaterials;
-    acouMaterials = acouPDE->getPDEMaterialData();
+    PerturbedFlowPDE* flowPDE = dynamic_cast<PerturbedFlowPDE*>(pde2_);
+    shared_ptr<BaseFeFunction> velFct = flowPDE->GetFeFunction(FLUIDMECH_VELOCITY);
+    shared_ptr<BaseFeFunction> presFct = flowPDE->GetFeFunction(FLUIDMECH_PRESSURE);
 
-    // Create coefficient functions for all acoustic densities
-    std::map< RegionIdType, shared_ptr<CoefFunction> > coefFuncs;
-    std::map< RegionIdType, shared_ptr<CoefFunction> > oneCoefFuncs;
-    std::set< RegionIdType > acouRegions;
+    shared_ptr<BaseFeFunction> lagrangeMultFct = feFunctions_[LAGRANGE_MULT];
+
+    std::map<RegionIdType, BaseMaterial*> flowMaterials;
+    flowMaterials = flowPDE->getPDEMaterialData();
+
+    // Create coefficient functions for all fluid densities
+    std::map< RegionIdType, shared_ptr<CoefFunction> > densityFuncs;
+    std::map< RegionIdType, shared_ptr<CoefFunction> > muFuncs;
+    std::map< RegionIdType, shared_ptr<CoefFunction> > muOverDensityFuncs;
+    std::set< RegionIdType > flowRegions;
     std::map<RegionIdType, BaseMaterial*>::iterator it, end;
-    it = acouMaterials.begin();
-    end = acouMaterials.end();
+    it = flowMaterials.begin();
+    end = flowMaterials.end();
     for( ; it != end; it++ ) {
       RegionIdType volRegId = it->first;
 
-      acouRegions.insert(volRegId);
+      flowRegions.insert(volRegId);
 
       // Get bulk density for acoustics
-      BaseMaterial * acouMat = acouMaterials[volRegId];
+      BaseMaterial * flowMat = flowMaterials[volRegId];
       Double density = 1.0;
-      acouMat->GetScalar(density,DENSITY,Global::REAL);
+      Double viscosity = 1.0;
+      flowMat->GetScalar(density,DENSITY,Global::REAL);
+      flowMat->GetScalar(viscosity,DYNAMIC_VISCOSITY,Global::REAL);
 
-      coefFuncs[volRegId] = CoefFunction::Generate(Global::REAL,
+      densityFuncs[volRegId] = CoefFunction::Generate(Global::REAL,
                                                    lexical_cast<std::string>(density));
-      oneCoefFuncs[volRegId] = CoefFunction::Generate(Global::REAL,
-                                                   lexical_cast<std::string>(1.0));
+      muFuncs[volRegId] = CoefFunction::Generate(Global::REAL,
+                                                   lexical_cast<std::string>(viscosity));
+      muOverDensityFuncs[volRegId] = CoefFunction::Generate(Global::REAL,
+                                                   lexical_cast<std::string>(viscosity/density));
     }
 
     shared_ptr<FeSpace> dispSpace = dispFct->GetFeSpace();
-    shared_ptr<FeSpace> acouSpace = acouFct->GetFeSpace();
+    shared_ptr<FeSpace> velSpace = velFct->GetFeSpace();
+    shared_ptr<FeSpace> presSpace = presFct->GetFeSpace();
+    shared_ptr<FeSpace> lagrangeMultSpace = lagrangeMultFct->GetFeSpace();
     
     for ( UInt actSD = 0, n = entityLists_.GetSize(); actSD < n; actSD++ ) {
 
       shared_ptr<SurfElemList> actSDList(dynamic_cast<SurfElemList*>(entityLists_[actSD].get()));
 
-      acouFct->AddEntityList(actSDList);
+      velFct->AddEntityList(actSDList);
+      presFct->AddEntityList(actSDList);
       dispFct->AddEntityList(actSDList);
 
-#if 0
-      // Check which volume region belongs to acoustic PDE
-      const SurfElem * surfElem = actSDList->GetSurfElem( 0 );
-      RegionIdType volRegId = surfElem->ptVolElems[0]->regionId;
-      if(acouMaterials.find(volRegId) == acouMaterials.end()) {
-        volRegId = surfElem->ptVolElems[1]->regionId;
-      }
-#endif
+      velSpace->SetRegionApproximation(actSD, "velPolyId", "velIntegId");
+      presSpace->SetRegionApproximation(actSD, "presPolyId", "presIntegId");
+      dispSpace->SetRegionApproximation(actSD, "default", "default");
 
-
-      switch(acouFormulation) {
-        case ACOU_POTENTIAL:
-        {
-          DefinePresOrPotIntegrators("FluidMechPotCouplingInt",
-                                     DAMPING,
-                                     dispFct,
-                                     acouFct,
-                                     actSDList,
-                                     coefFuncs,
-                                     acouRegions);
-        }
-        break;
-
-        case ACOU_PRESSURE:
-          // This integrator gets assembled into the mass matrix of the acoustic PDE
-          DefinePresOrPotIntegrators("FluidMechPresMassCouplingInt",
-                                     MASS,
-                                     dispFct,
-                                     acouFct,
-                                     actSDList,
-                                     coefFuncs,
-                                     acouRegions);
-          // This integrator gets assembled into the stiffness matrix of the mechanic PDE
-          DefinePresOrPotIntegrators("FluidMechPresStiffCouplingInt",
-                                     STIFFNESS,
-                                     dispFct,
-                                     acouFct,
-                                     actSDList,
-                                     oneCoefFuncs,
-                                     acouRegions);
-          break;
-
-        default:
-          EXCEPTION("Unknown formulation for acoustics.");
-          break;
-      }
+      // This integrator gets assembled into the damping (first time deriv.) matrix of the fluid PDE
+      DefineDampingIntegrators("FluidMechDampingCouplingInt",
+                            dispFct,
+                            velFct,
+                            actSDList,
+                            muOverDensityFuncs,
+                            flowRegions);
+      // This integrator gets assembled into the stiffness matrix of the mechanic PDE
+      DefineStiffnessIntegrators("FluidMechStiffCouplingInt",
+                                 dispFct,
+                                 presFct,
+                                 actSDList,
+                                 densityFuncs,
+                                 muFuncs,
+                                 flowRegions);
     }
   }
 
-  void FluidMechCoupling::DefinePresOrPotIntegrators(const std::string& name,
-                                                    FEMatrixType matType,
-                                                    shared_ptr<BaseFeFunction>& dispFct,
-                                                       shared_ptr<BaseFeFunction>& acouFct,
-                                                       shared_ptr<SurfElemList>& actSDList,
-                                                       const std::map< RegionIdType, shared_ptr<CoefFunction> >& coefFuncs,
-                                                       const std::set< RegionIdType >& acouRegions){
-
+  void FluidMechCoupling::DefineDampingIntegrators(const std::string& name,
+                                                shared_ptr<BaseFeFunction>& dispFct,
+                                                shared_ptr<BaseFeFunction>& velFct,
+                                                shared_ptr<SurfElemList>& actSDList,
+                                                const std::map< RegionIdType, shared_ptr<CoefFunction> >& muOverDensityFuncs,
+                                                const std::set< RegionIdType >& flowRegions){
+#if 0
     BiLinearForm * dampInt = NULL;
 
     if( subType_ == "axi" ) {
-      if(matType == MASS) {
-        dampInt = new SurfaceABInt< IdentityOperatorNormal<FeH1,2>,
-                                    IdentityOperator<FeH1,2,2> >
-          (coefFuncs, 1.0, acouRegions);
-      } else {
       dampInt = new SurfaceABInt< IdentityOperator<FeH1,2,2>,
-                                  IdentityOperatorNormal<FeH1,2> >
-        (coefFuncs, -1.0, acouRegions);
-      }
+                                  NormalDivOp<FeH1,2> >
+        (muOverDensityFuncs, 1.0, flowRegions);
     } else if( subType_ == "planeStrain" ) {
-      if(matType == MASS) {
-        dampInt = new SurfaceABInt< IdentityOperatorNormal<FeH1,2>,
-                                    IdentityOperator<FeH1,2,2> >
-          (coefFuncs, 1.0, acouRegions);
-      } else {
       dampInt = new SurfaceABInt< IdentityOperator<FeH1,2,2>,
-                                 IdentityOperatorNormal<FeH1,2> >
-        (coefFuncs, -1.0, acouRegions);
-      }
+                                  NormalDivOp<FeH1,2> >
+        (muOverDensityFuncs, 1.0, flowRegions);
     } else if( subType_ == "planeStress" ) {
-      if(matType == MASS) {
-        dampInt = new SurfaceABInt< IdentityOperatorNormal<FeH1,2>,
-                                    IdentityOperator<FeH1,2,2> >
-          (coefFuncs, 1.0, acouRegions);
-      } else {
       dampInt = new SurfaceABInt< IdentityOperator<FeH1,2,2>,
-                                 IdentityOperatorNormal<FeH1,2> >
-        (coefFuncs, -1.0, acouRegions);
-      }
+                                  NormalDivOp<FeH1,2> >
+        (muOverDensityFuncs, 1.0, flowRegions);
     } else if( subType_ == "3d") {
-      if(matType == MASS) {
-        dampInt = new SurfaceABInt< IdentityOperatorNormal<FeH1,3>,
-                                    IdentityOperator<FeH1,3,3> >
-          (coefFuncs, 1.0, acouRegions);
-      } else {
       dampInt = new SurfaceABInt< IdentityOperator<FeH1,3,3>,
-                                 IdentityOperatorNormal<FeH1,3> >
-        (coefFuncs, -1.0, acouRegions);
-      }
+                                  NormalDivOp<FeH1,3> >
+        (muOverDensityFuncs, 1.0, flowRegions);
     } else {
       EXCEPTION( "Subtype '" << subType_ << "' unknown for mechanic physic" );
     }
 
     dampInt->SetName(name);
     BiLinFormContext * context =
-        new BiLinFormContext(dampInt, matType );
+        new BiLinFormContext(dampInt, DAMPING );
 
     context->SetEntities( actSDList, actSDList );
+    context->SetFeFunctions( velFct, dispFct );
+    context->SetCounterPart(false);
 
-    switch(matType) {
-      case DAMPING:
-      case STIFFNESS:
-        context->SetFeFunctions( dispFct, acouFct );
-        break;
+    assemble_->AddBiLinearForm( context );
+#endif
+  }
 
-      case MASS:
-        context->SetFeFunctions( acouFct, dispFct );
-        break;
+  void FluidMechCoupling::DefineStiffnessIntegrators(const std::string& name,
+                                                shared_ptr<BaseFeFunction>& dispFct,
+                                                shared_ptr<BaseFeFunction>& presFct,
+                                                shared_ptr<SurfElemList>& actSDList,
+                                                const std::map< RegionIdType, shared_ptr<CoefFunction> >& densityFuncs,
+                                                const std::map< RegionIdType, shared_ptr<CoefFunction> >& muFuncs,
+                                                const std::set< RegionIdType >& flowRegions){
+    BiLinearForm * stiffInt = NULL;
 
-      default:
-        break;
+    if( subType_ == "axi" ) {
+        stiffInt = new SurfaceABInt< IdentityOperatorNormal<FeH1,2>,
+                                    IdentityOperator<FeH1,2,2> >
+          (densityFuncs, 1.0, flowRegions);
+    } else if( subType_ == "planeStrain" ) {
+        stiffInt = new SurfaceABInt< IdentityOperatorNormal<FeH1,2>,
+                                    IdentityOperator<FeH1,2,2> >
+          (densityFuncs, 1.0, flowRegions);
+    } else if( subType_ == "planeStress" ) {
+        stiffInt = new SurfaceABInt< IdentityOperatorNormal<FeH1,2>,
+                                    IdentityOperator<FeH1,2,2> >
+          (densityFuncs, 1.0, flowRegions);
+    } else if( subType_ == "3d") {
+        stiffInt = new SurfaceABInt< IdentityOperatorNormal<FeH1,3>,
+                                    IdentityOperator<FeH1,3,3> >
+          (densityFuncs, 1.0, flowRegions);
+    } else {
+      EXCEPTION( "Subtype '" << subType_ << "' unknown for mechanic physic" );
     }
 
-    // In the case of acoustic potential formulation we set the counterpart.
-    bool counterPart = matType == DAMPING ? true : false;
-    context->SetCounterPart(counterPart);
+    stiffInt->SetName(name);
+    BiLinFormContext * context =
+        new BiLinFormContext( stiffInt, STIFFNESS );
+
+    context->SetEntities( actSDList, actSDList );
+    context->SetFeFunctions( dispFct, presFct );
+    context->SetCounterPart(false);
 
     assemble_->AddBiLinearForm( context );
   }
@@ -250,54 +234,56 @@ namespace CoupledField {
     REFACTOR  
   }
 
-  BiLinearForm *
-  FluidMechCoupling::GetStiffIntegrator( BaseMaterial* actSDMat,
-                                     RegionIdType regionId,
-                                     bool isComplex ) {
-#if 0
-    // Get region name
-    std::string regionName = ptGrid_->GetRegion().ToString( regionId );
+  void FluidMechCoupling::DefinePrimaryResults() {
+    // Check for subType
+    StdVector<std::string> velDofNames;
 
-    SubTensorType tensorType = NO_TENSOR;
-    if( subType_ != "3d") {
-      tensorType = PLANE_STRAIN;
-    } else {
-      tensorType = FULL;
+    std::string geometryType;
+    param->Get("domain")->GetValue("geometryType", geometryType );
+
+    if( geometryType == "3d" ) {
+      velDofNames = "x", "y", "z";
+    } else if( geometryType == "plane" ) {
+      velDofNames = "x", "y";
+    } else if( geometryType == "axi" ) {
+      velDofNames = "r", "z";
     }
-    // ------------------------
-    //  Obtain linear material
-    // ------------------------
-    shared_ptr<CoefFunction > curCoef;
-    if( isComplex ) {
-      curCoef = actSDMat->GetCoefFunction(PIEZO_TENSOR,
-                                          tensorType, Global::COMPLEX, true );
-    } else {
-      curCoef = actSDMat->GetCoefFunction(PIEZO_TENSOR,
-                                          tensorType, Global::REAL, true );
+
+  // === LAGRANGE MULTIPLIER ===
+  shared_ptr<ResultInfo> res1( new ResultInfo);
+  res1->resultType = LAGRANGE_MULT;
+
+  res1->dofNames = "";
+  res1->unit = "Pa";
+  res1->definedOn = ResultInfo::NODE;
+  res1->entryType = ResultInfo::VECTOR;
+  feFunctions_[LAGRANGE_MULT]->SetResultInfo(res1);
+  results_.Push_back( res1 );
+  availResults_.insert( res1 );
+
+  res1->SetFeFunction(feFunctions_[LAGRANGE_MULT]);
+  }
+
+
+ void FluidMechCoupling::CreateFeSpaces( const std::string&  type,
+                                         PtrParamNode infoNode,
+                                         std::map<SolutionType, shared_ptr<FeSpace> >& crSpaces) {
+
+    //we need a lagrange multiplier
+    formulation_ = LAGRANGE_MULT;
+
+    //    std::map<SolutionType, shared_ptr<FeSpace> > crSpaces;
+    if(type == "default" || type == "H1"){
+      PtrParamNode spaceNode;
+      spaceNode = infoNode->Get(SolutionTypeEnum.ToString(FLUIDMECH_VELOCITY));
+
+      crSpaces[formulation_] =
+        FeSpace::CreateInstance(myParam_, spaceNode, FeSpace::H1, ptGrid_);
+      crSpaces[formulation_]->Init(solStrat_);
+    }else{
+      EXCEPTION("The FeSpace-Type " << type << "of AcouMixedAcouCoupling-PDEs is not known!");
     }
-    
-    // ----------------------------------------
-    //  Determine correct stiffness integrator 
-    // ----------------------------------------
-    BiLinearForm * integ = NULL;
-    if( subType_ == "axi" ) {
-      integ = new ADBInt<StrainOperatorAxi<FeH1>,
-          GradientOperator<FeH1,2> >(curCoef, 1.0);
-    } else if( subType_ == "planeStrain" ) {
-      integ = new ADBInt<StrainOperator2D<FeH1>,
-          GradientOperator<FeH1,2> >(curCoef, 1.0);
-    } else if( subType_ == "planeStress" ) {
-      integ = new ADBInt<StrainOperator2D<FeH1>,
-          GradientOperator<FeH1,2> >(curCoef, 1.0);
-    } else if( subType_ == "3d") {
-      integ = new ADBInt<StrainOperator3D<FeH1>,
-          GradientOperator<FeH1,3> >(curCoef, 1.0);
-    } else {
-      EXCEPTION( "Subtype '" << subType_ << "' unknown for mechanic physic" );
-    }
-    return integ;
-#endif
-    return NULL;
+    //    return crSpaces;
   }
   
 }
