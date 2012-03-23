@@ -62,19 +62,20 @@ class BiLinearForm;
     //! for the space dimension
     void DefineDampingIntegrators(const std::string& name,
                                shared_ptr<BaseFeFunction>& dispFct,
-                               shared_ptr<BaseFeFunction>& acouFct,
+                               shared_ptr<BaseFeFunction>& lmFct,
                                shared_ptr<SurfElemList>& actSDList,
                                const std::map< RegionIdType, shared_ptr<CoefFunction> >& muOverDensityFuncs,
-                               const std::set< RegionIdType >& acouRegions);
+                               const std::set< RegionIdType >& flowRegions);
     //! define all (bilinearform) integrators needed for this pdewith template
     //! for the space dimension
     void DefineStiffnessIntegrators(const std::string& name,
                                     shared_ptr<BaseFeFunction>& dispFct,
-                                    shared_ptr<BaseFeFunction>& acouFct,
+                                    shared_ptr<BaseFeFunction>& velFct,
+                                    shared_ptr<BaseFeFunction>& lmFct,
                                     shared_ptr<SurfElemList>& actSDList,
                                     const std::map< RegionIdType, shared_ptr<CoefFunction> >& densityFuncs,
-                                    const std::map< RegionIdType, shared_ptr<CoefFunction> >& muFuncs,
-                                    const std::set< RegionIdType >& acouRegions);
+                                    const std::map< RegionIdType, shared_ptr<CoefFunction> >& oneFuncs,
+                                    const std::set< RegionIdType >& flowRegions);
     
    //! Subtype of related mechanical PDE
     std::string subType_;

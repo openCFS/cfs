@@ -89,11 +89,17 @@ namespace CoupledField {
     // Create coefficient functions for all fluid densities
     std::map< RegionIdType, shared_ptr<CoefFunction> > densityFuncs;
     std::map< RegionIdType, shared_ptr<CoefFunction> > muFuncs;
-    std::map< RegionIdType, shared_ptr<CoefFunction> > muOverDensityFuncs;
+    std::map< RegionIdType, shared_ptr<CoefFunction> > oneFuncs;
     std::set< RegionIdType > flowRegions;
     std::map<RegionIdType, BaseMaterial*>::iterator it, end;
     it = flowMaterials.begin();
     end = flowMaterials.end();
+
+    shared_ptr<FeSpace> dispSpace = dispFct->GetFeSpace();
+    shared_ptr<FeSpace> velSpace = velFct->GetFeSpace();
+    shared_ptr<FeSpace> presSpace = presFct->GetFeSpace();
+    shared_ptr<FeSpace> lagrangeMultSpace = lagrangeMultFct->GetFeSpace();
+
     for( ; it != end; it++ ) {
       RegionIdType volRegId = it->first;
 
@@ -107,18 +113,21 @@ namespace CoupledField {
       flowMat->GetScalar(viscosity,DYNAMIC_VISCOSITY,Global::REAL);
 
       densityFuncs[volRegId] = CoefFunction::Generate(Global::REAL,
-                                                   lexical_cast<std::string>(density));
+                                                   lexical_cast<std::string>(1.0/density));
       muFuncs[volRegId] = CoefFunction::Generate(Global::REAL,
                                                    lexical_cast<std::string>(viscosity));
-      muOverDensityFuncs[volRegId] = CoefFunction::Generate(Global::REAL,
-                                                   lexical_cast<std::string>(viscosity/density));
+      oneFuncs[volRegId] = CoefFunction::Generate(Global::REAL,
+                                                   lexical_cast<std::string>(1.0));
+
+      shared_ptr<ElemList> actSDList( new ElemList( ptGrid_ ) );
+      actSDList->SetRegion( volRegId );
+
+      if(actSDList->GetType() != EntityList::SURF_ELEM_LIST) {
+        lagrangeMultFct->AddEntityList( actSDList );
+        lagrangeMultSpace->SetRegionApproximation(volRegId, "velPolyId", "velIntegId");
+      }
     }
 
-    shared_ptr<FeSpace> dispSpace = dispFct->GetFeSpace();
-    shared_ptr<FeSpace> velSpace = velFct->GetFeSpace();
-    shared_ptr<FeSpace> presSpace = presFct->GetFeSpace();
-    shared_ptr<FeSpace> lagrangeMultSpace = lagrangeMultFct->GetFeSpace();
-    
     for ( UInt actSD = 0, n = entityLists_.GetSize(); actSD < n; actSD++ ) {
 
       shared_ptr<SurfElemList> actSDList(dynamic_cast<SurfElemList*>(entityLists_[actSD].get()));
@@ -126,22 +135,26 @@ namespace CoupledField {
       velFct->AddEntityList(actSDList);
       presFct->AddEntityList(actSDList);
       dispFct->AddEntityList(actSDList);
+      lagrangeMultFct->AddEntityList(actSDList);
 
       velSpace->SetRegionApproximation(actSD, "velPolyId", "velIntegId");
       presSpace->SetRegionApproximation(actSD, "presPolyId", "presIntegId");
       dispSpace->SetRegionApproximation(actSD, "default", "default");
+      lagrangeMultSpace->SetRegionApproximation(actSD, "velPolyId", "velIntegId");
 
-      // This integrator gets assembled into the damping (first time deriv.) matrix of the fluid PDE
-      DefineDampingIntegrators("FluidMechDampingCouplingInt",
+      // This integrator gets assembled into the damping (first time deriv.) matrix in the row of the LM
+      DefineDampingIntegrators("FluidMechDampingLMVelCouplingInt",
                             dispFct,
-                            velFct,
+                            lagrangeMultFct,
                             actSDList,
-                            muOverDensityFuncs,
+                            oneFuncs,
                             flowRegions);
+
       // This integrator gets assembled into the stiffness matrix of the mechanic PDE
-      DefineStiffnessIntegrators("FluidMechStiffCouplingInt",
+      DefineStiffnessIntegrators("FluidMechStiff",
                                  dispFct,
-                                 presFct,
+                                 velFct,
+                                 lagrangeMultFct,
                                  actSDList,
                                  densityFuncs,
                                  muFuncs,
@@ -151,29 +164,28 @@ namespace CoupledField {
 
   void FluidMechCoupling::DefineDampingIntegrators(const std::string& name,
                                                 shared_ptr<BaseFeFunction>& dispFct,
-                                                shared_ptr<BaseFeFunction>& velFct,
+                                                shared_ptr<BaseFeFunction>& lmFct,
                                                 shared_ptr<SurfElemList>& actSDList,
-                                                const std::map< RegionIdType, shared_ptr<CoefFunction> >& muOverDensityFuncs,
+                                                const std::map< RegionIdType, shared_ptr<CoefFunction> >& oneFuncs,
                                                 const std::set< RegionIdType >& flowRegions){
-#if 0
     BiLinearForm * dampInt = NULL;
 
     if( subType_ == "axi" ) {
       dampInt = new SurfaceABInt< IdentityOperator<FeH1,2,2>,
-                                  NormalDivOp<FeH1,2> >
-        (muOverDensityFuncs, 1.0, flowRegions);
+          IdentityOperator<FeH1,2,2> >
+        (oneFuncs, 1.0, flowRegions);
     } else if( subType_ == "planeStrain" ) {
       dampInt = new SurfaceABInt< IdentityOperator<FeH1,2,2>,
-                                  NormalDivOp<FeH1,2> >
-        (muOverDensityFuncs, 1.0, flowRegions);
+          IdentityOperator<FeH1,2,2> >
+        (oneFuncs, 1.0, flowRegions);
     } else if( subType_ == "planeStress" ) {
       dampInt = new SurfaceABInt< IdentityOperator<FeH1,2,2>,
-                                  NormalDivOp<FeH1,2> >
-        (muOverDensityFuncs, 1.0, flowRegions);
+          IdentityOperator<FeH1,2,2> >
+        (oneFuncs, 1.0, flowRegions);
     } else if( subType_ == "3d") {
       dampInt = new SurfaceABInt< IdentityOperator<FeH1,3,3>,
-                                  NormalDivOp<FeH1,3> >
-        (muOverDensityFuncs, 1.0, flowRegions);
+          IdentityOperator<FeH1,3,3> >
+        (oneFuncs, 1.0, flowRegions);
     } else {
       EXCEPTION( "Subtype '" << subType_ << "' unknown for mechanic physic" );
     }
@@ -183,48 +195,112 @@ namespace CoupledField {
         new BiLinFormContext(dampInt, DAMPING );
 
     context->SetEntities( actSDList, actSDList );
-    context->SetFeFunctions( velFct, dispFct );
+    context->SetFeFunctions( lmFct, dispFct );
     context->SetCounterPart(false);
 
     assemble_->AddBiLinearForm( context );
-#endif
   }
 
   void FluidMechCoupling::DefineStiffnessIntegrators(const std::string& name,
                                                 shared_ptr<BaseFeFunction>& dispFct,
-                                                shared_ptr<BaseFeFunction>& presFct,
+                                                shared_ptr<BaseFeFunction>& velFct,
+                                                shared_ptr<BaseFeFunction>& lmFct,
                                                 shared_ptr<SurfElemList>& actSDList,
                                                 const std::map< RegionIdType, shared_ptr<CoefFunction> >& densityFuncs,
-                                                const std::map< RegionIdType, shared_ptr<CoefFunction> >& muFuncs,
+                                                const std::map< RegionIdType, shared_ptr<CoefFunction> >& oneFuncs,
                                                 const std::set< RegionIdType >& flowRegions){
     BiLinearForm * stiffInt = NULL;
 
+    // LM-velocity integrator in row of LM and column of velocity
+    std::string intName  = name + "LMVelCouplingInt";
     if( subType_ == "axi" ) {
-        stiffInt = new SurfaceABInt< IdentityOperatorNormal<FeH1,2>,
-                                    IdentityOperator<FeH1,2,2> >
-          (densityFuncs, 1.0, flowRegions);
+        stiffInt = new SurfaceABInt< IdentityOperator<FeH1,2,2>,
+            IdentityOperator<FeH1,2,2> >
+          (oneFuncs, -1.0, flowRegions);
     } else if( subType_ == "planeStrain" ) {
-        stiffInt = new SurfaceABInt< IdentityOperatorNormal<FeH1,2>,
-                                    IdentityOperator<FeH1,2,2> >
-          (densityFuncs, 1.0, flowRegions);
+      stiffInt = new SurfaceABInt< IdentityOperator<FeH1,2,2>,
+          IdentityOperator<FeH1,2,2> >
+        (oneFuncs, -1.0, flowRegions);
     } else if( subType_ == "planeStress" ) {
-        stiffInt = new SurfaceABInt< IdentityOperatorNormal<FeH1,2>,
-                                    IdentityOperator<FeH1,2,2> >
-          (densityFuncs, 1.0, flowRegions);
+      stiffInt = new SurfaceABInt< IdentityOperator<FeH1,2,2>,
+          IdentityOperator<FeH1,2,2> >
+        (oneFuncs, -1.0, flowRegions);
     } else if( subType_ == "3d") {
-        stiffInt = new SurfaceABInt< IdentityOperatorNormal<FeH1,3>,
-                                    IdentityOperator<FeH1,3,3> >
-          (densityFuncs, 1.0, flowRegions);
+      stiffInt = new SurfaceABInt< IdentityOperator<FeH1,3,3>,
+          IdentityOperator<FeH1,3,3> >
+        (oneFuncs, -1.0, flowRegions);
     } else {
       EXCEPTION( "Subtype '" << subType_ << "' unknown for mechanic physic" );
     }
 
-    stiffInt->SetName(name);
+    stiffInt->SetName(intName);
     BiLinFormContext * context =
         new BiLinFormContext( stiffInt, STIFFNESS );
 
     context->SetEntities( actSDList, actSDList );
-    context->SetFeFunctions( dispFct, presFct );
+    context->SetFeFunctions( lmFct, velFct );
+    context->SetCounterPart(false);
+
+    assemble_->AddBiLinearForm( context );
+
+    // Displacement-LM integrator in row of displacement and column of LM
+    intName  = name + "DispLMCouplingInt";
+    if( subType_ == "axi" ) {
+        stiffInt = new SurfaceABInt< IdentityOperator<FeH1,2,2>,
+            IdentityOperator<FeH1,2,2> >
+          (oneFuncs, 1.0, flowRegions);
+    } else if( subType_ == "planeStrain" ) {
+      stiffInt = new SurfaceABInt< IdentityOperator<FeH1,2,2>,
+          IdentityOperator<FeH1,2,2> >
+        (oneFuncs, 1.0, flowRegions);
+    } else if( subType_ == "planeStress" ) {
+      stiffInt = new SurfaceABInt< IdentityOperator<FeH1,2,2>,
+          IdentityOperator<FeH1,2,2> >
+        (oneFuncs, 1.0, flowRegions);
+    } else if( subType_ == "3d") {
+      stiffInt = new SurfaceABInt< IdentityOperator<FeH1,3,3>,
+          IdentityOperator<FeH1,3,3> >
+        (oneFuncs, 1.0, flowRegions);
+    } else {
+      EXCEPTION( "Subtype '" << subType_ << "' unknown for mechanic physic" );
+    }
+
+    stiffInt->SetName(intName);
+    context = new BiLinFormContext( stiffInt, STIFFNESS );
+
+    context->SetEntities( actSDList, actSDList );
+    context->SetFeFunctions( dispFct, lmFct );
+    context->SetCounterPart(false);
+
+    assemble_->AddBiLinearForm( context );
+
+    // Velocity-LM integrator in row of velocity and column of LM
+    intName  = name + "VelLMCouplingInt";
+    if( subType_ == "axi" ) {
+        stiffInt = new SurfaceABInt< IdentityOperator<FeH1,2,2>,
+            IdentityOperator<FeH1,2,2> >
+          (densityFuncs, 1.0, flowRegions);
+    } else if( subType_ == "planeStrain" ) {
+      stiffInt = new SurfaceABInt< IdentityOperator<FeH1,2,2>,
+          IdentityOperator<FeH1,2,2> >
+        (densityFuncs, 1.0, flowRegions);
+    } else if( subType_ == "planeStress" ) {
+      stiffInt = new SurfaceABInt< IdentityOperator<FeH1,2,2>,
+          IdentityOperator<FeH1,2,2> >
+        (densityFuncs, 1.0, flowRegions);
+    } else if( subType_ == "3d") {
+      stiffInt = new SurfaceABInt< IdentityOperator<FeH1,3,3>,
+          IdentityOperator<FeH1,3,3> >
+        (densityFuncs, 1.0, flowRegions);
+    } else {
+      EXCEPTION( "Subtype '" << subType_ << "' unknown for mechanic physic" );
+    }
+
+    stiffInt->SetName(intName);
+    context = new BiLinFormContext( stiffInt, STIFFNESS );
+
+    context->SetEntities( actSDList, actSDList );
+    context->SetFeFunctions( velFct, lmFct );
     context->SetCounterPart(false);
 
     assemble_->AddBiLinearForm( context );
@@ -253,7 +329,7 @@ namespace CoupledField {
   shared_ptr<ResultInfo> res1( new ResultInfo);
   res1->resultType = LAGRANGE_MULT;
 
-  res1->dofNames = "";
+  res1->dofNames = velDofNames;
   res1->unit = "Pa";
   res1->definedOn = ResultInfo::NODE;
   res1->entryType = ResultInfo::VECTOR;
@@ -269,21 +345,15 @@ namespace CoupledField {
                                          PtrParamNode infoNode,
                                          std::map<SolutionType, shared_ptr<FeSpace> >& crSpaces) {
 
-    //we need a lagrange multiplier
-    formulation_ = LAGRANGE_MULT;
+   //we need a lagrange multiplier
+   formulation_ = LAGRANGE_MULT;
 
-    //    std::map<SolutionType, shared_ptr<FeSpace> > crSpaces;
-    if(type == "default" || type == "H1"){
-      PtrParamNode spaceNode;
-      spaceNode = infoNode->Get(SolutionTypeEnum.ToString(FLUIDMECH_VELOCITY));
+   PtrParamNode spaceNode;
+   spaceNode = infoNode->Get(SolutionTypeEnum.ToString(FLUIDMECH_VELOCITY));
 
-      crSpaces[formulation_] =
-        FeSpace::CreateInstance(myParam_, spaceNode, FeSpace::H1, ptGrid_);
-      crSpaces[formulation_]->Init(solStrat_);
-    }else{
-      EXCEPTION("The FeSpace-Type " << type << "of AcouMixedAcouCoupling-PDEs is not known!");
-    }
-    //    return crSpaces;
+   crSpaces[formulation_] =
+       FeSpace::CreateInstance(myParam_, spaceNode, FeSpace::H1, ptGrid_);
+   crSpaces[formulation_]->Init(solStrat_);
   }
   
 }
