@@ -26,11 +26,16 @@ namespace CoupledField
     friend class IPOPT;
     
   public:
-    /** @param optimization this is the actual optimization problem
+
+    /** cass PostInit() afterwards!
+     * @param optimization this is the actual optimization problem
      * @param pn to hold the complete "optimizer" element!. Not NULL! */
     BaseOptimizer(Optimization* optimization, PtrParamNode pn, Optimization::Optimizer type);
 
     virtual ~BaseOptimizer();
+
+    /** call this after the constructor */
+    virtual void PostInit() {};
 
     /** This solves the complete Optimization problem by using
      * the CalcObjective, CalcConstraint(), ... from the Optimization problem
@@ -55,7 +60,7 @@ namespace CoupledField
     virtual void SolveProblem() = 0;
     
     /** Call this in the optimizer constructor when you have manual_scaling. */
-    void PostInit(double manual_scaling, bool no_autoscale = false);
+    void PostInitScale(double manual_scaling, bool no_autoscale = false);
 
     /** Evaluates the objective. In the autoscale case checks for old value.
      * @param cfs_scale if true use cfs scaling values, not the optimizer values.

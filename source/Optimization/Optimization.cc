@@ -44,6 +44,7 @@
 #include "def_use_knitro.hh"
 #include "def_use_scpip.hh"
 #include "def_use_snopt.hh"
+#include "def_use_feas_scp.hh"
 
 // IPOPT, SCPIP and SnOpt are not necessarily linked
 #ifdef USE_IPOPT
@@ -51,6 +52,9 @@
 #endif
 #ifdef USE_SCPIP
   #include "Optimization/Optimizer/SCPIP.hh"
+#endif
+#ifdef USE_FEAS_SCP
+  #include "Optimization/Optimizer/FeasSCP.hh"
 #endif
 #ifdef USE_SNOPT
   #include "Optimization/Optimizer/SnOpt.hh"
@@ -190,9 +194,20 @@ void Optimization::PostInitSecond()
 
     case SCPIP_SOLVER:
          #ifdef USE_SCPIP
+           #ifdef USE_FEAS_SCP
+             throw Exception("CFS++ was compiled with FeasSCP - this disables SCPIP");
+           #endif
            baseOptimizer_ = new SCPIP(this, opt);
          #else
            throw Exception("CFS++ was compiled w/o SCPIP");
+         #endif
+         break;
+
+    case FEAS_SCP_SOLVER:
+         #ifdef USE_FEAS_SCP
+           baseOptimizer_ = new FeasSCP(this, opt);
+         #else
+           throw Exception("CFS++ was compiled w/o FeasSCP");
          #endif
          break;
          
@@ -227,9 +242,9 @@ void Optimization::PostInitSecond()
     case GRADIENT_CHECK:
          baseOptimizer_ = new GradientCheck(this, opt);
          break;
-
-    default: throw Exception("optimizer not implemented");
   }
+
+  baseOptimizer_->PostInit();
 
   constraints.ToInfo(optInfoNode->Get(ParamNode::HEADER)->Get("constraints"), GetMultipleExcitation());
 
@@ -350,6 +365,7 @@ void Optimization::SetEnums()
   optimizer.Add(OPTIMALITY_CONDITION, "optimalityCondition");
   optimizer.Add(IPOPT_SOLVER, "ipopt");
   optimizer.Add(SCPIP_SOLVER, "scpip");
+  optimizer.Add(FEAS_SCP_SOLVER, "feasSCP");
   optimizer.Add(SNOPT_SOLVER, "snopt");
   optimizer.Add(KNITRO_SOLVER, "knitro");
   optimizer.Add(SHAPE_SOLVER, "shapeOpt");

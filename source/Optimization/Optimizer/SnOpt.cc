@@ -89,7 +89,7 @@ SnOpt::SnOpt(Optimization* opt, PtrParamNode pn) :
   
   static_snopt = this;
   
-  BaseOptimizer::PostInit(1.0);
+  BaseOptimizer::PostInitScale(1.0);
   
   Init();
 }

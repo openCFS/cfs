@@ -32,7 +32,7 @@ SCPIP::SCPIP(Optimization* optimization, PtrParamNode optimizer_pn, Optimization
                                              ParamNode::PASS);
   
   // we do NOT use the SCPIPBase scaling but the one from BaseOptimizer!
-  PostInit(1.0); // does autoscale
+  PostInitScale(1.0); // does autoscale
 
   std::cout << objective->ToString() << std::endl;
   
@@ -57,12 +57,15 @@ SCPIP::SCPIP(Optimization* optimization, PtrParamNode optimizer_pn, Optimization
       SetNumericValue(list[i]->Get("name")->As<std::string>(), list[i]->Get("value")->As<Double>());
     }
   }
-  
-  Initialize();
 }
 
 SCPIP::~SCPIP()
 {}
+
+void SCPIP::PostInit()
+{
+  Initialize();
+}
 
 
 void SCPIP::SolveProblem()
@@ -94,8 +97,8 @@ void SCPIP::SolveProblem()
       }
     }
     
-    // call the base solver !!!!!!!!!!!
-    int status = SCPIPBase::SolveProblem();
+    // call the base solver, which is SCPIPBase::solve_problem() or FeasSCP::solve_problem()
+    int status = solve_problem();
     
     PtrParamNode in = optimization->optInfoNode->Get(ParamNode::SUMMARY)->Get("break");
     

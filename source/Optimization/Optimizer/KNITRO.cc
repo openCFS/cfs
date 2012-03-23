@@ -45,7 +45,7 @@ KNITRO::KNITRO(Optimization* opt, PtrParamNode pn)
   jac.Resize(std::max(nnzJ,1));
 
 
-  BaseOptimizer::PostInit(1.0);
+  BaseOptimizer::PostInitScale(1.0);
   // call the initialize function of KNITRO
   Init(pn);
 }

@@ -203,7 +203,7 @@ BaseOptimizer::~BaseOptimizer()
   if(objective != NULL) { delete objective; objective = NULL; }
 }
 
-void BaseOptimizer::PostInit(double manual_scaling, bool no_autoscale)
+void BaseOptimizer::PostInitScale(double manual_scaling, bool no_autoscale)
 {
   PtrParamNode as = optimizer_pn_->Get("autoscale", ParamNode::PASS);
   objective = new Scale(this, as, manual_scaling, no_autoscale);

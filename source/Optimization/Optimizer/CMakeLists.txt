@@ -51,7 +51,11 @@ IF(USE_KNITRO)
 ENDIF(USE_KNITRO)
 
 IF(USE_SCPIP)
-   SET(TARGET_LL ${TARGET_LL} ${SCPIP_LIBRARY} ${CFS_FORTRAN_LIBS})
+   IF(NOT USE_FEAS_SCP)
+      # For FeasSCP we need to compile SCPIP and SCPIPBase but must not link
+      # the lib as most functions have the same name
+      SET(TARGET_LL ${TARGET_LL} ${SCPIP_LIBRARY} ${CFS_FORTRAN_LIBS})
+   ENDIF(NOT USE_FEAS_SCP)
    # message("${CFS_FORTRAN_LIBS}")
    # SCPIPBase is also the open source project C++SCPIP.
    # With this definition the file lives in both worlds! 
@@ -61,8 +65,10 @@ IF(USE_SCPIP)
 ENDIF(USE_SCPIP)
 
 IF(USE_FEAS_SCP)
+   SET(FEAS_SCP_LIBRARY /home/fwein/code/cfs/debug/lib64/OPENSUSE_11.4_X86_64/libscpip40i.a)
+   SET(IPOPT23_LIBRARY /home/fwein/code/cfs/debug/lib64/OPENSUSE_11.4_X86_64/libipopt23.a) 
 
-   SET(COMBINED /home/fwein/code/cfs/debug/lib64/OPENSUSE_11.4_X86_64/libscp40.a)
+   SET(COMBINED ${FEAS_SCP_LIBRARY}  ${IPOPT23_LIBRARY})
    ADD_DEPENDENT_LIBRARY(feas_scp-lib "${COMBINED}" "${DEPENDS}")
    SET(TARGET_LL ${TARGET_LL} feas_scp-lib1)
    

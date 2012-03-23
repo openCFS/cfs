@@ -17,32 +17,14 @@ public:
 
 	/** implements the communication with the feasible scp from Sonja Lehmann, called here scpip40i
 	 *  @see SCPIPBase::SolveProblem() */
-	int SolveProblem(bool fromWarmstart);
+	int solve_problem(bool fromWarmstart);
 
 private:
 	/** initializes additional parameters.
 	 * @see SCPIPBase::AllocateProblem() */
 	void AllocateProblem();
 
-	/** number of entries in iederv for inequality constrains 1...mie  -> scpip40nlph */
-	int ieleng;
-
-	/** contains the row numbers, i.e. the index of the component of the entries of the Hessian for the Lagrangian function */
-	StdVector<int> hrns;
-
-	/** contains the the corresponding column number */
-	StdVector<int> hcns;
-
-	/** contains the corresponding values of the entries of the hessian */
-	StdVector<double> hval;
-
-	/** will be set when calling the hessians */
-	int hleng;
-
-	/** Maximal number of entries in hval */
-	int hmax;
-
-  /** identifies linear constraints. 0 for linear, 1 else. Is m_linear in ScpSolver.*/
+	  /** identifies linear constraints. 0 for linear, 1 else. Is m_linear in ScpSolver.*/
   StdVector<int> linear;
 
   /** Number of feasibility constraints (including linear). Is m_linear in ScpSolver. */
@@ -53,9 +35,6 @@ private:
 
   /** Array of constraints which have to be active in each iteration. Is m_setact in ScpSolver. */
   StdVector<int> setact;
-
-  /** seems to be a clone of ieleng? */
-  int lengmie;
 };
 
 } // end of namespace

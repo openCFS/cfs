@@ -71,7 +71,7 @@
      * @param fromWarmstart starts scpip wie ierr=-4, see SCPIP docu
      * Returns the last ierr value which can be decoded via ToString()
      * To be overwritten in FeasSCP! */
-    virtual int SolveProblem(bool fromWarmstart = false);
+    virtual int solve_problem(bool fromWarmstart = false);
 
     /** Determines information about the problem dimensions. Taken from IPOPT.
      * @param n return here the total number of design variables
@@ -314,6 +314,8 @@
      * Depends on the active set. */
     int ieleng;
 
+    int ielpar;
+
     /** the number of entries (nnz) of all equality contraint jacobians.
      * Does not depend on the active set */
     int eqleng;
@@ -442,7 +444,7 @@
     void AllocateFixed();
 
     /** reserve the space with is dynamic and where we have to call abstract methods.
-     * This is executed in Initialize().
+     * This is executed in PostInit().
      * To be overwritten in FeasSCP */
     virtual void AllocateProblem();
 

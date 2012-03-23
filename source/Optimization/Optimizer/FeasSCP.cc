@@ -1,6 +1,6 @@
 #include "Optimization/Optimizer/FeasSCP.hh"
 #include "Optimization/Optimizer/SCPIPBase.hh"
-#include "Optimization/Optimizer/scpip40nlph.hh"
+#include "Optimization/Optimizer/scpip40i.hh"
 #include "Optimization/Design/DesignSpace.hh"
 #include "DataInOut/Logging/cfslog.hh"
 #include "DataInOut/Logging/log.hpp"
@@ -32,30 +32,40 @@ void FeasSCP::AllocateProblem()
 {
   SCPIPBase::AllocateProblem();
 
-  hmax = n + mie; // why?
-  hrns.Resize(hmax);
-  hcns.Resize(hmax);
-  hval.Resize(hmax);
+  mf = 0; // FIXME correct this later!
 
-  lengmie = ieleng; // ???
+  // resize the stuff according to ScpSolver.cpp
+  ielpar = n * mie + (1 + mf) * 9;
+  iern.Resize(ielpar, 0);
+  iecn.Resize(ielpar, 0);
+  iederv.Resize(ielpar, 0);
+
+  r_scp.Resize(44*n+16*iemax+2*ielpar+20+2*mie +100*mie, 0.0);
+  r_sub.Resize(22*n+41*iemax+2*ielpar+28 +100, 0.0);
+  i_scp.Resize(7*n+8*mie+3*ielpar+12+100*mie, 0);
+  i_sub.Resize(2*n+3*iemax+ielpar+2+100, 0);
+
+  // new stuff for scpip40i
 
   linear.Resize(iemax);
   linear.Init(1);
 
-  assert(false);
-  mf = optimization->GetDesign()->elements * 2; // FIXME
+
+
+  // current number of constraints
+  // remove inequality constraints from mie, add to mf. iemax
 
   // fixme!
   lact = m;
-  setact.Resize(m+1);
-  setact[0] = 1;
-  for(int i = 0; i < m; i++);
+  setact.Resize(m+1, 1);
+  // setact[0] = 1;
+  // for(int i = 0; i < m; i++);
     // m_setact[i+1] = m_nie - m_nobj + i + 1; FIXME
 
 }
 
 /** Problem solve */
-int FeasSCP::SolveProblem(bool fromWarmstart)
+int FeasSCP::solve_problem(bool fromWarmstart)
 {
   // set start parameters here to allow restarted SolveProblem()
   get_starting_point(n, x.GetPointer());
@@ -71,7 +81,7 @@ int FeasSCP::SolveProblem(bool fromWarmstart)
   int ielpar = iern.GetSize();
   assert(ielpar == (int) iecn.GetSize());
   assert(ielpar == (int) iederv.GetSize());
-  assert(ieleng == ielpar || ieleng == ielpar-1); // the array has always min 1 entry to hace a pointer
+  //assert(ieleng == ielpar || ieleng == ielpar-1); // the array has always min 1 entry to have a pointer
 
   int eqlpar = eqrn.GetSize();
   assert(eqlpar == (int) eqcn.GetSize());
@@ -103,9 +113,9 @@ int FeasSCP::SolveProblem(bool fromWarmstart)
   }
 
   // this confirms SCPIPBase based configuration against ScpSolver configuration
-  assert(ielpar == n * 8); // m_ielpar = m_nvars*8; //+m_nvars*2*m_nvars + 20;
-  assert(iemax == 3 * m);  // m_iemax = 3*m_nie;
-  assert(rdim == 44 * n + 16 * iemax + 2 * ielpar + 20 + 2 * m + 100 * m); // m_rdim = 44*m_nvars+16*m_iemax+2*m_ielpar+20+2*m_nie +100*m_nie
+  // assert(ielpar >= n * 8); // m_ielpar = m_nvars*8; //+m_nvars*2*m_nvars + 20;
+  // assert(iemax >= 3 * m);  // m_iemax = 3*m_nie;
+  assert(rdim >= 44 * n + 16 * iemax + 2 * ielpar + 20 + 2 * m + 100 * m); // m_rdim = 44*m_nvars+16*m_iemax+2*m_ielpar+20+2*m_nie +100*m_nie
   assert(rsubdim >= 22 * n + 41 * iemax + 2 * ielpar + 28 + 100); // m_rsubdim = 22*m_nvars+41*m_iemax+2*m_ielpar+28 +100;
   assert(idim >= 7 * n + 8 * m + 3 * ielpar + 12 + 100 * m); // m_idim = 7*m_nvars+8*m_nie+3*m_ielpar+12+100*m_nie
   assert(isubdim >= 2 * n + 3 * iemax + ielpar + 2 + 100); // m_isubdim = 2*m_nvars+3*m_iemax+m_ielpar+2+100
@@ -118,31 +128,66 @@ int FeasSCP::SolveProblem(bool fromWarmstart)
     int spiwdim = spiw.GetSize();
     int spdwdim = spdw.GetSize();
 
-    LOG_DBG3(feas_scp) << "before call to scpip: n = " << n << ", mie = " << mie << ", meq = " << meq
-        << ", iemax = " << iemax << ", eqmax = " << eqmax << ", initial guess = " << x.ToString()
-        << ", lower bounds = " << x_l.ToString() << ", upper bounds = " << x_u.ToString()
-        << ", function value = " << f_org << ", inequality constraints = " << h_org.ToString() << ", equality constraints = " << g_org.ToString()
-        << ", gradient = " << df.ToString() << ", lagrange multipliers (ineq.) = " << y_ie.ToString() << ", lagrange multipliers (eq.) = " << y_eq.ToString()
-        << ", lagrange multipliers (l.b.) = " << y_l.ToString() << ", lagrange multipliers (u.b.) = " << y_u.ToString()
-        << ", icntl = " << icntl.ToString() << ", rcntl = " << rcntl.ToString()
-        << ", info = " << info.ToString() << ", rinfo = " << rinfo.ToString()
-        << ", nout = " << nout << ", r_scp = " << r_scp.ToString() << ", r_dim = " << rdim
-        << ", r_sub = " << r_sub.ToString() << ", r_subdim = " << rsubdim
-        << ", i_scp = " << i_scp.ToString() << ", i_dim = " << idim
-        << ", i_sub = " << i_sub.ToString() << ", i_subdim = " << isubdim
-        << ", active = " << active.ToString()
-        << ", mode = " << mode << ", ierr = " << ierr
-        << ", iern = " << iern.ToString() << ", iecn = " << iecn.ToString() << ", iederv = " << iederv.ToString()
-        << ", ielpar = " << ielpar << ", ieleng = " << ieleng
-        << ", eqrn = " << eqrn.ToString() << ", eqcn = " << eqcn.ToString() << ", eqcoef = " << eqcoef.ToString()
-        << ", eqlpar = " << eqlpar << ", eqleng = " << eqleng
-        << ", mactiv = " << mactiv
-        << ", spiw = " << spiw.ToString() << ", spiwdim = " << spiwdim
-        << ", spdw = " << spdw.ToString() << ", spdwdim = " << spdwdim
-        << ", spstrat = " << spstrat << ", linsys = " << linsys;
+    LOG_DBG3(feas_scp) << "sp1: n = " << n; // 1
+    LOG_DBG3(feas_scp) << "sp1: mie = " << mie; // 2
+    LOG_DBG3(feas_scp) << "sp1: meq = " << meq; // 3
+    LOG_DBG3(feas_scp) << "sp1: iemax = " << iemax; // 4
+    LOG_DBG3(feas_scp) << "sp1: eqmax = " << eqmax; // 5
+    LOG_DBG3(feas_scp) << "sp1: initial guess = " << x.ToString(); // 6
+    LOG_DBG3(feas_scp) << "sp1: lower bounds = " << x_l.ToString(); // 7
+    LOG_DBG3(feas_scp) << "sp1: upper bounds = " << x_u.ToString(); // 8
+    LOG_DBG3(feas_scp) << "sp1: function value = " << f_org; // 9
+    LOG_DBG3(feas_scp) << "sp1: inequality constraints = " << h_org.ToString(); // 10
+    LOG_DBG3(feas_scp) << "sp1: equality constraints = " << g_org.ToString(); // 11
+    LOG_DBG3(feas_scp) << "sp1: gradient = " << df.ToString(); // 12
+    LOG_DBG3(feas_scp) << "sp1: lagrange multipliers (ineq.) = " << y_ie.ToString(); // 13
+    LOG_DBG3(feas_scp) << "sp1: lagrange multipliers (eq.) = " << y_eq.ToString(); // 14
+    LOG_DBG3(feas_scp) << "sp1: lagrange multipliers (l.b.) = " << y_l.ToString(); // 15
+    LOG_DBG3(feas_scp) << "sp1: lagrange multipliers (u.b.) = " << y_u.ToString(); // 16
+    LOG_DBG3(feas_scp) << "sp1: icntl = " << icntl.ToString(); // 17
+    LOG_DBG3(feas_scp) << "sp1: rcntl = " << rcntl.ToString(); // 18
+    LOG_DBG3(feas_scp) << "sp1: info = " << info.ToString(); // 19
+    LOG_DBG3(feas_scp) << "sp1: rinfo = " << rinfo.ToString(); // 20
+    LOG_DBG3(feas_scp) << "sp1: nout = " << nout; // 21
+    LOG_DBG3(feas_scp) << "sp1: r_scp = " << r_scp.ToString(); // 22
+    LOG_DBG3(feas_scp) << "sp1: r_dim = " << rdim; // 23
+    LOG_DBG3(feas_scp) << "sp1: r_sub = " << r_sub.ToString(); // 24
+    LOG_DBG3(feas_scp) << "sp1: r_subdim = " << rsubdim; // 25
+    LOG_DBG3(feas_scp) << "sp1: i_scp = " << i_scp.ToString(); // 26
+    LOG_DBG3(feas_scp) << "sp1: i_dim = " << idim; // 27
+    LOG_DBG3(feas_scp) << "sp1: i_sub = " << i_sub.ToString(); // 28
+    LOG_DBG3(feas_scp) << "sp1: i_subdim = " << isubdim; // 29
+    LOG_DBG3(feas_scp) << "sp1: active = " << active.ToString(); // 30
+    LOG_DBG3(feas_scp) << "sp1: mode = " << mode; // 31
+    LOG_DBG3(feas_scp) << "sp1: ierr = " << ierr; // 32
+    LOG_DBG3(feas_scp) << "sp1: iern = " << iern.ToString(); // 33
+    LOG_DBG3(feas_scp) << "sp1: iecn = " << iecn.ToString(); // 34
+    LOG_DBG3(feas_scp) << "sp1: iederv = " << iederv.ToString(); // 35
+    LOG_DBG3(feas_scp) << "sp1: ielpar = " << ielpar; // 36
+    LOG_DBG3(feas_scp) << "sp1: ieleng = " << ieleng; // 37
+    LOG_DBG3(feas_scp) << "sp1: eqrn = " << eqrn.ToString(); // 38
+    LOG_DBG3(feas_scp) << "sp1: eqcn = " << eqcn.ToString(); // 39
+    LOG_DBG3(feas_scp) << "sp1: eqcoef = " << eqcoef.ToString(); // 40
+    LOG_DBG3(feas_scp) << "sp1: eqlpar = " << eqlpar; // 41
+    LOG_DBG3(feas_scp) << "sp1: eqleng = " << eqleng; // 42
+    LOG_DBG3(feas_scp) << "sp1: mactiv = " << mactiv; // 43
+    LOG_DBG3(feas_scp) << "sp1: spiw = " << spiw.ToString(); // 44
+    LOG_DBG3(feas_scp) << "sp1: spiwdim = " << spiwdim; // 45
+    LOG_DBG3(feas_scp) << "sp1: spdw = " << spdw.ToString(); // 46
+    LOG_DBG3(feas_scp) << "sp1: spdwdim = " << spdwdim; // 47
+    LOG_DBG3(feas_scp) << "sp1: spstrat = " << spstrat; // 48
+    LOG_DBG3(feas_scp) << "sp1: linsys = " << linsys; // 49
+    LOG_DBG3(feas_scp) << "sp1: linear = " << linear.ToString(); // 50
+    LOG_DBG3(feas_scp) << "sp1: mf = " << mf; // 51
+    LOG_DBG3(feas_scp) << "sp1: lact=" << lact; // 52
+    LOG_DBG3(feas_scp) << "sp1: setact = " << setact.ToString(); // 53
+
+StdVector<double> killme_d;
+killme_d.Resize(5, 0.0);
+StdVector<int> killme_i;
+killme_i.Resize(5, 0.0);
 
     // int nEqMax = 1;
-/*
     scpip40i_(&n,                      // 1
               &mie,                    // 2
               &meq,                    // 3
@@ -196,65 +241,6 @@ int FeasSCP::SolveProblem(bool fromWarmstart)
               &mf,                     // 51
               &lact,                   // 52
               setact.GetPointer());    // 53
-*/
-
-    scpip40nlph_(&n,                   // 1
-              &mie,                    // 2
-              &meq,                    // 3
-              &mf,                     // 4
-              &iemax,                  // 5
-              &eqmax,                  // 6
-              x.GetPointer(),          // 7
-              x_l.GetPointer(),        // 8
-              x_u.GetPointer(),        // 9
-              &f_org,                  // 10
-              h_org.GetPointer(),      // 11
-              g_org.GetPointer(),      // 12
-              df.GetPointer(),         // 13
-              y_ie.GetPointer(),       // 14
-              y_eq.GetPointer(),       // 15
-              y_l.GetPointer(),        // 16
-              y_u.GetPointer(),        // 17
-              icntl.GetPointer(),      // 18
-              rcntl.GetPointer(),      // 19
-              info.GetPointer(),       // 20
-              rinfo.GetPointer(),      // 21
-              &nout,                   // 22
-              r_scp.GetPointer(),      // 23
-              &rdim,                   // 24
-              r_sub.GetPointer(),      // 25
-              &rsubdim,                // 26
-              i_scp.GetPointer(),      // 27
-              &idim,                   // 28
-              i_sub.GetPointer(),      // 29
-              &isubdim,                // 30
-              active.GetPointer(),     // 31
-              &ierr,                   // 32
-              iern.GetPointer(),       // 33
-              iecn.GetPointer(),       // 34
-              iederv.GetPointer(),     // 35
-              &ielpar,                 // 36
-              &lengmie,                // 37
-              &ieleng,                 // 38
-              eqrn.GetPointer(),       // 39
-              eqcn.GetPointer(),       // 40
-              eqcoef.GetPointer(),     // 41
-              &eqlpar,                 // 42
-              &eqleng,                 // 43
-              hrns.GetPointer(),       // 44
-              hcns.GetPointer(),       // 45
-              hval.GetPointer(),       // 46
-              &hleng,                  // 47
-              &hmax,                   // 48
-              &mactiv,                 // 49
-              spiw.GetPointer(),       // 50
-              &spiwdim,                // 51
-              spdw.GetPointer(),       // 52
-              &spdwdim,                // 53
-              linear.GetPointer(),     // 54
-              &lact,                   // 55
-              setact.GetPointer());    // 56
-*/
 
     LOG_TRACE(feas_scp) << "scpip30 returns: ierr=" << ierr << " info[20-1]=" << info[20-1];
 
@@ -285,18 +271,6 @@ int FeasSCP::SolveProblem(bool fromWarmstart)
       }
       LOG_DBG2(feas_scp) << "df: " << df.ToString();
     }
-    if(ierr == -17)
-    {
-      /*
-      int flag = 0;
-      int m_elements = GetNumSDPBlocks();
-      int nTmp = m_nie - m_mf;
-      int nMSize = m_blks[2];
-      concavity_d_3x3_(m_xinit,&m_elements,m_h_org,&eps,&nTmp,&flag);
-
-       */
-      LOG_DBG2(feas_scp) << "! COMPUTATION OF CONSTRAINTS MIE-MF,... MIE Missing!!";
-    }
     if(ierr == -3)
     {
       AllocateDynamic();
@@ -306,7 +280,7 @@ int FeasSCP::SolveProblem(bool fromWarmstart)
       // we came from a warmstart file run an continue with -5
       ierr = -5;
     }
-    if((ierr < -5 && ierr != -17) || ierr > 0)
+    if(ierr < -5 || ierr > 0)
     {
       std::cerr << ToString(ierr) << std::endl;
       CallFinalizeSolution();

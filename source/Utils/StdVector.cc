@@ -375,6 +375,8 @@ namespace CoupledField {
   {
     std::ostringstream os;
 
+    os << " pntr=" << (void*) (&data[0]) << " ";
+
     switch(level)
     {
     case 0:

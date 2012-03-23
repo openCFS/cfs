@@ -440,58 +440,7 @@
             <xsd:element name="ipopt" minOccurs="0" type="DT_ExternalOptimizer"/>
             
             <!-- we made scpip the look like ipopt -->
-            <xsd:element name="scpip" minOccurs="0">
-              <xsd:complexType>
-                <xsd:sequence>
-                  <!-- We can have many option childs. Each with three attributes -->
-                  <xsd:element name="option" minOccurs="0" maxOccurs="10">
-                    <xsd:complexType>
-                      <!-- the type attribute is from a restriction -->
-                      <xsd:attribute name="type" use="required">
-                        <xsd:simpleType>  
-                          <xsd:restriction base="xsd:token">
-                            <xsd:enumeration value="string"/>
-                            <xsd:enumeration value="integer"/>
-                            <xsd:enumeration value="real"/>
-                          </xsd:restriction>
-                        </xsd:simpleType>
-                      </xsd:attribute>
-                      <xsd:attribute name="name" use="required" >
-                        <xsd:simpleType>
-                          <xsd:restriction base="xsd:token">
-                            <!-- string type -->
-                            <xsd:enumeration value="optimization_method"/>
-                            <xsd:enumeration value="output_level"/>
-                            <xsd:enumeration value="convergence_criteria"/>
-                            <!-- integer type -->
-                            <xsd:enumeration value="maximum_linesearch_function_calls"/>
-                            <xsd:enumeration value="spstrat"/>
-                            <xsd:enumeration value="linsys"/>
-                            <!-- real type -->
-                            <xsd:enumeration value="max_kuhn_tucker_constraint_violation"/>
-                            <xsd:enumeration value="infinity"/>
-                            <xsd:enumeration value="inequality_constraint_active_limit"/>
-                            <xsd:enumeration value="relaxed_relative_objective_change"/>
-                            <xsd:enumeration value="relaxed_absolut_objective_change"/>
-                            <xsd:enumeration value="convergence_criteria"/>
-                            <xsd:enumeration value="relaxed_relative_iteration_move"/>
-                          </xsd:restriction>
-                        </xsd:simpleType>
-                      </xsd:attribute>
-                      <!-- the value attribute is always string, nontheless the type -->
-                      <xsd:attribute name="value" use="required" >
-                        <xsd:simpleType>
-                          <!-- the scpip_option_values are for 'string' type, for 'integer' and 'real' is the float type -->
-                          <xsd:union memberTypes="scpip_option_values xsd:float"></xsd:union>
-                        </xsd:simpleType>
-                      </xsd:attribute>
-                      
-                    </xsd:complexType>
-                  </xsd:element>
-                </xsd:sequence>
-                <xsd:attribute name="fromWarmstart" type="xsd:boolean" default="true"/>
-              </xsd:complexType>
-            </xsd:element>
+            <xsd:element name="scpip" minOccurs="0" type="DT_SCPIP"/>
 
             <!-- we made snopt the look like ipopt -->
             <xsd:element name="snopt" minOccurs="0">
@@ -724,6 +673,7 @@
                 <xsd:enumeration value="optimalityCondition"/>
                 <xsd:enumeration value="ipopt"/>
                 <xsd:enumeration value="scpip"/>
+                <xsd:enumeration value="feasSCP"/>
                 <xsd:enumeration value="snopt"/>
                 <xsd:enumeration value="knitro"/>
                 <!-- this evaluates only the initial design -->
@@ -1529,6 +1479,59 @@
       </xsd:simpleType>
     </xsd:attribute>
   </xsd:complexType>
+
+
+  <!-- the same base for scpip and feasSCP -->
+  <xsd:complexType name="DT_SCPIP">
+    <xsd:sequence>
+      <!-- We can have many option childs. Each with three attributes -->
+      <xsd:element name="option" minOccurs="0" maxOccurs="10">
+        <xsd:complexType>
+          <!-- the type attribute is from a restriction -->
+          <xsd:attribute name="type" use="required">
+            <xsd:simpleType>  
+              <xsd:restriction base="xsd:token">
+                <xsd:enumeration value="string"/>
+                <xsd:enumeration value="integer"/>
+                <xsd:enumeration value="real"/>
+              </xsd:restriction>
+            </xsd:simpleType>
+          </xsd:attribute>
+          <xsd:attribute name="name" use="required" >
+            <xsd:simpleType>
+              <xsd:restriction base="xsd:token">
+                <!-- string type -->
+                <xsd:enumeration value="optimization_method"/>
+                <xsd:enumeration value="output_level"/>
+                <xsd:enumeration value="convergence_criteria"/>
+                <!-- integer type -->
+                <xsd:enumeration value="maximum_linesearch_function_calls"/>
+                <xsd:enumeration value="spstrat"/>
+                <xsd:enumeration value="linsys"/>
+                <!-- real type -->
+                <xsd:enumeration value="max_kuhn_tucker_constraint_violation"/>
+                <xsd:enumeration value="infinity"/>
+                <xsd:enumeration value="inequality_constraint_active_limit"/>
+                <xsd:enumeration value="relaxed_relative_objective_change"/>
+                <xsd:enumeration value="relaxed_absolut_objective_change"/>
+                <xsd:enumeration value="convergence_criteria"/>
+                <xsd:enumeration value="relaxed_relative_iteration_move"/>
+              </xsd:restriction>
+            </xsd:simpleType>
+          </xsd:attribute>
+          <!-- the value attribute is always string, nontheless the type -->
+          <xsd:attribute name="value" use="required" >
+            <xsd:simpleType>
+              <!-- the scpip_option_values are for 'string' type, for 'integer' and 'real' is the float type -->
+              <xsd:union memberTypes="scpip_option_values xsd:float"></xsd:union>
+            </xsd:simpleType>
+          </xsd:attribute>
+        </xsd:complexType>
+      </xsd:element>
+    </xsd:sequence>
+    <xsd:attribute name="fromWarmstart" type="xsd:boolean" default="true"/>
+  </xsd:complexType>
+  
 
 </xsd:schema>
 

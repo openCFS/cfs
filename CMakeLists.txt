@@ -167,6 +167,8 @@ SET(USE_METIS ${USE_METIS_DEFAULT}
 # SCPIP optimizer library.
 #-----------------------------------------------------------------------------
 OPTION(USE_SCPIP "Use the external SCPIP optimizer." ${USE_SCPIP_DEFAULT})
+OPTION(USE_FEAS_SCP "Use the external Feasible SCPIP optimizer." FALSE)
+
 
 #-----------------------------------------------------------------------------
 # Yet another optimization library.

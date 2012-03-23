@@ -24,6 +24,9 @@ class Optimization;
       
       virtual ~SCPIP();
     
+      /** overwrites BaseOptimizer::PostInit() */
+      void PostInit();
+
     protected:
 
       /** Solves the problem. All stuff, including evaluations of the state problem is done

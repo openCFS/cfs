@@ -28,7 +28,7 @@ IPOPT::IPOPT(Optimization* optimization, BaseOptimizer* base, PtrParamNode pn)
   
   double manual_scaling = optimizer_pn_ != NULL && optimizer_pn_->Has("obj_scaling_factor") ?
       optimizer_pn_->Get("obj_scaling_factor")->Get("value")->As<Double>() : 1.0;
-  base->PostInit(manual_scaling);
+  base->PostInitScale(manual_scaling);
   Init();
 }
 
