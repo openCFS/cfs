@@ -774,7 +774,7 @@ void Domain::CreateDirectCoupledPDEs(UInt sequenceStep)
       // entries have to be multiplied by -1
       dynamic_cast<AcousticPDE*> (pde2)->SetMechanicCoupling();
 
-      coupling = new FluidMechCoupling(pde1, pde2, pairNodes[i]);
+      coupling = new AcouMechCoupling(pde1, pde2, pairNodes[i]);
     }
     // *** FLUID-MECH Coupling ***
     else if (couplingName == "fluidMechDirect")
