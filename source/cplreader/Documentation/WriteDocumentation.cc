@@ -40,7 +40,7 @@ namespace CoupledField
     // create directory for HTML help
     try {
       fs::create_directory( docDir );
-      pathsep = fs::path("/").native_directory_string();
+      pathsep = fs::path("/").string();
     } catch (std::exception &ex) {
       EXCEPTION(ex.what());
     }

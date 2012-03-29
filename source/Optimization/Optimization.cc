@@ -156,7 +156,7 @@ Optimization::Optimization()
   optInfoNode->Get("commit")->Get("stride")->SetValue(commitStride);
   
   // write out the directory where the HALTOPT file will be searched for
-  optInfoNode->Get("haltopt_directory")->SetValue(fs::current_path().directory_string());
+  optInfoNode->Get("haltopt_directory")->SetValue(fs::current_path().string());
 
   // remove a stop file, if found
   if(fs::exists("HALTOPT"))
