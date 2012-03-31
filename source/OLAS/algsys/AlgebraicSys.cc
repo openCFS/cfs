@@ -1117,6 +1117,9 @@ namespace CoupledField {
 
     LOG_TRACE(algSys) << "Setting matrix type '" << feMatrixType.ToString(matrixType)
                            << "' for fct-Ids (" << fctId1 << ", " << fctId2 << ")";
+                           
+    LOG_TRACE(algSys) << "\tsymmetry: " << isSymmetric;
+    LOG_TRACE(algSys) << "\tcomplex values: " << isComplex;
 
     
     // Note: The "isSymmetric" attribute is a bit misleading, as its meaning differs,
@@ -1152,6 +1155,7 @@ namespace CoupledField {
         // Note: The sbmSymmetry is not affected in this case.
         if( !isSymmetric) {
           this->matIsSymm_[fctId1] = false;
+          LOG_TRACE(algSys) << "\t=> matrix will be unsymmetric";
         }
       
       } else {
@@ -1162,6 +1166,7 @@ namespace CoupledField {
         // symmetry of the SBM-Matrix. In case at least one integrator
         // is non-symmetric, so will be the SBM matrix.
         this->sbmSymm_ &= isSymmetric;
+        LOG_TRACE(algSys) << "\t=> SBM-symmetry: " << this->sbmSymm_;
 
         // If matrix is symmetric
         if( isSymmetric) {
@@ -2602,7 +2607,7 @@ namespace CoupledField {
         //  no solver set -> use default direct 
         // -------------------------------------
 
-        if( isDiagBlockSymm_[0] ) {
+        if( isDiagBlockSymm_[0] && sbmSymm_ ) {
           st = BaseSolver::LDL_SOLVER;
           solverList->Get("directLDL",ParamNode::INSERT)->
               Get("id",ParamNode::INSERT)->SetValue(solverId);

@@ -311,7 +311,7 @@ namespace CoupledField {
     DefineRhsLoadIntegrators();
 
     // Print information about defined integrators
-    if( needsAlgsys_ == true)
+    if( needsAlgsys_ == true && !isDirectCoupled_ ) 
       assemble_->ToInfo(infoNode_->Get(ParamNode::HEADER)->Get("integrators"));
 
     // The following peace of code is measningless, as we encapsulate the

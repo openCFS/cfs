@@ -184,6 +184,7 @@ namespace CoupledField {
 
   //! Map Nodal BC Equation Numbers
   void FeSpaceH1::MapNodalBCs(){
+  LOG_TRACE(feSpaceH1) << "Mapping Nodal BCs";
     StdVector<UInt> actNodes;
 
     // check if feFunction was defined
@@ -205,12 +206,18 @@ namespace CoupledField {
       // Get EntityIterator
       GetNodesOfEntities(actNodes,(*actHBC)->entities);
       for(UInt iNode = 0 ; iNode < actNodes.GetSize();iNode++){
-         if( nodeMap_.BcKeys.find(actNodes[iNode]) == nodeMap_.BcKeys.end()){
+        UInt vNode = actNodes[iNode];
+        // first assure, that the virtual node really belongs to the FeSpace
+        if( nodesType_.find(vNode) == nodesType_.end() ) 
+          continue;
+        
+         if( nodeMap_.BcKeys.find(vNode) == nodeMap_.BcKeys.end()){
            //nodeMap_.BcKeys[node] = StdVector<BaseFeFunction::BcType>(dofsPerUnknown,BaseFeFunction::NOBC);
-           nodeMap_.BcKeys[actNodes[iNode]] = StdVector<BcType>(dofsPerUnknown);
-           nodeMap_.BcKeys[actNodes[iNode]].Init(NOBC);
+           nodeMap_.BcKeys[vNode] = StdVector<BcType>(dofsPerUnknown);
+           nodeMap_.BcKeys[vNode].Init(NOBC);
          }
-         nodeMap_.BcKeys[actNodes[iNode]][(*actHBC)->dof] = HDBC;
+         LOG_DBG(feSpaceH1) << "\tHDBC for vNode " << vNode << ", dof " <<  (*actHBC)->dof;
+         nodeMap_.BcKeys[vNode][(*actHBC)->dof] = HDBC;
          bcCounter_[HDBC]++;
       }
     }
@@ -230,15 +237,17 @@ namespace CoupledField {
         // Get all (Virtual) Nodes of the list
         GetNodesOfEntities(actNodes,(*actIBC)->entities);
         for(UInt iNode = 0 ; iNode < actNodes.GetSize();iNode++){
-          //TODO find the source
-          //make it zero based
-          if( nodeMap_.BcKeys.find(actNodes[iNode]) == nodeMap_.BcKeys.end()){
-            nodeMap_.BcKeys[actNodes[iNode]] = StdVector<BcType>(dofsPerUnknown);
-            nodeMap_.BcKeys[actNodes[iNode]].Init(NOBC);
+          UInt vNode = actNodes[iNode];
+          // first assure, that the virtual node really belongs to the FeSpace
+          if( nodesType_.find(vNode) == nodesType_.end() ) 
+            continue;
+          if( nodeMap_.BcKeys.find(vNode) == nodeMap_.BcKeys.end()){
+            nodeMap_.BcKeys[vNode] = StdVector<BcType>(dofsPerUnknown);
+            nodeMap_.BcKeys[vNode].Init(NOBC);
           }
           // check first, if this node was already processed
-          if( nodeMap_.BcKeys[actNodes[iNode]][(*actIBC)->dof] != IDBC) {
-            nodeMap_.BcKeys[actNodes[iNode]][(*actIBC)->dof] = IDBC;
+          if( nodeMap_.BcKeys[vNode][(*actIBC)->dof] != IDBC) {
+            nodeMap_.BcKeys[vNode][(*actIBC)->dof] = IDBC;
             bcCounter_[IDBC]++;
           }
         }
@@ -275,33 +284,34 @@ namespace CoupledField {
        */
       const IdBcList idbcs = feFunction_->GetInHomDirichletBCs();
       IdBcList::const_iterator actIBC;
-      StdVector<UInt> vertexNodes;
       for(actIBC = idbcs.Begin(); actIBC != idbcs.End(); actIBC++) {
         // Get all (Virtual) Nodes of the list
         GetNodesOfEntities(actNodes,(*actIBC)->entities);
-        GetNodesOfEntities(vertexNodes,(*actIBC)->entities, BaseFE::VERTEX);
         for(UInt iNode = 0 ; iNode < actNodes.GetSize();iNode++){
 
-          UInt actNode = actNodes[iNode];
+          UInt vNode = actNodes[iNode];
+          // first assure, that the virtual node really belongs to the FeSpace
+          if( nodesType_.find(vNode) == nodesType_.end() ) 
+            continue;
           //TODO find the source
           //make it zero based
-          if( nodeMap_.BcKeys.find(actNode) == nodeMap_.BcKeys.end()){
-            nodeMap_.BcKeys[actNode] = StdVector<BcType>(dofsPerUnknown);
-            nodeMap_.BcKeys[actNode].Init(NOBC);
+          if( nodeMap_.BcKeys.find(vNode) == nodeMap_.BcKeys.end()){
+            nodeMap_.BcKeys[vNode] = StdVector<BcType>(dofsPerUnknown);
+            nodeMap_.BcKeys[vNode].Init(NOBC);
           }
 
           // check, if this node belongs to a vertex
           // yes set "true" IDBC
           //  no: set HDBC
-          if( vertexNodes.Find( actNode ) != -1 ) {
+          if( nodesType_[vNode] == BaseFE::VERTEX ) {
 
             // check first, if this node was already processed
-            if( nodeMap_.BcKeys[actNode][(*actIBC)->dof] != IDBC) {
-              nodeMap_.BcKeys[actNode][(*actIBC)->dof] = IDBC;
+            if( nodeMap_.BcKeys[vNode][(*actIBC)->dof] != IDBC) {
+              nodeMap_.BcKeys[vNode][(*actIBC)->dof] = IDBC;
               bcCounter_[IDBC]++;
             }
           } else {
-            nodeMap_.BcKeys[actNode][(*actIBC)->dof] = HDBC ;
+            nodeMap_.BcKeys[vNode][(*actIBC)->dof] = HDBC ;
           }
         } // loop over virtual nodes
       } // loop over idbcs
@@ -355,13 +365,14 @@ namespace CoupledField {
   //Perform Nodal equation Numbering
   //=======================================================
   void FeSpaceH1::MapNodalEqns(UInt phase){
+    LOG_TRACE(feSpaceH1) << "Mapping nodal Eqns, Phase " << phase;
     UInt dofsPerUnknown = 0;
     shared_ptr<ResultInfo> feFctResult;
     StdVector< shared_ptr<EntityList> > fctEntList;
     StdVector< shared_ptr<EntityList> >::iterator entIt;
     boost::unordered_map< Integer , StdVector<BcType> >::iterator bcIt;
     UInt actNode = 0;
-
+    NodeTypeMap::const_iterator it;
     switch(phase){
       case 1:
         // number the nodal equations if they are not contained in the BcKeys
@@ -374,9 +385,9 @@ namespace CoupledField {
         dofsPerUnknown = feFctResult->dofNames.GetSize();
         
         //now loop over all nodes and assign an equation number
-        for(UInt curNode = 0; curNode < nodes_.GetSize(); curNode++){
-          actNode = nodes_[curNode];
-
+         it= nodesType_.begin();
+        for( ; it != nodesType_.end(); ++it ) {
+          actNode = it->first;
           if(nodeMap_.eqns.find(actNode) == nodeMap_.eqns.end()){
             nodeMap_[actNode] = StdVector<Integer>(dofsPerUnknown);
             nodeMap_[actNode].Init(-1);
@@ -395,25 +406,25 @@ namespace CoupledField {
           }
         }
         
-        // Security check at the end of phase 1:
-        for( UInt i = 0; i < nodes_.GetSize(); ++i ) {
-          actNode = nodes_[i];
-        }
-        
-        
         break;
+        
       case 2:
         bcIt = nodeMap_.BcKeys.begin();
         while(bcIt != nodeMap_.BcKeys.end()){
           //TODO: take the kind of BC into account
           //OPTIONAL: Delete the BcKeys Map afterwards?!
-          for(UInt iDof =0; iDof < bcIt->second.GetSize(); iDof++){
-            if(bcIt->second[iDof]!=NOBC){
+          UInt vNode = bcIt->first;
+          StdVector<BcType> & dofs = bcIt->second;
+          
+          LOG_DBG3(feSpaceH1) << "\tvNode: " << vNode;
+          LOG_DBG3(feSpaceH1) << "\teqns: " << nodeMap_[vNode].ToString();
+          for(UInt iDof =0; iDof < dofs.GetSize(); iDof++){
+            if(dofs[iDof]!=NOBC){
                //nodeMap_[bcIt->first] = ++numEqns_;
-              if(bcIt->second[iDof] == IDBC){
-                nodeMap_[bcIt->first][iDof] = ++numEqns_;
-              } else if(bcIt->second[iDof] == HDBC){
-                nodeMap_[bcIt->first][iDof] = 0 ;
+              if(dofs[iDof] == IDBC){
+                nodeMap_[vNode][iDof] = ++numEqns_;
+              } else if(dofs[iDof] == HDBC){
+                nodeMap_[vNode][iDof] = 0 ;
               } 
               //else if(bcIt->second[iDof] == CONSTRAINT){
               //  Integer masterNode = nodeMap_.slaveMasterNodes[bcIt->first];
@@ -423,10 +434,6 @@ namespace CoupledField {
           }
           bcIt++;
         }
-        // Security check at the end of phase 1:
-             for( UInt i = 0; i < nodes_.GetSize(); ++i ) {
-               actNode = nodes_[i];
-             }
         {
           std::map<std::pair<Integer,Integer>, std::pair<Integer,Integer>  >::iterator  conNodes = nodeMap_.constraintNodes.begin();
           for(; conNodes !=nodeMap_.constraintNodes.end() ; conNodes++){

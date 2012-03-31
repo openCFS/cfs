@@ -89,17 +89,58 @@ namespace CoupledField {
       polyType = LAGRANGE;
       LOG_DBG(feSpace) << "No explicit definition available, using default";
     }else{
-      ParamNodeList lagList  = polyNode->GetList("Lagrange");
-      ParamNodeList legList  = polyNode->GetList("Legendre");
-      if(lagList.GetSize() > 0 && legList.GetSize() > 0){
-        EXCEPTION("Different polynomial types for different regions not supported!")
-      }else if(lagList.GetSize() > 0 ){
-        polyType = LAGRANGE;
-      }else if(legList.GetSize() > 0 ){
-        polyType = LEGENDRE;
-      }else{
-        EXCEPTION("An error occurred while reading the XML file.Specify at least one fePolynomial");
+      
+      
+      // loop over all polynomial definitions, get the id and query, if the
+      // polynomial gets also referenced in the <reegionList> of this PDE.
+      PtrParamNode regList = aNode->Get("regionList");
+      ParamNodeList polys = polyNode->GetChildren();
+      std::set<shared_ptr<ParamNode> > usedPolys;
+      for( UInt i = 0; i < polys.GetSize(); ++i ) {
+        std::string id = polys[i]->Get("id")->As<std::string>();
+        if( regList->HasByVal("region", "polyId", id ) ) {
+          usedPolys.insert(polys[i]);
+        }
       }
+      
+      // check consistency of referenced polynomials
+      // a) if no polynomial gets referenced, use the default lagrange one
+      if( usedPolys.size() == 0 ) {
+        polyType = LAGRANGE;
+      }
+      
+      // b) if one polynomial gets referenced, use this one
+      if( usedPolys.size() == 1 ) {
+        polyType = PolyTypeEnum.Parse((*usedPolys.begin())->GetName());
+      }
+      
+      // c) if several ones get referenced, check for same type
+      if( usedPolys.size() > 1 ) {
+        polyType = PolyTypeEnum.Parse((*usedPolys.begin())->GetName());
+        std::set<shared_ptr<ParamNode> >::const_iterator it = usedPolys.begin();
+        it++;
+        while (it != usedPolys.end()) {
+          PolyType actPoly = PolyTypeEnum.Parse((*it)->GetName());
+          if( actPoly != polyType ) {
+            EXCEPTION( "Can not mix '" << PolyTypeEnum.ToString(polyType)
+                       << "' and '" << PolyTypeEnum.ToString(actPoly) );
+          }
+        }
+      }
+      
+      
+      
+//      ParamNodeList lagList  = polyNode->GetList("Lagrange");
+//      ParamNodeList legList  = polyNode->GetList("Legendre");
+//      if(lagList.GetSize() > 0 && legList.GetSize() > 0){
+//        EXCEPTION("Different polynomial types for different regions not supported!")
+//      }else if(lagList.GetSize() > 0 ){
+//        polyType = LAGRANGE;
+//      }else if(legList.GetSize() > 0 ){
+//        polyType = LEGENDRE;
+//      }else{
+//        EXCEPTION("An error occurred while reading the XML file.Specify at least one fePolynomial");
+//      }
     }
     // switch depending on space type
     shared_ptr<FeSpace> ret;
@@ -150,6 +191,18 @@ namespace CoupledField {
       // get name of entitylist
       std::string name= ent->GetName();
       feFunction_->GetGrid()->GetNodesByName( nodes, name );
+      
+//      // careful: not all nodes of the entity list are necessarily mapped for
+//      // this space. So only select those nodes, also contained in the nodesType_ array.
+//      nodes.Clear();
+//      UInt numNodes = tempNodes.GetSize();
+//      for( UInt i = 0; i < numNodes; ++i ) {
+//        if( nodesType_.find(tempNodes[i]) != nodesType_.end() ) {
+//          nodes.Push_back( tempNodes[i] );
+//        }
+//      }
+      
+      
 
       // Case 2: We rely on the the information of the virtualNodes_ array.
       //         which gets filled depending on the number of "unknown" nodes
@@ -317,6 +370,7 @@ namespace CoupledField {
     fctEntList = feFunction_->GetEntityList();
 
     for(UInt actList = 0;actList <  fctEntList.GetSize(); actList++){
+      LOG_DBG(feSpace) << "\tMapping entity list '" << fctEntList[actList]->GetName();
       EntityList::ListType actListType = fctEntList[actList]->GetType();
       if ( ! (actListType == EntityList::ELEM_LIST ||
               actListType == EntityList::SURF_ELEM_LIST ||
@@ -347,11 +401,9 @@ namespace CoupledField {
       }
     }
 
-    nodes_.Resize(gridToVirtualNodes_.size());
-    UInt counter = 0;
     for(std::map<UInt,StdVector<UInt> >::const_iterator it = gridToVirtualNodes_.begin(); it != gridToVirtualNodes_.end(); ++it) {
       //here we can hardcode to zero as we assume continuous approximation
-      nodes_[counter++] = it->second[0];
+      nodesType_[it->second[0]] = BaseFE::VERTEX;
     }
   }
 
@@ -468,7 +520,6 @@ namespace CoupledField {
               for( UInt vertNode = 0; vertNode < numVertexNodes; ++vertNode ) {
                 vertexNodes[vertexNum][elemNum][vertNode] = ++offset;
                 LOG_DBG3(feSpace) << "adding " << offset << " to node_";
-                nodes_.Push_back(offset);
                 nodesType_[offset] = BaseFE::VERTEX;
               }
             }
@@ -528,7 +579,6 @@ namespace CoupledField {
               edgenodes[edgeNum][elemNum].Init();
               for ( UInt edgeNode = 0;edgeNode < numEdgeNodes ;edgeNode++ ) {
                 edgenodes[edgeNum][elemNum][edgeNode] = ++offset;
-                nodes_.Push_back(offset);
                 nodesType_[offset] = BaseFE::EDGE;
               }
             }
@@ -571,7 +621,6 @@ namespace CoupledField {
               facenodes[faceNum][elemNum].Resize(numFaceNodes);
               for ( UInt faceNode = 0;faceNode < numFaceNodes ;faceNode++ ) {
                 facenodes[faceNum][elemNum][faceNode] = ++offset;
-                nodes_.Push_back(offset);
                 nodesType_[offset] = BaseFE::FACE;
               }
             }
@@ -596,7 +645,6 @@ namespace CoupledField {
           interiornodes[actEl->elemNum].Resize(numIntNodes);
           for ( UInt intNode = 0;intNode < numIntNodes ;intNode++ ) {
             interiornodes[actEl->elemNum][intNode] = ++offset;
-            nodes_.Push_back(offset);
             nodesType_[offset] = BaseFE::INTERIOR;
           }
         }
@@ -746,11 +794,9 @@ namespace CoupledField {
       char_separator<char> sep(" ");
 
       for(UInt i = 0;i < order.GetNumRows();i++){
-        std::cerr << "tokenizing " << dofs[i] << std::endl;
         boost::tokenizer<char_separator<char> > tokens(dofs[i],sep);
         boost::tokenizer<char_separator<char> >::iterator tokIt=tokens.begin();
         for(UInt j = 0;j < order.GetNumCols();j++){
-          std::cerr << "token is " << *tokIt << std::endl;
           order[i][j] = lexical_cast<UInt>(*tokIt);
           tokIt++;
         }

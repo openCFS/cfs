@@ -292,13 +292,44 @@ DEFINE_LOG(feH1Hi, "feH1Hi")
                               const Vector<Double>& lp,
                              const Elem * elem, UInt comp ) {
   if (updateUnknowns_) CalcNumUnknowns();
+  _CalcShFnc(lp[0], elem, shape);
   }
 
   void FeH1HiLine::CalcLocDerivShFnc( Matrix<Double> & deriv, 
                                       const Vector<Double>& lp,
                                       const Elem * elem,  UInt comp ) {
     if (updateUnknowns_) CalcNumUnknowns();
+    
+    AutoDiff<Double,1> x(lp[0],0);
+    StdVector<AutoDiff<Double,1> > dShape;
+    _CalcShFnc(x,elem,dShape);
+    UInt size = dShape.GetSize();
+    deriv.Resize(size, 1);
+    for( UInt i = 0; i < size; ++i ) {
+      deriv[i][0] = dShape[i].DVal(0);
+    }
   }
+
+  template<typename T_SCAL, typename T_VEC>
+  void FeH1HiLine::_CalcShFnc( const T_SCAL x,
+                               const Elem * elem,
+                               T_VEC& ret ) {
+
+    Double fac = elem->edges[0] < 0 ? -1.0 : 1.0;
+    UInt order = orderEdge_[0];
+    ret.Resize(actNumFncs_);
+    ret[0] = 0.5 * ( 1.0 - x );
+    ret[1] = 0.5 * ( 1.0 + x );
+    
+    T_VEC vals;
+    IntLegendreP2<T_SCAL,T_VEC>( vals, order, fac*x );
+    UInt pos = 2;
+    for( UInt j = 0; j < order-1; ++j ) {
+      ret[pos++] = vals[j];
+    } 
+  }
+  
+  
   // ====================
   //  TRIANGULAR ELEMENT 
   // ====================

@@ -258,6 +258,9 @@ namespace CoupledField {
      singlePDEs_[i]->FinalizeInit();
     }
     
+    // Print list of defined integrators of assembly object
+    assemble_->ToInfo(infoNode_->Get(ParamNode::HEADER)->Get("integrators"));
+    
     // Collect all feFunctions defined in BasePairCouplings
     for (UInt i=0; i<couplings_.GetSize(); i++) {
       feFunctions_.insert( couplings_[i]->feFunctions_.begin(),

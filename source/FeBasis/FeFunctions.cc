@@ -52,7 +52,7 @@ DECLARE_LOG(fefunc)
   void BaseFeFunction::AddEntityList( shared_ptr<EntityList> list ){
     // Security check: If entity list was already added, leave
     
-    // Note: As the shared_ptr to an Entitylist is not a unique
+    // Note: As the shared_ptr to an Entitylist is not
     // unique within CFS, we have to ensure, that the names of 
     // the entity lists rather than the pointers match!
     
@@ -170,6 +170,9 @@ DECLARE_LOG(fefunc)
     EntityIterator it = list->GetIterator();
     actSol.Init();
 
+    UInt dim = grid_->GetDim();
+    scoped_ptr<BaseBOperator<T> > interOp ( GenerateInterpolationOperator(dim,numDofs) );
+    
     StdVector<Integer> eqnNums;
     UInt pos = 0;
     for ( it.Begin(); !it.IsEnd(); it++ ) {
@@ -186,7 +189,7 @@ DECLARE_LOG(fefunc)
         //we try to determine its value via interpolation
 #ifdef USE_INTERPOLATION
         Vector<Double> globCoord;
-        Vector<Double> locCoord;
+        StdVector<Vector<Double> > locCoord;
         Vector<T> elemSolution;
         Vector<T> dofSol;
         if(it.GetType()== EntityList::NODE_LIST){
@@ -197,16 +200,34 @@ DECLARE_LOG(fefunc)
         }else if(it.GetType() == EntityList::ELEM_LIST ||
                  it.GetType() == EntityList::SURF_ELEM_LIST){
           //determine global coord of element midpoint
-          EXCEPTION("Interpoation for extract result not implemented for the Element case");
+          EXCEPTION("Interpolation for extract result not implemented for the Element case");
         }
         //Obtain intersecting element
-        const Elem* myElem  = grid_->GetElemAtGlobalCoord(globCoord,locCoord);
+        //const Elem* myElem  = grid_->GetElemAtGlobalCoord(globCoord,locCoord);
+        
+        
+        // try to find the correct element, being one belonging to the regionlist of
+        // this fefunction
+        StdVector<const Elem*> elems = grid_->GetElemsAtGlobalCoord(globCoord,locCoord);
+        LocPoint myLp;
+        const Elem* myElem = NULL;
+        for ( UInt i = 0; i < elems.GetSize(); ++i ) {
+          if( this->regions_.find( elems[i]->regionId ) != this->regions_.end() ) {
+            myElem = elems[i];
+            myLp = locCoord[i];
+            break;
+          }
+        }
+        
+        if( !myElem ) {
+          WARN("Some elements were skipped during the interpolation");
+        }
+
         shared_ptr<ElemShapeMap> esm = grid_->GetElemShapeMap( myElem, true );
-        LocPoint myLp = locCoord;
+
         LocPointMapped lpm;
         lpm.Set(myLp,esm);
-        UInt dim = grid_->GetDim();
-        BaseBOperator<T>* interOp = GenerateInterpolationOperator(dim,numDofs);
+        
 
         this->GetElemSolution(elemSolution,myElem);
         BaseFE * ptFe = feSpace_->GetFe(lpm.ptEl->elemNum);

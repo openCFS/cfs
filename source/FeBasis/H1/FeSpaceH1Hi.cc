@@ -92,6 +92,15 @@ namespace CoupledField{
 
   //! Destructor
   FeSpaceH1Hi::~FeSpaceH1Hi(){
+    std::map< RegionIdType, std::map<Elem::FEType, FeH1Hi* > >::iterator regionIt;
+    regionIt = refElems_.begin();
+    for( ; regionIt != refElems_.end(); ++regionIt ) {
+      std::map<Elem::FEType, FeH1Hi* > & elems = regionIt->second;
+      std::map<Elem::FEType, FeH1Hi* >::iterator elemIt = elems.begin();
+      for( ; elemIt != elems.end(); ++elemIt ) {
+        delete elemIt->second;
+      }
+    }
   }
   
   //! Initialize class

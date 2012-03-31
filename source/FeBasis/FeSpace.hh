@@ -464,11 +464,9 @@ protected:
   //! Polynomial approximation
   std::map<UInt,StdVector<UInt> > gridToVirtualNodes_;
 
-  //! Stores every assigned virtual node
-  StdVector<UInt> nodes_;
-  
   //! Map for every node the type geometric entitytype it belongs to (V/E/F/I)
-  boost::unordered_map<UInt, BaseFE::EntityType> nodesType_;
+  typedef boost::unordered_map<UInt, BaseFE::EntityType> NodeTypeMap;
+  NodeTypeMap nodesType_;
 
   //! This is the virtual node Map for standard element it just contains
   //! the connectivity of the element, for higher order elements it contains also 

@@ -180,6 +180,13 @@ namespace CoupledField {
                             const Vector<Double>& point,
                             const Elem* ptElem,
                             UInt comp = 1 );
+    
+    //! Templatized version of calculation for shape function
+    template<typename T_SCAL, typename T_VEC>
+    void _CalcShFnc( const T_SCAL x,  
+                     const Elem * elem,
+                     T_VEC& ret );
+    
   };
   
   // ==========

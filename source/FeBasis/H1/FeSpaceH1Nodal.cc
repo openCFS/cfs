@@ -39,6 +39,15 @@ namespace CoupledField{
 
   //! Destructor
   FeSpaceH1Nodal::~FeSpaceH1Nodal(){
+    std::map< RegionIdType, std::map<Elem::FEType, FeH1* > >::iterator regionIt;
+    regionIt = refElems_.begin();
+    for( ; regionIt != refElems_.end(); ++regionIt ) {
+      std::map<Elem::FEType, FeH1* > & elems = regionIt->second;
+      std::map<Elem::FEType, FeH1* >::iterator elemIt = elems.begin();
+      for( ; elemIt != elems.end(); ++elemIt ) {
+        delete elemIt->second;
+      }
+    }
   }
 
   void FeSpaceH1Nodal::Init( shared_ptr<SolStrategy> solStrat ) {

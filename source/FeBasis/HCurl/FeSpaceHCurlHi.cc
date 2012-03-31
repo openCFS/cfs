@@ -93,6 +93,26 @@ namespace CoupledField{
 
   //! Destructor
   FeSpaceHCurlHi::~FeSpaceHCurlHi(){
+    std::map< RegionIdType, std::map<Elem::FEType, FeHCurlHi* > >::iterator regionIt;
+    regionIt = refElems_.begin();
+    for( ; regionIt != refElems_.end(); ++regionIt ) {
+      std::map<Elem::FEType, FeHCurlHi* > & elems = regionIt->second;
+      std::map<Elem::FEType, FeHCurlHi* >::iterator elemIt = elems.begin();
+      for( ; elemIt != elems.end(); ++elemIt ) {
+        delete elemIt->second;
+      }
+    }
+    
+    
+    // delete also reference elements of 1st order (in case of 2 level approach)
+    regionIt = refElems1St_.begin();
+    for( ; regionIt != refElems1St_.end(); ++regionIt ) {
+      std::map<Elem::FEType, FeHCurlHi* > & elems = regionIt->second;
+      std::map<Elem::FEType, FeHCurlHi* >::iterator elemIt = elems.begin();
+      for( ; elemIt != elems.end(); ++elemIt ) {
+        delete elemIt->second;
+      }
+    }
   }
 
   void FeSpaceHCurlHi::Init( shared_ptr<SolStrategy> solStrat ) {
@@ -506,7 +526,6 @@ namespace CoupledField{
               edgenodes[edgeNum].Resize(numEdgeNodes);
               for ( UInt edgeNode = 0;edgeNode < numEdgeNodes ;edgeNode++ ) {
                 edgenodes[edgeNum][edgeNode] = ++offset;
-                nodes_.Push_back(offset);
                 nodesType_[offset] = BaseFE::EDGE;
               }
             }
@@ -587,7 +606,6 @@ namespace CoupledField{
               facenodes[faceNum].Resize(numFaceNodes);
               for ( UInt faceNode = 0;faceNode < numFaceNodes ;faceNode++ ) {
                 facenodes[faceNum][faceNode] = ++offset;
-                nodes_.Push_back(offset);
                 nodesType_[offset] = BaseFE::FACE;
               }
             }
@@ -648,7 +666,6 @@ namespace CoupledField{
             interiornodes[actEl->elemNum].Resize(numIntNodes);
             for ( UInt intNode = 0;intNode < numIntNodes ;intNode++ ) {
               interiornodes[actEl->elemNum][intNode] = ++offset;
-              nodes_.Push_back(offset);
               nodesType_[offset] = BaseFE::INTERIOR;
             }
           }
