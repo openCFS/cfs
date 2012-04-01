@@ -207,9 +207,6 @@ namespace CoupledField {
       GetNodesOfEntities(actNodes,(*actHBC)->entities);
       for(UInt iNode = 0 ; iNode < actNodes.GetSize();iNode++){
         UInt vNode = actNodes[iNode];
-        // first assure, that the virtual node really belongs to the FeSpace
-        if( nodesType_.find(vNode) == nodesType_.end() ) 
-          continue;
         
          if( nodeMap_.BcKeys.find(vNode) == nodeMap_.BcKeys.end()){
            //nodeMap_.BcKeys[node] = StdVector<BaseFeFunction::BcType>(dofsPerUnknown,BaseFeFunction::NOBC);
@@ -238,9 +235,6 @@ namespace CoupledField {
         GetNodesOfEntities(actNodes,(*actIBC)->entities);
         for(UInt iNode = 0 ; iNode < actNodes.GetSize();iNode++){
           UInt vNode = actNodes[iNode];
-          // first assure, that the virtual node really belongs to the FeSpace
-          if( nodesType_.find(vNode) == nodesType_.end() ) 
-            continue;
           if( nodeMap_.BcKeys.find(vNode) == nodeMap_.BcKeys.end()){
             nodeMap_.BcKeys[vNode] = StdVector<BcType>(dofsPerUnknown);
             nodeMap_.BcKeys[vNode].Init(NOBC);
@@ -290,9 +284,6 @@ namespace CoupledField {
         for(UInt iNode = 0 ; iNode < actNodes.GetSize();iNode++){
 
           UInt vNode = actNodes[iNode];
-          // first assure, that the virtual node really belongs to the FeSpace
-          if( nodesType_.find(vNode) == nodesType_.end() ) 
-            continue;
           //TODO find the source
           //make it zero based
           if( nodeMap_.BcKeys.find(vNode) == nodeMap_.BcKeys.end()){

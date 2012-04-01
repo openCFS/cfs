@@ -96,8 +96,15 @@ namespace CoupledField {
       PtrParamNode regList = aNode->Get("regionList");
       ParamNodeList polys = polyNode->GetChildren();
       std::set<shared_ptr<ParamNode> > usedPolys;
+      std::set<std::string> usedIds; // check for multiple definitions of Ids
       for( UInt i = 0; i < polys.GetSize(); ++i ) {
         std::string id = polys[i]->Get("id")->As<std::string>();
+        // check, if id was already used
+        if( usedIds.find( id ) != usedIds.end() ) {
+          EXCEPTION("Polynomial ID '" << id << "' defined multiple times" );
+        } else {
+          usedIds.insert( id );
+        }
         if( regList->HasByVal("region", "polyId", id ) ) {
           usedPolys.insert(polys[i]);
         }
@@ -123,8 +130,10 @@ namespace CoupledField {
           PolyType actPoly = PolyTypeEnum.Parse((*it)->GetName());
           if( actPoly != polyType ) {
             EXCEPTION( "Can not mix '" << PolyTypeEnum.ToString(polyType)
-                       << "' and '" << PolyTypeEnum.ToString(actPoly) );
+                       << "' and '" << PolyTypeEnum.ToString(actPoly) 
+                       << "' spaces in one PDE.");
           }
+          ++it;
         }
       }
       
@@ -189,18 +198,19 @@ namespace CoupledField {
     //          the grid-nodes of the geometric element
     if(mapType_ == GRID){
       // get name of entitylist
+      StdVector<UInt> tempNodes;
       std::string name= ent->GetName();
-      feFunction_->GetGrid()->GetNodesByName( nodes, name );
+      feFunction_->GetGrid()->GetNodesByName( tempNodes, name );
       
-//      // careful: not all nodes of the entity list are necessarily mapped for
-//      // this space. So only select those nodes, also contained in the nodesType_ array.
-//      nodes.Clear();
-//      UInt numNodes = tempNodes.GetSize();
-//      for( UInt i = 0; i < numNodes; ++i ) {
-//        if( nodesType_.find(tempNodes[i]) != nodesType_.end() ) {
-//          nodes.Push_back( tempNodes[i] );
-//        }
-//      }
+      // careful: not all nodes of the entity list are necessarily mapped for
+      // this space. So only select those nodes, also contained in the nodesType_ array.
+      nodes.Clear();
+      UInt numNodes = tempNodes.GetSize();
+      for( UInt i = 0; i < numNodes; ++i ) {
+        if( nodesType_.find(tempNodes[i]) != nodesType_.end() ) {
+          nodes.Push_back( tempNodes[i] );
+        }
+      }
       
       
 
@@ -379,7 +389,9 @@ namespace CoupledField {
       }
       shared_ptr<EntityList> actElemList =  fctEntList[actList];
 
-      GetNodesOfEntities( curNodes, actElemList );
+      std::string name= actElemList->GetName();
+      feFunction_->GetGrid()->GetNodesByName( curNodes, name );
+      //GetNodesOfEntities( curNodes, actElemList );
       for ( UInt aNode= 0; aNode < curNodes.GetSize(); aNode++ ) {
         if(gridToVirtualNodes_.find(curNodes[aNode]) == gridToVirtualNodes_.end()){
           gridToVirtualNodes_[curNodes[aNode]].Push_back(curNodes[aNode]);

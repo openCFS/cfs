@@ -343,7 +343,7 @@ namespace CoupledField {
     while(fncIt != feFunctions_.end()){
       shared_ptr<BaseFeFunction> actFct = fncIt->second;
       shared_ptr<FeSpace> actSpace = fncIt->second->GetFeSpace();
-      //actFct->SetGrid(shared_ptr<Grid>(ptgrid_));
+      actFct->SetGrid(ptgrid_);
       actSpace->Finalize();
       actSpace->PreCalcShapeFncs();
 

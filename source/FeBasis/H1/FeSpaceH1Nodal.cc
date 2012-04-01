@@ -33,6 +33,7 @@ namespace CoupledField{
     isHierarchical_ = false;
     mapType_ = GRID;
     polyType_ = LAGRANGE;
+    order_ = 0;
 
     infoNode_ = infoNode->Get("h1Nodal");
   }
@@ -208,7 +209,7 @@ namespace CoupledField{
                                          PtrParamNode infoNode ){
 
     LOG_DBG(feSpaceH1Nodal) << "Setting region elements";
-    LOG_DBG2(feSpaceH1Nodal) << "\tegion: "
+    LOG_DBG2(feSpaceH1Nodal) << "\tregion: "
         << ptGrid_->GetRegion().ToString(region);
     LOG_DBG2(feSpaceH1Nodal) << "\tmappingType: " << mType;
     LOG_DBG2(feSpaceH1Nodal) << "\torder: " << order[0][0];
@@ -217,8 +218,18 @@ namespace CoupledField{
     if(isFinalized_){
       Exception("FeSpace::SetRegionMapping is called after finalization");
     }
-
     if(mType == GRID){
+      
+      UInt gridOrder = ptGrid_->IsQuadratic() ? 2 : 1;
+      infoNode->Get("order")->SetValue(gridOrder);
+      order_ = gridOrder;
+      // Check if a polynomial order was already set and if they match
+      if( order_ != 0 && order_ != gridOrder ) {
+        EXCEPTION( "A Lagrangian-based space can only have one specific "
+            << "polynomial order" );
+      }
+      
+      
       refElems_[region][Elem::ET_LINE2]  = new FeH1LagrangeLine1();
       refElems_[region][Elem::ET_TRIA3]  = new FeH1LagrangeTria1();
       refElems_[region][Elem::ET_TRIA6]  = new FeH1LagrangeTria2();
@@ -238,10 +249,21 @@ namespace CoupledField{
       refElems_[region][Elem::ET_PYRA14] = new FeH1LagrangePyra14();
       refElems_[region][Elem::ET_TET10]  = new FeH1LagrangeTet2();
 
-      UInt gridOrder = ptGrid_->IsQuadratic() ? 2 : 1;
-      infoNode->Get("order")->SetValue(gridOrder);
+      
 
     } else if (mType == POLYNOMIAL) {
+      
+      // Check if a polynomial order was already set and if they match
+      if( order_ != 0 && order_ != UInt(order[0][0]) ) {
+        EXCEPTION( "A Lagrangian-based space can only have one specific "
+            << "polynomial order" );
+      }
+
+      mapType_ = POLYNOMIAL;
+      infoNode->Get("order")->SetValue(order[0][0]);
+      order_ = order[0][0];
+
+
       refElems_[region][Elem::ET_LINE2]  = new FeH1LagrangeLineVar();
       refElems_[region][Elem::ET_QUAD4]  = new FeH1LagrangeQuadVar();
       refElems_[region][Elem::ET_HEXA8]  = new FeH1LagrangeHexVar();
@@ -260,8 +282,7 @@ namespace CoupledField{
         FeH1LagrangeVar * ptFe = dynamic_cast<FeH1LagrangeVar*>(i->second);
         ptFe->SetIsoOrder(order[0][0]+orderOffset_);
       }
-      mapType_ = POLYNOMIAL;
-      infoNode->Get("order")->SetValue(order[0][0]);
+    
 
       switch(order[0][0]) 
       {

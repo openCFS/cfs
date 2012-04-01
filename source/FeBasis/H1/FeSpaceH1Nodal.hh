@@ -99,14 +99,17 @@ class FeSpaceH1Nodal : public FeSpaceH1 {
     //! here it cosideres the spectral flag
     virtual void ReadCustomAttributes(PtrParamNode pNode,RegionIdType region);
 
-    //! This array stores all nodes, including the virtual ones, which are available in the feSpace
-    //StdVector<UInt> nodes;
-
     //! Set with all regions being treated as spectral
     std::set<RegionIdType> spectralRegions_;
     
     //! Map for reference elements by region
     std::map< RegionIdType, std::map<Elem::FEType, FeH1* > > refElems_;
+    
+    //! Order of the space
+ 
+    //! As the Lagrange shape functions have to be continuous, we only 
+    //! allow one specific order of the shape functions. 
+    UInt order_;
 };
 }
 #endif //

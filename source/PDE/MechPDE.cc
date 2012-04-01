@@ -605,11 +605,13 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
 
     //Copy info for velocity
     vFct->SetResultInfo(velInfo);
+    vFct->SetGrid(ptgrid_);
     vFct->SetFeSpace(dispFe->GetFeSpace());
     vFct->SetFctId(dispFe->GetFctId());
     vFct->Finalize();
 
     aFct->SetResultInfo(accelInfo);
+    aFct->SetGrid(ptgrid_);
     aFct->SetFeSpace(dispFe->GetFeSpace());
     aFct->SetFctId(dispFe->GetFctId());
     aFct->Finalize();
