@@ -402,7 +402,7 @@ SingleVector* ErsatzMaterial::Solution::Read(StorageType st, StdPDE* pde, Applic
 
       // get access to solution
       BaseSystem* bs = em_->assemble_->GetAlgSys();
-      SingleVector** tmp; // tmp is ** Vec, *tmp is *Vec = raw/rhs/select, **tmp is Vec
+      SingleVector** tmp = NULL; // tmp is ** Vec, *tmp is *Vec = raw/rhs/select, **tmp is Vec
       switch(st){
       case RAW_VECTOR:
         tmp = &raw; break;
