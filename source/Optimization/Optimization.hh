@@ -258,6 +258,9 @@ namespace CoupledField
          * @param integrator there is no nice enum yet :( e.g. linElastInt, MechInt, ... */
         static BaseForm* GetForm(RegionIdType regionId, StdPDE* pde1, StdPDE* pde2, const std::string& integrator, bool throw_exception = true, Global::ComplexPart entryType = (Global::ComplexPart) 4711);
 
+        /** optimizer type */
+        Optimizer GetOptimizerType() const { return optimizer_; }
+
         /** The order of the pdes is not defined, Therefore we use the map
          * @see ToApp()
          * @see ToPDE() */

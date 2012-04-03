@@ -2098,7 +2098,7 @@ double Function::Local::Identifier::CalcParamPSPosDef(int neigh_idx, bool deriva
          }
          else
          {
-           switch(neigh_idx)
+           switch(GetElement(neigh_idx)->GetType())
            {
              case DesignElement::TENSOR11: ret = (e22-v)*(e33-v) - e23*e23; break;
              case DesignElement::TENSOR22: ret = (e11-v)*(e33-v) - e13*e13; break;

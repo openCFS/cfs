@@ -126,7 +126,7 @@ int AuxDesign::WriteDesignToExtern(double* space_out, bool scale) const
 
 void AuxDesign::WriteGradientToExtern(StdVector<double>& out, DesignElement::ValueSpecifier vs, DesignElement::Access access, Condition* g, bool scaling) const
 {
-  assert(aux_design_.GetSize() + DesignSpace::GetNumberOfVariables() <= out.window.GetSize()); // out window can be ĺarger for snopt!
+  LOG_DBG(aux_des) << "WGTE: ad=" << aux_design_.GetSize() << " DS:GNOV=" << DesignSpace::GetNumberOfVariables() << " ows=" << out.window.GetSize();
 
   if(alsomatopt_)
   {
@@ -141,7 +141,9 @@ void AuxDesign::WriteGradientToExtern(StdVector<double>& out, DesignElement::Val
     out.window.Set(out.window.GetStart(), out.window.GetSize() - aux_design_.GetSize());
 
     if(g != NULL && g->HasDenseJacobian())
+    {
       DesignSpace::WriteDenseGradientToExtern(out, vs, access, g, scaling);
+    }
     if(g == NULL && !HasSlackVariable()) // the slack has no simp gradients!
       DesignSpace::WriteSparseGradientToExtern(out, vs, access, g, scaling);
 
@@ -156,9 +158,10 @@ void AuxDesign::WriteGradientToExtern(StdVector<double>& out, DesignElement::Val
 
 void AuxDesign::WriteAuxGradientToExtern(StdVector<double>& out, Condition* g, bool scale) const
 {
-  unsigned int base = out.window.GetStart();
-  if(g != NULL) base += DesignSpace::GetNumberOfVariables();
-  else base += (HasSlackVariable() ? 0 : DesignSpace::GetNumberOfVariables());
+  unsigned int base = out.window.GetStart()  + out.window.GetSize() - aux_design_.GetSize();
+
+  LOG_DBG(aux_des) << "WAGTE: g=" << (g == NULL ? "null" : g->ToString()) << " ows=" << out.window.GetStart()
+                    << " HS=" << HasSlackVariable() << " base=" << base;
 
   assert(aux_design_.GetSize() <= out.window.GetSize());
   double s = scale ? scaling_ : 1.0;

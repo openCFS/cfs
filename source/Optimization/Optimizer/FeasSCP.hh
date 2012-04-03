@@ -15,6 +15,9 @@ public:
 
 	virtual ~FeasSCP();
 
+	/** overwrites SCPIP::ToInfo() to add ipopt parameters */
+	void ToInfo(PtrParamNode pn);
+
 	/** implements the communication with the feasible scp from Sonja Lehmann, called here scpip40i
 	 *  @see SCPIPBase::SolveProblem() */
 	int solve_problem(bool fromWarmstart);
@@ -35,6 +38,12 @@ private:
 
   /** Array of constraints which have to be active in each iteration. Is m_setact in ScpSolver. */
   StdVector<int> setact;
+
+  /** Array of ipopt 2.3 subsolver option values */
+  StdVector<double> ipopt_args;
+
+  /** This contains the ipopt 2.3 parameter names in a primitive way at every 20th position. */
+  char ipopt_cargs[200];
 };
 
 } // end of namespace

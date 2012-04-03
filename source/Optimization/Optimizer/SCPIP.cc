@@ -27,9 +27,8 @@ SCPIP::SCPIP(Optimization* optimization, PtrParamNode optimizer_pn, Optimization
 {
   LOG_TRACE(scpip) << "Initialize SCPIP";
 
-  // reduce to our actual ParamNode
-  PtrParamNode scpip_pn =  optimizer_pn->Get(Optimization::optimizer.ToString(Optimization::SCPIP_SOLVER), 
-                                             ParamNode::PASS);
+  // reduce to our actual ParamNode -> it might be FeasSCP or SCPIP!!!
+  PtrParamNode scpip_pn =  optimizer_pn->Get(Optimization::optimizer.ToString(optimization->GetOptimizerType()));
   
   // we do NOT use the SCPIPBase scaling but the one from BaseOptimizer!
   PostInitScale(1.0); // does autoscale
@@ -49,12 +48,12 @@ SCPIP::SCPIP(Optimization* optimization, PtrParamNode optimizer_pn, Optimization
 
     list = scpip_pn->GetListByVal("option", "type", "integer");
     for(unsigned int i = 0; i < list.GetSize(); i++)
-      SetIntegerValue(list[i]->Get("name")->As<std::string>(), list[i]->Get("value")->As<Integer>());
+      SetIntegerValue(list[i]->Get("name")->As<std::string>(), list[i]->Get("value")->As<int>());
 
     list = scpip_pn->GetListByVal("option", "type", "real");
     for(unsigned int i = 0; i < list.GetSize(); i++)
     {
-      SetNumericValue(list[i]->Get("name")->As<std::string>(), list[i]->Get("value")->As<Double>());
+      SetNumericValue(list[i]->Get("name")->As<std::string>(), list[i]->Get("value")->As<double>());
     }
   }
 }
@@ -67,6 +66,18 @@ void SCPIP::PostInit()
   Initialize();
 }
 
+void SCPIP::ToInfo(PtrParamNode pn)
+{
+  BaseOptimizer::ToInfo(pn);
+
+  PtrParamNode pn_ = pn->Get("icntl");
+  for(int i = 0; i < 13; i++)
+    pn_->Get("i" + lexical_cast<std::string>(i + 1))->SetValue(icntl[i]);
+
+  pn_ = pn->Get("rcntl");
+  for(int i = 0; i < 7; i++)
+    pn_->Get("r" + lexical_cast<std::string>(i + 1))->SetValue(rcntl[i]);
+}
 
 void SCPIP::SolveProblem()
 {

@@ -5,6 +5,8 @@
 #include "DataInOut/Logging/cfslog.hh"
 #include "DataInOut/Logging/log.hpp"
 
+#include <boost/algorithm/string.hpp>
+#include <cstring>
 #include <time.h>
 
 
@@ -20,12 +22,43 @@ using namespace CoupledField;
 // constructor
 FeasSCP::FeasSCP(Optimization* opt, PtrParamNode pn, Optimization::Optimizer type) : SCPIP(opt, pn, type)
 {
+  // handle the ipopt options simple, we might remove it anyway soon when using the C++ Ipopt!
+  for(int i = 0; i < 200; i++)
+    ipopt_cargs[i] = ' ';
 
+  // set the ipopt subsolver parameters
+  ParamNodeList ops = pn->Has("feasSCP") ? pn->Get("feasSCP")->GetList("ipopt_option") : ParamNodeList();
+  ipopt_args.Resize(std::max((int) ops.GetSize(), 1), 0.0); // minimum size to have a valid pointer!
+
+  for(unsigned int i = 0; i < ops.GetSize(); i++)
+  {
+    ipopt_args[i] = ops[i]->Get("value")->As<double>();
+    std::string name = ops[i]->Get("name")->As<std::string>();
+    assert(ops.GetSize() <= 9);
+    // in the fortran file we extract the names and trim them as it is non-trivial
+    // to pass an array of c-strings to fortran :(
+    strncpy(ipopt_cargs + i * 20, name.c_str(), name.length()); // yes, we can do pointer arithmetic :)
+  }
 }
 
 FeasSCP::~FeasSCP()
 {
 
+}
+
+void FeasSCP::ToInfo(PtrParamNode pn)
+{
+  SCPIP::ToInfo(pn);
+  for(unsigned int i = 0; i < ipopt_args.GetSize(); i++)
+  {
+    PtrParamNode pn_ = pn->Get("ipopt", ParamNode::APPEND);
+    char full[] = "                    "; // 20 characters + tailing NULL
+    strncpy(full, ipopt_cargs + 20 * i, 20);
+    std::string name(full);
+    boost::algorithm::trim(name);
+    pn_->Get("name")->SetValue(name);
+    pn_->Get("value")->SetValue(ipopt_args[i]);
+  }
 }
 
 void FeasSCP::AllocateProblem()
@@ -48,9 +81,7 @@ void FeasSCP::AllocateProblem()
   // new stuff for scpip40i
 
   linear.Resize(iemax);
-  linear.Init(1);
-
-
+  linear.Init(0);
 
   // current number of constraints
   // remove inequality constraints from mie, add to mf. iemax
@@ -127,6 +158,7 @@ int FeasSCP::solve_problem(bool fromWarmstart)
     // this might be dynamic!
     int spiwdim = spiw.GetSize();
     int spdwdim = spdw.GetSize();
+    int ipopt_nargs = ipopt_args.GetSize();
 
     LOG_DBG3(feas_scp) << "sp1: n = " << n; // 1
     LOG_DBG3(feas_scp) << "sp1: mie = " << mie; // 2
@@ -182,10 +214,6 @@ int FeasSCP::solve_problem(bool fromWarmstart)
     LOG_DBG3(feas_scp) << "sp1: lact=" << lact; // 52
     LOG_DBG3(feas_scp) << "sp1: setact = " << setact.ToString(); // 53
 
-StdVector<double> killme_d;
-killme_d.Resize(5, 0.0);
-StdVector<int> killme_i;
-killme_i.Resize(5, 0.0);
 
     // int nEqMax = 1;
     scpip40i_(&n,                      // 1
@@ -240,7 +268,10 @@ killme_i.Resize(5, 0.0);
               linear.GetPointer(),     // 50
               &mf,                     // 51
               &lact,                   // 52
-              setact.GetPointer());    // 53
+              setact.GetPointer(),     // 53
+              &ipopt_nargs,            // 54
+              ipopt_args.GetPointer(), // 55
+              ipopt_cargs);            // 56
 
     LOG_TRACE(feas_scp) << "scpip30 returns: ierr=" << ierr << " info[20-1]=" << info[20-1];
 
@@ -290,6 +321,7 @@ killme_i.Resize(5, 0.0);
 
   return ierr;
 }
+
 
 
 

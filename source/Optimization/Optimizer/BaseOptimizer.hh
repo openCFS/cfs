@@ -50,11 +50,15 @@ namespace CoupledField
      * specific data. Shall match LogFileHeader().Don't add a new-line here!! */
     virtual void LogFileLine(std::ofstream* out, PtrParamNode iteration);
     
+    /** optionally adds some general information after initialization. */
+    virtual void ToInfo(PtrParamNode pn) { };
+
     /* snopt needs separated evalutations for the linear and nonlinear constraint gradients
      * all other optimizers always need everything */
     typedef enum { ALL, LINEAR, NONLINEAR } GradientType;
 
   protected:
+
 
     /** This is the specific SolveProblem() implementation. */
     virtual void SolveProblem() = 0;
@@ -89,18 +93,13 @@ namespace CoupledField
     void GetBounds(int n, double* x_l, double* x_u, int m, double* g_l, double* g_u);
     
     /** Return the infinty value (here for ipopt) */
-    virtual double GetInfBound() const
-    {
-      return 1e19;
-    }
+    virtual double GetInfBound() const { return 1e19; }
     
     /** If the actual optimizer is able to handle active sets return here the total number of active
      * constraints (including equality constraints which usually always active).
      * @return < 0 does not implement active sets, >= 0 the current active set */
-    virtual int GetCurrenActiveSetSize() const
-    {
-      return -1;
-    }
+    virtual int GetCurrenActiveSetSize() const { return -1; }
+
 
     /** Combines a design_in with an objective */
     struct DesignMemory
@@ -170,7 +169,29 @@ namespace CoupledField
       
       BaseOptimizer* base_;
     };
-    
+
+    /** some optimizers allow gradient reodering as required for FeasSCP. CFS orders by design type */
+    typedef enum { BY_DESIGN, BY_ELEMENT } Order;
+
+    /** @see order_map.  */
+    void SetupOrderMap(Order order);
+
+    /** applies order_map to the design and the design bounds
+     * @param reverse mean to transform the optimizer design back to cfs design order */
+    void ReorderDesign(int n, double* x, bool reverse);
+
+    Enum<Order> order;
+
+    /** Do we need to reoder the gradients (BY_DESIGN means no) */
+    Order order_;
+
+    /** DesignSpace is design ordered (all elements for design 1, all elements for design 2, ...).
+     * For FeasSCP with feasibility constraints we assume element ordering.
+     * This provides the 0-based mapping.
+     * In case of by_design we simply map 0-based identity!
+     * @see SetupOrderMap(); */
+    StdVector<int> order_map;
+
     Optimization* optimization;
 
     /** out type */

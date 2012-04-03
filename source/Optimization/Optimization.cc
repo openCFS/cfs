@@ -567,6 +567,7 @@ void Optimization::SolveProblem()
   try
   {
     baseOptimizer_->SolveOptimizationProblem();
+    baseOptimizer_->ToInfo(optInfoNode->Get(ParamNode::HEADER)->Get(optimizer.ToString(optimizer_)));
   }
   catch(Exception& ex)
   {

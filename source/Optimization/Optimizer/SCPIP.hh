@@ -27,6 +27,9 @@ class Optimization;
       /** overwrites BaseOptimizer::PostInit() */
       void PostInit();
 
+      /** overwrites BaseOptimizer::ToInfo() */
+      virtual void ToInfo(PtrParamNode pn);
+
     protected:
 
       /** Solves the problem. All stuff, including evaluations of the state problem is done

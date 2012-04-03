@@ -42,6 +42,8 @@ BaseOptimizer::Scale::Scale(BaseOptimizer* base, PtrParamNode autoscale, double 
    autoscale_(false),
    base_(base)
 {
+
+
   // the vectors are zero size by default!
   if(autoscale != NULL && !no_autoscale)
   {
@@ -194,6 +196,11 @@ BaseOptimizer::BaseOptimizer(Optimization* opt, PtrParamNode pn, Optimization::O
   design_(DesignMemory(-1, 0.0)),
   optimizer_pn_(pn)
 {
+  order_ = BY_DESIGN; // the cfs default value. Eventually overwritten by snopt and scpip and feasSCP
+
+  order.SetName("BaseOptimizer::Order");
+  order.Add(BY_DESIGN, "by_design");
+  order.Add(BY_ELEMENT, "by_element");
 
   info_->Get(ParamNode::SUMMARY)->Get("timer")->SetValue(this->timer_ );
 }
@@ -274,6 +281,25 @@ void BaseOptimizer::LogFileLine(std::ofstream* out, PtrParamNode iteration)
   }
 
 }
+
+void BaseOptimizer::SetupOrderMap(Order order)
+{
+  if(!order_map.IsEmpty()) return;
+
+  // we have to handle the slackvariable!
+  const DesignSpace* space = optimization->GetDesign();
+
+  order_map.Reserve(space->GetNumberOfVariables());
+  assert(space->GetNumberOfVariables() == space->elements * space->design.GetSize());
+
+  // cfs has design as outer loop, we need design as outer loop
+  for(unsigned int d = 0; d < space->design.GetSize(); d++)
+    for(unsigned int e = 0; e < space->elements; e++)
+      order_map.Push_back(d + (space->design.GetSize() * e));
+
+  LOG_DBG3(optimizer) << "SDEO: -> " << order_map.ToString();
+}
+
 
 double BaseOptimizer::EvalObjective(int n, const double* x, bool cfs_scale)
 {
@@ -455,6 +481,8 @@ int BaseOptimizer::EvalGradConstraints(Condition* g, int start, bool cfs_scale,
   int nnz(0); 
   values.window.Set(start, nnz);
   
+  LOG_DBG(optimizer) << "EGC g=" << g->ToString(NULL) << " start=" << start << " gt=" << grtype << " nnz=" << g->GetSparsityPattern().GetSize();
+
   if(grtype == ALL || (grtype == LINEAR && g->IsLinear()) || (grtype == NONLINEAR && !g->IsLinear()))
   {
     nnz = g->GetSparsityPattern().GetSize();
@@ -509,6 +537,19 @@ void BaseOptimizer::EvalGradConstraints(int n, const double* x, int m, int nentr
   assert(start == nentries);
 
   timer_->Start();
+}
+
+void BaseOptimizer::ReorderDesign(int n, double* x, bool reverse)
+{
+  assert((int) order_map.GetSize() == n);
+
+  StdVector<double> tmp(n);
+
+  for(int i = 0; i < n; i++)
+    reverse ? tmp[i] = x[order_map[i]] : tmp[order_map[i]] = x[i];
+
+  for(int i = 0; i < n; i++)
+    x[i] = tmp[i];
 }
 
 void BaseOptimizer::GetBounds(int n, double* x_l, double* x_u, int m, double* g_l, double* g_u)

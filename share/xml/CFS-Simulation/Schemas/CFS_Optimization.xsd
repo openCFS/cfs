@@ -442,6 +442,9 @@
             <!-- we made scpip the look like ipopt -->
             <xsd:element name="scpip" minOccurs="0" type="DT_SCPIP"/>
 
+            <!-- Sonja Lehmann's feasible scp solver with ipopt subproblem parameters -->
+            <xsd:element name="feasSCP" minOccurs="0" type="DT_FEAS_SCP"/>
+
             <!-- we made snopt the look like ipopt -->
             <xsd:element name="snopt" minOccurs="0">
               <xsd:complexType>
@@ -493,6 +496,14 @@
                 <xsd:attribute name="fromWarmstart" type="xsd:boolean" default="true"/>
                 <!-- output can be missing, a file name, 'commandline' or 'silent' for no fileoutput at all -->
                 <xsd:attribute name="output" use="optional" type="xsd:string"/>
+                <xsd:attribute name="order" use="optional" default="by_design">
+                  <xsd:simpleType>
+                    <xsd:restriction base="xsd:token">
+                      <xsd:enumeration value="by_design"/>
+                      <xsd:enumeration value="by_element"/>
+                    </xsd:restriction>
+                  </xsd:simpleType>
+                </xsd:attribute>
               </xsd:complexType>
             </xsd:element>
 
@@ -553,44 +564,44 @@
                   <xsd:element name="levelSet" minOccurs="0" maxOccurs="1">
                     <xsd:complexType>
                       <xsd:sequence>
-                  <xsd:element name="actionList" minOccurs="0" maxOccurs="1">
-                    <xsd:complexType>
-                      <xsd:sequence>
-                        <xsd:element name="action" minOccurs="0" maxOccurs="unbounded">
+                        <xsd:element name="actionList" minOccurs="0" maxOccurs="1">
                           <xsd:complexType>
-                            <xsd:attribute name="type" use="required">
-                              <xsd:simpleType>
-                                <xsd:restriction base="xsd:token">
-                                  <xsd:enumeration value="signedDistanceField"/>
-                                  <xsd:enumeration value="shapeStep"/>
-                                  <xsd:enumeration value="trivialHole"/>
-                                </xsd:restriction>
-                              </xsd:simpleType>
-                            </xsd:attribute>
-                            <!-- how often to exectue -->
-                            <xsd:attribute name="modulus" type="xsd:positiveInteger" default="1" use="optional"/>
-                            <!-- how oftern to perfom this actions -->
-                            <xsd:attribute name="perform" type="xsd:nonNegativeInteger" default="1" use="optional"/>
-                            <!-- should we perform the action in the first iteration -->
-                            <xsd:attribute name="first" type="xsd:boolean" default="true" use="optional"/>
+                            <xsd:sequence>
+                              <xsd:element name="action" minOccurs="0" maxOccurs="unbounded">
+                                <xsd:complexType>
+                                  <xsd:attribute name="type" use="required">
+                                    <xsd:simpleType>
+                                      <xsd:restriction base="xsd:token">
+                                        <xsd:enumeration value="signedDistanceField"/>
+                                        <xsd:enumeration value="shapeStep"/>
+                                        <xsd:enumeration value="trivialHole"/>
+                                      </xsd:restriction>
+                                    </xsd:simpleType>
+                                  </xsd:attribute>
+                                  <!-- how often to exectue -->
+                                  <xsd:attribute name="modulus" type="xsd:positiveInteger" default="1" use="optional"/>
+                                  <!-- how oftern to perfom this actions -->
+                                  <xsd:attribute name="perform" type="xsd:nonNegativeInteger" default="1" use="optional"/>
+                                  <!-- should we perform the action in the first iteration -->
+                                  <xsd:attribute name="first" type="xsd:boolean" default="true" use="optional"/>
+                                </xsd:complexType>
+                              </xsd:element>
+                            </xsd:sequence>
                           </xsd:complexType>
                         </xsd:element>
-                      </xsd:sequence>
-                    </xsd:complexType>
-                  </xsd:element>
-                                    <xsd:element name="nodeList" minOccurs="0" maxOccurs="1">
-                                            <xsd:complexType>
-                                                <xsd:sequence>
-                                                    <!-- We can have several node_number childs. Each with one attribute, the node number -->
-                                                    <xsd:element name="node_number" minOccurs="0" maxOccurs="unbounded">
-                                                        <xsd:complexType>
-                                                            <!-- the value attribute is the node number -->
-                                                            <xsd:attribute name="value" use="required" type="xsd:positiveInteger" />
-                                                        </xsd:complexType>
-                                                    </xsd:element>
-                                                </xsd:sequence>
-                                            </xsd:complexType>
-                                    </xsd:element>
+                        <xsd:element name="nodeList" minOccurs="0" maxOccurs="1">
+                          <xsd:complexType>
+                            <xsd:sequence>
+                              <!-- We can have several node_number childs. Each with one attribute, the node number -->
+                              <xsd:element name="node_number" minOccurs="0" maxOccurs="unbounded">
+                                <xsd:complexType>
+                                  <!-- the value attribute is the node number -->
+                                  <xsd:attribute name="value" use="required" type="xsd:positiveInteger" />
+                                </xsd:complexType>
+                              </xsd:element>
+                            </xsd:sequence>
+                          </xsd:complexType>
+                        </xsd:element>
                       </xsd:sequence>
                       <xsd:attribute name="ls_time_step" type="xsd:float" default="0.005" use="optional"/>
                       <xsd:attribute name="ls_dump_fast_marching" type="xsd:boolean" default="false" use="optional"/>
@@ -1285,6 +1296,7 @@
       <xsd:enumeration value="only_final_convergence_analysis"/>
       <xsd:enumeration value="one_line_of_intermediate_results"/>
       <xsd:enumeration value="more_detailed_and_intermediate_results"/>
+      <xsd:enumeration value="additional_intermediate_results"/>
       <!-- for 'convergence_criteria' -->
       <xsd:enumeration value="kuhn_tucker"/>
       <xsd:enumeration value="relaxed"/>
@@ -1508,6 +1520,11 @@
                 <xsd:enumeration value="maximum_linesearch_function_calls"/>
                 <xsd:enumeration value="spstrat"/>
                 <xsd:enumeration value="linsys"/>
+                <xsd:enumeration value="asymptotes_strategy"/>
+                <xsd:enumeration value="fix_interior_point_matrix"/>
+                <!-- not officially defined but used by Sonja with value 1 -->
+                <xsd:enumeration value="icntl_8"/>
+                
                 <!-- real type -->
                 <xsd:enumeration value="max_kuhn_tucker_constraint_violation"/>
                 <xsd:enumeration value="infinity"/>
@@ -1516,6 +1533,7 @@
                 <xsd:enumeration value="relaxed_absolut_objective_change"/>
                 <xsd:enumeration value="convergence_criteria"/>
                 <xsd:enumeration value="relaxed_relative_iteration_move"/>
+                <xsd:enumeration value="max_constraint_violation"/>
               </xsd:restriction>
             </xsd:simpleType>
           </xsd:attribute>
@@ -1532,6 +1550,60 @@
     <xsd:attribute name="fromWarmstart" type="xsd:boolean" default="true"/>
   </xsd:complexType>
   
-
+  
+  
+  <!-- This extens DT_SCPIP by ipopt subsolver parameters for FeasSCP -->
+  <xsd:complexType name="DT_FEAS_SCP">
+    <xsd:complexContent>
+      <xsd:extension base="DT_SCPIP">
+        <xsd:sequence>
+          <!-- We can have many option childs. Each with three attributes -->
+          <xsd:element name="ipopt_option" minOccurs="0" maxOccurs="9">
+            <xsd:complexType>
+              <xsd:attribute name="name" use="required" >
+                <xsd:simpleType>
+                  <xsd:restriction base="xsd:token">
+                    <xsd:enumeration value="iprint"/>
+                    <xsd:enumeration value="ioutput"/>
+                    <xsd:enumeration value="ifile"/>
+                    <xsd:enumeration value="imaxiter"/>
+                    <xsd:enumeration value="dtol"/>
+                    <xsd:enumeration value="iscalerr"/>
+                    <xsd:enumeration value="dinfmaxtol"/>                
+                    <xsd:enumeration value="dcmaxtol"/>
+                    <xsd:enumeration value="imaxcpusec"/>                
+                    <xsd:enumeration value="iscale"/>
+                    <xsd:enumeration value="dscalecut"/>                
+                    <xsd:enumeration value="dfscale"/>
+                    <xsd:enumeration value="imerit"/>
+                    <xsd:enumeration value="isoc"/>
+                    <xsd:enumeration value="icnrm"/>
+                    <xsd:enumeration value="dbndfrac"/>
+                    <xsd:enumeration value="dbndpush"/>
+                    <xsd:enumeration value="dmovebounds"/>
+                    <xsd:enumeration value="dmu0"/>
+                    <xsd:enumeration value="imuinit"/>
+                    <xsd:enumeration value="dlaminitmax"/>
+                    <xsd:enumeration value="ifull"/>
+                    <xsd:enumeration value="dpivtol"/>
+                    <xsd:enumeration value="dpivtolmax"/>
+                    <xsd:enumeration value="ddepcondiag"/>
+                    <xsd:enumeration value="irefineiter"/>
+                    <xsd:enumeration value="dfillinfact"/>
+                    <xsd:enumeration value="iquasi"/>
+                    <xsd:enumeration value="iselbas"/>
+                  </xsd:restriction>
+                </xsd:simpleType>
+              </xsd:attribute>
+              <!-- the value is either double or int -->
+              <xsd:attribute name="value" use="required" type="xsd:float"/>
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:sequence>
+      </xsd:extension>        
+    </xsd:complexContent>
+    
+  </xsd:complexType>
+  
 </xsd:schema>
 
