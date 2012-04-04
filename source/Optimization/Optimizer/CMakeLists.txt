@@ -65,16 +65,34 @@ IF(USE_SCPIP)
 ENDIF(USE_SCPIP)
 
 IF(USE_FEAS_SCP)
-   SET(FEAS_SCP_LIBRARY /home/fwein/code/cfs/debug/lib64/OPENSUSE_11.4_X86_64/libscpip40i.a)
+#   SET(FEAS_SCP_LIBRARY /home/fwein/code/cfs/debug/lib64/OPENSUSE_11.4_X86_64/libscpip40i.a)
    SET(IPOPT23_LIBRARY /home/fwein/code/cfs/debug/lib64/OPENSUSE_11.4_X86_64/libipopt23.a) 
 
-   SET(COMBINED ${FEAS_SCP_LIBRARY}  ${IPOPT23_LIBRARY})
-   ADD_DEPENDENT_LIBRARY(feas_scp-lib "${COMBINED}" "${DEPENDS}")
+#   SET(COMBINED ${FEAS_SCP_LIBRARY}  ${IPOPT23_LIBRARY})
+#   ADD_DEPENDENT_LIBRARY(feas_scp-lib "${COMBINED}" "${DEPENDS}")
+   ADD_DEPENDENT_LIBRARY(feas_scp-lib "${IPOPT23_LIBRARY}" "${DEPENDS}")
    SET(TARGET_LL ${TARGET_LL} feas_scp-lib1)
    
    # SET(TARGET_LL ${TARGET_LL} libdmumps.a  libmpiseq.a  libmumps_common.a  libpord.a  libscp40.a ${CFS_FORTRAN_LIBS})
-   
-   SET(OPTIMIZER_SRCS ${OPTIMIZER_SRCS} FeasSCP.cc)
+   SET(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -DBUILD_VSDLL=1 -Dintpnt=1 -Doutp=1")
+
+   SET(OPTIMIZER_SRCS 
+       ${OPTIMIZER_SRCS} 
+       FeasSCP.cc 
+       CONCAVITY_GRAD-IPOPT_3x3.FOR
+       CONCAVITY_D-IPOPT_3x3.FOR
+       Func_IPOpt.F
+       scpdummy40.F              
+       SCPIPOpt40.F
+       Grad_IPOpt.F
+       Scpintpnt40.F
+       sparsecz40.F
+       Dummy_IPOpt.F
+       Hessian.F
+       Scpip40.F
+       scpblas40.F                                                        
+       sparseng.F)
+       
 ENDIF(USE_FEAS_SCP)
 
 

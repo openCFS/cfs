@@ -193,14 +193,20 @@ BaseOptimizer::BaseOptimizer(Optimization* opt, PtrParamNode pn, Optimization::O
   objective(NULL),
   restart_requested(false),
   timer_(new Timer()),
-  design_(DesignMemory(-1, 0.0)),
-  optimizer_pn_(pn)
+  design_(DesignMemory(-1, 0.0))
 {
-  order_ = BY_DESIGN; // the cfs default value. Eventually overwritten by snopt and scpip and feasSCP
+  optimizer_pn_ =  pn->Get(Optimization::optimizer.ToString(optimization->GetOptimizerType()), ParamNode::PASS);
 
   order.SetName("BaseOptimizer::Order");
   order.Add(BY_DESIGN, "by_design");
   order.Add(BY_ELEMENT, "by_element");
+
+  // snopt, scpip and feasscp
+  order_ = (optimizer_pn_ != NULL && optimizer_pn_->Has("order")) ? order.Parse(optimizer_pn_->Get("order")->As<std::string>()) : BY_DESIGN;
+  SetupOrderMap(order_);
+
+  LOG_DBG(optimizer) << "BO: optimizer_pn_=" << (optimizer_pn_ == NULL ? "null" : optimizer_pn_->GetName());
+  LOG_DBG(optimizer) << "BO: order= " << order.ToString(order_);
 
   info_->Get(ParamNode::SUMMARY)->Get("timer")->SetValue(this->timer_ );
 }

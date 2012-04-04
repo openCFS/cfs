@@ -496,14 +496,7 @@
                 <xsd:attribute name="fromWarmstart" type="xsd:boolean" default="true"/>
                 <!-- output can be missing, a file name, 'commandline' or 'silent' for no fileoutput at all -->
                 <xsd:attribute name="output" use="optional" type="xsd:string"/>
-                <xsd:attribute name="order" use="optional" default="by_design">
-                  <xsd:simpleType>
-                    <xsd:restriction base="xsd:token">
-                      <xsd:enumeration value="by_design"/>
-                      <xsd:enumeration value="by_element"/>
-                    </xsd:restriction>
-                  </xsd:simpleType>
-                </xsd:attribute>
+                <xsd:attribute name="order" use="optional" default="by_design" type="DT_opt_order"/>
               </xsd:complexType>
             </xsd:element>
 
@@ -1548,6 +1541,7 @@
       </xsd:element>
     </xsd:sequence>
     <xsd:attribute name="fromWarmstart" type="xsd:boolean" default="true"/>
+    <xsd:attribute name="order" use="optional" default="by_design" type="DT_opt_order"/>    
   </xsd:complexType>
   
   
@@ -1604,6 +1598,14 @@
     </xsd:complexContent>
     
   </xsd:complexType>
+
+  <xsd:simpleType name="DT_opt_order">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="by_design"/>
+      <xsd:enumeration value="by_element"/>
+    </xsd:restriction>
+  </xsd:simpleType>
   
+
 </xsd:schema>
 

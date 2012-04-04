@@ -87,9 +87,6 @@ SnOpt::SnOpt(Optimization* opt, PtrParamNode pn) :
   info_->Get(ParamNode::SUMMARY)->Get("snopt_timer")->SetValue(timer_ );
   info_->Get(ParamNode::SUMMARY)->Get("snopt_callback_timer")->SetValue(timer_callback_ );
   
-  order_ = order.Parse(optimizer_pn_->Get("order")->As<std::string>());
-  SetupOrderMap(order_);
-
   static_snopt = this;
   
   BaseOptimizer::PostInitScale(1.0);
@@ -115,9 +112,9 @@ void SnOpt::Init()
   // First,  sninit_ MUST be called to initialize optional parameters   
   // to their default values.                                           
   //  ==================================================================
-  cw.resize(8*mincw);
-  rw.resize(minrw);
-  iw.resize(miniw);
+  cw.Resize(8*mincw);
+  rw.Resize(minrw);
+  iw.Resize(miniw);
   sninit_(&iPrint, &iSumm, &cw[0], &mincw, &iw[0], &miniw, &rw[0], &minrw, 8*mincw);
 
   // set the file for snopt, formerly fort.1
@@ -130,17 +127,17 @@ void SnOpt::Init()
   // call after get_nlp_info!! 
   SetSnOptOptions();  
   
-  x.resize(n, 1.0); // start value
-  xlow.resize(n, -GetInfBound());
-  xupp.resize(n,  GetInfBound());
-  xmul.resize(n,  0.0);
-  xstate.resize(n, 0);
+  x.Resize(n, 1.0); // start value
+  xlow.Resize(n, -GetInfBound());
+  xupp.Resize(n,  GetInfBound());
+  xmul.Resize(n,  0.0);
+  xstate.Resize(n, 0);
 
-  F.resize(nF, 0.0);
-  Flow.resize(nF, -GetInfBound());
-  Fupp.resize(nF,  GetInfBound());
-  Fmul.resize(nF, 0.0);
-  Fstate.resize(nF, 0);
+  F.Resize(nF, 0.0);
+  Flow.Resize(nF, -GetInfBound());
+  Fupp.Resize(nF,  GetInfBound());
+  Fmul.Resize(nF, 0.0);
+  Fstate.Resize(nF, 0);
   
   // init Jacobian(s)
   initJacobians();
@@ -152,7 +149,7 @@ void SnOpt::Init()
   ReorderDesign(n, &xlow[0], false);
   ReorderDesign(n, &xupp[0], false);
 
-  //for(unsigned int i = 0; i < Flow.size(); ++i)
+  //for(unsigned int i = 0; i < Flow.GetSize(); ++i)
     //std::cout << "Flow[" << i << "] = " << Flow[i] << ", Fupp[" << i << "] = " << Fupp[i] << std::endl;
   gradhelper.Resize(std::max(n_obj_grad, nG - n_obj_grad), 0.0);
 }
@@ -217,9 +214,9 @@ void SnOpt::SolveProblem()
   {
     lenA = 0;
     nA = 0;
-    assert(A.size() == 0);
-    assert(iAfun.size() == 0);
-    assert(jAvar.size() == 0);
+    assert(A.GetSize() == 0);
+    assert(iAfun.GetSize() == 0);
+    assert(jAvar.GetSize() == 0);
   }
   
   timer_->Start();
@@ -491,7 +488,7 @@ bool SnOpt::eval_g(int n, const double* x, int m, double* g)
 
 bool SnOpt::eval_jac_g(int n, const double* x, int m, int nele_jac, double* pG)
 {
-  LOG_TRACE(snopt) << "eval_jac_g: n=" << n << ", m=" << m << ", nele_jac=" << nele_jac;
+  LOG_TRACE(snopt) << "ejg: n=" << n << ", m=" << m << ", nele_jac=" << nele_jac;
   assert((int) gradhelper.GetSize() >= nele_jac);
 
   // the gradients are dense in snopt
@@ -502,13 +499,16 @@ bool SnOpt::eval_jac_g(int n, const double* x, int m, int nele_jac, double* pG)
  
   EvalGradConstraints(n, x, nc, nele_jac, true, gradhelper, BaseOptimizer::NONLINEAR);
   
+  assert((unsigned int) nele_jac  + n_obj_grad == iGfun.GetSize());
+  assert((unsigned int) nele_jac  + n_obj_grad == jGvar.GetSize());
+
   for(int i = 0; i < nele_jac; i++)
   {
     // LOG_DBG3(snopt) <<   "old grad_G[" << i << "] = " << pG[i] << ", new grad_G[" << i << "] = " << gradhelper[i];
     pG[i] = gradhelper[i];
-    LOG_DBG3(snopt) <<   "grad_g[" << i << "] = " << pG[i];
+    LOG_DBG3(snopt) <<   "ejg: i=" << i << " iGfun[" << i + n_obj_grad << "]=" << iGfun[i + n_obj_grad]
+                                        << " jGvar[" << i + n_obj_grad << "]=" << jGvar[i + n_obj_grad] << " -> " << pG[i];
   }
-
   return true;
 }
 
@@ -541,7 +541,7 @@ void SnOpt::AdjustWorkArrayMemory()
   if(lencw < mincw)
   {
     lencw = static_cast<int>(factor * static_cast<double>(mincw));
-    cw.resize(8*lencw);
+    cw.Resize(8*lencw);
     snseti_("Total character workspace", &lencw, &iPrt, &iSum, &INFO,
             &cw[0], &tmpcw, &iw[0], &tmpiw, &rw[0], &tmprw, 25, 8*lencw);
     LOG_TRACE(snopt) << "new value: lencw = " << lencw << ", INFO = " << INFO;
@@ -550,7 +550,7 @@ void SnOpt::AdjustWorkArrayMemory()
   if(leniw < miniw)
   {
     leniw = static_cast<int>(factor * static_cast<double>(miniw));
-    iw.resize(leniw);
+    iw.Resize(leniw);
     snseti_("Total integer workspace", &leniw, &iPrt, &iSum, &INFO,
             &cw[0], &tmpcw, &iw[0], &tmpiw, &rw[0], &tmprw, 23, 8*lencw);
     LOG_TRACE(snopt) << "new value: leniw = " << leniw << ", INFO = " << INFO;
@@ -559,7 +559,7 @@ void SnOpt::AdjustWorkArrayMemory()
   if(lenrw < minrw)
   {
     lenrw = static_cast<int>(factor * static_cast<double>(minrw));
-    rw.resize(lenrw);
+    rw.Resize(lenrw);
     snseti_("Total real workspace", &lenrw, &iPrt, &iSum, &INFO,
             &cw[0], &tmpcw, &iw[0], &tmpiw, &rw[0], &tmprw, 20, 8*lencw);
     LOG_TRACE(snopt) << "new value: lenrw = " << lenrw << ", INFO = " << INFO;
@@ -627,13 +627,13 @@ void SnOpt::initJacobians()
   LOG_TRACE(snopt) << "initJacobians()";
   
   // create Jacobian
-  G.resize(1, 0.0); // FIXME: G is not even used by snopt...
-  iGfun.reserve(nG);
-  jGvar.reserve(nG);
+  G.Resize(1, 0.0); // FIXME: G is not even used by snopt...
+  iGfun.Reserve(nG);
+  jGvar.Reserve(nG);
 
-  A.resize(nA, 0.0);
-  iAfun.reserve(nA);
-  jAvar.reserve(nA);
+  A.Resize(nA, 0.0);
+  iAfun.Reserve(nA);
+  jAvar.Reserve(nA);
 
   // it is very important that we use the same row counter for all the
   // constraints, linear and nonlinear!!!
@@ -652,15 +652,15 @@ void SnOpt::initJacobians()
 
   for(unsigned int e = 0; e < pattern.GetSize(); e++)
   {
-    iGfun.push_back(cstr);
-    jGvar.push_back(order_map[pattern[e]] + 1);
+    iGfun.Push_back(cstr);
+    jGvar.Push_back(order_map[pattern[e]] + 1);
     
     LOG_DBG3(snopt) << "cost function" << "; iGfun[" << index << "] = " << iGfun[index] << ", jGvar[" << index << "] = " << jGvar[index];
     ++index;
   }
   ++cstr;
 
-  LOG_DBG3(snopt) << "Flow.size() = " << Flow.size() << ", Fupp.size() = " << Fupp.size();
+  LOG_DBG3(snopt) << "Flow.GetSize() = " << Flow.GetSize() << ", Fupp.GetSize() = " << Fupp.GetSize();
   
   for(int c = 0, nc = optimization->constraints.view->GetNumberOfActiveConstraints(); c < nc; c++)
   {
@@ -673,8 +673,8 @@ void SnOpt::initJacobians()
     {
       for(unsigned int e = 0; e < patternsize; ++e)
       {
-        iAfun.push_back(cstr);
-        jAvar.push_back(order_map[pattern[e]] + 1);
+        iAfun.Push_back(cstr);
+        jAvar.Push_back(order_map[pattern[e]] + 1);
 
         LOG_DBG3(snopt) << "IJ:lin g = " << g->ToString() << "; iAfun[" << indexlin << "] = " << iAfun[indexlin]
                         << " pattern=" << pattern[e] << ", jAvar[" << indexlin << "] = " << jAvar[indexlin];
@@ -687,8 +687,8 @@ void SnOpt::initJacobians()
       // up to now only dense so we do not need anything
       for(unsigned int e = 0; e < patternsize; ++e)
       {
-        iGfun.push_back(cstr);
-        jGvar.push_back(order_map[pattern[e]] + 1);
+        iGfun.Push_back(cstr);
+        jGvar.Push_back(order_map[pattern[e]] + 1);
         
         LOG_DBG3(snopt) << "IJ:nonlin g = " << g->ToString() << "; iGfun[" << index << "] = " << iGfun[index]
                         << " pattern=" << pattern[e] << ", jGvar[" << index << "] = " << jGvar[index];

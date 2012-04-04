@@ -46,6 +46,7 @@ FeasSCP::~FeasSCP()
 
 }
 
+
 void FeasSCP::ToInfo(PtrParamNode pn)
 {
   SCPIP::ToInfo(pn);
@@ -65,7 +66,44 @@ void FeasSCP::AllocateProblem()
 {
   SCPIPBase::AllocateProblem();
 
-  mf = 0; // FIXME correct this later!
+  // ie_idx is not set yet!
+  assert(m == optimization->constraints.view->GetNumberOfActiveConstraints());
+  linear.Reserve(m); // better waste some space than expensive push backs
+  mf_idx.Reserve(m);
+  for(int i = 0; i < m; i++)
+  {
+    Condition* g = optimization->constraints.view->Get(i);
+    if(g->GetBound() != Condition::EQUAL)
+    {
+      linear.Push_back(g->IsLinear() ? 0 : 1);
+
+      if(!g->IsFeasibilityConstraint() && !mf_idx.IsEmpty())
+        throw Exception("Feasibility constraints need to be ordered at the end");
+
+      if(g->IsFeasibilityConstraint())
+        mf_idx.Push_back(i);
+    }
+  }
+  optimization->constraints.view->Done(); // mandatory after traversing the view
+
+  // now we now mf
+  mf = mf_idx.GetSize();
+  // correct mie
+  assert(mie >= mf);
+  mie -= mf;
+
+  if(mf > 0 && order_ != BY_ELEMENT)
+    throw Exception("For feasibility constraints feasSCP/order needs to 'by_element'");
+
+  LOG_DBG2(feas_scp) << "PI: linear=" << linear.ToString();
+  LOG_DBG2(feas_scp) << "PI: mf_idx=" << mf_idx.ToString();
+
+  // overwrite the default value to fixed memory allocation - suggested by Sonja
+  // enablubg this stuff valgrind reports problems!
+  // icntl[13-1] = 1;
+  // so we need to provide a lot of memory
+  // spiw.Resize(2*n+5*iemax+6);
+  // spdw.Resize(iemax * iemax);
 
   // resize the stuff according to ScpSolver.cpp
   ielpar = n * mie + (1 + mf) * 9;
@@ -78,10 +116,6 @@ void FeasSCP::AllocateProblem()
   i_scp.Resize(7*n+8*mie+3*ielpar+12+100*mie, 0);
   i_sub.Resize(2*n+3*iemax+ielpar+2+100, 0);
 
-  // new stuff for scpip40i
-
-  linear.Resize(iemax);
-  linear.Init(0);
 
   // current number of constraints
   // remove inequality constraints from mie, add to mf. iemax
@@ -137,8 +171,7 @@ int FeasSCP::solve_problem(bool fromWarmstart)
     // scale the shifts
     for(int i = 0; i < m; i++)
     {
-      LOG_DBG(feas_scp) << " shift[" << i << "].shift -> " << shift[i].shift << " * "
-                          << g_scaling[i] << " = " << shift[i].shift * g_scaling[i];
+      LOG_DBG(feas_scp) << "sp: shift[" << i << "].shift -> " << shift[i].shift << " * " << g_scaling[i] << " = " << shift[i].shift * g_scaling[i];
       shift[i].shift *= g_scaling[i];
     }
   }
@@ -146,9 +179,10 @@ int FeasSCP::solve_problem(bool fromWarmstart)
   // this confirms SCPIPBase based configuration against ScpSolver configuration
   // assert(ielpar >= n * 8); // m_ielpar = m_nvars*8; //+m_nvars*2*m_nvars + 20;
   // assert(iemax >= 3 * m);  // m_iemax = 3*m_nie;
-  assert(rdim >= 44 * n + 16 * iemax + 2 * ielpar + 20 + 2 * m + 100 * m); // m_rdim = 44*m_nvars+16*m_iemax+2*m_ielpar+20+2*m_nie +100*m_nie
+  LOG_DBG2(feas_scp) << "sp: rdim=" << rdim << " n=" << n << " iemax=" << iemax << " ielpar=" << ielpar << " m=" << m << " mie=" << mie << " mf=" << mf;
+  assert(rdim >= 44 * n + 16 * iemax + 2 * ielpar + 20 + 2 * mie + 100 * mie); // m_rdim = 44*m_nvars+16*m_iemax+2*m_ielpar+20+2*m_nie +100*m_nie
   assert(rsubdim >= 22 * n + 41 * iemax + 2 * ielpar + 28 + 100); // m_rsubdim = 22*m_nvars+41*m_iemax+2*m_ielpar+28 +100;
-  assert(idim >= 7 * n + 8 * m + 3 * ielpar + 12 + 100 * m); // m_idim = 7*m_nvars+8*m_nie+3*m_ielpar+12+100*m_nie
+  assert(idim >= 7 * n + 8 * mie + 3 * ielpar + 12 + 100 * mie); // m_idim = 7*m_nvars+8*m_nie+3*m_ielpar+12+100*m_nie
   assert(isubdim >= 2 * n + 3 * iemax + ielpar + 2 + 100); // m_isubdim = 2*m_nvars+3*m_iemax+m_ielpar+2+100
 
   // double eps = GetLowerBoundsMVars(0);
@@ -159,6 +193,12 @@ int FeasSCP::solve_problem(bool fromWarmstart)
     int spiwdim = spiw.GetSize();
     int spdwdim = spdw.GetSize();
     int ipopt_nargs = ipopt_args.GetSize();
+
+
+    assert(iern.GetSize() == iecn.GetSize());
+    assert(iern.GetSize() == iederv.GetSize());
+    for(unsigned int i = 0; i < iern.GetSize(); i++)
+      LOG_DBG3(feas_scp) << " sp: iern[" << i << "]=" << iern[i] << "\tiecn[" << i << "]=" << iecn[i] << "\tiederv[" << i << "]=" << iederv[i];
 
     LOG_DBG3(feas_scp) << "sp1: n = " << n; // 1
     LOG_DBG3(feas_scp) << "sp1: mie = " << mie; // 2

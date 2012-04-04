@@ -27,8 +27,11 @@ private:
 	 * @see SCPIPBase::AllocateProblem() */
 	void AllocateProblem();
 
-	  /** identifies linear constraints. 0 for linear, 1 else. Is m_linear in ScpSolver.*/
+	/** identifies linear constraints. 0 for linear, 1 else. Is m_linear in ScpSolver.*/
   StdVector<int> linear;
+
+  /** virtual cfs constraint indices of feasibility constraints */
+  StdVector<int> mf_idx;
 
   /** Number of feasibility constraints (including linear). Is m_linear in ScpSolver. */
   int mf;

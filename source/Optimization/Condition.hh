@@ -77,6 +77,9 @@ namespace CoupledField
        /** Little helper to check if the bounds are violated (up to an eps) */
        bool IsFeasible() const;
 
+       /** Is this a feasibility constraint for FeasSCP */
+       bool IsFeasibilityConstraint() const;
+
        /** Is this a linear condition? E.g. SnOpt can handle them more efficiently */
        bool IsLinear() const { return linear_; }
 

@@ -94,6 +94,12 @@ class Optimization;
       /** This method is called every time SCPIP returns. It is more common
        * to IPOPT when next_iter is true! */
       bool intermediate_callback(int iter, bool next_iter);
+
+      /** This are the virtual constraint indices of inequality constraints */
+      StdVector<unsigned int> ie_idx;
+
+      /** This are the virtual constraint indices of equality constraints */
+      StdVector<unsigned int> eq_idx;
   };
 
 } // end of namespace

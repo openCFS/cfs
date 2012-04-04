@@ -715,6 +715,20 @@ bool Condition::IsFeasible() const
   return false;
 }
 
+bool Condition::IsFeasibilityConstraint() const
+{
+  switch(type_)
+  {
+  case FMO_POS_DEF_MINOR_1:
+  case FMO_POS_DEF_MINOR_2:
+  case FMO_POS_DEF_MINOR_3:
+    return true;
+  default:
+    return false;
+  }
+}
+
+
 std::string Condition::ToString(MultipleExcitation* me) const
 {
   std::ostringstream os;

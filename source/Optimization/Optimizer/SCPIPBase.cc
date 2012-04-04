@@ -108,7 +108,7 @@ void SCPIPBase::SetDefaultParameters()
   icntl[6-1] = 0;   // convergence check ->  KT
   icntl[11-1] = 0;  // warmstart
   icntl[12-1] = 0;  // ip matrix not fixed
-  icntl[13-1] = 1;  // dynamic allocation
+  icntl[13-1] = 1;  // dynamic allocation - overwritten in FeasSCP
 
   rcntl[1-1] = 1.e-7; // final accuray of costraint violation
   rcntl[2-1] = 1.e30; // infinity

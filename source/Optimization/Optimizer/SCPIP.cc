@@ -165,7 +165,12 @@ void SCPIP::SetConstraintSparsityPattern()
   int ie_nnz = 0; // counter
   int eq_nnz = 0;
 
-  for(int c = 0, nc = optimization->constraints.view->GetNumberOfActiveConstraints(); c < nc; c++)
+  assert(m == optimization->constraints.view->GetNumberOfActiveConstraints());
+
+  ie_idx.Reserve(m);
+  eq_idx.Reserve(m);
+
+  for(int c = 0; c < m; c++)
   {
     Condition* g = optimization->constraints.view->Get(c);
     if(g->GetBound() != Condition::EQUAL)
@@ -176,24 +181,26 @@ void SCPIP::SetConstraintSparsityPattern()
         StdVector<unsigned int>& pattern = g->GetSparsityPattern();
         for(unsigned int e = 0; e < pattern.GetSize(); e++)
         {
-          iern[ie_nnz] = pattern[e] + 1; // fortran!
+          iern[ie_nnz] = order_map[pattern[e]] + 1; // fortran!
           iecn[ie_nnz] = ie +1; // fortran
           ie_nnz++;
         }
         ie_active++;
       }
       ie++;
+      ie_idx.Push_back(c);
     }
     else // equality constraint
     {
       StdVector<unsigned int>& pattern = g->GetSparsityPattern();
       for(unsigned int e = 0; e < pattern.GetSize(); e++)
       {
-        eqrn[eq_nnz] = pattern[e] + 1; // fortran!
+        eqrn[eq_nnz] = order_map[pattern[e]] + 1; // fortran!
         eqcn[eq_nnz] = eq +1; // fortran
         eq_nnz++;
       }
       eq++;
+      eq_idx.Push_back(c);
     }
   }
 
@@ -241,6 +248,10 @@ bool SCPIP::get_bounds_info(int n, double* x_l, double* x_u,
                             int m, double* g_l, double* g_u)
 {
   GetBounds(n, x_l, x_u, m, g_l, g_u);
+
+  ReorderDesign(n, x_l, false);
+  ReorderDesign(n, x_u, false);
+
   return true;
 }
 
@@ -249,21 +260,30 @@ bool SCPIP::get_starting_point(int n, double* x)
   // we initialize x in bounds, in the upper right quadrant
   optimization->GetDesign()->WriteDesignToExtern(x);
 
+  ReorderDesign(n, x, false);
+
   return true;
 }
 
-bool SCPIP::eval_f(int n, const double* x, double& obj_value)
+bool SCPIP::eval_f(int n, const double* x_org, double& obj_value)
 {
-  obj_value = EvalObjective(n, x, true); // always CFS scale!
+  StdVector<double> x_srt;
+  x_srt.Import(x_org, n);
+  ReorderDesign(n, x_srt.GetPointer(), true);
+
+  obj_value = EvalObjective(n, x_srt.GetPointer(), true); // always CFS scale!
   return true;
 }
 
-bool SCPIP::eval_grad_f(int n, const double* x, double* grad_f)
+bool SCPIP::eval_grad_f(int n, const double* x_org, double* grad_f)
 {
+  StdVector<double> x_srt;
+  x_srt.Import(x_org, n);
+  ReorderDesign(n, x_srt.GetPointer(), true);
   
   // restart_requested handled in intermediate_callback
   assert(grad_f == df.GetPointer());
-  bool result = EvalGradObjective(n, x, true, df);
+  bool result = EvalGradObjective(n, x_srt.GetPointer(), true, df);
 
   // do we have to write the initial iteration in the non-autoscale case?
   // SCPIP first does eval_f and then eval_grad_f
@@ -272,20 +292,28 @@ bool SCPIP::eval_grad_f(int n, const double* x, double* grad_f)
   return result;
 }
 
-bool SCPIP::eval_g(int n, const double* x, int m, double* g)
+bool SCPIP::eval_g(int n, const double* x_org, int m, double* g)
 {
-  EvalConstraints(n, x, m, true, g);
+  StdVector<double> x_srt;
+  x_srt.Import(x_org, n);
+  ReorderDesign(n, x_srt.GetPointer(), true);
+
+  EvalConstraints(n, x_srt.GetPointer(), m, true, g);
 
   return true;
 }
 
-bool SCPIP::eval_jac_g(int n, const double* x, int m, int nele_jac, double* values)
+bool SCPIP::eval_jac_g(int n, const double* x_org, int m, int nele_jac, double* values)
 {
+  StdVector<double> x_srt;
+  x_srt.Import(x_org, n);
+  ReorderDesign(n, x_srt.GetPointer(), true);
+
   // the gradients are dense in SCPIPBase
   assert(values != NULL);
   assert(jac_g.GetPointer() == values);
   
-  EvalGradConstraints(n, x, m, nele_jac, true, jac_g);
+  EvalGradConstraints(n, x_srt.GetPointer(), m, nele_jac, true, jac_g);
 
   return true;
 }
