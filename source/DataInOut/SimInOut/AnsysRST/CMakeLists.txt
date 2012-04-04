@@ -17,6 +17,7 @@ IF(CFS_ARCH STREQUAL "I386")
   # Set possible paths for Intel Fortran libraries at LSE and Klagenfurt
   IF(NOT CFS_FORTRAN_COMPILER_NAME STREQUAL "IFORT")  
     LINK_DIRECTORIES(
+    /opt/pckg/intel/parallel_studio_xe_2011_sp1_update1/lib/ia32
     /opt/pckg/intel/fc/10.1.015/lib
     /opt/pckg/intel/Compiler/11.0/081/lib/ia32
     /opt/pckg/intel/Compiler/11.1/069/lib/ia32
@@ -33,6 +34,7 @@ IF(CFS_ARCH STREQUAL "X86_64")
   # Set possible paths for Intel Fortran libraries at LSE and Klagenfurt
   IF(NOT CFS_FORTRAN_COMPILER_NAME STREQUAL "IFORT")  
     LINK_DIRECTORIES(
+    /opt/pckg/intel/parallel_studio_xe_2011_sp1_update1/lib/intel64
     /opt/pckg/intel/fce/10.0.025/lib
     /opt/pckg/intel/fce/10.1.015/lib
     /opt/pckg/intel/Compiler/11.0/081/lib/intel64
