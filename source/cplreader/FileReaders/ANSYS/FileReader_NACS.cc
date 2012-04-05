@@ -5,9 +5,10 @@
 #include <string>
 #include <iostream>
 #include <fstream>
-#include "stdio.h"
+#include <stdio.h>
 #include <iomanip>
 #include <sstream>
+#include <set>
 
 #include "boost/regex.hpp"
 #include "boost/algorithm/string/trim.hpp"
@@ -440,7 +441,7 @@ namespace CoupledField
 
       if ( !fs::is_directory( *dir_itr ) )
       {
-        std::string fn = dir_itr->leaf();
+        std::string fn = dir_itr->path().filename().string();
 
         name = fs::basename(fn);
         name = regex_replace(name, datExp, name_format, boost::match_default | boost::format_sed);

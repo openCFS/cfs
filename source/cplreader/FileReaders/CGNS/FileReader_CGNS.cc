@@ -436,7 +436,7 @@ namespace CoupledField{
               dir_itr != end_iter;
               ++dir_itr ) {
            if ( !fs::is_directory( *dir_itr ) ) { 
-             fn = dir_itr->leaf();
+             fn = dir_itr->path().filename().string();
              if(algo::ends_with(fn, ".cgns")) {
                fileNames[++counter] = fn;
              }
@@ -492,7 +492,7 @@ namespace CoupledField{
                   dir_itr != end_iter;
                   ++dir_itr ) {
          if ( !fs::is_directory( *dir_itr ) ) {
-           fn = dir_itr->leaf();
+           fn = dir_itr->path().filename().string();
            boost::tokenizer<> tok(fn);
            if(algo::ends_with(fn, ".cgns")) {
 

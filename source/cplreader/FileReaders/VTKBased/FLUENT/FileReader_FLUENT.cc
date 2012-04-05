@@ -113,7 +113,7 @@ namespace CoupledField
       if ( fs::is_directory( *dir_itr ) )
         continue;
       
-      fn = dir_itr->leaf();
+      fn = dir_itr->path().filename().string();
 
       if(!algo::starts_with(fn, name_))
         continue;

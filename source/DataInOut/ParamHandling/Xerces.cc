@@ -39,8 +39,8 @@ namespace CoupledField
 
     // create canonical path from native-representation of the
     // file and the schema path
-    fs::path filePath = fs::path( file, fs::native );
-    fs::path schemaPath = fs::path( schema, fs::native );
+    fs::path filePath = fs::path( file );
+    fs::path schemaPath = fs::path( schema );
 
     if(!fs::exists(filePath))
         EXCEPTION("xml file " << file << " doesn't exist");
@@ -387,11 +387,11 @@ namespace CoupledField
   Xerces::Bzip2InputStream::~Bzip2InputStream(){
   }
   
-  unsigned int Xerces::Bzip2InputStream::curPos() const{
+  XMLFilePos Xerces::Bzip2InputStream::curPos() const{
     return(curPos_);
   }
   
-  unsigned int Xerces::Bzip2InputStream::readBytes(XMLByte* const toFill, const unsigned int maxToRead) {
+  XMLSize_t Xerces::Bzip2InputStream::readBytes(XMLByte* const toFill, const XMLSize_t maxToRead) {
     unsigned int r = bzipin_.sgetn((char*) toFill, maxToRead);
     curPos_ += r;
     return(r);

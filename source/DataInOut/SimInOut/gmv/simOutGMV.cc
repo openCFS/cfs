@@ -926,7 +926,7 @@ namespace CoupledField {
 
     // Generate basename for output file
     totalName.append( dirName_ );
-    std::string pathsep = fs::path("/").native_directory_string();
+    std::string pathsep = fs::path("/").string();
     totalName.append( pathsep );
     totalName.append( name );
     

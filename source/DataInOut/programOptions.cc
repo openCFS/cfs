@@ -61,7 +61,7 @@
 #ifdef _XOPEN_SOURCE
 #undef _XOPEN_SOURCE
 #endif
-#include "Python.h"
+#include <Python.h>
 #endif
 
 #ifdef USE_SCRIPTING_TCL
@@ -302,11 +302,10 @@ namespace CoupledField {
     if( varMap_.count( "simName") != 0 ) {
 
       // get complete path
-      fs::path simPath = fs::path( varMap_["simName"].as<string>(),
-                                  fs::native );
+      fs::path simPath = fs::path( varMap_["simName"].as<string>() );
 
       // return only file name without path information
-      return simPath.leaf();
+      return simPath.filename().string();
     } else {
       return "";
     }
@@ -317,15 +316,14 @@ namespace CoupledField {
      if( varMap_.count( "simName") != 0 ) {
 
        // get complete path
-       fs::path simPath ( varMap_["simName"].as<string>(),
-                          fs::native );
+       fs::path simPath ( varMap_["simName"].as<string>() );
 
-       fs::complete( simPath.branch_path()).native_directory_string();
+       fs::absolute( simPath.parent_path()).string();
 
        // return path to simulation
-       return fs::complete( simPath.branch_path());
+       return fs::absolute( simPath.parent_path());
      } else {
-       return fs::initial_path().native_file_string();
+       return fs::initial_path().string();
      }
    }
 
@@ -334,7 +332,7 @@ namespace CoupledField {
      // get complete path
      fs::path simPath = GetSimPath();
 
-     return simPath.native_directory_string();
+     return simPath.string();
    }
 
   fs::path ProgramOptions::GetParamFile() const
@@ -342,8 +340,7 @@ namespace CoupledField {
     if( varMap_.count( "paramFile" ) == 0 ) {
       return GetSimPath() / fs::path(GetSimName()+".xml" );
     } else {
-      fs::path paramPath( varMap_["paramFile"].as<string>(),
-                          fs::native);
+      fs::path paramPath( varMap_["paramFile"].as<string>() );
       return fs::system_complete( paramPath );
     }
   }
@@ -352,7 +349,7 @@ namespace CoupledField {
   {
     fs::path paramPath = GetParamFile();
 
-    return paramPath.native_file_string();
+    return paramPath.string();
   }
 
 #ifdef USE_SCRIPTING
@@ -370,7 +367,7 @@ namespace CoupledField {
   {
     fs::path scriptPath = GetScriptFile();
 
-    return scriptPath.native_file_string();
+    return scriptPath.string();
   }
 #endif
 
@@ -407,15 +404,14 @@ namespace CoupledField {
     if(!fs::exists(schemaPath))
       EXCEPTION("Schema path '" << schemaPath << "' does not exist!");
 
-    return schemaPath.native_directory_string();
+    return schemaPath.string();
   }
 
   fs::path ProgramOptions::GetMeshFile() const
   {
 
     if( varMap_.count( "meshFile") != 0 ) {
-      fs::path meshPath( varMap_["meshFile"].as<string>(),
-                         fs::native );
+      fs::path meshPath( varMap_["meshFile"].as<string>() );
       return fs::system_complete( meshPath );
     } else {
       return fs::path();
@@ -426,7 +422,7 @@ namespace CoupledField {
   {
     fs::path meshFile = GetMeshFile();
 
-    return meshFile.native_file_string();
+    return meshFile.string();
   }
 
   bool ProgramOptions::GetPrintGrid() const
@@ -522,7 +518,7 @@ namespace CoupledField {
       fs::path fn = fs::system_complete(progOpts->exe_);
       fn.normalize();
       out << "CFS_EXECUTABLE:        "
-          << fg_blue << fn.native_directory_string() << fg_reset << endl;
+          << fg_blue << fn.string() << fg_reset << endl;
     }
     
     out << "CFS_BUILD_HOST:        "

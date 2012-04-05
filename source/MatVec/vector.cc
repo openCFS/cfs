@@ -616,7 +616,7 @@ namespace CoupledField {
   bool Vector<TYPE>::ContainsNaN() const
   {
     for(UInt k = 0, s = size_; k < s; ++k)
-      if(std::isnan(data_[k])) return true;
+      if(isnan(data_[k])) return true;
 
     return false;
   }
@@ -626,8 +626,8 @@ namespace CoupledField {
   {
     for(UInt k = 0, s = size_; k < s; ++k)
     {
-      if(std::isnan(data_[k].real())) return true;
-      if(std::isnan(data_[k].imag())) return true;
+      if(isnan(data_[k].real())) return true;
+      if(isnan(data_[k].imag())) return true;
     }
     return false;
   }
@@ -637,7 +637,7 @@ namespace CoupledField {
   bool Vector<TYPE>::ContainsInf() const
   {
     for(UInt k = 0, s = size_; k < s; ++k)
-      if(std::isinf(data_[k])) return true;
+      if(isinf(data_[k])) return true;
 
     return false;
   }
@@ -647,8 +647,8 @@ namespace CoupledField {
   {
     for(UInt k = 0, s = size_; k < s; ++k)
     {
-      if(std::isinf(data_[k].real())) return true;
-      if(std::isinf(data_[k].imag())) return true;
+      if(isinf(data_[k].real())) return true;
+      if(isinf(data_[k].imag())) return true;
     }
     return false;
   }

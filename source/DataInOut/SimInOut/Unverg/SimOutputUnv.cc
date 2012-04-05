@@ -65,7 +65,7 @@ namespace CoupledField {
     outputNode->GetValue("directory", dirName_, ParamNode::PASS );
     try 
     {
-      sysPathSep = fs::path("/").native_directory_string();
+      sysPathSep = fs::path("/").string();
     } catch (std::exception &ex)
     {
       EXCEPTION(ex.what());
