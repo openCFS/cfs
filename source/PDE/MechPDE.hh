@@ -7,6 +7,7 @@
 
 #include <map>
 
+#include "Domain/CoefFunction/CoefFunction.hh"
 #include "SinglePDE.hh"
 
 namespace CoupledField
@@ -113,7 +114,7 @@ namespace CoupledField
     std::map<RegionIdType, RaylDampingData > regionRaylDamping_;
     
     //! Stores the linear stiffness for each region
-    std::map<RegionIdType, shared_ptr<CoefFunction> > regionStiffness_;
+    std::map<RegionIdType, PtrCoefFct > regionStiffness_;
     
     //! Dimension of stresses
     UInt stressDim_;

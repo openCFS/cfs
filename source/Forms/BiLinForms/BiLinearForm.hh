@@ -82,12 +82,12 @@ namespace CoupledField
       }
       
       //! Set Coefficient Function of B operator
-      virtual void SetBCoefFunctionOpB(shared_ptr<CoefFunction> coef){
+      virtual void SetBCoefFunctionOpB(PtrCoefFct coef){
         EXCEPTION("Integrator::SetBCoefFunctionOpB not available in base class!");
       }
 
       //! Set Coefficient Function of A operator
-      virtual void SetBCoefFunctionOpA(shared_ptr<CoefFunction> coef){
+      virtual void SetBCoefFunctionOpA(PtrCoefFct coef){
         EXCEPTION("Integrator::SetCoefFunctionOpA not available in base class!");
       }
 

@@ -87,9 +87,9 @@ namespace CoupledField {
     flowMaterials = flowPDE->getPDEMaterialData();
 
     // Create coefficient functions for all fluid densities
-    std::map< RegionIdType, shared_ptr<CoefFunction> > densityFuncs;
-    std::map< RegionIdType, shared_ptr<CoefFunction> > muFuncs;
-    std::map< RegionIdType, shared_ptr<CoefFunction> > oneFuncs;
+    std::map< RegionIdType, PtrCoefFct > densityFuncs;
+    std::map< RegionIdType, PtrCoefFct > muFuncs;
+    std::map< RegionIdType, PtrCoefFct > oneFuncs;
     std::set< RegionIdType > flowRegions;
     std::map<RegionIdType, BaseMaterial*>::iterator it, end;
     it = flowMaterials.begin();
@@ -166,7 +166,7 @@ namespace CoupledField {
                                                 shared_ptr<BaseFeFunction>& dispFct,
                                                 shared_ptr<BaseFeFunction>& lmFct,
                                                 shared_ptr<SurfElemList>& actSDList,
-                                                const std::map< RegionIdType, shared_ptr<CoefFunction> >& oneFuncs,
+                                                const std::map< RegionIdType, PtrCoefFct >& oneFuncs,
                                                 const std::set< RegionIdType >& flowRegions){
     BiLinearForm * dampInt = NULL;
 
@@ -206,8 +206,8 @@ namespace CoupledField {
                                                 shared_ptr<BaseFeFunction>& velFct,
                                                 shared_ptr<BaseFeFunction>& lmFct,
                                                 shared_ptr<SurfElemList>& actSDList,
-                                                const std::map< RegionIdType, shared_ptr<CoefFunction> >& densityFuncs,
-                                                const std::map< RegionIdType, shared_ptr<CoefFunction> >& oneFuncs,
+                                                const std::map< RegionIdType, PtrCoefFct >& densityFuncs,
+                                                const std::map< RegionIdType, PtrCoefFct >& oneFuncs,
                                                 const std::set< RegionIdType >& flowRegions){
     BiLinearForm * stiffInt = NULL;
 

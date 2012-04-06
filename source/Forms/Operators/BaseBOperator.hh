@@ -94,7 +94,7 @@ public:
   }
 
   //! Set the coefficient function of the operator
-  virtual void SetCoefFunction(shared_ptr<CoefFunction> coef){
+  virtual void SetCoefFunction(PtrCoefFct coef){
     coef_ = coef;
   }
 
@@ -109,7 +109,7 @@ protected:
   std::string name_;
 
   //!pointer to coefficient function as used e.g. in Convective operators
-  shared_ptr<CoefFunction> coef_;
+  PtrCoefFct coef_;
 };
 }
 #endif

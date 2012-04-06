@@ -5,7 +5,7 @@ namespace CoupledField{
            class MAT_DATA_TYPE,
            class COEF_DATA_TYPE >
   ADBInt<A_OP, B_OP, MAT_DATA_TYPE, COEF_DATA_TYPE>::
-  ADBInt(shared_ptr<CoefFunction> dData, 
+  ADBInt(PtrCoefFct dData, 
          MAT_DATA_TYPE factor,
          bool coordUpdate )
   : BDBInt<B_OP, MAT_DATA_TYPE, COEF_DATA_TYPE>( dData, factor, coordUpdate  ) 
@@ -109,6 +109,30 @@ namespace CoupledField{
 
     }
   }
+ 
+ template< class A_OP,
+ class B_OP,
+ class MAT_DATA_TYPE,
+ class COEF_DATA_TYPE >
+ void ADBInt<A_OP, B_OP, MAT_DATA_TYPE, COEF_DATA_TYPE>::
+ ApplyATransMat( Vector<MAT_DATA_TYPE>&ret, 
+                 const Vector<MAT_DATA_TYPE>& sol,
+                 const LocPointMapped& lpm ) {
+
+ }
+ 
+ template< class A_OP,
+ class B_OP,
+ class MAT_DATA_TYPE,
+ class COEF_DATA_TYPE >
+ void ADBInt<A_OP, B_OP, MAT_DATA_TYPE, COEF_DATA_TYPE>::
+ ApplydATransMat( Vector<MAT_DATA_TYPE>&ret, 
+                  const Vector<MAT_DATA_TYPE>& sol,
+                  const LocPointMapped& lpm ) {
+
+ }
+ 
+ 
  
   //! Calculate the integration kernel
  template< class A_OP,

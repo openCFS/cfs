@@ -41,6 +41,7 @@
 #include "FeBasis/L2/FeSpaceL2Nodal.hh"
 
 
+#include "Domain/CoefFunction/CoefXpr.hh"
 #include "Domain/Results/ResultFunctor.hh"
 #include "Domain/Results/ExternalFieldFunctors.hh"
 
@@ -130,10 +131,11 @@ namespace CoupledField{
     std::map<RegionIdType, BaseMaterial*>::iterator it;
     shared_ptr<FeSpace> spaceP = feFunctions_[ACOU_PRESSURE]->GetFeSpace();
     shared_ptr<FeSpace> spaceV = feFunctions_[ACOU_VELOCITY]->GetFeSpace();
-
+    BaseMaterial * actMat = NULL;
     for ( it = materials_.begin(); it != materials_.end(); it++ ) {
       // Set current region and material
       actRegion = it->first;
+      actMat = it->second;
       // Get current region name
       std::string regionName = ptgrid_->GetRegion().ToString(actRegion);
 
@@ -150,17 +152,10 @@ namespace CoupledField{
       spaceP->SetRegionApproximation(actRegion, polyId,integId);
       spaceV->SetRegionApproximation(actRegion, polyId,integId);
 
-      Double density=0.0;
-      Double compressibility=0.0;
 
-      materials_[actRegion]->GetScalar(density,DENSITY,Global::REAL);
-      materials_[actRegion]->GetScalar(compressibility,ACOU_BULK_MODULUS,Global::REAL);
-
-    // Not needed at the moment. Commented out due to gcc 4.6.
-#if 0
-      Double c0=0.0;
-      c0 = std::sqrt(compressibility/density);
-#endif
+      // Obtain density and compressibility as coefficient functions
+      PtrCoefFct density = actMat->GetScalCoefFnc( DENSITY, Global::REAL );
+      PtrCoefFct compressibility = actMat->GetScalCoefFnc( ACOU_BULK_MODULUS, Global::REAL );
 
       feFunctions_[ACOU_PRESSURE]->AddEntityList( actSDList );
       feFunctions_[ACOU_VELOCITY]->AddEntityList( actSDList );
@@ -173,14 +168,17 @@ namespace CoupledField{
       //  VERSION 1: K_PV Integrator (upper off-diagonal integrator)
       // --------------------------------------------------------------------
 
-      shared_ptr<CoefFunction> coeffKPV
-                = CoefFunction::Generate(Global::REAL, "1.0");
+      PtrCoefFct coeffKPV = CoefFunction::Generate(Global::REAL, "1.0");
       BiLinearForm * stiffIntPV = NULL;
 
       if(usePiola_)
-        stiffIntPV = new ABInt<GradientOperator<FeH1,DIM,DATA_TYPE>,IdentityOperatorPiola<FeH1,DIM,DIM,DATA_TYPE> , DATA_TYPE >(coeffKPV,1.0 );
+        stiffIntPV = new ABInt<GradientOperator<FeH1,DIM,DATA_TYPE>,
+                               IdentityOperatorPiola<FeH1,DIM,DIM,DATA_TYPE> , 
+                               DATA_TYPE >(coeffKPV,1.0 );
       else
-        stiffIntPV = new ABInt< GradientOperator<FeH1,DIM,DATA_TYPE> , IdentityOperator<FeH1,DIM,DIM,DATA_TYPE>,  DATA_TYPE >(coeffKPV,1.0 );
+        stiffIntPV = new ABInt< GradientOperator<FeH1,DIM,DATA_TYPE> , 
+                                IdentityOperator<FeH1,DIM,DIM,DATA_TYPE>,  
+                                DATA_TYPE >(coeffKPV,1.0 );
 
       stiffIntPV->SetName("MixedStiffIntPV");
       //
@@ -196,8 +194,7 @@ namespace CoupledField{
       // --------------------------------------------------------------------
       //  VERSION 2: K_VP = K_PV^T Integrator (lower off-diagonal integrator)
       // --------------------------------------------------------------------
-      shared_ptr<CoefFunction> coeffKVP
-                = CoefFunction::Generate(Global::REAL, "1.0");
+      PtrCoefFct coeffKVP = CoefFunction::Generate(Global::REAL, "1.0");
       BiLinearForm * stiffIntVP = NULL;
 
       if(usePiola_)
@@ -219,12 +216,15 @@ namespace CoupledField{
       // ====================================================================
       // mass integrators
       // ====================================================================
-      shared_ptr<CoefFunction> coeffMPP
-                = CoefFunction::Generate(Global::REAL, lexical_cast<std::string>(1.0));
+      // coefficent for mass integrator: 1.0 / compressibility
+      PtrCoefFct coeffMPP
+          = CoefFunction::Generate(Global::REAL, 
+                                   CoefXprBinOp("1.0", compressibility, CoefXpr::OP_DIV) );
 
       BiLinearForm *massIntPP = NULL;
 
-      massIntPP = new BBInt<IdentityOperator<FeH1,DIM,1,DATA_TYPE> , DATA_TYPE, DATA_TYPE>(coeffMPP, 1.0 / (compressibility) );
+      massIntPP = new BBInt<IdentityOperator<FeH1,DIM,1,DATA_TYPE> , 
+                            DATA_TYPE, DATA_TYPE>(coeffMPP, 1.0);
 
       massIntPP->SetName("PressureTimeInt");
       //massIntPP->SetFeSpace( feFunctions_[ACOU_PRESSURE]->GetFeSpace() );
@@ -235,14 +235,11 @@ namespace CoupledField{
       massContextPP->SetFeFunctions( feFunctions_[ACOU_PRESSURE],feFunctions_[ACOU_PRESSURE]);
       assemble_->AddBiLinearForm( massContextPP );
 
-      shared_ptr<CoefFunction> coeffMVV
-                = CoefFunction::Generate(Global::REAL, lexical_cast<std::string>(1.0));
-
       BiLinearForm *massIntVV = NULL;
       if( usePiola_)
-        massIntVV = new BBInt<IdentityOperatorPiola<FeH1,DIM,DIM,DATA_TYPE>, DATA_TYPE, DATA_TYPE >(coeffMVV, density);
+        massIntVV = new BBInt<IdentityOperatorPiola<FeH1,DIM,DIM,DATA_TYPE>, DATA_TYPE, DATA_TYPE >(density, 1.0);
       else
-        massIntVV = new BBInt<IdentityOperator<FeH1,DIM,DIM,DATA_TYPE>, DATA_TYPE, DATA_TYPE >(coeffMVV, density);
+        massIntVV = new BBInt<IdentityOperator<FeH1,DIM,DIM,DATA_TYPE>, DATA_TYPE, DATA_TYPE >(density, 1.0);
 
       massIntVV->SetName("VelocityTimeInt");
       //massIntVV->SetFeSpace( feFunctions_[ACOU_VELOCITY]->GetFeSpace() );
@@ -272,16 +269,33 @@ namespace CoupledField{
         //now create the integrators
         BiLinearForm *convectiveVV = NULL;
         BiLinearForm *convectivePP = NULL;
-        Double convFactor = density;
-        if(doFluxTerm_)
-          convFactor *= 0.5;
+        PtrCoefFct convFactor;
+        
+        if(doFluxTerm_) {
+          convFactor = 
+              CoefFunction::Generate(Global::REAL, 
+                                     CoefXprBinOp("0.5", density, CoefXpr::OP_MULT ) );
+        } else {
+          convFactor = density;
+        }
 
         if(usePiola_){
-          convectiveVV = new ABInt<IdentityOperatorPiola<FeH1,DIM,DIM,DATA_TYPE>, ConvectiveOperatorPiola<FeH1,DIM,DIM,DATA_TYPE>, DATA_TYPE >(coeffMVV, convFactor);
+          convectiveVV = new ABInt<IdentityOperatorPiola<FeH1,DIM,DIM,DATA_TYPE>, 
+                                   ConvectiveOperatorPiola<FeH1,DIM,DIM,DATA_TYPE>, 
+                                   DATA_TYPE >(convFactor, 1.0);
         } else {
-          convectiveVV = new ABInt<IdentityOperator<FeH1,DIM,DIM,DATA_TYPE>, ConvectiveOperator<FeH1,DIM,DIM,DATA_TYPE>, DATA_TYPE >(coeffMVV, convFactor);
+          convectiveVV = new ABInt<IdentityOperator<FeH1,DIM,DIM,DATA_TYPE>, 
+                                   ConvectiveOperator<FeH1,DIM,DIM,DATA_TYPE>, 
+                                   DATA_TYPE >(convFactor, 1.0);
         }
-        convectivePP = new ABInt<IdentityOperator<FeH1,DIM,1,DATA_TYPE>, ConvectiveOperator<FeH1,DIM,1,DATA_TYPE>, DATA_TYPE >(coeffMPP, 1.0 / (compressibility));
+        
+        // Coefficient for mass integrator: 1.0 / compressibility
+        PtrCoefFct coeffPP
+        = CoefFunction::Generate(Global::REAL, 
+                                 CoefXprBinOp("1.0", compressibility, CoefXpr::OP_DIV) );
+        
+        convectivePP = new ABInt<IdentityOperator<FeH1,DIM,1,DATA_TYPE>, 
+            ConvectiveOperator<FeH1,DIM,1,DATA_TYPE>, DATA_TYPE >(coeffPP, 1.0 );
 
         convectiveVV->SetBCoefFunctionOpB(meanFlowFunctor_);
         convectivePP->SetBCoefFunctionOpB(meanFlowFunctor_);
@@ -304,23 +318,27 @@ namespace CoupledField{
         //============================================================================================
         if(penalized_){
           //two forms one with opposing elements the other just like mass...
-          Double formFactor = 0.0;
-          curRegNode->GetValue("penalizationFactor", formFactor);
-          formFactor *= density;
-
+          Double penaltyFactor = 0.0;
+          curRegNode->GetValue("penalizationFactor", penaltyFactor);
+          
+          // formFactor = density * penaltyFactor
+          PtrCoefFct formFactor = 
+              CoefFunction::Generate(Global::REAL,
+                                     CoefXprBinOp(lexical_cast<std::string>(penaltyFactor),
+                                                  density, CoefXpr::OP_MULT ) );
           BiLinearForm *convectiveVOpp = NULL;
           BiLinearForm *convectiveV = NULL;
           BiLinearForm *exteriorVV = NULL;
           std::set<RegionIdType> volRegion;
           volRegion.insert(actRegion);
           if( usePiola_ ) {
-            convectiveVOpp = new SurfaceBBInt<IdentityOperatorPiola<FeH1,DIM,DIM,DATA_TYPE>,DATA_TYPE, DATA_TYPE >(coeffMVV, -0.5*formFactor,volRegion);
-            convectiveV    = new SurfaceBBInt<IdentityOperatorPiola<FeH1,DIM,DIM,DATA_TYPE>,DATA_TYPE, DATA_TYPE >(coeffMVV, 0.5*formFactor,volRegion);
-            exteriorVV    = new SurfaceBBInt<IdentityOperatorPiola<FeH1,DIM,DIM,DATA_TYPE>,DATA_TYPE, DATA_TYPE >(coeffMVV, -0.5*formFactor,volRegion);
+            convectiveVOpp = new SurfaceBBInt<IdentityOperatorPiola<FeH1,DIM,DIM,DATA_TYPE>,DATA_TYPE, DATA_TYPE >(formFactor, -0.5,volRegion);
+            convectiveV    = new SurfaceBBInt<IdentityOperatorPiola<FeH1,DIM,DIM,DATA_TYPE>,DATA_TYPE, DATA_TYPE >(formFactor, 0.5,volRegion);
+            exteriorVV    = new SurfaceBBInt<IdentityOperatorPiola<FeH1,DIM,DIM,DATA_TYPE>,DATA_TYPE, DATA_TYPE >(formFactor, -0.5,volRegion);
           } else {
-            convectiveVOpp = new BBInt<IdentityOperator<FeH1,DIM,DIM,DATA_TYPE>,DATA_TYPE, DATA_TYPE >(coeffMVV, -0.5 * formFactor);
-            convectiveV    = new BBInt<IdentityOperator<FeH1,DIM,DIM,DATA_TYPE>,DATA_TYPE, DATA_TYPE >(coeffMVV, 0.5*formFactor);
-            exteriorVV    = new BBInt<IdentityOperator<FeH1,DIM,DIM,DATA_TYPE>,DATA_TYPE, DATA_TYPE >(coeffMVV, -0.5*formFactor);
+            convectiveVOpp = new BBInt<IdentityOperator<FeH1,DIM,DIM,DATA_TYPE>,DATA_TYPE, DATA_TYPE >(formFactor, -0.5 );
+            convectiveV    = new BBInt<IdentityOperator<FeH1,DIM,DIM,DATA_TYPE>,DATA_TYPE, DATA_TYPE >(formFactor, 0.5);
+            exteriorVV    = new BBInt<IdentityOperator<FeH1,DIM,DIM,DATA_TYPE>,DATA_TYPE, DATA_TYPE >(formFactor, -0.5);
           }
           convectiveV->SetName("penaltyMass");
           convectiveVOpp->SetName("penalityOpposite");
@@ -356,19 +374,19 @@ namespace CoupledField{
           if( usePiola_ ) {
             fluxTerm = new SurfaceABInt< IdentityOperatorPiola<FeH1,DIM,DIM,DATA_TYPE>,//
                                          NormalFluxOperatorPiola<FeH1,DIM,DIM,DATA_TYPE>,//
-                                         DATA_TYPE >(coeffMVV, -0.5 * density,volRegion);
+                                         DATA_TYPE >(density, -0.5 ,volRegion);
 
             convectiveVVTrans = new ABInt< ConvectiveOperatorPiola<FeH1,DIM,DIM,DATA_TYPE>,//
                                            IdentityOperatorPiola<FeH1,DIM,DIM,DATA_TYPE>,//
-                                           DATA_TYPE >(coeffMVV, -0.5 * density);
+                                           DATA_TYPE >(density, -0.5);
           } else {
             fluxTerm = new SurfaceABInt<IdentityOperator<FeH1,DIM,DIM,DATA_TYPE>,//
                                         NormalFluxOperator<FeH1,DIM,DIM,DATA_TYPE>,//
-                                        DATA_TYPE >(coeffMVV, -0.5 * density,volRegion);
+                                        DATA_TYPE >(density, -0.5,volRegion);
 
             convectiveVVTrans = new ABInt< ConvectiveOperator<FeH1,DIM,DIM,DATA_TYPE>, //
                                            IdentityOperator<FeH1,DIM,DIM,DATA_TYPE>, //
-                                           DATA_TYPE >(coeffMVV, -0.5 * density);
+                                           DATA_TYPE >(density, -0.5);
           }
 
           convectiveVVTrans->SetBCoefFunctionOpA(meanFlowFunctor_);
@@ -423,7 +441,7 @@ namespace CoupledField{
     shared_ptr<FeSpace> vSpace = velocityFct->GetFeSpace();
 
     StdVector<shared_ptr<EntityList> > ent;
-    StdVector<shared_ptr<CoefFunction> > coef;
+    StdVector<PtrCoefFct > coef;
     LinearForm * lin = NULL;
     StdVector<std::string> vDofNames = velocityFct->GetResultInfo()->dofNames;
 
@@ -486,7 +504,7 @@ namespace CoupledField{
         materials_[aRegion]->GetScalar(compressibility,ACOU_BULK_MODULUS,Global::REAL);
         c0 = std::sqrt(compressibility/density);
 
-        shared_ptr<CoefFunction> coeffKPV
+        PtrCoefFct coeffKPV
                   = CoefFunction::Generate(Global::REAL, "1.0");
 
         BiLinearForm * abcInt = NULL;

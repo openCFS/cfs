@@ -26,6 +26,9 @@ namespace CoupledField
   struct Composite;
   class ParamNode;
   class FunctionDescription;
+  class BaseBDBInt;
+  class BaseFieldFunctor;
+  class ResultFunctor;
 
   //! Base class for pairwise direct coupling of two pdes
   
@@ -55,6 +58,9 @@ namespace CoupledField
 
     //! Initialization method
     virtual void Init( UInt sequenceStep, PtrParamNode info );
+    
+    //! 2nd part of initialization
+    virtual void FinalizeInit();
 
     //! specify the time stepping
     virtual void InitTimeStepping() {;};
@@ -145,6 +151,13 @@ namespace CoupledField
     //! on the coupling!)
     virtual void DefinePrimaryResults() {};
 
+    //! Define post-processing results
+
+    //! This method defines the post-processing results, which are computed
+    //! mostly using the bilienarform of the main problem.
+    //! Thus, this method gets called after the integrators are defined
+    virtual void DefinePostProcResults() {};
+
     //! define all computable results
     virtual void DefineAvailResults() {};
 
@@ -230,6 +243,20 @@ namespace CoupledField
     MaterialClass materialClass_;
 
     //@}
+
+    
+    
+    //! Map for storing the primary ADB integrators of the problem
+
+    //! This map stores the primary BDB integrators, which can be used for 
+    //! calculating spatial derivatives, fluxes and energy.
+    std::map<RegionIdType, BaseBDBInt*> bdbInts_;
+
+    //! Map storing functors for calculating general results
+    std::map<SolutionType, shared_ptr<ResultFunctor> > resultFunctors_;
+
+    //! Map storing functors for calculating field results 
+    std::map<SolutionType, shared_ptr<BaseFieldFunctor> > fieldFunctors_;
 
     //! (Volume) regions of coupling object
     StdVector<RegionIdType> subdoms_;

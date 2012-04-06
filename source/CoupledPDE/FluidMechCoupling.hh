@@ -64,7 +64,7 @@ class BiLinearForm;
                                shared_ptr<BaseFeFunction>& dispFct,
                                shared_ptr<BaseFeFunction>& lmFct,
                                shared_ptr<SurfElemList>& actSDList,
-                               const std::map< RegionIdType, shared_ptr<CoefFunction> >& muOverDensityFuncs,
+                               const std::map< RegionIdType, PtrCoefFct >& muOverDensityFuncs,
                                const std::set< RegionIdType >& flowRegions);
     //! define all (bilinearform) integrators needed for this pdewith template
     //! for the space dimension
@@ -73,8 +73,8 @@ class BiLinearForm;
                                     shared_ptr<BaseFeFunction>& velFct,
                                     shared_ptr<BaseFeFunction>& lmFct,
                                     shared_ptr<SurfElemList>& actSDList,
-                                    const std::map< RegionIdType, shared_ptr<CoefFunction> >& densityFuncs,
-                                    const std::map< RegionIdType, shared_ptr<CoefFunction> >& oneFuncs,
+                                    const std::map< RegionIdType, PtrCoefFct >& densityFuncs,
+                                    const std::map< RegionIdType, PtrCoefFct >& oneFuncs,
                                     const std::set< RegionIdType >& flowRegions);
     
    //! Subtype of related mechanical PDE

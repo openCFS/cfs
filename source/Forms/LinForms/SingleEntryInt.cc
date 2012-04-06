@@ -5,7 +5,7 @@
 namespace CoupledField {
 
 
- SingleEntryInt::SingleEntryInt( shared_ptr<CoefFunction>& val )
+ SingleEntryInt::SingleEntryInt( PtrCoefFct& val )
     : LinearForm() {
 
     name_ = "SingleEntryInt";

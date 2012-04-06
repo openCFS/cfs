@@ -134,6 +134,70 @@ public:
     ret.SetPart(Global::IMAG, rRet);
   }
   //@}
+  
+  //! Apply transposed A-Operator on vector
+  
+  //! This method is only properly overwritten for the derived ADB-Integrator
+  //! and allows to apply the transposed A-Matrix (i.e. first differential
+  //! operator) to a vector.
+   virtual void ApplyATransMat( Vector<Double>&ret, const Vector<Double>& sol,
+                                const LocPointMapped& lpm ) {
+     EXCEPTION("BaseBDBInt: ApplyATransMat not implemented");
+   }
+   virtual void ApplyATransMat( Vector<Complex>&ret, const Vector<Complex>& sol,
+                           const LocPointMapped& lpm ) {
+     // provide default implementation in base class
+     Vector<Double>  rRet(sol.GetSize() ), rSol( sol.GetSize() );
+
+     // 1) real part
+     rSol.Resize( sol.GetSize() );
+     rSol = sol.GetPart( Global::REAL );
+     this->ApplyATransMat( rRet, rSol, lpm );
+     ret.Resize(rRet.GetSize());
+     ret.SetPart(Global::REAL, rRet);
+
+     // 2) imag part
+     rSol = sol.GetPart( Global::IMAG );
+     this->ApplyATransMat( rRet, rSol, lpm );
+     ret.SetPart(Global::IMAG, rRet);
+   }
+   //@}
+
+
+   //@{
+   //! Apply dA-Operator on vector
+   virtual void ApplydATransMat( Vector<Double>&ret, const Vector<Double>& sol,
+                                 const LocPointMapped& lpm ) {
+     EXCEPTION("BaseBDBInt: ApplydATransMat not implemented");
+   }
+
+   virtual void ApplydATransMat( Vector<Complex>&ret, const Vector<Complex>& sol,
+                                 const LocPointMapped& lpm ) {
+     // provide default implementation in base class
+     Vector<Double>  rRet(sol.GetSize() ), rSol( sol.GetSize() );
+
+     // 1) real part
+     rSol.Resize( sol.GetSize() );
+     rSol = sol.GetPart( Global::REAL );
+     this->ApplydATransMat( rRet, rSol, lpm );
+     ret.Resize(rRet.GetSize());
+     ret.SetPart(Global::REAL, rRet);
+
+     // 2) imag part
+     rSol = sol.GetPart( Global::IMAG );
+     this->ApplydATransMat( rRet, rSol, lpm );
+     ret.SetPart(Global::IMAG, rRet);
+   }
+   //@}
+
+  
+  
+  
+  
+  
+  
+  
+  
 
   //@{
   //! Calculate integration kernel, i.e. B*d*B without integration
@@ -159,7 +223,7 @@ public:
     public:
 
       //! Constructor with pointer to BaseElem
-      BDBInt(shared_ptr<CoefFunction> dData, MAT_DATA_TYPE factor,
+      BDBInt(PtrCoefFct dData, MAT_DATA_TYPE factor,
              bool coordUpdate = false );
 
       //! Destructor
@@ -190,6 +254,18 @@ public:
       void ApplydBMat( Vector<MAT_DATA_TYPE>&ret, 
                        const Vector<MAT_DATA_TYPE>& sol,
                        const LocPointMapped& lpm );
+      
+
+      //! Apply A-Trans-Operator on vector
+      void ApplyATransMat( Vector<MAT_DATA_TYPE>&ret, 
+                           const Vector<MAT_DATA_TYPE>& sol,
+                           const LocPointMapped& lpm );
+
+      //! Apply dATrans-Operator on vector
+      void ApplydATransMat( Vector<MAT_DATA_TYPE>&ret, 
+                            const Vector<MAT_DATA_TYPE>& sol,
+                            const LocPointMapped& lpm );
+
 
       bool IsComplex(){
         return std::tr1::is_same<MAT_DATA_TYPE,Complex>::value;
@@ -213,7 +289,7 @@ public:
       }
       
       //! Set Coefficient Function of B operator
-      virtual void SetBCoefFunctionOpA(shared_ptr<CoefFunction> coef){
+      virtual void SetBCoefFunctionOpA(PtrCoefFct coef){
         this->bOperator_.SetCoefFunction(coef);
       }
       void __Instantiate();

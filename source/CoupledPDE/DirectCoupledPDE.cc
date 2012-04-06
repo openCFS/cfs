@@ -258,6 +258,11 @@ namespace CoupledField {
      singlePDEs_[i]->FinalizeInit();
     }
     
+    // Initialize all Coupling Objects
+    for (UInt i=0; i<couplings_.GetSize(); i++) {
+      couplings_[i]->FinalizeInit( );
+    }
+    
     // Print list of defined integrators of assembly object
     assemble_->ToInfo(infoNode_->Get(ParamNode::HEADER)->Get("integrators"));
     
@@ -295,7 +300,6 @@ namespace CoupledField {
   //   SetBCs
   // **********
   void DirectCoupledPDE::SetBCs() {
-
 
     for ( UInt i = 0; i < singlePDEs_.GetSize(); i++ ) {
       singlePDEs_[i]->SetBCs();

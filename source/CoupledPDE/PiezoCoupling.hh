@@ -50,10 +50,13 @@ class BiLinearForm;
     //! Define available results
     void DefineAvailResults();
     
+    //! \copydoc BasePairCoupling::DefinePostProcResults
+    void DefinePostProcResults();
+    
     //! Returns a stiffness integrator appropriate to the actual problem (e.g. 3D)
-    BiLinearForm * GetStiffIntegrator( BaseMaterial* actSDMat,
-                                       RegionIdType regionId,
-                                       bool isComplex );
+    BaseBDBInt * GetStiffIntegrator( BaseMaterial* actSDMat,
+                                     RegionIdType regionId,
+                                     bool isComplex );
 
 
     //! Subtype of related mechanical PDE

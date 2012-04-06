@@ -13,7 +13,7 @@ namespace CoupledField {
     public:
 
       //! Constructor with pointer to BaseElem
-      ABInt( shared_ptr<CoefFunction> scalCoef, MAT_DATA_TYPE factor,
+      ABInt( PtrCoefFct scalCoef, MAT_DATA_TYPE factor,
              bool coordUpdate = false );
 
       //! Destructor
@@ -26,7 +26,7 @@ namespace CoupledField {
                                  EntityIterator& ent2 );
 
       //! Set Coefficient Function of B operator
-      virtual void SetBCoefFunctionOpA(shared_ptr<CoefFunction> coef){
+      virtual void SetBCoefFunctionOpA(PtrCoefFct coef){
         this->aOperator_.SetCoefFunction(coef);
       }
 
@@ -41,11 +41,11 @@ namespace CoupledField {
   class SurfaceABInt : public ABInt<A_OP,B_OP, MAT_DATA_TYPE>{
   public:
       //! Constructor with pointer to BaseElem
-      SurfaceABInt(shared_ptr<CoefFunction> scalCoef, MAT_DATA_TYPE factor,
+      SurfaceABInt(PtrCoefFct scalCoef, MAT_DATA_TYPE factor,
                    const std::set<RegionIdType>& volRegions, bool coordUpdate = false);
 
       //! Constructor with CoefFunctions for a number of volume regions
-      SurfaceABInt(const std::map< RegionIdType, shared_ptr<CoefFunction> >& regionCoefs,
+      SurfaceABInt(const std::map< RegionIdType, PtrCoefFct >& regionCoefs,
                    MAT_DATA_TYPE factor,
                    const std::set<RegionIdType>& volRegions,
                    bool coordUpdate = false);
@@ -62,7 +62,7 @@ namespace CoupledField {
       std::set<RegionIdType> volRegions_;
 
       //! Map containing all coefficient functions for volume regions for operator A
-      std::map< RegionIdType, shared_ptr<CoefFunction> > regionCoefs_;    
+      std::map< RegionIdType, PtrCoefFct > regionCoefs_;    
   };
 }
 

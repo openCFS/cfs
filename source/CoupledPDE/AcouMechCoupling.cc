@@ -84,8 +84,8 @@ namespace CoupledField {
     acouMaterials = acouPDE->getPDEMaterialData();
 
     // Create coefficient functions for all acoustic densities
-    std::map< RegionIdType, shared_ptr<CoefFunction> > coefFuncs;
-    std::map< RegionIdType, shared_ptr<CoefFunction> > oneCoefFuncs;
+    std::map< RegionIdType, PtrCoefFct > coefFuncs;
+    std::map< RegionIdType, PtrCoefFct > oneCoefFuncs;
     std::set< RegionIdType > acouRegions;
     std::map<RegionIdType, BaseMaterial*>::iterator it, end;
     it = acouMaterials.begin();
@@ -170,7 +170,7 @@ namespace CoupledField {
                                                     shared_ptr<BaseFeFunction>& dispFct,
                                                        shared_ptr<BaseFeFunction>& acouFct,
                                                        shared_ptr<SurfElemList>& actSDList,
-                                                       const std::map< RegionIdType, shared_ptr<CoefFunction> >& coefFuncs,
+                                                       const std::map< RegionIdType, PtrCoefFct >& coefFuncs,
                                                        const std::set< RegionIdType >& acouRegions){
 
     BiLinearForm * dampInt = NULL;

@@ -17,6 +17,7 @@
 #ifndef COEFFUNCTIONEXPRESSION_HH
 #define COEFFUNCTIONEXPRESSION_HH
 
+#include <boost/tr1/type_traits.hpp>
 #include "CoefFunction.hh"
 
 #include "Utils/mathParser/mathParser.hh"
@@ -25,7 +26,7 @@ namespace CoupledField{
 
 //! Base class for real- and complex valued coefficient functions
 template<class DATA_TYPE>
-class CoefFunctionExpression : public CoefFunction{
+class CoefFunctionExpression : public CoefFunctionAnalytic {
 };
 
 // ===========================================================================
@@ -34,7 +35,7 @@ class CoefFunctionExpression : public CoefFunction{
 
 //! Coefficient function defined by real-valued mathematical expression
 template<>
-class CoefFunctionExpression<Double> : public CoefFunction {
+class CoefFunctionExpression<Double> : public CoefFunctionAnalytic {
   
   public:
     CoefFunctionExpression();
@@ -53,8 +54,38 @@ class CoefFunctionExpression<Double> : public CoefFunction {
 
     void SetScalar(const std::string& val);
     
+    //! \copydoc CoefFunction::GetVecSize
+    UInt GetVecSize() const {
+      assert(this->dimType_ == VECTOR );
+      return coefVec_.GetSize();
+    }
+      
+    //! \copydoc CoefFunction::GetTensorSize
+    virtual void GetTensorSize( UInt& numRows, UInt& numCols ) const {
+      assert(this->dimType_ == TENSOR );
+      numRows = numRows_;
+      numCols = numCols_;
+    }
+    
+    //! \copydoc CoefFunction::IsComplex
+    bool IsComplex(){ return false;}
+    
     std::string ToString() const;
+    
+    // =========================================================================
+    // STRING REPRESENTATION 
+    // =========================================================================
+    //! \copydoc CoefFunctionAnalytic::GetStrScalar
+    virtual void GetStrScalar( std::string& real, std::string& imag );
 
+    //! \copydoc CoefFunctionAnalytic::GetStrVector
+    virtual void GetStrVector( StdVector<std::string>& real, 
+                               StdVector<std::string>& imag );
+
+    //! \copydoc CoefFunctionAnalytic::GetStrTensor
+    virtual void GetStrTensor( UInt& numRows, UInt& numCols,
+                               StdVector<std::string>& real, 
+                               StdVector<std::string>& imag );
   protected:
     
     //! Coefficients for tensor
@@ -85,7 +116,7 @@ class CoefFunctionExpression<Double> : public CoefFunction {
 
 //! Coefficient function defined by complex-valued mathematical expression
 template<>
-class CoefFunctionExpression<Complex> : public CoefFunction {
+class CoefFunctionExpression<Complex> : public CoefFunctionAnalytic {
   
   public:
     CoefFunctionExpression();
@@ -108,7 +139,40 @@ class CoefFunctionExpression<Complex> : public CoefFunction {
     void SetScalar(const std::string& realVal,
                    const std::string& imagVal);
     
+    //! \copydoc CoefFunction::GetVecSize
+    UInt GetVecSize() const {
+      assert(this->dimType_ == VECTOR );
+      return coefVecReal_.GetSize();
+    }
+
+    //! \copydoc CoefFunction::GetTensorSize
+    virtual void GetTensorSize( UInt& numRows, UInt& numCols ) const {
+      assert(this->dimType_ == VECTOR );
+      numRows = numRows_;
+      numCols = numCols_;
+    }
+    
+    //! \copydoc CoefFunction::IsComplex
+    bool IsComplex(){ return true;}
+    
     std::string ToString() const;
+    
+    
+    // =========================================================================
+    // STRING REPRESENTATION 
+    // =========================================================================
+    //! \copydoc CoefFunctionAnalytic::GetStrScalar
+    virtual void GetStrScalar( std::string& real, std::string& imag );
+
+    //! \copydoc CoefFunctionAnalytic::GetStrVector
+    virtual void GetStrVector( StdVector<std::string>& real, 
+                               StdVector<std::string>& imag );
+
+    //! \copydoc CoefFunctionAnalytic::GetStrTensor
+    virtual void GetStrTensor( UInt& numRows, UInt& numCols,
+                               StdVector<std::string>& real, 
+                               StdVector<std::string>& imag );
+
 
   protected:
     

@@ -190,10 +190,23 @@ void CoefFunctionGridBase<DATA_TYPE>::GetScalar(DATA_TYPE& CoefMat,
   CoefMat = ptSol[0];
 }
 
+
+
 template<class DATA_TYPE>
 std::string CoefFunctionGridBase<DATA_TYPE>::ToString() const {
   return "ToSting is not implemented";
 }
+
+template<class DATA_TYPE>
+UInt CoefFunctionGridBase<DATA_TYPE>::GetVecSize() const {
+  return domain->GetGrid(gridId_)->GetDim();
+}
+
+template<class DATA_TYPE>
+void CoefFunctionGridBase<DATA_TYPE>::GetTensorSize( UInt& numRows, UInt& numCols ) const {
+  EXCEPTION("Not tensor valued data available yet");
+}
+
 
 template<class DATA_TYPE>
 void CoefFunctionGridBase<DATA_TYPE>::Recalculate() {

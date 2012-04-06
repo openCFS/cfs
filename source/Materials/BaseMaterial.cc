@@ -673,14 +673,15 @@ namespace CoupledField
    }
 
 
-   shared_ptr<CoefFunction>  BaseMaterial::GetCoefFunction(MaterialType matType,SubTensorType type,Global::ComplexPart matDataType,
+   PtrCoefFct  BaseMaterial::GetTensorCoefFnc(MaterialType matType,
+                                                           SubTensorType type,Global::ComplexPart matDataType,
                                                            bool transpose){
-     shared_ptr<CoefFunction> mFunct;
+     PtrCoefFct mFunct;
      if(matDataType == Global::REAL){
        CoefFunctionConst<Double>* tmpFnc = new CoefFunctionConst<Double>();
        Matrix<Double> coefMat;
        GetTensor(coefMat,matType,matDataType,type);
-       
+
        // transpose if flag is true
        if( transpose ) {
          Matrix<Double> temp;
@@ -707,4 +708,32 @@ namespace CoupledField
      mFunct->SetCoordinateSystem(this->coosy_);
      return mFunct;
    }
+   
+   PtrCoefFct  BaseMaterial::GetVectorCoefFnc(MaterialType matType,
+                                                            Global::ComplexPart matDataType ) {
+     EXCEPTION("Not implemented")
+   }
+   
+   PtrCoefFct  BaseMaterial::GetScalCoefFnc(MaterialType matType,
+                                                             Global::ComplexPart matDataType ) {
+       PtrCoefFct mFunct;
+       if(matDataType == Global::REAL){
+         CoefFunctionConst<Double>* tmpFnc = new CoefFunctionConst<Double>();
+         Double real;
+         GetScalar(real,matType,matDataType);
+         tmpFnc->SetScalar(real);
+         mFunct.reset(tmpFnc);
+       }else if(matDataType == Global::COMPLEX){
+         CoefFunctionConst<Complex>* tmpFnc = new CoefFunctionConst<Complex>();
+         Complex val;
+         // transpose if flag is true
+         GetScalar(val,matType,matDataType);
+         tmpFnc->SetScalar(val);
+         mFunct.reset(tmpFnc);
+       }else{
+         EXCEPTION("Material Data Type not supported");
+       }
+       mFunct->SetCoordinateSystem(this->coosy_);
+       return mFunct;
+     }
 }

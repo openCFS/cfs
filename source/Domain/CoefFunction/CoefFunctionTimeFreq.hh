@@ -1,6 +1,8 @@
 #ifndef COEFFUNCTIONTIMEFREQ_HH
 #define COEFFUNCTIONTIMEFREQ_HH
 
+#include <boost/signals.hpp>
+
 #include "CoefFunction.hh"
 #include "CoefFunctionExpression.hh"
 #include "Domain/CoordinateSystems/CoordSystem.hh"
@@ -26,15 +28,16 @@ class CoefFunctionTimeFreq : public CoefFunction {
 // ===========================================================================
 //! Real-valued coefficient function, depending on time / frequency
 template<>
-class CoefFunctionTimeFreq<Double> : public CoefFunction {
+class CoefFunctionTimeFreq<Double> : public CoefFunctionAnalytic {
   public:
+  
   //! Constructor
   CoefFunctionTimeFreq();
-  
+
   //! Destructor
   virtual ~CoefFunctionTimeFreq();
   
-  //! \see CoefFunction::GetTensor
+  //! \copydoc CoefFunction::GetTensor
   void GetTensor(Matrix<Double>& coefMat, const LocPointMapped& lpm ) {
     assert(this->dimType_ == TENSOR);
     // if no coordinate system is set, just
@@ -54,7 +57,7 @@ class CoefFunctionTimeFreq<Double> : public CoefFunction {
     }
   }
 
-  //! \see CoefFunction::GetVector
+  //! \copydoc CoefFunction::GetVector
   void GetVector(Vector<Double>& coefVec, 
                  const LocPointMapped& lpm ) {
     assert(this->dimType_ == VECTOR);
@@ -75,12 +78,25 @@ class CoefFunctionTimeFreq<Double> : public CoefFunction {
     }
   }
 
-  //! \see CoefFunction::GetScalar
+  //! \copydoc CoefFunction::GetScalar
   void GetScalar(Double& coefScalar, const LocPointMapped& lpm ) {
     assert(this->dimType_ == SCALAR);
     coefScalar =  constCoefScalar_;
   }
 
+  //! \copydoc CoefFunction::GetVecSize
+  UInt GetVecSize() const {
+    assert(this->dimType_ == VECTOR );
+    return coefVec_.GetSize();
+  }
+    
+  //! \copydoc CoefFunction::GetTensorSize
+  virtual void GetTensorSize( UInt& numRows, UInt& numCols ) const {
+    assert(this->dimType_ == VECTOR );
+    numRows = constCoefMat_.GetNumRows();
+    numCols = constCoefMat_.GetNumCols();
+  }
+  
   //! Set string tensor representation
   void SetTensor(const StdVector<std::string>& val, UInt nRows, UInt nCols );
 
@@ -90,19 +106,38 @@ class CoefFunctionTimeFreq<Double> : public CoefFunction {
   //! Set string scalar representation
   void SetScalar(const std::string& val);
 
-  //! \see CoefFunction::IsComplex
+  //! \copydoc CoefFunction::IsComplex
   bool IsComplex(){ 
     return false; 
   }
 
-  //! \see CoefFunction::ToString
+  //! \copydoc CoefFunction::ToString
   std::string ToString() const;
 
+  // =========================================================================
+  // STRING REPRESENTATION 
+  // =========================================================================
+  //! \copydoc CoefFunctionAnalytic::GetStrScalar
+  virtual void GetStrScalar( std::string& real, std::string& imag );
+
+  //! \copydoc CoefFunctionAnalytic::GetStrVector
+  virtual void GetStrVector( StdVector<std::string>& real, 
+                             StdVector<std::string>& imag );
+
+  //! \copydoc CoefFunctionAnalytic::GetStrTensor
+  virtual void GetStrTensor( UInt& numRows, UInt& numCols,
+                             StdVector<std::string>& real, 
+                             StdVector<std::string>& imag );
+
+  
   protected:
 
     //! Call-back method for re-calculation
     void Recalculate();
 
+    //! Connection to math parser instance 
+    boost::signals::connection conn_;
+    
     // =====================================
     //  STRING PARAMETER REPRESENTATION
     // =====================================
@@ -154,15 +189,16 @@ class CoefFunctionTimeFreq<Double> : public CoefFunction {
 // ===========================================================================
 //! Complex-valued coefficient function, depending on time / frequency
 template<>
-class CoefFunctionTimeFreq<Complex> : public CoefFunction {
+class CoefFunctionTimeFreq<Complex> : public CoefFunctionAnalytic {
 public:
+  
   //! Constructor
   CoefFunctionTimeFreq();
 
   //! Destructor
   virtual ~CoefFunctionTimeFreq();
 
-  //! \see CoefFunction::GetTensor
+  //! \copydoc CoefFunction::GetTensor
   void GetTensor(Matrix<Complex>& coefMat, const LocPointMapped& lpm ) {
     assert(this->dimType_ == TENSOR);
     // if no coordinate system is set, just
@@ -182,7 +218,7 @@ public:
     }
   }
 
-  //! \see CoefFunction::GetVector
+  //! \copydoc CoefFunction::GetVector
   void GetVector(Vector<Complex>& coefVec, 
                  const LocPointMapped& lpm ) {
     assert(this->dimType_ == VECTOR);
@@ -202,12 +238,25 @@ public:
     }
   }
 
-  //! \see CoefFunction::GetScalar
+  //! \copydoc CoefFunction::GetScalar
   void GetScalar(Complex& coefScalar, const LocPointMapped& lpm ) {
     assert(this->dimType_ == SCALAR);
     coefScalar =  constCoefScalar_;
   }
 
+  //! \copydoc CoefFunction::GetVecSize
+  UInt GetVecSize() const {
+    assert(this->dimType_ == VECTOR );
+    return coefVecReal_.GetSize();
+  }
+    
+  //! \copydoc CoefFunction::GetTensorSize
+  virtual void GetTensorSize( UInt& numRows, UInt& numCols ) const {
+    assert(this->dimType_ == VECTOR );
+    numRows = constCoefMat_.GetNumRows();
+    numCols = constCoefMat_.GetNumCols();
+  }
+  
   //! Set string tensor representation
   void SetTensor(const StdVector<std::string>& realVal, 
                  const StdVector<std::string>& imagVal,
@@ -221,18 +270,39 @@ public:
   void SetScalar(const std::string& realVal,
                  const std::string& imagVal);
 
-  //! \see CoefFunction::IsComplex
+  //! \copydoc CoefFunction::IsComplex
   bool IsComplex(){ 
     return true; 
   }
 
-  //! \see CoefFunction::ToString
+  //! \copydoc CoefFunction::ToString
   std::string ToString() const;
+  
+  // =========================================================================
+  // STRING REPRESENTATION 
+  // =========================================================================
+  //! \copydoc CoefFunctionAnalytic::GetStrScalar
+  virtual void GetStrScalar( std::string& real, std::string& imag );
+
+  //! \copydoc CoefFunctionAnalytic::GetStrVector
+  virtual void GetStrVector( StdVector<std::string>& real, 
+                             StdVector<std::string>& imag );
+
+  //! \copydoc CoefFunctionAnalytic::GetStrTensor
+  virtual void GetStrTensor( UInt& numRows, UInt& numCols,
+                             StdVector<std::string>& real, 
+                             StdVector<std::string>& imag );
 
 protected:
 
   //! Call-back method for re-calculation
   void Recalculate();
+  
+  //! Connection to math parser instance (real) 
+  boost::signals::connection connReal_;
+
+  //! Connection to math parser instance (imag) 
+  boost::signals::connection connImag_;
 
   // =====================================
   //  STRING PARAMETER REPRESENTATION

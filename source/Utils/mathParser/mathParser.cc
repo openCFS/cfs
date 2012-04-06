@@ -222,6 +222,42 @@ namespace CoupledField {
         }
     }
   }
+  
+  void MathParser::RegisterExternalVar(  HandleType handle,
+                                         const std::string& varName,
+                                         Double * ptVar ) {
+    // Get parser related to handle
+    mu::Parser & myParser  =  GetParser( handle );
+    /// register function with related parser object
+    myParser.DefineVar( varName, ptVar );
+
+    // If handle is the GLOB_HANDLER, register variables also
+    // in all other parsers
+    if ( handle == GLOB_HANDLER ) {
+
+      // iterate over all local handler and define variable
+      ParserMap::iterator it = parsers_.begin();
+      it++;
+      for (; it != parsers_.end(); it++ ) {
+
+        HandleType actHandle = it->first;
+        MATHPARSER_EXEC(
+            it->second.DefineVar( varName, ptVar );
+        )
+
+        // We consider the case, that we have in the 
+        // child parsers already a "default" value for this variable,
+        // i.e. the parser instance assumes that the variable is
+        // locally defined. In this case we have to register
+        // the variable also in the globVarsInUse_ map
+        if( varsInUse_[actHandle].find( varName) !=
+            varsInUse_[actHandle].end() ) {
+          globVarsInUse_[varName].insert(actHandle);
+          pools_[actHandle].erase( varName );
+        }
+      }
+    }
+  }
 
 
   void MathParser::SetCoordinates( HandleType handler,

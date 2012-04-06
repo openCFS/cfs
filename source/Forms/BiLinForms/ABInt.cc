@@ -21,7 +21,7 @@ namespace CoupledField{
 
    template< class A_OP, class B_OP, class MAT_DATA_TYPE >
    ABInt<A_OP, B_OP,MAT_DATA_TYPE>::
-   ABInt( shared_ptr<CoefFunction> scalCoef, 
+   ABInt( PtrCoefFct scalCoef, 
           MAT_DATA_TYPE factor,
           bool coordUpdate )
      : BBInt<B_OP, MAT_DATA_TYPE,MAT_DATA_TYPE>(scalCoef, factor, coordUpdate ) {
@@ -100,7 +100,7 @@ namespace CoupledField{
 
    template< class A_OP, class B_OP, class MAT_DATA_TYPE >
    SurfaceABInt<A_OP, B_OP,MAT_DATA_TYPE>::
-   SurfaceABInt(shared_ptr<CoefFunction> scalCoef,
+   SurfaceABInt(PtrCoefFct scalCoef,
                 MAT_DATA_TYPE factor,
                 const std::set<RegionIdType>& volRegions,
                 bool coordUpdate)
@@ -112,7 +112,7 @@ namespace CoupledField{
 
    template< class A_OP, class B_OP, class MAT_DATA_TYPE >
    SurfaceABInt<A_OP, B_OP,MAT_DATA_TYPE>::
-   SurfaceABInt(const std::map< RegionIdType, shared_ptr<CoefFunction> >& regionCoefs,
+   SurfaceABInt(const std::map< RegionIdType, PtrCoefFct >& regionCoefs,
                 MAT_DATA_TYPE factor,
                 const std::set<RegionIdType>& volRegions,
                 bool coordUpdate)

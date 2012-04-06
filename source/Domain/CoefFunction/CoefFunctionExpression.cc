@@ -8,11 +8,17 @@ namespace CoupledField{
 //  REAL VALUED COEFFICIENT FUNCTION
 // ===========================================================================
 CoefFunctionExpression<Double>::CoefFunctionExpression() :
+        CoefFunctionAnalytic(),
         mp_(domain->GetMathParser()),
-        mHandle_(mp_->GetNewHandle(true)) {
+        mHandle_(mp_->GetNewHandle(true))
+        {
   
   // this type of coefficient is always variable
   dependType_ = GENERAL;
+  
+  // this coefficient function is still analytic, as it
+  // is defined by analytical expressions.
+  isAnalytic_ = true;
   
   // always store default coordinate system
   this->coordSys_ = domain->GetCoordSystem();
@@ -72,6 +78,10 @@ void CoefFunctionExpression<Double>::GetVector( Vector<Double>& coefVec,
 void CoefFunctionExpression<Double>::GetScalar(Double& coefScalar, 
                                                const LocPointMapped& lpm){
   assert(this->dimType_ == CoefFunction::SCALAR);
+  // First, obtain global coordinates of current point and  register it at the mathParser
+  Vector<Double> pointCoord;;
+  lpm.shapeMap->Local2Global(pointCoord,lpm.lp);
+  this->mp_->SetCoordinates(mHandle_, *(this->coordSys_), pointCoord);
   coefScalar = this->mp_->Eval(mHandle_);
 }
 
@@ -135,11 +145,40 @@ std::string CoefFunctionExpression<Double>::ToString() const {
   return "";
 }
 
+void CoefFunctionExpression<Double>::
+GetStrScalar( std::string& real, std::string& imag ) {
+  assert((this->dimType_ == NO_DIM) || (this->dimType_ == SCALAR) );
+  real = coefScalar_;
+  imag = "0.0";
+  
+}
+
+void CoefFunctionExpression<Double>::
+GetStrVector( StdVector<std::string>& real, 
+              StdVector<std::string>& imag ) {
+  assert((this->dimType_ == NO_DIM) || (this->dimType_ == VECTOR) );
+  real = coefVec_;
+  imag = "0.0";
+
+}
+
+void CoefFunctionExpression<Double>::
+GetStrTensor( UInt& numRows, UInt& numCols,
+              StdVector<std::string>& real, 
+              StdVector<std::string>& imag ) {
+  assert((this->dimType_ == NO_DIM) || (this->dimType_ == TENSOR) );
+  numRows = numRows_;
+  numCols = numCols_;
+  real = coefMat_;
+  imag.Resize(real.GetSize());
+  imag.Init("0.0");
+}
 
 // ===========================================================================
 //  COMPLEX VALUED COEFFICIENT FUNCTION
 // ===========================================================================
 CoefFunctionExpression<Complex>::CoefFunctionExpression() :
+        CoefFunctionAnalytic(),
         mp_(domain->GetMathParser()),
         mHandleReal_(mp_->GetNewHandle(true)),
         mHandleImag_(mp_->GetNewHandle(true)){
@@ -213,6 +252,12 @@ void CoefFunctionExpression<Complex>::GetScalar( Complex& coefScalar,
                                                  const LocPointMapped& lpm){
   Double real, imag;
   assert(this->dimType_ == CoefFunction::SCALAR);
+  // First, obtain global coordinates of current point and  register it at the mathParser
+  Vector<Double> pointCoord;;
+  lpm.shapeMap->Local2Global(pointCoord,lpm.lp);
+  this->mp_->SetCoordinates(mHandleReal_, *(this->coordSys_), pointCoord);
+  this->mp_->SetCoordinates(mHandleImag_, *(this->coordSys_), pointCoord);
+  
   real = this->mp_->Eval(mHandleReal_);
   imag = this->mp_->Eval(mHandleImag_);
   coefScalar = Complex(real, imag);
@@ -292,6 +337,32 @@ std::string CoefFunctionExpression<Complex>::ToString() const {
       EXCEPTION("Missing case");
   }
   return "";
+}
+
+void CoefFunctionExpression<Complex>::
+GetStrScalar( std::string& real, std::string& imag ) {
+  assert((this->dimType_ == NO_DIM) || (this->dimType_ == SCALAR) );
+   real = coefScalarReal_;
+   imag = coefScalarImag_;
+}
+
+void CoefFunctionExpression<Complex>::
+GetStrVector( StdVector<std::string>& real, 
+              StdVector<std::string>& imag ) {
+  assert((this->dimType_ == NO_DIM) || (this->dimType_ == VECTOR) );
+  real = coefVecReal_;
+  imag = coefVecImag_;
+}
+
+void CoefFunctionExpression<Complex>::
+GetStrTensor( UInt& numRows, UInt& numCols,
+                            StdVector<std::string>& real, 
+                            StdVector<std::string>& imag ) {
+  assert((this->dimType_ == NO_DIM) || (this->dimType_ == TENSOR) );
+  numRows = numRows_;
+  numCols = numCols_;
+  real = coefMatReal_;
+  imag = coefMatImag_;
 }
 
 }

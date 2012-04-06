@@ -118,8 +118,8 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode )
       // ====================================================================
       if( !nonLin_ ) {
         BaseBDBInt * stiffInt = NULL;
-        shared_ptr<CoefFunction> curCoef = 
-            actMat->GetCoefFunction( MAG_RELUCTIVITY, tensorType,
+        PtrCoefFct curCoef = 
+            actMat->GetTensorCoefFnc( MAG_RELUCTIVITY, tensorType,
                                      Global::REAL, false);
         if( dim_ == 2) {
           if( isaxi_ ) {
@@ -170,10 +170,11 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode )
         // constant / double valued conductivity values, as we must check for 
         // non-zero. However, how do we do this in case of non-constant parameters?
         Double conductivity;
+        
         materials_[actRegion]->GetScalar(conductivity,MAG_CONDUCTIVITY,Global::REAL);
-        shared_ptr<CoefFunction> conducCoef =
-                  CoefFunction::Generate(Global::REAL, 
-                                         lexical_cast<std::string>(conductivity));
+        PtrCoefFct conducCoef =
+            materials_[actRegion]->GetScalCoefFnc(MAG_CONDUCTIVITY,Global::REAL);
+//                                         lexical_cast<std::string>(conductivity));
         {
           BiLinearForm *massInt = NULL;
           if( dim_ == 2 ) {
@@ -258,7 +259,7 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode )
          LinearForm * curInt = NULL;
          std::string factor = coilDef_[coil]->value_ + "/" +
              lexical_cast<std::string>(coilDef_[coil]->windingCrossSection_);
-         shared_ptr<CoefFunction> coef;
+         PtrCoefFct coef;
          // ===========
          //  3D CASE
          // ===========

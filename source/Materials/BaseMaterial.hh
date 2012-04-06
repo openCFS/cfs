@@ -199,7 +199,8 @@ namespace CoupledField {
     }
 
     //! get a real material tensor
-    virtual void GetTensor( Matrix<Double>& param, MaterialType matType, Global::ComplexPart dataType, SubTensorType = FULL ) const
+    virtual void GetTensor( Matrix<Double>& param, MaterialType matType, 
+                            Global::ComplexPart dataType, SubTensorType = FULL ) const
     {
       EXCEPTION("not implemented");      
     }
@@ -357,10 +358,16 @@ namespace CoupledField {
                                  bool adjustDamping, bool isHarmonic );
 
     //========================== Create Coeficient Function for use in integrators====
-    virtual shared_ptr<CoefFunction > GetCoefFunction(MaterialType matType,
-                                                      SubTensorType type,
-                                                      Global::ComplexPart matDataType,
-                                                      bool transpose );
+    virtual shared_ptr<CoefFunction > GetTensorCoefFnc(MaterialType matType,
+                                                        SubTensorType type,
+                                                        Global::ComplexPart matDataType,
+                                                        bool transpose );
+    
+    virtual shared_ptr<CoefFunction > GetVectorCoefFnc(MaterialType matType,
+                                                    Global::ComplexPart matDataType );
+    
+    virtual shared_ptr<CoefFunction > GetScalCoefFnc(MaterialType matType,
+                                                     Global::ComplexPart matDataType );
 
   protected:
 

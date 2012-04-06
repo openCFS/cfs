@@ -57,7 +57,7 @@ class BiLinearForm;
                                     shared_ptr<BaseFeFunction>& dispFct,
                                     shared_ptr<BaseFeFunction>& acouFct,
                                     shared_ptr<SurfElemList>& actSDList,
-                                    const std::map< RegionIdType, shared_ptr<CoefFunction> >& coefFuncs,
+                                    const std::map< RegionIdType, PtrCoefFct >& coefFuncs,
                                     const std::set< RegionIdType >& acouRegions);
     
     //! Returns a stiffness integrator appropriate to the actual problem (e.g. 3D)

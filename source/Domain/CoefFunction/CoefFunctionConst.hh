@@ -9,13 +9,15 @@ namespace CoupledField {
 
 //! Provide a coefficient function with constant expressions
 template<typename T>
-class CoefFunctionConst : public CoefFunction{
+class CoefFunctionConst : public CoefFunctionAnalytic{
 public:
 
   //! Constructor
-  CoefFunctionConst() {
+  CoefFunctionConst() 
+  : CoefFunctionAnalytic() {
     // this type of coefficient is always constant
     dependType_ = CONST;
+    isAnalytic_ = true;
   }
 
   //! Destructor
@@ -23,7 +25,7 @@ public:
     ;
   }
 
-  //! \see CoefFunction::GetTensor
+  //! \copydoc CoefFunction::GetTensor
   void GetTensor(Matrix<T>& coefMat, 
                  const LocPointMapped& lpm ) {
     assert(this->dimType_ == TENSOR);
@@ -44,7 +46,7 @@ public:
     }
   }
 
-  //! \see CoefFunction::GetVector
+  //! \copydoc CoefFunction::GetVector
   void GetVector(Vector<T>& coefVec, 
                  const LocPointMapped& lpm ) {
     assert(this->dimType_ == VECTOR);
@@ -64,11 +66,24 @@ public:
     }
   }
 
-  //! \see CoefFunction::GetScalar
+  //! \copydoc CoefFunction::GetScalar
   void GetScalar(T& coefScalar, 
                  const LocPointMapped& lpm ) {
     assert(this->dimType_ == SCALAR);
     coefScalar =  coefScalar_;
+  }
+
+  //! \copydoc CoefFunction::GetVecSize
+  UInt GetVecSize() const {
+    assert(this->dimType_ == VECTOR );
+    return coefVec_.GetSize();
+  }
+    
+  //! \copydoc CoefFunction::GetTensorSize
+  virtual void GetTensorSize( UInt& numRows, UInt& numCols ) const {
+    assert(this->dimType_ == TENSOR );
+    numRows = constCoefMat_.GetNumRows();
+    numCols = constCoefMat_.GetNumCols();
   }
 
   //! Set tensor value
@@ -91,12 +106,12 @@ public:
     this->dimType_ = SCALAR;
   }
 
-  //! \see CoefFunction::IsComplex
+  //! \copydoc CoefFunction::IsComplex
   bool IsComplex(){
     return std::tr1::is_same<T,Complex>::value;
   }
   
-  //! \see CoefFunction::ToString
+  //! \copydoc CoefFunction::ToString
   std::string ToString() const {
     switch( dimType_ ) {
       case NO_DIM:
@@ -117,6 +132,20 @@ public:
     }
   }
 
+  // =========================================================================
+  // STRING REPRESENTATION 
+  // =========================================================================
+  //! \copydoc CoefFunctionAnalytic::GetStrScalar
+  virtual void GetStrScalar( std::string& real, std::string& imag );
+
+  //! \copydoc CoefFunctionAnalytic::GetStrVector
+  virtual void GetStrVector( StdVector<std::string>& real, 
+                             StdVector<std::string>& imag );
+
+  //! \copydoc CoefFunctionAnalytic::GetStrTensor
+  virtual void GetStrTensor( UInt& numRows, UInt& numCols,
+                             StdVector<std::string>& real, 
+                             StdVector<std::string>& imag );
 protected:
   
   //! Constant coefficient tensor

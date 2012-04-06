@@ -21,7 +21,7 @@ namespace CoupledField{
 
    template< class B_OP, class MAT_DATA_TYPE, class COEF_DATA_TYPE> 
    BBInt<B_OP,MAT_DATA_TYPE,COEF_DATA_TYPE>::
-   BBInt(shared_ptr<CoefFunction> scalCoef, MAT_DATA_TYPE factor, 
+   BBInt(PtrCoefFct scalCoef, MAT_DATA_TYPE factor, 
          bool coordUpdate) :
    BaseBDBInt(coordUpdate) {
      this->name_ = "BBInt";

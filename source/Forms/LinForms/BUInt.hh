@@ -73,7 +73,7 @@ protected:
 
   VEC_DATA_TYPE factor_;
 
-  shared_ptr<CoefFunction> rhsCoefs_;
+  PtrCoefFct rhsCoefs_;
 
   //! set containing all volume regions for surface integrators
   std::set<RegionIdType> volRegions_;

@@ -1,5 +1,8 @@
 SET(COEFFUNCTION_SRCS
+  CoefXpr.cc
   CoefFunction.cc
+  CoefFunctionCompound.cc
+  CoefFunctionConst.cc
   CoefFunctionExpression.cc
   CoefFunctionTimeFreq.cc
   CoefFunctionGrid.cc

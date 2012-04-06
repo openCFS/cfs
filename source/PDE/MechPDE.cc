@@ -29,6 +29,7 @@
 #include "Domain/Results/ResultFunctor.hh"
 #include "Forms/Operators/IdentityOperator.hh"
 
+#include "Domain/CoefFunction/CoefXpr.hh"
 #include "Driver/SolveSteps/StdSolveStep.hh"
 #include "Driver/TimeSchemes/TimeSchemeGLM.hh"
 #include "CoupledPDE/PDECoupling.hh"
@@ -184,7 +185,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
       // ====================================================================
       Double density = 0.0;
       actSDMat->GetScalar(density,DENSITY,Global::REAL);
-      shared_ptr<CoefFunction> densCoeff 
+      PtrCoefFct densCoeff 
           = CoefFunction::Generate(Global::REAL, lexical_cast<std::string>(density));
       
       BiLinearForm *massInt = NULL;
@@ -215,7 +216,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
     shared_ptr<FeSpace> mySpace = myFct->GetFeSpace();
     
     StdVector<shared_ptr<EntityList> > ent;
-    StdVector<shared_ptr<CoefFunction> > coef;
+    StdVector<PtrCoefFct > coef;
     LinearForm * lin = NULL;
     StdVector<std::string> dispDofNames = myFct->GetResultInfo()->dofNames;
     
@@ -227,28 +228,26 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
                        ent, coef );
     
     for( UInt i = 0; i < ent.GetSize(); ++i ) {
+      
+      // In case of a total force, we can not have a spatial dependency
+      if( coef[i]->GetDependency() == CoefFunction::GENERAL ) {
+        EXCEPTION("Total forces must not be spatial dependent");
+      }
+              
       // check type of entitylist
       if (ent[i]->GetType() == EntityList::NODE_LIST) {
         
         // --------------
         //  Nodal Forces 
         // --------------
-        // In case of a nodal force, we divide the coeffunction by the number
-        // of nodes to ensure, that the total force is prescribed. This works
-        // only for constant coefficient functions
-        if( coef[i]->GetDependency() == CoefFunction::GENERAL ) {
-          EXCEPTION("Nodal forces must not be spatial dependent");
-        }
-        
         UInt numNodes = ent[i]->GetSize();
+        // If more than one node is defined, we divide the total force by the number
+        // of nodes to ensure that the total force is applied, independent of the 
+        // number of nodes
         if( numNodes > 1 ) {
-          // Here we would divide the nodal force by the number of nodes
-          // in the list, in order to ensure that the whole force corresponds
-          // to the prescribed value. However, this requires modification of 
-          // the expressions of the coefficient functions, which depends on real/harm
-          // and the specific type (const, timefreq, variable).
-          WARN("The force value will not be divided by the number of nodes and thus "
-              << "depends on the number of nodes" );
+          Global::ComplexPart part = isComplex_ ? Global::COMPLEX : Global::REAL;  
+          coef[i] = CoefFunction::Generate(part, CoefXprVecScalOp(coef[i], 
+                    boost::lexical_cast<std::string>(numNodes), CoefXpr::OP_DIV) );
         }
         
         lin = new SingleEntryInt(coef[i]);
@@ -410,10 +409,10 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
     // ------------------------
     shared_ptr<CoefFunction > curCoef;
     if( isComplex ) {
-      curCoef = actSDMat->GetCoefFunction(MECH_STIFFNESS_TENSOR,
+      curCoef = actSDMat->GetTensorCoefFnc(MECH_STIFFNESS_TENSOR,
                                           tensorType_, Global::COMPLEX, false);
     } else {
-      curCoef = actSDMat->GetCoefFunction(MECH_STIFFNESS_TENSOR,
+      curCoef = actSDMat->GetTensorCoefFnc(MECH_STIFFNESS_TENSOR,
                                           tensorType_, Global::REAL, false);
     }
     

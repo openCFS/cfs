@@ -49,6 +49,10 @@ namespace CoupledField {
   class LogConfigurator;
   class ParamNode;
   class InfoNode;
+  class CoefFunction;
+  
+  // Type definition for shared_ptr<CoefFunction>
+  typedef boost::shared_ptr<CoefFunction> PtrCoefFct;
 
 
   // Type definitions for regions

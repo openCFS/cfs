@@ -224,7 +224,11 @@ namespace CoupledField {
     // Define the integrators
     DefineIntegrators();
 
-    
+  }
+  
+  void BasePairCoupling::FinalizeInit() {
+    std::map<SolutionType, shared_ptr<BaseFeFunction> >::iterator fncIt= feFunctions_.begin();
+    fncIt= feFunctions_.begin();
     // Finalize spaces and fefunctions
     fncIt= feFunctions_.begin();
     while(fncIt != feFunctions_.end()){
@@ -232,17 +236,17 @@ namespace CoupledField {
       shared_ptr<FeSpace> actSpace = fncIt->second->GetFeSpace();
       actSpace->Finalize();
       actSpace->PreCalcShapeFncs();
-      
+
       // finalize feFunctions
       actFct->Finalize();
-      
+
       // Pass feFctId of primary result also to RHS result
       rhsFeFunctions_[fncIt->first]->SetFctId(actFct->GetFctId());
       rhsFeFunctions_[fncIt->first]->Finalize();
       fncIt++;
     }
 
-   // Init Time Stepping
+    // Init Time Stepping
     if ( analysisType_ == BasePDE::TRANSIENT ) {
       InitTimeStepping();
     }
@@ -250,7 +254,7 @@ namespace CoupledField {
     if ( analysisType_ == BasePDE::TRANSIENT ) {
       Double dt;
       dt = dynamic_cast<TransientDriver*>(domain->GetSingleDriver())
-        ->GetDeltaT();
+             ->GetDeltaT();
       //WARN("Note: The initialization of the timestepping class is currently wrong: "
       //    "The 2nd argument must be the complete SBM-vector of the algebraic system in "
       //    "order to correclty initialize the internal vectors of the timestepping method. "
@@ -258,7 +262,7 @@ namespace CoupledField {
       //    "In the current implementation, the SBM-vectors are just defined within the "
       //    "SolveStep classed. Thus maybe the right thing to do is to shift the creation and "
       //    "initialization of the timestepping scheme to the solveStep classes.")
-          
+
 
       // Call the init function of timescheme of each fefunction
       fncIt= feFunctions_.begin();
@@ -269,10 +273,12 @@ namespace CoupledField {
       }
     }
 
+    // Define postprocessing results
+    DefinePostProcResults();
+
     // define which solution types have to be saved
     ReadStoreResults();
     ReadSpecialResults();
-
   }
 
   void BasePairCoupling::DefineFeFunctions(){

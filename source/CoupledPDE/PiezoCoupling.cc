@@ -11,6 +11,7 @@
 #include "Materials/BaseMaterial.hh"
 #include "Driver/FormsContexts.hh"
 #include "Driver/Assemble.hh"
+#include "Domain/CoefFunction/CoefXpr.hh"
 
 // include fespaces
 #include "FeBasis/H1/FeSpaceH1.hh"
@@ -21,6 +22,8 @@
 #include "Forms/Operators/GradientOperator.hh"
 #include "Forms/Operators/StrainOperator.hh"
 
+// new postprocessing concept
+#include "Domain/Results/ResultFunctor.hh"
 
 namespace CoupledField {
 
@@ -59,9 +62,21 @@ namespace CoupledField {
   // ***************
   //   CalcResults
   // ***************
-  void PiezoCoupling::CalcResults( shared_ptr<BaseResult> result ) {
-
-    REFACTOR
+  void PiezoCoupling::CalcResults( shared_ptr<BaseResult> res ) {
+    
+    switch (res->GetResultInfo()->resultType ) {
+      case ELEC_FLUX_DENSITY:
+        resultFunctors_[ELEC_FLUX_DENSITY]->EvalResult(res);
+        break;
+      case MECH_STRESS:
+        resultFunctors_[MECH_STRESS]->EvalResult(res);
+        break;
+      default:
+        WARN( "Result '" << 
+              SolutionTypeEnum.ToString(res->GetResultInfo()->resultType)
+              << "' type not computable by electric PDE" );
+    }
+    
 //    // neighborregion for electric charge
 //    RegionIdType neighbor = surfNeighborRegions_[result];
 //
@@ -161,7 +176,7 @@ namespace CoupledField {
       // ==================================================================
       //  STANDARD COUPLING INTEGRATOR
       // ==================================================================
-      BiLinearForm * stiffInt = 
+      BaseBDBInt * stiffInt = 
           GetStiffIntegrator( actSDMat, actRegion, complexMatData_[actRegion] );
       stiffInt->SetName("PiezoCouplingInt");
       BiLinFormContext * stiffIntDescr =
@@ -173,6 +188,9 @@ namespace CoupledField {
 
       assemble_->AddBiLinearForm( stiffIntDescr );
 
+      // remember own bilinearform 
+      bdbInts_[actRegion] = stiffInt;
+      
     }
 
     
@@ -661,6 +679,131 @@ namespace CoupledField {
 
   }
 
+  
+  
+  void PiezoCoupling::DefinePostProcResults() {
+    
+    shared_ptr<BaseFeFunction> dispFct = pde1_->GetFeFunction(MECH_DISPLACEMENT);
+    shared_ptr<BaseFeFunction> elecFct = pde2_->GetFeFunction(ELEC_POTENTIAL);
+    Global::ComplexPart part = isComplex_ ? Global::COMPLEX : Global::REAL;
+    
+    StdVector<std::string> stressComponents;
+    if( subType_ == "3d" ) {
+      stressComponents = "xx", "yy", "zz", "yz", "xz", "xy";
+    } else if( subType_ == "planeStrain" ) {
+      stressComponents = "xx", "yy", "xy";
+    } else if( subType_ == "planeStress" ) {
+      stressComponents = "xx", "yy", "xy";
+    } else if( subType_ == "axi" ) {
+      stressComponents = "rr", "zz", "rz", "phiphi";
+    }
+    
+    // =======================
+    //  Electric Flux Density
+    // =======================
+    shared_ptr<ResultInfo> flux ( new ResultInfo );
+    flux->resultType = ELEC_FLUX_DENSITY;
+    flux->SetVectorDOFs(dim_, isaxi_);
+    flux->unit = "C/m^2";
+    flux->definedOn = ResultInfo::ELEMENT;
+    flux->entryType = ResultInfo::VECTOR;
+    availResults_.insert( flux );
+    
+    // The electric flux density in the coupled case calculates as 
+    // D = [e]*S + [e]*E
+    // a) electric part -> take from electrostatic PDE
+    PtrCoefFct coefElecD = pde2_->GetCoefFct( ELEC_FLUX_DENSITY);
+    
+    // b) coupling part -> use own ADB-form
+    shared_ptr<BaseFieldFunctor> cplFunc;
+    if( isComplex_ ) {
+      cplFunc.reset(new FluxFieldFunctor<Complex,true>(dispFct, flux, 1));
+    } else {
+      cplFunc.reset(new FluxFieldFunctor<Double,true>(dispFct, flux, 1));
+    }
+    
+    std::cerr << "cplfunctor is " << cplFunc->ToString() << std::endl;
+    
+    // Build compound coefficient function for flux density
+    CoefXprBinOp xpr(coefElecD, 
+                     dynamic_pointer_cast<CoefFunction>(cplFunc),
+                     CoefXpr::OP_ADD);
+    PtrCoefFct coefFlux = CoefFunction::Generate(part, xpr );
+    
+    // wrap coefficient function in result functor
+    shared_ptr<BaseFieldFunctor> fluxFunc;
+    if( isComplex_ ) {
+      fluxFunc.reset(new FieldCoefFunctor<Complex>(coefFlux, flux));
+    } else {
+      fluxFunc.reset(new FieldCoefFunctor<Double>(coefFlux, flux));
+    }
+    
+    std::cerr << "flux field coef is " << coefFlux->ToString() << std::endl << std::endl;
+    resultFunctors_[ELEC_FLUX_DENSITY] = fluxFunc;
+    fieldFunctors_[ELEC_FLUX_DENSITY] = fluxFunc;
+    
+
+
+    // =================
+    //  Mechanic Stress
+    // =================
+    shared_ptr<ResultInfo> stress(new ResultInfo);
+    stress->resultType = MECH_STRESS;
+    stress->dofNames = stressComponents;
+    stress->unit =  "N/m^2";
+    stress->entryType = ResultInfo::TENSOR;
+    stress->definedOn = ResultInfo::ELEMENT;
+    availResults_.insert( stress );
+    
+    // The mechanic stress calculates as 
+    // [sigma] = [c]*S - [e]*E
+    // a) mechanic  -> take from mechanic PDE
+    PtrCoefFct coefMechSigma = pde1_->GetCoefFct( MECH_STRESS );
+        
+    // b) coupling part -> use own ADB-form
+    shared_ptr<BaseFieldFunctor> stressCplFunc;
+    if( isComplex_ ) {
+      stressCplFunc.reset(new FluxFieldFunctor<Complex>(elecFct, stress, 1));
+    } else {
+      stressCplFunc.reset(new FluxFieldFunctor<Double>(elecFct, stress, 1));
+    }
+    
+    // Build compound coefficient function for flux density
+    // Note: from the formula above, we would need to subtract the electric based
+    // part from the first one, but the electrostatic 
+    CoefXprBinOp xpr2(coefMechSigma, 
+                     dynamic_pointer_cast<CoefFunction>(stressCplFunc),
+                     CoefXpr::OP_ADD);
+    PtrCoefFct coefStress = CoefFunction::Generate(part, xpr2 );
+    
+    shared_ptr<BaseFieldFunctor> sigmaFunc;
+    if( isComplex_ ) {
+      sigmaFunc.reset(new FieldCoefFunctor<Complex>(coefStress, stress));
+    } else {
+      sigmaFunc.reset(new FieldCoefFunctor<Double>(coefStress, stress));
+    }
+    
+    std::cerr << "stress field coef is " << coefStress->ToString() << std::endl << std::endl;
+    resultFunctors_[MECH_STRESS] = sigmaFunc;
+    fieldFunctors_[MECH_STRESS] = sigmaFunc;
+
+    // ============================
+    // Initialize result functors:
+    // ============================
+    // 1) Loop over all BDB-integrators
+    std::map<RegionIdType, BaseBDBInt*>::iterator it = bdbInts_.begin();
+    for( ; it != bdbInts_.end(); ++it ) {
+      RegionIdType region = it->first;
+      BaseBDBInt* bdb = it->second;
+
+      // 2) pass integrators to functors
+      cplFunc->AddIntegrator(bdb, region);
+      stressCplFunc->AddIntegrator(bdb, region);
+    }
+
+  }
+  
+  
 
   void PiezoCoupling::DefineAvailResults() {
 
@@ -762,7 +905,7 @@ namespace CoupledField {
 //    availResults_.insert( charge );
   }
 
-  BiLinearForm *
+  BaseBDBInt *
   PiezoCoupling::GetStiffIntegrator( BaseMaterial* actSDMat,
                                      RegionIdType regionId,
                                      bool isComplex ) {
@@ -781,29 +924,29 @@ namespace CoupledField {
     // ------------------------
     shared_ptr<CoefFunction > curCoef;
     if( isComplex ) {
-      curCoef = actSDMat->GetCoefFunction(PIEZO_TENSOR,
+      curCoef = actSDMat->GetTensorCoefFnc(PIEZO_TENSOR,
                                           tensorType, Global::COMPLEX, true );
     } else {
-      curCoef = actSDMat->GetCoefFunction(PIEZO_TENSOR,
+      curCoef = actSDMat->GetTensorCoefFnc(PIEZO_TENSOR,
                                           tensorType, Global::REAL, true );
     }
     
     // ----------------------------------------
     //  Determine correct stiffness integrator 
     // ----------------------------------------
-    BiLinearForm * integ = NULL;
+    BaseBDBInt * integ = NULL;
     if( subType_ == "axi" ) {
       integ = new ADBInt<StrainOperatorAxi<FeH1>,
-          GradientOperator<FeH1,2> >(curCoef, 1.0);
+                         GradientOperator<FeH1,2> >(curCoef, 1.0);
     } else if( subType_ == "planeStrain" ) {
       integ = new ADBInt<StrainOperator2D<FeH1>,
-          GradientOperator<FeH1,2> >(curCoef, 1.0);
+                         GradientOperator<FeH1,2> >(curCoef, 1.0);
     } else if( subType_ == "planeStress" ) {
       integ = new ADBInt<StrainOperator2D<FeH1>,
-          GradientOperator<FeH1,2> >(curCoef, 1.0);
+                         GradientOperator<FeH1,2> >(curCoef, 1.0);
     } else if( subType_ == "3d") {
       integ = new ADBInt<StrainOperator3D<FeH1>,
-          GradientOperator<FeH1,3> >(curCoef, 1.0);
+                         GradientOperator<FeH1,3> >(curCoef, 1.0);
     } else {
       EXCEPTION( "Subtype '" << subType_ << "' unknown for mechanic physic" );
     }

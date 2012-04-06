@@ -81,6 +81,12 @@ class CoefFunctionGridBase : public CoefFunction{
       }
     }
 
+    //! \copydoc CoefFunction::GetVecSize
+    virtual UInt GetVecSize() const;
+
+    //! \copydoc CoefFunction::GetTensorSize
+    virtual void GetTensorSize( UInt& numRows, UInt& numCols ) const;
+
     virtual void Recalculate();
 
     virtual UInt GetStepNum();

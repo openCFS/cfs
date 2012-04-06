@@ -22,7 +22,7 @@ namespace CoupledField {
     public:
 
       //! Constructor 
-      ADBInt(shared_ptr<CoefFunction> dData, MAT_DATA_TYPE factor,
+      ADBInt(PtrCoefFct dData, MAT_DATA_TYPE factor,
              bool coordUpdate = false );
 
       //! Destructor
@@ -33,12 +33,22 @@ namespace CoupledField {
                               EntityIterator& ent1,
                               EntityIterator& ent2 );
 
+      //! Apply A-Trans-Operator on vector
+      void ApplyATransMat( Vector<MAT_DATA_TYPE>&ret, 
+                           const Vector<MAT_DATA_TYPE>& sol,
+                           const LocPointMapped& lpm );
+
+      //! Apply dATrans-Operator on vector
+      void ApplydATransMat( Vector<MAT_DATA_TYPE>&ret, 
+                            const Vector<MAT_DATA_TYPE>& sol,
+                            const LocPointMapped& lpm );
+      
       //! Calculate integration kernel, i.e. A*d*B without integration
       void CalcKernel( Matrix<MAT_DATA_TYPE>& kernel, 
                        const LocPointMapped& lpm );
       
       //! Set Coefficient Function of B operator
-      virtual void SetBCoefFunctionOpA(shared_ptr<CoefFunction> coef){
+      virtual void SetBCoefFunctionOpA(PtrCoefFct coef){
         this->aOperator_.SetCoefFunction(coef);
       }
 

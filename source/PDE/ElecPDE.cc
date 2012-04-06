@@ -183,7 +183,7 @@ namespace CoupledField {
     shared_ptr<FeSpace> mySpace = myFct->GetFeSpace();
 
     StdVector<shared_ptr<EntityList> > ent;
-    StdVector<shared_ptr<CoefFunction> > coef;
+    StdVector<PtrCoefFct > coef;
     LinearForm * lin = NULL;
     StdVector<std::string> dofNames;
 
@@ -326,7 +326,7 @@ namespace CoupledField {
 
     BaseBDBInt * integ = NULL;
     shared_ptr<CoefFunction > curCoef = 
-        actSDMat->GetCoefFunction( ELEC_PERMITTIVITY,tensorType,
+        actSDMat->GetTensorCoefFnc( ELEC_PERMITTIVITY,tensorType,
                                    Global::REAL, false);
 
     // Note; in the piezoelectric case we have to multiply by -1
@@ -647,9 +647,9 @@ namespace CoupledField {
     postProcResults_[ELEC_FLUX_DENSITY] = ELEC_POTENTIAL;
     shared_ptr<BaseFieldFunctor> fluxFunc;
     if( isComplex_ ) {
-      fluxFunc.reset(new FluxFieldFunctor<Complex>(feFct, ef,-1.0));
+      fluxFunc.reset(new FluxFieldFunctor<Complex>(feFct, flux,-1.0));
     } else {
-      fluxFunc.reset(new FluxFieldFunctor<Double>(feFct, ef,-1.0));
+      fluxFunc.reset(new FluxFieldFunctor<Double>(feFct, flux,-1.0));
     }
     resultFunctors_[ELEC_FLUX_DENSITY] = fluxFunc;
     fieldFunctors_[ELEC_FLUX_DENSITY] = fluxFunc;

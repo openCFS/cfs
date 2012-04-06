@@ -10,24 +10,29 @@ namespace CoupledField{
 // ===========================================================================
 
 CoefFunctionTimeFreq<Double>::
-CoefFunctionTimeFreq() {
+CoefFunctionTimeFreq() : CoefFunctionAnalytic() {
   
   dependType_ = TIMEFREQ;
+  isAnalytic_ = true;
   
   // obtain handle from internal variable coefficient function
   mp_ = domain->GetMathParser();
   mHandle_ = mp_->GetNewHandle(true);
   
   // register callback mechanism if expression changes
-  mp_->AddExpChangeCallBack(
+  conn_ = mp_->AddExpChangeCallBack(
       boost::bind(&CoefFunctionTimeFreq<Double>::Recalculate, this ),
       mHandle_ );
 }
 
  CoefFunctionTimeFreq<Double>::
 ~CoefFunctionTimeFreq() {
-  
+   // disconnect from signal
+   conn_.disconnect();
 }
+ 
+ 
+ 
  
  void CoefFunctionTimeFreq<Double>::
  SetTensor(const StdVector<std::string>& val, UInt nRows, UInt nCols ) {
@@ -67,7 +72,7 @@ void CoefFunctionTimeFreq<Double>::
 SetVector(const StdVector<std::string>& val) {
   
   assert((this->dimType_ == NO_DIM) || (this->dimType_ == VECTOR) );
-  
+
   // ensure that expression really depends only on time / freq
   for( UInt i = 0; i < val.GetSize(); ++i ) {
     if( ExprDependsOnSpace(val[i]) ) {
@@ -130,8 +135,36 @@ std::string  CoefFunctionTimeFreq<Double>::ToString() const {
 }
 
 void CoefFunctionTimeFreq<Double>::
-Recalculate() {
+GetStrScalar( std::string& real, std::string& imag ) {
+  assert((this->dimType_ == NO_DIM) || (this->dimType_ == SCALAR) );
+  real = coefScalar_;
+  imag = "0.0";
+  
+}
 
+void CoefFunctionTimeFreq<Double>::
+GetStrVector( StdVector<std::string>& real, 
+              StdVector<std::string>& imag ) {
+  assert((this->dimType_ == NO_DIM) || (this->dimType_ == VECTOR) );
+  real = coefVec_;
+  imag = "0.0";
+
+}
+
+void CoefFunctionTimeFreq<Double>::
+GetStrTensor( UInt& numRows, UInt& numCols,
+              StdVector<std::string>& real, 
+              StdVector<std::string>& imag ) {
+  assert((this->dimType_ == NO_DIM) || (this->dimType_ == TENSOR) );
+  numRows = numRows_;
+  numCols = numCols_;
+  real = coefMat_;
+  imag.Resize(real.GetSize());
+  imag.Init("0.0");
+}
+
+void CoefFunctionTimeFreq<Double>::
+Recalculate() {
   if( dimType_ == TENSOR )  {
     this->mp_->EvalMatrix(mHandle_, constCoefMat_, 
                           this->numRows_, this->numCols_ ); 
@@ -148,7 +181,7 @@ Recalculate() {
 //  COMPLEX VALUED COEFFICIENT FUNCTION
 // ===========================================================================
 CoefFunctionTimeFreq<Complex>::
-CoefFunctionTimeFreq() {
+CoefFunctionTimeFreq() : CoefFunctionAnalytic() {
   
   dependType_ = TIMEFREQ;
   
@@ -158,17 +191,21 @@ CoefFunctionTimeFreq() {
   mHandleImag_ = mp_->GetNewHandle(true);
   
   // register callback mechanism if expression changes
-  mp_->AddExpChangeCallBack(
+  connReal_ = mp_->AddExpChangeCallBack(
       boost::bind(&CoefFunctionTimeFreq<Complex>::Recalculate, this ),
       mHandleReal_ );
 
-  mp_->AddExpChangeCallBack(
+  connImag_ = mp_->AddExpChangeCallBack(
       boost::bind(&CoefFunctionTimeFreq<Complex>::Recalculate, this ),
       mHandleImag_ );
 }
 
 CoefFunctionTimeFreq<Complex>::
 ~CoefFunctionTimeFreq() {
+  
+  // disconnect from math parser signal
+  connReal_.disconnect();
+  connImag_.disconnect();
   
 }
 
@@ -309,11 +346,37 @@ std::string CoefFunctionTimeFreq<Complex>::ToString() const {
   }
   return "";
 }
+
+void CoefFunctionTimeFreq<Complex>::
+GetStrScalar( std::string& real, std::string& imag ) {
+  assert((this->dimType_ == NO_DIM) || (this->dimType_ == SCALAR) );
+   real = coefScalarReal_;
+   imag = coefScalarImag_;
+}
+
+void CoefFunctionTimeFreq<Complex>::
+GetStrVector( StdVector<std::string>& real, 
+              StdVector<std::string>& imag ) {
+  assert((this->dimType_ == NO_DIM) || (this->dimType_ == VECTOR) );
+  real = coefVecReal_;
+  imag = coefVecImag_;
+}
+
+void CoefFunctionTimeFreq<Complex>::
+GetStrTensor( UInt& numRows, UInt& numCols,
+                            StdVector<std::string>& real, 
+                            StdVector<std::string>& imag ) {
+  assert((this->dimType_ == NO_DIM) || (this->dimType_ == TENSOR) );
+  numRows = numRows_;
+  numCols = numCols_;
+  real = coefMatReal_;
+  imag = coefMatImag_;
+}
+
 void CoefFunctionTimeFreq<Complex>::
 Recalculate() {
   
   
-  std::cerr << "Re-calculate!\n";
   if( dimType_ == TENSOR )  {
     Matrix<Double> temp;
     constCoefMat_.Resize(this->numRows_, this->numCols_);

@@ -23,7 +23,7 @@ namespace CoupledField{
             class MAT_DATA_TYPE,
             class COEF_DATA_TYPE>
   BDBInt<B_OP,MAT_DATA_TYPE,COEF_DATA_TYPE>::
-  BDBInt(shared_ptr<CoefFunction> dData, MAT_DATA_TYPE factor, bool coordUpdate )
+  BDBInt(PtrCoefFct dData, MAT_DATA_TYPE factor, bool coordUpdate )
   : BaseBDBInt(coordUpdate) 
   {
       name_ = "BDBInt";
@@ -144,7 +144,6 @@ namespace CoupledField{
   }
 
   //! Apply dB-operator on vector
-  //template<class VEC_DATA_TYPE> 
   template< class B_OP,
   class MAT_DATA_TYPE,
   class COEF_DATA_TYPE>
@@ -160,6 +159,38 @@ namespace CoupledField{
     dMat.Mult_Blas(bOp,dbMat,false,false,1.0,0);
     ret = dbMat* sol;
   }
+  
+  //! Apply A-Transposed-operator on vector
+  template< class B_OP,
+  class MAT_DATA_TYPE,
+  class COEF_DATA_TYPE>
+  void BDBInt<B_OP,MAT_DATA_TYPE,COEF_DATA_TYPE>::
+  ApplyATransMat( Vector<MAT_DATA_TYPE>&ret, 
+                  const Vector<MAT_DATA_TYPE>& sol,
+                  const LocPointMapped& lpm ) {
+    Matrix<MAT_DATA_TYPE> bOp;
+    BaseFE* ptFe = ptFeSpace1_->GetFe( lpm.ptEl->elemNum );
+    bOperator_.CalcOpMat(bOp, lpm, ptFe);
+    ret = bOp * sol;
+  }
+
+  //! Apply dATrans-operator on vector
+  template< class B_OP,
+  class MAT_DATA_TYPE,
+  class COEF_DATA_TYPE>
+  void BDBInt<B_OP,MAT_DATA_TYPE,COEF_DATA_TYPE>::
+  ApplydATransMat( Vector<MAT_DATA_TYPE>&ret, 
+                   const Vector<MAT_DATA_TYPE>& sol,
+                   const LocPointMapped& lpm ) {
+    Matrix<MAT_DATA_TYPE> bOp, dMat, dbMat;
+    BaseFE* ptFe = ptFeSpace1_->GetFe( lpm.ptEl->elemNum );
+    bOperator_.CalcOpMat(bOp, lpm, ptFe);
+    dData_->GetTensor(dMat,lpm);
+    dbMat.Resize(dMat.GetNumRows(), bOp.GetNumCols());
+    dMat.Mult_Blas(bOp,dbMat,false,false,1.0,0);
+    ret = dbMat* sol;
+  }
+  
 
   //! Calculate the integration kernel
   template< class B_OP,

@@ -211,8 +211,8 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
        // ===============================
        //  Standard Stiffness Integrator
        // ===============================
-        shared_ptr<CoefFunction> curCoef = 
-            actMat->GetCoefFunction(MAG_RELUCTIVITY,FULL,Global::REAL, false);
+        PtrCoefFct curCoef = 
+            actMat->GetTensorCoefFnc(MAG_RELUCTIVITY,FULL,Global::REAL, false);
         BaseBDBInt* curlcurl;
         curlcurl = new BDBInt< CurlOperator<FeHCurl,3, Double> >(curCoef,1.0) ;
         curlcurl->SetName("CurlCurlIntegrator");
@@ -259,7 +259,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
         conductivity =  regularizationFactor * reluc[0][0];
       }
 
-      shared_ptr<CoefFunction> coeff =
+      PtrCoefFct coeff =
           CoefFunction::Generate(Global::REAL, lexical_cast<std::string>(conductivity));
       BiLinearForm *massInt;
       massInt = new BBIntMassEdge<ScaledByEdgeIdentityOperator<3,Double> >(coeff,1.0);
@@ -294,7 +294,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
           currDensity[2] = factor + "*" + lexical_cast<std::string>(coilDef_[coil]->locFlowDir_[2]);
           //shared_ptr<CoefFunctionExpression<Double> > coef (new CoefFunctionExpression<Double>());
           //coef->SetVector( currDensity );
-          shared_ptr<CoefFunction> coef(CoefFunction::Generate(Global::REAL, currDensity));
+          PtrCoefFct coef(CoefFunction::Generate(Global::REAL, currDensity));
           coef->SetCoordinateSystem(coilDef_[coil]->flowCoordSys_);
           
           curInt = new BUIntegrator<IdentityOperator<FeHCurl,3,1> >(1.0, coef);

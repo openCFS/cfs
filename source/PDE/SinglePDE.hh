@@ -159,6 +159,9 @@ namespace CoupledField
      * @return true if in xml and added */
     bool CheckStoreResult(shared_ptr<ResultInfo> canditate);
 
+    //! Obtain coefficient function of given type
+    PtrCoefFct GetCoefFct( SolutionType solType );
+    
     //@{
 
     /** Return the native solution type, MECH_DISPLACEMENT, ... */
@@ -185,7 +188,7 @@ namespace CoupledField
                               const StdVector<std::string>& compNames,
                               ResultInfo::EntryType type,
                               bool isComplex,
-                              shared_ptr<CoefFunction> & coef);
+                              PtrCoefFct & coef);
 
   protected:
 
@@ -253,7 +256,7 @@ namespace CoupledField
                             ResultInfo::EntryType type,
                             bool isComplex,
                             StdVector<shared_ptr<EntityList> >& entities, 
-                            StdVector<shared_ptr<CoefFunction> >& coef );
+                            StdVector<PtrCoefFct>& coef );
 
 
 
@@ -414,7 +417,7 @@ namespace CoupledField
     
     //! Map for storing the primary BDB integrators of the problem
     
-    //! This map stores the primary BDB integratorsm, which can be used for 
+    //! This map stores the primary BDB integrators, which can be used for 
     //! calculating spatial derivatives, fluxes and energy.
     std::map<RegionIdType, BaseBDBInt*> bdbInts_;
     

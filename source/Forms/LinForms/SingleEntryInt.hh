@@ -13,7 +13,7 @@ namespace CoupledField {
 
     //! Constructor
     //! \param val Coefficient function (vector valued)
-    SingleEntryInt( shared_ptr<CoefFunction>& val );
+    SingleEntryInt( PtrCoefFct& val );
 
     //! Destructor
     virtual ~SingleEntryInt();
@@ -37,7 +37,7 @@ namespace CoupledField {
   protected:
 
     //! Coefficient function
-    shared_ptr<CoefFunction> val_;
+    PtrCoefFct val_;
   };
 }
 

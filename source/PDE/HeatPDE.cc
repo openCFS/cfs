@@ -43,6 +43,7 @@
 #include "Forms/Operators/IdentityOperator.hh"
 
 //new postprocessing concept
+#include "Domain/CoefFunction/CoefXpr.hh"
 #include "Domain/Results/ResultFunctor.hh"
 
 namespace CoupledField {
@@ -283,7 +284,7 @@ void HeatPDE::DefineIntegrators() {
     else {
       // --- linear real-valued stiffness integrator ---
       shared_ptr<CoefFunction > curCoef = 
-        actSDMat->GetCoefFunction( HEAT_CONDUCTIVITY, tensorType, 
+        actSDMat->GetTensorCoefFnc( HEAT_CONDUCTIVITY, tensorType, 
                                  Global::REAL, false );
 
       BaseBDBInt* stiffInt = NULL;
@@ -309,14 +310,16 @@ void HeatPDE::DefineIntegrators() {
     // ====================================================================
     // mass integrator
     // ====================================================================
+
+    // Factor for mass matrix: density * heatCapacity
+    PtrCoefFct density = actSDMat->GetScalCoefFnc( DENSITY, Global::REAL );
+    PtrCoefFct heatCapacity = 
+        actSDMat->GetScalCoefFnc( HEAT_CAPACITY, Global::REAL );
+    PtrCoefFct massFactor =
+        CoefFunction::Generate(Global::REAL,
+                               CoefXprBinOp( density, heatCapacity, 
+                                             CoefXpr::OP_MULT ) );
     
-    // TODO: The following code is not implemented in a clean way:
-    // We should query ALL parameters via the BaseMaterial::GetCoefFunction
-    // interface.
-    Double density, heatCapacity, massFactor;
-    actSDMat->GetScalar(density,DENSITY,Global::REAL);
-    actSDMat->GetScalar(heatCapacity,HEAT_CAPACITY,Global::REAL);
-    massFactor = density * heatCapacity;
 
     if ( nonLinTypes.Find(NLHEAT_CAPACITY) != -1 ) {
       // informs material that approx./interpol. for heat conductivity is needed
@@ -331,15 +334,23 @@ void HeatPDE::DefineIntegrators() {
       shared_ptr<CoefFunctionApprox<IdentityOperator<FeH1> > > 
         capNL ( new CoefFunctionApprox<IdentityOperator<FeH1> >() );
 
-      capNL->Init( heatCapacity, nLinFnc, 
+      // Take constant heatCapacity for initial value of 
+      Double heatCapInitial;
+       actSDMat->GetScalar( heatCapInitial, HEAT_CAPACITY, Global::REAL );
+      capNL->Init( heatCapInitial, nLinFnc, 
                     dynamic_pointer_cast<FeFunction<Double > > (feFunc) );
 
+      PtrCoefFct coefNLCast = dynamic_pointer_cast<CoefFunction>(capNL);
+      PtrCoefFct nlMassCoeff = 
+          CoefFunction::Generate(Global::REAL,
+                                 CoefXprBinOp( coefNLCast, density, CoefXpr::OP_MULT ) );
+      
       // create stiffness integrator
       BaseBDBInt* massIntNL = NULL;
       if( dim_ == 2 ) {
-        massIntNL = new BBInt<IdentityOperator<FeH1,2> >(capNL,density );
+        massIntNL = new BBInt<IdentityOperator<FeH1,2> >(nlMassCoeff, 1.0 );
       } else {
-        massIntNL = new BBInt<IdentityOperator<FeH1,3> >(capNL,density );
+        massIntNL = new BBInt<IdentityOperator<FeH1,3> >(nlMassCoeff, 1.0 );
       }
       massIntNL->SetName("MassIntegrator-NL");
 
@@ -363,14 +374,11 @@ void HeatPDE::DefineIntegrators() {
       assemble_->AddLinearForm( rhsNlinContext );
     }
     else {
-      shared_ptr<CoefFunction> coeff 
-        = CoefFunction::Generate(Global::REAL, lexical_cast<std::string>(massFactor));
-      
       BiLinearForm *massInt = NULL;
       if(dim_==2)
-        massInt = new BBInt<IdentityOperator<FeH1,2,1,Double>, Double  >(coeff,1.0 );
+        massInt = new BBInt<IdentityOperator<FeH1,2,1,Double>, Double  >(massFactor,1.0 );
       else
-        massInt = new BBInt<IdentityOperator<FeH1,3,1,Double>, Double  >(coeff,1.0 );
+        massInt = new BBInt<IdentityOperator<FeH1,3,1,Double>, Double  >(massFactor,1.0 );
 
       massInt->SetName("MassIntegrator");
       massInt->SetFeSpace( feFunctions_[HEAT_TEMPERATURE]->GetFeSpace() );
@@ -597,7 +605,7 @@ void HeatPDE::DefineRhsLoadIntegrators() {
     shared_ptr<FeSpace> mySpace = myFct->GetFeSpace();
 
     StdVector<shared_ptr<EntityList> > ent;
-    StdVector<shared_ptr<CoefFunction> > coef;
+    StdVector<PtrCoefFct > coef;
     LinearForm * lin = NULL;
     StdVector<std::string> dofNames;
 

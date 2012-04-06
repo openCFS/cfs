@@ -37,7 +37,7 @@ namespace CoupledField {
     public:
 
       //! Constructor with pointer to BaseElem
-      BBInt( shared_ptr<CoefFunction> scalCoef, MAT_DATA_TYPE factor,
+      BBInt( PtrCoefFct scalCoef, MAT_DATA_TYPE factor,
              bool coordUpdate = false);
 
       //! Destructor
@@ -91,7 +91,7 @@ namespace CoupledField {
         this->intScheme_ = ptFeSpace1_->GetIntScheme();
       }
       //! Set Coefficient Function of B operator
-      virtual void SetBCoefFunctionOpB(shared_ptr<CoefFunction> coef){
+      virtual void SetBCoefFunctionOpB(PtrCoefFct coef){
         this->bOperator_.SetCoefFunction(coef);
       }
 
@@ -114,7 +114,7 @@ namespace CoupledField {
     public:
 
       //! Constructor with pointer to BaseElem
-      BBIntMassEdge(shared_ptr<CoefFunction> scalCoef, MAT_DATA_TYPE factor,
+      BBIntMassEdge(PtrCoefFct scalCoef, MAT_DATA_TYPE factor,
                     bool coordUpdate = false):
         BBInt<B_OP,MAT_DATA_TYPE>(scalCoef, factor, coordUpdate ){
         this->name_ = "BBIntMassEdge";
@@ -138,7 +138,7 @@ namespace CoupledField {
     public:
 
       //! Constructor with pointer to BaseElem
-    SurfaceBBInt(shared_ptr<CoefFunction> scalCoef, MAT_DATA_TYPE factor,
+    SurfaceBBInt(PtrCoefFct scalCoef, MAT_DATA_TYPE factor,
                  const std::set<RegionIdType>& volRegions, bool coordUpdate = false):
         BBInt<B_OP,MAT_DATA_TYPE,COEF_DATA_TYPE>(scalCoef, factor, coordUpdate ){
         this->name_ = "SurfaceBBInt";

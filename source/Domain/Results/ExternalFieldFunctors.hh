@@ -170,7 +170,7 @@ protected:
   std::map<RegionIdType, SourceFieldType> regionFlags_;
 
   //! Map storing coefFunction of the analytical regions
-  std::map<RegionIdType,shared_ptr<CoefFunction> > regionCoefFunctions_;
+  std::map<RegionIdType,PtrCoefFct > regionCoefFunctions_;
 
 };
 

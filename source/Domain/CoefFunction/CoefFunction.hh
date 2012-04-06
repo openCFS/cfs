@@ -15,6 +15,8 @@
 #ifndef COEFFUNCTION_HH
 #define COEFFUNCTION_HH
 
+#include <boost/utility.hpp>
+
 #include "General/Environment.hh"
 #include "MatVec/Matrix.hh"
 #include "MatVec/Vector.hh"
@@ -27,6 +29,8 @@ namespace CoupledField{
 
 // forward class declarations
 class CoordSystem;
+class CoefXpr;
+class CoefFunction;
 
 //! This is the base class for describing coefficients
 
@@ -36,8 +40,8 @@ class CoordSystem;
 //!
 //!   Example1: consider the PML
 //!   Coefficient function provides a material matrix multiplied by the
-//!   complex jacobian. Moreover the same coefficient function is passed to
-//!   the operator to provide the damping parameters for the "strechted"
+//!   complex Jacobian. Moreover the same coefficient function is passed to
+//!   the operator to provide the damping parameters for the "stretched"
 //!   derivatives.
 //!
 //!   Example2: Consider geometric non-linear mechanics
@@ -47,7 +51,7 @@ class CoordSystem;
 //!   This class is just the interface class right now, the following
 //!   structure should be realized:
 //!   \li \c coefFunctionAnalytic
-//!     This class descibes the quantity by an analytic expression this
+//!     This class describes the quantity by an analytic expression this
 //!     includes (non-linear) materials, analytic flow fields, etc.
 //!   \li \c coefFunctionGrid
 //!     This class provides the Information based on information read in
@@ -55,7 +59,12 @@ class CoordSystem;
 //!   \li \c coefFunctionSol
 //!     This function provides the information based on the current
 //!     solution of the problem
-class CoefFunction{
+//!
+//! \note As derived classes of the CoefFunction can be very complex and hide
+//!       even whole FeFunctions on other grids, we generally disallow copying
+//!       and assigning CoefFunction objects. 
+//! 
+class CoefFunction : boost::noncopyable {
 public:
 
   // ========================
@@ -98,7 +107,7 @@ public:
   //!               If REAL, a real-valued CoefFunction is generated
   //! \param realVal Real-part of the CoefFunction
   //! \param imagVal Imag-part of the CoefFunction (optional)
-  static shared_ptr<CoefFunction> 
+  static PtrCoefFct 
   Generate( Global::ComplexPart type, 
             const std::string& realVal, 
             const std::string& imagVal = "0" );
@@ -115,7 +124,7 @@ public:
   //!               If REAL, a real-valued CoefFunction is generated
   //! \param realVal Real-part vector of the CoefFunction
   //! \param imagVal Imag-part vector of the CoefFunction (optional)
-  static shared_ptr<CoefFunction> 
+  static PtrCoefFct 
   Generate( Global::ComplexPart type, 
             const StdVector<std::string>& realVal, 
             const StdVector<std::string>& imagVal = StdVector<std::string>() );
@@ -135,22 +144,33 @@ public:
   //! \param numCols Number of columns of the tensor function
   //! \param realVal Real-part tensor of the CoefFunction
   //! \param imagVal Imag-part tensor of the CoefFunction (optional)
-  static shared_ptr<CoefFunction> 
+  static PtrCoefFct 
   Generate( Global::ComplexPart type,
             UInt numRows, UInt numCols,
             const StdVector<std::string>& realVal,
             const StdVector<std::string>& imagVal = StdVector<std::string>() );
+  
+  //! Generate coefficient function from coefficient expression
+  
+  //! This method generates a new coefficient function based on an expression.
+  //! The method investigates the expression and tries to generate the most
+  //! efficient coefficient representation, i.e. if the expression evaluates
+  //! to a constant, a CoefFunctionConst/Analytical/TimeFreq is generated.
+  //! In all other cases, a compound coefficient function is generated. 
+  static PtrCoefFct Generate( Global::ComplexPart type,
+                              const CoefXpr&  xpr );
   //@}
 
-  // ========================
+  // ==========================
   //  CONSTRUCTOR / DESTRUCTOR
-  // ========================
+  // ==========================
   //@{ \name Constructor / Destructor
 
   //! Constructor
   CoefFunction(){
     dimType_ = NO_DIM;
     dependType_ = CONST;
+    isAnalytic_ = false;
     
     // by default, the coefficients do not
     // depend on any coordinate system
@@ -215,6 +235,18 @@ public:
         << "Most likely this method is called with a real-valued "
         << "CoefFunction object." );
   }
+  
+  //! Return size of vector in case coefficient function is a vector
+  virtual UInt GetVecSize() const {
+    EXCEPTION( "CoefFunction::GetVecSize: Not overwritten");
+    return 0;
+  }
+  
+  //! Return row and columns size of tensor if coefficient function is a tensor
+  virtual void GetTensorSize( UInt& numRows, UInt& numCols ) const {
+      EXCEPTION( "CoefFunction::GetVecSize: Not overwritten");
+  }
+  
   //@}
 
 
@@ -239,6 +271,14 @@ public:
     return false;
   }
   
+  //! Return if coefficient function is analytic
+  
+  //! This method can be used to query, if a coefficient function can be
+  //! described by a closed formula (= string). 
+  virtual bool IsAnalytic() {
+    return isAnalytic_;
+  }
+  
   //! Return if coeffunction is complex
   virtual bool IsComplex() {
     EXCEPTION("Method not properly overwritten");
@@ -261,8 +301,31 @@ public:
   virtual std::string ToString() const {
     EXCEPTION("CoefFuncion: ToString() not properly overwritten");
   }
+  
+  // ======================================================================
+  //  Helper methods for generating variable names of coefficient function
+  // ======================================================================
+  //@{ \name Generate variable names for a given coefficient function
+  
+  //! Generate vector of variable names for all components of a vector
+  static void GenScalCompNames( std::string& realVar, 
+                                std::string& imagVar, 
+                                const std::string& prefix,
+                                PtrCoefFct cf );
+  
+  //! Generate vector of variable names for all components of a vector
+  static void GenVecCompNames( StdVector<std::string>& realVar, 
+                               StdVector<std::string>& imagVar, 
+                               const std::string& prefix,
+                               PtrCoefFct cf );
+  
+  //! Generate vector of variable names for all components of a tensor
+  static void GenTensorCompNames( StdVector<std::string>& realVar,
+                                  StdVector<std::string>& imagVar,
+                                  const std::string& prefix,
+                                  PtrCoefFct cf );
 
-
+  //@}
 protected:
 
   // ========================
@@ -278,7 +341,7 @@ protected:
   //@}
   
   //TODO: CHANGE THIS TO SHARED POINTER
-  // i.e. change the daomin to hold a shared_ptr to the coordinate systems!
+  // i.e. change the domain to hold a shared_ptr to the coordinate systems!
   CoordSystem* coordSys_;
 
   //! Dimension of coefficient function (scalar, vector, tensor)
@@ -286,9 +349,52 @@ protected:
   
   //! Dependency type of the coefficient function
   CoefDependType dependType_;
+  
+  //! Flag, if coefficient function is analytic (= can be represented as string)
+  bool isAnalytic_;
 
   //! Support of the CoefFunction. Only needed for grid/solution results
   StdVector<shared_ptr<EntityList> > entities_;
+};
+
+
+//! Subclass for analytical coefficient functions
+
+//! This class represents all analytical coefficient functions,
+//! which can be represented by a formula (constant, analytical expression).
+//! Thus they can deliver a string representation of their scalar, vector
+//! or tensor value.
+class CoefFunctionAnalytic : public CoefFunction {
+public:
+
+  //! Constructor
+  CoefFunctionAnalytic()
+  : CoefFunction () {
+    isAnalytic_ = true;
+  }
+
+  //! Destructor
+  virtual ~CoefFunctionAnalytic() {}
+
+
+  //! Get scalar expression
+  virtual void GetStrScalar( std::string& real, std::string& imag ) {
+    EXCEPTION( "Not implemented here");
+  }
+
+  //! Get vector expression
+  virtual void GetStrVector( StdVector<std::string>& real, 
+                             StdVector<std::string>& imag ) {
+    EXCEPTION( "Not implemented here");
+  }
+
+  //! Get tensor expression
+  virtual void GetStrTensor( UInt& numRows, UInt& numCols,
+                             StdVector<std::string>& real, 
+                             StdVector<std::string>& imag ) {
+    EXCEPTION( "Not implemented here");
+  }
+
 };
 
 }

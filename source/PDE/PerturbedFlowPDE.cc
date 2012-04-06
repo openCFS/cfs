@@ -132,7 +132,7 @@ namespace CoupledField {
     shared_ptr<FeSpace> presSpace = presFct->GetFeSpace();
 
     // Create coefficient functions for all fluid densities
-    std::map< RegionIdType, shared_ptr<CoefFunction> > oneOverDensityFuncs;
+    std::map< RegionIdType, PtrCoefFct > oneOverDensityFuncs;
     std::set< RegionIdType > flowRegions;
 
     //  Loop over all regions
@@ -176,10 +176,10 @@ namespace CoupledField {
     // Not needed at the moment. Commented out due to gcc 4.6.
 #if 0
 //      BaseBDBInt * stiffInt = NULL;
-      shared_ptr<CoefFunction> density =
+      PtrCoefFct density =
           actMat->GetCoefFunction( DENSITY, tensorType,
                                    Global::REAL, false);
-      shared_ptr<CoefFunction> viscosity =
+      PtrCoefFct viscosity =
           actMat->GetCoefFunction( DYNAMIC_VISCOSITY, tensorType,
                                    Global::REAL, false);
 #endif
@@ -201,7 +201,7 @@ namespace CoupledField {
       //  VERSION 1: K_PV Integrator (lower off-diagonal integrator)
       // --------------------------------------------------------------------
 
-      shared_ptr<CoefFunction> coeffKPV
+      PtrCoefFct coeffKPV
                 = CoefFunction::Generate(Global::REAL, "1.0");
       BiLinearForm * stiffIntPV = NULL;
       if( dim_ == 2 ) {
@@ -222,7 +222,7 @@ namespace CoupledField {
       // --------------------------------------------------------------------
       //  VERSION 2: K_VP Integrator (upper off-diagonal integrator)
       // --------------------------------------------------------------------
-      shared_ptr<CoefFunction> coeffKVP
+      PtrCoefFct coeffKVP
                 = CoefFunction::Generate(Global::REAL, "1.0");
       BiLinearForm * stiffIntVP = NULL;
       if( dim_ == 2 ) {
@@ -244,7 +244,7 @@ namespace CoupledField {
       //  VERSION 2: K_VP Integrator
       //  (upper off-diagonal integrators - partially integrated, volume)
       // --------------------------------------------------------------------
-      shared_ptr<CoefFunction> coeffKVP
+      PtrCoefFct coeffKVP
                 = CoefFunction::Generate(Global::REAL, "1.0");
       BiLinearForm * stiffIntVP = NULL;
       if( dim_ == 2 ) {
@@ -264,7 +264,7 @@ namespace CoupledField {
       // --------------------------------------------------------------------
       //  VERSION 2: K_Laplace Integrator
       // --------------------------------------------------------------------
-      shared_ptr<CoefFunction> coeffKvv
+      PtrCoefFct coeffKvv
                 = CoefFunction::Generate(Global::REAL, "1.0");
       BiLinearForm * stiffIntLaplace = NULL;
       if( dim_ == 2 ) {
@@ -280,7 +280,7 @@ namespace CoupledField {
       assemble_->AddBiLinearForm( stiffContLaplace );
 
 
-      shared_ptr<CoefFunction> coeffMVV
+      PtrCoefFct coeffMVV
                 = CoefFunction::Generate(Global::REAL, lexical_cast<std::string>(1.0));
 
       //======================================================================
@@ -320,7 +320,7 @@ namespace CoupledField {
       // ====================================================================
       // damping integrators
       // ====================================================================
-      shared_ptr<CoefFunction> coeffDvv
+      PtrCoefFct coeffDvv
                 = CoefFunction::Generate(Global::REAL, lexical_cast<std::string>(1.0));
 
       BiLinearForm *dampIntvv = NULL;

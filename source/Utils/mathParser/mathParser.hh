@@ -171,7 +171,23 @@ namespace CoupledField {
                    const std::string &varName,
                    Double val );
     
-    //! Special Set function for coordinate values
+    //! Register external variable with given parser
+    
+    //! This method allows to register external variables, which are not handled
+    //! by the internal variable pool of the MathParser. This also means, that
+    //! no signal is fired, if the value changes, as it is the case with the method
+    //! MathParser::SetValue(). On the other hand, this method has less overhead
+    //! and should perform faster.
+    //! \param handle MathParser handle for identifying specific parser
+    //! \param varName Name of variable to be registered
+    //! \param ptVal 
+    //! \note It is the responsibility of the user to guarantee, that the 
+    //!       pointer to the variable is valid throughout the execution. 
+    void RegisterExternalVar( HandleType handle,
+                              const std::string& varName,
+                              Double * ptVar );
+    
+    //! Special set function for coordinate values
 
     //! This function sets the values of the coordinate components
     //! of the given vector within the given parser.

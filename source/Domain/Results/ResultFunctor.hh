@@ -1,6 +1,8 @@
 #ifndef CFS_RESULT_FUNCTOR_HH
 #define CFS_RESULT_FUNCTOR_HH
 
+#include <boost/tr1/type_traits.hpp>
+
 #include "General/Environment.hh"
 #include "Domain/ElemMapping/ElemShapeMap.hh"
 #include "Domain/ElemMapping/EntityLists.hh"
@@ -26,7 +28,8 @@ public:
                   shared_ptr<ResultInfo> info ) {
     derivType_ = NOT_DEFINED;
     resultInfo_ = info;
-    ptGrid_ = feFct->GetGrid();
+    //ptGrid_ = feFct->GetGrid();
+    ptGrid_ = domain->GetGrid();
     dim_ = info->dofNames.GetSize();
   }
   
@@ -34,8 +37,8 @@ public:
   //! Typedef for spatial type of results
   //! PRIMARY: denotes primary field variables or their time-derivative
   //! VOL_FIELD: denotes fields in the volume space
-  //! SURF_FIELD: dentes fields defined by normals
-  //! INTEGRATED: denotes valus, which get integrated
+  //! SURF_FIELD: denotes fields defined by normals
+  //! INTEGRATED: denotes values, which get integrated
   typedef enum {NOT_DEFINED, PRIMARY, VOL_FIELD, SURF_FIELD, INTEGRATED} ResultDerivType;
   
   //! Evaluate result for complete entity list
@@ -100,6 +103,16 @@ public:
   //! Destructor
   virtual ~BaseFieldFunctor() {}
 
+  //! \copydoc CoefFunction::GetVecSize
+   UInt GetVecSize() const {
+     return resultInfo_->dofNames.GetSize();
+   }
+     
+   //! \copydoc CoefFunction::GetTensorSize
+   virtual void GetTensorSize( UInt& numRows, UInt& numCols ) const {
+     EXCEPTION( "Tensor valued results not available yet" );
+   }
+  
 protected:
 
 };
@@ -117,12 +130,19 @@ public:
   FieldFunctor( shared_ptr<BaseFeFunction> feFct,
                 shared_ptr<ResultInfo> info  ) 
   : BaseFieldFunctor( feFct, info) {  
-    feFct_ = dynamic_pointer_cast<FeFunction<TYPE> >(feFct);
+    if( feFct) {
+      feFct_ = dynamic_pointer_cast<FeFunction<TYPE> >(feFct);
+    }
   }
   
   //! Destructor
   ~FieldFunctor() {}
   
+  //! \copydoc CoefFunction::IsComplex
+    bool IsComplex(){
+      return std::tr1::is_same<TYPE,Complex>::value;
+    }
+    
   //! Evaluate field for complete result
   virtual void EvalResult( shared_ptr<BaseResult> res ) {
 
@@ -163,6 +183,36 @@ protected:
 };
 
 // --------------------------------------------------------------------------
+//  FIELDS BASED ON COEFFICIENT FUNCTION
+// --------------------------------------------------------------------------
+//! Functor for purely evaluatung a coefficient function
+template<class DATA_TYPE>
+class FieldCoefFunctor : public FieldFunctor<DATA_TYPE> {
+public:
+  
+  //! Constructor
+  FieldCoefFunctor( PtrCoefFct coef,
+                    shared_ptr<ResultInfo> inf ) :
+                      FieldFunctor<DATA_TYPE>( shared_ptr<BaseFeFunction>(), inf) {
+    
+    coef_ = coef;
+  }
+  
+  //! Destructor
+  virtual ~FieldCoefFunctor() {}
+  
+  //! Evaluate field at local point
+  virtual void GetVector(Vector<DATA_TYPE>& vec, 
+                         const LocPointMapped& lpm) {
+    coef_->GetVector( vec, lpm );
+  }
+
+protected:
+
+  //! Store coefficient function
+  PtrCoefFct coef_;
+};
+// --------------------------------------------------------------------------
 //  FIELDS BASED ON INTERPOLATED PRIMARY RESULT
 // --------------------------------------------------------------------------
 
@@ -178,6 +228,11 @@ public:
     
     feSpace_ = feFct->GetFeSpace();
   }
+  
+  //! \copydoc CoefFunction::IsComplex
+    bool IsComplex(){
+      return std::tr1::is_same<DATA_TYPE,Complex>::value;
+    }
   
   //! Destructor
   virtual ~FieldInterpolFunctor() {}
@@ -230,6 +285,11 @@ public:
     factor_ = factor;
   }
 
+  //! \copydoc CoefFunction::IsComplex
+    bool IsComplex(){
+      return std::tr1::is_same<TYPE,Complex>::value;
+    }
+  
   //! Destructor
   virtual ~DiffFieldFunctor() {}
 
@@ -263,7 +323,9 @@ protected:
 //! applying the dB-Operator of the related BDB-class. The BDB-bilinearforms
 //! have to get passed to this class for every region the result might get
 //! calculated at.
-template<class TYPE>
+//! \tparam TYPE Real-valued or Complex valued instantiation
+//! \tparam TRANS Apply transposed version of dB / Ad matrix
+template<class TYPE, bool TRANS = false >
 class FluxFieldFunctor : public FieldFunctor<TYPE> {
 public:
   
@@ -278,13 +340,31 @@ public:
   //! Destructor
   virtual ~FluxFieldFunctor() {}
   
+  std::string ToString() const {
+    std::stringstream out;
+    out << "FieldFunctor\n";
+    out << "ApplyTransposed: " << TRANS << std::endl;
+    out << "Result: " << 
+        SolutionTypeEnum.ToString(this->resultInfo_->resultType );
+    return out.str();
+  }
+  
+  //! \copydoc CoefFunction::IsComplex
+  bool IsComplex(){
+    return std::tr1::is_same<TYPE,Complex>::value;
+  }
+  
   //! Evaluate field at local point
   virtual void GetVector(Vector<TYPE>& vec, 
                          const LocPointMapped& lpm) {
     vec.Resize(this->ptGrid_->GetDim());
     this->feFct_->GetElemSolution( elemSol, lpm.ptEl);
-    BaseBDBInt* bdb = this->forms_[lpm.ptEl->regionId]; 
-    bdb->ApplydBMat(vec, elemSol, lpm );
+    BaseBDBInt* bdb = this->forms_[lpm.ptEl->regionId];
+    if( TRANS ) {
+      bdb->ApplydATransMat(vec, elemSol, lpm );
+    } else {
+      bdb->ApplydBMat(vec, elemSol, lpm );
+    }
     vec *= factor_;
   }
   

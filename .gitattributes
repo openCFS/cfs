@@ -824,6 +824,9 @@ source/Domain/CoefFunction/CMakeLists.txt -text
 source/Domain/CoefFunction/CoefFunction.cc -text
 source/Domain/CoefFunction/CoefFunction.hh -text
 source/Domain/CoefFunction/CoefFunctionApprox.hh -text
+source/Domain/CoefFunction/CoefFunctionCompound.cc -text
+source/Domain/CoefFunction/CoefFunctionCompound.hh -text
+source/Domain/CoefFunction/CoefFunctionConst.cc -text
 source/Domain/CoefFunction/CoefFunctionConst.hh -text
 source/Domain/CoefFunction/CoefFunctionExpression.cc -text
 source/Domain/CoefFunction/CoefFunctionExpression.hh -text
@@ -831,6 +834,8 @@ source/Domain/CoefFunction/CoefFunctionGrid.cc -text
 source/Domain/CoefFunction/CoefFunctionGrid.hh -text
 source/Domain/CoefFunction/CoefFunctionTimeFreq.cc -text
 source/Domain/CoefFunction/CoefFunctionTimeFreq.hh -text
+source/Domain/CoefFunction/CoefXpr.cc -text
+source/Domain/CoefFunction/CoefXpr.hh -text
 source/Domain/CoordinateSystems/CMakeLists.txt -text
 source/Domain/CoordinateSystems/CartesianCoordSystem.cc svneol=native#text/plain
 source/Domain/CoordinateSystems/CartesianCoordSystem.hh svneol=native#text/plain

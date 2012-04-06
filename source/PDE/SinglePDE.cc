@@ -913,6 +913,20 @@ namespace CoupledField {
     return true;
   }
 
+  PtrCoefFct SinglePDE::GetCoefFct( SolutionType type ) {
+    LOG_DBG(singlepde) << "Requesting coefficient function for solution type "
+                          << SolutionTypeEnum.ToString( type );
+    
+    PtrCoefFct ret;
+    if ( fieldFunctors_.find(type) == fieldFunctors_.end() ) {
+      EXCEPTION( "No coefficient function for result type '"
+          << SolutionTypeEnum.ToString( type ) << "' found");
+    }
+    
+    ret = dynamic_pointer_cast<CoefFunction>(fieldFunctors_[type]);
+    return ret;
+  }
+  
   void SinglePDE::WriteResultsInFile( const UInt kstep,
                                       const Double actTimeFreq ) {
     LOG_DBG(singlepde) << "WriteResultsInFile() kstep: " <<  kstep
@@ -1488,7 +1502,7 @@ namespace CoupledField {
                                      ResultInfo::EntryType type,
                                      bool isComplex,
                                      StdVector<shared_ptr<EntityList> >& entities, 
-                                     StdVector<shared_ptr<CoefFunction> >& coef ) {
+                                     StdVector<PtrCoefFct >& coef ) {
     
     // get grip of all elements of that type
     ParamNodeList elems = myParam_->Get("bcsAndLoads")->GetList(elemName);
@@ -1532,7 +1546,7 @@ namespace CoupledField {
                                        const StdVector<std::string>& compNames,
                                        ResultInfo::EntryType type,
                                        bool isComplex,
-                                       shared_ptr<CoefFunction> & coef){
+                                       PtrCoefFct & coef){
 
     UInt numComp = compNames.GetSize();
     StdVector<std::string> vals(numComp), phases(numComp);
