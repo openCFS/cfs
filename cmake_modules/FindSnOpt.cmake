@@ -30,7 +30,7 @@ FILE(REMOVE "${CFS_TEMP_DIR}/build_snopt_vars.pl")
 # Determine paths of SNOPT libraries.
 #-------------------------------------------------------------------------------
 SET(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}")
-SET(SNOPT_LIBRARY "${LD}/libsnopt.a;${LD}/libsnopt-blas.a;${LD}/libsnprint.a;-lm" 
+SET(SNOPT_LIBRARY "${LD}/libsnopt.a;${LD}/libsnprint.a;-lm" 
     CACHE FILEPATH "SnOpt library.")
 
 MARK_AS_ADVANCED(SNOPT_LIBRARY)
