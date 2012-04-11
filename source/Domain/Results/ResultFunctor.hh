@@ -3,6 +3,7 @@
 
 #include <boost/tr1/type_traits.hpp>
 
+#include "Domain/Results/BaseResults.hh"
 #include "General/Environment.hh"
 #include "Domain/ElemMapping/ElemShapeMap.hh"
 #include "Domain/ElemMapping/EntityLists.hh"
@@ -24,8 +25,7 @@ class ResultFunctor {
 public:
 
   //! Constructor
-  ResultFunctor ( shared_ptr<BaseFeFunction> feFct,
-                  shared_ptr<ResultInfo> info ) {
+  ResultFunctor ( shared_ptr<ResultInfo> info ) {
     derivType_ = NOT_DEFINED;
     resultInfo_ = info;
     //ptGrid_ = feFct->GetGrid();
@@ -56,7 +56,7 @@ public:
   ResultDerivType GetDerivType() {return derivType_;}
 
 protected:
-  
+    
   //! Type of result (primary, field, integrated etc.)
   ResultDerivType derivType_;
   
@@ -88,9 +88,8 @@ class BaseFieldFunctor : public ResultFunctor, public CoefFunction {
 public:
   
   //! Constructor    
-  BaseFieldFunctor( shared_ptr<BaseFeFunction> feFct,
-                    shared_ptr<ResultInfo> info  ) 
-  : ResultFunctor(feFct, info) {
+  BaseFieldFunctor( shared_ptr<ResultInfo> info  ) 
+  : ResultFunctor( info) {
     
     derivType_ = VOL_FIELD;
     
@@ -129,7 +128,7 @@ public:
   //! Constructor
   FieldFunctor( shared_ptr<BaseFeFunction> feFct,
                 shared_ptr<ResultInfo> info  ) 
-  : BaseFieldFunctor( feFct, info) {  
+  : BaseFieldFunctor( info) {  
     if( feFct) {
       feFct_ = dynamic_pointer_cast<FeFunction<TYPE> >(feFct);
     }
@@ -185,7 +184,7 @@ protected:
 // --------------------------------------------------------------------------
 //  FIELDS BASED ON COEFFICIENT FUNCTION
 // --------------------------------------------------------------------------
-//! Functor for purely evaluatung a coefficient function
+//! Functor for purely evaluating a coefficient function
 template<class DATA_TYPE>
 class FieldCoefFunctor : public FieldFunctor<DATA_TYPE> {
 public:
@@ -193,7 +192,7 @@ public:
   //! Constructor
   FieldCoefFunctor( PtrCoefFct coef,
                     shared_ptr<ResultInfo> inf ) :
-                      FieldFunctor<DATA_TYPE>( shared_ptr<BaseFeFunction>(), inf) {
+                      FieldFunctor<DATA_TYPE>(  shared_ptr<BaseFeFunction>(), inf) {
     
     coef_ = coef;
   }
@@ -202,9 +201,23 @@ public:
   virtual ~FieldCoefFunctor() {}
   
   //! Evaluate field at local point
-  virtual void GetVector(Vector<DATA_TYPE>& vec, 
+  inline void GetVector(Vector<DATA_TYPE>& vec, 
                          const LocPointMapped& lpm) {
-    coef_->GetVector( vec, lpm );
+    switch( coef_->GetDimType()) {
+      case CoefFunction::VECTOR:
+        coef_->GetVector( vec, lpm );
+        break;
+      case CoefFunction::SCALAR:
+        vec.Resize(1);
+        coef_->GetScalar( vec[0], lpm );
+        break;
+      case CoefFunction::TENSOR:
+        EXCEPTION("Not implemented");
+        break;
+      default:
+        EXCEPTION("Missing case statement");
+        break;
+    }
   }
 
 protected:
@@ -446,9 +459,10 @@ public:
   //! Constructor
   EnergyResultFunctor(shared_ptr<BaseFeFunction> feFct,
                       shared_ptr<ResultInfo> inf ) :
-                        ResultFunctor( feFct, inf) {
+                        ResultFunctor( inf) {
     feFct_ = dynamic_pointer_cast<FeFunction<TYPE> >(feFct);
     derivType_ = INTEGRATED;
+    
   }
   
   //! Destructor
@@ -516,8 +530,30 @@ protected:
 // If we use the energy density functor, we can have a different accuracy /
 // integration scheme then used for the normal calculation of the element matrix
 
-
+template<class TYPE>
+class ResultFunctorIntegrate : public ResultFunctor {
+public:
+  //! Constructor
+  ResultFunctorIntegrate( PtrCoefFct coef,
+                          shared_ptr<BaseFeFunction> feFct,
+                          shared_ptr<ResultInfo> inf );
+    
+    //! Destructor
+    virtual ~ResultFunctorIntegrate();
+  
+    //! Evaluate result for complete entity list
+     virtual void EvalResult(shared_ptr<BaseResult> res );
+     
+    
+private:
+     
+     //! Pointer to coefficient function to be integrated
+     PtrCoefFct coef_;
+     
+     //! Pointer to FeFunction
+     shared_ptr<BaseFeFunction> feFct_;
+};
+    
 } // end of namespace
-
 
 #endif

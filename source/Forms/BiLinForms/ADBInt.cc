@@ -76,7 +76,6 @@ namespace CoupledField{
     elemMat.Init();
     
 #define USE_BLAS_VERSION
-
     // Loop over all integration points
     LocPointMapped lp;
     for( UInt i = 0; i < intPoints.GetSize(); i++  ) {
@@ -92,11 +91,11 @@ namespace CoupledField{
 
       // Calculate D-Mat
       this->dData_->GetTensor(dMat,lp);
-
+      
       fac = MAT_DATA_TYPE(lp.jacDet * weights[i]);
       this->aOperator_.TransformJacDet(fac,lp,ptFeA);
       this->bOperator_.TransformJacDet(fac,lp,ptFeB );
-
+      
       dbMat.Resize(dMat.GetNumRows(), nrFncsB * B_OP::DIM_DOF);
 
 #ifdef USE_BLAS_VERSION
@@ -118,7 +117,10 @@ namespace CoupledField{
  ApplyATransMat( Vector<MAT_DATA_TYPE>&ret, 
                  const Vector<MAT_DATA_TYPE>& sol,
                  const LocPointMapped& lpm ) {
-
+   Matrix<MAT_DATA_TYPE> aOp;
+   BaseFE* ptFe = this->ptFeSpace1_->GetFe( lpm.ptEl->elemNum );
+   aOperator_.CalcOpMat(aOp, lpm, ptFe);
+   ret = Transpose(aOp) * sol;
  }
  
  template< class A_OP,
@@ -129,7 +131,13 @@ namespace CoupledField{
  ApplydATransMat( Vector<MAT_DATA_TYPE>&ret, 
                   const Vector<MAT_DATA_TYPE>& sol,
                   const LocPointMapped& lpm ) {
-
+   Matrix<MAT_DATA_TYPE> aOp, dMat, dAMat;
+   BaseFE* ptFe = this->ptFeSpace1_->GetFe( lpm.ptEl->elemNum );
+   aOperator_.CalcOpMat(aOp, lpm, ptFe);
+   this->dData_->GetTensor(dMat,lpm);
+   dAMat.Resize(dMat.GetNumCols(), aOp.GetNumCols()  );
+   dMat.Mult_Blas(aOp,dAMat,true,false,1.0,0);
+   ret = dAMat* sol;
  }
  
  

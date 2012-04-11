@@ -832,6 +832,8 @@ source/Domain/CoefFunction/CoefFunctionExpression.cc -text
 source/Domain/CoefFunction/CoefFunctionExpression.hh -text
 source/Domain/CoefFunction/CoefFunctionGrid.cc -text
 source/Domain/CoefFunction/CoefFunctionGrid.hh -text
+source/Domain/CoefFunction/CoefFunctionSurf.cc -text
+source/Domain/CoefFunction/CoefFunctionSurf.hh -text
 source/Domain/CoefFunction/CoefFunctionTimeFreq.cc -text
 source/Domain/CoefFunction/CoefFunctionTimeFreq.hh -text
 source/Domain/CoefFunction/CoefXpr.cc -text

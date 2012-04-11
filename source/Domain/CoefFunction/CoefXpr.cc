@@ -24,7 +24,7 @@ UInt CoefXpr::GetNumOperands(OpType op ) {
       return 1;
       break;
         
-    //BINARY FUNCTIONS
+    // BINARY FUNCTIONS
     case OP_ADD:
     case OP_SUB:
     case OP_MULT:
@@ -38,6 +38,7 @@ UInt CoefXpr::GetNumOperands(OpType op ) {
       EXCEPTION("Case not implemented");
       break;
   }
+  return 0;
 }
 
 std::string CoefXpr::OpToString( OpType op ) {
@@ -61,6 +62,7 @@ std::string CoefXpr::OpToString( OpType op ) {
       EXCEPTION("No string representation for operand type");
       break;
   }
+  return "";
 
 }
 

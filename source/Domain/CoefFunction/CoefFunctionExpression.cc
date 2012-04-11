@@ -141,6 +141,7 @@ std::string CoefFunctionExpression<Double>::ToString() const {
       break;
     default:
       EXCEPTION("Missing case");
+      break;
   }
   return "";
 }

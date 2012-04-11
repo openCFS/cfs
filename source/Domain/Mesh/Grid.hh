@@ -412,6 +412,10 @@ namespace CoupledField
     virtual Double CalcVolumeOfRegion( const RegionIdType regionId,
                                        bool isaxi = false,
                                        bool updated = false ) = 0;
+    
+    //! Returns the volume of a given entitylist (\see Grid::CalcVolumeOfRegion)
+    virtual Double CalcVolumeOfEntityList( shared_ptr<EntityList> ent,
+                                           bool updated = false ) = 0;
 
 
     //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

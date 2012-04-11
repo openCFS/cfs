@@ -175,48 +175,28 @@ namespace CoupledField {
 
     BiLinearForm * dampInt = NULL;
 
-    if( subType_ == "axi" ) {
+    if( dim_ == 2  ) {
       if(matType == MASS) {
         dampInt = new SurfaceABInt< IdentityOperatorNormal<FeH1,2>,
                                     IdentityOperator<FeH1,2,2> >
-          (coefFuncs, 1.0, acouRegions);
+          (coefFuncs, -1.0, acouRegions);
       } else {
       dampInt = new SurfaceABInt< IdentityOperator<FeH1,2,2>,
                                   IdentityOperatorNormal<FeH1,2> >
-        (coefFuncs, -1.0, acouRegions);
+        (coefFuncs, 1.0, acouRegions);
       }
-    } else if( subType_ == "planeStrain" ) {
-      if(matType == MASS) {
-        dampInt = new SurfaceABInt< IdentityOperatorNormal<FeH1,2>,
-                                    IdentityOperator<FeH1,2,2> >
-          (coefFuncs, 1.0, acouRegions);
-      } else {
-      dampInt = new SurfaceABInt< IdentityOperator<FeH1,2,2>,
-                                 IdentityOperatorNormal<FeH1,2> >
-        (coefFuncs, -1.0, acouRegions);
-      }
-    } else if( subType_ == "planeStress" ) {
-      if(matType == MASS) {
-        dampInt = new SurfaceABInt< IdentityOperatorNormal<FeH1,2>,
-                                    IdentityOperator<FeH1,2,2> >
-          (coefFuncs, 1.0, acouRegions);
-      } else {
-      dampInt = new SurfaceABInt< IdentityOperator<FeH1,2,2>,
-                                 IdentityOperatorNormal<FeH1,2> >
-        (coefFuncs, -1.0, acouRegions);
-      }
-    } else if( subType_ == "3d") {
+    } else if( dim_ == 3) {
       if(matType == MASS) {
         dampInt = new SurfaceABInt< IdentityOperatorNormal<FeH1,3>,
                                     IdentityOperator<FeH1,3,3> >
-          (coefFuncs, 1.0, acouRegions);
+          (coefFuncs, -1.0, acouRegions);
       } else {
       dampInt = new SurfaceABInt< IdentityOperator<FeH1,3,3>,
                                  IdentityOperatorNormal<FeH1,3> >
-        (coefFuncs, -1.0, acouRegions);
+        (coefFuncs, 1.0, acouRegions);
       }
     } else {
-      EXCEPTION( "Subtype '" << subType_ << "' unknown for mechanic physic" );
+      EXCEPTION( "Coupling only for two and three dimensions defined" );
     }
 
     dampInt->SetName(name);

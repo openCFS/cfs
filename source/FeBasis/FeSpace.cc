@@ -334,7 +334,7 @@ namespace CoupledField {
     //                  order to 2*(p+1) + relativeOrder
     //    b) ANISOTROPIC: get maximum order in each direction
     //                    and set integration oder to
-    //                    2*(p_maxLicDir) + relativeOrder_locDir
+    //                    2*( p_maxLicDir) + relativeOrder_locDir
     method = id.method;
     LOG_DBG2(feSpace) << "\tmethod: " 
                       << IntScheme::IntegMethodEnum.ToString(method);

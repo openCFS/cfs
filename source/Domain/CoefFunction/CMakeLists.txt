@@ -4,8 +4,9 @@ SET(COEFFUNCTION_SRCS
   CoefFunctionCompound.cc
   CoefFunctionConst.cc
   CoefFunctionExpression.cc
-  CoefFunctionTimeFreq.cc
   CoefFunctionGrid.cc
+  CoefFunctionTimeFreq.cc
+  CoefFunctionSurf.cc
 )
 #
 ADD_LIBRARY(coeffunction STATIC ${COEFFUNCTION_SRCS})

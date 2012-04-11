@@ -1,9 +1,10 @@
 #ifndef COEFFUNCTIONCONST_HH
 #define COEFFUNCTIONCONST_HH
 
-#include "Domain/CoordinateSystems/CoordSystem.hh"
 #include <boost/tr1/type_traits.hpp>
 #include "CoefFunction.hh"
+
+#include "Domain/CoordinateSystems/CoordSystem.hh"
 
 namespace CoupledField {
 
@@ -130,6 +131,7 @@ public:
         EXCEPTION("Missing case");
         break;
     }
+    return "";
   }
 
   // =========================================================================

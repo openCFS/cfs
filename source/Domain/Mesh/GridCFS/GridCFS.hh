@@ -344,6 +344,9 @@ namespace CoupledField
                                bool updated = false);
 
 
+    //! \copydoc Grid::CalcVolumeOfEntityList
+    Double CalcVolumeOfEntityList( shared_ptr<EntityList> ent,
+                                   bool updated = false );
     //@}
 
 

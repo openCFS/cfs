@@ -642,7 +642,7 @@ namespace CoupledField {
     // set of elements, which get surface-mapped
     std::set<Elem*> surfElems;
     
-    // loop over all e,ements
+    // loop over all elements
     for(e=0; e<numElems; e++)
     {
       Elem* el = orderedElems_[e];
@@ -1624,7 +1624,7 @@ namespace CoupledField {
     UInt elemDim = Elem::shapes[orderedElems_[elemNums[0]-1]->type].dim;
     UInt numElems = elemNums.GetSize();
     for( UInt iElem = 1; iElem < numElems; ++iElem ) {
-      if( Elem::shapes[orderedElems_[elemNums[iElem]]->type].dim != elemDim ) {
+      if( Elem::shapes[orderedElems_[elemNums[iElem]-1]->type].dim != elemDim ) {
         EXCEPTION( "Element list '" << name << 
                    "' contains elements of different dimensions!")
       }
@@ -1845,18 +1845,20 @@ namespace CoupledField {
                  << el->connect.Serialize() << ") has node number(s) larger "
                  << "than number of nodes in grid (" << numNodes_ << ")" );
     }
-    
+
     // add correct dimension of element to entityDim_
-    std::string regionName = region_.ToString(region);
-    std::map<std::string, UInt>::iterator it = entityDim_.find(regionName);
-    if( it != entityDim_.end() ) {
-      if( it->second != Elem::shapes[type].dim ) {
-        EXCEPTION( "Region '" << regionName 
-                   << "' contains elements of different dimensions!");
+    if( region != NO_REGION_ID) {
+      std::string regionName = region_.ToString(region);
+      std::map<std::string, UInt>::iterator it = entityDim_.find(regionName);
+      if( it != entityDim_.end() ) {
+        if( it->second != Elem::shapes[type].dim ) {
+          EXCEPTION( "Region '" << regionName 
+                     << "' contains elements of different dimensions!");
+        }
+      } else {
+        entityDim_[regionName] = Elem::shapes[type].dim;
       }
-    } else {
-      entityDim_[regionName] = Elem::shapes[type].dim;
-    }
+    } 
   }
 
   void GridCFS::GetElemData(const UInt ielem,
@@ -2640,6 +2642,8 @@ namespace CoupledField {
                                       bool isaxi,
                                       bool updated ) {
     EXCEPTION( "Implement me");
+    
+    // get element shape map
 //    StdVector<Elem*> elems;
 //    Matrix<Double> cornerCoords;
 //    Double volume = 0.0;
@@ -2654,6 +2658,32 @@ namespace CoupledField {
     //return volume;
     return -1.0;
   }
+  
+  Double GridCFS::CalcVolumeOfEntityList( shared_ptr<EntityList> ent,
+                                          bool updated ) {
+    Double volume = 0.0;
+    // get elements of entity list
+    if( ent->GetType() == EntityList::ELEM_LIST ||
+        ent->GetType() == EntityList::SURF_ELEM_LIST ) {
+      EntityIterator it = ent->GetIterator();
+      
+      // loop over all elements
+      for( ; !it.IsEnd(); it++ ) {
+        
+        const Elem * ptEl = it.GetElem();
+        
+        
+        shared_ptr<ElemShapeMap> esm = GetElemShapeMap( ptEl, updated );
+        // sum up element contribution
+        volume += esm->CalcVolume();
+      }
+    } else {
+      EXCEPTION( "CalcVolumeOfEntityList only possible for element "
+          << "and surface element list" );
+    }
+    return volume;
+  }
+  
 
   void GridCFS::AddNode( const Vector<Double> & coord, UInt & inode )
   {

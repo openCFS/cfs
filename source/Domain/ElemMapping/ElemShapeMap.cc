@@ -32,7 +32,9 @@ namespace CoupledField {
   LocPointMapped::LocPointMapped()
   : ptEl( NULL ),
     jacDet( 0.0 ),
-    isSurface( false )
+    isSurface( false ),
+    normalFactor( 0.0 )
+    
   {
 
   }
@@ -80,9 +82,6 @@ namespace CoupledField {
                             const std::set<RegionIdType>& myRegions) {
 
 
-    // check, if previously set element is the same as this one
-    bool isSameElem = (esm->GetElem() == this->ptEl); 
-
     // ------------------------------------------------------
     //  1) Set "normal" element information (Jacobian, etc.)
     // ------------------------------------------------------
@@ -93,27 +92,36 @@ namespace CoupledField {
     // ------------------------------------------------------
     //  2) Perform surface-element specific tasks
     // ------------------------------------------------------
+    SetSurfInfo( myRegions );
+  }
+  
+  void LocPointMapped::SetSurfInfo( const std::set<RegionIdType>& myRegions ) {
+    // check, if previously set element is the same as this one
+    bool isSameElem = (shapeMap->GetElem() == this->ptEl 
+        && isSurface == true ); 
 
     // set flag for surface mapped element
     this->isSurface = true;
-    
+
     // get surface element
-    const SurfElem& surfElem = *(esm->GetSurfElem()); 
+    const SurfElem& surfElem = *(shapeMap->GetSurfElem()); 
 
     // if we have not previously selected the correct volume neighbor, we
     // have to do it now 
     shared_ptr<ElemShapeMap> esmVol;
     if( !isSameElem) {
       const Elem * ptVolElem = NULL;
-
+      normalFactor = Double(surfElem.normalSign) * -1.0;  
+      
       // loop over volume element neighbors of the surface element and check,
       // if the regionId of the element is in the map "myRegions"
       boost::array<Elem*,2>::const_iterator it = surfElem.ptVolElems.begin();
       for( ; it != surfElem.ptVolElems.end(); it++ ) {
+        normalFactor *= -1;
         // check, if element is set at all
         if( *it) {
           if(myRegions.find( (*it)->regionId) != myRegions.end()) {
-            ptVolElem = *it; 
+            ptVolElem = *it;
             break;
           }
         }
@@ -127,7 +135,8 @@ namespace CoupledField {
       // create new local point for volume element 
       lpmVol.reset(new LocPointMapped());
       esmVol = 
-          esm->GetGrid()->GetElemShapeMap( ptVolElem, esm->IsUpadet() );
+          shapeMap->GetGrid()->GetElemShapeMap( ptVolElem, 
+                                                shapeMap->IsUpadet() );
     } else {
       esmVol = lpmVol->shapeMap;
     } // elemIsSame
@@ -149,7 +158,7 @@ namespace CoupledField {
 
     // multiply normal by normal sign, so it points out of the first
     // volume element
-    normal *= Double(surfElem.normalSign);
+    normal *= normalFactor;
   }
 
 // ========================================================================
@@ -238,6 +247,7 @@ void LagrangeElemShapeMap::InitStaticMembers() {
 LagrangeElemShapeMap::LagrangeElemShapeMap( Grid* ptGrid  ) 
 : ElemShapeMap(ptGrid ) {
   type_ = LAGRANGE; 
+  intScheme_ = ptGrid_->GetIntegrationScheme();
   
 //  // Fill map with reference elements
 //  feMap_[Elem::ET_LINE2] = new FeH1LagrangeLine1(); 
@@ -882,27 +892,26 @@ void LagrangeElemShapeMap::GetGlobMidPoint( Vector<Double>& midPoint ) {
 }
 
 Double LagrangeElemShapeMap::CalcVolume( ) {
-  EXCEPTION("Not implemented");
-  //    Double elemVol = 0;
-  //    Double  jacDet, partVol;
-  //    for (UInt actIntPt=1; actIntPt <= NumIntPoints_; actIntPt++) {
-  //
-  //      jacDet = CalcJacobianDetAtIp(actIntPt, CornerCoords, NULL);
-  //
-  //      if (isaxi) {
-  //        Vector<Double> shapeFncAtIp;
-  //        Vector<Double> CoordAtIP;
-  //        GetShFncAtIp(shapeFncAtIp, actIntPt, NULL);
-  //        CoordAtIP = CornerCoords * shapeFncAtIp;
-  //        partVol = 2 * PI * IntWeights_[actIntPt-1] * jacDet * CoordAtIP[0];
-  //      }
-  //      else
-  //        partVol = IntWeights_[actIntPt-1] * jacDet;
-  //
-  //      elemVol += partVol;
-  //    }
-  //
-  //    return elemVol;
+  
+  // Get integration points
+  StdVector<LocPoint> intPoints;
+  StdVector<Double> weights;
+  
+  // Order: use element order and add 2 to be sure for curved elements
+  UInt order = shape_.order + 2;
+  intScheme_->GetIntPoints( Elem::GetShapeType(ptElem_->type), 
+                            IntScheme::GAUSS, order, 
+                            intPoints, weights );
+  Double vol = 0.0;
+  Double jacDet = 0.0;
+  Matrix<Double> jac;
+  // Loop over all integration points
+  LocPointMapped lpm;
+  for( UInt i = 0; i < intPoints.GetSize(); i++  ) {
+    jacDet = CalcJDet(jac, intPoints[i] );
+    vol +=  jacDet * weights[i];
+  }
+  return  vol;
 }
 
 
@@ -944,7 +953,7 @@ void LagrangeElemShapeMap::CalcNormal( Vector<Double>& normal,
   // Calculate global normal
   Matrix<Double> jInv;
   jac.Invert(jInv);
-  normal =  Transpose(jInv) * locNormal;
+  normal = Transpose(jInv) * locNormal;
 
   // normalize normal
   Double norm = normal.NormL2();

@@ -1579,7 +1579,7 @@ namespace CoupledField {
           if(!isComplex ) {
             coef = CoefFunction::Generate(Global::REAL, real);
           } else {
-            std::string imag = AmplPhaseToReal(val, phase );
+            std::string imag = AmplPhaseToImag(val, phase );
             coef = CoefFunction::Generate(Global::COMPLEX, real, imag);
           }
         }else {
@@ -1587,7 +1587,7 @@ namespace CoupledField {
           // generate coefficient function
           StdVector<std::string> realV, imagV;
           realV = real;
-          imagV =  AmplPhaseToReal(val, phase );
+          imagV =  AmplPhaseToImag(val, phase );
           if(!isComplex) {
             StdVector<std::string> valV;
             valV = val;

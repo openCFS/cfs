@@ -19,16 +19,21 @@ namespace CoupledField {
   class FeH1LagrangeExpl;
   class FeH1;
   class CoefFunction;
+  class IntScheme;
   
-  // ===========================================================================
+  // ==========================================================================
   //  C L A S S   LocPoint
-  // ===========================================================================
+  // ==========================================================================
 
   //! Simple struct representing an element local point
 
   //! This struct represents an element local point (xi, eta, zeta)
   //! which is either defined by its coordinates or by an integration 
-  //! point
+  //! point created by the integration scheme class (\see IntScheme).
+  //! In this case the point is uniquely defined by its number 
+  //! (IntScheme::number).
+  //! If an arbitrary point is set, which is not defined by a numbered
+  //! integration point, the number is set to NOT_SET. 
   struct LocPoint {
 
   public:
@@ -58,7 +63,6 @@ namespace CoupledField {
     Vector<Double> coord;
   };
   
-  // free outstream operator
   //! Overloading << for class LocPoint
   std::ostream& operator << ( std::ostream & , const LocPoint &);
 
@@ -131,8 +135,18 @@ namespace CoupledField {
     //!            physical domain    
     //! \param volRegions Set containing the regionIds of the neighboring
     //!                   volume regions.
+    //! 
+    //! \note The search for the correct volume neighbor is just performed,
+    //!       if a new element is set. If only the local point within one
+    //!       element is set, the neighbor information is re-used. 
     void Set( const LocPoint& lp, shared_ptr<ElemShapeMap> esm,
               const std::set<RegionIdType>& volRegions ); 
+    
+    //! Set surface information
+    
+    //! This method allows to set information specific to a surface
+    //! element, in case it was initialized with only the volume information;
+    void SetSurfInfo( const std::set<RegionIdType>& volRegions );
 
     //! Shape map for this element
     shared_ptr<ElemShapeMap> shapeMap;
@@ -164,7 +178,14 @@ namespace CoupledField {
     bool isSurface;
     
     //! Normal direction of surface element (only set in case of a surface element)
+    
+    //! In case the struct gets initialized with a surface element, this member
+    //! contains the surface normal, which points out of the "correct" neighbouring
+    //! volume element (\see LocPointMapped::lpmVol).
     Vector<Double> normal;
+    
+    //! Multiplicative factor for normal orientation (only internal use)
+    Double normalFactor;
     
     //! Mapped local point of the correct neighboring volume element
     
@@ -260,7 +281,7 @@ namespace CoupledField {
     bool IsUpadet() const {return isUpdated_;}
 
     //! Calculate Local -> Global Mapping
-    //! \param globPoint output Global point in cartesian coordinates
+    //! \param globPoint output Global point in Cartesian coordinates
     //! \param locPoint input Element local point
     virtual void Local2Global( Vector<Double>& globPoint, 
                                const LocPoint& locPoint ) = 0;
@@ -269,7 +290,7 @@ namespace CoupledField {
 
     //! Calculates the mapping global->local using a Newton Raphson method
     //! \param locPoint output Element local point
-    //! \param globPoint input Global point in cartesian coordinates
+    //! \param globPoint input Global point in Cartesian coordinates
     virtual void Global2Local( Vector<Double>& locPoint, 
                                const Vector<Double>& globPoint ) = 0;
 
@@ -503,6 +524,9 @@ namespace CoupledField {
     
     //! Shape of reference element
     ElemShape shape_;
+    
+    //! Pointer to integration scheme
+    shared_ptr<IntScheme> intScheme_;
     
   };
 

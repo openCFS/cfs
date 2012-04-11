@@ -76,6 +76,7 @@ public:
   //! \see CoefFunction::ToString
   std::string ToString() const {
     EXCEPTION( "Implement me");
+    return "";
   }
 
 protected:

@@ -34,6 +34,9 @@ namespace CoupledField
     
     // initialize static members of Lagrangian shape map
     LagrangeElemShapeMap::InitStaticMembers();
+    
+    // in addition, add always the NO_REGION to the enum
+    region_.Add( NO_REGION_ID, "_NO_REGION_");
   }
 
 
@@ -267,7 +270,7 @@ namespace CoupledField
       if( entityType == EntityList::REGION ) {
         RegionIdType regionId = GetRegion().Parse( name );
         regionList->SetRegion( regionId );
-      } else {
+      } else if (entityType){
         EXCEPTION( "GetEntityList with REGION_LIST works only with regions!" );
       }
       ret = regionList;

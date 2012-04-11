@@ -257,7 +257,7 @@ namespace CoupledField
 
     //! Map storing functors for calculating field results 
     std::map<SolutionType, shared_ptr<BaseFieldFunctor> > fieldFunctors_;
-
+    
     //! (Volume) regions of coupling object
     StdVector<RegionIdType> subdoms_;
 

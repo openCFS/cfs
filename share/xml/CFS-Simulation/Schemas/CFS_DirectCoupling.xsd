@@ -378,6 +378,13 @@
   <!-- Definition of surface element result types of piezoelectric coupling -->
   <xsd:simpleType name="DT_PiezoSurfElemResult">
     <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="elecChargeDensity"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+  
+  <!-- Definition of surface region result types of piezoelectric coupling -->
+  <xsd:simpleType name="DT_PiezoSurfRegionResult">
+    <xsd:restriction base="xsd:token">
       <xsd:enumeration value="elecCharge"/>
     </xsd:restriction>
   </xsd:simpleType>
@@ -408,6 +415,18 @@
             <xsd:complexContent>
               <xsd:extension base="DT_SurfElemResult">
                 <xsd:attribute name="type" type="DT_PiezoSurfElemResult"/>
+              </xsd:extension>
+            </xsd:complexContent>
+          </xsd:complexType>
+        </xsd:element>
+        
+        <!-- Surface region result definition -->
+        <xsd:element name="surfRegionResult" minOccurs="0"
+          maxOccurs="unbounded">
+          <xsd:complexType>
+            <xsd:complexContent>
+              <xsd:extension base="DT_SurfRegionResult">
+                <xsd:attribute name="type" type="DT_PiezoSurfRegionResult"/>
               </xsd:extension>
             </xsd:complexContent>
           </xsd:complexType>

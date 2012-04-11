@@ -41,7 +41,7 @@ namespace CoupledField{
     }
 
     //! Destructor
-    ~StrainOperator2D(){
+    virtual ~StrainOperator2D(){
 
     }
 

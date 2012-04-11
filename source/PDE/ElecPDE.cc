@@ -12,6 +12,7 @@
 #include "DataInOut/ParamHandling/ParamTools.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "Domain/CoefFunction/CoefFunction.hh"
+#include "Domain/CoefFunction/CoefXpr.hh"
 #include "Utils/StdVector.hh"
 #include "Driver/SolveSteps/SolveStepElec.hh"
 #include "CoupledPDE/PDECoupling.hh"
@@ -196,7 +197,7 @@ namespace CoupledField {
     //  Charges (volume, nodal)
     // =========================
     LOG_DBG(elecpde) << "Reading charges";
-    ReadRhsExcitation( "charge", dofNames, ResultInfo::SCALAR, 
+    ReadRhsExcitation( "charge", dofNames, ResultInfo::VECTOR, 
                        isComplex_, ent, coef );
 
     for( UInt i = 0; i < ent.GetSize(); ++i ) {
@@ -232,10 +233,25 @@ namespace CoupledField {
         // --------------------------
         //  Surface / Volume Charges 
         // --------------------------
-        EXCEPTION("Not yet implemented");
-
-        // Same issue here as above: We need to "divide" the total force by the
-        // area / volume to get the force density.
+        if( coef[i]->GetDependency() == CoefFunction::GENERAL ) {
+          EXCEPTION("The total prescribed charge must no be spatial dependend");
+        }
+        // "Divide" the total charge by the volume / surface of the current entity list
+        Double volume = ptgrid_->CalcVolumeOfEntityList( ent[i], false );
+        Global::ComplexPart part = isComplex_ ? Global::COMPLEX : Global::REAL;  
+        coef[i] = CoefFunction::Generate(part, 
+                   CoefXprVecScalOp(coef[i], 
+                   boost::lexical_cast<std::string>(volume), CoefXpr::OP_DIV) );
+        if(isComplex_) {
+          lin = new BUIntegrator<IdentityOperator<FeH1>, Complex>(Complex(1.0), coef[i]);
+        } else  {
+          lin = new BUIntegrator<IdentityOperator<FeH1>, Double>(1.0, coef[i]);
+        }
+        lin->SetName("ChargeDensityInt");
+        LinearFormContext *ctx = new LinearFormContext( lin );
+        ctx->SetEntities( ent[i] );
+        ctx->SetFeFunction(myFct);
+        assemble_->AddLinearForm(ctx);
       }
     } // for
 

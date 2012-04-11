@@ -300,6 +300,7 @@ public:
   //! Dump coefficient function to string 
   virtual std::string ToString() const {
     EXCEPTION("CoefFuncion: ToString() not properly overwritten");
+    return "";
   }
   
   // ======================================================================
