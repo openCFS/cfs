@@ -2448,40 +2448,27 @@ void LinearFlowNoiseInt::ComputeNormalVec( const Matrix<Double>& ptCoord,
   // =========================================================================
 
 
-  VolChargeHomInt::VolChargeHomInt(BaseMaterial* matData, Global::ComplexPart matDataType, UInt numDof,
-      const std::string& phase,
-      bool isaxi) {
+  VolChargeHomInt::VolChargeHomInt(BaseMaterial* matData, Global::ComplexPart matDataType, const std::string& phase, bool isaxi)
+  {
 
     matData_ = matData;
     name_ = "VolChargeHomInt";
     isaxi_ = isaxi;
-    numDofs_ = numDof;
+    numDofs_ = 1;
     phase_ = phase;
     locMatDataType_ = matDataType;
 
-
   }
 
-  VolChargeHomInt::~VolChargeHomInt() {
-    delete bilinearStiff_;
+  VolChargeHomInt::~VolChargeHomInt() { delete bilinearStiff_; }
 
-  }
-
-  void VolChargeHomInt::SetVolChargeVector(StdVector<std::string> & volChargex,
-      StdVector<std::string> & volChargey,
-      StdVector<std::string> & volChargez,
-      const CoordSystem * coordSys,
-      bool isUnit, Double volume, const int dim ) {
-
-
-    locChargex_ = volChargex;
-    locChargey_ = volChargey;
-    locChargez_ = volChargez;
+  void VolChargeHomInt::SetVolChargeVector(Vector<double> & charges, const CoordSystem * coordSys, bool isUnit, Double volume, const int dim)
+  {
+    locCharges = charges;
     coordSys_ = coordSys;
     isUnitValue_ = isUnit;
     volume_ = volume;
     dim_ = dim;
-
 
     // flag for updatedLagrange formulation
     bool upLagrangeForm = true;
@@ -2519,22 +2506,11 @@ void LinearFlowNoiseInt::ComputeNormalVec( const Matrix<Double>& ptCoord,
 
   void VolChargeHomInt::CalcElemVector(Vector<Complex> &elemVec, EntityIterator &ent)
   {
-    // get global coordinate system and math parser
-    MathParser * parser = domain->GetMathParser();
 
     // Now evaluate each entry
     // Vector<T> locLoadVec( dim_ );
     Vector<Double> locLoadVec( dim_ );
-    for ( UInt i = 0; i < locChargex_.GetSize(); i++ ) {
-      parser->SetExpr( mHandle_, locChargex_[i] );
-      locLoadVec[0] = parser->Eval( mHandle_ );
-      parser->SetExpr( mHandle_, locChargey_[i] );
-      locLoadVec[1] = parser->Eval( mHandle_ );
-      if (dim_ == 3){
-        parser->SetExpr( mHandle_, locChargez_[i] );
-        locLoadVec[2] = parser->Eval( mHandle_ );
-      }
-    }
+    locLoadVec = locCharges;
 
     // Extract pointer to reference element and get coordinates
     ExtractElemInfo(ent);

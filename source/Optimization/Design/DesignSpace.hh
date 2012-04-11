@@ -172,7 +172,7 @@ namespace CoupledField
      virtual bool CompareDesign(const double* space_in);
            
      /** gives the initial guess (for the design space) 
-      * @param space_out to this array of GetDesignSpaceSize() the initial guess is wrtitten to.
+      * @param space_out to this array of GetDesignSpaceSize() the initial guess is written to.
       * @param scaling false to return the unscaled design variables (for logging), 
       * true to return the variables as scaled for the optimizer 
       * @return the internal design_id as calculated by ReadDesignFromExtern()
@@ -213,7 +213,7 @@ namespace CoupledField
 
      /** Service method to find our index in the design vector
       * @return -1 if not throw_exception and not found */
-     int FindDesign(DesignElement::Type dt, bool throw_exception = true);
+     int FindDesign(DesignElement::Type dt, bool throw_exception = true) const;
 
      /** Service method to find a specific design element by element number and design type */
      DesignElement* Find(unsigned int elemNum, DesignElement::Type dt, bool throw_exception = true, bool include_pseudo_designs = false);

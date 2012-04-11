@@ -273,7 +273,7 @@ void Optimization::SetEnums()
   Function::type.Add(Function::MAXWELL_HOM_TENSOR, "maxwellHomTensor");
   Function::type.Add(Function::HOM_TRACKING, "homTracking");
   Function::type.Add(Function::HOM_FROBENIUS_PRODUCT, "homFrobeniusProduct");
-  Function::type.Add(Function::MAXWELL_HOMOGENIZATION_TRACKING, "maxwellHomTracking");
+  Function::type.Add(Function::MAXWELL_HOM_TRACKING, "maxwellHomTracking");
   Function::type.Add(Function::BITENSOR, "bitensor");
   Function::type.Add(Function::POISSONS_RATIO, "poissonsRatio");
   Function::type.Add(Function::YOUNGS_MODULUS, "youngsModulus");
@@ -300,6 +300,10 @@ void Optimization::SetEnums()
   Function::type.Add(Function::GLOBAL_JUMP, "globalJump");
   Function::type.Add(Function::BUMP, "bump");
   Function::type.Add(Function::DESIGN_TRACKING, "designTracking");
+  Function::type.Add(Function::SUM_MODULI, "sumModuli");
+  Function::type.Add(Function::GLOBAL_SUM_MODULI, "globalSumModuli");
+  Function::type.Add(Function::PARAM_PS_POS_DEF, "parametrized-plane-stress-pos-def");
+
 
   Function::Local::locality.SetName("Function::Local::Locality");
   Function::Local::locality.Add(Function::Local::DEFAULT, "default");
@@ -311,6 +315,7 @@ void Optimization::SetEnums()
   Function::Local::locality.Add(Function::Local::DEG_45_STAR_AND_REVERSE, "45_deg_star_and_reverse");
   Function::Local::locality.Add(Function::Local::BOUNDARY, "boundary");
   Function::Local::locality.Add(Function::Local::ELEMENT, "element");
+  Function::Local::locality.Add(Function::Local::MULT_DESIGNS_ELEMENT, "multiple_designs_element");
 
   Function::Local::phase.SetName("Function::Local::Phase");
   Function::Local::phase.Add(Function::Local::BOTH, "both");

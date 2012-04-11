@@ -670,7 +670,7 @@ namespace CoupledField
   public:
 
     //! Constructor
-    VolChargeHomInt(BaseMaterial* matData, Global::ComplexPart matDataType, UInt numDof, const std::string& phase, bool isaxi);
+    VolChargeHomInt(BaseMaterial* matData, Global::ComplexPart matDataType, const std::string& phase, bool isaxi);
 
     //! Destructor
     virtual ~VolChargeHomInt();
@@ -678,11 +678,7 @@ namespace CoupledField
     //! Set the volume force vector
     //! \param volForce vector with volume force w.r.t. coordSys
     //! \param coordSys pointer to reference coordinate system
-    void SetVolChargeVector(StdVector<std::string> & volChargex,
-        StdVector<std::string> & volChargey,
-        StdVector<std::string> & volChargez,
-        const CoordSystem * coordSys,
-        bool isUnit, Double volume, const int dim);
+    void SetVolChargeVector(Vector<double> & volCharges, const CoordSystem * coordSys, bool isUnit, Double volume, const int dim);
 
     //! Calculation of vector of right hand side
     //   template <typename T>
@@ -707,9 +703,7 @@ namespace CoupledField
     UInt numDofs_;
 
     //! Vector with volume charge (local coordinate system)
-    StdVector<std::string> locChargex_;
-    StdVector<std::string> locChargey_;
-    StdVector<std::string> locChargez_;
+    Vector<double> locCharges;
 
     //! Phase of force
     std::string phase_;

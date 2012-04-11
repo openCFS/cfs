@@ -33,6 +33,13 @@ IF(USE_XERCES)
 
 ENDIF(USE_XERCES)
 
+# there is a problem in ParamNode.cc and Xerces.cc and gcc 4.5.1 with 
+# boost/iostreams/filter/symmetric.hpp:126:13: error: suggest parentheses around ‘&&’ within ‘||’
+# boost/iostreams/detail/streambuf/indirect_streambuf.hpp:285:5: error: suggest parentheses around ‘&&’ within ‘||’
+# TODO FIXME check if this is still necessary on FE-Space with new boost
+SET_SOURCE_FILES_PROPERTIES(${PARAMH_SRCS}
+  PROPERTIES COMPILE_FLAGS "-Wno-parentheses")
+
 ADD_LIBRARY(paramh STATIC ${PARAMH_SRCS})
 
 TARGET_LINK_LIBRARIES(paramh utils ${TARGET_LL})

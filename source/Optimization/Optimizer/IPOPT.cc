@@ -1,4 +1,4 @@
-#include "Optimization/IPOPT.hh"
+#include "Optimization/Optimizer/IPOPT.hh"
 #include "Optimization/Design/DesignElement.hh"
 #include "Optimization/Design/DesignSpace.hh"
 #include "Optimization/Optimization.hh"

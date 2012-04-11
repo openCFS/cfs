@@ -302,6 +302,8 @@ void DesignElement::GetValue(ResultDescription& rd, StdVector<double>& out, unsi
     {
       if(rd.solutionType == PHYSICAL_PSEUDO_DENSITY)
         out[0] = GetPhysicalDesign();
+      else if(rd.solutionType == ELEC_PHYSICAL_PSEUDO_DENSITY)
+        out[0] = GetPhysicalDesign(true);
       else
         out[0] = GetValue(rd.value, rd.access);
     }
@@ -408,9 +410,9 @@ double DesignElement::GetDesign() const
   EXCEPTION("use DesignElement::GetDesign(Access)");
 }
 
-double DesignElement::GetPhysicalDesign() const
+double DesignElement::GetPhysicalDesign(bool densForElec) const
 {
-  TransferFunction* tf = space_->GetTransferFunction(type_, TransferFunction::Default(type_), true);
+  TransferFunction* tf = space_->GetTransferFunction(type_, densForElec ? Optimization::ELEC : TransferFunction::Default(type_), true);
 
   return tf->Transform(this, SMART);
 
@@ -484,6 +486,7 @@ void DesignElement::SetEnums()
   type.SetName("DesignElement::Type");
   type.Add(TENSOR_TRACE, "tensor_trace");
   type.Add(DEFAULT, "default");
+  type.Add(ALL_DESIGNS, "allDesigns");
   type.Add(DENSITY, "density");
   type.Add(ACOU_DENSITY, "acouDensity");
   type.Add(POLARIZATION, "polarization");

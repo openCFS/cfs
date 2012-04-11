@@ -82,7 +82,7 @@ class Function
       HOM_TRACKING,              /*!< match a given tensor by L2 norm  */
       HOM_FROBENIUS_PRODUCT,     /*!< The Frobenius inner product for a given tensor sum_ij E^H_ij*D_ij. From Michael. The idea is
                                       maximize the inner mech energy <S, E^H S> for strains from a macro-problem. D = S*S^T */
-      MAXWELL_HOMOGENIZATION_TRACKING,   /*!< match a given tensor by Frobenius norm  */
+      MAXWELL_HOM_TRACKING,      /*!< match a given tensor by Frobenius norm. If a selectionTensor is given too this is |selecTens.*(E^*-E^H)|_(Frob) */
       BITENSOR,                  /*!< compute both homogenized permittivity and permeability */
       POISSONS_RATIO,            /*!< Poisson's Ration (\nu) within homogenization */
       YOUNGS_MODULUS,            /*!< Young's Modulus (E) within homogenization */
@@ -101,17 +101,20 @@ class Function
       // This is constraint only!
       GREYNESS,                  /*!< inaccurate - best for observation only */
       REALVOLUME,
-      ISOTROPY,                  /*!< blow up to several HOMOGENITATION_TENSOR constraints with different coords */
+      ISOTROPY,                  /*!< blow up to several HOM_TENSOR constraints with different coords */
       ISO_ORTHOTROPY,            /*!< relaxed form of isotropy without fixing shear moduli */
       ORTHOTROPY,                /*!< just some 0 constraints */
       SLOPE,                     /*!< Implementation of a grad rho constraint */
       MOLE,                      /*!< Feature size control from T. Poulsen */
       OSCILLATION,               /*!< Feature size control by Fabian W. :) */
       MAXWELL_ISOTROPY,          /*!< blow up to several MAXWELL_HOM_TENSOR constraints with different coords */
-      BIISOTROPY,                 /*!< blow up to several MAXWELL_HOM_TENSOR constraints with different coords for both permeability and permittivity */
+      BIISOTROPY,                /*!< blow up to several MAXWELL_HOM_TENSOR constraints with different coords for both permeability and permittivity */
       JUMP,                      /*!< Weak greyness control by Fabian W. :) */
       BUMP,                      /*!< Prevent intermediate change of slope ('hobbala') by Fabian W. */
-      DESIGN_TRACKING            /*!< Tracking against physical densities in designTarget. Either for region or periodic (constraint nodes) elements */
+      DESIGN_TRACKING,           /*!< Tracking against physical densities in designTarget. Either for region or periodic (constraint nodes) elements */
+      SUM_MODULI,                /*!< the sum of the elasticity and shear moduli in parametrized elasticity tensor formulations */
+      GLOBAL_SUM_MODULI,         /*!< global resource constraint, see sum_moduli */
+      PARAM_PS_POS_DEF           /*!< constraint to ensure positive definiteness in parametrized elasticity tensor formulation (plane stress). Choose > 0*/
     } Type;
 
     /** to convert string/enum for this type */
@@ -241,7 +244,7 @@ class Function
       ~Local();
 
       /** Number of identifiers per design element. Usually dim or dim *2, ... */
-      int GetElememtDimension() const { return element_dimension_; }
+      int GetElementDimension() const { return element_dimension_; }
 
       /** The local type, essentially important for slopes. There should be no need to set
        * it as user. */
@@ -254,7 +257,8 @@ class Function
         DEG_45_STAR,             /*!< Different notation. prev_next but also diagonals */
         DEG_45_STAR_AND_REVERSE, /*!< The doubled variant of DEG_45_STAR for oscillation */
         BOUNDARY,                /*!< For a neighbor definition the first and last element (JUMP) */
-        ELEMENT                  /*!< For stress there is no neighborhood, only the element itself */
+        ELEMENT,                  /*!< For stress there is no neighborhood, only the element itself */
+        MULT_DESIGNS_ELEMENT     /*!< ELEMENT for multiple different designs - only parametrized PLANE_STRESS for now */
       } Locality;
 
       static Enum<Locality> locality;
@@ -362,6 +366,13 @@ class Function
         double CalcBump() const;
         double CalcBumpGradient(int neigh_idx) const;
 
+        /** sum of elasticity and shear moduli in parametrized elasticity tensor formulations */
+        double CalcSumModuli() const;
+        void CalcSumModuliGradient(int neigh_idx, const Objective* f, const Condition* g, double value);
+
+        /** to ensure positive definiteness of the material tensor E3-E1*nu31^2 > 0 has to holf */
+        double CalcParamPSPosDef(int neigh_idx, bool derivative) const;
+
         /** CalcStress() and the gradient are actually done in EM/SIMP */
 
         DesignElement* element; // this represents DesignSpace::data[element_idx]
@@ -408,6 +419,9 @@ class Function
 
       /** trival case form ELEMENT (stress) -> on the element itself */
       void SetupSingularElementMap();
+
+      /** multiple designs on one element (parametrized PLANE_STRESS) */
+      void SetupMultDesignsElementMap();
 
       /** small helper to determine the number of neighbors in each (diagonal)
        * direction if we use a neighborhood. Parses the whole stuff */
@@ -509,10 +523,10 @@ class Function
     /** for HOM_TRACKING this is the target tensor. For HOM_FROBENIUS_PRODUCT this is the parameter */
     Matrix<double> tensor_;
 
-    /** for MAXWELL_HOMOGENIZATION_TRACKING this is the target tensor. */
+    /** for MAXWELL_HOM_TRACKING this is the target tensor. */
     Matrix<Complex> maxwellTensor_;
 
-    /** entry selection for MAXWELL_HOMOGENIZATION_TRACKING */
+    /** entry selection for MAXWELL_HOM_TRACKING */
     Matrix<Complex> selectionTensor_;
 
     bool HasSelectionTensor_;

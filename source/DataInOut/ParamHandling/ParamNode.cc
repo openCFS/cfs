@@ -52,7 +52,7 @@ PtrParamNode info;
 
 ParamNode::ParamNode(ActionType defaultAction, NodeType type) :
   precision_(5), name_("DD"), type_(type), defaultAction_(defaultAction),
-  lastresultidx_(-1), write_timer_(), write_counter_(0), reject_counter_(0)
+  lastresultidx_(-1)
 { }
 
 ParamNode::~ParamNode()
@@ -131,14 +131,12 @@ void ParamNode::SetComment(const std::string& comment)
   PtrParamNode newChild(new ParamNode(defaultAction_, COMMENT));
   newChild->SetName("comment");
   newChild->SetValue(comment);
-  newChild->parent_ = this;
   newChild->defaultAction_ = defaultAction_;
   children_.Push_back(newChild);
 }
 
 void ParamNode::AddChildNode(PtrParamNode child)
 {
-  child->parent_ = this;
   if (child->defaultAction_ == DEFAULT)
   {
     child->defaultAction_ = defaultAction_;
@@ -151,7 +149,6 @@ PtrParamNode ParamNode::SetNewChild(const std::string& name, unsigned int index)
 
   PtrParamNode node(new ParamNode());
   node->SetName(name);
-  node->parent_ = this;
   node->defaultAction_ = defaultAction_;
   children_[index] = node;
   return node;
@@ -261,7 +258,6 @@ PtrParamNode ParamNode::Get(const string& name_raw, ActionType action)
       newChild->SetName(myName);
       // ATTENTION: Do NOT set an empty string as value to this node, as
       // std::string("").empty() != boost::any(st::string("")).empty()
-      newChild->parent_ = this;
       newChild->defaultAction_ = defaultAction_;
       children_.Push_back(newChild);
       result = newChild;
@@ -956,23 +952,28 @@ void ParamNode::ToFile(const std::string& filename, bool force)
   }
   else
   {
+    myFileName = progOpts->GetSimName() + ".info.xml";
+
+    // this is obviously a info.xml file and not a density file or something else, hence check timing
     if(write_timer_ == NULL)
-      write_timer_ = boost::shared_ptr<Timer>(new Timer());
+      write_timer_ = boost::shared_ptr<WriteTimer>(new WriteTimer());
     
-    write_timer_->Start();
+    write_timer_->timer->Start();
     
     // only really write the file if at least a certain amount of time has passed since last write
     // or if forced
-    if(!force && write_timer_->GetWallTime() < 2.0)
+    if(!force && write_timer_->timer->GetWallTime() < 2.0)
     {
-      ++reject_counter_;
+      ++(write_timer_->reject_counter);
       return;
     }
 
-    write_timer_->ResetStart();    
-    ++write_counter_;
-    
-    myFileName = progOpts->GetSimName() + ".info.xml";
+    write_timer_->timer->ResetStart();
+    ++(write_timer_->write_counter);
+
+    Get("infoWriteCounter")->SetValue(write_timer_->write_counter);
+    Get("infoRejectCounter")->SetValue(write_timer_->reject_counter);
+
   }
 
   // use filtered stream
@@ -989,10 +990,9 @@ void ParamNode::ToFile(const std::string& filename, bool force)
   // write preamble
   info_file << "<?xml version=\"1.0\"?>";
   
-  // in case we writa an info.xml file (and not a density file, ...) we add xslt stuff
+  // in case we write an info.xml file (and not a density file, ...) we add xslt stuff
   if(myFileName.find("info.xml") != std::string::npos)
   {
-    
     // attention: in case we call this method from the cfstool, there is
     // not progOpts object available!
     if( progOpts ) {
@@ -1003,12 +1003,6 @@ void ParamNode::ToFile(const std::string& filename, bool force)
           << "/share/xsl/cfs_info_output_html.xsl\" type=\"text/xsl\"?>";
     }
   }
-  // store how often we are written -> if the number is too high one should cancel some ToFile() calls
-  //    if(writeCounter_.count(filename_) == 0) writeCounter_[filename_] = 0;
-  //    Get("writeCounter")->SetValue(++writeCounter_[filename_]);
-  // just for info.xml put write counter to info.xml
-  Get("infoWriteCounter")->SetValue(write_counter_);
-  Get("infoRejectCounter")->SetValue(reject_counter_);
 
   // First we determine the type of nodes
   AdjustElementType();
@@ -1162,6 +1156,14 @@ inline std::string ParamNode::ToValidLabel(std::string out) const
   // don't touch the slash '/', it is a 'xpath' element
   return out;
 }
+
+ParamNode::WriteTimer::WriteTimer()
+{
+  timer = boost::shared_ptr<Timer>(new Timer());
+  write_counter = 0;
+  reject_counter = 0;
+}
+
 
 // ========================================================================
 //  Instantiate public methods

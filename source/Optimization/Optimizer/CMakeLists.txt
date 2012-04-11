@@ -20,8 +20,21 @@ SET(TARGET_LL
   utils
 )
 
+# we need it almost always ?!
+SET(DEPENDS
+  "${LAPACK_LIBRARY}"
+  "${BLAS_LIBRARY}"
+  "${CFS_FORTRAN_LIBS}"
+)
+
 IF(USE_IPOPT)
-   SET(TARGET_LL ${TARGET_LL} ipopt gfortranbegin gcc_s)
+  # gfortranbegin gcc_s
+   #SET(TARGET_LL ${TARGET_LL} -Wl,-Bstatic ipopt coinhsl )
+   SET(COMBINED ${IPOPT_LIBRARY} ${IPOPT_HSL_LIBRARY} ${METIS_LIBRARY})
+   
+   ADD_DEPENDENT_LIBRARY(ipopt-lib "${COMBINED}" "${DEPENDS}" )
+   
+   SET(TARGET_LL  ${TARGET_LL} ipopt-lib1)
 
    INCLUDE_DIRECTORIES(${IPOPT_INCLUDE_DIR})
    
@@ -40,7 +53,7 @@ ENDIF(USE_KNITRO)
 
 IF(USE_SCPIP)
    SET(TARGET_LL ${TARGET_LL} ${SCPIP_LIBRARY} ${CFS_FORTRAN_LIBS})
-
+   # message("${CFS_FORTRAN_LIBS}")
    # SCPIPBase is also the open source project C++SCPIP.
    # With this definition the file lives in both worlds! 
    ADD_DEFINITIONS(-DUSE_4_CFS)

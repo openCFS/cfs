@@ -107,11 +107,12 @@ Condition::Condition(PtrParamNode pn) : Function(pn)
     default:
       if(!pn->Has("value"))
         throw Exception("No value given for constraint '" + type.ToString(type_) + "'");
+      break;
     }
   }
   
   // generally we are not linear, the volume is not linear on heaviside densities.
-  linear_ = type_ == VOLUME || type_ == SLOPE ? true : false;
+  linear_ = type_ == VOLUME || type_ == SLOPE || type_ == SUM_MODULI || type_ == GLOBAL_SUM_MODULI ? true : false;
   //  snopt only makes a difference between linear and nonlinear constraints!
   if(pn->Has("linear"))
     linear_ = pn->Get("linear")->As<bool>();
@@ -157,7 +158,8 @@ void Condition::AddCondition(PtrParamNode pn, StdVector<Condition*>& list)
 {
   Type t = type.Parse(pn->Get("type")->As<std::string>());
 
-  list.Push_back(t == SLOPE || t == MOLE || t == OSCILLATION || t == JUMP || t == BUMP ? new LocalCondition(pn) : new Condition(pn));
+  list.Push_back(t == SLOPE || t == MOLE || t == OSCILLATION || t == JUMP || t == BUMP
+      || t == SUM_MODULI || t == PARAM_PS_POS_DEF ? new LocalCondition(pn) : new Condition(pn));
 
   // note that the pointer becomes invalid by AddSubCondition()
   Condition* g = list.Last();
@@ -1062,14 +1064,24 @@ void ConditionContainer::VirtualView::Refresh()
   std::list<unsigned int> tmp;
 
   // search also for observe conditions!
-  Condition* c = container_->Get(Condition::SLOPE, DesignElement::NO_TYPE, false, false);
-  if(c != NULL) tmp.push_back(c->GetIndex());
-  c = container_->Get(Condition::MOLE, DesignElement::NO_TYPE, false, false);
-  if(c != NULL) tmp.push_back(c->GetIndex());
-  c = container_->Get(Condition::JUMP, DesignElement::NO_TYPE, false, false);
-  if(c != NULL) tmp.push_back(c->GetIndex());
-  c = container_->Get(Condition::BUMP, DesignElement::NO_TYPE, false, false);
-  if(c != NULL) tmp.push_back(c->GetIndex());
+  StdVector<Condition*> c = container_->GetList(Condition::SLOPE, DesignElement::NO_TYPE, false);
+  for(UInt i=0; i<c.GetSize(); ++i)
+    tmp.push_back(c[i]->GetIndex());
+  c = container_->GetList(Condition::MOLE, DesignElement::NO_TYPE, false);
+  for(UInt i=0; i<c.GetSize(); ++i)
+    tmp.push_back(c[i]->GetIndex());
+  c = container_->GetList(Condition::JUMP, DesignElement::NO_TYPE, false);
+  for(UInt i=0; i<c.GetSize(); ++i)
+    tmp.push_back(c[i]->GetIndex());
+  c = container_->GetList(Condition::BUMP, DesignElement::NO_TYPE, false);
+  for(UInt i=0; i<c.GetSize(); ++i)
+    tmp.push_back(c[i]->GetIndex());
+  c = container_->GetList(Condition::SUM_MODULI, DesignElement::NO_TYPE, false);
+  for(UInt i=0; i<c.GetSize(); ++i)
+    tmp.push_back(c[i]->GetIndex());
+  c = container_->GetList(Condition::PARAM_PS_POS_DEF, DesignElement::NO_TYPE, false);
+  for(UInt i=0; i<c.GetSize(); ++i)
+    tmp.push_back(c[i]->GetIndex());
 
 
   // we might combine oscillation for void and material with different sizes

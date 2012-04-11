@@ -93,16 +93,16 @@ Function::Function(PtrParamNode pn)
     maxwellTensor_.SetPart(Global::IMAG, maxwellTensor_.GetPart(Global::IMAG).EntryMult(GetSelectionTensor().GetPart(Global::IMAG)));
   }
 
-  if(type_ == MAXWELL_HOMOGENIZATION_TRACKING && !maxwell_tensor_ok)
+  if(type_ == MAXWELL_HOM_TRACKING && !maxwell_tensor_ok)
     EXCEPTION("A 'maxwellTensor' element is mandatory  for 'maxwellHomTracking'");
 
-  if(type_ == MAXWELL_HOM_TENSOR || type_ == MAXWELL_HOMOGENIZATION_TRACKING)
+  if(type_ == MAXWELL_HOM_TENSOR || type_ == MAXWELL_HOM_TRACKING)
   {
     // we must not give a value when there is a tensor
 //    if(type_ == MAXWELL_HOM_TENSOR && pn->Has("maxwellTensor") && pn->Has("value"))
 //      throw Exception("a value must not be given when a tensor is used in a homogenization constraint");
 
-    if(type_ == MAXWELL_HOMOGENIZATION_TRACKING && (!pn->Has("maxwellTensor") && !pn->Has("isotropic")))
+    if(type_ == MAXWELL_HOM_TRACKING && (!pn->Has("maxwellTensor") && !pn->Has("isotropic")))
       throw Exception("a 'maxwellTensor' is mandatory for homogenization tracking");
   }
 
@@ -255,15 +255,11 @@ bool Function::ReadMaxwellTensor(PtrParamNode pn, Matrix<Complex>& matrix, bool 
 //      UInt dim = domain->GetDim();
 //      double real = tens->Get("permReal")->As<double>();
 //      double imag = tens->Get("permImag")->As<double>();
-//
 //      matrix.Resize(dim, dim);
 //      matrix.Init();
-//
 //      for (UInt i=0; i<dim; ++i){
 //        matrix(i, i) = Complex(real, imag);
 //      }
-//
-//
 //      tensor_read = true;
 //    }
 
@@ -390,7 +386,7 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
     case HOM_TENSOR:
     case MAXWELL_HOM_TENSOR:
     case HOM_TRACKING:
-    case MAXWELL_HOMOGENIZATION_TRACKING:
+    case MAXWELL_HOM_TRACKING:
     case HOM_FROBENIUS_PRODUCT:
     case BITENSOR:
     case POISSONS_RATIO:
@@ -413,6 +409,9 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
     case BUMP:
     case DESIGN_TRACKING:
     case PROJECTION:
+    case SUM_MODULI:
+    case GLOBAL_SUM_MODULI:
+    case PARAM_PS_POS_DEF:
       assert(excite_index < 0);
       excite_ = me->excitations.GetSize() - 1; // once only at the last excitation
       break;
@@ -537,7 +536,7 @@ bool Function::IsMaxwellHomogenization() const
   switch(type_)
   {
     case MAXWELL_HOM_TENSOR:
-    case MAXWELL_HOMOGENIZATION_TRACKING:
+    case MAXWELL_HOM_TRACKING:
     case BITENSOR:
     case MAXWELL_ISOTROPY:
     case BIISOTROPY:
@@ -583,7 +582,7 @@ bool Function::ForSensitivityFiltering() const
   case HOM_TENSOR:
   case MAXWELL_HOM_TENSOR:
   case HOM_TRACKING:
-  case MAXWELL_HOMOGENIZATION_TRACKING:
+  case MAXWELL_HOM_TRACKING:
   case HOM_FROBENIUS_PRODUCT:
   case BITENSOR:
   case POISSONS_RATIO:
@@ -613,6 +612,9 @@ bool Function::ForSensitivityFiltering() const
   case BUMP:
   case DESIGN_TRACKING:
   case PROJECTION:
+  case SUM_MODULI:
+  case GLOBAL_SUM_MODULI:
+  case PARAM_PS_POS_DEF:
     return false;
 
   case ISOTROPY:
@@ -647,8 +649,10 @@ void Function::SetElements(DesignSpace* space, RegionIdType region)
   int nd = 1;
   if(design == DesignElement::TENSOR_TRACE || design == DesignElement::DEFAULT) {
     nd = space->design.GetSize();
+    if(design == DesignElement::ALL_DESIGNS)
+      nd++;
   }
-  elements.Reserve(region == ALL_REGIONS ? space->data.GetSize() : nd * grid->GetNumElems(region));
+  elements.Reserve(nd * (region == ALL_REGIONS ? space->GetNumberOfElements() : grid->GetNumElems(region)));
 
   if(region == ALL_REGIONS || space->Contains(region))
   {
@@ -658,6 +662,14 @@ void Function::SetElements(DesignSpace* space, RegionIdType region)
       if((design == DesignElement::DEFAULT || design == DesignElement::TENSOR_TRACE || design == de->GetType())
           && (region == ALL_REGIONS || de->elem->regionId == region))
         elements.Push_back(de);
+    }
+    if(design == DesignElement::ALL_DESIGNS)
+    {
+      for(unsigned int i = 0; i < space->GetNumberOfElements(); i++)
+          {
+            DesignElement* de = &(space->data[i]);
+            elements.Push_back(de);
+          }
     }
   }
   else
@@ -675,7 +687,7 @@ void Function::SetElements(DesignSpace* space, RegionIdType region)
     space->RegisterPseudoDesignRegion(region, design, &elements);
   }
 
-  assert(elements.GetSize() == elements.Capacity());
+//  assert(elements.GetSize() == elements.Capacity());
 }
 
 
@@ -695,6 +707,9 @@ void Function::PostProc(DesignSpace* space, DesignStructure* structure, ErsatzMa
   case BUMP:
   case STRESS:
   case STRESS_DENSITY:
+  case SUM_MODULI:
+  case GLOBAL_SUM_MODULI:
+  case PARAM_PS_POS_DEF:
     // assert(space->IsRegular()); // VicinityElements work only on a regular grid
     // the design elements require the vicinity element to be set which holds the direct
     // neighbors. Is save to call several times
@@ -776,6 +791,7 @@ Function::Local::Local(Function* func, DesignSpace* space)
   case GLOBAL_SLOPE:
   case STRESS:
   case STRESS_DENSITY:
+  case GLOBAL_SUM_MODULI:
     this->globalized_ = true;
     break;
 
@@ -853,6 +869,14 @@ Function::Local::Local(Function* func, DesignSpace* space)
     locality_ = ELEMENT;
     break;
 
+  case SUM_MODULI:
+  case GLOBAL_SUM_MODULI:
+  case PARAM_PS_POS_DEF:
+    if(locality_ != MULT_DESIGNS_ELEMENT && locality_ != DEFAULT)
+      throw Exception("Invalid locality '" + locality.ToString(locality_) + "' within '" + fname + "'");
+    locality_ = MULT_DESIGNS_ELEMENT;
+    break;
+
   case BUMP:
     if(locality_ != PREV_NEXT && locality_ != DEFAULT)
       throw Exception("Invalid locality '" + locality.ToString(locality_) + "' within '" + fname + "'");
@@ -883,8 +907,13 @@ Function::Local::Local(Function* func, DesignSpace* space)
     SetupSingularElementMap();
     break;
 
+  case MULT_DESIGNS_ELEMENT:
+    SetupMultDesignsElementMap();
+    break;
+
   default:
     SetupVirtualElementMap(phase_);
+    break;
   }
 
   if(virtual_elem_map.GetSize() == 0) throw Exception("mesh too small for locality of function '" + fname + "'");
@@ -917,10 +946,10 @@ void Function::Local::SetupVirtualElementMap(Phase ph)
 
 
   // traverse all elements and check for full neighborhood
-  for(int e = 0, ss = space->GetNumberOfElements(); e < ss; ++e)
+  for(int e = 0, ss = space->data.GetSize(); e < ss; ++e)
   {
     DesignElement* de = &(space->data[e]);
-    if(de->GetType() == DesignElement::DENSITY){
+    if(de->GetType() == ( (func_->design == DesignElement::DEFAULT) ? DesignElement::DENSITY : func_->design)){
       VicinityElement* ve = de->vicinity;
 
       // do we have a full neighborhood? All or none as in the original slope paper
@@ -1169,6 +1198,26 @@ void Function::Local::SetupSingularElementMap()
 }
 
 
+void Function::Local::SetupMultDesignsElementMap()
+{
+  // only this element!
+  element_dimension_ = 1; // two boundary "stones" per dimension
+  UInt numFElements = space->GetNumberOfElements();
+  virtual_elem_map.Reserve(element_dimension_ * numFElements);
+
+  for(int e = 0, en = numFElements; e < en; e++)
+  {
+    DesignElement* de = func_->elements[e];
+    int base = space->Find(de->elem, true);
+    StdVector<DesignElement*> neighbours;
+    for(unsigned int index = base + numFElements; index < space->data.GetSize(); index += numFElements){
+      neighbours.Push_back(&(space->data[index]));
+    }
+    virtual_elem_map.Push_back(Identifier(de, neighbours));
+  }
+}
+
+
 void Function::Local::ToInfo(PtrParamNode in)
 {
   Function::Type ft = func_->type_;
@@ -1325,6 +1374,16 @@ double Function::Local::Identifier::EvalFunction(const Local* local, bool grad_g
 
   case BUMP:
     fv = CalcBump();
+    break;
+
+  case SUM_MODULI:
+  case GLOBAL_SUM_MODULI:
+    fv = CalcSumModuli();
+    break;
+
+  case PARAM_PS_POS_DEF:
+    fv = CalcParamPSPosDef(-1, false);
+    break;
 
   default:
     assert(false);
@@ -1360,6 +1419,11 @@ double Function::Local::Identifier::EvalFunction(const Local* local, bool grad_g
                    << " grad_glob=" << grad_glob << " power=" << std::pow(v, local->GetPower()) << " -> " << res;
 
     return res;
+  }
+  case GLOBAL_SUM_MODULI:
+  {
+    double factor = local->DoNormalizeGlobal() ? 1.0/local->virtual_elem_map.GetSize() : 1.0;
+    return fv*factor;
   }
   default:
     return fv; // check is done before
@@ -1424,6 +1488,18 @@ void Function::Local::Identifier::EvalGradient(const Local* local)
     case STRESS:
     case STRESS_DENSITY:
       assert(false); // in SIMP::CalcVonMisesStressGradient() only!
+      break;
+
+    case SUM_MODULI:
+      CalcSumModuliGradient(n, f, g, 1.0);
+      continue;
+
+    case GLOBAL_SUM_MODULI:
+      CalcSumModuliGradient(n, f, g, local->DoNormalizeGlobal() ? 1.0/local->virtual_elem_map.GetSize() : 1.0);
+      continue;
+
+    case PARAM_PS_POS_DEF:
+      gv = CalcParamPSPosDef(n, true);
       break;
 
     default:
@@ -1761,6 +1837,76 @@ double Function::Local::Identifier::CalcBumpGradient(int neigh_idx) const
   }
 
   return res;
+}
+
+
+double Function::Local::Identifier::CalcSumModuli() const
+{
+  double E1(0.0), E3(0.0), G(0.0);
+  for(int i=-1; i < (int) neighbor.GetSize(); ++i)
+  {
+    switch(GetElement(i)->GetType())
+    {
+    case DesignElement::EMODULISO:
+      E1 = GetElement(i)->GetDesign(DesignElement::PLAIN);
+      break;
+    case DesignElement::EMODUL:
+      E3 = GetElement(i)->GetDesign(DesignElement::PLAIN);
+      break;
+    case DesignElement::GMODUL:
+      G = GetElement(i)->GetDesign(DesignElement::PLAIN);
+      break;
+    default:
+      break;
+    }
+  }
+  return E1+E3+G;
+}
+
+void Function::Local::Identifier::CalcSumModuliGradient(int neigh_idx, const Objective* f, const Condition* g, double value)
+{
+  DesignElement::Type type = GetElement(neigh_idx)->GetType();
+  if (type == DesignElement::EMODULISO || type == DesignElement::EMODUL || type == DesignElement::GMODUL)
+    GetElement(neigh_idx)->AddGradient(f, g, value);
+}
+
+double Function::Local::Identifier::CalcParamPSPosDef(int neigh_idx, bool derivative) const
+{
+  double E1(0.0), E3(0.0), nu31(0.0);
+  for(int i=-1; i < (int) neighbor.GetSize(); ++i)
+  {
+    switch(GetElement(i)->GetType())
+    {
+    case DesignElement::EMODULISO:
+      E1 = GetElement(i)->GetDesign(DesignElement::PLAIN);
+      break;
+    case DesignElement::EMODUL:
+      E3 = GetElement(i)->GetDesign(DesignElement::PLAIN);
+      break;
+    case DesignElement::POISSON:
+      nu31 = GetElement(i)->GetDesign(DesignElement::PLAIN);
+      break;
+    default:
+      break;
+    }
+  }
+  if(derivative)
+    switch(GetElement(neigh_idx)->GetType())
+    {
+    case DesignElement::EMODULISO:
+      return -nu31*nu31;
+    case DesignElement::EMODUL:
+      return 1.0;
+    case DesignElement::POISSON:
+      return -2.0*nu31*E1;
+    default:
+      return 0.0;
+    }
+  else
+  {
+    LOG_TRACE2(func) << "Local::Local e_num=" << element->elem->elemNum << ", E3-E1*nu31^2=" << E3-E1*nu31*nu31;
+    return E3-E1*nu31*nu31;
+  }
 }
 
 
