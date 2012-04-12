@@ -1394,6 +1394,8 @@ source/Optimization/Optimizer/BaseOptimizer.hh svneol=native#text/x-c%2B%2Bhdr
 source/Optimization/Optimizer/CMakeLists.txt -text
 source/Optimization/Optimizer/EvaluateOnly.cc svneol=native#text/x-c%2B%2Bsrc
 source/Optimization/Optimizer/EvaluateOnly.hh svneol=native#text/x-c%2B%2Bhdr
+source/Optimization/Optimizer/FeasPP.cc -text
+source/Optimization/Optimizer/FeasPP.hh -text
 source/Optimization/Optimizer/FeasSCP.cc -text
 source/Optimization/Optimizer/FeasSCP.hh -text
 source/Optimization/Optimizer/GradientCheck.cc svneol=native#text/x-c%2B%2Bsrc
