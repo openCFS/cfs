@@ -130,10 +130,27 @@ Function::Function(PtrParamNode pn)
       throw Exception("function '" + type.ToString(type_) + "' cannot be region restricted");
     break;
 
-
   default:
     break;
   }
+
+  // set linear, to be overwritten by xml in Condition
+  switch(type_)
+  {
+  case VOLUME: // the volume is not linear on heaviside densities
+  case SLOPE:
+  case GLOBAL_SLOPE:
+  case SUM_MODULI:
+  case GLOBAL_SUM_MODULI:
+  case TENSOR_TRACE:
+  case SLACK:
+    linear_ = true;
+    break;
+  default:
+    linear_ = false;
+    break;
+  }
+
 
   if(physical_ && !(type_ == VOLUME || type_ == GREYNESS))
     throw Exception("'physical' is no option for '" + type.ToString(type_) + "'");
@@ -419,6 +436,7 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
     case FMO_POS_DEF_MINOR_1:
     case FMO_POS_DEF_MINOR_2:
     case FMO_POS_DEF_MINOR_3:
+    case TENSOR_TRACE:
     case SLACK:
       assert(excite_index < 0);
       excite_ = me->excitations.GetSize() - 1; // once only at the last excitation
@@ -548,6 +566,7 @@ bool Function::IsLocal(Type t)
   case JUMP:
   case BUMP:
   case SUM_MODULI:
+  case TENSOR_TRACE:
   case PARAM_PS_POS_DEF:
   case FMO_POS_DEF_MINOR_1:
   case FMO_POS_DEF_MINOR_2:
@@ -640,6 +659,7 @@ bool Function::ForSensitivityFiltering() const
   case BUMP:
   case DESIGN_TRACKING:
   case PROJECTION:
+  case TENSOR_TRACE:
   case SUM_MODULI:
   case GLOBAL_SUM_MODULI:
   case PARAM_PS_POS_DEF:
@@ -765,6 +785,7 @@ void Function::PostProc(DesignSpace* space, DesignStructure* structure, ErsatzMa
   case BUMP:
   case STRESS:
   case STRESS_DENSITY:
+  case TENSOR_TRACE:
   case SUM_MODULI:
   case GLOBAL_SUM_MODULI:
   case PARAM_PS_POS_DEF:
@@ -931,6 +952,7 @@ Function::Local::Local(Function* func, DesignSpace* space)
     locality_ = ELEMENT;
     break;
 
+  case TENSOR_TRACE:
   case SUM_MODULI:
   case GLOBAL_SUM_MODULI:
   case PARAM_PS_POS_DEF:
@@ -1279,6 +1301,13 @@ void Function::Local::SetupMultDesignsElementMap(const Function* f)
   // for FMO_POS_DEF we have to consider the minor. See CalcFMOPosDef()
   switch(f->GetType())
   {
+  case TENSOR_TRACE:
+    assert(space->design.GetSize() == 6);
+    // 11 is not a neighbor but the element itself
+    des_idx.Push_back(space->FindDesign(DesignElement::TENSOR22));
+    des_idx.Push_back(space->FindDesign(DesignElement::TENSOR33));
+    break;
+
   case FMO_POS_DEF_MINOR_1:
     assert(space->design.GetSize() == 6);
     if(space->design[0] != DesignElement::TENSOR11)
@@ -1488,6 +1517,7 @@ double Function::Local::Identifier::EvalFunction(const Local* local, bool grad_g
     fv = CalcSumModuli();
     break;
 
+
   case PARAM_PS_POS_DEF:
     fv = CalcParamPSPosDef(-1, false);
     break;
@@ -1497,6 +1527,10 @@ double Function::Local::Identifier::EvalFunction(const Local* local, bool grad_g
   case FMO_POS_DEF_MINOR_2:
   case FMO_POS_DEF_MINOR_3:
     fv = CalcFMOPosDef(-1, local, false);
+    break;
+
+  case TENSOR_TRACE:
+    fv = CalcTensorTrace(-1, local, false);
     break;
 
   default:
@@ -1620,6 +1654,10 @@ void Function::Local::Identifier::EvalGradient(const Local* local)
     case FMO_POS_DEF_MINOR_2:
     case FMO_POS_DEF_MINOR_3:
       gv = CalcFMOPosDef(n, local, true);
+      break;
+
+    case TENSOR_TRACE:
+      gv = CalcTensorTrace(n, local, true);
       break;
 
     default:
@@ -1977,6 +2015,7 @@ double Function::Local::Identifier::CalcSumModuli() const
       G = GetElement(i)->GetDesign(DesignElement::PLAIN);
       break;
     default:
+      assert(false);
       break;
     }
   }
@@ -2007,6 +2046,7 @@ double Function::Local::Identifier::CalcParamPSPosDef(int neigh_idx, bool deriva
       nu31 = GetElement(i)->GetDesign(DesignElement::PLAIN);
       break;
     default:
+      assert(false);
       break;
     }
   }
@@ -2020,6 +2060,7 @@ double Function::Local::Identifier::CalcParamPSPosDef(int neigh_idx, bool deriva
     case DesignElement::POISSON:
       return -2.0*nu31*E1;
     default:
+      assert(false);
       return 0.0;
     }
   else
@@ -2048,8 +2089,6 @@ double Function::Local::Identifier::CalcParamPSPosDef(int neigh_idx, bool deriva
     // d_2 := (e_11-v)*(e_22-v) - e_12^2 >= 0
     // d_3 is done by Sonja using the Laplace formula, we use Sarrus
     // d_3 := ...
-
-    // neigh_idx identifies the design variable! -1 = TENSOR11, 0 = TENSOR22, 1 = TENSOR33, 2 = TENSOR23, 3 = TENSOR13, 4 = TENSOR12
 
     double ret = -12345678.0;
 
@@ -2119,4 +2158,30 @@ double Function::Local::Identifier::CalcParamPSPosDef(int neigh_idx, bool deriva
     return ret;
   }
 
+
+  double Function::Local::Identifier::CalcTensorTrace(int neigh_idx, const Local* local, bool derivative) const
+  {
+    Matrix<double> E;
+    local->space->GetErsatzMaterialTensor(E, PLANE_STRAIN, element->elem, DesignElement::NO_DERIVATIVE); // the sub-tensor-type does'nt matter
+
+    LOG_DBG3(func) << "L::I::CTT e_num=" << element->elem->elemNum << " E=" << E.ToString(0, false);
+
+    double e11 = E[0][0];
+    double e22 = E[1][1];
+    double e33 = E[2][2];
+
+    double ret;
+
+    if(!derivative)
+      ret = e11 + e22 + e33;
+    else
+      ret = 1.0;
+
+    assert(GetElement(neigh_idx)->GetType() == DesignElement::TENSOR11
+        || GetElement(neigh_idx)->GetType() == DesignElement::TENSOR22
+        || GetElement(neigh_idx)->GetType() == DesignElement::TENSOR33);
+
+    LOG_DBG3(func) << "L::I::CTT e_num=" << element->elem->elemNum << " ni=" << neigh_idx << " d=" << derivative << " -> " << ret;
+    return ret;
+  }
 

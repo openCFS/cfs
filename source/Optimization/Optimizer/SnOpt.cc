@@ -214,9 +214,7 @@ void SnOpt::SolveProblem()
   {
     lenA = 0;
     nA = 0;
-    assert(A.GetSize() == 0);
-    assert(iAfun.GetSize() == 0);
-    assert(jAvar.GetSize() == 0);
+    assert(nA == 0);
   }
   
   timer_->Start();
@@ -224,7 +222,7 @@ void SnOpt::SolveProblem()
   snopta_(
       &Start, &nF, &n, &nxname, &nFname,
       &ObjAdd, &ObjRow, Prob, SnOpt_C_Callback,
-      &iAfun[0], &jAvar[0], &lenA, &nA, &A[0],
+      iAfun.GetPointer(), jAvar.GetPointer(), &lenA, &nA, A.GetPointer(),
       &iGfun[0], &jGvar[0], &lenG, &nG,
       &xlow[0], &xupp[0], xnames,  &Flow[0], &Fupp[0], Fnames,
       &x[0], &xstate[0], &xmul[0], &F[0], &Fstate[0], &Fmul[0],
@@ -631,9 +629,9 @@ void SnOpt::initJacobians()
   iGfun.Reserve(nG);
   jGvar.Reserve(nG);
 
-  A.Resize(nA, 0.0);
-  iAfun.Reserve(nA);
-  jAvar.Reserve(nA);
+  A.Resize(std::max(nA, 1), 0.0);
+  iAfun.Reserve(std::max(nA, 1));
+  jAvar.Reserve(std::max(nA, 1));
 
   // it is very important that we use the same row counter for all the
   // constraints, linear and nonlinear!!!

@@ -106,7 +106,7 @@ void FeasSCP::AllocateProblem()
   // spdw.Resize(iemax * iemax);
 
   // resize the stuff according to ScpSolver.cpp
-  ielpar = n * mie + (1 + mf) * 9;
+  ielpar = n * mie + mf * 9;
   iern.Resize(ielpar, 0);
   iecn.Resize(ielpar, 0);
   iederv.Resize(ielpar, 0);

@@ -127,20 +127,21 @@ void IPOPT::SolveProblem()
          
     case Restoration_Failed:
       in->Get("converged")->SetValue("no");
-      in->Get("reason/msg")->SetValue("IPOPT: 'Restautation failed'");
-      throw Exception("IPOPT stopped with 'Restautation failed'");  
+      in->Get("reason/msg")->SetValue("IPOPT: 'Restoration failed'");
+      throw Exception("IPOPT stopped with 'Restoration failed'");
          
     case Insufficient_Memory:
       in->Get("converged")->SetValue("no");
       in->Get("reason/msg")->SetValue("IPOPT: insufficient memory");
      throw Exception("IPOPT reports insufficient memory.");
          
-    case Invalid_Number_Detected:
-         if(base_->restart_requested) return; 
-
     case Maximum_Iterations_Exceeded:
       in->Get("converged")->SetValue("no");
       in->Get("reason/msg")->SetValue("Maximum iterations exceeded");
+      break;
+
+    case Invalid_Number_Detected:
+         if(base_->restart_requested) return;
       
     default:
       // positive is warning
@@ -151,6 +152,7 @@ void IPOPT::SolveProblem()
         in->Get("reason/error")->SetValue(status);
         EXCEPTION("IPOPT reported error " << status);
       }
+      break;
       // else is no bad error and exits this void method :)  
   }
 }

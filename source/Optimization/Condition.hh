@@ -80,9 +80,6 @@ namespace CoupledField
        /** Is this a feasibility constraint for FeasSCP */
        bool IsFeasibilityConstraint() const;
 
-       /** Is this a linear condition? E.g. SnOpt can handle them more efficiently */
-       bool IsLinear() const { return linear_; }
-
        /** Is this observation or active */
        bool IsObservation() const { return observation_; }
 
@@ -199,8 +196,6 @@ namespace CoupledField
        */
       bool imag_;
 
-      /** Conditions mark themself as (non) linear -> no power in the design variable, ...*/
-      bool linear_;
 
       /** this is the virtual base index of this condition w.r.t. all conditions.
        * For normal condition this is simple the virtual index, for local conditions this is the base*/

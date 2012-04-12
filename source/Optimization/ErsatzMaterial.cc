@@ -867,6 +867,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
       case Function::JUMP:
       case Function::BUMP:
       case Function::SUM_MODULI:
+      case Function::TENSOR_TRACE:
       case Function::PARAM_PS_POS_DEF:
       case Function::FMO_POS_DEF_MINOR_1:
       case Function::FMO_POS_DEF_MINOR_2:

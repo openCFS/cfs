@@ -317,6 +317,8 @@
                 <xsd:enumeration value="globalSumModuli"/>
                 <!--  requires parametrized material tensor (PLANE_STRESS), > 0 ensures positivity of the material tensor -->
                 <xsd:enumeration value="parametrized-plane-stress-pos-def"/>
+                <!-- for FMO only -->
+                <xsd:enumeration value="tensorTrace"/>
                 <!--  from anisotropic param-mat (= FMO) ensure positive definiteness including bound on diagonal elements (E-value*I) larger param -->
                 <!-- <xsd:enumeration value="fmoPosDef"/>-->
                 <xsd:enumeration value="fmoPosDefMinor1"/>
@@ -437,13 +439,25 @@
             </xsd:element>
             
             <!-- This is an ipopt element which has * child elements with options -->
-            <xsd:element name="ipopt" minOccurs="0" type="DT_ExternalOptimizer"/>
+            <xsd:element name="ipopt" minOccurs="0" type="DT_IPOPT"/>
             
             <!-- we made scpip the look like ipopt -->
             <xsd:element name="scpip" minOccurs="0" type="DT_SCPIP"/>
 
             <!-- Sonja Lehmann's feasible scp solver with ipopt subproblem parameters -->
             <xsd:element name="feasSCP" minOccurs="0" type="DT_FEAS_SCP"/>
+
+            <!-- Own MMA implementio using IPOPT as subsolver with the feature for strictly feasible optimization -->
+            <xsd:element name="feasPP" minOccurs="0" >
+              <xsd:complexType>
+                <xsd:sequence>
+                  <xsd:element name="ipopt" minOccurs="0" maxOccurs="1" type="DT_IPOPT"/>
+                </xsd:sequence>
+                <xsd:attribute name="approx_linear" type="xsd:boolean" default="false" use="optional"/>
+                <xsd:attribute name="approx_feasible" type="xsd:boolean" default="false" use="optional"/>
+              </xsd:complexType>
+            </xsd:element>
+            
 
             <!-- we made snopt the look like ipopt -->
             <xsd:element name="snopt" minOccurs="0">
@@ -678,6 +692,8 @@
                 <xsd:enumeration value="ipopt"/>
                 <xsd:enumeration value="scpip"/>
                 <xsd:enumeration value="feasSCP"/>
+                <!-- this is a own strictly feasible MMA implemenation using IPOPT as subsolver -->
+                <xsd:enumeration value="feasPP"/>
                 <xsd:enumeration value="snopt"/>
                 <xsd:enumeration value="knitro"/>
                 <!-- this evaluates only the initial design -->
@@ -1059,7 +1075,7 @@
   </xsd:complexType>
   
   <!-- similar schema for ipopt, snopt and scpip. -->
-  <xsd:complexType name="DT_ExternalOptimizer">
+  <xsd:complexType name="DT_IPOPT">
     <xsd:sequence>
       <!-- We can have many option childs. Each with three attributes -->
       <xsd:element name="option" minOccurs="0" maxOccurs="10">
@@ -1075,9 +1091,17 @@
             </xsd:simpleType>
           </xsd:attribute>
           <!-- the name attribute has to match an IPOPT parameter -> see IPOPT manual -->
-          <xsd:attribute name="name" use="required" type="xsd:token" />
+          <xsd:attribute name="name" use="required" >
+            <xsd:simpleType>
+              <xsd:union memberTypes="ipopt_name_values xsd:token"></xsd:union>
+            </xsd:simpleType>
+          </xsd:attribute>
           <!-- the value attribute is always string, nontheless the type -->
-          <xsd:attribute name="value" use="required" type="xsd:token" />
+          <xsd:attribute name="value" use="required">
+            <xsd:simpleType>
+              <xsd:union memberTypes="ipopt_value_values xsd:token"></xsd:union>
+            </xsd:simpleType>
+          </xsd:attribute>
         </xsd:complexType>
       </xsd:element>
     </xsd:sequence>
@@ -1276,6 +1300,42 @@
   <xsd:simpleType name="slack_token">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="slack"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+  
+  <!-- This are some IPOPT 3 option names -->
+  <xsd:simpleType name="ipopt_name_values">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="print_level"/>
+      <xsd:enumeration value="print_user_options"/>
+      <xsd:enumeration value="print_options_documentation"/>
+      <xsd:enumeration value="tol"/>
+      <xsd:enumeration value="max_iter"/>
+      <xsd:enumeration value="dual_inf_tol"/>
+      <xsd:enumeration value="constr_viol_tol"/>
+      <xsd:enumeration value="acceptable_tol"/>
+      <xsd:enumeration value="warm_start_init_point"/>
+      <xsd:enumeration value="hessian_approximation"/>
+      <xsd:enumeration value="derivative_test"/>
+      <xsd:enumeration value="derivative_test_print_all"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+  <!-- This are some IPOPT 3 option values -->
+  <xsd:simpleType name="ipopt_value_values">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="yes"/>
+      <xsd:enumeration value="no"/>
+      <!-- hessian_approximation -->
+      <xsd:enumeration value="exact"/>
+      <!-- hessian_approximation -->      
+      <xsd:enumeration value="limited-memory"/>
+      <!-- derivative_test -->
+      <xsd:enumeration value="none"/>
+      <!-- derivative_test -->
+      <xsd:enumeration value="first-order"/>
+      <!-- derivative_test -->
+      <xsd:enumeration value="second-order"/>
     </xsd:restriction>
   </xsd:simpleType>
   

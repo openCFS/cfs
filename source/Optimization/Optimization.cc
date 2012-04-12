@@ -49,6 +49,7 @@
 // IPOPT, SCPIP and SnOpt are not necessarily linked
 #ifdef USE_IPOPT
   #include "Optimization/Optimizer/IPOPTHolder.hh"
+  #include "Optimization/Optimizer/FeasPP.hh"
 #endif
 #ifdef USE_SCPIP
   #include "Optimization/Optimizer/SCPIP.hh"
@@ -203,6 +204,14 @@ void Optimization::PostInitSecond()
          #endif
          break;
 
+    case FEAS_PP_SOLVER:
+         #ifndef USE_IPOPT
+           throw Exception("CFS++ nees to be compiled with IPOPT to use feasPP");
+         #else
+           baseOptimizer_ = new FeasPP(this, opt);
+         #endif
+         break;
+
     case FEAS_SCP_SOLVER:
          #ifdef USE_FEAS_SCP
            baseOptimizer_ = new FeasSCP(this, opt);
@@ -316,6 +325,7 @@ void Optimization::SetEnums()
   Function::type.Add(Function::BUMP, "bump");
   Function::type.Add(Function::DESIGN_TRACKING, "designTracking");
   Function::type.Add(Function::SUM_MODULI, "sumModuli");
+  Function::type.Add(Function::TENSOR_TRACE, "tensorTrace");
   Function::type.Add(Function::GLOBAL_SUM_MODULI, "globalSumModuli");
   Function::type.Add(Function::PARAM_PS_POS_DEF, "parametrized-plane-stress-pos-def");
   // Function::type.Add(Function::FMO_POS_DEF, "fmoPosDef");
@@ -366,6 +376,7 @@ void Optimization::SetEnums()
   optimizer.Add(IPOPT_SOLVER, "ipopt");
   optimizer.Add(SCPIP_SOLVER, "scpip");
   optimizer.Add(FEAS_SCP_SOLVER, "feasSCP");
+  optimizer.Add(FEAS_PP_SOLVER, "feasPP");
   optimizer.Add(SNOPT_SOLVER, "snopt");
   optimizer.Add(KNITRO_SOLVER, "knitro");
   optimizer.Add(SHAPE_SOLVER, "shapeOpt");

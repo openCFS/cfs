@@ -114,6 +114,7 @@ class Function
       DESIGN_TRACKING,           /*!< Tracking against physical densities in designTarget. Either for region or periodic (constraint nodes) elements */
       SUM_MODULI,                /*!< the sum of the elasticity and shear moduli in parametrized elasticity tensor formulations */
       GLOBAL_SUM_MODULI,         /*!< global resource constraint, see sum_moduli */
+      TENSOR_TRACE,              /*!< local constraint on the tensor trace for fmo */
       PARAM_PS_POS_DEF,          /*!< constraint to ensure positive definiteness in parametrized elasticity tensor formulation (plane stress). Choose > 0*/
       //FMO_POS_DEF,               /*!< local for anisotropic fmo to ensure positive def for (E - value*I) < param where param shall be very small */
       FMO_POS_DEF_MINOR_1,       /*!< 1st minor constraint for FMO_POS_DEF */
@@ -200,6 +201,9 @@ class Function
     bool IsMaxwellHomogenization() const;
 
     bool IsBitensor() {return type_ == BITENSOR;}
+
+    /** Is this a linear function? E.g. SnOpt can handle them more efficiently */
+    bool IsLinear() const { return linear_; }
 
     /** Is this a local function type */
     static bool IsLocal(Type t);
@@ -391,6 +395,9 @@ class Function
 
         /** to ensure positive definiteness of the material tensor E3-E1*nu31^2 > 0 has to hold */
         double CalcParamPSPosDef(int neigh_idx, bool derivative) const;
+
+        /** local tensor trace for FMO */
+        double CalcTensorTrace(int neigh_idx, const Local* local, bool derivative) const;
 
         /** local FMP positive definiteness of (E-val*I) >= param */
         double CalcFMOPosDef(int neigh_idx, const Local* local, bool derivative) const;
@@ -587,6 +594,9 @@ class Function
     bool omega_omega_;
 
     bool harmonic_;
+
+    /** Conditions mark themselves as (non) linear -> no power in the design variable, ...*/
+    bool linear_;
 
     /** Do we have local information? E.G. (global) slopes */
     Local* local;
