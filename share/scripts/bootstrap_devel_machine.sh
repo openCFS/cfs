@@ -57,21 +57,26 @@ SetupSuse() {
     if [ "$DIST" = "SLE" ]; then 
         SLETYPE=$(cat /etc/SuSE-release | grep SUSE | cut -d' ' -f4)
 
-        if [ ! "$MAJOR" = "11" ]; then
-            echo "Only SLE 11 is supported at the moment!"
-        fi 
-       
-        unset MINOR
- 
         case "$SLETYPE" in
             Server) SLE="SLES";;
             Desktop) SLE="SLED";;
         esac
-        
-        zypper ar http://demeter.uni-regensburg.de/${SLE}11SP1-$SUSEARCH/DVD1 DVD1-Regensburg
-        zypper ar http://demeter.uni-regensburg.de/${SLE}11SP1-$SUSEARCH/DVD2 DVD2-Regensburg
-        zypper ar http://demeter.uni-regensburg.de/SLE11SP1-SDK-$SUSEARCH/DVD1 SDK-DVD1
-        zypper ar http://demeter.uni-regensburg.de/SLE11SP1-SDK-$SUSEARCH/DVD2 SDK-DVD2
+
+        unset MINOR
+
+        if [ "$MAJOR" = "10" ]; then
+            zypper sa http://demeter.uni-regensburg.de/${SLE}10SP3-$SUSEARCH/DVD1 DVD1-Regensburg
+            # zypper sa http://demeter.uni-regensburg.de/${SLE}10SP3-$SUSEARCH/DVD2 DVD2-Regensburg
+            zypper sa http://demeter.uni-regensburg.de/SLES10SP3-SDK-$SUSEARCH/DVD1 SDK-DVD1
+            zypper sa http://demeter.uni-regensburg.de/SLES10SP3-SDK-$SUSEARCH/DVD2 SDK-DVD2
+        fi
+
+        if [ "$MAJOR" = "11" ]; then
+            zypper ar http://demeter.uni-regensburg.de/${SLE}11SP1-$SUSEARCH/DVD1 DVD1-Regensburg
+            zypper ar http://demeter.uni-regensburg.de/${SLE}11SP1-$SUSEARCH/DVD2 DVD2-Regensburg
+            zypper ar http://demeter.uni-regensburg.de/SLE11SP1-SDK-$SUSEARCH/DVD1 SDK-DVD1
+            zypper ar http://demeter.uni-regensburg.de/SLE11SP1-SDK-$SUSEARCH/DVD2 SDK-DVD2
+        fi
     fi
 
  
@@ -81,7 +86,7 @@ SetupSuse() {
         python-pygments doxygen tcl-devel python-devel git-svn \
         java-1_6_0-openjdk-devel cmake-gui xorg-x11-libXt-devel \
         diffutils patch zip xorg-x11-libXp tk-devel Mesa-devel \
-        ncurses-devel
+        ncurses-devel java-1_5_0-ibm perl
 
 
     if [ "$MAJOR" = "11" ] && [ $MINOR -ge 3 ]; then
@@ -288,7 +293,7 @@ SetupCMake() {
         return 1
     fi
 
-    PCKG_BASE_NAME="cmake-2.8.6";
+    PCKG_BASE_NAME="cmake-2.8.7";
     MYTMPDIR="$TMPDIR/$(basename $0).$$"
     echo "$MYTMPDIR"
 
@@ -302,7 +307,7 @@ SetupCMake() {
              http://130.230.54.100/gentoo/distfiles/$PCKG_BASE_NAME.tar.gz
              http://www.cmake.org/files/v2.8/$PCKG_BASE_NAME.tar.gz"
 
-    MD5SUM="2147da452fd9212bb9b4542a9eee9d5b"
+    MD5SUM="e1b237aeaed880f65dec9c20602452f6"
 
     # Download source
     for mirror in $mirrors; do
