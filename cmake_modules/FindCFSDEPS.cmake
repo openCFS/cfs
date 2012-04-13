@@ -274,17 +274,4 @@ IF(BUILD_HDFVIEW)
   INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindHDFView.cmake")
 ENDIF(BUILD_HDFVIEW)
 
-
-EXECUTE_PROCESS(COMMAND "${PERL_EXECUTABLE}" "${CFS_DEPS_ROOT}/utils/perl/cfsdepsmodif.pl"
-  ${CFS_DEPS_ROOT} ${CFS_BUILD_DIR}/tmp
-  RESULT_VARIABLE retval
-  OUTPUT_VARIABLE CFS_DEPS_MODIFIED)
-
-# the boolean $CFS_FORCE_DEPS_CACHE_DIR is a expert feature for people knowing what they do
-IF(CFS_DEPS_MODIFIED MATCHES "WORKING_COPY_MODIFIED modified")
-  IF(NOT CFS_FORCE_DEPS_CACHE_DIR)
-    MESSAGE("The Subversion working copy of CFSDEPS in '${CFS_DEPS_ROOT}' has been modified. Precompiled binaries have therefore been put into '${CFS_BINARY_DIR}/tmp' instead of '${CFS_DEPS_CACHE_DIR}/precompiled'!")
-  ENDIF(NOT CFS_FORCE_DEPS_CACHE_DIR)  
-ENDIF(CFS_DEPS_MODIFIED MATCHES "WORKING_COPY_MODIFIED modified")
-
 SET(CFSDEPS_FOUND 1)

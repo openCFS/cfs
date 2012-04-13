@@ -2,6 +2,7 @@
 /CMakeLists.txt svneol=native#text/plain
 cmake_modules/CFS_macros.cmake -text
 cmake_modules/CheckPardisoAPIVersion.cmake -text
+cmake_modules/DetermineWorkingCopyInfos.cmake -text
 cmake_modules/FindACML.cmake -text
 cmake_modules/FindANSYSCust.cmake -text
 cmake_modules/FindARPACK.cmake -text
@@ -31,6 +32,7 @@ cmake_modules/FindPardiso.cmake -text
 cmake_modules/FindPrograms.cmake -text
 cmake_modules/FindPythonForCFS.cmake -text
 cmake_modules/FindSCPIP.cmake -text
+cmake_modules/FindSVNKit.cmake -text
 cmake_modules/FindSnOpt.cmake -text
 cmake_modules/FindSuiteSparse.cmake -text
 cmake_modules/FindVTK.cmake -text

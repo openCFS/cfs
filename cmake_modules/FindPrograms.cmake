@@ -6,6 +6,13 @@
 #-----------------------------------------------------------------------------
 FIND_PACKAGE(Perl)
 
+FIND_PACKAGE(PythonInterp)
+
+IF(NOT PYTHONINTERP_FOUND)
+  MESSAGE(FATAL_ERROR "No Python interpreter was found! Please make sure a Python interpreter is on the PATH.")
+ENDIF(NOT PYTHONINTERP_FOUND)
+
+
 # Since DOXYGEN and DOT are not cache variables in newer CMake versions
 # we have to set them from the new cache variables before testing them.
 IF(NOT DOXYGEN OR NOT DOT)

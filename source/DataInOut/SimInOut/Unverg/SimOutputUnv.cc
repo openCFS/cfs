@@ -154,7 +154,7 @@ namespace CoupledField {
     sstr >> month;    
     (*output) << std::setw(10) << (year*100 + month);
     sstr.clear(); sstr.str("");
-    sstr << CFS_SUBVERSION_REV;
+    sstr << CFS_WC_REVISION;
     UInt rev;
     std::string modif;
     sstr >> rev >> modif;

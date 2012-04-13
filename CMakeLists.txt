@@ -46,6 +46,8 @@ SET(CFS_BUILD_HOST "${CFS_BUILD_HOST}"
 SET(CFS_BUILD_USER "$ENV{USER}"
     CACHE INTERNAL "CFS_BUILD_USER")
 
+SET(CMAKE_MODULE_PATH ${CFS_SOURCE_DIR}/cmake_modules)
+
 #-----------------------------------------------------------------------------
 # Set default values according to environment or platform
 #-----------------------------------------------------------------------------
@@ -373,62 +375,10 @@ ENDIF(NOT ${MYXMLSCHEMA} STREQUAL "")
 TODAY(CFS_CONF_DATE)
 
 #-----------------------------------------------------------------------------
-# Determine URL of subversion repository
+# Determine URL of subversion repository, global revision of working copy
+# and other informations from working copy
 #-----------------------------------------------------------------------------
-IF(EXISTS "${CFS_SOURCE_DIR}/.git")
-  EXEC_PROGRAM("cd ${CFS_SOURCE_DIR} && git svn info | grep URL | cut -d' ' -f2"
-    ARGS 
-    OUTPUT_VARIABLE CFS_SUBVERSION_REPOS
-    RETURN_VALUE RETVAL)
-ELSE(EXISTS "${CFS_SOURCE_DIR}/.git")
-  FILE(READ "${CFS_SOURCE_DIR}/.svn/entries" SVNSTR)
-  STRING(REGEX MATCH "[a-z+]+://[a-zA-Z0-9_+-/@]+:[a-zA-Z0-9_+-/@]+" CFS_SUBVERSION_REPOS "${SVNSTR}")
-ENDIF(EXISTS "${CFS_SOURCE_DIR}/.git")
-
-#-----------------------------------------------------------------------------
-# Determine global revision of working copy
-#-----------------------------------------------------------------------------
-EXECUTE_PROCESS(
-  COMMAND ${PERL_EXECUTABLE} ${CFS_DEPS_ROOT}/utils/perl/cfsdepsrev.pl
-  ${CFS_SOURCE_DIR} ${CFS_BINARY_DIR}/tmp
-  OUTPUT_VARIABLE CFS_SUBVERSION_REV
-  ERROR_VARIABLE CFS_SUBVERSION_REV
-  RESULT_VARIABLE RETVAL)
-
-IF(RETVAL STREQUAL 0)
-  STRING(REGEX MATCH "WORKING_COPY_REVISION .*"
-    CFS_SUBVERSION_REV "${CFS_SUBVERSION_REV}")
-  STRING(REGEX REPLACE "WORKING_COPY_REVISION " ""
-    CFS_SUBVERSION_REV "${CFS_SUBVERSION_REV}")
-ELSE(RETVAL STREQUAL 0)
-  SET(CFS_SUBVERSION_REV "N/A")
-  MESSAGE("A problem occurred while trying to determine revision of "
-    "CFS++ Subversion repository: ${CFS_SUBVERSION_REV}")
-ENDIF(RETVAL STREQUAL 0)
-
-
-EXECUTE_PROCESS(
-  COMMAND ${PERL_EXECUTABLE} ${CFS_DEPS_ROOT}/utils/perl/cfsdepsmodif.pl
-  ${CFS_SOURCE_DIR} ${CFS_BINARY_DIR}/tmp
-  OUTPUT_VARIABLE CFS_SUBVERSION_MODIF
-  ERROR_VARIABLE CFS_SUBVERSION_MODIF
-  RESULT_VARIABLE RETVAL)
-
-IF(RETVAL STREQUAL 0)
-  STRING(REGEX MATCH "WORKING_COPY_MODIFIED .*"
-    CFS_SUBVERSION_MODIF "${CFS_SUBVERSION_MODIF}")
-  STRING(REGEX REPLACE "WORKING_COPY_MODIFIED " ""
-    CFS_SUBVERSION_MODIF "${CFS_SUBVERSION_MODIF}")
-  IF(CFS_SUBVERSION_MODIF MATCHES "modified" OR
-      CFS_SUBVERSION_MODIF MATCHES "git")
-    SET(CFS_SUBVERSION_REV "${CFS_SUBVERSION_REV} ${CFS_SUBVERSION_MODIF}")
-  ENDIF(CFS_SUBVERSION_MODIF MATCHES "modified" OR
-    CFS_SUBVERSION_MODIF MATCHES "git")
-ELSE(RETVAL STREQUAL 0)
-  SET(CFS_SUBVERSION_REV "N/A")
-  MESSAGE("A problem occurred while trying to check modified state of "
-    "CFS++ Subversion repository: ${CFS_SUBVERSION_MODIFIED}")
-ENDIF(RETVAL STREQUAL 0)
+INCLUDE("cmake_modules/DetermineWorkingCopyInfos.cmake")
 
 #-----------------------------------------------------------------------------
 # Make sure the compiler can find include files from CFS.

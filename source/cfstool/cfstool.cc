@@ -1051,7 +1051,7 @@ int main(int argc, char** argv)
             << "===========" << std::endl;
   std::cout << " CFSTOOL - File Conversions/Comparisons for CFS++" << std::endl << std::endl
             << " v. " << CFS_VERSION << " - '" << CFS_NAME << "'"
-            << " (rev " << CFS_SUBVERSION_REV << ")" << std::endl
+            << " (rev " << CFS_WC_REVISION << ")" << std::endl
             << " compiled " << __DATE__
             << " as " << CMAKE_BUILD_TYPE << std::endl;
   std::cout << "============================================================"

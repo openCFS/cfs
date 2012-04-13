@@ -473,7 +473,7 @@ namespace CoupledField {
     in->Get("version")->SetValue(CFS_VERSION);
     in->Get("name")->SetValue(CFS_NAME);
     in->Get("build")->SetValue(CMAKE_BUILD_TYPE);
-    in->Get("svn_revision")->SetValue(CFS_SUBVERSION_REV);
+    in->Get("svn_revision")->SetValue(CFS_WC_REVISION);
   }
 
   
@@ -509,14 +509,23 @@ namespace CoupledField {
         << "CFS_BUILD_USER:        "
         << fg_blue << CFS_BUILD_USER << fg_reset << endl
 
-        << "CFS_SUBVERSION_REV:    "
-        << fg_blue << CFS_SUBVERSION_REV << fg_reset << endl
+        << "CFS_WC_REVISION:       "
+        << fg_blue << CFS_WC_REVISION << fg_reset << endl
 
-        << "CFS_SUBVERSION_REPOS:  "
-        << fg_blue << CFS_SUBVERSION_REPOS
-        << fg_reset << endl << endl
+        << "CFS_WC_URL:            "
+        << fg_blue << CFS_WC_URL
+        << fg_reset << endl << endl;
+    
+    if( std::string(CFS_WC_TYPE) == "Git" ) 
+    {
+      out << "CFS_GIT_COMMIT:        "
+          << fg_blue << CFS_GIT_COMMIT << fg_reset << endl
+        
+          << "CFS_GIT_BRANCH:        "
+          << fg_blue << CFS_GIT_BRANCH << fg_reset << endl;
+    }
 
-        << "CFS_CXX_COMPILER_NAME: "
+    out << "CFS_CXX_COMPILER_NAME: "
         << fg_blue << CFS_CXX_COMPILER_NAME << fg_reset << endl
 
         << "CFS_CXX_COMPILER_VER:  "
@@ -856,7 +865,7 @@ namespace CoupledField {
           << "===========" << endl;
       out << " CFS++ - Coupled Field Simulation" << endl << endl
           << " v. " << CFS_VERSION << " - '" << CFS_NAME << "'"
-          << " (rev " << CFS_SUBVERSION_REV << ")" << endl
+          << " (rev " << CFS_WC_REVISION << ")" << endl
           << " compiled " << __DATE__
           << " as " << CMAKE_BUILD_TYPE << endl;
       out << "============================================================"

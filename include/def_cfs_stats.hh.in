@@ -14,11 +14,23 @@
 // User name who configured the build dir
 #define CFS_BUILD_USER "@CFS_BUILD_USER@"
 
+// Type of working copy SVN or git
+#define CFS_WC_TYPE "@CFS_WC_TYPE@"
+
 // Global version of SVN working copy
-#define CFS_SUBVERSION_REV "@CFS_SUBVERSION_REV@"
+#define CFS_WC_REVISION "@CFS_WC_REVISION@"
 
 // URL of SVN repository
-#define CFS_SUBVERSION_REPOS "@CFS_SUBVERSION_REPOS@"
+#define CFS_WC_URL "@CFS_WC_URL@"
+
+// Was WC modified?
+#define CFS_WC_MODIFIED "@CFS_WC_MODIFIED@"
+
+// Git commit corresponding to built exe
+#define CFS_GIT_COMMIT "@CFS_GIT_COMMIT@"
+
+// Local git branch corresponding to built exe
+#define CFS_GIT_BRANCH "@CFS_GIT_BRANCH@"
 
 // Name of the C++ compiler used to compile CFS++
 #define CFS_CXX_COMPILER_NAME "@CFS_CXX_COMPILER_NAME@"
