@@ -13,6 +13,11 @@
 # Simon Triebenbacher simon.triebenbacher@uni-klu.ac.at (02/2009)
 
 #-----------------------------------------------------------------------------
+# Include external project build capability of CMake 2.8
+#-----------------------------------------------------------------------------
+INCLUDE(ExternalProject)
+
+#-----------------------------------------------------------------------------
 # If user has set environment variables use them. If not use defaults
 #-----------------------------------------------------------------------------
 SET(CFS_DEPS_ROOT_DUMMY "$ENV{CFS_DEPS_ROOT}")
@@ -108,7 +113,13 @@ ENDIF(USE_METIS)
 # Search for GiDpost library
 #-------------------------------------------------------------------------------
 IF(USE_GIDPOST)
-  INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindGiDpost.cmake")
+  SET(GIDPOST_URL "ftp://lse17.e-technik.uni-erlangen.de:40065/cfsdeps/sources/gidpost/")
+  SET(GIDPOST_ZIP "gidpost1.71.zip")
+  SET(GIDPOST_MD5 "df8c3ed913cb8abafa36a47591438538")
+
+  INCLUDE("${CFS_SOURCE_DIR}/cfsdeps/gidpost/External_GiDpost.cmake")
+
+#  INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindGiDpost.cmake")
 ENDIF(USE_GIDPOST)
 
 IF(USE_BLAS OR USE_LAPACK)
@@ -202,6 +213,11 @@ ENDIF(USE_BLAS OR USE_LAPACK)
 #-------------------------------------------------------------------------------
 # Find Boost
 #-------------------------------------------------------------------------------
+SET(BOOST_URL "ftp://lse17.e-technik.uni-erlangen.de:40065/cfsdeps/sources/boost/")
+SET(BOOST_GZ "boost-1.48.0.tar.gz")
+SET(BOOST_MD5 "e8614c0ceecce2a388bce03fcc4d73b4")
+# INCLUDE("${CFS_SOURCE_DIR}/cfsdeps/boost/External_Boost.cmake")
+
 INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindBoostForCFS.cmake")
 
 #-------------------------------------------------------------------------------

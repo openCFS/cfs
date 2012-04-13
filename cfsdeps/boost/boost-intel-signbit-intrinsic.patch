@@ -1,0 +1,14 @@
+--- boost/math/special_functions/sign.hpp.orig	2011-11-26 14:25:30.612271014 +0100
++++ boost/math/special_functions/sign.hpp	2011-11-26 14:16:45.046794885 +0100
+@@ -27,7 +27,11 @@
+     template<class T> 
+     inline int signbit_impl(T x, native_tag const&)
+     {
++#ifdef __INTEL_COMPILER
++	return x < 0;
++#else
+         return (std::signbit)(x);
++#endif
+     }
+ #endif
+ 

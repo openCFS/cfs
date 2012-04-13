@@ -1,0 +1,27 @@
+--- boost/multi_array/base.hpp.orig	2011-11-25 00:51:48.871728665 +0100
++++ boost/multi_array/base.hpp	2011-11-25 01:15:01.875779281 +0100
+@@ -469,12 +469,14 @@
+                      (start == index_bases[n] && extents[n] == 0)));
+ 
+ #ifndef BOOST_DISABLE_ASSERTS
++#ifndef NDEBUG
+       // finish marks the open side of the range, so it can go one past
+       // the "far side" of the range (the top if stride is positive, the bottom
+       // if stride is negative).
+       index bound_adjustment = stride < 0 ? 1 : 0;
+       BOOST_ASSERT(((index_bases[n] - bound_adjustment) <= finish) &&
+         (finish <= (index_bases[n] + index(extents[n]) - bound_adjustment)));
++#endif
+ #endif // BOOST_DISABLE_ASSERTS
+ 
+ 
+@@ -482,6 +484,9 @@
+       // bases during slicing (see [Garcia] for the math involved)
+       offset += start * strides[n];
+ 
++      new_strides[dim] = 0;
++      new_extents[dim] = 0;
++
+       if (!current_range.is_degenerate()) {
+ 
+         // The stride for each dimension is included into the

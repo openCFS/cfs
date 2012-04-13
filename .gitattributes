@@ -1,5 +1,13 @@
 * text=auto !eol
 /CMakeLists.txt svneol=native#text/plain
+cfsdeps/boost/External_Boost.cmake -text
+cfsdeps/boost/boost-intel-fpclassify.patch -text
+cfsdeps/boost/boost-intel-signbit-intrinsic.patch -text
+cfsdeps/boost/boost-lexical_cast-format-string.patch -text
+cfsdeps/boost/boost-multi_array.patch -text
+cfsdeps/boost/boost-unordered-table.patch -text
+cfsdeps/gidpost/CMakeLists.txt -text
+cfsdeps/gidpost/External_GiDpost.cmake -text
 cmake_modules/CFS_macros.cmake -text
 cmake_modules/CheckPardisoAPIVersion.cmake -text
 cmake_modules/DetermineWorkingCopyInfos.cmake -text
@@ -16,7 +24,6 @@ cmake_modules/FindCGNS.cmake -text
 cmake_modules/FindCMake.cmake -text
 cmake_modules/FindCfs-hdf5.cmake -text
 cmake_modules/FindFortranLibs.cmake -text
-cmake_modules/FindGiDpost.cmake -text
 cmake_modules/FindGotoBLAS.cmake -text
 cmake_modules/FindHDF5.cmake -text
 cmake_modules/FindHDFView.cmake -text
