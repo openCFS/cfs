@@ -8,6 +8,14 @@ cfsdeps/boost/boost-multi_array.patch -text
 cfsdeps/boost/boost-unordered-table.patch -text
 cfsdeps/gidpost/CMakeLists.txt -text
 cfsdeps/gidpost/External_GiDpost.cmake -text
+cfsdeps/muparser/CMakeLists.txt -text
+cfsdeps/muparser/External_muParser.cmake -text
+cfsdeps/muparser/muparser-dummy-math.patch -text
+cfsdeps/muparser/muparser-intel-atomic.patch -text
+cfsdeps/muparser/muparser-strfun45.patch -text
+cfsdeps/zlib/External_zlib.cmake -text
+cfsdeps/zlib/copyright.txt -text
+cfsdeps/zlib/zlib-cmakelists.patch -text
 cmake_modules/CFS_macros.cmake -text
 cmake_modules/CheckPardisoAPIVersion.cmake -text
 cmake_modules/DetermineWorkingCopyInfos.cmake -text
@@ -33,7 +41,6 @@ cmake_modules/FindIntelMKL.cmake -text
 cmake_modules/FindKNITRO.cmake -text
 cmake_modules/FindLAPACK.cmake -text
 cmake_modules/FindMetis.cmake -text
-cmake_modules/FindMuParser.cmake -text
 cmake_modules/FindParaView.cmake -text
 cmake_modules/FindPardiso.cmake -text
 cmake_modules/FindPrograms.cmake -text
@@ -44,7 +51,6 @@ cmake_modules/FindSnOpt.cmake -text
 cmake_modules/FindSuiteSparse.cmake -text
 cmake_modules/FindVTK.cmake -text
 cmake_modules/FindXerces.cmake -text
-cmake_modules/FindZlib.cmake -text
 cmake_modules/compiler.cmake -text
 cmake_modules/configure_def_headers.cmake -text
 cmake_modules/distro.cmake -text

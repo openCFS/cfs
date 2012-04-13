@@ -133,9 +133,9 @@ IF(EXISTS "${CFS_SOURCE_DIR}/.git")
   STRING(REGEX REPLACE "^(.*\n)?Revision: ([^\n]+).*"
     "\\2" CFS_WC_REVISION "${CFS_GIT_SVN_INFO}")
 
-  MESSAGE("CFS_WC_URL ${CFS_WC_URL}")
-  MESSAGE("CFS_WC_REVISION ${CFS_WC_REVISION}")
-  MESSAGE("CFS_WC_ROOT ${CFS_WC_ROOT}")
+#  MESSAGE("CFS_WC_URL ${CFS_WC_URL}")
+#  MESSAGE("CFS_WC_REVISION ${CFS_WC_REVISION}")
+#  MESSAGE("CFS_WC_ROOT ${CFS_WC_ROOT}")
 
   #---------------------------------------------------------------------------
   # Find out git commit identifier.
@@ -150,7 +150,7 @@ IF(EXISTS "${CFS_SOURCE_DIR}/.git")
   STRING(REGEX REPLACE "^(.*\n)?commit ([^\n]+).*"
     "\\2" CFS_GIT_COMMIT "${CFS_GIT_LOG}")
 
-  MESSAGE("CFS_GIT_COMMIT ${CFS_GIT_COMMIT}")
+#  MESSAGE("CFS_GIT_COMMIT ${CFS_GIT_COMMIT}")
 
 
   #---------------------------------------------------------------------------
@@ -182,7 +182,7 @@ IF(EXISTS "${CFS_SOURCE_DIR}/.git")
   STRING(REGEX REPLACE "^(.*\n)?\\* ([^\n]+).*"
     "\\2" CFS_GIT_BRANCH "${CFS_GIT_BRANCH_LIST}")
 
-  MESSAGE("CFS_GIT_BRANCH ${CFS_GIT_BRANCH}")
+#  MESSAGE("CFS_GIT_BRANCH ${CFS_GIT_BRANCH}")
 
   # restore the previous LC_ALL
   SET(ENV{LC_ALL} ${_Subversion_SAVED_LC_ALL})

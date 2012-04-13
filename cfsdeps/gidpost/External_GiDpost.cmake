@@ -5,7 +5,7 @@ set(gidpost_binary  "${CMAKE_CURRENT_BINARY_DIR}/cfsdeps/GiDpost-build")
 set(gidpost_install  "${CMAKE_CURRENT_BINARY_DIR}")
 
 ExternalProject_Add(GiDpost
-  DOWNLOAD_DIR ${CMAKE_CURRENT_BINARY_DIR}
+  DOWNLOAD_DIR ${CMAKE_CURRENT_BINARY_DIR}/cfsdeps/cache
   URL ${GIDPOST_URL}/${GIDPOST_ZIP}
   URL_MD5 ${GIDPOST_MD5}
   PATCH_COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_CURRENT_SOURCE_DIR}/cfsdeps/gidpost/CMakeLists.txt ${gidpost_source}/CMakeLists.txt
@@ -13,7 +13,7 @@ ExternalProject_Add(GiDpost
   BINARY_DIR ${gidpost_binary}
   CMAKE_ARGS
 #     ${gidpost_lib_args}
-    -DBUILD_SHARED_LIBS:BOOL=ON
+#    -DBUILD_SHARED_LIBS:BOOL=ON
     -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
 #    -DCMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG:PATH=${gidpost_binary}/lib
 #    -DCMAKE_ARCHIVE_OUTPUT_DIRECTORY_DEBUG:PATH=${gidpost_binary}/lib

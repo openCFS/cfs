@@ -78,12 +78,20 @@ CONFIGURE_FILE("${CFS_DEPS_ROOT}/build_vars.pl.in"
 #-------------------------------------------------------------------------------
 # Build MuParser library
 #-------------------------------------------------------------------------------
-INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindMuParser.cmake")
+SET(MUPARSER_URL "ftp://lse17.e-technik.uni-erlangen.de:40065/cfsdeps/sources/muparser/")
+SET(MUPARSER_ZIP "muparser_v2_2_2.zip")
+SET(MUPARSER_MD5 "6d77b5cb8096fe2c50afe36ad41bc14a")
+
+INCLUDE("${CFS_SOURCE_DIR}/cfsdeps/muparser/External_muParser.cmake")
 
 #-------------------------------------------------------------------------------
 # Build zlib library
 #-------------------------------------------------------------------------------
-INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindZlib.cmake")
+SET(ZLIB_URL "ftp://lse17.e-technik.uni-erlangen.de:40065/cfsdeps/sources/zlib/")
+SET(ZLIB_GZ "zlib-1.2.6.tar.gz")
+SET(ZLIB_MD5 "618e944d7c7cd6521551e30b32322f4a")
+
+INCLUDE("${CFS_SOURCE_DIR}/cfsdeps/zlib/External_zlib.cmake")
 
 #-------------------------------------------------------------------------------
 # Build bzip2 library

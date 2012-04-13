@@ -514,7 +514,7 @@ namespace CoupledField {
 
         << "CFS_WC_URL:            "
         << fg_blue << CFS_WC_URL
-        << fg_reset << endl << endl;
+        << fg_reset << endl;
     
     if( std::string(CFS_WC_TYPE) == "Git" ) 
     {
@@ -524,6 +524,8 @@ namespace CoupledField {
           << "CFS_GIT_BRANCH:        "
           << fg_blue << CFS_GIT_BRANCH << fg_reset << endl;
     }
+
+    out << endl;
 
     out << "CFS_CXX_COMPILER_NAME: "
         << fg_blue << CFS_CXX_COMPILER_NAME << fg_reset << endl
