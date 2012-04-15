@@ -211,9 +211,6 @@ namespace CoupledField
     //! map containing the results and their lists for history results
     ResultMap histResultLists_;
 
-    //! map with neighboring volume regions for surface results
-    std::map<shared_ptr<BaseResult>,RegionIdType> surfNeighborRegions_;
-
     //! Type of current analysis
     BasePDE::AnalysisType analysisType_;
 

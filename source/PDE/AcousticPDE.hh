@@ -12,6 +12,7 @@ namespace CoupledField{
   class ElecForceOp;
   class BaseBDBInt;
   class ResultFunctor;
+  class CoefFunctionMulti;
 
   class AcousticPDE : public SinglePDE{
 
@@ -75,8 +76,11 @@ namespace CoupledField{
 
   protected:
 
-    //!  Define available postprocessing results
+    //!  Define available primary results
     void DefinePrimaryResults();
+    
+    //! Define available postprocessing results
+    void DefinePostProcResults();
 
     //! Init the time stepping
     void InitTimeStepping();
@@ -89,8 +93,12 @@ namespace CoupledField{
     //! stores if the Acoustic PDE is in potential or pressure form
     SolutionType formulation_;
 
-    //!
-    shared_ptr<BaseFieldFunctor> meanFlowFunctor_;
+    //! Coefficient function for the flow field
+
+    //! This coefficient function describes the flow field. As this 
+    //! is in general different for each region and will most likely
+    //! not be given in a close form, it is described by a CoefFunctionMulti.
+    shared_ptr<CoefFunctionMulti> meanFlowCoef_;
     
     //! stores if the Acoustic PDE is coupled to mechanics
     bool isMechCoupled_;

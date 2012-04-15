@@ -80,6 +80,9 @@ protected:
   
   //! Adjust orders of edges / faces according to min/max rule
   void AdjustEntityOrder();
+  
+  //! \copydoc FeSpace::GetNumDofs()
+  virtual UInt GetNumDofs() const;
 
   //! Virtual node numbers for lowest order edge functions
   boost::array<UInt,2> nedelecNodeRange_;

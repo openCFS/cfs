@@ -166,7 +166,7 @@ namespace CoupledField {
     // output to info-file
     PtrParamNode list = infoNode_->Get(ParamNode::HEADER);
 
-    // output and set subdoms_
+    // output and set regions_
     for( UInt i = 0; i < regionNodes.GetSize(); i++ )
     {
       PtrParamNode in_ = list->Get("region");
@@ -174,17 +174,17 @@ namespace CoupledField {
       bool complexMat = false;
       regionNodes[i]->GetValue("complexMaterial",  complexMat, ParamNode::PASS );
       
-      RegionIdType actRegionId = ptgrid_->GetRegion().Parse(regionNodes[i]->Get("name")->As<std::string>());
+      RegionIdType actRegionId = ptGrid_->GetRegion().Parse(regionNodes[i]->Get("name")->As<std::string>());
       
       // Check, if region was already defined an issue a warning otherwise
-      if( std::find(subdoms_.Begin(), subdoms_.End(), actRegionId ) 
-          != subdoms_.End() )  {
+      if( std::find(regions_.Begin(), regions_.End(), actRegionId ) 
+          != regions_.End() )  {
         WARN( "The region '" << regionNodes[i]->Get("name")->As<std::string>()
               << "' was already defined for PDE '" << pdename_ 
               << "'. Please remove duplicate entries." );
       }
           
-      subdoms_.Push_back( actRegionId );
+      regions_.Push_back( actRegionId );
 
       complexMatData_[actRegionId] = complexMat;
     }
@@ -252,13 +252,13 @@ namespace CoupledField {
 
     // Todo: Move this part to the definition of damping
     PtrParamNode in = infoNode_->Get(ParamNode::HEADER);
-    for(UInt i = 0; i < subdoms_.GetSize(); i++ )
+    for(UInt i = 0; i < regions_.GetSize(); i++ )
     {
-      PtrParamNode in_ = in->GetByVal("region", "name", domain->GetGrid()->GetRegion().ToString(subdoms_[i]));
+      PtrParamNode in_ = in->GetByVal("region", "name", domain->GetGrid()->GetRegion().ToString(regions_[i]));
 
     // Not needed at the moment. Commented out due to gcc 4.6.
 #if 0
-      std::map<RegionIdType,DampingType>::const_iterator it = dampingList_.find(subdoms_[i]);
+      std::map<RegionIdType,DampingType>::const_iterator it = dampingList_.find(regions_[i]);
       DampingType dampType;
       if( it != dampingList_.end() ) {
         dampType = it->second;
@@ -272,7 +272,7 @@ namespace CoupledField {
 #endif
 
       std::string fuck_e2s;
-      Enum2String(dampingList_[subdoms_[i]], fuck_e2s);
+      Enum2String(dampingList_[regions_[i]], fuck_e2s);
       in_->Get("damping")->SetValue(fuck_e2s);
     }
 
@@ -343,7 +343,7 @@ namespace CoupledField {
     while(fncIt != feFunctions_.end()){
       shared_ptr<BaseFeFunction> actFct = fncIt->second;
       shared_ptr<FeSpace> actSpace = fncIt->second->GetFeSpace();
-      actFct->SetGrid(ptgrid_);
+      actFct->SetGrid(ptGrid_);
       actSpace->Finalize();
       actSpace->PreCalcShapeFncs();
 
@@ -384,7 +384,7 @@ namespace CoupledField {
     // Trigger creation of timeDerivative FeFunctions
     // NOTE: Has to be done here after initializaiton of timestepping scheme!
     // =======================================================================
-    DefineTimeDerivFeFunctions();
+    //DefineTimeDerivFeFunctions();
 
     //    // =====================================================================
     //    // Set the initial conditions
@@ -401,8 +401,6 @@ namespace CoupledField {
     DefinePostProcResults();
     ReadStoreResults();
     ReadFieldResults();
-
-    PreparePDE4Computation();
 
     //! Define step solution driver
     if ( isDirectCoupled_ == false ) {
@@ -483,7 +481,7 @@ namespace CoupledField {
         
         Tok tok(actNonLinId, sep);
         
-        actRegionId = ptgrid_->GetRegion().Parse( actRegionName );
+        actRegionId = ptGrid_->GetRegion().Parse( actRegionName );
         
         for(Tok::iterator it=tok.begin(); it!=tok.end(); ++it) {
           std::string nonLinId = (*it);
@@ -694,7 +692,7 @@ namespace CoupledField {
 
         // otherwise check, if result is to be saved on "allRegions"
         if( actResultNode->Has("allRegions" ) ) {
-          ptgrid_->GetRegion().ToString(subdoms_,regionNames);
+          ptGrid_->GetRegion().ToString(regions_,regionNames);
 
           PtrParamNode allRegionsNode = actResultNode->Get("allRegions");
 
@@ -773,7 +771,7 @@ namespace CoupledField {
           // iterate over all regions
           for( UInt iRegion = 0; iRegion < regionNames.GetSize(); iRegion++ )
           {
-            actList = ptgrid_->GetEntityList( entityType, regionNames[iRegion] );
+            actList = ptGrid_->GetEntityList( entityType, regionNames[iRegion] );
             shared_ptr<BaseResult> actSol;
             if( isComplex_ ) {
               actSol = shared_ptr<BaseResult>(new Result<Complex>());
@@ -796,16 +794,6 @@ namespace CoupledField {
                                         actOutDest,
                                         postProcNames[iRegion], writeResult,
                                         isHistory[candidate->definedOn] );
-
-            // if neighboring region is present, store related volume
-            // neighbor region
-            if( neighborRegions.GetSize() > 0 ) {
-              if( !neighborRegions[iRegion].empty() ) {
-                surfNeighborRegions_[actSol] =
-                  ptgrid_->GetRegion().Parse( neighborRegions[iRegion] );
-              }
-            }
-
           }
         }
 
@@ -873,7 +861,7 @@ namespace CoupledField {
           // iterate over all entityNames
           for( UInt i = 0; i < histNames.GetSize(); i++ )
           {
-            actList = ptgrid_->GetEntityList( entityType, histNames[i] );
+            actList = ptGrid_->GetEntityList( entityType, histNames[i] );
             shared_ptr<BaseResult> actSol;
             if( isComplex_ ) {
               actSol = shared_ptr<BaseResult>(new Result<Complex>());
@@ -895,15 +883,6 @@ namespace CoupledField {
                                         actOutDest,
                                         postProcNames[i], writeResult, true );
 
-            // if neighboring region is present, store related volume
-            // neighbor region
-            if( neighborRegions.GetSize() > 0 ) {
-              if( !neighborRegions[i].empty() ) {
-                surfNeighborRegions_[actSol] =
-                  ptgrid_->GetRegion().Parse( neighborRegions[i] );
-              }
-            }
-
           }
         }
       } catch( Exception &ex ) {
@@ -918,12 +897,12 @@ namespace CoupledField {
                           << SolutionTypeEnum.ToString( type );
     
     PtrCoefFct ret;
-    if ( fieldFunctors_.find(type) == fieldFunctors_.end() ) {
+    if ( fieldCoefs_.find(type) == fieldCoefs_.end() ) {
       EXCEPTION( "No coefficient function for result type '"
           << SolutionTypeEnum.ToString( type ) << "' found");
     }
     
-    ret = dynamic_pointer_cast<CoefFunction>(fieldFunctors_[type]);
+    ret = fieldCoefs_[type];
     return ret;
   }
   
@@ -994,9 +973,9 @@ namespace CoupledField {
       // Obtain field resultFunctor object
       SolutionType solType = fap.resultInfo->resultType;
       UInt numDofs = fap.resultInfo->dofNames.GetSize();
-      std::map<SolutionType, shared_ptr<BaseFieldFunctor> >::iterator fctIt;
-      fctIt = fieldFunctors_.find(solType);
-      if( fctIt == fieldFunctors_.end() )  {
+      std::map<SolutionType, PtrCoefFct >::iterator fctIt;
+      fctIt = fieldCoefs_.find(solType);
+      if( fctIt == fieldCoefs_.end() )  {
         EXCEPTION( "Could not find field functor for result '" 
             << SolutionTypeEnum.ToString(solType) << "'");
       }
@@ -1012,7 +991,7 @@ namespace CoupledField {
         LocPointMapped lpm;
         for ( UInt iElem = 0; iElem < fap.elems.GetSize(); ++iElem ) {
           shared_ptr<ElemShapeMap> esm = 
-              ptgrid_->GetElemShapeMap( fap.elems[iElem] );
+              ptGrid_->GetElemShapeMap( fap.elems[iElem] );
           lpm.Set(fap.locPoints[iElem], esm);
           fct->GetVector(temp, lpm );
           
@@ -1030,7 +1009,7 @@ namespace CoupledField {
         LocPointMapped lpm;
         for ( UInt iElem = 0; iElem < fap.elems.GetSize(); ++iElem ) {
           shared_ptr<ElemShapeMap> esm = 
-              ptgrid_->GetElemShapeMap( fap.elems[iElem] );
+              ptGrid_->GetElemShapeMap( fap.elems[iElem] );
           lpm.Set(fap.locPoints[iElem], esm);
           fct->GetVector(temp, lpm );
 
@@ -1057,7 +1036,7 @@ namespace CoupledField {
         for( UInt iPoint = 0; iPoint < fap.locPoints.GetSize(); iPoint++) { 
           
           shared_ptr<ElemShapeMap> esm = 
-              ptgrid_->GetElemShapeMap(fap.elems[iPoint], true);
+              ptGrid_->GetElemShapeMap(fap.elems[iPoint], true);
           esm->Local2Global(globPoint, fap.locPoints[iPoint]);
           // write to file
           out << fap.elems[iPoint]->elemNum << "\t";
@@ -1086,7 +1065,7 @@ namespace CoupledField {
         for( UInt iPoint = 0; iPoint < fap.locPoints.GetSize(); iPoint++) { 
           
           shared_ptr<ElemShapeMap> esm = 
-              ptgrid_->GetElemShapeMap(fap.elems[iPoint], true);
+              ptGrid_->GetElemShapeMap(fap.elems[iPoint], true);
           esm->Local2Global(globPoint, fap.locPoints[iPoint]);
           // write to file
           out << fap.elems[iPoint]->elemNum << "\t";
@@ -1192,7 +1171,7 @@ namespace CoupledField {
              Vector<Double> locPoint;
              const Elem * ptElem = NULL;
              // now, map global point to localpoint
-             ptElem = ptgrid_->GetElemAtGlobalCoord( globPoint, locPoint );
+             ptElem = ptGrid_->GetElemAtGlobalCoord( globPoint, locPoint );
              
              if( !ptElem ) {
                std::string warnStr = "Could not find element at position " 
@@ -1204,7 +1183,7 @@ namespace CoupledField {
 //                                    << " in Elem " << ptElem->elemNum << std::endl;
                
                // check again mapping by performing loc->glob mapping
-               shared_ptr<ElemShapeMap>  esm = ptgrid_->GetElemShapeMap(ptElem);
+               shared_ptr<ElemShapeMap>  esm = ptGrid_->GetElemShapeMap(ptElem);
                //esm->Local2Global(globPoint, locPoint);
 //               std::cerr << "\tAdditional check loc->glob delivers global point " 
 //                   << globPoint.ToString() << std::endl << std::endl;
@@ -1266,13 +1245,13 @@ namespace CoupledField {
 
         shared_ptr<HomDirichletBc> actBc ( new HomDirichletBc );
         shared_ptr<EntityList> actList;
-        switch( ptgrid_->GetEntityType(name) ) {
+        switch( ptGrid_->GetEntityType(name) ) {
           case EntityList::NAMED_NODES:
-            actList = ptgrid_->GetEntityList( EntityList::NODE_LIST, name); 
+            actList = ptGrid_->GetEntityList( EntityList::NODE_LIST, name); 
             break;
           case EntityList::REGION:
           case EntityList::NAMED_ELEMS:
-            actList = ptgrid_->GetEntityList( EntityList::ELEM_LIST, name );
+            actList = ptGrid_->GetEntityList( EntityList::ELEM_LIST, name );
             break;
           case EntityList::NO_TYPE:
             EXCEPTION("No entities with name '" << name << "' known");
@@ -1322,13 +1301,13 @@ namespace CoupledField {
         shared_ptr<InhomDirichletBc> actBc ( new InhomDirichletBc );
 
         shared_ptr<EntityList> actList;
-        switch( ptgrid_->GetEntityType(name) ) {
+        switch( ptGrid_->GetEntityType(name) ) {
           case EntityList::NAMED_NODES:
-            actList = ptgrid_->GetEntityList( EntityList::NODE_LIST, name); 
+            actList = ptGrid_->GetEntityList( EntityList::NODE_LIST, name); 
             break;
           case EntityList::REGION:
           case EntityList::NAMED_ELEMS:
-            actList = ptgrid_->GetEntityList( EntityList::ELEM_LIST, name );
+            actList = ptGrid_->GetEntityList( EntityList::ELEM_LIST, name );
             break;
           case EntityList::NO_TYPE:
             EXCEPTION("No entities with name '" << name << "' known");
@@ -1378,13 +1357,13 @@ namespace CoupledField {
         // Create constraint condition
         shared_ptr<Constraint> actBc ( new Constraint );
         shared_ptr<EntityList> actList;
-        switch( ptgrid_->GetEntityType(name) ) {
+        switch( ptGrid_->GetEntityType(name) ) {
           case EntityList::NAMED_NODES:
-            actList = ptgrid_->GetEntityList( EntityList::NODE_LIST, name); 
+            actList = ptGrid_->GetEntityList( EntityList::NODE_LIST, name); 
             break;
           case EntityList::REGION:
           case EntityList::NAMED_ELEMS:
-            actList = ptgrid_->GetEntityList( EntityList::ELEM_LIST, name );
+            actList = ptGrid_->GetEntityList( EntityList::ELEM_LIST, name );
             break;
           case EntityList::NO_TYPE:
             EXCEPTION("No entities with name '" << name << "' known");
@@ -1432,7 +1411,7 @@ namespace CoupledField {
         actFeFunction = GetFeFunction( SolutionTypeEnum.Parse(resultName));
         
         // get entitylists
-        NodeList masterList( ptgrid_ ), slaveList( ptgrid_ );
+        NodeList masterList( ptGrid_ ), slaveList( ptGrid_ );
         masterList.SetNamedNodes( masterName );
         slaveList.SetNamedNodes( slaveName );
 
@@ -1453,7 +1432,7 @@ namespace CoupledField {
           minDist = 1e42;
 
           // obtain nodal coordinate
-          ptgrid_->GetNodeCoordinate( mLoc, masterIt.GetNode() );
+          ptGrid_->GetNodeCoordinate( mLoc, masterIt.GetNode() );
           nodes.Init();
           nodes[0] = masterIt.GetNode();
 
@@ -1461,7 +1440,7 @@ namespace CoupledField {
           // distance
           EntityIterator slaveIt = slaveList.GetIterator();
           for( slaveIt.Begin(); !slaveIt.IsEnd(); slaveIt++ ) {
-            ptgrid_->GetNodeCoordinate( sLoc, slaveIt.GetNode() );
+            ptGrid_->GetNodeCoordinate( sLoc, slaveIt.GetNode() );
             diff = mLoc - sLoc;
             dist = diff.NormL2();
             if( dist < minDist) {
@@ -1469,7 +1448,7 @@ namespace CoupledField {
               nodes[1] = slaveIt.GetNode();
             }
           }
-          shared_ptr<NodeList> nodePair(new NodeList( ptgrid_ ) );
+          shared_ptr<NodeList> nodePair(new NodeList( ptGrid_ ) );
           nodePair->SetNodes( nodes );
 
           // create new constraint condition
@@ -1518,18 +1497,18 @@ namespace CoupledField {
       // determine list type: In case we have have surface elements, generate explicitly
       // a surface element list
       EntityList::ListType listType = EntityList::ELEM_LIST; 
-      if( ptgrid_->GetEntityDim( entName ) == ptgrid_->GetDim() - 1) {
+      if( ptGrid_->GetEntityDim( entName ) == ptGrid_->GetDim() - 1) {
         listType = EntityList::SURF_ELEM_LIST;
       }
       
-      switch( ptgrid_->GetEntityType(entName) ) {
+      switch( ptGrid_->GetEntityType(entName) ) {
         case EntityList::NAMED_NODES:
-          entities[i] = ptgrid_->GetEntityList( EntityList::NODE_LIST, 
+          entities[i] = ptGrid_->GetEntityList( EntityList::NODE_LIST, 
                                                 entName );
           break;
         case EntityList::REGION:
         case EntityList::NAMED_ELEMS:
-          entities[i] = ptgrid_->GetEntityList( listType, entName );
+          entities[i] = ptGrid_->GetEntityList( listType, entName );
           break;
         case EntityList::NO_TYPE:
           EXCEPTION("No entities with name '" << entName << "' known");
@@ -1715,7 +1694,7 @@ namespace CoupledField {
         regionNodes[i]->GetValue( "coordSysId", refCoordSys );
 
         // get regionId
-        RegionIdType actRegionId = ptgrid_->GetRegion().Parse( region );
+        RegionIdType actRegionId = ptGrid_->GetRegion().Parse( region );
 
         // if no material is set, continue with next loop run
         if( material.empty() )
@@ -1723,7 +1702,7 @@ namespace CoupledField {
 
         // if region is not contained for current pde, simply continue
         // with next loop
-        if( subdoms_.Find( actRegionId) < 0 )
+        if( regions_.Find( actRegionId) < 0 )
           continue;
 
         // Read data
@@ -1795,13 +1774,13 @@ namespace CoupledField {
         regionNodes[i]->GetValue( "composite", composite );
 
         // get regionId
-        RegionIdType actRegionId = ptgrid_->GetRegion().Parse( region );
+        RegionIdType actRegionId = ptGrid_->GetRegion().Parse( region );
 
         // if no composite is set, continue with next loop run
         if( composite == "" )
           continue;
         
-        if( subdoms_.Find( actRegionId) < 0 )
+        if( regions_.Find( actRegionId) < 0 )
           continue;
 
         PtrParamNode in = infoNode_->GetByVal("composite", "region", domain->GetGrid()->GetRegion().ToString(actRegionId));
@@ -1854,16 +1833,16 @@ namespace CoupledField {
 
     // once again: loop over all regions and make sure that there is either
     // a normal material or a composite material
-    numRegions = subdoms_.GetSize();
+    numRegions = regions_.GetSize();
     std::map<RegionIdType, BaseMaterial*>::iterator matEnd = materials_.end();
     std::map<RegionIdType, Composite>::iterator
         compEnd = compositeMaterials_.end();
     
     for( i = 0; i < numRegions; ++i ) {
-      RegionIdType actRegionId = subdoms_[i];
+      RegionIdType actRegionId = regions_[i];
       if ((materials_.find(actRegionId) == matEnd)
           && (compositeMaterials_.find(actRegionId) == compEnd)) {
-        region = ptgrid_->GetRegion().ToString(actRegionId);
+        region = ptGrid_->GetRegion().ToString(actRegionId);
         EXCEPTION("Region '" << region << "' has no material assigned.");
       }
     }
@@ -1926,7 +1905,7 @@ namespace CoupledField {
       case COORD:
 
         ptCoupling_->GetInputNodes(i, nodes);
-        ptgrid_->SetNodeOffset( *nodes , help );
+        ptGrid_->SetNodeOffset( *nodes , help );
 
         break;
 
@@ -2249,7 +2228,7 @@ namespace CoupledField {
 //    input->ReadMesh(ptGrid);
 //    // FinishInit() does not work if we have named nodes which are added by
 //    // coords. This is a not so dirty work around
-//    *ptGrid = *ptgrid_;
+//    *ptGrid = *ptGrid_;
 //    /* ptGrid->FinishInit(); */
 //
 //    std::map<UInt, BasePDE::AnalysisType> types;
@@ -2382,11 +2361,11 @@ namespace CoupledField {
 //        dynamic_cast<NodeStoreSol<Double>&>(*(sol_)).GetAlgSysVector();
 //      UInt numDofs = results_[0]->dofNames.GetSize();
 //      StdVector<Integer> eqns;
-//      for( UInt iRegion = 0; iRegion < subdoms_.GetSize(); iRegion++ ){
+//      for( UInt iRegion = 0; iRegion < regions_.GetSize(); iRegion++ ){
 //
 //        // create new entity list
-//        shared_ptr<NodeList> actSDList( new NodeList(ptgrid_ ) );
-//        actSDList->SetNodesOfRegion( subdoms_[iRegion] );
+//        shared_ptr<NodeList> actSDList( new NodeList(ptGrid_ ) );
+//        actSDList->SetNodesOfRegion( regions_[iRegion] );
 //
 //        // create new vector
 //        Vector<Double> * values = new Vector<Double>;
@@ -2427,7 +2406,7 @@ namespace CoupledField {
 //        }
 //
 //        // pass vector to memento object
-//        std::string regionName = ptgrid_->GetRegion().ToString( subdoms_[iRegion] );
+//        std::string regionName = ptGrid_->GetRegion().ToString( regions_[iRegion] );
 //        myMemento->solution_[regionName] = values;
 //        if ( analysistype_ == TRANSIENT ) {
 //          myMemento->solDeriv1_[regionName] = deriv1;
@@ -2447,11 +2426,11 @@ namespace CoupledField {
 //        dynamic_cast<NodeStoreSol<Complex>&>(*(sol_)).GetAlgSysVector();
 //      UInt numDofs = results_[0]->dofNames.GetSize();
 //      StdVector<Integer> eqns;
-//      for( UInt iRegion = 0; iRegion < subdoms_.GetSize(); iRegion++ ){
+//      for( UInt iRegion = 0; iRegion < regions_.GetSize(); iRegion++ ){
 //
 //        // create new entity list
-//        shared_ptr<NodeList> actSDList( new NodeList(ptgrid_ ) );
-//        actSDList->SetNodesOfRegion( subdoms_[iRegion] );
+//        shared_ptr<NodeList> actSDList( new NodeList(ptGrid_ ) );
+//        actSDList->SetNodesOfRegion( regions_[iRegion] );
 //
 //        // create new vector
 //        Vector<Complex> * values = new Vector<Complex>;
@@ -2471,7 +2450,7 @@ namespace CoupledField {
 //        }
 //
 //        // pass vector to memento object
-//        std::string regionName = ptgrid_->GetRegion().ToString( subdoms_[iRegion] );
+//        std::string regionName = ptGrid_->GetRegion().ToString( regions_[iRegion] );
 //        myMemento->solution_[regionName] = values;
 //      }
 //    }
@@ -2562,10 +2541,10 @@ namespace CoupledField {
 //        Double freq = memento_->freq_;
 //
 //        // Iterate over all regions
-//        for( UInt iRegion = 0; iRegion < subdoms_.GetSize(); iRegion++ ) {
+//        for( UInt iRegion = 0; iRegion < regions_.GetSize(); iRegion++ ) {
 //
 //          // Check for related region in memento object
-//          std::string name = ptgrid_->GetRegion().ToString( subdoms_[iRegion] );
+//          std::string name = ptGrid_->GetRegion().ToString( regions_[iRegion] );
 //          if( memento_->solution_.find( name) != memento_->solution_.end() ) {
 //
 //            // get grip of vector and derivatives of memento
@@ -2573,8 +2552,8 @@ namespace CoupledField {
 //              dynamic_cast<const Vector<Complex>& >(*(memento_->solution_[name]) );
 //
 //            // create entitylist
-//            shared_ptr<NodeList> nodes (new NodeList(ptgrid_));
-//            nodes->SetNodesOfRegion( subdoms_[iRegion] );
+//            shared_ptr<NodeList> nodes (new NodeList(ptGrid_));
+//            nodes->SetNodesOfRegion( regions_[iRegion] );
 //
 //            // iterate over all entries
 //            EntityIterator it = nodes->GetIterator();
@@ -2611,10 +2590,10 @@ namespace CoupledField {
 //          (memento_->analysisType_ == TRANSIENT);
 //
 //        // Iterate over all regions
-//        for( UInt iRegion = 0; iRegion < subdoms_.GetSize(); iRegion++ ) {
+//        for( UInt iRegion = 0; iRegion < regions_.GetSize(); iRegion++ ) {
 //
 //          // Check for related region in memento object
-//          std::string name = ptgrid_->GetRegion().ToString( subdoms_[iRegion] );
+//          std::string name = ptGrid_->GetRegion().ToString( regions_[iRegion] );
 //          if( memento_->solution_.find( name) != memento_->solution_.end() ) {
 //
 //            // get grip of vector and derivatives of memento
@@ -2625,8 +2604,8 @@ namespace CoupledField {
 //            Vector<Double> const & tn_1 = memento_->sol_tn_1_[name];
 //
 //            // create entitylist
-//            shared_ptr<NodeList> nodes (new NodeList(ptgrid_));
-//            nodes->SetNodesOfRegion( subdoms_[iRegion] );
+//            shared_ptr<NodeList> nodes (new NodeList(ptGrid_));
+//            nodes->SetNodesOfRegion( regions_[iRegion] );
 //
 //            // iterate over all entries
 //            EntityIterator it = nodes->GetIterator();
@@ -2674,18 +2653,18 @@ namespace CoupledField {
 //              (dynamic_cast<NodeStoreSol<Complex> &>(*sol_)).GetAlgSysVector();
 //
 //          // Iterate over all regions
-//          for( UInt iRegion = 0; iRegion < subdoms_.GetSize(); iRegion++ ) {
+//          for( UInt iRegion = 0; iRegion < regions_.GetSize(); iRegion++ ) {
 //
 //            // Check for related region in memento object
-//            std::string name = ptgrid_->GetRegion().ToString( subdoms_[iRegion] );
+//            std::string name = ptGrid_->GetRegion().ToString( regions_[iRegion] );
 //            if( memento_->solution_.find( name) != memento_->solution_.end() ) {
 //
 //              // get grip of vector and derivatives of memento
 //              Vector<Double> const & sol = 
 //                  dynamic_cast<const Vector<Double>& >(*(memento_->solution_[name]) );
 //              // create entitylist
-//           shared_ptr<NodeList> nodes (new NodeList(ptgrid_));
-//           nodes->SetNodesOfRegion( subdoms_[iRegion] );
+//           shared_ptr<NodeList> nodes (new NodeList(ptGrid_));
+//           nodes->SetNodesOfRegion( regions_[iRegion] );
 //
 //           // iterate over all entries
 //           EntityIterator it = nodes->GetIterator();
@@ -2706,9 +2685,9 @@ namespace CoupledField {
 //      }
 //      if( mementoAsDirichlet_ == true) {
 //        // iterate over all regions of pde
-//        for( UInt i = 0; i < subdoms_.GetSize(); i++ ) {
+//        for( UInt i = 0; i < regions_.GetSize(); i++ ) {
 //
-//          std::string regionName = ptgrid_->GetRegion().ToString( subdoms_[i] );
+//          std::string regionName = ptGrid_->GetRegion().ToString( regions_[i] );
 //
 //          // try to find related region in memento object
 //          if( memento_->solution_.find( regionName ) !=
@@ -2718,8 +2697,8 @@ namespace CoupledField {
 //                dynamic_cast<Vector<Complex>&>(*memento_->solution_[regionName]);
 //
 //            // create entitylist
-//            shared_ptr<NodeList> nodes (new NodeList(ptgrid_));
-//            nodes->SetNodesOfRegion( subdoms_[i] );
+//            shared_ptr<NodeList> nodes (new NodeList(ptGrid_));
+//            nodes->SetNodesOfRegion( regions_[i] );
 //
 //            // iterate over all entries
 //            EntityIterator it = nodes->GetIterator();
@@ -2731,7 +2710,7 @@ namespace CoupledField {
 //
 //                // create idbc-condition and append to class container
 //                shared_ptr<InhomDirichletBc> actBc ( new InhomDirichletBc );
-//                shared_ptr<NodeList> actList (new NodeList(ptgrid_) );
+//                shared_ptr<NodeList> actList (new NodeList(ptGrid_) );
 //                StdVector<UInt> nodeList(1);
 //                nodeList[0] = it.GetNode();
 //                actList->SetNodes(nodeList);
@@ -2790,12 +2769,12 @@ namespace CoupledField {
       // Determine list of propagation regions (= all region except PML regions)
       StdVector<RegionIdType> propRegions;
       bool hasRealPropRegion = false;
-      for (UInt isd = 0; isd < subdoms_.GetSize(); isd++) {
-        RegionIdType aRegion = subdoms_[isd];
+      for (UInt isd = 0; isd < regions_.GetSize(); isd++) {
+        RegionIdType aRegion = regions_[isd];
         if ( aRegion != actRegion 
          && dampingList_[aRegion] != PML ) {
           hasRealPropRegion = true;
-          propRegions.Push_back( subdoms_[isd]);
+          propRegions.Push_back( regions_[isd]);
         }
       }
       // If we have no "real" propagation region, i.e. only one or several
@@ -2812,13 +2791,13 @@ namespace CoupledField {
 
       for (UInt isd = 0; isd < propRegions.GetSize(); isd++) {
         StdVector<Elem*> elemssd;
-        ptgrid_->GetElems(elemssd, propRegions[isd] );
+        ptGrid_->GetElems(elemssd, propRegions[isd] );
 
         for (UInt actEl=0; actEl< elemssd.GetSize(); actEl++) {
           StdVector<UInt> & connecth = elemssd[actEl]->connect;
 
           Matrix<Double> ptCoord;
-          ptgrid_->GetElemNodesCoord(ptCoord, connecth,  false );
+          ptGrid_->GetElemNodesCoord(ptCoord, connecth,  false );
 
           Vector<Double> globCoord(dim_), locCoord(dim_);
           // loop over nodes
@@ -2852,13 +2831,13 @@ namespace CoupledField {
     }
 
     StdVector<Elem*> elemssd;
-    ptgrid_->GetElems(elemssd, actRegion );
+    ptGrid_->GetElems(elemssd, actRegion );
 
     for (UInt actEl=0; actEl< elemssd.GetSize(); actEl++) {
       StdVector<UInt> & connecth = elemssd[actEl]->connect;
 
       Matrix<Double> ptCoord;
-      ptgrid_->GetElemNodesCoord(ptCoord, connecth,  false );
+      ptGrid_->GetElemNodesCoord(ptCoord, connecth,  false );
       Vector<Double> globCoord(dim_), locCoord(dim_);
       for (UInt i=0; i< ptCoord.GetNumCols(); i++) {
         
@@ -2895,7 +2874,86 @@ namespace CoupledField {
       damp->Get(comp)->Get("max")->SetValue(outer[1][i]);
     }
   }
+  
+  
+  void SinglePDE::DefineFieldResult( PtrCoefFct coef, shared_ptr<ResultInfo> res ) {
 
+    // create new result functor based on coefficient
+    shared_ptr<BaseFieldFunctor> func;
+    if( isComplex_ ) {
+      func.reset(new FieldCoefFunctor<Complex>(coef, res));
+    } else {
+      func.reset(new FieldCoefFunctor<Double>(coef, res));
+    }
+    
+    // insert result to list of available results and field functors
+    resultFunctors_[res->resultType] = func;
+    fieldCoefs_[res->resultType] = func;
+  }
+  
+  void SinglePDE::DefineTimeDerivResult( SolutionType derivSolType,
+                                         UInt timeDerivOrder,
+                                         SolutionType primSolType ) {
+    
+    // only define time derivatives in transient or harmonic case 
+    if ( (analysistype_ != TRANSIENT) && (analysistype_ != HARMONIC)){
+      return;
+    }
+      
+    // get primary feFunction
+    shared_ptr<BaseFeFunction> primFeFct = feFunctions_[primSolType];
+    
+    // obtain resultinfos
+    shared_ptr<ResultInfo> primRes = GetResultInfo( primSolType );
+    shared_ptr<ResultInfo> derivRes = GetResultInfo( derivSolType);
+    
+    // ensure that both result types could be found
+    if( !primRes ) {
+      EXCEPTION( "Could not find result information for result type '"
+          << SolutionTypeEnum.ToString(primSolType) << "'" );
+    }
+    if( !derivRes ) {
+      EXCEPTION( "Could not find result information for result type '"
+          << SolutionTypeEnum.ToString(derivSolType) << "'" );
+    }
+    
+    // create new fe function
+    shared_ptr<BaseFeFunction> derivFeFct;
+    if( isComplex_) {
+      derivFeFct.reset(new FeFunction<Complex>());
+    }  else {
+      derivFeFct.reset(new FeFunction<Double>());
+    }
+    // copy information (entitylists, grid, space, fctId)
+    StdVector< shared_ptr<EntityList> > entList = primFeFct->GetEntityList();
+    for(UInt i =0;i<entList.GetSize();i++){
+      derivFeFct->AddEntityList(entList[i]);
+    }
+    derivFeFct->SetFeSpace( primFeFct->GetFeSpace());
+    derivFeFct->SetGrid(ptGrid_);
+    derivFeFct->SetResultInfo(derivRes);
+    derivFeFct->SetFctId( primFeFct->GetFctId());
+    derivFeFct->Finalize();
+    
+    // set the time derivative information
+    if( analysistype_ == HARMONIC ) {
+      FeFunction<Complex> & cDerivFct = 
+          dynamic_cast<FeFunction<Complex>& >(*derivFeFct);
+      shared_ptr<FeFunction<Complex> > cPrimFct = 
+               dynamic_pointer_cast<FeFunction<Complex> >(primFeFct);
+      cDerivFct.SetTimeDerivOrder( timeDerivOrder, cPrimFct );
+    } else {
+      primFeFct->GetTimeScheme()
+          ->SetTimeDerivVector(timeDerivOrder, derivFeFct->GetSingleVector() );
+    }    
+    
+    // insert the fefunction to the time derivative section
+    timeDerivFeFunctions_[derivSolType] = derivFeFct;
+    
+    // define field result
+    DefineFieldResult( derivFeFct, derivRes );
+    
+  }
 
   void SinglePDE::DefineFeFunctions(){
       //This is the default creation of spaces
@@ -2931,33 +2989,13 @@ namespace CoupledField {
         spIt->second->AddFeFunction(feFunctions_[spIt->first]);
         feFunctions_[spIt->first]->SetFeSpace(spIt->second);
         feFunctions_[spIt->first]->SetPDE(this);
-        feFunctions_[spIt->first]->SetGrid(ptgrid_);
+        feFunctions_[spIt->first]->SetGrid(ptGrid_);
         
         rhsFeFunctions_[spIt->first]->SetFeSpace(spIt->second);
         rhsFeFunctions_[spIt->first]->SetPDE(this);
-        rhsFeFunctions_[spIt->first]->SetGrid(ptgrid_);
+        rhsFeFunctions_[spIt->first]->SetGrid(ptGrid_);
         spIt++;
       }
     }
-
-
- 
-
-
-  void SinglePDE::writeOutTimeStep(shared_ptr<SimOutput>& outFile, \
-      StdVector<shared_ptr<BaseResult> >& outResults)
-  {
-    for( UInt iRes = 0; iRes < outResults.GetSize(); iRes++)
-    {
-      try {
-        outFile->AddResult(outResults[iRes]);
-      } catch (Exception& ex ) {
-        std::cerr <<  "\nResult '" << outResults[iRes]->GetResultInfo()->resultName
-          << "' in MsStep: " << 1 << ", step: " << 1
-          << " could not be converted:\n\n";
-        std::cerr << ex.what() << std::endl;
-      }
-    }
-  }
 } // end of namespace
 

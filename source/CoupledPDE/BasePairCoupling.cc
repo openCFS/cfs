@@ -688,14 +688,14 @@ namespace CoupledField {
                                       postProcNames[iRegion], writeResult,
                                       isHistory[(*it)->definedOn] );
           
-          // if neighboring region is present, store related volume 
-          // neighbor region
-          if( neighborRegions.GetSize() > 0 ) {
-            if( neighborRegions[iRegion] != "" ) {
-              surfNeighborRegions_[actSol] = 
-                ptGrid_->GetRegion().Parse( neighborRegions[iRegion] );
-            }
-          }
+//          // if neighboring region is present, store related volume 
+//          // neighbor region
+//          if( neighborRegions.GetSize() > 0 ) {
+//            if( neighborRegions[iRegion] != "" ) {
+//              surfNeighborRegions_[actSol] = 
+//                ptGrid_->GetRegion().Parse( neighborRegions[iRegion] );
+//            }
+//          }
 
         }
       }
@@ -787,14 +787,14 @@ namespace CoupledField {
                                       actOutDest, 
                                       postProcNames[i], writeResult, true );
             
-          // if neighboring region is present, store related volume 
-          // neighbor region
-          if( neighborRegions.GetSize() > 0 ) {
-            if( neighborRegions[i] != "" ) {
-              surfNeighborRegions_[actSol] = 
-                ptGrid_->GetRegion().Parse( neighborRegions[i] );
-            }
-          }
+//          // if neighboring region is present, store related volume 
+//          // neighbor region
+//          if( neighborRegions.GetSize() > 0 ) {
+//            if( neighborRegions[i] != "" ) {
+//              surfNeighborRegions_[actSol] = 
+//                ptGrid_->GetRegion().Parse( neighborRegions[i] );
+//            }
+//          }
             
         }
       }

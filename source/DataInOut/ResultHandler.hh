@@ -94,7 +94,7 @@ namespace CoupledField {
     //! Last method call, before simulation is finished
     void Finalize( );
 
-    //! Query, if the given result needs to be recomputed in the ccurent step
+    //! Query, if the given result needs to be recomputed in the current step
     bool IsResultNeeded( shared_ptr<BaseResult> res ) 
     { return (isNeeded_.find( res ) != isNeeded_.end()) ; }
 

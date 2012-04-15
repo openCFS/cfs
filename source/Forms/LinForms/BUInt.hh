@@ -58,7 +58,7 @@ public:
 
   virtual void SetFeSpace(shared_ptr<FeSpace> feSpace ){
     this->ptFeSpace_ = feSpace;
-    UInt opDim = ptFeSpace_->GetFeFunction()->GetResultInfo()->dofNames.GetSize();
+    UInt opDim = ptFeSpace_->GetNumDofs();
     intScheme_ = ptFeSpace_->GetIntScheme();
     Bdim_ = opDim;
   }

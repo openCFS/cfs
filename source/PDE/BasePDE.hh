@@ -37,8 +37,8 @@ namespace CoupledField
     //! write general defines (BCs, loads, etc.) to info-file
     virtual void WriteGeneralPDEdefines() = 0;
 
-    //!
-    virtual Assemble * getPDE_assemble() = 0;
+    //! Return object for assembling the element matrices and vectors
+    virtual Assemble * GetAssemble() = 0;
 
     //! Return pointer to the SolveStep object
     virtual BaseSolveStep * GetSolveStep() = 0;
@@ -127,12 +127,6 @@ namespace CoupledField
     //! name of the PDE
     std::string pdename_;
     
-    //! flag to check if there are initial conditions in the set up
-    bool isSetInitialCondition_;
-
-    //! For a constant initial value we store it here
-    Double InitialCondition_;
-
   };
 
 #ifdef DOXYGEN_DETAILED_DOC

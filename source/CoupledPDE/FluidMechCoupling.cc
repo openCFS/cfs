@@ -84,7 +84,7 @@ namespace CoupledField {
     shared_ptr<BaseFeFunction> lagrangeMultFct = feFunctions_[LAGRANGE_MULT];
 
     std::map<RegionIdType, BaseMaterial*> flowMaterials;
-    flowMaterials = flowPDE->getPDEMaterialData();
+    flowMaterials = flowPDE->GetMaterialData();
 
     // Create coefficient functions for all fluid densities
     std::map< RegionIdType, PtrCoefFct > densityFuncs;

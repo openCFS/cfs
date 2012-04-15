@@ -83,25 +83,16 @@ namespace CoupledField
     //! Init the time stepping
     void InitTimeStepping();
 
-    //! Crate RHS integrators
-    virtual LinearFormContext* CreateRhsLinearForm(SolutionType rhsType,
-                                                   shared_ptr<CoefFunction > rhsCoef);
-
-
     // =======================================================================
     //  POSTPROCESSING
     // =======================================================================
 
-    //! computes the eddy current denstiy
-    template<class TYPE>
-    void CalcEddyCurrent( shared_ptr<BaseResult> result );
-
     template<class TYPE>
     void CalcPermeability( shared_ptr<BaseResult> result );
+
     
-//    //! computes the divergence of the magnetic potential
-//    template<class TYPE>
-//    void CalcMagPotentialDiv( shared_ptr<BaseResult> result );
+    //! Store all mass integrators for postprocessing
+    std::map<RegionIdType, BaseBDBInt*> massInts_;
     
     // ---- Magnetic Force variables ---
  
@@ -143,12 +134,6 @@ namespace CoupledField
                               UInt ip,
                               Vector<TYPE>& field );
                               
-    //! computation of Lorentz force
-    void CalcNodeForceLorentz( Vector<Double> & force, 
-                               std::map<UInt, UInt>& cplNodeNumPos,
-                               UInt actCoupling, 
-                               UInt numCouplingNodes );
-    
     // =======================================================================
     //   COILS
     // =======================================================================
@@ -160,6 +145,9 @@ namespace CoupledField
     
     //! Parameters of the individual coils;
     StdVector<shared_ptr<Coil> > coilDef_;
+    
+    //! Coefficients holding the current density for each coil
+    std::map<RegionIdType, PtrCoefFct> coilCoefs_;
     
     //@}
 

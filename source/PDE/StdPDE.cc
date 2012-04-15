@@ -30,7 +30,7 @@ namespace CoupledField {
 
   StdPDE::StdPDE(Grid *aptgrid, PtrParamNode paramNode ) :
     BasePDE(paramNode),
-    ptgrid_(aptgrid),
+    ptGrid_(aptgrid),
     subType_(),
     numCouplingBcs_(0),
     nonLin_(false),
@@ -41,20 +41,14 @@ namespace CoupledField {
     ptCoupling_(NULL),
     iterCoupledCounter_(0),
     diagMass_(false),
-    firstTimeStepStatic_(true),
     needsAlgsys_(true),
     isAlwaysStatic_(false),
-    dim_(ptgrid_->GetDim()), 
+    dim_(ptGrid_->GetDim()), 
     isaxi_(param->Get("domain")->Get("geometryType")->As<std::string>() == "axi"),
     isComplex_(false),    
     needSolPrev_(false),
-    fracDamping_(false),
-    fracMemory_(0),
-    isBiotSavart_(false),
-    inType_(NOTUSED),
     isIncrFormulation_(false),
     updatedLagrangeForm_(false),
-    ComputeRHSforHarm_(false),
     assemble_(NULL),
     solveStep_(NULL),
     algsys_(NULL)
@@ -269,42 +263,6 @@ namespace CoupledField {
   // ALGSYS SECTION (SOLVER, ...) 
   // ======================================================
 
-  Double StdPDE::GetFracDampMatrixCoeff(RegionIdType regionId) {
-    REFACTOR;
-    /*
-
-    Double coeff;
-
-    // pre factor of fractional derivative (same for all algorithms)
-    TransientDriver * driver = NULL; 
-    driver = dynamic_cast<TransientDriver*>(domain->GetSingleDriver() );
-    
-    if( driver == NULL) {
-      EXCEPTION( "Fractional damping only possible for transient simulation!" );
-    }
-    Double dt = driver->GetDeltaT();
-
-    Double y;
-    materials_[regionId]->GetScalar(y,FRACTIONAL_EXPONENT,Global::REAL);
-
-    coeff = std::exp(-(y-1.0) * std::log(dt));
-
-    // needed for formulation with only MASS and STIFFNESS matrix
-    // pre factor of Newmark time stepping scheme
-    Double beta = TS_alg_->GetNewmarkBeta();
-    coeff *= 1.0 / (beta*dt*dt);
-
-    //(*debug) << std::endl << "Parameters in GetFracDampMatrixCoeff are:"
-    //         << std::endl << "regionId: " << regionId
-    //         << std::endl << "y    = " << y
-    //         << std::endl << "dt   = " << dt
-    //         << std::endl << "beta = " << beta
-    //         << std::endl << "coeff= " << coeff << std::endl << std::endl;
-
-    return coeff;*/
-    return 0.0;
-  }
-
 
   shared_ptr<ResultInfo> StdPDE::GetResultInfo( SolutionType solType ) {
     
@@ -338,13 +296,8 @@ namespace CoupledField {
     shared_ptr<BaseFeFunction> feFct;
     SolutionType mySolType;
     if( feFunctions_.find(solType) == feFunctions_.end()){
-      //ok so it could be that we are looking for a postProc Result
-      if(postProcResults_.find(solType) != postProcResults_.end()){
-        mySolType = postProcResults_[solType];
-      }else{
-          EXCEPTION( "A FeFunction descriptor with solutionType '" << SolutionTypeEnum.ToString(solType)
-                      << "' was not found for " << pdename_ );
-      }
+      EXCEPTION( "A FeFunction descriptor with solutionType '" << SolutionTypeEnum.ToString(solType)
+                 << "' was not found for " << pdename_ );
     }else{
       mySolType = solType;
     }

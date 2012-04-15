@@ -94,10 +94,10 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode )
       actMat = it->second;
 
       // Get current region name
-      std::string regionName = ptgrid_->GetRegion().ToString(actRegion);
+      std::string regionName = ptGrid_->GetRegion().ToString(actRegion);
 
       // create new entity list and add it fefunction
-      shared_ptr<ElemList> actSDList( new ElemList(ptgrid_ ) );
+      shared_ptr<ElemList> actSDList( new ElemList(ptGrid_ ) );
       actSDList->SetRegion( actRegion );
       myFct->AddEntityList( actSDList );
       
@@ -250,10 +250,10 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode )
          RegionIdType actRegion = coilRegionId_[coil];
 
          // Get current region name
-         std::string regionName = ptgrid_->GetRegion().ToString(actRegion);
+         std::string regionName = ptGrid_->GetRegion().ToString(actRegion);
 
          // create new entity list
-         shared_ptr<ElemList> actSDList( new ElemList(ptgrid_ ) );
+         shared_ptr<ElemList> actSDList( new ElemList(ptGrid_ ) );
          actSDList->SetRegion( actRegion );
 
          LinearForm * curInt = NULL;
@@ -446,11 +446,11 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode )
 
         // get region name of actual coil
         std::string regionName = coilNodes[i]->Get("name")->As<std::string>();
-        RegionIdType regionId = ptgrid_->GetRegion().Parse( regionName );
+        RegionIdType regionId = ptGrid_->GetRegion().Parse( regionName );
 
         coilRegionId_.Push_back( regionId );
         coilDef_.Push_back( shared_ptr<Coil>( new Coil( regionId,
-                                                        coilNodes[i], ptgrid_) ) );
+                                                        coilNodes[i], ptGrid_) ) );
         //Info->PrintCoil( *coilDef_.Last(), analysistype_ );
       }
     }
@@ -482,7 +482,7 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode )
 
         // get region name of actual magnet
         std::string regionName = magnetNodes[i]->Get("name")->As<std::string>();
-        RegionIdType regionId = ptgrid_->GetRegion().Parse( regionName );
+        RegionIdType regionId = ptGrid_->GetRegion().Parse( regionName );
 
         magnetsDomain_.Push_back( regionId );
 
@@ -529,32 +529,35 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode )
     res1->SetFeFunction(vecFct);
     results_.Push_back( res1 );
     availResults_.insert( res1 );
-    // define related interpolatory method
-    shared_ptr<BaseFieldFunctor> vFunc;
-    if( isComplex_ ) {
-      if( dim_ == 2 ) {
-      vFunc.reset(
-          new FieldInterpolFunctor<IdentityOperator<FeH1,2,2,Complex>,
-          Complex>(vecFct, res1));
-      } else {
-        vFunc.reset(
-            new FieldInterpolFunctor<IdentityOperator<FeH1,3,3,Complex>,
-            Complex>(vecFct, res1));
-      }
-    } else {
-      if( dim_ == 2 ) {
-      vFunc.reset(
-          new FieldInterpolFunctor<IdentityOperator<FeH1,2,2>,
-          Double>(vecFct, res1));
-      } else {
-        vFunc.reset(
-            new FieldInterpolFunctor<IdentityOperator<FeH1,3,3>,
-            Double>(vecFct, res1));
-      }
-    }
-    resultFunctors_[MAG_POTENTIAL] = vFunc;
-    fieldFunctors_[MAG_POTENTIAL] = vFunc;
     vecFct->SetResultInfo(res1);
+    DefineFieldResult( vecFct, res1);
+    
+//    // define related interpolatory method
+//    shared_ptr<BaseFieldFunctor> vFunc;
+//    if( isComplex_ ) {
+//      if( dim_ == 2 ) {
+//      vFunc.reset(
+//          new FieldInterpolFunctor<IdentityOperator<FeH1,2,2,Complex>,
+//          Complex>(vecFct, res1));
+//      } else {
+//        vFunc.reset(
+//            new FieldInterpolFunctor<IdentityOperator<FeH1,3,3,Complex>,
+//            Complex>(vecFct, res1));
+//      }
+//    } else {
+//      if( dim_ == 2 ) {
+//      vFunc.reset(
+//          new FieldInterpolFunctor<IdentityOperator<FeH1,2,2>,
+//          Double>(vecFct, res1));
+//      } else {
+//        vFunc.reset(
+//            new FieldInterpolFunctor<IdentityOperator<FeH1,3,3>,
+//            Double>(vecFct, res1));
+//      }
+//    }
+//    resultFunctors_[MAG_POTENTIAL] = vFunc;
+//    fieldFunctors_[MAG_POTENTIAL] = vFunc;
+
     
     // === MAGNETIC SCALAR POTENTIAL ===
     if (isMixed_) {
@@ -568,20 +571,22 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode )
       res2->entryType = ResultInfo::SCALAR;
       results_.Push_back( res2 );
       availResults_.insert( res2 );
-
-      // define related interpolatory method
-      shared_ptr<BaseFieldFunctor> sFunc;
-      if( isComplex_ ) {
-        sFunc.reset(new FieldInterpolFunctor<IdentityOperator<FeH1,3,1,Complex>,
-        Complex>(scalFct, res2));
-      } else {
-        sFunc.reset(
-            new FieldInterpolFunctor<IdentityOperator<FeH1,3,1,Double>,
-            Double>(scalFct, res2));
-      }
-      resultFunctors_[ELEC_POTENTIAL] = sFunc;
-      fieldFunctors_[ELEC_POTENTIAL] = sFunc;
       scalFct->SetResultInfo(res2);
+      DefineFieldResult( scalFct, res2 );
+//
+//      // define related interpolatory method
+//      shared_ptr<BaseFieldFunctor> sFunc;
+//      if( isComplex_ ) {
+//        sFunc.reset(new FieldInterpolFunctor<IdentityOperator<FeH1,3,1,Complex>,
+//        Complex>(scalFct, res2));
+//      } else {
+//        sFunc.reset(
+//            new FieldInterpolFunctor<IdentityOperator<FeH1,3,1,Double>,
+//            Double>(scalFct, res2));
+//      }
+//      resultFunctors_[ELEC_POTENTIAL] = sFunc;
+//      fieldFunctors_[ELEC_POTENTIAL] = sFunc;
+
     }
     
     
@@ -608,15 +613,15 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode )
        flux->definedOn = ResultInfo::ELEMENT;
        flux->entryType = ResultInfo::VECTOR;
        availResults_.insert( flux );
-       postProcResults_[MAG_FLUX_DENSITY] = MAG_POTENTIAL;
        shared_ptr<BaseFieldFunctor> bFunc;
        if( isComplex_ ) {
          bFunc.reset(new DiffFieldFunctor<Complex>(feFct, flux));
        } else {
          bFunc.reset(new DiffFieldFunctor<Double>(feFct, flux));
        }
-       resultFunctors_[MAG_FLUX_DENSITY] = bFunc;
-       fieldFunctors_[MAG_FLUX_DENSITY] = bFunc;
+       DefineFieldResult( bFunc, flux );
+//       resultFunctors_[MAG_FLUX_DENSITY] = bFunc;
+//       fieldFunctors_[MAG_FLUX_DENSITY] = bFunc;
 //    
 //    
 //    StdVector<std::string > dispDofNames;
@@ -631,7 +636,6 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode )
 //    stress->entryType = ResultInfo::TENSOR;
 //    stress->definedOn = ResultInfo::ELEMENT;
 //    availResults_.insert( stress );
-//    postProcResults_[MECH_STRESS] = MECH_DISPLACEMENT;
 //    shared_ptr<BaseFieldFunctor> sigmaFunc;
 //    if( isComplex_ ) {
 //      sigmaFunc.reset(new FluxFieldFunctor<Complex>(feFct, stress));
@@ -651,7 +655,6 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode )
 //    strain->entryType = ResultInfo::TENSOR;
 //    strain->definedOn = ResultInfo::ELEMENT;
 //    availResults_.insert( strain );
-//    postProcResults_[MECH_STRAIN] = MECH_DISPLACEMENT;
 //    shared_ptr<BaseFieldFunctor> strainFunc;
 //    if( isComplex_ ) {
 //      strainFunc.reset(new DiffFieldFunctor<Complex>(feFct, strain));
@@ -708,13 +711,13 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode )
       // 1) create space for magnetic vector potential
       PtrParamNode potSpaceNode = infoNode->Get("magPotential");
       crSpaces[MAG_POTENTIAL] =
-          FeSpace::CreateInstance(myParam_,potSpaceNode,FeSpace::H1, ptgrid_);
+          FeSpace::CreateInstance(myParam_,potSpaceNode,FeSpace::H1, ptGrid_);
       crSpaces[MAG_POTENTIAL]->Init(solStrat_);
       
       // 1) create space for electric scalar potential
       if( isMixed_ ) {
         crSpaces[ELEC_POTENTIAL] =
-            FeSpace::CreateInstance(myParam_,potSpaceNode,FeSpace::H1, ptgrid_);
+            FeSpace::CreateInstance(myParam_,potSpaceNode,FeSpace::H1, ptGrid_);
         crSpaces[ELEC_POTENTIAL]->Init(solStrat_);
       }
 

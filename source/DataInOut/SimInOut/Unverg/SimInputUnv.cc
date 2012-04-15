@@ -978,7 +978,7 @@ namespace CoupledField {
       case CapaInterfaceC::MagneticField:
         return MAG_HFIELD;
       case CapaInterfaceC::EddyCurrent:
-        return MAG_EDDY_CURRENT;
+        return MAG_EDDY_CURRENT_DENSITY;
       default:
         EXCEPTION("Unknown CAPA element result type: " << capaType);
     }
@@ -994,7 +994,7 @@ namespace CoupledField {
         return CapaInterfaceC::ElectricField;
       case MAG_HFIELD:
         return CapaInterfaceC::MagneticField;
-      case MAG_EDDY_CURRENT:
+      case MAG_EDDY_CURRENT_DENSITY:
         return CapaInterfaceC::EddyCurrent;
       default:
         EXCEPTION("result type '" << SolutionTypeEnum.ToString(cfsType)

@@ -297,6 +297,16 @@ public:
   UInt GetNumConstraints(){
     return bcCounter_[CS];
   }
+  
+  //! Return number of unknowns per virtual "node"
+
+  //! This method returns the number of components / unknowns per virtual 
+  //! "node", which differs depending on the type of space: If a vectorial 
+  //! function is approximated in a H1 space, every scalar component gets
+  //! approximated by a scalar basis function. In case of a HCurl or HDiv 
+  //! element, the shape functions are already vectorial, so only one
+  //! coefficient is needed to describe the function value.
+  virtual UInt GetNumDofs() const = 0;
 
   shared_ptr<BaseFeFunction> GetFeFunction(){
     return feFunction_;
@@ -318,7 +328,7 @@ public:
  //@}
   
 protected:
-
+  
   //! Parameter node
   PtrParamNode myParam_;
   

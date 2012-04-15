@@ -1383,14 +1383,14 @@ namespace CoupledField {
         capaSolType = "mag. flux density";
         ideas5xSolType = "MAGFLUX";
         break;
-      case MAG_EDDY_CURRENT:
+      case MAG_EDDY_CURRENT_DENSITY:
         capaSolType = "eddy current";
         ideas5xSolType = "MAGEDDY";
         break;
       case MAG_FORCE_VWP:
         EXCEPTION("Not implemented");
         break;
-      case MAG_FORCE_LORENTZ:
+      case MAG_FORCE_LORENTZ_DENSITY:
         EXCEPTION("Not implemented");
         break;
       case MAG_ENERGY:

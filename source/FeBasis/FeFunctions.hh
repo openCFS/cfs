@@ -1,18 +1,19 @@
 #ifndef FILE_CFS_FEFUNCTION_HH
 #define FILE_CFS_FEFUNCTION_HH
+#include <boost/tr1/type_traits.hpp>
 
 #include "General/Environment.hh"
 
 #include "Domain/ElemMapping/EntityLists.hh"
 #include "Domain/BCs.hh"
 #include "Domain/Results/ResultInfo.hh"
+#include "Domain/CoefFunction/CoefFunction.hh"
 #include "Domain/Mesh/Grid.hh"
 
 #include "MatVec/Matrix.hh"
 #include "MatVec/Vector.hh"
 
 #include "Utils/mathParser/mathParser.hh"
-
 #include "Driver/TimeSchemes/BaseTimeScheme.hh"
 
 namespace CoupledField {
@@ -45,7 +46,7 @@ namespace CoupledField {
 */
 
 
-class BaseFeFunction {
+class BaseFeFunction : public CoefFunction {
 public:
   
 
@@ -64,7 +65,7 @@ public:
   //@{ \name Function Meta Information 
     
   //! Set result information
-  void SetResultInfo( shared_ptr<ResultInfo> info );
+  virtual void SetResultInfo( shared_ptr<ResultInfo> info ) = 0;
   
   //! Get ResultInfo
   shared_ptr<ResultInfo> GetResultInfo();
@@ -145,6 +146,22 @@ public:
     return constraints_;
   }
 
+  //@}
+  
+  // ========================================================================
+  //  Coefficient Function Interface
+  // ========================================================================
+  //@{ \name Access Methods of CoefFunction interface
+
+  //! \copydoc CoefFunction::GetVecSize
+  virtual UInt GetVecSize() const;
+
+  //! \copydoc CoefFunction::GetTensorSize
+  virtual void GetTensorSize( UInt& numRows, UInt& numCols ) const;
+  
+  //! \copydoc CoefFunction::ToString 
+  virtual std::string ToString() const;
+  
   //@}
   
   // ========================================================================
@@ -229,8 +246,14 @@ public:
 
   virtual ~FeFunction();
 
+  //! Explicitly set the time derivative for the FeFunction (only complex)
+  void SetTimeDerivOrder( UInt i, shared_ptr<FeFunction<T> > feFct  );
+  
   //! \see BaseFeFunction::Finalize()
   void Finalize();
+  
+  //! \copydoc BaseFeFunction::SetResultInfo 
+  void SetResultInfo( shared_ptr<ResultInfo> info );
   
   /////////////////////////////////////////////////////////////////
   // Solution Access functions 
@@ -254,16 +277,36 @@ public:
                         const Elem* elem );
   
   //! Return vector containing the function coefficients
-  SingleVector* GetSingleVector() {return &coeffs_;}
+  SingleVector* GetSingleVector() {return coeffs_;}
     
   //! Return complete coefficient vector
-  Vector<T>& GetVector() {return coeffs_;}
+  Vector<T>& GetVector() {return *coeffs_;}
   
   //! Return complete coefficient vector (const)
-  const Vector<T>& GetVector() const {return coeffs_;}
+  const Vector<T>& GetVector() const {return *coeffs_;}
 
   //! Incorporate boundary conditions
   virtual void ApplyBC();
+  
+  // ========================================================================
+   //  Coefficient Function Interface
+   // ========================================================================
+   //@{ \name Access Methods of CoefFunction interface
+
+  //! Return complex-valued vector at integration point
+  virtual void GetVector(Vector<T>& vec, 
+                         const LocPointMapped& lpm );
+
+  //! Return complex-valued scalar at integration point
+  virtual void GetScalar(T& scalar, 
+                         const LocPointMapped& lpm );
+   
+  //! \copydoc CoefFunction::IsComplex
+  bool IsComplex() {
+    return std::tr1::is_same<T,Complex>::value;
+  }
+    
+   //@}
   
   
 protected:
@@ -271,9 +314,21 @@ protected:
   //! generates an interpolation operator by determining the space used
   BaseBOperator<T>* GenerateInterpolationOperator(UInt dim, UInt dofDim);
 
+  //! Update factor for time derivative (only complex case)
+  void UpdateTimeDeriv();
+  
   //! Coefficient vector
-  Vector<T> coeffs_;
-};
+  Vector<T> * coeffs_;
+  
+  //! Interpolation operator
+  BaseBOperator<T>* idOp_;
+
+  //! Time derivative order (only complex valued case)
+  UInt timeDerivOrder_;
+  
+  //! Factor for time derivative
+  T factor_;
+};  
 
 
 }  // namespace CoupledField

@@ -29,12 +29,9 @@ namespace CoupledField
   class LinearFormContext;
   class CoefFunction;
   
-
-  
   //! Base class for all kinds of single field problems.
 
-  class SinglePDE : public StdPDE 
-  {
+  class SinglePDE : public StdPDE {
   
   public:
 
@@ -46,37 +43,35 @@ namespace CoupledField
     typedef StdVector<shared_ptr<BaseResult> > ResultList;
     typedef std::map<shared_ptr<ResultInfo> , ResultList > ResultMap;
 
-    /** Initialize PDEs 
-     * @param base pointer to InfoNode of this PDE */
+    //! Initialize PDEs 
+    //! @param base pointer to InfoNode of this PDE */
     virtual void Init( UInt sequenceStep, PtrParamNode base = PtrParamNode() ); 
 
-    /** Finalize initialization of PDEs. Either called in SinglePDE::Init() if
-     * directCoupled_ == false, otherwise called from DirectCoupledPDE::Init() */
+    //! Finalize initialization of PDEs. Either called in SinglePDE::Init() if
+    //! directCoupled_ == false, otherwise called from DirectCoupledPDE::Init()
     void FinalizeInit( );
 
     // ---------------------- ***** --------------------------------
 
-    //! destructor
+    //! Destructor
     virtual ~SinglePDE();
   
-    //! MpCCI gets the geometry
-    virtual void PreparePDE4Computation() {;};
   
     // ======================================================
     // COUPLING SECTION
     // ======================================================
   
-    //! initalize PDE coupling (only done once)
+    //! Initalize PDE coupling (only done once)
     virtual void InitCoupling(PDECoupling * Coupling) = 0;
 
-    //! reset coupling counters and data (done after each timestep)
+    //! Reset coupling counters and data (done after each timestep)
     virtual void ResetCoupling();
 
     //! Fill in input coupling terms
     virtual void CalcInputCoupling();
   
   
-    //! calculate coupling terms
+    //! Calculate coupling terms
     virtual void CalcOutputCoupling() = 0;
 
   
@@ -91,7 +86,7 @@ namespace CoupledField
     //! Set Direct coupling information
     virtual void SetDirectCoupling();
 
-    //! set boundary condition OBSOLETE
+    //! set boundary condition
     void SetBCs();
 
     //! set special PDE dependent boundary conditions
@@ -162,18 +157,6 @@ namespace CoupledField
     //! Obtain coefficient function of given type
     PtrCoefFct GetCoefFct( SolutionType solType );
     
-    //@{
-
-    /** Return the native solution type, MECH_DISPLACEMENT, ... */
-    virtual SolutionType GetNativeSolutionType() const { EXCEPTION("not implemented"); }
-
-    /** Return the number of dofs of the native solution type, MECH_DISPLACEMENT, ...
-     * @return 1 or the number of dimensions (displacement) */
-    virtual UInt GetNativeDOF() const { EXCEPTION("not implemented"); }
-
-
-    //@}
-
     //! Read general external field information from given xml node
     //! The node has to contian either a values tag, a number of comp tags or
     //! a grid node
@@ -316,10 +299,6 @@ namespace CoupledField
     //! Initialize NonLinearities
     virtual void InitNonLin();
 
-    //! Define FeFunctions for this PDE according to the
-    //! definition in the XML file
-    virtual void DefineTimeDerivFeFunctions(){;}
-
     //! Define the time FeFunctions for this PDE according to the
     //! definition in the XML file
     virtual void DefineFeFunctions();
@@ -378,13 +357,17 @@ namespace CoupledField
     //@{
     //! \name Attributes connected to storing information
     
+    //! Define a field result
+    void DefineFieldResult( PtrCoefFct coef, shared_ptr<ResultInfo> res );
     
-
+    //! Define result based on the time derivative of the main results
+    void DefineTimeDerivResult( SolutionType derivSolType,
+                                UInt timeDerivOrder,
+                                SolutionType primSolType );
+    
     //! Map containing the result types and the results
     ResultMap resultLists_;
 
-    //! map with neighboring volume regions for surface results
-    std::map<shared_ptr<BaseResult>,RegionIdType> surfNeighborRegions_;
     //@}
     
     // -----------------------------------------------------------------------
@@ -412,9 +395,6 @@ namespace CoupledField
     //! Handle for MathParser object
     MathParser::HandleType mHandle_;
 
-    //! map for storing bilinear forms needed for postprocessing
-    std::map< RegionIdType, std::map< std::string, BaseForm* > > pdeBilinearForms_;
-    
     //! Map for storing the primary BDB integrators of the problem
     
     //! This map stores the primary BDB integrators, which can be used for 
@@ -424,17 +404,13 @@ namespace CoupledField
     //! Map storing functors for calculating general results
     std::map<SolutionType, shared_ptr<ResultFunctor> > resultFunctors_;
     
-    //! Map storing functors for calculating field results 
-    std::map<SolutionType, shared_ptr<BaseFieldFunctor> > fieldFunctors_;
+    //! Store field coefficient functions
+    std::map<SolutionType, PtrCoefFct > fieldCoefs_;
+    
+    
     
     //@}
   private:
-    /** write out results for restart
-     * @param outFile the file to write to
-     * @param outResults the results to write
-     */
-    inline void writeOutTimeStep(shared_ptr<SimOutput>& outFile, \
-        StdVector<shared_ptr<BaseResult> >& outResults);
   };
 
 #ifdef DOXYGEN_DETAILED_DOC

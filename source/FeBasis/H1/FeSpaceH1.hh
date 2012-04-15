@@ -110,6 +110,9 @@ public:
 
 
 protected:
+  
+  //! \copydoc FeSpace::GetNumDofs
+  virtual UInt GetNumDofs() const;
 
   //! Map Nodal BC Equation NUmbers
   virtual void MapNodalBCs();

@@ -113,45 +113,16 @@ namespace CoupledField {
       return false;
     }
   
-    //! Also for fractional damping model do obtain
-    virtual UInt GetFracMemory() {
-      return fracMemory_;
-    }
-    
-    virtual bool GetFracDamping() {
-      return fracDamping_;
-    }
-
     virtual bool GetIsaxi() {
       return isaxi_;
     }
     
-    //! Return Biot-Savart object
-    shared_ptr<BiotSavart> GetBiotSavart() {
-      return biotSavart_;
-    };
-
-    //! check, if Biot-Savart is set
-    bool IsBiotSavart() {
-      return isBiotSavart_;
-    };
-
+    //! Pass boundary conditions to the algebraic system 
+    virtual void SetBCs() = 0;
+    
     //! Return pointer to paramNode of current pde
     PtrParamNode GetParamNode() { return myParam_; }
 
-    //! set boundary condition OBSOLETE in the future
-    virtual  void SetBCs() = 0;
-
-    virtual  void InitStabParams( ) {
-      EXCEPTION("Not Implemented, only needed for fluidMech and smooth");
-    };
-
-    virtual  void PrintStabParams( ) {
-      EXCEPTION("Not Implemented, only needed for fluidMech");
-    };
-
-
-    
     //! Init the time stepping
     virtual void InitTimeStepping()
     {EXCEPTION("InitTimeStepping not implemented");};
@@ -162,39 +133,40 @@ namespace CoupledField {
       return NULL;
     };
 
-    virtual void AcouSourceCalc(){EXCEPTION("AcouSourceCalc not implemented");};
-
     // ======================================================
     // COMMUNICATION ROUTINES FOR PARAMETER IDENTIFICATION
     // ======================================================
 
     //@{
 
-
-    std::map<RegionIdType, BaseMaterial*>  getPDEMaterialData()
+    //! Return list with material definition for each region
+    std::map<RegionIdType, BaseMaterial*>  GetMaterialData()
     {return materials_;};
     
-    Assemble * getPDE_assemble(){return assemble_;}
+    //! Return assemble class, which olds all integrators
+    Assemble * GetAssemble(){return assemble_;}
 
-    StdVector<RegionIdType> getPDE_subdoms(){return subdoms_;}
+    //! Return all regions of the PDE
+    StdVector<RegionIdType> GetRegions() {
+      return regions_;}
 
-    AlgebraicSys * getPDE_algsys(){return algsys_;}
+    //! Return pointer to algebraic system
+    AlgebraicSys * GetAlgSys(){return algsys_;}
     
-    Grid * getPDE_grid() {return ptgrid_;}
+    //! Return pointer to grid the PDE is defined on
+    Grid * GetGrid() {return ptGrid_;}
 
-    // set if PDE is nonlinear
+    //! Set if PDE is nonlinear
     virtual void SetNonLinearity(bool nonLin){
       nonLin_=nonLin;};
 
-    // set if PDE is nonlinear (material dependency)
+    // St if PDE is nonlinear (material dependency)
     virtual void SetMaterialNonLinearity(bool nonLin){
       nonLinMaterial_=nonLin;};
-
     //@}
 
     //@{
     //!  Get functions concerning nonlinearity
-
     bool IsNonLin() 
     { return nonLin_;};
 
@@ -207,9 +179,6 @@ namespace CoupledField {
     bool IsIterCoupled() 
     { return isIterCoupled_;};
 
-    bool& IsFirstTimeStepStatic()
-    { return firstTimeStepStatic_;};
-
     std::map<RegionIdType, StdVector<NonLinType> >& GetNonLinRegionTypes() 
     { return regionNonLinTypes_;};
 
@@ -218,10 +187,6 @@ namespace CoupledField {
 
     PDECoupling* GetCoupling()
     {return ptCoupling_;};
-
-    //! List of inhomogeneous Dirichlet boundary conditions
-    IdBcList GetIDBCList(){
-      return idBcs_;};
 
     //! Return material class
     MaterialClass GetMaterialClass() const { return pdematerialclass_; }
@@ -242,12 +207,6 @@ namespace CoupledField {
       // The following line is only to satisfy the compiler
       return *this;
     };
-  
-
-    //! Get coefficient for damping matrix in fractional damping model
-    //! \todo This function has to be removed when the fractional
-    //! damping model gets implemented in a separate Forms-class
-    virtual Double GetFracDampMatrixCoeff(RegionIdType region);
 
     //! retruns, if PDE needs to store previous solution or not
     virtual bool NeedsPrevSol() {
@@ -264,14 +223,15 @@ namespace CoupledField {
     //@{
     //! \name Attributes related to geometry and node numbering
 
-    Grid * ptgrid_;        //!< pointer to grid object
+    //! Pointer to grid object
+    Grid * ptGrid_;
 
-    //! subdomain-levels belonging to PDE
-    StdVector<RegionIdType> subdoms_;
+    //! Vector containing all regions the PDE is defined on
+    StdVector<RegionIdType> regions_;
 
     //@}
 
-    /** This is our pde info node. To be set/overwritten in each PDE! */ 
+    //!  This is our pde info node. To be set/overwritten in each PDE! 
     PtrParamNode infoNode_; 
     
     //! Parameter node for OLAS
@@ -283,11 +243,12 @@ namespace CoupledField {
   
     //@{
     //! \name Attributes related to geometry and node numbering 
-    //! defines subtype of mechanic PDE: plainStrain, 3d, ...
+    
+    //! Holds the PDE-specific subType of the PDE (e.g. planeStrain for mech)
     std::string subType_;
     //@}
 
-      // -----------------------------------------------------------------------
+    // -----------------------------------------------------------------------
     // Boundary conditions
     // -----------------------------------------------------------------------    
 
@@ -299,7 +260,7 @@ namespace CoupledField {
 
     //! Inhomogeneous Dirichlet boundary conditions
     IdBcList idBcs_;
-    
+
     //! List of constraints
     ConstraintList constraints_;
 
@@ -378,7 +339,6 @@ namespace CoupledField {
     //@{
     //! \name Attributes connected to time stepping
     bool diagMass_;           //!< use of diagonal mass matrix in explicit time stepping
-    bool firstTimeStepStatic_; //!< needed for coupled, iterative methods
     //@}
 
 
@@ -413,26 +373,11 @@ namespace CoupledField {
     //! use of complex material data per region
     std::map<RegionIdType,bool> complexMatData_;
 
-    bool fracDamping_; //!< true: fractional damping model
-    UInt fracMemory_;     //!< number of old time steps to be saved (for fractional damping)
-    
-    //! object, handling the computation by Biot-Savart fundamental field
-    shared_ptr<BiotSavart> biotSavart_;
-        
-    //! excitation computed by Biot-Savart
-    bool isBiotSavart_;
-
-    //! type of interpolation (for fractional damping)
-    InterpolType inType_;
-    
     //! checks, if we have for the coupling a incremental solution
     bool isIncrFormulation_;    
     
     //! if yes, PDE is computed on deformed geometry
     bool updatedLagrangeForm_;
-
-    //! flag for knowing if we have to call ComputeRHS() in the harmonic driver
-    bool ComputeRHSforHarm_;    
 
     //! Pointer to object of analysis (Static, Trans, Harm or Eig)
     Assemble * assemble_;
@@ -449,9 +394,6 @@ namespace CoupledField {
     PtrParamNode olasInfo_;
     
     //@}
-
-    //! map which associates a Postprocessing result to its corresponding Primary Result
-    std::map<SolutionType,SolutionType> postProcResults_;
 
     //! Map Storing FeSpaces for each unknown of PDE
     std::map<SolutionType, shared_ptr<BaseFeFunction> > feFunctions_;

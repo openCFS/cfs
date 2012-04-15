@@ -225,55 +225,6 @@ protected:
   //! Store coefficient function
   PtrCoefFct coef_;
 };
-// --------------------------------------------------------------------------
-//  FIELDS BASED ON INTERPOLATED PRIMARY RESULT
-// --------------------------------------------------------------------------
-
-//! Functor for interpolating fields based on primary variable
-template<class B_OP, class DATA_TYPE>
-class FieldInterpolFunctor : public FieldFunctor<DATA_TYPE> {
-public:
-  
-  //! Constructor
-  FieldInterpolFunctor( shared_ptr<BaseFeFunction> feFct,
-                        shared_ptr<ResultInfo> inf ) :
-                          FieldFunctor<DATA_TYPE>( feFct, inf) {
-    
-    feSpace_ = feFct->GetFeSpace();
-  }
-  
-  //! \copydoc CoefFunction::IsComplex
-    bool IsComplex(){
-      return std::tr1::is_same<DATA_TYPE,Complex>::value;
-    }
-  
-  //! Destructor
-  virtual ~FieldInterpolFunctor() {}
-  
-  //! Evaluate field at local point
-  virtual void GetVector(Vector<DATA_TYPE>& vec, 
-                         const LocPointMapped& lpm) {
-    vec.Resize(this->ptGrid_->GetDim());
-    this->feFct_->GetElemSolution( elemSol, lpm.ptEl);
-    BaseFE * ptFe = feSpace_->GetFe(lpm.ptEl->elemNum);
-    this->operator_.ApplyOp(vec, lpm, ptFe, elemSol );
-  }
-
-protected:
-
-  //! Id interpolation operator
-  B_OP operator_;
-
-  //! Store FeSpace
-  shared_ptr<FeSpace> feSpace_;
-
-  //! Mapped local points
-  LocPointMapped lpm;
-
-  //! Solution of element
-  Vector<DATA_TYPE> elemSol;
-};
-
 
 // --------------------------------------------------------------------------
 //  FIELDS BASED ON DERIVATIVE (GRADIENT, CURL)

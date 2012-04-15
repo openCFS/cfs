@@ -9,6 +9,7 @@ namespace CoupledField
   // forward class declaration
   class BaseResult;
   class LinearFormContext;
+  class CoefFunctionMulti;
   
   //! Class for linearized perturbed formulation of Navier-Stoke's equations.
   class PerturbedFlowPDE : public SinglePDE {
@@ -65,12 +66,6 @@ namespace CoupledField
     //! Returns if PDE can compute the quantity
     bool HasOutput(SolutionType output);
   
-    /** @see virtual SinglePDE::GetNativeSolutionType() */
-    SolutionType GetNativeSolutionType() const { return ELEC_POTENTIAL; }
-
-    /** @see virtual SinglePDE::GetNativeDOF() */
-    virtual UInt GetNativeDOF() const { return 1; }
-    
     //! Calculate field variables at arbitrary points
     void CalcField( SolutionType solType, StdVector<const Elem*>& elems,
                     StdVector<LocPoint>& points, SingleVector& values );
@@ -97,15 +92,18 @@ namespace CoupledField
     CreateFeSpaces( const std::string&  formulation,
                     PtrParamNode infoNode );
 
-    virtual LinearFormContext* CreateRhsLinearForm( SolutionType rhsType,
-                                                    shared_ptr<CoefFunction > rhsCoef );
 
   private:
 
     //! create feFunction for meanFluidMech velocity
     void CreateMeanFlowFunction(StdVector<std::string> dofNames);
 
-    shared_ptr<BaseFieldFunctor> meanFlowFunctor_;
+    //! Coefficient function for the flow field
+    
+    //! This coefficient function describes the flow field. As this 
+    //! is in general different for each region and will most likely
+    //! not be given in a close form, it is described by a CoefFunctionMulti.
+    shared_ptr<CoefFunctionMulti> meanFlowCoef_;
 
     //! Surface regions on which pressure surface integral has to be defined
     StdVector<RegionIdType> presSurfaces_;

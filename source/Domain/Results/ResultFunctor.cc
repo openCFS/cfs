@@ -25,50 +25,114 @@ template<class TYPE> void ResultFunctorIntegrate<TYPE>::
   shared_ptr<FeSpace> feSpace = feFct_->GetFeSpace();
   shared_ptr<IntScheme> intScheme = feSpace->GetIntScheme();
   Vector<TYPE>& vec = actSol.GetVector();
-  vec.Resize( regionIt.GetSize() );
+  UInt numDofs =actSol.GetResultInfo()->dofNames.GetSize();
+  vec.Resize( regionIt.GetSize() * numDofs );
 
-  // Loop over regions
-  for( regionIt.Begin(); !regionIt.IsEnd(); regionIt++ ) {
-    ElemList actSDList(ptGrid_);
-    actSDList.SetRegion( regionIt.GetRegion() );
-    EntityIterator elemIt = actSDList.GetIterator();
-
-    TYPE tempVal = 0.0;
-    // loop over elements
-    for ( elemIt.Begin(); !elemIt.IsEnd(); elemIt++ ) {
-      const Elem * el = elemIt.GetElem();
+  
+  // switch depending on type of coefficient function:
+  
+  if( coef_->GetDimType() == CoefFunction::SCALAR ) {
 
 
-      // Obtain FE element from feSpace and integration scheme
-      IntegOrder order;
-      IntScheme::IntegMethod method;
+    // ---------------
+    //  SCALAR RESULT
+    // ---------------
+    // Loop over regions
+    for( regionIt.Begin(); !regionIt.IsEnd(); regionIt++ ) {
+      ElemList actSDList(ptGrid_);
+      actSDList.SetRegion( regionIt.GetRegion() );
+      EntityIterator elemIt = actSDList.GetIterator();
 
-      feSpace->GetFe( elemIt, method, order );
-      // Get shape map from grid
-      shared_ptr<ElemShapeMap> esm = 
-          domain->GetGrid()->GetElemShapeMap( el, true );
+      TYPE tempVal = 0.0;
+      // loop over elements
+      for ( elemIt.Begin(); !elemIt.IsEnd(); elemIt++ ) {
+        const Elem * el = elemIt.GetElem();
 
-      // Get integration points
-      StdVector<LocPoint> intPoints;
-      StdVector<Double> weights;
-      intScheme->GetIntPoints( Elem::GetShapeType(el->type), method, order, 
-                               intPoints, weights );
 
-      // Loop over all integration points
-      tempVal = 0.0;
-      LocPointMapped lpm;
-      TYPE elemVal = 0.0;
-      for( UInt i = 0; i < intPoints.GetSize(); i++  ) {
+        // Obtain FE element from feSpace and integration scheme
+        IntegOrder order;
+        IntScheme::IntegMethod method;
 
-        // Calculate for each integration point the LocPointMapped
-        lpm.Set( intPoints[i], esm );
-        coef_->GetScalar(tempVal, lpm );
-        elemVal += tempVal * lpm.jacDet * weights[i];
-      } // loop integration points
-      vec[regionIt.GetPos()] += elemVal;
-    } // loop elements
-  } // loop regions
+        feSpace->GetFe( elemIt, method, order );
+        // Get shape map from grid
+        shared_ptr<ElemShapeMap> esm = 
+            domain->GetGrid()->GetElemShapeMap( el, true );
 
+        // Get integration points
+        StdVector<LocPoint> intPoints;
+        StdVector<Double> weights;
+        intScheme->GetIntPoints( Elem::GetShapeType(el->type), method, order, 
+                                 intPoints, weights );
+
+        // Loop over all integration points
+        tempVal = 0.0;
+        LocPointMapped lpm;
+        TYPE elemVal = 0.0;
+        for( UInt i = 0; i < intPoints.GetSize(); i++  ) {
+
+          // Calculate for each integration point the LocPointMapped
+          lpm.Set( intPoints[i], esm );
+          coef_->GetScalar(tempVal, lpm );
+          elemVal += tempVal * lpm.jacDet * weights[i];
+        } // loop integration points
+        vec[regionIt.GetPos()] += elemVal;
+      } // loop elements
+    } // loop regions
+    
+  } else if( coef_->GetDimType() == CoefFunction::VECTOR ) {
+    // ---------------
+    //  VECTOR RESULT
+    // ---------------
+    // Loop over regions
+    UInt pos = 0;
+    for( regionIt.Begin(); !regionIt.IsEnd(); regionIt++ ) {
+      ElemList actSDList(ptGrid_);
+      actSDList.SetRegion( regionIt.GetRegion() );
+      EntityIterator elemIt = actSDList.GetIterator();
+
+      Vector<TYPE> tempVal;
+      // loop over elements
+      for ( elemIt.Begin(); !elemIt.IsEnd(); elemIt++ ) {
+        const Elem * el = elemIt.GetElem();
+
+
+        // Obtain FE element from feSpace and integration scheme
+        IntegOrder order;
+        IntScheme::IntegMethod method;
+
+        feSpace->GetFe( elemIt, method, order );
+        // Get shape map from grid
+        shared_ptr<ElemShapeMap> esm = 
+            domain->GetGrid()->GetElemShapeMap( el, true );
+
+        // Get integration points
+        StdVector<LocPoint> intPoints;
+        StdVector<Double> weights;
+        intScheme->GetIntPoints( Elem::GetShapeType(el->type), method, order, 
+                                 intPoints, weights );
+
+        // Loop over all integration points
+        LocPointMapped lpm;
+        Vector<TYPE> elemVal(numDofs);
+        elemVal.Init();
+        for( UInt i = 0; i < intPoints.GetSize(); i++  ) {
+
+          // Calculate for each integration point the LocPointMapped
+          lpm.Set( intPoints[i], esm );
+          coef_->GetVector(tempVal, lpm );
+          elemVal += tempVal * (lpm.jacDet * weights[i]);
+        } // loop integration points
+        for( UInt jDof = 0; jDof < numDofs; ++jDof ) {
+          vec[pos+jDof] += elemVal[jDof];
+        }
+      } // loop elements
+      pos+= numDofs;
+    } // loop regions
+  } else {
+    EXCEPTION("Can only integrate scalar or vector results");
+  }
+
+    
 }
 
 template class ResultFunctorIntegrate<Complex>;

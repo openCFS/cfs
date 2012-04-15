@@ -51,9 +51,6 @@ namespace CoupledField
     //! Read special results definition
     void ReadSpecialResults();
 
-    //! Defines time dependent FeFunctions
-    virtual void DefineTimeDerivFeFunctions();
-
     // ======================================================
     // COUPLING SECTION
     // ======================================================

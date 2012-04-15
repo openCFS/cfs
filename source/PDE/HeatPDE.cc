@@ -61,8 +61,6 @@ HeatPDE::HeatPDE(Grid * aptgrid, PtrParamNode paramNode )
   pdematerialclass_  = THERMIC;
   maxTimeDerivOrder_ = 1;
   nonLin_            = false;
-  InitialCondition_  = 0.0;
-
 }
 
 
@@ -134,7 +132,7 @@ void HeatPDE::ReadSpecialBCs() {
 
       
       shared_ptr<EntityList> actList =
-          ptgrid_->GetEntityList( EntityList::SURF_ELEM_LIST, myName); 
+          ptGrid_->GetEntityList( EntityList::SURF_ELEM_LIST, myName); 
 
       actBc->entities = actList;
       actBc->result = results_[0];
@@ -164,7 +162,7 @@ void HeatPDE::ReadSpecialBCs() {
     if(formulation == "default" || formulation == "H1"){
       PtrParamNode potSpaceNode = infoNode->Get("heatTemperature");
       crSpaces[HEAT_TEMPERATURE] =
-        FeSpace::CreateInstance(myParam_,potSpaceNode,FeSpace::H1, ptgrid_);
+        FeSpace::CreateInstance(myParam_,potSpaceNode,FeSpace::H1, ptGrid_);
       crSpaces[HEAT_TEMPERATURE]->Init(solStrat_);
     }else{
       EXCEPTION("The formulation " << formulation << "of heat PDE is not known!");
@@ -212,10 +210,10 @@ void HeatPDE::DefineIntegrators() {
     actSDMat = it->second;
     
     // Get current region name
-    std::string regionName = ptgrid_->GetRegion().ToString(actRegion);
+    std::string regionName = ptGrid_->GetRegion().ToString(actRegion);
     
     // create new entity list
-    shared_ptr<ElemList> actSDList( new ElemList(ptgrid_ ) );
+    shared_ptr<ElemList> actSDList( new ElemList(ptGrid_ ) );
     actSDList->SetRegion( actRegion );
     
     // --- Set the FE ansatz for the current region ---
@@ -491,7 +489,7 @@ void HeatPDE::DefineIntegrators() {
 //       // get regionId of Lagrangian surface
 //       StdVector<std::string> keyVec, attrVec, valVec;
 //       std::string slaveSide;
-//       std::string ncIfaceName = ptgrid_->GetRegion().ToString(ncIFaces_[i]);
+//       std::string ncIfaceName = ptGrid_->GetRegion().ToString(ncIFaces_[i]);
 
 //       PtrParamNode ncIfaceListNode;
 //       ncIfaceListNode = param->Get("domain")->Get("ncInterfaceList");
@@ -504,8 +502,8 @@ void HeatPDE::DefineIntegrators() {
 //       //         non-conforming interface
 //       LOG_DBG2(heatcondpde) << "NonMatching: Defining nonconforming integrator"
 //                         << " for M on interface '"
-//                         << ptgrid_->GetRegion().ToString(ncIFaces_[i]) << "'.";
-//       shared_ptr<ElemList> actNcList( new ElemList(ptgrid_ ) );
+//                         << ptGrid_->GetRegion().ToString(ncIFaces_[i]) << "'.";
+//       shared_ptr<ElemList> actNcList( new ElemList(ptGrid_ ) );
 //       actNcList->SetRegion( ncIFaces_[i] );
       
 //       NonConformingInt * ncInt = 
@@ -528,9 +526,9 @@ void HeatPDE::DefineIntegrators() {
 //       //         Lagrangian surface
 //       LOG_DBG2(heatcondpde) << "NonMatching: Defining mass integrator"
 //                         << " for D on interface '"
-//                         << ptgrid_->GetRegion().ToString(ncIFaces_[i]) << "'.";
-//       shared_ptr<SurfElemList> actSDList( new SurfElemList(ptgrid_ ) );      
-//       actSDList->SetRegion( ptgrid_->GetRegion().Parse(slaveSide));
+//                         << ptGrid_->GetRegion().ToString(ncIFaces_[i]) << "'.";
+//       shared_ptr<SurfElemList> actSDList( new SurfElemList(ptGrid_ ) );      
+//       actSDList->SetRegion( ptGrid_->GetRegion().Parse(slaveSide));
 
 //       // D(Psi, Lambda) has the form of a standard mass
 //       // integrator with factor 1.0
@@ -573,7 +571,7 @@ void HeatPDE::DefineIntegrators() {
 //       }
 
 //       // get material density
-//       BaseMaterial * actMat = materials_[ ptgrid_->GetRegion().Parse(rhsRegion) ];
+//       BaseMaterial * actMat = materials_[ ptGrid_->GetRegion().Parse(rhsRegion) ];
 //       actMat->GetScalar(density,DENSITY,Global::REAL);
 
 //       linAcouPowerSourceInt* sourceRHSInt = new linAcouPowerSourceInt( isaxi_,
@@ -582,8 +580,8 @@ void HeatPDE::DefineIntegrators() {
 //       LinearFormContext* sourceRHSContext = new LinearFormContext( sourceRHSInt );
 //       sourceRHSContext->SetPtPde( this );
 
-//       shared_ptr<ElemList> rhsElemList( new ElemList(ptgrid_ ) );
-//       rhsElemList->SetRegion( ptgrid_->GetRegion().Parse(rhsRegion) );
+//       shared_ptr<ElemList> rhsElemList( new ElemList(ptGrid_ ) );
+//       rhsElemList->SetRegion( ptGrid_->GetRegion().Parse(rhsRegion) );
 //       sourceRHSContext->SetResult( results_[0], rhsElemList );
 //       assemble_->AddLinearForm( sourceRHSContext );
 //     }
@@ -683,24 +681,6 @@ void HeatPDE::DefineRhsLoadIntegrators() {
     } // for
 }
 
-//  LinearFormContext* HeatPDE::CreateRhsLinearForm(SolutionType rhsType,
-//                                                      shared_ptr<CoefFunction > rhsCoef){
-//    LinearFormContext * mContext = NULL;
-//    switch(rhsType){
-//    case HEAT_SOURCE_DENSITY:
-//      BUIntegrator<IdentityOperator<FeH1>,Double>* curInt;
-//      curInt = new BUIntegrator<IdentityOperator<FeH1>,Double>(1.0,rhsCoef);
-//
-//      mContext = new LinearFormContext(curInt);
-//      mContext->SetFeFunction( feFunctions_[HEAT_TEMPERATURE]);
-//      curInt->SetFeSpace( feFunctions_[HEAT_TEMPERATURE]->GetFeSpace());
-//      break;
-//    default:
-//      Exception("Right hand side quantity not known for heatPDE");
-//    }
-//    return mContext;
-//  }
-
 
 void HeatPDE::DefineSolveStep() {
 
@@ -768,7 +748,6 @@ void HeatPDE::DefinePrimaryResults() {
   rhs->definedOn = results_[0]->definedOn;
   rhs->entryType = ResultInfo::SCALAR;
   availResults_.insert( rhs );
-  postProcResults_[HEAT_RHS_LOAD] = HEAT_TEMPERATURE;
   
 
   // ===================================
@@ -814,7 +793,7 @@ void HeatPDE::DefinePrimaryResults() {
 
       ncIfaceNamesForPDE.Push_back(pdeIfaceName);
     }
-    ptgrid_->GetRegion().Parse(ncIfaceNamesForPDE, ncIfaceIds);
+    ptGrid_->GetRegion().Parse(ncIfaceNamesForPDE, ncIfaceIds);
 
     for (UInt i = 0; i < ncIfaceIds.GetSize(); i++) {
       ncIFaces_.Push_back(ncIfaceIds[i]);

@@ -1,0 +1,91 @@
+// -*- mode: c++; coding: utf-8; indent-tabs-mode: nil; -*-
+// vim: set ts=2 sw=2 et nu ai ft=cpp cindent !:
+// kate: space-indent on; indent-width 2; encoding utf-8;
+// kate: auto-brackets on; mixedindent off; indent-mode cstyle;
+
+#ifndef COEF_FUNCTION_MULTI_HH
+#define COEF_FUNCTION_MULTI_HH
+
+#include "CoefFunction.hh"
+
+namespace CoupledField  {
+
+//! This class is composed of other CoefFunctions for different regions
+
+//! This class can be used to compose a CoefFunction spatially from other
+//! feFunctions, e.g. for mixing analytical and interpolated results.
+class CoefFunctionMulti : public CoefFunction {
+public:
+  //! Constructor
+  CoefFunctionMulti();
+  
+  //! Destructor 
+  virtual ~CoefFunctionMulti();
+  
+  //! Set coefficient function for a region
+  void AddRegion( RegionIdType region, PtrCoefFct coef );
+
+  // ========================
+  //  ACCESS METHODS
+  // ========================
+  //@{ \name Access Methods
+  //! \copydoc CoefFunction::GetTensor
+  virtual void GetTensor(Matrix<Complex>& coefMat,
+                         const LocPointMapped& lpm );
+  
+  //! \copydoc CoefFunction::GetVector
+  virtual void GetVector(Vector<Complex>& coeVec,
+                         const LocPointMapped& lpm );
+
+  //! \copydoc CoefFunction::GetScalar
+  virtual void GetScalar(Complex& coef,
+                         const LocPointMapped& lpm );
+  
+  //! \copydoc CoefFunction::GetTensor
+  virtual void GetTensor(Matrix<Double>& coefMat,
+                         const LocPointMapped& lpm );
+  
+  //! \copydoc CoefFunction::GetVector
+  virtual void GetVector(Vector<Double>& coefVec,
+                         const LocPointMapped& lpm );
+
+  //! \copydoc CoefFunction::GetScalar
+  virtual void GetScalar(Double& coef,
+                         const LocPointMapped& lpm );
+  
+  //! \copydoc CoefFunction::GetVecSize
+  virtual UInt GetVecSize() const;
+
+  //! \copydoc CoefFunction::GetTensorSize
+  virtual void GetTensorSize( UInt& numRows, UInt& numCols ) const;
+  //@}
+
+  //! \copydoc CoefFunction::ToString
+  virtual std::string ToString() const;
+  
+  //! \copydoc CoefFunction::IsComplex
+  virtual bool IsComplex();
+  
+private:
+  
+  //! Return coefficient function for a given region
+  inline PtrCoefFct GetRegionCoef( RegionIdType region ) {
+    std::map<RegionIdType,PtrCoefFct >::const_iterator it = 
+        regionCoefs_.find(region);
+    if(it == regionCoefs_.end()){
+      EXCEPTION("Region " << region << " is not contained in functor");
+      return PtrCoefFct();
+    }
+    return it->second;
+  }
+  
+  //! Map storing coefFunction of the analytical regions
+  std::map<RegionIdType,PtrCoefFct > regionCoefs_;
+  
+  //! Flag if coefficient function is complex
+  bool isComplex_;
+  
+};
+
+} // end of namespace
+#endif

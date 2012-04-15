@@ -361,10 +361,10 @@ namespace CoupledField
           SurfElem const & myElem = 
             dynamic_cast<SurfElem &>(*interfaceElems[iElem]);
 
-          index = myPDE_->subdoms_.Find(myElem.ptVolElems[0]->regionId);
+          index = myPDE_->regions_.Find(myElem.ptVolElems[0]->regionId);
 
           if ( index == -1 && (myElem.ptVolElems[1]!=NULL)) {
-            index = myPDE_->subdoms_.Find(myElem.ptVolElems[2]->regionId);
+            index = myPDE_->regions_.Find(myElem.ptVolElems[2]->regionId);
           }
         
           if ( index == -1 && (myElem.ptVolElems[1]!=NULL)) {
@@ -379,7 +379,7 @@ namespace CoupledField
           }
           else
             myInterface->oppositePdeMaterials[iElem] = 
-              (myPDE_->materials_[myPDE_->subdoms_[index]]);
+              (myPDE_->materials_[myPDE_->regions_[index]]);
         
         }
       

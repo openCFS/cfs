@@ -123,10 +123,10 @@ namespace CoupledField {
       actSDMat = it->second;
 
       // Get current region name
-      std::string regionName = ptgrid_->GetRegion().ToString(actRegion);
+      std::string regionName = ptGrid_->GetRegion().ToString(actRegion);
 
       // create new entity list
-      shared_ptr<ElemList> actSDList( new ElemList(ptgrid_ ) );
+      shared_ptr<ElemList> actSDList( new ElemList(ptGrid_ ) );
       actSDList->SetRegion( actRegion );
       
       // ==========================================================
@@ -237,7 +237,7 @@ namespace CoupledField {
           EXCEPTION("The total prescribed charge must no be spatial dependend");
         }
         // "Divide" the total charge by the volume / surface of the current entity list
-        Double volume = ptgrid_->CalcVolumeOfEntityList( ent[i], false );
+        Double volume = ptGrid_->CalcVolumeOfEntityList( ent[i], false );
         Global::ComplexPart part = isComplex_ ? Global::COMPLEX : Global::REAL;  
         coef[i] = CoefFunction::Generate(part, 
                    CoefXprVecScalOp(coef[i], 
@@ -291,7 +291,7 @@ namespace CoupledField {
       vecDofNames = "r", "z";
     ReadRhsExcitation( "fluxDensity", vecDofNames, 
                        ResultInfo::VECTOR, isComplex_, ent, coef );
-    std::set<RegionIdType> volRegions (subdoms_.Begin(), subdoms_.End() );
+    std::set<RegionIdType> volRegions (regions_.Begin(), regions_.End() );
     for( UInt i = 0; i < ent.GetSize(); ++i ) {
       // check type of entitylist
       if (ent[i]->GetType() == EntityList::NODE_LIST) {
@@ -540,21 +540,8 @@ namespace CoupledField {
     res1->SetFeFunction(feFunctions_[ELEC_POTENTIAL]);
     results_.Push_back( res1 );
     availResults_.insert( res1 );
-    shared_ptr<BaseFieldFunctor> vFunc;
-    if( isComplex_ ) {
-      vFunc.reset(
-          new FieldInterpolFunctor<IdentityOperator<FeH1,1,1,Complex>,
-          Complex>(feFct, res1));
-    } else {
-      vFunc.reset(
-          new FieldInterpolFunctor<IdentityOperator<FeH1>,
-          Double>(feFct, res1));
-    }
-    resultFunctors_[ELEC_POTENTIAL] = vFunc;
-    fieldFunctors_[ELEC_POTENTIAL] = vFunc;
+    DefineFieldResult( feFunctions_[ELEC_POTENTIAL], res1 );
     
-    
-
     // Electric RHS Load
     // create new resultDof object
     shared_ptr<ResultInfo> rhs ( new ResultInfo );
@@ -564,7 +551,6 @@ namespace CoupledField {
     rhs->definedOn = results_[0]->definedOn;
     rhs->entryType = ResultInfo::SCALAR;
     availResults_.insert( rhs );
-    postProcResults_[ELEC_RHS_LOAD] = ELEC_POTENTIAL;
 
     // ===================================
     // Check for non-conforming interfaces
@@ -609,7 +595,7 @@ namespace CoupledField {
 
       ncIfaceNamesForPDE.Push_back(pdeIfaceName);
     }
-    ptgrid_->GetRegion().Parse(ncIfaceNamesForPDE, ncIfaceIds);
+    ptGrid_->GetRegion().Parse(ncIfaceNamesForPDE, ncIfaceIds);
 
     for (UInt i = 0; i < ncIfaceIds.GetSize(); i++) {
       ncIFaces_.Push_back(ncIfaceIds[i]);
@@ -642,15 +628,13 @@ namespace CoupledField {
     ef->definedOn = ResultInfo::ELEMENT;
     ef->entryType = ResultInfo::VECTOR;
     availResults_.insert( ef );
-    postProcResults_[ELEC_FIELD_INTENSITY] = ELEC_POTENTIAL;
     shared_ptr<BaseFieldFunctor> eFunc;
     if( isComplex_ ) {
       eFunc.reset(new DiffFieldFunctor<Complex>(feFct, ef, -1.0));
     } else {
       eFunc.reset(new DiffFieldFunctor<Double>(feFct, ef, -1.0));
     }
-    resultFunctors_[ELEC_FIELD_INTENSITY] = eFunc;
-    fieldFunctors_[ELEC_FIELD_INTENSITY] = eFunc;
+    DefineFieldResult( eFunc, ef );
     
     // Electric Flux Density
     shared_ptr<ResultInfo> flux ( new ResultInfo );
@@ -660,15 +644,13 @@ namespace CoupledField {
     flux->definedOn = ResultInfo::ELEMENT;
     flux->entryType = ResultInfo::VECTOR;
     availResults_.insert( flux );
-    postProcResults_[ELEC_FLUX_DENSITY] = ELEC_POTENTIAL;
     shared_ptr<BaseFieldFunctor> fluxFunc;
     if( isComplex_ ) {
       fluxFunc.reset(new FluxFieldFunctor<Complex>(feFct, flux,-1.0));
     } else {
       fluxFunc.reset(new FluxFieldFunctor<Double>(feFct, flux,-1.0));
     }
-    resultFunctors_[ELEC_FLUX_DENSITY] = fluxFunc;
-    fieldFunctors_[ELEC_FLUX_DENSITY] = fluxFunc;
+    DefineFieldResult( fluxFunc, flux );
 
     // Electric charge
     shared_ptr<ResultInfo> charge( new ResultInfo );
@@ -678,7 +660,6 @@ namespace CoupledField {
     charge->dofNames = "";
     charge->unit = "C";
     availResults_.insert( charge );
-    postProcResults_[ELEC_CHARGE] = ELEC_POTENTIAL;
 
     // Electric Energy Density
     shared_ptr<ResultInfo> ed ( new ResultInfo );
@@ -688,15 +669,13 @@ namespace CoupledField {
     ed->definedOn = ResultInfo::ELEMENT;
     ed->entryType = ResultInfo::SCALAR;
     availResults_.insert( ed );
-    postProcResults_[ELEC_ENERGY_DENSITY] = ELEC_POTENTIAL;
     shared_ptr<BaseFieldFunctor> edFunc;
     if( isComplex_ ) {
       edFunc.reset(new EnergyDensFieldFunctor<Complex>(feFct, ed));
     } else {
       edFunc.reset(new EnergyDensFieldFunctor<Double>(feFct, ed));
     }
-    resultFunctors_[ELEC_ENERGY_DENSITY] = edFunc;
-    fieldFunctors_[ELEC_ENERGY_DENSITY] = edFunc;
+    DefineFieldResult( edFunc, ed );
     
     // Electric energy
     shared_ptr<ResultInfo> energy( new ResultInfo );
@@ -706,7 +685,6 @@ namespace CoupledField {
     energy->dofNames = "";
     energy->unit = "Ws";
     availResults_.insert ( energy );
-    postProcResults_[ELEC_ENERGY] = ELEC_POTENTIAL;
     shared_ptr<ResultFunctor> energyFunc;
     if( isComplex_ ) {
       energyFunc.reset(new EnergyResultFunctor<Complex>(feFct, energy));
@@ -724,7 +702,6 @@ namespace CoupledField {
     pol->SetVectorDOFs(dim_, isaxi_);
     pol->unit = "C/m^2";
     availResults_.insert( pol );
-    postProcResults_[ELEC_POLARIZATION] = ELEC_POTENTIAL;
 
     // pesudo electric polarization for piezo simp
     shared_ptr<ResultInfo> pseudoPol( new ResultInfo );
@@ -734,7 +711,6 @@ namespace CoupledField {
     pseudoPol->dofNames = "";
     pseudoPol->unit = "";
     availResults_.insert( pseudoPol );
-    postProcResults_[ELEC_PSEUDO_POLARIZATION] = ELEC_POTENTIAL;
 
     // ============================
     // Initialize result functors:
@@ -760,7 +736,7 @@ namespace CoupledField {
     if(formulation == "default" || formulation == "H1"){
       PtrParamNode potSpaceNode = infoNode->Get("elecPotential");
       crSpaces[ELEC_POTENTIAL] =
-        FeSpace::CreateInstance(myParam_,potSpaceNode,FeSpace::H1, ptgrid_);
+        FeSpace::CreateInstance(myParam_,potSpaceNode,FeSpace::H1, ptGrid_);
       crSpaces[ELEC_POTENTIAL]->Init(solStrat_);
     }else{
       EXCEPTION("The formulation " << formulation << "of electric PDE is not known!");

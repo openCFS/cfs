@@ -43,7 +43,7 @@ namespace CoupledField
     //! write general defines (BCs, loads, etc.) to info-file
     void WriteGeneralPDEdefines();
 
-    Assemble * getPDE_assemble() {
+    Assemble * GetAssemble() {
       EXCEPTION( "Get Assemble-Object makes no sense for itercoupledPDE");
     };
 

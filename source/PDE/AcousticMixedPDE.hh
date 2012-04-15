@@ -19,6 +19,9 @@
 
 namespace CoupledField{
 
+//! forward class declaration
+class CoefFunctionMulti;
+
 class AcousticMixedPDE : public SinglePDE{
 
   public:
@@ -97,7 +100,13 @@ class AcousticMixedPDE : public SinglePDE{
 
     bool usePiola_;
 
-    shared_ptr<BaseFieldFunctor> meanFlowFunctor_;
+    //! Coefficient function for the flow field
+
+    //! This coefficient function describes the flow field. As this 
+    //! is in general different for each region and will most likely
+    //! not be given in a close form, it is described by a CoefFunctionMulti.
+    shared_ptr<CoefFunctionMulti> meanFlowCoef_;
+        
 
     bool penalized_;
 

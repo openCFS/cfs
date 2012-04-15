@@ -26,11 +26,11 @@ namespace CoupledField {
 
     pdename_      = PDE_.GetName();
     isaxi_        = PDE_.GetIsaxi();
-    subdoms_      = PDE_.getPDE_subdoms();
-    materialData_ = PDE_.getPDEMaterialData();
-    ptgrid_       = PDE_.getPDE_grid();
-    algsys_       = PDE_.getPDE_algsys();
-    assemble_     = PDE_.getPDE_assemble();
+    subdoms_      = PDE_.GetRegions();
+    materialData_ = PDE_.GetMaterialData();
+    ptgrid_       = PDE_.GetGrid();
+    algsys_       = PDE_.GetAlgSys();
+    assemble_     = PDE_.GetAssemble();
     solStrat_     = algsys_->GetSolStrategy();
 
     results_      = PDE_.GetResultInfos();
@@ -125,17 +125,6 @@ namespace CoupledField {
       UInt& counter = PDE_.GetIterCoupledCounter();
       counter++;
     }
-    
-    // check for Biot Savart
-    if ( PDE_.IsBiotSavart() ) {
-      WARN("BIot Savart not yet adpated to new structure");
-//      Vector<Double> & sol = 
-//          dynamic_cast<Vector<Double>&>(*PDE_.GetSolutionVector());
-//      Vector<Double>& magVecBiotSavart = 
-//          PDE_.GetBiotSavart()->CalcFieldAllEqns(false); 
-//      sol += magVecBiotSavart;
-    }
-
   }
 
 

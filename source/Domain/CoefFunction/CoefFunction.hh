@@ -215,25 +215,34 @@ public:
   //! Return complex-valued tensor at integration point
   virtual void GetTensor(Matrix<Complex>& tensor, 
                          const LocPointMapped& lpm ) {
-    EXCEPTION( "CoefFunction::GetTensor<Double> called: This may not happen. "
-        << "Most likely this method is called with a real-valued "
-        << "CoefFunction object." );
+    
+    // Provide default implementation in the base class, which returns
+    // just the double values as real-valued complex matrix
+    Matrix<Double> temp;
+    GetTensor( temp, lpm);
+    tensor.Resize(temp.GetNumRows(), temp.GetNumCols() );
+    tensor.SetPart(Global::REAL, temp);
   }
 
   //! Return complex-valued vector at integration point
   virtual void GetVector(Vector<Complex>& vec, 
                          const LocPointMapped& lpm ) {
-    EXCEPTION( "CoefFunction::GetVector<Complex> called: This may not happen. " 
-        << "Most likely this method is called with a real-valued "
-        << "CoefFunction object." );
+    // Provide default implementation in the base class, which returns
+     // just the double values as real-valued complex vector
+     Vector<Double> temp;
+     GetVector( temp, lpm);
+     vec.Resize(temp.GetSize() );
+     vec.SetPart(Global::REAL, temp);
   }
 
   //! Return complex-valued scalar at integration point
   virtual void GetScalar(Complex& scalar, 
                          const LocPointMapped& lpm ) {
-    EXCEPTION( "CoefFunction::GetScalar<Complex> called: This may not happen. "
-        << "Most likely this method is called with a real-valued "
-        << "CoefFunction object." );
+    // Provide default implementation in the base class, which returns
+    // just the double value as real part of a complex
+    Double temp;
+    GetScalar( temp, lpm);
+     scalar = Complex(temp, 0.0);
   }
   
   //! Return size of vector in case coefficient function is a vector

@@ -363,12 +363,18 @@ namespace CoupledField {
         return "A/m";
         break;
 
-      case MAG_EDDY_CURRENT:
+      case MAG_EDDY_CURRENT_DENSITY:
+      case MAG_COIL_CURRENT_DENSITY:
+      case MAG_TOTAL_CURRENT_DENSITY:
         return "A/m^2";
         break;
-
+        
       case MAG_POTENTIAL:
         return "Vs/m";
+        break;
+        
+      case MAG_POTENTIAL_DERIV1:
+        return "V/m";
         break;
 
       case MAG_SCALAR_POTENTIAL:
@@ -1182,12 +1188,16 @@ namespace CoupledField {
 
     //magnetics
     SolutionTypeEnum.Add(MAG_POTENTIAL, "magPotential");
+    SolutionTypeEnum.Add(MAG_POTENTIAL_DERIV1, "magPotentialD1");
     SolutionTypeEnum.Add(MAG_SCALAR_POTENTIAL, "magScalarPotential");
     SolutionTypeEnum.Add(MAG_FLUX_DENSITY, "magFluxDensity");
     SolutionTypeEnum.Add(MAG_POTENTIAL_DIV, "magPotentialDiv");
     SolutionTypeEnum.Add(MAG_HFIELD, "magHfield");
-    SolutionTypeEnum.Add(MAG_EDDY_CURRENT, "magEddyCurrent");
+    SolutionTypeEnum.Add(MAG_EDDY_CURRENT_DENSITY, "magEddyCurrentDensity");
+    SolutionTypeEnum.Add(MAG_COIL_CURRENT_DENSITY, "magCoilCurrentDensity");
+    SolutionTypeEnum.Add(MAG_TOTAL_CURRENT_DENSITY, "magTotalCurrentDensity");
     SolutionTypeEnum.Add(MAG_FORCE_VWP, "magForceVWP");
+    SolutionTypeEnum.Add(MAG_FORCE_LORENTZ_DENSITY, "magForceLorentzDensity");
     SolutionTypeEnum.Add(MAG_FORCE_LORENTZ, "magForceLorentz");
     SolutionTypeEnum.Add(MAG_ENERGY, "magEnergy");
     SolutionTypeEnum.Add(MAG_EDDY_POWER, "magEddyPower");

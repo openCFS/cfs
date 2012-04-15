@@ -1,4 +1,3 @@
-
 #include "AcousticPDE.hh"
 
 #include "General/defs.hh"
@@ -24,10 +23,10 @@
 #include "FeBasis/H1/FeSpaceH1Nodal.hh"
 
 #include "Domain/Results/ResultFunctor.hh"
-#include "Domain/Results/ExternalFieldFunctors.hh"
 
 #include "Driver/Assemble.hh"
 #include "Domain/CoefFunction/CoefXpr.hh"
+#include "Domain/CoefFunction/CoefFunctionMulti.hh"
 
 #include <boost/lexical_cast.hpp>
 #include <cmath>
@@ -49,7 +48,6 @@ namespace CoupledField{
     pdematerialclass_  = FLUID;
     maxTimeDerivOrder_ = 2;
     nonLin_            = false;
-    InitialCondition_  = 0.0;
 
     isMechCoupled_ = false;
 
@@ -71,7 +69,7 @@ namespace CoupledField{
       std::string form = SolutionTypeEnum.ToString(formulation_);
       PtrParamNode potSpaceNode = infoNode->Get(form);
       crSpaces[formulation_] =
-        FeSpace::CreateInstance(myParam_,potSpaceNode,FeSpace::H1, ptgrid_);
+        FeSpace::CreateInstance(myParam_,potSpaceNode,FeSpace::H1, ptGrid_);
       crSpaces[formulation_]->Init(solStrat_);
     }else{
       EXCEPTION("The formulation " << formulation << "of acoustic PDE is not known!");
@@ -107,10 +105,10 @@ namespace CoupledField{
       // actSDMat = it->second;
 
       // Get current region name
-      std::string regionName = ptgrid_->GetRegion().ToString(actRegion);
+      std::string regionName = ptGrid_->GetRegion().ToString(actRegion);
 
       // create new entity list
-      shared_ptr<ElemList> actSDList( new ElemList(ptgrid_ ) );
+      shared_ptr<ElemList> actSDList( new ElemList(ptGrid_ ) );
       actSDList->SetRegion( actRegion );
 
       // --- Set the FE ansatz for the current region ---
@@ -196,15 +194,25 @@ namespace CoupledField{
         if ( formulation_ != ACOU_POTENTIAL )
           EXCEPTION("Pierce-Equation just possible in velocity potential formulation" );
 
+        // Get result info object for flow
+        shared_ptr<ResultInfo> flowInfo = GetResultInfo(MEAN_FLUIDMECH_VELOCITY); 
+        
         //Add the region information
         PtrParamNode flowNode = myParam_->Get("flowList")->GetByVal("flow","name",flowId.c_str());
-        if(isComplex_){
-          shared_ptr<FieldFunctor<Complex> > fct = dynamic_pointer_cast<FieldFunctor<Complex> >(meanFlowFunctor_);
-          fct->AddRegion(actRegion,flowNode);
-        }else{
-          shared_ptr<FieldFunctor<Double> > fct = dynamic_pointer_cast<FieldFunctor<Double> >(meanFlowFunctor_);
-          fct->AddRegion(actRegion,flowNode);
-        }
+
+        // Read coefficient flow coefficient function for this region and add it to flow functor
+        PtrCoefFct regionFlow;
+        ReadUserFieldValues( regionName, flowNode, flowInfo->dofNames, flowInfo->entryType, 
+                             isComplex_, regionFlow );
+        meanFlowCoef_->AddRegion( actRegion, regionFlow );
+//        
+//        if(isComplex_){
+//          shared_ptr<FieldFunctor<Complex> > fct = dynamic_pointer_cast<FieldFunctor<Complex> >(meanFlowFunctor_);
+//          fct->AddRegion(actRegion,flowNode);
+//        }else{
+//          shared_ptr<FieldFunctor<Double> > fct = dynamic_pointer_cast<FieldFunctor<Double> >(meanFlowFunctor_);
+//          fct->AddRegion(actRegion,flowNode);
+//        }
         std::cout << "Do Flow" << std::endl;
 
         //now create the integrators
@@ -217,9 +225,9 @@ namespace CoupledField{
           convectiveDamp  = new ABInt<IdentityOperator<FeH1,3,1>,ConvectiveOperator<FeH1,3,1> >(coeffM, 2.0);
           convectiveStiff = new ABInt<ConvectivePierceOperator<FeH1,3,1>,ConvectiveOperator<FeH1,3,1> >(coeffM, -1.0);
         }
-        convectiveDamp->SetBCoefFunctionOpB(meanFlowFunctor_);
+        convectiveDamp->SetBCoefFunctionOpB(meanFlowCoef_);
         convectiveDamp->SetName("convectiveDampPierce");
-        convectiveStiff->SetBCoefFunctionOpB(meanFlowFunctor_);
+        convectiveStiff->SetBCoefFunctionOpB(meanFlowCoef_);
         convectiveStiff->SetName("convectiveStiffPierce");
 
         BiLinFormContext *convectiveContextDamp  =  new BiLinFormContext(convectiveDamp, DAMPING );
@@ -246,9 +254,9 @@ namespace CoupledField{
 
       for( UInt i = 0; i < abcNodes.GetSize(); i++ ) {
         std::string regionName = abcNodes[i]->Get("name")->As<std::string>();
-        shared_ptr<EntityList> actSDList =  ptgrid_->GetEntityList( EntityList::SURF_ELEM_LIST,regionName );
+        shared_ptr<EntityList> actSDList =  ptGrid_->GetEntityList( EntityList::SURF_ELEM_LIST,regionName );
         std::string volRegName = abcNodes[i]->Get("volumeRegion")->As<std::string>();
-        RegionIdType sRegId = ptgrid_->GetRegion().Parse(regionName);
+        RegionIdType sRegId = ptGrid_->GetRegion().Parse(regionName);
 
         // --- Set the FE ansatz for the current region ---
         PtrParamNode curRegNode = myParam_->Get("regionList")->GetByVal("region","name",volRegName.c_str());
@@ -256,7 +264,7 @@ namespace CoupledField{
         std::string integId = curRegNode->Get("integId")->As<std::string>();
         feFunctions_[formulation_]->GetFeSpace()->SetRegionApproximation(sRegId, polyId,integId);
 
-        RegionIdType aRegion = ptgrid_->GetRegion().Parse(volRegName);
+        RegionIdType aRegion = ptGrid_->GetRegion().Parse(volRegName);
         // c0 = sqrt(bulk_modulus / density)
         PtrCoefFct dens = materials_[aRegion]->GetScalCoefFnc( DENSITY, Global::REAL );
         PtrCoefFct blk = materials_[aRegion]->GetScalCoefFnc( ACOU_BULK_MODULUS, Global::REAL );
@@ -318,7 +326,6 @@ namespace CoupledField{
     }
   }
 
-  //!  Define available postprocessing results
   void AcousticPDE::DefinePrimaryResults(){
 
     // === Primary result according to definition ===
@@ -337,10 +344,9 @@ namespace CoupledField{
     feFunctions_[formulation_]->SetResultInfo(res1);
     results_.Push_back( res1 );
     availResults_.insert( res1 );
-
     res1->SetFeFunction(feFunctions_[formulation_]);
-
-
+    DefineFieldResult( feFunctions_[formulation_], res1 );
+    
     // === ACOUSTIC RHS ===
     shared_ptr<ResultInfo> rhs ( new ResultInfo );
     rhs->resultType = ACOU_RHS_LOAD;
@@ -349,7 +355,6 @@ namespace CoupledField{
     rhs->definedOn = results_[0]->definedOn;
     rhs->entryType = ResultInfo::SCALAR;
     availResults_.insert( rhs );
-    postProcResults_[ACOU_RHS_LOAD] = ACOU_RHS_LOAD;
 
     //creates the mean flow
     StdVector<std::string> velDofNames;
@@ -366,6 +371,43 @@ namespace CoupledField{
 
     CreateMeanFlowFunction(velDofNames);
   }
+  
+  void AcousticPDE::DefinePostProcResults(){
+    shared_ptr<BaseFeFunction> feFct = feFunctions_[formulation_];
+    shared_ptr<ResultInfo> res1 = feFct->GetResultInfo();
+    
+    // === PRESSURE / POTENTIAL - 1.DERIVATIVE ===
+    shared_ptr<ResultInfo> deriv1(new ResultInfo);
+    if( formulation_ == ACOU_POTENTIAL ) {
+      deriv1->resultType = ACOU_POTENTIAL_DERIV_1;
+      deriv1->dofNames = "";
+      deriv1->unit = "m^2/s^2";
+    } else {
+      deriv1->resultType = ACOU_PRESSURE_DERIV_1;
+      deriv1->dofNames = "";
+      deriv1->unit = "Pa/s";
+    }
+    deriv1->entryType = res1->entryType;
+    deriv1->definedOn = res1->definedOn;
+    availResults_.insert( deriv1 );
+    DefineTimeDerivResult( deriv1->resultType, 1, formulation_ );
+
+    // === PRESSURE / POTENTIAL - 2.DERIVATIVE ===
+    shared_ptr<ResultInfo> deriv2(new ResultInfo);
+    if( formulation_ == ACOU_POTENTIAL ) {
+      deriv2->resultType = ACOU_POTENTIAL_DERIV_2;
+      deriv2->dofNames = "";
+      deriv2->unit = "m^2/s^3";
+    } else {
+      deriv2->resultType = ACOU_PRESSURE_DERIV_2;
+      deriv2->dofNames = "";
+      deriv2->unit = "Pa/s^2";
+    }
+    deriv2->entryType = res1->entryType;
+    deriv2->definedOn = res1->definedOn;
+    availResults_.insert( deriv2 );
+    DefineTimeDerivResult( deriv2->resultType, 2, formulation_ );
+  }
 
    void AcousticPDE::CreateMeanFlowFunction(StdVector<std::string> dofNames){
      //// === MEAN FLUIDMECH VELOCITY ===
@@ -376,39 +418,9 @@ namespace CoupledField{
 
      flowvelocity->definedOn = ResultInfo::NODE;
      flowvelocity->entryType = ResultInfo::VECTOR;
-
-
-
-     shared_ptr<BaseFeFunction> meanFunction;
-     std::string form = SolutionTypeEnum.ToString(MEAN_FLUIDMECH_VELOCITY);
-     PtrParamNode feSpaceNode = infoNode_->Get("feSpaces");
-     PtrParamNode potSpaceNode = feSpaceNode->Get(form);
-     shared_ptr<FeSpace> tmpSpace = FeSpace::CreateInstance(myParam_,potSpaceNode,
-                                                            FeSpace::H1, ptgrid_);
-
-     if(isComplex_){
-       meanFunction.reset(new FeFunction<Complex>());
-       meanFunction->SetFeSpace(tmpSpace);
-       meanFunction->SetResultInfo(flowvelocity);
-       meanFunction->SetGrid(ptgrid_);
-       meanFunction->SetPDE(this);
-       flowvelocity->SetFeFunction(meanFunction);
-       if(dim_==2)
-         meanFlowFunctor_.reset(new ExternalFieldFunctor<IdentityOperator<FeH1,2,2,Complex>,Complex >(meanFunction,flowvelocity));
-       else
-         meanFlowFunctor_.reset(new ExternalFieldFunctor<IdentityOperator<FeH1,3,3,Complex>,Complex >(meanFunction,flowvelocity));
-     }else{
-       meanFunction.reset(new FeFunction<Double>());
-       meanFunction->SetFeSpace(tmpSpace);
-       meanFunction->SetResultInfo(flowvelocity);
-       meanFunction->SetGrid(ptgrid_);
-       meanFunction->SetPDE(this);
-       flowvelocity->SetFeFunction(meanFunction);
-       if(dim_==2)
-         meanFlowFunctor_.reset(new ExternalFieldFunctor<IdentityOperator<FeH1,2,2,Double>,Double >(meanFunction,flowvelocity));
-       else
-         meanFlowFunctor_.reset(new ExternalFieldFunctor<IdentityOperator<FeH1,3,3,Double>,Double >(meanFunction,flowvelocity));
-     }
+     
+     meanFlowCoef_.reset(new CoefFunctionMulti());
+     DefineFieldResult( meanFlowCoef_, flowvelocity );
 
      results_.Push_back( flowvelocity );
      availResults_.insert( flowvelocity );

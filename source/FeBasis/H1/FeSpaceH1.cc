@@ -41,7 +41,7 @@ namespace CoupledField {
     shared_ptr<ResultInfo> feFctResult = feFunction_->GetResultInfo();
 
     //Get "dimension" of one Unknown
-    UInt dofsPerUnknown = feFctResult->dofNames.GetSize();
+    UInt dofsPerUnknown = GetNumDofs();
 
     //This if clause should be avoided if the functionality for higher order entities
     //is implemented
@@ -164,7 +164,7 @@ namespace CoupledField {
     shared_ptr<ResultInfo> feFctResult = feFunction_->GetResultInfo();
 
     //Get "dimension" of one Unknown
-    UInt dofsPerUnknown = feFctResult->dofNames.GetSize();
+    UInt dofsPerUnknown = GetNumDofs();
 
     StdVector<UInt> nodes;
     GetNodesOfElement(nodes,elem);
@@ -200,7 +200,7 @@ namespace CoupledField {
     //Get Grip of HdBC List for the fefunction
     const HdBcList hdbcs = feFunction_->GetHomDirichletBCs();
     HdBcList::const_iterator actHBC;
-    UInt dofsPerUnknown = feFunction_->GetResultInfo()->dofNames.GetSize();
+    UInt dofsPerUnknown = GetNumDofs();
 
     for(actHBC = hdbcs.Begin(); actHBC != hdbcs.End(); actHBC++) {
       // Get EntityIterator
@@ -373,7 +373,7 @@ namespace CoupledField {
         feFctResult = feFunction_->GetResultInfo();
         
         // Get number of dofs
-        dofsPerUnknown = feFctResult->dofNames.GetSize();
+        dofsPerUnknown = GetNumDofs();
         
         //now loop over all nodes and assign an equation number
          it= nodesType_.begin();
@@ -789,6 +789,12 @@ namespace CoupledField {
       nodeIt++;
     }
 
+  }
+  
+  UInt FeSpaceH1::GetNumDofs() const {
+    // Just return number of components
+    assert(feFunction_ );
+    return feFunction_->GetResultInfo()->dofNames.GetSize();
   }
 
  

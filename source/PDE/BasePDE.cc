@@ -13,9 +13,7 @@ namespace CoupledField {
   BasePDE::BasePDE( PtrParamNode paramNode ) :
     sequenceStep_(0),
     myParam_(paramNode),
-    pdename_(),
-    isSetInitialCondition_(false),
-    InitialCondition_(0.0)
+    pdename_()
   {
   }
 

@@ -826,4 +826,13 @@ namespace CoupledField{
     }
     SetRegionElements(ALL_REGIONS,POLYNOMIAL,order, infoNode );
   }
+  
+  UInt FeSpaceHCurlHi::GetNumDofs() const {
+    // As we have already vectorial basis functions, every
+    // virtual "node" is basically just a scalar, so we
+    // always return 1.
+    assert(feFunction_ );
+    return 1;
+  }
+
 } // end of namespace

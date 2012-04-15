@@ -1,5 +1,7 @@
 #include "FeFunctions.hh"
 
+#include <boost/bind.hpp>
+
 #include "PDE/SinglePDE.hh"
 #include "OLAS/algsys/AlgebraicSys.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
@@ -19,15 +21,17 @@ DECLARE_LOG(fefunc)
     fctId_ = NO_FCT_ID;
     mHandle_ = domain->GetMathParser()->GetNewHandle();
     algsys_ = NULL;
+    
+    // initialize members of coefficient function
+    dependType_ = CoefFunction::GENERAL;
+    isAnalytic_ = false;
+    dimType_ = NO_DIM;
 
   }
   
   BaseFeFunction::~BaseFeFunction(){
   }
   
-  void BaseFeFunction::SetResultInfo( shared_ptr<ResultInfo> info ){
-    result_ = info;
-  }
   
   shared_ptr<ResultInfo> BaseFeFunction::GetResultInfo(){
     return result_;
@@ -35,6 +39,14 @@ DECLARE_LOG(fefunc)
   
   void BaseFeFunction::SetFeSpace( shared_ptr<FeSpace> space ){
     feSpace_ = space;
+    
+    // consistency check: if we have a HCurl space,
+    // even a scalar unknown results in a vector-valued
+    // function
+    if( space->GetSpaceType() == FeSpace::HCURL ) {
+      dimType_ = CoefFunction::VECTOR;
+    }
+        
   }
   
   shared_ptr<FeSpace> BaseFeFunction::GetFeSpace(){
@@ -126,16 +138,110 @@ DECLARE_LOG(fefunc)
     entities_.Push_back(bc->slaveEntities);
   }
   
+  UInt BaseFeFunction::GetVecSize() const {
+    assert( result_ );
+    assert( dimType_ == CoefFunction::VECTOR );
+    return result_->dofNames.GetSize();
+  }
+  
+  void BaseFeFunction::GetTensorSize( UInt& numRows, UInt& numCols ) const {
+    EXCEPTION( "GetTensorSize not implemented");
+  }
+  
+  std::string BaseFeFunction::ToString() const {
+    std::string ret;
+    ret += "FeFunction for result '" + 
+        SolutionTypeEnum.ToString(result_->resultType) + "'";
+    return ret;
+  }
+  
   // ========================================================================
   //  T E M P L A T I Z E D    V E R S I O N 
   // ========================================================================
 
   template<typename T>
   FeFunction<T>::FeFunction(){
+    coeffs_ = NULL;
+    factor_ = 1.0;
+    timeDerivOrder_ = 0;
+    idOp_ = NULL;
+    
+    MathParser * mp = domain->GetMathParser();
+    
+    // Add expression for calculating the time derivative in the
+    // harmonic case
+    if( IsComplex( )) {
+      mp->SetExpr(mHandle_, "2*pi*f");
+      mp->AddExpChangeCallBack(
+          boost::bind(&FeFunction<T>::UpdateTimeDeriv, this ),
+          mHandle_ );
+    }
   }
+  
+  
 
   template<typename T>
   FeFunction<T>::~FeFunction(){
+    if( domain) {
+      MathParser * mp = domain->GetMathParser();
+      mp->ReleaseHandle( mHandle_ );
+    }
+    if( idOp_ )
+      delete idOp_;
+    idOp_ = NULL;
+    
+    // only delete internal pointer, if no 
+    // time-derivative was set
+    if( timeDerivOrder_ == 0 && coeffs_)
+      delete coeffs_;
+    coeffs_ = NULL;
+  }
+  
+  template<typename T>
+  void FeFunction<T>::SetTimeDerivOrder( UInt i, 
+                                         shared_ptr<FeFunction<T> >) {
+    EXCEPTION("Only meaningful in harmonic case");
+  }
+  
+  template<>
+  void FeFunction<Complex>::SetTimeDerivOrder( UInt i, 
+                                               shared_ptr<FeFunction<Complex> > feFct ) {
+    if( i > 2 )  {
+      EXCEPTION("Only time derivatives up to order 2 defined!");
+    }
+    timeDerivOrder_ = i;
+    
+    // delete old coefficient fector and 
+    if( coeffs_ )
+      delete coeffs_;
+    coeffs_ = feFct->coeffs_;
+    
+    // not sure if other data members have to be copied as well ....
+    
+  }
+  
+  template<typename T>
+  void FeFunction<T>::UpdateTimeDeriv() {
+    EXCEPTION("Only meaningful in harmonic case");
+  }
+  
+  
+  template<>
+    void FeFunction<Complex>::UpdateTimeDeriv() {
+    MathParser * mp = domain->GetMathParser();
+    
+    Double omega = mp->Eval( mHandle_ );
+    switch( timeDerivOrder_ ) {
+      case 0:
+        factor_ = Complex(1.0,0);
+        break;
+      case 1:
+        factor_ = Complex(0,omega);
+        break;
+      case 2:
+        factor_ = Complex(-(omega*omega),0);
+        break;
+    }
   }
   
   template<typename T>
@@ -152,10 +258,44 @@ DECLARE_LOG(fefunc)
     if (fctId_ == NO_FCT_ID ) {
       EXCEPTION("No fctId was set!");
     }
-        
-    coeffs_.Resize( feSpace_->GetNumEquations());
-    coeffs_.Init();
+    
+    // only create new vector, if we are not a time
+    // derivative fe function
+    if( timeDerivOrder_ == 0 ) {
+      coeffs_ = new Vector<T>(feSpace_->GetNumEquations());
+    }
+    
+   
   }
+  
+  template<typename T>
+  void FeFunction<T>::SetResultInfo( shared_ptr<ResultInfo> info ){
+     result_ = info;
+
+     // now initialize the members correctly
+     switch( info->entryType ) {
+       case ResultInfo::SCALAR:
+         dimType_ = CoefFunction::SCALAR;
+         break;
+       case ResultInfo::VECTOR:
+         dimType_ = CoefFunction::VECTOR;
+         break;
+       default:
+         EXCEPTION("Only entry types SCALAR, VECTOR and TENSOR "
+                    << "are handled" );
+         break;
+     }
+     if( feSpace_ ) {
+     if( feSpace_->GetSpaceType() == FeSpace::HCURL ) {
+          dimType_ = CoefFunction::VECTOR;
+        }
+     }
+     
+     // Create interpolation operator
+     UInt dim = grid_->GetDim();
+     UInt numDofs = feSpace_->GetNumDofs();
+     idOp_ = GenerateInterpolationOperator( dim, numDofs ); 
+   }
 
   template<typename T>
   void FeFunction<T>::ExtractResult( shared_ptr<BaseResult> res ) {
@@ -240,10 +380,11 @@ DECLARE_LOG(fefunc)
         WARN("Interpolation not enabled but needed to extract this result. enable it plz!");
 #endif
       }else{
+        Vector<T> & vals = *coeffs_;
         for ( UInt iDof = 0; iDof < eqnNums.GetSize(); iDof++ ){
           // check for homogeneous Dirichlet boundary condition
           if ( eqnNums[iDof] != 0 ) {
-            actSol[pos++] = coeffs_[abs(eqnNums[iDof])-1];
+            actSol[pos++] = factor_ * vals[abs(eqnNums[iDof])-1];
           } else {
             actSol[pos++] = 0.0;
           }
@@ -296,11 +437,12 @@ DECLARE_LOG(fefunc)
                                          const EntityIterator& it ){
     Vector<T> & temp = dynamic_cast<Vector<T>&>(elemSol);
     StdVector<Integer> eqns;
+    Vector<T> & vals = *coeffs_;
     feSpace_->GetEqns(eqns, it);
     temp.Resize(eqns.GetSize());
     for(UInt iDof = 0 ; iDof < eqns.GetSize(); iDof++){
       if( eqns[iDof] != 0 ) {
-        temp[iDof] = coeffs_[eqns[iDof]-1];
+        temp[iDof] = factor_ * vals[eqns[iDof]-1];
       } else {
         temp[iDof] = 0.0;
       }
@@ -316,12 +458,13 @@ DECLARE_LOG(fefunc)
      Matrix<T> & temp = dynamic_cast<Matrix<T>&>(elemSol);
      UInt dofsPerUnknown = result_->dofNames.GetSize();
      StdVector<Integer> eqns;
+     Vector<T> & vals = *coeffs_;
      temp.Resize(feSpace_->GetNumFunctions(it), dofsPerUnknown);
      for(UInt iDof = 0 ; iDof < dofsPerUnknown ; iDof++){
        feSpace_->GetEqns(eqns, it,iDof);
        for(UInt iEqn = 0;iEqn < eqns.GetSize() ; iEqn++){
          if( eqns[iEqn] > 0 ) {
-         temp[iDof][iEqn] = coeffs_[eqns[iEqn]-1];
+         temp[iDof][iEqn] = factor_ * vals[eqns[iEqn]-1];
        } else {
          temp[iDof][iEqn] = 0.0;
        }
@@ -333,12 +476,12 @@ DECLARE_LOG(fefunc)
   void FeFunction<T>::GetElemSolution( Vector<T>& elemSol,
                                          const Elem* elem ) {
     StdVector<Integer> eqns;
-    
+    Vector<T> & vals = *coeffs_;
     feSpace_->GetElemEqns(eqns, elem);
     elemSol.Resize(eqns.GetSize());
     for(UInt i= 0 ; i< eqns.GetSize(); i++){
       if( eqns[i] != 0 ) {
-        elemSol[i] = coeffs_[std::abs(eqns[i])-1]; 
+        elemSol[i] = factor_ * vals[std::abs(eqns[i])-1]; 
       } else {
         elemSol[i] = 0.0;
       }
@@ -475,6 +618,34 @@ DECLARE_LOG(fefunc)
       }
     }
   }
+  
+  template<typename T>
+  void FeFunction<T>::GetVector(Vector<T>& vec, 
+                                const LocPointMapped& lpm ){
+    assert(dimType_ == CoefFunction::VECTOR);
+    
+    // get element solution
+    Vector<T> elemSol;
+    GetElemSolution( elemSol, lpm.ptEl);
+    // apply identity operator to it
+    BaseFE * ptFe = feSpace_->GetFe(lpm.ptEl->elemNum);
+    idOp_->ApplyOp(vec, lpm, ptFe, elemSol );
+  }
+  
+  
+  template<typename T>
+  void FeFunction<T>::GetScalar(T & scal, 
+                                const LocPointMapped& lpm ){
+    assert(dimType_ == CoefFunction::SCALAR);
+    // get element solution
+    Vector<T> elemSol, temp;
+    GetElemSolution( elemSol, lpm.ptEl);
+    // apply identity operator to it
+    BaseFE * ptFe = feSpace_->GetFe(lpm.ptEl->elemNum);
+    idOp_->ApplyOp(temp, lpm, ptFe, elemSol );
+    scal = temp[0];
+  }
+  
   // Explicit template instantiation
 #ifdef EXPLICIT_TEMPLATE_INSTANTIATION
   template class FeFunction<Double>;

@@ -46,7 +46,6 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
     pdematerialclass_ = MECHANIC;
     maxTimeDerivOrder_ = 2;
 
-    fracDamping_   = false;
     nonLin_        = false;
     nonLinMaterial_= false;
 
@@ -93,7 +92,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
     }
     
     // Sanity check: 3D can only be computed if 3D elements are present
-    if( subType_ == "3d" && ptgrid_->GetNumElemOfDim(3) == 0 ) {
+    if( subType_ == "3d" && ptGrid_->GetNumElemOfDim(3) == 0 ) {
       EXCEPTION("Can not calculate 3D mechanics without 3D elements in the grid!");
     }
 }
@@ -142,10 +141,10 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
       actSDMat = it->second;
 
       // Get current region name
-      std::string regionName = ptgrid_->GetRegion().ToString(actRegion);
+      std::string regionName = ptGrid_->GetRegion().ToString(actRegion);
 
       // create new entity list
-      shared_ptr<ElemList> actSDList( new ElemList(ptgrid_ ) );
+      shared_ptr<ElemList> actSDList( new ElemList(ptGrid_ ) );
       actSDList->SetRegion( actRegion );
       
       // --------------------------
@@ -318,7 +317,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
     StdVector<std::string> empty;
     ReadRhsExcitation( "pressure", empty, ResultInfo::VECTOR, isComplex_, 
                         ent, coef );
-    std::set<RegionIdType> volRegions (subdoms_.Begin(), subdoms_.End() );
+    std::set<RegionIdType> volRegions (regions_.Begin(), regions_.End() );
     
     for( UInt i = 0; i < ent.GetSize(); ++i ) {
       // check type of entitylist
@@ -402,7 +401,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
   {
 
     // Get region name
-    std::string regionName = ptgrid_->GetRegion().ToString( regionId );
+    std::string regionName = ptGrid_->GetRegion().ToString( regionId );
 
     // ------------------------
     //  Obtain linear material
@@ -551,107 +550,6 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
     feFunctions_[MECH_DISPLACEMENT]->SetTimeScheme(myScheme);
   }
 
-  //Define time derivative feFunctions
-  //the idea is the folowing:
-  // in the case of a transient analysis, we can directly relate
-  // the coefficient vector of the feFunction to the one of the
-  // time stepping scheme.
-  // in case of harmonics we create a new coefVector for the functions
-  // which has to be updated within the harmonic driver
-  void MechPDE::DefineTimeDerivFeFunctions(){
-
-    if ( (analysistype_ != TRANSIENT) && (analysistype_ != HARMONIC)){
-      //ok for the static case we do not need to bother
-      return;
-    }
-    //first we find the result infos
-    shared_ptr<ResultInfo> velInfo;
-    shared_ptr<ResultInfo> accelInfo;
-    ResultSet::const_iterator it = availResults_.begin();
-    for( ; it != availResults_.end(); ++it ) {
-      if( (*it)->resultType == MECH_VELOCITY ) {
-        velInfo = *it;
-      }else if( (*it)->resultType == MECH_ACCELERATION ){
-        accelInfo = *it;
-      }
-    }
-    if(!velInfo || !accelInfo){
-      EXCEPTION("Could not determine the result info for time derivative FeFunctions.")
-    }
-    //TODO: This is not very nice so we need to implement a copy method to fefunction.
-
-    if (!isComplex_)
-    {
-      this->timeDerivFeFunctions_[MECH_VELOCITY].reset(new FeFunction<Double>());
-      this->timeDerivFeFunctions_[MECH_ACCELERATION].reset(new FeFunction<Double>());
-
-    }else
-    {
-      this->timeDerivFeFunctions_[MECH_VELOCITY].reset(new FeFunction<Complex>());
-      this->timeDerivFeFunctions_[MECH_ACCELERATION].reset(new FeFunction<Complex>());
-    }
-    shared_ptr<BaseFeFunction> dispFe = feFunctions_[MECH_DISPLACEMENT];
-    shared_ptr<BaseFeFunction> vFct = timeDerivFeFunctions_[MECH_VELOCITY];
-    shared_ptr<BaseFeFunction> aFct = timeDerivFeFunctions_[MECH_ACCELERATION];
-
-    //lets create now a copy and add entity lists and stuff
-    //TODO: Make there a copy function to do such work....
-    StdVector< shared_ptr<EntityList> > entList = dispFe->GetEntityList();
-    for(UInt i =0;i<entList.GetSize();i++){
-      vFct->AddEntityList(entList[i]);
-      aFct->AddEntityList(entList[i]);
-    }
-
-    //Copy info for velocity
-    vFct->SetResultInfo(velInfo);
-    vFct->SetGrid(ptgrid_);
-    vFct->SetFeSpace(dispFe->GetFeSpace());
-    vFct->SetFctId(dispFe->GetFctId());
-    vFct->Finalize();
-
-    aFct->SetResultInfo(accelInfo);
-    aFct->SetGrid(ptgrid_);
-    aFct->SetFeSpace(dispFe->GetFeSpace());
-    aFct->SetFctId(dispFe->GetFctId());
-    aFct->Finalize();
-
-    //the only thing left to do is the association of corresponding coefVectors in the transient case
-    if ( analysistype_ == TRANSIENT)
-    {
-      dispFe->GetTimeScheme()->SetTimeDerivVector(1,vFct->GetSingleVector());
-      dispFe->GetTimeScheme()->SetTimeDerivVector(2,aFct->GetSingleVector());
-    }
-
-    //in any case we create a Field Functor for our functions
-
-    shared_ptr<BaseFieldFunctor> vFunc;
-    shared_ptr<BaseFieldFunctor> aFunc;
-    if( isComplex_ ) {
-        vFunc.reset(
-            new FieldInterpolFunctor<IdentityOperator<FeH1,2,2,Complex>,
-            Complex>(vFct, velInfo));
-        aFunc.reset(
-            new FieldInterpolFunctor<IdentityOperator<FeH1,2,2,Complex>,
-           Complex>(aFct, accelInfo));
-
-    } else {
-        vFunc.reset(
-            new FieldInterpolFunctor<IdentityOperator<FeH1,2,2,Double>,
-            Double>(vFct, velInfo));
-        aFunc.reset(
-            new FieldInterpolFunctor<IdentityOperator<FeH1,2,2,Double>,
-            Double>(aFct, accelInfo));
-    }
-    resultFunctors_[MECH_VELOCITY] = vFunc;
-    fieldFunctors_[MECH_VELOCITY] = vFunc;
-    resultFunctors_[MECH_ACCELERATION] = aFunc;
-    fieldFunctors_[MECH_ACCELERATION] = aFunc;
-  }
-
-
-
-
- 
   void MechPDE::DefinePrimaryResults()
   {
     // Check for subType
@@ -690,51 +588,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
     
     // define functor for interpolation of the field
     shared_ptr<BaseFeFunction> feFct = feFunctions_[MECH_DISPLACEMENT];
-    shared_ptr<BaseFieldFunctor> dFunc;
-       if( isComplex_ ) {
-         dFunc.reset(
-             new FieldInterpolFunctor<IdentityOperator<FeH1,2,2,Complex>,
-             Complex>(feFct, disp));
-       } else {
-         dFunc.reset(
-             new FieldInterpolFunctor<IdentityOperator<FeH1,2,2,Double>,
-             Double>(feFct, disp));
-       }
-       resultFunctors_[MECH_DISPLACEMENT] = dFunc;
-       fieldFunctors_[MECH_DISPLACEMENT] = dFunc;
-
-    if ( (analysistype_ == TRANSIENT) || (analysistype_ == HARMONIC))
-    {
-      // === MECHANIC VELOCITY ===
-      shared_ptr<ResultInfo> vel(new ResultInfo);
-      vel->resultType = MECH_VELOCITY;
-      vel->dofNames = dispDofNames;
-      vel->unit = "m/s";
-      vel->entryType = disp->entryType;
-      vel->definedOn = disp->definedOn;
-      availResults_.insert( vel );
-
-      // === MECHANIC ACCELERATION ===
-      shared_ptr<ResultInfo> acc(new ResultInfo);
-      acc->resultType = MECH_ACCELERATION;
-      acc->dofNames = dispDofNames;
-      acc->unit = "m/s^2";
-      acc->entryType = disp->entryType;
-      acc->definedOn = disp->definedOn;
-      availResults_.insert( acc );
-    }
-
-    // === MECHANIC RHS ===
-    shared_ptr<ResultInfo> rhs(new ResultInfo);
-    rhs->resultType = MECH_RHS_LOAD;
-    rhs->dofNames = dispDofNames;
-    rhs->unit = "N";
-    rhs->entryType = disp->entryType;
-    rhs->definedOn = disp->definedOn;
-    availResults_.insert( rhs );
-    postProcResults_[MECH_RHS_LOAD] = MECH_DISPLACEMENT;
-    //
-    
+    DefineFieldResult( feFct, disp );
   }
     
   void MechPDE::DefinePostProcResults() {
@@ -748,11 +602,45 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
     } else if( subType_ == "axi" ) {
       stressComponents = "rr", "zz", "rz", "phiphi";
     }
-    
-    
     StdVector<std::string > dispDofNames;
     dispDofNames = feFunctions_[MECH_DISPLACEMENT]->GetResultInfo()->dofNames;
     shared_ptr<BaseFeFunction> feFct = feFunctions_[MECH_DISPLACEMENT];
+    
+    if ( (analysistype_ == TRANSIENT) || (analysistype_ == HARMONIC))
+    {
+      // === MECHANIC VELOCITY ===
+      shared_ptr<ResultInfo> vel(new ResultInfo);
+      vel->resultType = MECH_VELOCITY;
+      vel->dofNames = dispDofNames;
+      vel->unit = "m/s";
+      vel->entryType = ResultInfo::VECTOR;
+      vel->definedOn = ResultInfo::NODE;
+      availResults_.insert( vel );
+
+      DefineTimeDerivResult( MECH_VELOCITY, 1, MECH_DISPLACEMENT );
+
+      // === MECHANIC ACCELERATION ===
+      shared_ptr<ResultInfo> acc(new ResultInfo);
+      acc->resultType = MECH_ACCELERATION;
+      acc->dofNames = dispDofNames;
+      acc->unit = "m/s^2";
+      acc->entryType = ResultInfo::VECTOR;
+      acc->definedOn = ResultInfo::NODE;
+      availResults_.insert( acc );
+
+      DefineTimeDerivResult( MECH_ACCELERATION, 2, MECH_DISPLACEMENT );
+    }
+
+    // === MECHANIC RHS ===
+    shared_ptr<ResultInfo> rhs(new ResultInfo);
+    rhs->resultType = MECH_RHS_LOAD;
+    rhs->dofNames = dispDofNames;
+    rhs->unit = "N";
+    rhs->entryType = ResultInfo::VECTOR;
+    rhs->definedOn = ResultInfo::NODE;
+    availResults_.insert( rhs );
+    //
+    
     
     // === MECHANIC STRESS ===
     shared_ptr<ResultInfo> stress(new ResultInfo);
@@ -762,17 +650,13 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
     stress->entryType = ResultInfo::TENSOR;
     stress->definedOn = ResultInfo::ELEMENT;
     availResults_.insert( stress );
-    postProcResults_[MECH_STRESS] = MECH_DISPLACEMENT;
     shared_ptr<BaseFieldFunctor> sigmaFunc;
     if( isComplex_ ) {
       sigmaFunc.reset(new FluxFieldFunctor<Complex>(feFct, stress));
     } else {
       sigmaFunc.reset(new FluxFieldFunctor<Double>(feFct, stress));
     }
-    resultFunctors_[MECH_STRESS] = sigmaFunc;
-    fieldFunctors_[MECH_STRESS] = sigmaFunc;
-       
-    
+    DefineFieldResult( sigmaFunc, stress );
     
     // === MECHANIC STRAIN ===
     shared_ptr<ResultInfo> strain(new ResultInfo);
@@ -782,15 +666,13 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
     strain->entryType = ResultInfo::TENSOR;
     strain->definedOn = ResultInfo::ELEMENT;
     availResults_.insert( strain );
-    postProcResults_[MECH_STRAIN] = MECH_DISPLACEMENT;
     shared_ptr<BaseFieldFunctor> strainFunc;
     if( isComplex_ ) {
       strainFunc.reset(new DiffFieldFunctor<Complex>(feFct, strain));
     } else {
       strainFunc.reset(new DiffFieldFunctor<Double>(feFct, strain));
     }
-    resultFunctors_[MECH_STRAIN] = strainFunc;
-    fieldFunctors_[MECH_STRAIN] = strainFunc;
+    DefineFieldResult( strainFunc, strain );
 
     // === MECHANIC ENERGY ===
     shared_ptr<ResultInfo> energy(new ResultInfo);
@@ -800,7 +682,6 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
     energy->entryType = ResultInfo::SCALAR;
     energy->definedOn = ResultInfo::REGION;
     availResults_.insert( energy );
-    postProcResults_[MECH_ENERGY] = MECH_DISPLACEMENT;
     shared_ptr<ResultFunctor> energyFunc;
     if( isComplex_ ) {
       energyFunc.reset(new EnergyResultFunctor<Complex>(feFct, energy));
@@ -958,7 +839,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
     if( formulation == "default" || formulation == "H1" ){
       PtrParamNode potSpaceNode = infoNode->Get("mechDisplacement");
       crSpaces[MECH_DISPLACEMENT] =
-          FeSpace::CreateInstance(myParam_,potSpaceNode,FeSpace::H1, ptgrid_);
+          FeSpace::CreateInstance(myParam_,potSpaceNode,FeSpace::H1, ptGrid_);
       crSpaces[MECH_DISPLACEMENT]->Init(solStrat_);
 
     }else{

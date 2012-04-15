@@ -73,15 +73,13 @@ namespace CoupledField {
 
     // get hold of both feFunctions
     MechPDE* mechPDE = dynamic_cast<MechPDE*>(pde1_);
-    shared_ptr<BaseFeFunction> dispFct = mechPDE->GetFeFunction(MECH_DISPLACEMENT);
-//    std::map<RegionIdType, BaseMaterial*> mechMaterials;
-//    mechMaterials = mechPDE->getPDEMaterialData();
-
     AcousticPDE* acouPDE = dynamic_cast<AcousticPDE*>(pde2_);
+    
+    shared_ptr<BaseFeFunction> dispFct = mechPDE->GetFeFunction(MECH_DISPLACEMENT);
     SolutionType acouFormulation = acouPDE->GetFormulation();
     shared_ptr<BaseFeFunction> acouFct = acouPDE->GetFeFunction(acouFormulation);
     std::map<RegionIdType, BaseMaterial*> acouMaterials;
-    acouMaterials = acouPDE->getPDEMaterialData();
+    acouMaterials = acouPDE->GetMaterialData();
 
     // Create coefficient functions for all acoustic densities
     std::map< RegionIdType, PtrCoefFct > coefFuncs;

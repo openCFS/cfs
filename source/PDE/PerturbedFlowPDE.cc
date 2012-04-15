@@ -12,6 +12,7 @@
 #include "DataInOut/ParamHandling/ParamTools.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "Domain/CoefFunction/CoefFunction.hh"
+#include "Domain/CoefFunction/CoefFunctionMulti.hh"
 #include "Utils/StdVector.hh"
 #include "Driver/SolveSteps/SolveStepElec.hh"
 #include "CoupledPDE/PDECoupling.hh"
@@ -40,7 +41,7 @@
 
 // new postprocessing concept
 #include "Domain/Results/ResultFunctor.hh"
-#include "Domain/Results/ExternalFieldFunctors.hh"
+//#include "Domain/Results/ExternalFieldFunctors.hh"
 
 namespace CoupledField {
 
@@ -77,10 +78,10 @@ namespace CoupledField {
       regionNodes = presSurfaceNode->GetList("presSurf");
     }
 
-    // output and set subdoms_
+    // output and set regions_
     for( UInt i = 0; i < regionNodes.GetSize(); i++ )
     {
-      RegionIdType actRegionId = ptgrid_->GetRegion().Parse(regionNodes[i]->Get("name")->As<std::string>());
+      RegionIdType actRegionId = ptGrid_->GetRegion().Parse(regionNodes[i]->Get("name")->As<std::string>());
 
       // Check, if region was already defined an issue a warning otherwise
       if( std::find(presSurfaces_.Begin(), presSurfaces_.End(), actRegionId )
@@ -148,14 +149,14 @@ namespace CoupledField {
 #endif
 
       // Get current region name
-      std::string regionName = ptgrid_->GetRegion().ToString(actRegion);
+      std::string regionName = ptGrid_->GetRegion().ToString(actRegion);
 
       // Get ParamNode for current region
       PtrParamNode curRegNode = myParam_->Get("regionList")
           ->GetByVal("region","name",regionName.c_str());
 
       // create new entity list and add it fefunction
-      shared_ptr<ElemList> actSDList( new ElemList(ptgrid_ ) );
+      shared_ptr<ElemList> actSDList( new ElemList(ptGrid_ ) );
       actSDList->SetRegion( actRegion );
 
       velFct->AddEntityList( actSDList );
@@ -288,15 +289,25 @@ namespace CoupledField {
       //=====================================================================
       std::string flowId = curRegNode->Get("flowId")->As<std::string>();
       if(flowId != ""){
+        // Get result info object for flow
+        shared_ptr<ResultInfo> flowInfo = GetResultInfo(MEAN_FLUIDMECH_VELOCITY); 
+        
         //Add the region information
         PtrParamNode flowNode = myParam_->Get("flowList")->GetByVal("flow","name",flowId.c_str());
-        if(isComplex_){
-          shared_ptr<FieldFunctor<Complex> > fct = dynamic_pointer_cast<FieldFunctor<Complex> >(meanFlowFunctor_);
-          fct->AddRegion(actRegion,flowNode);
-        }else{
-          shared_ptr<FieldFunctor<Double> > fct = dynamic_pointer_cast<FieldFunctor<Double> >(meanFlowFunctor_);
-          fct->AddRegion(actRegion,flowNode);
-        }
+        
+        // Read coefficient flow coefficient function for this region
+        PtrCoefFct regionFlow;
+        ReadUserFieldValues( regionName, flowNode, flowInfo->dofNames, flowInfo->entryType, 
+                             isComplex_, regionFlow );
+        meanFlowCoef_->AddRegion( actRegion, regionFlow );
+        
+//        if(isComplex_){
+//          shared_ptr<FieldFunctor<Complex> > fct = dynamic_pointer_cast<FieldFunctor<Complex> >(meanFlowFunctor_);
+//          fct->AddRegion(actRegion,flowNode);
+//        }else{
+//          shared_ptr<FieldFunctor<Double> > fct = dynamic_pointer_cast<FieldFunctor<Double> >(meanFlowFunctor_);
+//          fct->AddRegion(actRegion,flowNode);
+//        }
 
         //now create the integrators
         BiLinearForm *convectiveVv = NULL;
@@ -306,7 +317,7 @@ namespace CoupledField {
           convectiveVv = new ABInt<IdentityOperator<FeH1,3,3>,ConvectiveOperator<FeH1,3,3>  >(coeffMVV, 1.0);
         }
 
-        convectiveVv->SetBCoefFunctionOpB(meanFlowFunctor_);
+        convectiveVv->SetBCoefFunctionOpB(meanFlowCoef_);
 
         convectiveVv->SetName("PerturbedStiffIntConvective");
 
@@ -344,7 +355,7 @@ namespace CoupledField {
     surfEnd = presSurfaces_.End();
 
     for( ; surfIt != surfEnd; surfIt++ ) {
-      shared_ptr<ElemList> actSDList( new ElemList(ptgrid_ ) );
+      shared_ptr<ElemList> actSDList( new ElemList(ptGrid_ ) );
       actSDList->SetRegion( *surfIt );
 
       velFct->AddEntityList( actSDList );
@@ -404,7 +415,7 @@ namespace CoupledField {
         break;
 
       case MEAN_FLUIDMECH_VELOCITY:
-        meanFlowFunctor_->EvalResult( res );
+        resultFunctors_[MEAN_FLUIDMECH_VELOCITY]->EvalResult( res );
         break;
 
       default:
@@ -484,31 +495,7 @@ namespace CoupledField {
     availResults_.insert( pressure );
 
     pressure->SetFeFunction(feFunctions_[FLUIDMECH_PRESSURE]);
-
-    shared_ptr<BaseFieldFunctor> vFunc;
-    if( isComplex_ ) {
-      if( dim_ == 2 ) {
-        vFunc.reset(
-          new FieldInterpolFunctor<IdentityOperator<FeH1,2,1,Complex>,
-          Complex>(feFunctions_[FLUIDMECH_PRESSURE], pressure));
-      } else {
-        vFunc.reset(
-          new FieldInterpolFunctor<IdentityOperator<FeH1,3,1,Complex>,
-          Complex>(feFunctions_[FLUIDMECH_PRESSURE], pressure));
-      }        
-    } else {
-      if( dim_ == 2 ) {
-        vFunc.reset(
-          new FieldInterpolFunctor<IdentityOperator<FeH1,2,1>,
-          Double>(feFunctions_[FLUIDMECH_PRESSURE], pressure));
-      } else {
-        vFunc.reset(
-          new FieldInterpolFunctor<IdentityOperator<FeH1,3,1>,
-          Double>(feFunctions_[FLUIDMECH_PRESSURE], pressure));
-      }      
-    }
-    resultFunctors_[FLUIDMECH_PRESSURE] = vFunc;
-    fieldFunctors_[FLUIDMECH_PRESSURE] = vFunc;
+    DefineFieldResult( feFunctions_[FLUIDMECH_PRESSURE], pressure);
 
     // VELOCITY
     shared_ptr<ResultInfo> velocity( new ResultInfo);
@@ -523,31 +510,7 @@ namespace CoupledField {
     availResults_.insert( velocity );
 
     velocity->SetFeFunction(feFunctions_[FLUIDMECH_VELOCITY]);
-
-    if( isComplex_ ) {
-      if( dim_ == 2 ) {
-        vFunc.reset(
-          new FieldInterpolFunctor<IdentityOperator<FeH1,2,2,Complex>,
-          Complex>(feFunctions_[FLUIDMECH_VELOCITY], velocity));
-      } else {
-        vFunc.reset(
-          new FieldInterpolFunctor<IdentityOperator<FeH1,3,3,Complex>,
-          Complex>(feFunctions_[FLUIDMECH_VELOCITY], velocity));
-      }        
-    } else {
-      if( dim_ == 2 ) {
-        vFunc.reset(
-          new FieldInterpolFunctor<IdentityOperator<FeH1,2,2>,
-          Double>(feFunctions_[FLUIDMECH_VELOCITY], velocity));
-      } else {
-        vFunc.reset(
-          new FieldInterpolFunctor<IdentityOperator<FeH1,3,3>,
-          Double>(feFunctions_[FLUIDMECH_VELOCITY], velocity));
-      }      
-    }
-    resultFunctors_[FLUIDMECH_VELOCITY] = vFunc;
-    fieldFunctors_[FLUIDMECH_VELOCITY] = vFunc;
-
+    DefineFieldResult( feFunctions_[FLUIDMECH_VELOCITY], velocity );
 
     // MEAN VELOCITY
     CreateMeanFlowFunction(velDofNames);
@@ -571,13 +534,13 @@ namespace CoupledField {
       spaceNode = infoNode->Get(SolutionTypeEnum.ToString(FLUIDMECH_VELOCITY));
 
       crSpaces[FLUIDMECH_VELOCITY] =
-        FeSpace::CreateInstance(myParam_,spaceNode,FeSpace::H1, ptgrid_);
+        FeSpace::CreateInstance(myParam_,spaceNode,FeSpace::H1, ptGrid_);
       crSpaces[FLUIDMECH_VELOCITY]->Init(solStrat_);
 
       spaceNode = infoNode->Get(SolutionTypeEnum.ToString(FLUIDMECH_PRESSURE));
 
       crSpaces[FLUIDMECH_PRESSURE] =
-        FeSpace::CreateInstance(myParam_,spaceNode,FeSpace::H1, ptgrid_);
+        FeSpace::CreateInstance(myParam_,spaceNode,FeSpace::H1, ptGrid_);
       crSpaces[FLUIDMECH_PRESSURE]->Init(solStrat_);
 
     }else{
@@ -586,27 +549,6 @@ namespace CoupledField {
     return crSpaces;
   }
 
-  LinearFormContext* PerturbedFlowPDE::CreateRhsLinearForm(SolutionType rhsType,
-	  shared_ptr<CoefFunction > rhsCoef){
-#if 0
-    LinearFormContext * mContext = NULL;
-    switch(rhsType){
-    case ELEC_CHARGE_DENSITY:
-      BUIntegrator<IdentityOperator,FeH1,Double>* curInt;
-      curInt = new BUIntegrator<IdentityOperator,FeH1,Double>(1.0,rhsCoef);
-
-      mContext = new LinearFormContext(curInt);
-      mContext->SetFeFunction( feFunctions_[FLUIDMECH_VELOCITY]);
-      curInt->SetFeSpace( feFunctions_[FLUIDMECH_VELOCITY]->GetFeSpace());
-      break;
-    default:
-      Exception("Right hand side quantity not known for elecPDE");
-      break;
-    }
-    return mContext;
-#endif
-    return NULL;
-  }
 
   void PerturbedFlowPDE::CreateMeanFlowFunction(StdVector<std::string> dofNames){
     //// === MEAN FLUIDMECH VELOCITY ===
@@ -617,43 +559,11 @@ namespace CoupledField {
 
     flowvelocity->definedOn = ResultInfo::NODE;
     flowvelocity->entryType = ResultInfo::VECTOR;
-
-
-
-    shared_ptr<BaseFeFunction> meanFunction;
-    std::string form = SolutionTypeEnum.ToString(MEAN_FLUIDMECH_VELOCITY);
-    PtrParamNode feSpaceNode = infoNode_->Get("feSpaces");
-    PtrParamNode potSpaceNode = feSpaceNode->Get(form);
-    shared_ptr<FeSpace> tmpSpace = FeSpace::CreateInstance(myParam_,potSpaceNode,FeSpace::H1, 
-                                                           ptgrid_);
-
-    if(isComplex_){
-      meanFunction.reset(new FeFunction<Complex>());
-      meanFunction->SetFeSpace(tmpSpace);
-      meanFunction->SetResultInfo(flowvelocity);
-      meanFunction->SetGrid(ptgrid_);
-      meanFunction->SetPDE(this);
-      flowvelocity->SetFeFunction(meanFunction);
-      if(dim_==2)
-        meanFlowFunctor_.reset(new ExternalFieldFunctor<IdentityOperator<FeH1,2,2,Complex>,Complex >(meanFunction,flowvelocity));
-      else
-        meanFlowFunctor_.reset(new ExternalFieldFunctor<IdentityOperator<FeH1,3,3,Complex>,Complex >(meanFunction,flowvelocity));
-    }else{
-      meanFunction.reset(new FeFunction<Double>());
-      meanFunction->SetFeSpace(tmpSpace);
-      meanFunction->SetResultInfo(flowvelocity);
-      meanFunction->SetGrid(ptgrid_);
-      meanFunction->SetPDE(this);
-      flowvelocity->SetFeFunction(meanFunction);
-      if(dim_==2)
-        meanFlowFunctor_.reset(new ExternalFieldFunctor<IdentityOperator<FeH1,2,2,Double>,Double >(meanFunction,flowvelocity));
-      else
-        meanFlowFunctor_.reset(new ExternalFieldFunctor<IdentityOperator<FeH1,3,3,Double>,Double >(meanFunction,flowvelocity));
-    }
-
     results_.Push_back( flowvelocity );
     availResults_.insert( flowvelocity );
-
+    
+    meanFlowCoef_.reset(new CoefFunctionMulti());
+    DefineFieldResult( meanFlowCoef_, flowvelocity );
   }
 
 }

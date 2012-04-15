@@ -67,7 +67,7 @@ BUIntegrator(VEC_DATA_TYPE factor,
                   EntityIterator& ent){
     // Declare necessary variables
      const Elem* ptElem = ent.GetElem();
-     Matrix<VEC_DATA_TYPE> bMat;
+     Matrix<Double> bMat;
      Vector<VEC_DATA_TYPE> cVec;
      StdVector<LocPoint> intPoints;
      StdVector<Double> weights;
