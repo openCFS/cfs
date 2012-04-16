@@ -14,6 +14,34 @@ EXECUTE_PROCESS(
   COMMAND ${CMAKE_COMMAND} -E copy_directory "${ARPACK_source}-patches" "${ARPACK_source}"
 )
 
+# Generate C/C++ compatible arpack version header.
+FILE(READ "SRC/version.h" lines)
+
+foreach(line IN LISTS lines)
+#  MESSAGE("line: ${line}")
+
+  STRING(REPLACE "VERSION_NUMBER ' "
+    "ARPACK_VERSION_NUMBER '" line
+    ${line})
+
+  STRING(REPLACE "VERSION_DATE   ' "
+    "ARPACK_VERSION_DATE   '" line
+    ${line})
+
+  STRING(REPLACE
+    "'"  "\""
+    line
+    ${line})    
+
+  foreach(part IN LISTS line)
+    LIST(APPEND OUTPUT "${part}")
+  endforeach(part)
+endforeach(line)
+
+FILE(WRITE "SRC/arpack_version.h" "${OUTPUT}")
+
+
+
 SET(patches
   "arpack-2.1-redhat.patch";
 )

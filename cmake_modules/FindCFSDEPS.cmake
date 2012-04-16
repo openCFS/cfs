@@ -94,7 +94,7 @@ SET(MUPARSER_URL "${LSE17_SOURCES_DIR}/muparser")
 SET(MUPARSER_ZIP "muparser_v2_2_2.zip")
 SET(MUPARSER_MD5 "6d77b5cb8096fe2c50afe36ad41bc14a")
 
-INCLUDE("${CFS_SOURCE_DIR}/cfsdeps/muparser/External_muparser.cmake")
+INCLUDE("${CFS_SOURCE_DIR}/cfsdeps/muparser/External_muParser.cmake")
 
 #-------------------------------------------------------------------------------
 # Build zlib library
