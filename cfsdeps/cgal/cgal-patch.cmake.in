@@ -1,0 +1,13 @@
+set(cgal_source  "@cgal_source@")
+SET(CFS_SOURCE_DIR "@CFS_SOURCE_DIR@")
+
+SET(patches
+  "cgal-turkowski-size_t.patch";
+)
+
+foreach(patch IN LISTS patches)
+  MESSAGE("Applying patch ${patch}")
+  EXECUTE_PROCESS(
+    COMMAND patch -p0 -i "${CFS_SOURCE_DIR}/cfsdeps/cgal/${patch}"
+    )
+endforeach(patch)

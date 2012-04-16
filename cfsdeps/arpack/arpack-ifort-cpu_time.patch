@@ -1,0 +1,25 @@
+--- UTIL/second.f	2008-08-01 16:04:17.000000000 +0200
++++ UTIL/second.f	2008-08-01 16:06:31.000000000 +0200
+@@ -13,21 +13,10 @@
+ *  SECOND returns the user time for a process in seconds.
+ *  This version gets the time from the system function ETIME.
+ *
+-*     .. Local Scalars ..
+-      REAL               T1
+-*     ..
+-*     .. Local Arrays ..
+-      REAL               TARRAY( 2 )
+-*     ..
+-*     .. External Functions ..
+-      REAL               ETIME
+-      EXTERNAL           ETIME
+-*     ..
+ *     .. Executable Statements ..
+ *
+ 
+-      T1 = ETIME( TARRAY )
+-      T  = TARRAY( 1 )
++      CALL  cpu_time(t)
+ 
+       RETURN
+ *

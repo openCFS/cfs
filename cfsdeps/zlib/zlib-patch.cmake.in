@@ -1,0 +1,6 @@
+SET(CFS_SOURCE_DIR "@CFS_SOURCE_DIR@")
+
+EXECUTE_PROCESS(
+  COMMAND ${CMAKE_COMMAND} -E remove -f "zconf.h"
+  COMMAND patch -p0 -i "${CFS_SOURCE_DIR}/cfsdeps/zlib/zlib-cmakelists.patch"
+)

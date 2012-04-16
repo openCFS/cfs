@@ -17,6 +17,14 @@
 #-----------------------------------------------------------------------------
 INCLUDE(ExternalProject)
 
+SET(LSE17_SOURCES_DIR "ftp://lse17.e-technik.uni-erlangen.de:40065/cfsdeps/sources")
+
+IF(CFS_DISTRO STREQUAL "MACOSX")
+  SET(CFLAGS "-arch ${CMAKE_OSX_ARCHITECTURES}")
+  SET(CFLAGS "${CFLAGS} -sysroot=${CMAKE_OSX_SYSROOT}")
+  SET(CFLAGS "${CFLAGS} -isysroot ${CMAKE_OSX_SYSROOT}")
+ENDIF(CFS_DISTRO STREQUAL "MACOSX")
+
 #-----------------------------------------------------------------------------
 # If user has set environment variables use them. If not use defaults
 #-----------------------------------------------------------------------------
@@ -56,6 +64,10 @@ IF(NOT EXISTS "${CFS_DEPS_ROOT}/build_common.pl")
     "its -D switch.")
 ENDIF(NOT EXISTS "${CFS_DEPS_ROOT}/build_common.pl")
 
+CONFIGURE_FILE("${CFS_DEPS_ROOT}/build_vars.pl.in"
+  "${CFS_TEMP_DIR}/build_vars.pl"
+  @ONLY )
+
 #-----------------------------------------------------------------------------
 # Check if cache directory is present
 #-----------------------------------------------------------------------------
@@ -78,16 +90,16 @@ CONFIGURE_FILE("${CFS_DEPS_ROOT}/build_vars.pl.in"
 #-------------------------------------------------------------------------------
 # Build MuParser library
 #-------------------------------------------------------------------------------
-SET(MUPARSER_URL "ftp://lse17.e-technik.uni-erlangen.de:40065/cfsdeps/sources/muparser/")
+SET(MUPARSER_URL "${LSE17_SOURCES_DIR}/muparser")
 SET(MUPARSER_ZIP "muparser_v2_2_2.zip")
 SET(MUPARSER_MD5 "6d77b5cb8096fe2c50afe36ad41bc14a")
 
-INCLUDE("${CFS_SOURCE_DIR}/cfsdeps/muparser/External_muParser.cmake")
+INCLUDE("${CFS_SOURCE_DIR}/cfsdeps/muparser/External_muparser.cmake")
 
 #-------------------------------------------------------------------------------
 # Build zlib library
 #-------------------------------------------------------------------------------
-SET(ZLIB_URL "ftp://lse17.e-technik.uni-erlangen.de:40065/cfsdeps/sources/zlib/")
+SET(ZLIB_URL "${LSE17_SOURCES_DIR}/zlib")
 SET(ZLIB_GZ "zlib-1.2.6.tar.gz")
 SET(ZLIB_MD5 "618e944d7c7cd6521551e30b32322f4a")
 
@@ -96,7 +108,11 @@ INCLUDE("${CFS_SOURCE_DIR}/cfsdeps/zlib/External_zlib.cmake")
 #-------------------------------------------------------------------------------
 # Build bzip2 library
 #-------------------------------------------------------------------------------
-INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindBzip2.cmake")
+SET(BZIP2_URL "${LSE17_SOURCES_DIR}/bzip2")
+SET(BZIP2_GZ "bzip2-1.0.6.tar.gz")
+SET(BZIP2_MD5 "00b516f4704d4a7cb50a1d97e6e8e15b")
+
+INCLUDE("${CFS_SOURCE_DIR}/cfsdeps/bzip2/External_bzip2.cmake")
 
 #-------------------------------------------------------------------------------
 # Search for CMake 2.8 if older CMake is used
@@ -114,20 +130,22 @@ ENDIF(USE_HDF5)
 # Search for METIS library
 #-------------------------------------------------------------------------------
 IF(USE_METIS)
-  INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindMetis.cmake")
+  SET(METIS_URL "${LSE17_SOURCES_DIR}/metis")
+  SET(METIS_GZ "metis-4.0.3.tar.gz")
+  SET(METIS_MD5 "d3848b454532ef18dc83e4fb160d1e10")
+
+  INCLUDE("${CFS_SOURCE_DIR}/cfsdeps/metis/External_metis.cmake")
 ENDIF(USE_METIS)
 
 #-------------------------------------------------------------------------------
 # Search for GiDpost library
 #-------------------------------------------------------------------------------
 IF(USE_GIDPOST)
-  SET(GIDPOST_URL "ftp://lse17.e-technik.uni-erlangen.de:40065/cfsdeps/sources/gidpost/")
+  SET(GIDPOST_URL "${LSE17_SOURCES_DIR}/gidpost")
   SET(GIDPOST_ZIP "gidpost1.71.zip")
   SET(GIDPOST_MD5 "df8c3ed913cb8abafa36a47591438538")
 
   INCLUDE("${CFS_SOURCE_DIR}/cfsdeps/gidpost/External_GiDpost.cmake")
-
-#  INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindGiDpost.cmake")
 ENDIF(USE_GIDPOST)
 
 IF(USE_BLAS OR USE_LAPACK)
@@ -185,7 +203,14 @@ IF(USE_BLAS OR USE_LAPACK)
   # If USE_ARPACK option is defined find ARPACK library
   #-----------------------------------------------------------------------------
   IF(USE_ARPACK)
-    INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindARPACK.cmake")
+    SET(ARPACK_URL "${LSE17_SOURCES_DIR}/arpack")
+    SET(ARPACK_GZ "arpack96.tar.gz")
+    SET(ARPACK_MD5 "fffaa970198b285676f4156cebc8626e")
+  
+    SET(ARPACK_PATCH_GZ "patch.tar.gz")
+    SET(ARPACK_PATCH_MD5 "14830d758f195f272b8594a493501fa2")
+  
+    INCLUDE("${CFS_SOURCE_DIR}/cfsdeps/arpack/External_ARPACK.cmake")
   ENDIF(USE_ARPACK)
   
   #-----------------------------------------------------------------------------
@@ -221,12 +246,10 @@ ENDIF(USE_BLAS OR USE_LAPACK)
 #-------------------------------------------------------------------------------
 # Find Boost
 #-------------------------------------------------------------------------------
-SET(BOOST_URL "ftp://lse17.e-technik.uni-erlangen.de:40065/cfsdeps/sources/boost/")
+SET(BOOST_URL "${LSE17_SOURCES_DIR}/boost")
 SET(BOOST_GZ "boost-1.48.0.tar.gz")
 SET(BOOST_MD5 "e8614c0ceecce2a388bce03fcc4d73b4")
-# INCLUDE("${CFS_SOURCE_DIR}/cfsdeps/boost/External_Boost.cmake")
-
-INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindBoostForCFS.cmake")
+INCLUDE("${CFS_SOURCE_DIR}/cfsdeps/boost/External_Boost.cmake")
 
 #-------------------------------------------------------------------------------
 # Our cfs-hdf5 I/O library depends on Boost, that is why we check for it here.
@@ -253,7 +276,12 @@ ENDIF(USE_XERCES)
 # Find CGAL
 #-----------------------------------------------------------------------------
 IF(USE_INTERPOLATION)
-  INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindCGAL.cmake")    
+  SET(CGAL_URL "${LSE17_SOURCES_DIR}/cgal")
+  SET(CGAL_GZ "CGAL-3.9.tar.gz")
+  SET(CGAL_MD5 "797697130ff9231627521c0a38f16d2f")
+#  INCLUDE("${CFS_SOURCE_DIR}/cfsdeps/cgal/External_CGAL.cmake")
+
+  INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindCGAL.cmake")
 ENDIF(USE_INTERPOLATION)
 
 #-----------------------------------------------------------------------------

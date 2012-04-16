@@ -1,0 +1,47 @@
+SET(CFS_SOURCE_DIR "@CFS_SOURCE_DIR@")
+SET(CFS_BINARY_DIR "@CFS_BINARY_DIR@")
+SET(CMAKE_C_COMPILER "@CMAKE_C_COMPILER@")
+SET(CMAKE_SHARED_LIBRARY_SUFFIX "@CMAKE_SHARED_LIBRARY_SUFFIX@")
+SET(LIB_SUFFIX "@LIB_SUFFIX@")
+SET(CFS_DISTRO "@CFS_DISTRO@")
+SET(CFS_ARCH_STR "@CFS_ARCH_STR@")
+SET(CFLAGS "@CFLAGS@")
+
+FILE(READ Makefile-libbz2_so lines)
+
+foreach(line IN LISTS lines)
+#  MESSAGE("line: ${line}")
+  STRING(REPLACE "CC=gcc"
+    "CC=${CMAKE_C_COMPILER}" line
+    ${line})
+
+  STRING(REPLACE "CFLAGS="
+    "CFLAGS=${CFLAGS} " line
+    ${line})
+
+  IF(CFS_DISTRO STREQUAL "MACOSX")
+    STRING(REPLACE "-shared -Wl,-soname -Wl,libbz2.so.1.0"
+      "-dynamiclib ${CFLAGS}" line
+      ${line})
+  ENDIF(CFS_DISTRO STREQUAL "MACOSX")
+
+  STRING(REPLACE
+    "	rm -f libbz2.so.1.0"
+    "	rm -f libbz2.so.1.0
+	cp libbz2.so.1.0.6 ${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}
+	rm -f ${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}/libbz2.so.1.0 ${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}/libbz2.so
+	ln -s libbz2.so.1.0.6 ${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}/libbz2.so
+	ln -s libbz2.so.1.0.6 ${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}/libbz2.so.1.0"
+    line
+    ${line})    
+
+  STRING(REPLACE ".so"
+    "${CMAKE_SHARED_LIBRARY_SUFFIX}" line
+    ${line})
+
+  foreach(part IN LISTS line)
+    LIST(APPEND OUTPUT "${part}")
+  endforeach(part)
+endforeach(line)
+
+FILE(WRITE Makefile-libbz2_so "${OUTPUT}")

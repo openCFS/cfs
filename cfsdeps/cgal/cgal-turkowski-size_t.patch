@@ -1,0 +1,23 @@
+--- src/CGAL/Turkowski_numeric_solver.cpp.orig	2012-04-04 16:07:01.000000000 +0200
++++ src/CGAL/Turkowski_numeric_solver.cpp	2012-04-04 16:08:11.000000000 +0200
+@@ -427,8 +427,8 @@
+                                                std::vector<double> &roots)
+ {
+   std::size_t degree= end-begin-1;
++  if( degree == ((std::size_t) -1) ) return;
+   switch( degree) {
+-  case -1:
+   case 0:
+     break;
+   case 1:
+--- include/CGAL/CORE/Filter.h.orig	2012-04-04 18:03:34.408996562 +0200
++++ include/CGAL/CORE/Filter.h	2012-04-04 18:03:47.041001982 +0200
+@@ -42,7 +42,7 @@
+ #include <cmath>
+ 
+ #if !defined CGAL_CFG_NO_CPP0X_ISFINITE
+-  #define CGAL_CORE_finite(x)	std::isfinite(x)
++  #define CGAL_CORE_finite(x)	isfinite(x)
+ #elif defined (_MSC_VER) || defined (__MINGW32__) // add support for MinGW
+   #define CGAL_CORE_finite(x)	_finite(x)
+   #define ilogb(x)	(int)_logb(x)

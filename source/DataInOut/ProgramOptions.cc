@@ -45,6 +45,10 @@
 #include <amd.h>
 #endif
 
+#ifdef USE_METIS
+#include <defs.h> 
+#endif
+
 #ifdef USE_CHOLMOD
 #include <cholmod.h> 
 #endif
@@ -56,6 +60,8 @@
 #ifdef USE_INTERPOLATION
 #include <CGAL/version.h>
 #endif
+
+#include <boost/version.hpp>
 
 #include <muParserBase.h>
 
@@ -682,11 +688,14 @@ namespace CoupledField {
  #endif
 
  #ifdef USE_METIS
+    std::string metistitle(METISTITLE);
+    boost::trim(metistitle);
+
     out << endl
         << "USE_METIS:             "
         << fg_blue << "YES" << fg_reset << endl;
     out << "CFS_METIS_VERSION:     "
-        << fg_blue << CFS_METIS_VERSION
+        << fg_blue << metistitle
         << fg_reset << endl;
 #else
     out << "USE_METIS:             "
@@ -799,7 +808,10 @@ namespace CoupledField {
     
     out << endl;
     out << "CFS_BOOST_VERSION:     "
-        << fg_blue << CFS_BOOST_VERSION << fg_reset << endl;
+        << fg_blue << 
+      (BOOST_VERSION / 100000) << "." <<
+      (BOOST_VERSION / 100 % 1000) << "." <<
+      (BOOST_VERSION % 100) << fg_reset << endl;
     out << "CFS_ZLIB_VERSION:      "
         << fg_blue << zlibVersion() << fg_reset << endl;
     out << "CFS_BZIP2_VERSION:     "
@@ -807,7 +819,6 @@ namespace CoupledField {
     out << "CFS_MUPARSER_VERSION:  "
         << fg_blue << MUP_VERSION << " " MUP_VERSION_DATE << fg_reset << endl;
 
-   
     out << endl;
     out << "sizeof(int)            "  << fg_blue << sizeof(int) << fg_reset << endl;
     out << "sizeof(Integer)        "  << fg_blue << sizeof(Integer) << fg_reset << endl;

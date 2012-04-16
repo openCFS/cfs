@@ -156,23 +156,6 @@ ENDIF(CFS_DISTRO STREQUAL "MANDRAKE" OR
 
 IF(CFS_DISTRO STREQUAL "MACOSX")
 
- # Supply a list of MacPorts (www.macports.org) packages which are needed
- # to compile CFS
- SET(CFS_PCKG_HINT
-   "blas"
-   "boost"
-   "lapack"
-   "python"
-   "subversion"
-   "tcl"
-   "xercesc"
-   "doxygen"
-   "graphviz"
-   "arpack"
-   "metis"
-   "hdf5"
-   )
-
   IF(NOT ${CFS_FORTRAN_COMPILER_NAME} STREQUAL "IFORT")
     SET(CFS_FORTRAN_LIBS ${GFORTRAN_LIBRARY})
   ENDIF(NOT ${CFS_FORTRAN_COMPILER_NAME} STREQUAL "IFORT")
@@ -197,6 +180,12 @@ IF(CFS_DISTRO STREQUAL "MACOSX")
       ENDIF(OSX_ARCH STREQUAL "x86_64")
     ENDIF(OSX_ARCH STREQUAL "i386")
 
+  ELSE(CMAKE_OSX_ARCHITECTURES)
+    IF(CFS_DISTRO_VER GREATER 10.5)
+      SET(CMAKE_OSX_ARCHITECTURES "x86_64")
+    ELSE(CFS_DISTRO_VER GREATER 10.5)
+      SET(CMAKE_OSX_ARCHITECTURES "i386")
+    ENDIF(CFS_DISTRO_VER GREATER 10.5)
   ENDIF(CMAKE_OSX_ARCHITECTURES)
 
  
