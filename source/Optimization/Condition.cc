@@ -871,12 +871,129 @@ StdVector<unsigned int>& LocalCondition::GetSparsityPattern()
 
   // sort and copy
   indices.sort();
-  sparsity_.Resize(0); // keeps capacity, hence Push_back is cheap
+  jac_sparsity_.Resize(0); // keeps capacity, hence Push_back is cheap
   for(std::list<unsigned int>::const_iterator it = indices.begin(); it != indices.end(); ++it)
-    sparsity_.Push_back(*it);
+    jac_sparsity_.Push_back(*it);
 
-  LOG_DBG3(conditions) << "LC:GSP: current_view_index_=" << current_view_index_ << " -> " << sparsity_.ToString();
-  return sparsity_;
+  LOG_DBG3(conditions) << "LC:GSP: current_view_index_=" << current_view_index_ << " -> " << jac_sparsity_.ToString();
+  return jac_sparsity_;
+}
+
+Matrix<unsigned int>& LocalCondition::GetHessianSparsityPattern()
+{
+  assert(IsLocal());
+
+  Function::Local::Identifier& id = GetCurrentVirtualContext();
+
+  switch(type_)
+  {
+  case FMO_POS_DEF_MINOR_2:
+  {
+    hess_sparsity_.Resize(2, 2);
+
+    hess_sparsity_(0, 0) = id.GetElement(DesignElement::TENSOR11)->GetIndex();
+    hess_sparsity_(0, 1) = id.GetElement(DesignElement::TENSOR22)->GetIndex();
+
+    hess_sparsity_(1, 0) = id.GetElement(DesignElement::TENSOR12)->GetIndex();
+    hess_sparsity_(1, 1) = id.GetElement(DesignElement::TENSOR12)->GetIndex();
+
+    break;
+  }
+  case FMO_POS_DEF_MINOR_3:
+    hess_sparsity_.Resize(12, 2);
+
+    hess_sparsity_(0, 0) = id.GetElement(DesignElement::TENSOR11)->GetIndex();
+    hess_sparsity_(0, 1) = id.GetElement(DesignElement::TENSOR22)->GetIndex();
+
+    hess_sparsity_(1, 0) = id.GetElement(DesignElement::TENSOR11)->GetIndex();
+    hess_sparsity_(1, 1) = id.GetElement(DesignElement::TENSOR23)->GetIndex();
+
+    hess_sparsity_(2, 0) = id.GetElement(DesignElement::TENSOR11)->GetIndex();
+    hess_sparsity_(2, 1) = id.GetElement(DesignElement::TENSOR33)->GetIndex();
+
+    hess_sparsity_(3, 0) = id.GetElement(DesignElement::TENSOR12)->GetIndex();
+    hess_sparsity_(3, 1) = id.GetElement(DesignElement::TENSOR12)->GetIndex();
+
+    hess_sparsity_(4, 0) = id.GetElement(DesignElement::TENSOR12)->GetIndex();
+    hess_sparsity_(4, 1) = id.GetElement(DesignElement::TENSOR13)->GetIndex();
+
+    hess_sparsity_(5, 0) = id.GetElement(DesignElement::TENSOR12)->GetIndex();
+    hess_sparsity_(5, 1) = id.GetElement(DesignElement::TENSOR23)->GetIndex();
+
+    hess_sparsity_(6, 0) = id.GetElement(DesignElement::TENSOR12)->GetIndex();
+    hess_sparsity_(6, 1) = id.GetElement(DesignElement::TENSOR33)->GetIndex();
+
+    hess_sparsity_(7, 0) = id.GetElement(DesignElement::TENSOR22)->GetIndex();
+    hess_sparsity_(7, 1) = id.GetElement(DesignElement::TENSOR13)->GetIndex();
+
+    hess_sparsity_(8, 0) = id.GetElement(DesignElement::TENSOR22)->GetIndex();
+    hess_sparsity_(8, 1) = id.GetElement(DesignElement::TENSOR33)->GetIndex();
+
+    hess_sparsity_(9, 0) = id.GetElement(DesignElement::TENSOR13)->GetIndex();
+    hess_sparsity_(9, 1) = id.GetElement(DesignElement::TENSOR13)->GetIndex();
+
+    hess_sparsity_(10, 0) = id.GetElement(DesignElement::TENSOR13)->GetIndex();
+    hess_sparsity_(10, 1) = id.GetElement(DesignElement::TENSOR23)->GetIndex();
+
+    hess_sparsity_(11, 0) = id.GetElement(DesignElement::TENSOR23)->GetIndex();
+    hess_sparsity_(11, 1) = id.GetElement(DesignElement::TENSOR23)->GetIndex();
+
+    break;
+  default:
+    hess_sparsity_.Resize(0, 0);
+    break;
+  }
+
+  LOG_DBG3(conditions) << "LC:GHSP: g=" << ToString() << " -> " << hess_sparsity_.ToString();
+  return hess_sparsity_;
+}
+
+void LocalCondition::CalcHessian(StdVector<double>& out)
+{
+  assert(IsLocal());
+
+  assert(out.GetSize() == GetHessianSparsityPattern().GetNumRows());
+
+  switch(type_)
+  {
+  case FMO_POS_DEF_MINOR_2:
+    // (6.69) in the diss of Sonja Lehmann
+    out[0] = 1;
+    out[1] = -2;
+    break;
+  case FMO_POS_DEF_MINOR_3:
+  {
+    Matrix<double> E;
+    // (E - v*I) >= gamma
+    double v = GetParameter();
+    Function::Local::Identifier& id = GetCurrentVirtualContext();
+    local->space->GetErsatzMaterialTensor(E, PLANE_STRAIN, id.element->elem, DesignElement::NO_DERIVATIVE); // the sub-tensor-type does'nt matter
+    double e11 = E[0][0]; // 1
+    double e12 = E[0][1]; // 2
+    double e22 = E[1][1]; // 3
+    double e13 = E[0][2]; // 4
+    double e23 = E[1][2]; // 5
+    double e33 = E[2][2]; // 6
+
+    // (6.72) in the diss of Sonja Lehmann
+    out[0]  = e33 - v;      // 1
+    out[1]  = -2.0 * e23;   // 2
+    out[2]  = e22 - v;      // 3
+    out[3]  = -2.0*(e33-v); // 4
+    out[4]  = 2.0*e23;      // 5
+    out[5]  = 2.0*e13;      // 6
+    out[6]  = -2.0*e12;     // 7
+    out[7]  = -2.0*e13;     // 8
+    out[8]  = e11 - v;      // 9
+    out[9]  = -2.0*(e22-v); // 10
+    out[10] = 2.0*e12;      // 11
+    out[11] = -2.0*(e11-v); // 12
+    break;
+  }
+  default:
+    assert(out.GetSize() == 0);
+    break;
+  }
 }
 
 double LocalCondition::CalcMeanValue() const

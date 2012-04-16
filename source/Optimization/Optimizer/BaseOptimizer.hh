@@ -79,6 +79,9 @@ namespace CoupledField
      * @return nnz of constraint */
     int EvalGradConstraint(Condition* g, int start, bool cfs_scale, StdVector<double>& values);
 
+    /** Return the infinty value (here for ipopt) */
+    virtual double GetInfBound() const { return 1e19; }
+
   protected:
 
     /** This is the specific SolveProblem() implementation. */
@@ -101,9 +104,6 @@ namespace CoupledField
 
     /** Provide Upper and Lower bounds to the optimizer */
     void GetBounds(int n, double* x_l, double* x_u, int m, double* g_l, double* g_u);
-    
-    /** Return the infinty value (here for ipopt) */
-    virtual double GetInfBound() const { return 1e19; }
     
     /** If the actual optimizer is able to handle active sets return here the total number of active
      * constraints (including equality constraints which usually always active).

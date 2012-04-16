@@ -5,12 +5,16 @@
 #include "Optimization/Optimizer/BaseOptimizer.hh"
 #include "Optimization/Optimizer/FeasSubProblem.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
+#include <boost/numeric/ublas/matrix_sparse.hpp>
+#include <boost/numeric/ublas/io.hpp>
+using namespace boost::numeric::ublas;
 
 namespace CoupledField
 {
 
 class Approximation;
 class FeasPP;
+template <class TYPE> class SCRS_Matrix;
 
 /** this is a C++ implementation of MMA using IPOPT as subproblem solver. A feature is
  * to forward feasibility constraints to the subproblem, see thesis of Sonja Lehmann.
@@ -28,6 +32,9 @@ public:
   /** initialize problem
    * @see BaseOptimizer::PostInit() */
   void PostInit();
+
+  /** Construct the global Hessian from the functions */
+  void SetupHessian();
 
   /** number of total design variables */
   unsigned int n;
@@ -56,6 +63,8 @@ public:
 
   bool approx_feasibility;
 
+  compressed_matrix<double>* hessian;
+
 protected:
 
   void SolveProblem();
@@ -64,6 +73,9 @@ private:
 
   /** setup and solve the subproblem by ipopt */
   void SolveSubProblem();
+
+  /** updates the design and the outer function values and gradients */
+  void UpdateToCurrentStep();
 
   SmartPtr<FeasSubProblem> ipopt;
 };
@@ -75,10 +87,14 @@ class Approximation
 {
 public:
   /** @param constraint_idx -1 for objective */
-  Approximation(FeasPP* feas_pp, int constraint_idx);
+  Approximation(FeasPP* feas_pp, int constraint_idx, bool approximate);
+
+  typedef enum { FUNC, GRAD, HESSIAN } Eval;
 
   /** evaluate function value or first derivative according to the MMA approximation */
-  double Eval(const double* x_inner, bool gradient, StdVector<double>* out = NULL);
+  double Evaluate(const double* x_inner, Eval eval, StdVector<double>* out = NULL);
+
+  void AddHessianPattern(compressed_matrix<double>& hessian);
 
   /** helper for logging */
   std::string ToString();
@@ -86,8 +102,13 @@ public:
   /** the gradient of the real (outer) function) */
   StdVector<double> outer_grad;
 
-  /** this stores the sparsity pattern, might be dense :) */
-  StdVector<unsigned int> pattern;
+  /** this stores the sparsity pattern of the Jacobian, might be dense  */
+  StdVector<unsigned int> jac_pattern;
+
+  /** this stores the sparsity pattern of the Hessian. Is diagonal for the approximations.
+   * The it has 2 columns and * rows with first column i and second j. For diagonal i = j.
+   * Stores only the upper triagonal as the Hessian needs to be symmetric */
+  Matrix<unsigned int> hess_pattern;
 
   /** bounds */
   double lower;
@@ -105,6 +126,10 @@ private:
   Function* GetFunction();
 
   Condition* GetCondition();
+
+  double EvalApproximation(const double* x_inner, Eval eval, StdVector<double>* out);
+
+  double EvalDirect(const double* x_inner, Eval eval, StdVector<double>* out);
 
   /** We cannot store a function pointer because of the local constraints where we need an index.
    * -1 is for objective */

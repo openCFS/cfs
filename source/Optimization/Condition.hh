@@ -289,6 +289,12 @@ namespace CoupledField
       * or 2 indices */
      StdVector<unsigned int>& GetSparsityPattern();
 
+     /** overloaded version which implements the functionality for the determinant functions */
+     Matrix<unsigned int>& GetHessianSparsityPattern();
+
+     /** @see Function::CalcHessian() */
+     void CalcHessian(StdVector<double>& out);
+
      /** This is the local context currently requested by the optimizer */
      Function::Local::Identifier& GetCurrentVirtualContext();
 

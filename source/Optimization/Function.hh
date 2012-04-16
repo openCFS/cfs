@@ -181,11 +181,19 @@ class Function
     /** to be overwritten in Condition */
     virtual bool HasDenseJacobian() const { return type_ != SLACK;  }
 
-    /** Gives the sparsity pattern of the jacobian. It gives the sorted, 0-based indices which have
+    /** Gives the sparsity pattern of the Jacobian. It gives the sorted, 0-based indices which have
      * values. For the dens case this is 0, 1, ... m.
      * This works only after ConditionContainer::PostProc() is called as otherwise the design is not known yet.
      * Is overwritten for the slope constraint which actually has spare patterns. */
     virtual StdVector<unsigned int>& GetSparsityPattern();
+
+    /** Gives the sparsity pattern of the Hessian. Only for special nonlinear local functions */
+    virtual Matrix<unsigned int>& GetHessianSparsityPattern();
+
+    /** FeasPP can use the original functions for its strictly feasible MMA approximation. Makes only sense for
+     * some special non-linear local constraints.
+     * @param out needs to be the size of rows of GetHessianSparsityPattern() */
+    virtual void CalcHessian(StdVector<double>& out);
 
     /** Requires this function an adjoint solution for the gradient? */
     bool IsAdjointBased() const;
@@ -348,6 +356,9 @@ class Function
         const DesignElement* GetElement(int idx) const {
           return const_cast<const DesignElement*>(idx == -1 ? element : neighbor[idx]);
         }
+
+        /** identifies the element by the design type. Works only for special neighborhoods! */
+        DesignElement* GetElement(DesignElement::Type type);
 
         /** Service function. Calculates the actual objective, based on function->type
          * @param grad_glob only active when globalized. Not the globalization but the grad of the globalization
@@ -612,9 +623,13 @@ class Function
 
     StressType stressType_;
 
-    /** the sparsity pattern to be set by ConditionContainer::PostProc() via SetSparsity() */
-    StdVector<unsigned int> sparsity_;
+    /** the sparsity pattern of the Jacobian to be set by ConditionContainer::PostProc() via SetSparsity() */
+    StdVector<unsigned int> jac_sparsity_;
 
+    /** the sparsity pattern of the Hessian for special local functions to be used by FeasPP.
+     * @see jac_sparsity_
+     * @see Approximation::hess_pattern */
+    Matrix<unsigned int> hess_sparsity_;
 };
 
 

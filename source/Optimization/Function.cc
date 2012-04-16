@@ -745,10 +745,10 @@ void Function::SetElements(DesignSpace* space, RegionIdType region)
 
 void Function::SetDenseSparsityPattern(DesignSpace* space)
 {
-  sparsity_.Resize(space->GetNumberOfVariables()); // this might include aux variables
+  jac_sparsity_.Resize(space->GetNumberOfVariables()); // this might include aux variables
 
-  for(unsigned int i = 0; i < sparsity_.GetSize(); i++)
-    sparsity_[i] = i;
+  for(unsigned int i = 0; i < jac_sparsity_.GetSize(); i++)
+    jac_sparsity_[i] = i;
 }
 
 void Function::SetSparseSparsityPattern(DesignSpace* space)
@@ -756,18 +756,33 @@ void Function::SetSparseSparsityPattern(DesignSpace* space)
   assert(type_ == SLACK);
   assert(space->GetNumberOfVariables() == space->GetNumberOfErsatzMaterialVariables() + 1);
 
-  sparsity_.Resize(1);
-  sparsity_[0] = space->GetNumberOfVariables() - 1; // zero based
+  jac_sparsity_.Resize(1);
+  jac_sparsity_[0] = space->GetNumberOfVariables() - 1; // zero based
 }
 
 
 StdVector<unsigned int>& Function::GetSparsityPattern()
 {
-  assert(!sparsity_.IsEmpty()); // SetSparsityPattern() needs to be called before
+  assert(!jac_sparsity_.IsEmpty()); // SetSparsityPattern() needs to be called before
 
-  return sparsity_;
+  return jac_sparsity_;
 }
 
+Matrix<unsigned int>& Function::GetHessianSparsityPattern()
+{
+  assert(hess_sparsity_.GetNumRows() == 0);
+
+  return hess_sparsity_;
+}
+
+void Function::CalcHessian(StdVector<double>& out)
+{
+  assert(out.GetSize() == 0);
+  assert(GetHessianSparsityPattern().GetNumRows() == 0);
+  // this function appears to have to Hessian, e.g. because volume is linear.
+  assert(IsLinear());
+  return;
+}
 
 void Function::PostProc(DesignSpace* space, DesignStructure* structure, ErsatzMaterial* em)
 {
@@ -1473,6 +1488,18 @@ Function::Local::Identifier::Identifier(DesignElement* elem, StdVector<DesignEle
   this->sign = si;
 }
 
+DesignElement* Function::Local::Identifier::GetElement(DesignElement::Type type)
+{
+  for(int i = -1 ; i < (int) neighbor.GetSize(); i++)
+  {
+    DesignElement* de = GetElement(i);
+    if(de->GetType() == type)
+      return de; // do not check for non-uniqueness
+  }
+  assert(false);
+  return NULL;
+}
+
 
 double Function::Local::Identifier::EvalFunction(const Local* local, bool grad_glob, double von_mises_stress) const
 {
@@ -2076,7 +2103,6 @@ double Function::Local::Identifier::CalcParamPSPosDef(int neigh_idx, bool deriva
     Matrix<double> E;
     // (E - v*I) >= gamma
     double v = f->GetParameter();
-
 
     local->space->GetErsatzMaterialTensor(E, PLANE_STRAIN, element->elem, DesignElement::NO_DERIVATIVE); // the sub-tensor-type does'nt matter
 
