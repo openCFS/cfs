@@ -19,6 +19,7 @@ ExternalProject_Add(gidpost
     -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
     -DCMAKE_CXX_COMPILER:FILEPATH=${CMAKE_CXX_COMPILER}
     -DLIB_SUFFIX:STRING=${LIB_SUFFIX}
+    -DCFS_ARCH_STR:STRING=${CFS_ARCH_STR}
   )
 
 #-------------------------------------------------------------------------------
