@@ -13,15 +13,38 @@ ExternalProject_Add(gidpost
   DOWNLOAD_DIR ${CFS_DEPS_CACHE_DIR}/sources/gidpost
   URL ${GIDPOST_URL}/${GIDPOST_ZIP}
   URL_MD5 ${GIDPOST_MD5}
-  PATCH_COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_CURRENT_SOURCE_DIR}/cfsdeps/gidpost/CMakeLists.txt ${gidpost_source}/CMakeLists.txt
   CMAKE_ARGS
     -DCMAKE_INSTALL_PREFIX:PATH=${gidpost_install}
     -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
     -DCMAKE_CXX_COMPILER:FILEPATH=${CMAKE_CXX_COMPILER}
-    -DCMAKE_C_COMPILER:FILEPATH=${CMAKE_C_COMPILER}
-    -DARCH_STR:STRING=${CFS_ARCH_STR}
     -DLIB_SUFFIX:STRING=${LIB_SUFFIX}
   )
+
+#-------------------------------------------------------------------------------
+# Set names of patch file and template file.
+#-------------------------------------------------------------------------------
+SET(PFN_TEMPL "${CFS_SOURCE_DIR}/cfsdeps/gidpost/gidpost-patch.cmake.in")
+SET(PFN "${gidpost_prefix}/gidpost-patch.cmake")
+CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY) 
+
+#-------------------------------------------------------------------------------
+# We do not use the PATCH_COMMAND  of ExternalProject_Add since we do not only
+# want to apply the patch script  during configuration time but also if it has
+# changed.  Therefore,   we  need  a   dependency  on  the   configured  patch
+# script. This can be achieved by  adding an additional build step between the
+# download and configure steps.
+#
+# NOTE: The  patch script should  be designed  in such a  way, that it  can be
+# applied to  an already patched  source tree. This  is due to the  fact, that
+# ExternalProject_Add only extracts the source if the MD5 sum has has changed.
+#-------------------------------------------------------------------------------
+ExternalProject_Add_Step(gidpost custom_patch
+   COMMAND ${CMAKE_COMMAND} -P "${PFN}"
+   DEPENDEES download
+   DEPENDERS configure
+   DEPENDS "${PFN}"
+   WORKING_DIRECTORY ${gidpost_source}
+)
 
 #-------------------------------------------------------------------------------
 # These variables are used to find Gidpost by other projects

@@ -2,6 +2,7 @@
 # Set prefix path and path to zlib sources according to ExternalProject.cmake 
 #-------------------------------------------------------------------------------
 set(zlib_prefix  "${CMAKE_CURRENT_BINARY_DIR}/cfsdeps/zlib")
+set(zlib_source  "${zlib_prefix}/src/zlib")
 set(zlib_install  "${CMAKE_CURRENT_BINARY_DIR}")
 
 SET(PFN_TEMPL "${CFS_SOURCE_DIR}/cfsdeps/zlib/zlib-patch.cmake.in")
@@ -25,14 +26,13 @@ SET(CMAKE_ARGS
 ExternalProject_Add(zlib-shared
   PREFIX ${zlib_prefix}
   DOWNLOAD_DIR ${CFS_DEPS_CACHE_DIR}/sources/zlib
+  SOURCE_DIR ${zlib_source}
   URL ${ZLIB_URL}/${ZLIB_GZ}
   URL_MD5 ${ZLIB_MD5}
   CMAKE_ARGS
      ${CMAKE_ARGS}
     -DBUILD_SHARED_LIBS:BOOL=ON
     )
-
-set(zlib_source  "${zlib_prefix}/src/zlib-shared")
 
 #-------------------------------------------------------------------------------
 # We do not use the PATCH_COMMAND  of ExternalProject_Add since we do not only
@@ -57,27 +57,15 @@ ExternalProject_Add_Step(zlib-shared custom_patch
 # The zlib-static external project
 #-------------------------------------------------------------------------------
 ExternalProject_Add(zlib-static
+  DEPENDS zlib-shared
   PREFIX ${zlib_prefix}
-  DOWNLOAD_DIR ${CFS_DEPS_CACHE_DIR}/sources/zlib
-  URL ${ZLIB_URL}/${ZLIB_GZ}
-  URL_MD5 ${ZLIB_MD5}
-  PATCH_COMMAND ${CMAKE_COMMAND} -P "${PFN}"
+  DOWNLOAD_COMMAND ""
+  SOURCE_DIR ${zlib_source}  
   CMAKE_ARGS
      ${CMAKE_ARGS}
     -DBUILD_SHARED_LIBS:BOOL=OFF
     )
 
-set(zlib_source  "${zlib_prefix}/src/zlib-static")
-
-ExternalProject_Add_Step(zlib-static custom_patch
-   COMMAND ${CMAKE_COMMAND} -P "${PFN}"
-   DEPENDEES download
-   DEPENDERS configure
-   DEPENDS "${PFN}"
-   WORKING_DIRECTORY ${zlib_source}
-)
-
-  
 SET(ZLIB_LIBRARY ${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}/libz.a CACHE FILEPATH "zlib library")
 SET(ZLIB_INCLUDE_DIR ${CFS_BINARY_DIR}/include CACHE PATH "zlib include directory")
 

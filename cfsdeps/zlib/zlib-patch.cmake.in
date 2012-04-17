@@ -1,6 +1,13 @@
 SET(CFS_SOURCE_DIR "@CFS_SOURCE_DIR@")
 
+INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/CFS_macros.cmake")
+
 EXECUTE_PROCESS(
   COMMAND ${CMAKE_COMMAND} -E remove -f "zconf.h"
-  COMMAND patch -p0 -i "${CFS_SOURCE_DIR}/cfsdeps/zlib/zlib-cmakelists.patch"
 )
+
+SET(patches
+  "zlib-cmakelists.patch";
+)
+
+APPLY_PATCHES("${patches}" "${CFS_SOURCE_DIR}/cfsdeps/zlib")

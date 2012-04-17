@@ -1,0 +1,1541 @@
+CMAKE_MINIMUM_REQUIRED(VERSION 2.4)
+
+PROJECT(LAPACK Fortran)
+
+SET(BLAS_SRCS
+  ./BLAS/SRC/caxpy.f
+  ./BLAS/SRC/ccopy.f
+  ./BLAS/SRC/cdotc.f
+  ./BLAS/SRC/cdotu.f
+  ./BLAS/SRC/cgbmv.f
+  ./BLAS/SRC/cgemm.f
+  ./BLAS/SRC/cgemv.f
+  ./BLAS/SRC/cgerc.f
+  ./BLAS/SRC/cgeru.f
+  ./BLAS/SRC/chbmv.f
+  ./BLAS/SRC/chemm.f
+  ./BLAS/SRC/chemv.f
+  ./BLAS/SRC/cher2.f
+  ./BLAS/SRC/cher2k.f
+  ./BLAS/SRC/cher.f
+  ./BLAS/SRC/cherk.f
+  ./BLAS/SRC/chpmv.f
+  ./BLAS/SRC/chpr2.f
+  ./BLAS/SRC/chpr.f
+  ./BLAS/SRC/crotg.f
+  ./BLAS/SRC/cscal.f
+  ./BLAS/SRC/csrot.f
+  ./BLAS/SRC/csscal.f
+  ./BLAS/SRC/cswap.f
+  ./BLAS/SRC/csymm.f
+  ./BLAS/SRC/csyr2k.f
+  ./BLAS/SRC/csyrk.f
+  ./BLAS/SRC/ctbmv.f
+  ./BLAS/SRC/ctbsv.f
+  ./BLAS/SRC/ctpmv.f
+  ./BLAS/SRC/ctpsv.f
+  ./BLAS/SRC/ctrmm.f
+  ./BLAS/SRC/ctrmv.f
+  ./BLAS/SRC/ctrsm.f
+  ./BLAS/SRC/ctrsv.f
+  ./BLAS/SRC/dasum.f
+  ./BLAS/SRC/daxpy.f
+  ./BLAS/SRC/dcabs1.f
+  ./BLAS/SRC/dcopy.f
+  ./BLAS/SRC/ddot.f
+  ./BLAS/SRC/dgbmv.f
+  ./BLAS/SRC/dgemm.f
+  ./BLAS/SRC/dgemv.f
+  ./BLAS/SRC/dger.f
+  ./BLAS/SRC/dnrm2.f
+  ./BLAS/SRC/drot.f
+  ./BLAS/SRC/drotg.f
+  ./BLAS/SRC/drotm.f
+  ./BLAS/SRC/drotmg.f
+  ./BLAS/SRC/dsbmv.f
+  ./BLAS/SRC/dscal.f
+  ./BLAS/SRC/dspmv.f
+  ./BLAS/SRC/dspr2.f
+  ./BLAS/SRC/dspr.f
+  ./BLAS/SRC/dswap.f
+  ./BLAS/SRC/dsymm.f
+  ./BLAS/SRC/dsymv.f
+  ./BLAS/SRC/dsyr2.f
+  ./BLAS/SRC/dsyr2k.f
+  ./BLAS/SRC/dsyr.f
+  ./BLAS/SRC/dsyrk.f
+  ./BLAS/SRC/dtbmv.f
+  ./BLAS/SRC/dtbsv.f
+  ./BLAS/SRC/dtpmv.f
+  ./BLAS/SRC/dtpsv.f
+  ./BLAS/SRC/dtrmm.f
+  ./BLAS/SRC/dtrmv.f
+  ./BLAS/SRC/dtrsm.f
+  ./BLAS/SRC/dtrsv.f
+  ./BLAS/SRC/dzasum.f
+  ./BLAS/SRC/dznrm2.f
+  ./BLAS/SRC/icamax.f
+  ./BLAS/SRC/idamax.f
+  ./BLAS/SRC/isamax.f
+  ./BLAS/SRC/izamax.f
+  ./BLAS/SRC/lsame.f
+  ./BLAS/SRC/sasum.f
+  ./BLAS/SRC/saxpy.f
+  ./BLAS/SRC/scabs1.f
+  ./BLAS/SRC/scasum.f
+  ./BLAS/SRC/scnrm2.f
+  ./BLAS/SRC/scopy.f
+  ./BLAS/SRC/sdot.f
+  ./BLAS/SRC/sdsdot.f
+  ./BLAS/SRC/sgbmv.f
+  ./BLAS/SRC/sgemm.f
+  ./BLAS/SRC/sgemv.f
+  ./BLAS/SRC/sger.f
+  ./BLAS/SRC/snrm2.f
+  ./BLAS/SRC/srot.f
+  ./BLAS/SRC/srotg.f
+  ./BLAS/SRC/srotm.f
+  ./BLAS/SRC/srotmg.f
+  ./BLAS/SRC/ssbmv.f
+  ./BLAS/SRC/sscal.f
+  ./BLAS/SRC/sspmv.f
+  ./BLAS/SRC/sspr2.f
+  ./BLAS/SRC/sspr.f
+  ./BLAS/SRC/sswap.f
+  ./BLAS/SRC/ssymm.f
+  ./BLAS/SRC/ssymv.f
+  ./BLAS/SRC/ssyr2.f
+  ./BLAS/SRC/ssyr2k.f
+  ./BLAS/SRC/ssyr.f
+  ./BLAS/SRC/ssyrk.f
+  ./BLAS/SRC/stbmv.f
+  ./BLAS/SRC/stbsv.f
+  ./BLAS/SRC/stpmv.f
+  ./BLAS/SRC/stpsv.f
+  ./BLAS/SRC/strmm.f
+  ./BLAS/SRC/strmv.f
+  ./BLAS/SRC/strsm.f
+  ./BLAS/SRC/strsv.f
+  ./BLAS/SRC/xerbla.f
+  ./BLAS/SRC/zaxpy.f
+  ./BLAS/SRC/zcopy.f
+  ./BLAS/SRC/zdotc.f
+  ./BLAS/SRC/zdotu.f
+  ./BLAS/SRC/zdrot.f
+  ./BLAS/SRC/zdscal.f
+  ./BLAS/SRC/zgbmv.f
+  ./BLAS/SRC/zgemm.f
+  ./BLAS/SRC/zgemv.f
+  ./BLAS/SRC/zgerc.f
+  ./BLAS/SRC/zgeru.f
+  ./BLAS/SRC/zhbmv.f
+  ./BLAS/SRC/zhemm.f
+  ./BLAS/SRC/zhemv.f
+  ./BLAS/SRC/zher2.f
+  ./BLAS/SRC/zher2k.f
+  ./BLAS/SRC/zher.f
+  ./BLAS/SRC/zherk.f
+  ./BLAS/SRC/zhpmv.f
+  ./BLAS/SRC/zhpr2.f
+  ./BLAS/SRC/zhpr.f
+  ./BLAS/SRC/zrotg.f
+  ./BLAS/SRC/zscal.f
+  ./BLAS/SRC/zswap.f
+  ./BLAS/SRC/zsymm.f
+  ./BLAS/SRC/zsyr2k.f
+  ./BLAS/SRC/zsyrk.f
+  ./BLAS/SRC/ztbmv.f
+  ./BLAS/SRC/ztbsv.f
+  ./BLAS/SRC/ztpmv.f
+  ./BLAS/SRC/ztpsv.f
+  ./BLAS/SRC/ztrmm.f
+  ./BLAS/SRC/ztrmv.f
+  ./BLAS/SRC/ztrsm.f
+  ./BLAS/SRC/ztrsv.f
+  )
+
+SET(BLAS_LIBNAME blas)
+
+IF(WIN32 AND CMAKE_BUILD_TYPE STREQUAL "Debug")
+    SET(BLAS_LIBNAME blasd)
+ENDIF(WIN32 AND CMAKE_BUILD_TYPE STREQUAL "Debug")
+
+ADD_LIBRARY(${BLAS_LIBNAME} STATIC ${BLAS_SRCS})
+
+INSTALL(TARGETS ${BLAS_LIBNAME}
+  ARCHIVE DESTINATION "${LIB_SUFFIX}/${CFS_ARCH_STR}")
+
+SET(LAPACK_SRCS
+./SRC/cbdsqr.f
+./SRC/cgbbrd.f
+./SRC/cgbcon.f
+./SRC/cgbequ.f
+./SRC/cgbrfs.f
+./SRC/cgbsv.f
+./SRC/cgbsvx.f
+./SRC/cgbtf2.f
+./SRC/cgbtrf.f
+./SRC/cgbtrs.f
+./SRC/cgebak.f
+./SRC/cgebal.f
+./SRC/cgebd2.f
+./SRC/cgebrd.f
+./SRC/cgecon.f
+./SRC/cgeequ.f
+./SRC/cgees.f
+./SRC/cgeesx.f
+./SRC/cgeev.f
+./SRC/cgeevx.f
+./SRC/cgegs.f
+./SRC/cgegv.f
+./SRC/cgehd2.f
+./SRC/cgehrd.f
+./SRC/cgelq2.f
+./SRC/cgelqf.f
+./SRC/cgelsd.f
+./SRC/cgels.f
+./SRC/cgelss.f
+./SRC/cgelsx.f
+./SRC/cgelsy.f
+./SRC/cgeql2.f
+./SRC/cgeqlf.f
+./SRC/cgeqp3.f
+./SRC/cgeqpf.f
+./SRC/cgeqr2.f
+./SRC/cgeqrf.f
+./SRC/cgerfs.f
+./SRC/cgerq2.f
+./SRC/cgerqf.f
+./SRC/cgesc2.f
+./SRC/cgesdd.f
+./SRC/cgesvd.f
+./SRC/cgesv.f
+./SRC/cgesvx.f
+./SRC/cgetc2.f
+./SRC/cgetf2.f
+./SRC/cgetrf.f
+./SRC/cgetri.f
+./SRC/cgetrs.f
+./SRC/cggbak.f
+./SRC/cggbal.f
+./SRC/cgges.f
+./SRC/cggesx.f
+./SRC/cggev.f
+./SRC/cggevx.f
+./SRC/cggglm.f
+./SRC/cgghrd.f
+./SRC/cgglse.f
+./SRC/cggqrf.f
+./SRC/cggrqf.f
+./SRC/cggsvd.f
+./SRC/cggsvp.f
+./SRC/cgtcon.f
+./SRC/cgtrfs.f
+./SRC/cgtsv.f
+./SRC/cgtsvx.f
+./SRC/cgttrf.f
+./SRC/cgttrs.f
+./SRC/cgtts2.f
+./SRC/chbevd.f
+./SRC/chbev.f
+./SRC/chbevx.f
+./SRC/chbgst.f
+./SRC/chbgvd.f
+./SRC/chbgv.f
+./SRC/chbgvx.f
+./SRC/chbtrd.f
+./SRC/checon.f
+./SRC/cheevd.f
+./SRC/cheev.f
+./SRC/cheevr.f
+./SRC/cheevx.f
+./SRC/chegs2.f
+./SRC/chegst.f
+./SRC/chegvd.f
+./SRC/chegv.f
+./SRC/chegvx.f
+./SRC/cherfs.f
+./SRC/chesv.f
+./SRC/chesvx.f
+./SRC/chetd2.f
+./SRC/chetf2.f
+./SRC/chetrd.f
+./SRC/chetrf.f
+./SRC/chetri.f
+./SRC/chetrs.f
+./SRC/chgeqz.f
+./SRC/chpcon.f
+./SRC/chpevd.f
+./SRC/chpev.f
+./SRC/chpevx.f
+./SRC/chpgst.f
+./SRC/chpgvd.f
+./SRC/chpgv.f
+./SRC/chpgvx.f
+./SRC/chprfs.f
+./SRC/chpsv.f
+./SRC/chpsvx.f
+./SRC/chptrd.f
+./SRC/chptrf.f
+./SRC/chptri.f
+./SRC/chptrs.f
+./SRC/chsein.f
+./SRC/chseqr.f
+./SRC/clabrd.f
+./SRC/clacgv.f
+./SRC/clacn2.f
+./SRC/clacon.f
+./SRC/clacp2.f
+./SRC/clacpy.f
+./SRC/clacrm.f
+./SRC/clacrt.f
+./SRC/cladiv.f
+./SRC/claed0.f
+./SRC/claed7.f
+./SRC/claed8.f
+./SRC/claein.f
+./SRC/claesy.f
+./SRC/claev2.f
+./SRC/clag2z.f
+./SRC/clags2.f
+./SRC/clagtm.f
+./SRC/clahef.f
+./SRC/clahqr.f
+./SRC/clahr2.f
+./SRC/clahrd.f
+./SRC/claic1.f
+./SRC/clals0.f
+./SRC/clalsa.f
+./SRC/clalsd.f
+./SRC/clangb.f
+./SRC/clange.f
+./SRC/clangt.f
+./SRC/clanhb.f
+./SRC/clanhe.f
+./SRC/clanhp.f
+./SRC/clanhs.f
+./SRC/clanht.f
+./SRC/clansb.f
+./SRC/clansp.f
+./SRC/clansy.f
+./SRC/clantb.f
+./SRC/clantp.f
+./SRC/clantr.f
+./SRC/clapll.f
+./SRC/clapmt.f
+./SRC/claqgb.f
+./SRC/claqge.f
+./SRC/claqhb.f
+./SRC/claqhe.f
+./SRC/claqhp.f
+./SRC/claqp2.f
+./SRC/claqps.f
+./SRC/claqr0.f
+./SRC/claqr1.f
+./SRC/claqr2.f
+./SRC/claqr3.f
+./SRC/claqr4.f
+./SRC/claqr5.f
+./SRC/claqsb.f
+./SRC/claqsp.f
+./SRC/claqsy.f
+./SRC/clar1v.f
+./SRC/clar2v.f
+./SRC/clarcm.f
+./SRC/clarfb.f
+./SRC/clarf.f
+./SRC/clarfg.f
+./SRC/clarft.f
+./SRC/clarfx.f
+./SRC/clargv.f
+./SRC/clarnv.f
+./SRC/clarrv.f
+./SRC/clartg.f
+./SRC/clartv.f
+./SRC/clarzb.f
+./SRC/clarz.f
+./SRC/clarzt.f
+./SRC/clascl.f
+./SRC/claset.f
+./SRC/clasr.f
+./SRC/classq.f
+./SRC/claswp.f
+./SRC/clasyf.f
+./SRC/clatbs.f
+./SRC/clatdf.f
+./SRC/clatps.f
+./SRC/clatrd.f
+./SRC/clatrs.f
+./SRC/clatrz.f
+./SRC/clatzm.f
+./SRC/clauu2.f
+./SRC/clauum.f
+./SRC/cpbcon.f
+./SRC/cpbequ.f
+./SRC/cpbrfs.f
+./SRC/cpbstf.f
+./SRC/cpbsv.f
+./SRC/cpbsvx.f
+./SRC/cpbtf2.f
+./SRC/cpbtrf.f
+./SRC/cpbtrs.f
+./SRC/cpocon.f
+./SRC/cpoequ.f
+./SRC/cporfs.f
+./SRC/cposv.f
+./SRC/cposvx.f
+./SRC/cpotf2.f
+./SRC/cpotrf.f
+./SRC/cpotri.f
+./SRC/cpotrs.f
+./SRC/cppcon.f
+./SRC/cppequ.f
+./SRC/cpprfs.f
+./SRC/cppsv.f
+./SRC/cppsvx.f
+./SRC/cpptrf.f
+./SRC/cpptri.f
+./SRC/cpptrs.f
+./SRC/cptcon.f
+./SRC/cpteqr.f
+./SRC/cptrfs.f
+./SRC/cptsv.f
+./SRC/cptsvx.f
+./SRC/cpttrf.f
+./SRC/cpttrs.f
+./SRC/cptts2.f
+./SRC/crot.f
+./SRC/cspcon.f
+./SRC/cspmv.f
+./SRC/cspr.f
+./SRC/csprfs.f
+./SRC/cspsv.f
+./SRC/cspsvx.f
+./SRC/csptrf.f
+./SRC/csptri.f
+./SRC/csptrs.f
+./SRC/csrscl.f
+./SRC/cstedc.f
+./SRC/cstegr.f
+./SRC/cstein.f
+./SRC/cstemr.f
+./SRC/csteqr.f
+./SRC/csycon.f
+./SRC/csymv.f
+./SRC/csyr.f
+./SRC/csyrfs.f
+./SRC/csysv.f
+./SRC/csysvx.f
+./SRC/csytf2.f
+./SRC/csytrf.f
+./SRC/csytri.f
+./SRC/csytrs.f
+./SRC/ctbcon.f
+./SRC/ctbrfs.f
+./SRC/ctbtrs.f
+./SRC/ctgevc.f
+./SRC/ctgex2.f
+./SRC/ctgexc.f
+./SRC/ctgsen.f
+./SRC/ctgsja.f
+./SRC/ctgsna.f
+./SRC/ctgsy2.f
+./SRC/ctgsyl.f
+./SRC/ctpcon.f
+./SRC/ctprfs.f
+./SRC/ctptri.f
+./SRC/ctptrs.f
+./SRC/ctrcon.f
+./SRC/ctrevc.f
+./SRC/ctrexc.f
+./SRC/ctrrfs.f
+./SRC/ctrsen.f
+./SRC/ctrsna.f
+./SRC/ctrsyl.f
+./SRC/ctrti2.f
+./SRC/ctrtri.f
+./SRC/ctrtrs.f
+./SRC/ctzrqf.f
+./SRC/ctzrzf.f
+./SRC/cung2l.f
+./SRC/cung2r.f
+./SRC/cungbr.f
+./SRC/cunghr.f
+./SRC/cungl2.f
+./SRC/cunglq.f
+./SRC/cungql.f
+./SRC/cungqr.f
+./SRC/cungr2.f
+./SRC/cungrq.f
+./SRC/cungtr.f
+./SRC/cunm2l.f
+./SRC/cunm2r.f
+./SRC/cunmbr.f
+./SRC/cunmhr.f
+./SRC/cunml2.f
+./SRC/cunmlq.f
+./SRC/cunmql.f
+./SRC/cunmqr.f
+./SRC/cunmr2.f
+./SRC/cunmr3.f
+./SRC/cunmrq.f
+./SRC/cunmrz.f
+./SRC/cunmtr.f
+./SRC/cupgtr.f
+./SRC/cupmtr.f
+./SRC/dbdsdc.f
+./SRC/dbdsqr.f
+./SRC/ddisna.f
+./SRC/dgbbrd.f
+./SRC/dgbcon.f
+./SRC/dgbequ.f
+./SRC/dgbrfs.f
+./SRC/dgbsv.f
+./SRC/dgbsvx.f
+./SRC/dgbtf2.f
+./SRC/dgbtrf.f
+./SRC/dgbtrs.f
+./SRC/dgebak.f
+./SRC/dgebal.f
+./SRC/dgebd2.f
+./SRC/dgebrd.f
+./SRC/dgecon.f
+./SRC/dgeequ.f
+./SRC/dgees.f
+./SRC/dgeesx.f
+./SRC/dgeev.f
+./SRC/dgeevx.f
+./SRC/dgegs.f
+./SRC/dgegv.f
+./SRC/dgehd2.f
+./SRC/dgehrd.f
+./SRC/dgelq2.f
+./SRC/dgelqf.f
+./SRC/dgelsd.f
+./SRC/dgels.f
+./SRC/dgelss.f
+./SRC/dgelsx.f
+./SRC/dgelsy.f
+./SRC/dgeql2.f
+./SRC/dgeqlf.f
+./SRC/dgeqp3.f
+./SRC/dgeqpf.f
+./SRC/dgeqr2.f
+./SRC/dgeqrf.f
+./SRC/dgerfs.f
+./SRC/dgerq2.f
+./SRC/dgerqf.f
+./SRC/dgesc2.f
+./SRC/dgesdd.f
+./SRC/dgesvd.f
+./SRC/dgesv.f
+./SRC/dgesvx.f
+./SRC/dgetc2.f
+./SRC/dgetf2.f
+./SRC/dgetrf.f
+./SRC/dgetri.f
+./SRC/dgetrs.f
+./SRC/dggbak.f
+./SRC/dggbal.f
+./SRC/dgges.f
+./SRC/dggesx.f
+./SRC/dggev.f
+./SRC/dggevx.f
+./SRC/dggglm.f
+./SRC/dgghrd.f
+./SRC/dgglse.f
+./SRC/dggqrf.f
+./SRC/dggrqf.f
+./SRC/dggsvd.f
+./SRC/dggsvp.f
+./SRC/dgtcon.f
+./SRC/dgtrfs.f
+./SRC/dgtsv.f
+./SRC/dgtsvx.f
+./SRC/dgttrf.f
+./SRC/dgttrs.f
+./SRC/dgtts2.f
+./SRC/dhgeqz.f
+./SRC/dhsein.f
+./SRC/dhseqr.f
+./SRC/disnan.f
+./SRC/dlabad.f
+./SRC/dlabrd.f
+./SRC/dlacn2.f
+./SRC/dlacon.f
+./SRC/dlacpy.f
+./SRC/dladiv.f
+./SRC/dlae2.f
+./SRC/dlaebz.f
+./SRC/dlaed0.f
+./SRC/dlaed1.f
+./SRC/dlaed2.f
+./SRC/dlaed3.f
+./SRC/dlaed4.f
+./SRC/dlaed5.f
+./SRC/dlaed6.f
+./SRC/dlaed7.f
+./SRC/dlaed8.f
+./SRC/dlaed9.f
+./SRC/dlaeda.f
+./SRC/dlaein.f
+./SRC/dlaev2.f
+./SRC/dlaexc.f
+./SRC/dlag2.f
+./SRC/dlag2s.f
+./SRC/dlags2.f
+./SRC/dlagtf.f
+./SRC/dlagtm.f
+./SRC/dlagts.f
+./SRC/dlagv2.f
+./SRC/dlahqr.f
+./SRC/dlahr2.f
+./SRC/dlahrd.f
+./SRC/dlaic1.f
+./SRC/dlaisnan.f
+./SRC/dlaln2.f
+./SRC/dlals0.f
+./SRC/dlalsa.f
+./SRC/dlalsd.f
+./SRC/dlamrg.f
+./SRC/dlaneg.f
+./SRC/dlangb.f
+./SRC/dlange.f
+./SRC/dlangt.f
+./SRC/dlanhs.f
+./SRC/dlansb.f
+./SRC/dlansp.f
+./SRC/dlanst.f
+./SRC/dlansy.f
+./SRC/dlantb.f
+./SRC/dlantp.f
+./SRC/dlantr.f
+./SRC/dlanv2.f
+./SRC/dlapll.f
+./SRC/dlapmt.f
+./SRC/dlapy2.f
+./SRC/dlapy3.f
+./SRC/dlaqgb.f
+./SRC/dlaqge.f
+./SRC/dlaqp2.f
+./SRC/dlaqps.f
+./SRC/dlaqr0.f
+./SRC/dlaqr1.f
+./SRC/dlaqr2.f
+./SRC/dlaqr3.f
+./SRC/dlaqr4.f
+./SRC/dlaqr5.f
+./SRC/dlaqsb.f
+./SRC/dlaqsp.f
+./SRC/dlaqsy.f
+./SRC/dlaqtr.f
+./SRC/dlar1v.f
+./SRC/dlar2v.f
+./SRC/dlarfb.f
+./SRC/dlarf.f
+./SRC/dlarfg.f
+./SRC/dlarfp.f
+./SRC/dlarft.f
+./SRC/dlarfx.f
+./SRC/dlargv.f
+./SRC/dlarnv.f
+./SRC/dlarra.f
+./SRC/dlarrb.f
+./SRC/dlarrc.f
+./SRC/dlarrd.f
+./SRC/dlarre.f
+./SRC/dlarrf.f
+./SRC/dlarrj.f
+./SRC/dlarrk.f
+./SRC/dlarrr.f
+./SRC/dlarrv.f
+./SRC/dlartg.f
+./SRC/dlartv.f
+./SRC/dlaruv.f
+./SRC/dlarzb.f
+./SRC/dlarz.f
+./SRC/dlarzt.f
+./SRC/dlas2.f
+./SRC/dlascl.f
+./SRC/dlasd0.f
+./SRC/dlasd1.f
+./SRC/dlasd2.f
+./SRC/dlasd3.f
+./SRC/dlasd4.f
+./SRC/dlasd5.f
+./SRC/dlasd6.f
+./SRC/dlasd7.f
+./SRC/dlasd8.f
+./SRC/dlasda.f
+./SRC/dlasdq.f
+./SRC/dlasdt.f
+./SRC/dlaset.f
+./SRC/dlasq1.f
+./SRC/dlasq2.f
+./SRC/dlasq3.f
+./SRC/dlasq4.f
+./SRC/dlasq5.f
+./SRC/dlasq6.f
+./SRC/dlasr.f
+./SRC/dlasrt.f
+./SRC/dlassq.f
+./SRC/dlasv2.f
+./SRC/dlaswp.f
+./SRC/dlasy2.f
+./SRC/dlasyf.f
+./SRC/dlatbs.f
+./SRC/dlatdf.f
+./SRC/dlatps.f
+./SRC/dlatrd.f
+./SRC/dlatrs.f
+./SRC/dlatrz.f
+./SRC/dlatzm.f
+./SRC/dlauu2.f
+./SRC/dlauum.f
+./SRC/dlazq3.f
+./SRC/dlazq4.f
+./SRC/dopgtr.f
+./SRC/dopmtr.f
+./SRC/dorg2l.f
+./SRC/dorg2r.f
+./SRC/dorgbr.f
+./SRC/dorghr.f
+./SRC/dorgl2.f
+./SRC/dorglq.f
+./SRC/dorgql.f
+./SRC/dorgqr.f
+./SRC/dorgr2.f
+./SRC/dorgrq.f
+./SRC/dorgtr.f
+./SRC/dorm2l.f
+./SRC/dorm2r.f
+./SRC/dormbr.f
+./SRC/dormhr.f
+./SRC/dorml2.f
+./SRC/dormlq.f
+./SRC/dormql.f
+./SRC/dormqr.f
+./SRC/dormr2.f
+./SRC/dormr3.f
+./SRC/dormrq.f
+./SRC/dormrz.f
+./SRC/dormtr.f
+./SRC/dpbcon.f
+./SRC/dpbequ.f
+./SRC/dpbrfs.f
+./SRC/dpbstf.f
+./SRC/dpbsv.f
+./SRC/dpbsvx.f
+./SRC/dpbtf2.f
+./SRC/dpbtrf.f
+./SRC/dpbtrs.f
+./SRC/dpocon.f
+./SRC/dpoequ.f
+./SRC/dporfs.f
+./SRC/dposv.f
+./SRC/dposvx.f
+./SRC/dpotf2.f
+./SRC/dpotrf.f
+./SRC/dpotri.f
+./SRC/dpotrs.f
+./SRC/dppcon.f
+./SRC/dppequ.f
+./SRC/dpprfs.f
+./SRC/dppsv.f
+./SRC/dppsvx.f
+./SRC/dpptrf.f
+./SRC/dpptri.f
+./SRC/dpptrs.f
+./SRC/dptcon.f
+./SRC/dpteqr.f
+./SRC/dptrfs.f
+./SRC/dptsv.f
+./SRC/dptsvx.f
+./SRC/dpttrf.f
+./SRC/dpttrs.f
+./SRC/dptts2.f
+./SRC/drscl.f
+./SRC/dsbevd.f
+./SRC/dsbev.f
+./SRC/dsbevx.f
+./SRC/dsbgst.f
+./SRC/dsbgvd.f
+./SRC/dsbgv.f
+./SRC/dsbgvx.f
+./SRC/dsbtrd.f
+./SRC/dsgesv.f
+./SRC/dspcon.f
+./SRC/dspevd.f
+./SRC/dspev.f
+./SRC/dspevx.f
+./SRC/dspgst.f
+./SRC/dspgvd.f
+./SRC/dspgv.f
+./SRC/dspgvx.f
+./SRC/dsprfs.f
+./SRC/dspsv.f
+./SRC/dspsvx.f
+./SRC/dsptrd.f
+./SRC/dsptrf.f
+./SRC/dsptri.f
+./SRC/dsptrs.f
+./SRC/dstebz.f
+./SRC/dstedc.f
+./SRC/dstegr.f
+./SRC/dstein.f
+./SRC/dstemr.f
+./SRC/dsteqr.f
+./SRC/dsterf.f
+./SRC/dstevd.f
+./SRC/dstev.f
+./SRC/dstevr.f
+./SRC/dstevx.f
+./SRC/dsycon.f
+./SRC/dsyevd.f
+./SRC/dsyev.f
+./SRC/dsyevr.f
+./SRC/dsyevx.f
+./SRC/dsygs2.f
+./SRC/dsygst.f
+./SRC/dsygvd.f
+./SRC/dsygv.f
+./SRC/dsygvx.f
+./SRC/dsyrfs.f
+./SRC/dsysv.f
+./SRC/dsysvx.f
+./SRC/dsytd2.f
+./SRC/dsytf2.f
+./SRC/dsytrd.f
+./SRC/dsytrf.f
+./SRC/dsytri.f
+./SRC/dsytrs.f
+./SRC/dtbcon.f
+./SRC/dtbrfs.f
+./SRC/dtbtrs.f
+./SRC/dtgevc.f
+./SRC/dtgex2.f
+./SRC/dtgexc.f
+./SRC/dtgsen.f
+./SRC/dtgsja.f
+./SRC/dtgsna.f
+./SRC/dtgsy2.f
+./SRC/dtgsyl.f
+./SRC/dtpcon.f
+./SRC/dtprfs.f
+./SRC/dtptri.f
+./SRC/dtptrs.f
+./SRC/dtrcon.f
+./SRC/dtrevc.f
+./SRC/dtrexc.f
+./SRC/dtrrfs.f
+./SRC/dtrsen.f
+./SRC/dtrsna.f
+./SRC/dtrsyl.f
+./SRC/dtrti2.f
+./SRC/dtrtri.f
+./SRC/dtrtrs.f
+./SRC/dtzrqf.f
+./SRC/dtzrzf.f
+./SRC/dzsum1.f
+./SRC/icmax1.f
+./SRC/ieeeck.f
+./SRC/iladlc.f
+./SRC/iladlr.f
+./SRC/ilaenv.f
+./SRC/ilaver.f
+./SRC/ilazlc.f
+./SRC/ilazlr.f
+./SRC/iparmq.f
+./SRC/izmax1.f
+./SRC/lsamen.f
+./SRC/sbdsdc.f
+./SRC/sbdsqr.f
+./SRC/scsum1.f
+./SRC/sdisna.f
+./SRC/sgbbrd.f
+./SRC/sgbcon.f
+./SRC/sgbequ.f
+./SRC/sgbrfs.f
+./SRC/sgbsv.f
+./SRC/sgbsvx.f
+./SRC/sgbtf2.f
+./SRC/sgbtrf.f
+./SRC/sgbtrs.f
+./SRC/sgebak.f
+./SRC/sgebal.f
+./SRC/sgebd2.f
+./SRC/sgebrd.f
+./SRC/sgecon.f
+./SRC/sgeequ.f
+./SRC/sgees.f
+./SRC/sgeesx.f
+./SRC/sgeev.f
+./SRC/sgeevx.f
+./SRC/sgegs.f
+./SRC/sgegv.f
+./SRC/sgehd2.f
+./SRC/sgehrd.f
+./SRC/sgelq2.f
+./SRC/sgelqf.f
+./SRC/sgelsd.f
+./SRC/sgels.f
+./SRC/sgelss.f
+./SRC/sgelsx.f
+./SRC/sgelsy.f
+./SRC/sgeql2.f
+./SRC/sgeqlf.f
+./SRC/sgeqp3.f
+./SRC/sgeqpf.f
+./SRC/sgeqr2.f
+./SRC/sgeqrf.f
+./SRC/sgerfs.f
+./SRC/sgerq2.f
+./SRC/sgerqf.f
+./SRC/sgesc2.f
+./SRC/sgesdd.f
+./SRC/sgesvd.f
+./SRC/sgesv.f
+./SRC/sgesvx.f
+./SRC/sgetc2.f
+./SRC/sgetf2.f
+./SRC/sgetrf.f
+./SRC/sgetri.f
+./SRC/sgetrs.f
+./SRC/sggbak.f
+./SRC/sggbal.f
+./SRC/sgges.f
+./SRC/sggesx.f
+./SRC/sggev.f
+./SRC/sggevx.f
+./SRC/sggglm.f
+./SRC/sgghrd.f
+./SRC/sgglse.f
+./SRC/sggqrf.f
+./SRC/sggrqf.f
+./SRC/sggsvd.f
+./SRC/sggsvp.f
+./SRC/sgtcon.f
+./SRC/sgtrfs.f
+./SRC/sgtsv.f
+./SRC/sgtsvx.f
+./SRC/sgttrf.f
+./SRC/sgttrs.f
+./SRC/sgtts2.f
+./SRC/shgeqz.f
+./SRC/shsein.f
+./SRC/shseqr.f
+./SRC/sisnan.f
+./SRC/slabad.f
+./SRC/slabrd.f
+./SRC/slacn2.f
+./SRC/slacon.f
+./SRC/slacpy.f
+./SRC/sladiv.f
+./SRC/slae2.f
+./SRC/slaebz.f
+./SRC/slaed0.f
+./SRC/slaed1.f
+./SRC/slaed2.f
+./SRC/slaed3.f
+./SRC/slaed4.f
+./SRC/slaed5.f
+./SRC/slaed6.f
+./SRC/slaed7.f
+./SRC/slaed8.f
+./SRC/slaed9.f
+./SRC/slaeda.f
+./SRC/slaein.f
+./SRC/slaev2.f
+./SRC/slaexc.f
+./SRC/slag2d.f
+./SRC/slag2.f
+./SRC/slags2.f
+./SRC/slagtf.f
+./SRC/slagtm.f
+./SRC/slagts.f
+./SRC/slagv2.f
+./SRC/slahqr.f
+./SRC/slahr2.f
+./SRC/slahrd.f
+./SRC/slaic1.f
+./SRC/slaisnan.f
+./SRC/slaln2.f
+./SRC/slals0.f
+./SRC/slalsa.f
+./SRC/slalsd.f
+./SRC/slamrg.f
+./SRC/slaneg.f
+./SRC/slangb.f
+./SRC/slange.f
+./SRC/slangt.f
+./SRC/slanhs.f
+./SRC/slansb.f
+./SRC/slansp.f
+./SRC/slanst.f
+./SRC/slansy.f
+./SRC/slantb.f
+./SRC/slantp.f
+./SRC/slantr.f
+./SRC/slanv2.f
+./SRC/slapll.f
+./SRC/slapmt.f
+./SRC/slapy2.f
+./SRC/slapy3.f
+./SRC/slaqgb.f
+./SRC/slaqge.f
+./SRC/slaqp2.f
+./SRC/slaqps.f
+./SRC/slaqr0.f
+./SRC/slaqr1.f
+./SRC/slaqr2.f
+./SRC/slaqr3.f
+./SRC/slaqr4.f
+./SRC/slaqr5.f
+./SRC/slaqsb.f
+./SRC/slaqsp.f
+./SRC/slaqsy.f
+./SRC/slaqtr.f
+./SRC/slar1v.f
+./SRC/slar2v.f
+./SRC/slarfb.f
+./SRC/slarf.f
+./SRC/slarfg.f
+./SRC/slarft.f
+./SRC/slarfx.f
+./SRC/slargv.f
+./SRC/slarnv.f
+./SRC/slarra.f
+./SRC/slarrb.f
+./SRC/slarrc.f
+./SRC/slarrd.f
+./SRC/slarre.f
+./SRC/slarrf.f
+./SRC/slarrj.f
+./SRC/slarrk.f
+./SRC/slarrr.f
+./SRC/slarrv.f
+./SRC/slartg.f
+./SRC/slartv.f
+./SRC/slaruv.f
+./SRC/slarzb.f
+./SRC/slarz.f
+./SRC/slarzt.f
+./SRC/slas2.f
+./SRC/slascl.f
+./SRC/slasd0.f
+./SRC/slasd1.f
+./SRC/slasd2.f
+./SRC/slasd3.f
+./SRC/slasd4.f
+./SRC/slasd5.f
+./SRC/slasd6.f
+./SRC/slasd7.f
+./SRC/slasd8.f
+./SRC/slasda.f
+./SRC/slasdq.f
+./SRC/slasdt.f
+./SRC/slaset.f
+./SRC/slasq1.f
+./SRC/slasq2.f
+./SRC/slasq3.f
+./SRC/slasq4.f
+./SRC/slasq5.f
+./SRC/slasq6.f
+./SRC/slasr.f
+./SRC/slasrt.f
+./SRC/slassq.f
+./SRC/slasv2.f
+./SRC/slaswp.f
+./SRC/slasy2.f
+./SRC/slasyf.f
+./SRC/slatbs.f
+./SRC/slatdf.f
+./SRC/slatps.f
+./SRC/slatrd.f
+./SRC/slatrs.f
+./SRC/slatrz.f
+./SRC/slatzm.f
+./SRC/slauu2.f
+./SRC/slauum.f
+./SRC/slazq3.f
+./SRC/slazq4.f
+./SRC/sopgtr.f
+./SRC/sopmtr.f
+./SRC/sorg2l.f
+./SRC/sorg2r.f
+./SRC/sorgbr.f
+./SRC/sorghr.f
+./SRC/sorgl2.f
+./SRC/sorglq.f
+./SRC/sorgql.f
+./SRC/sorgqr.f
+./SRC/sorgr2.f
+./SRC/sorgrq.f
+./SRC/sorgtr.f
+./SRC/sorm2l.f
+./SRC/sorm2r.f
+./SRC/sormbr.f
+./SRC/sormhr.f
+./SRC/sorml2.f
+./SRC/sormlq.f
+./SRC/sormql.f
+./SRC/sormqr.f
+./SRC/sormr2.f
+./SRC/sormr3.f
+./SRC/sormrq.f
+./SRC/sormrz.f
+./SRC/sormtr.f
+./SRC/spbcon.f
+./SRC/spbequ.f
+./SRC/spbrfs.f
+./SRC/spbstf.f
+./SRC/spbsv.f
+./SRC/spbsvx.f
+./SRC/spbtf2.f
+./SRC/spbtrf.f
+./SRC/spbtrs.f
+./SRC/spocon.f
+./SRC/spoequ.f
+./SRC/sporfs.f
+./SRC/sposv.f
+./SRC/sposvx.f
+./SRC/spotf2.f
+./SRC/spotrf.f
+./SRC/spotri.f
+./SRC/spotrs.f
+./SRC/sppcon.f
+./SRC/sppequ.f
+./SRC/spprfs.f
+./SRC/sppsv.f
+./SRC/sppsvx.f
+./SRC/spptrf.f
+./SRC/spptri.f
+./SRC/spptrs.f
+./SRC/sptcon.f
+./SRC/spteqr.f
+./SRC/sptrfs.f
+./SRC/sptsv.f
+./SRC/sptsvx.f
+./SRC/spttrf.f
+./SRC/spttrs.f
+./SRC/sptts2.f
+./SRC/srscl.f
+./SRC/ssbevd.f
+./SRC/ssbev.f
+./SRC/ssbevx.f
+./SRC/ssbgst.f
+./SRC/ssbgvd.f
+./SRC/ssbgv.f
+./SRC/ssbgvx.f
+./SRC/ssbtrd.f
+./SRC/sspcon.f
+./SRC/sspevd.f
+./SRC/sspev.f
+./SRC/sspevx.f
+./SRC/sspgst.f
+./SRC/sspgvd.f
+./SRC/sspgv.f
+./SRC/sspgvx.f
+./SRC/ssprfs.f
+./SRC/sspsv.f
+./SRC/sspsvx.f
+./SRC/ssptrd.f
+./SRC/ssptrf.f
+./SRC/ssptri.f
+./SRC/ssptrs.f
+./SRC/sstebz.f
+./SRC/sstedc.f
+./SRC/sstegr.f
+./SRC/sstein.f
+./SRC/sstemr.f
+./SRC/ssteqr.f
+./SRC/ssterf.f
+./SRC/sstevd.f
+./SRC/sstev.f
+./SRC/sstevr.f
+./SRC/sstevx.f
+./SRC/ssycon.f
+./SRC/ssyevd.f
+./SRC/ssyev.f
+./SRC/ssyevr.f
+./SRC/ssyevx.f
+./SRC/ssygs2.f
+./SRC/ssygst.f
+./SRC/ssygvd.f
+./SRC/ssygv.f
+./SRC/ssygvx.f
+./SRC/ssyrfs.f
+./SRC/ssysv.f
+./SRC/ssysvx.f
+./SRC/ssytd2.f
+./SRC/ssytf2.f
+./SRC/ssytrd.f
+./SRC/ssytrf.f
+./SRC/ssytri.f
+./SRC/ssytrs.f
+./SRC/stbcon.f
+./SRC/stbrfs.f
+./SRC/stbtrs.f
+./SRC/stgevc.f
+./SRC/stgex2.f
+./SRC/stgexc.f
+./SRC/stgsen.f
+./SRC/stgsja.f
+./SRC/stgsna.f
+./SRC/stgsy2.f
+./SRC/stgsyl.f
+./SRC/stpcon.f
+./SRC/stprfs.f
+./SRC/stptri.f
+./SRC/stptrs.f
+./SRC/strcon.f
+./SRC/strevc.f
+./SRC/strexc.f
+./SRC/strrfs.f
+./SRC/strsen.f
+./SRC/strsna.f
+./SRC/strsyl.f
+./SRC/strti2.f
+./SRC/strtri.f
+./SRC/strtrs.f
+./SRC/stzrqf.f
+./SRC/stzrzf.f
+./SRC/xerbla.f
+./SRC/zbdsqr.f
+./SRC/zcgesv.f
+./SRC/zdrscl.f
+./SRC/zgbbrd.f
+./SRC/zgbcon.f
+./SRC/zgbequ.f
+./SRC/zgbrfs.f
+./SRC/zgbsv.f
+./SRC/zgbsvx.f
+./SRC/zgbtf2.f
+./SRC/zgbtrf.f
+./SRC/zgbtrs.f
+./SRC/zgebak.f
+./SRC/zgebal.f
+./SRC/zgebd2.f
+./SRC/zgebrd.f
+./SRC/zgecon.f
+./SRC/zgeequ.f
+./SRC/zgees.f
+./SRC/zgeesx.f
+./SRC/zgeev.f
+./SRC/zgeevx.f
+./SRC/zgegs.f
+./SRC/zgegv.f
+./SRC/zgehd2.f
+./SRC/zgehrd.f
+./SRC/zgelq2.f
+./SRC/zgelqf.f
+./SRC/zgelsd.f
+./SRC/zgels.f
+./SRC/zgelss.f
+./SRC/zgelsx.f
+./SRC/zgelsy.f
+./SRC/zgeql2.f
+./SRC/zgeqlf.f
+./SRC/zgeqp3.f
+./SRC/zgeqpf.f
+./SRC/zgeqr2.f
+./SRC/zgeqrf.f
+./SRC/zgerfs.f
+./SRC/zgerq2.f
+./SRC/zgerqf.f
+./SRC/zgesc2.f
+./SRC/zgesdd.f
+./SRC/zgesvd.f
+./SRC/zgesv.f
+./SRC/zgesvx.f
+./SRC/zgetc2.f
+./SRC/zgetf2.f
+./SRC/zgetrf.f
+./SRC/zgetri.f
+./SRC/zgetrs.f
+./SRC/zggbak.f
+./SRC/zggbal.f
+./SRC/zgges.f
+./SRC/zggesx.f
+./SRC/zggev.f
+./SRC/zggevx.f
+./SRC/zggglm.f
+./SRC/zgghrd.f
+./SRC/zgglse.f
+./SRC/zggqrf.f
+./SRC/zggrqf.f
+./SRC/zggsvd.f
+./SRC/zggsvp.f
+./SRC/zgtcon.f
+./SRC/zgtrfs.f
+./SRC/zgtsv.f
+./SRC/zgtsvx.f
+./SRC/zgttrf.f
+./SRC/zgttrs.f
+./SRC/zgtts2.f
+./SRC/zhbevd.f
+./SRC/zhbev.f
+./SRC/zhbevx.f
+./SRC/zhbgst.f
+./SRC/zhbgvd.f
+./SRC/zhbgv.f
+./SRC/zhbgvx.f
+./SRC/zhbtrd.f
+./SRC/zhecon.f
+./SRC/zheevd.f
+./SRC/zheev.f
+./SRC/zheevr.f
+./SRC/zheevx.f
+./SRC/zhegs2.f
+./SRC/zhegst.f
+./SRC/zhegvd.f
+./SRC/zhegv.f
+./SRC/zhegvx.f
+./SRC/zherfs.f
+./SRC/zhesv.f
+./SRC/zhesvx.f
+./SRC/zhetd2.f
+./SRC/zhetf2.f
+./SRC/zhetrd.f
+./SRC/zhetrf.f
+./SRC/zhetri.f
+./SRC/zhetrs.f
+./SRC/zhgeqz.f
+./SRC/zhpcon.f
+./SRC/zhpevd.f
+./SRC/zhpev.f
+./SRC/zhpevx.f
+./SRC/zhpgst.f
+./SRC/zhpgvd.f
+./SRC/zhpgv.f
+./SRC/zhpgvx.f
+./SRC/zhprfs.f
+./SRC/zhpsv.f
+./SRC/zhpsvx.f
+./SRC/zhptrd.f
+./SRC/zhptrf.f
+./SRC/zhptri.f
+./SRC/zhptrs.f
+./SRC/zhsein.f
+./SRC/zhseqr.f
+./SRC/zlabrd.f
+./SRC/zlacgv.f
+./SRC/zlacn2.f
+./SRC/zlacon.f
+./SRC/zlacp2.f
+./SRC/zlacpy.f
+./SRC/zlacrm.f
+./SRC/zlacrt.f
+./SRC/zladiv.f
+./SRC/zlaed0.f
+./SRC/zlaed7.f
+./SRC/zlaed8.f
+./SRC/zlaein.f
+./SRC/zlaesy.f
+./SRC/zlaev2.f
+./SRC/zlag2c.f
+./SRC/zlags2.f
+./SRC/zlagtm.f
+./SRC/zlahef.f
+./SRC/zlahqr.f
+./SRC/zlahr2.f
+./SRC/zlahrd.f
+./SRC/zlaic1.f
+./SRC/zlals0.f
+./SRC/zlalsa.f
+./SRC/zlalsd.f
+./SRC/zlangb.f
+./SRC/zlange.f
+./SRC/zlangt.f
+./SRC/zlanhb.f
+./SRC/zlanhe.f
+./SRC/zlanhp.f
+./SRC/zlanhs.f
+./SRC/zlanht.f
+./SRC/zlansb.f
+./SRC/zlansp.f
+./SRC/zlansy.f
+./SRC/zlantb.f
+./SRC/zlantp.f
+./SRC/zlantr.f
+./SRC/zlapll.f
+./SRC/zlapmt.f
+./SRC/zlaqgb.f
+./SRC/zlaqge.f
+./SRC/zlaqhb.f
+./SRC/zlaqhe.f
+./SRC/zlaqhp.f
+./SRC/zlaqp2.f
+./SRC/zlaqps.f
+./SRC/zlaqr0.f
+./SRC/zlaqr1.f
+./SRC/zlaqr2.f
+./SRC/zlaqr3.f
+./SRC/zlaqr4.f
+./SRC/zlaqr5.f
+./SRC/zlaqsb.f
+./SRC/zlaqsp.f
+./SRC/zlaqsy.f
+./SRC/zlar1v.f
+./SRC/zlar2v.f
+./SRC/zlarcm.f
+./SRC/zlarfb.f
+./SRC/zlarf.f
+./SRC/zlarfg.f
+./SRC/zlarft.f
+./SRC/zlarfx.f
+./SRC/zlargv.f
+./SRC/zlarnv.f
+./SRC/zlarrv.f
+./SRC/zlartg.f
+./SRC/zlartv.f
+./SRC/zlarzb.f
+./SRC/zlarz.f
+./SRC/zlarzt.f
+./SRC/zlascl.f
+./SRC/zlaset.f
+./SRC/zlasr.f
+./SRC/zlassq.f
+./SRC/zlaswp.f
+./SRC/zlasyf.f
+./SRC/zlatbs.f
+./SRC/zlatdf.f
+./SRC/zlatps.f
+./SRC/zlatrd.f
+./SRC/zlatrs.f
+./SRC/zlatrz.f
+./SRC/zlatzm.f
+./SRC/zlauu2.f
+./SRC/zlauum.f
+./SRC/zpbcon.f
+./SRC/zpbequ.f
+./SRC/zpbrfs.f
+./SRC/zpbstf.f
+./SRC/zpbsv.f
+./SRC/zpbsvx.f
+./SRC/zpbtf2.f
+./SRC/zpbtrf.f
+./SRC/zpbtrs.f
+./SRC/zpocon.f
+./SRC/zpoequ.f
+./SRC/zporfs.f
+./SRC/zposv.f
+./SRC/zposvx.f
+./SRC/zpotf2.f
+./SRC/zpotrf.f
+./SRC/zpotri.f
+./SRC/zpotrs.f
+./SRC/zppcon.f
+./SRC/zppequ.f
+./SRC/zpprfs.f
+./SRC/zppsv.f
+./SRC/zppsvx.f
+./SRC/zpptrf.f
+./SRC/zpptri.f
+./SRC/zpptrs.f
+./SRC/zptcon.f
+./SRC/zpteqr.f
+./SRC/zptrfs.f
+./SRC/zptsv.f
+./SRC/zptsvx.f
+./SRC/zpttrf.f
+./SRC/zpttrs.f
+./SRC/zptts2.f
+./SRC/zrot.f
+./SRC/zspcon.f
+./SRC/zspmv.f
+./SRC/zspr.f
+./SRC/zsprfs.f
+./SRC/zspsv.f
+./SRC/zspsvx.f
+./SRC/zsptrf.f
+./SRC/zsptri.f
+./SRC/zsptrs.f
+./SRC/zstedc.f
+./SRC/zstegr.f
+./SRC/zstein.f
+./SRC/zstemr.f
+./SRC/zsteqr.f
+./SRC/zsycon.f
+./SRC/zsymv.f
+./SRC/zsyr.f
+./SRC/zsyrfs.f
+./SRC/zsysv.f
+./SRC/zsysvx.f
+./SRC/zsytf2.f
+./SRC/zsytrf.f
+./SRC/zsytri.f
+./SRC/zsytrs.f
+./SRC/ztbcon.f
+./SRC/ztbrfs.f
+./SRC/ztbtrs.f
+./SRC/ztgevc.f
+./SRC/ztgex2.f
+./SRC/ztgexc.f
+./SRC/ztgsen.f
+./SRC/ztgsja.f
+./SRC/ztgsna.f
+./SRC/ztgsy2.f
+./SRC/ztgsyl.f
+./SRC/ztpcon.f
+./SRC/ztprfs.f
+./SRC/ztptri.f
+./SRC/ztptrs.f
+./SRC/ztrcon.f
+./SRC/ztrevc.f
+./SRC/ztrexc.f
+./SRC/ztrrfs.f
+./SRC/ztrsen.f
+./SRC/ztrsna.f
+./SRC/ztrsyl.f
+./SRC/ztrti2.f
+./SRC/ztrtri.f
+./SRC/ztrtrs.f
+./SRC/ztzrqf.f
+./SRC/ztzrzf.f
+./SRC/zung2l.f
+./SRC/zung2r.f
+./SRC/zungbr.f
+./SRC/zunghr.f
+./SRC/zungl2.f
+./SRC/zunglq.f
+./SRC/zungql.f
+./SRC/zungqr.f
+./SRC/zungr2.f
+./SRC/zungrq.f
+./SRC/zungtr.f
+./SRC/zunm2l.f
+./SRC/zunm2r.f
+./SRC/zunmbr.f
+./SRC/zunmhr.f
+./SRC/zunml2.f
+./SRC/zunmlq.f
+./SRC/zunmql.f
+./SRC/zunmqr.f
+./SRC/zunmr2.f
+./SRC/zunmr3.f
+./SRC/zunmrq.f
+./SRC/zunmrz.f
+./SRC/zunmtr.f
+./SRC/zupgtr.f
+./SRC/zupmtr.f)
+
+# Also add sources from INSTALL directory
+SET(LAPACK_SRCS
+  ${LAPACK_SRCS}
+  ./INSTALL/dlamch.f
+  ./INSTALL/dsecnd_EXT_ETIME.f
+  ./INSTALL/lsame.f
+  ./INSTALL/second_EXT_ETIME.f
+  ./INSTALL/slamch.f)
+
+SET(LAPACK_LIBNAME lapack)
+
+IF(WIN32 AND CMAKE_BUILD_TYPE STREQUAL "Debug")
+    SET(LAPACK_LIBNAME lapackd)
+ENDIF(WIN32 AND CMAKE_BUILD_TYPE STREQUAL "Debug")
+
+ADD_LIBRARY(${LAPACK_LIBNAME} STATIC ${LAPACK_SRCS})
+
+INSTALL(TARGETS ${LAPACK_LIBNAME}
+  ARCHIVE DESTINATION "${LIB_SUFFIX}/${CFS_ARCH_STR}")

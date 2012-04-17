@@ -2,8 +2,12 @@ set(muparser_source  "@muparser_source@")
 SET(CFS_SOURCE_DIR "@CFS_SOURCE_DIR@")
 SET(CFS_CXX_COMPILER_NAME "@CFS_CXX_COMPILER_NAME@")
 
+INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/CFS_macros.cmake")
+
 EXECUTE_PROCESS(
-  COMMAND ${CMAKE_COMMAND} -E copy_if_different "${CFS_SOURCE_DIR}/cfsdeps/muparser/CMakeLists.txt" "${muparser_source}/CMakeLists.txt"
+  COMMAND ${CMAKE_COMMAND} -E copy_if_different 
+  "${CFS_SOURCE_DIR}/cfsdeps/muparser/CMakeLists.txt"
+  "${muparser_source}/CMakeLists.txt"
 )
 
 SET(files
@@ -16,11 +20,7 @@ SET(files
   "src/muParserBase.cpp"
   "src/muParserCallback.cpp")
 
-foreach(file IN LISTS files)
-  MESSAGE("Converting newlines to UNIX for ${file}")
-  CONFIGURE_FILE(${file} ${muparser_source}/dummy.txt @ONLY NEWLINE_STYLE UNIX)
-  CONFIGURE_FILE(${muparser_source}/dummy.txt ${file} @ONLY NEWLINE_STYLE UNIX)
-endforeach(file)
+CHANGE_NEWLINE_STYLE("${files}" ${muparser_source}/dummy.txt UNIX)
 
 SET(patches
   "muparser-strfun45.patch"
@@ -38,9 +38,4 @@ SET(patches
 )
 ENDIF(CFS_CXX_COMPILER_NAME STREQUAL "ICC")
 
-foreach(patch IN LISTS patches)
-  MESSAGE("Applying patch ${patch}")
-  EXECUTE_PROCESS(
-    COMMAND patch -p0 -i "${CFS_SOURCE_DIR}/cfsdeps/muparser/${patch}"
-    )
-endforeach(patch)
+APPLY_PATCHES("${patches}" "${CFS_SOURCE_DIR}/cfsdeps/muparser")

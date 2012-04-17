@@ -8,7 +8,9 @@ set(boost_source  "${boost_prefix}/src/boost")
 # Set arguments to Boost CMake according to current configuration 
 #-------------------------------------------------------------------------------
 SET(CMAKE_ARGS
-  "-DCMAKE_COLOR_MAKEFILE:BOOL=OFF"
+  # "-DCMAKE_COLOR_MAKEFILE:BOOL=OFF"
+  # We do not want to see warning messages from external projects
+  "-DCMAKE_CXX_FLAGS:STRING=-w"
   "-DINSTALL_VERSIONED:BOOL=OFF"
   "-DCMAKE_INSTALL_PREFIX:PATH=${CFS_BINARY_DIR}"
   "-DZLIB_INCLUDE_DIR:PATH=${CFS_BINARY_DIR}/include"

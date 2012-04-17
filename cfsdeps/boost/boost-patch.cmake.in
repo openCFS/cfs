@@ -1,6 +1,8 @@
 SET(CFS_SOURCE_DIR "@CFS_SOURCE_DIR@")
 SET(CFS_CXX_COMPILER_NAME "@CFS_CXX_COMPILER_NAME@")
 
+INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/CFS_macros.cmake")
+
 SET(patches
   "boost-multi_array.patch"
   "boost-lexical_cast-format-string.patch"
@@ -22,9 +24,4 @@ IF(CFS_CXX_COMPILER_NAME STREQUAL "ICC")
     )
 ENDIF(CFS_CXX_COMPILER_NAME STREQUAL "ICC")
 
-foreach(patch IN LISTS patches)
-  MESSAGE("Applying patch ${patch}")
-  EXECUTE_PROCESS(
-    COMMAND patch -p0 -i "${CFS_SOURCE_DIR}/cfsdeps/boost/${patch}"
-    )
-endforeach(patch)
+APPLY_PATCHES("${patches}" "${CFS_SOURCE_DIR}/cfsdeps/boost")

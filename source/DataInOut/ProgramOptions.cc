@@ -41,6 +41,8 @@
 #include <bzlib.h>
 #include <zlib.h>
 
+#include <H5public.h>
+
 #ifdef USE_ILUPACK
 #include <amd.h>
 #endif
@@ -751,7 +753,10 @@ namespace CoupledField {
     out << "USE_HDF5:              "
         << fg_blue << "YES" << fg_reset << endl;
     out << "CFS_HDF5_VERSION:      "
-        << fg_blue << CFS_HDF5_VERSION << fg_reset << endl;
+        << fg_blue 
+        << H5_VERS_MAJOR << "."
+        << H5_VERS_MINOR << "."
+        << H5_VERS_RELEASE << fg_reset << endl;
  #else
     out << "USE_HDF5:              "
         << fg_blue << "NO" << fg_reset << endl;

@@ -1,0 +1,22 @@
+set(lapack_source  "@lapack_source@")
+SET(CFS_SOURCE_DIR "@CFS_SOURCE_DIR@")
+SET(CFS_CXX_COMPILER_NAME "@CFS_CXX_COMPILER_NAME@")
+
+INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/CFS_macros.cmake")
+
+
+FILE(READ "${CFS_SOURCE_DIR}/cfsdeps/lapack/CMakeLists.txt" lines)
+
+foreach(line IN LISTS lines)
+  STRING(REGEX REPLACE "[sd]lazq[3-4].f"
+    "" line
+    ${line})
+
+  foreach(part IN LISTS line)
+    LIST(APPEND OUTPUT "${part}")
+  endforeach(part)
+endforeach(line)
+
+FILE(WRITE "${lapack_source}/CMakeLists.txt" "${OUTPUT}")
+
+

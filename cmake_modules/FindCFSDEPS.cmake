@@ -123,7 +123,11 @@ INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindCMake.cmake")
 # Search for HDF5 library
 #-------------------------------------------------------------------------------
 IF(USE_HDF5)
-  INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindHDF5.cmake")
+  SET(HDF5_URL "${LSE17_SOURCES_DIR}/hdf5")
+  SET(HDF5_GZ "hdf5-1.8.8.tar.gz")
+  SET(HDF5_MD5 "1196e668f5592bfb50d1de162eb16cff")
+
+  INCLUDE("${CFS_SOURCE_DIR}/cfsdeps/hdf5/External_HDF5.cmake")
 ENDIF(USE_HDF5)
 
 #-------------------------------------------------------------------------------
@@ -174,9 +178,13 @@ IF(USE_BLAS OR USE_LAPACK)
   #-----------------------------------------------------------------------------
   # Find Netlib BLAS/LAPACK library
   #-----------------------------------------------------------------------------
-  IF(CFS_BLAS_LAPACK STREQUAL "NETLIB")
-    INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindLAPACK.cmake")
-  ENDIF(CFS_BLAS_LAPACK STREQUAL "NETLIB")
+#  IF(CFS_BLAS_LAPACK STREQUAL "NETLIB")
+    SET(LAPACK_URL "${LSE17_SOURCES_DIR}/lapack")
+    SET(LAPACK_GZ "lapack-3.2.1.tgz")
+    SET(LAPACK_MD5 "a3202a4f9e2f15ffd05d15dab4ac7857")
+
+    INCLUDE("${CFS_SOURCE_DIR}/cfsdeps/lapack/External_LAPACK.cmake")
+# ENDIF(CFS_BLAS_LAPACK STREQUAL "NETLIB")
 
   #-----------------------------------------------------------------------------
   # Search for Pardiso Library

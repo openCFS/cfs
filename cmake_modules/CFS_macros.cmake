@@ -198,3 +198,25 @@ ${RESULT} ${${RESULT}})
     ENDIF (WIN32)
 ENDMACRO (TODAY)
 
+#-------------------------------------------------------------------------------
+# Convert new line style of files
+#-------------------------------------------------------------------------------
+MACRO (CHANGE_NEWLINE_STYLE FILES TEMPFILE STYLE)
+  foreach(file ${FILES})
+    MESSAGE("Converting newlines to ${STYLE} for ${file}")
+    CONFIGURE_FILE(${file} ${TEMPFILE} @ONLY NEWLINE_STYLE ${STYLE})
+    CONFIGURE_FILE(${TEMPFILE} ${file} @ONLY NEWLINE_STYLE ${STYLE})
+  endforeach(file)
+ENDMACRO (CHANGE_NEWLINE_STYLE)
+
+#-------------------------------------------------------------------------------
+# Apply patches
+#-------------------------------------------------------------------------------
+MACRO (APPLY_PATCHES PATCHES INPUTDIR)
+  foreach(patch ${PATCHES})
+    MESSAGE("Applying patch ${patch}")
+    EXECUTE_PROCESS(
+      COMMAND patch -p0 -i "${INPUTDIR}/${patch}" OUTPUT_QUIET
+      )
+  endforeach(patch)
+ENDMACRO (APPLY_PATCHES)
