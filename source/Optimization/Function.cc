@@ -1856,7 +1856,13 @@ double Function::Local::Identifier::CalcSumModuli() const
     case DesignElement::GMODUL:
       G = GetElement(i)->GetDesign(DesignElement::PLAIN);
       break;
+    case DesignElement::POISSON:
+    case DesignElement::POISSONISO:
+    case DesignElement::DENSITY:
+      break;
+
     default:
+      assert(false);
       break;
     }
   }
@@ -1886,7 +1892,13 @@ double Function::Local::Identifier::CalcParamPSPosDef(int neigh_idx, bool deriva
     case DesignElement::POISSON:
       nu31 = GetElement(i)->GetDesign(DesignElement::PLAIN);
       break;
+    case DesignElement::GMODUL:
+    case DesignElement::POISSONISO:
+    case DesignElement::DENSITY:
+      break;
+
     default:
+      assert(false);
       break;
     }
   }
@@ -1904,7 +1916,7 @@ double Function::Local::Identifier::CalcParamPSPosDef(int neigh_idx, bool deriva
     }
   else
   {
-    LOG_TRACE2(func) << "Local::Local e_num=" << element->elem->elemNum << ", E3-E1*nu31^2=" << E3-E1*nu31*nu31;
+    LOG_DBG3(func) << "Local::Local e_num=" << element->elem->elemNum << ", E3-E1*nu31^2=" << E3-E1*nu31*nu31;
     return E3-E1*nu31*nu31;
   }
 }

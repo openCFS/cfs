@@ -211,7 +211,7 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
               data.Push_back(de);
               totalElements_.Push_back(&data.Last());
               // append rucksack :)
-              if(method == ErsatzMaterial::SIMP_METHOD)
+              if(method == ErsatzMaterial::SIMP_METHOD || method == ErsatzMaterial::PARAM_MAT)
               {
                 DesignElement* ptr = &(data.Last());
                 ptr->simp = new SIMPElement(ptr);
@@ -609,7 +609,7 @@ bool DesignSpace::CollectMaterialParametersForElement(const Elem* elem){
 
   for(unsigned int index = base; index < data.GetSize(); index += elements){
     DesignElement* de = &data[index];
-    designMaterial->SetParameter(de->GetType(), de->GetDesign(DesignElement::PLAIN));
+    designMaterial->SetParameter(de->GetType(), de->GetDesign(DesignElement::SMART));
   }
   return(true);
 }
