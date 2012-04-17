@@ -14,6 +14,7 @@ set(hdf5_source  "${hdf5_prefix}/src/hdf5")
 #-------------------------------------------------------------------------------
 SET(CMAKE_ARGS
   -DCMAKE_INSTALL_PREFIX:PATH=${hdf5_install}
+  -DCMAKE_COLOR_MAKEFILE:BOOL=${CMAKE_COLOR_MAKEFILE}
   -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
   -DCMAKE_C_COMPILER:FILEPATH=${CMAKE_C_COMPILER}
   -DCMAKE_CXX_COMPILER:FILEPATH=${CMAKE_CXX_COMPILER}
@@ -24,6 +25,7 @@ SET(CMAKE_ARGS
   -DHDF5_INSTALL_LIB_DIR:PATH=${LIB_SUFFIX}/${CFS_ARCH_STR}
   # We do not want to see warning messages from external projects
   -DCMAKE_C_FLAGS:STRING=-w
+  -DCMAKE_CXX_FLAGS:STRING=-w
 )
 
 #-------------------------------------------------------------------------------

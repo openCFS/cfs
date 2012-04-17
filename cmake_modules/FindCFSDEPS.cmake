@@ -138,7 +138,7 @@ IF(USE_METIS)
   SET(METIS_GZ "metis-4.0.3.tar.gz")
   SET(METIS_MD5 "d3848b454532ef18dc83e4fb160d1e10")
 
-  INCLUDE("${CFS_SOURCE_DIR}/cfsdeps/metis/External_metis.cmake")
+  INCLUDE("${CFS_SOURCE_DIR}/cfsdeps/metis/External_METIS.cmake")
 ENDIF(USE_METIS)
 
 #-------------------------------------------------------------------------------
@@ -178,13 +178,13 @@ IF(USE_BLAS OR USE_LAPACK)
   #-----------------------------------------------------------------------------
   # Find Netlib BLAS/LAPACK library
   #-----------------------------------------------------------------------------
-#  IF(CFS_BLAS_LAPACK STREQUAL "NETLIB")
+  IF(CFS_BLAS_LAPACK STREQUAL "NETLIB")
     SET(LAPACK_URL "${LSE17_SOURCES_DIR}/lapack")
     SET(LAPACK_GZ "lapack-3.2.1.tgz")
     SET(LAPACK_MD5 "a3202a4f9e2f15ffd05d15dab4ac7857")
 
     INCLUDE("${CFS_SOURCE_DIR}/cfsdeps/lapack/External_LAPACK.cmake")
-# ENDIF(CFS_BLAS_LAPACK STREQUAL "NETLIB")
+ ENDIF(CFS_BLAS_LAPACK STREQUAL "NETLIB")
 
   #-----------------------------------------------------------------------------
   # Search for Pardiso Library
