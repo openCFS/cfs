@@ -34,6 +34,7 @@ cfsdeps/cgal/cgal-turkowski-size_t.patch -text
 cfsdeps/gidpost/CMakeLists.txt -text
 cfsdeps/gidpost/External_GiDpost.cmake -text
 cfsdeps/gidpost/gidpost-patch.cmake.in -text
+cfsdeps/gidpost/gidpost-sprintf-format.patch -text
 cfsdeps/hdf5/External_HDF5.cmake -text
 cfsdeps/lapack/CMakeLists.txt -text
 cfsdeps/lapack/External_LAPACK.cmake -text
