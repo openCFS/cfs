@@ -9,6 +9,7 @@ set(ilupack_install  "${CMAKE_CURRENT_BINARY_DIR}")
 # Set common CMake arguments
 #-------------------------------------------------------------------------------
 SET(CMAKE_ARGS
+  -DCMAKE_COLOR_MAKEFILE:BOOL=${CMAKE_COLOR_MAKEFILE}
   -DCMAKE_INSTALL_PREFIX:PATH=${ilupack_install}
   -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
   -DCMAKE_C_COMPILER:FILEPATH=${CMAKE_C_COMPILER}
