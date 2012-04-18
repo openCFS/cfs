@@ -25,7 +25,7 @@ namespace CoupledField {
   class MathParser;
   class BaseResult;
   class AlgebraicSys;
-  template<typename type> class BaseBOperator;
+  class BaseBOperator;
   //class BaseTimeScheme;
 
 //!  Base class for a function approximated by Finite Elements 
@@ -312,7 +312,7 @@ public:
 protected:
 
   //! generates an interpolation operator by determining the space used
-  BaseBOperator<T>* GenerateInterpolationOperator(UInt dim, UInt dofDim);
+  BaseBOperator* GenerateInterpolationOperator(UInt dim, UInt dofDim);
 
   //! Update factor for time derivative (only complex case)
   void UpdateTimeDeriv();
@@ -321,7 +321,7 @@ protected:
   Vector<T> * coeffs_;
   
   //! Interpolation operator
-  BaseBOperator<T>* idOp_;
+  BaseBOperator* idOp_;
 
   //! Time derivative order (only complex valued case)
   UInt timeDerivOrder_;

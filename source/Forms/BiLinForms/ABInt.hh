@@ -30,6 +30,7 @@ namespace CoupledField {
         this->aOperator_.SetCoefFunction(coef);
       }
 
+      
     protected:
       
       //! First differential operator

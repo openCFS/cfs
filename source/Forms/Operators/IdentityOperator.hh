@@ -33,7 +33,7 @@
 namespace CoupledField{
   
   template<class FE, UInt D = 1, UInt D_DOF = 1, class TYPE = Double>
-  class IdentityOperator : public BaseBOperator<TYPE>{
+  class IdentityOperator : public BaseBOperator{
 
   public:
     
@@ -76,10 +76,40 @@ namespace CoupledField{
 
     //avoid reimplementation of complex operator by making the bas class function
     //available
-    using BaseBOperator<TYPE>::CalcOpMat;
+    using BaseBOperator::CalcOpMat;
 
-    using BaseBOperator<TYPE>::CalcOpMatTransposed;
+    using BaseBOperator::CalcOpMatTransposed;
 
+    // ===============
+    //  QUERY METHODS
+    // ===============
+    //@{ \name Query Methods
+    //! \copydoc BaseBOperator::GetDiffOrder
+    virtual UInt GetDiffOrder() const {
+      return ORDER_DIFF;
+    }
+
+    //! \copydoc BaseBOperator::GetDimDof()
+    virtual UInt GetDimDof() const {
+      return DIM_DOF;
+    }
+
+    //! \copydoc BaseBOperator::GetDimSpace()
+    virtual UInt GetDimSpace() const {
+      return DIM_SPACE;
+    }
+
+    //! \copydoc BaseBOperator::GetDimElem()
+    virtual UInt GetDimElem() const {
+      return DIM_ELEM;
+    }
+
+    //! \copydoc BaseBOperator::GetDimDMat()
+    virtual UInt GetDimDMat() const {
+      return DIM_D_MAT;
+    }
+    //@}
+    
   protected:
 
 };
@@ -132,7 +162,7 @@ namespace CoupledField{
   
   //! Specialization for edge curl problems
   template<UInt D, class TYPE >
-  class IdentityOperator<FeHCurl, D,1, TYPE> : public BaseBOperator<TYPE>{
+  class IdentityOperator<FeHCurl, D,1, TYPE> : public BaseBOperator{
     public:
     // =============================================
     //  STATIC CONSTANTS 
@@ -177,7 +207,36 @@ namespace CoupledField{
         fe->GetShFnc( xiDx, lp, lp.shapeMap->GetElem(), 0);
         xiDx.Transpose(bMat);
       }
+      // ===============
+      //  QUERY METHODS
+      // ===============
+      //@{ \name Query Methods
+      //! \copydoc BaseBOperator::GetDiffOrder
+      virtual UInt GetDiffOrder() const {
+        return ORDER_DIFF;
+      }
 
+      //! \copydoc BaseBOperator::GetDimDof()
+      virtual UInt GetDimDof() const {
+        return DIM_DOF;
+      }
+
+      //! \copydoc BaseBOperator::GetDimSpace()
+      virtual UInt GetDimSpace() const {
+        return DIM_SPACE;
+      }
+
+      //! \copydoc BaseBOperator::GetDimElem()
+      virtual UInt GetDimElem() const {
+        return DIM_ELEM;
+      }
+
+      //! \copydoc BaseBOperator::GetDimDMat()
+      virtual UInt GetDimDMat() const {
+        return DIM_D_MAT;
+      }
+      //@}
+      
     protected:
 
   };

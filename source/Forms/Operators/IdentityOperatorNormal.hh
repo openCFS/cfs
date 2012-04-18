@@ -15,7 +15,7 @@ namespace CoupledField{
   //!
   //! and is of size (DIM_SPACE x Number of functions).
   template<class FE, UInt D , class TYPE = Double>
-  class IdentityOperatorNormal : public BaseBOperator<TYPE>{
+  class IdentityOperatorNormal : public BaseBOperator{
 
   public:
     
@@ -58,10 +58,40 @@ namespace CoupledField{
 
     //avoid reimplementation of complex operator by making the bas class function
     //available
-    using BaseBOperator<TYPE>::CalcOpMat;
+    using BaseBOperator::CalcOpMat;
 
-    using BaseBOperator<TYPE>::CalcOpMatTransposed;
+    using BaseBOperator::CalcOpMatTransposed;
 
+    // ===============
+    //  QUERY METHODS
+    // ===============
+    //@{ \name Query Methods
+    //! \copydoc BaseBOperator::GetDiffOrder
+    virtual UInt GetDiffOrder() const {
+      return ORDER_DIFF;
+    }
+
+    //! \copydoc BaseBOperator::GetDimDof()
+    virtual UInt GetDimDof() const {
+      return DIM_DOF;
+    }
+
+    //! \copydoc BaseBOperator::GetDimSpace()
+    virtual UInt GetDimSpace() const {
+      return DIM_SPACE;
+    }
+
+    //! \copydoc BaseBOperator::GetDimElem()
+    virtual UInt GetDimElem() const {
+      return DIM_ELEM;
+    }
+
+    //! \copydoc BaseBOperator::GetDimDMat()
+    virtual UInt GetDimDMat() const {
+      return DIM_D_MAT;
+    }
+    //@}
+    
   protected:
 
 };
@@ -161,9 +191,9 @@ namespace CoupledField{
 
     //avoid reimplementation of complex operator by making the bas class function
     //available
-    using BaseBOperator<TYPE>::CalcOpMat;
+    using BaseBOperator::CalcOpMat;
 
-    using BaseBOperator<TYPE>::CalcOpMatTransposed;
+    using BaseBOperator::CalcOpMatTransposed;
 
   protected:
 

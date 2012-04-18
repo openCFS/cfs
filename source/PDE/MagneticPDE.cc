@@ -24,7 +24,8 @@
 
 // new postprocessing concept
 #include "Domain/Results/ResultFunctor.hh"
-#include "Forms/Operators/IdentityOperator.hh"
+#include "Domain/CoefFunction/CoefFunctionFormBased.hh"
+
 
 #include "Driver/SolveSteps/StdSolveStep.hh"
 #include "Driver/TimeSchemes/TimeSchemeGLM.hh"
@@ -417,10 +418,10 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode )
   // ======================================================
   // TIME STEPPING SECTION
   // ======================================================
-  void MagneticPDE::InitTimeStepping()
-  {
-//    shared_ptr<BaseTimeScheme> myScheme(new TimeSchemeGLM(TimeSchemeGLM::NEWMARK, 2) );
-//    feFunctions_[MECH_DISPLACEMENT]->SetTimeScheme(myScheme);
+  void MagneticPDE::InitTimeStepping() {
+    shared_ptr<BaseTimeScheme> myScheme(new TimeSchemeGLM(TimeSchemeGLM::TRAPEZOIDAL, 0) );
+    feFunctions_[MAG_POTENTIAL]->SetTimeScheme(myScheme);
+
   }
 
 
@@ -532,36 +533,9 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode )
     vecFct->SetResultInfo(res1);
     DefineFieldResult( vecFct, res1);
     
-//    // define related interpolatory method
-//    shared_ptr<BaseFieldFunctor> vFunc;
-//    if( isComplex_ ) {
-//      if( dim_ == 2 ) {
-//      vFunc.reset(
-//          new FieldInterpolFunctor<IdentityOperator<FeH1,2,2,Complex>,
-//          Complex>(vecFct, res1));
-//      } else {
-//        vFunc.reset(
-//            new FieldInterpolFunctor<IdentityOperator<FeH1,3,3,Complex>,
-//            Complex>(vecFct, res1));
-//      }
-//    } else {
-//      if( dim_ == 2 ) {
-//      vFunc.reset(
-//          new FieldInterpolFunctor<IdentityOperator<FeH1,2,2>,
-//          Double>(vecFct, res1));
-//      } else {
-//        vFunc.reset(
-//            new FieldInterpolFunctor<IdentityOperator<FeH1,3,3>,
-//            Double>(vecFct, res1));
-//      }
-//    }
-//    resultFunctors_[MAG_POTENTIAL] = vFunc;
-//    fieldFunctors_[MAG_POTENTIAL] = vFunc;
-
     
     // === MAGNETIC SCALAR POTENTIAL ===
     if (isMixed_) {
-      
       shared_ptr<BaseFeFunction> scalFct = feFunctions_[ELEC_POTENTIAL];
       shared_ptr<ResultInfo> res2(new ResultInfo);
       res2->resultType = ELEC_POTENTIAL;
@@ -573,124 +547,52 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode )
       availResults_.insert( res2 );
       scalFct->SetResultInfo(res2);
       DefineFieldResult( scalFct, res2 );
-//
-//      // define related interpolatory method
-//      shared_ptr<BaseFieldFunctor> sFunc;
-//      if( isComplex_ ) {
-//        sFunc.reset(new FieldInterpolFunctor<IdentityOperator<FeH1,3,1,Complex>,
-//        Complex>(scalFct, res2));
-//      } else {
-//        sFunc.reset(
-//            new FieldInterpolFunctor<IdentityOperator<FeH1,3,1,Double>,
-//            Double>(scalFct, res2));
-//      }
-//      resultFunctors_[ELEC_POTENTIAL] = sFunc;
-//      fieldFunctors_[ELEC_POTENTIAL] = sFunc;
-
     }
-    
     
   }
     
   void MagneticPDE::DefinePostProcResults() {
     StdVector<std::string> vecComponents;
-       if( dim_ == 3 ) {
-         vecComponents = "x", "y", "z";
-       }
-       else if( isaxi_ ) {
-         vecComponents = "r", "phi";
-       } 
-       else {
-         vecComponents = "x", "y";
-       }
-       shared_ptr<BaseFeFunction> feFct = feFunctions_[MAG_POTENTIAL];
-             
-       // === MAGNETIC FLUX DENSITY ===
-       shared_ptr<ResultInfo> flux(new ResultInfo);
-       flux->resultType = MAG_FLUX_DENSITY;
-       flux->dofNames = vecComponents;
-       flux->unit = "Vs/m^2";
-       flux->definedOn = ResultInfo::ELEMENT;
-       flux->entryType = ResultInfo::VECTOR;
-       availResults_.insert( flux );
-       shared_ptr<BaseFieldFunctor> bFunc;
-       if( isComplex_ ) {
-         bFunc.reset(new DiffFieldFunctor<Complex>(feFct, flux));
-       } else {
-         bFunc.reset(new DiffFieldFunctor<Double>(feFct, flux));
-       }
-       DefineFieldResult( bFunc, flux );
-//       resultFunctors_[MAG_FLUX_DENSITY] = bFunc;
-//       fieldFunctors_[MAG_FLUX_DENSITY] = bFunc;
-//    
-//    
-//    StdVector<std::string > dispDofNames;
-//    dispDofNames = feFunctions_[MECH_DISPLACEMENT]->GetResultInfo()->dofNames;
-//    shared_ptr<BaseFeFunction> feFct = feFunctions_[MECH_DISPLACEMENT];
-//    
-//    // === MECHANIC STRESS ===
-//    shared_ptr<ResultInfo> stress(new ResultInfo);
-//    stress->resultType = MECH_STRESS;
-//    stress->dofNames = stressComponents;
-//    stress->unit =  "N/m^2";
-//    stress->entryType = ResultInfo::TENSOR;
-//    stress->definedOn = ResultInfo::ELEMENT;
-//    availResults_.insert( stress );
-//    shared_ptr<BaseFieldFunctor> sigmaFunc;
-//    if( isComplex_ ) {
-//      sigmaFunc.reset(new FluxFieldFunctor<Complex>(feFct, stress));
-//    } else {
-//      sigmaFunc.reset(new FluxFieldFunctor<Double>(feFct, stress));
-//    }
-//    resultFunctors_[MECH_STRESS] = sigmaFunc;
-//    fieldFunctors_[MECH_STRESS] = sigmaFunc;
-//       
-//    
-//    
-//    // === MECHANIC STRAIN ===
-//    shared_ptr<ResultInfo> strain(new ResultInfo);
-//    strain->resultType = MECH_STRAIN;
-//    strain->dofNames = stressComponents;
-//    strain->unit =  "";
-//    strain->entryType = ResultInfo::TENSOR;
-//    strain->definedOn = ResultInfo::ELEMENT;
-//    availResults_.insert( strain );
-//    shared_ptr<BaseFieldFunctor> strainFunc;
-//    if( isComplex_ ) {
-//      strainFunc.reset(new DiffFieldFunctor<Complex>(feFct, strain));
-//    } else {
-//      strainFunc.reset(new DiffFieldFunctor<Double>(feFct, strain));
-//    }
-//    resultFunctors_[MECH_STRAIN] = strainFunc;
-//    fieldFunctors_[MECH_STRAIN] = strainFunc;
-//
-//    // ============================
-//    // Initialize result functors:
-//    // ============================
-//    // 1) Loop over all BDB-integrators
-//    std::map<RegionIdType, BaseBDBInt*>::iterator it = bdbInts_.begin();
-//    for( ; it != bdbInts_.end(); ++it ) {
-//      RegionIdType region = it->first;
-//      BaseBDBInt* bdb = it->second;
-//
-//      // 2) pass integrators to functors
-//      sigmaFunc->AddIntegrator(bdb, region);
-//      strainFunc->AddIntegrator(bdb, region);
-//    }
-//    
-       
-       // ============================
-       // Initialize result functors:
-       // ============================
-       // 1) Loop over all BDB-integrators
-       std::map<RegionIdType, BaseBDBInt*>::iterator it = bdbInts_.begin();
-       for( ; it != bdbInts_.end(); ++it ) {
-         RegionIdType region = it->first;
-         BaseBDBInt* bdb = it->second;
+    if( dim_ == 3 ) {
+      vecComponents = "x", "y", "z";
+    }
+    else if( isaxi_ ) {
+      vecComponents = "r", "phi";
+    } 
+    else {
+      vecComponents = "x", "y";
+    }
+    shared_ptr<BaseFeFunction> feFct = feFunctions_[MAG_POTENTIAL];
 
-         // 2) pass integrators to functors
-         bFunc->AddIntegrator(bdb, region);
-       }
+    // === MAGNETIC FLUX DENSITY ===
+    shared_ptr<ResultInfo> flux(new ResultInfo);
+    flux->resultType = MAG_FLUX_DENSITY;
+    flux->dofNames = vecComponents;
+    flux->unit = "Vs/m^2";
+    flux->definedOn = ResultInfo::ELEMENT;
+    flux->entryType = ResultInfo::VECTOR;
+    availResults_.insert( flux );
+    shared_ptr<CoefFunctionFormBased> bFunc;
+    if( isComplex_ ) {
+      bFunc.reset(new CoefFunctionBOp<Complex>(feFct, flux));
+    } else {
+      bFunc.reset(new CoefFunctionBOp<Double>(feFct, flux));
+    }
+    DefineFieldResult( bFunc, flux );
+
+
+    // ============================
+    // Initialize result functors:
+    // ============================
+    // 1) Loop over all BDB-integrators
+    std::map<RegionIdType, BaseBDBInt*>::iterator it = bdbInts_.begin();
+    for( ; it != bdbInts_.end(); ++it ) {
+      RegionIdType region = it->first;
+      BaseBDBInt* bdb = it->second;
+
+      // 2) pass integrators to functors
+      bFunc->AddIntegrator(bdb, region);
+    }
 
   }
   

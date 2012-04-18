@@ -49,8 +49,13 @@ public:
     
   //! Destructor
   virtual ~BaseBDBInt() {
-    
   }
+  
+  //! Obtain differential operator
+  virtual BaseBOperator* GetBOp() = 0;
+  
+  //! Obtain coefficient function
+  virtual PtrCoefFct GetCoef() = 0; 
   
   //@{
   //! Apply / multiply element matrix to vector
@@ -229,6 +234,16 @@ public:
       //! Destructor
       virtual ~BDBInt();
 
+      //! \copydoc BaseBDBInt::GetBOp
+      virtual BaseBOperator* GetBOp() {
+        return &bOperator_;
+      }
+      
+      //! \copydoc BaseBDBInt::GetCoef
+      virtual PtrCoefFct GetCoef() {
+        return dData_;
+      }
+      
       //! Compute element matrix associated to BDB form
       void CalcElementMatrix( Matrix<MAT_DATA_TYPE>& elemMat,
                               EntityIterator& ent1,

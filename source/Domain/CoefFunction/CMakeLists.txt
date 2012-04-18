@@ -1,12 +1,10 @@
 SET(COEFFUNCTION_SRCS
   CoefXpr.cc
   CoefFunction.cc
-  CoefFunctionBdBKernel.cc
-  CoefFunctionBOp.cc
+  CoefFunctionFormBased.cc
   CoefFunctionCompound.cc
   CoefFunctionConst.cc
   CoefFunctionExpression.cc
-  CoefFunctionFlux.cc
   CoefFunctionGrid.cc
   CoefFunctionMulti.cc
   CoefFunctionTimeFreq.cc

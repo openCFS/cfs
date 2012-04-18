@@ -21,7 +21,7 @@
 namespace CoupledField{
 
   template<class FE, UInt D, UInt D_DOF, class TYPE = Double>
-  class ConvectiveOperator : public BaseBOperator<TYPE>{
+  class ConvectiveOperator : public BaseBOperator{
     public:
     // ------------------
     //  STATIC CONSTANTS
@@ -73,7 +73,36 @@ namespace CoupledField{
       EXCEPTION("ConvectiveOperator::CalcOpMatTransposed not implement for Complex");
     }
 
+    // ===============
+    //  QUERY METHODS
+    // ===============
+    //@{ \name Query Methods
+    //! \copydoc BaseBOperator::GetDiffOrder
+    virtual UInt GetDiffOrder() const {
+      return ORDER_DIFF;
+    }
 
+    //! \copydoc BaseBOperator::GetDimDof()
+    virtual UInt GetDimDof() const {
+      return DIM_DOF;
+    }
+
+    //! \copydoc BaseBOperator::GetDimSpace()
+    virtual UInt GetDimSpace() const {
+      return DIM_SPACE;
+    }
+
+    //! \copydoc BaseBOperator::GetDimElem()
+    virtual UInt GetDimElem() const {
+      return DIM_ELEM;
+    }
+
+    //! \copydoc BaseBOperator::GetDimDMat()
+    virtual UInt GetDimDMat() const {
+      return DIM_D_MAT;
+    }
+    //@}
+    
     protected:
 
   };

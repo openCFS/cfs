@@ -2,6 +2,121 @@
 
 namespace CoupledField {
 
+
+// --------------------------------------------------------------------------
+//  RESULT BASED ON COEFFICIENT FUNCTION
+// --------------------------------------------------------------------------
+template<class TYPE> FieldCoefFunctor<TYPE>::
+  FieldCoefFunctor( PtrCoefFct coef,
+                    shared_ptr<ResultInfo> inf ) :
+                     ResultFunctor(  inf) {
+    coef_ = coef;
+  }
+
+template<class TYPE> FieldCoefFunctor<TYPE>::
+~FieldCoefFunctor() {
+}
+
+  
+template<class TYPE> void FieldCoefFunctor<TYPE>::
+EvalResult( shared_ptr<BaseResult> res ) {
+
+  Result<TYPE>& actSol = static_cast<Result<TYPE>& >(*res);
+  EntityIterator it = actSol.GetEntityList()->GetIterator();
+  Vector<TYPE>& vec = actSol.GetVector();
+  Vector<TYPE> tempField;
+  vec.Resize( it.GetSize() * this->dim_ );
+
+  // loop over elements
+  for ( it.Begin(); !it.IsEnd(); it++ ) {
+    const Elem * el = it.GetElem();
+    LocPoint lp = Elem::shapes[el->type].midPointCoord;
+    LocPointMapped lpm;
+    shared_ptr<ElemShapeMap> esm = 
+        this->ptGrid_->GetElemShapeMap( el, true );
+    lpm.Set( lp, esm );
+    this->GetVector(tempField, lpm );
+    // loop over dofs
+    for(UInt iDim = 0; iDim < dim_; iDim++ ) {
+      vec[it.GetPos()*dim_ + iDim] = tempField[iDim];
+    }
+  }
+}
+
+template<class TYPE> void FieldCoefFunctor<TYPE>::
+GetVector(Vector<TYPE>& vec, 
+          const LocPointMapped& lpm) {
+  switch( coef_->GetDimType()) {
+    case CoefFunction::VECTOR:
+      coef_->GetVector( vec, lpm );
+      break;
+    case CoefFunction::SCALAR:
+      vec.Resize(1);
+      coef_->GetScalar( vec[0], lpm );
+      break;
+    case CoefFunction::TENSOR:
+      EXCEPTION("Not implemented");
+      break;
+    default:
+      EXCEPTION("Missing case statement");
+      break;
+  }
+}
+
+template class FieldCoefFunctor<Double>;
+template class FieldCoefFunctor<Complex>;
+
+// --------------------------------------------------------------------------
+//  FIELDS BASED ON ENERGY
+// --------------------------------------------------------------------------
+
+template<class TYPE> EnergyResultFunctor<TYPE>::
+EnergyResultFunctor(shared_ptr<BaseFeFunction> feFct,
+                    shared_ptr<ResultInfo> inf ) :
+                    ResultFunctor( inf) {
+  feFct_ = dynamic_pointer_cast<FeFunction<TYPE> >(feFct);
+  derivType_ = INTEGRATED;
+}
+  
+template<class TYPE> EnergyResultFunctor<TYPE>::
+  ~EnergyResultFunctor() {
+}
+
+template<class TYPE> void EnergyResultFunctor<TYPE>::
+EvalResult(shared_ptr<BaseResult> res ) {
+  Result<TYPE>& actSol = static_cast<Result<TYPE>& >(*res);
+  EntityIterator regionIt = actSol.GetEntityList()->GetIterator();
+  Vector<TYPE>& vec = actSol.GetVector();
+  vec.Resize( regionIt.GetSize() );
+
+  // Loop over regions
+  for( regionIt.Begin(); !regionIt.IsEnd(); regionIt++ ) {
+    ElemList actSDList(ptGrid_);
+    actSDList.SetRegion( regionIt.GetRegion() );
+    EntityIterator elemIt = actSDList.GetIterator();
+
+    TYPE tempEnergy = 0.0;
+    // loop over elements
+    for ( elemIt.Begin(); !elemIt.IsEnd(); elemIt++ ) {
+      const Elem * el = elemIt.GetElem();
+      forms_[el->regionId]->CalcElementMatrix(elemMat, 
+                                              elemIt, elemIt);
+
+      // energy density is 1/2 * elemSol^T * kernel * elemSol
+      this->feFct_->GetElemSolution( elemSol, el);
+      temp = elemMat * elemSol;
+      tempEnergy += (temp * elemSol) * 0.5;
+    }
+    vec[regionIt.GetPos()] = tempEnergy;
+  }
+}
+
+template class EnergyResultFunctor<Complex>;
+template class EnergyResultFunctor<Double>;
+// --------------------------------------------------------------------------
+//  QUANTITIES DERIVED BY SURFACE / VOLUME INTEGRATION
+// --------------------------------------------------------------------------
+
 template<class TYPE> ResultFunctorIntegrate<TYPE>::
 ResultFunctorIntegrate( PtrCoefFct coef,
                         shared_ptr<BaseFeFunction> feFct,

@@ -23,7 +23,7 @@
 
 namespace CoupledField{
   template<class FE, UInt D, class TYPE>
-  class CurlOperator : public BaseBOperator<TYPE>{
+  class CurlOperator : public BaseBOperator{
     public:
     
     CurlOperator();
@@ -42,9 +42,9 @@ namespace CoupledField{
 
       //avoid reimplementation of complex operator by making the bas class function
       //available, template caused
-      using BaseBOperator<TYPE>::CalcOpMat;
+      using BaseBOperator::CalcOpMat;
 
-      using BaseBOperator<TYPE>::CalcOpMatTransposed;
+      using BaseBOperator::CalcOpMatTransposed;
 
     protected:
 
@@ -56,7 +56,7 @@ namespace CoupledField{
   // ===================================
   //!Specialized class for HCurl elements
   template<UInt D, class TYPE >
-  class CurlOperator<FeHCurl,D,TYPE> : public BaseBOperator<TYPE>{
+  class CurlOperator<FeHCurl,D,TYPE> : public BaseBOperator{
     public:
     
     // ------------------
@@ -106,10 +106,40 @@ namespace CoupledField{
 
     //avoid reimplementation of complex operator by making the bas class function
     //available, template caused
-    using BaseBOperator<TYPE>::CalcOpMat;
+    using BaseBOperator::CalcOpMat;
 
-    using BaseBOperator<TYPE>::CalcOpMatTransposed;
+    using BaseBOperator::CalcOpMatTransposed;
 
+    // ===============
+    //  QUERY METHODS
+    // ===============
+    //@{ \name Query Methods
+    //! \copydoc BaseBOperator::GetDiffOrder
+    virtual UInt GetDiffOrder() const {
+      return ORDER_DIFF;
+    }
+
+    //! \copydoc BaseBOperator::GetDimDof()
+    virtual UInt GetDimDof() const {
+      return DIM_DOF;
+    }
+
+    //! \copydoc BaseBOperator::GetDimSpace()
+    virtual UInt GetDimSpace() const {
+      return DIM_SPACE;
+    }
+
+    //! \copydoc BaseBOperator::GetDimElem()
+    virtual UInt GetDimElem() const {
+      return DIM_ELEM;
+    }
+
+    //! \copydoc BaseBOperator::GetDimDMat()
+    virtual UInt GetDimDMat() const {
+      return DIM_D_MAT;
+    }
+    //@}
+    
     protected:
 
   };
@@ -149,9 +179,9 @@ namespace CoupledField{
 
     //avoid reimplementation of complex operator by making the bas class function
     //available, template caused
-    using BaseBOperator<TYPE>::CalcOpMat;
+    using BaseBOperator::CalcOpMat;
 
-    using BaseBOperator<TYPE>::CalcOpMatTransposed;
+    using BaseBOperator::CalcOpMatTransposed;
 
   protected:
 
@@ -162,7 +192,7 @@ namespace CoupledField{
   // =====================================
   
   template<class TYPE>
-  class CurlOperator<FeH1, 3, TYPE> : public BaseBOperator<TYPE>{
+  class CurlOperator<FeH1, 3, TYPE> : public BaseBOperator{
   public:
 
     // ------------------
@@ -263,9 +293,39 @@ namespace CoupledField{
 
     //avoid reimplementation of complex operator by making the bas class function
     //available, template caused
-    using BaseBOperator<TYPE>::CalcOpMat;
+    using BaseBOperator::CalcOpMat;
 
-    using BaseBOperator<TYPE>::CalcOpMatTransposed;
+    using BaseBOperator::CalcOpMatTransposed;
+
+    // ===============
+    //  QUERY METHODS
+    // ===============
+    //@{ \name Query Methods
+    //! \copydoc BaseBOperator::GetDiffOrder
+    virtual UInt GetDiffOrder() const {
+      return ORDER_DIFF;
+    }
+
+    //! \copydoc BaseBOperator::GetDimDof()
+    virtual UInt GetDimDof() const {
+      return DIM_DOF;
+    }
+
+    //! \copydoc BaseBOperator::GetDimSpace()
+    virtual UInt GetDimSpace() const {
+      return DIM_SPACE;
+    }
+
+    //! \copydoc BaseBOperator::GetDimElem()
+    virtual UInt GetDimElem() const {
+      return DIM_ELEM;
+    }
+
+    //! \copydoc BaseBOperator::GetDimDMat()
+    virtual UInt GetDimDMat() const {
+      return DIM_D_MAT;
+    }
+    //@}
 
   protected:
 
@@ -280,7 +340,7 @@ namespace CoupledField{
   //! Note: We assume, that the field itself is a vector with only 
   //! a z-component. 
   template<class TYPE>
-  class CurlOperator<FeH1, 2, TYPE> : public BaseBOperator<TYPE>{
+  class CurlOperator<FeH1, 2, TYPE> : public BaseBOperator{
   public:
 
     // ------------------
@@ -358,10 +418,40 @@ namespace CoupledField{
 
     //avoid reimplementation of complex operator by making the base class function
     //available, template caused
-    using BaseBOperator<TYPE>::CalcOpMat;
+    using BaseBOperator::CalcOpMat;
 
-    using BaseBOperator<TYPE>::CalcOpMatTransposed;
+    using BaseBOperator::CalcOpMatTransposed;
 
+    // ===============
+    //  QUERY METHODS
+    // ===============
+    //@{ \name Query Methods
+    //! \copydoc BaseBOperator::GetDiffOrder
+    virtual UInt GetDiffOrder() const {
+      return ORDER_DIFF;
+    }
+
+    //! \copydoc BaseBOperator::GetDimDof()
+    virtual UInt GetDimDof() const {
+      return DIM_DOF;
+    }
+
+    //! \copydoc BaseBOperator::GetDimSpace()
+    virtual UInt GetDimSpace() const {
+      return DIM_SPACE;
+    }
+
+    //! \copydoc BaseBOperator::GetDimElem()
+    virtual UInt GetDimElem() const {
+      return DIM_ELEM;
+    }
+
+    //! \copydoc BaseBOperator::GetDimDMat()
+    virtual UInt GetDimDMat() const {
+      return DIM_D_MAT;
+    }
+    //@}
+    
   protected:
   };
   
@@ -370,7 +460,7 @@ namespace CoupledField{
   //  2D - AXISYMMETRIC - CURL-OPERATOR FOR H-1 ELEMENTS
   // ====================================================
    template<class TYPE>
-   class CurlOperatorAxi : public BaseBOperator<TYPE>{
+   class CurlOperatorAxi : public BaseBOperator{
    public:
     // ------------------
     //  STATIC CONSTANTS 
@@ -447,10 +537,40 @@ namespace CoupledField{
 
     //avoid reimplementation of complex operator by making the base class function
     //available, template caused
-    using BaseBOperator<TYPE>::CalcOpMat;
+    using BaseBOperator::CalcOpMat;
 
-    using BaseBOperator<TYPE>::CalcOpMatTransposed;
+    using BaseBOperator::CalcOpMatTransposed;
 
+    // ===============
+    //  QUERY METHODS
+    // ===============
+    //@{ \name Query Methods
+    //! \copydoc BaseBOperator::GetDiffOrder
+    virtual UInt GetDiffOrder() const {
+      return ORDER_DIFF;
+    }
+
+    //! \copydoc BaseBOperator::GetDimDof()
+    virtual UInt GetDimDof() const {
+      return DIM_DOF;
+    }
+
+    //! \copydoc BaseBOperator::GetDimSpace()
+    virtual UInt GetDimSpace() const {
+      return DIM_SPACE;
+    }
+
+    //! \copydoc BaseBOperator::GetDimElem()
+    virtual UInt GetDimElem() const {
+      return DIM_ELEM;
+    }
+
+    //! \copydoc BaseBOperator::GetDimDMat()
+    virtual UInt GetDimDMat() const {
+      return DIM_D_MAT;
+    }
+    //@}
+    
   protected:  
    };
 }

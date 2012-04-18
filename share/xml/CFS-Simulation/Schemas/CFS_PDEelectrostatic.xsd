@@ -233,7 +233,6 @@
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="elecPotential"/>
       <xsd:enumeration value="elecRhsLoad"/>
-      <xsd:enumeration value="gradElecPotential"/>
     </xsd:restriction>
   </xsd:simpleType>
 
@@ -243,8 +242,6 @@
       <xsd:enumeration value="elecFieldIntensity"/>
       <xsd:enumeration value="elecFluxDensity"/>
       <xsd:enumeration value="elecEnergyDensity"/>
-      <xsd:enumeration value="elecPolarization"/>
-      <xsd:enumeration value="elecPseudoPolarization"/>      
     </xsd:restriction>
   </xsd:simpleType>
 
@@ -257,6 +254,13 @@
 
   <!-- Definition of surface element result types of electrostatic PDE -->  
   <xsd:simpleType name="DT_ElecSurfElemResult">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="elecChargeDensity"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+  
+  <!-- Definition of surface region result types of electrostatic PDE -->  
+  <xsd:simpleType name="DT_ElecSurfRegionResult">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="elecCharge"/>
     </xsd:restriction>
@@ -316,6 +320,18 @@
               <xsd:extension base="DT_SurfElemResult">
                 <xsd:attribute name="type"
                 type="DT_ElecSurfElemResult" use="required"/>
+              </xsd:extension>
+            </xsd:complexContent>
+          </xsd:complexType>
+        </xsd:element>
+        
+           <!-- Surfac	e region result definition -->
+        <xsd:element name="surfRegionResult" minOccurs="0"
+          maxOccurs="unbounded">
+          <xsd:complexType>
+            <xsd:complexContent>
+              <xsd:extension base="DT_SurfRegionResult">
+                <xsd:attribute name="type" type="DT_ElecSurfRegionResult"/>
               </xsd:extension>
             </xsd:complexContent>
           </xsd:complexType>

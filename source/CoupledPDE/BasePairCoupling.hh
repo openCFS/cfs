@@ -161,6 +161,9 @@ namespace CoupledField
     //! define all computable results
     virtual void DefineAvailResults() {};
 
+    //! Define a field result
+    void DefineFieldResult( PtrCoefFct coef, shared_ptr<ResultInfo> res );
+    
     //! Obtain information on desired output quantities from parameter file
     //! This method is used to query the parameter handling object for the
     //! desired output quantities and translate their literal description into
@@ -252,8 +255,8 @@ namespace CoupledField
     //! Map storing functors for calculating general results
     std::map<SolutionType, shared_ptr<ResultFunctor> > resultFunctors_;
 
-    //! Map storing functors for calculating field results 
-    std::map<SolutionType, shared_ptr<BaseFieldFunctor> > fieldFunctors_;
+    //! Store field coefficient functions
+    std::map<SolutionType, PtrCoefFct > fieldCoefs_;
     
     //! (Volume) regions of coupling object
     StdVector<RegionIdType> subdoms_;

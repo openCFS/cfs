@@ -33,7 +33,9 @@ public:
     dim_ = info->dofNames.GetSize();
   }
   
-  virtual ~ResultFunctor() {}
+  virtual ~ResultFunctor() {
+  }
+  
   //! Typedef for spatial type of results
   //! PRIMARY: denotes primary field variables or their time-derivative
   //! VOL_FIELD: denotes fields in the volume space
@@ -74,152 +76,31 @@ protected:
 };
 
 // --------------------------------------------------------------------------
-//  FIELD RESULTS 
-// --------------------------------------------------------------------------
-//! Base class for evaluating spatially dependent fields
-
-//! This class represents the base for all derived field results, i.e. 
-//! vector-valued results, which can be evaluated spatially resolved for
-//! global points. This is in contrast e.g. to integral results like 
-//! total energy.
-//! In addition this class derives the interface of the class CoefFunction,
-//! so it can be used within other integrators transparently.
-class BaseFieldFunctor : public ResultFunctor, public CoefFunction {
-public:
-  
-  //! Constructor    
-  BaseFieldFunctor( shared_ptr<ResultInfo> info  ) 
-  : ResultFunctor( info) {
-    
-    derivType_ = VOL_FIELD;
-    
-    // for the CoefFunction interface we have to
-    // provide the cardinality of the result and the
-    // spatial dependency
-    dimType_ = CoefFunction::VECTOR;
-    dependType_ = CoefFunction::GENERAL;
-  }
-  //! Destructor
-  virtual ~BaseFieldFunctor() {}
-
-  //! \copydoc CoefFunction::GetVecSize
-   UInt GetVecSize() const {
-     return resultInfo_->dofNames.GetSize();
-   }
-     
-   //! \copydoc CoefFunction::GetTensorSize
-   virtual void GetTensorSize( UInt& numRows, UInt& numCols ) const {
-     EXCEPTION( "Tensor valued results not available yet" );
-   }
-  
-protected:
-
-};
-// --------------------------------------------------------------------------
-//  FIELD RESULTS (TEMPLATIZED)
-// --------------------------------------------------------------------------
-//! Templatized result functor for real/complex valued quantities
-
-//! This method
-template<class TYPE>
-class FieldFunctor : public BaseFieldFunctor {
-public:
-
-  //! Constructor
-  FieldFunctor( shared_ptr<BaseFeFunction> feFct,
-                shared_ptr<ResultInfo> info  ) 
-  : BaseFieldFunctor( info) {  
-    if( feFct) {
-      feFct_ = dynamic_pointer_cast<FeFunction<TYPE> >(feFct);
-    }
-  }
-  
-  //! Destructor
-  ~FieldFunctor() {}
-  
-  //! \copydoc CoefFunction::IsComplex
-    bool IsComplex(){
-      return std::tr1::is_same<TYPE,Complex>::value;
-    }
-    
-  //! Evaluate field for complete result
-  virtual void EvalResult( shared_ptr<BaseResult> res ) {
-
-    Result<TYPE>& actSol = static_cast<Result<TYPE>& >(*res);
-    EntityIterator it = actSol.GetEntityList()->GetIterator();
-    Vector<TYPE>& vec = actSol.GetVector();
-    Vector<TYPE> tempField;
-    vec.Resize( it.GetSize() * this->dim_ );
-
-    // loop over elements
-    for ( it.Begin(); !it.IsEnd(); it++ ) {
-      const Elem * el = it.GetElem();
-      LocPoint lp = Elem::shapes[el->type].midPointCoord;
-      LocPointMapped lpm;
-      shared_ptr<ElemShapeMap> esm = 
-          this->ptGrid_->GetElemShapeMap( el, true );
-      lpm.Set( lp, esm );
-      this->GetVector(tempField, lpm );
-      // loop over dofs
-      for(UInt iDim = 0; iDim < dim_; iDim++ ) {
-        vec[it.GetPos()*dim_ + iDim] = tempField[iDim];
-      }
-    }
-  }
-
-  //! Evaluate field at one local point within a given element
-  virtual void GetVector(Vector<TYPE>& vec, const LocPointMapped& lpm ) = 0; 
-
-  virtual void AddRegion(RegionIdType region, PtrParamNode config){
-    EXCEPTION("Add Region not available for this functor");
-  }
-
-protected:
-  
-  //! FeFunction containing the coefficients, on which the functor computes
-  shared_ptr<FeFunction<TYPE> > feFct_;
-  
-};
-
-// --------------------------------------------------------------------------
-//  FIELDS BASED ON COEFFICIENT FUNCTION
+//  RESULT BASED ON COEFFICIENT FUNCTION
 // --------------------------------------------------------------------------
 //! Functor for purely evaluating a coefficient function
-template<class DATA_TYPE>
-class FieldCoefFunctor : public FieldFunctor<DATA_TYPE> {
+template<class TYPE>
+class FieldCoefFunctor : public ResultFunctor {
 public:
-  
+
   //! Constructor
   FieldCoefFunctor( PtrCoefFct coef,
-                    shared_ptr<ResultInfo> inf ) :
-                      FieldFunctor<DATA_TYPE>(  shared_ptr<BaseFeFunction>(), inf) {
-    
-    coef_ = coef;
-  }
-  
+                    shared_ptr<ResultInfo> inf );
+
   //! Destructor
-  virtual ~FieldCoefFunctor() {}
-  
-  //! Evaluate field at local point
-  inline void GetVector(Vector<DATA_TYPE>& vec, 
-                         const LocPointMapped& lpm) {
-    switch( coef_->GetDimType()) {
-      case CoefFunction::VECTOR:
-        coef_->GetVector( vec, lpm );
-        break;
-      case CoefFunction::SCALAR:
-        vec.Resize(1);
-        coef_->GetScalar( vec[0], lpm );
-        break;
-      case CoefFunction::TENSOR:
-        EXCEPTION("Not implemented");
-        break;
-      default:
-        EXCEPTION("Missing case statement");
-        break;
-    }
+  virtual ~FieldCoefFunctor();
+
+  //! Return Coefficient function
+  PtrCoefFct GetCoefFct() {
+    return coef_;
   }
 
+  //! Evaluate field for complete result
+  virtual void EvalResult( shared_ptr<BaseResult> res );
+
+  //! Evaluate field at local point
+  void GetVector(Vector<TYPE>& vec, 
+                 const LocPointMapped& lpm);
 protected:
 
   //! Store coefficient function
@@ -227,169 +108,40 @@ protected:
 };
 
 // --------------------------------------------------------------------------
-//  FIELDS BASED ON DERIVATIVE (GRADIENT, CURL)
+//  QUANTITIES DERIVED BY SURFACE / VOLUME INTEGRATION
 // --------------------------------------------------------------------------
 
-//! Functor for calculating fields based on the spatial derivative 
+//! Calculate the result by integration of a coefficient function
 
-//! This class computes the spatial derivative of the primary unknown by
-//! applying the B-Operator of the related BDB-class. The BDB-bilinearforms
-//! have to get passed to this class for every region the result might get
-//! calculated at.
+//! This class takes a coefficient function and integrates it. This can be 
+//! used to calculate e.g. the total energy from the energy density or the
+//! total weight using the density.
+//! 
+//! In theory we could have an arbitrary integration order, but this
+//! feature can only be implemented, if the definition of the integration order
+//! is handled more flexible in the FeSpace classes.
 template<class TYPE>
-class DiffFieldFunctor : public FieldFunctor<TYPE> {
+class ResultFunctorIntegrate : public ResultFunctor {
 public:
   
   //! Constructor
-  DiffFieldFunctor( shared_ptr<BaseFeFunction> feFct,
-                    shared_ptr<ResultInfo> inf,
-                    Double factor = 1.0) :
-                     FieldFunctor<TYPE>( feFct, inf) {
-    
-    factor_ = factor;
-  }
-
-  //! \copydoc CoefFunction::IsComplex
-    bool IsComplex(){
-      return std::tr1::is_same<TYPE,Complex>::value;
-    }
-  
+  ResultFunctorIntegrate( PtrCoefFct coef,
+                          shared_ptr<BaseFeFunction> feFct,
+                          shared_ptr<ResultInfo> inf );
   //! Destructor
-  virtual ~DiffFieldFunctor() {}
+  virtual ~ResultFunctorIntegrate();
 
-  //! Evaluate field at local point
-  virtual void GetVector(Vector<TYPE>& vec, 
-                         const LocPointMapped& lpm) {
-    vec.Resize(this->ptGrid_->GetDim());
-    this->feFct_->GetElemSolution( elemSol, lpm.ptEl);
-    this->forms_[lpm.ptEl->regionId]->ApplyBMat(vec, elemSol, lpm );
-    vec *= factor_;
-  }
+  //! Evaluate result for complete entity list
+  virtual void EvalResult(shared_ptr<BaseResult> res );
 
-protected:
-  
-  //! Solution of element
-  Vector<TYPE> elemSol;
-  
-  //! Mapped local points
-  LocPointMapped lpm;
-  
-  //! Additional factor
-  Double factor_;
-};
 
-// --------------------------------------------------------------------------
-//  FIELDS BASED ON FLUX (dB-Integrator)
-// -------------------------------------------------------------------------
-//! Functor for calculating fields based on the flux
+private:
 
-//! This class computes the flux  of the primary unknown by
-//! applying the dB-Operator of the related BDB-class. The BDB-bilinearforms
-//! have to get passed to this class for every region the result might get
-//! calculated at.
-//! \tparam TYPE Real-valued or Complex valued instantiation
-//! \tparam TRANS Apply transposed version of dB / Ad matrix
-template<class TYPE, bool TRANS = false >
-class FluxFieldFunctor : public FieldFunctor<TYPE> {
-public:
-  
-  //! Constructor
-  FluxFieldFunctor(shared_ptr<BaseFeFunction> feFct,
-                   shared_ptr<ResultInfo> inf,
-                   Double factor = 1.0) :
-                     FieldFunctor<TYPE>( feFct, inf) {
-    factor_ = factor;
-  }
-  
-  //! Destructor
-  virtual ~FluxFieldFunctor() {}
-  
-  std::string ToString() const {
-    std::stringstream out;
-    out << "FieldFunctor\n";
-    out << "ApplyTransposed: " << TRANS << std::endl;
-    out << "Result: " << 
-        SolutionTypeEnum.ToString(this->resultInfo_->resultType );
-    return out.str();
-  }
-  
-  //! \copydoc CoefFunction::IsComplex
-  bool IsComplex(){
-    return std::tr1::is_same<TYPE,Complex>::value;
-  }
-  
-  //! Evaluate field at local point
-  virtual void GetVector(Vector<TYPE>& vec, 
-                         const LocPointMapped& lpm) {
-    vec.Resize(this->ptGrid_->GetDim());
-    this->feFct_->GetElemSolution( elemSol, lpm.ptEl);
-    BaseBDBInt* bdb = this->forms_[lpm.ptEl->regionId];
-    if( TRANS ) {
-      bdb->ApplydATransMat(vec, elemSol, lpm );
-    } else {
-      bdb->ApplydBMat(vec, elemSol, lpm );
-    }
-    vec *= factor_;
-  }
-  
-protected:
-  
-  //! Solution of element
-  Vector<TYPE> elemSol;
+  //! Pointer to coefficient function to be integrated
+  PtrCoefFct coef_;
 
-  //! Mapped local points
-  LocPointMapped lpm;
-  
-  //! Additional factor
-  Double factor_;
-
-};
-
-// --------------------------------------------------------------------------
-//  FIELDS BASED ON ENERGY DENSITY (KERNEL OF BDB-INTEGRATOR)
-// --------------------------------------------------------------------------
-//! Functor for calculating energy density using kernel of BDB-integrator
-
-//! This class computes the energy density of the primary unknown using the
-//! the kernel of the BDB-integrator. For many physical fields, the energy
-//! can be calculated as 1/2 * sol^T * elemMat * sol. This is how this functor
-//! calculates the energy.
-//!  The BDB-bilinearforms have to get passed to this class for every region 
-//! the result might get  calculated at.
-template<class TYPE>
-class EnergyDensFieldFunctor : public FieldFunctor<TYPE> {
-public:
-
-  //! Constructor
-  EnergyDensFieldFunctor(shared_ptr<BaseFeFunction> feFct,
-                         shared_ptr<ResultInfo> inf ) :
-                           FieldFunctor<TYPE>( feFct, inf) {
-  }
-  
-  //! Destructor
-  ~EnergyDensFieldFunctor() {}
-
-  //! Evaluate field at local point
-  virtual void GetVector(Vector<TYPE>& vec, 
-                         const LocPointMapped& lpm) {
-    vec.Resize(1);
-    this->forms_[lpm.ptEl->regionId]->CalcKernel(elemMat, lpm);
-    
-    // energy density is 1/2 * elemSol^T * kernel * elemSol
-    this->feFct_->GetElemSolution( elemSol, lpm.ptEl);
-    temp = elemMat * elemSol;
-    vec[0] = (temp * elemSol) * 0.5;
-  }
-  
-protected:
-  //! Solution of element
-  Vector<TYPE> elemSol, temp;
-
-  //! Element matrix
-  Matrix<TYPE> elemMat;
-
-  //! Mapped local points
-  LocPointMapped lpm;
+  //! Pointer to FeFunction
+  shared_ptr<BaseFeFunction> feFct_;
 };
 
 // --------------------------------------------------------------------------
@@ -409,47 +161,17 @@ public:
 
   //! Constructor
   EnergyResultFunctor(shared_ptr<BaseFeFunction> feFct,
-                      shared_ptr<ResultInfo> inf ) :
-                        ResultFunctor( inf) {
-    feFct_ = dynamic_pointer_cast<FeFunction<TYPE> >(feFct);
-    derivType_ = INTEGRATED;
-    
-  }
-  
+                      shared_ptr<ResultInfo> inf );
+
   //! Destructor
-  ~EnergyResultFunctor() {}
+  virtual ~EnergyResultFunctor();
 
   //! Evaluate result for complete entity list
-  virtual void EvalResult(shared_ptr<BaseResult> res ) {
-    Result<TYPE>& actSol = static_cast<Result<TYPE>& >(*res);
-    EntityIterator regionIt = actSol.GetEntityList()->GetIterator();
-    Vector<TYPE>& vec = actSol.GetVector();
-    vec.Resize( regionIt.GetSize() );
+  virtual void EvalResult(shared_ptr<BaseResult> res );
 
-    // Loop over regions
-    for( regionIt.Begin(); !regionIt.IsEnd(); regionIt++ ) {
-      ElemList actSDList(ptGrid_);
-      actSDList.SetRegion( regionIt.GetRegion() );
-      EntityIterator elemIt = actSDList.GetIterator();
-
-      TYPE tempEnergy = 0.0;
-      // loop over elements
-      for ( elemIt.Begin(); !elemIt.IsEnd(); elemIt++ ) {
-        const Elem * el = elemIt.GetElem();
-        forms_[el->regionId]->CalcElementMatrix(elemMat, 
-                                                elemIt, elemIt);
-
-        // energy density is 1/2 * elemSol^T * kernel * elemSol
-        this->feFct_->GetElemSolution( elemSol, el);
-        temp = elemMat * elemSol;
-        tempEnergy += (temp * elemSol) * 0.5;
-      }
-      vec[regionIt.GetPos()] = tempEnergy;
-    }
-  }
 protected:
-  
-  //! FeFunction containing the coefficients, on which the functor compuates
+
+  //! FeFunction containing the coefficients, on which the functor computes
   shared_ptr<FeFunction<TYPE> > feFct_;
 
   //! Solution of element
@@ -461,48 +183,6 @@ protected:
   //! Mapped local points
   LocPointMapped lpm;
 
-};
-
-// --------------------------------------------------------------------------
-//  FIELDS BASED ON NORMAL FLUX (SURFACE)
-// --------------------------------------------------------------------------
-// The operators on surface elements need additional information about the
-// correct "side" and "normal orientation". The utilize BOperators like
-// IdNormalOp, GradNormalOp or CurlNormalOp
-// ... to be implemented
-
-// --------------------------------------------------------------------------
-//  QUANTITIES DERIVED BY VOLUME INTEGRATION
-// --------------------------------------------------------------------------
-
-// Here we would have a META-functor, which takes another FieldFuctor and
-// calcultes the integral of it.
-// This can be used e.g. for a more flexible approach to calculate the energy:
-// If we use the energy density functor, we can have a different accuracy /
-// integration scheme then used for the normal calculation of the element matrix
-
-template<class TYPE>
-class ResultFunctorIntegrate : public ResultFunctor {
-public:
-  //! Constructor
-  ResultFunctorIntegrate( PtrCoefFct coef,
-                          shared_ptr<BaseFeFunction> feFct,
-                          shared_ptr<ResultInfo> inf );
-    
-    //! Destructor
-    virtual ~ResultFunctorIntegrate();
-  
-    //! Evaluate result for complete entity list
-     virtual void EvalResult(shared_ptr<BaseResult> res );
-     
-    
-private:
-     
-     //! Pointer to coefficient function to be integrated
-     PtrCoefFct coef_;
-     
-     //! Pointer to FeFunction
-     shared_ptr<BaseFeFunction> feFct_;
 };
     
 } // end of namespace

@@ -44,7 +44,16 @@ namespace CoupledField {
       ~BBInt(){
 
       }
+      //! \copydoc BaseBDBInt::GetBOp
+      virtual BaseBOperator* GetBOp() {
+        return &bOperator_;
+      }
       
+      //! \copydoc BaseBDBInt::GetCoef
+      virtual PtrCoefFct GetCoef() {
+        return coefScalar_;
+      }
+
       //! Compute element matrix associated to BDB form
       void CalcElementMatrix( Matrix<MAT_DATA_TYPE>& elemMat,
                                  EntityIterator& ent1,

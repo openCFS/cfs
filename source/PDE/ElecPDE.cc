@@ -12,7 +12,9 @@
 #include "DataInOut/ParamHandling/ParamTools.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "Domain/CoefFunction/CoefFunction.hh"
+#include "Domain/CoefFunction/CoefFunctionFormBased.hh"
 #include "Domain/CoefFunction/CoefXpr.hh"
+#include "Domain/CoefFunction/CoefFunctionSurf.hh"
 #include "Utils/StdVector.hh"
 #include "Driver/SolveSteps/SolveStepElec.hh"
 #include "CoupledPDE/PDECoupling.hh"
@@ -619,8 +621,7 @@ namespace CoupledField {
 
     shared_ptr<BaseFeFunction> feFct = feFunctions_[ELEC_POTENTIAL];
     
-    // Electric Field Intensity
-    // create new resultDof object
+    // === ELECTRIC FIELD INTENSITY ===
     shared_ptr<ResultInfo> ef ( new ResultInfo );
     ef->resultType = ELEC_FIELD_INTENSITY;
     ef->SetVectorDOFs(dim_, isaxi_);
@@ -628,15 +629,15 @@ namespace CoupledField {
     ef->definedOn = ResultInfo::ELEMENT;
     ef->entryType = ResultInfo::VECTOR;
     availResults_.insert( ef );
-    shared_ptr<BaseFieldFunctor> eFunc;
+    shared_ptr<CoefFunctionFormBased> eFunc;
     if( isComplex_ ) {
-      eFunc.reset(new DiffFieldFunctor<Complex>(feFct, ef, -1.0));
+      eFunc.reset(new CoefFunctionBOp<Complex>(feFct, ef, -1.0));
     } else {
-      eFunc.reset(new DiffFieldFunctor<Double>(feFct, ef, -1.0));
+      eFunc.reset(new CoefFunctionBOp<Double>(feFct, ef, -1.0));
     }
     DefineFieldResult( eFunc, ef );
     
-    // Electric Flux Density
+    // === ELECTRIC FLUX DENSITY ===
     shared_ptr<ResultInfo> flux ( new ResultInfo );
     flux->resultType = ELEC_FLUX_DENSITY;
     flux->SetVectorDOFs(dim_, isaxi_);
@@ -644,24 +645,42 @@ namespace CoupledField {
     flux->definedOn = ResultInfo::ELEMENT;
     flux->entryType = ResultInfo::VECTOR;
     availResults_.insert( flux );
-    shared_ptr<BaseFieldFunctor> fluxFunc;
+    shared_ptr<CoefFunctionFormBased> fluxFunc;
     if( isComplex_ ) {
-      fluxFunc.reset(new FluxFieldFunctor<Complex>(feFct, flux,-1.0));
+      fluxFunc.reset(new CoefFunctionFlux<Complex>(feFct, flux));
     } else {
-      fluxFunc.reset(new FluxFieldFunctor<Double>(feFct, flux,-1.0));
+      fluxFunc.reset(new CoefFunctionFlux<Double>(feFct, flux));
     }
     DefineFieldResult( fluxFunc, flux );
 
-    // Electric charge
-    shared_ptr<ResultInfo> charge( new ResultInfo );
+    // === ELECTRIC SURFACE CHARGE DENSITY ===
+    shared_ptr<ResultInfo> chargeD(new ResultInfo);
+    chargeD->resultType = ELEC_CHARGE_DENSITY;
+    chargeD->dofNames = "";
+    chargeD->unit = "C/m^2";
+    chargeD->definedOn = ResultInfo::SURF_ELEM;
+    chargeD->entryType = ResultInfo::SCALAR;
+    availResults_.insert( chargeD );
+    // the coefficient function is defined later
+    PtrCoefFct sChargeDens;
+    
+    // === TOTAL ELECTRIC CHARGE ===
+    shared_ptr<ResultInfo> charge(new ResultInfo);
     charge->resultType = ELEC_CHARGE;
-    charge->definedOn = ResultInfo::SURF_ELEM;
-    charge->entryType = ResultInfo::SCALAR;
     charge->dofNames = "";
     charge->unit = "C";
+    charge->definedOn = ResultInfo::SURF_REGION;
+    charge->entryType = ResultInfo::SCALAR;
     availResults_.insert( charge );
+    // build result functor for integration
+    shared_ptr<ResultFunctor> chargeFunc;
+    if( isComplex_ ) {
+      chargeFunc.reset(new ResultFunctorIntegrate<Complex>(sChargeDens, feFct, charge ) );
+    } else {
+      chargeFunc.reset(new ResultFunctorIntegrate<Double>(sChargeDens, feFct, charge ) );
+    }
 
-    // Electric Energy Density
+    // === ELECTRIC ENERGY DENSITY ===
     shared_ptr<ResultInfo> ed ( new ResultInfo );
     ed->resultType = ELEC_ENERGY_DENSITY;
     ed->dofNames = "";
@@ -669,11 +688,11 @@ namespace CoupledField {
     ed->definedOn = ResultInfo::ELEMENT;
     ed->entryType = ResultInfo::SCALAR;
     availResults_.insert( ed );
-    shared_ptr<BaseFieldFunctor> edFunc;
+    shared_ptr<CoefFunctionFormBased> edFunc;
     if( isComplex_ ) {
-      edFunc.reset(new EnergyDensFieldFunctor<Complex>(feFct, ed));
+      edFunc.reset(new CoefFunctionBdBKernel<Complex>(feFct, 0.5));
     } else {
-      edFunc.reset(new EnergyDensFieldFunctor<Double>(feFct, ed));
+      edFunc.reset(new CoefFunctionBdBKernel<Double>(feFct, 0.5));
     }
     DefineFieldResult( edFunc, ed );
     
@@ -693,40 +712,38 @@ namespace CoupledField {
     }
     resultFunctors_[ELEC_ENERGY] = energyFunc;
     
-
-    // Electric polarization
-    shared_ptr<ResultInfo> pol( new ResultInfo );
-    pol->resultType = ELEC_POLARIZATION;
-    pol->definedOn = ResultInfo::ELEMENT;
-    pol->entryType = ResultInfo::VECTOR;
-    pol->SetVectorDOFs(dim_, isaxi_);
-    pol->unit = "C/m^2";
-    availResults_.insert( pol );
-
-    // pesudo electric polarization for piezo simp
-    shared_ptr<ResultInfo> pseudoPol( new ResultInfo );
-    pseudoPol->resultType = ELEC_PSEUDO_POLARIZATION;
-    pseudoPol->definedOn = ResultInfo::ELEMENT;
-    pseudoPol->entryType = ResultInfo::SCALAR;
-    pseudoPol->dofNames = "";
-    pseudoPol->unit = "";
-    availResults_.insert( pseudoPol );
-
     // ============================
     // Initialize result functors:
     // ============================
+    // collect the flux volume flux coefficient functionf for each region
+    std::map<RegionIdType, PtrCoefFct> dCoefs;
+    
     // 1) Loop over all BDB-integrators
     std::map<RegionIdType, BaseBDBInt*>::iterator it = bdbInts_.begin();
     for( ; it != bdbInts_.end(); ++it ) {
       RegionIdType region = it->first;
       BaseBDBInt* bdb = it->second;
-
       // 2) pass integrators to functors
       eFunc->AddIntegrator(bdb, region);
       fluxFunc->AddIntegrator(bdb, region);
       energyFunc->AddIntegrator(bdb, region);
       edFunc->AddIntegrator(bdb, region);
+      
+      dCoefs[region] = fluxFunc;
     }
+    
+    // define missing surface charge density
+    if( isComplex_ ) {
+      shared_ptr<CoefFunctionSurf<Complex> > dNormal (
+          new CoefFunctionSurf<Complex>(true));
+      dNormal->SetVolumeCoefs(dCoefs);
+      sChargeDens= dNormal;
+    } else {
+      shared_ptr<CoefFunctionSurf<Double> > dNormal (
+          new CoefFunctionSurf<Double>(true));
+      dNormal->SetVolumeCoefs(dCoefs);
+      sChargeDens = dNormal;
+    }  
   }
 
   

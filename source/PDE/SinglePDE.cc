@@ -314,17 +314,6 @@ namespace CoupledField {
     if( needsAlgsys_ == true && !isDirectCoupled_ ) 
       assemble_->ToInfo(infoNode_->Get(ParamNode::HEADER)->Get("integrators"));
 
-    // The following peace of code is measningless, as we encapsulate the
-    // nonlinearity on the coeffunctions, which get generated in the 
-    // DefineIntegrators method
-    // now we know about nonlinearities and we can trigger the
-    // material objects to perform the approximations of the nonlinear
-    // sampled data
-//    std::map<RegionIdType, BaseMaterial*>::iterator itMat;
-//    for ( itMat = materials_.begin(); itMat != materials_.end(); itMat++ ) {
-//      itMat->second->InitApproxCurves();
-//    }
-    
     // =====================================================================
     //  map equations (FeSpaces) and finalize FeFunction (vector creation)
     // =====================================================================
@@ -979,11 +968,10 @@ namespace CoupledField {
         EXCEPTION( "Could not find field functor for result '" 
             << SolutionTypeEnum.ToString(solType) << "'");
       }
-       
+      PtrCoefFct fct =  fctIt->second;
+      
       // calculate vector entries
       if( isComplex_) {
-        shared_ptr<FieldFunctor<Complex> > fct = 
-            dynamic_pointer_cast<FieldFunctor<Complex> >(fctIt->second);
         Vector<Complex> temp;
         Vector<Complex>& vec = dynamic_cast<Vector<Complex> &>(*fap.field);
         vec.Resize(fap.elems.GetSize() * numDofs);
@@ -1000,8 +988,6 @@ namespace CoupledField {
           }
         }
       } else {
-        shared_ptr<FieldFunctor<Double> > fct = 
-            dynamic_pointer_cast<FieldFunctor<Double> >(fctIt->second);
         Vector<Double> temp;
         Vector<Double>& vec = dynamic_cast<Vector<Double> &>(*fap.field);
         vec.Resize(fap.elems.GetSize() * numDofs);
@@ -2879,7 +2865,7 @@ namespace CoupledField {
   void SinglePDE::DefineFieldResult( PtrCoefFct coef, shared_ptr<ResultInfo> res ) {
 
     // create new result functor based on coefficient
-    shared_ptr<BaseFieldFunctor> func;
+    shared_ptr<ResultFunctor> func;
     if( isComplex_ ) {
       func.reset(new FieldCoefFunctor<Complex>(coef, res));
     } else {
@@ -2888,7 +2874,7 @@ namespace CoupledField {
     
     // insert result to list of available results and field functors
     resultFunctors_[res->resultType] = func;
-    fieldCoefs_[res->resultType] = func;
+    fieldCoefs_[res->resultType] = coef;
   }
   
   void SinglePDE::DefineTimeDerivResult( SolutionType derivSolType,

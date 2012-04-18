@@ -4,6 +4,7 @@
 #include "PDE/SinglePDE.hh"
 #include "Domain/Domain.hh"
 #include "DataInOut/MaterialHandler.hh"
+#include "Domain/Results/ResultFunctor.hh"
 //#include "Materials/PiezoMaterial.hh"
 #include "Driver/Assemble.hh"
 #include "DataInOut/ResultHandler.hh"
@@ -497,6 +498,21 @@ namespace CoupledField {
     } // over composite 
   }
 
+  void BasePairCoupling::DefineFieldResult( PtrCoefFct coef, shared_ptr<ResultInfo> res ) {
+
+    // create new result functor based on coefficient
+    shared_ptr<ResultFunctor> func;
+    if( isComplex_ ) {
+      func.reset(new FieldCoefFunctor<Complex>(coef, res));
+    } else {
+      func.reset(new FieldCoefFunctor<Double>(coef, res));
+    }
+    
+    // insert result to list of available results and field functors
+    resultFunctors_[res->resultType] = func;
+    fieldCoefs_[res->resultType] = coef;
+  }
+  
   void BasePairCoupling::ReadStoreResults() {
 
  StdVector<std::string> regionNames, nodeNames, writeResults, actOutDest;

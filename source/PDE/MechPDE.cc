@@ -22,12 +22,13 @@
 #include "Forms/BiLinForms/BBInt.hh"
 #include "Forms/LinForms/SingleEntryInt.hh"
 #include "Forms/LinForms/BUInt.hh"
-#include "Forms/Operators/StrainOperator.hh"
+#include "Forms/Operators/IdentityOperator.hh"
 #include "Forms/Operators/IdentityOperatorNormalTrans.hh"
+#include "Forms/Operators/StrainOperator.hh"
 
 // new postprocessing concept
 #include "Domain/Results/ResultFunctor.hh"
-#include "Forms/Operators/IdentityOperator.hh"
+#include "Domain/CoefFunction/CoefFunctionFormBased.hh"
 
 #include "Domain/CoefFunction/CoefXpr.hh"
 #include "Driver/SolveSteps/StdSolveStep.hh"
@@ -639,8 +640,6 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
     rhs->entryType = ResultInfo::VECTOR;
     rhs->definedOn = ResultInfo::NODE;
     availResults_.insert( rhs );
-    //
-    
     
     // === MECHANIC STRESS ===
     shared_ptr<ResultInfo> stress(new ResultInfo);
@@ -650,11 +649,11 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
     stress->entryType = ResultInfo::TENSOR;
     stress->definedOn = ResultInfo::ELEMENT;
     availResults_.insert( stress );
-    shared_ptr<BaseFieldFunctor> sigmaFunc;
+    shared_ptr<CoefFunctionFormBased> sigmaFunc;
     if( isComplex_ ) {
-      sigmaFunc.reset(new FluxFieldFunctor<Complex>(feFct, stress));
+      sigmaFunc.reset(new CoefFunctionFlux<Complex>(feFct, stress));
     } else {
-      sigmaFunc.reset(new FluxFieldFunctor<Double>(feFct, stress));
+      sigmaFunc.reset(new CoefFunctionFlux<Double>(feFct, stress));
     }
     DefineFieldResult( sigmaFunc, stress );
     
@@ -666,11 +665,11 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
     strain->entryType = ResultInfo::TENSOR;
     strain->definedOn = ResultInfo::ELEMENT;
     availResults_.insert( strain );
-    shared_ptr<BaseFieldFunctor> strainFunc;
+    shared_ptr<CoefFunctionFormBased> strainFunc;
     if( isComplex_ ) {
-      strainFunc.reset(new DiffFieldFunctor<Complex>(feFct, strain));
+      strainFunc.reset(new CoefFunctionBOp<Complex>(feFct, strain));
     } else {
-      strainFunc.reset(new DiffFieldFunctor<Double>(feFct, strain));
+      strainFunc.reset(new CoefFunctionBOp<Double>(feFct, strain));
     }
     DefineFieldResult( strainFunc, strain );
 

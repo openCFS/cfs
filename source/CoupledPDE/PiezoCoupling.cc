@@ -11,8 +11,10 @@
 #include "Materials/BaseMaterial.hh"
 #include "Driver/FormsContexts.hh"
 #include "Driver/Assemble.hh"
+
 #include "Domain/CoefFunction/CoefXpr.hh"
 #include "Domain/CoefFunction/CoefFunctionSurf.hh"
+#include "Domain/CoefFunction/CoefFunctionFormBased.hh"
 
 // include fespaces
 #include "FeBasis/H1/FeSpaceH1.hh"
@@ -235,30 +237,17 @@ namespace CoupledField {
     PtrCoefFct coefElecD = pde2_->GetCoefFct( ELEC_FLUX_DENSITY);
     
     // b) coupling part -> use own ADB-form
-    shared_ptr<BaseFieldFunctor> cplFunc;
+    shared_ptr<CoefFunctionFormBased> cplFunc;
     if( isComplex_ ) {
-      cplFunc.reset(new FluxFieldFunctor<Complex,true>(dispFct, flux, 1));
+      cplFunc.reset(new CoefFunctionFlux<Complex,true>(dispFct, flux, 1));
     } else {
-      cplFunc.reset(new FluxFieldFunctor<Double,true>(dispFct, flux, 1));
+      cplFunc.reset(new CoefFunctionFlux<Double,true>(dispFct, flux, 1));
     }
-    
     // Build compound coefficient function for flux density
-    CoefXprBinOp xpr(coefElecD, 
-                     dynamic_pointer_cast<CoefFunction>(cplFunc),
-                     CoefXpr::OP_ADD);
-    PtrCoefFct coefFlux = CoefFunction::Generate(part, xpr );
-    
-    // wrap coefficient function in result functor
-    shared_ptr<BaseFieldFunctor> fluxFunc;
-    if( isComplex_ ) {
-      fluxFunc.reset(new FieldCoefFunctor<Complex>(coefFlux, flux));
-    } else {
-      fluxFunc.reset(new FieldCoefFunctor<Double>(coefFlux, flux));
-    }
-    
-    resultFunctors_[ELEC_FLUX_DENSITY] = fluxFunc;
-    fieldFunctors_[ELEC_FLUX_DENSITY] = fluxFunc;
-    
+    PtrCoefFct coefFlux = CoefFunction::Generate(part,
+                         CoefXprBinOp(coefElecD, cplFunc,
+                                      CoefXpr::OP_ADD) );
+    DefineFieldResult( coefFlux, flux );
 
 
     // ==== Mechanic Stress ===
@@ -276,33 +265,21 @@ namespace CoupledField {
     PtrCoefFct coefMechSigma = pde1_->GetCoefFct( MECH_STRESS );
         
     // b) coupling part -> use own ADB-form
-    shared_ptr<BaseFieldFunctor> stressCplFunc;
+    shared_ptr<CoefFunctionFormBased> stressCplFunc;
     if( isComplex_ ) {
-      stressCplFunc.reset(new FluxFieldFunctor<Complex>(elecFct, stress, 1));
+      stressCplFunc.reset(new CoefFunctionFlux<Complex>(elecFct, stress, 1));
     } else {
-      stressCplFunc.reset(new FluxFieldFunctor<Double>(elecFct, stress, 1));
+      stressCplFunc.reset(new CoefFunctionFlux<Double>(elecFct, stress, 1));
     }
-    
     // Build compound coefficient function for flux density
     // Note: from the formula above, we would need to subtract the electric based
     // part from the first one, so we should check, if the mechanical stress is really
-    // correct. The current implementation matches the one
-    CoefXprBinOp xpr2(coefMechSigma, 
-                     dynamic_pointer_cast<CoefFunction>(stressCplFunc),
-                     CoefXpr::OP_ADD);
-    PtrCoefFct coefStress = CoefFunction::Generate(part, xpr2 );
-    
-    shared_ptr<BaseFieldFunctor> sigmaFunc;
-    if( isComplex_ ) {
-      sigmaFunc.reset(new FieldCoefFunctor<Complex>(coefStress, stress));
-    } else {
-      sigmaFunc.reset(new FieldCoefFunctor<Double>(coefStress, stress));
-    }
-    
-    resultFunctors_[MECH_STRESS] = sigmaFunc;
-    fieldFunctors_[MECH_STRESS] = sigmaFunc;
+    // correct. 
+    PtrCoefFct coefStress = CoefFunction::Generate(part,
+                            CoefXprBinOp(coefMechSigma, stressCplFunc, 
+                                         CoefXpr::OP_ADD ) ); 
+    DefineFieldResult(coefStress, stress);
 
-   
 
     // ============================
     // Initialize result functors:
@@ -318,10 +295,8 @@ namespace CoupledField {
       // 2) pass integrators to functors
       cplFunc->AddIntegrator(bdb, region);
       stressCplFunc->AddIntegrator(bdb, region);
-      
       dCoefs[region] = coefFlux;
     }
-    
     
     // === Electric Charge Density (surface) ===
     shared_ptr<ResultInfo> chargeD(new ResultInfo);
@@ -345,26 +320,13 @@ namespace CoupledField {
       dNormal->SetVolumeCoefs(dCoefs);
       sChargeDens = dNormal;
     }  
-    // build result functor for coefficient function
-    shared_ptr<BaseFieldFunctor> cDensFunc;
-    if( isComplex_ ) {
-      cDensFunc.reset(new FieldCoefFunctor<Complex>(sChargeDens, chargeD));
-    } else {
-      cDensFunc.reset(new FieldCoefFunctor<Double>(sChargeDens, chargeD));
-    }
-
-    resultFunctors_[ELEC_CHARGE_DENSITY] = cDensFunc;
-    fieldFunctors_[ELEC_CHARGE_DENSITY] = cDensFunc;
-
-
-
-
+    DefineFieldResult( sChargeDens, chargeD);
 
     // === Electric Charge (integrated) ===
     shared_ptr<ResultInfo> charge(new ResultInfo);
     charge->resultType = ELEC_CHARGE;
     charge->dofNames = "";
-    charge->unit = "C/m^2";
+    charge->unit = "C";
     charge->definedOn = ResultInfo::SURF_REGION;
     charge->entryType = ResultInfo::SCALAR;
     availResults_.insert( charge );
@@ -377,7 +339,6 @@ namespace CoupledField {
       chargeFunc.reset(new ResultFunctorIntegrate<Double>(sChargeDens, dispFct, charge ) );
     }
     resultFunctors_[ELEC_CHARGE] = chargeFunc;
-    
   }
   
   

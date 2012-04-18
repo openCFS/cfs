@@ -9,7 +9,7 @@ namespace CoupledField{
   // ============================
   //! Strain-like differential operator in 2D
   template<class FE, class TYPE = Double >
-  class StrainOperator2D : public BaseBOperator<TYPE>{
+  class StrainOperator2D : public BaseBOperator{
 
   public:
 
@@ -54,6 +54,37 @@ namespace CoupledField{
     virtual void CalcOpMatTransposed(Matrix<Double> & bMat,
                                      const LocPointMapped& lp, 
                                      BaseFE* ptFe );
+    
+    // ===============
+    //  QUERY METHODS
+    // ===============
+    //@{ \name Query Methods
+    //! \copydoc BaseBOperator::GetDiffOrder
+    virtual UInt GetDiffOrder() const {
+      return ORDER_DIFF;
+    }
+
+    //! \copydoc BaseBOperator::GetDimDof()
+    virtual UInt GetDimDof() const {
+      return DIM_DOF;
+    }
+
+    //! \copydoc BaseBOperator::GetDimSpace()
+    virtual UInt GetDimSpace() const {
+      return DIM_SPACE;
+    }
+
+    //! \copydoc BaseBOperator::GetDimElem()
+    virtual UInt GetDimElem() const {
+      return DIM_ELEM;
+    }
+
+    //! \copydoc BaseBOperator::GetDimDMat()
+    virtual UInt GetDimDMat() const {
+      return DIM_D_MAT;
+    }
+    //@}
+    
   protected:
 
   };
@@ -120,7 +151,7 @@ namespace CoupledField{
   // =====================================
   //! Strain-like differential operator for axial symmetry 
   template<class FE, class TYPE = Double >
-  class StrainOperatorAxi : public BaseBOperator<TYPE>{
+  class StrainOperatorAxi : public BaseBOperator{
 
   public:
 
@@ -165,6 +196,36 @@ namespace CoupledField{
     virtual void CalcOpMatTransposed(Matrix<Double> & bMat,
                                      const LocPointMapped& lp, 
                                      BaseFE* ptFe );
+    
+    // ===============
+    //  QUERY METHODS
+    // ===============
+    //@{ \name Query Methods
+    //! \copydoc BaseBOperator::GetDiffOrder
+    virtual UInt GetDiffOrder() const {
+      return ORDER_DIFF;
+    }
+
+    //! \copydoc BaseBOperator::GetDimDof()
+    virtual UInt GetDimDof() const {
+      return DIM_DOF;
+    }
+
+    //! \copydoc BaseBOperator::GetDimSpace()
+    virtual UInt GetDimSpace() const {
+      return DIM_SPACE;
+    }
+
+    //! \copydoc BaseBOperator::GetDimElem()
+    virtual UInt GetDimElem() const {
+      return DIM_ELEM;
+    }
+
+    //! \copydoc BaseBOperator::GetDimDMat()
+    virtual UInt GetDimDMat() const {
+      return DIM_D_MAT;
+    }
+       //@}
   protected:
 
   };
@@ -258,7 +319,7 @@ namespace CoupledField{
    // ============================
    //! Strain-like differential operator in 3D
    template<class FE, class TYPE = Double >
-   class StrainOperator3D : public BaseBOperator<TYPE>{
+   class StrainOperator3D : public BaseBOperator  {
 
    public:
 
@@ -303,6 +364,37 @@ namespace CoupledField{
      virtual void CalcOpMatTransposed(Matrix<Double> & bMat,
                                       const LocPointMapped& lp, 
                                       BaseFE* ptFe );
+     
+     // ===============
+     //  QUERY METHODS
+     // ===============
+     //@{ \name Query Methods
+     //! \copydoc BaseBOperator::GetDiffOrder
+     virtual UInt GetDiffOrder() const {
+       return ORDER_DIFF;
+     }
+
+     //! \copydoc BaseBOperator::GetDimDof()
+     virtual UInt GetDimDof() const {
+       return DIM_DOF;
+     }
+
+     //! \copydoc BaseBOperator::GetDimSpace()
+     virtual UInt GetDimSpace() const {
+       return DIM_SPACE;
+     }
+
+     //! \copydoc BaseBOperator::GetDimElem()
+     virtual UInt GetDimElem() const {
+       return DIM_ELEM;
+     }
+
+     //! \copydoc BaseBOperator::GetDimDMat()
+     virtual UInt GetDimDMat() const {
+       return DIM_D_MAT;
+     }
+     //@}
+     
    protected:
 
    };

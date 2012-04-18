@@ -16,6 +16,7 @@
 
 #include "Domain/CoefFunction/CoefFunctionExpression.hh"
 #include "Domain/CoefFunction/CoefFunctionApprox.hh"
+#include "Domain/CoefFunction/CoefFunctionFormBased.hh"
 #include "Domain/CoefFunction/CoefFunctionMulti.hh"
 #include "Domain/CoefFunction/CoefXpr.hh"
 
@@ -570,16 +571,16 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
       flux->definedOn = ResultInfo::ELEMENT;
       flux->entryType = ResultInfo::VECTOR;
       availResults_.insert( flux );
-      shared_ptr<BaseFieldFunctor> bFunc;
+      shared_ptr<CoefFunctionFormBased> bFunc;
       if( isComplex_ ) {
-        bFunc.reset(new DiffFieldFunctor<Complex>(feFct, flux));
+        bFunc.reset(new CoefFunctionBOp<Complex>(feFct, flux));
       } else {
-        bFunc.reset(new DiffFieldFunctor<Double>(feFct, flux));
+        bFunc.reset(new CoefFunctionBOp<Double>(feFct, flux));
       }
       DefineFieldResult( bFunc, flux );
       
       // === EDDY CURRENT DENSITY ===
-      shared_ptr<BaseFieldFunctor> jFunc;
+      shared_ptr<CoefFunctionFormBased> jFunc;
       if( analysistype_ != STATIC ) {
         shared_ptr<BaseFeFunction> aDotFct = 
             timeDerivFeFunctions_[MAG_POTENTIAL_DERIV1];
@@ -592,9 +593,9 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
         availResults_.insert( eddy );
 
         if( isComplex_ ) {
-          jFunc.reset(new FluxFieldFunctor<Complex>(aDotFct, eddy, -1.0));
+          jFunc.reset(new CoefFunctionFlux<Complex>(aDotFct, eddy, -1.0));
         } else {
-          jFunc.reset(new FluxFieldFunctor<Double>(aDotFct, eddy, -1.0));
+          jFunc.reset(new CoefFunctionFlux<Double>(aDotFct, eddy, -1.0));
         }
         DefineFieldResult( jFunc, eddy );
       }
@@ -660,8 +661,6 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
                  CoefXprBinOp( tcdCoef, bFunc, CoefXpr::OP_CROSS ) );
         DefineFieldResult( lfdFunc, lfd);
 
-
-
         // === LORENTZ FORCE (TOTAL) ===
         shared_ptr<ResultInfo> lf(new ResultInfo);
         lf->resultType = MAG_FORCE_LORENTZ;
@@ -681,17 +680,6 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
         resultFunctors_[MAG_FORCE_LORENTZ] = lfFunc;
       }
 
-  //    
-  //    // === DIVERGENCE OF MAGNETIC POTENTIAL ===
-  //    shared_ptr<ResultInfo> div(new ResultInfo);
-  //    div->resultType = MAG_POTENTIAL_DIV;
-  //    div->dofNames = "";
-  //    div->unit = "Vs/m^3";
-  //    div->definedOn = ResultInfo::ELEMENT;
-  //    div->entryType = ResultInfo::SCALAR;
-  //    div->fctType = shared_ptr<ConstFct>(new ConstFct() );
-  //    availResults_.insert( div );
-      
       // === PERMEABILITY  ===
       shared_ptr<ResultInfo> perm(new ResultInfo);
       perm->resultType = MAG_ELEM_PERMEABILITY;
@@ -716,6 +704,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
         energyFunc.reset(new EnergyResultFunctor<Double>(feFct, energy));
       }
       resultFunctors_[MAG_ENERGY] = energyFunc;
+      
       // ============================
       // Initialize result functors:
       // ============================

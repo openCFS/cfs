@@ -310,9 +310,6 @@ DECLARE_LOG(fefunc)
     EntityIterator it = list->GetIterator();
     actSol.Init();
 
-    UInt dim = grid_->GetDim();
-    scoped_ptr<BaseBOperator<T> > interOp ( GenerateInterpolationOperator(dim,numDofs) );
-    
     StdVector<Integer> eqnNums;
     UInt pos = 0;
     for ( it.Begin(); !it.IsEnd(); it++ ) {
@@ -371,7 +368,7 @@ DECLARE_LOG(fefunc)
 
         this->GetElemSolution(elemSolution,myElem);
         BaseFE * ptFe = feSpace_->GetFe(lpm.ptEl->elemNum);
-        interOp->ApplyOp(dofSol, lpm, ptFe, elemSolution );
+        idOp_->ApplyOp(dofSol, lpm, ptFe, elemSolution );
         for(UInt iDim = 0; iDim < numDofs; iDim++ ) {
           actSol[pos++] = dofSol[iDim];
 
@@ -394,8 +391,8 @@ DECLARE_LOG(fefunc)
   }
   
   template<typename T>
-  BaseBOperator<T>* FeFunction<T>::GenerateInterpolationOperator(UInt dim, UInt dofDim){
-    BaseBOperator<T>* myOP = NULL;
+  BaseBOperator* FeFunction<T>::GenerateInterpolationOperator(UInt dim, UInt dofDim){
+    BaseBOperator* myOP = NULL;
     FeSpace::SpaceType curType = feSpace_->GetSpaceType();
     switch(curType){
       case FeSpace::H1:

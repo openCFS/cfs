@@ -115,7 +115,7 @@ class CoefFunctionGridBase : public CoefFunction{
 
     //! BOperator to map solutions to arbitrary points
     //! Right now, hardcoded identity operator
-    shared_ptr<BaseBOperator<DATA_TYPE> > myOperator_;
+    shared_ptr<BaseBOperator > myOperator_;
 
     //! pointer to FeFunction defined on external Grid
     shared_ptr<FeFunction<DATA_TYPE> > feFunct_;
