@@ -1,0 +1,26 @@
+set(ilupack_source  "@ilupack_source@")
+SET(CFS_SOURCE_DIR "@CFS_SOURCE_DIR@")
+SET(CFS_DISTRO "@CFS_DISTRO@")
+
+INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/CFS_macros.cmake")
+
+EXECUTE_PROCESS(
+  COMMAND ${CMAKE_COMMAND} -E copy_if_different 
+  "${CFS_SOURCE_DIR}/cfsdeps/ilupack/CMakeLists.txt"
+  "${ilupack_source}/CMakeLists.txt"
+)
+
+SET(patches
+  "ilupack-nomore-malloc-header.patch"
+  "ilupack-sparspak-revrse.patch"
+  "ilupack-disable-saddle-point-stuff.patch"
+  )
+
+if(CFS_DISTRO STREQUAL "MACOSX") 
+  SET(patches
+    ${patches}
+    "ilupack-globals.patch"
+    )
+endif(CFS_DISTRO STREQUAL "MACOSX") 
+
+APPLY_PATCHES("${patches}" "${CFS_SOURCE_DIR}/cfsdeps/ilupack")

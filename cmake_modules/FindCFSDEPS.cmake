@@ -153,6 +153,27 @@ IF(USE_GIDPOST)
 ENDIF(USE_GIDPOST)
 
 IF(USE_BLAS OR USE_LAPACK)
+
+  #-----------------------------------------------------------------------------
+  # Find Netlib BLAS/LAPACK library
+  #-----------------------------------------------------------------------------
+  IF(CFS_BLAS_LAPACK STREQUAL "GOTO" OR
+      CFS_BLAS_LAPACK STREQUAL "NETLIB" OR
+      CFS_BLAS_LAPACK STREQUAL "GOTO" OR
+      USE_ILUPACK)
+    
+    SET(LAPACK_URL "${LSE17_SOURCES_DIR}/lapack")
+    SET(LAPACK_GZ "lapack-3.2.1.tgz")
+    SET(LAPACK_MD5 "a3202a4f9e2f15ffd05d15dab4ac7857")
+    
+    INCLUDE("${CFS_SOURCE_DIR}/cfsdeps/lapack/External_LAPACK.cmake")
+    
+  ENDIF(CFS_BLAS_LAPACK STREQUAL "GOTO" OR
+    CFS_BLAS_LAPACK STREQUAL "NETLIB" OR
+    CFS_BLAS_LAPACK STREQUAL "GOTO" OR
+    USE_ILUPACK)
+
+
   #-----------------------------------------------------------------------------
   # Find ACML library
   #-----------------------------------------------------------------------------
@@ -164,7 +185,6 @@ IF(USE_BLAS OR USE_LAPACK)
   # Find GotoBLAS library
   #-----------------------------------------------------------------------------
   IF(CFS_BLAS_LAPACK STREQUAL "GOTO")
-    INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindLAPACK.cmake")
     INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindGotoBLAS.cmake")
   ENDIF(CFS_BLAS_LAPACK STREQUAL "GOTO")
 
@@ -174,17 +194,6 @@ IF(USE_BLAS OR USE_LAPACK)
   IF(CFS_BLAS_LAPACK STREQUAL "MKL")
     INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindIntelMKL.cmake")
   ENDIF(CFS_BLAS_LAPACK STREQUAL "MKL")
-
-  #-----------------------------------------------------------------------------
-  # Find Netlib BLAS/LAPACK library
-  #-----------------------------------------------------------------------------
-  IF(CFS_BLAS_LAPACK STREQUAL "NETLIB")
-    SET(LAPACK_URL "${LSE17_SOURCES_DIR}/lapack")
-    SET(LAPACK_GZ "lapack-3.2.1.tgz")
-    SET(LAPACK_MD5 "a3202a4f9e2f15ffd05d15dab4ac7857")
-
-    INCLUDE("${CFS_SOURCE_DIR}/cfsdeps/lapack/External_LAPACK.cmake")
- ENDIF(CFS_BLAS_LAPACK STREQUAL "NETLIB")
 
   #-----------------------------------------------------------------------------
   # Search for Pardiso Library
@@ -222,20 +231,26 @@ IF(USE_BLAS OR USE_LAPACK)
   ENDIF(USE_ARPACK)
   
   #-----------------------------------------------------------------------------
+  # Find SuiteSparse/CholMod/AMD library
+  #-----------------------------------------------------------------------------
+  IF(USE_CHOLMOD OR USE_ILUPACK)
+    SET(SUITESPARSE_URL "${LSE17_SOURCES_DIR}/suitesparse")
+    SET(SUITESPARSE_GZ "SuiteSparse-3.7.0.tar.gz")
+    SET(SUITESPARSE_MD5 "ecb1d1cc1101cf31f077bab46678e791")
+
+    INCLUDE("${CFS_SOURCE_DIR}/cfsdeps/suitesparse/External_SuiteSparse.cmake")
+  ENDIF(USE_CHOLMOD OR USE_ILUPACK)
+
+  #-----------------------------------------------------------------------------
   # Find ILUPACK library
   #-----------------------------------------------------------------------------
   IF(USE_ILUPACK)
-    INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindLAPACK.cmake")
-    INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindSuiteSparse.cmake")    
-    INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindILUPACK.cmake")
+    SET(ILUPACK_PATH "${CFS_SOURCE_DIR}/cfsdeps/ilupack")
+    SET(ILUPACK_GZ "ilupack2.2.1_src.tgz")
+    SET(ILUPACK_MD5 "83454bbbbb12bd4efca73df50d2e6d7d")
+    
+    INCLUDE("${CFS_SOURCE_DIR}/cfsdeps/ilupack/External_ILUPACK.cmake")
   ENDIF(USE_ILUPACK)
-
-  #-----------------------------------------------------------------------------
-  # Find SuiteSparse/CholMod/AMD library
-  #-----------------------------------------------------------------------------
-  IF(USE_CHOLMOD)
-    INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindSuiteSparse.cmake")
-  ENDIF(USE_CHOLMOD)
 
   #-----------------------------------------------------------------------------
   # Find SnOpt library
@@ -303,7 +318,11 @@ ENDIF(USE_IPOPT)
 # Find SCPIP
 #-----------------------------------------------------------------------------
 IF(USE_SCPIP)
-  INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindSCPIP.cmake")    
+  SET(SCPIP_PATH "${CFS_SOURCE_DIR}/cfsdeps/scpip")
+  SET(SCPIP_BZ2 "scpip.tar.bz2")
+  SET(SCPIP_MD5 "8afaf8d8d79981d68b8c726ea508471d")
+
+  INCLUDE("${CFS_SOURCE_DIR}/cfsdeps/scpip/External_SCPIP.cmake")
 ENDIF(USE_SCPIP)
 
 #-----------------------------------------------------------------------------

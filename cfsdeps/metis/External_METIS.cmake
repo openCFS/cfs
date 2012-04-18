@@ -55,7 +55,7 @@ SET(METIS_INCLUDE_DIR "${CFS_BINARY_DIR}/include")
 #-------------------------------------------------------------------------------
 SET(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}")
 SET(METIS_LIBRARY
-  "${LD}/libmetis.a"
+  "${LD}/${CMAKE_STATIC_LIBRARY_PREFIX}metis${CMAKE_STATIC_LIBRARY_SUFFIX}"
   CACHE FILEPATH "METIS library.")
 
 MARK_AS_ADVANCED(METIS_INCLUDE_DIR)

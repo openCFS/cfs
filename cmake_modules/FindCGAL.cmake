@@ -3,15 +3,15 @@ SET(CGAL_FOUND 0)
 #-------------------------------------------------------------------------------
 # Determine path of CGAL library.
 #-------------------------------------------------------------------------------
-BUILD_EXTLIB("GMP"
-  "${CFS_BINARY_DIR}/include/gmp.h"
-  "${CFS_DEPS_ROOT}/gmp/build_gmp.pl"
-  "build_gmp.log")
+SET(GMP_URL "${LSE17_SOURCES_DIR}/gmp")
+SET(GMP_BZ2 "gmp-4.2.4.tar.bz2")
+SET(GMP_MD5 "fc1e3b3a2a5038d4d74138d0b9cf8dbe")
+INCLUDE("${CFS_SOURCE_DIR}/cfsdeps/gmp/External_gmp.cmake")
 
-BUILD_EXTLIB("MPFR"
-  "${CFS_BINARY_DIR}/include/mpfr.h"
-  "${CFS_DEPS_ROOT}/mpfr/build_mpfr.pl"
-  "build_mpfr.log")
+SET(MPFR_URL "${LSE17_SOURCES_DIR}/mpfr")
+SET(MPFR_BZ2 "mpfr-2.4.0.tar.bz2")
+SET(MPFR_MD5 "f5916d785d4f7e7282057f6a3ebff9ce")
+INCLUDE("${CFS_SOURCE_DIR}/cfsdeps/mpfr/External_mpfr.cmake")
 
 BUILD_EXTLIB("CGAL"
   "${CFS_BINARY_DIR}/include/CGAL"
