@@ -67,6 +67,12 @@ cfsdeps/muparser/muparser-dummy-math.patch -text
 cfsdeps/muparser/muparser-intel-atomic.patch -text
 cfsdeps/muparser/muparser-patch.cmake.in -text
 cfsdeps/muparser/muparser-strfun45.patch -text
+cfsdeps/python/External_Python.cmake -text
+cfsdeps/python/python_configure_step.cmake.in -text
+cfsdeps/python/python_install_step.cmake.in -text
+cfsdeps/python/python_make_step.cmake.in -text
+cfsdeps/python/python_patch_step.cmake.in -text
+cfsdeps/python/python_setup.py.in -text
 cfsdeps/scpip/CMakeLists.txt -text
 cfsdeps/scpip/External_SCPIP.cmake -text
 cfsdeps/scpip/fulltext.pdf -text svneol=unset#unset

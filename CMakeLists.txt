@@ -54,6 +54,13 @@ SET(CMAKE_MODULE_PATH ${CFS_SOURCE_DIR}/cmake_modules)
 INCLUDE("cmake_modules/platform_defaults.cmake")
 
 #-----------------------------------------------------------------------------
+# Switch on/off usage of custom-built Python
+#-----------------------------------------------------------------------------
+OPTION(USE_PYTHON
+  "Build our own Python for CFS++." 
+  ${USE_PYTHON_DEFAULT})
+
+#-----------------------------------------------------------------------------
 # Switch on/off external libraries and other options for compile
 #-----------------------------------------------------------------------------
 OPTION(USE_MESH

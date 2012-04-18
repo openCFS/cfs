@@ -353,4 +353,16 @@ IF(BUILD_HDFVIEW)
   INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindHDFView.cmake")
 ENDIF(BUILD_HDFVIEW)
 
+IF(USE_PYTHON)
+  set(PYTHON_MAJOR 2)
+  set(PYTHON_MINOR 7)
+  set(PYTHON_PATCH 2)
+  set(PYTHON_VERSION ${PYTHON_MAJOR}.${PYTHON_MINOR}.${PYTHON_PATCH})
+  set(PYTHON_URL "http://paraview.org/files/v3.14/dependencies")
+  set(PYTHON_GZ Python-${PYTHON_VERSION}.tgz)
+  set(PYTHON_MD5 0ddfe265f1b3d0a8c2459f5bf66894c7)
+  
+  INCLUDE("${CFS_SOURCE_DIR}/cfsdeps/python/External_Python.cmake")
+ENDIF(USE_PYTHON)
+
 SET(CFSDEPS_FOUND 1)
