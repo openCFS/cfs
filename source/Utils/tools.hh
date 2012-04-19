@@ -175,10 +175,8 @@ namespace CoupledField {
   /** makes sure the string is a valid xml element and attribute name */
   std::string ToValidXML(const std::string& input);
 
-
-  /** Calculates the L2 norm of a array. This is for cases where we
-   * don't use one of our vectors. E.g. with IPOPT */
-  Double NormL2(const Double* data, const UInt size);
+  /** Calculates the L2 norm of a difference vector */
+  Double NormL2(const Double* data1, const Double* data2, const UInt size);
 
   /** Calculate the average of an array */
   double Average(const double* data, unsigned int size);

@@ -1,10 +1,11 @@
 #include "Optimization/Optimizer/FeasPP.hh"
 #include "Optimization/Design/DesignSpace.hh"
 #include "MatVec/scrs_matrix.hh"
+#include "Utils/tools.hh"
 #include "DataInOut/Logging/cfslog.hh"
 #include "DataInOut/Logging/log.hpp"
 
-
+#include <limits>
 
 
 DECLARE_LOG(feasPP)
@@ -14,6 +15,8 @@ using namespace CoupledField;
 using std::pow;
 using std::string;
 
+Enum<FeasPP::Globalization> FeasPP::global;
+
 FeasPP::FeasPP(Optimization* opt, PtrParamNode pn) : BaseOptimizer(opt, pn, Optimization::FEAS_PP_SOLVER)
 {
   obj = NULL;
@@ -21,47 +24,19 @@ FeasPP::FeasPP(Optimization* opt, PtrParamNode pn) : BaseOptimizer(opt, pn, Opti
   m = 0;
   hessian = NULL;
 
+  global.SetName("FeasPP::Globalization");
+  global.Add(NONE, "none");
+  global.Add(BACKTRACKING, "backtracking");
+
   approx_linear = pn->Has("feasPP/approx_linear") ? pn->Get("feasPP/approx_linear")->As<bool>() : false;
   approx_feasibility = pn->Has("feasPP/approx_feasible") ? pn->Get("feasPP/approx_feasible")->As<bool>() : false;
   non_approx_constraints = true; // set it PostInit()
+  global_ = pn->Has("feasPP") ? global.Parse(pn->Get("feasPP/globalize")->As<string>()) : NONE;
+  convex_tau = pn->Has("feasPP") ?  pn->Get("feasPP/convex_tau")->As<double>() : 0.0; // switch off
 
   PostInitScale(1.0);
 
   ipopt = new FeasSubProblem(this, pn->Get("feasPP/ipopt", ParamNode::PASS));
-
-
-  compressed_matrix<double> m(3,3);
-  for (unsigned i = 0; i < m.size1 (); ++ i)
-    for (unsigned j = 0; j < m.size2 (); ++ j)
-      if(j >= i)
-        m (i, j) = 3.0 * i + j;
-
-  m.clear();
-  //m.resize(3,3);
-  assert(m.nnz() == 0);
-  m(0,0) = 0.0;
-  assert(m.nnz() == 1);
-
-  std::cout << m << std::endl;
-
-  unbounded_array<double> vd = m.value_data();
-  for(unbounded_array<double>::iterator it = vd.begin(); it != vd.end(); ++it)
-  {
-  //  std::cout << "vd: " << *it->index() << ": " << *it << std::endl;
-  }
-  for(compressed_matrix<double>::const_iterator1 it = m.begin1(); it != m.end1(); ++it)
-  {
-    //std::cout << "it1: " << *it << " idx1=" << it.index1() << " idx2=" << it.index2() << std::endl;
-    for(compressed_matrix<double>::const_iterator2 it2 = it.begin(); it2 != it.end(); ++it2)
-    {
-      // std::cout << "it2: " << *it2 << " idx1=" << it2.index1() << " idx2=" << it2.index2() << std::endl;
-      //std::cout << "it2: " << *it2 << std::endl;
-    }
-  }
-  for(compressed_matrix<double>::const_iterator2 it = m.begin2(); it != m.end2(); ++it)
-  {
-  //  std::cout << "it2: " << *it << std::endl;
-  }
 
 }
 
@@ -136,22 +111,44 @@ void FeasPP::SolveProblem()
   while(!optimization->DoStopOptimization() && optimization->GetCurrentIteration() <= max_iter)
   {
     int iter = optimization->GetCurrentIteration();
+    PtrParamNode in;
     try
     {
       // solve sub-problem
-      ipopt->Init();
-      PtrParamNode in = info_->Get(ParamNode::PROCESS)->Get("feasPP")->Get("subsolver", ParamNode::APPEND);
+      // ipopt->Init();
+      in = info_->Get(ParamNode::PROCESS)->Get("feasPP")->Get("subsolver", ParamNode::APPEND);
       in->Get("iteration")->SetValue(iter);
       ipopt->SolveProblem(in);
     }
     catch(Exception& ex)
     {
-      string msg = "Ignore failed subproblem in major iteration " + boost::lexical_cast<string>(iter) + " :" + ex.GetMsg();
-      info_->Get(ParamNode::PROCESS)->Get("feasPP")->Get(ParamNode::WARNING)->SetValue(msg);
+      throw Exception("subproblem failed in major iteration " + lexical_cast<string>(iter) + " :" + ex.GetMsg());
     }
 
     assert(ipopt->x_final.GetSize() == n);
     optimization->GetDesign()->ReadDesignFromExtern(ipopt->x_final.GetPointer());
+
+    LOG_DBG2(feasPP) << "SP: it=" << iter << " c_grad = [" << obj->outer_grad.ToString() << "]";
+    LOG_DBG2(feasPP) << "SP: it=" << iter << " x_old = [" << x_outer.ToString() << "]";
+    LOG_DBG2(feasPP) << "SP: it=" << iter << " x_new_org = [" << ipopt->x_final.ToString() << "]";
+
+    if(global_ == BACKTRACKING)
+    {
+      BTI bti = Backtracking(x_outer, ipopt->x_final);
+      in->Get("steps")->SetValue(bti.steps);
+      in->Get("org_dx_norm")->SetValue(bti.org_dx);
+      in->Get("curr_dx_norm")->SetValue(bti.curr_dx);
+    }
+
+    optimization->GetDesign()->WriteDesignToExtern(x_outer); // only for the LOG below, can be removed as it is done in UpdateToCurrentStep()
+    LOG_DBG2(feasPP) << "SP: it=" << iter << " x_new_curr = [" << x_outer.ToString() << "]";
+
+/*    for(unsigned int i = 0; i < optimization->GetDesign()->elements; i++)
+    {
+      Matrix<double> E;
+      optimization->GetDesign()->GetErsatzMaterialTensor(E, PLANE_STRAIN, optimization->GetDesign()->data[i].elem, DesignElement::NO_DERIVATIVE, DesignMaterial::HILL_MANDEL);
+      LOG_DBG2(feasPP) << "SP sps i=" << i << " -> " << E.ToString(2);
+    }*/
 
     // evaluate all functions such that we have the function values for the current design
     // the subproblem is based on the approximated values only
@@ -161,10 +158,63 @@ void FeasPP::SolveProblem()
 }
 
 
+FeasPP::BTI FeasPP::Backtracking(const StdVector<double>& std_x_old, const StdVector<double>& std_x_new)
+{
+  assert(std_x_old.GetSize() == n);
+  assert(std_x_new.GetSize() == n);
+
+  BTI result;
+
+  Vector<double> x_old(n);
+  x_old.Fill(std_x_old.GetPointer(), n);
+  Vector<double> x_new(n);
+  x_new.Fill(std_x_new.GetPointer(), n);
+
+  Vector<double> d(n);
+  d = x_new - x_old; // principal direction
+  LOG_DBG2(feasPP) << "FP:B dx_org=" << d.ToString(0, ' ');
+
+  result.org_dx = d.NormL2();
+
+  /*for(double t = 0.0; t <= 1.0001; t += 0.002)
+  {
+    x_new = x_old + t * d;
+    optimization->GetDesign()->ReadDesignFromExtern(x_new.GetPointer());
+    double ov = EvalObjective(n, x_new.GetPointer(), true);
+    // LOG_DBG2(feasPP) << "FP:B t/ov: " << t << "\t" << ov;
+    std::cout << "FP:B t/ov: " << t << "\t" << ov << std::endl;
+  }*/
+
+  int eval = 0;
+  // obj->outer_value is proper value for an approximation of the objective function
+  // in case of non->approximation ipopt made the globalization!
+  for(double t = 2.0, ov = std::numeric_limits<double>::max(); ov >= obj->outer_val && eval < 20; eval++) // enter at least once!
+  {
+    t *= 0.5;
+    x_new = t * d; // temporary only!
+    result.curr_dx = x_new.NormL2();
+    LOG_DBG2(feasPP) << "FP:B dx_new=" << x_new.ToString(0, ' ');
+    x_new += x_old;
+    LOG_DBG2(feasPP) << "FP:B x_new=" << x_new.ToString(0, ' ');
+    optimization->GetDesign()->ReadDesignFromExtern(x_new.GetPointer());
+    ov = EvalObjective(n, x_new.GetPointer(), true);
+    LOG_DBG2(feasPP) << "FP:B e=" << eval << " t=" << t << " ov=" << ov << " old_ov=" << obj->outer_val << " x=" << x_new.ToString(0, ' ');
+  }
+  assert(!(!obj->approximate && eval > 1)); // see comment above
+
+  if(eval >= 20)
+    EXCEPTION("cannot find backtracking value within " << eval << " steps for |d|=" << d.NormL2());
+
+  result.steps = eval;
+  return result;
+}
+
 void FeasPP::UpdateToCurrentStep()
 {
   DesignSpace* space = optimization->GetDesign();
   space->WriteDesignToExtern(x_outer);
+
+  LOG_DBG(feasPP) << "UTCP x=" << x_outer.ToString();
 
   // prepare all functions for the present design
   obj->outer_val = EvalObjective(n, x_outer.GetPointer(), true);
@@ -250,7 +300,8 @@ double Approximation::Evaluate(const double* x_inner, Eval eval, StdVector<doubl
   else
     result = EvalDirect(x_inner, eval, out);
 
-  LOG_DBG3(feasPP) << "A:E f=" << ToString() << " d=" << eval << " x=" << StdVector<double>::ToString(common->n, x_inner) << " -> " << (eval != FUNC ? out->ToString() : boost::lexical_cast<std::string>(result));
+  LOG_DBG2(feasPP) << "A:E f=" << ToString() << " d=" << eval << " -> " << (eval != FUNC ? "..." : boost::lexical_cast<std::string>(result)) << " dx=" << NormL2(common->x_outer.GetPointer(), x_inner, common->n);
+  LOG_DBG3(feasPP) << "A:E f=" << ToString() << " d=" << eval << " -> " << (eval != FUNC ? out->ToString() : boost::lexical_cast<std::string>(result));
   return result;
 }
 
@@ -279,24 +330,44 @@ double Approximation::EvalApproximation(const double* x_inner, Eval eval, StdVec
 
     LOG_DBG3(feasPP) << "A:E f=" << ToString() << " j=" << j << " xo=" << xo << " xi=" << xi << " grad=" << grad << " U=" << U << " L=" << L << " p=" << p << " q=" << q << " ov=" << outer_val;
 
+    // (6) in Sonjas paper, only for the objective, this is only tau (or 0.0 if not applicable)
+    double tau = constraint_idx == -1 ? common->convex_tau : 0.0;
+
+    // maxima:
+    // fp: tau*(xi-xo)**2/(U-xi);
+    // fn: tau*(xi-xo)**2/(xi-L);
+
+
     switch(eval)
     {
     case FUNC:
     {
       double r_ = p/(U-xo) + q/(xo-L);
       double s  = p/(U-xi) + q/(xi-L);
-      result += -r_ + s;
-      LOG_DBG3(feasPP) << "A:E f=" << ToString() << " func r_=" << r_ << " s=" << s << " -> " << result;
+      // (6) in Sonjas paper, only for the objective
+      double c = tau * (grad >= 0 ? (xi-xo)*(xi-xo)/(U-xi) : (xi-xo)*(xi-xo)/(xi-L));
+      result += -r_ + s + c;
+      LOG_DBG3(feasPP) << "A:E f=" << ToString() << " func r_=" << r_ << " s=" << s << " c=" << c << " -> " << result;
       break;
     }
     case GRAD:
-      (*out)[e] = + p/((U-xi)*(U-xi)) - q/((xi-L)*(xi-L));
-      LOG_DBG3(feasPP) << "A:E f=" << ToString() << " grad out[" << e << "]=" << (*out)[e];
+    {
+      // diff(fp,xi); diff(fn,xi)
+      double c = grad >= 0 ? 2.0*tau*(xi-xo)/(U-xi) + tau*(xi-xo)*(xi-xo)/((U-xi)*(U-xi))
+                           : 2.0*tau*(xi-xo)/(xi-L) - tau*(xi-xo)*(xi-xo)/((xi-L)*(xi-L));
+      (*out)[e] = + p/((U-xi)*(U-xi)) - q/((xi-L)*(xi-L)) + c;
+      LOG_DBG3(feasPP) << "A:E f=" << ToString() << " c=" << c << " grad out[" << e << "]=" << (*out)[e];
       break;
+    }
     case HESSIAN:
-      (*out)[e] = 2.0*p/((U-xi)*(U-xi)*(U-xi)) + 2.0*q/((xi-L)*(xi-L)*(xi-L));
-      LOG_DBG3(feasPP) << "A:E f=" << ToString() << " hess out[" << e << "]=" << (*out)[e];
+    {
+      // diff(diff(fp,xi),xi); diff(diff(fn,xi),xi);
+      double c = grad >= 0 ? 2.0*tau/(U-xi) + 4.0*tau*(xi-xo)/((U-xi)*(U-xi)) + 2.0*tau*(xi-xo)*(xi-xo)/((U-xi)*(U-xi)*(U-xi))
+                           : 2.0*tau/(xi-L) - 4.0*tau*(xi-xo)/((xi-L)*(xi-L)) + 2.0*tau*(xi-xo)*(xi-xo)/((xi-L)*(xi-L)*(xi-L));
+      (*out)[e] = 2.0*p/((U-xi)*(U-xi)*(U-xi)) + 2.0*q/((xi-L)*(xi-L)*(xi-L)) + c;
+      LOG_DBG3(feasPP) << "A:E f=" << ToString() << " c=" << c << " hess out[" << e << "]=" << (*out)[e];
       break;
+    }
     }
   }
   return result;

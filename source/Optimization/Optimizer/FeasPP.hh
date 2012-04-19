@@ -63,6 +63,10 @@ public:
 
   bool approx_feasibility;
 
+  /** In the feasibility paper in (6) is a convexication term for the objective only.
+   * The parameter is a scalar, fixed tau. Setting to 0.0 disables the term! */
+  double convex_tau;
+
   compressed_matrix<double>* hessian;
 
 protected:
@@ -77,10 +81,29 @@ private:
   /** updates the design and the outer function values and gradients */
   void UpdateToCurrentStep();
 
+  typedef struct
+  {
+    int steps;
+    double org_dx;
+    double curr_dx;
+  } BTI;
+
+  /** performs backtracking linesearch. obj(x_new) >= obj(x_old)= ob->outer_value
+   * Note that the objective is evaluated, the design_id is set but the constraints
+   * might not be evaluated -> UpdateSystem().
+   * The final design is stored in the CFS-Design!
+   * @param the solution of the subproblem.
+   * @return number of function evaluations and the norms of the designs*/
+  BTI Backtracking(const StdVector<double>& x_old, const StdVector<double>& x_new);
+
+  typedef enum { NONE, BACKTRACKING } Globalization;
+
+  static Enum<Globalization> global;
+
+  Globalization global_;
+
   SmartPtr<FeasSubProblem> ipopt;
 };
-
-
 
 /** this is either the approximation of a function or the function itself */
 class Approximation

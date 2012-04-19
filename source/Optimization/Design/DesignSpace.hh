@@ -120,7 +120,7 @@ namespace CoupledField
       * @param design_index index of designElement
       * @param direction if !=DEFAULT calculate derivative of Tensor instead of Tensor 
       * @returns whether the given element is subject to optimization and the tensor therefore could be retrieved */
-     bool GetErsatzMaterialTensor(Matrix<double>& t, SubTensorType subTensor, const Elem* elem, DesignElement::Type direction);
+     bool GetErsatzMaterialTensor(Matrix<double>& t, SubTensorType subTensor, const Elem* elem, DesignElement::Type direction, DesignMaterial::Notation notation = DesignMaterial::VOIGT);
      
      /** Calculates the corresponding Mass for the given element, this is usually tensor trace
       * @param elem Element

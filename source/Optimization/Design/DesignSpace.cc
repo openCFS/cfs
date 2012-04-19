@@ -425,7 +425,6 @@ void DesignSpace::SetDesignMaterial(PtrParamNode dm){
   if(transfer.GetSize() > 0)
     throw Exception("designmaterial can not be given when using transferFunctions");
   transfer.Push_back(TransferFunction()); // create an identity transfer function
-  DesignMaterial::SetEnums();
   designMaterial = new DesignMaterial(dm, design);
 }
 void DesignSpace::AppendOptimizationResults(SinglePDE* pde)
@@ -626,10 +625,10 @@ bool DesignSpace::CollectMaterialParametersForElement(const Elem* elem){
   }
   return(true);
 }
-bool DesignSpace::GetErsatzMaterialTensor(Matrix<double>& t, SubTensorType subTensor, const Elem* elem, DesignElement::Type direction){
+bool DesignSpace::GetErsatzMaterialTensor(Matrix<double>& t, SubTensorType subTensor, const Elem* elem, DesignElement::Type direction, DesignMaterial::Notation notation){
   // collect all parameters
   if(CollectMaterialParametersForElement(elem)){
-    designMaterial->GetMaterialTensor(t, subTensor, direction);
+    designMaterial->GetMaterialTensor(t, subTensor, direction, notation);
     return(true);
   }
   return(false);

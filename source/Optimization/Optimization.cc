@@ -502,6 +502,7 @@ Optimization* Optimization::CreateInstance()
   // set the enums we need
   Optimization::SetEnums(); // sets also ErsatzMaterial::Method
   DesignElement::SetEnums();
+  DesignMaterial::SetEnums();
 
   if(!param->Has("optimization")) return NULL;
 

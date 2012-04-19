@@ -201,9 +201,6 @@ namespace CoupledField
        * For normal condition this is simple the virtual index, for local conditions this is the base*/
       int virtual_base_index_;
 
-      /** for FMO_POS_DEF the actual minor. Set when expanded. Minors are 1, 2, 3. 0 means other function */
-      //      int fmo_pos_def_minor_;
-
     private:
 
       /** Read the pattern for design tracking. pattern has in the end the same size as Function::elements.

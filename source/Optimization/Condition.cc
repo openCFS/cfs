@@ -23,12 +23,10 @@
 #include "Optimization/Optimization.hh"
 #include "Utils/tools.hh"
 
-namespace CoupledField {
-class DesignStructure;
-}  // namespace CoupledField
+using std::string;
 
 using namespace CoupledField;
-
+class DesignStructure;
 
 DECLARE_LOG(conditions)
 
@@ -45,20 +43,20 @@ Condition::Condition(PtrParamNode pn) : Function(pn)
   virtual_base_index_ = -1;
   // fmo_pos_def_minor_ = 0;
 
-  observation_ = pn->Get("mode")->As<std::string>() == "observation";
+  observation_ = pn->Get("mode")->As<string>() == "observation";
 
   // the bound value is mandatory when we have a constraint
   if(!observation_ && !pn->Has("bound") && type_ != ISOTROPY && type_ != ISO_ORTHOTROPY && type_ != ORTHOTROPY && type_ != MAXWELL_ISOTROPY && type_ != BIISOTROPY)
     throw Exception("bound type for constraint '" + type.ToString(type_) + "' mandatory");
-  bound_ = pn->Has("bound") ? bound.Parse(pn->Get("bound")->As<std::string>()) : EQUAL;
+  bound_ = pn->Has("bound") ? bound.Parse(pn->Get("bound")->As<string>()) : EQUAL;
   // the bound value is called value in the problem file!
   // there must not  be a value when a homogenization tensor is given
   this->boundValue_ = -1.0;
   if(pn->Has("value"))
-    this->boundValue_ = pn->Get("value")->As<std::string>() == "slack" ? SLACK_VALUE_ : pn->Get("value")->As<double>();
+    this->boundValue_ = pn->Get("value")->As<string>() == "slack" ? SLACK_VALUE_ : pn->Get("value")->As<double>();
 
   // special handling of scaling
-  objective_scaling_ = pn->Get("scaling")->As<std::string>() == "objective";
+  objective_scaling_ = pn->Get("scaling")->As<string>() == "objective";
   manual_scaling_value = objective_scaling_ ? -1.0 : pn->Get("scaling")->As<double>();
 
 
@@ -74,11 +72,11 @@ Condition::Condition(PtrParamNode pn) : Function(pn)
   penalty = pn->Get("penalty")->As<double>();
 
   // validated in StressConstraint::GetApplications()
-  stressType_ = stressType.Parse(pn->Get("stress")->As<std::string>());
+  stressType_ = stressType.Parse(pn->Get("stress")->As<string>());
 
   // default is set in Function, may this moves later to Function, too
-  if(pn->Has("region") && pn->Get("region")->As<std::string>() != "all")
-    region = domain->GetGrid()->GetRegion().Parse(pn->Get("region")->As<std::string>());
+  if(pn->Has("region") && pn->Get("region")->As<string>() != "all")
+    region = domain->GetGrid()->GetRegion().Parse(pn->Get("region")->As<string>());
 
   // value is not mandatory for all almost all constraints. Check for homogenization later
   if(!observation_)
@@ -145,7 +143,7 @@ void Condition::PostProc(DesignSpace* space, DesignStructure* structure, ErsatzM
 
 bool Condition::ReadCoord(PtrParamNode pn)
 {
-  std::string val = pn->Get("coord")->As<std::string>();
+  string val = pn->Get("coord")->As<string>();
   if(val == "all") return false;
 
   assert(val.size() == 2);
@@ -160,7 +158,7 @@ bool Condition::ReadCoord(PtrParamNode pn)
 
 void Condition::AddCondition(PtrParamNode pn, StdVector<Condition*>& list)
 {
-  Type t = type.Parse(pn->Get("type")->As<std::string>());
+  Type t = type.Parse(pn->Get("type")->As<string>());
   list.Push_back(IsLocal(t) ? new LocalCondition(pn) : new Condition(pn));
 
   // note that the pointer becomes invalid by AddSubCondition()
@@ -648,7 +646,7 @@ void Condition::ReadDesignTrackingPattern(DesignSpace* space, DesignStructure* s
   // read the pattern file
   if(!pn->Has("designTarget"))
     throw Exception("Attribute 'designTarget' holding a density file name is mandatory of 'designTracking'");
-  std::string file = pn->Get("designTarget")->As<std::string>();
+  string file = pn->Get("designTarget")->As<string>();
   Xerces* xerces = new Xerces(file);
   PtrParamNode xml = xerces->CreateParamNodeInstance();
   delete xerces;
@@ -727,7 +725,7 @@ bool Condition::IsFeasibilityConstraint() const
 }
 
 
-std::string Condition::ToString(MultipleExcitation* me) const
+string Condition::ToString(MultipleExcitation* me) const
 {
   std::ostringstream os;
   
@@ -754,7 +752,7 @@ std::string Condition::ToString(MultipleExcitation* me) const
   return os.str();  
 }
 
-std::string Condition::ToString(const StdVector<tuple<int, int, double> >& coords)
+string Condition::ToString(const StdVector<tuple<int, int, double> >& coords)
 {
   assert(coords.GetSize() > 0);
   assert(get<2>(coords[0]) == 1.0); // so we don't have to start with a minus
@@ -828,6 +826,9 @@ void Condition::ToInfo(PtrParamNode in, MultipleExcitation* me)
 
   if(type_ == VOLUME && physical_ && !observation_)
     info_->Get(ParamNode::WARNING)->SetValue("a physical volume constraint should make no sense");
+
+  if((type_ == VOLUME || type_ == TENSOR_TRACE) && design_ == DesignElement::TENSOR_TRACE)
+    info_->Get("notation")->SetValue(DesignMaterial::notation.ToString(notation_));
 
 }
 
@@ -967,7 +968,7 @@ void LocalCondition::CalcHessian(StdVector<double>& out)
     // (E - v*I) >= gamma
     double v = GetParameter();
     Function::Local::Identifier& id = GetCurrentVirtualContext();
-    local->space->GetErsatzMaterialTensor(E, PLANE_STRAIN, id.element->elem, DesignElement::NO_DERIVATIVE); // the sub-tensor-type does'nt matter
+    local->space->GetErsatzMaterialTensor(E, PLANE_STRAIN, id.element->elem, DesignElement::NO_DERIVATIVE, DesignMaterial::HILL_MANDEL); // the sub-tensor-type does'nt matter
     double e11 = E[0][0]; // 1
     double e12 = E[0][1]; // 2
     double e22 = E[1][1]; // 3
@@ -1044,7 +1045,7 @@ void LocalCondition::SetValue(double val)
 }
 
 
-std::string LocalCondition::ToString(MultipleExcitation* me) const
+string LocalCondition::ToString(MultipleExcitation* me) const
 {
   std::stringstream ss;
 
@@ -1084,7 +1085,7 @@ void ConditionContainer::Read(ParamNodeList pn_list)
   for(unsigned int i = 0; i < pn_list.GetSize(); i++)
   {
     PtrParamNode pn = pn_list[i];
-    bool act = pn->Get("mode")->As<std::string>() == "constraint";
+    bool act = pn->Get("mode")->As<string>() == "constraint";
     Condition::AddCondition(pn, act ? active : observe);
   }
 
@@ -1131,7 +1132,7 @@ void ConditionContainer::PostProc(DesignSpace* space, DesignStructure* structure
     Condition* g = all[i];
 
     // the strings for Function::Type are (partially) repeated as DesignElement::Detail
-    std::string constr_str = g->type.ToString(g->type_); // our type as string
+    string constr_str = g->type.ToString(g->type_); // our type as string
     if(DesignElement::detail.IsValid(constr_str)) // is it defined for output?
     {
       DesignElement::Detail detail = DesignElement::detail.Parse(constr_str);

@@ -11,6 +11,8 @@
 #include "Optimization/Design/DesignSpace.hh"
 #include "Optimization/OptimizationMaterial.hh"
 #include "Optimization/ParamMat.hh"
+#include "DataInOut/Logging/cfslog.hh"
+#include "DataInOut/Logging/log.hpp"
 
 namespace CoupledField {
 class TransferFunction;
@@ -18,6 +20,7 @@ class TransferFunction;
 
 using namespace CoupledField;
 
+DECLARE_LOG(em)
 
 ParamMat::ParamMat() : ErsatzMaterial()
 {
@@ -57,4 +60,5 @@ void ParamMat::SetElementK(DesignElement* de, const TransferFunction* tf, Applic
     Exception("Only mech and mass matrix are available for paramMat");
     break;
   }
+  LOG_DBG3(em) << "PM:SEK de=" << de->ToString() << " d=" << derivative << " out=" << mat_out->ToString(0, false);
 }

@@ -410,6 +410,16 @@
             </xsd:simpleType>
           </xsd:attribute>
           
+          <!-- volume and (local) tensor trace have in the FMO case with the design "tensor_trace" the option of the notation,
+          which identifies the design variable. This is Hill-Mandel for FMO and Voigt as the native CFS notation otherwise -->
+          <xsd:attribute name="notation" default="voigt" use="optional">
+            <xsd:simpleType>
+              <xsd:restriction base="xsd:token">
+                <xsd:enumeration value="voigt"/>
+                <xsd:enumeration value="hill_mandel"/>
+              </xsd:restriction>
+            </xsd:simpleType>
+          </xsd:attribute>
         </xsd:complexType>
         
         <xsd:unique name="opt_unique_constraint">
@@ -455,6 +465,17 @@
                 </xsd:sequence>
                 <xsd:attribute name="approx_linear" type="xsd:boolean" default="false" use="optional"/>
                 <xsd:attribute name="approx_feasible" type="xsd:boolean" default="false" use="optional"/>
+                <xsd:attribute name="globalize" default="none" use="optional">
+                  <xsd:simpleType>
+                    <xsd:restriction base="xsd:token">
+                      <xsd:enumeration value="none"/>
+                      <xsd:enumeration value="backtracking"/>
+                    </xsd:restriction>
+                  </xsd:simpleType>
+                </xsd:attribute>
+                 
+                <!-- this is the constat scalar objective convexication term for the objective from Zillober. --> 
+                <xsd:attribute name="convex_tau" default="0.0" use="optional" type="xsd:float"/>
               </xsd:complexType>
             </xsd:element>
             

@@ -14,6 +14,7 @@
 #include "MatVec/vector.hh"
 #include "Optimization/Design/DesignElement.hh"
 #include "Optimization/Design/DesignStructure.hh"
+#include "Optimization/Design/DesignMaterial.hh"
 #include "Utils/StdVector.hh"
 #include "boost/tuple/tuple.hpp"
 
@@ -258,6 +259,9 @@ class Function
     static Enum<StressType> stressType;
 
     StressType GetStressType() { return stressType_; }
+
+    /** for volume to check the notation in the FMO case with tensor_trace design. */
+    DesignMaterial::Notation GetNotation() const { return notation_; }
 
     /** A function can be be a local function when it is calculated by the local neighborhood state.
      * This does NOT mean, that the function may not be a global function, e.g. when a the L2 norm
@@ -630,6 +634,10 @@ class Function
      * @see jac_sparsity_
      * @see Approximation::hess_pattern */
     Matrix<unsigned int> hess_sparsity_;
+
+    /** only for tensor trace and volume */
+    DesignMaterial::Notation notation_;
+
 };
 
 

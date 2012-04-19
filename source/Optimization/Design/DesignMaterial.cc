@@ -13,8 +13,9 @@
 
 using namespace CoupledField;
 
-Enum<DesignMaterial::Type>      DesignMaterial::type;
+Enum<DesignMaterial::Type>         DesignMaterial::type;
 Enum<DesignMaterial::TransIsoType> DesignMaterial::transIsoType;
+Enum<DesignMaterial::Notation>     DesignMaterial::notation;
 
 DesignMaterial::DesignMaterial(PtrParamNode pn, StdVector<DesignElement::Type>& design){
   type_ = type.Parse(pn->Get("type")->As<std::string>());
@@ -595,8 +596,10 @@ void DesignMaterial::GetDensityTimes2dTensorTensor(Matrix<double>& t, SubTensorT
   }
 }
 
-void DesignMaterial::GetAnisotropicTensor(Matrix<double>& t, DesignElement::Type direction)
+void DesignMaterial::GetAnisotropicTensor(Matrix<double>& t, DesignElement::Type direction, Notation notation)
 {
+  // We use the anisotropic tensor only for solving FMO problems. Then we assume the design to be in Hill-Mandel
+  // notation and therefore we need to transform it for using it in CFS
   double e11 = 0;
   double e22 = 0;
   double e33 = 0;
@@ -608,9 +611,9 @@ void DesignMaterial::GetAnisotropicTensor(Matrix<double>& t, DesignElement::Type
   {
     e11 = params_[DesignElement::TENSOR11];
     e22 = params_[DesignElement::TENSOR22];
-    e33 = params_[DesignElement::TENSOR33];
-    e23 = params_[DesignElement::TENSOR23];
-    e13 = params_[DesignElement::TENSOR13];
+    e33 = params_[DesignElement::TENSOR33] * (notation == VOIGT ? 0.5 : 1.0);
+    e23 = params_[DesignElement::TENSOR23] * (notation == VOIGT ? 1.0/sqrt(2.0) : 1.0);
+    e13 = params_[DesignElement::TENSOR13] * (notation == VOIGT ? 1.0/sqrt(2.0) : 1.0);
     e12 = params_[DesignElement::TENSOR12];
   }
   switch(direction)
@@ -625,13 +628,13 @@ void DesignMaterial::GetAnisotropicTensor(Matrix<double>& t, DesignElement::Type
     Set2dVoigtTensor(t, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0);
     break;
   case DesignElement::TENSOR33:
-    Set2dVoigtTensor(t, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0);
+    Set2dVoigtTensor(t, 0.0, 0.0, notation == VOIGT ? 0.5 : 1.0, 0.0, 0.0, 0.0);
     break;
   case DesignElement::TENSOR23:
-    Set2dVoigtTensor(t, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0);
+    Set2dVoigtTensor(t, 0.0, 0.0, 0.0, notation == VOIGT ? 1.0/sqrt(2.0) : 1.0, 0.0, 0.0);
     break;
   case DesignElement::TENSOR13:
-    Set2dVoigtTensor(t, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0);
+    Set2dVoigtTensor(t, 0.0, 0.0, 0.0, 0.0, notation == VOIGT ? 1.0/sqrt(2.0) : 1.0, 0.0);
     break;
   case DesignElement::TENSOR12:
     Set2dVoigtTensor(t, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0);
@@ -659,13 +662,15 @@ void DesignMaterial::ZeroTensor(Matrix<double>& t, SubTensorType subTensor){
   t.Init();
 }
 
-void DesignMaterial::Set2dVoigtTensor(Matrix<double>& t, double t11, double t22, double t33, double t23, double t13, double t12){
+void DesignMaterial::Set2dVoigtTensor(Matrix<double>& t, double t11, double t22, double t33, double t23, double t13, double t12)
+{
   t.Resize(3,3);
   t.Init();
   t[0][0] = t11; t[0][1] = t12; t[0][2] = t13;
   t[1][0] = t12; t[1][1] = t22; t[1][2] = t23;
   t[2][0] = t13; t[2][1] = t23; t[2][2] = t33;
 }
+
 
 void DesignMaterial::SetTransIsoTensor(Matrix<double>& t, SubTensorType subTensor, double iD, double inD, double iG, double oD, double onD, double oG){
   switch(subTensor){
@@ -748,10 +753,12 @@ double DesignMaterial::GetIsoMass(double D, double G){
   return(GetTransIsoMass(D, G, D, G));
 }
 
-void DesignMaterial::GetMaterialTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction){
+void DesignMaterial::GetMaterialTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction, Notation notation)
+{
+  assert(!(notation == HILL_MANDEL && type_ != FMO));
   switch(type_){
   case FMO:
-    GetAnisotropicTensor(t, direction);
+    GetAnisotropicTensor(t, direction, notation);
     break;
   case ISOTROPIC:
     GetIsoMaterialTensor(t, subTensor, direction);
@@ -840,5 +847,9 @@ void DesignMaterial::SetEnums(){
   transIsoType.Add(TRANSISO_XY, "xy");
   transIsoType.Add(TRANSISO_YZ, "yz");
   transIsoType.Add(TRANSISO_XZ, "xz");
+
+  notation.SetName("DesignMaterial::Notation");
+  notation.Add(VOIGT, "voigt");
+  notation.Add(HILL_MANDEL, "hill_mandel");
 }
 

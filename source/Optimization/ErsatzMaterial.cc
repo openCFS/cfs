@@ -1130,16 +1130,17 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
     return result;
   }
 
-  double ErsatzMaterial::IntegrateDesignVariable(Objective* f, Condition* g, bool derivative, DesignElement::Type dtype, bool normalized, bool scale, double exponent)
+  double ErsatzMaterial::IntegrateDesignVariable(Objective* c, Condition* g, bool derivative, DesignElement::Type dtype, bool normalized, bool scale, double exponent)
   {
 // this replaces and enhances calculation of volume, it is used by regularization
 // when not assuming a regular grid, computation of Volume is not as simple
 // we also consider working only on a given region, when used as constrain
 // use dtype == NO_TYPE to iterate over all designs, but do not calculate tensor trace even if available
 // do we want the physical value? Don't make GTF() fault tolerant as we assume the physcial value!
-    TransferFunction* tf = Function::GetFunction(f, g)->IsPhysical() ? design->GetTransferFunction(dtype, MECH) : NULL;
+    Function* f = Function::GetFunction(c, g);
+    TransferFunction* tf = Function::GetFunction(c, g)->IsPhysical() ? design->GetTransferFunction(dtype, MECH) : NULL;
     Matrix<Double> cornerCoords;
-    double fraction = f != NULL ? volume_fraction_ : g->volume_fraction;
+    double fraction = c != NULL ? volume_fraction_ : g->volume_fraction;
     bool allDesignsRelevant = dtype == DesignElement::TENSOR_TRACE || dtype == DesignElement::DEFAULT || dtype == DesignElement::NO_TYPE;
     bool calculateTensorTrace = domain->HasErsatzMaterialTensor() && (dtype == DesignElement::TENSOR_TRACE || dtype == DesignElement::DEFAULT);// tensor trace is calculated if dtype == DEFAULT or TENSOR_TRACE and a tensor available
     if (calculateTensorTrace && scale)
@@ -1179,7 +1180,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
           for(unsigned int r = 0; r < nr; r++)
           {
             DesignSpace::DesignRegion& cur_reg = design->regions[d][r];
-            if(f != NULL || g->IsForRegion(cur_reg.regionId))
+            if(c != NULL || g->IsForRegion(cur_reg.regionId))
             {
               if(design->IsRegular())
               {
@@ -1222,7 +1223,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
         for(unsigned int r = 0; r < nr; r++)
         {
           DesignSpace::DesignRegion& cur_reg = design->regions[d][r];
-          if(f != NULL || g->IsForRegion(cur_reg.regionId))
+          if(c != NULL || g->IsForRegion(cur_reg.regionId))
           {
             const double scaling = scale ? cur_reg.scale_design : 1.0;
             const double rscaling = 1.0 / scaling;
@@ -1238,11 +1239,12 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
                 if(calculateTensorTrace)
                 {
                   Matrix<double> material;
-                  GetErsatzMaterialTensor(material, de->elem, de->GetType());
+                  design->GetErsatzMaterialTensor(material, pde->GetSubTensorType(), de->elem, de->GetType(), f->GetNotation());
                   val = material.Trace();
                   if(exponent != 1.0)
                   {
-                    GetErsatzMaterialTensor(material, de->elem);
+                    // chain rule, original, non derived tensor
+                    design->GetErsatzMaterialTensor(material, pde->GetSubTensorType(), de->elem, DesignElement::NO_DERIVATIVE, f->GetNotation());
                     double des = material.Trace();
                     val *= exponent * std::pow(des, exponent - 1.0);
                   }
@@ -1266,7 +1268,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
                   const double vol = de->elem->ptElem->CalcVolume(cornerCoords, false);
                   val *= vol;
                 }
-                de->AddGradient(f, g, val);
+                de->AddGradient(c, g, val);
               }
               else
               {
@@ -1275,7 +1277,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
                 if(calculateTensorTrace)
                 { // use the trace of the stiffness Tensor as "volume"
                   Matrix<double> material;
-                  GetErsatzMaterialTensor(material, de->elem);
+                  design->GetErsatzMaterialTensor(material, pde->GetSubTensorType(), de->elem, DesignElement::NO_DERIVATIVE, f->GetNotation());
                   des = material.Trace();
                 }
                 else
@@ -3113,11 +3115,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
     else
     ConstructRealAdjointRHS(excite, f);
   }
-  void ErsatzMaterial::GetErsatzMaterialTensor(Matrix<double>& mat, Elem* elem, DesignElement::Type direction)
-  {
-    linElastInt* form = (linElastInt*)(GetForm(elem->regionId, pde, pde, "linElastInt"));
-  form->calcDMat(mat, elem, direction);
-}
+
 
 // template instantiation stuff
 template double ErsatzMaterial::CalcU1KU2<double>(TransferFunction* tf, StdVector<SingleVector*>& u1,

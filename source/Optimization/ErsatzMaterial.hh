@@ -337,16 +337,10 @@ public:
     throw Exception("not implemented");
   }
 
-  /** Get the ErsatzMaterialTensor as the Tensor itself, not the stiffness matrix
-   * @param mat holds the tensor
-   * @param elem the Element for which the tensor should be returned
-   * @param direction if given return derivative in that direction*/
-  void GetErsatzMaterialTensor(Matrix<double>& mat, Elem* elem,
-      DesignElement::Type direction = DesignElement::NO_DERIVATIVE);
   /** Helper that asks MechanicMaterial. Works only for a single region.
    * @return empty if multiple regions */
-  StdVector<std::pair<std::string, double> > GetOrthotropeProperties(
-      const Matrix<double>& tensor);
+  StdVector<std::pair<std::string, double> > GetOrthotropeProperties(const Matrix<double>& tensor);
+
   /** This is an extension to SolveStateProblem() where the forward problem is solved and stored.
    * Depending on the objective function SolveAdjointProblem() is called to additionally solve and store the
    * adjoint problem.

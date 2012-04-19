@@ -52,6 +52,7 @@ const int Function::Local::Identifier::VOID_SIGN     = -1;
 const int Function::Local::Identifier::MATERIAL_SIGN = 1;
 
 using boost::lexical_cast;
+using std::string;
 
 Function::Function(PtrParamNode pn)
 {
@@ -60,18 +61,20 @@ Function::Function(PtrParamNode pn)
   this->preInfo_ = PtrParamNode(new ParamNode(ParamNode::INSERT, ParamNode::ELEMENT ));
   this->pn = pn;
 
-  this->type_ = type.Parse(pn->Get("type")->As<std::string>());
+  this->type_ = type.Parse(pn->Get("type")->As<string>());
 
   this->physical_ = pn->Has("physical") ? pn->Get("physical")->As<bool>() : false;
 
   if(pn->Has("design")) // will sometime be in Function, now the default is set to DEFAULT
-    this->design_ = DesignElement::type.Parse(pn->Get("design")->As<std::string>());
+    this->design_ = DesignElement::type.Parse(pn->Get("design")->As<string>());
 
   this->parameter_ = pn->Has("parameter") ? pn->Get("parameter")->As<double>() : 0.0;
 
   this->omega_omega_ = pn->Has("factor") ? pn->Get("factor/omega_omega")->As<bool>() : false;
   if(!harmonic_ && omega_omega_)
     throw Exception("It makes no sense to set costFunction/factor/omega_omega in static optimization");
+
+  notation_ = pn->Has("notation") ? DesignMaterial::notation.Parse(pn->Get("notation")->As<string>()) : DesignMaterial::VOIGT;
 
   bool tensor_ok = ReadTensor(pn, this->tensor_); // is save and sets default
 
@@ -337,7 +340,7 @@ bool Function::ReadMaxwellTensor(PtrParamNode pn, Matrix<Complex>& matrix, bool 
 
 void Function::ParseCoord(PtrParamNode pn, tuple<int, int, double>& coord)
 {
-  std::string val = pn->Get("coord")->As<std::string>();
+  string val = pn->Get("coord")->As<string>();
   get<0>(coord) = lexical_cast<unsigned int>(val.at(0));
   get<1>(coord) = lexical_cast<unsigned int>(val.at(1));
   get<2>(coord) = 1.0; // default
@@ -365,7 +368,7 @@ void Function::ToInfo(PtrParamNode info)
     local->ToInfo(info_);
 }
 
-std::string Function::ToString(MultipleExcitation* me) const
+string Function::ToString(MultipleExcitation* me) const
 {
   // optional for oscillation
   if(local != NULL && local->GetPhase() != Local::BOTH)
@@ -460,14 +463,14 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
     case STRESS:
     case STRESS_DENSITY:
       // there might be the optional excitation index set
-      if(pn->Get("excitation")->As<std::string>() == "all")
+      if(pn->Get("excitation")->As<string>() == "all")
       {
         excite_ = excite_index == -2 ? -1 : excite_index;
       }
       else
       {
         assert(excite_index == -2); // assert there is no conflict
-        excite_ = me->GetExcitation(pn->Get("excitation")->As<std::string>())->index;
+        excite_ = me->GetExcitation(pn->Get("excitation")->As<string>())->index;
       }
       break;
   }
@@ -730,7 +733,7 @@ void Function::SetElements(DesignSpace* space, RegionIdType region)
     // this is a special case where the constraint does not act on the design space
     if(type_ != STRESS && type_ != STRESS_DENSITY)
     {
-      std::string msg = "region " + grid->GetRegion().ToString(region) + " of condition " + type.ToString(type_) + " not within design domain";
+      string msg = "region " + grid->GetRegion().ToString(region) + " of condition " + type.ToString(type_) + " not within design domain";
       info_->Get(ParamNode::WARNING)->SetValue(msg);
     }
 
@@ -869,7 +872,7 @@ Function::Local::Local(Function* func, DesignSpace* space)
 
   // shortcuts
   Function::Type ftype = func->GetType();
-  std::string    fname = Function::type.ToString(ftype);
+  string    fname = Function::type.ToString(ftype);
 
   // read xml parameters -> might be null valued!
   PtrParamNode pn = func->pn->Get("local", ParamNode::PASS);
@@ -877,7 +880,7 @@ Function::Local::Local(Function* func, DesignSpace* space)
   this->beta_  = pn != NULL && pn->Has("beta") ? pn->Get("beta")->As<double>() : -3.14;
   this->eps_   = pn != NULL && pn->Has("eps") ? pn->Get("eps")->As<double>() : -3.14;
   this->power_ = pn != NULL && pn->Has("power") ? pn->Get("power")->As<double>() : 2.0;
-  this->phase_ = pn != NULL && pn->Has("phase") ? phase.Parse(pn->Get("phase")->As<std::string>()) : BOTH; // only oscillation
+  this->phase_ = pn != NULL && pn->Has("phase") ? phase.Parse(pn->Get("phase")->As<string>()) : BOTH; // only oscillation
 
   this->normalize_ = pn != NULL ? pn->Get("normalize")->As<bool>() : false;
 
@@ -917,9 +920,9 @@ Function::Local::Local(Function* func, DesignSpace* space)
 
   // set locality
   this->locality_ = pn != NULL && pn->Has("locality") ?
-      locality.Parse(pn->Get("locality")->As<std::string>()) : DEFAULT;
+      locality.Parse(pn->Get("locality")->As<string>()) : DEFAULT;
   Locality user = locality_; // default or set by user
-  bool snopt = param->Get("optimization/optimizer/type")->As<std::string>() == "snopt";
+  bool snopt = param->Get("optimization/optimizer/type")->As<string>() == "snopt";
 
   switch(ftype)
   {
@@ -1400,7 +1403,7 @@ Function::Local::NeighborhoodStructure::NeighborhoodStructure(Local* local, PtrP
   DesignElement& de = local->space->data[0];
 
   value = pn->Get("neighbor_value")->As<double>();
-  fs = DesignStructure::filterSpace.Parse(pn->Get("neighbor_type")->As<std::string>());
+  fs = DesignStructure::filterSpace.Parse(pn->Get("neighbor_type")->As<string>());
   radius = DesignStructure::FindFilterRadius(fs, &de, value);
 
   // find the orthogonal dimensions based on radius
@@ -2104,7 +2107,9 @@ double Function::Local::Identifier::CalcParamPSPosDef(int neigh_idx, bool deriva
     // (E - v*I) >= gamma
     double v = f->GetParameter();
 
-    local->space->GetErsatzMaterialTensor(E, PLANE_STRAIN, element->elem, DesignElement::NO_DERIVATIVE); // the sub-tensor-type does'nt matter
+    // the sub-tensor-type does'nt matter
+    // we need the HILL_MANDEL representation which is the plain design while it is transformed to Voigt for simulation
+    local->space->GetErsatzMaterialTensor(E, PLANE_STRAIN, element->elem, DesignElement::NO_DERIVATIVE, DesignMaterial::HILL_MANDEL);
 
     LOG_DBG3(func) << "L::I::CFMOPD e_num=" << element->elem->elemNum << " v=" << v << " E=" << E.ToString(0, false);
 
@@ -2180,7 +2185,8 @@ double Function::Local::Identifier::CalcParamPSPosDef(int neigh_idx, bool deriva
              break;
     } // end switch f->GetType()
     assert(ret != 12345678.0);
-    LOG_DBG3(func) << "L::I::CFMOPD e_num=" << element->elem->elemNum << " ni=" << neigh_idx << " d=" << derivative << " -> " << ret;
+    LOG_DBG3(func) << "L::I::CFMOPD e_num=" << element->elem->elemNum << " f=" << Function::type.ToString(f->GetType())
+                   << " ni=" << neigh_idx << "  des=" << DesignElement::type.ToString(GetElement(neigh_idx)->GetType()) << " d=" << derivative << " -> " << ret;
     return ret;
   }
 
@@ -2188,26 +2194,23 @@ double Function::Local::Identifier::CalcParamPSPosDef(int neigh_idx, bool deriva
   double Function::Local::Identifier::CalcTensorTrace(int neigh_idx, const Local* local, bool derivative) const
   {
     Matrix<double> E;
-    local->space->GetErsatzMaterialTensor(E, PLANE_STRAIN, element->elem, DesignElement::NO_DERIVATIVE); // the sub-tensor-type does'nt matter
+    DesignMaterial::Notation notation = local->func_->notation_;
+    const DesignElement* de = GetElement(neigh_idx);
+    local->space->GetErsatzMaterialTensor(E, PLANE_STRAIN, element->elem, derivative ? de->GetType() : DesignElement::NO_DERIVATIVE, notation); // the sub-tensor-type does'nt matter
 
     LOG_DBG3(func) << "L::I::CTT e_num=" << element->elem->elemNum << " E=" << E.ToString(0, false);
 
-    double e11 = E[0][0];
-    double e22 = E[1][1];
-    double e33 = E[2][2];
-
-    double ret;
+    double ret = 0.0;
 
     if(!derivative)
-      ret = e11 + e22 + e33;
+      ret = E[0][0] + E[1][1] + E[2][2];
     else
-      ret = 1.0;
+      ret = de->GetType() == DesignElement::TENSOR33 ? E[2][2] : 1.0;
 
-    assert(GetElement(neigh_idx)->GetType() == DesignElement::TENSOR11
-        || GetElement(neigh_idx)->GetType() == DesignElement::TENSOR22
-        || GetElement(neigh_idx)->GetType() == DesignElement::TENSOR33);
+    assert(!(derivative && notation == DesignMaterial::HILL_MANDEL && ret != 1.0));
+    assert(!(derivative && notation == DesignMaterial::VOIGT && de->GetType() == DesignElement::TENSOR33 && ret != 0.5));
 
-    LOG_DBG3(func) << "L::I::CTT e_num=" << element->elem->elemNum << " ni=" << neigh_idx << " d=" << derivative << " -> " << ret;
+    LOG_DBG3(func) << "L::I::CTT e_num=" << element->elem->elemNum << " ni=" << neigh_idx << " d=" << derivative << " -> " << ret << " E=" << E.ToString();
     return ret;
   }
 

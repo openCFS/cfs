@@ -241,12 +241,11 @@ PtrParamNode ParamNode::Get(const string& name_raw, ActionType action)
     switch (action)
     {
     case DEFAULT:
-      EXCEPTION("Some action has to be performed")
-      ;
+      EXCEPTION("Some action has to be performed");
       break;
     case EX:
-      EXCEPTION("None of the " << children_.GetSize() << " childs of element '"
-          << this->name_ << "'" << " has a child '" << myName << "'")
+      throw Exception("None of the " + lexical_cast<string>(children_.GetSize()) + " childs of element '"
+                      + this->name_ + "' has a child '" + myName + "'");
       ;
       break;
     case PASS:

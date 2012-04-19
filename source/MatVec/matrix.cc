@@ -190,6 +190,18 @@ namespace CoupledField
         }
         break;
 
+      case 2:
+        os << "[";
+        for(UInt j = 0; j < size_row_; j++)
+        {
+          for(UInt i = 0; i < size_col_; i++)
+            os << data_[j][i] << (i < size_col_-1 ? " " : "");
+          if(j < size_row_-1)
+            os << "; ";
+        }
+        os << "]";
+        break;
+
 
       default:
         os << "size_row=" << size_row_ << " size_col=" << size_col_;
