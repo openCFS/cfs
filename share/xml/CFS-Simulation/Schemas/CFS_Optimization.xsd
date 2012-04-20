@@ -1099,7 +1099,7 @@
   <xsd:complexType name="DT_IPOPT">
     <xsd:sequence>
       <!-- We can have many option childs. Each with three attributes -->
-      <xsd:element name="option" minOccurs="0" maxOccurs="10">
+      <xsd:element name="option" minOccurs="0" maxOccurs="15">
         <xsd:complexType>
           <!-- the type attribute is from a restriction -->
           <xsd:attribute name="type" use="required">
@@ -1331,6 +1331,9 @@
       <xsd:enumeration value="print_user_options"/>
       <xsd:enumeration value="print_options_documentation"/>
       <xsd:enumeration value="tol"/>
+      <xsd:enumeration value="constr_viol_tol"/>
+      <xsd:enumeration value="acceptable_constr_viol_tol"/>
+      <xsd:enumeration value="acceptable_tol"/>
       <xsd:enumeration value="max_iter"/>
       <xsd:enumeration value="dual_inf_tol"/>
       <xsd:enumeration value="constr_viol_tol"/>
@@ -1339,6 +1342,8 @@
       <xsd:enumeration value="hessian_approximation"/>
       <xsd:enumeration value="derivative_test"/>
       <xsd:enumeration value="derivative_test_print_all"/>
+      <xsd:enumeration value="bound_push"/>
+      <xsd:enumeration value="bound_frac"/>
     </xsd:restriction>
   </xsd:simpleType>
 

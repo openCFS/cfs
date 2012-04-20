@@ -83,6 +83,7 @@ private:
 
   typedef struct
   {
+    bool old_point_is_optimal;
     int steps;
     double org_dx;
     double curr_dx;
@@ -94,7 +95,7 @@ private:
    * The final design is stored in the CFS-Design!
    * @param the solution of the subproblem.
    * @return number of function evaluations and the norms of the designs*/
-  BTI Backtracking(const StdVector<double>& x_old, const StdVector<double>& x_new);
+  BTI Backtracking(const Vector<double>& x_old, const Vector<double>& d, const StdVector<double>& x_new);
 
   typedef enum { NONE, BACKTRACKING } Globalization;
 

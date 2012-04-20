@@ -195,17 +195,20 @@ BaseOptimizer::BaseOptimizer(Optimization* opt, PtrParamNode pn, Optimization::O
   timer_(new Timer()),
   design_(DesignMemory(-1, 0.0))
 {
-  optimizer_pn_ =  pn->Get(Optimization::optimizer.ToString(optimization->GetOptimizerType()), ParamNode::PASS);
+  assert(pn != NULL);
+  gen_opt_pn_  =  pn;
+  this_opt_pn_ =  pn->Get(Optimization::optimizer.ToString(optimization->GetOptimizerType()), ParamNode::PASS);
 
   order.SetName("BaseOptimizer::Order");
   order.Add(BY_DESIGN, "by_design");
   order.Add(BY_ELEMENT, "by_element");
 
   // snopt, scpip and feasscp
-  order_ = (optimizer_pn_ != NULL && optimizer_pn_->Has("order")) ? order.Parse(optimizer_pn_->Get("order")->As<std::string>()) : BY_DESIGN;
+  order_ = (gen_opt_pn_ != NULL && gen_opt_pn_->Has("order")) ? order.Parse(gen_opt_pn_->Get("order")->As<std::string>()) : BY_DESIGN;
   SetupOrderMap(order_);
 
-  LOG_DBG(optimizer) << "BO: optimizer_pn_=" << (optimizer_pn_ == NULL ? "null" : optimizer_pn_->GetName());
+  LOG_DBG(optimizer) << "BO: gen_opt_pn_=" << gen_opt_pn_->GetName();
+  LOG_DBG(optimizer) << "BO: this_opt_pn_=" << (this_opt_pn_ != NULL ? this_opt_pn_->GetName() : "null") ;
   LOG_DBG(optimizer) << "BO: order= " << order.ToString(order_);
 
   info_->Get(ParamNode::SUMMARY)->Get("timer")->SetValue(this->timer_ );
@@ -218,7 +221,7 @@ BaseOptimizer::~BaseOptimizer()
 
 void BaseOptimizer::PostInitScale(double manual_scaling, bool no_autoscale)
 {
-  PtrParamNode as = optimizer_pn_->Get("autoscale", ParamNode::PASS);
+  PtrParamNode as = gen_opt_pn_->Get("autoscale", ParamNode::PASS);
   objective = new Scale(this, as, manual_scaling, no_autoscale);
   objective->PostInit();
 }

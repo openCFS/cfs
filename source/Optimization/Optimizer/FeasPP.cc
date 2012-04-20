@@ -28,15 +28,18 @@ FeasPP::FeasPP(Optimization* opt, PtrParamNode pn) : BaseOptimizer(opt, pn, Opti
   global.Add(NONE, "none");
   global.Add(BACKTRACKING, "backtracking");
 
-  approx_linear = pn->Has("feasPP/approx_linear") ? pn->Get("feasPP/approx_linear")->As<bool>() : false;
-  approx_feasibility = pn->Has("feasPP/approx_feasible") ? pn->Get("feasPP/approx_feasible")->As<bool>() : false;
+  approx_linear = this_opt_pn_ != NULL ? this_opt_pn_->Get("approx_linear")->As<bool>() : false;
+  approx_feasibility = this_opt_pn_ != NULL ? this_opt_pn_->Get("approx_feasible")->As<bool>() : false;
   non_approx_constraints = true; // set it PostInit()
-  global_ = pn->Has("feasPP") ? global.Parse(pn->Get("feasPP/globalize")->As<string>()) : NONE;
-  convex_tau = pn->Has("feasPP") ?  pn->Get("feasPP/convex_tau")->As<double>() : 0.0; // switch off
+  global_ = this_opt_pn_ != NULL ? global.Parse(this_opt_pn_->Get("globalize")->As<string>()) : NONE;
+  convex_tau = this_opt_pn_ != NULL ? this_opt_pn_->Get("convex_tau")->As<double>() : 0.0; // switch off
 
   PostInitScale(1.0);
 
-  ipopt = new FeasSubProblem(this, pn->Get("feasPP/ipopt", ParamNode::PASS));
+  PtrParamNode ipopt_pn;
+  if(this_opt_pn_ != NULL)
+    ipopt_pn = this_opt_pn_->Get("ipopt", ParamNode::PASS);
+  ipopt = new FeasSubProblem(this, ipopt_pn);
 
 }
 
@@ -108,7 +111,8 @@ void FeasPP::SolveProblem()
   UpdateToCurrentStep();
   optimization->CommitIteration();
 
-  while(!optimization->DoStopOptimization() && optimization->GetCurrentIteration() <= max_iter)
+  bool converged = false;
+  while(!optimization->DoStopOptimization() && optimization->GetCurrentIteration() <= max_iter && !converged)
   {
     int iter = optimization->GetCurrentIteration();
     PtrParamNode in;
@@ -122,7 +126,13 @@ void FeasPP::SolveProblem()
     }
     catch(Exception& ex)
     {
-      throw Exception("subproblem failed in major iteration " + lexical_cast<string>(iter) + " :" + ex.GetMsg());
+      std::string msg = "subproblem failed in major iteration " + lexical_cast<string>(iter) + ": " + ex.GetMsg();
+
+      PtrParamNode summary = optimization->optInfoNode->Get(ParamNode::SUMMARY);
+      summary->Get("break/converged")->SetValue("no");
+      summary->Get("problem")->SetValue("FeasPP/IPOPT: " + msg);
+
+      throw Exception(msg);
     }
 
     assert(ipopt->x_final.GetSize() == n);
@@ -132,13 +142,33 @@ void FeasPP::SolveProblem()
     LOG_DBG2(feasPP) << "SP: it=" << iter << " x_old = [" << x_outer.ToString() << "]";
     LOG_DBG2(feasPP) << "SP: it=" << iter << " x_new_org = [" << ipopt->x_final.ToString() << "]";
 
+    Vector<double> x_old(n);
+    x_old.Fill(x_outer.GetPointer(), n);
+    Vector<double> x_new(n);
+    x_new.Fill(ipopt->x_final.GetPointer(), n);
+    Vector<double> c_grad(n);
+    c_grad.Fill(obj->outer_grad.GetPointer(), n);
+
+    Vector<double> d(n);
+    d = x_new - x_old; // principal direction
+
+    // needs to be smaller zero
+    in->Get("angle")->SetValue(d * c_grad);
+
+
     if(global_ == BACKTRACKING)
     {
-      BTI bti = Backtracking(x_outer, ipopt->x_final);
+      BTI bti = Backtracking(x_old, d, ipopt->x_final);
       in->Get("steps")->SetValue(bti.steps);
       in->Get("org_dx_norm")->SetValue(bti.org_dx);
       in->Get("curr_dx_norm")->SetValue(bti.curr_dx);
+      in->Get("msg")->SetValue("backtracking returned to old point");
+      if(bti.old_point_is_optimal)
+        converged = true;
     }
+
+    PtrParamNode summary = optimization->optInfoNode->Get(ParamNode::SUMMARY);
+    summary->Get("break/converged")->SetValue(converged ? "yes" : "no");
 
     optimization->GetDesign()->WriteDesignToExtern(x_outer); // only for the LOG below, can be removed as it is done in UpdateToCurrentStep()
     LOG_DBG2(feasPP) << "SP: it=" << iter << " x_new_curr = [" << x_outer.ToString() << "]";
@@ -158,23 +188,18 @@ void FeasPP::SolveProblem()
 }
 
 
-FeasPP::BTI FeasPP::Backtracking(const StdVector<double>& std_x_old, const StdVector<double>& std_x_new)
+FeasPP::BTI FeasPP::Backtracking(const Vector<double>& x_old, const Vector<double>& d, const StdVector<double>& std_x_new)
 {
-  assert(std_x_old.GetSize() == n);
+  assert(x_old.GetSize() == n);
   assert(std_x_new.GetSize() == n);
 
   BTI result;
 
-  Vector<double> x_old(n);
-  x_old.Fill(std_x_old.GetPointer(), n);
-  Vector<double> x_new(n);
-  x_new.Fill(std_x_new.GetPointer(), n);
-
-  Vector<double> d(n);
-  d = x_new - x_old; // principal direction
   LOG_DBG2(feasPP) << "FP:B dx_org=" << d.ToString(0, ' ');
 
   result.org_dx = d.NormL2();
+
+  Vector<double> x_new(n);
 
   /*for(double t = 0.0; t <= 1.0001; t += 0.002)
   {
@@ -188,7 +213,7 @@ FeasPP::BTI FeasPP::Backtracking(const StdVector<double>& std_x_old, const StdVe
   int eval = 0;
   // obj->outer_value is proper value for an approximation of the objective function
   // in case of non->approximation ipopt made the globalization!
-  for(double t = 2.0, ov = std::numeric_limits<double>::max(); ov >= obj->outer_val && eval < 20; eval++) // enter at least once!
+  for(double t = 2.0, ov = std::numeric_limits<double>::max(); ov >= obj->outer_val && eval < 25; eval++) // enter at least once!
   {
     t *= 0.5;
     x_new = t * d; // temporary only!
@@ -202,8 +227,7 @@ FeasPP::BTI FeasPP::Backtracking(const StdVector<double>& std_x_old, const StdVe
   }
   assert(!(!obj->approximate && eval > 1)); // see comment above
 
-  if(eval >= 20)
-    EXCEPTION("cannot find backtracking value within " << eval << " steps for |d|=" << d.NormL2());
+  result.old_point_is_optimal = eval >= 25;
 
   result.steps = eval;
   return result;

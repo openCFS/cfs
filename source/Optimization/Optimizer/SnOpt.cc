@@ -73,7 +73,6 @@ SnOpt::SnOpt(Optimization* opt, PtrParamNode pn) :
   EXIT(0),
   ObjRow(1),      // objective row, must be 1!!
   ObjAdd(0.0),
-  optimizer_pn_(pn->Get(Optimization::optimizer.ToString(Optimization::SNOPT_SOLVER), ParamNode::PASS)),
   lin_constraints(0),
   nonlin_constraints(0),
   n_obj_grad(0),
@@ -134,20 +133,21 @@ void SnOpt::Init()
   xstate.Resize(n, 0);
 
   F.Resize(nF, 0.0);
-  Flow.Resize(nF, -GetInfBound());
-  Fupp.Resize(nF,  GetInfBound());
-  Fmul.Resize(nF, 0.0);
-  Fstate.Resize(nF, 0);
+  // make all arrays one larger such that there exist a pointer when there are no constraints.
+  Flow.Resize(nF + 1, -GetInfBound());
+  Fupp.Resize(nF + 1,  GetInfBound());
+  Fmul.Resize(nF + 1, 0.0);
+  Fstate.Resize(nF + 1, 0);
   
   // init Jacobian(s)
   initJacobians();
 
   LOG_TRACE(snopt) << "get_bounds_info";
-  GetBounds(n, &xlow[0], &xupp[0], nF - 1, &Flow[1], &Fupp[1]);
+  GetBounds(n, xlow.GetPointer(), xupp.GetPointer(), nF - 1, &Flow[1], &Fupp[1]);
   
   // cheap and doesn't care if not necessary
-  ReorderDesign(n, &xlow[0], false);
-  ReorderDesign(n, &xupp[0], false);
+  ReorderDesign(n, xlow.GetPointer(), false);
+  ReorderDesign(n, xupp.GetPointer(), false);
 
   //for(unsigned int i = 0; i < Flow.GetSize(); ++i)
     //std::cout << "Flow[" << i << "] = " << Flow[i] << ", Fupp[" << i << "] = " << Fupp[i] << std::endl;
@@ -158,8 +158,8 @@ void SnOpt::setSnoptOutputFiles()
 {
   outfilename = progOpts->GetSimName() + ".snopt";
 
-  if(optimizer_pn_ != NULL && optimizer_pn_->Has("output"))
-    outfilename = optimizer_pn_->Get("output")->As<std::string>();
+  if(this_opt_pn_ != NULL && this_opt_pn_->Has("output"))
+    outfilename = this_opt_pn_->Get("output")->As<std::string>();
   
   // we enable command line output
   if(outfilename == "commandline")
@@ -189,10 +189,10 @@ void SnOpt::SolveProblem()
   
   // set start parameters here to allow restarted SolveProblem()
   LOG_TRACE(snopt) << "get_starting_point";
-  optimization->GetDesign()->WriteDesignToExtern(&x[0]);
-  LOG_DBG3(snopt) << "SP x-org: " << StdVector<double>::ToString(n, &x[0]);
+  optimization->GetDesign()->WriteDesignToExtern(x.GetPointer());
+  LOG_DBG3(snopt) << "SP x-org: " << StdVector<double>::ToString(n, x.GetPointer());
   ReorderDesign(n, &x[0], false);
-  LOG_DBG3(snopt) << "SP x-srt: " << StdVector<double>::ToString(n, &x[0]);
+  LOG_DBG3(snopt) << "SP x-srt: " << StdVector<double>::ToString(n, x.GetPointer());
   
   // this must always be called AFTER sninit!!!
   AdjustWorkArrayMemory();
@@ -582,10 +582,10 @@ void SnOpt::SetSnOptOptions()
   SetIntegerValue("superbasics_limit", n);
 
   // check for optional parameters from xml
-  if(optimizer_pn_ != NULL)
+  if(this_opt_pn_ != NULL)
   {
     ParamNodeList list;
-    list = optimizer_pn_->GetListByVal("option", "type", "integer");
+    list = this_opt_pn_->GetListByVal("option", "type", "integer");
     
     for(unsigned int i = 0; i < list.GetSize(); i++)
     {
@@ -605,12 +605,12 @@ void SnOpt::SetSnOptOptions()
       SetIntegerValue(name, value);
     }
     
-    list = optimizer_pn_->GetListByVal("option", "type", "real");
+    list = this_opt_pn_->GetListByVal("option", "type", "real");
     
     for(unsigned int i = 0; i < list.GetSize(); i++)
       SetNumericValue(list[i]->Get("name")->As<std::string>(), list[i]->Get("value")->As<double>());
     
-    list = optimizer_pn_->GetListByVal("option", "type", "string");
+    list = this_opt_pn_->GetListByVal("option", "type", "string");
     
     for(unsigned int i = 0; i < list.GetSize(); i++)
       SetStringValue(list[i]->Get("name")->As<std::string>(), list[i]->Get("value")->As<std::string>());

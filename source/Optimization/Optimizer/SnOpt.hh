@@ -177,9 +177,6 @@ private:
   const integer ObjRow; // which row of F do we use as objective? -> by definition, it will be 1! NOTE: Me must add one to mesh with fortran
   doublereal ObjAdd; // add this value to objective when outputting
   
-  /** The optimizer ParamNode - away from the constructor to support restart */
-  PtrParamNode optimizer_pn_;
-  
   /** number of linear constraints */
   int lin_constraints;
   
