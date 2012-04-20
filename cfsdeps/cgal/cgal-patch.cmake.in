@@ -1,13 +1,20 @@
 set(cgal_source  "@cgal_source@")
+set(cgal_prefix  "@cgal_prefix@")
 SET(CFS_SOURCE_DIR "@CFS_SOURCE_DIR@")
+SET(CFS_BINARY_DIR "@CFS_BINARY_DIR@")
 
-SET(patches
-  "cgal-turkowski-size_t.patch";
+INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/CFS_macros.cmake")
+
+EXECUTE_PROCESS(
+  COMMAND ${CMAKE_COMMAND} -E remove_directory "${CFS_BINARY_DIR}/include/CGAL"
 )
 
-foreach(patch IN LISTS patches)
-  MESSAGE("Applying patch ${patch}")
-  EXECUTE_PROCESS(
-    COMMAND patch -p0 -i "${CFS_SOURCE_DIR}/cfsdeps/cgal/${patch}"
-    )
-endforeach(patch)
+EXECUTE_PROCESS(
+  COMMAND ${CMAKE_COMMAND} -E copy_if_different "${cgal_prefix}/CGAL_SetupBoost.cmake" "${cgal_source}/cmake/modules/CGAL_SetupBoost.cmake"
+)
+
+# SET(patches
+#   "cgal-turkowski-size_t.patch";
+# )
+
+# APPLY_PATCHES("${patches}" "${CFS_SOURCE_DIR}/cfsdeps/cgal")

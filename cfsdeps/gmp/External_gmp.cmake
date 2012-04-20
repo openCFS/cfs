@@ -13,15 +13,11 @@ set(gmp_prefix  "${CMAKE_CURRENT_BINARY_DIR}/cfsdeps/gmp")
 set(gmp_source  "${gmp_prefix}/src/gmp")
 set(gmp_install  "${CMAKE_CURRENT_BINARY_DIR}")
 
-
-if(CFS_ARCH STREQUAL "I386")
-  SET(ABI "32")
-else(CFS_ARCH STREQUAL "I386")
-  SET(ABI "64")
-endif(CFS_ARCH STREQUAL "I386")
-
-SET(CONF_TEMPL "${CFS_SOURCE_DIR}/cfsdeps/gmp/gmp-configure.sh.in")
-SET(CONF "${gmp_prefix}/gmp-configure.sh")
+#-------------------------------------------------------------------------------
+# Set names of configure file and template file.
+#-------------------------------------------------------------------------------
+SET(CONF_TEMPL "${CFS_SOURCE_DIR}/cfsdeps/gmp/gmp-configure.cmake.in")
+SET(CONF "${gmp_prefix}/gmp-configure.cmake")
 CONFIGURE_FILE("${CONF_TEMPL}" "${CONF}" @ONLY) 
 
 #-------------------------------------------------------------------------------
@@ -30,10 +26,11 @@ CONFIGURE_FILE("${CONF_TEMPL}" "${CONF}" @ONLY)
 ExternalProject_Add(gmp
   PREFIX "${gmp_prefix}"
   SOURCE_DIR "${gmp_source}"
+  DOWNLOAD_DIR ${CFS_DEPS_CACHE_DIR}/sources/gmp
   URL ${GMP_URL}/${GMP_BZ2}
   URL_MD5 ${GMP_MD5}
   BUILD_IN_SOURCE 1
-  CONFIGURE_COMMAND sh ${CONF}
+  CONFIGURE_COMMAND ${CMAKE_COMMAND} -P ${CONF}
   BUILD_COMMAND ${CMAKE_MAKE_PROGRAM} -f Makefile
   INSTALL_COMMAND ${CMAKE_MAKE_PROGRAM} -f Makefile install
 )
@@ -75,6 +72,11 @@ SET(GMP_LIBRARY
   "${LD}/${CMAKE_STATIC_LIBRARY_PREFIX}gmp${CMAKE_STATIC_LIBRARY_SUFFIX}"
   CACHE FILEPATH "GMP library.")
 
+SET(GMPXX_LIBRARY
+  "${LD}/${CMAKE_STATIC_LIBRARY_PREFIX}gmpxx${CMAKE_STATIC_LIBRARY_SUFFIX}"
+  CACHE FILEPATH "GMPXX library.")
+
 MARK_AS_ADVANCED(GMP_LIBRARY)
+MARK_AS_ADVANCED(GMPXX_LIBRARY)
 MARK_AS_ADVANCED(GMP_INCLUDE_DIR)
 

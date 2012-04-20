@@ -265,7 +265,6 @@ IF(USE_BLAS OR USE_LAPACK)
   
 ENDIF(USE_BLAS OR USE_LAPACK)
 
-
 #-------------------------------------------------------------------------------
 # Find Boost
 #-------------------------------------------------------------------------------
@@ -282,13 +281,6 @@ INCLUDE("${CFS_SOURCE_DIR}/cfsdeps/boost/External_Boost.cmake")
 # ENDIF(USE_HDF5)
 
 #-------------------------------------------------------------------------------
-# If USE_PYTHON option is defined find Python library
-#-------------------------------------------------------------------------------
-IF(USE_PYTHON)
-  INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindPythonForCFS.cmake")
-ENDIF(USE_PYTHON)
-
-#-------------------------------------------------------------------------------
 # If USE_XERCES option is defined find Xerces library
 #-------------------------------------------------------------------------------
 IF(USE_XERCES)
@@ -299,12 +291,20 @@ ENDIF(USE_XERCES)
 # Find CGAL
 #-----------------------------------------------------------------------------
 IF(USE_INTERPOLATION)
+  SET(GMP_URL "${LSE17_SOURCES_DIR}/gmp")
+  SET(GMP_BZ2 "gmp-4.2.4.tar.bz2")
+  SET(GMP_MD5 "fc1e3b3a2a5038d4d74138d0b9cf8dbe")
+  INCLUDE("${CFS_SOURCE_DIR}/cfsdeps/gmp/External_gmp.cmake")
+  
+  SET(MPFR_URL "${LSE17_SOURCES_DIR}/mpfr")
+  SET(MPFR_BZ2 "mpfr-2.4.0.tar.bz2")
+  SET(MPFR_MD5 "f5916d785d4f7e7282057f6a3ebff9ce")
+  INCLUDE("${CFS_SOURCE_DIR}/cfsdeps/mpfr/External_mpfr.cmake")
+
   SET(CGAL_URL "${LSE17_SOURCES_DIR}/cgal")
   SET(CGAL_GZ "CGAL-3.9.tar.gz")
   SET(CGAL_MD5 "797697130ff9231627521c0a38f16d2f")
-#  INCLUDE("${CFS_SOURCE_DIR}/cfsdeps/cgal/External_CGAL.cmake")
-
-  INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindCGAL.cmake")
+  INCLUDE("${CFS_SOURCE_DIR}/cfsdeps/cgal/External_CGAL.cmake")
 ENDIF(USE_INTERPOLATION)
 
 #-----------------------------------------------------------------------------
