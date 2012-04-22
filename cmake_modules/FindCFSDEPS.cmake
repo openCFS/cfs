@@ -284,7 +284,11 @@ INCLUDE("${CFS_SOURCE_DIR}/cfsdeps/boost/External_Boost.cmake")
 # If USE_XERCES option is defined find Xerces library
 #-------------------------------------------------------------------------------
 IF(USE_XERCES)
-  INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindXerces.cmake")
+  SET(XERCES_URL "${LSE17_SOURCES_DIR}/xerces")
+  SET(XERCES_GZ "xerces-c-3.1.1.tar.gz")
+  SET(XERCES_MD5 "6a8ec45d83c8cfb1584c5a5345cb51ae")
+  
+  INCLUDE("${CFS_SOURCE_DIR}/cfsdeps/xerces/External_Xerces-C.cmake")
 ENDIF(USE_XERCES)
 
 #-----------------------------------------------------------------------------
@@ -336,7 +340,9 @@ ENDIF(USE_SNOPT)
 # Find ANSYS Customizations
 #-----------------------------------------------------------------------------
 IF(USE_ANSYSRST)
-  INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindANSYSCust.cmake")
+  IF(CMAKE_SYSTEM_NAME STREQUAL "Linux" OR WIN32)
+    INCLUDE("${CFS_SOURCE_DIR}/cfsdeps/ansys_custom/External_ANSYS_custom.cmake")
+  ENDIF(CMAKE_SYSTEM_NAME STREQUAL "Linux" OR WIN32)
 ENDIF(USE_ANSYSRST)
 
 #-----------------------------------------------------------------------------

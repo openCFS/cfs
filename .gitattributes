@@ -1,5 +1,32 @@
 * text=auto !eol
 /CMakeLists.txt svneol=native#text/plain
+cfsdeps/ansys_custom/External_ANSYS_custom.cmake -text
+cfsdeps/ansys_custom/ansys_custom_v100_include.tar.bz2 -text svneol=unset#unset
+cfsdeps/ansys_custom/ansys_custom_v100_linem64t.tar.bz2 -text svneol=unset#unset
+cfsdeps/ansys_custom/ansys_custom_v100_linia32.tar.bz2 -text svneol=unset#unset
+cfsdeps/ansys_custom/ansys_custom_v100_linop64.tar.bz2 -text svneol=unset#unset
+cfsdeps/ansys_custom/ansys_custom_v100_win32.tar.bz2 -text svneol=unset#unset
+cfsdeps/ansys_custom/ansys_custom_v110_include.tar.bz2 -text svneol=unset#unset
+cfsdeps/ansys_custom/ansys_custom_v110_linem64t.tar.bz2 -text svneol=unset#unset
+cfsdeps/ansys_custom/ansys_custom_v110_linia32.tar.bz2 -text svneol=unset#unset
+cfsdeps/ansys_custom/ansys_custom_v110_linia64.tar.bz2 -text svneol=unset#unset
+cfsdeps/ansys_custom/ansys_custom_v110_linop64.tar.bz2 -text svneol=unset#unset
+cfsdeps/ansys_custom/ansys_custom_v110_win32.tar.bz2 -text svneol=unset#unset
+cfsdeps/ansys_custom/ansys_custom_v110_winx64.tar.bz2 -text svneol=unset#unset
+cfsdeps/ansys_custom/ansys_custom_v120_include.tar.bz2 -text svneol=unset#unset
+cfsdeps/ansys_custom/ansys_custom_v120_linx64.tar.bz2 -text svneol=unset#unset
+cfsdeps/ansys_custom/ansys_custom_v120_win32.tar.bz2 -text svneol=unset#unset
+cfsdeps/ansys_custom/ansys_custom_v120_winx64.tar.bz2 -text svneol=unset#unset
+cfsdeps/ansys_custom/ansys_custom_v121_include.tar.bz2 -text svneol=unset#unset
+cfsdeps/ansys_custom/ansys_custom_v121_linem64t.tar.bz2 -text svneol=unset#unset
+cfsdeps/ansys_custom/ansys_custom_v121_win32.tar.bz2 -text svneol=unset#unset
+cfsdeps/ansys_custom/ansys_custom_v121_winx64.tar.bz2 -text svneol=unset#unset
+cfsdeps/ansys_custom/ansys_custom_v130_include.tar.bz2 -text svneol=unset#unset
+cfsdeps/ansys_custom/ansys_custom_v130_linx64.tar.bz2 -text svneol=unset#unset
+cfsdeps/ansys_custom/ansys_custom_v130_winx64.tar.bz2 -text svneol=unset#unset
+cfsdeps/ansys_custom/ansys_custom_v140_include.tar.bz2 -text svneol=unset#unset
+cfsdeps/ansys_custom/ansys_custom_v140_winx64.tar.bz2 -text svneol=unset#unset
+cfsdeps/ansys_custom/ansys_nacscmdargs_win32.tar.bz2 -text svneol=unset#unset
 cfsdeps/arpack/CMakeLists.txt -text
 cfsdeps/arpack/External_ARPACK.cmake -text
 cfsdeps/arpack/RiceBSD.doc -text
@@ -84,6 +111,10 @@ cfsdeps/scpip/scpip.tar.bz2 -text
 cfsdeps/suitesparse/External_SuiteSparse.cmake -text
 cfsdeps/suitesparse/suitesparse-patch.cmake.in -text
 cfsdeps/suitesparse/suitesparse-ranlib.patch -text
+cfsdeps/xerces/External_Xerces-C.cmake -text
+cfsdeps/xerces/xerces-build.cmake.in -text
+cfsdeps/xerces/xerces-configure.cmake.in -text
+cfsdeps/xerces/xerces-install.cmake.in -text
 cfsdeps/zlib/External_zlib.cmake -text
 cfsdeps/zlib/copyright.txt -text
 cfsdeps/zlib/zlib-cmakelists.patch -text

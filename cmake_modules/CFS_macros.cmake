@@ -203,7 +203,7 @@ ENDMACRO (TODAY)
 #-------------------------------------------------------------------------------
 MACRO (CHANGE_NEWLINE_STYLE FILES TEMPFILE STYLE)
   foreach(file ${FILES})
-    MESSAGE("Converting newlines to ${STYLE} for ${file}")
+    MESSAGE(STATUS "Converting newlines to ${STYLE} for ${file}")
     CONFIGURE_FILE(${file} ${TEMPFILE} @ONLY NEWLINE_STYLE ${STYLE})
     CONFIGURE_FILE(${TEMPFILE} ${file} @ONLY NEWLINE_STYLE ${STYLE})
   endforeach(file)
@@ -214,7 +214,7 @@ ENDMACRO (CHANGE_NEWLINE_STYLE)
 #-------------------------------------------------------------------------------
 MACRO (APPLY_PATCHES PATCHES INPUTDIR)
   foreach(patch ${PATCHES})
-    MESSAGE("Applying patch ${patch}")
+    MESSAGE(STATUS "Applying patch ${patch}")
     EXECUTE_PROCESS(
       COMMAND patch -p0 -i "${INPUTDIR}/${patch}" OUTPUT_QUIET
       )
