@@ -28,15 +28,6 @@ ENDIF(CFS_DISTRO STREQUAL "MACOSX")
 #-----------------------------------------------------------------------------
 # If user has set environment variables use them. If not use defaults
 #-----------------------------------------------------------------------------
-SET(CFS_DEPS_ROOT_DUMMY "$ENV{CFS_DEPS_ROOT}")
-IF(NOT ${CFS_DEPS_ROOT_DUMMY} STREQUAL "")
-  SET(CFS_DEPS_ROOT "${CFS_DEPS_ROOT_DUMMY}" CACHE PATH
-    "Root directory of CFSDEPS (environment).")
-ELSE(NOT ${CFS_DEPS_ROOT_DUMMY} STREQUAL "")
-  SET(CFS_DEPS_ROOT "${CFS_DEPS_ROOT_DEFAULT}" CACHE PATH
-    "Root directory of CFSDEPS (default).")
-ENDIF(NOT ${CFS_DEPS_ROOT_DUMMY} STREQUAL "")
-
 SET(CFS_DEPS_CD_DUMMY "$ENV{CFS_DEPS_CACHE_DIR}")
 IF(NOT ${CFS_DEPS_CD_DUMMY} STREQUAL "")
   SET(CFS_DEPS_CACHE_DIR "${CFS_DEPS_CD_DUMMY}" CACHE PATH
@@ -51,41 +42,20 @@ IF(NOT ${CFS_FORCE_DEPS_DUMMY} STREQUAL "")
   SET(CFS_FORCE_DEPS_CACHE_DIR ON CACHE PATH
     "Force 'CFS_DEPS_CACHE_DIR/precompiled/forced'.")
 ENDIF(NOT ${CFS_FORCE_DEPS_DUMMY} STREQUAL "")
-#-----------------------------------------------------------------------------
-# Check if the proper files are present in the CFSDEPS directory
-#-----------------------------------------------------------------------------
-IF(NOT EXISTS "${CFS_DEPS_ROOT}/build_common.pl")
-  MESSAGE(FATAL_ERROR "You obviously do not have 'build_common.pl' in "
-    "'${CFS_DEPS_ROOT}'. Get CFSDEPS from svn+ssh://lse10/software/cfsdeps/trunk "
-    "and place it in /opt/CFSDEPS. You can also just copy the contents of the "
-    "directory /home/data/libraries/CFSDEPS. If you want to use different "
-    "directories for CFS_DEPS_ROOT and CFS_DEPS_CACHE_DIR, please set "
-    "environment variables with the same name before starting CMake or use "
-    "its -D switch.")
-ENDIF(NOT EXISTS "${CFS_DEPS_ROOT}/build_common.pl")
-
-CONFIGURE_FILE("${CFS_DEPS_ROOT}/build_vars.pl.in"
-  "${CFS_TEMP_DIR}/build_vars.pl"
-  @ONLY )
 
 #-----------------------------------------------------------------------------
 # Check if cache directory is present
 #-----------------------------------------------------------------------------
 IF(NOT CFS_DEPS_CACHE_DIR)
-  MESSAGE(FATAL_ERROR "Please set CFS_DEPS_CACHE_DIR. "
-    "This dirctory is used to store downloaded sources and prebuilt "
-    "binaries, which can be reused for other CFS++ builds."
-    "This directory may even be located on a network share.")
+  MESSAGE(FATAL_ERROR "Please set CFS_DEPS_CACHE_DIR. 
+This dirctory is used to store downloaded sources, 
+which can be reused for other CFS++ builds.
+This directory may even be located on a network share.")
 ENDIF(NOT CFS_DEPS_CACHE_DIR)
 
 FILE(TO_CMAKE_PATH
   "${CFS_DEPS_CACHE_DIR}"
   CFS_DEPS_CACHE_DIR)
-
-CONFIGURE_FILE("${CFS_DEPS_ROOT}/build_vars.pl.in"
-  "${CFS_TEMP_DIR}/build_vars.pl"
-  @ONLY )
-
 
 #-------------------------------------------------------------------------------
 # Build MuParser library
@@ -178,14 +148,16 @@ IF(USE_BLAS OR USE_LAPACK)
   # Find ACML library
   #-----------------------------------------------------------------------------
   IF(CFS_BLAS_LAPACK STREQUAL "ACML")
-    INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindACML.cmake")
+    MESSAGE(FATAL_ERROR "ACML has not been ported to CMake externals yet.")
+#    INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindACML.cmake")
   ENDIF(CFS_BLAS_LAPACK STREQUAL "ACML")
 
   #-----------------------------------------------------------------------------
   # Find GotoBLAS library
   #-----------------------------------------------------------------------------
   IF(CFS_BLAS_LAPACK STREQUAL "GOTO")
-    INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindGotoBLAS.cmake")
+    MESSAGE(FATAL_ERROR "GotoBLAS has not been ported to CMake externals yet.")
+#    INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindGotoBLAS.cmake")
   ENDIF(CFS_BLAS_LAPACK STREQUAL "GOTO")
 
   #-----------------------------------------------------------------------------
@@ -199,7 +171,8 @@ IF(USE_BLAS OR USE_LAPACK)
   # Search for Pardiso Library
   #-----------------------------------------------------------------------------
   IF(USE_PARDISO AND CFS_PARDISO STREQUAL "SCHENK")
-    INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindPardiso.cmake")
+    MESSAGE(FATAL_ERROR "Pardiso has not been ported to CMake externals yet.")
+#    INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindPardiso.cmake")
   ENDIF(USE_PARDISO AND CFS_PARDISO STREQUAL "SCHENK")
 
   #-----------------------------------------------------------------------------
@@ -256,7 +229,8 @@ IF(USE_BLAS OR USE_LAPACK)
   # Find SnOpt library
   #-----------------------------------------------------------------------------
   IF(USE_SNOPT)
-    INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindSnOpt.cmake")
+    MESSAGE(FATAL_ERROR "SnOpt has not been ported to CMake externals yet.")
+#    INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindSnOpt.cmake")
   ENDIF(USE_SNOPT)
 
 #  MESSAGE("BLAS_LIBRARY ${BLAS_LIBRARY}")
@@ -315,7 +289,8 @@ ENDIF(USE_INTERPOLATION)
 # Find IPOPT
 #-----------------------------------------------------------------------------
 IF(USE_IPOPT)
-  INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindIPOPT.cmake")    
+  MESSAGE(FATAL_ERROR "IPOPT has not been ported to CMake externals yet.")
+#  INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindIPOPT.cmake")    
 ENDIF(USE_IPOPT)
 
 #-----------------------------------------------------------------------------
@@ -333,7 +308,8 @@ ENDIF(USE_SCPIP)
 # Find SnOpt
 #-----------------------------------------------------------------------------
 IF(USE_SNOPT)
-  INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindSnOpt.cmake")    
+  MESSAGE(FATAL_ERROR "SnOpt has not been ported to CMake externals yet.")
+#  INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindSnOpt.cmake")    
 ENDIF(USE_SNOPT)
 
 #-----------------------------------------------------------------------------
@@ -349,14 +325,16 @@ ENDIF(USE_ANSYSRST)
 # Find ParaView postprocessor
 #-----------------------------------------------------------------------------
 IF(BUILD_PARAVIEW)
-  INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindParaView.cmake")
+  MESSAGE(FATAL_ERROR "ParaView has not been ported to CMake externals yet.")
+#  INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindParaView.cmake")
 ENDIF(BUILD_PARAVIEW)
 
 #-----------------------------------------------------------------------------
 # Find HDF file viewer
 #-----------------------------------------------------------------------------
 IF(BUILD_HDFVIEW)
-  INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindHDFView.cmake")
+  MESSAGE(FATAL_ERROR "HDFView has not been ported to CMake externals yet.")
+#  INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindHDFView.cmake")
 ENDIF(BUILD_HDFVIEW)
 
 IF(USE_PYTHON)
