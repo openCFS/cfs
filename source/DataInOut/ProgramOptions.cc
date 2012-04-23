@@ -63,6 +63,10 @@
 #include <CGAL/version.h>
 #endif
 
+#ifdef USE_XERCES
+#include <xercesc/util/XercesVersion.hpp>
+#endif
+
 #include <boost/version.hpp>
 
 #include <muParserBase.h>
@@ -784,7 +788,7 @@ namespace CoupledField {
     out << "USE_XERCES:            "
         << fg_blue << "YES" << fg_reset << endl;
     out << "CFS_XERCES_VERSION:    "
-        << fg_blue << CFS_XERCES_VERSION << fg_reset << endl;
+        << fg_blue << XERCES_FULLVERSIONDOT << fg_reset << endl;
     out << "XMLSCHEMA:             ";
     if(progOpts)
       out << fg_blue << progOpts->GetSchemaPath() << fg_reset << endl;

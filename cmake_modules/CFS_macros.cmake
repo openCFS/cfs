@@ -68,41 +68,6 @@ endfunction()
 #   "right?")
 
 #-------------------------------------------------------------------------------
-# Build external CFSDEPS library
-#-------------------------------------------------------------------------------
-MACRO(BUILD_EXTLIB EXTLIB_NAME SEARCH_FOR_FILE BUILD_PERL_SCRIPT BUILD_LOG_FILE)
-  IF(NOT CFS_DEPS_ROOT)
-    MESSAGE(FATAL_ERROR "CFS_DEPS_ROOT must be set in order to build ${EXTLIB_NAME}!")
-  ENDIF(NOT CFS_DEPS_ROOT)
-
-  IF(NOT EXISTS ${SEARCH_FOR_FILE})
-    colormsg(HIBLUE "Building ${EXTLIB_NAME}...")
-    
-    EXECUTE_PROCESS(
-      COMMAND ${PERL_EXECUTABLE} "${CFS_SOURCE_DIR}/share/scripts/build_tee.pl" ${PERL_EXECUTABLE} ${BUILD_PERL_SCRIPT} "${CFS_TEMP_DIR}/build_vars.pl" "${CFS_TEMP_DIR}/build.log"
-      OUTPUT_VARIABLE BUILD_OUT
-      ERROR_VARIABLE BUILD_OUT
-      RESULT_VARIABLE BUILD_RET)
-      
-    FILE(WRITE "${CFS_TEMP_DIR}/${BUILD_LOG_FILE}" "${BUILD_OUT}")
-    
-    IF(BUILD_RET)
-      SET(NLINES "12")
-
-      EXECUTE_PROCESS(
-	COMMAND "tail" "-${NLINES}" "${CFS_TEMP_DIR}/${BUILD_LOG_FILE}"
-	OUTPUT_VARIABLE BUILD_LOG_OUT
-	ERROR_VARIABLE BUILD_LOG_OUT
-	RESULT_VARIABLE BUILD_RET)
-
-        MESSAGE(FATAL_ERROR "Build of ${EXTLIB_NAME} failed!\n"
-	  "Here are the last ${NLINES} lines of the build logfile "
-	  "'${CFS_TEMP_DIR}/${BUILD_LOG_FILE}':\n\n${BUILD_LOG_OUT}")
-    ENDIF(BUILD_RET)
-  ENDIF(NOT EXISTS ${SEARCH_FOR_FILE})
-ENDMACRO(BUILD_EXTLIB SEARCH_FOR_FILE BUILD_PERL_SCRIPT BUILD_LOG_FILE)
-
-#-------------------------------------------------------------------------------
 # Check if C++ source code runs. Taken from CheckCXXSourceRuns.cmake.
 #-------------------------------------------------------------------------------
 # - Check if the C++ source code provided in the SOURCE argument compiles and runs.

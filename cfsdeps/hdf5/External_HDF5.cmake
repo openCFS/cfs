@@ -30,33 +30,37 @@ SET(CMAKE_ARGS
 
 #-------------------------------------------------------------------------------
 # The hdf5-static external project
+# We do not need it at the moment since we use the HDF5 inside ParaView for
+# our plugin.
 #-------------------------------------------------------------------------------
-ExternalProject_Add(hdf5-shared
-  DEPENDS zlib-shared
-  PREFIX ${hdf5_prefix}
-  DOWNLOAD_DIR ${CFS_DEPS_CACHE_DIR}/sources/hdf5
-  SOURCE_DIR ${hdf5_source}
-  URL ${HDF5_URL}/${HDF5_GZ}
-  URL_MD5 ${HDF5_MD5}
-  CMAKE_ARGS
-     ${CMAKE_ARGS}
-    -DBUILD_SHARED_LIBS:BOOL=ON
-    -DHDF5_BUILD_CPP_LIB:BOOL=ON
-    -DHDF5_BUILD_HL_LIB:BOOL=ON
-    -DHDF5_BUILD_FORTRAN:BOOL=OFF
-    -DHDF5_ENABLE_Z_LIB_SUPPORT:BOOL=ON
-    -DZLIB_INCLUDE_DIR:PATH=${hdf5_install}/include
-    -DZLIB_LIBRARY:FILEPATH=${hdf5_install}/${LIB_SUFFIX}/${CFS_ARCH_STR}/${CMAKE_SHARED_LIBRARY_PREFIX}z${CMAKE_SHARED_LIBRARY_SUFFIX}
-    )
+#ExternalProject_Add(hdf5-shared
+#  DEPENDS zlib-shared
+#  PREFIX ${hdf5_prefix}
+#  DOWNLOAD_DIR ${CFS_DEPS_CACHE_DIR}/sources/hdf5
+#  SOURCE_DIR ${hdf5_source}
+#  URL ${HDF5_URL}/${HDF5_GZ}
+#  URL_MD5 ${HDF5_MD5}
+#  CMAKE_ARGS
+#     ${CMAKE_ARGS}
+#    -DBUILD_SHARED_LIBS:BOOL=ON
+#    -DHDF5_BUILD_CPP_LIB:BOOL=ON
+#    -DHDF5_BUILD_HL_LIB:BOOL=ON
+#    -DHDF5_BUILD_FORTRAN:BOOL=OFF
+#    -DHDF5_ENABLE_Z_LIB_SUPPORT:BOOL=ON
+#    -DZLIB_INCLUDE_DIR:PATH=${hdf5_install}/include
+#    -DZLIB_LIBRARY:FILEPATH=${hdf5_install}/${LIB_SUFFIX}/${CFS_ARCH_STR}/${CMAKE_SHARED_LIBRARY_PREFIX}z${CMAKE_SHARED_LIBRARY_SUFFIX}
+#    )
 
 #-------------------------------------------------------------------------------
 # The hdf5-static external project
 #-------------------------------------------------------------------------------
 ExternalProject_Add(hdf5-static
-  DEPENDS zlib-static hdf5-shared
+  DEPENDS zlib-static
   PREFIX ${hdf5_prefix}
-  DOWNLOAD_COMMAND ""
+  DOWNLOAD_DIR ${CFS_DEPS_CACHE_DIR}/sources/hdf5
   SOURCE_DIR ${hdf5_source}
+  URL ${HDF5_URL}/${HDF5_GZ}
+  URL_MD5 ${HDF5_MD5}
   CMAKE_ARGS
      ${CMAKE_ARGS}
     -DBUILD_SHARED_LIBS:BOOL=OFF

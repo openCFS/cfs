@@ -681,7 +681,6 @@ share/scripts/IdentifyCCompiler.c svneol=native#text/plain
 share/scripts/IdentifyCXXCompiler.cpp svneol=native#text/plain
 share/scripts/IdentifyFortranCompiler.F90 -text
 share/scripts/bootstrap_devel_machine.sh svneol=native#text/plain
-share/scripts/build_tee.pl -text
 share/scripts/cfs -text
 share/scripts/cfs-debug -text
 share/scripts/cfs-testsuite-extractor.py -text
