@@ -1,0 +1,17 @@
+SET(ansys_custom_source "@ansys_custom_source@")
+SET(CFS_BINARY_DIR "@CFS_BINARY_DIR@")
+SET(CFS_ARCH_STR "@CFS_ARCH_STR@")
+SET(LIB_SUFFIX "@LIB_SUFFIX@")
+SET(CMAKE_COMMAND "@CMAKE_COMMAND@")
+
+EXECUTE_PROCESS(
+  COMMAND "${CMAKE_COMMAND}" -E copy_directory "lib" "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}"  
+  WORKING_DIRECTORY "${ansys_custom_source}/ansys_custom"
+  RESULT_VARIABLE rv
+  )
+
+EXECUTE_PROCESS(
+  COMMAND "${CMAKE_COMMAND}" -E copy_directory "include" "${CFS_BINARY_DIR}/include"  
+  WORKING_DIRECTORY "${ansys_custom_source}/ansys_custom"
+  RESULT_VARIABLE rv
+  )
