@@ -74,6 +74,13 @@ ExternalProject_Add(xerces
 #   WORKING_DIRECTORY ${xerces_source}
 #)
 
+#-------------------------------------------------------------------------------
+# Add project to global list of CFSDEPS
+#-------------------------------------------------------------------------------
+SET(CFSDEPS
+  ${CFSDEPS}
+  xerces
+)
 
 SET(XERCES_INCLUDE_DIR "${CFS_BINARY_DIR}/include")
 

@@ -64,6 +64,13 @@ ExternalProject_Add_Step(scpip custom_patch
    WORKING_DIRECTORY ${scpip_source}
 )
 
+#-------------------------------------------------------------------------------
+# Add project to global list of CFSDEPS
+#-------------------------------------------------------------------------------
+SET(CFSDEPS
+  ${CFSDEPS}
+  scpip
+)
 
 SET(SCPIP_INCLUDE_DIR "${CFS_BINARY_DIR}/include")
 

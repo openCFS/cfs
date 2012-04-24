@@ -86,6 +86,15 @@ ExternalProject_Add_Step(bzip2-shared custom_patch
    WORKING_DIRECTORY ${bzip2_source}
 )
 
+#-------------------------------------------------------------------------------
+# Add project to global list of CFSDEPS
+#-------------------------------------------------------------------------------
+SET(CFSDEPS
+  ${CFSDEPS}
+  bzip2-static
+  bzip2-shared
+)
+
 SET(BZIP2_LIBRARY ${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}/${CMAKE_STATIC_LIBRARY_PREFIX}bz2${CMAKE_STATIC_LIBRARY_SUFFIX} CACHE FILEPATH "zlib library")
 SET(BZIP2_INCLUDE_DIR ${CFS_BINARY_DIR}/include CACHE PATH "bzip2 include directory")
 

@@ -9,6 +9,9 @@ set(boost_source  "${boost_prefix}/src/boost")
 #-------------------------------------------------------------------------------
 SET(CMAKE_ARGS
   -DCMAKE_COLOR_MAKEFILE:BOOL=${CMAKE_COLOR_MAKEFILE}
+  -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
+  -DCMAKE_CXX_COMPILER:FILEPATH=${CMAKE_CXX_COMPILER}
+  -DCMAKE_C_COMPILER:FILEPATH=${CMAKE_C_COMPILER}
   # We do not want to see warning messages from external projects
   -DCMAKE_CXX_FLAGS:STRING=-w
   -DINSTALL_VERSIONED:BOOL=OFF
@@ -21,6 +24,20 @@ SET(CMAKE_ARGS
   -DBOOST_LIB_INSTALL_DIR:STRING=${LIB_SUFFIX}/${CFS_ARCH_STR}
   -DWITH_MPI:BOOL=NO
 )
+
+IF(DEBUG)
+  SET(CMAKE_ARGS
+    ${CMAKE_ARGS}
+    -DENABLE_DEBUG:BOOL=ON
+    -DENABLE_RELEASE:BOOL=OFF
+    )
+ELSE(DEBUG)
+  SET(CMAKE_ARGS
+    ${CMAKE_ARGS}
+    -DENABLE_DEBUG:BOOL=OFF
+    -DENABLE_RELEASE:BOOL=ON
+    )
+ENDIF(DEBUG)
 
 IF(CFS_ARCH STREQUAL "X86_64")
   LIST(APPEND CMAKE_ARGS -DLIB_SUFFIX:STRING=64)
@@ -65,9 +82,6 @@ ExternalProject_Add(boost
   URL_MD5 ${BOOST_MD5}
   CMAKE_ARGS
     ${CMAKE_ARGS}
-    -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
-    -DCMAKE_CXX_COMPILER:FILEPATH=${CMAKE_CXX_COMPILER}
-    -DCMAKE_C_COMPILER:FILEPATH=${CMAKE_C_COMPILER}
   )
 
 #-------------------------------------------------------------------------------
@@ -95,6 +109,14 @@ ExternalProject_Add_Step(boost custom_patch
    DEPENDERS configure
    DEPENDS "${PFN}"
    WORKING_DIRECTORY ${boost_source}
+)
+
+#-------------------------------------------------------------------------------
+# Add project to global list of CFSDEPS
+#-------------------------------------------------------------------------------
+SET(CFSDEPS
+  ${CFSDEPS}
+  boost
 )
 
 # These variables are used to find Boost by other projects

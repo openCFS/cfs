@@ -33,6 +33,14 @@ ExternalProject_Add(ansys_custom
 )
 
 #-------------------------------------------------------------------------------
+# Add project to global list of CFSDEPS
+#-------------------------------------------------------------------------------
+SET(CFSDEPS
+  ${CFSDEPS}
+  ansys_custom
+)
+
+#-------------------------------------------------------------------------------
 # Set names of patch file and template file.
 #-------------------------------------------------------------------------------
 #SET(PFN_TEMPL "${CFS_SOURCE_DIR}/cfsdeps/ansys_custom/ansys_custom-patch.cmake.in")

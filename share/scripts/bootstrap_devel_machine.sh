@@ -293,7 +293,7 @@ SetupCMake() {
         return 1
     fi
 
-    PCKG_BASE_NAME="cmake-2.8.7";
+    PCKG_BASE_NAME="cmake-2.8.8";
     MYTMPDIR="$TMPDIR/$(basename $0).$$"
     echo "$MYTMPDIR"
 
@@ -302,12 +302,10 @@ SetupCMake() {
     cd "$MYTMPDIR"
 
     # Define list of mirrors
-    mirrors="http://distfiles.macports.org/cmake/$PCKG_BASE_NAME.tar.gz
-             http://gentoo.tups.lv/source/distfiles/$PCKG_BASE_NAME.tar.gz
-             http://130.230.54.100/gentoo/distfiles/$PCKG_BASE_NAME.tar.gz
+    mirrors="ftp://lse17.e-technik.uni-erlangen.de:40065/cfsdeps/sources/cmake/$PCKG_BASE_NAME.tar.gz
              http://www.cmake.org/files/v2.8/$PCKG_BASE_NAME.tar.gz"
 
-    MD5SUM="e1b237aeaed880f65dec9c20602452f6"
+    MD5SUM="ba74b22c788a0c8547976b880cd02b17"
 
     # Download source
     for mirror in $mirrors; do
@@ -320,7 +318,7 @@ SetupCMake() {
 
     MD5SUM_ACTUAL=""
     # Check MD5 sum on CMake >= 2.8
-    MD5SUM_ACTUAL="$MD5SUM_ACTUAL $(cmake -E md5sum cmake-2.8.6.tar.gz 2> /dev/null | cut -d' ' -f1)"
+    MD5SUM_ACTUAL="$MD5SUM_ACTUAL $(cmake -E md5sum $PCKG_BASE_NAME.tar.gz 2> /dev/null | cut -d' ' -f1)"
     # Check MD5 sum on Mac OS X
     MD5SUM_ACTUAL="$MD5SUM_ACTUAL $(md5 2> /dev/null | cut -d'=' -f2 | cut -d' ' -f2)"
     # Check MD5 sum on Linux

@@ -1,0 +1,22 @@
+SET(cmake_source "@cmake_source@")
+
+FILE(READ cmake_install.cmake lines)
+
+foreach(line IN LISTS lines)
+#  MESSAGE("line: ${line}")
+  STRING(REPLACE "# Set the install prefix"
+    "SET(CMAKE_INSTALL_PREFIX \"@CFS_BINARY_DIR@/cmake\")\n# Set the install prefix" line
+    ${line})
+
+  foreach(part IN LISTS line)
+    LIST(APPEND OUTPUT "${part}")
+  endforeach(part)
+endforeach(line)
+
+FILE(WRITE cmake_install.cmake "${OUTPUT}")
+
+EXECUTE_PROCESS(
+  COMMAND "@CMAKE_MAKE_PROGRAM@" install
+  WORKING_DIRECTORY "@cmake_source@"
+  RESULT_VARIABLE rv
+  )

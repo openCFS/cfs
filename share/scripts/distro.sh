@@ -192,6 +192,7 @@ elif [ "${OS}" = "Linux" ] ; then
                             "natty") PSEUDONAME="Natty Narwhal";; # 11.04
                             "oneiric") PSEUDONAME="Oneiric Ocelot";; # 11.10
                             "precise") PSEUDONAME="Precise Pangolin";; # 12.04
+                            "quantal") PSEUDONAME="Quantal Quetzal";; # 12.10
 	                 esac;;
 		    "knoppix")
 			DIST=Knoppix;

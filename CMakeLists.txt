@@ -362,9 +362,6 @@ FILE(MAKE_DIRECTORY "${CFS_TEMP_DIR}")
 # Find CFSDEPS, i.e. gidpost, HDF5, pardiso, arpack...
 #-----------------------------------------------------------------------------
 INCLUDE("cmake_modules/FindCFSDEPS.cmake")
-IF(NOT CFSDEPS_FOUND)
-  MESSAGE(FATAL_ERROR "CFSDEPS could not be found!")
-ENDIF(NOT CFSDEPS_FOUND)
 
 #-----------------------------------------------------------------------------
 # Set path of XML schema. If env variable XMLSCHEMA is set, use it!

@@ -48,6 +48,14 @@ ExternalProject_Add_Step(muparser custom_patch
    WORKING_DIRECTORY ${muparser_source}
 )
 
+#-------------------------------------------------------------------------------
+# Add project to global list of CFSDEPS
+#-------------------------------------------------------------------------------
+SET(CFSDEPS
+  ${CFSDEPS}
+  muparser
+)
+
 SET(MUPARSER_INCLUDE_DIR "${CFS_BINARY_DIR}/include")
 
 #-------------------------------------------------------------------------------

@@ -326,8 +326,19 @@ ENDIF(USE_ANSYSRST)
 #-----------------------------------------------------------------------------
 IF(BUILD_PARAVIEW)
   MESSAGE(FATAL_ERROR "ParaView has not been ported to CMake externals yet.")
+
+  #---------------------------------------------------------------------------
+  # ParaView requires latest CMake
+  #---------------------------------------------------------------------------
+  set(CMAKE_URL "${LSE17_SOURCES_DIR}/cmake")
+  set(CMAKE_GZ cmake-2.8.8.tar.gz)
+  set(CMAKE_MD5 ba74b22c788a0c8547976b880cd02b17)
+  
+  INCLUDE("${CFS_SOURCE_DIR}/cfsdeps/cmake/External_CMake.cmake")
+
 #  INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindParaView.cmake")
 ENDIF(BUILD_PARAVIEW)
+
 
 #-----------------------------------------------------------------------------
 # Find HDF file viewer
@@ -342,11 +353,16 @@ IF(USE_PYTHON)
   set(PYTHON_MINOR 7)
   set(PYTHON_PATCH 2)
   set(PYTHON_VERSION ${PYTHON_MAJOR}.${PYTHON_MINOR}.${PYTHON_PATCH})
-  set(PYTHON_URL "http://paraview.org/files/v3.14/dependencies")
+  set(PYTHON_URL "${LSE17_SOURCES_DIR}/python")
   set(PYTHON_GZ Python-${PYTHON_VERSION}.tgz)
   set(PYTHON_MD5 0ddfe265f1b3d0a8c2459f5bf66894c7)
   
   INCLUDE("${CFS_SOURCE_DIR}/cfsdeps/python/External_Python.cmake")
 ENDIF(USE_PYTHON)
 
-SET(CFSDEPS_FOUND 1)
+#-------------------------------------------------------------------------------
+# The cfsdeps meta target. Issue 'make -jX cfsdeps' to build all required.
+# external projects. Especially important for parallel builds!
+#-------------------------------------------------------------------------------
+ADD_CUSTOM_TARGET(cfsdeps)
+ADD_DEPENDENCIES(cfsdeps ${CFSDEPS})

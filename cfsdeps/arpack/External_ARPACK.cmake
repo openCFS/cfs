@@ -75,7 +75,13 @@ ExternalProject_Add_Step(arpack custom_patch
    WORKING_DIRECTORY ${ARPACK_source}
 )
 
-# SET(ARPACK_INCLUDE_DIR "${CFS_BINARY_DIR}/include")
+#-------------------------------------------------------------------------------
+# Add project to global list of CFSDEPS
+#-------------------------------------------------------------------------------
+SET(CFSDEPS
+  ${CFSDEPS}
+  arpack
+)
 
 #-------------------------------------------------------------------------------
 # Determine paths of ARPACK libraries.

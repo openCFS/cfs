@@ -61,6 +61,13 @@ ExternalProject_Add_Step(gmp custom_patch
    WORKING_DIRECTORY ${gmp_source}
 )
 
+#-------------------------------------------------------------------------------
+# Add project to global list of CFSDEPS
+#-------------------------------------------------------------------------------
+SET(CFSDEPS
+  ${CFSDEPS}
+  gmp
+)
 
 SET(GMP_INCLUDE_DIR "${CFS_BINARY_DIR}/include")
 

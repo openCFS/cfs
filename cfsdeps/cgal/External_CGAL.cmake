@@ -79,6 +79,14 @@ ExternalProject_Add_Step(cgal custom_patch
    WORKING_DIRECTORY ${cgal_source}
 )
 
+#-------------------------------------------------------------------------------
+# Add project to global list of CFSDEPS
+#-------------------------------------------------------------------------------
+SET(CFSDEPS
+  ${CFSDEPS}
+  cgal
+)
+
 SET(CGAL_INCLUDE_DIR "${CFS_BINARY_DIR}/include")
 
 #-------------------------------------------------------------------------------

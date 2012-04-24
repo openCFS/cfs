@@ -48,6 +48,14 @@ ExternalProject_Add_Step(metis custom_patch
    WORKING_DIRECTORY ${metis_source}
 )
 
+#-------------------------------------------------------------------------------
+# Add project to global list of CFSDEPS
+#-------------------------------------------------------------------------------
+SET(CFSDEPS
+  ${CFSDEPS}
+  metis
+)
+
 SET(METIS_INCLUDE_DIR "${CFS_BINARY_DIR}/include")
 
 #-------------------------------------------------------------------------------

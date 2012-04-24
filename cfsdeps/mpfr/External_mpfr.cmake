@@ -36,6 +36,14 @@ ExternalProject_Add(mpfr
   INSTALL_COMMAND ${CMAKE_MAKE_PROGRAM} -f Makefile install
 )
 
+#-------------------------------------------------------------------------------
+# Add project to global list of CFSDEPS
+#-------------------------------------------------------------------------------
+SET(CFSDEPS
+  ${CFSDEPS}
+  mpfr
+)
+
 SET(MPFR_INCLUDE_DIR "${CFS_BINARY_DIR}/include")
 
 #-----------------------------------------------------------------------------

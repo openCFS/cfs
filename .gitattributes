@@ -60,6 +60,9 @@ cfsdeps/cgal/CGAL.spec -text
 cfsdeps/cgal/CGAL_SetupBoost.cmake.in -text
 cfsdeps/cgal/External_CGAL.cmake -text
 cfsdeps/cgal/cgal-patch.cmake.in -text
+cfsdeps/cmake/External_CMake.cmake -text
+cfsdeps/cmake/cmake-configure.cmake.in -text
+cfsdeps/cmake/cmake-install.cmake.in -text
 cfsdeps/gidpost/CMakeLists.txt -text
 cfsdeps/gidpost/External_GiDpost.cmake -text
 cfsdeps/gidpost/gidpost-patch.cmake.in -text
@@ -703,7 +706,7 @@ share/scripts/hdf5_concat.sh.in -text
 share/scripts/hdf5_concat2.sh.in -text
 share/scripts/hdf5_import_dataset.sh.in svneol=native#text/plain
 share/scripts/hdf5_import_mesh.sh.in svneol=native#text/plain
-share/scripts/identify_compiler.pl svneol=native#text/plain
+share/scripts/identify_compiler.cmake.in svneol=native#text/plain
 share/scripts/log.xml -text
 share/scripts/nas-tool-gid-to-nas.py -text
 share/scripts/nas-tool-voidmesh.py -text

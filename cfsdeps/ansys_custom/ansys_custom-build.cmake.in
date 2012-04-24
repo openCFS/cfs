@@ -1,6 +1,9 @@
 SET(ansys_custom_source "@ansys_custom_source@")
 SET(CFS_SOURCE_DIR "@CFS_SOURCE_DIR@")
 SET(CMAKE_COMMAND "@CMAKE_COMMAND@")
+SET(CMAKE_SYSTEM_NAME "@CMAKE_SYSTEM_NAME@")
+SET(CFS_ARCH "@CFS_ARCH@")
+SET(CFS_SUBARCH "@CFS_SUBARCH@")
 
 #-------------------------------------------------------------------------------
 # Untar archives

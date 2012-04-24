@@ -74,6 +74,14 @@ ExternalProject_Add(ilupack-complex
     -DBUILD_SAMPLES:BOOL=
 )
 
+#-------------------------------------------------------------------------------
+# Add project to global list of CFSDEPS
+#-------------------------------------------------------------------------------
+SET(CFSDEPS
+  ${CFSDEPS}
+  ilupack-double
+  ilupack-complex
+)
 
 SET(ILUPACK_INCLUDE_DIR "${CFS_BINARY_DIR}/include")
 

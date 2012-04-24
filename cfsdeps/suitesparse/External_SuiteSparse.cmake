@@ -77,6 +77,14 @@ ExternalProject_Add_Step(suitesparse custom_patch
    WORKING_DIRECTORY ${suitesparse_source}
 )
 
+#-------------------------------------------------------------------------------
+# Add project to global list of CFSDEPS
+#-------------------------------------------------------------------------------
+SET(CFSDEPS
+  ${CFSDEPS}
+  suitesparse
+)
+
 SET(CHOLMOD_INCLUDE_DIR "${CFSDEPS_INCLUDE_DIR}")
 
 #-------------------------------------------------------------------------------

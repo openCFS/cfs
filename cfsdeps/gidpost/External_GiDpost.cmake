@@ -49,6 +49,14 @@ ExternalProject_Add_Step(gidpost custom_patch
 )
 
 #-------------------------------------------------------------------------------
+# Add project to global list of CFSDEPS
+#-------------------------------------------------------------------------------
+SET(CFSDEPS
+  ${CFSDEPS}
+  gidpost
+)
+
+#-------------------------------------------------------------------------------
 # These variables are used to find Gidpost by other projects
 #-------------------------------------------------------------------------------
 SET(GIDPOST_INCLUDE_DIR "${CFS_BINARY_DIR}/include" CACHE FILEPATH "GiDpost include dir" FORCE)
