@@ -56,6 +56,9 @@ namespace CoupledField
     piezoMicroModel_   = NULL;
     isPiezoMicroModel_ = false;
     
+//     nonLinMagStrictInfoVec_.Resize(1);
+//     nonLinMagStrictInfoVec_[0] =  NULL;
+
     mp_ = domain->GetMathParser();
   }
 

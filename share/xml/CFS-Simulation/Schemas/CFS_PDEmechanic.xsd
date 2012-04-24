@@ -118,6 +118,7 @@
                 <xsd:element name="surfStress"     type="DT_MechSurfStress"/>
                 <xsd:element name="preStress"      type="DT_MechPreStress"/>
                 <xsd:element name="testStrain"     type="DT_MechTestStrain"/>
+                <xsd:element name="magStrictStrain"   type="DT_MagstrictStrainRHS"  />
                 <xsd:element name="constraint"     type="DT_MechCS"   />
                 <xsd:element name="periodic"       type="DT_MechPeriodic"   />
               </xsd:choice>
@@ -446,6 +447,13 @@
         </xsd:attribute>
       </xsd:extension>
     </xsd:complexContent>
+  </xsd:complexType>
+
+
+  <!-- Element type for specifying rhs source term -->
+  <xsd:complexType name="DT_MagstrictStrainRHS">
+    <xsd:attribute name="region" type="xsd:token" use="required"/>
+    <xsd:attribute name="inputId" type="xsd:token" use="optional"/>
   </xsd:complexType>
 
  <!-- Element type for surface stresses (traction)  -->

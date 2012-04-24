@@ -13,6 +13,7 @@
 #include "MatVec/matrix.hh"
 #include "MatVec/vector.hh"
 #include "Utils/StdVector.hh"
+#include "Utils/result.hh"
 #include "baseForm.hh"
 
 namespace CoupledField {
@@ -930,6 +931,56 @@ namespace CoupledField
       LinMagStrictInt* magStrictForm_;
 
     };
+
+
+
+    //! add mechanical strain as forces on RHS 
+    //! due to magnetostrictive effect  
+    class  AddMagStrictStrainRHSInt : public LinearForm
+    {
+    public:
+      //! constructor
+      AddMagStrictStrainRHSInt(BaseMaterial* matData,
+                               const std::string& readerId,
+                               const std::string& regionName,
+                               UInt offset,
+                               SubTensorType type);
+      
+      //! destructor
+      virtual ~AddMagStrictStrainRHSInt();
+      
+      //! overwrites the virtual base function 
+      void CalcElemVector(Vector<double> & result, EntityIterator& ent);
+
+    protected:
+      //! returns nr. of degrees of freedom
+      virtual UInt getNrDofs() { return 3; }
+
+      //! computes irreversible strain
+      void computeStrainIrr(Vector<double>& vecB );
+
+      //! material data
+      BaseMaterial* matData_;
+
+      //! strain vector
+      Vector<Double> strainIrr_;
+
+      //! tensor type (plane_strain, full)
+      SubTensorType subTensorType_;
+      
+      //! linElastInt pointer
+      linElastInt *bilinearStiff_;
+
+      //result of magnetic computation
+      shared_ptr<BaseResult> result_;
+      std::string readerId_;
+      StdVector<std::string> regionNames_;
+      UInt actStep_, lastStep_;
+      UInt sequenceStep_;
+      shared_ptr<NodeStoreSol<Double> > res_R_;
+      UInt offsetElemLevel_;
+};
+    
 
 } // end of namespace
 

@@ -525,6 +525,67 @@ namespace CoupledField {
           material->SetScalar(f->Get("interpolation")->As<std::string>(), FRACTIONAL_INTERPOL );
       }
     }
+
+    //========= Magnetostriction ================================================
+    if( mech->Has("magnetoStriction") ) {
+      PtrParamNode magStrictNode = mech->Get("magnetoStriction")->Get("nonlinear");
+
+      // fetch paramnodes for hdbc
+      ParamNodeList anIsoNodes = magStrictNode->GetList("anisotropic");
+
+      if ( anIsoNodes.GetSize() > 0 ) {
+        //        int haSize = anIsoNodes.GetSize();
+//         Vector<nlMatDescriptor*> haha;
+//         haha.Resize(2); // = new Vector<nlMatDescriptor>(haSize);
+//         haha[0].maxVal = 0.0;
+
+        std::vector<nlMatDescriptor> nlData;
+        nlData.resize(anIsoNodes.GetSize());
+        
+        // iterate over all parameter nodes
+        for( UInt i = 0; i < anIsoNodes.GetSize(); i++ ) {
+          // read parameters
+          nlMatDescriptor info;
+          info.angle = 0.0;
+          info.approxType = NO_APPROX_TYPE;
+          info.measAccuracy = 0.01;
+          info.maxVal = 2.5;
+          info.fileName = "";
+          
+          // read approximation type  
+          if(anIsoNodes[i]->Has("angle")) {
+            info.angle =  anIsoNodes[i]->Get("angle")->As<Double>();
+          }
+
+          // read approximation type  
+          if(anIsoNodes[i]->Has("approxType")) {
+            std::string type =  anIsoNodes[i]->Get("approxType")->As<std::string>();
+            String2Enum(type,info.approxType );
+          }
+          
+          // read measurement accuracy
+          if(anIsoNodes[i]->Has("measAccuracy")) 
+            info.measAccuracy = anIsoNodes[i]->Get("measAccuracy")->As<Double>();
+          
+          // read maximum value for approximation
+          if(anIsoNodes[i]->Has("maxApproxVal")) 
+            info.maxVal = anIsoNodes[i]->Get("maxApproxVal")->As<Double>();
+          
+          // read name of function file 
+          if(anIsoNodes[i]->Has("dataName")) 
+            info.fileName = anIsoNodes[i]->Get("dataName")->As<std::string>().c_str();
+
+          nlData[i].angle        = info.angle;
+          nlData[i].fileName     = info.fileName;
+          nlData[i].approxType   = info.approxType;
+          nlData[i].measAccuracy = info.measAccuracy;
+          nlData[i].maxVal       = info.maxVal;
+        }
+
+        material->SetNonLinMagStrictVec(MAGNETOSTRICTION_NLCURVES, nlData);
+      }
+    }
+    
   }
 
 

@@ -30,7 +30,9 @@
 #include "Utils/coordSystem.hh"
 #include "Utils/mathParser/mathParser.hh"
 #include "Utils/nodestoresol.hh"
+#include "Utils/result.hh"
 #include "Utils/tools.hh"
+#include "Utils/ApproxData.hh"
 #include "linMagStrictInt.hh"
 #include "linearForm.hh"
 #include "math.h"
@@ -3060,4 +3062,169 @@ void LinearFlowNoiseInt::ComputeNormalVec( const Matrix<Double>& ptCoord,
       }
     }
   }
+
+
+  // ==================================================================
+  // linMech: add mechanical strain due to magnetostrictive effect
+  // ==================================================================
+
+  AddMagStrictStrainRHSInt::AddMagStrictStrainRHSInt(BaseMaterial* matData,
+                                                     const std::string& readerId,
+                                                     const std::string& regionName,
+                                                     UInt offset,
+                                                     SubTensorType type)
+    : LinearForm(), 
+      matData_(matData), 
+      subTensorType_(type),
+      readerId_(readerId),
+      actStep_(0),
+      lastStep_(0),
+      sequenceStep_(1) { // assume, that acoustic results do not come from multi sequence analysis
+  
+    name_ = "AddMagStrictStrainRHSInt";
+  
+    //    isSolDependent_ = true;
+
+    offsetElemLevel_ = offset;
+    regionNames_.Push_back(regionName);
+
+    // Specify that we want to use the current step number.
+    mParser_->SetExpr( mHandle_, "step" );
+      
+    // assume, that first calculated time step is 1
+    lastStep_ = 0;
+    
+    //get mechanical bilinear form 
+    bilinearStiff_  = new linElastInt(matData_, subTensorType_);
+
+    //set size of strain (Voigt notation)
+    if ( type == FULL )
+      strainIrr_.Resize(6);
+    else if ( type == AXI )
+      strainIrr_.Resize(4);
+    else
+      strainIrr_.Resize(3);
+  }
+
+  AddMagStrictStrainRHSInt::~AddMagStrictStrainRHSInt()
+  {
+    delete bilinearStiff_;
+  }
+
+  void AddMagStrictStrainRHSInt::CalcElemVector(Vector<double> &elemVec, EntityIterator &ent)  {
+
+    // Extract pointer to reference element and get coordinates
+    ExtractElemInfo(ent);
+    ptelem->SetAnsatzFct(ansatzFct1_);
+    const UInt numFncs = ptelem->GetNumFncs( ansatzFct1_ );
+    const UInt nrIntPts = ptelem->GetNumIntPoints();
+    const Vector<Double> &intWeights = ptelem->GetIntWeights();
+    const UInt nrEl =  ent.GetElem()->elemNum;
+    const UInt dim  = ptelem->GetDim();
+
+    // extract pointer and get coords again for the integrator
+    bilinearStiff_->SetAnsatzFct( ansatzFct1_ );
+    bilinearStiff_->ExtractElemInfo(ent);
+    
+    // get magnetic solution
+    Vector<Double> elemSol;
+
+    // get current time step of transient analysis
+    actStep_ = (UInt) mParser_->Eval(mHandle_);
+
+    if ( lastStep_ < actStep_ ) {
+      // get result only once per time step
+      result_ = domain->GetResultHandler()->GetResult( readerId_,
+                                                      sequenceStep_, 
+                                                      actStep_, 
+                                                      MAG_FLUX_DENSITY, 
+                                                      regionNames_[0] );
+      lastStep_ = actStep_;
+    }
+    
+    Result<Double> &  actFlux = 
+      dynamic_cast<Result<Double>&>(*result_);
+    Vector<Double> & fluxVec = actFlux.GetVector();
+    
+    //get element sol
+    Vector<Double> vecB(dim);
+    UInt pos = (nrEl-offsetElemLevel_)*dim;
+    for (UInt i=0; i<dim; i++)
+      vecB[i]= fluxVec[pos+i];
+
+    //compute irreversible strains
+    computeStrainIrr( vecB );
+
+    // calc dMat and immediately calculate the element stress
+    Matrix<double> dMat;
+    bilinearStiff_->calcDMat(dMat, ent.GetElem());
+    Vector<Double> stress;
+    stress = dMat * strainIrr_;
+
+    elemVec.Resize(numFncs * dim, 0.0);
+    Matrix<double> linBMat;
+    Vector<double> partElemVec;
+        
+    for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++) {   
+      bilinearStiff_->CalcBMatOnly(linBMat, actIntPt, ptelem, ptCoord_);
+      linBMat.MultT(stress, partElemVec);
+
+      const double jacDet(ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord_, ent.GetElem()));
+
+      partElemVec *= jacDet * intWeights[actIntPt-1];
+      elemVec += partElemVec;
+    }
+
+    LOG_DBG2(linForm) << "AddStrainRHSInt " << ent.GetElem()->elemNum << " -> " << elemVec.ToString();
+  }
+
+  void AddMagStrictStrainRHSInt::computeStrainIrr(Vector<double>& vecB ) {
+
+    //get pointers to the nlFunctions
+    StdVector<ApproxData*> nlinFncs = 
+      matData_->GetNonlinFncs( MAGNETOSTRICTION_NLCURVES );
+
+    //compute angle 
+    Double angleB;
+    if ( abs(vecB[0]) > 1e-5 ) {
+      angleB = abs( std::atan( vecB[1] / vecB[0] ) );
+      angleB *= 180.0/3.1416;
+    }
+    else {
+      angleB = 90.0;
+    }
+
+    StdVector<Double>& anglesCurve =  matData_->GetAnisotropicAngles();
+    UInt pos = 0;
+    Double dist, minDist;
+    minDist = abs( anglesCurve[0] - angleB );
+    for (UInt i=1; i<anglesCurve.GetSize(); i++ ) {
+      dist = abs( anglesCurve[i] - angleB );
+      if ( dist < minDist ) {
+        pos = i;
+        minDist = dist;
+      }
+    }
+    Double absB = vecB.NormL2();
+    Double strainVal = nlinFncs[pos]->EvaluateFunc( absB );
+
+    //unit vector of B
+    Vector<Double> unitVec = vecB;
+    unitVec /= absB;
+
+    if ( subTensorType_ == FULL ) {
+      strainIrr_[0] = unitVec[0] * unitVec[0] - 1.0/ 3.0; 
+      strainIrr_[1] = unitVec[1] * unitVec[1] - 1.0/ 3.0; 
+      strainIrr_[2] = unitVec[2] * unitVec[2] - 1.0/ 3.0; 
+      strainIrr_[3] = unitVec[1] * unitVec[2]; 
+      strainIrr_[4] = unitVec[0] * unitVec[2]; 
+      strainIrr_[5] = unitVec[0] * unitVec[1];
+      strainIrr_ *= 1.5; 
+      strainIrr_ *= strainVal; 
+    }
+    else 
+      EXCEPTION("AddMagStrictStrainRHSInt: Just 3D implmeneted");
+
+  }
+
 } // end of namespace

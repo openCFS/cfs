@@ -16,6 +16,7 @@
 #include "General/exception.hh"
 #include "Materials/baseMaterial.hh"
 #include "Utils/tools.hh"
+#include "Utils/LinInterpolate.hh"
 #include "boost/bind.hpp" // TODO what do we need bind here?? - Fabian
 #include "boost/lexical_cast.hpp"
 #include "limits.h"
@@ -64,6 +65,7 @@ namespace CoupledField
     isAllowed_.insert( NONLIN_DEPENDENCY );
     isAllowed_.insert( NONLIN_APPROXIMATION_TYPE );
     isAllowed_.insert( NONLIN_DATA_NAME );
+    isAllowed_.insert( MAGNETOSTRICTION_NLCURVES );
 
   }
 
@@ -914,6 +916,22 @@ namespace CoupledField
 
     return res;
   }
+
+  void MechanicMaterial::InitApproxCurves() {
+
+    // check, if we need to approx curve
+    if ( needApproxMatCurves_.find( MAGNETOSTRICTION_NLCURVES ) != needApproxMatCurves_.end() ) {
+      nlinFncMagStrict_.Resize(nonLinMagStrictInfoVec_.size());
+      anisotropicAngles_.Resize(nonLinMagStrictInfoVec_.size());
+      for ( UInt i=0; i< nonLinMagStrictInfoVec_.size(); i++ ) {
+        std::string nlfncName = nonLinMagStrictInfoVec_[i].fileName; 
+        nlinFncMagStrict_[i] = new LinInterpolate( nlfncName, MAGNETOSTRICTION_NLCURVES );
+        anisotropicAngles_[i] = nonLinMagStrictInfoVec_[i].angle; 
+      }
+    }
+
+  }   
+
 
   // required in ErsatzMaterial. The complex version is explictely called here
   template void MechanicMaterial::ComputeSubTensor<Double>(Matrix<Double>& matMatrix, SubTensorType subTensor, const Matrix<Double>& mat);

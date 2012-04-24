@@ -34,6 +34,7 @@ class ApproxData;
     std::string fileName;
     Double measAccuracy;
     Double maxVal;
+    Double angle;
   };
 
 
@@ -111,9 +112,20 @@ class ApproxData;
     //! and is needed by bi- and linear-forms
     void NeedApproxMatCurve(  MaterialType type );
 
+    // get the nonlinear function
     virtual ApproxData* GetNonlinFnc( MaterialType matType ) {
       EXCEPTION("BaseMaterial: GetNlinFnc() not implemented");
       return NULL;
+    };
+
+    //! returns the pointer to NL-object for BH-curve
+    virtual StdVector<ApproxData*>& GetNonlinFncs( MaterialType matType ) {
+      EXCEPTION("BaseMaterial: GetNlinFncs() not implemented");
+    };
+
+    // get ansiotropic angles
+    virtual StdVector<Double>& GetAnisotropicAngles() {     
+      EXCEPTION("BaseMaterial: GetAnisotropicAngles() not implemented");
     };
 
     //! Query if a given parameter is set
@@ -174,6 +186,11 @@ class ApproxData;
     //! set info for the nonliear approx. / interp. of a material
     virtual void SetNonLinMat(MaterialType matType, nlMatDescriptor& data ) {
       nonLinMatInfo_[matType] = data;
+    }
+
+    //! set info for a series of nonliear approx. / interp. of a material
+    virtual void SetNonLinMagStrictVec(MaterialType matType, std::vector<nlMatDescriptor>& data ) {
+      nonLinMagStrictInfoVec_ = data; 
     }
 
     //! get a string material parameter
@@ -393,6 +410,13 @@ class ApproxData;
     //! contains all info to a nonlinear material parameter
     //! e.g., approximation Type, accuracy, etc.
     nonLinMatInfoMap nonLinMatInfo_;
+
+    //! contains all info to a set of nonlinear material parameter
+    //! e.g., approximation Type, accuracy, etc.
+    std::vector<nlMatDescriptor> nonLinMagStrictInfoVec_;
+
+    //! vector containing the anisotropic angles
+    StdVector<Double> anisotropicAngles_;
 
     //! set, which knows the material parameter to be approximated
     std::set<MaterialType> needApproxMatCurves_;
