@@ -3,6 +3,7 @@
 
 #include <bitset>
 #include <map>
+#include <boost/array.hpp>
 
 #include "General/Enum.hh"
 #include "Utils/StdVector.hh"
@@ -153,19 +154,19 @@ class ElemShape;
     //! To describe them, we introduce for every face a 3-bit array, where the 
     //! flags have the following meaning:
     //!
-    //!  2   1   0     indices( 2 = most significant bit)
-    //! +-----------+
-    //! | 1 | 1 | 1 |  faceFlags(can be also set in integer representation, 
-    //! +-----------+            i.e. 111=7)
-    //!   |   |   |
-    //!   |   |   \-- true  (=1), if  xi = +dirI/dirII
-    //!   |   |       false (=0), if  xi = -dirI/dirII
-    //!   |   \------ true  (=1), if eta = +dirI/dirII
-    //!   |           false (=0), if eta = -dirI/dirII
-    //!   \---------- true  (=1), if local and global directions match in same  
-    //!                           order (|xi| = |I|,  |eta| = |II|)
-    //!               false (=0), if local and global directions match in reverse 
-    //!                           order (|xi| = |II|, |eta| = |I|)
+    //!   4   3   2   1   0     indices( 4 = most significant bit)
+    //! +-------------------+
+    //! | 1 | 1 | 1 | 1 | 1 |  faceFlags(can be also set in integer representation, 
+    //! +-------------------+            i.e. 111=7)
+    //!           |   |   |
+    //!           |   |   \-- true  (=1), if  xi = +dirI/dirII
+    //!           |   |       false (=0), if  xi = -dirI/dirII
+    //!           |   \------ true  (=1), if eta = +dirI/dirII
+    //!           |           false (=0), if eta = -dirI/dirII
+    //!           \---------- true  (=1), if local and global directions match in same  
+    //!                                   order (|xi| = |I|,  |eta| = |II|)
+    //!                       false (=0), if local and global directions match in reverse 
+    //!                                   order (|xi| = |II|, |eta| = |I|)
     //!
     //! Here are two examples for the orientation (Note: numbers in the interior
     //! denote the orientation of the reference elements, numbers on the outside 
@@ -206,8 +207,8 @@ class ElemShape;
     //! \code
     //! double xi = dirI, eta = dirII;
     //! 
-    //! // check, if xi and eta have to get interchanged
-    //! if( faceFlags[2]) 
+    //! // check, if xi and eta have to get interchanged (=flag is false)
+    //! if( !faceFlags[2]) 
     //!     std::swap(xi, eta);
     //! 
     //! // check for sign
@@ -216,7 +217,7 @@ class ElemShape;
     //! \endcode  
     //! 
     //! For a triangular face, the concept remains the same. 
-    StdVector<std::bitset<3> > faceFlags;
+    StdVector<std::bitset<5> > faceFlags;
 
     //@}
 
@@ -289,7 +290,7 @@ class ElemShape;
 
     //! Number of surface elements
     UInt numSurfElems;
-
+    
     //! Coordinate of element midpoint
     Vector<Double> midPointCoord;
 
@@ -302,8 +303,12 @@ class ElemShape;
     //! Contains for each edge all node numbers
     StdVector<StdVector<UInt> > edgeNodes;
     
-    //! Contains for each local direction the edges pointing in this direction
-    StdVector<StdVector<UInt> > locDirEdges;
+    //! Contains for each edge the local direction (0:xi, 1:eta, 2:zeta)
+    
+    //! This member contains for each edge (1st index) the local direction
+    //! the edge points to.  If an edge can not uniquely assigned to a 
+    //! direction, the entry is set to -1.
+    StdVector<Integer> edgeLocDirs;
     
     //! Contains for each face the corner node numbers
     StdVector<StdVector<UInt> > faceVertices;
@@ -314,14 +319,13 @@ class ElemShape;
     //! Store surface element types
     StdVector<Elem::FEType> surfElemTypes;
 
-    //! Contains for each local direction faces pointing in this direction
-
-    //! This array contains for every local direction (fist index) all
-    //! faces (first component of the pair) where at least one edge points
-    //! in this direction (second component of the pair denotes the face-local
-    //! direction component)
-    StdVector<StdVector<std::pair<UInt,UInt> > > locDirFaces;
-
+    //! Contains for each face the local directions (0:xi, 1:eta, 2:zeta)
+    
+    //! This member contains for each edge (1st index) the local direction
+    //! the edge points to.  If an edge can not uniquely assigned to a 
+    //! direction, the entry is set to -1.
+    StdVector<boost::array<Integer,2> >faceLocDirs;
+    
     // ========================================================================
     //  PUBLIC METHODS
     // ========================================================================

@@ -51,7 +51,7 @@ class FeSpaceH1Hi : public FeSpaceH1 {
     //! Set the order and mapping type of a specific region
     virtual void SetRegionElements( RegionIdType region, 
                                     MappingType mType,
-                                    const Matrix<Integer>& order,
+                                    const ApproxOrder& order,
                                     PtrParamNode infoNode );
 
     //! Here the spaces have the possibility to check if user definitions makes sense
@@ -69,7 +69,7 @@ class FeSpaceH1Hi : public FeSpaceH1 {
     std::map< RegionIdType, std::map<Elem::FEType, FeH1Hi* > > refElems_;
     
     //! Map for each region the element order
-    std::map< RegionIdType, Matrix<Integer> > regionOrder_;
+    std::map< RegionIdType, ApproxOrder > regionOrder_;
     
     // ====================================================================
     // VARIABLE ENTITY ORDER
@@ -77,11 +77,19 @@ class FeSpaceH1Hi : public FeSpaceH1 {
     
     //! Initialize a finite element with the correct order
     void SetElemOrder( const Elem* ptEl, FeH1Hi* ptFe, 
-                       const Matrix<Integer>& order,
+                       const ApproxOrder& order ,
                        bool applyMinMaxRule );
     
     //! Adjust order of edges / faces which have mixed order neighbours
     void AdjustEntityOrder();
+    
+    //! Set polynomial order of vectorial unknowns for for anisotropic order
+    
+    //! In case of vectorial unknowns and anisotropic polynomial order
+    //! (= different order for every component of the vector), the
+    //! higher order nodes might have to be fixed by a homogeneous Dirichlet
+    //! BC.
+    void FixHigherOrderAnisoDofs();
 
     //! Set containing all edges, where the min/max rule gets applied
     boost::unordered_set<UInt> adjustedEdges_;

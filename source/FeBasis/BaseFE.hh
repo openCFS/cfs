@@ -15,6 +15,9 @@ namespace CoupledField
   // Forward class declaration
   class AlgebraicSys;
 
+  // ========================================================================
+  //  FINITE ELEMENT CLASS
+  // ========================================================================
   
   //! Base class for computational element 
   
@@ -38,6 +41,20 @@ namespace CoupledField
     
     //! Static Enum for conversion of ElemShapeType
     static Enum<EntityType> entityType;
+    
+    //! Enum defining the completenesss of the basis functions
+    
+    //! This enum defines (especially for higher order polynomials), if the
+    //! set of polynomials spans a complete set up to a given order p (i.e.
+    //! every single monomial occurring has maximum order p -> tensorial) 
+    //! approach or if the only the sum of every combination spans the
+    //! polynomial degree p.
+    //! This has an influence on the possible choice of integration method,
+    //! as 
+    //@{
+    typedef enum {TRUNK_SPACE, TENSOR_SPACE} PolyCompleteType;
+    static Enum<PolyCompleteType> polyCompleteEnum_;
+    //@}
     
     //! Constructor (does nothing)
     BaseFE();

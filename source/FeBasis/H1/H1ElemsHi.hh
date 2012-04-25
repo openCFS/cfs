@@ -28,11 +28,48 @@ namespace CoupledField {
     
     //! Set isotropic polynomial order
     void SetIsoOrder( UInt order );
+    
+    //! Set anisotropic / directional dependent order
+    
+    //! Set the polynomial order direction dependent, i.e. different for each 
+    //! direction. This can be used to prefer certain directions, i.e. for 
+    //! thin structures or anisotropic field distribution.
+    //! \param order Vector containing the polynomial order in each local 
+    //!              direction (xi,eta,zeta).
+    //! \param ptElem Pointer to geometric element
+    //!
+    //! \note Only simplex-based elements (quad, wedge, hex) support the 
+    //!       prescription of anisotropic polynomial order.
+    
+    void SetAnisoOrder( const StdVector<UInt>& order,
+                        const Elem* ptElem );
 
+    //! Return set of basis functions, which exceeds a given polynomial order
+    
+    //! This method returns a set of indices of basis functions, which have
+    //! a higher polynomial degree than the (spatially dependent) order
+    //! provided as argument. The indices correspond to the positions of the
+    //! basis functions / derivatives obtainable e.g. by the method
+    //! FeH1::GetShFnc.
+    //! \param nodes Contains all indices of basis functions, which have higher
+    //!              polynomial degree than the one provided in the order
+    //!              vector
+    //! \param order Vector containing the polynomial order in each local 
+    //!              direction (xi,eta,zeta) (see FeH1Hi::SetAnisoOrder)
+    //! \param ptElem Pointer to geometric element
+    void GetNodesExceedingOrder( std::set<UInt>& nodes, 
+                                 const StdVector<UInt>& order,
+                                 const Elem* ptElem );
+    
     //! Set polynomial order for an edge
+    
+    //! Sets the order of a given edge number (0-based) to a given order. 
     void SetEdgeOrder( UInt edgeNum, UInt order  );
     
     //! Set polynomial order for a face
+    
+    //! Sets the order of a given face number (0-based) to a given order.
+    //! The order is specified in terms of face-local directions.
     void SetFaceOrder( UInt faceNum, const boost::array<UInt,2>& order );
     
     //! Set polynomial order for element interior
@@ -101,10 +138,20 @@ namespace CoupledField {
     //! and hexahedral elements.
     virtual void CalcNumUnknowns();
     
+    //! Return matrix with polynomial degrees for each shape function
+    
+    //! This method returns a matrix, which contains for every basis function
+    //! and every local direction the polynomial degree. This can be used e.g.
+    //! to determine the spatial order of a given node.
+    virtual void GetPolyOrderOfNodes( Matrix<UInt>& polyOrder,
+                                      const Elem* ptElem ) {
+      EXCEPTION( "Not implemented" );
+    }
+    
     //! Flag if re-calculation of number of unknowns is needed
     
     //! After changing the order of the element, a re-calculation of 
-    //! the unumber of unknowns (actNumFncs_) is necessary.
+    //! the number of unknowns (actNumFncs_) is necessary.
     bool updateUnknowns_;
     
     //! Number of shape functions per entity
@@ -181,6 +228,11 @@ namespace CoupledField {
                             const Elem* ptElem,
                             UInt comp = 1 );
     
+    
+    //! @copydoc FeH1Hi::GetPolyOrderOfNodes
+    virtual void GetPolyOrderOfNodes( Matrix<UInt>& polyOrder,
+                                      const Elem* ptElem );
+    
     //! Templatized version of calculation for shape function
     template<typename T_SCAL, typename T_VEC>
     void _CalcShFnc( const T_SCAL x,  
@@ -217,13 +269,16 @@ namespace CoupledField {
                             const Elem* ptElem,
                             UInt comp = 1 );
 
+    //! @copydoc FeH1Hi::GetPolyOrderOfNodes
+    virtual void GetPolyOrderOfNodes( Matrix<UInt>& polyOrder,
+                                      const Elem* ptElem );
 
     //! Templatized version of calculation for shape function
     template<typename T_SCAL, typename T_VEC>
     void _CalcShFnc( const T_SCAL x, const T_SCAL y, 
                      const Elem * elem,
                      T_VEC& ret );
-
+    
     //! @copydoc FeH1::GetNumFncs
     void CalcNumUnknowns();
   };
@@ -263,6 +318,10 @@ namespace CoupledField {
     void _CalcShFnc( const T_SCAL x, const T_SCAL y, 
                      const Elem * elem,
                      T_VEC& ret );
+
+    //! @copydoc FeH1Hi::GetPolyOrderOfNodes
+    virtual void GetPolyOrderOfNodes( Matrix<UInt>& polyOrder,
+                                      const Elem* ptElem );
   };
 
   // ============
@@ -299,6 +358,9 @@ namespace CoupledField {
                      const Elem * elem,
                      T_VEC& ret );
 
+    //! @copydoc FeH1Hi::GetPolyOrderOfNodes
+    virtual void GetPolyOrderOfNodes( Matrix<UInt>& polyOrder,
+                                      const Elem* ptElem );
   };
   
   // =======
@@ -330,6 +392,10 @@ namespace CoupledField {
                              const Elem* ptElem,
                              UInt comp = 1 );
 
+     //! @copydoc FeH1Hi::GetPolyOrderOfNodes
+     virtual void GetPolyOrderOfNodes( Matrix<UInt>& polyOrder,
+                                       const Elem* ptElem );
+     
      //! Templatized version of calculation for shape function
      template<typename T_SCAL, typename T_VEC>
      void _CalcShFnc( const T_SCAL x, const T_SCAL y, const T_SCAL z,

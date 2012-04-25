@@ -192,18 +192,24 @@ void FeSpaceL2Nodal::Finalize(){
 
 void FeSpaceL2Nodal::SetRegionElements(RegionIdType region,
                                        MappingType mType,
-                                       const Matrix<Integer>& order,
+                                       const ApproxOrder& order,
                                        PtrParamNode infoNode ){
 
   LOG_DBG(feSpaceL2Nodal) << "Setting region elements";
   LOG_DBG2(feSpaceL2Nodal) << "\tegion: "
       << ptGrid_->GetRegion().ToString(region);
   LOG_DBG2(feSpaceL2Nodal) << "\tmappingType: " << mType;
-  LOG_DBG2(feSpaceL2Nodal) << "\torder: " << order[0][0];
+  LOG_DBG2(feSpaceL2Nodal) << "\torder: " << order.ToString();
 
   //This method may not be called after the space is finalized!
   if(isFinalized_){
     Exception("FeSpace::SetRegionMapping is called after finalization");
+  }
+
+  // Ensure, that we have an isotropic approximation order
+  if( !order.IsIsotropic() ) {
+    EXCEPTION( "Lagrangian polynomials can be only used with "
+        << "isotropic approximation order");
   }
 
   if(mType == GRID){
@@ -232,17 +238,15 @@ void FeSpaceL2Nodal::SetRegionElements(RegionIdType region,
     refElems_[region][Elem::ET_QUAD8]  = new FeH1LagrangeQuadVar();
     refElems_[region][Elem::ET_HEXA20] = new FeH1LagrangeHexVar();
 
-    //now set the order
-    if(order.GetNumCols() != 1 || order.GetNumRows() != 1){
-      Exception("feSpaceL2Nodal::SetRegionMapping : The order matrix may have only one entry for lagrange elements");
-    }
+    UInt isoOrder = order.GetIsoOrder();
+    
     std::map<Elem::FEType, FeH1* >::iterator i = refElems_[region].begin();
     for( ; i != refElems_[region].end(); ++i ) {
       FeH1LagrangeVar * ptFe = dynamic_cast<FeH1LagrangeVar*>(i->second);
-      ptFe->SetIsoOrder(order[0][0]+orderOffset_);
+      ptFe->SetIsoOrder(isoOrder+orderOffset_);
     }
     mapType_ = POLYNOMIAL;
-    infoNode->Get("order")->SetValue(order[0][0]);
+    infoNode->Get("order")->SetValue(isoOrder);
   }
 
   // print information to info.xml
@@ -281,9 +285,10 @@ void FeSpaceL2Nodal::ReadCustomAttributes(PtrParamNode node, RegionIdType region
 
 void FeSpaceL2Nodal::SetDefaultElements(PtrParamNode infoNode ){
   //but it could be, that the PDE requires a minimum order of elements..
-  Matrix<Integer> order(1,1);
+  ApproxOrder order (ptGrid_->GetDim());
+  order.SetIsoOrder(1);
   if(orderOffset_>0){
-    order[0][0] = orderOffset_;
+    order.SetIsoOrder(orderOffset_);
     SetRegionElements(ALL_REGIONS,POLYNOMIAL,order,infoNode);
   }else{
     //now we are pretty sure that we need a grid mapping

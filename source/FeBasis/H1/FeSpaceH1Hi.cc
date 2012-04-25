@@ -140,6 +140,11 @@ namespace CoupledField{
 
     //Determine boundary Unknowns
     MapNodalBCs();
+    
+    // In case we have vectorial unknowns and the polynomial degree is
+    // anisotropic, we have to fix certain dofs, as the shape functions
+    // comming from the element are always scalar.
+    FixHigherOrderAnisoDofs();
     MapNodalEqns(1);
     MapNodalEqns(2);
 
@@ -190,7 +195,8 @@ namespace CoupledField{
 
     // Fetch reference element and set correct order
     FeH1Hi * myFe = refElems_[eRegion][ent.GetElem()->type];
-    SetElemOrder( ent.GetElem(), myFe, regionOrder_[eRegion], true );
+    std::map<RegionIdType,ApproxOrder>::iterator it = regionOrder_.find(eRegion);
+    SetElemOrder( ent.GetElem(), myFe, it->second, true );
 
     LOG_DBG(feSpaceH1Hi) << "Returning FE #" << ent.GetElem()->elemNum
         << " with " << myFe->BaseFE::GetNumFncs() << " functions";
@@ -212,7 +218,8 @@ namespace CoupledField{
     }
     // Fetch reference element and set correct order
     FeH1Hi * myFe = refElems_[eRegion][ptElem->type];
-    SetElemOrder( ptElem, myFe, regionOrder_[eRegion], true );
+    std::map<RegionIdType,ApproxOrder>::iterator it = regionOrder_.find(eRegion);
+    SetElemOrder( ptElem, myFe, it->second, true );
     
     return myFe;
   }
@@ -220,7 +227,7 @@ namespace CoupledField{
 
   void FeSpaceH1Hi::SetRegionElements(RegionIdType region, 
                                       MappingType mType,
-                                      const Matrix<Integer>& order,
+                                      const ApproxOrder& order,
                                       PtrParamNode infoNode ){
     
     LOG_DBG3(feSpaceH1Hi) << "FeSpaceH1HI: SetRegionElements for Region " <<
@@ -290,7 +297,8 @@ namespace CoupledField{
           // check if previous set order is different from current
           if( edgeOrder != oldOrder) {
             orderEdges_[edgeNum] = std::max( edgeOrder, oldOrder );
-            LOG_DBG3(feSpaceH1Hi) << "\t\t=> Re-Set to " << orderEdges_[edgeNum];
+            LOG_DBG3(feSpaceH1Hi) << "\t\t=> Re-Set to " 
+                << orderEdges_[edgeNum]<< " (max. rule)";
             adjustedEdges_.insert( edgeNum );
           }
         }
@@ -324,7 +332,7 @@ namespace CoupledField{
               orderFaces_[faceNum][1] = std::max( faceOrder[1], oldOrder[1] );
               LOG_DBG3(feSpaceH1Hi) << "\t\t=> Re-Set to " 
                                     << orderFaces_[faceNum][0] << ", "
-                                    << orderFaces_[faceNum][1];
+                                    << orderFaces_[faceNum][1] << " (max. rule)";
               adjustedFaces_.insert( faceNum );
             }
           }
@@ -332,7 +340,7 @@ namespace CoupledField{
       } 
 
     } // loop over elements
-    infoNode->Get("order")->SetValue(order[0][0]);
+    infoNode->Get("order")->SetValue(order.ToString());
   }
 
   void FeSpaceH1Hi::CheckConsistency(){
@@ -342,11 +350,10 @@ namespace CoupledField{
 
   void FeSpaceH1Hi::SetDefaultElements( PtrParamNode infoNode ){
     //but it could be, that the PDE requires a minimum order of elements...
-    Matrix<Integer> order(1,1);
+    ApproxOrder order(ptGrid_->GetDim());
+    order.SetIsoOrder(1);
     if(orderOffset_>0){
-      order[0][0] = orderOffset_;
-    }else{
-      order[0][0] = 1;
+      order.SetIsoOrder(orderOffset_);
     }
     SetRegionElements( ALL_REGIONS, POLYNOMIAL, order, infoNode );
   }
@@ -361,7 +368,7 @@ namespace CoupledField{
   
   void FeSpaceH1Hi::
   SetElemOrder( const Elem* ptEl, FeH1Hi* ptFe, 
-                const Matrix<Integer>& order,
+                const ApproxOrder& order,
                 bool applyMaxRule ) {
     LOG_DBG(feSpaceH1Hi) << "In SetElemOrder for elem " << ptEl->elemNum;
     // Stage 1: Set order as given from the region template.
@@ -370,15 +377,43 @@ namespace CoupledField{
     
     // check for isotropy -> This has to be changed to a more
     // general representation soon
-    if( order.GetNumRows() == 1 ) {
-      ptFe->SetIsoOrder( order[0][0] );
+    if( order.IsIsotropic() ) {
+      ptFe->SetIsoOrder( order.GetIsoOrder() );
     } else {
-      EXCEPTION( "Anisotropic order not implemented yet");
+
+      // check, if element is a surface element
+      if( Elem::shapes[ptEl->type].dim < ptGrid_->GetDim() ) {
+        
+        // map element to volume element
+        const Elem* ptVolEl = (dynamic_cast<const SurfElem*>(ptEl))->ptVolElems[0];
+        assert(ptVolEl);
+        // we have surface element 
+        StdVector<UInt> surfLocDir;
+        shared_ptr<ElemShapeMap> esm = ptGrid_->GetElemShapeMap(ptVolEl, false);
+        
+        esm->MapSurfLocDirs( ptEl, surfLocDir );
+        std::cerr << "local edge dir is " << surfLocDir << std::endl;
+        
+        const StdVector<UInt> & volMaxLocDir  = order.GetMaxOrderLocDir();
+        StdVector<UInt> surfOrder(surfLocDir.GetSize());
+        std::cerr << "surfLocDir: " << surfLocDir << std::endl;
+        for (UInt i = 0; i < surfLocDir.GetSize(); ++i ) {
+          surfOrder[i] = volMaxLocDir[surfLocDir[i]]; 
+        }
+        std::cerr << "volMaxLocDir: " << volMaxLocDir.Serialize() << std::endl;
+        std::cerr << "surfMaxLocDir: " << surfOrder.Serialize() << std::endl;
+        ptFe->SetAnisoOrder(surfOrder, ptEl );
+      } else {
+
+        // we have a volume element
+        // set maximum order for all dofs per local direction
+        ptFe->SetAnisoOrder(order.GetMaxOrderLocDir(), ptEl );
+      }
     }
     
     // Stage 2: Adjust edge / face order according to minimum /
     // maximum rule, in case the element has neighboring elements with
-    // different order. We wil use the maximum rule
+    // different order. We will use the maximum rule
     if( applyMaxRule && orderEdges_.size() ) {
       // loop over all edges
       UInt numEdges = ptEl->edges.GetSize();
@@ -415,8 +450,14 @@ namespace CoupledField{
   void FeSpaceH1Hi::AdjustEntityOrder() {
     LOG_TRACE(feSpaceH1Hi) << "Adjusting entity order";
     
-    // This method is called in the ned
+    // This method is called in the end.
     
+    // The idea is as follows:
+    // Up to now the polynomial orders of all edges and faces ar stored
+    // explicitly. However, we need to store only those, which
+    // have been adjusted explicitly due to the maximum rule.
+    // Thus we store only explicitly the edge and face order of those
+    // edges / faces adjusted.
     
     // Create temporary map for edges
     boost::unordered_map<UInt, UInt> edgeOrders;
@@ -433,7 +474,7 @@ namespace CoupledField{
     // store only adjusted edges back
     orderEdges_ = edgeOrders;
     
-    
+    // treat faces only in 3D
     if( ptGrid_->GetDim() < 3) return;
     
     // Create temporary map for faces
@@ -451,11 +492,78 @@ namespace CoupledField{
 
     // store only adjusted faces back
     orderFaces_ = faceOrders;
-    
-    
-    
-    
   }
   
+  void FeSpaceH1Hi::FixHigherOrderAnisoDofs() {
+
+    std::cerr 
+    << "===================================================\n"
+    << " F I X I I N G   A N I S O T R O P I C    D O F S  \n" 
+    << "===================================================\n";
+    
+    StdVector< shared_ptr<EntityList> > fctEntList = 
+        feFunction_->GetEntityList();
+    EntityList::ListType actListType = EntityList::NO_LIST;
+    UInt numDofs = GetNumDofs();
+
+
+    // loop over all entitylists (i.e. regions)
+    for(UInt actList = 0;actList <  fctEntList.GetSize(); actList++){
+      actListType = fctEntList[actList]->GetType();
+
+      // only handle elements
+      if ( ! (actListType == EntityList::ELEM_LIST) &&
+          ! (actListType == EntityList::NC_ELEM_LIST))  {
+        LOG_DBG(feSpaceH1Hi) << "\tLEAVING";
+        continue;
+      }
+      // create entity list for given region
+      EntityList* actElemList = fctEntList[actList].get();
+      EntityIterator entIt = actElemList->GetIterator();
+
+      // check if region is anisotropic and get order array
+      std::map<RegionIdType,ApproxOrder>::iterator approxIt =  
+          regionOrder_.find( entIt.GetElem()->regionId );
+      ApproxOrder & ord = approxIt->second;
+
+      // loop over all elements
+      for(entIt.Begin(); !entIt.IsEnd(); entIt++ ){
+        const Elem * ptElem = entIt.GetElem();
+
+        // Fetch reference element and set correct order
+        FeH1Hi * ptFe = refElems_[ptElem->regionId][ptElem->type];
+        SetElemOrder( ptElem, ptFe, ord, true );
+
+        // get vector of virtual nodes for current element
+        StdVector<UInt> nodes;
+        GetNodesOfElement( nodes, ptElem, BaseFE::ALL);
+
+        // loop over all dofs
+        for( UInt iDof = 0; iDof < numDofs; ++iDof ) {
+
+          // slice out vector of order for given dof
+          StdVector<UInt> dofOrder = ord.GetDofOrder( iDof );
+
+          // get indices, which exceed the global dof order
+          std::set<UInt> indices; 
+          ptFe->GetNodesExceedingOrder( indices, dofOrder, ptElem );
+
+          // loop over all "exceeding" virtual nodes and fix their
+          // value by a homogeneous BC
+          std::set<UInt>::const_iterator indexIt = indices.begin(); 
+          for( ; indexIt != indices.end(); ++indexIt ) {
+            UInt vNode = nodes[*indexIt];
+            if( nodeMap_.BcKeys.find(vNode) == nodeMap_.BcKeys.end()){
+              nodeMap_.BcKeys[vNode] = StdVector<BcType>(numDofs);
+              nodeMap_.BcKeys[vNode].Init(FeSpace::NOBC);
+            }
+            nodeMap_.BcKeys[vNode][iDof] = HDBC;
+            bcCounter_[HDBC]++;
+
+          } // loop over exceeding virtual nodes
+        } // loop over dofs
+      } // loop over all elements
+    } // loop over regions
+  }
 
 } // end of namespace

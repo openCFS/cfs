@@ -3,6 +3,7 @@
 #include <algorithm>
 
 #include "Utils/AutoDiff.hh"
+#include "Utils/Polynomial.hh"
 #include "FeBasis/Polynomials.hh"
 #include "Domain/ElemMapping/EdgeFace.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
@@ -86,8 +87,8 @@ DEFINE_LOG(feH1Hi, "feH1Hi")
     for( UInt i = 0; i < shape_.numEdges; ++i ) {
       unknowns = (orderEdge_[i]-1);
       edgeFncs[i] = unknowns;
-      LOG_DBG(feH1Hi) <<   "edge " << i+1 << " has order" <<  orderEdge_[i]-1
-            << " and " << unknowns << "unknowns";
+      LOG_DBG(feH1Hi) <<   "edge " << i+1 << " has order " <<  orderEdge_[i]-1
+            << " and " << unknowns << " unknowns";
       actNumFncs_ += unknowns;
     }
 #endif
@@ -102,7 +103,7 @@ DEFINE_LOG(feH1Hi, "feH1Hi")
       for( UInt i = 0; i < shape_.numFaces; ++i ) {
         unknowns = (orderFace_[i][0]-1) * (orderFace_[i][1]-1);
         faceFncs[i] = unknowns;
-        LOG_DBG(feH1Hi) << "face " << i+1 << " has " << unknowns << "unknowns";
+        LOG_DBG(feH1Hi) << "face " << i+1 << " has " << unknowns << " unknowns";
         actNumFncs_ += unknowns;
       }
     }
@@ -117,7 +118,7 @@ DEFINE_LOG(feH1Hi, "feH1Hi")
       unknowns = (orderInner_[0]-1) * (orderInner_[1]-1) 
                                       *(orderInner_[2]-1); 
       innerFncs[0] = unknowns;
-      LOG_DBG(feH1Hi) << "interior has " << unknowns << "unknowns";
+      LOG_DBG(feH1Hi) << "interior has " << unknowns << " unknowns";
       actNumFncs_ += unknowns;
     }
 #endif
@@ -157,11 +158,131 @@ DEFINE_LOG(feH1Hi, "feH1Hi")
     isoOrder_ = order;
   }
   
+  
+  void FeH1Hi::SetAnisoOrder( const StdVector<UInt>& order,
+                              const Elem* ptElem ) {
+    LOG_DBG3(feH1Hi) << "SetAnisoOrder " << order 
+            << " for H1Hi elem #" <<ptElem->elemNum
+            << "of type " 
+            << Elem::feType.ToString(feType_)
+            << " to order " << order.Serialize();
+    
+    // check initially, if element support anisotropic 
+    // polynomial order
+    // -> this is performed later on
+    
+    // resize edge and face arrays
+    orderEdge_.Resize(shape_.numEdges);
+    orderFace_.Resize(shape_.numFaces);
+    orderEdge_.Init();
+    // -------
+    //  EDGES
+    // -------
+    Integer locDir = -1;
+    for( UInt iEdge = 0; iEdge < shape_.numEdges; ++iEdge ) {
+      LOG_DBG3(feH1Hi) << "\tTreating edge #" << std::abs(ptElem->edges[iEdge]) << std::endl;
+      locDir = shape_.edgeLocDirs[iEdge];
+      SetEdgeOrder( iEdge, order[locDir]);
+      LOG_DBG3(feH1Hi) << "\t\tdir: #" << ptElem->connect[shape_.edgeNodes[iEdge][0]-1]
+                       << " -> #" << ptElem->connect[shape_.edgeNodes[iEdge][1]-1]
+                       << ", order: " << order[locDir];
+      
+    }
+    
+    // -------
+    //  FACES
+    // -------
+    if( shape_.numFaces > 0 ) {
+      
+      // variables for face-local directions
+      UInt locDir1 = 0, locDir2 = 0;
+      boost::array<UInt,2> faceOrder;
+      for( UInt iFace = 0; iFace < shape_.numFaces; ++iFace ) {
+        LOG_DBG3(feH1Hi) << "\tTreating face #" << iFace << std::endl;
+        
+        const StdVector<UInt>& unsorted = shape_.faceNodes[iFace];
+        
+        // check: currently, we can only set an anisotropic order,
+        // if the face has 4 nodes
+        if( unsorted.GetSize() != 4 ) {
+          EXCEPTION( "Anisotropic order only supported for quad-faces");
+        }
+        
+        // use the face flags of the current face to match the element-
+        // local directions (xi,eta,zeta) to the face local ones.
+        // Note: This only works for 
+        locDir1 = shape_.faceLocDirs[iFace][0];
+        locDir2 = shape_.faceLocDirs[iFace][1];
+         // check, if directions have to get interchanged
+        if( !ptElem->faceFlags[iFace][2]) { 
+          std::swap( locDir1, locDir2 );
+        }
+        faceOrder[0] = order[locDir1];
+        faceOrder[1] = order[locDir2];
+        
+        // Logging stuff
+        StdVector<UInt> ind;
+        Face::GetSortedIndices( ind, unsorted,  4, ptElem->faceFlags[iFace]);
+        LOG_DBG3(feH1Hi) << "\t\tdir1: node #"
+                         << ptElem->connect[ind[1]] 
+                         << "-> #" << ptElem->connect[ind[0]] 
+                         << ", order: " << faceOrder[0]; 
+        LOG_DBG3(feH1Hi) << "\t\tdir1: node #" 
+                         << ptElem->connect[ind[3]] 
+                         << "-> #" << ptElem->connect[ind[0]] 
+                         << ", order: " << faceOrder[1];
+        
+        SetFaceOrder( iFace, faceOrder );
+      }
+    }
+    // -------
+    //  INNER
+    // -------
+    if( shape_.dim == 3 ) {
+    boost::array<UInt,3> orderInner;
+      orderInner[0] = order[0];
+      orderInner[1] = order[1];
+      orderInner[2] = order[2];
+      SetInteriorOrder( orderInner );
+    }
+    // set status to anisotropic and determine maximal order
+    isIsotropic_ = false;
+    maxOrder_ = *(std::max_element(order.Begin(), order.End()));
+    updateUnknowns_ = true;
+  }
+  
+  void FeH1Hi::GetNodesExceedingOrder( std::set<UInt>& nodes, 
+                                       const StdVector<UInt>& order,
+                                       const Elem* ptElem ) {
+
+    Matrix<UInt> fullOrder;
+    GetPolyOrderOfNodes( fullOrder, ptElem );
+
+    UInt numFncs = fullOrder.GetNumRows();
+    UInt dim = fullOrder.GetNumCols();
+    nodes.clear();
+    std::cerr << "fullOrder of elem " << ptElem->elemNum << "is \n";
+    std::cerr << fullOrder << std::endl;
+
+    // loop over all function
+    for( UInt iFnc = 0; iFnc < numFncs; ++iFnc ) {
+      // loop over all directions
+      for( UInt iDim = 0; iDim < dim; ++iDim ) {
+        // check, if component exceeds the maximum allowed order
+        if( fullOrder[iFnc][iDim] > order[iDim] ) {
+          nodes.insert(iFnc);
+          break;
+        }
+      }
+    }
+  }
+    
   void FeH1Hi::SetEdgeOrder( UInt edgeNum, UInt order ) {
     assert( edgeNum <= shape_.numEdges);
 
     if( orderEdge_[edgeNum] == order) return;
     
+    LOG_DBG3(feH1Hi) << "\tSetting order of edge #" << edgeNum << " to " << order;
     orderEdge_[edgeNum] = order;
     maxOrder_ = std::max( maxOrder_, order);
     isIsotropic_ = false;
@@ -184,10 +305,9 @@ DEFINE_LOG(feH1Hi, "feH1Hi")
   void FeH1Hi::SetInteriorOrder( const boost::array<UInt,3>& order ) {
 
     if( orderInner_ == order ) return;
-    
     orderInner_ = order;
     maxOrder_ = std::max( maxOrder_, 
-                          *(std::max( order.begin(), order.end() ) ) );
+                          *std::max_element( order.begin(), order.end() ) );
     isIsotropic_ = false;
     updateUnknowns_ = true;
   }
@@ -309,6 +429,18 @@ DEFINE_LOG(feH1Hi, "feH1Hi")
       deriv[i][0] = dShape[i].DVal(0);
     }
   }
+  void FeH1HiLine::GetPolyOrderOfNodes( Matrix<UInt>& polyOrder,
+                                        const Elem* ptElem ) {
+    if (updateUnknowns_) CalcNumUnknowns();
+    Polynomial<Double,1> x(1, 0);
+    StdVector<Polynomial<Double,1> > order;
+    _CalcShFnc(x,ptElem,order);
+    UInt numFncs = order.GetSize();
+    polyOrder.Resize( numFncs, 1 );
+    for( UInt i = 0; i < numFncs; ++i ) {
+      polyOrder[i][0] = order[i].GetMaxOrder(0);
+    }
+  }
 
   template<typename T_SCAL, typename T_VEC>
   void FeH1HiLine::_CalcShFnc( const T_SCAL x,
@@ -365,6 +497,23 @@ DEFINE_LOG(feH1Hi, "feH1Hi")
       }
     }
   }
+  
+  void FeH1HiTria::GetPolyOrderOfNodes( Matrix<UInt>& polyOrder,
+                                          const Elem* ptElem ) {
+
+      
+      if (updateUnknowns_) CalcNumUnknowns();
+      Polynomial<Double,2> x(1., 0), y(1., 1);
+      StdVector<Polynomial<Double,2> > order;
+      _CalcShFnc(x,y,ptElem,order);
+      UInt numFncs = order.GetSize();
+      polyOrder.Resize( numFncs, 2 );
+      for( UInt i = 0; i < numFncs; ++i ) {
+        for(UInt j = 0; j < 2; ++j ) {
+          polyOrder[i][j] = order[i].GetMaxOrder(j);
+        }
+      }
+    }
 
   template<typename T_SCAL, typename T_VEC>
   void FeH1HiTria::_CalcShFnc( const T_SCAL x, const T_SCAL y, 
@@ -563,6 +712,7 @@ DEFINE_LOG(feH1Hi, "feH1Hi")
       IntLegendreP2<T_SCAL,T_VEC>( vals, order, fac*xi );
 
       for( UInt i = 0; i < order-1; ++i ) {
+        
         ret[pos++] = eta * vals[i];
       } 
     }    
@@ -594,9 +744,26 @@ DEFINE_LOG(feH1Hi, "feH1Hi")
       IntLegendreP2<T_SCAL,T_VEC>( etaVals, order2, eta );
       for( UInt k = 0; k < order1-1; ++k)
         for( UInt j = 0; j < order2-1; ++j)
-          ret[pos++] = etaVals[k] * xiVals[j];
+          ret[pos++] = etaVals[j] * xiVals[k];
     }
 #endif
+  }
+  
+  void FeH1HiQuad::GetPolyOrderOfNodes( Matrix<UInt>& polyOrder,
+                                        const Elem* ptElem ) {
+
+    
+    if (updateUnknowns_) CalcNumUnknowns();
+    Polynomial<Double,2> x(1., 0), y(1., 1);
+    StdVector<Polynomial<Double,2> > order;
+    _CalcShFnc(x,y,ptElem,order);
+    UInt numFncs = order.GetSize();
+    polyOrder.Resize( numFncs, 2 );
+    for( UInt i = 0; i < numFncs; ++i ) {
+      for(UInt j = 0; j < 2; ++j ) {
+        polyOrder[i][j] = order[i].GetMaxOrder(j);
+      }
+    }
   }
 
   
@@ -639,6 +806,22 @@ DEFINE_LOG(feH1Hi, "feH1Hi")
     }
   }
   
+  void FeH1HiHex::GetPolyOrderOfNodes( Matrix<UInt>& polyOrder,
+                                       const Elem* ptElem ) {
+    if (updateUnknowns_) CalcNumUnknowns();
+    Polynomial<Double,3> x(1., 0), y(1., 1), z(1., 2);
+    StdVector<Polynomial<Double,3> > order;
+    _CalcShFnc(x,y,z,ptElem,order);
+    UInt numFncs = order.GetSize();
+    polyOrder.Resize( numFncs, 3 );
+    for( UInt i = 0; i < numFncs; ++i ) {
+      std::cerr << "fnc[" << i << "] is " << order[i].ToString() << std::endl;
+      for(UInt j = 0; j < 3; ++j ) {
+        polyOrder[i][j] = order[i].GetMaxOrder(j);
+      }
+    }
+  }
+
   template<typename T_SCAL, typename T_VEC>
   void FeH1HiHex::_CalcShFnc( const T_SCAL x,  const T_SCAL y, const T_SCAL z, 
                                const Elem * elem,
@@ -707,6 +890,36 @@ DEFINE_LOG(feH1Hi, "feH1Hi")
         const StdVector<UInt>& unsorted = shape_.faceNodes[i];
         StdVector<UInt> ind;
         Face::GetSortedIndices( ind, unsorted, 4, elem->faceFlags[i]);
+        
+//        const StdVector<UInt> & con = elem->connect;
+
+//        if( ! (con[ind[0]] < con[ind[1]] &&
+//               con[ind[0]] < con[ind[3]] &&
+//               con[ind[1]] < con[ind[3]] ) ) {
+//          std::cerr << "\n\n";
+//                 std::cerr << "element: " << elem->elemNum << std::endl;
+//                 std::cerr << "connectivity: " << elem->connect.Serialize() << std::endl;
+//                 std::cerr << "local face# " << i << "\n";
+//                 std::cerr << "FACE #"  << elem->faces[i] << std::endl;
+//
+//                 std::cerr << "local facNodes = " << unsorted.Serialize() << std::endl;
+//                 std::cerr << "faceflag is " <<  elem->faceFlags[i] << std::endl;
+//                 std::cerr << "Unsorted is:"
+//                     << con[unsorted[0]-1] << ", "
+//                     << con[unsorted[1]-1] << ", "
+//                     << con[unsorted[2]-1] << ", "
+//                     << con[unsorted[3]-1] << std::endl;
+//                 std::cerr << "ind array is " << ind.Serialize() << std::endl;
+//                 std::cerr << "Sorted is :"
+//                     << con[ind[0]] << ", "
+//                     << con[ind[1]] << ", "
+//                     << con[ind[2]] << ", "
+//                     << con[ind[3]]  ;
+//
+//
+//            EXCEPTION("Ordering violated in elem #" << elem->elemNum );
+//        }
+
         
         // calculate face extension parameter which is the sum
         // of all lambdas of one face
@@ -786,6 +999,23 @@ DEFINE_LOG(feH1Hi, "feH1Hi")
       }
     }
 
+  }
+  
+  void FeH1HiWedge::GetPolyOrderOfNodes( Matrix<UInt>& polyOrder,
+                                       const Elem* ptElem ) {
+    if (updateUnknowns_) CalcNumUnknowns();
+    Polynomial<Double,3> x(1., 0), y(1., 1), z(1., 2);
+    StdVector<Polynomial<Double,3> > order;
+    _CalcShFnc(x,y,z,ptElem,order);
+    UInt numFncs = order.GetSize();
+    polyOrder.Resize( numFncs, 3 );
+    for( UInt i = 0; i < numFncs; ++i ) {
+      std::cerr << "fnc[" << i << "] is " << order[i].ToString() << std::endl;
+      for(UInt j = 0; j < 3; ++j ) {
+        polyOrder[i][j] = order[i].GetMaxOrder(j);
+        
+      }
+    }
   }
   
   template<typename T_SCAL, typename T_VEC>

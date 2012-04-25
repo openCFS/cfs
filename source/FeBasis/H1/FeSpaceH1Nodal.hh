@@ -78,7 +78,7 @@ class FeSpaceH1Nodal : public FeSpaceH1 {
     //! Set the order and mapping type of a specific region
     virtual void SetRegionElements( RegionIdType region, 
                                     MappingType mType,
-                                    const Matrix<Integer>& order,
+                                    const ApproxOrder& order,
                                     PtrParamNode infoNode );
 
     //! Here the spaces have the possibility to check if user definitions makes sense

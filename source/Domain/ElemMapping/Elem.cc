@@ -80,11 +80,15 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
                       Double midPoint[],
                       Double nodeCoords[], UInt edgeVertices[],
                       UInt numEdgeNodes[], UInt edgeNodes[],
-                      UInt numEdgesPerDir[],  UInt locDirEdges[],
+                      Integer edgeLocDirs[],
+                      //UInt numEdgesPerDir[],  UInt locDirEdges[],
                       Elem::FEType surfaceETypes[] = NULL,
                       UInt numFaceVertices[] = NULL, UInt faceVertices[] = NULL,
                       UInt numFaceNodes[] = NULL, UInt faceNodes[] = NULL,
-                      UInt numFacesPerDir[] = NULL, UInt locDirFaces[][2] = NULL) {
+                      Integer faceLocDirs[][2] = NULL
+                      //UInt numFacesPerDir[] = NULL, UInt locDirFaces[][2] = NULL
+                      
+                      ) {
 
       //subelement information
       UInt surfEl = shape.numSurfElems;
@@ -127,14 +131,21 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
         }
       }
       
-      // locDirEdges
+      // edge local directions
       pos = 0;
-      shape.locDirEdges.Resize( shape.dim );
-      for( UInt iDim = 0; iDim < shape.dim; iDim++ ) {
-        shape.locDirEdges[iDim].Resize( numEdgesPerDir[iDim]);
-        for( UInt iEdge = 0; iEdge < numEdgesPerDir[iDim]; iEdge++ )
-          shape.locDirEdges[iDim][iEdge] = locDirEdges[pos++];
+      shape.edgeLocDirs.Resize( shape.numEdges );
+      for( UInt iEdge = 0; iEdge < shape.numEdges; iEdge++ ) {
+        shape.edgeLocDirs[iEdge] = edgeLocDirs[pos++];
       }
+      
+//      // locDirEdges
+//      pos = 0;
+//      shape.locDirEdges.Resize( shape.dim );
+//      for( UInt iDim = 0; iDim < shape.dim; iDim++ ) {
+//        shape.locDirEdges[iDim].Resize( numEdgesPerDir[iDim]);
+//        for( UInt iEdge = 0; iEdge < numEdgesPerDir[iDim]; iEdge++ )
+//          shape.locDirEdges[iDim][iEdge] = locDirEdges[pos++];
+//      }
 
       // faceVertices
       shape.faceVertices.Resize( shape.numFaces );
@@ -156,20 +167,31 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
         }
       }
       
-      // locDirFaces
+      // local face directions
       if( shape.numFaces > 0 ) {
         pos = 0;
-        shape.locDirFaces.Resize( shape.dim );
-        for( UInt iDim = 0; iDim < shape.dim; iDim++ ) {
-          shape.locDirFaces[iDim].Resize( numFacesPerDir[iDim]);
-          for( UInt iFace = 0; iFace < numFacesPerDir[iDim]; iFace++ ) {
-            shape.locDirFaces[iDim][iFace] = 
-                std::pair<UInt,UInt>(locDirFaces[pos][0], 
-                                     locDirFaces[pos][1]);
-            pos++;
-          }
+        shape.faceLocDirs.Resize( shape.numFaces );
+        for( UInt iFace = 0; iFace < shape.numFaces; iFace++ ) {
+          shape.faceLocDirs[iFace][0] = faceLocDirs[pos][0];
+          shape.faceLocDirs[iFace][1] = faceLocDirs[pos][1];
+          pos++;
         }
       }
+      
+//      // locDirFaces
+//      if( shape.numFaces > 0 ) {
+//        pos = 0;
+//        shape.locDirFaces.Resize( shape.dim );
+//        for( UInt iDim = 0; iDim < shape.dim; iDim++ ) {
+//          shape.locDirFaces[iDim].Resize( numFacesPerDir[iDim]);
+//          for( UInt iFace = 0; iFace < numFacesPerDir[iDim]; iFace++ ) {
+//            shape.locDirFaces[iDim][iFace] = 
+//                std::pair<UInt,UInt>(locDirFaces[pos][0], 
+//                                     locDirFaces[pos][1]);
+//            pos++;
+//          }
+//        }
+//      }
     }
 
 
@@ -211,16 +233,12 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
       {
        1 // #1
       };
-      UInt numEdgesPerDir[] =
+      Integer edgeLocDirs[] =
       {
-       1 // #edges in xi-dir
-      };
-      UInt locDirEdges[] =
-      {
-       1 // xi
+       -1 // #1
       };
       SetElemInfo( s, midPoint, nodeCoords, edgeVertices, numEdgeNodes,
-                   edgeVertices, numEdgesPerDir, locDirEdges, NULL,
+                   edgeVertices, edgeLocDirs, NULL,
                    NULL, NULL, NULL, NULL );
       Elem::shapes[Elem::ET_POINT] = s;
     }
@@ -253,20 +271,16 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
       { 
        2 // #1
       };
-      UInt numEdgesPerDir[] =
+      Integer edgeLocDirs[] =
       {
-       1 // #edges in xi-dir
-      };
-      UInt locDirEdges[] =
-      {
-       1 // xi
+       0 // #1
       };
       Elem::FEType surfElems[] =
       {
        Elem::ET_POINT,Elem::ET_POINT
       };
       SetElemInfo( s, midPoint, nodeCoords, edgeVertices, numEdgeNodes,
-                   edgeVertices, numEdgesPerDir, locDirEdges, surfElems,
+                   edgeVertices, edgeLocDirs, surfElems,
                    NULL, NULL, NULL, NULL );
       Elem::shapes[Elem::ET_LINE2] = s;
     }
@@ -304,20 +318,16 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
       {
        3 // #1
       };
-      UInt numEdgesPerDir[] =
+      Integer edgeLocDirs[] =
       {
-       1 // #edges in xi-dir
-      };
-      UInt locDirEdges[] =
-      {
-       1 // xi
+       0 // #1
       };
       Elem::FEType surfElems[] =
       {
        Elem::ET_POINT,Elem::ET_POINT
       };
       SetElemInfo( s, midPoint, nodeCoords, edgeVertices, numEdgeNodes,
-                   edgeVertices, numEdgesPerDir, locDirEdges, surfElems,
+                   edgeVertices, edgeLocDirs, surfElems,
                    NULL, NULL, NULL, NULL );
       Elem::shapes[Elem::ET_LINE3] = s;
     }
@@ -362,15 +372,11 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
      2, // #3
     };
     UInt * edgeNodes  = edgeVertices; // nodes = vertices
-    UInt numEdgesPerDir[] =
+    Integer edgeLocDirs[] =
     {
-     2, // #edges in xi-dir
-     2  // #edges in eta-dir
-    };
-    UInt locDirEdges[] =
-    {
-     1,2, // xi
-     2,3  // eta
+      0, // #1
+     -1, // #2
+      1  // #3
     };
     UInt numFaceVertices[] = 
     {
@@ -382,15 +388,9 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
     };
     UInt * numFaceNodes = numFaceVertices;
     UInt * faceNodes = faceVertices;
-    UInt numFacesPerDir[] = 
+    Integer faceLocDirs[][2] =
     {
-     1, // #faces in xi-dir
-     1  // #faces in eta-dir
-    };
-    UInt locDirFaces[][2] = 
-    {
-     {1,0}, // #faces in xi-dir & component
-     {1,1}, // #faces in eta-dir & component
+     {0,1} // #1
     };
 
     Elem::FEType surfElems[] =
@@ -398,9 +398,9 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
      Elem::ET_LINE2,Elem::ET_LINE2,Elem::ET_LINE2
     };
     SetElemInfo( s, midPoint, nodeCoords, edgeVertices, numEdgeNodes,
-                 edgeNodes, numEdgesPerDir, locDirEdges, surfElems,
+                 edgeNodes, edgeLocDirs, surfElems,
                  numFaceVertices, faceVertices, numFaceNodes, faceNodes,
-                 numFacesPerDir, locDirFaces );
+                faceLocDirs );
     Elem::shapes[Elem::ET_TRIA3] = s;
     
     
@@ -450,15 +450,11 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
     	2, 3, 5, // #2
     	3, 1, 6  // #3
       };
-      UInt numEdgesPerDir[] =
+      Integer edgeLocDirs[] =
       {
-       2, // #edges in xi-dir
-       2, // #edges in eta-dir
-      };
-      UInt locDirEdges[] =
-      {
-       1,2, // xi
-       2,3  // eta
+       0, // #1
+      -1, // #2
+       1  // #3
       };
       UInt numFaceVertices[] =
       {
@@ -476,24 +472,18 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
       {
        1, 2, 3, 4, 5, 6,   // #1
       };
-      UInt numFacesPerDir[] =
+      Integer faceLocDirs[][2] =
       {
-       1, // #faces in xi-dir
-       1  // #faces in eta-dir
-      };
-      UInt locDirFaces[][2] =
-      {
-       {1,0}, // #faces in xi-dir & component
-       {1,1}, // #faces in eta-dir & component
+       {0,1} // #1
       };
       Elem::FEType surfElems[] =
       {
        Elem::ET_LINE3,Elem::ET_LINE3,Elem::ET_LINE3
       };
       SetElemInfo( s, midPoint, nodeCoords, edgeVertices, numEdgeNodes,
-                   edgeNodes, numEdgesPerDir, locDirEdges, surfElems,
+                   edgeNodes, edgeLocDirs, surfElems,
                    numFaceVertices, faceVertices, numFaceNodes, faceNodes,
-                   numFacesPerDir, locDirFaces );
+                   faceLocDirs );
       Elem::shapes[Elem::ET_TRIA6] = s;
     }
     
@@ -540,15 +530,12 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
        2  // #4
       };
       UInt * edgeNodes  = edgeVertices; // nodes = vertices
-      UInt numEdgesPerDir[] =
+      Integer edgeLocDirs[] =
       {
-       2, // #edges in xi-dir
-       2  // #edges in eta-dir
-      };
-      UInt locDirEdges[] =
-      {
-       1,3, // xi
-       2,4  // eta
+        0, // #1
+        1, // #2
+        0, // #3
+        1  // #4
       };
       UInt numFaceVertices[] = 
       {
@@ -560,24 +547,18 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
       };
       UInt * numFaceNodes = numFaceVertices;
       UInt * faceNodes = faceVertices;
-      UInt numFacesPerDir[] = 
+      Integer faceLocDirs[][2] =
       {
-       1, // #faces in xi-dir
-       1  // #faces in eta-dir
-      };
-      UInt locDirFaces[][2] = 
-      {
-       {1,0}, // #faces in xi-dir & component
-       {1,1}, // #faces in eta-dir & component
+       {0,1} // #1
       };
       Elem::FEType surfElems[] =
       {
        Elem::ET_LINE2,Elem::ET_LINE2,Elem::ET_LINE2,Elem::ET_LINE2
       };
       SetElemInfo( s, midPoint, nodeCoords, edgeVertices, numEdgeNodes,
-                   edgeNodes, numEdgesPerDir, locDirEdges, surfElems,
+                   edgeNodes, edgeLocDirs, surfElems,
                    numFaceVertices, faceVertices, numFaceNodes, faceNodes,
-                   numFacesPerDir, locDirFaces );
+                   faceLocDirs );
       Elem::shapes[Elem::ET_QUAD4] = s;
     }
 
@@ -635,15 +616,12 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
         4, 3, 7, // #3
         1, 4, 8  // #4 
        };
-       UInt numEdgesPerDir[] =
+       Integer edgeLocDirs[] =
        {
-        2, // #edges in xi-dir
-        2  // #edges in eta-dir
-       };
-       UInt locDirEdges[] =
-       {
-        1,3, // xi
-        2,4  // eta
+        0, // #1
+        1, // #2
+        0, // #3
+        1  // #4
        };
        UInt numFaceVertices[] = 
        {
@@ -661,24 +639,18 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
        {
         1, 2, 3, 4, 5, 6, 7, 8 // #1
        };
-       UInt numFacesPerDir[] = 
+       Integer faceLocDirs[][2] =
        {
-        1, // #faces in xi-dir
-        1  // #faces in eta-dir
-       };
-       UInt locDirFaces[][2] = 
-       {
-        {1,0}, // #faces in xi-dir & component
-        {1,1}, // #faces in eta-dir & component
+        {0,1} // #1
        };
        Elem::FEType surfElems[] =
        {
         Elem::ET_LINE3,Elem::ET_LINE3,Elem::ET_LINE3,Elem::ET_LINE3
        };
        SetElemInfo( s, midPoint, nodeCoords, edgeVertices, numEdgeNodes,
-                    edgeNodes, numEdgesPerDir, locDirEdges, surfElems,
+                    edgeNodes, edgeLocDirs, surfElems,
                     numFaceVertices, faceVertices, numFaceNodes, faceNodes,
-                    numFacesPerDir, locDirFaces );
+                    faceLocDirs );
        Elem::shapes[Elem::ET_QUAD8] = s;
      }
     // ************************************************************************
@@ -736,15 +708,12 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
         4, 3, 7, // #3
         1, 4, 8  // #4
        };
-       UInt numEdgesPerDir[] =
+       Integer edgeLocDirs[] =
        {
-        2, // #edges in xi-dir
-        2  // #edges in eta-dir
-       };
-       UInt locDirEdges[] =
-       {
-        1,3, // xi
-        2,4  // eta
+        0, // #1
+        1, // #2
+        0, // #3
+        1  // #4
        };
        UInt numFaceVertices[] =
        {
@@ -762,24 +731,18 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
        {
         1, 2, 3, 4, 5, 6, 7, 8, 9 // #1
        };
-       UInt numFacesPerDir[] =
+       Integer faceLocDirs[][2] =
        {
-        1, // #faces in xi-dir
-        1  // #faces in eta-dir
-       };
-       UInt locDirFaces[][2] =
-       {
-        {1,0}, // #faces in xi-dir & component
-        {1,1}, // #faces in eta-dir & component
+        {0,1} // #1
        };
        Elem::FEType surfElems[] =
        {
         Elem::ET_LINE3,Elem::ET_LINE3,Elem::ET_LINE3,Elem::ET_LINE3
        };
        SetElemInfo( s, midPoint, nodeCoords, edgeVertices, numEdgeNodes,
-                    edgeNodes, numEdgesPerDir, locDirEdges, surfElems,
+                    edgeNodes, edgeLocDirs, surfElems,
                     numFaceVertices, faceVertices, numFaceNodes, faceNodes,
-                    numFacesPerDir, locDirFaces );
+                    faceLocDirs );
        Elem::shapes[Elem::ET_QUAD9] = s;
      }
     
@@ -840,17 +803,14 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
        2, // #6
       };
       UInt * edgeNodes = edgeVertices;
-      UInt numEdgesPerDir[] =
+      Integer edgeLocDirs[] =
       {
-       3, // #edges in xi-dir
-       3, // #edges in eta-dir
-       3, // #edges in zeta-dir
-      };
-      UInt locDirEdges[] =
-      {
-       1,4,5,    // xi
-       2,4,6,    // eta
-       3,5,6     // zeta
+       0, // #1
+       1, // #2
+      -1, // #3
+      -1, // #4
+      -1, // #5
+      -1  // #6
       };
       UInt numFaceVertices[] =
       {
@@ -868,26 +828,21 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
       };
       UInt * numFaceNodes = numFaceVertices;
       UInt * faceNodes = faceVertices;
-      UInt numFacesPerDir[] =
+      Integer faceLocDirs[][2] =
       {
-       3, // #faces in xi-dir
-       3, // #faces in eta-dir
-       3  // #faces in zeta-dir
-      };
-      UInt locDirFaces[][2] =
-      {
-       {1,0},{2,0},{4,0}, // faces in xi-dir & component
-       {1,1},{3,0},{4,0}, // faces in eta-dir & component
-       {2,1},{3,1},{4,1}  // faces in zeta-dir & component
+       {-1,-1}, // #1
+       {-1,-1}, // #2
+       {-1,-1}, // #3
+       {-1,-1} // #4
       };
       Elem::FEType surfElems[] =
       {
        Elem::ET_TRIA3,Elem::ET_TRIA3,Elem::ET_TRIA3,Elem::ET_TRIA3
       };
       SetElemInfo( s, midPoint, nodeCoords, edgeVertices, numEdgeNodes,
-                   edgeNodes, numEdgesPerDir, locDirEdges, surfElems,
+                   edgeNodes, edgeLocDirs, surfElems,
                    numFaceVertices, faceVertices, numFaceNodes, faceNodes,
-                   numFacesPerDir, locDirFaces );
+                   faceLocDirs );
       Elem::shapes[Elem::ET_TET4] = s;
     }
     
@@ -962,17 +917,14 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
         2, 4, 9,  // #5
         3, 4, 10  // #6
       };
-      UInt numEdgesPerDir[] =
+      Integer edgeLocDirs[] =
       {
-       3, // #edges in xi-dir
-       3, // #edges in eta-dir
-       3, // #edges in zeta-dir
-      };
-      UInt locDirEdges[] =
-      {
-       1,4,5,    // xi
-       2,4,6,    // eta
-       3,5,6     // zeta
+       0, // #1
+       1, // #2
+      -1, // #3
+      -1, // #4
+      -1, // #5
+      -1  // #6
       };
       UInt numFaceVertices[] =
       {
@@ -1002,26 +954,21 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
        1, 3, 4, 7, 10, 8,  // #3
        2, 3, 4, 6, 10, 9   // #4
       };
-      UInt numFacesPerDir[] =
+      Integer faceLocDirs[][2] =
       {
-       3, // #faces in xi-dir
-       3, // #faces in eta-dir
-       3  // #faces in zeta-dir
-      };
-      UInt locDirFaces[][2] =
-      {
-       {1,0},{2,0},{4,0}, // faces in xi-dir & component
-       {1,1},{3,0},{4,0}, // faces in eta-dir & component
-       {2,1},{3,1},{4,1}  // faces in zeta-dir & component
+       {-1,-1}, // #1
+       {-1,-1}, // #2
+       {-1,-1}, // #3
+       {-1,-1}  // #4
       };
       Elem::FEType surfElems[] =
       {
        Elem::ET_TRIA6,Elem::ET_TRIA6,Elem::ET_TRIA6,Elem::ET_TRIA6
       };
       SetElemInfo( s, midPoint, nodeCoords, edgeVertices, numEdgeNodes,
-                   edgeNodes, numEdgesPerDir, locDirEdges, surfElems,
+                   edgeNodes, edgeLocDirs, surfElems,
                    numFaceVertices, faceVertices, numFaceNodes, faceNodes,
-                   numFacesPerDir, locDirFaces );
+                   faceLocDirs );
       Elem::shapes[Elem::ET_TET10] = s;
     }
     
@@ -1090,16 +1037,20 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
        2  // #12
       };
       UInt * edgeNodes = edgeVertices;
-      UInt numEdgesPerDir[] =
+      Integer edgeLocDirs[] =
       {
-       4, // #edges in xi-dir
-       4, // #edges in eta-dir
-       4, // #edges in zeta-dir
-      };
-      UInt locDirEdges[] =
-      {
-       1,3,9,11,  // xi
-       2,4,10,12  // eta
+       0, // #1
+       1, // #2
+       0, // #3
+       1, // #4
+       2, // #5
+       2, // #6
+       2, // #7
+       2, // #8
+       0, // #9
+       1, // #10
+       0, // #11
+       1  // #12
       };
       UInt numFaceVertices[] = 
       {
@@ -1121,26 +1072,24 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
       };
       UInt * numFaceNodes = numFaceVertices;
       UInt * faceNodes = faceVertices;
-      UInt numFacesPerDir[] = 
+      Integer faceLocDirs[][2] =
       {
-       4, // #faces in xi-dir
-       4, // #faces in eta-dir
-       4  // #faces in zeta-dir
-      };
-      UInt locDirFaces[][2] = 
-      {
-       {1,0},{2,0},{4,0},{6,0}, // faces in xi-dir & component
-       {1,1},{3,0},{5,0},{6,1}, // faces in eta-dir & component
-       {2,1},{3,1},{4,1},{5,1}  // faces in zeta-dir & component
+       {0, 1}, // #1
+       {0, 2}, // #2
+       {1, 2}, // #3
+       {0, 2}, // #4
+       {1, 2}, // #5
+       {0 ,1}  // #6
       };
       Elem::FEType surfElems[] =
       {
-       Elem::ET_QUAD4,Elem::ET_QUAD4,Elem::ET_QUAD4,Elem::ET_QUAD4,Elem::ET_QUAD4,Elem::ET_QUAD4
+       Elem::ET_QUAD4,Elem::ET_QUAD4,Elem::ET_QUAD4,
+       Elem::ET_QUAD4,Elem::ET_QUAD4,Elem::ET_QUAD4
       };
       SetElemInfo( s, midPoint, nodeCoords, edgeVertices, numEdgeNodes,
-                    edgeNodes, numEdgesPerDir, locDirEdges, surfElems,
+                    edgeNodes, edgeLocDirs, surfElems,
                     numFaceVertices, faceVertices, numFaceNodes, faceNodes,
-                    numFacesPerDir, locDirFaces );
+                    faceLocDirs );
       Elem::shapes[Elem::ET_HEXA8] = s;
     }
     // ************************************************************************
@@ -1238,16 +1187,20 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
             8, 7, 15, // #11
             5, 8, 16  // #12
           };
-          UInt numEdgesPerDir[] =
+          Integer edgeLocDirs[] =
           {
-           4, // #edges in xi-dir
-           4, // #edges in eta-dir
-           4, // #edges in zeta-dir
-          };
-          UInt locDirEdges[] =
-          {
-           1,3,9,11,  // xi
-           2,4,10,12  // eta
+           0, // #1
+           1, // #2
+           0, // #3
+           1, // #4
+           2, // #5
+           2, // #6
+           2, // #7
+           2, // #8
+           0, // #9
+           1, // #10
+           0, // #11
+           1  // #12
           };
           UInt numFaceVertices[] = 
           {
@@ -1285,26 +1238,23 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
            1, 4, 8, 5, 12, 20, 16, 17, // #5
            5, 6, 7, 8, 13, 14, 15, 16  // #6
           };
-          UInt numFacesPerDir[] = 
+          Integer faceLocDirs[][2] =
           {
-           4, // #faces in xi-dir
-           4, // #faces in eta-dir
-           4  // #faces in zeta-dir
-          };
-          UInt locDirFaces[][2] = 
-          {
-           {1,0},{2,0},{4,0},{6,0}, // faces in xi-dir & component
-           {1,1},{3,0},{5,0},{6,1}, // faces in eta-dir & component
-           {2,1},{3,1},{4,1},{5,1}  // faces in zeta-dir & component
+           {0, 1}, // #1
+           {0, 2}, // #2
+           {1, 2}, // #3
+           {0, 2}, // #4
+           {1, 2}, // #5
+           {0 ,1}  // #6
           };
           Elem::FEType surfElems[] =
           {
            Elem::ET_QUAD8,Elem::ET_QUAD8,Elem::ET_QUAD8,Elem::ET_QUAD8,Elem::ET_QUAD8,Elem::ET_QUAD8
           };
           SetElemInfo( s, midPoint, nodeCoords, edgeVertices, numEdgeNodes,
-                        edgeNodes, numEdgesPerDir, locDirEdges, surfElems,
+                        edgeNodes, edgeLocDirs, surfElems,
                         numFaceVertices, faceVertices, numFaceNodes, faceNodes,
-                        numFacesPerDir, locDirFaces );
+                        faceLocDirs );
           Elem::shapes[Elem::ET_HEXA20] = s;
         }
     // ************************************************************************
@@ -1395,16 +1345,20 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
             8, 7, 15, // #11
             5, 8, 16  // #12
           };
-          UInt numEdgesPerDir[] =
+          Integer edgeLocDirs[] =
           {
-           4, // #edges in xi-dir
-           4, // #edges in eta-dir
-           4, // #edges in zeta-dir
-          };
-          UInt locDirEdges[] =
-          {
-           1,3,9,11,  // xi
-           2,4,10,12  // eta
+           0, // #1
+           1, // #2
+           0, // #3
+           1, // #4
+           2, // #5
+           2, // #6
+           2, // #7
+           2, // #8
+           0, // #9
+           1, // #10
+           0, // #11
+           1  // #12
           };
           UInt numFaceVertices[] =
           {
@@ -1442,26 +1396,23 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
            1, 4, 8, 5, 12, 20, 16, 17, 24, // #5
            5, 6, 7, 8, 13, 14, 15, 16, 26  // #6
           };
-          UInt numFacesPerDir[] =
+          Integer faceLocDirs[][2] =
           {
-           4, // #faces in xi-dir
-           4, // #faces in eta-dir
-           4  // #faces in zeta-dir
-          };
-          UInt locDirFaces[][2] =
-          {
-           {1,0},{2,0},{4,0},{6,0}, // faces in xi-dir & component
-           {1,1},{3,0},{5,0},{6,1}, // faces in eta-dir & component
-           {2,1},{3,1},{4,1},{5,1}  // faces in zeta-dir & component
+           {0, 1}, // #1
+           {0, 2}, // #2
+           {1, 2}, // #3
+           {0, 2}, // #4
+           {1, 2}, // #5
+           {0 ,1}  // #6
           };
           Elem::FEType surfElems[] =
           {
            Elem::ET_QUAD9,Elem::ET_QUAD9,Elem::ET_QUAD9,Elem::ET_QUAD9,Elem::ET_QUAD9,Elem::ET_QUAD9
           };
           SetElemInfo( s, midPoint, nodeCoords, edgeVertices, numEdgeNodes,
-                        edgeNodes, numEdgesPerDir, locDirEdges, surfElems,
+                        edgeNodes, edgeLocDirs, surfElems,
                         numFaceVertices, faceVertices, numFaceNodes, faceNodes,
-                        numFacesPerDir, locDirFaces );
+                        faceLocDirs );
           Elem::shapes[Elem::ET_HEXA27] = s;
         }
     // ************************************************************************
@@ -1525,17 +1476,16 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
        2, // #8
       };
       UInt * edgeNodes = edgeVertices;
-      UInt numEdgesPerDir[] =
+      Integer edgeLocDirs[] =
       {
-       6, // #edges in xi-dir
-       6, // #edges in eta-dir
-       4, // #edges in zeta-dir
-      };
-      UInt locDirEdges[] =
-      {
-       1,3,5,6,7,8,  // xi
-       2,4,5,6,7,8,  // eta
-       5,6,7,8       // zeta
+       0, // #1
+       1, // #2
+       0, // #3
+       1, // #4
+      -1, // #5
+      -1, // #6
+      -1, // #7
+      -1  // #8
       };
       UInt numFaceVertices[] =
       {
@@ -1555,26 +1505,22 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
       };
       UInt * numFaceNodes = numFaceVertices;
       UInt * faceNodes = faceVertices;
-      UInt numFacesPerDir[] =
+      Integer faceLocDirs[][2] =
       {
-       5, // #faces in xi-dir
-       5, // #faces in eta-dir
-       4  // #faces in zeta-dir
-      };
-      UInt locDirFaces[][2] =
-      {
-       {1,0},{2,0},{3,2},{4,0},{5,2}, // faces in xi-dir & component
-       {1,1},{2,2},{3,0},{4,2},{5,0}, // faces eta xi-dir & component
-       {2,1},{3,1},{4,1},{5,1}        // faces in zeta-dir & component
+       {0, 1},   // #1
+       {-1, -1}, // #2
+       {-1, -1}, // #3
+       {-1, -1}, // #4
+       {-1, -1}  // #5
       };
       Elem::FEType surfElems[] =
       {
        Elem::ET_QUAD4,Elem::ET_TRIA3,Elem::ET_TRIA3,Elem::ET_TRIA3,Elem::ET_TRIA3
       };
       SetElemInfo( s, midPoint, nodeCoords, edgeVertices, numEdgeNodes,
-                    edgeNodes, numEdgesPerDir, locDirEdges, surfElems,
+                    edgeNodes, edgeLocDirs, surfElems,
                     numFaceVertices, faceVertices, numFaceNodes, faceNodes,
-                    numFacesPerDir, locDirFaces );
+                    faceLocDirs );
       Elem::shapes[Elem::ET_PYRA5] = s;
     }
 
@@ -1655,17 +1601,16 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
         3, 5, 12, // #7
         4, 5, 13, // #8
       };
-      UInt numEdgesPerDir[] =
+      Integer edgeLocDirs[] =
       {
-       6, // #edges in xi-dir
-       6, // #edges in eta-dir
-       4, // #edges in zeta-dir
-      };
-      UInt locDirEdges[] =
-      {
-       1,3,5,6,7,8,  // xi
-       2,4,5,6,7,8,  // eta
-       5,6,7,8       // zeta
+       0, // #1
+       1, // #2
+       0, // #3
+       1, // #4
+      -1, // #5
+      -1, // #6
+      -1, // #7
+      -1  // #8
       };
       UInt numFaceVertices[] =
       {
@@ -1699,26 +1644,22 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
        3, 4, 5, 8, 13, 12,     // #4
        4, 1, 5, 9, 10, 13      // #5
       };
-      UInt numFacesPerDir[] =
+      Integer faceLocDirs[][2] =
       {
-       5, // #faces in xi-dir
-       5, // #faces in eta-dir
-       4  // #faces in zeta-dir
-      };
-      UInt locDirFaces[][2] =
-      {
-       {1,0},{2,0},{3,2},{4,0},{5,2}, // faces in xi-dir & component
-       {1,1},{2,2},{3,0},{4,2},{5,0}, // faces eta xi-dir & component
-       {2,1},{3,1},{4,1},{5,1}        // faces in zeta-dir & component
+       { 0,  1},   // #1
+       {-1, -1}, // #2
+       {-1, -1}, // #3
+       {-1, -1}, // #4
+       {-1, -1}  // #5
       };
       Elem::FEType surfElems[] =
       {
        Elem::ET_QUAD8,Elem::ET_TRIA6,Elem::ET_TRIA6,Elem::ET_TRIA6,Elem::ET_TRIA6
       };
       SetElemInfo( s, midPoint, nodeCoords, edgeVertices, numEdgeNodes,
-                    edgeNodes, numEdgesPerDir, locDirEdges, surfElems,
+                    edgeNodes, edgeLocDirs, surfElems,
                     numFaceVertices, faceVertices, numFaceNodes, faceNodes,
-                    numFacesPerDir, locDirFaces );
+                    faceLocDirs );
       Elem::shapes[Elem::ET_PYRA13] = s;
     }
 
@@ -1800,17 +1741,16 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
         3, 5, 12, // #7
         4, 5, 13, // #8
       };
-      UInt numEdgesPerDir[] =
+      Integer edgeLocDirs[] =
       {
-       6, // #edges in xi-dir
-       6, // #edges in eta-dir
-       4, // #edges in zeta-dir
-      };
-      UInt locDirEdges[] =
-      {
-       1,3,5,6,7,8,  // xi
-       2,4,5,6,7,8,  // eta
-       5,6,7,8       // zeta
+       0, // #1
+       1, // #2
+       0, // #3
+       1, // #4
+      -1, // #5
+      -1, // #6
+      -1, // #7
+      -1  // #8
       };
       UInt numFaceVertices[] =
       {
@@ -1844,26 +1784,22 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
        3, 4, 5, 8, 13, 12,     // #4
        4, 1, 5, 9, 10, 13      // #5
       };
-      UInt numFacesPerDir[] =
+      Integer faceLocDirs[][2] =
       {
-       5, // #faces in xi-dir
-       5, // #faces in eta-dir
-       4  // #faces in zeta-dir
-      };
-      UInt locDirFaces[][2] =
-      {
-       {1,0},{2,0},{3,2},{4,0},{5,2}, // faces in xi-dir & component
-       {1,1},{2,2},{3,0},{4,2},{5,0}, // faces eta xi-dir & component
-       {2,1},{3,1},{4,1},{5,1}        // faces in zeta-dir & component
+       {0, 1},   // #1
+       {-1, -1}, // #2
+       {-1, -1}, // #3
+       {-1, -1}, // #4
+       {-1, -1}  // #5
       };
       Elem::FEType surfElems[] =
       {
        Elem::ET_QUAD9,Elem::ET_TRIA6,Elem::ET_TRIA6,Elem::ET_TRIA6,Elem::ET_TRIA6
       };
       SetElemInfo( s, midPoint, nodeCoords, edgeVertices, numEdgeNodes,
-                    edgeNodes, numEdgesPerDir, locDirEdges, surfElems,
+                    edgeNodes, edgeLocDirs, surfElems,
                     numFaceVertices, faceVertices, numFaceNodes, faceNodes,
-                    numFacesPerDir, locDirFaces );
+                    faceLocDirs );
       Elem::shapes[Elem::ET_PYRA14] = s;
     }
 
@@ -1921,18 +1857,18 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
        2  // #9
       };
       UInt * edgeNodes = edgeVertices;
-      UInt numEdgesPerDir[] =
-      {
-       4, // #edges in xi-dir
-       4, // #edges in eta-dir
-       3, // #edges in zeta-dir
-      };
-      UInt locDirEdges[] =
-      {
-       1,2,4,5,  // xi
-       2,3,5,6,  // eta
-       7,8,9     // zeta
-      };
+      Integer edgeLocDirs[] =
+       {
+        0, // #1
+       -1, // #2
+        1, // #3
+        0, // #4
+       -1, // #5
+        1, // #6
+        2, // #7
+        2, // #8
+        2  // #9
+       };
       UInt numFaceVertices[] = 
       {
        3, // #1
@@ -1951,26 +1887,22 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
       };
       UInt * numFaceNodes = numFaceVertices;
       UInt * faceNodes = faceVertices;
-      UInt numFacesPerDir[] = 
+      Integer faceLocDirs[][2] =
       {
-       4, // #faces in xi-dir
-       4, // #faces in eta-dir
-       3  // #faces in zeta-dir
-      };
-      UInt locDirFaces[][2] = 
-      {
-       {1,0},{2,0},{3,0},{4,0}, // faces in xi-dir & component
-       {1,1},{2,1},{4,0},{5,0}, // faces in eta-dir & component
-       {3,1},{4,1},{5,1}        // faces in zeta-dir & component
+       { 0, 1}, // #1
+       { 0, 1}, // #2
+       { 0, 2}, // #3
+       {-1, 2}, // #4
+       { 1, 2} // #5
       };
       Elem::FEType surfElems[] =
       {
        Elem::ET_TRIA3,Elem::ET_TRIA3,Elem::ET_QUAD4,Elem::ET_QUAD4,Elem::ET_QUAD4
       };
       SetElemInfo( s, midPoint, nodeCoords, edgeVertices, numEdgeNodes,
-                   edgeNodes, numEdgesPerDir, locDirEdges, surfElems,
+                   edgeNodes, edgeLocDirs, surfElems,
                    numFaceVertices, faceVertices, numFaceNodes, faceNodes,
-                   numFacesPerDir, locDirFaces );
+                   faceLocDirs );
       Elem::shapes[Elem::ET_WEDGE6] = s;
     }
     
@@ -2054,17 +1986,17 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
         2, 5, 14, // #8
         3, 6, 15  // #9
       };
-      UInt numEdgesPerDir[] =
+      Integer edgeLocDirs[] =
       {
-       4, // #edges in xi-dir
-       4, // #edges in eta-dir
-       3, // #edges in zeta-dir
-      };
-      UInt locDirEdges[] =
-      {
-       1,2,4,5,  // xi
-       2,3,5,6,  // eta
-       7,8,9     // zeta
+       0, // #1
+      -1, // #2
+       1, // #3
+       0, // #4
+      -1, // #5
+       1, // #6
+       2, // #7
+       2, // #8
+       2  // #9
       };
       UInt numFaceVertices[] = 
       {
@@ -2098,26 +2030,22 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
        2, 3, 6, 5,  8, 15, 11, 14, // #4
        3, 1, 4, 6,  9, 13, 12, 15  // #5
       };
-      UInt numFacesPerDir[] = 
-      {
-       4, // #faces in xi-dir
-       4, // #faces in eta-dir
-       3  // #faces in zeta-dir
-      };
-      UInt locDirFaces[][2] = 
-      {
-       {1,0},{2,0},{3,0},{4,0}, // faces in xi-dir & component
-       {1,1},{2,1},{4,0},{5,0}, // faces in eta-dir & component
-       {3,1},{4,1},{5,1}        // faces in zeta-dir & component
-      };
+      Integer faceLocDirs[][2] =
+       {
+        { 0, 1}, // #1
+        { 0, 1}, // #2
+        { 0, 2}, // #3
+        {-1, 2}, // #4
+        { 1, 2} // #5
+       };
       Elem::FEType surfElems[] =
       {
        Elem::ET_TRIA6,Elem::ET_TRIA6,Elem::ET_QUAD8,Elem::ET_QUAD8,Elem::ET_QUAD8
       };
       SetElemInfo( s, midPoint, nodeCoords, edgeVertices, numEdgeNodes,
-                   edgeNodes, numEdgesPerDir, locDirEdges, surfElems,
+                   edgeNodes, edgeLocDirs, surfElems,
                    numFaceVertices, faceVertices, numFaceNodes, faceNodes,
-                   numFacesPerDir, locDirFaces );
+                   faceLocDirs );
       Elem::shapes[Elem::ET_WEDGE15] = s;
     }
 
@@ -2202,17 +2130,17 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
         2, 5, 14, // #8
         3, 6, 15  // #9
       };
-      UInt numEdgesPerDir[] =
+      Integer edgeLocDirs[] =
       {
-       4, // #edges in xi-dir
-       4, // #edges in eta-dir
-       3, // #edges in zeta-dir
-      };
-      UInt locDirEdges[] =
-      {
-       1,2,4,5,  // xi
-       2,3,5,6,  // eta
-       7,8,9     // zeta
+       0, // #1
+      -1, // #2
+       1, // #3
+       0, // #4
+      -1, // #5
+       1, // #6
+       2, // #7
+       2, // #8
+       2  // #9
       };
       UInt numFaceVertices[] =
       {
@@ -2246,26 +2174,22 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
        2, 3, 6, 5,  8, 15, 11, 14, 17, // #4
        3, 1, 4, 6,  9, 13, 12, 15, 18  // #5
       };
-      UInt numFacesPerDir[] =
+      Integer faceLocDirs[][2] =
       {
-       4, // #faces in xi-dir
-       4, // #faces in eta-dir
-       3  // #faces in zeta-dir
-      };
-      UInt locDirFaces[][2] =
-      {
-       {1,0},{2,0},{3,0},{4,0}, // faces in xi-dir & component
-       {1,1},{2,1},{4,0},{5,0}, // faces in eta-dir & component
-       {3,1},{4,1},{5,1}        // faces in zeta-dir & component
+       { 0, 1}, // #1
+       { 0, 1}, // #2
+       { 0, 2}, // #3
+       {-1, 2}, // #4
+       { 1, 2} // #5
       };
       Elem::FEType surfElems[] =
       {
        Elem::ET_TRIA6,Elem::ET_TRIA6,Elem::ET_QUAD9,Elem::ET_QUAD9,Elem::ET_QUAD9
       };
       SetElemInfo( s, midPoint, nodeCoords, edgeVertices, numEdgeNodes,
-                   edgeNodes, numEdgesPerDir, locDirEdges, surfElems,
+                   edgeNodes, edgeLocDirs, surfElems,
                    numFaceVertices, faceVertices, numFaceNodes, faceNodes,
-                   numFacesPerDir, locDirFaces );
+                   faceLocDirs );
       Elem::shapes[Elem::ET_WEDGE18] = s;
     }
 

@@ -396,7 +396,7 @@ namespace CoupledField {
 
         // Re-orientate face to match global orientation and
         // obtain the orientation flags
-        std::bitset<3> orientation;
+        std::bitset<5> orientation;
         actFace.Normalize( orientation );
 
         LOG_DBG3(gridcfs) << "Normalized : "

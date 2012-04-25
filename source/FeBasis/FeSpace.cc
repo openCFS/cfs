@@ -15,6 +15,121 @@
 namespace CoupledField {
 
 
+// ==========================================================================
+//   A P P R O X O R D E R    C L A S S  
+// ==========================================================================
+
+ApproxOrder::ApproxOrder( ) {
+  isoOrder_ = 0;
+  maxOrder_= 0;
+  dim_ = 0;
+  completeType_ = BaseFE::TRUNK_SPACE;
+}
+
+ApproxOrder::ApproxOrder(UInt dim ) {
+  isoOrder_ = 0;
+  maxOrder_= 0;
+  dim_ = dim;
+  completeType_ = BaseFE::TRUNK_SPACE;
+}
+  
+  void ApproxOrder::SetIsoOrder( UInt isoOrder ) {
+    isoOrder_ = isoOrder;
+    isIsotropic_ = true;
+  }
+  
+  void ApproxOrder::SetAnisoOrder( const Matrix<UInt>& anisoOrder ) {
+    
+    // the structure of the anisoOrder matrix has the following 
+    // structure:
+    
+    //         dofs ->
+    //      ux  uy uz
+    //   xi
+    //  eta
+    // zeta
+    
+    assert( anisoOrder.GetNumRows() == dim_ );
+    
+    anisoOrder_ = anisoOrder;
+    isIsotropic_ = false;
+    maxOrder_ = 0;
+    // determine maximum w.r.t. to local coordinate directions
+    maxOrderLocDir_.Resize( anisoOrder_.GetNumRows() );
+    maxOrderLocDir_.Init( 0 );
+    for( UInt iLoc = 0; iLoc < anisoOrder_.GetNumRows(); iLoc++ ) {
+      for( UInt iDof = 0; iDof < anisoOrder_.GetNumCols(); iDof++ ) {
+        if( anisoOrder_[iLoc][iDof] > maxOrderLocDir_[iLoc] ) {
+          maxOrderLocDir_[iLoc] = anisoOrder_[iLoc][iDof];
+        }
+        if( anisoOrder_[iLoc][iDof] > maxOrder_ ) {
+          maxOrder_ = anisoOrder_[iLoc][iDof];
+        }
+      }
+    } 
+  }
+  
+  void ApproxOrder::SetPolyCompleteness (BaseFE::PolyCompleteType pct ) {
+    completeType_  = pct;
+  }
+  
+  bool ApproxOrder::IsIsotropic() const {
+    return isIsotropic_;
+  }
+  
+  BaseFE::PolyCompleteType ApproxOrder::ReturnPolyCompleteness() const {
+    return completeType_;
+  }
+  
+  UInt ApproxOrder::GetIsoOrder() const {
+    if( !isIsotropic_) {
+      WARN(("Approximation is not isotropic!"))
+    }
+    return isoOrder_;
+    
+  }
+  
+  void ApproxOrder::GetAnisoOrder( Matrix<UInt>& order ) const {
+    order = anisoOrder_;
+  }
+  
+  UInt ApproxOrder::GetMaxOrder() const {
+    return maxOrder_;
+  }
+  
+  const StdVector<UInt>& ApproxOrder::GetMaxOrderLocDir( ) const {
+    return maxOrderLocDir_;
+  
+  }
+  
+  StdVector<UInt> ApproxOrder::GetDofOrder( UInt dof ) const {
+    StdVector<UInt> order;
+    if( isIsotropic_) {
+      assert(dim_ != 0 );
+      order.Resize( dim_ );
+      order.Init( isoOrder_ );
+    } else {
+      assert(dof < anisoOrder_.GetNumCols() );
+      order.Resize( anisoOrder_.GetNumRows() );
+      for( UInt i = 0; i < order.GetSize(); ++i ) {
+        order[i] = anisoOrder_[i][dof];
+      }
+    }
+    return order;
+  }
+  
+  std::string ApproxOrder::ToString() const {
+    if( isIsotropic_) {
+      return lexical_cast<std::string>(isoOrder_);
+    } else {
+      return anisoOrder_.ToString();
+    }
+  }
+
+// ==========================================================================
+//   M A I N   F E S P A C E    C L A S S
+// ==========================================================================
+
   // declare class specific logging stream
   DECLARE_LOG(feSpace)
   DEFINE_LOG(feSpace, "feSpace")
@@ -344,6 +459,10 @@ namespace CoupledField {
       LOG_DBG2(feSpace) << "\torder (absolute):" << order.ToString();
     } else {
       // RELATIVE order given
+      
+      // Note: currently we just support isotropic integration.
+      // In the future, we could introduce a more sophisticated
+      // method.
       LOG_DBG2(feSpace) << "\torder (relative): " << id.order.ToString();
       UInt p = fe->GetMaxOrder();
       order = id.order;
@@ -435,6 +554,9 @@ namespace CoupledField {
 
     //ok these data structures are a bit messy but this is the most obvious typ
     // and they are temporary anyway. furthermore we run here once in a lifetime
+    // 1st key: v/e/f number
+    // 2nd key: element number
+    // 3rc key: virtual nodes
     std::map< UInt, std::map<UInt, StdVector<Integer> > > vertexNodes;
     std::map< UInt, std::map<UInt, StdVector<Integer> > > edgenodes;
     std::map< UInt, std::map<UInt, StdVector<Integer> > > facenodes;
@@ -492,7 +614,8 @@ namespace CoupledField {
         BaseFE* ptFe = GetFe( entIt );
         const Elem* actEl = entIt.GetElem();  
 
-
+        LOG_DBG2(feSpace) << "treating element #" << entIt.GetElem()->elemNum;
+        LOG_DBG2(feSpace) << "mapped volume element #" << actEl->elemNum;
 
 
         StdVector<UInt> permutations; // initially size 0
@@ -562,6 +685,7 @@ namespace CoupledField {
         //===========================================================
         //Assign the Edge node numbers
         //===========================================================
+        LOG_DBG2(feSpace) << "mapping edge nodes";
         UInt numEdgeNodes = 0;
         ElemShape actShape = Elem::shapes[actEl->type];
         EntityTypeNodes & etn =  virtualNodes_[actEl->elemNum][BaseFE::EDGE];
@@ -573,12 +697,15 @@ namespace CoupledField {
             //get the permutation Vector
             ptFe->GetNodalPermutation(permutations,actEl,BaseFE::EDGE,iEdge);
             numEdgeNodes = permutations.GetSize();
+            LOG_DBG2(feSpace) << "\tedge #" << edgeNum << " got " 
+                              << numEdgeNodes << " nodes";
             if(isContinuous_){
               //in the continuous case we need to check if we already have an entry for
               //this vertex
               if(edgenodes[edgeNum].size()>0){
                 //so we need to redefine the volElemNumber
                 elemNum = edgenodes[edgeNum].begin()->first;
+                LOG_DBG3(feSpace) << "\t-> was already mapped for element #" << elemNum;
               }
             }
             // Check if the edge is already numbered.
@@ -688,7 +815,7 @@ namespace CoupledField {
       //additionally we let the space read specific attributes only valid for himself
       PtrParamNode pNode = polyNodes_[polyId];
       ReadCustomAttributes(pNode,region);
-      Matrix<Integer> order;
+      ApproxOrder order(ptGrid_->GetDim() );
       MappingType curMap;
       ReadPolyNode(pNode,curMap,order);
       SetRegionElements(region,curMap,order,regionNode);
@@ -774,7 +901,7 @@ namespace CoupledField {
     order.SetIsoOrder( isoOrder );
   }
 
-  void FeSpace::ReadPolyNode(PtrParamNode node, MappingType & mapType, Matrix<Integer> & order){
+  void FeSpace::ReadPolyNode(PtrParamNode node, MappingType & mapType, ApproxOrder & order){
 
     bool grid = node->Get("useGridOrder",ParamNode::EX)->As<bool>();
     //determine mapping type
@@ -784,35 +911,36 @@ namespace CoupledField {
     PtrParamNode isoOrderNode = node->Get("isoOrder", ParamNode::PASS );
     if(isoOrderNode){
       Integer isoOrder = isoOrderNode->As<Integer>();
-      order.Resize(1,1);
-      order[0][0] = isoOrder;
+      order.SetIsoOrder(isoOrder);
     }
 
     
     PtrParamNode anIsoOrderNode = node->Get("anIsoOrder", ParamNode::PASS );
     if(anIsoOrderNode){
       UInt dim = ptGrid_->GetDim();
-      order.Resize(3,dim);
+      Matrix<UInt> orderMat;
+      orderMat.Resize(dim,3);
       StdVector<std::string> dofs(3);
        anIsoOrderNode->GetValue("dof1",dofs[0],ParamNode::PASS);
        anIsoOrderNode->GetValue("dof2",dofs[1],ParamNode::PASS);
        anIsoOrderNode->GetValue("dof3",dofs[2],ParamNode::PASS);
        if( dofs[2] == "" ) {
-         order.Resize(2,dim); 
+         orderMat.Resize(dim,2); 
        }
        if( dofs[1] == "" ) {
-         order.Resize(1,dim);
+         orderMat.Resize(dim,1);
        }
       char_separator<char> sep(" ");
 
-      for(UInt i = 0;i < order.GetNumRows();i++){
+      for(UInt i = 0;i < orderMat.GetNumCols();i++){
         boost::tokenizer<char_separator<char> > tokens(dofs[i],sep);
         boost::tokenizer<char_separator<char> >::iterator tokIt=tokens.begin();
-        for(UInt j = 0;j < order.GetNumCols();j++){
-          order[i][j] = lexical_cast<UInt>(*tokIt);
+        for(UInt j = 0;j < orderMat.GetNumRows();j++){
+          orderMat[j][i] = lexical_cast<UInt>(*tokIt);
           tokIt++;
         }
       }
+      order.SetAnisoOrder(orderMat);
     }
   }
 

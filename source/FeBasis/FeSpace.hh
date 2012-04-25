@@ -24,6 +24,86 @@ class BaseFe;
 class BaseFeFunction;
 class SolStrategy;
 
+// ========================================================================
+ //  TYPE DEFINTION FOR POLYNOMIAL ORDER
+ // ========================================================================
+ //! This class describes the approximation order of an FeFuncion
+ 
+ //! This class encapsulates the polynomial order, used to approximate
+ //! a given function. It can be isotropic (like for Lagrangian Space)
+ //! or anisotropic (e.g. hierarchical approximation).
+class ApproxOrder {
+public:
+
+  //! Constructor
+  ApproxOrder();
+
+  //! Constructor
+  //! \param dim Spatial dimension
+  ApproxOrder(UInt dim);
+
+  //! Set isotropic order
+  void SetIsoOrder( UInt isoOrder );
+
+  //! Set anisotropic order
+  void SetAnisoOrder( const Matrix<UInt>& anisoOrder );
+
+  //! Set completeness of polynomial space
+  void SetPolyCompleteness (BaseFE::PolyCompleteType pct );
+
+  //! Return, if approximation order is isotropic
+  bool IsIsotropic() const;
+
+  //! Return the type of completeness of the polynomial
+  BaseFE::PolyCompleteType ReturnPolyCompleteness() const;
+
+  //! Return isotropic polynomial degree
+  UInt GetIsoOrder() const;
+
+  //! Return anisotropic polynomial degree
+  void GetAnisoOrder( Matrix<UInt>& order ) const;
+
+  //! Return maximum overall polynomial degree
+  UInt GetMaxOrder() const;
+
+  //! Return maximum polynomial degree per local direction
+  const StdVector<UInt>& GetMaxOrderLocDir( ) const;
+
+  //! Return polynomial order for a given dof (spatial ansisotropic)
+  StdVector<UInt> GetDofOrder( UInt dof ) const;
+
+  //! Print to string
+  std::string ToString() const;
+
+private:
+
+  //! Spatial dimension
+  UInt dim_;
+
+  //! Isotropic order
+  UInt isoOrder_;
+
+  //! Anisotropic order
+  Matrix<UInt> anisoOrder_;
+
+  //! Maximum order w.r.t. to local coordinate direction
+  StdVector<UInt> maxOrderLocDir_;
+
+  //! Maximum order (independent of isotropy)
+  UInt maxOrder_;
+
+  //! Flag, if order is isotropic
+  bool isIsotropic_;
+
+  //! Type of polynomial (tensor vs. trunk space) 
+  BaseFE::PolyCompleteType completeType_;
+};
+
+
+ // ========================================================================
+ //  Finite Element Space Definition
+ // ========================================================================
+ 
 //!  Base class for the Finite Element Space (FeSpace) 
 /*!
   The Finite Element Space (FeSpace) represents the mathematical discrete 
@@ -93,6 +173,9 @@ public:
       IntegOrderMode mode;
   };
 
+ 
+  
+  
   //! Constructor
   FeSpace(PtrParamNode paramNode, PtrParamNode infoNode, Grid* ptGrid );
 
@@ -414,7 +497,7 @@ protected:
 
   //! Set the order and mapping type of a specific region
   virtual void SetRegionElements( RegionIdType region, MappingType mType,
-                                  const Matrix<Integer>& order,
+                                  const ApproxOrder& order,
                                   PtrParamNode infoNode )=0;
 
   //! read in integration data and set defaults
@@ -496,7 +579,7 @@ protected:
   //! Here we pass a fePolynomial node such that the feSpace can extract the information
   //! which is important for the specific space
   virtual void ReadPolyNode(PtrParamNode node, MappingType & mapType,
-                            Matrix<Integer> & order);
+                            ApproxOrder & order);
 
   //! Read the IntegrationSchemeList from the xml and put the nodes in the map
   //! according to their id's

@@ -91,8 +91,8 @@ inline void IntLegendre( T_VEC& values, UInt order, T_SCAL loc ) {
 template <typename T_SCAL, class T_VEC>
 inline void IntLegendreP2( T_VEC& values, UInt order, T_SCAL loc ) {
   T_SCAL p1 =  loc;
-  T_SCAL p2 = -1;
-  T_SCAL p3 =  0;
+  T_SCAL p2 = -1.0;
+  T_SCAL p3 =  0.0;
   values.Resize(order-1);
   for (UInt j=2; j<=order; j++) {
     double inv = 1.0 / (double)j;

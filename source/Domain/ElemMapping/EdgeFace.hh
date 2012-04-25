@@ -26,14 +26,14 @@ namespace CoupledField {
     //! orientation flags as defined in 
     //! Solin,Segeth: Higher-Order Finite Elements, p.165
     //! See also the faceFlags bitset of the class Elem.
-    void Normalize( std::bitset<3>& flags); 
+    void Normalize( std::bitset<5>& flags); 
 
     
     //! Return permutation vector for face nodes according to bit-field
     static void GetSortedIndices( StdVector<UInt>& sorted, 
                                   const StdVector<UInt>& unsorted,
                                   UInt numVertices,
-                                  const std::bitset<3>& flags );
+                                  const std::bitset<5>& flags );
     
     //! Global node numbers defining a face
     StdVector<UInt> nodes;
@@ -41,10 +41,10 @@ namespace CoupledField {
   private:
 
     //! static map for bits of quadrilateral faces
-    static char quadBits[4][4];
+    static int quadBits[4][4][4];
     
     //! static map for bits of triangular face
-    static char triaBits[3][3];
+    static int triaBits[3][3];
     
   };
 

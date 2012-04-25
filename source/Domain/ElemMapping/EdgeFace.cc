@@ -5,10 +5,52 @@ namespace CoupledField {
 
 // static variable initialization
 
-char Face::quadBits[4][4] = { { -1, 7, -1, 3 }, { 6, -1, 2, -1 },
-                              { -1, 0, -1, 4 }, { 1, -1, 5, -1 } };
 
-char Face::triaBits[3][3] = { { -1, 4, 0 }, { 1, -1, 6 }, { 5, 2, -1 } };
+// the following array holds the face flags (see Elem::faceFlags)
+// in numeric form. As key (3 indices, ranging from 0..3), we
+// take the sorting indices of the face connectivity, i.e. we sort
+// the initial connectivity array in ascending order and use the 
+// first three indices as key into this array. This array is sparse
+// (only 24 entries = 4-noded surface, where every position can
+// be permutated = 4*3*2*1 = 24 entries). Invalid entries contain
+// a -1, which can be used for consistency checks.
+// -----------------------
+//  0   1     2    3
+// -----------------------
+int Face::quadBits[4][4][4] =
+{           
+ {                 
+  {-1,  -1,  -1,  -1}, // (0,0,*)
+  {-1,  -1,   7,  23}, // (0,1,*)
+  {-1,  15,  -1,  11}, // (0,2,*)
+  {-1,  19,   3,  -1}  // (0,3,*)
+ },
+ {
+  {-1,  -1,  22,   6}, // (1,0,*)
+  {-1,  -1,  -1,  -1}, // (1,1,*)
+  {18,  -1,  -1,   2}, // (1,2,*)
+  {14,  -1,  10,  -1}  // (1,3,*)
+ },
+ {
+  {-1,   8,  -1,  12}, // (2,0,*)
+  { 0,  -1,  -1,  16}, // (2,1,*)
+  {-1,  -1,  -1,  -1}, // (2,2,*)
+  { 4,  20,  -1,  -1}  // (2,3,*)
+ },
+ {
+  {-1,   1,  17,  -1}, // (3,0,*)
+  { 9,  -1,  13,  -1}, // (3,1,*)
+  {21,   5,  -1,  -1}, // (3,2,*)
+  {-1,  -1,  -1,  -1}  // (3,3,*)
+ }
+};
+
+int Face::triaBits[3][3] = 
+{ 
+  { -1,  4,  0 }, 
+  {  1, -1,  6 }, 
+  {  5,  2, -1 } 
+};
 
 bool operator<( const Face& a, const Face& b ) {
 
@@ -16,7 +58,6 @@ bool operator<( const Face& a, const Face& b ) {
   while( i < a.nodes.GetSize() - 1 && ( a.nodes[i] == b.nodes[i] ) ) {
     i++;
   };
-
   return a.nodes[i] < b.nodes[i];
 }
 
@@ -36,67 +77,64 @@ bool operator<( const Edge& a, const Edge& b ) {
   }
 }
 
-//  permutation matrix for quadrilateral faces
-//  char quadPerm[2][2][2][4] =
-//  {
-//   {
-//    {
-//     { 2,1,0,3 }, // 0
-//     { 3,0,1,2 }  // 1
-//    },
-//    {
-//     { 1,2,3,0 }, // 2
-//     { 0,3,2,1 }  // 3
-//    },
-//   },
-//   {
-//    {
-//     { 2,3,0,1 }, // 4
-//     { 3,2,1,0 }  // 5
-//    },
-//    {
-//     { 1,0,3,2 }, // 6
-//     { 0,1,2,3 }  // 7
-//    }
-//   }
-//  };
 
-char quadPerm[8][4] = 
+// This array holds for each faceFlag value (5-bit array, but only
+// 24 values are used) the permutation index set for
+// quadrilateral shaped faces. If this 
+// permutation is applied to the nodes of a quad-face, 
+// its orientation will match the global one.
+char quadPerm[24][4] = 
 { 
- { 2, 1, 0, 3 }, // 0
- { 3, 0, 1, 2 }, // 1
- { 1, 2, 3, 0 }, // 2
- { 0, 3, 2, 1 }, // 3
- { 2, 3, 0, 1 }, // 4
- { 3, 2, 1, 0 }, // 5
- { 1, 0, 3, 2 }, // 6
- { 0, 1, 2, 3 }, // 7
+ { 2, 1, 0, 3 }, //  0
+ { 3, 0, 1, 2 }, //  1
+ { 1, 2, 3, 0 }, //  2
+ { 0, 3, 2, 1 }, //  3
+ { 2, 3, 0, 1 }, //  4
+ { 3, 2, 1, 0 }, //  5
+ { 1, 0, 3, 2 }, //  6
+ { 0, 1, 2, 3 }, //  7
+ // ------------------
+ { 2, 1, 0, 3 }, //  8
+ { 3, 0, 1, 2 }, //  9
+ { 1, 2, 3, 0 }, // 10
+ { 0, 3, 2, 1 }, // 11
+ { 2, 3, 0, 1 }, // 12
+ { 3, 2, 1, 0 }, // 13
+ { 1, 0, 3, 2 }, // 14
+ { 0, 1, 2, 3 }, // 15
+ // ------------------
+ { 2, 1, 0, 3 }, // 16
+ { 3, 0, 1, 2 }, // 17
+ { 1, 2, 3, 0 }, // 18
+ { 0, 3, 2, 1 }, // 19
+ { 2, 3, 0, 1 }, // 20
+ { 3, 2, 1, 0 }, // 21
+ { 1, 0, 3, 2 }, // 22
+ { 0, 1, 2, 3 }  // 23
 };
 
 //  permutation matrix for triangular faces
 char triaPerm[8][3] = 
-{ { 0, 2, 1 }, // 0
-  { 1, 0, 2 }, // 1
-  { 2, 1, 0 }, // 2
+{ 
+  {  0,  2,  1 }, // 0
+  {  1,  0,  2 }, // 1
+  {  2,  1,  0 }, // 2
   { -1, -1, -1 }, // 3 -> not defined
-  { 0, 1, 2 }, // 4
-  { 2, 0, 1 }, // 5
-  { 1, 2, 0 }, // 6
+  {  0,  1,  2 }, // 4
+  {  2,  0,  1 }, // 5
+  {  1,  2,  0 }, // 6
   { -1, -1, -1 } // 7 -> not defined
 };
 
 void Face::GetSortedIndices( StdVector<UInt>& sorted, 
                              const StdVector<UInt>& unsorted,
                              UInt numVertices,
-                             const std::bitset<3>& flags ) {
+                             const std::bitset<5>& flags ) {
 
   Integer num = flags.to_ulong();
   // indices contains the
   if( numVertices == 4 ) {
     sorted.Resize( 4 );
-//    std::cerr << "permutation array is " <<
-//        int(quadPerm[num][0]) << ", " << int(quadPerm[num][1]) << ", " 
-//        << int(quadPerm[num][2]) << ", " << int(quadPerm[num][3]) << std::endl;
     sorted[0] = unsorted[quadPerm[num][0]]-1;
     sorted[1] = unsorted[quadPerm[num][1]]-1;
     sorted[2] = unsorted[quadPerm[num][2]]-1;
@@ -110,98 +148,7 @@ void Face::GetSortedIndices( StdVector<UInt>& sorted,
   }
 }
 
-void Face::Normalize( std::bitset<3>& flags ) {
-
-  /* 
-   In the case of higher order elements, we have to guarantee a global
-   orientation of faces, described by the direction I and II. 
-   By convention, we assume that the global orientation of a face is defined 
-   by an ascending ordering of the nodal connectivity in such a way:
-   
-   C +----+ C   ^ II    Global orientation:  index(A) < index(B) < index(C)
-     |    |     |       
-     |    |     +--> I         I-direction: A -> B
-   A +----+ B                 II-direction: A -> C                    
-   
-   Based on: 
-   Solin, Segeth: "Higher-Order Finite-Element Methods", 2004, p. 164-170
-   
-   
-   For quadrilateral faces, we thus have 8 possible orientations of the face,
-   i.e. 8 different possibilities how the local element directions (xi/eta)
-   relate to the global directions (I/II).  
-   
-   To describe them, we introduce for every face a 3-bit array, where the 
-   flags have the following meaning:
-   
-   2   1   0     indices( 2 = most significant bit)
-   +-----------+
-   | 1 | 1 | 1 |  faceFlags(can be also set in integer representation, 
-   +-----------+            i.e. 111=7)
-   |   |   |
-   |   |   \-- true  (=1), if  xi = +dirI/dirII
-   |   |       false (=0), if  xi = -dirI/dirII
-   |   \------ true  (=1), if eta = +dirI/dirII
-   |           false (=0), if eta = -dirI/dirII
-   \---------- true  (=1), if local and global directions match in same  
-   order (|xi| = |I|,  |eta| = |II|)
-   false (=0), if local and global directions match in reverse 
-   order (|xi| = |II|, |eta| = |I|)
-   
-   Here are two examples for the orientation (Note: numbers in the interior
-   denote the orientation of the reference elements, numbers on the outside 
-   denote the nodal connectivity):
-   
-   Case 1
-   ======
-   
-   connect:   1,2,3,4
-   faceFlags: [111] 
-   
-   4+---------+3             
-   |4  ^eta 3|     ^ I      xi  =   I
-   |   |     |     |        eta =  II
-   |   +->xi |     +-> II   
-   |         |              faceFlags[2]=1/true // order: |xi|=|I|, |eta|=|II|
-   |1       2|              faceFlags[1]=1/true // eta = eta
-   1+---------+2             faceFlags[0]=1/true //  xi = xi
-   
-
-   indices                       indices
-   0 1 2 3   permutate to match  0 1 2 3    take first two indices 0 1 2
-   +-------+  global orientation +-------+   as key to quadBits    +-----+
-   |1|2|3|4|       =>            |1|2|3|4|     =>   0: row     =>  |1|1|1| = 7
-   +-------+                     +-------+          1: column      +-----+
-   connect                       connect                         faceFlags
-   (reordered)
-   
-   Case 2
-   ======
-   
-   connect:   4,1,2,3
-   faceFlags: [0,1,0] 
-   
-   3+---------+2
-   |4  ^eta 3|     ^ I      xi  = -II
-   |   |     |  II |        eta =   I
-   |   +->xi |   <-+   
-   |         |              faceFlags[2]=0/false // order: |xi|=|II|, |eta|=|I|
-   |1       2|              faceFlags[1]=1/true  // xi = xi 
-   4+---------+1             faceFlags[0]=0/false // eta = -eta
-   
-   
-   indices                       indices
-   0 1 2 3   permutate to match  1 2 3 0    take first two indices 2 1 0
-   +-------+  global orientation +-------+   as key to quadBits    +-----+
-   |4|1|2|3|       =>            |1|2|3|4|     =>   1: row     =>  |0|1|0| = 2
-   +-------+                     +-------+          2: column      +-----+
-   connect                       connect                         faceFlags
-   (reordered)
-   */
-
-//  std::cerr << "\n=====================================\n"
-//      << " Face Orientation\n" << "=====================================\n";
-//  std::cerr << "\tconnect:" << nodes.ToString() << std::endl;
+void Face::Normalize( std::bitset<5>& flags ) {
 
   StdVector<UInt> indices( nodes.GetSize() );
   UInt size = nodes.GetSize();
@@ -215,6 +162,7 @@ void Face::Normalize( std::bitset<3>& flags ) {
     indices[i] = i;
   }
 
+  // -------------------------
   // Insertion sort algorithm
   // ------------------------
   UInt j, comp;
@@ -234,34 +182,35 @@ void Face::Normalize( std::bitset<3>& flags ) {
 
   // fetch orientation flags
   if( size == 4 ) {
-    flags = std::bitset<3>( quadBits[indices[0]][indices[1]] );
-
-    // switch 3rd and 4th node, so that we obtain a conforming face 
-    // afterwards
-    UInt val = nodes[3];
-    nodes[3] = nodes[2];
-    nodes[2] = val;
-
+    // security check: we must always get a positive number (= valid bitset)
+    assert( quadBits[indices[0]][indices[1]][indices[2]] >= 0 ); 
+    
+    // obtain permutation bit from the unique two first permutation indices
+    flags = std::bitset<5>( quadBits[indices[0]][indices[1]][indices[2]] );
   }
   else if( size == 3 ) {
-    flags = std::bitset<3>( triaBits[indices[0]][indices[1]] );
+    flags = std::bitset<5>( triaBits[indices[0]][indices[1]] );
   }
   
+  // ==============================================
+  // UNCOMMENT THE FOLLOWING SECTION FOR DETAILED 
+  // DEBUGGING INFORMATION
+  // ==============================================
+//  std::cerr 
+//  << "\n=====================================\n"
+//  << " Face Orientation\n" 
+//  << "=====================================\n";
+//  std::cerr << "\tconnect:" << unsorted.ToString() << std::endl;
+//  
 //  // Check flags for orientation
 //  std::cerr << "\tsorted: " << nodes.ToString() << std::endl;
 //  std::cerr << "\tindices: " << indices.ToString() << std::endl;
 //  std::cerr << "\tflag: " << flags << " (" << flags.to_ulong() << ")"
 //      << std::endl;
 //  std::cerr << "\tflag: [0] = " << flags.test( 0 ) << std::endl
-//      << "\t      [1] = " << flags.test( 1 ) << std::endl << "\t      [2] = "
+//      << "\t      [1] = " << flags.test( 1 ) 
+//        << std::endl << "\t      [2] = "
 //      << flags.test( 2 ) << std::endl;
-
-//  // obtain re-ordering array
-//  StdVector<UInt> ind( size );
-//  GetPermutation( ind,unsorted, flags );
-//  std::cerr << "\tpermutation: " << ind.ToString() << std::endl;
-//  GetPermutation( ind,nodes, flags );
-//  std::cerr << "\t2ndpermutation: " << ind.ToString() << std::endl;
 //
 //  // print debug information
 //  std::string xiString, etaString;
@@ -278,4 +227,4 @@ void Face::Normalize( std::bitset<3>& flags ) {
 
 }
 
-}
+} // end of namespace

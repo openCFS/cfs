@@ -1050,6 +1050,51 @@ GetLocalIntPoints4Surface( const StdVector<UInt> & surfConnect,
                                     surfIntPoint, volIntPoint, locNormal );
 }
 
+void LagrangeElemShapeMap::
+MapSurfLocDirs( const Elem* ptSurfElem, 
+                StdVector<UInt>& surfLocDirs ) {
+
+  // determine dimension of element
+  // 1: look for edges
+  // 2: look for faces
+  UInt surfDim =Elem::shapes[ptSurfElem->type].dim;
+  assert( surfDim < shape_.dim);
+  surfLocDirs.Resize( surfDim );
+
+  if( surfDim == 1 ) {
+    // -------------
+    //  Common Edge
+    // -------------
+    // look for common edge
+    // A 1D surface element only has 1 edge
+    UInt edgeNum = std::abs(ptSurfElem->edges[0]);
+    Integer index = ptElem_->edges.Find( edgeNum );
+    if( index < 0 ) {
+      index = ptElem_->edges.Find( -Integer(edgeNum) );
+      if( index < 0 ) {
+        EXCEPTION("edge not found");
+      }
+    }
+    surfLocDirs[0] = shape_.edgeLocDirs[index];
+
+  } else if( surfDim == 2 ) {
+    // -------------
+    //  Common Face
+    // -------------
+    // a 2D surface element only has one face
+    UInt faceNum = std::abs(ptSurfElem->faces[0]);
+    Integer index = ptElem_->faces.Find( faceNum );
+    if( index < 0 ) {
+      EXCEPTION("face not found");
+    }
+    surfLocDirs[0] = shape_.faceLocDirs[index][0];
+    surfLocDirs[1] = shape_.faceLocDirs[index][1];
+  } else {
+    EXCEPTION("Can only handle 1D or 2D elements.")
+  }
+
+}
+
 bool LagrangeElemShapeMap::
  CoordIsInsideElem( const Vector<Double>& point, Double tolerance ) {
   

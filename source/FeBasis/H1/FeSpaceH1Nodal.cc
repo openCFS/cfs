@@ -205,19 +205,26 @@ namespace CoupledField{
 
   void FeSpaceH1Nodal::SetRegionElements(RegionIdType region,
                                          MappingType mType,
-                                         const Matrix<Integer>& order,
+                                         const ApproxOrder& order,
                                          PtrParamNode infoNode ){
 
     LOG_DBG(feSpaceH1Nodal) << "Setting region elements";
     LOG_DBG2(feSpaceH1Nodal) << "\tregion: "
         << ptGrid_->GetRegion().ToString(region);
     LOG_DBG2(feSpaceH1Nodal) << "\tmappingType: " << mType;
-    LOG_DBG2(feSpaceH1Nodal) << "\torder: " << order[0][0];
+    LOG_DBG2(feSpaceH1Nodal) << "\torder: " << order.ToString();
 
     //This method may not be called after the space is finalized!
     if(isFinalized_){
       Exception("FeSpace::SetRegionMapping is called after finalization");
     }
+    
+    // Ensure, that we have an isotropic approximation order
+    if( !order.IsIsotropic() ) {
+      EXCEPTION( "Lagrangian polynomials can be only used with "
+          << "isotropic approximation order");
+    }
+    
     if(mType == GRID){
       
       UInt gridOrder = ptGrid_->IsQuadratic() ? 2 : 1;
@@ -253,15 +260,17 @@ namespace CoupledField{
 
     } else if (mType == POLYNOMIAL) {
       
+      UInt isoOrder = order.GetIsoOrder();
+      
       // Check if a polynomial order was already set and if they match
-      if( order_ != 0 && order_ != UInt(order[0][0]) ) {
+      if( order_ != 0 && order_ != isoOrder ) {
         EXCEPTION( "A Lagrangian-based space can only have one specific "
             << "polynomial order" );
       }
 
       mapType_ = POLYNOMIAL;
-      infoNode->Get("order")->SetValue(order[0][0]);
-      order_ = order[0][0];
+      infoNode->Get("order")->SetValue(isoOrder);
+      order_ = isoOrder;
 
 
       refElems_[region][Elem::ET_LINE2]  = new FeH1LagrangeLineVar();
@@ -273,18 +282,14 @@ namespace CoupledField{
       refElems_[region][Elem::ET_HEXA20] = new FeH1LagrangeHexVar();
       refElems_[region][Elem::ET_HEXA27] = new FeH1LagrangeHexVar();
 
-      //now set the order
-      if(order.GetNumCols() != 1 || order.GetNumRows() != 1){
-        Exception("FeSpaceH1Nodal::SetRegionMapping : The order matrix may have only one entry for Lagrange elements");
-      }
       std::map<Elem::FEType, FeH1* >::iterator i = refElems_[region].begin();
       for( ; i != refElems_[region].end(); ++i ) {
         FeH1LagrangeVar * ptFe = dynamic_cast<FeH1LagrangeVar*>(i->second);
-        ptFe->SetIsoOrder(order[0][0]+orderOffset_);
+        ptFe->SetIsoOrder(isoOrder+orderOffset_);
       }
     
 
-      switch(order[0][0]) 
+      switch(isoOrder) 
       {
       case 1:
         refElems_[region][Elem::ET_TRIA3]  = new FeH1LagrangeTria1();
@@ -356,9 +361,10 @@ namespace CoupledField{
 
   void FeSpaceH1Nodal::SetDefaultElements(PtrParamNode infoNode ){
     //but it could be, that the PDE requires a minimum order of elements..
-    Matrix<Integer> order(1,1);
+    ApproxOrder order (ptGrid_->GetDim());
+    order.SetIsoOrder(1);
     if(orderOffset_>0){
-      order[0][0] = orderOffset_;
+      order.SetIsoOrder(orderOffset_);
       SetRegionElements(ALL_REGIONS,POLYNOMIAL,order,infoNode);
     }else{
       //now we are pretty sure that we need a grid mapping

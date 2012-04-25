@@ -752,7 +752,7 @@ void FeHCurlHiHex::CalcLocShFnc2( Matrix<Double>& shape, const LocPointMapped& l
       // === a) standard Nedelec shape functions ===
       Xpr_SGradU<3,DIFF_TYPE> xpr(eta,xi*fac);
       for( UInt k = 0; k < 3; ++k ) {
-        shape[k][i] = xpr[k];
+        shape[k][i] =  xpr[k];
       }
       
       // ===  b) gradient functions ===

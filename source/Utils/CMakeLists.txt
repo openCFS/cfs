@@ -4,6 +4,7 @@ SET(UTILS_SRCS
   Interpolate1D.cc
   LinInterpolate.cc
   mathfunctions.cc
+  Polynomial.cc
   Timer.cc
   SmoothSpline.cc
   tools.cc

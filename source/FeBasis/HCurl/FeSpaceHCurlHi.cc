@@ -175,13 +175,20 @@ namespace CoupledField{
 
   void FeSpaceHCurlHi::SetRegionElements(RegionIdType region, 
                                          MappingType mType,
-                                         const Matrix<Integer>& order,
+                                         const ApproxOrder& order,
                                          PtrParamNode infoNode ){
     
     //This method may not be called after the space is finalized!
     if(isFinalized_){
       Exception("FeSpace::SetRegionMapping is called after finalization");
     }
+    
+    // Ensure that approximation is isotropic
+    if( !order.IsIsotropic() ) {
+      EXCEPTION( "Higher order curl elements are currently supported only "
+          << "for isotropic order!" );
+    }
+    
 
     //ToDo: save the information...
     // QUERY FOR USER PARAMS IS STILL TO COME
@@ -198,13 +205,9 @@ namespace CoupledField{
     refElems1St_[region][Elem::ET_QUAD8]  = new FeHCurlHiQuad();
     refElems1St_[region][Elem::ET_HEXA20]  = new FeHCurlHiHex();
 
-    //now set the order
-    if(order.GetNumCols() != 1 || order.GetNumRows() != 1){
-      Exception("FeSpaceHCurlHi::SetRegionElements : Only Iso-Order is supported right now");
-    }
     std::map<Elem::FEType, FeHCurlHi* >::iterator i = refElems_[region].begin();
     for( ; i != refElems_[region].end(); ++i ) {
-      i->second->SetIsoOrder(order[0][0]+orderOffset_);
+      i->second->SetIsoOrder(order.GetIsoOrder()+orderOffset_);
     }
     
     // 1st order elements
@@ -213,7 +216,7 @@ namespace CoupledField{
       i->second->SetIsoOrder(0);
     }
     
-    infoNode->Get("order")->SetValue(order[0][0]);
+    infoNode->Get("order")->SetValue(order.ToString());
 
   }
 
@@ -818,11 +821,10 @@ namespace CoupledField{
 
   void FeSpaceHCurlHi::SetDefaultElements(PtrParamNode infoNode ){
     //but it could be, that the PDE requires a minimum order of elements...
-    Matrix<Integer> order(1,1);
+    ApproxOrder order (ptGrid_->GetDim());
+    order.SetIsoOrder(0);
     if(orderOffset_>0){
-      order[0][0] = orderOffset_;
-    }else{
-      order[0][0] = 1;
+      order.SetIsoOrder(orderOffset_);
     }
     SetRegionElements(ALL_REGIONS,POLYNOMIAL,order, infoNode );
   }

@@ -345,6 +345,15 @@ namespace CoupledField {
                                             LocPoint & volIntPoint,
                                             Vector<Double>& locNormal ) = 0;
     
+    //! Calculate local directions of surface / edge w.r.t. to volume element
+    
+    //! This method maps a surface element to an edge / surface of the 
+    //! the neighboring volume element (= this instance) and returns
+    //! a vector containing the local direction(s) of this surface element
+    //! w.r.t. to the volume.
+    virtual void MapSurfLocDirs( const Elem* ptSurfElem, 
+                                 StdVector<UInt>& surfLocDirs ) = 0;
+    
     //! Returns whether a given local coordinate is within this element
     //! \param point input Local point
     //! \param tolerance input Additioanl (relative) tolerance
@@ -480,6 +489,11 @@ namespace CoupledField {
                                     const LocPoint & surfIntPoint,
                                     LocPoint & volIntPoint,
                                     Vector<Double>& locNormal );
+    
+    //! @copydoc ElemShapeMap::MapSurfLocDirs
+    void MapSurfLocDirs( const Elem* ptSurfElem, 
+                         StdVector<UInt>& surfLocDirs );
+       
     
     //! @copydoc ElemShapeMap::CoordIsInsideElem
     bool CoordIsInsideElem( const Vector<Double>& point,Double tolerance = 0.0 );

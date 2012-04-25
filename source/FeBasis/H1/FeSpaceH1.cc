@@ -685,6 +685,10 @@ namespace CoupledField {
         for( UInt i = 0; i < entNumbers.GetSize(); ++i ) {
           std::cout << "\t\t#" << std::abs(static_cast<Double>(entNumbers[i])) << "\t";
 
+          // check, if any virtual nodes are assigned at all
+          if( offset[i] == 0 ) {
+            std::cout << "-\t-\t-\t-\n";
+          }
           // leave, virtual node numbers are assigned
           for( UInt j = 0; j < offset[i]; ++j ) {
 
@@ -698,6 +702,11 @@ namespace CoupledField {
 
             // equation numbers (loop)
             StdVector<Integer> & eqns = nodeMap_[vNodes[pos]];
+            // immediately begin new line, if entity has no equations
+            if( eqns.GetSize() == 0 ){
+              std::cout << "\n";
+            }
+            
             for( UInt iEqn = 0; iEqn < eqns.GetSize(); ++iEqn ) {
               Integer & eqn = eqns[iEqn];
 
