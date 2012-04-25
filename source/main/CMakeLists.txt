@@ -33,18 +33,23 @@ SET(TARGET_LL
   ${CFS_FORTRAN_DYNRT_LIBS}
   )
 
-
-# Target link libraries for CFS++ executable target.
-TARGET_LINK_LIBRARIES(cfsbin 
-  ${TARGET_LL}
-  )
-
 IF(USE_XERCES)
   SET(TARGET_LL
     ${TARGET_LL}
     ${XERCES_LIBRARY}
   )
 ENDIF(USE_XERCES)
+
+  SET(TARGET_LL
+    ${TARGET_LL}
+    -lpthread
+  )
+
+# Target link libraries for CFS++ executable target.
+TARGET_LINK_LIBRARIES(cfsbin 
+  ${TARGET_LL}
+  )
+
 
 
 # Make sure CFS++ gets linked with system libgcc.so instead of ANSYS libgcc.so.

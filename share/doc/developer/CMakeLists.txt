@@ -99,6 +99,16 @@ IF (DOXYGEN)
     @ONLY )
   MESSAGE(STATUS "configured ${GEN_DOCU_IN} --> ${GEN_DOCU}")
 
+  CONFIGURE_FILE(
+    "${CMAKE_CURRENT_SOURCE_DIR}/doc-develmanual.cmake.in"
+    "${CMAKE_CURRENT_BINARY_DIR}/doc-develmanual.cmake"
+    @ONLY )
+
+
+  ADD_CUSTOM_TARGET(doc-develmanual
+                    ${CMAKE_COMMAND} -P "${CMAKE_CURRENT_BINARY_DIR}/doc-develmanual.cmake"
+		    )
+
   ADD_CUSTOM_TARGET(doc-devel
                     ${GEN_DOCU} "build"
 		    )
