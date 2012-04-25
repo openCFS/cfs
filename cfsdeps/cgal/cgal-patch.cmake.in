@@ -3,6 +3,8 @@ set(cgal_prefix  "@cgal_prefix@")
 SET(CFS_SOURCE_DIR "@CFS_SOURCE_DIR@")
 SET(CFS_BINARY_DIR "@CFS_BINARY_DIR@")
 
+SET(CFS_CXX_COMPILER_NAME "@CFS_CXX_COMPILER_NAME@")
+
 INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/CFS_macros.cmake")
 
 EXECUTE_PROCESS(
@@ -13,8 +15,11 @@ EXECUTE_PROCESS(
   COMMAND ${CMAKE_COMMAND} -E copy_if_different "${cgal_prefix}/CGAL_SetupBoost.cmake" "${cgal_source}/cmake/modules/CGAL_SetupBoost.cmake"
 )
 
-# SET(patches
-#   "cgal-turkowski-size_t.patch";
-# )
 
-# APPLY_PATCHES("${patches}" "${CFS_SOURCE_DIR}/cfsdeps/cgal")
+IF(CFS_CXX_COMPILER_NAME STREQUAL "ICC")
+  SET(patches
+    "cgal-intel-isfinite.patch";
+  )
+ENDIF(CFS_CXX_COMPILER_NAME STREQUAL "ICC")
+
+APPLY_PATCHES("${patches}" "${CFS_SOURCE_DIR}/cfsdeps/cgal")

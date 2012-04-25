@@ -24,8 +24,8 @@ SET(CMAKE_ARGS
   -DHDF5_INSTALL_BIN_DIR:PATH=bin/${CFS_ARCH_STR}
   -DHDF5_INSTALL_LIB_DIR:PATH=${LIB_SUFFIX}/${CFS_ARCH_STR}
   # We do not want to see warning messages from external projects
-  -DCMAKE_C_FLAGS:STRING=-w
-  -DCMAKE_CXX_FLAGS:STRING=-w
+  -DCMAKE_C_FLAGS:STRING=${CFLAGS}
+  -DCMAKE_CXX_FLAGS:STRING=${CFLAGS}
 )
 
 #-------------------------------------------------------------------------------

@@ -19,8 +19,22 @@ INCLUDE(ExternalProject)
 
 SET(LSE17_SOURCES_DIR "ftp://lse17.e-technik.uni-erlangen.de:40065/cfsdeps/sources")
 
+#-----------------------------------------------------------------------------
+# Set common CFLAGS (and CXXFLAGS) common for all external projects.
+#-----------------------------------------------------------------------------
+
+#-----------------------------------------------------------------------------
+# We do not want to see warnings from external projects, since they would
+# show up on CDash.
+#-----------------------------------------------------------------------------
+SET(CFLAGS "-w")
+ 
+#-----------------------------------------------------------------------------
+# On Mac OS X we want to build the external libs for the same SDK and 
+# architecture as CFS++.
+#-----------------------------------------------------------------------------
 IF(CFS_DISTRO STREQUAL "MACOSX")
-  SET(CFLAGS "-arch ${CMAKE_OSX_ARCHITECTURES}")
+  SET(CFLAGS "${CFLAGS} -arch ${CMAKE_OSX_ARCHITECTURES}")
   SET(CFLAGS "${CFLAGS} -sysroot=${CMAKE_OSX_SYSROOT}")
   SET(CFLAGS "${CFLAGS} -isysroot ${CMAKE_OSX_SYSROOT}")
 ENDIF(CFS_DISTRO STREQUAL "MACOSX")

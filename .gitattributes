@@ -59,6 +59,7 @@ cfsdeps/cgal/CGAL-install_cgal-SUPPORT_REQUIRED.patch -text
 cfsdeps/cgal/CGAL.spec -text
 cfsdeps/cgal/CGAL_SetupBoost.cmake.in -text
 cfsdeps/cgal/External_CGAL.cmake -text
+cfsdeps/cgal/cgal-intel-isfinite.patch -text
 cfsdeps/cgal/cgal-patch.cmake.in -text
 cfsdeps/cmake/External_CMake.cmake -text
 cfsdeps/cmake/cmake-configure.cmake.in -text
