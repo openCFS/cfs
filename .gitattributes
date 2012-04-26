@@ -214,6 +214,7 @@ include/def_use_xerces.hh.in -text
 include/def_user_scpip.hh.in -text
 include/def_xmlschema.hh.in -text
 share/MaterialFile/mat.xml svneol=native#text/xml
+share/doc/CMakeLists.txt -text
 share/doc/auxilliaries/LaTeX/attachfile.sty -text
 share/doc/auxilliaries/LaTeX/atveryend.sty -text
 share/doc/auxilliaries/LaTeX/catchfile.sty -text
