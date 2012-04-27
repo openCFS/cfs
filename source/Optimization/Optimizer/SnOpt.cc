@@ -477,7 +477,7 @@ bool SnOpt::eval_g(int n, const double* x, int m, double* g)
   
   // for(int i = 0; i < m; i++) LOG_DBG3(snopt) <<   "old G[" << i << "] = " << g[i];
 
-  EvalConstraints(n, x, m, true, g);
+  EvalConstraints(n, x, m, true, g, false); // no need to reorder
   
   for(int i = 0; i < m; i++) LOG_DBG3(snopt) <<   "g[" << i << "] = " << g[i];
 
@@ -495,7 +495,7 @@ bool SnOpt::eval_jac_g(int n, const double* x, int m, int nele_jac, double* pG)
 
   int nc(optimization->constraints.view->GetNumberOfActiveConstraints());
  
-  EvalGradConstraints(n, x, nc, nele_jac, true, gradhelper, BaseOptimizer::NONLINEAR);
+  EvalGradConstraints(n, x, nc, nele_jac, true, false, gradhelper, BaseOptimizer::NONLINEAR);
   
   assert((unsigned int) nele_jac  + n_obj_grad == iGfun.GetSize());
   assert((unsigned int) nele_jac  + n_obj_grad == jGvar.GetSize());
@@ -715,7 +715,7 @@ void SnOpt::setupLinearConstraints()
   StdVector<double> lincon(nA);
 
   EvalGradConstraints(n, &x[0], optimization->constraints.view->GetNumberOfActiveConstraints(), nA,
-      true, lincon, BaseOptimizer::LINEAR);
+      true, false, lincon, BaseOptimizer::LINEAR);
   
   // we have just evaluated the state problem, commit the (initial) iteration as snopt might
   // evaluate in its's callback already an updated  design

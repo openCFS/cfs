@@ -298,7 +298,7 @@ bool SCPIP::eval_g(int n, const double* x_org, int m, double* g)
   x_srt.Import(x_org, n);
   ReorderDesign(n, x_srt.GetPointer(), true);
 
-  EvalConstraints(n, x_srt.GetPointer(), m, true, g);
+  EvalConstraints(n, x_srt.GetPointer(), m, true, false, g); // we normalize in SCPIPBase
 
   return true;
 }
@@ -313,7 +313,7 @@ bool SCPIP::eval_jac_g(int n, const double* x_org, int m, int nele_jac, double* 
   assert(values != NULL);
   assert(jac_g.GetPointer() == values);
   
-  EvalGradConstraints(n, x_srt.GetPointer(), m, nele_jac, true, jac_g);
+  EvalGradConstraints(n, x_srt.GetPointer(), m, nele_jac, true, false, jac_g);  // we normalize in SCPIPBase
 
   return true;
 }

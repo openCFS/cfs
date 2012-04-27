@@ -185,6 +185,7 @@ namespace CoupledField
       * @see SetDesignSpace() */
      virtual int WriteDesignToExtern(double* space_out, bool scaling = true) const;
      int WriteDesignToExtern(StdVector<double>& space_out, bool scaling = true) const;
+     int WriteDesignToExtern(Vector<double>& space_out, bool scaling = true) const;
 
      /** Similar but more general as WriteDesignToExtern().
       * @param out if it has a window writes to the window of the vector! */

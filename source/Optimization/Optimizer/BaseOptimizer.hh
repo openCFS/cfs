@@ -65,19 +65,20 @@ namespace CoupledField
      * @return the objective */
     double EvalObjective(int n, const double* x, bool cfs_scale);
 
-    /** helper for EvalConstraints() assuming the design to be set */
-    double EvalConstraint(Condition* g, bool cfs_scale);
-    
     /* Evaluates the objective gradient. In the autoscale case checks for old evaluation first.
      * Also does an EvalObjective() implicit!
      * @param cfs_scale @see EvalObjective()
      * @return true if within autoscale tolerance - false if restart necessary */
     bool EvalGradObjective(int n, const double* x, bool cfs_scale, StdVector<double>& grad_f);
 
+    /** helper for EvalConstraints() assuming the design to be set
+     * @param normalize @see EvalConstraints() */
+    double EvalConstraint(Condition* g, bool cfs_scale, bool normalize);
+
     /** Helper vor EvalGradConstraint()
      * Called directly by FeasPP
      * @return nnz of constraint */
-    int EvalGradConstraint(Condition* g, int start, bool cfs_scale, StdVector<double>& values);
+    int EvalGradConstraint(Condition* g, int start, bool cfs_scale, bool normalize, StdVector<double>& values);
 
     /** Return the infinty value (here for ipopt) */
     virtual double GetInfBound() const { return 1e19; }
@@ -92,14 +93,15 @@ namespace CoupledField
 
 
     /** Evaluates the constraints or rather passes them on to the optimization
-     * @param cfs_scale @see EvalObjective() */
-    void EvalConstraints(int n, const double* x, int m, bool cfs_scale, double* g);
+     * @param cfs_scale @see EvalObjective()
+     * @param normalize transform to g <= 0 constraint. */
+    void EvalConstraints(int n, const double* x, int m, bool cfs_scale, double* g, bool normalize);
     
     /** Evaluates the constraint gradients and does reordering if necessary
      * @param cfs_scale @see EvalObjective()
      * @param nonlin_only snopt makes a difference between linear and nonlinear constraints and only
      *  need evaluation for the nonlinear part */
-    void EvalGradConstraints(int n, const double* x, int m, int nentries, bool cfs_scale,
+    void EvalGradConstraints(int n, const double* x, int m, int nentries, bool cfs_scale, bool normalize,
         StdVector<double>& values, GradientType grtype = ALL);
 
     /** Provide Upper and Lower bounds to the optimizer */

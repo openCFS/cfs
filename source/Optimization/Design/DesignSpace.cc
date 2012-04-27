@@ -804,11 +804,19 @@ int DesignSpace::WriteDesignToExtern(double* space, bool scaling) const
   assert(d == DesignSpace::GetNumberOfVariables());
   return design_id;
 }
+
 int DesignSpace::WriteDesignToExtern(StdVector<double>& space_out, bool scaling) const
 {
   space_out.Reserve(GetNumberOfVariables());
   return WriteDesignToExtern(space_out.GetPointer(), scaling);
 }
+
+int DesignSpace::WriteDesignToExtern(Vector<double>& space_out, bool scaling) const
+{
+  space_out.Resize(GetNumberOfVariables());
+  return WriteDesignToExtern(space_out.GetPointer(), scaling);
+}
+
 void DesignSpace::WriteBoundsToExtern(double* x_l, double* x_u) const {
   const unsigned int nd = design.GetSize();
   const unsigned int nr = regions[0].GetSize();

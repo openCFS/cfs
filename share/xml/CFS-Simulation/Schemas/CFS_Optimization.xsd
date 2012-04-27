@@ -461,6 +461,24 @@
             <xsd:element name="feasPP" minOccurs="0" >
               <xsd:complexType>
                 <xsd:sequence>
+                  <xsd:element name="backtracking" minOccurs="0" maxOccurs="1">
+                    <xsd:complexType>
+                      <!-- the minimal step length factor(!) before assuming convergence -->
+                      <xsd:attribute name="min_step" default="1e-9" type="xsd:float" use="optional"/>
+                    </xsd:complexType>
+                  </xsd:element>
+                  <xsd:element name="augmentedLagrangian" minOccurs="0" maxOccurs="1">
+                    <xsd:complexType>
+                      <!-- initial value for the penalty parameter rho -->
+                      <xsd:attribute name="rho" default="1.0" type="xsd:float" use="optional"/>
+                      <!-- descent factor for Armijo line search (my in (23))-->
+                      <xsd:attribute name="decrease" default="0.1" type="xsd:float" use="optional"/>
+                      <!-- step with for Armijo line search -->
+                      <xsd:attribute name="stepwidth" default="0.5" type="xsd:float" use="optional"/>
+                      <!-- the minimal step length factor(!) before assuming convergence -->
+                      <xsd:attribute name="min_step" default="1e-9" type="xsd:float" use="optional"/>
+                    </xsd:complexType>
+                  </xsd:element>
                   <xsd:element name="ipopt" minOccurs="0" maxOccurs="1" type="DT_IPOPT"/>
                 </xsd:sequence>
                 <xsd:attribute name="approx_linear" type="xsd:boolean" default="false" use="optional"/>
@@ -470,6 +488,8 @@
                     <xsd:restriction base="xsd:token">
                       <xsd:enumeration value="none"/>
                       <xsd:enumeration value="backtracking"/>
+                      <!-- the method described in the strictly feasibility paper -->
+                      <xsd:enumeration value="augmentedLagrangian"/>
                     </xsd:restriction>
                   </xsd:simpleType>
                 </xsd:attribute>

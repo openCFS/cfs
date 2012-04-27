@@ -429,7 +429,7 @@ bool BaseOptimizer::EvalGradObjective(int n, const double* x, bool cfs_scale, St
   return !restart_requested;
 }
 
-void BaseOptimizer::EvalConstraints(int n, const double* x, int m, bool cfs_scale, double* g_val)
+void BaseOptimizer::EvalConstraints(int n, const double* x, int m, bool cfs_scale, double* g_val, bool normalize)
 {
   assert(m == optimization->constraints.view->GetNumberOfActiveConstraints());
 
@@ -444,7 +444,7 @@ void BaseOptimizer::EvalConstraints(int n, const double* x, int m, bool cfs_scal
   {
     Condition* g = optimization->constraints.view->Get(i);
 
-    double val = EvalConstraint(g, cfs_scale);
+    double val = EvalConstraint(g, cfs_scale, normalize);
 
     g_val[i] = val;
   }
@@ -453,7 +453,7 @@ void BaseOptimizer::EvalConstraints(int n, const double* x, int m, bool cfs_scal
   timer_->Start();
 }
 
-double BaseOptimizer::EvalConstraint(Condition* g, bool cfs_scale)
+double BaseOptimizer::EvalConstraint(Condition* g, bool cfs_scale, bool normalize)
 {
 
   // do a complicated detection of local conditions handle the Local::active counter for logging
@@ -481,17 +481,18 @@ double BaseOptimizer::EvalConstraint(Condition* g, bool cfs_scale)
   }
   double org = optimization->CalcConstraint(g);
   double base = org - (g->HasSlackBound() ? optimization->GetDesign()->GetSlackVariable() : 0.0);
-  double val = base * manual_scaling * objective_scaling;
+  double scaled = base * manual_scaling * objective_scaling;
+  double val = normalize ? (g->GetBound() == Condition::LOWER_BOUND ? -1.0 : 1.0) * (scaled - g->GetBoundValue()) : scaled;
 
-  LOG_DBG2(optimizer) << "EvalConstraint: g=" << g->type.ToString(g->GetType()) << " org=" << org
-      << " slack_corrected=" << base << " manual_scale=" << manual_scaling
-      << " objective_scale=" << objective_scaling << " ->" << val;
+  LOG_DBG2(optimizer) << "BO:EC g=" << g->type.ToString(g->GetType()) << " org=" << org
+      << " base=" << base << " ms=" << manual_scaling
+      << " os=" << objective_scaling << " scaled=" << scaled << " -> " << val;
 
   return val;
 }
 
 
-int BaseOptimizer::EvalGradConstraint(Condition* g, int start, bool cfs_scale, StdVector<double>& values)
+int BaseOptimizer::EvalGradConstraint(Condition* g, int start, bool cfs_scale, bool normalize, StdVector<double>& values)
 {
   timer_->Stop();
   
@@ -510,21 +511,22 @@ int BaseOptimizer::EvalGradConstraint(Condition* g, int start, bool cfs_scale, S
   // we might ignore that value
   double scaling = g->DoObjectiveScaling() ? objective->scaling.value : g->manual_scaling_value;
 
-  if(cfs_scale)
+  for(int p = 0; cfs_scale && p < nnz; p++)
   {
-    for(int p = 0; p < nnz; p++)
-    {
-      values[start + p] *= scaling;
-      assert(values.InWindow(start + p));
-    }
+    values[start + p] *= scaling;
+    assert(values.InWindow(start + p));
   }
-  
+
+  double flip_sign = g->GetBound() == Condition::LOWER_BOUND ? -1.0 : 1.0;
+  for(int p = 0; normalize && p < nnz; p++)
+    values[start + p] = flip_sign * (values[start + p] - g->GetBoundValue());
+
   timer_->Start();
   
   return nnz;
 }
 
-void BaseOptimizer::EvalGradConstraints(int n, const double* x, int m, int nentries, bool cfs_scale,
+void BaseOptimizer::EvalGradConstraints(int n, const double* x, int m, int nentries, bool cfs_scale, bool normalize,
       StdVector<double>& values, GradientType grtype)
 {
   // Attention! there is a copy and paste clone in FeasPP::SolveSubProblem()!
@@ -549,7 +551,7 @@ void BaseOptimizer::EvalGradConstraints(int n, const double* x, int m, int nentr
 
     if(grtype == ALL || (grtype == LINEAR && g->IsLinear()) || (grtype == NONLINEAR && !g->IsLinear()))
     {
-      int tmp = EvalGradConstraint(optimization->constraints.view->Get(c), start, cfs_scale, values);
+      int tmp = EvalGradConstraint(optimization->constraints.view->Get(c), start, cfs_scale, normalize, values);
       start += tmp;
     }
 

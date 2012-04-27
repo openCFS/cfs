@@ -5,6 +5,8 @@
 #include "Optimization/Optimizer/BaseOptimizer.hh"
 #include "Optimization/Optimizer/FeasSubProblem.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
+#include "MatVec/vector.hh"
+
 #include <boost/numeric/ublas/matrix_sparse.hpp>
 #include <boost/numeric/ublas/io.hpp>
 using namespace boost::numeric::ublas;
@@ -39,7 +41,8 @@ public:
   /** number of total design variables */
   unsigned int n;
 
-  /** number of constraint functions */
+  /** number of constraint functions
+   * @see m_c and m_e */
   unsigned int m;
 
   Approximation* obj; // created in PostInit()
@@ -47,7 +50,7 @@ public:
   StdVector<Approximation*> constr;
 
   /** the cfs design variable */
-  StdVector<double> x_outer;
+  Vector<double> x_outer;
 
   /** lower asymptote */
   StdVector<double> L;
@@ -81,13 +84,33 @@ private:
   /** updates the design and the outer function values and gradients */
   void UpdateToCurrentStep();
 
+  /** calculates the augmented Lagrangian for globalization
+   * Feasibility paper (16)
+   * @param x the functions will be evaluated at x
+   * @param rho vector of penalty parameters, first the 'normal' constraints, then the feasibility constraints. */
+  double CalcAugmentedLagrangian(const Vector<double>& x, const Vector<double>& y, const StdVector<double>& rho);
+
+  /** the gradient with respect to x and y written all to grad
+   * @param grad size n + m */
+  void CalcGradAugmentedLagrangian(const Vector<double>& x, const Vector<double>& y, const StdVector<double>& rho, Vector<double>& grad);
+
+  /** strictly feasibility papert (18) and (19). necessary to ensure convergence */
+  double CalcEta(double tau, const Vector<double>& x_vec, const Vector<double>& z_vec);
+
+  /** calculates the penality parameter sfor the augmented Lagrangian.
+   * Feasibility paper (20) and (21)
+   * @param diff = norm(z-x)^2
+   * @param rho old and to be overwritten */
+  void CalcPenaltyRho(double eta, double diff, const Vector<double>& y_vec,  const Vector<double>& v_vec, StdVector<double>& rho) const;
+
   typedef struct
   {
     bool old_point_is_optimal;
     int steps;
+    double stepwidth;
     double org_dx;
     double curr_dx;
-  } BTI;
+  } LSR; // line search result
 
   /** performs backtracking linesearch. obj(x_new) >= obj(x_old)= ob->outer_value
    * Note that the objective is evaluated, the design_id is set but the constraints
@@ -95,15 +118,41 @@ private:
    * The final design is stored in the CFS-Design!
    * @param the solution of the subproblem.
    * @return number of function evaluations and the norms of the designs*/
-  BTI Backtracking(const Vector<double>& x_old, const Vector<double>& d, const StdVector<double>& x_new);
+  LSR Backtracking(const Vector<double>& x_old, const Vector<double>& d, const Vector<double>& x_new);
 
-  typedef enum { NONE, BACKTRACKING } Globalization;
+  /**
+   * @param k the iteration. 0 for the very first call after leaving initial design */
+  LSR AugmentedLagrangianLineSearch(int k, const Vector<double>& x, const Vector<double>& z, const Vector<double>& y, const Vector<double>& v);
+
+  typedef enum { NONE, BACKTRACKING, AUG_LAGRANGIAN } Globalization;
 
   static Enum<Globalization> global;
 
   Globalization global_;
 
   SmartPtr<FeasSubProblem> ipopt;
+
+  /** number of non-feasibility constraints. m = m_c + me */
+  unsigned int m_c;
+
+  /** number of feasibility constraints */
+  unsigned int m_e;
+
+  /** This is the set of penalty parameters rho for the augmented Lagrangian */
+  StdVector<double> rho;
+
+  /** the initial value for rho, optionally to be set in xml */
+  double rho_init_;
+
+  /** decrease factor for augmented Lagrangian Armijo rule: my in (23) in (0,1) */
+  double decrease_;
+
+  /** Augmented Lagrangian: Stepwidth for Armijo rule: beta in Step 5 in Algorithm 1 in (0,1) */
+  double stepwidth_;
+
+  /** the minimal step width factor form augmented Lagrangian and backtracking */
+  double min_step_;
+
 };
 
 /** this is either the approximation of a function or the function itself */

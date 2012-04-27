@@ -261,7 +261,7 @@ bool IPOPT::eval_g(Index n, const Number* x, bool new_x, Index m, Number* g)
   // we overwrite the design space, but we do this all the time - especially befor eval_f
   optimization_->GetDesign()->ReadDesignFromExtern(x);
   
-  base_->EvalConstraints(n, x, m, false, g);
+  base_->EvalConstraints(n, x, m, false, g, false);
 
   return true;
 }
@@ -294,7 +294,7 @@ bool IPOPT::eval_jac_g(Index n, const Number* x, bool new_x,
   {
     StdVector<double> tmp(nele_jac);
 
-    base_->EvalGradConstraints(n, x, m, nele_jac, false, tmp);
+    base_->EvalGradConstraints(n, x, m, nele_jac, false, false, tmp);
 
     for(unsigned int i = 0; i < tmp.GetSize(); i++)
       values[i] = tmp[i];
