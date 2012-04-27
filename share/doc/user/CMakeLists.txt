@@ -1,38 +1,38 @@
 IF (LATEX_COMPILER)
+
+  CONFIGURE_FILE(
+    "${CMAKE_CURRENT_SOURCE_DIR}/doc-advprepost.cmake.in"
+    "${CMAKE_CURRENT_BINARY_DIR}/doc-advprepost.cmake"
+    @ONLY )
+
+  ADD_CUSTOM_TARGET(doc-advprepost
+                    ${CMAKE_COMMAND} -P "${CMAKE_CURRENT_BINARY_DIR}/doc-advprepost.cmake"
+		    DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/doc-advprepost.cmake"
+		    )
+
+  CONFIGURE_FILE(
+    "${CMAKE_CURRENT_SOURCE_DIR}/doc-xmlref.cmake.in"
+    "${CMAKE_CURRENT_BINARY_DIR}/doc-xmlref.cmake"
+    @ONLY )
+
+  ADD_CUSTOM_TARGET(doc-xmlref
+                    ${CMAKE_COMMAND} -P "${CMAKE_CURRENT_BINARY_DIR}/doc-xmlref.cmake"
+		    DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/doc-xmlref.cmake"
+		    )
+
+  CONFIGURE_FILE(
+    "${CMAKE_CURRENT_SOURCE_DIR}/doc-xmlmat.cmake.in"
+    "${CMAKE_CURRENT_BINARY_DIR}/doc-xmlmat.cmake"
+    @ONLY )
+
+  ADD_CUSTOM_TARGET(doc-xmlmat
+                    ${CMAKE_COMMAND} -P "${CMAKE_CURRENT_BINARY_DIR}/doc-xmlmat.cmake"
+		    DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/doc-xmlmat.cmake"
+		    )
   
-  IF(WIN32)
-    SET(GEN_DOCU_IN "${CMAKE_CURRENT_SOURCE_DIR}/makedoc.bat.in")
-    SET(GEN_DOCU "${CMAKE_CURRENT_BINARY_DIR}/makedoc.bat")
-  ELSE(WIN32)
-    SET(GEN_DOCU_IN "${CMAKE_CURRENT_SOURCE_DIR}/makedoc.sh.in")
-    SET(GEN_DOCU "${CMAKE_CURRENT_BINARY_DIR}/makedoc.sh")
-  ENDIF(WIN32)
-
-  CONFIGURE_FILE(${GEN_DOCU_IN}
-    ${GEN_DOCU}
-    @ONLY )
-  MESSAGE(STATUS "configured ${GEN_DOCU_IN} --> ${GEN_DOCU}")
-
-  CONFIGURE_FILE(${CMAKE_CURRENT_SOURCE_DIR}/../auxilliaries/pyg.sh.in
-    ${CMAKE_CURRENT_BINARY_DIR}/../auxilliaries/pyg.sh
-    @ONLY )
-
   ADD_CUSTOM_TARGET(doc-user
-                    ${GEN_DOCU} "build"
-		    )
-                    
-  ADD_CUSTOM_TARGET(doc-user-html
-                    ${GEN_DOCU} "build-html"
-		    )
-
-  ADD_CUSTOM_TARGET(doc-user-rebuild
-                    ${GEN_DOCU} "rebuild"
-		    )
-
-  ADD_CUSTOM_TARGET(doc-user-clean
-                    ${GEN_DOCU} "clean"
-		    )
-
+    DEPENDS doc-advprepost doc-xmlref doc-xmlmat
+    )                    
 
 ELSE (LATEX_COMPILER)
   MESSAGE(STATUS "LaTeX not found")

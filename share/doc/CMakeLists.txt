@@ -6,3 +6,7 @@ CONFIGURE_FILE(
 
 ADD_SUBDIRECTORY(developer)
 ADD_SUBDIRECTORY(user)
+
+ADD_CUSTOM_TARGET(doc
+  DEPENDS doc-devel doc-user
+  )

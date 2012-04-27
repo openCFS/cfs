@@ -58,67 +58,36 @@ IF (DOXYGEN)
   ENDIF (NOT DVIPS_CONVERTER)
 
 
-  SET(DOXY_CONFIG_IN "${CMAKE_CURRENT_SOURCE_DIR}/DoxygenConfig/doxy-config.in")
-  SET(DOXY_CONFIG "${CMAKE_CURRENT_BINARY_DIR}/DoxygenConfig/doxy-config")
-
-  
-  IF (EXISTS ${DOXY_CONFIG_IN})
-    MESSAGE(STATUS "configured ${DOXY_CONFIG_IN} --> ${DOXY_CONFIG}")
-    CONFIGURE_FILE(${DOXY_CONFIG_IN} 
-      ${DOXY_CONFIG}
-      @ONLY )
-    # use (configured) doxy.config from (out of place) BUILD tree:
-    SET(DOXY_CONFIG ${DOXY_CONFIG})
-  ELSE (EXISTS ${DOXY_CONFIG_IN})
-    # use static hand-edited doxy.config from SOURCE tree:
-    SET(DOXY_CONFIG ${DOXY_CONFIG})
-    IF   (EXISTS ${DOXY_CONFIG})
-      MESSAGE(STATUS "WARNING: using existing ${DOXY_CONFIG} instead of configuring from ${DOXY_CONFIG_IN} file.")
-    ELSE (EXISTS ${DOXY_CONFIG})
-      MESSAGE(SEND_ERROR "FATAL_ERROR: no existing ${DOXY_CONFIG} and no ${DOXY_CONFIG_IN} found.")
-    ENDIF(EXISTS ${DOXY_CONFIG})
-  ENDIF(EXISTS ${DOXY_CONFIG_IN})
-  
-  IF(WIN32)
-    SET(GEN_DOCU_IN "${CMAKE_CURRENT_SOURCE_DIR}/makedoc.bat.in")
-    SET(GEN_DOCU "${CMAKE_CURRENT_BINARY_DIR}/makedoc.bat")
-  ELSE(WIN32)
-    SET(GEN_DOCU_IN "${CMAKE_CURRENT_SOURCE_DIR}/makedoc.sh.in")
-    SET(GEN_DOCU "${CMAKE_CURRENT_BINARY_DIR}/makedoc.sh")
-    EXECUTE_PROCESS(COMMAND date OUTPUT_VARIABLE DATE)
-  ENDIF(WIN32)
-
-  CONFIGURE_FILE(${GEN_DOCU_IN}
-     ${GEN_DOCU}
-     @ONLY )
-  CONFIGURE_FILE("${CMAKE_CURRENT_SOURCE_DIR}/DoxygenConfig/headerTemplate.html"
-    "${CMAKE_CURRENT_BINARY_DIR}/DoxygenConfig/header.html"
-    @ONLY )
-  CONFIGURE_FILE("${CMAKE_CURRENT_SOURCE_DIR}/DoxygenConfig/footerTemplate.html"
-    "${CMAKE_CURRENT_BINARY_DIR}/DoxygenConfig/footer.html"
-    @ONLY )
-  MESSAGE(STATUS "configured ${GEN_DOCU_IN} --> ${GEN_DOCU}")
-
   CONFIGURE_FILE(
     "${CMAKE_CURRENT_SOURCE_DIR}/doc-develmanual.cmake.in"
     "${CMAKE_CURRENT_BINARY_DIR}/doc-develmanual.cmake"
     @ONLY )
 
-
   ADD_CUSTOM_TARGET(doc-develmanual
                     ${CMAKE_COMMAND} -P "${CMAKE_CURRENT_BINARY_DIR}/doc-develmanual.cmake"
+		    DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/doc-develmanual.cmake"
 		    )
+
+  SET(DOXY_CONFIG_IN "${CMAKE_CURRENT_SOURCE_DIR}/DoxygenConfig/doxy-config.in")
+  SET(DOXY_CONFIG "${CMAKE_CURRENT_BINARY_DIR}/DoxygenConfig/doxy-config")
+  MESSAGE(STATUS "Configuring ${DOXY_CONFIG_IN} --> ${DOXY_CONFIG}")
+  CONFIGURE_FILE(${DOXY_CONFIG_IN}
+    ${DOXY_CONFIG}
+    @ONLY )
+
+  CONFIGURE_FILE(
+    "${CMAKE_CURRENT_SOURCE_DIR}/doc-doxygen.cmake.in"
+    "${CMAKE_CURRENT_BINARY_DIR}/doc-doxygen.cmake"
+    @ONLY )
+
+  ADD_CUSTOM_TARGET(doc-doxygen
+                    ${CMAKE_COMMAND} -P "${CMAKE_CURRENT_BINARY_DIR}/doc-doxygen.cmake"
+		    DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/doc-doxygen.cmake"
+		    )
+
 
   ADD_CUSTOM_TARGET(doc-devel
-                    ${GEN_DOCU} "build"
-		    )
-
-  ADD_CUSTOM_TARGET(doc-devel-rebuild
-                    ${GEN_DOCU} "rebuild"
-		    )
-
-  ADD_CUSTOM_TARGET(doc-devel-clean
-                    ${GEN_DOCU} "clean"
+                    DEPENDS doc-develmanual doc-doxygen
 		    )
 
   # create a windows help .chm file using hhc.exe

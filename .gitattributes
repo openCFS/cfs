@@ -244,7 +244,6 @@ share/doc/auxilliaries/Pics/lse_logo.eps -text svneol=unset#application/postscri
 share/doc/auxilliaries/Pics/lse_logo.pdf -text svneol=unset#application/pdf
 share/doc/auxilliaries/Pics/lse_logo.svg -text
 share/doc/auxilliaries/cfs-logo.cdr -text svneol=unset#application/coreldraw
-share/doc/auxilliaries/pyg.sh.in -text
 share/doc/developer/AddDoc/coding-rules/coding_rules.html svneol=native#text/html
 share/doc/developer/AddDoc/coding-rules/coding_rules.tex svneol=native#text/plain
 share/doc/developer/AddDoc/element_types/elementtypes.doc -text
@@ -314,7 +313,6 @@ share/doc/developer/Concepts/sbm-fespace/system1.png -text svneol=unset#image/pn
 share/doc/developer/Concepts/sbm-fespace/system2.png -text svneol=unset#image/png
 share/doc/developer/Concepts/sbm-fespace/system3.png -text svneol=unset#image/png
 share/doc/developer/Concepts/sbm-fespace/system4.png -text svneol=unset#image/png
-share/doc/developer/DoxygenConfig/changeDate.sh svneol=native#text/plain
 share/doc/developer/DoxygenConfig/doxy-config.in -text
 share/doc/developer/DoxygenConfig/doxygen_manual.pdf -text svneol=unset#application/pdf
 share/doc/developer/DoxygenConfig/footerTemplate.html svneol=native#text/html
@@ -449,13 +447,12 @@ share/doc/developer/develManual/sources/nacs_win_build_howto.txt svneol=native#t
 share/doc/developer/develManual/sources/org.eclipse.core.resources.prefs -text
 share/doc/developer/develManual/sources/org.eclipse.ui.editors.prefs -text
 share/doc/developer/develManual/sources/platform_defaults_mac.cmake -text
-share/doc/developer/develManual/sources/pygmentize.sh -text
 share/doc/developer/develManual/sources/qs_bootstrap.sh svneol=native#text/plain
 share/doc/developer/develManual/sources/qs_configure_build.sh svneol=native#text/plain
 share/doc/developer/develManual/sources/qs_obtain_sources.sh -text
 share/doc/developer/develManual/timestepping.tex -text
 share/doc/developer/doc-develmanual.cmake.in -text
-share/doc/developer/makedoc.sh.in -text
+share/doc/developer/doc-doxygen.cmake.in -text
 share/doc/doc-common.cmake.in -text
 share/doc/user/CMakeLists.txt svneol=native#text/plain
 share/doc/user/advPrePostManual/advPrePostManual.bib -text
@@ -559,6 +556,8 @@ share/doc/user/advPrePostManual/sources/crosspoint_test.c svneol=native#text/pla
 share/doc/user/advPrePostManual/sources/emacs_settings.sh svneol=native#text/plain
 share/doc/user/advPrePostManual/sources/gid_batch.tcl svneol=native#text/plain
 share/doc/user/advPrePostManual/sources/gid_pw_server.sh svneol=native#text/plain
+share/doc/user/advPrePostManual/sources/gmsh_cp_test.cpp -text
+share/doc/user/advPrePostManual/sources/gmsh_mesh_from_pic.cpp -text
 share/doc/user/advPrePostManual/sources/gmsh_wing_points.cpp svneol=native#text/plain
 share/doc/user/advPrePostManual/sources/gnuplot_csv.plt -text
 share/doc/user/advPrePostManual/sources/icem_to_ansys.in.txt -text
@@ -581,11 +580,12 @@ share/doc/user/advPrePostManual/sources/pv_texture_map.py -text
 share/doc/user/advPrePostManual/sources/pv_tria_local_global_mapping.py -text
 share/doc/user/advPrePostManual/sources/pv_trial_local_global_mapping.py -text
 share/doc/user/advPrePostManual/sources/pv_xi_eta.py -text
-share/doc/user/advPrePostManual/sources/pygmentize.sh -text
 share/doc/user/advPrePostManual/sources/unv_dataset_numbers.txt -text
 share/doc/user/advPrePostManual/special.tex -text
 share/doc/user/advPrePostManual/videos.tex -text
-share/doc/user/makedoc.sh.in -text
+share/doc/user/doc-advprepost.cmake.in -text
+share/doc/user/doc-xmlmat.cmake.in -text
+share/doc/user/doc-xmlref.cmake.in -text
 share/doc/user/matFile/coupledPDEs.tex svneol=native#text/plain
 share/doc/user/matFile/matRef.tex svneol=native#text/plain
 share/doc/user/matFile/matintro.tex svneol=native#text/plain

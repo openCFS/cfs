@@ -3,6 +3,9 @@ SET(CFS_BINARY_DIR "@CFS_BINARY_DIR@")
 SET(CMAKE_COMMAND "@CMAKE_COMMAND@")
 SET(PDFLATEX_COMPILER "@PDFLATEX_COMPILER@")
 SET(BIBTEX_COMPILER "@BIBTEX_COMPILER@")
+SET(PYTHON_EXECUTABLE "@PYTHON_EXECUTABLE@")
+
+INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/CFS_macros.cmake")
 
 SET(LATEX_AUX_DIR "${CFS_BINARY_DIR}/share/doc/auxilliaries/LaTeX")
 
@@ -56,7 +59,7 @@ MACRO(BUILD_LATEX_DOC DIR DOC)
 #  MESSAGE(STATUS "Cleaning up LaTeX files in ${DIR}...")
 
   EXECUTE_PROCESS(
-    COMMAND "${PDFLATEX_COMPILER}" "${DOC}"
+    COMMAND "${PDFLATEX_COMPILER}" -shell-escape "${DOC}"
     WORKING_DIRECTORY "${DIR}"
     )
   EXECUTE_PROCESS(
@@ -64,15 +67,15 @@ MACRO(BUILD_LATEX_DOC DIR DOC)
     WORKING_DIRECTORY "${DIR}"
     )
   EXECUTE_PROCESS(
-    COMMAND "${PDFLATEX_COMPILER}" "${DOC}"
+    COMMAND "${PDFLATEX_COMPILER}" -shell-escape "${DOC}"
     WORKING_DIRECTORY "${DIR}"
     )
   EXECUTE_PROCESS(
-    COMMAND "${PDFLATEX_COMPILER}" "${DOC}"
+    COMMAND "${PDFLATEX_COMPILER}" -shell-escape "${DOC}"
     WORKING_DIRECTORY "${DIR}"
     )
   EXECUTE_PROCESS(
-    COMMAND "${PDFLATEX_COMPILER}" "${DOC}"
+    COMMAND "${PDFLATEX_COMPILER}" -shell-escape "${DOC}"
     WORKING_DIRECTORY "${DIR}"
     )
   EXECUTE_PROCESS(
@@ -80,7 +83,7 @@ MACRO(BUILD_LATEX_DOC DIR DOC)
     WORKING_DIRECTORY "${DIR}"
     )
   EXECUTE_PROCESS(
-    COMMAND "${PDFLATEX_COMPILER}" "${DOC}"
+    COMMAND "${PDFLATEX_COMPILER}" -shell-escape "${DOC}"
     WORKING_DIRECTORY "${DIR}"
     )
     
@@ -109,53 +112,104 @@ MACRO(PYG_MAKE_AUX_STYLE_FILE)
     OUTPUT_QUIET
   )
 
-#  configure_file("${DUMMY}" "${DUMMY}2"
-#    @ONLY 
-#    NEWLINE_STYLE UNIX
-#    )
-
-  # $PYG -f latex -O full,style=$STYLE "$CSAMPLE" > "$DUMMY"
   FILE(READ "${DUMMY}" PYG_OUTPUT)
   STRING(REPLACE "\n" ";" PYG_OUTPUT ${PYG_OUTPUT})
 
+  SET(printout off)
+  SET(OUTPUT "")
   foreach(line IN LISTS PYG_OUTPUT)
-    MESSAGE("line GEORG: ${line}")
+    # Grep the definitions for newer pygmentize versions
+    if(line MATCHES "makeatletter")
+      SET(printout on)
+    endif(line MATCHES "makeatletter")
+    if(line MATCHES "begin{document}")
+      SET(printout off)
+    endif(line MATCHES "begin{document}")
+
+    if(printout)
+#      SET(OUTPUT "${OUTPUT}\n${line}")
+
+      foreach(part IN LISTS line)
+	LIST(APPEND OUTPUT "${part}")
+      endforeach(part)
+
+#      MESSAGE("line: ${line}")
+    endif(printout)
+
+    # Grep the definitions for the fancy verbatim environments from dummy.tex (for older pygmentize)
+    if(line MATCHES "newcommand")
+#      SET(OUTPUT "${OUTPUT}\n${line}")
+      foreach(part IN LISTS line)
+	LIST(APPEND OUTPUT "${part}")
+      endforeach(part)
+    endif(line MATCHES "newcommand")
+
   endforeach(line)
   
+#  MESSAGE("OUTPUT: ${OUTPUT}")
+  STRING(REPLACE ";" "\n" OUTPUT "${OUTPUT}")
 
-  # Grep the definitions for the fancy verbatim environments from dummy.tex (for older pygmentize)
-#fgrep newcommand "$DUMMY" \
-#    > "$DEST_DIR"/pygmentize.tex
-## Extract the definitions (for newer pygmentize)
-#cat $DUMMY | sed -e '/./{H;$!d;}' -e 'x;/def/!d;' \
-#    >> "$DEST_DIR"/pygmentize.tex
-#echo $SOURCES_DIR
-#echo $DEST_DIR
+  FILE(WRITE "${LATEX_AUX_DIR}/pygmentize.tex" "${OUTPUT}")
+
 ENDMACRO(PYG_MAKE_AUX_STYLE_FILE)
 
 
-#Pygmentize() {
-#
-#SOURCES_DIR=$1
-#DEST_DIR="$2/pygmentized"
-#ATTACH_DIR="$2/attachments"
-#
-#OPTIONS="-f latex -O linenos=True,linenostep=5,style=$STYLE"
-#
-#  INPUT=$1
-#  OUTPUT=$2
-# 
-#  if [ ! -d $DEST_DIR ]; then
-#      mkdir -p $DEST_DIR
-#  fi
-#  if [ ! -d $ATTACH_DIR ]; then
-#      mkdir -p $ATTACH_DIR
-#  fi#
-#
-#  $PYG $OPTIONS $SOURCES_DIR/$INPUT > $DEST_DIR/dummy.tex
-#  cat $DEST_DIR/dummy.tex | sed 's/commandchars/frame=lines,framesep=2mm,fontsize=\\\small,commandchars/' > $DEST_DIR/$OUTPUT
-#  
-#  ATTACHFILE=$(echo $OUTPUT | sed 's/\.tex/\.txt/')
-#  cp $SOURCES_DIR/$INPUT "$ATTACH_DIR/$ATTACHFILE"
-#}
+MACRO(PYGMENTIZE DIR INPUTS)
 
+  SET(SOURCES_DIR "${DIR}/sources")
+  SET(DEST_DIR "${DIR}/pygmentized")
+  SET(ATTACH_DIR "${DIR}/attachments")
+  
+  SET(OPTIONS -f latex -O linenos=True,linenostep=5,style=${STYLE})
+  
+  if(NOT EXISTS "${DEST_DIR}")
+    EXECUTE_PROCESS(
+      COMMAND "${CMAKE_COMMAND}" -E make_directory "${DEST_DIR}" OUTPUT_QUIET
+      )
+  endif()
+  
+  if(NOT EXISTS "${ATTACH_DIR}")
+    EXECUTE_PROCESS(
+      COMMAND "${CMAKE_COMMAND}" -E make_directory "${ATTACH_DIR}" OUTPUT_QUIET
+      )
+  endif()
+  
+  foreach(input ${INPUTS})
+    STRING(REGEX REPLACE "\\.[a-zA-Z0-9]+$"
+      ".tex" TEXOUT
+      ${input}
+      )
+    STRING(REGEX REPLACE "\\.[a-zA-Z0-9]+$"
+      ".txt" ATTACHOUT
+      ${input}
+      )
+#    MESSAGE("input ${input}")
+#    MESSAGE("TEXOUT ${TEXOUT}")
+#    MESSAGE("ATTACH ${ATTACHOUT}")
+    EXECUTE_PROCESS(
+      COMMAND "${PYG}" ${OPTIONS} "${SOURCES_DIR}/${input}"
+      OUTPUT_VARIABLE TEXOUT_DUMMY
+#      ERROR_QUIET
+      )
+
+    STRING(REPLACE "commandchars"
+      "frame=lines,framesep=2mm,fontsize=\\small,commandchars"
+      TEXOUT_DUMMY
+      "${TEXOUT_DUMMY}"
+      )
+    
+    FILE(WRITE
+      "${DEST_DIR}/${TEXOUT}"
+      "${TEXOUT_DUMMY}"
+      )
+
+    EXECUTE_PROCESS(
+      COMMAND "${CMAKE_COMMAND}"
+      -E copy_if_different 
+      "${SOURCES_DIR}/${input}"
+      "${ATTACH_DIR}/${ATTACHOUT}"
+      OUTPUT_QUIET
+      )
+  endforeach(input)
+
+ENDMACRO(PYGMENTIZE)
