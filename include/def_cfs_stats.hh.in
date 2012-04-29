@@ -53,15 +53,6 @@
 // Hardware architecture for which CFS++ has been built
 #define CFS_ARCH "@CFS_ARCH@"
 
-// Version of ZLIB CFS++ has been compiled with
-#define CFS_ZLIB_VERSION "@CFS_ZLIB_VERSION@"
-
-// Version of BOOST CFS++ has been compiled with
-#define CFS_BOOST_VERSION "@CFS_BOOST_VERSION@"
-
-// Version of MuParser CFS++ has been compiled with
-#define CFS_MUPARSER_VERSION "@CFS_MUPARSER_VERSION@"
-
 // Variables from the CMAKE build system
 #define CMAKE_BUILD_TYPE "@CMAKE_BUILD_TYPE@"
 
