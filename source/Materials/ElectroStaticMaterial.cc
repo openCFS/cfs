@@ -375,7 +375,8 @@ namespace CoupledField
     Matrix<Complex> epsTensor(3,3);
     
     // check, if tensor was already set
-    if( tensorParams_.find( ELEC_PERMITTIVITY ) == tensorParams_.end() ) {
+    if( tensorParams_.find( ELEC_PERMITTIVITY ) == tensorParams_.end() 
+        && tensorCoef_.find(ELEC_PERMITTIVITY ) == tensorCoef_.end() ) { 
       Complex eps;
       GetScalar(eps, ELEC_PERMITTIVITY, Global::COMPLEX);
       epsTensor[0][0] = eps;

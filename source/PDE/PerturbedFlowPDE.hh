@@ -47,13 +47,6 @@ namespace CoupledField
     void ReadSpecialBCs();
 
     // ======================================================
-    // POSTPROCESSING SECTION
-    // ======================================================
-
-    //! Calculate result for given result class
-    void CalcResults( shared_ptr<BaseResult> result );
-
-    // ======================================================
     // COUPLING SECTION
     // ======================================================
 

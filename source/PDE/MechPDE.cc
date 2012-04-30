@@ -410,10 +410,10 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
     shared_ptr<CoefFunction > curCoef;
     if( isComplex ) {
       curCoef = actSDMat->GetTensorCoefFnc(MECH_STIFFNESS_TENSOR,
-                                          tensorType_, Global::COMPLEX, false);
+                                          tensorType_, Global::COMPLEX );
     } else {
       curCoef = actSDMat->GetTensorCoefFnc(MECH_STIFFNESS_TENSOR,
-                                          tensorType_, Global::REAL, false);
+                                          tensorType_, Global::REAL );
     }
     
     // store coefficient function for later use (e.g. in boundary integrators)
@@ -494,52 +494,6 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
       return true;
 
     return false;
-  }
-
-
-
-  void MechPDE::CalcResults( shared_ptr<BaseResult> res ) {
-
-    switch (res->GetResultInfo()->resultType ) {
-
-      case MECH_DISPLACEMENT:
-        feFunctions_[MECH_DISPLACEMENT]->ExtractResult( res );
-        break;
-
-      case MECH_VELOCITY:
-        if ( (analysistype_ == TRANSIENT) || (analysistype_ == HARMONIC)){
-          this->timeDerivFeFunctions_[MECH_VELOCITY]->ExtractResult( res );
-        }
-        break;
-
-      case MECH_ACCELERATION:
-        if ( (analysistype_ == TRANSIENT) || (analysistype_ == HARMONIC)){
-          this->timeDerivFeFunctions_[MECH_ACCELERATION]->ExtractResult( res );
-        }
-        break;
-
-      case MECH_RHS_LOAD:
-        rhsFeFunctions_[MECH_DISPLACEMENT]->ExtractResult( res );
-        break;
-
-      case MECH_STRESS:
-        resultFunctors_[MECH_STRESS]->EvalResult( res );
-        break;
-
-      case MECH_STRAIN:
-        resultFunctors_[MECH_STRAIN]->EvalResult( res );
-        break;
-        
-      case MECH_ENERGY:
-        resultFunctors_[MECH_ENERGY]->EvalResult( res );
-        break;
-
-      default:
-        WARN( "Result '" << 
-              SolutionTypeEnum.ToString(res->GetResultInfo()->resultType)
-              << "' type not computable by mechanic PDE" );
-        break;
-    }
   }
 
   // ======================================================

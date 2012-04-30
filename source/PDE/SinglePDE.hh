@@ -243,9 +243,6 @@ namespace CoupledField
 
 
 
-    /** Trigger calculation of results. */
-    virtual void CalcResults( shared_ptr<BaseResult> result ) { };
-    
     //! Read results information for interpolation of continuous fields
     virtual void ReadFieldResults();
     

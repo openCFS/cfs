@@ -1099,6 +1099,9 @@ namespace CoupledField {
     std::map<std::string, StdVector<shared_ptr<ResultInfo> > > coordDirs;
     std::map<std::string, CoordSystem*>::const_iterator coordIt;
     
+    // Empty functor
+    shared_ptr<ResultFunctor> fnc;
+    
     // loop over all coordinate systems
     for( coordIt = coordSysMap.begin(); 
          coordIt != coordSysMap.end(); ++coordIt ) {
@@ -1134,29 +1137,31 @@ namespace CoupledField {
       // get elements
       ent = GetEntityList( EntityList::ELEM_LIST, region_.ToString(volRegionIds_[i]) );
       
+    
+      
       // create result objects
       sol = shared_ptr<BaseResult> (new Result<Double>());
       sol->SetEntityList(ent);
       sol->SetResultInfo(jacRes);
-      ptRes->RegisterResult( sol,0,0,1,1,outDest,"",true,false);
+      ptRes->RegisterResult( sol,fnc,0,0,1,1,outDest,"",true,false);
       resultList.Push_back(sol);
       
       sol = shared_ptr<BaseResult> (new Result<Double>());
       sol->SetEntityList(ent);
       sol->SetResultInfo(aspectRatio);
-      ptRes->RegisterResult( sol,0,0,1,1,outDest,"",true,false);
+      ptRes->RegisterResult( sol,fnc,0,0,1,1,outDest,"",true,false);
       resultList.Push_back(sol);
 
       sol = shared_ptr<BaseResult> (new Result<Double>());
       sol->SetEntityList(ent);
       sol->SetResultInfo(locDir1);
-      ptRes->RegisterResult( sol,0, 0,1,1,outDest,"",true,false);
+      ptRes->RegisterResult( sol,fnc,0,0,1,1,outDest,"",true,false);
       resultList.Push_back(sol);
 
       sol = shared_ptr<BaseResult> (new Result<Double>());
       sol->SetEntityList(ent);
       sol->SetResultInfo(locDir2);
-      ptRes->RegisterResult( sol,0, 0,1,1,outDest,"",true,false);
+      ptRes->RegisterResult( sol,fnc,0,0,1,1,outDest,"",true,false);
       resultList.Push_back(sol);
 
 
@@ -1164,7 +1169,7 @@ namespace CoupledField {
         sol = shared_ptr<BaseResult> (new Result<Double>());
         sol->SetEntityList(ent);
         sol->SetResultInfo(locDir3);
-        ptRes->RegisterResult( sol,0, 0,1,1,outDest,"",true,false);
+        ptRes->RegisterResult( sol,fnc,0, 0,1,1,outDest,"",true,false);
         resultList.Push_back(sol);
       }
       
@@ -1181,7 +1186,7 @@ namespace CoupledField {
           sol = shared_ptr<BaseResult> (new Result<Double>());
           sol->SetEntityList(ent);
           sol->SetResultInfo(dirResults[iDir]);
-          ptRes->RegisterResult( sol,0, 0,1,1,outDest,"",true,false);
+          ptRes->RegisterResult( sol,fnc,0, 0,1,1,outDest,"",true,false);
           coordResultList[coordResIt->first].Push_back(sol);
         }
       }
@@ -1200,7 +1205,7 @@ namespace CoupledField {
       sol = shared_ptr<BaseResult> (new Result<Double>());
       sol->SetEntityList(ent);
       sol->SetResultInfo(surfNormal);
-      ptRes->RegisterResult( sol,0, 0,1,1,outDest,"",true,false);
+      ptRes->RegisterResult( sol,fnc,0, 0,1,1,outDest,"",true,false);
       surfResultList.Push_back(sol);
     }
     

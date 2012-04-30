@@ -24,6 +24,7 @@
 #include "Forms/BiLinForms/BDBInt.hh"
 #include "Forms/BiLinForms/BBInt.hh"
 #include "Forms/LinForms/BUInt.hh"
+#include "Forms/LinForms/BDUInt.hh"
 #include "Forms/LinForms/KXInt.hh"
 #include "Forms/Operators/CurlOperator.hh"
 #include "Forms/Operators/IdentityOperator.hh"
@@ -57,6 +58,10 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
     bool is3d = param->Get("domain")->Get("geometryType")->As<std::string>() == "3d";
     if ( !is3d )
       EXCEPTION("MagEdgePDE is just implemented for 3D setups!");
+    
+    
+    reluc_.reset(new CoefFunctionMulti());
+    conduc_.reset(new CoefFunctionMulti());
   }
 
 
@@ -171,6 +176,8 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
        // Important: Add bdb-integrator to global list, as we need them later
        // for calculation of postprocessing results
        bdbInts_[actRegion] = stiff1;
+       // add also material to global, distributed reluctivity coefficient function
+       //reluc_->AddRegion(actRegion, nuNl);
 
        // ================================================
        //  Nonlinear Stiffness Integrator (only Newton )
@@ -215,7 +222,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
        //  Standard Stiffness Integrator
        // ===============================
         PtrCoefFct curCoef = 
-            actMat->GetTensorCoefFnc(MAG_RELUCTIVITY,FULL,Global::REAL, false);
+            actMat->GetTensorCoefFnc(MAG_RELUCTIVITY,FULL,Global::REAL );
         BaseBDBInt* curlcurl;
         curlcurl = new BDBInt< CurlOperator<FeHCurl,3, Double> >(curCoef,1.0) ;
         curlcurl->SetName("CurlCurlIntegrator");
@@ -228,6 +235,8 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
        // Important: Add bdb-integrator to global list, as we need them later
        // for calculation of postprocessing results
        bdbInts_[actRegion] = curlcurl;
+       // add also material to global, distributed reluctivity coefficient function
+       reluc_->AddRegion(actRegion, curCoef);
 
        // === Additional RHS integrator in case of Non-linearity ===
        if ( nonLin_ == true ) {
@@ -263,7 +272,8 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
 
       PtrCoefFct coeff =
           CoefFunction::Generate(Global::REAL, lexical_cast<std::string>(conductivity));
-      
+      // add also material to global, distributed reluctivity coefficient function
+      conduc_->AddRegion(actRegion, coeff);
       BaseBDBInt *massInt;
      
       BiLinFormContext * massContext;
@@ -369,6 +379,49 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
 //      }
 //    }
   }
+  
+  
+  void MagEdgePDE::DefineRhsLoadIntegrators() {
+    LOG_TRACE(magEdgePde) << "Defining rhs load integrators for magEdgePDE";
+       
+    // Get FESpace and FeFunction of mechanical displacement
+    shared_ptr<BaseFeFunction> myFct = feFunctions_[MAG_POTENTIAL];
+    shared_ptr<FeSpace> mySpace = myFct->GetFeSpace();
+
+    StdVector<shared_ptr<EntityList> > ent;
+    StdVector<PtrCoefFct > coef;
+    LinearForm * lin = NULL;
+    StdVector<std::string> vecDofNames = myFct->GetResultInfo()->dofNames;
+       
+    // ==================
+    //  FLUX DENSITY
+    // ==================
+    LOG_DBG(magEdgePde) << "Reading prescribed flux density";
+
+    ReadRhsExcitation( "fluxDensity", vecDofNames, ResultInfo::VECTOR, isComplex_, 
+                       ent, coef );
+    for( UInt i = 0; i < ent.GetSize(); ++i ) {
+      // check type of entitylist
+      if (ent[i]->GetType() == EntityList::NODE_LIST ||
+          ent[i]->GetType() == EntityList::SURF_ELEM_LIST ) {
+        EXCEPTION("Prescribed magnetic flux density can only be defined im volume")
+      }
+      if(isComplex_) {
+        lin = new BDUIntegrator<CurlOperator<FeHCurl,3, Double>, Complex>(Complex(1.0), coef[i],
+                                                                          reluc_);
+      } else {
+        lin = new BDUIntegrator<CurlOperator<FeHCurl,3, Double>, Double>(1.0, coef[i],
+                                                                         reluc_ );
+      }
+      lin->SetName("FluxIntegrator");
+      LinearFormContext *ctx = new LinearFormContext( lin );
+      ctx->SetEntities( ent[i] );
+      ctx->SetFeFunction(myFct);
+      assemble_->AddLinearForm(ctx);
+      myFct->AddEntityList(ent[i]);
+    } // for
+  }
+  
 
   void MagEdgePDE::DefineSolveStep()
   {
@@ -386,60 +439,6 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
     shared_ptr<BaseTimeScheme> myScheme(new TimeSchemeGLM(TimeSchemeGLM::TRAPEZOIDAL, 0) );
 
     feFunctions_[MAG_POTENTIAL]->SetTimeScheme(myScheme);
-
-  }
-
-  // ***************
-  //   CalcResults
-  // ***************
-  void MagEdgePDE::CalcResults ( shared_ptr<BaseResult> res ) {
-
-    switch (res->GetResultInfo()->resultType ) {
-      case MAG_RHS_LOAD:
-        feFunctions_[MAG_POTENTIAL]->ExtractResult( res );
-        break;
-
-      case MAG_FLUX_DENSITY:
-        resultFunctors_[MAG_FLUX_DENSITY]->EvalResult(res);
-        break;
-        
-      case MAG_POTENTIAL:
-        resultFunctors_[MAG_POTENTIAL]->EvalResult(res);
-        break;
-        
-      case MAG_FORCE_LORENTZ_DENSITY:
-        resultFunctors_[MAG_FORCE_LORENTZ_DENSITY]->EvalResult(res);
-        break;
-        
-      case MAG_FORCE_LORENTZ:
-        resultFunctors_[MAG_FORCE_LORENTZ]->EvalResult(res);
-        break;
-      
-      case MAG_EDDY_CURRENT_DENSITY:
-        resultFunctors_[MAG_EDDY_CURRENT_DENSITY]->EvalResult( res );
-        break;
-        
-      case MAG_TOTAL_CURRENT_DENSITY:
-        resultFunctors_[MAG_TOTAL_CURRENT_DENSITY]->EvalResult( res );
-        break;
-        
-        
-//      case MAG_ELEM_PERMEABILITY:
-//        if( isComplex_ ) {
-//          CalcPermeability<Complex>( res );
-//        } else {
-//          CalcPermeability<Double>( res );
-//        }
-//        break;
-         
-      case MAG_ENERGY:
-        resultFunctors_[MAG_ENERGY]->EvalResult(res);
-        break;
-
-      default:
-        WARN( "Resulttype not computable by magnetic PDE" );
-        break;
-    }
 
   }
 
@@ -578,6 +577,20 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
         bFunc.reset(new CoefFunctionBOp<Double>(feFct, flux));
       }
       DefineFieldResult( bFunc, flux );
+      
+      
+      // === MECHANIC RHS ===
+      shared_ptr<ResultInfo> rhs(new ResultInfo);
+      rhs->resultType = MAG_RHS_LOAD;
+      rhs->dofNames = vecComponents;
+      rhs->unit = "-";
+      rhs->entryType = ResultInfo::VECTOR;
+      rhs->definedOn = ResultInfo::ELEMENT;
+      availResults_.insert( rhs );
+      rhsFeFunctions_[MAG_POTENTIAL]->SetResultInfo(rhs);
+      DefineFieldResult( rhsFeFunctions_[MAG_POTENTIAL], rhs );
+      //DefineFieldResult()
+      
       
       // === EDDY CURRENT DENSITY ===
       shared_ptr<CoefFunctionFormBased> jFunc;

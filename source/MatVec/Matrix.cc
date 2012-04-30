@@ -213,6 +213,121 @@ namespace CoupledField
     return os.str();
   }
 
+  template<>
+  void Matrix<Integer>::PerformRotation( const Matrix<Double>& R,  Matrix<Integer>& retMat ) const {
+    EXCEPTION("Rotation only defined for double- and complex valued matrixes");
+  }
+
+  template<>
+  void Matrix<UInt>::PerformRotation( const Matrix<Double>& R,  Matrix<UInt>& retMat ) const {
+    EXCEPTION("Rotation only defined for double- and complex valued matrixes");
+  }
+  
+  
+  template<class TYPE>
+  void Matrix<TYPE>::PerformRotation( const Matrix<Double>& R,  Matrix<TYPE>& retMat ) const {
+    
+    // Note; Currently the rotation only works for 3x3, 3x6, 6x3 and 6x6 matrices.
+    // However, we should generalize the rotation also for 2x2, 2x4 and 4x4 matrices for the
+    // 2D and axi case for mechanics.
+
+    // get memory for transposed rotation matrix
+    Matrix<Double> RT;
+    RT.Resize(3,3);
+    R.Transpose(RT);
+
+    //get dimension of matrix
+    UInt rowSize = size_row_;
+    UInt colSize = size_col_;
+
+    Matrix<TYPE> helpMat;
+
+    if ( rowSize == 3 && colSize == 3) {
+      // tensor is a 3x3 matrix: sol = R * matrixOrig * RT
+      helpMat   = (*this) * RT;
+      retMat = R * helpMat;
+    }
+    else if( (rowSize == 3 && colSize == 6) ||
+             (rowSize == 6 && rowSize == 6 ) ) {
+      // we also need Q;
+      Matrix<Double> Q;
+
+      // Composed Rotation Matrix
+      // Ref.: M.Richter, "Entwicklung mechanischer Modelle zur analytischen
+      // Beschreibung der Materialeigenschaften von textilbewehrtem Feinbeton",
+      // Diss., Dresden, 2005, p. 27
+
+      Q.Resize(6,6);  
+
+      Q[0][0] = R[0][0]*R[0][0];
+      Q[0][1] = R[0][1]*R[0][1];
+      Q[0][2] = R[0][2]*R[0][2];
+      Q[0][3] = 2.0*R[0][1]*R[0][2];
+      Q[0][4] = 2.0*R[0][0]*R[0][2];
+      Q[0][5] = 2.0*R[0][0]*R[0][1];
+
+      Q[1][0] = R[1][0]*R[1][0];
+      Q[1][1] = R[1][1]*R[1][1];
+      Q[1][2] = R[1][2]*R[1][2];
+      Q[1][3] = 2.0*R[1][1]*R[1][2];
+      Q[1][4] = 2.0*R[1][0]*R[1][2];
+      Q[1][5] = 2.0*R[1][0]*R[1][1];
+
+      Q[2][0] = R[2][0]*R[2][0];
+      Q[2][1] = R[2][1]*R[2][1];
+      Q[2][2] = R[2][2]*R[2][2];
+      Q[2][3] = 2.0*R[2][1]*R[2][2];
+      Q[2][4] = 2.0*R[2][0]*R[2][2];
+      Q[2][5] = 2.0*R[2][0]*R[2][1];
+
+      Q[3][0] = R[1][0]*R[2][0];
+      Q[3][1] = R[1][1]*R[2][1];
+      Q[3][2] = R[1][2]*R[2][2];
+      Q[3][3] = R[1][1]*R[2][2] + R[1][2]*R[2][1];
+      Q[3][4] = R[1][0]*R[2][2] + R[1][2]*R[2][0];
+      Q[3][5] = R[1][0]*R[2][1] + R[1][1]*R[2][0];
+
+      Q[4][0] = R[0][0]*R[2][0];
+      Q[4][1] = R[0][1]*R[2][1];
+      Q[4][2] = R[0][2]*R[2][2];
+      Q[4][3] = R[0][1]*R[2][2] + R[0][2]*R[2][1];
+      Q[4][4] = R[0][0]*R[2][2] + R[0][2]*R[2][0];
+      Q[4][5] = R[0][0]*R[2][1] + R[0][1]*R[2][0];
+
+      Q[5][0] = R[0][0]*R[1][0];
+      Q[5][1] = R[0][1]*R[1][1];
+      Q[5][2] = R[0][2]*R[1][2];
+      Q[5][3] = R[0][1]*R[1][2] + R[0][2]*R[1][1];
+      Q[5][4] = R[0][0]*R[1][2] + R[0][2]*R[1][0];
+      Q[5][5] = R[0][0]*R[1][1] + R[0][1]*R[1][0];
+
+
+      //  std::cout << "R:\n" << R << std::endl;
+      //  std::cout << "Q:\n" << Q << std::endl;
+      //  std::cout << "Tensor orig:\n" << matTensor << std::endl;
+
+      Matrix<Double> QT;
+      QT.Resize(6,6);
+      Q.Transpose(QT);
+
+      if ( rowSize == 3 && colSize == 6 ) {
+        helpMat   = (*this) * QT;
+        retMat = R * helpMat;
+      }
+      else if (rowSize == 6 && colSize == 6 ) {
+        helpMat   = (*this) * QT;
+        retMat = Q * helpMat;
+      }
+      //  else {
+      //    EXCEPTION("Cannot rotate tensor due to dimensions!");
+      //  }
+    } else {
+      EXCEPTION("Tensor rotation currently only works for 3D matrices!");
+    }
+    
+
+  }
+  
   template<class TYPE>
   unsigned int Matrix<TYPE>::ParseLineHelper(const std::string& input, StdVector<TYPE>& out)
   {

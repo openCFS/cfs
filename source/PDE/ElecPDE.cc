@@ -345,7 +345,7 @@ namespace CoupledField {
     BaseBDBInt * integ = NULL;
     shared_ptr<CoefFunction > curCoef = 
         actSDMat->GetTensorCoefFnc( ELEC_PERMITTIVITY,tensorType,
-                                   Global::REAL, false);
+                                   Global::REAL);
 
     // Note; in the piezoelectric case we have to multiply by -1
     Double factor = 1.0;
@@ -393,48 +393,6 @@ namespace CoupledField {
     REFACTOR;
   }
   
-  // ======================================================
-  // POSTPROCESSING SECTION
-  // ======================================================
-
-  // ***************
-  //   CalcResults
-  // ***************
-  void ElecPDE::CalcResults( shared_ptr<BaseResult> res ) {
-
-    switch (res->GetResultInfo()->resultType ) {
-      case ELEC_POTENTIAL:
-        feFunctions_[ELEC_POTENTIAL]->ExtractResult( res );
-        break;
-
-      case ELEC_RHS_LOAD:
-        rhsFeFunctions_[ELEC_POTENTIAL]->ExtractResult( res );
-        break;
-
-      case ELEC_FIELD_INTENSITY:
-        resultFunctors_[ELEC_FIELD_INTENSITY]->EvalResult(res);
-        break;
-        
-      case ELEC_FLUX_DENSITY:
-        resultFunctors_[ELEC_FLUX_DENSITY]->EvalResult(res);
-        break;
-
-      case ELEC_ENERGY_DENSITY:
-        resultFunctors_[ELEC_ENERGY_DENSITY]->EvalResult(res);
-        break;
-        
-      case ELEC_ENERGY:
-        resultFunctors_[ELEC_ENERGY]->EvalResult(res);
-        break;
-
-      default:
-        WARN( "Result '" << 
-              SolutionTypeEnum.ToString(res->GetResultInfo()->resultType)
-              << "' type not computable by electric PDE" );
-    }
-
-  }
-   
   void ElecPDE::CalcPolarizationField( shared_ptr<BaseResult> res )
   {
     REFACTOR;

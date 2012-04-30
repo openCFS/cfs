@@ -8,10 +8,12 @@
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "Domain/Domain.hh"
+#include "Domain/Results/ResultFunctor.hh"
 #include "DataInOut/PostProc.hh"
 #include "DataInOut/SimInOut/TextOutput/TextSimOutput.hh"
 #include "DataInOut/SimInput.hh"
 #include "FeBasis/FeSpace.hh"
+
 
 namespace CoupledField {
 
@@ -37,6 +39,7 @@ namespace CoupledField {
 
   void ResultHandler::
   RegisterResult( shared_ptr<BaseResult> sol,
+                  shared_ptr<ResultFunctor> fnc,
                   UInt sequenceStep,
                   UInt saveBegin, UInt saveInc,
                   UInt saveEnd, 
@@ -77,6 +80,7 @@ namespace CoupledField {
     actContext = 
       shared_ptr<ResultContext>( new ResultContext() );
     actContext->result = sol;
+    actContext->functor =  fnc;
     actContext->sequenceStep = sequenceStep;
     actContext->saveBegin = saveBegin;
     actContext->saveEnd = saveEnd;
@@ -110,7 +114,7 @@ namespace CoupledField {
         }
         LOG_DBG(resHandler) << "Registering output '" << newDest[i]
                             << "' with result '" << actDof.resultName;
-        actContext->outputs.Push_back( outFiles_[newDest[i]] );
+        actContext->outputIds.Push_back( newDest[i] );
         
         // register results also at the output writer class
         outFiles_[newDest[i]]->RegisterResult( sol, saveBegin,
@@ -209,11 +213,32 @@ namespace CoupledField {
     LOG_TRACE(resHandler) << "Finished updating results" << std::endl;
   }
 
+  void ResultHandler::UpdateResults() {
+    
+    // iterate over all results, which are needed
+    std::set<shared_ptr<BaseResult> >::iterator it = isNeeded_.begin();
+    for( ; it != isNeeded_.end(); it++ ) {
+      ResultContext & actContext = *(resultContexts_[*it]);
+
+      // Note: this is a "dirty" hack, as currently we have results, which are 
+      // directly written, without defining a functor. We silently ignore those results.
+      if( actContext.functor ) {
+        actContext.functor->EvalResult( actContext.result);
+        UpdateResult(actContext.result);
+      }
+    }
+  }
 
   void ResultHandler::FinishStep( ) {
     
     LOG_TRACE(resHandler) << "Starting to finish step " << actStep_;
 
+    // -----------------------
+    // First, update results
+    // -----------------------
+    UpdateResults();
+    
+    
     // === Primary results ===
     // iterate over all results, which are needed
     std::set<shared_ptr<BaseResult> >::iterator it = isNeeded_.begin();
@@ -243,37 +268,162 @@ namespace CoupledField {
       if( actContext.writeResult && (!actContext.isFinal ) ) {
 
         // iterate over all outputs
-        for( UInt iOut = 0; iOut < actContext.outputs.GetSize(); iOut++ ) {
+        for( UInt iOut = 0; iOut < actContext.outputIds.GetSize(); iOut++ ) {
           
-          // Add current result to given output file
-          actContext.outputs[iOut]->AddResult( actContext.result );
-          LOG_DBG(resHandler) << "Adding result '" 
-                              << actResult.GetResultInfo()->resultName 
-                              << "' on '"
-                              << actResult.GetEntityList()->GetName()
-                              << "' to '" 
-                              << actContext.outputs[iOut]->GetName()
-                              << "'";
+          std::string outId = actContext.outputIds[iOut];
+          // =================================================
+          // Check, if output writer "lives" on the same grid.
+          // If not, we have to perform mapping
+          // =================================================
+          if( outGridIds_[outId] != "default" ) {
+            std::cerr << "Lets go map some results\n";
+#ifdef USE_INTERPOLATION            
+            // obtain destination grid and get the element / node list
+            Grid * destGrid = domain->GetGrid( outGridIds_[outId] );
+            Grid * srcGrid = domain->GetGrid("default");
+            
+            std::string entListName = actContext.result->GetEntityList()->GetName();
+            EntityList::ListType lType = actContext.result->GetEntityList()->GetType();
+            shared_ptr<EntityList> destList = destGrid->GetEntityList( lType, entListName );
+
+            // loop over all elements, get the element midpoint and store it in a vector
+            StdVector<LocPoint> lps(destList->GetSize());
+            StdVector<const Elem*> elems(destList->GetSize());
+            EntityIterator it = destList->GetIterator();
+            if( actContext.result->GetResultInfo()->definedOn == ResultInfo::NODE ) {
+              // loop over all nodes
+              Vector<Double> destPoint, locCoord;
+              UInt pos = 0;
+              for( ; !it.IsEnd(); it++ ) {
+
+                // get global element midpoint
+                UInt nodeNum = it.GetNode();
+                destGrid->GetNodeCoordinate( destPoint, nodeNum);
+
+
+                // get element in source grid
+                const Elem* srcElem = srcGrid->GetElemAtGlobalCoord( destPoint, locCoord );
+                if( srcElem == NULL ) {
+                  EXCEPTION( "Could not find source element for position "
+                      << destPoint << " of node " << nodeNum);
+                }
+
+                // store element and local point in list
+                lps[pos] = LocPoint(locCoord);
+                elems[pos++] = srcElem;
+
+              }
+            } else if( actContext.result->GetResultInfo()->definedOn == ResultInfo::ELEMENT ) {
+
+              // loop over all elements
+              shared_ptr<ElemShapeMap> esm;
+              Vector<Double> destPoint, locCoord;
+              UInt pos = 0;
+              for( ; !it.IsEnd(); it++ ) {
+
+                // get global element midpoint
+                const Elem* ptEl = it.GetElem();
+                esm = destGrid->GetElemShapeMap( ptEl , false );
+                esm->GetGlobMidPoint( destPoint );
+
+                // get element in source grid
+                std::cerr << "Looking for src elem to glob elem " << ptEl->elemNum << std::endl;
+                const Elem* srcElem = srcGrid->GetElemAtGlobalCoord( destPoint, locCoord );
+                if( srcElem == NULL ) {
+                  EXCEPTION( "Could not find source element for position "
+                      << destPoint << " of elem " << ptEl->elemNum );
+                }
+                
+                // store element and local point in list
+                lps[pos] = LocPoint(locCoord);
+                elems[pos++] = srcElem;
+              }
+            }
+
+            // Get result functor
+            shared_ptr<ResultFunctor> fct = actContext.functor;
+
+
+            // Create new result
+            shared_ptr<BaseResult> res;
+
+            // Create result vector (depending on type)
+            if(actContext.result->GetEntryType() == BaseMatrix::DOUBLE ) {
+
+              PtrCoefFct coef;
+              // try to get the coefficient function
+              if( typeid(*fct) == typeid(FieldCoefFunctor<Double>)){
+                coef = (dynamic_pointer_cast<FieldCoefFunctor<Double> >(fct))->GetCoefFct();
+              } else {
+                EXCEPTION( "Can not interpolate values, not defined on a field");
+              }
+
+              res.reset(new Result<Double>());
+              Vector<Double> & vals = dynamic_cast<Vector<Double>& >(*res->GetSingleVector());
+              UInt numDofs = actContext.result->GetResultInfo()->dofNames.GetSize();
+              vals.Resize( lps.GetSize() * numDofs );
+
+              // Loop over all local points
+              UInt pos = 0;
+              Vector<Double> temp;
+              shared_ptr<ElemShapeMap> esm;
+              LocPointMapped lpm;
+              for( UInt i = 0; i < lps.GetSize(); ++i ) {
+                esm = srcGrid->GetElemShapeMap( elems[i]);
+                lpm.Set( lps[i], esm );
+
+                // Calculate coefficient function and store the result into the vector
+                coef->GetVector( temp, lpm);
+
+                // loop over all dofs and save the result
+                for( UInt iDof=0; iDof < numDofs; ++iDof ) {
+                  vals[pos++] = temp[iDof];
+                } // loop over dofs
+              } // loop over elements
+
+              res->SetEntityList(destList);
+              res->SetResultInfo(actContext.result->GetResultInfo());
+              outFiles_[actContext.outputIds[iOut]]->AddResult( res);
+            } else {
+              EXCEPTION("Complex-valued case not implemented");
+            }
+#else
+                EXCEPTION("Enable interpolation");
+#endif
+          } else {
+
+
+
+            // Add current result to given output file
+            outFiles_[actContext.outputIds[iOut]]->AddResult( actContext.result );
+            LOG_DBG(resHandler) << "Adding result '" 
+                << actResult.GetResultInfo()->resultName 
+                << "' on '"
+                << actResult.GetEntityList()->GetName()
+                << "' to '" 
+                << outFiles_[actContext.outputIds[iOut]]->GetName()
+                << "'";
+          }
         }
       }
-      
+
       // In any case: Process also related secondary (postprocessing) results
       FinishStepRec( actContext );
-      
+
     }
-    
 
-    // Trigger writing of all output writers
-    std::map<std::string, shared_ptr<SimOutput> >::iterator fileIt;
-    for( fileIt = outFiles_.begin(); 
-         fileIt != outFiles_.end(); fileIt++ ) {
-      LOG_DBG(resHandler) << "Finishing step for output '"
-                          << fileIt->second->GetName() << "'";
-      fileIt->second->FinishStep( );
-    }    
 
-    LOG_TRACE(resHandler) << "Finished step " << actStep_ << std::endl;
-  }
+  // Trigger writing of all output writers
+  std::map<std::string, shared_ptr<SimOutput> >::iterator fileIt;
+  for( fileIt = outFiles_.begin(); 
+      fileIt != outFiles_.end(); fileIt++ ) {
+    LOG_DBG(resHandler) << "Finishing step for output '"
+        << fileIt->second->GetName() << "'";
+    fileIt->second->FinishStep( );
+  }    
+
+  LOG_TRACE(resHandler) << "Finished step " << actStep_ << std::endl;
+}
 
   void ResultHandler::FinishMultiSequenceStep() {
 
@@ -311,13 +461,13 @@ namespace CoupledField {
         if( actContext.writeResult &&  actContext.isFinal )  {
 
           // iterate over all outputs
-          for( UInt iOut = 0; iOut < actContext.outputs.GetSize(); iOut++ ) {
+          for( UInt iOut = 0; iOut < actContext.outputIds.GetSize(); iOut++ ) {
 
             // Add current result to given output file
-            actContext.outputs[iOut]->AddResult( actContext.result );
+            outFiles_[actContext.outputIds[iOut]]->AddResult( actContext.result );
             LOG_DBG(resHandler) << "Adding final result '" << type << "' on '"
             << actResult.GetEntityList()->GetName()
-            << "' to '" << actContext.outputs[iOut]->GetName()
+            << "' to '" << outFiles_[actContext.outputIds[iOut]]->GetName()
             << "'";
           }
         }
@@ -385,6 +535,7 @@ namespace CoupledField {
       shared_ptr<ResultContext> nextContext = 
         shared_ptr<ResultContext>( new ResultContext() );
       nextContext->result = postProcs[i]->GetOutputResult();
+      nextContext->functor = actContext.functor;
       nextContext->sequenceStep = actContext.sequenceStep;
       nextContext->saveBegin = actContext.saveBegin;
       nextContext->saveEnd = actContext.saveEnd;
@@ -446,7 +597,7 @@ namespace CoupledField {
                      << "' was not registered yet!" );
         }
         
-        nextContext->outputs.Push_back( outFiles_[outDest[iOut]] );
+        nextContext->outputIds.Push_back( outDest[iOut] );
       
         // register results also at the output writer class
         if( nextContext->writeResult ) {
@@ -493,16 +644,16 @@ namespace CoupledField {
       if( next.writeResult != false  && next.isFinal != true) {
         
         // iterate over all outputs
-        for( UInt iOut = 0; iOut < next.outputs.GetSize(); iOut++ ) {
+        for( UInt iOut = 0; iOut < next.outputIds.GetSize(); iOut++ ) {
           
           // Add current result to given output file
-          next.outputs[iOut]->AddResult( next.result );
+          outFiles_[next.outputIds[iOut]]->AddResult( next.result );
           BaseResult & nextResult  = *(next.result);
           LOG_DBG(resHandler) << "Adding result '" 
                               << nextResult.GetResultInfo()->resultName
                               << "' on '"
                               << nextResult.GetEntityList()->GetName()
-                              << "' to '" << next.outputs[iOut]->GetName()
+                              << "' to '" << outFiles_[next.outputIds[iOut]]->GetName()
                               << "'";
         }
       }
@@ -550,19 +701,31 @@ namespace CoupledField {
 
 
   void ResultHandler:: AddOutputDest( shared_ptr<SimOutput> out, 
-                                      const std::string& id ) {
+                                      const std::string& id,
+                                      const std::string& gridId ) {
 
-    LOG_DBG(resHandler) << "Adding output writer with id ";
+    LOG_DBG(resHandler) << "Adding output writer with id '"
+        << id << "', on grid with id '" << gridId << "'";
     outFiles_[id] = out;
+    outGridIds_[id] = gridId;
 
   }
 
-  void ResultHandler::Init( Grid* ptGrid, bool printGridOnly ) {
+  void ResultHandler::Init( std::map<std::string, Grid* >& gridMap,
+                            bool printGridOnly ) {
     
     // Trigger function with all output files
     std::map<std::string, shared_ptr<SimOutput> >::iterator it;
     for( it = outFiles_.begin(); it != outFiles_.end(); it++ ) {
-      it->second->Init( ptGrid, printGridOnly );
+      
+      // get gridId for this output writer
+      std::string gridId = outGridIds_[it->first];
+      
+      // check, if grid is defined
+      if( gridMap.find(gridId) == gridMap.end() ) {
+        EXCEPTION( "No grid with id '" << gridId << "' defined" );
+      }
+      it->second->Init( gridMap[gridId], printGridOnly );
     }
   }
   
@@ -609,16 +772,16 @@ namespace CoupledField {
         if( next.writeResult ) {
 
           // iterate over all outputs
-          for( UInt iOut = 0; iOut < next.outputs.GetSize(); iOut++ ) {
+          for( UInt iOut = 0; iOut < next.outputIds.GetSize(); iOut++ ) {
             
             // Add current result to given output file
-            next.outputs[iOut]->AddResult( next.result );
+            outFiles_[next.outputIds[iOut]]->AddResult( next.result );
             BaseResult & nextResult  = *(next.result);
             LOG_DBG(resHandler) << "Adding final result '" 
                                 << nextResult.GetResultInfo()->resultName
                                 << "' on '"
                                 << nextResult.GetEntityList()->GetName()
-                                << "' to '" << next.outputs[iOut]->GetName()
+                                << "' to '" << outFiles_[next.outputIds[iOut]]->GetName()
                                 << "'";
           }
         }

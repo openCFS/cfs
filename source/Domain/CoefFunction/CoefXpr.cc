@@ -5,6 +5,11 @@
 namespace CoupledField {
 
 
+// define local helper function for wrapping string expressions
+inline std::string B(const std::string& xpr ) {
+  return "(" + xpr + ")";
+}
+
 // initialize static variable
 UInt CoefXpr::numVarNames_ = 0;
 
@@ -203,18 +208,31 @@ bool CoefXpr::IsComplex( PtrCoefFct a,
   return (a->IsComplex() || b->IsComplex() );
 }
 
+void CoefXpr::Tranpose( UInt nRows, UInt nCols, 
+                        const StdVector<std::string>& in,
+                        StdVector<std::string>& trans ) {
+  trans.Resize( in.GetSize() );
+  
+  for( UInt iRow = 0; iRow < nRows; ++iRow ) {
+    for( UInt iCol = 0; iCol < nCols; ++iCol ) {  
+      trans[iCol*nRows+iRow] = in[iRow*nCols + iCol];
+    }
+  }
+}
+
+
 void CoefXpr::ApplyUnaryFunc( std::string& retReal, const std::string& argReal,
                               OpType op ) {
   StdVector<std::string> args;
   switch( op ) {
     case OP_NORM:
-      args = "( abs(", argReal, ") )";
-      retReal = args.Serialize(' ');
+      args =  "abs(", B(argReal), ")";
+      retReal = B(args.Serialize(' '));
       break;
     
     case OP_SQRT:
-      args = "( sqrt(", argReal, ") )";
-      retReal = args.Serialize(' ');
+      args = "sqrt(", B(argReal), ")";
+      retReal = B(args.Serialize(' '));
       break;
     
     default:
@@ -231,8 +249,8 @@ void CoefXpr::ApplyUnaryFunc( std::string& retReal, std::string& retImag,
   StdVector<std::string> args;
   switch( op ) {
     case OP_NORM:
-      args = "( sqrt(", argReal, "*", argReal, "+", argImag, "*", argImag, ") )";
-      retReal = args.Serialize(' ');
+      args = "sqrt(", B(argReal), "*", B(argReal), "+", B(argImag), "*", B(argImag), ")";
+      retReal = B(args.Serialize(' '));
       retImag = "0.0";
       break;
     
@@ -258,12 +276,13 @@ void CoefXpr::ApplyBinaryFunc( std::string& retReal,
     case OP_SUB:
     case OP_MULT:
     case OP_DIV:
-      args = "(", arg1Real, ")", OpToString(op), "(", arg2Real, ")";
-      retReal = args.Serialize(' ');
+      args =  B(arg1Real), OpToString(op), B(arg2Real);
+      retReal = B(args.Serialize(' ') );
       break;
     
     case OP_POW:
-      args = "(", arg1Real, "^", arg2Real, ")";
+      args = B(arg1Real), "^", B(arg2Real);
+      retReal = B(args.Serialize(' ' ));
       break;
     
     default:
@@ -287,28 +306,28 @@ void CoefXpr::ApplyBinaryFunc( std::string& retReal, std::string& retImag,
   switch( op ) {
     case OP_ADD:
     case OP_SUB:
-      args = "(", arg1Real, ")", OpToString(op), "(", arg2Real, ")";
-      retReal = args.Serialize(' ');
-      args = "(", arg1Imag, ")", OpToString(op), "(", arg2Imag, ")";
-      retImag = args.Serialize(' ');
+      args = B(arg1Real), OpToString(op), B(arg2Real);
+      retReal = B(args.Serialize(' ') );
+      args = B(arg1Imag), OpToString(op), B(arg2Imag);
+      retImag = B(args.Serialize(' '));
       break;
 
     case OP_MULT:
-      args = "(", arg1Real, "*", arg2Real, " - ", arg1Imag, "*", arg2Imag, ")";
-      retReal = args.Serialize(' ');
-      args = "(", arg1Real, "*", arg2Imag, " + ", arg1Imag, "*", arg2Real, ")";
-      retImag = args.Serialize(' ');
+      args = "(", B(arg1Real), "*", B(arg2Real), ") - (", B(arg1Imag), "*", B(arg2Imag), ")";
+      retReal = B(args.Serialize(' '));
+      args = "(", B(arg1Real), "*", B(arg2Imag), ") + (", B(arg1Imag), "*", B(arg2Real), ")";
+      retImag = B(args.Serialize(' '));
       break;
 
     case OP_DIV:
-      args = "( (", arg2Real, "*", arg2Real, ") + (", arg2Imag, "*", arg2Imag, ") )";
-      denom = args.Serialize(' ');
+      args = "(", B(arg2Real), "*", B(arg2Real), ") + (", B(arg2Imag), "*", B(arg2Imag), ")";
+      denom = B(args.Serialize(' '));
 
-      args = "(", arg1Real, "*", arg2Real, "+", arg1Imag, "*", arg2Imag, ")/", denom;
-      retReal = args.Serialize(' ');
+      args = "((", B(arg1Real), "*", B(arg2Real), ")+(", B(arg1Imag), "*", B(arg2Imag), "))/(", denom,")";
+      retReal = B(args.Serialize(' '));
 
-      args = "(", arg1Imag, "*", arg2Real, "-", arg1Real, "*", arg2Imag, ") / ", denom;
-      retImag = args.Serialize(' ');
+      args = "((", B(arg1Imag), "*", B(arg2Real), ")-(", B(arg1Real), "*", B(arg2Imag), ")) / (", denom,")";
+      retImag = B(args.Serialize(' '));
       break;
       
     case OP_POW:
@@ -325,6 +344,42 @@ void CoefXpr::ApplyBinaryFunc( std::string& retReal, std::string& retImag,
   //boost::erase_all(retImag, " ");
   
 }
+
+void CoefXpr::ApplyTernaryFunc( std::string& retReal, 
+                                const std::string& arg1Real,
+                                const std::string& arg2Real,
+                                const std::string& arg3Real,
+                                OpType op1, OpType op2 ) {
+  // first, compute 
+  // tmp = op1(arg2, arg3)
+  std::string tmp;
+  CoefXpr::ApplyBinaryFunc( tmp, arg2Real, arg3Real, op2 );
+  
+  // then compute ret = op2(arg1, tmp)
+  CoefXpr::ApplyBinaryFunc( retReal, arg1Real, tmp, op1 );
+}
+
+void CoefXpr::ApplyTernaryFunc( std::string& retReal, std::string& retImag, 
+                                const std::string& arg1Real,
+                                const std::string& arg2Real,
+                                const std::string& arg3Real,
+                                const std::string& arg1Imag,
+                                const std::string& arg2Imag,
+                                const std::string& arg3Imag,
+                                OpType op1, OpType op2 ) {
+  // first, compute 
+  // tmp = op1(arg2, arg3)
+  std::string tmpR, tmpI;
+  CoefXpr::ApplyBinaryFunc( tmpR, tmpI, arg2Real, arg3Real, 
+                            arg2Imag, arg3Imag, op2 );
+
+  // then compute ret = op2(arg1, tmp)
+  CoefXpr::ApplyBinaryFunc( retReal, retImag, arg1Real, tmpR, 
+                            arg1Imag, tmpI, op1 );
+}
+
+
+
 
 std::string CoefXpr::GetUniqueVarName() {
   
@@ -610,6 +665,9 @@ void CoefXprBinOp::GetScalarXpr( std::string& real, std::string& imag ) const {
           imag += "+" + tempImag;
         }
       }
+      // put brackets around expression
+      real = Bracket(real);
+      imag = Bracket(imag);
         
     } else {
       EXCEPTION("The only allowed binary vector-vector operation "
@@ -788,7 +846,7 @@ void CoefXprBinOp::GetTensorXpr( UInt& numRows, UInt& numCols,
        }
        numRows = numRowsA;
        numCols = numColsA;
-       UInt numEntries = numRows * numRows;
+       UInt numEntries = numRows * numCols;
        real.Resize( numEntries );
        imag.Resize( numEntries );
        if( !isComplex_ ) {
@@ -821,7 +879,7 @@ void CoefXprBinOp::GetTensorXpr( UInt& numRows, UInt& numCols,
          for( UInt i = 0; i < numRows; ++i ) {
            for( UInt j = 0; j < numCols; ++j ) {
              std::string temp1, temp2;
-             posA = i*numCols;
+             posA = i*numColsA;
              posB = j;
              CoefXpr::ApplyBinaryFunc( temp1, aR[posA], bR[posB], OP_MULT );
              for( UInt k = 1; k < numColsA; ++k ) {
@@ -830,7 +888,7 @@ void CoefXprBinOp::GetTensorXpr( UInt& numRows, UInt& numCols,
                CoefXpr::ApplyBinaryFunc( temp2, aR[posA], bR[posB], OP_MULT );
                temp1 += " + " + temp2;
              } // numColsA
-             real[posRet++] = temp1;
+             real[posRet++] = Bracket(temp1);
            } // numCols
          } // numRows
          imag.Init("0.0");
@@ -838,7 +896,7 @@ void CoefXprBinOp::GetTensorXpr( UInt& numRows, UInt& numCols,
          for( UInt i = 0; i < numRows; ++i ) {
            for( UInt j = 0; j < numCols; ++j ) {
              std::string temp1R, temp1I, temp2R, temp2I;
-             posA = i*numCols;
+             posA = i*numColsA;
              posB = j;
              CoefXpr::ApplyBinaryFunc( temp1R, temp1I, aR[posA], bR[posB], 
                                        aI[posA], bI[posB], OP_MULT );
@@ -850,8 +908,8 @@ void CoefXprBinOp::GetTensorXpr( UInt& numRows, UInt& numCols,
                temp1R += " + " + temp2R;
                temp1I += " + " + temp2I;
              } // numColsA
-             real[posRet] = temp1R;
-             imag[posRet] = temp1I;
+             real[posRet] = Bracket(temp1R);
+             imag[posRet] = Bracket(temp1I);
              posRet++;
            } // numCols
          } // numRows
@@ -1092,6 +1150,368 @@ void CoefXprTensScalOp::
 GetArgs( std::map<std::string, PtrCoefFct >& vars ) const {
   vars[aName_] = a_;
   vars[bName_] = b_;
+}
+
+// ==========================================================================
+//  TENSOR REPRESENTATIONS (MECHANIC)
+// ==========================================================================
+void CoefXprMechSubTensor::Init( PtrCoefFct a ) {
+  // check dimensionality
+  if( a->GetDimType() != CoefFunction::TENSOR ) {
+    EXCEPTION( "Argument must be of type TENSOR" );
+  }
+  
+  // ensure that dimension is a full 6x6 tensor
+  UInt numRowsA, numColsA;
+  a->GetTensorSize(numRowsA, numColsA);
+  if( numRowsA != 6 || numColsA != 6 ) {
+    EXCEPTION( "Tensor must have dimension 6 x 6 " );
+  }
+  
+  dimType_ = CoefFunction::TENSOR;
+  isAnalytical_ = a->IsAnalytic();
+  isComplex_ = a->IsComplex();
+  a_ = a;
+  aName_ = CoefXpr::GetUniqueVarName();
+  tensorType_ = NO_TENSOR;
+  transposed_ = false;
+}
+
+CoefXprMechSubTensor::CoefXprMechSubTensor( PtrCoefFct a ) {
+  Init(a);
+}
+CoefXprMechSubTensor::CoefXprMechSubTensor( const CoefXpr& a)  {
+  PtrCoefFct temp  
+    = CoefFunction::Generate( Global::REAL, a );  
+}
+
+void CoefXprMechSubTensor::SetSubTensorType(SubTensorType subType,
+                                            bool transpose ) {
+  tensorType_ = subType;
+  transposed_ = transpose;
+}
+
+
+void CoefXprMechSubTensor::GetTensorXpr( UInt& numRows, UInt& numCols,
+                                     StdVector<std::string>& real, 
+                                     StdVector<std::string>& imag ) const {
+  // ensure, that a subtype is set
+  if( tensorType_ == NO_TENSOR ) {
+    EXCEPTION( "No tensor sub type was set");
+  }
+
+  StdVector<std::string> aR, aI;
+  UInt numRowsA, numColsA;
+
+  if( isAnalytical_) {
+    CoefFunctionAnalytic & coefA = 
+        dynamic_cast<CoefFunctionAnalytic&>(*a_);
+    coefA.GetStrTensor( numRowsA, numColsA, aR, aI );
+  } else {
+    CoefFunction::GenTensorCompNames(aR, aI, aName_, a_);
+    a_->GetTensorSize(numRowsA, numColsA);
+  }
+
+  // switch depending on subTensorType
+  if( tensorType_ == AXI ) {
+    // resize to 4x4 tensor
+    numCols = 4;
+    numRows = 4;
+    real.Resize( numRows * numCols );
+    imag.Resize( numRows * numCols );
+    imag.Init("0.0");
+    UInt rowPtr[] = {1,2,6,3};
+    for(UInt i = 0; i < numRows; ++i ) {
+      for(UInt j = 0; j < numCols; ++j ) {
+        real[i*numCols+j] = aR[(rowPtr[i]-1)*6 + (rowPtr[j]-1)];
+        if(isComplex_ )
+          imag[i*numCols+j] = aI[(rowPtr[i]-1)*6 + (rowPtr[j]-1)];
+      }
+    }
+    
+  } else if( tensorType_ == PLANE_STRAIN ) {
+    // resize to 4x4 tensor
+    numCols = 3;
+    numRows = 3;
+    real.Resize( numRows * numCols );
+    imag.Resize( numRows * numCols );
+    imag.Init("0.0");
+    UInt rowPtr[] = {1,2,6,3};
+    for(UInt i = 0; i < numRows; ++i ) {
+      for(UInt j = 0; j < numCols; ++j ) {
+        real[i*numCols+j] = aR[(rowPtr[i]-1)*6 + (rowPtr[j]-1)];
+        if(isComplex_ )
+          imag[i*numCols+j] = aI[(rowPtr[i]-1)*6 + (rowPtr[j]-1)];
+      }
+    }
+  } else if( tensorType_ == PLANE_STRESS)  {
+    numCols = 3;
+    numRows = 3;
+    real.Resize( numRows * numCols );
+    imag.Resize( numRows * numCols );
+    imag.Init("0.0");
+    
+    // 1st part: compute same as plane strain representation
+    UInt rowPtr[] = {1,2,6};
+    for(UInt i = 0; i < numRows; ++i ) {
+      for(UInt j = 0; j < numCols; ++j ) {
+        real[i*numCols+j] = aR[(rowPtr[i]-1)*6 + (rowPtr[j]-1)];
+        if(isComplex_ )
+          imag[i*numCols+j] = aI[(rowPtr[i]-1)*6 + (rowPtr[j]-1)];
+      }
+    }
+    
+    // 2nd part: subtract entries
+    std::string& c22R = aR[6*2+2]; //c[2][2] - real
+    std::string& c22I = aI[6*2+2]; //c[2][2] - imag
+    
+    std::string& c02R = aR[6*0+2]; //c[2][0] - real
+    std::string& c02I = aI[6*0+2]; //c[2][0] - imag
+    
+    std::string& c12R = aR[6*1+2]; //c[1][2] - real
+    std::string& c12I = aI[6*1+2]; //c[1][2] - imag
+    
+    std::string& c20R = aR[6*2+0]; //c[2][0] - real
+    std::string& c20I = aI[6*2+0]; //c[2][0] - imag
+    
+    std::string& c21R = aR[6*2+1]; //c[2][1] - real
+    std::string& c21I = aI[6*2+1]; //c[2][1] - imag
+    
+    std::string tmpR, tmpI;
+    
+    // modify c[0][0]
+    CoefXpr::ApplyTernaryFunc( tmpR, tmpI, c20R, c02R, c22R, 
+                               c20I, c02I, c22I, OP_MULT, OP_DIV );
+    real[3*0+0] += "- (" + tmpR + ")";
+    imag[3*0+0] += "- (" + tmpI + ")";
+    // modify c[0][1]
+    CoefXpr::ApplyTernaryFunc( tmpR, tmpI, c21R, c02R, c22R, 
+                               c21I, c02I, c22I, OP_MULT, OP_DIV );
+    real[3*0+1] += "- (" + tmpR + ")";
+    imag[3*0+1] += "- (" + tmpI + ")";
+    // modify c[1][0]
+    CoefXpr::ApplyTernaryFunc( tmpR, tmpI, c20R, c12R, c22R, 
+                               c20I, c12I, c22I, OP_MULT, OP_DIV );
+    real[3*1+0] += "- (" + tmpR + ")";
+    imag[3*1+0] += "- (" + tmpI + ")";
+    // modify c[1][1]
+    CoefXpr::ApplyTernaryFunc( tmpR, tmpI, c21R, c12R, c22R, 
+                               c21I, c12I, c22I, OP_MULT, OP_DIV );
+    real[3*1+1] += "- (" + tmpR + ")";
+    imag[3*1+1] += "- (" + tmpI + ")";
+    
+    if( !isComplex_ ) {
+      imag.Init("0.0");
+    }
+    
+  } else if( tensorType_ == FULL ) {
+    numRows = 6;
+    numCols = 6;
+    real = aR;
+    imag = aI;
+    if( !isComplex_ )
+      imag.Init("0.0");
+    
+  } else {
+    EXCEPTION( "Desired sub-tensor type not known" );
+  }
+  
+  // In the end, put everything in brackets
+  for( UInt i = 0; i < numRows*numCols; ++i ) {
+    real[i] = Bracket(real[i]);
+    imag[i] = Bracket(imag[i]);
+  }
+  
+  // interchange variables, if transposed tensor is requested
+  if( transposed_ ) {
+    StdVector<std::string> tmp;
+    CoefXpr::Tranpose( numRows, numCols, real, tmp );
+    real = tmp;
+    CoefXpr::Tranpose( numRows, numCols, imag, tmp );
+    imag = tmp;
+  }
+ 
+}
+
+void CoefXprMechSubTensor::GetArgs( std::map<std::string, PtrCoefFct > & vars ) const {
+  vars[aName_] = a_;
+}
+
+// ==========================================================================
+//  TENSOR REPRESENTATIONS (GENERAL MATERIAL)
+// ==========================================================================
+void CoefXprSubTensor::Init( PtrCoefFct a ) {
+  // check dimensionality
+  if( a->GetDimType() != CoefFunction::TENSOR ) {
+    EXCEPTION( "Argument must be of type TENSOR" );
+  }
+  
+  // ensure that tensor is either a 3x3 or a 6x3 tensor
+  UInt numRowsA, numColsA;
+  a->GetTensorSize(numRowsA, numColsA);
+  if( !((numRowsA == 3 && numColsA == 6) || 
+        (numRowsA == 3 && numColsA == 3 ) ) ) {
+    EXCEPTION( "Tensor must have eiter dimension 3 x 3 or 3 x 6" );
+  }
+  
+  dimType_ = CoefFunction::TENSOR;
+  isAnalytical_ = a->IsAnalytic();
+  isComplex_ = a->IsComplex();
+  a_ = a;
+  aName_ = CoefXpr::GetUniqueVarName();
+  tensorType_ = NO_TENSOR;
+  transposed_ = false;
+}
+
+CoefXprSubTensor::CoefXprSubTensor( PtrCoefFct a ) {
+  Init(a);
+}
+CoefXprSubTensor::CoefXprSubTensor( const CoefXpr& a)  {
+  PtrCoefFct temp  
+    = CoefFunction::Generate( Global::REAL, a );  
+}
+
+void CoefXprSubTensor::SetSubTensorType(SubTensorType subType,
+                                            bool transpose ) {
+  tensorType_ = subType;
+  transposed_ = transpose;
+}
+
+
+void CoefXprSubTensor::GetTensorXpr( UInt& numRows, UInt& numCols,
+                                     StdVector<std::string>& real, 
+                                     StdVector<std::string>& imag ) const {
+  // ensure, that a subtype is set
+  if( tensorType_ == NO_TENSOR ) {
+    EXCEPTION( "No tensor sub type was set");
+  }
+
+  StdVector<std::string> aR, aI;
+  UInt numRowsA, numColsA;
+
+  if( isAnalytical_) {
+    CoefFunctionAnalytic & coefA = 
+        dynamic_cast<CoefFunctionAnalytic&>(*a_);
+    coefA.GetStrTensor( numRowsA, numColsA, aR, aI );
+  } else {
+    CoefFunction::GenTensorCompNames(aR, aI, aName_, a_);
+    a_->GetTensorSize(numRowsA, numColsA);
+  }
+  
+  
+  // switch depending on size
+  if( numRowsA == 3 && numColsA == 3) {
+    // --------------------
+    //  3 x 3 TENSOR 
+    // --------------------
+    if( tensorType_ == FULL ) {
+      numRows = 3;
+      numCols = 3;
+      real = aR;
+      imag = aI;
+      if( !isComplex_ )
+        imag.Init("0.0");
+    } else {
+      // in all other cases, we just consider the 2x2 submatrix
+      numRows = 2;
+      numCols = 2;
+      real.Resize(4);
+      imag.Resize(4);
+      imag.Init("0.0");
+      real[2*0+0] = aR[3*0+0];
+      real[2*0+1] = aR[3*0+1];
+      real[2*1+0] = aR[3*1+0];
+      real[2*1+1] = aR[3*1+1];
+      if( isComplex_ ) {
+        imag[2*0+0] = aI[3*0+0];
+        imag[2*0+1] = aI[3*0+1];
+        imag[2*1+0] = aI[3*1+0];
+        imag[2*1+1] = aI[3*1+1];
+      }
+    }
+    
+    
+  } else if( numRowsA == 3 && numColsA == 6 ) {
+    // --------------------
+    //  6 x 3 TENSOR 
+    // --------------------
+    if( tensorType_ == FULL ) {
+      numRows = 6;
+      numCols = 3;
+      real = aR;
+      imag = aI;
+      if( !isComplex_ )
+        imag.Init("0.0");
+    } else if( tensorType_ == AXI ) {
+      numRows = 2;
+      numCols = 4;
+      real.Resize(numRows * numCols );
+      imag.Resize(numRows * numCols );
+      imag.Init("0.0");
+      real[4*0+0] = aR[6*0+0];
+      real[4*0+1] = aR[6*0+1];
+      real[4*0+2] = aR[6*0+5];
+      real[4*0+3] = aR[6*0+2];
+      real[4*1+0] = aR[6*1+0];
+      real[4*1+1] = aR[6*1+1];
+      real[4*1+2] = aR[6*1+5];
+      real[4*1+3] = aR[6*1+2];
+      if( isComplex_ ) {
+        imag[4*0+0] = aI[6*0+0];
+        imag[4*0+1] = aI[6*0+1];
+        imag[4*0+2] = aI[6*0+5];
+        imag[4*0+3] = aI[6*0+2];
+        imag[4*1+0] = aI[6*1+0];
+        imag[4*1+1] = aI[6*1+1];
+        imag[4*1+2] = aI[6*1+5];
+        imag[4*1+3] = aI[6*1+2];
+      }
+    } else if( tensorType_ == PLANE_STRAIN ||
+        tensorType_ == PLANE_STRESS ) {
+      numRows = 2;
+      numCols = 3;
+      real.Resize(numRows * numCols );
+      imag.Resize(numRows * numCols );
+      imag.Init("0.0");
+      real[3*0+0] = aR[6*0+0];
+      real[3*0+1] = aR[6*0+1];
+      real[3*0+2] = aR[6*0+5];
+      real[3*1+0] = aR[6*1+0];
+      real[3*1+1] = aR[6*1+1];
+      real[3*1+2] = aR[6*1+5];
+      if( isComplex_ ) {
+        imag[3*0+0] = aI[6*0+0];
+        imag[3*0+1] = aI[6*0+1];
+        imag[3*0+2] = aI[6*0+5];
+        imag[3*1+0] = aI[6*1+0];
+        imag[3*1+1] = aI[6*1+1];
+        imag[3*1+2] = aI[6*1+5];
+      }
+    } // PLANE STRAIN
+  }  else {
+    EXCEPTION( "Unsupported tensor dimension");
+  }// DIMENSIONALITY
+
+  // In the end, put everything in brackets
+  for( UInt i = 0; i < numRows*numCols; ++i ) {
+    real[i] = Bracket(real[i]);
+    imag[i] = Bracket(imag[i]);
+  }
+  
+  // interchange variables, if transposed tensor is requested
+  if( transposed_ ) {
+    StdVector<std::string> tmp;
+    CoefXpr::Tranpose( numRows, numCols, real, tmp );
+    real = tmp;
+    CoefXpr::Tranpose( numRows, numCols, imag, tmp );
+    imag = tmp;
+    std::swap(numRows, numCols);
+  }
+ 
+}
+
+void CoefXprSubTensor::GetArgs( std::map<std::string, PtrCoefFct > & vars ) const {
+  vars[aName_] = a_;
 }
 
 } // end of namespace

@@ -28,6 +28,14 @@ CoefFunctionExpression<Double>::~CoefFunctionExpression(){
   domain->GetMathParser()->ReleaseHandle(mHandle_);
 }
 
+PtrCoefFct CoefFunctionExpression<Double>::GetComplexPart( Global::ComplexPart part ) {
+  if( part != Global::REAL ) {
+    EXCEPTION( "Can only return the real-part of a real-valued coefFunction" );
+  }
+  return shared_from_this();
+
+}
+
 void CoefFunctionExpression<Double>::GetTensor( Matrix<Double>& coefMat, 
                                                 const LocPointMapped& lpm ){
   assert(this->dimType_ == CoefFunction::TENSOR);
@@ -190,6 +198,40 @@ CoefFunctionExpression<Complex>::~CoefFunctionExpression(){
   domain->GetMathParser()->ReleaseHandle(mHandleImag_);
 }
 
+PtrCoefFct CoefFunctionExpression<Complex>::GetComplexPart( Global::ComplexPart part ) {
+  PtrCoefFct ret;
+  if( part  == Global::COMPLEX ) {
+    ret = shared_from_this();
+  } else if ( part == Global::REAL || part == Global::IMAG ) {
+    shared_ptr<CoefFunctionExpression<Double> > real(new CoefFunctionExpression<Double>());
+    switch(dimType_) {
+      case SCALAR:
+        if( part == Global::REAL )
+          real->SetScalar( coefScalarReal_ );
+        else
+          real->SetScalar( coefScalarImag_ );  
+        break;
+      case VECTOR:
+        if( part == Global::REAL )
+          real->SetVector( coefVecReal_ );
+        else
+          real->SetVector( coefVecImag_ );
+        break;
+      case TENSOR:
+        if( part == Global::REAL )
+          real->SetTensor( coefMatReal_, numRows_, numCols_ );
+        else
+          real->SetTensor( coefMatImag_, numRows_, numCols_ );
+        break;
+      default:
+        EXCEPTION( "Unknown dimType" );
+        break;
+    }
+    ret = real;
+  }
+  return ret;
+}
+    
 void CoefFunctionExpression<Complex>::GetTensor( Matrix<Complex>& coefMat, 
                                                  const LocPointMapped& lpm ){
   assert(this->dimType_ == CoefFunction::TENSOR);

@@ -396,36 +396,6 @@ namespace CoupledField {
   {
   }
   
-  // ========================================================================
-  // POSTPROCESSING SECTION
-  // ========================================================================
-
-  // ************************************************************************
-  //   CalcResults
-  // ************************************************************************
-  void PerturbedFlowPDE::CalcResults( shared_ptr<BaseResult> res ) {
-
-    switch (res->GetResultInfo()->resultType ) {
-      case FLUIDMECH_VELOCITY:
-        feFunctions_[FLUIDMECH_VELOCITY]->ExtractResult( res );
-        break;
-
-      case FLUIDMECH_PRESSURE:
-        feFunctions_[FLUIDMECH_PRESSURE]->ExtractResult( res );
-        break;
-
-      case MEAN_FLUIDMECH_VELOCITY:
-        resultFunctors_[MEAN_FLUIDMECH_VELOCITY]->EvalResult( res );
-        break;
-
-      default:
-        WARN( "Result '" << 
-              SolutionTypeEnum.ToString(res->GetResultInfo()->resultType)
-              << "' type not computable by electric PDE" );
-        break;
-    }
-
-  }
    
   // ========================================================================
   // COUPLING SECTION

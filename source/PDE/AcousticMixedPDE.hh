@@ -70,13 +70,6 @@ class AcousticMixedPDE : public SinglePDE{
     //! Returns if PDE can compute the quantity
     bool HasOutput(SolutionType output) { return false;};
 
-    // ======================================================
-    // POSTPROCESSING SECTION
-    // ======================================================
-
-    //! perform postprocessing on data
-    void CalcResults( shared_ptr<BaseResult> result );
-
     //! define all (bilinearform) integrators needed for this pdewith template
     //! for the space dimension
     template<class DATA_TYPE, UInt DIM>

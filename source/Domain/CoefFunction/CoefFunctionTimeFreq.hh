@@ -2,6 +2,7 @@
 #define COEFFUNCTIONTIMEFREQ_HH
 
 #include <boost/signals.hpp>
+#include <boost/shared_ptr.hpp>
 
 #include "CoefFunction.hh"
 #include "CoefFunctionExpression.hh"
@@ -19,7 +20,7 @@ namespace CoupledField{
 //! the internally stored data. 
 //! To parse the string representation, we call 
 template<typename T>
-class CoefFunctionTimeFreq : public CoefFunction {
+class CoefFunctionTimeFreq : public CoefFunction {                             
   
 };
 
@@ -28,7 +29,8 @@ class CoefFunctionTimeFreq : public CoefFunction {
 // ===========================================================================
 //! Real-valued coefficient function, depending on time / frequency
 template<>
-class CoefFunctionTimeFreq<Double> : public CoefFunctionAnalytic {
+class CoefFunctionTimeFreq<Double> : public CoefFunctionAnalytic,
+                                     public boost::enable_shared_from_this<CoefFunctionTimeFreq<Double> > {
   public:
   
   //! Constructor
@@ -36,6 +38,9 @@ class CoefFunctionTimeFreq<Double> : public CoefFunctionAnalytic {
 
   //! Destructor
   virtual ~CoefFunctionTimeFreq();
+  
+  //! \copydoc CoefFunction::GetComplexPart
+  virtual PtrCoefFct GetComplexPart( Global::ComplexPart part );
   
   //! \copydoc CoefFunction::GetTensor
   void GetTensor(Matrix<Double>& coefMat, const LocPointMapped& lpm ) {
@@ -189,7 +194,8 @@ class CoefFunctionTimeFreq<Double> : public CoefFunctionAnalytic {
 // ===========================================================================
 //! Complex-valued coefficient function, depending on time / frequency
 template<>
-class CoefFunctionTimeFreq<Complex> : public CoefFunctionAnalytic {
+class CoefFunctionTimeFreq<Complex> : public CoefFunctionAnalytic,
+                                      public boost::enable_shared_from_this<CoefFunctionTimeFreq<Complex> > {
 public:
   
   //! Constructor
@@ -198,6 +204,9 @@ public:
   //! Destructor
   virtual ~CoefFunctionTimeFreq();
 
+  //! \copydoc CoefFunction::GetComplexPart
+  virtual PtrCoefFct GetComplexPart( Global::ComplexPart part );
+  
   //! \copydoc CoefFunction::GetTensor
   void GetTensor(Matrix<Complex>& coefMat, const LocPointMapped& lpm ) {
     assert(this->dimType_ == TENSOR);

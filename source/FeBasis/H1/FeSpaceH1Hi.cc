@@ -496,10 +496,10 @@ namespace CoupledField{
   
   void FeSpaceH1Hi::FixHigherOrderAnisoDofs() {
 
-    std::cerr 
-    << "===================================================\n"
-    << " F I X I I N G   A N I S O T R O P I C    D O F S  \n" 
-    << "===================================================\n";
+//    std::cerr 
+//    << "===================================================\n"
+//    << " F I X I I N G   A N I S O T R O P I C    D O F S  \n" 
+//    << "===================================================\n";
     
     StdVector< shared_ptr<EntityList> > fctEntList = 
         feFunction_->GetEntityList();

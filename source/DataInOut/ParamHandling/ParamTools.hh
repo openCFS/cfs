@@ -69,6 +69,22 @@ namespace CoupledField
         }
       }
     }
+    
+    
+    //! Read the immediate child of a node and return it as a string vector with given dimension
+    static void AsStringTensor(PtrParamNode node, UInt dim, StdVector<std::string>& ret )
+    {
+      SplitStringList(node->As<std::string>(), ret, ' ' );
+      
+      // be careful and wrap every entry in braces
+      for( UInt i = 0; i < ret.GetSize(); ++i ) {
+        ret[i] = Bracket( ret[i] );
+      }
+      if (ret.GetSize() != dim)  {
+        EXCEPTION("Wrong size of tensor '" << node->GetName() << "'. It contains of " 
+                  << ret.GetSize() << " entries and should be " << dim ); 
+      }
+    } 
 
   }; 
 

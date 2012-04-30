@@ -346,7 +346,8 @@ void CFS::SetupIO()
 
   // Create simulation output writer
   map<string, shared_ptr<SimOutput> > outFiles;
-  fileHandler.CreateSimOutputFiles( outFiles );
+  map<string, string> outGridIds;
+  fileHandler.CreateSimOutputFiles( outFiles, outGridIds );
 
   // Create resulthandler and pass the output files
   resultHandler = new ResultHandler( ResultHandler::EMBEDDED );
@@ -355,7 +356,9 @@ void CFS::SetupIO()
   outputIt = outFiles.begin();
   inputIt = inFiles.begin();
   for( ; outputIt != outFiles.end(); outputIt++ ) {
-    resultHandler->AddOutputDest( outputIt->second, outputIt->first );
+    resultHandler->AddOutputDest( outputIt->second, 
+                                  outputIt->first,
+                                  outGridIds[outputIt->first] );
   }
   for( ; inputIt != inFiles.end(); inputIt++ ) {
     resultHandler->AddInputReader( inputIt->second, inputIt->first );

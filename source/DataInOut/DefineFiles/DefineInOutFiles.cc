@@ -243,8 +243,9 @@ void DefineInOutFiles::CreateSimInputFiles(std::map<std::string, shared_ptr<
 // ================================
 //   Generate output file pointer
 // ================================
-void DefineInOutFiles::CreateSimOutputFiles(std::map<std::string, shared_ptr<
-    SimOutput> >& out)
+void DefineInOutFiles::
+CreateSimOutputFiles(std::map<std::string, shared_ptr<SimOutput> >& out,
+                     std::map<std::string, std::string> & gridIds )
 {
 
   // resest map
@@ -305,6 +306,7 @@ void DefineInOutFiles::CreateSimOutputFiles(std::map<std::string, shared_ptr<
     {
       idSet.insert(actId);
     }
+    
   }
   
   // The HDF5 writer needs to be known to the XDMF writer.
@@ -318,6 +320,12 @@ void DefineInOutFiles::CreateSimOutputFiles(std::map<std::string, shared_ptr<
     actFormat = actNode->GetName();
     actId = actNode->Get("id")->As<std::string>();
 
+    // Read in the gridId
+    std::string gridId = "de  fault";
+    actNode->GetValue( "gridId", gridId, ParamNode::PASS );
+    gridIds[actId] = gridId;
+    std::cerr << "adding gridId " << gridId << " to reader id " << actId << std::endl;
+    
     if (actFormat == "unv")
     {
 #ifdef USE_UNV
@@ -434,8 +442,7 @@ void DefineInOutFiles::CreateSimOutputFiles(std::map<std::string, shared_ptr<
     {
       out[actId] = shared_ptr<SimOutput> (new SimOutputStreaming(actNode));
     }
-
-  }
+  } // loop over reader nodes
 }
 
 // ==================================

@@ -41,9 +41,10 @@ namespace CoupledField
                               std::map<std::string, 
                               StdVector<shared_ptr<SimInput> > >& gridInputs );
 
-    //! create pointer to output class and their related ids
-    void CreateSimOutputFiles( std::map<std::string, 
-                               shared_ptr<SimOutput> >&  out );
+    //! Create pointer to output classes and read the corresponding gridIds
+    void CreateSimOutputFiles( std::map<std::string,  
+                               shared_ptr<SimOutput> >&  out,
+                               std::map<std::string, std::string>& gridIds );
 
     //! create pointer to Materialfile Handler
     MaterialHandler* CreateMaterialHandler();

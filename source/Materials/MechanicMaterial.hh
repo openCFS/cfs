@@ -74,7 +74,12 @@ namespace CoupledField {
     //! get a complex material tensor
     void GetTensor( Matrix<Complex>& param, MaterialType matType,
 		    Global::ComplexPart dataType,
-		    SubTensorType = FULL ) const;	
+		    SubTensorType = FULL ) const;
+
+    //! Return a specific sub-tensor
+    virtual PtrCoefFct GetSubTensorCoefFnc( MaterialType matType, 
+                                            SubTensorType tensorType,
+                                            bool transposed );
     
     /** Computes the error to an isotropic elasticity tensor.
      * Assume isotropy and calculate E and v, construct E(E,v) and return ||E(E,v) - tensor||_1 */

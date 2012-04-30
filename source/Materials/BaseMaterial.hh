@@ -38,6 +38,7 @@ namespace CoupledField {
     typedef std::map<MaterialType, std::string > stringMap;
     typedef std::map<MaterialType, Integer > integerMap;
     typedef std::map<MaterialType, MathParser::HandleType > handleMap;
+    typedef std::map<MaterialType, PtrCoefFct> CoefMap;
 
     typedef enum {GENERAL, ISOTROPIC, ORTHOTROPIC, TRANS_OTHOTROP } SymmetryType;
 
@@ -163,13 +164,16 @@ namespace CoupledField {
     {
       EXCEPTION("not implemented");
     }
-
+    
 
     //! set a complex material tensor
     virtual void SetTensor(const Matrix<Complex>& param, MaterialType matType, Global::ComplexPart dataType ) 
     {
       EXCEPTION("not implemented");
     }
+    
+    //! Set a coefficient function
+    virtual void SetCoefFct( MaterialType matType, PtrCoefFct coef );
 
 
     //! get a string material parameter
@@ -358,16 +362,21 @@ namespace CoupledField {
                                  bool adjustDamping, bool isHarmonic );
 
     //========================== Create Coeficient Function for use in integrators====
-    virtual shared_ptr<CoefFunction > GetTensorCoefFnc(MaterialType matType,
-                                                        SubTensorType type,
-                                                        Global::ComplexPart matDataType,
-                                                        bool transpose );
-    
-    virtual shared_ptr<CoefFunction > GetVectorCoefFnc(MaterialType matType,
-                                                    Global::ComplexPart matDataType );
-    
-    virtual shared_ptr<CoefFunction > GetScalCoefFnc(MaterialType matType,
-                                                     Global::ComplexPart matDataType );
+    virtual PtrCoefFct GetTensorCoefFnc(MaterialType matType,
+                                        SubTensorType type,
+                                        Global::ComplexPart matDataType,
+                                        bool transposed = false );
+
+    virtual PtrCoefFct GetVectorCoefFnc(MaterialType matType,
+                                        Global::ComplexPart matDataType );
+
+    virtual PtrCoefFct GetScalCoefFnc(MaterialType matType,
+                                      Global::ComplexPart matDataType );
+
+    //! Return a specific sub-tensor
+    virtual PtrCoefFct GetSubTensorCoefFnc( MaterialType matType, 
+                                            SubTensorType tensorType,
+                                            bool transposed  ) ;
 
   protected:
 
@@ -389,9 +398,9 @@ namespace CoupledField {
     //! Error for not available subtype of tensor
     static void subTensorNotAvailable(MaterialType matType, SubTensorType subTensor);
 
-    //! rotate a tensor
-    virtual void PerformRotation( Matrix<Complex>& rotMatrix,  Matrix<Complex>& matMatrix,
-				  const Matrix<Complex>& origMatMatrix);
+    //! Rotate tensorial coefficient function
+    virtual void PerformRotation( const Matrix<Double>& rotMatrix, PtrCoefFct& rotatedCoef,
+                                  PtrCoefFct origCoef);
 
     //! name of material database
     std::string materialDatabaseName_;
@@ -444,6 +453,23 @@ namespace CoupledField {
     //! map, which knows about the original tensorial material parameters before being rotated
     tensorMap tensorParamsOrig_;
 
+    
+    // ========================================================
+    //  New coefficient based material representation
+    // ========================================================
+    //! Tensor coefficients
+    CoefMap tensorCoef_;
+
+    //! Original / unrotated tensor coefficients
+    CoefMap tensorOrigCoef_;
+    
+    //! Vector coefficients
+    CoefMap vectorCoef_;
+    
+    //! Scalar coefficients
+    CoefMap scalarCoef_;
+    
+    
     //! Pointer to math parser instance
     MathParser *  mp_;
     

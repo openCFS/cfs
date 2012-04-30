@@ -37,6 +37,11 @@ namespace CoupledField {
   void SplitStringList( const std::string &list, StdVector<std::string> &strVec,
                         const char delimiter = ',' );
 
+  
+  //! Wrap string in braces
+  inline std::string Bracket( const std::string& xpr ) {
+    return "("+xpr+")";
+  }
     //@}
 
   // =========================================================================

@@ -65,13 +65,6 @@ namespace CoupledField
     //! returns if PDE can compute the quantity
     bool HasOutput(SolutionType output);
 
-    // ======================================================
-    // POSTPROC SECTION
-    // ======================================================
-
-    //! Calculate result for given result class
-    void CalcResults( shared_ptr<BaseResult> results );
-    
     
     //! \copydoc SinglePDE::CreateFeSpaces
     virtual std::map<SolutionType, shared_ptr<FeSpace> > 

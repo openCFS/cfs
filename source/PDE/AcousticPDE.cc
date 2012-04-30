@@ -313,19 +313,6 @@ namespace CoupledField{
 
   }
 
-  void AcousticPDE::CalcResults( shared_ptr<BaseResult> result ){
-    switch (result->GetResultInfo()->resultType ) {
-    case ACOU_PRESSURE:
-    case ACOU_POTENTIAL:
-      feFunctions_[formulation_]->ExtractResult( result );
-      break;
-
-    default:
-      WARN( "Resulttype not computable by acoustic PDE" );
-      break;
-    }
-  }
-
   void AcousticPDE::DefinePrimaryResults(){
 
     // === Primary result according to definition ===

@@ -543,23 +543,6 @@ namespace CoupledField{
 
     }
 
-    void AcousticMixedPDE::CalcResults( shared_ptr<BaseResult> result ){
-      switch (result->GetResultInfo()->resultType ) {
-      case ACOU_PRESSURE:
-        feFunctions_[ACOU_PRESSURE]->ExtractResult( result );
-        break;
-      case ACOU_VELOCITY:
-        feFunctions_[ACOU_PRESSURE]->ExtractResult( result );
-        break;
-      case MEAN_FLUIDMECH_VELOCITY:
-        resultFunctors_[MEAN_FLUIDMECH_VELOCITY]->EvalResult( result );
-        break;
-      default:
-        WARN( "Resulttype not computable by acoustic PDE" );
-        break;
-      }
-    }
-
     //!  Define available postprocessing results
     void AcousticMixedPDE::DefinePrimaryResults(){
 

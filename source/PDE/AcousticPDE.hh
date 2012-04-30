@@ -67,13 +67,6 @@ namespace CoupledField{
       isMechCoupled_ = true;
     }
 
-    // ======================================================
-    // POSTPROCESSING SECTION
-    // ======================================================
-
-    //! perform postprocessing on data
-    void CalcResults( shared_ptr<BaseResult> result );
-
   protected:
 
     //!  Define available primary results

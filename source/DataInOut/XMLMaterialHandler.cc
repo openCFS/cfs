@@ -1,6 +1,8 @@
 #include <def_use_xerces.hh>
 #include "XMLMaterialHandler.hh"
 
+#include "Domain/CoefFunction/CoefFunction.hh"
+
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/ParamHandling/ParamTools.hh"
 #include "DataInOut/ParamHandling/Xerces.hh"
@@ -136,19 +138,21 @@ namespace CoupledField {
     //read real piezo coupling tensor
     if(pn->Has("piezoCouplingTensor"))
     {
-      Matrix<Double> couplingTensor(3,6);
-
+      StdVector<std::string> realVals(18), imagVals(18);
+      realVals.Init("0.0");
+      imagVals.Init("0.0");
+      PtrCoefFct pctCoef;
       PtrParamNode pct = pn->Get("piezoCouplingTensor");
-      if(pct->Has("real"))
-      {
-        ParamTools::AsTensor<double>(pct->Get("real"), 3, 6, couplingTensor);
-        material->SetTensor( couplingTensor, PIEZO_TENSOR, Global::REAL );
+      if(pct->Has("real")){
+        ParamTools::AsStringTensor( pct->Get("real"), 18, realVals );
       }
       if(pct->Has("imag"))
       {
-        ParamTools::AsTensor<double>(pct->Get("imag"), 3, 6, couplingTensor);
-        material->SetTensor( couplingTensor, PIEZO_TENSOR, Global::IMAG );
+        ParamTools::AsStringTensor( pct->Get("imag"), 18, realVals );
       }
+      pctCoef = CoefFunction::Generate( Global::COMPLEX, 3, 6,
+                                      realVals, imagVals );
+      material->SetCoefFct( PIEZO_TENSOR, pctCoef);
     } 
 
     //read nonlinearity of a coupling coefficient
@@ -273,21 +277,23 @@ namespace CoupledField {
       if(elast->HasByVal("tensor", "dim1", "6"))
       {
         PtrParamNode tens = elast->GetByVal("tensor", std::string("dim1"), "6");
-        Matrix<Double> elasticityTensor(6,6);
-
+        StdVector<std::string> realVals(36), imagVals(36);
+        realVals.Init("0.0");
+        imagVals.Init("0.0");
+        PtrCoefFct elastCoef;
         //read real elasticity tensor   
-        if(tens->Has("real"))
-        {
-          ParamTools::AsTensor<double>(tens->Get("real"),6,6,elasticityTensor); 
-          material->SetTensor( elasticityTensor, MECH_STIFFNESS_TENSOR, Global::REAL); 
+        if(tens->Has("real")) {
+          ParamTools::AsStringTensor( tens->Get("real"), 36, realVals );
           flagElastTensorReal = true;
         }
-        if(tens->Has("imag"))
-        {
-          ParamTools::AsTensor<double>(tens->Get("imag"),6,6,elasticityTensor); 
-          material->SetTensor( elasticityTensor, MECH_STIFFNESS_TENSOR, Global::IMAG ); 
-          // flagElastTensorImag = true;
+        if(tens->Has("imag")) {
+          ParamTools::AsStringTensor( tens->Get("imag"), 36, imagVals );
+          //flagElastTensorImag = true;
         }
+        elastCoef = CoefFunction::Generate( Global::COMPLEX, 6, 6,
+                                        realVals, imagVals );
+        material->SetCoefFct( MECH_STIFFNESS_TENSOR, elastCoef);
+        
       } // end tensor  
  
       // check values for isotropic      
@@ -599,29 +605,32 @@ namespace CoupledField {
       PtrParamNode p = elec->Get("permittivity");
       
       // check for tensor with dim1 = 3 <tensor dim1="3">
-      if(p->HasByVal("tensor", "dim1", "3"))
-      {
-        Matrix<Double> permittivityTensor(3,3);
+      if(p->HasByVal("tensor", "dim1", "3")) {
+        StdVector<std::string> realVals(9), imagVals(9);
+        realVals.Init("0.0");
+        imagVals.Init("0.0");
+        PtrCoefFct epsCoef;
 
         // read real permittivity tensor 
         if(p->GetByVal("tensor", std::string("dim1"), "3")->Has("real"))
         {
           PtrParamNode tensor =  p->GetByVal("tensor","dim1","3")->Get("real");        
-          ParamTools::AsTensor<double>(tensor, 3, 3, permittivityTensor);
-          material->SetTensor(permittivityTensor, ELEC_PERMITTIVITY, Global::REAL);
+          ParamTools::AsStringTensor( tensor, 9, realVals );
         }
 
         // read imaginary permittivity tensor
         if(p->GetByVal("tensor", "dim1", "3")->Has("imag"))
         {
           PtrParamNode tensor =  p->GetByVal("tensor","dim1","3")->Get("imag");
-          ParamTools::AsTensor<double>(tensor, 3, 3, permittivityTensor);
-          material->SetTensor(permittivityTensor, ELEC_PERMITTIVITY, Global::IMAG);
+          ParamTools::AsStringTensor( tensor, 9, imagVals );
         }
+        epsCoef = CoefFunction::Generate( Global::COMPLEX, 3, 3,
+                                          realVals, imagVals );
+        material->SetCoefFct( ELEC_PERMITTIVITY, epsCoef);
       } // end of <tensor dim1="3">
+    
       
-      // check for isotropic permittivity
-      // KILLME isotropic permittivity is NOT set in r7562!!
+      
     } // end of permittivity
     
     // check for <permittivityCoefficient nonlinear="function">

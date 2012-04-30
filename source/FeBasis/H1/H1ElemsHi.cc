@@ -261,8 +261,6 @@ DEFINE_LOG(feH1Hi, "feH1Hi")
     UInt numFncs = fullOrder.GetNumRows();
     UInt dim = fullOrder.GetNumCols();
     nodes.clear();
-    std::cerr << "fullOrder of elem " << ptElem->elemNum << "is \n";
-    std::cerr << fullOrder << std::endl;
 
     // loop over all function
     for( UInt iFnc = 0; iFnc < numFncs; ++iFnc ) {
@@ -815,7 +813,6 @@ DEFINE_LOG(feH1Hi, "feH1Hi")
     UInt numFncs = order.GetSize();
     polyOrder.Resize( numFncs, 3 );
     for( UInt i = 0; i < numFncs; ++i ) {
-      std::cerr << "fnc[" << i << "] is " << order[i].ToString() << std::endl;
       for(UInt j = 0; j < 3; ++j ) {
         polyOrder[i][j] = order[i].GetMaxOrder(j);
       }
@@ -1010,7 +1007,6 @@ DEFINE_LOG(feH1Hi, "feH1Hi")
     UInt numFncs = order.GetSize();
     polyOrder.Resize( numFncs, 3 );
     for( UInt i = 0; i < numFncs; ++i ) {
-      std::cerr << "fnc[" << i << "] is " << order[i].ToString() << std::endl;
       for(UInt j = 0; j < 3; ++j ) {
         polyOrder[i][j] = order[i].GetMaxOrder(j);
         

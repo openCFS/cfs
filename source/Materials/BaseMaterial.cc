@@ -20,6 +20,7 @@
 #include "Domain/CoordinateSystems/CoordSystem.hh"
 #include "Domain/ElemMapping/EntityLists.hh"
 #include "Domain/CoefFunction/CoefFunctionConst.hh"
+#include "Domain/CoefFunction/CoefXpr.hh"
 
 using std::string;
 using std::map;
@@ -131,6 +132,33 @@ namespace CoupledField
     }
   }
 
+  
+  void BaseMaterial::SetCoefFct( MaterialType matType, PtrCoefFct coef ) {
+    
+    // check, if material type is allowed
+    if (  isAllowed_.find( matType ) == isAllowed_.end() ) {
+       std::string dim = CoefFunction::CoefDimType_.ToString(coef->GetDimType());
+       matTypeNotAllowed( matType, dim );
+     }
+    
+    
+    // switch depending on dimType of coefficient function
+    switch(coef->GetDimType()) {
+      case CoefFunction::SCALAR:
+        scalarCoef_[matType] = coef;
+        break;
+      case CoefFunction::VECTOR:
+        vectorCoef_[matType] = coef;
+        break;
+      case CoefFunction::TENSOR:
+        tensorCoef_[matType] = coef;
+        tensorOrigCoef_[matType] = coef;
+        break;
+      default:
+        EXCEPTION("Unknown entry type of coefficient function");
+        break;
+    }
+  }
 
   bool BaseMaterial::IsSet( MaterialType matType ) const {
 
@@ -277,9 +305,17 @@ namespace CoupledField
   
   void BaseMaterial::RotateAllTensorsByRotationAngles( const Vector<Double>& rotAngle, 
                                                          bool persistent ) {
+    
+    // 1) Constant-Valued tensors
     BaseMaterial::tensorMap::iterator it = tensorParams_.begin();
     for( ; it != tensorParams_.end(); it++ ) {
       RotateTensorByRotationAngles( rotAngle, it->first, persistent );
+    }
+    
+    // 2) Coefficient tensors
+    BaseMaterial::CoefMap::iterator cIt = tensorCoef_.begin();
+    for( ; cIt != tensorCoef_.end(); cIt++ ) {
+      RotateTensorByRotationAngles( rotAngle, cIt->first, persistent );
     }
   }
   
@@ -290,41 +326,54 @@ namespace CoupledField
 
     using namespace std;
 
-    tensorMap::const_iterator pos;
+    
+    
+    tensorMap::iterator pos;
     pos = this->tensorParams_.find( matType );
-
+    if( pos != tensorParams_.end() ) {
+      // -----------------------------------------
+      // 1) Tensor is defined as constant matrix
+      // -----------------------------------------
     tensorMap::const_iterator posOrig;
     posOrig = this->tensorParamsOrig_.find( matType );
 
-    if ( pos == tensorParams_.end() ) {
-      string dim = "tensor";
-      matTypeNotInDataBase( matType, dim );
-    }
-    else {
       if ( posOrig == tensorParamsOrig_.end() ) {
         string dim = "tensorOriginal";
         matTypeNotInDataBase( matType, dim );
       }
 
-      Matrix<Complex> matTensor;
-      matTensor = pos->second;
-      Matrix<Complex> const matTensorOrig = posOrig->second;
+      Matrix<Complex> & matTensor = pos->second;
+      const Matrix<Complex> & matTensorOrig = posOrig->second;
 
-      //compute complex rotation matrix 
-      Matrix<Complex> RComplex (3,3);
-      Matrix<Complex> helpTensor = matTensorOrig;
-      RComplex.Init();
-      RComplex.SetPart( Global::REAL, rotMatrix );
-      PerformRotation(RComplex, matTensor, helpTensor); 
-      tensorParams_[matType] = matTensor;
+      //perform rotation 
+      matTensorOrig.PerformRotation(rotMatrix, matTensor); 
       
       // In the case of a persistent rotation, we override the
-      // original tensor
+      // original tensor as well
       if ( persistent ) {
         tensorParamsOrig_[matType] = matTensor;
       }
-    } // if parameter found
-    
+    }  else if( tensorCoef_.find( matType) != tensorCoef_.end() ) {
+      // ----------------------------------------------
+      // 2) Tensor is defined as coefficient function
+      // ----------------------------------------------
+      PtrCoefFct coef;
+      PtrCoefFct coefOrig = tensorOrigCoef_[matType];
+
+      //perform rotation
+      PerformRotation( rotMatrix, coef, coefOrig ); 
+      // store back rotated material
+      tensorCoef_[matType] = coef;
+      
+      // In the case of a persistent rotation, we override the
+      // original tensor as well
+      if ( persistent ) {
+        tensorOrigCoef_[matType] = coef;
+      }
+    } else {
+      string dim = "tensor";
+                  matTypeNotInDataBase( matType, dim );
+    }
   }
 
     
@@ -345,29 +394,136 @@ namespace CoupledField
   }
 
 
-  void BaseMaterial::PerformRotation( Matrix<Complex>& R,  
-                                      Matrix<Complex>& matTensor,
-                                      const Matrix<Complex>& matTensorOrig) {
+//  void BaseMaterial::PerformRotation( Matrix<Complex>& R,  
+//                                      Matrix<Complex>& matTensor,
+//                                      const Matrix<Complex>& matTensorOrig) {
+//
+//    // get memory for transposed rotation matrix
+//    Matrix<Complex> RT;
+//    RT.Resize(3,3);
+//    R.Transpose(RT);
+//
+//    //get dimension of matrix
+//    UInt rowSize = matTensorOrig.GetNumRows();
+//    UInt colSize = matTensorOrig.GetNumCols();
+//
+//    Matrix<Complex> helpMat;
+//
+//    if ( rowSize == 3 && colSize == 3) {
+//      // tensor is a 3x3 matrix: sol = R * matrixOrig * RT
+//      helpMat   = matTensorOrig * RT;
+//      matTensor = R * helpMat;
+//    }
+//    else {
+//      // we also need Q;
+//      Matrix<Complex> Q;
+//
+//      // Composed Rotation Matrix
+//      // Ref.: M.Richter, "Entwicklung mechanischer Modelle zur analytischen
+//      // Beschreibung der Materialeigenschaften von textilbewehrtem Feinbeton",
+//      // Diss., Dresden, 2005, p. 27
+//
+//      Q.Resize(6,6);  
+//
+//      Q[0][0] = R[0][0]*R[0][0];
+//      Q[0][1] = R[0][1]*R[0][1];
+//      Q[0][2] = R[0][2]*R[0][2];
+//      Q[0][3] = 2.0*R[0][1]*R[0][2];
+//      Q[0][4] = 2.0*R[0][0]*R[0][2];
+//      Q[0][5] = 2.0*R[0][0]*R[0][1];
+//
+//      Q[1][0] = R[1][0]*R[1][0];
+//      Q[1][1] = R[1][1]*R[1][1];
+//      Q[1][2] = R[1][2]*R[1][2];
+//      Q[1][3] = 2.0*R[1][1]*R[1][2];
+//      Q[1][4] = 2.0*R[1][0]*R[1][2];
+//      Q[1][5] = 2.0*R[1][0]*R[1][1];
+//
+//      Q[2][0] = R[2][0]*R[2][0];
+//      Q[2][1] = R[2][1]*R[2][1];
+//      Q[2][2] = R[2][2]*R[2][2];
+//      Q[2][3] = 2.0*R[2][1]*R[2][2];
+//      Q[2][4] = 2.0*R[2][0]*R[2][2];
+//      Q[2][5] = 2.0*R[2][0]*R[2][1];
+//
+//      Q[3][0] = R[1][0]*R[2][0];
+//      Q[3][1] = R[1][1]*R[2][1];
+//      Q[3][2] = R[1][2]*R[2][2];
+//      Q[3][3] = R[1][1]*R[2][2] + R[1][2]*R[2][1];
+//      Q[3][4] = R[1][0]*R[2][2] + R[1][2]*R[2][0];
+//      Q[3][5] = R[1][0]*R[2][1] + R[1][1]*R[2][0];
+//
+//      Q[4][0] = R[0][0]*R[2][0];
+//      Q[4][1] = R[0][1]*R[2][1];
+//      Q[4][2] = R[0][2]*R[2][2];
+//      Q[4][3] = R[0][1]*R[2][2] + R[0][2]*R[2][1];
+//      Q[4][4] = R[0][0]*R[2][2] + R[0][2]*R[2][0];
+//      Q[4][5] = R[0][0]*R[2][1] + R[0][1]*R[2][0];
+//
+//      Q[5][0] = R[0][0]*R[1][0];
+//      Q[5][1] = R[0][1]*R[1][1];
+//      Q[5][2] = R[0][2]*R[1][2];
+//      Q[5][3] = R[0][1]*R[1][2] + R[0][2]*R[1][1];
+//      Q[5][4] = R[0][0]*R[1][2] + R[0][2]*R[1][0];
+//      Q[5][5] = R[0][0]*R[1][1] + R[0][1]*R[1][0];
+//
+//
+//      // 	std::cout << "R:\n" << R << std::endl;
+//      // 	std::cout << "Q:\n" << Q << std::endl;
+//      // 	std::cout << "Tensor orig:\n" << matTensor << std::endl;
+//
+//      Matrix<Complex> QT;
+//      QT.Resize(6,6);
+//      Q.Transpose(QT);
+//
+//      if ( rowSize == 3 && colSize == 6 ) {
+//        helpMat   = matTensorOrig * QT;
+//        matTensor = R * helpMat;
+//      }
+//      else if (rowSize == 6 && colSize == 6 ) {
+//        helpMat   = matTensorOrig * QT;
+//        matTensor = Q * helpMat;
+//      }
+//      // 	else {
+//      // 	  EXCEPTION("Cannot rotate tensor due to dimensions!");
+//      // 	}
+//    }
+//  }
 
+  void BaseMaterial::PerformRotation( const Matrix<Double>& R, PtrCoefFct& rotatedCoef,
+                                       PtrCoefFct origCoef) {
+    
+    // determine entry type (double / complex) of coefficient
+    Global::ComplexPart part = 
+        origCoef->IsComplex() ? Global::COMPLEX : Global::REAL;
+    
     // get memory for transposed rotation matrix
-    Matrix<Complex> RT;
+    Matrix<Double> RT;
     RT.Resize(3,3);
     R.Transpose(RT);
+    
+    // convert both to coefficient functions
+    shared_ptr<CoefFunctionConst<Double> > cR(new CoefFunctionConst<Double>());
+    shared_ptr<CoefFunctionConst<Double> > cRT(new CoefFunctionConst<Double>());
+    cR->SetTensor( R );
+    cRT->SetTensor( RT );
 
     //get dimension of matrix
-    UInt rowSize = matTensorOrig.GetNumRows();
-    UInt colSize = matTensorOrig.GetNumCols();
+    UInt rowSize, colSize;
+    origCoef->GetTensorSize(rowSize, colSize );
 
     Matrix<Complex> helpMat;
 
+    // perform rotation of 3 x 3 matrix
     if ( rowSize == 3 && colSize == 3) {
       // tensor is a 3x3 matrix: sol = R * matrixOrig * RT
-      helpMat   = matTensorOrig * RT;
-      matTensor = R * helpMat;
+      CoefXprBinOp tmp( origCoef, cRT, CoefXpr::OP_MULT );
+      CoefXprBinOp final( cR, tmp, CoefXpr::OP_MULT );
+      rotatedCoef = CoefFunction::Generate( part, final );
     }
     else {
       // we also need Q;
-      Matrix<Complex> Q;
+      Matrix<Double> Q;
 
       // Composed Rotation Matrix
       // Ref.: M.Richter, "Entwicklung mechanischer Modelle zur analytischen
@@ -419,28 +575,40 @@ namespace CoupledField
       Q[5][5] = R[0][0]*R[1][1] + R[0][1]*R[1][0];
 
 
-      // 	std::cout << "R:\n" << R << std::endl;
-      // 	std::cout << "Q:\n" << Q << std::endl;
-      // 	std::cout << "Tensor orig:\n" << matTensor << std::endl;
+      //  std::cout << "R:\n" << R << std::endl;
+      //  std::cout << "Q:\n" << Q << std::endl;
+      //  std::cout << "Tensor orig:\n" << matTensor << std::endl;
 
-      Matrix<Complex> QT;
+      Matrix<Double> QT;
       QT.Resize(6,6);
       Q.Transpose(QT);
+      
+      // convert both to coefficient functions
+      shared_ptr<CoefFunctionConst<Double> > cQ(new CoefFunctionConst<Double>());
+      shared_ptr<CoefFunctionConst<Double> > cQT(new CoefFunctionConst<Double>());
+      cQ->SetTensor( Q );
+      cQT->SetTensor( QT );
 
       if ( rowSize == 3 && colSize == 6 ) {
-        helpMat   = matTensorOrig * QT;
-        matTensor = R * helpMat;
+        CoefXprBinOp tmp( origCoef, cQT, CoefXpr::OP_MULT );
+        UInt nRows, nCols;
+        StdVector<std::string>t1, t2;
+        tmp.GetTensorXpr(nRows, nCols, t1, t2 );
+        CoefXprBinOp final( cR, tmp, CoefXpr::OP_MULT );
+        final.GetTensorXpr(nRows, nCols, t1, t2 );
+        rotatedCoef = CoefFunction::Generate( part, final );
       }
       else if (rowSize == 6 && colSize == 6 ) {
-        helpMat   = matTensorOrig * QT;
-        matTensor = Q * helpMat;
+        CoefXprBinOp tmp( origCoef, cQT, CoefXpr::OP_MULT );
+        CoefXprBinOp final( cQ, tmp, CoefXpr::OP_MULT );
+        rotatedCoef = CoefFunction::Generate( part, final );
       }
-      // 	else {
-      // 	  EXCEPTION("Cannot rotate tensor due to dimensions!");
-      // 	}
+      //  else {
+      //    EXCEPTION("Cannot rotate tensor due to dimensions!");
+      //  }
     }
   }
-
+  
 
   void BaseMaterial::InitHyst( UInt numElemSD, shared_ptr<ElemList> actSDList,
                                bool isInverse, bool computeHystInverse ) {
@@ -673,37 +841,52 @@ namespace CoupledField
    }
 
 
-   PtrCoefFct  BaseMaterial::GetTensorCoefFnc(MaterialType matType,
-                                                           SubTensorType type,Global::ComplexPart matDataType,
-                                                           bool transpose){
+   PtrCoefFct  BaseMaterial::GetTensorCoefFnc(MaterialType matType, SubTensorType type,
+                                              Global::ComplexPart matDataType, 
+                                              bool transpose ) {
      PtrCoefFct mFunct;
-     if(matDataType == Global::REAL){
-       CoefFunctionConst<Double>* tmpFnc = new CoefFunctionConst<Double>();
-       Matrix<Double> coefMat;
-       GetTensor(coefMat,matType,matDataType,type);
-
-       // transpose if flag is true
-       if( transpose ) {
-         Matrix<Double> temp;
-         coefMat.Transpose(temp);
-         coefMat = temp;
+     
+     
+     if( tensorCoef_.find(matType) !=  tensorCoef_.end() ) {
+       // --------------------------------------
+       //  Coefficient Function already defined
+       // --------------------------------------
+       PtrCoefFct tmp = GetSubTensorCoefFnc( matType, type, transpose  );
+       PtrCoefFct ret = tmp->GetComplexPart( matDataType );
+       return ret;
+       
+       
+     } else {
+       // -------------------------------------------
+       //  Create CoefFunction from constant entries
+       // -------------------------------------------
+       if(matDataType == Global::REAL){
+         CoefFunctionConst<Double>* tmpFnc = new CoefFunctionConst<Double>();
+         Matrix<Double> coefMat;
+         GetTensor(coefMat,matType,matDataType,type);
+         // transpose if flag is true
+         if( transpose ) {
+           Matrix<Double> temp;
+           coefMat.Transpose(temp);
+           coefMat = temp;
+         }
+         tmpFnc->SetTensor(coefMat);
+         mFunct.reset(tmpFnc);
+       }else if(matDataType == Global::COMPLEX){
+         CoefFunctionConst<Complex>* tmpFnc = new CoefFunctionConst<Complex>();
+         Matrix<Complex> coefMat;
+         GetTensor(coefMat,matType,matDataType,type);
+         // transpose if flag is true
+         if( transpose ) {
+           Matrix<Complex> temp;
+           coefMat.Transpose(temp);
+           coefMat = temp;
+         }
+         tmpFnc->SetTensor(coefMat);
+         mFunct.reset(tmpFnc);
+       }else{
+         EXCEPTION("Material Data Type not supported");
        }
-       tmpFnc->SetTensor(coefMat);
-       mFunct.reset(tmpFnc);
-     }else if(matDataType == Global::COMPLEX){
-       CoefFunctionConst<Complex>* tmpFnc = new CoefFunctionConst<Complex>();
-       Matrix<Complex> coefMat;
-       // transpose if flag is true
-       if( transpose ) {
-         Matrix<Complex> temp;
-         coefMat.Transpose(temp);
-         coefMat = temp;
-       }
-       GetTensor(coefMat,matType,matDataType,type);
-       tmpFnc->SetTensor(coefMat);
-       mFunct.reset(tmpFnc);
-     }else{
-       EXCEPTION("Material Data Type not supported");
      }
      mFunct->SetCoordinateSystem(this->coosy_);
      return mFunct;
@@ -713,27 +896,45 @@ namespace CoupledField
                                                             Global::ComplexPart matDataType ) {
      EXCEPTION("Not implemented")
    }
-   
+
    PtrCoefFct  BaseMaterial::GetScalCoefFnc(MaterialType matType,
-                                                             Global::ComplexPart matDataType ) {
-       PtrCoefFct mFunct;
-       if(matDataType == Global::REAL){
-         CoefFunctionConst<Double>* tmpFnc = new CoefFunctionConst<Double>();
-         Double real;
-         GetScalar(real,matType,matDataType);
-         tmpFnc->SetScalar(real);
-         mFunct.reset(tmpFnc);
-       }else if(matDataType == Global::COMPLEX){
-         CoefFunctionConst<Complex>* tmpFnc = new CoefFunctionConst<Complex>();
-         Complex val;
-         // transpose if flag is true
-         GetScalar(val,matType,matDataType);
-         tmpFnc->SetScalar(val);
-         mFunct.reset(tmpFnc);
-       }else{
-         EXCEPTION("Material Data Type not supported");
-       }
-       mFunct->SetCoordinateSystem(this->coosy_);
-       return mFunct;
+                                            Global::ComplexPart matDataType ) {
+     PtrCoefFct mFunct;
+     if(matDataType == Global::REAL){
+       CoefFunctionConst<Double>* tmpFnc = new CoefFunctionConst<Double>();
+       Double real;
+       GetScalar(real,matType,matDataType);
+       tmpFnc->SetScalar(real);
+       mFunct.reset(tmpFnc);
+     }else if(matDataType == Global::COMPLEX){
+       CoefFunctionConst<Complex>* tmpFnc = new CoefFunctionConst<Complex>();
+       Complex val;
+       // transpose if flag is true
+       GetScalar(val,matType,matDataType);
+       tmpFnc->SetScalar(val);
+       mFunct.reset(tmpFnc);
+     }else{
+       EXCEPTION("Material Data Type not supported");
      }
-}
+     mFunct->SetCoordinateSystem(this->coosy_);
+     return mFunct;
+   }
+   
+   PtrCoefFct BaseMaterial::GetSubTensorCoefFnc( MaterialType matType, 
+                                                 SubTensorType tensorType,
+                                                 bool transposed  ) {
+     
+     PtrCoefFct mFunct;
+     if( tensorCoef_.find(matType) !=  tensorCoef_.end() ) {
+       
+       CoefXprSubTensor subTensorXpr( tensorCoef_[matType] );
+       
+       subTensorXpr.SetSubTensorType( tensorType, transposed );
+       mFunct = CoefFunction::Generate( Global::COMPLEX, subTensorXpr );
+     } else {
+       EXCEPTION( "Material tensor not found" );
+     }
+     return mFunct;
+   }
+   
+} // end of namespace

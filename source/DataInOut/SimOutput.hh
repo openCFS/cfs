@@ -105,7 +105,7 @@ namespace CoupledField {
 
     //! Grid class
     Grid* ptGrid_;
-
+    
     //! Parameter node for current output class
     PtrParamNode myParam_;
 

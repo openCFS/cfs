@@ -213,7 +213,7 @@ void Domain::CreateGrid()
   if (!progOpts->GetPrintGrid() == true)
   {
     // Initialize resultHandler
-    resultHandler_->Init(gridMap_["default"], false);
+    resultHandler_->Init( gridMap_, false);
     
     // print grid information to result file if requested
     if(param->Get("domain")->Get("printGridInfo")->As<bool>() ) {
@@ -1090,7 +1090,7 @@ void Domain::ResetPDEs()
 void Domain::PrintGrid()
 {
 
-  resultHandler_->Init(gridMap_["default"], true);
+  resultHandler_->Init(gridMap_, true);
   resultHandler_->Finalize();
 }
 

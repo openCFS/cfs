@@ -1,6 +1,40 @@
 #include "CoefFunctionConst.hh"
 
 namespace CoupledField {
+template<>
+PtrCoefFct CoefFunctionConst<Double>::GetComplexPart( Global::ComplexPart part ) {
+  // the only meaningful value here is part == Global::REAL, 
+  if( part != Global::REAL ) {
+    EXCEPTION( "Can only return the real-part of a real-valued coefFunction" );
+  }
+  return shared_from_this();
+}
+
+template<>
+PtrCoefFct CoefFunctionConst<Complex>::GetComplexPart( Global::ComplexPart part ) {
+  PtrCoefFct ret;
+  if( part  == Global::COMPLEX ) {
+    ret = shared_from_this();
+  } else if ( part == Global::REAL || part == Global::IMAG ) {
+    shared_ptr<CoefFunctionConst<Double> > real(new CoefFunctionConst<Double>());
+    switch(dimType_) {
+      case SCALAR:
+        real->SetScalar( coefScalar_.real() );
+        break;
+      case VECTOR:
+        real->SetVector( coefVec_.GetPart( part ) );
+        break;
+      case TENSOR:
+        real->SetTensor( constCoefMat_.GetPart( part ) );
+        break;
+      default:
+        EXCEPTION( "Unknown dimType" );
+        break;
+    }
+    ret = real;
+  }
+  return ret;
+}
 
 template<>
 void CoefFunctionConst<Double>::GetStrScalar( std::string& real, std::string& imag ) {

@@ -2225,6 +2225,7 @@ namespace CoupledField
       StdVector<bool> coordsInside;
 
       connect.resize(64);
+      
 
 
       grid.GetElemData(elemNum, type, region, &connect[0]);
@@ -2236,13 +2237,17 @@ namespace CoupledField
       esm->Global2Local(localCoord, globCoord);
       Vector<Double> dia;
       esm->CalcDiameter(dia);
-      bool isInside = esm->CoordIsInsideElem(localCoord,2.0/dia.NormL2());
+      bool isInside = esm->CoordIsInsideElem(localCoord, 1e-2);
+//      std::cerr << "\t\t-> Checking Elem #" << elemNum << "\n";
+//      std::cerr << "\t\t\t->locCoord is " << localCoord.ToString() << std::endl;
       if(isInside) {
         std::pair<const Elem*, Vector<Double> > pair;
         pair.first = grid.GetElem(elemNum);
         pair.second = localCoord;
         *it++ = pair;
+//        std::cerr << "\t\t => HIT!\n";
       } else {
+//        std::cerr << "\t\t => MISS\n";
       }
 
     }
@@ -2311,13 +2316,13 @@ namespace CoupledField
         shared_ptr<ElemShapeMap> esm = this->GetElemShapeMap(elems[i]);
         Vector<Double> dia;
         esm->CalcDiameter(dia);
-        xmin -= dia[0] * 1e-4;
-        xmax += dia[0] * 1e-4;;
-        ymin -= dia[1] * 1e-4;;
-        ymax += dia[1] * 1e-4;;
+        xmin -= dia[0] * 1e-3;
+        xmax += dia[0] * 1e-3;
+        ymin -= dia[1] * 1e-3;
+        ymax += dia[1] * 1e-3;
         if(p.GetSize()>2){
-          zmin -= dia[2] * 1e-4;;
-          zmax += dia[2] * 1e-4;;
+          zmin -= dia[2] * 1e-3;
+          zmax += dia[2] * 1e-3;
         }
         elemBoxes_.push_back( HandleBox(BBox3D(xmin, ymin, zmin, xmax, ymax, zmax),
                                   &elems[i]->elemNum) );
@@ -2350,6 +2355,7 @@ namespace CoupledField
       cadidates.Push_back(iter->first);
       localCoords.Push_back(iter->second);
     }
+    
     return cadidates;
 
   }

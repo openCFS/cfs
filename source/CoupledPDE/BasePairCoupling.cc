@@ -550,7 +550,7 @@ namespace CoupledField {
     // Iterate over all availabe results
     for (it = availResults_.begin(); it != availResults_.end(); it++ ) {
       
-      
+      SolutionType actSolType = (*it)->resultType;
       // Convert enum
       quantity = SolutionTypeEnum.ToString((*it)->resultType);
       
@@ -698,8 +698,17 @@ namespace CoupledField {
           SplitStringList( outDestNames[iRegion], actOutDest, ',' );
           bool writeResult = writeResults[iRegion] == "yes"  ? true : false ;
 
+          // try to get result functor
+          shared_ptr<ResultFunctor> fnc;
+          if( resultFunctors_.find(actSolType) == 
+              resultFunctors_.end() ) {
+            EXCEPTION( "No result functor defined for results of type '"
+                << quantity << "'");
+          }
+          fnc = resultFunctors_[actSolType];
+          
           // pass result to resulthandler
-          resHandler->RegisterResult( actSol, sequenceStep_,saveBegin, saveInc, 
+          resHandler->RegisterResult( actSol, fnc, sequenceStep_,saveBegin, saveInc, 
                                       saveEnd, actOutDest, 
                                       postProcNames[iRegion], writeResult,
                                       isHistory[(*it)->definedOn] );
@@ -797,8 +806,16 @@ namespace CoupledField {
           // extract all output destinations and determine bool flag for writeResult
           SplitStringList( outDestNames[i], actOutDest, ',' );
           bool writeResult = (writeResults[i] == "yes"  ? true : false );
-            
-          resHandler->RegisterResult( actSol, sequenceStep_, 
+          
+          // try to get result functor
+          shared_ptr<ResultFunctor> fnc;
+          if( resultFunctors_.find(actSolType) == 
+              resultFunctors_.end() ) {
+            EXCEPTION( "No result functor defined for results of type '"
+                << quantity << "'");
+          }
+          fnc = resultFunctors_[actSolType];
+          resHandler->RegisterResult( actSol, fnc, sequenceStep_, 
                                       saveBegin, saveInc, saveEnd,
                                       actOutDest, 
                                       postProcNames[i], writeResult, true );
@@ -825,42 +842,7 @@ namespace CoupledField {
   void BasePairCoupling::WriteResultsInFile( const UInt kstep,
                                              const Double asteptime ) {
 
-    ResultMap::iterator it = resultLists_.begin();
-    ResultHandler * resHandler = domain->GetResultHandler();
-    
-    // iterate over all results
-    for( ; it != resultLists_.end(); it++ ) {
-      ResultList & actList = it->second;
-      
-      // iterate over all solutions for each result type
-      for( UInt i = 0; i < actList.GetSize(); i++ ) {
-
-        // get string representation of quantity and entity list
-        std::string listName;
-        std::string quantity = SolutionTypeEnum.ToString(actList[i]->GetResultInfo()->resultType);
-        listName = actList[i]->GetEntityList()->GetName();
-
-        // Only calculate result, if needed
-        if( resHandler->IsResultNeeded( actList[i] ) ) {
-          try {
-            CalcResults( actList[i] );
-          } catch (Exception &ex ) {
-            RETHROW_EXCEPTION( ex, "Could not calculate result '" << quantity
-                               << "' on '" << listName << "' in pde '" 
-                               << couplingName_ << "'");
-          }
-          try {
-            resHandler->UpdateResult( actList[i] );
-          } catch (Exception &ex ) {
-            RETHROW_EXCEPTION( ex, "Could not write result '" << quantity
-                               << "' on '" << listName 
-                               << "' to output file(s) in coupling '" 
-                               << couplingName_ << "'");
-          }  
-        }
-      }
-    }
-    
+      // Add calculation of fields, e.g. for the piezo stress
   }
 
 } // end of namespace

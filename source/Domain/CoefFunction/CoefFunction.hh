@@ -64,7 +64,7 @@ class CoefFunction;
 //!       even whole FeFunctions on other grids, we generally disallow copying
 //!       and assigning CoefFunction objects. 
 //! 
-class CoefFunction : boost::noncopyable {
+class CoefFunction : public boost::noncopyable  {
 public:
 
   // ========================
@@ -181,6 +181,18 @@ public:
   virtual ~CoefFunction(){
     ;
   }
+  
+  //! Get an instance of the object with only a given ComplexPart
+  
+  //! This method allows to retrieve just the real / imaginary part of a 
+  //! complex valued coefficient function if applicable. In case the 
+  //! real-part of an already real-valued coefficient function is requested,
+  //! a pointer to the same instance is returned
+  virtual PtrCoefFct GetComplexPart( Global::ComplexPart part ) {
+    EXCEPTION( "Method CoefFunction::GetComplexPart not properly overwritten" );
+    return PtrCoefFct();
+  }
+  
   //@}
   
   // ========================
@@ -300,10 +312,6 @@ public:
     }else{
       WARN("entity list " << ent->GetName() << " already contained in CoefFunction")
     }
-  }
-
-  virtual void UpdateCoefs(Double tfParam){
-    WARN(__FILE__ << __LINE__ << " Update Coefs has no functionality yet");
   }
 
   //! Dump coefficient function to string 

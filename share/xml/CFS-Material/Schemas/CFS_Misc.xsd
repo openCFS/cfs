@@ -69,6 +69,11 @@
   <xsd:simpleType name="DT_DoubleList">
     <xsd:list itemType="xsd:double"/>
   </xsd:simpleType> 
+  
+  <!-- Data type for setting a array of tokens -->
+  <xsd:simpleType name="DT_TokenList">
+    <xsd:list itemType="xsd:token"/>
+  </xsd:simpleType> 
 
   <!-- ******************************************************************* -->
   <!--   Definition of rayleigh damping for mechanics and acoustics        -->

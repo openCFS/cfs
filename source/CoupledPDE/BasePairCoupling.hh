@@ -65,9 +65,6 @@ namespace CoupledField
     //! specify the time stepping
     virtual void InitTimeStepping() {;};
 
-    //! Trigger calculation of postprocessing results
-    virtual void CalcResults( shared_ptr<BaseResult> result ) {};
-
     //! Write solutions of postprocessing into gmv/unv ... files
     void WriteResultsInFile( const UInt kstep,
                              const Double asteptime );

@@ -351,6 +351,7 @@
     <xsd:attribute name="endianness" type="DT_CFSEndianness" default="native"/>
     <xsd:attribute name="binaryFormat" type="DT_CFSBool" default="yes"/>
     <xsd:attribute name="id" type="xsd:token" default="gmsh"/>
+    <xsd:attribute name="gridId" type="xsd:token" default="default"/>
   </xsd:complexType>
   
   <!-- ******************************************************************** -->
@@ -359,6 +360,7 @@
   <xsd:complexType name="DT_OutputGMshParsed">
     <xsd:attribute name="id" type="xsd:token" default="gmshParsed"/>
     <xsd:attribute name="writeMode" type="xsd:token" default="region"/>
+    <xsd:attribute name="gridId" type="xsd:token" default="default"/>
   </xsd:complexType>
 
   <!-- ******************************************************************** -->
@@ -368,6 +370,7 @@
     <xsd:attribute name="fixedGrid" type="DT_CFSBool" default="yes"/>
     <xsd:attribute name="binaryFormat" type="DT_CFSBool" default="no"/>
     <xsd:attribute name="id" type="xsd:token" default="gmv"/>
+    <xsd:attribute name="gridId" type="xsd:token" default="default"/>
   </xsd:complexType>
   
   <!-- ******************************************************************** -->
@@ -375,6 +378,7 @@
   <!-- ******************************************************************** -->
   <xsd:complexType name="DT_OutputUNV">
     <xsd:attribute name="id" type="xsd:token" default="unv"/>
+    <xsd:attribute name="gridId" type="xsd:token" default="default"/>
   </xsd:complexType>
   
   <!-- ******************************************************************** -->
@@ -382,6 +386,7 @@
   <!-- ******************************************************************** -->
   <xsd:complexType name="DT_OutputInfo">
     <xsd:attribute name="id" type="xsd:token" default="info"/>
+    <xsd:attribute name="gridId" type="xsd:token" default="default"/>
   </xsd:complexType>  
 
   <!-- ******************************************************************** -->
@@ -393,6 +398,7 @@
     <xsd:attribute name="port" type="xsd:nonNegativeInteger" default="8888"/>
     <xsd:attribute name="path" type="xsd:token" use="required"/>
     <xsd:attribute name="silent" type="xsd:boolean" use="optional"/>
+    <xsd:attribute name="gridId" type="xsd:token" default="default"/>
   </xsd:complexType>  
 
 
@@ -404,6 +410,7 @@
     <xsd:attribute name="groupEigenFreqs" type="DT_CFSBool" default="yes"/>
     <xsd:attribute name="id" type="xsd:token" default="gid"/>
     <xsd:attribute name="directory" type="xsd:string" default="results_gid"/>
+    <xsd:attribute name="gridId" type="xsd:token" default="default"/>
   </xsd:complexType>
   
   <!-- ******************************************************************** -->
@@ -421,6 +428,7 @@
     </xsd:attribute>
     <xsd:attribute name="directory" type="xsd:string" default="results_hdf5"/>
     <xsd:attribute name="id" type="xsd:token" default="hdf5"/>
+    <xsd:attribute name="gridId" type="xsd:token" default="default"/>
   </xsd:complexType>
 
   <!-- ******************************************************************** -->
@@ -429,6 +437,7 @@
   <xsd:complexType name="DT_OutputXDMF">
     <xsd:attribute name="directory" type="xsd:string" default="results_hdf5"/>
     <xsd:attribute name="id" type="xsd:token" default="xdmf"/>
+    <xsd:attribute name="gridId" type="xsd:token" default="default"/>
   </xsd:complexType>
   
   <!-- ******************************************************************** -->
@@ -444,6 +453,7 @@
       </xsd:simpleType>
     </xsd:attribute>
     <xsd:attribute name="id" type="xsd:token" default="rst"/>
+    <xsd:attribute name="gridId" type="xsd:token" default="default"/>
   </xsd:complexType>
   
   <!-- ******************************************************************** -->
@@ -479,6 +489,7 @@
       </xsd:simpleType>
     </xsd:attribute>
     <xsd:attribute name="id" type="xsd:token" default="txt"/>
+    <xsd:attribute name="gridId" type="xsd:token" default="default"/>
   </xsd:complexType>
   
   

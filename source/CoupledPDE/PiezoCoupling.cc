@@ -58,95 +58,6 @@ namespace CoupledField {
   PiezoCoupling::~PiezoCoupling() {
   }
 
-  // ***************
-  //   CalcResults
-  // ***************
-  void PiezoCoupling::CalcResults( shared_ptr<BaseResult> res ) {
-    
-    switch (res->GetResultInfo()->resultType ) {
-      case ELEC_FLUX_DENSITY:
-        resultFunctors_[ELEC_FLUX_DENSITY]->EvalResult(res);
-        break;
-        
-      case ELEC_CHARGE_DENSITY:
-        resultFunctors_[ELEC_CHARGE_DENSITY]->EvalResult(res);
-        break;
-
-      case ELEC_CHARGE:
-        resultFunctors_[ELEC_CHARGE]->EvalResult(res);
-        break;
-
-        
-      case MECH_STRESS:
-        resultFunctors_[MECH_STRESS]->EvalResult(res);
-        break;
-      default:
-        WARN( "Result '" << 
-              SolutionTypeEnum.ToString(res->GetResultInfo()->resultType)
-              << "' type not computable by electric PDE" );
-    }
-    
-//    // neighborregion for electric charge
-//    RegionIdType neighbor = surfNeighborRegions_[result];
-//
-//    switch (result->GetResultInfo()->resultType ) {
-//    case ELEC_CHARGE:
-//      if ( isComplex_ ) {
-//      	CalcCharges<Complex>( result, neighbor );
-//      } else{
-//        CalcCharges<Double>( result, neighbor );
-//      }
-//      break;
-//
-//    case MECH_STRESS:
-//    case MECH_STRAIN:
-//      if ( isComplex_ ) {
-//        CalcStressStrain<Complex>( result );
-//      } else {
-//        CalcStressStrain<Double>( result );
-//      }
-//      break;
-//
-//    case VON_MISES_STRESS:
-//      if(isComplex_)
-//        CalcStressStrain<Complex>(result);
-//      else
-//        CalcStressStrain<Double>(result);
-//      break;
-//
-//
-//    case MECH_STRAIN_IRR:
-//      if ( isComplex_ ) {
-//        EXCEPTION("Ireversible Strain makes no sense in Harmonic analysis");
-//      } else {
-//        CalcStrainIrr( result );
-//      }
-//      break;
-//
-//    case ELEC_POLARIZATION:
-//      if ( isComplex_ ) {
-//        EXCEPTION("Electric Polarization makes no sense in Harmonic analysis");
-//      } else {
-//        CalcElecPolarization( result );
-//        
-//      }
-//      break;
-//
-//    case ELEC_FLUX_DENSITY:
-//      if ( isComplex_ ) {
-//         CalcElecFluxDensity<Complex>( result );
-//      } else {
-//        CalcElecFluxDensity<Double>( result );
-//      }
-//      break;
-//
-//    default: 
-//      WARN( "Resulttype not computable by piezoelectric coupling" );
-//    }
-  }
-
-
- 
 
   // *********************
   //   DefineIntegrators
@@ -380,11 +291,11 @@ namespace CoupledField {
     // ------------------------
     shared_ptr<CoefFunction > curCoef;
     if( isComplex ) {
-      curCoef = actSDMat->GetTensorCoefFnc(PIEZO_TENSOR,
-                                          tensorType, Global::COMPLEX, true );
+      curCoef = actSDMat->GetTensorCoefFnc(PIEZO_TENSOR, tensorType, 
+                                          Global::COMPLEX, true  );
     } else {
-      curCoef = actSDMat->GetTensorCoefFnc(PIEZO_TENSOR,
-                                          tensorType, Global::REAL, true );
+      curCoef = actSDMat->GetTensorCoefFnc(PIEZO_TENSOR, tensorType, 
+                                           Global::REAL, true );
     }
     
     // ----------------------------------------
@@ -393,16 +304,16 @@ namespace CoupledField {
     BaseBDBInt * integ = NULL;
     if( subType_ == "axi" ) {
       integ = new ADBInt<StrainOperatorAxi<FeH1>,
-                         GradientOperator<FeH1,2> >(curCoef, 1.0);
+                         GradientOperator<FeH1,2> >(curCoef, 1.0, true );
     } else if( subType_ == "planeStrain" ) {
       integ = new ADBInt<StrainOperator2D<FeH1>,
-                         GradientOperator<FeH1,2> >(curCoef, 1.0);
+                         GradientOperator<FeH1,2> >(curCoef, 1.0, true);
     } else if( subType_ == "planeStress" ) {
       integ = new ADBInt<StrainOperator2D<FeH1>,
-                         GradientOperator<FeH1,2> >(curCoef, 1.0);
+                         GradientOperator<FeH1,2> >(curCoef, 1.0, true);
     } else if( subType_ == "3d") {
       integ = new ADBInt<StrainOperator3D<FeH1>,
-                         GradientOperator<FeH1,3> >(curCoef, 1.0);
+                         GradientOperator<FeH1,3> >(curCoef, 1.0, true);
     } else {
       EXCEPTION( "Subtype '" << subType_ << "' unknown for mechanic physic" );
     }

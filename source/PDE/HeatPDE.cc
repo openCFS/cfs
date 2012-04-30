@@ -283,7 +283,7 @@ void HeatPDE::DefineIntegrators() {
       // --- linear real-valued stiffness integrator ---
       shared_ptr<CoefFunction > curCoef = 
         actSDMat->GetTensorCoefFnc( HEAT_CONDUCTIVITY, tensorType, 
-                                 Global::REAL, false );
+                                    Global::REAL );
 
       BaseBDBInt* stiffInt = NULL;
       if( dim_ == 2 ) {
@@ -704,24 +704,6 @@ void HeatPDE::InitTimeStepping() {
 
 }
 
-void HeatPDE::CalcResults( shared_ptr<BaseResult> res ) {
-
-  switch (res->GetResultInfo()->resultType ) {
-  case HEAT_TEMPERATURE:
-    feFunctions_[HEAT_TEMPERATURE]->ExtractResult( res );
-    break;
-
-  case HEAT_RHS_LOAD:
-    rhsFeFunctions_[ELEC_POTENTIAL]->ExtractResult( res );
-    break;
-    
-  default:
-    WARN( "Resulttype not computable by thermal PDE" );
-    break;
-  }
-}
-
-
 
 void HeatPDE::DefinePrimaryResults() {
 
@@ -736,8 +718,8 @@ void HeatPDE::DefinePrimaryResults() {
   feFunctions_[HEAT_TEMPERATURE]->SetResultInfo(res1);
   results_.Push_back( res1 );
   availResults_.insert( res1 );
-
   res1->SetFeFunction(feFunctions_[HEAT_TEMPERATURE]);
+  DefineFieldResult( feFunctions_[HEAT_TEMPERATURE], res1 );
 
 
   // === TEMPERATURE RHS ===
@@ -748,7 +730,8 @@ void HeatPDE::DefinePrimaryResults() {
   rhs->definedOn = results_[0]->definedOn;
   rhs->entryType = ResultInfo::SCALAR;
   availResults_.insert( rhs );
-  
+  rhsFeFunctions_[HEAT_TEMPERATURE]->SetResultInfo(rhs);
+  DefineFieldResult( rhsFeFunctions_[HEAT_TEMPERATURE], rhs );
 
   // ===================================
   // Check for non-conforming interfaces

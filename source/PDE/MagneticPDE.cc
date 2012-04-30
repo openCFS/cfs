@@ -121,7 +121,7 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode )
         BaseBDBInt * stiffInt = NULL;
         PtrCoefFct curCoef = 
             actMat->GetTensorCoefFnc( MAG_RELUCTIVITY, tensorType,
-                                     Global::REAL, false);
+                                     Global::REAL );
         if( dim_ == 2) {
           if( isaxi_ ) {
             // axisymmetric case
@@ -386,34 +386,6 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode )
     return false;
   }
 
-
-
-  void MagneticPDE::CalcResults( shared_ptr<BaseResult> res ) {
-
-    switch (res->GetResultInfo()->resultType ) {
-
-      case MAG_POTENTIAL:
-        feFunctions_[MAG_POTENTIAL]->ExtractResult( res );
-        break;
-        
-      case ELEC_POTENTIAL:
-        feFunctions_[ELEC_POTENTIAL]->ExtractResult( res );
-        break;
-
-      case MAG_RHS_LOAD:
-        rhsFeFunctions_[MAG_POTENTIAL]->ExtractResult( res );
-        break;
-
-      case MAG_FLUX_DENSITY:
-        resultFunctors_[MAG_FLUX_DENSITY]->EvalResult( res );
-        break;
-
-      default:
-        WARN( "Result '" << 
-              SolutionTypeEnum.ToString(res->GetResultInfo()->resultType)
-              << "' type not computable by magnetic PDE" );
-    }
-  }
 
   // ======================================================
   // TIME STEPPING SECTION

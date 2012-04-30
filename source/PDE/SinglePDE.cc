@@ -777,8 +777,18 @@ namespace CoupledField {
             SplitStringList( outDestNames[iRegion], actOutDest, ',' );
             bool writeResult = writeResults[iRegion] == "yes"  ? true : false ;
 
+            
+            // try to get result functor
+            shared_ptr<ResultFunctor> fnc;
+            if( resultFunctors_.find(candidate->resultType) == 
+                resultFunctors_.end() ) {
+              EXCEPTION( "No result functor defined for results of type '"
+                  << quantity << "'");
+            }
+            fnc = resultFunctors_[candidate->resultType];
+            
             // pass result to resulthandler
-            resHandler->RegisterResult( actSol, sequenceStep_, 
+            resHandler->RegisterResult( actSol, fnc, sequenceStep_, 
                                         saveBegin, saveInc, saveEnd,
                                         actOutDest,
                                         postProcNames[iRegion], writeResult,
@@ -867,7 +877,16 @@ namespace CoupledField {
             SplitStringList( outDestNames[i], actOutDest, ',' );
             bool writeResult = (writeResults[i] == "yes"  ? true : false );
 
-            resHandler->RegisterResult( actSol, sequenceStep_, 
+            // try to get result functor
+            shared_ptr<ResultFunctor> fnc;
+            if( resultFunctors_.find(candidate->resultType) == 
+                resultFunctors_.end() ) {
+              EXCEPTION( "No result functor defined for results of type '"
+                  << quantity << "'");
+            }
+            fnc = resultFunctors_[candidate->resultType];
+            
+            resHandler->RegisterResult( actSol, fnc, sequenceStep_, 
                                         saveBegin, saveInc, saveEnd,
                                         actOutDest,
                                         postProcNames[i], writeResult, true );
@@ -899,51 +918,6 @@ namespace CoupledField {
                                       const Double actTimeFreq ) {
     LOG_DBG(singlepde) << "WriteResultsInFile() kstep: " <<  kstep
                  << " actTimeFreq: " << actTimeFreq;
-    ResultMap::iterator it = resultLists_.begin();
-    ResultHandler * resHandler = domain->GetResultHandler();
-
-    // =======================================
-    //  Trigger calculation of normal results 
-    // =======================================
-    
-    // iterate over all results
-    for( ; it != resultLists_.end(); it++ ) {
-      ResultList & actList = it->second;
-
-      // iterate over all solutions for each result type
-      for( UInt i = 0; i < actList.GetSize(); i++ ) {
-
-        // get string representation of quantity and entity list
-        std::string listName;
-        std::string quantity = SolutionTypeEnum.ToString(actList[i]->GetResultInfo()->resultType);
-        listName = actList[i]->GetEntityList()->GetName();
-
-        // Only calculate result, if needed
-        if( resHandler->IsResultNeeded( actList[i] ) ) 
-        {
-          try 
-          {
-            CalcResults( actList[i] );
-          } 
-          catch (Exception &ex ) 
-          {
-            RETHROW_EXCEPTION( ex, "Could not calculate result '" << quantity
-                               << "' on '" << listName << "' in pde '" << pdename_ << "'");
-          }
-          try 
-          {
-            resHandler->UpdateResult( actList[i] );
-          } 
-          catch (Exception &ex ) 
-          {
-            RETHROW_EXCEPTION( ex, "Could not write result '" << quantity
-                               << "' on '" << listName
-                               << "' to output file(s) in pde '" << pdename_ << "'");
-          }
-        }
-      }
-    }
-    
     
     // ===================================================
     //  Trigger calculation of interpolated field results 

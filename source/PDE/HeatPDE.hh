@@ -72,14 +72,6 @@ namespace CoupledField {
     //! Returns if PDE can compute the quantity
     bool HasOutput(SolutionType output) { return false;};
 
-    // ======================================================
-    // POSTPROCESSING SECTION
-    // ======================================================
-
-    //! perform postprocessing on data
-    void CalcResults( shared_ptr<BaseResult> result );
- 
-    
   protected:
 	  
     //!  Define available postprocessing results

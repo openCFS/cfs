@@ -127,6 +127,15 @@ public:
   static bool IsComplex( PtrCoefFct a,
                          PtrCoefFct b,
                          OpType op ); 
+  
+  //! Helper method to create the transposed of a tensor / matrix
+  
+  //! This method returns the transposed of the original vector. The parameters
+  //! nCols and Rows refer to the constant original matrix / tensor.
+  static void Tranpose( UInt nRows, UInt nCols, 
+                        const StdVector<std::string>& in,
+                        StdVector<std::string>& trans );
+                        
 
   //! Apply real-valued unary function on scalar
   static void ApplyUnaryFunc( std::string& retReal, const std::string& argReal,
@@ -144,13 +153,36 @@ public:
                                const std::string& arg2Real,
                                OpType op );
 
-  //! Apply complex-valued unary function on scalar
+  //! Apply complex-valued binary function on scalar
   static void ApplyBinaryFunc( std::string& retReal, std::string& retImag, 
                                const std::string& arg1Real,
                                const std::string& arg2Real,
                                const std::string& arg1Imag,
                                const std::string& arg2Imag,
                                OpType op );
+  
+  //! Apply real-valued ternary function on scalar
+  
+  //! Calculates the expression  op1(arg1, op2(arg2, arg3) )
+  static void ApplyTernaryFunc( std::string& retReal, 
+                                const std::string& arg1Real,
+                                const std::string& arg2Real,
+                                const std::string& arg3Real,
+                                OpType op1, OpType op2 );
+
+  //! Apply complex-valued ternary function on scalar
+  
+  //! Calculates the expression  op1(arg1, op2(arg2, arg3) )
+  static void ApplyTernaryFunc( std::string& retReal, std::string& retImag, 
+                                const std::string& arg1Real,
+                                const std::string& arg2Real,
+                                const std::string& arg3Real,
+                                const std::string& arg1Imag,
+                                const std::string& arg2Imag,
+                                const std::string& arg3Imag,
+                                OpType op1, OpType op2 );
+
+  
 
   // --------------------------------------------------------------------------
   // Case 1: Expression evaluates to an analytical expressions
@@ -229,7 +261,7 @@ public:
   
   //! Constructor
   CoefXprUnaryOp( PtrCoefFct a,
-                CoefXpr::OpType op );
+                  CoefXpr::OpType op );
 
   //! Constructor for string representation of coefficient function
   CoefXprUnaryOp( const std::string& a,
@@ -301,9 +333,9 @@ public:
                 CoefXpr::OpType op );
   
   //! Constructor for coefficient and xpr
-    CoefXprBinOp( PtrCoefFct a, 
-                  const CoefXpr& b,
-                  CoefXpr::OpType op );
+  CoefXprBinOp( PtrCoefFct a, 
+                const CoefXpr& b,
+                CoefXpr::OpType op );
 
   //! Constructor for coefficient function, string
   CoefXprBinOp( PtrCoefFct a, 
@@ -505,5 +537,100 @@ protected:
   CoefXpr::OpType op_;
 };
 
+// --------------------------------------------------------------------------
+//  TENSOR REPRESENTATION (MECHANIC MATERIAL)
+// --------------------------------------------------------------------------
+//! Models the sub-tensor representation of mechanical stiffness
+
+//! This class represents the different tensor representations of the 
+//! mechanical stiffness tensor. It takes the original, full tensor and
+//! returns the sub-tensor in general form 
+class CoefXprMechSubTensor : public CoefXpr {
+  
+public:
+  
+  //! Constructor
+  CoefXprMechSubTensor( PtrCoefFct a );
+
+  //! Constructor for given coefficient function
+  CoefXprMechSubTensor( const CoefXpr& a) ;
+  
+  //! Set given subType and if tensor should be transposed
+  void SetSubTensorType(SubTensorType subType, bool transposed );
+  
+
+  //! Get tensor expression
+  void GetTensorXpr( UInt& numRows, UInt& numCols,
+                     StdVector<std::string>& real, 
+                     StdVector<std::string>& imag ) const;
+
+  //! \copydoc CoefXpr::GetArgs
+  void GetArgs( std::map<std::string, PtrCoefFct > & vars ) const;
+   
+protected:
+   
+   //! Private initialization
+   void Init( PtrCoefFct );
+   
+   //! Coefficient function representing the original tensor
+   PtrCoefFct a_;
+   
+   //! Variable name of the first argument
+   std::string aName_;
+   
+   //! Subtensor type
+   SubTensorType tensorType_;
+   
+   //! Flag if transposed of tensor should be used
+   bool transposed_;
+};
+
+// --------------------------------------------------------------------------
+//  TENSOR REPRESENTATION (GENERAL MATERIAL)
+// --------------------------------------------------------------------------
+//! Models the sub-tensor representation of general tensors
+
+//! This class represents the different tensor representations of the 
+//! general material tensors in 3 dimensions. It takes the original, full tensor 
+//! and returns the sub-tensor in general form  
+class CoefXprSubTensor : public CoefXpr {
+  
+public:
+  
+  //! Constructor
+  CoefXprSubTensor( PtrCoefFct a );
+
+  //! Constructor for given coefficient function
+  CoefXprSubTensor( const CoefXpr& a) ;
+  
+  //! Set given subType and if tensor should be transposed
+  void SetSubTensorType(SubTensorType subType, bool transposed );
+  
+
+  //! Get tensor expression
+  void GetTensorXpr( UInt& numRows, UInt& numCols,
+                     StdVector<std::string>& real, 
+                     StdVector<std::string>& imag ) const;
+
+  //! \copydoc CoefXpr::GetArgs
+  void GetArgs( std::map<std::string, PtrCoefFct > & vars ) const;
+   
+protected:
+   
+   //! Private initialization
+   void Init( PtrCoefFct );
+   
+   //! Coefficient function representing the original tensor
+   PtrCoefFct a_;
+   
+   //! Variable name of the first argument
+   std::string aName_;
+   
+   //! Subtensor type
+   SubTensorType tensorType_;
+   
+   //! Flag if transposed of tensor should be used
+   bool transposed_;
+};
 }
 #endif // header guard

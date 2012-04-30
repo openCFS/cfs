@@ -18,6 +18,7 @@ namespace CoupledField {
   class SimOutput;
   class SimInput;
   class PostProc;
+  class ResultFunctor;
 
   //! Class for managing several result objects and output classes
   class ResultHandler {
@@ -42,13 +43,16 @@ namespace CoupledField {
     // =======================================================================
 
     //! Add output writer
-    void AddOutputDest( shared_ptr<SimOutput> out, const std::string& id);
+    void AddOutputDest( shared_ptr<SimOutput> out,
+                        const std::string& writerId,
+                        const std::string& gridId );
     
     //! Initialize class
 
     //! This triggers the creation of files and
     //! the writing of the grid information
-    void Init( Grid* ptGrid, bool printGridOnly );
+    void Init(  std::map<std::string, Grid* >& gridMap,
+                bool printGridOnly );
 
     //! Set number of multisequence steps
     void SetNumMultiSequenceSteps( UInt numSteps );
@@ -67,6 +71,7 @@ namespace CoupledField {
     //! be written. Also an associated output destination has to be given, where
     //! the result will be written to.
     void RegisterResult( shared_ptr<BaseResult> sol,
+                         shared_ptr<ResultFunctor> fnc,
                          UInt sequenceStep,
                          UInt saveBegin, UInt saveInc,
                          UInt saveEnd, 
@@ -84,6 +89,9 @@ namespace CoupledField {
 
     //! Update previously registered result
     void UpdateResult( shared_ptr<BaseResult> sol );
+    
+    //! New update method, which is just called once
+    void UpdateResults();
     
     //! Finish single analysis step
     void FinishStep( );
@@ -174,6 +182,9 @@ namespace CoupledField {
 
       //! Result type
       shared_ptr<BaseResult> result;
+      
+      //! ResultFunctor
+      shared_ptr<ResultFunctor> functor;
 
       //! Multisequence step
       UInt sequenceStep;
@@ -200,7 +211,7 @@ namespace CoupledField {
       StdVector<shared_ptr<PostProc> > postProcs;
 
       //! List of outputs, the result gets written to
-      StdVector<shared_ptr<SimOutput> > outputs;
+      StdVector<std::string > outputIds;
 
     };
 
@@ -236,6 +247,9 @@ namespace CoupledField {
 
     //! Map relating outputIds with the output classes
     std::map<std::string, shared_ptr<SimOutput> > outFiles_;
+    
+    //! Map relating outputIds with the gridIds
+     std::map<std::string, std::string > outGridIds_;
 
     //! Set containing all result types needed for the current simulation step
     std::set<shared_ptr<BaseResult> > isNeeded_;

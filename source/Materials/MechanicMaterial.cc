@@ -8,12 +8,13 @@
 #include <fstream>
 #include <math.h>
 #include <limits.h>
-#include <string>
+
 #include <boost/bind.hpp> // TODO what do we need bind here?? - Fabian
 #include <boost/lexical_cast.hpp>
 
 #include "MechanicMaterial.hh"
 #include "Domain/Domain.hh"
+#include "Domain/CoefFunction/CoefXpr.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
 
 DECLARE_LOG(mat)
@@ -391,6 +392,23 @@ namespace CoupledField
     }
   }
 
+
+  PtrCoefFct MechanicMaterial::GetSubTensorCoefFnc( MaterialType matType, 
+                                                    SubTensorType tensorType,
+                                                    bool transposed ) {
+    PtrCoefFct mFunct;
+    if( tensorCoef_.find(matType) !=  tensorCoef_.end() ) {
+      
+      CoefXprMechSubTensor subTensorXpr( tensorCoef_[matType] );
+      
+      subTensorXpr.SetSubTensorType( tensorType, transposed );
+      mFunct = CoefFunction::Generate( Global::COMPLEX, subTensorXpr );
+    } else {
+      EXCEPTION( "Material tensor not found" );
+    }
+    return mFunct;
+  }
+  
   void MechanicMaterial::GetTensor( Matrix<Complex>& param, 
 				    MaterialType matType, 
 				    Global::ComplexPart dataType,

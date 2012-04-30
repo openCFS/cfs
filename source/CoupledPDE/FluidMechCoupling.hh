@@ -39,9 +39,6 @@ class BiLinearForm;
     //! Destructor
     virtual ~FluidMechCoupling();
 
-    //! Trigger calculation of postprocessing results
-    void CalcResults( shared_ptr<BaseResult> result );
-
   protected:
 
     //! Definition of the (bi)linear forms

@@ -35,13 +35,17 @@ class CoefFunctionExpression : public CoefFunctionAnalytic {
 
 //! Coefficient function defined by real-valued mathematical expression
 template<>
-class CoefFunctionExpression<Double> : public CoefFunctionAnalytic {
+class CoefFunctionExpression<Double> : public CoefFunctionAnalytic,
+                                       public boost::enable_shared_from_this<CoefFunctionExpression<Double> >{
   
   public:
     CoefFunctionExpression();
 
     ~CoefFunctionExpression();
 
+    //! \copydoc CoefFunction::GetComplexPart
+    virtual PtrCoefFct GetComplexPart( Global::ComplexPart part );
+    
     void GetTensor(Matrix<Double>& CoefMat, const LocPointMapped& lpm );
 
     void GetVector(Vector<Double>& CoefVec, const LocPointMapped& lpm );
@@ -116,13 +120,17 @@ class CoefFunctionExpression<Double> : public CoefFunctionAnalytic {
 
 //! Coefficient function defined by complex-valued mathematical expression
 template<>
-class CoefFunctionExpression<Complex> : public CoefFunctionAnalytic {
+class CoefFunctionExpression<Complex> : public CoefFunctionAnalytic,
+                                        public boost::enable_shared_from_this<CoefFunctionExpression<Complex> >{
   
   public:
     CoefFunctionExpression();
 
     ~CoefFunctionExpression();
 
+    //! \copydoc CoefFunction::GetComplexPart
+    virtual PtrCoefFct GetComplexPart( Global::ComplexPart part );
+    
     void GetTensor(Matrix<Complex>& CoefMat, const LocPointMapped& lpm );
 
     void GetVector(Vector<Complex>& CoefVec, const LocPointMapped& lpm );
@@ -147,7 +155,7 @@ class CoefFunctionExpression<Complex> : public CoefFunctionAnalytic {
 
     //! \copydoc CoefFunction::GetTensorSize
     virtual void GetTensorSize( UInt& numRows, UInt& numCols ) const {
-      assert(this->dimType_ == VECTOR );
+      assert(this->dimType_ == TENSOR );
       numRows = numRows_;
       numCols = numCols_;
     }

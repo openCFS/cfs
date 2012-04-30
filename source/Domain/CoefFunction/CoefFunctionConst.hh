@@ -2,6 +2,8 @@
 #define COEFFUNCTIONCONST_HH
 
 #include <boost/tr1/type_traits.hpp>
+#include <boost/shared_ptr.hpp>
+
 #include "CoefFunction.hh"
 
 #include "Domain/CoordinateSystems/CoordSystem.hh"
@@ -10,7 +12,9 @@ namespace CoupledField {
 
 //! Provide a coefficient function with constant expressions
 template<typename T>
-class CoefFunctionConst : public CoefFunctionAnalytic{
+class CoefFunctionConst : public CoefFunctionAnalytic, 
+                          public boost::enable_shared_from_this<CoefFunctionConst<T> >
+{
 public:
 
   //! Constructor
@@ -25,6 +29,9 @@ public:
   virtual ~CoefFunctionConst(){
     ;
   }
+ 
+  //! \copydoc CoefFunction::GetComplexPart
+  virtual PtrCoefFct GetComplexPart( Global::ComplexPart part );
 
   //! \copydoc CoefFunction::GetTensor
   void GetTensor(Matrix<T>& coefMat, 
@@ -88,14 +95,14 @@ public:
   }
 
   //! Set tensor value
-  void SetTensor(Matrix<T>& CoefMat){
+  void SetTensor(const Matrix<T>& CoefMat){
     assert((this->dimType_ == NO_DIM) || (this->dimType_ == TENSOR) );
     this->dimType_ = TENSOR;
     this->constCoefMat_ = CoefMat;
   }
 
   //! Set vector values
-  void SetVector(Vector<T> val){
+  void SetVector(const Vector<T>& val){
     assert((this->dimType_ == NO_DIM) || (this->dimType_ == VECTOR) );
     this->coefVec_ = val;
     this->dimType_ = VECTOR;

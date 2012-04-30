@@ -21,6 +21,15 @@ template<class TYPE> FieldCoefFunctor<TYPE>::
 template<class TYPE> void FieldCoefFunctor<TYPE>::
 EvalResult( shared_ptr<BaseResult> res ) {
 
+  // check, if the node list is a 
+  if( res->GetEntityList()->GetType() == EntityList::NODE_LIST 
+      && typeid(*coef_) == typeid(FeFunction<TYPE>) ) {
+    FeFunction<TYPE> & feFct= 
+        dynamic_cast<FeFunction<TYPE>&> (*coef_);
+    feFct.ExtractResult(res);
+    return;
+  }
+  
   Result<TYPE>& actSol = static_cast<Result<TYPE>& >(*res);
   EntityIterator it = actSol.GetEntityList()->GetIterator();
   Vector<TYPE>& vec = actSol.GetVector();

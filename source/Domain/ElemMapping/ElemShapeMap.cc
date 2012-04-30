@@ -880,9 +880,9 @@ void LagrangeElemShapeMap::Global2LocalGeneral( Vector<Double>& locPoint,
   }
   while(iter < 6);
 
-  Vector<Double> globMapped, errVec;
-  Local2Global(globMapped, xi_k);
-  errVec = globMapped - globalPoint;
+//  Vector<Double> globMapped, errVec;
+//  Local2Global(globMapped, xi_k);
+//  errVec = globMapped - globalPoint;
   locPoint = xi_k;
 }
 

@@ -12,6 +12,7 @@ namespace CoupledField
   class Coil;
   class CurlCurlEdgeInt;
   class nLinCurlCurlEdgeInt;
+  class CoefFunctionMulti;
 
   //! Class for 3D magnetics using edge elements
   class MagEdgePDE : public SinglePDE
@@ -38,16 +39,12 @@ namespace CoupledField
 
     //! define surface integrators needed for this pde
     void DefineSurfaceIntegrators( ){};
+    
+    //! Define all RHS linearforms for load / excitation 
+    void DefineRhsLoadIntegrators();
 
     //! define the SoltionStep-Driver
     void DefineSolveStep();
-    
-    // ======================================================
-    // POSTPROCESSING SECTION
-    // ======================================================
-
-    //! do PostProcessing step
-    void CalcResults( shared_ptr<BaseResult> result );
     
     // ======================================================
     // COUPLING SECTION
@@ -177,13 +174,16 @@ namespace CoupledField
 
     //@}
 
-    // =======================================================================
-    //   Nonlinear method
-    // =======================================================================
     //! \copydoc SinglePDE::CreateFeSpace
     std::map<SolutionType, shared_ptr<FeSpace> > 
     CreateFeSpaces( const std::string& formulation, 
                     PtrParamNode infoNode );
+    
+    //! Coefficient function, containing the overall reluctivity
+    shared_ptr<CoefFunctionMulti> reluc_;
+    
+    //! Coefficient function, containing the overall conductivity
+    shared_ptr<CoefFunctionMulti> conduc_;
     
   private:
   };

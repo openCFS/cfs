@@ -56,16 +56,6 @@ namespace CoupledField {
   }
 
 
-  // ***************
-  //   CalcResults
-  // ***************
-  void AcouMechCoupling::CalcResults( shared_ptr<BaseResult> result ) {
-    REFACTOR
-  }
-
-
- 
-
   // *********************
   //   DefineIntegrators
   // *********************

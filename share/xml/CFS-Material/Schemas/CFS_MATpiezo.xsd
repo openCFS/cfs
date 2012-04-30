@@ -31,14 +31,14 @@
     <xsd:sequence>
       <xsd:element name="real">
         <xsd:simpleType>
-          <xsd:restriction base="DT_DoubleList">
+          <xsd:restriction base="DT_TokenList">
             <xsd:maxLength value="18"/>
           </xsd:restriction>
         </xsd:simpleType>
       </xsd:element> 
       <xsd:element name="imag" minOccurs="0">
         <xsd:simpleType>
-          <xsd:restriction base="DT_DoubleList">
+          <xsd:restriction base="DT_TokenList">
             <xsd:maxLength value="18"/>
           </xsd:restriction>
         </xsd:simpleType>
