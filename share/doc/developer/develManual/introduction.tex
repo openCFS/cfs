@@ -217,21 +217,22 @@ We utilize the following tools:\\
   them over time. It facilitates the recovery of older versions and the
 concurrent management of  different developing branches \cite{svn}.\\
 
-\noindent
-{\sf  CFSDEPS:} When  developing  a  general purpose  finite
-element  code   a  lot  of  external  libraries   (e.g.  BLAS, LAPACK,  ARPACK,
-Metis) have to be included.
-Many
-of these  libraries are present  on modern-day Linux/Unix distributions.  If a
-library is however not available, it has  to be built from
-source. Since
-more than the standard GNU compiler suite should  be supported, it is almost certain that
-incompatibilities  with pre-built  system  libraries will  arise. Therefore,  we
-decided to build all our dependencies in an automated script based manner. The
-scripts fetch the sources from  the web, unpack them, perform a checksum check,
-patch, configure, build and install  the libraries. This way we obtain maximum
-platform-independence  while   having  a  well-documented   and  SVN-versioned
-description of how to build external packages.\\
+\noindent {\sf CFSDEPS:} When developing a general purpose finite element code
+a lot  of external libraries  (e.g.  BLAS, LAPACK,  ARPACK, Metis) have  to be
+included.   Many  of these  libraries  are  present  on modern-day  Linux/Unix
+distributions.  If a library is however not available, it has to be built from
+source. Since more  than the standard GNU compiler  suite should be supported,
+it is  almost certain that  incompatibilities with pre-built  system libraries
+will  arise.   Therefore, we  decided  to build  all  our  dependencies in  an
+automated script  based manner.  The scripts  fetch the sources  from the web,
+unpack them, perform a checksum check, patch, configure, build and install the
+libraries.  This  way we obtain  maximum platform-independence while  having a
+well-documented  and  SVN-versioned  description  of  how  to  build  external
+packages. In  the past the CFSDEPS  were located in a  separate SVN repository
+and  Perl scripts were  used to  do platform  independent builds  at configure
+time. In the latest revisions, the CFSDEPS have been moved into the main CFS++
+repo and CMake external  project builds (cf. \cite{BuildExtPackages}) are used
+at build time.  \\
 
 \noindent
 {\sf CMake Build System:}  CMake is a family of platform

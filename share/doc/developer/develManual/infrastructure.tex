@@ -215,24 +215,30 @@ Before configuring the current build directory we need to specify which compiler
 export CC=gcc; export CXX=g++; export FC=gfortran
 \end{verbatim}
 
-for example. It is of utmost importance that the correct versions of gcc and g++ are available under these names in the system PATH. This is necessary since other compilers (e.g. Intel) depend on the GNU runtime libraries and by default determine the path to these libraries by checking the gcc and g++ executables in the PATH.
+for example. It  is of utmost importance that the correct  versions of gcc and
+g++ are  available under  these names  in the system  PATH. This  is necessary
+since other compilers (e.g. Intel) depend  on the GNU runtime libraries and by
+default determine  the path  to these  libraries by checking  the gcc  and g++
+executables in the PATH.
 
-Please note that once a build directory has been configured with a certain set of compilers it not advisable or even impossible to switch to a different set of compilers. This is due to the fact, that CMake generates a lot of flags tailored for each compiler. If you want to use a different compiler either create a new build directory or delete all contents of a build directory.
+Please note that once a build directory has been configured with a certain set
+of compilers it not advisable or  even impossible to switch to a different set
+of compilers.  This is due to  the fact, that  CMake generates a lot  of flags
+tailored for  each compiler. If  you want to  use a different  compiler either
+create a new build directory or delete all contents of a build directory.
 
-For systems for which no default paths exist it is also mandatory to specify the following environment variables
+For systems for  which no default paths exist it is  also mandatory to specify
+the following environment variables
 
 \begin{verbatim}
-export CFS_DEPS_ROOT=PATH_TO_CFSDEPS
-export CFS_DEPS_CACHE_DIR=PATH_WHERE_SOURCES_AND_PRECOMPILED_LIBS_SHOULD_GO
+export CFS_DEPS_CACHE_DIR=PATH_WHERE_SOURCES_OF_LIBS_SHOULD_GO
 \end{verbatim}
 
-At LSE it is just necessary to specify the compilers since the CFSDEPS from
+Per     default     {\tt      CFS\_DEPS\_CACHE\_DIR}     points     to     {\tt
+CFS\_BINARY\_DIR/cfsdeps/cache} but it is  advisable to set a global location,
+since then, sources  have to be downloaded only once.  At  LSE the default for
+the cache directory is reset to {\tt /home/data/libraries/CFSDEPSCACHE}.
 
-\begin{verbatim}
-     https://lse17.e-technik.uni-erlangen.de:2001/svn/cfsdeps/trunk
-\end{verbatim}
-
-should be available at /home/data/libraries/CFSDEPS and the cache directory resides at /home/data/libraries/CFSDEPSCACHE.
 \subsubsection{Configuring the build tree}
 
 Next we change into the build tree.
@@ -257,7 +263,6 @@ Please note: instead of using environment variables, it is also possible to spec
 ccmake -DCMAKE_C_COMPILER:PATH=/usr/bin/gcc \
        -DCMAKE_CXX_COMPILER:PATH=/usr/bin/g++ \
        -DCMAKE_Fortran_COMPILER:PATH=/usr/bin/gfortran \
-       -DCFS_DEPS_ROOT:PATH=/home/data/libraries/CFSDEPS \
        -DCFS_DEPS_CACHE_DIR:PATH=$HOME/CFSDEPSCACHE $HOME/MYCFS
 \end{verbatim}
 
@@ -287,7 +292,7 @@ To alter an option move the cursor there with the arrow keys and press 'Enter'. 
 where we can type
 
 \begin{verbatim}
-make (-jX)
+make cfsdeps && make (-jX)
 \end{verbatim}
 
 to build CFS++. Using the -j option tells make to use X processors for parallel compilation. Building CFS++ now takes around 10-15 minutes for a serial build. The temporary static libraries will end up in
@@ -531,10 +536,16 @@ not un-common among  other big software projects. To name  a few examples, the
 VTK  \cite{VTKWebSite}  ships  with  and  builds libjpeg,  libtiff,  zlib  and
 others. OpenFOAM\footnote{\url{http://www.openfoam.com/}} even builds it's own
 GCC  and VisIt\footnote{\url{https://wci.llnl.gov/codes/visit/}} automatically
-builds  a  number of  external  I/O  libs.   The necessity  for  automatically
-building external packages has also been recognized by the CMake developers in
-the     meantime     and      is     supported     since     version     2.8.0
-(cf. \cite{BuildExtPackages})
+builds  a  number of  external  I/O  libs. 
+
+Up until  spring 2012 the  build of the  external packages was  Perl-based and
+took  place  at configure  time.   The  necessity  for automatically  building
+external  packages has also  been recognized  by the  CMake developers  in the
+meantime       and      is       supported      since       version      2.8.0
+(cf.  \cite{BuildExtPackages}).  Since   the  move  of  Prof.   Kaltenbacher's
+workgroup to  Vienna in  April 2012,  we now use  the CMake  external projects
+mechanism, which builds all dependencies  at build time. Due to this decision,
+CFS++ now requires CMake 2.8.4 to be present on the system.
 
 The   current  hierarchical   structure  of   the  CFSDEPS   is   depicted  in
 Fig.  \ref{fig:cfsdeps_structure}.
@@ -550,9 +561,9 @@ Fig.  \ref{fig:cfsdeps_structure}.
 
 \subsection{Instructions}
 
-Since March 2009  we use the CFSDEPS system taken from  NACS for building most
-of the  depencencies of  CFS++ from source.  The Subversion repository  can be
-found at
+  We used the  Perl-based CFSDEPS system taken from NACS  for building most of
+the depencencies  of CFS++ from  source, since March 2009.   The corresponding
+Subversion repository can still be found at
 
 \noindent \url{https://lse17.e-technik.uni-erlangen.de:2001/svn/cfsdeps/trunk}
 
@@ -563,6 +574,15 @@ of  Gentoo\footnote{\url{http://www.gentoo.org/}}  and  the TCL  based  system
 MacPorts\footnote{\url{http://www.macports.org/}} for external packages on Mac
 OS X.  We used  Perl since it  runs on  all supported platforms  (Linux/Mac OS
 X/Windows) and has been part of the testsuite scripts from the beginning.
+
+Since CMake has  now builtin support for building  external projects and since
+many of  the libraries, that CFS++  depends upon, now have  native CMake build
+mechanisms, the  decision was  made to abandon  Perl. This should  improve the
+maintainability of the code-base, especially  in the view of the upcoming NACS
+2.0, since an  additional programming language can be  dropped.  Moreover, our
+CMake project  had to call  the Perl build  scripts, which in turn  called the
+external  CMake  builds.  This  means,  that there  were  a  lot of  potential
+opportunities to introduce bugs.
 
 Building mostly  everything from  source has the  advantage that we  can apply
 patches for different compilers (GNU/Intel), different distributions or Unices
@@ -608,9 +628,9 @@ required.  Another disadvantage  is  that we  have  to build  CFSDEPS even  if
 developer packages of the libraries are already available on a system.
 
 Not  all libraries  can  be built  from source  since  some of  them are  only
-available in binary form (Pardiso  through MKL). Nonetheless there exist build
-scripts for most  of them which pack the libraries  for certain platforms into
-archives.
+available in binary  form (e.g. ANSYS headers and  IO libs). Nonetheless there
+exist build  scripts for  most of  them which pack  the libraries  for certain
+platforms into archives.
 
 There is  also ParaView which has been  extended by the feature  to read CFS++
 HDF5  files and  OpenFOAM output  files.  It  gets also  built from  source by
@@ -619,64 +639,74 @@ of time.
 
 \subsubsection{How CFSDEPS work}
 
-The CFSDEPS mechanism is directly  integrated into the CMake configure process
-of CFS++  (cf.  cmake\_modules/FindCFSDEPS.cmake  and the files  included from
-there).       The     CMake      macro      BUILD\_EXTLIB     (defined      in
-cmake\_modules/CFS\_macros.cmake) looks for a certain  file which is part of a
-library (e.g.  include/hdf5.h) in the current CFS\_BUILD\_DIR directory and in
-the case  that it is missing  triggers the build script  for the corresponding
-library.   It will supply  the build  script with  the path  to the  Perl file
-CFS\_BUILD\_DIR/tmp/build\_vars.pl  which  has  been previously  generated  by
-FindCFSDEPS.cmake and contains informations like the compiler to be used. What
-kinds  of other information  it contains  is documented  in its  template file
-CFS\_DEPS\_ROOT/build\_vars.pl.in.
+The CFSDEPS mechanism  is tightly integrated into the  CMake configure process
+of CFS++  (cf.  {\tt cmake\_modules/FindCFSDEPS.cmake} and  the files included
+from there). The  download URLs for the different packages  and the files' MD5
+sums are  also specified in  the aforementioned file before  the corresponding
+{\tt  cfsdeps/PACKAGE/External\_PACKAGE.cmake} scripts  are included.  For more
+information    on    the    CMake    external    project    build    mechanism
+cf. \cite{BuildExtPackages} or the source code in {\tt ExternalProject.cmake}.
 
-Once the control has  been handed over to the build script  it will first look
-for a zipped  archive with precompiled binaries for the  library.  The name of
-this  archive  consists  of  a  combination of  the  operating  system  distro
-(e.g. OPENSUSE,  UBUNTU, MACOSX, WINXP),  the operating system  version (11.0,
-8.10,  10.5.6,  5.1.2016), the  architecture  (I386,  X86\_64,  IA64) and  the
-compiler (GCC,  ICC, IFORT...). If the  Subversion working copy  of CFSDEPS in
-CFS\_DEPS\_ROOT has  not been  modified the archives  will be searched  for in
-CFS\_DEPS\_CACHE\_DIR/precompiled/CFSDEPS\_revREVISION  where revision  is the
-maximal revision number (as returned by 'svn status -v --xml CFS\_DEPS\_ROOT')
-of all files in the CFS\_DEPS\_ROOT. If the working copy has been modified the
-precompiled  archives  will  be  searched  in  CFS\_BINARY\_DIR/tmp  since  no
-precompiled binaries  of a modified  and assumably buggy CFSDEPS  working copy
-should be placed into a global CFS\_DEPS\_CACHE\_DIR.  If a proper precompiled
-archive can be found it gets extracted into CFS\_BUILD\_DIR.
 
-If  no such  precompiled archive  can be  found the  build script  will  go on
-looking     for      the     source      code     of     a      library     in
-CFS\_DEPS\_CACHE\_DIR/sources/libname.  If it cannot  find the  source archive
-there it will (in most cases)  download the archive from an appropriate server
-and  check  its  integrity using  an  MD5  checksum.  This integrity  test  is
-performed even if the archive has already been there.
+Once    the     control    has    been    handed    over     to    the    {\tt
+cfsdeps/PACKAGE/External\_PACKAGE.cmake}  script   it  will  first   set  some
+convenient path  variables and then specify additional  external build targets
+using  the {\tt  ExternalProject\_Add()} macro.   The macro  will just  add an
+additional target and  configure it during the configuration  phase, i.e. when
+you type in  'cmake .'  or 'ccmake  .'. It is important to  understand that no
+downloading of  sources, configuration or building of  external libraries will
+take place  during the configuration step  of CFS++ anymorexs.  Just targets are
+added   and  CMake  scripts   for  patching,   building  and   installing  the
+corresponding packages get configured.  These  scripts however are only run at
+build time, i.e. when you type in 'make'.
 
-If  the  integrity check  passed  the build  script  will  change its  working
-directory to  CFS\_BUILD\_DIR/tmp/build, which  has been already  generated by
-the build script.  There the source code archive will  be unpacked and patches
-depending on OS, platform and  compiler will be applied before configuring and
-building the  library sources. The build is  commenced in such a  way that the
-results (headers, libraries and binaries)  will end up in the previously empty
-directory  CFS\_BUILD\_DIR/tmp/stage.  There  an exact  copy of  the directory
-structure of CFS\_BINARY\_DIR gets built  up just containing the files for the
-library currently  built. A last step  before the stage  directory gets zipped
-and stored either in CFS\_DEPS\_CACHE\_DIR/precompiled/CFSDEPS\_revREVISION or
-CFS\_BUILD\_DIR/tmp  is  the  inclusion  of  the  library's  license  file  in
-stage/licenses.
 
-After that the build dir will be  deleted and the just now built zip file gets
-extracted to CFS\_BUILD\_DIR.  This concludes Perl part of  the build process.
+During the build phase,  if a package is built for the  first time, the source
+archive    of    the    package    will    be    searched    for    in    {\tt
+CFS\_DEPS\_CACHE\_DIR/sources/PACKAGE}.  If the archive cannot be found there,
+it  will (in  most cases)  be downloaded  from an  appropriate server  and its
+integrity  will be  checked  using an  MD5  checksum. If  the integrity  check
+passed, the source  code will be unpacked into the  directory specified by the
+variable {\tt  PACKAGE\_source}.  The  next step in  the process usually  is to
+call an  extra custom\_patch step which  depends on the output  of a configured
+patch script.   This way it  is possible to  take into account changes  to the
+patch scripts even after the first  CFS++ configuration run. This would not be
+possible    by   just    specifiying   a    {\tt   PATCH\_COMMAND}    to   {\tt
+ExternalProject\_Add}, since  it would only  be run during the  first configure
+run (cf. \cite{BuildExtPackages}  to see why this is).   The patch scripts get
+configured      by      CMake     and      are      placed     under      {\tt
+CFS\_BINARY\_DIR/cfsdeps/PACKAGE/PACKAGE-patch.cmake}.  They  are run during the
+build  phase of  CFS++ and  apply the  patches depending  on OS,  platform and
+compiler. For some packages also special configure, build and install commands
+get  specified to the  {\tt ExternalProject\_Add}  macro.  This is usually the
+case  for configure-  or make  file-based  projects.  The  built binaries  and
+headers  will be installed  directly into  {\tt CFS\_BINARY\_DIR}  without being
+archived into  the cache dir as  was the case  previously. This is due  to the
+fact, that most  external packages inherit the build  flags from (e.g. release
+ord debug) from the main CFS++ project and it would not make sense to intermix
+different binaries.
+
+CMake        will         touch        the        files         in        {\tt
+CFS\_BINARY\_DIR/cfsdeps/PACKAGE/src/PACKAGE-stamp/PACKAGE-*} which correspond
+to  the various  build steps,  after the  successful conclusion  of  the steps
+(cf.  Fig. \ref{fig:cfsdeps_flowdiag}).   Since there  is now  way  of knowing
+internal dependencies of the external  libs, the library will not get rebuilt,
+even if its  source code gets modified by hand. Therefore,  it is necessary to
+delete the stamp  file corresponding to a certain build step,  if a bug should
+be  fixed inside an  external package.  The safest  way to  make sure,  that a
+certain   package   gets   rebuilt   is   to   delete   its   directory   {\tt
+CFS\_BINARY\_DIR/cfsdeps/PACKAGE}  and all  the files  it install  and running
+{\tt cmake . \&\& make} afterwards.
+
 The sequence of actions during the  build of an individual package is depicted
 in Fig. \ref{fig:cfsdeps_flowdiag}.
 
 \begin{figure}[htb] 
   \centering
-  \begin{overpic}[width=0.55\textwidth]{pics/cfsdeps_flowdiag}
+  \begin{overpic}[width=0.55\textwidth]{pics/cfsdeps_flowdiag.png}
 %    \put(10,20){\textcolor{white}{\bf The electrostatic man!}}
   \end{overpic}
-  \caption{Actions taken during the build of a package.}
+  \caption{Actions taken during the build of a package. Taken from \cite{BuildExtPackages}.}
   \label{fig:cfsdeps_flowdiag}
 \end{figure}%
 
@@ -691,53 +721,63 @@ CFS_BUILD_DIR
 |   `-- OPENSUSE_11.0_X86_64
 |-- licenses
 |-- share
-`-- tmp
-    |-- build
-    `-- stage
-        |-- bin
-        |   `-- OPENSUSE_11.0_X86_64
-        |-- include
-        |-- lib64
-        |   `-- OPENSUSE_11.0_X86_64
-        |-- licenses
-        `-- share
+`-- cfsdeps
+    |-- hdf5
+    `-- zlib
+        |-- src
+        |   |-- zlib
+        |   |   |-- CMakeLists.txt
+        |   |   |-- README
+        |   |   |-- adler32.c
+        |   |   |-- ...
+        |   |   `-- zutil.h
+        |   |-- zlib-shared-build
+        |   |   |-- CMakeCache.txt
+        |   |   `-- ...
+        |   |-- zlib-shared-stamp
+        |   |   |-- ...
+        |   |   |-- zlib-shared-build
+        |   |   |-- zlib-shared-configure
+        |   |   |-- zlib-shared-custom_patch
+        |   |   |-- zlib-shared-done
+        |   |   |-- zlib-shared-download
+        |   |   |-- zlib-shared-install
+        |   |   |-- zlib-shared-mkdir
+        |   |   |-- zlib-shared-patch
+        |   |   `-- zlib-shared-update
+        |   |-- zlib-static-build
+        |   `-- zlib-static-stamp
+        |-- tmp
+        `-- zlib-patch.cmake
 \end{verbatim}
 
 Directory structure of CFSDEPS:
 
 \begin{verbatim}
-CFSDEPS
+CFS++/cfsdeps
 |-- acml
-|-- amd
-|   |-- build_amd.pl
-|   `-- amd.md5
+|-- arpack
+|   |-- External_ARPACK.cmake
+|   |-- ...
+|   `-- arpack-2.1-redhat.patch
 |-- arpack
 |-- boost
-|-- build_common.pl
-|-- build_vars.pl.in
 |-- bzip2
 |-- cgal
 |-- gidpost
+|   |-- CMakeLists.txt
+|   |-- External_GiDpost.cmake
+|   |-- ...
+|   `-- gidpost-patch.cmake.in
 |-- gmp
-|-- gotoblas
 |-- hdf5
 |-- lapack
 |-- metis
 |-- mpfr
+|   |-- External_mpfr.cmake
+|   `-- mpfr-configure.cmake.in	
 |-- muparser
-|-- paraview
-|   `-- CFS-HDF5
-|       |-- doc
-|       |-- paraviewPlugin
-|       `-- source
-|-- pardiso
-|-- qt4
 |-- scpip
-|-- utils
-|   |-- docs
-|   |-- perl
-|   |-- xml
-|   `-- xslt
 |-- xerces
 `-- zlib
 \end{verbatim}
@@ -747,29 +787,22 @@ Directory structure of CFSDEPSCACHE:
 
 \begin{verbatim}
 CFSDEPSCACHE
-|-- precompiled
-|   `-- CFSDEPS\_rev8953
 `-- sources
-    |-- acml
-    |-- amd
-    |   |-- AMD-2.2.0.tar.gz
-    |   `-- UFconfig-3.2.0.tar.gz
     |-- arpack
+    |   |-- arpack96.tar.gz
+    |   `-- patch.tar.gz
     |-- boost
-    |   |-- boost-jam-3.1.17.tgz
-    |   `-- boost\_1\_35\_0.tar.bz2
+    |   `-- boost-1.48.0.tar.gz
     |-- bzip2
     |-- cgal
     |-- gidpost
     |-- gmp
-    |-- gotoblas
     |-- hdf5
+    |   `-- hdf5-1.8.8.tar.gz
     |-- lapack
     |-- metis
     |-- mpfr
     |-- muparser
-    |-- paraview
-    |-- pardiso
     |-- xerces
     `-- zlib
 \end{verbatim}
@@ -777,37 +810,13 @@ CFSDEPSCACHE
 
 \subsubsection{Tips}
 \begin{itemize}
-\item To get  started you should have  at least Perl, CMake 2.6  and a working
-set of gcc, g++ and gfortran on your machine.
-
-\item Everytime  the working  copy in CFS\_DEPS\_ROOT  gets updated and  a new
-build     directory    of     CFS    is     created    all     libraries    in
-CFS\_DEPS\_CACHE\_DIR/precompiled  have  to  be  rebuilt  since  the  revision
-changed. This may take a long time.  If you know what libraries did not change
-just      copy       the      corresponding      zipped       archives      to
-CFS\_DEPS\_CACHE\_DIR/precompiled/CFSDEPS\_revNEWREVISION.
-
-\item If you know  what you are doing you may also  prevent the build process,
-by unzipping older precompiled archives into CFS\_BUILD\_DIR by hand.
+\item To get started you should have at least CMake 2.8.4 and a working set of
+gcc,  g++ and gfortran  on your  machine. The  required dependencies  get also
+installed, when using the {\tt bootstrap\_devel\_machine.sh} script.
 
 \item If you  just want to do a  clean rebuild of your CFS build  tree, do not
 delete  the whole  build tree,  but only  CMakeCache.txt. Then  the previously
 built/extracted CFSDEPS libraries are still present.
-
-\item If  you wish  to modify  a build script  in CFSDEPS  make sure  the file
-searched for  by the  BUILD\_EXTLIB CMake  macro gets deleted  as well  as the
-precompiled archive in CFS\_BUILD\_DIR/tmp before doing a CMake reconfigure.
-
-\item   A   log   file   of    the   build   process   will   be   stored   in
-CFS\_BUILD\_DIR/tmp/build\_libname.log. If a build fails CMake will direct you
-there for an error analysis.
-
-\item CFSDEPS can  also be built by hand outside of  CMake. You should specify
-proper values for the  environment variables PREFIX (=CFS\_BUILD\_DIR in CMake
-environment),    DISTRO\_SCRIPT   (=CFS\_SOURCE\_DIR/share/scripts/distro.sh),
-CFS\_DEPS\_CACHE\_DIR (does  not have to  exist previously), CC  (C compiler),
-CXX  (C++ compiler),  FC  (Fortran compiler).  You  can then  build using  the
-libname.pl scripts.
 \end{itemize}
 
 

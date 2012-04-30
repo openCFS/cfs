@@ -13,22 +13,20 @@ cd $DEVDIR/build/release
 
 # Configure release build tree
 cmake -DDEBUG:BOOL=OFF \
-      -DCFS_DEPS_ROOT:PATH=$DEVDIR/CFSDEPS \
       -DCFS_DEPS_CACHE_DIR:PATH=$DEVDIR/CFSDEPSCACHE \
       -G "Unix Makefiles"
       $DEVDIR/CFS_TRUNK
 
-# Build executables (available in bin/...) using
-# two processors
-make -j2
+# Build CFSDEPS in serial, then build executables (available in bin/...)
+# using two processors
+make cfsdeps && make -j2
 
 # Go to debug build tree, configure and build.
 cd $DEVDIR/build/debug
 
 cmake -DDEBUG:BOOL=ON \
-      -DCFS_DEPS_ROOT:PATH=$DEVDIR/CFSDEPS \
       -DCFS_DEPS_CACHE_DIR:PATH=$DEVDIR/CFSDEPSCACHE \
       -G "Unix Makefiles"
       $DEVDIR/CFS_TRUNK
 
-make -j2
+make cfsdeps && make -j2

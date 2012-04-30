@@ -369,6 +369,7 @@ share/doc/developer/develManual/pics/cfs_elem_types.svg -text
 share/doc/developer/develManual/pics/cfs_setPdeStructure.pdf -text
 share/doc/developer/develManual/pics/cfs_setPdeStructure.svg -text
 share/doc/developer/develManual/pics/cfsdeps_flowdiag.pdf -text svneol=unset#application/pdf
+share/doc/developer/develManual/pics/cfsdeps_flowdiag.png -text
 share/doc/developer/develManual/pics/cfsdeps_flowdiag.svg -text
 share/doc/developer/develManual/pics/cfsdeps_interdependency_graph.dot -text
 share/doc/developer/develManual/pics/cfsdeps_interdependency_graph.pdf -text svneol=unset#application/pdf
@@ -703,6 +704,7 @@ share/scripts/continuation.py -text
 share/scripts/create_density.py -text
 share/scripts/distro.sh svneol=native#text/plain
 share/scripts/extract_info_xml_results.py -text
+share/scripts/generate-standalone-bootstrap-sh.cmake -text
 share/scripts/gid_screenshots.py -text
 share/scripts/h5tool -text
 share/scripts/hdf5_aux.sh.in -text
