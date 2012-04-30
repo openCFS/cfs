@@ -30,6 +30,8 @@ SET(CONFIGURE_CMD
 
 EXECUTE_PROCESS(
   COMMAND ${CONFIGURE_CMD}
-  WORKING_DIRECTORY "@gmp_source@"
+  WORKING_DIRECTORY "${gmp_source}"
+  ERROR_FILE gmp-config.out
+  OUTPUT_FILE gmp-config.out
   RESULT_VARIABLE rv
   )
