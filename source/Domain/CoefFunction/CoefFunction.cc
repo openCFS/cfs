@@ -380,7 +380,7 @@ void  CoefFunction::GenScalCompNames( std::string& realVar,
                                       PtrCoefFct cf ) {
   assert( cf->GetDimType() == SCALAR );
   realVar = prefix + "_R";
-  if( cf->IsComplex())
+  //if( cf->IsComplex() )
     imagVar = prefix + "_I";
 }
 

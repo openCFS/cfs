@@ -111,6 +111,7 @@ public:
     retVec = Transpose(bOp) * solVec;
   }
   
+  //OBSOLETE!!!!
   //! Additional transformation of the Jacobian determinant (e.g. for PML)
   virtual void TransformJacDet(Double & jacLoc,
                                const LocPointMapped & lp, BaseFE* ptFe){

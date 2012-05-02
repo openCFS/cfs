@@ -9,6 +9,7 @@ SET(COEFFUNCTION_SRCS
   CoefFunctionMulti.cc
   CoefFunctionTimeFreq.cc
   CoefFunctionSurf.cc
+  CoefFunctionPML.cc
 )
 #
 ADD_LIBRARY(coeffunction STATIC ${COEFFUNCTION_SRCS})

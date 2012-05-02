@@ -2689,6 +2689,48 @@ namespace CoupledField {
     return volume;
   }
   
+  void GridCFS::CalcBoundingBoxOfRegion (const RegionIdType regId,
+                                         Matrix<Double> & minMax,
+                                         CoordSystem* cSys){
+    StdVector<Elem*> elemssd;
+
+    minMax.Resize(dim_,2);
+    Double largeVal = 1e33;
+     for(UInt i = 0; i < dim_; i++ ) {
+       minMax[i][0] =   largeVal;
+       minMax[i][1] = - largeVal;
+     }
+
+    GetElems(elemssd, regId );
+
+    for (UInt actEl=0; actEl< elemssd.GetSize(); ++actEl) {
+      StdVector<UInt> & connecth = elemssd[actEl]->connect;
+
+      Matrix<Double> ptCoord;
+      GetElemNodesCoord(ptCoord, connecth,  false );
+
+      Vector<Double> globCoord(dim_), locCoord(dim_);
+      // loop over nodes
+      for (UInt i=0; i< ptCoord.GetNumCols(); i++) {
+
+        // convert global coordinate to local coordinate
+        for( UInt iDim = 0; iDim < dim_ ; ++iDim )  {
+          globCoord[iDim] = ptCoord[iDim][i];
+        }
+        cSys->Global2LocalCoord(locCoord, globCoord);
+
+        // determine min / max of propagation region
+        for( UInt iDim = 0; iDim < dim_ ; ++iDim )  {
+          if ( locCoord[iDim] < minMax[iDim][0] )
+            minMax[iDim][0] = locCoord[iDim];
+          if ( locCoord[iDim] > minMax[iDim][1] )
+            minMax[iDim][1] = locCoord[iDim];
+
+        }
+      } // loop over nodes
+    }
+  }
+
 
   void GridCFS::AddNode( const Vector<Double> & coord, UInt & inode )
   {

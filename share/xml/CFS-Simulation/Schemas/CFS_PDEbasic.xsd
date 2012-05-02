@@ -202,7 +202,7 @@
     <xsd:complexContent>
       <xsd:restriction base="xsd:anyType">
         <xsd:attribute name="id" type="xsd:token" use="required"/>
-        <xsd:attribute name="aPML" type="DT_CFSBool" use="optional" default="no"/>
+        <!--xsd:attribute name="aPML" type="DT_CFSBool" use="optional" default="no"/-->
       </xsd:restriction>
     </xsd:complexContent>
   </xsd:complexType>
@@ -264,7 +264,7 @@
           <!-- Damping factor -->
           <xsd:element name="dampFactor" type="xsd:token" minOccurs="0" maxOccurs="1" />
           
-          <xsd:element name="aPML"  type="DT_CFSBool" minOccurs="0" maxOccurs="1" default="no"/>
+          <!--xsd:element name="aPML"  type="DT_CFSBool" minOccurs="0" maxOccurs="1" default="no"/-->
         </xsd:sequence>
         
       </xsd:extension>

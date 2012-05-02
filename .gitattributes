@@ -952,6 +952,8 @@ source/Domain/CoefFunction/CoefFunctionGrid.cc -text
 source/Domain/CoefFunction/CoefFunctionGrid.hh -text
 source/Domain/CoefFunction/CoefFunctionMulti.cc -text
 source/Domain/CoefFunction/CoefFunctionMulti.hh -text
+source/Domain/CoefFunction/CoefFunctionPML.cc -text
+source/Domain/CoefFunction/CoefFunctionPML.hh -text
 source/Domain/CoefFunction/CoefFunctionSurf.cc -text
 source/Domain/CoefFunction/CoefFunctionSurf.hh -text
 source/Domain/CoefFunction/CoefFunctionTimeFreq.cc -text

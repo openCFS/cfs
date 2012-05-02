@@ -347,6 +347,11 @@ namespace CoupledField
     //! \copydoc Grid::CalcVolumeOfEntityList
     Double CalcVolumeOfEntityList( shared_ptr<EntityList> ent,
                                    bool updated = false );
+
+    //! @copydoc Grid::CalcBoundingBoxOfRegion
+    void CalcBoundingBoxOfRegion (const RegionIdType regId,
+                                  Matrix<Double> & minMax,
+                                  CoordSystem* cSys);
     //@}
 
 

@@ -27,6 +27,7 @@
 #include "Driver/Assemble.hh"
 #include "Domain/CoefFunction/CoefXpr.hh"
 #include "Domain/CoefFunction/CoefFunctionMulti.hh"
+#include "Domain/CoefFunction/CoefFunctionPML.hh"
 
 #include <boost/lexical_cast.hpp>
 #include <cmath>
@@ -99,6 +100,8 @@ namespace CoupledField{
     std::map<RegionIdType, BaseMaterial*>::iterator it;
     shared_ptr<FeSpace> mySpace = feFunctions_[formulation_]->GetFeSpace();
 
+    //flag indicating frequency PML formulation
+    bool harmonicPML = false;
     for ( it = materials_.begin(); it != materials_.end(); it++ ) {
       // Set current region and material
       actRegion = it->first;
@@ -117,6 +120,10 @@ namespace CoupledField{
       std::string integId = curRegNode->Get("integId")->As<std::string>();
       mySpace->SetRegionApproximation(actRegion, polyId,integId);
       
+      //=======================================================================
+      // Generate coefficient functions
+      //=======================================================================
+
       PtrCoefFct dens = materials_[actRegion]->GetScalCoefFnc( DENSITY, Global::REAL );
       PtrCoefFct blk = materials_[actRegion]->GetScalCoefFnc( ACOU_BULK_MODULUS, Global::REAL );
       
@@ -133,18 +140,61 @@ namespace CoupledField{
                                         CoefXprBinOp(dens, "-1.0", CoefXpr::OP_MULT ) );
       } else {
         factor = CoefFunction::Generate(Global::REAL, "1.0");
-            
       }
+
+      // build coefficient for mass matrix as (factor / (c0*c0))
+      PtrCoefFct coeffM =
+          CoefFunction::Generate(Global::REAL,
+                                 CoefXprBinOp( factor,
+                                               CoefXprBinOp(c0,c0,CoefXpr::OP_MULT),
+                                               CoefXpr::OP_DIV ) );
+
+      // ====================================================================
+      // Take account for pml (frequency domain only)
+      // ====================================================================
+      shared_ptr<CoefFunction> coeffPML;
+      //just coeffunctions for the transformation of jacobians
+      shared_ptr<CoefFunction> coeffPMLfactor;
+      shared_ptr<CoefFunction> coeffPMLMass;
+      std::string dampId;
+      curRegNode->GetValue("dampingId",dampId);
+
+      if(dampId != ""){
+        if(analysistype_ == HARMONIC){
+          PtrParamNode pmlNode = myParam_->Get("dampingList")->GetByVal("pml","id",dampId.c_str());
+          coeffPML.reset(new CoefFunctionPML<Complex>(pmlNode,c0,actSDList,regions_));
+          coeffPMLfactor = CoefFunction::Generate(Global::COMPLEX,
+                                            CoefXprBinOp(factor,coeffPML,CoefXpr::OP_MULT));
+          coeffPMLMass = CoefFunction::Generate(Global::COMPLEX,
+                                            CoefXprBinOp(coeffM,coeffPML,CoefXpr::OP_MULT));
+          harmonicPML = true;
+        }else{
+          EXCEPTION("PML is only available in the frequency domain right now");
+        }
+      }else{
+        harmonicPML = false;
+      }
+
 
       // ====================================================================
       // standard stiffness integrator
       // ====================================================================
       BiLinearForm * stiffInt = NULL;
       if( dim_ == 2 ) {
-        stiffInt = new BBInt<GradientOperator<FeH1,2>, Double >( factor, 1.0 );
+        if(harmonicPML){
+          stiffInt = new BBInt<ScaledGradientOperator<FeH1,2,Complex>, Complex,Complex >( coeffPMLfactor, 1.0 );
+          stiffInt->SetBCoefFunctionOpB(coeffPML);
+        }else{
+          stiffInt = new BBInt<GradientOperator<FeH1,2>, Double >( factor, 1.0 );
+        }
       }
       else{
-        stiffInt = new BBInt<GradientOperator<FeH1,3>, Double >( factor, 1.0 );
+        if(harmonicPML){
+          stiffInt = new BBInt<ScaledGradientOperator<FeH1,3,Complex>, Complex,Complex >( coeffPMLfactor, 1.0 );
+          stiffInt->SetBCoefFunctionOpB(coeffPML);
+        }else{
+          stiffInt = new BBInt<GradientOperator<FeH1,3>, Double >( factor, 1.0 );
+        }
       }
       stiffInt->SetName("LaplaceIntegrator");
 
@@ -164,18 +214,18 @@ namespace CoupledField{
       // ====================================================================
 
       BiLinearForm *massInt = NULL;
-
-      // build coefficient for mass matrix as (factor / (c0*c0))
-      PtrCoefFct coeffM =
-          CoefFunction::Generate(Global::REAL,
-                                 CoefXprBinOp( factor, 
-                                               CoefXprBinOp(c0,c0,CoefXpr::OP_MULT),
-                                               CoefXpr::OP_DIV ) );
       
-      if(dim_==2)
-        massInt = new BBInt<IdentityOperator<FeH1,2,1,Double>, Double  >(coeffM, 1.0 );
-      else
-        massInt = new BBInt<IdentityOperator<FeH1,3,1,Double>, Double  >(coeffM, 1.0 );
+      if(dim_==2){
+        if(harmonicPML)
+          massInt = new BBInt<IdentityOperator<FeH1,2,1,Complex>, Complex, Complex  >(coeffPMLMass, 1.0 );
+        else
+          massInt = new BBInt<IdentityOperator<FeH1,2,1,Double>, Double  >(coeffM, 1.0 );
+      }else{
+        if(harmonicPML)
+          massInt = new BBInt<IdentityOperator<FeH1,3,1,Complex>, Complex, Complex  >(coeffPMLMass, 1.0 );
+        else
+          massInt = new BBInt<IdentityOperator<FeH1,3,1,Double>, Double  >(coeffM, 1.0 );
+      }
 
       massInt->SetName("MassIntegrator");
       massInt->SetFeSpace( feFunctions_[formulation_]->GetFeSpace() );
@@ -191,6 +241,9 @@ namespace CoupledField{
       // ====================================================================
       std::string flowId = curRegNode->Get("flowId")->As<std::string>();
       if(flowId != "") {
+        if(dampId != ""){
+          EXCEPTION("PML not available for flow domains!");
+        }
         if ( formulation_ != ACOU_POTENTIAL )
           EXCEPTION("Pierce-Equation just possible in velocity potential formulation" );
 

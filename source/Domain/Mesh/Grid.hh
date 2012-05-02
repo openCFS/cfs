@@ -413,6 +413,17 @@ namespace CoupledField
                                        bool isaxi = false,
                                        bool updated = false ) = 0;
     
+
+    //! This method computes the x-y-z boundig box of a given region
+    //! \param(in) reId the region to compute the box of
+    //! \param(out) minMax Matrix of bounding box values each row
+    //!             corresponds to a dimension and has 2 entries
+    //!             first column for minimum and second entry for maximum value
+    virtual void CalcBoundingBoxOfRegion (const RegionIdType regId,
+                                          Matrix<Double> & minMax,
+                                          CoordSystem* cSys) = 0;
+
+
     //! Returns the volume of a given entitylist (\see Grid::CalcVolumeOfRegion)
     virtual Double CalcVolumeOfEntityList( shared_ptr<EntityList> ent,
                                            bool updated = false ) = 0;
