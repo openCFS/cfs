@@ -290,7 +290,7 @@ namespace CoupledField
      Matrix<unsigned int>& GetHessianSparsityPattern();
 
      /** @see Function::CalcHessian() */
-     void CalcHessian(StdVector<double>& out);
+     void CalcHessian(StdVector<double>& out, double factor);
 
      /** This is the local context currently requested by the optimizer */
      Function::Local::Identifier& GetCurrentVirtualContext();

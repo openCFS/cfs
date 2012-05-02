@@ -72,9 +72,15 @@ public:
 
   compressed_matrix<double>* hessian;
 
+  /** are the design bounds for the sub-problem the ones from the original problem or dynamic, depending on L/U and x */
+  bool dynamic_design_bounds;
+
 protected:
 
   void SolveProblem();
+
+  /** @see BaseOptimizer::ToInfo() */
+  void ToInfo(PtrParamNode pn);
 
 private:
 
@@ -122,13 +128,26 @@ private:
 
   /**
    * @param k the iteration. 0 for the very first call after leaving initial design */
-  LSR AugmentedLagrangianLineSearch(int k, const Vector<double>& x, const Vector<double>& z, const Vector<double>& y, const Vector<double>& v);
+  LSR AugmentedLagrangianLineSearch(int k, const Vector<double>& x, const Vector<double>& z, const Vector<double>& y, const Vector<double>& v, PtrParamNode in);
+
+  /** update the asymptotes as long as they are not set to fixed!
+   * @param force_reduction to react on subproblem problems */
+  void UpdateAsymptotes(const Vector<double>&x_outer, int iter, bool force_reduction = false);
+
+  /** assume the current design to be FMO tensors and output them */
+  void DumpFMPTensors();
 
   typedef enum { NONE, BACKTRACKING, AUG_LAGRANGIAN } Globalization;
 
-  static Enum<Globalization> global;
+  Enum<Globalization> global;
 
   Globalization global_;
+
+  typedef enum { FIXED, MMA } Asymptotes;
+
+  Enum<Asymptotes> asymptotes;
+
+  Asymptotes asymptotes_;
 
   SmartPtr<FeasSubProblem> ipopt;
 
@@ -144,6 +163,9 @@ private:
   /** the initial value for rho, optionally to be set in xml */
   double rho_init_;
 
+  /** constant eta in (22) - different from eta_k (18) ... (21) */
+  double rho_eta_;
+
   /** decrease factor for augmented Lagrangian Armijo rule: my in (23) in (0,1) */
   double decrease_;
 
@@ -152,6 +174,19 @@ private:
 
   /** the minimal step width factor form augmented Lagrangian and backtracking */
   double min_step_;
+
+  /** MMA parameters for asymptotes update */
+  double mma_shrink_;
+  double mma_grow_;
+  double mma_dist_;
+
+  /** this design history is used and controlled by UpdateAsymptotes() */
+  std::pair<int, Vector<double> > prev_x_;
+  std::pair<int, Vector<double> > prev_prev_x_;
+
+  /** bounds for the asymptotes */
+  double u_max_;
+  double l_min_;
 
 };
 
@@ -168,6 +203,10 @@ public:
   double Evaluate(const double* x_inner, Eval eval, StdVector<double>* out = NULL);
 
   void AddHessianPattern(compressed_matrix<double>& hessian);
+
+  /** gives the position within the gradient for a special design.
+   * @return for dense gradients this is design otherwise a search is performed */
+  unsigned int FindGradIndex(unsigned int design) const;
 
   /** helper for logging */
   std::string ToString();

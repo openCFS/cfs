@@ -298,7 +298,7 @@ bool SCPIP::eval_g(int n, const double* x_org, int m, double* g)
   x_srt.Import(x_org, n);
   ReorderDesign(n, x_srt.GetPointer(), true);
 
-  EvalConstraints(n, x_srt.GetPointer(), m, true, false, g); // we normalize in SCPIPBase
+  EvalConstraints(n, x_srt.GetPointer(), m, true, g, false); // we normalize in SCPIPBase
 
   return true;
 }

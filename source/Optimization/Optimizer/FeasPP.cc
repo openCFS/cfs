@@ -14,10 +14,9 @@ DEFINE_LOG(feasPP, "feas_pp")
 using namespace CoupledField;
 using std::pow;
 using std::max;
+using std::min;
 using std::abs;
 using std::string;
-
-Enum<FeasPP::Globalization> FeasPP::global;
 
 FeasPP::FeasPP(Optimization* opt, PtrParamNode pn) : BaseOptimizer(opt, pn, Optimization::FEAS_PP_SOLVER)
 {
@@ -27,25 +26,38 @@ FeasPP::FeasPP(Optimization* opt, PtrParamNode pn) : BaseOptimizer(opt, pn, Opti
   m_c = 0;
   m_e = 0;
   hessian = NULL;
+  u_max_ = 1e5;
+  l_min_ = -1e5;
 
   global.SetName("FeasPP::Globalization");
   global.Add(NONE, "none");
   global.Add(BACKTRACKING, "backtracking");
   global.Add(AUG_LAGRANGIAN, "augmentedLagrangian");
 
+  asymptotes.SetName("FeasPP::Asypmtotes");
+  asymptotes.Add(FIXED, "fixed");
+  asymptotes.Add(MMA, "mma");
+
   approx_linear = this_opt_pn_ != NULL ? this_opt_pn_->Get("approx_linear")->As<bool>() : false;
   approx_feasibility = this_opt_pn_ != NULL ? this_opt_pn_->Get("approx_feasible")->As<bool>() : false;
   non_approx_constraints = true; // set it PostInit()
-  global_ = this_opt_pn_ != NULL ? global.Parse(this_opt_pn_->Get("globalize")->As<string>()) : NONE;
-  convex_tau = this_opt_pn_ != NULL ? this_opt_pn_->Get("convex_tau")->As<double>() : 0.0; // switch off
-  rho_init_  = this_opt_pn_ != NULL && this_opt_pn_->Has("augmentedLagranian") ? this_opt_pn_->Get("augmentedLagranian/rho")->As<double>() : 1.0;
-  decrease_  = this_opt_pn_ != NULL && this_opt_pn_->Has("augmentedLagranian") ? this_opt_pn_->Get("augmentedLagranian/decrease")->As<double>() : 0.1;
-  stepwidth_ = this_opt_pn_ != NULL && this_opt_pn_->Has("augmentedLagranian") ? this_opt_pn_->Get("augmentedLagranian/stepwidth")->As<double>() : 0.5;
+  global_     = this_opt_pn_ != NULL ? global.Parse(this_opt_pn_->Get("globalize")->As<string>()) : NONE;
+  asymptotes_ = this_opt_pn_ != NULL && this_opt_pn_->Has("asymptotes") ? asymptotes.Parse(this_opt_pn_->Get("asymptotes/type")->As<string>()) : FIXED;
+  mma_shrink_ = this_opt_pn_ != NULL && this_opt_pn_->Has("asymptotes") ? this_opt_pn_->Get("asymptotes/shrink")->As<double>() : 0.7;
+  mma_grow_   = this_opt_pn_ != NULL && this_opt_pn_->Has("asymptotes") ? this_opt_pn_->Get("asymptotes/shrink")->As<double>() : 1.15;
+  mma_dist_   = this_opt_pn_ != NULL && this_opt_pn_->Has("asymptotes") ? this_opt_pn_->Get("asymptotes/distance")->As<double>() : 0.5;
+  convex_tau  = this_opt_pn_ != NULL ? this_opt_pn_->Get("convex_tau")->As<double>() : 0.0; // switch off
+  rho_init_   = this_opt_pn_ != NULL && this_opt_pn_->Has("augmentedLagrangian") ? this_opt_pn_->Get("augmentedLagrangian/rho")->As<double>() : 1.0;
+  rho_eta_    = this_opt_pn_ != NULL && this_opt_pn_->Has("augmentedLagrangian") ? this_opt_pn_->Get("augmentedLagrangian/rho_eta")->As<double>() : 1.0;
+  decrease_   = this_opt_pn_ != NULL && this_opt_pn_->Has("augmentedLagrangian") ? this_opt_pn_->Get("augmentedLagrangian/decrease")->As<double>() : 0.1;
+  stepwidth_  = this_opt_pn_ != NULL && this_opt_pn_->Has("augmentedLagrangian") ? this_opt_pn_->Get("augmentedLagrangian/stepwidth")->As<double>() : 0.5;
+  dynamic_design_bounds = this_opt_pn_ != NULL && this_opt_pn_->Has("asymptotes") && this_opt_pn_->Get("asymptotes/design_bounds")->As<string>() == "fixed" ? false : true;
+
   // same value for backtracking and augmented lagrangian. Re-read in the latter case
   min_step_  = this_opt_pn_ != NULL && this_opt_pn_->Has("backtracking") ? this_opt_pn_->Get("backtracking/min_step")->As<double>() : 1e-9;
   if(global_ == AUG_LAGRANGIAN)
   {
-    min_step_  = this_opt_pn_ != NULL && this_opt_pn_->Has("augmentedLagranian") ? this_opt_pn_->Get("augmentedLagranian/min_step")->As<double>() : 1e-9;
+    min_step_  = this_opt_pn_ != NULL && this_opt_pn_->Has("augmentedLagrangian") ? this_opt_pn_->Get("augmentedLagrangian/min_step")->As<double>() : 1e-9;
 
     if(rho_init_ <= 0.0) throw Exception("'augmentedLagrangian/rho' needs to be positive");
     if(decrease_ <= 0.0 || decrease_ >= 1.0) throw Exception("'augmentedLagrangian/decrease' needs to be in (0,1)");
@@ -123,6 +135,7 @@ void FeasPP::PostInit()
     DesignElement& de = optimization->GetDesign()->data[i];
     L[i] = de.GetLowerBound() > 0 ? 0.0 : de.GetLowerBound() * 1.1; // be smaller!!
     U[i] = de.GetUpperBound() * 1.1;
+    assert(L[i] >= l_min_ && U[i] <= u_max_);
   }
   optimization->constraints.view->Done();
 
@@ -143,13 +156,29 @@ void FeasPP::SolveProblem()
   bool converged = false;
   LSR ls;
   ls.old_point_is_optimal = false;
-  int iter = 0;
+  int iter = 1;
+  int max_reductions = asymptotes_ == FIXED ? 0 : 10;
   while(!optimization->DoStopOptimization() && iter <= max_iter && !converged)
   {
+    // eventually update asymptotes
+    UpdateAsymptotes(x_outer, iter);
+
     // solve sub-problem
     PtrParamNode in = info_->Get(ParamNode::PROCESS)->Get("feasPP")->Get("subsolver", ParamNode::APPEND);
     in->Get("iteration")->SetValue(iter);
-    std::string err = ipopt->SolveProblem(in);
+
+    std::string err = "not solved";
+
+    for(int r = 0; r < max_reductions && err != ""; r++)
+    {
+      err = ipopt->SolveProblem(in); // here is the work done!
+
+      if(r > 0)
+        in->Get("reductions")->SetValue(r);
+
+      if(err != "")
+        UpdateAsymptotes(x_outer, iter, true); // there is a msg set in FeasSubProblem
+    }
 
     if(err != "")
     {
@@ -176,14 +205,14 @@ void FeasPP::SolveProblem()
     d = ipopt->x_final - x_outer; // principal direction
 
     // needs to be smaller zero
-    in->Get("angle")->SetValue(d * f_grad);
+    // in->Get("angle")->SetValue(d * f_grad);
 
     if(global_ != NONE)
     {
       if(global_ == BACKTRACKING)
         ls = Backtracking(x_outer, d, ipopt->x_final);
       else
-        ls = AugmentedLagrangianLineSearch(iter, ipopt->x_final, x_outer, ipopt->lambda, ipopt->old_lambda);
+        ls = AugmentedLagrangianLineSearch(iter, x_outer, ipopt->x_final, ipopt->old_lambda, ipopt->lambda, in);
 
       in->Get("steps")->SetValue(ls.steps);
       in->Get("step_factor")->SetValue(ls.stepwidth);
@@ -194,20 +223,13 @@ void FeasPP::SolveProblem()
 
       if(ls.old_point_is_optimal)
       {
-        in->Get("msg")->SetValue("backtracking returned to old point");
+        in->Get("msg")->SetValue("linesearch returned to old point");
         converged = true;
       }
     }
 
     optimization->GetDesign()->WriteDesignToExtern(x_outer); // only for the LOG below, can be removed as it is done in UpdateToCurrentStep()
     LOG_DBG2(feasPP) << "SP: it=" << iter << " x_new_curr = [" << x_outer.ToString() << "]";
-
-/*    for(unsigned int i = 0; i < optimization->GetDesign()->elements; i++)
-    {
-      Matrix<double> E;
-      optimization->GetDesign()->GetErsatzMaterialTensor(E, PLANE_STRAIN, optimization->GetDesign()->data[i].elem, DesignElement::NO_DERIVATIVE, DesignMaterial::HILL_MANDEL);
-      LOG_DBG2(feasPP) << "SP sps i=" << i << " -> " << E.ToString(2);
-    }*/
 
     // evaluate all functions such that we have the function values for the current design
     // the subproblem is based on the approximated values only
@@ -276,8 +298,12 @@ FeasPP::LSR FeasPP::Backtracking(const Vector<double>& x_old, const Vector<doubl
 
 
 
-FeasPP::LSR FeasPP::AugmentedLagrangianLineSearch(int k, const Vector<double>& x, const Vector<double>& z, const Vector<double>& y, const Vector<double>& v)
+FeasPP::LSR FeasPP::AugmentedLagrangianLineSearch(int k, const Vector<double>& x, const Vector<double>& z, const Vector<double>& y, const Vector<double>& v, PtrParamNode in)
 {
+  LOG_DBG3(feasPP) << "ALLS x=[" << x.ToString(0, ' ') << "]";
+  LOG_DBG3(feasPP) << "ALLS z=[" << z.ToString(0, ' ') << "]";
+  LOG_DBG3(feasPP) << "ALLS y=[" << y.ToString(0, ' ') << "]";
+  LOG_DBG3(feasPP) << "ALLS v=[" << v.ToString(0, ' ') << "]";
   // the upper part of d
   Vector<double> dx(n);
   dx = z - x;
@@ -287,9 +313,13 @@ FeasPP::LSR FeasPP::AugmentedLagrangianLineSearch(int k, const Vector<double>& x
 
   // Algorithm 1 in the paper
   Vector<double> d(dx, dy);
+  LOG_DBG3(feasPP) << "ALLS d=[" << d.ToString(0, ' ') << "]";
 
   Vector<double> grad_phi(n + m);
   CalcGradAugmentedLagrangian(x, y, rho, grad_phi);
+  LOG_DBG3(feasPP) << "ALLS grad_phi=[" << grad_phi.ToString(0, ' ') << "]";
+  in->Get("max_norm")->SetValue(grad_phi.NormMax());
+  in->Get("L2_norm")->SetValue(grad_phi.NormL2());
 
   double grad_phi_d = grad_phi  * d;
   double phi = CalcAugmentedLagrangian(x, y, rho);
@@ -301,12 +331,14 @@ FeasPP::LSR FeasPP::AugmentedLagrangianLineSearch(int k, const Vector<double>& x
 
   if(k > 0)
   {
+    LOG_DBG3(feasPP) << "ALLS grad_phi_d=" << grad_phi_d << " > rho_eta=" << rho_eta_ << " dist=" << dist << " (" << (-0.5 * rho_eta_ * dist) << ")";
     // (22) sufficient decent property
-    if(grad_phi_d > -0.5 * eta * dist)
+    if(grad_phi_d > -0.5 * rho_eta_ * dist)
+    {
       CalcPenaltyRho(eta, dist, y, v, rho);
-
-    CalcGradAugmentedLagrangian(x, y, rho, grad_phi);
-    assert(grad_phi  * d  <= -0.5 * eta * dist);
+      CalcGradAugmentedLagrangian(x, y, rho, grad_phi);
+      assert(grad_phi  * d  <= -0.5 * rho_eta_ * dist);
+    }
   }
   double sigma = 1.0;
   Vector<double> x_next(n);
@@ -324,7 +356,7 @@ FeasPP::LSR FeasPP::AugmentedLagrangianLineSearch(int k, const Vector<double>& x
 
   while((sigma_phi > phi + decrease_ * sigma * grad_phi_d) && sigma >= min_step_)
   {
-    LOG_DBG2(feasPP) << "FP:ALLS sigma_phi=" << sigma_phi << " > phi=" << phi << " dec=" << decrease_ << " sig=" << sigma << " sp=" << grad_phi_d;
+    LOG_DBG2(feasPP) << "FP:ALLS sigma_phi=" << sigma_phi << " > phi=" << phi << " dec=" << decrease_ << " sig=" << sigma << " sp=" << grad_phi_d << " (" << (phi + decrease_ * sigma * grad_phi_d) << ")";
     sigma *= stepwidth_;
     x_next = x + sigma * dx;
     y_next = y + sigma * dy;
@@ -333,6 +365,11 @@ FeasPP::LSR FeasPP::AugmentedLagrangianLineSearch(int k, const Vector<double>& x
 
     result.steps++;
   }
+  optimization->GetDesign()->ReadDesignFromExtern(x_next.GetPointer());
+  LOG_DBG2(feasPP) << "FP:ALLS sigma_phi=" << sigma_phi << " < phi=" << phi << " dec=" << decrease_ << " sig=" << sigma << " sp=" << grad_phi_d << " (" << (phi + decrease_ * sigma * grad_phi_d) << ")";
+  LOG_DBG3(feasPP) << "ALLS x_k+1=[" << x_next.ToString(0, ' ') << "]";
+  LOG_DBG3(feasPP) << "ALLS y_k+1=[" << y_next.ToString(0, ' ') << "]";
+
 
   result.stepwidth = sigma;
   result.curr_dx = sigma  * result.org_dx;
@@ -364,8 +401,9 @@ double FeasPP::CalcEta(double tau, const Vector<double>& x_vec, const Vector<dou
       eta_i = -1.0 * (grad_f[i] - tau) * (-2.0*l + z + x) / ((z-l)*(z-l));
 
     eta = std::min(eta, eta_i);
-  }
+    LOG_DBG3(feasPP) << "FP:CE i=" << i << " tau=" << tau << " x=" << x << " z=" << z << " u=" << u << " l=" << l << " df=" << grad_f[i] << " eta_i=" << eta_i << " -> " << eta;
 
+  }
   return eta;
 }
 
@@ -378,11 +416,15 @@ void FeasPP::CalcPenaltyRho(double eta, double diff, const Vector<double>& y_vec
     Condition* g = optimization->constraints.view->Get(i);
     double y = y_vec[i];
     double v = v_vec[i];
+    double rho_old = rho[i];
 
     if(!g->IsFeasibilityConstraint())
-      rho[i] = max(rho[i], (40.0 * m_c / (eta * diff*diff)) * max(y * abs(v - y), (v-y) * (v-y)));
+      rho[i] = max(rho_old, (40.0 * m_c / (eta * diff*diff)) * max(y * abs(v - y), (v-y) * (v-y)));
     else
-      rho[i] = max(rho[i], (10.0 * m_e / (eta * diff*diff)) * max(y * abs(v - y), y * y));
+      rho[i] = max(rho_old, (10.0 * m_e / (eta * diff*diff)) * max(y * abs(v - y), y * y));
+
+    LOG_DBG3(feasPP) << "FP:CPR i=" << i << " m_c=" << m_c << " m_e=" << m_e << " feas=" << g->IsFeasibilityConstraint()
+                     << " eta=" << eta << " diff=" << diff << " y=" << y << " v=" << v << " rho=" << rho_old << " -> " << rho[i];
   }
   optimization->constraints.view->Done();
 }
@@ -392,7 +434,6 @@ double FeasPP::CalcAugmentedLagrangian(const Vector<double>& x, const Vector<dou
 {
   LOG_DBG3(feasPP) << "FP:CAL x=" << x.ToString(0, ' ');
   LOG_DBG3(feasPP) << "FP:CAL y=" << y.ToString(0, ' ');
-  LOG_DBG3(feasPP) << "FP:CAL rho=" << rho.ToString(0, ' ');
 
   assert(x.GetSize() == n);
   assert(y.GetSize() == m && rho.GetSize() == m);
@@ -400,6 +441,9 @@ double FeasPP::CalcAugmentedLagrangian(const Vector<double>& x, const Vector<dou
   // evaluate function values
   optimization->GetDesign()->ReadDesignFromExtern(x.GetPointer());
   double f = EvalObjective(n, x.GetPointer(), true);
+  LOG_DBG3(feasPP) << "FP:CAL f=" << f << " rho=" << rho.ToString();
+
+
   StdVector<double> c(m);
   EvalConstraints(n, x.GetPointer(), m, true, c.GetPointer(), true);
 
@@ -408,14 +452,16 @@ double FeasPP::CalcAugmentedLagrangian(const Vector<double>& x, const Vector<dou
   for(unsigned int i = 0; i < m; i++)
   {
     Condition* g = optimization->constraints.view->Get(i);
-    LOG_DBG3(feasPP) << "FP:CAL i=" << i << " g=" << g->ToString() << " y=" << y[i] << " c=" << c[i] << " rho=" << rho[i]  << " feas=" << g->IsFeasibilityConstraint();
 
-    if(-1.0 * y[i] / rho[i] <= c[i])
-      result += y[i] * c[i] + 0.5 * rho[i] * c[i] * c[i];
-    else
-      result += y[i]*y[i] / (-2.0 * rho[i]);
+    bool case1 = -1.0 * y[i] / rho[i] <= c[i];
 
-    LOG_DBG3(feasPP) << "FP:CAL i=" << i << " g=" << g->ToString() << " y=" << y[i] << " c=" << c[i] << " rho=" << rho[i]  << " -> " << result;
+    double tmp = case1 ?  y[i] * c[i] + 0.5 * rho[i] * c[i] * c[i] : y[i]*y[i] / (-2.0 * rho[i]);
+
+    result += tmp;
+
+    LOG_DBG3(feasPP) << "FP:CAL i=" << i << " g=" << g->ToString() << " y=" << y[i] << " c=" << c[i] << " rho=" << rho[i]
+                     << " feas=" << g->IsFeasibilityConstraint() << " case1=" << case1 << " -> +" << tmp << " -> " << result;
+
   }
   optimization->constraints.view->Done();
 
@@ -426,7 +472,10 @@ void FeasPP::CalcGradAugmentedLagrangian(const Vector<double>& x, const Vector<d
 {
   LOG_DBG3(feasPP) << "FP:CGAL x=" << x.ToString(0, ' ');
   LOG_DBG3(feasPP) << "FP:CGAL y=" << y_vec.ToString(0, ' ');
-  LOG_DBG3(feasPP) << "FP:CGAL rho=" << rho_vec.ToString(0, ' ');
+  LOG_DBG3(feasPP) << "FP:CGAL rho=" << rho_vec.ToString();
+
+  // dPhi/dxi = df/dxi + sum_c (y * dc/dixi + rho*c*dc/dxi)
+  // dPhi/dyi = ci or -y/rho
 
   assert(x.GetSize() == n);
   assert(y_vec.GetSize() == m && rho_vec.GetSize() == m);
@@ -441,44 +490,42 @@ void FeasPP::CalcGradAugmentedLagrangian(const Vector<double>& x, const Vector<d
   optimization->GetDesign()->ReadDesignFromExtern(x.GetPointer());
   StdVector<double> f_grad(n);
   EvalGradObjective(n, x.GetPointer(), true, f_grad);
+  LOG_DBG3(feasPP) << "FP:CGAL f_grad=" << f_grad.ToString();
 
   StdVector<double> c_grad(n); // worst case
 
   optimization->GetDesign()->Reset(DesignElement::CONSTRAINT_GRADIENT, DesignElement::DEFAULT);
+  // derivative with respect to x
+  for(unsigned int e = 0; e < n; e++)
+    grad[e] = f_grad[e]; // first part
+
   for(unsigned int ci = 0; ci < m; ci++)
   {
     double         c    = c_vec[ci];
     double         y    = y_vec[ci];
     double         rho  = rho_vec[ci];
+
+    bool case1 = -y / rho <= c;
+
     Approximation* appr = constr[ci];
     Condition*     g    = optimization->constraints.view->Get(ci);
     c_grad.Resize(appr->jac_pattern.GetSize());
     EvalGradConstraint(g, 0, true, true, c_grad); // scale and normalize
 
-    LOG_DBG3(feasPP) << "FP:CGAL ci=" << ci << " g=" << appr->ToString() << " c=" << c << " y=" << y << " rho=" << rho << " case=" << (-y / rho <= c);
+    LOG_DBG3(feasPP) << "FP:CGAL ci=" << ci << " g=" << appr->ToString() << " y=" << y << " rho=" << rho << " c=" << c << " case1=" << case1;
     // derivative with respect to x
-    for(unsigned int e = 0; e < n; e++)
+    for(unsigned int e = 0; case1 && (e < c_grad.GetSize()); e++)
     {
-      grad[e] = f_grad[e];
+      unsigned int idx = appr->jac_pattern[e];
 
-      if(-y / rho <= c)
-      {
-        // we need the gradient of c with respect to e but have to consider the sparsity of c
-        double grad_c = 0.0;
-        if(c_grad.GetSize() == n)
-          grad_c = c_grad[e];
-        else // we need to traverse
-          for(unsigned t = 0, tn = appr->jac_pattern.GetSize(); t < tn; t++)
-            if(appr->jac_pattern[t] == e)
-              grad_c = c_grad[t]; // sparse patterns are very short!
+      double grad_c = c_grad[e];
 
-        grad[e] += y * grad_c + rho*c*grad_c;
-        LOG_DBG3(feasPP) << "FP:CGAL ci=" << ci << " g=" << appr->ToString() << " e=" << e << " grad_c=" << grad_c << " -> " << grad[e];
-      }
+      grad[idx] += y * grad_c + rho*c*grad_c;
+      LOG_DBG3(feasPP) << "FP:CGAL ci=" << ci << " g=" << appr->ToString() << " e=" << e << " idx=" << idx << " grad_c=" << grad_c << " -> " << (y * grad_c) << " + " << (rho*c*grad_c) << " -> " << grad[idx];
     }
 
     // derivative with respect to y
-    grad[n+ci] = -y / rho <= c ? c : -y / rho;
+    grad[n+ci] = case1 ? c : -y / rho;
     LOG_DBG3(feasPP) << "FP:CGAL ci=" << ci << " g=" << appr->ToString() << " dy -> " << grad[n+ci];
   }
   optimization->constraints.view->Done(); // reset slope constraint to global mode
@@ -512,6 +559,69 @@ void FeasPP::UpdateToCurrentStep()
     LOG_DBG3(feasPP) << "FP:UTCP g[" << i << "]=" << constr[i]->ToString() << " outer_val=" << constr[i]->outer_val << " grad=" << constr[i]->outer_grad.ToString();
   }
   optimization->constraints.view->Done(); // reset slope constraint to global mode
+}
+
+void FeasPP::UpdateAsymptotes(const Vector<double>&x, int iter, bool force_reduction)
+{
+  assert(!(force_reduction && asymptotes_ == FIXED));
+  if(asymptotes_ == FIXED) return;
+
+  assert(!(iter >= 2 && prev_x_.first != iter -1) || force_reduction || prev_x_.first == -1);
+  assert(!(iter >= 3 && prev_prev_x_.first != iter -2) || force_reduction || prev_prev_x_.first == -1);
+
+  // we follow algorithm 1 in Sonja's thesis. But it should coincide with with original Svanberg algorithm.
+  // We start our iterations with 1, therefore special case for iter >= 3
+  for(unsigned int i = 0; i < n; i++)
+  {
+    if(!force_reduction && iter < 3)
+    {
+      L[i] = x[i] - max(1.0, abs(x[i]));
+      U[i] = x[i] + max(1.0, abs(x[i]));
+    }
+    else
+    {
+      const Vector<double>& x_p  = prev_x_.second;
+      const Vector<double>& x_pp = prev_prev_x_.second;
+
+      double factor = force_reduction || (sgn(x[i] - x_p[i]) != sgn(x_p[i] - x_pp[i])) ? mma_shrink_ : mma_grow_;
+      double x_old = force_reduction && iter <= 1 ? x[i] : x_p[i];
+
+      L[i] = max(x[i] - max(mma_dist_, factor * (x_old - L[i])), l_min_);
+      U[i] = min(x[i] + max(mma_dist_, factor * (U[i] - x_old)), u_max_);
+
+      LOG_DBG3(feasPP) << "FP:UA it=" << iter << " i=" << i << " x=" << x[i] << " x-1=" << x_p[i] << " x-2=" << x_pp[i] << " f=" << factor << " L=" << L[i] << " U=" << U[i];
+    }
+  }
+
+  // design history
+  prev_prev_x_ = prev_x_;
+  prev_x_.first = force_reduction ? -1 : iter;
+  prev_x_.second = x;
+
+}
+
+void FeasPP::ToInfo(PtrParamNode in)
+{
+  in->Get("convex_tau")->SetValue(convex_tau);
+  in->Get("globalization")->SetValue(global.ToString(global_));
+  if(global_ == AUG_LAGRANGIAN)
+  {
+    in->Get("augmentedLagrangian/initial_rho")->SetValue(rho_init_);
+    in->Get("augmentedLagrangian/rho_eta")->SetValue(rho_eta_);
+    in->Get("augmentedLagrangian/decrease")->SetValue(decrease_);
+    in->Get("augmentedLagrangian/step_width")->SetValue(stepwidth_);
+  }
+}
+
+void FeasPP::DumpFMPTensors()
+{
+  for(unsigned int i = 0; i < optimization->GetDesign()->elements; i++)
+  {
+    Matrix<double> E;
+    optimization->GetDesign()->GetErsatzMaterialTensor(E, PLANE_STRAIN, optimization->GetDesign()->data[i].elem, DesignElement::NO_DERIVATIVE, DesignMaterial::HILL_MANDEL);
+    LOG_DBG2(feasPP) << "SP sps i=" << i << " -> " << E.ToString(2);
+    std::cout  << "SP sps i=" << i << " -> " << E.ToString(2) << std::endl;
+  }
 }
 
 void FeasPP::SetupHessian()
@@ -554,14 +664,8 @@ Approximation::Approximation(FeasPP* feas_pp, int constraint_idx, bool approx)
     hess_pattern = f->GetHessianSparsityPattern();
 
   // as the augmented Lagrangian assumes normalized constraints, everything is 0.0
-  lower = 0.0;
+  lower = g != NULL && g->GetBound() == Condition::EQUAL ? 0.0 : -1.0 * common->GetInfBound();
   upper = 0.0;
-
-  if(g != NULL)
-  {
-    if(g->GetBound() == Condition::LOWER_BOUND) upper =  1.0 * common->GetInfBound();
-    if(g->GetBound() == Condition::UPPER_BOUND) lower = -1.0 * common->GetInfBound();
-  }
 }
 
 double Approximation::Evaluate(const double* x_inner, Eval eval, StdVector<double>* out)
@@ -601,12 +705,13 @@ double Approximation::EvalApproximation(const double* x_inner, Eval eval, StdVec
     double U    = common->U[j];
     double L    = common->L[j];
 
-    assert(xo < U && xi < U && xo > L && xi > L);
 
     double p = grad > 0 ? (U-xo)*(U-xo) *  grad : 0.0;
     double q = grad < 0 ? (xo-L)*(xo-L) * -grad : 0.0;
 
     LOG_DBG3(feasPP) << "A:E f=" << ToString() << " j=" << j << " xo=" << xo << " xi=" << xi << " grad=" << grad << " U=" << U << " L=" << L << " p=" << p << " q=" << q << " ov=" << outer_val;
+
+    assert(xo < U && xi < U && xo > L && xi > L);
 
     // (6) in Sonjas paper, only for the objective, this is only tau (or 0.0 if not applicable)
     double tau = constraint_idx == -1 ? common->convex_tau : 0.0;
@@ -666,7 +771,7 @@ double Approximation::EvalDirect(const double* x_inner, Eval eval, StdVector<dou
       common->EvalGradObjective(common->n, x_inner, true, *out);
       break;
     case HESSIAN:
-      GetFunction()->CalcHessian(*out);
+      GetFunction()->CalcHessian(*out, GetCondition()->GetBound() == Condition::LOWER_BOUND ? -1.0 : 1.0);
       break;
     }
   }
@@ -683,10 +788,11 @@ double Approximation::EvalDirect(const double* x_inner, Eval eval, StdVector<dou
     case HESSIAN:
       LOG_DBG3(feasPP) << "A:ED g=" << ToString() << " hess: pattern= " << hess_pattern.ToString();
       LOG_DBG3(feasPP) << "A:ED g=" << ToString() << " hess: GHSP   = " << GetCondition()->GetHessianSparsityPattern().ToString();
-      GetCondition()->CalcHessian(*out);
+      GetCondition()->CalcHessian(*out, GetCondition()->GetBound() == Condition::LOWER_BOUND ? -1.0 : 1.0);
       break;
     }
   }
+
 
   return result;
 }
@@ -727,4 +833,17 @@ void Approximation::AddHessianPattern(compressed_matrix<double>& hessian)
     hessian(hess_pattern(i, 0), hess_pattern(i, 1)) = 1.0;
 
   LOG_DBG3(feasPP) << "A:AHP f=" << ToString() << " -> " << hess_pattern.ToString(0, false);
+}
+
+unsigned int Approximation::FindGradIndex(unsigned int design) const
+{
+  if(jac_pattern.GetSize() == common->n)
+    return design;
+
+  for(unsigned t = 0, tn = jac_pattern.GetSize(); t < tn; t++)
+      if(jac_pattern[t] == design)
+        return t;
+
+  assert(false);
+  return 0;
 }

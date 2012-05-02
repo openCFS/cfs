@@ -193,8 +193,9 @@ class Function
 
     /** FeasPP can use the original functions for its strictly feasible MMA approximation. Makes only sense for
      * some special non-linear local constraints.
-     * @param out needs to be the size of rows of GetHessianSparsityPattern() */
-    virtual void CalcHessian(StdVector<double>& out);
+     * @param out needs to be the size of rows of GetHessianSparsityPattern()
+     * @param factor -1 for normalizing lower bound constraints to c <= 0 */
+    virtual void CalcHessian(StdVector<double>& out, double factor);
 
     /** Requires this function an adjoint solution for the gradient? */
     bool IsAdjointBased() const;

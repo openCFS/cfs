@@ -461,6 +461,34 @@
             <xsd:element name="feasPP" minOccurs="0" >
               <xsd:complexType>
                 <xsd:sequence>
+                  <!-- <asymptotes type="fixed" shrink="0.7" grow="1.15" space="0.5" /> -->
+                  <xsd:element name="asymptotes" minOccurs="0" maxOccurs="1">
+                    <xsd:complexType>
+                      <xsd:attribute name="type">
+                        <xsd:simpleType>
+                          <xsd:restriction base="xsd:token">
+                            <xsd:enumeration value="fixed"/>
+                            <xsd:enumeration value="mma"/>
+                          </xsd:restriction>
+                        </xsd:simpleType>
+                      </xsd:attribute>
+                      <!-- The shrink factor for MMA, T1 in Algorithm 11 in Sonja's thesis. T1 in (0,1) -->
+                      <xsd:attribute name="shrink" type="xsd:float" default="0.7" use="optional"/>
+                      <!-- The grow factor for MMA, T2 in Algorithm 11 in Sonja's thesis. Svanberg chooses 1/T1. T2 > 2 -->
+                      <xsd:attribute name="grow" type="xsd:float" default="1.15" use="optional"/>
+                      <!-- minimal distance from the last solution to the last solution. Each for lower and upper bound. xi in Algorithm 11 -->
+                      <xsd:attribute name="distance" type="xsd:float" default="0.5" use="optional"/>
+                      <!-- design bounds for the subproblem. Either dynamic, following Svanberg (8) or from outer problem -->
+                      <xsd:attribute name="design_bounds" default="dynamic" use="optional">
+                        <xsd:simpleType>
+                          <xsd:restriction base="xsd:token">
+                            <xsd:enumeration value="outer"/>
+                            <xsd:enumeration value="dynamic"/>
+                          </xsd:restriction>
+                        </xsd:simpleType>
+                      </xsd:attribute>
+                    </xsd:complexType>
+                  </xsd:element>
                   <xsd:element name="backtracking" minOccurs="0" maxOccurs="1">
                     <xsd:complexType>
                       <!-- the minimal step length factor(!) before assuming convergence -->
@@ -471,6 +499,8 @@
                     <xsd:complexType>
                       <!-- initial value for the penalty parameter rho -->
                       <xsd:attribute name="rho" default="1.0" type="xsd:float" use="optional"/>
+                      <!-- constant eta in (22) -->
+                      <xsd:attribute name="rho_eta" default="1.0" type="xsd:float" use="optional"/>
                       <!-- descent factor for Armijo line search (my in (23))-->
                       <xsd:attribute name="decrease" default="0.1" type="xsd:float" use="optional"/>
                       <!-- step with for Armijo line search -->

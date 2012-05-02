@@ -93,6 +93,11 @@ namespace CoupledField {
     return p;
   }
 
+  /** http://stackoverflow.com/questions/1903954/is-there-a-standard-sign-function-signum-sgn-in-c-c */
+  template <typename T> int sgn(T val) {
+      return (T(0) < val) - (val < T(0));
+  }
+
   //! calculate distance between two points embedded in matrix
 
   Double dist_Mat(const Matrix<Double> &a);

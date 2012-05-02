@@ -778,7 +778,7 @@ Matrix<unsigned int>& Function::GetHessianSparsityPattern()
   return hess_sparsity_;
 }
 
-void Function::CalcHessian(StdVector<double>& out)
+void Function::CalcHessian(StdVector<double>& out, double factor)
 {
   assert(out.GetSize() == 0);
   assert(GetHessianSparsityPattern().GetNumRows() == 0);

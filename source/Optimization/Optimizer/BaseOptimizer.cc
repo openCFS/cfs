@@ -199,6 +199,11 @@ BaseOptimizer::BaseOptimizer(Optimization* opt, PtrParamNode pn, Optimization::O
   gen_opt_pn_  =  pn;
   this_opt_pn_ =  pn->Get(Optimization::optimizer.ToString(optimization->GetOptimizerType()), ParamNode::PASS);
 
+  // std::cout << "gen_opt_pn_:" << std::endl;
+  // gen_opt_pn_->Dump();
+  // std::cout << "this_opt_pn_:" << std::endl;
+  // this_opt_pn_->Dump();
+
   order.SetName("BaseOptimizer::Order");
   order.Add(BY_DESIGN, "by_design");
   order.Add(BY_ELEMENT, "by_element");
@@ -519,7 +524,7 @@ int BaseOptimizer::EvalGradConstraint(Condition* g, int start, bool cfs_scale, b
 
   double flip_sign = g->GetBound() == Condition::LOWER_BOUND ? -1.0 : 1.0;
   for(int p = 0; normalize && p < nnz; p++)
-    values[start + p] = flip_sign * (values[start + p] - g->GetBoundValue());
+    values[start + p] *= flip_sign;
 
   timer_->Start();
   

@@ -949,7 +949,7 @@ Matrix<unsigned int>& LocalCondition::GetHessianSparsityPattern()
   return hess_sparsity_;
 }
 
-void LocalCondition::CalcHessian(StdVector<double>& out)
+void LocalCondition::CalcHessian(StdVector<double>& out, double factor)
 {
   assert(IsLocal());
 
@@ -959,8 +959,8 @@ void LocalCondition::CalcHessian(StdVector<double>& out)
   {
   case FMO_POS_DEF_MINOR_2:
     // (6.69) in the diss of Sonja Lehmann
-    out[0] = 1;
-    out[1] = -2;
+    out[0] = factor * 1;
+    out[1] = factor * -2;
     break;
   case FMO_POS_DEF_MINOR_3:
   {
@@ -977,18 +977,18 @@ void LocalCondition::CalcHessian(StdVector<double>& out)
     double e33 = E[2][2]; // 6
 
     // (6.72) in the diss of Sonja Lehmann
-    out[0]  = e33 - v;      // 1
-    out[1]  = -2.0 * e23;   // 2
-    out[2]  = e22 - v;      // 3
-    out[3]  = -2.0*(e33-v); // 4
-    out[4]  = 2.0*e23;      // 5
-    out[5]  = 2.0*e13;      // 6
-    out[6]  = -2.0*e12;     // 7
-    out[7]  = -2.0*e13;     // 8
-    out[8]  = e11 - v;      // 9
-    out[9]  = -2.0*(e22-v); // 10
-    out[10] = 2.0*e12;      // 11
-    out[11] = -2.0*(e11-v); // 12
+    out[0]  = factor * (e33 - v);      // 1
+    out[1]  = factor * (-2.0 * e23);   // 2
+    out[2]  = factor * (e22 - v);      // 3
+    out[3]  = factor * (-2.0*(e33-v)); // 4
+    out[4]  = factor * (2.0*e23);      // 5
+    out[5]  = factor * (2.0*e13);      // 6
+    out[6]  = factor * (-2.0*e12);     // 7
+    out[7]  = factor * (-2.0*e13);     // 8
+    out[8]  = factor * (e11 - v);      // 9
+    out[9]  = factor * (-2.0*(e22-v)); // 10
+    out[10] = factor * (2.0*e12);      // 11
+    out[11] = factor * (-2.0*(e11-v)); // 12
     break;
   }
   default:
