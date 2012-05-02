@@ -52,6 +52,13 @@ SetupSuse() {
     MINOR=$(echo $REV | cut -d'.' -f2)
     if [ "$ARCH" = "I386" ]; then SUSEARCH=x86; fi
     if [ "$ARCH" = "X86_64" ]; then SUSEARCH=x64; fi
+
+    PCKGS="subversion gcc gcc-c++ gcc-fortran automake autoconf \
+        cmake perl-base perl-Switch graphviz texlive-latex texlive-tex4ht \
+        python-pygments doxygen tcl-devel python-devel git-svn \
+        cmake-gui xorg-x11-libXt-devel \
+        diffutils patch zip xorg-x11-libXp tk-devel Mesa-devel \
+        ncurses-devel perl"
     
     # We need to add the SDK DVDs as repos in case of SLE
     if [ "$DIST" = "SLE" ]; then 
@@ -69,6 +76,8 @@ SetupSuse() {
             # zypper sa http://demeter.uni-regensburg.de/${SLE}10SP3-$SUSEARCH/DVD2 DVD2-Regensburg
             zypper sa http://demeter.uni-regensburg.de/SLES10SP3-SDK-$SUSEARCH/DVD1 SDK-DVD1
             zypper sa http://demeter.uni-regensburg.de/SLES10SP3-SDK-$SUSEARCH/DVD2 SDK-DVD2
+
+	    PCKGS="$PCKGS java-1_5_0-ibm java-1_5_0-ibm-devel"
         fi
 
         if [ "$MAJOR" = "11" ]; then
@@ -76,18 +85,17 @@ SetupSuse() {
             zypper ar http://demeter.uni-regensburg.de/${SLE}11SP1-$SUSEARCH/DVD2 DVD2-Regensburg
             zypper ar http://demeter.uni-regensburg.de/SLE11SP1-SDK-$SUSEARCH/DVD1 SDK-DVD1
             zypper ar http://demeter.uni-regensburg.de/SLE11SP1-SDK-$SUSEARCH/DVD2 SDK-DVD2
+
+	    PCKGS="$PCKGS java-1_6_0-ibm java-1_6_0-ibm-devel"
         fi
+    else
+	PCKGS="$PCKGS java-1_6_0-openjdk-devel"
     fi
 
- 
-
-    zypper install subversion gcc gcc-c++ gcc-fortran automake autoconf \
-        cmake perl-base perl-Switch graphviz texlive-latex texlive-tex4ht \
-        python-pygments doxygen tcl-devel python-devel git-svn \
-        java-1_6_0-openjdk-devel cmake-gui xorg-x11-libXt-devel \
-        diffutils patch zip xorg-x11-libXp tk-devel Mesa-devel \
-        ncurses-devel java-1_5_0-ibm perl
-
+    for pckg in $PCKGS
+    do
+	zypper --non-interactive install $pckg
+    done
 
     if [ "$MAJOR" = "11" ] && [ $MINOR -ge 3 ]; then
 	REPO="http://download.opensuse.org/repositories/home:/tsokar/openSUSE_$REV \
