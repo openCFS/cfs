@@ -330,7 +330,7 @@ namespace CoupledField{
         // abc-Integrator matrix with -1
         std::string factor = "1.0";
         if ( isMechCoupled_ == true && formulation_ !=  ACOU_PRESSURE ) {
-          factor = -1.0;
+          factor = "-1.0";
         }
         
         // factor for damping matrix: factor / c0

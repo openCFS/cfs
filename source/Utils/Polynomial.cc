@@ -234,7 +234,7 @@ Polynomial<T,DIM>& Polynomial<T,DIM>::operator*=( const Polynomial<T,DIM>& a ) {
 
 template<typename T, UInt DIM> 
 Polynomial<T,DIM>& Polynomial<T,DIM>::operator*=( const T& a ) {
-  Polynomial<T,DIM>::COEF_IT itSelf = coefs_.begin();
+  typename Polynomial<T,DIM>::COEF_IT itSelf = coefs_.begin();
   for( ; itSelf != coefs_.end(); ++itSelf ) {
     itSelf->second *= a;
   }
@@ -243,7 +243,7 @@ Polynomial<T,DIM>& Polynomial<T,DIM>::operator*=( const T& a ) {
 
 template<typename T, UInt DIM> 
 Polynomial<T,DIM>& Polynomial<T,DIM>::operator/=( const T& a ) {
-  Polynomial<T,DIM>::COEF_IT itSelf = coefs_.begin();
+  typename Polynomial<T,DIM>::COEF_IT itSelf = coefs_.begin();
   for( ; itSelf != coefs_.end(); ++itSelf ) {
     itSelf->second /= a;
   }

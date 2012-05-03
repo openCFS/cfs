@@ -6,6 +6,7 @@ INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/CFS_macros.cmake")
 SET(patches
   "boost-multi_array.patch"
   "boost-lexical_cast-format-string.patch"
+  "boost-tuple-newline.patch"
   # Prevent warning message related to the unordered map detail implementation. See
   #    # https://svn.boost.org/trac/boost/ticket/6370
   "boost-unordered-table.patch"

@@ -32,6 +32,8 @@ public:
     DampFactor = 1.0;
   }
 
+  virtual ~DampFunction() {};
+
   virtual Double ComputeFactor(Double pos, Double thickness)=0;
 
 

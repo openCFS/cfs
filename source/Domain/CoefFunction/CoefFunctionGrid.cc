@@ -216,11 +216,30 @@ void CoefFunctionGridBase<DATA_TYPE>::Recalculate() {
  // feFunct_ = domain->GetResultHandler()->GetFeFunction<DATA_TYPE>(inputId_,aSeqStep,stepnum,solType_,srcRegions_);
 }
 
+template<class T>
+struct map_data_compare : public std::binary_function<typename T::value_type, 
+                                                      typename T::mapped_type, 
+                                                      bool>
+{
+public:
+    bool operator() (typename T::value_type &pair, 
+                     typename T::mapped_type i) const
+    {
+        return pair.second == i;
+    }
+};
+
+
 template<class DATA_TYPE>
 UInt CoefFunctionGridBase<DATA_TYPE>::GetStepNum(){
   Double aTimeFreq = this->mp_->Eval(mHandleStep_);
   UInt step = 0;
-  std::map<UInt,Double>::iterator stepIter = stepValueMap_.find(aTimeFreq);
+  typedef std::map<UInt,Double> MapType;
+
+
+
+  MapType::iterator stepIter = std::find_if( stepValueMap_.begin(), stepValueMap_.end(), std::bind2nd(map_data_compare<MapType>(), aTimeFreq) );
+
   if(stepIter==stepValueMap_.end()){
     //ok there we have to trigger temporal interpolation
     //for now we just throw an exception

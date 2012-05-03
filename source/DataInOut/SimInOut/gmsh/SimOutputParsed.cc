@@ -508,8 +508,8 @@ namespace CoupledField{
     if(bfrS < (varsSize)){
       //determine next power of two available
       //cut float values
-      long exp = std::ceil(log2(varsSize));
-      bfrS = std::pow(2.0,static_cast<Double>(exp));
+      long exp = long(std::ceil(log2(varsSize)));
+      bfrS = int(std::pow(2.0,static_cast<Double>(exp)));
     }
 
     //number of read operations

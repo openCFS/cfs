@@ -982,8 +982,8 @@ namespace CoupledField {
       }
 
       //well we assume, that about 5% of the surfaces are external so reserve them
-      interiorSurfElems.Reserve(std::ceil(surfElemList.GetSize() * 0.95));
-      exteriorSurfElems.Reserve(std::ceil(surfElemList.GetSize() * 0.05));
+      interiorSurfElems.Reserve(UInt(std::ceil(surfElemList.GetSize() * 0.95)));
+      exteriorSurfElems.Reserve(UInt(std::ceil(surfElemList.GetSize() * 0.05)));
 
       for(;fiter != end;++fiter){
         //get the index vector
