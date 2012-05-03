@@ -422,6 +422,79 @@ DEFINE_LOG(linForm, "linForm")
   }
 
 
+  MagPermEdgeInt::MagPermEdgeInt(   Vector<Double> vecVal,
+                                    Double rel,
+                                    bool isaxi,
+                                    bool coordUpdate )
+    : LinearForm(), 
+      perm_(vecVal), 
+      reluctivity_(rel)
+  {
+    name_ = "MagPermEdgeInt";
+    isaxi_ = isaxi;
+    op_ = new CurlCurlEdgeInt(NULL, coordUpdate);
+    
+  }
+
+  MagPermEdgeInt::~MagPermEdgeInt() {
+    delete op_;
+  }
+
+
+  void MagPermEdgeInt:: CalcElemVector( Vector<Double>& elemVec, 
+                                        EntityIterator& ent ) {
+    // Extract pointer to reference element and get coordinates
+    ExtractElemInfo( ent );
+
+    // Extract pointer to reference element for curl-bilinear form
+    op_->ExtractElemInfo( ent );
+
+    ptelem->SetAnsatzFct( ansatzFct1_ );
+
+    const UInt nrIntPts = ptelem->GetNumIntPoints();
+    const UInt nrEdges = ptelem->GetNumEdges();
+    const Vector<Double> & intWeights = ptelem->GetIntWeights();  
+
+    // derivation of shape functions after global coordinates 
+    StdVector< Matrix<Double> > xiDx;
+    xiDx.Resize(nrEdges);
+
+    Matrix<Double> curl, curlTrans; 
+    Vector<Double> helpVec;
+    Double jacDet, factor;
+
+    elemVec.Resize( nrEdges );
+    helpVec.Resize( nrEdges );
+    elemVec.Init(0);  
+    helpVec.Init(0);
+
+    const Elem* geoElem = ent.GetElem();
+
+    for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++) {     
+
+      // calc glob derivs of shape functions and jacobian determinante
+      ptelem->GetEdgeGlobDerivShFncAtIp(xiDx, actIntPt, ptCoord_,
+                                        geoElem);
+      op_->CalcEdgeCurl(curl, xiDx);
+
+      // Compute Jacobian for integration point
+      jacDet = ptelem->CalcJacobianDetAtIp( actIntPt, ptCoord_, ent.GetElem() );
+
+      // Perform a safety check
+      if ( jacDet <= 0.0 ) {
+        EXCEPTION( "CurlCurlEdgeInt::CalcElementMatrix: Mesh distortion encountered "
+            << "Jacobian determinant change sign or is zero!" );
+      }
+
+      factor = intWeights[actIntPt-1] * jacDet * reluctivity_;
+      curl.Transpose(curlTrans);  
+
+      helpVec  = curlTrans * perm_;
+      helpVec *= factor;
+      elemVec += helpVec;
+    }
+  }
+
   // ==================================================================
   // nLinMagnetics
   // ==================================================================

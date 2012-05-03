@@ -21,6 +21,7 @@ class ApproxData;
 class BaseFE;
 class BaseMaterial;
 class CurlCurlNode3DInt;
+class CurlCurlEdgeInt;
 class EntityIterator;
 class linGradBDBInt;
 struct Elem;
@@ -154,6 +155,33 @@ namespace CoupledField
     CurlCurlNode3DInt *curlOp_;
   };
 
+
+  //! Class for permanent magnets in Edge formulation class MagPermEdgeInt : public LinearForm {
+  class MagPermEdgeInt : public LinearForm {
+
+   public:
+     //! Constructor
+    MagPermEdgeInt( Vector<Double> vecVal, Double rel,
+                    bool isaxi, bool coordUpdate = 0 );
+
+     //! Destructor
+     virtual ~MagPermEdgeInt();
+     
+    //! Calculation of vector of right hand side 
+    void CalcElemVector( Vector<Double> & result,
+                         EntityIterator& ent );
+
+   private:
+
+    //! magnetization
+    Vector<Double> perm_;
+
+    //!reluctivity
+    Double reluctivity_;
+
+     //! Bilinearform for curl calculation
+     CurlCurlEdgeInt* op_;
+   };
 
   // =============================================================================
   // nonlinear magnetics

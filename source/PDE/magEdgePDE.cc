@@ -268,8 +268,6 @@ namespace CoupledField {
       // check, if this subdomain is a permanent magnet
       for ( UInt perm = 0; perm < magnetsDomain_.GetSize(); perm++ ) {
         if ( actRegion == magnetsDomain_[perm] ) {
-          EXCEPTION("Currently magnetic 3D with edge elements do not support permanent magnets");
-
           Vector<Double> magnetization(dim_);
           magnetization[0] = magnetsOriX_[perm];
           magnetization[1] = magnetsOriY_[perm];
@@ -281,8 +279,8 @@ namespace CoupledField {
 
           std::string fncname = "none";
           LinearForm *permSource =
-            new MagPerm3DInt(magnetization, reluctivity,
-                             isaxi_, upLagrangeForm );
+            new MagPermEdgeInt(magnetization, reluctivity,
+                               isaxi_, upLagrangeForm );
 
           LinearFormContext * permContext =
             new LinearFormContext( permSource );
