@@ -88,7 +88,7 @@ SET(CTEST_INITIAL_CACHE
    USE_GMSH:BOOL=ON
    USE_PYTHON:BOOL=ON
    USE_TCL:BOOL=ON
-   USE_INTERPOLATION:BOOL=ON
+   USE_CGAL:BOOL=ON
    USE_SCPIP:BOOL=ON")
 
 #-----------------------------------------------------------------------------

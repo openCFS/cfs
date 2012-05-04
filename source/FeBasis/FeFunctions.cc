@@ -324,9 +324,7 @@ DECLARE_LOG(fefunc)
       if( eqnNums.GetSize() == 0){
         //ok so the space does not know about this particular entity
         //we try to determine its value via interpolation
-#ifdef USE_INTERPOLATION
         Vector<Double> globCoord;
-        StdVector<Vector<Double> > locCoord;
         Vector<T> elemSolution;
         Vector<T> dofSol;
         if(it.GetType()== EntityList::NODE_LIST){
@@ -345,17 +343,9 @@ DECLARE_LOG(fefunc)
         
         // try to find the correct element, being one belonging to the regionlist of
         // this fefunction
-        StdVector<const Elem*> elems = grid_->GetElemsAtGlobalCoord(globCoord,locCoord);
-        LocPoint myLp;
-        const Elem* myElem = NULL;
-        for ( UInt i = 0; i < elems.GetSize(); ++i ) {
-          if( this->regions_.find( elems[i]->regionId ) != this->regions_.end() ) {
-            myElem = elems[i];
-            myLp = locCoord[i];
-            break;
-          }
-        }
-        
+        LocPoint lp;
+        const Elem* myElem = 
+            grid_->GetElemAtGlobalCoord(globCoord, lp, regions_ ); 
         if( !myElem ) {
           WARN("Some elements were skipped during the interpolation");
         }
@@ -363,7 +353,7 @@ DECLARE_LOG(fefunc)
         shared_ptr<ElemShapeMap> esm = grid_->GetElemShapeMap( myElem, true );
 
         LocPointMapped lpm;
-        lpm.Set(myLp,esm);
+        lpm.Set(lp,esm);
         
 
         this->GetElemSolution(elemSolution,myElem);
@@ -373,9 +363,6 @@ DECLARE_LOG(fefunc)
           actSol[pos++] = dofSol[iDim];
 
         }
-#else
-        WARN("Interpolation not enabled but needed to extract this result. enable it plz!");
-#endif
       }else{
         Vector<T> & vals = *coeffs_;
         for ( UInt iDof = 0; iDof < eqnNums.GetSize(); iDof++ ){
@@ -619,8 +606,6 @@ DECLARE_LOG(fefunc)
   template<typename T>
   void FeFunction<T>::GetVector(Vector<T>& vec, 
                                 const LocPointMapped& lpm ){
-    assert(dimType_ == CoefFunction::VECTOR);
-    
     // get element solution
     Vector<T> elemSol;
     GetElemSolution( elemSol, lpm.ptEl);
@@ -633,7 +618,6 @@ DECLARE_LOG(fefunc)
   template<typename T>
   void FeFunction<T>::GetScalar(T & scal, 
                                 const LocPointMapped& lpm ){
-    assert(dimType_ == CoefFunction::SCALAR);
     // get element solution
     Vector<T> elemSol, temp;
     GetElemSolution( elemSol, lpm.ptEl);

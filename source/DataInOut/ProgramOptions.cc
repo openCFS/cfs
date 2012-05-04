@@ -15,7 +15,7 @@
 #include <def_use_gmv.hh>
 #include <def_use_gmsh.hh>
 #include <def_use_lapack.hh>
-#include <def_use_interpolation.hh>
+#include <def_use_cgal.hh>
 #include <def_xmlschema.hh>
 
 #include "ProgramOptions.hh"
@@ -59,7 +59,7 @@
 #include <arpack_version.h>
 #endif
 
-#ifdef USE_INTERPOLATION
+#ifdef USE_CGAL
 #include <CGAL/version.h>
 #endif
 
@@ -802,8 +802,8 @@ namespace CoupledField {
 
     out << endl;
 
-#ifdef USE_INTERPOLATION
-    out << "USE_INTERPOLATION:     "
+#ifdef USE_CGAL
+    out << "USE_CGAL:     "
         << fg_blue << "YES" << fg_reset << endl;
     out << "CFS_CGAL_VERSION:      "
         << fg_blue << QUOTEME(CGAL_VERSION)
@@ -811,7 +811,7 @@ namespace CoupledField {
         << ", SVN rev. " << CGAL_SVN_REVISION << ")"
         << fg_reset << endl;
 #else
-    out << "USE_INTERPOLATION:     "
+    out << "USE_CGAL:     "
         << fg_blue << "NO" << fg_reset << endl;
 #endif
     

@@ -115,23 +115,16 @@ void CoefFunctionGridBase<DATA_TYPE>::GetVector(Vector<DATA_TYPE>& CoefMat,
     CoefMat.Resize(domain->GetGrid(gridId_)->GetDim());
 
   CoefMat.Init();
-#ifdef USE_INTERPOLATION
   //const Elem* targetElem = lpm.ptEl;
   Vector<Double> globCoord;
   Vector<Double> localCoord;
   Vector<DATA_TYPE> elemSol;
 
   lpm.shapeMap->Local2Global(globCoord,lpm.lp);
-  StdVector< Vector<Double> > locCoords;
-  StdVector<const Elem*> elems = domain->GetGrid(gridId_)->GetElemsAtGlobalCoord(globCoord,locCoords);
-  const Elem* sourceElem=NULL;
-  for(UInt i =0;i<elems.GetSize();i++){
-    if(srcRegions_.find(domain->GetGrid(gridId_)->GetRegion().ToString(elems[i]->regionId)) != srcRegions_.end()){
-      sourceElem = elems[i];
-      localCoord = locCoords[i];
-      break;
-    }
-  }
+  LocPoint lp;
+  const Elem* sourceElem = domain->GetGrid(gridId_)->
+      GetElemAtGlobalCoord(globCoord,lp,srcRegions_);
+
   if(!sourceElem){
     WARN("Could not find element for coord " << globCoord);
     return;
@@ -145,7 +138,6 @@ void CoefFunctionGridBase<DATA_TYPE>::GetVector(Vector<DATA_TYPE>& CoefMat,
   feFunct_->GetElemSolution( elemSol, sourceElem);
   BaseFE * ptFe = feFunct_->GetFeSpace()->GetFe(sourceElem->elemNum);
   myOperator_->ApplyOp(CoefMat,lpmS,ptFe,elemSol);
-#endif
 }
 
 template<class DATA_TYPE>
@@ -161,20 +153,11 @@ void CoefFunctionGridBase<DATA_TYPE>::GetScalar(DATA_TYPE& CoefMat,
   Vector<DATA_TYPE> ptSol(1);
   ptSol.Init();
 
-#ifdef USE_INTERPOLATION
   lpm.shapeMap->Local2Global(globCoord,lpm.lp);
   StdVector< Vector<Double> > locCoords;
-  StdVector<const Elem*> elems = domain->GetGrid(gridId_)->GetElemsAtGlobalCoord(globCoord,locCoords);
-  //const Elem* sourceElem = domain->GetGrid(gridId_)->GetElemAtGlobalCoord(targetElem,globCoord,localCoord);
-  const Elem* sourceElem = NULL;
-  for(UInt i =0;i<elems.GetSize();i++){
-    if(srcRegions_.find(domain->GetGrid(gridId_)->GetRegion().ToString(elems[i]->regionId)) != srcRegions_.end()){
-      sourceElem = elems[i];
-      localCoord = locCoords[i];
-      break;
-    }
-
-  }
+  LocPoint lp;
+  const Elem* sourceElem = domain->
+      GetGrid(gridId_)->GetElemAtGlobalCoord(globCoord,lp,srcRegions_);
   if(!sourceElem){
     return;
   }
@@ -186,7 +169,6 @@ void CoefFunctionGridBase<DATA_TYPE>::GetScalar(DATA_TYPE& CoefMat,
   feFunct_->GetElemSolution( elemSol, sourceElem);
   BaseFE * ptFe = feFunct_->GetFeSpace()->GetFe(sourceElem->elemNum);
   myOperator_->ApplyOp(ptSol,lpmS,ptFe,elemSol);
-#endif
   CoefMat = ptSol[0];
 }
 
@@ -258,7 +240,7 @@ void CoefFunctionGridBase<DATA_TYPE>::ReadXmlNode(PtrParamNode configNode){
   configNode->Get("input")->GetValue("gridId", gridId_);
   configNode->Get("input")->GetValue("quantity", solString);
   solType_ = SolutionTypeEnum.Parse(solString );
-
+  srcGrid_ = domain->GetGrid(gridId_);
   PtrParamNode regionListNode = configNode->Get("regionList", ParamNode::PASS );
 
   ParamNodeList regionNodes;
@@ -267,12 +249,14 @@ void CoefFunctionGridBase<DATA_TYPE>::ReadXmlNode(PtrParamNode configNode){
     regionNodes = regionListNode->GetList("region");
 
   UInt numRegions = regionNodes.GetSize();
+  std::set<std::string> regionNames;
   // iterate over all regions
   for(UInt i = 0; i < numRegions; ++i ) {
     // get data from node
     std::string region;
     regionNodes[i]->GetValue( "srcRegionName", region );
-    srcRegions_.insert(region);
+    srcRegions_.insert(srcGrid_->GetRegion().Parse(region) );
+    regionNames.insert(region);
   }
 
   UInt aSeqStep = domain->GetDriver()->GetActSequenceStep();
@@ -291,7 +275,7 @@ void CoefFunctionGridBase<DATA_TYPE>::ReadXmlNode(PtrParamNode configNode){
 
   ResultHandler* resHandler = domain->GetResultHandler();
   resHandler->GetStepValues(inputId_,aSeqStep,resultInfo_,stepValueMap_,false);
-  feFunct_ = resHandler->GetFeFunction<DATA_TYPE>(inputId_,aSeqStep,stepValueMap_.begin()->first,solType_,srcRegions_);
+  feFunct_ = resHandler->GetFeFunction<DATA_TYPE>(inputId_,aSeqStep,stepValueMap_.begin()->first,solType_,regionNames);
 }
 
 

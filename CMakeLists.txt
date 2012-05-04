@@ -171,11 +171,11 @@ OPTION(USE_SNOPT "Use the external SnOpt optimizer." ${USE_SNOPT_DEFAULT})
 OPTION(USE_KNITRO "Use the external KNITRO optimizer." FALSE)
 
 #-----------------------------------------------------------------------------
-# Use interpolation toggles the inclusion of the CGAL library.
+# Use cgal toggles the inclusion of the CGAL library.
 #-----------------------------------------------------------------------------
-OPTION(USE_INTERPOLATION
-  "Activate Interpolation between grids."
-  ${USE_INTERPOLATION_DEFAULT})
+OPTION(USE_CGAL
+  "Activate fast element mapping using CGAL libray."
+  ${USE_CGAL_DEFAULT})
 
 #-----------------------------------------------------------------------------
 # The USE_OPENMP option triggers the usage of OpenMP versions of external
@@ -392,9 +392,9 @@ INCLUDE_DIRECTORIES(
   ${CFS_BINARY_DIR}/include
   ${CFS_SOURCE_DIR}/source)
 
-IF(USE_INTERPOLATION)
+IF(USE_CGAL)
   INCLUDE_DIRECTORIES(${CGAL_INCLUDE_DIR})
-ENDIF(USE_INTERPOLATION)
+ENDIF(USE_CGAL)
 
 #-----------------------------------------------------------------------------
 # Make sure the linker can find the CFS base libraries once it is built.

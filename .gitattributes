@@ -201,12 +201,12 @@ include/def_use_gmsh.hh.in -text
 include/def_use_gmv.hh.in -text
 include/def_use_hdf5.hh.in -text
 include/def_use_ilupack.hh.in -text
-include/def_use_interpolation.hh.in -text
 include/def_use_ipopt.hh.in -text
 include/def_use_knitro.hh.in -text
 include/def_use_lapack.hh.in -text
 include/def_use_mesh.hh.in -text
 include/def_use_metis.hh.in -text
+include/def_use_openmp.hh.in -text
 include/def_use_pardiso.hh.in -text
 include/def_use_scpip.hh.in -text
 include/def_use_snopt.hh.in -text

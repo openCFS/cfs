@@ -282,7 +282,7 @@ ENDIF(USE_XERCES)
 #-----------------------------------------------------------------------------
 # Find CGAL
 #-----------------------------------------------------------------------------
-IF(USE_INTERPOLATION)
+IF(USE_CGAL)
   SET(GMP_URL "${LSE17_SOURCES_DIR}/gmp")
   SET(GMP_BZ2 "gmp-4.2.4.tar.bz2")
   SET(GMP_MD5 "fc1e3b3a2a5038d4d74138d0b9cf8dbe")
@@ -297,7 +297,7 @@ IF(USE_INTERPOLATION)
   SET(CGAL_GZ "CGAL-3.9.tar.gz")
   SET(CGAL_MD5 "797697130ff9231627521c0a38f16d2f")
   INCLUDE("${CFS_SOURCE_DIR}/cfsdeps/cgal/External_CGAL.cmake")
-ENDIF(USE_INTERPOLATION)
+ENDIF(USE_CGAL)
 
 #-----------------------------------------------------------------------------
 # Find IPOPT

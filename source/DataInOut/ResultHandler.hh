@@ -235,6 +235,11 @@ namespace CoupledField {
     //!  Finalize all results defined by postProcs
     void FinishMultiSequenceStepRec( ResultContext& context );
 
+    //! Interpolate result to a different grid
+    void InterpolateRes( ResultContext& context,
+                         Grid* destGrid,
+                         shared_ptr<BaseResult>& mappedResult );
+    
     //! Operation mode of resultHandler
     OpMode opMode_;
     

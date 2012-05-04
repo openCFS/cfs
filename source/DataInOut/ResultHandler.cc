@@ -276,124 +276,22 @@ namespace CoupledField {
           // If not, we have to perform mapping
           // =================================================
           if( outGridIds_[outId] != "default" ) {
-            std::cerr << "Lets go map some results\n";
-#ifdef USE_INTERPOLATION            
+            
+            // security check: if no result functor is present, we leave
+            if( !actContext.functor )
+              continue;
+
             // obtain destination grid and get the element / node list
             Grid * destGrid = domain->GetGrid( outGridIds_[outId] );
-            Grid * srcGrid = domain->GetGrid("default");
-            
-            std::string entListName = actContext.result->GetEntityList()->GetName();
-            EntityList::ListType lType = actContext.result->GetEntityList()->GetType();
-            shared_ptr<EntityList> destList = destGrid->GetEntityList( lType, entListName );
-
-            // loop over all elements, get the element midpoint and store it in a vector
-            StdVector<LocPoint> lps(destList->GetSize());
-            StdVector<const Elem*> elems(destList->GetSize());
-            EntityIterator it = destList->GetIterator();
-            if( actContext.result->GetResultInfo()->definedOn == ResultInfo::NODE ) {
-              // loop over all nodes
-              Vector<Double> destPoint, locCoord;
-              UInt pos = 0;
-              for( ; !it.IsEnd(); it++ ) {
-
-                // get global element midpoint
-                UInt nodeNum = it.GetNode();
-                destGrid->GetNodeCoordinate( destPoint, nodeNum);
-
-
-                // get element in source grid
-                const Elem* srcElem = srcGrid->GetElemAtGlobalCoord( destPoint, locCoord );
-                if( srcElem == NULL ) {
-                  EXCEPTION( "Could not find source element for position "
-                      << destPoint << " of node " << nodeNum);
-                }
-
-                // store element and local point in list
-                lps[pos] = LocPoint(locCoord);
-                elems[pos++] = srcElem;
-
-              }
-            } else if( actContext.result->GetResultInfo()->definedOn == ResultInfo::ELEMENT ) {
-
-              // loop over all elements
-              shared_ptr<ElemShapeMap> esm;
-              Vector<Double> destPoint, locCoord;
-              UInt pos = 0;
-              for( ; !it.IsEnd(); it++ ) {
-
-                // get global element midpoint
-                const Elem* ptEl = it.GetElem();
-                esm = destGrid->GetElemShapeMap( ptEl , false );
-                esm->GetGlobMidPoint( destPoint );
-
-                // get element in source grid
-                std::cerr << "Looking for src elem to glob elem " << ptEl->elemNum << std::endl;
-                const Elem* srcElem = srcGrid->GetElemAtGlobalCoord( destPoint, locCoord );
-                if( srcElem == NULL ) {
-                  EXCEPTION( "Could not find source element for position "
-                      << destPoint << " of elem " << ptEl->elemNum );
-                }
-                
-                // store element and local point in list
-                lps[pos] = LocPoint(locCoord);
-                elems[pos++] = srcElem;
-              }
-            }
-
-            // Get result functor
-            shared_ptr<ResultFunctor> fct = actContext.functor;
-
-
-            // Create new result
             shared_ptr<BaseResult> res;
-
-            // Create result vector (depending on type)
-            if(actContext.result->GetEntryType() == BaseMatrix::DOUBLE ) {
-
-              PtrCoefFct coef;
-              // try to get the coefficient function
-              if( typeid(*fct) == typeid(FieldCoefFunctor<Double>)){
-                coef = (dynamic_pointer_cast<FieldCoefFunctor<Double> >(fct))->GetCoefFct();
-              } else {
-                EXCEPTION( "Can not interpolate values, not defined on a field");
-              }
-
-              res.reset(new Result<Double>());
-              Vector<Double> & vals = dynamic_cast<Vector<Double>& >(*res->GetSingleVector());
-              UInt numDofs = actContext.result->GetResultInfo()->dofNames.GetSize();
-              vals.Resize( lps.GetSize() * numDofs );
-
-              // Loop over all local points
-              UInt pos = 0;
-              Vector<Double> temp;
-              shared_ptr<ElemShapeMap> esm;
-              LocPointMapped lpm;
-              for( UInt i = 0; i < lps.GetSize(); ++i ) {
-                esm = srcGrid->GetElemShapeMap( elems[i]);
-                lpm.Set( lps[i], esm );
-
-                // Calculate coefficient function and store the result into the vector
-                coef->GetVector( temp, lpm);
-
-                // loop over all dofs and save the result
-                for( UInt iDof=0; iDof < numDofs; ++iDof ) {
-                  vals[pos++] = temp[iDof];
-                } // loop over dofs
-              } // loop over elements
-
-              res->SetEntityList(destList);
-              res->SetResultInfo(actContext.result->GetResultInfo());
-              outFiles_[actContext.outputIds[iOut]]->AddResult( res);
-            } else {
-              EXCEPTION("Complex-valued case not implemented");
-            }
-#else
-                EXCEPTION("Enable interpolation");
-#endif
+            
+            // perform interpolation
+            InterpolateRes( actContext, destGrid, res );
+            outFiles_[actContext.outputIds[iOut]]->AddResult( res);
+         
           } else {
-
-
-
+            // Standard case, no interpolation necessary
+            
             // Add current result to given output file
             outFiles_[actContext.outputIds[iOut]]->AddResult( actContext.result );
             LOG_DBG(resHandler) << "Adding result '" 
@@ -1155,6 +1053,153 @@ namespace CoupledField {
       }
     }
     return myFunc;
+  }
+  
+  
+  
+  void ResultHandler::InterpolateRes( ResultContext& actContext,
+                                      Grid* destGrid,
+                                      shared_ptr<BaseResult>& res ) {
+    
+    Grid* srcGrid = domain->GetGrid( "default" );
+    std::string entListName = actContext.result->GetEntityList()->GetName();
+    EntityList::ListType lType = actContext.result->GetEntityList()->GetType();
+    shared_ptr<EntityList> destList = destGrid->GetEntityList( lType, entListName );
+
+    // loop over all elements, get the element midpoint and store it in a vector
+    StdVector<Vector<Double> > globPoints(destList->GetSize());
+    EntityIterator it = destList->GetIterator();
+    if( actContext.result->GetResultInfo()->definedOn == ResultInfo::NODE ) {
+      // loop over all nodes
+      UInt pos = 0;
+      for( ; !it.IsEnd(); it++ ) {
+        // get global element midpoint
+        UInt nodeNum = it.GetNode();
+        destGrid->GetNodeCoordinate( globPoints[pos++], nodeNum);
+      }
+    } else if( actContext.result->GetResultInfo()->definedOn == ResultInfo::ELEMENT ) {
+      // loop over all elements
+      shared_ptr<ElemShapeMap> esm;
+      UInt pos = 0;
+      for( ; !it.IsEnd(); it++ ) {
+
+        // get global element midpoint
+        const Elem* ptEl = it.GetElem();
+        esm = destGrid->GetElemShapeMap( ptEl , false );
+        esm->GetGlobMidPoint( globPoints[pos++] );
+      }
+    }
+
+    // now map global locations to out src grid
+    StdVector<LocPoint> lps(destList->GetSize());
+    StdVector<const Elem*> elems(destList->GetSize());
+    srcGrid->GetElemsAtGlobalCoords( globPoints, lps, elems );
+
+
+    // Get result functor
+    shared_ptr<ResultFunctor> fct = actContext.functor;
+
+    // Create result vector (depending on type)
+    if(actContext.result->GetEntryType() == BaseMatrix::DOUBLE ) {
+
+      PtrCoefFct coef;
+      // try to get the coefficient function
+      if( typeid(*fct) == typeid(FieldCoefFunctor<Double>)){
+        coef = (dynamic_pointer_cast<FieldCoefFunctor<Double> >(fct))->GetCoefFct();
+      } else {
+        EXCEPTION( "Can not interpolate values, not defined on a field");
+      }
+
+      res.reset(new Result<Double>());
+      Vector<Double> & vals = dynamic_cast<Vector<Double>& >(*res->GetSingleVector());
+      UInt numDofs = actContext.result->GetResultInfo()->dofNames.GetSize();
+      vals.Resize( lps.GetSize() * numDofs );
+      vals.Init(0.0);
+
+      // Loop over all local points
+      UInt pos = 0;
+      Vector<Double> temp;
+      shared_ptr<ElemShapeMap> esm;
+      LocPointMapped lpm;
+      if( coef->GetDimType() == CoefFunction::SCALAR ) {
+        temp.Resize(1);
+        for( UInt i = 0; i < lps.GetSize(); ++i ) {
+          if( elems[i] == NULL)
+            continue;
+          esm = srcGrid->GetElemShapeMap( elems[i]);
+          lpm.Set( lps[i], esm );
+          coef->GetScalar( temp[0], lpm);
+          vals[pos++] = temp[0];
+        } // loop over elements
+
+      } else if( coef->GetDimType() == CoefFunction::VECTOR ) {
+        for( UInt i = 0; i < lps.GetSize(); ++i ) {
+          if( elems[i] == NULL)
+            continue;
+          esm = srcGrid->GetElemShapeMap( elems[i]);
+          lpm.Set( lps[i], esm );
+
+          // Calculate coefficient function and store the result into the vector
+          coef->GetVector( temp, lpm);
+
+          // loop over all dofs and save the result
+          for( UInt iDof=0; iDof < numDofs; ++iDof ) {
+            vals[pos++] = temp[iDof];
+          } // loop over dofs
+        } // loop over elements
+      }
+     
+    }  else {
+      PtrCoefFct coef;
+      // try to get the coefficient function
+      if( typeid(*fct) == typeid(FieldCoefFunctor<Complex>)){
+        coef = (dynamic_pointer_cast<FieldCoefFunctor<Complex> >(fct))->GetCoefFct();
+      } else {
+        EXCEPTION( "Can not interpolate values, not defined on a field");
+      }
+
+      res.reset(new Result<Complex>());
+      Vector<Complex> & vals = dynamic_cast<Vector<Complex>& >(*res->GetSingleVector());
+      UInt numDofs = actContext.result->GetResultInfo()->dofNames.GetSize();
+      vals.Resize( lps.GetSize() * numDofs );
+      vals.Init(0.0);
+
+      // Loop over all local points
+      UInt pos = 0;
+      Vector<Complex> temp;
+      shared_ptr<ElemShapeMap> esm;
+      LocPointMapped lpm;
+      if( coef->GetDimType() == CoefFunction::SCALAR ) {
+        temp.Resize(1);
+        for( UInt i = 0; i < lps.GetSize(); ++i ) {
+          if( elems[i] == NULL)
+            continue;
+          esm = srcGrid->GetElemShapeMap( elems[i]);
+          lpm.Set( lps[i], esm );
+          coef->GetScalar( temp[0], lpm);
+          vals[pos++] = temp[0];
+        } // loop over elements
+
+      } else if( coef->GetDimType() == CoefFunction::VECTOR ) {
+        for( UInt i = 0; i < lps.GetSize(); ++i ) {
+          if( elems[i] == NULL)
+            continue;
+          esm = srcGrid->GetElemShapeMap( elems[i]);
+          lpm.Set( lps[i], esm );
+
+          // Calculate coefficient function and store the result into the vector
+          coef->GetVector( temp, lpm);
+
+          // loop over all dofs and save the result
+          for( UInt iDof=0; iDof < numDofs; ++iDof ) {
+            vals[pos++] = temp[iDof];
+          } // loop over dofs
+        } // loop over elements
+      } // vector / scalar case
+    } // complex case
+    
+    res->SetEntityList(destList);
+    res->SetResultInfo(actContext.result->GetResultInfo());
   }
 
 

@@ -100,9 +100,12 @@ class CoefFunctionGridBase : public CoefFunction{
 
     //! input grid Id for this function
     std::string gridId_;
+    
+    //! pointer to src grid
+    Grid* srcGrid_;
 
     //! list of regions on given grid the coefficients are defined on
-    std::set<std::string> srcRegions_;
+    std::set<RegionIdType> srcRegions_;
 
     //! the solution type given by this function
     SolutionType solType_;

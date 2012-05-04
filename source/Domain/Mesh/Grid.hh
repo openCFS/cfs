@@ -3,9 +3,10 @@
 
 #include <list>
 #include <set>
-#include <def_use_interpolation.hh>
+#include <boost/array.hpp>
+#include <def_use_cgal.hh>
 
-#ifdef USE_INTERPOLATION
+#ifdef USE_CGAL
 #include <CGAL/box_intersection_d.h>
 #include <CGAL/Bbox_2.h>
 #include <CGAL/Bbox_3.h>
@@ -247,6 +248,19 @@ namespace CoupledField
     virtual void GetNodesOfElemList( StdVector<UInt> & nodeList,
                                      const StdVector<Elem*> & elemList,
 				     bool onlyLinNodes = false ) = 0;
+
+    //! Return element at global position
+    const Elem* GetElemAtGlobalCoord(const Vector<double>& globCoord,
+                                     LocPoint& locCoord,
+                                     const std::set<RegionIdType> srcRegions
+                                     = std::set<RegionIdType> () );
+    
+    //! Map a list of global coordinates to pair 
+    void GetElemsAtGlobalCoords( const StdVector<Vector<double> >& globCoords,
+                                StdVector< LocPoint >& localCoords,
+                                StdVector< const Elem* > & elems,
+                                const std::set<RegionIdType> srcRegions 
+                                = std::set<RegionIdType>());
 
     //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     //+++++++++++++++++++++++++++ REGION INFORMATION +++++++++++++++++++++++++
@@ -726,13 +740,16 @@ namespace CoupledField
 
 
   protected:
-
+    
+   
+    
     //! Flag for axi-symmetry
     bool isAxi_;
 
     /** servive for AddSurfaceRegion() and AddVolumeRegion() */
     RegionIdType AddRegion(const std::string& name, RegionType type);
 
+    
     //! Flag for initialization status
     bool isInitialized_;
 
@@ -771,7 +788,7 @@ namespace CoupledField
     // Interation Scheme
     // =======================================================================
     shared_ptr<IntScheme> integScheme_;
-
+    
     // =======================================================================
     // Non-matching grid interface calculation
     // =======================================================================
@@ -894,46 +911,80 @@ namespace CoupledField
         start(s), end(e), inc(i) {};
     };
 
-  private:
+  protected:
 
-#ifdef USE_INTERPOLATION
-    typedef CGAL::Box_intersection_d::Box_d<int,2> Box;
+    // =======================================================================
+    //  ELEMENT / POINT MAPPING
+    // =======================================================================
 
-    //  typedef CGAL::Box_intersection_d::Box_d<double,2> Box2D;
-    //  typedef CGAL::Box_intersection_d::Box_d<double,3> Box3D;
-    //  typedef CGAL::Bbox_2                              BBox2D;
-    typedef CGAL::Bbox_3                              BBox3D;
+    //! Structure for mapping global coordinates to a list of
+    //! potentially interesting elements
+    struct PointElemMatch {
+
+      //! Global coordinate
+      Vector<Double> globCoord;
+
+      //! List of potential elements lying in the bounding box
+      std::set<const Elem*> matches;
+
+    };
+
+    //! Map a list of global points to element local points
+    
+    //! This method maps each global coordinate (contained in the PointElemMatch
+    //! struct) to a element-local coordinate. It searches all candidate elements
+    //! for each point. If the point could not be mapped to any element,
+    //! the corresponding Elem-pointer in the elems array is NULL.
+    void MapGlobPointsToLoc( const StdVector<PointElemMatch>& matches,
+                             StdVector<const Elem*>& elems,
+                             StdVector<LocPoint>& lps );
+
+#ifdef USE_CGAL
+
+    //! Define 3-dimensional bounding box
+    typedef CGAL::Bbox_3 BBox3D;
+
+    //! Define box handler, which additionally stores an index
     typedef CGAL::Box_intersection_d
-                ::Box_with_handle_d<double,3,const UInt*> HandleBox;
+        ::Box_with_handle_d<double,3,const UInt*> HandleBox;
 
-    typedef CGAL::Cartesian<double> K;
-    typedef K::Point_2 Point2D;
+    //! Return list of potential elements containing global points
 
+    //! This method returns for every global coordinate a list
+    //! of elements, where the point is contained in the bounding box.
+    //! This algorithm makes use of the CGAL fast intersection algorithm.
+    void MapPointsToBoundingBoxes( StdVector<PointElemMatch>& matches,
+                                   const std::set<RegionIdType> srcRegions 
+                                   = std::set<RegionIdType>());
 
+    //! List containing the "boxes" of all elements
     std::vector<HandleBox> elemBoxes_;
 
+    //! \param coords(in) The vector of global coordinates
+    //! \param id(in) An identifier for this specific coordinate (e.g. index in a vector)
+    HandleBox CreateBoxFromCoord(const Vector<double> coors, UInt *id);
 
-    void intersection();
+    //! create a box from a given element
+    HandleBox CreateBoxFromElement(const Elem* elem,Double globToler);
+    
+#else // USE_CGAL
 
-  public:
-    const Elem* GetElemAtGlobalCoord(const Vector<double>& globCoord,
-                                     Vector<double>& localCoords);
+    //! Return list of potential elements containing global points (slow version)
 
-    StdVector<const Elem*> GetElemsAtGlobalCoord(const Vector<double>& globCoord,
-                                                 StdVector< Vector<double> >& localCoords);
+    //! This method returns for every global coordinate a list
+    //! of elements, where the point is contained in the bounding box.
+    //! This method uses the own (potentially slow) algorithm, to determine
+    //! the bounding boxed
+    void MapPointsToBoundingBoxes( StdVector<PointElemMatch>& matches,
+                                   const std::set<RegionIdType> srcRegions 
+                                   = std::set<RegionIdType>());
+    
+    //! Bounding boxes
+    StdVector<boost::array<Double,6> > elemBoxes_;
 
-    void ComputeConservativeInterpolationWeights(const ElemList& destElemList,
-            const NodeList& sourceNodeList,
-            const std::string& coordSysId,
-            ciTolerance& globalEpsilon,
-            ciTolerance& localEpsilon,
-            Double z,
-            Double zEpsilon,
-            std::vector< std::map<UInt, Double> >& consInterpWeights,
-            StdVector<UInt> &unmapped_nodes);
+#endif // USE_CGAL
 
 
-#endif // USE_INTERPOLATION
 
     ///
   };

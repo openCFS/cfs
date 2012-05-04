@@ -57,8 +57,8 @@ CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_snopt.hh.in"
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_knitro.hh.in"
   "${CFS_BINARY_DIR}/include/def_use_knitro.hh")
 
-CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_interpolation.hh.in"
-  "${CFS_BINARY_DIR}/include/def_use_interpolation.hh")
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_cgal.hh.in"
+  "${CFS_BINARY_DIR}/include/def_use_cgal.hh")
 
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_xerces.hh.in"
   "${CFS_BINARY_DIR}/include/def_use_xerces.hh")
@@ -83,6 +83,9 @@ CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_unv.hh.in"
 
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_ansysrst.hh.in"
   "${CFS_BINARY_DIR}/include/def_use_ansysrst.hh")
+
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_openmp.hh.in"
+  "${CFS_BINARY_DIR}/include/def_use_openmp.hh")
 
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_xmlschema.hh.in"
   "${CFS_BINARY_DIR}/include/def_xmlschema.hh"

@@ -2,9 +2,6 @@
 
 #include <fstream>
 
-// use of interpolation
-#include <def_use_interpolation.hh>
-
 // for coordinate handling
 #include "Domain/Domain.hh"
 #include "Domain/CoordinateSystems/CoordSystem.hh"
@@ -1124,11 +1121,7 @@ namespace CoupledField {
             else {
              globPoint[2] = 0.0;
             }
-//#define USE_INTERPOLATION            
-#ifndef USE_INTERPOLATION
-             EXCEPTION("Special Results can just be calculated with INTERPOLATION active");
-#else
-             Vector<Double> locPoint;
+             LocPoint locPoint;
              const Elem * ptElem = NULL;
              // now, map global point to localpoint
              ptElem = ptGrid_->GetElemAtGlobalCoord( globPoint, locPoint );
@@ -1149,9 +1142,8 @@ namespace CoupledField {
 //                   << globPoint.ToString() << std::endl << std::endl;
                
                actField.elems.Push_back(ptElem);
-               actField.locPoints.Push_back(LocPoint(locPoint));
+               actField.locPoints.Push_back(locPoint);
              }
-#endif
             
           } // z
         } // y
