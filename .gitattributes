@@ -1398,6 +1398,8 @@ source/Optimization/Optimizer/FeasPP.cc -text
 source/Optimization/Optimizer/FeasPP.hh -text
 source/Optimization/Optimizer/FeasSCP.cc -text
 source/Optimization/Optimizer/FeasSCP.hh -text
+source/Optimization/Optimizer/FeasSubProblem.cc -text
+source/Optimization/Optimizer/FeasSubProblem.hh -text
 source/Optimization/Optimizer/GradientCheck.cc svneol=native#text/x-c%2B%2Bsrc
 source/Optimization/Optimizer/GradientCheck.hh svneol=native#text/x-c%2B%2Bhdr
 source/Optimization/Optimizer/IPOPT.cc -text

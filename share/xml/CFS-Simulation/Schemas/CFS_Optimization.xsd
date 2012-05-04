@@ -540,6 +540,9 @@
                  
                 <!-- this is the constat scalar objective convexication term for the objective from Zillober. --> 
                 <xsd:attribute name="convex_tau" default="0.0" use="optional" type="xsd:float"/>
+                <!-- a KKT criterion from Sonja's thesis. See FeasPP::CalcKKT() -->
+                <xsd:attribute name="kkt" default="1e-5" type="xsd:float" use="optional"/>
+                
               </xsd:complexType>
             </xsd:element>
             

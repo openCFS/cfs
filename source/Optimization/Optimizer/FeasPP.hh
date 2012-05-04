@@ -138,6 +138,9 @@ private:
    * @param force_reduction to react on subproblem problems */
   void UpdateAsymptotes(const Vector<double>&x_outer, int iter, bool force_reduction = false);
 
+  /** calc a KKT like stopping criteria following (7.24) in Sonja's thesis */
+  double CalcKKT(const Vector<double>& x, const Vector<double>& x_old, const Vector<double>& y);
+
   double CalcAngle();
 
   /** assume the current design to be FMO tensors and output them */
@@ -205,6 +208,9 @@ private:
   /** maximal number of asymptotes reduction in case the subproblem cannot be solved. Enlarging is automatically
    * by UpdateAsymptotes when solutions don't oscillate */
   int max_reductions_;
+
+  /** the KKT criterion for CalcKKT() */
+  double kkt_;
 
 };
 

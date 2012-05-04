@@ -58,6 +58,7 @@ FeasPP::FeasPP(Optimization* opt, PtrParamNode pn) : BaseOptimizer(opt, pn, Opti
   max_refine_ = 1e-3;
   refine_steps_ = 0.1;
   max_reductions_ = 10;
+  kkt_ = 1e-5;
 
   if(this_opt_pn_ != NULL)
   {
@@ -65,6 +66,7 @@ FeasPP::FeasPP(Optimization* opt, PtrParamNode pn) : BaseOptimizer(opt, pn, Opti
     approx_linear      = this_opt_pn_->Get("approx_linear")->As<bool>();
     approx_feasibility = this_opt_pn_->Get("approx_feasible")->As<bool>();
     convex_tau         = this_opt_pn_->Get("convex_tau")->As<double>();
+    kkt_               = this_opt_pn_->Get("kkt")->As<double>();
 
     if(this_opt_pn_->Has("asymptotes"))
     {
@@ -239,6 +241,7 @@ void FeasPP::SolveProblem()
   int iter = 1;
   // additional refinement of subproblem in failed linesearch
   double refine = 1.0;
+  double kkt_val = -1.0;
   while(!optimization->DoStopOptimization() && iter <= max_iter && !converged)
   {
     // eventually update asymptotes
@@ -275,7 +278,12 @@ void FeasPP::SolveProblem()
     LOG_DBG2(feasPP) << "SP: it=" << iter << " x_old = [" << x_outer.ToString() << "]";
     LOG_DBG2(feasPP) << "SP: it=" << iter << " x_new_org = [" << ipopt->x_final.ToString() << "]";
 
-    if(global_ != NONE)
+    kkt_val = CalcKKT(ipopt->x_final, x_outer, ipopt->lambda);
+    in->Get("kkt")->SetValue(kkt_val);
+    if(kkt_val <= kkt_)
+      converged = true;
+
+    if(!converged && global_ != NONE)
     {
       if(global_ == BACKTRACKING)
         ls = Backtracking(x_outer, ipopt->x_final);
@@ -314,9 +322,11 @@ void FeasPP::SolveProblem()
     summary->Get("reason/msg")->SetValue("linesearch returned to old point");
   if(iter >= max_iter)
     summary->Get("reason/msg")->SetValue("maximum iterations reached");
+  if(kkt_val <= kkt_)
+    summary->Get("reason/msg")->SetValue("KKT value " + boost::lexical_cast<string>(kkt_val) + " smaller bound " + boost::lexical_cast<string>(kkt_));
 
   if(converged)
-    std::cout << "\nFeasPP finished with " << iter << " iterations" << std::endl;
+    std::cout << "\nFeasPP converged after " << (iter-1) << " iterations: " << summary->Get("reason/msg")->As<string>() << std::endl;
   else
     std::cout << "\nFeasPP did not converge: " << summary->Get("reason/msg")->As<string>() << std::endl;
 }
@@ -686,9 +696,34 @@ void FeasPP::UpdateAsymptotes(const Vector<double>&x, int iter, bool force_reduc
 
 }
 
+double FeasPP::CalcKKT(const Vector<double>& x, const Vector<double>& x_old, const Vector<double>& y)
+{
+  // (7.24) is abs(<grad_f,dx>) + sum_i abs(y_i * c_i) <= eps
+  // holds e.g. when dx is small enough and all constraints are active (c <= 0 !!)
+
+  StdVector<double> f_grad(n);
+  EvalGradObjective(n, x.GetPointer(), true, f_grad);
+
+  double kkt = 0.0;
+  for(unsigned int i = 0; i < n; i++)
+    kkt += abs(f_grad[i] * (x[i] - x_old[i]));
+
+  optimization->GetDesign()->Reset(DesignElement::CONSTRAINT_GRADIENT, DesignElement::DEFAULT);
+  for(unsigned int i = 0; i < m; i++)
+  {
+    Condition* g = constr[i]->GetCondition(false); // if we have, we take benson vanderbei because y is transformed!
+    double c = EvalConstraint(g, true, true);
+    kkt += abs(y[i] * c);
+  }
+  optimization->constraints.view->Done(); // reset slope constraint to global mode
+
+  return kkt;
+}
+
 void FeasPP::ToInfo(PtrParamNode in)
 {
   in->Get("convex_tau")->SetValue(convex_tau);
+  in->Get("kkt")->SetValue(kkt_);
   in->Get("globalize")->SetValue(global.ToString(global_));
   if(global_ != NONE)
   {
