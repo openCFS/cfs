@@ -212,9 +212,6 @@ namespace CoupledField
        * shear moduli */
       static void AddXtropyConstraints(PtrParamNode pn, StdVector<Condition*>& list, Condition* g);
 
-      /** blows up FMO_POS_DEF for the minors */
-      // static void AddFMOPosDefConstraints(PtrParamNode pn, StdVector<Condition*>& list, Condition* g);
-
       /** Helper for Addcondition().
       Adds the conditions for isotropy y*/
       static void AddMaxwellIsotropyConstraints(PtrParamNode pn, StdVector<Condition*>& list, Condition* g, bool biisotropy = false);
@@ -265,6 +262,8 @@ namespace CoupledField
      int GetCurrentRelativePosition() const {
        return current_view_index_ - virtual_base_index_;
      }
+
+     int GetVirtualBaseIndex() const { return virtual_base_index_; }
 
      /** The number of slope constraints. */
      unsigned int GetConstraintSize() const {
@@ -395,17 +394,16 @@ namespace CoupledField
       * if already set. */
      void ToInfo(PtrParamNode in, MultipleExcitation* me);
 
-     /** Searches in active constraints only!
+     /** Searches in active constraints or all constraints !
       *  @param design NO_TYPE ignores this criteria. DEFAULT would be problematic for
       *                this purpose as it is a valid value
       * @return check active flag! Not NULL! */
-     Condition* Get(Condition::Type type = Condition::VOLUME, DesignElement::Type design = DesignElement::NO_TYPE)
-     {
-       return Get(type, design, true, true);
+     Condition* Get(Condition::Type type = Condition::VOLUME, DesignElement::Type design = DesignElement::NO_TYPE, bool only_active = true) {
+       return Get(type, design, only_active, true);
      }
 
      /** query before Get() throws an exception */
-     bool Has(Condition::Type type = Condition::VOLUME, DesignElement::Type design = DesignElement::NO_TYPE);
+     bool Has(Condition::Type type = Condition::VOLUME, DesignElement::Type design = DesignElement::NO_TYPE, bool only_active = true);
 
      /** All external optimizers should only work with this view.
       * It make the special handling for the slope constraints */

@@ -328,10 +328,12 @@ void Optimization::SetEnums()
   Function::type.Add(Function::TENSOR_TRACE, "tensorTrace");
   Function::type.Add(Function::GLOBAL_SUM_MODULI, "globalSumModuli");
   Function::type.Add(Function::PARAM_PS_POS_DEF, "parametrized-plane-stress-pos-def");
-  // Function::type.Add(Function::FMO_POS_DEF, "fmoPosDef");
-  Function::type.Add(Function::FMO_POS_DEF_MINOR_1, "fmoPosDefMinor1");
-  Function::type.Add(Function::FMO_POS_DEF_MINOR_2, "fmoPosDefMinor2");
-  Function::type.Add(Function::FMO_POS_DEF_MINOR_3, "fmoPosDefMinor3");
+  Function::type.Add(Function::POS_DEF_DET_MINOR_1, "fmoPosDefMinor1");
+  Function::type.Add(Function::POS_DEF_DET_MINOR_2, "fmoPosDefMinor2");
+  Function::type.Add(Function::POS_DEF_DET_MINOR_3, "fmoPosDefMinor3");
+  Function::type.Add(Function::BENSON_VANDERBEI_1, "bensonVanderbeiMinor1");
+  Function::type.Add(Function::BENSON_VANDERBEI_2, "bensonVanderbeiMinor2");
+  Function::type.Add(Function::BENSON_VANDERBEI_3, "bensonVanderbeiMinor3");
   Function::type.Add(Function::SLACK, "slack");
 
   Function::Local::locality.SetName("Function::Local::Locality");

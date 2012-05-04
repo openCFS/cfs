@@ -117,11 +117,12 @@ class Function
       GLOBAL_SUM_MODULI,         /*!< global resource constraint, see sum_moduli */
       TENSOR_TRACE,              /*!< local constraint on the tensor trace for fmo */
       PARAM_PS_POS_DEF,          /*!< constraint to ensure positive definiteness in parametrized elasticity tensor formulation (plane stress). Choose > 0*/
-      //FMO_POS_DEF,               /*!< local for anisotropic fmo to ensure positive def for (E - value*I) < param where param shall be very small */
-      FMO_POS_DEF_MINOR_1,       /*!< 1st minor constraint for FMO_POS_DEF */
-      FMO_POS_DEF_MINOR_2,       /*!< 2nd minor constraint for FMO_POS_DEF */
-      FMO_POS_DEF_MINOR_3,       /*!< 3rd minor constraint for FMO_POS_DEF */
-
+      POS_DEF_DET_MINOR_1,       /*!< 1st minor constraint for FMO positive definiteness by positive determinants */
+      POS_DEF_DET_MINOR_2,       /*!< 2nd minor constraint for FMO positive definiteness by positive determinants */
+      POS_DEF_DET_MINOR_3,       /*!< 3rd minor constraint for FMO positive definiteness by positive determinants */
+      BENSON_VANDERBEI_1,        /*!< 1st minor constraint for numerical problemantic FMO pos def constraint */
+      BENSON_VANDERBEI_2,        /*!< 2st minor constraint for numerical problemantic FMO pos def constraint */
+      BENSON_VANDERBEI_3,        /*!< 3st minor constraint for numerical problemantic FMO pos def constraint */
       SLACK                      /*!< for min max problems like min alpha s.th. compliance smaller alpha. Not really a function
                                       but triggers AuxDesign instead of DesignSpace. */
     } Type; // in ConditionContainer::VirtualView::Refresh() we assume a maximal value for the type. Check!!
@@ -415,8 +416,12 @@ class Function
         /** local tensor trace for FMO */
         double CalcTensorTrace(int neigh_idx, const Local* local, bool derivative) const;
 
-        /** local FMP positive definiteness of (E-val*I) >= param */
-        double CalcFMOPosDef(int neigh_idx, const Local* local, bool derivative) const;
+        /** local FMO positive definiteness of (E-val*I) >= param via determinants
+         * @param type the type we want to evaluate. Might be different from local->func->type_ in Approximation::TransformMultiplyer() */
+        double CalcPosDefDeteminant(int neigh_idx, const Local* local, bool derivative, Type type) const;
+
+        /** local FMO positive definiteness of (E-val*I) >= param via Benson Vanderbei constraints */
+        double CalcBensonVanderbei(int neigh_idx, const Local* local, bool derivative) const;
 
         /** CalcStress() and the gradient are actually done in EM/SIMP */
 
@@ -466,7 +471,7 @@ class Function
       void SetupSingularElementMap();
 
       /** multiple designs on one element for paramMat
-       * @param for FMO_POS_DEF we need to know which minor */
+       * @param for FMO_POS_DEF_* we need to know which minor */
       void SetupMultDesignsElementMap(const Function* f = NULL);
 
       /** small helper to determine the number of neighbors in each (diagonal)

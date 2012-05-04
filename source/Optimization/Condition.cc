@@ -93,9 +93,12 @@ Condition::Condition(PtrParamNode pn) : Function(pn)
         throw Exception("Tensor is mandatory for '" + type.ToString(type_) + "'");
       break;
     // case FMO_POS_DEF:
-    case FMO_POS_DEF_MINOR_1:
-    case FMO_POS_DEF_MINOR_2:
-    case FMO_POS_DEF_MINOR_3:
+    case POS_DEF_DET_MINOR_1:
+    case POS_DEF_DET_MINOR_2:
+    case POS_DEF_DET_MINOR_3:
+    case BENSON_VANDERBEI_1:
+    case BENSON_VANDERBEI_2:
+    case BENSON_VANDERBEI_3:
       if(!pn->Has("parameter"))
         throw Exception("parameter (very small value) mandatory for '" + type.ToString(type_) + "'");
       break;
@@ -173,7 +176,7 @@ void Condition::AddCondition(PtrParamNode pn, StdVector<Condition*>& list)
   if(g->type_ == ISOTROPY || g->type_ == ISO_ORTHOTROPY || g->type_ == ORTHOTROPY)
     AddXtropyConstraints(pn, list, g);
 
-  //if(g->type_ == FMO_POS_DEF_MINOR_1 || FMO_POS_DEF_MINOR_2 || FMO_POS_DEF_MINOR_3)
+  //if(g->type_ == FMO_POS_DEF_MINOR_1 || FMO_POS_DEF_MINOR_2 || POS_DEF_DET_MINOR_3)
   //  AddFMOPosDefConstraints(pn, list, g);
 
   if(g->type_ == MAXWELL_ISOTROPY)
@@ -479,21 +482,6 @@ void Condition::AddMaxwellIsotropyConstraints(PtrParamNode pn, StdVector<Conditi
   }
 
 }
-/*
-void Condition::AddFMOPosDefConstraints(PtrParamNode pn, StdVector<Condition*>& list, Condition* g)
-{
-  assert(g->type_ == FMO_POS_DEF);
-  if(domain->GetGrid()->GetDim() != 2) throw Exception("FMO only implemented for 2D");
-
-  g->fmo_pos_def_minor_ = 1; // the original constraint
-
-  g = AppendSubCondition(list);
-  g->fmo_pos_def_minor_ = 2;
-
-  g = AppendSubCondition(list);
-  g->fmo_pos_def_minor_ = 3;
-}
-*/
 
 void Condition::AddHomogenizationTensorConstraints(PtrParamNode pn, StdVector<Condition*>& list, Condition* g)
 {
@@ -715,9 +703,12 @@ bool Condition::IsFeasibilityConstraint() const
 {
   switch(type_)
   {
-  case FMO_POS_DEF_MINOR_1:
-  case FMO_POS_DEF_MINOR_2:
-  case FMO_POS_DEF_MINOR_3:
+  case POS_DEF_DET_MINOR_1:
+  case POS_DEF_DET_MINOR_2:
+  case POS_DEF_DET_MINOR_3:
+  case BENSON_VANDERBEI_1:
+  case BENSON_VANDERBEI_2:
+  case BENSON_VANDERBEI_3:
     return true;
   default:
     return false;
@@ -745,9 +736,6 @@ string Condition::ToString(MultipleExcitation* me) const
   // e.g. stresses are extended for every excitation
   if((type_ == STRESS || type_ == STRESS_DENSITY) && me != NULL && me->IsEnabled())
     os << "_" << me->excitations[excite_].label; // change to excite label
-
-  // if(type_ == FMO_POS_DEF)
-  //  os << "_minor" << fmo_pos_def_minor_;
 
   return os.str();  
 }
@@ -888,7 +876,7 @@ Matrix<unsigned int>& LocalCondition::GetHessianSparsityPattern()
 
   switch(type_)
   {
-  case FMO_POS_DEF_MINOR_2:
+  case POS_DEF_DET_MINOR_2:
   {
     hess_sparsity_.Resize(2, 2);
 
@@ -900,7 +888,7 @@ Matrix<unsigned int>& LocalCondition::GetHessianSparsityPattern()
 
     break;
   }
-  case FMO_POS_DEF_MINOR_3:
+  case POS_DEF_DET_MINOR_3:
     hess_sparsity_.Resize(12, 2);
 
     hess_sparsity_(0, 0) = id.GetElement(DesignElement::TENSOR11)->GetIndex();
@@ -957,12 +945,12 @@ void LocalCondition::CalcHessian(StdVector<double>& out, double factor)
 
   switch(type_)
   {
-  case FMO_POS_DEF_MINOR_2:
+  case POS_DEF_DET_MINOR_2:
     // (6.69) in the diss of Sonja Lehmann
     out[0] = factor * 1;
     out[1] = factor * -2;
     break;
-  case FMO_POS_DEF_MINOR_3:
+  case POS_DEF_DET_MINOR_3:
   {
     Matrix<double> E;
     // (E - v*I) >= gamma
@@ -1176,10 +1164,10 @@ StdVector<Condition*> ConditionContainer::GetList(Condition::Type type, DesignEl
   return result;
 }
 
-bool ConditionContainer::Has(Condition::Type type, DesignElement::Type design)
+bool ConditionContainer::Has(Condition::Type type, DesignElement::Type design, bool only_active)
 {
   // be save and check for uniqueness!
-  StdVector<Condition*> list = GetList(type, design, true);
+  StdVector<Condition*> list = GetList(type, design, only_active);
 
   return !list.IsEmpty();
 }

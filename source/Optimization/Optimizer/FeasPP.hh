@@ -75,6 +75,10 @@ public:
   /** are the design bounds for the sub-problem the ones from the original problem or dynamic, depending on L/U and x */
   bool dynamic_design_bounds;
 
+  /** do we approximate benson vanderbei constraints in the subproblem by determinant constraints? Then also the lagrange multiplyer
+   * from the subproblem will be transformed. See the feasibility paper! */
+  bool approx_vanderbei_by_determinants;
+
 protected:
 
   void SolveProblem();
@@ -124,7 +128,7 @@ private:
    * The final design is stored in the CFS-Design!
    * @param the solution of the subproblem.
    * @return number of function evaluations and the norms of the designs*/
-  LSR Backtracking(const Vector<double>& x_old, const Vector<double>& d, const Vector<double>& x_new);
+  LSR Backtracking(const Vector<double>& x_old, const Vector<double>& x_new);
 
   /**
    * @param k the iteration. 0 for the very first call after leaving initial design */
@@ -134,8 +138,13 @@ private:
    * @param force_reduction to react on subproblem problems */
   void UpdateAsymptotes(const Vector<double>&x_outer, int iter, bool force_reduction = false);
 
+  double CalcAngle();
+
   /** assume the current design to be FMO tensors and output them */
   void DumpFMPTensors();
+
+  /** translates between determinant constraints and benson vanderbei constraints */
+  Function::Type TranslateFeasibilityConstraint(Function::Type type) const;
 
   typedef enum { NONE, BACKTRACKING, AUG_LAGRANGIAN } Globalization;
 
@@ -188,6 +197,15 @@ private:
   double u_max_;
   double l_min_;
 
+  /** optional refinements in case backtracking returned to old solution. Then it might makes sense to
+   * solve the subproblem again with tighter tolerances */
+  double max_refine_;
+  double refine_steps_;
+
+  /** maximal number of asymptotes reduction in case the subproblem cannot be solved. Enlarging is automatically
+   * by UpdateAsymptotes when solutions don't oscillate */
+  int max_reductions_;
+
 };
 
 /** this is either the approximation of a function or the function itself */
@@ -196,6 +214,9 @@ class Approximation
 public:
   /** @param constraint_idx -1 for objective */
   Approximation(FeasPP* feas_pp, int constraint_idx, bool approximate);
+
+  /** needs to be called to finish constructor. Bug determinant_shift is not known at constructor time! */
+  void PostInit();
 
   typedef enum { FUNC, GRAD, HESSIAN } Eval;
 
@@ -208,8 +229,16 @@ public:
    * @return for dense gradients this is design otherwise a search is performed */
   unsigned int FindGradIndex(unsigned int design) const;
 
-  /** helper for logging */
-  std::string ToString();
+  /** When we have benson vanderbei constraints in the outer problem (to calc KKT and augmented Lagrangian), we need
+   * solve the subproblem with determinant constraints. Then the Lagrange multipliers obtained from IPOPT need to be
+   * transformed according to the feasibility paper. If this dies not apply for this function the input value is
+   * returned.
+   * You need to make sure, that the current CFS design is the final design of ipopt!! */
+  double TransformMultiplyer(double lambda_ipopt);
+
+  /** helper for logging
+   * @param determinant @see GetCondition() */
+  std::string ToString(bool determinant = false);
 
   /** the gradient of the real (outer) function) */
   StdVector<double> outer_grad;
@@ -231,13 +260,23 @@ public:
 
   /** shall this function be approximated */
   bool approximate;
-private:
 
   /** Remember do reset the condition container via Done()!
-   * @see constraint_idx. */
-  Function* GetFunction();
+   * @see constraint_idx.
+   * @param determinant see GetCondition() */
+  Function* GetFunction(bool determinant = false);
 
-  Condition* GetCondition();
+  /** It is important to use only this method to get a condition and not optimization->conditions.view->Get()!
+   * The reason is that we might have to differentiate between determinant constraints and benson vanderbei constraints.
+   * Nevertheless, one needs to call optimization->conditions.view->Done() when all constraints are traversed!
+   * @param determiant gives corresponding determinant constraint instead of benson vanderbei if it applyies. Otherwise ignored */
+  Condition* GetCondition(bool determinant = false);
+
+  /** When this constraint_idx points to a benson vanderbei constraint, the det_shift added to constraint_idx gives
+   * the corresponding determinant constraint which is required for the inner problem */
+  int determinant_shift;
+
+private:
 
   double EvalApproximation(const double* x_inner, Eval eval, StdVector<double>* out);
 

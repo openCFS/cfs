@@ -28,6 +28,7 @@ FeasPP::FeasPP(Optimization* opt, PtrParamNode pn) : BaseOptimizer(opt, pn, Opti
   hessian = NULL;
   u_max_ = 1e5;
   l_min_ = -1e5;
+  approx_vanderbei_by_determinants = false;
 
   global.SetName("FeasPP::Globalization");
   global.Add(NONE, "none");
@@ -38,30 +39,62 @@ FeasPP::FeasPP(Optimization* opt, PtrParamNode pn) : BaseOptimizer(opt, pn, Opti
   asymptotes.Add(FIXED, "fixed");
   asymptotes.Add(MMA, "mma");
 
-  approx_linear = this_opt_pn_ != NULL ? this_opt_pn_->Get("approx_linear")->As<bool>() : false;
-  approx_feasibility = this_opt_pn_ != NULL ? this_opt_pn_->Get("approx_feasible")->As<bool>() : false;
   non_approx_constraints = true; // set it PostInit()
-  global_     = this_opt_pn_ != NULL ? global.Parse(this_opt_pn_->Get("globalize")->As<string>()) : NONE;
-  asymptotes_ = this_opt_pn_ != NULL && this_opt_pn_->Has("asymptotes") ? asymptotes.Parse(this_opt_pn_->Get("asymptotes/type")->As<string>()) : FIXED;
-  mma_shrink_ = this_opt_pn_ != NULL && this_opt_pn_->Has("asymptotes") ? this_opt_pn_->Get("asymptotes/shrink")->As<double>() : 0.7;
-  mma_grow_   = this_opt_pn_ != NULL && this_opt_pn_->Has("asymptotes") ? this_opt_pn_->Get("asymptotes/shrink")->As<double>() : 1.15;
-  mma_dist_   = this_opt_pn_ != NULL && this_opt_pn_->Has("asymptotes") ? this_opt_pn_->Get("asymptotes/distance")->As<double>() : 0.5;
-  convex_tau  = this_opt_pn_ != NULL ? this_opt_pn_->Get("convex_tau")->As<double>() : 0.0; // switch off
-  rho_init_   = this_opt_pn_ != NULL && this_opt_pn_->Has("augmentedLagrangian") ? this_opt_pn_->Get("augmentedLagrangian/rho")->As<double>() : 1.0;
-  rho_eta_    = this_opt_pn_ != NULL && this_opt_pn_->Has("augmentedLagrangian") ? this_opt_pn_->Get("augmentedLagrangian/rho_eta")->As<double>() : 1.0;
-  decrease_   = this_opt_pn_ != NULL && this_opt_pn_->Has("augmentedLagrangian") ? this_opt_pn_->Get("augmentedLagrangian/decrease")->As<double>() : 0.1;
-  stepwidth_  = this_opt_pn_ != NULL && this_opt_pn_->Has("augmentedLagrangian") ? this_opt_pn_->Get("augmentedLagrangian/stepwidth")->As<double>() : 0.5;
-  dynamic_design_bounds = this_opt_pn_ != NULL && this_opt_pn_->Has("asymptotes") && this_opt_pn_->Get("asymptotes/design_bounds")->As<string>() == "fixed" ? false : true;
 
-  // same value for backtracking and augmented lagrangian. Re-read in the latter case
-  min_step_  = this_opt_pn_ != NULL && this_opt_pn_->Has("backtracking") ? this_opt_pn_->Get("backtracking/min_step")->As<double>() : 1e-9;
-  if(global_ == AUG_LAGRANGIAN)
+  approx_linear = false;
+  approx_feasibility = false;
+  global_ = NONE;
+  asymptotes_ = MMA;
+  mma_shrink_ = 0.7;
+  mma_grow_ = 1.15;
+  mma_dist_ = 0.5;
+  convex_tau = 0.0; // switch off
+  rho_init_ = 1.0;
+  rho_eta_ = 1.0;
+  decrease_ = 0.1;
+  stepwidth_ = 0.5;
+  dynamic_design_bounds = true;
+  min_step_ = 1e-9; // same value for backtracking and augmented lagrangian
+  max_refine_ = 1e-3;
+  refine_steps_ = 0.1;
+  max_reductions_ = 10;
+
+  if(this_opt_pn_ != NULL)
   {
-    min_step_  = this_opt_pn_ != NULL && this_opt_pn_->Has("augmentedLagrangian") ? this_opt_pn_->Get("augmentedLagrangian/min_step")->As<double>() : 1e-9;
+    global_            = global.Parse(this_opt_pn_->Get("globalize")->As<string>());
+    approx_linear      = this_opt_pn_->Get("approx_linear")->As<bool>();
+    approx_feasibility = this_opt_pn_->Get("approx_feasible")->As<bool>();
+    convex_tau         = this_opt_pn_->Get("convex_tau")->As<double>();
 
-    if(rho_init_ <= 0.0) throw Exception("'augmentedLagrangian/rho' needs to be positive");
-    if(decrease_ <= 0.0 || decrease_ >= 1.0) throw Exception("'augmentedLagrangian/decrease' needs to be in (0,1)");
-    if(stepwidth_ <= 0.0 || stepwidth_ >= 1.0) throw Exception("'augmentedLagrangian/stepwidth' needs to be in (0,1)");
+    if(this_opt_pn_->Has("asymptotes"))
+    {
+      asymptotes_ = asymptotes.Parse(this_opt_pn_->Get("asymptotes/type")->As<string>());
+      mma_shrink_ = this_opt_pn_->Get("asymptotes/shrink")->As<double>();
+      mma_grow_   = this_opt_pn_->Get("asymptotes/shrink")->As<double>();
+      mma_dist_   = this_opt_pn_->Get("asymptotes/distance")->As<double>();
+      dynamic_design_bounds = this_opt_pn_->Get("asymptotes/design_bounds")->As<string>() == "fixed" ? false : true;
+      max_reductions_ = asymptotes_ == MMA ? this_opt_pn_->Get("asymptotes/max_reductions")->As<int>() : 0;
+    }
+    if(global_ == AUG_LAGRANGIAN && this_opt_pn_->Has("augmentedLagrangian")) // some attributes are also set in backtracking
+    {
+      rho_init_   = this_opt_pn_->Get("augmentedLagrangian/rho")->As<double>();
+      rho_eta_    = this_opt_pn_->Get("augmentedLagrangian/rho_eta")->As<double>();
+      decrease_   = this_opt_pn_->Get("augmentedLagrangian/decrease")->As<double>();
+      stepwidth_  = this_opt_pn_->Get("augmentedLagrangian/stepwidth")->As<double>();
+      min_step_   = this_opt_pn_->Get("augmentedLagrangian/min_step")->As<double>();
+      max_refine_ = this_opt_pn_->Get("augmentedLagrangian/max_refinement")->As<double>();
+      refine_steps_ = this_opt_pn_->Get("augmentedLagrangian/refinement_steps")->As<double>();
+
+      if(rho_init_ <= 0.0) throw Exception("'augmentedLagrangian/rho' needs to be positive");
+      if(decrease_ <= 0.0 || decrease_ >= 1.0) throw Exception("'augmentedLagrangian/decrease' needs to be in (0,1)");
+      if(stepwidth_ <= 0.0 || stepwidth_ >= 1.0) throw Exception("'augmentedLagrangian/stepwidth' needs to be in (0,1)");
+    }
+    if(global_ == BACKTRACKING && this_opt_pn_->Has("backtracking")) // see above
+    {
+      min_step_   = this_opt_pn_->Get("backtracking/min_step")->As<double>();
+      max_refine_ = this_opt_pn_->Get("backtracking/max_refinement")->As<double>();
+      refine_steps_ = this_opt_pn_->Get("backtracking/refinement_steps")->As<double>();
+    }
   }
 
   PostInitScale(1.0);
@@ -89,8 +122,10 @@ void FeasPP::PostInit()
   assert(obj == NULL); // call once
   assert(optimization->objectives.data.GetSize() == 1); // trivial case only
 
+  ConditionContainer& cc = optimization->constraints;
+
   n = optimization->GetDesign()->GetNumberOfVariables();
-  m = optimization->constraints.view->GetNumberOfActiveConstraints();
+  m = cc.view->GetNumberOfActiveConstraints();
   x_outer.Resize(n, 0.0);
 
   if(global_ == AUG_LAGRANGIAN)
@@ -99,12 +134,14 @@ void FeasPP::PostInit()
   // setup functions
   Function* f = optimization->objectives.data[0];
   obj = new Approximation(this, -1, approx_linear || !f->IsLinear());
+  obj->PostInit();
 
   constr.Resize(m);
   non_approx_constraints = false;
   for(unsigned int i = 0; i < m; i++)
   {
-    Condition* g = optimization->constraints.view->Get(i);
+    // this is the only place where we are allowed not to use Approximation::GetCondition()
+    Condition* g = cc.view->Get(i);
 
     bool approx = approx_linear || !g->IsLinear();
     if(g->IsFeasibilityConstraint()) { // feasibility is more important than linear
@@ -118,14 +155,57 @@ void FeasPP::PostInit()
       non_approx_constraints = true;
     Approximation* func = new Approximation(this, i, approx);
     constr[i] = func;
-
-    LOG_DBG3(feasPP) << "FP:PI i=" << i << " g=" << func->ToString() << " approx=" << func->approximate << " grad=" << func->outer_grad.GetSize() << " pattern=" << func->jac_pattern.ToString();
   }
-  optimization->constraints.view->Done();
+  cc.view->Done();
 
   assert(m == m_c + m_e);
 
-  // setup fixed asymptotes
+
+  // in case of benson vanderbei constraints add the determinant constraints as observation constraints and use them for the subproblem
+  for(unsigned int c = 0; c < cc.active.GetSize(); c++)
+  {
+    Condition* g = cc.active[c];
+    switch(g->GetType())
+    {
+    case Function::BENSON_VANDERBEI_1:
+    case Function::BENSON_VANDERBEI_2:
+    case Function::BENSON_VANDERBEI_3:
+    {
+      Function::Type det = TranslateFeasibilityConstraint(g->GetType()); // the other function
+      if(!cc.Has(det, g->GetDesignType(), false)) // also observation
+        throw Exception("using benson vanderbei constraints requires to have positive definite determinat constraints in observation");
+      LocalCondition* other = dynamic_cast<LocalCondition*>(cc.Get(det, g->GetDesignType(), false));
+      if(!other->IsObservation())
+        throw Exception("having benson vanderbei constraints requires the positive definite determinat constraints to be in observation mode");
+
+      LocalCondition* loc_g = dynamic_cast<LocalCondition*>(g);
+      assert(loc_g->GetConstraintSize() == other->GetConstraintSize());
+      int shift = other->GetVirtualBaseIndex() - loc_g->GetVirtualBaseIndex();
+      assert(shift > 0); // observaton after active!
+
+      for(unsigned int a = 0; a < m; a++)
+        if(constr[a]->GetCondition()->GetType() == g->GetType())
+          constr[a]->determinant_shift = shift;
+
+      if((other->GetBoundValue() != loc_g->GetBoundValue()) || (other->GetParameter() != loc_g->GetParameter()) || (other->GetBound() != loc_g->GetBound()) || (other->GetDesignType() != loc_g->GetDesignType()))
+        info->Get("optimization/optimizer")->Get(ParamNode::HEADER)->Get("feasPP")->Get(ParamNode::WARNING)->SetValue("bound (value) or parameter or design are not identical for constraint " + g->ToString() + " and " + loc_g->ToString());
+
+      approx_vanderbei_by_determinants = true;
+      break;
+    }
+    default:
+      break;
+    }
+  }
+
+  // after shift is set we need to call PostInit() as now the proper hessian is considered
+  for(unsigned int i = 0; i < m; i++) {
+    constr[i]->PostInit();
+    LOG_DBG3(feasPP) << "FP:PI i=" << i << " g=" << constr[i]->ToString() << " approx=" << constr[i]->approximate << " shift=" << constr[i]->determinant_shift
+                     << " grad=" << constr[i]->outer_grad.GetSize() << " pattern=" << constr[i]->jac_pattern.ToString();
+  }
+
+  // setup asymptotes
   L.Resize(n);
   U.Resize(n);
 
@@ -157,7 +237,8 @@ void FeasPP::SolveProblem()
   LSR ls;
   ls.old_point_is_optimal = false;
   int iter = 1;
-  int max_reductions = asymptotes_ == FIXED ? 0 : 10;
+  // additional refinement of subproblem in failed linesearch
+  double refine = 1.0;
   while(!optimization->DoStopOptimization() && iter <= max_iter && !converged)
   {
     // eventually update asymptotes
@@ -165,29 +246,25 @@ void FeasPP::SolveProblem()
 
     // solve sub-problem
     PtrParamNode in = info_->Get(ParamNode::PROCESS)->Get("feasPP")->Get("subsolver", ParamNode::APPEND);
-    in->Get("iteration")->SetValue(iter);
+    in->Get("iter")->SetValue(iter);
+    if(refine != 1.0)
+      in->Get("refined")->SetValue(refine);
 
     std::string err = "not solved";
 
-    for(int r = 0; r < max_reductions && err != ""; r++)
+    for(int r = 0; r <= max_reductions_ && err != ""; r++)
     {
-      err = ipopt->SolveProblem(in); // here is the work done!
-
-      if(r > 0)
-        in->Get("reductions")->SetValue(r);
-
-      if(err != "")
-        UpdateAsymptotes(x_outer, iter, true); // there is a msg set in FeasSubProblem
+      err = ipopt->SolveProblem(in, refine); // here is the work done!
+      if(r > 0) in->Get("reductions")->SetValue(r);
+      if(err != "") UpdateAsymptotes(x_outer, iter, true); // there is a msg set in FeasSubProblem
     }
 
     if(err != "")
     {
       std::string msg = "subproblem failed in major iteration " + lexical_cast<string>(iter) + ": " + err;
-
       summary = optimization->optInfoNode->Get(ParamNode::SUMMARY);
       summary->Get("break/converged")->SetValue("no");
       summary->Get("problem")->SetValue("FeasPP/IPOPT: " + msg);
-
       throw Exception(msg);
     }
 
@@ -198,34 +275,27 @@ void FeasPP::SolveProblem()
     LOG_DBG2(feasPP) << "SP: it=" << iter << " x_old = [" << x_outer.ToString() << "]";
     LOG_DBG2(feasPP) << "SP: it=" << iter << " x_new_org = [" << ipopt->x_final.ToString() << "]";
 
-    Vector<double> f_grad(n);
-    f_grad.Fill(obj->outer_grad.GetPointer(), n);
-
-    Vector<double> d(n);
-    d = ipopt->x_final - x_outer; // principal direction
-
-    // needs to be smaller zero
-    // in->Get("angle")->SetValue(d * f_grad);
-
     if(global_ != NONE)
     {
       if(global_ == BACKTRACKING)
-        ls = Backtracking(x_outer, d, ipopt->x_final);
+        ls = Backtracking(x_outer, ipopt->x_final);
       else
         ls = AugmentedLagrangianLineSearch(iter, x_outer, ipopt->x_final, ipopt->old_lambda, ipopt->lambda, in);
 
       in->Get("steps")->SetValue(ls.steps);
-      in->Get("step_factor")->SetValue(ls.stepwidth);
       in->Get("org_dx_norm")->SetValue(ls.org_dx);
 
-      if(ls.stepwidth != 1.0)
+      if(ls.stepwidth != 1.0) {
+        in->Get("step_factor")->SetValue(ls.stepwidth);
         in->Get("curr_dx_norm")->SetValue(ls.curr_dx);
-
-      if(ls.old_point_is_optimal)
-      {
-        in->Get("msg")->SetValue("linesearch returned to old point");
-        converged = true;
       }
+
+      if(ls.old_point_is_optimal) {
+        in->Get("msg")->SetValue("linesearch returned to old point");
+        if(refine > max_refine_) refine *= refine_steps_;
+        else converged = true;
+      } else
+        refine = 1.0; // stop any possible refinements!
     }
 
     optimization->GetDesign()->WriteDesignToExtern(x_outer); // only for the LOG below, can be removed as it is done in UpdateToCurrentStep()
@@ -251,12 +321,25 @@ void FeasPP::SolveProblem()
     std::cout << "\nFeasPP did not converge: " << summary->Get("reason/msg")->As<string>() << std::endl;
 }
 
+double FeasPP::CalcAngle()
+{
+  Vector<double> f_grad(n);
+  f_grad.Fill(obj->outer_grad.GetPointer(), n);
 
-FeasPP::LSR FeasPP::Backtracking(const Vector<double>& x_old, const Vector<double>& d, const Vector<double>& std_x_new)
+  Vector<double> d(n);
+  d = ipopt->x_final - x_outer; // principal direction
+
+  return d * f_grad; // needs to be smaller zero
+}
+
+
+FeasPP::LSR FeasPP::Backtracking(const Vector<double>& x_old, const Vector<double>& std_x_new)
 {
   assert(x_old.GetSize() == n);
   assert(std_x_new.GetSize() == n);
 
+  Vector<double> d(n);
+  d = std_x_new - x_old;
 
   LOG_DBG2(feasPP) << "FP:B dx_org=" << d.ToString(0, ' ');
   LSR result;
@@ -337,7 +420,9 @@ FeasPP::LSR FeasPP::AugmentedLagrangianLineSearch(int k, const Vector<double>& x
     {
       CalcPenaltyRho(eta, dist, y, v, rho);
       CalcGradAugmentedLagrangian(x, y, rho, grad_phi);
-      assert(grad_phi  * d  <= -0.5 * rho_eta_ * dist);
+      if(grad_phi  * d  > -0.5 * rho_eta_ * dist)
+        in->Get(ParamNode::WARNING)->SetValue("increasing penalty rho was not sufficient");
+      // assert(grad_phi  * d  <= -0.5 * rho_eta_ * dist);
     }
   }
   double sigma = 1.0;
@@ -413,7 +498,7 @@ void FeasPP::CalcPenaltyRho(double eta, double diff, const Vector<double>& y_vec
 
   for(unsigned int i = 0; i < m; i++)
   {
-    Condition* g = optimization->constraints.view->Get(i);
+    Condition* g = constr[i]->GetCondition();
     double y = y_vec[i];
     double v = v_vec[i];
     double rho_old = rho[i];
@@ -451,7 +536,7 @@ double FeasPP::CalcAugmentedLagrangian(const Vector<double>& x, const Vector<dou
 
   for(unsigned int i = 0; i < m; i++)
   {
-    Condition* g = optimization->constraints.view->Get(i);
+    Condition* g = constr[i]->GetCondition();
 
     bool case1 = -1.0 * y[i] / rho[i] <= c[i];
 
@@ -499,6 +584,7 @@ void FeasPP::CalcGradAugmentedLagrangian(const Vector<double>& x, const Vector<d
   for(unsigned int e = 0; e < n; e++)
     grad[e] = f_grad[e]; // first part
 
+  assert(constr.GetSize() == m);
   for(unsigned int ci = 0; ci < m; ci++)
   {
     double         c    = c_vec[ci];
@@ -508,7 +594,7 @@ void FeasPP::CalcGradAugmentedLagrangian(const Vector<double>& x, const Vector<d
     bool case1 = -y / rho <= c;
 
     Approximation* appr = constr[ci];
-    Condition*     g    = optimization->constraints.view->Get(ci);
+    Condition*     g    = appr->GetCondition();
     c_grad.Resize(appr->jac_pattern.GetSize());
     EvalGradConstraint(g, 0, true, true, c_grad); // scale and normalize
 
@@ -545,18 +631,17 @@ void FeasPP::UpdateToCurrentStep()
   EvalGradObjective(n, x_outer.GetPointer(), true, obj->outer_grad);
   LOG_DBG3(feasPP) << "FP:UTCP obj=" << obj->ToString() << " outer_val=" << obj->outer_val << " grad=" << obj->outer_grad.ToString();
 
-  StdVector<double> g_val(m);
-  EvalConstraints(n, x_outer.GetPointer(), m, true, g_val.GetPointer(), true);
-  // this is copy and paste from EvalGradConstraints()
+  // we have to consider transformation between benson vanderbei and determinant constraints. Therefore me must not call EvalConstraints()
   // reset values of the constraint gradients before the loop
   // as it also contains a loop over all the design elements
   optimization->GetDesign()->Reset(DesignElement::CONSTRAINT_GRADIENT, DesignElement::DEFAULT);
   for(unsigned int i = 0; i < m; i++)
   {
-    constr[i]->outer_val = g_val[i];
-    EvalGradConstraint(optimization->constraints.view->Get(i), 0, true, true, constr[i]->outer_grad); // scale and normalize
+    Condition* g = constr[i]->GetCondition(true); // yes! the determinant if we have benson vanderbei in the outer problem
+    constr[i]->outer_val = EvalConstraint(g, true, true);
+    EvalGradConstraint(g, 0, true, true, constr[i]->outer_grad); // scale and normalize
 
-    LOG_DBG3(feasPP) << "FP:UTCP g[" << i << "]=" << constr[i]->ToString() << " outer_val=" << constr[i]->outer_val << " grad=" << constr[i]->outer_grad.ToString();
+    LOG_DBG3(feasPP) << "FP:UTCP g[" << i << "]=" << constr[i]->ToString(true) << " outer_val=" << constr[i]->outer_val << " grad=" << constr[i]->outer_grad.ToString();
   }
   optimization->constraints.view->Done(); // reset slope constraint to global mode
 }
@@ -589,7 +674,8 @@ void FeasPP::UpdateAsymptotes(const Vector<double>&x, int iter, bool force_reduc
       L[i] = max(x[i] - max(mma_dist_, factor * (x_old - L[i])), l_min_);
       U[i] = min(x[i] + max(mma_dist_, factor * (U[i] - x_old)), u_max_);
 
-      LOG_DBG3(feasPP) << "FP:UA it=" << iter << " i=" << i << " x=" << x[i] << " x-1=" << x_p[i] << " x-2=" << x_pp[i] << " f=" << factor << " L=" << L[i] << " U=" << U[i];
+      LOG_DBG3(feasPP) << "FP:UA it=" << iter << " i=" << i << " x=" << x[i] << " x-1=" << x_p[i]
+                       << " x-2=" << (x_pp.GetSize() > 0 ? x_pp[i] : -1.0) << " f=" << factor << " L=" << L[i] << " U=" << U[i];
     }
   }
 
@@ -603,7 +689,12 @@ void FeasPP::UpdateAsymptotes(const Vector<double>&x, int iter, bool force_reduc
 void FeasPP::ToInfo(PtrParamNode in)
 {
   in->Get("convex_tau")->SetValue(convex_tau);
-  in->Get("globalization")->SetValue(global.ToString(global_));
+  in->Get("globalize")->SetValue(global.ToString(global_));
+  if(global_ != NONE)
+  {
+    in->Get("max_refinement")->SetValue(max_refine_);
+    in->Get("refinement_steps")->SetValue(refine_steps_);
+  }
   if(global_ == AUG_LAGRANGIAN)
   {
     in->Get("augmentedLagrangian/initial_rho")->SetValue(rho_init_);
@@ -611,6 +702,18 @@ void FeasPP::ToInfo(PtrParamNode in)
     in->Get("augmentedLagrangian/decrease")->SetValue(decrease_);
     in->Get("augmentedLagrangian/step_width")->SetValue(stepwidth_);
   }
+  in->Get("asymptotes")->SetValue(asymptotes.ToString(asymptotes_));
+  if(asymptotes_ == MMA)
+  {
+    in->Get("mma/shrink")->SetValue(mma_shrink_);
+    in->Get("mma/grow")->SetValue(mma_grow_);
+    in->Get("mma/distance")->SetValue(mma_dist_);
+    in->Get("mma/dynamic_design_bounds")->SetValue(dynamic_design_bounds);
+    in->Get("mma/max_reductions")->SetValue(max_reductions_);
+  }
+  in->Get("ipopt/tol")->SetValue(ipopt->org_tol);
+  in->Get("ipopt/constr_viol_tol")->SetValue(ipopt->org_constr_viol_tol);
+  in->Get("ipopt/acceptable_constr_viol_tol")->SetValue(ipopt->org_acceptable_constr_viol_tol);
 }
 
 void FeasPP::DumpFMPTensors()
@@ -636,15 +739,41 @@ void FeasPP::SetupHessian()
   LOG_DBG3(feasPP) << "FP:SH nnz= " << hessian->nnz() << " -> " << hessian;
 }
 
+Function::Type FeasPP::TranslateFeasibilityConstraint(Function::Type type) const
+{
+  switch(type)
+  {
+  case Function::POS_DEF_DET_MINOR_1:
+    return Function::BENSON_VANDERBEI_1;
+  case Function::POS_DEF_DET_MINOR_2:
+    return Function::BENSON_VANDERBEI_2;
+  case Function::POS_DEF_DET_MINOR_3:
+    return Function::BENSON_VANDERBEI_3;
+  case Function::BENSON_VANDERBEI_1:
+    return Function::POS_DEF_DET_MINOR_1;
+  case Function::BENSON_VANDERBEI_2:
+    return Function::POS_DEF_DET_MINOR_2;
+  case Function::BENSON_VANDERBEI_3:
+    return Function::POS_DEF_DET_MINOR_3;
+  default:
+    assert(false);
+    return type;
+  }
+}
+
 Approximation::Approximation(FeasPP* feas_pp, int constraint_idx, bool approx)
 {
   this->common = feas_pp;
   this->constraint_idx = constraint_idx;
   this->outer_val = -1.0;
   this->approximate = approx;
+  this->determinant_shift = -1;
+}
 
-  Function*  f = GetFunction();
-  Condition* g = f->IsObjective() ? NULL : GetCondition();
+void Approximation::PostInit()
+{
+  Function*  f = GetFunction(true);
+  Condition* g = f->IsObjective() ? NULL : GetCondition(true);
 
   jac_pattern = f->GetSparsityPattern();
   outer_grad.Resize(jac_pattern.GetSize());
@@ -682,8 +811,8 @@ double Approximation::Evaluate(const double* x_inner, Eval eval, StdVector<doubl
   else
     result = EvalDirect(x_inner, eval, out);
 
-  LOG_DBG2(feasPP) << "A:E f=" << ToString() << " d=" << eval << " -> " << (eval != FUNC ? "..." : boost::lexical_cast<std::string>(result)) << " dx=" << NormL2(common->x_outer.GetPointer(), x_inner, common->n);
-  LOG_DBG3(feasPP) << "A:E f=" << ToString() << " d=" << eval << " -> " << (eval != FUNC ? out->ToString() : boost::lexical_cast<std::string>(result));
+  LOG_DBG2(feasPP) << "A:E f=" << ToString(true) << " d=" << eval << " -> " << (eval != FUNC ? "..." : boost::lexical_cast<std::string>(result)) << " dx=" << NormL2(common->x_outer.GetPointer(), x_inner, common->n);
+  LOG_DBG3(feasPP) << "A:E f=" << ToString(true) << " d=" << eval << " -> " << (eval != FUNC ? out->ToString() : boost::lexical_cast<std::string>(result));
   return result;
 }
 
@@ -771,24 +900,25 @@ double Approximation::EvalDirect(const double* x_inner, Eval eval, StdVector<dou
       common->EvalGradObjective(common->n, x_inner, true, *out);
       break;
     case HESSIAN:
-      GetFunction()->CalcHessian(*out, GetCondition()->GetBound() == Condition::LOWER_BOUND ? -1.0 : 1.0);
+      GetFunction()->CalcHessian(*out, 1.0);
       break;
     }
   }
   else
   {
+    Condition* g = GetCondition(true); // exchange benson vanderbei by determinant constraint!
     switch(eval)
     {
     case FUNC:
-      result = common->EvalConstraint(GetCondition(), true, true);
+      result = common->EvalConstraint(g, true, true);
       break;
     case GRAD:
-      common->EvalGradConstraint(GetCondition(), 0, true, true, *out); // scale and normalize
+      common->EvalGradConstraint(g, 0, true, true, *out); // scale and normalize
       break;
     case HESSIAN:
-      LOG_DBG3(feasPP) << "A:ED g=" << ToString() << " hess: pattern= " << hess_pattern.ToString();
-      LOG_DBG3(feasPP) << "A:ED g=" << ToString() << " hess: GHSP   = " << GetCondition()->GetHessianSparsityPattern().ToString();
-      GetCondition()->CalcHessian(*out, GetCondition()->GetBound() == Condition::LOWER_BOUND ? -1.0 : 1.0);
+      LOG_DBG3(feasPP) << "A:ED g=" << ToString(true) << " hess: pattern= " << hess_pattern.ToString();
+      LOG_DBG3(feasPP) << "A:ED g=" << ToString(true) << " hess: GHSP   = " << g->GetHessianSparsityPattern().ToString();
+      g->CalcHessian(*out, g->GetBound() == Condition::LOWER_BOUND ? -1.0 : 1.0);
       break;
     }
   }
@@ -799,19 +929,19 @@ double Approximation::EvalDirect(const double* x_inner, Eval eval, StdVector<dou
 
 
 
-std::string Approximation::ToString()
+std::string Approximation::ToString(bool determinant)
 {
-  return Function::type.ToString(GetFunction()->GetType());
+  return Function::type.ToString(GetFunction(determinant)->GetType());
 }
 
-Condition* Approximation::GetCondition()
+Condition* Approximation::GetCondition(bool determinant)
 {
-  Function* f = GetFunction();
+  Function* f = GetFunction(determinant);
   assert(!f->IsObjective());
   return static_cast<Condition*>(f);
 }
 
-Function* Approximation::GetFunction()
+Function* Approximation::GetFunction(bool determinant)
 {
   assert(constraint_idx >= -1);
   assert(constraint_idx > 0 || common->optimization->objectives.data.GetSize() == 1);
@@ -819,7 +949,7 @@ Function* Approximation::GetFunction()
   if(constraint_idx == -1)
     return common->optimization->objectives.data[0];
   else
-    return common->optimization->constraints.view->Get(constraint_idx);
+    return common->optimization->constraints.view->Get(constraint_idx + (determinant && determinant_shift > 0 ? determinant_shift : 0));
 }
 
 void Approximation::AddHessianPattern(compressed_matrix<double>& hessian)
@@ -846,4 +976,32 @@ unsigned int Approximation::FindGradIndex(unsigned int design) const
 
   assert(false);
   return 0;
+}
+
+
+double Approximation::TransformMultiplyer(double lambda_ipopt)
+{
+  if(determinant_shift <= 0)
+    return lambda_ipopt;
+
+  LocalCondition* g = dynamic_cast<LocalCondition*>(GetCondition());
+  Function::Local::Identifier& id = g->GetCurrentVirtualContext();
+  double t = 0.0;
+  switch(g->GetType())
+  {
+  case Function::BENSON_VANDERBEI_1:
+    t = 1.0;
+    break;
+  case Function::BENSON_VANDERBEI_2:
+    t = id.CalcPosDefDeteminant(-1, g->GetLocal(), false, Function::POS_DEF_DET_MINOR_1);
+    break;
+  case Function::BENSON_VANDERBEI_3:
+    t = id.CalcPosDefDeteminant(-1, g->GetLocal(), false, Function::POS_DEF_DET_MINOR_2);
+    break;
+  default:
+    assert(false);
+    break;
+  }
+  LOG_DBG3(feasPP) << "A:TM g=" << g->ToString() << " t=" << t << " li=" << lambda_ipopt << " -> " << t * lambda_ipopt;
+  return t * lambda_ipopt;
 }

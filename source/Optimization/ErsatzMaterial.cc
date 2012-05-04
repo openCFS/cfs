@@ -869,9 +869,12 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
       case Function::SUM_MODULI:
       case Function::TENSOR_TRACE:
       case Function::PARAM_PS_POS_DEF:
-      case Function::FMO_POS_DEF_MINOR_1:
-      case Function::FMO_POS_DEF_MINOR_2:
-      case Function::FMO_POS_DEF_MINOR_3:
+      case Function::POS_DEF_DET_MINOR_1:
+      case Function::POS_DEF_DET_MINOR_2:
+      case Function::POS_DEF_DET_MINOR_3:
+      case Function::BENSON_VANDERBEI_1:
+      case Function::BENSON_VANDERBEI_2:
+      case Function::BENSON_VANDERBEI_3:
       assert(c == NULL);
       result = CalcLocalConstraint(g, derivative);
       break;
