@@ -100,10 +100,6 @@ Optimization::Optimization()
   optInfoNode = info->Get("optimization");   // store our info results here
   PtrParamNode pn = param->Get("optimization"); // read our parameters from the xml file
   
-  SetPDEs(OptimizationMaterial::system.Parse(pn->Get("ersatzMaterial")->Get("material")->As<std::string>()));
-
-  this->assemble_ = pde->getPDE_assemble();
-
   // in transient optimization one can specify the initial value as a solution to a static problem and a weight for it (just in tracking)
   firstStepStatic = pn->Has("firstStepStatic");
   if(firstStepStatic){
@@ -119,6 +115,10 @@ Optimization::Optimization()
   // might read a multiObjective problem
   objectives.Read(pn->Get("costFunction"));
   objectives.ToInfo(optInfoNode->Get(ParamNode::HEADER)->Get("objective"));
+
+  SetPDEs(OptimizationMaterial::system.Parse(pn->Get("ersatzMaterial")->Get("material")->As<std::string>()));
+
+  this->assemble_ = pde->getPDE_assemble();
 
   // constraints to be added later -- it is so much easier with the ParamNodes
   this->log.fileHeader = harmonic ? "#iter\tfreq" : "#iter";
@@ -161,7 +161,7 @@ Optimization::Optimization()
   optInfoNode->Get("commit")->Get("stride")->SetValue(commitStride);
   
   // write out the directory where the HALTOPT file will be searched for
-  optInfoNode->Get("haltopt_directory")->SetValue(fs::current_path().directory_string());
+  optInfoNode->Get("haltopt_directory")->SetValue(fs::current_path().string());
 
   // remove a stop file, if found
   if(fs::exists("HALTOPT"))

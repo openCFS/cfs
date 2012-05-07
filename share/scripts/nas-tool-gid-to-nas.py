@@ -5,10 +5,11 @@ import sys
 # define a mapping from name in gid file to type of condition (boundary, force) in nastran file
 # FORCE: needs an index and four double values: index is for multiload!
 # SPC:   needs two values: a string defining type of bc (1: x, 2: y, 12: xy, 123: xyz, ...) and a value
-table = {'load':  ['FORCE', 1, 1.0, 0.0, 0.01, 0.0],\
-         'fixedl': ['SPC', '  12', 0.0],\
-         'fixedu': ['SPC', '  12', 0.0]}
+table = {'load1':  ['FORCE', 1, 1.0, 0.0, 0.01, 0.0],\
+         'load2':  ['FORCE', 1, 1.0, 0.0, 0.01, 0.0],\
+         'fixed': ['SPC', '  12', 0.0]}
 
+quads = False
 
 
 
@@ -220,11 +221,19 @@ for line in open(infile, 'r'):
     #############
     # 2D elements
     if griddimension == 2:
-      # can only handle quad elements at the moment!
-      outstring = 'CQUAD4'.ljust(8) + tls[0].rjust(8) + '1'.rjust(8)
-      for i in range(4):
-        outstring += str(ls[i]).rjust(8)
-      out.write(outstring + '\n')
+       # can only handle quad and triangle elements at the moment!
+      if tls[1] == '6':
+        outstring = 'CQUAD4'.ljust(8) + tls[0].rjust(8) + '1'.rjust(8)
+        for i in range(4):
+          outstring += str(ls[i]).rjust(8)
+        out.write(outstring + '\n')
+      else:
+        if tls[1] == '4':
+          outstring = 'CTRIA3'.ljust(8) + tls[0].rjust(8) + '1'.rjust(8)
+          for i in range(3):
+            outstring += str(ls[i]).rjust(8)
+          out.write(outstring + '\n')
+
 
 
     #############
@@ -284,7 +293,7 @@ if griddimension == 2:
 if griddimension == 3:
   out.write('PSOLID         1       1          \n')
   out.write('PSOLID         2       1          \n')
-out.write('MAT1    1       2.87E-6 0.35    0.0     0.785E-5  12.E-6                +M1     \n')
+out.write('MAT1    1       1.00E0  0.3     0.0     0.785E-5  12.E-6                +M1     \n')
 out.write('+M1     100.    -100.   100.    \n')
 out.write('ENDDATA\n')
 

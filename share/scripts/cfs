@@ -335,6 +335,8 @@ then
     echo "Warning: MKL_NUM_THREADS overrides OMP_NUM_THREADS for Intel MKL!"
 fi
 
+export GFORTRAN_UNBUFFERED_PRECONNECTED=y
+
 # Determine name of simulation for extending result HDF5 file.
 last_was_param=0
 

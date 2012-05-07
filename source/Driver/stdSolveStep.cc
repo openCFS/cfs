@@ -1166,8 +1166,8 @@ class Hysteresis;
   {
 
     Vector<Double> solOld(actSol);
-    const UInt nrEtas = 5;
-    const Double eta[nrEtas] = {1, 0.5, 0.25, 0.125, 0.1};
+    const UInt nrEtas = 6;
+    const Double eta[nrEtas] = {1, 0.5, 0.25, 0.125, 0.1, 0.01};
 		// initialize etaOpt or receive compiler warning
     Double etaOpt = 0.0;
     Double residualL2NormOpt = 1e15;
@@ -1400,6 +1400,8 @@ class Hysteresis;
     iter->Get("incrementalErr")->SetValue(incrementalErr);
     if(etaLineSearch)
       iter->Get("eta_linesearch")->SetValue(etaLineSearch);
+    // update convergen process
+    info->ToFile();
   }
 
 } // end of namespace

@@ -18,7 +18,7 @@
 using namespace CoupledField;
 
 template <typename TYPE>
-Integer CreateAttribute(H5::H5File& file,
+CoupledField::Integer CreateAttribute(H5::H5File& file,
                         std::string path,
                         std::string attr_name,
                         TYPE attr_value,
@@ -106,7 +106,7 @@ Integer CreateAttribute(H5::H5File& file,
 
 
 template <typename TYPE>
-Integer ReadAttribute(H5::H5File& file, std::string path,
+CoupledField::Integer ReadAttribute(H5::H5File& file, std::string path,
     std::string attr_name, TYPE& value)
 {
   H5::H5Object *object = NULL;
@@ -145,7 +145,7 @@ Integer ReadAttribute(H5::H5File& file, std::string path,
 }
 
 
-Integer RenameAttribute(H5::H5File& file,
+CoupledField::Integer RenameAttribute(H5::H5File& file,
                         std::string path,
                         std::string old_name,
                         std::string new_name)
@@ -187,7 +187,7 @@ Integer RenameAttribute(H5::H5File& file,
 }
 
 
-Integer DeleteAttribute(H5::H5File& file,
+CoupledField::Integer DeleteAttribute(H5::H5File& file,
                         std::string path,
                         std::string attr_name)
 {
@@ -228,7 +228,7 @@ Integer DeleteAttribute(H5::H5File& file,
 }
 
 
-Integer CreateGroup(H5::H5File& file,
+CoupledField::Integer CreateGroup(H5::H5File& file,
                     std::string path,
                     std::string group_name,
                     UInt mode)
@@ -292,7 +292,7 @@ Integer CreateGroup(H5::H5File& file,
 }
 
 
-Integer ListGroup(H5::H5File& file, std::string path) {
+CoupledField::Integer ListGroup(H5::H5File& file, std::string path) {
   H5::Group base_group;
   
   try {
@@ -316,7 +316,7 @@ Integer ListGroup(H5::H5File& file, std::string path) {
 }
 
 
-Integer CreateStringArrayDataset(H5::H5File& file,
+CoupledField::Integer CreateStringArrayDataset(H5::H5File& file,
                                  std::string path,
                                  std::string ds_name,
                                  std::string ds_value,
@@ -434,7 +434,7 @@ Integer CreateStringArrayDataset(H5::H5File& file,
   return 0;
 }
 
-Integer CreateStringDataset(H5::H5File& file,
+CoupledField::Integer CreateStringDataset(H5::H5File& file,
                             std::string path,
                             std::string ds_name,
                             std::string ds_value,
@@ -516,7 +516,7 @@ Integer CreateStringDataset(H5::H5File& file,
   return 0;
 }
 
-Integer ExistsDataset(H5::H5File& file,
+CoupledField::Integer ExistsDataset(H5::H5File& file,
                       std::string path,
                       std::string ds_name)
 {
@@ -561,7 +561,7 @@ Integer ExistsDataset(H5::H5File& file,
   return 1;
 }
 
-Integer DeleteObj(H5::H5File& file,
+CoupledField::Integer DeleteObj(H5::H5File& file,
                       std::string path,
                       std::string ds_name)
 {
@@ -601,7 +601,7 @@ Integer DeleteObj(H5::H5File& file,
   return 0;
 }
 
-Integer MoveObj(H5::H5File& file,
+CoupledField::Integer MoveObj(H5::H5File& file,
                   std::string path,
                   std::string name_old,
                   std::string name_new)

@@ -997,9 +997,9 @@ void ParamNode::ToFile(const std::string& filename, bool force)
     if( progOpts ) {
       fs::path fn = fs::system_complete(progOpts->GetSchemaPathStr() + "/../..");
       fn.normalize();
-      info_file << "\n<?xml-stylesheet href=\"file://"
-                << fn.native_directory_string()
-                << "/share/xsl/cfs_info_output_html.xsl\" type=\"text/xsl\"?>";
+      info_file << std::endl << "<?xml-stylesheet href=\"file://"
+          << fn.string()
+          << "/share/xsl/cfs_info_output_html.xsl\" type=\"text/xsl\"?>";
     }
   }
 

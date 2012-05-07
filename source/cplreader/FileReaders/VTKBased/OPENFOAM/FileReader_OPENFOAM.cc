@@ -343,7 +343,7 @@ namespace CoupledField
     {
       if ( !fs::is_directory( *dir_itr ) )
       {
-        std::string fn = dir_itr->leaf(); 
+        std::string fn = dir_itr->path().filename().string(); 
         if(fn.substr(0, 4) == "log.")
         {
           sstr.clear(); sstr.str("");
@@ -368,7 +368,7 @@ namespace CoupledField
     {
       if ( !fs::is_directory( *dir_itr ) )
       {
-        std::string fn = dir_itr->leaf();
+        std::string fn = dir_itr->path().filename().string();
         sstr.clear(); sstr.str("");
         sstr << settings.GetString("basedir") << "/" << name_.c_str() << "/0/" << fn;
         
@@ -390,7 +390,7 @@ namespace CoupledField
     {
       if ( !fs::is_directory( *dir_itr ) )
       {
-        std::string fn = dir_itr->leaf();
+        std::string fn = dir_itr->path().filename().string();
         sstr.clear(); sstr.str("");
         sstr << settings.GetString("basedir") << "/" << name_.c_str() << "/constant/" << fn;
         fileNames.push_back(sstr.str());
@@ -411,7 +411,7 @@ namespace CoupledField
     {
       if ( !fs::is_directory( *dir_itr ) )
       {
-        std::string fn = dir_itr->leaf();
+        std::string fn = dir_itr->path().filename().string();
         sstr.clear(); sstr.str("");
         sstr << settings.GetString("basedir") << "/" << name_.c_str() << "/constant/polyMesh/" << fn;
         fileNames.push_back(sstr.str());
@@ -432,7 +432,7 @@ namespace CoupledField
     {
       if ( !fs::is_directory( *dir_itr ) )
       {
-        std::string fn = dir_itr->leaf();
+        std::string fn = dir_itr->path().filename().string();
         sstr.clear(); sstr.str("");
         sstr << settings.GetString("basedir") << "/" << name_.c_str() << "/system/" << fn;
         fileNames.push_back(sstr.str());

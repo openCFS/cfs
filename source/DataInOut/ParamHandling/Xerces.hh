@@ -18,7 +18,7 @@
 #include "xercesc/sax/ErrorHandler.hpp"
 #include "xercesc/sax/InputSource.hpp"
 #include "xercesc/sax/SAXParseException.hpp"
-#include <xercesc/sax2/DefaultHandler.hpp>
+#include "xercesc/sax2/DefaultHandler.hpp"
 #include "xercesc/sax2/Attributes.hpp"
 #include "xercesc/util/XercesDefs.hpp"
 #include "xercesc/util/BinInputStream.hpp"
@@ -125,8 +125,9 @@ namespace CoupledField {
       public:
         Bzip2InputStream(std::string fileName, xercesc::MemoryManager* const manager);
         virtual ~Bzip2InputStream();
-        virtual unsigned int curPos() const;
-        virtual unsigned int readBytes(XMLByte* const toFill, const unsigned int maxToRead);
+        virtual XMLFilePos curPos() const;
+        virtual XMLSize_t readBytes(XMLByte* const toFill, const XMLSize_t maxToRead);
+        virtual const XMLCh* getContentType() const { return (XMLCh*)NULL; }
       private:
         boost::iostreams::filtering_streambuf<boost::iostreams::input> bzipin_;
         std::ifstream compin_;

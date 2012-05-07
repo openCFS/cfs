@@ -130,13 +130,13 @@ namespace CoupledField {
     {
       fs::path fn = fs::system_complete(fileName_);
       fn.normalize();
-      baseDir_ = fn.branch_path().native_directory_string();
-      baseName = (fs::change_extension( fn.leaf(), "" )).native_directory_string();
+      baseDir_ = fn.branch_path().string();
+      baseName = (fs::change_extension( fn.leaf(), "" )).string();
       if(fs::extension(fn) == "")
       {
         fn = fs::change_extension( fn, ".h5" );
       }
-      fileName_ = fn.native_directory_string();
+      fileName_ = fn.string();
     } catch (fs::filesystem_error& ex)
     {
       EXCEPTION("Received exception: " << ex.what());
@@ -647,7 +647,7 @@ namespace CoupledField {
     if( hasExternalFiles_ ) {
       std::string extFileString;
       H5IO::ReadAttribute( stepGroup, "ExtHDF5FileName", extFileString);
-      std::string pathsep = fs::path("/").native_directory_string();
+      std::string pathsep = fs::path("/").string();
       std::string extFileNameComplete = baseDir_ + pathsep + extFileString;
       try {
         extFile = H5::H5File( extFileNameComplete, H5F_ACC_RDONLY );

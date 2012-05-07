@@ -331,7 +331,7 @@ int CFS::Run()
 
     return 0;
   }
-  catch(exception& ex)
+  catch ( Exception &ex )
   {
     if(!progOpts->IsQuiet())
     {

@@ -381,7 +381,7 @@ void FileReader_fvuns::ReadNodalValues(std::vector<FlowDataType>& nodalFlowData,
   }
   int nandetektor=0;
   for(unsigned int i=0; i< NodalValues.size(); i++)   //NAN / INF ausschliessen
-    if(std::isinf(NodalValues[i]) || std::isnan(NodalValues[i]))
+    if(isinf(NodalValues[i]) || isnan(NodalValues[i]))
     {
       NodalValues[i]=0;
       nandetektor+=1;

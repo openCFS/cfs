@@ -239,7 +239,7 @@ namespace CoupledField
       {
         if ( !fs::is_directory( *dir_itr ) )
         {
-          fn = dir_itr->leaf();
+          fn = dir_itr->path().filename().string();
 
           if(algo::ends_with(fn, ".trn"))
           {

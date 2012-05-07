@@ -96,7 +96,7 @@ namespace CoupledField {
     {
       fs::path fn = fs::system_complete(fileName_);
       fn.normalize();
-      gmv_base_dir = fn.branch_path().native_directory_string();
+      gmv_base_dir = fn.branch_path().string();
     } catch (fs::filesystem_error& ex)
     {
       EXCEPTION("Received exception: " << ex.what());
