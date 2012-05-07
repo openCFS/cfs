@@ -31,26 +31,6 @@ namespace CoupledField {
                                const LocPointMapped& lp,
                                const Elem* elem, UInt comp = 1 );
 
-    //! Set the isotropic order of the Element. This methods gets overwritten 
-    //! by the child classes to calculate the number of functions according to
-    //! the given order
-    //! \param order (input) The desired order of the element
-    virtual void SetIsoOrder(UInt order){
-      // after debugging phase, this EXCEPTION can become a warning
-      EXCEPTION("Trying to set the ISOTROPIC order of an element which does not support this opeeration.\
-                The element will remain unchanged!");
-    }
-
-    //! Set the Anisotropic order of the Element. This methods gets overwritten 
-    //! by the child classes to calculate the number of functions according to
-    //! the given order
-    //! \param order (input) vector of element orders for each space direction 
-    virtual void SetAnisoOrder(StdVector<UInt> order){
-      // after debugging phase, this EXCEPTION can become a warning
-      EXCEPTION("Trying to set the ANISOTROPIC order of an element which does not support this operation.\
-                The element will remain unchanged!");
-    }
-
   protected:
     
     //! Calculate local basis functions (based on local gradient)

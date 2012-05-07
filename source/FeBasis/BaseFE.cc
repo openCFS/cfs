@@ -11,7 +11,6 @@ namespace CoupledField
   BaseFE::BaseFE() {
     actNumFncs_ = 0;
     feType_ = Elem::ET_UNDEF;
-    isIsotropic_ = true;
     preComputShFnc_ = true;
   }
 

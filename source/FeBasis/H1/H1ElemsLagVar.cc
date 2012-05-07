@@ -36,16 +36,15 @@ namespace CoupledField {
   //Base Class for Spectral elements
   //========================================================================
   
-    FeH1LagrangeVar::FeH1LagrangeVar(){
+    FeH1LagrangeVar::FeH1LagrangeVar() 
+  : FeH1(), FeNodal() {
     order_ = 0;
+    preComputShFnc_ = true;
     // Precalculate the supporting Points up do order 10
       CalcAllSupportingPoints(10);
     }
 
     FeH1LagrangeVar::~FeH1LagrangeVar(){
-    }
-
-    void FeH1LagrangeVar::SetIntPoints( StdVector<LocPoint>& intPoints ){
     }
 
     //THIS is a VERSION FOR TENSOR PRODUCT ELEMENTS
@@ -152,6 +151,39 @@ namespace CoupledField {
       }
     }
     
+    void FeH1LagrangeVar::SetFunctionsAtIp(const StdVector<LocPoint>& iPoints){
+
+      //! Precompute shape functions only, if we are allowed to, i.e.
+      //! if we have no higher order shape functions, depending on 
+      //! the global orientation of the element
+      if( !preComputShFnc_ ) 
+        return;
+      //shapeFncsAtIp_.resize(iPoints.GetSize());
+      //shapeFncDerivsAtIp_.resize(iPoints.GetSize());
+      for(UInt aPoint = 0; aPoint < iPoints.GetSize();aPoint++){
+        const LocPoint& lp = iPoints[aPoint];
+        CalcShFnc( shapeFncsAtIp_[lp.number], lp.coord, NULL, 1);
+        CalcLocDerivShFnc( shapeFncDerivsAtIp_[lp.number], lp.coord,
+                           NULL, 1);
+      }
+    }
+
+    void FeH1LagrangeVar::SetFunctionsAtIp(const std::map<Integer,LocPoint>& iPoints){
+
+
+      // can only be performed for non-hierarchical elements
+      //shapeFncsAtIp_.resize(iPoints.GetSize());
+      //shapeFncDerivsAtIp_.resize(iPoints.GetSize());
+      std::map<Integer,LocPoint>::const_iterator pIt = iPoints.begin();
+      while(pIt != iPoints.end()){
+        const LocPoint& lp = pIt->second;
+        CalcShFnc( shapeFncsAtIp_[lp.number], lp.coord, NULL, 1);
+        CalcLocDerivShFnc( shapeFncDerivsAtIp_[lp.number], lp.coord,
+                           NULL, 1);
+        pIt++;
+      }
+    }
+    
     void FeH1LagrangeVar::ComputeMonomialCoefficients(Matrix<Integer>& P, Matrix<Double>& C){
       //this algorithm is works for the lagrange tensorial polynomials
       //CAREFUL: Other shape functions may require different algorithms
@@ -205,25 +237,11 @@ namespace CoupledField {
 
     }
 
-
-    //void FeH1LagrangeVar::GetShFnc( Vector<Double> & S, const LocPoint& lp,
-    //               const Elem* ptElem,  UInt comp ){
-    //  CalcShFnc( S, lp.coord);
-    //}
-
-    //void FeH1LagrangeVar::GetDerivShFnc( Matrix<Double> & deriv, 
-    //                    const LocPoint& lp,
-    //                    const Elem * elem, 
-    //                    UInt comp ){
-    //  CalcDerivShFnc( deriv, lp.coord);
-    //}
-
-
   //=========================================================================
   //Line Elements of arbitrary order
   //=========================================================================
   
-    FeH1LagrangeLineVar::FeH1LagrangeLineVar(){
+    FeH1LagrangeLineVar::FeH1LagrangeLineVar() : FeH1LagrangeVar() {
       feType_ = Elem::ET_LINE2;
       shape_ = Elem::shapes[feType_];
       //this is always element order +1
@@ -307,7 +325,7 @@ namespace CoupledField {
   //Quadrilateral elements of arbitrary order
   //=========================================================================
 
-    FeH1LagrangeQuadVar::FeH1LagrangeQuadVar(){
+    FeH1LagrangeQuadVar::FeH1LagrangeQuadVar() : FeH1LagrangeVar(){
       feType_ = Elem::ET_QUAD4;
       shape_ = Elem::shapes[feType_];
       actNumFncs_ = 4;
@@ -487,7 +505,7 @@ namespace CoupledField {
   //Hexahedral elements of arbitrary order
   //=========================================================================
   
-    FeH1LagrangeHexVar::FeH1LagrangeHexVar(){
+    FeH1LagrangeHexVar::FeH1LagrangeHexVar(): FeH1LagrangeVar() {
       feType_ = Elem::ET_HEXA8;
       shape_ = Elem::shapes[feType_];
     }
@@ -495,20 +513,20 @@ namespace CoupledField {
     FeH1LagrangeHexVar::~FeH1LagrangeHexVar(){
     }
 
-    UInt FeH1LagrangeVar::GetNumFncsPerEntType( EntityType fctEntityType,
-                                       UInt dof){
-      UInt numFncs = 0;
-      if( fctEntityType == VERTEX ) {
-        numFncs = shape_.numVertices;
-      } else if ( fctEntityType == EDGE) {
-        numFncs =  order_ - 1; 
-      } else if ( fctEntityType == FACE) {
-        numFncs = (order_ - 1)*(order_ - 1);
-      } else if ( fctEntityType == INTERIOR ) {
-        numFncs = (order_ - 1)*(order_ - 1)*(order_ - 1);
-      }
-      return numFncs;
-    }
+//    UInt FeH1LagrangeVar::GetNumFncsPerEntType( EntityType fctEntityType,
+//                                       UInt dof){
+//      UInt numFncs = 0;
+//      if( fctEntityType == VERTEX ) {
+//        numFncs = shape_.numVertices;
+//      } else if ( fctEntityType == EDGE) {
+//        numFncs =  order_ - 1; 
+//      } else if ( fctEntityType == FACE) {
+//        numFncs = (order_ - 1)*(order_ - 1);
+//      } else if ( fctEntityType == INTERIOR ) {
+//        numFncs = (order_ - 1)*(order_ - 1)*(order_ - 1);
+//      }
+//      return numFncs;
+//    }
     void FeH1LagrangeHexVar::CalcShFnc( Vector<Double>& Shape,
                                         const Vector<Double>& point,
                                         const Elem* ptElem,

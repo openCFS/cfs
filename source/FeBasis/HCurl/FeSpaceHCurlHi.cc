@@ -81,7 +81,7 @@ namespace CoupledField{
   FeSpaceHCurlHi::FeSpaceHCurlHi( PtrParamNode aNode, 
                                   PtrParamNode infoNode,
                                   Grid* ptGrid )
-  : FeSpaceH1(aNode, infoNode, ptGrid ) {
+  : FeSpaceHi(aNode, infoNode, ptGrid ) {
     mapType_ = POLYNOMIAL;
     type_ = HCURL;
     isHierarchical_ = true;
@@ -89,6 +89,10 @@ namespace CoupledField{
     onlyLowestOrder_ = false;
     
     infoNode_ = infoNode->Get("hCurlHierarchical");
+    
+    // important: trigger mapping of edges / faces
+    ptGrid_->MapEdges();
+    ptGrid_->MapFaces();
   }
 
   //! Destructor
@@ -178,17 +182,14 @@ namespace CoupledField{
                                          const ApproxOrder& order,
                                          PtrParamNode infoNode ){
     
+    LOG_DBG(feSpaceHCurlHi) 
+        << "Set region elements for region " << ptGrid_->GetRegion().ToString(region)
+        << ", order is " << order.ToString();
+        
     //This method may not be called after the space is finalized!
     if(isFinalized_){
       Exception("FeSpace::SetRegionMapping is called after finalization");
     }
-    
-    // Ensure that approximation is isotropic
-    if( !order.IsIsotropic() ) {
-      EXCEPTION( "Higher order curl elements are currently supported only "
-          << "for isotropic order!" );
-    }
-    
 
     //ToDo: save the information...
     // QUERY FOR USER PARAMS IS STILL TO COME
@@ -205,12 +206,12 @@ namespace CoupledField{
     refElems1St_[region][Elem::ET_QUAD8]  = new FeHCurlHiQuad();
     refElems1St_[region][Elem::ET_HEXA20]  = new FeHCurlHiHex();
 
-    std::map<Elem::FEType, FeHCurlHi* >::iterator i = refElems_[region].begin();
-    for( ; i != refElems_[region].end(); ++i ) {
-      i->second->SetIsoOrder(order.GetIsoOrder()+orderOffset_);
-    }
     
-    // 1st order elements
+    // set order for every region
+    SetRegionOrder( region, order );
+    
+    // set explicit first order of all elements
+    std::map<Elem::FEType, FeHCurlHi* >::iterator i;
      i = refElems1St_[region].begin();
     for( ; i != refElems1St_[region].end(); ++i ) {
       i->second->SetIsoOrder(0);
@@ -240,27 +241,16 @@ namespace CoupledField{
      * 3. Map boundary conditions
      * 4. Map equations only based on the virtualNodeArray
      */
-
-    // For the HCurl elements, we always need edges / faces
-    feFunction_->GetGrid()->MapEdges();
-    feFunction_->GetGrid()->MapFaces();
-
+    AdjustEntityOrder();
     CreateVirtualNodes();
 
-    // Apply minimum rule to edges / faces to adjust polynomial order
-    AdjustEntityOrder();
-    
-    //Determine boundary Unknowns
+    // Map normal Bcs
     MapNodalBCs();
+    
+    // Fix higher order dofs in anisotropic case
+    FixHigherOrderAnisoDofs();    
     MapNodalEqns(1);
     MapNodalEqns(2);
-    
-    // print additional information about "loading" of hash table
-//    std::cerr << "Load of hash table is " << nodeMap_.eqns.load_factor() << std::endl;
-//    std::cerr << "Maximum load factor is " << nodeMap_.eqns.max_load_factor() << std::endl;
-//    std::cerr << "Maximum size is  " << nodeMap_.eqns.max_size() << std::endl;
-//    std::cerr << "Actual size is  " << nodeMap_.eqns.size() << std::endl;
-//    exit(1);
     
     isFinalized_ = true;
   }
@@ -346,13 +336,13 @@ namespace CoupledField{
   }
   
   BaseFE* FeSpaceHCurlHi::GetFe( const EntityIterator ent ){
-    RegionIdType eRegion;// =  ent.GetElem()->regionId;
+    RegionIdType eRegion = NO_REGION_ID;
     if( ent.GetType() == EntityList::SURF_ELEM_LIST||
-             ent.GetType() == EntityList::NC_ELEM_LIST) {
-        eRegion = GetVolElem(ent.GetSurfElem()) ->regionId;
-      } else {
-        eRegion = ent.GetElem()->regionId;
-      }
+        ent.GetType() == EntityList::NC_ELEM_LIST) {
+      eRegion = GetVolElem(ent.GetSurfElem()) ->regionId;
+    } else {
+      eRegion = ent.GetElem()->regionId;
+    }
     
     //Check if the region is there, otherwise fall back to default
     if(refElems_.find(eRegion) == refElems_.end()){
@@ -363,16 +353,23 @@ namespace CoupledField{
       EXCEPTION("FeSpaceHCurlHi: requested fetype which is not supported by space");
     }
 
-    BaseFE * myFe = NULL;
+    FeHCurlHi * myFe = NULL;
     if( onlyLowestOrder_) {
-     myFe = refElems1St_[eRegion][ent.GetElem()->type];
+      ApproxOrder order;
+      order.SetIsoOrder(0);
+      myFe = refElems1St_[eRegion][ent.GetElem()->type];
+      SetElemOrder( ent.GetElem(), myFe, order, true );
     } else {
+      // Fetch reference element and set correct order
+      myFe = refElems_[eRegion][ent.GetElem()->type];
+      std::map<RegionIdType,ApproxOrder>::iterator it = regionOrder_.find(eRegion);
+      SetElemOrder( ent.GetElem(), myFe, it->second, true );
       myFe = refElems_[eRegion][ent.GetElem()->type];
     }
 
     // ToDo: Currently hard coded to isotropic order. Here we should generalize the 
     // setting of entity orders.
-
+    assert (myFe);
     return myFe;
   }
   
@@ -389,306 +386,269 @@ namespace CoupledField{
     if(refElems_[eRegion].find(ptElem->type) == refElems_[eRegion].end()){
       EXCEPTION("FeSpaceHCurlHi::getfe( const entityiterator): requested fetype which is noch supported by space");
     }
-    BaseFE * myFe = NULL;
+    FeHCurlHi * myFe = NULL;
     if( onlyLowestOrder_) {
+      ApproxOrder order;
+      order.SetIsoOrder(0);
       myFe = refElems1St_[eRegion][ptElem->type];
+      SetElemOrder( ptElem, myFe, order, true );
     } else {
+      // Fetch reference element and set correct order
       myFe = refElems_[eRegion][ptElem->type];
-       }
-
-    //NOTE: THE ORDER IS ALREADY SET IN THIS CASE
-    //      BUT for more felexibility we should set it here
-    // ToDo: Currently hard coded to isotropic order. Here we should generalize the 
-    // setting of entitiy orders.
-    //
-    //myFe->SetIsoOrder( (UInt)regionMappings_[eRegion].second[0][0]);
-
+      std::map<RegionIdType,ApproxOrder>::iterator it = regionOrder_.find(eRegion);
+      SetElemOrder( ptElem, myFe, it->second, true );
+      myFe = refElems_[eRegion][ptElem->type];
+    }
     return myFe;
   }
 
-  void FeSpaceHCurlHi::AdjustEntityOrder() {
-
-    // Has to be re-implemented
-//    UInt numComp = feFunction_->GetResultInfo()->dofNames.GetSize();
-//
-//    // loop over all elements
-//    std::map< UInt, StdVector<UInt> >::iterator it = virtualEdges_.begin();
-//    for( ; it != virtualEdges_.end(); it++ ) {
-//
-//      UInt elemNum = it->first;
-//
-//      // loop over all edges
-//      StdVector<UInt > & edges = it->second;
-//      UInt numEdges = it->second.GetSize();
-//      for( UInt iEdge = 0; iEdge < numEdges; ++iEdge ) {
-//        UInt actEdge = edges[iEdge];
-//
-//        // check, if edge got already mapped
-//        if( edgeOrder_.find(actEdge) == edgeOrder_.end() ) {
-//          edgeOrder_[actEdge].Resize(numComp);
-//          edgeOrder_[actEdge].Init(0);          
-//        }
-//
-//        // Loop over all components
-//        for( UInt iComp = 0; iComp < numComp; ++iComp ) {
-//
-//          // Check if the local order for the edge is larger than the 
-//          // one already assigned
-//          UInt locOrder = GetEntityOrder(elemNum, BaseFE::EDGE, iEdge, iComp+1 );
-//          if(  locOrder > edgeOrder_[actEdge][iComp] ) {
-//            edgeOrder_[actEdge][iComp] = locOrder;
-//          } // if
-//        } // loop over components
-//      } // loop over edges
-//    } // loop over elements
-  }
   
 
-  void FeSpaceHCurlHi::CreateVirtualNodes() {
-
-    //follow the following algorithm
-        
-    // 1st loop over every element
-    //  - get edges 
-    //  - assign virtual nodes to lowest order unknowns (i.e. we only label
-    //    the Nedelec unknowns)
-    // 2nd loop over every element (can be omitted, if gradients get skipped)
-    //  - get edges
-    //  - assign virtual nodes to higher order edge unknowns (gradients)
-    // 3rd loop over every element
-    //  - label all face unknowns
-    // 4th loop over every element
-    //  - label all interior unknowns
-    
-    StdVector< shared_ptr<EntityList> > fctEntList;
-    std::map<UInt, StdVector<Integer> > vertexNodes;
-    std::map<UInt, StdVector<Integer> > edgenodes;
-    std::map<UInt, StdVector<Integer> > facenodes;
-    std::map<UInt, StdVector<Integer> > interiornodes;
-
-    // store all regions the space is defined on
-    regions_ = feFunction_->GetRegions();
-    
-    fctEntList = feFunction_->GetEntityList();
-    StdVector<UInt> permutations; 
-    
-    //get the highest possible node number
-    //UInt offset = feFunction_->GetGrid()->GetNumNodes();
-    UInt offset =0;
-    //UInt curRegIsoOrder = 0;
-    MappingType curMap = GRID;
-    // ------------------------------------------
-    //  1st loop: lowest order Nedelec unknowns
-    // ------------------------------------------
-    // loop over all entitylists (i.e. regions)
-    for(UInt actList = 0;actList <  fctEntList.GetSize(); actList++){
-      LOG_DBG(feSpaceHCurlHi) << "treating entityList '" 
-          << fctEntList[actList]->GetName() << "'";
-      EntityIterator entIt = fctEntList[actList]->GetIterator();
-
-      // loop over all elements
-      for(entIt.Begin(); !entIt.IsEnd();entIt++){
-
-        //check if we got what we expected
-        if ( ! (entIt.GetType() == EntityList::ELEM_LIST ||
-            entIt.GetType() == EntityList::SURF_ELEM_LIST) )  {
-          break;
-          EXCEPTION("FeSpaceHCurlHi::CreateVirtualNodes(): Calling the method with an unsupported EntityListType");
-        }
-        //cast down to element list
-        //ElemList* actElemList = dynamic_cast<ElemList*>(fctEntList[actList].get());
-        //RegionIdType curReg = actElemList->GetRegion();
-
-        curMap = POLYNOMIAL;
-
-        const Elem* actEl = entIt.GetElem();
-        BaseFE* ptFe = GetFe( entIt ); 
-        //distinguish between Grid or polynomial based mapping
-        if( curMap == GRID ) {
-          EXCEPTION("This makes no sense");
-        } else if (curMap == POLYNOMIAL) {
-
-
-          //===========================================================
-          //Assign the Edge node numbers
-          //===========================================================
-          UInt numEdgeNodes = 0;
-          ElemShape actShape = Elem::shapes[actEl->type];
-          for ( UInt iEdge=0; iEdge < actShape.numEdges; iEdge++) {
-            UInt edgeNum = std::abs(actEl->edges[iEdge]);
-            //get the permutation Vector
-            ptFe->GetNodalPermutation(permutations,actEl,BaseFE::EDGE,iEdge); 
-            numEdgeNodes = permutations.GetSize(); 
-
-            // Check if the edge is already numbered. 
-            // Additionally, if we have the case of discontinuous approximation,
-            // we number the nodes separately for every element separately anyway.
-            if(edgenodes[edgeNum].GetSize() == 0 &&  isContinuous_) {
-              //here we assume spectral element approximation and we have 
-              //order-1 nodes on the edge
-              edgenodes[edgeNum].Resize(numEdgeNodes);
-              for ( UInt edgeNode = 0;edgeNode < numEdgeNodes ;edgeNode++ ) {
-                edgenodes[edgeNum][edgeNode] = ++offset;
-                nodesType_[offset] = BaseFE::EDGE;
-              }
-            }
-
-            //fill the virtual Nodes in the correct ordering
-            EntityTypeNodes & etn =  virtualNodes_[actEl->elemNum][BaseFE::EDGE];
-            for ( UInt i = 0; i < numEdgeNodes ; i++ ) {
-              etn.vNodes.Push_back(edgenodes[edgeNum][ permutations[i] ]);
-            }
-            etn.offset.Push_back( permutations.GetSize() );
-          } // loop over edges
-        } // if POLYNOMIAL
-      } // loop over elements
-    } // loop over entitylists
-    
-    // remember node range for lowest order edge functions
-    nedelecNodeRange_[0] = 0;
-    nedelecNodeRange_[1] = offset-1;
-    
-    
-    // ------------------------------------------
-    //  2nd loop: higher order edge unknowns
-    // ------------------------------------------
-    // .. we skip this here, as we skip the higher order gradients of the
-    // edges anyway
-    
-    // ------------------------------------------
-    //  3rd loop: higher order face unkowns
-    // ------------------------------------------
-    for(UInt actList = 0;actList <  fctEntList.GetSize(); actList++){
-      LOG_DBG(feSpaceHCurlHi) << "treating entityList '" 
-          << fctEntList[actList]->GetName() << "'";
-      EntityIterator entIt = fctEntList[actList]->GetIterator();
-
-
-
-      // loop over all elements
-      for(entIt.Begin(); !entIt.IsEnd();entIt++){
-
-        //check if we got what we expected
-        if ( ! (entIt.GetType() == EntityList::ELEM_LIST ||
-            entIt.GetType() == EntityList::SURF_ELEM_LIST) )  {
-          break;
-          EXCEPTION("FeSpaceHCurlHi::CreateVirtualNodes(): Calling the method with an unsupported EntityListType");
-        }
-        const Elem* actEl = entIt.GetElem();
-        BaseFE* ptFe = GetFe( entIt ); 
-
-        //cast down to element list
-        //ElemList* actElemList = dynamic_cast<ElemList*>(fctEntList[actList].get());
-        //RegionIdType curReg = actElemList->GetRegion();
-
-        curMap = POLYNOMIAL;
-
-        //distinguish between Grid or polynomial based mapping
-        if( curMap == GRID ) {
-          EXCEPTION("This makes no sense");
-        } else if (curMap == POLYNOMIAL) {
-
-
-          //===========================================================
-          //Assign the Face node numbers
-          //===========================================================
-          UInt numFaceNodes = 0; 
-          ElemShape actShape = Elem::shapes[actEl->type];
-          for ( UInt iFace=0; iFace < actShape.numFaces; iFace++) {
-            UInt faceNum = actEl->faces[iFace];
-            //get the permutation Vector
-            ptFe->GetNodalPermutation(permutations,actEl,BaseFE::FACE,iFace); 
-            numFaceNodes = permutations.GetSize(); 
-
-            // Check if the face is already numbered. 
-            // Additionally, if we have the case of discontinuous approximation,
-            // we number the nodes separately for every element separately anyway.
-            if(facenodes[faceNum].GetSize() == 0 && isContinuous_ ){
-              //here we assume spectral element approximation and we have 
-              //order-1 nodes on the edge
-              facenodes[faceNum].Resize(numFaceNodes);
-              for ( UInt faceNode = 0;faceNode < numFaceNodes ;faceNode++ ) {
-                facenodes[faceNum][faceNode] = ++offset;
-                nodesType_[offset] = BaseFE::FACE;
-              }
-            }
-            //fill the virtual Nodes in the correct ordering
-            EntityTypeNodes & etn =  virtualNodes_[actEl->elemNum][BaseFE::FACE];
-            for ( UInt i = 0; i < numFaceNodes ; i++ ) {
-              etn.vNodes.Push_back(facenodes[faceNum][ permutations[i] ]);
-            }
-            etn.offset.Push_back( permutations.GetSize() );
-          }
-        } // if POLYNOMIAL
-      } // loop over elements
-    } // loop over entitylists
-    
-    // remember node range for lowest order edge functions
-    faceNodeRange_[0] = nedelecNodeRange_[1]+1;
-    faceNodeRange_[1] = offset-1;
-    
-    // ------------------------------------------
-    //  4th loop: higher order interior unknowns
-    // ------------------------------------------
-    for(UInt actList = 0;actList <  fctEntList.GetSize(); actList++){
-      LOG_DBG(feSpaceHCurlHi) << "treating entityList '" << fctEntList[actList]->GetName() << "'";
-      EntityIterator entIt = fctEntList[actList]->GetIterator();
-
-      // loop over all elementsStdVector<UInt> & vNodes = elemIt->second[BaseFE::VERTEX].vNodes;
-      for(entIt.Begin(); !entIt.IsEnd();entIt++){
-
-        //check if we got what we expected
-        if ( ! (entIt.GetType() == EntityList::ELEM_LIST ||
-            entIt.GetType() == EntityList::SURF_ELEM_LIST) )  {
-          break;
-          EXCEPTION("FeSpaceHCurlHi::CreateVirtualNodes(): Calling the method with an unsupported EntityListType");
-        }
-        const Elem* actEl = entIt.GetElem();
-        BaseFE* ptFe = GetFe( entIt ); 
-        //cast down to element list
-        //ElemList* actElemList = dynamic_cast<ElemList*>(fctEntList[actList].get());
-        //RegionIdType curReg = actElemList->GetRegion();
-
-        curMap = POLYNOMIAL;
-        //distinguish between Grid or polynomial based mapping
-        if( curMap == GRID ) {
-          EXCEPTION("This makes no sense");
-        } else if (curMap == POLYNOMIAL) {
-
-          //===========================================================
-          //Assign the Interior node numbers
-          //===========================================================
-          //get the permutation Vector just for the number of nodes
-          ptFe->GetNodalPermutation(permutations,actEl,BaseFE::INTERIOR,0); 
-          UInt numIntNodes = permutations.GetSize(); 
-
-          //Check if the current element got already numbered
-          if(interiornodes[actEl->elemNum].GetSize() == 0){
-            //here we assume spectral element approximation and we have 
-            //order-1 nodes on the edge
-            interiornodes[actEl->elemNum].Resize(numIntNodes);
-            for ( UInt intNode = 0;intNode < numIntNodes ;intNode++ ) {
-              interiornodes[actEl->elemNum][intNode] = ++offset;
-              nodesType_[offset] = BaseFE::INTERIOR;
-            }
-          }
-          //fill the virtual Nodes in the correct ordering
-          EntityTypeNodes & etn =  virtualNodes_[actEl->elemNum][BaseFE::INTERIOR];
-          for ( UInt i = 0; i  < numIntNodes ; i++ ) {
-            etn.vNodes.Push_back(interiornodes[actEl->elemNum][ permutations[i] ]);
-          }
-          etn.offset.Push_back(permutations.GetSize());
-        } // if POLYNOMIAL
-      } // loop over elements
-    } // loop over entitylists
-
-    LOG_TRACE(feSpaceHCurlHi) << "finished creation of virtual nodes";
-   
-    // remember node range for lowest order edge functions
-    faceNodeRange_[0] = nedelecNodeRange_[1]+1;
-    faceNodeRange_[1] = offset-1;
-    
-  }
+//  void FeSpaceHCurlHi::CreateVirtualNodes() {
+//
+//    //follow the following algorithm
+//        
+//    // 1st loop over every element
+//    //  - get edges 
+//    //  - assign virtual nodes to lowest order unknowns (i.e. we only label
+//    //    the Nedelec unknowns)
+//    // 2nd loop over every element (can be omitted, if gradients get skipped)
+//    //  - get edges
+//    //  - assign virtual nodes to higher order edge unknowns (gradients)
+//    // 3rd loop over every element
+//    //  - label all face unknowns
+//    // 4th loop over every element
+//    //  - label all interior unknowns
+//    
+//    StdVector< shared_ptr<EntityList> > fctEntList;
+//    std::map<UInt, StdVector<Integer> > vertexNodes;
+//    std::map<UInt, StdVector<Integer> > edgenodes;
+//    std::map<UInt, StdVector<Integer> > facenodes;
+//    std::map<UInt, StdVector<Integer> > interiornodes;
+//
+//    // store all regions the space is defined on
+//    regions_ = feFunction_->GetRegions();
+//    
+//    fctEntList = feFunction_->GetEntityList();
+//    StdVector<UInt> permutations; 
+//    
+//    //get the highest possible node number
+//    //UInt offset = feFunction_->GetGrid()->GetNumNodes();
+//    UInt offset =0;
+//    //UInt curRegIsoOrder = 0;
+//    MappingType curMap = GRID;
+//    // ------------------------------------------
+//    //  1st loop: lowest order Nedelec unknowns
+//    // ------------------------------------------
+//    // loop over all entitylists (i.e. regions)
+//    for(UInt actList = 0;actList <  fctEntList.GetSize(); actList++){
+//      LOG_DBG(feSpaceHCurlHi) << "treating entityList '" 
+//          << fctEntList[actList]->GetName() << "'";
+//      EntityIterator entIt = fctEntList[actList]->GetIterator();
+//
+//      // loop over all elements
+//      for(entIt.Begin(); !entIt.IsEnd();entIt++){
+//
+//        //check if we got what we expected
+//        if ( ! (entIt.GetType() == EntityList::ELEM_LIST ||
+//            entIt.GetType() == EntityList::SURF_ELEM_LIST) )  {
+//          break;
+//          EXCEPTION("FeSpaceHCurlHi::CreateVirtualNodes(): Calling the method with an unsupported EntityListType");
+//        }
+//        //cast down to element list
+//        //ElemList* actElemList = dynamic_cast<ElemList*>(fctEntList[actList].get());
+//        //RegionIdType curReg = actElemList->GetRegion();
+//
+//        curMap = POLYNOMIAL;
+//
+//        const Elem* actEl = entIt.GetElem();
+//        BaseFE* ptFe = GetFe( entIt ); 
+//        //distinguish between Grid or polynomial based mapping
+//        if( curMap == GRID ) {
+//          EXCEPTION("This makes no sense");
+//        } else if (curMap == POLYNOMIAL) {
+//
+//
+//          //===========================================================
+//          //Assign the Edge node numbers
+//          //===========================================================
+//          UInt numEdgeNodes = 0;
+//          ElemShape actShape = Elem::shapes[actEl->type];
+//          for ( UInt iEdge=0; iEdge < actShape.numEdges; iEdge++) {
+//            UInt edgeNum = std::abs(actEl->edges[iEdge]);
+//            //get the permutation Vector
+//            ptFe->GetNodalPermutation(permutations,actEl,BaseFE::EDGE,iEdge); 
+//            numEdgeNodes = permutations.GetSize(); 
+//
+//            // Check if the edge is already numbered. 
+//            // Additionally, if we have the case of discontinuous approximation,
+//            // we number the nodes separately for every element separately anyway.
+//            if(edgenodes[edgeNum].GetSize() == 0 &&  isContinuous_) {
+//              //here we assume spectral element approximation and we have 
+//              //order-1 nodes on the edge
+//              edgenodes[edgeNum].Resize(numEdgeNodes);
+//              for ( UInt edgeNode = 0;edgeNode < numEdgeNodes ;edgeNode++ ) {
+//                edgenodes[edgeNum][edgeNode] = ++offset;
+//                nodesType_[offset] = BaseFE::EDGE;
+//              }
+//            }
+//
+//            //fill the virtual Nodes in the correct ordering
+//            EntityTypeNodes & etn =  virtualNodes_[actEl->elemNum][BaseFE::EDGE];
+//            for ( UInt i = 0; i < numEdgeNodes ; i++ ) {
+//              etn.vNodes.Push_back(edgenodes[edgeNum][ permutations[i] ]);
+//            }
+//            etn.offset.Push_back( permutations.GetSize() );
+//          } // loop over edges
+//        } // if POLYNOMIAL
+//      } // loop over elements
+//    } // loop over entitylists
+//    
+//    // remember node range for lowest order edge functions
+//    nedelecNodeRange_[0] = 0;
+//    nedelecNodeRange_[1] = offset-1;
+//    
+//    
+//    // ------------------------------------------
+//    //  2nd loop: higher order edge unknowns
+//    // ------------------------------------------
+//    // .. we skip this here, as we skip the higher order gradients of the
+//    // edges anyway
+//    
+//    // ------------------------------------------
+//    //  3rd loop: higher order face unkowns
+//    // ------------------------------------------
+//    for(UInt actList = 0;actList <  fctEntList.GetSize(); actList++){
+//      LOG_DBG(feSpaceHCurlHi) << "treating entityList '" 
+//          << fctEntList[actList]->GetName() << "'";
+//      EntityIterator entIt = fctEntList[actList]->GetIterator();
+//
+//
+//
+//      // loop over all elements
+//      for(entIt.Begin(); !entIt.IsEnd();entIt++){
+//
+//        //check if we got what we expected
+//        if ( ! (entIt.GetType() == EntityList::ELEM_LIST ||
+//            entIt.GetType() == EntityList::SURF_ELEM_LIST) )  {
+//          break;
+//          EXCEPTION("FeSpaceHCurlHi::CreateVirtualNodes(): Calling the method with an unsupported EntityListType");
+//        }
+//        const Elem* actEl = entIt.GetElem();
+//        BaseFE* ptFe = GetFe( entIt ); 
+//
+//        //cast down to element list
+//        //ElemList* actElemList = dynamic_cast<ElemList*>(fctEntList[actList].get());
+//        //RegionIdType curReg = actElemList->GetRegion();
+//
+//        curMap = POLYNOMIAL;
+//
+//        //distinguish between Grid or polynomial based mapping
+//        if( curMap == GRID ) {
+//          EXCEPTION("This makes no sense");
+//        } else if (curMap == POLYNOMIAL) {
+//
+//
+//          //===========================================================
+//          //Assign the Face node numbers
+//          //===========================================================
+//          UInt numFaceNodes = 0; 
+//          ElemShape actShape = Elem::shapes[actEl->type];
+//          for ( UInt iFace=0; iFace < actShape.numFaces; iFace++) {
+//            UInt faceNum = actEl->faces[iFace];
+//            //get the permutation Vector
+//            ptFe->GetNodalPermutation(permutations,actEl,BaseFE::FACE,iFace); 
+//            numFaceNodes = permutations.GetSize(); 
+//
+//            // Check if the face is already numbered. 
+//            // Additionally, if we have the case of discontinuous approximation,
+//            // we number the nodes separately for every element separately anyway.
+//            if(facenodes[faceNum].GetSize() == 0 && isContinuous_ ){
+//              //here we assume spectral element approximation and we have 
+//              //order-1 nodes on the edge
+//              facenodes[faceNum].Resize(numFaceNodes);
+//              for ( UInt faceNode = 0;faceNode < numFaceNodes ;faceNode++ ) {
+//                facenodes[faceNum][faceNode] = ++offset;
+//                nodesType_[offset] = BaseFE::FACE;
+//              }
+//            }
+//            //fill the virtual Nodes in the correct ordering
+//            EntityTypeNodes & etn =  virtualNodes_[actEl->elemNum][BaseFE::FACE];
+//            for ( UInt i = 0; i < numFaceNodes ; i++ ) {
+//              etn.vNodes.Push_back(facenodes[faceNum][ permutations[i] ]);
+//            }
+//            etn.offset.Push_back( permutations.GetSize() );
+//          }
+//        } // if POLYNOMIAL
+//      } // loop over elements
+//    } // loop over entitylists
+//    
+//    // remember node range for lowest order edge functions
+//    faceNodeRange_[0] = nedelecNodeRange_[1]+1;
+//    faceNodeRange_[1] = offset-1;
+//    
+//    // ------------------------------------------
+//    //  4th loop: higher order interior unknowns
+//    // ------------------------------------------
+//    for(UInt actList = 0;actList <  fctEntList.GetSize(); actList++){
+//      LOG_DBG(feSpaceHCurlHi) << "treating entityList '" << fctEntList[actList]->GetName() << "'";
+//      EntityIterator entIt = fctEntList[actList]->GetIterator();
+//
+//      // loop over all elementsStdVector<UInt> & vNodes = elemIt->second[BaseFE::VERTEX].vNodes;
+//      for(entIt.Begin(); !entIt.IsEnd();entIt++){
+//
+//        //check if we got what we expected
+//        if ( ! (entIt.GetType() == EntityList::ELEM_LIST ||
+//            entIt.GetType() == EntityList::SURF_ELEM_LIST) )  {
+//          break;
+//          EXCEPTION("FeSpaceHCurlHi::CreateVirtualNodes(): Calling the method with an unsupported EntityListType");
+//        }
+//        const Elem* actEl = entIt.GetElem();
+//        BaseFE* ptFe = GetFe( entIt ); 
+//        //cast down to element list
+//        //ElemList* actElemList = dynamic_cast<ElemList*>(fctEntList[actList].get());
+//        //RegionIdType curReg = actElemList->GetRegion();
+//
+//        curMap = POLYNOMIAL;
+//        //distinguish between Grid or polynomial based mapping
+//        if( curMap == GRID ) {
+//          EXCEPTION("This makes no sense");
+//        } else if (curMap == POLYNOMIAL) {
+//
+//          //===========================================================
+//          //Assign the Interior node numbers
+//          //===========================================================
+//          //get the permutation Vector just for the number of nodes
+//          ptFe->GetNodalPermutation(permutations,actEl,BaseFE::INTERIOR,0); 
+//          UInt numIntNodes = permutations.GetSize(); 
+//
+//          //Check if the current element got already numbered
+//          if(interiornodes[actEl->elemNum].GetSize() == 0){
+//            //here we assume spectral element approximation and we have 
+//            //order-1 nodes on the edge
+//            interiornodes[actEl->elemNum].Resize(numIntNodes);
+//            for ( UInt intNode = 0;intNode < numIntNodes ;intNode++ ) {
+//              interiornodes[actEl->elemNum][intNode] = ++offset;
+//              nodesType_[offset] = BaseFE::INTERIOR;
+//            }
+//          }
+//          //fill the virtual Nodes in the correct ordering
+//          EntityTypeNodes & etn =  virtualNodes_[actEl->elemNum][BaseFE::INTERIOR];
+//          for ( UInt i = 0; i  < numIntNodes ; i++ ) {
+//            etn.vNodes.Push_back(interiornodes[actEl->elemNum][ permutations[i] ]);
+//          }
+//          etn.offset.Push_back(permutations.GetSize());
+//        } // if POLYNOMIAL
+//      } // loop over elements
+//    } // loop over entitylists
+//
+//    LOG_TRACE(feSpaceHCurlHi) << "finished creation of virtual nodes";
+//   
+//    // remember node range for lowest order edge functions
+//    faceNodeRange_[0] = nedelecNodeRange_[1]+1;
+//    faceNodeRange_[1] = offset-1;
+//    
+//  }
 
 
   
@@ -701,7 +661,7 @@ namespace CoupledField{
     // Check: If we have a "standard" solution strategy, just call the 
     // method of the base class
     if( solStrat_->GetType() == SolStrategy::STD_STRATEGY ) {
-      FeSpaceH1::GetOlasMappings(sbmBlocks, minorBlocks );
+      FeSpace::GetOlasMappings(sbmBlocks, minorBlocks );
       return;
     }
     
@@ -835,6 +795,20 @@ namespace CoupledField{
     // always return 1.
     assert(feFunction_ );
     return 1;
+  }
+  
+  FeHi* FeSpaceHCurlHi::GetFeHi( RegionIdType region, Elem::FEType type ) {
+    FeHi * ret = NULL;
+    //Check if the region is there, otherwise fall back to default
+    if(refElems_.find(region) == refElems_.end()){
+      region = ALL_REGIONS;
+    }
+
+    if(refElems_[region].find(type) == refElems_[region].end()){
+      EXCEPTION("fespaceh1::getfe( const entityiterator): requested fetype which is noch supported by space");
+    }
+    ret = refElems_[region][type]; 
+    return ret;
   }
 
 } // end of namespace

@@ -1,6 +1,7 @@
 // -*- mode: c++; coding: utf-8; indent-tabs-mode: nil; -*-
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
+#include <math.h>
 
 #include "ResultHandler.hh"
 
@@ -1090,7 +1091,7 @@ namespace CoupledField {
       }
     }
 
-    // now map global locations to out src grid
+    // now map global locations to our src grid
     StdVector<LocPoint> lps(destList->GetSize());
     StdVector<const Elem*> elems(destList->GetSize());
     srcGrid->GetElemsAtGlobalCoords( globPoints, lps, elems );
@@ -1124,8 +1125,10 @@ namespace CoupledField {
       if( coef->GetDimType() == CoefFunction::SCALAR ) {
         temp.Resize(1);
         for( UInt i = 0; i < lps.GetSize(); ++i ) {
-          if( elems[i] == NULL)
+          if( elems[i] == NULL) {
+            vals[pos++] = NAN;
             continue;
+          }
           esm = srcGrid->GetElemShapeMap( elems[i]);
           lpm.Set( lps[i], esm );
           coef->GetScalar( temp[0], lpm);
@@ -1134,8 +1137,10 @@ namespace CoupledField {
 
       } else if( coef->GetDimType() == CoefFunction::VECTOR ) {
         for( UInt i = 0; i < lps.GetSize(); ++i ) {
-          if( elems[i] == NULL)
+          if( elems[i] == NULL) {
+            vals[pos++] = NAN;
             continue;
+          }
           esm = srcGrid->GetElemShapeMap( elems[i]);
           lpm.Set( lps[i], esm );
 

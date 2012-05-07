@@ -2,7 +2,7 @@
 #define FILE_CFS_HCURL_ELEMENTS_HI_HH
 
 #include "HCurlElems.hh"
-#include <boost/array.hpp>
+#include "FeBasis/FeHi.hh"
 
 namespace CoupledField {
 
@@ -11,27 +11,26 @@ namespace CoupledField {
 //! hierarchical polynomials. Currently we use the integrated Legendre polynomials,
 //! but in general we can plug in any arbitrary orthogonal polynomial (e.h. Jacobi,
 //! Gegenbauer, etc.) 
-class FeHCurlHi : public FeHCurl {
+class FeHCurlHi : public FeHCurl, public FeHi  {
 public:
 
   //! Denotes the derivative type of the shape function to be calculated
   typedef enum { ID = 0, CURL =1} DiffType;
   
   //! Constructor
-  FeHCurlHi();
+  FeHCurlHi( Elem::FEType feType  );
 
   //! Destructor
   virtual ~FeHCurlHi();
 
-  //! Set isotropic polynomial order
-  void SetIsoOrder(UInt order);
-  
   //! Set usage of gradients
   void UseGradient(EntityType entity, bool usage);
   
   //! Set Usage of only lowest order functions
   void SetOnlyLowestOrder( bool flag) { onlyLowestOrder_ = flag; }
   
+  //! Get total number of functions
+  UInt GetNumFncs();
   
   //! Get number of shape functions for a given type (NODE/EDGE/FACE/ELEM)
   void GetNumFncs( StdVector<UInt>& numFcns,
@@ -66,27 +65,6 @@ protected:
   //! Calculate number of unknowns
   virtual void CalcNumUnknowns() = 0;
 
-  //! Isotropic order. 0 if anisotropic
-  UInt isoOrder_;
-    
-  //! Number of shape functions per entity
-  std::map<EntityType,StdVector<UInt> > entityFncs_;
-
-  // ========================================================================
-  // DEFINITION OF (ANISOTROPIC) ORDER
-  // ========================================================================
-  //@{ \name Definition of (anisotropic) polynomial order
-
-  //! Polynomial order of edges (#edges x 1 local direction)
-  StdVector<UInt> orderEdge_;
-
-  //! Polynomial order of faces (#faces x 2 local directions)
-  StdVector<boost::array<UInt,2> > orderFace_;
-
-  //! Polynomial order of inner (1 x 3 local directions)
-  boost::array<UInt,3> orderInner_;
-  //@}
-  
   // ========================================================================
   // Usage Of Gradient function
   // ========================================================================

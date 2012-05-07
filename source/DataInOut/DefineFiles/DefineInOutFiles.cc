@@ -324,7 +324,6 @@ CreateSimOutputFiles(std::map<std::string, shared_ptr<SimOutput> >& out,
     std::string gridId = "de  fault";
     actNode->GetValue( "gridId", gridId, ParamNode::PASS );
     gridIds[actId] = gridId;
-    std::cerr << "adding gridId " << gridId << " to reader id " << actId << std::endl;
     
     if (actFormat == "unv")
     {

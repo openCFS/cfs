@@ -24,10 +24,11 @@
 #define  FILE_CFS_H1LAGRANGEVAR_HH
 
 #include	"H1Elems.hh"
+#include "FeBasis/FeNodal.hh"
 
 namespace CoupledField {
 
-  class FeH1LagrangeVar : public FeH1 {
+  class FeH1LagrangeVar : public FeH1, public FeNodal {
 
   public:
     //! Constructor
@@ -35,17 +36,6 @@ namespace CoupledField {
 
       //! Destructor
     virtual ~FeH1LagrangeVar();
-
-    //! Pre-calculate values at integration points
-    void SetIntPoints( StdVector<LocPoint>& intPoints );
-
-    //! Get number of shape functions for a given type (NODE/EDGE/FACE/ELEM)
-    //! WARNING: if at some point other elements like triangles and tetras are
-    //!          available, this general implementation is no langer valid!
-    //void GetNumFncs( StdVector<UInt>& numFcns,
-    //                 const shared_ptr<AnsatzFct>& fcnType,
-    //                 AnsatzFct::FctEntityType fctEntityType,
-    //                 UInt dof = 1 );
 
     //! Get number of shape functions for a given type (NODE/EDGE/FACE/ELEM)
     void GetNumFncs( StdVector<UInt>& numFcns,
@@ -70,9 +60,6 @@ namespace CoupledField {
                                       EntityType fctEntityType,
                                       UInt entNumber);
 
-    //! Returns the number of functions for a single edge or face
-    UInt GetNumFncsPerEntType( EntityType fctEntityType, UInt dof = 1 );
-
     //! Set the polynomial order of the element
     virtual void SetIsoOrder( UInt order ) = 0;
     
@@ -91,6 +78,13 @@ namespace CoupledField {
     virtual void ComputeMonomialCoefficients(Matrix<Integer>& P, Matrix<Double>& C);
 
   protected:
+
+    //! @copydoc FeNodal::SetFunctionsAtIp
+    void SetFunctionsAtIp( const StdVector<LocPoint>& iPoints );
+
+    //! @copydoc FeNodal::SetFunctionsAtIp
+    void SetFunctionsAtIp( const std::map<Integer, LocPoint >& 
+                           iPoints);
 
     //! @copydoc FeH1::CalcShFnc
     virtual void CalcShFnc( Vector<Double>& shape,

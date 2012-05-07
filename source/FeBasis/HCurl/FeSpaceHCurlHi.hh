@@ -1,7 +1,7 @@
 #ifndef FILE_CFS_FESPACE_HCURL_HI_HH
 #define FILE_CFS_FESPACE_HCURL_HI_HH
 
-#include "FeBasis/H1/FeSpaceH1.hh"
+#include "FeBasis/FeSpaceHi.hh"
 #include <boost/array.hpp>
 
 namespace CoupledField {
@@ -10,7 +10,7 @@ namespace CoupledField {
 class FeHCurlHi;
 
 //! Finite element space for hierarchical H1 elements
-class FeSpaceHCurlHi : public FeSpaceH1 {
+class FeSpaceHCurlHi : public FeSpaceHi {
 
 public:
 
@@ -74,12 +74,12 @@ protected:
   //! Create default finite elements to be used if nothing else is requested
   virtual void SetDefaultElements( PtrParamNode infoNode );
 
-  //! Specialized version of the method of the base class
-  //! We number the lowest order dofs consecutively 
-  virtual void CreateVirtualNodes();
+//  //! Specialized version of the method of the base class
+//  //! We number the lowest order dofs consecutively 
+//  virtual void CreateVirtualNodes();
   
-  //! Adjust orders of edges / faces according to min/max rule
-  void AdjustEntityOrder();
+  //! \copydoc FeSpaceHi::GetFeHi
+  virtual FeHi* GetFeHi( RegionIdType region, Elem::FEType type );
   
   //! \copydoc FeSpace::GetNumDofs()
   virtual UInt GetNumDofs() const;

@@ -26,14 +26,14 @@
 #ifndef FILE_CFS_FESPACE_H1_NODAL_HH
 #define FILE_CFS_FESPACE_H1_NODAL_HH
 
-#include "FeSpaceH1.hh"
+#include "FeBasis/FeSpace.hh"
 #include "H1ElemsLagExpl.hh"
 #include "H1ElemsLagVar.hh"
 
 
 namespace CoupledField {
 
-class FeSpaceH1Nodal : public FeSpaceH1 {
+class FeSpaceH1Nodal : public FeSpace{
 
   public:
 
@@ -56,13 +56,6 @@ class FeSpaceH1Nodal : public FeSpaceH1 {
     
     //! \copydoc FeSpace::GetFe(UInt)
     virtual BaseFE* GetFe( UInt elemNum );
-    
-    ////! Return equation numbers
-    //virtual void GetEqns( StdVector<Integer>& eqns, const EntityIterator ent ); 
-
-    ////! Return equation numbers for a specific dof
-    //virtual void GetEqns( StdVector<Integer>& eqns, const EntityIterator ent
-    //                      , UInt dof );
     
     //! Precalculate integration points
     virtual void PreCalcShapeFncs();
@@ -92,6 +85,9 @@ class FeSpaceH1Nodal : public FeSpaceH1 {
     //! Create default finite elements to be used if nothing else is requested
     virtual void SetDefaultElements( PtrParamNode infoNode );
 
+    //! \copydoc FeSpace::MapNodalBCs
+    virtual void MapNodalBCs();
+    
     // ====================================================================
     // PROCESS USER INPUT
     // ====================================================================

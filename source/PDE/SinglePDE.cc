@@ -45,7 +45,6 @@
 
 //feSpaces
 #include "FeBasis/H1/FeSpaceH1Nodal.hh"
-#include "FeBasis/H1/FeSpaceH1.hh"
 #include "FeBasis/H1/FeSpaceH1Hi.hh"
 using std::string;
 

@@ -18,17 +18,17 @@
     <xsd:sequence>
       <xsd:element name="dof1" minOccurs="1" maxOccurs="1">
         <xsd:simpleType>
-          <xsd:list itemType="xsd:positiveInteger"/>
+          <xsd:list itemType="xsd:int"/>
         </xsd:simpleType>
       </xsd:element>
       <xsd:element name="dof2" minOccurs="0" maxOccurs="1">
         <xsd:simpleType>
-          <xsd:list itemType="xsd:positiveInteger"/>
+          <xsd:list itemType="xsd:int"/>
         </xsd:simpleType>
       </xsd:element>
       <xsd:element name="dof3" minOccurs="0" maxOccurs="1">
         <xsd:simpleType>
-          <xsd:list itemType="xsd:positiveInteger"/>
+          <xsd:list itemType="xsd:int"/>
         </xsd:simpleType>
       </xsd:element>
     </xsd:sequence>

@@ -110,13 +110,8 @@ namespace CoupledField
                                       UInt entNumber){
     };
 
-      //! Query if element has isotropic polynomial order
-      bool IsIsotropic() const { 
-        return isIsotropic_;
-      }
-    
     //! Obtain isotropic  order of the current element
-    
+
     //! If there is no order is set, we return 0
     virtual UInt GetIsoOrder() const {
       EXCEPTION("Not implemented");
@@ -158,12 +153,9 @@ namespace CoupledField
 
     //! Geometric type of finite element (line, quad, hex ...)
     Elem::FEType feType_;
-    
-    //! Flag for isotropic polynomial order
-    bool isIsotropic_;
-    
+
     //! Flag if can pre-compute shape functions
-    
+
     //! This flag indicated, if the shape functions and local derivatives can
     //! be precomputed, i.e. they are independent of the global numbering.
     //! This is the case for Lagrangian based shape functions, but nor for

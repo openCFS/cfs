@@ -150,7 +150,7 @@ void FeSpaceL2Nodal::PreCalcShapeFncs(){
         IntScheme::IntegMethod curMethod;
         GetIntegration(elemIt->second,*integIter,curMethod,curOrder);
         integScheme->GetIntegrationPoints(integPoints,shape,curMethod,curOrder);
-        dynamic_cast<FeH1*>(elemIt->second)->SetFunctionsAtIp(integPoints);
+        dynamic_cast<FeNodal*>(elemIt->second)->SetFunctionsAtIp(integPoints);
         integIter++;
       }
       elemIt++;

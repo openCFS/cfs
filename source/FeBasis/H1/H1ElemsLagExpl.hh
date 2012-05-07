@@ -2,6 +2,7 @@
 #define FILE_CFS_H1_ELEMENTS_LAGRANGE_EXPLICIT_HH
 
 #include "H1Elems.hh"
+#include "FeBasis/FeNodal.hh"
 
 namespace CoupledField {
 
@@ -15,7 +16,7 @@ namespace CoupledField {
 //! lowest order, i.e. the  shape functions can be pre-calculated without 
 //! knowledge of the global element.
 //! Currently these elements are all 1st / 2nd order Lagrangian elements
-class FeH1LagrangeExpl : public FeH1 {
+class FeH1LagrangeExpl : public FeH1, public FeNodal {
 
 public:
   //! Constructor
@@ -23,9 +24,6 @@ public:
 
   //! Destructor
   virtual ~FeH1LagrangeExpl();
-
-  //! Pre-calculate values at integration points
-  void SetIntPoints( StdVector<LocPoint>& intPoints );
 
   //! Get number of shape functions for a given type (NODE/EDGE/FACE/ELEM)
   void GetNumFncs( StdVector<UInt>& numFcns,
@@ -47,8 +45,8 @@ public:
                                   EntityType fctEntityType,
                                   UInt entNumber);
 
-  //! returns the number of functions for a single edge or face
-  UInt GetNumFncsPerEntType( EntityType fctEntityType, UInt dof = 1);
+//  //! returns the number of functions for a single edge or face
+//  UInt GetNumFncsPerEntType( EntityType fctEntityType, UInt dof = 1);
 
   //! \copydoc BaseFE::GetIsoOrder
   virtual UInt GetIsoOrder() const {
@@ -99,6 +97,13 @@ public:
 
 protected:
 
+  //! @copydoc FeNodal::SetFunctionsAtIp
+  void SetFunctionsAtIp( const StdVector<LocPoint>& iPoints );
+
+  //! @copydoc FeNodal::SetFunctionsAtIp
+  void SetFunctionsAtIp( const std::map<Integer, LocPoint >& 
+                         iPoints);
+
   //! @copydoc FeH1::CalcShFnc
   virtual void CalcShFnc( Vector<Double>& shape,
                           const Vector<Double>& point,
@@ -126,7 +131,7 @@ class FeH1LagrangeLine : public FeH1LagrangeExpl {
 public:
 
   //! Constructor 
-  FeH1LagrangeLine() {};
+  FeH1LagrangeLine() : FeH1LagrangeExpl() {};
 
   //! Destructor
   virtual ~FeH1LagrangeLine() {};
@@ -163,7 +168,7 @@ class FeH1LagrangeTria : public FeH1LagrangeExpl {
 public:
 
   //! Constructor
-  FeH1LagrangeTria() {};
+  FeH1LagrangeTria() : FeH1LagrangeExpl() {};
 
   //! Destructor
   virtual ~FeH1LagrangeTria() {};
@@ -200,7 +205,7 @@ class FeH1LagrangeQuad : public FeH1LagrangeExpl {
 public:
 
   //! Constructor
-  FeH1LagrangeQuad() {};
+  FeH1LagrangeQuad() : FeH1LagrangeExpl() {};
 
   //! Destructor
   virtual ~FeH1LagrangeQuad() {};
@@ -237,7 +242,7 @@ class FeH1LagrangeHex : public FeH1LagrangeExpl {
 public:
 
   //! Constructor  
-  FeH1LagrangeHex() {};
+  FeH1LagrangeHex() : FeH1LagrangeExpl() {};
 
   //! Destructor
   virtual  ~FeH1LagrangeHex() {};
@@ -276,7 +281,7 @@ class FeH1LagrangeWedge : public FeH1LagrangeExpl {
 public:
 
   //! Constructor  
-  FeH1LagrangeWedge() {};
+  FeH1LagrangeWedge() : FeH1LagrangeExpl() {};
 
   //! Destructor
   virtual  ~FeH1LagrangeWedge() {};
@@ -313,7 +318,7 @@ class FeH1LagrangeTet : public FeH1LagrangeExpl {
 public:
 
   //! Constructor
-  FeH1LagrangeTet() {};
+  FeH1LagrangeTet() : FeH1LagrangeExpl() {};
 
   //! Destructor
   virtual  ~FeH1LagrangeTet() {};
@@ -350,7 +355,7 @@ class FeH1LagrangePyra : public FeH1LagrangeExpl {
 public:
 
   //! Constructor
-  FeH1LagrangePyra() {};
+  FeH1LagrangePyra() : FeH1LagrangeExpl()  {};
 
   //! Destructor
   virtual  ~FeH1LagrangePyra() {};

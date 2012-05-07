@@ -17,7 +17,6 @@
 #include "Domain/CoefFunction/CoefFunctionFormBased.hh"
 
 // include fespaces
-#include "FeBasis/H1/FeSpaceH1.hh"
 #include "FeBasis/H1/H1Elems.hh"
 
 // new integrator concept

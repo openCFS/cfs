@@ -1041,10 +1041,14 @@ source/FeBasis/BaseFE.hh svneol=native#text/x-c%2B%2Bhdr
 source/FeBasis/CMakeLists.txt svneol=native#text/plain
 source/FeBasis/FeFunctions.cc svneol=native#text/x-c%2B%2Bsrc
 source/FeBasis/FeFunctions.hh svneol=native#text/x-c%2B%2Bhdr
+source/FeBasis/FeHi.cc svneol=native#text/x-c%2B%2Bsrc
+source/FeBasis/FeHi.hh svneol=native#text/x-c%2B%2Bhdr
+source/FeBasis/FeNodal.cc svneol=native#text/x-c%2B%2Bsrc
+source/FeBasis/FeNodal.hh svneol=native#text/x-c%2B%2Bhdr
 source/FeBasis/FeSpace.cc svneol=native#text/x-c%2B%2Bsrc
 source/FeBasis/FeSpace.hh svneol=native#text/x-c%2B%2Bhdr
-source/FeBasis/H1/FeSpaceH1.cc -text
-source/FeBasis/H1/FeSpaceH1.hh -text
+source/FeBasis/FeSpaceHi.cc svneol=native#text/x-c%2B%2Bsrc
+source/FeBasis/FeSpaceHi.hh svneol=native#text/x-c%2B%2Bhdr
 source/FeBasis/H1/FeSpaceH1Hi.cc -text
 source/FeBasis/H1/FeSpaceH1Hi.hh -text
 source/FeBasis/H1/FeSpaceH1Nodal.cc -text

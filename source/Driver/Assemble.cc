@@ -178,10 +178,6 @@ namespace CoupledField
     assert( biLinContext->GetFirstEntities() != NULL );
     assert( biLinContext->GetSecondEntities() != NULL );
 
-    // not needed anymore, as we use thef espace to map things
-    // assert that the pdes are set
-//    assert( biLinContext->GetFirstPde() != NULL );
-//    assert( biLinContext->GetSecondPde() != NULL );
 
     // If the datatype of the bilinearformcontext is "COMPLEX"
     // we have to ensure that we are in an harmonic case.
@@ -512,7 +508,6 @@ namespace CoupledField
                //            InsertMatrix(DAMPING, actContext, elemMatrix, eqnVec1, eqnVec2, pdeId1, pdeId2);
                //          }else 
                if (secDestMat != NOTYPE ) { // Check for secondary matrix type
-                 EXCEPTION("We do not want a second matrix factor");
                  Double dampFactor = 1.0;
 
                  // damping with "exotic" complex material

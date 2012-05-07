@@ -174,7 +174,37 @@ public:
   };
 
  
+  //! struct for the single equationMap i.e. Nodal Eqns
+  //! for the BC map we code the following
+  //! <ul> 
+  //!   <li>No BC</li>
+  //!   <li>HomDirichlet</li>
+  //!   <li>InHomDirichlet</li>
+  //!   <li>Constraint</li>
+  //! </ul>
+  struct SingleEqnMap{
+
+    //! Map for every node (key to map) its equations (values)
+    boost::unordered_map<Integer, StdVector<Integer> > eqns;
+    
+    //! Map for every node (key to map) its boundary conditions types
+    boost::unordered_map< Integer,StdVector<BcType> > BcKeys;
+    
+    
+    //! Map for storing constraint information
+    
+    //! Special treatment of constraints:  we store for every slave 
+    //! (node, dof)-pair the master (node, dof)-pair
+    std::map< std::pair<Integer,Integer>, 
+              std::pair<Integer,Integer>  > constraintNodes;
+    
+    //! Convenience operator for accessing the equations of a (virtual) node
+    StdVector<Integer>& operator[](Integer key){
+      return eqns[key];
+    }
+  };
   
+  // ========================================================================
   
   //! Constructor
   FeSpace(PtrParamNode paramNode, PtrParamNode infoNode, Grid* ptGrid );
@@ -259,7 +289,7 @@ public:
   virtual BaseFE* GetFe( UInt elemNum ) = 0;
 
   //! Return number of functions for given entity
-  virtual UInt GetNumFunctions( const EntityIterator ent ) = 0;
+  virtual UInt GetNumFunctions( const EntityIterator ent );
 
   //! Obtain a pointer with interior surface elements for a given volume region
   //! \param (in) region The volume region Id
@@ -310,24 +340,21 @@ public:
   //@{ \name Equation Handling
   
   //! Return equation numbers
-  virtual void GetEqns( StdVector<Integer>& eqns, const EntityIterator ent ) = 0; 
+  virtual void GetEqns( StdVector<Integer>& eqns, const EntityIterator ent ); 
 
   //! Return equation numbers for a specific dof
   virtual void GetEqns( StdVector<Integer>& eqns, const EntityIterator ent
-                        , UInt dof ) = 0;
+                        , UInt dof );
   
   //! Return equation numbers for a specific dof and entitytype
   virtual void GetEqns( StdVector<Integer>& eqns, const EntityIterator ent
-                        , UInt dof, BaseFE::EntityType ) = 0; 
-
-  //! Get a Nodal Equation number
-  virtual UInt GetNodeEqn(UInt nodeNr, UInt dof) = 0;
+                        , UInt dof, BaseFE::EntityType ); 
 
   //! Get Equation numbers for a specific element
-  virtual void GetElemEqns(StdVector<Integer>& eqns,const Elem* elem) = 0;
+  virtual void GetElemEqns(StdVector<Integer>& eqns,const Elem* elem);
 
   //! Get Equation numbers for a specific element
-  virtual void GetElemEqns(StdVector<Integer>& eqns,const Elem* elem, UInt dof) = 0;
+  virtual void GetElemEqns(StdVector<Integer>& eqns,const Elem* elem, UInt dof);
 
   //! Return SBM-block and Matrix-SubBlock definition according to strategy
   
@@ -339,10 +366,10 @@ public:
   //!                    subBlockIndex) of set of equations for each minorBlock
   virtual void GetOlasMappings( StdVector<AlgebraicSys::SBMBlockDef>& sbmBlocks,
                                 std::map<UInt,StdVector<std::set<Integer> > >&
-                                minorBlocks ) = 0;
+                                minorBlocks );
   
   //! Add result
-  virtual void AddFeFunction( shared_ptr<BaseFeFunction> fct ) = 0;
+  virtual void AddFeFunction( shared_ptr<BaseFeFunction> fct );
 
   //! Precalculate integration points
   virtual void PreCalcShapeFncs() {};
@@ -389,7 +416,7 @@ public:
   //! approximated by a scalar basis function. In case of a HCurl or HDiv 
   //! element, the shape functions are already vectorial, so only one
   //! coefficient is needed to describe the function value.
-  virtual UInt GetNumDofs() const = 0;
+  virtual UInt GetNumDofs() const;
 
   shared_ptr<BaseFeFunction> GetFeFunction(){
     return feFunction_;
@@ -399,7 +426,7 @@ public:
   virtual void Finalize() = 0;
 
   //! Dump information of the equation map to the console
-  virtual void PrintEqnMap() = 0;
+  virtual void PrintEqnMap();
   
   //! Update the FeSpace in case of a multistep solution strategy
   
@@ -567,7 +594,19 @@ protected:
   //! This Variable could be extended to store also the coordinates of all nodes
   //! created
   boost::unordered_map< UInt, ElemVirtualNodes > virtualNodes_;
-
+  
+  // ====================================================================
+  // Equation Map
+  // ====================================================================
+  //! Map Nodal BC Equation NUmbers
+  virtual void MapNodalBCs() = 0;
+  
+  //! Map Nodal Equation Numbers
+  virtual void MapNodalEqns(UInt phase);
+  
+  //! Nodal Equation Map
+  SingleEqnMap nodeMap_;
+  
   // =========================================================
   // READ USER INPUT
   // =========================================================

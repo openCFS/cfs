@@ -3,6 +3,7 @@
 
 #include "FeBasis/BaseFE.hh"
 
+
 namespace CoupledField {
 
   //! Base class for H1-conforming reference elements
@@ -17,14 +18,6 @@ namespace CoupledField {
     //! Destructor
     virtual ~FeH1();
 
-    //! Evaluate Lagrange polynomial 
-    void EvaluateLagrangePolynomial( Vector<Double> & shape, Double coord,
-                                     UInt order);
-
-    //! Evaluate derivative of Lagrange polynomials 
-    void EvaluateDerivLagrangePolynomial( Vector<Double> & deriv, Double coord,
-                                          UInt order);
-    
     //! Get value of all shape fnc at local poiont lp
     /*!
     \param S (output) Vector of shape fnc values \f$ (N_{1},\cdots\,N_{NumNodes})^T \f$
@@ -43,35 +36,8 @@ namespace CoupledField {
                            const LocPoint& lp,
                            const Elem* elem, UInt comp = 1 );
 
-    //! @copydoc BaseFE::SetFunctionsAtIp
-    void SetFunctionsAtIp(const StdVector<LocPoint>& iPoints);
-
-    //! @copydoc BaseFE::SetFunctionsAtIp
-    //! Overloaded method to be able to set only specific points
-    void SetFunctionsAtIp(const std::map<Integer, LocPoint >& iPoints);
-
-    //! @copydoc BaseFE::ComputeMonomialCoefficients
-    //! Just a dummy
-    virtual void ComputeMonomialCoefficients(Matrix<Double> P, Matrix<Double> C){
-      Exception("Not implemented in base class");
-    }
-
   protected:
 
-    //! Calculate the location of unknowns for a line up to given order
-    //! Righ now the calculation is done here but has to move into the 
-    //! Integration Scheme class!
-    //! This method gets reimplemented in the Spectral classes to ask the 
-    //! Integration scheme to provide the points
-    void CalcAllSupportingPoints(UInt maxOrder);
-
-    //! Calculate the location of unknowns for a given order
-    void CalcSupportingPoints(UInt order);
-
-    //! Calculates the Gauss Lobatto Points for a given order
-    //! Is to be moved into Integration Scheme Class
-    StdVector<Double> CalcGaussLobattoPoints(UInt order);
-    
     //! Compute shape function at given position
     virtual void CalcShFnc( Vector<Double>& shape,
                             const Vector<Double>& point,
@@ -89,12 +55,12 @@ namespace CoupledField {
     \param CornerCoords (input) Coordinates of element corners
     \f [ \left( \begin{array}{ccc} x_{1} & x_{2} & \cdots \\ y_{1} & y_{2} & \cdots \\
     \cdots & \cdots & \cdots \end{array} \right) \f ]       
-    */
+     */
     virtual void CalcLocDerivShFnc( Matrix<Double> & deriv, 
                                     const Vector<Double>& point,
                                     const Elem* ptElem,
                                     UInt comp = 1 ) = 0;
-    
+
     // =======================================================================
     //  PRE CALCULATION OF SHAPE FUNCTIONS AT INTEGRATION POINTS
     //  Changed here to map data structure as it is more versatile and
@@ -107,10 +73,6 @@ namespace CoupledField {
 
     //! Stores shape function derivatives for each integration point
     std::map<Integer, Matrix<Double> > shapeFncDerivsAtIp_;
-    
-    //! Stores the Locations of the Element DOFs for a line for every order
-    std::map<UInt,StdVector<Double> > supportingPoints_;
-
 
   private:
   };

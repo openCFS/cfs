@@ -1,10 +1,12 @@
 SET(FEBASIS_SRC 
   BaseFE.cc
   FeSpace.cc
+  FeSpaceHi.cc
   FeFunctions.cc
-  H1/FeSpaceH1.cc
-  H1/FeSpaceH1Nodal.cc
+  FeHi.cc
+  FeNodal.cc
   H1/FeSpaceH1Hi.cc
+  H1/FeSpaceH1Nodal.cc
   HCurl/FeSpaceHCurlHi.cc
   H1/H1Elems.cc
   H1/H1ElemsLagExpl.cc

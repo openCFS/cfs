@@ -26,7 +26,11 @@ DEFINE_LOG(feH1Hi, "feH1Hi")
   //  FeH1Hi
   // ========================================================================
   
-  FeH1Hi::FeH1Hi() {
+  FeH1Hi::FeH1Hi(Elem::FEType feType ) 
+  : FeH1(), FeHi(feType )
+{
+    feType_ = feType;
+    shape_ = Elem::shapes[feType];
     updateUnknowns_ = true;
     isIsotropic_ = false;
     isoOrder_ = 0;
@@ -127,188 +131,7 @@ DEFINE_LOG(feH1Hi, "feH1Hi")
     updateUnknowns_ = false;
   }
   
-  void FeH1Hi::SetIsoOrder( UInt order ) {
-    
-    LOG_DBG3(feH1Hi) << "SetIsoOrder " << order 
-        << " for H1Hi elem of type " 
-        << Elem::feType.ToString(feType_);
-    
-    // just change, if order is different from previously set one
-    if( order == this->isoOrder_ &&
-        isIsotropic_ ) return;
-    
-    orderEdge_.Resize(shape_.numEdges);
-    orderFace_.Resize(shape_.numFaces);
-    maxOrder_ = 0;
-    
-    // set order for edges
-    orderEdge_.Init(order);
-    
-    // set order for faces
-    boost::array<UInt,2> faceOrder = {{order, order}};
-    orderFace_.Init(faceOrder);
-
-    // set order for inner
-    boost::array<UInt, 3> innerOrder = {{order, order, order}}; 
-    orderInner_ = innerOrder;
-    
-    maxOrder_ = std::max( maxOrder_, order);
-    updateUnknowns_ = true;
-    isIsotropic_ = true;
-    isoOrder_ = order;
-  }
-  
-  
-  void FeH1Hi::SetAnisoOrder( const StdVector<UInt>& order,
-                              const Elem* ptElem ) {
-    LOG_DBG3(feH1Hi) << "SetAnisoOrder " << order 
-            << " for H1Hi elem #" <<ptElem->elemNum
-            << "of type " 
-            << Elem::feType.ToString(feType_)
-            << " to order " << order.Serialize();
-    
-    // check initially, if element support anisotropic 
-    // polynomial order
-    // -> this is performed later on
-    
-    // resize edge and face arrays
-    orderEdge_.Resize(shape_.numEdges);
-    orderFace_.Resize(shape_.numFaces);
-    orderEdge_.Init();
-    // -------
-    //  EDGES
-    // -------
-    Integer locDir = -1;
-    for( UInt iEdge = 0; iEdge < shape_.numEdges; ++iEdge ) {
-      LOG_DBG3(feH1Hi) << "\tTreating edge #" << std::abs(ptElem->edges[iEdge]) << std::endl;
-      locDir = shape_.edgeLocDirs[iEdge];
-      SetEdgeOrder( iEdge, order[locDir]);
-      LOG_DBG3(feH1Hi) << "\t\tdir: #" << ptElem->connect[shape_.edgeNodes[iEdge][0]-1]
-                       << " -> #" << ptElem->connect[shape_.edgeNodes[iEdge][1]-1]
-                       << ", order: " << order[locDir];
-      
-    }
-    
-    // -------
-    //  FACES
-    // -------
-    if( shape_.numFaces > 0 ) {
-      
-      // variables for face-local directions
-      UInt locDir1 = 0, locDir2 = 0;
-      boost::array<UInt,2> faceOrder;
-      for( UInt iFace = 0; iFace < shape_.numFaces; ++iFace ) {
-        LOG_DBG3(feH1Hi) << "\tTreating face #" << iFace << std::endl;
-        
-        const StdVector<UInt>& unsorted = shape_.faceNodes[iFace];
-        
-        // check: currently, we can only set an anisotropic order,
-        // if the face has 4 nodes
-        if( unsorted.GetSize() != 4 ) {
-          EXCEPTION( "Anisotropic order only supported for quad-faces");
-        }
-        
-        // use the face flags of the current face to match the element-
-        // local directions (xi,eta,zeta) to the face local ones.
-        // Note: This only works for 
-        locDir1 = shape_.faceLocDirs[iFace][0];
-        locDir2 = shape_.faceLocDirs[iFace][1];
-         // check, if directions have to get interchanged
-        if( !ptElem->faceFlags[iFace][2]) { 
-          std::swap( locDir1, locDir2 );
-        }
-        faceOrder[0] = order[locDir1];
-        faceOrder[1] = order[locDir2];
-        
-        // Logging stuff
-        StdVector<UInt> ind;
-        Face::GetSortedIndices( ind, unsorted,  4, ptElem->faceFlags[iFace]);
-        LOG_DBG3(feH1Hi) << "\t\tdir1: node #"
-                         << ptElem->connect[ind[1]] 
-                         << "-> #" << ptElem->connect[ind[0]] 
-                         << ", order: " << faceOrder[0]; 
-        LOG_DBG3(feH1Hi) << "\t\tdir1: node #" 
-                         << ptElem->connect[ind[3]] 
-                         << "-> #" << ptElem->connect[ind[0]] 
-                         << ", order: " << faceOrder[1];
-        
-        SetFaceOrder( iFace, faceOrder );
-      }
-    }
-    // -------
-    //  INNER
-    // -------
-    if( shape_.dim == 3 ) {
-    boost::array<UInt,3> orderInner;
-      orderInner[0] = order[0];
-      orderInner[1] = order[1];
-      orderInner[2] = order[2];
-      SetInteriorOrder( orderInner );
-    }
-    // set status to anisotropic and determine maximal order
-    isIsotropic_ = false;
-    maxOrder_ = *(std::max_element(order.Begin(), order.End()));
-    updateUnknowns_ = true;
-  }
-  
-  void FeH1Hi::GetNodesExceedingOrder( std::set<UInt>& nodes, 
-                                       const StdVector<UInt>& order,
-                                       const Elem* ptElem ) {
-
-    Matrix<UInt> fullOrder;
-    GetPolyOrderOfNodes( fullOrder, ptElem );
-
-    UInt numFncs = fullOrder.GetNumRows();
-    UInt dim = fullOrder.GetNumCols();
-    nodes.clear();
-
-    // loop over all function
-    for( UInt iFnc = 0; iFnc < numFncs; ++iFnc ) {
-      // loop over all directions
-      for( UInt iDim = 0; iDim < dim; ++iDim ) {
-        // check, if component exceeds the maximum allowed order
-        if( fullOrder[iFnc][iDim] > order[iDim] ) {
-          nodes.insert(iFnc);
-          break;
-        }
-      }
-    }
-  }
-    
-  void FeH1Hi::SetEdgeOrder( UInt edgeNum, UInt order ) {
-    assert( edgeNum <= shape_.numEdges);
-
-    if( orderEdge_[edgeNum] == order) return;
-    
-    LOG_DBG3(feH1Hi) << "\tSetting order of edge #" << edgeNum << " to " << order;
-    orderEdge_[edgeNum] = order;
-    maxOrder_ = std::max( maxOrder_, order);
-    isIsotropic_ = false;
-    updateUnknowns_ = true;
-  }
-  
-  void FeH1Hi::SetFaceOrder( UInt faceNum,
-                             const boost::array<UInt,2>& order ) {
-    assert( faceNum <= shape_.numFaces);
-
-    if( orderFace_[faceNum] == order ) return;
-    
-    orderFace_[faceNum] = order;
-    maxOrder_ = std::max( maxOrder_, 
-                          std::max( order[0], order[1]) );
-    isIsotropic_ = false;
-    updateUnknowns_ = true;
-  }
-
-  void FeH1Hi::SetInteriorOrder( const boost::array<UInt,3>& order ) {
-
-    if( orderInner_ == order ) return;
-    orderInner_ = order;
-    maxOrder_ = std::max( maxOrder_, 
-                          *std::max_element( order.begin(), order.end() ) );
-    isIsotropic_ = false;
-    updateUnknowns_ = true;
-  }
+ 
     
   void FeH1Hi::GetNodalPermutation( StdVector<UInt>& fncPermutation,
                                     const Elem* ptElem,
@@ -356,38 +179,38 @@ DEFINE_LOG(feH1Hi, "feH1Hi")
     return maxOrder_;
   }
   
-  void FeH1Hi::EvalPolynom( Double& value, Double& deriv,
-                            const UInt order, const Double* coeff,
-                            const Double xVal ) {
-
-    // Consider the following expression
-    // f(xVal) = a0 * (a1*x^order + a2*x^(order-1) + .. + a(order+1))
-    // The coefficients a0..a(order+1) are stored in the coeff-array
-
-    value = coeff[1];
-    deriv = 0.0;
-    for( UInt i = 2; i < order+2; i++ ) {
-      deriv = deriv * xVal + value;
-      value = value * xVal + coeff[i];
-    }
-    // Multiply by pre-factor
-    deriv *= coeff[0];
-    value *= coeff[0];
-  }
-
-
-  // Define coefficients for legendre ansatz functions up to order 8
-  Double  FeH1Hi::lCoeff_[9][10] = {
-                                    {0.5                  ,   -1, 1,    0, 0,   0, 0,    0, 0, 0 },
-                                    {0.5                  ,    1, 1,    0, 0,   0, 0,    0, 0, 0 },
-                                    {0.25*sqrt(6.0)       ,    1, 0,   -1, 0,   0, 0,    0, 0, 0 },
-                                    {0.25*sqrt(10.0)      ,    1, 0,   -1, 0,   0, 0,    0, 0, 0 },
-                                    {1.0/16.0*sqrt(14.0)  ,    5, 0,   -6, 0,   1, 0,    0, 0, 0 },
-                                    {3.0/16.0*sqrt(2.0)   ,    7, 0,  -10, 0,   3, 0,    0, 0, 0 },
-                                    {1.0/32.0*sqrt(22.0)  ,   21, 0,  -35, 0,  15, 0,   -1, 0, 0 },
-                                    {1.0/32.0*sqrt(26.0)  ,   33, 0,  -63, 0,  35, 0,   -5, 0, 0 },
-                                    {1.0/256.0*sqrt(30.0) ,  429, 0, -924, 0, 630, 0, -140, 0, 5 }
-  };
+//  void FeH1Hi::EvalPolynom( Double& value, Double& deriv,
+//                            const UInt order, const Double* coeff,
+//                            const Double xVal ) {
+//
+//    // Consider the following expression
+//    // f(xVal) = a0 * (a1*x^order + a2*x^(order-1) + .. + a(order+1))
+//    // The coefficients a0..a(order+1) are stored in the coeff-array
+//
+//    value = coeff[1];
+//    deriv = 0.0;
+//    for( UInt i = 2; i < order+2; i++ ) {
+//      deriv = deriv * xVal + value;
+//      value = value * xVal + coeff[i];
+//    }
+//    // Multiply by pre-factor
+//    deriv *= coeff[0];
+//    value *= coeff[0];
+//  }
+//
+//
+//  // Define coefficients for legendre ansatz functions up to order 8
+//  Double  FeH1Hi::lCoeff_[9][10] = {
+//                                    {0.5                  ,   -1, 1,    0, 0,   0, 0,    0, 0, 0 },
+//                                    {0.5                  ,    1, 1,    0, 0,   0, 0,    0, 0, 0 },
+//                                    {0.25*sqrt(6.0)       ,    1, 0,   -1, 0,   0, 0,    0, 0, 0 },
+//                                    {0.25*sqrt(10.0)      ,    1, 0,   -1, 0,   0, 0,    0, 0, 0 },
+//                                    {1.0/16.0*sqrt(14.0)  ,    5, 0,   -6, 0,   1, 0,    0, 0, 0 },
+//                                    {3.0/16.0*sqrt(2.0)   ,    7, 0,  -10, 0,   3, 0,    0, 0, 0 },
+//                                    {1.0/32.0*sqrt(22.0)  ,   21, 0,  -35, 0,  15, 0,   -1, 0, 0 },
+//                                    {1.0/32.0*sqrt(26.0)  ,   33, 0,  -63, 0,  35, 0,   -5, 0, 0 },
+//                                    {1.0/256.0*sqrt(30.0) ,  429, 0, -924, 0, 630, 0, -140, 0, 5 }
+//  };
 
   // ========================================================================
   //  FeH1Hi explicit element definition 
@@ -397,9 +220,9 @@ DEFINE_LOG(feH1Hi, "feH1Hi")
   //  LINE ELEMENT 
   // =======================
 
-  FeH1HiLine::FeH1HiLine() {
-    feType_ = Elem::ET_LINE2;
-    shape_ = Elem::shapes[feType_];
+  FeH1HiLine::FeH1HiLine() 
+  : FeH1Hi(Elem::ET_LINE2) 
+  {
   }
 
   FeH1HiLine::~FeH1HiLine() {
@@ -464,9 +287,7 @@ DEFINE_LOG(feH1Hi, "feH1Hi")
   //  TRIANGULAR ELEMENT 
   // ====================
 
-  FeH1HiTria::FeH1HiTria() {
-    feType_ = Elem::ET_TRIA3;
-    shape_ = Elem::shapes[feType_];
+  FeH1HiTria::FeH1HiTria() : FeH1Hi(Elem::ET_TRIA3) {
   }
 
   FeH1HiTria::~FeH1HiTria() {
@@ -634,9 +455,7 @@ DEFINE_LOG(feH1Hi, "feH1Hi")
   //  QUADRILATERAL ELEMENT 
   // =======================
    
-  FeH1HiQuad::FeH1HiQuad() {
-    feType_ = Elem::ET_QUAD4;
-    shape_ = Elem::shapes[feType_];
+  FeH1HiQuad::FeH1HiQuad() : FeH1Hi(Elem::ET_QUAD4) {
   }
     
   FeH1HiQuad::~FeH1HiQuad() {
@@ -769,9 +588,7 @@ DEFINE_LOG(feH1Hi, "feH1Hi")
   //  HEXAHEDRAL ELEMENT  
   // ====================
   
-  FeH1HiHex::FeH1HiHex() {
-    feType_ = Elem::ET_HEXA8;
-    shape_ = Elem::shapes[feType_];
+  FeH1HiHex::FeH1HiHex() : FeH1Hi(Elem::ET_HEXA8) {
   }
     
   FeH1HiHex::~FeH1HiHex() {
@@ -962,9 +779,7 @@ DEFINE_LOG(feH1Hi, "feH1Hi")
   //  WEDGE ELEMENT  
   // ===============
   
-  FeH1HiWedge::FeH1HiWedge() {
-    feType_ = Elem::ET_WEDGE6;
-    shape_ = Elem::shapes[feType_];
+  FeH1HiWedge::FeH1HiWedge() : FeH1Hi(Elem::ET_WEDGE6) {
   }
     
   FeH1HiWedge::~FeH1HiWedge() {

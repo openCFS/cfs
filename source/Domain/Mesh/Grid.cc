@@ -201,7 +201,7 @@ namespace CoupledField
 
     // 1) first, determine element candidates for each point, determined by
     //    intersection of bounding-boxes. The algorithm used depends on the
-    //    library used (CGAL, 
+    //    library used (CGAL, own one, libfbi)
     const UInt numPts = globCoords.GetSize();
     StdVector<PointElemMatch> matches( numPts );
     for( UInt i = 0; i < numPts; ++i ) {
@@ -2243,7 +2243,7 @@ namespace CoupledField
     elems.Resize(numMatches);
     lps.Resize(numMatches);
     elems.Init( NULL );
-    
+
     // loop over matches, perform global->local mapping of coordinates
     // and check, if coordinate is really contained in this element
 #pragma omp parallel for
@@ -2253,21 +2253,20 @@ namespace CoupledField
       const std::set<const Elem*> & mElems = matches[iM].matches;
       StdVector<const Elem*> candidateElem;
       StdVector<LocPoint>  candidateLp;
+
       
       // loop over elements
       for( it = mElems.begin(); it != mElems.end(); ++it ) {
-        
+
         // check, if global point can be mapped to the element
         shared_ptr<ElemShapeMap> esm = GetElemShapeMap(*it);
         esm->Global2Local(locCoord, matches[iM].globCoord );
         if( esm->CoordIsInsideElem(locCoord, 1e-2) ) {
-          {
-            candidateElem.Push_back( *it );
-            candidateLp.Push_back(locCoord );
-          }
+          candidateElem.Push_back( *it );
+          candidateLp.Push_back(locCoord );
         }
       }
-    
+
       // Check, how many elements have been found
       if( candidateElem.GetSize() == 0 ) {
         WARN( "No element found for location " <<  matches[iM].globCoord.ToString() );
@@ -2399,7 +2398,8 @@ namespace CoupledField
     // now set up box list containing the point coordinates
     UInt numPoints = matches.GetSize();
     std::vector<HandleBox> pointBoxes (numPoints);
-    // create also temporay index array
+    
+    // create also temporagy index array (will be automatically deleted)
     boost::scoped_array<UInt> nodeIndices(new UInt[numPoints]);
     
     for( UInt i = 0; i < numPoints; ++i ) {
@@ -2413,9 +2413,8 @@ namespace CoupledField
                               pointBoxes.begin(), pointBoxes.end(),
                               elemPointIdReporter( std::back_inserter( result )));
     
-    
-
-    // now loop over all results and store for each point all 
+    // now loop over all results and store for each point all candidate elements
+    // if they are contained in the desired regions
     std::vector< std::pair<UInt, UInt> >::iterator it = result.begin();
     for(; it != result.end(); ++it ) {
       UInt pointIndex = it->first;
@@ -2797,16 +2796,15 @@ namespace CoupledField
                                        const std::set<RegionIdType> srcRegions ) {
 
     Double globToler = 1e-3;
-
+    
+    // obtain all volume elements from grid
+    StdVector<Elem*> elems;
+    GetVolElems(elems, ALL_REGIONS);
+    
     // check, if element boxes are already initialized
     if( elemBoxes_.GetSize() == 0 ) {
-
-      StdVector<Elem*> elems;
       Vector<Double> p(3);
-
-      GetVolElems(elems, ALL_REGIONS);
       UInt size = elems.GetSize();
-
       elemBoxes_.Resize( size );
 
       // loop over all elements
@@ -2867,16 +2865,15 @@ namespace CoupledField
     UInt numPts = matches.GetSize();
     result.reserve(numPts * 2); // assume 2 matches on average
     for( UInt iEl = 0; iEl < numElems; ++iEl ) {
-
       const boost::array<Double,6> & eb = elemBoxes_[iEl];
 
       // Loop over all matches
       for( UInt iPt = 0; iPt < numPts; ++iPt ) {
         const Vector<Double> & point = matches[iPt].globCoord;
-            if( point[0] > eb[0] && point[0] < eb[3]) {
+        if( point[0] > eb[0] && point[0] < eb[3]) {
           if( point[1] > eb[1] && point[1] < eb[4]) {
             if( GetDim() == 3 ) {
-              if( point[2] > eb[2] && point[0] < eb[5]) {
+              if( point[2] > eb[2] && point[2] < eb[5]) {
                 result.push_back(std::pair<UInt,UInt>(iPt, iEl));
               }
             } else {
@@ -2887,11 +2884,13 @@ namespace CoupledField
       } // loop over points
     } // loop over elements
 
+    // now loop over all results and store for each point all candidate elements
+    // if they are contained in the desired regions
     std::vector< std::pair<UInt, UInt> >::iterator it = result.begin();
     for(; it != result.end(); ++it ) {
       UInt pointIndex = it->first;
-      UInt elemNum = it->second+1;
-      const Elem* ptEl = GetElem(elemNum);
+      UInt elIndex = it->second;
+      const Elem* ptEl = GetElem(elems[elIndex]->elemNum);
       if( srcRegions.size() ) { 
         if( srcRegions.find(ptEl->regionId) != srcRegions.end() ) {
           matches[pointIndex].matches.insert(ptEl);
@@ -2903,10 +2902,4 @@ namespace CoupledField
   }
 
 #endif // USE_CGAL
-  
-  
-  
-  
-  
-
 } // end of namespace

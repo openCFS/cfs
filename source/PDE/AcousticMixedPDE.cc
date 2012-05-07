@@ -35,7 +35,6 @@
 
 #include "FeBasis/FeFunctions.hh"
 
-#include "FeBasis/H1/FeSpaceH1.hh"
 #include "FeBasis/H1/FeSpaceH1Nodal.hh"
 #include "FeBasis/L2/FeSpaceL2.hh"
 #include "FeBasis/L2/FeSpaceL2Nodal.hh"

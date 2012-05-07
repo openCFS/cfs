@@ -19,7 +19,6 @@
 
 #include "FeBasis/FeFunctions.hh"
 #include "Utils/StdVector.hh"
-#include "FeBasis/H1/FeSpaceH1.hh"
 #include "FeBasis/H1/FeSpaceH1Nodal.hh"
 
 #include "Domain/Results/ResultFunctor.hh"

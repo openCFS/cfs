@@ -199,7 +199,11 @@ class Xpr_Diff_SVGradU<D, FeHCurlHi::CURL> {
 
 
 
-FeHCurlHi::FeHCurlHi() {
+FeHCurlHi::FeHCurlHi(Elem::FEType feType ) 
+ :  FeHCurl(), FeHi(feType ){
+  feType_ = feType;
+  shape_ = Elem::shapes[feType];
+  updateUnknowns_ = true;
   onlyLowestOrder_ = false;
   isoOrder_ = 0;
   
@@ -212,42 +216,29 @@ FeHCurlHi::~FeHCurlHi() {
 
 }
 
+UInt FeHCurlHi::GetNumFncs( ) {
+  if(updateUnknowns_) this->CalcNumUnknowns();
+  return actNumFncs_;
+}
+
 void FeHCurlHi::GetNumFncs( StdVector<UInt>& numFcns,
                               EntityType entityType,
                               UInt dof) {
+  if(updateUnknowns_) this->CalcNumUnknowns();
   numFcns = entityFncs_[entityType]; 
 }
   
 void FeHCurlHi::UseGradient(EntityType entity, bool usage) {
   useGrad_[entity] = usage;
-  CalcNumUnknowns();
-}
-
-void FeHCurlHi::SetIsoOrder(UInt order) {
-  orderEdge_.Resize(shape_.numEdges);
-  orderFace_.Resize(shape_.numFaces);
-
-  // set order for edges
-  orderEdge_.Init(order);
-
-  // set order for faces
-  boost::array<UInt,2> faceOrder = {{order, order}};
-  orderFace_.Init(faceOrder);
-
-  // set order for inner
-  boost::array<UInt, 3> innerOrder = {{order, order, order}}; 
-  orderInner_ = innerOrder;
-
-  CalcNumUnknowns();
-  isIsotropic_ = true;
-  isoOrder_ = order;
+  updateUnknowns_ = true;
 }
 
 void FeHCurlHi::GetNodalPermutation( StdVector<UInt>& fncPermutation,
                                   const Elem* ptElem,
                                   EntityType fctEntityType,
                                   UInt entNumber){
- 
+  if(updateUnknowns_) this->CalcNumUnknowns();
+
   if( fctEntityType == VERTEX ) {
     UInt numFncs = entityFncs_[VERTEX][entNumber];
     fncPermutation.Resize( numFncs );
@@ -285,12 +276,7 @@ UInt FeHCurlHi::GetIsoOrder() const {
 }
 
 UInt FeHCurlHi::GetMaxOrder() const {
-  if( isIsotropic_) {
-    return isoOrder_;
-  } else {
-    EXCEPTION("Implement me");
-    return 0;
-  }
+  return maxOrder_;
 }
 
 
@@ -302,9 +288,7 @@ UInt FeHCurlHi::GetMaxOrder() const {
 //  QUADRILATERAL ELEMENT 
 // =======================
 
-FeHCurlHiQuad::FeHCurlHiQuad() {
-  feType_ = Elem::ET_QUAD4;
-  shape_ = Elem::shapes[feType_];
+FeHCurlHiQuad::FeHCurlHiQuad() : FeHCurlHi( Elem::ET_QUAD4 ) {
 }
 
 
@@ -376,9 +360,7 @@ void FeHCurlHiQuad::CalcLocCurlShFnc( Matrix<Double>& curl, const LocPointMapped
 // =======================
 //  HEXAHEDRAL ELEMENT 
 // =======================
-FeHCurlHiHex::FeHCurlHiHex() {
-  feType_ = Elem::ET_HEXA8;
-  shape_ = Elem::shapes[feType_];
+FeHCurlHiHex::FeHCurlHiHex() : FeHCurlHi( Elem::ET_HEXA8) {
 }
 
 
@@ -458,7 +440,7 @@ void FeHCurlHiHex::CalcNumUnknowns() {
 
 void FeHCurlHiHex::CalcLocShFnc( Matrix<Double>& shape, const LocPointMapped& lpm,
                                  const Elem* elem, UInt comp  ) {
-  
+  if (updateUnknowns_) CalcNumUnknowns();
   AutoDiff<Double, 3> x (lpm.lp.coord[0],0);
   AutoDiff<Double, 3> y (lpm.lp.coord[1],1);
   AutoDiff<Double, 3> z (lpm.lp.coord[2],2);
@@ -707,7 +689,7 @@ pos++;
 template<FeHCurlHiHex::DiffType DIFF_TYPE>
 void FeHCurlHiHex::CalcLocShFnc2( Matrix<Double>& shape, const LocPointMapped& lpm,
                                   const Elem* elem, UInt comp  ) {
-    
+  if (updateUnknowns_) CalcNumUnknowns();
     AutoDiff<Double, 3> x (lpm.lp.coord[0],0);
     AutoDiff<Double, 3> y (lpm.lp.coord[1],1);
     AutoDiff<Double, 3> z (lpm.lp.coord[2],2);
@@ -833,60 +815,64 @@ void FeHCurlHiHex::CalcLocShFnc2( Matrix<Double>& shape, const LocPointMapped& l
     // 3) Interior shape functions
     // -------------------------
 #ifdef USE_INNER
-    IntLegendreP2(xiVals,   orderInner_[0]+1, x );
-    IntLegendreP2(etaVals,  orderInner_[1]+1, y );
-    IntLegendreP2(zetaVals, orderInner_[2]+1, z );
+    if( orderInner_[0] > 0 && 
+        orderInner_[1] > 0 &&
+        orderInner_[2] > 0 ) {
 
-    // === a) type 1: gradient fields ===
-    if( useGrad_[INTERIOR] ) {
+      IntLegendreP2(xiVals,   orderInner_[0]+1, x );
+      IntLegendreP2(etaVals,  orderInner_[1]+1, y );
+      IntLegendreP2(zetaVals, orderInner_[2]+1, z );
+
+      // === a) type 1: gradient fields ===
+      if( useGrad_[INTERIOR] ) {
+        for( UInt i = 0; i < orderInner_[0]; ++i ) {
+          for( UInt j = 0; j < orderInner_[1]; ++j ) {
+            for( UInt k = 0; k < orderInner_[2]; ++k ) {
+              Xpr_GradU<3, DIFF_TYPE> xpr( xiVals[i] * etaVals[j] * zetaVals[k] );
+              COPYSHFNC
+            }
+          }
+        }
+      }
+
+      // === b) type 2 volume functions ===
       for( UInt i = 0; i < orderInner_[0]; ++i ) {
         for( UInt j = 0; j < orderInner_[1]; ++j ) {
           for( UInt k = 0; k < orderInner_[2]; ++k ) {
-            Xpr_GradU<3, DIFF_TYPE> xpr( xiVals[i] * etaVals[j] * zetaVals[k] );
-            COPYSHFNC
+            Xpr_Diff_VGradU<3, DIFF_TYPE> xpr1( xiVals[i] * etaVals[j], zetaVals[k] );
+            Xpr_Diff_VGradU<3, DIFF_TYPE> xpr2( xiVals[i],  etaVals[j]* zetaVals[k] );
+            for( UInt n = 0; n < 3; ++n ) {
+              shape[n][pos]   = xpr1[n];
+              shape[n][pos+1] = xpr2[n];
+            }
+            pos+=2;
           }
         }
       }
-    }
-    
-    // === b) type 2 volume functions ===
-    for( UInt i = 0; i < orderInner_[0]; ++i ) {
+
+      // === c) type 3 volume functions ===
+      for( UInt i = 0; i < orderInner_[0]; ++i ) {
+        for( UInt j = 0; j < orderInner_[1]; ++j ) {
+          Xpr_Diff_SVGradU<3, DIFF_TYPE> xpr(z, AutoDiff<Double,3>(1)-z, 
+                                             xiVals[i] * etaVals[j] );
+          COPYSHFNC
+        }
+      }
+      for( UInt i = 0; i < orderInner_[0]; ++i ) {
+        for( UInt k = 0; k < orderInner_[2]; ++k ) {
+          Xpr_Diff_SVGradU<3, DIFF_TYPE> xpr(y, AutoDiff<Double,3>(1)-y, 
+                                             xiVals[i] * zetaVals[k] );
+          COPYSHFNC
+        }
+      }
       for( UInt j = 0; j < orderInner_[1]; ++j ) {
         for( UInt k = 0; k < orderInner_[2]; ++k ) {
-          Xpr_Diff_VGradU<3, DIFF_TYPE> xpr1( xiVals[i] * etaVals[j], zetaVals[k] );
-          Xpr_Diff_VGradU<3, DIFF_TYPE> xpr2( xiVals[i],  etaVals[j]* zetaVals[k] );
-          for( UInt n = 0; n < 3; ++n ) {
-            shape[n][pos]   = xpr1[n];
-            shape[n][pos+1] = xpr2[n];
-          }
-          pos+=2;
+          Xpr_Diff_SVGradU<3, DIFF_TYPE> xpr(x, AutoDiff<Double,3>(1)-x, 
+                                             etaVals[j] * zetaVals[k] );
+          COPYSHFNC
         }
       }
-    }
-
-    // === c) type 3 volume functions ===
-    for( UInt i = 0; i < orderInner_[0]; ++i ) {
-      for( UInt j = 0; j < orderInner_[1]; ++j ) {
-        Xpr_Diff_SVGradU<3, DIFF_TYPE> xpr(z, AutoDiff<Double,3>(1)-z, 
-                                           xiVals[i] * etaVals[j] );
-        COPYSHFNC
-      }
-    }
-    for( UInt i = 0; i < orderInner_[0]; ++i ) {
-      for( UInt k = 0; k < orderInner_[2]; ++k ) {
-        Xpr_Diff_SVGradU<3, DIFF_TYPE> xpr(y, AutoDiff<Double,3>(1)-y, 
-                                           xiVals[i] * zetaVals[k] );
-        COPYSHFNC
-      }
-    }
-    for( UInt j = 0; j < orderInner_[1]; ++j ) {
-      for( UInt k = 0; k < orderInner_[2]; ++k ) {
-        Xpr_Diff_SVGradU<3, DIFF_TYPE> xpr(x, AutoDiff<Double,3>(1)-x, 
-                                           etaVals[j] * zetaVals[k] );
-        COPYSHFNC
-      }
-    }
-
+    } // if order > 1 
 #endif
 
 

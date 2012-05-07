@@ -18,7 +18,7 @@
 namespace CoupledField{
 
   FeSpaceL2::FeSpaceL2(PtrParamNode aNode, PtrParamNode infoNode, Grid* ptGrid)
-   : FeSpaceH1(aNode, infoNode, ptGrid ) {
+   : FeSpace(aNode, infoNode, ptGrid ) {
     type_ = L2;
     isContinuous_ = false;
   }
@@ -157,29 +157,115 @@ namespace CoupledField{
   }
 
   void FeSpaceL2::GetElemEqns(StdVector<Integer>& eqns,const Elem* elem){
-    FeSpaceH1::GetElemEqns(eqns,elem);
+    FeSpace::GetElemEqns(eqns,elem);
   }
 
   //! Get Equation numbers for a specific element
   void FeSpaceL2::GetElemEqns(StdVector<Integer>& eqns,
                               const Elem* elem,
                               UInt dof){
-    FeSpaceH1::GetElemEqns(eqns,elem,dof);
+    FeSpace::GetElemEqns(eqns,elem,dof);
   }
 
   void FeSpaceL2::GetOlasMappings( StdVector<AlgebraicSys::SBMBlockDef>& sbmBlocks,
                                    std::map<UInt,StdVector<std::set<Integer> > >&
                                    minorBlocks ) {
-    FeSpaceH1::GetOlasMappings(sbmBlocks,minorBlocks);
+    FeSpace::GetOlasMappings(sbmBlocks,minorBlocks);
   }
   //! Map Nodal BC Equation NUmbers
   void FeSpaceL2::MapNodalBCs(){
-    FeSpaceH1::MapNodalBCs();
+    // Note: this a complete copy of thee FeSpaceH1Nodal::MapNodalBCs()
+
+    StdVector<UInt> actNodes;
+
+    // check if feFunction was defined
+    if( !feFunction_ ) {
+      EXCEPTION("No FeFunction set at FeSpace");
+    }
+
+    // check if feFunction has a result assigned
+    if( !feFunction_->GetResultInfo()) {
+      EXCEPTION("No resultinfo associated with feFunction");
+    }
+
+    //Get Grip of HdBC List for the fefunction
+    const HdBcList hdbcs = feFunction_->GetHomDirichletBCs();
+    HdBcList::const_iterator actHBC;
+    UInt dofsPerUnknown = GetNumDofs();
+
+    for(actHBC = hdbcs.Begin(); actHBC != hdbcs.End(); actHBC++) {
+      // Get EntityIterator
+      GetNodesOfEntities(actNodes,(*actHBC)->entities);
+      for(UInt iNode = 0 ; iNode < actNodes.GetSize();iNode++){
+        UInt vNode = actNodes[iNode];
+
+        if( nodeMap_.BcKeys.find(vNode) == nodeMap_.BcKeys.end()){
+          //nodeMap_.BcKeys[node] = StdVector<BaseFeFunction::BcType>(dofsPerUnknown,BaseFeFunction::NOBC);
+          nodeMap_.BcKeys[vNode] = StdVector<BcType>(dofsPerUnknown);
+          nodeMap_.BcKeys[vNode].Init(NOBC);
+        }
+        nodeMap_.BcKeys[vNode][(*actHBC)->dof] = HDBC;
+        bcCounter_[HDBC]++;
+      }
+    }
+
+    //Get Grip of IdBC List for the fefunction
+    const IdBcList idbcs = feFunction_->GetInHomDirichletBCs();
+    IdBcList::const_iterator actIBC;
+
+    for(actIBC = idbcs.Begin(); actIBC != idbcs.End(); actIBC++) {
+      // Get all (Virtual) Nodes of the list
+      GetNodesOfEntities(actNodes,(*actIBC)->entities);
+      for(UInt iNode = 0 ; iNode < actNodes.GetSize();iNode++){
+        UInt vNode = actNodes[iNode];
+        if( nodeMap_.BcKeys.find(vNode) == nodeMap_.BcKeys.end()){
+          nodeMap_.BcKeys[vNode] = StdVector<BcType>(dofsPerUnknown);
+          nodeMap_.BcKeys[vNode].Init(NOBC);
+        }
+        // check first, if this node was already processed
+        if( nodeMap_.BcKeys[vNode][(*actIBC)->dof] != IDBC) {
+          nodeMap_.BcKeys[vNode][(*actIBC)->dof] = IDBC;
+          bcCounter_[IDBC]++;
+        }
+      }
+    }
+
+    //Get Grip of constraint List for the fefunction
+    const ConstraintList constraints = feFunction_->GetConstraints();
+    ConstraintList::const_iterator actConstr;
+    for(actConstr = constraints.Begin(); actConstr != constraints.End(); actConstr++) {
+      StdVector<UInt> slaveNodes;
+      GetNodesOfEntities(slaveNodes,(*actConstr)->slaveEntities);
+      UInt masterDof = (*actConstr)->masterDof;
+      UInt slaveDof = (*actConstr)->slaveDof;
+      UInt mNode = slaveNodes[0];
+
+      for ( UInt iNode = 1; iNode < slaveNodes.GetSize(); iNode++ ) {
+        if( nodeMap_.BcKeys.find(slaveNodes[iNode]) == nodeMap_.BcKeys.end()){
+          nodeMap_.BcKeys[slaveNodes[iNode]] = StdVector<BcType>(dofsPerUnknown);
+          nodeMap_.BcKeys[slaveNodes[iNode]].Init(NOBC);
+        }
+        nodeMap_.BcKeys[slaveNodes[iNode]][slaveDof] = CS;
+        nodeMap_.constraintNodes[std::pair<Integer,Integer>(slaveNodes[iNode],slaveDof)] = 
+            std::pair<Integer,Integer>(mNode,masterDof);
+        bcCounter_[CS]++;
+      }
+    }
+
+    //DEBUG output reaenable along with logging
+    //std::map< Integer,StdVector<FeSpace::BcType> >::iterator iter = nodeMap_.BcKeys.begin();
+    //for(iter; iter!= nodeMap_.BcKeys.end();iter++){
+    //  std::cout << "The node #" << iter->first << " has the following flags: " << std::endl;
+    //  for(UInt i = 0; i < iter->second.GetSize() ; i++){
+    //    std::cout <<  iter->second[i] << std::endl;
+    //  }
+    //  std::cout << std::endl;
+    //}
   }
 
   //! Map Nodal Equation Numbers
   void FeSpaceL2::MapNodalEqns(UInt phase){
-    FeSpaceH1::MapNodalEqns(phase);
+    FeSpace::MapNodalEqns(phase);
   }
 
   void FeSpaceL2::PrintEqnMap(){
