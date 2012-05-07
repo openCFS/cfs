@@ -425,7 +425,6 @@ namespace CoupledField {
       itMat->second->InitApproxCurves();
     }
 
-
     // Finish equation mapping
     LOG_TRACE(pde) << pdename_ << ": Mapping Equations";
     eqnMap_->SetHomoDirichletBCs ( hdBcs_ );

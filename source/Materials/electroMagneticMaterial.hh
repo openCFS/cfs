@@ -81,6 +81,20 @@ class ElemList;
       return nlinFncBH_;
     }
 
+    virtual StdVector<ApproxData*>& GetNonlinFncs( MaterialType matType ) {     
+      if ( matType == MAG_PERMEABILITYCURVES ) {
+        return nlinFncBHcurves_;
+      }
+      else {
+        EXCEPTION( "electroMagneticMaterial::GetNonlinFncs currently just for MAG_PERMEABILITYCURVES");
+      }
+    };
+
+    // get ansiotropic angles
+    virtual StdVector<Double>& GetAnisotropicAngles() {     
+      return anisotropicAngles_;
+    };
+
     //============================ HYSTERESIS ===================================
 
     //Initialize hysteresis
@@ -130,8 +144,12 @@ class ElemList;
     
     //! Calculate full tensor from scalar values
     void ComputeFullMuTensor();
-    
+
+    //! isotropic BH curve    
     ApproxData* nlinFncBH_;
+
+    //! anisotropic BH curves
+    StdVector<ApproxData*> nlinFncBHcurves_;
 
     UInt dim_;
 

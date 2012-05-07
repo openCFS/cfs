@@ -188,9 +188,22 @@ class ApproxData;
       nonLinMatInfo_[matType] = data;
     }
 
-    //! set info for a series of nonliear approx. / interp. of a material
+    //! set info for a series of nonlinear approx. / interp. of a material
     virtual void SetNonLinMagStrictVec(MaterialType matType, std::vector<nlMatDescriptor>& data ) {
       nonLinMagStrictInfoVec_ = data; 
+    }
+
+    //! set info for a series of nonlinear approx. / interp. of a material (magnetic BH curves)
+    virtual void SetNonLinMagBHcurves(MaterialType matType, std::vector<nlMatDescriptor>& data ) {
+      nonLinMagBHcurvesInfo_ = data; 
+    }
+
+    //!
+    virtual bool IsNonLinMagBHcurves() {
+      if ( nonLinMagBHcurvesInfo_.size() > 0 )
+        return true;
+      else
+        return false;
     }
 
     //! get a string material parameter
@@ -414,6 +427,10 @@ class ApproxData;
     //! contains all info to a set of nonlinear material parameter
     //! e.g., approximation Type, accuracy, etc.
     std::vector<nlMatDescriptor> nonLinMagStrictInfoVec_;
+
+    //! contains all info to a set of nonlinear BH material curves
+    //! e.g., approximation Type, accuracy, etc.
+    std::vector<nlMatDescriptor> nonLinMagBHcurvesInfo_;
 
     //! vector containing the anisotropic angles
     StdVector<Double> anisotropicAngles_;

@@ -84,6 +84,15 @@ namespace CoupledField
     xEndPrime      = (xEnd_ - x_[numMeas_-2]) / (yEnd_ - y_[numMeas_-2]);
     extrapolAlpha_ = (xEnd_ - xEndPrime * yEnd_) / (xEnd_*yEnd_ - nuMax_*yEnd_*yEnd_);
     extrapolBeta_  = ( (xEnd_/yEnd_) - nuMax_ ) * std::exp(extrapolAlpha_*yEnd_);   
+    //    std::cout << "alpha = " << extrapolAlpha_ << "   beta = " << extrapolBeta_ << std::endl << std::endl;
+
+    std::ofstream outData;
+    std::string name = nlFileName_ + "ApproxExtrapolate";
+    outData.open(name.c_str());
+
+    outData << "alpha: " << extrapolAlpha_ << " ;  beta: " << extrapolBeta_ << std::endl;
+    outData.close();
+
   }
 
 
@@ -718,22 +727,12 @@ namespace CoupledField
   {
 
     Integer i,j;
-    Double t,z,delta,val;
+    Double t,z,delta,val,valDeriv;
     Double f0,f1,f2,f3,p0,p1,p2,p3;
 
-    std::ofstream out_orig;
     std::ofstream out_func;
-    std::ofstream out_prime;
-
-    out_orig.open("orig.dat");
-    out_func.open("func.dat");
-    out_prime.open("prime.dat");
-
-    // output of the data
-    for (i=0; i<node_+2; i++) {
-      out_orig << x[i] << " " << y[i] << std::endl;
-    }
-    
+    std::string name = nlFileName_ + "Approx";
+    out_func.open(name.c_str());
 
     // output function 
     j = 0;
@@ -756,18 +755,16 @@ namespace CoupledField
         p3 = HermiteFunc(z,3)*h_[i];
           
         val= f0*p0+f1*p1+f2*p2+f3*p3;
-        
-        out_func << t << " " << val << std::endl;
-        
+               
         // prime value
         p0 = HermitePrime(z,0)/h_[i];
         p1 = HermitePrime(z,1)/h_[i];
         p2 = HermitePrime(z,2);
         p3 = HermitePrime(z,3);
         
-        val= f0*p0+f1*p1+f2*p2+f3*p3;
+        valDeriv = f0*p0+f1*p1+f2*p2+f3*p3;
         
-        out_prime << t << " " << val << std::endl;
+        out_func << t << "  " << val <<  "  " << valDeriv << std::endl;
         
         t += delta;
       }
@@ -787,58 +784,41 @@ namespace CoupledField
     
     val= yEnd_;
     
-    out_func << t << " " << val << std::endl;
-    
     p0 = HermitePrime(z,0)/h_[node_];
     p1 = HermitePrime(z,1)/h_[node_];
     p2 = HermitePrime(z,2);
     p3 = HermitePrime(z,3);
     
-    val = f0*p0+f1*p1+f2*p2+f3*p3;
-    out_prime << t << " " << val << std::endl;
+    valDeriv = f0*p0+f1*p1+f2*p2+f3*p3;
+    out_func << t << " " << val << "  "  << valDeriv << std::endl;
     
-    out_orig.close();
     out_func.close();
-    out_prime.close();
   }
 
 
   void SmoothSpline::MakeOutputInv( Vector<Double>& x, Vector<Double>& y)
   {
 
-    Integer i;
     Double t,delta;
     
     delta = ( yEnd_ - y_[0] ) / 500.;
     t     = y_[0];
     
-    std::ofstream out_orig;
     std::ofstream out_func;
-    std::ofstream out_prime;
-
-    out_orig.open("originv.dat");
-    out_func.open("funcinv.dat");
-    out_prime.open("primeinv.dat");
+    std::string name = nlFileName_ + "ApproxInv";
+    out_func.open(name.c_str());
 
     // output of the data
-
-    for (i=0; i<node_+2; i++) {
-      out_orig << y_[i] << " " << x_[i] << std::endl;
-    }
-        
     Double f,p;
     while (t <= yEnd_ + delta) {
       EvaluateInv(t,f,p);
       
-      out_func << t << " " << f << std::endl;
-      out_prime << t << " " << p << std::endl;
+      out_func << t << "  " << f << "  " << p << std::endl;
       
       t += delta;
     }
     
-    out_orig.close();
     out_func.close();
-    out_prime.close();
   }
 
 
@@ -847,10 +827,11 @@ namespace CoupledField
   {
 
     std::ofstream out_nu;
-    out_nu.open("nu_B.dat");
+    std::string name = nlFileName_ + "ApproxNu";
+    out_nu.open(name.c_str());
 
     UInt numPoints = 500;
-    Double maxB = yEnd_ * 1.5;
+    Double maxB = yEnd_ * 2;
     Double dB = maxB / ( (Double)numPoints );
 
     Double actB = 0;

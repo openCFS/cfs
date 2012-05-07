@@ -181,6 +181,9 @@ namespace CoupledField {
       ( "quiet,q",
         "more compressed console output (env CFS_QUIET)")
 
+      ( "approx,a",
+        "compute approximation for nonlinear material data")
+
       ( "noColor",
         "turn off colored output")
       ;
@@ -465,6 +468,11 @@ namespace CoupledField {
   bool ProgramOptions::IsQuiet() const
   {
     return varMap_.count("quiet") > 0;
+  }
+
+  bool ProgramOptions::DoApproxNLmatData() const
+  {
+    return varMap_.count("approx") > 0;
   }
   
   void ProgramOptions::PrintHelp( std::ostream& out )

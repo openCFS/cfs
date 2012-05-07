@@ -69,6 +69,7 @@ class Hysteresis;
     pdeId2_   = NO_PDE_ID;
 
     startStep_ = 1;
+    etaMinCount_ = 0;
 
     // In the end, read nonlinear data from xml-file
     if( nonLin_ ) {
@@ -189,11 +190,21 @@ class Hysteresis;
     // set the boundary conditions
     PDE_.SetBCs();
 
-    //perform the load-steps
+//     //perform the load-steps
+//     const UInt nrLoads = 5;
+//     const Double loadFactors[nrLoads] = {0.25, 0.5, 0.75, 0.9, 1.0};
+
+//     // currently just for testing!!
+//     // loop over load factor
+//     for ( UInt iload=0; iload<=nrLoads; iload++ ) {
+//       info->Get("PDE")->Get(pdename_)->Get("load_factor")->SetValue(loadFactors[iload]);
+
+//       // setup right hand side
+//       Double RhsLinL2Norm = SetLinRHS(loadFactors[iload]);
+
+    // loop over load factor
     Double loadFactor = 0.0;
 
-    // currently just for testing!!
-    // loop over load factor
     for ( UInt iload=0; iload<1; iload++ ) {
       loadFactor += 1.0;
       info->Get("PDE")->Get(pdename_)->Get("load_factor")->SetValue(loadFactor);
@@ -283,6 +294,9 @@ class Hysteresis;
         } while(performOneMoreStep && iterationCounter < nonLinMaxIter_);
 
     } // load step loop
+
+    if ( performOneMoreStep )
+      std::cerr << "\n WARNING: StepStaticNonLin: Not converged! \n" << std::endl;;
 
   }
 
@@ -1166,8 +1180,8 @@ class Hysteresis;
   {
 
     Vector<Double> solOld(actSol);
-    const UInt nrEtas = 6;
-    const Double eta[nrEtas] = {1, 0.5, 0.25, 0.125, 0.1, 0.01};
+    const UInt nrEtas = 5;
+    const Double eta[nrEtas] = {1, 0.5, 0.25, 0.125, 0.01};
 		// initialize etaOpt or receive compiler warning
     Double etaOpt = 0.0;
     Double residualL2NormOpt = 1e15;
@@ -1205,6 +1219,16 @@ class Hysteresis;
         etaOpt = eta[i];
       }
     }
+
+//     if ( etaOpt == eta[nrEtas-1] ) 
+//       etaMinCount_++;
+//     else 
+//       etaMinCount_ = 0;
+//     if ( etaMinCount_ == 10 ) {
+//       //now try to boost the current solution out of a local minima
+//       etaOpt = eta[0];
+//       etaMinCount_ = 0;
+//     }
 
     etaLineSearch = etaOpt;
 

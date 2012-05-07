@@ -643,10 +643,14 @@ DEFINE_LOG(linForm, "linForm")
     ptelem->SetAnsatzFct( ansatzFct1_ );
 
     // get pointer to nonlinear BH curve approximation
+    //isotropic
     ApproxData* nlinFnc_ = ptMaterial->GetNonlinFnc(MAG_PERMEABILITY);
+    //anisotropic
+    StdVector<ApproxData*> nlinFncs = 
+      ptMaterial->GetNonlinFncs(  MAG_PERMEABILITYCURVES );
 
     BaseForm * curlcurl3D;
-    if ( nlinFnc_ == NULL ) 
+    if ( nlinFnc_ == NULL && nlinFncs.GetSize() == 0) 
       //define the linear element matrix
       curlcurl3D = new CurlCurlEdgeInt( ptMaterial, coordUpdate_);
     else {
