@@ -244,7 +244,7 @@ namespace CoupledField {
       fncIt->second->SetSystem(algsys_);
 
       // Print equation information
-      fncIt->second->GetFeSpace()->PrintEqnMap();
+      //fncIt->second->GetFeSpace()->PrintEqnMap();
       fncIt++;
     }
     //exit(0);
