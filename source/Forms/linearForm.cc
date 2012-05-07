@@ -3148,7 +3148,7 @@ void LinearFlowNoiseInt::ComputeNormalVec( const Matrix<Double>& ptCoord,
   AddMagStrictStrainRHSInt::AddMagStrictStrainRHSInt(BaseMaterial* matData,
                                                      const std::string& readerId,
                                                      const std::string& regionName,
-                                                     UInt offset,
+                                                     UintMap elemGlobalLocal,
                                                      SubTensorType type)
     : LinearForm(), 
       matData_(matData), 
@@ -3156,13 +3156,13 @@ void LinearFlowNoiseInt::ComputeNormalVec( const Matrix<Double>& ptCoord,
       readerId_(readerId),
       actStep_(0),
       lastStep_(0),
-      sequenceStep_(1) { // assume, that acoustic results do not come from multi sequence analysis
+      sequenceStep_(1) { // assume, that magnetic results do not come from multi sequence analysis
   
     name_ = "AddMagStrictStrainRHSInt";
   
     //    isSolDependent_ = true;
 
-    offsetElemLevel_ = offset;
+    globalToLocalElemeNr_ =  elemGlobalLocal;
     regionNames_.Push_back(regionName);
 
     // Specify that we want to use the current step number.
@@ -3223,9 +3223,11 @@ void LinearFlowNoiseInt::ComputeNormalVec( const Matrix<Double>& ptCoord,
       dynamic_cast<Result<Double>&>(*result_);
     Vector<Double> & fluxVec = actFlux.GetVector();
     
+    //    std::cout << "Flux: \n " << fluxVec << std::endl;
+
     //get element sol
     Vector<Double> vecB(dim);
-    UInt pos = (nrEl-offsetElemLevel_)*dim;
+    UInt pos = globalToLocalElemeNr_[nrEl]*dim;
     for (UInt i=0; i<dim; i++)
       vecB[i]= fluxVec[pos+i];
 
@@ -3284,6 +3286,8 @@ void LinearFlowNoiseInt::ComputeNormalVec( const Matrix<Double>& ptCoord,
     }
     Double absB = vecB.NormL2();
     Double strainVal = nlinFncs[pos]->EvaluateFunc( absB );
+
+    //    std::cout << "Babs: " << absB << "  S: " << strainVal << std::endl;
 
     //unit vector of B
     Vector<Double> unitVec = vecB;

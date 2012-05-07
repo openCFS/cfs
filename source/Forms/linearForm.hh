@@ -45,6 +45,8 @@ namespace CoupledField
   {
   public:
 
+    typedef std::map<UInt, UInt > UintMap;
+
     ///
     LinearForm( BaseMaterial* matData = NULL );
 
@@ -971,7 +973,7 @@ namespace CoupledField
       AddMagStrictStrainRHSInt(BaseMaterial* matData,
                                const std::string& readerId,
                                const std::string& regionName,
-                               UInt offset,
+                               UintMap elemGlobalLocal,
                                SubTensorType type);
       
       //! destructor
@@ -989,6 +991,9 @@ namespace CoupledField
 
       //! material data
       BaseMaterial* matData_;
+
+      //! map for global to local element number
+      UintMap globalToLocalElemeNr_;
 
       //! strain vector
       Vector<Double> strainIrr_;

@@ -1131,9 +1131,15 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
         ElemList actSDList(ptgrid_);
         actSDList.SetRegion(actId);
 
-        EntityIterator it = actSDList.GetIterator();
-        it.Begin();
-        const UInt offsetElemLevel =  it.GetElem()->elemNum;
+        EntityIterator elemList = actSDList.GetIterator();
+
+        UintMap elemGlobLocal;
+        elemList.Begin();
+
+        for ( UInt k=0; k < elemList.GetSize(); k++) {
+          elemGlobLocal[elemList.GetElem()->elemNum] = k;
+          elemList++;
+        }
 
         Info->PrintF( pdename_,
             "Use RHS source vector (magstrict-strains) for region '%s' from magnetic results.\n\n",
@@ -1143,7 +1149,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
         String2Enum(subType_,tensorType);
         AddMagStrictStrainRHSInt* sourceRHSInt = 
           new AddMagStrictStrainRHSInt( materials_[actId], rhsFileId, rhsRegion, 
-                                        offsetElemLevel, tensorType );
+                                        elemGlobLocal, tensorType );
 
         //trigger the material for nonlinearity
         materials_[actId]->NeedApproxMatCurve( MAGNETOSTRICTION_NLCURVES );

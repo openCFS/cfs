@@ -70,6 +70,7 @@ namespace CoupledField
     typedef std::set<shared_ptr<ResultInfo> > ResultSet;
     typedef StdVector<shared_ptr<BaseResult> > ResultList;
     typedef std::map<shared_ptr<ResultInfo> , ResultList > ResultMap;
+    typedef std::map<UInt, UInt > UintMap;
 
     class MaxwellHom;
     class RegionLoad;
