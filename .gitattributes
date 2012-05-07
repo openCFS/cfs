@@ -468,6 +468,7 @@ share/doc/user/matFile/coupledPDEs.tex svneol=native#text/plain
 share/doc/user/matFile/matRef.tex svneol=native#text/plain
 share/doc/user/matFile/matintro.tex svneol=native#text/plain
 share/doc/user/matFile/singlePDEs.tex svneol=native#text/plain
+share/doc/user/nonlinearApprox/sfb02-30.pdf -text
 share/doc/user/scripting/commands.tex svneol=native#text/plain
 share/doc/user/scripting/events.tex svneol=native#text/plain
 share/doc/user/scripting/intro.tex svneol=native#text/plain
