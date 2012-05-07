@@ -692,8 +692,8 @@ SET(LAPACK_SRCS
 ./SRC/dlatzm.f
 ./SRC/dlauu2.f
 ./SRC/dlauum.f
-./SRC/dlazq3.f
-./SRC/dlazq4.f
+./SRC/
+./SRC/
 ./SRC/dopgtr.f
 ./SRC/dopmtr.f
 ./SRC/dorg2l.f
@@ -1057,8 +1057,8 @@ SET(LAPACK_SRCS
 ./SRC/slatzm.f
 ./SRC/slauu2.f
 ./SRC/slauum.f
-./SRC/slazq3.f
-./SRC/slazq4.f
+./SRC/
+./SRC/
 ./SRC/sopgtr.f
 ./SRC/sopmtr.f
 ./SRC/sorg2l.f
@@ -1382,6 +1382,7 @@ SET(LAPACK_SRCS
 ./SRC/zlarfb.f
 ./SRC/zlarf.f
 ./SRC/zlarfg.f
+./SRC/zlarfp.f
 ./SRC/zlarft.f
 ./SRC/zlarfx.f
 ./SRC/zlargv.f
