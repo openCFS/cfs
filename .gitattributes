@@ -195,6 +195,7 @@ include/def_expl_templ_inst.hh.in -text
 include/def_use_ansysrst.hh.in -text
 include/def_use_arpack.hh.in -text
 include/def_use_blas.hh.in -text
+include/def_use_cgal.hh.in -text
 include/def_use_cholmod.hh.in -text
 include/def_use_gidpost.hh.in -text
 include/def_use_gmsh.hh.in -text
