@@ -435,16 +435,16 @@ CoefXprUnaryOp::CoefXprUnaryOp( PtrCoefFct a,
 
 CoefXprUnaryOp::CoefXprUnaryOp( const std::string& a,
                                 CoefXpr::OpType op ) : CoefXpr() {
-  PtrCoefFct temp  
-  = CoefFunction::Generate( Global::REAL, a );
+  
+  PtrCoefFct temp = CoefFunction::Generate( Global::REAL, a );
   Init( temp, op );
 }
 
 CoefXprUnaryOp::CoefXprUnaryOp( const CoefXpr& a,
                                 CoefXpr::OpType op ) : CoefXpr() {
+  
   Global::ComplexPart part = a.IsComplex() ? Global::COMPLEX : Global::REAL;
-  PtrCoefFct temp  
-    = CoefFunction::Generate( part, a );
+  PtrCoefFct temp = CoefFunction::Generate( part, a );
   Init( temp, op );
 }
 
@@ -557,16 +557,18 @@ CoefXprBinOp::CoefXprBinOp( PtrCoefFct a,
 CoefXprBinOp::CoefXprBinOp( PtrCoefFct a, 
                             const CoefXpr& b,
                             CoefXpr::OpType op ) : CoefXpr() {
-  PtrCoefFct temp 
-  = CoefFunction::Generate( Global::REAL, b );
+  
+  Global::ComplexPart part = b.IsComplex() ? Global::COMPLEX : Global::REAL;
+  PtrCoefFct temp  = CoefFunction::Generate( part, b );
   Init( a, temp, op );
 }
 
 CoefXprBinOp::CoefXprBinOp( PtrCoefFct a, 
                             const std::string& b,
                             CoefXpr::OpType op ) : CoefXpr() {
-  PtrCoefFct temp  
-  = CoefFunction::Generate( Global::REAL, b );
+  
+  Global::ComplexPart part = a->IsComplex() ? Global::COMPLEX : Global::REAL;
+  PtrCoefFct temp = CoefFunction::Generate( part, b );
   Init( a, temp, op );
 }
 
@@ -574,8 +576,8 @@ CoefXprBinOp::CoefXprBinOp( const std::string& a,
                             PtrCoefFct b, 
                             CoefXpr::OpType op ) : CoefXpr() {
   
-  PtrCoefFct temp  
-  = CoefFunction::Generate( Global::REAL, a );
+  Global::ComplexPart part = b->IsComplex() ? Global::COMPLEX : Global::REAL;
+  PtrCoefFct temp = CoefFunction::Generate( part, a );
   Init( temp, b, op );
   
 }
@@ -583,11 +585,9 @@ CoefXprBinOp::CoefXprBinOp( const std::string& a,
 CoefXprBinOp::CoefXprBinOp( const std::string& a, 
                             const CoefXpr& b, 
                             CoefXpr::OpType op ) : CoefXpr() {
-  PtrCoefFct tempA  
-   = CoefFunction::Generate( Global::REAL, a );
   Global::ComplexPart part = b.IsComplex() ? Global::COMPLEX : Global::REAL;
-  PtrCoefFct tempB  
-    = CoefFunction::Generate( part, b );
+  PtrCoefFct tempA  = CoefFunction::Generate( part, a );
+  PtrCoefFct tempB  = CoefFunction::Generate( part, b );
   Init( tempA, tempB, op );
 }
 
@@ -970,8 +970,9 @@ CoefXprVecScalOp::CoefXprVecScalOp( PtrCoefFct a,
 CoefXprVecScalOp::CoefXprVecScalOp( PtrCoefFct a, 
                                     const std::string& b,
                                     CoefXpr::OpType op ) : CoefXpr() {
-  PtrCoefFct temp  
-  = CoefFunction::Generate( Global::REAL, b );
+  
+  Global::ComplexPart part = a->IsComplex() ? Global::COMPLEX : Global::REAL;
+  PtrCoefFct temp = CoefFunction::Generate( part, b );
   Init( a, temp, op );
 }
 
@@ -979,8 +980,13 @@ CoefXprVecScalOp::CoefXprVecScalOp( PtrCoefFct a,
                                     const CoefXpr& b, 
                                     CoefXpr::OpType op ) : CoefXpr() {
 
-  PtrCoefFct temp  
-  = CoefFunction::Generate( Global::REAL, b );
+  Global::ComplexPart part;
+  if( a->IsComplex() || b.IsComplex() ) {
+    part = Global::COMPLEX;
+  } else {
+    part = Global::REAL;
+  }
+  PtrCoefFct temp = CoefFunction::Generate( part, b );
   Init( a, temp, op );
   
 }
@@ -1081,16 +1087,23 @@ CoefXprTensScalOp::CoefXprTensScalOp( PtrCoefFct a,
 CoefXprTensScalOp::CoefXprTensScalOp( PtrCoefFct a, 
                                       const std::string& b,
                                       CoefXpr::OpType op ) : CoefXpr() {
-  PtrCoefFct temp  
-  = CoefFunction::Generate( Global::REAL, b );
+  
+  Global::ComplexPart part = a->IsComplex() ? Global::COMPLEX : Global::REAL;
+  PtrCoefFct temp = CoefFunction::Generate( part, b );
   Init( a, temp, op );
 }
 
 CoefXprTensScalOp::CoefXprTensScalOp( PtrCoefFct a, 
                                       const CoefXpr& b, 
                                       CoefXpr::OpType op ) : CoefXpr() {
-  PtrCoefFct temp  
-  = CoefFunction::Generate( Global::REAL, b );
+  
+  Global::ComplexPart part;
+  if( a->IsComplex() || b.IsComplex() ) {
+    part =  Global::COMPLEX;
+  } else {
+    part = Global::REAL;
+  }
+  PtrCoefFct temp = CoefFunction::Generate( part, b );
   Init( a, temp, op );
 }
 
@@ -1181,8 +1194,9 @@ CoefXprMechSubTensor::CoefXprMechSubTensor( PtrCoefFct a ) {
   Init(a);
 }
 CoefXprMechSubTensor::CoefXprMechSubTensor( const CoefXpr& a)  {
-  PtrCoefFct temp  
-    = CoefFunction::Generate( Global::REAL, a );  
+  
+  Global::ComplexPart part = a.IsComplex() ? Global::COMPLEX : Global::REAL;
+  PtrCoefFct temp = CoefFunction::Generate( part, a );  
 }
 
 void CoefXprMechSubTensor::SetSubTensorType(SubTensorType subType,
@@ -1367,8 +1381,9 @@ CoefXprSubTensor::CoefXprSubTensor( PtrCoefFct a ) {
   Init(a);
 }
 CoefXprSubTensor::CoefXprSubTensor( const CoefXpr& a)  {
-  PtrCoefFct temp  
-    = CoefFunction::Generate( Global::REAL, a );  
+  
+  Global::ComplexPart part = a.IsComplex() ? Global::COMPLEX : Global::REAL;
+  PtrCoefFct temp = CoefFunction::Generate( part, a );  
 }
 
 void CoefXprSubTensor::SetSubTensorType(SubTensorType subType,
