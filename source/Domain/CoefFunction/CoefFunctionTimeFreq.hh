@@ -97,7 +97,7 @@ class CoefFunctionTimeFreq<Double> : public CoefFunctionAnalytic,
     
   //! \copydoc CoefFunction::GetTensorSize
   virtual void GetTensorSize( UInt& numRows, UInt& numCols ) const {
-    assert(this->dimType_ == VECTOR );
+    assert(this->dimType_ == TENSOR );
     numRows = constCoefMat_.GetNumRows();
     numCols = constCoefMat_.GetNumCols();
   }
@@ -261,7 +261,7 @@ public:
     
   //! \copydoc CoefFunction::GetTensorSize
   virtual void GetTensorSize( UInt& numRows, UInt& numCols ) const {
-    assert(this->dimType_ == VECTOR );
+    assert(this->dimType_ == TENSOR );
     numRows = constCoefMat_.GetNumRows();
     numCols = constCoefMat_.GetNumCols();
   }

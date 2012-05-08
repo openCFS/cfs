@@ -55,6 +55,10 @@ namespace CoupledField{
                                      const LocPointMapped& lp, 
                                      BaseFE* ptFe );
     
+    using BaseBOperator::CalcOpMat;
+
+    using BaseBOperator::CalcOpMatTransposed;
+
     // ===============
     //  QUERY METHODS
     // ===============
@@ -197,6 +201,10 @@ namespace CoupledField{
                                      const LocPointMapped& lp, 
                                      BaseFE* ptFe );
     
+    using BaseBOperator::CalcOpMat;
+
+    using BaseBOperator::CalcOpMatTransposed;
+
     // ===============
     //  QUERY METHODS
     // ===============
@@ -365,6 +373,10 @@ namespace CoupledField{
                                       const LocPointMapped& lp, 
                                       BaseFE* ptFe );
      
+    using BaseBOperator::CalcOpMat;
+
+    using BaseBOperator::CalcOpMatTransposed;
+
      // ===============
      //  QUERY METHODS
      // ===============

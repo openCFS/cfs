@@ -79,6 +79,7 @@ SetVector(const StdVector<std::string>& val) {
   
   assert((this->dimType_ == NO_DIM) || (this->dimType_ == VECTOR) );
 
+
   // ensure that expression really depends only on time / freq
   for( UInt i = 0; i < val.GetSize(); ++i ) {
     if( ExprDependsOnSpace(val[i]) ) {

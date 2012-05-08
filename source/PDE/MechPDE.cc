@@ -531,17 +531,33 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
     //  Determine correct stiffness integrator 
     // ----------------------------------------
     BaseBDBInt * integ = NULL;
-    if( subType_ == "axi" ) {
-      integ = new BDBInt<StrainOperatorAxi<FeH1> >(curCoef, 1.0);
-    } else if( subType_ == "planeStrain" ) {
-      integ = new BDBInt<StrainOperator2D<FeH1> >(curCoef, 1.0);
-    } else if( subType_ == "planeStress" ) {
-      integ = new BDBInt<StrainOperator2D<FeH1> >(curCoef, 1.0);
-    } else if( subType_ == "3d") {
-      integ = new BDBInt<StrainOperator3D<FeH1> >(curCoef, 1.0);
-    } else {
-      EXCEPTION( "Subtype '" << subType_ << "' unknown for mechanic physic" );
+    if( isComplex ) {
+      if( subType_ == "axi" ) {
+        integ = new BDBInt<StrainOperatorAxi<FeH1,Complex>,Complex,Complex>(curCoef, 1.0);
+      } else if( subType_ == "planeStrain" ) {
+        integ = new BDBInt<StrainOperator2D<FeH1,Complex>,Complex,Complex>(curCoef, 1.0);
+      } else if( subType_ == "planeStress" ) {
+        integ = new BDBInt<StrainOperator2D<FeH1,Complex>,Complex,Complex>(curCoef, 1.0);
+      } else if( subType_ == "3d") {
+        integ = new BDBInt<StrainOperator3D<FeH1,Complex>,Complex,Complex>(curCoef, 1.0);
+      } else {
+        EXCEPTION( "Subtype '" << subType_ << "' unknown for mechanic physic" );
+      }
     }
+    else {
+      if( subType_ == "axi" ) {
+        integ = new BDBInt<StrainOperatorAxi<FeH1> >(curCoef, 1.0);
+      } else if( subType_ == "planeStrain" ) {
+        integ = new BDBInt<StrainOperator2D<FeH1> >(curCoef, 1.0);
+      } else if( subType_ == "planeStress" ) {
+        integ = new BDBInt<StrainOperator2D<FeH1> >(curCoef, 1.0);
+      } else if( subType_ == "3d") {
+        integ = new BDBInt<StrainOperator3D<FeH1> >(curCoef, 1.0);
+      } else {
+        EXCEPTION( "Subtype '" << subType_ << "' unknown for mechanic physic" );
+      }
+    }
+
     return integ;
   }
 
