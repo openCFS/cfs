@@ -218,7 +218,8 @@ void FeSpaceHi::SetElemOrder( const Elem* ptEl, FeHi* ptFe,
                               const ApproxOrder& order ,
                               bool applyMaxRule ) {
   
-  LOG_DBG(feSpaceHi) << "In SetElemOrder for elem " << ptEl->elemNum;
+  LOG_DBG(feSpaceHi) << "In SetElemOrder for elem " << ptEl->elemNum 
+                     << ",maxRule: " << applyMaxRule;
   
   // Stage 1: Set order as given from the region template.
   // This order template specified either an isotropic polynomial degree
@@ -332,7 +333,7 @@ void FeSpaceHi::AdjustEntityOrder() {
   // Loop over all adjusted faces
   LOG_DBG(feSpaceHi) << "Adjusting face order";
   boost::unordered_set<UInt>::const_iterator faceIt = adjustedFaces_.begin();
-  for( ; edgeIt != adjustedFaces_.end(); ++faceIt ) {
+  for( ; faceIt != adjustedFaces_.end(); ++faceIt ) {
     LOG_DBG3(feSpaceHi) << "\tOrder of face #" << *faceIt 
         << " is " <<  orderFaces_[*faceIt][0]
                                            << ", " << orderFaces_[*faceIt][1];

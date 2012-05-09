@@ -94,7 +94,7 @@ DEFINE_LOG(feHi, "feHi")
        UInt locDir1 = 0, locDir2 = 0;
        boost::array<UInt,2> faceOrder;
        for( UInt iFace = 0; iFace < elemShape_.numFaces; ++iFace ) {
-         LOG_DBG3(feHi) << "\tTreating face #" << iFace << std::endl;
+         LOG_DBG3(feHi) << "\tTreating face #" << ptElem->faces[iFace] << std::endl;
          
          const StdVector<UInt>& unsorted = elemShape_.faceNodes[iFace];
          
@@ -106,7 +106,7 @@ DEFINE_LOG(feHi, "feHi")
          
          // use the face flags of the current face to match the element-
          // local directions (xi,eta,zeta) to the face local ones.
-         // Note: This only works for 
+         // Note: This only works for quad-shaped faces
          locDir1 = elemShape_.faceLocDirs[iFace][0];
          locDir2 = elemShape_.faceLocDirs[iFace][1];
           // check, if directions have to get interchanged
