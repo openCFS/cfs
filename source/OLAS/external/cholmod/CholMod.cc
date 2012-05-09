@@ -189,12 +189,12 @@ void CholMod<T>::InitParameters()
   PtrParamNode out = infoNode_->Get(ParamNode::HEADER)->Get("parameters");
   
   CheckParameter(out, &common_.nmethods, "factorization/nmethods");
-  CheckParameter(out, reinterpret_cast<bool*>(&common_.postorder), "factorization/postorder");
+  CheckParameter(out, &common_.postorder, "factorization/postorder");
   CheckParameter(out, &common_.dbound, "factorization/dbound");
   CheckParameter(out, &analysis, &common_.supernodal, "supernodal/method");
   CheckParameter(out, &common_.supernodal_switch, "supernodal/switch");
   CheckParameter(out, &common_.print, "output/level");
-  CheckParameter(out, reinterpret_cast<bool*>(&common_.precise), "output/precise");
+  CheckParameter(out, &common_.precise, "output/precise");
   ParamNodeList mList = out->GetList("method");
   for(unsigned int i = 0; i < mList.GetSize(); ++i){
     PtrParamNode m = static_cast<PtrParamNode>(mList[i]);
@@ -204,10 +204,10 @@ void CholMod<T>::InitParameters()
     CheckParameter(m, &common_.method[idx].prune_dense2, "prune_dense2");
     CheckParameter(m, &common_.method[idx].nd_oksep, "nd_oksep");
     CheckParameter(m, &common_.method[idx].nd_small, "nd_small");
-    CheckParameter(m, reinterpret_cast<bool*>(&common_.method[idx].aggressive), "aggressive");
-    CheckParameter(m, reinterpret_cast<bool*>(&common_.method[idx].nd_compress), "nd_compress");
+    CheckParameter(m, &common_.method[idx].aggressive, "aggressive");
+    CheckParameter(m, &common_.method[idx].nd_compress, "nd_compress");
     CheckParameter(m, &common_.method[idx].nd_camd, "nd_camd");
-    CheckParameter(m, reinterpret_cast<bool*>(&common_.method[idx].nd_components), "nd_components");
+    CheckParameter(m, &common_.method[idx].nd_components, "nd_components");
     CheckParameter(m, &common_.method[idx].ordering, "ordering");
   }
 }

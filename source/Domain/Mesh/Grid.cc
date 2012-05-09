@@ -6,7 +6,9 @@
 #include <limits>
 #include <boost/scoped_array.hpp>
 
+#ifdef _OPENMP
 #include <omp.h>
+#endif
 
 #include "General/Exception.hh"
 #include "Utils/mathfunctions.hh"
