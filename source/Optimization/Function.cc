@@ -554,6 +554,7 @@ bool Function::ForDensityFiltering() const
   {
   case PROJECTION:
     // for the projection case we have a density filter manually on Function::projectionDesign only
+  case SUM_MODULI:
     return false;
 
   case MULTI_OBJECTIVE:

@@ -73,6 +73,7 @@ unsigned int DesignMaterial::RequiredParameters(){
   case DENSITY_TIMES_TRANSVERSAL_ISOTROPIC_BOXED:
     return r+5;
   case DENSITY_TIMES_2D_TENSOR_CONSTANT_TRACE:
+  case DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC_BOXED:
     return r+6;
   case DENSITY_TIMES_2D_TENSOR:
   case DENSITY_TIMES_ROTATED_2D_TENSOR:
@@ -111,6 +112,13 @@ bool DesignMaterial::CheckRequiredDesigns(StdVector<DesignElement::Type>& design
         && design.Find(DesignElement::EMODUL) >= 0
         && design.Find(DesignElement::POISSON) >= 0
         && design.Find(DesignElement::GMODUL) >= 0);
+  case DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC_BOXED:
+    return(design.Find(DesignElement::DENSITY) >= 0
+        && design.Find(DesignElement::EMODULISO) >= 0
+        && design.Find(DesignElement::EMODUL) >= 0
+        && design.Find(DesignElement::POISSON) >= 0
+        && design.Find(DesignElement::GMODUL) >= 0
+        && design.Find(DesignElement::ROTANGLE));
   case DENSITY_TIMES_2D_TENSOR:
     return(design.Find(DesignElement::DENSITY) >= 0
         && design.Find(DesignElement::TENSOR11) >= 0
@@ -258,7 +266,8 @@ void DesignMaterial::GetTransIsoMaterialTensor(Matrix<double>& t, SubTensorType 
 
   if(subTensor == PLANE_STRESS){ //This is only implemented for density times tensor formulations yet
     double dens(1.0), ninv2(0.0), D(0.0), D3(0.0), nD3(0.0);
-    if(type_ == DENSITY_TIMES_TRANSVERSAL_ISOTROPIC || type_ == DENSITY_TIMES_TRANSVERSAL_ISOTROPIC_BOXED)
+    if(type_ == DENSITY_TIMES_TRANSVERSAL_ISOTROPIC || type_ == DENSITY_TIMES_TRANSVERSAL_ISOTROPIC_BOXED
+        || type_ == DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC_BOXED)
     {
       dens = params_[DesignElement::DENSITY];
       dens = std::pow(dens, penalty_);
@@ -271,6 +280,7 @@ void DesignMaterial::GetTransIsoMaterialTensor(Matrix<double>& t, SubTensorType 
     }
     switch(direction){
     case DesignElement::NO_DERIVATIVE:
+    case DesignElement::ROTANGLE:
     {
       if(type_ == TRANSVERSAL_ISOTROPIC || type_ == DENSITY_TIMES_TRANSVERSAL_ISOTROPIC)
       {
@@ -285,11 +295,12 @@ void DesignMaterial::GetTransIsoMaterialTensor(Matrix<double>& t, SubTensorType 
       }
       double G3 = params_[DesignElement::GMODUL];
       SetTransIsoTensor(t, subTensor, dens*D, 0, 0, dens*D3, dens*nD3, dens*G3);
-      return;
+      break;
     }
     case DesignElement::DENSITY:
     {
-      if(type_ == DENSITY_TIMES_TRANSVERSAL_ISOTROPIC || type_ == DENSITY_TIMES_TRANSVERSAL_ISOTROPIC_BOXED)
+      if(type_ == DENSITY_TIMES_TRANSVERSAL_ISOTROPIC || type_ == DENSITY_TIMES_TRANSVERSAL_ISOTROPIC_BOXED
+          || type_ == DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC_BOXED)
       {
         dens = params_[DesignElement::DENSITY];
         if(penalty_ == 1.0){
@@ -309,7 +320,7 @@ void DesignMaterial::GetTransIsoMaterialTensor(Matrix<double>& t, SubTensorType 
       }
       double G3 = params_[DesignElement::GMODUL];
       SetTransIsoTensor(t, subTensor, dens*D, 0, 0, dens*D3, dens*nD3, dens*G3);
-      return;
+      break;
     }
     case DesignElement::EMODULISO:
     {
@@ -324,7 +335,7 @@ void DesignMaterial::GetTransIsoMaterialTensor(Matrix<double>& t, SubTensorType 
         nD3 = sqrt(E3*nu13/E)/(2-2*nu13);
       }
       SetTransIsoTensor(t, subTensor, dens*D, 0, 0, dens*D3, dens*nD3, 0);
-      return;
+      break;
     }
     case DesignElement::EMODUL:
     {
@@ -339,7 +350,7 @@ void DesignMaterial::GetTransIsoMaterialTensor(Matrix<double>& t, SubTensorType 
         nD3 = sqrt(E*nu13/E3)/(2-2*nu13);
       }
       SetTransIsoTensor(t, subTensor, dens*D, 0, 0, dens*D3, dens*nD3, 0);
-      return;
+      break;
     }
     case DesignElement::POISSON:
     {
@@ -356,17 +367,70 @@ void DesignMaterial::GetTransIsoMaterialTensor(Matrix<double>& t, SubTensorType 
         D = E*D;
       }
       SetTransIsoTensor(t, subTensor, dens*D, 0, 0, dens*D3, dens*nD3, 0);
-      return;
+      break;
     }
     case DesignElement::GMODUL:
     {
       SetTransIsoTensor(t, subTensor, 0, 0, 0, 0, 0, dens);
-      return;
+      break;
     }
     default:
       ZeroTensor(t, subTensor);
       return;
     } // switch direction
+    if(type_ == DENSITY_TIMES_ROTATED_2D_TENSOR || type_ == DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC_BOXED){
+      Matrix<double> theta(3,3);
+      Matrix<double> help(3,3);
+      double a;
+      a = params_[DesignElement::ROTANGLE];
+      const double sq2inv = 1/sqrt(2);
+      theta.SetEntry(0,0, pow(cos(a),2));
+      theta.SetEntry(0,1, pow(sin(a),2));
+      theta.SetEntry(0,2, -sqrt(2)/2*sin(2*a));
+      theta.SetEntry(1,0, theta(0,1));
+      theta.SetEntry(1,1, theta(0,0));
+      theta.SetEntry(1,2, -theta(0,2));
+      theta.SetEntry(2,0, theta(1,2));
+      theta.SetEntry(2,1, theta(0,2));
+      theta.SetEntry(2,2, cos(2*a));
+      t.Mult(theta, help);
+      if(direction == DesignElement::ROTANGLE){
+        Matrix<double> dtheta(3,3);
+        dtheta.SetEntry(0,0, -sin(2*a));
+        dtheta.SetEntry(0,1, -dtheta(0,0));
+        dtheta.SetEntry(0,2, -sqrt(2)*cos(2*a));
+        dtheta.SetEntry(1,0, dtheta(0,1));
+        dtheta.SetEntry(1,1, dtheta(0,0));
+        dtheta.SetEntry(1,2, -dtheta(0,2));
+        dtheta.SetEntry(2,0, dtheta(1,2));
+        dtheta.SetEntry(2,1, dtheta(0,2));
+        dtheta.SetEntry(2,2, -2*sin(2*a));
+        Matrix<double> dthetaTttheta(3,3);
+        dtheta.MultT(help, dthetaTttheta);
+        t.Mult(dtheta, help);
+        theta.MultT(help, dtheta);
+        t = dthetaTttheta + dtheta;
+        t(0,2)*= sq2inv;
+        t(1,2)*=sq2inv;
+        t(2,2)/=2;
+        t(2,0)*=sq2inv;
+        t(2,1)*=sq2inv;
+        return;
+      }
+      theta.MultT(help, t);
+      t(0,2)*= sq2inv;
+      t(1,2)*=sq2inv;
+      t(2,2)/=2;
+      t(2,0)*=sq2inv;
+      t(2,1)*=sq2inv;
+      //    static int count(0);
+      //    if (count % 10 == 0 && count/100 % 10 == 0){
+      ////      std::cout << "(" << (count/100 % 10)*(count % 10)+1 << ")" << t.ToString() << std::endl;
+      //      std::cout << t(0,0) << " " << t(0,1) << " " << t(1,1) << " " << t(0,2) << " " << t(1,2) << " " << t(2,2) << std::endl;
+      //    }
+      //    count++;
+    }
+    return;
   } // PLANE_STRESS
 
   double nu = params_[DesignElement::POISSONISO];
@@ -539,7 +603,6 @@ void DesignMaterial::GetDensityTimes2dTensorTensor(Matrix<double>& t, SubTensorT
   double e23 = 0;
   double e13 = 0;
   double e12 = 0;
-  double a = 0;
   Matrix<double> theta(3,3);
   Matrix<double> help(3,3);
   if(direction == DesignElement::NO_DERIVATIVE || direction == DesignElement::DENSITY || direction == DesignElement::ROTANGLE){
@@ -603,7 +666,7 @@ void DesignMaterial::GetDensityTimes2dTensorTensor(Matrix<double>& t, SubTensorT
     break;
   }
   if(type_ == DENSITY_TIMES_ROTATED_2D_TENSOR){
-    a = params_[DesignElement::ROTANGLE];
+    double a = params_[DesignElement::ROTANGLE];
     const double sq2inv = 1/sqrt(2);
     theta.SetEntry(0,0, pow(cos(a),2));
     theta.SetEntry(0,1, pow(sin(a),2));
@@ -770,6 +833,7 @@ void DesignMaterial::GetMaterialTensor(Matrix<double>& t, SubTensorType subTenso
   case TRANSVERSAL_ISOTROPIC_BOXED:
   case DENSITY_TIMES_TRANSVERSAL_ISOTROPIC:
   case DENSITY_TIMES_TRANSVERSAL_ISOTROPIC_BOXED:
+  case DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC_BOXED:
     GetTransIsoMaterialTensor(t, subTensor, direction);
     break;
   case DENSITY_TIMES_2D_TENSOR:
@@ -841,6 +905,7 @@ void DesignMaterial::SetEnums(){
   type.Add(TRANSVERSAL_ISOTROPIC_BOXED, "transversal-isotropic-boxed");
   type.Add(DENSITY_TIMES_TRANSVERSAL_ISOTROPIC, "density-times-transversal-isotropic");
   type.Add(DENSITY_TIMES_TRANSVERSAL_ISOTROPIC_BOXED, "density-times-transversal-isotropic-boxed");
+  type.Add(DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC_BOXED, "density-times-rotated-transversal-isotropic-boxed");
   type.Add(DENSITY_TIMES_2D_TENSOR, "density-times-2dtensor");
   type.Add(DENSITY_TIMES_2D_TENSOR_CONSTANT_TRACE, "density-times-2dtensor-constant-trace");
   type.Add(DENSITY_TIMES_ROTATED_2D_TENSOR, "density-times-rotated-2dtensor");

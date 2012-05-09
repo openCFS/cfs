@@ -1401,6 +1401,7 @@ namespace CoupledField {
     SolutionTypeEnum.Add(OPT_RESULT_7, "optResult_7");
     SolutionTypeEnum.Add(OPT_RESULT_8, "optResult_8");
     SolutionTypeEnum.Add(OPT_RESULT_9, "optResult_9");
+    SolutionTypeEnum.Add(OPT_RESULT_10, "optResult_10");
     // independent
     SolutionTypeEnum.Add(LAGRANGE_MULT, "LagrangeMultiplier");
     // evaluates the spacial gradient of the solution at the nodes.

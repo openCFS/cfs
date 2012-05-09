@@ -522,6 +522,7 @@ int DesignSpace::GetSpecialResultIndex(DesignElement::Type design, DesignElement
       case OPT_RESULT_7: return 6;
       case OPT_RESULT_8: return 7;
       case OPT_RESULT_9: return 8;
+      case OPT_RESULT_10: return 9;
       default: throw Exception("invalid solution type");
     }
   }

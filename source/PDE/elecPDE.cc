@@ -689,6 +689,7 @@ class Hysteresis;
      case OPT_RESULT_7:
      case OPT_RESULT_8:
      case OPT_RESULT_9:
+     case OPT_RESULT_10:
        // design should work, this is checked in AvailabeResults()
        domain->GetErsatzMaterial()->ExtractResults(res, isComplex_);
        break;
@@ -703,6 +704,7 @@ class Hysteresis;
 
      default:
        WARN( "Result type not computable by electric PDE" );
+       break;
      }
      
    }
