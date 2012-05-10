@@ -58,6 +58,11 @@ public:
   /** upper asymptote */
   StdVector<double> U;
 
+  /** As we might use design bounds, this are the lower design bounbs. Either from design or the design bound constraints
+   * Indices by design type */
+  StdVector<double> lower_bound;
+  StdVector<double> upper_bound;
+
   /** are there constraints which are not to be approximated?
       The objective can be queried by its own flag.  */
   bool non_approx_constraints;
@@ -98,11 +103,11 @@ private:
    * Feasibility paper (16)
    * @param x the functions will be evaluated at x
    * @param rho vector of penalty parameters, first the 'normal' constraints, then the feasibility constraints. */
-  double CalcAugmentedLagrangian(const Vector<double>& x, const Vector<double>& y, const StdVector<double>& rho);
+  double CalcAugmentedLagrangian(const Vector<double>& x, const Vector<double>& y, const Vector<double>& rho);
 
   /** the gradient with respect to x and y written all to grad
    * @param grad size n + m */
-  void CalcGradAugmentedLagrangian(const Vector<double>& x, const Vector<double>& y, const StdVector<double>& rho, Vector<double>& grad);
+  void CalcGradAugmentedLagrangian(const Vector<double>& x, const Vector<double>& y, const Vector<double>& rho, Vector<double>& grad);
 
   /** strictly feasibility papert (18) and (19). necessary to ensure convergence */
   double CalcEta(double tau, const Vector<double>& x_vec, const Vector<double>& z_vec);
@@ -111,7 +116,7 @@ private:
    * Feasibility paper (20) and (21)
    * @param diff = norm(z-x)^2
    * @param rho old and to be overwritten */
-  void CalcPenaltyRho(double eta, double diff, const Vector<double>& y_vec,  const Vector<double>& v_vec, StdVector<double>& rho) const;
+  void CalcPenaltyRho(double eta, double diff, const Vector<double>& y_vec,  const Vector<double>& v_vec, Vector<double>& rho) const;
 
   typedef struct
   {
@@ -131,15 +136,20 @@ private:
   LSR Backtracking(const Vector<double>& x_old, const Vector<double>& x_new);
 
   /**
-   * @param k the iteration. 0 for the very first call after leaving initial design */
-  LSR AugmentedLagrangianLineSearch(int k, const Vector<double>& x, const Vector<double>& z, const Vector<double>& y, const Vector<double>& v, PtrParamNode in);
+   * @param k the iteration. 0 for the very first call after leaving initial design
+   * @param v the new lambda which gets updated by linesearch! */
+  LSR AugmentedLagrangianLineSearch(int k, const Vector<double>& x, const Vector<double>& z, const Vector<double>& y, Vector<double>& v, PtrParamNode in);
 
   /** update the asymptotes as long as they are not set to fixed!
    * @param force_reduction to react on subproblem problems */
   void UpdateAsymptotes(const Vector<double>&x_outer, int iter, bool force_reduction = false);
 
-  /** calc a KKT like stopping criteria following (7.24) in Sonja's thesis */
-  double CalcKKT(const Vector<double>& x, const Vector<double>& x_old, const Vector<double>& y);
+  /** calc a not KKT like stopping criteria following (7.24) in Sonja's thesis */
+  // double CalcStopingCriteria(const Vector<double>& x, const Vector<double>& x_old, const Vector<double>& y);
+
+  /** calc the three KKT values and outputs them to the param node
+   * @approx true for inner problem (ipopt-result), false for outer-problem */
+  void CalcKKT(const Vector<double>& x, PtrParamNode in,  bool sub, bool det, bool max_norm = true);
 
   double CalcAngle();
 
@@ -170,7 +180,7 @@ private:
   unsigned int m_e;
 
   /** This is the set of penalty parameters rho for the augmented Lagrangian */
-  StdVector<double> rho;
+  Vector<double> rho;
 
   /** the initial value for rho, optionally to be set in xml */
   double rho_init_;
@@ -212,6 +222,9 @@ private:
   /** the KKT criterion for CalcKKT() */
   double kkt_;
 
+  /** do we have a complete set of design bound constraints? */
+  bool full_design_bound_constraints_;
+
 };
 
 /** this is either the approximation of a function or the function itself */
@@ -221,7 +234,7 @@ public:
   /** @param constraint_idx -1 for objective */
   Approximation(FeasPP* feas_pp, int constraint_idx, bool approximate);
 
-  /** needs to be called to finish constructor. Bug determinant_shift is not known at constructor time! */
+  /** needs to be called to finish constructor. But determinant_shift is not known at constructor time! */
   void PostInit();
 
   typedef enum { FUNC, GRAD, HESSIAN } Eval;

@@ -69,7 +69,7 @@ std::string FeasSubProblem::SolveProblem(PtrParamNode in, double refine)
   bool no_ws = false;
   if(ipopt != NULL && ipopt->HasByVal("option", "name", "warm_start_init_point"))
     no_ws = ipopt->GetByVal("option", "name", "warm_start_init_point")->As<std::string>() == "no";
-  if(orig_lambda_.GetSize() > 0 && !no_ws)
+  if(orig_lambda.GetSize() > 0 && !no_ws)
     app->Options()->SetStringValue("warm_start_init_point", "yes");
   else
     app->Options()->SetStringValue("warm_start_init_point", "no");
@@ -163,11 +163,13 @@ bool FeasSubProblem::get_bounds_info(Index n, Number* x_l, Number* x_u, Index m,
   {
     DesignElement& de = feas_pp->optimization->GetDesign()->data[i];
 
-    x_l[i] = std::max(de.GetLowerBound(), asy * feas_pp->L[i] + var * feas_pp->x_outer[i]);
-    x_u[i] = std::min(de.GetUpperBound(), asy * feas_pp->U[i] + var * feas_pp->x_outer[i]);
+    // because we might use desing bound constraints we must not use de.GetLowerBound(), ..
 
-    // LOG_DBG3(feasPP) << "FSP::gbi: i=" << i << " asy=" << asy << " var=" << var << " lb=" << de.GetLowerBound() << " ub=" << de.GetUpperBound() << " l=" << feas_pp->L[i]
-    //                  << " u=" << feas_pp->U[i] << " x=" << feas_pp->x_outer[i] << " -> x_l=" << x_l[i] << " x_u=" << x_u[i];
+    x_l[i] = std::max(feas_pp->lower_bound[de.GetType()], asy * feas_pp->L[i] + var * feas_pp->x_outer[i]);
+    x_u[i] = std::min(feas_pp->upper_bound[de.GetType()], asy * feas_pp->U[i] + var * feas_pp->x_outer[i]);
+
+    LOG_DBG3(feasPP) << "FSP::gbi: i=" << i << " dt=" << de.GetType() << " asy=" << asy << " var=" << var << " lb=" << feas_pp->lower_bound[de.GetType()] << " ub=" << feas_pp->upper_bound[de.GetType()] << " l=" << feas_pp->L[i]
+                      << " u=" << feas_pp->U[i] << " x=" << feas_pp->x_outer[i] << " -> x_l=" << x_l[i] << " x_u=" << x_u[i];
   }
 
   for(int i = 0; i < m; i++)
@@ -211,8 +213,8 @@ bool FeasSubProblem::get_starting_point(Index n, bool init_x, Number* x, bool in
 
   if(init_lambda)
   {
-    assert(orig_lambda_.GetSize() > 0);
-    memcpy(ptr_lambda, orig_lambda_.GetPointer(), sizeof(double) * m);
+    assert(orig_lambda.GetSize() > 0);
+    memcpy(ptr_lambda, orig_lambda.GetPointer(), sizeof(double) * m);
   }
   return true;
 }
@@ -426,21 +428,16 @@ void FeasSubProblem::finalize_solution(SolverReturn status,
   z_u_.Resize(n);
   z_u_.Import(z_U, n);
 
-  // save old transformed lambda
-  old_lambda = lambda;
-  if(old_lambda.GetSize() == 0)
-    old_lambda.Resize(m, 1e-3); // to have it defined
-
   // store original lambda for warmstart
-  orig_lambda_.Resize(m);
-  orig_lambda_.Import(ptr_lambda, m);
-  LOG_DBG3(feasPP) << "FSP:fs orig_lambda_=" << orig_lambda_.ToString();
+  orig_lambda.Resize(m);
+  orig_lambda.Fill(ptr_lambda, m);
+  LOG_DBG3(feasPP) << "FSP:fs orig_lambda=" << orig_lambda.ToString();
 
   // calculate transformed lambda according to feasibility paper
   feas_pp->optimization->GetDesign()->ReadDesignFromExtern(x_final.GetPointer());
   lambda.Resize(m);
   for(int i = 0; i < m; i++)
-    lambda[i] = feas_pp->constr[i]->TransformMultiplyer(orig_lambda_[i]);
+    lambda[i] = feas_pp->constr[i]->TransformMultiplyer(orig_lambda[i]);
 
 
   LOG_DBG3(feasPP) << "FSP:fs lambda=" << lambda.ToString();

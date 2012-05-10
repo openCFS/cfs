@@ -327,6 +327,8 @@
                 <xsd:enumeration value="bensonVanderbeiMinor1"/>
                 <xsd:enumeration value="bensonVanderbeiMinor2"/>
                 <xsd:enumeration value="bensonVanderbeiMinor3"/>
+                <!-- this allows to formulate design bounds as functions. Set box constraints then to +- inf -->
+                <xsd:enumeration value="designBound"/>
               </xsd:restriction>
             </xsd:simpleType>
           </xsd:attribute>
@@ -510,7 +512,7 @@
                       <!-- initial value for the penalty parameter rho -->
                       <xsd:attribute name="rho" default="1.0" type="xsd:float" use="optional"/>
                       <!-- constant eta in (22) -->
-                      <xsd:attribute name="rho_eta" default="1.0" type="xsd:float" use="optional"/>
+                      <xsd:attribute name="rho_eta" default="1e-4" type="xsd:float" use="optional"/>
                       <!-- descent factor for Armijo line search (my in (23))-->
                       <xsd:attribute name="decrease" default="0.1" type="xsd:float" use="optional"/>
                       <!-- step with for Armijo line search -->

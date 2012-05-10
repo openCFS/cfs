@@ -86,8 +86,8 @@ public:
     * @see Approximation::TransformMultiplyer() */
    Vector<double> lambda;
 
-   /** the previous Langrange multipliers. Called v in the feasibility paper. We need it for AugmentedLagrangianLineSearch() */
-   Vector<double> old_lambda;
+   /** This is the original, not-transfomed lambda!! We need it for the warmstart! */
+   Vector<double> orig_lambda;
 
    /** this are the original tolerances, modified in the refine case */
    double org_tol;
@@ -106,9 +106,6 @@ private:
   /** data for warmstart. Set after solving the problem */
   StdVector<double> z_l_;
   StdVector<double> z_u_;
-
-  /** This is the original, not-transfomed lambda!! We need it for the warmstart! */
-  StdVector<double> orig_lambda_;
 
   /** We handle the ipopt framework within this class */
   SmartPtr<IpoptApplication> app;

@@ -709,6 +709,7 @@ bool Condition::IsFeasibilityConstraint() const
   case BENSON_VANDERBEI_1:
   case BENSON_VANDERBEI_2:
   case BENSON_VANDERBEI_3:
+  case DESIGN_BOUND:
     return true;
   default:
     return false;
@@ -1149,6 +1150,22 @@ void ConditionContainer::ToInfo(PtrParamNode in, MultipleExcitation* me)
     all[i]->ToInfo(in->Get("constraint", ParamNode::APPEND), me);
 }
 
+
+
+Condition* ConditionContainer::Get(Condition::Type type, DesignElement::Type design, Condition::Bound bound, bool throw_exception)
+{
+  assert(design != DesignElement::NO_TYPE);
+
+  for(unsigned int i = 0; i < active.GetSize(); i++)
+    if(active[i]->GetType() == type && active[i]->design_ == design && active[i]->bound_ == bound)
+      return active[i]; // shall be unique
+
+  if(throw_exception)
+    throw Exception("have no active constraint " + Condition::type.ToString(type) + " with design " + DesignElement::type.ToString(design) + " and bound " + Condition::bound.ToString(bound));
+
+  return NULL;
+}
+
 StdVector<Condition*> ConditionContainer::GetList(Condition::Type type, DesignElement::Type design, bool only_active)
 {
   StdVector<Condition*> result;
@@ -1171,6 +1188,7 @@ bool ConditionContainer::Has(Condition::Type type, DesignElement::Type design, b
 
   return !list.IsEmpty();
 }
+
 
 Condition* ConditionContainer::Get(Condition::Type type, DesignElement::Type design, bool only_active, bool throw_exception)
 {

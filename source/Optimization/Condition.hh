@@ -401,6 +401,7 @@ namespace CoupledField
      Condition* Get(Condition::Type type = Condition::VOLUME, DesignElement::Type design = DesignElement::NO_TYPE, bool only_active = true) {
        return Get(type, design, only_active, true);
      }
+     Condition* Get(Condition::Type type, DesignElement::Type design, Condition::Bound bound, bool throw_exception = true);
 
      /** query before Get() throws an exception */
      bool Has(Condition::Type type = Condition::VOLUME, DesignElement::Type design = DesignElement::NO_TYPE, bool only_active = true);

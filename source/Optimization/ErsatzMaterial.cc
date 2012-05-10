@@ -875,6 +875,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
       case Function::BENSON_VANDERBEI_1:
       case Function::BENSON_VANDERBEI_2:
       case Function::BENSON_VANDERBEI_3:
+      case Function::DESIGN_BOUND:
       assert(c == NULL);
       result = CalcLocalConstraint(g, derivative);
       break;

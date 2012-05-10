@@ -557,10 +557,9 @@ void BaseOptimizer::EvalGradConstraints(int n, const double* x, int m, int nentr
     if(grtype == ALL || (grtype == LINEAR && g->IsLinear()) || (grtype == NONLINEAR && !g->IsLinear()))
     {
       int tmp = EvalGradConstraint(optimization->constraints.view->Get(c), start, cfs_scale, normalize, values);
+      LOG_DBG3(optimizer) << "EvalGradConstraint: co=" << c << " scaled val=" << values.ToString(true);
       start += tmp;
     }
-
-    LOG_DBG3(optimizer) << "EvalGradConstraint: co=" << c << " scaled val=" << values.ToString(true);
   }
   optimization->constraints.view->Done(); // reset slope constraint to global mode
 

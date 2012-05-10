@@ -714,7 +714,7 @@ void SnOpt::setupLinearConstraints()
   // setup linear constraints
   StdVector<double> lincon(nA);
 
-  EvalGradConstraints(n, &x[0], optimization->constraints.view->GetNumberOfActiveConstraints(), nA,
+  EvalGradConstraints(n, x.GetPointer(), optimization->constraints.view->GetNumberOfActiveConstraints(), nA,
       true, false, lincon, BaseOptimizer::LINEAR);
   
   // we have just evaluated the state problem, commit the (initial) iteration as snopt might

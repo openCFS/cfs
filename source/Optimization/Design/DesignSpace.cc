@@ -670,11 +670,14 @@ TransferFunction* DesignSpace::GetTransferFunction(const DesignElement* de)
     EXCEPTION("None of the " << transfer.GetSize() << " transfer functions matches " << de->ToString());
   return res;
 }
-TransferFunction* DesignSpace::GetTransferFunction(DesignElement::Type design, Optimization::Application application, bool throw_exception)
+TransferFunction* DesignSpace::GetTransferFunction(DesignElement::Type design, Optimization::Application application, bool throw_exception, bool use_single)
 {
-  if(HasErsatzMaterialTensor()){
+  if(HasErsatzMaterialTensor())
     return &transfer[0]; // this will always point to an identity transfer function, so CalcU1KU2 in ErsatzMaterial will simply work for parametric material optimization
-  }
+
+  if(use_single && transfer.GetSize() == 1)
+    return &transfer[0];
+
   for(unsigned int i = 0; i < transfer.GetSize(); i++)
   {
     TransferFunction* tf = &transfer[i];

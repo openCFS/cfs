@@ -141,8 +141,9 @@ namespace CoupledField
      bool GetErsatzMaterialDampingParameterForIntegrator(const Elem* elem, BaseForm* integrator, double& param);
 
      /** This gets back a uniquely defined transfer function.
-      * @param throw_exception if false NULL is returned when nothing is found! */
-     TransferFunction* GetTransferFunction(DesignElement::Type design, Optimization::Application application, bool throw_exception = true);
+      * @param throw_exception if false NULL is returned when nothing is found!
+      * @param use_single when there is only one transfer function, use this one and ignore design and application */
+     TransferFunction* GetTransferFunction(DesignElement::Type design, Optimization::Application application, bool throw_exception = true, bool use_single = false);
 
      /** Try to determine the transfer function from the design element uniquely */
      TransferFunction* GetTransferFunction(const DesignElement* de);

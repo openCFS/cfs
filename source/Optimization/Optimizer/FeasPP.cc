@@ -50,7 +50,7 @@ FeasPP::FeasPP(Optimization* opt, PtrParamNode pn) : BaseOptimizer(opt, pn, Opti
   mma_dist_ = 0.5;
   convex_tau = 0.0; // switch off
   rho_init_ = 1.0;
-  rho_eta_ = 1.0;
+  rho_eta_ = 1e-4;
   decrease_ = 0.1;
   stepwidth_ = 0.5;
   dynamic_design_bounds = true;
@@ -72,7 +72,7 @@ FeasPP::FeasPP(Optimization* opt, PtrParamNode pn) : BaseOptimizer(opt, pn, Opti
     {
       asymptotes_ = asymptotes.Parse(this_opt_pn_->Get("asymptotes/type")->As<string>());
       mma_shrink_ = this_opt_pn_->Get("asymptotes/shrink")->As<double>();
-      mma_grow_   = this_opt_pn_->Get("asymptotes/shrink")->As<double>();
+      mma_grow_   = this_opt_pn_->Get("asymptotes/grow")->As<double>();
       mma_dist_   = this_opt_pn_->Get("asymptotes/distance")->As<double>();
       dynamic_design_bounds = this_opt_pn_->Get("asymptotes/design_bounds")->As<string>() == "fixed" ? false : true;
       max_reductions_ = asymptotes_ == MMA ? this_opt_pn_->Get("asymptotes/max_reductions")->As<int>() : 0;
@@ -183,7 +183,7 @@ void FeasPP::PostInit()
       LocalCondition* loc_g = dynamic_cast<LocalCondition*>(g);
       assert(loc_g->GetConstraintSize() == other->GetConstraintSize());
       int shift = other->GetVirtualBaseIndex() - loc_g->GetVirtualBaseIndex();
-      assert(shift > 0); // observaton after active!
+      assert(shift > 0); // observation after active!
 
       for(unsigned int a = 0; a < m; a++)
         if(constr[a]->GetCondition()->GetType() == g->GetType())
@@ -211,12 +211,34 @@ void FeasPP::PostInit()
   L.Resize(n);
   U.Resize(n);
 
+  // setup lowe and upper bounds, they might be from design bounds. After this we must not use DesignElement::GetLowe/UpperBound() !!
+  lower_bound.Resize((int) DesignElement::ALL_DESIGNS, 0.0);
+  upper_bound.Resize((int) DesignElement::ALL_DESIGNS, 0.0);
+  unsigned int bc_count = 0;
+  for(unsigned int i = 0; i < optimization->GetDesign()->design.GetSize(); i++)
+  {
+    DesignElement::Type dt = optimization->GetDesign()->design[i];
+    assert(dt >= 0);
+    DesignElement& de = optimization->GetDesign()->data[optimization->GetDesign()->elements * i]; // fallback
+    assert(de.GetType() == dt);
+    Condition* g = optimization->constraints.Get(Function::DESIGN_BOUND, dt, Condition::LOWER_BOUND, false);
+    assert(!(g != NULL && g->GetBoundValue() < de.GetLowerBound())); // the design bound shall be -inf then!
+    lower_bound[dt] = g != NULL ? g->GetBoundValue() : de.GetLowerBound();
+    if(g != NULL) bc_count++;
+    g = optimization->constraints.Get(Function::DESIGN_BOUND, dt, Condition::UPPER_BOUND, false);
+    assert(!(g != NULL && g->GetBoundValue() > de.GetUpperBound()));
+    upper_bound[dt] = g != NULL ? g->GetBoundValue() : de.GetUpperBound();
+    if(g != NULL) bc_count++;
+    LOG_DBG3(feasPP) << "FP:PI dt=" << dt << "=" << DesignElement::type.ToString(dt) << " lb=" << lower_bound[dt] << " ub=" << upper_bound[dt];
+  }
+  full_design_bound_constraints_ = bc_count == optimization->GetDesign()->design.GetSize();
+
   assert(n == optimization->GetDesign()->data.GetSize()); // TODO include aux design!
   for(unsigned int i = 0; i < n; i++)
   {
     DesignElement& de = optimization->GetDesign()->data[i];
-    L[i] = de.GetLowerBound() > 0 ? 0.0 : de.GetLowerBound() * 1.1; // be smaller!!
-    U[i] = de.GetUpperBound() * 1.1;
+    L[i] = lower_bound[de.GetType()] > 0 ? 0.0 : lower_bound[de.GetType()] * 1.1; // be smaller!!
+    U[i] = upper_bound[de.GetType()] * 1.1;
     assert(L[i] >= l_min_ && U[i] <= u_max_);
   }
   optimization->constraints.view->Done();
@@ -242,6 +264,9 @@ void FeasPP::SolveProblem()
   // additional refinement of subproblem in failed linesearch
   double refine = 1.0;
   double kkt_val = -1.0;
+  // the old lambda is for augmented lagrangian not the lambda from the last subproblem as we do a linesearch
+  Vector<double> lambda_old(m, 0.0);
+
   while(!optimization->DoStopOptimization() && iter <= max_iter && !converged)
   {
     // eventually update asymptotes
@@ -259,7 +284,8 @@ void FeasPP::SolveProblem()
     {
       err = ipopt->SolveProblem(in, refine); // here is the work done!
       if(r > 0) in->Get("reductions")->SetValue(r);
-      if(err != "") UpdateAsymptotes(x_outer, iter, true); // there is a msg set in FeasSubProblem
+      if(err != "")
+        UpdateAsymptotes(x_outer, iter, true); // there is a msg set in FeasSubProblem
     }
 
     if(err != "")
@@ -278,8 +304,13 @@ void FeasPP::SolveProblem()
     LOG_DBG2(feasPP) << "SP: it=" << iter << " x_old = [" << x_outer.ToString() << "]";
     LOG_DBG2(feasPP) << "SP: it=" << iter << " x_new_org = [" << ipopt->x_final.ToString() << "]";
 
-    kkt_val = CalcKKT(ipopt->x_final, x_outer, ipopt->lambda);
-    in->Get("kkt")->SetValue(kkt_val);
+    CalcKKT(ipopt->x_final, in->Get("kkt_det"), true, true, true);  // subproblem max-norm
+    CalcKKT(ipopt->x_final, in->Get("kkt_vb"), true, false, true);  // sub problem max-norm
+    CalcKKT(ipopt->x_final, in->Get("kkt_out"), false, false, true);  // sub problem max-norm
+
+    in->Get("ul")->SetValue(NormL2(U.GetPointer(), L.GetPointer(), n));
+
+    kkt_val = 1.0; //CalcStopingCriteria(ipopt->x_final, x_outer, ipopt->lambda);
     if(kkt_val <= kkt_)
       converged = true;
 
@@ -288,15 +319,13 @@ void FeasPP::SolveProblem()
       if(global_ == BACKTRACKING)
         ls = Backtracking(x_outer, ipopt->x_final);
       else
-        ls = AugmentedLagrangianLineSearch(iter, x_outer, ipopt->x_final, ipopt->old_lambda, ipopt->lambda, in);
+        ls = AugmentedLagrangianLineSearch(iter, x_outer, ipopt->x_final, lambda_old, ipopt->lambda, in); // ipopt->lambda is updated by LS
 
       in->Get("steps")->SetValue(ls.steps);
-      in->Get("org_dx_norm")->SetValue(ls.org_dx);
+      in->Get("dx")->SetValue(ls.curr_dx);
 
-      if(ls.stepwidth != 1.0) {
-        in->Get("step_factor")->SetValue(ls.stepwidth);
-        in->Get("curr_dx_norm")->SetValue(ls.curr_dx);
-      }
+      if(ls.stepwidth != 1.0)
+        in->Get("step")->SetValue(ls.stepwidth);
 
       if(ls.old_point_is_optimal) {
         in->Get("msg")->SetValue("linesearch returned to old point");
@@ -306,6 +335,7 @@ void FeasPP::SolveProblem()
         refine = 1.0; // stop any possible refinements!
     }
 
+    lambda_old = ipopt->lambda; // store new lambda. the new x is read from the design
     optimization->GetDesign()->WriteDesignToExtern(x_outer); // only for the LOG below, can be removed as it is done in UpdateToCurrentStep()
     LOG_DBG2(feasPP) << "SP: it=" << iter << " x_new_curr = [" << x_outer.ToString() << "]";
 
@@ -391,7 +421,7 @@ FeasPP::LSR FeasPP::Backtracking(const Vector<double>& x_old, const Vector<doubl
 
 
 
-FeasPP::LSR FeasPP::AugmentedLagrangianLineSearch(int k, const Vector<double>& x, const Vector<double>& z, const Vector<double>& y, const Vector<double>& v, PtrParamNode in)
+FeasPP::LSR FeasPP::AugmentedLagrangianLineSearch(int k, const Vector<double>& x, const Vector<double>& z, const Vector<double>& y, Vector<double>& v, PtrParamNode in)
 {
   LOG_DBG3(feasPP) << "ALLS x=[" << x.ToString(0, ' ') << "]";
   LOG_DBG3(feasPP) << "ALLS z=[" << z.ToString(0, ' ') << "]";
@@ -411,8 +441,6 @@ FeasPP::LSR FeasPP::AugmentedLagrangianLineSearch(int k, const Vector<double>& x
   Vector<double> grad_phi(n + m);
   CalcGradAugmentedLagrangian(x, y, rho, grad_phi);
   LOG_DBG3(feasPP) << "ALLS grad_phi=[" << grad_phi.ToString(0, ' ') << "]";
-  in->Get("max_norm")->SetValue(grad_phi.NormMax());
-  in->Get("L2_norm")->SetValue(grad_phi.NormL2());
 
   double grad_phi_d = grad_phi  * d;
   double phi = CalcAugmentedLagrangian(x, y, rho);
@@ -422,13 +450,21 @@ FeasPP::LSR FeasPP::AugmentedLagrangianLineSearch(int k, const Vector<double>& x
   // norm(z -x)^2
   double dist = pow(NormL2(z.GetPointer(), x.GetPointer(), n), 2);
 
+
+  Vector<double> grad_f(n);
+  grad_f.Fill(obj->outer_grad.GetPointer(), n);
+  in->Get("descent_obj")->SetValue(grad_f * dx);
+
   if(k > 0)
   {
     LOG_DBG3(feasPP) << "ALLS grad_phi_d=" << grad_phi_d << " > rho_eta=" << rho_eta_ << " dist=" << dist << " (" << (-0.5 * rho_eta_ * dist) << ")";
     // (22) sufficient decent property
+    in->Get("descent_merit")->SetValue(grad_phi_d);
     if(grad_phi_d > -0.5 * rho_eta_ * dist)
     {
       CalcPenaltyRho(eta, dist, y, v, rho);
+      in->Get("eta_k")->SetValue(eta);
+      in->Get("inc_rho")->SetValue(rho.NormL2());
       CalcGradAugmentedLagrangian(x, y, rho, grad_phi);
       if(grad_phi  * d  > -0.5 * rho_eta_ * dist)
         in->Get(ParamNode::WARNING)->SetValue("increasing penalty rho was not sufficient");
@@ -465,6 +501,8 @@ FeasPP::LSR FeasPP::AugmentedLagrangianLineSearch(int k, const Vector<double>& x
   LOG_DBG3(feasPP) << "ALLS x_k+1=[" << x_next.ToString(0, ' ') << "]";
   LOG_DBG3(feasPP) << "ALLS y_k+1=[" << y_next.ToString(0, ' ') << "]";
 
+  // save new line search. The new_x is communicated via design
+  v = y_next;
 
   result.stepwidth = sigma;
   result.curr_dx = sigma  * result.org_dx;
@@ -502,7 +540,7 @@ double FeasPP::CalcEta(double tau, const Vector<double>& x_vec, const Vector<dou
   return eta;
 }
 
-void FeasPP::CalcPenaltyRho(double eta, double diff, const Vector<double>& y_vec,  const Vector<double>& v_vec, StdVector<double>& rho) const
+void FeasPP::CalcPenaltyRho(double eta, double diff, const Vector<double>& y_vec,  const Vector<double>& v_vec, Vector<double>& rho) const
 {
   assert(m == m_e + m_c);
 
@@ -514,9 +552,9 @@ void FeasPP::CalcPenaltyRho(double eta, double diff, const Vector<double>& y_vec
     double rho_old = rho[i];
 
     if(!g->IsFeasibilityConstraint())
-      rho[i] = max(rho_old, (40.0 * m_c / (eta * diff*diff)) * max(y * abs(v - y), (v-y) * (v-y)));
+      rho[i] = max(rho_old, (40.0 * m_c / (eta * diff)) * max(y * abs(v - y), (v-y) * (v-y)));
     else
-      rho[i] = max(rho_old, (10.0 * m_e / (eta * diff*diff)) * max(y * abs(v - y), y * y));
+      rho[i] = max(rho_old, (10.0 * m_e / (eta * diff)) * max(y * abs(v - y), y * y));
 
     LOG_DBG3(feasPP) << "FP:CPR i=" << i << " m_c=" << m_c << " m_e=" << m_e << " feas=" << g->IsFeasibilityConstraint()
                      << " eta=" << eta << " diff=" << diff << " y=" << y << " v=" << v << " rho=" << rho_old << " -> " << rho[i];
@@ -525,7 +563,7 @@ void FeasPP::CalcPenaltyRho(double eta, double diff, const Vector<double>& y_vec
 }
 
 
-double FeasPP::CalcAugmentedLagrangian(const Vector<double>& x, const Vector<double>& y, const StdVector<double>& rho)
+double FeasPP::CalcAugmentedLagrangian(const Vector<double>& x, const Vector<double>& y, const Vector<double>& rho)
 {
   LOG_DBG3(feasPP) << "FP:CAL x=" << x.ToString(0, ' ');
   LOG_DBG3(feasPP) << "FP:CAL y=" << y.ToString(0, ' ');
@@ -563,7 +601,7 @@ double FeasPP::CalcAugmentedLagrangian(const Vector<double>& x, const Vector<dou
   return result;
 }
 
-void FeasPP::CalcGradAugmentedLagrangian(const Vector<double>& x, const Vector<double>& y_vec, const StdVector<double>& rho_vec, Vector<double>& grad)
+void FeasPP::CalcGradAugmentedLagrangian(const Vector<double>& x, const Vector<double>& y_vec, const Vector<double>& rho_vec, Vector<double>& grad)
 {
   LOG_DBG3(feasPP) << "FP:CGAL x=" << x.ToString(0, ' ');
   LOG_DBG3(feasPP) << "FP:CGAL y=" << y_vec.ToString(0, ' ');
@@ -583,18 +621,19 @@ void FeasPP::CalcGradAugmentedLagrangian(const Vector<double>& x, const Vector<d
   // for the  the x-part of grad, we need function gradients
   // evaluate function gradient values
   optimization->GetDesign()->ReadDesignFromExtern(x.GetPointer());
+  optimization->GetDesign()->Reset(DesignElement::COST_GRADIENT, DesignElement::DEFAULT);
   StdVector<double> f_grad(n);
   EvalGradObjective(n, x.GetPointer(), true, f_grad);
   LOG_DBG3(feasPP) << "FP:CGAL f_grad=" << f_grad.ToString();
 
   StdVector<double> c_grad(n); // worst case
 
-  optimization->GetDesign()->Reset(DesignElement::CONSTRAINT_GRADIENT, DesignElement::DEFAULT);
   // derivative with respect to x
   for(unsigned int e = 0; e < n; e++)
     grad[e] = f_grad[e]; // first part
 
   assert(constr.GetSize() == m);
+  optimization->GetDesign()->Reset(DesignElement::CONSTRAINT_GRADIENT, DesignElement::DEFAULT);
   for(unsigned int ci = 0; ci < m; ci++)
   {
     double         c    = c_vec[ci];
@@ -638,6 +677,7 @@ void FeasPP::UpdateToCurrentStep()
 
   // prepare all functions for the present design
   obj->outer_val = EvalObjective(n, x_outer.GetPointer(), true);
+  optimization->GetDesign()->Reset(DesignElement::COST_GRADIENT, DesignElement::DEFAULT);
   EvalGradObjective(n, x_outer.GetPointer(), true, obj->outer_grad);
   LOG_DBG3(feasPP) << "FP:UTCP obj=" << obj->ToString() << " outer_val=" << obj->outer_val << " grad=" << obj->outer_grad.ToString();
 
@@ -656,11 +696,12 @@ void FeasPP::UpdateToCurrentStep()
   optimization->constraints.view->Done(); // reset slope constraint to global mode
 }
 
-void FeasPP::UpdateAsymptotes(const Vector<double>&x, int iter, bool force_reduction)
+void FeasPP::UpdateAsymptotes(const Vector<double>&x_vec, int iter, bool force_reduction)
 {
   assert(!(force_reduction && asymptotes_ == FIXED));
   if(asymptotes_ == FIXED) return;
 
+  // might fail we have reductions on failed subproblems!
   assert(!(iter >= 2 && prev_x_.first != iter -1) || force_reduction || prev_x_.first == -1);
   assert(!(iter >= 3 && prev_prev_x_.first != iter -2) || force_reduction || prev_prev_x_.first == -1);
 
@@ -668,40 +709,47 @@ void FeasPP::UpdateAsymptotes(const Vector<double>&x, int iter, bool force_reduc
   // We start our iterations with 1, therefore special case for iter >= 3
   for(unsigned int i = 0; i < n; i++)
   {
+    double x = x_vec[i];
     if(!force_reduction && iter < 3)
     {
-      L[i] = x[i] - max(1.0, abs(x[i]));
-      U[i] = x[i] + max(1.0, abs(x[i]));
+      L[i] = x - max(1.0, abs(x));
+      U[i] = x + max(1.0, abs(x));
     }
     else
     {
       const Vector<double>& x_p  = prev_x_.second;
       const Vector<double>& x_pp = prev_prev_x_.second;
 
-      double factor = force_reduction || (sgn(x[i] - x_p[i]) != sgn(x_p[i] - x_pp[i])) ? mma_shrink_ : mma_grow_;
-      double x_old = force_reduction && iter <= 1 ? x[i] : x_p[i];
+      double factor = force_reduction || (sgn(x - x_p[i]) != sgn(x_p[i] - x_pp[i])) ? mma_shrink_ : mma_grow_;
+      double x_old = force_reduction && iter <= 1 ? x : x_p[i];
 
-      L[i] = max(x[i] - max(mma_dist_, factor * (x_old - L[i])), l_min_);
-      U[i] = min(x[i] + max(mma_dist_, factor * (U[i] - x_old)), u_max_);
+      L[i] = max(x - max(mma_dist_, factor * (x_old - L[i])), l_min_);
+      U[i] = min(x + max(mma_dist_, factor * (U[i] - x_old)), u_max_);
 
-      LOG_DBG3(feasPP) << "FP:UA it=" << iter << " i=" << i << " x=" << x[i] << " x-1=" << x_p[i]
-                       << " x-2=" << (x_pp.GetSize() > 0 ? x_pp[i] : -1.0) << " f=" << factor << " L=" << L[i] << " U=" << U[i];
+      LOG_DBG3(feasPP) << "FP:UA it=" << iter << " i=" << i << " x=" << x << " x-1=" << x_p[i]
+                       << " x-2=" << (x_pp.GetSize() > 0 ? x_pp[i] : -1.0) << " sp=" << (sgn(x - x_p[i]))
+                       << " spp=" << (x_pp.GetSize() > 0 ? sgn(x_p[i] - x_pp[i]) : 0) << " f=" << factor << " L=" << L[i] << " U=" << U[i];
     }
   }
+
+  LOG_DBG3(feasPP) << "FP:UA ||L-U||=" << NormL2(U.GetPointer(), L.GetPointer(), n);
+  LOG_DBG3(feasPP) << "FP:UA L=[" << L.ToString() << "]";
+  LOG_DBG3(feasPP) << "FP:UA U=[" << U.ToString() << "]";
 
   // design history
   prev_prev_x_ = prev_x_;
   prev_x_.first = force_reduction ? -1 : iter;
-  prev_x_.second = x;
+  prev_x_.second = x_vec;
 
 }
 
-double FeasPP::CalcKKT(const Vector<double>& x, const Vector<double>& x_old, const Vector<double>& y)
+/*double FeasPP::CalcStopingCriteria(const Vector<double>& x, const Vector<double>& x_old, const Vector<double>& y)
 {
   // (7.24) is abs(<grad_f,dx>) + sum_i abs(y_i * c_i) <= eps
   // holds e.g. when dx is small enough and all constraints are active (c <= 0 !!)
 
   StdVector<double> f_grad(n);
+  optimization->GetDesign()->Reset(DesignElement::COST_GRADIENT, DesignElement::DEFAULT);
   EvalGradObjective(n, x.GetPointer(), true, f_grad);
 
   double kkt = 0.0;
@@ -719,6 +767,73 @@ double FeasPP::CalcKKT(const Vector<double>& x, const Vector<double>& x_old, con
 
   return kkt;
 }
+*/
+void FeasPP::CalcKKT(const Vector<double>& x, PtrParamNode in, bool sub, bool det, bool max_norm)
+{
+  assert(!(det && !sub)); // makes not much sense
+
+  const Vector<double>& lambda = (sub && det) ? ipopt->orig_lambda : ipopt->lambda; // different in benson vanderbei case
+
+  assert(constr.GetSize() == lambda.GetSize() && constr.GetSize() == m);
+
+  optimization->GetDesign()->ReadDesignFromExtern(x.GetPointer());
+
+  // || grad_f || + sum_i || lambda_i * grad_c_i ||
+  Vector<double> tmp(n);
+  StdVector<double> grad(n);
+  Vector<double> c_val(m); // constraint values
+  Vector<double> c_pos(m); // constraint values
+  optimization->GetDesign()->Reset(DesignElement::COST_GRADIENT, DesignElement::DEFAULT);
+
+  if(sub)
+    obj->Evaluate(x.GetPointer(), Approximation::GRAD, &grad);
+  else
+    EvalGradObjective(n, x.GetPointer(), true, grad);
+  tmp.Fill(grad.GetPointer(), n);
+  LOG_DBG3(feasPP) << "FP:CKKT sub=" << sub << " det=" << det << " f_grad=" << tmp.NormMax() << " -> [" << tmp.ToString() << "]";
+  optimization->GetDesign()->Reset(DesignElement::CONSTRAINT_GRADIENT, DesignElement::DEFAULT);
+  for(unsigned int c = 0; c < m; c++)
+  {
+    const StdVector<unsigned int>& pattern = constr[c]->jac_pattern;
+    grad.Resize(pattern.GetSize());
+    Condition* g = constr[c]->GetCondition(det);
+
+    if(sub && det) {
+      c_val[c]= constr[c]->Evaluate(x.GetPointer(), Approximation::FUNC);
+      constr[c]->Evaluate(x.GetPointer(), Approximation::GRAD, &grad);
+    } else {
+      c_val[c] = EvalConstraint(g, true, true);
+      EvalGradConstraint(g, 0, true, true, grad);
+    }
+    c_pos[c] = max(c_val[c], 0.0);
+
+    for(unsigned int e = 0, en = pattern.GetSize(); e < en; e++)
+      tmp[pattern[e]] += lambda[c] * grad[e];
+
+    // LOG_DBG3(feasPP) << "FP:CKKT a=" << approx << " g=" << g->ToString() << " c=" << c_val[c] << " c_pos=" << c_pos[c] << " lambda=" << lambda[c] << " -> " << tmp.NormMax() << " grad=[" << grad.ToString() << "]";
+    LOG_DBG3(feasPP) << "FP:CKKT sub=" << sub << " det=" << det << " g=" << g->ToString() << " c=" << c_val[c] << " grad=[" << grad.ToString() << "]";
+    LOG_DBG3(feasPP) << "FP:CKKT sub=" << sub << " det=" << det << " g=" << g->ToString() << " c=" << c_val[c] << " c_pos=" << c_pos[c] << " lambda=" << lambda[c] << " -> " << tmp.NormL2() << " tmp=[" << tmp.ToString() << "]";
+
+  }
+  optimization->constraints.view->Done();
+
+  string norm = max_norm ? "max" : "L2";
+  in->Get("grad_" + norm)->SetValue(max_norm ? tmp.NormMax() : tmp.NormL2());
+
+  // feasibility: || max(0,c_i) ||
+  in->Get("feas_" + norm)->SetValue(max_norm ? c_pos.NormMax() : c_pos.NormL2());
+  LOG_DBG3(feasPP) << "FP:CKKT sub=" << sub << " det=" << det << " feas=" << c_pos.ToString();
+  LOG_DBG3(feasPP) << "FP:CKKT sub=" << sub << " det=" << det << " -> grad=" << tmp.NormMax() << " feas=" << c_pos.NormMax();
+
+  // complementarity: || lambda_i * c_i ||
+  tmp.Resize(m);
+  for(unsigned int i = 0; i < m; i++)
+      tmp[i] = lambda[i] * c_val[i];
+  LOG_DBG3(feasPP) << "FP:CKKT sub=" << sub << " det=" << det << " -> compl=" << tmp.NormMax() << " vec=" << tmp.ToString();
+  in->Get("compl_" + norm)->SetValue(max_norm ? tmp.NormMax() : tmp.NormL2());
+
+}
+
 
 void FeasPP::ToInfo(PtrParamNode in)
 {
@@ -846,7 +961,6 @@ double Approximation::Evaluate(const double* x_inner, Eval eval, StdVector<doubl
   else
     result = EvalDirect(x_inner, eval, out);
 
-  LOG_DBG2(feasPP) << "A:E f=" << ToString(true) << " d=" << eval << " -> " << (eval != FUNC ? "..." : boost::lexical_cast<std::string>(result)) << " dx=" << NormL2(common->x_outer.GetPointer(), x_inner, common->n);
   LOG_DBG3(feasPP) << "A:E f=" << ToString(true) << " d=" << eval << " -> " << (eval != FUNC ? out->ToString() : boost::lexical_cast<std::string>(result));
   return result;
 }

@@ -442,6 +442,7 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
     case BENSON_VANDERBEI_2:
     case BENSON_VANDERBEI_3:
     case TENSOR_TRACE:
+    case DESIGN_BOUND:
     case SLACK:
       assert(excite_index < 0);
       excite_ = me->excitations.GetSize() - 1; // once only at the last excitation
@@ -579,6 +580,7 @@ bool Function::IsLocal(Type t)
   case BENSON_VANDERBEI_1:
   case BENSON_VANDERBEI_2:
   case BENSON_VANDERBEI_3:
+  case DESIGN_BOUND:
     return true;
   default:
     return false;
@@ -608,6 +610,7 @@ bool Function::ForDensityFiltering() const
   {
   case PROJECTION:
   case SLACK:
+  case DESIGN_BOUND:
     // for the projection case we have a density filter manually on Function::projectionDesign only
     return false;
 
@@ -677,6 +680,7 @@ bool Function::ForSensitivityFiltering() const
   case BENSON_VANDERBEI_1:
   case BENSON_VANDERBEI_2:
   case BENSON_VANDERBEI_3:
+  case DESIGN_BOUND:
   case SLACK:
     return false;
 
@@ -820,6 +824,7 @@ void Function::PostProc(DesignSpace* space, DesignStructure* structure, ErsatzMa
   case BENSON_VANDERBEI_1:
   case BENSON_VANDERBEI_2:
   case BENSON_VANDERBEI_3:
+  case DESIGN_BOUND:
     // assert(space->IsRegular()); // VicinityElements work only on a regular grid
     // the design elements require the vicinity element to be set which holds the direct
     // neighbors. Is save to call several times
@@ -974,6 +979,7 @@ Function::Local::Local(Function* func, DesignSpace* space)
 
   case STRESS:
   case STRESS_DENSITY:
+  case DESIGN_BOUND:
     if(locality_ != ELEMENT && locality_ != DEFAULT)
       throw Exception("Invalid locality '" + locality.ToString(locality_) + "' within '" + fname + "'");
     locality_ = ELEMENT;
@@ -1574,11 +1580,15 @@ double Function::Local::Identifier::EvalFunction(const Local* local, bool grad_g
   case BENSON_VANDERBEI_1:
   case BENSON_VANDERBEI_2:
   case BENSON_VANDERBEI_3:
-    fv = CalcBensonVanderbei(-1, local, false);
+    fv = CalcBensonVanderbei(-1, local, false,  f->type_);
     break;
 
   case TENSOR_TRACE:
     fv = CalcTensorTrace(-1, local, false);
+    break;
+
+  case DESIGN_BOUND:
+    fv = CalcDesignBound(false);
     break;
 
   default:
@@ -1707,11 +1717,15 @@ void Function::Local::Identifier::EvalGradient(const Local* local)
     case BENSON_VANDERBEI_1:
     case BENSON_VANDERBEI_2:
     case BENSON_VANDERBEI_3:
-      gv = CalcBensonVanderbei(n, local, true);
+      gv = CalcBensonVanderbei(n, local, true, ft);
       break;
 
     case TENSOR_TRACE:
       gv = CalcTensorTrace(n, local, true);
+      break;
+
+    case DESIGN_BOUND:
+      gv = CalcDesignBound(true);
       break;
 
     default:
@@ -2214,7 +2228,7 @@ double Function::Local::Identifier::CalcParamPSPosDef(int neigh_idx, bool deriva
     return ret;
   }
 
-  double Function::Local::Identifier::CalcBensonVanderbei(int neigh_idx, const Local* local, bool derivative) const
+  double Function::Local::Identifier::CalcBensonVanderbei(int neigh_idx, const Local* local, bool derivative, Type type) const
   {
     const Function* f = local->func_;
     Matrix<double> E;
@@ -2234,7 +2248,7 @@ double Function::Local::Identifier::CalcParamPSPosDef(int neigh_idx, bool deriva
     // soja: e1   e2   e3   e4   e5   e6
     double   e11, e12, e22, e13, e23, e33;
 
-    switch(f->GetType())
+    switch(type)
     {
     case BENSON_VANDERBEI_1:
          e11 = E[0][0];
@@ -2339,6 +2353,21 @@ double Function::Local::Identifier::CalcParamPSPosDef(int neigh_idx, bool deriva
     assert(!(derivative && notation == DesignMaterial::VOIGT && de->GetType() == DesignElement::TENSOR33 && ret != 0.5));
 
     LOG_DBG3(func) << "L::I::CTT e_num=" << element->elem->elemNum << " ni=" << neigh_idx << " d=" << derivative << " -> " << ret << " E=" << E.ToString();
+    return ret;
+  }
+
+  double Function::Local::Identifier::CalcDesignBound(bool derivative) const
+  {
+    assert(this->neighbor.GetSize() == 0);
+
+    double val  = element->GetDesign(DesignElement::PLAIN);
+
+    assert(val == element->GetDesign(DesignElement::SMART)); // we shall not perform density filtering!
+
+    double ret = derivative ? 1.0 : val;
+
+    LOG_DBG3(func) << "L::I::CDB e=" << element->elem->elemNum << " d=" << element->type.ToString(element->GetType()) << " v=" << val << " d=" << derivative << " -> " << ret;
+
     return ret;
   }
 
