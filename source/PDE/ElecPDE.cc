@@ -342,20 +342,40 @@ namespace CoupledField {
                                             RegionIdType regionId ) {
 
     BaseBDBInt * integ = NULL;
-    shared_ptr<CoefFunction > curCoef = 
+    bool isComplex = complexMatData_[regionId];
+
+    shared_ptr<CoefFunction > curCoef;
+    if ( isComplex ) {
+      curCoef = 
+        actSDMat->GetTensorCoefFnc( ELEC_PERMITTIVITY,tensorType,
+                                   Global::COMPLEX);
+    }
+    else {
+      curCoef = 
         actSDMat->GetTensorCoefFnc( ELEC_PERMITTIVITY,tensorType,
                                    Global::REAL);
+    }
 
     // Note; in the piezoelectric case we have to multiply by -1
     Double factor = 1.0;
     if ( isPiezoCoupled_ )
       factor = -1.0;
     
-    if( dim_ == 2 ) {
-      integ = new BDBInt<GradientOperator<FeH1,2> >(curCoef, factor );
-    } else {
-      integ = new BDBInt<GradientOperator<FeH1,3> >(curCoef, factor );
+    if ( isComplex ) {
+      if( dim_ == 2 ) {
+        integ = new BDBInt<GradientOperator<FeH1,2,Complex>,Complex,Complex >(curCoef, factor );
+      } else {
+        integ = new BDBInt<GradientOperator<FeH1,3,Complex>,Complex,Complex >(curCoef, factor );
+      }
     }
+    else {
+      if( dim_ == 2 ) {
+        integ = new BDBInt<GradientOperator<FeH1,2> >(curCoef, factor );
+      } else {
+        integ = new BDBInt<GradientOperator<FeH1,3> >(curCoef, factor );
+      }
+    }
+
     return integ;
   }
   

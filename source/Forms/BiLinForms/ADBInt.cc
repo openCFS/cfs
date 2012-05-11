@@ -106,6 +106,7 @@ namespace CoupledField{
       elemMat += Transpose(aMat) * dbMat * this->factor_;
 #endif
 
+      //      std::cout << "eMat:\n " << dMat << std::endl;
     }
   }
  
