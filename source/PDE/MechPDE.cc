@@ -105,7 +105,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
 
   void MechPDE::ReadDampingInformation( ) {
 
-    bool identical = true; // i.e. same type of damping for all regions
+//    bool identical = true; // i.e. same type of damping for all regions
 
     std::map<std::string, DampingType> idDampType;
     std::map<std::string, shared_ptr<RaylDampingData> > idRaylData;
@@ -198,7 +198,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
     // Check, if all entries are identical
     for ( UInt i = 1; i < dampingList_.size(); i++ ) {
       if ( dampingList_[regions_[i-1]] != dampingList_[regions_[i]] ) {
-        identical = false;
+//        identical = false;
         break;
       }
     }
