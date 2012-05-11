@@ -203,15 +203,14 @@ namespace CoupledField {
       PDE_.UpdateToSolStrategy();
       algsys_->UpdateToSolStrategy();
 
+      // Inititalize RHS load vector
+      algsys_->InitRHS();
+      
       // set the boundary conditions
       PDE_.SetBCs();
 
       //perform the load-steps
-      Double loadFactor = 0.0;
-
-      // currently just for testing!!
-      // loop over load factor
-      loadFactor += 1.0;
+      Double loadFactor = 1.0;
       info->Get("PDE")->Get(pdename_)->Get("load_factor")->SetValue(loadFactor);
 
       // setup right hand side
