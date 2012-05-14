@@ -965,7 +965,7 @@ void LocalCondition::CalcHessian(StdVector<double>& out, double factor)
     double e23 = E[1][2]; // 5
     double e33 = E[2][2]; // 6
 
-    // (6.72) in the diss of Sonja Lehmann
+    // (6.72) in the diss of Sonja Lehmann. For the eps see Function::CalcPosDefDeterminant()!
     out[0]  = factor * (e33 - v);      // 1
     out[1]  = factor * (-2.0 * e23);   // 2
     out[2]  = factor * (e22 - v);      // 3
@@ -974,9 +974,11 @@ void LocalCondition::CalcHessian(StdVector<double>& out, double factor)
     out[5]  = factor * (2.0*e13);      // 6
     out[6]  = factor * (-2.0*e12);     // 7
     out[7]  = factor * (-2.0*e13);     // 8
-    out[8]  = factor * (e11 - v);      // 9
+    // out[8]  = factor * (e11-v-eps);    // 9
+    out[8]  = factor * (e11-v);    // 9
     out[9]  = factor * (-2.0*(e22-v)); // 10
     out[10] = factor * (2.0*e12);      // 11
+    // out[11] = factor * (-2.0*(e11-v-eps)); // 12
     out[11] = factor * (-2.0*(e11-v)); // 12
     break;
   }

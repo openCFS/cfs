@@ -420,7 +420,7 @@ void FeasSubProblem::finalize_solution(SolverReturn status,
   x_final.Resize(n);
   x_final.Fill(x, n);
 
-  LOG_DBG3(feasPP) << "FSP:fs x=" << x_final.ToString();
+  LOG_DBG3(feasPP) << "FSP:fs x=[" << x_final.ToString() << "]";
 
   z_l_.Resize(n);
   z_l_.Import(z_L, n);

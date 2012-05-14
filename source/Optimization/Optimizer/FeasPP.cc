@@ -810,8 +810,7 @@ void FeasPP::CalcKKT(const Vector<double>& x, PtrParamNode in, bool sub, bool de
     for(unsigned int e = 0, en = pattern.GetSize(); e < en; e++)
       tmp[pattern[e]] += lambda[c] * grad[e];
 
-    // LOG_DBG3(feasPP) << "FP:CKKT a=" << approx << " g=" << g->ToString() << " c=" << c_val[c] << " c_pos=" << c_pos[c] << " lambda=" << lambda[c] << " -> " << tmp.NormMax() << " grad=[" << grad.ToString() << "]";
-    LOG_DBG3(feasPP) << "FP:CKKT sub=" << sub << " det=" << det << " g=" << g->ToString() << " c=" << c_val[c] << " grad=[" << grad.ToString() << "]";
+    LOG_DBG3(feasPP) << "FP:CKKT sub=" << sub << " det=" << det << " D" << Function::type.ToString(g->GetType()) << "=[" << grad.ToString() << "]";
     LOG_DBG3(feasPP) << "FP:CKKT sub=" << sub << " det=" << det << " g=" << g->ToString() << " c=" << c_val[c] << " c_pos=" << c_pos[c] << " lambda=" << lambda[c] << " -> " << tmp.NormL2() << " tmp=[" << tmp.ToString() << "]";
 
   }

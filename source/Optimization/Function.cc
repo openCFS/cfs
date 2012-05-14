@@ -2142,14 +2142,13 @@ double Function::Local::Identifier::CalcParamPSPosDef(int neigh_idx, bool deriva
   {
     const Function* f = local->func_;
     Matrix<double> E;
-    // (E - v*I) >= gamma
     double v = f->GetParameter();
 
     // the sub-tensor-type does'nt matter
     // we need the HILL_MANDEL representation which is the plain design while it is transformed to Voigt for simulation
     local->space->GetErsatzMaterialTensor(E, PLANE_STRAIN, element->elem, DesignElement::NO_DERIVATIVE, DesignMaterial::HILL_MANDEL);
 
-    LOG_DBG3(func) << "L::I::CFMOPD e_num=" << element->elem->elemNum << " v=" << v << " E=" << E.ToString(0, false);
+    // LOG_DBG3(func) << "L::I::CPDD e_num=" << element->elem->elemNum << " v=" << v << " obs=" << obs << " eps=" <<  eps << " E=" << E.ToString(0, false);
 
     // see e.g. the phd thesis of Sonja Lehmann chap. 6.4 for implementation
     // for (E - v*I) >= 0 we have the determinants
@@ -2167,7 +2166,11 @@ double Function::Local::Identifier::CalcParamPSPosDef(int neigh_idx, bool deriva
     {
     case POS_DEF_DET_MINOR_1:
          e11 = E[0][0];
+         // Standard: e11-v;
+         // Standard with eps: e11-v-eps;
+
          if(!derivative)
+           // ret = e11-v-eps;
            ret = e11-v;
          else
            ret = neigh_idx == -1 ? 1.0 : 0.0;
@@ -2177,6 +2180,8 @@ double Function::Local::Identifier::CalcParamPSPosDef(int neigh_idx, bool deriva
          e11 = E[0][0];
          e22 = E[1][1];
          e12 = E[0][1];
+         // Standard: (e11-v)*(e22-v) - (e12*e12);
+         // Standard with eps: (e11-v-eps)*(e22-v) - (e12*e12) - eps;
          if(!derivative)
            ret = (e11-v)*(e22-v) - (e12*e12);
          else
@@ -2184,8 +2189,9 @@ double Function::Local::Identifier::CalcParamPSPosDef(int neigh_idx, bool deriva
            switch(GetElement(neigh_idx)->GetType())
            {
              case DesignElement::TENSOR11: ret = e22-v; break;
-             case DesignElement::TENSOR22: ret = e11-v; break;
+             // case DesignElement::TENSOR22: ret = e11-v-eps; break;
              case DesignElement::TENSOR12: ret = -2.0 * e12; break;
+             case DesignElement::TENSOR22: ret = e11-v; break;
              default: assert(false);
            }
          }
@@ -2199,22 +2205,52 @@ double Function::Local::Identifier::CalcParamPSPosDef(int neigh_idx, bool deriva
          e13 = E[0][2];
          e12 = E[0][1];
 
-         //return // e11*e22*e33+e12*e23*e13+e13*e12*e23-e13*e22*e13-e12*e21*e33-e11*e23*e23;
+         // Sarrus: e11*e22*e33+e12*e23*e13+e13*e12*e23-e13*e22*e13-e12*e21*e33-e11*e23*e23;
+         // Sarrus symmetric: (e11-v)*(e22-v)*(e33-v) + 2.0*e12*e23*e13 - e13*(e22-v)*e13 - e12*e12*(e33-v) - (e11-v)*e23*e23;
+         // Sonja: (e33-v) *((e11-v)*(e22-v) - (e12*e12)) + 2.0* e12*e13 *e23 - e13**2 * (e22-v) - e23**2 * (e11-v)
+         // Sonja with eps: ((e33-v) *((e11-v-eps)*(e22-v) - (e12*e12) - eps) + 2.0* e12*e13 *e23 - e13**2 * (e22-v) - e23**2 * (e11-v-eps)) - eps;
          if(!derivative)
          {
-           ret = (e11-v)*(e22-v)*(e33-v) + 2.0*e12*e23*e13 - e13*(e22-v)*e13 - e12*e12*(e33-v) - (e11-v)*e23*e23;
+           ret = (e11-v)*(e22-v)*(e33-v) + 2.0*e12*e23*e13 - e13*(e22-v)*e13 - e12*e12*(e33-v) - (e11-v)*e23*e23;;
          }
          else
          {
            switch(GetElement(neigh_idx)->GetType())
            {
+             /** this are the nice gradients w.r.t Sarrus
              case DesignElement::TENSOR11: ret = (e22-v)*(e33-v) - e23*e23; break;
              case DesignElement::TENSOR22: ret = (e11-v)*(e33-v) - e13*e13; break;
              case DesignElement::TENSOR33: ret = (e11-v)*(e22-v) - e12*e12; break;
              case DesignElement::TENSOR23: ret = 2.0*e12*e13     - 2.0*e23*(e11-v); break;
              case DesignElement::TENSOR13: ret = 2.0*e12*e23     - 2.0*e13*(e22-v); break;
              case DesignElement::TENSOR12: ret = 2.0*e23*e13     - 2.0*e12*(e33-v); break;
-             default: assert(false);
+             */
+           case DesignElement::TENSOR11:
+             ret = (e22-v)*(e33-v) - e23*e23;
+             break;
+           case DesignElement::TENSOR22:
+             // Sarrus: ret = (e11-v)*(e33-v) - e13*e13;
+             // ret = (e33 - v)*(- v - eps + e11) - e13*e13;
+             ret = (e11-v)*(e33-v) - e13*e13;
+             break;
+           case DesignElement::TENSOR33:
+             // Sarrus: ret = (e11-v)*(e22-v) - e12*e12;
+             // ret = (e22 - v) * (- v - eps + e11) - eps - e12*e12;
+             ret = (e11-v)*(e22-v) - e12*e12;
+             break;
+           case DesignElement::TENSOR23:
+             // Sarrus: ret = 2.0*e12*e13     - 2.0*e23*(e11-v);
+             // ret = 2.0*e12*e13 - 2.0*e23*(- v - eps + e11);
+             ret = 2.0*e12*e13     - 2.0*e23*(e11-v);
+             break;
+           case DesignElement::TENSOR13:
+             ret = 2.0*e12*e23     - 2.0*e13*(e22-v);
+             break;
+           case DesignElement::TENSOR12:
+             ret = 2.0*e23*e13     - 2.0*e12*(e33-v);
+             break;
+
+           default: assert(false);
            }
          }
          break;
@@ -2223,17 +2259,20 @@ double Function::Local::Identifier::CalcParamPSPosDef(int neigh_idx, bool deriva
              break;
     } // end switch f->GetType()
     assert(ret != 12345678.0);
-    LOG_DBG3(func) << "L::I::CFMOPD e_num=" << element->elem->elemNum << " f=" << Function::type.ToString(f->GetType()) << " for " << Function::type.ToString(type)
-                   << " ni=" << neigh_idx << "  des=" << DesignElement::type.ToString(GetElement(neigh_idx)->GetType()) << " d=" << derivative << " -> " << ret;
+    LOG_DBG3(func) << "L::I::CPDD e_num=" << element->elem->elemNum << " g=" << Function::type.ToString(f->GetType()) << " for " << Function::type.ToString(type)
+                   << " ni=" << neigh_idx << " v=" << v << "  des=" << DesignElement::type.ToString(GetElement(neigh_idx)->GetType()) << " d=" << derivative << " -> " << ret;
     return ret;
   }
 
   double Function::Local::Identifier::CalcBensonVanderbei(int neigh_idx, const Local* local, bool derivative, Type type) const
   {
-    const Function* f = local->func_;
+    const Condition* g = dynamic_cast<const Condition*>(local->func_);
     Matrix<double> E;
     // (E - v*I) >= gamma
-    double v = f->GetParameter();
+    double v = g->GetParameter();
+    // in case, we are used as "approximation" of the benson vanderbei constraints:
+    //   det1(x) = bv1(x) - eps  <-- this eps is also on the left side!!
+    double eps = 0.0; // * g->GetBoundValue();
 
     // the sub-tensor-type does'nt matter
     // we need the HILL_MANDEL representation which is the plain design while it is transformed to Voigt for simulation
@@ -2253,7 +2292,8 @@ double Function::Local::Identifier::CalcParamPSPosDef(int neigh_idx, bool deriva
     case BENSON_VANDERBEI_1:
          e11 = E[0][0];
          if(!derivative)
-           ret = e11-v;
+           // ret = e11-v;
+           ret = e11-v-eps;
          else
            ret = neigh_idx == -1 ? 1.0 : 0.0;
          break;
@@ -2264,14 +2304,22 @@ double Function::Local::Identifier::CalcParamPSPosDef(int neigh_idx, bool deriva
          e12 = E[0][1];
          if(!derivative)
            // (e3-v) - e2*e2/(e1-v)
-           ret = (e22-v) - (e12*e12)/(e11-v);
+           //ret = (e22-v) - (e12*e12)/(e11-v);
+           ret = (e22-v) - (e12*e12)/(e11-v) - eps*e11;
          else
          {
            switch(GetElement(neigh_idx)->GetType())
            {
-             case DesignElement::TENSOR11: ret = (e12*e12)/((e11-v)*(e11-v)); break;
-             case DesignElement::TENSOR12: ret = -2.0 * e12/(e11-v); break;
-             case DesignElement::TENSOR22: ret = 1.0; break;
+             case DesignElement::TENSOR11:
+               // ret = (e12*e12)/((e11-v)*(e11-v));
+               ret = (e12*e12)/((e11-v)*(e11-v)) - eps;
+               break;
+             case DesignElement::TENSOR12:
+               ret = -2.0 * e12/(e11-v);
+               break;
+             case DesignElement::TENSOR22:
+               ret = 1.0;
+               break;
              default: assert(false);
            }
          }
@@ -2326,7 +2374,7 @@ double Function::Local::Identifier::CalcParamPSPosDef(int neigh_idx, bool deriva
              break;
     } // end switch f->GetType()
     assert(ret != 12345678.0);
-    LOG_DBG3(func) << "L::I::CBV e_num=" << element->elem->elemNum << " f=" << Function::type.ToString(f->GetType())
+    LOG_DBG3(func) << "L::I::CBV e_num=" << element->elem->elemNum << " g=" << Function::type.ToString(g->GetType())
                    << " ni=" << neigh_idx << "  des=" << DesignElement::type.ToString(GetElement(neigh_idx)->GetType()) << " d=" << derivative << " -> " << ret;
     return ret;
   }
