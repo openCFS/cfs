@@ -2227,9 +2227,11 @@ namespace CoupledField {
         // Determine, which volume element is the right neighbor for the
         // calculation;
         // our normal should point out of the correct neighbor volume element!
-        if ( (actSurfElem->ptVolElem1->regionId
-              == actSurfElem->ptVolElem2->regionId)
-              && (actSurfElem->ptVolElem1->regionId != NO_REGION_ID) )
+        if ( (actSurfElem->ptVolElem1 != NULL)
+             && (actSurfElem->ptVolElem2 != NULL)
+             && (actSurfElem->ptVolElem1->regionId
+                == actSurfElem->ptVolElem2->regionId)
+             && (actSurfElem->ptVolElem1->regionId != NO_REGION_ID) )
         {
           /* That means the surfRegion lies inside of a volume region. Why
            * would anyone do that? This is a problem, because we cannot

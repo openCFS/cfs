@@ -1710,7 +1710,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
     // timestepping formulation
     PtrParamNode myLinSysNode = FindLinearSystem( pdename_ );
 
-    // <system name="acoustic"/> exists
+    // <system name="mechanic"/> exists
     if( myLinSysNode ) {
 
       std::string str = "";
