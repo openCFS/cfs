@@ -262,6 +262,9 @@ double DesignMaterial::GetLameMaterialMass(DesignElement::Type direction){
 void DesignMaterial::GetTransIsoMaterialTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction){
   double E = params_[DesignElement::EMODULISO];
   double E3 = params_[DesignElement::EMODUL];
+  double G3 = params_[DesignElement::GMODUL];
+  if(type_ == DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC_BOXED)
+    G3 = 2*G3;
   double nu13 = params_[DesignElement::POISSON]; //used as theta in the boxed formulations
 
   if(subTensor == PLANE_STRESS){ //This is only implemented for density times tensor formulations yet
@@ -293,7 +296,6 @@ void DesignMaterial::GetTransIsoMaterialTensor(Matrix<double>& t, SubTensorType 
         D3 = E3/(1-nu13);
         nD3 = sqrt(E*E3*nu13)/(1-nu13);
       }
-      double G3 = params_[DesignElement::GMODUL];
       SetTransIsoTensor(t, subTensor, dens*D, 0, 0, dens*D3, dens*nD3, dens*G3);
       break;
     }
@@ -318,7 +320,6 @@ void DesignMaterial::GetTransIsoMaterialTensor(Matrix<double>& t, SubTensorType 
         D3 = E3/(1-nu13);
         nD3 = sqrt(E*E3*nu13)/(1-nu13);
       }
-      double G3 = params_[DesignElement::GMODUL];
       SetTransIsoTensor(t, subTensor, dens*D, 0, 0, dens*D3, dens*nD3, dens*G3);
       break;
     }
@@ -459,7 +460,6 @@ void DesignMaterial::GetTransIsoMaterialTensor(Matrix<double>& t, SubTensorType 
     double D3 = (1.0-nu)*E3/c;
     double nD = (nu+n3)*f;
     double nD3 = (1.0+nu)*nu3*f;
-    double G3 = params_[DesignElement::GMODUL];
     double G = 0.5*E/(1.0+nu);
     SetTransIsoTensor(t, subTensor, D, nD, G, D3, nD3, G3);
     return;

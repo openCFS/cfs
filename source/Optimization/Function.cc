@@ -1867,14 +1867,16 @@ double Function::Local::Identifier::CalcSumModuli() const
       break;
     }
   }
-  return E1+E3+G;
+  return E1+E3+2*G;
 }
 
 void Function::Local::Identifier::CalcSumModuliGradient(int neigh_idx, const Objective* f, const Condition* g, double value)
 {
   DesignElement::Type type = GetElement(neigh_idx)->GetType();
-  if (type == DesignElement::EMODULISO || type == DesignElement::EMODUL || type == DesignElement::GMODUL)
+  if (type == DesignElement::EMODULISO || type == DesignElement::EMODUL)
     GetElement(neigh_idx)->AddGradient(f, g, value);
+  else if (type == DesignElement::GMODUL)
+    GetElement(neigh_idx)->AddGradient(f, g, 2*value);
 }
 
 double Function::Local::Identifier::CalcParamPSPosDef(int neigh_idx, bool derivative) const
