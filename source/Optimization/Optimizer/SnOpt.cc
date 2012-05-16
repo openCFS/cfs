@@ -145,10 +145,6 @@ void SnOpt::Init()
   LOG_TRACE(snopt) << "get_bounds_info";
   GetBounds(n, xlow.GetPointer(), xupp.GetPointer(), nF - 1, &Flow[1], &Fupp[1]);
   
-  // cheap and doesn't care if not necessary
-  ReorderDesign(n, xlow.GetPointer(), false);
-  ReorderDesign(n, xupp.GetPointer(), false);
-
   //for(unsigned int i = 0; i < Flow.GetSize(); ++i)
     //std::cout << "Flow[" << i << "] = " << Flow[i] << ", Fupp[" << i << "] = " << Fupp[i] << std::endl;
   gradhelper.Resize(std::max(n_obj_grad, nG - n_obj_grad), 0.0);
@@ -191,8 +187,6 @@ void SnOpt::SolveProblem()
   LOG_TRACE(snopt) << "get_starting_point";
   optimization->GetDesign()->WriteDesignToExtern(x.GetPointer());
   LOG_DBG3(snopt) << "SP x-org: " << StdVector<double>::ToString(n, x.GetPointer());
-  ReorderDesign(n, &x[0], false);
-  LOG_DBG3(snopt) << "SP x-srt: " << StdVector<double>::ToString(n, x.GetPointer());
   
   // this must always be called AFTER sninit!!!
   AdjustWorkArrayMemory();
@@ -322,7 +316,6 @@ int SnOpt::Callback(integer* Status, const integer n,
   // reorder design
   StdVector<double> x;
   x.Import(x_snopt, n);
-  ReorderDesign(n, x.GetPointer(), true);
 
   LOG_DBG(snopt)  << "CB: needF=" << *needF << " needG=" << *needG << " x_avg = " << Average(x.GetPointer(), n) << " x_std_dev = " << StandardDeviation(x.GetPointer(), n);
   LOG_DBG3(snopt) << "CB: x_org=" << StdVector<double>::ToString(n, x_snopt);
@@ -651,7 +644,7 @@ void SnOpt::initJacobians()
   for(unsigned int e = 0; e < pattern.GetSize(); e++)
   {
     iGfun.Push_back(cstr);
-    jGvar.Push_back(order_map[pattern[e]] + 1);
+    jGvar.Push_back(pattern[e] + 1);
     
     LOG_DBG3(snopt) << "cost function" << "; iGfun[" << index << "] = " << iGfun[index] << ", jGvar[" << index << "] = " << jGvar[index];
     ++index;
@@ -672,7 +665,7 @@ void SnOpt::initJacobians()
       for(unsigned int e = 0; e < patternsize; ++e)
       {
         iAfun.Push_back(cstr);
-        jAvar.Push_back(order_map[pattern[e]] + 1);
+        jAvar.Push_back(pattern[e] + 1);
 
         LOG_DBG3(snopt) << "IJ:lin g = " << g->ToString() << "; iAfun[" << indexlin << "] = " << iAfun[indexlin]
                         << " pattern=" << pattern[e] << ", jAvar[" << indexlin << "] = " << jAvar[indexlin];
@@ -686,7 +679,7 @@ void SnOpt::initJacobians()
       for(unsigned int e = 0; e < patternsize; ++e)
       {
         iGfun.Push_back(cstr);
-        jGvar.Push_back(order_map[pattern[e]] + 1);
+        jGvar.Push_back(pattern[e] + 1);
         
         LOG_DBG3(snopt) << "IJ:nonlin g = " << g->ToString() << "; iGfun[" << index << "] = " << iGfun[index]
                         << " pattern=" << pattern[e] << ", jGvar[" << index << "] = " << jGvar[index];

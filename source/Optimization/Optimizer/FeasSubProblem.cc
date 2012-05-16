@@ -99,6 +99,10 @@ std::string FeasSubProblem::SolveProblem(PtrParamNode in, double refine)
     msg = "Insufficient memory";
     break;
 
+  case Infeasible_Problem_Detected:
+    msg = "Infeasible problem detected";
+    break;
+
   case Maximum_Iterations_Exceeded:
   {
     int value = 0;
@@ -112,7 +116,7 @@ std::string FeasSubProblem::SolveProblem(PtrParamNode in, double refine)
     break;
 
   default:
-    msg = (status < 0 ? "error: " : "warning: ") + lexical_cast<int>(status);
+    msg = (status < 0 ? "error: " : "warning: ") + lexical_cast<std::string>(status);
     break;
   }
 

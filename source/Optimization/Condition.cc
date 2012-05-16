@@ -942,6 +942,8 @@ void LocalCondition::CalcHessian(StdVector<double>& out, double factor)
 {
   assert(IsLocal());
 
+  double eps = GetBoundValue();
+
   assert(out.GetSize() == GetHessianSparsityPattern().GetNumRows());
 
   switch(type_)
@@ -974,12 +976,12 @@ void LocalCondition::CalcHessian(StdVector<double>& out, double factor)
     out[5]  = factor * (2.0*e13);      // 6
     out[6]  = factor * (-2.0*e12);     // 7
     out[7]  = factor * (-2.0*e13);     // 8
-    // out[8]  = factor * (e11-v-eps);    // 9
-    out[8]  = factor * (e11-v);    // 9
+    out[8]  = factor * (e11-v-eps);    // 9
+    //out[8]  = factor * (e11-v);    // 9
     out[9]  = factor * (-2.0*(e22-v)); // 10
     out[10] = factor * (2.0*e12);      // 11
-    // out[11] = factor * (-2.0*(e11-v-eps)); // 12
-    out[11] = factor * (-2.0*(e11-v)); // 12
+    out[11] = factor * (-2.0*(e11-v-eps)); // 12
+    //out[11] = factor * (-2.0*(e11-v)); // 12
     break;
   }
   default:

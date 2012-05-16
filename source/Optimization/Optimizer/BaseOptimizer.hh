@@ -97,7 +97,7 @@ namespace CoupledField
      * @param normalize transform to g <= 0 constraint. */
     void EvalConstraints(int n, const double* x, int m, bool cfs_scale, double* g, bool normalize);
     
-    /** Evaluates the constraint gradients and does reordering if necessary
+    /** Evaluates the constraint gradients
      * @param cfs_scale @see EvalObjective()
      * @param nonlin_only snopt makes a difference between linear and nonlinear constraints and only
      *  need evaluation for the nonlinear part */
@@ -181,28 +181,6 @@ namespace CoupledField
       
       BaseOptimizer* base_;
     };
-
-    /** some optimizers allow gradient reodering as required for FeasSCP. CFS orders by design type */
-    typedef enum { BY_DESIGN, BY_ELEMENT } Order;
-
-    /** @see order_map.  */
-    void SetupOrderMap(Order order);
-
-    /** applies order_map to the design and the design bounds
-     * @param reverse mean to transform the optimizer design back to cfs design order */
-    void ReorderDesign(int n, double* x, bool reverse);
-
-    Enum<Order> order;
-
-    /** Do we need to reoder the gradients (BY_DESIGN means no) */
-    Order order_;
-
-    /** DesignSpace is design ordered (all elements for design 1, all elements for design 2, ...).
-     * For FeasSCP with feasibility constraints we assume element ordering.
-     * This provides the 0-based mapping.
-     * In case of by_design we simply map 0-based identity!
-     * @see SetupOrderMap(); */
-    StdVector<int> order_map;
 
     /** out type */
     Optimization::Optimizer type_;

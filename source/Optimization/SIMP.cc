@@ -299,6 +299,9 @@ double SIMP::CalcFunction(Excitation& excite, Function* f, bool derivative)
   // this app is for the PDE
   Application app = ToApp(pde);
 
+  if(!derivative)
+    return ErsatzMaterial::CalcFunction(excite, f, derivative);
+
   // only special derivatives, the rest also EM
   switch(f->GetType())
   {

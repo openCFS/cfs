@@ -2140,9 +2140,12 @@ double Function::Local::Identifier::CalcParamPSPosDef(int neigh_idx, bool deriva
 
   double Function::Local::Identifier::CalcPosDefDeteminant(int neigh_idx, const Local* local, bool derivative, Type type) const
   {
-    const Function* f = local->func_;
+    const Condition* g = dynamic_cast<const Condition*>(local->func_);
+
+    double v = g->GetParameter();
+    double eps = g->GetBoundValue();
+
     Matrix<double> E;
-    double v = f->GetParameter();
 
     // the sub-tensor-type does'nt matter
     // we need the HILL_MANDEL representation which is the plain design while it is transformed to Voigt for simulation
@@ -2183,7 +2186,7 @@ double Function::Local::Identifier::CalcParamPSPosDef(int neigh_idx, bool deriva
          // Standard: (e11-v)*(e22-v) - (e12*e12);
          // Standard with eps: (e11-v-eps)*(e22-v) - (e12*e12) - eps;
          if(!derivative)
-           ret = (e11-v)*(e22-v) - (e12*e12);
+           ret = (e11-v-eps)*(e22-v) - (e12*e12);
          else
          {
            switch(GetElement(neigh_idx)->GetType())
@@ -2191,7 +2194,7 @@ double Function::Local::Identifier::CalcParamPSPosDef(int neigh_idx, bool deriva
              case DesignElement::TENSOR11: ret = e22-v; break;
              // case DesignElement::TENSOR22: ret = e11-v-eps; break;
              case DesignElement::TENSOR12: ret = -2.0 * e12; break;
-             case DesignElement::TENSOR22: ret = e11-v; break;
+             case DesignElement::TENSOR22: ret = e11-v-eps; break;
              default: assert(false);
            }
          }
@@ -2211,7 +2214,7 @@ double Function::Local::Identifier::CalcParamPSPosDef(int neigh_idx, bool deriva
          // Sonja with eps: ((e33-v) *((e11-v-eps)*(e22-v) - (e12*e12) - eps) + 2.0* e12*e13 *e23 - e13**2 * (e22-v) - e23**2 * (e11-v-eps)) - eps;
          if(!derivative)
          {
-           ret = (e11-v)*(e22-v)*(e33-v) + 2.0*e12*e23*e13 - e13*(e22-v)*e13 - e12*e12*(e33-v) - (e11-v)*e23*e23;;
+           ret = (e33-v) *((e11-v-eps)*(e22-v) - (e12*e12) - eps) + 2.0* e12*e13 *e23 - e13*e13 * (e22-v) - e23*e23 * (e11-v-eps);
          }
          else
          {
@@ -2228,28 +2231,27 @@ double Function::Local::Identifier::CalcParamPSPosDef(int neigh_idx, bool deriva
            case DesignElement::TENSOR11:
              ret = (e22-v)*(e33-v) - e23*e23;
              break;
+           case DesignElement::TENSOR12:
+             ret = 2.0*e23*e13     - 2.0*e12*(e33-v);
+             break;
            case DesignElement::TENSOR22:
              // Sarrus: ret = (e11-v)*(e33-v) - e13*e13;
-             // ret = (e33 - v)*(- v - eps + e11) - e13*e13;
-             ret = (e11-v)*(e33-v) - e13*e13;
-             break;
-           case DesignElement::TENSOR33:
-             // Sarrus: ret = (e11-v)*(e22-v) - e12*e12;
-             // ret = (e22 - v) * (- v - eps + e11) - eps - e12*e12;
-             ret = (e11-v)*(e22-v) - e12*e12;
+             ret = (e33 - v)*(e11- v - eps) - e13*e13;
+             // ret = (e11-v)*(e33-v) - e13*e13;
              break;
            case DesignElement::TENSOR23:
              // Sarrus: ret = 2.0*e12*e13     - 2.0*e23*(e11-v);
-             // ret = 2.0*e12*e13 - 2.0*e23*(- v - eps + e11);
-             ret = 2.0*e12*e13     - 2.0*e23*(e11-v);
+             ret = 2.0*e12*e13 - 2.0*e23*(- v - eps + e11);
+             // ret = 2.0*e12*e13     - 2.0*e23*(e11-v);
              break;
            case DesignElement::TENSOR13:
              ret = 2.0*e12*e23     - 2.0*e13*(e22-v);
              break;
-           case DesignElement::TENSOR12:
-             ret = 2.0*e23*e13     - 2.0*e12*(e33-v);
+           case DesignElement::TENSOR33:
+             // Sarrus: ret = (e11-v)*(e22-v) - e12*e12;
+             ret = (e22 - v) * (- v - eps + e11) - eps - e12*e12;
+             // ret = (e11-v)*(e22-v) - e12*e12;
              break;
-
            default: assert(false);
            }
          }
@@ -2259,7 +2261,7 @@ double Function::Local::Identifier::CalcParamPSPosDef(int neigh_idx, bool deriva
              break;
     } // end switch f->GetType()
     assert(ret != 12345678.0);
-    LOG_DBG3(func) << "L::I::CPDD e_num=" << element->elem->elemNum << " g=" << Function::type.ToString(f->GetType()) << " for " << Function::type.ToString(type)
+    LOG_DBG3(func) << "L::I::CPDD e_num=" << element->elem->elemNum << " g=" << Function::type.ToString(g->GetType()) << " for " << Function::type.ToString(type)
                    << " ni=" << neigh_idx << " v=" << v << "  des=" << DesignElement::type.ToString(GetElement(neigh_idx)->GetType()) << " d=" << derivative << " -> " << ret;
     return ret;
   }
@@ -2272,7 +2274,7 @@ double Function::Local::Identifier::CalcParamPSPosDef(int neigh_idx, bool deriva
     double v = g->GetParameter();
     // in case, we are used as "approximation" of the benson vanderbei constraints:
     //   det1(x) = bv1(x) - eps  <-- this eps is also on the left side!!
-    double eps = 0.0; // * g->GetBoundValue();
+    double eps = g->GetBoundValue();
 
     // the sub-tensor-type does'nt matter
     // we need the HILL_MANDEL representation which is the plain design while it is transformed to Voigt for simulation
@@ -2305,17 +2307,17 @@ double Function::Local::Identifier::CalcParamPSPosDef(int neigh_idx, bool deriva
          if(!derivative)
            // (e3-v) - e2*e2/(e1-v)
            //ret = (e22-v) - (e12*e12)/(e11-v);
-           ret = (e22-v) - (e12*e12)/(e11-v) - eps*e11;
+           ret = (e22-v) - (e12*e12)/(e11-v-eps);
          else
          {
            switch(GetElement(neigh_idx)->GetType())
            {
              case DesignElement::TENSOR11:
                // ret = (e12*e12)/((e11-v)*(e11-v));
-               ret = (e12*e12)/((e11-v)*(e11-v)) - eps;
+               ret = (e12*e12)/((e11-v-eps)*(e11-v-eps));
                break;
              case DesignElement::TENSOR12:
-               ret = -2.0 * e12/(e11-v);
+               ret = -2.0 * e12/(e11-v-eps);
                break;
              case DesignElement::TENSOR22:
                ret = 1.0;
@@ -2336,32 +2338,57 @@ double Function::Local::Identifier::CalcParamPSPosDef(int neigh_idx, bool deriva
          if(!derivative)
          {
            // (e6-v) + (2.0*e2*e4*e5 - e4*e4*(e3-v) - e5*e5*(e1-v))/((e3-v)*(e1-v)-e2*e2);
-           ret = (e33-v) + (2.0*e12*e13*e23 - e13*e13*(e22-v) - e23*e23*(e11-v))/((e22-v)*(e11-v)-e12*e12);
+           // ret = (e33-v) + (2.0*e12*e13*e23 - e13*e13*(e22-v) - e23*e23*(e11-v))/((e22-v)*(e11-v)-e12*e12);
+           // from maxima: (d3 -eps) / (d2 - eps)
+           ret = (-e23*e23 *(- v - eps + e11) + ((e22 - v)* (- v - eps + e11) - eps - e12*e12 )
+               *  (e33 - v) - e13*e13 * (e22 - v) - eps + 2.0 * e12 * e13 * e23)
+               /((e22 - v) * (- v - eps + e11) - eps - e12*e12 );
+
          }
          else
          {
            switch(GetElement(neigh_idx)->GetType())
            {
-             case DesignElement::TENSOR11: ret = -((-e13*e13*(e22-v)-e23*e23*(e11-v)+2.0*e12*e13*e23)*(e22-v))
-                                                 / pow((e11-v)*(e22-v)-e12*e12, 2)
-                                               - (e23*e23)
-                                                 / ((e11-v)*(e22-v)-e12*e12);
+             // case DesignElement::TENSOR11: ret = -((-e13*e13*(e22-v)-e23*e23*(e11-v)+2.0*e12*e13*e23)*(e22-v))
+             //                                    / pow((e11-v)*(e22-v)-e12*e12, 2)
+             //                                  - (e23*e23)
+             //                                    / ((e11-v)*(e22-v)-e12*e12);
+           case DesignElement::TENSOR11: ret = ( (e22 - v) * (e33 - v) - e23*e23) / ((e22 - v) * (- v - eps + e11) - eps - e12*e12 )
+                                             - ((-e23 *e23 * (- v - eps + e11) + ((e22 - v) * (- v - eps + e11) - eps - e12*e12 )
+                                             * (e33 - v) - e13 * e13 * (e22 - v) - eps + 2.0 * e12 * e13 * e23) * (e22 - v))
+                                             / pow(((e22 - v) *(- v - eps + e11) - eps - e12*e12 ), 2);
+
              break;
-             case DesignElement::TENSOR12: ret = (2.0*e13*e23)
-                                                 / ((e11-v)*(e22-v)-e12*e12)
-                                               + (2.0*e12*(-e13*e13*(e22-v)-e23*e23*(e11-v)+2.0*e12*e13*e23))
-                                                 / pow((e11-v)*(e22-v)-e12*e12, 2);
+             // case DesignElement::TENSOR12: ret = (2.0*e13*e23)
+             //                                    / ((e11-v)*(e22-v)-e12*e12)
+             //                                  + (2.0*e12*(-e13*e13*(e22-v)-e23*e23*(e11-v)+2.0*e12*e13*e23))
+             //                                     / pow((e11-v)*(e22-v)-e12*e12, 2);
+           case DesignElement::TENSOR12: ret = (2.0 * e13 * e23 - 2.0 * e12 * (e33 - v) ) / ((e22 - v) * (- v - eps + e11) - eps - e12*e12)
+                                             + (2.0 * e12 *(- e23*e23 * (- v - eps + e11) + ((e22 - v)* (- v - eps + e11) - eps
+                                             - e12*e12 ) * (e33 - v) - e13 * e13 * (e22 - v) - eps + 2.0 * e12 * e13  * e23))
+                                             / pow(((e22 - v) * (- v - eps + e11) - eps - e12*e12 ), 2);
+
+
              break;
-             case DesignElement::TENSOR22: ret = -((-e13*e13*(e22-v)-e23*e23*(e11-v)+2.0*e12*e13*e23)*(e11-v))
-                                                 / pow((e11-v)*(e22-v)-e12*e12,2)
-                                               - (e13*e13)
-                                                 / ((e11-v)*(e22-v)-e12*e12);
+             // case DesignElement::TENSOR22: ret = -((-e13*e13*(e22-v)-e23*e23*(e11-v)+2.0*e12*e13*e23)*(e11-v))
+             //                                    / pow((e11-v)*(e22-v)-e12*e12,2)
+             //                                  - (e13*e13)
+             //                                    / ((e11-v)*(e22-v)-e12*e12);
+           case DesignElement::TENSOR22: ret = ((e33 - v)* (- v - eps + e11) - e13*e13) / ((e22 - v) * (- v - eps + e11) - eps - e12*e12)
+                                             - ((- e23*e23 * (- v - eps + e11) + ((e22 - v) * (- v - eps + e11) - eps - e12*e12 )
+                                             *  (e33 - v) - e13*e13 * (e22 - v) - eps + 2.0 * e12 * e13 * e23) * (- v - eps + e11))
+                                             / pow((e22 - v) * (- v - eps + e11) - eps - e12*e12 , 2);
+
              break;
-             case DesignElement::TENSOR13: ret = (2.0*e12*e23-2.0*e13*(e22-v))
-                                                 / ((e11-v)*(e22-v)-e12*e12);
+             // case DesignElement::TENSOR13: ret = (2.0*e12*e23-2.0*e13*(e22-v))
+             //                                    / ((e11-v)*(e22-v)-e12*e12);
+           case DesignElement::TENSOR13: ret = (2.0 * e12 * e23 - 2.0 *e13 * (e22 - v))
+                                             / ((e22 - v) * (- v - eps + e11) - eps - e12*e12);
              break;
-             case DesignElement::TENSOR23: ret = (2.0*e12*e13-2.0*e23*(e11-v))
-                                                  / ((e11-v)*(e22-v)-e12*e12);
+             // case DesignElement::TENSOR23: ret = (2.0*e12*e13-2.0*e23*(e11-v))
+             //                                      / ((e11-v)*(e22-v)-e12*e12);
+           case DesignElement::TENSOR23: ret = ( 2.0 * e12 * e13 - 2.0 * e23 * (- v - eps + e11))
+                                             / ((e22 - v) * (- v - eps + e11) - eps - e12*e12);
              break;
              case DesignElement::TENSOR33: ret = 1.0;
              break;

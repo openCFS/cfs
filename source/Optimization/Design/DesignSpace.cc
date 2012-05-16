@@ -92,8 +92,7 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
         nd++;
       }
     }
-    else
-      assert(false); // no unique design
+    // tolerate non unique designs - e.g. for different regions
   }
 
   // now read the transfer functions

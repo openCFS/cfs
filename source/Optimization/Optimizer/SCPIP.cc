@@ -178,7 +178,7 @@ void SCPIP::SetConstraintSparsityPattern()
         StdVector<unsigned int>& pattern = g->GetSparsityPattern();
         for(unsigned int e = 0; e < pattern.GetSize(); e++)
         {
-          iern[ie_nnz] = order_map[pattern[e]] + 1; // fortran!
+          iern[ie_nnz] = pattern[e] + 1; // fortran!
           iecn[ie_nnz] = ie +1; // fortran
           ie_nnz++;
         }
@@ -192,7 +192,7 @@ void SCPIP::SetConstraintSparsityPattern()
       StdVector<unsigned int>& pattern = g->GetSparsityPattern();
       for(unsigned int e = 0; e < pattern.GetSize(); e++)
       {
-        eqrn[eq_nnz] = order_map[pattern[e]] + 1; // fortran!
+        eqrn[eq_nnz] = pattern[e] + 1; // fortran!
         eqcn[eq_nnz] = eq +1; // fortran
         eq_nnz++;
       }
@@ -246,9 +246,6 @@ bool SCPIP::get_bounds_info(int n, double* x_l, double* x_u,
 {
   GetBounds(n, x_l, x_u, m, g_l, g_u);
 
-  ReorderDesign(n, x_l, false);
-  ReorderDesign(n, x_u, false);
-
   return true;
 }
 
@@ -257,8 +254,6 @@ bool SCPIP::get_starting_point(int n, double* x)
   // we initialize x in bounds, in the upper right quadrant
   optimization->GetDesign()->WriteDesignToExtern(x);
 
-  ReorderDesign(n, x, false);
-
   return true;
 }
 
@@ -266,7 +261,6 @@ bool SCPIP::eval_f(int n, const double* x_org, double& obj_value)
 {
   StdVector<double> x_srt;
   x_srt.Import(x_org, n);
-  ReorderDesign(n, x_srt.GetPointer(), true);
 
   obj_value = EvalObjective(n, x_srt.GetPointer(), true); // always CFS scale!
   return true;
@@ -276,7 +270,6 @@ bool SCPIP::eval_grad_f(int n, const double* x_org, double* grad_f)
 {
   StdVector<double> x_srt;
   x_srt.Import(x_org, n);
-  ReorderDesign(n, x_srt.GetPointer(), true);
   
   // restart_requested handled in intermediate_callback
   assert(grad_f == df.GetPointer());
@@ -293,7 +286,6 @@ bool SCPIP::eval_g(int n, const double* x_org, int m, double* g)
 {
   StdVector<double> x_srt;
   x_srt.Import(x_org, n);
-  ReorderDesign(n, x_srt.GetPointer(), true);
 
   EvalConstraints(n, x_srt.GetPointer(), m, true, g, false); // we normalize in SCPIPBase
 
@@ -304,7 +296,6 @@ bool SCPIP::eval_jac_g(int n, const double* x_org, int m, int nele_jac, double* 
 {
   StdVector<double> x_srt;
   x_srt.Import(x_org, n);
-  ReorderDesign(n, x_srt.GetPointer(), true);
 
   // the gradients are dense in SCPIPBase
   assert(values != NULL);

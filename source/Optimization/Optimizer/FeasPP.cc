@@ -163,7 +163,7 @@ void FeasPP::PostInit()
   assert(m == m_c + m_e);
 
 
-  // in case of benson vanderbei constraints add the determinant constraints as observation constraints and use them for the subproblem
+  // in case of benson vanderbei constraints search for the determinant constraints as observation constraints and use them for the subproblem
   for(unsigned int c = 0; c < cc.active.GetSize(); c++)
   {
     Condition* g = cc.active[c];
@@ -174,11 +174,15 @@ void FeasPP::PostInit()
     case Function::BENSON_VANDERBEI_3:
     {
       Function::Type det = TranslateFeasibilityConstraint(g->GetType()); // the other function
-      if(!cc.Has(det, g->GetDesignType(), false)) // also observation
-        throw Exception("using benson vanderbei constraints requires to have positive definite determinat constraints in observation");
+      if(!cc.Has(det, g->GetDesignType(), false)) { // also observation
+        info->Get("optimization/optimizer")->Get(ParamNode::HEADER)->Get("feasPP")->Get(ParamNode::WARNING)->SetValue("using benson vanderbei constraints requires to have positive definite determinat constraints in observation");
+        continue;
+      }
       LocalCondition* other = dynamic_cast<LocalCondition*>(cc.Get(det, g->GetDesignType(), false));
-      if(!other->IsObservation())
-        throw Exception("having benson vanderbei constraints requires the positive definite determinat constraints to be in observation mode");
+      if(!other->IsObservation()) {
+        info->Get("optimization/optimizer")->Get(ParamNode::HEADER)->Get("feasPP")->Get(ParamNode::WARNING)->SetValue("having benson vanderbei constraints requires the positive definite determinat constraints to be in observation mode");
+        continue;
+      }
 
       LocalCondition* loc_g = dynamic_cast<LocalCondition*>(g);
       assert(loc_g->GetConstraintSize() == other->GetConstraintSize());
@@ -305,8 +309,10 @@ void FeasPP::SolveProblem()
     LOG_DBG2(feasPP) << "SP: it=" << iter << " x_new_org = [" << ipopt->x_final.ToString() << "]";
 
     CalcKKT(ipopt->x_final, in->Get("kkt_det"), true, true, true);  // subproblem max-norm
-    CalcKKT(ipopt->x_final, in->Get("kkt_vb"), true, false, true);  // sub problem max-norm
+    if(approx_vanderbei_by_determinants)
+      CalcKKT(ipopt->x_final, in->Get("kkt_vb"), true, false, true);  // sub problem max-norm
     CalcKKT(ipopt->x_final, in->Get("kkt_out"), false, false, true);  // sub problem max-norm
+    CalcKKT(ipopt->x_final, in->Get("kkt_out"), false, false, false);  // sub problem L2-norm
 
     in->Get("ul")->SetValue(NormL2(U.GetPointer(), L.GetPointer(), n));
 

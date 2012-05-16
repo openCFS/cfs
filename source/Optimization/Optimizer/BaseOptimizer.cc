@@ -199,22 +199,8 @@ BaseOptimizer::BaseOptimizer(Optimization* opt, PtrParamNode pn, Optimization::O
   gen_opt_pn_  =  pn;
   this_opt_pn_ =  pn->Get(Optimization::optimizer.ToString(optimization->GetOptimizerType()), ParamNode::PASS);
 
-  // std::cout << "gen_opt_pn_:" << std::endl;
-  // gen_opt_pn_->Dump();
-  // std::cout << "this_opt_pn_:" << std::endl;
-  // this_opt_pn_->Dump();
-
-  order.SetName("BaseOptimizer::Order");
-  order.Add(BY_DESIGN, "by_design");
-  order.Add(BY_ELEMENT, "by_element");
-
-  // snopt, scpip and feasscp
-  order_ = (gen_opt_pn_ != NULL && gen_opt_pn_->Has("order")) ? order.Parse(gen_opt_pn_->Get("order")->As<std::string>()) : BY_DESIGN;
-  SetupOrderMap(order_);
-
   LOG_DBG(optimizer) << "BO: gen_opt_pn_=" << gen_opt_pn_->GetName();
   LOG_DBG(optimizer) << "BO: this_opt_pn_=" << (this_opt_pn_ != NULL ? this_opt_pn_->GetName() : "null") ;
-  LOG_DBG(optimizer) << "BO: order= " << order.ToString(order_);
 
   info_->Get(ParamNode::SUMMARY)->Get("timer")->SetValue(this->timer_ );
 }
@@ -294,24 +280,6 @@ void BaseOptimizer::LogFileLine(std::ofstream* out, PtrParamNode iteration)
     if(out) *out << "\t" << mv;
   }
 
-}
-
-void BaseOptimizer::SetupOrderMap(Order o)
-{
-  assert(o == order_);
-
-  // we have to handle the slackvariable!
-  const DesignSpace* space = optimization->GetDesign();
-
-  order_map.Reserve(space->GetNumberOfVariables());
-  assert(space->GetNumberOfVariables() == space->elements * space->design.GetSize());
-
-  // cfs has design as outer loop, we need design as outer loop
-  for(unsigned int d = 0; d < space->design.GetSize(); d++)
-    for(unsigned int e = 0; e < space->elements; e++)
-      order_map.Push_back(o == BY_ELEMENT ? (d + (space->design.GetSize() * e)) : order_map.GetSize());
-
-  LOG_DBG3(optimizer) << "SOM: o=" << order.ToString(o) << " -> " << order_map.ToString();
 }
 
 
@@ -568,18 +536,6 @@ void BaseOptimizer::EvalGradConstraints(int n, const double* x, int m, int nentr
   timer_->Start();
 }
 
-void BaseOptimizer::ReorderDesign(int n, double* x, bool reverse)
-{
-  assert((int) order_map.GetSize() == n);
-
-  StdVector<double> tmp(n);
-
-  for(int i = 0; i < n; i++)
-    reverse ? tmp[i] = x[order_map[i]] : tmp[order_map[i]] = x[i];
-
-  for(int i = 0; i < n; i++)
-    x[i] = tmp[i];
-}
 
 void BaseOptimizer::GetBounds(int n, double* x_l, double* x_u, int m, double* g_l, double* g_u)
 {
