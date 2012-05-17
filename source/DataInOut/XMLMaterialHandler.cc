@@ -551,7 +551,9 @@ namespace CoupledField {
           info.measAccuracy = 0.01;
           info.maxVal = 2.5;
           info.fileName = "";
-          
+          info.fncStr = "";
+          info.fncDerivStr = "";          
+
           // read approximation type  
           if(anIsoNodes[i]->Has("angle")) {
             info.angle =  anIsoNodes[i]->Get("angle")->As<Double>();
@@ -909,6 +911,8 @@ namespace CoupledField {
           info.measAccuracy = 0.01;
           info.maxVal = 2.5;
           info.fileName = "";
+          info.fncStr = "";
+          info.fncDerivStr = "";
           
           // read approximation type  
           if(iso->Has("approxType")) {
@@ -928,6 +932,14 @@ namespace CoupledField {
           if(iso->Has("dataName")) 
             info.fileName = iso->Get("dataName")->As<std::string>().c_str();
           
+              // read analytic expression of function
+          if(iso->Has("fncExpr")) 
+            info.fncStr = iso->Get("fncExpr")->As<std::string>().c_str();
+
+          // read analytic expression of derivative of function
+          if(iso->Has("fncDerivExpr")) 
+            info.fncDerivStr = iso->Get("fncDerivExpr")->As<std::string>().c_str();
+
           //set info to material class
           material->SetNonLinMat(MAG_PERMEABILITY, info);
         } // nonlinear isotropic material   
@@ -952,6 +964,8 @@ namespace CoupledField {
               info.measAccuracy = 0.01;
               info.maxVal = 2.5;
               info.fileName = "";
+              info.fncStr = "";
+              info.fncDerivStr = "";
               
               // read approximation type  
               if(anIsoNodes[i]->Has("angle")) {
@@ -975,12 +989,22 @@ namespace CoupledField {
               // read name of function file 
               if(anIsoNodes[i]->Has("dataName")) 
                 info.fileName = anIsoNodes[i]->Get("dataName")->As<std::string>().c_str();
-              
+
+              // read analytic expression of function
+              if(anIsoNodes[i]->Has("fncExpr")) 
+                info.fncStr = anIsoNodes[i]->Get("fncExpr")->As<std::string>().c_str();
+
+              // read analytic expression of derivative of function
+              if(anIsoNodes[i]->Has("fncDerivExpr")) 
+                info.fncDerivStr = anIsoNodes[i]->Get("fncDericExpr")->As<std::string>().c_str();
+             
               nlData[i].angle        = info.angle;
               nlData[i].fileName     = info.fileName;
               nlData[i].approxType   = info.approxType;
               nlData[i].measAccuracy = info.measAccuracy;
               nlData[i].maxVal       = info.maxVal;
+              nlData[i].fncStr       = info.fncStr;
+              nlData[i].fncDerivStr  = info.fncDerivStr;
             }
             material->SetNonLinMagBHcurves(MAG_PERMEABILITYCURVES, nlData);
           }
@@ -1053,6 +1077,8 @@ namespace CoupledField {
           info.measAccuracy = 0.01;
           info.maxVal = 1000;
           info.fileName = "";
+          info.fncStr = "";
+          info.fncDerivStr = "";
 
           // read approximation type  
           if(iso->Has("approxType")) {
@@ -1114,7 +1140,9 @@ namespace CoupledField {
             info.measAccuracy = 0.01;
             info.maxVal = 1000;
             info.fileName = "";
-            
+            info.fncStr = "";
+            info.fncDerivStr = "";            
+
             // read approximation type  
             if(iso->Has("approxType")) {
               std::string type =  iso->Get("approxType")->As<std::string>();

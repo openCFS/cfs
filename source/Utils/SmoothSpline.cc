@@ -17,6 +17,10 @@ namespace CoupledField
     : ApproxData( nlFileName, matType )
   {
 
+    ReadNlinFunc(nlFileName);
+    PerformChecksOnInputData();
+
+
     delta_ = 0.01;
     mu_    = 1e-8;;
     node_  = numMeas_-2;       // nummeas = number of measurements

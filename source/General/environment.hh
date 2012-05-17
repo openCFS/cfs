@@ -215,7 +215,7 @@ namespace CoupledField {
 
 
   // type of approximation / interpolation
-  typedef enum{ NO_APPROX_TYPE, LIN_INTERPOLATE, CUBIC_SPLINES, SMOOTH_SPLINES } ApproxCurveType;
+  typedef enum{ NO_APPROX_TYPE, LIN_INTERPOLATE, CUBIC_SPLINES, SMOOTH_SPLINES, ANALYTIC } ApproxCurveType;
 
   //! material parameter to be approximated / interpolated
   typedef enum{ GENERIC, MAGNETIC_MAT_BH, HEAT_MAT_CONDUCTIVITY, HEAT_MAT_CAPACITY }  ApproxMaterialCurves;

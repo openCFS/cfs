@@ -16,6 +16,7 @@
 #include "Materials/baseMaterial.hh"
 #include "Utils/ApproxData.hh"
 #include "Utils/SmoothSpline.hh"
+#include "Utils/ApproxAnalytic.hh"
 #include "Utils/hysteresis.hh"
 #include "Utils/preisach.hh"
 #include "Utils/tools.hh"
@@ -374,16 +375,24 @@ namespace CoupledField
     // check, if we need to approx BH curve
     if (  needApproxMatCurves_.find( MAG_PERMEABILITY ) != needApproxMatCurves_.end() 
           && nonLinMagBHcurvesInfo_.size() == 0) {
-      std::string nlfnc = nonLinMatInfo_[MAG_PERMEABILITY].fileName;
-      nlinFncBH_ = new SmoothSpline(nlfnc, MAG_PERMEABILITY);
 
-      nlinFncBH_->SetAccuracy( nonLinMatInfo_[MAG_PERMEABILITY].measAccuracy );
-      nlinFncBH_->SetMaxY( nonLinMatInfo_[MAG_PERMEABILITY].maxVal );   //maximal value of magnetic induction B
-      nlinFncBH_->CalcBestParameter();
-      nlinFncBH_->CalcApproximation();
-      nlinFncBH_->Print(); 
+      if ( nonLinMatInfo_[MAG_PERMEABILITY].fncStr !="" ) {
+        nlinFncBH_ = new ApproxAnalytic("", MAG_PERMEABILITY);
+        nlinFncBH_->SetAnalyticExpressions( nonLinMatInfo_[MAG_PERMEABILITY].fncStr,
+                                            nonLinMatInfo_[MAG_PERMEABILITY].fncDerivStr);
+      }
+      else {
+        std::string nlfnc = nonLinMatInfo_[MAG_PERMEABILITY].fileName;
+        nlinFncBH_ = new SmoothSpline(nlfnc, MAG_PERMEABILITY);
+        
+        nlinFncBH_->SetAccuracy( nonLinMatInfo_[MAG_PERMEABILITY].measAccuracy );
+        nlinFncBH_->SetMaxY( nonLinMatInfo_[MAG_PERMEABILITY].maxVal );   //maximal value of magnetic induction B
+        nlinFncBH_->CalcBestParameter();
+        nlinFncBH_->CalcApproximation();
+        nlinFncBH_->Print(); 
+      }
     }
-
+  
     // check, if we need to approx a bundle of nl-curve
     if ( needApproxMatCurves_.find( MAG_PERMEABILITY ) != needApproxMatCurves_.end() 
          && nonLinMagBHcurvesInfo_.size() > 0) {

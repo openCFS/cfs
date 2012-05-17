@@ -6,6 +6,7 @@
 #include <math.h>
 #include <iostream>
 #include <string>
+#include <sstream>
 
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/ResultCache.hh"
@@ -179,6 +180,7 @@ class Hysteresis;
   {
 
     bool performOneMoreStep;
+    Double incrementalErr, residualErr;
 
     Vector<Double> solInc( numEqns_ );
 
@@ -265,14 +267,12 @@ class Hysteresis;
           }
 
           // calculation of residual error =======================================
-          Double residualErr;
           if ( RhsLinL2Norm > 1.0 )
             residualErr = residualL2Norm / RhsLinL2Norm;
           else
             residualErr = residualL2Norm;
 
           // calculate incremental error ========================================
-      	  Double incrementalErr;
       	  Double solIncrL2Norm = solInc.NormL2();
           Double actSolL2Norm  = actSol.NormL2();
 
@@ -295,9 +295,15 @@ class Hysteresis;
 
     } // load step loop
 
-    if ( performOneMoreStep )
-      std::cerr << "\n WARNING: StepStaticNonLin: Not converged! \n" << std::endl;;
-
+    if ( performOneMoreStep ) {
+      Info->PrintF( pdename_, "NL scheme not converged\n" );
+      std::stringstream out;
+      out << "Residual error: " <<  residualErr << " ; Incremental error: " << incrementalErr 
+          << std::endl << std::endl;
+      std::string strAll = out.str();
+      Info->PrintF( pdename_, strAll.c_str() );
+    }
+    
   }
 
 
@@ -530,6 +536,7 @@ class Hysteresis;
     bool performOneMoreStep;
     Vector<Double> solInc( numEqns_ );
 
+    Double residualErr, incrementalErr;
     //get actual solution
     Vector<Double>  actSol =
       dynamic_cast<Vector<Double>&>(*(PDE_.GetSolutionVector()));
@@ -616,7 +623,6 @@ class Hysteresis;
           residualL2Norm = PDE_.GetRhsL2Norm(actRHS);
         }
 
-        Double residualErr;
         if ( RhsLinL2Norm > 1.0 )
           residualErr    = residualL2Norm /  RhsLinL2Norm;
         else
@@ -625,8 +631,7 @@ class Hysteresis;
         // calculate incremental error
         Double solIncrL2Norm = solInc.NormL2();
         Double actSolL2Norm = actSol.NormL2();
-        Double incrementalErr;
-
+ 
         if ( actSolL2Norm > 1.0)
           incrementalErr = solIncrL2Norm / actSolL2Norm;
         else
@@ -646,6 +651,21 @@ class Hysteresis;
       } while(performOneMoreStep && iterationCounter < nonLinMaxIter_);
 
     } // load step loop
+
+    if ( performOneMoreStep ) {
+      UInt actStep = (UInt) mParser_->Eval(mHandle_);
+      std::string strAll = "NL scheme for time step ";
+      std::string nrStep;
+      std::stringstream out;
+      out << actStep;
+      strAll +=  out.str() + " not converged!\n";
+      Info->PrintF( pdename_, strAll.c_str() );
+      out.str(std::string());
+      out << "Residual error: " <<  residualErr << " ; Incremental error: " << incrementalErr 
+          << std::endl << std::endl;
+      strAll = out.str();
+      Info->PrintF( pdename_, strAll.c_str() );
+    }
 
     UInt& iterCoupledCounter = PDE_.GetIterCoupledCounter();
     if ( PDE_.IsIterCoupled() )

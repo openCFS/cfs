@@ -98,7 +98,9 @@
       <xsd:element name="approxType" type="xsd:string"/>
       <xsd:element name="measAccuracy" type="DT_NonNegFloat"/>
       <xsd:element name="maxApproxVal" type="DT_NonNegFloat"/>
-      <xsd:element name="dataName" type="xsd:string"/>
+      <xsd:element name="dataName"     type="xsd:string" minOccurs="0" maxOccurs="1"/>
+      <xsd:element name="fncExpr"      type="xsd:string" minOccurs="0" maxOccurs="1"/>
+      <xsd:element name="fncDerivExpr" type="xsd:string" minOccurs="0" maxOccurs="1"/>
     </xsd:sequence>
   </xsd:complexType>
 
@@ -118,7 +120,9 @@
       <xsd:element name="approxType"   type="xsd:string"/>
       <xsd:element name="measAccuracy" type="DT_NonNegFloat"/>
       <xsd:element name="maxApproxVal" type="DT_NonNegFloat"/>
-      <xsd:element name="dataName"     type="xsd:string"/>
+      <xsd:element name="dataName"     type="xsd:string" minOccurs="0" maxOccurs="1"/>
+      <xsd:element name="fncExpr"      type="xsd:string" minOccurs="0" maxOccurs="1"/>
+      <xsd:element name="fncDerivExpr" type="xsd:string" minOccurs="0" maxOccurs="1"/>
     </xsd:sequence>
   </xsd:complexType>
 

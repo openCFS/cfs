@@ -32,6 +32,8 @@ class ApproxData;
   struct nlMatDescriptor {
     ApproxCurveType approxType;
     std::string fileName;
+    std::string fncStr;
+    std::string fncDerivStr;
     Double measAccuracy;
     Double maxVal;
     Double angle;

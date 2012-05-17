@@ -852,6 +852,9 @@ namespace CoupledField {
     else if ( in == "smoothSplines" ) {
       out = SMOOTH_SPLINES;
     }
+    else if ( in == "analytic" ) {
+      out = ANALYTIC;
+    }
     else {
       EXCEPTION( "'" << in << "' cannot be converted into an '"
                  << "DataType' item!" );
@@ -1180,6 +1183,9 @@ namespace CoupledField {
       break;
     case SMOOTH_SPLINES:
       out = "smoothSplines";
+      break;
+    case ANALYTIC:
+      out = "analytic";
       break;
     default:
       EXCEPTION( "No string value found for the specified value of the "

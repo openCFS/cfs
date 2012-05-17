@@ -356,7 +356,7 @@ namespace CoupledField {
       // if default variables should be set, we define missing variables
       if( setDefaults ) {
         StdVector<std::string> defaults;
-        defaults = "t", "f", "x", "y", "z";
+        defaults = "t", "f", "x", "y", "z", "b";
         StdVector<std::string>::iterator it = defaults.Begin();
         for( ; it != defaults.End(); ++it ) {
           if ( globPool.find( *it) == globPool.end() )  {

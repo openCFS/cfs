@@ -16,9 +16,6 @@ namespace CoupledField
     matType_ = matType;
     nlFileName_ = nlFileName;
 
-    ReadNlinFunc(nlFileName);
-
-    PerformChecksOnInputData();
   }
 
 
