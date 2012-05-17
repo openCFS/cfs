@@ -3308,4 +3308,95 @@ void LinearFlowNoiseInt::ComputeNormalVec( const Matrix<Double>& ptCoord,
 
   }
 
+
+  // =============================================================================
+  // acoustic RHS from flow simulation (CAA) using flow pressure fluctuations
+  // =============================================================================
+  linFlowPressureRHSInt::linFlowPressureRHSInt( bool isaxi, 
+                                                const std::string& readerId,
+                                                const std::string& regionName ) :
+    LinearForm(),
+    readerId_(readerId),
+    actStep_(0),
+    lastStep_(0),
+    sequenceStep_(1) // assume, that acoustic results do not come from multi sequence analysis
+  {
+    name_ = "linFlowPressureRHSInt";
+    isaxi_ = isaxi;
+    
+    regionNames_.Push_back(regionName);
+
+    // Specify that we want to use the current step number.
+    mParser_->SetExpr( mHandle_, "step" );
+      
+  }
+
+  linFlowPressureRHSInt::~linFlowPressureRHSInt() {}
+  
+  void linFlowPressureRHSInt::CalcElemVector( Vector<Double>& rhsSrc,
+                                                     EntityIterator& ent )
+  {
+    // Extract pointer to reference element and get coordinates
+    ExtractElemInfo( ent );
+
+    ptelem->SetAnsatzFct( ansatzFct1_ );
+    const UInt numFncs = ptelem->GetNumFncs( ansatzFct1_ );
+    const UInt nrIntPts = ptelem->GetNumIntPoints();
+    const UInt spacedim = ptelem->GetDim();
+    const Vector<Double> & intWeights = ptelem->GetIntWeights();
+
+
+    // get current time step of transient analysis
+    actStep_ = (UInt) mParser_->Eval(mHandle_);
+    
+    if ( lastStep_ < actStep_ ) {
+      // get result only once per time step
+      resPress_ = domain->GetResultHandler()->GetStoreSol<Double>( readerId_,
+                                                                   sequenceStep_, 
+                                                                   actStep_, 
+                                                                   FLUIDMECH_PRESSURE, 
+                                                                   regionNames_ );
+      lastStep_ = actStep_;
+    }
+    
+    // retrieve flow pressure for element
+    Vector<Double> elemSol;
+    resPress_->GetElemSolution(elemSol, ent);
+
+    //    std::cout << "Pressure: \n " << elemSol << std::endl;
+
+    rhsSrc.Resize( numFncs );
+    rhsSrc.Init();
+
+    Double jacDet, factor;
+    Vector<Double> solGradAtIp, ShpFncAtIp, CoordAtIp;
+    Matrix<Double> xiDx;
+    solGradAtIp.Resize(spacedim);
+
+    for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++) {  
+      ptelem->GetGlobDerivShFncAtIp( xiDx , actIntPt, ptCoord_, 
+                                     jacDet, ent.GetElem() );     
+      if (isaxi_) {
+        ptelem->GetShFncAtIp( ShpFncAtIp, actIntPt, ent.GetElem() );
+        CoordAtIp = ptCoord_ * ShpFncAtIp;
+        jacDet *= 2 * PI * CoordAtIp[0];
+      }
+      
+      // gradient of flow pressure
+      solGradAtIp.Init();
+      for ( UInt i=0; i<spacedim; i++ ) {
+        for ( UInt j=0; j<numFncs; j++ ) {
+          solGradAtIp[i] += xiDx[j][i] * elemSol[j];
+        }
+      }
+      
+      factor = jacDet * intWeights[actIntPt-1];
+      // source element vector
+      for (UInt i=0; i< numFncs; i++) {      
+        for (UInt j=0; j<spacedim; j++)
+          rhsSrc[i] += factor * xiDx[i][j] * solGradAtIp[j];
+      }
+    }
+  }
+
 } // end of namespace

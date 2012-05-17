@@ -484,6 +484,39 @@ namespace CoupledField
   };
 
 
+
+  // =============================================================================
+  // acoustic source term in CAA: flow pressure
+  // =============================================================================
+  
+  /// compute acoustic power source in heat conduction PDE
+  class linFlowPressureRHSInt : public LinearForm
+  {
+  public:
+    ///
+    linFlowPressureRHSInt( bool isaxi, 
+                        const std::string& readerId, 
+                        const std::string& regionName );
+  
+    ///
+    virtual ~linFlowPressureRHSInt();
+    
+    //! calculate RHS source vector
+    void CalcElemVector( Vector<Double>& rhsvec, EntityIterator& ent);
+      
+
+  private:
+    
+    std::string readerId_;
+    StdVector<std::string> regionNames_;
+    UInt actStep_, lastStep_;
+    UInt sequenceStep_;
+    shared_ptr<NodeStoreSol<Double> > resPress_;
+    
+};
+
+
+
   // =============================================================================
   // compute nonlinear rhs for acoustics
   // =============================================================================

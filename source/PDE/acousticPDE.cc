@@ -1085,6 +1085,38 @@ namespace CoupledField {
       eqnMap_->AddResult( *results_[0], impedanceBCs_[i]->entities );
     }
     
+
+    // =======================================================================
+    //check for flow sources: pressure formulation
+    // =======================================================================
+    ParamNodeList flowSrcNodes =
+      myParam_->Get("bcsAndLoads")->GetList("flowPresSrc");
+
+    std::string rhsFileId;
+    try {
+      // iterate over all parameter nodes
+      for( UInt i = 0; i < flowSrcNodes.GetSize(); i++ ) {
+        std::string rhsRegion(flowSrcNodes[i]->Get("region")->As<std::string>());
+        rhsFileId = flowSrcNodes[i]->Get("inputId")->As<std::string>();
+
+        linFlowPressureRHSInt* sourceRHSInt = 
+          new linFlowPressureRHSInt( isaxi_, rhsFileId, rhsRegion );
+
+        LinearFormContext* sourceRHSContext = new LinearFormContext( sourceRHSInt );
+        sourceRHSContext->SetPtPde( this );
+
+        shared_ptr<ElemList> rhsElemList( new ElemList(ptgrid_ ) );
+        rhsElemList->SetRegion( ptgrid_->GetRegion().Parse(rhsRegion) );
+        sourceRHSContext->SetResult( results_[0], rhsElemList );
+        assemble_->AddLinearForm( sourceRHSContext );
+      }
+    }
+    catch(Exception & ex) {
+      RETHROW_EXCEPTION(ex, "Could not assemble RHSFlowPressureRHSInt integrator"
+                        <<" in acousticPDE" );
+    }
+
+
     
     // =======================================================================
     // Integrators for NonConforming Interfaces

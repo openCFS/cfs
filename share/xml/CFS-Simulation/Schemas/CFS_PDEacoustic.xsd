@@ -167,6 +167,7 @@
                 <xsd:element name="flowData"       type="DT_AcousticFlow"/>
                 <xsd:element name="rhsValues"      type="DT_AcousticRHS"
                   minOccurs="0" maxOccurs="1"/>
+                <xsd:element name="flowPresSrc"    type="DT_AcouFlowPressSrc"/>
                 <xsd:element name="impedance"      type="DT_AcouImpedance"/>
               </xsd:choice>
             </xsd:complexType>
@@ -625,6 +626,15 @@
       </xsd:choice>
     </xsd:sequence>
   </xsd:complexType>
+
+  <!-- ******************************************************************* -->
+  <!-- Element type for specifying flow pressure source term -->
+  <!-- ******************************************************************* -->
+  <xsd:complexType name="DT_AcouFlowPressSrc">
+    <xsd:attribute name="region" type="xsd:token" use="required"/>
+    <xsd:attribute name="inputId" type="xsd:token" use="optional"/>
+  </xsd:complexType>
+
 
   <!-- ******************************************************************* -->
   <!--   Definition of data type for damping model -->
