@@ -794,7 +794,6 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
     {
       return CalcHomogenizedTensorConstraint(g, derivative);
     }
-    assert(false);
     return 0.0;
   }
 

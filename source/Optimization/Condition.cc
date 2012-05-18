@@ -841,6 +841,11 @@ Function::Local::Identifier& LocalCondition::GetCurrentVirtualContext()
   return local->virtual_elem_map[idx];
 }
 
+unsigned int LocalCondition::GetSparsityPatternSize() const
+{
+  return local->virtual_elem_map[0].neighbor.GetSize() + 1;
+}
+
 StdVector<unsigned int>& LocalCondition::GetSparsityPattern()
 {
   /* for debug purposes you can enable the dense pattern by commenting out
@@ -942,7 +947,6 @@ void LocalCondition::CalcHessian(StdVector<double>& out, double factor)
 {
   assert(IsLocal());
 
-  double eps = GetBoundValue();
 
   assert(out.GetSize() == GetHessianSparsityPattern().GetNumRows());
 
@@ -958,6 +962,8 @@ void LocalCondition::CalcHessian(StdVector<double>& out, double factor)
     Matrix<double> E;
     // (E - v*I) >= gamma
     double v = GetParameter();
+    double eps = 1.0 * GetBoundValue();
+
     Function::Local::Identifier& id = GetCurrentVirtualContext();
     local->space->GetErsatzMaterialTensor(E, PLANE_STRAIN, id.element->elem, DesignElement::NO_DERIVATIVE, DesignMaterial::HILL_MANDEL); // the sub-tensor-type does'nt matter
     double e11 = E[0][0]; // 1
@@ -1231,17 +1237,12 @@ void ConditionContainer::VirtualView::Refresh()
     if(Function::IsLocal(cand))
     {
       const StdVector<Condition*>& c = container_->GetList(cand, DesignElement::NO_TYPE, false);
-      for(UInt i=0; i<c.GetSize(); ++i)
+      for(UInt i=0; i<c.GetSize(); ++i) {
         tmp.push_back(c[i]->GetIndex());
-      LOG_DBG2(conditions) << "CC:VV:R: add " << Function::type.ToString(cand) << " c=" << c.GetSize();
+        LOG_DBG2(conditions) << "CC:VV:R: add " << Function::type.ToString(cand) << " c=" << c.GetSize() << " idx=" << c[i]->GetIndex();
+      }
     }
   }
-
-  // we might combine oscillation for void and material with different sizes
-  StdVector<Condition*> list = container_->GetList(Condition::OSCILLATION, DesignElement::NO_TYPE, false);
-  for(unsigned int i = 0; i < list.GetSize(); i++)
-    tmp.push_back(list[i]->GetIndex());
-
   tmp.sort();
 
   // copy sorted
@@ -1266,6 +1267,8 @@ void ConditionContainer::VirtualView::Refresh()
 
     if(lc->GetConstraintSize() > 0)
       virtual_total_size_ += lc->GetConstraintSize() -1;
+
+    LOG_DBG2(conditions) << "CC:VV:R i=" << i << " lci=" << local_cond_index_[i] << " lc=" << lc->ToString() << " vas=" << virtual_active_size_ << " vts=" << virtual_total_size_;
   }
 
   // set the virtual base indices
@@ -1278,7 +1281,7 @@ void ConditionContainer::VirtualView::Refresh()
       curr += std::max((int) dynamic_cast<LocalCondition*>(g)->GetConstraintSize(), 1);
     else
       curr++;
-    LOG_DBG2(conditions) << "CC:VV:Refresh() g=" << g->ToString() << " vbi=" << g->virtual_base_index_ << " new curr=" << curr;
+    LOG_DBG2(conditions) << "CC:VV:R g=" << g->ToString() << " vbi=" << g->virtual_base_index_ << " new curr=" << curr;
   }
   assert(curr == virtual_total_size_);
 }

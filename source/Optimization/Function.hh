@@ -182,13 +182,16 @@ class Function
     bool IsExcitationSensitive() const;
 
     /** to be overwritten in Condition */
-    virtual bool HasDenseJacobian() const { return type_ != SLACK;  }
+    virtual bool HasDenseJacobian() const { return true; }
 
     /** Gives the sparsity pattern of the Jacobian. It gives the sorted, 0-based indices which have
      * values. For the dens case this is 0, 1, ... m.
      * This works only after ConditionContainer::PostProc() is called as otherwise the design is not known yet.
-     * Is overwritten for the slope constraint which actually has spare patterns. */
+     * Is overwritten for local constraint which actually has spare patterns. */
     virtual StdVector<unsigned int>& GetSparsityPattern();
+
+    /** LocalCondition::GetSparsityPattern() is always evaluated, this allows to a speed up */
+    virtual unsigned int GetSparsityPatternSize() const { return jac_sparsity_.GetSize(); }
 
     /** Gives the sparsity pattern of the Hessian. Only for special nonlinear local functions */
     virtual Matrix<unsigned int>& GetHessianSparsityPattern();
@@ -572,12 +575,9 @@ class Function
     /** extract the "coord" element and parse it to coord */
     static void ParseCoord(PtrParamNode pn, tuple<int, int, double>& coord);
 
-    /** By the size of DesignSpace::GetNumberOfVariables() which might include slack - to be handled in AuxDesign */
+    /** By the size of DesignSpace::GetNumberOfVariables() which might include slack - to be handled in AuxDesign.
+     * the sparse patterns are determined on the fly by LocalCondition::GetSparsityPattern() */
     void SetDenseSparsityPattern(DesignSpace* space);
-
-    /** only slack has defined sparsity pattern, the local condition pattern is
-     * calculated on the fly by LocalCondition::GetSparsityPattern() */
-    void SetSparseSparsityPattern(DesignSpace* space);
 
     /** This is DEFAULT (= applies always) if not defined */
     DesignElement::Type design_;

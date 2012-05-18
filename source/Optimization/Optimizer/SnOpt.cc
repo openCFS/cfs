@@ -414,19 +414,19 @@ bool SnOpt::get_nlp_info()
     if(g->IsLinear())
     {
       ++lin_constraints;
-      nA += g->GetSparsityPattern().GetSize(); // zero slopes
+      nA += g->GetSparsityPatternSize(); // zero slopes
       LOG_DBG3(snopt) << "gni: lin:" << Function::type.ToString(g->GetType()) << " lc=" << lin_constraints << " sps=" << g->GetSparsityPattern().GetSize() << " -> nA=" << nA;
     }
     else
     {
       ++nonlin_constraints;
-      nG += g->GetSparsityPattern().GetSize();
+      nG += g->GetSparsityPatternSize();
       LOG_DBG3(snopt) << "gni: nonlin:" << Function::type.ToString(g->GetType()) << " nc=" << nonlin_constraints << " sps=" << g->GetSparsityPattern().GetSize() << " -> nG=" << nG;
     }
   }
   
   // number for nonlin gradient must be higher for objective function 
-  n_obj_grad = optimization->objectives.data[0]->GetSparsityPattern().GetSize();
+  n_obj_grad = optimization->objectives.data[0]->GetSparsityPatternSize();
   nG += n_obj_grad;
   
   optimization->constraints.view->Done();

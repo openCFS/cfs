@@ -34,7 +34,7 @@ KNITRO::KNITRO(Optimization* opt, PtrParamNode pn)
   // number of non-sparse constraint gradients
   nnzJ = 0;
   for(int i = 0; i < m; i++)
-    nnzJ += optimization->constraints.view->Get(i)->GetSparsityPattern().GetSize();
+    nnzJ += optimization->constraints.view->Get(i)->GetSparsityPatternSize();
   optimization->constraints.view->Done(); // mandatory after traversing the view
 
   // allocate stuff

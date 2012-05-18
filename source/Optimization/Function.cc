@@ -765,15 +765,6 @@ void Function::SetDenseSparsityPattern(DesignSpace* space)
     jac_sparsity_[i] = i;
 }
 
-void Function::SetSparseSparsityPattern(DesignSpace* space)
-{
-  assert(type_ == SLACK);
-  assert(space->GetNumberOfVariables() == space->GetNumberOfErsatzMaterialVariables() + 1);
-
-  jac_sparsity_.Resize(1);
-  jac_sparsity_[0] = space->GetNumberOfVariables() - 1; // zero based
-}
-
 
 StdVector<unsigned int>& Function::GetSparsityPattern()
 {
@@ -2143,7 +2134,7 @@ double Function::Local::Identifier::CalcParamPSPosDef(int neigh_idx, bool deriva
     const Condition* g = dynamic_cast<const Condition*>(local->func_);
 
     double v = g->GetParameter();
-    double eps = g->GetBoundValue();
+    double eps = 1.0 * g->GetBoundValue();
 
     Matrix<double> E;
 

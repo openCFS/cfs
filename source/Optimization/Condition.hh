@@ -285,6 +285,9 @@ namespace CoupledField
       * or 2 indices */
      StdVector<unsigned int>& GetSparsityPattern();
 
+     /** @see Function::GetSparsityPatternSize() */
+     unsigned int GetSparsityPatternSize() const;
+
      /** overloaded version which implements the functionality for the determinant functions */
      Matrix<unsigned int>& GetHessianSparsityPattern();
 

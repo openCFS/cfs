@@ -131,24 +131,19 @@ void AuxDesign::WriteGradientToExtern(StdVector<double>& out, DesignElement::Val
   if(alsomatopt_)
   {
     // we call DesignSpace::WriteDenseGradientToExtern() for the ersatz material part.
-    // therefore the window needs to be adjusted to a "subwindow" as WriteDenseGradientToExtern()
-    // orientates itself on the given window.
+
+    // in case the the gradient window covers DesignSpace design and aux design, we need to
+    // modify the window before calling DesignSpace::Write*GradientToExtern().
+    // this is e.g. not the case for sparse gradients not touching the aux design.
+    StdVector<double>::Window org_window = out.window; // I like standard constructors :)
+
+    if(out.window.GetStart() + out.window.GetSize() > data.GetSize())
+      out.window.Set(out.window.GetStart(), out.window.GetSize() - aux_design_.GetSize());
+
     // The original window needs to be restored afterwards for assert() in BaseOptimization which
     // does not know about separation into shape and mat variables
-    StdVector<double>::Window org_window = out.window; // I like standard constructors :)
-    // shift the window to do the rest
-    // replace the original window by a subwindow excluding the shape stuff
-    out.window.Set(out.window.GetStart(), out.window.GetSize() - aux_design_.GetSize());
-
-    if(g != NULL && g->HasDenseJacobian())
-    {
-      DesignSpace::WriteDenseGradientToExtern(out, vs, access, g, scaling);
-    }
-    if(g == NULL && !HasSlackVariable()) // the slack has no simp gradients!
-      DesignSpace::WriteSparseGradientToExtern(out, vs, access, g, scaling);
-
-    // restore original window
-    out.window = org_window;
+    if(out.window.GetSize() != org_window.GetSize()) // restore original window
+      out.window = org_window;
   }
 
   // makes use of the window within out even  if only a part of the window is used in the alsomatopt_ case
