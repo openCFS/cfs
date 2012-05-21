@@ -23,6 +23,7 @@ IF(CFS_ARCH STREQUAL "I386")
     /home/data/programs/intel/Compiler/fc/10.0.025/lib
     /home/data/programs/intel/Compiler/fc/10.1.018/lib
     /home/data/programs/intel/Compiler/11.0/081/lib/ia32
+    /opt/pckg/intel/parallel_studio_xe_2011_sp1_update1/lib/ia32
     )
   ENDIF(NOT CFS_FORTRAN_COMPILER_NAME STREQUAL "IFORT")  
 ENDIF(CFS_ARCH STREQUAL "I386")
@@ -40,6 +41,7 @@ IF(CFS_ARCH STREQUAL "X86_64")
     /home/data/programs/intel/Compiler/fce/10.0.025/lib
     /home/data/programs/intel/Compiler/fce/10.1.018/lib
     /home/data/programs/intel/Compiler/11.0/081/lib/intel64
+    /opt/pckg/intel/parallel_studio_xe_2011_sp1_update1/lib/intel64
     /opt/pckg/intel/mkl/9.1.021/lib/em64t
     )
   ENDIF(NOT CFS_FORTRAN_COMPILER_NAME STREQUAL "IFORT")  
