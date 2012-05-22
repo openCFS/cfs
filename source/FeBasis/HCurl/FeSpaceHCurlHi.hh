@@ -44,6 +44,9 @@ public:
   virtual void GetOlasMappings( StdVector<AlgebraicSys::SBMBlockDef>& sbmBlocks,
                                 std::map<UInt,StdVector<std::set<Integer> > >&
                                 minorBlocks );
+  
+  //! Treat thin regions specially
+  virtual void TreatThinElements(Double maxAspectRatio );
 
 
 protected:
@@ -68,15 +71,11 @@ protected:
   //! here one could e.g. adjust the integration oder according to the element order
   virtual void CheckConsistency();
 
-  //! sets the default integration scheme and order
+  //! Sets the default integration scheme and order
   virtual void SetDefaultIntegration( PtrParamNode infoNode );
 
   //! Create default finite elements to be used if nothing else is requested
   virtual void SetDefaultElements( PtrParamNode infoNode );
-
-//  //! Specialized version of the method of the base class
-//  //! We number the lowest order dofs consecutively 
-//  virtual void CreateVirtualNodes();
   
   //! \copydoc FeSpaceHi::GetFeHi
   virtual FeHi* GetFeHi( RegionIdType region, Elem::FEType type );
@@ -84,20 +83,12 @@ protected:
   //! \copydoc FeSpace::GetNumDofs()
   virtual UInt GetNumDofs() const;
 
-  //! Virtual node numbers for lowest order edge functions
-  boost::array<UInt,2> nedelecNodeRange_;
+  //! Return groups with faces according for block mapping
   
-  //! Virtual node numbers for higher order edge functions
-  boost::array<UInt,2> edgeHiNodeRange_;
-  
-  //! Virtual node numbers for higher order face functions
-  boost::array<UInt,2> faceNodeRange_;
-  
-  //! Virtual node numbers for higher order inner functions
-  boost::array<UInt,2> innerNodeRange_;
-    
-  //! Map containing the polynomial order for every edge
-  std::map<UInt, StdVector<UInt> > edgeOrder_;
+  //! This method returns the groups of virtual face nodes, which belong
+  //! together due to "thin" elements (high aspect ratio).
+  void GetThinFaceGroups( std::map<UInt, UInt>& faceElems, 
+                          StdVector<StdVector<UInt> >& faceGroups );
   
   //! Map for reference elements by region
   std::map< RegionIdType, std::map<Elem::FEType, FeHCurlHi* > > refElems_;
@@ -108,10 +99,11 @@ protected:
   //! Flag, if only lowest order should be used
   bool onlyLowestOrder_;
   
-  // ====================================================================
-  // PROCESS USER INPUT
-  // ====================================================================
-
+  //! Flag, if anisotropic elements get smoothed in one block
+  bool groupAnisoEdges_;
+  
+  //! Maximum aspect ratio of elements in case of anisotropic element smoothing
+  Double maxAspectRatio_;
 
 private:
 };

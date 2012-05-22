@@ -192,6 +192,14 @@ void Face::Normalize( std::bitset<5>& flags ) {
     flags = std::bitset<5>( triaBits[indices[0]][indices[1]] );
   }
   
+  
+  // re-sort in the end the facenodes
+  StdVector<UInt> sorted;
+  this->GetSortedIndices( sorted, unsorted, size, flags );
+  for( UInt i = 0; i < size; ++i ) {
+    nodes [i] = sorted[i] + 1;
+  }
+  
   // ==============================================
   // UNCOMMENT THE FOLLOWING SECTION FOR DETAILED 
   // DEBUGGING INFORMATION

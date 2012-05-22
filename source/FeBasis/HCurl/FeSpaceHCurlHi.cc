@@ -1,7 +1,20 @@
 #include "FeSpaceHCurlHi.hh"
+
+// boost graph related stuff
+#include <iostream>
+#include <vector>
+#include <algorithm>
+#include <utility>
+#include <boost/graph/adjacency_list.hpp>
+#include <boost/graph/connected_components.hpp>
+
+
 #include "HCurlElemsHi.hh"
+#include "Domain/ElemMapping/ElemShapeMap.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "OLAS/algsys/SolStrategy.hh"
+
+
 
 /*
  The FeSpace always knows just vertex/nodal, edge, face
@@ -87,6 +100,8 @@ namespace CoupledField{
     isHierarchical_ = true;
     polyType_ = LEGENDRE;
     onlyLowestOrder_ = false;
+    groupAnisoEdges_ = false;
+    maxAspectRatio_ = 0.0;
     
     infoNode_ = infoNode->Get("hCurlHierarchical");
     
@@ -402,256 +417,6 @@ namespace CoupledField{
     return myFe;
   }
 
-  
-
-//  void FeSpaceHCurlHi::CreateVirtualNodes() {
-//
-//    //follow the following algorithm
-//        
-//    // 1st loop over every element
-//    //  - get edges 
-//    //  - assign virtual nodes to lowest order unknowns (i.e. we only label
-//    //    the Nedelec unknowns)
-//    // 2nd loop over every element (can be omitted, if gradients get skipped)
-//    //  - get edges
-//    //  - assign virtual nodes to higher order edge unknowns (gradients)
-//    // 3rd loop over every element
-//    //  - label all face unknowns
-//    // 4th loop over every element
-//    //  - label all interior unknowns
-//    
-//    StdVector< shared_ptr<EntityList> > fctEntList;
-//    std::map<UInt, StdVector<Integer> > vertexNodes;
-//    std::map<UInt, StdVector<Integer> > edgenodes;
-//    std::map<UInt, StdVector<Integer> > facenodes;
-//    std::map<UInt, StdVector<Integer> > interiornodes;
-//
-//    // store all regions the space is defined on
-//    regions_ = feFunction_->GetRegions();
-//    
-//    fctEntList = feFunction_->GetEntityList();
-//    StdVector<UInt> permutations; 
-//    
-//    //get the highest possible node number
-//    //UInt offset = feFunction_->GetGrid()->GetNumNodes();
-//    UInt offset =0;
-//    //UInt curRegIsoOrder = 0;
-//    MappingType curMap = GRID;
-//    // ------------------------------------------
-//    //  1st loop: lowest order Nedelec unknowns
-//    // ------------------------------------------
-//    // loop over all entitylists (i.e. regions)
-//    for(UInt actList = 0;actList <  fctEntList.GetSize(); actList++){
-//      LOG_DBG(feSpaceHCurlHi) << "treating entityList '" 
-//          << fctEntList[actList]->GetName() << "'";
-//      EntityIterator entIt = fctEntList[actList]->GetIterator();
-//
-//      // loop over all elements
-//      for(entIt.Begin(); !entIt.IsEnd();entIt++){
-//
-//        //check if we got what we expected
-//        if ( ! (entIt.GetType() == EntityList::ELEM_LIST ||
-//            entIt.GetType() == EntityList::SURF_ELEM_LIST) )  {
-//          break;
-//          EXCEPTION("FeSpaceHCurlHi::CreateVirtualNodes(): Calling the method with an unsupported EntityListType");
-//        }
-//        //cast down to element list
-//        //ElemList* actElemList = dynamic_cast<ElemList*>(fctEntList[actList].get());
-//        //RegionIdType curReg = actElemList->GetRegion();
-//
-//        curMap = POLYNOMIAL;
-//
-//        const Elem* actEl = entIt.GetElem();
-//        BaseFE* ptFe = GetFe( entIt ); 
-//        //distinguish between Grid or polynomial based mapping
-//        if( curMap == GRID ) {
-//          EXCEPTION("This makes no sense");
-//        } else if (curMap == POLYNOMIAL) {
-//
-//
-//          //===========================================================
-//          //Assign the Edge node numbers
-//          //===========================================================
-//          UInt numEdgeNodes = 0;
-//          ElemShape actShape = Elem::shapes[actEl->type];
-//          for ( UInt iEdge=0; iEdge < actShape.numEdges; iEdge++) {
-//            UInt edgeNum = std::abs(actEl->edges[iEdge]);
-//            //get the permutation Vector
-//            ptFe->GetNodalPermutation(permutations,actEl,BaseFE::EDGE,iEdge); 
-//            numEdgeNodes = permutations.GetSize(); 
-//
-//            // Check if the edge is already numbered. 
-//            // Additionally, if we have the case of discontinuous approximation,
-//            // we number the nodes separately for every element separately anyway.
-//            if(edgenodes[edgeNum].GetSize() == 0 &&  isContinuous_) {
-//              //here we assume spectral element approximation and we have 
-//              //order-1 nodes on the edge
-//              edgenodes[edgeNum].Resize(numEdgeNodes);
-//              for ( UInt edgeNode = 0;edgeNode < numEdgeNodes ;edgeNode++ ) {
-//                edgenodes[edgeNum][edgeNode] = ++offset;
-//                nodesType_[offset] = BaseFE::EDGE;
-//              }
-//            }
-//
-//            //fill the virtual Nodes in the correct ordering
-//            EntityTypeNodes & etn =  virtualNodes_[actEl->elemNum][BaseFE::EDGE];
-//            for ( UInt i = 0; i < numEdgeNodes ; i++ ) {
-//              etn.vNodes.Push_back(edgenodes[edgeNum][ permutations[i] ]);
-//            }
-//            etn.offset.Push_back( permutations.GetSize() );
-//          } // loop over edges
-//        } // if POLYNOMIAL
-//      } // loop over elements
-//    } // loop over entitylists
-//    
-//    // remember node range for lowest order edge functions
-//    nedelecNodeRange_[0] = 0;
-//    nedelecNodeRange_[1] = offset-1;
-//    
-//    
-//    // ------------------------------------------
-//    //  2nd loop: higher order edge unknowns
-//    // ------------------------------------------
-//    // .. we skip this here, as we skip the higher order gradients of the
-//    // edges anyway
-//    
-//    // ------------------------------------------
-//    //  3rd loop: higher order face unkowns
-//    // ------------------------------------------
-//    for(UInt actList = 0;actList <  fctEntList.GetSize(); actList++){
-//      LOG_DBG(feSpaceHCurlHi) << "treating entityList '" 
-//          << fctEntList[actList]->GetName() << "'";
-//      EntityIterator entIt = fctEntList[actList]->GetIterator();
-//
-//
-//
-//      // loop over all elements
-//      for(entIt.Begin(); !entIt.IsEnd();entIt++){
-//
-//        //check if we got what we expected
-//        if ( ! (entIt.GetType() == EntityList::ELEM_LIST ||
-//            entIt.GetType() == EntityList::SURF_ELEM_LIST) )  {
-//          break;
-//          EXCEPTION("FeSpaceHCurlHi::CreateVirtualNodes(): Calling the method with an unsupported EntityListType");
-//        }
-//        const Elem* actEl = entIt.GetElem();
-//        BaseFE* ptFe = GetFe( entIt ); 
-//
-//        //cast down to element list
-//        //ElemList* actElemList = dynamic_cast<ElemList*>(fctEntList[actList].get());
-//        //RegionIdType curReg = actElemList->GetRegion();
-//
-//        curMap = POLYNOMIAL;
-//
-//        //distinguish between Grid or polynomial based mapping
-//        if( curMap == GRID ) {
-//          EXCEPTION("This makes no sense");
-//        } else if (curMap == POLYNOMIAL) {
-//
-//
-//          //===========================================================
-//          //Assign the Face node numbers
-//          //===========================================================
-//          UInt numFaceNodes = 0; 
-//          ElemShape actShape = Elem::shapes[actEl->type];
-//          for ( UInt iFace=0; iFace < actShape.numFaces; iFace++) {
-//            UInt faceNum = actEl->faces[iFace];
-//            //get the permutation Vector
-//            ptFe->GetNodalPermutation(permutations,actEl,BaseFE::FACE,iFace); 
-//            numFaceNodes = permutations.GetSize(); 
-//
-//            // Check if the face is already numbered. 
-//            // Additionally, if we have the case of discontinuous approximation,
-//            // we number the nodes separately for every element separately anyway.
-//            if(facenodes[faceNum].GetSize() == 0 && isContinuous_ ){
-//              //here we assume spectral element approximation and we have 
-//              //order-1 nodes on the edge
-//              facenodes[faceNum].Resize(numFaceNodes);
-//              for ( UInt faceNode = 0;faceNode < numFaceNodes ;faceNode++ ) {
-//                facenodes[faceNum][faceNode] = ++offset;
-//                nodesType_[offset] = BaseFE::FACE;
-//              }
-//            }
-//            //fill the virtual Nodes in the correct ordering
-//            EntityTypeNodes & etn =  virtualNodes_[actEl->elemNum][BaseFE::FACE];
-//            for ( UInt i = 0; i < numFaceNodes ; i++ ) {
-//              etn.vNodes.Push_back(facenodes[faceNum][ permutations[i] ]);
-//            }
-//            etn.offset.Push_back( permutations.GetSize() );
-//          }
-//        } // if POLYNOMIAL
-//      } // loop over elements
-//    } // loop over entitylists
-//    
-//    // remember node range for lowest order edge functions
-//    faceNodeRange_[0] = nedelecNodeRange_[1]+1;
-//    faceNodeRange_[1] = offset-1;
-//    
-//    // ------------------------------------------
-//    //  4th loop: higher order interior unknowns
-//    // ------------------------------------------
-//    for(UInt actList = 0;actList <  fctEntList.GetSize(); actList++){
-//      LOG_DBG(feSpaceHCurlHi) << "treating entityList '" << fctEntList[actList]->GetName() << "'";
-//      EntityIterator entIt = fctEntList[actList]->GetIterator();
-//
-//      // loop over all elementsStdVector<UInt> & vNodes = elemIt->second[BaseFE::VERTEX].vNodes;
-//      for(entIt.Begin(); !entIt.IsEnd();entIt++){
-//
-//        //check if we got what we expected
-//        if ( ! (entIt.GetType() == EntityList::ELEM_LIST ||
-//            entIt.GetType() == EntityList::SURF_ELEM_LIST) )  {
-//          break;
-//          EXCEPTION("FeSpaceHCurlHi::CreateVirtualNodes(): Calling the method with an unsupported EntityListType");
-//        }
-//        const Elem* actEl = entIt.GetElem();
-//        BaseFE* ptFe = GetFe( entIt ); 
-//        //cast down to element list
-//        //ElemList* actElemList = dynamic_cast<ElemList*>(fctEntList[actList].get());
-//        //RegionIdType curReg = actElemList->GetRegion();
-//
-//        curMap = POLYNOMIAL;
-//        //distinguish between Grid or polynomial based mapping
-//        if( curMap == GRID ) {
-//          EXCEPTION("This makes no sense");
-//        } else if (curMap == POLYNOMIAL) {
-//
-//          //===========================================================
-//          //Assign the Interior node numbers
-//          //===========================================================
-//          //get the permutation Vector just for the number of nodes
-//          ptFe->GetNodalPermutation(permutations,actEl,BaseFE::INTERIOR,0); 
-//          UInt numIntNodes = permutations.GetSize(); 
-//
-//          //Check if the current element got already numbered
-//          if(interiornodes[actEl->elemNum].GetSize() == 0){
-//            //here we assume spectral element approximation and we have 
-//            //order-1 nodes on the edge
-//            interiornodes[actEl->elemNum].Resize(numIntNodes);
-//            for ( UInt intNode = 0;intNode < numIntNodes ;intNode++ ) {
-//              interiornodes[actEl->elemNum][intNode] = ++offset;
-//              nodesType_[offset] = BaseFE::INTERIOR;
-//            }
-//          }
-//          //fill the virtual Nodes in the correct ordering
-//          EntityTypeNodes & etn =  virtualNodes_[actEl->elemNum][BaseFE::INTERIOR];
-//          for ( UInt i = 0; i  < numIntNodes ; i++ ) {
-//            etn.vNodes.Push_back(interiornodes[actEl->elemNum][ permutations[i] ]);
-//          }
-//          etn.offset.Push_back(permutations.GetSize());
-//        } // if POLYNOMIAL
-//      } // loop over elements
-//    } // loop over entitylists
-//
-//    LOG_TRACE(feSpaceHCurlHi) << "finished creation of virtual nodes";
-//   
-//    // remember node range for lowest order edge functions
-//    faceNodeRange_[0] = nedelecNodeRange_[1]+1;
-//    faceNodeRange_[1] = offset-1;
-//    
-//  }
-
-
-  
   void FeSpaceHCurlHi::GetOlasMappings( StdVector<AlgebraicSys::SBMBlockDef>& sbmBlocks,
                                         std::map<UInt,StdVector<std::set<Integer> > >&
                                         minorBlocks ) {
@@ -678,6 +443,83 @@ namespace CoupledField{
     
     // Resize sbm-blocks
     sbmBlocks.Resize(3);
+    
+    // ==========================================
+    // I) SPECIAL TREATMENT OF ANISOTROPIC FACES
+    // ==========================================
+    
+    std::map<UInt, UInt> faceElems;
+    StdVector<StdVector<UInt> > faceGroups;
+
+    // obtain list of faces which have to be grouped together
+    GetThinFaceGroups( faceElems, faceGroups );
+    
+    UInt numGroups = faceGroups.GetSize();
+    // Loop over all faceGroups
+    for(UInt iGroup = 0; iGroup < numGroups; ++iGroup ) {
+      std::set<Integer>  faceEqns;
+
+//      std::cerr << "====== Face Group #" << iGroup << " =========\n";
+      UInt numFacePerGroup = faceGroups[iGroup].GetSize();
+      const StdVector<UInt> & faceNums = faceGroups[iGroup]; 
+//      std::cerr << "got " << faceNums.GetSize() << " faces\n";
+//      
+      // Loop over all faces in specific group
+      for( UInt iFace = 0; iFace < numFacePerGroup; ++iFace ) {
+
+        // obtain element
+        UInt faceNum = faceNums[iFace];
+        UInt elemNum = faceElems[faceNum];
+//        std::cerr << "faceNum is " << faceNum << std::endl;
+//                std::cerr << "elemNum is " << elemNum << std::endl;
+        const Elem * ptEl = ptGrid_->GetElem(elemNum);
+        
+        ElemVirtualNodes & vn = virtualNodes_[elemNum];
+        const StdVector<UInt> & faceNodes = vn[BaseFE::FACE].vNodes;
+        const StdVector<UInt> & faceOffsets = vn[BaseFE::FACE].offset;
+        
+        
+        // look for the correct face in the array
+        Integer locFace = ptEl->faces.Find( faceNum );
+        assert(locFace > -1 );
+        UInt pos = 0;
+        for( Integer i = 0; i < locFace; ++i ) {
+          pos+= faceOffsets[UInt(i)];
+        }
+//        std::cerr << "pos is " << pos << std::endl;
+        // Loop over all faceNodes
+        for(UInt iNode = pos; iNode < faceOffsets[locFace]+pos; ++iNode ) {
+          LOG_DBG(feSpaceHCurlHi) << "treating facenode " << iNode << std::endl;
+          // check, if face was already numbered
+          if( faces.find(faceNodes[iNode]) == faces.end()) {
+            LOG_DBG(feSpaceHCurlHi) << "=> inserting " 
+                << nodeMap_[faceNodes[iNode]].GetSize()
+                << " equations\n";
+            faceEqns.insert(nodeMap_[faceNodes[iNode]].Begin(),
+                            nodeMap_[faceNodes[iNode]].End() );
+            faces.insert(faceNodes[iNode]);
+          }
+        } // loop over face nodes
+      } // loop over faces within group
+      
+      // Now define group by all collected faceEqns 
+      if( faceEqns.size()) {
+        LOG_DBG(feSpaceHCurlHi) << "faceEqns has size " << faceEqns.size() 
+                                                       << std::endl;
+//        std::set<Integer>::const_iterator fIt = faceEqns.begin();
+//        std::cerr << "For face group #" << iGroup << " eqns:\n\t";
+//        for( ; fIt != faceEqns.end(); ++fIt) {
+//          std::cerr << *fIt << ", ";
+//        }
+//        std::cerr << "\n";
+        minorBlocks[1].Push_back(faceEqns);
+      }
+    } // loop over groups
+         
+    
+    // ==========================================
+    // II) NORMAL MAPPING OF EDGES / FACES, ETC.
+    // ==========================================
     
     // Loop over all elements
     boost::unordered_map< UInt, ElemVirtualNodes >::iterator elemIt = virtualNodes_.begin();
@@ -726,14 +568,19 @@ namespace CoupledField{
       //  2) Matrix Sub-Blocks
       // ======================
 
-      // SBM block #1: Group per face
       StdVector<UInt> & faceOffsets = vn[BaseFE::FACE].offset;
+      
+      
+      // b) number remaining faces
+      // SBM block #1: Group per face
+
       LOG_DBG(feSpaceHCurlHi)<< "faceOffset of elem #" << elemIt->first 
                              << " is "<< faceOffsets.ToString() << std::endl;
       UInt pos = 0;
       // loop over faces
       for( UInt iFace = 0; iFace < faceOffsets.GetSize(); ++iFace ) {
         LOG_DBG(feSpaceHCurlHi) << "treating face " << iFace << std::endl;
+        
         std::set<Integer>  faceEqns;
         
         // loop over faceNodes
@@ -779,6 +626,215 @@ namespace CoupledField{
 
   }
 
+  void FeSpaceHCurlHi::GetThinFaceGroups( std::map<UInt,UInt>& faceElems,
+                                          StdVector<StdVector<UInt> >&  fg ) {
+
+    
+    // only treat thin faces, if activated
+    if( !groupAnisoEdges_)
+      return;
+    
+    // use boost namespace to shorten thins a little
+    using namespace boost;
+    
+    // define mapping from face-index (key) to face-number (value)
+    std::map<UInt,UInt> i2f;
+    std::map<UInt,UInt> f2i;
+    
+    // define graph type, describing the connectivity of the faces in terms
+    // of their indices
+    typedef adjacency_list <vecS, vecS, undirectedS> Graph;
+    Graph faceGraph;
+
+    // list of regions to look at
+    StdVector<RegionIdType> regions;
+    ptGrid_->GetVolRegionIds( regions );
+
+    // maximum allowed aspect ratio
+    Double minEdge, maxEdge;
+    
+    // Loop over all regions
+    for( UInt iRegion = 0; iRegion < regions.GetSize(); ++iRegion ) {
+
+      StdVector<Elem*> elems;
+      ptGrid_->GetElems( elems, regions[iRegion] );
+      UInt numElems = elems.GetSize();
+
+      // Loop over all elements
+      for( UInt iEl = 0; iEl < numElems; ++iEl) {
+        Elem* ptEl = elems[iEl];
+        shared_ptr<ElemShapeMap> esm = ptGrid_->GetElemShapeMap( ptEl );
+        const ElemShape & shape = Elem::shapes[ptEl->type];
+        
+        // Determine aspect ratio, if within tolerance -> continue
+        esm->GetMaxMinEdgeLength(maxEdge,minEdge);
+        if( maxEdge/minEdge < maxAspectRatio_ ) 
+          continue;
+
+        // Determine extension of element in local directions
+        Vector<Double> extension;
+        esm->GetExtensionLocalDir( extension );
+        UInt size = extension.GetSize();
+        
+        // sort extension vector in descending order, such that
+        // the largest extension comes at first
+        StdVector<UInt> indices(size);
+        // initialize indices array
+        for( UInt i = 0; i < size; i++ ) {
+          indices[i] = i;
+        }
+
+        // -------------------------
+        // Insertion sort algorithm
+        // ------------------------
+        UInt j;
+        Double  comp;
+
+        for( UInt i = 1; i < size; i++ ) {
+          comp = extension[i];
+          j = i;
+          while( ( j > 0 ) && ( extension[j - 1] < comp ) ) {
+            extension[j] = extension[j - 1];
+            indices[j] = indices[j - 1];
+            j = j - 1;
+          }
+          extension[j] = comp;
+          indices[j] = i;
+        }
+        // -----------------------
+        
+        // determine direction, which get treated:
+        // if we are here, the edge with the shortest direction (at position 
+        // indices[2]) is the shortest and gets smoothed anyway.
+        // But we also check the the second largest direction, which could be
+        // also smaller than the aspect ratio.
+        StdVector<UInt> minDirs;
+        if( extension[0]/extension[2] > maxAspectRatio_ )
+          minDirs.Push_back(indices[2]);
+        if( extension[0]/extension[1] > maxAspectRatio_ )
+          minDirs.Push_back(indices[1]);
+
+        std::set<UInt> elemFaces;      
+        for( UInt iDir = 0; iDir < minDirs.GetSize(); ++iDir ) {
+          Integer minDir = minDirs[iDir];
+
+          // Loop over all faces of this element orthogonal to "short"-direction
+          for( UInt iFace = 0; iFace < ptEl->faces.GetSize(); ++iFace ) {
+
+            if( shape.faceLocDirs[iFace][0] != minDir &&
+                shape.faceLocDirs[iFace][1] != minDir ) {
+              //            if( shape.faceLocDirs[iFace][0] == minDir ||
+              //                shape.faceLocDirs[iFace][1] == minDir ) {
+              elemFaces.insert( ptEl->faces[iFace]);
+              faceElems[ptEl->faces[iFace]] = ptEl->elemNum;
+            }
+          } // loop element faces
+        } // loop local directions
+
+        
+        std::set<UInt>::const_iterator faceIt1 = elemFaces.begin();
+        std::set<UInt>::const_iterator faceIt2 = elemFaces.begin();
+        // loop over faces (we need all pairs)
+        Integer id1, id2; // continuous indices for faces
+        
+        for( ; faceIt1 != elemFaces.end(); ++faceIt1 ) {
+          UInt face1 = *faceIt1;
+          // Perform mapping of face (faceNum->index)
+          if( f2i.find( face1) == f2i.end() ){
+            id1 = i2f.size(); 
+            i2f[id1] = face1;
+            f2i[face1] = id1; 
+          } else {
+            id1 = f2i[face1];
+          }
+
+          for( faceIt2 = faceIt1; faceIt2 != elemFaces.end(); ++faceIt2 ) {
+            UInt face2 = *faceIt2;  
+            // Perform mapping of face (faceNum->index)
+            if( f2i.find( face2 ) == f2i.end() ){
+              id2 = i2f.size(); 
+              i2f[id2] = face2;
+              f2i[face2] = id2; 
+            } else {
+              id2 = f2i[face2];
+            }
+            // put every faceIndex-pair into the graph
+            add_edge( id1, id2, faceGraph );
+          } // loop elem faces (inner)
+        } // loop elem faces (outer)
+      } // loop elements
+    } // loop over regions
+
+    
+    // Here we are finished setting up the graph. Now get all "connected"
+    // faces using boost graph algorithms
+    std::vector<int> groupNums(num_vertices(faceGraph));
+    int numGroups = connected_components(faceGraph, &groupNums[0]);
+    fg.Resize( numGroups );
+    std::vector<int>::size_type i;
+    //    std::cout << "Total number of components: " << numGroups << std::endl;
+    for (i = 0; i != groupNums.size(); ++i) {
+      Integer groupNum = groupNums[i];
+      UInt faceNum = i2f[i]; 
+      //      std::cout << "face " << faceNum <<" is in group " << groupNum << std::endl;
+      fg[groupNum].Push_back(faceNum);
+    }
+    //    std::cout << std::endl;
+
+
+    
+//    // ----------------------------------------------------------------------
+//    // Version a): Create named volume elements for connected faces
+//    // ----------------------------------------------------------------------
+//    // define named elements based on the groups
+//    for( UInt i = 0; i < UInt(numGroups); ++i ) {
+//      const StdVector<UInt> & faceNums = fg[i];
+//      
+//      StdVector<UInt> elemNums;
+//      for( UInt iEl = 0; iEl < faceNums.GetSize(); ++ iEl ) {
+//        UInt faceNum = faceNums[iEl];
+//        elemNums.Push_back( faceElems[faceNum] );
+//      }
+//      std::string name = "fg_";
+//      name += lexical_cast<std::string>(i+1);
+//      ptGrid_->AddNamedElems(name, elemNums);
+//      std::cerr << "creating named elems '" << name << "' on " << elemNums.Serialize() << std::endl;
+//    }
+    
+    
+//    // ----------------------------------------------------------------------
+//    // Version b): Create surface elements for connected faces
+//    // ----------------------------------------------------------------------
+//    // define named surface elements based on the groups
+//    
+//    
+//    UInt actElem = ptGrid_->GetNumElems()+1;
+//    for( UInt i = 0; i < UInt(numGroups); ++i ) {
+//      const StdVector<UInt> & faceNums = fg[i];
+//      StdVector<UInt> elemNums;
+//      for( UInt iFace = 0; iFace < faceNums.GetSize(); ++ iFace ) {
+//        UInt faceNum = faceNums[iFace];
+//        const Face & actFace = ptGrid_->GetFace( faceNum );
+////        const Elem * ptEl = ptGrid_->GetElem( faceElems[faceNum] );
+////        UInt locFace = ptEl->faces.Find(faceNum);
+//        
+//        StdVector<UInt> nodes = actFace.nodes;
+//        //Face::GetSortedIndices( nodes, actFace.nodes, 4, ptEl->faceFlags[locFace]);
+//        
+//        
+//        
+//        std::cerr << "nodes are " << nodes.Serialize() << std::endl;
+//        ptGrid_->AddElems(1);
+//        ptGrid_->SetElemData( actElem, Elem::ET_QUAD4, NO_REGION_ID, &nodes[0] );
+//        elemNums.Push_back(actElem++);
+//      }
+//      std::string name = "fg_";
+//      name += lexical_cast<std::string>(i+1);
+//      ptGrid_->AddNamedElems(name, elemNums);
+//      std::cerr << "creating named elems '" << name << "' on " << elemNums.Serialize() << std::endl;
+  }
+
+  
   void FeSpaceHCurlHi::SetDefaultElements(PtrParamNode infoNode ){
     //but it could be, that the PDE requires a minimum order of elements...
     ApproxOrder order (ptGrid_->GetDim());
@@ -795,6 +851,12 @@ namespace CoupledField{
     // always return 1.
     assert(feFunction_ );
     return 1;
+  }
+  
+  void FeSpaceHCurlHi::TreatThinElements(Double maxAspectRatio ) {
+    groupAnisoEdges_ = true;
+    maxAspectRatio_ = maxAspectRatio;
+    
   }
   
   FeHi* FeSpaceHCurlHi::GetFeHi( RegionIdType region, Elem::FEType type ) {

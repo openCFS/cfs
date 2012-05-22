@@ -1,3 +1,4 @@
 // Define used to check if GMV in/output is used
 
-#cmakedefine USE_GMV
+#cmakedefine USE_GMV_INPUT
+#cmakedefine USE_GMV_OUTPUT

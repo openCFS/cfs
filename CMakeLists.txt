@@ -444,6 +444,11 @@ IF(USE_MESH)
 ENDIF(USE_MESH)
 
 IF(USE_GMV)
+ SET(USE_GMV_INPUT ON 
+    CACHE INTERNAL "Use GMV files as input for simulation. Attention! Debugging may not work!")
+
+  SET(USE_GMV_OUTPUT ON 
+    CACHE INTERNAL "Use GMV files as output for simulation.")
   ADD_SUBDIRECTORY(source/DataInOut/SimInOut/gmv)
 ENDIF(USE_GMV)
 

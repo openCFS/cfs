@@ -938,6 +938,17 @@ EXCEPTION("Needs to be re-implemented");
       EXCEPTION("The formulation " << formulation 
                 << "of magnetic edge PDE is not known!");
     }
+    
+    
+    // in addition query, if special treatment of anisotropic elements
+    // is activated
+    if( myParam_->Has("thinElements") ) {
+      Double aspectRatio = 0.0;
+      aspectRatio = myParam_->Get("thinElements")->Get("maxAspectRatio")->As<Double>();
+      dynamic_pointer_cast<FeSpaceHCurlHi>(crSpaces[MAG_POTENTIAL])
+          ->TreatThinElements(aspectRatio);
+    }
+    
     return crSpaces;
   }
 

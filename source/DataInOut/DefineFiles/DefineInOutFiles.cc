@@ -25,8 +25,11 @@
 #include "DataInOut/SimInOut/internalMesh/InternalMesh.hh"
 #endif
 
-#ifdef USE_GMV
+#ifdef USE_GMV_INPUT
 #include "DataInOut/SimInOut/gmv/SimInputGMV.hh"
+#endif
+
+#ifdef USE_GMV_OUTPUT
 #include "DataInOut/SimInOut/gmv/SimOutGMV.hh"
 #endif
 

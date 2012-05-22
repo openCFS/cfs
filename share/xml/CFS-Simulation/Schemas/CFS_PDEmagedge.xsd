@@ -32,8 +32,15 @@
       <xsd:extension base="DT_PDEBasic">
         <xsd:sequence>
 
-          <xsd:element name="penaltyFactor" type="xsd:float" minOccurs="0"
+         <!-- set penalty factor for static / non-conductive regimes --> 
+         <xsd:element name="penaltyFactor" type="xsd:float" minOccurs="0"
                        maxOccurs="1"/>
+          
+          <xsd:element name="thinElements" minOccurs="0" maxOccurs="1">
+            <xsd:complexType>
+              <xsd:attribute name="maxAspectRatio" type="xsd:float" default="10"/>
+            </xsd:complexType>
+          </xsd:element>
           
           <xsd:element name="regionList" minOccurs="1" maxOccurs="1">
             <xsd:complexType>

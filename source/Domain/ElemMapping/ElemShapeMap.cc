@@ -1168,6 +1168,36 @@ void LagrangeElemShapeMap::GetEdgeLength( StdVector<Double>& edges_out) {
   EXCEPTION("Not implemented");
 }
 
+
+void LagrangeElemShapeMap::GetExtensionLocalDir(Vector<Double>& extension ) {
+  const Double MIN = 1e100;
+  Vector<Double> min(shape_.dim);
+  min.Init( MIN );
+  Double length, dl;
+  for( UInt i = 0; i < shape_.numEdges; ++i  ) {
+    length = 0.0;
+    for( UInt iDim = 0; iDim < shape_.dim; ++iDim ) {
+      dl = coords_[iDim][shape_.edgeVertices[i][1]-1]
+           -coords_[iDim][shape_.edgeVertices[i][0]-1];
+      length += dl*dl;
+    }
+    length = sqrt(length);
+    Integer locDir = shape_.edgeLocDirs[i];
+    if( locDir > -1 ) {
+      if( length < min[locDir] ) {
+        min[locDir] = length;
+      }
+    }
+  }
+  
+  extension.Resize(shape_.dim);
+  extension.Init(0.0);
+  for( UInt i = 0; i < shape_.dim; ++i ) {
+    if( min[i] != MIN)
+      extension[i] = min[i];
+  }
+}
+
 void LagrangeElemShapeMap::CalcJ( Matrix<Double>& jac, 
                                   const LocPoint& lp ) {
   Matrix<Double> deriv;

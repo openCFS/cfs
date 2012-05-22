@@ -178,7 +178,7 @@ namespace CoupledField {
     // if this graph is on a non-diagonal position
     if( rowDiagGraph_ != NULL || colDiagGraph_ != NULL ) {
       EXCEPTION("This graph object seems to be a coupling graph. "
-                "Thus, no internal reordering accorings to blocks "
+                "Thus, no internal reordering according to blocks "
                 "can be performed ");
     }
     

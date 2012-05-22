@@ -377,6 +377,18 @@ namespace CoupledField {
     //! for quadrilaterals and hexahedrons.
     //! \param edges_out array with index 0 for x, ... */
     virtual void GetEdgeLength( StdVector<Double>& edges_out) = 0;
+    
+    //! Compute extension of the element in local directions
+    
+    //! This method computes the extension of the element (w.r.t. to
+    //! global coordinates) and returns a them in a vector, mapped to 
+    //! local coordinate directions. Internally, the extension is determined
+    //! using the edge sizes and for each edge the according local coordinate
+    //! direction is taken. Thus the diagonal extension of the element is not
+    //! considered.
+    //! \param extension Contains the extension (in global coordinates) of the
+    //!                  element w.r.t. local coordainte directions.
+    virtual void GetExtensionLocalDir( Vector<Double>& extension ) = 0;
 
     // ---------------------------------------------------
     //   Jacobian 
@@ -509,6 +521,9 @@ namespace CoupledField {
 
     //! @copydoc ElemShapeMap::GetEdgeLength
     void GetEdgeLength( StdVector<Double>& edges_out);
+    
+    //! @copydoc ElemShapeMap::GetMinExtensionLocalDir
+    void GetExtensionLocalDir( Vector<Double>& extension );
 
     // ---------------------------------------------------
     //   Jacobian 
