@@ -138,7 +138,12 @@ void AuxDesign::WriteGradientToExtern(StdVector<double>& out, DesignElement::Val
     StdVector<double>::Window org_window = out.window; // I like standard constructors :)
 
     if(out.window.GetStart() + out.window.GetSize() > data.GetSize())
-      out.window.Set(out.window.GetStart(), out.window.GetSize() - aux_design_.GetSize());
+      out.window.Set(out.window.GetStart(), data.GetSize() - out.window.GetStart());
+
+    if(g == NULL || g->HasDenseJacobian())
+      DesignSpace::WriteDenseGradientToExtern(out, vs, access, g, scaling);
+    else
+      DesignSpace::WriteSparseGradientToExtern(out, vs, access, g, scaling);
 
     // The original window needs to be restored afterwards for assert() in BaseOptimization which
     // does not know about separation into shape and mat variables

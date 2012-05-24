@@ -885,8 +885,8 @@ void DesignSpace::WriteDenseGradientToExtern(StdVector<double>& out, DesignEleme
       {
         for(unsigned int s = cur_reg.base; s < u; s++)
         {
+          LOG_DBG3(designSpace) << "DS:WDGtE: non-constant region r=" << r << " rid=" << cur_reg.regionId << " out[" << n << "] = design[" << s << "]=" << data[s].GetValue(vs, access, g);
           assert(out.InWindow(n));
-          LOG_DBG3(designSpace) << "WriteDenseGradientToExtern: non-constant region " << r << ": out[" << n << "] = design[" << s << "]=" << data[s].GetValue(vs, access, g);
           out[n++] = data[s].GetValue(vs, access, g) * scaling;
         }
       }
