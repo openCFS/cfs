@@ -85,9 +85,14 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
     DesignElement::Type dt = DesignElement::type.Parse(pn_design[d]->Get("name")->As<std::string>());
     if(design.Find(dt) < 0)
     {
-      design.Push_back(dt);
-      nd++;
+      if(dt != DesignElement::SLACK)
+      {
+        // slack is not really a design but triggers AuxDesign
+        design.Push_back(dt);
+        nd++;
+      }
     }
+    // tolerate non unique designs - e.g. for different regions
   }
 
   // now read the transfer functions
@@ -316,19 +321,25 @@ double DesignSpace::DetermineLowerBound(PtrParamNode pn, TransferFunction* tf)
   assert(false);
   return -1;
 }
-DesignSpace* DesignSpace::CreateInstance(StdVector<RegionIdType> reg_data, PtrParamNode pn, ErsatzMaterial::Method method){
-  switch(method){
+DesignSpace* DesignSpace::CreateInstance(StdVector<RegionIdType> reg_data, PtrParamNode pn, ErsatzMaterial::Method method)
+{
+  switch(method)
+  {
   case ErsatzMaterial::SHAPE_OPT:
   case ErsatzMaterial::SHAPE_PARAM_MAT:
     return new ShapeDesign(reg_data, pn, method);
   default:
-    return new DesignSpace(reg_data, pn, method);
+    if(pn->HasByVal("design", "name", "slack"))
+      return new AuxDesign(reg_data, pn, method, 1); // slack variable
+    else
+      return new DesignSpace(reg_data, pn, method);
   }
 }
 DesignSpace* DesignSpace::Clone()
 {
   return new DesignSpace(regionIds_, pn_, ErsatzMaterial::SIMP_METHOD);
 }
+
 void DesignSpace::PostInit(int objectives, int constraints)
 {
   LOG_DBG(designSpace) << "# objectives = " << objectives << ", # constraints = " << constraints;
@@ -336,6 +347,7 @@ void DesignSpace::PostInit(int objectives, int constraints)
   for(unsigned int i = 0, n = totalElements_.GetSize(); i < n; i++)
     totalElements_[i]->PostInit(objectives, constraints);
 }
+
 bool DesignSpace::Contains(const RegionIdType reg, bool include_pseduo) const
 {
   for(unsigned int i = 0, n = regions[0].GetSize(); i < n; i++)
@@ -412,7 +424,6 @@ void DesignSpace::SetDesignMaterial(PtrParamNode dm){
   if(transfer.GetSize() > 0)
     throw Exception("designmaterial can not be given when using transferFunctions");
   transfer.Push_back(TransferFunction()); // create an identity transfer function
-  DesignMaterial::SetEnums();
   designMaterial = new DesignMaterial(dm, design);
 }
 void DesignSpace::AppendOptimizationResults(SinglePDE* pde)
@@ -613,10 +624,10 @@ bool DesignSpace::CollectMaterialParametersForElement(const Elem* elem){
   }
   return(true);
 }
-bool DesignSpace::GetErsatzMaterialTensor(Matrix<double>& t, SubTensorType subTensor, const Elem* elem, DesignElement::Type direction){
+bool DesignSpace::GetErsatzMaterialTensor(Matrix<double>& t, SubTensorType subTensor, const Elem* elem, DesignElement::Type direction, DesignMaterial::Notation notation){
   // collect all parameters
   if(CollectMaterialParametersForElement(elem)){
-    designMaterial->GetMaterialTensor(t, subTensor, direction);
+    designMaterial->GetMaterialTensor(t, subTensor, direction, notation);
     return(true);
   }
   return(false);
@@ -658,11 +669,14 @@ TransferFunction* DesignSpace::GetTransferFunction(const DesignElement* de)
     EXCEPTION("None of the " << transfer.GetSize() << " transfer functions matches " << de->ToString());
   return res;
 }
-TransferFunction* DesignSpace::GetTransferFunction(DesignElement::Type design, Optimization::Application application, bool throw_exception)
+TransferFunction* DesignSpace::GetTransferFunction(DesignElement::Type design, Optimization::Application application, bool throw_exception, bool use_single)
 {
-  if(HasErsatzMaterialTensor()){
+  if(HasErsatzMaterialTensor())
     return &transfer[0]; // this will always point to an identity transfer function, so CalcU1KU2 in ErsatzMaterial will simply work for parametric material optimization
-  }
+
+  if(use_single && transfer.GetSize() == 1)
+    return &transfer[0];
+
   for(unsigned int i = 0; i < transfer.GetSize(); i++)
   {
     TransferFunction* tf = &transfer[i];
@@ -792,11 +806,19 @@ int DesignSpace::WriteDesignToExtern(double* space, bool scaling) const
   assert(d == DesignSpace::GetNumberOfVariables());
   return design_id;
 }
+
 int DesignSpace::WriteDesignToExtern(StdVector<double>& space_out, bool scaling) const
 {
   space_out.Reserve(GetNumberOfVariables());
   return WriteDesignToExtern(space_out.GetPointer(), scaling);
 }
+
+int DesignSpace::WriteDesignToExtern(Vector<double>& space_out, bool scaling) const
+{
+  space_out.Resize(GetNumberOfVariables());
+  return WriteDesignToExtern(space_out.GetPointer(), scaling);
+}
+
 void DesignSpace::WriteBoundsToExtern(double* x_l, double* x_u) const {
   const unsigned int nd = design.GetSize();
   const unsigned int nr = regions[0].GetSize();
@@ -863,8 +885,8 @@ void DesignSpace::WriteDenseGradientToExtern(StdVector<double>& out, DesignEleme
       {
         for(unsigned int s = cur_reg.base; s < u; s++)
         {
+          LOG_DBG3(designSpace) << "DS:WDGtE: non-constant region r=" << r << " rid=" << cur_reg.regionId << " out[" << n << "] = design[" << s << "]=" << data[s].GetValue(vs, access, g);
           assert(out.InWindow(n));
-          LOG_DBG3(designSpace) << "WriteDenseGradientToExtern: non-constant region " << r << ": out[" << n << "] = design[" << s << "]=" << data[s].GetValue(vs, access, g);
           out[n++] = data[s].GetValue(vs, access, g) * scaling;
         }
       }
@@ -1033,10 +1055,11 @@ void DesignSpace::EnableTransferFunctions()
 {
   for(unsigned int i = 0; i < transfer.GetSize(); i++) transfer[i].Enable(true);
 }
+
 unsigned int DesignSpace::GetNumberOfVariables() const 
 {
   const unsigned int nd = design.GetSize();
-  const unsigned int nr = regions[0].GetSize();
+  const unsigned int nr = regions.GetSize() > 0 ? regions[0].GetSize() : 0; // e.g. for pure shape optimization
   unsigned int n = 0;
   for(unsigned int des = 0; des < nd; des++){
     for(unsigned int r = 0; r < nr; r++){

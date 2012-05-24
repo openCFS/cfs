@@ -13,8 +13,9 @@
 
 using namespace CoupledField;
 
-Enum<DesignMaterial::Type>      DesignMaterial::type;
+Enum<DesignMaterial::Type>         DesignMaterial::type;
 Enum<DesignMaterial::TransIsoType> DesignMaterial::transIsoType;
+Enum<DesignMaterial::Notation>     DesignMaterial::notation;
 
 DesignMaterial::DesignMaterial(PtrParamNode pn, StdVector<DesignElement::Type>& design){
   type_ = type.Parse(pn->Get("type")->As<std::string>());
@@ -63,6 +64,8 @@ unsigned int DesignMaterial::RequiredParameters(){
     r += 2;
   }
   switch(type_){
+  case FMO:
+    return r+6;
   case ISOTROPIC:
   case LAME_ISOTROPIC:
     return r+2;
@@ -90,6 +93,13 @@ bool DesignMaterial::CheckRequiredDesigns(StdVector<DesignElement::Type>& design
     return(false);
   }
   switch(type_){
+  case FMO:
+    return(design.Find(DesignElement::TENSOR11) >= 0
+        && design.Find(DesignElement::TENSOR22) >= 0
+        && design.Find(DesignElement::TENSOR33) >= 0
+        && design.Find(DesignElement::TENSOR23) >= 0
+        && design.Find(DesignElement::TENSOR13) >= 0
+        && design.Find(DesignElement::TENSOR12) >= 0);
   case ISOTROPIC:
     return(design.Find(DesignElement::EMODUL) >=0
         && design.Find(DesignElement::POISSON) >= 0);
@@ -546,7 +556,7 @@ void DesignMaterial::GetDensityTimes2dTensorTensor(Matrix<double>& t, SubTensorT
   switch(direction){
   case DesignElement::NO_DERIVATIVE:
     d = exp(log(d)*penalty_);
-    Set2dVoigtTensor(t, subTensor, d*e11, d*e22, d*e33, d*e23, d*e13, d*e12);
+    Set2dVoigtTensor(t, d*e11, d*e22, d*e33, d*e23, d*e13, d*e12);
     break;
   case DesignElement::DENSITY:
     if(penalty_ == 1.0){
@@ -554,38 +564,89 @@ void DesignMaterial::GetDensityTimes2dTensorTensor(Matrix<double>& t, SubTensorT
     }else{
       d = penalty_*exp(log(d)*(penalty_-1));
     }
-    Set2dVoigtTensor(t, subTensor, d*e11, d*e22, d*e33, d*e23, d*e13, d*e12);
+    Set2dVoigtTensor(t, d*e11, d*e22, d*e33, d*e23, d*e13, d*e12);
     break;
   case DesignElement::TENSOR11:
     d = exp(log(d)*penalty_);
-    Set2dVoigtTensor(t, subTensor, d, 0.0, type_ == DENSITY_TIMES_2D_TENSOR_CONSTANT_TRACE ? -0.5*d : 0.0, 0.0, 0.0, 0.0);
+    Set2dVoigtTensor(t, d, 0.0, type_ == DENSITY_TIMES_2D_TENSOR_CONSTANT_TRACE ? -0.5*d : 0.0, 0.0, 0.0, 0.0);
     break;
   case DesignElement::TENSOR22:
     d = exp(log(d)*penalty_);
-    Set2dVoigtTensor(t, subTensor, 0.0, d, type_ == DENSITY_TIMES_2D_TENSOR_CONSTANT_TRACE ? -0.5*d : 0.0, 0.0, 0.0, 0.0);
+    Set2dVoigtTensor(t, 0.0, d, type_ == DENSITY_TIMES_2D_TENSOR_CONSTANT_TRACE ? -0.5*d : 0.0, 0.0, 0.0, 0.0);
     break;
   case DesignElement::TENSOR33:
     d = exp(log(d)*penalty_);
-    Set2dVoigtTensor(t, subTensor, 0.0, 0.0, d, 0.0, 0.0, 0.0);
+    Set2dVoigtTensor(t, 0.0, 0.0, d, 0.0, 0.0, 0.0);
     break;
   case DesignElement::TENSOR23:
     d = exp(log(d)*penalty_);
-    Set2dVoigtTensor(t, subTensor, 0.0, 0.0, 0.0, d, 0.0, 0.0);
+    Set2dVoigtTensor(t, 0.0, 0.0, 0.0, d, 0.0, 0.0);
     break;
   case DesignElement::TENSOR13:
     d = exp(log(d)*penalty_);
-    Set2dVoigtTensor(t, subTensor, 0.0, 0.0, 0.0, 0.0, d, 0.0);
+    Set2dVoigtTensor(t, 0.0, 0.0, 0.0, 0.0, d, 0.0);
     break;
   case DesignElement::TENSOR12:
     d = exp(log(d)*penalty_);
-    Set2dVoigtTensor(t, subTensor, 0.0, 0.0, 0.0, 0.0, 0.0, d);
+    Set2dVoigtTensor(t, 0.0, 0.0, 0.0, 0.0, 0.0, d);
     break;
   default:
     ZeroTensor(t, subTensor);
     return;
   }
 }
- 
+
+void DesignMaterial::GetAnisotropicTensor(Matrix<double>& t, DesignElement::Type direction, Notation notation)
+{
+  // We use the anisotropic tensor only for solving FMO problems. Then we assume the design to be in Hill-Mandel
+  // notation and therefore we need to transform it for using it in CFS
+  double e11 = 0;
+  double e22 = 0;
+  double e33 = 0;
+  double e23 = 0;
+  double e13 = 0;
+  double e12 = 0;
+  assert(direction != DesignElement::DENSITY);
+  if(direction == DesignElement::NO_DERIVATIVE)
+  {
+    e11 = params_[DesignElement::TENSOR11];
+    e22 = params_[DesignElement::TENSOR22];
+    e33 = params_[DesignElement::TENSOR33] * (notation == VOIGT ? 0.5 : 1.0);
+    e23 = params_[DesignElement::TENSOR23] * (notation == VOIGT ? 1.0/sqrt(2.0) : 1.0);
+    e13 = params_[DesignElement::TENSOR13] * (notation == VOIGT ? 1.0/sqrt(2.0) : 1.0);
+    e12 = params_[DesignElement::TENSOR12];
+  }
+  switch(direction)
+  {
+  case DesignElement::NO_DERIVATIVE:
+    Set2dVoigtTensor(t, e11, e22, e33, e23, e13, e12);
+    break;
+  case DesignElement::TENSOR11:
+    Set2dVoigtTensor(t, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+    break;
+  case DesignElement::TENSOR22:
+    Set2dVoigtTensor(t, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0);
+    break;
+  case DesignElement::TENSOR33:
+    Set2dVoigtTensor(t, 0.0, 0.0, notation == VOIGT ? 0.5 : 1.0, 0.0, 0.0, 0.0);
+    break;
+  case DesignElement::TENSOR23:
+    Set2dVoigtTensor(t, 0.0, 0.0, 0.0, notation == VOIGT ? 1.0/sqrt(2.0) : 1.0, 0.0, 0.0);
+    break;
+  case DesignElement::TENSOR13:
+    Set2dVoigtTensor(t, 0.0, 0.0, 0.0, 0.0, notation == VOIGT ? 1.0/sqrt(2.0) : 1.0, 0.0);
+    break;
+  case DesignElement::TENSOR12:
+    Set2dVoigtTensor(t, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0);
+    break;
+  default:
+    // ZeroTensor(t, subTensor);
+    assert(false);
+    return;
+  }
+}
+
+
 void DesignMaterial::ZeroTensor(Matrix<double>& t, SubTensorType subTensor){
   switch(subTensor){
   case FULL:
@@ -601,19 +662,15 @@ void DesignMaterial::ZeroTensor(Matrix<double>& t, SubTensorType subTensor){
   t.Init();
 }
 
-void DesignMaterial::Set2dVoigtTensor(Matrix<double>& t, SubTensorType subTensor, double t11, double t22, double t33, double t23, double t13, double t12){
-  switch(subTensor){
-  case PLANE_STRAIN:
-    t.Resize(3,3);
-    t.Init();
-    t[0][0] = t11; t[0][1] = t12; t[0][2] = t13;
-    t[1][0] = t12; t[1][1] = t22; t[1][2] = t23;
-    t[2][0] = t13; t[2][1] = t23; t[2][2] = t33;
-    break;
-  default:
-    throw Exception("subTensor not implemented yet");
-  }
+void DesignMaterial::Set2dVoigtTensor(Matrix<double>& t, double t11, double t22, double t33, double t23, double t13, double t12)
+{
+  t.Resize(3,3);
+  t.Init();
+  t[0][0] = t11; t[0][1] = t12; t[0][2] = t13;
+  t[1][0] = t12; t[1][1] = t22; t[1][2] = t23;
+  t[2][0] = t13; t[2][1] = t23; t[2][2] = t33;
 }
+
 
 void DesignMaterial::SetTransIsoTensor(Matrix<double>& t, SubTensorType subTensor, double iD, double inD, double iG, double oD, double onD, double oG){
   switch(subTensor){
@@ -696,8 +753,13 @@ double DesignMaterial::GetIsoMass(double D, double G){
   return(GetTransIsoMass(D, G, D, G));
 }
 
-void DesignMaterial::GetMaterialTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction){
+void DesignMaterial::GetMaterialTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction, Notation notation)
+{
+  assert(!(notation == HILL_MANDEL && type_ != FMO));
   switch(type_){
+  case FMO:
+    GetAnisotropicTensor(t, direction, notation);
+    break;
   case ISOTROPIC:
     GetIsoMaterialTensor(t, subTensor, direction);
     break;
@@ -772,6 +834,7 @@ bool DesignMaterial::GetMaterialDamping(double& alpha, double& beta, DesignEleme
 
 void DesignMaterial::SetEnums(){
   type.SetName("DesignMaterial::Type");
+  type.Add(FMO, "fmo");
   type.Add(ISOTROPIC, "isotropic");
   type.Add(LAME_ISOTROPIC, "lame-isotropic");
   type.Add(TRANSVERSAL_ISOTROPIC, "transversal-isotropic");
@@ -784,5 +847,9 @@ void DesignMaterial::SetEnums(){
   transIsoType.Add(TRANSISO_XY, "xy");
   transIsoType.Add(TRANSISO_YZ, "yz");
   transIsoType.Add(TRANSISO_XZ, "xz");
+
+  notation.SetName("DesignMaterial::Notation");
+  notation.Add(VOIGT, "voigt");
+  notation.Add(HILL_MANDEL, "hill_mandel");
 }
 

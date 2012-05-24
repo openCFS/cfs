@@ -75,8 +75,8 @@ namespace CoupledField
          typedef enum { MECH, ELEC, PIEZO_COUPLING, PRESSURE, CHARGE_DENSITY, MASS, HEAT, ACOUSTIC, LAPLACE, STRESS, NO_APP} Application;
 
          /** Not the optimization problem but the solver! */
-         typedef enum { OPTIMALITY_CONDITION, IPOPT_SOLVER, SCPIP_SOLVER, SNOPT_SOLVER, KNITRO_SOLVER,
-                        SHAPE_SOLVER, EVALUATE_INITIAL_DESIGN, GRADIENT_CHECK } Optimizer;
+         typedef enum { OPTIMALITY_CONDITION, IPOPT_SOLVER, SCPIP_SOLVER, FEAS_SCP_SOLVER, SNOPT_SOLVER, KNITRO_SOLVER,
+                        FEAS_PP_SOLVER, SHAPE_SOLVER, EVALUATE_INITIAL_DESIGN, GRADIENT_CHECK  } Optimizer;
 
          /** to convert string/enum for this type */
          static Enum<Optimizer> optimizer;
@@ -257,6 +257,9 @@ namespace CoupledField
          * @param pde2 this is either the same as pde1 or the coupling partner
          * @param integrator there is no nice enum yet :( e.g. linElastInt, MechInt, ... */
         static BaseForm* GetForm(RegionIdType regionId, StdPDE* pde1, StdPDE* pde2, const std::string& integrator, bool throw_exception = true, Global::ComplexPart entryType = (Global::ComplexPart) 4711);
+
+        /** optimizer type */
+        Optimizer GetOptimizerType() const { return optimizer_; }
 
         /** The order of the pdes is not defined, Therefore we use the map
          * @see ToApp()

@@ -907,7 +907,10 @@ namespace CoupledField {
         << endl
         << "11.09, Heldendaemmerung" << endl
         << "  To tribute Andi Hauck, leaving LSE. No one knows CFS as good and contributed so" << endl
-        << "  much to it. An example for everyone who might come, also in terms of collegiality." << endl;
+        << "  much to it. An example for everyone who might come, also in terms of collegiality." << endl
+        << endl
+        << "12.05, Legacy" << endl
+        << "  Old variant before the FE-Space comes. Some features won't make their way to FE-Space." << endl;
 
   }
 

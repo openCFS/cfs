@@ -580,7 +580,7 @@ namespace CoupledField
     void ConvertToVec_AppendCols( SingleVector& vec ) const;
  
     /** Dumps for developers or internal use
-     * @param level -1=list of all, 0=all data with structure, 1=summary info */
+     * @param level -1=list of all, 0=all data with structure, 1=summary info, 2=full data in matlab form */
     virtual std::string ToString(const int level = 0, const bool newline = false) const;
 
     /** Creates a xml string of the following form.

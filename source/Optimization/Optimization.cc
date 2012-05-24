@@ -44,13 +44,18 @@
 #include "def_use_knitro.hh"
 #include "def_use_scpip.hh"
 #include "def_use_snopt.hh"
+#include "def_use_feas_scp.hh"
 
 // IPOPT, SCPIP and SnOpt are not necessarily linked
 #ifdef USE_IPOPT
   #include "Optimization/Optimizer/IPOPTHolder.hh"
+  #include "Optimization/Optimizer/FeasPP.hh"
 #endif
 #ifdef USE_SCPIP
   #include "Optimization/Optimizer/SCPIP.hh"
+#endif
+#ifdef USE_FEAS_SCP
+  #include "Optimization/Optimizer/FeasSCP.hh"
 #endif
 #ifdef USE_SNOPT
   #include "Optimization/Optimizer/SnOpt.hh"
@@ -190,9 +195,28 @@ void Optimization::PostInitSecond()
 
     case SCPIP_SOLVER:
          #ifdef USE_SCPIP
+           #ifdef USE_FEAS_SCP
+             throw Exception("CFS++ was compiled with FeasSCP - this disables SCPIP");
+           #endif
            baseOptimizer_ = new SCPIP(this, opt);
          #else
            throw Exception("CFS++ was compiled w/o SCPIP");
+         #endif
+         break;
+
+    case FEAS_PP_SOLVER:
+         #ifndef USE_IPOPT
+           throw Exception("CFS++ nees to be compiled with IPOPT to use feasPP");
+         #else
+           baseOptimizer_ = new FeasPP(this, opt);
+         #endif
+         break;
+
+    case FEAS_SCP_SOLVER:
+         #ifdef USE_FEAS_SCP
+           baseOptimizer_ = new FeasSCP(this, opt);
+         #else
+           throw Exception("CFS++ was compiled w/o FeasSCP");
          #endif
          break;
          
@@ -227,9 +251,9 @@ void Optimization::PostInitSecond()
     case GRADIENT_CHECK:
          baseOptimizer_ = new GradientCheck(this, opt);
          break;
-
-    default: throw Exception("optimizer not implemented");
   }
+
+  baseOptimizer_->PostInit();
 
   constraints.ToInfo(optInfoNode->Get(ParamNode::HEADER)->Get("constraints"), GetMultipleExcitation());
 
@@ -301,9 +325,17 @@ void Optimization::SetEnums()
   Function::type.Add(Function::BUMP, "bump");
   Function::type.Add(Function::DESIGN_TRACKING, "designTracking");
   Function::type.Add(Function::SUM_MODULI, "sumModuli");
+  Function::type.Add(Function::TENSOR_TRACE, "tensorTrace");
   Function::type.Add(Function::GLOBAL_SUM_MODULI, "globalSumModuli");
   Function::type.Add(Function::PARAM_PS_POS_DEF, "parametrized-plane-stress-pos-def");
-
+  Function::type.Add(Function::POS_DEF_DET_MINOR_1, "fmoPosDefMinor1");
+  Function::type.Add(Function::POS_DEF_DET_MINOR_2, "fmoPosDefMinor2");
+  Function::type.Add(Function::POS_DEF_DET_MINOR_3, "fmoPosDefMinor3");
+  Function::type.Add(Function::BENSON_VANDERBEI_1, "bensonVanderbeiMinor1");
+  Function::type.Add(Function::BENSON_VANDERBEI_2, "bensonVanderbeiMinor2");
+  Function::type.Add(Function::BENSON_VANDERBEI_3, "bensonVanderbeiMinor3");
+  Function::type.Add(Function::DESIGN_BOUND, "designBound");
+  Function::type.Add(Function::SLACK, "slack");
 
   Function::Local::locality.SetName("Function::Local::Locality");
   Function::Local::locality.Add(Function::Local::DEFAULT, "default");
@@ -346,6 +378,8 @@ void Optimization::SetEnums()
   optimizer.Add(OPTIMALITY_CONDITION, "optimalityCondition");
   optimizer.Add(IPOPT_SOLVER, "ipopt");
   optimizer.Add(SCPIP_SOLVER, "scpip");
+  optimizer.Add(FEAS_SCP_SOLVER, "feasSCP");
+  optimizer.Add(FEAS_PP_SOLVER, "feasPP");
   optimizer.Add(SNOPT_SOLVER, "snopt");
   optimizer.Add(KNITRO_SOLVER, "knitro");
   optimizer.Add(SHAPE_SOLVER, "shapeOpt");
@@ -471,6 +505,7 @@ Optimization* Optimization::CreateInstance()
   // set the enums we need
   Optimization::SetEnums(); // sets also ErsatzMaterial::Method
   DesignElement::SetEnums();
+  DesignMaterial::SetEnums();
 
   if(!param->Has("optimization")) return NULL;
 
@@ -546,7 +581,10 @@ void Optimization::SolveProblem()
   Exception* e = NULL;
   try
   {
+    PtrParamNode in = optInfoNode->Get(ParamNode::HEADER)->Get(optimizer.ToString(optimizer_));
+    baseOptimizer_->ToInfo(in);
     baseOptimizer_->SolveOptimizationProblem();
+    baseOptimizer_->ToInfo(in);
   }
   catch(Exception& ex)
   {
@@ -811,7 +849,7 @@ void Optimization::CalcConstraintGradient(Condition* g, StdVector<double>* grad_
   // if there is a <result ... value="constraintGradient" detail="penalizedVolume/*"
   if(g->special_result_idx != -1)
   {
-    int base = design->FindDesign(g->design);
+    int base = design->FindDesign(g->GetDesignType());
     int n    = design->GetNumberOfElements();
     for(int i = n * base; i < n * (base + 1); i++) // TODO add access!
       design->data[i].specialResult[g->special_result_idx] = design->data[i].GetPlainGradient(NULL, g);

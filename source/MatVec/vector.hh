@@ -98,13 +98,27 @@ template<typename T> class NodeStoreSol;
       capacity_ = size_;
       memBelongsToMe_ = true;
 
-      if(size_ > 0)
-        data_ = new T[size_];
-      else
-        data_ = NULL;
+      data_ = size_ > 0 ? new T[size_] : NULL;
 
       for(unsigned int i = 0; i < size_; ++i)
-        data_ [i] = origVec.data_[i];
+        data_[i] = origVec.data_[i];
+    }
+
+
+    /** constructs a vector out of two vectors with the size of both vectors */
+    Vector(const Vector<T>& lower, const Vector<T>& upper)
+    {
+      // Obtain size info and allocate memory
+      size_     = lower.size_ + upper.size_;
+      capacity_ = size_;
+      memBelongsToMe_ = true;
+
+      data_ = size_ > 0 ? new T[size_] : NULL;
+
+      for(unsigned int i = 0; i < lower.size_; ++i)
+        data_[i] = lower.data_[i];
+      for(unsigned int i = 0; i < upper.size_; ++i)
+        data_[lower.size_ + i] = upper.data_[i];
     }
 
     //! Destructor

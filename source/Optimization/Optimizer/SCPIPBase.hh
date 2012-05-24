@@ -69,8 +69,9 @@
 
     /** Solves the optimization problem. Can take a while!
      * @param fromWarmstart starts scpip wie ierr=-4, see SCPIP docu
-     * Returns the last ierr value which can be decoded via ToString() */
-    int SolveProblem(bool fromWarmstart = false); 
+     * Returns the last ierr value which can be decoded via ToString()
+     * To be overwritten in FeasSCP! */
+    virtual int solve_problem(bool fromWarmstart = false);
 
     /** Determines information about the problem dimensions. Taken from IPOPT.
      * @param n return here the total number of design variables
@@ -106,7 +107,7 @@
     /** overload this method to return the starting point. The bools
      *  init_x and init_lambda are both inputs and outputs. As inputs,
      *  they indicate whether or not the algorithm wants you to
-     *  initialize x and lambda respectively. If, for some reason, the
+     *  initialize x and lambda respepctively. If, for some reason, the
      *  algorithm wants you to initialize these and you cannot, set
      *  the respective bool to false.
      */
@@ -313,6 +314,8 @@
      * Depends on the active set. */
     int ieleng;
 
+    int ielpar;
+
     /** the number of entries (nnz) of all equality contraint jacobians.
      * Does not depend on the active set */
     int eqleng;
@@ -393,19 +396,19 @@
     /** this return value controls the reverse communication */
     int ierr;
 
-    /** inequality constraints row numbers. We are dense! */
+    /** inequality constraints row numbers.*/
     StdVector<int> iern;
 
-    /** inequality constraints column numbers. We are dense! */
+    /** inequality constraints column numbers. */
     StdVector<int> iecn;
 
     /** inequality constraint derivative values */
     StdVector<double> iederv;
 
-    /** equality constraints row numbers. We are dense! */
+    /** equality constraints row numbers. */
     StdVector<int> eqrn;
 
-    /** equality constraints column numbers. We are dense! */
+    /** equality constraints column numbers. */
     StdVector<int> eqcn;
 
     /** The derivative values of the equality constraints.
@@ -428,8 +431,6 @@
     int linsys;
 
 
-  private:
-
     /** for some strange reason there is a problem with std::abs(). */
     double abs(double val)
     {
@@ -443,8 +444,9 @@
     void AllocateFixed();
 
     /** reserve the space with is dynamic and where we have to call abstract methods.
-     * This is executed in Initialize() */
-    void AllocateProblem();
+     * This is executed in PostInit().
+     * To be overwritten in FeasSCP */
+    virtual void AllocateProblem();
 
     /** allocates dynamically based on the info values. Does nothing when there is 
      * no change! */

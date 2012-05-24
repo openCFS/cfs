@@ -6,7 +6,7 @@
 
 namespace CoupledField
 {
-  /** This class wrappes our IPOPT implementation to seperate the
+  /** This class wraps our IPOPT implementation to separate the
    * IPOPT SmaprtPointer implementation from the Optimization stuff */
   class IPOPTHolder : public BaseOptimizer
   {

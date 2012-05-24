@@ -87,6 +87,8 @@ TransferFunction::TransferFunction(PtrParamNode pn, DesignElement::Type default_
   if(design_ == DesignElement::POLARIZATION && application_ != Optimization::PIEZO_COUPLING)
     throw Exception("transfer functions for 'polarization' can only be '" 
         + Optimization::application.ToString(Optimization::PIEZO_COUPLING) + "'");
+
+  LOG_DBG(trans) << "TF::TF " << ToString();
 }
 
 

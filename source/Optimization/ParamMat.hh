@@ -21,7 +21,7 @@ class TransferFunction;
     virtual void PostInit();
     
   protected:
-    
+
     /** provides the derivative of the material matrix/tensor at the current element, 
      * is called by CalcU1KU2 in ErsatzMaterial
      * @param de the current DesignElement (this provides the element as well as the direction)

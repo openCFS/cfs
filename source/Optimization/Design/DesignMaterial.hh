@@ -19,8 +19,9 @@ template <class TYPE> class StdVector;
     
   public:
     
-    typedef enum { ISOTROPIC, LAME_ISOTROPIC, TRANSVERSAL_ISOTROPIC, TRANSVERSAL_ISOTROPIC_BOXED, DENSITY_TIMES_TRANSVERSAL_ISOTROPIC,
-      DENSITY_TIMES_TRANSVERSAL_ISOTROPIC_BOXED, DENSITY_TIMES_2D_TENSOR, DENSITY_TIMES_2D_TENSOR_CONSTANT_TRACE } Type;
+    typedef enum { FMO, ISOTROPIC, LAME_ISOTROPIC, TRANSVERSAL_ISOTROPIC, TRANSVERSAL_ISOTROPIC_BOXED,
+      DENSITY_TIMES_TRANSVERSAL_ISOTROPIC, DENSITY_TIMES_TRANSVERSAL_ISOTROPIC_BOXED, DENSITY_TIMES_2D_TENSOR,
+      DENSITY_TIMES_2D_TENSOR_CONSTANT_TRACE } Type;
     
     /* posibilities for the isotropic plane in transversal isotropy
      * note that parameters EMODULISO, POISSONISO are used for that plane
@@ -28,6 +29,9 @@ template <class TYPE> class StdVector;
      * GMODUL is G_io where i is in the isotropic plane o not (note G_io = G_jo) */
     typedef enum { TRANSISO_XY, TRANSISO_YZ, TRANSISO_XZ } TransIsoType;
     
+    /** Material notation. Only for FMO we assume the design to be Hill-Mandel, in LinElastInt we use Voigt. The CFS-B-operator is also Voigt */
+    typedef enum { VOIGT, HILL_MANDEL } Notation;
+
     /** constructor, reads in DesignMaterial from XML
      * @param pn pointer to PtrParamNode */ 
     DesignMaterial(PtrParamNode pn, StdVector<DesignElement::Type>& design);
@@ -39,7 +43,7 @@ template <class TYPE> class StdVector;
     double GetParameter(const DesignElement::Type p);
     
     /** Calculate the derivative tensor from the given material parameters */
-    void GetMaterialTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction = DesignElement::NO_DERIVATIVE);
+    void GetMaterialTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction = DesignElement::NO_DERIVATIVE, Notation notation = VOIGT);
     
     /** retrieve rel. mass of element (tensor trace) or derivative thereof */
     double GetMaterialMass(DesignElement::Type direction);
@@ -59,6 +63,12 @@ template <class TYPE> class StdVector;
     
     void static SetEnums();
     
+    Type GetType() const { return type_; }
+
+    /** the actual notation is not stored but assumed as HILL_MANDEL for FMO problems.
+     * The enum is necessary for the constraint parameter notation. */
+    static Enum<Notation> notation;
+
   protected:
     std::map<DesignElement::Type, double> params_;
    
@@ -79,6 +89,7 @@ template <class TYPE> class StdVector;
     
     static Enum<Type> type;
     Type type_;   
+
     static Enum<TransIsoType> transIsoType;
     TransIsoType transIsoType_;
     
@@ -102,6 +113,9 @@ template <class TYPE> class StdVector;
     /** Calculate the Trans-Iso Tensor */
     inline void GetTransIsoMaterialTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction);
     
+    /* general anisotropic FMO tensor */
+    inline void GetAnisotropicTensor(Matrix<double>& t, DesignElement::Type direction, Notation notation);
+
     /** Calculate the Tensor for Density times Tensor */
     inline void GetDensityTimes2dTensorTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction);
     
@@ -110,7 +124,7 @@ template <class TYPE> class StdVector;
     inline void ZeroTensor(Matrix<double>& t, SubTensorType subTensor);
     
     /** put values from Voigt vector to correct positions in tensor */
-    inline void Set2dVoigtTensor(Matrix<double>& t, SubTensorType subTensor, double t11, double t22, double t33, double t23, double t13, double t12);
+    inline void Set2dVoigtTensor(Matrix<double>& t, double t11, double t22, double t33, double t23, double t13, double t12);
     
     /** put the entries of the transversal_isotropic tensor at the right places */
     inline void SetTransIsoTensor(Matrix<double>& t, SubTensorType subTensor, double iD, double inD, double iG, double oD, double onD, double oG);

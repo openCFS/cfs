@@ -375,6 +375,8 @@ namespace CoupledField {
   {
     std::ostringstream os;
 
+    // os << " pntr=" << (void*) data_ << " ";
+
     switch(level)
     {
     case 0:
@@ -382,7 +384,7 @@ namespace CoupledField {
       for(int i = 0; i < size; i += stride)
       {
         os << data[i];
-        if(i < size-1) os << ", ";
+        if(i < size-1) os << " ";
       }
       break;
 
