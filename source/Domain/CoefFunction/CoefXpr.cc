@@ -10,6 +10,14 @@ inline std::string B(const std::string& xpr ) {
   return "(" + xpr + ")";
 }
 
+// helper function to determin if function is zero
+const std::string zero1 = boost::lexical_cast<std::string>(0.0);
+const std::string zero2 = "0.0";
+const std::string zero3 = "0";
+inline bool IsZero( const std::string& arg ) {
+  return (arg == zero1 || arg == zero2 || arg == zero3);
+}
+
 // initialize static variable
 UInt CoefXpr::numVarNames_ = 0;
 
@@ -276,19 +284,23 @@ void CoefXpr::ApplyBinaryFunc( std::string& retReal,
     case OP_SUB:
     case OP_MULT:
     case OP_DIV:
-      args =  B(arg1Real), OpToString(op), B(arg2Real);
-      retReal = B(args.Serialize(' ') );
+      if( IsZero(arg1Real) && IsZero(arg2Real) ) {
+        retReal = zero2;
+      } else {
+        args =  B(arg1Real), OpToString(op), B(arg2Real);
+        retReal = B(args.Serialize(' ') );
+      }
       break;
-    
+
     case OP_POW:
       args = B(arg1Real), "^", B(arg2Real);
       retReal = B(args.Serialize(' ' ));
       break;
-    
+
     default:
-    EXCEPTION(" Unknown operand type '" << OpToString(op) 
-              << "' to ApplyBinaryFunc");
-    break;
+      EXCEPTION(" Unknown operand type '" << OpToString(op) 
+                << "' to ApplyBinaryFunc");
+      break;
   }
 
   // in the end, remove all whitespaces
@@ -303,20 +315,55 @@ void CoefXpr::ApplyBinaryFunc( std::string& retReal, std::string& retImag,
                                OpType op ) {
   StdVector<std::string> args;
   std::string denom;
+  
+  bool z1Real = IsZero(arg1Real);
+  bool z2Real = IsZero(arg2Real);
+  bool z1Imag = IsZero(arg1Imag);
+  bool z2Imag = IsZero(arg2Imag);
+
+  
+  
   switch( op ) {
     case OP_ADD:
     case OP_SUB:
-      args = B(arg1Real), OpToString(op), B(arg2Real);
-      retReal = B(args.Serialize(' ') );
-      args = B(arg1Imag), OpToString(op), B(arg2Imag);
-      retImag = B(args.Serialize(' '));
+      if( z1Real && z2Real ) {
+        retReal = zero2;
+      } else {
+        args = B(arg1Real), OpToString(op), B(arg2Real);
+        retReal = B(args.Serialize(' ') );
+      }
+      if( z1Imag && z2Imag ) {
+        retImag = zero2;
+      } else {
+        args = B(arg1Imag), OpToString(op), B(arg2Imag);
+        retImag = B(args.Serialize(' '));
+      }
       break;
 
     case OP_MULT:
-      args = "(", B(arg1Real), "*", B(arg2Real), ") - (", B(arg1Imag), "*", B(arg2Imag), ")";
-      retReal = B(args.Serialize(' '));
-      args = "(", B(arg1Real), "*", B(arg2Imag), ") + (", B(arg1Imag), "*", B(arg2Real), ")";
-      retImag = B(args.Serialize(' '));
+      // if one of the two operands is zero, just take the shortcut
+      if( ( z1Real && z1Imag ) || (z2Real && z2Imag) ) { 
+        retReal = zero2;
+        retImag = zero2;
+      } else {
+        if( z1Real || z2Real ) {
+          args = "- (", B(arg1Imag), "*", B(arg2Imag), ")";
+        } else if (z1Imag || z2Imag ) {
+          args = "(", B(arg1Real), "*", B(arg2Real), ")";
+        } else {
+          args = "(", B(arg1Real), "*", B(arg2Real), ") - (", B(arg1Imag), "*", B(arg2Imag), ")";
+        }
+          retReal = B(args.Serialize(' '));
+        args.Clear();
+        if( z1Real || z2Imag ) {
+          args = "(", B(arg1Imag), "*", B(arg2Real), ")";
+        } else if ( z1Imag || z2Real ) {
+          args = "(", B(arg1Real), "*", B(arg2Imag), ")";
+        } else {
+          args = "(", B(arg1Real), "*", B(arg2Imag), ") + (", B(arg1Imag), "*", B(arg2Real), ")";
+        }
+          retImag = B(args.Serialize(' '));
+      }
       break;
 
     case OP_DIV:
@@ -886,9 +933,15 @@ void CoefXprBinOp::GetTensorXpr( UInt& numRows, UInt& numCols,
                posA ++;
                posB += numCols;
                CoefXpr::ApplyBinaryFunc( temp2, aR[posA], bR[posB], OP_MULT );
-               temp1 += " + " + temp2;
+               if( !IsZero(temp2)) {
+                 temp1 += " + " + temp2;
+               }
              } // numColsA
-             real[posRet++] = Bracket(temp1);
+             if( !IsZero(temp1)) {
+               real[posRet++] = zero2;
+             } else {
+               real[posRet++] = Bracket(temp1);
+             }
            } // numCols
          } // numRows
          imag.Init("0.0");
@@ -905,11 +958,24 @@ void CoefXprBinOp::GetTensorXpr( UInt& numRows, UInt& numCols,
                posB += numCols;
                CoefXpr::ApplyBinaryFunc( temp2R, temp2I, aR[posA], bR[posB], 
                                          aI[posA], bI[posB], OP_MULT );
-               temp1R += " + " + temp2R;
-               temp1I += " + " + temp2I;
+               if( !IsZero(temp2R)) {
+                 temp1R += " + " + temp2R;
+               }
+               if( !IsZero(temp2I)) {
+                 temp1I += " + " + temp2I;
+               }
              } // numColsA
-             real[posRet] = Bracket(temp1R);
-             imag[posRet] = Bracket(temp1I);
+             if( IsZero(temp1R) ) {
+               real[posRet] = zero2;
+             } else {
+               real[posRet] = Bracket(temp1R);
+             }
+             if( IsZero(temp1I) ) {
+               imag[posRet] = zero2;
+             } else {
+               imag[posRet] = Bracket(temp1I);  
+             }
+             
              posRet++;
            } // numCols
          } // numRows

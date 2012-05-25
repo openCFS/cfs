@@ -516,12 +516,12 @@ namespace CoupledField {
   
   bool MathParser::IsExprConstant( HandleType handle ) {
     // Get all depending variables of this expression
-    mu::Parser & actParser = GetParser( handle );
+    //mu::Parser & actParser = GetParser( handle );
     
     mu::varmap_type variables;
-    MATHPARSER_EXEC( variables = actParser.GetUsedVar() ); 
+    //MATHPARSER_EXEC( variables = actParser.GetUsedVar() ); 
     bool isConstant = true;
-    if( variables.size() != 0 ) {
+    if( varsInUse_[handle].size() != 0 ) {
       isConstant = false;
     }
     return isConstant;
@@ -529,9 +529,9 @@ namespace CoupledField {
   
   bool MathParser::IsExprVariable( HandleType handle, const std::string& var ) {
     StdVector<std::string> usedVars;
-    GetExprVars( handle, usedVars );
+    //GetExprVars( handle, usedVars );
     bool found = false;
-    if( usedVars.Find( var) != -1 ) {
+    if( varsInUse_[handle].find( var) != varsInUse_[handle].end() ) {
       found = true;
     }
     return found;

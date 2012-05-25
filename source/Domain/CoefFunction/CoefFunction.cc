@@ -15,7 +15,7 @@ CoefFunction::Generate( Global::ComplexPart format,
                         const std::string& imagVal  ) {
 
   MathParser* mp = domain->GetMathParser();
-  MathParser::HandleType handle = mp->GetNewHandle();
+  MathParser::HandleType handle = mp->GetNewHandle(true);
 
   PtrCoefFct ret;
 
@@ -85,7 +85,7 @@ CoefFunction::Generate( Global::ComplexPart format,
                         const StdVector<std::string>& imagVal ) {
   
   MathParser* mp = domain->GetMathParser();
-  MathParser::HandleType handle = mp->GetNewHandle();
+  MathParser::HandleType handle = mp->GetNewHandle(true);
 
   PtrCoefFct ret;
 
@@ -175,7 +175,7 @@ CoefFunction::Generate( Global::ComplexPart format,
                         const StdVector<std::string>& realVal,
                         const StdVector<std::string>& imagVal ) {
   MathParser* mp = domain->GetMathParser();
-   MathParser::HandleType handle = mp->GetNewHandle();
+   MathParser::HandleType handle = mp->GetNewHandle(true);
 
    PtrCoefFct ret;
 
@@ -347,7 +347,7 @@ PtrCoefFct CoefFunction::Generate( Global::ComplexPart type,
 
 bool CoefFunction::ExprDependsOnTimeFreq(const std::string& expr) {
   MathParser* mp = domain->GetMathParser();
-  MathParser::HandleType handle = mp->GetNewHandle();
+  MathParser::HandleType handle = mp->GetNewHandle(true);
   mp->SetExpr(handle, expr);
   bool depends = false;
   if ( mp->IsExprVariable(handle, "t") ||
@@ -361,7 +361,7 @@ bool CoefFunction::ExprDependsOnTimeFreq(const std::string& expr) {
 
 bool CoefFunction::ExprDependsOnSpace(const std::string& expr) {
   MathParser* mp = domain->GetMathParser();
-  MathParser::HandleType handle = mp->GetNewHandle();
+  MathParser::HandleType handle = mp->GetNewHandle(true);
   mp->SetExpr(handle, expr);
   bool depends = false;
   if ( mp->IsExprVariable(handle, "x") ||

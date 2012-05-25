@@ -47,6 +47,7 @@ namespace CoupledField
     stopFreq_ = 0.0;
     numFreq_ = 0;
     actFreqStep_ = 0;
+    actFreq_ = 0.0;
     
     // register frequency variable at math parser
     domain->GetMathParser()->SetValue( MathParser::GLOB_HANDLER, "f", actFreq_ );
