@@ -229,8 +229,8 @@ void CoefFunctionPML<T>::ReadDataPML(PtrParamNode pmlDef,StdVector<RegionIdType>
     for( UInt iDir = 0; iDir < dirNodes.GetSize(); ++iDir ) {
        dirNodes[iDir]->GetValue( "comp", dirName );
        dirIndex = coordSys_->GetVecComponent( dirName );
-//       innerMinMaxComp_[dirIndex-1][0] = dirNodes[iDir]->Get("min")->MathParse<Double>();
-//       innerMinMaxComp_[dirIndex-1][1] = dirNodes[iDir]->Get("max")->MathParse<Double>();
+       innerMinMaxComp_[dirIndex-1][0] = dirNodes[iDir]->Get("min")->MathParse<Double>();
+       innerMinMaxComp_[dirIndex-1][1] = dirNodes[iDir]->Get("max")->MathParse<Double>();
     }
     if(dirNodes.GetSize() != entities_[0]->GetGrid()->GetDim())
       GuessLayerData(pdeDomains);
