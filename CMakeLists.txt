@@ -1,7 +1,58 @@
 #-----------------------------------------------------------------------------
+# Set the version number of CMake which is required to build CFS++.
+#-----------------------------------------------------------------------------
+SET(REQ_MAJOR_VER 2)
+SET(REQ_MINOR_VER 8)
+SET(REQ_PATCH_VER 4)
+
+#-----------------------------------------------------------------------------
+# Give some hints to the user, if CMake is too old.
+#-----------------------------------------------------------------------------
+IF(CMAKE_MAJOR_VERSION LESS REQ_MAJOR_VER OR
+   CMAKE_MINOR_VERSION LESS REQ_MINOR_VER OR
+   CMAKE_PATCH_VERSION LESS REQ_PATCH_VER)
+
+MESSAGE(
+"
+================================================================================
+! ATTENTION: The CMake binaries you are using are too old for building CFS++!  !
+! But do not worry. There are a number of ways to remedy this situation:       !
+================================================================================
+
+1. Download and run the latest bootstrapper script for CFS++
+
+    $ LSE17FTP='ftp://lse17.e-technik.uni-erlangen.de:40065'
+    $ wget $LSE17FTP/scripts/bootstrap_devel_machine.sh
+    $ sudo bash
+    $ sh bootstrap_devel_machine.sh
+
+   This will not only install CMake but also all other packages
+   required to build CFS++.
+
+2. Run the bootstrapper script from the CFS++ source directory
+
+    $ cd CFS_SOURCE_DIR
+    $ sudo bash
+    $ bash share/scripts/bootstrap_devel_machine.sh
+
+3. Download just the CMake binaries for your platform from Kitware at
+   http://cmake.org/cmake/resources/software.html
+   You may have to install additional packages by hand!
+
+================================================================================
+")
+
+ENDIF(CMAKE_MAJOR_VERSION LESS REQ_MAJOR_VER OR
+      CMAKE_MINOR_VERSION LESS REQ_MINOR_VER OR
+      CMAKE_PATCH_VERSION LESS REQ_PATCH_VER)
+
+#-----------------------------------------------------------------------------
 # Don't build anything unless the version of CMake is high enough.
 #-----------------------------------------------------------------------------
-CMAKE_MINIMUM_REQUIRED(VERSION 2.8.4 FATAL_ERROR)
+CMAKE_MINIMUM_REQUIRED(
+  VERSION "${REQ_MAJOR_VER}.${REQ_MINOR_VER}.${REQ_PATCH_VER}"
+  FATAL_ERROR
+)
 
 #-----------------------------------------------------------------------------
 # The name of our project is "CFS".  CMakeLists files in this
@@ -97,7 +148,7 @@ OPTION(USE_ANSYSRST
 #-----------------------------------------------------------------------------
 SET(CFS_BLAS_LAPACK ${CFS_BLAS_LAPACK_DEFAULT}
   CACHE STRING
-  "BLAS/LAPACK implementation for CFS. May be one of ACML, GOTO, MKL, NETLIB")
+  "BLAS/LAPACK implementation for CFS. May be one of ACML, APPLE, GOTO, MKL, NETLIB")
 
 SET(CFS_PARDISO  ${CFS_PARDISO_DEFAULT}
   CACHE STRING

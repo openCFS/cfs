@@ -46,6 +46,9 @@ namespace CoupledField
     /** implement abstract identification class */ 
     DriverClass GetDriverClass() { return MULTI_SEQUENCE_DRIVER; };
 
+    /** Helper method which determines if an AnalyisType is complex. */
+    virtual bool IsComplex() { return actDriver_->IsComplex(); };
+
   private:
 
     //! number of sequence steps

@@ -98,8 +98,11 @@ namespace CoupledField
     virtual DriverClass GetDriverClass() = 0;
     
     /** Is called by optimization to know number of needed result vectors */
-    virtual UInt GetNumSteps() {return 1; }
+    virtual UInt GetNumSteps() { return 1; }
  
+    /** Helper method which determines if an AnalyisType is complex. */
+    virtual bool IsComplex() = 0;
+
   protected:
     
     //! type of analysis

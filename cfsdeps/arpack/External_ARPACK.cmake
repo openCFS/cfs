@@ -33,6 +33,23 @@ ExternalProject_Add(arpack-patches
   INSTALL_COMMAND ""
 )
 
+SET(CMAKE_ARGS
+  -DCMAKE_INSTALL_PREFIX:PATH=${ARPACK_install}
+  -DCMAKE_COLOR_MAKEFILE:BOOL=${CMAKE_COLOR_MAKEFILE}
+  -DCMAKE_Fortran_COMPILER:FILEPATH=${CMAKE_Fortran_COMPILER}
+  -DCMAKE_Fortran_FLAGS:STRING=-w
+  -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
+  -DCFS_ARCH_STR:STRING=${CFS_ARCH_STR}
+  -DLIB_SUFFIX:STRING=${LIB_SUFFIX}
+)
+
+IF(CFS_DISTRO STREQUAL "MACOSX")
+  SET(CMAKE_ARGS
+    ${CMAKE_ARGS}
+    -DCMAKE_OSX_ARCHITECTURES:STRING=${CMAKE_OSX_ARCHITECTURES}
+    -DCMAKE_OSX_SYSROOT:PATH=${CMAKE_OSX_SYSROOT}
+    )
+ENDIF(CFS_DISTRO STREQUAL "MACOSX")
 
 #-------------------------------------------------------------------------------
 # The ARPACK external project
@@ -42,13 +59,7 @@ ExternalProject_Add(arpack
   PREFIX "${ARPACK_prefix}"
   DOWNLOAD_COMMAND ""
   CMAKE_ARGS
-    -DCMAKE_INSTALL_PREFIX:PATH=${ARPACK_install}
-    -DCMAKE_COLOR_MAKEFILE:BOOL=${CMAKE_COLOR_MAKEFILE}
-    -DCMAKE_Fortran_COMPILER:FILEPATH=${CMAKE_Fortran_COMPILER}
-    -DCMAKE_Fortran_FLAGS:STRING=-w
-    -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
-    -DCFS_ARCH_STR:STRING=${CFS_ARCH_STR}
-    -DLIB_SUFFIX:STRING=${LIB_SUFFIX}
+    ${CMAKE_ARGS}
 )
 #-------------------------------------------------------------------------------
 # Set names of patch file and template file.

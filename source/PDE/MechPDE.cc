@@ -182,11 +182,14 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
           dampFreq = actRayl.freq;
         }
         
+        // Check if analysis is harmonic
+        bool isHarmonic = analysistype_ == BasePDE::HARMONIC;
+
         // Compute Rayleigh damping parameters
         materials_[actRegionId]->
          ComputeRayleighDamping( actRayl.alpha, actRayl.beta,
                                  dampFreq, actRayl.ratioDeltaF, 
-                                 actRayl.adjustDamping, isComplex_ );
+                                 actRayl.adjustDamping, isHarmonic );
         regionRaylDamping_[actRegionId] = actRayl;
 
         PtrParamNode in = infoNode_->Get(ParamNode::HEADER)->GetByVal("region", "name", domain->GetGrid()->GetRegion().ToString(actRegionId));

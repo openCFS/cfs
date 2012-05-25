@@ -320,9 +320,9 @@ namespace CoupledField {
   }
 
   template<typename T>
-  void VBR_Matrix<T>::CopySparsityPattern( StdMatrix &mat ) const {
+  void VBR_Matrix<T>::SetSparsityPattern( const StdMatrix &srcMat ) {
 
-    EXCEPTION( "VBR_Matrix::CopySparsityPattern: Not implemented" );
+    EXCEPTION( "VBR_Matrix::SetSparsityPattern: Not implemented" );
   }
   
   template<typename T>

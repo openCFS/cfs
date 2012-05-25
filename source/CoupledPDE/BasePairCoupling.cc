@@ -77,7 +77,7 @@ namespace CoupledField {
     // Determine analysistype and use of complex values
     analysisType_ = pde1_->GetAnalysisType();
  
-    isComplex_ = BasePDE::IsComplex(analysisType_);
+    isComplex_ = BasePDE::IsComplex();
 
     PtrParamNode in = infoNode_->Get(ParamNode::HEADER); 
     in->Get("sequenceStep")->SetValue(sequenceStep); 

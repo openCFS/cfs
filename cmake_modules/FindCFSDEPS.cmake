@@ -181,6 +181,11 @@ IF(USE_BLAS OR USE_LAPACK)
     INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindIntelMKL.cmake")
   ENDIF(CFS_BLAS_LAPACK STREQUAL "MKL")
 
+  IF(CFS_BLAS_LAPACK STREQUAL "APPLE")
+    SET(BLAS_LIBRARY "-framework Accelerate")
+    SET(LAPACK_LIBRARY "-framework Accelerate")
+  ENDIF(CFS_BLAS_LAPACK STREQUAL "APPLE")
+
   #-----------------------------------------------------------------------------
   # Search for Pardiso Library
   #-----------------------------------------------------------------------------

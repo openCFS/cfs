@@ -57,6 +57,139 @@ namespace CoupledField {
   }
 
 
+  template <>
+  void EigenFrequencyDriver::PrintResult<Double>(SingleVector* freq_ptr, Vector<Double> errBounds, 
+                                                 ResultHandler* resHandler, UInt numConverged)
+                                                 {
+    Vector<Double>& eigenFreqs = dynamic_cast<Vector<Double>&>(*freq_ptr);
+
+    // If no frequency at all converged, just leave
+    if( numConverged == 0) {
+      WARN( "No eigenfrequency converged, so no output will be written to "
+          "the result files." );
+      return;
+    }
+
+    // Issue warning, if number of converged eigenvalues differs from
+    // number of requested ones
+    if( numConverged != numFreq_ ) {
+      WARN( "Only " << numConverged << " eigenfrequencies of " 
+            << numFreq_ << " converged. To improve convergence, either "
+            << "reduce the number of eigenfrequencies or the tolerance." );
+    }
+
+    // notify resultHandler about beginning of new sequence step
+    resHandler->BeginMultiSequenceStep( sequenceStep_,
+                                        analysis_,
+                                        numConverged );
+
+    // Print out eigenfrequencies
+    std::cout << std::endl << std::endl;
+
+    std::cout << std::setw(20) << "Frequency [Hz]" << " | ";
+    std::cout << std::setw(20) << "Errorbound";
+    std::cout << "\n";
+    std::cout << std::setfill('-') << std::setw(40) << "" << std::setfill(' ');
+    std::cout << "\n";
+
+    for( UInt i=0; i<numConverged; i++ ) {
+      std::cout << std::setw(20) << eigenFreqs[i];
+      std::cout <<" | ";
+      std::cout << std::setw(20) << errBounds[i] <<  "\n";
+
+      // also log via info node
+      PtrParamNode result = driverNode->Get("result",ParamNode::APPEND);
+      result->Get("frequency")->SetValue(eigenFreqs[i]);
+      result->Get("errorbound")->SetValue(errBounds[i]);
+    }
+
+
+    // ------------------------------
+    // Phase 2: calculate eigenmodes
+    // ------------------------------
+    if ( writeModes_ == true ) {
+
+      for ( UInt i = 0 ; i < numConverged; i++ ) {
+        ptPDE_->GetSolveStep()->SetActStep(i);
+        ptPDE_->GetSolveStep()->SetActFreq(std::abs(eigenFreqs[i]));
+        ptPDE_->GetSolveStep()->CalcEigenMode( i );
+        resHandler->BeginStep( i+1, std::abs(eigenFreqs[i]) );
+        ptPDE_->WriteResultsInFile(i+1, std::abs(eigenFreqs[i]) );
+        resHandler->FinishStep( );
+      }
+    }
+                                                 }
+
+  template <>
+  void EigenFrequencyDriver::PrintResult<Complex>(SingleVector* freq_ptr, Vector<Double> errBounds, 
+                                                  ResultHandler* resHandler, UInt numConverged)
+                                                  {
+    Vector<Complex>& eigenFreqs = dynamic_cast<Vector<Complex>&>(*freq_ptr);
+
+    // If no frequency at all converged, just leave
+    if( numConverged == 0) {
+      WARN( "No eigenfrequency converged, so no output will be written to "
+          "the result files." );
+      return;
+    }
+
+    // Issue warning, if number of converged eigenvalues differs from
+    // number of requested ones
+    if( numConverged != numFreq_ ) {
+      WARN( "Only " << numConverged << " eigenfrequencies of " 
+            << numFreq_ << " converged. To improve convergence, either "
+            << "reduce the number of eigenfrequencies or the tolerance." );
+    }
+
+    // notify resultHandler about beginning of new sequence step
+    resHandler->BeginMultiSequenceStep( sequenceStep_,
+                                        analysis_,
+                                        numConverged );
+
+    // Print out eigenfrequencies
+    std::cout << std::endl << std::endl;
+
+    std::cout << std::setw(20) << "Frequency [Hz]" << " | ";
+    std::cout << std::setw(20) << "Damping       " << " | ";
+    std::cout << std::setw(20) << "Errorbound";
+    std::cout << "\n";
+    std::cout << std::setfill('-') << std::setw(70) << "" << std::setfill(' ');
+    std::cout << "\n";
+
+    for( UInt i=0; i<numConverged; i++ ) {
+      Double freq = eigenFreqs[i].imag()/(8.0*atan(1.0));
+      Double damp = eigenFreqs[i].real();
+
+      std::cout << std::setw(20) <<  freq;
+      std::cout <<" | ";
+      std::cout << std::setw(20) << damp;
+      std::cout <<" | ";
+      std::cout << std::setw(20) << errBounds[i] <<  "\n";
+
+      // also log via info node
+      PtrParamNode result = driverNode->Get("result",ParamNode::APPEND);
+      result->Get("frequency")->SetValue(freq);
+      result->Get("damping")->SetValue(damp);
+      result->Get("errorbound")->SetValue(errBounds[i]);
+    }
+
+    // ------------------------------
+    // Phase 2: calculate eigenmodes
+    // ------------------------------
+    if ( writeModes_ == true ) {
+
+      for ( UInt i = 0 ; i < numConverged; i++ ) {
+        Double actFreq = eigenFreqs[i].imag()/(8.0*atan(1.0));
+        ptPDE_->GetSolveStep()->SetActStep(i);
+        ptPDE_->GetSolveStep()->SetActFreq(actFreq);
+        ptPDE_->GetSolveStep()->CalcEigenMode( i );
+        resHandler->BeginStep( i+1, actFreq );
+        ptPDE_->WriteResultsInFile(i+1, actFreq );
+        resHandler->FinishStep( );
+      }
+    }
+                                                  }
+  
   // *****************
   //   Solve problem
   // *****************
@@ -89,7 +222,7 @@ namespace CoupledField {
       if(isQuadratic_) {
         numConverged = step->CalcEigenFrequencies( dynamic_cast<Vector<Complex>& >(*eigenFreqs),
                                                    errBounds,numFreq_, freqShift_ );
-        PrintResult<Double>(eigenFreqs, errBounds, resHandler, numConverged);
+        PrintResult<Complex>(eigenFreqs, errBounds, resHandler, numConverged);
       }
       else  {
         numConverged = step->CalcEigenFrequencies( dynamic_cast<Vector<Double>& >(*eigenFreqs),
@@ -108,68 +241,7 @@ namespace CoupledField {
   }
 
   
-  template <class T>
-  void EigenFrequencyDriver::PrintResult(SingleVector* freq_ptr, Vector<Double> errBounds, 
-                                         ResultHandler* resHandler, UInt numConverged)
-  {
-    Vector<T>& eigenFreqs = dynamic_cast<Vector<T>&>(*freq_ptr);
-    
-    // If no frequency at all converged, just leave
-    if( numConverged == 0) {
-      WARN( "No eigenfrequency converged, so no output will be written to "
-            "the result files." );
-      return;
-    }
-    
-    // Issue warning, if number of converged eigenvalues differs from
-    // number of requested ones
-    if( numConverged != numFreq_ ) {
-      WARN( "Only " << numConverged << " eigenfrequencies of " 
-            << numFreq_ << " converged. To improve convergence, either "
-            << "reduce the number of eigenfrequencies or the tolerance." );
-    }
-    
-    // notify resultHandler about beginning of new sequence step
-    resHandler->BeginMultiSequenceStep( sequenceStep_,
-        analysis_,
-        numConverged );
-
-    // Print out eigenfrequencies
-    std::cout << std::endl << std::endl;
-
-    std::cout << std::setw(20) << "Frequency [Hz]" << " | ";
-    std::cout << std::setw(20) << "Errorbound";
-    std::cout << "\n";
-    std::cout << std::setfill('-') << std::setw(40) << "" << std::setfill(' ');
-    std::cout << "\n";
-
-    for( UInt i=0; i<numConverged; i++ ) {
-      std::cout << std::setw(20) << eigenFreqs[i];
-      std::cout <<" | ";
-      std::cout << std::setw(20) << errBounds[i] <<  "\n";
-
-      // also log via info node
-      PtrParamNode result = driverNode->Get("result",ParamNode::APPEND);
-      result->Get("frequency")->SetValue(eigenFreqs[i]);
-      result->Get("errorbound")->SetValue(errBounds[i]);
-    }
-
-    
-    // ------------------------------
-    // Phase 2: calculate eigenmodes
-    // ------------------------------
-    if ( writeModes_ == true ) {
-
-      for ( UInt i = 0 ; i < numConverged; i++ ) {
-        ptPDE_->GetSolveStep()->SetActStep(i);
-        ptPDE_->GetSolveStep()->SetActFreq(std::abs(eigenFreqs[i]));
-        ptPDE_->GetSolveStep()->CalcEigenMode( i );
-        resHandler->BeginStep( i+1, std::abs(eigenFreqs[i]) );
-        ptPDE_->WriteResultsInFile(i+1, std::abs(eigenFreqs[i]) );
-        resHandler->FinishStep( );
-      }
-    }
-  }
+ 
   
   
 } // end of namespace

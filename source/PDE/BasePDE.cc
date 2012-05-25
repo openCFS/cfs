@@ -1,3 +1,4 @@
+#include "Domain/Domain.hh"
 #include "BasePDE.hh"
 #include "Driver/SolveSteps/BaseSolveStep.hh"
 
@@ -23,26 +24,9 @@ namespace CoupledField {
   BasePDE::~BasePDE() {
   }
 
-  bool BasePDE::IsComplex(AnalysisType type) 
+  bool BasePDE::IsComplex() 
   {
-    switch(type) 
-    {
-    case STATIC:
-      return false;
-
-    case TRANSIENT:
-      return false;
-      
-    case HARMONIC:
-      return true;
-      
-    case EIGENFREQUENCY:
-      return false;
-      break;
-
-    default:
-      EXCEPTION("type not implemented")
-    };
+    return domain->GetDriver()->IsComplex();
   }
   
   void BasePDE::SetEnums()

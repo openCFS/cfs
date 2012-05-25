@@ -195,7 +195,8 @@ namespace CoupledField {
 
     
     // Create algebraic system and pass it to SinglePDEs
-    algsys_ = new AlgebraicSys(olasNode_, olasInfo_);
+    isComplex_ = IsComplex();
+    algsys_ = new AlgebraicSys(olasNode_, olasInfo_, isComplex_);
     solStrat_ = algsys_->GetSolStrategy();
     
     // ----------------------------

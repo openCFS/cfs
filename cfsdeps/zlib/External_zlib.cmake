@@ -21,8 +21,17 @@ SET(CMAKE_ARGS
   -DCMAKE_C_COMPILER:FILEPATH=${CMAKE_C_COMPILER}
 )
 
+IF(CFS_DISTRO STREQUAL "MACOSX")
+  SET(CMAKE_ARGS
+    ${CMAKE_ARGS}
+    -DCMAKE_C_FLAGS:STRING=${CFLAGS}
+    -DCMAKE_OSX_ARCHITECTURES:STRING=${CMAKE_OSX_ARCHITECTURES}
+    -DCMAKE_OSX_SYSROOT:PATH=${CMAKE_OSX_SYSROOT}
+    )
+ENDIF(CFS_DISTRO STREQUAL "MACOSX")
+
 #-------------------------------------------------------------------------------
-# The zlib-static external project
+# The zlib-shared external project
 #-------------------------------------------------------------------------------
 ExternalProject_Add(zlib-shared
   PREFIX ${zlib_prefix}

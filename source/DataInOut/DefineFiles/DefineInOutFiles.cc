@@ -25,11 +25,8 @@
 #include "DataInOut/SimInOut/internalMesh/InternalMesh.hh"
 #endif
 
-#ifdef USE_GMV_INPUT
+#ifdef USE_GMV
 #include "DataInOut/SimInOut/gmv/SimInputGMV.hh"
-#endif
-
-#ifdef USE_GMV_OUTPUT
 #include "DataInOut/SimInOut/gmv/SimOutGMV.hh"
 #endif
 
@@ -191,14 +188,14 @@ void DefineInOutFiles::CreateSimInputFiles(std::map<std::string, shared_ptr<
     }
     else if (informat == "gmv")
     {
-#ifdef USE_GMV_INPUT
+#ifdef USE_GMV
       if(meshFile.empty())
       meshFile = simName + ".gmv";
       inFiles[actId] = shared_ptr<SimInput>(new SimInputGMV(meshFile,
               actNode));
 #else
       EXCEPTION( "No support for GMV input file format." );
-#endif // USE_GMV_INPUT
+#endif // USE_GMV
     }
     else if (informat == "gmsh")
     {
@@ -370,7 +367,7 @@ CreateSimOutputFiles(std::map<std::string, shared_ptr<SimOutput> >& out,
 
     if (actFormat == "gmv")
     {
-#ifdef USE_GMV_OUTPUT
+#ifdef USE_GMV
       out[actId] = shared_ptr<SimOutput> (new SimOutputGMV(simName, actNode));
 #else
       EXCEPTION( "No support for GMV output file format." );

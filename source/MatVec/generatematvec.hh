@@ -35,7 +35,8 @@ namespace CoupledField {
   //! is returned as a BaseVector* and might have to be
   //! casted in to SingleVector or SBMVector afterwards.
   //! The vector is initialised to contain zeros on the scalar level.
-  BaseVector* GenerateVectorObject(const BaseMatrix &m);
+  BaseVector* GenerateVectorObject(const BaseMatrix &m,
+                                   BaseMatrix::EntryType entrytype=BaseMatrix::NOENTRYTYPE);
 
   //! Generation of a vector of specified type
 

@@ -43,7 +43,7 @@ namespace CoupledField {
   // ***********************
   //   Default Constructor
   // ***********************
-  AlgebraicSys::AlgebraicSys(PtrParamNode param, PtrParamNode info ) 
+  AlgebraicSys::AlgebraicSys(PtrParamNode param, PtrParamNode info, bool isSolutionComplex ) 
   {
     myParam_ = param;
     myInfo_ = info;
@@ -66,7 +66,8 @@ namespace CoupledField {
     sbmSymm_            = true;
     onlyOneMatrixBlock_ = false;
     statCond_           = false;
-    isComplex_          = false;
+    isMatrixComplex_    = false;
+    isSolutionComplex_  = isSolutionComplex;
     effMat_             = NULL;
     effRhs_             = NULL;
     effSol_             = NULL;
@@ -224,7 +225,7 @@ namespace CoupledField {
     // ------------------------------
 
     // Obtain some info from parameter file
-    BaseMatrix::EntryType entryType = isComplex_ ? 
+    BaseMatrix::EntryType entryType = isMatrixComplex_ ? 
         BaseMatrix::COMPLEX :
         BaseMatrix::DOUBLE;
     for ( fIt = matrixTypes_.begin(); fIt != matrixTypes_.end(); fIt++ ) {
@@ -250,16 +251,21 @@ namespace CoupledField {
                                         numDirichletValuesPerBlock_,
                                         entryType );
       }
+
       // ------------------------------
       //  Generation of vector objects
       // ------------------------------
 
+      BaseMatrix::EntryType solEntryType = isSolutionComplex_ ? 
+        BaseMatrix::COMPLEX :
+        BaseMatrix::DOUBLE;
+
       // Generate empty SBM vectors
       rhs_ = dynamic_cast<SBM_Vector*>
-        ( GenerateVectorObject( *(sysMat_[SYSTEM]) ) );
+             ( GenerateVectorObject( *(sysMat_[SYSTEM]), solEntryType ) );
 
       sol_ = dynamic_cast<SBM_Vector*>
-        ( GenerateVectorObject( *(sysMat_[SYSTEM]) ) );
+             ( GenerateVectorObject( *(sysMat_[SYSTEM]), solEntryType ) );
       
       if ( rhs_ == NULL || sol_ == NULL ) {
         EXCEPTION( WRONG_CAST_MSG );
@@ -278,12 +284,12 @@ namespace CoupledField {
         stdMat = sysMat_[SYSTEM]->GetPointer( k, k );
 
         // Insert sub-vector into solution
-        bVec = GenerateVectorObject( *stdMat );
+        bVec = GenerateVectorObject( *stdMat, solEntryType );
         sVec = dynamic_cast<SingleVector*>( bVec );
         sol_->SetSubVector( sVec, k );
 
         // Insert sub-vector into right-hand side
-        bVec = GenerateVectorObject( *stdMat );
+        bVec = GenerateVectorObject( *stdMat, solEntryType );
         sVec = dynamic_cast<SingleVector*>( bVec );
         rhs_->SetSubVector( sVec, k );
       }
@@ -502,6 +508,7 @@ namespace CoupledField {
       }
     }
 
+
     // Determine some basic properties and create vectors
     // for eigenvalues and related error bounds
     BaseMatrix::EntryType eType;
@@ -514,7 +521,7 @@ namespace CoupledField {
     UInt totalSize = (*sysMat_[SYSTEM])(0,0).GetNumRows();
 
     BaseVector *bVec = GenerateSingleVectorObject(  eType, totalSize );
-    BaseVector *errVec = GenerateSingleVectorObject(  eType, totalSize );
+    BaseVector *errVec = GenerateSingleVectorObject(  BaseMatrix::DOUBLE, totalSize );
     eigenValues_ = dynamic_cast<SingleVector*>( bVec );
     eigenValError_ = dynamic_cast<SingleVector*>( errVec );
 
@@ -781,9 +788,15 @@ namespace CoupledField {
   void AlgebraicSys::CalcEigenMode( UInt numMode )  {
     
     LOG_TRACE(algSys) << "Calculating eigenmode #" << numMode;
-    Vector<Double> & solHelp =
-         dynamic_cast<Vector<Double> &> ((*sol_)(0));
-    eigenSolver_->CalcEigenMode( numMode, solHelp );
+    if ( eigenSolver_->IsQuadratic()==true ) {
+       Vector<Complex> & solHelp =
+         dynamic_cast<Vector<Complex> &> ((*sol_)(0));
+       eigenSolver_->CalcQuadEigenMode( numMode, solHelp );
+    } else {
+      Vector<Double> & solHelp =
+        dynamic_cast<Vector<Double> &> ((*sol_)(0));
+      eigenSolver_->CalcEigenMode( numMode, solHelp );
+    }
 
   }
 
@@ -1155,7 +1168,7 @@ namespace CoupledField {
         // Note: The sbmSymmetry is not affected in this case.
         if( !isSymmetric) {
           this->matIsSymm_[fctId1] = false;
-          LOG_TRACE(algSys) << "\t=> matrix will be unsymmetric";
+          LOG_TRACE(algSys) << "\t=> matrix will begic";
         }
       
       } else {
@@ -1183,7 +1196,7 @@ namespace CoupledField {
       // If at least one matrix contains complex entries, we assume that
       // the whole system will have complex entries.
       if( isComplex )
-        this->isComplex_ = true;
+        this->isMatrixComplex_ = true;
     }
   }
 

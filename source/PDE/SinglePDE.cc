@@ -145,7 +145,7 @@ namespace CoupledField {
       analysistype_ = STATIC;
     }
 
-    isComplex_ = IsComplex(analysistype_);
+    isComplex_ = IsComplex();
 
 
     // =====================================================================
@@ -191,7 +191,7 @@ namespace CoupledField {
     if( needsAlgsys_ == true ) {
       if ( isDirectCoupled_ == false) {
         olasInfo_ = info->Get("OLAS")->Get(pdename_);
-        algsys_ = new AlgebraicSys(olasNode_, olasInfo_);
+        algsys_ = new AlgebraicSys(olasNode_, olasInfo_, isComplex_);
         solStrat_ = algsys_->GetSolStrategy();
       }
     }
@@ -2926,7 +2926,7 @@ namespace CoupledField {
                     spIt->first << " This is not how its ought to be!");
         }
 
-        if(analysistype_ == HARMONIC){
+        if( isComplex_ ) {
           feFunctions_[spIt->first] = shared_ptr<BaseFeFunction >(new FeFunction<Complex>());
           rhsFeFunctions_[spIt->first] = shared_ptr<BaseFeFunction >(new FeFunction<Complex>());
         }else{

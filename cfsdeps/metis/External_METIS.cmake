@@ -5,6 +5,24 @@ set(metis_prefix  "${CMAKE_CURRENT_BINARY_DIR}/cfsdeps/metis")
 set(metis_source  "${metis_prefix}/src/metis")
 set(metis_install  "${CMAKE_CURRENT_BINARY_DIR}")
 
+SET(CMAKE_ARGS
+  -DCMAKE_INSTALL_PREFIX:PATH=${metis_install}
+  -DCMAKE_COLOR_MAKEFILE:BOOL=${CMAKE_COLOR_MAKEFILE}
+  -DCMAKE_C_COMPILER:FILEPATH=${CMAKE_C_COMPILER}
+  -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
+  -DCFS_ARCH_STR:STRING=${CFS_ARCH_STR}
+  -DLIB_SUFFIX:STRING=${LIB_SUFFIX}
+  )
+
+IF(CFS_DISTRO STREQUAL "MACOSX")
+  SET(CMAKE_ARGS
+    ${CMAKE_ARGS}
+    -DCMAKE_C_FLAGS:FILEPATH=${CFLAGS}
+    -DCMAKE_OSX_ARCHITECTURES:STRING=${CMAKE_OSX_ARCHITECTURES}
+    -DCMAKE_OSX_SYSROOT:PATH=${CMAKE_OSX_SYSROOT}
+    )
+ENDIF(CFS_DISTRO STREQUAL "MACOSX")
+
 #-------------------------------------------------------------------------------
 # The metis external project
 #-------------------------------------------------------------------------------
@@ -14,12 +32,7 @@ ExternalProject_Add(metis
   URL ${METIS_URL}/${METIS_GZ}
   URL_MD5 ${METIS_MD5}
   CMAKE_ARGS
-    -DCMAKE_INSTALL_PREFIX:PATH=${metis_install}
-    -DCMAKE_COLOR_MAKEFILE:BOOL=${CMAKE_COLOR_MAKEFILE}
-    -DCMAKE_C_COMPILER:FILEPATH=${CMAKE_C_COMPILER}
-    -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
-    -DCFS_ARCH_STR:STRING=${CFS_ARCH_STR}
-    -DLIB_SUFFIX:STRING=${LIB_SUFFIX}
+    ${CMAKE_ARGS}
 )
 
 #-------------------------------------------------------------------------------

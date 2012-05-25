@@ -129,12 +129,12 @@ namespace CoupledField {
       return NO_PATTERN_ID;
     }
 
-    //! Copy the sparsity pattern of this matrix to another 
+    //! Copy the sparsity pattern of another matrix to this matrix 
     
-    //! This method copies the sparsity pattern of this matrix and
-    //! sets it in another matrix
-    void CopySparsityPattern ( StdMatrix &mat ) const {
-      EXCEPTION("Diag_Matrix do not support a CopySparsityPattern");
+    //! This method copies the sparsity pattern of the source matrix to the
+    //! current matrix
+    void SetSparsityPattern ( const StdMatrix &srcMat ) {
+      EXCEPTION("Diag_Matrix do not support a SetSparsityPattern");
     };
     
     //! Re-set internal dimensions

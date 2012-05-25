@@ -5,6 +5,24 @@ set(lapack_prefix "${CMAKE_CURRENT_BINARY_DIR}/cfsdeps/lapack")
 set(lapack_source  "${lapack_prefix}/src/lapack")
 set(lapack_install  "${CFS_BINARY_DIR}")
 
+SET(CMAKE_ARGS
+  -DCMAKE_INSTALL_PREFIX:PATH=${lapack_install}
+  -DCMAKE_COLOR_MAKEFILE:BOOL=${CMAKE_COLOR_MAKEFILE}
+  -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
+  -DCMAKE_Fortran_COMPILER:FILEPATH=${CMAKE_Fortran_COMPILER}
+  -DLIB_SUFFIX:STRING=${LIB_SUFFIX}
+  -DCFS_ARCH_STR:STRING=${CFS_ARCH_STR}
+  -DCMAKE_Fortran_FLAGS:STRING=-w -O2
+)
+
+IF(CFS_DISTRO STREQUAL "MACOSX")
+  SET(CMAKE_ARGS
+    ${CMAKE_ARGS}
+    -DCMAKE_OSX_ARCHITECTURES:STRING=${CMAKE_OSX_ARCHITECTURES}
+    -DCMAKE_OSX_SYSROOT:PATH=${CMAKE_OSX_SYSROOT}
+    )
+ENDIF(CFS_DISTRO STREQUAL "MACOSX")
+
 #-------------------------------------------------------------------------------
 # The Lapack external project
 #-------------------------------------------------------------------------------
@@ -14,13 +32,7 @@ ExternalProject_Add(lapack
   URL ${LAPACK_URL}/${LAPACK_GZ}
   URL_MD5 ${LAPACK_MD5}
   CMAKE_ARGS
-    -DCMAKE_INSTALL_PREFIX:PATH=${lapack_install}
-    -DCMAKE_COLOR_MAKEFILE:BOOL=${CMAKE_COLOR_MAKEFILE}
-    -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
-    -DCMAKE_Fortran_COMPILER:FILEPATH=${CMAKE_Fortran_COMPILER}
-    -DLIB_SUFFIX:STRING=${LIB_SUFFIX}
-    -DCFS_ARCH_STR:STRING=${CFS_ARCH_STR}
-    -DCMAKE_Fortran_FLAGS:STRING=-w -O2
+    ${CMAKE_ARGS}
   )
 
 #-------------------------------------------------------------------------------

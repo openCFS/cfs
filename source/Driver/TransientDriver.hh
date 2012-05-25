@@ -41,6 +41,9 @@ namespace CoupledField {
       return actTimeStep_;
     }
 
+    /** Helper method which determines if an AnalyisType is complex. */
+    virtual bool IsComplex() { return false; };
+
   protected:
 
     //! Read restart information

@@ -35,6 +35,16 @@ namespace CoupledField {
                 UInt size, UInt numFreq, Double freqShift, char* which, 
                 char* type, bool shiftMode );
 
+    //! Setup routine for various initialization tasks.
+    //! \param stiffMat Reference to stiffness matrix
+    //! \param massMat Reference to mass matrix
+    //! \param numFreq Number of eigenvalues/frequencies to be calculated
+    //! \param freqShift Frequency shift applied to the system
+    //! \param shiftMode Flag indicating if shift-and-invert mode of solver
+    //!        is used
+    void QuadSetup( ArpackMatInterface *apInterface, 
+                UInt size, UInt numFreq, Double freqShift, char* which, bool shiftMode );
+
     //! Solve the linear generalized eigenvalue problem
     
     //! This method triggers the calculation of the eigenvalue problem.
@@ -43,10 +53,17 @@ namespace CoupledField {
     //! \return Number of converged eigenvalues
     UInt FindEigenvalues();
 
+    //! Method triggers the calculation of the quadratic eigenvalue problem.
+    //! Its return value is the number of converged complex eigenvalues.
+    //! \param sol Vector with converged eigenvalues (complex)
+    //! \return Number of converged eigenvalues (complex)
+    UInt FindQuadEigenvalues();
+
     //! This method returns the n-th converged eigenvalue
     //! \param n Number of requested converged eigenvalue
     //! \return Calculated eigenvalue
     Double Eigenvalue(UInt n);
+    Complex CmplxEigenvalue(UInt n);
 
     //! This method returns tolerance obtained for
     //! the n-th converged eigenvalue
@@ -61,6 +78,7 @@ namespace CoupledField {
     //! \param modeNr Number of the (converged) eigenmode to be calculated
     //! \param mode Vector with the eignmode
     Double* GetEigenvector( UInt modeNr );
+    Complex* GetQuadEigenvector( UInt modeNr );
 
     //! Method to switch arpack debug information off
     void DebugOff();
@@ -92,7 +110,11 @@ namespace CoupledField {
   private:
 
     void InitTempSpace(Double*, Double*, Double*, Double*, Double*);
+    void InitQuadTempSpace(Complex*, Complex*, Complex*, Complex*, Complex*, Double*);
     //! Pointer to parameter object
+
+    //! Translate error number in meaningfull text describtion
+    std::string ArpackError( Integer errNo );
 
     //! Pointer to matrix interface
     ArpackMatInterface * interface_;
@@ -125,13 +147,15 @@ namespace CoupledField {
     UInt size_;
 
     //! stores the calculated eigenvalues
-    Double *eigenValues_;
+    Double  *eigenValues_;
+    Complex *zEigenValues_;
 
     //! stores the tolerances for the calculated eigenvalues
     Double *eigenTolerances_;
 
     //! stores the calculated eigenvectors
     Double *eigenVectors_;
+    Complex *zEigenVectors_;
 
   };
 }

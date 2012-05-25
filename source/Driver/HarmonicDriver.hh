@@ -80,6 +80,9 @@ public:
 
   StdVector<Frequency> freqs;
 
+  /** Helper method which determines if an AnalyisType is complex. */
+  virtual bool IsComplex() { return true; };
+
 protected:
 
 

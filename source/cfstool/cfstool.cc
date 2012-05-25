@@ -37,11 +37,8 @@ namespace fs = boost::filesystem;
 #include "DataInOut/SimInOut/gmsh/SimOutputGmsh.hh"
 #endif
 
-#ifdef USE_GMV_INPUT
+#ifdef USE_GMV
 #include "DataInOut/SimInOut/gmv/SimInputGMV.hh"
-#endif
-
-#ifdef USE_GMV_OUTPUT
 #include "DataInOut/SimInOut/gmv/SimOutGMV.hh"
 #endif
 
@@ -105,7 +102,7 @@ namespace CFSTool {
       EXCEPTION( "No support for Gmsh input file format." );
 #endif
     } else if( fileName.find( ".gmv") != std::string::npos ) {
-#ifdef USE_GMV_INPUT
+#ifdef USE_GMV
       reader = shared_ptr<SimInput>(new SimInputGMV(fileName, param));
 #else
       EXCEPTION( "No support for GMV input file format." );
@@ -148,7 +145,7 @@ namespace CFSTool {
       EXCEPTION( "No support for GiD output file format." );
 #endif
     } else if( fileName.find( ".gmv") != std::string::npos ) {
-#ifdef USE_GMV_OUTPOUT
+#ifdef USE_GMV
       baseName = std::string(fileName, 0, fileName.find(".gmv"));
       PtrParamNode gmvNode(new ParamNode(ParamNode::EX, ParamNode::ELEMENT));
       PtrParamNode binary (new ParamNode(ParamNode::EX, ParamNode::ATTRIBUTE));

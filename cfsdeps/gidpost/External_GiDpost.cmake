@@ -5,6 +5,24 @@ set(gidpost_prefix "${CMAKE_CURRENT_BINARY_DIR}/cfsdeps/gidpost")
 set(gidpost_source  "${gidpost_prefix}/src/gidpost")
 set(gidpost_install  "${CFS_BINARY_DIR}")
 
+SET(CMAKE_ARGS
+  -DCMAKE_INSTALL_PREFIX:PATH=${gidpost_install}
+  -DCMAKE_COLOR_MAKEFILE:BOOL=${CMAKE_COLOR_MAKEFILE}
+  -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
+  -DCMAKE_CXX_COMPILER:FILEPATH=${CMAKE_CXX_COMPILER}
+  -DLIB_SUFFIX:STRING=${LIB_SUFFIX}
+  -DCFS_ARCH_STR:STRING=${CFS_ARCH_STR}
+)
+
+IF(CFS_DISTRO STREQUAL "MACOSX")
+  SET(CMAKE_ARGS
+    ${CMAKE_ARGS}
+    -DCMAKE_C_FLAGS:STRING=${CFLAGS}
+    -DCMAKE_OSX_ARCHITECTURES:STRING=${CMAKE_OSX_ARCHITECTURES}
+    -DCMAKE_OSX_SYSROOT:PATH=${CMAKE_OSX_SYSROOT}
+    )
+ENDIF(CFS_DISTRO STREQUAL "MACOSX")
+
 #-------------------------------------------------------------------------------
 # The GiDpost external project
 #-------------------------------------------------------------------------------
@@ -14,12 +32,7 @@ ExternalProject_Add(gidpost
   URL ${GIDPOST_URL}/${GIDPOST_ZIP}
   URL_MD5 ${GIDPOST_MD5}
   CMAKE_ARGS
-    -DCMAKE_INSTALL_PREFIX:PATH=${gidpost_install}
-    -DCMAKE_COLOR_MAKEFILE:BOOL=${CMAKE_COLOR_MAKEFILE}
-    -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
-    -DCMAKE_CXX_COMPILER:FILEPATH=${CMAKE_CXX_COMPILER}
-    -DLIB_SUFFIX:STRING=${LIB_SUFFIX}
-    -DCFS_ARCH_STR:STRING=${CFS_ARCH_STR}
+     ${CMAKE_ARGS}
   )
 
 #-------------------------------------------------------------------------------
@@ -74,6 +87,7 @@ SET(GIDPOST_LIBRARY_RELEASE
 #-------------------------------------------------------------------------------
 # Mark paths of GIDPOST libraries as advanced.
 #-------------------------------------------------------------------------------
+MARK_AS_ADVANCED(GIDPOST_INCLUDE_DIR)
 MARK_AS_ADVANCED(GIDPOST_LIBRARY_DEBUG)
 MARK_AS_ADVANCED(GIDPOST_LIBRARY_RELEASE)
 

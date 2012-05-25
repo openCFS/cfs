@@ -105,11 +105,11 @@ namespace CoupledField {
     //! a default block size of 1 is assumed. 
     void SetSparsityPattern( BaseGraph &graph );
 
-    //! Copy the sparsity pattern of this matrix to another 
+    //! Copy the sparsity pattern of another matrix to this matrix 
     
-    //! This method copies the sparsity pattern of this matrix and
-    //! sets it in another matrix
-    void CopySparsityPattern ( StdMatrix &mat ) const;
+    //! This method copies the sparsity pattern of the source matrix to the
+    //! current matrix
+    void SetSparsityPattern ( const StdMatrix &srcMat );
     
     //! Re-set internal dimensions
 

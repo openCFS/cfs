@@ -21,6 +21,14 @@ SET(CMAKE_ARGS
   -DLIB_SUFFIX:STRING=${LIB_SUFFIX}
 )
 
+IF(CFS_DISTRO STREQUAL "MACOSX")
+  SET(CMAKE_ARGS
+    ${CMAKE_ARGS}
+    -DCMAKE_OSX_ARCHITECTURES:STRING=${CMAKE_OSX_ARCHITECTURES}
+    -DCMAKE_OSX_SYSROOT:PATH=${CMAKE_OSX_SYSROOT}
+    )
+ENDIF(CFS_DISTRO STREQUAL "MACOSX")
+
 #-------------------------------------------------------------------------------
 # The ilupack external project (double real)
 #-------------------------------------------------------------------------------

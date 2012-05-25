@@ -7,6 +7,7 @@
 FIND_PACKAGE(Perl)
 
 FIND_PACKAGE(PythonInterp)
+FIND_PACKAGE(PythonLibs)
 
 IF(NOT PYTHONINTERP_FOUND)
   MESSAGE(FATAL_ERROR "No Python interpreter was found! Please make sure a Python interpreter is on the PATH.")

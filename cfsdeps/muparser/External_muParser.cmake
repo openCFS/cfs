@@ -5,6 +5,24 @@ set(muparser_prefix  "${CMAKE_CURRENT_BINARY_DIR}/cfsdeps/muparser")
 set(muparser_source  "${muparser_prefix}/src/muparser")
 set(muparser_install  "${CMAKE_CURRENT_BINARY_DIR}")
 
+SET(CMAKE_ARGS
+  -DCMAKE_INSTALL_PREFIX:PATH=${muparser_install}
+  -DCMAKE_COLOR_MAKEFILE:BOOL=${CMAKE_COLOR_MAKEFILE}
+  -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
+  -DCMAKE_CXX_COMPILER:FILEPATH=${CMAKE_CXX_COMPILER}
+  -DCFS_ARCH_STR:STRING=${CFS_ARCH_STR}
+  -DLIB_SUFFIX:STRING=${LIB_SUFFIX}
+)
+
+IF(CFS_DISTRO STREQUAL "MACOSX")
+  SET(CMAKE_ARGS
+    ${CMAKE_ARGS}
+    -DCMAKE_C_FLAGS:STRING=${CFLAGS}
+    -DCMAKE_OSX_ARCHITECTURES:STRING=${CMAKE_OSX_ARCHITECTURES}
+    -DCMAKE_OSX_SYSROOT:PATH=${CMAKE_OSX_SYSROOT}
+    )
+ENDIF(CFS_DISTRO STREQUAL "MACOSX")
+
 #-------------------------------------------------------------------------------
 # The muparser external project
 #-------------------------------------------------------------------------------
@@ -14,12 +32,7 @@ ExternalProject_Add(muparser
   URL ${MUPARSER_URL}/${MUPARSER_ZIP}
   URL_MD5 ${MUPARSER_MD5}
   CMAKE_ARGS
-    -DCMAKE_INSTALL_PREFIX:PATH=${muparser_install}
-    -DCMAKE_COLOR_MAKEFILE:BOOL=${CMAKE_COLOR_MAKEFILE}
-    -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
-    -DCMAKE_CXX_COMPILER:FILEPATH=${CMAKE_CXX_COMPILER}
-    -DCFS_ARCH_STR:STRING=${CFS_ARCH_STR}
-    -DLIB_SUFFIX:STRING=${LIB_SUFFIX}
+    ${CMAKE_ARGS}
 )
 
 #-------------------------------------------------------------------------------

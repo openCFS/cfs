@@ -124,6 +124,7 @@ namespace CoupledField {
     //! \param modeNr Number of the (converged) eigenmode to be calculated
     //! \param mode Vector with the eignmode
     virtual void CalcEigenMode( UInt modeNr, Vector<Double> & mode ) = 0;
+    virtual void CalcQuadEigenMode( UInt modeNr, Vector<Complex> & mode ) = 0;
     
     
     //! Calculate condition number

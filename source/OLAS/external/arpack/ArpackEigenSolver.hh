@@ -92,6 +92,7 @@ namespace CoupledField {
     //! \param modeNr Number of the (converged) eigenmode to be calculated
     //! \param mode Vector with the eignmode
     void CalcEigenMode( UInt modeNr, Vector<Double> & mode );
+    void CalcQuadEigenMode( UInt modeNr, Vector<Complex> & mode );
 
 
     //! Calculate condition number
@@ -108,6 +109,9 @@ namespace CoupledField {
     //! Method for writing logging information into .las file
     void PrintInfo();
 
+    //! Method for generation of complex matrices from real ones
+    void SetupComplexMatrices();
+
     //! Pointer to matrix interface
     ArpackSolver * arpackSolver_;
 
@@ -116,6 +120,11 @@ namespace CoupledField {
     
     //! Pointer to matrices
     const StdMatrix * matrixA_, * matrixB_, *matrixD_;
+
+    //! Pointer to complex matrices
+    const StdMatrix *complexStiff_, *complexMass_, *complexDamp_;
+    //! Pointer to complex matrices
+    StdMatrix *zStiff_, *zMass_, *zDamp_;
 
     //! Pointer to solver ovbject
     BaseSolver * solver_;

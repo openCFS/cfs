@@ -45,12 +45,11 @@ if ( ( eType == MATRIX_ENTRY )  ) {\
   // *******************************************************
   //   Dynamic generation of vector associated with matrix
   // *******************************************************
-  BaseVector* GenerateVectorObject( const BaseMatrix &m ) {
+BaseVector* GenerateVectorObject( const BaseMatrix &m, BaseMatrix::EntryType entrytype ) {
 
 
     BaseVector *retVector = NULL;
     BaseMatrix::StructureType m_structuretype;
-    BaseMatrix::EntryType m_entrytype;
     Integer m_Ncols;
     const StdMatrix  *m_StdMatrix;
     const SBM_Matrix  *sbmmat;
@@ -73,7 +72,7 @@ if ( ( eType == MATRIX_ENTRY )  ) {\
       for ( Integer i = 0; i < m_Ncols; i++ ) {
         if ( sbmmat->GetPointer(i,i) != NULL ) {
           sbmvec->SetSubVector( dynamic_cast<SingleVector*>
-                                (GenerateVectorObject((*sbmmat)(i,i))), i );
+                                (GenerateVectorObject((*sbmmat)(i,i), entrytype)), i );
         }
       }
 
@@ -89,10 +88,14 @@ if ( ( eType == MATRIX_ENTRY )  ) {\
     case BaseMatrix::SPARSE_MATRIX:
 
       m_StdMatrix = dynamic_cast<const StdMatrix*>(&m);
-      m_entrytype = m_StdMatrix->GetEntryType();
+      if(entrytype == BaseMatrix::NOENTRYTYPE) 
+      {
+        entrytype = m_StdMatrix->GetEntryType();
+      }
+      
 
       // Delegate work to factory for sequential SingleVectors
-      retVector = GenerateSingleVectorObject(  m_entrytype,
+      retVector = GenerateSingleVectorObject( entrytype,
                                               (UInt) m_Ncols );
       break;
 

@@ -428,16 +428,40 @@ namespace CoupledField {
   //   CopySparstiyPattern
   // *************************
   template<typename T>
-  void SCRS_Matrix<T>::CopySparsityPattern( StdMatrix &mat ) const {
+  void SCRS_Matrix<T>::SetSparsityPattern( const StdMatrix &srcMat ) {
 
-    // Check, if pointer to pattern pool exists
-    if( patternPool_ == NULL ) {
-      EXCEPTION( "SCRS_Matrix::CopySparsityPattern: only implemented "
-               << "for matrices sharing a common pattern!\n" );
+    if ( patternPool_ != NULL ) {
+      EXCEPTION("Setting of sparsity pattern not allowed if a pattern pool is present.");
     }
+    
+    if( srcMat.GetEntryType() == BaseMatrix::DOUBLE ) 
+    {
+      const SCRS_Matrix<Double>& mat = dynamic_cast< const SCRS_Matrix<Double>& >(srcMat);
+      const UInt* srcColInd = mat.GetColPointer();
+      const UInt* srcRowPtr = mat.GetRowPointer();
 
-    mat.SetSparsityPattern( patternPool_, patternID_ );
+      delete[] colInd_;
+      delete[] rowPtr_;
+      delete[] data_;
 
+      NEWARRAY( colInd_, UInt, mat.GetNumEntries() );
+      NEWARRAY( rowPtr_, UInt, mat.GetNumRows() + 1 );
+      NEWARRAY( data_, T, mat.GetNumEntries() );
+
+      // Copy information
+      for ( UInt i = 0; i < (UInt)numEntries_; i++ ) {
+        colInd_[i] = srcColInd[i];
+      }
+      
+      for ( UInt i = 0; i < (UInt)this->nrows_ + 1; i++ ) {
+        rowPtr_[i] = srcRowPtr[i];
+      }
+    } else 
+    {
+      EXCEPTION("SCRS_Matrix<T>::SetSparsityPattern not yet implemented for complex matrices.");
+    }
+    
+    
   }
 
 

@@ -393,12 +393,12 @@ namespace CoupledField {
       return NO_PATTERN_ID;
     }
 
-    //! Copy the sparsity pattern of this matrix to another 
+    //! Copy the sparsity pattern of another matrix to this matrix 
     
-    //! This method copies the sparsity pattern of this matrix and
-    //! sets it in another matrix
-    virtual void CopySparsityPattern ( StdMatrix &mat ) const {
-      EXCEPTION( "StdMatrix::CopySparsityPattern(): Not implemented here" );
+    //! This method copies the sparsity pattern of the source matrix to the
+    //! current matrix
+    virtual void SetSparsityPattern ( const StdMatrix &srcMat ) {
+      EXCEPTION( "StdMatrix::SetSparsityPattern(): Not implemented here" );
     }
 
     //! Set a specific matrix entry

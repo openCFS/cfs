@@ -82,7 +82,7 @@ namespace CoupledField
                   MULTI_SEQUENCE } AnalysisType;
     
     /** Helper method which determines if an AnalyisType is complex. */
-    static bool IsComplex(AnalysisType type);
+    static bool IsComplex();
                   
     /** This enum is for the string/enum conversion of AnalysisType.
      * Don't be confused with the actual analysis type in  analysis_.

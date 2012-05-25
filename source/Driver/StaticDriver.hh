@@ -30,6 +30,9 @@ namespace CoupledField {
     /** @see BaseDriver::StoreResults(double) */  
     void StoreResults(UInt stepNum, double step_val);
 
+    /** Helper method which determines if an AnalyisType is complex. */
+    virtual bool IsComplex() { return false; };
+
   protected:
     //! Number of steps before a restart file is stored
     UInt restartIncr_;

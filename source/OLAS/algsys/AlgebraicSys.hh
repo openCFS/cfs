@@ -93,7 +93,7 @@ namespace CoupledField {
     //@}
 
     //! Default Constructor
-    AlgebraicSys( PtrParamNode param, PtrParamNode info );
+    AlgebraicSys( PtrParamNode param, PtrParamNode info, bool isSolutionComplex );
 
     //! Default Destructor
     virtual ~AlgebraicSys();
@@ -1083,7 +1083,10 @@ namespace CoupledField {
     bool statCond_;
     
     //! Flag indicating, if system matrix is complex
-    bool isComplex_;
+    bool isMatrixComplex_;
+
+    //! Flag indicating, if solution vector is complex
+    bool isSolutionComplex_;
   };
 
 } // namespace

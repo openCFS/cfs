@@ -251,10 +251,33 @@ namespace CoupledField {
   //   CopySparstiyPattern
   // *************************
   template<typename T>
-  void CRS_Matrix<T>::CopySparsityPattern( StdMatrix &mat ) const {
+  void CRS_Matrix<T>::SetSparsityPattern( const StdMatrix &srcMat ) {
 
-    EXCEPTION( "CRS_Matrix::CopySparsityPattern: Not implemented" );
-
+    if( srcMat.GetEntryType() == BaseMatrix::DOUBLE ) 
+    {
+      const CRS_Matrix<Double>& mat = dynamic_cast< const CRS_Matrix<Double>& >(srcMat);
+      const UInt* srcColInd = mat.GetColPointer();
+      const UInt* srcRowPtr = mat.GetRowPointer();
+      const UInt* srcDiagPtr = mat.GetDiagPointer();
+      
+      // Copy information
+      for (UInt i = 0; i < this->nnz_; i++ ) {
+        colInd_[i] = srcColInd[i];
+      }
+      
+      for (UInt i = 0; i < this->nrows_; i++ ) {
+        rowPtr_[i]  = srcRowPtr[i];
+        diagPtr_[i] = srcDiagPtr[i];
+      }
+      rowPtr_[this->nrows_] = srcRowPtr[this->nrows_];
+      
+      // Copy layout flag
+      //      currentLayout_ = mat.currentLayout_;
+    } else 
+    {
+      EXCEPTION("CRS_Matrix<T>::SetSparsityPattern not yet implemented for complex matrices.");
+    }
+    
   }
 
   // ********************************
