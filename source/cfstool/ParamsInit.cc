@@ -113,19 +113,19 @@ namespace CoupledField
         std::cout <<
           "'convert' converts files from one type to another. Following types \n conversions are supported: \n\tinput: .mesh .h5 .unv[erg|ref] .gmv \n\toutput: .h5, .post.res, .post.bin, .gmv .rst" << std::endl;
         std::cout <<
-          "\tCall: cfstool --mode convert -f 'infile outfile'" << std::endl;
+          "\tCall: cfstool --mode convert 'infile outfile'" << std::endl;
         std::cout <<
           "'scalardiff' calculates the difference between two vectors and checks if \n\tit is smaller than a given tolerance. Option '--eps' is obligatory." << std::endl;
         std::cout <<
-          "\tCall: cfstool --mode scalardiff -f 'reference_file compare_file' --eps 'eps'" << std::endl;
+          "\tCall: cfstool --mode scalardiff 'reference_file compare_file' --eps 'eps'" << std::endl;
         std::cout <<
           "'meshdiff' calculates the difference between two meshes." << std::endl;
         std::cout <<
-          "\tCall: cfstool --mode meshdiff -f 'reference_file compare_file outfile' \n\ti.e. out = in_1 -in_2" << std::endl;
+          "\tCall: cfstool --mode meshdiff 'reference_file compare_file outfile' \n\ti.e. out = in_1 -in_2" << std::endl;
         std::cout <<
           "'meshdiffnormed' calculates the difference between two meshes normed \n\tto the max value of the second mesh:" << std::endl;
         std::cout <<
-          "\tCall: cfstool --mode meshdiffnormed -f 'reference_file compare_file outfile' \n\ti.e. out = (in_1 - in_2) / max(in_2 "
+          "\tCall: cfstool --mode meshdiffnormed 'reference_file compare_file outfile' \n\ti.e. out = (in_1 - in_2) / max(in_2 "
           << std::endl;
         exit(0);
       }
