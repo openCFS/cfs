@@ -14,7 +14,7 @@
 #endif
 
 #ifdef USE_LAPACK
-#include "matrixLapackSupport.hh"
+#include "BLASLAPACKInterface.hh"
 #endif
 
 #include "DenseMatrix.hh"

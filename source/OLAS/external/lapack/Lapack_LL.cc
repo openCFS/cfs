@@ -1,8 +1,8 @@
 #include "MatVec/BaseMatrix.hh"
 #include "MatVec/StdMatrix.hh"
 #include "MatVec/SCRS_Matrix.hh"
+#include "MatVec/BLASLAPACKInterface.hh"
 #include "OLAS/external/lapack/Lapack_LL.hh"
-#include "OLAS/external/lapack/OlasF77Mappings.hh"
 
 namespace CoupledField {
 
@@ -241,7 +241,7 @@ namespace CoupledField {
     lp_ldab = sysMatBW_ + 1;
 
     // Now call the LAPACK routine to compute Cholesky factorisation
-    LP_DPBTRF( &lp_uplo, &lp_n, &lp_kd, facMat_ + 1, &lp_ldab, &lp_info );
+    F77NAME(dpbtrf)( &lp_uplo, &lp_n, &lp_kd, facMat_ + 1, &lp_ldab, &lp_info );
 
     // Process return status of LAPACK (i.e. if it is compiled to return
     // on error)
@@ -403,7 +403,7 @@ namespace CoupledField {
     lp_ldab = facMatEntries_ + 1;
 
     // Now call the LAPACK routine to compute Cholesky factorisation
-    LP_ZPBTRF( &lp_uplo, &lp_n, &lp_kd, facMat_ + 1, &lp_ldab, &lp_info );
+    F77NAME(zpbtrf)( &lp_uplo, &lp_n, &lp_kd, facMat_ + 1, &lp_ldab, &lp_info );
 
     // Process return status of LAPACK (i.e. if it is compiled to return
     // on error)
@@ -526,7 +526,7 @@ namespace CoupledField {
       }
 
       // Call LAPACK's solution routine
-      LP_DPBTRS( &lp_uplo, &lp_n, &lp_kd, &lp_nrhs, facMat_ + 1, &lp_ldab,
+      F77NAME(dpbtrs)( &lp_uplo, &lp_n, &lp_kd, &lp_nrhs, facMat_ + 1, &lp_ldab,
                  lapackRHS_ + 1, &lp_ldb, &lp_info );
 
       // Check return status
@@ -581,7 +581,7 @@ namespace CoupledField {
       }
 
       // Call LAPACK's solution routine
-      LP_ZPBTRS( &lp_uplo, &lp_n, &lp_kd, &lp_nrhs, facMat_ + 1, &lp_ldab,
+      F77NAME(zpbtrs)( &lp_uplo, &lp_n, &lp_kd, &lp_nrhs, facMat_ + 1, &lp_ldab,
                  lapackRHS_ + 1, &lp_ldb, &lp_info );
 
       // Check return status

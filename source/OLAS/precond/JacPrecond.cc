@@ -3,7 +3,7 @@
 #include "MatVec/Diag_Matrix.hh"
 #include "MatVec/SCRS_Matrix.hh"
 #include "MatVec/VBR_Matrix.hh"
-#include "MatVec/matrixBLASSupport.hh"
+#include "MatVec/BLASLAPACKInterface.hh"
 #include "MatVec/generatematvec.hh"
 
 #include "JacPrecond.hh"
@@ -169,7 +169,7 @@ namespace CoupledField {
        // perform matrix-vector multiplication of given block
        const Matrix<Double> & inv = factors_[i];
        Integer size = inv.GetNumRows();
-       DGEMV( &trans, &size, &size, &alpha, inv[0], &size, 
+       F77NAME(dgemv)( &trans, &size, &size, &alpha, inv[0], &size, 
               &rhs[rStart], &inc, &beta, &sol[rStart], &inc);
        
 //       std::cerr << "\nBlockPrecond: Row "<< i << ", Diag is \n" << inv.ToString() << std::endl;
@@ -252,13 +252,13 @@ namespace CoupledField {
        int info;
 
        // calculate LU-factorization of block
-       LP_DGETRF(&n,&n,inv[0],&n,ipiv,&info);
+       F77NAME(dgetrf)(&n,&n,inv[0],&n,ipiv,&info);
        if( info != 0 ) {
            EXCEPTION("Error during LU-factorization of block #" << i
                      << ". Error value is " << info );
        }
        // invert matrix using previous LU factorization
-       LP_DGETRI(&n,inv[0],&n,ipiv,work,&lwork,&info);
+       F77NAME(dgetri)(&n,inv[0],&n,ipiv,work,&lwork,&info);
        if( info != 0 ) {
            EXCEPTION("Error during inversion of block #" << i
                      << ". Error value is " << info );

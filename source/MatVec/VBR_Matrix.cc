@@ -3,7 +3,7 @@
 #include "opdefs.hh"
 
 #include "DataInOut/Logging/LogConfigurator.hh"
-#include "MatVec/matrixBLASSupport.hh"
+#include "MatVec/BLASLAPACKInterface.hh"
 
 DECLARE_LOG(vbrMat)
 DEFINE_LOG(vbrMat, "vbrMatrix")
@@ -429,8 +429,8 @@ namespace CoupledField {
 
           // perform mat-vec multiplication on dense sub-block
 #ifdef USE_BLAS_VERSION
-          DGEMV( &trans, &cbs, &rbs, &alpha, &(data_[ind]), &cbs, 
-                 &mvec[cStart], &inc, &beta, &rvec[rStart], &inc);
+          F77NAME(dgemv)( &trans, &cbs, &rbs, &alpha, &(data_[ind]), &cbs, 
+                          &mvec[cStart], &inc, &beta, &rvec[rStart], &inc);
           ind+=cbs*rbs;
 #else
           for( int i = rStart; i < rStart+rbs; ++i ) {
@@ -482,8 +482,8 @@ namespace CoupledField {
         
         // perform mat-vec multiplication on dense sub-block
 #ifdef USE_BLAS_VERSION
-        DGEMV( &trans, &cbs, &rbs, &alpha, &(data_[ind]), &cbs, 
-               &mvec[cStart], &inc, &beta, &rvec[rStart], &inc);
+        F77NAME(dgemv)( &trans, &cbs, &rbs, &alpha, &(data_[ind]), &cbs, 
+                        &mvec[cStart], &inc, &beta, &rvec[rStart], &inc);
         ind+=cbs*rbs;
 #else
         for( int i = rStart; i < rStart+rbs; ++i ) {
@@ -540,8 +540,8 @@ namespace CoupledField {
         
         // perform mat-vec multiplication on dense sub-block
 #ifdef USE_BLAS_VERSION
-        DGEMV( &trans, &cbs, &rbs, &alpha, &(data_[ind]), &cbs, 
-               &x[cStart], &inc, &beta, &r[rStart], &inc);
+        F77NAME(dgemv)( &trans, &cbs, &rbs, &alpha, &(data_[ind]), &cbs, 
+                        &x[cStart], &inc, &beta, &r[rStart], &inc);
         ind+=cbs*rbs;
 #else
         for( int i = rStart; i < rStart+rbs; ++i ) {
@@ -599,8 +599,8 @@ namespace CoupledField {
 
         //perform mat-vec multiplication on dense sub-block
 #ifdef USE_BLAS_VERSION
-        DGEMV( &trans, &cbs, &rbs, &alpha, &(data_[ind]), &cbs, 
-               &mvec[rStart], &inc, &beta, &rvec[cStart], &inc);
+        F77NAME(dgemv)( &trans, &cbs, &rbs, &alpha, &(data_[ind]), &cbs, 
+                        &mvec[rStart], &inc, &beta, &rvec[cStart], &inc);
         ind+=cbs*rbs;
 #else
         for( int i = rStart; i < rStart+rbs; ++i ) {
@@ -653,8 +653,8 @@ namespace CoupledField {
 
        //perform mat-vec multiplication on dense sub-block
 #ifdef USE_BLAS_VERSION
-       DGEMV( &trans, &cbs, &rbs, &alpha, &(data_[ind]), &cbs, 
-              &mvec[rStart], &inc, &beta, &rvec[cStart], &inc);
+       F77NAME(dgemv)( &trans, &cbs, &rbs, &alpha, &(data_[ind]), &cbs, 
+                       &mvec[rStart], &inc, &beta, &rvec[cStart], &inc);
        ind+=cbs*rbs;
 #else
         for( int i = rStart; i < rStart+rbs; ++i ) {
@@ -974,8 +974,7 @@ namespace CoupledField {
 #ifdef VBR_TEST_SECTION
 #include "MatVec/matrix.hh"
 #include "MatVec/crs_matrix.hh"
-#include "MatVec/matrixLapackSupport.hh"
-#include "MatVec/matrixBLASSupport.hh"
+#include "MatVec/BLASLAPACKInterface.hh"
 
 namespace CoupledField {
 template<typename T>
@@ -1293,8 +1292,8 @@ template<typename T>
      double *WORK = new double[LWORK];
      int INFO;
 
-     LP_DGETRF(&N,&N,fac,&N,IPIV,&INFO);
-     LP_DGETRI(&N,fac,&N,IPIV,WORK,&LWORK,&INFO);
+     F77NAME(dgetrf)(&N,&N,fac,&N,IPIV,&INFO);
+     F77NAME(dgetri)(&N,fac,&N,IPIV,WORK,&LWORK,&INFO);
 
      delete IPIV;
      delete WORK;

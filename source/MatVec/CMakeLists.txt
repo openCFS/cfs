@@ -1,4 +1,5 @@
 SET(MATVEC_SRCS
+    BLASLAPACKInterface.cc
     BaseMatrix.cc
     generatematvec.cc
     SBM_Vector.cc

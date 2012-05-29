@@ -5,7 +5,7 @@
 #include <string>
 #include <cmath>
 #include <def_build_type_options.hh>
-#include <def_use_blas.hh>\
+#include <def_use_blas.hh>
 
 #include <boost/tokenizer.hpp>
 #include <boost/lexical_cast.hpp>
@@ -16,12 +16,8 @@
 
 
 
-#ifdef USE_LAPACK
-#include "matrixLapackSupport.hh"
-#endif
-
-#ifdef USE_BLAS
-#include "matrixBLASSupport.hh"
+#ifdef USE_BLAS || USE_LAPACK
+#include "BLASLAPACKInterface.hh"
 #endif
 
 using namespace std;
@@ -741,7 +737,7 @@ namespace CoupledField
       ldb = trans_b ? k : m;
       ldc = m;
       
-    DGEMM(&transb,&transa,&m,&n,&k,&alpha,B,&ldb,A,&lda,&beta,C,&ldc);
+      F77NAME(dgemm)(&transb,&transa,&m,&n,&k,&alpha,B,&ldb,A,&lda,&beta,C,&ldc);
 #else
     EXCEPTION("Compile with USE_BLAS = yes ");
 #endif
@@ -828,7 +824,7 @@ namespace CoupledField
       ldb = trans_b ? k : m;
       ldc = m;
 
-      ZGEMM(&transb,&transa,&m,&n,&k,&alpha,B,&ldb,A,&lda,&beta,C,&ldc);
+      F77NAME(zgemm)(&transb,&transa,&m,&n,&k,&alpha,B,&ldb,A,&lda,&beta,C,&ldc);
 #else
     EXCEPTION("Compile with USE_BLAS = yes ");
 #endif
@@ -1411,13 +1407,13 @@ namespace CoupledField
     int info;
 
     // calculate LU-factorization of block
-    LP_DGETRF(&n,&n,data_[0],&n,ipiv,&info);
+    F77NAME(dgetrf)(&n,&n,data_[0],&n,ipiv,&info);
     if( info != 0 ) {
       EXCEPTION("Error during LU-factorization of matrix. "
                 << "Error value is " << info );
     }
     // invert matrix using previous LU factorization
-    LP_DGETRI(&n,data_[0],&n,ipiv,work,&lwork,&info);
+    F77NAME(dgetri)(&n,data_[0],&n,ipiv,work,&lwork,&info);
     if( info != 0 ) {
       EXCEPTION("Error during inversion of matrix. "
                 << "Error value is " << info );

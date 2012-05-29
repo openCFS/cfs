@@ -1,5 +1,4 @@
 SET(LAPACK_SRCS
-  OlasF77Mappings.cc
   LapackBaseMatrix.cc
   Lapack_LU.cc
   Lapack_LL.cc)

@@ -2,13 +2,8 @@
 #include <cmath>
 #include <complex>
 
-#include <def_use_lapack.hh>
-
-#include "OLAS/utils/math/GivensRotation.hh"
-
-#ifdef USE_LAPACK
-#include "OLAS/external/lapack/OlasF77Mappings.hh"
-#endif
+#include "MatVec/BLASLAPACKInterface.hh"
+#include "GivensRotation.hh"
 
 namespace CoupledField {
 
@@ -62,7 +57,7 @@ namespace CoupledField {
         F77real8 myC = c;
         F77real8 myS = s;
         F77real8 myR = r;
-        LP_DLARTG( &myF, &myG, &myC, &myS, &myR );
+        F77NAME(dlartg)( &myF, &myG, &myC, &myS, &myR );
       }
 
       // something else
@@ -121,7 +116,7 @@ namespace CoupledField {
         CC2F77( c, myC );
         CC2F77( s, myS );
         CC2F77( r, myR );
-        LP_ZLARTG( &myF, &myG, &myC, &myS, &myR );
+        F77NAME(zlartg)( &myF, &myG, &myC, &myS, &myR );
         F772CC( myF, f );
         F772CC( myG, g );
         F772CC( myC, c );

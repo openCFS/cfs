@@ -1117,6 +1117,8 @@ source/General/Environment.hh svneol=native#text/x-c%2B%2Bhdr
 source/General/Exception.cc svneol=native#text/x-c%2B%2Bsrc
 source/General/Exception.hh svneol=native#text/x-c%2B%2Bhdr
 source/General/defs.hh svneol=native#text/x-c%2B%2Bhdr
+source/MatVec/BLASLAPACKInterface.cc -text
+source/MatVec/BLASLAPACKInterface.hh -text
 source/MatVec/BaseMatrix.cc svneol=native#text/plain
 source/MatVec/BaseMatrix.hh svneol=native#text/x-c%2B%2Bhdr
 source/MatVec/BaseVector.hh svneol=native#text/x-c%2B%2Bhdr
@@ -1152,8 +1154,6 @@ source/MatVec/exprt/xpr1.hh svneol=native#text/x-c%2B%2Bhdr
 source/MatVec/exprt/xpr2.hh svneol=native#text/x-c%2B%2Bhdr
 source/MatVec/generatematvec.cc svneol=native#text/x-c%2B%2Bsrc
 source/MatVec/generatematvec.hh svneol=native#text/x-c%2B%2Bhdr
-source/MatVec/matrixBLASSupport.hh -text
-source/MatVec/matrixLapackSupport.hh svneol=native#text/x-c%2B%2Bhdr
 source/MatVec/matrixSerialization.cc svneol=native#text/x-c%2B%2Bsrc
 source/MatVec/matrixSerialization.hh svneol=native#text/x-c%2B%2Bhdr
 source/MatVec/opdefs.hh svneol=native#text/x-c%2B%2Bhdr
@@ -1239,8 +1239,6 @@ source/OLAS/external/lapack/Lapack_LL.cc svneol=native#text/x-c%2B%2Bsrc
 source/OLAS/external/lapack/Lapack_LL.hh svneol=native#text/x-c%2B%2Bhdr
 source/OLAS/external/lapack/Lapack_LU.cc svneol=native#text/x-c%2B%2Bsrc
 source/OLAS/external/lapack/Lapack_LU.hh svneol=native#text/x-c%2B%2Bhdr
-source/OLAS/external/lapack/OlasF77Mappings.cc svneol=native#text/x-c%2B%2Bsrc
-source/OLAS/external/lapack/OlasF77Mappings.hh svneol=native#text/x-c%2B%2Bhdr
 source/OLAS/external/lapack/lapack.hh svneol=native#text/x-c%2B%2Bhdr
 source/OLAS/external/pardiso/CMakeLists.txt svneol=native#text/plain
 source/OLAS/external/pardiso/PardisoDummy.cc svneol=native#text/x-c%2B%2Bsrc

@@ -1,5 +1,5 @@
 #include "General/Exception.hh"
-#include "OLAS/external/lapack/OlasF77Mappings.hh"
+#include "BLASLAPACKInterface.hh"
 
 namespace CoupledField {
 
