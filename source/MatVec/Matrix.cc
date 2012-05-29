@@ -5,7 +5,6 @@
 #include <string>
 #include <cmath>
 #include <def_build_type_options.hh>
-#include <def_use_blas.hh>
 
 #include <boost/tokenizer.hpp>
 #include <boost/lexical_cast.hpp>
@@ -14,11 +13,7 @@
 #include "Utils/boost-serialization.hh"
 #include "Utils/tools.hh"
 
-
-
-#ifdef USE_BLAS || USE_LAPACK
 #include "BLASLAPACKInterface.hh"
-#endif
 
 using namespace std;
 
@@ -1082,10 +1077,10 @@ namespace CoupledField
 
     Integer *lp_interchanges;
     
-    F77complex16 *lp_rhsVecf77;
-    F77complex16 *lp_sysVecf77;
-    F77complex16 *lp_workf77;
-    F77complex16 auxVal2;
+    std::complex<double> *lp_rhsVecf77;
+    std::complex<double> *lp_sysVecf77;
+    std::complex<double> *lp_workf77;
+    std::complex<double> auxVal2;
     
     Vector<Complex> lp_sysVec, lp_work;
     lp_sysVec.Resize(size_row_*size_row_);
@@ -1106,33 +1101,30 @@ namespace CoupledField
         lp_rhsVec[i+j*brows]=b1[i][j];
       }
     
-    lp_rhsVecf77 = new F77complex16[size_row_*lp_nrRHS];
+    lp_rhsVecf77 = new std::complex<double>[size_row_*lp_nrRHS];
     lp_interchanges = new int[size_row_*size_row_];
-    lp_workf77 = new F77complex16[size_row_*size_row_];
-    lp_sysVecf77 = new F77complex16[size_row_*size_row_];
+    lp_workf77 = new std::complex<double>[size_row_*size_row_];
+    lp_sysVecf77 = new std::complex<double>[size_row_*size_row_];
    
 
-    // Convert CFS++ Vector<Complex> to Vector<F77complex16>
+    // Convert CFS++ Vector<Complex> to Vector<std::complex<double>>
     for ( UInt count = 0; count < size_row_*bcols; ++count ) {
-      CC2F77( lp_rhsVec[count], auxVal2 );
-      lp_rhsVecf77[count] = auxVal2;
+      lp_rhsVecf77[count] = lp_rhsVec[count];
       }
     
     for (UInt count = 0; count < size_row_*size_row_; ++count ) {
-      CC2F77( lp_sysVec[count], auxVal2 );
-      lp_sysVecf77[count] = auxVal2;
+      lp_sysVecf77[count] = lp_sysVec[count];
     }
     
     for (UInt count=0, ss = lp_work.GetSize(); count < ss; ++count ) {
-      CC2F77(lp_work[count], auxVal2);
-      lp_workf77[count] = auxVal2;
+      lp_workf77[count] = lp_work[count];
     }
     
     switch (LAPACK_MATRIX_TYPE){
       
     case ZGESV:
       // solves systems with general system matrix
-      zgesv_(&lp_dim , &lp_nrRHS, lp_sysVecf77, &lp_lda, 
+      F77NAME(zgesv)(&lp_dim , &lp_nrRHS, lp_sysVecf77, &lp_lda, 
              lp_interchanges, lp_rhsVecf77, &lp_ldb, &lp_info);
 
       if ( lp_info != 0 ) {
@@ -1143,7 +1135,7 @@ namespace CoupledField
       
       lp_lwork=192;
       // solves systems with symmetric system matrix
-      zsysv_(&lp_matType, &lp_dim , &lp_nrRHS, lp_sysVecf77, 
+      F77NAME(zsysv)(&lp_matType, &lp_dim , &lp_nrRHS, lp_sysVecf77, 
              &lp_lda, lp_interchanges, lp_rhsVecf77, &lp_ldb,
              lp_workf77, &lp_lwork, &lp_info);
 
@@ -1154,7 +1146,7 @@ namespace CoupledField
     case ZHESV:
       lp_lwork=192;
       // solves systems with hermitian system matrix
-      zhesv_(&lp_matType, &lp_dim , &lp_nrRHS, lp_sysVecf77,
+      F77NAME(zhesv)(&lp_matType, &lp_dim , &lp_nrRHS, lp_sysVecf77,
              &lp_lda, lp_interchanges,lp_rhsVecf77, &lp_ldb, 
              lp_workf77, &lp_lwork, &lp_info);
 
@@ -1173,13 +1165,13 @@ namespace CoupledField
           
      //reconvert Fortran77 -> CFS ++ datatypes
     for ( UInt count = 0; count < size_row_*bcols; ++count ) 
-      F772CC( lp_rhsVecf77[count], lp_rhsVec[count] );
+      lp_rhsVec[count] = lp_rhsVecf77[count];
           
     for ( UInt count = 0, ss = size_row_*size_row_; count < ss; ++count ) 
-      F772CC( lp_sysVecf77[count], lp_sysVec[count]);
+      lp_sysVec[count] = lp_sysVecf77[count];
           
     for (UInt count=0, ss = lp_work.GetSize(); count < ss; ++count )
-      F772CC(lp_workf77[count], lp_work[count]);
+      lp_work[count] = lp_workf77[count];
       
     // Writes result into b1
     for (UInt i=0;i<size_row_;++i)
@@ -1223,40 +1215,36 @@ namespace CoupledField
     lp_rwork.Init();
       
     Integer lp_infof77;
-    F77complex16 auxValC;
-    F77real8 auxValR;
+    std::complex<double> auxValC;
 
-    F77complex16 * lp_af77 = new F77complex16[size_row_*size_row_];
-    F77real8 * lp_wf77 = new F77real8[size_row_];
-    F77complex16 * lp_workf77 = new F77complex16[99];
-    F77real8 * lp_rworkf77 = new F77real8[3*size_row_-2];
+    std::complex<double> * lp_af77 = new std::complex<double>[size_row_*size_row_];
+    double * lp_wf77 = new double[size_row_];
+    std::complex<double> * lp_workf77 = new std::complex<double>[99];
+    double * lp_rworkf77 = new double[3*size_row_-2];
       
-    // Convert CFS++ Vector<Complex> to Vector<F77complex16>
+    // Convert CFS++ Vector<Complex> to Vector<std::complex<double>>
     for ( UInt count = 0; count < size_row_; count++ ) 
       for ( UInt countC = 0; countC <size_row_; countC++ ) {
-        CC2F77( data_[count][countC], auxValC );
-        lp_af77[countC*size_row_+count] = auxValC;
+        lp_af77[countC*size_row_+count] = data_[count][countC];
       }
     
     for ( UInt count = 0; count < size_row_; count++ ) {
-      CC2F77( lp_w[count], auxValR );
-      lp_wf77[count] = auxValR;
+      lp_wf77[count] = lp_w[count];
     }
     
     for (UInt count=0; count < lp_rwork.GetSize();count++){
-      CC2F77(lp_rwork[count], auxValR);
-      lp_rworkf77[count] = auxValR;
+      lp_rworkf77[count] = lp_rwork[count];
     }
     
-    zheev_( &lp_jobz, &lp_uplo, &lp_N, lp_af77, &lp_lda, lp_wf77, 
+    F77NAME(zheev)( &lp_jobz, &lp_uplo, &lp_N, lp_af77, &lp_lda, lp_wf77, 
             lp_workf77, &lp_lworkf77, lp_rworkf77 ,&lp_infof77); 
     
     // reconvert f772C++
     for (UInt count=0; count < lp_work.GetSize();count++)
-      F772CC(lp_workf77[count], lp_work[count]);
+      lp_work[count] = lp_workf77[count];
     
     for ( UInt count = 0; count < size_row_; count++ ) 
-      F772CC( lp_wf77[count], lp_w[count] );
+      lp_w[count] = lp_wf77[count];
     
     delete lp_workf77;
     delete lp_rworkf77;

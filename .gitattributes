@@ -1117,7 +1117,6 @@ source/General/Environment.hh svneol=native#text/x-c%2B%2Bhdr
 source/General/Exception.cc svneol=native#text/x-c%2B%2Bsrc
 source/General/Exception.hh svneol=native#text/x-c%2B%2Bhdr
 source/General/defs.hh svneol=native#text/x-c%2B%2Bhdr
-source/MatVec/BLASLAPACKInterface.cc -text
 source/MatVec/BLASLAPACKInterface.hh -text
 source/MatVec/BaseMatrix.cc svneol=native#text/plain
 source/MatVec/BaseMatrix.hh svneol=native#text/x-c%2B%2Bhdr

@@ -9,7 +9,6 @@
 
 #include <def_expl_templ_inst.hh>
 
-#include "MatVec/BLASLAPACKInterface.hh"
 #include "LapackBaseMatrix.hh"
 #include "MatVec/CRS_Matrix.hh"
 

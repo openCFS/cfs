@@ -1,6 +1,9 @@
 #include <cmath>
 #include <complex>
 #include <string.h>
+
+#include "MatVec/BLASLAPACKInterface.hh"
+
 #include "LapackGBMatrix.hh"
 
 // the following headers are required for Export()
@@ -181,23 +184,20 @@ namespace CoupledField {
   // *****************************
   template <class entryF, class entryC>
   void LapackGBMatrix<entryF,entryC>::Init() {
-    entryF fzero;
-    entryC czero = 0;
-    CC2F77( czero, fzero );
     for ( UInt i = 1; i <= length_; i++ ) {
-      data_[i] = fzero;
+      data_[i] = 0.0;
     }
   }
 
 
   // ********************************************
-  //   Initialise matrix to zero (F77complex16)
+  //   Initialise matrix to zero (std::complex<double>)
   // ********************************************
   template <>
-  void LapackGBMatrix<F77complex16,std::complex<double> >::Init() {
+  void LapackGBMatrix<std::complex<double>,std::complex<double> >::Init() {
     for ( UInt i = 1; i <= length_; i++ ) {
-      data_[i].real = 0.0;
-      data_[i].imag = 0.0;
+      data_[i].real() = 0.0;
+      data_[i].imag() = 0.0;
     }
   }
 
@@ -222,9 +222,7 @@ namespace CoupledField {
     }
     */
 
-    entryF val;
-    CC2F77( v, val );
-    data_[Index(i,j)] = val;
+    data_[Index(i,j)] = v;
   }
 
 
@@ -248,9 +246,7 @@ namespace CoupledField {
     }
     */
 
-    entryF val;
-    CC2F77( v, val );
-    data_[Index(i,j)] += val;
+    data_[Index(i,j)] += v;
   }
   
   // ******************
@@ -314,7 +310,7 @@ namespace CoupledField {
 
 
   // **********************************
-  //   Write matrix entries (F77real8)
+  //   Write matrix entries (double)
   // **********************************
   template <class entryF, class entryC>
   void LapackGBMatrix<entryF,entryC>::WriteEntries( FILE *fp ) const {
@@ -344,7 +340,7 @@ namespace CoupledField {
     fprintf( fp, "%d\t%d\t%d\n", nrows_, ncols_, nnz );
 
     // Write non-zero entries
-    F77real8 val;
+    double val;
     for ( j = 1; j <= ncols_; j++ ) {
 
       // compute column bounds
@@ -380,7 +376,7 @@ namespace CoupledField {
   //   Write matrix entries (F77COMPLEX16)
   // ***************************************
   template <>
-  void LapackGBMatrix<F77complex16,std::complex<double> >::
+  void LapackGBMatrix<std::complex<double>,std::complex<double> >::
   WriteEntries(FILE *fp) const {
 
 
@@ -398,7 +394,7 @@ namespace CoupledField {
       // loop over column entries in band
       for ( i = colinit; i <= colstop; i++ ) {
 
-        if ( data_[Index(i,j)].real != 0 || data_[Index(i,j)].imag != 0 ) {
+        if ( data_[Index(i,j)].real() != 0 || data_[Index(i,j)].imag() != 0 ) {
           nnz++;
         }
       }
@@ -408,7 +404,7 @@ namespace CoupledField {
     fprintf( fp, "%d\t%d\t%d\n", nrows_, ncols_, nnz );
 
     // Write non-zero entries
-    F77complex16 val;
+    std::complex<double> val;
     for ( j = 1; j <= ncols_; j++ ) {
 
       // compute column bounds
@@ -418,9 +414,9 @@ namespace CoupledField {
       // loop over column entries in band
       for ( i = colinit; i <= colstop; i++ ) {
         val = data_[Index(i,j)];
-        if ( val.real != 0 || val.imag != 0 ) {
-          fprintf( fp, "%6d\t%6d\t% 22.16e\t% 22.16e\n", i, j, val.real,
-                   val.imag );
+        if ( val.real() != 0 || val.imag() != 0 ) {
+          fprintf( fp, "%6d\t%6d\t% 22.16e\t% 22.16e\n", i, j, val.real(),
+                   val.imag() );
         }
       }
     }
@@ -428,7 +424,7 @@ namespace CoupledField {
 
 
   // ***********************************************
-  //   Add a multiple of another matrix (F77real8)
+  //   Add a multiple of another matrix (double)
   // ***********************************************
   template <class entryF, class entryC>
   void LapackGBMatrix<entryF,entryC>::Add( const Double factor,
@@ -485,19 +481,19 @@ namespace CoupledField {
 
 
   // ***************************************************
-  //   Add a multiple of another matrix (F77complex16)
+  //   Add a multiple of another matrix (std::complex<double>)
   // ***************************************************
   template <>
-  void LapackGBMatrix<F77complex16,std::complex<double> >::
+  void LapackGBMatrix<std::complex<double>,std::complex<double> >::
   Add( const Double factor, const StdMatrix& mat ) {
     // Down-cast to LapackGBMatrix
-    const LapackGBMatrix<F77complex16,std::complex<double> > &lpmat =
-      dynamic_cast<const LapackGBMatrix<F77complex16,std::complex<double> >&>(mat);
+    const LapackGBMatrix<std::complex<double>,std::complex<double> > &lpmat =
+      dynamic_cast<const LapackGBMatrix<std::complex<double>,std::complex<double> >&>(mat);
 
       // Perform the scaled addition
       for ( UInt i = 1; i <= length_; i++ ) {
-        data_[i].real += factor * lpmat.data_[i].real;
-        data_[i].imag += factor * lpmat.data_[i].imag;
+        data_[i].real() += factor * lpmat.data_[i].real();
+        data_[i].imag() += factor * lpmat.data_[i].imag();
       }
   }
 
@@ -510,11 +506,9 @@ namespace CoupledField {
 
 
     Double absmax = 0.0;
-    entryF fdata;
     entryC cdata;
     for ( UInt i = 1; i <= ncols_; i++ ) {
-      fdata = data_[Index(i,i)];
-      F772CC( fdata, cdata );
+      cdata = data_[Index(i,i)];
       absmax = std::abs(cdata) > absmax ? std::abs(cdata) : absmax;
     }
 
@@ -527,9 +521,7 @@ namespace CoupledField {
   // ************************
   template <class entryF, class entryC>
   void LapackGBMatrix<entryF,entryC>::SetDiagEntry( UInt i, entryC &v ){
-    entryF fdata;
-    CC2F77( v, fdata );
-    data_[Index(i,i)] = fdata;
+    data_[Index(i,i)] = v;
   }
 
 
@@ -539,14 +531,14 @@ namespace CoupledField {
   template <class entryF, class entryC>
   void LapackGBMatrix<entryF,entryC>::GetDiagEntry( UInt i,
                                                     entryC &v ) const {
-    F772CC( data_[Index(i,i)], v );
+    v = data_[Index(i,i)];
   }
 
 
   // Explicit template instantiation
 #ifdef EXPLICIT_TEMPLATE_INSTANTIATION
-  template class LapackGBMatrix< F77real8, Double >;
-  template class LapackGBMatrix< F77complex16, Complex >;
+  template class LapackGBMatrix< double, Double >;
+  template class LapackGBMatrix< std::complex<double>, Complex >;
 #endif
 }
 

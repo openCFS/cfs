@@ -52,11 +52,11 @@ namespace CoupledField {
 
       // double precision case
       else if ( sizeof(Double) == sizeof(float) ) {
-        F77real8 myF = f;
-        F77real8 myG = g;
-        F77real8 myC = c;
-        F77real8 myS = s;
-        F77real8 myR = r;
+        double myF = f;
+        double myG = g;
+        double myC = c;
+        double myS = s;
+        double myR = r;
         F77NAME(dlartg)( &myF, &myG, &myC, &myS, &myR );
       }
 
@@ -106,22 +106,17 @@ namespace CoupledField {
 
       // double precision case
       else if ( sizeof(Complex) == sizeof(std::complex<double>) ) {
-        F77complex16 myF;
-        F77complex16 myG;
-        F77real8     myC;
-        F77complex16 myS;
-        F77complex16 myR;
-        CC2F77( f, myF );
-        CC2F77( g, myG );
-        CC2F77( c, myC );
-        CC2F77( s, myS );
-        CC2F77( r, myR );
+        std::complex<double> myF = f;
+        std::complex<double> myG = g;
+        double     myC = c;
+        std::complex<double> myS = s;
+        std::complex<double> myR = r;
         F77NAME(zlartg)( &myF, &myG, &myC, &myS, &myR );
-        F772CC( myF, f );
-        F772CC( myG, g );
-        F772CC( myC, c );
-        F772CC( myS, s );
-        F772CC( myR, r );
+        f = myF;
+        g = myG;
+        c = myC;
+        s = myS;
+        r = myR;
       }
 
       // something else

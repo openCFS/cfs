@@ -13,10 +13,6 @@
 #include "MatVec/exprt/xpr2.hh"
 #endif
 
-#ifdef USE_LAPACK
-#include "BLASLAPACKInterface.hh"
-#endif
-
 #include "DenseMatrix.hh"
 #include "General/Exception.hh"
 
@@ -563,27 +559,6 @@ namespace CoupledField
     
     //! Computes eigenvalues of an hermitian matrix
     void eigenvaluesWithLapack(Vector<Double> & b1);
-
-    //! Converts a fortran 77 complex to a C++ complex
-    void F772CC( const F77complex16 &v, std::complex<double> &val ) {
-      std::complex<double> aux(v.real,v.imag);
-      val = aux;
-    }
-
-    //! Converts a C++ complex to a fortan 77 one
-    void CC2F77( const std::complex<double> &v, F77complex16 &val ) {
-      val.real = (F77real8)v.real();
-      val.imag = (F77real8)v.imag();
-    }
-    
-    //! Converts a fortran 77 double to a C++ double
-    void F772CC( const F77real8 &v, double &val ) {
-      val = (double)v;
-    }
-    //! Converts a C++ double to a fortran 77 double
-    void CC2F77( const double &v, F77real8 &val ) {
-      val = (F77real8)v;
-    }
     //@}
 #endif
   

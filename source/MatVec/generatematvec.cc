@@ -278,17 +278,17 @@ LOG_DBG(genMatVec) << " Generated matrix of type: "<< MACRO2STRING(matrix_obj_ty
 
       // real entries
       if ( etype == BaseMatrix::DOUBLE  ) {
-        retMat = new LapackGBMatrix<F77real8,double>( nrows, ncols,
+        retMat = new LapackGBMatrix<double,double>( nrows, ncols,
                                                       BaseMatrix::F77REAL8 );
-        ASSERTMEM( retMat, sizeof(LapackGBMatrix<F77real8,double>) );
+        ASSERTMEM( retMat, sizeof(LapackGBMatrix<double,double>) );
         LOG_DBG(genMatVec) << " Generated matrix of type: LapackGBMatrix<F77Double>";
       }
 
       // complex entries
       else if ( etype == BaseMatrix::COMPLEX  ) {
-        retMat = new LapackGBMatrix<F77complex16,Complex>( nrows, ncols,
+        retMat = new LapackGBMatrix<Complex,Complex>( nrows, ncols,
         		BaseMatrix::F77COMPLEX16 );
-        ASSERTMEM(retMat, sizeof(LapackGBMatrix<F77complex16,Complex>) );
+        ASSERTMEM(retMat, sizeof(LapackGBMatrix<Complex,Complex>) );
         LOG_DBG(genMatVec) << " Generated matrix of type: LapackGBMatrix<F77Complex16>";
       }
 

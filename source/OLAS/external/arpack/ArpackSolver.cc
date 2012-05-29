@@ -60,7 +60,7 @@ namespace CoupledField {
       // check, if number of arnoldi vectors is larger than
       // size of system
       if( numArnoldiVec_ > size_ ) {
-        UInt newNumFreq = (UInt) size / 2.0;
+        UInt newNumFreq = static_cast<UInt>( size / 2.0 );
         numFreq_ = newNumFreq;
         numArnoldiVec_ = numFreq_*2;
         std::stringstream out;
@@ -99,7 +99,7 @@ namespace CoupledField {
       // adjust to higher number of wanted frequencies
       Double logNF = std::log10(numFreq_*1.0);
       if (logNF > 1.0) {
-        Integer iterInc = 500*std::floor(5*pow(10,logNF-1));
+        Integer iterInc = static_cast<Integer>( 500 * std::floor(5*pow(10,logNF-1)) );
         maxIterations_ += iterInc;
       }
 
@@ -109,7 +109,7 @@ namespace CoupledField {
       // check, if number of arnoldi vectors is larger than
       // size of system
       if( numArnoldiVec_ > size_ ) {
-        UInt newNumFreq = (UInt) size / 2.0;
+        UInt newNumFreq = static_cast<UInt>( size / 2.0 );
         numFreq_ = newNumFreq;
         numArnoldiVec_ = numFreq_*2;
         std::stringstream out;

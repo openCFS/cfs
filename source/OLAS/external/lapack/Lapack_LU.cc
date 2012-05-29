@@ -1,5 +1,7 @@
 #include <cstring>
 
+#include "MatVec/BLASLAPACKInterface.hh"
+
 #include "OLAS/external/lapack/Lapack_LU.hh"
 
 namespace CoupledField {
@@ -137,8 +139,8 @@ namespace CoupledField {
 
 
     // Down-cast matrix
-    const LapackGBMatrix<F77real8,double> &mat =
-      dynamic_cast<const LapackGBMatrix<F77real8,double>&>(stdmat);
+    const LapackGBMatrix<double,double> &mat =
+      dynamic_cast<const LapackGBMatrix<double,double>&>(stdmat);
 
     // Obtain some matrix information
     int lp_ncols = (int)mat.GetNumCols();
@@ -146,7 +148,7 @@ namespace CoupledField {
     int lp_wlower = (int)mat.GetLowerBandwidth();
     int lp_wupper = (int)mat.GetUpperBandwidth();
     int lp_ldab = lp_wlower + lp_wupper + 1;
-    F77real8 *matdata = mat.GetDataPointer0();
+    double *matdata = mat.GetDataPointer0();
 
     // status flag
     int lp_info = 0;
@@ -163,15 +165,15 @@ namespace CoupledField {
     if ( tryScaling ) {
 
       // Allocate memory for scaling factors
-      row_scalings_ = new F77real8[lp_nrows];
+      row_scalings_ = new double[lp_nrows];
       ASSERTMEM( row_scalings_, lp_nrows );
-      col_scalings_ = new F77real8[lp_ncols];
+      col_scalings_ = new double[lp_ncols];
       ASSERTMEM( col_scalings_, lp_ncols );
 
       // output parameters (condition numbers)
-      F77real8 lp_rowcond;
-      F77real8 lp_colcond;
-      F77real8 lp_amax;
+      double lp_rowcond;
+      double lp_colcond;
+      double lp_amax;
 
       // First compute a possible scaling
       F77NAME(dgbequ)( &lp_nrows, &lp_ncols, &lp_wlower, &lp_wupper,
@@ -236,8 +238,8 @@ namespace CoupledField {
     // We have to generate a copy of the matrix containing additional
     // wlower_ super-diagonals in the beginning as work-space and for
     // the result of the factorisation
-    LapackGBMatrix<F77real8,double> *facmat = new
-    LapackGBMatrix<F77real8,double>( lp_nrows, lp_ncols, lp_wlower,
+    LapackGBMatrix<double,double> *facmat = new
+    LapackGBMatrix<double,double>( lp_nrows, lp_ncols, lp_wlower,
                                      lp_wupper, BaseMatrix::F77REAL8 );
     if ( facmat == NULL ) {
       EXCEPTION( "Memory allocation for new LapackGBMatrix failed" );
@@ -250,7 +252,7 @@ namespace CoupledField {
     // Since the data_ array is in FORTRAN storage layout we do this by
     // copying the individual columns of the original matrix into the lower
     // parts of the corresponding columns in the new matrix
-    F77real8 *facmatdata = facmat->GetDataPointer0();
+    double *facmatdata = facmat->GetDataPointer0();
     Integer off1 = facmat->nrowsact_;
     Integer off2 = mat.nrowsact_;
 
@@ -258,7 +260,7 @@ namespace CoupledField {
 
       // copy j-th column
       std::memcpy( facmatdata + j * off1 + lp_wlower, matdata + j * off2,
-		   off2 * sizeof(F77real8) );
+		   off2 * sizeof(double) );
     }
 
     // ============================
@@ -297,8 +299,8 @@ namespace CoupledField {
 
 
     // Down-cast matrix
-    const LapackGBMatrix<F77complex16,Complex> &mat =
-      dynamic_cast<const LapackGBMatrix<F77complex16,Complex>&>(stdmat);
+    const LapackGBMatrix<std::complex<double>,Complex> &mat =
+      dynamic_cast<const LapackGBMatrix<std::complex<double>,Complex>&>(stdmat);
 
     // Obtain some matrix information
     int lp_ncols = (int)mat.GetNumCols();
@@ -306,7 +308,7 @@ namespace CoupledField {
     int lp_wlower = (int)mat.GetLowerBandwidth();
     int lp_wupper = (int)mat.GetUpperBandwidth();
     int lp_ldab = lp_wlower + lp_wupper + 1;
-    F77complex16 *matdata = mat.GetDataPointer0();
+    std::complex<double> *matdata = mat.GetDataPointer0();
 
     // status flag
     int lp_info = 0;
@@ -324,15 +326,15 @@ namespace CoupledField {
     if ( tryScaling ) {
 
       // Allocate memory for scaling factors
-      row_scalings_ = new F77real8[lp_nrows];
+      row_scalings_ = new double[lp_nrows];
       ASSERTMEM( row_scalings_, lp_nrows );
-      col_scalings_ = new F77real8[lp_ncols];
+      col_scalings_ = new double[lp_ncols];
       ASSERTMEM( col_scalings_, lp_ncols );
 
       // output parameters (condition numbers)
-      F77real8 lp_rowcond;
-      F77real8 lp_colcond;
-      F77real8 lp_amax;
+      double lp_rowcond;
+      double lp_colcond;
+      double lp_amax;
 
       // First compute a possible scaling
       F77NAME(zgbequ)( &lp_nrows, &lp_ncols, &lp_wlower, &lp_wupper,
@@ -395,8 +397,8 @@ namespace CoupledField {
     // We have to generate a copy of the matrix containing additional
     // wlower_ super-diagonals in the beginning as work-space and for
     // the result of the factorisation
-    LapackGBMatrix<F77complex16,Complex> *facmat = new
-      LapackGBMatrix<F77complex16,Complex>( lp_nrows, lp_ncols, lp_wlower,
+    LapackGBMatrix<std::complex<double>,Complex> *facmat = new
+      LapackGBMatrix<std::complex<double>,Complex>( lp_nrows, lp_ncols, lp_wlower,
 					    lp_wupper, BaseMatrix::F77COMPLEX16 );
     if ( facmat == NULL ) {
       EXCEPTION( "Memory allocation for new LapackGBMatrix failed" );
@@ -409,7 +411,7 @@ namespace CoupledField {
     // Since the data_ array is in FORTRAN storage layout we do this by
     // copying the individual columns of the original matrix into the lower
     // parts of the corresponding columns in the new matrix
-    F77complex16 *facmatdata = facmat->GetDataPointer0();
+    std::complex<double> *facmatdata = facmat->GetDataPointer0();
     Integer off1 = facmat->nrowsact_;
     Integer off2 = mat.nrowsact_;
 
@@ -417,7 +419,7 @@ namespace CoupledField {
 
       // copy j-th column
       std::memcpy( facmatdata + j * off1 + lp_wlower, matdata + j * off2,
-		   off2 * sizeof(F77complex16) );
+		   off2 * sizeof(std::complex<double>) );
     }
 
     // ============================
@@ -532,10 +534,10 @@ namespace CoupledField {
     int lp_one = 1;
 
     // Downcast matrices
-    LapackGBMatrix<F77real8,double> *facmat =
-      dynamic_cast<LapackGBMatrix<F77real8,double> *>(facmat_);
-    const LapackGBMatrix<F77real8,double> *mymat =
-      dynamic_cast<const LapackGBMatrix<F77real8,double> *>(mat);
+    LapackGBMatrix<double,double> *facmat =
+      dynamic_cast<LapackGBMatrix<double,double> *>(facmat_);
+    const LapackGBMatrix<double,double> *mymat =
+      dynamic_cast<const LapackGBMatrix<double,double> *>(mat);
 
     // This should not have failed, but better test
     if ( facmat == NULL ) {
@@ -546,8 +548,8 @@ namespace CoupledField {
     }
 
     // Obtain data pointers
-    F77real8 *facmatdata = facmat->GetDataPointer0();
-    const F77real8 *matdata = mymat->GetDataPointer0();
+    double *facmatdata = facmat->GetDataPointer0();
+    const double *matdata = mymat->GetDataPointer0();
 
     // Obtain some matrix information
     int lp_ncols  = (int)facmat->GetNumCols();
@@ -557,8 +559,8 @@ namespace CoupledField {
     int lp_ldabf  = 2 * lp_wlower + lp_wupper + 1;
 
     // Downcast vectors and get data pointers
-    const F77real8 *lp_rhs;
-    F77real8 *lp_sol;
+    const double *lp_rhs;
+    double *lp_sol;
     const Vector<Double>& myrhs = dynamic_cast<const Vector<Double>&>(rhs);
     Vector<Double>& mysol = dynamic_cast<Vector<Double>&>(sol);
 
@@ -613,12 +615,12 @@ namespace CoupledField {
     if ( refineSol ) {
 
       // Prepare some parameters
-      F77real8 lp_ferr = 0;
-      F77real8 lp_berr = 0;
+      double lp_ferr = 0;
+      double lp_berr = 0;
 
       // If not yet done allocate workspaces
       if ( workspaceF77REAL8_ == NULL ) {
-	workspaceF77REAL8_ = new F77real8[3 * lp_ncols];
+	workspaceF77REAL8_ = new double[3 * lp_ncols];
       }
       if ( workspaceInt_ == NULL ) {
 	workspaceInt_ = new int[lp_ncols];
@@ -691,11 +693,11 @@ namespace CoupledField {
     int lp_one = 1;
 
     // Downcast matrices
-    LapackGBMatrix<F77complex16,std::complex<double> > *facmat =
-      dynamic_cast<LapackGBMatrix<F77complex16,std::complex<double> > *>
+    LapackGBMatrix<std::complex<double>,std::complex<double> > *facmat =
+      dynamic_cast<LapackGBMatrix<std::complex<double>,std::complex<double> > *>
       (facmat_);
-    const LapackGBMatrix<F77complex16,std::complex<double> > *mymat =
-      dynamic_cast<const LapackGBMatrix<F77complex16,std::complex<double> > *>
+    const LapackGBMatrix<std::complex<double>,std::complex<double> > *mymat =
+      dynamic_cast<const LapackGBMatrix<std::complex<double>,std::complex<double> > *>
       (mat);
 
     // This should not have failed, but better test
@@ -707,8 +709,8 @@ namespace CoupledField {
     }
 
     // Obtain data pointers
-    F77complex16 *facmatdata = facmat->GetDataPointer0();
-    const F77complex16 *matdata = mymat->GetDataPointer0();
+    std::complex<double> *facmatdata = facmat->GetDataPointer0();
+    const std::complex<double> *matdata = mymat->GetDataPointer0();
 
     // Obtain some matrix information
     int lp_ncols  = (int)facmat->GetNumCols();
@@ -722,21 +724,19 @@ namespace CoupledField {
     // NOTE: For the moment we generate arrays of type F77COMPLEX16
     //       from the data arrays contained in the sol and rhs vectors
     //       We must copy sol back afterwards
-    F77complex16 *lp_rhs;
-    F77complex16 *lp_sol;
-    NEWARRAY( lp_rhs, F77complex16, lp_ncols );
-    NEWARRAY( lp_sol, F77complex16, lp_ncols );
+    std::complex<double> *lp_rhs;
+    std::complex<double> *lp_sol;
+    NEWARRAY( lp_rhs, std::complex<double>, lp_ncols );
+    NEWARRAY( lp_sol, std::complex<double>, lp_ncols );
     Complex auxVal1;
-    F77complex16 auxVal2;
+    std::complex<double> auxVal2;
 
     for ( int count = 1; count <= lp_ncols; count++ ) {
       sol.GetEntry( count, auxVal1 );
-      CC2F77( auxVal1, auxVal2 );
-      lp_sol[count] = auxVal2;
+      lp_sol[count] = auxVal1;
 
       rhs.GetEntry( count, auxVal1 );
-      CC2F77( auxVal1, auxVal2 );
-      lp_rhs[count] = auxVal2;
+      lp_rhs[count] = auxVal1;
     }
 
     lp_rhs += 1;
@@ -755,8 +755,8 @@ namespace CoupledField {
     if ( scalingType_ == 'R' || scalingType_ == 'B' ) {
       for ( Integer i = 0; i < lp_ncols; i++ ) {
 	std::cerr << "R(" << i << ") = " << row_scalings_[i] << std::endl;
-	lp_sol[i].real = row_scalings_[i] * lp_rhs[i].real;
-	lp_sol[i].imag = row_scalings_[i] * lp_rhs[i].imag;
+	lp_sol[i].real() = row_scalings_[i] * lp_rhs[i].real();
+	lp_sol[i].imag() = row_scalings_[i] * lp_rhs[i].imag();
       }
     }
 
@@ -791,15 +791,15 @@ namespace CoupledField {
     if ( refineSol ) {
 
       // Prepare some parameters
-      F77real8 lp_ferr = 0;
-      F77real8 lp_berr = 0;
+      double lp_ferr = 0;
+      double lp_berr = 0;
 
       // If not yet done allocate workspaces
       if ( workspaceF77COMPLEX16_ == NULL ) {
-	workspaceF77COMPLEX16_ = new F77complex16[3 * lp_ncols];
+	workspaceF77COMPLEX16_ = new std::complex<double>[3 * lp_ncols];
       }
       if ( workspaceF77REAL8_ == NULL ) {
-	workspaceF77REAL8_ = new F77real8[lp_ncols];
+	workspaceF77REAL8_ = new double[lp_ncols];
       } 
       if ( workspaceF77COMPLEX16_ == NULL || workspaceF77REAL8_ == NULL ) {
         EXCEPTION( "Memory allocation for iterative refinement step failed" );
@@ -828,8 +828,7 @@ namespace CoupledField {
     // =============================
     for ( int count = 1; count <= lp_ncols; count++ ) {
       auxVal2 = lp_sol[count-1];
-      F772CC( auxVal2, auxVal1 );
-      sol.SetEntry( count, auxVal1 );
+      sol.SetEntry( count, auxVal2 );
     }
 
     // ============================================
@@ -842,8 +841,8 @@ namespace CoupledField {
     // by the identity x = diag(C) * z.
     if ( scalingType_ == 'C' || scalingType_ == 'B' ) {
       for ( Integer i = 0; i < lp_ncols; i++ ) {
-	lp_sol[i].real *= col_scalings_[i];
-	lp_sol[i].imag *= col_scalings_[i];
+	lp_sol[i].real() *= col_scalings_[i];
+	lp_sol[i].imag() *= col_scalings_[i];
       }
     }
 
