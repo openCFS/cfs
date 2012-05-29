@@ -154,6 +154,10 @@ namespace CoupledField {
       break;
 
     case MECH_STRESS:
+      if ( nonLinPiezoMicroHF_ ) 
+        CalcStressStrain<Double>( result );
+      break;
+
     case MECH_STRAIN:
       if ( isComplex_ ) {
         CalcStressStrain<Complex>( result );
@@ -275,11 +279,6 @@ namespace CoupledField {
       Vector<TYPE> & actVal = actRes.GetVector();
       actVal.Resize( actRes.GetEntityList()->GetSize() * stressDim );
 
-      // Fetch material: As we assume, that all elements belong to
-      // one and the same region, we simply take the subdomain of the first
-      // element
-      it.Begin();
-
       //transform the type
       SubTensorType type;
       String2Enum(subType_,type);
@@ -342,12 +341,11 @@ namespace CoupledField {
 
         //total stress
         elemStressStrain -= TempDField;
+      
+        for(UInt iDof = 0; iDof < stressDim; iDof++ ) {
+          actVal[it.GetPos()*stressDim + iDof] = elemStressStrain[iDof];
+        }
       }
-
-      for(UInt iDof = 0; iDof < stressDim; iDof++ ) {
-        actVal[it.GetPos()*stressDim + iDof] = elemStressStrain[iDof];
-      }
-
       // Delete integrator again (Stressabbau ;-)
       delete mechStressOp;
       delete FieldOp2;

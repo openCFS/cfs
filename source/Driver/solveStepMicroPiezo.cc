@@ -36,6 +36,8 @@ class AdjointParameters;
   {
 
     doInit_ = true;
+    prevLinRHS_.Resize( numEqns_ ); 
+    prevLinRHS_.Init();
   }
 
 
@@ -50,7 +52,6 @@ class AdjointParameters;
   void SolveStepMicroPiezo:: PreStepTrans()
   {
     ResultCache::SetStepValue( actTime_ );
-
     // due to coupling-pdes, the RHS has to be initialized BEFORE 
     // the coupling forces are assembled to the RHS
     algsys_->InitRHS();
@@ -86,6 +87,7 @@ class AdjointParameters;
     // Double incrementalErrPrev = 1e20; // TODO: Unused variable incrementalErrPrev
     Double incrementalErr;
 
+    Vector<Double> actLinRHS;
     Vector<Double> newSol( numEqns_ ); 
     Vector<Double> oldSol( numEqns_ );
     Vector<Double> solPrev( numEqns_ );
@@ -133,6 +135,16 @@ class AdjointParameters;
     //! account for Dirichlet BCs
     PDE_.SetBCs( );    //clear RHS
 
+    //get actual linear RHS
+    algsys_->InitRHS();
+    assemble_->AssembleLinRHS(); 
+    algsys_->GetRHSVal(actLinRHS);
+
+    //compute delta linear RHS
+    Vector<Double> deltaLinRHS;
+    deltaLinRHS = actLinRHS - prevLinRHS_;
+
+    //do the nonlinear iteration
     do {
       iterationCounter++;
 
@@ -153,15 +165,14 @@ class AdjointParameters;
         oldSol = newSol;
       }
     
-      //clear RHS
-      algsys_->InitRHS();
+      //set delta linear RHS
+      algsys_->InitRHS(deltaLinRHS);
 
-      // setup RHS to incorporate loads and linear-Forms
-      assemble_->AssembleLinRHS(); 
+      //      algsys_->InitRHS();
+      //      assemble_->AssembleLinRHS(); 
 
-      //Vector<Double> RHS;
-      //algsys_->GetRHSVal(RHS);
-      //std::cout << "RHS:\n " << RHS << std::endl;
+      // assemble nonlinear pars to RHS
+      assemble_->AssembleNonLinRHS();
 
       //perform new assembly
       assemble_->AssembleMatrices();
@@ -185,7 +196,7 @@ class AdjointParameters;
     
       algsys_->Solve(analysis_id);
       algsys_->GetSolutionVal(newSol); 
-      //std::cout << "new Sol:\n" << newSol << std::endl;
+      //      std::cout << "new Sol:\n" << newSol << std::endl;
 
 //       //perform a line search
 //       LineSearchPM( newSol, oldSol, solPrev, solDeriv2Prev, etaLineSearch, 
@@ -273,6 +284,9 @@ class AdjointParameters;
 
     //perform corrector step  
     TS_alg_->Corrector(newSol);
+
+    //stroe actual linear RHS
+    prevLinRHS_ = actLinRHS;
   }
 
 
