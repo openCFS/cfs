@@ -1109,66 +1109,69 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
     // this is a very easy function, it checks if it is designed and adds itself in case
     ReadTestStrains();
 
-    //check for magnetistrictive strains
-    ParamNodeList magStrictNodes =
-      myParam_->Get("bcsAndLoads")->GetList("magStrictStrain");
-
-    std::string rhsFileId;
-    try {
-      // iterate over all parameter nodes
-      for( UInt i = 0; i < magStrictNodes.GetSize(); i++ ) {
-        std::string rhsRegion(magStrictNodes[i]->Get("region")->As<std::string>());
-        rhsFileId = magStrictNodes[i]->Get("inputId")->As<std::string>();
-
-        //get for each subregion the first element level
-        StdVector<std::string> regions(1);
-        StdVector<RegionIdType> regionIds;
-
-        regions[0] = rhsRegion;
-        ptgrid_->GetRegion().Parse( regions, regionIds );
-        RegionIdType actId = regionIds[0];
-
-        ElemList actSDList(ptgrid_);
-        actSDList.SetRegion(actId);
-
-        EntityIterator elemList = actSDList.GetIterator();
-
-        UintMap elemGlobLocal;
-        elemList.Begin();
-
-        for ( UInt k=0; k < elemList.GetSize(); k++) {
-          elemGlobLocal[elemList.GetElem()->elemNum] = k;
-          elemList++;
+    //check for magnetostrictive strains
+    PtrParamNode bcNode = myParam_->Get("bcsAndLoads", ParamNode::PASS);
+    
+    if ( bcNode ) {
+      ParamNodeList magStrictNodes = bcNode->GetList("magStrictStrain");
+  
+      std::string rhsFileId;
+      try {
+        // iterate over all parameter nodes
+        for( UInt i = 0; i < magStrictNodes.GetSize(); i++ ) {
+          std::string rhsRegion(magStrictNodes[i]->Get("region")->As<std::string>());
+          rhsFileId = magStrictNodes[i]->Get("inputId")->As<std::string>();
+  
+          //get for each subregion the first element level
+          StdVector<std::string> regions(1);
+          StdVector<RegionIdType> regionIds;
+  
+          regions[0] = rhsRegion;
+          ptgrid_->GetRegion().Parse( regions, regionIds );
+          RegionIdType actId = regionIds[0];
+  
+          ElemList actSDList(ptgrid_);
+          actSDList.SetRegion(actId);
+  
+          EntityIterator elemList = actSDList.GetIterator();
+  
+          UintMap elemGlobLocal;
+          elemList.Begin();
+  
+          for ( UInt k=0; k < elemList.GetSize(); k++) {
+            elemGlobLocal[elemList.GetElem()->elemNum] = k;
+            elemList++;
+          }
+  
+          Info->PrintF( pdename_,
+              "Use RHS source vector (magstrict-strains) for region '%s' from magnetic results.\n\n",
+              rhsRegion.c_str() );
+  
+          SubTensorType tensorType;
+          String2Enum(subType_,tensorType);
+          AddMagStrictStrainRHSInt* sourceRHSInt = 
+            new AddMagStrictStrainRHSInt( materials_[actId], rhsFileId, rhsRegion, 
+                                          elemGlobLocal, tensorType );
+  
+          //trigger the material for nonlinearity
+          materials_[actId]->NeedApproxMatCurve( MAGNETOSTRICTION_NLCURVES );
+  
+          LinearFormContext* sourceRHSContext = new LinearFormContext( sourceRHSInt );
+          sourceRHSContext->SetPtPde( this );
+  
+          shared_ptr<ElemList> rhsElemList( new ElemList(ptgrid_ ) );
+          rhsElemList->SetRegion( actId );
+  
+          //        shared_ptr<ElemList> rhsElemList( new ElemList(ptgrid_ ) );
+          //        rhsElemList->SetRegion( ptgrid_->GetRegion().Parse(rhsRegion) );
+          sourceRHSContext->SetResult( results_[0], rhsElemList );
+          assemble_->AddLinearForm( sourceRHSContext );
         }
-
-        Info->PrintF( pdename_,
-            "Use RHS source vector (magstrict-strains) for region '%s' from magnetic results.\n\n",
-            rhsRegion.c_str() );
-
-        SubTensorType tensorType;
-        String2Enum(subType_,tensorType);
-        AddMagStrictStrainRHSInt* sourceRHSInt = 
-          new AddMagStrictStrainRHSInt( materials_[actId], rhsFileId, rhsRegion, 
-                                        elemGlobLocal, tensorType );
-
-        //trigger the material for nonlinearity
-        materials_[actId]->NeedApproxMatCurve( MAGNETOSTRICTION_NLCURVES );
-
-        LinearFormContext* sourceRHSContext = new LinearFormContext( sourceRHSInt );
-        sourceRHSContext->SetPtPde( this );
-
-        shared_ptr<ElemList> rhsElemList( new ElemList(ptgrid_ ) );
-        rhsElemList->SetRegion( actId );
-
-        //        shared_ptr<ElemList> rhsElemList( new ElemList(ptgrid_ ) );
-        //        rhsElemList->SetRegion( ptgrid_->GetRegion().Parse(rhsRegion) );
-        sourceRHSContext->SetResult( results_[0], rhsElemList );
-        assemble_->AddLinearForm( sourceRHSContext );
       }
-    }
-    catch(Exception & ex) {
-      RETHROW_EXCEPTION(ex, "Could not assemble RHS magstrictStrain integrator"
-                        <<" in MechPDE" );
+      catch(Exception & ex) {
+        RETHROW_EXCEPTION(ex, "Could not assemble RHS magstrictStrain integrator"
+                          <<" in MechPDE" );
+      }
     }
 
   }

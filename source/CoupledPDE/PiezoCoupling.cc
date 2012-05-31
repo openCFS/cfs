@@ -154,10 +154,6 @@ namespace CoupledField {
       break;
 
     case MECH_STRESS:
-      if ( nonLinPiezoMicroHF_ ) 
-        CalcStressStrain<Double>( result );
-      break;
-
     case MECH_STRAIN:
       if ( isComplex_ ) {
         CalcStressStrain<Complex>( result );
@@ -176,7 +172,7 @@ namespace CoupledField {
 
     case MECH_STRAIN_IRR:
       if ( isComplex_ ) {
-        EXCEPTION("Ireversible Strain makes no sense in Harmonic analysis");
+        EXCEPTION("Irreversible Strain makes no sense in Harmonic analysis");
       } else {
         CalcStrainIrr( result );
       }

@@ -333,7 +333,7 @@ namespace CFSTool {
              result->SetResultInfo( actRes );
              results.Push_back( result );
              // Note: as the real values of saveBegin, saveInc and saveEnd are almost
-             // nevert queried within an output format. we simply set saveBegin = 1,
+             // never queried within an output format. we simply set saveBegin = 1,
              // saveInc = 1, saveEnd = number of result steps.
              output->RegisterResult( result, 1, 1, resultSteps[actRes].size(), false );
            }

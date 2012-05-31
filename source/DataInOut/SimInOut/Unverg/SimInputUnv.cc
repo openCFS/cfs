@@ -520,6 +520,7 @@ namespace CoupledField {
         break;
       default:
         EXCEPTION("UNV files support only results per node/element.");
+        break;
     }
 
     for ( UInt i=0; i<numRegions; ++i) {
@@ -922,7 +923,9 @@ namespace CoupledField {
         return BasePDE::TRANSIENT;
       default:
         EXCEPTION("Unknown CAPA analysis type: " << capaType);
+        break;
     }
+    return BasePDE::MULTI_SEQUENCE;
   }
 
   SolutionType SimInputUnv::NodeResultCAPA2CFS(int capaType) {
@@ -951,7 +954,9 @@ namespace CoupledField {
         return HEAT_TEMPERATURE;
       default:
         EXCEPTION("Unknown CAPA node result type: " << capaType);
+        break;
     }
+    return NO_SOLUTION_TYPE;
   }
 
   int SimInputUnv::NodeResultCFS2CAPA(SolutionType cfsType) {
@@ -963,7 +968,7 @@ namespace CoupledField {
       case MECH_ACCELERATION:
         return CapaInterfaceC::Accelerations;
       case ELEC_POTENTIAL:
-        return CapaInterfaceC::ElectricSPot;
+        return CapaInterfaceC::ElectricPot;
       case ELEC_CHARGE:
         return CapaInterfaceC::ElectricCharge;
       case ACOU_POTENTIAL:
@@ -979,7 +984,9 @@ namespace CoupledField {
       default:
         EXCEPTION("result type '" << SolutionTypeEnum.ToString(cfsType)
                   << "' has no corresponding CAPA result type.");
+        break;
     }
+    return NO_SOLUTION_TYPE;
   }
 
   SolutionType SimInputUnv::ElemResultCAPA2CFS(int capaType) {
@@ -996,7 +1003,9 @@ namespace CoupledField {
         return MAG_EDDY_CURRENT;
       default:
         EXCEPTION("Unknown CAPA element result type: " << capaType);
+        break;
     }
+    return NO_SOLUTION_TYPE;
   }
 
   int SimInputUnv::ElemResultCFS2CAPA(SolutionType cfsType) {
@@ -1014,7 +1023,9 @@ namespace CoupledField {
       default:
         EXCEPTION("result type '" << SolutionTypeEnum.ToString(cfsType)
                   << "' has no corresponding CAPA result type.");
+        break;
     }
+    return CapaInterfaceC::NoElemData;
   }
   
 } // namespace CoupledField
