@@ -778,6 +778,7 @@ namespace CoupledField {
           = shared_ptr<SimOutput>(new SimOutputText( simName, PtrParamNode() ) );
         textOut->Init(  domain->GetGrid(), false );
         outFiles_["histDefault"] = textOut;
+        outGridIds_["histDefault"] = "default";
         out.Push_back( "histDefault" );
       }
     }
