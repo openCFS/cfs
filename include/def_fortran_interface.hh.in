@@ -30,35 +30,3 @@
 #endif
 
 #endif
-#ifndef DEF_FORTRAN_IF_HH
-#define DEF_FORTRAN_IF_HH
-
-// MACROS for interfacing with BLAS, LAPACK, ARPACK...
-
-#cmakedefine FORTRAN_STDCALL_CONV
-
-#ifdef WIN32
-
-#ifdef USE_FORTRAN_DLL
-#define FORTRAN_STDCALL __declspec(dllimport) __stdcall
-#define FORTRAN_CDECL __declspec(dllimport) cdecl
-#else
-#define FORTRAN_STDCALL __stdcall
-#define FORTRAN_CDECL cdecl
-#endif
-
-#define F77NAME(name) name
-#else
-#define FORTRAN_STDCALL
-#define FORTRAN_CDECL
-
-#define F77NAME(name) name ## _
-#endif
-
-#ifdef FORTRAN_STDCALL_CONV
-#define FORTRAN_CALL FORTRAN_STDCALL
-#else
-#define FORTRAN_CALL FORTRAN_CDECL
-#endif
-
-#endif
