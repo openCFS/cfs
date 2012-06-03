@@ -271,7 +271,8 @@ namespace CoupledField {
     //! Current time / frequency
     Double actStepVal_;
     
-    //! Number of steps from previous multiSequence analyses
+    //! Number of steps in current analysis
+    UInt numSteps_;
     
     //! Indicates if one result is to be written in final step
     bool finalResultExists_;

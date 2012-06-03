@@ -219,7 +219,7 @@ void FeSpaceHi::SetElemOrder( const Elem* ptEl, FeHi* ptFe,
                               bool applyMaxRule ) {
   
   LOG_DBG(feSpaceHi) << "In SetElemOrder for elem " << ptEl->elemNum 
-                     << ",maxRule: " << applyMaxRule;
+                     << ", maxRule: " << applyMaxRule;
   
   // Stage 1: Set order as given from the region template.
   // This order template specified either an isotropic polynomial degree
@@ -233,25 +233,30 @@ void FeSpaceHi::SetElemOrder( const Elem* ptEl, FeHi* ptFe,
 
     // check, if element is a surface element
     if( Elem::shapes[ptEl->type].dim < ptGrid_->GetDim() ) {
-
+      LOG_DBG3(feSpaceHi) << "\t-> Mapping volume dirs to surface";
+      
       // map element to volume element
       const Elem* ptVolEl = (dynamic_cast<const SurfElem*>(ptEl))->ptVolElems[0];
+      LOG_DBG3(feSpaceHi) << "\tVol element: " << ptVolEl->elemNum;
       assert(ptVolEl);
       // we have surface element 
       StdVector<UInt> surfLocDir;
       shared_ptr<ElemShapeMap> esm = ptGrid_->GetElemShapeMap(ptVolEl, false);
 
       esm->MapSurfLocDirs( ptEl, surfLocDir );
-      std::cerr << "local edge dir is " << surfLocDir << std::endl;
+      LOG_DBG3(feSpaceHi) << "\tSurface directions w.r.t. volume: " 
+                          << surfLocDir.Serialize(); 
+     
 
       const StdVector<UInt> & volMaxLocDir  = order.GetMaxOrderLocDir();
       StdVector<UInt> surfOrder(surfLocDir.GetSize());
-      std::cerr << "surfLocDir: " << surfLocDir << std::endl;
       for (UInt i = 0; i < surfLocDir.GetSize(); ++i ) {
         surfOrder[i] = volMaxLocDir[surfLocDir[i]]; 
       }
-      std::cerr << "volMaxLocDir: " << volMaxLocDir.Serialize() << std::endl;
-      std::cerr << "surfMaxLocDir: " << surfOrder.Serialize() << std::endl;
+      LOG_DBG3(feSpaceHi) << "\tAnisotropic order w.r.t. to vol dir: " << 
+          volMaxLocDir.Serialize();
+      LOG_DBG3(feSpaceHi) << "\tAnisotropic order w.r.t. to surface dir: " << 
+          surfOrder.Serialize();
       ptFe->SetAnisoOrder(surfOrder, ptEl );
     } else {
 

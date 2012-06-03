@@ -561,7 +561,7 @@ DEFINE_LOG(feH1Hi, "feH1Hi")
       IntLegendreP2<T_SCAL,T_VEC>( etaVals, order2, eta );
       for( UInt k = 0; k < order1-1; ++k)
         for( UInt j = 0; j < order2-1; ++j)
-          ret[pos++] = etaVals[j] * xiVals[k];
+          ret[pos++] = xiVals[k] * etaVals[j];
     }
 #endif
   }
@@ -750,9 +750,10 @@ DEFINE_LOG(feH1Hi, "feH1Hi")
 
         IntLegendreP2<T_SCAL,T_VEC>( xiVals, order1, xi );
         IntLegendreP2<T_SCAL,T_VEC>( etaVals, order2, eta );
-        for( UInt k = 0; k < order1-1; ++k)
-          for( UInt j = 0; j <  order2-1; ++j)
-            ret[pos++] = etaVals[k] * xiVals[j] * sum_lambda;
+        for( UInt j = 0; j < order1-1; ++j) {
+          for( UInt k = 0; k <  order2-1; ++k)
+            ret[pos++] = xiVals[j] * etaVals[k] * sum_lambda;
+          }
       } // if 
     }
     
@@ -878,7 +879,7 @@ DEFINE_LOG(feH1Hi, "feH1Hi")
       } 
     }
     
-    // b) vertical edges (quadrilateral faces)
+    // b) vertical edges (quadrilateral related edges)
     for( UInt i = 6; i < 9; ++i ) {
       Double fac = elem->edges[i] < 0 ? -1.0 : 1.0;
       UInt order = orderEdge_[i];
@@ -904,71 +905,44 @@ DEFINE_LOG(feH1Hi, "feH1Hi")
     // 3) Face shape functions
 #ifdef USE_FACES
     // a) horizontal faces (triangular faces top/bottom)
-//std::cerr << "zeta is " << z << std::endl;
     for( UInt i = 0; i < 2; ++i ) {
-//            std::cerr << "\n\t  Loc Face #" << i << ", glob Face #" << elem->faces[i] << std::endl;
       UInt order = orderFace_[i][0]; 
       if( order < 3) continue;
       
       // obtain nodal permutation, i.e. sort the indices in ascending order
       const StdVector<UInt>& unsorted = shape_.faceNodes[i];
       StdVector<UInt> ind;
-//      std::cerr << "unsorted: " << unsorted.ToString() << std::endl;
       Face::GetSortedIndices( ind, unsorted, 3, elem->faceFlags[i]);
-      //std::cerr << "sorted: " << ind.ToString() << std::endl;
-//      std::cerr << "\tNodes:" << elem->connect[ind[0]] << ", "
-//                                << elem->connect[ind[1]] << ", "
-//                                << elem->connect[ind[2]] << "\n";      
       // take inner shape functions of triangle and
       // extend them via mu-lifting function
       UInt nFct =  TriaInnerLegendre( ret, pos, order, 
                                       lambda[ind[0]], lambda[ind[1]],
                                       lambda[ind[2]]);
-//      std::cerr << "face #" << i << " has " << nFct << " unknowns\n";
-//      std::cerr << "extension node is " << elem->connect[ind[0]]
-//                << ", loc Node " << ind[0] << std::endl;
       for( UInt j = 0; j < nFct; ++j ) {
-//        std::cerr << "mu is " << mu[ind[0]] << std::endl;
-//        std::cerr << "ret is " << ret[pos] << std::endl;
         ret[pos] = ret[pos] * mu[ind[0]];
-//        std::cerr << "ret is " << ret[pos] << std::endl;
         pos++;
-//        std::cerr << " pos is " << pos << std::endl;
       }
     }
     
-//    std::cerr << "b) QUAD-Faces" << std::endl;  
-    // b) vertical faces (triangular faces top/bottom)
+    // b) vertical faces (quadrilateral faces)
     for( UInt i = 2; i < 5; ++i ) {
      
       if( orderFace_[i][0] < 2 || orderFace_[i][1] < 2) continue;
       
-//      std::cerr << "\n\t  Loc Face #" << i << ", glob Face #" << elem->faces[i] << std::endl;
       const StdVector<UInt>& unsorted = shape_.faceNodes[i];
       
       StdVector<UInt> ind;
+      
       // obtain nodal permutation, i.e. sort the indices in ascending order
       Face::GetSortedIndices( ind, unsorted, 4, elem->faceFlags[i]);
-//      std::cerr << "\tNodes:" << elem->connect[ind[0]] << ", "
-//                          << elem->connect[ind[1]] << ", "
-//                          << elem->connect[ind[2]] << ", "
-//                          << elem->connect[ind[3]] << "\n";
-//      
 
       T_VEC horiz, vert;
-      // we have to determine 2 things
+      // we have to determine 2 things:
       // 1) Determine, if first edge in sorted array is horizontal or vertical one
       if( shape_.nodeCoords[ind[0]][2] == shape_.nodeCoords[ind[1]][2] ) {
-        // edge [0] -> [1] is the horizontal one with order p[0] by definition
-        // edge [0] -> [3] is the vertical one 
+        // edge [0] -> [1] is the horizontal one with order p[0] 
+        // edge [0] -> [3] is the vertical one  with order p[1]
 
-//        std::cerr << "\tTopology Case a): \n";
-//        std::cerr << "\t\thorizontal edge: " 
-//                  << elem->connect[ind[0]] << " -> " 
-//                  << elem->connect[ind[1]]<< std::endl;
-//        std::cerr << "\t\tvertical edge: " 
-//                          << elem->connect[ind[0]] << " -> " 
-//                          << elem->connect[ind[3]]<< std::endl;
         // triangular shape function on horizontal edge 
         ScaledIntLegendreP2( horiz, orderFace_[i][0], 
                              lambda[ind[1]]+lambda[ind[0]],
@@ -976,7 +950,6 @@ DEFINE_LOG(feH1Hi, "feH1Hi")
 
         // exension on vertical edge with p[1]
         IntLegendreP2( vert, orderFace_[i][1], mu[ind[0]]*2.0-1.0 );
-//        std::cerr << "\t\tmu = " << mu[ind[0]] << std::endl;
         
         for( UInt j = 0;  j < orderFace_[i][0]-1; ++j ) {
           for( UInt k = 0;  k < orderFace_[i][1]-1; ++k ) {
@@ -989,30 +962,20 @@ DEFINE_LOG(feH1Hi, "feH1Hi")
         // edge [0] -> [3] is the horizontal one with order p[1]
         
         // triangular shape function on horizontal edge
-//        std::cerr << "\tTopology Case b): \n";
-//        std::cerr << "\t\thorizontal edge: " 
-//            << elem->connect[ind[0]] << " -> " 
-//            << elem->connect[ind[3]]<< std::endl;
-//        std::cerr << "\t\tvertical edge: " 
-//            << elem->connect[ind[0]] << " -> " 
-//            << elem->connect[ind[1]]<< std::endl;
         ScaledIntLegendreP2( horiz, orderFace_[i][1], 
                              lambda[ind[3]]+lambda[ind[0]],
                              lambda[ind[3]]-lambda[ind[0]] );
 
-        // exension on vertical edge with p[0]
+        // extension on vertical edge with p[0]
         IntLegendreP2( vert, orderFace_[i][0], mu[ind[0]]*2.0-1.0 );
-//        std::cerr << "\t\tmu = " << mu[ind[0]] << std::endl;
-        for( UInt j = 0;  j < orderFace_[i][1]-1; ++j ) {
-          for( UInt k = 0;  k < orderFace_[i][0]-1; ++k ) {
-            ret[pos++] = horiz[j] * vert[k];
+        
+        for( UInt k = 0;  k < orderFace_[i][0]-1; ++k ) {
+          for( UInt j = 0;  j < orderFace_[i][1]-1; ++j ) {
+            ret[pos++] = vert[k] * horiz[j];
           }
         }
       }
-
-      
-    }
-//    std::cerr << "ret is " << ret.ToString() << std::endl;
+    } // faced (triangular)
 #endif
 
     // 4) Inner shape functions

@@ -57,9 +57,8 @@ DEFINE_LOG(feHi, "feHi")
    
    void FeHi::SetAnisoOrder( const StdVector<UInt>& order,
                                const Elem* ptElem ) {
-     LOG_DBG3(feHi) << "SetAnisoOrder " << order 
-             << " for H1Hi elem #" <<ptElem->elemNum
-             << "of type " 
+     LOG_DBG3(feHi) << "SetAnisoOrder for H1Hi elem #" << ptElem->elemNum
+             << " of type " 
              << Elem::feType.ToString(myFeType_)
              << " to order " << order.Serialize();
      
@@ -71,6 +70,7 @@ DEFINE_LOG(feHi, "feHi")
      orderEdge_.Resize(elemShape_.numEdges);
      orderFace_.Resize(elemShape_.numFaces);
      orderEdge_.Init();
+     orderFace_.Init();
      // -------
      //  EDGES
      // -------
@@ -123,7 +123,7 @@ DEFINE_LOG(feHi, "feHi")
                           << ptElem->connect[ind[1]] 
                           << "-> #" << ptElem->connect[ind[0]] 
                           << ", order: " << faceOrder[0]; 
-         LOG_DBG3(feHi) << "\t\tdir1: node #" 
+         LOG_DBG3(feHi) << "\t\tdir2: node #" 
                           << ptElem->connect[ind[3]] 
                           << "-> #" << ptElem->connect[ind[0]] 
                           << ", order: " << faceOrder[1];
@@ -135,12 +135,16 @@ DEFINE_LOG(feHi, "feHi")
      //  INNER
      // -------
      if( elemShape_.dim == 3 ) {
-     boost::array<UInt,3> orderInner;
+       LOG_DBG3(feHi) << "\tTreating interior" << std::endl;
+       LOG_DBG3(feHi) << "\t\tSetting Order to "  << order.Serialize() 
+               << std::endl;
+       boost::array<UInt,3> orderInner;
        orderInner[0] = order[0];
        orderInner[1] = order[1];
        orderInner[2] = order[2];
        SetInteriorOrder( orderInner );
      }
+     
      // set status to anisotropic and determine maximal order
      isIsotropic_ = false;
      maxOrder_ = *(std::max_element(order.Begin(), order.End()));

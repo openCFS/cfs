@@ -2386,14 +2386,16 @@ namespace CoupledField
     {
       StdVector<Elem*> elems;
       Vector<Double> p(3);
+      GetVolElems(elems, ALL_REGIONS );
+      UInt size = this->GetNumElemOfDim(GetDim());
 
-      GetVolElems(elems, ALL_REGIONS);
-      UInt size = elems.GetSize();
-
-      elemBoxes_.resize( size );
-#pragma omp parallel for
+      elemBoxes_.reserve( size );
       for(UInt i = 0; i < size; i++)       {
-        elemBoxes_[i] = CreateBoxFromElement( elems[i], 1e-3);
+        // immediately leave, if the dimension of the element is 
+        // lower-dimensional
+        if( Elem::shapes[elems[i]->type].dim != GetDim() ) 
+          continue;
+        elemBoxes_.push_back(CreateBoxFromElement( elems[i], 1e-3) );
       }
     }
     
@@ -2813,6 +2815,11 @@ namespace CoupledField
       for(UInt i = 0, m=elems.GetSize(); i < m; i++)       {
         Vector<Double> p(3);
 
+        // immediately leave, if the dimension of the element is 
+        // lower-dimensional
+        if( Elem::shapes[elems[i]->type].dim != GetDim() ) 
+          continue;
+        
         // create bounding box array, with the following indices:
         // [xmin, ymin,  zmin, xmax, ymax, zmax]
         //   0     1      2     3     4     5

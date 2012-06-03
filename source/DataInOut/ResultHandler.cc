@@ -30,6 +30,8 @@ namespace CoupledField {
     actStep_ = 0;
     finalResultExists_ = false;
     actStepVal_ = 0.0;
+    numSteps_ = 0;
+    analysisType_ = BasePDE::NO_ANALYSIS;
   }
 
 
@@ -141,6 +143,8 @@ namespace CoupledField {
         
     // store current sequencestep
     sequenceStep_ = step;
+    analysisType_ = type;
+    numSteps_ = numSteps;
     
     // Iterate over all outfiles to notify them about a new
     // multisequence step
@@ -780,6 +784,12 @@ namespace CoupledField {
         outFiles_["histDefault"] = textOut;
         outGridIds_["histDefault"] = "default";
         out.Push_back( "histDefault" );
+        
+        // Register multisequence step also for the newly created output class
+        // if it was already begun
+        if( analysisType_ != BasePDE::NO_ANALYSIS ) {
+          textOut->BeginMultiSequenceStep( sequenceStep_, analysisType_, numSteps_ );
+        }
       }
     }
   }

@@ -1089,6 +1089,16 @@ MapSurfLocDirs( const Elem* ptSurfElem,
     }
     surfLocDirs[0] = shape_.faceLocDirs[index][0];
     surfLocDirs[1] = shape_.faceLocDirs[index][1];
+    
+    // only for quad-faces, we must check. if both
+    // directions have to get interchanged.
+    if( shape_.faceNodes[index].GetSize() == 4 ) {
+      // check, if directions have to get interchanged
+      if( !ptSurfElem->faceFlags[0][2]) { 
+        std::swap( surfLocDirs[0], surfLocDirs[1] );
+      }
+    }
+    
   } else {
     EXCEPTION("Can only handle 1D or 2D elements.")
   }

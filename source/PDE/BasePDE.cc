@@ -32,6 +32,7 @@ namespace CoupledField {
   void BasePDE::SetEnums()
   {
     analysisType.SetName("BasePDE::AnalysisType");
+    analysisType.Add(NO_ANALYSIS, "undefined");
     analysisType.Add(STATIC, "static");
     analysisType.Add(TRANSIENT, "transient");
     analysisType.Add(HARMONIC, "harmonic");
