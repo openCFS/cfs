@@ -21,8 +21,10 @@ template<class TYPE> FieldCoefFunctor<TYPE>::
 template<class TYPE> void FieldCoefFunctor<TYPE>::
 EvalResult( shared_ptr<BaseResult> res ) {
 
+  EntityList::ListType entityListType = res->GetEntityList()->GetType();
+
   // check, if the node list is a 
-  if( res->GetEntityList()->GetType() == EntityList::NODE_LIST 
+  if( entityListType == EntityList::NODE_LIST 
       && typeid(*coef_) == typeid(FeFunction<TYPE>) ) {
     FeFunction<TYPE> & feFct= 
         dynamic_cast<FeFunction<TYPE>&> (*coef_);
@@ -36,20 +38,39 @@ EvalResult( shared_ptr<BaseResult> res ) {
   Vector<TYPE> tempField;
   vec.Resize( it.GetSize() * this->dim_ );
 
-  // loop over elements
-  for ( it.Begin(); !it.IsEnd(); it++ ) {
-    const Elem * el = it.GetElem();
-    LocPoint lp = Elem::shapes[el->type].midPointCoord;
-    LocPointMapped lpm;
-    shared_ptr<ElemShapeMap> esm = 
+  switch( entityListType ) 
+  {
+  case EntityList::ELEM_LIST:
+    // loop over elements
+    for ( it.Begin(); !it.IsEnd(); it++ ) {
+      const Elem * el = it.GetElem();
+      LocPoint lp = Elem::shapes[el->type].midPointCoord;
+      LocPointMapped lpm;
+      shared_ptr<ElemShapeMap> esm = 
         this->ptGrid_->GetElemShapeMap( el, true );
-    lpm.Set( lp, esm );
-    this->GetVector(tempField, lpm );
-    // loop over dofs
-    for(UInt iDim = 0; iDim < dim_; iDim++ ) {
-      vec[it.GetPos()*dim_ + iDim] = tempField[iDim];
+      lpm.Set( lp, esm );
+      this->GetVector(tempField, lpm );
+      // loop over dofs
+      for(UInt iDim = 0; iDim < dim_; iDim++ ) {
+        vec[it.GetPos()*dim_ + iDim] = tempField[iDim];
+      }
     }
+    break;
+
+  case EntityList::NODE_LIST:
+    WARN("What to do in case of nodes?!?")
+    // loop over nodes
+    for ( it.Begin(); !it.IsEnd(); it++ ) {
+    }
+    //    break;
+
+  default:
+    EXCEPTION("Cannot extract result for entity list type '" <<
+              EntityList::listType.ToString(entityListType) << "'.");    
+    break;
+    
   }
+  
 }
 
 template<class TYPE> void FieldCoefFunctor<TYPE>::
