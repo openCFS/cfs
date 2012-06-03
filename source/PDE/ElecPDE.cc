@@ -230,12 +230,13 @@ namespace CoupledField {
         ctx->SetEntities( ent[i] );
         ctx->SetFeFunction(myFct);
         assemble_->AddLinearForm(ctx);
+        myFct->AddEntityList(ent[i]);
       } else {
         // --------------------------
         //  Surface / Volume Charges 
         // --------------------------
         if( coef[i]->GetDependency() == CoefFunction::GENERAL ) {
-          EXCEPTION("The total prescribed charge must no be spatial dependend");
+          EXCEPTION("The total prescribed charge must no be spatial dependent");
         }
         // "Divide" the total charge by the volume / surface of the current entity list
         Double volume = ptGrid_->CalcVolumeOfEntityList( ent[i], false );
@@ -253,6 +254,7 @@ namespace CoupledField {
         ctx->SetEntities( ent[i] );
         ctx->SetFeFunction(myFct);
         assemble_->AddLinearForm(ctx);
+        myFct->AddEntityList(ent[i]);
       }
     } // for
 
