@@ -342,7 +342,7 @@ namespace CoupledField {
       }
 
       iparams[0] = 1;
-      iparams[2] = maxIterations_;
+      iparams[2] = 5; // maxIterations_;
       iparams[6] = 3;
 
       UInt itNum;
@@ -413,8 +413,8 @@ namespace CoupledField {
 
       // check whether everything went well
       if (info != 0) {
-        EXCEPTION("iparam[5] " << iparams[4] << 
-        "Error reported in ritz value calculation:\n" << ArpackError(info) );
+        EXCEPTION("IPARAM(5) = " << iparams[4] << 
+        ". Error reported in ritz value calculation:\n" << ArpackError(info) );
       }
 
       if ( itNum>maxIterations_ && info != 99 ) {
