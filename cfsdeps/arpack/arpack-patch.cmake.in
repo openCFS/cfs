@@ -8,14 +8,6 @@ EXECUTE_PROCESS(
   COMMAND ${CMAKE_COMMAND} -E copy_if_different "${CFS_SOURCE_DIR}/cfsdeps/arpack/CMakeLists.txt" "${ARPACK_source}/CMakeLists.txt"
 )
 
-EXECUTE_PROCESS(
-  COMMAND ${CMAKE_COMMAND} -E copy_directory "${ARPACK_source}-download" "${ARPACK_source}"
-)
-
-EXECUTE_PROCESS(
-  COMMAND ${CMAKE_COMMAND} -E copy_directory "${ARPACK_source}-patches" "${ARPACK_source}"
-)
-
 # Generate C/C++ compatible arpack version header.
 FILE(READ "SRC/version.h" lines)
 
@@ -41,17 +33,6 @@ foreach(line IN LISTS lines)
 endforeach(line)
 
 FILE(WRITE "SRC/arpack_version.h" "${OUTPUT}")
-
-SET(patches
-  "arpack-2.1-redhat.patch";
-)
-
-IF(CFS_FORTRAN_COMPILER_NAME STREQUAL "GNU")
-  set(patches
-    ${patches}
-    "arpack-gfortran-etime-intrinsic.patch"
-    )
-ENDIF(CFS_FORTRAN_COMPILER_NAME STREQUAL "GNU")
 
 IF(CFS_FORTRAN_COMPILER_NAME STREQUAL "IFORT")
   set(patches

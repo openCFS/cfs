@@ -213,11 +213,8 @@ IF(USE_BLAS OR USE_LAPACK)
   #-----------------------------------------------------------------------------
   IF(USE_ARPACK)
     SET(ARPACK_URL "${LSE17_SOURCES_DIR}/arpack")
-    SET(ARPACK_GZ "arpack96.tar.gz")
-    SET(ARPACK_MD5 "fffaa970198b285676f4156cebc8626e")
-  
-    SET(ARPACK_PATCH_GZ "patch.tar.gz")
-    SET(ARPACK_PATCH_MD5 "14830d758f195f272b8594a493501fa2")
+    SET(ARPACK_GZ "arpack-ng_3.1.1.tar.gz")
+    SET(ARPACK_MD5 "d65b915736650d8878719d4168e50c36")
   
     INCLUDE("${CFS_SOURCE_DIR}/cfsdeps/arpack/External_ARPACK.cmake")
   ENDIF(USE_ARPACK)

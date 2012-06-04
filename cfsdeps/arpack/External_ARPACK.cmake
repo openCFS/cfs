@@ -5,34 +5,6 @@ set(ARPACK_prefix  "${CMAKE_CURRENT_BINARY_DIR}/cfsdeps/arpack")
 set(ARPACK_source  "${ARPACK_prefix}/src/arpack")
 set(ARPACK_install  "${CMAKE_CURRENT_BINARY_DIR}")
 
-#-------------------------------------------------------------------------------
-# Download ARPACK
-#-------------------------------------------------------------------------------
-ExternalProject_Add(arpack-download
-  PREFIX "${ARPACK_prefix}"
-#  SOURCE_DIR ${ARPACK_source}
-  DOWNLOAD_DIR ${CFS_DEPS_CACHE_DIR}/sources/arpack
-  URL ${ARPACK_URL}/${ARPACK_GZ}
-  URL_MD5 ${ARPACK_MD5}
-  CONFIGURE_COMMAND ""
-  BUILD_COMMAND ""
-  INSTALL_COMMAND ""
-)
-
-#-------------------------------------------------------------------------------
-# Download and check ARPACK patches.
-#-------------------------------------------------------------------------------
-ExternalProject_Add(arpack-patches
-  DEPENDS arpack-download
-  PREFIX "${ARPACK_prefix}"
-  DOWNLOAD_DIR ${CFS_DEPS_CACHE_DIR}/sources/arpack
-  URL ${ARPACK_URL}/${ARPACK_PATCH_GZ}
-  URL_MD5 ${ARPACK_PATCH_MD5}
-  CONFIGURE_COMMAND ""
-  BUILD_COMMAND ""
-  INSTALL_COMMAND ""
-)
-
 SET(CMAKE_ARGS
   -DCMAKE_INSTALL_PREFIX:PATH=${ARPACK_install}
   -DCMAKE_COLOR_MAKEFILE:BOOL=${CMAKE_COLOR_MAKEFILE}
@@ -55,12 +27,14 @@ ENDIF(CFS_DISTRO STREQUAL "MACOSX")
 # The ARPACK external project
 #-------------------------------------------------------------------------------
 ExternalProject_Add(arpack
-  DEPENDS arpack-patches
   PREFIX "${ARPACK_prefix}"
-  DOWNLOAD_COMMAND ""
+  DOWNLOAD_DIR ${CFS_DEPS_CACHE_DIR}/sources/arpack
+  URL ${ARPACK_URL}/${ARPACK_GZ}
+  URL_MD5 ${ARPACK_MD5}
   CMAKE_ARGS
     ${CMAKE_ARGS}
 )
+
 #-------------------------------------------------------------------------------
 # Set names of patch file and template file.
 #-------------------------------------------------------------------------------
