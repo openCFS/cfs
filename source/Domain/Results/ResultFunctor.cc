@@ -58,12 +58,49 @@ EvalResult( shared_ptr<BaseResult> res ) {
     break;
 
   case EntityList::NODE_LIST:
-    WARN("What to do in case of nodes?!?")
-    // loop over nodes
-    for ( it.Begin(); !it.IsEnd(); it++ ) {
-    }
-    //    break;
+    {
+      WARN("Evaluation of nodal values is very inefficient at the moment.")
 
+      StdVector<Vector<double> > globCoords;
+      StdVector< LocPoint > localCoords;
+      StdVector< const Elem* > elems;
+      Vector<Double> coord;
+
+      for ( it.Begin(); !it.IsEnd(); it++ ) {
+        UInt node = it.GetNode();
+
+        ptGrid_->GetNodeCoordinate(coord, node, true );
+        
+        globCoords.Push_back(coord);
+      }
+      
+      ptGrid_->GetElemsAtGlobalCoords(globCoords, localCoords, elems);
+
+      UInt numElems = elems.GetSize();
+
+      if(numElems != globCoords.GetSize()) 
+      {
+        EXCEPTION("Element and node vectors have different size. "
+                  << "Cannot perform evaluation of node results.");
+      }
+      
+      // loop over elems
+      for ( UInt i=0; i < numElems; i++ ) {
+        const Elem * el = elems[i];
+        LocPoint& lp = localCoords[i];
+        LocPointMapped lpm;
+        shared_ptr<ElemShapeMap> esm = 
+          this->ptGrid_->GetElemShapeMap( el, true );
+        lpm.Set( lp, esm );
+        this->GetVector(tempField, lpm );
+        // loop over dofs
+        for(UInt iDim = 0; iDim < dim_; iDim++ ) {
+          vec[i*dim_ + iDim] = tempField[iDim];
+        }
+      }
+
+    }    
+    break;
   default:
     EXCEPTION("Cannot extract result for entity list type '" <<
               EntityList::listType.ToString(entityListType) << "'.");    
