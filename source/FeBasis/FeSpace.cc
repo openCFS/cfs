@@ -209,7 +209,12 @@ ApproxOrder::ApproxOrder(UInt dim ) {
       
       // loop over all polynomial definitions, get the id and query, if the
       // polynomial gets also referenced in the <reegionList> of this PDE.
-      PtrParamNode regList = aNode->Get("regionList");
+      PtrParamNode regList = aNode->Get("regionList", ParamNode::PASS);
+      if( !regList)
+        regList = aNode->Get("surfRegionList", ParamNode::PASS);
+      if( !regList) {
+        EXCEPTION("Could not find <regionList> or <surfaceRegionList> element");
+      }
       ParamNodeList polys = polyNode->GetChildren();
       std::set<shared_ptr<ParamNode> > usedPolys;
       std::set<std::string> usedIds; // check for multiple definitions of Ids
