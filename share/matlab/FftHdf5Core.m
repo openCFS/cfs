@@ -174,9 +174,9 @@ numiter = ceil(size_in_mb / bufsize * 6); % scale by 6, because we need
 % Delete temp files from last run.
 [pathstr, name, ext, versn] = fileparts(outfile);
 if isempty(pathstr)
-  tempdir = './TEMP_FFT';
+  tempdir = './.TEMP_FFT';
 else
-  tempdir = sprintf('%s/TEMP_FFT', pathstr);
+  tempdir = sprintf('%s/.TEMP_FFT', pathstr);
 end
 exec(sprintf('rm -rf %s', tempdir));
 exec(sprintf('mkdir %s', tempdir));
@@ -232,6 +232,7 @@ for iter=1:numiter
   MAT = fft(mat);
   
   % mode 1: write out harmonic data
+  outfile_iter = sprintf('%s/%s_%d.h5', tempdir, name, iter);
   if mode == 1
     % split result into real and imaginary part
     real_MAT = 2.*real(MAT)./numsteps;
@@ -239,8 +240,6 @@ for iter=1:numiter
     clear MAT
 
     % write back harmonic datasets, one file for each chunk
-    outfile_iter = sprintf('%s/%s_%d.h5', tempdir, name, iter);
-
     if numiter > 1
       fprintf('Buffering result of chunk %d\n', iter)
     end
@@ -281,8 +280,6 @@ for iter=1:numiter
     clear MAT
 
     % write back transient datasets, one file for each chunk
-    outfile_iter = sprintf('%s/%s_%d.h5', tempdir, name, iter);
-
     if numiter > 1
       fprintf('Buffering result of chunk %d\n', iter)
     end
@@ -368,9 +365,18 @@ for i=1:numfiles
   attr_details.AttachType = 'group';
   attr_details.Name = 'StepValue';
   if mode == 1
-    hdf5write(outfile, attr_details, f(i), 'WriteMode', 'append');
+    step_value = f(i);
   else
-    hdf5write(outfile, attr_details, t(i), 'WriteMode', 'append');
+    step_value = t(i);
+  end
+  try
+    fattr=hdf5read(outfile, [steppath '/' attr_details.Name]);
+    if fattr ~= step_value
+      warning('Attribute %s/%s already exists in output file and has a different value', ...
+              steppath, attr_details.Name);
+    end
+  catch
+    hdf5write(outfile, attr_details, step_value, 'WriteMode', 'append');
   end
 
 end
