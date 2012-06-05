@@ -342,7 +342,7 @@ namespace CoupledField {
       }
 
       iparams[0] = 1;
-      iparams[2] = 5; // maxIterations_;
+      iparams[2] = maxIterations_;
       iparams[6] = 3;
 
       UInt itNum;
