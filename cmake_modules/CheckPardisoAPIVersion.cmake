@@ -1,3 +1,11 @@
+IF(CFS_PARDISO STREQUAL MKL)
+  SET(PARDISO_API_VER 3)
+
+  MESSAGE(STATUS
+"Intel MKL version ${MKL_MAJOR_VERSION}.${MKL_MINOR_VERSION} detected. Setting Pardiso API version to ${PARDISO_API_VER}.")
+
+ELSE(CFS_PARDISO STREQUAL MKL)
+
 #-----------------------------------------------------------------------------
 # Set source code for testing API version of PARDISO.
 #-----------------------------------------------------------------------------
@@ -496,3 +504,5 @@ ELSE(NOT PARDISO_API_VER_3 AND
        
 ENDIF(NOT PARDISO_API_VER_3 AND
       NOT PARDISO_API_VER_4)
+
+ENDIF(CFS_PARDISO STREQUAL MKL)
