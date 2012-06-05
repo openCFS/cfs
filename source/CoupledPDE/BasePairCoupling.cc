@@ -302,7 +302,7 @@ namespace CoupledField {
                   spIt->first << " This is not how its ought to be!");
       }
       
-      if(analysisType_ == BasePDE::HARMONIC){
+      if(isComplex_){
         feFunctions_[spIt->first] = shared_ptr<BaseFeFunction >(new FeFunction<Complex>());
         rhsFeFunctions_[spIt->first] = shared_ptr<BaseFeFunction >(new FeFunction<Complex>());
       }
