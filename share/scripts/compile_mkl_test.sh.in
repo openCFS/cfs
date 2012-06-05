@@ -113,14 +113,25 @@ for MKLROOT in $MKL_ROOT_DIRS; do
 
     # Cat  the makefile and  replace some  strings, so  that it  will properly
     # build the test executable.
-    cat $SOLVERMAKEFILE | \
-      sed 's|PWD)|MKLROOT\)/examples/solver|' | \
-      sed 's|-I\.\./\.\./include|-I$(MKLROOT)/include|' | \
-      sed "s|OMP_LIB = |OMP_LIB = -L$OMP_LIB_PATH |" | \
-      sed "s|[\"]*\$(MKL_PATH)[\"]*:|\"\$(MKL_PATH)\":$LIB_PATH:|" | \
-      sed "s|CC = [gi]cc|CC = $CC|" | \
-      sed "s|COMPILER = [gi]cc|COMPILER = $CC|" \
-      > makefile || ExitFail
+    if [ "$OMP_LIB_PATH" = "" ]; then
+	cat $SOLVERMAKEFILE | \
+	    sed 's|PWD)|MKLROOT\)/examples/solver|' | \
+	    sed 's|-I\.\./\.\./include|-I$(MKLROOT)/include|' | \
+	    sed "s|[\"]*\$(MKL_PATH)[\"]*:|\"\$(MKL_PATH)\":$LIB_PATH:|" | \
+	    sed "s|CC = [gi]cc|CC = $CC|" | \
+	    sed "s|COMPILER = [gi]cc|COMPILER = $CC|" \
+	    > makefile || ExitFail
+    else
+	cat $SOLVERMAKEFILE | \
+	    sed 's|PWD)|MKLROOT\)/examples/solver|' | \
+	    sed 's|-I\.\./\.\./include|-I$(MKLROOT)/include|' | \
+	    sed "s|OMP_LIB = |OMP_LIB = -L$OMP_LIB_PATH |" | \
+	    sed "s|[\"]*\$(MKL_PATH)[\"]*:|\"\$(MKL_PATH)\":$LIB_PATH:|" | \
+	    sed "s|CC = [gi]cc|CC = $CC|" | \
+	    sed "s|COMPILER = [gi]cc|COMPILER = $CC|" \
+	    > makefile || ExitFail
+    fi
+
     make F=$MKL_COMPILER_ID compiler=$MKL_COMPILER_ID $MKL_ARCH_ID threading=$MKL_THREADING_ID function=dss_sym_c > out.txt 2>&1 || ExitFail
     cat _results/*/dss_sym_c.res || ExitFail
 
