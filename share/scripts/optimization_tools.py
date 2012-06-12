@@ -8,6 +8,9 @@ import math
 import os
 from lxml import etree
 
+from numpy import sin
+from numpy import cos
+from numpy import sqrt
 from cfs_utils import *
 from distutils.command.build_scripts import first_line_re
 
@@ -86,18 +89,70 @@ def read_density_as_vector(filename, attribute="design"):
   # print "reading set with id = " + sett.get("id")
   
   length = len(sett)
-
-  # print "check for attribute " + attribute
-  counter = 0
   vals=[0]*length
   for element in sett:
     # traverse the elements and get the design
-    vals[counter] = float(element.get(attribute))
-    counter = counter + 1
+    if hasattr(element, attribute):
+      vals[counter] = float(element.get(attribute))
   
   # print "found " + str(length) + " elements, read " + str(counter) + " elements"
   
   return vals
+
+
+# read a fmo tensor design result. see implementation for order of tensor coefficients!
+def read_fmo_tensors(filename):
+  if not os.path.exists(filename):
+    raise RuntimeError("file '" + filename + "' doesn't exist")
+  
+  tree = etree.parse(filename, etree.XMLParser(remove_comments=True))
+  
+  root = tree.getroot()
+  sett = root.xpath("//set[last()]")[0]
+  # print "reading set with id = " + sett.get("id")
+  
+  length = len(sett) / 6
+  
+  out = numpy.zeros((length, 6))
+  for element in sett:
+    nr   = int(element.get("nr"))
+    des  = float(element.get("design"))
+    type = element.get("type")
+    idx  = -1
+    if type == "tensor11":
+      idx = 0
+    elif type == "tensor12":
+      idx = 1
+    elif type == "tensor22":
+      idx = 2
+    elif type == "tensor13":
+      idx = 3
+    elif type == "tensor23":
+      idx = 4
+    elif type == "tensor33":
+      idx = 5
+    assert(idx != -1)
+    
+    out[nr-1,idx] = des  
+  return out
+
+# write plate tensor file
+# @param data n * 6 matrix
+def write_plate_fmo(filename, data):
+  dat = open(filename, "w")
+  
+  assert(data.shape == (len(data), 6))
+  
+  for r in range(len(data)):
+    d = data[r]
+    for c in range(6):
+      dat.write(str(d[c]) + "\n")
+
+  dat.close()       
+  
+  
+
+
   
 ## write the data to a density.xml file
 # @param data_inp a ndata array (1D, 2D or 3D) or a list of data
@@ -783,3 +838,4 @@ def is_valid_density_file(infile):
 def ascii_print(data, threshold):
   x, y, z = getDim(data)
   assert()
+  
