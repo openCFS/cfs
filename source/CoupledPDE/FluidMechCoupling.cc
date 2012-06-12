@@ -120,16 +120,17 @@ namespace CoupledField {
     for ( UInt actSD = 0, n = entityLists_.GetSize(); actSD < n; actSD++ ) {
 
       shared_ptr<SurfElemList> actSDList(dynamic_cast<SurfElemList*>(entityLists_[actSD].get()));
+      RegionIdType region = actSDList->GetRegion();
 
       velFct->AddEntityList(actSDList);
       presFct->AddEntityList(actSDList);
       dispFct->AddEntityList(actSDList);
       lagrangeMultFct->AddEntityList(actSDList);
 
-      velSpace->SetRegionApproximation(actSD, "velPolyId", "velIntegId");
-      presSpace->SetRegionApproximation(actSD, "presPolyId", "presIntegId");
-      dispSpace->SetRegionApproximation(actSD, "default", "default");
-      lagrangeMultSpace->SetRegionApproximation(actSD, "velPolyId", "velIntegId");
+      velSpace->SetRegionApproximation(region, "velPolyId", "velIntegId");
+      presSpace->SetRegionApproximation(region, "presPolyId", "presIntegId");
+      dispSpace->SetRegionApproximation(region, "default", "default");
+      lagrangeMultSpace->SetRegionApproximation(region, "velPolyId", "velIntegId");
 
       // This integrator gets assembled into the damping (first time deriv.) matrix in the row of the LM
       DefineDampingIntegrators("FluidMechDampingLMVelCouplingInt",
