@@ -279,7 +279,10 @@ namespace CoupledField {
       UInt GetNumElems() { return numElems_; }
 
       //! Clean up conversion method
-      virtual void CleanUp() {}
+      virtual void CleanUp() {
+        delete nativeType_; nativeType_ = NULL;
+        delete stdType_; stdType_ = NULL;
+      }
 
     protected:
 

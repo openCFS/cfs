@@ -281,8 +281,6 @@ hsize_t H5IO::maxChunkSize_= 100;
     ~HdfTypeConversion() 
     {
       CleanUp();
-      delete stdType_;
-      delete nativeType_;
     }
     
   };
@@ -380,8 +378,6 @@ hsize_t H5IO::maxChunkSize_= 100;
     ~HdfTypeConversion() 
     {
       CleanUp();
-      delete stdType_;
-      delete nativeType_;
     }
 
   }; // end of class definition
@@ -473,8 +469,6 @@ hsize_t H5IO::maxChunkSize_= 100;
                                                                         \
     ~HdfTypeConversion() {                                              \
       CleanUp();                                                        \
-      delete nativeType_;                                               \
-      delete stdType_;                                                  \
     }                                                                   \
                                                                         \
   }
