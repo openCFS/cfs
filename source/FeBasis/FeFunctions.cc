@@ -30,6 +30,8 @@ DECLARE_LOG(fefunc)
   }
   
   BaseFeFunction::~BaseFeFunction(){
+    // Manually decrease the reference counter of our shared_ptr<FeSpace>
+    feSpace_.~shared_ptr();
   }
   
   
