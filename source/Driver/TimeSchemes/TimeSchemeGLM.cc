@@ -37,21 +37,34 @@ namespace CoupledField{
        if(avoidFreeingIdx_.find(i)==avoidFreeingIdx_.end())
          delete glmVector_[i];
     }
+    glmVector_.Clear();
 
     for(UInt i=1;i<curScheme_->numStages_;i++){
       if((Integer)i!=avoidUpdateIdx_){
         delete stageVector_[i];
       }
     }
-
-    delete curScheme_;
-    curScheme_ = NULL;
+    stageVector_.Clear();
 
     std::map<SchemeType, GLMScheme*>::iterator it = availSchemes.begin();
     while(it != availSchemes.end()){
       delete it->second;
       it->second = NULL;
+      ++it;
     }
+    availSchemes.clear();
+    
+    // Note: as the "curScheme_" pointer was taken initially from the 
+    // availSchemes map, it was already deleted in the previous statement
+    // and we must NOT delete it again.
+    //delete curScheme_;
+    curScheme_ = NULL;
+    
+    for( UInt i = 0; i < predictors_.GetSize(); ++i ) {
+      delete predictors_[i];
+    }
+    predictors_.Clear();
+    
   }
 
   void TimeSchemeGLM::Init(SingleVector* solVec,Double dt){

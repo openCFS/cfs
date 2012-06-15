@@ -119,7 +119,8 @@ namespace CoupledField {
 
     for ( UInt actSD = 0, n = entityLists_.GetSize(); actSD < n; actSD++ ) {
 
-      shared_ptr<SurfElemList> actSDList(dynamic_cast<SurfElemList*>(entityLists_[actSD].get()));
+      shared_ptr<SurfElemList> actSDList = 
+          dynamic_pointer_cast<SurfElemList>(entityLists_[actSD]);
       RegionIdType region = actSDList->GetRegion();
 
       velFct->AddEntityList(actSDList);
