@@ -241,26 +241,31 @@ namespace CoupledField{
       }
       
       
-      refElems_[region][Elem::ET_LINE2]  = new FeH1LagrangeLine1();
-      refElems_[region][Elem::ET_TRIA3]  = new FeH1LagrangeTria1();
-      refElems_[region][Elem::ET_TRIA6]  = new FeH1LagrangeTria2();
-      refElems_[region][Elem::ET_QUAD4]  = new FeH1LagrangeQuad1();
-      refElems_[region][Elem::ET_HEXA8]  = new FeH1LagrangeHex1();
-      refElems_[region][Elem::ET_WEDGE6] = new FeH1LagrangeWedge1();
-      refElems_[region][Elem::ET_PYRA5]  = new FeH1LagrangePyra1();
-      refElems_[region][Elem::ET_TET4]  = new FeH1LagrangeTet1();
-      refElems_[region][Elem::ET_LINE3]  = new FeH1LagrangeLine2();
-      refElems_[region][Elem::ET_QUAD8]  = new FeH1LagrangeQuad2();
-      refElems_[region][Elem::ET_QUAD9]  = new FeH1LagrangeQuad9();
-      refElems_[region][Elem::ET_HEXA20] = new FeH1LagrangeHex2();
-      refElems_[region][Elem::ET_HEXA27] = new FeH1LagrangeHex27();
-      refElems_[region][Elem::ET_WEDGE15] = new FeH1LagrangeWedge2();
-      refElems_[region][Elem::ET_WEDGE18] = new FeH1LagrangeWedge18();
-      refElems_[region][Elem::ET_PYRA13] = new FeH1LagrangePyra2();
-      refElems_[region][Elem::ET_PYRA14] = new FeH1LagrangePyra14();
-      refElems_[region][Elem::ET_TET10]  = new FeH1LagrangeTet2();
-
-      
+      if( refElems_[region].empty() ) 
+      {
+        refElems_[region][Elem::ET_LINE2]  = new FeH1LagrangeLine1();
+        refElems_[region][Elem::ET_TRIA3]  = new FeH1LagrangeTria1();
+        refElems_[region][Elem::ET_TRIA6]  = new FeH1LagrangeTria2();
+        refElems_[region][Elem::ET_QUAD4]  = new FeH1LagrangeQuad1();
+        refElems_[region][Elem::ET_HEXA8]  = new FeH1LagrangeHex1();
+        refElems_[region][Elem::ET_WEDGE6] = new FeH1LagrangeWedge1();
+        refElems_[region][Elem::ET_PYRA5]  = new FeH1LagrangePyra1();
+        refElems_[region][Elem::ET_TET4]  = new FeH1LagrangeTet1();
+        refElems_[region][Elem::ET_LINE3]  = new FeH1LagrangeLine2();
+        refElems_[region][Elem::ET_QUAD8]  = new FeH1LagrangeQuad2();
+        refElems_[region][Elem::ET_QUAD9]  = new FeH1LagrangeQuad9();
+        refElems_[region][Elem::ET_HEXA20] = new FeH1LagrangeHex2();
+        refElems_[region][Elem::ET_HEXA27] = new FeH1LagrangeHex27();
+        refElems_[region][Elem::ET_WEDGE15] = new FeH1LagrangeWedge2();
+        refElems_[region][Elem::ET_WEDGE18] = new FeH1LagrangeWedge18();
+        refElems_[region][Elem::ET_PYRA13] = new FeH1LagrangePyra2();
+        refElems_[region][Elem::ET_PYRA14] = new FeH1LagrangePyra14();
+        refElems_[region][Elem::ET_TET10]  = new FeH1LagrangeTet2();
+      }
+      else 
+      {
+        WARN( "Reference elements for region " << region << " already defined!" );
+      }
 
     } else if (mType == POLYNOMIAL) {
       
