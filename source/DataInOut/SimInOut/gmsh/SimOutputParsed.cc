@@ -138,7 +138,7 @@ namespace CoupledField{
 
     if(curList->GetDefineType() == EntityList::REGION){
 
-      shared_ptr<BaseFeFunction> curFnc = sol->GetResultInfo()->GetFeFunction();
+      shared_ptr<BaseFeFunction> curFnc = sol->GetResultInfo()->GetFeFunction().lock();
 
       if(!curFnc){
         WARN("Going to ignore result as feFunction is not set");
@@ -187,7 +187,7 @@ namespace CoupledField{
 
   //! Add result to current step
   void SimOutputParsed::AddResult( shared_ptr<BaseResult> sol ){
-    shared_ptr<BaseFeFunction> myFunct = sol->GetResultInfo()->GetFeFunction();
+    shared_ptr<BaseFeFunction> myFunct = sol->GetResultInfo()->GetFeFunction().lock();
 
 
     if(!myFunct){
@@ -339,7 +339,7 @@ namespace CoupledField{
       //file is opened now loop over the regions and create a view for each region
       RegionInterpMap curregInter = solIt->second;
       RegionInterpMap::iterator curIt = curregInter.begin();
-      shared_ptr<BaseFeFunction> myFunct = sol->GetResultInfo()->GetFeFunction();
+      shared_ptr<BaseFeFunction> myFunct = sol->GetResultInfo()->GetFeFunction().lock();
 
       while(curIt != curregInter.end()){
         (*outFile) << "View \"" << regionNames[curIt->first] << "\" {" << std::endl;

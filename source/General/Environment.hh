@@ -36,6 +36,7 @@ namespace CoupledField {
   // Import Boost's namespace
   //using namespace boost;
   using boost::shared_ptr;
+  using boost::weak_ptr;
   using boost::scoped_ptr;
   using boost::any_cast;
   using boost::lexical_cast;

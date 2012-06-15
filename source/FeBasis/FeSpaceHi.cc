@@ -23,17 +23,18 @@ void FeSpaceHi::MapNodalBCs() {
   StdVector<UInt> actNodes;
 
   // check if feFunction was defined
-  if( !feFunction_ ) {
+  shared_ptr<BaseFeFunction> feFct = feFunction_.lock(); // request a strong pointer
+  if( !feFct ) {
     EXCEPTION("No FeFunction set at FeSpace");
   }
 
   // check if feFunction has a result assigned
-  if( !feFunction_->GetResultInfo()) {
+  if( !feFct->GetResultInfo()) {
     EXCEPTION("No resultinfo associated with feFunction");
   }
 
   //Get Grip of HdBC List for the fefunction
-  const HdBcList hdbcs = feFunction_->GetHomDirichletBCs();
+  const HdBcList hdbcs = feFct->GetHomDirichletBCs();
   HdBcList::const_iterator actHBC;
   UInt dofsPerUnknown = GetNumDofs();
 
@@ -57,7 +58,7 @@ void FeSpaceHi::MapNodalBCs() {
    * In a hierarchical space, only the equations corresponding to a vertex
    * get fixed. The edge / face / inner equations are set to zero.
    */
-  const IdBcList idbcs = feFunction_->GetInHomDirichletBCs();
+  const IdBcList idbcs = feFct->GetInHomDirichletBCs();
   IdBcList::const_iterator actIBC;
   for(actIBC = idbcs.Begin(); actIBC != idbcs.End(); actIBC++) {
     // Get all (Virtual) Nodes of the list
@@ -89,7 +90,7 @@ void FeSpaceHi::MapNodalBCs() {
   } // loop over idbcs
 
   //Get Grip of constraint List for the fefunction
-  const ConstraintList constraints = feFunction_->GetConstraints();
+  const ConstraintList constraints = feFct->GetConstraints();
   ConstraintList::const_iterator actConstr;
   for(actConstr = constraints.Begin(); actConstr != constraints.End(); actConstr++) {
     StdVector<UInt> slaveNodes;
@@ -357,9 +358,10 @@ void FeSpaceHi::FixHigherOrderAnisoDofs() {
 
 
   
-  
+  shared_ptr<BaseFeFunction> feFct = feFunction_.lock(); // request a strong pointer
+  assert(feFct);
   StdVector< shared_ptr<EntityList> > fctEntList = 
-      feFunction_->GetEntityList();
+      feFct->GetEntityList();
   EntityList::ListType actListType = EntityList::NO_LIST;
   UInt numDofs = GetNumDofs();
 

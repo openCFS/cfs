@@ -418,7 +418,7 @@ public:
   //! coefficient is needed to describe the function value.
   virtual UInt GetNumDofs() const;
 
-  shared_ptr<BaseFeFunction> GetFeFunction(){
+  weak_ptr<BaseFeFunction> GetFeFunction(){
     return feFunction_;
   }
     
@@ -472,7 +472,10 @@ protected:
   std::map< std::string, PtrParamNode > polyNodes_;
 
   //! Storing the FeFunctions associated with this space
-  shared_ptr<BaseFeFunction> feFunction_;
+  
+  //! Note: Here we need a weak pointer to break the cyclic reference
+  //! FeSpace <-> FeFunction
+  weak_ptr<BaseFeFunction> feFunction_;
   
   //! Set with all regions the space is defined on
   std::set<RegionIdType> regions_;

@@ -18,7 +18,6 @@
 #include "Domain/ElemMapping/SurfElem.hh"
 #include "Domain/ElemMapping/EdgeFace.hh"
 #include "Domain/ElemMapping/EntityLists.hh"
-#include "Domain/ElemMapping/ElemShapeMap.hh"
 
 
 #include "MatVec/Vector.hh"

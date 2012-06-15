@@ -13,6 +13,9 @@ namespace CoupledField {
   }
   
   FeH1::~FeH1() {
+    // clear map with pre-computed shape function
+    shapeFncsAtIp_.clear();
+    shapeFncsAtIp_.clear();
   }
   
   void FeH1::GetShFnc( Vector<Double>& S, const LocPoint& lp,

@@ -321,7 +321,9 @@ ApproxOrder::ApproxOrder(UInt dim ) {
       // get name of entitylist
       StdVector<UInt> tempNodes;
       std::string name= ent->GetName();
-      feFunction_->GetGrid()->GetNodesByName( tempNodes, name );
+      shared_ptr<BaseFeFunction> feFct = feFunction_.lock(); // request a strong pointer
+      assert(feFct);
+      feFct->GetGrid()->GetNodesByName( tempNodes, name );
       
       // careful: not all nodes of the entity list are necessarily mapped for
       // this space. So only select those nodes, also contained in the nodesType_ array.
@@ -347,7 +349,9 @@ ApproxOrder::ApproxOrder(UInt dim ) {
         case EntityList::REGION_LIST:
           for(entIt.Begin(); !entIt.IsEnd(); entIt++){
             StdVector<Elem*> eList;
-            feFunction_->GetGrid()->GetElems(eList,entIt.GetRegion());
+            shared_ptr<BaseFeFunction> feFct = feFunction_.lock(); // request a strong pointer
+            assert(feFct);
+            feFct->GetGrid()->GetElems(eList,entIt.GetRegion());
             StdVector<UInt> eNodes;
             for (UInt i = 0; i < eList.GetSize(); i ++ ){
 
@@ -481,7 +485,9 @@ ApproxOrder::ApproxOrder(UInt dim ) {
     
     
     // store all regions the space is defined on
-    regions_ = feFunction_->GetRegions();
+    shared_ptr<BaseFeFunction> feFct = feFunction_.lock(); // request a strong pointer
+    assert(feFct);
+    regions_ = feFct->GetRegions();
     
     //the function checks for the special case if we got only one element
     //in the region map and if this mapping is of type GRID
@@ -501,8 +507,9 @@ ApproxOrder::ApproxOrder(UInt dim ) {
 
     StdVector< shared_ptr<EntityList> > fctEntList;
     StdVector<UInt> curNodes;
-
-    fctEntList = feFunction_->GetEntityList();
+    shared_ptr<BaseFeFunction> feFct = feFunction_.lock(); // request a strong pointer
+    assert(feFct);
+    fctEntList = feFct->GetEntityList();
 
     for(UInt actList = 0;actList <  fctEntList.GetSize(); actList++){
       LOG_DBG(feSpace) << "\tMapping entity list '" << fctEntList[actList]->GetName();
@@ -515,7 +522,7 @@ ApproxOrder::ApproxOrder(UInt dim ) {
       shared_ptr<EntityList> actElemList =  fctEntList[actList];
 
       std::string name= actElemList->GetName();
-      feFunction_->GetGrid()->GetNodesByName( curNodes, name );
+      feFct->GetGrid()->GetNodesByName( curNodes, name );
       //GetNodesOfEntities( curNodes, actElemList );
       for ( UInt aNode= 0; aNode < curNodes.GetSize(); aNode++ ) {
         if(gridToVirtualNodes_.find(curNodes[aNode]) == gridToVirtualNodes_.end()){
@@ -572,7 +579,9 @@ ApproxOrder::ApproxOrder(UInt dim ) {
 
     LOG_TRACE(feSpace) << "starting to create virtual nodes based on POLYNOMIAL";
     
-    fctEntList = feFunction_->GetEntityList();
+    shared_ptr<BaseFeFunction> feFct = feFunction_.lock(); // request a strong pointer
+    assert(feFct);
+    fctEntList = feFct->GetEntityList();
 
     //get the highest possible node number
     //UInt offset = feFunction_->GetGrid()->GetNumNodes();
@@ -687,8 +696,8 @@ ApproxOrder::ApproxOrder(UInt dim ) {
             } // loop over vertices
         }
         }
-        feFunction_->GetGrid()->MapEdges();
-        feFunction_->GetGrid()->MapFaces();
+        feFct->GetGrid()->MapEdges();
+        feFct->GetGrid()->MapFaces();
         
         ElemShape actShape = Elem::shapes[actEl->type];
         
@@ -1016,7 +1025,9 @@ ApproxOrder::ApproxOrder(UInt dim ) {
   void FeSpace::GetEqns( StdVector<Integer>& eqns, const EntityIterator ent ){
 
     //Get result for the feFunction
-    shared_ptr<ResultInfo> feFctResult = feFunction_->GetResultInfo();
+    shared_ptr<BaseFeFunction> feFct = feFunction_.lock(); // request a strong pointer
+    assert(feFct);
+    shared_ptr<ResultInfo> feFctResult = feFct->GetResultInfo();
 
     //Get "dimension" of one Unknown
     UInt dofsPerUnknown = GetNumDofs();
@@ -1060,7 +1071,9 @@ ApproxOrder::ApproxOrder(UInt dim ) {
   void FeSpace::GetEqns( StdVector<Integer>& eqns, const EntityIterator ent
                          , UInt dof ){ 
     //Get result for the feFunction
-    shared_ptr<ResultInfo> feFctResult = feFunction_->GetResultInfo();
+    shared_ptr<BaseFeFunction> feFct = feFunction_.lock(); // request a strong pointer
+    assert(feFct);
+    shared_ptr<ResultInfo> feFctResult = feFct->GetResultInfo();
 
     //First cover the nodal/grid case
     if ( ent.GetType() == EntityList::NODE_LIST ) {
@@ -1094,7 +1107,9 @@ ApproxOrder::ApproxOrder(UInt dim ) {
   void FeSpace::GetEqns( StdVector<Integer>& eqns, const EntityIterator ent
                            , UInt dof, BaseFE::EntityType entityType){ 
     //Get result for the feFunction
-    shared_ptr<ResultInfo> feFctResult = feFunction_->GetResultInfo();
+    shared_ptr<BaseFeFunction> feFct = feFunction_.lock(); // request a strong pointer
+    assert(feFct);
+    shared_ptr<ResultInfo> feFctResult = feFct->GetResultInfo();
 
     //First cover the nodal/grid case
     if ( ent.GetType() == EntityList::NODE_LIST ) {
@@ -1126,7 +1141,9 @@ ApproxOrder::ApproxOrder(UInt dim ) {
 
     void FeSpace::GetElemEqns(StdVector<Integer>& eqns,const Elem* elem){
       //Get result for the feFunction
-      shared_ptr<ResultInfo> feFctResult = feFunction_->GetResultInfo();
+      shared_ptr<BaseFeFunction> feFct = feFunction_.lock(); // request a strong pointer
+      assert(feFct);
+      shared_ptr<ResultInfo> feFctResult = feFct->GetResultInfo();
 
       //Get "dimension" of one Unknown
       UInt dofsPerUnknown = GetNumDofs();
@@ -1170,13 +1187,16 @@ ApproxOrder::ApproxOrder(UInt dim ) {
     boost::unordered_map< Integer , StdVector<BcType> >::iterator bcIt;
     UInt actNode = 0;
     NodeTypeMap::const_iterator it;
+    shared_ptr<BaseFeFunction> feFct = feFunction_.lock(); // request a strong pointer
+    assert(feFct);
+    
     switch(phase){
       case 1:
         // number the nodal equations if they are not contained in the BcKeys
         // due to our virtual node array we have a valid structure
 
         //Get result for the feFunction
-        feFctResult = feFunction_->GetResultInfo();
+        feFctResult = feFct->GetResultInfo();
         
         // Get number of dofs
         dofsPerUnknown = GetNumDofs();
@@ -1267,8 +1287,9 @@ ApproxOrder::ApproxOrder(UInt dim ) {
     if( solStrat_->GetType() != SolStrategy::STD_STRATEGY ) {
       EXCEPTION( "Currently we just support the standard solution strategy for H1.");
     }
-    
-    FeFctIdType fctId = feFunction_->GetFctId();
+    shared_ptr<BaseFeFunction> feFct = feFunction_.lock(); // request a strong pointer
+    assert(feFct);
+    FeFctIdType fctId = feFct->GetFctId();
     
     // Check, if static condensation is to be performed
     bool statCond = solStrat_->UseStaticCondensation();
@@ -1364,12 +1385,14 @@ ApproxOrder::ApproxOrder(UInt dim ) {
 
     // obtain (fctId,eqnNr) -> (sbm,index) mapping from OLAS
     StdVector<UInt> blockNums, indices;
-    AlgebraicSys * algSys = feFunction_->GetSystem();
-    FeFctIdType fctId = feFunction_->GetFctId();
+    shared_ptr<BaseFeFunction> feFct = feFunction_.lock(); // request a strong pointer
+    assert(feFct);
+    AlgebraicSys * algSys = feFct->GetSystem();
+    FeFctIdType fctId = feFct->GetFctId();
     algSys->MapCompleteFctIdToIndex(fctId, blockNums, indices);
     
     std::string resultName = 
-        SolutionTypeEnum.ToString(feFunction_->GetResultInfo()->resultType);
+        SolutionTypeEnum.ToString(feFct->GetResultInfo()->resultType);
     
     std::cout << " *****************************************\n";
     std::cout << "  F E - S P A C E - I N F O R M A T I O N \n";
@@ -1383,7 +1406,7 @@ ApproxOrder::ApproxOrder(UInt dim ) {
     // =================================
     
     // iterate over all elements
-    Grid* ptGrid = feFunction_->GetGrid();
+    Grid* ptGrid = feFct->GetGrid();
     boost::unordered_map< UInt, ElemVirtualNodes >::iterator elemIt;
     
     for( elemIt = virtualNodes_.begin(); 
@@ -1539,7 +1562,7 @@ ApproxOrder::ApproxOrder(UInt dim ) {
     // =================================
     // 2) Global Equation numbering
     // =================================
-    shared_ptr<ResultInfo> feFctResult = feFunction_->GetResultInfo();
+    shared_ptr<ResultInfo> feFctResult = feFct->GetResultInfo();
     // ---------------
     //  NODES
     // ---------------
@@ -1601,8 +1624,9 @@ ApproxOrder::ApproxOrder(UInt dim ) {
   
   UInt FeSpace::GetNumDofs() const {
     // Just return number of components
-    assert(feFunction_ );
-    return feFunction_->GetResultInfo()->dofNames.GetSize();
+    shared_ptr<BaseFeFunction> feFct = feFunction_.lock(); // request a strong pointer
+    assert(feFct);
+    return feFct->GetResultInfo()->dofNames.GetSize();
   }
   // ************************************************************************
   // ENUM INITIALIZATION

@@ -127,7 +127,9 @@ namespace CoupledField{
   }
 
   BaseFE* FeSpaceH1Nodal::GetFe( UInt elemNum ){
-    const Elem * ptElem = feFunction_->GetGrid()->GetElem(elemNum);
+    shared_ptr<BaseFeFunction> feFct = feFunction_.lock(); // request a strong pointer
+    assert(feFct);
+    const Elem * ptElem = feFct->GetGrid()->GetElem(elemNum);
     RegionIdType eRegion = ptElem->regionId;
 
     //Check if the region is there, otherwise fall back to default
@@ -153,7 +155,9 @@ namespace CoupledField{
 
     // leave, if element space is hierarchical
     if (isHierarchical_)return;
-    shared_ptr<IntScheme> integScheme = feFunction_->GetGrid()->GetIntegrationScheme();
+    shared_ptr<BaseFeFunction> feFct = feFunction_.lock(); // request a strong pointer
+    assert(feFct);
+    shared_ptr<IntScheme> integScheme = feFct->GetGrid()->GetIntegrationScheme();
 
     std::map<Integer,LocPoint> integPoints;
     std::map<RegionIdType, std::map<Elem::FEType, FeH1* > >::iterator regIt = refElems_.begin();
@@ -384,17 +388,18 @@ namespace CoupledField{
     StdVector<UInt> actNodes;
 
     // check if feFunction was defined
-    if( !feFunction_ ) {
+    shared_ptr<BaseFeFunction> feFct = feFunction_.lock(); // request a strong pointer
+    if( !feFct ) {
       EXCEPTION("No FeFunction set at FeSpace");
     }
 
     // check if feFunction has a result assigned
-    if( !feFunction_->GetResultInfo()) {
+    if( !feFct->GetResultInfo()) {
       EXCEPTION("No resultinfo associated with feFunction");
     }
 
     //Get Grip of HdBC List for the fefunction
-    const HdBcList hdbcs = feFunction_->GetHomDirichletBCs();
+    const HdBcList hdbcs = feFct->GetHomDirichletBCs();
     HdBcList::const_iterator actHBC;
     UInt dofsPerUnknown = GetNumDofs();
 
@@ -416,7 +421,7 @@ namespace CoupledField{
     }
 
     //Get Grip of IdBC List for the fefunction
-    const IdBcList idbcs = feFunction_->GetInHomDirichletBCs();
+    const IdBcList idbcs = feFct->GetInHomDirichletBCs();
     IdBcList::const_iterator actIBC;
 
     for(actIBC = idbcs.Begin(); actIBC != idbcs.End(); actIBC++) {
@@ -437,7 +442,7 @@ namespace CoupledField{
     }
 
     //Get Grip of constraint List for the fefunction
-    const ConstraintList constraints = feFunction_->GetConstraints();
+    const ConstraintList constraints = feFct->GetConstraints();
     ConstraintList::const_iterator actConstr;
     for(actConstr = constraints.Begin(); actConstr != constraints.End(); actConstr++) {
       StdVector<UInt> slaveNodes;

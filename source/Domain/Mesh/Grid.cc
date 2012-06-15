@@ -36,10 +36,6 @@ namespace CoupledField
     
     integScheme_.reset( new IntScheme() );
 
-    
-    // initialize static members of Lagrangian shape map
-    LagrangeElemShapeMap::InitStaticMembers();
-    
     // in addition, add always the NO_REGION to the enum
     region_.Add( NO_REGION_ID, "_NO_REGION_");
   }

@@ -191,7 +191,9 @@ namespace CoupledField{
   }
   
   BaseFE* FeSpaceH1Hi::GetFe( UInt elemNum ){
-    const Elem * ptElem = feFunction_->GetGrid()->GetElem(elemNum); 
+    shared_ptr<BaseFeFunction> feFct = feFunction_.lock(); // request a strong pointer
+    assert(feFct);
+    const Elem * ptElem = feFct->GetGrid()->GetElem(elemNum); 
     RegionIdType eRegion = ptElem->regionId;
 
     //Check if the region is there, otherwise fall back to default

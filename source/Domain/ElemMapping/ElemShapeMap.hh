@@ -537,16 +537,26 @@ namespace CoupledField {
     Double CalcJDet( Matrix<Double>& jac, 
                      const LocPoint& ip );
     
-    //! Initialize static members
-    static void InitStaticMembers();
-    
   protected:
 
     //! Pointer to H1 element of lower order
     FeH1LagrangeExpl* ptFe_;
-    
-    //! Map with pointers to reference elements
-    static std::map<Elem::FEType, FeH1LagrangeExpl* > feMap_;
+
+    //! Helper struct containing the reference element
+    class LagrangeMapSingleton
+    { 
+    private: 
+      LagrangeMapSingleton();   
+      LagrangeMapSingleton(const LagrangeMapSingleton&) {}            
+      LagrangeMapSingleton& operator=(const LagrangeMapSingleton&) {
+        return *this;}
+      ~LagrangeMapSingleton();
+    public: 
+      static LagrangeMapSingleton& getInstance();
+
+      //! Map containing the reference elements
+      std::map<Elem::FEType, FeH1LagrangeExpl* > feMap_;
+    }; 
 
     //! Nodal coordinates
     Matrix<Double> coords_;
@@ -557,6 +567,8 @@ namespace CoupledField {
     //! Pointer to integration scheme
     shared_ptr<IntScheme> intScheme_;
     
+    //! Pointer to class containing the reference elements
+    LagrangeMapSingleton & elems_;
   };
 
 }

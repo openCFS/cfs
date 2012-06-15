@@ -91,7 +91,6 @@ namespace CoupledField {
   // **************
   SinglePDE::~SinglePDE() {
 
-
     // Delete algebraic system only if
     // PDE is not direct coupled
     if ( isDirectCoupled_ == false ) {
@@ -110,6 +109,7 @@ namespace CoupledField {
     }
 
 
+    // delete materials
     std::map<RegionIdType, BaseMaterial*>::iterator it;
     for ( it = materials_.begin(); it != materials_.end(); it++ ) {
       if (it->second != NULL) delete it->second;

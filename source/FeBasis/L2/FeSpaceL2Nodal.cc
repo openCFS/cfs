@@ -109,7 +109,9 @@ BaseFE* FeSpaceL2Nodal::GetFe( const EntityIterator ent ){
 }
 
 BaseFE* FeSpaceL2Nodal::GetFe( UInt elemNum ){
-  const Elem * ptElem = feFunction_->GetGrid()->GetElem(elemNum);
+  shared_ptr<BaseFeFunction> feFct = feFunction_.lock(); // request a strong pointer
+  assert(feFct);
+  const Elem * ptElem = feFct->GetGrid()->GetElem(elemNum);
   RegionIdType eRegion = ptElem->regionId;
 
   //Check if the region is there, otherwise fall back to default
@@ -133,7 +135,9 @@ void FeSpaceL2Nodal::PreCalcShapeFncs(){
 
   // leave, if element space is hierarchical
   if (isHierarchical_)return;
-  shared_ptr<IntScheme> integScheme = feFunction_->GetGrid()->GetIntegrationScheme();
+  shared_ptr<BaseFeFunction> feFct = feFunction_.lock(); // request a strong pointer
+  assert(feFct);
+  shared_ptr<IntScheme> integScheme = feFct->GetGrid()->GetIntegrationScheme();
 
   std::map<Integer,LocPoint> integPoints;
   std::map<RegionIdType, std::map<Elem::FEType, FeH1* > >::iterator regIt = refElems_.begin();
@@ -173,9 +177,11 @@ void FeSpaceL2Nodal::Finalize(){
   //      UInt numFreeEquations_ = 0;
   //the damn thing is that we need to map the edges right here if we have internal surfaces
   //ok, should not hurt anyway
+  shared_ptr<BaseFeFunction> feFct = feFunction_.lock(); // request a strong pointer
+  assert(feFct);
   if(interiorElemMap_.size() > 0){
-    this->feFunction_->GetGrid()->MapEdges();
-    this->feFunction_->GetGrid()->MapFaces();
+    feFct->GetGrid()->MapEdges();
+    feFct->GetGrid()->MapFaces();
     CreateSurfaceElems();
   }
 

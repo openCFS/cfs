@@ -64,7 +64,7 @@ namespace CoupledField {
     }
 
     /** Get the FeFunction of the current result **/
-    shared_ptr<BaseFeFunction>  GetFeFunction(){
+    weak_ptr<BaseFeFunction>  GetFeFunction(){
       return feFct_;
     }
 
@@ -112,7 +112,7 @@ namespace CoupledField {
 
   protected:
 
-    shared_ptr<BaseFeFunction> feFct_;
+    weak_ptr<BaseFeFunction> feFct_;
 
   };
 

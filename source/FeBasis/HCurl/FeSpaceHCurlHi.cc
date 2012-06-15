@@ -389,7 +389,9 @@ namespace CoupledField{
   }
   
   BaseFE* FeSpaceHCurlHi::GetFe( UInt elemNum ){
-    const Elem * ptElem = feFunction_->GetGrid()->GetElem(elemNum); 
+    shared_ptr<BaseFeFunction> feFct = feFunction_.lock(); // request a strong pointer
+    assert(feFct);
+    const Elem * ptElem = feFct->GetGrid()->GetElem(elemNum); 
     RegionIdType eRegion = ptElem->regionId;
     
 
@@ -436,7 +438,9 @@ namespace CoupledField{
                 << SolStrategy::strategyType.ToString(solStrat_->GetType()) 
                 << "' not implemented for HCurl of higher order.");
     
-    FeFctIdType fctId = feFunction_->GetFctId();
+    shared_ptr<BaseFeFunction> feFct = feFunction_.lock(); // request a strong pointer
+    assert(feFct);
+    FeFctIdType fctId = feFct->GetFctId();
     
     // maintain of already used entities
     std::set<UInt> edges, faces, elems;
@@ -849,7 +853,8 @@ namespace CoupledField{
     // As we have already vectorial basis functions, every
     // virtual "node" is basically just a scalar, so we
     // always return 1.
-    assert(feFunction_ );
+    shared_ptr<BaseFeFunction> feFct = feFunction_.lock(); // request a strong pointer
+    assert(feFct);
     return 1;
   }
   
