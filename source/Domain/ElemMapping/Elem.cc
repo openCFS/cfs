@@ -40,8 +40,7 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
  
  void Elem::GetFaceNodes( UInt faceNum, StdVector<UInt>& nodes ) const {
    // check, if face is defined at all
-   Integer locFaceIndex = -1;
-   this->faces.Find(faceNum);
+   Integer locFaceIndex = this->faces.Find(faceNum);
    if( locFaceIndex < 0 ) {
      EXCEPTION("Could not find face " << faceNum << " for element #" 
                << this->elemNum );
@@ -57,9 +56,16 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
  
  void Elem::GetEdgeNodes( UInt edgeNum, StdVector<UInt>& nodes ) const {
    // check, if edge is defined at all
-   Integer locEdgeIndex = -1;
-   this->faces.Find(edgeNum);
-   if( locEdgeIndex < 0 ) {
+   UInt locEdgeIndex = 0;
+   bool found = false;
+   while(locEdgeIndex < edges.GetSize() ) {
+     if( std::abs(edges[locEdgeIndex]) == edgeNum) {
+       found = true;
+       break;
+     }
+     locEdgeIndex++;
+   }
+   if( !found ) {
      EXCEPTION("Could not find edge " << edgeNum << " for element #" 
                << this->elemNum );
    }

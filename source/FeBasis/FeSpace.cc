@@ -942,7 +942,24 @@ ApproxOrder::ApproxOrder(UInt dim ) {
       assert(ptElem->edges.GetSize() == 1);
       UInt edgeNr = std::abs(ptElem->edges[0]);
       const StdVector<Elem*> & neighbors = ptGrid_->GetEdge(edgeNr).neighbors; 
-      ret = neighbors[0];
+     
+      // loop until element with highest dimension and acceptable regionId 
+      // is found
+      UInt ind = 0;
+      bool found = false;
+      while( ind < neighbors.GetSize() ) {
+        if (Elem::shapes[neighbors[ind]->type].dim == gridDim  &&
+            regions_.find(neighbors[ind]->regionId) != regions_.end() )  {
+          found = true;
+          break;
+        }
+        ind++;
+      }
+      if( !found )  {
+        EXCEPTION("Could not find a suitable volume neighbor for  element #"
+                   << ptElem->elemNum << ". " );
+      }
+      ret = neighbors[ind];
     }
     
     return ret;
@@ -1340,12 +1357,118 @@ ApproxOrder::ApproxOrder(UInt dim ) {
       // ---------------------
       //  Static Condensation
       // ---------------------
+      UInt numDofs = GetNumDofs();
+      
+//      if( numDofs == 1 ) {
+        // push back empty set -> sbm block 0 has no minor blocks
+        minorBlocks[0]=(StdVector<std::set<Integer> >());
+//      } else {
+//        
+//        // group for each node / edge / face all equations
+//        // together
+//        
+//        // maintain of already used entities
+//        std::set<UInt> vertices, edges, faces, elems;
+//        
+//        // Loop over all elements
+//        boost::unordered_map< UInt, ElemVirtualNodes >::iterator elemIt = virtualNodes_.begin();
+//        for( ; elemIt != virtualNodes_.end(); ++elemIt ) {
+//
+//          const UInt elemNum = elemIt->first;
+//          const Elem * elem = ptGrid_->GetElem(elemNum);
+//          UInt dim = Elem::shapes[elem->type].dim;;
+//          LOG_DBG(feSpace) << "\nDim of elem #" 
+//              << elemNum << ": " << dim << std::endl;
+//          std::cerr << "\nDim of elem #" 
+//              << elemNum << ": " << dim << std::endl;
+//
+//          ElemVirtualNodes& vn = elemIt->second;
+//          
+//          // group vertex nodes 
+//          StdVector<UInt> & vertexNodes = vn[BaseFE::VERTEX].vNodes;
+//          for(UInt i = 0; i < vertexNodes.GetSize(); ++i ) {
+//            UInt vNum = vertexNodes[i];
+//            std::set<Integer> vEqns;
+//            if( vertices.find(vNum) == vertices.end() ) {
+//              // collect entries for minor block
+//              vEqns.insert(nodeMap_[vNum].Begin(),
+//                           nodeMap_[vNum].End());
+//              vertices.insert(vNum);
+//              if( vEqns.size() ) {
+//                minorBlocks[0].Push_back(vEqns);
+//                std::cerr << "vEqns has size " << vEqns.size() << std::endl;
+//              }
+//            }
+//          } // loop over vertex nodes
+//          
+//          
+//          // group edge nodes
+//          UInt pos = 0;
+//          StdVector<UInt> & edgeOffsets = vn[BaseFE::EDGE].offset;
+//          StdVector<UInt> & edgeNodes = vn[BaseFE::EDGE].vNodes;
+//          std::cerr << "got " << edgeOffsets.GetSize() << " edges\n";
+//          for( UInt iEdge = 0; iEdge < edgeOffsets.GetSize(); ++iEdge ) {
+//            std::cerr << "treating edge " << iEdge << std::endl;
+//            std::set<Integer> edgeEqns;
+//            for(UInt iNode = pos; iNode < edgeOffsets[iEdge]+pos; ++iNode ) {
+//              UInt edgeNum = edgeNodes[iNode];
+//              if( edges.find(edgeNum) == edges.end() ) {
+//                // collect entries for minor block
+//                edgeEqns.insert(nodeMap_[edgeNum].Begin(),
+//                                nodeMap_[edgeNum].End());
+//                edges.insert(edgeNum);
+//
+//              }
+//            } // edgenodes
+//            pos += edgeOffsets[iEdge];
+//            if( edgeEqns.size() ) {
+//              minorBlocks[0].Push_back(edgeEqns);
+//              std::cerr << "edgeEqns has size " << edgeEqns.size() << std::endl;
+//            }
+//          } // edges
+//
+//          // group face nodes (only in 3D)
+//          if( ptGrid_->GetDim() == 3) {
+//            pos = 0;
+//            StdVector<UInt> & faceOffsets = vn[BaseFE::FACE].offset;
+//            StdVector<UInt> & faceNodes = vn[BaseFE::FACE].vNodes;
+//            for( UInt iFace = 0; iFace < faceOffsets.GetSize(); ++iFace ) {
+//              std::cerr << "treating face " << iFace << std::endl;
+//              std::set<Integer> faceEqns;
+//              for(UInt iNode = pos; iNode < faceOffsets[iFace]+pos; ++iNode ) {
+//                UInt faceNum = faceNodes[iNode];
+//
+//                if( faces.find(faceNum) == faces.end() ) {
+//                  // collect entries for minor block
+//                  faceEqns.insert(nodeMap_[faceNum].Begin(),
+//                                  nodeMap_[faceNum].End());
+//                  faces.insert(faceNum);
+//                }
+//
+//              } // loop face nodes
+//              pos += faceOffsets[iFace];
+//              if( faceEqns.size() ) {
+//                minorBlocks[0].Push_back(faceEqns);
+//                std::cerr << "facEqns has size" << faceEqns.size() << std::endl;
+//              }
+//            } // loop over faces
+//            
+//          } // if dim == 3d
+//          
+//        } // loop over elements
+//        
+//      }
+      
       // Create 2 SBM block sets:
       // 1st block: Contains all nodal, edge and face contributions
       // 2nd block: contains all element interior equations (in 2D: faces)
       
-      // push back empty set -> sbm block 0 has no minor blocks
-      minorBlocks[1]=(StdVector<std::set<Integer> >());
+
+      
+      // if we have a multi-dof approximation, we can group the dofs
+      // with the same index
+      
+      
       
       // Preliminary first set: all equations
       // If we have lateron no interior equations, we can directly return
