@@ -299,19 +299,21 @@ namespace CoupledField{
       // Print edge  information
       std::cout << "Edges: ";
       for( UInt i=0, numEdges = ptElem->edges.GetSize(); i < numEdges; ++i ) {
+        StdVector<UInt> edgeNodes;
         Integer edgeNum = ptElem->edges[i];
-        const Edge& myEdge = ptGrid->GetEdge(std::abs(edgeNum) );
-        std::cout << "E #" << edgeNum << " ("
-            << myEdge.nodes[0] << "-> " << myEdge.nodes[1] << "), ";
+        ptElem->GetEdgeNodes( std::abs(edgeNum) , edgeNodes );
+        std::cout << "E #" << edgeNum << " (" 
+            << edgeNodes[0] << "-> " << edgeNodes[1] << "), ";
       }
       std::cout << "\n";
 
       // Print face  information
       std::cout << "Faces: ";
       for( UInt i=0, numFaces = ptElem->faces.GetSize(); i < numFaces; ++i ) {
-        Integer faceNum = ptElem->faces[i];
-        const Face& myFace = ptGrid->GetFace(faceNum);
-        std::cout << "F #" << faceNum << " (" << myFace.nodes.ToString( 0 ) << "), ";
+        StdVector<UInt> faceNodes;
+        UInt faceNum = ptElem->faces[i];
+        ptElem->GetFaceNodes( faceNum, faceNodes );
+        std::cout << "F #" << faceNum << " (" << faceNodes.ToString( 0 ) << "), ";
       }
       std::cout << "\n\n";
 

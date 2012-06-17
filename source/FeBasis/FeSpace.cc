@@ -835,6 +835,21 @@ ApproxOrder::ApproxOrder(UInt dim ) {
       }
     } // loop entity lists
 
+    
+    // trim all vectors to get unused memory back
+    boost::unordered_map< UInt, ElemVirtualNodes >::iterator it = 
+        virtualNodes_.begin();
+    for( ; it != virtualNodes_.end(); ++it ) {
+      ElemVirtualNodes & evn = it->second;
+      ElemVirtualNodes::iterator evnIt = evn.begin();
+      for( ; evnIt != evn.end(); evnIt++ ) {
+//        evnIt->second.vNodes.Trim();
+//        evnIt->second.offset.Trim();
+      }
+        
+    }
+    
+    
     LOG_TRACE(feSpace) << "finished creation of virtual nodes";
   }
   
@@ -893,26 +908,43 @@ ApproxOrder::ApproxOrder(UInt dim ) {
     polyToIntegMap[pReg].insert(iReg);
   }
   
-  const Elem* FeSpace::GetVolElem( const SurfElem* surfElem ) const {
+  const Elem* FeSpace::GetVolElem( const Elem* ptElem ) const {
 
-    Elem * ret = NULL;
-    boost::array<Elem*,2>::const_iterator it = surfElem->ptVolElems.begin();
-    for( ; it != surfElem->ptVolElems.end(); it++ ) {
-      // check, if element is set at all
-      if( *it) {
-        if(regions_.find( (*it)->regionId) != regions_.end()) {
-          ret = *it; 
-          break;
+    const Elem * ret = NULL;
+    
+    // check dimension
+    UInt elemDim = Elem::shapes[ptElem->type].dim;
+    UInt gridDim = ptGrid_->GetDim(); 
+    if( gridDim ==  elemDim ) {
+      // 1) Volume case: simply return volume element
+      ret = ptElem;
+    } else if( gridDim-elemDim == 1 ) {
+      // 2) Real surface case
+      const SurfElem * ptSurfEl = dynamic_cast<const SurfElem*>(ptElem);
+      boost::array<Elem*,2>::const_iterator it = ptSurfEl->ptVolElems.begin();
+      for( ; it != ptSurfEl->ptVolElems.end(); it++ ) {
+        // check, if element is set at all
+        if( *it) {
+          if(regions_.find( (*it)->regionId) != regions_.end()) {
+            ret = *it; 
+            break;
+          }
         }
+      } // loop over volume element neighbors
+
+      // check, if element could be found
+      if( !ret) {
+        EXCEPTION("Could not find a suitable volume neighbor for surface element #"
+            << ptSurfEl->elemNum << ". " );
       }
-    } // loop over volume element neighbors
-
-    // check, if element could be found
-    if( !ret) {
-      EXCEPTION("Could not find a suitable volume neighbor for surface element #"
-          << surfElem->elemNum << ". " );
+    } else {
+      // 3) 1D element in 3D simulation
+      assert(ptElem->edges.GetSize() == 1);
+      UInt edgeNr = std::abs(ptElem->edges[0]);
+      const StdVector<Elem*> & neighbors = ptGrid_->GetEdge(edgeNr).neighbors; 
+      ret = neighbors[0];
     }
-
+    
     return ret;
   }
 
@@ -1424,19 +1456,21 @@ ApproxOrder::ApproxOrder(UInt dim ) {
       // Print edge  information
       std::cout << "Edges: ";
       for( UInt i=0, numEdges = ptElem->edges.GetSize(); i < numEdges; ++i ) {
+        StdVector<UInt> edgeNodes;
         Integer edgeNum = ptElem->edges[i];
-        const Edge& myEdge = ptGrid->GetEdge(std::abs(edgeNum) );
+        ptElem->GetEdgeNodes( std::abs(edgeNum) , edgeNodes );
         std::cout << "E #" << edgeNum << " (" 
-                  << myEdge.nodes[0] << "-> " << myEdge.nodes[1] << "), ";
+                  << edgeNodes[0] << "-> " << edgeNodes[1] << "), ";
       }
       std::cout << "\n";
       
       // Print face  information
       std::cout << "Faces: ";
       for( UInt i=0, numFaces = ptElem->faces.GetSize(); i < numFaces; ++i ) {
-        Integer faceNum = ptElem->faces[i];
-        const Face& myFace = ptGrid->GetFace(faceNum);
-        std::cout << "F #" << faceNum << " (" << myFace.nodes.ToString( 0 ) << "), ";
+        StdVector<UInt> faceNodes;
+        UInt faceNum = ptElem->faces[i];
+        ptElem->GetFaceNodes( faceNum, faceNodes );
+        std::cout << "F #" << faceNum << " (" << faceNodes.ToString( 0 ) << "), ";
       }
       std::cout << "\n\n";
 

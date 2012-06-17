@@ -52,31 +52,6 @@ int Face::triaBits[3][3] =
   {  5,  2, -1 } 
 };
 
-bool operator<( const Face& a, const Face& b ) {
-
-  UInt i = 0;
-  while( i < a.nodes.GetSize() - 1 && ( a.nodes[i] == b.nodes[i] ) ) {
-    i++;
-  };
-  return a.nodes[i] < b.nodes[i];
-}
-
-bool operator<( const Edge& a, const Edge& b ) {
-  if( a.nodes[0] < b.nodes[0] ) {
-    return true;
-  }
-  if( a.nodes[0] > b.nodes[0] ) {
-    return false;
-  }
-
-  if( a.nodes[1] < b.nodes[1] ) {
-    return true;
-  }
-  else {
-    return false;
-  }
-}
-
 
 // This array holds for each faceFlag value (5-bit array, but only
 // 24 values are used) the permutation index set for
@@ -148,7 +123,8 @@ void Face::GetSortedIndices( StdVector<UInt>& sorted,
   }
 }
 
-void Face::Normalize( std::bitset<5>& flags ) {
+void Face::Normalize( std::bitset<5>& flags,
+                      StdVector<UInt>& nodes) {
 
   StdVector<UInt> indices( nodes.GetSize() );
   UInt size = nodes.GetSize();

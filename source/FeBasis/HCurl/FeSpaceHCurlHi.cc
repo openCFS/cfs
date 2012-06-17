@@ -330,13 +330,7 @@ namespace CoupledField{
     BaseFE * ret = GetFe(ent);
 
     // Set correct integration order
-    RegionIdType eRegion;// =  ent.GetElem()->regionId;
-    if( ent.GetType() == EntityList::SURF_ELEM_LIST||
-        ent.GetType() == EntityList::NC_ELEM_LIST) {
-      eRegion =GetVolElem(ent.GetSurfElem()) ->regionId;
-    } else {
-      eRegion = ent.GetElem()->regionId;
-    }
+    RegionIdType eRegion = GetVolElem(ent.GetElem())->regionId;
        
     this->GetIntegration(ret, eRegion, method, order);
     // Note: The order is currently more or less hard-coded for isotropic order
@@ -351,13 +345,7 @@ namespace CoupledField{
   }
   
   BaseFE* FeSpaceHCurlHi::GetFe( const EntityIterator ent ){
-    RegionIdType eRegion = NO_REGION_ID;
-    if( ent.GetType() == EntityList::SURF_ELEM_LIST||
-        ent.GetType() == EntityList::NC_ELEM_LIST) {
-      eRegion = GetVolElem(ent.GetSurfElem()) ->regionId;
-    } else {
-      eRegion = ent.GetElem()->regionId;
-    }
+    RegionIdType eRegion = GetVolElem(ent.GetElem())->regionId;
     
     //Check if the region is there, otherwise fall back to default
     if(refElems_.find(eRegion) == refElems_.end()){

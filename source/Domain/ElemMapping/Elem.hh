@@ -245,6 +245,12 @@ class ElemShape;
     //! return the shape to the 1st order elements.
     static ElemShape& GetShape( Elem::ShapeType );
     
+    //! Get nodes of face, identified by global face number
+    void GetFaceNodes( UInt faceNum, StdVector<UInt>& nodes ) const; 
+    
+    //! Get nodes of edge, identified by global edge number
+    void GetEdgeNodes( UInt edgeNum, StdVector<UInt>& nodes ) const;
+    
     //@}
    
   public:

@@ -350,6 +350,9 @@ namespace CoupledField {
       return;
     }
 
+    // map containing the nodes for each face
+    std::map<std::set<UInt>, UInt > faceNums;
+    
     // create counter for number of faces
     UInt actFaceNum = 1;
 
@@ -379,41 +382,49 @@ namespace CoupledField {
 
         // get local nodal indices of current face
         faceIndices = actShape.faceVertices[iFace];
-        
 
         // create new Face object
         Face actFace;
+        StdVector<UInt> faceNodes;
         UInt numFaceIndices = faceIndices.GetSize();
-        actFace.nodes.Resize( numFaceIndices );
+        faceNodes.Resize( numFaceIndices );
 
         // insert node numbers into current face definition
         for( UInt iNode = 0; iNode < numFaceIndices; iNode++ ) {
-          actFace.nodes[iNode] = actElem.connect[faceIndices[iNode]-1];
+          faceNodes[iNode] = actElem.connect[faceIndices[iNode]-1];
         }
 
-        LOG_DBG3(gridcfs) << "Cecking face with nodes : "
-                          << actFace.nodes.Serialize();
+        LOG_DBG3(gridcfs) << "Checking face with nodes : "
+                          << faceNodes.Serialize();
 
         // Re-orientate face to match global orientation and
         // obtain the orientation flags
         std::bitset<5> orientation;
-        actFace.Normalize( orientation );
+        actFace.Normalize( orientation, faceNodes );
 
         LOG_DBG3(gridcfs) << "Normalized : "
-                          << actFace.nodes.Serialize();
+                          << faceNodes.Serialize();
         LOG_DBG3(gridcfs) << "Orientation: " << orientation;
 
+        // copy all nodes in a set
+        std::set<UInt> nodeSet;
+        nodeSet.insert(faceNodes.Begin(), faceNodes.End());
 
         // check if face was already numbered
-        if( faceNums_.find( actFace ) == faceNums_.end() ) {
+        if( faceNums.find(nodeSet) == faceNums.end() ) {
+        
+        //if( faceNums_.find( actFace ) == faceNums_.end() ) {
           LOG_DBG2(gridcfs) << "Adding face number "
                             << actFaceNum << std::endl;
-          faceNums_[actFace] = actFaceNum;
-          faces_.Push_back( actFace );
+          faceNums[nodeSet] = actFaceNum;
+          actFace.neighbors.Push_back( orderedElems_[iElem]);
           actElem.faces[iFace] = actFaceNum;
+          faces_.Push_back( actFace );
           actFaceNum++;
         } else {
-          actElem.faces[iFace] = faceNums_[actFace];
+          UInt faceNum = faceNums[nodeSet];
+          actElem.faces[iFace] = faceNum;
+          faces_[faceNum-1].neighbors.Push_back( orderedElems_[iElem]);
           LOG_DBG2(gridcfs) << "--> already defined\n";
         }
 
@@ -431,6 +442,10 @@ namespace CoupledField {
 
     } // loop over elements
 
+
+    // Trim vector containing faces
+    faces_.Trim();
+    
     // Set flag for mapping of sub-entities
     numFaces_ = actFaceNum-1;
     LOG_DBG2(gridcfs) << "Total number of faces: " << numFaces_;
@@ -456,6 +471,9 @@ namespace CoupledField {
       return;
     }
 
+    // map with edge numbers
+    std::map<std::set<UInt>, UInt > edgeNums;
+    
     // create counter for number of edges
     UInt actEdgeNum = 1;
     StdVector<UInt> locEdge(2), globEdge(2);
@@ -480,33 +498,38 @@ namespace CoupledField {
         locEdge = actShape.edgeVertices[iEdge];
         // create new edge
         Edge actEdge;
-        actEdge.nodes[0] = actElem.connect[locEdge[0]-1];
-        actEdge.nodes[1] = actElem.connect[locEdge[1]-1];
+        StdVector<UInt> edgeNodes(2);
+        edgeNodes[0] = actElem.connect[locEdge[0]-1];
+        edgeNodes[1] = actElem.connect[locEdge[1]-1];
 
         // check if ordering is correct
         Integer orientation = 1;
 
-        if( actEdge.nodes[1] < actEdge.nodes[0] ) {
-          UInt secNode = actEdge.nodes[1];
-          actEdge.nodes[1] = actEdge.nodes[0];
-          actEdge.nodes[0] = secNode;
-
+        if( edgeNodes[1] < edgeNodes[0] ) {
+          std::swap(edgeNodes[1], edgeNodes[0]);
           // swap factor for orientation
           orientation = -1;
         }
+        
+        std::set<UInt> nodeSet;
+        nodeSet.insert(edgeNodes.Begin(), edgeNodes.End());
 
         // check if edge was already numbered
-        if( edgeNums_.find( actEdge ) == edgeNums_.end() ) {
+        if( edgeNums.find( nodeSet) == edgeNums.end() ) {
           LOG_DBG2(gridcfs) << "Adding edge number " << actEdgeNum;
-          LOG_DBG3(gridcfs) << "with nodes: " << actEdge.nodes[0] << ","
-                            << actEdge.nodes[1] << std::endl;
-          edgeNums_[actEdge] = actEdgeNum;
-          edges_.Push_back( actEdge );
+          LOG_DBG3(gridcfs) << "with nodes: " << edgeNodes.Serialize() << std::endl;
+          edgeNums[nodeSet] = actEdgeNum;
+          actEdge.neighbors.Push_back(orderedElems_[iElem]);
           actElem.edges[iEdge] = actEdgeNum*orientation;
+          edges_.Push_back( actEdge );
           actEdgeNum++;
         } else {
-          actElem.edges[iEdge] = edgeNums_[actEdge]*orientation;
+          UInt edgeNum = edgeNums[nodeSet];
+          LOG_DBG3(gridcfs) << "Edge was already mapped with number #" << edgeNum << std::endl;
+          actElem.edges[iEdge] = edgeNum*orientation;
+          edges_[edgeNum-1].neighbors.Push_back(orderedElems_[iElem]);
         }
+        
 
       }
 
@@ -519,6 +542,9 @@ namespace CoupledField {
       LOG_TRACE(gridcfs) << "Finished to map edges\n";
     }
 
+    // Trim vector containing faces
+    edges_.Trim();
+        
     // Set flag for mapping of sub-entities
     numEdges_ = actEdgeNum-1;
     LOG_DBG2(gridcfs) << "Total number of edges: " << numEdges_ << std::endl;
@@ -717,6 +743,7 @@ namespace CoupledField {
 
     for( ; regionElemIt != regionElemEnd; regionElemIt++, regionNodeIt++, region++)
     {
+      regionElemIt->second.Trim();
       volElems_.Push_back(regionElemIt->second);
       regionData[regionElemIt->first].type = VOLUME_REGION;
       regionData[regionElemIt->first].type_idx = volRegionIds_.GetSize();
@@ -763,6 +790,7 @@ namespace CoupledField {
 
     for( ; regionElemIt != regionElemEnd; regionElemIt++, regionNodeIt++, region++)
     {
+      regionElemIt->second.Trim();
       surfElems_.Push_back(regionElemIt->second);
       regionData[regionElemIt->first].type = SURFACE_REGION;
       regionData[regionElemIt->first].type_idx = surfRegionIds_.GetSize();
@@ -794,6 +822,12 @@ namespace CoupledField {
     // Select nodes / elements according to the users specification in the
     // parameter file
     CreateUserDefinedNodesElems();
+    
+    // In the end, trim all vectors, i.e. delete any non-used memory from its
+    // capacity.
+    coords_.Trim();
+    deltCoords_.Trim();
+    orderedElems_.Trim();
 
     // print information to file - checks for exportGrid
     if(info) { ToInfo(info->Get(ParamNode::HEADER)->Get("domain")); }
@@ -844,10 +878,13 @@ namespace CoupledField {
         curSurf->type = subelems[aSub];
         curSurf->regionId = curE->regionId;
         if(curShape.dim == 3){
-          WARN("3D never testet with surface elements!!!!")
-          Face curFace = faces_[curE->faces[aSub]-1];
+          WARN("3D never testet with surface elements!!!!");
+          UInt faceNum = curE->faces[aSub];
+          Face curFace = faces_[faceNum-1];
+          assert(curFace.neighbors.GetSize());
+          Elem * volElem = curFace.neighbors[0];
           //first we copy the edge nodes
-          curSurf->connect = curFace.nodes;
+          volElem->GetFaceNodes(faceNum, curSurf->connect );
           curSurf->faces.Push_back(curE->faces[aSub]);
           curSurf->faceFlags.Push_back(curE->faceFlags[aSub]);
           StdVector<UInt> subElemLocalNode;
@@ -865,7 +902,9 @@ namespace CoupledField {
           Edge curEdge = edges_[abs(curE->edges[aSub])-1];
           curSurf->edges.Push_back(abs(curE->edges[aSub]));
           for( UInt i = 0; i < 2; i++ ) {
-            curSurf->connect.Push_back(curEdge.nodes[i]);
+            EXCEPTION("Here we have to perform an indirect copy");
+            
+            //curSurf->connect.Push_back(curEdge.nodes[i]);
             curSurf->localCoords.Push_back(curShape.nodeCoords[curShape.edgeVertices[aSub][i]-1]);
           }
         }else{
@@ -1734,7 +1773,7 @@ namespace CoupledField {
                   nodeList.Begin());
       } else {
         EXCEPTION( "GridCFS: The region with id '" << regionId
-                   << "' was not found in the grid!" );
+                   << "' was not found in the grid!" ); 
       }
     }
 

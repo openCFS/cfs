@@ -562,12 +562,6 @@ namespace CoupledField
     UInt maxNumElemNodes_;
     //@}
   
-    //! Map containing face number for each face
-    std::map<Face,UInt> faceNums_;
-
-    //! Map containing edge number for each edge
-    std::map<Edge,UInt> edgeNums_;
-
     //! Vector containing all faces 
     StdVector<Face> faces_;
 

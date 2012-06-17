@@ -8,15 +8,28 @@
 
 namespace CoupledField {
 
+  // Forward class declaration
+  class Elem;
+
+
+  //! Defines a 1-dimensional grid entity, defined by two vertices
+  
+  //! This class models a 1-dimensional edge, defined by two vertices.
+  //! Each edge has a unique orientation, where the first vertic always
+  //! the node with the smaller number.
+  //! Elements contain edges and often store their number signed integer,
+  //! where the sign implies the orientation of their edge. 
   struct Edge {
 
-    //! Node numbers defining an edge.
-    //! Per definition the first node number
-    //! has to be smaller than the second one
-    UInt nodes[2];
+    //! Vector containing the neighbor elements
+    
+    //! This vector stores all the neighboring elements. Thus we can 
+    //! easily find all connected elements for an edge.
+    StdVector<Elem*> neighbors;
 
   };
 
+  //! Defines a 2-dimensional grid entity, defined by 3 or 4 vertices
   struct Face {
 
     //! Normalize face orientation to match global one and return flagset
@@ -26,7 +39,8 @@ namespace CoupledField {
     //! orientation flags as defined in 
     //! Solin,Segeth: Higher-Order Finite Elements, p.165
     //! See also the faceFlags bitset of the class Elem.
-    void Normalize( std::bitset<5>& flags); 
+    void Normalize( std::bitset<5>& flags, 
+                    StdVector<UInt>& nodes ); 
 
     
     //! Return permutation vector for face nodes according to bit-field
@@ -35,9 +49,9 @@ namespace CoupledField {
                                   UInt numVertices,
                                   const std::bitset<5>& flags );
     
-    //! Global node numbers defining a face
-    StdVector<UInt> nodes;
-
+    //! List with neighboring elements
+    StdVector<Elem*> neighbors;
+    
   private:
 
     //! static map for bits of quadrilateral faces
@@ -47,13 +61,6 @@ namespace CoupledField {
     static int triaBits[3][3];
     
   };
-
-  //! external operator for comparing two edges
-  bool operator<( const Edge& a, const Edge& b );
-
-  //! external operator for comparing two faces
-  bool operator<( const Face& a, const Face& b );
-
 }
 
 

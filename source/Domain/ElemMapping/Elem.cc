@@ -36,11 +36,47 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
    return *this;
  }
 
+ 
+ 
+ void Elem::GetFaceNodes( UInt faceNum, StdVector<UInt>& nodes ) const {
+   // check, if face is defined at all
+   Integer locFaceIndex = -1;
+   this->faces.Find(faceNum);
+   if( locFaceIndex < 0 ) {
+     EXCEPTION("Could not find face " << faceNum << " for element #" 
+               << this->elemNum );
+   }
+   // copy nodes, according to the element shape
+    StdVector<UInt> faceNodes = shapes[type].faceNodes[locFaceIndex];
+    UInt numNodes = faceNodes.GetSize();
+    nodes.Resize(numNodes);
+   for( UInt i = 0; i < numNodes; ++i ) {
+     nodes[i] = connect[faceNodes[i]-1];
+   }
+ }
+ 
+ void Elem::GetEdgeNodes( UInt edgeNum, StdVector<UInt>& nodes ) const {
+   // check, if edge is defined at all
+   Integer locEdgeIndex = -1;
+   this->faces.Find(edgeNum);
+   if( locEdgeIndex < 0 ) {
+     EXCEPTION("Could not find edge " << edgeNum << " for element #" 
+               << this->elemNum );
+   }
+   // copy nodes, according to the element shape
+   StdVector<UInt> faceNodes = shapes[type].edgeVertices[locEdgeIndex];
+   UInt numNodes = faceNodes.GetSize();
+   nodes.Resize(numNodes);
+   for( UInt i = 0; i < numNodes; ++i ) {
+     nodes[i] = connect[faceNodes[i]-1];
+   }
+ }
+ 
  void Elem::CorrectConnectivity()
  {
     UInt dummy;
 
-    // This funtion rearanges the connectivity of the element so
+    // This function rearanges the connectivity of the element so
     // that the orientation is in such a way that the Jacobion determinant
     // will always be positive. 
     switch(type) 

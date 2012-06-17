@@ -197,6 +197,15 @@ namespace CoupledField {
      * Otherwise the old data is copied up to size and the rest is uninitialized! */
     void Reserve(unsigned int capacity);
 
+    //! Delete non-used reserved memory
+    
+    //! This methods ensures, that the size and capacity of the vector have the
+    //! size, i.e. that no memory is reserved any more for future Push_back()
+    //! operations. This method is especially useful, if a vector gets 
+    //! successively filled by Push_back-operations and at the end the non-used
+    //! capacity is not needed anymore.
+    void Trim();
+    
     //! Get the length of the vector
     inline unsigned int GetSize() const {return size_;}
 

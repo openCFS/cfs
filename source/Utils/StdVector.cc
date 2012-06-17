@@ -74,6 +74,22 @@ namespace CoupledField {
 
     size_ = old_size;
   }
+  
+  
+  template<class TYPE>
+  void StdVector<TYPE>::Trim()
+  {
+    // only perform trimming, if size_ and capacity_ differ
+    if( capacity_ == size_ )
+      return;
+    
+    TYPE* help = new TYPE[size_];
+    for (unsigned int i=0; i<size_; i++)
+      help[i] = data_[i];
+    delete[] data_;
+    data_ = help;
+    capacity_ = size_;
+  }
 
   template<class TYPE>
   void StdVector<TYPE>::Resize(const unsigned int size)

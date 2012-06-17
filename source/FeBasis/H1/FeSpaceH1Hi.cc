@@ -142,12 +142,7 @@ namespace CoupledField{
     BaseFE * ret = GetFe(ent);
 
     // Set correct integration order
-    RegionIdType eRegion;// =  ent.GetElem()->regionId;
-    if( ent.GetType() == EntityList::SURF_ELEM_LIST) {
-      eRegion = GetVolElem(ent.GetSurfElem()) ->regionId;
-    } else {
-      eRegion = ent.GetElem()->regionId;
-    }
+    RegionIdType eRegion =  GetVolElem(ent.GetElem())->regionId;
 
     this->GetIntegration(ret, eRegion, method, order);
 
@@ -159,12 +154,9 @@ namespace CoupledField{
     // Note: if the element is a surface element, we must omit the regionId
     // and look for the neighbor. Which one to take? Well, we had the 
     // discussion already ....
-    RegionIdType eRegion = NO_REGION_ID;
-    if( ent.GetType() == EntityList::SURF_ELEM_LIST) {
-      eRegion = GetVolElem(ent.GetSurfElem()) ->regionId;
-    } else {
-      eRegion = ent.GetElem()->regionId;
-    }
+    const Elem * ptEl = GetVolElem(ent.GetElem());
+    RegionIdType eRegion = ptEl->regionId;
+    
     LOG_DBG3(feSpaceH1Hi) << "Returning FE #" << ent.GetElem()->elemNum
         << " of region "  << ptGrid_->GetRegion().ToString(eRegion);
     

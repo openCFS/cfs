@@ -1109,6 +1109,9 @@ namespace CoupledField {
                                            << ", block " << blockIndex
                                            << ": adding " << indices[i];
       }
+      if( bi.indexBlocks.GetSize() > 0 ) {
+        bi.indexBlocks[blockIndex].Trim();
+      }
     }
   }
 
