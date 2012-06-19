@@ -854,6 +854,11 @@ void Function::PostProc(DesignSpace* space, DesignStructure* structure, ErsatzMa
     break;
   }
 
+  case SLACK:
+    if(!space->HasSlackVariable())
+      throw Exception("'slack' as objective function requires 'slack' design");
+    break;
+
 
   default: // do nothing
     break;

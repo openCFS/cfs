@@ -58,7 +58,7 @@ public:
   /** upper asymptote */
   StdVector<double> U;
 
-  /** As we might use design bounds, this are the lower design bounbs. Either from design or the design bound constraints
+  /** As we might use design bounds, this are the lower design bounds. Either from design or the design bound constraints
    * Indices by design type */
   StdVector<double> lower_bound;
   StdVector<double> upper_bound;
@@ -221,9 +221,6 @@ private:
 
   /** the KKT criterion for CalcKKT() */
   double kkt_;
-
-  /** do we have a complete set of design bound constraints? */
-  bool full_design_bound_constraints_;
 
 };
 

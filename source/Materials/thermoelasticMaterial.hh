@@ -43,10 +43,7 @@ template <class TYPE> class Matrix;
     void GetScalar( Double& param, MaterialType matType, 
                     Global::ComplexPart dataType ) const;
 
-
-  private:
-
-    //! compute the correct subTensor (3D, AXI, ..)
+    /** overloads BaseMaterial::ComputeSubTensor() */
     void ComputeSubTensor(Matrix<Complex>& matMatrix,
 			  const MaterialType& matType, 
 			  const SubTensorType& subTensor) const;

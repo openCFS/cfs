@@ -138,7 +138,7 @@ def read_fmo_tensors(filename):
 
 # write plate tensor file
 # @param data n * 6 matrix
-def write_plate_fmo(filename, data):
+def write_plato_fmo(filename, data):
   dat = open(filename, "w")
   
   assert(data.shape == (len(data), 6))

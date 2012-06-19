@@ -26,7 +26,7 @@ AuxDesign::AuxDesign(StdVector<RegionIdType>& regions,  PtrParamNode pn, ErsatzM
   {
     slack_  = pn->GetByVal("design", "name", "slack");
     aux_design_.Reserve(1);
-    BaseDesignElement de;
+    BaseDesignElement de(BaseDesignElement::SLACK);
     de.SetLowerBound(slack_->Get("lower")->As<double>());
     de.SetUpperBound(slack_->Get("upper")->As<double>());
     de.SetDesign(slack_->Get("initial")->As<double>());
@@ -49,6 +49,12 @@ void AuxDesign::PostInit(int objectives, int constraints)
     assert(objectives == 1);
     aux_design_[0].PostInit(objectives, constraints);
   }
+
+  // extend full_data
+  unsigned int offset = DesignSpace::GetNumberOfVariables();
+  full_data.Resize(offset + aux_design_.GetSize());
+  for(unsigned int i = 0; i < aux_design_.GetSize(); i++)
+    full_data[offset + i] = &(aux_design_[i]);
 }
 
 void AuxDesign::ToInfo(PtrParamNode in)
@@ -128,6 +134,7 @@ void AuxDesign::WriteGradientToExtern(StdVector<double>& out, DesignElement::Val
 {
   LOG_DBG(aux_des) << "WGTE: ad=" << aux_design_.GetSize() << " DS:GNOV=" << DesignSpace::GetNumberOfVariables() << " ows=" << out.window.GetSize();
 
+  bool write_aux = true;
   if(alsomatopt_)
   {
     // we call DesignSpace::WriteDenseGradientToExtern() for the ersatz material part.
@@ -139,6 +146,8 @@ void AuxDesign::WriteGradientToExtern(StdVector<double>& out, DesignElement::Val
 
     if(out.window.GetStart() + out.window.GetSize() > data.GetSize())
       out.window.Set(out.window.GetStart(), data.GetSize() - out.window.GetStart());
+    else
+      write_aux = false;
 
     if(g == NULL || g->HasDenseJacobian())
       DesignSpace::WriteDenseGradientToExtern(out, vs, access, g, scaling);
@@ -152,7 +161,10 @@ void AuxDesign::WriteGradientToExtern(StdVector<double>& out, DesignElement::Val
   }
 
   // makes use of the window within out even  if only a part of the window is used in the alsomatopt_ case
-  WriteAuxGradientToExtern(out, g, scaling);
+  // check if there is something to write. E.g. for FeasPP out.size is the size sparsity size, don't overwrite
+  // a single designBound value with 0 from aux_design_.
+  if(write_aux)
+    WriteAuxGradientToExtern(out, g, scaling);
 }
 
 

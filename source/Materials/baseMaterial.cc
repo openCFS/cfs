@@ -207,7 +207,23 @@ namespace CoupledField
   }
 
 
-  void BaseMaterial::ToInfo(PtrParamNode in)
+  void BaseMaterial::StoreTensor(PtrParamNode in, bool isComplex, const Matrix<Complex>& mat)
+  {
+    // get the tensor by default as complex
+    if(isComplex)
+    {
+      if(mat.GetPart(Global::IMAG).NormL2() == 0.0)
+        in->SetValue(mat.GetPart(Global::REAL));
+      else
+        in->SetValue(mat);
+    }
+    else
+    {
+      in->SetValue(mat.GetPart(Global::REAL));
+    }
+  }
+
+  void BaseMaterial::ToInfo(PtrParamNode in, SubTensorType stt, const Vector<Double>* rot)
   {
     set<MaterialType>::iterator iter;
 
@@ -227,24 +243,25 @@ namespace CoupledField
       PtrParamNode in_ = in->Get("property", ParamNode::APPEND);
       in_->Get("name")->SetValue(MaterialTypeEnum.ToString(mt));
 
+      if(rot != NULL && rot->NormMax() > 0)
+      {
+        assert(rot->GetSize() == 3);
+        PtrParamNode rot_ = in_->Get("rotation");
+        rot_->Get("alpha")->SetValue((*rot)[0]);
+        rot_->Get("beta")->SetValue((*rot)[1]);
+        rot_->Get("gamma")->SetValue((*rot)[2]);
+      }
+
       if(posTens != tensorParams_.end())
       {
         const Matrix<Complex>& mat = posTens->second;
+        StoreTensor(in_->Get("tensor"), isComplex, mat);
 
-        // TODO: It makes sense to output the actual sub tensor type,
-        // the "problem" is that ComputeSubTensor() is not virtual, has different signature and is not transparent to full
-
-        // get the tensor by default as complex
-        if(isComplex)
+        if(stt != FULL) // electrostatic is NO_TENSOR
         {
-          if(mat.GetPart(Global::IMAG).NormL2() == 0.0)
-            in_->Get("tensor")->SetValue(mat.GetPart(Global::REAL));
-          else
-            in_->Get("tensor")->SetValue(mat);
-        }
-        else
-        {
-          in_->Get("tensor")->SetValue(mat.GetPart(Global::REAL));
+          Matrix<Complex> sub_mat;
+          ComputeSubTensor(sub_mat, mt, stt);
+          StoreTensor(in_->Get("subtensor"), isComplex, sub_mat);
         }
       }
 

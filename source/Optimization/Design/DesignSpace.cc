@@ -240,6 +240,12 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
     }
     LOG_DBG(designSpace) << "data size: " << elements << "*" << pn_design.GetSize() << "=" << data.GetSize();
   } // no design elements given
+
+  // copy to be extended by aux design
+  full_data.Resize(data.GetSize());
+  for(unsigned int i = 0; i < data.GetSize(); i++)
+    full_data[i] = dynamic_cast<BaseDesignElement*>(&(data[i]));
+
   // set the result descriptions which identify the solution types
   ParamNodeList result = pn->GetList("result");
   resultDescriptions.Reserve(result.GetSize());

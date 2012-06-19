@@ -144,8 +144,18 @@ public:
     PROJECTION, /* local value from projection || nu(rho_i) - H_eta_beta(rho_i) ||^2 */
     LEVEL_SET_GRAD_XP, LEVEL_SET_GRAD_XN, LEVEL_SET_GRAD_YP, LEVEL_SET_GRAD_YN, LEVEL_SET_GRAD_ZP, LEVEL_SET_GRAD_ZN } ValueSpecifier;
 
-  BaseDesignElement();
+    /** The type of this design element, influences the Get*Bound() methods.
+     * By definition the design elements are stored in the ordering of the type!!
+     * make sure, that ALL_DESIGNS is the last with the highest number!!! */
+    typedef enum { UNITY = -7, NO_DERIVATIVE = -6, TENSOR_TRACE = -5, DIELEC_TRACE = -4, PIEZO_ALL = -3, DEFAULT = -2, NO_TYPE = -1, DENSITY = 0,
+                   POLARIZATION = 1, ACOU_DENSITY = 2, EMODUL, POISSON, LAMELAMBDA, LAMEMU, EMODULISO, POISSONISO,
+                   GMODUL, MASS, DAMPINGALPHA, DAMPINGBETA, TENSOR11, TENSOR22, TENSOR33, TENSOR23, TENSOR13, TENSOR12, SLACK,
+                   DIELEC_11, DIELEC_12, DIELEC_22, PIEZO_11, PIEZO_12, PIEZO_13, PIEZO_21, PIEZO_22, PIEZO_23, ALL_DESIGNS} Type;
+
+  BaseDesignElement(Type type = NO_TYPE);
   virtual ~BaseDesignElement() {};
+
+  Type GetType() const { return type_; }
 
   /** Allows to set the design element. */
   void SetDesign(double value) { this->design = value; }
@@ -164,7 +174,6 @@ public:
   void AddGradient(const Objective* c, const Condition* g, double value);
 
   void AddGradient(const Function* f, double value);
-
 
   /** Reset either gradients of the class
    * @param vs either COST_GRADIENT or CONSTRAINT_GRADIENT 
@@ -188,6 +197,8 @@ public:
   /** adjusts length of the gradient vectors possibly not known during creation */
   void PostInit(int objectives, int constraints);
 
+  static Enum<Type> type;
+
 protected:
 
   /** The scalar value. Public access only via getter to handle filtering. */
@@ -210,6 +221,10 @@ protected:
   double lower_;
 
   double upper_;
+
+  /** what is our design type */
+  Type type_;
+
 };
 
 
@@ -225,12 +240,6 @@ public:
    *  PLAIN is the value and SMART does a filtering if enabled otherwise also as PLAIN */
   typedef enum { PLAIN, SMART } Access;
 
-  /** The type of this design element, influences the Get*Bound() methods.
-   * By definition the design elements are stored in the ordering of the type!!
-   * make sure, that ALL_DESIGNS is the last with the highest number!!! */
-  typedef enum { UNITY = -5, NO_DERIVATIVE = -4, TENSOR_TRACE = -3, DEFAULT = -2, NO_TYPE = -1, DENSITY = 0,
-                 POLARIZATION = 1, ACOU_DENSITY = 2, EMODUL, POISSON, LAMELAMBDA, LAMEMU, EMODULISO, POISSONISO,
-                 GMODUL, MASS, DAMPINGALPHA, DAMPINGBETA, TENSOR11, TENSOR22, TENSOR33, TENSOR23, TENSOR13, TENSOR12, SLACK, ALL_DESIGNS} Type;
 
   /** The empty constructor is the StdVector and for ghost elements */
   DesignElement();
@@ -310,7 +319,6 @@ public:
     /** Initilize the Enum. Currently called by Optimization::CreateInstance() */
     void static SetEnums();
 
-    Type GetType() const { return type_; }
     
     /** Write key values as attributes
      * @param tf if given prints the physical lower bound */
@@ -354,8 +362,6 @@ public:
      * <result id="optResult_3" design="density" access="plain" value="objective" /> */
     Vector<double> specialResult;
 
-    static Enum<Type> type;
-
     static Enum<ValueSpecifier> valueSpecifier;
 
     static Enum<Access> access;
@@ -394,8 +400,6 @@ private:
   /** @see GetPseudoElementIndex() */
   int pseudoElementIndex_;
 
-  /** what is our design type */
-  Type type_;
 
   /** the element volume calculated on request by CalcVolume() */
   double elemVol_;

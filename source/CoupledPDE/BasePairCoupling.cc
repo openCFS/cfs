@@ -270,15 +270,6 @@ class CoordSystem;
         // Read data
         materials_[actRegionId] = matLoader->LoadMaterial( material, materialClass_ );
 
-        if(progOpts->DoDetailedInfo())
-        {
-          // log the just read material. LoadMaterial() so to say initializes the ToInfo()
-          PtrParamNode in = infoNode_->GetByVal("material", "name", material);
-          // additional regions are automatically appended
-          in->Get("regionList")->GetByVal("region", "name", domain->GetGrid()->GetRegion().ToString(actRegionId));
-          materials_[actRegionId]->ToInfo(in);
-        }
-        
         // Check for local coordinate system
         if( refCoordSys != "" ) {
           CoordSystem * actCoosy = 
@@ -312,6 +303,14 @@ class CoordSystem;
             RotateAllTensorsByRotationAngles( rotVec, true );
         }
 
+        if(progOpts->DoDetailedInfo())
+        {
+          // log the just read material. LoadMaterial() so to say initializes the ToInfo()
+          PtrParamNode in = infoNode_->GetByVal("material", "name", material);
+          // additional regions are automatically appended
+          in->Get("regionList")->GetByVal("region", "name", domain->GetGrid()->GetRegion().ToString(actRegionId));
+          materials_[actRegionId]->ToInfo(in, GetSubTensorType(), &rotVec);
+        }
         
       } catch (Exception& ex ) {
         std::string matClassString;
@@ -846,4 +845,12 @@ class CoordSystem;
     return pde2_->GetPDEId();
   }
 
+  SubTensorType BasePairCoupling::GetSubTensorType() const
+  {
+    if(subType_ == "") return NO_TENSOR;
+
+    SubTensorType stt;
+    String2Enum(subType_, stt);
+    return stt;
+  }
 } // end of namespace

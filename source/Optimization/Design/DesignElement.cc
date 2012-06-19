@@ -40,7 +40,7 @@ DEFINE_LOG(desel, "designElement")
 Enum<Filter::Type>                  Filter::type;
 Enum<Filter::Density>               Filter::density;
 Enum<Filter::Sensitivity>           Filter::sensitivity;
-Enum<DesignElement::Type>           DesignElement::type;
+Enum<BaseDesignElement::Type>       BaseDesignElement::type;
 Enum<DesignElement::ValueSpecifier> DesignElement::valueSpecifier;
 Enum<DesignElement::Access>         DesignElement::access;
 Enum<DesignElement::Detail>         DesignElement::detail;
@@ -48,10 +48,11 @@ Enum<DesignElement::Detail>         DesignElement::detail;
 // is a static attribute
 DesignSpace* DesignElement::space_(NULL);
 
-BaseDesignElement::BaseDesignElement() {
+BaseDesignElement::BaseDesignElement(Type t) {
   design          = 0.0;
   upper_          = 0.0;
   lower_          = 0.0;
+  type_           = t;
 }
 
 
@@ -483,8 +484,10 @@ void DesignElement::SetEnums()
   Filter::density.Add(Filter::MOD_HEAVISIDE, "mod_heaviside");
   Filter::density.Add(Filter::TANH, "tanh");
 
-  type.SetName("DesignElement::Type");
+  type.SetName("BaseDesignElement::Type");
   type.Add(TENSOR_TRACE, "tensor_trace");
+  type.Add(DIELEC_TRACE, "dielec_trace");
+  type.Add(PIEZO_ALL, "piezo_all");
   type.Add(DEFAULT, "default");
   type.Add(ALL_DESIGNS, "allDesigns");
   type.Add(DENSITY, "density");
@@ -507,6 +510,17 @@ void DesignElement::SetEnums()
   type.Add(TENSOR23, "tensor23");
   type.Add(TENSOR13, "tensor13");
   type.Add(TENSOR12, "tensor12");
+  type.Add(DIELEC_11, "dielec_11");
+  type.Add(DIELEC_12, "dielec_12");
+  type.Add(DIELEC_22, "dielec_22");
+  type.Add(PIEZO_11, "piezo_11");
+  type.Add(PIEZO_12, "piezo_12");
+  type.Add(PIEZO_13, "piezo_13");
+  type.Add(PIEZO_21, "piezo_21");
+  type.Add(PIEZO_22, "piezo_22");
+  type.Add(PIEZO_23, "piezo_23");
+
+
   type.Add(SLACK, "slack");
 
   access.SetName("DesignElement::Access");

@@ -268,6 +268,10 @@ namespace CoupledField
       * @see totalElements_*/
      StdVector<DesignElement> data;
 
+     /** This is the total set of design variables, including aux designs.
+      * @see the difference to totalElements_ */
+     StdVector<BaseDesignElement*> full_data;
+
      /** Our transfer functions */
      StdVector<TransferFunction> transfer;
 
@@ -469,6 +473,7 @@ namespace CoupledField
      StdVector<StdVector<DesignElement> > pseudoDesigns_;
 
      /** This is a sequential list of all elements. design and pseudo-design. Multiple designs, more elements :)
+      * It does not include aux design as in full_data!
       * Updated eventually by RegisterPseudoDesignRegion(). */
      StdVector<DesignElement*> totalElements_;
 

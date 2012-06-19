@@ -215,10 +215,9 @@ void FeasPP::PostInit()
   L.Resize(n);
   U.Resize(n);
 
-  // setup lowe and upper bounds, they might be from design bounds. After this we must not use DesignElement::GetLowe/UpperBound() !!
+  // setup lower and upper bounds, they might be from design bounds. After this we must not use DesignElement::GetLower/UpperBound() !!
   lower_bound.Resize((int) DesignElement::ALL_DESIGNS, 0.0);
   upper_bound.Resize((int) DesignElement::ALL_DESIGNS, 0.0);
-  unsigned int bc_count = 0;
   for(unsigned int i = 0; i < optimization->GetDesign()->design.GetSize(); i++)
   {
     DesignElement::Type dt = optimization->GetDesign()->design[i];
@@ -228,21 +227,28 @@ void FeasPP::PostInit()
     Condition* g = optimization->constraints.Get(Function::DESIGN_BOUND, dt, Condition::LOWER_BOUND, false);
     assert(!(g != NULL && g->GetBoundValue() < de.GetLowerBound())); // the design bound shall be -inf then!
     lower_bound[dt] = g != NULL ? g->GetBoundValue() : de.GetLowerBound();
-    if(g != NULL) bc_count++;
     g = optimization->constraints.Get(Function::DESIGN_BOUND, dt, Condition::UPPER_BOUND, false);
     assert(!(g != NULL && g->GetBoundValue() > de.GetUpperBound()));
     upper_bound[dt] = g != NULL ? g->GetBoundValue() : de.GetUpperBound();
-    if(g != NULL) bc_count++;
     LOG_DBG3(feasPP) << "FP:PI dt=" << dt << "=" << DesignElement::type.ToString(dt) << " lb=" << lower_bound[dt] << " ub=" << upper_bound[dt];
   }
-  full_design_bound_constraints_ = bc_count == optimization->GetDesign()->design.GetSize();
+  // handle slack as special case :( FIXMI -> extend DesignSpace::design
+  if(optimization->GetDesign()->HasSlackVariable())
+  {
+    BaseDesignElement* de = optimization->GetDesign()->full_data.Last();
+    DesignElement::Type dt = de->GetType();
+    assert(dt == de->SLACK);
+    lower_bound[dt] = de->GetLowerBound();
+    upper_bound[dt] = de->GetUpperBound();
+    LOG_DBG3(feasPP) << "FP:PI dt=" << dt << "=" << DesignElement::type.ToString(dt) << " lb=" << lower_bound[dt] << " ub=" << upper_bound[dt];
+  }
 
-  assert(n == optimization->GetDesign()->data.GetSize()); // TODO include aux design!
+  assert(n == optimization->GetDesign()->full_data.GetSize()); // TODO include aux design!
   for(unsigned int i = 0; i < n; i++)
   {
-    DesignElement& de = optimization->GetDesign()->data[i];
-    L[i] = lower_bound[de.GetType()] > 0 ? 0.0 : lower_bound[de.GetType()] * 1.1; // be smaller!!
-    U[i] = upper_bound[de.GetType()] * 1.1;
+    BaseDesignElement* de = optimization->GetDesign()->full_data[i];
+    L[i] = lower_bound[de->GetType()] > 0 ? 0.0 : lower_bound[de->GetType()] * 1.1; // be smaller!!
+    U[i] = upper_bound[de->GetType()] * 1.1;
     assert(L[i] >= l_min_ && U[i] <= u_max_);
   }
   optimization->constraints.view->Done();

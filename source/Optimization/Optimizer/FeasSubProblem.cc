@@ -157,7 +157,7 @@ bool FeasSubProblem::get_nlp_info(Index& n, Index& m, Index& nnz_jac_g,
 bool FeasSubProblem::get_bounds_info(Index n, Number* x_l, Number* x_u, Index m, Number* g_l, Number* g_u)
 {
   LOG_TRACE2(feasPP) << "get_bounds_info: n = " << n << "; m = " << m;
-  assert(n == (int) feas_pp->optimization->GetDesign()->data.GetSize()); // TODO include aux design!
+  assert(n == (int) feas_pp->optimization->GetDesign()->full_data.GetSize()); // TODO include aux design!
 
   // in Svanberg's original paper there are dynamic bounds given in (8)
   double asy = feas_pp->dynamic_design_bounds ? 0.9 : 1.0;
@@ -165,14 +165,14 @@ bool FeasSubProblem::get_bounds_info(Index n, Number* x_l, Number* x_u, Index m,
 
   for(int i = 0; i < n; i++)
   {
-    DesignElement& de = feas_pp->optimization->GetDesign()->data[i];
+    BaseDesignElement* de = feas_pp->optimization->GetDesign()->full_data[i];
 
-    // because we might use desing bound constraints we must not use de.GetLowerBound(), ..
+    // because we might use design bound constraints we must not use de.GetLowerBound(), ..
 
-    x_l[i] = std::max(feas_pp->lower_bound[de.GetType()], asy * feas_pp->L[i] + var * feas_pp->x_outer[i]);
-    x_u[i] = std::min(feas_pp->upper_bound[de.GetType()], asy * feas_pp->U[i] + var * feas_pp->x_outer[i]);
+    x_l[i] = std::max(feas_pp->lower_bound[de->GetType()], asy * feas_pp->L[i] + var * feas_pp->x_outer[i]);
+    x_u[i] = std::min(feas_pp->upper_bound[de->GetType()], asy * feas_pp->U[i] + var * feas_pp->x_outer[i]);
 
-    LOG_DBG3(feasPP) << "FSP::gbi: i=" << i << " dt=" << de.GetType() << " asy=" << asy << " var=" << var << " lb=" << feas_pp->lower_bound[de.GetType()] << " ub=" << feas_pp->upper_bound[de.GetType()] << " l=" << feas_pp->L[i]
+    LOG_DBG3(feasPP) << "FSP::gbi: i=" << i << " dt=" << de->GetType() << " asy=" << asy << " var=" << var << " lb=" << feas_pp->lower_bound[de->GetType()] << " ub=" << feas_pp->upper_bound[de->GetType()] << " l=" << feas_pp->L[i]
                       << " u=" << feas_pp->U[i] << " x=" << feas_pp->x_outer[i] << " -> x_l=" << x_l[i] << " x_u=" << x_u[i];
   }
 
