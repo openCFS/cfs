@@ -59,7 +59,7 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
    UInt locEdgeIndex = 0;
    bool found = false;
    while(locEdgeIndex < edges.GetSize() ) {
-     if( std::abs(edges[locEdgeIndex]) == edgeNum) {
+     if( std::abs(edges[locEdgeIndex]) == static_cast<Integer>(edgeNum) ) {
        found = true;
        break;
      }

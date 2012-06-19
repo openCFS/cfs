@@ -89,7 +89,7 @@ SET(XERCES_INCLUDE_DIR "${CFS_BINARY_DIR}/include")
 #-----------------------------------------------------------------------------
 SET(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}")
 SET(XERCES_LIBRARY
-  "${LD}/${CMAKE_STATIC_LIBRARY_PREFIX}xerces-c${CMAKE_STATIC_LIBRARY_SUFFIX}"
+  "${LD}/${CMAKE_STATIC_LIBRARY_PREFIX}xerces-c${CMAKE_STATIC_LIBRARY_SUFFIX};-lpthread"
   CACHE FILEPATH "XERCES library.")
 
 IF(CFS_DISTRO STREQUAL "MACOSX")

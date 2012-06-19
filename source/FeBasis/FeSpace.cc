@@ -1357,7 +1357,10 @@ ApproxOrder::ApproxOrder(UInt dim ) {
       // ---------------------
       //  Static Condensation
       // ---------------------
+#if 0
+      // Not used at the moment      
       UInt numDofs = GetNumDofs();
+#endif
       
 //      if( numDofs == 1 ) {
         // push back empty set -> sbm block 0 has no minor blocks
