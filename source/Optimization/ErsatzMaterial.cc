@@ -216,7 +216,7 @@ ErsatzMaterial::~ErsatzMaterial()
 
 void ErsatzMaterial::PostInit()
 {
-  // might be constructed in SIMP::PostInit()
+  // might be constructed in SIMP::PostInit() or ParamMat::PostInit()
   if(structure_ == NULL)
     structure_ = new DesignStructure(this);
 

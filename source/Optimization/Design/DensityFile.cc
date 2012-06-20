@@ -159,6 +159,9 @@ DesignSpace* DensityFile::ReadErsatzMaterial(DesignSpace* ersatzMaterial)
     info->Get("ersatzMaterial")->Get(ParamNode::WARNING)->SetValue(msg);
   }
 
+  string name = "design";
+  if (pn->Has("name"))
+    name = pn->Get("name")->As<string>();
   for (unsigned int e = 0; e < elsize; ++e)
   {
     // the design set consists of entries like
@@ -167,7 +170,7 @@ DesignSpace* DensityFile::ReadErsatzMaterial(DesignSpace* ersatzMaterial)
 
     unsigned int nr = elems[e]->Get("nr")->As<unsigned int>();
     DesignElement::Type dt = (DesignElement::Type) DesignElement::type.Parse(elems[e]->Get("type")->As<string>());
-    double val = elems[e]->Get("design")->As<double>();
+    double val = elems[e]->Get(name)->As<double>();
 
     // replace the value of the DesignElement
     // we call Find(..,..,false) for meshes with two regions (e. g. cube and void)

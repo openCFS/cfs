@@ -814,7 +814,7 @@
                     <xsd:complexType>
                       <xsd:sequence>
                         <!-- every regularization needs to define the type explicitly -->
-                        <xsd:element name="filter" minOccurs="1" type="DT_Filter"/>
+                        <xsd:element name="filter" minOccurs="1" maxOccurs="unbounded" type="DT_Filter"/>
                       </xsd:sequence>
                       
                       <xsd:attribute name="type" use="required">
@@ -893,7 +893,7 @@
               </xsd:complexType>
             </xsd:element>
             
-            <xsd:element name="result" minOccurs="0" maxOccurs="9">
+            <xsd:element name="result" minOccurs="0" maxOccurs="10">
               <xsd:complexType>
                 <!-- mandatory to give the type. The type is one of a list of types -->
                 <xsd:attribute name="id" use="required">
@@ -908,6 +908,7 @@
                       <xsd:enumeration value="optResult_7"/>
                       <xsd:enumeration value="optResult_8"/>
                       <xsd:enumeration value="optResult_9"/>
+                      <xsd:enumeration value="optResult_10"/>
                     </xsd:restriction>
                   </xsd:simpleType>
                 </xsd:attribute>
@@ -1042,8 +1043,10 @@
                             <xsd:enumeration value="transversal-isotropic-boxed"/>
                             <xsd:enumeration value="density-times-2dtensor"/>
                             <xsd:enumeration value="density-times-2dtensor-constant-trace"/>
-                            <xsd:enumeration value="density-times-transversal-isotropic-2d"/>
-                            <xsd:enumeration value="density-times-transversal-isotropic-2d-boxed"/>
+                            <xsd:enumeration value="density-times-rotated-2dtensor"/>
+                            <xsd:enumeration value="density-times-transversal-isotropic"/>
+                            <xsd:enumeration value="density-times-transversal-isotropic-boxed"/>
+                            <xsd:enumeration value="density-times-rotated-transversal-isotropic-boxed"/>
                           </xsd:restriction>
                         </xsd:simpleType>
                       </xsd:attribute>
@@ -1272,6 +1275,7 @@
       <xsd:enumeration value="tensor23"/>
       <xsd:enumeration value="tensor13"/>
       <xsd:enumeration value="tensor12"/>
+      <xsd:enumeration value="rotAngle"/>
     </xsd:restriction>
   </xsd:simpleType>
 
@@ -1563,6 +1567,8 @@
   <!-- This defines a filter. Which is either density or sensitivity filter. The density filter can also be
     of Heaviside/tanh type. To be used in regularization and for the projection constraint -->
   <xsd:complexType name="DT_Filter">
+    
+       
     <!-- optional sub element for target sensitivity filter -->
     <xsd:sequence>
       <xsd:element name="sensitivity" minOccurs="0" maxOccurs="1">
@@ -1627,6 +1633,8 @@
     
     <xsd:attribute name="value" use="required" type="xsd:float" />
     
+    <!--  For multiple designs this is the design that is filtered. Default: All designs -->
+    <xsd:attribute name="design" use="optional" type="DT_Design" default="allDesigns"/>    
     
     <!-- how the distance affects the weighting.  -->
     <xsd:attribute name="contribution" use="optional" default="linear">

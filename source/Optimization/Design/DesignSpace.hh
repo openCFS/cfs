@@ -237,7 +237,7 @@ namespace CoupledField
       * Is very fast O(1) */
      int Find(unsigned int elemNum, bool throw_exception = true, bool include_pseudo_designs = false);
 
-     /** When we have more design types this is a divisor of data.GetSieze() */
+     /** When we have more design types this is a divisor of data.GetSize() */
      unsigned int GetNumberOfElements() { return elements; }
 
      /** The number of optimization variables over all regions. Counts every time.

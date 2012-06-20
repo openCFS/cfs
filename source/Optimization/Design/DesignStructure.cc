@@ -111,6 +111,10 @@ void DesignStructure::SetFilters(PtrParamNode pn, PtrParamNode info, StdVector<D
   filter_space_ = filterSpace.Parse(pn->Get("neighborhood")->As<string>());
   contribution_ = pn->Get("contribution")->As<string>() == "linear" ? LINEAR : CONSTANT;
   value  = pn->Get("value")->As<double>();
+  if(pn->Has("design"))
+    design = DesignElement::type.Parse(pn->Get("design")->As<std::string>());
+  else
+    design = DesignElement::ALL_DESIGNS;
 
   filter_.type_ = Filter::type.Parse(pn->Get("type")->As<std::string>());
 
@@ -217,7 +221,9 @@ void DesignStructure::SetFilters(PtrParamNode pn, PtrParamNode info, StdVector<D
     VicinityElement::Init(space, this);
   }
 
-  for(unsigned int e = 0; e < data.GetSize(); e++)
+  unsigned int start = design == DesignElement::ALL_DESIGNS ? 0 : space->FindDesign(design)*space->GetNumberOfElements();
+  unsigned int end = design == DesignElement::ALL_DESIGNS ? data.GetSize() : start + space->GetNumberOfElements();
+  for(unsigned int e = start; e < end; e++)
   {
     DesignElement* de = &data[e];
 
@@ -225,7 +231,7 @@ void DesignStructure::SetFilters(PtrParamNode pn, PtrParamNode info, StdVector<D
 
     // independent of the filter type, radius determines the neighborhood
     // via barycenter distance.
-    if(!regular || e == 0)  // save calling if possible
+    if(!regular || e == start)  // save calling if possible
       radius = FindFilterRadius(filter_space_, de, value);
 
     // set the filter neighborhood which is determined by radius
@@ -265,7 +271,7 @@ void DesignStructure::SetFilters(PtrParamNode pn, PtrParamNode info, StdVector<D
 
   timer->Stop();
   
-  std::cout << "Filter: avg radius: " << (avg_radius / data.GetSize())
+  std::cout << "Filter: " << "avg radius: " << (avg_radius / data.GetSize())
             << " avg neighbourhood: " << (avg_neighbours / data.GetSize()) << std::endl;
 }
 

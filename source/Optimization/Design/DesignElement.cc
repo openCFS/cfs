@@ -268,6 +268,8 @@ int DesignElement::GetOptResultIndex(SolutionType st)
     return 7;
   case OPT_RESULT_9:
     return 8;
+  case OPT_RESULT_10:
+    return 9;
   default:
     return -1;
   }
@@ -424,7 +426,7 @@ double DesignElement::GetPhysicalDesign(bool densForElec) const
 
 bool DesignElement::HasPhysicalDesign() const
 {
-  return(type_ == DENSITY || type_ == POLARIZATION || type_ == ACOU_DENSITY);
+  return(type_ == DENSITY || type_ == POLARIZATION || type_ == ACOU_DENSITY || simp->filter.type_ == Filter::DENSITY);
 }
 
 
@@ -507,6 +509,7 @@ void DesignElement::SetEnums()
   type.Add(TENSOR23, "tensor23");
   type.Add(TENSOR13, "tensor13");
   type.Add(TENSOR12, "tensor12");
+  type.Add(ROTANGLE, "rotAngle");
   type.Add(SLACK, "slack");
 
   access.SetName("DesignElement::Access");
