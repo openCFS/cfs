@@ -89,6 +89,7 @@ include/def_use_ansysrst.hh.in -text
 include/def_use_arpack.hh.in -text
 include/def_use_blas.hh.in -text
 include/def_use_cholmod.hh.in -text
+include/def_use_feas_scp.hh.in -text
 include/def_use_gidpost.hh.in -text
 include/def_use_gmsh.hh.in -text
 include/def_use_gmv.hh.in -text
@@ -110,7 +111,6 @@ include/def_use_snopt.hh.in -text
 include/def_use_tcl.hh.in -text
 include/def_use_unv.hh.in -text
 include/def_use_xerces.hh.in -text
-include/def_user_scpip.hh.in -text
 include/def_xmlschema.hh.in -text
 share/MaterialFile/mat.xml svneol=native#text/xml
 share/doc/auxilliaries/LaTeX/lsepaper.sty svneol=native#text/plain
@@ -574,6 +574,7 @@ share/scripts/IdentifyFortranCompiler.F90 -text
 share/scripts/bootstrap_devel_machine.sh svneol=native#text/plain
 share/scripts/build_tee.pl -text
 share/scripts/cfs -text
+share/scripts/cfs-debug -text
 share/scripts/cfs-testsuite-extractor.py -text
 share/scripts/cfs_grid.py -text
 share/scripts/cfs_utils.py -text
@@ -583,6 +584,7 @@ share/scripts/common.sh svneol=native#text/plain
 share/scripts/compile_mkl_test.sh.in -text
 share/scripts/continuation.py -text
 share/scripts/cplreader -text
+share/scripts/create-sparse-gid-mesh-2d-quadratic.py -text
 share/scripts/create_density.py -text
 share/scripts/cubemesh.pl -text
 share/scripts/density-to-png.py -text
@@ -1357,6 +1359,8 @@ source/OLAS/utils/math/ldlsystemsolve.hh svneol=native#text/x-c%2B%2Bhdr
 source/Optimization/CMakeLists.txt -text
 source/Optimization/Condition.cc svneol=native#text/x-c%2B%2Bsrc
 source/Optimization/Condition.hh svneol=native#text/x-c%2B%2Bhdr
+source/Optimization/Design/AuxDesign.cc -text
+source/Optimization/Design/AuxDesign.hh -text
 source/Optimization/Design/CMakeLists.txt -text
 source/Optimization/Design/DensityFile.cc -text
 source/Optimization/Design/DensityFile.hh -text
@@ -1392,6 +1396,12 @@ source/Optimization/Optimizer/BaseOptimizer.hh svneol=native#text/x-c%2B%2Bhdr
 source/Optimization/Optimizer/CMakeLists.txt -text
 source/Optimization/Optimizer/EvaluateOnly.cc svneol=native#text/x-c%2B%2Bsrc
 source/Optimization/Optimizer/EvaluateOnly.hh svneol=native#text/x-c%2B%2Bhdr
+source/Optimization/Optimizer/FeasPP.cc -text
+source/Optimization/Optimizer/FeasPP.hh -text
+source/Optimization/Optimizer/FeasSCP.cc -text
+source/Optimization/Optimizer/FeasSCP.hh -text
+source/Optimization/Optimizer/FeasSubProblem.cc -text
+source/Optimization/Optimizer/FeasSubProblem.hh -text
 source/Optimization/Optimizer/GradientCheck.cc svneol=native#text/x-c%2B%2Bsrc
 source/Optimization/Optimizer/GradientCheck.hh svneol=native#text/x-c%2B%2Bhdr
 source/Optimization/Optimizer/IPOPT.cc -text
@@ -1414,6 +1424,8 @@ source/Optimization/Optimizer/SnOpt.hh -text
 source/Optimization/Optimizer/SnOptInterface.f -text
 source/Optimization/Optimizer/SnOptInterface.hh -text
 source/Optimization/Optimizer/scpip30.hh svneol=native#text/x-c%2B%2Bhdr
+source/Optimization/Optimizer/scpip40i.hh -text
+source/Optimization/Optimizer/scpip40nlph.hh -text
 source/Optimization/Optimizer/scpip_test.cc svneol=native#text/x-c%2B%2Bsrc
 source/Optimization/ParamMat.cc -text
 source/Optimization/ParamMat.hh -text

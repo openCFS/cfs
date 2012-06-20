@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-use Switch;
+use feature qw(switch);
 
 $COMPILER=$ARGV[0];
 $SOURCE=$ARGV[1];
@@ -9,6 +9,7 @@ $OUTPUT=$ARGV[2];
 # print "CC $CC\nSOURCE $SOURCE\nOUTPUT $OUTPUT\n";
 
 foreach $line (`$COMPILER -E $SOURCE 2>&1`) {
+
     if( $line =~ /CC_ID/ ) {
 	$line =~ s/CC_ID //;
 	chomp($line);
@@ -60,12 +61,12 @@ foreach $line (`$COMPILER -E $SOURCE 2>&1`) {
 }   
 
 if ($CC_ID ne "") {
-    switch ($CC_ID) {
-	case "GCC" { 
+    given ($CC_ID) {
+	when ("GCC") { 
 	    $CC_VERSION =~ s/ //g;
 	    $CC_GCC_VERSION =~ s/ //g; 
 	}
-	case "ICC" { 
+	when ("ICC") { 
 	    $ICC_VER=$CC_VERSION;
 	    $ICC_VER =~ s/ [0-9].*$//;
 	    {
@@ -79,24 +80,27 @@ if ($CC_ID ne "") {
 	    $CC_VERSION = "$MAJOR_VER.$MINOR_VER $ICC_DATE";
 	    $CC_GCC_VERSION =~ s/ //g; 
 	}
-	case "OPEN64" {
+	when ("OPEN64") {
 	    $CC_VERSION =~ s/ //g;
 	    $CC_GCC_VERSION =~ s/ //g; 
 	}
-	else {
+	when ("MSVC") {
+	    $CC_VERSION =~ s/ //g;
+	}
+	default {
 	    print "C compiler not supported!\n";
 	    exit 1;
 	}
     }
 
-    switch ($OUTPUT) {
-	case "cmake" { 
+    given ($OUTPUT) {
+	when ("cmake") { 
 	    print "SET(CC_ID \"$CC_ID\")\n"; 
 	    print "SET(CC_VERSION \"$CC_VERSION\")\n"; 
 	    print "SET(CC_GCC_VERSION \"$CC_GCC_VERSION\")\n";
 	    exit 0;
 	}
-	case "perl" { 
+	when ("perl") { 
 	    print "\$CC_ID=\"$CC_ID\";\n"; 
 	    print "\$CC_VERSION=\"$CC_VERSION\";\n"; 
 	    print "\$CC_GCC_VERSION=\"$CC_GCC_VERSION\";\n";
@@ -106,12 +110,12 @@ if ($CC_ID ne "") {
 } 
 
 if ($CXX_ID ne "") {
-    switch ($CXX_ID) {
-	case "GCC" { 
+    given ($CXX_ID) {
+	when ("GCC") { 
 	    $CXX_VERSION =~ s/ //g;
 	    $CXX_GCC_VERSION =~ s/ //g; 
 	}
-	case "ICC" {
+	when ("ICC") {
 	    # Intel 12.x define __ICC and __INTEL_COMPILER to be 9999 therefore
             # we read the output of $COMPILER --version
 	    ($version, $build_date) = split(/ /, $CXX_VERSION, 2);
@@ -140,24 +144,27 @@ if ($CXX_ID ne "") {
 	    $CXX_VERSION = "$MAJOR_VER.$MINOR_VER $ICC_DATE";
 	    $CXX_GCC_VERSION =~ s/ //g; 
 	}
-	case "OPEN64" {
+	when ("OPEN64") {
 	    $CXX_VERSION =~ s/ //g;
 	    $CXX_GCC_VERSION =~ s/ //g; 
 	}
-	else {
+	when ("MSVC") {
+	    $CC_VERSION =~ s/ //g;
+	}
+	default {
 	    print "C++ compiler not supported!\n";
 	    exit 1;
 	}
     }
 
-    switch ($OUTPUT) {
-	case "cmake" { 
+    given ($OUTPUT) {
+	when ("cmake") { 
 	    print "SET(CXX_ID \"$CXX_ID\")\n"; 
 	    print "SET(CXX_VERSION \"$CXX_VERSION\")\n"; 
 	    print "SET(CXX_GCC_VERSION \"$CXX_GCC_VERSION\")\n";
 	    exit 0;
 	}
-	case "perl" { 
+	when ("perl") { 
 	    print "\$CXX_ID=\"$CXX_ID\";\n"; 
 	    print "\$CXX_VERSION=\"$CXX_VERSION\";\n"; 
 	    print "\$CXX_GCC_VERSION=\"$CXX_GCC_VERSION\";\n";
@@ -167,11 +174,11 @@ if ($CXX_ID ne "") {
 }
 
 if ($FC_ID ne "") {
-    switch ($FC_ID) {
-	case "GNU" { 
+    given ($FC_ID) {
+	when ("GNU") { 
 	    $FC_VERSION =~ s/ //g;
 	}
-	case "IFORT" { 
+	when ("IFORT") { 
 	    # Intel 12.x define __ICC and __INTEL_COMPILER to be 9999 therefore
             # we read the output of $COMPILER --version
 	    ($version, $build_date) = split(/ /, $FC_VERSION, 2);
@@ -198,22 +205,22 @@ if ($FC_ID ne "") {
 	    $ICC_DATE =~ s/^[0-9].* //;
 	    $FC_VERSION = "$MAJOR_VER.$MINOR_VER $ICC_DATE";
 	}
-	case "OPEN64" {
+	when ("OPEN64") {
 	    $FC_VERSION =~ s/ //g;
 	}
-	else {
+	default {
 	    print "Fortran compiler not supported!\n";
 	    exit 1;
 	}
     }
 
-    switch ($OUTPUT) {
-	case "cmake" { 
+    given ($OUTPUT) {
+	when ("cmake") { 
 	    print "SET(FC_ID \"$FC_ID\")\n"; 
 	    print "SET(FC_VERSION \"$FC_VERSION\")\n"; 
 	    exit 0;
 	}
-	case "perl" { 
+	when ("perl") { 
 	    print "\$FC_ID=\"$FC_ID\";\n"; 
 	    print "\$FC_VERSION=\"$FC_VERSION\";\n"; 
 	    exit 0;

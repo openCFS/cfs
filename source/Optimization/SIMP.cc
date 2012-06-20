@@ -299,16 +299,8 @@ double SIMP::CalcFunction(Excitation& excite, Function* f, bool derivative)
   // this app is for the PDE
   Application app = ToApp(pde);
 
-  // this implements only the gradients of some functions
-
-  //TODO Jannis Greifenstein: other way than explicit check?
-  if(!derivative || maxwellHomogenization_)
+  if(!derivative)
     return ErsatzMaterial::CalcFunction(excite, f, derivative);
-
-  TransferFunction* tf = design->GetTransferFunction(DesignElement::Default(pde), TransferFunction::Default(pde), true);
-  double weight = excite.GetWeightedFactor(f);
-  LOG_DBG(simp) << "CalcFunction(idx=" << excite.index << ") norm_weight= " <<  excite.normalized_weight
-                << " factor=" << excite.GetFactor(f) << " weight=" << weight;
 
   // only special derivatives, the rest also EM
   switch(f->GetType())
@@ -316,20 +308,25 @@ double SIMP::CalcFunction(Excitation& excite, Function* f, bool derivative)
   case Function::STRESS:
   case Function::STRESS_DENSITY:
   {
+    TransferFunction* tf = design->GetTransferFunction(DesignElement::Default(pde), TransferFunction::Default(pde), true);
     CalcVonMisesStressGradient(excite, f, tf);
     break;
   }
-
 
   case Function::GLOBAL_DYNAMIC_COMPLIANCE:
   case Function::OUTPUT:
   case Function::DYNAMIC_OUTPUT:
   case Function::CONJUGATE_COMPLIANCE:
   case Function::ABS_OUTPUT:
+  {
     // synthesis of compliant mechanism: As our adjoint PDE
     // c' = l K' u
+    TransferFunction* tf = design->GetTransferFunction(DesignElement::Default(pde), TransferFunction::Default(pde), true, true); // excpetion and use_single
+    double weight = excite.GetWeightedFactor(f);
+    LOG_DBG(simp) << "CalcFunction(idx=" << excite.index << ") norm_weight= " <<  excite.normalized_weight  << " factor=" << excite.GetFactor(f) << " weight=" << weight;
     CalcU1KU2(tf, adjoint.Get(excite, f)->elem[app], app, forward.Get(excite)->elem[app], NULL, weight, STANDARD, f);
     break;
+  }
 
   default:
     return ErsatzMaterial::CalcFunction(excite, f, derivative);

@@ -1991,6 +1991,24 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
     pysicalPD->fctType = shared_ptr<ConstFct>(new ConstFct() );
     availResults_.insert( pysicalPD );
     
+    // === MECH_TENSOR and MECH_TENSOR_TRACE for free and parametrized material optimization
+    shared_ptr<ResultInfo> mech_tensor(new ResultInfo);
+    mech_tensor->resultType = MECH_TENSOR;
+    mech_tensor->dofNames = "e11", "e22", "e33", "e23", "e13", "e12";
+    mech_tensor->unit = "Pa";
+    mech_tensor->entryType = ResultInfo::TENSOR;
+    mech_tensor->definedOn = ResultInfo::ELEMENT;
+    mech_tensor->fctType = shared_ptr<ConstFct>(new ConstFct() );
+    availResults_.insert(mech_tensor);
+
+    shared_ptr<ResultInfo> mech_tensor_trace(new ResultInfo);
+    mech_tensor_trace->resultType = MECH_TENSOR_TRACE;
+    mech_tensor_trace->dofNames = "Tr(E)";
+    mech_tensor_trace->unit = "Pa";
+    mech_tensor_trace->entryType = ResultInfo::SCALAR;
+    mech_tensor_trace->definedOn = ResultInfo::ELEMENT;
+    mech_tensor_trace->fctType = shared_ptr<ConstFct>(new ConstFct() );
+    availResults_.insert(mech_tensor_trace);
 
     // === SHAPE offset ===
     shared_ptr<ResultInfo> shape(new ResultInfo);
@@ -2245,6 +2263,11 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
       ComputeRelDilatation( result );
       break;
       
+    case MECH_TENSOR:
+    case MECH_TENSOR_TRACE:
+      ComputeTensorResults(result);
+      break;
+
     case MECH_PSEUDO_DENSITY:
     case PHYSICAL_PSEUDO_DENSITY:
       if(domain->GetErsatzMaterial(false) == NULL) // no exception
@@ -2403,6 +2426,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
       elemVol = averageDis * surfEl->CalcVolume(surfCoord,isaxi_);
       return elemVol;
     }
+
     void MechPDE::ComputeRelDilatation( shared_ptr<BaseResult> vals ) {
       Double elemOrigVol, elemDefVol; 
       Result<Double>& res = dynamic_cast< Result<Double>& >(*vals);
@@ -2434,6 +2458,43 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
         resVec[elemIt.GetPos()] = elemDefVol / elemOrigVol;
       }
     }
+
+    void MechPDE::ComputeTensorResults(shared_ptr<BaseResult> vals)
+    {
+      Result<Double>& res = dynamic_cast< Result<Double>& >(*vals);
+      EntityIterator elemIt = res.GetEntityList()->GetIterator();
+      Vector<Double>& resVec = res.GetVector();
+      resVec.Resize(res.GetEntityList()->GetSize() * (vals->GetResultInfo()->resultType == MECH_TENSOR ? 6 : 1));
+
+      Matrix<double> E;
+      E.Init(); // gives zero values if there is no tensor
+
+      for (elemIt.Begin(); !elemIt.IsEnd(); elemIt++)
+      {
+        elemIt.GetElem()->ptElem;
+
+        if(domain->HasErsatzMaterialTensor())
+          domain->GetErsatzMaterial()->GetErsatzMaterialTensor(E, GetSubTensorType(), elemIt.GetElem(), DesignElement::NO_DERIVATIVE);
+        else
+          E.Init();
+
+        if(vals->GetResultInfo()->resultType == MECH_TENSOR)
+        {
+          unsigned int base = elemIt.GetPos() * 6;
+          resVec[base + 0] = E[0][0];
+          resVec[base + 1] = E[1][1];
+          resVec[base + 2] = E[2][2];
+          resVec[base + 3] = E[1][2];
+          resVec[base + 4] = E[0][2];
+          resVec[base + 5] = E[0][1];
+        }
+        else
+        {
+          resVec[elemIt.GetPos()] = E[0][0] + E[1][1] + E[2][2];
+        }
+      }
+    }
+
     // ********************************************************
     //   Query parameter object for information about prestressing
     // ********************************************************

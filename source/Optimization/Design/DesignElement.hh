@@ -226,11 +226,11 @@ public:
   typedef enum { PLAIN, SMART } Access;
 
   /** The type of this design element, influences the Get*Bound() methods.
-   * By definition the design elements are stored in the ordering of the type!! */
+   * By definition the design elements are stored in the ordering of the type!!
+   * make sure, that ALL_DESIGNS is the last with the highest number!!! */
   typedef enum { UNITY = -5, NO_DERIVATIVE = -4, TENSOR_TRACE = -3, DEFAULT = -2, NO_TYPE = -1, DENSITY = 0,
                  POLARIZATION = 1, ACOU_DENSITY = 2, EMODUL, POISSON, LAMELAMBDA, LAMEMU, EMODULISO, POISSONISO,
-                 GMODUL, MASS, DAMPINGALPHA, DAMPINGBETA, TENSOR11, TENSOR22, TENSOR33, TENSOR23, TENSOR13,
-                 ROTANGLE, TENSOR12, ALL_DESIGNS} Type;
+                 GMODUL, MASS, DAMPINGALPHA, DAMPINGBETA, TENSOR11, TENSOR22, TENSOR33, TENSOR23, TENSOR13, TENSOR12, SLACK, ROTANGLE, ALL_DESIGNS} Type;
 
   /** The empty constructor is the StdVector and for ghost elements */
   DesignElement();
@@ -241,7 +241,7 @@ public:
    * @param index location within the design space */
   DesignElement(Type dt, double lower, double upper, Elem* elem, unsigned int index);
 
-  /** Dummy elements for Funtion */
+  /** Dummy elements for Function */
   DesignElement(Elem* elem, Type type, unsigned int index, int pseudoElementIndex);
 
 

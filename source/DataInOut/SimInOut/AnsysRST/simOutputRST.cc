@@ -64,7 +64,7 @@ namespace CoupledField {
     
     try 
     {
-      sysPathSep_ = fs::path("/").native_directory_string();
+      sysPathSep_ = fs::path("/").string();
     } catch (std::exception &ex)
     {
       EXCEPTION(ex.what());

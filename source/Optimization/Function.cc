@@ -52,6 +52,7 @@ const int Function::Local::Identifier::VOID_SIGN     = -1;
 const int Function::Local::Identifier::MATERIAL_SIGN = 1;
 
 using boost::lexical_cast;
+using std::string;
 
 Function::Function(PtrParamNode pn)
 {
@@ -60,15 +61,20 @@ Function::Function(PtrParamNode pn)
   this->preInfo_ = PtrParamNode(new ParamNode(ParamNode::INSERT, ParamNode::ELEMENT ));
   this->pn = pn;
 
-  this->type_ = type.Parse(pn->Get("type")->As<std::string>());
+  this->type_ = type.Parse(pn->Get("type")->As<string>());
 
   this->physical_ = pn->Has("physical") ? pn->Get("physical")->As<bool>() : false;
+
+  if(pn->Has("design")) // will sometime be in Function, now the default is set to DEFAULT
+    this->design_ = DesignElement::type.Parse(pn->Get("design")->As<string>());
 
   this->parameter_ = pn->Has("parameter") ? pn->Get("parameter")->As<double>() : 0.0;
 
   this->omega_omega_ = pn->Has("factor") ? pn->Get("factor/omega_omega")->As<bool>() : false;
   if(!harmonic_ && omega_omega_)
     throw Exception("It makes no sense to set costFunction/factor/omega_omega in static optimization");
+
+  notation_ = pn->Has("notation") ? DesignMaterial::notation.Parse(pn->Get("notation")->As<string>()) : DesignMaterial::VOIGT;
 
   bool tensor_ok = ReadTensor(pn, this->tensor_); // is save and sets default
 
@@ -127,10 +133,27 @@ Function::Function(PtrParamNode pn)
       throw Exception("function '" + type.ToString(type_) + "' cannot be region restricted");
     break;
 
-
   default:
     break;
   }
+
+  // set linear, to be overwritten by xml in Condition
+  switch(type_)
+  {
+  case VOLUME: // the volume is not linear on heaviside densities
+  case SLOPE:
+  case GLOBAL_SLOPE:
+  case SUM_MODULI:
+  case GLOBAL_SUM_MODULI:
+  case TENSOR_TRACE:
+  case SLACK:
+    linear_ = true;
+    break;
+  default:
+    linear_ = false;
+    break;
+  }
+
 
   if(physical_ && !(type_ == VOLUME || type_ == GREYNESS))
     throw Exception("'physical' is no option for '" + type.ToString(type_) + "'");
@@ -146,7 +169,7 @@ Function::~Function()
 void Function::Init()
 {
   this->harmonic_    = BasePDE::IsComplex(domain->GetDriver()->GetAnalysisType());
-  this->design = DesignElement::DEFAULT; // overwritten eventually in Condition
+  this->design_ = DesignElement::DEFAULT; // overwritten eventually from xml
   this->region = ALL_REGIONS;  // overwritten eventually in Condition
 
   this->local = NULL;
@@ -317,7 +340,7 @@ bool Function::ReadMaxwellTensor(PtrParamNode pn, Matrix<Complex>& matrix, bool 
 
 void Function::ParseCoord(PtrParamNode pn, tuple<int, int, double>& coord)
 {
-  std::string val = pn->Get("coord")->As<std::string>();
+  string val = pn->Get("coord")->As<string>();
   get<0>(coord) = lexical_cast<unsigned int>(val.at(0));
   get<1>(coord) = lexical_cast<unsigned int>(val.at(1));
   get<2>(coord) = 1.0; // default
@@ -345,7 +368,7 @@ void Function::ToInfo(PtrParamNode info)
     local->ToInfo(info_);
 }
 
-std::string Function::ToString(MultipleExcitation* me) const
+string Function::ToString(MultipleExcitation* me) const
 {
   // optional for oscillation
   if(local != NULL && local->GetPhase() != Local::BOTH)
@@ -412,6 +435,15 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
     case SUM_MODULI:
     case GLOBAL_SUM_MODULI:
     case PARAM_PS_POS_DEF:
+    case POS_DEF_DET_MINOR_1:
+    case POS_DEF_DET_MINOR_2:
+    case POS_DEF_DET_MINOR_3:
+    case BENSON_VANDERBEI_1:
+    case BENSON_VANDERBEI_2:
+    case BENSON_VANDERBEI_3:
+    case TENSOR_TRACE:
+    case DESIGN_BOUND:
+    case SLACK:
       assert(excite_index < 0);
       excite_ = me->excitations.GetSize() - 1; // once only at the last excitation
       break;
@@ -434,14 +466,14 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
     case STRESS:
     case STRESS_DENSITY:
       // there might be the optional excitation index set
-      if(pn->Get("excitation")->As<std::string>() == "all")
+      if(pn->Get("excitation")->As<string>() == "all")
       {
         excite_ = excite_index == -2 ? -1 : excite_index;
       }
       else
       {
         assert(excite_index == -2); // assert there is no conflict
-        excite_ = me->GetExcitation(pn->Get("excitation")->As<std::string>())->index;
+        excite_ = me->GetExcitation(pn->Get("excitation")->As<string>())->index;
       }
       break;
   }
@@ -530,6 +562,30 @@ bool Function::IsHomogenization() const
   }
 }
 
+bool Function::IsLocal(Type t)
+{
+  switch(t)
+  {
+  case SLOPE:
+  case MOLE:
+  case OSCILLATION:
+  case JUMP:
+  case BUMP:
+  case SUM_MODULI:
+  case TENSOR_TRACE:
+  case PARAM_PS_POS_DEF:
+  case POS_DEF_DET_MINOR_1:
+  case POS_DEF_DET_MINOR_2:
+  case POS_DEF_DET_MINOR_3:
+  case BENSON_VANDERBEI_1:
+  case BENSON_VANDERBEI_2:
+  case BENSON_VANDERBEI_3:
+  case DESIGN_BOUND:
+    return true;
+  default:
+    return false;
+  }
+}
 
 bool Function::IsMaxwellHomogenization() const
 {
@@ -553,6 +609,8 @@ bool Function::ForDensityFiltering() const
   switch(type_)
   {
   case PROJECTION:
+  case SLACK:
+  case DESIGN_BOUND:
     // for the projection case we have a density filter manually on Function::projectionDesign only
   case SUM_MODULI:
     return false;
@@ -613,9 +671,18 @@ bool Function::ForSensitivityFiltering() const
   case BUMP:
   case DESIGN_TRACKING:
   case PROJECTION:
+  case TENSOR_TRACE:
   case SUM_MODULI:
   case GLOBAL_SUM_MODULI:
   case PARAM_PS_POS_DEF:
+  case POS_DEF_DET_MINOR_1:
+  case POS_DEF_DET_MINOR_2:
+  case POS_DEF_DET_MINOR_3:
+  case BENSON_VANDERBEI_1:
+  case BENSON_VANDERBEI_2:
+  case BENSON_VANDERBEI_3:
+  case DESIGN_BOUND:
+  case SLACK:
     return false;
 
   case ISOTROPY:
@@ -648,9 +715,9 @@ void Function::SetElements(DesignSpace* space, RegionIdType region)
   // if ALL_REGIONS for condition use what we define as design space which
   // this is still not good enough
   int nd = 1;
-  if(design == DesignElement::TENSOR_TRACE || design == DesignElement::DEFAULT) {
+  if(design_ == DesignElement::TENSOR_TRACE || design_ == DesignElement::DEFAULT) {
     nd = space->design.GetSize();
-    if(design == DesignElement::ALL_DESIGNS)
+    if(design_ == DesignElement::ALL_DESIGNS)
       nd++;
   }
   elements.Reserve(nd * (region == ALL_REGIONS ? space->GetNumberOfElements() : grid->GetNumElems(region)));
@@ -660,11 +727,11 @@ void Function::SetElements(DesignSpace* space, RegionIdType region)
     for(unsigned int i = 0; i < space->data.GetSize(); i++)
     {
       DesignElement* de = &(space->data[i]);
-      if((design == DesignElement::DEFAULT || design == DesignElement::TENSOR_TRACE || design == de->GetType())
+      if((design_ == DesignElement::DEFAULT || design_ == DesignElement::TENSOR_TRACE || design_ == de->GetType())
           && (region == ALL_REGIONS || de->elem->regionId == region))
         elements.Push_back(de);
     }
-    if(design == DesignElement::ALL_DESIGNS)
+    if(design_ == DesignElement::ALL_DESIGNS)
     {
       for(unsigned int i = 0; i < space->GetNumberOfElements(); i++)
           {
@@ -678,19 +745,50 @@ void Function::SetElements(DesignSpace* space, RegionIdType region)
     // this is a special case where the constraint does not act on the design space
     if(type_ != STRESS && type_ != STRESS_DENSITY)
     {
-      std::string msg = "region " + grid->GetRegion().ToString(region) + " of condition " + type.ToString(type_) + " not within design domain";
+      string msg = "region " + grid->GetRegion().ToString(region) + " of condition " + type.ToString(type_) + " not within design domain";
       info_->Get(ParamNode::WARNING)->SetValue(msg);
     }
 
     assert(elements.GetSize() == 0);
 
     // this creates the pseudo design elements and both indices are hopefully properly set!
-    space->RegisterPseudoDesignRegion(region, design, &elements);
+    space->RegisterPseudoDesignRegion(region, design_, &elements);
   }
 
 //  assert(elements.GetSize() == elements.Capacity());
 }
 
+void Function::SetDenseSparsityPattern(DesignSpace* space)
+{
+  jac_sparsity_.Resize(space->GetNumberOfVariables()); // this might include aux variables
+
+  for(unsigned int i = 0; i < jac_sparsity_.GetSize(); i++)
+    jac_sparsity_[i] = i;
+}
+
+
+StdVector<unsigned int>& Function::GetSparsityPattern()
+{
+  assert(!jac_sparsity_.IsEmpty()); // SetSparsityPattern() needs to be called before
+
+  return jac_sparsity_;
+}
+
+Matrix<unsigned int>& Function::GetHessianSparsityPattern()
+{
+  assert(hess_sparsity_.GetNumRows() == 0);
+
+  return hess_sparsity_;
+}
+
+void Function::CalcHessian(StdVector<double>& out, double factor)
+{
+  assert(out.GetSize() == 0);
+  assert(GetHessianSparsityPattern().GetNumRows() == 0);
+  // this function appears to have no Hessian, e.g. because it is linear :).
+  assert(IsLinear());
+  return;
+}
 
 void Function::PostProc(DesignSpace* space, DesignStructure* structure, ErsatzMaterial* em)
 {
@@ -708,9 +806,17 @@ void Function::PostProc(DesignSpace* space, DesignStructure* structure, ErsatzMa
   case BUMP:
   case STRESS:
   case STRESS_DENSITY:
+  case TENSOR_TRACE:
   case SUM_MODULI:
   case GLOBAL_SUM_MODULI:
   case PARAM_PS_POS_DEF:
+  case POS_DEF_DET_MINOR_1:
+  case POS_DEF_DET_MINOR_2:
+  case POS_DEF_DET_MINOR_3:
+  case BENSON_VANDERBEI_1:
+  case BENSON_VANDERBEI_2:
+  case BENSON_VANDERBEI_3:
+  case DESIGN_BOUND:
     // assert(space->IsRegular()); // VicinityElements work only on a regular grid
     // the design elements require the vicinity element to be set which holds the direct
     // neighbors. Is save to call several times
@@ -772,7 +878,7 @@ Function::Local::Local(Function* func, DesignSpace* space)
 
   // shortcuts
   Function::Type ftype = func->GetType();
-  std::string    fname = Function::type.ToString(ftype);
+  string    fname = Function::type.ToString(ftype);
 
   // read xml parameters -> might be null valued!
   PtrParamNode pn = func->pn->Get("local", ParamNode::PASS);
@@ -780,7 +886,7 @@ Function::Local::Local(Function* func, DesignSpace* space)
   this->beta_  = pn != NULL && pn->Has("beta") ? pn->Get("beta")->As<double>() : -3.14;
   this->eps_   = pn != NULL && pn->Has("eps") ? pn->Get("eps")->As<double>() : -3.14;
   this->power_ = pn != NULL && pn->Has("power") ? pn->Get("power")->As<double>() : 2.0;
-  this->phase_ = pn != NULL && pn->Has("phase") ? phase.Parse(pn->Get("phase")->As<std::string>()) : BOTH; // only oscillation
+  this->phase_ = pn != NULL && pn->Has("phase") ? phase.Parse(pn->Get("phase")->As<string>()) : BOTH; // only oscillation
 
   this->normalize_ = pn != NULL ? pn->Get("normalize")->As<bool>() : false;
 
@@ -820,9 +926,9 @@ Function::Local::Local(Function* func, DesignSpace* space)
 
   // set locality
   this->locality_ = pn != NULL && pn->Has("locality") ?
-      locality.Parse(pn->Get("locality")->As<std::string>()) : DEFAULT;
+      locality.Parse(pn->Get("locality")->As<string>()) : DEFAULT;
   Locality user = locality_; // default or set by user
-  bool snopt = param->Get("optimization/optimizer/type")->As<std::string>() == "snopt";
+  bool snopt = param->Get("optimization/optimizer/type")->As<string>() == "snopt";
 
   switch(ftype)
   {
@@ -865,14 +971,22 @@ Function::Local::Local(Function* func, DesignSpace* space)
 
   case STRESS:
   case STRESS_DENSITY:
+  case DESIGN_BOUND:
     if(locality_ != ELEMENT && locality_ != DEFAULT)
       throw Exception("Invalid locality '" + locality.ToString(locality_) + "' within '" + fname + "'");
     locality_ = ELEMENT;
     break;
 
+  case TENSOR_TRACE:
   case SUM_MODULI:
   case GLOBAL_SUM_MODULI:
   case PARAM_PS_POS_DEF:
+  case POS_DEF_DET_MINOR_1:
+  case POS_DEF_DET_MINOR_2:
+  case POS_DEF_DET_MINOR_3:
+  case BENSON_VANDERBEI_1:
+  case BENSON_VANDERBEI_2:
+  case BENSON_VANDERBEI_3:
     if(locality_ != MULT_DESIGNS_ELEMENT && locality_ != DEFAULT)
       throw Exception("Invalid locality '" + locality.ToString(locality_) + "' within '" + fname + "'");
     locality_ = MULT_DESIGNS_ELEMENT;
@@ -909,7 +1023,7 @@ Function::Local::Local(Function* func, DesignSpace* space)
     break;
 
   case MULT_DESIGNS_ELEMENT:
-    SetupMultDesignsElementMap();
+    SetupMultDesignsElementMap(func);
     break;
 
   default:
@@ -950,7 +1064,7 @@ void Function::Local::SetupVirtualElementMap(Phase ph)
   for(int e = 0, ss = space->data.GetSize(); e < ss; ++e)
   {
     DesignElement* de = &(space->data[e]);
-    if(de->GetType() == ( (func_->design == DesignElement::DEFAULT) ? DesignElement::DENSITY : func_->design)){
+    if(de->GetType() == ( (func_->design_ == DesignElement::DEFAULT) ? DesignElement::DENSITY : func_->design_)){
       VicinityElement* ve = de->vicinity;
 
       // do we have a full neighborhood? All or none as in the original slope paper
@@ -1199,21 +1313,71 @@ void Function::Local::SetupSingularElementMap()
 }
 
 
-void Function::Local::SetupMultDesignsElementMap()
+void Function::Local::SetupMultDesignsElementMap(const Function* f)
 {
   // only this element!
   element_dimension_ = 1; // two boundary "stones" per dimension
-  UInt numFElements = space->GetNumberOfElements();
-  virtual_elem_map.Reserve(element_dimension_ * numFElements);
+  UInt elems = space->GetNumberOfElements();
+  virtual_elem_map.Reserve(element_dimension_ * elems);
 
-  for(int e = 0, en = numFElements; e < en; e++)
+  // the neighbors are the design elements for the same FE-element but with other designs
+  // one is not a neighbor of oneself
+  StdVector<DesignElement*> neighbours;
+
+  StdVector<unsigned int> des_idx; // the design indices we consider here
+  switch(f->GetType())
+  {
+  case TENSOR_TRACE:
+    assert(space->design.GetSize() == 6);
+    // 11 is not a neighbor but the element itself
+    des_idx.Push_back(space->FindDesign(DesignElement::TENSOR22));
+    des_idx.Push_back(space->FindDesign(DesignElement::TENSOR33));
+    break;
+
+  case POS_DEF_DET_MINOR_1:
+  case BENSON_VANDERBEI_1:
+    assert(space->design.GetSize() == 6);
+    if(space->design[0] != DesignElement::TENSOR11)
+      throw Exception("'Expect first design to be 'tensor11'");
+    // only design TENSOR11 is not neighbor
+    break;
+  case POS_DEF_DET_MINOR_2:
+  case BENSON_VANDERBEI_2:
+    assert(space->design.GetSize() == 6);
+    des_idx.Push_back(space->FindDesign(DesignElement::TENSOR22));
+    des_idx.Push_back(space->FindDesign(DesignElement::TENSOR12));
+    break;
+  case POS_DEF_DET_MINOR_3:
+  case BENSON_VANDERBEI_3:
+    assert(space->design.GetSize() == 6);
+    // note, that the indices are sorted in sparse pattern
+    // conditionally no break!
+  default:
+    // all designs but the first one
+    des_idx.Reserve(space->design.GetSize()-1);
+    for(unsigned int i = 1; i < space->design.GetSize(); i++) des_idx.Push_back(i);
+    break;
+  }
+
+  LOG_DBG(func) << "F:L:SMDEM des_idx=" << des_idx.ToString() << " total=" << space->design.ToString();
+
+  for(unsigned int e = 0; e < elems; e++)
   {
     DesignElement* de = func_->elements[e];
-    int base = space->Find(de->elem, true);
-    StdVector<DesignElement*> neighbours;
-    for(unsigned int index = base + numFElements; index < space->data.GetSize(); index += numFElements){
-      neighbours.Push_back(&(space->data[index]));
+    assert((int) e == space->Find(de->elem, true)); // what wanted Jannis to do here?
+
+    neighbours.Resize(0);
+
+    for(unsigned int d = 0; d < des_idx.GetSize(); d++)
+    {
+      // the first design = 0 is no neighbor!
+      unsigned des = des_idx[d];
+      DesignElement* other = &(space->data[elems * des + e]);
+      neighbours.Push_back(other);
+      LOG_DBG3(func) << "F:L:SMDEM e=" << e << " el=" << de->elem->elemNum << " d = " << d << " des=" << des << " design="
+                     << DesignElement::type.ToString(space->design[des]) << " idx=" << other->GetIndex() << " ed=" << de->GetType();
     }
+
     virtual_elem_map.Push_back(Identifier(de, neighbours));
   }
 }
@@ -1250,7 +1414,7 @@ Function::Local::NeighborhoodStructure::NeighborhoodStructure(Local* local, PtrP
   DesignElement& de = local->space->data[0];
 
   value = pn->Get("neighbor_value")->As<double>();
-  fs = DesignStructure::filterSpace.Parse(pn->Get("neighbor_type")->As<std::string>());
+  fs = DesignStructure::filterSpace.Parse(pn->Get("neighbor_type")->As<string>());
   radius = DesignStructure::FindFilterRadius(fs, &de, value);
 
   // find the orthogonal dimensions based on radius
@@ -1338,6 +1502,18 @@ Function::Local::Identifier::Identifier(DesignElement* elem, StdVector<DesignEle
   this->sign = si;
 }
 
+DesignElement* Function::Local::Identifier::GetElement(DesignElement::Type type)
+{
+  for(int i = -1 ; i < (int) neighbor.GetSize(); i++)
+  {
+    DesignElement* de = GetElement(i);
+    if(de->GetType() == type)
+      return de; // do not check for non-uniqueness
+  }
+  assert(false);
+  return NULL;
+}
+
 
 double Function::Local::Identifier::EvalFunction(const Local* local, bool grad_glob, double von_mises_stress) const
 {
@@ -1382,8 +1558,29 @@ double Function::Local::Identifier::EvalFunction(const Local* local, bool grad_g
     fv = CalcSumModuli();
     break;
 
+
   case PARAM_PS_POS_DEF:
     fv = CalcParamPSPosDef(-1, false);
+    break;
+
+  case POS_DEF_DET_MINOR_1:
+  case POS_DEF_DET_MINOR_2:
+  case POS_DEF_DET_MINOR_3:
+    fv = CalcPosDefDeteminant(-1, local, false, f->type_);
+    break;
+
+  case BENSON_VANDERBEI_1:
+  case BENSON_VANDERBEI_2:
+  case BENSON_VANDERBEI_3:
+    fv = CalcBensonVanderbei(-1, local, false,  f->type_);
+    break;
+
+  case TENSOR_TRACE:
+    fv = CalcTensorTrace(-1, local, false);
+    break;
+
+  case DESIGN_BOUND:
+    fv = CalcDesignBound(false);
     break;
 
   default:
@@ -1501,6 +1698,26 @@ void Function::Local::Identifier::EvalGradient(const Local* local)
 
     case PARAM_PS_POS_DEF:
       gv = CalcParamPSPosDef(n, true);
+      break;
+
+    case POS_DEF_DET_MINOR_1:
+    case POS_DEF_DET_MINOR_2:
+    case POS_DEF_DET_MINOR_3:
+      gv = CalcPosDefDeteminant(n, local, true, ft);
+      break;
+
+    case BENSON_VANDERBEI_1:
+    case BENSON_VANDERBEI_2:
+    case BENSON_VANDERBEI_3:
+      gv = CalcBensonVanderbei(n, local, true, ft);
+      break;
+
+    case TENSOR_TRACE:
+      gv = CalcTensorTrace(n, local, true);
+      break;
+
+    case DESIGN_BOUND:
+      gv = CalcDesignBound(true);
       break;
 
     default:
@@ -1916,6 +2133,7 @@ double Function::Local::Identifier::CalcParamPSPosDef(int neigh_idx, bool deriva
     case DesignElement::POISSON:
       return -2.0*nu31*E1;
     default:
+      assert(false);
       return 0.0;
     }
   else
@@ -1925,4 +2143,311 @@ double Function::Local::Identifier::CalcParamPSPosDef(int neigh_idx, bool deriva
   }
 }
 
+  double Function::Local::Identifier::CalcPosDefDeteminant(int neigh_idx, const Local* local, bool derivative, Type type) const
+  {
+    const Condition* g = dynamic_cast<const Condition*>(local->func_);
+
+    double v = g->GetParameter();
+    double eps = 1.0 * g->GetBoundValue();
+
+    Matrix<double> E;
+
+    // the sub-tensor-type does'nt matter
+    // we need the HILL_MANDEL representation which is the plain design while it is transformed to Voigt for simulation
+    local->space->GetErsatzMaterialTensor(E, PLANE_STRAIN, element->elem, DesignElement::NO_DERIVATIVE, DesignMaterial::HILL_MANDEL);
+
+    // LOG_DBG3(func) << "L::I::CPDD e_num=" << element->elem->elemNum << " v=" << v << " obs=" << obs << " eps=" <<  eps << " E=" << E.ToString(0, false);
+
+    // see e.g. the phd thesis of Sonja Lehmann chap. 6.4 for implementation
+    // for (E - v*I) >= 0 we have the determinants
+    // d_1 can also be implemented by box constraints!
+    // d_1 := e_11 - v >= 0
+    // d_2 := (e_11-v)*(e_22-v) - e_12^2 >= 0
+    // d_3 is done by Sonja using the Laplace formula, we use Sarrus
+    // d_3 := ...
+
+    double ret = -12345678.0;
+
+    double e11, e22, e33, e23, e13, e12;
+
+    switch(type)
+    {
+    case POS_DEF_DET_MINOR_1:
+         e11 = E[0][0];
+         // Standard: e11-v;
+         // Standard with eps: e11-v-eps;
+
+         if(!derivative)
+           // ret = e11-v-eps;
+           ret = e11-v;
+         else
+           ret = neigh_idx == -1 ? 1.0 : 0.0;
+         break;
+
+    case POS_DEF_DET_MINOR_2:
+         e11 = E[0][0];
+         e22 = E[1][1];
+         e12 = E[0][1];
+         // Standard: (e11-v)*(e22-v) - (e12*e12);
+         // Standard with eps: (e11-v-eps)*(e22-v) - (e12*e12) - eps;
+         if(!derivative)
+           ret = (e11-v-eps)*(e22-v) - (e12*e12);
+         else
+         {
+           switch(GetElement(neigh_idx)->GetType())
+           {
+             case DesignElement::TENSOR11: ret = e22-v; break;
+             // case DesignElement::TENSOR22: ret = e11-v-eps; break;
+             case DesignElement::TENSOR12: ret = -2.0 * e12; break;
+             case DesignElement::TENSOR22: ret = e11-v-eps; break;
+             default: assert(false);
+           }
+         }
+         break;
+
+    case POS_DEF_DET_MINOR_3:
+         e11 = E[0][0];
+         e22 = E[1][1];
+         e33 = E[2][2];
+         e23 = E[1][2];
+         e13 = E[0][2];
+         e12 = E[0][1];
+
+         // Sarrus: e11*e22*e33+e12*e23*e13+e13*e12*e23-e13*e22*e13-e12*e21*e33-e11*e23*e23;
+         // Sarrus symmetric: (e11-v)*(e22-v)*(e33-v) + 2.0*e12*e23*e13 - e13*(e22-v)*e13 - e12*e12*(e33-v) - (e11-v)*e23*e23;
+         // Sonja: (e33-v) *((e11-v)*(e22-v) - (e12*e12)) + 2.0* e12*e13 *e23 - e13**2 * (e22-v) - e23**2 * (e11-v)
+         // Sonja with eps: ((e33-v) *((e11-v-eps)*(e22-v) - (e12*e12) - eps) + 2.0* e12*e13 *e23 - e13**2 * (e22-v) - e23**2 * (e11-v-eps)) - eps;
+         if(!derivative)
+         {
+           ret = (e33-v) *((e11-v-eps)*(e22-v) - (e12*e12) - eps) + 2.0* e12*e13 *e23 - e13*e13 * (e22-v) - e23*e23 * (e11-v-eps);
+         }
+         else
+         {
+           switch(GetElement(neigh_idx)->GetType())
+           {
+             /** this are the nice gradients w.r.t Sarrus
+             case DesignElement::TENSOR11: ret = (e22-v)*(e33-v) - e23*e23; break;
+             case DesignElement::TENSOR22: ret = (e11-v)*(e33-v) - e13*e13; break;
+             case DesignElement::TENSOR33: ret = (e11-v)*(e22-v) - e12*e12; break;
+             case DesignElement::TENSOR23: ret = 2.0*e12*e13     - 2.0*e23*(e11-v); break;
+             case DesignElement::TENSOR13: ret = 2.0*e12*e23     - 2.0*e13*(e22-v); break;
+             case DesignElement::TENSOR12: ret = 2.0*e23*e13     - 2.0*e12*(e33-v); break;
+             */
+           case DesignElement::TENSOR11:
+             ret = (e22-v)*(e33-v) - e23*e23;
+             break;
+           case DesignElement::TENSOR12:
+             ret = 2.0*e23*e13     - 2.0*e12*(e33-v);
+             break;
+           case DesignElement::TENSOR22:
+             // Sarrus: ret = (e11-v)*(e33-v) - e13*e13;
+             ret = (e33 - v)*(e11- v - eps) - e13*e13;
+             // ret = (e11-v)*(e33-v) - e13*e13;
+             break;
+           case DesignElement::TENSOR23:
+             // Sarrus: ret = 2.0*e12*e13     - 2.0*e23*(e11-v);
+             ret = 2.0*e12*e13 - 2.0*e23*(- v - eps + e11);
+             // ret = 2.0*e12*e13     - 2.0*e23*(e11-v);
+             break;
+           case DesignElement::TENSOR13:
+             ret = 2.0*e12*e23     - 2.0*e13*(e22-v);
+             break;
+           case DesignElement::TENSOR33:
+             // Sarrus: ret = (e11-v)*(e22-v) - e12*e12;
+             ret = (e22 - v) * (- v - eps + e11) - eps - e12*e12;
+             // ret = (e11-v)*(e22-v) - e12*e12;
+             break;
+           default: assert(false);
+           }
+         }
+         break;
+
+    default: assert(false);
+             break;
+    } // end switch f->GetType()
+    assert(ret != 12345678.0);
+    LOG_DBG3(func) << "L::I::CPDD e_num=" << element->elem->elemNum << " g=" << Function::type.ToString(g->GetType()) << " for " << Function::type.ToString(type)
+                   << " ni=" << neigh_idx << " v=" << v << "  des=" << DesignElement::type.ToString(GetElement(neigh_idx)->GetType()) << " d=" << derivative << " -> " << ret;
+    return ret;
+  }
+
+  double Function::Local::Identifier::CalcBensonVanderbei(int neigh_idx, const Local* local, bool derivative, Type type) const
+  {
+    const Condition* g = dynamic_cast<const Condition*>(local->func_);
+    Matrix<double> E;
+    // (E - v*I) >= gamma
+    double v = g->GetParameter();
+    // in case, we are used as "approximation" of the benson vanderbei constraints:
+    //   det1(x) = bv1(x) - eps  <-- this eps is also on the left side!!
+    double eps = g->GetBoundValue();
+
+    // the sub-tensor-type does'nt matter
+    // we need the HILL_MANDEL representation which is the plain design while it is transformed to Voigt for simulation
+    local->space->GetErsatzMaterialTensor(E, PLANE_STRAIN, element->elem, DesignElement::NO_DERIVATIVE, DesignMaterial::HILL_MANDEL);
+
+    LOG_DBG3(func) << "L::I::CBV e_num=" << element->elem->elemNum << " v=" << v << " E=" << E.ToString(0, false);
+
+    // See thesis of Sonja Lehmann (6.54) to (6.56)
+
+    double ret = -12345678.0;
+
+    // soja: e1   e2   e3   e4   e5   e6
+    double   e11, e12, e22, e13, e23, e33;
+
+    switch(type)
+    {
+    case BENSON_VANDERBEI_1:
+         e11 = E[0][0];
+         if(!derivative)
+           // ret = e11-v;
+           ret = e11-v-eps;
+         else
+           ret = neigh_idx == -1 ? 1.0 : 0.0;
+         break;
+
+    case BENSON_VANDERBEI_2:
+         e11 = E[0][0];
+         e22 = E[1][1];
+         e12 = E[0][1];
+         if(!derivative)
+           // (e3-v) - e2*e2/(e1-v)
+           //ret = (e22-v) - (e12*e12)/(e11-v);
+           ret = (e22-v) - (e12*e12)/(e11-v-eps);
+         else
+         {
+           switch(GetElement(neigh_idx)->GetType())
+           {
+             case DesignElement::TENSOR11:
+               // ret = (e12*e12)/((e11-v)*(e11-v));
+               ret = (e12*e12)/((e11-v-eps)*(e11-v-eps));
+               break;
+             case DesignElement::TENSOR12:
+               ret = -2.0 * e12/(e11-v-eps);
+               break;
+             case DesignElement::TENSOR22:
+               ret = 1.0;
+               break;
+             default: assert(false);
+           }
+         }
+         break;
+
+    case BENSON_VANDERBEI_3:
+         e11 = E[0][0];
+         e22 = E[1][1];
+         e33 = E[2][2];
+         e23 = E[1][2];
+         e13 = E[0][2];
+         e12 = E[0][1];
+
+         if(!derivative)
+         {
+           // (e6-v) + (2.0*e2*e4*e5 - e4*e4*(e3-v) - e5*e5*(e1-v))/((e3-v)*(e1-v)-e2*e2);
+           // ret = (e33-v) + (2.0*e12*e13*e23 - e13*e13*(e22-v) - e23*e23*(e11-v))/((e22-v)*(e11-v)-e12*e12);
+           // from maxima: (d3 -eps) / (d2 - eps)
+           ret = (-e23*e23 *(- v - eps + e11) + ((e22 - v)* (- v - eps + e11) - eps - e12*e12 )
+               *  (e33 - v) - e13*e13 * (e22 - v) - eps + 2.0 * e12 * e13 * e23)
+               /((e22 - v) * (- v - eps + e11) - eps - e12*e12 );
+
+         }
+         else
+         {
+           switch(GetElement(neigh_idx)->GetType())
+           {
+             // case DesignElement::TENSOR11: ret = -((-e13*e13*(e22-v)-e23*e23*(e11-v)+2.0*e12*e13*e23)*(e22-v))
+             //                                    / pow((e11-v)*(e22-v)-e12*e12, 2)
+             //                                  - (e23*e23)
+             //                                    / ((e11-v)*(e22-v)-e12*e12);
+           case DesignElement::TENSOR11: ret = ( (e22 - v) * (e33 - v) - e23*e23) / ((e22 - v) * (- v - eps + e11) - eps - e12*e12 )
+                                             - ((-e23 *e23 * (- v - eps + e11) + ((e22 - v) * (- v - eps + e11) - eps - e12*e12 )
+                                             * (e33 - v) - e13 * e13 * (e22 - v) - eps + 2.0 * e12 * e13 * e23) * (e22 - v))
+                                             / pow(((e22 - v) *(- v - eps + e11) - eps - e12*e12 ), 2);
+
+             break;
+             // case DesignElement::TENSOR12: ret = (2.0*e13*e23)
+             //                                    / ((e11-v)*(e22-v)-e12*e12)
+             //                                  + (2.0*e12*(-e13*e13*(e22-v)-e23*e23*(e11-v)+2.0*e12*e13*e23))
+             //                                     / pow((e11-v)*(e22-v)-e12*e12, 2);
+           case DesignElement::TENSOR12: ret = (2.0 * e13 * e23 - 2.0 * e12 * (e33 - v) ) / ((e22 - v) * (- v - eps + e11) - eps - e12*e12)
+                                             + (2.0 * e12 *(- e23*e23 * (- v - eps + e11) + ((e22 - v)* (- v - eps + e11) - eps
+                                             - e12*e12 ) * (e33 - v) - e13 * e13 * (e22 - v) - eps + 2.0 * e12 * e13  * e23))
+                                             / pow(((e22 - v) * (- v - eps + e11) - eps - e12*e12 ), 2);
+
+
+             break;
+             // case DesignElement::TENSOR22: ret = -((-e13*e13*(e22-v)-e23*e23*(e11-v)+2.0*e12*e13*e23)*(e11-v))
+             //                                    / pow((e11-v)*(e22-v)-e12*e12,2)
+             //                                  - (e13*e13)
+             //                                    / ((e11-v)*(e22-v)-e12*e12);
+           case DesignElement::TENSOR22: ret = ((e33 - v)* (- v - eps + e11) - e13*e13) / ((e22 - v) * (- v - eps + e11) - eps - e12*e12)
+                                             - ((- e23*e23 * (- v - eps + e11) + ((e22 - v) * (- v - eps + e11) - eps - e12*e12 )
+                                             *  (e33 - v) - e13*e13 * (e22 - v) - eps + 2.0 * e12 * e13 * e23) * (- v - eps + e11))
+                                             / pow((e22 - v) * (- v - eps + e11) - eps - e12*e12 , 2);
+
+             break;
+             // case DesignElement::TENSOR13: ret = (2.0*e12*e23-2.0*e13*(e22-v))
+             //                                    / ((e11-v)*(e22-v)-e12*e12);
+           case DesignElement::TENSOR13: ret = (2.0 * e12 * e23 - 2.0 *e13 * (e22 - v))
+                                             / ((e22 - v) * (- v - eps + e11) - eps - e12*e12);
+             break;
+             // case DesignElement::TENSOR23: ret = (2.0*e12*e13-2.0*e23*(e11-v))
+             //                                      / ((e11-v)*(e22-v)-e12*e12);
+           case DesignElement::TENSOR23: ret = ( 2.0 * e12 * e13 - 2.0 * e23 * (- v - eps + e11))
+                                             / ((e22 - v) * (- v - eps + e11) - eps - e12*e12);
+             break;
+             case DesignElement::TENSOR33: ret = 1.0;
+             break;
+             default: assert(false);
+           }
+         }
+         break;
+
+    default: assert(false);
+             break;
+    } // end switch f->GetType()
+    assert(ret != 12345678.0);
+    LOG_DBG3(func) << "L::I::CBV e_num=" << element->elem->elemNum << " g=" << Function::type.ToString(g->GetType())
+                   << " ni=" << neigh_idx << "  des=" << DesignElement::type.ToString(GetElement(neigh_idx)->GetType()) << " d=" << derivative << " -> " << ret;
+    return ret;
+  }
+
+
+
+  double Function::Local::Identifier::CalcTensorTrace(int neigh_idx, const Local* local, bool derivative) const
+  {
+    Matrix<double> E;
+    DesignMaterial::Notation notation = local->func_->notation_;
+    const DesignElement* de = GetElement(neigh_idx);
+    local->space->GetErsatzMaterialTensor(E, PLANE_STRAIN, element->elem, derivative ? de->GetType() : DesignElement::NO_DERIVATIVE, notation); // the sub-tensor-type does'nt matter
+
+    LOG_DBG3(func) << "L::I::CTT e_num=" << element->elem->elemNum << " E=" << E.ToString(0, false);
+
+    double ret = 0.0;
+
+    if(!derivative)
+      ret = E[0][0] + E[1][1] + E[2][2];
+    else
+      ret = de->GetType() == DesignElement::TENSOR33 ? E[2][2] : 1.0;
+
+    assert(!(derivative && notation == DesignMaterial::HILL_MANDEL && ret != 1.0));
+    assert(!(derivative && notation == DesignMaterial::VOIGT && de->GetType() == DesignElement::TENSOR33 && ret != 0.5));
+
+    LOG_DBG3(func) << "L::I::CTT e_num=" << element->elem->elemNum << " ni=" << neigh_idx << " d=" << derivative << " -> " << ret << " E=" << E.ToString();
+    return ret;
+  }
+
+  double Function::Local::Identifier::CalcDesignBound(bool derivative) const
+  {
+    assert(this->neighbor.GetSize() == 0);
+
+    double val  = element->GetDesign(DesignElement::PLAIN);
+
+    assert(val == element->GetDesign(DesignElement::SMART)); // we shall not perform density filtering!
+
+    double ret = derivative ? 1.0 : val;
+
+    LOG_DBG3(func) << "L::I::CDB e=" << element->elem->elemNum << " d=" << element->type.ToString(element->GetType()) << " v=" << val << " d=" << derivative << " -> " << ret;
+
+    return ret;
+  }
 

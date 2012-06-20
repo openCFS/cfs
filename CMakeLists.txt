@@ -35,15 +35,15 @@ PROJECT(CFS C CXX Fortran)
 #-----------------------------------------------------------------------------
 # CFS version number.  Simply the last modification date
 #-----------------------------------------------------------------------------
-SET(CFS_VERSION_YEAR "11")
-SET(CFS_VERSION_MONTH "09")
+SET(CFS_VERSION_YEAR "12")
+SET(CFS_VERSION_MONTH "05")
 SET(CFS_VERSION
   "${CFS_VERSION_YEAR}.${CFS_VERSION_MONTH}")
 
 #-----------------------------------------------------------------------------
 # Version Name. Every major release gets a label/name
 #-----------------------------------------------------------------------------
-SET(CFS_NAME "Heldendaemmerung")
+SET(CFS_NAME "Legacy")
 
 #-----------------------------------------------------------------------------
 # Set hostname of build host
@@ -167,6 +167,8 @@ SET(USE_METIS ${USE_METIS_DEFAULT}
 # SCPIP optimizer library.
 #-----------------------------------------------------------------------------
 OPTION(USE_SCPIP "Use the external SCPIP optimizer." ${USE_SCPIP_DEFAULT})
+OPTION(USE_FEAS_SCP "Use the external Feasible SCPIP optimizer." FALSE)
+
 
 #-----------------------------------------------------------------------------
 # Yet another optimization library.
@@ -287,7 +289,6 @@ MARK_AS_ADVANCED(USE_MESH)
 MARK_AS_ADVANCED(USE_MPCCI)
 MARK_AS_ADVANCED(USE_XERCES)
 MARK_AS_ADVANCED(USE_KNITRO)
-MARK_AS_ADVANCED(USE_IPOPT)
 MARK_AS_ADVANCED(CMAKE_BUILD_TYPE)
 MARK_AS_ADVANCED(CMAKE_BACKWARDS_COMPATIBILITY)
 MARK_AS_ADVANCED(CMAKE_INSTALL_PREFIX)

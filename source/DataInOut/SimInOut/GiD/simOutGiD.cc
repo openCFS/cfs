@@ -86,7 +86,7 @@ namespace CoupledField {
     // concatenate output file name
     try {
       fs::create_directory( dirName_ );
-      pathsep = fs::path("/").native_directory_string();
+      pathsep = fs::path("/").string();
     } catch (std::exception &ex) {
       EXCEPTION(ex.what());
     }

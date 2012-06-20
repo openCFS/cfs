@@ -178,7 +178,7 @@ namespace CoupledField {
         normal_.Inner(line, sign);
         sign /= fabs(sign);
 
-        if(std::isnan(sign))
+        if(isnan(sign))
           continue;
         
         // scale the distance for the normal projection

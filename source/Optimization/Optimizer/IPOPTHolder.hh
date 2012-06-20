@@ -1,12 +1,12 @@
 #ifndef IPOPTHOLDER_HH_
 #define IPOPTHOLDER_HH_
 
-#include "Optimization/BaseOptimizer.hh"
-#include "Optimization/IPOPT.hh"
+#include "Optimization/Optimizer/BaseOptimizer.hh"
+#include "Optimization/Optimizer/IPOPT.hh"
 
 namespace CoupledField
 {
-  /** This class wrappes our IPOPT implementation to seperate the
+  /** This class wraps our IPOPT implementation to separate the
    * IPOPT SmaprtPointer implementation from the Optimization stuff */
   class IPOPTHolder : public BaseOptimizer
   {

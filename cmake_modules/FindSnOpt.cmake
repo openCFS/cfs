@@ -11,33 +11,26 @@
 
 SET(SNOPT_FOUND 0)
 
-SET(F2C "/usr/bin" CACHE FILEPATH "Path to f2c binary.")
-MARK_AS_ADVANCED(F2C)
-
-SET(F2CINCLUDE "/usr/include" CACHE FILEPATH "Path to f2c include directory.")
-MARK_AS_ADVANCED(F2CINCLUDE)
-
-SET(F2CLIBRARY "/usr/lib" CACHE FILEPATH "Path to f2c libraries.")
-MARK_AS_ADVANCED(F2CLIBRARY)
-
 #-------------------------------------------------------------------------------
-# Look for f2c variables
+# copy key from platform defaults to environment to have it handy for perl
 #-------------------------------------------------------------------------------
 CONFIGURE_FILE("${CFS_DEPS_ROOT}/snopt/build_snopt_vars.pl.in"
   "${CFS_TEMP_DIR}/build_snopt_vars.pl"
   @ONLY )
-
 
 BUILD_EXTLIB("SnOpt"
   "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}/libsnopt.a"
   "${CFS_DEPS_ROOT}/snopt/build_snopt.pl"
   "build_snopt.log")
 
+# remove the vars file again, it contains the password
+FILE(REMOVE "${CFS_TEMP_DIR}/build_snopt_vars.pl")
+
 #-------------------------------------------------------------------------------
 # Determine paths of SNOPT libraries.
 #-------------------------------------------------------------------------------
 SET(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}")
-SET(SNOPT_LIBRARY "${LD}/libsnopt.a;${LD}/libsnopt-blas.a;${LD}/libsnprint.a;-lm" 
+SET(SNOPT_LIBRARY "${LD}/libsnopt.a;${LD}/libsnprint.a;-lm" 
     CACHE FILEPATH "SnOpt library.")
 
 MARK_AS_ADVANCED(SNOPT_LIBRARY)

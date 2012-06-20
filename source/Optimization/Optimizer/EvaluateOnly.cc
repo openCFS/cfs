@@ -21,7 +21,7 @@ EvaluateOnly::EvaluateOnly(Optimization* optimization, PtrParamNode pn)
   // reduce to our actual ParamNode
   pn = pn->Get(Optimization::optimizer.ToString(Optimization::EVALUATE_INITIAL_DESIGN), ParamNode::PASS);
 
-  PostInit(1.0, true);
+  PostInitScale(1.0, true);
 }
 
 void EvaluateOnly::SolveProblem()

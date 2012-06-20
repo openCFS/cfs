@@ -21,12 +21,17 @@ def read_density(filename, attribute="design", x = None, y = None, z = None):
 
   tree = etree.parse(filename, etree.XMLParser(remove_comments=True))
   root = tree.getroot()
-  if x == None:
+  if x == None and len(root.xpath("//mesh/@x")) > 0:
     x = int(root.xpath("//mesh/@x")[0])
-  if y == None:  
+  if y == None and len(root.xpath("//mesh/@y")) > 0:  
     y = int(root.xpath("//mesh/@y")[0])
-  if z == None:
+  if z == None and len(root.xpath("//mesh/@z")) > 0:
     z = int(root.xpath("//mesh/@z")[0])
+
+  if x == None and y == None and z == None:
+    x = len(vals)
+    y = 1
+    z = 1
 
   assert(x > 0 and y > 0 and z > 0)  
 

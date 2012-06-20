@@ -190,6 +190,18 @@ namespace CoupledField
         }
         break;
 
+      case 2:
+        os << "[";
+        for(UInt j = 0; j < size_row_; j++)
+        {
+          for(UInt i = 0; i < size_col_; i++)
+            os << data_[j][i] << (i < size_col_-1 ? " " : "");
+          if(j < size_row_-1)
+            os << "; ";
+        }
+        os << "]";
+        break;
+
 
       default:
         os << "size_row=" << size_row_ << " size_col=" << size_col_;
@@ -1462,7 +1474,7 @@ namespace CoupledField
   bool Matrix<TYPE>::ContainsNaN() const
   {
     for(UInt k = 0, s = size_row_ * size_col_; k < s; ++k)
-      if(std::isnan(data_[0][k])) return true;
+      if(isnan(data_[0][k])) return true;
 
     return false;
   }
@@ -1472,8 +1484,8 @@ namespace CoupledField
   {
     for(UInt k = 0, s = size_row_ * size_col_; k < s; ++k)
     {
-      if(std::isnan(data_[0][k].real())) return true;
-      if(std::isnan(data_[0][k].imag())) return true;
+      if(isnan(data_[0][k].real())) return true;
+      if(isnan(data_[0][k].imag())) return true;
     }
     return false;
   }
@@ -1483,7 +1495,7 @@ namespace CoupledField
   bool Matrix<TYPE>::ContainsInf() const
   {
     for(UInt k = 0, s = size_row_ * size_col_; k < s; ++k)
-      if(std::isinf(data_[0][k])) return true;
+      if(isinf(data_[0][k])) return true;
 
     return false;
   }
@@ -1493,8 +1505,8 @@ namespace CoupledField
   {
     for(UInt k = 0, s = size_row_ * size_col_; k < s; ++k)
     {
-      if(std::isinf(data_[0][k].real())) return true;
-      if(std::isinf(data_[0][k].imag())) return true;
+      if(isinf(data_[0][k].real())) return true;
+      if(isinf(data_[0][k].imag())) return true;
     }
     return false;
   }

@@ -8,6 +8,7 @@
 #include "stdio.h"
 #include <iomanip>
 #include <sstream>
+#include <set>
 
 #include "boost/tokenizer.hpp"
 #include "boost/algorithm/string/trim.hpp"

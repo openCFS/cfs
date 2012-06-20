@@ -405,26 +405,27 @@ namespace CoupledField
      * vector is empty. */
     ParamNodeList children_;
     
-    /** pointer to father node */
-    ParamNode *parent_;
-    
     /** default action for non-existing nodes */
     ActionType defaultAction_;
     
     /** cache variable for last Get() result */
     int lastresultidx_;
    
-  private:
+    /** Root notes have a file to optionally control too frequent writing.
+     * This only affects ParamNode::ToFile(), writing can be force via new parameter of ToFile */
+    struct WriteTimer
+    {
+    public:
+      WriteTimer();
 
-    /** write_timer restricts the number of times the info.xml file is written
-     *  if not enough time has passed, the file is not written
-     *  this only affects ParamNode::ToFile()
-     *  writing can be force via new parameter of ToFile */
-    boost::shared_ptr<Timer> write_timer_;
-    /** how often the file is actually written */
-    unsigned int write_counter_;
-    /** how often we rejected writing the info.xml-file */
-    unsigned int reject_counter_;
+      boost::shared_ptr<Timer> timer;
+      /** how often the file is actually written */
+      unsigned int write_counter;
+      /** how often we rejected writing the info.xml-file */
+      unsigned int reject_counter;
+    };
+
+    boost::shared_ptr<WriteTimer> write_timer_;
   }; 
 
 
