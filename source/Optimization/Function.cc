@@ -1860,6 +1860,7 @@ double Function::Local::Identifier::CalcSumModuli() const
     case DesignElement::POISSON:
     case DesignElement::POISSONISO:
     case DesignElement::DENSITY:
+    case DesignElement::ROTANGLE:
       break;
 
     default:

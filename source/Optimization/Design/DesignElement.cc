@@ -426,7 +426,7 @@ double DesignElement::GetPhysicalDesign(bool densForElec) const
 
 bool DesignElement::HasPhysicalDesign() const
 {
-  return(type_ == DENSITY || type_ == POLARIZATION || type_ == ACOU_DENSITY);
+  return(type_ == DENSITY || type_ == POLARIZATION || type_ == ACOU_DENSITY || simp->filter.type_ == Filter::DENSITY);
 }
 
 

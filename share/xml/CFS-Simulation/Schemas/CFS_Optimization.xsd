@@ -740,7 +740,7 @@
                     <xsd:complexType>
                       <xsd:sequence>
                         <!-- every regularization needs to define the type explicitly -->
-                        <xsd:element name="filter" minOccurs="1" type="DT_Filter"/>
+                        <xsd:element name="filter" minOccurs="1" maxOccurs="unbounded" type="DT_Filter"/>
                       </xsd:sequence>
                       
                       <xsd:attribute name="type" use="required">
@@ -1428,6 +1428,8 @@
   <!-- This defines a filter. Which is either density or sensitivity filter. The density filter can also be
     of Heaviside/tanh type. To be used in regularization and for the projection constraint -->
   <xsd:complexType name="DT_Filter">
+    
+       
     <!-- optional sub element for target sensitivity filter -->
     <xsd:sequence>
       <xsd:element name="sensitivity" minOccurs="0" maxOccurs="1">
@@ -1492,6 +1494,8 @@
     
     <xsd:attribute name="value" use="required" type="xsd:float" />
     
+    <!--  For multiple designs this is the design that is filtered. Default: All designs -->
+    <xsd:attribute name="design" use="optional" type="DT_Design" default="allDesigns"/>    
     
     <!-- how the distance affects the weighting.  -->
     <xsd:attribute name="contribution" use="optional" default="linear">

@@ -106,6 +106,12 @@ Optimization::Application TransferFunction::Default(DesignElement::Type type)
   switch(type)
   {
   case DesignElement::DENSITY:
+  case DesignElement::EMODUL:
+  case DesignElement::EMODULISO:
+  case DesignElement::GMODUL:
+  case DesignElement::POISSON:
+  case DesignElement::POISSONISO:
+  case DesignElement::ROTANGLE:
     return Optimization::MECH;
   case DesignElement::ACOU_DENSITY:
     return Optimization::LAPLACE;
