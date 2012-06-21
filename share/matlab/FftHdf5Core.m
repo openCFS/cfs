@@ -345,7 +345,7 @@ for i=1:numfiles
 
   clear ds
 
-  fprintf('Writing step %d of %d\n', i, numharmsteps)
+  fprintf('Writing step %d of %d\n', i, numfiles)
 
   % write to final output file
   dataset = sprintf('%s/Real', outpath);
