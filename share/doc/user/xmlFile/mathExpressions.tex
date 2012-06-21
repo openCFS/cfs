@@ -364,21 +364,21 @@ formatted text file. This can be used e.g. to prescribe
 space/time/frequency-dependent boundary or load conditions.
 %
 \begin{mathFunc}
-{sampled1D(filename, interpolation, sampleval)}
+{sampled1D(filename, sampleval, interpolation)}
 \param{filename} & Name of the file to be read (any path in the filename is
 taken relative to the location of the .xml-file). The file must consist of
 exactly 2 columns, which are separated by any whitespace (space, tab). \\
+\param{sampleval} & Denotes the sample value (value of the 1st column), for
+which a value in the 2nd column is seeked. In most cases either the current
+time \xatv{t} or a coordinate component (\xatv{x},\xatv{y}, \xatv{z}) may be
+used. \\
 \param{interpolation} & There are 3 different methods for interpolating the
 sampled values:
 \begin{itemize}
  \item 0: Nearest neighbor is taken (i.e. no interpolation at all)
  \item 1: Linear interpolation
  \item 2: Cubic spline interpolation
-\end{itemize} \\
-\param{sampleval} & Denotes the sample value (value of the 1st column ), for
-which a value in the 2nd column is seeked. In most cases either the current
-time \xatv{t} or a coordinate component (\xatv{x},\xatv{y}, \xatv{z}) may be
-used.
+\end{itemize}
 \end{mathFunc}
 %
 We can subscribe boundary conditions with values read in from sample files.
