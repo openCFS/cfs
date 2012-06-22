@@ -2182,7 +2182,7 @@ double Function::Local::Identifier::CalcParamPSPosDef(int neigh_idx, bool deriva
          // Standard: (e11-v)*(e22-v) - (e12*e12);
          // Standard with eps: (e11-v-eps)*(e22-v) - (e12*e12) - eps;
          if(!derivative)
-           ret = (e11-v-eps)*(e22-v) - (e12*e12);
+           ret = (e11-v-eps)*(e22-v) - (e12*e12) -eps;
          else
          {
            switch(GetElement(neigh_idx)->GetType())
@@ -2210,7 +2210,7 @@ double Function::Local::Identifier::CalcParamPSPosDef(int neigh_idx, bool deriva
          // Sonja with eps: ((e33-v) *((e11-v-eps)*(e22-v) - (e12*e12) - eps) + 2.0* e12*e13 *e23 - e13**2 * (e22-v) - e23**2 * (e11-v-eps)) - eps;
          if(!derivative)
          {
-           ret = (e33-v) *((e11-v-eps)*(e22-v) - (e12*e12) - eps) + 2.0* e12*e13 *e23 - e13*e13 * (e22-v) - e23*e23 * (e11-v-eps);
+           ret = (e33-v) *((e11-v-eps)*(e22-v) - (e12*e12) - eps) + 2.0* e12*e13 *e23 - e13*e13 * (e22-v) - e23*e23 * (e11-v-eps) -eps;
          }
          else
          {
