@@ -51,7 +51,7 @@ using std::string;
 //coefFunctions
 #include "Domain/CoefFunction/CoefFunctionConst.hh"
 #include "Domain/CoefFunction/CoefFunctionExpression.hh"
-#include "Domain/CoefFunction/CoefFunctionGrid.hh"
+#include "Domain/CoefFunction/CoefFunctionNodalGrid.hh"
 
 // new postprocessing concept
 #include "Domain/Results/ResultFunctor.hh"
@@ -1486,9 +1486,11 @@ namespace CoupledField {
     // switch type of coef function
     if( valueNode->Has("grid") ) {
       if(!isComplex) {
-        coef.reset(new CoefFunctionGridBase<Double>(valueNode->Get("grid")));
+        //this is hardcoded so far. should be changed or generated depending on the type
+        //of grid (nodal or higher order)
+        coef.reset(new CoefFunctionNodalGrid<Double>(valueNode->Get("grid")));
       } else {
-        coef.reset(new CoefFunctionGridBase<Complex>(valueNode->Get("grid")));
+        coef.reset(new CoefFunctionNodalGrid<Complex>(valueNode->Get("grid")));
       }
     }else{
       // Note: In case someone request a "vector" valued result and

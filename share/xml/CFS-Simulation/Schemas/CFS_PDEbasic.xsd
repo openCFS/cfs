@@ -63,6 +63,7 @@
               <xsd:attribute name="quantity" use="required"/>
             </xsd:complexType>
           </xsd:element>
+          <xsd:element name="factor" maxOccurs="1" minOccurs="0" default="1" type="xsd:token"/>
           <xsd:element name="regionList">
             <xsd:complexType>
               <xsd:sequence>

@@ -28,7 +28,8 @@ namespace CoupledField{
 
 template<class DATA_TYPE>
 CoefFunctionGridBase<DATA_TYPE>::CoefFunctionGridBase(PtrParamNode configNode){
-  this->ReadXmlNode(configNode);
+  //This is nbot very good....
+  ReadXmlNode(configNode);
 
   dependType_ = GENERAL;
 

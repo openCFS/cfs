@@ -93,7 +93,7 @@ class CoefFunctionGridBase : public CoefFunction{
 
   protected:
     //! reads information from configNode
-    void ReadXmlNode(PtrParamNode configNode);
+    virtual void ReadXmlNode(PtrParamNode configNode);
 
     //! input reader Id for this function
     std::string inputId_;
@@ -132,7 +132,6 @@ class CoefFunctionGridBase : public CoefFunction{
     //! stores the current stepnumber of external result
     UInt curStep_;
 
-  private:
     bool isStatic_;
 
 };

@@ -6,6 +6,7 @@ SET(COEFFUNCTION_SRCS
   CoefFunctionConst.cc
   CoefFunctionExpression.cc
   CoefFunctionGrid.cc
+  CoefFunctionNodalGrid.cc
   CoefFunctionMulti.cc
   CoefFunctionTimeFreq.cc
   CoefFunctionSurf.cc

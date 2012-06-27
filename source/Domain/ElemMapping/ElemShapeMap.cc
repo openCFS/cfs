@@ -289,6 +289,14 @@ void LagrangeElemShapeMap::Local2Global( Vector<Double>& globPoint,
 void LagrangeElemShapeMap::Global2Local( Vector<Double>& locPoint, 
                                          const Vector<Double>& globalPoint ) {
 
+  // first of all check if the coorinate
+     //// coincides with one node
+     bool isNode = Global2LocalOnNode(locPoint,globalPoint);
+     if(isNode){
+       return;
+     }else{
+       locPoint.Init();
+     }
 
     Elem::FEType curType = ptFe_->FeType();
     switch(curType){
@@ -296,11 +304,44 @@ void LagrangeElemShapeMap::Global2Local( Vector<Double>& locPoint,
       //Global2LocalGeneral(locPoint,globalPoint);
       Global2LocalQuad4(locPoint,globalPoint);
       break;
+    case Elem::ET_HEXA20:
+    case Elem::ET_HEXA27:
+    case Elem::ET_HEXA8:
+    case Elem::ET_QUAD8:
+    case Elem::ET_QUAD9:
+      Global2LocalDuester(locPoint,globalPoint);
+      break;
     default:
       Global2LocalGeneral(locPoint,globalPoint);
       break;
     }
   }
+
+bool LagrangeElemShapeMap::Global2LocalOnNode(Vector<Double>& locPoint,
+                            const Vector<Double>& glob){
+
+  //first get the local node coordinates of the given element
+  Vector<Double> curNodeGlobCoord;
+  Vector<Double> diffVec;
+  LocPoint curNodePoint;
+  curNodePoint.coord.Resize(coords_.GetNumRows(),0.0);
+  locPoint.Resize(coords_.GetNumRows());
+  bool retVal = false;
+  for(UInt i=0;i<coords_.GetNumCols();i++){
+    for(UInt d = 0; d < shape_.dim;++d){
+      curNodePoint.coord[d] = shape_.nodeCoords[i][d];
+    }
+    Local2Global(curNodeGlobCoord,curNodePoint);
+    diffVec = glob - curNodeGlobCoord;
+    if(diffVec.NormL2() < 1e-10){
+      locPoint = curNodePoint.coord;
+      retVal = true;
+      break;
+    }
+  }
+  return retVal;
+}
+
 
 void LagrangeElemShapeMap::Global2LocalQuad4( Vector<Double>& locPoint,
                                          const Vector<Double>& globalPoint ){
@@ -475,6 +516,190 @@ void LagrangeElemShapeMap::Global2LocalQuad4( Vector<Double>& locPoint,
        locPoint[j] = xi_k[j];
      }*/
    }
+
+
+void LagrangeElemShapeMap::Global2LocalDuester(Vector<Double>& locPoint,
+                                               const Vector<Double>& globalPoint){
+//Version 0 algorithm from duester script
+  Vector<Double> delta_xi; // update for Newton-Raphson method
+  Vector<Double> xi_start; // local start point for Newton-Raphson method
+  Vector<Double> xi_k; // local point at iteration k
+  Vector<Double> f; //current right hand side
+  Vector<Double> f_start; //current right hand side
+  Double f_old; //storing the absolute value of search direction
+  Double f_test; //storing the absolute value of search direction
+  UInt k = 0; //iteration counter
+  Integer l = 0; //stepping value
+  Double jacDet = 0;
+  Matrix<Double> J; // Jacobian at local point xi_k
+  UInt elemDim = globalPoint.GetSize();
+  Double j11,j12,j13,j21,j22,j23,j31,j32,j33;
+
+  locPoint.Resize(elemDim);
+  locPoint.Init();
+
+  Double tolerance = 1e-8;
+
+  //initialize everything
+
+
+  xi_start.Resize(elemDim);
+  delta_xi.Resize(elemDim);
+  xi_k.Resize(elemDim);
+  J.Resize(elemDim, elemDim);
+
+  //first initial guess is zero
+  f.Resize(elemDim);
+
+  // Perform Newton-Raphson method on the list of global points
+  // to find local coordinates within this element.
+
+  f.Init();
+  J.Init();
+  xi_start.Init();
+  xi_k.Init();
+  k = 0;
+  f_old = 222e20;
+  f_test = 0;
+
+  Local2Global(f, xi_k);
+
+  f = f - globalPoint;
+  f_old = f.NormL2();
+  f_start = f;
+  if(elemDim == 1){
+    for(Double w=0.5; w <= 1.0; w+=0.5){
+      for(UInt j=1;j<3;j++){
+        xi_k[0] = pow(-1,j)*w;
+        Local2Global(f, xi_k);
+        f = f - globalPoint;
+        f_test = f.NormL2();
+        if(f_old > f_test){
+          xi_start  = xi_k;
+          f_start = f;
+          f_old = f_test;
+        }
+      }
+    }
+  }else if(elemDim == 2){
+    for(Double w=0.5; w <= 1.0; w+=0.5){
+      for(UInt j=1;j<3;j++){
+        for(UInt m=1;m<3;m++){
+          xi_k[0] = pow(-1,j)*w;
+          xi_k[1] = pow(-1,m)*w;
+          Local2Global(f, xi_k);
+          f = f - globalPoint;
+          f_test = f.NormL2();
+          if(f_old > f_test){
+            xi_start  = xi_k;
+            f_start = f;
+            f_old = f_test;
+          }
+        }
+      }
+    }
+  }else if (elemDim == 3){
+    for(Double w=0.5; w <= 1.0; w+=0.5){
+      for(UInt j=1;j<3;j++){
+        for(UInt m=1;m<3;m++){
+          for(UInt n=1;n<3;n++){
+            xi_k[0] = pow(-1,j)*w;
+            xi_k[1] = pow(-1,m)*w;
+            xi_k[2] = pow(-1,n)*w;
+            Local2Global(f, xi_k);
+            f = f - globalPoint;
+            f_test = f.NormL2();
+            if(f_old > f_test){
+              xi_start  = xi_k;
+              f_start = f;
+              f_old = f_test;
+            }
+          }
+        }
+      }
+    }
+  }
+  xi_k = xi_start;
+  f = f_start;
+  while(f_test > tolerance && k < 30){
+     delta_xi.Init();
+     xi_start.Init();
+     // Calculate Jacobian at iteration point xi_k
+     this->CalcJ(J,xi_k);
+     if(elemDim==2){
+       jacDet = + J[0][0]*J[1][1] - J[1][0]*J[0][1];
+       //  ( f_0  J_01 )
+       //  ( f_1  J_11 )
+       delta_xi[0] =  (-J[1][1]*f[0] + J[0][1]*f[1])/jacDet;
+
+       //  ( J_00  f_0 )
+       //  ( J_10  f_1 )
+       delta_xi[1] =  (-J[0][0]*f[1] + J[1][0]*f[0])/jacDet;
+       //xi_start = xi_k + (delta_xi * 2.0);
+       //Local2GlobalCoord(f, xi_start, coordMat, NULL);
+       //f = f - globalPoint;
+       //f_test = f.NormL2();
+     }else if(elemDim==3){
+       j11 = J[0][0]; j12 = J[0][1]; j13 = J[0][2];
+       j21 = J[1][0]; j22 = J[1][1]; j23 = J[1][2];
+       j31 = J[2][0]; j32 = J[2][1]; j33 = J[2][2];
+
+       jacDet =   j11*j22*j33 - j11*j32*j23 - j21*j12*j33
+                 + j32*j21*j13 - j22*j31*j13 + j31*j12*j23;
+
+       delta_xi[0] = - j22*j33 * f[0] + j32*j23 * f[0]
+                     - j32*j13 * f[1] + j12*j33 * f[1]
+                     - j12*j23 * f[2] + j22*j13 * f[2];
+       delta_xi[1] = - j23*j31 * f[0] + j21*j33 * f[0]
+                     - j11*j33 * f[1] + j31*j13 * f[1]
+                     - j21*j13 * f[2] + j23*j11 * f[2];
+       delta_xi[2] = - j21*j32 * f[0] + j31*j22 * f[0]
+                     - j12*j31 * f[1] + j32*j11 * f[1]
+                     - j11*j22 * f[2] + j21*j12 * f[2];
+       delta_xi[0] /= jacDet;
+       delta_xi[1] /= jacDet;
+       delta_xi[2] /= jacDet;
+     }
+     l = 0;
+     //perform damping
+     while(l<40 && f_test >= f_old){
+        Double dampFac = 1.0/std::pow(2.0,l-1.0);
+        xi_start = xi_k + (delta_xi * dampFac);
+        Local2Global(f, xi_start);
+        f = f - globalPoint;
+        f_test = f.NormL2();
+        l++;
+     }
+     f_old = f_test;
+    // if(l >= 30){
+    //   std::cout << "Damn iteration has not convergend!!! Whtas wrong this time???" << std::endl;
+    // }
+     xi_k = xi_start;
+     k++;
+  }
+  //if( f_test > tolerance){
+  //  std::cout << "performed " << k << " iterations to reach the point" << std::endl<< xi_k << std::endl;
+  //  //ONLY for DEBUGGING
+  //  Local2Global(f, xi_k);
+  //  std::cout << "Calculated global point :" << std::endl << f << std::endl;
+  //  std::cout << "Original global coord " << std::endl << globalPoint << std::endl;
+  //  std::cout << "The error was: " << f_test << std::endl<< std::endl;
+  //  //xi_k.Init(99);
+  //  //std::cout << std::endl;
+  //}
+
+  // Put local coordinate of point into matrix.
+  if(xi_k.GetSize() == 0){
+    std::cerr << "local2global messed up setting everything to 99" << std::endl;
+    std::cerr << globalPoint << std::endl;
+    xi_k.Resize(elemDim);
+    xi_k.Init(99);
+  }
+  for(UInt j = 0; j < elemDim; j++) {
+    locPoint[j] = xi_k[j];
+  }
+
+}
 
 
 void LagrangeElemShapeMap::Global2LocalGeneral( Vector<Double>& locPoint,
@@ -1239,7 +1464,10 @@ Double LagrangeElemShapeMap::CalcJDet( Matrix<Double>& jac,
   
   return jacDet;
 }
-   
+
+BaseFE* LagrangeElemShapeMap::GetBaseFE(){
+  return ptFe_;
+}
    
 void LagrangeElemShapeMap::SetElem( const Elem* ptElem, bool isUpdated ) {
   

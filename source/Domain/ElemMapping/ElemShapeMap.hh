@@ -18,6 +18,7 @@ namespace CoupledField {
   class ElemShapeMap;
   class FeH1LagrangeExpl;
   class FeH1;
+  class BaseFE;
   class CoefFunction;
   class IntScheme;
   
@@ -414,6 +415,8 @@ namespace CoupledField {
     virtual Double CalcJDet( Matrix<Double>& jac, 
                              const LocPoint& ip ) = 0;
     
+    //! obtain pointer to geometric reference element
+    virtual BaseFE* GetBaseFE()  = 0;
   protected:
 
     //! Type of shape mapping
@@ -473,9 +476,21 @@ namespace CoupledField {
     void Global2Local( Vector<Double>& locPoint, 
                        const Vector<Double>& glob );
     
+    //! check if the point coincides with corner nodes
+    //! this function is introduced as the usual non-linear iterations
+    //! sometimes mess up if the requested point coincides with a element node
+    //! tolerance is 1e-10!
+    bool Global2LocalOnNode(Vector<Double>& locPoint,
+                            const Vector<Double>& glob);
+
     //! Specialized version for quad4
     void Global2LocalQuad4( Vector<Double>& locPoint,
                                const Vector<Double>& glob );
+
+    //! Orignial version from duester skript
+    void Global2LocalDuester(Vector<Double>& locPoint,
+                             const Vector<Double>& globalPoint);
+
 
     //! General version
     void Global2LocalGeneral( Vector<Double>& locPoint,
@@ -537,6 +552,9 @@ namespace CoupledField {
     Double CalcJDet( Matrix<Double>& jac, 
                      const LocPoint& ip );
     
+    //! @copydoc ElemShapeMap::GetBaseFE
+    virtual BaseFE* GetBaseFE();
+
   protected:
 
     //! Pointer to H1 element of lower order
