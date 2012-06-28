@@ -279,7 +279,7 @@ namespace CoupledField{
       //ok there we have to trigger temporal interpolation
       //for now we just throw an exception
       stepIter = this->stepValueMap_.begin();
-      UInt oldTime = stepIter->second;
+      Double oldTime = stepIter->second;
       UInt pos = 1;
       if(curTStep_ > oldTime){
         for(;stepIter != this->stepValueMap_.end(); ++stepIter,++pos){
