@@ -115,35 +115,53 @@ namespace CoupledField {
 
 
       switch(acouFormulation) {
+        // ==================
+        //   ACOU_POTENTIAL
+        // ==================
         case ACOU_POTENTIAL:
         {
-          DefinePresOrPotIntegrators("AcouMechPotCouplingInt",
-                                     DAMPING,
-                                     dispFct,
-                                     acouFct,
-                                     actSDList,
-                                     coefFuncs,
-                                     acouRegions);
+          
+          // In case of transient / harmonic simulation, the acoustic PDE is 
+          // already pre-multiplied by -1, so we can define one single
+          // coupling integrator for the damping matrix, which gets assembled
+          // also transposed
+          if( analysisType_ != BasePDE::EIGENFREQUENCY) {
+            DefCouplInt( "AcouMechPotCouplingInt", true, -1.0, DAMPING, dispFct, 
+                         acouFct, actSDList, coefFuncs, acouRegions ); 
+          } else {
+            // In case of an eigenfrequency simulation, we can only have 
+            // positive definite matrices. Thus, the acoustic PDE is NOT
+            // pre-multiplied by -1 and we have to define two distinct 
+            // coupling integrators for the DAMPING matrix. This is also why
+            // factor for the lower diagonal coupling integrator C_Phi_U 
+            // has a switched sign.
+          
+          DefCouplInt( "AcouMechPotCouplingInt", false, -1.0, DAMPING, dispFct, 
+                       acouFct, actSDList, coefFuncs, acouRegions );
+          DefCouplInt( "AcouMechPotCouplingInt_Transposed", false, 1.0, 
+                       DAMPING, acouFct, dispFct,  
+                       actSDList, coefFuncs, acouRegions );
+          }
         }
         break;
 
+        // ==================
+        //   ACOU_PRESSURE
+        // ==================
         case ACOU_PRESSURE:
-          // This integrator gets assembled into the mass matrix of the acoustic PDE
-          DefinePresOrPotIntegrators("AcouMechPresMassCouplingInt",
-                                     MASS,
-                                     dispFct,
-                                     acouFct,
-                                     actSDList,
-                                     coefFuncs,
-                                     acouRegions);
-          // This integrator gets assembled into the stiffness matrix of the mechanic PDE
-          DefinePresOrPotIntegrators("AcouMechPresStiffCouplingInt",
-                                     STIFFNESS,
-                                     dispFct,
-                                     acouFct,
-                                     actSDList,
-                                     oneCoefFuncs,
-                                     acouRegions);
+          
+          // First ensure, that we have no coupled eigenfrequency simulation:
+          // This case is not tested yet and might not be solvalbe.
+          if( analysisType_ == BasePDE::EIGENFREQUENCY ) {
+            EXCEPTION("A coupled mechanic-acoustic simulation can only be"
+                      "be performed in the acoustic potential formulation!");
+          }
+          DefCouplInt( "AcouMechPresStiffCouplingInt", false, -1.0, STIFFNESS, dispFct, 
+                       acouFct, actSDList, oneCoefFuncs, acouRegions );
+          
+          DefCouplInt( "AcouMechPresMassCouplingInt", false, 1.0, MASS, acouFct, 
+                       dispFct, actSDList, coefFuncs, acouRegions );
+         
           break;
 
         default:
@@ -153,67 +171,55 @@ namespace CoupledField {
     }
   }
 
-  void AcouMechCoupling::DefinePresOrPotIntegrators(const std::string& name,
-                                                    FEMatrixType matType,
-                                                    shared_ptr<BaseFeFunction>& dispFct,
-                                                       shared_ptr<BaseFeFunction>& acouFct,
-                                                       shared_ptr<SurfElemList>& actSDList,
-                                                       const std::map< RegionIdType, PtrCoefFct >& coefFuncs,
-                                                       const std::set< RegionIdType >& acouRegions){
+  void AcouMechCoupling::DefCouplInt( const std::string& name,
+                                      bool assembleTransposed,
+                                      Double factor,
+                                      FEMatrixType matType,
+                                      shared_ptr<BaseFeFunction>& fnc1,
+                                      shared_ptr<BaseFeFunction>& fnc2,
+                                      shared_ptr<SurfElemList>& actSDList,
+                                      const std::map< RegionIdType, PtrCoefFct >& coefFuncs,
+                                      const std::set< RegionIdType >& acouRegions ) {
+    
+    // check for position of integrator
+    SolutionType rowType = fnc1->GetResultInfo()->resultType;
 
-    BiLinearForm * dampInt = NULL;
-
+    BiLinearForm * cplInt = NULL;
     if( dim_ == 2  ) {
-      if(matType == MASS) {
-        dampInt = new SurfaceABInt< IdentityOperatorNormal<FeH1,2>,
-                                    IdentityOperator<FeH1,2,2> >
-          (coefFuncs, -1.0, acouRegions);
+      if(rowType == MECH_DISPLACEMENT) {
+        cplInt = new SurfaceABInt< IdentityOperator<FeH1,2,2>,
+            IdentityOperatorNormal<FeH1,2> >
+        (coefFuncs, factor, acouRegions);
+
       } else {
-      dampInt = new SurfaceABInt< IdentityOperator<FeH1,2,2>,
-                                  IdentityOperatorNormal<FeH1,2> >
-        (coefFuncs, 1.0, acouRegions);
+        cplInt = new SurfaceABInt< IdentityOperatorNormal<FeH1,2>,
+            IdentityOperator<FeH1,2,2> >
+        (coefFuncs, factor, acouRegions);
       }
     } else if( dim_ == 3) {
-      if(matType == MASS) {
-        dampInt = new SurfaceABInt< IdentityOperatorNormal<FeH1,3>,
-                                    IdentityOperator<FeH1,3,3> >
-          (coefFuncs, -1.0, acouRegions);
+      if(rowType == MECH_DISPLACEMENT) {
+        cplInt = new SurfaceABInt< IdentityOperator<FeH1,3,3>,
+            IdentityOperatorNormal<FeH1,3> >
+        (coefFuncs, factor, acouRegions);
       } else {
-      dampInt = new SurfaceABInt< IdentityOperator<FeH1,3,3>,
-                                 IdentityOperatorNormal<FeH1,3> >
-        (coefFuncs, 1.0, acouRegions);
+        cplInt = new SurfaceABInt< IdentityOperatorNormal<FeH1,3>,
+            IdentityOperator<FeH1,3,3> >
+        (coefFuncs, factor, acouRegions);
       }
     } else {
       EXCEPTION( "Coupling only for two and three dimensions defined" );
     }
-
-    dampInt->SetName(name);
+    
+    cplInt->SetName(name);
     BiLinFormContext * context =
-        new BiLinFormContext(dampInt, matType );
+        new BiLinFormContext(cplInt, matType );
 
     context->SetEntities( actSDList, actSDList );
-
-    switch(matType) {
-      case DAMPING:
-      case STIFFNESS:
-        context->SetFeFunctions( dispFct, acouFct );
-        break;
-
-      case MASS:
-        context->SetFeFunctions( acouFct, dispFct );
-        break;
-
-      default:
-        break;
-    }
-
-    // In the case of acoustic potential formulation we set the counterpart.
-    bool counterPart = matType == DAMPING ? true : false;
-    context->SetCounterPart(counterPart);
-
+    context->SetFeFunctions( fnc1, fnc2 );
+    context->SetCounterPart(assembleTransposed);
     assemble_->AddBiLinearForm( context );
   }
-
+  
   void AcouMechCoupling::DefineAvailResults() {
     REFACTOR  
   }

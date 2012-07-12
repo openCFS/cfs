@@ -134,13 +134,20 @@ namespace CoupledField{
 
       // if pde couples with mechanic, we have to multiply the density by -1
       PtrCoefFct factor;
-      if ( isMechCoupled_ == true && formulation_ != ACOU_PRESSURE) {
+      if ( isMechCoupled_ == true && formulation_ != ACOU_PRESSURE ) {
+        // Important: In case of a general / quadratic EV problem, we must
+        // ensure to have a "positive definite" matrix, i.e. we are not allowed
+        // to multiply all matrices by -1!
+        std::string stringFac = (analysistype_ != EIGENFREQUENCY) ? "-1.0" : "1.0";
+
         factor = CoefFunction::Generate(Global::REAL,
-                                        CoefXprBinOp(dens, "-1.0", CoefXpr::OP_MULT ) );
+                                        CoefXprBinOp(dens, stringFac, CoefXpr::OP_MULT ) );
       } else {
         factor = CoefFunction::Generate(Global::REAL, "1.0");
       }
 
+      
+          
       // build coefficient for mass matrix as (factor / (c0*c0))
       PtrCoefFct coeffM =
           CoefFunction::Generate(Global::REAL,
@@ -446,6 +453,9 @@ namespace CoupledField{
     deriv2->definedOn = res1->definedOn;
     availResults_.insert( deriv2 );
     DefineTimeDerivResult( deriv2->resultType, 2, formulation_ );
+    
+    
+    // === POTENTIAL FORMULATION: ACOUSTIC PRESSURE ===
   }
 
    void AcousticPDE::CreateMeanFlowFunction(StdVector<std::string> dofNames){

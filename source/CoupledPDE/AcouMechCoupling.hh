@@ -47,15 +47,17 @@ class BiLinearForm;
     //! Define available results
     void DefineAvailResults();
 
-    //! define all (bilinearform) integrators needed for this pdewith template
-    //! for the space dimension
-    void DefinePresOrPotIntegrators(const std::string& name,
-                                    FEMatrixType matType,
-                                    shared_ptr<BaseFeFunction>& dispFct,
-                                    shared_ptr<BaseFeFunction>& acouFct,
-                                    shared_ptr<SurfElemList>& actSDList,
-                                    const std::map< RegionIdType, PtrCoefFct >& coefFuncs,
-                                    const std::set< RegionIdType >& acouRegions);
+    //! Create a particular bilinear form integrator
+    void DefCouplInt( const std::string& name,
+                      bool assembleTransposed,
+                      Double factor,
+                      FEMatrixType matType,
+                      shared_ptr<BaseFeFunction>& fnc1,
+                      shared_ptr<BaseFeFunction>& fnc2,
+                      shared_ptr<SurfElemList>& actSDList,
+                      const std::map< RegionIdType, PtrCoefFct >& coefFuncs,
+                      const std::set< RegionIdType >& acouRegions) ;
+    
     
     //! Returns a stiffness integrator appropriate to the actual problem (e.g. 3D)
     BiLinearForm * GetStiffIntegrator( BaseMaterial* actSDMat,
