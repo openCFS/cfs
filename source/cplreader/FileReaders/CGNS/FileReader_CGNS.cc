@@ -709,12 +709,17 @@ namespace CoupledField{
 
        //elemArraySize = numCells*NodesPerElem
        cg_ElementDataSize(fileHandle,1,1,curReg,&elemArraySize);
-       cg_npe(eType,&vertsPerElem);
 
-       numEs = elemArraySize / vertsPerElem;
+
+       numEs = (end-start+1);
+
+       if(eType==ElementTypeNull || eType==ElementTypeUserDefined){
+    	   EXCEPTION("CGNS reader cannot handle nullType or User defined element types");
+       }
+
        numElems_ += numEs;
 
-       maxNumElemNodes_ = ((UInt)vertsPerElem>maxNumElemNodes_)? vertsPerElem : maxNumElemNodes_;
+
 
        std::cout << "Reading section " << sectionName << std::endl;
        std::cout << "------------------------------------------------------" << std::endl;
@@ -731,22 +736,54 @@ namespace CoupledField{
 
        regionIndexToNameMap_[curReg] = std::string(sectionName);
        elemRegionMap_[curReg] = StdVector<CGNSElem>(numEs);
-       elemTypeToRegionMap_[curReg] = elemTypeMap_[eType];
+       //elemTypeToRegionMap_[curReg] = elemTypeMap_[eType];
        //Ignore parental Data field for now and give NULL to function
        cg_elements_read(fileHandle,1,1,curReg,curElems,NULL);
        numElemsPerRegion_[curReg-1] = numEs;
 
-       for(Integer i = 0;i<numEs;i++){
-         CGNSElem curElem;
-         curElem.elemNum = start+i;
-         curElem.eType = elemTypeMap_[eType];
-         curElem.connect.Resize(vertsPerElem);
-         curElem.connect.Init();
-         for(Integer j = 0;j < vertsPerElem ; j++){
-           curElem.connect[j] = (UInt)curElems[(i*vertsPerElem)+j];
+       if(eType==MIXED){
+    	   //ok in this special case, the element connectivity array
+    	   //also stores the element type within it
+    	   //so we loop over and determine the type on the fly
+
+         //should point to the index storing the current eType
+         //afterwards there will be the node numbers
+         UInt eTypeIdx = 0;
+         for(Integer i = 0;i<numEs;i++){
+           //read
+           eType = (ElementType_t)curElems[eTypeIdx];
+           cg_npe(eType,&vertsPerElem);
+           maxNumElemNodes_ = ((UInt)vertsPerElem>maxNumElemNodes_)? vertsPerElem : maxNumElemNodes_;
+
+           CGNSElem curElem;
+           curElem.elemNum = start+i;
+           curElem.eType = elemTypeMap_[eType];
+           curElem.connect.Resize(vertsPerElem);
+           curElem.connect.Init();
+           for(Integer j = 0;j < vertsPerElem ; j++){
+             curElem.connect[j] = (UInt)curElems[eTypeIdx+j+1];
+           }
+           elemRegionMap_[curReg][i] = curElem;
+           eTypeIdx+=vertsPerElem+1;
          }
-         elemRegionMap_[curReg][i] = curElem;
+       }else{
+         cg_npe(eType,&vertsPerElem);
+         maxNumElemNodes_ = ((UInt)vertsPerElem>maxNumElemNodes_)? vertsPerElem : maxNumElemNodes_;
+         for(Integer i = 0;i<numEs;i++){
+      	   //determine number of vertices for current element
+
+      	   CGNSElem curElem;
+           curElem.elemNum = start+i;
+           curElem.eType = elemTypeMap_[eType];
+           curElem.connect.Resize(vertsPerElem);
+           curElem.connect.Init();
+           for(Integer j = 0;j < vertsPerElem ; j++){
+             curElem.connect[j] = (UInt)curElems[(i*vertsPerElem)+j];
+           }
+           elemRegionMap_[curReg][i] = curElem;
+         }
        }
+
        delete [] curElems;
      }
   }
@@ -842,8 +879,8 @@ namespace CoupledField{
     elemTypeMap_[CGNSLIB_H::TETRA_10] = Elem::TET10;
     elemTypeMap_[CGNSLIB_H::PYRA_5] = Elem::PYRA5;
     elemTypeMap_[CGNSLIB_H::PYRA_14] = Elem::PYRA13;
-    elemTypeMap_[CGNSLIB_H::PENTA_6] = Elem::UNDEF;
-    elemTypeMap_[CGNSLIB_H::PENTA_15] = Elem::UNDEF;
+    elemTypeMap_[CGNSLIB_H::PENTA_6] = Elem::WEDGE6;
+    elemTypeMap_[CGNSLIB_H::PENTA_15] = Elem::WEDGE15;
     elemTypeMap_[CGNSLIB_H::PENTA_18] = Elem::UNDEF;
     elemTypeMap_[CGNSLIB_H::HEXA_8] = Elem::HEXA8;
     elemTypeMap_[CGNSLIB_H::HEXA_20] = Elem::HEXA20;

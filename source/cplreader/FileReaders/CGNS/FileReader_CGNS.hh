@@ -82,7 +82,7 @@ namespace CoupledField{
       std::map<CGNSLIB_H::ElementType_t,Elem::FEType> elemTypeMap_;
       std::map<Integer,std::string> regionIndexToNameMap_;
       std::map<Integer,StdVector<CGNSElem> > elemRegionMap_;
-      std::map<Integer,Elem::FEType > elemTypeToRegionMap_;
+      //std::map<Integer,Elem::FEType > elemTypeToRegionMap_;
       std::map<Integer,std::set<UInt> > nodesPerRegionMap_;
 
     private:
