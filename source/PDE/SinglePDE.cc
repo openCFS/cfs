@@ -544,9 +544,12 @@ namespace CoupledField {
       PtrParamNode mySystemNode = systemsNode->
         GetByVal("system", "name", systemName, ParamNode::PASS);
       if( mySystemNode) {
-        std::string str = mySystemNode->Get("exportNodeToEqns")->As<std::string>();
-        if ( str == "yes" )
-          WriteNodeToEqnMapInfo();
+        PtrParamNode expNode = mySystemNode->Get("exportNodeToEqns",ParamNode::PASS);
+        if( expNode ){
+          std::string str = expNode->As<std::string>();
+          if ( str == "yes" )
+            WriteNodeToEqnMapInfo();
+        }
       }
     }
 
