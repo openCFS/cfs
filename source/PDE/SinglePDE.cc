@@ -11,6 +11,7 @@
 #include <iomanip>
 #include <iostream>
 #include <sstream>
+#include <ostream>
 
 #include "DataInOut/Logging/log.hpp"
 #include "DataInOut/ParamHandling/ParamNode.hh"
@@ -533,6 +534,21 @@ namespace CoupledField {
         args.Push_back( pdename_ );
         messenger->TriggerEvent( CFSMessenger::CFS_PdeInit, args );
 #endif
+
+    // write node to equation number info to file
+    // systemName  already specified above
+    PtrParamNode systemsNode =
+      param->GetByVal("sequenceStep", "index", sequenceStep_)
+      ->Get("linearSystems",ParamNode::PASS);
+    if( systemsNode ) {
+      PtrParamNode mySystemNode = systemsNode->
+        GetByVal("system", "name", systemName, ParamNode::PASS);
+      if( mySystemNode) {
+        std::string str = mySystemNode->Get("exportNodeToEqns")->As<std::string>();
+        if ( str == "yes" )
+          WriteNodeToEqnMapInfo();
+      }
+    }
 
     // Finally set the initialization flag to true
     isInitialized_ = true;
@@ -4315,6 +4331,46 @@ namespace CoupledField {
       }
     }
   }
+
+  void SinglePDE::WriteNodeToEqnMapInfo() {
+
+    //write node - equation map
+    UInt globNumNodes = ptgrid_->GetNumNodes();
+  
+    std::string filename = pdename_ + "NodeToEqnMap.info";
+    std::ofstream* nodeEqnInfo = new std::ofstream(filename.c_str());
+
+    *nodeEqnInfo << "% Node-Nr.   Equation-Nrs." << std::endl;
+    UInt numDof = 1;
+
+    if ( pdename_ == "mechanic" )
+      numDof = dim_;
+    else if ( pdename_ == "fluidMech" ) {
+      if ( dim_ == 3 )
+        numDof = 4;
+      else
+        numDof = 3;
+    }
+    else if ( pdename_ == "magnetic" ) {
+      if ( dim_ == 3 )
+        numDof = 3;
+      else
+        numDof = 1;
+    }
+    else 
+      EXCEPTION( "PDE does not support method WriteNodeToEqnMapInfo in SinglePDE.cc ");
+
+    for (UInt iNode=1; iNode <= globNumNodes; iNode++) {
+      *nodeEqnInfo << iNode << "   ";
+      for (UInt dof=1; dof<=numDof; dof++) {
+        UInt eqNr = eqnMap_->GetNodeEqn( iNode, dof );
+        *nodeEqnInfo << eqNr << "  ";
+      }
+      *nodeEqnInfo << std::endl;
+    }
+    delete nodeEqnInfo;
+  }
+
 } // end of namespace
 
 // explicit template instantiation for GCC compiler

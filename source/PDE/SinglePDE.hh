@@ -288,6 +288,9 @@ namespace CoupledField
     template <class TYPE>
     void CalcGradNodeSolution(shared_ptr<EntityList> list, UInt dof, StdVector<Vector<TYPE> >& nodal_grad, StdVector<UInt>& counter);
 
+
+    //! write the node to equation number map
+    void WriteNodeToEqnMapInfo();
   protected:
 
   
