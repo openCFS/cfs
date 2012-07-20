@@ -65,7 +65,7 @@ namespace CoupledField
 
      /** Set the DesignMaterial this is only used in parametric material optimization and therefore not in constructor
       * @param dm ParamNode in XML */
-     void SetDesignMaterial(PtrParamNode dm);
+     void SetDesignMaterial(PtrParamNode dm, OptimizationMaterial::System material);
 
      /** Set the optimizer, required for level set give the level set values as nodal values.
       * Otherwise not required to be called */
@@ -98,20 +98,24 @@ namespace CoupledField
      virtual double GetSlackVariable() const { assert(false); return -1; }
 
      /** Returns true if optimization does provide a complete tensor, not just a density */
-     bool HasErsatzMaterialTensor() const
-     {
-       return designMaterial != NULL;
-     }
+     bool HasErsatzMaterialTensor() const { return designMaterial != NULL; }
      
      /** Returns true if optimization does provide a mass, currently density is not handled by this */
-     bool HasErsatzMaterialMass(){
-       return designMaterial != NULL;
-     }
+     bool HasErsatzMaterialMass() const { return designMaterial != NULL; }
      
      /** Returns true if optimization also provides damping parameters for Rayleigh-Damping (alpha, beta) */
-     bool HasErsatzMaterialDamping(){
+     bool HasErsatzMaterialDamping() {
        return(designMaterial != NULL && designMaterial->DampingIsDesign());
      }
+
+     bool HasPiezoCouplingTensor() const { return designMaterial != NULL; }
+
+     bool HasDielecTensor() const { return designMaterial != NULL; }
+
+     /** gives either elasticity tensor, dielec tensor or piezo coupling tensor
+      * @param type TENSOR_TRACE, ELAST_ALL, DIELEC_TRACE, DIELEC_ALL, PIEZO_ALL. Allways the complete tensor!
+      * @see GetErsatzMaterialTensor() */
+     bool GetTensor(Matrix<double>& t, DesignElement::Type type, SubTensorType subTensor, const Elem* elem, DesignElement::Type direction, DesignMaterial::Notation notation = DesignMaterial::VOIGT);
 
      /** Calculates the corresponding ErsatzMaterialTensor for the given element
       * @param t holds the resulting MaterialTensor
@@ -122,6 +126,10 @@ namespace CoupledField
       * @returns whether the given element is subject to optimization and the tensor therefore could be retrieved */
      bool GetErsatzMaterialTensor(Matrix<double>& t, SubTensorType subTensor, const Elem* elem, DesignElement::Type direction, DesignMaterial::Notation notation = DesignMaterial::VOIGT);
      
+     bool GetDielecTensor(Matrix<double>& t, const Elem* elem, DesignElement::Type direction);
+
+     bool GetPiezoCouplingTensor(Matrix<double>& t, const Elem* elem, DesignElement::Type direction);
+
      /** Calculates the corresponding Mass for the given element, this is usually tensor trace
       * @param elem Element
       * @param direction if !=NO_DERIVATIVE calculate the derivative instead of value
@@ -222,6 +230,9 @@ namespace CoupledField
      /** Service method to find our index in the design vector
       * @return -1 if not throw_exception and not found */
      int FindDesign(DesignElement::Type dt, bool throw_exception = true) const;
+
+     /** gives a design element by idx. Handles als AuxDesign */
+     virtual BaseDesignElement* GetDesignElement(unsigned int idx);
 
      /** Service method to find a specific design element by element number and design type */
      DesignElement* Find(unsigned int elemNum, DesignElement::Type dt, bool throw_exception = true, bool include_pseudo_designs = false);

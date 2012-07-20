@@ -33,6 +33,7 @@
 #include "Optimization/Optimizer/ShapeOptimizer.hh"
 #include "Optimization/ParamMat.hh"
 #include "Optimization/PiezoSIMP.hh"
+#include "Optimization/PiezoParamMat.hh"
 #include "Optimization/SIMP.hh"
 #include "Optimization/ShapeGrad.hh"
 #include "Optimization/ShapeOpt.hh"
@@ -109,14 +110,14 @@ Optimization::Optimization()
   }
 
   // the tool to solve the optimization problem
-  optimizer_ = optimizer.Parse(pn->Get("optimizer")->Get("type")->As<std::string>());
+  optimizer_ = optimizer.Parse(pn->Get("optimizer")->Get("type")->As<string>());
   maxIterations = pn->Get("optimizer")->Get("maxIterations")->As<Integer>();
 
   // might read a multiObjective problem
   objectives.Read(pn->Get("costFunction"));
   objectives.ToInfo(optInfoNode->Get(ParamNode::HEADER)->Get("objective"));
 
-  SetPDEs(OptimizationMaterial::system.Parse(pn->Get("ersatzMaterial")->Get("material")->As<std::string>()));
+  SetPDEs(OptimizationMaterial::system.Parse(pn->Get("ersatzMaterial")->Get("material")->As<string>()));
 
   this->assemble_ = pde->getPDE_assemble();
 
@@ -151,10 +152,10 @@ Optimization::Optimization()
     }
   }
 
-  log.Init(pn->Get("log")->As<std::string>(), pn->Get("logging", ParamNode::PASS)); // is fail save
+  log.Init(pn->Get("log")->As<string>(), pn->Get("logging", ParamNode::PASS)); // is fail save
 
   // the commit stuff
-  string cm = pn->Has("commit") ? pn->Get("commit")->Get("mode")->As<std::string>() : "forward";
+  string cm = pn->Has("commit") ? pn->Get("commit")->Get("mode")->As<string>() : "forward";
   this->commitMode_ = commitMode.Parse(cm);
   this->commitStride = pn->Has("commit") ? pn->Get("commit")->Get("stride")->As<Integer>() : 1;
   optInfoNode->Get("commit")->Get("mode")->SetValue(cm);
@@ -206,7 +207,7 @@ void Optimization::PostInitSecond()
 
     case FEAS_PP_SOLVER:
          #ifndef USE_IPOPT
-           throw Exception("CFS++ nees to be compiled with IPOPT to use feasPP");
+           throw Exception("CFS++ needs to be compiled with IPOPT to use feasPP");
          #else
            baseOptimizer_ = new FeasPP(this, opt);
          #endif
@@ -326,6 +327,7 @@ void Optimization::SetEnums()
   Function::type.Add(Function::DESIGN_TRACKING, "designTracking");
   Function::type.Add(Function::SUM_MODULI, "sumModuli");
   Function::type.Add(Function::TENSOR_TRACE, "tensorTrace");
+  Function::type.Add(Function::TENSOR_NORM, "tensorNorm");
   Function::type.Add(Function::GLOBAL_SUM_MODULI, "globalSumModuli");
   Function::type.Add(Function::PARAM_PS_POS_DEF, "parametrized-plane-stress-pos-def");
   Function::type.Add(Function::POS_DEF_DET_MINOR_1, "fmoPosDefMinor1");
@@ -512,15 +514,16 @@ Optimization* Optimization::CreateInstance()
   // we assume ersatz material, currently there is nothing else.
   // note, we read method again in the ersatz material constructor.
   PtrParamNode em = param->Get("optimization")->Get("ersatzMaterial");
-  ErsatzMaterial::Method method = 
-      ErsatzMaterial::method.Parse(em->Get("method")->As<std::string>());
+
+  ErsatzMaterial::Method method = ErsatzMaterial::method.Parse(em->Get("method")->As<string>());
+  OptimizationMaterial::System material = OptimizationMaterial::system.Parse(em->Get("material")->As<string>());
   
   Optimization* opt = NULL;
   
   switch(method)
   {
   case ErsatzMaterial::SIMP_METHOD:
-    switch(OptimizationMaterial::system.Parse(em->Get("material")->As<std::string>()))
+    switch(material)
     {
     case OptimizationMaterial::MECH:
     case OptimizationMaterial::ACOUSTIC:
@@ -533,13 +536,18 @@ Optimization* Optimization::CreateInstance()
       opt = new PiezoSIMP();
       break;
       
-    default: assert(false);
+    default:
+      assert(false);
+      break;
     }
     break;
     
-  // FreeMat, ShapeGrad, ...
+  // FMO, ShapeGrad, ...
   case ErsatzMaterial::PARAM_MAT:
-    opt = new ParamMat();
+    if(material == OptimizationMaterial::PIEZOCOUPLING)
+      opt = new PiezoParamMat();
+    else
+      opt = new ParamMat();
     break;
   case ErsatzMaterial::SHAPE_OPT:
   case ErsatzMaterial::SHAPE_PARAM_MAT:
@@ -600,11 +608,11 @@ void Optimization::SolveProblem()
   if(e != NULL) throw *e;
   delete e;
 }
-PtrParamNode Optimization::CreateAdjointAnalysisIdNode(std::string child_name, Excitation* excite)
+PtrParamNode Optimization::CreateAdjointAnalysisIdNode(string child_name, Excitation* excite)
 {
   BaseDriver* driver = domain->GetDriver();
   PtrParamNode base = driver->GetAnalysisId();
-  std::string temp = "excite";
+  string temp = "excite";
   PtrParamNode in = excite == NULL ? driver->CreateAnalysisIdChild(base, child_name) : driver->CreateAnalysisIdChild(base, "excite", excite->index, child_name);
   
   return in;
@@ -927,7 +935,7 @@ PtrParamNode Optimization::CommitIteration(bool keep_iteration_number)
   }
 
   // IPOPT does own logging -> otherwise show the user we are alive
-  std::string f = GetIterationFrequency();
+  string f = GetIterationFrequency();
   if(optimizer_ != IPOPT_SOLVER && optimizer_ != SNOPT_SOLVER && optimizer_ != KNITRO_SOLVER)
   {
     cout << "iteration " << (currentIteration);
@@ -1038,20 +1046,20 @@ void Optimization::LogFileLine(ofstream* out, PtrParamNode iteration)
   if(out) out->flush();
 }
 
-LinearFormContext* Optimization::GetLinearFormContext(const RegionIdType regionId, StdPDE* pde, const std::string& integrator, Global::ComplexPart entryType)
+LinearFormContext* Optimization::GetLinearFormContext(const RegionIdType regionId, StdPDE* pde, const string& integrator, Global::ComplexPart entryType)
 {
   Assemble* ass = domain->GetBasePDE()->getPDE_assemble();
   return(ass->GetLinearForm(regionId, pde, integrator, false, entryType));
 }
 
 
-BiLinFormContext* Optimization::GetFormContext(const RegionIdType regionId, StdPDE* pde1, StdPDE* pde2, const std::string& integrator, bool throw_exception, Global::ComplexPart entryType)
+BiLinFormContext* Optimization::GetFormContext(const RegionIdType regionId, StdPDE* pde1, StdPDE* pde2, const string& integrator, bool throw_exception, Global::ComplexPart entryType)
 {
   Assemble* ass = domain->GetBasePDE()->getPDE_assemble();
   return(ass->GetBiLinForm(regionId, pde1, pde2, integrator, !throw_exception, entryType));
 }
 
-BaseForm* Optimization::GetForm(const RegionIdType regionId, StdPDE* pde1, StdPDE* pde2, const std::string& integrator, bool throw_exception, Global::ComplexPart entryType)
+BaseForm* Optimization::GetForm(const RegionIdType regionId, StdPDE* pde1, StdPDE* pde2, const string& integrator, bool throw_exception, Global::ComplexPart entryType)
 {
   if (pde2 != NULL){
     BiLinFormContext* bc = GetFormContext(regionId, pde1, pde2, integrator, throw_exception, entryType);
@@ -1066,7 +1074,7 @@ BaseForm* Optimization::GetForm(const RegionIdType regionId, StdPDE* pde1, StdPD
 BaseForm* Optimization::GetForm(const RegionIdType reg, Application app1, Application app2, bool throw_exception)
 {
   Application a1, a2;
-  std::string integrator = "";
+  string integrator = "";
 
   if(app1 == MECH && (app2 == MECH || app2 == NO_APP))
   {

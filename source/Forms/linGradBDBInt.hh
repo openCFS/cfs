@@ -51,8 +51,9 @@ template <class TYPE> class Matrix;
     void CalcBMat( Matrix<Double> &bMat, UInt ip,
                    const Matrix<Double> &ptCoord );
     
-    //! Compute the data-matrix \f$D\f$
-    void calcDMat( Matrix<Double> &dMat, const Elem* elem);
+    /** Compute the data-matrix \f$D\f$
+     * @param direction for FMO optimization to compute derivatives to coefficients */
+    void calcDMat( Matrix<Double> &dMat, const Elem* elem, DesignElement::Type direction = DesignElement::NO_DERIVATIVE, double force_factor = 0.0);
     
     //! Returns dimension of D matrix
     UInt getDimD() {

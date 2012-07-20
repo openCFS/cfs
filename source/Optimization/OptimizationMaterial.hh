@@ -112,7 +112,7 @@ private:
   /** This is the common implementation for GetElementMatrix() and GetElementVector() */
   void GetElementEntity(BaseForm* form, Matrix<double>* mat_out, Vector<double>* vec_out, const Elem* elem = NULL,
                         BaseMaterial* bimaterial = NULL,
-                        const DesignElement::Type direction = DesignElement::NO_DERIVATIVE, const Vector<double>* ts = NULL);
+                        DesignElement::Type direction = DesignElement::NO_DERIVATIVE, const Vector<double>* ts = NULL);
   
 };
 
@@ -128,7 +128,7 @@ public:
    * @param bimaterial if true gets the material from the design space by the element's region
    * @param direction if given, calculate derivative of Stiffness Matrix instead
    * @return a pointer to the Element Stiffness Matrix*/
-  const Matrix<double>& MechStiffness(const Elem* elem, bool bimaterial = false, const DesignElement::Type direction = DesignElement::NO_DERIVATIVE);
+  const Matrix<double>& MechStiffness(const Elem* elem, bool bimaterial = false, DesignElement::Type direction = DesignElement::NO_DERIVATIVE);
 
   /** overwrites OptimizationMaterial::Stiffness */
   const Matrix<double>& Stiffness(const Elem* elem, bool bimaterial = false) {
@@ -139,7 +139,7 @@ public:
    * @param elem the Element for which the Matrix should be returned
    * @param direction if given, calculate derivative of mass Matrix instead
    * @return a pointer to the Element Mass Matrix*/
-  const Matrix<double>& MechMass(const Elem* elem,  bool bimaterial = false, const DesignElement::Type direction = DesignElement::NO_DERIVATIVE);
+  const Matrix<double>& MechMass(const Elem* elem,  bool bimaterial = false, DesignElement::Type direction = DesignElement::NO_DERIVATIVE);
 
   /** overwrites OptimizationMaterial::Mass */
   const Matrix<double>& Mass(const Elem* elem, bool bimaterial = false) {
@@ -210,17 +210,17 @@ public:
    * @param elem the Element for which the Matrix should be returned
    * @param factor has to be either 1 or -1 
    * @return a pointer to the Element Mass Matrix*/
-  const Matrix<double>& ElecStiffness(Elem* elem, int factor);
+  const Matrix<double>& ElecStiffness(const Elem* elem, int factor, DesignElement::Type direction = DesignElement::NO_DERIVATIVE);
 
   /** Get the coupling stiffness matrix $K_{u \phi}$ for this element, this is the region constant version
    * @param elem the Element for which the Matrix should be returned
    * @return a pointer to the Element Mass Matrix*/
-  const Matrix<double>& CoupledStiffness(Elem* elem);
+  const Matrix<double>& CoupledStiffness(const Elem* elem, DesignElement::Type direction = DesignElement::NO_DERIVATIVE);
 
   /** Get the elec stiffness matrix $K_{\phi \phi}$ for this element, this is the region constant version
    * @param elem the Element for which the Matrix should be returned
    * @return a pointer to the Element Mass Matrix*/
-  const Matrix<double>& CoupledStiffnessTransposed(Elem* elem);
+  const Matrix<double>& CoupledStiffnessTransposed(const Elem* elem, DesignElement::Type direction = DesignElement::NO_DERIVATIVE);
   
 private:
   /** The elec stiffness matrix $K_{\phi \phi}$. */

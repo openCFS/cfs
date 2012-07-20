@@ -12,6 +12,12 @@
 #include "Optimization/Optimizer/EvaluateOnly.hh"
 #include "Utils/StdVector.hh"
 #include "Utils/Timer.hh"
+#include "DataInOut/Logging/cfslog.hh"
+#include "DataInOut/Logging/log.hpp"
+
+
+DECLARE_LOG(eval)
+DEFINE_LOG(eval, "eval")
 
 using namespace CoupledField;
 
@@ -60,20 +66,30 @@ void EvaluateOnly::SolveProblem()
     // special case only in harmonic case with more frequencies but not multiple_loads optimization
     optimization->SolveStateProblem();
 
-    optimization->CalcObjective();
+    double v = optimization->CalcObjective();
+    LOG_DBG(eval) << "SP: obj=" << v;
     // calc gradients, they might be stored in store results!
     // gradients might need adjoints
     optimization->SolveAdjointProblems();
     optimization->CalcObjectiveGradient(&grad);
+    for(unsigned int i = 0; i < grad.GetSize(); i++) {
+      LOG_DBG2(eval) << "SP: obj grad i=" << i << " -> " << grad[i];
+    }
     
     for(int c = 0; c < optimization->constraints.view->GetNumberOfTotalConstraints(); c++)
     {
       Condition* g = optimization->constraints.view->Get(c);
-      optimization->CalcConstraint(g);
+      v = optimization->CalcConstraint(g);
+      LOG_DBG(eval) << "SP: g[" << c << "]=" << g->ToString() << " -> " << v;
       if(!g->IsObservation()) // not for observation stuff
       {
-        grad.window.Set(0, g->GetSparsityPattern().GetSize()); // necessary for a local condition assert
+        StdVector<unsigned int>& pattern = g->GetSparsityPattern();
+        grad.window.Set(0, pattern.GetSize()); // necessary for a local condition assert
         optimization->CalcConstraintGradient(g, &grad);
+        for(unsigned int i = 0; i < pattern.GetSize(); i++) {
+          BaseDesignElement* de = optimization->GetDesign()->GetDesignElement(pattern[i]);
+          LOG_DBG2(eval) << "SP: grad g=" << g->ToString() << " i=" << i << " pi=" << pattern[i] << " dt=" << de->type.ToString(de->GetType()) << " -> " << grad[i];
+        }
       }
     }
     optimization->constraints.view->Done(); // reset the slope constraints to global

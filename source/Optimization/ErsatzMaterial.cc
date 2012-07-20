@@ -175,13 +175,17 @@ ErsatzMaterial::ErsatzMaterial() :
   for(unsigned int i = 0; i < constraints.all.GetSize();  i++)
   {
     Condition* g = constraints.all[i];
-    if(g->GetDesignType() == DesignElement::UNITY && (method_ == SHAPE_OPT || method_ == SHAPE_PARAM_MAT))
+    DesignElement::Type dt = g->GetDesignType();
+    if(dt == DesignElement::UNITY && (method_ == SHAPE_OPT || method_ == SHAPE_PARAM_MAT))
       continue;
 
-    if((g->GetDesignType() == DesignElement::TENSOR_TRACE || g->GetDesignType() == DesignElement::ALL_DESIGNS) && (method_ == PARAM_MAT || method_ == SHAPE_PARAM_MAT))
+    if((   dt == DesignElement::TENSOR_TRACE || dt == DesignElement::ELAST_ALL
+        || dt == DesignElement::DIELEC_TRACE || dt == DesignElement::DIELEC_ALL
+        || dt == DesignElement::PIEZO_ALL || dt == DesignElement::ALL_DESIGNS)
+       && (method_ == PARAM_MAT || method_ == SHAPE_PARAM_MAT))
       continue;
 
-    if(g->GetDesignType() != DesignElement::DEFAULT && design->FindDesign(g->GetDesignType(), false) == -1)
+    if(dt != DesignElement::DEFAULT && design->FindDesign(g->GetDesignType(), false) == -1)
       throw Exception("constraint " + g->ToString() + " operates on invalid design variable");
 
   }
@@ -596,20 +600,19 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
   template<class T>
   double ErsatzMaterial::CalcU1KU2(TransferFunction* tf, StdVector<SingleVector*>& u1, Application app, StdVector<SingleVector*>& u2, DesignDependentRHS* rhs, double factor, CalcMode calcMode, Function* f, int res_idx)
   {
-    LOG_DBG2(em) << "CalcU1KU2(): tf=" << (tf ? tf->ToString() : "NULL") << " #u1=" << u1.GetSize()
-    << " app=" << application.ToString(app) << " #u2=" << u2.GetSize() << " calcMode="
-    << calcMode << " factor=" << factor << " rhs=" << (rhs == NULL ? "NULL" : rhs->ToString(1));
-// This solves <l,K'*u-f'> or <u1, K' * u2 - f'> for all elements and adds it up to the element gradients
+    LOG_DBG2(em) << "CalcU1KU2(): tf=" << (tf ? tf->ToString() : "NULL") << " app=" << application.ToString(app) << "(" << app << ")"
+                 << " #u1=" << u1.GetSize() << " #u2=" << u2.GetSize() << " calcMode=" << calcMode << " factor=" << factor << " rhs=" << (rhs == NULL ? "NULL" : rhs->ToString(1));
+    // This solves <l,K'*u-f'> or <u1, K' * u2 - f'> for all elements and adds it up to the element gradients
     assert(u1.GetSize() != 0);
     assert(u1.GetSize() == u2.GetSize());
     double sum = 0.0;
-// mat will be filled by SetElementK where also the derivative form most cases is built in
-// the dimensions of our matrix is determined by u1_vec and u2_vec.
+    // mat will be filled by SetElementK where also the derivative form most cases is built in
+    // the dimensions of our matrix is determined by u1_vec and u2_vec.
     Matrix<T> mat(u1[0]->GetSize(), u2[0]->GetSize());//NOTE: SetElementK (In PiezoSimp) relies on the matrix already having the right size!!!
     Vector<T> mat_vec(u1[0]->GetSize());
     TransferFunction* rtf = rhs != NULL && rhs->valid ? design->GetTransferFunction(tf->GetDesign(), rhs->app) : NULL;
-// traverse over our elements
-// in ErsatzMaterialTensor case we loop over all elements, else only over the elements belonging to this design
+    // traverse over our elements
+    // in ErsatzMaterialTensor case we loop over all elements, else only over the elements belonging to this design
     int elements = design->GetNumberOfElements();
     int base_lower = 0;
     int base_upper = 0;
@@ -623,9 +626,9 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
       base_upper = base_lower + elements;
     }
     LOG_DBG2(em) << "elements=" << elements << " base=" << base_lower << " base_upper=" << base_upper;
-// create an element list to gain the iterator in the loop
+    // create an element list to gain the iterator in the loop
     ElemList elemList(grid);
-// for ParamMat we need the derivative w.r.t. every designvariable, else the base loop is only run once
+    // for ParamMat we need the derivative w.r.t. every designvariable, else the base loop is only run once
     for(int base = base_lower; base < base_upper; base += elements)
     {
       for(int e = 0; e < elements; e++)
@@ -635,7 +638,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
 
         DesignElement* de = &design->data[e + base];
 
-        LOG_DBG3(em) << "nodes:" << e << ": " << de->elem->connect.ToString();
+        LOG_DBG3(em) << "nodes:" << e << ": " << de->elem->connect.ToString() << " dt=" << de->type.ToString(de->GetType()) << " e=" << de->elem->elemNum;
         LOG_DBG3(em) << "u1:" << e << ": " << u1_vec.ToString();
         LOG_DBG3(em) << "u2:" << e << ": " << u2_vec.ToString();
 
@@ -867,6 +870,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
       case Function::BUMP:
       case Function::SUM_MODULI:
       case Function::TENSOR_TRACE:
+      case Function::TENSOR_NORM:
       case Function::PARAM_PS_POS_DEF:
       case Function::POS_DEF_DET_MINOR_1:
       case Function::POS_DEF_DET_MINOR_2:
@@ -1144,8 +1148,9 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
     TransferFunction* tf = Function::GetFunction(c, g)->IsPhysical() ? design->GetTransferFunction(dtype, MECH) : NULL;
     Matrix<Double> cornerCoords;
     double fraction = c != NULL ? volume_fraction_ : g->volume_fraction;
-    bool allDesignsRelevant = dtype == DesignElement::TENSOR_TRACE || dtype == DesignElement::DEFAULT || dtype == DesignElement::NO_TYPE;
-    bool calculateTensorTrace = domain->HasErsatzMaterialTensor() && (dtype == DesignElement::TENSOR_TRACE || dtype == DesignElement::DEFAULT);// tensor trace is calculated if dtype == DEFAULT or TENSOR_TRACE and a tensor available
+    bool allDesignsRelevant = dtype == DesignElement::TENSOR_TRACE  || dtype == DesignElement::DIELEC_TRACE || dtype == DesignElement::DEFAULT || dtype == DesignElement::NO_TYPE;
+    // tensor trace is calculated if dtype == DEFAULT or TENSOR_TRACE and a tensor available
+    bool calculateTensorTrace = domain->HasErsatzMaterialTensor() && (dtype == DesignElement::TENSOR_TRACE || dtype == DesignElement::DIELEC_TRACE || dtype == DesignElement::DEFAULT);
     if (calculateTensorTrace && scale)
     {
       throw Exception("Cannot calculate Tensor Trace Volume on scaled design variables!");
@@ -1242,12 +1247,12 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
                 if(calculateTensorTrace)
                 {
                   Matrix<double> material;
-                  design->GetErsatzMaterialTensor(material, pde->GetSubTensorType(), de->elem, de->GetType(), f->GetNotation());
+                  design->GetTensor(material, dtype, pde->GetSubTensorType(), de->elem, de->GetType(), f->GetNotation());
                   val = material.Trace();
                   if(exponent != 1.0)
                   {
                     // chain rule, original, non derived tensor
-                    design->GetErsatzMaterialTensor(material, pde->GetSubTensorType(), de->elem, DesignElement::NO_DERIVATIVE, f->GetNotation());
+                    design->GetTensor(material, dtype, pde->GetSubTensorType(), de->elem, DesignElement::NO_DERIVATIVE, f->GetNotation());
                     double des = material.Trace();
                     val *= exponent * std::pow(des, exponent - 1.0);
                   }
@@ -1280,7 +1285,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
                 if(calculateTensorTrace)
                 { // use the trace of the stiffness Tensor as "volume"
                   Matrix<double> material;
-                  design->GetErsatzMaterialTensor(material, pde->GetSubTensorType(), de->elem, DesignElement::NO_DERIVATIVE, f->GetNotation());
+                  design->GetTensor(material, dtype, pde->GetSubTensorType(), de->elem, DesignElement::NO_DERIVATIVE, f->GetNotation());
                   des = material.Trace();
                 }
                 else

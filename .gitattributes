@@ -1430,6 +1430,8 @@ source/Optimization/Optimizer/scpip40nlph.hh -text
 source/Optimization/Optimizer/scpip_test.cc svneol=native#text/x-c%2B%2Bsrc
 source/Optimization/ParamMat.cc -text
 source/Optimization/ParamMat.hh -text
+source/Optimization/PiezoParamMat.cc -text
+source/Optimization/PiezoParamMat.hh -text
 source/Optimization/PiezoSIMP.cc -text
 source/Optimization/PiezoSIMP.hh -text
 source/Optimization/SIMP.cc svneol=native#text/plain

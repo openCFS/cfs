@@ -2134,21 +2134,18 @@ namespace CoupledField {
         // 2D, -> material is rotated by
         // alpha = -90 and gamma = -90 degree,
         // so that we pick by default the yz-plane
-        if( !rotNode ) {
-          if( dim_ == 2) {
-            rotVec[0] = -90.0;
-            rotVec[2] = -90.0;
-            materials_[actRegionId]->
-              RotateAllTensorsByRotationAngles( rotVec, true );
-          }
-          continue;
-        } else {
+        if(!rotNode && dim_ == 2)
+        {
+          rotVec[0] = -90.0;
+          rotVec[2] = -90.0;
+          materials_[actRegionId]->RotateAllTensorsByRotationAngles( rotVec, true );
+        }
+        if(rotNode)
+        {
           rotVec[0] = rotNode->Get( "alpha" )->MathParse<Double>();
           rotVec[1] = rotNode->Get( "beta" )->MathParse<Double>(); 
           rotVec[2] = rotNode->Get( "gamma" )->MathParse<Double>();
-
-          materials_[actRegionId]->
-            RotateAllTensorsByRotationAngles( rotVec, true );
+          materials_[actRegionId]->RotateAllTensorsByRotationAngles( rotVec, true );
         }
 
         if(progOpts->DoDetailedInfo())

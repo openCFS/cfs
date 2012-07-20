@@ -265,8 +265,11 @@ double PiezoSIMP::CalcFunction(Excitation& excite, Function* f, bool derivative)
     // A      = matrix from objective. Often L or for ElecEnergy K_pp
 
     // sol = displacement and potential and K = K_uu, K_up, K_up^T, K_pp
-    // we calcualate the 4 individual vec Mat vec via CalcU1KU2() and sum it up
-    for(unsigned int i = 0; i < design->design.GetSize(); i++)
+    // we calculate the 4 individual vec Mat vec via CalcU1KU2() and sum it up
+    //
+    // in the FMO case we run only via one design, the transfer function is identity
+    unsigned int size = design->HasErsatzMaterialTensor() ? 1 : design->design.GetSize();
+    for(unsigned int i = 0; i < size; i++)
     {
       DesignElement::Type dt = design->design[i];
       // we allow NULL for the transfer functions,

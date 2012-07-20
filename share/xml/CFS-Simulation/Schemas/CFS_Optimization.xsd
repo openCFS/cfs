@@ -319,6 +319,8 @@
                 <xsd:enumeration value="parametrized-plane-stress-pos-def"/>
                 <!-- for FMO only -->
                 <xsd:enumeration value="tensorTrace"/>
+                <!-- for piezo FMO to have a local squared L2 norm for the coupling tensor (sum of squared coefficients) -->
+                <xsd:enumeration value="tensorNorm"/>
                 <!--  from anisotropic param-mat (= FMO) ensure positive definiteness including bound on diagonal elements (E-value*I) larger param -->
                 <xsd:enumeration value="fmoPosDefMinor1"/>
                 <xsd:enumeration value="fmoPosDefMinor2"/>
@@ -337,7 +339,7 @@
           <!-- A constraint value is either 'slack' or a scalar. Allowed only when constraint and no tensor homogenization tensor is given -->
           <xsd:attribute name="value" use="optional" >
             <xsd:simpleType>
-              <!-- either 'slack' or a floar -->
+              <!-- either 'slack' or a float -->
               <xsd:union memberTypes="slack_token xsd:float"></xsd:union>
             </xsd:simpleType>
           </xsd:attribute>
@@ -863,7 +865,12 @@
                   </xsd:simpleType>
                 </xsd:attribute>
                 
-                <xsd:attribute name="initial" use="required" type="xsd:float"/>
+                <!-- either 'random' or a float -->
+                <xsd:attribute name="initial" use="required">
+                  <xsd:simpleType>
+                    <xsd:union memberTypes="xsd:float random_token"/>
+                  </xsd:simpleType>
+                </xsd:attribute>
                 <!-- The lower bound which is the physical lower bound when adapt_lower is set. Not to be set when pyhsical_lower is set -->
                 <xsd:attribute name="lower" use="optional" type="xsd:float"/>
                 <!-- Insteead of lower one can set physical_lower, then lower is determined by the transfer function. Redundant to adapt_lower -->
@@ -1252,7 +1259,16 @@
       <xsd:enumeration value="density"/>
       <xsd:enumeration value="acouDensity"/>
       <xsd:enumeration value="polarization"/>
+      <!-- trace for elastic FMO and other paramMat stuff -->
       <xsd:enumeration value="tensor_trace"/>
+      <!-- all elasticity tensor coefficients for elast FMO -->
+      <xsd:enumeration value="elast_all"/>
+      <!-- trace for piezo FMO for permitivity -->
+      <xsd:enumeration value="dielec_trace"/>
+      <!-- all permitivity coefficients for piezo FMO -->
+      <xsd:enumeration value="dielec_all"/>
+      <!-- all piezoc coupling tensor coefficients for piezo FMO -->
+      <xsd:enumeration value="piezo_all"/>
       <!-- Constraint is defined per element and uses all designs on that element -->
       <xsd:enumeration value="allDesigns"/> 
       <xsd:enumeration value="emodul"/>
@@ -1272,6 +1288,15 @@
       <xsd:enumeration value="tensor23"/>
       <xsd:enumeration value="tensor13"/>
       <xsd:enumeration value="tensor12"/>
+      <xsd:enumeration value="dielec_11"/>
+      <xsd:enumeration value="dielec_12"/>
+      <xsd:enumeration value="dielec_22"/>
+      <xsd:enumeration value="piezo_11"/>
+      <xsd:enumeration value="piezo_12"/>
+      <xsd:enumeration value="piezo_13"/>
+      <xsd:enumeration value="piezo_21"/>
+      <xsd:enumeration value="piezo_22"/>
+      <xsd:enumeration value="piezo_23"/>
     </xsd:restriction>
   </xsd:simpleType>
 
@@ -1391,7 +1416,14 @@
       <xsd:enumeration value="slack"/>
     </xsd:restriction>
   </xsd:simpleType>
+
+  <xsd:simpleType name="random_token">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="random"/>
+    </xsd:restriction>
+  </xsd:simpleType>
   
+
   <!-- This are some IPOPT 3 option names -->
   <xsd:simpleType name="ipopt_name_values">
     <xsd:restriction base="xsd:token">

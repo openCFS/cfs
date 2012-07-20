@@ -213,7 +213,7 @@ void linElastInt::calcDMat(Matrix<Double> & dMat, const Elem* elem, const Design
     else
       ptMaterial->GetTensor(dMat, MECH_STIFFNESS_TENSOR, matDataType_, subTensorType_);
   }
-  // LOG_DBG3(lin_elast_int) << GetName() << "lEi::cDM(Matrix<Double>, " << (elem != NULL ? Integer(elem->elemNum) : -1)  << ") -> mat=" << dMat.ToString();
+  LOG_DBG3(lin_elast_int) << GetName() << "lEi::cDM(Matrix<Double>, " << (elem != NULL ? Integer(elem->elemNum) : -1)  << ") -> mat=" << dMat.ToString();
   //if(direction == DesignElement::NO_DERIVATIVE)
   //  std::cout << GetName() << "lEi::cDM(Matrix<Double>, " << (elem != NULL ? Integer(elem->elemNum) : -1)  << ") -> mat=\n" << dMat.ToString(0, true) << std::endl;
 

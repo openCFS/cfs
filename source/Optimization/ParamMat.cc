@@ -25,11 +25,9 @@ DECLARE_LOG(em)
 ParamMat::ParamMat() : ErsatzMaterial()
 {
   // Note: this constructor is also called from constructor of ShapeOpt even when no ParamMat is used, in this case, nothing may be done
-
-  method_ = method.Parse(pn->Get("method")->As<std::string>());
   
   if((method_ == PARAM_MAT || method_ == SHAPE_PARAM_MAT) && pn->Has("paramMat")){ 
-    design->SetDesignMaterial(pn->Get("paramMat")->Get("designMaterial"));  
+    design->SetDesignMaterial(pn->Get("paramMat/designMaterial"), OptimizationMaterial::system.Parse(pn->Get("material")->As<std::string>()));
   }
   
   mech_mat_ = NULL; // set in PostInit()

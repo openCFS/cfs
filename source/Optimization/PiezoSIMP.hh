@@ -52,16 +52,6 @@ protected:
     }
   }
   
-private:
-
-  /** Calculate the electrix enegy p^T K_pp p resp. p^T K_pp p^* */  
-  template <class T>
-  double CalcElecEnergy(Excitation& excite);
-
-  /** Sets -K_pp p or -K_pp p^* */
-  template <class T>
-  void ConstructAdjointRHS(Excitation& excite, Function* cost);
-  
   
   /** This is our part for CalcU1KU2() -> This set the matrix derivatives form ELEC and
    * PIEZO_COUPLING ( + transposed) */
@@ -71,14 +61,29 @@ private:
             else SetElementK<double>(de, tf, app, out, calcMode, derivative);
   }
 
+  /** is a cast of the ErsatzMaterial::material attribute. Set in PostInit() */
+  PiezoelecMat* piezo_mat_;
+
+  /** shortcut to our pde, is also in ErsatzMaterial::pdes */
+  ElecPDE* elec;
+
+private:
+
   template <class T>
   void SetElementK(DesignElement* de, const TransferFunction* tf, Application app, DenseMatrix* out, CalcMode calcMode, bool derivative = true);
 
+
+  /** Calculate the electrix enegy p^T K_pp p resp. p^T K_pp p^* */
+  template <class T>
+  double CalcElecEnergy(Excitation& excite);
+
+  /** Sets -K_pp p or -K_pp p^* */
+  template <class T>
+  void ConstructAdjointRHS(Excitation& excite, Function* cost);
+
+
   /** The electric rhs, real or complex */
   DesignDependentRHS elecRHS;
-  
-  /** shortcut to our pde, is also in ErsatzMaterial::pdes */
-  ElecPDE* elec;
   
   /** This are logging variables for LogFileLine */
   double log_coupled_;
@@ -86,8 +91,6 @@ private:
   double log_elec_;
   double log_elec_simp_;
 
-  /** is a cast of the ErsatzMaterial::material attrbiute. Set in PostInit() */
-  PiezoelecMat* piezo_mat_;
   
 };
 

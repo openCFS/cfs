@@ -235,5 +235,14 @@ void AuxDesign::AddAuxDerivatives(Objective* f, Condition* g, StdVector<double>&
   }
 }
 
+inline
+BaseDesignElement* AuxDesign::GetDesignElement(unsigned int idx)
+{
+  if(alsomatopt_ && idx < data.GetSize())
+    return DesignSpace::GetDesignElement(idx);
+  else
+    return &aux_design_[idx - (alsomatopt_ ? data.GetSize() : 0)];
+}
+
 
 } // end of namespace

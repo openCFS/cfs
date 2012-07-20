@@ -147,7 +147,7 @@ public:
     /** The type of this design element, influences the Get*Bound() methods.
      * By definition the design elements are stored in the ordering of the type!!
      * make sure, that ALL_DESIGNS is the last with the highest number!!! */
-    typedef enum { UNITY = -7, NO_DERIVATIVE = -6, TENSOR_TRACE = -5, DIELEC_TRACE = -4, PIEZO_ALL = -3, DEFAULT = -2, NO_TYPE = -1, DENSITY = 0,
+    typedef enum { UNITY = -9, NO_DERIVATIVE = -8, TENSOR_TRACE = -7, ELAST_ALL = -6, DIELEC_TRACE = -5, DIELEC_ALL = -4, PIEZO_ALL = -3, DEFAULT = -2, NO_TYPE = -1, DENSITY = 0,
                    POLARIZATION = 1, ACOU_DENSITY = 2, EMODUL, POISSON, LAMELAMBDA, LAMEMU, EMODULISO, POISSONISO,
                    GMODUL, MASS, DAMPINGALPHA, DAMPINGBETA, TENSOR11, TENSOR22, TENSOR33, TENSOR23, TENSOR13, TENSOR12, SLACK,
                    DIELEC_11, DIELEC_12, DIELEC_22, PIEZO_11, PIEZO_12, PIEZO_13, PIEZO_21, PIEZO_22, PIEZO_23, ALL_DESIGNS} Type;
@@ -156,6 +156,11 @@ public:
   virtual ~BaseDesignElement() {};
 
   Type GetType() const { return type_; }
+
+  /** Checks if test matches super. To be used in Function::SetElements()
+   * @param super shall TENSOR_TRACE, ELAST_ALL, ... DEFAULT
+   * @param test ege. DIELEC_11, ... */
+  static bool IsCompatible(Type super, Type test);
 
   /** Allows to set the design element. */
   void SetDesign(double value) { this->design = value; }
@@ -330,7 +335,8 @@ public:
     static std::string ToString(const DesignElement* de);
     
     /** helper for LOG output */
-    static std::string ToString(const StdVector<DesignElement*>& vec);
+    static std::string ToString(const StdVector<DesignElement*>& vec, bool print_type = false);
+    static std::string ToString(const StdVector<DesignElement>& vec, bool print_val = false, bool print_type = false);
 
     /** Calculates the volume of the element, used static helpers.
      * caches the result, hence cheap to query again */

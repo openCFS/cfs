@@ -75,7 +75,15 @@ template <class TYPE> class Matrix;
     //! Compute element matrix associated to ADB form
     void CalcElementMatrix( Matrix<Double>& elemMat,
                             EntityIterator& ent1, 
-                            EntityIterator& ent2 );
+                            EntityIterator& ent2 )
+    {
+      CalcElementMatrix(elemMat, ent1, ent2, DesignElement::NO_DERIVATIVE);
+    }
+
+    void CalcElementMatrix( Matrix<Double>& elemMat,
+                            EntityIterator& ent1,
+                            EntityIterator& ent2,
+                            DesignElement::Type direction);
 
 
     // =======================================================================
@@ -100,11 +108,9 @@ template <class TYPE> class Matrix;
     };
 
     
-    /** The Implement this with your SIMP variant! 
-     * @see BDBInt::calcDMat(Matrix<Double>, Elem*, Double&) */
-    virtual void calcDMat(Matrix<Double> &dMat, const Elem* elem)
+    virtual void calcDMat(Matrix<Double> &dMat, const Elem* elem, DesignElement::Type direction = DesignElement::NO_DERIVATIVE)
     {
-      calcDMat(dMat);
+      EXCEPTION("not correctly overwritten!");
     };
 
     //! Query number of degrees of freedom for first physical quantity.

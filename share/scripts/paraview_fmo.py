@@ -39,14 +39,14 @@ def rotation_matrix_mandel(angle):
 # tests the strengs in x-direction of 2D Hill-Mandel tensor rotated by an angle
 # @param tensor: a 2D Hill-Mandel tensor
 # @param angle: 0 .. PI
-# @return: the x-strength
+# @return: the x-strength, orth error
 def test_rotation_mandel(tensor, angle):
   assert(tensor.shape == (3,3))
   
   theta = rotation_matrix_mandel(angle)
   rot = dot(theta.transpose(),dot(tensor,theta))
   
-  return rot[0,0]
+  return rot[0,0], sqrt(rot[0,2]**2 + rot[1,2]**2)  
 
 # finds stiffest orientation for a 2D Hill-Mandel tensor
 # @param steps: how many probes
@@ -55,16 +55,18 @@ def find_stiffest_rotation_mandel(tensor, steps, dump = None):
   m = -1e60
   opt = -1
   data = numpy.zeros((steps, 2))
+  err  = numpy.zeros((steps, 1))
   idx = 0
   for x in numpy.arange(0, numpy.pi, numpy.pi/steps):
-    test = test_rotation_mandel(tensor, x)
+    test, norm = test_rotation_mandel(tensor, x)
     if not dump == None:
-      print str(test) + "\t" + str(x) 
+      print str(test) + "\t" + str(x) + "\t" +str(norm) 
     if test > m:
       m = test
       opt = idx
     data[idx, 0] = x
     data[idx, 1] = test
+    err[idx, 0] = norm
     idx += 1
   return opt, data  
 
@@ -174,9 +176,9 @@ def pv_tensor_directions(input, steps):
 
   return first_vec, first_val, second_vec, second_val
 
-data = inputs[0].CellData['mechTensor'] 
-first_vec, first_val, second_vec, second_val = pv_tensor_directions(data, 90)
-output.CellData.append(first_vec,"stiffest_vec")
-output.CellData.append(first_val,"stiffest_mag")
-output.CellData.append(second_vec,"second_vec")
-output.CellData.append(second_val,"second_mag")
+# data = inputs[0].CellData['mechTensor'] 
+# first_vec, first_val, second_vec, second_val = pv_tensor_directions(data, 90)
+# output.CellData.append(first_vec,"stiffest_vec")
+#output.CellData.append(first_val,"stiffest_mag")
+#output.CellData.append(second_vec,"second_vec")
+#output.CellData.append(second_val,"second_mag")

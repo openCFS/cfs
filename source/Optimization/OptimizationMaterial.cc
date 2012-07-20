@@ -340,13 +340,9 @@ PiezoelecMat::PiezoelecMat(ErsatzMaterial* em) :
   for(unsigned int r = 0; r < regionIds.GetSize(); r++)
   {
     // in the piezoelectric case K_pp is set to -K_pp. As we use the linGradBDBInt from a piezoelectric problem this is done!
-    GetElementMatrix(ErsatzMaterial::GetForm(regionIds[r], elec, elec, "linGradBDBInt"), elecStiffness_map[regionIds[r]], NULL, NULL, DesignElement::NO_DERIVATIVE, -1.0); // see above
-    GetElementMatrix(ErsatzMaterial::GetForm(regionIds[r], elec, elec, "linGradBDBInt"), elecStiffness_neg_map[regionIds[r]], NULL, NULL, DesignElement::NO_DERIVATIVE, 1.0); // see above
-
-    // wrong!!!
-    //GetElementMatrix(ErsatzMaterial::GetForm(regionIds[r], elec, elec, "linGradBDBInt"), elecStiffness_map[regionIds[r]], NULL, DesignElement::NO_DERIVATIVE, 1.0); // see above
-    //GetElementMatrix(ErsatzMaterial::GetForm(regionIds[r], elec, elec, "linGradBDBInt"), elecStiffness_neg_map[regionIds[r]], NULL, DesignElement::NO_DERIVATIVE, -1.0); // see above
-
+    // FIXME check the sign!
+    GetElementMatrix(ErsatzMaterial::GetForm(regionIds[r], elec, elec, "linGradBDBInt"), elecStiffness_map[regionIds[r]], NULL, NULL, DesignElement::NO_DERIVATIVE, 1.0); // see above
+    GetElementMatrix(ErsatzMaterial::GetForm(regionIds[r], elec, elec, "linGradBDBInt"), elecStiffness_neg_map[regionIds[r]], NULL, NULL, DesignElement::NO_DERIVATIVE, -1.0); // see above
 
     GetElementMatrix(ErsatzMaterial::GetForm(regionIds[r], mech, elec, "linPiezoCoupling"), coupledStiffness_map[regionIds[r]]);
     coupledStiffness_map[regionIds[r]].Transpose(coupledStiffnessTransposed_map[regionIds[r]]);
@@ -365,7 +361,7 @@ PiezoelecMat::PiezoelecMat(ErsatzMaterial* em) :
   elemIt.Begin();
 
   Matrix<Double> mat;
-  GetElementMatrix(elec_int, mat, const_cast<Elem*>(elemIt.GetElem())); // checks the pseudo densitiy disable stuff
+  GetElementMatrix(elec_int, mat, const_cast<Elem*>(elemIt.GetElem())); // checks the pseudo density disable stuff
   LOG_DBG3(om) << "OptPiezoMat: true K_pp=" << mat.ToString();
 
   // we just need to check the sign
@@ -383,32 +379,32 @@ PiezoelecMat::PiezoelecMat(ErsatzMaterial* em) :
 
 }
 
-const Matrix<double>& PiezoelecMat::ElecStiffness(Elem* elem, int factor)
+const Matrix<double>& PiezoelecMat::ElecStiffness(const Elem* elem, int factor, DesignElement::Type direction)
 {
   assert(factor == 1 || factor == -1);
 
   std::map<RegionIdType, Matrix<double> >& map = factor == 1 ? elecStiffness_map : elecStiffness_neg_map;
   // overwrite the element
   if(!structured_)
-    GetElementMatrix(ErsatzMaterial::GetForm(elem->regionId, elec, elec, "linGradBDBInt"), map[elem->regionId], NULL, NULL, DesignElement::NO_DERIVATIVE, (double) factor);
+    GetElementMatrix(ErsatzMaterial::GetForm(elem->regionId, elec, elec, "linGradBDBInt"), map[elem->regionId], NULL, NULL, direction, (double) factor);
 
   return map[elem->regionId];
 }
 
-const Matrix<double>& PiezoelecMat::CoupledStiffness(Elem* elem)
+const Matrix<double>& PiezoelecMat::CoupledStiffness(const Elem* elem, DesignElement::Type direction)
 {
   if(!structured_)
-    GetElementMatrix(ErsatzMaterial::GetForm(elem->regionId, mech, elec, "linPiezoCoupling"), coupledStiffness_map[elem->regionId]);
+    GetElementMatrix(ErsatzMaterial::GetForm(elem->regionId, mech, elec, "linPiezoCoupling"), coupledStiffness_map[elem->regionId], NULL, NULL, direction);
 
   return coupledStiffness_map[elem->regionId];
 }
 
 
-const Matrix<double>& PiezoelecMat::CoupledStiffnessTransposed(Elem* elem)
+const Matrix<double>& PiezoelecMat::CoupledStiffnessTransposed(const Elem* elem, DesignElement::Type direction)
 {
   if(!structured_)
   {
-    GetElementMatrix(ErsatzMaterial::GetForm(elem->regionId, mech, elec, "linPiezoCoupling"), coupledStiffness_map[elem->regionId]);
+    GetElementMatrix(ErsatzMaterial::GetForm(elem->regionId, mech, elec, "linPiezoCoupling"), coupledStiffness_map[elem->regionId], NULL, NULL, direction);
     coupledStiffness_map[elem->regionId].Transpose(coupledStiffnessTransposed_map[elem->regionId]);
   }
 

@@ -48,6 +48,96 @@ Enum<DesignElement::Detail>         DesignElement::detail;
 // is a static attribute
 DesignSpace* DesignElement::space_(NULL);
 
+bool BaseDesignElement::IsCompatible(Type super, Type test)
+{
+  switch(super)
+  {
+  case TENSOR_TRACE:
+  {
+    switch(test)
+    {
+    case TENSOR11:
+    case TENSOR22:
+    case TENSOR33:
+      return true;
+    default:
+      return false;
+    }
+    break;
+  }
+
+  case ELAST_ALL:
+  {
+    switch(test)
+    {
+    case TENSOR11:
+    case TENSOR12:
+    case TENSOR13:
+    case TENSOR22:
+    case TENSOR23:
+    case TENSOR33:
+      return true;
+    default:
+      return false;
+    }
+    break;
+  }
+
+  case DIELEC_TRACE:
+  {
+    switch(test)
+    {
+    case DIELEC_11:
+    case DIELEC_22:
+      return true;
+    default:
+      return false;
+    }
+    break;
+  }
+
+  case DIELEC_ALL:
+  {
+    switch(test)
+    {
+    case DIELEC_11:
+    case DIELEC_12:
+    case DIELEC_22:
+      return true;
+    default:
+      return false;
+    }
+    break;
+  }
+
+  case PIEZO_ALL:
+  {
+    switch(test)
+    {
+    case PIEZO_11:
+    case PIEZO_12:
+    case PIEZO_13:
+    case PIEZO_21:
+    case PIEZO_22:
+    case PIEZO_23:
+      return true;
+    default:
+      return false;
+    }
+    break;
+  }
+
+  case DEFAULT:
+  case ALL_DESIGNS:
+    return true;
+    break;
+
+  default:
+    return false;
+  }
+
+}
+
 BaseDesignElement::BaseDesignElement(Type t) {
   design          = 0.0;
   upper_          = 0.0;
@@ -453,16 +543,37 @@ std::string DesignElement::ToString(const DesignElement* de)
   return ss.str();
 }
 
-std::string DesignElement::ToString(const StdVector<DesignElement*>& vec)
+std::string DesignElement::ToString(const StdVector<DesignElement*>& vec, bool print_type)
 {
   std::stringstream ss;
   ss << "[";
   for(unsigned int i = 0, s = vec.GetSize(); i < s; ++i)
-    ss << ToString(vec[i]) << (i < s - 1 ? "," : "");
+  {
+    ss << ToString(vec[i]);
+    if(print_type) ss << "=" << vec[i]->type_;
+    if(i < s-1) ss << ",";
+  }
   ss << "]";
 
   return ss.str();
 }
+
+std::string DesignElement::ToString(const StdVector<DesignElement>& vec, bool print_val, bool print_type)
+{
+  std::stringstream ss;
+  ss << "[";
+  for(unsigned int i = 0, s = vec.GetSize(); i < s; ++i)
+  {
+    ss << vec[i].elem->elemNum;
+    if(print_val)  ss << ":" << vec[i].GetPlainDesignValue();
+    if(print_type) ss << "=" << vec[i].type_;
+    if(i < s-1) ss << ",";
+  }
+  ss << "]";
+
+  return ss.str();
+}
+
 
 void DesignElement::SetEnums()
 {
@@ -486,7 +597,9 @@ void DesignElement::SetEnums()
 
   type.SetName("BaseDesignElement::Type");
   type.Add(TENSOR_TRACE, "tensor_trace");
+  type.Add(ELAST_ALL, "elast_all");
   type.Add(DIELEC_TRACE, "dielec_trace");
+  type.Add(DIELEC_ALL, "dielec_all");
   type.Add(PIEZO_ALL, "piezo_all");
   type.Add(DEFAULT, "default");
   type.Add(ALL_DESIGNS, "allDesigns");

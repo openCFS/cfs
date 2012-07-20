@@ -110,7 +110,7 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
     if(BasePDE::IsComplex(domain->GetBasePDE()->GetAnalysisType()) && design.Contains(DesignElement::DENSITY)) {
       TransferFunction* tf = GetTransferFunction(DesignElement::DENSITY, Optimization::MASS, false); // silend
       if(tf == NULL && domain->GetBasePDE()->GetName() != "electrostatic") {
-        std::cout << domain->GetBasePDE()->GetName() << std::endl;
+        // std::cout << domain->GetBasePDE()->GetName() << std::endl;
         PtrParamNode in = info->Get("optimization")->Get(ParamNode::HEADER)->Get("designSpace/transferFunctions")->Get(ParamNode::WARNING);
         in->SetValue("no transfer function 'mass' given for harmonic model");
       }
@@ -202,16 +202,17 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
               dr.scale_design = (upper - lower);
               dr.translate_design = lower;
             }
-            double initial = curr_design_pn->Get("initial")->As<double>();
-            LOG_DBG2(designSpace) << "add design initial=" << boost::lexical_cast<std::string>(initial) << dr.ToString();
+            bool random = curr_design_pn->Get("initial")->As<std::string>() == "random";
+            double initial = random ? -1.0 : curr_design_pn->Get("initial")->As<double>();
+
+            if(!random && (initial < lower || initial > upper))
+              throw Exception("Initial value for design " + DesignElement::type.ToString(dt) + " not within bounds");
 
             for(unsigned int e = 0; e < n; e++)
             {
               DesignElement de(dt, lower, upper, elems[e], data.GetSize());
-              // simple extension: if the passed value is smaller
-              // than 0.0 (which makes no sense as the element contribution
-              // is always positive), we put a random number -> random initial design
-              de.SetDesign(initial < 0.0 ? ((rand()%100 + 10)/110.0) : initial);
+
+              de.SetDesign(random ? (((float) rand()/RAND_MAX) * (upper - lower) + lower) : initial);
 
               data.Push_back(de);
               totalElements_.Push_back(&data.Last());
@@ -262,12 +263,14 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
           RegisterPseudoDesignRegion(domain->GetGrid()->regionData[r].id, design[d]);
   }
 }
+
 DesignSpace::~DesignSpace(){
   if(designMaterial != NULL){
     delete designMaterial;
     designMaterial = NULL;
   }
 }
+
 double DesignSpace::DetermineLowerBound(PtrParamNode pn, TransferFunction* tf)
 {
   bool pl = pn->Has("physical_lower");
@@ -426,11 +429,11 @@ unsigned int DesignSpace::CalcPseudoDesignElements() const
     sum += pseudoDesigns_[i].GetSize();
   return sum;
 }
-void DesignSpace::SetDesignMaterial(PtrParamNode dm){
+void DesignSpace::SetDesignMaterial(PtrParamNode dm, OptimizationMaterial::System material){
   if(transfer.GetSize() > 0)
     throw Exception("designmaterial can not be given when using transferFunctions");
   transfer.Push_back(TransferFunction()); // create an identity transfer function
-  designMaterial = new DesignMaterial(dm, design);
+  designMaterial = new DesignMaterial(dm, material, design);
 }
 void DesignSpace::AppendOptimizationResults(SinglePDE* pde)
 {
@@ -554,7 +557,8 @@ int DesignSpace::FindDesign(DesignElement::Type dt, bool throw_exception) const
   // do a fallback for NO_TYPE and DEFAULT
   if(design.GetSize() == 1 && (dt == DesignElement::NO_TYPE || dt == DesignElement::DEFAULT))
     return 0;
-  if(dt == DesignElement::TENSOR_TRACE && HasErsatzMaterialTensor()) // this is not a real type of design, but volume constraint can operate on it, if optimization returns a complete tensor
+  // this is not a real type of design, but volume constraint can operate on it, if optimization returns a complete tensor
+  if(dt == DesignElement::TENSOR_TRACE && HasErsatzMaterialTensor())
     return 0;
   // search where in data we are
   int base = -1;
@@ -618,11 +622,15 @@ bool DesignSpace::GetErsatzMaterialPamping(const Elem* elem, Matrix<double>& ele
   LOG_DBG3(designSpace) << "GEMP e=" << elem->elemNum << " ->" << elemMat.ToString();
   return true;
 }
+
 bool DesignSpace::CollectMaterialParametersForElement(const Elem* elem){
   int base = Find(elem, false);
   if(base < 0){
     return(false);
   }
+
+  // prevent complicated combinations when we do piezo FMO
+  designMaterial->ClearParameter();
 
   for(unsigned int index = base; index < data.GetSize(); index += elements){
     DesignElement* de = &data[index];
@@ -630,6 +638,26 @@ bool DesignSpace::CollectMaterialParametersForElement(const Elem* elem){
   }
   return(true);
 }
+
+bool DesignSpace::GetTensor(Matrix<double>& t, DesignElement::Type type, SubTensorType subTensor, const Elem* elem, DesignElement::Type direction, DesignMaterial::Notation notation)
+{
+  switch(type)
+  {
+  case DesignElement::TENSOR_TRACE:
+  case DesignElement::ELAST_ALL:
+    return GetErsatzMaterialTensor(t, subTensor, elem, direction, notation);
+  case DesignElement::DIELEC_TRACE:
+  case DesignElement::DIELEC_ALL:
+    return GetDielecTensor(t, elem, direction);
+  case DesignElement::PIEZO_ALL:
+    return GetPiezoCouplingTensor(t, elem, direction);
+  default:
+    return false;
+    break;
+  }
+  return false;
+}
+
 bool DesignSpace::GetErsatzMaterialTensor(Matrix<double>& t, SubTensorType subTensor, const Elem* elem, DesignElement::Type direction, DesignMaterial::Notation notation){
   // collect all parameters
   if(CollectMaterialParametersForElement(elem)){
@@ -638,6 +666,33 @@ bool DesignSpace::GetErsatzMaterialTensor(Matrix<double>& t, SubTensorType subTe
   }
   return(false);
 }
+
+bool DesignSpace::GetDielecTensor(Matrix<double>& t, const Elem* elem, DesignElement::Type direction)
+{
+  // believe if there is one then there are all :)
+  if(direction == DesignElement::NO_DERIVATIVE && !designMaterial->HasParameter(DesignElement::DIELEC_11))
+    return false;
+  if(CollectMaterialParametersForElement(elem)) {
+    designMaterial->GetDielecTensor(t, direction);
+    return true;
+  }
+  else
+    return false;
+}
+
+bool DesignSpace::GetPiezoCouplingTensor(Matrix<double>& t, const Elem* elem, DesignElement::Type direction)
+{
+  if(direction == DesignElement::NO_DERIVATIVE && !designMaterial->HasParameter(DesignElement::PIEZO_11))
+    return false;
+  if(CollectMaterialParametersForElement(elem)) {
+    designMaterial->GetPiezoCouplingTensor(t, direction);
+    return true;
+  }
+  else
+    return false;
+}
+
+
 double DesignSpace::GetErsatzMaterialMass(const Elem* elem, DesignElement::Type direction){
   // collect all parameters
   if(CollectMaterialParametersForElement(elem)){
@@ -939,6 +994,14 @@ void DesignSpace::Reset(DesignElement::ValueSpecifier vs, DesignElement::Type de
     }
   }
 }
+
+inline
+BaseDesignElement* DesignSpace::GetDesignElement(unsigned int idx)
+{
+  assert(idx < data.GetSize());
+  return dynamic_cast<BaseDesignElement*>(&data[idx]);
+}
+
 DesignElement* DesignSpace::Find(unsigned int elemNum, DesignElement::Type dt, bool throw_exception, bool include_pseudo_designs)
 {
   int idx = Find(elemNum, throw_exception, include_pseudo_designs);

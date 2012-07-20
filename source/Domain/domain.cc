@@ -1078,6 +1078,16 @@ bool Domain::HasErsatzMaterialTensor()
       : ersatzMaterial->HasErsatzMaterialTensor();
 }
 
+bool Domain::HasErsatzMaterialPiezoCouplingTensor()
+{
+  return ersatzMaterial == NULL ? false : ersatzMaterial->HasPiezoCouplingTensor();
+}
+
+bool Domain::HasErsatzMaterialDielecTensor()
+{
+  return ersatzMaterial == NULL ? false  : ersatzMaterial->HasDielecTensor();
+}
+
 bool Domain::HasErsatzMaterialMass()
 {
   return ersatzMaterial == NULL ? false
