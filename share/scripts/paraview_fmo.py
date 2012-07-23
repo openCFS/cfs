@@ -8,6 +8,11 @@
 # first.
 
 
+# visualize:
+# import pylab
+# pylab.plot(data[:,1])
+# pylab.show()
+
 import numpy
 import numpy.linalg
 
@@ -15,6 +20,138 @@ from numpy import dot
 from numpy import sin
 from numpy import cos
 from numpy import sqrt
+
+
+e2d = numpy.zeros((2,2))
+e2d[0,0] = 1.51
+e2d[0,1] = 0.0
+e2d[1,0] = 0.0
+e2d[1,1] = 1.27
+
+p0 = numpy.zeros((2,3))
+p0[0,0] = 0.0
+p0[0,1] = 0.0
+p0[0,2] = 17.0
+p0[1,0] = -6.5
+p0[1,1] = 23.3
+p0[1,2] = 0.0
+
+
+## This rotates a 2*2 2D tensor via the third direction. As in Richter and CFS
+def get_rot_2x2(angle):
+  R = numpy.zeros((2,2))
+
+  R[0][0] =  cos(angle)
+  R[0][1] =  sin(angle)
+  R[1][0] =  -sin(angle)
+  R[1][1] =  cos(angle)
+  
+  return R
+
+## This rotates a 3*3 2D tensor via the third direction. As in Richter and CFS
+def get_rot_3x3(angle, R):
+  
+  Q = numpy.zeros((3,3))
+  
+  Q[0][0] = R[0][0]*R[0][0];
+  Q[0][1] = R[0][1]*R[0][1];
+  Q[0][2] = 2.0*R[0][0]*R[0][1];
+
+  Q[1][0] = R[1][0]*R[1][0];
+  Q[1][1] = R[1][1]*R[1][1];
+  Q[1][2] = 2.0*R[1][0]*R[1][1];
+
+  Q[2][0] = R[0][0]*R[1][0];
+  Q[2][1] = R[0][1]*R[1][1];
+  Q[2][2] = R[0][0]*R[1][1] + R[0][1]*R[1][0];
+  
+  return Q
+
+## this performs the cfs rotation for 2D.
+# works for 2*2 tensors (permitivity), 2*3 (piezo coupling) and 3*3 (elasticity in Voigt notation)
+# @param tensor: we assume the cfs rotation alpha=-90 and gamma=-90 already to be done -> XML-Reference
+# @return with the dimension of tensor  
+def rotate_cfs(tensor, angle):
+
+  out = numpy.zeros(tensor.shape)
+
+  R = get_rot_2x2(angle)
+  
+  if tensor.shape == (2,2):
+    return dot(R,dot(tensor,R.transpose()))
+  
+  Q = get_rot_3x3(angle, R)
+  
+  if tensor.shape == (2,3):
+    return dot(R, dot(tensor, Q.transpose()))
+
+  if tensor.shape == (3,3):
+   return dot(Q, dot(tensor, Q.transpose()))
+
+  assert(false) 
+
+
+# performs a cfs-rotation study for elast (Voigt), elec and piezo tensors
+# in the result the first two steps are repeated such the neighbor search is easier!
+# @param steps: how many probes
+# @return: array n * 3: first=angle, second=magnitude, third=norm for 0-positions in orthonormal 
+def perform_cfs_rotation(tensor, steps, calc_norm=False):
+  data = numpy.zeros((steps+2, 3))
+  idx = 0
+  for x in numpy.arange(0, numpy.pi, numpy.pi/steps):
+    test = rotate_cfs(tensor, x)
+    data[idx, 0] = x
+    data[idx, 1] = test[0,0]
+    if calc_norm:
+      if tensor.shape == (2,2):
+        data[idx, 2] = sqrt(2.0 * test[0,1]**2)
+      if tensor.shape == (3,3):
+        data[idx, 2] = sqrt(2.0 * (test[0,2]**2 + test[1,2]**2))
+    idx += 1
+    
+  data[steps, 0] = data[0,0]  
+  data[steps, 1] = data[0,1]
+  data[steps, 2] = data[0,2]
+  data[steps+1, 0] = data[1,0]  
+  data[steps+1, 1] = data[1,1]
+  data[steps+1, 2] = data[1,2]
+  
+  return data  
+
+# finds the two largest maxima
+# @param param: data vector where the last two entries shall be a double of the first ones
+# @return the indices of the largest and second largest maxima. If there is no second then -1
+def find_maxima(data):
+  first = [-1, -1e60]
+  second = [-1, -1e60]
+  for i in range(1, len(data)-1):
+    if data[i-1] <= data[i] and data[i] >= data[i+1]:
+      if data[i] >= first[1]:
+        second = first[:] # deep copy
+        first[0] = i
+        first[1] = data[i]
+      elif data[i] >= second[1]:
+        second[0] = i
+        second[1] = data[i]        
+
+  return first[0], second[0]
+
+## @see find_maxima 
+def find_minima(data):
+  first = [-1, +1e60]
+  second = [-1, +1e60]
+  for i in range(1, len(data)-1):
+    if data[i-1] >= data[i] and data[i] <= data[i+1]:
+      if data[i] <= first[1]:
+        second = first[:]
+        first[0] = i
+        first[1] = data[i]
+      elif data[i] <= second[1]:
+        second[0] = i
+        second[1] = data[i]        
+
+  return first[0], second[0]
+
 
 # give the rotation matrix for a 2D elasticity tensor in Hill-Mandel notation
 # @param angle: 0 ... PI
@@ -69,6 +206,35 @@ def find_stiffest_rotation_mandel(tensor, steps, dump = None):
     err[idx, 0] = norm
     idx += 1
   return opt, data  
+
+## transforms Hill-Mandel to Voigt elasticity tensor 
+def HillMandel2Voigt(tensor):
+  ret = numpy.zeros((3,3))
+  ret[0,0] = tensor[0,0]
+  ret[0,1] = tensor[0,1]
+  ret[0,2] = 1.0/sqrt(2.0) * tensor[0,2]
+  ret[1,0] = tensor[1,0]
+  ret[1,1] = tensor[1,1]
+  ret[1,2] = 1.0/sqrt(2.0) * tensor[1,2]
+  ret[2,0] = 1.0/sqrt(2.0) * tensor[2,0]
+  ret[2,1] = 1.0/sqrt(2.0) * tensor[2,1]
+  ret[2,2] = 0.5 * tensor[2,2]
+  return ret
+
+## transforms Voigt elasticity tensor to Hill-Mandel notation 
+def Voigt2HillMandel(tensor):
+  ret = numpy.zeros((3,3))
+  ret[0,0] = tensor[0,0]
+  ret[0,1] = tensor[0,1]
+  ret[0,2] = sqrt(2.0) * tensor[0,2]
+  ret[1,0] = tensor[1,0]
+  ret[1,1] = tensor[1,1]
+  ret[1,2] = sqrt(2.0) * tensor[1,2]
+  ret[2,0] = sqrt(2.0) * tensor[2,0]
+  ret[2,1] = sqrt(2.0) * tensor[2,1]
+  ret[2,2] = 2.0 * tensor[2,2]
+  return ret
+
 
 def to_tensor(input):
   assert(len(input) == 6)
