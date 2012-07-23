@@ -70,7 +70,7 @@ void Ilupack<T>::SetMatrix(const BaseMatrix &base_mat)
 
   // delete the old values before we allocate the new space - if could be faster! 
   if(mat.a != NULL)
-  { delete[] mat.a; mat.a = NULL;}
+  { delete[] reinterpret_cast<T*>(mat.a); mat.a = NULL;}
   if(mat.ia != NULL)
   { delete[] mat.ia; mat.ia = NULL;}
   if(mat.ja != NULL)
@@ -115,7 +115,7 @@ void Ilupack<T>::SetMatrix(const BaseMatrix &base_mat)
   std::copy(col_ptr, col_ptr + elements, mat.ja);
 
   // values is brutal stuff, because binary the std::complex<double>* IS a double*!
-  mat.a = reinterpret_cast<double*>(new T[elements]);
+  mat.a = new T[elements];
   T* val_src = reinterpret_cast<T*>(mat.a);
   std::copy(val_ptr, val_ptr + elements, val_src);
 
@@ -166,7 +166,7 @@ void Ilupack<T>::SetMatrix(const BaseMatrix &base_mat)
                       << ".ia=" << elements << "; .nr=" << mat.nr << " .nc=" << mat.nc;
   LOG_DBG2(ilupack) << "mat_.ia: " << StdVector<int>::ToString(mat.nr + 1, mat.ia);
   LOG_DBG2(ilupack) << "mat_.ja: " << StdVector<int>::ToString(elements, mat.ja);
-  LOG_DBG2(ilupack) << "mat_.a: " << StdVector<double>::ToString(elements, mat.a);
+  LOG_DBG2(ilupack) << "mat_.a: " << StdVector<T>::ToString(elements, reinterpret_cast<T*>(mat.a));
 }
 
 template<typename T>
@@ -385,17 +385,17 @@ void Ilupack<T>::IlupackAMGInit()
   {
   case GNL:
     if(isComplex_) ZGNLAMGinit(reinterpret_cast<Zmat*>(&mat), reinterpret_cast<ZILUPACKparam*>(&param));
-              else DGNLAMGinit(&mat, reinterpret_cast<DILUPACKparam*>(&param));
+              else DGNLAMGinit(reinterpret_cast<Dmat*>(&mat), reinterpret_cast<DILUPACKparam*>(&param));
     break;
 
   case SYM:
     if(isComplex_) ZSYMAMGinit(reinterpret_cast<Zmat*>(&mat), reinterpret_cast<ZILUPACKparam*>(&param));
-              else DSYMAMGinit(&mat, reinterpret_cast<DILUPACKparam*>(&param));
+              else DSYMAMGinit(reinterpret_cast<Dmat*>(&mat), reinterpret_cast<DILUPACKparam*>(&param));
     break;
 
   case PD:
     if(isComplex_) ZHPDAMGinit(reinterpret_cast<Zmat*>(&mat), reinterpret_cast<ZILUPACKparam*>(&param));
-              else DSPDAMGinit(&mat, reinterpret_cast<DILUPACKparam*>(&param));
+              else DSPDAMGinit(reinterpret_cast<Dmat*>(&mat), reinterpret_cast<DILUPACKparam*>(&param));
     break;
 
   case HER:
@@ -414,19 +414,25 @@ int Ilupack<T>::IlupackAMGFactor()
     if(isComplex_) return ZGNLAMGfactor(reinterpret_cast<Zmat*>(&mat), 
                                         reinterpret_cast<ZAMGlevelmat*>(&precond), 
                                         reinterpret_cast<ZILUPACKparam*>(&param));
-              else return DGNLAMGfactor(&mat, &precond, reinterpret_cast<DILUPACKparam*>(&param));
+              else return DGNLAMGfactor(reinterpret_cast<Dmat*>(&mat),
+                                        reinterpret_cast<DAMGlevelmat*>(&precond),
+                                        reinterpret_cast<DILUPACKparam*>(&param));
 
   case SYM:
     if(isComplex_) return ZSYMAMGfactor(reinterpret_cast<Zmat*>(&mat),
                                         reinterpret_cast<ZAMGlevelmat*>(&precond), 
                                         reinterpret_cast<ZILUPACKparam*>(&param));
-              else return DSYMAMGfactor(&mat, &precond,  reinterpret_cast<DILUPACKparam*>(&param));
+              else return DSYMAMGfactor(reinterpret_cast<Dmat*>(&mat),
+                                        reinterpret_cast<DAMGlevelmat*>(&precond),
+                                        reinterpret_cast<DILUPACKparam*>(&param));
 
   case PD :
     if(isComplex_) return ZHPDAMGfactor(reinterpret_cast<Zmat*>(&mat), 
                                         reinterpret_cast<ZAMGlevelmat*>(&precond), 
                                         reinterpret_cast<ZILUPACKparam*>(&param));
-              else return DSPDAMGfactor(&mat, &precond, reinterpret_cast<DILUPACKparam*>(&param));
+              else return DSPDAMGfactor(reinterpret_cast<Dmat*>(&mat),
+                                        reinterpret_cast<DAMGlevelmat*>(&precond),
+                                        reinterpret_cast<DILUPACKparam*>(&param));
 
   case HER:
     if(isComplex_) return ZHERAMGfactor(reinterpret_cast<Zmat*>(&mat), 
@@ -449,7 +455,9 @@ int Ilupack<T>::IlupackAMGSolver(T* sol_ptr, T* rhs_ptr)
                                           reinterpret_cast<ZILUPACKparam*>(&param), 
                                           reinterpret_cast<doublecomplex*>(rhs_ptr),
                                           reinterpret_cast<doublecomplex*>(sol_ptr));
-                else return DGNLAMGsolver(&mat, &precond, reinterpret_cast<DILUPACKparam*>(&param), 
+                else return DGNLAMGsolver(reinterpret_cast<Dmat*>(&mat), 
+                                          reinterpret_cast<DAMGlevelmat*>(&precond),
+                                          reinterpret_cast<DILUPACKparam*>(&param), 
                                           reinterpret_cast<double*>(rhs_ptr),
                                           reinterpret_cast<double*>(sol_ptr));
     case SYM:
@@ -458,7 +466,9 @@ int Ilupack<T>::IlupackAMGSolver(T* sol_ptr, T* rhs_ptr)
                                           reinterpret_cast<ZILUPACKparam*>(&param), 
                                           reinterpret_cast<doublecomplex*>(rhs_ptr),
                                           reinterpret_cast<doublecomplex*>(sol_ptr));
-                else return DSYMAMGsolver(&mat, &precond, reinterpret_cast<DILUPACKparam*>(&param), 
+                else return DSYMAMGsolver(reinterpret_cast<Dmat*>(&mat), 
+                                          reinterpret_cast<DAMGlevelmat*>(&precond),
+                                          reinterpret_cast<DILUPACKparam*>(&param), 
                                           reinterpret_cast<double*>(rhs_ptr),
                                           reinterpret_cast<double*>(sol_ptr));
     case PD:
@@ -467,7 +477,9 @@ int Ilupack<T>::IlupackAMGSolver(T* sol_ptr, T* rhs_ptr)
                                           reinterpret_cast<ZILUPACKparam*>(&param), 
                                           reinterpret_cast<doublecomplex*>(rhs_ptr),
                                           reinterpret_cast<doublecomplex*>(sol_ptr));
-                else return DSPDAMGsolver(&mat, &precond, reinterpret_cast<DILUPACKparam*>(&param), 
+                else return DSPDAMGsolver(reinterpret_cast<Dmat*>(&mat), 
+                                          reinterpret_cast<DAMGlevelmat*>(&precond),
+                                          reinterpret_cast<DILUPACKparam*>(&param), 
                                           reinterpret_cast<double*>(rhs_ptr),
                                           reinterpret_cast<double*>(sol_ptr));
     case HER:
@@ -492,17 +504,17 @@ void Ilupack<T>::IlupackAMGDelete()
   {
     case GNL:
     if(isComplex_) ZGNLAMGdelete(reinterpret_cast<Zmat*>(&mat), reinterpret_cast<ZAMGlevelmat*>(&precond), reinterpret_cast<ZILUPACKparam*>(&param));
-              else DGNLAMGdelete(&mat, &precond, reinterpret_cast<DILUPACKparam*>(&param));
+              else DGNLAMGdelete(reinterpret_cast<Dmat*>(&mat), reinterpret_cast<DAMGlevelmat*>(&precond), reinterpret_cast<DILUPACKparam*>(&param));
     break;
 
     case SYM:
     if(isComplex_) ZSYMAMGdelete(reinterpret_cast<Zmat*>(&mat), reinterpret_cast<ZAMGlevelmat*>(&precond), reinterpret_cast<ZILUPACKparam*>(&param));
-              else DSYMAMGdelete(&mat, &precond, reinterpret_cast<DILUPACKparam*>(&param));
+              else DSYMAMGdelete(reinterpret_cast<Dmat*>(&mat), reinterpret_cast<DAMGlevelmat*>(&precond), reinterpret_cast<DILUPACKparam*>(&param));
     break;
 
     case PD:
     if(isComplex_) ZHPDAMGdelete(reinterpret_cast<Zmat*>(&mat), reinterpret_cast<ZAMGlevelmat*>(&precond), reinterpret_cast<ZILUPACKparam*>(&param));
-              else DSPDAMGdelete(&mat, &precond, reinterpret_cast<DILUPACKparam*>(&param));
+              else DSPDAMGdelete(reinterpret_cast<Dmat*>(&mat), reinterpret_cast<DAMGlevelmat*>(&precond), reinterpret_cast<DILUPACKparam*>(&param));
     break;
 
     case HER:
@@ -513,7 +525,7 @@ void Ilupack<T>::IlupackAMGDelete()
   }
 
   if(mat.a != NULL)
-  { delete[] mat.a; mat.a = NULL;}
+  { delete[] reinterpret_cast<T*>(mat.a); mat.a = NULL;}
   if(mat.ia != NULL)
   { delete[] mat.ia; mat.ia = NULL;}
   if(mat.ja != NULL)
@@ -529,7 +541,7 @@ void Ilupack<T>::CalcFillIn(PtrParamNode out)
   // It is reduced to the total fill-in factor
 
   int nnzU = 0, tmp0 = 0; // original names
-  DAMGlevelmat  *next = &precond;
+  AMGlevelmat  *next = &precond;
 
   if(param.ind != NULL) EXCEPTION("saddle point is disabled");
   
