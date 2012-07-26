@@ -21,6 +21,7 @@
 #include <sstream>
 #include <iostream>
 #include <vector>
+#include <string>
 
 #include "boost/regex.hpp"
 #include "boost/filesystem/operations.hpp"
@@ -406,8 +407,18 @@ namespace CoupledField{
   void FileReader_CGNS::ReadCGNSDirectory(std::string dirname, std::map<Double, std::string> & fileNames){
      Settings& settings = Settings::Instance();
      
+     std::string::size_type lastSlashPos=dirname.find_last_not_of('/');
+
+
+     if (lastSlashPos != std::string::npos)
+       dirname = dirname.substr( 0, lastSlashPos+1 );
+
 
      fs::path trnDir( dirname );
+     //here we need to strap
+
+     std::cout << trnDir.generic_string() << std::endl;
+
      fs::directory_iterator end_iter;
 
      //clear all contents of the map
@@ -493,6 +504,7 @@ namespace CoupledField{
                   ++dir_itr ) {
          if ( !fs::is_directory( *dir_itr ) ) {
            fn = dir_itr->path().filename().string();
+           std::cout << fn << std::endl;
            boost::tokenizer<> tok(fn);
            if(algo::ends_with(fn, ".cgns")) {
 
@@ -520,8 +532,11 @@ namespace CoupledField{
           }
        }
        //now erase the number of files according to startstep parameter
-       for(UInt i = 1;i<=firstStep;i++){
+       for(UInt i = 1;i<firstStep;i++){
          fileNames.erase(fileNames.begin());
+       }
+       if(numSteps == 0){
+         numSteps = fileNames.size();
        }
        if(numSteps<fileNames.size()){
          UInt diff = fileNames.size() - numSteps;
@@ -538,7 +553,7 @@ namespace CoupledField{
        //  iter++;
        //}
      }else{
-       std::cerr << "Please specify either calcsrc ot justmesh option" << std::endl;
+       std::cerr << "Please specify either calcsrc or justmesh option" << std::endl;
        exit(0);
      }
 
