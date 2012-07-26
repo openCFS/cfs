@@ -546,6 +546,15 @@
                 <xsd:attribute name="convex_tau" default="0.0" use="optional" type="xsd:float"/>
                 <!-- a KKT criterion from Sonja's thesis. See FeasPP::CalcKKT() -->
                 <xsd:attribute name="kkt" default="1e-5" type="xsd:float" use="optional"/>
+                <!-- when do we evaluate the kkt error? -->
+                <xsd:attribute name="kkt_eval" default="before_linesearch" use="optional">
+                  <xsd:simpleType>
+                    <xsd:restriction base="xsd:token">
+                      <xsd:enumeration value="before_linesearch"/>
+                      <xsd:enumeration value="after_linesearch"/>
+                    </xsd:restriction>
+                  </xsd:simpleType>
+                </xsd:attribute>                
                 
               </xsd:complexType>
             </xsd:element>

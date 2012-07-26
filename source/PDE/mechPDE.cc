@@ -2466,7 +2466,6 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
       resVec.Resize(res.GetEntityList()->GetSize() * (vals->GetResultInfo()->resultType == MECH_TENSOR ? 6 : 1));
 
       Matrix<double> E(3,3);
-      E.Init(); // gives zero values if there is no tensor
 
       for (elemIt.Begin(); !elemIt.IsEnd(); elemIt++)
       {
@@ -2489,7 +2488,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
         }
         else
         {
-          resVec[elemIt.GetPos()] = E[0][0] + E[1][1] + E[2][2];
+          resVec[elemIt.GetPos()] = E.Trace();
         }
       }
     }

@@ -59,6 +59,7 @@ FeasPP::FeasPP(Optimization* opt, PtrParamNode pn) : BaseOptimizer(opt, pn, Opti
   refine_steps_ = 0.1;
   max_reductions_ = 10;
   kkt_ = 1e-5;
+  early_kkt_eval_ = true;
 
   if(this_opt_pn_ != NULL)
   {
@@ -67,6 +68,7 @@ FeasPP::FeasPP(Optimization* opt, PtrParamNode pn) : BaseOptimizer(opt, pn, Opti
     approx_feasibility = this_opt_pn_->Get("approx_feasible")->As<bool>();
     convex_tau         = this_opt_pn_->Get("convex_tau")->As<double>();
     kkt_               = this_opt_pn_->Get("kkt")->As<double>();
+    early_kkt_eval_    = this_opt_pn_->Get("kkt_eval")->As<string>() == "before_linesearch";
 
     if(this_opt_pn_->Has("asymptotes"))
     {
@@ -314,11 +316,8 @@ void FeasPP::SolveProblem()
     LOG_DBG2(feasPP) << "SP: it=" << iter << " x_old = [" << x_outer.ToString() << "]";
     LOG_DBG2(feasPP) << "SP: it=" << iter << " x_new_org = [" << ipopt->x_final.ToString() << "]";
 
-    CalcKKT(ipopt->x_final, in->Get("kkt_det"), true, true, true);  // subproblem max-norm
-    if(approx_vanderbei_by_determinants)
-      CalcKKT(ipopt->x_final, in->Get("kkt_vb"), true, false, true);  // sub problem max-norm
-    CalcKKT(ipopt->x_final, in->Get("kkt_out"), false, false, true);  // sub problem max-norm
-    CalcKKT(ipopt->x_final, in->Get("kkt_out"), false, false, false);  // sub problem L2-norm
+    if(early_kkt_eval_)
+      EvalKKT(ipopt->x_final, in);
 
     in->Get("ul")->SetValue(NormL2(U.GetPointer(), L.GetPointer(), n));
 
@@ -354,8 +353,11 @@ void FeasPP::SolveProblem()
     // evaluate all functions such that we have the function values for the current design
     // the subproblem is based on the approximated values only
     UpdateToCurrentStep();
-    optimization->CommitIteration();
 
+    if(!early_kkt_eval_)
+      EvalKKT(x_outer, in);
+
+    optimization->CommitIteration();
     iter = optimization->GetCurrentIteration();
   }
 
@@ -780,6 +782,16 @@ void FeasPP::UpdateAsymptotes(const Vector<double>&x_vec, int iter, bool force_r
   return kkt;
 }
 */
+
+void FeasPP::EvalKKT(const Vector<double>& x, PtrParamNode in)
+{
+  CalcKKT(x, in->Get("kkt_det"), true, true, true);  // subproblem max-norm
+  if(approx_vanderbei_by_determinants)
+    CalcKKT(x, in->Get("kkt_vb"), true, false, true);  // sub problem max-norm
+  CalcKKT(x, in->Get("kkt_out"), false, false, true);  // sub problem max-norm
+  CalcKKT(x, in->Get("kkt_out"), false, false, false);  // sub problem L2-norm
+}
+
 void FeasPP::CalcKKT(const Vector<double>& x, PtrParamNode in, bool sub, bool det, bool max_norm)
 {
   assert(!(det && !sub)); // makes not much sense

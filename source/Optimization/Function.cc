@@ -144,8 +144,9 @@ Function::Function(PtrParamNode pn)
   case BENSON_VANDERBEI_1:
   case BENSON_VANDERBEI_2:
   case BENSON_VANDERBEI_3:
-    if(design_ != DesignElement::DEFAULT && design_ != DesignElement::ELAST_ALL && design_ != DesignElement::DIELEC_ALL)
-      throw Exception("valid designs for '" + type.ToString(type_) + "' are elast_all and dielec_all");
+    if(design_ != DesignElement::ELAST_ALL && design_ != DesignElement::DIELEC_ALL)
+      throw Exception("mandatory 'design' for '" + type.ToString(type_) + "' is 'elast_all' and 'dielec_all'");
+
     break;
 
   default:

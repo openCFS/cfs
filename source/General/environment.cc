@@ -1306,7 +1306,6 @@ namespace CoupledField {
     SolutionTypeEnum.Add(MECH_PRESSURE, "mechPressure");
     SolutionTypeEnum.Add(MECH_PSEUDO_DENSITY, "mechPseudoDensity");
     SolutionTypeEnum.Add(PHYSICAL_PSEUDO_DENSITY, "physicalPseudoDensity");
-    SolutionTypeEnum.Add(ELEC_PHYSICAL_PSEUDO_DENSITY, "elecPhysicalPseudoDensity");
     SolutionTypeEnum.Add(MECH_SHAPE, "mechShape");
     SolutionTypeEnum.Add(MECH_REL_DILATATION, "mechRelativeDilatation");
     SolutionTypeEnum.Add(MECH_TENSOR_TRACE, "mechTensorTrace");
@@ -1316,6 +1315,9 @@ namespace CoupledField {
     SolutionTypeEnum.Add(ELEC_FIELD_INTENSITY, "elecFieldIntensity");
     SolutionTypeEnum.Add(ELEC_POLARIZATION, "elecPolarization");
     SolutionTypeEnum.Add(ELEC_PSEUDO_POLARIZATION, "elecPseudoPolarization");
+    SolutionTypeEnum.Add(ELEC_PHYSICAL_PSEUDO_DENSITY, "elecPhysicalPseudoDensity");
+    SolutionTypeEnum.Add(ELEC_TENSOR, "elecTensor");
+    SolutionTypeEnum.Add(ELEC_TENSOR_TRACE, "elecTensorTrace");
     SolutionTypeEnum.Add(ELEC_FORCE_VWP, "elecForceVWP");
     SolutionTypeEnum.Add(ELEC_INTERFACE_FORCE, "elecInterfaceForce");
     SolutionTypeEnum.Add(ELEC_CHARGE, "elecCharge");
@@ -1405,6 +1407,7 @@ namespace CoupledField {
     SolutionTypeEnum.Add(OPT_RESULT_9, "optResult_9");
     // independent
     SolutionTypeEnum.Add(LAGRANGE_MULT, "LagrangeMultiplier");
+    SolutionTypeEnum.Add(PIEZO_COUPL_TENSOR, "piezoTensor");
     // evaluates the spacial gradient of the solution at the nodes.
     // common for all PDEs, no unit
     SolutionTypeEnum.Add(GRAD_ACOU_SOLUTION, "gradAcousticSolution"); // independent on acoustic formulation

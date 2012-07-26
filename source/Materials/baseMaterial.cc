@@ -399,6 +399,7 @@ namespace CoupledField
       // tensor is a 3x3 matrix: sol = R * matrixOrig * RT
       helpMat   = matTensorOrig * RT;
       matTensor = R * helpMat;
+      std::cout << "R = " << R.ToString() << " o=" << matTensorOrig.ToString() << " -> " << matTensor.ToString() << std::endl;
     }
     else {
       // we also need Q;
@@ -408,6 +409,7 @@ namespace CoupledField
       // Ref.: M.Richter, "Entwicklung mechanischer Modelle zur analytischen
       // Beschreibung der Materialeigenschaften von textilbewehrtem Feinbeton",
       // Diss., Dresden, 2005, p. 27
+      // also see Diss of Alex Sutor and Fred - take care in one is a missprint!
 
       Q.Resize(6,6);  
 

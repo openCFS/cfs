@@ -590,6 +590,7 @@ share/scripts/cubemesh.pl -text
 share/scripts/density-to-png.py -text
 share/scripts/distro.sh svneol=native#text/plain
 share/scripts/extract_info_xml_results.py -text
+share/scripts/extract_kkt.py -text
 share/scripts/gid_screenshots.py -text
 share/scripts/h5tool -text
 share/scripts/hdf5_aux.sh.in -text
