@@ -160,7 +160,7 @@ DesignSpace* DensityFile::ReadErsatzMaterial(DesignSpace* ersatzMaterial)
   }
 
   string name = "design";
-  if (pn->Has("name"))
+  if (pn != NULL && pn->Has("name"))
     name = pn->Get("name")->As<string>();
   for (unsigned int e = 0; e < elsize; ++e)
   {
