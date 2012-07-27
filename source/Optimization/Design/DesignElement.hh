@@ -158,6 +158,7 @@ public:
   Type GetType() const { return type_; }
 
   /** Checks if test matches super. To be used in Function::SetElements()
+   * if super == test it is compatible
    * @param super shall TENSOR_TRACE, ELAST_ALL, ... DEFAULT
    * @param test ege. DIELEC_11, ... */
   static bool IsCompatible(Type super, Type test);

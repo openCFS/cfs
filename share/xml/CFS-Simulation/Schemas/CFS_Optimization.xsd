@@ -180,28 +180,7 @@
               </xsd:complexType>
             </xsd:element>
             
-            <xsd:element name="output" minOccurs="0" maxOccurs="1">
-              <xsd:complexType>
-                <xsd:sequence>
-                  <xsd:element name="displacement" minOccurs="0" maxOccurs="unbounded" type="DT_MechLoad"/>
-                  <xsd:element name="elecPotential" minOccurs="0" maxOccurs="unbounded" type="DT_ElecLoad"/>
-                  <!-- here the quantity attribute shall be set in the probem file. Default is acouPressure! -->
-                  <xsd:element name="acoustic" minOccurs="0" maxOccurs="unbounded" type="DT_AcousticLoad"/>
-                  <xsd:element name="energyFlux" minOccurs="0" maxOccurs="1">
-                    <xsd:complexType>
-                      <xsd:sequence>
-                        <xsd:element name="surfRegion" maxOccurs="1" minOccurs="1">
-                          <xsd:complexType>
-                            <xsd:attribute name="name" type="xsd:token" use="required"/>
-                            <xsd:attribute name="neighborRegion" type="xsd:token" use="required"/>
-                          </xsd:complexType>
-                        </xsd:element>
-                      </xsd:sequence>
-                    </xsd:complexType>
-                  </xsd:element>
-                </xsd:sequence>                                  
-              </xsd:complexType>
-            </xsd:element>
+            <xsd:element name="output" minOccurs="0" maxOccurs="1" type="DT_output"/>
             
             <!-- this is the tensor for the homogenizationTracking objective -->
             <xsd:element name="tensor" type="DT_MechElastTensor" minOccurs="0" maxOccurs="1"/>
@@ -268,6 +247,8 @@
             <xsd:element name="isotropic" type="DT_MechElastIsotropic" minOccurs="0" maxOccurs="1"/>
             <!-- only for the projection constraint -->
             <xsd:element name="filter" type="DT_Filter" minOccurs="0" maxOccurs="1"/>
+            <!-- only for the output constroaint which is an displacement constraint -->
+            <xsd:element name="output" type="DT_output" minOccurs="0" maxOccurs="1"/>
           </xsd:all>
           <!-- mandatory to give the name -->
           <xsd:attribute name="type" use="required">
@@ -277,6 +258,7 @@
                 <xsd:enumeration value="penalizedVolume"/>
                 <xsd:enumeration value="gap"/>
                 <xsd:enumeration value="compliance"/>
+                <xsd:enumeration value="output"/>
                 <xsd:enumeration value="greyness"/>
                 <xsd:enumeration value="realvolume"/>
                 <xsd:enumeration value="homTensor"/>
@@ -1793,5 +1775,28 @@
     
   </xsd:complexType>
 
+
+  <xsd:complexType name="DT_output">
+    <xsd:sequence>
+      <xsd:element name="displacement" minOccurs="0" maxOccurs="unbounded" type="DT_MechLoad"/>
+      <xsd:element name="elecPotential" minOccurs="0" maxOccurs="unbounded" type="DT_ElecLoad"/>
+      <!-- here the quantity attribute shall be set in the probem file. Default is acouPressure! -->
+      <xsd:element name="acoustic" minOccurs="0" maxOccurs="unbounded" type="DT_AcousticLoad"/>
+      <xsd:element name="energyFlux" minOccurs="0" maxOccurs="1">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="surfRegion" maxOccurs="1" minOccurs="1">
+              <xsd:complexType>
+                <xsd:attribute name="name" type="xsd:token" use="required"/>
+                <xsd:attribute name="neighborRegion" type="xsd:token" use="required"/>
+              </xsd:complexType>
+            </xsd:element>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+    </xsd:sequence>               
+</xsd:complexType>    
+    
+  
 </xsd:schema>
 

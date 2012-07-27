@@ -133,7 +133,10 @@ bool BaseDesignElement::IsCompatible(Type super, Type test)
     break;
 
   default:
-    return false;
+    if(super == test)
+      return true;
+    else
+      return false;
   }
 
 }

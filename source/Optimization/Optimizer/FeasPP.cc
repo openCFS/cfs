@@ -865,6 +865,7 @@ void FeasPP::ToInfo(PtrParamNode in)
   in->Get("globalize")->SetValue(global.ToString(global_));
   if(global_ != NONE)
   {
+    in->Get("kkt_eval")->SetValue(early_kkt_eval_ ? "before_linesearch" : "after_linesearch");
     in->Get("max_refinement")->SetValue(max_refine_);
     in->Get("refinement_steps")->SetValue(refine_steps_);
   }

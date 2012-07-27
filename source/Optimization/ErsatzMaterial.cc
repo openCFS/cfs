@@ -232,31 +232,33 @@ void ErsatzMaterial::PostInit()
   // the constraints size is only now known and the shapeDesign constructor is finished -> PostInit design
   design->PostInit(objectives.data.GetSize(), constraints.all.GetSize());
 
-  for(unsigned int i = 0; i < objectives.data.GetSize(); i++)
-  {
-    Objective* cost = objectives.data[i];
+  unsigned int total = objectives.data.GetSize() + constraints.active.GetSize();
 
-    std::string objective = "'" + cost->type.ToString(cost->GetType()) + "'";
+  for(unsigned int i = 0; i < total; i++)
+  {
+    Function* f = i < objectives.data.GetSize() ? dynamic_cast<Function*>(objectives.data[i]) : dynamic_cast<Function*>(constraints.active[i - objectives.data.GetSize()]);
+
+    std::string objective = "'" + f->type.ToString(f->GetType()) + "'";
 
     // checks
-    switch(cost->GetType())
+    switch(f->GetType())
     {
-    case Objective::COMPLIANCE:
-    case Objective::OUTPUT: // it would work but is saver not to allow
-    case Objective::TRACKING:
-    case Objective::HOM_TENSOR:
-    case Objective::HOM_TRACKING:
-    case Objective::HOM_FROBENIUS_PRODUCT:
-    case Objective::POISSONS_RATIO:
-    case Objective::YOUNGS_MODULUS:
-    case Objective::YOUNGS_MODULUS_E1:
-    case Objective::YOUNGS_MODULUS_E2:
-    case Objective::ELEC_ENERGY: // it simply does not work yet in the harmonics
+    case Function::COMPLIANCE:
+    case Function::OUTPUT: // it would work but is saver not to allow
+    case Function::TRACKING:
+    case Function::HOM_TENSOR:
+    case Function::HOM_TRACKING:
+    case Function::HOM_FROBENIUS_PRODUCT:
+    case Function::POISSONS_RATIO:
+    case Function::YOUNGS_MODULUS:
+    case Function::YOUNGS_MODULUS_E1:
+    case Function::YOUNGS_MODULUS_E2:
+    case Function::ELEC_ENERGY: // it simply does not work yet in the harmonics
       if(harmonic) throw Exception(objective + " is only for static state problems");
       break;
 
-    case Objective::DYNAMIC_OUTPUT:
-    case Objective::GLOBAL_DYNAMIC_COMPLIANCE:
+    case Function::DYNAMIC_OUTPUT:
+    case Function::GLOBAL_DYNAMIC_COMPLIANCE:
       if(!harmonic) throw Exception(objective + " is only for harmonic state problems");
       break;
 
@@ -265,13 +267,15 @@ void ErsatzMaterial::PostInit()
     }
 
     // actions
-    switch(cost->GetType())
+    switch(f->GetType())
     {
-    case Objective::OUTPUT:
-    case Objective::DYNAMIC_OUTPUT:
-    case Objective::ABS_OUTPUT:
+    case Function::OUTPUT:
+    case Function::DYNAMIC_OUTPUT:
+    case Function::ABS_OUTPUT:
     {
-      PtrParamNode output = cost->pn->Get("output");
+      if(!f->pn->Has("output"))
+        throw Exception("element 'output' is mandatory for function 'output'");
+      PtrParamNode output = f->pn->Get("output");
 
       if(output->Has("displacement"))
         pde->ReadLoads(output->GetList("displacement"), output_nodes_);
@@ -1095,9 +1099,9 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
       case Function::ABS_OUTPUT:
       assert(!derivative);// SIMP!
       if(harmonic)
-      result = CalcOutputObjective<complex<double> >(excite, c);
+        result = CalcOutput<complex<double> >(excite, f);
       else
-      result = CalcOutputObjective<double>(excite, c);
+        result = CalcOutput<double>(excite, f);
       break;
 
       case Function::ENERGY_FLUX:
@@ -1509,7 +1513,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
   }
 
   template<class T>
-  double ErsatzMaterial::CalcOutputObjective(Excitation& excite, Objective* cost)
+  double ErsatzMaterial::CalcOutput(Excitation& excite, Function* f)
   {
 // The output is <l,u> where l is -1* rhs of the adjoint pde
 // Here the rhs of the adoint pde is not -1 -> hence we do -1*<l,u>
@@ -1518,20 +1522,20 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
 // Note that one has to use the algsys RHS! The PDE RHS is still from the
 // forward simulation!
     Vector<T>& u = dynamic_cast<Vector<T> & >(*(forward.Get(excite, NULL)->GetVector(Solution::RAW_VECTOR)));
-    Vector<T>& l = dynamic_cast<Vector<T>&>(*(adjoint.Get(excite, cost)->GetVector(Solution::SEL_VECTOR)));
+    Vector<T>& l = dynamic_cast<Vector<T>&>(*(adjoint.Get(excite, f)->GetVector(Solution::SEL_VECTOR)));
     assert(u.GetSize() == l.GetSize());
     LOG_DBG2(em) << "OUPTUT: adjoint sel (l): " << l.ToString(1);
     LOG_DBG2(em) << "OUPTUT: forward sol (u): " << u.ToString(0);
     double result = 0.0;
-    switch(cost->GetType())
+    switch(f->GetType())
     {
       case Objective::OUTPUT:
       {
         // this is <l, u> which is for complex not really defined as it might be non-real
         T inner = u.Inner(l);
         result = ((complex<double>) inner).real();
-        result *= excite.GetFactor(cost);
-        LOG_DBG2(em) << "output <l,u>: " << inner << " * " << excite.GetFactor(cost) << " -> " << result;
+        result *= excite.GetFactor(f);
+        LOG_DBG2(em) << "output <l,u>: " << inner << " * " << excite.GetFactor(f) << " -> " << result;
         break;
       }
 
@@ -1547,7 +1551,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
       case Objective::CONJUGATE_COMPLIANCE:
       {
         // this is <u,L conj(u)> and only defined for the harmonic case!
-        if(!harmonic) throw Exception("'" + cost->type.ToString(cost->GetType()) + "' is only defined for harmonic!");
+        if(!harmonic) throw Exception("'" + f->type.ToString(f->GetType()) + "' is only defined for harmonic!");
 
         // we loop over the vectors and do the scalar product by hand as we have
         // no diagonal matrix version of l
@@ -1563,8 +1567,8 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
           LOG_DBG2(em) << "CalcObjective: " << std::conj(u_val) << " * " << l[i] << " * " << u_val << " -> " << sp;
           result += sp;
         }
-        LOG_DBG2(em) << "output <u,L u*>: " << result << " * " << excite.GetFactor(cost) << " -> " << result * excite.GetFactor(cost);
-        result *= excite.GetFactor(cost);
+        LOG_DBG2(em) << "output <u,L u*>: " << result << " * " << excite.GetFactor(f) << " -> " << result * excite.GetFactor(f);
+        result *= excite.GetFactor(f);
         break;
       }
 
@@ -2708,12 +2712,12 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
 
   void ErsatzMaterial::SolveStateProblem(Excitation* ev_only_exite)
   {
-// if ev_only_exite is set we use the given excitation
-// -> it shall not coincide
+    // if ev_only_exite is set we use the given excitation
+    // -> it shall not coincide
     assert(!(ev_only_exite != NULL && me->IsEnabled()));
-// shall we normalize afterwards?
+    // shall we normalize afterwards?
     bool normalize = false;
-// we have to check objectives and active (non local) constraints
+    // we have to check objectives and active (non local) constraints
     StdVector<Function*> funcs = GetActiveFunctions();
     for(unsigned int e = 0; e < me->excitations.GetSize(); e++)
     {
@@ -2743,16 +2747,16 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
 
       for(unsigned fi = 0; fi < funcs.GetSize(); fi++)
       {
+        Function* f = funcs[fi];
         // some functions need the selection vector for function evaluation, e.g. output
-        if(funcs[fi]->NeedsSelectionVector())
-        ConstructSelection(excite, funcs[fi], false);// don't change the rhs of the system but restore
+        if(f->NeedsSelectionVector())
+          ConstructSelection(excite, f, false);// don't change the rhs of the system but restore
 
         // in the harmonic case the system matrix depends on the frequency. Hence we have to
         // use the current assembly and factorization to solve the adjoint problem.
         // Note, that SolveAdointProblem*s*() must not be called, it would overwrite the adjoints with wrong results
-
         if(harmonic && me->excitations.GetSize() > 1 && !maxwellHomogenization_)
-        SolveAdjointProblem(&excite, funcs[fi]);
+          SolveAdjointProblem(&excite, f);
 
         // when we do multiple excitations with adjusted weights we calculate the objective here
         // to find the best weights. CalcObjective is so cheap, it is done later again by
@@ -2764,13 +2768,13 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
           if((me->stride < 1 && GetCurrentIteration() == 0) ||
               ((GetCurrentIteration() % me->stride) == 0))
           {
-            excite.cost = CalcFunction(excite, funcs[fi], false); // to be normalized
+            excite.cost = CalcFunction(excite, f, false); // to be normalized
             normalize = true;
           }
         }
       }
     }
-// we need only to normalize when the properties have changed. This also reflects the stride
+    // we need only to normalize when the properties have changed. This also reflects the stride
     if (normalize)
     me->NormalizeMultipleExcitations(&objectives);
   }
@@ -2970,45 +2974,45 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
   template<class T>
   void ErsatzMaterial::SetAndSolveAdjointRHS(Excitation& excite, Function* f)
   {
-// the adjoint RHS might be an output stuff, then the loads are changed.
-// save and restore them in any case.
+    // the adjoint RHS might be an output stuff, then the loads are changed.
+    // save and restore them in any case.
     LoadList org_loads = assemble_->GetLoads();
-// set pseudo loads (if there are output nodes)
+    // set pseudo loads (if there are output nodes)
     if (f->NeedsSelectionVector())
-    ConstructSelection(excite, f, true);// is actually already set for the forward calculation - who cares?
+      ConstructSelection(excite, f, true);// is actually already set for the forward calculation - who cares?
 
-// any adjoint PDE has HDBC instead of IDBC -> will be undone later ResetHDBC()
+    // any adjoint PDE has HDBC instead of IDBC -> will be undone later ResetHDBC()
     StdVector<pair<SinglePDE*,IdBcList> > org_idbc = SetHDBC();
-// set the adjoint rhs
+    // set the adjoint rhs
     ConstructAdjointRHS(excite, f);
-// calculate adjoint problem
+    // calculate adjoint problem
     assemble_->GetAlgSys()->Solve(CreateAdjointAnalysisIdNode());
     ResetHDBC(org_idbc);
-// reset the original loads, they have been changed in the output case
+    // reset the original loads, they have been changed in the output case
     assemble_->SetLoads(org_loads);
   }
   void ErsatzMaterial::ConstructSelection(Excitation& excite, Function* f, bool alter_rhs)
   {
-// in SolveStateProblem() the clean variant for the objective
+    // in SolveStateProblem() the clean variant for the objective
     LoadList org_loads;
     if (!alter_rhs)
-    org_loads = assemble_->GetLoads();
+      org_loads = assemble_->GetLoads();
 
-// overwrite the assemble loads with "pseudo loads"s loads
+    // overwrite the assemble loads with "pseudo loads"s loads
     assemble_->SetLoads(output_nodes_);
-// set our own RHS but delete first as Assemble adds
+    // set our own RHS but delete first as Assemble adds
     assemble_->GetAlgSys()->InitRHS();
-// assemble the output nodes
+    // assemble the output nodes
     assemble_->AssembleRHSLoads();
-// save the "pseudo loading" which is the selection as the rhs for the adjoint
-// This is exactly what has been constructed. Not that for an adjoint RHS it needs
-// post processing.
+    // save the "pseudo loading" which is the selection as the rhs for the adjoint
+    // This is exactly what has been constructed. Not that for an adjoint RHS it needs
+    // post processing.
     adjoint.Get(excite, f)->Read(Solution::SEL_VECTOR, pde);
     if (!alter_rhs)
-    assemble_->SetLoads(org_loads);
+      assemble_->SetLoads(org_loads);
 
     LOG_DBG2(em) << "ConstructSelection: excite=" << excite.index << " f=" << f->ToString() << " alter=" << alter_rhs
-    << " sel=" << adjoint.Get(excite, f)->GetVector(Solution::SEL_VECTOR)->ToString(1);
+        << " sel=" << adjoint.Get(excite, f)->GetVector(Solution::SEL_VECTOR)->ToString(1);
   }
   void ErsatzMaterial::ConstructRealAdjointRHS(Excitation& excite, Function* f)
   {
