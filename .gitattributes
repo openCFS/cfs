@@ -598,6 +598,7 @@ share/scripts/hdf5_concat.sh.in -text
 share/scripts/hdf5_concat2.sh.in -text
 share/scripts/hdf5_import_dataset.sh.in svneol=native#text/plain
 share/scripts/hdf5_import_mesh.sh.in svneol=native#text/plain
+share/scripts/hdf5_tools.py -text
 share/scripts/identify_compiler.pl svneol=native#text/plain
 share/scripts/log.py -text
 share/scripts/log.tcl svneol=native#text/x-tcl
@@ -610,6 +611,7 @@ share/scripts/printElemMatVec.py -text
 share/scripts/printElemMatVec.tcl svneol=native#text/x-tcl
 share/scripts/probe_ilupack_parameters.py -text
 share/scripts/rstinfo -text
+share/scripts/show_fmo_tensor.py -text
 share/scripts/voidmesh.pl -text
 share/scripts/xmlreplace.py -text
 share/xml/CFS-Material/CFS_Material.xsd -text svneol=unset#text/xml
