@@ -54,6 +54,11 @@ def create_vtk_poly_data(angle, data):
 def create_symmety_planes(minima, scale, add_planes):
   # code source: http://code.google.com/p/pythonxy/source/browse/src/python/vtk/DOC/Examples/Rendering/Cylinder.py
  
+  #minima = []
+  #minima.append(((0, 0), 1))
+  #minima.append(((0, numpy.pi/2), 1))
+  #minima.append(((numpy.pi/2, numpy.pi/2), 1))
+ 
   actors = [] 
    
   for i in range(len(minima)): 
@@ -77,6 +82,8 @@ def create_symmety_planes(minima, scale, add_planes):
         
     actor_c.GetProperty().SetColor(black)
     angle = minima[i][0]
+    
+    print "angle: " + str(angle) + " -> " + str(to_vector(angle)) + " = " + str(minima[i][1])
     
     actor_c.RotateX(90)
     actor_c.RotateY(angle[0] * 180/numpy.pi)

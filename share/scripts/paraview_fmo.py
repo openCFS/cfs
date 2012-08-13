@@ -156,18 +156,19 @@ def perform_cfs_rotation(tensor, steps, aux_data = "default"):
   
   if tensor.shape == (6,6):
     # 3D case for mech
-    phi_inc = 2 * numpy.pi / (steps - 1)
-    theta_inc = 2*  numpy.pi / (steps - 1)
-
     phi = 0
-    theta = 0
+ 
+    # we do not use the standard spherical coordinate system but in to_vector() stuff from our rotation matrix
+    # therefore, as z = sin(theta) instead of cos(theta) we need to run from [pi/2, 3/2 * pi] to cover all z
 
-    for i in range(steps):
-      for j in range(steps):
-        #print "idx=" + str(idx) + " i=" + str(i) + " j=" + str(j) 
+    #Create points on Surface
+    d_phi = 2 * numpy.pi / (steps-1)
+    for theta in numpy.arange(0.5 * numpy.pi, 1.5001 * numpy.pi, numpy.pi / (steps-1)):
+      for phi_i in numpy.arange(0, 2.0001 * numpy.pi, d_phi):
         test = rotate_cfs(tensor, phi, theta)
         angle.append((phi, theta))
         data.append(test[0,0])
+        # print "phi=" + str(phi) + " theta=" + str(theta) + " test=" + str(test[0,0]) + " -> " + str(to_vector((phi, theta)))
       
         if aux_data == "ortho_norm":
           aux.append(sqrt(2.0 * (test[0,3]**2 + test[1,3]**2 + test[2,3]**2 + test[0,4]**2 + test[1,4]**2 + test[2,4]**2 + test[3,4]**2 +
@@ -175,9 +176,7 @@ def perform_cfs_rotation(tensor, steps, aux_data = "default"):
         if aux_data == "mono_norm":  
           aux.append(sqrt(2.0 * (test[0,4]**2 + test[1,4]**2 + test[2,4]**2 + test[3,4]**2 +
                                  test[0,5]**2 + test[1,5]**2 + test[2,5]**2 + test[3,5]**2)))
-        phi += phi_inc
-        idx += 1
-      theta += theta_inc
+        phi += d_phi  
   else: # 2D case for elec, piezo, mech
     for x in numpy.arange(0, numpy.pi, numpy.pi/steps):
       test = rotate_cfs(tensor, x)
@@ -245,7 +244,7 @@ def find_minima(angle, data):
         #print "i=" + str(i) + " j=" + str(j)
         idx = i * samples + j
         this  = data[idx]
-        #print "this=" + str(i * samples + j) + " -> " + str(this)
+        #print "this=" + str(i * samples + j) + " phi=" + str(angle[idx][0]) + " theta=" + str(angle[idx][1]) + " -> " + str(this) 
         north = data[(i-1 if i > 0 else half) * samples + j]
         #print "north=" + str((i-1 if i > 0 else half) * samples + j) + " -> " + str(north)
         south = data[i+1 * samples + j] # range is samples/2
