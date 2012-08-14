@@ -115,7 +115,8 @@ class Function
       DESIGN_TRACKING,           /*!< Tracking against physical densities in designTarget. Either for region or periodic (constraint nodes) elements */
       SUM_MODULI,                /*!< the sum of the elasticity and shear moduli in parametrized elasticity tensor formulations */
       GLOBAL_SUM_MODULI,         /*!< global resource constraint, see sum_moduli */
-      TENSOR_TRACE,              /*!< local constraint on the tensor trace for fmo */
+      TENSOR_TRACE,              /*!< local constraint on the tensor trace for fmo or laminates */
+      GLOBAL_TENSOR_TRACE,       /*!< global constraint on the tensor trace for fmo or laminates */
       PARAM_PS_POS_DEF,          /*!< constraint to ensure positive definiteness in parametrized elasticity tensor formulation (plane stress). Choose > 0*/
       POS_DEF_DET_MINOR_1,       /*!< 1st minor constraint for FMO positive definiteness by positive determinants */
       POS_DEF_DET_MINOR_2,       /*!< 2nd minor constraint for FMO positive definiteness by positive determinants */
@@ -425,7 +426,7 @@ class Function
 
         /** local FMO positive definiteness of (E-val*I) >= param via determinants
          * @param type the type we want to evaluate. Might be different from local->func->type_ in Approximation::TransformMultiplyer() */
-        double CalcPosDefDeteminant(int neigh_idx, const Local* local, bool derivative, Type type) const;
+        double CalcPosDefDeterminant(int neigh_idx, const Local* local, bool derivative, Type type) const;
 
         /** local FMO positive definiteness of (E-val*I) >= param via Benson Vanderbei constraints */
         double CalcBensonVanderbei(int neigh_idx, const Local* local, bool derivative, Type type) const;

@@ -510,6 +510,8 @@ void DesignElement::SetEnums()
   type.Add(TENSOR13, "tensor13");
   type.Add(TENSOR12, "tensor12");
   type.Add(ROTANGLE, "rotAngle");
+  type.Add(STIFF1, "stiff1");
+  type.Add(STIFF2, "stiff2");
   type.Add(SLACK, "slack");
 
   access.SetName("DesignElement::Access");

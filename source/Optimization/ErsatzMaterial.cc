@@ -857,6 +857,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
       case Function::GLOBAL_OSCILLATION:
       case Function::GLOBAL_JUMP:
       case Function::GLOBAL_SUM_MODULI:
+      case Function::GLOBAL_TENSOR_TRACE:
       result = CalcGlobalFunction(f, derivative);
       break;
 

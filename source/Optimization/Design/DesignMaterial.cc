@@ -74,6 +74,7 @@ unsigned int DesignMaterial::RequiredParameters(){
     return domain->GetSinglePDE("mechanic")->GetSubTensorType() == PLANE_STRESS ? r+4 : r+5;
   case DENSITY_TIMES_TRANSVERSAL_ISOTROPIC:
   case DENSITY_TIMES_TRANSVERSAL_ISOTROPIC_BOXED:
+  case LAMINATES:
     return r+5;
   case DENSITY_TIMES_2D_TENSOR_CONSTANT_TRACE:
   case DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC_BOXED:
@@ -151,6 +152,13 @@ bool DesignMaterial::CheckRequiredDesigns(StdVector<DesignElement::Type>& design
         && design.Find(DesignElement::TENSOR23) >= 0
         && design.Find(DesignElement::TENSOR13) >= 0
         && design.Find(DesignElement::TENSOR12) >= 0
+        && design.Find(DesignElement::ROTANGLE) >= 0);
+  case LAMINATES:
+    return(design.Find(DesignElement::STIFF1) >= 0
+        && design.Find(DesignElement::STIFF2) >= 0
+        && design.Find(DesignElement::ROTANGLE) >= 0
+        && design.Find(DesignElement::EMODUL) >= 0
+        && design.Find(DesignElement::POISSON) >= 0
         && design.Find(DesignElement::ROTANGLE) >= 0);
   default:
     throw Exception("DesignMaterial Type not implemented yet (CheckRequiredDesigns)");
@@ -390,50 +398,8 @@ void DesignMaterial::GetTransIsoMaterialTensor(Matrix<double>& t, SubTensorType 
       return;
     } // switch direction
     if(type_ == DENSITY_TIMES_ROTATED_2D_TENSOR || type_ == DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC_BOXED){
-      Matrix<double> theta(3,3);
-      Matrix<double> help(3,3);
-      double a;
-      a = params_[DesignElement::ROTANGLE];
-      const double sq2inv = 1/sqrt(2);
-      theta.SetEntry(0,0, pow(cos(a),2));
-      theta.SetEntry(0,1, pow(sin(a),2));
-      theta.SetEntry(0,2, -sqrt(2)/2*sin(2*a));
-      theta.SetEntry(1,0, theta(0,1));
-      theta.SetEntry(1,1, theta(0,0));
-      theta.SetEntry(1,2, -theta(0,2));
-      theta.SetEntry(2,0, theta(1,2));
-      theta.SetEntry(2,1, theta(0,2));
-      theta.SetEntry(2,2, cos(2*a));
-      t.Mult(theta, help);
-      if(direction == DesignElement::ROTANGLE){
-        Matrix<double> dtheta(3,3);
-        dtheta.SetEntry(0,0, -sin(2*a));
-        dtheta.SetEntry(0,1, -dtheta(0,0));
-        dtheta.SetEntry(0,2, -sqrt(2)*cos(2*a));
-        dtheta.SetEntry(1,0, dtheta(0,1));
-        dtheta.SetEntry(1,1, dtheta(0,0));
-        dtheta.SetEntry(1,2, -dtheta(0,2));
-        dtheta.SetEntry(2,0, dtheta(1,2));
-        dtheta.SetEntry(2,1, dtheta(0,2));
-        dtheta.SetEntry(2,2, -2*sin(2*a));
-        Matrix<double> dthetaTttheta(3,3);
-        dtheta.MultT(help, dthetaTttheta);
-        t.Mult(dtheta, help);
-        theta.MultT(help, dtheta);
-        t = dthetaTttheta + dtheta;
-        t(0,2)*= sq2inv;
-        t(1,2)*=sq2inv;
-        t(2,2)/=2;
-        t(2,0)*=sq2inv;
-        t(2,1)*=sq2inv;
-        return;
-      }
-      theta.MultT(help, t);
-      t(0,2)*= sq2inv;
-      t(1,2)*=sq2inv;
-      t(2,2)/=2;
-      t(2,0)*=sq2inv;
-      t(2,1)*=sq2inv;
+      double rotAngle = params_[DesignElement::ROTANGLE];
+      RotateHMStiffnessTensor(t, subTensor, direction, rotAngle);
       //    static int count(0);
       //    if (count % 10 == 0 && count/100 % 10 == 0){
       ////      std::cout << "(" << (count/100 % 10)*(count % 10)+1 << ")" << t.ToString() << std::endl;
@@ -613,8 +579,6 @@ void DesignMaterial::GetDensityTimes2dTensorTensor(Matrix<double>& t, SubTensorT
   double e23 = 0;
   double e13 = 0;
   double e12 = 0;
-  Matrix<double> theta(3,3);
-  Matrix<double> help(3,3);
   if(direction == DesignElement::NO_DERIVATIVE || direction == DesignElement::DENSITY || direction == DesignElement::ROTANGLE){
    e11 = params_[DesignElement::TENSOR11];
    if(type_ == DENSITY_TIMES_2D_TENSOR_CONSTANT_TRACE){
@@ -676,47 +640,8 @@ void DesignMaterial::GetDensityTimes2dTensorTensor(Matrix<double>& t, SubTensorT
     break;
   }
   if(type_ == DENSITY_TIMES_ROTATED_2D_TENSOR){
-    double a = params_[DesignElement::ROTANGLE];
-    const double sq2inv = 1/sqrt(2);
-    theta.SetEntry(0,0, pow(cos(a),2));
-    theta.SetEntry(0,1, pow(sin(a),2));
-    theta.SetEntry(0,2, -sqrt(2)/2*sin(2*a));
-    theta.SetEntry(1,0, theta(0,1));
-    theta.SetEntry(1,1, theta(0,0));
-    theta.SetEntry(1,2, -theta(0,2));
-    theta.SetEntry(2,0, theta(1,2));
-    theta.SetEntry(2,1, theta(0,2));
-    theta.SetEntry(2,2, cos(2*a));
-    t.Mult(theta, help);
-    if(direction == DesignElement::ROTANGLE){
-      Matrix<double> dtheta(3,3);
-      dtheta.SetEntry(0,0, -sin(2*a));
-      dtheta.SetEntry(0,1, -dtheta(0,0));
-      dtheta.SetEntry(0,2, -sqrt(2)*cos(2*a));
-      dtheta.SetEntry(1,0, dtheta(0,1));
-      dtheta.SetEntry(1,1, dtheta(0,0));
-      dtheta.SetEntry(1,2, -dtheta(0,2));
-      dtheta.SetEntry(2,0, dtheta(1,2));
-      dtheta.SetEntry(2,1, dtheta(0,2));
-      dtheta.SetEntry(2,2, -2*sin(2*a));
-      Matrix<double> dthetaTttheta(3,3);
-      dtheta.MultT(help, dthetaTttheta);
-      t.Mult(dtheta, help);
-      theta.MultT(help, dtheta);
-      t = dthetaTttheta + dtheta;
-      t(0,2)*= sq2inv;
-      t(1,2)*=sq2inv;
-      t(2,2)/=2;
-      t(2,0)*=sq2inv;
-      t(2,1)*=sq2inv;
-      return;
-    }
-    theta.MultT(help, t);
-    t(0,2)*= sq2inv;
-    t(1,2)*=sq2inv;
-    t(2,2)/=2;
-    t(2,0)*=sq2inv;
-    t(2,1)*=sq2inv;
+    double rotAngle = params_[DesignElement::ROTANGLE];
+    RotateHMStiffnessTensor(t, subTensor, direction, rotAngle);
 //    static int count(0);
 //    if (count % 10 == 0 && count/100 % 10 == 0){
 ////      std::cout << "(" << (count/100 % 10)*(count % 10)+1 << ")" << t.ToString() << std::endl;
@@ -775,6 +700,123 @@ void DesignMaterial::GetAnisotropicTensor(Matrix<double>& t, DesignElement::Type
     assert(false);
     return;
   }
+}
+
+void DesignMaterial::GetLaminatesTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction, Notation notation){
+  switch(subTensor){
+  case PLANE_STRAIN:
+  {
+    t.Resize(3,3);
+    t.Init();
+    double eps = 5.0625e-4;
+    double density = params_[DesignElement::DENSITY];
+    double stiff1 = density*params_[DesignElement::STIFF1];
+    double stiff2 = density*params_[DesignElement::STIFF2];
+    double E = params_[DesignElement::EMODUL];
+    double nu = params_[DesignElement::POISSON];
+    double lambda = E*nu/((1+nu)*(1-2*nu));
+    double mu = E/(2*(1+nu));
+    Matrix<double> D(3,3);
+    Matrix<double> Dinv(3,3);
+    D.SetEntry(0,0,1/(4*(mu+lambda))+1/(4*mu));
+    D.SetEntry(0,1,1/(4*(mu+lambda))-1/(4*mu));
+    D.SetEntry(1,0,D(0,1));
+    D.SetEntry(1,1,D(0,0));
+    D.SetEntry(2,2,1/(2*mu));
+    D *= 1/(eps-1);
+    D.AddToEntry(0,0,stiff2/(2*mu+lambda));
+    D.AddToEntry(2,2,stiff2/(2*mu));
+    D.AddToEntry(1,1,stiff1*(1-stiff2)/(2*mu+lambda));
+    D.AddToEntry(2,2,stiff1*(1-stiff2)/(2*mu));
+    D.Invert(Dinv);
+    switch(direction){
+    case DesignElement::NO_DERIVATIVE:
+    case DesignElement::ROTANGLE:
+      D.Init();
+//      mu /= eps;
+//      lambda /= eps;
+      D.SetEntry(0,0,2*mu+lambda);
+      D.SetEntry(1,1,D(0,0));
+      D.SetEntry(2,2,2*mu);
+      D.SetEntry(0,1,lambda);
+      D.SetEntry(1,0,lambda);
+      t.Add((1-stiff2)*(1-stiff1), Dinv);
+      t.Add(1.0, D);
+      break;
+    case DesignElement::STIFF1:
+      t.SetEntry(1,1,1/(2*mu+lambda));
+      t.SetEntry(2,2,1/(2*mu));
+      t *= (stiff2-1)*(1-stiff2)*(1-stiff1);
+      Dinv.Mult(t, D);
+      D.Mult(Dinv, t);
+      t.Add(stiff2-1, Dinv);
+      t*=density;
+      break;
+    case DesignElement::STIFF2:
+      t.SetEntry(0,0,1/(2*mu+lambda));
+      t.SetEntry(1,1,-stiff1/(2*mu+lambda));
+      t.SetEntry(2,2,(1-stiff1)/(2*mu));
+      t *= (stiff2-1)*(1-stiff1);
+      Dinv.Mult(t, D);
+      D.Mult(Dinv, t);
+      t.Add(stiff1-1, Dinv);
+      t*=density;
+      break;
+    default:
+      ZeroTensor(t, subTensor);
+      return;
+    }
+    break;
+  }
+  case PLANE_STRESS:
+  {
+    double E33 = 0.01;
+    double density = params_[DesignElement::DENSITY];
+    double stiff1 = density*params_[DesignElement::STIFF1];
+    double stiff2 = density*params_[DesignElement::STIFF2];
+    double E = params_[DesignElement::EMODUL];
+    double nu = params_[DesignElement::POISSON];
+    double n = stiff1*stiff2*(1-nu*nu)+(1-stiff2);
+    switch(direction)
+    {
+    case DesignElement::NO_DERIVATIVE:
+    case DesignElement::ROTANGLE:
+    {
+      double E11 = stiff1*E/n;
+      double E22 = stiff2*E+stiff2*stiff2*nu*nu*E11;
+      double E12 = stiff2*nu*E11;
+      Set2dVoigtTensor(t, E11, E22, E33, 0.0, 0.0, E12);
+      break;
+    }
+    case DesignElement::STIFF1:
+    {
+      double E11 = -(E*(stiff2 - 1))/(n*n);
+      double E22 = stiff2*stiff2*nu*nu*E11;
+      double E12 = stiff2*nu*E11;
+      Set2dVoigtTensor(t, E11, E22, 0.0, 0.0, 0.0, E12);
+      break;
+    }
+    case DesignElement::STIFF2:
+    {
+      double E11 = (E*stiff1*(stiff1*(nu*nu - 1) + 1))/(n*n);
+      double E22 = E + 2*stiff2*nu*nu*stiff1*E/n+stiff2*stiff2*nu*nu*E11;
+      double E12 = nu*stiff1*E/n+stiff2*nu*E11;
+      Set2dVoigtTensor(t, E11, E22, 0.0, 0.0, 0.0, E12);
+    break;
+    }
+    default:
+      ZeroTensor(t, subTensor);
+        return;
+      }
+      break;
+    }
+  default:
+    throw Exception("subTensor not implemented yet");
+  }
+
+  double rotAngle = params_[DesignElement::ROTANGLE];
+  RotateHMStiffnessTensor(t, subTensor, direction, rotAngle, notation);
+  return;
 }
 
 
@@ -860,6 +902,66 @@ void DesignMaterial::SetIsoTensor(Matrix<double>& t, SubTensorType subTensor, do
   SetTransIsoTensor(t, subTensor, D, nd, G, D, nd, G);
 }
 
+void DesignMaterial::RotateHMStiffnessTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction, double a, Notation notation){
+  switch(subTensor){
+  case PLANE_STRAIN:
+  case PLANE_STRESS:
+  {
+    Matrix<double> theta(3,3);
+     Matrix<double> help(3,3);
+     const double sq2inv = 1/sqrt(2);
+     theta.SetEntry(0,0, pow(cos(a),2));
+     theta.SetEntry(0,1, pow(sin(a),2));
+     theta.SetEntry(0,2, -sqrt(2)/2*sin(2*a));
+     theta.SetEntry(1,0, theta(0,1));
+     theta.SetEntry(1,1, theta(0,0));
+     theta.SetEntry(1,2, -theta(0,2));
+     theta.SetEntry(2,0, theta(1,2));
+     theta.SetEntry(2,1, theta(0,2));
+     theta.SetEntry(2,2, cos(2*a));
+     t.Mult(theta, help);
+     if(direction == DesignElement::ROTANGLE){
+       Matrix<double> dtheta(3,3);
+       dtheta.SetEntry(0,0, -sin(2*a));
+       dtheta.SetEntry(0,1, -dtheta(0,0));
+       dtheta.SetEntry(0,2, -sqrt(2)*cos(2*a));
+       dtheta.SetEntry(1,0, dtheta(0,1));
+       dtheta.SetEntry(1,1, dtheta(0,0));
+       dtheta.SetEntry(1,2, -dtheta(0,2));
+       dtheta.SetEntry(2,0, dtheta(1,2));
+       dtheta.SetEntry(2,1, dtheta(0,2));
+       dtheta.SetEntry(2,2, -2*sin(2*a));
+       Matrix<double> dthetaTttheta(3,3);
+       dtheta.MultT(help, dthetaTttheta);
+       t.Mult(dtheta, help);
+       theta.MultT(help, dtheta);
+       t = dthetaTttheta + dtheta;
+       if(notation != HILL_MANDEL)
+       {
+         t(0,2)*=sq2inv;
+         t(1,2)*=sq2inv;
+         t(2,2)/=2;
+         t(2,0)*=sq2inv;
+         t(2,1)*=sq2inv;
+       }
+       return;
+     }
+     theta.MultT(help, t);
+     if(notation != HILL_MANDEL)
+     {
+       t(0,2)*=sq2inv;
+       t(1,2)*=sq2inv;
+       t(2,2)/=2;
+       t(2,0)*=sq2inv;
+       t(2,1)*=sq2inv;
+     }
+     return;
+  }
+  default:
+    throw Exception("subTensor not implemented yet");
+  }
+}
+
 double DesignMaterial::GetTransIsoMass(double iD, double iG, double oD, double oG){
   switch(dim){
   case 2:
@@ -886,7 +988,7 @@ double DesignMaterial::GetIsoMass(double D, double G){
 
 void DesignMaterial::GetMaterialTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction, Notation notation)
 {
-  assert(!(notation == HILL_MANDEL && type_ != FMO));
+  assert(!(notation == HILL_MANDEL && type_ != FMO && type_ != LAMINATES));
   switch(type_){
   case FMO:
     GetAnisotropicTensor(t, direction, notation);
@@ -908,6 +1010,9 @@ void DesignMaterial::GetMaterialTensor(Matrix<double>& t, SubTensorType subTenso
   case DENSITY_TIMES_2D_TENSOR_CONSTANT_TRACE:
   case DENSITY_TIMES_ROTATED_2D_TENSOR:
     GetDensityTimes2dTensorTensor(t, subTensor, direction);
+    break;
+  case LAMINATES:
+    GetLaminatesTensor(t, subTensor, direction, notation);
     break;
   default: // case default
     throw Exception("DesignMaterial Type not implemented yet");
@@ -978,6 +1083,7 @@ void DesignMaterial::SetEnums(){
   type.Add(DENSITY_TIMES_2D_TENSOR, "density-times-2dtensor");
   type.Add(DENSITY_TIMES_2D_TENSOR_CONSTANT_TRACE, "density-times-2dtensor-constant-trace");
   type.Add(DENSITY_TIMES_ROTATED_2D_TENSOR, "density-times-rotated-2dtensor");
+  type.Add(LAMINATES, "laminates");
   transIsoType.SetName("DesignMaterial::TransIsoType");
   transIsoType.Add(TRANSISO_XY, "xy");
   transIsoType.Add(TRANSISO_YZ, "yz");
