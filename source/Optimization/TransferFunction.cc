@@ -114,6 +114,8 @@ Optimization::Application TransferFunction::Default(DesignElement::Type type)
   case DesignElement::POISSON:
   case DesignElement::POISSONISO:
   case DesignElement::ROTANGLE:
+  case DesignElement::STIFF1:
+  case DesignElement::STIFF2:
     return Optimization::MECH;
   case DesignElement::ACOU_DENSITY:
     return Optimization::LAPLACE;

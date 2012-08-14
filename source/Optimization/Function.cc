@@ -104,10 +104,6 @@ Function::Function(PtrParamNode pn)
 
   if(type_ == MAXWELL_HOM_TENSOR || type_ == MAXWELL_HOM_TRACKING)
   {
-    // we must not give a value when there is a tensor
-//    if(type_ == MAXWELL_HOM_TENSOR && pn->Has("maxwellTensor") && pn->Has("value"))
-//      throw Exception("a value must not be given when a tensor is used in a homogenization constraint");
-
     if(type_ == MAXWELL_HOM_TRACKING && (!pn->Has("maxwellTensor") && !pn->Has("isotropic")))
       throw Exception("a 'maxwellTensor' is mandatory for homogenization tracking");
   }
@@ -145,9 +141,15 @@ Function::Function(PtrParamNode pn)
   case GLOBAL_SLOPE:
   case SUM_MODULI:
   case GLOBAL_SUM_MODULI:
-  case TENSOR_TRACE:
   case SLACK:
     linear_ = true;
+    break;
+  case TENSOR_TRACE:
+  case GLOBAL_TENSOR_TRACE:
+    if(design_ != DesignElement::ALL_DESIGNS)
+      linear_ = true;
+    else
+      linear_ = false;
     break;
   default:
     linear_ = false;
@@ -316,7 +318,6 @@ bool Function::ReadMaxwellTensor(PtrParamNode pn, Matrix<Complex>& matrix, bool 
     tensor_read = true;
   }
 
-
   if(tensor_read)
   {
     if (!selectionTensor){
@@ -442,6 +443,7 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
     case BENSON_VANDERBEI_2:
     case BENSON_VANDERBEI_3:
     case TENSOR_TRACE:
+    case GLOBAL_TENSOR_TRACE:
     case DESIGN_BOUND:
     case SLACK:
       assert(excite_index < 0);
@@ -672,6 +674,7 @@ bool Function::ForSensitivityFiltering() const
   case DESIGN_TRACKING:
   case PROJECTION:
   case TENSOR_TRACE:
+  case GLOBAL_TENSOR_TRACE:
   case SUM_MODULI:
   case GLOBAL_SUM_MODULI:
   case PARAM_PS_POS_DEF:
@@ -717,8 +720,6 @@ void Function::SetElements(DesignSpace* space, RegionIdType region)
   int nd = 1;
   if(design_ == DesignElement::TENSOR_TRACE || design_ == DesignElement::DEFAULT) {
     nd = space->design.GetSize();
-    if(design_ == DesignElement::ALL_DESIGNS)
-      nd++;
   }
   elements.Reserve(nd * (region == ALL_REGIONS ? space->GetNumberOfElements() : grid->GetNumElems(region)));
 
@@ -807,6 +808,7 @@ void Function::PostProc(DesignSpace* space, DesignStructure* structure, ErsatzMa
   case STRESS:
   case STRESS_DENSITY:
   case TENSOR_TRACE:
+  case GLOBAL_TENSOR_TRACE:
   case SUM_MODULI:
   case GLOBAL_SUM_MODULI:
   case PARAM_PS_POS_DEF:
@@ -899,6 +901,7 @@ Function::Local::Local(Function* func, DesignSpace* space)
   case STRESS:
   case STRESS_DENSITY:
   case GLOBAL_SUM_MODULI:
+  case GLOBAL_TENSOR_TRACE:
     this->globalized_ = true;
     break;
 
@@ -978,6 +981,7 @@ Function::Local::Local(Function* func, DesignSpace* space)
     break;
 
   case TENSOR_TRACE:
+  case GLOBAL_TENSOR_TRACE:
   case SUM_MODULI:
   case GLOBAL_SUM_MODULI:
   case PARAM_PS_POS_DEF:
@@ -1328,10 +1332,20 @@ void Function::Local::SetupMultDesignsElementMap(const Function* f)
   switch(f->GetType())
   {
   case TENSOR_TRACE:
-    assert(space->design.GetSize() == 6);
+    assert((space->design.GetSize() == 6) || (func_->GetDesignType() == DesignElement::ALL_DESIGNS));
+    if(func_->GetDesignType() != DesignElement::ALL_DESIGNS)
+    {
     // 11 is not a neighbor but the element itself
     des_idx.Push_back(space->FindDesign(DesignElement::TENSOR22));
     des_idx.Push_back(space->FindDesign(DesignElement::TENSOR33));
+    }
+    else
+    {
+      for(UInt i=1; i<space->design.GetSize(); ++i)
+      {
+        des_idx.Push_back(i);
+      }
+    }
     break;
 
   case POS_DEF_DET_MINOR_1:
@@ -1364,7 +1378,7 @@ void Function::Local::SetupMultDesignsElementMap(const Function* f)
   for(unsigned int e = 0; e < elems; e++)
   {
     DesignElement* de = func_->elements[e];
-    assert((int) e == space->Find(de->elem, true)); // what wanted Jannis to do here?
+    assert((int) e == space->Find(de->elem, true)); // assert that we still are on the right finite element
 
     neighbours.Resize(0);
 
@@ -1566,7 +1580,7 @@ double Function::Local::Identifier::EvalFunction(const Local* local, bool grad_g
   case POS_DEF_DET_MINOR_1:
   case POS_DEF_DET_MINOR_2:
   case POS_DEF_DET_MINOR_3:
-    fv = CalcPosDefDeteminant(-1, local, false, f->type_);
+    fv = CalcPosDefDeterminant(-1, local, false, f->type_);
     break;
 
   case BENSON_VANDERBEI_1:
@@ -1576,6 +1590,7 @@ double Function::Local::Identifier::EvalFunction(const Local* local, bool grad_g
     break;
 
   case TENSOR_TRACE:
+  case GLOBAL_TENSOR_TRACE:
     fv = CalcTensorTrace(-1, local, false);
     break;
 
@@ -1619,6 +1634,7 @@ double Function::Local::Identifier::EvalFunction(const Local* local, bool grad_g
     return res;
   }
   case GLOBAL_SUM_MODULI:
+  case GLOBAL_TENSOR_TRACE:
   {
     double factor = local->DoNormalizeGlobal() ? 1.0/local->virtual_elem_map.GetSize() : 1.0;
     return fv*factor;
@@ -1703,7 +1719,7 @@ void Function::Local::Identifier::EvalGradient(const Local* local)
     case POS_DEF_DET_MINOR_1:
     case POS_DEF_DET_MINOR_2:
     case POS_DEF_DET_MINOR_3:
-      gv = CalcPosDefDeteminant(n, local, true, ft);
+      gv = CalcPosDefDeterminant(n, local, true, ft);
       break;
 
     case BENSON_VANDERBEI_1:
@@ -1713,6 +1729,8 @@ void Function::Local::Identifier::EvalGradient(const Local* local)
       break;
 
     case TENSOR_TRACE:
+    case GLOBAL_TENSOR_TRACE:
+      grad_glob_fv = 1.0/local->virtual_elem_map.GetSize();
       gv = CalcTensorTrace(n, local, true);
       break;
 
@@ -2143,7 +2161,7 @@ double Function::Local::Identifier::CalcParamPSPosDef(int neigh_idx, bool deriva
   }
 }
 
-  double Function::Local::Identifier::CalcPosDefDeteminant(int neigh_idx, const Local* local, bool derivative, Type type) const
+  double Function::Local::Identifier::CalcPosDefDeterminant(int neigh_idx, const Local* local, bool derivative, Type type) const
   {
     const Condition* g = dynamic_cast<const Condition*>(local->func_);
 
@@ -2418,19 +2436,31 @@ double Function::Local::Identifier::CalcParamPSPosDef(int neigh_idx, bool deriva
     Matrix<double> E;
     DesignMaterial::Notation notation = local->func_->notation_;
     const DesignElement* de = GetElement(neigh_idx);
-    local->space->GetErsatzMaterialTensor(E, PLANE_STRAIN, element->elem, derivative ? de->GetType() : DesignElement::NO_DERIVATIVE, notation); // the sub-tensor-type does'nt matter
+    local->space->GetErsatzMaterialTensor(E, domain->GetSinglePDE("mechanic")->GetSubTensorType(), element->elem, derivative ? de->GetType() : DesignElement::NO_DERIVATIVE, notation); // the sub-tensor-type does'nt matter
 
     LOG_DBG3(func) << "L::I::CTT e_num=" << element->elem->elemNum << " E=" << E.ToString(0, false);
 
-    double ret = 0.0;
+    double ret = E.Trace();
 
-    if(!derivative)
-      ret = E[0][0] + E[1][1] + E[2][2];
-    else
-      ret = de->GetType() == DesignElement::TENSOR33 ? E[2][2] : 1.0;
+//    switch(derivative ? de->GetType() : DesignElement::NO_DERIVATIVE)
+//    {
+//    case DesignElement::NO_DERIVATIVE:
+//      ret = E[0][0] + E[1][1] + E[2][2];
+//      break;
+//    case DesignElement::TENSOR11:
+//    case DesignElement::TENSOR22:
+//      ret = 1.0;
+//      break;
+//    case DesignElement::TENSOR33:
+//      ret = E[2][2];
+//      break;
+//    default:
+//      ret = E[0][0] + E[1][1] + E[2][2]; // isn't this always this sum and we can take out the switch?
+//      break;
+//    }
 
-    assert(!(derivative && notation == DesignMaterial::HILL_MANDEL && ret != 1.0));
-    assert(!(derivative && notation == DesignMaterial::VOIGT && de->GetType() == DesignElement::TENSOR33 && ret != 0.5));
+    assert(!(derivative && notation == DesignMaterial::HILL_MANDEL && ret != 1.0) || local->func_->GetDesignType() != DesignElement::TENSOR_TRACE);
+    assert(!(derivative && notation == DesignMaterial::VOIGT && de->GetType() == DesignElement::TENSOR33 && ret != 0.5)  || local->func_->GetDesignType() != DesignElement::TENSOR_TRACE);
 
     LOG_DBG3(func) << "L::I::CTT e_num=" << element->elem->elemNum << " ni=" << neigh_idx << " d=" << derivative << " -> " << ret << " E=" << E.ToString();
     return ret;

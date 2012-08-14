@@ -271,7 +271,7 @@ namespace CoupledField
      /** Our transfer functions */
      StdVector<TransferFunction> transfer;
 
-     /** Here we store the design we have. Check with Find() for the element */
+     /** Here we store the designs we have. Check with Find() for the element */
      StdVector<DesignElement::Type> design;
 
      /** Reference to DesignMaterial */

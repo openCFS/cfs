@@ -317,8 +317,9 @@
                 <xsd:enumeration value="globalSumModuli"/>
                 <!--  requires parametrized material tensor (PLANE_STRESS), > 0 ensures positivity of the material tensor -->
                 <xsd:enumeration value="parametrized-plane-stress-pos-def"/>
-                <!-- for FMO only -->
+                <!-- for FMO and laminates only -->
                 <xsd:enumeration value="tensorTrace"/>
+                <xsd:enumeration value="globalTensorTrace"/>
                 <!--  from anisotropic param-mat (= FMO) ensure positive definiteness including bound on diagonal elements (E-value*I) larger param -->
                 <xsd:enumeration value="fmoPosDefMinor1"/>
                 <xsd:enumeration value="fmoPosDefMinor2"/>
@@ -1047,6 +1048,7 @@
                             <xsd:enumeration value="density-times-transversal-isotropic"/>
                             <xsd:enumeration value="density-times-transversal-isotropic-boxed"/>
                             <xsd:enumeration value="density-times-rotated-transversal-isotropic-boxed"/>
+                            <xsd:enumeration value="laminates"/>
                           </xsd:restriction>
                         </xsd:simpleType>
                       </xsd:attribute>
@@ -1276,6 +1278,8 @@
       <xsd:enumeration value="tensor13"/>
       <xsd:enumeration value="tensor12"/>
       <xsd:enumeration value="rotAngle"/>
+      <xsd:enumeration value="stiff1"/>
+      <xsd:enumeration value="stiff2"/>
     </xsd:restriction>
   </xsd:simpleType>
 
