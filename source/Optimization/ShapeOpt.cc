@@ -396,9 +396,8 @@ void ShapeOpt::CalcMinusU1dKU2(Solutions& forward, Solutions& adjoint, Objective
                   }
                   double v = 0.0;
                   for(unsigned int t = 0; t < timesteps; ++t){ // loop over all timesteps, static analysis has 1 timestep
-                    // Get() requires f exclusively for adjoint solutions.
-                    Vector<double>& u_vec = dynamic_cast<Vector<double>&>(*(*forward_ex[t])[e]);
                     Vector<double>& p_vec = dynamic_cast<Vector<double>&>(*(*adjoint_ex[t])[e]);
+                    Vector<double>& u_vec = dynamic_cast<Vector<double>&>(*(*forward_ex[t])[e]);
                     dKp = dK * p_vec;
                     v -= u_vec * dKp;
                     if(transient && (t > 0 || !IsFirstTransientStepStatic())){
@@ -693,7 +692,7 @@ Matrix<double> ShapeOpt::CalcHomogenizedTensor(){
 void ShapeOpt::StorePDESolution(Solutions& solutions, Excitation &excite, Function* f, UInt timestep, bool read_sol, bool read_rhs, bool save_sol, DERIVType derivative, const std::string& comment){
   ParamMat::StorePDESolution(solutions, excite, f, timestep, read_sol, read_rhs, save_sol, derivative, comment);
   if(read_sol){
-    solutions.Get(excite, f, timestep)->Read(Solution::GRIDELEM_VECTORS, pde, MECH, false, derivative);
+    solutions.Get(excite, f, timestep, derivative)->Read(Solution::GRIDELEM_VECTORS, pde, MECH, false, derivative);
   }
 }
 

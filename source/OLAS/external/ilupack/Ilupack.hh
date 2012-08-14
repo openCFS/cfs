@@ -14,18 +14,17 @@
 
 // include the original ilupack header
 extern "C"
-{
-   #include <ilupack.h> 
+{ 
+#include <ilupack.h> 
 #include <stddef.h>
 }
-
 
 
 namespace CoupledField 
 {
   class BasePrecond;
   class BaseVector;
-
+  
   
   /** Ilupack has variants DILUPACKparam/ZILUPACKParam, Dmat/ZMat and DAMGlevelmat/ZAMGlevelmat.
    * Only DILUPACKparam and ZILUPACKParam differ in size as in two cases there are instances but
@@ -88,8 +87,8 @@ namespace CoupledField
      integer            isreal;
      integer            issingle;
   } ;
-  
-  
+	
+	
   template<typename T>
   class Ilupack : public BaseIterativeSolver 
   {
@@ -167,14 +166,14 @@ namespace CoupledField
     
     /** This is the ilupack matrix structure, it is set in SetMatrix(). The complex cases is only a cast of
      * the double version */    
-    Dmat mat;
+    SPARSEmat mat;
     
     /** Here ilupack stores all the paramters, initialized in InitParameters(). 
      * See TYPE_ILUPACKparam above. */    
     TYPE_ILUPACKparam<T> param;
     
     /** Here ilupack stores the preconditioner. */
-    DAMGlevelmat precond;
+    AMGlevelmat precond;
 
 
   };
