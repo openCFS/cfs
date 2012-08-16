@@ -770,19 +770,19 @@ void DesignMaterial::GetLaminatesTensor(Matrix<double>& t, SubTensorType subTens
   }
   case PLANE_STRESS:
   {
-    double E33 = 0.01;
+    double E33 = 1e-5;
     double density = params_[DesignElement::DENSITY];
     double stiff1 = density*params_[DesignElement::STIFF1];
     double stiff2 = density*params_[DesignElement::STIFF2];
     double E = params_[DesignElement::EMODUL];
     double nu = params_[DesignElement::POISSON];
-    double n = stiff1*stiff2*(1-nu*nu)+(1-stiff2);
+    double n = (stiff2 + stiff1*stiff2*(nu*nu - 1) - 1);
     switch(direction)
     {
     case DesignElement::NO_DERIVATIVE:
     case DesignElement::ROTANGLE:
     {
-      double E11 = stiff1*E/n;
+      double E11 = -(E*stiff1)/n;
       double E22 = stiff2*E+stiff2*stiff2*nu*nu*E11;
       double E12 = stiff2*nu*E11;
       Set2dVoigtTensor(t, E11, E22, E33, 0.0, 0.0, E12);
@@ -794,14 +794,16 @@ void DesignMaterial::GetLaminatesTensor(Matrix<double>& t, SubTensorType subTens
       double E22 = stiff2*stiff2*nu*nu*E11;
       double E12 = stiff2*nu*E11;
       Set2dVoigtTensor(t, E11, E22, 0.0, 0.0, 0.0, E12);
+      t*=density;
       break;
     }
     case DesignElement::STIFF2:
     {
       double E11 = (E*stiff1*(stiff1*(nu*nu - 1) + 1))/(n*n);
-      double E22 = E + 2*stiff2*nu*nu*stiff1*E/n+stiff2*stiff2*nu*nu*E11;
-      double E12 = nu*stiff1*E/n+stiff2*nu*E11;
+      double E22 = E - 2*stiff2*nu*nu*E*stiff1/n+stiff2*stiff2*nu*nu*E11;
+      double E12 = -nu*E*stiff1/n+stiff2*nu*E11;
       Set2dVoigtTensor(t, E11, E22, 0.0, 0.0, 0.0, E12);
+      t*=density;
     break;
     }
     default:

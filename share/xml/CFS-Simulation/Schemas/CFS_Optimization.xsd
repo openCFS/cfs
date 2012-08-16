@@ -317,6 +317,9 @@
                 <xsd:enumeration value="globalSumModuli"/>
                 <!--  requires parametrized material tensor (PLANE_STRESS), > 0 ensures positivity of the material tensor -->
                 <xsd:enumeration value="parametrized-plane-stress-pos-def"/>
+                <!--  For laminates only -->
+                <xsd:enumeration value="laminatesVolume"/>
+                <xsd:enumeration value="globalLaminatesVolume"/>
                 <!-- for FMO and laminates only -->
                 <xsd:enumeration value="tensorTrace"/>
                 <xsd:enumeration value="globalTensorTrace"/>

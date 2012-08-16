@@ -115,6 +115,8 @@ class Function
       DESIGN_TRACKING,           /*!< Tracking against physical densities in designTarget. Either for region or periodic (constraint nodes) elements */
       SUM_MODULI,                /*!< the sum of the elasticity and shear moduli in parametrized elasticity tensor formulations */
       GLOBAL_SUM_MODULI,         /*!< global resource constraint, see sum_moduli */
+      LAMINATES_VOL,             /*!< Volume constraint / cost function for laminates parametrization */
+      GLOBAL_LAMINATES_VOL,      /*!< global volume constraint / cost function for laminates parametrization */
       TENSOR_TRACE,              /*!< local constraint on the tensor trace for fmo or laminates */
       GLOBAL_TENSOR_TRACE,       /*!< global constraint on the tensor trace for fmo or laminates */
       PARAM_PS_POS_DEF,          /*!< constraint to ensure positive definiteness in parametrized elasticity tensor formulation (plane stress). Choose > 0*/
@@ -417,6 +419,9 @@ class Function
         /** sum of elasticity and shear moduli in parametrized elasticity tensor formulations */
         double CalcSumModuli() const;
         void CalcSumModuliGradient(int neigh_idx, const Objective* f, const Condition* g, double value);
+
+        /** volume of material (strong phase for plane strain) in laminate homogenization formulas */
+        double CalcLaminatesVolume(int neigh_idx = -1, bool derivative = false) const;
 
         /** to ensure positive definiteness of the material tensor E3-E1*nu31^2 > 0 has to hold */
         double CalcParamPSPosDef(int neigh_idx, bool derivative) const;

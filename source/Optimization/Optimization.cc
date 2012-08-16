@@ -325,9 +325,11 @@ void Optimization::SetEnums()
   Function::type.Add(Function::BUMP, "bump");
   Function::type.Add(Function::DESIGN_TRACKING, "designTracking");
   Function::type.Add(Function::SUM_MODULI, "sumModuli");
+  Function::type.Add(Function::GLOBAL_SUM_MODULI, "globalSumModuli");
+  Function::type.Add(Function::LAMINATES_VOL, "laminatesVolume");
+  Function::type.Add(Function::GLOBAL_LAMINATES_VOL, "globalLaminatesVolume");
   Function::type.Add(Function::TENSOR_TRACE, "tensorTrace");
   Function::type.Add(Function::GLOBAL_TENSOR_TRACE, "globalTensorTrace");
-  Function::type.Add(Function::GLOBAL_SUM_MODULI, "globalSumModuli");
   Function::type.Add(Function::PARAM_PS_POS_DEF, "parametrized-plane-stress-pos-def");
   Function::type.Add(Function::POS_DEF_DET_MINOR_1, "fmoPosDefMinor1");
   Function::type.Add(Function::POS_DEF_DET_MINOR_2, "fmoPosDefMinor2");
