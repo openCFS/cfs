@@ -141,8 +141,6 @@ Function::Function(PtrParamNode pn)
   case GLOBAL_SLOPE:
   case SUM_MODULI:
   case GLOBAL_SUM_MODULI:
-  case LAMINATES_VOL:
-  case GLOBAL_LAMINATES_VOL:
   case SLACK:
     linear_ = true;
     break;

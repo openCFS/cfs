@@ -1308,6 +1308,7 @@
       <xsd:enumeration value="youngsModulusE1"/>
       <xsd:enumeration value="youngsModulusE2"/>
       <xsd:enumeration value="volume"/>
+      <xsd:enumeration value="globalLaminatesVolume"/>
       <xsd:enumeration value="penalizedVolume"/>
       <xsd:enumeration value="gap"/>
       <xsd:enumeration value="tychonoff"/>
