@@ -141,6 +141,8 @@ Function::Function(PtrParamNode pn)
   case GLOBAL_SLOPE:
   case SUM_MODULI:
   case GLOBAL_SUM_MODULI:
+  case LAMINATES_VOL:
+  case GLOBAL_LAMINATES_VOL:
   case SLACK:
     linear_ = true;
     break;
@@ -435,6 +437,8 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
     case PROJECTION:
     case SUM_MODULI:
     case GLOBAL_SUM_MODULI:
+    case LAMINATES_VOL:
+    case GLOBAL_LAMINATES_VOL:
     case PARAM_PS_POS_DEF:
     case POS_DEF_DET_MINOR_1:
     case POS_DEF_DET_MINOR_2:
@@ -574,6 +578,7 @@ bool Function::IsLocal(Type t)
   case JUMP:
   case BUMP:
   case SUM_MODULI:
+  case LAMINATES_VOL:
   case TENSOR_TRACE:
   case PARAM_PS_POS_DEF:
   case POS_DEF_DET_MINOR_1:
@@ -614,7 +619,6 @@ bool Function::ForDensityFiltering() const
   case SLACK:
   case DESIGN_BOUND:
     // for the projection case we have a density filter manually on Function::projectionDesign only
-  case SUM_MODULI:
     return false;
 
   case MULTI_OBJECTIVE:
@@ -677,6 +681,8 @@ bool Function::ForSensitivityFiltering() const
   case GLOBAL_TENSOR_TRACE:
   case SUM_MODULI:
   case GLOBAL_SUM_MODULI:
+  case LAMINATES_VOL:
+  case GLOBAL_LAMINATES_VOL:
   case PARAM_PS_POS_DEF:
   case POS_DEF_DET_MINOR_1:
   case POS_DEF_DET_MINOR_2:
@@ -811,6 +817,8 @@ void Function::PostProc(DesignSpace* space, DesignStructure* structure, ErsatzMa
   case GLOBAL_TENSOR_TRACE:
   case SUM_MODULI:
   case GLOBAL_SUM_MODULI:
+  case LAMINATES_VOL:
+  case GLOBAL_LAMINATES_VOL:
   case PARAM_PS_POS_DEF:
   case POS_DEF_DET_MINOR_1:
   case POS_DEF_DET_MINOR_2:
@@ -901,6 +909,7 @@ Function::Local::Local(Function* func, DesignSpace* space)
   case STRESS:
   case STRESS_DENSITY:
   case GLOBAL_SUM_MODULI:
+  case GLOBAL_LAMINATES_VOL:
   case GLOBAL_TENSOR_TRACE:
     this->globalized_ = true;
     break;
@@ -984,6 +993,8 @@ Function::Local::Local(Function* func, DesignSpace* space)
   case GLOBAL_TENSOR_TRACE:
   case SUM_MODULI:
   case GLOBAL_SUM_MODULI:
+  case LAMINATES_VOL:
+  case GLOBAL_LAMINATES_VOL:
   case PARAM_PS_POS_DEF:
   case POS_DEF_DET_MINOR_1:
   case POS_DEF_DET_MINOR_2:
@@ -1572,6 +1583,10 @@ double Function::Local::Identifier::EvalFunction(const Local* local, bool grad_g
     fv = CalcSumModuli();
     break;
 
+  case LAMINATES_VOL:
+  case GLOBAL_LAMINATES_VOL:
+    fv = CalcLaminatesVolume();
+    break;
 
   case PARAM_PS_POS_DEF:
     fv = CalcParamPSPosDef(-1, false);
@@ -1634,6 +1649,7 @@ double Function::Local::Identifier::EvalFunction(const Local* local, bool grad_g
     return res;
   }
   case GLOBAL_SUM_MODULI:
+  case GLOBAL_LAMINATES_VOL:
   case GLOBAL_TENSOR_TRACE:
   {
     double factor = local->DoNormalizeGlobal() ? 1.0/local->virtual_elem_map.GetSize() : 1.0;
@@ -1659,6 +1675,7 @@ void Function::Local::Identifier::EvalGradient(const Local* local)
 
   // are we global? then we don't do anything if the globalization function gives zero
   // this applies the gradient of the globalization function (max(0, fv)^2)
+  // TODO Jannis: we don't need this part for globalSumModuli, globalTensorTrace and globalLaminatesVolume -> enhance performance?
   double grad_glob_fv = local->IsGlobalized() ? EvalFunction(local, true) : 0.0;
 
   if(local->IsGlobalized() && grad_glob_fv == 0.0)
@@ -1711,6 +1728,12 @@ void Function::Local::Identifier::EvalGradient(const Local* local)
     case GLOBAL_SUM_MODULI:
       CalcSumModuliGradient(n, f, g, local->DoNormalizeGlobal() ? 1.0/local->virtual_elem_map.GetSize() : 1.0);
       continue;
+
+    case LAMINATES_VOL:
+    case GLOBAL_LAMINATES_VOL:
+      grad_glob_fv = 1.0/local->virtual_elem_map.GetSize();
+      gv = CalcLaminatesVolume(n, true);
+      break;
 
     case PARAM_PS_POS_DEF:
       gv = CalcParamPSPosDef(n, true);
@@ -2115,6 +2138,42 @@ void Function::Local::Identifier::CalcSumModuliGradient(int neigh_idx, const Obj
     GetElement(neigh_idx)->AddGradient(f, g, 2*value);
 }
 
+double Function::Local::Identifier::CalcLaminatesVolume(int neigh_idx, bool derivative) const
+{
+  double scale(1.0), stiff1(0.0), stiff2(0.0);
+  scale = element->GetDesignSpace()->designMaterial->GetParameter(DesignElement::DENSITY);
+  for(int i=-1; i < (int) neighbor.GetSize(); ++i)
+  {
+    switch(GetElement(i)->GetType())
+    {
+    case DesignElement::STIFF1:
+      stiff1 = GetElement(i)->GetDesign(DesignElement::SMART);
+      break;
+    case DesignElement::STIFF2:
+      stiff2 = GetElement(i)->GetDesign(DesignElement::SMART);
+      break;
+    default:
+      break;
+    }
+  }
+  stiff1 *= scale;
+  stiff2 *= scale;
+  if(!derivative)
+    return stiff1+stiff2-stiff1*stiff2;
+  else
+  {
+    switch(GetElement(neigh_idx)->GetType())
+    {
+    case DesignElement::STIFF1:
+      return scale-scale*stiff2;
+    case DesignElement::STIFF2:
+      return scale-scale*stiff1;
+    default:
+      return 0.0;
+    }
+  }
+}
+
 double Function::Local::Identifier::CalcParamPSPosDef(int neigh_idx, bool derivative) const
 {
   double E1(0.0), E3(0.0), nu31(0.0);
@@ -2441,23 +2500,6 @@ double Function::Local::Identifier::CalcParamPSPosDef(int neigh_idx, bool deriva
     LOG_DBG3(func) << "L::I::CTT e_num=" << element->elem->elemNum << " E=" << E.ToString(0, false);
 
     double ret = E.Trace();
-
-//    switch(derivative ? de->GetType() : DesignElement::NO_DERIVATIVE)
-//    {
-//    case DesignElement::NO_DERIVATIVE:
-//      ret = E[0][0] + E[1][1] + E[2][2];
-//      break;
-//    case DesignElement::TENSOR11:
-//    case DesignElement::TENSOR22:
-//      ret = 1.0;
-//      break;
-//    case DesignElement::TENSOR33:
-//      ret = E[2][2];
-//      break;
-//    default:
-//      ret = E[0][0] + E[1][1] + E[2][2]; // isn't this always this sum and we can take out the switch?
-//      break;
-//    }
 
     assert(!(derivative && notation == DesignMaterial::HILL_MANDEL && ret != 1.0) || local->func_->GetDesignType() != DesignElement::TENSOR_TRACE);
     assert(!(derivative && notation == DesignMaterial::VOIGT && de->GetType() == DesignElement::TENSOR33 && ret != 0.5)  || local->func_->GetDesignType() != DesignElement::TENSOR_TRACE);
