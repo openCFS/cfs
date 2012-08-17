@@ -141,8 +141,6 @@ Function::Function(PtrParamNode pn)
   case GLOBAL_SLOPE:
   case SUM_MODULI:
   case GLOBAL_SUM_MODULI:
-  case LAMINATES_VOL:
-  case GLOBAL_LAMINATES_VOL:
   case SLACK:
     linear_ = true;
     break;
@@ -2141,7 +2139,6 @@ void Function::Local::Identifier::CalcSumModuliGradient(int neigh_idx, const Obj
 double Function::Local::Identifier::CalcLaminatesVolume(int neigh_idx, bool derivative) const
 {
   double scale(1.0), stiff1(0.0), stiff2(0.0);
-  scale = element->GetDesignSpace()->designMaterial->GetParameter(DesignElement::DENSITY);
   for(int i=-1; i < (int) neighbor.GetSize(); ++i)
   {
     switch(GetElement(i)->GetType())
@@ -2156,8 +2153,12 @@ double Function::Local::Identifier::CalcLaminatesVolume(int neigh_idx, bool deri
       break;
     }
   }
-  stiff1 *= scale;
-  stiff2 *= scale;
+  if(element->GetDesignSpace()->designMaterial->GetType() == DesignMaterial::LAMINATES)
+  {
+    scale = element->GetDesignSpace()->designMaterial->GetParameter(DesignElement::DENSITY);
+    stiff1 *= scale;
+    stiff2 *= scale;
+  }
   if(!derivative)
     return stiff1+stiff2-stiff1*stiff2;
   else
