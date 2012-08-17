@@ -105,12 +105,25 @@ def to_polygons(angle, data, x_offset, y_offset, scale):
     y = r * numpy.sin(-angle[i])
     tupl.append((x_offset + scale * x,y_offset + scale * y))
   return tupl    
-    
-  
-## visualize the orientational stiffness
-# @return the image
-def orientational_stiffness(centers, angle, data, nx, scale=-1):
 
+## give the corners to draw a rotated rectangles as polygon
+def to_rectangle(height, width, angle, x_offset, y_offset):
+  
+  # print "h=" + str(height) + " w=" + str(width) + " a=" + str(angle)
+  
+  height = numpy.max((height,1))
+  
+  tupl = []
+
+  for x in [(-1.0,-1.0),(1.0,-1.0),(1.0,1.0),(-1.0,1.0)]:
+    p = (x[0] * width/2, x[1] * height/2)
+    r = (cos(angle) * p[0] -sin(angle)*p[1], sin(angle) * p[0] + cos(angle) * p[1])
+    tupl.append((x_offset + r[0], y_offset + r[1]))
+
+  return tupl  
+  
+  
+def create_image(centers, nx):
   # zoom gives proper offsets of the elements
   min, max = find_corners(centers) # we assume the real grid to start at 0/0
   
@@ -121,6 +134,37 @@ def orientational_stiffness(centers, angle, data, nx, scale=-1):
   
   im = Image.new("RGB", dim, "white")
   draw = ImageDraw.Draw(im)
+  
+  return im, draw, dim, dx, dy, min, max
+  
+## visualize the orientational stiffness
+# @return the image
+def show_rot_rect(centers, s1, s2, angle, nx, scale=-1):
+
+  im, draw, dim, dx, dy, min, max = create_image(centers, nx)
+
+  length = 0.9 * (centers[1][0] - centers[0][0]) * dx
+  
+  for i in range(len(s1)):
+    
+    coord = centers[i]
+    x_off = (coord[0] + min[0]) * dx
+    y_off = (coord[1] + min[1]) * dy
+
+    # a
+    pol = to_rectangle(length * s1[i], length, angle[i], x_off, dim[1] - y_off) 
+    draw.polygon(pol, fill="black")
+    # b
+    pol = to_rectangle(length * s2[i], length, angle[i] + numpy.pi/2, x_off, dim[1] - y_off) 
+    draw.polygon(pol, fill="black")
+
+  return im  
+
+## visualize the orientational stiffness
+# @return the image
+def orientational_stiffness(centers, angle, data, nx, scale=-1):
+
+  im, draw, dim, dx, dy, min, max = create_image(centers, nx)
 
   max_val = numpy.max(data[:])
   min_val = numpy.min(data[:])
@@ -180,6 +224,11 @@ centers.append([1.0,1.0,0.0])
 
 #angle, data = perform_rotations(tensor, 10)
 
+f = h5py.File("/home/fwein/project/simp/hook.h5")
+s1 = get_element(f, "design_hom_rect_a_plain", "mech")
+s2 = get_element(f, "design_hom_rect_b_plain", "mech") 
+angle = get_element(f, "design_rotAngle_plain", "mech")
+ 
 #f = h5py.File("/home/fwein/project/simp/piezo_fmo.h5")
 # f = h5py.File("/home/fwein/tmp/l_sl-m_20-g_al-p_0.1-gamma_1e-07-tau_0.01.h5")
 #r  = centered_elements(f)

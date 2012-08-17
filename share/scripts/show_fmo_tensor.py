@@ -54,14 +54,15 @@ def create_vtk_poly_data(angle, data):
 def create_symmety_planes(minima, scale, add_planes):
   # code source: http://code.google.com/p/pythonxy/source/browse/src/python/vtk/DOC/Examples/Rendering/Cylinder.py
  
-  #minima = []
-  #minima.append(((0, 0), 1))
-  #minima.append(((0, numpy.pi/2), 1))
-  #minima.append(((numpy.pi/2, numpy.pi/2), 1))
+  minima = []
+  minima.append(((0, 0), 1))
+  minima.append(((0, numpy.pi/2), 1))
+  minima.append(((numpy.pi/2, numpy.pi/2), 1))
  
   actors = [] 
    
-  for i in range(len(minima)): 
+  for i in range(len(minima)):
+     
     # Create cylinder
     cylinder = vtk.vtkCylinderSource()
     cylinder.SetRadius(scale / 200)
@@ -82,12 +83,22 @@ def create_symmety_planes(minima, scale, add_planes):
         
     actor_c.GetProperty().SetColor(black)
     angle = minima[i][0]
+    phi   = angle[0]
+    theta = angle[1]
+
     
     print "angle: " + str(angle) + " -> " + str(to_vector(angle)) + " = " + str(minima[i][1])
     
-    actor_c.RotateX(90)
+    #actor_c.RotateX(90)
+    #actor_c.RotateY(angle[0] * 180/numpy.pi)
+    #actor_c.RotateZ(angle[1] * 180/numpy.pi)
+
+
+    # cylinders!!!
+    actor_c.RotateZ(90)
     actor_c.RotateY(angle[0] * 180/numpy.pi)
-    actor_c.RotateZ(angle[1] * 180/numpy.pi)
+    actor_c.RotateX(angle[1] * 180/numpy.pi)
+
 
     actors.append(actor_c)
 
@@ -108,9 +119,17 @@ def create_symmety_planes(minima, scale, add_planes):
       actor_d.GetProperty().SetColor(banana)
       actor_d.GetProperty().SetOpacity(0.5)
 
-      actor_d.RotateX(angle[0] * 180/numpy.pi)
-      actor_d.RotateY(angle[1] * 180/numpy.pi)
-      actor_d.RotateZ(0)
+      #actor_d.RotateX(angle[0] * 180/numpy.pi)
+      #actor_d.RotateY(angle[1] * 180/numpy.pi)
+      #actor_d.RotateZ(0)
+
+      # plane!
+      actor_d.RotateY(90)
+      actor_d.RotateZ(90)
+      actor_d.RotateY(angle[0] * 180/numpy.pi)
+      actor_d.RotateX(angle[1] * 180/numpy.pi)
+      
+
       
       actors.append(actor_d)
     
@@ -161,7 +180,7 @@ parser.add_argument("--tensor", help="tensor name (default 'mechTensor')", defau
 parser.add_argument("--scale", help="manual scaling factor", default=-1)
 parser.add_argument("--res", help="x-resolution (default 1500)", default=1500)
 parser.add_argument("--sampling", help="sampling rate (default 180", default=180)
-parser.add_argument("--show", help="default | ortho_norm | mono_norm (3D) | ortho_err | e21_normed (2D)", default="default")
+parser.add_argument("--show", help="default | ortho_norm | mono_norm (3D) | ortho_err | e21_normed (2D) | hom_rect", default="default")
 parser.add_argument("--notation", help="mandel | voigt (default 'mandel')", default="mandel")
 parser.add_argument("--symmetries", help="same options as for shows", default="default")
 parser.add_argument("--symmetries_max", help="maximum number of symmetries (default 999)", default=999)
@@ -211,8 +230,15 @@ else:
   
 #perform 2D and 3D
 if dim_2D:  
-  angle, data = perform_rotations(tensor, int(args.sampling), args.tensor, args.show)
-  im = orientational_stiffness(centers, angle, data, int(args.res), float(args.scale))
+  im = 0
+  if args.show == "hom_rect":
+    s1    = get_element(f, "design_hom_rect_a_plain", args.h5_region)
+    s2    = get_element(f, "design_hom_rect_b_plain", args.h5_region)
+    angle = get_element(f, "design_rotAngle_plain", args.h5_region)
+    im = show_rot_rect(centers, s1, s2, angle, int(args.res), float(args.scale))
+  else:
+    angle, data = perform_rotations(tensor, int(args.sampling), args.tensor, args.show)
+    im = orientational_stiffness(centers, angle, data, int(args.res), float(args.scale))
   if args.save:
     im.save(args.save)
   else:
