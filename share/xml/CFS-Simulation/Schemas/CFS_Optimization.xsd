@@ -229,6 +229,16 @@
 
           <xsd:attribute name="design" use="optional" type="DT_Design"/>
           
+          <xsd:attribute name="notation" default="voigt" use="optional">
+            <xsd:simpleType>
+              <xsd:restriction base="xsd:token">
+                <xsd:enumeration value="voigt"/>
+                <xsd:enumeration value="hill_mandel"/>
+              </xsd:restriction>
+            </xsd:simpleType>
+          </xsd:attribute>
+
+
           <!-- an optional attribute for the costfunction is the task: minimize or maximize -->
           <xsd:attribute name="task" use="optional" default="minimize">
             <xsd:simpleType>
@@ -1036,6 +1046,32 @@
                             <xsd:attribute name="value" use="required" type="xsd:float"/>
                           </xsd:complexType>
                         </xsd:element>
+                        <!-- data for hom_rect -->
+                        <xsd:element name="homRect" minOccurs="0" maxOccurs="1">
+                          <xsd:complexType>
+                            <xsd:sequence>
+                              <xsd:element name="data" minOccurs="9" maxOccurs="9">
+                                <xsd:complexType>
+                                  <xsd:attribute name="a" type="xsd:float" use="required"/>
+                                  <xsd:attribute name="b" type="xsd:float" use="required"/>
+                                  <xsd:attribute name="e11" type="xsd:float" use="required"/>
+                                  <xsd:attribute name="e12" type="xsd:float" use="required"/>
+                                  <xsd:attribute name="e22" type="xsd:float" use="required"/>
+                                  <xsd:attribute name="e33" type="xsd:float" use="required"/>
+                                </xsd:complexType>
+                              </xsd:element>
+                            </xsd:sequence>
+                            <!-- documents in with notation the tensor data is given. Internal storrage is Hill-Mandel -->
+                            <xsd:attribute name="notation" use="required">
+                              <xsd:simpleType>
+                                <xsd:restriction base="xsd:token">
+                                  <xsd:enumeration value="voigt"/>
+                                  <xsd:enumeration value="hill_mandel"/>
+                                </xsd:restriction>
+                              </xsd:simpleType>
+                            </xsd:attribute>
+                          </xsd:complexType>
+                        </xsd:element>
                       </xsd:sequence>                
                       <xsd:attribute name="type" use="required">
                         <xsd:simpleType>
@@ -1052,6 +1088,8 @@
                             <xsd:enumeration value="density-times-transversal-isotropic-boxed"/>
                             <xsd:enumeration value="density-times-rotated-transversal-isotropic-boxed"/>
                             <xsd:enumeration value="laminates"/>
+                            <!-- samples for homogenizes a-b rectangulars for interpolation. Requies homRect element -->
+                            <xsd:enumeration value="hom-rect"/>
                           </xsd:restriction>
                         </xsd:simpleType>
                       </xsd:attribute>
@@ -1283,6 +1321,9 @@
       <xsd:enumeration value="rotAngle"/>
       <xsd:enumeration value="stiff1"/>
       <xsd:enumeration value="stiff2"/>
+      <!-- similar to laminates, this describes for a homogenized cross the bar width a, see also Bendsoe, Kikuchi 1988 -->
+      <xsd:enumeration value="hom_rect_a"/>
+      <xsd:enumeration value="hom_rect_b"/>
     </xsd:restriction>
   </xsd:simpleType>
 
@@ -1318,6 +1359,8 @@
       <xsd:enumeration value="globalOscillation"/>
       <xsd:enumeration value="globalMole"/>
       <xsd:enumeration value="globalJump"/>
+      <xsd:enumeration value="globalTensorTrace"/>
+      <xsd:enumeration value="globalLaminatesVolume"/>
       <xsd:enumeration value="stress"/>
       <!-- The stress density is divided by the element volume and corresponds to density=true in the stress results -->
       <xsd:enumeration value="stressDensity"/>      

@@ -122,7 +122,7 @@ Optimization::Application TransferFunction::Default(DesignElement::Type type)
   case DesignElement::POLARIZATION:
     return Optimization::PIEZO_COUPLING;
   default:
-    throw Exception("invalid");
+    throw Exception("invalid request for transfer function");
   }
 }
 

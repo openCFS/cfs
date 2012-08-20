@@ -421,7 +421,7 @@ double DesignElement::GetPhysicalDesign(bool densForElec) const
   //const TransferFunction* tf = const_cast<const TransferFunction*>(space_->GetTransferFunction(type_, ErsatzMaterial::MECH, true));
  // return tf->Transform(this);
 
-  // we need the transder function
+  // we need the transfer function
 }
 
 bool DesignElement::HasPhysicalDesign() const

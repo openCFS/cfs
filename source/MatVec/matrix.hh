@@ -557,6 +557,11 @@ namespace CoupledField
     void SetPart( Global::ComplexPart part,
                   const Matrix<Double> & partMatrix );
 
+    /** give a specific row */
+    void GetRow(Vector<TYPE>& vec_out, UInt row) const;
+
+    void GetCol(Vector<TYPE>& vec_out, UInt col) const;
+
     //! Return a sub-part of the own matrix
     
     //! Copies a sub-matrix at the position (row, col) into subMat, 

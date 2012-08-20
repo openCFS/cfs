@@ -7,12 +7,12 @@
 #include "DesignElement.hh"
 #include "General/Enum.hh"
 #include "General/environment.hh"
+#include "MatVec/matrix.hh"
 
 namespace CoupledField {
 
   /** This implements a function from $R^n$ to $R^{d \times d}$ for transforming a vector of Parameters
    * to a material tensor.  */
-template <class TYPE> class Matrix;
 template <class TYPE> class StdVector;
 
   class DesignMaterial {
@@ -21,7 +21,7 @@ template <class TYPE> class StdVector;
     
     typedef enum { FMO, ISOTROPIC, LAME_ISOTROPIC, TRANSVERSAL_ISOTROPIC, TRANSVERSAL_ISOTROPIC_BOXED, DENSITY_TIMES_TRANSVERSAL_ISOTROPIC,
       DENSITY_TIMES_TRANSVERSAL_ISOTROPIC_BOXED, DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC_BOXED, DENSITY_TIMES_2D_TENSOR,
-      DENSITY_TIMES_2D_TENSOR_CONSTANT_TRACE, DENSITY_TIMES_ROTATED_2D_TENSOR, LAMINATES } Type;
+      DENSITY_TIMES_2D_TENSOR_CONSTANT_TRACE, DENSITY_TIMES_ROTATED_2D_TENSOR, LAMINATES, HOM_RECT } Type;
     
     /* posibilities for the isotropic plane in transversal isotropy
      * note that parameters EMODULISO, POISSONISO are used for that plane
@@ -122,6 +122,13 @@ template <class TYPE> class StdVector;
     /** Calculate the tensor for Laminates */
     inline void GetLaminatesTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction, Notation notation);
 
+    /** little helper for GetHomRectTensor(). We assume we are in Hill-Mandel world
+     * @param shape might also be the x or y component of the derivative! */
+    void ApplyHomRectTensor(Matrix<double>& E, const Vector<double>& shape) const;
+
+    /** Approximates the homogenized tensor of an a-b rectangle as used by Bendsoe and Kikuchi 1988 */
+    inline void GetHomRectTensor(Matrix<double>& t, DesignElement::Type direction, Notation notation);
+
     /** initialize the tensor with zeros */
     inline void ZeroTensor(Matrix<double>& t, SubTensorType subTensor);
     
@@ -153,6 +160,13 @@ template <class TYPE> class StdVector;
     
     /** Get the isotropic mass (tensor trace) out of the corresponding tensor entries */
     inline double GetIsoMass(double D, double G);
+
+    /** fills the row in hom_rect_samples_ */
+    void FillHomRectSamples(PtrParamNode homRect, unsigned int idx, const std::string& a, const std::string& b);
+
+    /** sampled values for a single hom-rect 9-element by the number of shape function. Notation is Hill-Mandel!
+     * 9 rows and 6 columns for with TENSOR11 being the first */
+    Matrix<double> hom_rect_samples_;
 
   };
 
