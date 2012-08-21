@@ -822,9 +822,9 @@ double Optimization::CalcConstraint(Condition* g)
     Excitation& excite = me->excitations[e];
     // in the evaluate once case only the last excitation
     double v = g->DoEvaluate(&excite) ? CalcFunction(excite, g, false) : 0.0;
-    double w = g->DoEvaluateAlways() ? excite.GetFactor(g) : 1.0;
+    double w = g->DoEvaluateAlways() ? excite.GetWeightedFactor(g) : 1.0;
     result += v * w;
-    LOG_DBG(opt) << "CC ex=" << e << " eval=" << g->DoEvaluate(&excite) << " v=" << v << " w=" << w << " -> " << result;
+    LOG_DBG(opt) << "CC ex=" << e << " eval=" << g->DoEvaluate(&excite) << " v=" << v << " alw=" << g->DoEvaluateAlways() << " w=" << w << " -> " << result;
   }
 
   g->SetValue(result);

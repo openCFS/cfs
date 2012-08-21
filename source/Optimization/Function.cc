@@ -182,6 +182,7 @@ void Function::Init()
 
   // -2 is unset, -1 is all, >= 0 the excitation index
   this->excite_ = -1;
+  this->excite_sensitive_ = false;
 
   this->stressType_ = MECH; // set in Condition
 
@@ -452,7 +453,6 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
       excite_ = me->excitations.GetSize() - 1; // once only at the last excitation
       break;
 
-    case MULTI_OBJECTIVE: // only to make the switch complete
     case COMPLIANCE:
     case OUTPUT:
     case DYNAMIC_OUTPUT:
@@ -464,7 +464,12 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
     case ELEC_ENERGY:
     case TEMPERATURE:
       assert(excite_index < 0);
-      excite_ = -1; // all excitations
+      if(!pn->Has("excitation") || pn->Get("excitation")->As<string>() == "all")
+        excite_ = -1; // all excitations
+      else {
+        excite_ = me->GetExcitation(pn->Get("excitation")->As<string>())->index;
+        excite_sensitive_ = true;
+      }
       break;
 
     case STRESS:
@@ -479,7 +484,12 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
         assert(excite_index == -2); // assert there is no conflict
         excite_ = me->GetExcitation(pn->Get("excitation")->As<string>())->index;
       }
+      excite_sensitive_ = true;
       break;
+
+    case MULTI_OBJECTIVE: // only to make the switch complete
+      break;
+
   }
 }
 
@@ -500,10 +510,7 @@ bool Function::DoEvaluateAlways() const
 
 bool Function::IsExcitationSensitive() const
 {
-  if(type_ == STRESS || type_ == STRESS_DENSITY)
-    return true;
-  else
-    return false;
+  return excite_sensitive_;
 }
 
 bool Function::IsAdjointBased() const

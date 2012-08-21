@@ -1499,7 +1499,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
         Vector<double>& rhs = forward.Get(excite, NULL, ts)->GetRealVector(Solution::RHS_VECTOR);
         double sp = 0.0;
         u.Inner(rhs, sp);
-        result += sp * excite.GetWeightedFactor(func) * GetStepWeight(ts);
+        result += sp * excite.GetFactor(func) * GetStepWeight(ts);
         LOG_DBG(em) << "CalcCompliance(): result=" << result << " sp=" << sp << " u=" << u.ToString() << " func=" << func->ToString();
       }
     }

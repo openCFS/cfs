@@ -621,6 +621,9 @@ class Function
      * -2 is for unset! */
     int excite_;
 
+    /** Is this function excitation sensitive? */
+    int excite_sensitive_;
+
     /** @see FactorOmegaOmega() */
     bool omega_omega_;
 
