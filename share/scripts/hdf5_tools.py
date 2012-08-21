@@ -118,6 +118,7 @@ def to_rectangle(height, width, angle, x_offset, y_offset):
   for x in [(-1.0,-1.0),(1.0,-1.0),(1.0,1.0),(-1.0,1.0)]:
     p = (x[0] * width/2, x[1] * height/2)
     r = (cos(angle) * p[0] -sin(angle)*p[1], sin(angle) * p[0] + cos(angle) * p[1])
+    # r = (cos(angle) * p[0] + sin(angle)*p[1], - sin(angle) * p[0] + cos(angle) * p[1])
     tupl.append((x_offset + r[0], y_offset + r[1]))
 
   return tupl  
@@ -139,27 +140,49 @@ def create_image(centers, nx):
   
 ## visualize the orientational stiffness
 # @return the image
-def show_rot_rect(centers, s1, s2, angle, nx, scale=-1):
+def show_rot_rect(centers, s1, s2, angle, show, nx, scale=-1):
 
   im, draw, dim, dx, dy, min, max = create_image(centers, nx)
 
   length = 0.9 * (centers[1][0] - centers[0][0]) * dx
   
+  sm = cmx.ScalarMappable(colors.Normalize(vmin=0.0, vmax=0.5), cmap=plt.get_cmap('jet'))
+  
   for i in range(len(s1)):
-    
+  
     coord = centers[i]
     x_off = (coord[0] + min[0]) * dx
     y_off = (coord[1] + min[1]) * dy
 
-    # a
-    pol = to_rectangle(length * s1[i], length, angle[i], x_off, dim[1] - y_off) 
-    draw.polygon(pol, fill="black")
+    v1 = s1[i,0]
+    v2 = s2[i,0]
+    theta = angle[i,0]
+    
+    #v1 = 0.5
+    #v2 = 0.01
+    #theta = 2.5
+    #v1 = 0.15
+    #v2 = 0.5
+    #theta = 0.2
+
+    
+
     # b
-    pol = to_rectangle(length * s2[i], length, angle[i] + numpy.pi/2, x_off, dim[1] - y_off) 
-    draw.polygon(pol, fill="black")
+    size = length * v2 if show == "thickness" else 2
+    pol = to_rectangle(size, length, theta + numpy.pi/2, x_off, dim[1] - y_off) 
+    draw.polygon(pol, fill="black" if show == "thickness" else color_code(sm, v2))
+
+    # a
+    size = length * v1 if show == "thickness" else 2
+    pol = to_rectangle(size, length, theta, x_off, dim[1] - y_off) 
+    draw.polygon(pol, fill="black" if show == "thickness" else color_code(sm, v1))
 
   return im  
 
+def color_code(color_map, value):
+  c = color_map.to_rgba(value)
+  return "rgb(" + str(int(255 * c[0])) + ", " + str(int(255*c[1])) + "," + str(int(255*c[2])) + ")"
+  
 ## visualize the orientational stiffness
 # @return the image
 def orientational_stiffness(centers, angle, data, nx, scale=-1):
@@ -179,15 +202,16 @@ def orientational_stiffness(centers, angle, data, nx, scale=-1):
     coord = centers[i]
     x_off = (coord[0] + min[0]) * dx
     y_off = (coord[1] + min[1]) * dy
-    m = numpy.max(data[i])
-    c = sm.to_rgba(m)
-    rgb = "rgb(" + str(int(255 * c[0])) + ", " + str(int(255*c[1])) + "," + str(int(255*c[2])) + ")"
+
     pol = to_polygons(angle[i], data[i], x_off, dim[1] - y_off, scale)
-    draw.polygon(pol, fill=rgb, outline="black")
+    m = numpy.max(data[i])
+    draw.polygon(pol, fill=color_code(sm, m), outline="black")
 
   return im  
 
-    
+
+  
+  
 # @param aux see  perform_cfs_rotation()
 # @return list of angles and list of data which might be aux   
 def perform_rotations(tensors, samples, name = "mechTensor", aux_code = "default"):
@@ -215,19 +239,21 @@ def perform_rotations(tensors, samples, name = "mechTensor", aux_code = "default
 # pylab.plot(data[:,0],data[:,1])
 # pylab.show()  
  
-tensor = []
-t = to_mech_tensor(eval("[1.0,0.5,0.0,0.0,0.0,0.0]"))
-tensor.append(to_mech_vector(t, as_array=True)) 
-centers = []
-centers.append([0.0,0.0,0.0])
-centers.append([1.0,1.0,0.0])
+#tensor = []
+#t = to_mech_tensor(eval("[1.0,0.5,0.0,0.0,0.0,0.0]"))
+#tensor.appt.end(to_mech_vector(t, as_array=True)) 
+#centers = []
+#centers.append([0.0,0.0,0.0])
+#centers.append([1.0,1.0,0.0])
 
 #angle, data = perform_rotations(tensor, 10)
 
-f = h5py.File("/home/fwein/project/simp/hook.h5")
-s1 = get_element(f, "design_hom_rect_a_plain", "mech")
-s2 = get_element(f, "design_hom_rect_b_plain", "mech") 
-angle = get_element(f, "design_rotAngle_plain", "mech")
+#f = h5py.File("/home/fwein/project/simp/hook.h5")
+#s1 = get_element(f, "design_stiff1_plain", "mech")
+#s2 = get_element(f, "design_stiff2_plain", "mech") 
+#angle = get_element(f, "design_rotAngle_plain", "mech")
+ 
+#t = to_mech_tensor(eval("[2.607069, 1.484705, 0.1626158, 0,0, 0.3030707]")) 
  
 #f = h5py.File("/home/fwein/project/simp/piezo_fmo.h5")
 # f = h5py.File("/home/fwein/tmp/l_sl-m_20-g_al-p_0.1-gamma_1e-07-tau_0.01.h5")

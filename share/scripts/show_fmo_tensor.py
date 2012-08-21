@@ -187,6 +187,8 @@ parser.add_argument("--symmetries_max", help="maximum number of symmetries (defa
 parser.add_argument("--symmetries_threshold", help="threshold value for symmetries (default 9999)", default=9999)
 parser.add_argument("--symmetries_mode", help="'minima' or 'all' subject to max and threshold (default 'minima'", default="minima")
 parser.add_argument("--symmetries_planes", help="'true' or 'false' for 3D also show planes to normals (default 'false')", default="false")
+parser.add_argument("--hom_access", help="the 'plain ' or 'smart' hom values (default 'smart')", default = "smart")
+parser.add_argument("--hom_show", help="'thickness' or 'color' (default 'thickness')", default="thickness")
 parser.add_argument("--save", help="save 'image.png' or VTK Poly Data file 'file.vtp'")
 args = parser.parse_args()
 
@@ -232,10 +234,10 @@ else:
 if dim_2D:  
   im = 0
   if args.show == "hom_rect":
-    s1    = get_element(f, "design_hom_rect_a_plain", args.h5_region)
-    s2    = get_element(f, "design_hom_rect_b_plain", args.h5_region)
+    s1    = get_element(f, "design_stiff1_" + args.hom_access, args.h5_region)
+    s2    = get_element(f, "design_stiff2_" + args.hom_access, args.h5_region)
     angle = get_element(f, "design_rotAngle_plain", args.h5_region)
-    im = show_rot_rect(centers, s1, s2, angle, int(args.res), float(args.scale))
+    im = show_rot_rect(centers, s1, s2, angle, args.hom_show, int(args.res), float(args.scale))
   else:
     angle, data = perform_rotations(tensor, int(args.sampling), args.tensor, args.show)
     im = orientational_stiffness(centers, angle, data, int(args.res), float(args.scale))

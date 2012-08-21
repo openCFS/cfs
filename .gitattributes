@@ -583,6 +583,7 @@ share/scripts/checkbashisms -text
 share/scripts/common.sh svneol=native#text/plain
 share/scripts/compile_mkl_test.sh.in -text
 share/scripts/continuation.py -text
+share/scripts/convert_fms_to_hom.py -text
 share/scripts/cplreader -text
 share/scripts/create-sparse-gid-mesh-2d-quadratic.py -text
 share/scripts/create_density.py -text
