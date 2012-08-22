@@ -373,7 +373,8 @@ class Function
         /** identifies the element by the design type. Works only for special neighborhoods! */
         DesignElement* GetElement(DesignElement::Type type);
 
-        /** Service function. Calculates the actual objective, based on function->type
+        /** Service function. Calculates the actual objective, based on function->type.
+         * Is very fast for grad_glob and power == 1
          * @param grad_glob only active when globalized. Not the globalization but the grad of the globalization
          *                  is applied, but based on the function evaluation, not the function gradient!
          * @param von_mises_stresss only used when the function is stress -> determined by ErsatzMaterial::CalcVonMisesStressGlobalizationFactor() */
@@ -417,8 +418,7 @@ class Function
         double CalcBumpGradient(int neigh_idx) const;
 
         /** sum of elasticity and shear moduli in parametrized elasticity tensor formulations */
-        double CalcSumModuli() const;
-        void CalcSumModuliGradient(int neigh_idx, const Objective* f, const Condition* g, double value);
+        double CalcSumModuli(int neigh_idx = -1, bool derivative = false) const;
 
         /** volume of material (strong phase for plane strain) in laminate homogenization formulas */
         double CalcLaminatesVolume(int neigh_idx = -1, bool derivative = false) const;

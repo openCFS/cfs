@@ -913,11 +913,17 @@ Function::Local::Local(Function* func, DesignSpace* space)
   case GLOBAL_SLOPE:
   case STRESS:
   case STRESS_DENSITY:
+    this->globalized_ = true;
+    break;
+
   case GLOBAL_SUM_MODULI:
   case GLOBAL_LAMINATES_VOL:
   case GLOBAL_TENSOR_TRACE:
+    if(power_ != 1.0)
+      info->Get("optimization/header")->Get(ParamNode::WARNING)->SetValue("function '" + fname + "' has local/power " + lexical_cast<string>(power_) + ", for sum one needs power=1");
     this->globalized_ = true;
     break;
+
 
   default:
     this->globalized_ = false;
@@ -1551,6 +1557,14 @@ double Function::Local::Identifier::EvalFunction(const Local* local, bool grad_g
   double fv = 0.0;
   Function* f = local->func_;
 
+  // short cut for the gradient in the 1-norm
+  if(grad_glob && local->power_ == 1.0)
+  {
+    LOG_DBG2(func) << "L:I:EF: global! p=" << local->power_ << " gg=" << grad_glob << " -> " << 1.0;
+
+    return 1.0;
+  }
+
   switch(f->type_)
   {
   case STRESS:
@@ -1635,6 +1649,9 @@ double Function::Local::Identifier::EvalFunction(const Local* local, bool grad_g
   case GLOBAL_JUMP:
   case STRESS:
   case STRESS_DENSITY:
+  case GLOBAL_SUM_MODULI:
+  case GLOBAL_LAMINATES_VOL:
+  case GLOBAL_TENSOR_TRACE:
   {
     // we normalize all values by the number of "constraints". Note that it is
     // sufficient for the function value, the gradient is then also right
@@ -1648,17 +1665,10 @@ double Function::Local::Identifier::EvalFunction(const Local* local, bool grad_g
 
     res *= factor;
 
-    LOG_DBG2(func) << "L:I:EF: global! bound=" << f->GetParameter() << " factor=" << factor
-                   << " grad_glob=" << grad_glob << " power=" << std::pow(v, local->GetPower()) << " -> " << res;
+    LOG_DBG2(func) << "L:I:EF: global! bound=" << f->GetParameter() << " fv=" << fv << " v=" << v << " p=" << p
+                   << " factor=" << factor << " gg=" << grad_glob << " power=" << std::pow(v, local->GetPower()) << " -> " << res;
 
     return res;
-  }
-  case GLOBAL_SUM_MODULI:
-  case GLOBAL_LAMINATES_VOL:
-  case GLOBAL_TENSOR_TRACE:
-  {
-    double factor = local->DoNormalizeGlobal() ? 1.0/local->virtual_elem_map.GetSize() : 1.0;
-    return fv*factor;
   }
   default:
     return fv; // check is done before
@@ -1680,8 +1690,8 @@ void Function::Local::Identifier::EvalGradient(const Local* local)
 
   // are we global? then we don't do anything if the globalization function gives zero
   // this applies the gradient of the globalization function (max(0, fv)^2)
-  // TODO Jannis: we don't need this part for globalSumModuli, globalTensorTrace and globalLaminatesVolume -> enhance performance?
-  double grad_glob_fv = local->IsGlobalized() ? EvalFunction(local, true) : 0.0;
+  // EvalFunction() is very fast for power=1!
+  double grad_glob_fv = local->IsGlobalized() ? EvalFunction(local, true) : -1.0; // if not global we don't need grad_glob_fv
 
   if(local->IsGlobalized() && grad_glob_fv == 0.0)
   {
@@ -1727,16 +1737,12 @@ void Function::Local::Identifier::EvalGradient(const Local* local)
       break;
 
     case SUM_MODULI:
-      CalcSumModuliGradient(n, f, g, 1.0);
-      continue;
-
     case GLOBAL_SUM_MODULI:
-      CalcSumModuliGradient(n, f, g, local->DoNormalizeGlobal() ? 1.0/local->virtual_elem_map.GetSize() : 1.0);
-      continue;
+      gv = CalcSumModuli(n, true);
+      break;
 
     case LAMINATES_VOL:
     case GLOBAL_LAMINATES_VOL:
-      grad_glob_fv = 1.0/local->virtual_elem_map.GetSize();
       gv = CalcLaminatesVolume(n, true);
       break;
 
@@ -1758,7 +1764,6 @@ void Function::Local::Identifier::EvalGradient(const Local* local)
 
     case TENSOR_TRACE:
     case GLOBAL_TENSOR_TRACE:
-      grad_glob_fv = 1.0/local->virtual_elem_map.GetSize();
       gv = CalcTensorTrace(n, local, true);
       break;
 
@@ -1772,19 +1777,20 @@ void Function::Local::Identifier::EvalGradient(const Local* local)
     }
 
     LOG_DBG2(func) << "L:I:EvalGrad: f=" << funct->type.ToString(funct->type_) << " de="
-                   << element->elem->elemNum << " sign=" << sign << " n=" << n
+                   << element->elem->elemNum << " sign=" << sign << " n=" << n << " des=" << DesignElement::type.ToString(GetElement(n)->GetType())
                    << " curr=" << GetElement(n)->elem->elemNum << " gv=" << gv;
 
     // post process the globalized functions
     if(local->IsGlobalized())
     {
-//      double factor = local->DoNormalizeGlobal() ? 1.0/local->virtual_elem_map.GetSize() : 1.0;
+      // actually the normalization is already in grad_glob_fv if power != 1.0!
+      double factor = local->DoNormalizeGlobal() && local->power_ == 1.0 ? 1.0/local->virtual_elem_map.GetSize() : 1.0;
 
-      gv  *= grad_glob_fv;
+      gv  *= grad_glob_fv * factor;
       LOG_DBG2(func) << "L:I:EvalGrad: f=" << funct->type.ToString(funct->type_) << " de="
                      << element->elem->elemNum << " sign=" << sign << " n=" << n
                      << " curr=" << GetElement(n)->elem->elemNum
-                     << " bound! grad_glob_gv=" << grad_glob_fv << " new gv=" << gv;
+                     << " bound! grad_glob_gv=" << grad_glob_fv << " factor=" << factor << " new gv=" << gv;
     }
 
     DesignElement* de = GetElement(n);
@@ -2104,8 +2110,18 @@ double Function::Local::Identifier::CalcBumpGradient(int neigh_idx) const
 }
 
 
-double Function::Local::Identifier::CalcSumModuli() const
+double Function::Local::Identifier::CalcSumModuli(int neigh_idx, bool derivative) const
 {
+  if(derivative)
+  {
+    DesignElement::Type type = GetElement(neigh_idx)->GetType();
+    if (type == DesignElement::EMODULISO || type == DesignElement::EMODUL)
+      return 1.0;
+    if(type == DesignElement::GMODUL)
+      return 2.0;
+    else return 0.0;
+  }
+
   double E1(0.0), E3(0.0), G(0.0);
   for(int i=-1; i < (int) neighbor.GetSize(); ++i)
   {
@@ -2134,14 +2150,6 @@ double Function::Local::Identifier::CalcSumModuli() const
   return E1+E3+2*G;
 }
 
-void Function::Local::Identifier::CalcSumModuliGradient(int neigh_idx, const Objective* f, const Condition* g, double value)
-{
-  DesignElement::Type type = GetElement(neigh_idx)->GetType();
-  if (type == DesignElement::EMODULISO || type == DesignElement::EMODUL)
-    GetElement(neigh_idx)->AddGradient(f, g, value);
-  else if (type == DesignElement::GMODUL)
-    GetElement(neigh_idx)->AddGradient(f, g, 2*value);
-}
 
 double Function::Local::Identifier::CalcLaminatesVolume(int neigh_idx, bool derivative) const
 {
