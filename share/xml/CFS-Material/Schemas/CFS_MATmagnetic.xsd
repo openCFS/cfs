@@ -46,7 +46,7 @@
   </xsd:complexType>
   
   <!-- ******************************************************************* -->
-  <!--   Definition of general tensor linear magnetic permeability-->
+  <!--   Definition of general tensor linear magnetic permeability         -->
   <!-- ******************************************************************* -->
   <xsd:complexType name="DT_MagTensor">
     <xsd:sequence>
@@ -69,7 +69,7 @@
   </xsd:complexType>
   
   <!-- ******************************************************************* -->
-  <!--   Definition of real and imaginery part orthotropic mechanical elasticity  -->
+  <!--   Definition of orthotropic magnetic permeability                   -->
   <!-- ******************************************************************* -->
   <xsd:complexType name="DT_MagOrthotropic">
     <xsd:sequence>
