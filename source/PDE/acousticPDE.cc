@@ -107,9 +107,11 @@ namespace CoupledField {
       param->Get("domain")->GetValue("geometryType", probGeo );
 
       // since we have no special subType as in mechanics, 
-      // the subType 9is equal to the geometry type
+      // the subType 9 is equal to the geometry type
       subType_ = probGeo;
 
+      // TODO: this was never initialized up to now! Don't know if this is OK. 
+      saveNodalSourcesRHS_ = false;
     }
 
 
@@ -1005,9 +1007,17 @@ namespace CoupledField {
       // get current Bc
       InhomNeumannBc const & actBc = *inBcs_[iBc];
 
+      std::string magnStr;
+      if ( isMechCoupled_ == true && formulation_ !=  ACOU_PRESSURE ) {
+        // reverse the sign to get a symmetric system
+        magnStr = "-(" + actBc.value + ")";
+      } else {
+        magnStr = actBc.value;
+      }
+
       //BaseForm *neumannBC = new VolumeSrcInt( amplitude, isaxi_ );
       LinearSurfForm *neumannBC =
-          new LinNeumannInt( actBc.value, actBc.phase,
+          new LinNeumannInt( magnStr, actBc.phase,
                              formulation_ == ACOU_PRESSURE ?
                                  ACOU_ACCELERATION : ACOU_VELOCITY,
                              DENSITY, isaxi_ );
@@ -1770,6 +1780,7 @@ namespace CoupledField {
 
     default:
       WARN( "Result type not computable by acoustic PDE" );
+      break;
     }
   }
 
