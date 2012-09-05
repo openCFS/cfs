@@ -986,6 +986,8 @@ namespace CoupledField {
 
         // only enter, at least one region is present
         if( listNode ) {
+          bool checkVolRegion = (listNode->GetName() == "regionList");
+
           // fetch saveBegin, saveEnd and saveInc
           saveBegin = listNode->Get("saveBegin")->MathParse<UInt>();
           saveEnd = listNode->Get("saveEnd")->MathParse<UInt>();
@@ -1001,6 +1003,15 @@ namespace CoupledField {
             postProcNames.Push_back( regionNodes[i]->Get("postProcId")->As<std::string>() );
             outDestNames.Push_back( regionNodes[i]->Get("outputIds")->As<std::string>() );
             writeResults.Push_back( regionNodes[i]->Get("writeResult")->As<std::string>() );
+            if ( checkVolRegion ) {
+              RegionIdType regionId = ptgrid_->GetRegion().Parse(regionNames[i]);
+              if ( regionId != NO_REGION_ID && subdoms_.Find(regionId) == -1 ) {
+                EXCEPTION("Cannot create result '" << quantity << "' on region '"
+                    << regionNames[i]
+                    << "', because this region is not assigned to the "
+                    << pdename_ << " PDE.")
+              }
+            }
           }
         }
       }
@@ -1014,14 +1025,6 @@ namespace CoupledField {
         {
           actList = ptgrid_->GetEntityList( entityType, regionNames[iRegion],
               defineType );
-
-          RegionIdType regionId = ptgrid_->GetRegion().Parse(regionNames[iRegion]);
-          if ( regionId != NO_REGION_ID && subdoms_.Find(regionId) == -1 ) {
-            EXCEPTION("Cannot create result '" << quantity << "' on region '"
-                << regionNames[iRegion]
-                << "', because this region is not assigned to the "
-                << pdename_ << " PDE.")
-          }
 
           shared_ptr<BaseResult> actSol;
           if( isComplex_ ) {
