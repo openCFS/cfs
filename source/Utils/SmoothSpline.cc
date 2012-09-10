@@ -145,7 +145,7 @@ namespace CoupledField
     Double res = 1e14;
 
     monotone = true;
-    std::cout << "Filer: " << nlFileName_ << ";  Delta: " << delta_ << std::endl;
+    //    std::cout << "File: " << nlFileName_ << ";  Delta: " << delta_ << std::endl;
 
     while ( monotone == true && iter <= 1000) {
       iter++;
