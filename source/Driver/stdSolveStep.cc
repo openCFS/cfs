@@ -249,8 +249,8 @@ class Hysteresis;
             // true is for transient simulation
             residualL2Norm = LineSearch(solInc, actSol, etaLineSearch);
           }
-
           // store the new solution
+
           PDE_.SaveSolution( actSol.GetPointer(), actSol.GetSize() );
 
           if ( lineSearch_ == "none" ) {
@@ -264,6 +264,10 @@ class Hysteresis;
 
             // calculation of residual error =======================================
             residualL2Norm = PDE_.GetRhsL2Norm(actRHS); // L2Norm of  ( f_i^(k+1) - f_a )
+          }
+          else {
+            algsys_->InitRHS(RhsLinVal_);
+            assemble_->AssembleNonLinRHS();  
           }
 
           // calculation of residual error =======================================
@@ -284,8 +288,9 @@ class Hysteresis;
           }
 
           // output of norms and data
-          if ( nonLinLogging_ == true )
+          if ( nonLinLogging_ == true ) {
             WriteNonLinIterToInfoXML(pdename_, iterationCounter, residualErr, incrementalErr, etaLineSearch);
+          }
 
           // boolean variable, holds condition if another iteration step is necessary
           performOneMoreStep =
@@ -1201,7 +1206,7 @@ class Hysteresis;
 
     Vector<Double> solOld(actSol);
     const UInt nrEtas = 5;
-    const Double eta[nrEtas] = {1, 0.5, 0.25, 0.125, 0.01};
+    const Double eta[nrEtas] = {1, 0.5, 0.25, 0.125, 0.1};
 		// initialize etaOpt or receive compiler warning
     Double etaOpt = 0.0;
     Double residualL2NormOpt = 1e15;

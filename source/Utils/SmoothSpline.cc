@@ -145,6 +145,8 @@ namespace CoupledField
     Double res = 1e14;
 
     monotone = true;
+    std::cout << "Filer: " << nlFileName_ << ";  Delta: " << delta_ << std::endl;
+
     while ( monotone == true && iter <= 1000) {
       iter++;
 
@@ -176,7 +178,7 @@ namespace CoupledField
       }
 
     }
-    //    std::cout << "muEnd = " << mu_ << std::endl;
+    //    std::cout << "muEnd = " << mu_ << " res= " << res << std::endl;
   }
 
 
@@ -533,7 +535,7 @@ namespace CoupledField
     Double theta;
 
     if (t < xStart_ || t > xEnd_) {
-      std::cerr << "x-Value is too small -> no convergence! (file: '" + nlFileName_ + "')\n";
+      //      std::cerr << "x-Value is too small/large -> no convergence! (file: '" + nlFileName_ + "')\n";
       //return -1;
       return 0;
     }

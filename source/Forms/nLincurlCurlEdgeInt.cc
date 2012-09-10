@@ -148,15 +148,35 @@ namespace CoupledField
 
           fac = jacDet * intWeights[actIntPt-1] * derivReluctivity * Babs;
           
-         
           Vector<Double> eB(3); eB = elemFlux * (1/Babs);
-          for ( UInt k = 0; k < curl.GetNumCols(); k++ ) 
-            for ( UInt i = 0; i < curl.GetNumRows(); i++ ) 
-              help[k] =  curl[i][k] * eB[i];
+
+          Matrix<Double> dMat;
+          dMat.DyadicMult( eB, eB );
+          dMat *= fac;
+
+          Matrix<Double> dbMat;
+          dbMat = dMat * curl;
+
+          for ( UInt k = 0; k < curl.GetNumRows(); k++ ) {
+            ptr1 = curl[k];
+            ptr2 = dbMat[k];
+            for ( UInt i = 0; i < curl.GetNumCols(); i++ ) {
+              aux1 = ptr1[i];
+              for ( UInt j = 0; j < dbMat.GetNumCols(); j++ ) {
+                elemMat[i][j] += aux1 * ptr2[j];
+              }
+            }
+          }
+
+// ==============  old implementation: wrong!! =================
+//           for ( UInt k = 0; k < curl.GetNumCols(); k++ ) 
+//             for ( UInt i = 0; i < curl.GetNumRows(); i++ ) 
+//               help[k] =  curl[i][k] * eB[i];
           
-          for ( UInt i = 0; i< curl.GetNumCols(); i++ ) 
-            for ( UInt j = 0; j< curl.GetNumCols(); j++ ) 
-              elemMat[i][j] += fac * help[i] * help[j];
+//           for ( UInt i = 0; i< curl.GetNumCols(); i++ ) 
+//             for ( UInt j = 0; j< curl.GetNumCols(); j++ ) 
+//               elemMat[i][j] += fac * help[i] * help[j];
+
         }
       }
 

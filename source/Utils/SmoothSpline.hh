@@ -57,9 +57,9 @@ namespace CoupledField {
 
     //! computes the magnetic reluctivity
     Double EvaluateFuncNu(Double t) {
-//        if (t > yMax_ ) {
-//          t = yMax_;
-//        }
+      if (t > yMax_ ) {
+         t = yMax_;
+      }
       if ( t < yEnd_ ) {
         return ( EvaluateFuncInv(t)/t );
       }
@@ -70,9 +70,9 @@ namespace CoupledField {
 
     //! computes the derivative of magnetic reluctivity
     Double EvaluatePrimeNu(Double t) {
-//       if (t > yMax_ ) 
-//         t = yMax_;
-
+      if (t > yMax_ ) 
+       t = yMax_;
+ 
       if ( t < yEnd_ ) {
         return ( (EvaluatePrimeInv(t)*t - EvaluateFuncInv(t))/(t*t) ); 
       }

@@ -4360,8 +4360,12 @@ namespace CoupledField {
     *nodeEqnInfo << "% Node-Nr.   Equation-Nrs." << std::endl;
     UInt numDof = 1;
 
+    //    std::cout << "PDEname: " << pdename_ << std::endl << std::endl;
+
     if ( pdename_ == "mechanic" )
       numDof = dim_;
+    else if ( pdename_ == "acoustic" )
+      numDof = 1;
     else if ( pdename_ == "fluidMech" ) {
       if ( dim_ == 3 )
         numDof = 4;
@@ -4386,6 +4390,8 @@ namespace CoupledField {
       *nodeEqnInfo << std::endl;
     }
     delete nodeEqnInfo;
+
+    //    std::cout << "PDEname: " << pdename_ << "  OK!" << std::endl << std::endl;
   }
 
 } // end of namespace
