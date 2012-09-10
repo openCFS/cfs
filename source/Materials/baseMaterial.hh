@@ -65,7 +65,7 @@ class ApproxData;
     virtual ~BaseMaterial();
 
 
-    //! Trigger finalization of mataterial (calculation of rotated matrices)
+    //! Trigger finalization of material (calculation of rotated matrices)
     virtual void Finalize() {};
 
     /** Print the material data which is actually read and stored in isSet */

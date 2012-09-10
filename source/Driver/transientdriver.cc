@@ -54,7 +54,7 @@ namespace CoupledField {
     firstdt_ = 0.0;
     restartIncr_ = 0;
     restartStep_ = 0;
-
+    
     // get parameter node
     PtrParamNode myNode = 
       param->GetByVal("sequenceStep", std::string("index"), sequenceStep)
@@ -70,7 +70,7 @@ namespace CoupledField {
     
     // Get time stepping information from parameter object
     numstep_ = myNode->Get( "numSteps")->MathParse<UInt>();
-    
+
     // Get save increment for restart file (optional)
     PtrParamNode restartNode = myNode->Get("writeRestartInc", ParamNode::PASS); 
     if (restartNode)
@@ -168,12 +168,9 @@ namespace CoupledField {
         }
         
         // Set curent value of timestep and time step size in the mathParser
-        domain->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
-                                           "t", steptime );
-        domain->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
-                                           "dt", dt );    
-        domain->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
-                                           "step", actTimeStep_ );    
+        mathParser_->SetValue( MathParser::GLOB_HANDLER, "t", steptime );
+        mathParser_->SetValue( MathParser::GLOB_HANDLER, "dt", dt );    
+        mathParser_->SetValue( MathParser::GLOB_HANDLER, "step", actTimeStep_ );    
         
         // Determine when to write logging information on terminal
         bool log = false;
@@ -245,7 +242,7 @@ namespace CoupledField {
           }
         }
         if (haltFlag) {
-          std::cout << std::endl << "Write a restart file after interuppting a simulation "
+          std::cout << std::endl << "Write a restart file after interrupting a simulation "
                     << "run with a HALTCFS-file at step:  " 
                     << actTimeStep_ <<" *********** " << std::endl;      
           

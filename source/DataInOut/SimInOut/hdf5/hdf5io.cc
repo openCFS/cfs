@@ -82,6 +82,8 @@ hsize_t H5IO::maxChunkSize_= 100;
                                                                 \
     virtual ~HdfTypeConversion() {                              \
       CleanUp();                                                \
+      delete nativeType_;                                       \
+      delete stdType_;                                          \
     };                                                          \
                                                                 \
     const void * GetOutBufferPtr() {                            \

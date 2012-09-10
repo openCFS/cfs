@@ -14,7 +14,6 @@
 #include "Driver/singleDriver.hh"
 #include "General/environment.hh"
 #include "PDE/basePDE.hh"
-#include "Utils/mathParser/mathParser.hh"
 #include "staticdriver.hh"
 
 namespace CoupledField {
@@ -68,14 +67,6 @@ class AdjointParameters;
   // *****************
   void StaticDriver::SolveProblem(bool write_results, PtrParamNode given_analysis_id, AdjointParameters* adjointParams)
   {
-    // Set current value of time step and time step size in the mathParser
-    domain->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
-                                         "t", 0.0 );
-    domain->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
-                                         "dt", 0.0 );    
-    domain->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
-                                         "step", 0 );        
-
     // in the optimization case the step is given, otherwise it is created
     // store such that special steps can add non-lin stuff and optimization adjoints
     if(given_analysis_id == NULL)

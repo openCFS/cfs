@@ -3,7 +3,7 @@
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
 #include <assert.h>
- #include <stdlib.h>
+#include <stdlib.h>
 #include <cmath>
 #include <complex>
 #include <fstream>
@@ -36,7 +36,6 @@ namespace CoupledField
   MechanicMaterial::MechanicMaterial() : BaseMaterial() {
 
     materialDatabaseName_ = "Mechanics";
-    mHandle_ = mp_->GetNewHandle(true);
 
     //set the allowed material parameters
     isAllowed_.insert( DENSITY );
@@ -66,12 +65,20 @@ namespace CoupledField
     isAllowed_.insert( NONLIN_APPROXIMATION_TYPE );
     isAllowed_.insert( NONLIN_DATA_NAME );
     isAllowed_.insert( MAGNETOSTRICTION_NLCURVES );
-
   }
 
   MechanicMaterial::~MechanicMaterial() {
+    handleMap::iterator it = scalarStringHandlesReal_.begin(),
+                        itEnd = scalarStringHandlesReal_.end();
+    for ( ; it != itEnd; ++it ) {
+      mp_->ReleaseHandle(it->second);
+    }
 
-    mp_->ReleaseHandle(mHandle_);
+    it = scalarStringHandlesImag_.begin();
+    itEnd = scalarStringHandlesImag_.end();
+    for ( ; it != itEnd; ++it ) {
+      mp_->ReleaseHandle(it->second);
+    }
   }
 
   void MechanicMaterial::Finalize() {
@@ -493,6 +500,7 @@ namespace CoupledField
 
     default:
       EXCEPTION("fail");
+      return 0.0;
     }
   }
 
@@ -515,6 +523,7 @@ namespace CoupledField
 
     default:
       assert(false);
+      break;
     }
 
     return E11;
@@ -616,13 +625,14 @@ namespace CoupledField
     default:
       // PLAIN is unspecific
       subTensorNotAvailable(NO_MATERIAL, subTensor); // shall be clear
+      break;
     }
   }
  
 
   void MechanicMaterial::ComputeFullStiffTensor() {
 
-      Matrix<Complex> elasticityTensor;
+    Matrix<Complex> elasticityTensor;
 
     switch(symmetryType_)
     {
@@ -710,6 +720,7 @@ namespace CoupledField
     default:
       EXCEPTION( "Calculation of full stiffness matrix for symmetryType '"
                        << symmetryType_ << "' not implemented!" );
+      break;
     }
     
   }
@@ -763,6 +774,7 @@ namespace CoupledField
     }
     default:
       assert(false);
+      break;
     }
     return res;
   }
@@ -832,6 +844,7 @@ namespace CoupledField
 
     default:
       assert(false);
+      break;
     }
 
     return res;

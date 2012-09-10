@@ -34,7 +34,7 @@ namespace CoupledField {
     //! Destructor
     virtual ~MechanicMaterial();
 
-    //! Trigger finalization of mataterial (calculation of rotated matrices)
+    //! Trigger finalization of material (calculation of rotated matrices)
     void Finalize();
 
     //! set a scalar real material parameter
@@ -163,15 +163,6 @@ namespace CoupledField {
     //! Compute elasticity tensor from given parameters
     void ComputeFullStiffTensor();
 
-    
-    MathParser::HandleType mHandle_;
-    
-    Double density_;
-    Double PoissonRatio_;
-    Double RayleighAlpha_;
-    Double RayleighBeta_;
-    Double RayleighFrequency_;
-    Double lossTangens_;
 
     Complex scalarEmodulus_;
     Complex scalarLameLambda_;
